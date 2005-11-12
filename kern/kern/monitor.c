@@ -53,11 +53,11 @@ mon_kerninfo (int argc, char **argv, struct Trapframe *tf)
   extern char start[], etext[], edata[], end[];
 
   cprintf ("Special kernel symbols:\n");
-  cprintf ("  start %08x (virt)  %08x (phys)\n", start, start - KERNBASE);
-  cprintf ("  etext  %08x (virt)  %08x (phys)\n", etext, etext - KERNBASE);
-  cprintf ("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
-  cprintf ("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
-  cprintf ("Kernel executable memory footprint: %dKB\n",
+  cprintf ("  start %p (virt)  %p (phys)\n", start, start - KERNBASE);
+  cprintf ("  etext  %p (virt)  %p (phys)\n", etext, etext - KERNBASE);
+  cprintf ("  edata  %p (virt)  %p (phys)\n", edata, edata - KERNBASE);
+  cprintf ("  end    %p (virt)  %p (phys)\n", end, end - KERNBASE);
+  cprintf ("Kernel executable memory footprint: %ldKB\n",
 	   (end - start + 1023) / 1024);
   return 0;
 }

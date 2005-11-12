@@ -13,11 +13,13 @@ size_t strlen (const char *);
 void vprintfmt (void (*putch) (int, void *), void *putdat,
 		const char *fmt, va_list ap);
 int vcprintf (const char *fmt, va_list ap);
-int cprintf (const char *fmt, ...);
+int cprintf (const char *fmt, ...)
+	__attribute__((__format__ (__printf__, 1, 2)));
 
 void abort (void);
-void _panic (const char *file, int line, const char *fmt, ...);
-#define panic(...) _panic(__FILE__, __LINE__, __VA_ARGS__)
+void _panic (const char *file, int line, const char *fmt, ...)
+	__attribute__((__format__ (__printf__, 3, 4)));
+#define panic(fmt, varargs...) _panic(__FILE__, __LINE__, fmt, ##varargs)
 
 #define __stringify(s) #s
 #define stringify(s) __stringify(s)
