@@ -1,0 +1,23 @@
+OBJDIRS += lib lib/$(ARCH)
+
+include $(ARCH)/Makefrag
+
+#include lib/net/Makefrag
+#include lib/sqlite/Makefrag
+#include lib/pcre/Makefrag
+
+$(OBJDIR)/lib/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $(LIB_OBJFILES)

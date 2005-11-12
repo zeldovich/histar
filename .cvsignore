@@ -1,0 +1,5 @@
+*.d
+.bochsrc
+.gdbinit
+bochs.log
+obj

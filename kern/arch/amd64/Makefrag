@@ -1,0 +1,21 @@
+# -*-Makefile-*-
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/bootdata.c			\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/pmap.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/strlen.S			\
+	lib/memcpy.c				\
+	lib/memset.c				\
+	lib/printfmt.c				\
+	lib/strchr.c				\
+	lib/strcmp.c
+
+KERN_DEV :=					\
+	kern/dev/console.c			\
+	kern/dev/kclock.c			\
+	kern/dev/picirq.c

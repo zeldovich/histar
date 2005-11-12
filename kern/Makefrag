@@ -1,0 +1,88 @@
+# -*-Makefile-*-
+# Makefile fragment for JOS kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+
+OBJDIRS += kern
+
+KERN_LDFLAGS = -N -Ttext 0xffffffff801001e0 -e start -nostdlib
+
+ARCHDIR	:= kern/arch/$(ARCH)
+include $(ARCHDIR)/Makefrag
+
+KERN_GEN := kern/kern/printf.c kern/kern/monitor.c
+
+KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
+
+
+#			$(OBJDIR)/kern/appkernbin.c
+
+# Only build files if they exist.
+#KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
+
+# Binary program images to embed within the kernel.
+KERN_BINFILES := # user/hello
+
+KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
+KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
+
+KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
+
+# How to build kernel object files
+$(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/kern/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/dev/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: lib/$(ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+# How to build the kernel itself
+$(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) \
+		-b binary $(KERN_BINFILES)
+	$(OBJDUMP) -S $@ > $@.asm
+	$(NM) -n $@ > $@.sym
+
+# How to build the Bochs disk image
+$(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
+	dd if=/dev/zero of=$(OBJDIR)/kern/bochs.img~ count=10000 2>/dev/null
+	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/kern/bochs.img~ \
+		conv=notrunc 2>/dev/null
+	dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/bochs.img~ seek=1 \
+		conv=notrunc 2>/dev/null
+	mv $(OBJDIR)/kern/bochs.img~ $(OBJDIR)/kern/bochs.img
+
+all: $(OBJDIR)/kern/bochs.img
+#all: $(OBJDIR)/kern/kernel
+
+grub: $(OBJDIR)/jos-grub
+
+install-grub: $(OBJDIR)/jos-grub $(OBJDIR)/fs/fs.img
+	false
+	cp $(OBJDIR)/jos-grub /boot/jos
+
+$(OBJDIR)/jos-grub: $(OBJDIR)/kern/kernel
+	false
+	$(OBJCOPY) --adjust-vma=0x10000000 $^ $@
+
+# How to build the kernbin structures
+$(OBJDIR)/kern/appkernbin.c: kern/Makefrag
+	echo '#include <kern/kernbin.h>' >$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sed 's/obj\/\([^\/]*\)\/\(.*\)/extern const uint8_t _binary_obj_\1_\2_start[], _binary_obj_\1_\2_size[];/' >>$@
+	echo 'struct Kernbin kernbins[] = {' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | sed 's/obj\/\([^\/]*\)\/\(.*\)/{ "\2", _binary_obj_\1_\2_start, (int)_binary_obj_\1_\2_size },/' >>$@
+	echo "{ 0, 0, 0 } };" >>$@

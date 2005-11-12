@@ -1,0 +1,15 @@
+OBJDIRS += user
+
+$(OBJDIR)/user/%.o: user/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) -c -o $@ $<
+
+#$(OBJDIR)/user/%.o: user/%.cc
+#	@mkdir -p $(@D)
+#	$(CXX) $(USER_CXXFLAGS) -c -o $@ $<
+
+$(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)
+	$(LD) -o $@ $(LDFLAGS) $< $(LIBS)
+	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
+	$(NM) -n $@ > $@.sym
+

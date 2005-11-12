@@ -1,0 +1,51 @@
+
+* To configure bochs, you need --enable-x86-64:
+
+./configure --enable-disasm \
+        --enable-iodebug --enable-new-pit \
+        --disable-reset-on-triple-fault \
+        --enable-4meg-pages --enable-pae --enable-global-pages \
+        --enable-x86-64 \
+        --enable-all-optimizations \
+        --enable-x86-debugger \
+        --with-x11 \
+        --enable-instrumentation \
+        --enable-gdb-stub
+
+For the internal debugger (doesn't disassemble AMD64 code very well),
+replace --enable-gdb-stub with --enable-debugger:
+
+./configure --enable-disasm \
+        --enable-iodebug --enable-new-pit \
+        --disable-reset-on-triple-fault \
+        --enable-4meg-pages --enable-pae --enable-global-pages \
+        --enable-x86-64 \
+        --enable-all-optimizations \
+        --enable-x86-debugger \
+        --with-x11 \
+        --enable-instrumentation \
+        --enable-debugger
+
+On bochs 2.2, --enable-instrumentation doesn't compile, but CVS
+versions work.  Unfortunately, bochs doesn't seem to emulate AMD64
+very faithfully.  For example, the OpenBSD 3.7 floppy won't boot.
+
+* Binutils doesn't understand elf64, so use target x86_64-jos-linux:
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --enable-64-bit-bfd
+
+* Gcc requires --without-headers:
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --without-headers --with-newlib \
+        --disable-threads --disable-shared
+
+* GDB
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --enable-64-bit-bfd
+
+* AMD64 assembly intro:
+
+        http://www.x86-64.org/documentation/assembly
