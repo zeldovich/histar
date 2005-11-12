@@ -26,12 +26,12 @@
  *   n = 0 => page table
  *   n = 1 => page directory
  *   n = 2 => page directory pointer
- *   n = 3 => page map level 3
+ *   n = 3 => page map level 4
  */
 #define PDX(n, la) (((uintptr_t) (la)) >> (12 + 9 * (n)) & 0x1FF)
 
 /* page number field of address */
-#define PPN(la) PDX (la, 0)
+#define PPN(la) ((la) >> PGSHIFT)
 
 /* offset in page */
 #define PGOFF(la) (((uintptr_t) (la)) & 0xFFF)
