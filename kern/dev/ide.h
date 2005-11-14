@@ -47,6 +47,8 @@ struct identify_device {
     char model[40];	    // Words 27-46
     uint16_t pad2[13];	    // Words 47-59
     uint32_t lba_sectors;   // Words 60-61, assuming little-endian
+    uint16_t pad3[26];	    // Words 62-87
+    uint16_t udma_mode;	    // Word 88
 };
 
 #endif

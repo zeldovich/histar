@@ -167,8 +167,14 @@ void disk_init() {
 	ide_string_shuffle(identify_buf.id.model, sizeof(identify_buf.id.model));
 	ide_string_shuffle(identify_buf.id.firmware, sizeof(identify_buf.id.firmware));
 
-	cprintf("IDE device (%d sectors): %1.40s\n",
+	cprintf("IDE device (%d sectors, UDMA %s): %1.40s\n",
 		identify_buf.id.lba_sectors,
+		((identify_buf.id.udma_mode & (1 << 5)) ? "5" :
+		 (identify_buf.id.udma_mode & (1 << 4)) ? "4" :
+		 (identify_buf.id.udma_mode & (1 << 3)) ? "3" :
+		 (identify_buf.id.udma_mode & (1 << 2)) ? "2" :
+		 (identify_buf.id.udma_mode & (1 << 1)) ? "1" :
+		 (identify_buf.id.udma_mode & (1 << 0)) ? "0" : "none"),
 		identify_buf.id.model);
 
 	disk_bytes = identify_buf.id.lba_sectors;
