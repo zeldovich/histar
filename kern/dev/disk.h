@@ -15,8 +15,15 @@ typedef void (*disk_callback) (disk_io_status, void *, uint32_t, uint64_t, void 
 void disk_init();
 extern uint64_t disk_bytes;
 
-int disk_read(void *buf, uint32_t count, uint64_t offset, disk_callback cb, void *cbarg);
-int disk_write(void *buf, uint32_t count, uint64_t offset, disk_callback cb, void *cbarg);
+typedef enum {
+    op_none = 0,
+    op_read,
+    op_write
+} disk_op;
+
+int disk_io(disk_op op, void *buf,
+	    uint32_t count, uint64_t offset,
+	    disk_callback cb, void *cbarg);
 
 void disk_test();
 
