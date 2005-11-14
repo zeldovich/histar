@@ -18,4 +18,6 @@ KERN_LIB :=					\
 KERN_DEV :=					\
 	kern/dev/console.c			\
 	kern/dev/kclock.c			\
-	kern/dev/picirq.c
+	kern/dev/picirq.c			\
+	kern/dev/disk.c
+

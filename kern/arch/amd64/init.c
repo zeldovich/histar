@@ -3,6 +3,7 @@
 #include <machine/x86.h>
 #include <kern/lib.h>
 #include <dev/console.h>
+#include <dev/disk.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -119,9 +120,12 @@ init (void)
   idt_init ();
   cons_init ();
 
-  pmap_init ();
+  //pmap_init ();
 
   cprintf ("Hello world\n");
+
+  disk_init ();
+  disk_test ();
 
   abort ();
 }
