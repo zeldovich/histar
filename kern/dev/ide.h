@@ -51,4 +51,13 @@ struct identify_device {
     uint16_t udma_mode;	    // Word 88
 };
 
+// Bus-master physical region descriptor
+struct ide_prd {	// PRD must be 4-byte-aligned and not cross 64K
+    uint32_t addr;	// buffer must be 2-byte-aligned and not cross 64K
+    uint32_t count;	// bits 0:15 indicate byte count
+			// bits 16:30 are reserved (zero)
+			// bit 31 indicates end of PRD list
+};
+#define IDE_PRD_EOT	    (1 << 31)
+
 #endif
