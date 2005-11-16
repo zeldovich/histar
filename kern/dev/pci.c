@@ -106,11 +106,11 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 
 		    size = PCI_MAPREG_MEM_SIZE(rv);
 		    base = pci_alloc_aligned(&bus->mem_limit, size);
-		    cprintf("  mem region %d: %d bytes\n", regnum, size);
+		    //cprintf("  mem region %d: %d bytes\n", regnum, size);
 		} else {
 		    size = PCI_MAPREG_IO_SIZE(rv);
 		    base = pci_alloc_aligned(&bus->io_limit, size);
-		    cprintf("  io region %d: %d bytes\n", regnum, size);
+		    //cprintf("  io region %d: %d bytes\n", regnum, size);
 		}
 
 		pci_conf_write(busno, dev, func, bar, base);
