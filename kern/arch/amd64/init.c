@@ -4,6 +4,7 @@
 #include <kern/lib.h>
 #include <dev/console.h>
 #include <dev/disk.h>
+#include <dev/pci.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -124,7 +125,8 @@ init (void)
 
   cprintf ("Hello world\n");
 
-  disk_init ();
+  pci_init ();
+
   disk_test ();
 
   abort ();

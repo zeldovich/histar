@@ -58,6 +58,23 @@ struct ide_prd {	// PRD must be 4-byte-aligned and not cross 64K
 			// bits 16:30 are reserved (zero)
 			// bit 31 indicates end of PRD list
 };
-#define IDE_PRD_EOT	    (1 << 31)
+#define IDE_PRD_EOT	(1 << 31)
+
+// Registers in the bus-master register set
+#define IDE_BM_CMD_REG		0x00
+#define	IDE_BM_STAT_REG		0x02
+#define IDE_BM_PRDT_REG		0x04
+
+// Command register bits
+#define IDE_BM_CMD_WRITE	0x0c
+#define IDE_BM_CMD_START	0x01
+
+// Status register bits
+#define IDE_BM_STAT_SIMPLEX	0x80
+#define IDE_BM_STAT_D1_DMA	0x40
+#define IDE_BM_STAT_D0_DMA	0x20
+#define IDE_BM_STAT_INTR	0x04
+#define IDE_BM_STAT_ERROR	0x02
+#define IDE_BM_STAT_ACTIVE	0x01
 
 #endif

@@ -2,6 +2,7 @@
 #define JOS_KERN_DISK_H
 
 #include <machine/types.h>
+#include <dev/pci.h>
 
 // Support for only one data disk, at the moment
 
@@ -12,7 +13,7 @@ typedef enum {
 
 typedef void (*disk_callback) (disk_io_status, void *, uint32_t, uint64_t, void *);
 
-void disk_init();
+void disk_init(struct pci_func *pcif);
 extern uint64_t disk_bytes;
 
 typedef enum {

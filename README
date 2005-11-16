@@ -10,6 +10,7 @@
         --enable-x86-debugger \
         --with-x11 \
         --enable-instrumentation \
+        --enable-pci \
         --enable-gdb-stub
 
 For the internal debugger (doesn't disassemble AMD64 code very well),
@@ -24,6 +25,7 @@ replace --enable-gdb-stub with --enable-debugger:
         --enable-x86-debugger \
         --with-x11 \
         --enable-instrumentation \
+        --enable-pci \
         --enable-debugger
 
 On bochs 2.2, --enable-instrumentation doesn't compile, but CVS

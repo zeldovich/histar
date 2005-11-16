@@ -83,3 +83,6 @@ keyboard_serial_delay: 10
 #ne2k: ioaddr=0x300, irq=9, mac=b0:c4:20:00:00:01, ethmod=linux, ethdev=eth0
 
 ne2k: ioaddr=0x300, irq=9, mac=b0:c4:20:00:00:01, ethmod=null, ethdev=eth0
+
+i440fxsupport: enabled=1
+
