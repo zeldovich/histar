@@ -17,8 +17,7 @@ unknown (struct Trapframe *tfp, int trapno)
 }
 
 
-static void trap_field_symbols (void) __attribute__ ((unused));
-static void
+static void __attribute__((__unused__))
 trap_field_symbols (void)
 {
 #define TF_DEF(field)							\
