@@ -10,8 +10,6 @@
 // va->pa for DMA
 #include <machine/pmap.h>
 
-#define USE_IDE_PIO	0
-
 struct ide_op {
     disk_op op;
     void *buf;
@@ -44,8 +42,11 @@ ide_wait_ready(struct ide_channel *idec)
 	    break;
     }
 
-    if ((r & (IDE_STAT_DF | IDE_STAT_ERR)))
+    if ((r & (IDE_STAT_DF | IDE_STAT_ERR))) {
+	cprintf("IDE error: %02x\n", r);
 	return -1;
+    }
+
     return 0;
 }
 
@@ -121,42 +122,45 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     ide_wait_ready(idec);
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512, num_sectors);
 
-#if USE_IDE_PIO
-    /* PIO mode */
-    int r;
-    if (idec->current_op.op == op_write) {
-	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_WRITE);
-	r = ide_pio_out(idec, idec->current_op.buf, num_sectors);
-    } else {
-	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_READ);
-	r = ide_pio_in(idec, idec->current_op.buf, num_sectors);
-    }
-    ide_complete(idec, r == 0 ? disk_io_success : disk_io_failure);
-
-#else
-
+    // Create the physical region descriptor table
     idec->current_op.bm_prd.addr = va2pa(idec->current_op.buf);
-    idec->current_op.bm_prd.count = (idec->current_op.num_bytes & 0xffff) | IDE_PRD_EOT;
+    idec->current_op.bm_prd.count =
+	(idec->current_op.num_bytes & 0xffff) | IDE_PRD_EOT;
 
+    // Load table address
     outl(idec->bm_addr + IDE_BM_PRDT_REG, va2pa(&idec->current_op.bm_prd));
+
+    // Clear interrupt/error flags, enable DMA for disks
     outb(idec->bm_addr + IDE_BM_STAT_REG,
 	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
 
+    // Issue command to disk & DMA controller
     disk_op op = idec->current_op.op;
-    outb(idec->cmd_addr + IDE_REG_CMD, (op == op_read) ? IDE_CMD_READ_DMA : IDE_CMD_WRITE_DMA);
-    outb(idec->bm_addr + IDE_BM_CMD_REG, IDE_BM_CMD_START | ((op == op_read) ? 0 : IDE_BM_CMD_WRITE));
+    outb(idec->cmd_addr + IDE_REG_CMD,
+	 (op == op_read) ? IDE_CMD_READ_DMA : IDE_CMD_WRITE_DMA);
+    outb(idec->bm_addr + IDE_BM_CMD_REG,
+	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
 
-    // Busy-wait for command completion
+    // First wait for DMA completion
+    for (;;) {
+	uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
+	if ((dma_status & IDE_BM_STAT_ERROR)) {
+	    cprintf("IDE DMA error: %02x\n", dma_status);
+	    break;
+	}
+
+	if (!(dma_status & IDE_BM_STAT_ACTIVE))
+	    break;
+    }
+
+    // Stop DMA engine
+    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
+
+    // Wait for IDE command completion
     int r = ide_wait_ready(idec);
 
-    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
-    // Flush potential write buffering in the DMA bus-master
-    while ((inb(idec->bm_addr + IDE_BM_STAT_REG) & IDE_BM_STAT_ACTIVE))
-	;
-
     ide_complete(idec, r == 0 ? disk_io_success : disk_io_failure);
-#endif
 }
 
 // One global IDE channel and drive on it, for now
