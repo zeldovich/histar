@@ -16,7 +16,7 @@ idt_init (void)
     extern char trap_ec_entry_stub[], trap_noec_entry_stub[];
 
 #define	SET_TRAP_GATE(i, dpl)		\
-	SETGATE(idt[i], SEG_TG, GD_KT, &trap_entry_stubs[i].trap_entry_code[0], dpl)
+	SETGATE(idt[i], SEG_IG, GD_KT, &trap_entry_stubs[i].trap_entry_code[0], dpl)
 #define	SET_TRAP_CODE(i, ec_prefix)	\
 	memcpy(&trap_entry_stubs[i].trap_entry_code[0], trap_##ec_prefix##_entry_stub, 16)
 
