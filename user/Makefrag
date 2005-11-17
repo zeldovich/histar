@@ -8,6 +8,11 @@ $(OBJDIR)/user/%.o: user/%.c
 #	@mkdir -p $(@D)
 #	$(CXX) $(USER_CXXFLAGS) -c -o $@ $<
 
+$(OBJDIR)/user/%: user/%.S
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) -c -o $@.o $<
+	$(LD) -o $@ -nostdlib $@.o
+
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)
 	$(LD) -o $@ $(LDFLAGS) $< $(LIBS)
 	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
