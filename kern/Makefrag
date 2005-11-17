@@ -12,7 +12,9 @@ KERN_LDFLAGS = -N -Ttext 0xffffffff801001e0 -e start -nostdlib
 ARCHDIR	:= kern/arch/$(ARCH)
 include $(ARCHDIR)/Makefrag
 
-KERN_GEN := kern/kern/printf.c kern/kern/monitor.c
+KERN_GEN := kern/kern/printf.c \
+	    kern/kern/monitor.c \
+	    kern/kern/syscall.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 

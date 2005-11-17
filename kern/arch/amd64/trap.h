@@ -1,6 +1,8 @@
 #ifndef JOS_KERN_TRAP_H
 #define JOS_KERN_TRAP_H
 
+#include <machine/mmu.h>
+
 void idt_init();
 
 // Low-level trapframe jump in locore.S
@@ -31,5 +33,10 @@ void trapframe_pop(struct Trapframe *);
 // These are arbitrarily chosen, but with care not to overlap
 // processor defined exceptions or interrupt vectors.
 #define T_SYSCALL   48		// system call
+
+// For following user pointers in kernel-space
+extern int page_fault_mode;
+#define	PFM_NONE    0
+#define PFM_KILL    1
 
 #endif

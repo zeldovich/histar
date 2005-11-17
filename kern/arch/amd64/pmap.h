@@ -123,6 +123,16 @@ page2kva (struct Page *pp)
   return (char *) PHYSBASE + page2pa (pp);
 }
 
+/* This macro takes a user supplied address and turns it into
+ * something that will cause a fault if it is a kernel address.
+ * ULIM itself is guaranteed never to contain a valid page.
+ */
+#define TRUP(_p)						\
+({								\
+	register typeof((_p)) __m_p = (_p);			\
+	(uintptr_t) __m_p > ULIM ? (typeof(_p)) ULIM : __m_p;	\
+})
+
 #endif /* !__ASSEMBLER__ */
 
 #endif /* !JOS_INC_PMAP_H */

@@ -3,6 +3,7 @@
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <machine/x86.h>
+#include <kern/syscall.h>
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -41,9 +42,8 @@ idt_init (void)
 }
 
 static void
-trapframe_print (struct Trapframe *tf, int trap)
+trapframe_print (struct Trapframe *tf)
 {
-    cprintf("Trapframe (trap %02x):\n", trap);
     cprintf("rax %016lx  rbx %016lx  rcx %016lx\n", tf->tf_rax, tf->tf_rbx, tf->tf_rcx);
     cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n", tf->tf_rdx, tf->tf_rsi, tf->tf_rdi);
     cprintf("r8  %016lx  r9  %016lx  r10 %016lx\n", tf->tf_r8, tf->tf_r9, tf->tf_r10);
@@ -53,12 +53,48 @@ trapframe_print (struct Trapframe *tf, int trap)
     cprintf("rflags %016lx  err %08x\n", tf->tf_rflags, tf->tf_err);
 }
 
+int page_fault_mode = PFM_NONE;
+static void
+page_fault (struct Trapframe *tf)
+{
+    physaddr_t fault_va = rcr2();
+
+    if ((tf->tf_cs & 3) == 0) {
+	if (page_fault_mode == PFM_KILL) {
+	    cprintf("user-triggered kernel page fault, should kill thread\n");
+	    for (;;)
+		;
+	} else {
+	    panic("kernel page fault at VA %lx", fault_va);
+	}
+    } else {
+	cprintf("user process page-faulted at %lx\n", fault_va);
+	for (;;)
+	    ;
+    }
+}
+
 void
 trap_handler (struct Trapframe *tf)
 {
     uint32_t trapno = (tf->tf__trapentry_rip - (uint64_t)&trap_entry_stubs[0].trap_entry_code[0]) / 16;
 
-    trapframe_print (tf, trapno);
+    switch (trapno) {
+	case T_SYSCALL:
+	    tf->tf_rax =
+		syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx,
+			tf->tf_rcx, tf->tf_r8, tf->tf_r9);
+	    break;
+
+	case T_PGFLT:
+	    page_fault(tf);
+	    break;
+
+	default:
+	    cprintf("Unknown trap %d, trapframe:\n", trapno);
+	    trapframe_print(tf);
+	    // XXX should probably kill user thread
+    }
 }
 
 static void __attribute__((__unused__))
