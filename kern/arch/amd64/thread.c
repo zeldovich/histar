@@ -2,6 +2,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <inc/elf64.h>
 
 static void
 map_segment(uint64_t *pgmap, void *va, size_t len)
@@ -30,18 +31,43 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
     // Switch to target address space to populate it
     lcr3(t->cr3);
 
-    map_segment(t->pgmap, (void*) 0xff0000, PGSIZE);
+    // Map a stack
     map_segment(t->pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
 
-    extern char user_code[];
-    memcpy((void*) 0xff0000, user_code, PGSIZE);
+    Elf64_Ehdr *elf = (Elf64_Ehdr *) binary;
+    if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2)
+	panic("ELF magic mismatch");
+
+    int i;
+    Elf64_Phdr *ph = (Elf64_Phdr *) (binary + elf->e_phoff);
+    for (i = 0; i < elf->e_phnum; i++, ph++) {
+	if (ph->p_type != 1)
+	    continue;
+	if (ph->p_vaddr + ph->p_memsz < ph->p_vaddr)
+	    panic("elf segment overflow");
+	if (ph->p_vaddr + ph->p_memsz > ULIM)
+	    panic("elf segment over ULIM");
+
+	map_segment(t->pgmap, (void*) ph->p_vaddr, ph->p_memsz);
+    }
+
+    // Two passes so that map_segment() doesn't drop a partially-filled
+    // page from a previous ELF segment.
+    ph = (Elf64_Phdr *) (binary + elf->e_phoff);
+    for (i = 0; i < elf->e_phnum; i++, ph++) {
+	if (ph->p_type != 1)
+	    continue;
+
+	memcpy((void*) ph->p_vaddr, binary + ph->p_offset, ph->p_filesz);
+	memset((void*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+    }
 
     memset(&t->tf, 0, sizeof(t->tf));
     t->tf.tf_ss = GD_UD | 3;
     t->tf.tf_rsp = ULIM;
     t->tf.tf_rflags = 0;
     t->tf.tf_cs = GD_UT | 3;
-    t->tf.tf_rip = 0xff0000;
+    t->tf.tf_rip = elf->e_entry;
 }
 
 void

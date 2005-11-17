@@ -131,7 +131,7 @@ init (void)
   disk_test ();
 
   struct Thread t;
-  thread_create_first(&t, 0, 0);
+  THREAD_CREATE_EMBED(&t, user_utest);
   thread_run(&t);
 
   abort ();
