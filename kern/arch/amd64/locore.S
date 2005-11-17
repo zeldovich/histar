@@ -58,7 +58,7 @@ farptr: .long	RELOC(inlong)
 	movq	%rbp,tf_rbp(%rsp)
 	movq	%r12,tf_r12(%rsp)
 	movq	%r13,tf_r13(%rsp)
-	movq	%r14,tf_r13(%rsp)
+	movq	%r14,tf_r14(%rsp)
 	movq	%r15,tf_r15(%rsp)
 	.endm
 
@@ -78,7 +78,7 @@ farptr: .long	RELOC(inlong)
 	movq	tf_rbp(%rsp),%rbp
 	movq	tf_r12(%rsp),%r12
 	movq	tf_r13(%rsp),%r13
-	movq	tf_r13(%rsp),%r14
+	movq	tf_r14(%rsp),%r14
 	movq	tf_r15(%rsp),%r15
 	.endm
 
