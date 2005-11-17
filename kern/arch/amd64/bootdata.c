@@ -78,11 +78,12 @@ struct Tss tss = {
 };
 
 uint64_t gdt[] = {
-  [GD_KT >> 3] = SEG64 (SEG_X|SEG_R, 0),
-  [GD_UT >> 3] = SEG64 (SEG_X|SEG_R, 3),
-  [GD_D >> 3] = SEG32 (SEG_W, 0, 0xffffffff, 3),
-  [GD_TSS >> 3] = 0, 0,
-  //[GD_UT32 >> 3] = SEG32 (SEG_X|SEG_R, 0, 0xffffffff, 3),
+  [GD_KT >> 3]	    = SEG64 (SEG_X|SEG_R, 0),
+  [GD_UT >> 3]	    = SEG64 (SEG_X|SEG_R, 3),
+  [GD_D >> 3]	    = SEG32 (SEG_W, 0, 0xffffffff, 3),
+  [GD_TSS >> 3]	    = 0, 0,
+  //[GD_UT32 >> 3]  = SEG32 (SEG_X|SEG_R, 0, 0xffffffff, 3),
+  [GD_UD >> 3]	    = SEG64 (SEG_W, 3),
 };
 
 struct Pseudodesc gdtdesc = {
