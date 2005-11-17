@@ -46,14 +46,14 @@ PERL	:= perl
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
-CFLAGS	:= -g
+CFLAGS	:= -g -Wall -Werror
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) \
 	-I$(TOP)/inc/net -I$(TOP)/inc/net/ipv4
 
 # Linker flags for user programs
 LDEPS	:= $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a
-LDFLAGS := -nostdlib $(OBJDIR)/user/%.o -L$(OBJDIR)/lib
-LIBS	:= -ljos $(GCC_LIB)
+LDFLAGS := -nostdlib -L$(OBJDIR)/lib
+LIBS	:= $(OBJDIR)/lib/entry.o -ljos $(GCC_LIB)
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -106,7 +106,7 @@ OKDBAPPS =
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
-#include lib/Makefrag
+include lib/Makefrag
 include user/Makefrag
 #include fs/Makefrag
 #include asfs/Makefrag

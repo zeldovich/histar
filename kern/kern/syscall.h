@@ -1,7 +1,7 @@
 #ifndef JOS_KERN_SYSCALL_H
 #define JOS_KERN_SYSCALL_H
 
-#include <inc/syscall.h>
+#include <inc/syscall_num.h>
 #include <machine/types.h>
 
 uint64_t syscall(syscall_num num, uint64_t a1, uint64_t a2,
