@@ -1,6 +1,7 @@
 
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/thread.h>
 #include <kern/lib.h>
 #include <dev/console.h>
 #include <dev/disk.h>
@@ -128,6 +129,10 @@ init (void)
   pci_init ();
 
   disk_test ();
+
+  struct Thread t;
+  thread_create_first(&t, 0, 0);
+  thread_run(&t);
 
   abort ();
 }

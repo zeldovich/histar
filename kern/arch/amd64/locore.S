@@ -105,6 +105,19 @@ X\handler:
 	trap	0,1,unknownec
 	trap	0,0,unknown
 
+.globl	trapframe_pop
+trapframe_pop:
+	movq	%rdi,%rsp
+	callerrestore
+	calleerestore
+	addq	$tf_rip,%rsp
+	iretq
+
+.globl	user_code
+user_code:	// gets mapped at 0xff0000
+	movq	$0xff0000,%r11
+	call	*%r11
+
 // Local Variables:
 // comment-start: "// "
 // comment-char: ?/

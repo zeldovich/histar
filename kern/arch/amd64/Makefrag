@@ -5,7 +5,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/pmap.c
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/thread.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
