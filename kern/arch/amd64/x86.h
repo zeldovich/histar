@@ -178,11 +178,11 @@ rcr0(void)
 	return val;
 }
 
-static __inline uint32_t
+static __inline uint64_t
 rcr2(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr2,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr2,%0" : "=r" (val));
 	return val;
 }
 
