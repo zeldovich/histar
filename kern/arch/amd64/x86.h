@@ -23,8 +23,8 @@ static __inline void ltr(uint16_t sel) __attribute__((always_inline));
 static __inline void lcr0(uint32_t val) __attribute__((always_inline));
 static __inline uint32_t rcr0(void) __attribute__((always_inline));
 static __inline uint32_t rcr2(void) __attribute__((always_inline));
-static __inline void lcr3(uint32_t val) __attribute__((always_inline));
-static __inline uint32_t rcr3(void) __attribute__((always_inline));
+static __inline void lcr3(uint64_t val) __attribute__((always_inline));
+static __inline uint64_t rcr3(void) __attribute__((always_inline));
 static __inline void lcr4(uint32_t val) __attribute__((always_inline));
 static __inline uint32_t rcr4(void) __attribute__((always_inline));
 static __inline void tlbflush(void) __attribute__((always_inline));
@@ -187,16 +187,16 @@ rcr2(void)
 }
 
 static __inline void
-lcr3(uint32_t val)
+lcr3(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr3" : : "r" (val));
+	__asm __volatile("movq %0,%%cr3" : : "r" (val));
 }
 
-static __inline uint32_t
+static __inline uint64_t
 rcr3(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr3,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr3,%0" : "=r" (val));
 	return val;
 }
 
