@@ -121,7 +121,7 @@ init (void)
   idt_init ();
   cons_init ();
 
-  //pmap_init ();
+  pmap_init ();
 
   cprintf ("Hello world\n");
 

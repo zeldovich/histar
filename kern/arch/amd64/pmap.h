@@ -72,29 +72,16 @@ extern struct Pseudodesc gdtdesc;
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
-#define MAXBUDDYORDER	10
-#define BADBUDDYORDER	(MAXBUDDYORDER + 1)
-
-struct klabel;
 LIST_HEAD (Page_list, Page);
 struct Page
 {
   LIST_ENTRY (Page) pp_link;	/* free list link */
-  struct klabel *pp_label;
 
   // Ref is the count of pointers (usually in page table entries)
   // to this page.  This only holds for pages allocated using 
   // page_alloc.  Pages allocated at boot time using pmap.c's
   // boot_alloc do not have valid reference count fields.
-  uint16_t pp_ref;
-
-  // What order free list is this page on if pp_ref == 0
-  uint16_t pp_free_order;
-
-#ifdef PAGE_USAGE
-  char pp_name[PP_NAMESIZ];
-  int marked;
-#endif
+  uint32_t pp_ref;
 };
 
 extern struct Page *pages;
@@ -102,19 +89,12 @@ extern size_t npage;
 
 void pmap_init (void);
 
-inline int
-get_order (size_t size)
-{
-  int order;
-
-  size = (size - 1) >> (PGSHIFT - 1);
-  order = -1;
-  do {
-    size >>= 1;
-    order++;
-  } while (size);
-  return order;
-}
+void page_free (struct Page *pp);
+int  page_alloc (struct Page **pp_store);
+void page_decref (struct Page *pp);
+struct Page *page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store);
+void page_remove (uint64_t *pgmap, void *va);
+int  page_insert (uint64_t *pgmap, struct Page *pp, void *va, uint64_t perm);
 
 inline ppn_t
 page2ppn (struct Page *pp)

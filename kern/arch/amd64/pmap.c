@@ -23,8 +23,8 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
 struct Page *pages;		// Virtual address of physical page array
-static struct Page_list page_free_lists[MAXBUDDYORDER];
-				// Free lists of physical pages
+static struct Page_list page_free_list;
+				// Free list of physical pages
 
 static int
 nvram_read (int r)
@@ -97,70 +97,15 @@ boot_alloc (uint32_t n, uint32_t align)
 // (This function should only be called when pp->pp_ref reaches 0.)
 //
 void
-page_free (struct Page *pp, int order)
+page_free (struct Page *pp)
 {
-  struct Page *buddy;
-  int free_order;
-  int ppn, buddy_ppn;
-  int i;
-  if (order < 0 || order >= MAXBUDDYORDER)
-    panic ("Order is %d", order);
-
   if (pp->pp_ref) {
     cprintf ("page_free: attempt to free mapped page - nothing done");
     return;	   /* be conservative and assume page is still used */
   }
 
-  ppn = page2ppn (pp);
-
-  if (ppn & ((1 << order) - 1)) {
-    cprintf ("page_free: wrong ppn (%d) for order (%d) - nothing done",
-	     ppn, order);
-    return;	   /* be conservative and assume page is still used */
-  }
-
-#ifdef PAGE_USAGE
-  // memory usage stats
-  in_use_pages -= 1 << order;
-#endif
-
-  // Free up the labels on the now free pages
-  for (i = (1 << order); i > 0; i--) {
-#if 0
-    if (pp->pp_label) {
-      label_decref (&(pp->pp_label));
-      pp->pp_label = 0;
-    }
-#endif
-#ifndef NDEBUG
-    // catch memory errors (expensive!)
-    // Note that we sometimes use a page table for a bit after we free it.
-    // So we can't actually blast the whole page, just the user part.
-    memset (page2kva (pp), 0xED, PGSIZE);
-#endif
-    pp++;
-  }
-
-  free_order = order;
-  buddy_ppn = ppn ^ (1 << free_order);
-  buddy = &pages[buddy_ppn];
-
-  // coalesce with buddies if we can.
-  while (buddy_ppn < npage
-	 && buddy->pp_ref == 0
-	 && buddy->pp_free_order == free_order
-	 && free_order < MAXBUDDYORDER - 1) {
-
-    LIST_REMOVE (buddy, pp_link);
-    ppn &= ~(1 << free_order);
-    free_order++;
-    buddy_ppn = ppn ^ (1 << free_order);
-    buddy = &pages[buddy_ppn];
-  }
-
-  // Now add ppn on to list free_order
-  pages[ppn].pp_free_order = free_order;
-  LIST_INSERT_HEAD (&page_free_lists[free_order], &pages[ppn], pp_link);
+  int ppn = page2ppn (pp);
+  LIST_INSERT_HEAD (&page_free_list, &pages[ppn], pp_link);
 }
 
 //
@@ -172,7 +117,6 @@ static void
 page_initpp (struct Page *pp)
 {
   memset (pp, 0, sizeof (*pp));
-  pp->pp_free_order = BADBUDDYORDER;
 }
 
 //
@@ -189,54 +133,16 @@ page_initpp (struct Page *pp)
 //
 // Hint: pp_ref should not be incremented
 int
-page_alloc (struct Page **pp_store, int order, const char *format, ...)
+page_alloc (struct Page **pp_store)
 {
-  int found_order = order;
-  struct Page *other_pp;
-  //cprintf("page alloc called\n");
-  assert (order >= 0 && order < MAXBUDDYORDER);
-
-  // Find some memory
-  while (!(*pp_store = LIST_FIRST (&page_free_lists[found_order]))) {
-    found_order++;
-    if (found_order >= MAXBUDDYORDER) {
-      return -E_NO_MEM;
-    }
-  }
-
-  // Put the extra memory back
-  while (found_order > order) {
-    found_order--;
-    other_pp = *pp_store + (1 << found_order);
-    other_pp->pp_free_order = found_order;
-    LIST_INSERT_HEAD (&page_free_lists[found_order], other_pp, pp_link);
-  }
-
+  *pp_store = LIST_FIRST(&page_free_list);
   if (*pp_store) {
     LIST_REMOVE (*pp_store, pp_link);
     page_initpp (*pp_store);
-
-#ifdef PAGE_USAGE
-    // memory usage stats
-    in_use_pages += 1 << order;
-    total_allocs++;
-    if (in_use_pages > max_pages) {
-      max_pages = in_use_pages;
-    }
-
-    va_list val;
-    va_start (val, format);
-    vsnprintf ((*pp_store)->pp_name, PP_NAMESIZ, format, val);
-    va_end (val);
-#endif
-    //cprintf("page alloc returned page %d\n", page2ppn(*pp_store));
     return 0;
   }
 
-  //page_usage ();
-
-  //warn("page_alloc() can't find memory");
-  //cprintf("page alloc returned no mem\n");
+  cprintf("page alloc returned no mem\n");
   return -E_NO_MEM;
 }
 
@@ -251,14 +157,10 @@ page_init (void)
 {
   int inuse;
   ptrdiff_t i;
-  size_t n;
 
-  n = npage * sizeof (struct Page);
+  size_t n = npage * sizeof (struct Page);
   pages = boot_alloc (n, PGSIZE);
   memset (pages, 0, n);
-
-  for (i = 0; i < MAXBUDDYORDER; i++)
-    LIST_INIT (&page_free_lists[i]);
 
   // Align boot_freemem to page boundary.
   boot_alloc (0, PGSIZE);
@@ -278,23 +180,20 @@ page_init (void)
       inuse = 0;
 
     pages[i].pp_ref = inuse;
-    pages[i].pp_label = 0;
-#ifdef PAGE_USAGE
-    pages[i].pp_name[0] = '?';
-    pages[i].pp_name[1] = '\0';
-#endif
 
-    if (!inuse) {
-      // Since pages[>i] is uninitialized, we need to make sure 
-      // page_free won't try to coalesce with any pages >i
-      if (i + 1 < npage)
-	page_initpp (&pages[i + 1]);
-      page_free (&(pages[i]), 0);
-    }
+    if (!inuse)
+      page_free(&pages[i]);
   }
-#ifdef PAGE_USAGE
-  in_use_pages = 0;
-#endif
+}
+
+//
+// Decrement the reference count on a page, freeing it if there are no more refs.
+//
+void
+page_decref (struct Page *pp)
+{
+  if (--pp->pp_ref == 0)
+    page_free (pp);
 }
 
 void
@@ -304,1065 +203,6 @@ pmap_init (void)
   page_init ();
 }
 
-
-
-// --- CUT
-#if 0
-
-
-//
-// Given pgdir, a pointer to a page directory,
-// walk the 2-level page table structure to find
-// the page table entry (PTE) for linear address la.
-// Return a pointer to this PTE.
-//
-// If the relevant page table doesn't exist in the page directory:
-//      - If create == 0, return 0.
-//      - Otherwise allocate a new page table, install it into pgdir,
-//        and return a pointer into it.
-//        (Questions: What data should the new page table contain?
-//        And what permissions should the new pgdir entry have?
-//        Note that we use the 486-only "WP" feature of %cr0, which
-//        affects the way supervisor-mode writes are checked.)
-//
-// This function abstracts away the 2-level nature of
-// the page directory by allocating new page tables
-// as needed.
-// 
-// Boot_pgdir_walk cannot fail.  It's too early to fail.
-// This function may ONLY be used during initialization,
-// before the page_free_list has been set up.
-//
-static pte_t *
-boot_pgdir_walk (pde_t * pgdir, uintptr_t la, int create)
-{
-  pde_t *pde;
-  pte_t *pgtab;
-
-  pde = &pgdir[PDX (la)];
-  if (*pde & PTE_P)
-    pgtab = (pte_t *) KADDR (PTE_ADDR (*pde));
-  else {
-    if (!create)
-      return 0;
-
-    // Must set PTE_U in directory entry so that we can define
-    // user segments with boot_map_segment.  If the
-    // pages really aren't meant to be user readable,
-    // the page table entries will reflect this.
-
-    pgtab = boot_alloc (PGSIZE, PGSIZE);
-    memset (pgtab, 0, PGSIZE);
-    *pde = PADDR (pgtab) | PTE_P | PTE_U | PTE_W;
-  }
-  return &pgtab[PTX (la)];
-}
-
-//
-// Map [la, la+size) of linear address space to physical [pa, pa+size)
-// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
-// Use permission bits perm|PTE_P for the entries.
-//
-// This function may ONLY be used during initialization,
-// before the page_free_list has been set up.
-//
-static void
-boot_map_segment (pde_t * pgdir, uintptr_t la, size_t size, physaddr_t pa,
-		  int perm)
-{
-  size_t i;
-
-  for (i = 0; i < size; i += PGSIZE)
-    *boot_pgdir_walk (pgdir, la + i, 1) = (pa + i) | perm | PTE_P;
-}
-
-// Set up a two-level page table:
-//    boot_pgdir is its linear (virtual) address of the root
-//    boot_cr3 is the physical adresss of the root
-// Then turn on paging.  Then effectively turn off segmentation.
-// (i.e., the segment base addrs are set to zero).
-// 
-// This function only sets up the kernel part of the address space
-// (ie. addresses >= UTOP).  The user part of the address space
-// will be setup later.
-//
-// From UTOP to ULIM, the user is allowed to read but not write.
-// Above ULIM the user cannot read (or write). 
-void
-i386_vm_init (void)
-{
-  pde_t *pgdir;
-  uint32_t cr0;
-  size_t n;
-
-  //////////////////////////////////////////////////////////////////////
-  // create initial page directory.
-  pgdir = boot_alloc (PGSIZE, PGSIZE);
-  memset (pgdir, 0, PGSIZE);
-  boot_pgdir = pgdir;
-  boot_cr3 = PADDR (pgdir);
-
-  //////////////////////////////////////////////////////////////////////
-  // Recursively insert PD in itself as a page table, to form
-  // a virtual page table at virtual address VPT.
-  // (For now, you don't have understand the greater purpose of the
-  // following two lines.)
-
-  // same for UVPT
-  // Permissions: kernel R, user R 
-  pgdir[PDX (UVPT)] = PADDR (pgdir) | PTE_U | PTE_P;
-
-  //////////////////////////////////////////////////////////////////////
-  // Map the kernel stack (symbol name "bootstack").  The complete VA
-  // range of the stack, [KSTACKTOP-PTSIZE, KSTACKTOP), breaks into two
-  // pieces:
-  //     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
-  //     * [KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE) -- not backed => faults
-  //     Permissions: kernel RW, user NONE
-  // Your code goes here:
-  boot_map_segment (pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
-		    PADDR (bootstack), PTE_W);
-
-  //////////////////////////////////////////////////////////////////////
-  // Map all of physical memory at KERNBASE. 
-  // Ie.  the VA range [KERNBASE, 2^32) should map to
-  //      the PA range [0, 2^32 - KERNBASE)
-  // We might not have 2^32 - KERNBASE bytes of physical memory, but
-  // we just set up the mapping anyway.
-  // Permissions: kernel RW, user NONE
-  // Your code goes here: 
-  boot_map_segment (pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
-
-  //////////////////////////////////////////////////////////////////////
-  // Make 'pages' point to an array of size 'npage' of 'struct Page'.
-  // The kernel uses this structure to keep track of physical pages;
-  // 'npage' equals the number of physical pages in memory.  User-level
-  // programs get read-only access to the array as well.
-  // You must allocate the array yourself.
-  // Map this array read-only by the user at linear address UPAGES
-  // (ie. perm = PTE_U | PTE_P)
-  // Permissions:
-  //    - pages -- kernel RW, user NONE
-  //    - the image mapped at UPAGES  -- kernel R, user R
-  // Your code goes here: 
-  n = npage * sizeof (struct Page);
-  pages = boot_alloc (n, PGSIZE);
-  memset (pages, 0, n);
-  //boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
-
-  //////////////////////////////////////////////////////////////////////
-  // Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-  // Map this array read-only by the user at linear address UENVS
-  // (ie. perm = PTE_U | PTE_P)
-  // Permissions:
-  //    - envs itself -- kernel RW, user NONE
-  //    - the image of envs mapped at UENVS  -- kernel R, user R
-
-  // LAB 3: Your code here.
-  n = NENV * sizeof (struct Env);
-  envs = boot_alloc (n, PGSIZE);
-  memset (envs, 0, n);
-  //boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
-
-  n = sizeof (struct UserData);
-  uData = boot_alloc (n, PGSIZE);
-  memset (uData, 0, n);
-  boot_map_segment (pgdir, UDATA, n, PADDR (uData), PTE_U);
-
-  // Check that the initial page directory has been set up correctly.
-  check_boot_pgdir ();
-
-  //////////////////////////////////////////////////////////////////////
-  // On x86, segmentation maps a VA to a LA (linear addr) and
-  // paging maps the LA to a PA.  I.e. VA => LA => PA.  If paging is
-  // turned off the LA is used as the PA.  Note: there is no way to
-  // turn off segmentation.  The closest thing is to set the base
-  // address to 0, so the VA => LA mapping is the identity.
-
-  // Current mapping: VA KERNBASE+x => PA x.
-  //     (segmentation base=-KERNBASE and paging is off)
-
-  // From here on down we must maintain this VA KERNBASE + x => PA x
-  // mapping, even though we are turning on paging and reconfiguring
-  // segmentation.
-
-  // Map VA 0:4MB same as VA KERNBASE, i.e. to PA 0:4MB.
-  // (Limits our kernel to <4MB)
-  pgdir[0] = pgdir[PDX (KERNBASE)];
-
-  // Install page table.
-  lcr3 (boot_cr3);
-
-  // Turn on paging.
-  cr0 = rcr0 ();
-  cr0 |=
-    CR0_PE | CR0_PG | CR0_AM | CR0_WP | CR0_NE | CR0_TS | CR0_EM | CR0_MP;
-  cr0 &= ~(CR0_TS | CR0_EM);
-  lcr0 (cr0);
-
-  // Current mapping: KERNBASE+x => x => x.
-  // (x < 4MB so uses paging pgdir[0])
-
-  // Reload all segment registers.
-  asm volatile ("lgdt gdt_pd+2");
-  asm volatile ("movw %%ax,%%gs"::"a" (GD_UD | 3));
-  asm volatile ("movw %%ax,%%fs"::"a" (GD_UD | 3));
-  asm volatile ("movw %%ax,%%es"::"a" (GD_KD));
-  asm volatile ("movw %%ax,%%ds"::"a" (GD_KD));
-  asm volatile ("movw %%ax,%%ss"::"a" (GD_KD));
-  asm volatile ("ljmp %0,$1f\n 1:\n"::"i" (GD_KT));	// reload cs
-  asm volatile ("lldt %%ax"::"a" (0));
-
-  // Final mapping: KERNBASE+x => KERNBASE+x => x.
-
-  // This mapping was only used after paging was turned on but
-  // before the segment registers were reloaded.
-  pgdir[0] = 0;
-
-  // Flush the TLB for good measure, to kill the pgdir[0] mapping.
-  lcr3 (boot_cr3);
-}
-
-//
-// Checks that the kernel part of virtual address space
-// has been setup roughly correctly(by i386_vm_init()).
-//
-// This function doesn't test every corner case,
-// in fact it doesn't test the permission bits at all,
-// but it is a pretty good sanity check. 
-//
-static physaddr_t va2pa (pde_t * pgdir, uintptr_t va);
-
-static void
-check_boot_pgdir (void)
-{
-  uint32_t i;
-  pde_t *pgdir;
-
-  pgdir = boot_pgdir;
-
-  // check phys mem
-  for (i = 0; KERNBASE + i != 0; i += PGSIZE)
-    assert (va2pa (pgdir, KERNBASE + i) == i);
-
-  // check kernel stack
-  for (i = 0; i < KSTKSIZE; i += PGSIZE)
-    assert (va2pa (pgdir, KSTACKTOP - KSTKSIZE + i) == PADDR (bootstack) + i);
-
-  // check for zero/non-zero in PDEs
-  for (i = 0; i < NPDENTRIES; i++) {
-    switch (i) {
-    case PDX (UVPT):
-    case PDX (UDATA):
-    case PDX (KSTACKTOP - 1):
-      assert (pgdir[i]);
-      break;
-    default:
-      if (i >= PDX (KERNBASE))
-	assert (pgdir[i]);
-      else
-	assert (pgdir[i] == 0);
-      break;
-    }
-  }
-  cprintf ("check_boot_pgdir() succeeded!\n");
-}
-
-// This function returns the physical address of the page containing 'va',
-// defined by the page directory 'pgdir'.  The hardware normally performs
-// this functionality for us!  We define our own version to help check
-// the check_boot_pgdir() function; it shouldn't be used elsewhere.
-
-physaddr_t
-va2pa (pde_t * pgdir, uintptr_t va)
-{
-  pte_t *p;
-
-  pgdir = &pgdir[PDX (va)];
-  if (!(*pgdir & PTE_P))
-    return ~0;
-  p = (pte_t *) KADDR (PTE_ADDR (*pgdir));
-  if (!(p[PTX (va)] & PTE_P))
-    return ~0;
-  return PTE_ADDR (p[PTX (va)]);
-}
-
-inline pte_t
-pte_cow (pte_t pte)
-{
-  return ((pte & (PTE_P | PTE_W)) ==
-	  (PTE_P | PTE_W) ? (pte & ~PTE_W) | PTE_COW : pte);
-}
-
-int
-page_cow (pde_t * pdep, pte_t ** ptepp)
-{
-  int r = 0;
-  pte_t *ptep = (ptepp ? *ptepp : KADDR (PTE_ADDR (*pdep)));
-  uint32_t pdx = pdep - curenv->env_pgdir;
-
-  if (debug_level > 150)
-    cprintf ("[%x] page_cow %x (%x)/%x (%x)\n", curenv ? curenv->env_id : 0,
-	     pdep, PTE_FLAGS (*pdep), ptep, PTE_FLAGS (*ptep));
-
-  // Page must be present.
-  assert (*pdep & PTE_P);
-  assert ((ptep - (pte_t *) KADDR (PTE_ADDR (*pdep))) < NPTENTRIES);
-
-  // Copy the page table, if necessary.
-  if (*pdep & PTE_COW) {
-    struct Page *pp, *npp;
-    pte_t *in, *out, *end_in;
-
-    in = (pte_t *) KADDR (PTE_ADDR (*pdep));
-    end_in = in + NPTENTRIES;
-
-    pp = pa2page (PTE_ADDR (*pdep));
-
-    if (pp->pp_ref == 1) {
-      *pdep = (*pdep & ~PTE_COW) | PTE_W;
-      for (; in != end_in; ++in)
-	*in = pte_cow (*in);
-
-    }
-    else {
-      int ptx = ptep - in;
-
-#ifdef PAGE_USAGE
-      if ((r =
-	   page_alloc (&npp, 0, "C%s",
-		       (pp->pp_name[0] ==
-			'C' ? pp->pp_name + 1 : pp->pp_name))) < 0)
-#else
-      if ((r = page_alloc (&npp, 0, "")) < 0)
-#endif
-	return r;
-
-      npp->pp_ref++;
-      pp->pp_ref--;
-      assert (pp->pp_ref > 0 && npp->pp_ref == 1);
-      *pdep = page2pa (npp) | (PTE_FLAGS (*pdep) & ~PTE_COW) | PTE_W;
-
-      out = (pte_t *) page2kva (npp);
-      ptep = out + ptx;
-      if (ptepp)
-	*ptepp = ptep;
-
-      for (; in != end_in; ++in, ++out) {
-	if (*in & PTE_P)
-	  pa2page (PTE_ADDR (*in))->pp_ref++;
-	*out = pte_cow (*in);
-      }
-    }
-
-    if (pdx < NPDENTRIES)
-      tlbflush ();
-  }
-
-  // Check if no PTE.
-  if (!ptepp)
-    return 0;
-
-  // Page must be present.
-  assert (*ptep & PTE_P);
-
-  // Now copy the page itself.
-  if (*ptep & PTE_COW) {
-    struct Page *pp, *npp;
-
-    pp = pa2page (PTE_ADDR (*ptep));
-
-    if (pp->pp_ref == 1)
-      *ptep = (*ptep & ~PTE_COW) | PTE_W;
-#ifdef PAGE_USAGE
-    else
-      if ((r =
-	   page_alloc (&npp, 0, "C%s",
-		       pp->pp_name + (pp->pp_name[0] == 'C'))) < 0)
-#else
-    else if ((r = page_alloc (&npp, 0, "")) < 0)
-#endif
-      return r;
-    else {
-      memcpy (page2kva (npp), page2kva (pp), PGSIZE);
-
-      pp->pp_ref--;
-      npp->pp_ref++;
-      *ptep = page2pa (npp) | (PTE_FLAGS (*ptep) & ~PTE_COW) | PTE_W;
-    }
-
-    if (pdx < NPDENTRIES)
-      invlpg (MKADDR (pdx, ptep - (pte_t *) KADDR (PTE_ADDR (*pdep)), 0));
-
-    return 1;
-  }
-  else {
-
-    return 0;
-  }
-}
-
-void
-pt_decref (pde_t * pdep)
-{
-  struct Page *pp = pa2page (PTE_ADDR (*pdep));
-
-  if (pp->pp_ref == 1) {
-    pte_t *ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-    pte_t *end_ptep = ptep + NPTENTRIES;
-    for (; ptep != end_ptep; ++ptep)
-      if (*ptep & PTE_P)
-	page_decref (pa2page (PTE_ADDR (*ptep)));
-  }
-
-  page_decref (pp);
-  *pdep = 0;
-}
-
-void
-pgdir_decref (pde_t ** pgdirp)
-{
-  struct Page *pp = pa2page (PADDR (*pgdirp));
-
-  if (pp->pp_ref == 1) {
-    pde_t *pdep = *pgdirp;
-    pde_t *end_pdep = pdep + PDX (UTOP);
-    static_assert (UTOP % PTSIZE == 0);
-    for (; pdep != end_pdep; ++pdep)
-      if (*pdep & PTE_P)
-	pt_decref (pdep);
-  }
-
-  page_decref (pp);
-  *pgdirp = 0;
-}
-
-// Leaves the page table all writable.
-void
-checkpoint_page_table (pde_t * in_pdep, pde_t * out_pdep)
-{
-  pde_t *end_pdep;
-  int r;
-
-  memcpy (out_pdep + PDX (UTOP), in_pdep + PDX (UTOP),
-	  sizeof (pde_t) * (NPDENTRIES - PDX (UTOP)));
-  // Mark this pgdir as a copy of in_pdep
-  out_pdep[PDX (SAVEPT)] = PADDR (in_pdep) | PTE_P | PTE_W;
-
-  end_pdep = in_pdep + PDX (UTOP);
-  for (; in_pdep < end_pdep; ++in_pdep, ++out_pdep) {
-    // Never want saved page tables to be COW
-    if ((*in_pdep & (PTE_P | PTE_COW)) == (PTE_P | PTE_COW))
-      if ((r = page_cow (in_pdep, 0)) < 0)
-	panic ("page_cow: %e", r);
-
-    // Skip if both present & shared
-    if ((*in_pdep & PTE_P) && (*out_pdep & PTE_P)
-	&& PTE_ADDR (*in_pdep) == PTE_ADDR (*out_pdep))
-      goto set;
-
-    // We know that if *out_pdep is present, we need to kill it;
-    // we know that if *in_pdep is present, we need to incref.
-    if (*in_pdep & PTE_P)
-      pa2page (PTE_ADDR (*in_pdep))->pp_ref++;
-
-    if (*out_pdep & PTE_P)
-      pt_decref (out_pdep);
-
-  set:
-    // Might need to set COW.
-    *out_pdep = *in_pdep;
-  }
-
-  tlbflush ();
-}
-
-void
-page_everything_is_horrible (pde_t * pdep)
-{
-  pde_t *end_pdep = pdep + PDX (UTOP);
-
-  // make page directory
-  for (; pdep != end_pdep; pdep++)
-    if ((*pdep & (PTE_P | PTE_W)) == (PTE_P | PTE_W))
-      *pdep = (*pdep & ~PTE_W) | PTE_COW;
-
-  // This pgdir is no longer a copy of in_pdep
-  pdep[PDX (SAVEPT)] = 0;
-
-  tlbflush ();
-}
-
-// Unfortunately we need both the pgdir we're chaning and the saved pgdir.
-// We need to be able to see if something was cow in the saved pgdir.  It would
-// be cow there if it was shared with its parent or something
-
-int
-set_pt_range_for_label (pde_t * pdep, pde_t * saved_pdep, int def_cmp,
-			klabel_t * cur_label, klabel_t * default_label,
-			uint32_t start_va, uint32_t end_va)
-{
-  uint32_t va;
-  pte_t *ptep = 0, *saved_ptep;
-  pte_t new_pte;
-  klabel_t *page_label;
-  int cmp, r;
-
-  va = start_va & ~(PGSIZE - 1);
-
-  pdep = &pdep[PDX (start_va)];
-  saved_pdep = &saved_pdep[PDX (start_va)];
-
-  if (*pdep & PTE_P) {
-    ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + PTX (start_va);
-    saved_ptep = (pte_t *) KADDR (PTE_ADDR (*saved_pdep)) + PTX (start_va);
-    assert (pa2page (PTE_ADDR (*pdep))->pp_ref ==
-	    (PTE_ADDR (*pdep) == PTE_ADDR (*saved_pdep) ? 2 : 1));
-    assert (pa2page (PTE_ADDR (*saved_pdep))->pp_ref ==
-	    (PTE_ADDR (*pdep) == PTE_ADDR (*saved_pdep) ? 2 : 1));
-  }
-
-  while (va < end_va) {
-
-    if (!(*pdep & PTE_P)) {
-      va = ((va + PTSIZE) & ~(PTSIZE - 1)) - PGSIZE;
-      goto loop_end;
-    }
-
-    // Do work
-    if (!(*ptep & PTE_P)) {
-      goto loop_end;
-    }
-    assert (*saved_ptep & PTE_P);
-
-    if (PTE_ADDR (*ptep) != PTE_ADDR (*saved_ptep))
-      // A message was delivered into this memory
-      // after checkpoint_page_table.  Leave it alone.
-      goto loop_end;
-
-    // Compare page label to current label.
-    page_label = pa2page (PTE_ADDR (*ptep))->pp_label;
-    if (page_label) {
-      cmp = label_cmp (page_label, cur_label);
-    }
-    else {
-      cmp = def_cmp;
-    }
-
-    // Decide on new PTE.
-    if (cmp < 0) {
-      new_pte = pte_cow (*saved_ptep) | PTE_U;
-    }
-    else if (cmp > 0) {
-      new_pte = *saved_ptep & ~PTE_U;
-    }
-    else {
-      // Note that for various reasons this page might be
-      // shared with someone, but not marked COW in the old
-      // page table.  So check the reference count, not the
-      // COW bit.
-      if ((*saved_ptep & (PTE_W | PTE_COW))
-	  && pa2page (PTE_ADDR (*saved_ptep))->pp_ref > 2) {
-	*saved_ptep = pte_cow (*saved_ptep);
-	if ((r = page_cow (saved_pdep, &saved_ptep)) < 0) {
-	  return r;
-	}
-      }
-      if (*saved_ptep & (PTE_W | PTE_COW)) {
-	new_pte = (*saved_ptep & ~PTE_COW) | PTE_U | PTE_W;
-      }
-      else {
-	new_pte = *saved_ptep | PTE_U;
-      }
-    }
-
-    // Assign to PTE.
-    if (new_pte == *ptep || (new_pte == ((*ptep & ~PTE_W) | PTE_COW)
-			     && (*pdep & PTE_COW))) {
-      goto loop_end;
-    }
-
-    // Need to assign to the page table.
-    // Watch out for COW page tables!  Make a copy lazily.
-    if ((*pdep & PTE_COW) && (new_pte ^ (*ptep | PTE_COW)) != PTE_U) {
-      int ptx = ptep - (pte_t *) KADDR (PTE_ADDR (*pdep));
-      if ((r = page_cow (pdep, 0)) < 0) {
-	return r;
-      }
-      ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + ptx;
-    }
-
-    if (PTE_ADDR (*ptep) != PTE_ADDR (new_pte)) {
-      pa2page (PTE_ADDR (new_pte))->pp_ref++;
-      page_decref (pa2page (PTE_ADDR (*ptep)));
-    }
-
-    *ptep = new_pte;
-
-    // Loop overhead
-  loop_end:
-    va += PGSIZE;
-    ptep++;
-    saved_ptep++;
-    if (!(va % PTSIZE)) {
-      pdep++;
-      saved_pdep++;
-      if (*pdep & PTE_P) {
-	ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-	saved_ptep = (pte_t *) KADDR (PTE_ADDR (*saved_pdep));
-      }
-// FIXME are these needed ????
-//                      assert(pa2page(PTE_ADDR(*pdep))->pp_ref == (PTE_ADDR(*pdep) == PTE_ADDR(*saved_pdep) ? 2 : 1));
-//                      assert(pa2page(PTE_ADDR(*saved_pdep))->pp_ref == (PTE_ADDR(*pdep) == PTE_ADDR(*saved_pdep) ? 2 : 1));
-    }
-  }
-  return 0;
-}
-
-int
-set_page_table_for_label (struct Env *e, klabel_t * l)
-{
-  // We have the additional complication that if the current label is <=
-  // the current/save we can affect the saved page table with allocs and
-  // deallocs.  To implement that the pgdirs shouldn't be COW.  But that
-  // means that any PTE's that were COW in the saved pagedir need to
-  // stay COW (they may be COW shared with parent).
-
-  int i, r;
-  int def_cmp;
-  pde_t *pdep = e->env_pgdir;
-  pde_t *saved_pdep = e->vm_saved_pgdir;
-  klabel_t *default_label = e->vm_saved_label->send;
-
-  def_cmp = label_cmp (default_label, l);
-
-  for (i = 0; i < VA_RANGES && e->active_va_ranges[i][1] != 1; i++) {
-    r =
-      set_pt_range_for_label (pdep, saved_pdep, def_cmp, l, default_label,
-			      e->active_va_ranges[i][0],
-			      e->active_va_ranges[i][1]);
-    if (r < 0) {
-      return r;
-    }
-  }
-
-  return 0;
-//      return (def_cmp == 0 ? 0 : ENV_SAVE_TAINTED);
-}
-
-int
-check_user_access (struct Env *env, const void *ptr, size_t len,
-		   pte_t pte_bits)
-{
-  uintptr_t addr = (uintptr_t) ptr;
-  uintptr_t end_addr = ROUNDUP (addr + len, PGSIZE);
-
-  if (end_addr > ULIM || addr > addr + len) {
-    return -E_FAULT;
-  }
-
-  while (addr < end_addr) {
-    pde_t pde = env->env_pgdir[PDX (addr)];
-    pte_t *pgtbl, *end_pgtbl;
-
-    if ((pde & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	|| (pte_bits && (pde & pte_bits) == 0)) {
-      return -E_FAULT;
-    }
-
-    pgtbl = (pte_t *) KADDR (PTE_ADDR (pde)) + PTX (addr);
-    end_pgtbl = (pte_t *) KADDR (PTE_ADDR (pde));
-    if (PDX (addr) == PDX (end_addr))
-      end_pgtbl += PTX (end_addr);
-    else
-      end_pgtbl += NPTENTRIES;
-
-    for (; pgtbl != end_pgtbl; ++pgtbl)
-      if ((*pgtbl & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	  || (pte_bits && (*pgtbl & pte_bits) == 0)) {
-	return -E_FAULT;
-      }
-
-    addr = ROUNDUP (addr + 1, PTSIZE);
-  }
-
-  return 0;
-}
-
-int
-set_user_mem (struct Env *dstenv, void *dst, const void *src, size_t len,
-	      int flag)
-{
-  pte_t *pdep, *ptep, *end_ptep;
-  int r, pgoff;
-
-  if (debug_level > 200)
-    cprintf ("[%x] copying to %x: %p+%u->%p\n", curenv->env_id,
-	     dstenv->env_id, src, len, dst);
-
-  if (dst > dst + len || (uintptr_t) dst + len > UTOP)
-    return -E_INVAL;
-
-  // Fuck my ass, we need to worry about PTE_COW here.
-
-  pdep = &dstenv->env_pgdir[PDX (dst)];
-  ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + PTX (dst);
-  end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-  pgoff = PGOFF (dst);
-
-  while (len > 0) {
-    size_t this_pg = PGSIZE - pgoff;
-    if (this_pg > len)
-      this_pg = len;
-
-    if ((*pdep & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	|| (*ptep & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	|| !(*pdep & (PTE_W | PTE_COW))
-	|| !(*ptep & (PTE_W | PTE_COW)))
-      return -E_DEST_FAULT;
-
-    if ((*pdep & PTE_COW) || (*ptep & PTE_COW))
-      if ((r = page_cow (pdep, &ptep)) < 0)
-	return r;
-
-    if (SET_USER_MEM_COPY == flag) {
-      memcpy (KADDR (PTE_ADDR (*ptep)) + pgoff, src, this_pg);
-    }
-    else if (SET_USER_MEM_CLEAR == flag) {
-      memset (KADDR (PTE_ADDR (*ptep)) + pgoff, 0, this_pg);
-    }
-    else {
-      return -E_INVAL;
-    }
-
-    src += this_pg;
-    len -= this_pg;
-    pgoff = 0;
-
-    if (++ptep == end_ptep) {
-      ++pdep;
-      ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-      end_ptep = ptep + NPTENTRIES;
-    }
-  }
-
-  //cprintf("[%x] done copying to %08x: %p+%u->%p\n", curenv->env_id, dstenv->env_id, src, len, dst);
-  return 0;
-}
-
-int
-page_prepare_to_user (struct Env *dstenv, void *dst, size_t len,
-		      bool_t pte_alloc)
-{
-  pde_t *pdep, *end_pdep;
-  pte_t *ptep, *end_ptep;
-  int r, pgoff;
-
-  // Ensures that writable PDEs and/or PTEs exist at all the user
-  // addresses in the range [dst, dst + len).
-
-  // Zero length is always OK
-  if (len == 0)
-    return 0;
-
-  // Check for user addresses
-  if (dst > dst + len || (uintptr_t) dst + len > UTOP) {
-    cprintf ("[%x] %p+%u: out of range\n", dstenv->env_id, dst, len);
-    return -E_INVAL;
-  }
-
-  // Make sure we can allocate/copy all affected PDEs before copying any
-  // data.
-  pdep = &dstenv->env_pgdir[PDX (dst)];
-  end_pdep = &dstenv->env_pgdir[PDX (dst + len - 1)] + 1;
-  for (; pdep != end_pdep; pdep++) {
-    if ((*pdep & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	|| !(*pdep & (PTE_W | PTE_COW))) {
-      cprintf ("[%x] %p+%u non-W PDE @%p (%x): %e\n", dstenv->env_id, dst,
-	       len, (pdep - dstenv->env_pgdir) << PDXSHIFT, *pdep,
-	       -E_DEST_FAULT);
-      return -E_DEST_FAULT;
-    }
-    else if (*pdep & PTE_COW) {
-      if ((r = page_cow (pdep, 0)) < 0) {
-	cprintf ("[%x] %p+%u COW PDE @%p: %e\n", dstenv->env_id, dst, len,
-		 (pdep - dstenv->env_pgdir) << PDXSHIFT, r);
-	return r;
-      }
-    }
-  }
-
-  if (!pte_alloc)
-    goto skip_pte;
-
-  // Make sure we can allocate all affected PTEs before copying any
-  // data.
-  pdep = &dstenv->env_pgdir[PDX (dst)];
-  ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + PTX (dst);
-  end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-  pgoff = PGOFF (dst);
-  while (len > 0) {
-    if ((*ptep & (PTE_P | PTE_U)) != (PTE_P | PTE_U)
-	|| !(*ptep & (PTE_W | PTE_COW))) {
-      cprintf ("[%x] non-W PTE @%p (%x): %e\n", dstenv->env_id,
-	       (pdep - dstenv->env_pgdir) << PDXSHIFT | (ptep - (pte_t *)
-							 KADDR (PTE_ADDR
-								(*pdep))) <<
-	       PTXSHIFT, *ptep, -E_DEST_FAULT);
-      return -E_DEST_FAULT;
-    }
-    else if (*ptep & PTE_COW) {
-      if ((r = page_cow (pdep, &ptep)) < 0) {
-	cprintf ("[%x] COW PTE @%p (%x): %e\n", dstenv->env_id,
-		 (pdep - dstenv->env_pgdir) << PDXSHIFT | (ptep - (pte_t *)
-							   KADDR (PTE_ADDR
-								  (*pdep))) <<
-		 PTXSHIFT, *ptep, r);
-	return r;
-      }
-    }
-    if (++ptep == end_ptep) {
-      ++pdep;
-      ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-      end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-    }
-    len -= MIN (PGSIZE - pgoff, len);
-    pgoff = 0;
-  }
-
-skip_pte:
-  return 0;
-}
-
-void
-_page_map_to_user (struct Env *dstenv, void *dst, void **srcpg, size_t len,
-		   size_t first_pgoff)
-{
-  pte_t *pdep, *ptep, *end_ptep;
-
-  if (debug_level > 200)
-    cprintf ("[%x] mapping to %x: %p+%u->%p\n", curenv->env_id,
-	     dstenv->env_id, srcpg, len, dst);
-
-  if (0 == len) {
-    return;
-  }
-
-  // Must already have called page_prepare_to_user.
-
-  //copy_to_user??
-  // Fuck my ass, we need to worry about PTE_COW here.
-
-  pdep = &dstenv->env_pgdir[PDX (dst)];
-  ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + PTX (dst);
-  end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-
-  while (len > 0) {
-    assert (*srcpg);
-
-    if (!PGOFF (dst) && !first_pgoff && len >= PGSIZE) {
-      if (*ptep & PTE_P) {
-	page_decref (pa2page (PTE_ADDR (*ptep)));
-	if (dstenv == curenv)
-	  invlpg (dst);
-      }
-      if (pa2page (PADDR (*srcpg))->pp_ref == 1)
-	*ptep = PADDR (*srcpg) | PTE_P | PTE_U | PTE_W;
-      else
-	*ptep = PADDR (*srcpg) | PTE_P | PTE_U | PTE_COW;
-      len -= PGSIZE;
-      dst += PGSIZE;
-      *srcpg = 0;
-      ++srcpg;
-    }
-    else {
-      size_t n = MIN (MIN (PGSIZE - first_pgoff, PGSIZE - PGOFF (dst)), len);
-      memcpy (KADDR (PTE_ADDR (*ptep)) + PGOFF (dst),
-	      *((char **) srcpg) + first_pgoff, n);
-      len -= n;
-      dst += n;
-      first_pgoff += n;
-      if (first_pgoff == PGSIZE) {
-	first_pgoff = 0;
-	page_decref (pa2page (PADDR (*srcpg)));
-	*srcpg = 0;
-	++srcpg;
-      }
-    }
-
-    if (!PGOFF (dst) && ++ptep == end_ptep) {
-      ++pdep;
-      ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-      end_ptep = ptep + NPTENTRIES;
-    }
-  }
-  if (0 != first_pgoff) {
-    page_decref (pa2page (PADDR (*srcpg)));
-    *srcpg = 0;
-  }
-
-  //cprintf("[%x] done copying to %08x: %p+%u->%p\n", curenv->env_id, dstenv->env_id, src, len, dst);
-}
-
-int
-page_map_from_user (struct Env *srcenv, void **dpa, void *srcp, size_t len)
-{
-  pte_t *pdep, *ptep, *end_ptep;
-  struct Page *pp, *ppnew;
-  int r, i;
-  size_t offset;
-  size_t to_copy;
-
-  pdep = &srcenv->env_pgdir[PDX (srcp)];
-  ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + PTX (srcp);
-  end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-
-  offset = PGOFF (srcp);
-
-  for (i = 0; len > 0; i++) {
-    // Is the page validly mapped?
-    if ((*ptep & (PTE_P | PTE_U)) != (PTE_P | PTE_U)) {
-      return -E_INVAL;
-    }
-
-    // Figure out how much will get copied in this iteration
-    to_copy = MIN (len, PGSIZE - offset);
-
-    // FIXME -- do we have the page-ref restriction ???
-    pp = pa2page (PTE_ADDR (*ptep));
-    if (pp->pp_ref > 1 || to_copy < PGSIZE / 4) {
-      if (pp->pp_ref > 1) {
-	warn ("map_page_from_user had to make a copy");
-      }
-      if ((r = page_alloc (&ppnew, 0, "pg frm usr")) < 0) {
-	return r;
-      }
-      ppnew->pp_ref++;
-      dpa[i] = page2kva (ppnew);
-      memcpy (((char *) dpa[i]) + offset, ((char *) page2kva (pp)) + offset,
-	      to_copy);
-    }
-    else {
-      // Just mark the source mapping as COW
-      dpa[i] = KADDR (PTE_ADDR (*ptep));
-      pp->pp_ref++;
-
-      *ptep = pte_cow (*ptep);
-    }
-    len -= to_copy;
-    offset = 0;
-
-    // Next page
-    ptep++;
-    if (ptep == end_ptep) {
-      pdep++;
-      ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-      end_ptep = (pte_t *) KADDR (PTE_ADDR (*pdep)) + NPTENTRIES;
-    }
-  }
-  return 0;
-}
-
-// --------------------------------------------------------------
-// Tracking of physical pages.
-// The 'pages' array has one 'struct Page' entry per physical page.
-// Pages are reference counted
-// --------------------------------------------------------------
-
-void
-print_buddylists (void)
-{
-  struct Page *pp;
-  int i;
-
-  for (i = 0; i < MAXBUDDYORDER; i++) {
-    cprintf ("Order %d: ", i);
-    LIST_FOREACH (pp, &page_free_lists[i], pp_link) {
-      cprintf ("%d ", page2ppn (pp));
-    }
-    cprintf ("\n");
-  }
-}
-
-void
-page_usage (void)
-{
-#ifdef PAGE_USAGE
-#define USAGESIZ 32
-  struct Page *px[USAGESIZ];
-  int i, j, n, least, pct[USAGESIZ];
-
-  for (i = 0; i < USAGESIZ; i++)
-    pct[i] = 0, px[i] = 0;
-
-  for (i = 0; i < npage; i++)
-    if (pages[i].pp_ref > 0) {
-      least = 0;
-      for (j = 0; j < USAGESIZ; j++)
-	if (!px[j])
-	  goto here;
-	else if (strcmp (px[j]->pp_name, pages[i].pp_name) == 0)
-	  goto found;
-	else if (pct[j] <= pct[least])
-	  least = j;
-      j = least;
-      n = cprintf ("%s %d", px[j]->pp_name, pct[j]);
-      cprintf ("%*s", 16 - n, "");
-    here:
-      px[j] = &pages[i];
-      pct[j] = 0;
-    found:
-      pct[j]++;
-    }
-
-  while (1) {
-    i = -1;
-    for (j = 0; j < USAGESIZ; j++)
-      if (px[j] && (i < 0 || pct[j] < pct[i]))
-	i = j;
-    if (i < 0)
-      break;
-    n = cprintf ("%s %d", px[i]->pp_name, pct[i]);
-    cprintf ("%*s", 16 - n, "");
-    px[i] = 0;
-  }
-
-  cprintf ("\n");
-#endif
-}
-
-#ifdef PAGE_USAGE
-int total_allocs = 0;
-int in_use_pages = 0;
-int max_pages = 0;
-#endif
-
-void
-dump_mem_stats (void)
-{
-#ifdef PAGE_USAGE
-  cprintf ("in use: %d, total allocs: %d, max_in_user: %d\n",
-	   in_use_pages, total_allocs, max_pages);
-#endif
-}
-
-
-
-//
-// Decrement the reference count on a page, freeing it if there are no more refs.
-//
-void
-page_decref (struct Page *pp)
-{
-  if (--pp->pp_ref == 0)
-    page_free (pp, 0);
-}
-
-//
-// This is boot_pgdir_walk with a different allocate function:
-// namely, it should use page_alloc() instead of boot_alloc().
-// Unlike boot_pgdir_walk, pgdir_walk can fail, so we have to
-// return pte via a pointer parameter.
 //
 // Stores address of page table entry in *ppte.
 // Stores 0 if there is no such entry or on error.
@@ -1372,51 +212,107 @@ page_decref (struct Page *pp)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (pde_t * pgdir, const void *va, int create, pte_t ** pte_store)
+pgdir_walk (uint64_t *pagemap, int pmlevel, const void *va, int create, uint64_t **pte_store)
 {
-  int r;
-  struct Page *pp;
-  pde_t *pde;
-  pte_t *pgtab;
+    assert(pmlevel >= 0 && pmlevel <= 3);
 
-  *pte_store = 0;
-  pde = &pgdir[PDX (va)];
-  if (*pde & PTE_P) {
-    // Worry about COW PDEs
-    if ((*pde & PTE_COW) && (r = page_cow (pde, 0)) < 0)
-      return r;
+    uint64_t *pm_entp = &pagemap[PDX(pmlevel, va)];
 
-    pgtab = (pte_t *) KADDR (PTE_ADDR (*pde));
-
-  }
-  else {
-    if (!create)
-      return 0;
-    if ((r = page_alloc (&pp, 0, "pt")) < 0) {
-      //warn("pgdir_walk: could not allocate page for va %lx", va);
-      return r;
+    // If we made it all the way down, return the PTE
+    if (pmlevel == 0) {
+	*pte_store = pm_entp;
+	return 0;
     }
-    pp->pp_ref++;
 
-    pgtab = (pte_t *) page2kva (pp);
+    // If an intermediate page map is missing, allocate it
+    uint64_t *pm_next;
+    if (!(*pm_entp & PTE_P)) {
+	if (!create) {
+	    *pte_store = 0;
+	    return 0;
+	}
 
-    // Make sure all those PTE_P bits are zero.
-    memset (pgtab, 0, PGSIZE);
+	struct Page *pp;
+	int r = page_alloc(&pp);
+	if (r < 0)
+	    return r;
+	pp->pp_ref++;
 
-    // The permissions here are overly generous, but they can
-    // be further restricted by the permissions in the page table 
-    // entries, if necessary.
-    *pde = page2pa (pp) | PTE_P | PTE_W | PTE_U;
-
-    // May need to save this entry in the vm_saved_pgdir as well.
-    if (pgdir[PDX (SAVEPT)]) {
-      pp->pp_ref++;
-      ((pte_t *) KADDR (PTE_ADDR (pgdir[PDX (SAVEPT)])))[PDX (va)] = *pde;
+	pm_next = (uint64_t *) page2kva(pp);
+	memset(pm_next, 0, PGSIZE);
+	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
     }
-  }
 
-  *pte_store = &pgtab[PTX (va)];
-  return 0;
+    pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
+    return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
+}
+
+//
+// Return the page mapped at virtual address 'va'.
+// If pte_store is not zero, then we store in it the address
+// of the pte for this page.  This is used by page_remove
+// but should not be used by other callers.
+//
+// Return 0 if there is no page mapped at va.
+//
+// Hint: the TA solution uses pgdir_walk and pa2page.
+//
+struct Page *
+page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store)
+{
+    uint64_t *ptep;
+    int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
+    if (r < 0)
+	panic("pgdir_walk(create=0) failed: %d", r);
+
+    if (pte_store)
+	*pte_store = ptep;
+
+    if (ptep == 0 || !(*ptep & PTE_P))
+	return 0;
+
+    return pa2page (PTE_ADDR (*ptep));
+}
+
+//
+// Invalidate a TLB entry, but only if the page tables being
+// edited are the ones currently in use by the processor.
+//
+static void
+tlb_invalidate (uint64_t *pgmap, void *va)
+{
+#if 0	    /* XXX enable this when environments are implemented */
+  // Flush the entry only if we're modifying the current address space.
+  if (!curenv || curenv->env_pgdir == pgdir)
+    invlpg (va);
+#endif
+}
+
+//
+// Unmaps the physical page at virtual address 'va'.
+//
+// Details:
+//   - The ref count on the physical page should decrement.
+//   - The physical page should be freed if the refcount reaches 0.
+//   - The pg table entry corresponding to 'va' should be set to 0.
+//     (if such a PTE exists)
+//   - The TLB must be invalidated if you remove an entry from
+//         the pg dir/pg table.
+//
+// Hint: The TA solution is implemented using page_lookup,
+//      tlb_invalidate, and page_decref.
+//
+void
+page_remove (uint64_t *pgmap, void *va)
+{
+    uint64_t *ptep;
+    struct Page *pp = page_lookup(pgmap, va, &ptep);
+    if (pp == 0)
+	return;
+
+    *ptep = 0;
+    tlb_invalidate (pgmap, va);
+    page_decref (pp);
 }
 
 //
@@ -1437,512 +333,21 @@ pgdir_walk (pde_t * pgdir, const void *va, int create, pte_t ** pte_store)
 //   pgdir_walk() and and page_remove().
 //
 int
-page_insert (pde_t * pgdir, struct Page *pp, void *va, int perm)
+page_insert (uint64_t *pgmap, struct Page *pp, void *va, uint64_t perm)
 {
-  int r;
-  pte_t *ptep;
+    uint64_t *ptep;
+    int r = pgdir_walk(pgmap, 3, va, 1, &ptep);
+    if (r < 0)
+	return r;
 
-  if ((r = pgdir_walk (pgdir, va, 1, &ptep)) < 0)
-    return r;
+    // We must increment pp_ref before page_remove, so that
+    // if pp is already mapped at va (we're just changing perm),
+    // we don't lose the page when we decref in page_remove.
+    pp->pp_ref++;
 
-  // We must increment pp_ref before page_remove, so that
-  // if pp is already mapped at va (we're just changing perm),
-  // we don't lose the page when we decref in page_remove.
-  pp->pp_ref++;
+    if (*ptep & PTE_P)
+	page_remove (pgmap, va);
 
-  if (*ptep & PTE_P)
-    page_remove (pgdir, va);
-
-  *ptep = page2pa (pp) | perm | PTE_P;
-  return 0;
-}
-
-//
-// Return the page mapped at virtual address 'va'.
-// If ppte is not zero, then we store in it the address
-// of the pte for this page.  This is used by page_remove
-// but should not be used by other callers.
-//
-// Return 0 if there is no page mapped at va.
-//
-// Hint: the TA solution uses pgdir_walk and pa2page.
-//
-struct Page *
-page_lookup (pde_t * pgdir, void *va, pte_t ** pte_store)
-{
-  int r;
-  pte_t *pte;
-
-  if ((r = pgdir_walk (pgdir, va, 0, &pte)) < 0)
-    panic ("pgdir_walk cannot fail now: %e", r);
-
-  if (pte == 0 || *pte == 0)
+    *ptep = page2pa (pp) | perm | PTE_P;
     return 0;
-  if (pte_store)
-    *pte_store = pte;
-  if (!(*pte & PTE_P) || PPN (PTE_ADDR (*pte)) >= npage) {
-    //warn("page_lookup: found bogus PTE 0x%08lx at pgdir %p va %p",
-    //*pte, pgdir, va);
-    return 0;
-  }
-
-  return pa2page (PTE_ADDR (*pte));
 }
-
-//
-// Unmaps the physical page at virtual address 'va'.
-//
-// Details:
-//   - The ref count on the physical page should decrement.
-//   - The physical page should be freed if the refcount reaches 0.
-//   - The pg table entry corresponding to 'va' should be set to 0.
-//     (if such a PTE exists)
-//   - The TLB must be invalidated if you remove an entry from
-//         the pg dir/pg table.
-//
-// Hint: The TA solution is implemented using page_lookup,
-//      tlb_invalidate, and page_decref.
-//
-void
-page_remove (pde_t * pgdir, void *va)
-{
-  struct Page *pp;
-  pte_t *pte;
-
-  if ((pp = page_lookup (pgdir, va, &pte)) == 0)
-    return;
-
-  *pte = 0;
-  tlb_invalidate (pgdir, va);
-  page_decref (pp);
-}
-
-//
-// Invalidate a TLB entry, but only if the page tables being
-// edited are the ones currently in use by the processor.
-//
-void
-tlb_invalidate (pde_t * pgdir, void *va)
-{
-  // Flush the entry only if we're modifying the current address space.
-  if (!curenv || curenv->env_pgdir == pgdir)
-    invlpg (va);
-}
-
-void
-page_check (void)
-{
-  struct Page *pp, *pp0, *pp1, *pp2;
-  int pp0_fo, pp1_fo, pp2_fo;
-  struct Page_list fls[MAXBUDDYORDER];
-  int i;
-
-  // should be able to allocate three pages
-  pp0 = pp1 = pp2 = 0;
-  assert (page_alloc (&pp0, 0, "t") == 0);
-  assert (page_alloc (&pp1, 0, "t") == 0);
-  assert (page_alloc (&pp2, 0, "t") == 0);
-
-  assert (pp0);
-  assert (pp1 && pp1 != pp0);
-  assert (pp2 && pp2 != pp1 && pp2 != pp0);
-
-  // temporarily steal the rest of the free pages
-  for (i = 0; i < MAXBUDDYORDER; i++) {
-    fls[i] = page_free_lists[i];
-    LIST_INIT (&page_free_lists[i]);
-  }
-  // Make sure that the buddies aren't free
-  pp = &pages[page2ppn (pp0) ^ 1];
-  pp0_fo = pp->pp_free_order;
-  pp->pp_free_order = BADBUDDYORDER;
-  pp = &pages[page2ppn (pp1) ^ 1];
-  pp1_fo = pp->pp_free_order;
-  pp->pp_free_order = BADBUDDYORDER;
-  pp2_fo = pp->pp_free_order;
-  pp = &pages[page2ppn (pp2) ^ 1];
-  pp->pp_free_order = BADBUDDYORDER;
-
-  // should be no free memory
-  assert (page_alloc (&pp, 0, "t") == -E_NO_MEM);
-
-  // there is no free memory, so we can't allocate a page table 
-  assert (page_insert (boot_pgdir, pp1, 0x0, 0) < 0);
-
-  // free pp0 and try again: pp0 should be used for page table
-  page_free (pp0, 0);
-  assert (page_insert (boot_pgdir, pp1, 0x0, 0) == 0);
-  assert (PTE_ADDR (boot_pgdir[0]) == page2pa (pp0));
-  assert (va2pa (boot_pgdir, 0x0) == page2pa (pp1));
-  assert (pp1->pp_ref == 1);
-  assert (pp0->pp_ref == 1);
-
-  // should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
-  assert (page_insert (boot_pgdir, pp2, (void *) PGSIZE, 0) == 0);
-  assert (va2pa (boot_pgdir, PGSIZE) == page2pa (pp2));
-  assert (pp2->pp_ref == 1);
-
-  // should be no free memory
-  assert (page_alloc (&pp, 0, "t") == -E_NO_MEM);
-
-  // should be able to map pp2 at PGSIZE because it's already there
-  assert (page_insert (boot_pgdir, pp2, (void *) PGSIZE, 0) == 0);
-  assert (va2pa (boot_pgdir, PGSIZE) == page2pa (pp2));
-  assert (pp2->pp_ref == 1);
-
-  // pp2 should NOT be on the free list
-  // could happen in ref counts are handled sloppily in page_insert
-  assert (page_alloc (&pp, 0, "t") == -E_NO_MEM);
-
-  // should not be able to map at PTSIZE because need free page for page table
-  assert (page_insert (boot_pgdir, pp0, (void *) PTSIZE, 0) < 0);
-
-  // insert pp1 at PGSIZE (replacing pp2)
-  assert (page_insert (boot_pgdir, pp1, (void *) PGSIZE, 0) == 0);
-
-  // should have pp1 at both 0 and PGSIZE, pp2 nowhere, ...
-  assert (va2pa (boot_pgdir, 0) == page2pa (pp1));
-  assert (va2pa (boot_pgdir, PGSIZE) == page2pa (pp1));
-  // ... and ref counts should reflect this
-  assert (pp1->pp_ref == 2);
-  assert (pp2->pp_ref == 0);
-
-  // pp2 should be returned by page_alloc
-  assert (page_alloc (&pp, 0, "t") == 0 && pp == pp2);
-
-  // unmapping pp1 at 0 should keep pp1 at PGSIZE
-  page_remove (boot_pgdir, 0x0);
-  assert (va2pa (boot_pgdir, 0x0) == ~0);
-  assert (va2pa (boot_pgdir, PGSIZE) == page2pa (pp1));
-  assert (pp1->pp_ref == 1);
-  assert (pp2->pp_ref == 0);
-
-  // unmapping pp1 at PGSIZE should free it
-  page_remove (boot_pgdir, (void *) PGSIZE);
-  assert (va2pa (boot_pgdir, 0x0) == ~0);
-  assert (va2pa (boot_pgdir, PGSIZE) == ~0);
-  assert (pp1->pp_ref == 0);
-  assert (pp2->pp_ref == 0);
-
-  // so it should be returned by page_alloc
-  assert (page_alloc (&pp, 0, "t") == 0 && pp == pp1);
-
-  // should be no free memory
-  assert (page_alloc (&pp, 0, "t") == -E_NO_MEM);
-
-  // forcibly take pp0 back
-  assert (PTE_ADDR (boot_pgdir[0]) == page2pa (pp0));
-  boot_pgdir[0] = 0;
-  assert (pp0->pp_ref == 1);
-  pp0->pp_ref = 0;
-
-  // give free list back
-  for (i = 0; i < MAXBUDDYORDER; i++) {
-    page_free_lists[i] = fls[i];
-  }
-  // free the pages we took
-  page_free (pp0, 0);
-  page_free (pp1, 0);
-  page_free (pp2, 0);
-
-  // Give the buddies back
-  pp = &pages[page2ppn (pp0) ^ 1];
-  pp->pp_free_order = pp0_fo;
-  pp = &pages[page2ppn (pp1) ^ 1];
-  pp->pp_free_order = pp1_fo;
-  pp = &pages[page2ppn (pp2) ^ 1];
-  pp->pp_free_order = pp2_fo;
-
-  cprintf ("page_check() succeeded!\n");
-}
-
-
-int
-count_used_pages (struct Env *env, int clear)
-{
-  int n = 0;
-#ifdef PAGE_USAGE
-  int i;
-  pte_t *pte, *end_pte;
-  pde_t *pde;
-
-  if (clear)
-    for (i = 0; i < npage; i++) {
-      pages[i].marked = 0;
-    }
-  for (pde = env->env_pgdir; pde != env->env_pgdir + PDX (UTOP); pde++) {
-    if (!(*pde & PTE_P))
-      continue;
-    pte = (pte_t *) KADDR (PTE_ADDR (*pde));
-    end_pte = pte + NPTENTRIES;
-    for (; pte != end_pte; pte++) {
-      if (*pte & PTE_P)
-	pa2page (PTE_ADDR (*pte))->marked = 1;
-    }
-
-  }
-  for (i = 0; i < npage; i++) {
-    if (pages[i].marked)
-      n++;
-  }
-#endif
-  return n;
-}
-
-void
-print_active_va_ranges (struct Env *e)
-{
-  int i;
-
-  cprintf ("[%x] VA Ranges:", e->env_id);
-  for (i = 0; i < VA_RANGES; i++) {
-    cprintf (" %08x-%08x", e->active_va_ranges[i][0],
-	     e->active_va_ranges[i][1]);
-  }
-  cprintf ("\n");
-}
-
-void
-init_va_ranges (struct Env *e)
-{
-  int i;
-
-  for (i = 0; i < VA_RANGES; i++) {
-    e->active_va_ranges[i][0] = 0;
-    e->active_va_ranges[i][1] = 1;
-  }
-}
-
-void
-activate_va_range (struct Env *e, uint32_t start_va, uint32_t end_va)
-{
-  int i, j;
-  uint32_t tmp;
-
-  // Make sure they're in the right order
-  if (end_va < start_va) {
-    tmp = end_va;
-    end_va = start_va;
-    start_va = tmp;
-  }
-  start_va &= ~(PGSIZE - 1);
-  end_va |= (PGSIZE - 1);
-
-  if (debug_level > 255) {
-    cprintf ("Adding to VA Range %08x-%08x\n", start_va, end_va);
-    print_active_va_ranges (e);
-  }
-
-  for (i = 0; i < VA_RANGES; i++) {
-    if (start_va > e->active_va_ranges[i][1] + 1) {
-      // The new range is after this range.  But there may be ranges
-      // between this range and the new range, so we keep looking.
-      // Unless this is an empty range.
-      if (e->active_va_ranges[i][0] == 0) {
-	e->active_va_ranges[i][0] = start_va;
-	e->active_va_ranges[i][1] = end_va;
-	break;
-      }
-    }
-    else if (end_va < e->active_va_ranges[i][0] - 1) {
-      // The new range is before this range.  If there are more slots,
-      // we should move everthing down, and insert it here.  If there
-      // aren't we should join the new range to either this range,
-      // or the previous one.
-      if (e->active_va_ranges[VA_RANGES - 1][0] == 0) {
-
-	// There are more slots, move the existing ones down
-	for (j = VA_RANGES - 2; j >= i; j--) {
-	  e->active_va_ranges[j + 1][0] = e->active_va_ranges[j][0];
-	  e->active_va_ranges[j + 1][1] = e->active_va_ranges[j][1];
-	}
-	e->active_va_ranges[i][0] = start_va;
-	e->active_va_ranges[i][1] = end_va;
-
-      }
-      else {
-	if (debug_level > 0) {
-	  warn
-	    ("Didn't fit exactly in/on a range and there were no more ranges, maybe there should be more ranges.");
-	  //cprintf("Adding to VA Range %08x-%08x\n", start_va, end_va);
-	  //              print_active_va_ranges(e);
-	  //              print_page_table_short(e->env_pgdir);
-	}
-	if (i > 0) {
-	  // If there's a previous range
-	  if ((e->active_va_ranges[i][0] - end_va) >
-	      (start_va - e->active_va_ranges[i - 1][1])) {
-	    // It goes in the previous one
-	    e->active_va_ranges[i - 1][1] = end_va;
-	    break;
-	  }			// else it belongs here, fall through
-	}
-	e->active_va_ranges[i][0] = start_va;
-      }
-      break;
-    }
-    else {
-      // The new range overlaps this one.  We should see if it joins
-      // this range to the adjacent ones.
-      if (e->active_va_ranges[i][0] > start_va) {
-	e->active_va_ranges[i][0] = start_va;
-      }
-      if (e->active_va_ranges[i][1] < end_va) {
-	e->active_va_ranges[i][1] = end_va;
-      }
-
-      if (i > 0 && e->active_va_ranges[i][0] - 1 <=
-	  e->active_va_ranges[i - 1][1]) {
-	// Join to the previous range.
-	e->active_va_ranges[i - 1][1] = e->active_va_ranges[i][1];
-	for (j = i; j < VA_RANGES - 1; j++) {
-	  e->active_va_ranges[j][0] = e->active_va_ranges[j + 1][0];
-	  e->active_va_ranges[j][1] = e->active_va_ranges[j + 1][1];
-	}
-	e->active_va_ranges[VA_RANGES - 1][0] = 0;
-	e->active_va_ranges[VA_RANGES - 1][1] = 1;
-	i--;
-      }
-
-      if (i < VA_RANGES - 1 && e->active_va_ranges[i + 1][0] &&
-	  e->active_va_ranges[i][1] + 1 >= e->active_va_ranges[i + 1][0]) {
-	// Join to the next range.
-	e->active_va_ranges[i][1] = e->active_va_ranges[i + 1][1];
-	for (j = i + 1; j < VA_RANGES - 2; j++) {
-	  e->active_va_ranges[j][0] = e->active_va_ranges[j + 1][0];
-	  e->active_va_ranges[j][1] = e->active_va_ranges[j + 1][1];
-	}
-	e->active_va_ranges[VA_RANGES - 1][0] = 0;
-	e->active_va_ranges[VA_RANGES - 1][1] = 1;
-      }
-
-      break;
-    }
-  }
-
-  if (debug_level > 255) {
-    cprintf ("After\n");
-    print_active_va_ranges (e);
-  }
-
-}
-
-void
-remove_va_range (struct Env *e, uint32_t start_va, uint32_t end_va)
-{
-  int i, j;
-
-  // Make sure they're in the right order
-  assert (start_va <= end_va);
-
-  start_va &= ~(PGSIZE - 1);
-  end_va = ROUNDUP (end_va, PGSIZE) - 1;
-
-  if (debug_level > 255) {
-    cprintf ("Removing VA Range %08x-%08x\n", start_va, end_va);
-    print_active_va_ranges (e);
-  }
-
-  for (i = 0; i < VA_RANGES; i++) {
-    if (end_va < e->active_va_ranges[i][0]) {
-      // It's before this range, but ranges are sorted.  Nothing to do
-      break;
-    }
-    else if (start_va > e->active_va_ranges[i][1]) {
-      // It's after this range, go to the next one.
-    }
-    else if (start_va <= e->active_va_ranges[i][0]) {
-      // It starts before or on this range
-      if (end_va < e->active_va_ranges[i][1]) {
-	// And it's contained within this range.
-	e->active_va_ranges[i][0] = end_va + 1;
-      }
-      else {
-	// And it encompases the entire range.
-	for (j = i; j < VA_RANGES - 1; j++) {
-	  e->active_va_ranges[j][0] = e->active_va_ranges[j + 1][0];
-	  e->active_va_ranges[j][1] = e->active_va_ranges[j + 1][1];
-	}
-	e->active_va_ranges[VA_RANGES - 1][0] = 0;
-	e->active_va_ranges[VA_RANGES - 1][1] = 1;
-      }
-      break;
-    }
-    else if (end_va >= e->active_va_ranges[i][1]) {
-      // It starts in this range and ends at the end or past this range
-      e->active_va_ranges[i][1] = start_va - 1;
-      break;
-    }
-    else {
-      // It's completely inside this range.  We want to split.
-      if (e->active_va_ranges[VA_RANGES - 1][0] == 0) {
-	// There's room to split.
-	for (j = VA_RANGES - 1; j > i; j--) {
-	  e->active_va_ranges[j][0] = e->active_va_ranges[j - 1][0];
-	  e->active_va_ranges[j][1] = e->active_va_ranges[j - 1][1];
-	}
-	e->active_va_ranges[i][1] = start_va - 1;
-	e->active_va_ranges[i + 1][0] = end_va + 1;
-      }
-      else if (debug_level > 0) {
-	// There's not room, we can't do anything but warn.
-	warn
-	  ("When removing a VA range, there wasn't space to split an existing range.  Maybe there should be more ranges.");
-      }
-      break;
-    }
-  }
-
-  if (debug_level > 255) {
-    cprintf ("After\n");
-    print_active_va_ranges (e);
-  }
-}
-
-void
-assert_va (struct Env *e, uint32_t va)
-{
-  int i;
-
-  va &= ~(PGSIZE - 1);
-
-  for (i = 0; i < VA_RANGES; i++) {
-    if (va >= e->active_va_ranges[i][0] && va < e->active_va_ranges[i][1]) {
-      return;
-    }
-  }
-  //      print_active_va_ranges(e);
-  //      print_page_table_short(e->env_pgdir);
-  panic ("[%x] Couldn't find a va range for va %x (eip=%d)\n", e->env_id, va,
-	 e->env_tf.tf_eip);
-}
-
-void
-check_va_ranges (struct Env *e)
-{
-  pde_t *pdep, *end_pdep;
-  pte_t *ptep, *end_ptep;
-  uint32_t va = 0;
-
-  pdep = e->env_pgdir;
-  end_pdep = e->env_pgdir + PDX (UTOP);
-  for (; pdep < end_pdep; ++pdep) {
-    if (!(*pdep & PTE_P)) {
-      va += PTSIZE;
-      continue;
-    }
-
-    ptep = (pte_t *) KADDR (PTE_ADDR (*pdep));
-    end_ptep = ptep + NPTENTRIES;
-    for (; ptep != end_ptep; ptep++, va += PGSIZE) {
-      if (!(*ptep & PTE_P))
-	continue;
-      // We have a page present, it must be in VA_RANGE
-      assert_va (e, va);
-    }
-  }
-  cprintf ("Checked va_ranges for %s - %x (eip=%x)\n", e->env_name, e->env_id,
-	   e->env_tf.tf_eip);
-}
-
-#endif
