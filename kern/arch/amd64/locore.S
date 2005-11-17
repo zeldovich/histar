@@ -82,28 +82,30 @@ farptr: .long	RELOC(inlong)
 	movq	tf_r15(%rsp),%r15
 	.endm
 
-.macro	trap	number,errcode,handler
-	.align	16
-	.globl	X\handler
-X\handler:
-.ifne	\errcode
-	subq	$tf_err,%rsp
-.else
-	subq	$tf_rip,%rsp
-.endif
+// These trap entry stubs must fit within 16 bytes of code
+.globl	trap_noec_entry_stub
+trap_noec_entry_stub:
+	// %rsp is pointing at tf_rip
+	pushq	%rax		// adjust %rsp
+.globl	trap_ec_entry_stub
+trap_ec_entry_stub:
+	// %rsp is pointing at tf_err
+	pushq	%rax		// rax into tf__trapentry_rax
+	movq	$trap_entry, %rax
+	call	*%rax		// rip into tf__trapentry_rip
+
+.globl	trap_entry
+trap_entry:
+	subq	$tf__trapentry_rip,%rsp
+	movq	tf__trapentry_rax(%rsp),%rax
 	callersave
 	calleesave
 	movq	%rsp,%rdi
-	movq	$\errcode,%rsi
-	call	\handler
+	call	trap_handler
 	callerrestore
 	calleerestore
 	addq	$tf_rip,%rsp
-	iret
-	.endm
-
-	trap	0,1,unknownec
-	trap	0,0,unknown
+	iretq
 
 .globl	trapframe_pop
 trapframe_pop:

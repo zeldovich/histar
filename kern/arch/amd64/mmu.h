@@ -229,7 +229,8 @@ struct Trapframe {
   uint64_t tf_r14;
   uint64_t tf_r15;
 
-  uint64_t tf__pad0;
+  uint64_t tf__trapentry_rip;
+  uint64_t tf__trapentry_rax;
 
   /* hardware-saved registers */
   uint32_t tf_err;

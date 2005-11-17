@@ -23,7 +23,4 @@ void thread_run(struct Thread *t);
 			    (int) _binary_obj_##name##_size);	\
     } while (0)
 
-// Low-level trapframe jump in locore.S
-void trapframe_pop(struct Trapframe *);
-
 #endif

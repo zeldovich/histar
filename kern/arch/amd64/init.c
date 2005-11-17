@@ -6,6 +6,7 @@
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
+#include <machine/trap.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -93,25 +94,6 @@ bss_init (void)
 {
   extern char edata[], end[];
   memset (edata, 0, end - edata);
-}
-
-static void
-idt_init (void)
-{
-  extern char Xunknownec[];
-  extern char Xunknown[];
-  int i;
-  for (i = 0; i < 0x100; i++)
-    SETGATE (idt[i], SEG_TG, GD_KT, Xunknown, 0);
-  SETGATE (idt[8], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[10], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[11], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[12], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[13], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[14], SEG_TG, GD_KT, Xunknownec, 0);
-  SETGATE (idt[17], SEG_TG, GD_KT, Xunknownec, 0);
-
-  SETGATE (idt[48], SEG_TG, GD_KT, Xunknown, 3);
 }
 
 void

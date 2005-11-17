@@ -2,6 +2,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/trap.h>
 #include <inc/elf64.h>
 
 static void
