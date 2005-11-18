@@ -19,7 +19,8 @@ struct ide_op {
     disk_callback cb;
     void *cbarg;
 
-    struct ide_prd bm_prd;
+    // Align to 8 bytes to avoid spanning a 64K boundary.
+    struct ide_prd bm_prd __attribute__((aligned (8)));
 };
 
 struct ide_channel {
@@ -106,7 +107,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 			idec->current_op.cbarg);
 }
 
-static physaddr_t __attribute__((__unused__))
+static physaddr_t
 va2pa(void *va)
 {
     // XXX
@@ -118,6 +119,9 @@ va2pa(void *va)
 static void
 ide_send(struct ide_channel *idec, uint32_t diskno)
 {
+    // IDE DMA can only handle up to 64K
+    assert(idec->current_op.num_bytes <= (1 << 16));
+
     uint32_t num_sectors = idec->current_op.num_bytes / 512;
 
     ide_wait_ready(idec);
