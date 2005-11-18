@@ -48,9 +48,7 @@ pic_init(void)
 	outb(IO_PIC2, 0x11);			// ICW1
 	outb(IO_PIC2+1, IRQ_OFFSET + 8);	// ICW2
 	outb(IO_PIC2+1, IRQ_SLAVE);		// ICW3
-	// NB Automatic EOI mode doesn't tend to work on the slave.
-	// Linux source code says it's "to be investigated".
-	outb(IO_PIC2+1, 0x01);			// ICW4
+	outb(IO_PIC2+1, 0x03);			// ICW4
 
 	// OCW3:  0ef01prs
 	//   ef:  0x = NOP, 10 = clear specific mask, 11 = set specific mask
