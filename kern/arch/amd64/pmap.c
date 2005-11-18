@@ -2,6 +2,7 @@
 
 #include <machine/x86.h>
 #include <machine/pmap.h>
+#include <machine/thread.h>
 #include <inc/error.h>
 #include <inc/stdarg.h>
 
@@ -281,11 +282,9 @@ page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store)
 static void
 tlb_invalidate (uint64_t *pgmap, void *va)
 {
-#if 0	    /* XXX enable this when environments are implemented */
-  // Flush the entry only if we're modifying the current address space.
-  if (!curenv || curenv->env_pgdir == pgdir)
-    invlpg (va);
-#endif
+    // Flush the entry only if we're modifying the current address space.
+    if (cur_thread == 0 || cur_thread->pgmap == pgmap)
+	invlpg(va);
 }
 
 //

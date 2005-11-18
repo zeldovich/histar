@@ -3,6 +3,8 @@
 
 typedef enum {
     SYS_cputs = 0,
+    SYS_yield,
+    SYS_halt,
     NSYSCALLS
 } syscall_num;
 

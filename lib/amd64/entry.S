@@ -6,5 +6,8 @@ _start:
 	movq	$0, %rsi	// argv
 
 	call	libmain
-1:	jmp	1b
+
+	// libmain shouldn't return -- try to crash if it does
+	movq	$0, %rax
+	call	*%rax
 

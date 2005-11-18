@@ -14,7 +14,9 @@ include $(ARCHDIR)/Makefrag
 
 KERN_GEN := kern/kern/printf.c \
 	    kern/kern/monitor.c \
-	    kern/kern/syscall.c
+	    kern/kern/syscall.c \
+	    kern/kern/intr.c \
+	    kern/kern/sched.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 
@@ -27,7 +29,11 @@ KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/uregtest \
-	user/hello
+	user/hello \
+	user/idle \
+	user/spin \
+	user/chatter1 \
+	user/chatter2
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))

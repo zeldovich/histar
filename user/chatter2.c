@@ -4,7 +4,8 @@
 int
 main(int ac, char **av)
 {
-    cprintf("Hello world: 0x%x\n", 0xdeadbeef);
-
-    return 0;
+    for (;;) {
+	cprintf("foo and yielding.\n");
+	sys_yield();
+    }
 }

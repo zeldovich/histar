@@ -5,6 +5,9 @@
 #include <machine/trap.h>
 #include <inc/elf64.h>
 
+struct Thread *cur_thread;
+struct Thread_list thread_list;
+
 static void
 map_segment(uint64_t *pgmap, void *va, size_t len)
 {
@@ -66,7 +69,7 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
     memset(&t->tf, 0, sizeof(t->tf));
     t->tf.tf_ss = GD_UD | 3;
     t->tf.tf_rsp = ULIM;
-    t->tf.tf_rflags = 0;
+    t->tf.tf_rflags = FL_IF;
     t->tf.tf_cs = GD_UT | 3;
     t->tf.tf_rip = elf->e_entry;
 }
@@ -85,11 +88,23 @@ thread_create_first(struct Thread *t, uint8_t *binary, size_t size)
     memcpy(t->pgmap, bootpml4, PGSIZE);
 
     load_icode(t, binary, size);
+
+    t->status = thread_runnable;
+    LIST_INSERT_HEAD(&thread_list, t, link);
 }
 
 void
 thread_run(struct Thread *t)
 {
+    cur_thread = t;
     lcr3(t->cr3);
     trapframe_pop(&t->tf);
+}
+
+void
+thread_kill(struct Thread *t)
+{
+    LIST_REMOVE(t, link);
+    // XXX
+    // garbage collection, eventually
 }

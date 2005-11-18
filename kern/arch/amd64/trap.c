@@ -3,7 +3,11 @@
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <machine/x86.h>
+#include <machine/thread.h>
 #include <kern/syscall.h>
+#include <dev/picirq.h>
+#include <kern/intr.h>
+#include <kern/sched.h>
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -61,24 +65,22 @@ page_fault (struct Trapframe *tf)
 
     if ((tf->tf_cs & 3) == 0) {
 	if (page_fault_mode == PFM_KILL) {
-	    cprintf("user-triggered kernel page fault, should kill thread\n");
-	    for (;;)
-		;
+	    cprintf("user-triggered kernel page fault, killing thread\n");
+	    thread_kill(cur_thread);
 	} else {
 	    panic("kernel page fault at VA %lx", fault_va);
 	}
     } else {
 	cprintf("user process page-faulted at %lx\n", fault_va);
-	for (;;)
-	    ;
+
+	// No disk swapping or COW, so it's fatal for now..
+	thread_kill(cur_thread);
     }
 }
 
-void
-trap_handler (struct Trapframe *tf)
+static void
+trap_dispatch (int trapno, struct Trapframe *tf)
 {
-    uint32_t trapno = (tf->tf__trapentry_rip - (uint64_t)&trap_entry_stubs[0].trap_entry_code[0]) / 16;
-
     switch (trapno) {
 	case T_SYSCALL:
 	    tf->tf_rax =
@@ -91,10 +93,30 @@ trap_handler (struct Trapframe *tf)
 	    break;
 
 	default:
+	    if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
+		irq_handler(trapno - IRQ_OFFSET);
+		return;
+	    }
+
 	    cprintf("Unknown trap %d, trapframe:\n", trapno);
 	    trapframe_print(tf);
-	    // XXX should probably kill user thread
+	    thread_kill(cur_thread);
     }
+
+    if (cur_thread == 0 || cur_thread->status != thread_runnable)
+	schedule();
+}
+
+void
+trap_handler (struct Trapframe *tf)
+{
+    uint32_t trapno = (tf->tf__trapentry_rip - (uint64_t)&trap_entry_stubs[0].trap_entry_code[0]) / 16;
+
+    if (cur_thread == 0)
+	panic("trap %d with no active thread", trapno);
+
+    cur_thread->tf = *tf;
+    trap_dispatch(trapno, &cur_thread->tf);
 }
 
 static void __attribute__((__unused__))

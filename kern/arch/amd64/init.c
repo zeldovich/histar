@@ -2,11 +2,14 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <machine/thread.h>
+#include <machine/trap.h>
 #include <kern/lib.h>
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
-#include <machine/trap.h>
+#include <dev/picirq.h>
+#include <dev/kclock.h>
+#include <kern/sched.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -103,18 +106,19 @@ init (void)
   bss_init ();
   idt_init ();
   cons_init ();
-
+  pic_init ();
+  kclock_init ();
   pmap_init ();
-
-  cprintf ("Hello world\n");
-
   pci_init ();
 
   disk_test ();
 
-  struct Thread t;
-  THREAD_CREATE_EMBED(&t, user_hello);
-  thread_run(&t);
+  static struct Thread t1, t2, t3, t4, t5;
+  THREAD_CREATE_EMBED(&t1, user_spin);
+  THREAD_CREATE_EMBED(&t2, user_idle);
+  THREAD_CREATE_EMBED(&t3, user_hello);
+  THREAD_CREATE_EMBED(&t4, user_chatter1);
+  THREAD_CREATE_EMBED(&t5, user_chatter2);
 
-  abort ();
+  schedule();
 }
