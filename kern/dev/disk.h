@@ -27,5 +27,6 @@ int disk_io(disk_op op, void *buf,
 	    disk_callback cb, void *cbarg);
 
 void disk_test();
+void ide_intr();
 
 #endif

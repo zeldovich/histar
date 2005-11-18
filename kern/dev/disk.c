@@ -6,6 +6,7 @@
 #include <kern/lib.h>
 #include <dev/ide.h>
 #include <inc/error.h>
+#include <dev/picirq.h>
 
 // va->pa for DMA
 #include <machine/pmap.h>
@@ -130,70 +131,55 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     // Load table address
     outl(idec->bm_addr + IDE_BM_PRDT_REG, va2pa(&idec->current_op.bm_prd));
 
-    // Clear interrupt/error flags, enable DMA for disks
+    // Clear DMA interrupt/error flags, enable DMA for disks
     outb(idec->bm_addr + IDE_BM_STAT_REG,
 	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
 
-    // Issue command to disk & DMA controller
+    // Issue command to disk & DMA controller; clears IDE INTRQ
     disk_op op = idec->current_op.op;
     outb(idec->cmd_addr + IDE_REG_CMD,
 	 (op == op_read) ? IDE_CMD_READ_DMA : IDE_CMD_WRITE_DMA);
     outb(idec->bm_addr + IDE_BM_CMD_REG,
 	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
-
-    // First wait for DMA completion
-    for (;;) {
-	uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
-	if ((dma_status & IDE_BM_STAT_ERROR)) {
-	    cprintf("IDE DMA error: %02x\n", dma_status);
-	    break;
-	}
-
-	if (!(dma_status & IDE_BM_STAT_ACTIVE))
-	    break;
-    }
-
-    // Stop DMA engine
-    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
-
-    // Wait for IDE command completion
-    int r = ide_wait_ready(idec);
-
-    ide_complete(idec, r == 0 ? disk_io_success : disk_io_failure);
 }
 
 // One global IDE channel and drive on it, for now
 static struct ide_channel the_ide_channel;
 static uint32_t the_ide_drive;
 
-/*static*/ void
+void
 ide_intr()
 {
     struct ide_channel *idec = &the_ide_channel;
+    disk_io_status iostat = disk_io_success;
 
     // Ack IRQ by reading the status register
     int r = inb(idec->cmd_addr + IDE_REG_STATUS);
-    if ((r & IDE_STAT_BSY)) {
-	// Not yet?
+    if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
+	cprintf("spurious IDE interrupt, status %02x\n", r);
 	return;
     }
+
+    if ((r & (IDE_STAT_DF | IDE_STAT_ERR)))
+	iostat = disk_io_failure;
 
     // Ack bus-master interrupt
-    uint8_t bm_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
-    outb(idec->bm_addr + IDE_BM_STAT_REG, bm_status);
+    uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
+    outb(idec->bm_addr + IDE_BM_STAT_REG, dma_status);
 
-    if ((r & (IDE_STAT_DF | IDE_STAT_ERR))) {
-	ide_complete(idec, disk_io_failure);
-	return;
+    if (!(dma_status & IDE_BM_STAT_INTR))
+	cprintf("IDE DMA spurious interrupt?\n");
+
+    if ((dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE))) {
+	cprintf("IDE DMA funny state: %02x\n", dma_status);
+	iostat = disk_io_failure;
     }
 
-    if (idec->current_op.op == op_write) {
-	ide_complete(idec, disk_io_success);
-    } else {
-	r = ide_pio_in(idec, idec->current_op.buf, idec->current_op.num_bytes / 512);
-	ide_complete(idec, r == 0 ? disk_io_success : disk_io_failure);
-    }
+    // Stop DMA engine
+    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
+
+    ide_complete(idec, iostat);
 }
 
 static void
@@ -247,6 +233,10 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     uint8_t bm_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     if (bm_status & IDE_BM_STAT_SIMPLEX)
 	cprintf("Simplex-mode IDE bus master, potential problems later..\n");
+
+    // Enable interrupts (clear the IDE_CTL_NIEN bit)
+    outb(idec->ctl_addr, 0);
+    irq_setmask_8259A (irq_mask_8259A & ~(1 << idec->irq));
 }
 
 // Disk interface, from disk.h
