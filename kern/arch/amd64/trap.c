@@ -67,6 +67,7 @@ page_fault (struct Trapframe *tf)
 	if (page_fault_mode == PFM_KILL) {
 	    cprintf("user-triggered kernel page fault, killing thread\n");
 	    thread_kill(cur_thread);
+	    page_fault_mode = PFM_NONE;
 	} else {
 	    panic("kernel page fault at VA %lx", fault_va);
 	}
