@@ -16,9 +16,10 @@ int vcprintf (const char *fmt, va_list ap);
 int cprintf (const char *fmt, ...)
 	__attribute__((__format__ (__printf__, 1, 2)));
 
-void abort (void);
+void abort (void) __attribute__((__noreturn__));
 void _panic (const char *file, int line, const char *fmt, ...)
-	__attribute__((__format__ (__printf__, 3, 4)));
+	__attribute__((__format__ (__printf__, 3, 4)))
+	__attribute__((__noreturn__));
 #define panic(fmt, varargs...) _panic(__FILE__, __LINE__, fmt, ##varargs)
 
 #define __stringify(s) #s

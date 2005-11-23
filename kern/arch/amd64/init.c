@@ -31,12 +31,7 @@ _panic (const char *file, int line, const char *fmt, ...)
   panicstr = fmt;
 
   va_start (ap, fmt);
-#if 0
-  cprintf ("[%x] kpanic: %s:%d: ",
-	   (curenv ? curenv->env_id : 0), file, line);
-#else
-  cprintf ("kpanic: %s:%d: ", file, line);
-#endif
+  cprintf ("[%p] kpanic: %s:%d: ", cur_thread, file, line);
   vcprintf (fmt, ap);
   cprintf ("\n");
   va_end (ap);
@@ -59,7 +54,8 @@ abort (void)
 {
   outw (0x8A00, 0x8A00);
   outw (0x8A00, 0x8AE0);
-  for (;;);
+  for (;;)
+    ;
 }
 
 void
