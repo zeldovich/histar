@@ -9,7 +9,7 @@ struct Thread *cur_thread;
 struct Thread_list thread_list;
 
 static void
-map_segment(uint64_t *pgmap, void *va, size_t len)
+map_segment(struct Pagemap *pgmap, void *va, size_t len)
 {
     void *endva = (char*) va + len;
 
@@ -84,7 +84,7 @@ thread_create_first(struct Thread *t, uint8_t *binary, size_t size)
     pgmap_p->pp_ref++;
 
     t->th_cr3 = page2pa(pgmap_p);
-    t->th_pgmap = (uint64_t *) page2kva(pgmap_p);
+    t->th_pgmap = page2kva(pgmap_p);
     memcpy(t->th_pgmap, bootpml4, PGSIZE);
 
     load_icode(t, binary, size);

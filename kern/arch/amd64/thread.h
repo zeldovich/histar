@@ -12,7 +12,7 @@ typedef enum {
 struct Thread {
     struct Trapframe th_tf __attribute__ ((aligned (16)));
 
-    uint64_t *th_pgmap;
+    struct Pagemap *th_pgmap;
     uint64_t th_cr3;
 
     uint32_t th_ref;

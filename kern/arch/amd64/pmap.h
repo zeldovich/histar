@@ -85,6 +85,11 @@ struct Page
   uint32_t pp_ref;
 };
 
+struct Pagemap
+{
+    uint64_t pm_ent[NPTENTRIES];
+};
+
 extern struct Page *pages;
 extern size_t npage;
 
@@ -93,9 +98,9 @@ void pmap_init (void);
 void page_free (struct Page *pp);
 int  page_alloc (struct Page **pp_store);
 void page_decref (struct Page *pp);
-struct Page *page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store);
-void page_remove (uint64_t *pgmap, void *va);
-int  page_insert (uint64_t *pgmap, struct Page *pp, void *va, uint64_t perm);
+struct Page *page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store);
+void page_remove (struct Pagemap *pgmap, void *va);
+int  page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm);
 
 inline ppn_t
 page2ppn (struct Page *pp)

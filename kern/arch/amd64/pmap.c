@@ -213,11 +213,11 @@ pmap_init (void)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (uint64_t *pagemap, int pmlevel, const void *va, int create, uint64_t **pte_store)
+pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
-    uint64_t *pm_entp = &pagemap[PDX(pmlevel, va)];
+    uint64_t *pm_entp = &pgmap->pm_ent[PDX(pmlevel, va)];
 
     // If we made it all the way down, return the PTE
     if (pmlevel == 0) {
@@ -226,7 +226,6 @@ pgdir_walk (uint64_t *pagemap, int pmlevel, const void *va, int create, uint64_t
     }
 
     // If an intermediate page map is missing, allocate it
-    uint64_t *pm_next;
     if (!(*pm_entp & PTE_P)) {
 	if (!create) {
 	    *pte_store = 0;
@@ -239,12 +238,11 @@ pgdir_walk (uint64_t *pagemap, int pmlevel, const void *va, int create, uint64_t
 	    return r;
 	pp->pp_ref++;
 
-	pm_next = (uint64_t *) page2kva(pp);
-	memset(pm_next, 0, PGSIZE);
+	memset(page2kva(pp), 0, PGSIZE);
 	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
     }
 
-    pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
+    struct Pagemap *pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
     return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
 }
 
@@ -259,7 +257,7 @@ pgdir_walk (uint64_t *pagemap, int pmlevel, const void *va, int create, uint64_t
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
 struct Page *
-page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store)
+page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     uint64_t *ptep;
     int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
@@ -280,7 +278,7 @@ page_lookup (uint64_t *pgmap, void *va, uint64_t **pte_store)
 // edited are the ones currently in use by the processor.
 //
 static void
-tlb_invalidate (uint64_t *pgmap, void *va)
+tlb_invalidate (struct Pagemap *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
     if (cur_thread == 0 || cur_thread->th_pgmap == pgmap)
@@ -302,7 +300,7 @@ tlb_invalidate (uint64_t *pgmap, void *va)
 //      tlb_invalidate, and page_decref.
 //
 void
-page_remove (uint64_t *pgmap, void *va)
+page_remove (struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
     struct Page *pp = page_lookup(pgmap, va, &ptep);
@@ -332,7 +330,7 @@ page_remove (uint64_t *pgmap, void *va)
 //   pgdir_walk() and and page_remove().
 //
 int
-page_insert (uint64_t *pgmap, struct Page *pp, void *va, uint64_t perm)
+page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm)
 {
     uint64_t *ptep;
     int r = pgdir_walk(pgmap, 3, va, 1, &ptep);
