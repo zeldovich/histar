@@ -10,14 +10,16 @@ typedef enum {
 } thread_status;
 
 struct Thread {
-    struct Trapframe tf __attribute__ ((aligned (16)));
+    struct Trapframe th_tf __attribute__ ((aligned (16)));
 
-    uint64_t *pgmap;
-    uint32_t cr3;
+    uint64_t *th_pgmap;
+    uint64_t th_cr3;
 
-    thread_status status;
+    uint32_t th_ref;
 
-    LIST_ENTRY(Thread) link;
+    thread_status th_status;
+
+    LIST_ENTRY(Thread) th_link;
 };
 
 LIST_HEAD(Thread_list, Thread);

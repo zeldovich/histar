@@ -283,7 +283,7 @@ static void
 tlb_invalidate (uint64_t *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
-    if (cur_thread == 0 || cur_thread->pgmap == pgmap)
+    if (cur_thread == 0 || cur_thread->th_pgmap == pgmap)
 	invlpg(va);
 }
 

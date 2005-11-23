@@ -33,10 +33,10 @@ static void
 load_icode(struct Thread *t, uint8_t *binary, size_t size)
 {
     // Switch to target address space to populate it
-    lcr3(t->cr3);
+    lcr3(t->th_cr3);
 
     // Map a stack
-    map_segment(t->pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
+    map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
 
     Elf64_Ehdr *elf = (Elf64_Ehdr *) binary;
     if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2)
@@ -52,7 +52,7 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
 	if (ph->p_vaddr + ph->p_memsz > ULIM)
 	    panic("elf segment over ULIM");
 
-	map_segment(t->pgmap, (void*) ph->p_vaddr, ph->p_memsz);
+	map_segment(t->th_pgmap, (void*) ph->p_vaddr, ph->p_memsz);
     }
 
     // Two passes so that map_segment() doesn't drop a partially-filled
@@ -66,12 +66,12 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
 	memset((void*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
     }
 
-    memset(&t->tf, 0, sizeof(t->tf));
-    t->tf.tf_ss = GD_UD | 3;
-    t->tf.tf_rsp = ULIM;
-    t->tf.tf_rflags = FL_IF;
-    t->tf.tf_cs = GD_UT | 3;
-    t->tf.tf_rip = elf->e_entry;
+    memset(&t->th_tf, 0, sizeof(t->th_tf));
+    t->th_tf.tf_ss = GD_UD | 3;
+    t->th_tf.tf_rsp = ULIM;
+    t->th_tf.tf_rflags = FL_IF;
+    t->th_tf.tf_cs = GD_UT | 3;
+    t->th_tf.tf_rip = elf->e_entry;
 }
 
 void
@@ -83,28 +83,28 @@ thread_create_first(struct Thread *t, uint8_t *binary, size_t size)
 	panic("thread_create_first: cannot alloc pml4");
     pgmap_p->pp_ref++;
 
-    t->cr3 = page2pa(pgmap_p);
-    t->pgmap = (uint64_t *) page2kva(pgmap_p);
-    memcpy(t->pgmap, bootpml4, PGSIZE);
+    t->th_cr3 = page2pa(pgmap_p);
+    t->th_pgmap = (uint64_t *) page2kva(pgmap_p);
+    memcpy(t->th_pgmap, bootpml4, PGSIZE);
 
     load_icode(t, binary, size);
 
-    t->status = thread_runnable;
-    LIST_INSERT_HEAD(&thread_list, t, link);
+    t->th_status = thread_runnable;
+    LIST_INSERT_HEAD(&thread_list, t, th_link);
 }
 
 void
 thread_run(struct Thread *t)
 {
     cur_thread = t;
-    lcr3(t->cr3);
-    trapframe_pop(&t->tf);
+    lcr3(t->th_cr3);
+    trapframe_pop(&t->th_tf);
 }
 
 void
 thread_kill(struct Thread *t)
 {
-    LIST_REMOVE(t, link);
+    LIST_REMOVE(t, th_link);
     // XXX
     // garbage collection, eventually
 }

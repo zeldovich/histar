@@ -104,7 +104,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 	    thread_kill(cur_thread);
     }
 
-    if (cur_thread == 0 || cur_thread->status != thread_runnable)
+    if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
 	schedule();
 }
 
@@ -116,8 +116,8 @@ trap_handler (struct Trapframe *tf)
     if (cur_thread == 0)
 	panic("trap %d with no active thread", trapno);
 
-    cur_thread->tf = *tf;
-    trap_dispatch(trapno, &cur_thread->tf);
+    cur_thread->th_tf = *tf;
+    trap_dispatch(trapno, &cur_thread->th_tf);
 }
 
 static void __attribute__((__unused__))
