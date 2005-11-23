@@ -145,4 +145,6 @@ void
 thread_kill(struct Thread *t)
 {
     t->th_status = thread_not_runnable;
+    if (cur_thread == t)
+	cur_thread = 0;
 }

@@ -83,29 +83,26 @@ static void
 trap_dispatch (int trapno, struct Trapframe *tf)
 {
     switch (trapno) {
-	case T_SYSCALL:
-	    tf->tf_rax =
-		syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx,
-			tf->tf_rcx, tf->tf_r8, tf->tf_r9);
+    case T_SYSCALL:
+	tf->tf_rax =
+	    syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx,
+		    tf->tf_rcx, tf->tf_r8, tf->tf_r9);
+	break;
+
+    case T_PGFLT:
+	page_fault(tf);
+	break;
+
+    default:
+	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
+	    irq_handler(trapno - IRQ_OFFSET);
 	    break;
+	}
 
-	case T_PGFLT:
-	    page_fault(tf);
-	    break;
-
-	default:
-	    if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-		irq_handler(trapno - IRQ_OFFSET);
-		return;
-	    }
-
-	    cprintf("Unknown trap %d, trapframe:\n", trapno);
-	    trapframe_print(tf);
-	    thread_kill(cur_thread);
+	cprintf("Unknown trap %d, trapframe:\n", trapno);
+	trapframe_print(tf);
+	thread_kill(cur_thread);
     }
-
-    if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
-	schedule();
 }
 
 void
@@ -118,6 +115,9 @@ trap_handler (struct Trapframe *tf)
 
     cur_thread->th_tf = *tf;
     trap_dispatch(trapno, &cur_thread->th_tf);
+
+    if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
+	schedule();
 }
 
 static void __attribute__((__unused__))
