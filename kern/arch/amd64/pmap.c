@@ -353,6 +353,9 @@ static void
 page_map_decref_level (struct Pagemap *pgmap, int pmlevel)
 {
     struct Page *pgmap_p = page_lookup ((struct Pagemap *) bootpml4, pgmap, 0);
+    if (pgmap_p == 0)
+	panic("page_map_decref: null page_lookup");
+
     if (--pgmap_p->pp_ref == 0) {
 	// Skip the kernel half of the address space
 	int maxi = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
