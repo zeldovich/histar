@@ -129,12 +129,7 @@ thread_free(struct Thread *t)
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap)
 	page_map_decref(t->th_pgmap);
-
-    struct Page *thread_pg = page_lookup_cur(t);
-    if (thread_pg == 0)
-	panic("thread_free cannot find thread page");
-
-    page_free(thread_pg);
+    page_free(pa2page(kva2pa(t)));
 }
 
 void

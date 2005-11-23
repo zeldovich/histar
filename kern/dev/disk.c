@@ -7,8 +7,6 @@
 #include <dev/ide.h>
 #include <inc/error.h>
 #include <dev/picirq.h>
-
-// va->pa for DMA
 #include <machine/pmap.h>
 
 struct ide_op {
@@ -107,15 +105,6 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 			idec->current_op.cbarg);
 }
 
-static physaddr_t
-va2pa(void *va)
-{
-    // XXX
-    // This is really disgusting, but it works for now
-    // XXX
-    return (physaddr_t) (va - KERNBASE);
-}
-
 static void
 ide_send(struct ide_channel *idec, uint32_t diskno)
 {
@@ -128,12 +117,12 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512, num_sectors);
 
     // Create the physical region descriptor table
-    idec->current_op.bm_prd.addr = va2pa(idec->current_op.buf);
+    idec->current_op.bm_prd.addr = kva2pa(idec->current_op.buf);
     idec->current_op.bm_prd.count =
 	(idec->current_op.num_bytes & 0xffff) | IDE_PRD_EOT;
 
     // Load table address
-    outl(idec->bm_addr + IDE_BM_PRDT_REG, va2pa(&idec->current_op.bm_prd));
+    outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->current_op.bm_prd));
 
     // Clear DMA interrupt/error flags, enable DMA for disks
     outb(idec->bm_addr + IDE_BM_STAT_REG,
