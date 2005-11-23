@@ -273,6 +273,14 @@ page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
     return pa2page (PTE_ADDR (*ptep));
 }
 
+struct Page *
+page_lookup_cur (void *va)
+{
+    return page_lookup (cur_thread ? cur_thread->th_pgmap
+				   : (struct Pagemap *) bootpml4,
+			va, 0);
+}
+
 //
 // Invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
@@ -352,7 +360,7 @@ page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm)
 static void
 page_map_decref_level (struct Pagemap *pgmap, int pmlevel)
 {
-    struct Page *pgmap_p = page_lookup ((struct Pagemap *) bootpml4, pgmap, 0);
+    struct Page *pgmap_p = page_lookup_cur (pgmap);
     if (pgmap_p == 0)
 	panic("page_map_decref: null page_lookup");
 

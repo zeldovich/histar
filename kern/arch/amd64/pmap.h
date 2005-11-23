@@ -99,6 +99,7 @@ void page_free (struct Page *pp);
 int  page_alloc (struct Page **pp_store);
 void page_decref (struct Page *pp);
 struct Page *page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store);
+struct Page *page_lookup_cur (void *va);
 void page_remove (struct Pagemap *pgmap, void *va);
 int  page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm);
 void page_map_decref (struct Pagemap *pgmap);

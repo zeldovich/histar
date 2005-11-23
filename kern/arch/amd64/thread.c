@@ -130,7 +130,7 @@ thread_free(struct Thread *t)
     if (t->th_pgmap)
 	page_map_decref(t->th_pgmap);
 
-    struct Page *thread_pg = page_lookup((struct Pagemap *) bootpml4, t, 0);
+    struct Page *thread_pg = page_lookup_cur(t);
     if (thread_pg == 0)
 	panic("thread_free cannot find thread page");
 
