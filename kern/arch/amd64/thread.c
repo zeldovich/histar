@@ -4,11 +4,12 @@
 #include <machine/x86.h>
 #include <machine/trap.h>
 #include <inc/elf64.h>
+#include <inc/error.h>
 
 struct Thread *cur_thread;
 struct Thread_list thread_list;
 
-static void
+static int
 map_segment(struct Pagemap *pgmap, void *va, size_t len)
 {
     void *endva = (char*) va + len;
@@ -17,20 +18,22 @@ map_segment(struct Pagemap *pgmap, void *va, size_t len)
 	struct Page *pp;
 	int r = page_alloc(&pp);
 	if (r < 0)
-	    panic("map_segment: cannot alloc page");
+	    return r;
 
 	r = page_insert(pgmap, pp, va, PTE_U | PTE_W);
 	if (r < 0) {
 	    page_free(pp);
-	    panic("map_segment: cannot insert page");
+	    return r;
 	}
 
 	va = ROUNDDOWN((char*) va + PGSIZE, PGSIZE);
     }
+
+    return 0;
 }
 
-static void
-load_icode(struct Thread *t, uint8_t *binary, size_t size)
+int
+thread_load_elf(struct Thread *t, uint8_t *binary, size_t size)
 {
     // Switch to target address space to populate it
     lcr3(t->th_cr3);
@@ -39,20 +42,28 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
     map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
 
     Elf64_Ehdr *elf = (Elf64_Ehdr *) binary;
-    if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2)
-	panic("ELF magic mismatch");
+    if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
+	cprintf("ELF magic mismatch\n");
+	return -E_INVAL;
+    }
 
     int i;
     Elf64_Phdr *ph = (Elf64_Phdr *) (binary + elf->e_phoff);
     for (i = 0; i < elf->e_phnum; i++, ph++) {
 	if (ph->p_type != 1)
 	    continue;
-	if (ph->p_vaddr + ph->p_memsz < ph->p_vaddr)
-	    panic("elf segment overflow");
-	if (ph->p_vaddr + ph->p_memsz > ULIM)
-	    panic("elf segment over ULIM");
+	if (ph->p_vaddr + ph->p_memsz < ph->p_vaddr) {
+	    cprintf("ELF segment overflow\n");
+	    return -E_INVAL;
+	}
+	if (ph->p_vaddr + ph->p_memsz > ULIM) {
+	    cprintf("ELF segment over ULIM\n");
+	    return -E_INVAL;
+	}
 
-	map_segment(t->th_pgmap, (void*) ph->p_vaddr, ph->p_memsz);
+	int r = map_segment(t->th_pgmap, (void*) ph->p_vaddr, ph->p_memsz);
+	if (r < 0)
+	    return r;
     }
 
     // Two passes so that map_segment() doesn't drop a partially-filled
@@ -72,25 +83,54 @@ load_icode(struct Thread *t, uint8_t *binary, size_t size)
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT | 3;
     t->th_tf.tf_rip = elf->e_entry;
+
+    return 0;
 }
 
 void
-thread_create_first(struct Thread *t, uint8_t *binary, size_t size)
+thread_set_runnable(struct Thread *t)
 {
-    struct Page *pgmap_p;
-    int r = page_alloc(&pgmap_p);
-    if (r < 0)
-	panic("thread_create_first: cannot alloc pml4");
-    pgmap_p->pp_ref++;
+    t->th_status = thread_runnable;
+}
 
+int
+thread_alloc(struct Thread **tp)
+{
+    struct Page *thread_pg;
+    int r = page_alloc(&thread_pg);
+    if (r < 0)
+	return r;
+
+    struct Thread *t = page2kva(thread_pg);
+
+    memset(t, 0, sizeof(*t));
+    LIST_INSERT_HEAD(&thread_list, t, th_link);
+    t->th_status = thread_not_runnable;
+    t->th_page = thread_pg;
+
+    struct Page *pgmap_p;
+    r = page_alloc(&pgmap_p);
+    if (r < 0) {
+	thread_free(t);
+	return r;
+    }
+
+    pgmap_p->pp_ref++;
     t->th_cr3 = page2pa(pgmap_p);
     t->th_pgmap = page2kva(pgmap_p);
     memcpy(t->th_pgmap, bootpml4, PGSIZE);
 
-    load_icode(t, binary, size);
+    *tp = t;
+    return 0;
+}
 
-    t->th_status = thread_runnable;
-    LIST_INSERT_HEAD(&thread_list, t, th_link);
+void
+thread_free(struct Thread *t)
+{
+    LIST_REMOVE(t, th_link);
+    if (t->th_pgmap)
+	page_map_decref(t->th_pgmap);
+    page_free(t->th_page);
 }
 
 void
@@ -104,7 +144,5 @@ thread_run(struct Thread *t)
 void
 thread_kill(struct Thread *t)
 {
-    LIST_REMOVE(t, th_link);
-    // XXX
-    // garbage collection, eventually
+    t->th_status = thread_not_runnable;
 }

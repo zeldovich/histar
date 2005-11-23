@@ -113,10 +113,9 @@ init (void)
 
   disk_test ();
 
-  static struct Thread t1, t2, t3;
-  THREAD_CREATE_EMBED(&t1, user_spin);
-  THREAD_CREATE_EMBED(&t2, user_idle);
-  THREAD_CREATE_EMBED(&t3, user_hello);
+  THREAD_CREATE_EMBED(user_spin);
+  THREAD_CREATE_EMBED(user_idle);
+  THREAD_CREATE_EMBED(user_hello);
 
   schedule();
 }
