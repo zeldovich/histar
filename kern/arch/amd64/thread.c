@@ -106,7 +106,6 @@ thread_alloc(struct Thread **tp)
     memset(t, 0, sizeof(*t));
     LIST_INSERT_HEAD(&thread_list, t, th_link);
     t->th_status = thread_not_runnable;
-    t->th_page = thread_pg;
 
     struct Page *pgmap_p;
     r = page_alloc(&pgmap_p);
@@ -130,7 +129,12 @@ thread_free(struct Thread *t)
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap)
 	page_map_decref(t->th_pgmap);
-    page_free(t->th_page);
+
+    struct Page *thread_pg = page_lookup((struct Pagemap *) bootpml4, t, 0);
+    if (thread_pg == 0)
+	panic("thread_free cannot find thread page");
+
+    page_free(thread_pg);
 }
 
 void

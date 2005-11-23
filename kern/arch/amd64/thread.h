@@ -11,7 +11,6 @@ typedef enum {
 
 struct Thread {
     struct Trapframe th_tf __attribute__ ((aligned (16)));
-    struct Page *th_page;
 
     struct Pagemap *th_pgmap;
     uint64_t th_cr3;
