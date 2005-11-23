@@ -348,3 +348,34 @@ page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm)
     *ptep = page2pa (pp) | perm | PTE_P;
     return 0;
 }
+
+static void
+page_map_decref_level (struct Pagemap *pgmap, int pmlevel)
+{
+    struct Page *pgmap_p = page_lookup ((struct Pagemap *) bootpml4, pgmap, 0);
+    if (--pgmap_p->pp_ref == 0) {
+	// Skip the kernel half of the address space
+	int maxi = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
+	int i;
+
+	for (i = 0; i < maxi; i++) {
+	    uint64_t ptent = pgmap->pm_ent[i];
+	    if (!(ptent & PTE_P))
+		continue;
+
+	    struct Page *p = pa2page(PTE_ADDR(ptent));
+	    if (pmlevel == 0)
+		page_decref(p);
+	    else
+		page_map_decref_level(page2kva(p), pmlevel - 1);
+	}
+
+	page_free (pgmap_p);
+    }
+}
+
+void
+page_map_decref (struct Pagemap *pgmap)
+{
+    page_map_decref_level (pgmap, 3);
+}
