@@ -32,20 +32,20 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
 {
     switch (num) {
-	case SYS_cputs:
-	    sys_cputs((const char*) a1);
-	    return 0;
+    case SYS_cputs:
+	sys_cputs((const char*) a1);
+	return 0;
 
-	case SYS_yield:
-	    sys_yield();
-	    return 0;
+    case SYS_yield:
+	sys_yield();
+	return 0;
 
-	case SYS_halt:
-	    sys_halt();
-	    return 0;
+    case SYS_halt:
+	sys_halt();
+	return 0;
 
-	default:
-	    cprintf("Unknown syscall %d\n", num);
-	    return -E_INVAL;
+    default:
+	cprintf("Unknown syscall %d\n", num);
+	return -E_INVAL;
     }
 }
