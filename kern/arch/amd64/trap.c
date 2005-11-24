@@ -66,7 +66,7 @@ page_fault (struct Trapframe *tf)
     if ((tf->tf_cs & 3) == 0) {
 	if (page_fault_mode == PFM_KILL) {
 	    cprintf("user-triggered kernel page fault, killing thread\n");
-	    thread_kill(cur_thread);
+	    thread_halt(cur_thread);
 	    page_fault_mode = PFM_NONE;
 	} else {
 	    panic("kernel page fault at VA %lx", fault_va);
@@ -75,7 +75,7 @@ page_fault (struct Trapframe *tf)
 	cprintf("user process page-faulted at %lx\n", fault_va);
 
 	// No disk swapping or COW, so it's fatal for now..
-	thread_kill(cur_thread);
+	thread_halt(cur_thread);
     }
 }
 
@@ -101,7 +101,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 
 	cprintf("Unknown trap %d, trapframe:\n", trapno);
 	trapframe_print(tf);
-	thread_kill(cur_thread);
+	thread_halt(cur_thread);
     }
 }
 

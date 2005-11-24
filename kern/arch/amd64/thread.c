@@ -124,8 +124,17 @@ thread_alloc(struct Thread **tp)
 }
 
 void
+thread_decref(struct Thread *t)
+{
+    if (--t->th_ref == 0)
+	thread_free(t);
+}
+
+void
 thread_free(struct Thread *t)
 {
+    thread_halt(t);
+
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap)
 	page_map_decref(t->th_pgmap);
@@ -141,7 +150,7 @@ thread_run(struct Thread *t)
 }
 
 void
-thread_kill(struct Thread *t)
+thread_halt(struct Thread *t)
 {
     t->th_status = thread_not_runnable;
     if (cur_thread == t)

@@ -23,7 +23,7 @@ sys_yield()
 static void
 sys_halt()
 {
-    thread_kill(cur_thread);
+    thread_halt(cur_thread);
     schedule();
 }
 

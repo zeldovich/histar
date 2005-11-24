@@ -10,6 +10,7 @@
 #include <dev/picirq.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
+#include <kern/container.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -109,9 +110,13 @@ init (void)
 
   disk_test ();
 
-  THREAD_CREATE_EMBED(user_spin);
-  THREAD_CREATE_EMBED(user_idle);
-  THREAD_CREATE_EMBED(user_hello);
+  struct Container *rc;
+  int r = container_alloc(&rc);
+  if (r < 0)
+    panic("cannot allocate root container");
+
+  THREAD_CREATE_EMBED(rc, user_idle);
+  THREAD_CREATE_EMBED(rc, user_hello);
 
   schedule();
 }

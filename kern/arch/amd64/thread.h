@@ -15,6 +15,7 @@ struct Thread {
     struct Pagemap *th_pgmap;
     uint64_t th_cr3;
 
+    uint32_t th_ref;
     thread_status th_status;
 
     LIST_ENTRY(Thread) th_link;
@@ -27,13 +28,14 @@ extern struct Thread *cur_thread;
 int  thread_alloc(struct Thread **tp);
 int  thread_load_elf(struct Thread *t, uint8_t *binary, size_t size);
 void thread_set_runnable(struct Thread *t);
+void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
 void thread_run(struct Thread *t);
-void thread_kill(struct Thread *t);
+void thread_halt(struct Thread *t);
 
 // Convenience macro for embedded ELF binaries
-#define THREAD_CREATE_EMBED(name)				\
+#define THREAD_CREATE_EMBED(container, name)			\
     do {							\
 	int r;							\
 	struct Thread *t;					\
@@ -42,10 +44,15 @@ void thread_kill(struct Thread *t);
 								\
 	r = thread_alloc(&t);					\
 	if (r < 0) panic("cannot alloc thread");		\
+								\
 	r = thread_load_elf(t,					\
 			    _binary_obj_##name##_start,		\
 			    (int) _binary_obj_##name##_size);	\
 	if (r < 0) panic("cannot load elf");			\
+								\
+	r = container_put(container, cobj_thread, t);		\
+	if (r < 0) panic("cannot add to container");		\
+								\
 	thread_set_runnable(t);					\
     } while (0)
 

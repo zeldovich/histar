@@ -16,7 +16,9 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/monitor.c \
 	    kern/kern/syscall.c \
 	    kern/kern/intr.c \
-	    kern/kern/sched.c
+	    kern/kern/sched.c \
+	    kern/kern/unique.c \
+	    kern/kern/container.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 

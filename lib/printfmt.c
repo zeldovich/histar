@@ -56,24 +56,6 @@ static const char *const error_string[MAXERROR + 1] = {
   "permission"
 };
 
-static const char *const msgtype_string[DEAD + 1] = {
-  "0",
-  "1",
-  "LOOKUP",
-  "LOOKUP_R",
-  "READ",
-  "READ_R",
-  "WRITE",
-  "WRITE_R",
-  "CONTROL",
-  "CONTROL_R",
-  "SELECT",
-  "SELECT_R",
-  "PEEK",
-  "PEEK_R",
-  "DEAD"
-};
-
 /*
  * Print a number (base <= 16) in reverse order,
  * using specified putch function and associated pointer putdat.
@@ -301,26 +283,6 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 	break;
       }
 #endif
-
-    case 'M':{
-	const msg_t *m = va_arg (ap, const msg_t *);
-	putch ('[', putdat);
-	if (m->m_type <= DEAD) {
-	  const char *n = msgtype_string[m->m_type];
-	  while ((ch = *n++) != '\0')
-	    putch (ch, putdat);
-	}
-	else
-	  printnum (putch, putdat, m->m_type, 10, 0, ' ');
-	printfmt (putch, putdat, " -> %H: %#.*s", m->m_dest,
-		  MIN (m->m_len, 4), m->m_data);
-	if (m->m_code)
-	  printfmt (putch, putdat, " (%e)", m->m_code);
-	if (m->m_reply)
-	  printfmt (putch, putdat, " R%H", m->m_reply);
-	putch (']', putdat);
-	break;
-      }
 
       // string
     case 's':
