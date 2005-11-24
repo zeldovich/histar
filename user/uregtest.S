@@ -19,8 +19,8 @@ _start:
 	movq	$0xd00f, %r15
 	int	$0x30
 
-	movq	$0xdeadbeef, %rax
-	int	$0x30
+	// dump register set by GP-fault'ing
+	int	$0x31
 
 loop:
 	jmp	loop

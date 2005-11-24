@@ -2,6 +2,7 @@
 #include <kern/unique.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
+#include <inc/error.h>
 
 static struct Container_list container_list;
 
@@ -17,7 +18,7 @@ container_alloc(struct Container **cp)
     int i;
     for (i = 0; i < NUM_CT_OBJ; i++)
 	c->ct_obj[i].type = cobj_none;
-    c->ct_hdr.idx = unique_alloc();;
+    c->ct_hdr.idx = unique_alloc();
 
     LIST_INSERT_HEAD(&container_list, c, ct_hdr.link);
     *cp = c;
@@ -54,24 +55,40 @@ container_put(struct Container *c, container_object_type type, void *ptr)
 	}
     }
 
-    panic("out of space in container");
+    return -E_NO_MEM;
+}
+
+struct container_object *
+container_get(struct Container *c, uint32_t idx)
+{
+    if (idx >= NUM_CT_OBJ)
+	return 0;
+
+    return &c->ct_obj[idx];
 }
 
 void
-container_unref(struct Container *c, int idx)
+container_unref(struct Container *c, uint32_t idx)
 {
-    switch (c->ct_obj[idx].type) {
+    struct container_object *cobj = container_get(c, idx);
+    if (cobj == 0)
+	return;
+
+    switch (cobj->type) {
+    case cobj_none:
+	break;
+
     case cobj_thread:
-	thread_decref(c->ct_obj[idx].ptr);
+	thread_decref(cobj->ptr);
 	break;
 
     case cobj_container:
 	// XXX user-controllable recursion depth
-	container_free(c->ct_obj[idx].ptr);
+	container_free(cobj->ptr);
 	break;
 
     default:
-	panic("unknown container object type %d", c->ct_obj[idx].type);
+	panic("unknown container object type %d", cobj->type);
     }
 }
 
@@ -82,9 +99,18 @@ container_free(struct Container *c)
 
     int i;
     for (i = 0; i < NUM_CT_OBJ; i++)
-	if (c->ct_obj[i].type != cobj_none)
-	    container_unref(c, i);
+	container_unref(c, i);
 
     struct Page *p = pa2page(kva2pa(c));
     page_free(p);
+}
+
+struct Container *
+container_find(uint64_t cidx)
+{
+    struct Container *c;
+    LIST_FOREACH(c, &container_list, ct_hdr.link)
+	if (c->ct_hdr.idx == cidx)
+	    return c;
+    return 0;
 }

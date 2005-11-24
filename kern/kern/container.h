@@ -4,14 +4,7 @@
 #include <machine/types.h>
 #include <inc/queue.h>
 #include <machine/mmu.h>
-
-typedef enum {
-    cobj_none,
-    cobj_container,
-    cobj_thread,
-    cobj_gate,
-    cobj_segment
-} container_object_type;
+#include <inc/container.h>
 
 struct container_hdr {
     uint64_t idx;
@@ -34,7 +27,10 @@ LIST_HEAD(Container_list, Container);
 
 int  container_alloc(struct Container **cp);
 int  container_put(struct Container *c, container_object_type type, void *ptr);
-void container_unref(struct Container *c, int idx);
+void container_unref(struct Container *c, uint32_t idx);
 void container_free(struct Container *c);
+struct container_object *container_get(struct Container *c, uint32_t idx);
+
+struct Container *container_find(uint64_t cidx);
 
 #endif

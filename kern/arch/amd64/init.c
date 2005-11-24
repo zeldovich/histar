@@ -117,6 +117,8 @@ init (void)
 
   THREAD_CREATE_EMBED(rc, user_idle);
   THREAD_CREATE_EMBED(rc, user_hello);
+  THREAD_CREATE_EMBED(rc, user_chatter2);
+  THREAD_CREATE_EMBED(rc, user_ct_unref);
 
   schedule();
 }

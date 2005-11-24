@@ -35,7 +35,8 @@ KERN_BINFILES := \
 	user/idle \
 	user/spin \
 	user/chatter1 \
-	user/chatter2
+	user/chatter2 \
+	user/ct_unref
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
