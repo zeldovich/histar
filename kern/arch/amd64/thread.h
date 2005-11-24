@@ -31,7 +31,7 @@ void thread_set_runnable(struct Thread *t);
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
-void thread_run(struct Thread *t);
+void thread_run(struct Thread *t) __attribute__((__noreturn__));
 void thread_halt(struct Thread *t);
 
 // Convenience macro for embedded ELF binaries

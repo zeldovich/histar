@@ -7,7 +7,7 @@
 void idt_init();
 
 // Low-level trapframe jump in locore.S
-void trapframe_pop(struct Trapframe *);
+void trapframe_pop(struct Trapframe *) __attribute__((__noreturn__));
 
 // For following user pointers in kernel-space
 extern int page_fault_mode;

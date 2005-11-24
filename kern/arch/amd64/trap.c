@@ -105,7 +105,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     }
 }
 
-void
+void __attribute__((__noreturn__))
 trap_handler (struct Trapframe *tf)
 {
     uint32_t trapno = (tf->tf__trapentry_rip - (uint64_t)&trap_entry_stubs[0].trap_entry_code[0]) / 16;
@@ -116,8 +116,9 @@ trap_handler (struct Trapframe *tf)
     cur_thread->th_tf = *tf;
     trap_dispatch(trapno, &cur_thread->th_tf);
 
-    if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
-	schedule();
+    if (cur_thread != 0 && cur_thread->th_status == thread_runnable)
+	thread_run(cur_thread);
+    schedule();
 }
 
 static void __attribute__((__unused__))
