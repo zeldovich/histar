@@ -28,6 +28,9 @@ schedule()
 
     struct Thread *guard = next;
     for (;;) {
+	if (next == 0)
+	    panic("no runnable threads");
+
 	if (next->th_status == thread_runnable)
 	    break;
 
