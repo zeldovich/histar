@@ -119,5 +119,6 @@ init (void)
   THREAD_CREATE_EMBED(rc, user_gate_test);
   THREAD_CREATE_EMBED(rc, user_thread_test);
 
+  cprintf("=== kernel ready, calling schedule() ===\n");
   schedule();
 }
