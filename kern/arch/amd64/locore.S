@@ -102,10 +102,10 @@ trap_entry:
 	calleesave
 	movq	%rsp,%rdi
 	call	trap_handler
-	callerrestore
-	calleerestore
-	addq	$tf_rip,%rsp
-	iretq
+
+	// We should never return here
+	movq	$0xdeadbeef01020304, %rax
+	call	*%rax
 
 .globl	trapframe_pop
 trapframe_pop:
