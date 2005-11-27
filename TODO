@@ -1,4 +1,4 @@
-object labeling: thread, container(?), address space(?), gate
+object labeling: thread, container, address space(?), gate
 label comparison operations
 label checking on operations
 
