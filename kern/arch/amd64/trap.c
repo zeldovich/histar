@@ -125,7 +125,8 @@ trap_handler (struct Trapframe *tf)
     schedule();
 }
 
-static void __attribute__((__unused__))
+// Not static to avoid dead-code elimination
+void
 trap_field_symbols (void)
 {
 #define TF_DEF(field)							\
@@ -154,7 +155,4 @@ trap_field_symbols (void)
   TF_DEF (tf_ss);
   TF_DEF (tf__trapentry_rax);
   TF_DEF (tf__trapentry_rip);
-
-  asm volatile (".globl\ttf_size\n\t.set\ttf_size,%0"
-		:: "m" (*(int *) sizeof (struct Trapframe)));
 }
