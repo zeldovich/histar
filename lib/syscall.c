@@ -41,9 +41,9 @@ sys_container_store_cur_thread(uint64_t container)
 }
 
 int
-sys_container_store_cur_addrspace(uint64_t container)
+sys_container_store_cur_addrspace(uint64_t container, int cow_data)
 {
-    return syscall(SYS_container_store_cur_addrspace, container, 0, 0, 0, 0);
+    return syscall(SYS_container_store_cur_addrspace, container, cow_data, 0, 0, 0);
 }
 
 container_object_type

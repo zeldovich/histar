@@ -16,7 +16,7 @@ main(int ac, char **av)
     if (sc < 0)
 	panic("cannot get sub-container: %d", sc);
 
-    int r = sys_container_store_cur_addrspace(rc);
+    int r = sys_container_store_cur_addrspace(rc, 0);
     if (r < 0)
 	panic("cannot store current address space in root container: %d", r);
 

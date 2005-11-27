@@ -72,14 +72,26 @@ sys_container_store_cur_thread(uint64_t ct)
 }
 
 static int
-sys_container_store_cur_addrspace(uint64_t ct)
+sys_container_store_cur_addrspace(uint64_t ct, int cow_data)
 {
     struct Container *c = container_find(ct);
     if (c == 0)
 	return -E_INVAL;
 
+    struct Pagemap *pgmap;
+    int r = page_map_clone(cur_thread->th_pgmap, &pgmap, cow_data);
+    if (r < 0)
+	return r;
+
     // XXX perm check
-    return container_put(c, cobj_address_space, cur_thread->th_pgmap);
+    r = container_put(c, cobj_address_space, pgmap);
+    if (r < 0) {
+	// free pgmap
+	page_map_addref(pgmap);
+	page_map_decref(pgmap);
+    }
+
+    return r;
 }
 
 static int
@@ -140,7 +152,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_container_store_cur_thread(a1);
 
     case SYS_container_store_cur_addrspace:
-	return sys_container_store_cur_addrspace(a1);
+	return sys_container_store_cur_addrspace(a1, a2);
 
     case SYS_container_get_type:
 	return sys_container_get_type(a1, a2);
