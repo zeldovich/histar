@@ -19,7 +19,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/sched.c \
 	    kern/kern/unique.c \
 	    kern/kern/container.c \
-	    kern/kern/gate.c
+	    kern/kern/gate.c \
+	    kern/kern/label.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 
