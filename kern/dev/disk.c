@@ -172,6 +172,10 @@ ide_intr()
     // Stop DMA engine
     outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
 
+    // Check that we had a command queued
+    if (idec->current_op.op == op_none)
+	return;
+
     ide_complete(idec, iostat);
 }
 
