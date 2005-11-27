@@ -10,6 +10,8 @@ thread_entry(uint64_t bump)
     cprintf("thread_test: thread_entry: %lx\n", bump);
     counter += bump;
     sys_halt();
+
+    panic("thread_entry: still alive after sys_halt");
 }
 
 int
