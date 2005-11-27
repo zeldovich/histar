@@ -107,7 +107,7 @@ thread_alloc(struct Thread **tp)
     LIST_INSERT_HEAD(&thread_list, t, th_link);
     t->th_status = thread_not_runnable;
 
-    r = page_map_clone(&bootpml4, &t->th_pgmap);
+    r = page_map_clone(&bootpml4, &t->th_pgmap, 1);
     if (r < 0) {
 	thread_free(t);
 	return r;

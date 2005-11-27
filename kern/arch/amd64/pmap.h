@@ -92,14 +92,14 @@ void pmap_init (void);
 void page_free (struct Page *pp);
 int  page_alloc (struct Page **pp_store);
 void page_decref (struct Page *pp);
-struct Page *page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store);
+struct Page *page_lookup (struct Pagemap *pgmap, void *va);
 void page_remove (struct Pagemap *pgmap, void *va);
 int  page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm);
 
 int  page_cow (struct Pagemap *pgmap, void *va);
 void page_map_decref (struct Pagemap *pgmap);
 void page_map_addref (struct Pagemap *pgmap);
-int  page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store);
+int  page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data);
 
 inline ppn_t
 page2ppn (struct Page *pp)

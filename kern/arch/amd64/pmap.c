@@ -205,7 +205,7 @@ pmap_init (void)
 }
 
 static int
-page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmlevel)
+page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data, int pmlevel)
 {
     struct Page *p;
     int r = page_alloc(&p);
@@ -220,10 +220,11 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmle
 
     for (i = 0; i < NPTENTRIES; i++) {
 	if (i < maxcow && (pgmap->pm_ent[i] & PTE_P)) {
-	    struct Page *entp = pa2page(PTE_ADDR(pgmap->pm_ent[i]));
-	    entp->pp_ref++;
-	    if ((pgmap->pm_ent[i] & (PTE_W | PTE_COW)))
-		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW;
+	    pa2page(PTE_ADDR(pgmap->pm_ent[i]))->pp_ref++;
+	    pgmap->pm_ent[i] = pgmap->pm_ent[i] | PTE_COW_PT;
+
+	    if (cow_data && (pgmap->pm_ent[i] & (PTE_W | PTE_COW_DATA)))
+		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW_DATA;
 	}
 	clone->pm_ent[i] = pgmap->pm_ent[i];
     }
@@ -233,9 +234,9 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmle
 }
 
 int
-page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store)
+page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data)
 {
-    return page_map_clone_level (pgmap, pm_store, 3);
+    return page_map_clone_level (pgmap, pm_store, cow_data, 3);
 }
 
 //
@@ -247,7 +248,7 @@ page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int do_cow, uint64_t **pte_store)
+pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int mutable, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
@@ -276,22 +277,23 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
     }
 
-    // If the intermediate map is COW (and do_cow is set), then do the copy.
+    // If the intermediate map is COW (and we want to mutate), then do the copy.
     struct Pagemap *pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
-    if (do_cow && (*pm_entp & PTE_COW)) {
-	struct Page *old_pm_page = pa2page(kva2pa(pm_next));
-	if (old_pm_page->pp_ref > 1) {
-	    int r = page_map_clone_level(pm_next, &pm_next, pmlevel - 1);
-	    if (r < 0)
-		return r;
+    if (mutable && (*pm_entp & PTE_COW_PT)) {
+	struct Pagemap *pm_new;
+	int r = page_map_clone_level(pm_next, &pm_new, (*pm_entp & PTE_COW_DATA) ? 1 : 0, pmlevel - 1);
+	if (r < 0)
+	    return r;
 
-	    page_map_addref(pm_next);
-	    page_decref(old_pm_page);
-	}
-	*pm_entp = kva2pa(pm_next) | (PTE_FLAGS(*pm_entp) & ~PTE_COW);
+	page_map_addref(pm_new);
+	page_map_decref(pm_next);
+	pm_next = pm_new;
+
+	*pm_entp = kva2pa(pm_next) | PTE_W |
+		   (PTE_FLAGS(*pm_entp) & ~(PTE_COW_PT | PTE_COW_DATA));
     }
 
-    return pgdir_walk(pm_next, pmlevel-1, va, create, do_cow, pte_store);
+    return pgdir_walk(pm_next, pmlevel-1, va, create, mutable, pte_store);
 }
 
 //
@@ -304,11 +306,11 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
-struct Page *
-page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
+static struct Page *
+page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 0, 0, &ptep);
+    int r = pgdir_walk(pgmap, 3, va, 0, (pte_store ? 1 : 0), &ptep);
     if (r < 0)
 	panic("pgdir_walk(create=0) failed: %d", r);
 
@@ -319,6 +321,12 @@ page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 	return 0;
 
     return pa2page (PTE_ADDR (*ptep));
+}
+
+struct Page *
+page_lookup (struct Pagemap *pgmap, void *va)
+{
+    return page_lookup_internal(pgmap, va, 0);
 }
 
 //
@@ -351,7 +359,7 @@ void
 page_remove (struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
-    struct Page *pp = page_lookup(pgmap, va, &ptep);
+    struct Page *pp = page_lookup_internal(pgmap, va, &ptep);
     if (pp == 0)
 	return;
 
@@ -443,7 +451,7 @@ page_cow (struct Pagemap *pgmap, void *va)
     if (r < 0)
 	return r;
 
-    if (ptep == 0 || !(*ptep & PTE_COW) || !(*ptep & PTE_P))
+    if (ptep == 0 || !(*ptep & PTE_COW_DATA) || !(*ptep & PTE_P))
 	return -E_INVAL;
 
     struct Page *old_page = pa2page(PTE_ADDR(*ptep));
@@ -459,6 +467,6 @@ page_cow (struct Pagemap *pgmap, void *va)
 	*ptep = page2pa(new_page) | PTE_FLAGS(*ptep);
     }
 
-    *ptep = (*ptep & ~PTE_COW) | PTE_W;
+    *ptep = (*ptep & ~PTE_COW_DATA) | PTE_W;
     return 0;
 }
