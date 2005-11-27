@@ -29,9 +29,9 @@ sys_container_alloc(uint64_t parent)
 }
 
 int
-sys_container_unref(uint64_t container, uint32_t idx)
+sys_container_unref(struct cobj_ref o)
 {
-    return syscall(SYS_container_unref, container, idx, 0, 0, 0);
+    return syscall(SYS_container_unref, o.container, o.idx, 0, 0, 0);
 }
 
 int
@@ -47,31 +47,31 @@ sys_container_store_cur_addrspace(uint64_t container, int cow_data)
 }
 
 container_object_type
-sys_container_get_type(uint64_t container, uint32_t idx)
+sys_container_get_type(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_type, container, idx, 0, 0, 0);
+    return syscall(SYS_container_get_type, o.container, o.idx, 0, 0, 0);
 }
 
 int64_t
-sys_container_get_c_idx(uint64_t container, uint32_t idx)
+sys_container_get_c_idx(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_c_idx, container, idx, 0, 0, 0);
+    return syscall(SYS_container_get_c_idx, o.container, o.idx, 0, 0, 0);
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, uint64_t arg, uint64_t as_ctr, uint32_t as_idx)
+sys_gate_create(uint64_t container, void *entry, uint64_t arg, struct cobj_ref as)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) entry, arg, as_ctr, as_idx);
+    return syscall(SYS_gate_create, container, (uint64_t) entry, arg, as.container, as.idx);
 }
 
 int
-sys_gate_enter(uint64_t container, uint64_t idx)
+sys_gate_enter(struct cobj_ref gate)
 {
-    return syscall(SYS_gate_enter, container, idx, 0, 0, 0);
+    return syscall(SYS_gate_enter, gate.container, gate.idx, 0, 0, 0);
 }
 
 int
-sys_thread_create(uint64_t container, uint64_t gt_ctr, uint32_t gt_idx)
+sys_thread_create(uint64_t container, struct cobj_ref gate)
 {
-    return syscall(SYS_thread_create, container, gt_ctr, gt_idx, 0, 0);
+    return syscall(SYS_thread_create, container, gate.container, gate.idx, 0, 0);
 }

@@ -12,7 +12,7 @@ main(int ac, char **av)
     if (sci < 0)
 	panic("cannot allocate sub-container: %d", sci);
 
-    int64_t sc = sys_container_get_c_idx(rc, sci);
+    int64_t sc = sys_container_get_c_idx(COBJ(rc, sci));
     if (sc < 0)
 	panic("cannot get sub-container: %d", sc);
 
@@ -30,7 +30,7 @@ main(int ac, char **av)
 
     int i;
     for (i = 1; i < 10; i++) {
-	container_object_type t = sys_container_get_type(rc, i);
+	container_object_type t = sys_container_get_type(COBJ(rc, i));
 	cprintf("<%d:%d> type %s\n", rc, i,
 				     t == cobj_thread ? "thread" :
 				     t == cobj_container ? "container" :
@@ -38,10 +38,10 @@ main(int ac, char **av)
 				     t == cobj_none ? "none" : "other");
 
 	if (i != sci)
-	    sys_container_unref(rc, i);
+	    sys_container_unref(COBJ(rc, i));
     }
     cprintf("ct_unref now dropping sub-container\n");
-    sys_container_unref(rc, sci);
+    sys_container_unref(COBJ(rc, sci));
 
     panic("ct_unref: still alive, strange");
 }

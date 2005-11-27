@@ -22,18 +22,18 @@ main(int ac, char **av)
     if (as < 0)
 	panic("cannot store cur_as: %d", as);
 
-    int g = sys_gate_create(rc, &thread_entry, 3, rc, as);
+    int g = sys_gate_create(rc, &thread_entry, 3, COBJ(rc, as));
     if (g < 0)
 	panic("cannot create gate: %d", g);
 
     counter = 2;
     uint64_t old_counter = counter;
 
-    int r = sys_thread_create(rc, rc, g);
+    int r = sys_thread_create(rc, COBJ(rc, g));
     if (r < 0)
 	panic("cannot create thread 1: %d", r);
 
-    r = sys_thread_create(rc, rc, g);
+    r = sys_thread_create(rc, COBJ(rc, g));
     if (r < 0)
 	panic("cannot create thread 2: %d", r);
 

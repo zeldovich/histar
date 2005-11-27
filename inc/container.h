@@ -12,4 +12,11 @@ typedef enum {
     cobj_segment
 } container_object_type;
 
+struct cobj_ref {
+    uint64_t container;
+    uint64_t idx;
+};
+
+#define COBJ(container, idx)	((struct cobj_ref) { (container), (idx) } )
+
 #endif
