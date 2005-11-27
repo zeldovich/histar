@@ -17,7 +17,8 @@ LIB_SRCFILES :=	\
 	lib/printf.c \
 	lib/strchr.c \
 	lib/strcmp.c \
-	lib/libmain.c
+	lib/libmain.c \
+	lib/panic.c
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))

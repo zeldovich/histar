@@ -1,4 +1,5 @@
 #include <inc/syscall.h>
+#include <inc/assert.h>
 #include <inc/stdio.h>
 
 int
@@ -8,34 +9,24 @@ main(int ac, char **av)
     int rc = 0;
 
     int sci = sys_container_alloc(rc);
-    if (sci < 0) {
-	cprintf("cannot allocate sub-container: %d\n", sci);
-	sys_halt();
-    }
+    if (sci < 0)
+	panic("cannot allocate sub-container: %d", sci);
 
     int64_t sc = sys_container_get_c_idx(rc, sci);
-    if (sc < 0) {
-	cprintf("cannot get sub-container: %d\n", sc);
-	sys_halt();
-    }
+    if (sc < 0)
+	panic("cannot get sub-container: %d", sc);
 
     int r = sys_container_store_cur_addrspace(rc);
-    if (r < 0) {
-	cprintf("cannot store current address space in root container: %d\n", r);
-	sys_halt();
-    }
+    if (r < 0)
+	panic("cannot store current address space in root container: %d", r);
 
     r = sys_container_store_cur_thread(rc);
-    if (r < 0) {
-	cprintf("cannot store current thread in root container: %d\n", r);
-	sys_halt();
-    }
+    if (r < 0)
+	panic("cannot store current thread in root container: %d", r);
 
     r = sys_container_store_cur_thread(sc);
-    if (r < 0) {
-	cprintf("cannot addref current thread: %d\n", r);
-	sys_halt();
-    }
+    if (r < 0)
+	panic("cannot addref current thread: %d", r);
 
     int i;
     for (i = 1; i < 10; i++) {
@@ -52,6 +43,5 @@ main(int ac, char **av)
     cprintf("ct_unref now dropping sub-container\n");
     sys_container_unref(rc, sci);
 
-    cprintf("ct_unref: still alive, strange\n");
-    return 0;
+    panic("ct_unref: still alive, strange");
 }
