@@ -7,7 +7,7 @@ static volatile uint64_t counter;
 static void
 thread_entry(uint64_t bump)
 {
-    cprintf("thread_entry: %lx\n", bump);
+    cprintf("thread_test: thread_entry: %lx\n", bump);
     counter += bump;
     sys_halt();
 }
@@ -29,20 +29,29 @@ main(int ac, char **av)
     counter = 2;
     uint64_t old_counter = counter;
 
-    int r = sys_thread_create(rc, COBJ(rc, g));
-    if (r < 0)
-	panic("cannot create thread 1: %d", r);
+    int t1 = sys_thread_create(rc, COBJ(rc, g));
+    if (t1 < 0)
+	panic("cannot create thread 1: %d", t1);
 
-    r = sys_thread_create(rc, COBJ(rc, g));
-    if (r < 0)
-	panic("cannot create thread 2: %d", r);
+    int t2 = sys_thread_create(rc, COBJ(rc, g));
+    if (t2 < 0)
+	panic("cannot create thread 2: %d", t2);
 
-    cprintf("watching counter, currently at %d\n", counter);
+    cprintf("thread_test: watching counter, currently at %d\n", counter);
     for (;;) {
 	uint64_t counter_save = counter;
 	if (counter_save != old_counter) {
-	    cprintf("counter changed: %d -> %d\n", old_counter, counter_save);
+	    cprintf("thread_test: counter changed: %d -> %d\n", old_counter, counter_save);
 	    old_counter = counter_save;
 	}
+
+	if (counter_save == 8)
+	    break;
     }
+
+    assert(0 == sys_container_unref(COBJ(rc, t1)));
+    assert(0 == sys_container_unref(COBJ(rc, t2)));
+
+    cprintf("thread_test: GC'ed thread slots, exiting\n");
+    return 0;
 }
