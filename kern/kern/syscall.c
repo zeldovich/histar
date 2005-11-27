@@ -168,8 +168,13 @@ thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
     if (as_co == 0 || as_co->type != cobj_address_space)
 	return -E_INVAL;
 
-    struct Pagemap *pgmap = as_co->ptr;
-    return thread_jump(t, pgmap, g->gt_entry, g->gt_arg);
+    struct Pagemap *as_pgmap = as_co->ptr;
+    struct Pagemap *t_pgmap;
+    int r = page_map_clone(as_pgmap, &t_pgmap, 0);
+    if (r < 0)
+	return r;
+
+    return thread_jump(t, t_pgmap, g->gt_entry, g->gt_arg);
 }
 
 static int
