@@ -59,13 +59,7 @@
 
 /* bootdata.c */
 #ifndef __ASSEMBLER__
-extern uint64_t bootpts[];
-extern uint64_t bootpds[];
-extern uint64_t bootpd1[];
-extern uint64_t bootpd2[];
-extern uint64_t bootpdplo[];
-extern uint64_t bootpdphi[];
-extern uint64_t bootpml4[];
+extern struct Pagemap bootpml4;
 
 extern struct Tss tss;
 extern uint64_t gdt[];

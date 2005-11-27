@@ -32,20 +32,28 @@
 
 /* Page directory bootpds mapping the kernel stack (one page under KERNBASE) */
 char kstack[2 * PGSIZE] __attribute__ ((aligned (4096)));
-uint64_t bootpts[512] PTATTR = {
-  [509] = RELOC (&kstack[0 * PGSIZE]) + KPTE_BITS,
-  [510] = RELOC (&kstack[1 * PGSIZE]) + KPTE_BITS,
+struct Pagemap bootpts PTATTR = {
+  .pm_ent = {
+    [509] = RELOC (&kstack[0 * PGSIZE]) + KPTE_BITS,
+    [510] = RELOC (&kstack[1 * PGSIZE]) + KPTE_BITS,
+  }
 };
-uint64_t bootpds[512] PTATTR = {
-  [511] = RELOC (&bootpts) + KPDEP_BITS, /* sic - KPDE_BITS has PS, G */
+struct Pagemap bootpds PTATTR = {
+  .pm_ent = {
+    [511] = RELOC (&bootpts) + KPDEP_BITS, /* sic - KPDE_BITS has PS, G */
+  }
 };
 
 /* bootpd1-2 map the first and second GBs of physical memory */
-uint64_t bootpd1[512] PTATTR = {
-  DO_512 (0, TRANS2MEG)
+struct Pagemap bootpd1 PTATTR = {
+  .pm_ent = {
+    DO_512 (0, TRANS2MEG)
+  }
 };
-uint64_t bootpd2[512] PTATTR = {
-  DO_512 (512, TRANS2MEG)
+struct Pagemap bootpd2 PTATTR = {
+  .pm_ent = {
+    DO_512 (512, TRANS2MEG)
+  }
 };
 
 /*
@@ -54,19 +62,25 @@ uint64_t bootpd2[512] PTATTR = {
  * Map first two GB at PHYSBASE.
  * Map the kernel stack right under KERNBASE.
  */
-uint64_t bootpdplo[512] PTATTR = {
-  RELOC (&bootpd1) + KPDEP_BITS,
-  RELOC (&bootpd2) + KPDEP_BITS,
+struct Pagemap bootpdplo PTATTR = {
+  .pm_ent = {
+    RELOC (&bootpd1) + KPDEP_BITS,
+    RELOC (&bootpd2) + KPDEP_BITS,
+  }
 };
-uint64_t bootpdphi[512] PTATTR = {
-  [509] = RELOC (&bootpds) + KPDEP_BITS,
-  RELOC (&bootpd1) + KPDEP_BITS,
-  RELOC (&bootpd2) + KPDEP_BITS,
+struct Pagemap bootpdphi PTATTR = {
+  .pm_ent = {
+    [509] = RELOC (&bootpds) + KPDEP_BITS,
+    RELOC (&bootpd1) + KPDEP_BITS,
+    RELOC (&bootpd2) + KPDEP_BITS,
+  }
 };
-uint64_t bootpml4[512] PTATTR = {
-  RELOC (&bootpdplo) + KPDEP_BITS,
-  [256] = RELOC (&bootpdplo) + KPDEP_BITS,
-  [511] = RELOC (&bootpdphi) + KPDEP_BITS,
+struct Pagemap bootpml4 PTATTR = {
+  .pm_ent = {
+    RELOC (&bootpdplo) + KPDEP_BITS,
+    [256] = RELOC (&bootpdplo) + KPDEP_BITS,
+    [511] = RELOC (&bootpdphi) + KPDEP_BITS,
+  }
 };
 
 /*

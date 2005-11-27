@@ -79,7 +79,7 @@ mmu_init (void)
   asm volatile ("lgdt (%0)"::"r" (&gdtdesc.pd_lim));
 
   /* Nuke identically mapped physical memory */
-  bootpml4[0] = 0;
+  bootpml4.pm_ent[0] = 0;
   flush_tlb_hard ();
 
   /* Load TSS */
