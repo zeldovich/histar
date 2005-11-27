@@ -1,0 +1,12 @@
+object labeling: thread, container(?), address space(?), gate
+label comparison operations
+label checking on operations
+
+object persistence
+will probably need an iovec interface to disk_io()
+
+named segments
+address space manipulation ops
+[ get rid of the stack special-case in thread_jump(),
+  by mapping a COW_DATA stack page ]
+
