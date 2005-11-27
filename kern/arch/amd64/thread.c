@@ -129,6 +129,9 @@ thread_free(struct Thread *t)
 void
 thread_run(struct Thread *t)
 {
+    if (t->th_status != thread_runnable)
+	panic("trying to run a non-runnable thread %p", t);
+
     cur_thread = t;
     lcr3(t->th_cr3);
     trapframe_pop(&t->th_tf);
