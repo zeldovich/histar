@@ -107,17 +107,13 @@ thread_alloc(struct Thread **tp)
     LIST_INSERT_HEAD(&thread_list, t, th_link);
     t->th_status = thread_not_runnable;
 
-    struct Page *pgmap_p;
-    r = page_alloc(&pgmap_p);
+    r = page_map_clone((struct Pagemap *)bootpml4, &t->th_pgmap);
     if (r < 0) {
 	thread_free(t);
 	return r;
     }
 
-    pgmap_p->pp_ref++;
-    t->th_cr3 = page2pa(pgmap_p);
-    t->th_pgmap = page2kva(pgmap_p);
-    memcpy(t->th_pgmap, bootpml4, PGSIZE);
+    t->th_cr3 = kva2pa(t->th_pgmap);
 
     *tp = t;
     return 0;

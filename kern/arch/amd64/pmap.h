@@ -59,7 +59,7 @@
 
 /* bootdata.c */
 #ifndef __ASSEMBLER__
-  extern uint64_t bootpts[];
+extern uint64_t bootpts[];
 extern uint64_t bootpds[];
 extern uint64_t bootpd1[];
 extern uint64_t bootpd2[];
@@ -102,6 +102,8 @@ struct Page *page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 void page_remove (struct Pagemap *pgmap, void *va);
 int  page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm);
 void page_map_decref (struct Pagemap *pgmap);
+int  page_cow (struct Pagemap *pgmap, void *va);
+int  page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store);
 
 inline ppn_t
 page2ppn (struct Page *pp)

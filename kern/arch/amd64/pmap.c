@@ -204,6 +204,41 @@ pmap_init (void)
   page_init ();
 }
 
+static int
+page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmlevel)
+{
+    struct Page *p;
+    int r = page_alloc(&p);
+    if (r < 0)
+	return r;
+    p->pp_ref++;
+
+    struct Pagemap *clone = page2kva(p);
+    *pm_store = clone;
+
+    // COW only the user half of the address space
+    int maxcow = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
+    int i;
+
+    for (i = 0; i < NPTENTRIES; i++) {
+	if (i < maxcow && (pgmap->pm_ent[i] & PTE_P)) {
+	    struct Page *entp = pa2page(PTE_ADDR(pgmap->pm_ent[i]));
+	    entp->pp_ref++;
+	    if ((pgmap->pm_ent[i] & (PTE_W | PTE_COW)))
+		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW;
+	}
+	clone->pm_ent[i] = pgmap->pm_ent[i];
+    }
+
+    return 0;
+}
+
+int
+page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store)
+{
+    return page_map_clone_level (pgmap, pm_store, 3);
+}
+
 //
 // Stores address of page table entry in *ppte.
 // Stores 0 if there is no such entry or on error.
@@ -213,7 +248,7 @@ pmap_init (void)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, uint64_t **pte_store)
+pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int do_cow, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
@@ -242,8 +277,21 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, uint
 	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
     }
 
+    // If the intermediate map is COW (and do_cow is set), then do the copy.
     struct Pagemap *pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
-    return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
+    if (do_cow && (*pm_entp & PTE_COW)) {
+	struct Page *old_pm_page = pa2page(kva2pa(pm_next));
+	if (old_pm_page->pp_ref > 1) {
+	    int r = page_map_clone_level(pm_next, &pm_next, pmlevel - 1);
+	    if (r < 0)
+		return r;
+
+	    page_decref(old_pm_page);
+	}
+	*pm_entp = kva2pa(pm_next) | (PTE_FLAGS(*pm_entp) & ~PTE_COW);
+    }
+
+    return pgdir_walk(pm_next, pmlevel-1, va, create, do_cow, pte_store);
 }
 
 //
@@ -260,7 +308,7 @@ struct Page *
 page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
+    int r = pgdir_walk(pgmap, 3, va, 0, 0, &ptep);
     if (r < 0)
 	panic("pgdir_walk(create=0) failed: %d", r);
 
@@ -333,7 +381,7 @@ int
 page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 1, &ptep);
+    int r = pgdir_walk(pgmap, 3, va, 1, 1, &ptep);
     if (r < 0)
 	return r;
 
@@ -378,4 +426,32 @@ void
 page_map_decref (struct Pagemap *pgmap)
 {
     page_map_decref_level (pgmap, 3);
+}
+
+int
+page_cow (struct Pagemap *pgmap, void *va)
+{
+    uint64_t *ptep;
+    int r = pgdir_walk(pgmap, 3, va, 0, 1, &ptep);
+    if (r < 0)
+	return r;
+
+    if (ptep == 0 || !(*ptep & PTE_COW) || !(*ptep & PTE_P))
+	return -E_INVAL;
+
+    struct Page *old_page = pa2page(PTE_ADDR(*ptep));
+    if (old_page->pp_ref > 1) {
+	struct Page *new_page;
+	r = page_alloc(&new_page);
+	if (r < 0)
+	    return r;
+	new_page->pp_ref++;
+
+	memcpy(page2kva(new_page), page2kva(old_page), PGSIZE);
+	page_decref(old_page);
+	*ptep = page2pa(new_page) | PTE_FLAGS(*ptep);
+    }
+
+    *ptep = (*ptep & ~PTE_COW) | PTE_W;
+    return 0;
 }

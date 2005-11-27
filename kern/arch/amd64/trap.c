@@ -61,7 +61,13 @@ int page_fault_mode = PFM_NONE;
 static void
 page_fault (struct Trapframe *tf)
 {
-    physaddr_t fault_va = rcr2();
+    void *fault_va = (void*) rcr2();
+
+    if (cur_thread) {
+	int r = page_cow(cur_thread->th_pgmap, fault_va);
+	if (r == 0)
+	    return;
+    }
 
     if ((tf->tf_cs & 3) == 0) {
 	if (page_fault_mode == PFM_KILL) {
@@ -69,12 +75,10 @@ page_fault (struct Trapframe *tf)
 	    thread_halt(cur_thread);
 	    page_fault_mode = PFM_NONE;
 	} else {
-	    panic("kernel page fault at VA %lx", fault_va);
+	    panic("kernel page fault at VA %p", fault_va);
 	}
     } else {
-	cprintf("user process page-faulted at %lx\n", fault_va);
-
-	// No disk swapping or COW, so it's fatal for now..
+	cprintf("user process page-faulted at %p\n", fault_va);
 	thread_halt(cur_thread);
     }
 }
