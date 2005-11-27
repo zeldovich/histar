@@ -34,6 +34,9 @@ container_addref(container_object_type type, void *ptr)
 	((struct Thread *) ptr)->th_ref++;
 	break;
 
+    case cobj_address_space:
+	break;
+
     case cobj_container:
 	break;
 
@@ -80,6 +83,10 @@ container_unref(struct Container *c, uint32_t idx)
 
     case cobj_thread:
 	thread_decref(cobj->ptr);
+	break;
+
+    case cobj_address_space:
+	page_map_decref(cobj->ptr);
 	break;
 
     case cobj_container:

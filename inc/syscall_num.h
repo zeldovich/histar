@@ -11,7 +11,8 @@ typedef enum {
     SYS_container_get_type,	// get type of contained object
     SYS_container_get_c_idx,	// get global index of sub-container
 
-    SYS_thread_addref,
+    SYS_container_store_cur_thread,
+    SYS_container_store_cur_addrspace,
 
     NSYSCALLS
 } syscall_num;

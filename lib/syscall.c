@@ -35,9 +35,15 @@ sys_container_unref(uint64_t container, uint32_t idx)
 }
 
 int
-sys_thread_addref(uint64_t container)
+sys_container_store_cur_thread(uint64_t container)
 {
-    return syscall(SYS_thread_addref, container, 0, 0, 0, 0);
+    return syscall(SYS_container_store_cur_thread, container, 0, 0, 0, 0);
+}
+
+int
+sys_container_store_cur_addrspace(uint64_t container)
+{
+    return syscall(SYS_container_store_cur_addrspace, container, 0, 0, 0, 0);
 }
 
 container_object_type

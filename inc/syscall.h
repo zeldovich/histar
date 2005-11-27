@@ -17,7 +17,7 @@ int	sys_container_unref(uint64_t container, uint32_t idx);
 container_object_type
 	sys_container_get_type(uint64_t container, uint32_t idx);
 int64_t	sys_container_get_c_idx(uint64_t container, uint32_t idx);
-
-int	sys_thread_addref(uint64_t container);
+int	sys_container_store_cur_thread(uint64_t container);
+int	sys_container_store_cur_addrspace(uint64_t container);
 
 #endif

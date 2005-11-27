@@ -19,7 +19,19 @@ main(int ac, char **av)
 	sys_halt();
     }
 
-    int r = sys_thread_addref(sc);
+    int r = sys_container_store_cur_addrspace(rc);
+    if (r < 0) {
+	cprintf("cannot store current address space in root container: %d\n", r);
+	sys_halt();
+    }
+
+    r = sys_container_store_cur_thread(rc);
+    if (r < 0) {
+	cprintf("cannot store current thread in root container: %d\n", r);
+	sys_halt();
+    }
+
+    r = sys_container_store_cur_thread(sc);
     if (r < 0) {
 	cprintf("cannot addref current thread: %d\n", r);
 	sys_halt();
@@ -31,12 +43,11 @@ main(int ac, char **av)
 	cprintf("<%d:%d> type %s\n", rc, i,
 				     t == cobj_thread ? "thread" :
 				     t == cobj_container ? "container" :
+				     t == cobj_address_space ? "address space" :
 				     t == cobj_none ? "none" : "other");
 
-	if (t == cobj_thread) {
-	    cprintf("unref'ing <%d:%d>\n", rc, i);
+	if (i != sci)
 	    sys_container_unref(rc, i);
-	}
     }
     cprintf("ct_unref now dropping sub-container\n");
     sys_container_unref(rc, sci);
