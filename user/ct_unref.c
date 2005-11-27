@@ -28,12 +28,13 @@ main(int ac, char **av)
     int i;
     for (i = 1; i < 10; i++) {
 	container_object_type t = sys_container_get_type(rc, i);
-	cprintf("rc[%d] type %s\n", i, (t == cobj_thread ? "thread" :
-					t == cobj_container ? "container" :
-					t == cobj_none ? "none" : "other"));
+	cprintf("<%d:%d> type %s\n", rc, i,
+				     t == cobj_thread ? "thread" :
+				     t == cobj_container ? "container" :
+				     t == cobj_none ? "none" : "other");
 
 	if (t == cobj_thread) {
-	    cprintf("unref'ing <0:%d>\n", i);
+	    cprintf("unref'ing <%d:%d>\n", rc, i);
 	    sys_container_unref(rc, i);
 	}
     }
