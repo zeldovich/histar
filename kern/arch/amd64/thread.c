@@ -113,6 +113,7 @@ thread_alloc(struct Thread **tp)
 	return r;
     }
 
+    page_map_addref(t->th_pgmap);
     t->th_cr3 = kva2pa(t->th_pgmap);
 
     *tp = t;

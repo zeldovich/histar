@@ -35,6 +35,7 @@ container_addref(container_object_type type, void *ptr)
 	break;
 
     case cobj_address_space:
+	page_map_addref(ptr);
 	break;
 
     case cobj_container:

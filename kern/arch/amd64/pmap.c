@@ -211,10 +211,8 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmle
     int r = page_alloc(&p);
     if (r < 0)
 	return r;
-    p->pp_ref++;
 
     struct Pagemap *clone = page2kva(p);
-    *pm_store = clone;
 
     // COW only the user half of the address space
     int maxcow = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
@@ -230,6 +228,7 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int pmle
 	clone->pm_ent[i] = pgmap->pm_ent[i];
     }
 
+    *pm_store = clone;
     return 0;
 }
 
@@ -286,6 +285,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	    if (r < 0)
 		return r;
 
+	    page_map_addref(pm_next);
 	    page_decref(old_pm_page);
 	}
 	*pm_entp = kva2pa(pm_next) | (PTE_FLAGS(*pm_entp) & ~PTE_COW);
@@ -426,6 +426,13 @@ void
 page_map_decref (struct Pagemap *pgmap)
 {
     page_map_decref_level (pgmap, 3);
+}
+
+void
+page_map_addref (struct Pagemap *pgmap)
+{
+    struct Page *pgmap_p = pa2page(kva2pa(pgmap));
+    pgmap_p->pp_ref++;
 }
 
 int

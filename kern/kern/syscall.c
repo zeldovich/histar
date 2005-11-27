@@ -78,16 +78,8 @@ sys_container_store_cur_addrspace(uint64_t ct)
     if (c == 0)
 	return -E_INVAL;
 
-    struct Pagemap *pm;
-    int r = page_map_clone(cur_thread->th_pgmap, &pm);
-    if (r < 0)
-	return r;
-
-    r = container_put(c, cobj_address_space, pm);
-    if (r < 0)
-	page_map_decref(pm);
-
-    return r;
+    // XXX perm check
+    return container_put(c, cobj_address_space, cur_thread->th_pgmap);
 }
 
 static int

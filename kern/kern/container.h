@@ -27,11 +27,9 @@ LIST_HEAD(Container_list, Container);
 
 int  container_alloc(struct Container **cp);
 
-// on success, container_put() assumes ownership of the following objects:
-//   cobj_container
-//   cobj_address_space
-
+// on success, container_put(cobj_container) assumes ownership of the sub-container
 int  container_put(struct Container *c, container_object_type type, void *ptr);
+
 void container_unref(struct Container *c, uint32_t idx);
 void container_free(struct Container *c);
 struct container_object *container_get(struct Container *c, uint32_t idx);
