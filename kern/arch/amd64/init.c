@@ -108,7 +108,7 @@ init (void)
   pmap_init ();
   pci_init ();
 
-  disk_test ();
+  //disk_test ();
 
   struct Container *rc;
   int r = container_alloc(&rc);
