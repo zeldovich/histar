@@ -260,7 +260,11 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	return 0;
     }
 
-    // If an intermediate page map is missing, allocate it
+    // We don't handle superpages (2MB) yet
+    if ((*pm_entp & PTE_PS))
+	return -E_INVAL;
+
+    // If an intermediate page map is missing, allocate it (if asked for)
     if (!(*pm_entp & PTE_P)) {
 	if (!create) {
 	    *pte_store = 0;
