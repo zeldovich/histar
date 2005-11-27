@@ -35,11 +35,15 @@ map_segment(struct Pagemap *pgmap, void *va, size_t len)
 int
 thread_load_elf(struct Thread *t, uint8_t *binary, size_t size)
 {
+    int r = page_map_clone(&bootpml4, &t->th_pgmap, 1);
+    if (r < 0)
+	return r;
+
+    page_map_addref(t->th_pgmap);
+    t->th_cr3 = kva2pa(t->th_pgmap);
+
     // Switch to target address space to populate it
     lcr3(t->th_cr3);
-
-    // Map a stack
-    map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
 
     Elf64_Ehdr *elf = (Elf64_Ehdr *) binary;
     if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
@@ -77,14 +81,7 @@ thread_load_elf(struct Thread *t, uint8_t *binary, size_t size)
 	memset((void*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
     }
 
-    memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rsp = ULIM;
-    t->th_tf.tf_rflags = FL_IF;
-    t->th_tf.tf_cs = GD_UT | 3;
-    t->th_tf.tf_rip = elf->e_entry;
-
-    return 0;
+    return thread_jump(t, t->th_pgmap, (void*) elf->e_entry, 0);
 }
 
 void
@@ -106,15 +103,6 @@ thread_alloc(struct Thread **tp)
     memset(t, 0, sizeof(*t));
     LIST_INSERT_HEAD(&thread_list, t, th_link);
     t->th_status = thread_not_runnable;
-
-    r = page_map_clone(&bootpml4, &t->th_pgmap, 1);
-    if (r < 0) {
-	thread_free(t);
-	return r;
-    }
-
-    page_map_addref(t->th_pgmap);
-    t->th_cr3 = kva2pa(t->th_pgmap);
 
     *tp = t;
     return 0;
@@ -152,4 +140,26 @@ thread_halt(struct Thread *t)
     t->th_status = thread_not_runnable;
     if (cur_thread == t)
 	cur_thread = 0;
+}
+
+int
+thread_jump(struct Thread *t, struct Pagemap *pgmap, void *entry, uint64_t arg)
+{
+    page_map_addref(pgmap);
+    if (t->th_pgmap)
+	page_map_decref(t->th_pgmap);
+
+    t->th_pgmap = pgmap;
+    t->th_cr3 = kva2pa(t->th_pgmap);
+
+    memset(&t->th_tf, 0, sizeof(t->th_tf));
+    t->th_tf.tf_ss = GD_UD | 3;
+    t->th_tf.tf_rsp = ULIM;
+    t->th_tf.tf_rflags = FL_IF;
+    t->th_tf.tf_cs = GD_UT | 3;
+    t->th_tf.tf_rip = (uint64_t) entry;
+    t->th_tf.tf_rdi = arg;
+
+    // Map a stack
+    return map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
 }

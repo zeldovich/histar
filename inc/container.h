@@ -6,9 +6,9 @@ typedef enum {
     cobj_container,
     cobj_thread,
     cobj_address_space,
+    cobj_gate,
 
     // not implemented yet
-    cobj_gate,
     cobj_segment
 } container_object_type;
 

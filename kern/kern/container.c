@@ -3,6 +3,7 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <inc/error.h>
+#include <kern/gate.h>
 
 static struct Container_list container_list;
 
@@ -36,6 +37,10 @@ container_addref(container_object_type type, void *ptr)
 
     case cobj_address_space:
 	page_map_addref(ptr);
+	break;
+
+    case cobj_gate:
+	((struct Gate*) ptr)->gt_ref++;
 	break;
 
     case cobj_container:
@@ -88,6 +93,10 @@ container_unref(struct Container *c, uint32_t idx)
 
     case cobj_address_space:
 	page_map_decref(cobj->ptr);
+	break;
+
+    case cobj_gate:
+	gate_decref(cobj->ptr);
 	break;
 
     case cobj_container:

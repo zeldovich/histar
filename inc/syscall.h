@@ -20,4 +20,9 @@ int64_t	sys_container_get_c_idx(uint64_t container, uint32_t idx);
 int	sys_container_store_cur_thread(uint64_t container);
 int	sys_container_store_cur_addrspace(uint64_t container, int cow_data);
 
+int	sys_gate_create(uint64_t container, void *entry, uint64_t arg, uint64_t as_ctr, uint32_t as_idx);
+int	sys_gate_enter(uint64_t container, uint64_t idx);
+
+int	sys_thread_create(uint64_t container, uint64_t gt_ctr, uint32_t gt_idx);
+
 #endif

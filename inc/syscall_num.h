@@ -14,6 +14,11 @@ typedef enum {
     SYS_container_store_cur_thread,
     SYS_container_store_cur_addrspace,
 
+    SYS_gate_create,
+    SYS_gate_enter,
+
+    SYS_thread_create,
+
     NSYSCALLS
 } syscall_num;
 

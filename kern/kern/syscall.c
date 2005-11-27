@@ -6,6 +6,7 @@
 #include <kern/sched.h>
 #include <machine/thread.h>
 #include <kern/container.h>
+#include <kern/gate.h>
 
 static void
 sys_cputs(const char *s)
@@ -118,11 +119,91 @@ sys_container_get_c_idx(uint64_t ct, uint32_t idx)
 
     // XXX perm check
     struct container_object *co = container_get(c, idx);
-    if (co == 0)
-	return -E_INVAL;
-    if (co->type != cobj_container)
+    if (co == 0 || co->type != cobj_container)
 	return -E_INVAL;
     return ((struct Container *) co->ptr)->ct_hdr.idx;
+}
+
+static int
+sys_gate_create(uint64_t ct, void *entry, uint64_t arg, uint64_t as_ctr, uint32_t as_idx)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    struct Gate *g;
+    int r = gate_alloc(&g);
+    if (r < 0)
+	return r;
+
+    g->gt_entry = entry;
+    g->gt_arg = arg;
+    g->gt_as_container = as_ctr;
+    g->gt_as_idx = as_idx;
+
+    r = container_put(c, cobj_gate, g);
+    if (r < 0)
+	gate_free(g);
+
+    return r;
+}
+
+static int
+thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    struct container_object *co = container_get(c, idx);
+    if (co == 0 || co->type != cobj_gate)
+	return -E_INVAL;
+
+    struct Gate *g = co->ptr;
+    struct Container *as_ctr = container_find(g->gt_as_container);
+    if (as_ctr == 0)
+	return -E_INVAL;
+
+    struct container_object *as_co = container_get(as_ctr, g->gt_as_idx);
+    if (as_co == 0 || as_co->type != cobj_address_space)
+	return -E_INVAL;
+
+    struct Pagemap *pgmap = as_co->ptr;
+    return thread_jump(t, pgmap, g->gt_entry, g->gt_arg);
+}
+
+static int
+sys_gate_enter(uint64_t ct, uint64_t idx)
+{
+    return thread_gate_enter(cur_thread, ct, idx);
+}
+
+static int
+sys_thread_create(uint64_t ct, uint64_t gt_ctr, uint32_t gt_idx)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    struct Thread *t;
+    int r = thread_alloc(&t);
+    if (r < 0)
+	return r;
+
+    int tidx = container_put(c, cobj_thread, t);
+    if (tidx < 0) {
+	thread_free(t);
+	return tidx;
+    }
+
+    r = thread_gate_enter(t, gt_ctr, gt_idx);
+    if (r < 0) {
+	container_unref(c, tidx);
+	return r;
+    }
+
+    thread_set_runnable(t);
+    return tidx;
 }
 
 uint64_t
@@ -159,6 +240,15 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_container_get_c_idx:
 	return sys_container_get_c_idx(a1, a2);
+
+    case SYS_gate_create:
+	return sys_gate_create(a1, (void*) a2, a3, a4, a5);
+
+    case SYS_gate_enter:
+	return sys_gate_enter(a1, a2);
+
+    case SYS_thread_create:
+	return sys_thread_create(a1, a2, a3);
 
     default:
 	cprintf("Unknown syscall %d\n", num);

@@ -57,3 +57,21 @@ sys_container_get_c_idx(uint64_t container, uint32_t idx)
 {
     return syscall(SYS_container_get_c_idx, container, idx, 0, 0, 0);
 }
+
+int
+sys_gate_create(uint64_t container, void *entry, uint64_t arg, uint64_t as_ctr, uint32_t as_idx)
+{
+    return syscall(SYS_gate_create, container, (uint64_t) entry, arg, as_ctr, as_idx);
+}
+
+int
+sys_gate_enter(uint64_t container, uint64_t idx)
+{
+    return syscall(SYS_gate_enter, container, idx, 0, 0, 0);
+}
+
+int
+sys_thread_create(uint64_t container, uint64_t gt_ctr, uint32_t gt_idx)
+{
+    return syscall(SYS_thread_create, container, gt_ctr, gt_idx, 0, 0);
+}
