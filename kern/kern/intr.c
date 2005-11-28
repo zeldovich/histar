@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <kern/sched.h>
 #include <dev/disk.h>
+#include <dev/console.h>
 
 void
 irq_handler(int irqno)
@@ -9,6 +10,14 @@ irq_handler(int irqno)
     switch (irqno) {
 	case 0:
 	    schedule();
+	    break;
+
+	case 1:
+	    kbd_intr();
+	    break;
+
+	case 4:
+	    serial_intr();
 	    break;
 
 	case 14:
