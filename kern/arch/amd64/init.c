@@ -127,6 +127,7 @@ init (void)
   THREAD_CREATE_EMBED(rc, l, user_idle);
   THREAD_CREATE_EMBED(rc, l, user_gate_test);
   THREAD_CREATE_EMBED(rc, l, user_thread_test);
+  THREAD_CREATE_EMBED(rc, l, user_shell);
 
   label_free(l);
 

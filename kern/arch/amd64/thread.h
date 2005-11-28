@@ -21,19 +21,24 @@ struct Thread {
     thread_status th_status;
 
     LIST_ENTRY(Thread) th_link;
+    TAILQ_ENTRY(Thread) th_waiting;
 };
 
 LIST_HEAD(Thread_list, Thread);
+TAILQ_HEAD(Thread_tqueue, Thread);
+
 extern struct Thread_list thread_list;
 extern struct Thread *cur_thread;
 
 int  thread_alloc(struct Thread **tp);
 int  thread_load_elf(struct Thread *t, struct Label *label, uint8_t *binary, size_t size);
 void thread_set_runnable(struct Thread *t);
+void thread_suspend(struct Thread *t);
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
 int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *entry, uint64_t arg);
+void thread_syscall_restart(struct Thread *t);
 
 void thread_run(struct Thread *t) __attribute__((__noreturn__));
 void thread_halt(struct Thread *t);

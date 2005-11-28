@@ -11,7 +11,7 @@
 
 void cons_intr (int (*proc) (void));
 
-//struct Env_tqueue env_console_waiting_tqueue;
+struct Thread_tqueue console_waiting_tqueue;
 
 /***** Serial I/O code *****/
 
@@ -495,8 +495,7 @@ cons_intr (int (*proc) (void))
 {
   int c;
   int new = 0;
-  //int i;
-  //struct Env *e;
+  int i;
 
   while ((c = (*proc) ()) != -1) {
     if (c == 0)
@@ -507,14 +506,12 @@ cons_intr (int (*proc) (void))
       cons.wpos = 0;
   }
 
-#if 0
   // Wake up as many processes as we might be able to serve now
-  for (i = 0; i < new && !TAILQ_EMPTY (&env_console_waiting_tqueue); i++) {
-    e = TAILQ_FIRST (&env_console_waiting_tqueue);
-    env_set_status (e, ENV_RUNNABLE);
-    TAILQ_REMOVE (&env_console_waiting_tqueue, e, env_waiting_link);
+  for (i = 0; i < new && !TAILQ_EMPTY (&console_waiting_tqueue); i++) {
+    struct Thread *t = TAILQ_FIRST (&console_waiting_tqueue);
+    thread_set_runnable(t);
+    TAILQ_REMOVE (&console_waiting_tqueue, t, th_waiting);
   }
-#endif
 }
 
 // return the next input character from the console, or 0 if none waiting
@@ -558,9 +555,7 @@ cons_init (void)
   kbd_init ();
   serial_init ();
 
-#if 0
-  TAILQ_INIT (&env_console_waiting_tqueue);
-#endif
+  TAILQ_INIT (&console_waiting_tqueue);
 
   lpt_output_start = read_tsc ();
   lpt_putc ('\n');

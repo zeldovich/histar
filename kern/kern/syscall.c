@@ -7,14 +7,7 @@
 #include <machine/thread.h>
 #include <kern/container.h>
 #include <kern/gate.h>
-
-static void
-sys_cputs(const char *s)
-{
-    page_fault_mode = PFM_KILL;
-    cprintf("%s", TRUP(s));
-    page_fault_mode = PFM_NONE;
-}
+#include <dev/console.h>
 
 static void
 sys_yield()
@@ -26,6 +19,28 @@ static void
 sys_halt()
 {
     thread_halt(cur_thread);
+    schedule();
+}
+
+static void
+sys_cputs(const char *s)
+{
+    page_fault_mode = PFM_KILL;
+    cprintf("%s", TRUP(s));
+    page_fault_mode = PFM_NONE;
+}
+
+static int
+sys_cgetc()
+{
+    int c = cons_getc();
+    if (c != 0)
+	return c;
+
+    TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
+    thread_suspend(cur_thread);
+    thread_syscall_restart(cur_thread);
+
     schedule();
 }
 
@@ -275,10 +290,6 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
 {
     switch (num) {
-    case SYS_cputs:
-	sys_cputs((const char*) a1);
-	return 0;
-
     case SYS_yield:
 	sys_yield();
 	return 0;
@@ -286,6 +297,13 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
     case SYS_halt:
 	sys_halt();
 	return 0;
+
+    case SYS_cputs:
+	sys_cputs((const char*) a1);
+	return 0;
+
+    case SYS_cgetc:
+	return sys_cgetc((char*) a1);
 
     case SYS_container_alloc:
 	return sys_container_alloc(a1);

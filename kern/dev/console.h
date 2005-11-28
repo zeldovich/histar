@@ -7,7 +7,7 @@
 #endif
 
 #include <inc/types.h>
-//#include <kern/env.h>
+#include <machine/thread.h>
 
 #define MONO_BASE	0x3B4
 #define MONO_BUF	0xB0000
@@ -27,6 +27,6 @@ void serial_intr(void);		// irq 4
 
 void putchar (int c);
 
-//extern struct Env_tqueue env_console_waiting_tqueue;
+extern struct Thread_tqueue console_waiting_tqueue;
 
 #endif /* _CONSOLE_H_ */

@@ -90,6 +90,12 @@ thread_set_runnable(struct Thread *t)
     t->th_status = thread_runnable;
 }
 
+void
+thread_suspend(struct Thread *t)
+{
+    t->th_status = thread_not_runnable;
+}
+
 int
 thread_alloc(struct Thread **tp)
 {
@@ -174,4 +180,10 @@ thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *
 
     // Map a stack
     return map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
+}
+
+void
+thread_syscall_restart(struct Thread *t)
+{
+    t->th_tf.tf_rip -= 2;
 }

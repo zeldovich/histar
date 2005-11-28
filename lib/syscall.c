@@ -4,12 +4,6 @@
 
 #include <inc/stdio.h>
 
-int
-sys_cputs(const char *s)
-{
-    return syscall(SYS_cputs, (uint64_t) s, 0, 0, 0, 0);
-}
-
 void
 sys_yield()
 {
@@ -20,6 +14,18 @@ void
 sys_halt()
 {
     syscall(SYS_halt, 0, 0, 0, 0, 0);
+}
+
+int
+sys_cputs(const char *s)
+{
+    return syscall(SYS_cputs, (uint64_t) s, 0, 0, 0, 0);
+}
+
+int
+sys_cgetc()
+{
+    return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
 }
 
 int

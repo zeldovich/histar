@@ -2,9 +2,11 @@
 #define JOS_INC_SYSCALLNUM_H
 
 typedef enum {
-    SYS_cputs = 0,
-    SYS_yield,
+    SYS_yield = 0,
     SYS_halt,
+
+    SYS_cputs,
+    SYS_cgetc,
 
     SYS_container_alloc,
     SYS_container_unref,
