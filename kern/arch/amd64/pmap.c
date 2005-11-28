@@ -222,8 +222,8 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_
 	if (i < maxcow && (pgmap->pm_ent[i] & PTE_P)) {
 	    pa2page(PTE_ADDR(pgmap->pm_ent[i]))->pp_ref++;
 
-	    if (cow_data && (pgmap->pm_ent[i] & (PTE_W | PTE_COW_DATA)))
-		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW_DATA;
+	    if (cow_data && (pgmap->pm_ent[i] & (PTE_W | PTE_COW)))
+		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW;
 	}
 	clone->pm_ent[i] = pgmap->pm_ent[i];
     }
@@ -285,7 +285,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
     struct Pagemap *pm_next = page2kva(pm_next_page);
     if (mutable && pm_next_page->pp_ref > 1) {
 	struct Pagemap *pm_new;
-	int r = page_map_clone_level(pm_next, &pm_new, (*pm_entp & PTE_COW_DATA) ? 1 : 0, pmlevel - 1);
+	int r = page_map_clone_level(pm_next, &pm_new, (*pm_entp & PTE_COW) ? 1 : 0, pmlevel - 1);
 	if (r < 0)
 	    return r;
 
@@ -293,7 +293,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	page_map_decref(pm_next);
 	pm_next = pm_new;
 
-	*pm_entp = kva2pa(pm_next) | PTE_W | (PTE_FLAGS(*pm_entp) & ~PTE_COW_DATA);
+	*pm_entp = kva2pa(pm_next) | PTE_W | (PTE_FLAGS(*pm_entp) & ~PTE_COW);
     }
 
     return pgdir_walk(pm_next, pmlevel-1, va, create, mutable, pte_store);
@@ -454,7 +454,7 @@ page_cow (struct Pagemap *pgmap, void *va)
     if (r < 0)
 	return r;
 
-    if (ptep == 0 || !(*ptep & PTE_COW_DATA) || !(*ptep & PTE_P))
+    if (ptep == 0 || !(*ptep & PTE_COW) || !(*ptep & PTE_P))
 	return -E_INVAL;
 
     struct Page *old_page = pa2page(PTE_ADDR(*ptep));
@@ -470,6 +470,6 @@ page_cow (struct Pagemap *pgmap, void *va)
 	*ptep = page2pa(new_page) | PTE_FLAGS(*ptep);
     }
 
-    *ptep = (*ptep & ~PTE_COW_DATA) | PTE_W;
+    *ptep = (*ptep & ~PTE_COW) | PTE_W;
     return 0;
 }
