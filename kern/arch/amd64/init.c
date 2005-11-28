@@ -11,6 +11,8 @@
 #include <dev/kclock.h>
 #include <kern/sched.h>
 #include <kern/container.h>
+#include <kern/label.h>
+#include <kern/unique.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -110,14 +112,23 @@ init (void)
 
   //disk_test ();
 
+  // XXX have to alloc the container first, so that it gets ID 0
   struct Container *rc;
-  int r = container_alloc(&rc);
-  if (r < 0)
-    panic("cannot allocate root container");
+  assert(0 == container_alloc(&rc));
 
-  THREAD_CREATE_EMBED(rc, user_idle);
-  THREAD_CREATE_EMBED(rc, user_gate_test);
-  THREAD_CREATE_EMBED(rc, user_thread_test);
+  uint64_t root_handle = unique_alloc();
+  struct Label *l;
+  assert(0 == label_alloc(&l));
+
+  l->lb_hdr.def_level = 1;
+  assert(0 == label_set(l, root_handle, LB_LEVEL_STAR));
+  assert(0 == label_copy(l, &rc->ct_hdr.label));
+
+  THREAD_CREATE_EMBED(rc, l, user_idle);
+  THREAD_CREATE_EMBED(rc, l, user_gate_test);
+  THREAD_CREATE_EMBED(rc, l, user_thread_test);
+
+  label_free(l);
 
   cprintf("=== kernel ready, calling schedule() ===\n");
   schedule();

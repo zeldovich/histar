@@ -2,10 +2,14 @@
 #define JOS_KERN_GATE_H
 
 #include <machine/types.h>
+#include <kern/label.h>
 
 struct Gate {
     void *gt_entry;
     uint64_t gt_arg;
+
+    struct Label *gt_recv_label;
+    struct Label *gt_send_label;
 
     // target address space
     uint64_t gt_as_container;

@@ -33,7 +33,7 @@ map_segment(struct Pagemap *pgmap, void *va, size_t len)
 }
 
 int
-thread_load_elf(struct Thread *t, uint8_t *binary, size_t size)
+thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 {
     int r = page_map_clone(&bootpml4, &t->th_pgmap, 1);
     if (r < 0)
@@ -81,7 +81,7 @@ thread_load_elf(struct Thread *t, uint8_t *binary, size_t size)
 	memset((void*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
     }
 
-    return thread_jump(t, t->th_pgmap, (void*) elf->e_entry, 0);
+    return thread_jump(t, l, t->th_pgmap, (void*) elf->e_entry, 0);
 }
 
 void
@@ -146,8 +146,17 @@ thread_halt(struct Thread *t)
 }
 
 int
-thread_jump(struct Thread *t, struct Pagemap *pgmap, void *entry, uint64_t arg)
+thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *entry, uint64_t arg)
 {
+    struct Label *newl;
+    int r = label_copy(label, &newl);
+    if (r < 0)
+	return r;
+
+    if (t->th_label)
+	label_free(t->th_label);
+    t->th_label = newl;
+
     page_map_addref(pgmap);
     if (t->th_pgmap)
 	page_map_decref(t->th_pgmap);

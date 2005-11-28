@@ -3,6 +3,7 @@
 
 #include <machine/mmu.h>
 #include <inc/queue.h>
+#include <kern/label.h>
 
 typedef enum {
     thread_runnable,
@@ -12,6 +13,7 @@ typedef enum {
 struct Thread {
     struct Trapframe th_tf __attribute__ ((aligned (16)));
 
+    struct Label *th_label;
     struct Pagemap *th_pgmap;
     uint64_t th_cr3;
 
@@ -26,18 +28,18 @@ extern struct Thread_list thread_list;
 extern struct Thread *cur_thread;
 
 int  thread_alloc(struct Thread **tp);
-int  thread_load_elf(struct Thread *t, uint8_t *binary, size_t size);
+int  thread_load_elf(struct Thread *t, struct Label *label, uint8_t *binary, size_t size);
 void thread_set_runnable(struct Thread *t);
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
-int  thread_jump(struct Thread *t, struct Pagemap *pgmap, void *entry, uint64_t arg);
+int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *entry, uint64_t arg);
 
 void thread_run(struct Thread *t) __attribute__((__noreturn__));
 void thread_halt(struct Thread *t);
 
 // Convenience macro for embedded ELF binaries
-#define THREAD_CREATE_EMBED(container, name)			\
+#define THREAD_CREATE_EMBED(container, label, name)		\
     do {							\
 	int r;							\
 	struct Thread *t;					\
@@ -47,7 +49,7 @@ void thread_halt(struct Thread *t);
 	r = thread_alloc(&t);					\
 	if (r < 0) panic("cannot alloc thread");		\
 								\
-	r = thread_load_elf(t,					\
+	r = thread_load_elf(t, label,				\
 			    _binary_obj_##name##_start,		\
 			    (int) _binary_obj_##name##_size);	\
 	if (r < 0) panic("cannot load elf");			\

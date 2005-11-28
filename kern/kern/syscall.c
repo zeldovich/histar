@@ -36,11 +36,20 @@ sys_container_alloc(uint64_t parent_ct)
     if (parent == 0)
 	return -E_INVAL;
 
-    // XXX permissions checking
-    struct Container *c;
-    int r = container_alloc(&c);
+    int r = label_compare(cur_thread->th_label, parent->ct_hdr.label, label_eq);
     if (r < 0)
 	return r;
+
+    struct Container *c;
+    r = container_alloc(&c);
+    if (r < 0)
+	return r;
+
+    r = label_copy(cur_thread->th_label, &c->ct_hdr.label);
+    if (r < 0) {
+	container_free(c);
+	return r;
+    }
 
     r = container_put(parent, cobj_container, c);
     if (r < 0)
@@ -56,7 +65,10 @@ sys_container_unref(uint64_t ct, uint32_t idx)
     if (c == 0)
 	return -E_INVAL;
 
-    // XXX permissions checking
+    int r = label_compare(cur_thread->th_label, c->ct_hdr.label, label_eq);
+    if (r < 0)
+	return r;
+
     container_unref(c, idx);
     return 0;
 }
@@ -68,7 +80,10 @@ sys_container_store_cur_thread(uint64_t ct)
     if (c == 0)
 	return -E_INVAL;
 
-    // XXX perm check
+    int r = label_compare(cur_thread->th_label, c->ct_hdr.label, label_eq);
+    if (r < 0)
+	return r;
+
     return container_put(c, cobj_thread, cur_thread);
 }
 
@@ -79,12 +94,15 @@ sys_container_store_cur_addrspace(uint64_t ct, int cow_data)
     if (c == 0)
 	return -E_INVAL;
 
-    struct Pagemap *pgmap;
-    int r = page_map_clone(cur_thread->th_pgmap, &pgmap, cow_data);
+    int r = label_compare(cur_thread->th_label, c->ct_hdr.label, label_eq);
     if (r < 0)
 	return r;
 
-    // XXX perm check
+    struct Pagemap *pgmap;
+    r = page_map_clone(cur_thread->th_pgmap, &pgmap, cow_data);
+    if (r < 0)
+	return r;
+
     r = container_put(c, cobj_address_space, pgmap);
     if (r < 0) {
 	// free pgmap
@@ -102,7 +120,10 @@ sys_container_get_type(uint64_t ct, uint32_t idx)
     if (c == 0)
 	return -E_INVAL;
 
-    // XXX perm check
+    int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
     struct container_object *co = container_get(c, idx);
     if (co == 0)
 	return -E_INVAL;
@@ -117,7 +138,10 @@ sys_container_get_c_idx(uint64_t ct, uint32_t idx)
     if (c == 0)
 	return -E_INVAL;
 
-    // XXX perm check
+    int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
     struct container_object *co = container_get(c, idx);
     if (co == 0 || co->type != cobj_container)
 	return -E_INVAL;
@@ -131,8 +155,12 @@ sys_gate_create(uint64_t ct, void *entry, uint64_t arg, uint64_t as_ctr, uint32_
     if (c == 0)
 	return -E_INVAL;
 
+    int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_eq);
+    if (r < 0)
+	return r;
+
     struct Gate *g;
-    int r = gate_alloc(&g);
+    r = gate_alloc(&g);
     if (r < 0)
 	return r;
 
@@ -140,6 +168,18 @@ sys_gate_create(uint64_t ct, void *entry, uint64_t arg, uint64_t as_ctr, uint32_
     g->gt_arg = arg;
     g->gt_as_container = as_ctr;
     g->gt_as_idx = as_idx;
+
+    r = label_copy(cur_thread->th_label, &g->gt_recv_label);
+    if (r < 0) {
+	gate_free(g);
+	return r;
+    }
+
+    r = label_copy(cur_thread->th_label, &g->gt_send_label);
+    if (r < 0) {
+	gate_free(g);
+	return r;
+    }
 
     r = container_put(c, cobj_gate, g);
     if (r < 0)
@@ -155,11 +195,19 @@ thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
     if (c == 0)
 	return -E_INVAL;
 
+    int r = label_compare(c->ct_hdr.label, t->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
     struct container_object *co = container_get(c, idx);
     if (co == 0 || co->type != cobj_gate)
 	return -E_INVAL;
 
     struct Gate *g = co->ptr;
+    r = label_compare(t->th_label, g->gt_recv_label, label_leq_starlo);
+    if (r < 0)
+	return r;
+
     struct Container *as_ctr = container_find(g->gt_as_container);
     if (as_ctr == 0)
 	return -E_INVAL;
@@ -170,11 +218,12 @@ thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
 
     struct Pagemap *as_pgmap = as_co->ptr;
     struct Pagemap *t_pgmap;
-    int r = page_map_clone(as_pgmap, &t_pgmap, 0);
+    r = page_map_clone(as_pgmap, &t_pgmap, 0);
     if (r < 0)
 	return r;
 
-    return thread_jump(t, t_pgmap, g->gt_entry, g->gt_arg);
+    // XXX free the cloned page map above in case of failure?
+    return thread_jump(t, g->gt_send_label, t_pgmap, g->gt_entry, g->gt_arg);
 }
 
 static int
@@ -190,10 +239,20 @@ sys_thread_create(uint64_t ct, uint64_t gt_ctr, uint32_t gt_idx)
     if (c == 0)
 	return -E_INVAL;
 
-    struct Thread *t;
-    int r = thread_alloc(&t);
+    int r = label_compare(cur_thread->th_label, c->ct_hdr.label, label_eq);
     if (r < 0)
 	return r;
+
+    struct Thread *t;
+    r = thread_alloc(&t);
+    if (r < 0)
+	return r;
+
+    r = label_copy(cur_thread->th_label, &t->th_label);
+    if (r < 0) {
+	thread_free(t);
+	return r;
+    }
 
     int tidx = container_put(c, cobj_thread, t);
     if (tidx < 0) {

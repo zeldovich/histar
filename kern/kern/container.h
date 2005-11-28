@@ -2,12 +2,14 @@
 #define JOS_KERN_CONTAINER_H
 
 #include <machine/types.h>
-#include <inc/queue.h>
 #include <machine/mmu.h>
+#include <inc/queue.h>
 #include <inc/container.h>
+#include <kern/label.h>
 
 struct container_hdr {
     uint64_t idx;
+    struct Label *label;
     LIST_ENTRY(Container) link;
 };
 

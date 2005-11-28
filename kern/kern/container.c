@@ -118,6 +118,9 @@ container_free(struct Container *c)
     for (i = 0; i < NUM_CT_OBJ; i++)
 	container_unref(c, i);
 
+    if (c->ct_hdr.label)
+	label_free(c->ct_hdr.label);
+
     struct Page *p = pa2page(kva2pa(c));
     page_free(p);
 }

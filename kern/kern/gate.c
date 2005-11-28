@@ -19,6 +19,10 @@ gate_alloc(struct Gate **gp)
 void
 gate_free(struct Gate *g)
 {
+    if (g->gt_recv_label)
+	label_free(g->gt_recv_label);
+    if (g->gt_send_label)
+	label_free(g->gt_send_label);
     page_free(pa2page(kva2pa(g)));
 }
 

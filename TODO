@@ -1,6 +1,4 @@
-object labeling: thread, container, address space(?), gate
-label comparison operations
-label checking on operations
+syscalls for specifying labels
 
 object persistence
 will probably need an iovec interface to disk_io()

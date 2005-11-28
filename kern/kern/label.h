@@ -22,12 +22,14 @@ struct Label {
 #define LB_LEVEL_STAR		4
 #define LB_CODE(h, level)	((h) | (((uint64_t) (level)) << 61))
 
-typedef int (*level_comparator)(int, int);
+typedef int (level_comparator)(int, int);
+level_comparator label_leq_starlo;
+level_comparator label_leq_starhi;
+level_comparator label_eq;
 
 int  label_alloc(struct Label **lp);
+int  label_copy(struct Label *src, struct Label **dstp);
 void label_free(struct Label *l);
-void label_addref(struct Label *l);
-void label_decref(struct Label *l);
 
 int  label_set(struct Label *l, uint64_t handle, int level);
 

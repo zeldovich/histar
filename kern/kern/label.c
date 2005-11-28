@@ -17,22 +17,22 @@ label_alloc(struct Label **lp)
     return 0;
 }
 
+int
+label_copy(struct Label *src, struct Label **dstp)
+{
+    int r = label_alloc(dstp);
+    if (r < 0)
+	return r;
+
+    struct Label *dst = *dstp;
+    memcpy(dst, src, PGSIZE);
+    return 0;
+}
+
 void
 label_free(struct Label *l)
 {
     page_free(pa2page(kva2pa(l)));
-}
-
-void
-label_addref(struct Label *l)
-{
-    pa2page(kva2pa(l))->pp_ref++;
-}
-
-void
-label_decref(struct Label *l)
-{
-    page_decref(pa2page(kva2pa(l)));
 }
 
 static int
@@ -100,4 +100,36 @@ label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 	return r;
 
     return 0;
+}
+
+int
+label_leq_starlo(int a, int b)
+{
+    if (a == LB_LEVEL_STAR)
+	return 0;
+    if (b == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}
+
+int
+label_leq_starhi(int a, int b)
+{
+    if (b == LB_LEVEL_STAR)
+	return 0;
+    if (a == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}
+
+int
+label_eq(int a, int b)
+{
+    if (a == b)
+	return 0;
+    return -E_LABEL;
 }
