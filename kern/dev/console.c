@@ -13,11 +13,22 @@ void cons_intr (int (*proc) (void));
 
 struct Thread_tqueue console_waiting_tqueue;
 
+// Stupid I/O delay routine necessitated by historical PC design flaws
+static void
+delay (void)
+{
+  inb (0x84);
+  inb (0x84);
+  inb (0x84);
+  inb (0x84);
+}
+
 /***** Serial I/O code *****/
 
 #define COM1		0x3F8
 
 #define COM_RX		0	// In:  Receive buffer (DLAB=0)
+#define COM_TX		0	// Out: Transmit buffer (DLAB=0)
 #define COM_DLL		0	// Out: Divisor Latch Low (DLAB=1)
 #define COM_DLM		1	// Out: Divisor Latch High (DLAB=1)
 #define COM_IER		1	// Out: Interrupt Enable Register
@@ -33,9 +44,12 @@ struct Thread_tqueue console_waiting_tqueue;
 #define	  COM_MCR_OUT2	0x08	// Out2 complement
 #define COM_LSR		5	// In:  Line Status Register
 #define   COM_LSR_DATA	0x01	//   Data available
+#define   COM_LSR_TXRDY	0x20	//   Transmit buffer avail
+#define   COM_LSR_TSRE	0x40	//   Transmitter off
 
 static bool_t serial_exists;
 bool_t output2lpt = 0;
+bool_t output2com = 0;
 
 int
 serial_proc_data (void)
@@ -50,6 +64,20 @@ serial_intr (void)
 {
   if (serial_exists)
     cons_intr (serial_proc_data);
+}
+
+static void
+serial_putc (int c)
+{
+  // XXX disgusting
+  if (c == '\r')
+    serial_putc('\n');
+
+  int i;
+
+  for (i = 0; !(inb (COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800; i++)
+    delay ();
+  outb (COM1 + COM_TX, c);
 }
 
 void
@@ -87,16 +115,6 @@ serial_init (void)
 /***** Parallel port output code *****/
 // For information on PC parallel port programming, see the class References
 // page.
-
-// Stupid I/O delay routine necessitated by historical PC design flaws
-static void
-delay (void)
-{
-  inb (0x84);
-  inb (0x84);
-  inb (0x84);
-  inb (0x84);
-}
 
 static void
 lpt_putc (int c)
@@ -542,6 +560,8 @@ cons_putc (int c)
 {
   if (output2lpt)
     lpt_putc (c);
+  if (output2com)
+    serial_putc (c);
   cga_putc (c);
 }
 
@@ -549,7 +569,7 @@ cons_putc (int c)
 void
 cons_init (void)
 {
-  uint64_t lpt_output_start;
+  uint64_t output_start;
 
   cga_init ();
   kbd_init ();
@@ -557,10 +577,15 @@ cons_init (void)
 
   TAILQ_INIT (&console_waiting_tqueue);
 
-  lpt_output_start = read_tsc ();
+  output_start = read_tsc ();
   lpt_putc ('\n');
-  if (read_tsc () - lpt_output_start < 0x100000)
+  if (read_tsc () - output_start < 0x100000)
     output2lpt = 1;
+
+  output_start = read_tsc ();
+  serial_putc ('\n');
+  if (read_tsc () - output_start < 0x100000)
+    output2com = 1;
 
   if (!serial_exists)
     cprintf ("Serial port does not exist!\n");
