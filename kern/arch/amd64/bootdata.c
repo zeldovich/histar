@@ -31,7 +31,7 @@
 #define TRANS2MEG(n) (0x200000UL * (n) | KPDE_BITS), 
 
 /* Page directory bootpds mapping the kernel stack (one page under KERNBASE) */
-char kstack[2 * PGSIZE] __attribute__ ((aligned (4096)));
+char kstack[2 * PGSIZE] __attribute__ ((aligned (4096), section (".data")));
 struct Pagemap bootpts PTATTR = {
   .pm_ent = {
     [509] = RELOC (&kstack[0 * PGSIZE]) + KPTE_BITS,
