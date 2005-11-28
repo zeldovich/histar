@@ -221,7 +221,6 @@ page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_
     for (i = 0; i < NPTENTRIES; i++) {
 	if (i < maxcow && (pgmap->pm_ent[i] & PTE_P)) {
 	    pa2page(PTE_ADDR(pgmap->pm_ent[i]))->pp_ref++;
-	    pgmap->pm_ent[i] = pgmap->pm_ent[i] | PTE_COW_PT;
 
 	    if (cow_data && (pgmap->pm_ent[i] & (PTE_W | PTE_COW_DATA)))
 		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW_DATA;
@@ -281,9 +280,10 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
     }
 
-    // If the intermediate map is COW (and we want to mutate), then do the copy.
-    struct Pagemap *pm_next = page2kva(pa2page(PTE_ADDR(*pm_entp)));
-    if (mutable && (*pm_entp & PTE_COW_PT)) {
+    // If the intermediate map is shared (and we want to mutate), then do the copy.
+    struct Page *pm_next_page = pa2page(PTE_ADDR(*pm_entp));
+    struct Pagemap *pm_next = page2kva(pm_next_page);
+    if (mutable && pm_next_page->pp_ref > 1) {
 	struct Pagemap *pm_new;
 	int r = page_map_clone_level(pm_next, &pm_new, (*pm_entp & PTE_COW_DATA) ? 1 : 0, pmlevel - 1);
 	if (r < 0)
@@ -293,8 +293,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	page_map_decref(pm_next);
 	pm_next = pm_new;
 
-	*pm_entp = kva2pa(pm_next) | PTE_W |
-		   (PTE_FLAGS(*pm_entp) & ~(PTE_COW_PT | PTE_COW_DATA));
+	*pm_entp = kva2pa(pm_next) | PTE_W | (PTE_FLAGS(*pm_entp) & ~PTE_COW_DATA);
     }
 
     return pgdir_walk(pm_next, pmlevel-1, va, create, mutable, pte_store);
