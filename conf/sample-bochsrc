@@ -18,6 +18,7 @@ vgaromimage: $BXSHARE/VGABIOS-lgpl-latest
 # so that we can run Bochs without the GUI.
 parport1: enabled=1, file="/dev/stdout"
 #parport1: enabled=1, file="/dev/null"
+com1: enabled=1, mode=null
 
 # uncommenting one of the following lines can be used to specify your
 # preferred display. (defaults to x11 for bochs-bin and to term for
