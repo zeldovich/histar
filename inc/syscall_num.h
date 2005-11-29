@@ -1,6 +1,8 @@
 #ifndef JOS_INC_SYSCALLNUM_H
 #define JOS_INC_SYSCALLNUM_H
 
+#include <inc/container.h>
+
 typedef enum {
     SYS_yield = 0,
     SYS_halt,
@@ -21,7 +23,29 @@ typedef enum {
 
     SYS_thread_create,
 
+    SYS_addrspace_create,	// XXX not implemented yet
+
+    SYS_segment_create,
+    SYS_segment_resize,
+    SYS_segment_get_npages,
+    SYS_segment_map,
+
     NSYSCALLS
 } syscall_num;
+
+typedef enum {
+    segment_map_ro = 0,
+    segment_map_rw,
+    segment_map_cow
+} segment_map_mode;
+
+struct segment_map_args {
+    struct cobj_ref segment;
+    struct cobj_ref as;
+    void *va;
+    uint64_t start_page;
+    uint64_t num_pages;
+    segment_map_mode mode;
+};
 
 #endif

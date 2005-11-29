@@ -4,6 +4,7 @@
 #include <machine/thread.h>
 #include <inc/error.h>
 #include <kern/gate.h>
+#include <kern/segment.h>
 
 static struct Container_list container_list;
 
@@ -44,6 +45,10 @@ container_addref(container_object_type type, void *ptr)
 	break;
 
     case cobj_container:
+	break;
+
+    case cobj_segment:
+	segment_addref(ptr);
 	break;
 
     default:
@@ -97,6 +102,10 @@ container_unref(struct Container *c, uint32_t idx)
 
     case cobj_gate:
 	gate_decref(cobj->ptr);
+	break;
+
+    case cobj_segment:
+	segment_decref(cobj->ptr);
 	break;
 
     case cobj_container:

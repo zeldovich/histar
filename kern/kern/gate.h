@@ -6,6 +6,7 @@
 
 struct Gate {
     void *gt_entry;
+    void *gt_stack;
     uint64_t gt_arg;
 
     struct Label *gt_recv_label;

@@ -37,7 +37,8 @@ void thread_suspend(struct Thread *t);
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
-int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *entry, uint64_t arg);
+int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap,
+		 void *entry, void *stack, uint64_t arg);
 void thread_syscall_restart(struct Thread *t);
 
 void thread_run(struct Thread *t) __attribute__((__noreturn__));

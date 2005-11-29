@@ -22,9 +22,15 @@ int64_t	sys_container_get_c_idx(struct cobj_ref o);
 int	sys_container_store_cur_thread(uint64_t container);
 int	sys_container_store_cur_addrspace(uint64_t container, int cow_data);
 
-int	sys_gate_create(uint64_t container, void *entry, uint64_t arg, struct cobj_ref as);
+int	sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref as);
 int	sys_gate_enter(struct cobj_ref gate);
 
 int	sys_thread_create(uint64_t container, struct cobj_ref gate);
+
+int	sys_segment_create(uint64_t container, uint64_t num_pages);
+int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);
+int	sys_segment_get_npages(struct cobj_ref seg);
+int	sys_segment_map(struct cobj_ref seg, struct cobj_ref as, void *va,
+			uint64_t start_page, uint64_t num_pages, segment_map_mode mode);
 
 #endif

@@ -1,6 +1,9 @@
 #ifndef JOS_KERN_SEGMENT_H
 #define JOS_KERN_SEGMENT_H
 
+// XXX for segment_map_mode
+#include <inc/syscall_num.h>
+
 #include <machine/types.h>
 #include <machine/mmu.h>
 #include <machine/pmap.h>
@@ -20,8 +23,9 @@ int  segment_alloc(struct Segment **sgp);
 void segment_free(struct Segment *sg);
 void segment_addref(struct Segment *sg);
 void segment_decref(struct Segment *sg);
-int  segment_set_length(struct Segment *sg, uint64_t num_pages);
+int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
 
-int  segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va_start, int perm);
+int  segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va_start,
+		 uint64_t start_page, uint64_t num_pages, segment_map_mode mode);
 
 #endif

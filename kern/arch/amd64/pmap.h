@@ -100,6 +100,7 @@ int  page_cow (struct Pagemap *pgmap, void *va);
 void page_map_decref (struct Pagemap *pgmap);
 void page_map_addref (struct Pagemap *pgmap);
 int  page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data);
+int  page_map_alloc (struct Pagemap **pm_store);
 
 inline ppn_t
 page2ppn (struct Page *pp)

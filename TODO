@@ -1,16 +1,23 @@
+cleanup syscall.c
+
+share headers (like address space layout & syscall constants/layout)
+between userspace & kernel
+
 syscalls for specifying labels
 
 object persistence
 will probably need an iovec interface to disk_io()
-
-named segments
-address space manipulation ops
-[ get rid of the stack special-case in thread_jump(),
-  by mapping a COW_DATA stack page ]
 
 simple file system
 user-level elf loader
 spawn
 
 a more interesting shell
+
+===
+
+labels for address spaces?
+    we can stick a label in (struct Page)
+
+what happens to pages mapped RW when th_label changes?
 

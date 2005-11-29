@@ -22,7 +22,7 @@ segment_alloc(struct Segment **sgp)
 void
 segment_free(struct Segment *sg)
 {
-    segment_set_length(sg, 0);
+    segment_set_npages(sg, 0);
     if (sg->sg_hdr.label)
 	label_free(sg->sg_hdr.label);
 
@@ -43,7 +43,7 @@ segment_decref(struct Segment *sg)
 }
 
 int
-segment_set_length(struct Segment *sg, uint64_t num_pages)
+segment_set_npages(struct Segment *sg, uint64_t num_pages)
 {
     if (num_pages > NUM_SG_PAGES)
 	return -E_NO_MEM;
@@ -70,22 +70,36 @@ segment_set_length(struct Segment *sg, uint64_t num_pages)
 }
 
 int
-segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va, int perm)
+segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
+	    uint64_t start_page, uint64_t num_pages, segment_map_mode mode)
 {
     char *cva = (char *) va;
     if (PGOFF(cva))
 	return -E_INVAL;
 
+    if (start_page + num_pages > sg->sg_hdr.num_pages)
+	return -E_INVAL;
+
     int i;
-    for (i = 0; i < sg->sg_hdr.num_pages; i++) {
-	int r = page_insert(pgmap, sg->sg_page[i],
-			    &cva[(uint64_t)PGSIZE * i], perm);
+    for (i = start_page; i < start_page + num_pages; i++) {
+	int r = 0;
+
+	if (((uint64_t) cva) >= ULIM)
+	    r = -E_INVAL;
+	if (r == 0)
+	    r = page_insert(pgmap, sg->sg_page[i], cva,
+			    PTE_U | (mode == segment_map_rw ? PTE_W :
+				     mode == segment_map_cow ? PTE_COW : 0));
 	if (r < 0) {
 	    // unmap pages
-	    for (i--; i >= 0; i--)
-		page_remove(pgmap, &cva[(uint64_t)PGSIZE * i]);
+	    for (; i >= 0; i--) {
+		page_remove(pgmap, cva);
+		cva -= PGSIZE;
+	    }
 	    return r;
 	}
+
+	cva += PGSIZE;
     }
 
     return 0;

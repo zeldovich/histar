@@ -19,11 +19,21 @@ main(int ac, char **av)
     if (as < 0)
 	panic("cannot store cur_as: %d", as);
 
-    int g = sys_gate_create(rc, &gate_entry, 0xc0ffee00c0ffee, COBJ(rc, as));
+    // XXX if we could get a user-space header defining ULIM...
+    char *stacktop = (void*) 0x700000000000;
+    int sg = sys_segment_create(rc, 1);
+    if (sg < 0)
+	panic("cannot create stack segment: %d", sg);
+
+    int r = sys_segment_map(COBJ(rc, sg), COBJ(rc, as), stacktop - 4096, 0, 1, segment_map_cow);
+    if (r < 0)
+	panic("cannot map stack segment: %d", r);
+
+    int g = sys_gate_create(rc, &gate_entry, stacktop, COBJ(rc, as));
     if (g < 0)
 	panic("cannot create gate: %d", g);
 
-    int r = sys_gate_enter(COBJ(rc, g));
+    r = sys_gate_enter(COBJ(rc, g));
     if (r < 0)
 	panic("cannot enter gate: %d", r);
 

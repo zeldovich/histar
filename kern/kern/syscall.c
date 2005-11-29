@@ -8,6 +8,7 @@
 #include <kern/container.h>
 #include <kern/gate.h>
 #include <dev/console.h>
+#include <kern/segment.h>
 
 static void
 sys_yield()
@@ -164,7 +165,7 @@ sys_container_get_c_idx(uint64_t ct, uint32_t idx)
 }
 
 static int
-sys_gate_create(uint64_t ct, void *entry, uint64_t arg, uint64_t as_ctr, uint32_t as_idx)
+sys_gate_create(uint64_t ct, void *entry, void *stack, uint64_t as_ctr, uint32_t as_idx)
 {
     struct Container *c = container_find(ct);
     if (c == 0)
@@ -180,7 +181,8 @@ sys_gate_create(uint64_t ct, void *entry, uint64_t arg, uint64_t as_ctr, uint32_
 	return r;
 
     g->gt_entry = entry;
-    g->gt_arg = arg;
+    g->gt_stack = stack;
+    g->gt_arg = 0;
     g->gt_as_container = as_ctr;
     g->gt_as_idx = as_idx;
 
@@ -238,7 +240,7 @@ thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
 	return r;
 
     // XXX free the cloned page map above in case of failure?
-    return thread_jump(t, g->gt_send_label, t_pgmap, g->gt_entry, g->gt_arg);
+    return thread_jump(t, g->gt_send_label, t_pgmap, g->gt_entry, g->gt_stack, g->gt_arg);
 }
 
 static int
@@ -285,6 +287,137 @@ sys_thread_create(uint64_t ct, uint64_t gt_ctr, uint32_t gt_idx)
     return tidx;
 }
 
+int
+sys_segment_create(uint64_t ct, uint64_t num_pages)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    int r = label_compare(cur_thread->th_label, c->ct_hdr.label, label_eq);
+    if (r < 0)
+	return r;
+
+    struct Segment *sg;
+    r = segment_alloc(&sg);
+    if (r < 0)
+	return r;
+
+    r = label_copy(cur_thread->th_label, &sg->sg_hdr.label);
+    if (r < 0) {
+	segment_free(sg);
+	return r;
+    }
+
+    r = segment_set_npages(sg, num_pages);
+    if (r < 0) {
+	segment_free(sg);
+	return r;
+    }
+
+    r = container_put(c, cobj_segment, sg);
+    if (r < 0) {
+	segment_free(sg);
+	return r;
+    }
+
+    return r;
+}
+
+int
+sys_segment_resize(uint64_t ct, uint64_t idx, uint64_t num_pages)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
+    struct container_object *co = container_get(c, idx);
+    if (co == 0 || co->type != cobj_segment)
+	return -E_INVAL;
+
+    struct Segment *sg = co->ptr;
+    r = label_compare(cur_thread->th_label, sg->sg_hdr.label, label_eq);
+    if (r < 0)
+	return r;
+
+    return segment_set_npages(sg, num_pages);
+}
+
+int
+sys_segment_get_npages(uint64_t ct, uint64_t idx)
+{
+    struct Container *c = container_find(ct);
+    if (c == 0)
+	return -E_INVAL;
+
+    int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
+    struct container_object *co = container_get(c, idx);
+    if (co == 0 || co->type != cobj_segment)
+	return -E_INVAL;
+
+    struct Segment *sg = co->ptr;
+    r = label_compare(sg->sg_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
+    return sg->sg_hdr.num_pages;
+}
+
+int
+sys_segment_map(uint64_t sg_ct, uint64_t sg_idx,
+		uint64_t as_ct, uint64_t as_idx,
+		void *va,
+		uint64_t start_page, uint64_t num_pages,
+		segment_map_mode mode)
+{
+    struct Container *sg_c = container_find(sg_ct);
+    if (sg_c == 0)
+	return -E_INVAL;
+
+    int r = label_compare(sg_c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+    if (r < 0)
+	return r;
+
+    struct container_object *sg_co = container_get(sg_c, sg_idx);
+    if (sg_co == 0 || sg_co->type != cobj_segment)
+	return -E_INVAL;
+
+    struct Segment *sg = sg_co->ptr;
+    r = label_compare(sg->sg_hdr.label, cur_thread->th_label,
+		      (mode == segment_map_rw) ? label_eq : label_leq_starhi);
+    if (r < 0)
+	return r;
+
+    struct Pagemap *pgmap;
+    if (as_ct == -1 && as_idx == -1) {
+	pgmap = cur_thread->th_pgmap;
+    } else {
+	struct Container *as_c = container_find(as_ct);
+	if (as_c == 0)
+	    return -E_INVAL;
+
+	r = label_compare(as_c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+	if (r < 0)
+	    return r;
+
+	struct container_object *as_co = container_get(as_c, as_idx);
+	if (as_co == 0 || as_co->type != cobj_address_space)
+	    return -E_INVAL;
+
+	pgmap = as_co->ptr;
+    }
+
+    // XXX what about pagemap labels?
+    return segment_map(pgmap, sg, va, start_page, num_pages, mode);
+}
+
 uint64_t
 syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
@@ -324,13 +457,38 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_container_get_c_idx(a1, a2);
 
     case SYS_gate_create:
-	return sys_gate_create(a1, (void*) a2, a3, a4, a5);
+	return sys_gate_create(a1, (void*) a2, (void*) a3, a4, a5);
 
     case SYS_gate_enter:
 	return sys_gate_enter(a1, a2);
 
     case SYS_thread_create:
 	return sys_thread_create(a1, a2, a3);
+
+    case SYS_segment_create:
+	return sys_segment_create(a1, a2);
+
+    case SYS_segment_resize:
+	return sys_segment_resize(a1, a2, a3);
+
+    case SYS_segment_get_npages:
+	return sys_segment_get_npages(a1, a2);
+
+    case SYS_segment_map:
+	{
+	    page_fault_mode = PFM_KILL;
+	    struct segment_map_args *sma = (void*) a1;
+	    int r = sys_segment_map(sma->segment.container,
+				    sma->segment.idx,
+				    sma->as.container,
+				    sma->as.idx,
+				    sma->va,
+				    sma->start_page,
+				    sma->num_pages,
+				    sma->mode);
+	    page_fault_mode = PFM_NONE;
+	    return r;
+	}
 
     default:
 	cprintf("Unknown syscall %d\n", num);

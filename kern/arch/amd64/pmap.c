@@ -238,6 +238,12 @@ page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data)
     return page_map_clone_level (pgmap, pm_store, cow_data, 3);
 }
 
+int
+page_map_alloc (struct Pagemap **pm_store)
+{
+    return page_map_clone(&bootpml4, pm_store, 1);
+}
+
 //
 // Stores address of page table entry in *ppte.
 // Stores 0 if there is no such entry or on error.

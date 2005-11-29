@@ -65,9 +65,9 @@ sys_container_get_c_idx(struct cobj_ref o)
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, uint64_t arg, struct cobj_ref as)
+sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref as)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) entry, arg, as.container, as.idx);
+    return syscall(SYS_gate_create, container, (uint64_t) entry, (uint64_t) stack, as.container, as.idx);
 }
 
 int
@@ -80,4 +80,42 @@ int
 sys_thread_create(uint64_t container, struct cobj_ref gate)
 {
     return syscall(SYS_thread_create, container, gate.container, gate.idx, 0, 0);
+}
+
+int
+sys_segment_create(uint64_t container, uint64_t num_pages)
+{
+    return syscall(SYS_segment_create, container, num_pages, 0, 0, 0);
+}
+
+int
+sys_segment_resize(struct cobj_ref seg, uint64_t num_pages)
+{
+    return syscall(SYS_segment_resize, seg.container, seg.idx, num_pages, 0, 0);
+}
+
+int
+sys_segment_get_npages(struct cobj_ref seg)
+{
+    return syscall(SYS_segment_get_npages, seg.container, seg.idx, 0, 0, 0);
+}
+
+int
+sys_segment_map(struct cobj_ref segment,
+		struct cobj_ref as,
+		void *va,
+		uint64_t start_page,
+		uint64_t num_pages,
+		segment_map_mode mode)
+{
+    struct segment_map_args sma;
+
+    sma.segment = segment;
+    sma.as = as;
+    sma.va = va;
+    sma.start_page = start_page;
+    sma.num_pages = num_pages;
+    sma.mode = mode;
+
+    return syscall(SYS_segment_map, (uint64_t) &sma, 0, 0, 0, 0);
 }

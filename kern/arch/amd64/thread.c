@@ -13,7 +13,7 @@ struct Thread_list thread_list;
 int
 thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 {
-    int r = page_map_clone(&bootpml4, &t->th_pgmap, 1);
+    int r = page_map_alloc(&t->th_pgmap);
     if (r < 0)
 	return r;
 
@@ -50,13 +50,15 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 
 	Elf64_Addr pg_start = ROUNDDOWN(ph->p_vaddr, PGSIZE);
 	Elf64_Addr pg_end = ROUNDDOWN(ph->p_vaddr + ph->p_memsz + PGSIZE - 1, PGSIZE);
-	r = segment_set_length(sg, (pg_end - pg_start) / PGSIZE);
+	uint64_t num_pages = (pg_end - pg_start) / PGSIZE;
+	r = segment_set_npages(sg, num_pages);
 	if (r < 0) {
 	    segment_free(sg);
 	    return r;
 	}
 
-	r = segment_map(t->th_pgmap, sg, (void*) pg_start, PTE_U | PTE_W);
+	r = segment_map(t->th_pgmap, sg, (void*) pg_start,
+			0, num_pages, segment_map_rw);
 	if (r < 0) {
 	    segment_free(sg);
 	    return r;
@@ -76,7 +78,24 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 	memcpy((void*) ph->p_vaddr, binary + ph->p_offset, ph->p_filesz);
     }
 
-    return thread_jump(t, l, t->th_pgmap, (void*) elf->e_entry, 0);
+    // Map a stack
+    struct Segment *sg;
+    r = segment_alloc(&sg);
+    if (r < 0)
+	return r;
+
+    r = segment_set_npages(sg, 1);
+    if (r < 0)
+	return r;
+
+    r = segment_map(t->th_pgmap, sg, (void*) (ULIM - PGSIZE),
+		    0, 1, segment_map_rw);
+    if (r < 0)
+	return r;
+
+    segment_free(sg);
+
+    return thread_jump(t, l, t->th_pgmap, (void*) elf->e_entry, (void*) ULIM, 0);
 }
 
 void
@@ -147,7 +166,9 @@ thread_halt(struct Thread *t)
 }
 
 int
-thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *entry, uint64_t arg)
+thread_jump(struct Thread *t, struct Label *label,
+	    struct Pagemap *pgmap, void *entry,
+	    void *stack, uint64_t arg)
 {
     struct Label *newl;
     int r = label_copy(label, &newl);
@@ -166,28 +187,13 @@ thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *
     t->th_cr3 = kva2pa(t->th_pgmap);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rsp = ULIM;
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT | 3;
+    t->th_tf.tf_ss = GD_UD | 3;
     t->th_tf.tf_rip = (uint64_t) entry;
+    t->th_tf.tf_rsp = (uint64_t) stack;
     t->th_tf.tf_rdi = arg;
 
-    // Map a stack -- XXX -- this will go away RSN
-    struct Segment *sg;
-    r = segment_alloc(&sg);
-    if (r < 0)
-	return r;
-
-    r = segment_set_length(sg, 1);
-    if (r < 0)
-	return r;
-
-    r = segment_map(t->th_pgmap, sg, (void*) (ULIM - PGSIZE), PTE_U | PTE_W);
-    if (r < 0)
-	return r;
-
-    segment_free(sg);
     return 0;
 }
 
