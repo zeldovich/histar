@@ -47,9 +47,9 @@ sys_container_store_cur_thread(uint64_t container)
 }
 
 int
-sys_container_store_cur_addrspace(uint64_t container, int cow_data)
+sys_container_store_cur_pmap(uint64_t container, int cow_data)
 {
-    return syscall(SYS_container_store_cur_addrspace, container, cow_data, 0, 0, 0);
+    return syscall(SYS_container_store_cur_pmap, container, cow_data, 0, 0, 0);
 }
 
 container_object_type
@@ -65,9 +65,9 @@ sys_container_get_c_idx(struct cobj_ref o)
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref as)
+sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pmap)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) entry, (uint64_t) stack, as.container, as.idx);
+    return syscall(SYS_gate_create, container, (uint64_t) entry, (uint64_t) stack, pmap.container, pmap.idx);
 }
 
 int
@@ -80,6 +80,12 @@ int
 sys_thread_create(uint64_t container, struct cobj_ref gate)
 {
     return syscall(SYS_thread_create, container, gate.container, gate.idx, 0, 0);
+}
+
+int
+sys_pmap_create(uint64_t container)
+{
+    return syscall(SYS_pmap_create, container, 0, 0, 0, 0);
 }
 
 int
@@ -102,7 +108,7 @@ sys_segment_get_npages(struct cobj_ref seg)
 
 int
 sys_segment_map(struct cobj_ref segment,
-		struct cobj_ref as,
+		struct cobj_ref pmap,
 		void *va,
 		uint64_t start_page,
 		uint64_t num_pages,
@@ -111,7 +117,7 @@ sys_segment_map(struct cobj_ref segment,
     struct segment_map_args sma;
 
     sma.segment = segment;
-    sma.as = as;
+    sma.pmap = pmap;
     sma.va = va;
     sma.start_page = start_page;
     sma.num_pages = num_pages;

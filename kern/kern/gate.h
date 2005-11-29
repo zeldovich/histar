@@ -13,8 +13,8 @@ struct Gate {
     struct Label *gt_send_label;
 
     // target address space
-    uint64_t gt_as_container;
-    uint32_t gt_as_idx;
+    uint64_t gt_pmap_container;
+    uint32_t gt_pmap_idx;
 
     uint32_t gt_ref;
 };

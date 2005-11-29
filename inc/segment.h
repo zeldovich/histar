@@ -12,7 +12,7 @@ typedef enum {
 
 struct segment_map_args {
     struct cobj_ref segment;
-    struct cobj_ref as;
+    struct cobj_ref pmap;
     void *va;
     uint64_t start_page;
     uint64_t num_pages;

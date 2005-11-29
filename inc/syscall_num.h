@@ -16,14 +16,14 @@ typedef enum {
     SYS_container_get_c_idx,	// get global index of sub-container
 
     SYS_container_store_cur_thread,
-    SYS_container_store_cur_addrspace,
+    SYS_container_store_cur_pmap,
 
     SYS_gate_create,
     SYS_gate_enter,
 
     SYS_thread_create,
 
-    SYS_addrspace_create,	// XXX not implemented yet
+    SYS_pmap_create,
 
     SYS_segment_create,
     SYS_segment_resize,

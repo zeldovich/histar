@@ -16,9 +16,9 @@ main(int ac, char **av)
     if (sc < 0)
 	panic("cannot get sub-container: %d", sc);
 
-    int r = sys_container_store_cur_addrspace(rc, 0);
+    int r = sys_container_store_cur_pmap(rc, 0);
     if (r < 0)
-	panic("cannot store current address space in root container: %d", r);
+	panic("cannot store current pmap in root container: %d", r);
 
     r = sys_container_store_cur_thread(rc);
     if (r < 0)
@@ -34,7 +34,7 @@ main(int ac, char **av)
 	cprintf("<%d:%d> type %s\n", rc, i,
 				     t == cobj_thread ? "thread" :
 				     t == cobj_container ? "container" :
-				     t == cobj_address_space ? "address space" :
+				     t == cobj_pmap ? "pmap" :
 				     t == cobj_none ? "none" : "other");
 
 	if (i != sci)
