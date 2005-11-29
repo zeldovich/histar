@@ -8,3 +8,9 @@ address space manipulation ops
 [ get rid of the stack special-case in thread_jump(),
   by mapping a COW_DATA stack page ]
 
+simple file system
+user-level elf loader
+spawn
+
+a more interesting shell
+
