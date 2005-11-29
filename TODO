@@ -19,5 +19,6 @@ a more interesting shell
 labels for address spaces?
     we can stick a label in (struct Page)
 
-what happens to pages mapped RW when th_label changes?
+what happens to pages mapped RW (or for that matter any pages) when th_label changes?
+    make any th_label changes happen by jumping through a gate?
 
