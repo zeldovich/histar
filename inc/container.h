@@ -9,7 +9,9 @@ typedef enum {
     cobj_thread,
     cobj_pmap,
     cobj_gate,
-    cobj_segment
+    cobj_segment,
+
+    cobj_any
 } container_object_type;
 
 struct cobj_ref {

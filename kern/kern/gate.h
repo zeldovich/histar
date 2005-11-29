@@ -1,6 +1,7 @@
 #ifndef JOS_KERN_GATE_H
 #define JOS_KERN_GATE_H
 
+#include <inc/container.h>
 #include <machine/types.h>
 #include <kern/label.h>
 
@@ -13,8 +14,7 @@ struct Gate {
     struct Label *gt_send_label;
 
     // target address space
-    uint64_t gt_pmap_container;
-    uint32_t gt_pmap_idx;
+    struct cobj_ref gt_pmap_cobj;
 
     uint32_t gt_ref;
 };
