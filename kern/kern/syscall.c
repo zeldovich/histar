@@ -111,14 +111,14 @@ sys_container_alloc(uint64_t parent_ct)
 }
 
 static int
-sys_container_unref(uint64_t ct, uint32_t idx)
+sys_container_unref(struct cobj_ref cobj)
 {
     struct Container *c;
-    int r = sysx_get_container(&c, ct, cur_thread, lookup_modify);
+    int r = sysx_get_container(&c, cobj.container, cur_thread, lookup_modify);
     if (r < 0)
 	return r;
 
-    container_unref(c, idx);
+    container_unref(c, cobj.idx);
     return 0;
 }
 
@@ -157,10 +157,10 @@ sys_container_store_cur_pmap(uint64_t ct, int cow_data)
 }
 
 static int
-sys_container_get_type(uint64_t ct, uint32_t idx)
+sys_container_get_type(struct cobj_ref cobj)
 {
     struct container_object *co;
-    int r = sysx_get_cobj(&co, COBJ(ct, idx), cobj_any, cur_thread);
+    int r = sysx_get_cobj(&co, cobj, cobj_any, cur_thread);
     if (r < 0)
 	return r;
 
@@ -168,10 +168,10 @@ sys_container_get_type(uint64_t ct, uint32_t idx)
 }
 
 static int64_t
-sys_container_get_c_idx(uint64_t ct, uint32_t idx)
+sys_container_get_c_idx(struct cobj_ref cobj)
 {
     struct container_object *co;
-    int r = sysx_get_cobj(&co, COBJ(ct, idx), cobj_container, cur_thread);
+    int r = sysx_get_cobj(&co, cobj, cobj_container, cur_thread);
     if (r < 0)
 	return r;
 
@@ -179,7 +179,7 @@ sys_container_get_c_idx(uint64_t ct, uint32_t idx)
 }
 
 static int
-sys_gate_create(uint64_t ct, void *entry, void *stack, uint64_t pm_ctr, uint32_t pm_idx)
+sys_gate_create(uint64_t ct, void *entry, void *stack, struct cobj_ref pm_cobj)
 {
     struct Container *c;
     int r = sysx_get_container(&c, ct, cur_thread, lookup_modify);
@@ -194,7 +194,7 @@ sys_gate_create(uint64_t ct, void *entry, void *stack, uint64_t pm_ctr, uint32_t
     g->gt_entry = entry;
     g->gt_stack = stack;
     g->gt_arg = 0;
-    g->gt_pmap_cobj = COBJ(pm_ctr, pm_idx);
+    g->gt_pmap_cobj = pm_cobj;
 
     r = label_copy(cur_thread->th_label, &g->gt_recv_label);
     if (r < 0) {
@@ -216,10 +216,10 @@ sys_gate_create(uint64_t ct, void *entry, void *stack, uint64_t pm_ctr, uint32_t
 }
 
 static int
-thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
+thread_gate_enter(struct Thread *t, struct cobj_ref gt_cobj)
 {
     struct container_object *co_gt;
-    int r = sysx_get_cobj(&co_gt, COBJ(ct, idx), cobj_gate, t);
+    int r = sysx_get_cobj(&co_gt, gt_cobj, cobj_gate, t);
     if (r < 0)
 	return r;
 
@@ -247,13 +247,13 @@ thread_gate_enter(struct Thread *t, uint64_t ct, uint64_t idx)
 }
 
 static int
-sys_gate_enter(uint64_t ct, uint64_t idx)
+sys_gate_enter(struct cobj_ref gt)
 {
-    return thread_gate_enter(cur_thread, ct, idx);
+    return thread_gate_enter(cur_thread, gt);
 }
 
 static int
-sys_thread_create(uint64_t ct, uint64_t gt_ctr, uint32_t gt_idx)
+sys_thread_create(uint64_t ct, struct cobj_ref gt)
 {
     struct Container *c;
     int r = sysx_get_container(&c, ct, cur_thread, lookup_modify);
@@ -277,7 +277,7 @@ sys_thread_create(uint64_t ct, uint64_t gt_ctr, uint32_t gt_idx)
 	return tidx;
     }
 
-    r = thread_gate_enter(t, gt_ctr, gt_idx);
+    r = thread_gate_enter(t, gt);
     if (r < 0) {
 	container_unref(c, tidx);
 	return r;
@@ -341,10 +341,10 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
 }
 
 static int
-sys_segment_resize(uint64_t ct, uint64_t idx, uint64_t num_pages)
+sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
 {
     struct container_object *co;
-    int r = sysx_get_cobj(&co, COBJ(ct, idx), cobj_segment, cur_thread);
+    int r = sysx_get_cobj(&co, sg_cobj, cobj_segment, cur_thread);
     if (r < 0)
 	return r;
 
@@ -357,10 +357,10 @@ sys_segment_resize(uint64_t ct, uint64_t idx, uint64_t num_pages)
 }
 
 static int
-sys_segment_get_npages(uint64_t ct, uint64_t idx)
+sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     struct container_object *co;
-    int r = sysx_get_cobj(&co, COBJ(ct, idx), cobj_segment, cur_thread);
+    int r = sysx_get_cobj(&co, sg_cobj, cobj_segment, cur_thread);
     if (r < 0)
 	return r;
 
@@ -373,14 +373,14 @@ sys_segment_get_npages(uint64_t ct, uint64_t idx)
 }
 
 static int
-sys_segment_map(uint64_t sg_ct, uint64_t sg_idx,
-		uint64_t pm_ct, uint64_t pm_idx,
+sys_segment_map(struct cobj_ref sg_cobj,
+		struct cobj_ref pm_cobj,
 		void *va,
 		uint64_t start_page, uint64_t num_pages,
 		segment_map_mode mode)
 {
     struct container_object *co_sg;
-    int r = sysx_get_cobj(&co_sg, COBJ(sg_ct, sg_idx), cobj_segment, cur_thread);
+    int r = sysx_get_cobj(&co_sg, sg_cobj, cobj_segment, cur_thread);
     if (r < 0)
 	return r;
 
@@ -391,11 +391,11 @@ sys_segment_map(uint64_t sg_ct, uint64_t sg_idx,
 	return r;
 
     struct Pagemap *pgmap;
-    if (pm_ct == -1 && pm_idx == -1) {
+    if (pm_cobj.container == -1 && pm_cobj.idx == -1) {
 	pgmap = cur_thread->th_pgmap;
     } else {
 	struct container_object *co_pm;
-	r = sysx_get_cobj(&co_pm, COBJ(pm_ct, pm_idx), cobj_pmap, cur_thread);
+	r = sysx_get_cobj(&co_pm, pm_cobj, cobj_pmap, cur_thread);
 	if (r < 0)
 	    return r;
 	pgmap = co_pm->ptr;
@@ -429,7 +429,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_container_alloc(a1);
 
     case SYS_container_unref:
-	return sys_container_unref(a1, a2);
+	return sys_container_unref(COBJ(a1, a2));
 
     case SYS_container_store_cur_thread:
 	return sys_container_store_cur_thread(a1);
@@ -438,19 +438,19 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_container_store_cur_pmap(a1, a2);
 
     case SYS_container_get_type:
-	return sys_container_get_type(a1, a2);
+	return sys_container_get_type(COBJ(a1, a2));
 
     case SYS_container_get_c_idx:
-	return sys_container_get_c_idx(a1, a2);
+	return sys_container_get_c_idx(COBJ(a1, a2));
 
     case SYS_gate_create:
-	return sys_gate_create(a1, (void*) a2, (void*) a3, a4, a5);
+	return sys_gate_create(a1, (void*) a2, (void*) a3, COBJ(a4, a5));
 
     case SYS_gate_enter:
-	return sys_gate_enter(a1, a2);
+	return sys_gate_enter(COBJ(a1, a2));
 
     case SYS_thread_create:
-	return sys_thread_create(a1, a2, a3);
+	return sys_thread_create(a1, COBJ(a2, a3));
 
     case SYS_pmap_create:
 	return sys_pmap_create(a1);
@@ -459,19 +459,17 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_segment_create(a1, a2);
 
     case SYS_segment_resize:
-	return sys_segment_resize(a1, a2, a3);
+	return sys_segment_resize(COBJ(a1, a2), a3);
 
     case SYS_segment_get_npages:
-	return sys_segment_get_npages(a1, a2);
+	return sys_segment_get_npages(COBJ(a1, a2));
 
     case SYS_segment_map:
 	{
 	    page_fault_mode = PFM_KILL;
 	    struct segment_map_args *sma = (void*) TRUP(a1);
-	    int r = sys_segment_map(sma->segment.container,
-				    sma->segment.idx,
-				    sma->pmap.container,
-				    sma->pmap.idx,
+	    int r = sys_segment_map(sma->segment,
+				    sma->pmap,
 				    sma->va,
 				    sma->start_page,
 				    sma->num_pages,
