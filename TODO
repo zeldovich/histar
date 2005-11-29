@@ -1,8 +1,5 @@
 cleanup syscall.c
 
-share headers (like address space layout & syscall constants/layout)
-between userspace & kernel
-
 syscalls for specifying labels
 
 object persistence

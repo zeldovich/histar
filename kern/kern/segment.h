@@ -1,9 +1,7 @@
 #ifndef JOS_KERN_SEGMENT_H
 #define JOS_KERN_SEGMENT_H
 
-// XXX for segment_map_mode
-#include <inc/syscall_num.h>
-
+#include <inc/segment.h>
 #include <machine/types.h>
 #include <machine/mmu.h>
 #include <machine/pmap.h>
