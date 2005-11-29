@@ -502,7 +502,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
     case SYS_segment_map:
 	{
 	    page_fault_mode = PFM_KILL;
-	    struct segment_map_args *sma = (void*) a1;
+	    struct segment_map_args *sma = (void*) TRUP(a1);
 	    int r = sys_segment_map(sma->segment.container,
 				    sma->segment.idx,
 				    sma->pmap.container,
