@@ -49,7 +49,7 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 	    return r;
 
 	Elf64_Addr pg_start = ROUNDDOWN(ph->p_vaddr, PGSIZE);
-	Elf64_Addr pg_end = ROUNDDOWN(ph->p_vaddr + ph->p_memsz + PGSIZE - 1, PGSIZE);
+	Elf64_Addr pg_end = ROUNDUP(ph->p_vaddr + ph->p_memsz, PGSIZE);
 	uint64_t num_pages = (pg_end - pg_start) / PGSIZE;
 	r = segment_set_npages(sg, num_pages);
 	if (r < 0) {
