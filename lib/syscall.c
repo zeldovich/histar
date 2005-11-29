@@ -1,8 +1,7 @@
+#include <inc/types.h>
 #include <inc/syscall.h>
 #include <inc/syscall_num.h>
-#include <inc/types.h>
-
-#include <inc/stdio.h>
+#include <inc/syscall_param.h>
 
 void
 sys_yield()
@@ -65,9 +64,16 @@ sys_container_get_c_idx(struct cobj_ref o)
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pmap)
+sys_gate_create(uint64_t container, void *entry, void *stack, uint64_t arg, struct cobj_ref pmap)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) entry, (uint64_t) stack, pmap.container, pmap.idx);
+    struct sys_gate_create_args a =
+      { .container = container,
+	.entry = entry,
+	.stack = stack,
+	.arg = arg,
+	.pmap = pmap };
+
+    return syscall(SYS_gate_create, (uint64_t) &a, 0, 0, 0, 0);
 }
 
 int
@@ -114,14 +120,13 @@ sys_segment_map(struct cobj_ref segment,
 		uint64_t num_pages,
 		segment_map_mode mode)
 {
-    struct segment_map_args sma;
+    struct segment_map_args a =
+      { .segment = segment,
+	.pmap = pmap,
+	.va = va,
+	.start_page = start_page,
+	.num_pages = num_pages,
+	.mode = mode };
 
-    sma.segment = segment;
-    sma.pmap = pmap;
-    sma.va = va;
-    sma.start_page = start_page;
-    sma.num_pages = num_pages;
-    sma.mode = mode;
-
-    return syscall(SYS_segment_map, (uint64_t) &sma, 0, 0, 0, 0);
+    return syscall(SYS_segment_map, (uint64_t) &a, 0, 0, 0, 0);
 }

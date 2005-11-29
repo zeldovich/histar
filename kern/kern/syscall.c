@@ -1,14 +1,15 @@
-#include <kern/syscall.h>
-#include <kern/lib.h>
-#include <inc/error.h>
 #include <machine/trap.h>
 #include <machine/pmap.h>
-#include <kern/sched.h>
 #include <machine/thread.h>
+#include <dev/console.h>
+#include <kern/sched.h>
+#include <kern/syscall.h>
+#include <kern/lib.h>
 #include <kern/container.h>
 #include <kern/gate.h>
-#include <dev/console.h>
 #include <kern/segment.h>
+#include <inc/error.h>
+#include <inc/syscall_param.h>
 
 // Helper functions
 typedef enum {
@@ -179,10 +180,10 @@ sys_container_get_c_idx(struct cobj_ref cobj)
 }
 
 static int
-sys_gate_create(uint64_t ct, void *entry, void *stack, struct cobj_ref pm_cobj)
+sys_gate_create(struct sys_gate_create_args *a)
 {
     struct Container *c;
-    int r = sysx_get_container(&c, ct, cur_thread, lookup_modify);
+    int r = sysx_get_container(&c, a->container, cur_thread, lookup_modify);
     if (r < 0)
 	return r;
 
@@ -191,10 +192,10 @@ sys_gate_create(uint64_t ct, void *entry, void *stack, struct cobj_ref pm_cobj)
     if (r < 0)
 	return r;
 
-    g->gt_entry = entry;
-    g->gt_stack = stack;
-    g->gt_arg = 0;
-    g->gt_pmap_cobj = pm_cobj;
+    g->gt_entry = a->entry;
+    g->gt_stack = a->stack;
+    g->gt_arg = a->arg;
+    g->gt_pmap_cobj = a->pmap;
 
     r = label_copy(cur_thread->th_label, &g->gt_recv_label);
     if (r < 0) {
@@ -373,36 +374,32 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 }
 
 static int
-sys_segment_map(struct cobj_ref sg_cobj,
-		struct cobj_ref pm_cobj,
-		void *va,
-		uint64_t start_page, uint64_t num_pages,
-		segment_map_mode mode)
+sys_segment_map(struct sys_segment_map_args *a)
 {
     struct container_object *co_sg;
-    int r = sysx_get_cobj(&co_sg, sg_cobj, cobj_segment, cur_thread);
+    int r = sysx_get_cobj(&co_sg, a->segment, cobj_segment, cur_thread);
     if (r < 0)
 	return r;
 
     struct Segment *sg = co_sg->ptr;
     r = label_compare(sg->sg_hdr.label, cur_thread->th_label,
-		      (mode == segment_map_rw) ? label_eq : label_leq_starhi);
+		      (a->mode == segment_map_rw) ? label_eq : label_leq_starhi);
     if (r < 0)
 	return r;
 
     struct Pagemap *pgmap;
-    if (pm_cobj.container == -1 && pm_cobj.idx == -1) {
+    if (a->pmap.container == -1 && a->pmap.idx == -1) {
 	pgmap = cur_thread->th_pgmap;
     } else {
 	struct container_object *co_pm;
-	r = sysx_get_cobj(&co_pm, pm_cobj, cobj_pmap, cur_thread);
+	r = sysx_get_cobj(&co_pm, a->pmap, cobj_pmap, cur_thread);
 	if (r < 0)
 	    return r;
 	pgmap = co_pm->ptr;
     }
 
     // XXX what about pagemap labels?
-    return segment_map(pgmap, sg, va, start_page, num_pages, mode);
+    return segment_map(pgmap, sg, a->va, a->start_page, a->num_pages, a->mode);
 }
 
 uint64_t
@@ -444,7 +441,14 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	return sys_container_get_c_idx(COBJ(a1, a2));
 
     case SYS_gate_create:
-	return sys_gate_create(a1, (void*) a2, (void*) a3, COBJ(a4, a5));
+	{
+	    page_fault_mode = PFM_KILL;
+	    struct sys_gate_create_args a =
+		*(struct sys_gate_create_args *) TRUP(a1);
+	    page_fault_mode = PFM_NONE;
+
+	    return sys_gate_create(&a);
+	}
 
     case SYS_gate_enter:
 	return sys_gate_enter(COBJ(a1, a2));
@@ -467,15 +471,11 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
     case SYS_segment_map:
 	{
 	    page_fault_mode = PFM_KILL;
-	    struct segment_map_args *sma = (void*) TRUP(a1);
-	    int r = sys_segment_map(sma->segment,
-				    sma->pmap,
-				    sma->va,
-				    sma->start_page,
-				    sma->num_pages,
-				    sma->mode);
+	    struct sys_segment_map_args a =
+		*(struct sys_segment_map_args *) TRUP(a1);
 	    page_fault_mode = PFM_NONE;
-	    return r;
+
+	    return sys_segment_map(&a);
 	}
 
     default:

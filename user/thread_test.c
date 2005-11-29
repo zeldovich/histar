@@ -7,8 +7,8 @@ static volatile uint64_t counter;
 static void
 thread_entry(uint64_t arg)
 {
-    cprintf("thread_test: thread_entry\n");
-    counter += 3;
+    cprintf("thread_test: thread_entry: %d\n", arg);
+    counter += arg;
     sys_halt();
 
     panic("thread_entry: still alive after sys_halt");
@@ -34,7 +34,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("cannot map stack segment: %d", r);
 
-    int g = sys_gate_create(rc, &thread_entry, stacktop, COBJ(rc, pm));
+    int g = sys_gate_create(rc, &thread_entry, stacktop, 3, COBJ(rc, pm));
     if (g < 0)
 	panic("cannot create gate: %d", g);
 

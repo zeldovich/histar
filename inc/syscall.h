@@ -23,7 +23,7 @@ int64_t	sys_container_get_c_idx(struct cobj_ref o);
 int	sys_container_store_cur_thread(uint64_t container);
 int	sys_container_store_cur_pmap(uint64_t container, int cow_data);
 
-int	sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pmap);
+int	sys_gate_create(uint64_t container, void *entry, void *stack, uint64_t arg, struct cobj_ref pmap);
 int	sys_gate_enter(struct cobj_ref gate);
 
 int	sys_thread_create(uint64_t container, struct cobj_ref gate);

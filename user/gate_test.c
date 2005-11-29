@@ -29,7 +29,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("cannot map stack segment: %d", r);
 
-    int g = sys_gate_create(rc, &gate_entry, stacktop, COBJ(rc, pm));
+    int g = sys_gate_create(rc, &gate_entry, stacktop, 0xc0ffee00c0ffee, COBJ(rc, pm));
     if (g < 0)
 	panic("cannot create gate: %d", g);
 
