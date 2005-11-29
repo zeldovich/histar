@@ -4,5 +4,6 @@
 #include <inc/types.h>
 
 size_t	strlen(const char *s);
+char*   strchr(const char *p, int ch);
 
 #endif
