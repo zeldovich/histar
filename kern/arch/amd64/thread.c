@@ -5,32 +5,10 @@
 #include <machine/trap.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
+#include <kern/segment.h>
 
 struct Thread *cur_thread;
 struct Thread_list thread_list;
-
-static int
-map_segment(struct Pagemap *pgmap, void *va, size_t len)
-{
-    void *endva = (char*) va + len;
-
-    while (va < endva) {
-	struct Page *pp;
-	int r = page_alloc(&pp);
-	if (r < 0)
-	    return r;
-
-	r = page_insert(pgmap, pp, va, PTE_U | PTE_W);
-	if (r < 0) {
-	    page_free(pp);
-	    return r;
-	}
-
-	va = ROUNDDOWN((char*) va + PGSIZE, PGSIZE);
-    }
-
-    return 0;
-}
 
 int
 thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
@@ -65,9 +43,27 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 	    return -E_INVAL;
 	}
 
-	int r = map_segment(t->th_pgmap, (void*) ph->p_vaddr, ph->p_memsz);
+	struct Segment *sg;
+	int r = segment_alloc(&sg);
 	if (r < 0)
 	    return r;
+
+	Elf64_Addr pg_start = ROUNDDOWN(ph->p_vaddr, PGSIZE);
+	Elf64_Addr pg_end = ROUNDDOWN(ph->p_vaddr + ph->p_memsz + PGSIZE - 1, PGSIZE);
+	r = segment_set_length(sg, (pg_end - pg_start) / PGSIZE);
+	if (r < 0) {
+	    segment_free(sg);
+	    return r;
+	}
+
+	r = segment_map(t->th_pgmap, sg, (void*) pg_start, PTE_U | PTE_W);
+	if (r < 0) {
+	    segment_free(sg);
+	    return r;
+	}
+
+	// Pages are already referenced by page table, so this is safe.
+	segment_free(sg);
     }
 
     // Two passes so that map_segment() doesn't drop a partially-filled
@@ -78,7 +74,6 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 	    continue;
 
 	memcpy((void*) ph->p_vaddr, binary + ph->p_offset, ph->p_filesz);
-	memset((void*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
     }
 
     return thread_jump(t, l, t->th_pgmap, (void*) elf->e_entry, 0);
@@ -178,8 +173,22 @@ thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap, void *
     t->th_tf.tf_rip = (uint64_t) entry;
     t->th_tf.tf_rdi = arg;
 
-    // Map a stack
-    return map_segment(t->th_pgmap, (void*) (ULIM - PGSIZE), PGSIZE);
+    // Map a stack -- XXX -- this will go away RSN
+    struct Segment *sg;
+    r = segment_alloc(&sg);
+    if (r < 0)
+	return r;
+
+    r = segment_set_length(sg, 1);
+    if (r < 0)
+	return r;
+
+    r = segment_map(t->th_pgmap, sg, (void*) (ULIM - PGSIZE), PTE_U | PTE_W);
+    if (r < 0)
+	return r;
+
+    segment_free(sg);
+    return 0;
 }
 
 void

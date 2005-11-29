@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/mmu.h>
+#include <machine/pmap.h>
 
 struct segment_header {
     uint64_t num_pages;
@@ -20,5 +21,7 @@ void segment_free(struct Segment *sg);
 void segment_addref(struct Segment *sg);
 void segment_decref(struct Segment *sg);
 int  segment_set_length(struct Segment *sg, uint64_t num_pages);
+
+int  segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va_start, int perm);
 
 #endif

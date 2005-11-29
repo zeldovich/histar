@@ -68,3 +68,25 @@ segment_set_length(struct Segment *sg, uint64_t num_pages)
     sg->sg_hdr.num_pages = num_pages;
     return 0;
 }
+
+int
+segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va, int perm)
+{
+    char *cva = (char *) va;
+    if (PGOFF(cva))
+	return -E_INVAL;
+
+    int i;
+    for (i = 0; i < sg->sg_hdr.num_pages; i++) {
+	int r = page_insert(pgmap, sg->sg_page[i],
+			    &cva[(uint64_t)PGSIZE * i], perm);
+	if (r < 0) {
+	    // unmap pages
+	    for (i--; i >= 0; i--)
+		page_remove(pgmap, &cva[(uint64_t)PGSIZE * i]);
+	    return r;
+	}
+    }
+
+    return 0;
+}
