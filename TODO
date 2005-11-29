@@ -1,5 +1,3 @@
-cleanup syscall.c
-
 syscalls for specifying labels
 
 object persistence
