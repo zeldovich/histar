@@ -17,6 +17,12 @@ thread_entry(uint64_t arg)
 int
 main(int ac, char **av)
 {
+    // XXX
+    // if we don't COW our .data section upfront, then all
+    // children get a COW version of the .data section, and
+    // it's not shared with us anymore!
+    counter = 2;
+
     // root container, always 0 for now (sequential alloc)
     int rc = 0;
 
@@ -38,7 +44,6 @@ main(int ac, char **av)
     if (g < 0)
 	panic("cannot create gate: %d", g);
 
-    counter = 2;
     uint64_t old_counter = counter;
 
     int t1 = sys_thread_create(rc, COBJ(rc, g));

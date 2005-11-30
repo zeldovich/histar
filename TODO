@@ -5,9 +5,10 @@ will probably need an iovec interface to disk_io()
 
 what to do about return gates?
 
-simple file system
-user-level elf loader
-spawn
+factor out elf-loader and spawn from the shell
+
+segment_unmap
+how to find a free contiguous block of virtual address space?
 
 ===
 
