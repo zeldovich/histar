@@ -9,13 +9,85 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
-#if 0
+static void builtin_help(int ac, char **av);
+
 static void
-builtin_list_container(uint64_t idx)
+print_cobj(int type, struct cobj_ref cobj)
 {
-    cprintf("builtin_list_contianer\n");
+    int r;
+
+    switch (type) {
+    case cobj_gate:
+	cprintf("gate\n");
+	break;
+
+    case cobj_thread:
+	cprintf("thread\n");
+	break;
+
+    case cobj_pmap:
+	cprintf("pmap\n");
+	break;
+
+    case cobj_container:
+	r = sys_container_get_c_idx(cobj);
+	cprintf("container %d\n", r);
+	break;
+
+    case cobj_segment:
+	r = sys_segment_get_npages(cobj);
+	cprintf("segment (%d pages)\n", r);
+	break;
+
+    default:
+	cprintf("unknown (%d)\n", type);
+    }
 }
-#endif
+
+static void
+builtin_list_container(int ac, char **av)
+{
+    if (ac != 1) {
+	cprintf("Usage: lc <container-id>\n");
+	return;
+    }
+
+    int ct = atoi(av[0]);
+    cprintf("Container %d:\n", ct);
+
+    int i;
+    for (i = 0; i < 100; i++) {
+	int r = sys_container_get_type(COBJ(ct, i));
+	if (r < 0) {
+	    cprintf("sys_container_get_type(<%d,%d>): %d\n", ct, i, r);
+	    return;
+	}
+
+	if (r == cobj_none)
+	    continue;
+	cprintf("  %3d ", i);
+	print_cobj(r, COBJ(ct, i));
+    }
+}
+
+static struct {
+    const char *name;
+    const char *desc;
+    void (*func) (int ac, char **av);
+} commands[] = {
+    { "help",	"Display the list of commands",	&builtin_help },
+    { "lc",	"List a container",		&builtin_list_container },
+};
+
+static void
+builtin_help(int ac, char **av)
+{
+    int i;
+
+    cprintf("Commands:\n");
+    for (i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
+	cprintf("  %-10s %s\n", commands[i].name, commands[i].desc);
+}
 
 static void
 parse_cmd(char *cmd)
@@ -49,7 +121,15 @@ run_cmd(int ac, char **av)
     if (ac == 0)
 	return;
 
-    cprintf("cmd: %s\n", av[0]);
+    int i;
+    for (i = 0; i < sizeof(commands)/sizeof(commands[0]); i++) {
+	if (!strcmp(av[0], commands[i].name)) {
+	    commands[i].func(ac-1, av+1);
+	    return;
+	}
+    }
+
+    cprintf("%s: unknown command, try help\n", av[0]);
 }
 
 int
