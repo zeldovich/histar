@@ -21,5 +21,6 @@ void *	memfind(const void *s, int c, size_t len);
 
 long	strtol(const char *s, char **endptr, int base);
 int	strtoull(const char *s, char **endptr, int base, uint64_t *result);
+int	atoi(const char *nptr);
 
 #endif /* not JOS_INC_STRING_H */
