@@ -71,12 +71,62 @@ builtin_list_container(int ac, char **av)
 }
 
 static struct {
+    char name[64];
+    uint64_t idx;
+} dir[256];
+
+static int
+readdir()
+{
+    char *dirbuf = (char*) 0x6fff00000000;
+    int r = sys_segment_map(COBJ(1, 0), COBJ(-1, -1),
+			    dirbuf, 0, 1, segment_map_ro);
+    if (r < 0) {
+	cprintf("cannot map dir segment: %d\n", r);
+	return r;
+    }
+
+    int max_dirent;
+    memcpy(&max_dirent, dirbuf, 4);
+
+    int i;
+    int dirsize = 0;
+    for (i = 1; i <= max_dirent; i++) {
+	dir[dirsize].idx = dirbuf[64*i];
+	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
+	dirsize++;
+    }
+
+    return dirsize;
+}
+
+static void
+builtin_ls(int ac, char **av)
+{
+    if (ac != 0) {
+	cprintf("Usage: ls\n");
+	return;
+    }
+
+    int r = readdir();
+    if (r < 0) {
+	cprintf("cannot readdir: %d", r);
+	return;
+    }
+
+    int i;
+    for (i = 0; i < r; i++)
+	cprintf("[%d] %s\n", i, dir[i].name);
+}
+
+static struct {
     const char *name;
     const char *desc;
     void (*func) (int ac, char **av);
 } commands[] = {
     { "help",	"Display the list of commands",	&builtin_help },
     { "lc",	"List a container",		&builtin_list_container },
+    { "ls",	"List the directory",		&builtin_ls },
 };
 
 static void

@@ -1,9 +1,7 @@
-
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <machine/thread.h>
 #include <machine/trap.h>
-#include <kern/lib.h>
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
@@ -13,6 +11,11 @@
 #include <kern/container.h>
 #include <kern/label.h>
 #include <kern/unique.h>
+#include <kern/lib.h>
+#include <kern/segment.h>
+
+// XXX
+#include <inc/stdio.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -116,6 +119,11 @@ init (void)
   struct Container *rc;
   assert(0 == container_alloc(&rc));
 
+  // XXX alloc a "root fs" container as ID 1 for now
+  struct Container *fsc;
+  assert(0 == container_alloc(&fsc));
+  assert(0 == container_put(rc, cobj_container, fsc));
+
   uint64_t root_handle = unique_alloc();
   struct Label *l;
   assert(0 == label_alloc(&l));
@@ -123,10 +131,43 @@ init (void)
   l->lb_hdr.def_level = 1;
   assert(0 == label_set(l, root_handle, LB_LEVEL_STAR));
   assert(0 == label_copy(l, &rc->ct_hdr.label));
+  assert(0 == label_copy(l, &fsc->ct_hdr.label));
+
+  // XXX this is such a mess, but it's all going away anyway..
+  struct Segment *fs_names;
+  assert(0 == segment_alloc(&fs_names));
+  assert(0 == label_copy(l, &fs_names->sg_hdr.label));
+  assert(0 == segment_set_npages(fs_names, 1));
+  assert(0 == container_put(fsc, cobj_segment, fs_names));
+
+  int num_fs_segments = 0;
+  char *fs_dir = (char*) page2kva(fs_names->sg_page[0]);
+#define SEGMENT_CREATE_EMBED(name)				\
+    do {							\
+	extern uint8_t _binary_obj_user_##name##_start[],	\
+		       _binary_obj_user_##name##_size[];	\
+	int bytes = (int)_binary_obj_user_##name##_size;	\
+	struct Segment *s;					\
+	assert(0 == segment_alloc(&s));				\
+	assert(0 == label_copy(l, &s->sg_hdr.label));		\
+	assert(0 == segment_set_npages(s, bytes/PGSIZE+1));	\
+	int i;							\
+	for (i = 0; i < bytes; i+=PGSIZE)			\
+	    memcpy(page2kva(s->sg_page[i/PGSIZE]),		\
+		   &_binary_obj_user_##name##_start[i], PGSIZE);\
+	i = container_put(fsc, cobj_segment, s);		\
+	assert(i>0);						\
+	char namebuf[64];					\
+	snprintf(namebuf, 64, "%c%s", i, #name);		\
+	memcpy(&fs_dir[(++num_fs_segments)*64], namebuf, 64);	\
+    } while (0)
+
+  SEGMENT_CREATE_EMBED(hello);
+  SEGMENT_CREATE_EMBED(gate_test);
+  SEGMENT_CREATE_EMBED(thread_test);
+  memcpy(fs_dir, &num_fs_segments, 4);
 
   THREAD_CREATE_EMBED(rc, l, user_idle);
-  THREAD_CREATE_EMBED(rc, l, user_gate_test);
-  THREAD_CREATE_EMBED(rc, l, user_thread_test);
   THREAD_CREATE_EMBED(rc, l, user_shell);
 
   label_free(l);
