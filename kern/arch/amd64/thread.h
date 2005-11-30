@@ -15,7 +15,6 @@ struct Thread {
 
     struct Label *th_label;
     struct Pagemap *th_pgmap;
-    uint64_t th_cr3;
 
     uint32_t th_ref;
     thread_status th_status;
@@ -40,6 +39,7 @@ void thread_free(struct Thread *t);
 int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap,
 		 void *entry, void *stack, uint64_t arg);
 void thread_syscall_restart(struct Thread *t);
+void thread_switch_pmap(struct Thread *t);
 
 void thread_run(struct Thread *t) __attribute__((__noreturn__));
 void thread_halt(struct Thread *t);

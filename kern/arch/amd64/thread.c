@@ -18,10 +18,9 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 	return r;
 
     page_map_addref(t->th_pgmap);
-    t->th_cr3 = kva2pa(t->th_pgmap);
 
     // Switch to target address space to populate it
-    lcr3(t->th_cr3);
+    thread_switch_pmap(t);
 
     Elf64_Ehdr *elf = (Elf64_Ehdr *) binary;
     if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
@@ -153,7 +152,7 @@ thread_run(struct Thread *t)
 	panic("trying to run a non-runnable thread %p", t);
 
     cur_thread = t;
-    lcr3(t->th_cr3);
+    thread_switch_pmap(t);
     trapframe_pop(&t->th_tf);
 }
 
@@ -184,7 +183,6 @@ thread_jump(struct Thread *t, struct Label *label,
 	page_map_decref(t->th_pgmap);
 
     t->th_pgmap = pgmap;
-    t->th_cr3 = kva2pa(t->th_pgmap);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
@@ -201,4 +199,11 @@ void
 thread_syscall_restart(struct Thread *t)
 {
     t->th_tf.tf_rip -= 2;
+}
+
+void
+thread_switch_pmap(struct Thread *t)
+{
+    uint64_t cr3 = kva2pa(t->th_pgmap);
+    lcr3(cr3);
 }
