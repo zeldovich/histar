@@ -9,6 +9,8 @@ factor out elf-loader and spawn from the shell
 
 how to find a free contiguous block of virtual address space?
 
+build C++
+
 ===
 
 labels for address spaces?
