@@ -116,6 +116,8 @@ container_unref(struct Container *c, uint32_t idx)
     default:
 	panic("unknown container object type %d", cobj->type);
     }
+
+    cobj->type = cobj_none;
 }
 
 void
