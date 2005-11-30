@@ -13,8 +13,7 @@ KERN_LIB :=					\
 	lib/memcpy.c				\
 	lib/memset.c				\
 	lib/printfmt.c				\
-	lib/strchr.c				\
-	lib/strcmp.c
+	lib/string.c
 
 KERN_DEV :=					\
 	kern/dev/console.c			\

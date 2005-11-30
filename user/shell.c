@@ -9,6 +9,14 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
+#if 0
+static void
+builtin_list_container(uint64_t idx)
+{
+    cprintf("builtin_list_contianer\n");
+}
+#endif
+
 static void
 parse_cmd(char *cmd)
 {

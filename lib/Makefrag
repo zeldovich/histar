@@ -15,8 +15,7 @@ LIB_SRCFILES :=	\
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \
-	lib/strchr.c \
-	lib/strcmp.c \
+	lib/string.c \
 	lib/libmain.c \
 	lib/panic.c \
 	lib/console.c \
