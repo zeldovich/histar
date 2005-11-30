@@ -31,7 +31,7 @@ main(int ac, char **av)
 	panic("cannot store cur_pm: %d", pm);
 
     // XXX if we could get a user-space header defining ULIM...
-    char *stacktop = (void*) 0x700000000000;
+    char *stacktop = (void*) 0x710000000000;
     int sg = sys_segment_create(rc, 1);
     if (sg < 0)
 	panic("cannot create stack segment: %d", sg);
@@ -40,7 +40,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("cannot map stack segment: %d", r);
 
-    int g = sys_gate_create(rc, &thread_entry, stacktop, 3, COBJ(rc, pm));
+    int g = sys_gate_create(rc, &thread_entry, stacktop, COBJ(rc, pm), 1, 3);
     if (g < 0)
 	panic("cannot create gate: %d", g);
 

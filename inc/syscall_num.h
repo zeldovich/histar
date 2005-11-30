@@ -24,6 +24,7 @@ typedef enum {
     SYS_thread_create,
 
     SYS_pmap_create,
+    SYS_pmap_unmap,
 
     SYS_segment_create,
     SYS_segment_resize,

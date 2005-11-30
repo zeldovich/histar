@@ -16,15 +16,7 @@ main(int ac, char **av)
     if (sc < 0)
 	panic("cannot get sub-container: %d", sc);
 
-    int r = sys_container_store_cur_pmap(rc, 0);
-    if (r < 0)
-	panic("cannot store current pmap in root container: %d", r);
-
-    r = sys_container_store_cur_thread(rc);
-    if (r < 0)
-	panic("cannot store current thread in root container: %d", r);
-
-    r = sys_container_store_cur_thread(sc);
+    int r = sys_container_store_cur_thread(sc);
     if (r < 0)
 	panic("cannot addref current thread: %d", r);
 

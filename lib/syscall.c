@@ -64,14 +64,15 @@ sys_container_get_c_idx(struct cobj_ref o)
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, void *stack, uint64_t arg, struct cobj_ref pmap)
+sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pmap, int pmap_copy, uint64_t arg)
 {
     struct sys_gate_create_args a =
       { .container = container,
 	.entry = entry,
 	.stack = stack,
 	.arg = arg,
-	.pmap = pmap };
+	.pmap = pmap,
+	.pmap_copy = pmap_copy };
 
     return syscall(SYS_gate_create, (uint64_t) &a, 0, 0, 0, 0);
 }
@@ -92,6 +93,12 @@ int
 sys_pmap_create(uint64_t container)
 {
     return syscall(SYS_pmap_create, container, 0, 0, 0, 0);
+}
+
+int
+sys_pmap_unmap(struct cobj_ref pmap, void *start, uint64_t num_pages)
+{
+    return syscall(SYS_pmap_unmap, pmap.container, pmap.idx, (uint64_t) start, num_pages, 0);
 }
 
 int

@@ -20,6 +20,7 @@ struct sys_gate_create_args {
     void *stack;
     uint64_t arg;
     struct cobj_ref pmap;
+    int pmap_copy;
 };
 
 #endif

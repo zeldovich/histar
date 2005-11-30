@@ -49,6 +49,23 @@ sysx_get_cobj(struct container_object **cp, struct cobj_ref cobj, container_obje
     return 0;
 }
 
+static int
+sysx_get_pmap(struct Pagemap **pmapp, struct cobj_ref cobj, struct Thread *t)
+{
+    if (cobj.container == -1 && cobj.idx == -1) {
+	*pmapp = t->th_pgmap;
+	return 0;
+    } else {
+	struct container_object *co;
+	int r = sysx_get_cobj(&co, cobj, cobj_pmap, t);
+	if (r < 0)
+	    return r;
+
+	*pmapp = co->ptr;
+	return 0;
+    }
+}
+
 // Syscall handlers
 static void
 sys_yield()
@@ -135,7 +152,7 @@ sys_container_store_cur_thread(uint64_t ct)
 }
 
 static int
-sys_container_store_cur_pmap(uint64_t ct, int cow_data)
+sys_container_store_cur_pmap(uint64_t ct, int copy)
 {
     struct Container *c;
     int r = sysx_get_container(&c, ct, cur_thread, lookup_modify);
@@ -143,15 +160,21 @@ sys_container_store_cur_pmap(uint64_t ct, int cow_data)
 	return r;
 
     struct Pagemap *pgmap;
-    r = page_map_clone(cur_thread->th_pgmap, &pgmap, cow_data);
-    if (r < 0)
-	return r;
+    if (copy) {
+	r = page_map_clone(cur_thread->th_pgmap, &pgmap, 1);
+	if (r < 0)
+	    return r;
+    } else {
+	pgmap = cur_thread->th_pgmap;
+    }
 
     r = container_put(c, cobj_pmap, pgmap);
     if (r < 0) {
-	// free pgmap
-	page_map_addref(pgmap);
-	page_map_decref(pgmap);
+	if (copy) {
+	    // free pgmap
+	    page_map_addref(pgmap);
+	    page_map_decref(pgmap);
+	}
     }
 
     return r;
@@ -196,6 +219,7 @@ sys_gate_create(struct sys_gate_create_args *a)
     g->gt_stack = a->stack;
     g->gt_arg = a->arg;
     g->gt_pmap_cobj = a->pmap;
+    g->gt_pmap_copy = a->pmap_copy;
 
     r = label_copy(cur_thread->th_label, &g->gt_recv_label);
     if (r < 0) {
@@ -238,10 +262,15 @@ thread_gate_enter(struct Thread *t, struct cobj_ref gt_cobj)
     if (r < 0)
 	return r;
 
+    struct Pagemap *g_pgmap = co_pm->ptr;
     struct Pagemap *t_pgmap;
-    r = page_map_clone(co_pm->ptr, &t_pgmap, 0);
-    if (r < 0)
-	return r;
+    if (g->gt_pmap_copy) {
+	r = page_map_clone(g_pgmap, &t_pgmap, 0);
+	if (r < 0)
+	    return r;
+    } else {
+	t_pgmap = co_pm->ptr;
+    }
 
     // XXX free the cloned page map above in case of failure?
     return thread_jump(t, g->gt_send_label, t_pgmap, g->gt_entry, g->gt_stack, g->gt_arg);
@@ -308,6 +337,27 @@ sys_pmap_create(uint64_t ct)
 	page_map_decref(pgmap);
     }
     return r;
+}
+
+static int
+sys_pmap_unmap(struct cobj_ref pmap, void *va, uint64_t num_pages)
+{
+    struct Pagemap *pgmap;
+    int r = sysx_get_pmap(&pgmap, pmap, cur_thread);
+    if (r < 0)
+	return r;
+
+    int i = 0;
+    char *cva = (char *) va;
+    for (i = 0; i < num_pages; i++) {
+	if ((uint64_t)cva >= ULIM)
+	    return -E_INVAL;
+
+	page_remove(pgmap, cva);
+	cva += PGSIZE;
+    }
+
+    return 0;
 }
 
 static int
@@ -388,15 +438,9 @@ sys_segment_map(struct sys_segment_map_args *a)
 	return r;
 
     struct Pagemap *pgmap;
-    if (a->pmap.container == -1 && a->pmap.idx == -1) {
-	pgmap = cur_thread->th_pgmap;
-    } else {
-	struct container_object *co_pm;
-	r = sysx_get_cobj(&co_pm, a->pmap, cobj_pmap, cur_thread);
-	if (r < 0)
-	    return r;
-	pgmap = co_pm->ptr;
-    }
+    r = sysx_get_pmap(&pgmap, a->pmap, cur_thread);
+    if (r < 0)
+	return r;
 
     // XXX what about pagemap labels?
     return segment_map(pgmap, sg, a->va, a->start_page, a->num_pages, a->mode);
@@ -458,6 +502,9 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_pmap_create:
 	return sys_pmap_create(a1);
+
+    case SYS_pmap_unmap:
+	return sys_pmap_unmap(COBJ(a1, a2), (void*) a3, a4);
 
     case SYS_segment_create:
 	return sys_segment_create(a1, a2);

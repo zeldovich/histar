@@ -185,7 +185,7 @@ builtin_spawn_seg(struct cobj_ref seg)
     if (r < 0)
 	cprintf("cannot unref stack? %d\n", r);
 
-    int gate = sys_gate_create(0, (void*)elf->e_entry, stacktop, 0, COBJ(0, pmap));
+    int gate = sys_gate_create(0, (void*)elf->e_entry, stacktop, COBJ(0, pmap), 0, 0);
     if (gate < 0) {
 	cprintf("cannot create gate: %d\n", gate);
 	return;

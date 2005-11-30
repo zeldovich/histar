@@ -15,6 +15,7 @@ struct Gate {
 
     // target address space
     struct cobj_ref gt_pmap_cobj;
+    int gt_pmap_copy;	// copy address space on entry, or use it directly?
 
     uint32_t gt_ref;
 };
