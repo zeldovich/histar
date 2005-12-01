@@ -16,9 +16,9 @@ typedef enum {
 
 struct cobj_ref {
     uint64_t container;
-    uint64_t idx;
+    uint64_t slot;
 };
 
-#define COBJ(container, idx)	((struct cobj_ref) { (container), (idx) } )
+#define COBJ(container, slot)	((struct cobj_ref) { (container), (slot) } )
 
 #endif

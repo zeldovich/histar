@@ -36,7 +36,7 @@ sys_container_alloc(uint64_t parent)
 int
 sys_container_unref(struct cobj_ref o)
 {
-    return syscall(SYS_container_unref, o.container, o.idx, 0, 0, 0);
+    return syscall(SYS_container_unref, o.container, o.slot, 0, 0, 0);
 }
 
 int
@@ -54,13 +54,13 @@ sys_container_store_cur_pmap(uint64_t container, int cow_data)
 container_object_type
 sys_container_get_type(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_type, o.container, o.idx, 0, 0, 0);
+    return syscall(SYS_container_get_type, o.container, o.slot, 0, 0, 0);
 }
 
 int64_t
 sys_container_get_c_idx(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_c_idx, o.container, o.idx, 0, 0, 0);
+    return syscall(SYS_container_get_c_idx, o.container, o.slot, 0, 0, 0);
 }
 
 int
@@ -80,13 +80,13 @@ sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pm
 int
 sys_gate_enter(struct cobj_ref gate)
 {
-    return syscall(SYS_gate_enter, gate.container, gate.idx, 0, 0, 0);
+    return syscall(SYS_gate_enter, gate.container, gate.slot, 0, 0, 0);
 }
 
 int
 sys_thread_create(uint64_t container, struct cobj_ref gate)
 {
-    return syscall(SYS_thread_create, container, gate.container, gate.idx, 0, 0);
+    return syscall(SYS_thread_create, container, gate.container, gate.slot, 0, 0);
 }
 
 int
@@ -98,7 +98,7 @@ sys_pmap_create(uint64_t container)
 int
 sys_pmap_unmap(struct cobj_ref pmap, void *start, uint64_t num_pages)
 {
-    return syscall(SYS_pmap_unmap, pmap.container, pmap.idx, (uint64_t) start, num_pages, 0);
+    return syscall(SYS_pmap_unmap, pmap.container, pmap.slot, (uint64_t) start, num_pages, 0);
 }
 
 int
@@ -110,13 +110,13 @@ sys_segment_create(uint64_t container, uint64_t num_pages)
 int
 sys_segment_resize(struct cobj_ref seg, uint64_t num_pages)
 {
-    return syscall(SYS_segment_resize, seg.container, seg.idx, num_pages, 0, 0);
+    return syscall(SYS_segment_resize, seg.container, seg.slot, num_pages, 0, 0);
 }
 
 int
 sys_segment_get_npages(struct cobj_ref seg)
 {
-    return syscall(SYS_segment_get_npages, seg.container, seg.idx, 0, 0, 0);
+    return syscall(SYS_segment_get_npages, seg.container, seg.slot, 0, 0, 0);
 }
 
 int

@@ -71,18 +71,18 @@ container_put(struct Container *c, container_object_type type, void *ptr)
 }
 
 struct container_object *
-container_get(struct Container *c, uint32_t idx)
+container_get(struct Container *c, uint32_t slot)
 {
-    if (idx >= NUM_CT_OBJ)
+    if (slot >= NUM_CT_OBJ)
 	return 0;
 
-    return &c->ct_obj[idx];
+    return &c->ct_obj[slot];
 }
 
 void
-container_unref(struct Container *c, uint32_t idx)
+container_unref(struct Container *c, uint32_t slot)
 {
-    struct container_object *cobj = container_get(c, idx);
+    struct container_object *cobj = container_get(c, slot);
     if (cobj == 0)
 	return;
 

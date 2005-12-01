@@ -70,7 +70,7 @@ sysx_get_cobj(struct container_object **cp, struct cobj_ref cobj, container_obje
     if (r < 0)
 	return r;
 
-    struct container_object *co = container_get(c, cobj.idx);
+    struct container_object *co = container_get(c, cobj.slot);
     if (co == 0 || (cotype != cobj_any && co->type != cotype))
 	return -E_INVAL;
 
@@ -81,7 +81,7 @@ sysx_get_cobj(struct container_object **cp, struct cobj_ref cobj, container_obje
 static int
 sysx_get_pmap(struct Pagemap **pmapp, struct cobj_ref cobj, struct Thread *t)
 {
-    if (cobj.container == -1 && cobj.idx == -1) {
+    if (cobj.container == -1 && cobj.slot == -1) {
 	*pmapp = t->th_pgmap;
 	return 0;
     } else {
@@ -149,7 +149,7 @@ sys_container_unref(struct cobj_ref cobj)
     struct Container *c;
     check(sysx_get_container(&c, cobj.container, cur_thread, lookup_modify));
 
-    container_unref(c, cobj.idx);
+    container_unref(c, cobj.slot);
 }
 
 static int
@@ -268,16 +268,16 @@ sys_thread_create(uint64_t ct, struct cobj_ref gt)
     SET_SYSCALL_CLEANUP(thread_free, t);
 
     check(label_copy(cur_thread->th_label, &t->th_label));
-    int tidx = check(container_put(c, cobj_thread, t));
+    int tslot = check(container_put(c, cobj_thread, t));
 
     int r = thread_gate_enter(t, gt);
     if (r < 0) {
-	container_unref(c, tidx);
+	container_unref(c, tslot);
 	return r;
     }
 
     thread_set_runnable(t);
-    return tidx;
+    return tslot;
 }
 
 static int
