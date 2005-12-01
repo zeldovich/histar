@@ -166,6 +166,7 @@ init (void)
   SEGMENT_CREATE_EMBED(gate_test);
   SEGMENT_CREATE_EMBED(thread_test);
   SEGMENT_CREATE_EMBED(spin);
+  SEGMENT_CREATE_EMBED(jmptest);
   memcpy(fs_dir, &num_fs_segments, 4);
 
   THREAD_CREATE_EMBED(rc, l, user_idle);

@@ -9,6 +9,7 @@ include lib/$(ARCH)/Makefrag
 LIB_SRCFILES :=	\
 	lib/$(ARCH)/entry.S \
 	lib/$(ARCH)/strlen.S \
+	lib/$(ARCH)/longjmp.S \
 	lib/memcpy.c \
 	lib/memset.c \
 	lib/$(ARCH)/syscall_entry.S \

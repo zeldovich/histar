@@ -42,6 +42,7 @@ KERN_BINFILES := \
 	user/ct_unref \
 	user/gate_test \
 	user/thread_test \
+	user/jmptest \
 	user/shell
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))

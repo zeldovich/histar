@@ -10,6 +10,7 @@ KERN_ARCH :=					\
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
+	lib/$(ARCH)/longjmp.S			\
 	lib/memcpy.c				\
 	lib/memset.c				\
 	lib/printfmt.c				\
