@@ -106,7 +106,7 @@ thread_set_runnable(struct Thread *t)
 void
 thread_suspend(struct Thread *t)
 {
-    t->th_status = thread_not_runnable;
+    t->th_status = thread_suspended;
 }
 
 int
@@ -121,7 +121,7 @@ thread_alloc(struct Thread **tp)
 
     memset(t, 0, sizeof(*t));
     LIST_INSERT_HEAD(&thread_list, t, th_link);
-    t->th_status = thread_not_runnable;
+    t->th_status = thread_not_started;
 
     *tp = t;
     return 0;
@@ -159,7 +159,7 @@ thread_run(struct Thread *t)
 void
 thread_halt(struct Thread *t)
 {
-    t->th_status = thread_not_runnable;
+    t->th_status = thread_halted;
     if (cur_thread == t)
 	cur_thread = 0;
 }

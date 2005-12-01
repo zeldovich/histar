@@ -7,7 +7,9 @@
 
 typedef enum {
     thread_runnable,
-    thread_not_runnable
+    thread_suspended,
+    thread_halted,
+    thread_not_started
 } thread_status;
 
 struct Thread {
@@ -31,18 +33,19 @@ extern struct Thread *cur_thread;
 
 int  thread_alloc(struct Thread **tp);
 int  thread_load_elf(struct Thread *t, struct Label *label, uint8_t *binary, size_t size);
-void thread_set_runnable(struct Thread *t);
-void thread_suspend(struct Thread *t);
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
 int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap,
 		 void *entry, void *stack, uint64_t arg);
 void thread_syscall_restart(struct Thread *t);
-void thread_switch_pmap(struct Thread *t);
 
-void thread_run(struct Thread *t) __attribute__((__noreturn__));
+void thread_set_runnable(struct Thread *t);
+void thread_suspend(struct Thread *t);
 void thread_halt(struct Thread *t);
+
+void thread_switch_pmap(struct Thread *t);
+void thread_run(struct Thread *t) __attribute__((__noreturn__));
 
 // Convenience macro for embedded ELF binaries
 #define THREAD_CREATE_EMBED(container, label, name)		\
