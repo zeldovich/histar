@@ -7,7 +7,7 @@ what to do about return gates?
 
 factor out elf-loader and spawn from the shell
 
-how to find a free contiguous block of virtual address space?
+change from pagemaps to segment-maps
 
 possibly a cleanup stack?
 
