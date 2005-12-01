@@ -48,11 +48,10 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
     if (num_pages > NUM_SG_PAGES)
 	return -E_NO_MEM;
 
-    int i;
-    for (i = num_pages; i < sg->sg_hdr.num_pages; i++)
+    for (int i = num_pages; i < sg->sg_hdr.num_pages; i++)
 	page_decref(sg->sg_page[i]);
 
-    for (i = sg->sg_hdr.num_pages; i < num_pages; i++) {
+    for (int i = sg->sg_hdr.num_pages; i < num_pages; i++) {
 	int r = page_alloc(&sg->sg_page[i]);
 	if (r < 0) {
 	    // free all the pages we allocated up to now
@@ -80,8 +79,7 @@ segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
     if (start_page + num_pages > sg->sg_hdr.num_pages)
 	return -E_INVAL;
 
-    int i;
-    for (i = start_page; i < start_page + num_pages; i++) {
+    for (int i = start_page; i < start_page + num_pages; i++) {
 	int r = 0;
 
 	if (((uint64_t) cva) >= ULIM)

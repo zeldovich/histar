@@ -130,7 +130,7 @@ void
 trap_field_symbols (void)
 {
 #define TF_DEF(field)							\
-  asm volatile (".globl\t" #field "\n\t.set\t" #field ",%0"		\
+  __asm volatile (".globl\t" #field "\n\t.set\t" #field ",%0"		\
 		:: "m" (*(int *) offsetof (struct Trapframe, field)))
   TF_DEF (tf_rax);
   TF_DEF (tf_rcx);

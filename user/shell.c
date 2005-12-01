@@ -56,8 +56,7 @@ builtin_list_container(int ac, char **av)
     int ct = atoi(av[0]);
     cprintf("Container %d:\n", ct);
 
-    int i;
-    for (i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++) {
 	int r = sys_container_get_type(COBJ(ct, i));
 	if (r < 0) {
 	    cprintf("sys_container_get_type(<%d,%d>): %d\n", ct, i, r);
@@ -90,9 +89,8 @@ readdir()
     int max_dirent;
     memcpy(&max_dirent, dirbuf, 4);
 
-    int i;
     int dirsize = 0;
-    for (i = 1; i <= max_dirent; i++) {
+    for (int i = 1; i <= max_dirent; i++) {
 	dir[dirsize].idx = dirbuf[64*i];
 	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
 	dirsize++;
@@ -113,8 +111,7 @@ builtin_ls(int ac, char **av)
     if (r < 0)
 	return;
 
-    int i;
-    for (i = 0; i < r; i++)
+    for (int i = 0; i < r; i++)
 	cprintf("[%d] %s\n", i, dir[i].name);
 }
 
@@ -147,9 +144,8 @@ builtin_spawn_seg(struct cobj_ref seg)
     }
 
 #define PGSIZE 4096
-    int i;
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
-    for (i = 0; i < elf->e_phnum; i++, ph++) {
+    for (int i = 0; i < elf->e_phnum; i++, ph++) {
 	if (ph->p_type != 1)
 	    continue;
 
@@ -214,8 +210,7 @@ builtin_spawn(int ac, char **av)
     if (r < 0)
 	return;
 
-    int i;
-    for (i = 0; i < r; i++) {
+    for (int i = 0; i < r; i++) {
 	if (!strcmp(av[0], dir[i].name)) {
 	    builtin_spawn_seg(COBJ(1, dir[i].idx));
 	    return;
@@ -260,10 +255,8 @@ static struct {
 static void
 builtin_help(int ac, char **av)
 {
-    int i;
-
     cprintf("Commands:\n");
-    for (i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
+    for (int i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
 	cprintf("  %-10s %s\n", commands[i].name, commands[i].desc);
 }
 
@@ -299,8 +292,7 @@ run_cmd(int ac, char **av)
     if (ac == 0)
 	return;
 
-    int i;
-    for (i = 0; i < sizeof(commands)/sizeof(commands[0]); i++) {
+    for (int i = 0; i < sizeof(commands)/sizeof(commands[0]); i++) {
 	if (!strcmp(av[0], commands[i].name)) {
 	    commands[i].func(ac-1, av+1);
 	    return;

@@ -56,19 +56,19 @@ $(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.S
 	$(CC) $(KERN_CFLAGS) -c -o $@ $<
 $(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.c
 	@mkdir -p $(@D)
-	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 $(OBJDIR)/kern/%.o: kern/kern/%.c
 	@mkdir -p $(@D)
-	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 $(OBJDIR)/kern/%.o: kern/dev/%.c
 	@mkdir -p $(@D)
-	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 $(OBJDIR)/kern/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) -c -o $@ $<
 $(OBJDIR)/kern/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)

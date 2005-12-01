@@ -17,8 +17,7 @@ container_alloc(struct Container **cp)
 	return r;
 
     struct Container *c = page2kva(p);
-    int i;
-    for (i = 0; i < NUM_CT_OBJ; i++)
+    for (int i = 0; i < NUM_CT_OBJ; i++)
 	c->ct_obj[i].type = cobj_none;
     c->ct_hdr.idx = unique_alloc();
 
@@ -59,8 +58,7 @@ container_addref(container_object_type type, void *ptr)
 int
 container_put(struct Container *c, container_object_type type, void *ptr)
 {
-    int i;
-    for (i = 0; i < NUM_CT_OBJ; i++) {
+    for (int i = 0; i < NUM_CT_OBJ; i++) {
 	if (c->ct_obj[i].type == cobj_none) {
 	    c->ct_obj[i].type = type;
 	    c->ct_obj[i].ptr = ptr;
@@ -125,8 +123,7 @@ container_free(struct Container *c)
 {
     LIST_REMOVE(c, ct_hdr.link);
 
-    int i;
-    for (i = 0; i < NUM_CT_OBJ; i++)
+    for (int i = 0; i < NUM_CT_OBJ; i++)
 	container_unref(c, i);
 
     if (c->ct_hdr.label)

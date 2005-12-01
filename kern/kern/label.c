@@ -38,8 +38,7 @@ label_free(struct Label *l)
 static int
 label_find_slot(struct Label *l, uint64_t handle)
 {
-    int i;
-    for (i = 0; i < l->lb_hdr.num_ent; i++)
+    for (int i = 0; i < l->lb_hdr.num_ent; i++)
 	if (LB_HANDLE(l->lb_ent[i]) == handle)
 	    return i;
 
@@ -72,22 +71,20 @@ label_set(struct Label *l, uint64_t handle, int level)
 int
 label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 {
-    int i, r;
-
-    for (i = 0; i < l1->lb_hdr.num_ent; i++) {
+    for (int i = 0; i < l1->lb_hdr.num_ent; i++) {
 	int l1l = LB_LEVEL(l1->lb_ent[i]);
 	int l2l = label_get_level(l2, LB_HANDLE(l1->lb_ent[i]));
 
-	r = cmp(l1l, l2l);
+	int r = cmp(l1l, l2l);
 	if (r < 0)
 	    return r;
     }
 
-    for (i = 0; i < l2->lb_hdr.num_ent; i++) {
+    for (int i = 0; i < l2->lb_hdr.num_ent; i++) {
 	int l1l = label_get_level(l1, LB_HANDLE(l2->lb_ent[i]));
 	int l2l = LB_LEVEL(l2->lb_ent[i]);
 
-	r = cmp(l1l, l2l);
+	int r = cmp(l1l, l2l);
 	if (r < 0)
 	    return r;
     }
@@ -95,7 +92,7 @@ label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
     int l1d = l1->lb_hdr.def_level;
     int l2d = l2->lb_hdr.def_level;
 
-    r = cmp(l1d, l2d);
+    int r = cmp(l1d, l2d);
     if (r < 0)
 	return r;
 

@@ -182,8 +182,7 @@ ide_intr()
 static void
 ide_string_shuffle(char *s, int len)
 {
-    int i;
-    for (i = 0; i < len; i += 2) {
+    for (int i = 0; i < len; i += 2) {
 	char c = s[i+1];
 	s[i+1] = s[i];
 	s[i] = c;

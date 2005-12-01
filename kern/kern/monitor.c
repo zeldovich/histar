@@ -40,9 +40,7 @@ static struct Command commands[] = {
 int
 mon_help (int argc, char **argv, struct Trapframe *tf)
 {
-  int i;
-
-  for (i = 0; i < NCOMMANDS; i++)
+  for (int i = 0; i < NCOMMANDS; i++)
     cprintf ("%s - %s\n", commands[i].name, commands[i].desc);
   return 0;
 }
@@ -68,7 +66,7 @@ mon_backtrace (int argc, char **argv, struct Trapframe *tf)
 #if 0
   const uint32_t *ebp =
     (tf ? (const uint32_t *) tf->tf_ebp : (const uint32_t *) read_ebp ());
-  int i, fr = 0;
+  int fr = 0;
   struct Eipinfo info;
 
   while (ebp > (const uint32_t *) 0x800000) {
@@ -76,7 +74,7 @@ mon_backtrace (int argc, char **argv, struct Trapframe *tf)
 
     // print this stack frame
     cprintf ("%3d: eip %08x  ebp %08x  args", fr, ebp[1], ebp[0]);
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
       cprintf (" %08x", ebp[2 + i]);
     cprintf ("\n");
 
@@ -112,7 +110,6 @@ runcmd (char *buf, struct Trapframe *tf)
 {
   int argc;
   char *argv[MAXARGS];
-  int i;
 
   // Parse the command buffer into whitespace-separated arguments
   argc = 0;
@@ -138,7 +135,7 @@ runcmd (char *buf, struct Trapframe *tf)
   // Lookup and invoke the command
   if (argc == 0)
     return 0;
-  for (i = 0; i < NCOMMANDS; i++) {
+  for (int i = 0; i < NCOMMANDS; i++) {
     if (strcmp (argv[0], commands[i].name) == 0)
       return commands[i].func (argc, argv, tf);
   }

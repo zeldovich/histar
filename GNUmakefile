@@ -47,6 +47,7 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
 CFLAGS	:= -g -Wall -Werror
+CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) \
 	-I$(TOP)/inc/net -I$(TOP)/inc/net/ipv4
 

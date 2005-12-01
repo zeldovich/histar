@@ -69,11 +69,11 @@ flush_tlb_hard (void)
 {
   uint64_t cr3;
   uint64_t cr4;
-  asm volatile ("movq %%cr3,%0":"=a" (cr3));
-  asm volatile ("movq %%cr4,%0":"=a" (cr4));
-  asm volatile ("movq %0,%%cr4"::"a" (cr4 & ~CAST64 (CR4_PGE)));
-  asm volatile ("movq %0,%%cr3"::"a" (cr3));
-  asm volatile ("movq %0,%%cr4"::"a" (cr4));
+  __asm volatile ("movq %%cr3,%0":"=a" (cr3));
+  __asm volatile ("movq %%cr4,%0":"=a" (cr4));
+  __asm volatile ("movq %0,%%cr4"::"a" (cr4 & ~CAST64 (CR4_PGE)));
+  __asm volatile ("movq %0,%%cr3"::"a" (cr3));
+  __asm volatile ("movq %0,%%cr4"::"a" (cr4));
 }
 
 static void
@@ -81,7 +81,7 @@ mmu_init (void)
 {
   /* Move gdt to kernel memory and reload */
   gdtdesc.pd_base = (uintptr_t) & gdt;
-  asm volatile ("lgdt (%0)"::"r" (&gdtdesc.pd_lim));
+  __asm volatile ("lgdt (%0)"::"r" (&gdtdesc.pd_lim));
 
   /* Nuke identically mapped physical memory */
   bootpml4.pm_ent[0] = 0;
@@ -91,7 +91,7 @@ mmu_init (void)
   gdt[(GD_TSS >> 3)] = (SEG_TSSA | SEG_P | SEG_BASELO (&tss)
 			| SEG_LIM (sizeof (tss) - 1));
   gdt[(GD_TSS >> 3) + 1] = SEG_BASEHI (&tss);
-  asm volatile ("ltr %w0"::"r" (GD_TSS));
+  __asm volatile ("ltr %w0"::"r" (GD_TSS));
 }
 
 static void

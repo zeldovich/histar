@@ -145,8 +145,9 @@ kva2pa (void *kva)
  */
 #define TRUP(_p)						\
 ({								\
-	register typeof((_p)) __m_p = (_p);			\
-	(uintptr_t) __m_p > ULIM ? (typeof(_p)) ULIM : __m_p;	\
+	register __typeof__((_p)) __m_p = (_p);			\
+	(uintptr_t) __m_p > ULIM ? (__typeof__(_p)) ULIM	\
+				 : __m_p;			\
 })
 
 #endif /* !__ASSEMBLER__ */

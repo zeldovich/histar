@@ -20,8 +20,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("cannot addref current thread: %d", r);
 
-    int i;
-    for (i = 1; i < 10; i++) {
+    for (int i = 1; i < 10; i++) {
 	container_object_type t = sys_container_get_type(COBJ(rc, i));
 	cprintf("<%d:%d> type %s\n", rc, i,
 				     t == cobj_thread ? "thread" :

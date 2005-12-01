@@ -274,7 +274,7 @@ static __inline void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
 {
 	uint32_t eax, ebx, ecx, edx;
-	asm volatile("cpuid" 
+	__asm volatile("cpuid" 
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (info));
 	if (eaxp)
@@ -302,7 +302,7 @@ static __inline unsigned long
 __byte_swap_long (unsigned long in) 
 {
   unsigned long out;
-  asm volatile ("bswap %0" 
+  __asm volatile ("bswap %0" 
 		: "=r" (out) 
 		: "0" (in));
   return out;

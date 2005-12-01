@@ -322,9 +322,8 @@ sys_pmap_unmap(struct cobj_ref pmap, void *va, uint64_t num_pages)
     struct Pagemap *pgmap;
     check(sysx_get_pmap(&pgmap, pmap, cur_thread));
 
-    int i = 0;
     char *cva = (char *) va;
-    for (i = 0; i < num_pages; i++) {
+    for (int i = 0; i < num_pages; i++) {
 	if ((uint64_t)cva >= ULIM)
 	    check(-E_INVAL);
 
