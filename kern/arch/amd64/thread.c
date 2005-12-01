@@ -94,7 +94,13 @@ thread_load_elf(struct Thread *t, struct Label *l, uint8_t *binary, size_t size)
 
     segment_free(sg);
 
-    return thread_jump(t, l, t->th_pgmap, (void*) elf->e_entry, (void*) ULIM, 0);
+    struct Label *nl;
+    r = label_copy(l, &nl);
+    if (r < 0)
+	return r;
+
+    thread_jump(t, nl, t->th_pgmap, (void*) elf->e_entry, (void*) ULIM, 0);
+    return 0;
 }
 
 void
@@ -164,19 +170,14 @@ thread_halt(struct Thread *t)
 	cur_thread = 0;
 }
 
-int
+void
 thread_jump(struct Thread *t, struct Label *label,
 	    struct Pagemap *pgmap, void *entry,
 	    void *stack, uint64_t arg)
 {
-    struct Label *newl;
-    int r = label_copy(label, &newl);
-    if (r < 0)
-	return r;
-
     if (t->th_label)
 	label_free(t->th_label);
-    t->th_label = newl;
+    t->th_label = label;
 
     page_map_addref(pgmap);
     if (t->th_pgmap)
@@ -191,8 +192,6 @@ thread_jump(struct Thread *t, struct Label *label,
     t->th_tf.tf_rip = (uint64_t) entry;
     t->th_tf.tf_rsp = (uint64_t) stack;
     t->th_tf.tf_rdi = arg;
-
-    return 0;
 }
 
 void

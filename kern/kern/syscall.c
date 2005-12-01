@@ -11,6 +11,7 @@
 #include <inc/error.h>
 #include <inc/syscall_param.h>
 #include <inc/setjmp.h>
+#include <inc/thread.h>
 
 // Helper functions
 static uint64_t syscall_ret;
@@ -29,20 +30,24 @@ typedef enum {
     lookup_modify
 } lookup_type;
 
+static void __attribute__((__noreturn__))
+sysx_error(int r)
+{
+    if (syscall_cleanup)
+	syscall_cleanup(syscall_cleanup_arg);
+
+    if (r == -E_RESTART)
+	thread_syscall_restart(cur_thread);
+
+    syscall_ret = r;
+    longjmp(&syscall_retjmp, 1);
+}
+
 static int
 check(int r)
 {
-    if (r < 0) {
-	if (syscall_cleanup)
-	    syscall_cleanup(syscall_cleanup_arg);
-
-	if (r == -E_RESTART)
-	    thread_syscall_restart(cur_thread);
-
-	syscall_ret = r;
-	longjmp(&syscall_retjmp, 1);
-    }
-
+    if (r < 0)
+	sysx_error(r);
     return r;
 }
 
@@ -95,6 +100,33 @@ sysx_get_pmap(struct Pagemap **pmapp, struct cobj_ref cobj, struct Thread *t)
     }
 }
 
+static int
+sysx_thread_jump(struct Thread *t, struct Label *l, struct thread_entry *e)
+{
+    struct container_object *co;
+    int r = sysx_get_cobj(&co, e->te_pmap, cobj_pmap, t);
+    if (r < 0)
+	return r;
+
+    struct Pagemap *g_pgmap = co->ptr;
+    struct Pagemap *t_pgmap;
+    if (e->te_pmap_copy) {
+	r = page_map_clone(g_pgmap, &t_pgmap, 0);
+	if (r < 0)
+	    return r;
+    } else {
+	t_pgmap = g_pgmap;
+    }
+
+    struct Label *nl;
+    r = label_copy(l, &nl);
+    if (r < 0)
+	return r;
+
+    thread_jump(t, nl, t_pgmap, e->te_entry, e->te_stack, e->te_arg);
+    return 0;
+}
+
 // Syscall handlers
 static void
 sys_yield()
@@ -126,7 +158,7 @@ sys_cgetc()
 
     TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
     thread_suspend(cur_thread);
-    return check(-E_RESTART);
+    sysx_error(-E_RESTART);
 }
 
 static int
@@ -195,20 +227,16 @@ sys_container_get_c_idx(struct cobj_ref cobj)
 }
 
 static int
-sys_gate_create(struct sys_gate_create_args *a)
+sys_gate_create(uint64_t container, struct thread_entry *te)
 {
     struct Container *c;
-    check(sysx_get_container(&c, a->container, cur_thread, lookup_modify));
+    check(sysx_get_container(&c, container, cur_thread, lookup_modify));
 
     struct Gate *g;
     check(gate_alloc(&g));
     SET_SYSCALL_CLEANUP(gate_free, g);
 
-    g->gt_entry = a->entry;
-    g->gt_stack = a->stack;
-    g->gt_arg = a->arg;
-    g->gt_pmap_cobj = a->pmap;
-    g->gt_pmap_copy = a->pmap_copy;
+    g->gt_te = *te;
 
     check(label_copy(cur_thread->th_label, &g->gt_recv_label));
     check(label_copy(cur_thread->th_label, &g->gt_send_label));
@@ -216,49 +244,7 @@ sys_gate_create(struct sys_gate_create_args *a)
 }
 
 static int
-thread_gate_enter(struct Thread *t, struct cobj_ref gt_cobj)
-{
-    struct container_object *co_gt;
-    int r = sysx_get_cobj(&co_gt, gt_cobj, cobj_gate, t);
-    if (r < 0)
-	return r;
-
-    struct Gate *g = co_gt->ptr;
-    r = label_compare(t->th_label, g->gt_recv_label, label_leq_starlo);
-    if (r < 0)
-	return r;
-
-    // XXX
-    // need a more sensible label check here;
-    // probably need to look up the target address space with
-    // the send label of the gate.
-    struct container_object *co_pm;
-    r = sysx_get_cobj(&co_pm, g->gt_pmap_cobj, cobj_pmap, t);
-    if (r < 0)
-	return r;
-
-    struct Pagemap *g_pgmap = co_pm->ptr;
-    struct Pagemap *t_pgmap;
-    if (g->gt_pmap_copy) {
-	r = page_map_clone(g_pgmap, &t_pgmap, 0);
-	if (r < 0)
-	    return r;
-    } else {
-	t_pgmap = co_pm->ptr;
-    }
-
-    // XXX free the cloned page map above in case of failure?
-    return thread_jump(t, g->gt_send_label, t_pgmap, g->gt_entry, g->gt_stack, g->gt_arg);
-}
-
-static void
-sys_gate_enter(struct cobj_ref gt)
-{
-    check(thread_gate_enter(cur_thread, gt));
-}
-
-static int
-sys_thread_create(uint64_t ct, struct cobj_ref gt)
+sys_thread_create(uint64_t ct)
 {
     struct Container *c;
     check(sysx_get_container(&c, ct, cur_thread, lookup_modify));
@@ -270,14 +256,35 @@ sys_thread_create(uint64_t ct, struct cobj_ref gt)
     check(label_copy(cur_thread->th_label, &t->th_label));
     int tslot = check(container_put(c, cobj_thread, t));
 
-    int r = thread_gate_enter(t, gt);
-    if (r < 0) {
-	container_unref(c, tslot);
-	return r;
-    }
-
-    thread_set_runnable(t);
     return tslot;
+}
+
+static void
+sys_gate_enter(struct cobj_ref gt)
+{
+    struct container_object *co_gt;
+    check(sysx_get_cobj(&co_gt, gt, cobj_gate, cur_thread));
+
+    struct Gate *g = co_gt->ptr;
+    check(label_compare(cur_thread->th_label, g->gt_recv_label, label_leq_starlo));
+
+    check(sysx_thread_jump(cur_thread, g->gt_send_label, &g->gt_te));
+}
+
+static void
+sys_thread_start(struct cobj_ref thread, struct thread_entry *s)
+{
+    struct container_object *t_co;
+    check(sysx_get_cobj(&t_co, thread, cobj_thread, cur_thread));
+
+    struct Thread *t = t_co->ptr;
+    check(label_compare(t->th_label, cur_thread->th_label, label_eq));
+
+    if (t->th_status != thread_not_started)
+	check(-E_INVAL);
+
+    check(sysx_thread_jump(t, cur_thread->th_label, s));
+    thread_set_runnable(t);
 }
 
 static int
@@ -419,11 +426,10 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
     case SYS_gate_create:
 	{
 	    page_fault_mode = PFM_KILL;
-	    struct sys_gate_create_args a =
-		*(struct sys_gate_create_args *) TRUP(a1);
+	    struct thread_entry e = *(struct thread_entry *) TRUP(a2);
 	    page_fault_mode = PFM_NONE;
 
-	    syscall_ret = sys_gate_create(&a);
+	    syscall_ret = sys_gate_create(a1, &e);
 	}
 	break;
 
@@ -432,7 +438,17 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_thread_create:
-	syscall_ret = sys_thread_create(a1, COBJ(a2, a3));
+	syscall_ret = sys_thread_create(a1);
+	break;
+
+    case SYS_thread_start:
+	{
+	    page_fault_mode = PFM_KILL;
+	    struct thread_entry e = *(struct thread_entry *) TRUP(a3);
+	    page_fault_mode = PFM_NONE;
+
+	    sys_thread_start(COBJ(a1, a2), &e);
+	}
 	break;
 
     case SYS_pmap_create:

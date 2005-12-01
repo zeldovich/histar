@@ -30,31 +30,38 @@ main(int ac, char **av)
     if (pm < 0)
 	panic("cannot store cur_pm: %d", pm);
 
-    // XXX if we could get a user-space header defining ULIM...
-    char *stacktop = (void*) 0x710000000000;
     int sg = sys_segment_create(rc, 1);
     if (sg < 0)
 	panic("cannot create stack segment: %d", sg);
 
-    int r = sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop - 4096, 0, 1, segment_map_cow);
-    if (r < 0)
-	panic("cannot map stack segment: %d", r);
-
-    int g = sys_gate_create(rc, &thread_entry, stacktop, COBJ(rc, pm), 1, 3);
-    if (g < 0)
-	panic("cannot create gate: %d", g);
+    char *stacktop1 = (void*) 0x710000000000;
+    char *stacktop2 = (void*) 0x720000000000;
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop1 - 4096, 0, 1, segment_map_cow));
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop2 - 4096, 0, 1, segment_map_cow));
 
     uint64_t old_counter = counter;
 
-    int t1 = sys_thread_create(rc, COBJ(rc, g));
+    struct thread_entry e = {
+	.te_pmap = COBJ(rc, pm),
+	.te_pmap_copy = 0,
+	.te_entry = &thread_entry,
+	.te_stack = stacktop1,
+	.te_arg = 3
+    };
+
+    int t1 = sys_thread_create(rc);
     if (t1 < 0)
 	panic("cannot create thread 1: %d", t1);
 
-    int t2 = sys_thread_create(rc, COBJ(rc, g));
+    int t2 = sys_thread_create(rc);
     if (t2 < 0)
 	panic("cannot create thread 2: %d", t2);
 
-    cprintf("thread_test: watching counter, currently at %d\n", counter);
+    assert(0 == sys_thread_start(COBJ(rc, t1), &e));
+    e.te_stack = stacktop2;
+    assert(0 == sys_thread_start(COBJ(rc, t2), &e));
+
+    cprintf("thread_test: watching counter, currently at %d\n", old_counter);
     for (;;) {
 	uint64_t counter_save = counter;
 	if (counter_save != old_counter) {

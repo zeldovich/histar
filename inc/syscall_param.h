@@ -14,13 +14,4 @@ struct sys_segment_map_args {
     segment_map_mode mode;
 };
 
-struct sys_gate_create_args {
-    uint64_t container;
-    void *entry;
-    void *stack;
-    uint64_t arg;
-    struct cobj_ref pmap;
-    int pmap_copy;
-};
-
 #endif

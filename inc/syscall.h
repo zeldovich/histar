@@ -5,6 +5,7 @@
 #include <inc/syscall_num.h>
 #include <inc/container.h>
 #include <inc/segment.h>
+#include <inc/thread.h>
 
 uint64_t syscall(syscall_num num, uint64_t a1, uint64_t a2,
 		 uint64_t a3, uint64_t a4, uint64_t a5);
@@ -23,11 +24,11 @@ int64_t	sys_container_get_c_idx(struct cobj_ref o);
 int	sys_container_store_cur_thread(uint64_t container);
 int	sys_container_store_cur_pmap(uint64_t container, int copy);
 
-int	sys_gate_create(uint64_t container, void *entry, void *stack,
-		struct cobj_ref pmap, int pmap_copy, uint64_t arg);
+int	sys_gate_create(uint64_t container, struct thread_entry *s);
 int	sys_gate_enter(struct cobj_ref gate);
 
-int	sys_thread_create(uint64_t container, struct cobj_ref gate);
+int	sys_thread_create(uint64_t container);
+int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);
 
 int	sys_pmap_create(uint64_t container);
 int	sys_pmap_unmap(struct cobj_ref pmap, void *start, uint64_t num_pages);

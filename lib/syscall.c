@@ -64,17 +64,9 @@ sys_container_get_c_idx(struct cobj_ref o)
 }
 
 int
-sys_gate_create(uint64_t container, void *entry, void *stack, struct cobj_ref pmap, int pmap_copy, uint64_t arg)
+sys_gate_create(uint64_t container, struct thread_entry *entry)
 {
-    struct sys_gate_create_args a =
-      { .container = container,
-	.entry = entry,
-	.stack = stack,
-	.arg = arg,
-	.pmap = pmap,
-	.pmap_copy = pmap_copy };
-
-    return syscall(SYS_gate_create, (uint64_t) &a, 0, 0, 0, 0);
+    return syscall(SYS_gate_create, container, (uint64_t) entry, 0, 0, 0);
 }
 
 int
@@ -84,9 +76,15 @@ sys_gate_enter(struct cobj_ref gate)
 }
 
 int
-sys_thread_create(uint64_t container, struct cobj_ref gate)
+sys_thread_create(uint64_t container)
 {
-    return syscall(SYS_thread_create, container, gate.container, gate.slot, 0, 0);
+    return syscall(SYS_thread_create, container, 0, 0, 0 ,0);
+}
+
+int
+sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
+{
+    return syscall(SYS_thread_start, thread.container, thread.slot, (uint64_t) entry, 0, 0);
 }
 
 int

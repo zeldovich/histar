@@ -177,24 +177,27 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    r = sys_container_unref(COBJ(0, stack));
-    if (r < 0)
-	cprintf("cannot unref stack? %d\n", r);
+    struct thread_entry e = {
+	.te_pmap = COBJ(0, pmap),
+	.te_pmap_copy = 0,
+	.te_entry = (void*) elf->e_entry,
+	.te_stack = stacktop,
+	.te_arg = 0,
+    };
 
-    int gate = sys_gate_create(0, (void*)elf->e_entry, stacktop, COBJ(0, pmap), 0, 0);
-    if (gate < 0) {
-	cprintf("cannot create gate: %d\n", gate);
-	return;
-    }
-
-    int thread = sys_thread_create(0, COBJ(0, gate));
+    int thread = sys_thread_create(0);
     if (thread < 0) {
 	cprintf("cannot create thread: %d\n", thread);
 	return;
     }
 
+    r = sys_thread_start(COBJ(0, thread), &e);
+    if (r < 0) {
+	cprintf("cannot start thread: %d\n", r);
+	return;
+    }
+
     sys_container_unref(COBJ(0, pmap));
-    sys_container_unref(COBJ(0, gate));
     cprintf("Running thread <0:%d>\n", thread);
 }
 

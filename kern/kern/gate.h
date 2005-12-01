@@ -1,23 +1,17 @@
 #ifndef JOS_KERN_GATE_H
 #define JOS_KERN_GATE_H
 
-#include <inc/container.h>
 #include <machine/types.h>
 #include <kern/label.h>
+#include <inc/thread.h>
 
 struct Gate {
-    void *gt_entry;
-    void *gt_stack;
-    uint64_t gt_arg;
-
     struct Label *gt_recv_label;
     struct Label *gt_send_label;
 
-    // target address space
-    struct cobj_ref gt_pmap_cobj;
-    int gt_pmap_copy;	// copy address space on entry, or use it directly?
-
     uint32_t gt_ref;
+
+    struct thread_entry gt_te;
 };
 
 int  gate_alloc(struct Gate **gp);

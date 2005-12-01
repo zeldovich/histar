@@ -36,7 +36,8 @@ int  thread_load_elf(struct Thread *t, struct Label *label, uint8_t *binary, siz
 void thread_decref(struct Thread *t);
 void thread_free(struct Thread *t);
 
-int  thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap,
+// Assumes ownership of label
+void thread_jump(struct Thread *t, struct Label *label, struct Pagemap *pgmap,
 		 void *entry, void *stack, uint64_t arg);
 void thread_syscall_restart(struct Thread *t);
 

@@ -22,6 +22,7 @@ typedef enum {
     SYS_gate_enter,
 
     SYS_thread_create,
+    SYS_thread_start,
 
     SYS_pmap_create,
     SYS_pmap_unmap,

@@ -33,7 +33,15 @@ main(int ac, char **av)
 	panic("cannot map stack segment: %d", r);
 
     cprintf("gate_test: about to call gate_create\n");
-    int g = sys_gate_create(rc, &gate_entry, stacktop, COBJ(rc, pm), 0, 0xc0ffee00c0ffee);
+    struct thread_entry e = {
+	.te_pmap = COBJ(rc, pm),
+	.te_pmap_copy = 0,
+	.te_entry = &gate_entry,
+	.te_stack = stacktop,
+	.te_arg = 0xc0ffee00c0ffee,
+    };
+
+    int g = sys_gate_create(rc, &e);
     if (g < 0)
 	panic("cannot create gate: %d", g);
 
