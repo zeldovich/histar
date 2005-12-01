@@ -59,6 +59,10 @@ rm -r gcc-3.4.4/libstdc++-v3
         --disable-nls --without-headers --with-newlib \
         --disable-threads --disable-shared
 
+Building libstdc++-v3, which is needed for a lot of C++ features,
+requires system headers for the target platform (e.g. from building
+a cross-glibc).
+
 * GDB
 
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
