@@ -9,7 +9,7 @@ factor out elf-loader and spawn from the shell
 
 change from pagemaps to segment-maps
 
-possibly a cleanup stack?
+split thread_create into thread_create + thread_start
 
 ===
 

@@ -16,18 +16,34 @@
 static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
 
+static void (*syscall_cleanup) (void *);
+static void *syscall_cleanup_arg;
+#define SET_SYSCALL_CLEANUP(f, a)		\
+    do {					\
+	syscall_cleanup = (void(*)(void*)) (f);	\
+	syscall_cleanup_arg = (a);		\
+    } while (0)
+
 typedef enum {
     lookup_read,
     lookup_modify
 } lookup_type;
 
-static void
+static int
 check(int r)
 {
     if (r < 0) {
+	if (syscall_cleanup)
+	    syscall_cleanup(syscall_cleanup_arg);
+
+	if (r == -E_RESTART)
+	    thread_syscall_restart(cur_thread);
+
 	syscall_ret = r;
 	longjmp(&syscall_retjmp, 1);
     }
+
+    return r;
 }
 
 static int
@@ -110,7 +126,7 @@ sys_cgetc()
 
     TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
     thread_suspend(cur_thread);
-    return -E_RESTART;
+    return check(-E_RESTART);
 }
 
 static int
@@ -121,18 +137,10 @@ sys_container_alloc(uint64_t parent_ct)
 
     struct Container *c;
     check(container_alloc(&c));
+    SET_SYSCALL_CLEANUP(container_free, c);
 
-    int r = label_copy(cur_thread->th_label, &c->ct_hdr.label);
-    if (r < 0) {
-	container_free(c);
-	return r;
-    }
-
-    r = container_put(parent, cobj_container, c);
-    if (r < 0)
-	container_free(c);
-
-    return r;
+    check(label_copy(cur_thread->th_label, &c->ct_hdr.label));
+    return check(container_put(parent, cobj_container, c));
 }
 
 static void
@@ -160,17 +168,12 @@ sys_container_store_cur_pmap(uint64_t ct, int copy)
     check(sysx_get_container(&c, ct, cur_thread, lookup_modify));
 
     struct Pagemap *pgmap = cur_thread->th_pgmap;
-    if (copy)
+    if (copy) {
 	check(page_map_clone(pgmap, &pgmap, 1));
-
-    int r = container_put(c, cobj_pmap, pgmap);
-    if (r < 0 && copy) {
-	// free pgmap
-	page_map_addref(pgmap);
-	page_map_decref(pgmap);
+	SET_SYSCALL_CLEANUP(page_map_free, pgmap);
     }
 
-    return r;
+    return check(container_put(c, cobj_pmap, pgmap));
 }
 
 static int
@@ -199,6 +202,7 @@ sys_gate_create(struct sys_gate_create_args *a)
 
     struct Gate *g;
     check(gate_alloc(&g));
+    SET_SYSCALL_CLEANUP(gate_free, g);
 
     g->gt_entry = a->entry;
     g->gt_stack = a->stack;
@@ -206,23 +210,9 @@ sys_gate_create(struct sys_gate_create_args *a)
     g->gt_pmap_cobj = a->pmap;
     g->gt_pmap_copy = a->pmap_copy;
 
-    int r = label_copy(cur_thread->th_label, &g->gt_recv_label);
-    if (r < 0) {
-	gate_free(g);
-	return r;
-    }
-
-    r = label_copy(cur_thread->th_label, &g->gt_send_label);
-    if (r < 0) {
-	gate_free(g);
-	return r;
-    }
-
-    r = container_put(c, cobj_gate, g);
-    if (r < 0)
-	gate_free(g);
-
-    return r;
+    check(label_copy(cur_thread->th_label, &g->gt_recv_label));
+    check(label_copy(cur_thread->th_label, &g->gt_send_label));
+    return check(container_put(c, cobj_gate, g));
 }
 
 static int
@@ -275,20 +265,12 @@ sys_thread_create(uint64_t ct, struct cobj_ref gt)
 
     struct Thread *t;
     check(thread_alloc(&t));
+    SET_SYSCALL_CLEANUP(thread_free, t);
 
-    int r = label_copy(cur_thread->th_label, &t->th_label);
-    if (r < 0) {
-	thread_free(t);
-	return r;
-    }
+    check(label_copy(cur_thread->th_label, &t->th_label));
+    int tidx = check(container_put(c, cobj_thread, t));
 
-    int tidx = container_put(c, cobj_thread, t);
-    if (tidx < 0) {
-	thread_free(t);
-	return tidx;
-    }
-
-    r = thread_gate_enter(t, gt);
+    int r = thread_gate_enter(t, gt);
     if (r < 0) {
 	container_unref(c, tidx);
 	return r;
@@ -306,14 +288,9 @@ sys_pmap_create(uint64_t ct)
 
     struct Pagemap *pgmap;
     check(page_map_alloc(&pgmap));
+    SET_SYSCALL_CLEANUP(page_map_free, pgmap);
 
-    int r = container_put(c, cobj_pmap, pgmap);
-    if (r < 0) {
-	// free pgmap
-	page_map_addref(pgmap);
-	page_map_decref(pgmap);
-    }
-    return r;
+    return check(container_put(c, cobj_pmap, pgmap));
 }
 
 static void
@@ -340,23 +317,11 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
 
     struct Segment *sg;
     check(segment_alloc(&sg));
+    SET_SYSCALL_CLEANUP(segment_free, sg);
 
-    int r = label_copy(cur_thread->th_label, &sg->sg_hdr.label);
-    if (r < 0) {
-	segment_free(sg);
-	return r;
-    }
-
-    r = segment_set_npages(sg, num_pages);
-    if (r < 0) {
-	segment_free(sg);
-	return r;
-    }
-
-    r = container_put(c, cobj_segment, sg);
-    if (r < 0)
-	segment_free(sg);
-    return r;
+    check(label_copy(cur_thread->th_label, &sg->sg_hdr.label));
+    check(segment_set_npages(sg, num_pages));
+    return check(container_put(c, cobj_segment, sg));
 }
 
 static void
@@ -403,7 +368,9 @@ uint64_t
 syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
 {
+    syscall_cleanup = 0;
     syscall_ret = 0;
+
     int r = setjmp(&syscall_retjmp);
     if (r != 0)
 	goto syscall_exit;
@@ -505,8 +472,5 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
     }
 
 syscall_exit:
-    if (syscall_ret == -E_RESTART)
-	thread_syscall_restart(cur_thread);
-
     return syscall_ret;
 }

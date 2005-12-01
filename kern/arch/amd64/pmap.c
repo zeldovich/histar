@@ -452,6 +452,17 @@ page_map_addref (struct Pagemap *pgmap)
     pgmap_p->pp_ref++;
 }
 
+void
+page_map_free (struct Pagemap *pgmap)
+{
+    struct Page *pgmap_p = pa2page(kva2pa(pgmap));
+    if (pgmap_p->pp_ref != 0)
+	panic("page_map_free(): nonzero refcount");
+
+    page_map_addref(pgmap);
+    page_map_decref(pgmap);
+}
+
 int
 page_cow (struct Pagemap *pgmap, void *va)
 {
