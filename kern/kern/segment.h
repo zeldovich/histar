@@ -17,6 +17,11 @@ struct Segment {
     struct Page *sg_page[NUM_SG_PAGES];
 };
 
+#define NUM_SG_MAPPINGS 16
+struct segment_map {
+    struct segment_mapping sm_ent[NUM_SG_MAPPINGS];
+};
+
 int  segment_alloc(struct Segment **sgp);
 void segment_free(struct Segment *sg);
 void segment_addref(struct Segment *sg);

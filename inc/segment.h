@@ -10,6 +10,14 @@ typedef enum {
     segment_map_cow
 } segment_map_mode;
 
+struct segment_mapping {
+    struct cobj_ref segment;
+    uint64_t start_page;
+    uint64_t num_pages;
+    bool_t writable;
+    void *va;
+};
+
 struct segment_map_args {
     struct cobj_ref segment;
     struct cobj_ref pmap;
