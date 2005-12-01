@@ -12,7 +12,7 @@
 #define E_NO_MEM	5	// Request failed due to memory shortage
 #define E_NO_FREE_ENV	6	// Attempt to create a new environment beyond
 				// the maximum allowed
-#define E_IPC_NOT_RECV	7	// Attempt to send to env that is not recving
+#define E_RESTART	7	// Restart system call
 #define E_EOF		8	// Unexpected end of file
 
 // File system error codes -- only seen in user-level
