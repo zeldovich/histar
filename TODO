@@ -4,18 +4,3 @@ object persistence
 will probably need an iovec interface to disk_io()
 
 what to do about return gates?
-
-factor out elf-loader and spawn from the shell
-
-change from pagemaps to segment-maps
-
-split thread_create into thread_create + thread_start
-
-===
-
-labels for address spaces?
-    we can stick a label in (struct Page)
-
-what happens to pages mapped RW (or for that matter any pages) when th_label changes?
-    make any th_label changes happen by jumping through a gate?
-
