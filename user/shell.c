@@ -3,6 +3,7 @@
 #include <inc/lib.h>
 #include <inc/string.h>
 #include <inc/elf64.h>
+#include <inc/memlayout.h>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
@@ -116,10 +117,12 @@ builtin_ls(int ac, char **av)
 	cprintf("[%d] %s\n", i, dir[i].name);
 }
 
-#if 0
 static void
 builtin_spawn_seg(struct cobj_ref seg)
 {
+    // XXX stick the new thread in the root container
+    uint64_t container = 0;
+
     char *segbuf;
     uint64_t bytes;
     int r = segment_map(ctemp, seg, 0, (void**)&segbuf, &bytes);
@@ -128,9 +131,10 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    struct segment_map segmap;
-    memset(&segmap, 0, sizeof(segmap));
-    //int si = 0;
+    struct thread_entry e;
+    memset(&e, 0, sizeof(e));
+    struct segment_map *segmap = &e.te_segmap;
+    int si = 0;
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
     if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
@@ -138,25 +142,41 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-#if 0
+    e.te_entry = (void*) elf->e_entry;
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
 	if (ph->p_type != 1)
 	    continue;
 
 	int va_off = ph->p_vaddr & 0xfff;
-	r = sys_segment_map(seg, COBJ(0, pmap), (void*)(ph->p_vaddr - va_off),
-			    (ph->p_offset - va_off) / PGSIZE,
-			    (ph->p_filesz + va_off + PGSIZE - 1) / PGSIZE,
-			    segment_map_cow);
+	struct cobj_ref seg;
+	r = segment_alloc(container, va_off + ph->p_memsz, &seg);
+	if (r < 0) {
+	    cprintf("cannot allocate elf segment: %d\n", r);
+	    return;
+	}
+
+	char *sbuf;
+	r = segment_map(ctemp, seg, 1, (void**)&sbuf, 0);
 	if (r < 0) {
 	    cprintf("cannot map elf segment: %d\n", r);
 	    return;
 	}
-	//cprintf("ELF section (offset %x) base %x memsz %x filesz %x\n",
-	//	ph->p_offset, ph->p_vaddr, ph->p_memsz, ph->p_filesz);
+
+	memcpy(sbuf + va_off, segbuf + va_off, ph->p_filesz);
+	r = segment_unmap(ctemp, sbuf);
+	if (r < 0) {
+	    cprintf("cannot unmap elf segment: %d\n", r);
+	    return;
+	}
+
+	segmap->sm_ent[si].segment = seg;
+	segmap->sm_ent[si].start_page = 0;
+	segmap->sm_ent[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	segmap->sm_ent[si].writable = 1;
+	segmap->sm_ent[si].va = (void*) (ph->p_vaddr - va_off);
+	si++;
     }
-#endif
 
     r = segment_unmap(ctemp, segbuf);
     if (r < 0) {
@@ -164,28 +184,20 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-#if 0
-    int stack = sys_segment_create(0, 1);
-    if (stack < 0) {
-	cprintf("cannot create stack segment: %d\n", stack);
-	return;
-    }
-
-    char *stacktop = (char*) 0x700000000000;
-    r = sys_segment_map(COBJ(0, stack), COBJ(0, pmap), stacktop - PGSIZE,
-			0, 1, segment_map_rw);
+    struct cobj_ref stack;
+    r = segment_alloc(container, PGSIZE, &stack);
     if (r < 0) {
-	cprintf("cannot map stack segment: %d\n", r);
+	cprintf("cannot create stack segment: %d\n", r);
 	return;
     }
 
-    struct thread_entry e = {
-	.te_pmap = COBJ(0, pmap),
-	.te_pmap_copy = 0,
-	.te_entry = (void*) elf->e_entry,
-	.te_stack = stacktop,
-	.te_arg = 0,
-    };
+    char *stacktop = (char*) ULIM;
+    e.te_stack = stacktop;
+    segmap->sm_ent[si].segment = stack;
+    segmap->sm_ent[si].start_page = 0;
+    segmap->sm_ent[si].num_pages = 1;
+    segmap->sm_ent[si].writable = 1;
+    segmap->sm_ent[si].va = stacktop - PGSIZE;
 
     int thread = sys_thread_create(0);
     if (thread < 0) {
@@ -199,9 +211,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    sys_container_unref(COBJ(0, pmap));
     cprintf("Running thread <0:%d>\n", thread);
-#endif
 }
 
 static void
@@ -225,7 +235,6 @@ builtin_spawn(int ac, char **av)
 
     cprintf("Unable to find %s\n", av[0]);
 }
-#endif
 
 static void
 builtin_unref(int ac, char **av)
@@ -255,9 +264,7 @@ static struct {
     { "help",	"Display the list of commands",	&builtin_help },
     { "lc",	"List a container",		&builtin_list_container },
     { "ls",	"List the directory",		&builtin_ls },
-#if 0
     { "spawn",	"Create a thread",		&builtin_spawn },
-#endif
     { "unref",	"Drop container object",	&builtin_unref },
 };
 

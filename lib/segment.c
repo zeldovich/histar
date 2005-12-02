@@ -115,3 +115,15 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 
     panic("still alive, sys_gate_enter returned 0");
 }
+
+int
+segment_alloc(uint64_t container, uint64_t bytes, struct cobj_ref *cobj)
+{
+    int npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
+    int slot = sys_segment_create(container, npages);
+    if (slot < 0)
+	return 0;
+
+    *cobj = COBJ(container, slot);
+    return 0;
+}
