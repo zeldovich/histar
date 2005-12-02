@@ -72,9 +72,7 @@ thread_jump(struct Thread *t, struct Label *label,
 	    struct segment_map *segmap, void *entry,
 	    void *stack, uint64_t arg)
 {
-    if (t->th_ko.ko_label)
-	label_free(t->th_ko.ko_label);
-    t->th_ko.ko_label = label;
+    t->th_ko.ko_label = *label;
 
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
 	page_map_free(t->th_pgmap);
@@ -115,6 +113,7 @@ thread_pagefault(void *fault_va)
 
 	r = segment_map_to_pmap(&cur_thread->th_segmap, pgmap);
 	if (r < 0) {
+	    cprintf("thread_pagefault(): cannot generate pagemap: %d\n", r);
 	    page_map_free(pgmap);
 	    return r;
 	}

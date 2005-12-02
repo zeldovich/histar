@@ -4,15 +4,11 @@
 #include <machine/types.h>
 #include <machine/mmu.h>
 
-struct label_header {
-    uint32_t num_ent;
-    uint32_t def_level;
-};
-
-#define NUM_LB_ENT  ((PGSIZE - sizeof(struct label_header)) / 8)
+#define NUM_LB_ENT  4
 
 struct Label {
-    struct label_header lb_hdr;
+    uint32_t lb_num_ent;
+    uint32_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT];
 };
 
@@ -26,10 +22,6 @@ typedef int (level_comparator)(int, int);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
 level_comparator label_eq;
-
-int  label_alloc(struct Label **lp);
-int  label_copy(struct Label *src, struct Label **dstp);
-void label_free(struct Label *l);
 
 int  label_set(struct Label *l, uint64_t handle, int level);
 

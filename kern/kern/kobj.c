@@ -29,12 +29,7 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     ko->ko_type = type;
     ko->ko_id = unique_alloc();
     ko->ko_ref = 0;
-
-    r = label_copy(l, &ko->ko_label);
-    if (r < 0) {
-	page_free(p);
-	return r;
-    }
+    ko->ko_label = *l;
 
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
 
@@ -80,6 +75,5 @@ kobject_free(struct kobject *ko)
     }
 
     LIST_REMOVE(ko, ko_link);
-    label_free(ko->ko_label);
     page_free(ko);
 }

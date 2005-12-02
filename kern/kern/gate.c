@@ -9,7 +9,7 @@ gate_alloc(struct Label *l, struct Gate **gp)
     if (r < 0)
 	return r;
 
-    g->gt_target_label = 0;
+    memset(&g->gt_target_label, 0, sizeof(g->gt_target_label));
     memset(&g->gt_te, 0, sizeof(g->gt_te));
 
     *gp = g;
@@ -19,6 +19,4 @@ gate_alloc(struct Label *l, struct Gate **gp)
 void
 gate_gc(struct Gate *g)
 {
-    if (g->gt_target_label)
-	label_free(g->gt_target_label);
 }

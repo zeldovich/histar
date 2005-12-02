@@ -161,12 +161,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    struct Label *nl;
-    r = label_copy(l, &nl);
-    if (r < 0)
-	return r;
-
-    thread_jump(t, nl, &segmap, (void*) elf.e_entry, (void*) ULIM, 0);
+    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, 0);
     return 0;
 }
 
@@ -237,25 +232,23 @@ user_init(void)
 
     // root handle and a label
     uint64_t root_handle = unique_alloc();
-    struct Label *l;
-    assert(0 == label_alloc(&l));
-    l->lb_hdr.def_level = 1;
-    assert(0 == label_set(l, root_handle, LB_LEVEL_STAR));
+    struct Label l;
+    memset(&l, 0, sizeof(l));
+    l.lb_def_level = 1;
+    assert(0 == label_set(&l, root_handle, LB_LEVEL_STAR));
 
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(l, &rc));
+    assert(0 == container_alloc(&l, &rc));
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(l, &fsc));
+    assert(0 == container_alloc(&l, &fsc));
     assert(0 == container_put(rc, &fsc->ct_ko));
 
-    fs_init(fsc, l);
+    fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, l, &embed_idle);
-    thread_create_embed(rc, l, &embed_shell);
-
-    label_free(l);
+    thread_create_embed(rc, &l, &embed_idle);
+    thread_create_embed(rc, &l, &embed_shell);
 }

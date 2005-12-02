@@ -44,18 +44,6 @@ _check(int r, const char *what)
     return r;
 }
 
-static int
-sysx_thread_jump(struct Thread *t, struct Label *l, struct thread_entry *e)
-{
-    struct Label *nl;
-    int r = label_copy(l, &nl);
-    if (r < 0)
-	return r;
-
-    thread_jump(t, nl, &e->te_segmap, e->te_entry, e->te_stack, e->te_arg);
-    return 0;
-}
-
 // Syscall handlers
 static void
 sys_yield()
@@ -96,7 +84,7 @@ sys_container_alloc(uint64_t parent_ct)
     check(container_find(&parent, parent_ct));
 
     struct Container *c;
-    check(container_alloc(cur_thread->th_ko.ko_label, &c));
+    check(container_alloc(&cur_thread->th_ko.ko_label, &c));
     syscall_cleanup_ko = &c->ct_ko;
 
     return check(container_put(parent, &c->ct_ko));
@@ -141,11 +129,11 @@ sys_gate_create(uint64_t container, struct thread_entry *te)
     check(container_find(&c, container));
 
     struct Gate *g;
-    check(gate_alloc(cur_thread->th_ko.ko_label, &g));
+    check(gate_alloc(&cur_thread->th_ko.ko_label, &g));
     syscall_cleanup_ko = &g->gt_ko;
 
     g->gt_te = *te;
-    check(label_copy(cur_thread->th_ko.ko_label, &g->gt_target_label));
+    g->gt_target_label = cur_thread->th_ko.ko_label;
 
     return check(container_put(c, &g->gt_ko));
 }
@@ -157,7 +145,7 @@ sys_thread_create(uint64_t ct)
     check(container_find(&c, ct));
 
     struct Thread *t;
-    check(thread_alloc(cur_thread->th_ko.ko_label, &t));
+    check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
     syscall_cleanup_ko = &t->th_ko;
 
     return check(container_put(c, &t->th_ko));
@@ -168,22 +156,26 @@ sys_gate_enter(struct cobj_ref gt)
 {
     struct Gate *g;
     check(cobj_get(gt, kobj_gate, (struct kobject **)&g));
-    check(label_compare(cur_thread->th_ko.ko_label, g->gt_ko.ko_label, label_leq_starlo));
-    check(sysx_thread_jump(cur_thread, g->gt_target_label, &g->gt_te));
+    check(label_compare(&cur_thread->th_ko.ko_label, &g->gt_ko.ko_label, label_leq_starlo));
+
+    struct thread_entry *e = &g->gt_te;
+    thread_jump(cur_thread, &g->gt_target_label, &e->te_segmap,
+		e->te_entry, e->te_stack, e->te_arg);
 }
 
 static void
-sys_thread_start(struct cobj_ref thread, struct thread_entry *s)
+sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 {
     struct Thread *t;
     check(cobj_get(thread, kobj_thread, (struct kobject **)&t));
 
-    check(label_compare(t->th_ko.ko_label, cur_thread->th_ko.ko_label, label_eq));
+    check(label_compare(&t->th_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq));
 
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
-    check(sysx_thread_jump(t, cur_thread->th_ko.ko_label, s));
+    thread_jump(t, &cur_thread->th_ko.ko_label, &e->te_segmap,
+		e->te_entry, e->te_stack, e->te_arg);
     thread_set_runnable(t);
 }
 
@@ -194,7 +186,7 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
     check(container_find(&c, ct));
 
     struct Segment *sg;
-    check(segment_alloc(cur_thread->th_ko.ko_label, &sg));
+    check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
     syscall_cleanup_ko = &sg->sg_hdr.ko;
 
     check(segment_set_npages(sg, num_pages));
@@ -207,7 +199,7 @@ sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
     struct Segment *sg;
     check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
 
-    check(label_compare(cur_thread->th_ko.ko_label, sg->sg_hdr.ko.ko_label, label_eq));
+    check(label_compare(&cur_thread->th_ko.ko_label, &sg->sg_hdr.ko.ko_label, label_eq));
     check(segment_set_npages(sg, num_pages));
 }
 
@@ -216,7 +208,7 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     struct Segment *sg;
     check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
-    check(label_compare(sg->sg_hdr.ko.ko_label, cur_thread->th_ko.ko_label, label_leq_starhi));
+    check(label_compare(&sg->sg_hdr.ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi));
     return sg->sg_hdr.num_pages;
 }
 

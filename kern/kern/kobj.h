@@ -12,7 +12,7 @@ struct kobject {
     kobject_type_t ko_type;
     kobject_id_t ko_id;
     uint64_t ko_ref;
-    struct Label *ko_label;
+    struct Label ko_label;
     LIST_ENTRY(kobject) ko_link;
 };
 

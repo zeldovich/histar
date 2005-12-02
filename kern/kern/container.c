@@ -24,7 +24,7 @@ int
 container_put(struct Container *c, struct kobject *ko)
 {
     if (cur_thread) {
-	int r = label_compare(c->ct_ko.ko_label, cur_thread->th_ko.ko_label, label_eq);
+	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
 	if (r < 0)
 	    return r;
     }
@@ -44,7 +44,7 @@ int
 container_unref(struct Container *c, uint64_t slot)
 {
     if (cur_thread) {
-	int r = label_compare(c->ct_ko.ko_label, cur_thread->th_ko.ko_label, label_eq);
+	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
 	if (r < 0)
 	    return r;
     }
@@ -98,7 +98,7 @@ cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep)
 	return r;
 
     if (cur_thread) {
-	r = label_compare(c->ct_ko.ko_label, cur_thread->th_ko.ko_label, label_leq_starhi);
+	r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi);
 	if (r < 0)
 	    return r;
     }
