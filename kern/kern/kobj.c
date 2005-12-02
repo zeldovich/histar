@@ -58,9 +58,6 @@ kobject_decref(struct kobject *ko)
 void
 kobject_free(struct kobject *ko)
 {
-    LIST_REMOVE(ko, ko_link);
-    label_free(ko->ko_label);
-
     switch (ko->ko_type) {
     case kobj_thread:
 	thread_gc((struct Thread *) ko);
@@ -82,5 +79,7 @@ kobject_free(struct kobject *ko)
 	panic("Unknown kobject type %d\n", ko->ko_type);
     }
 
+    LIST_REMOVE(ko, ko_link);
+    label_free(ko->ko_label);
     page_free(ko);
 }

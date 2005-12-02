@@ -2,6 +2,7 @@
 #include <kern/container.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 
 int
@@ -69,8 +70,12 @@ container_unref(struct Container *c, uint64_t slot)
 void
 container_gc(struct Container *c)
 {
-    for (int i = 0; i < NUM_CT_OBJ; i++)
-	container_unref(c, i);
+    for (int i = 0; i < NUM_CT_OBJ; i++) {
+	int r = container_unref(c, i);
+	// XXX no error-handling path
+	if (r < 0)
+	    cprintf("container_gc(): cannot unref slot %d: %d\n", i, r);
+    }
 }
 
 int
