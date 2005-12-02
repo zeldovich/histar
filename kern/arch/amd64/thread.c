@@ -46,7 +46,7 @@ thread_gc(struct Thread *t)
 
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
-	page_map_decref(t->th_pgmap);
+	page_map_free(t->th_pgmap);
 }
 
 void
@@ -77,7 +77,7 @@ thread_jump(struct Thread *t, struct Label *label,
     t->th_ko.ko_label = label;
 
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
-	page_map_decref(t->th_pgmap);
+	page_map_free(t->th_pgmap);
     t->th_pgmap = &bootpml4;
 
     t->th_segmap = *segmap;
@@ -119,7 +119,6 @@ thread_pagefault(void *fault_va)
 	    return r;
 	}
 
-	page_map_addref(pgmap);
 	cur_thread->th_pgmap = pgmap;
 	return 0;
     }
