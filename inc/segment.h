@@ -4,12 +4,6 @@
 #include <inc/types.h>
 #include <inc/container.h>
 
-typedef enum {
-    segment_map_ro = 0,
-    segment_map_rw,
-    segment_map_cow
-} segment_map_mode;
-
 struct segment_mapping {
     struct cobj_ref segment;
     uint64_t start_page;
@@ -18,13 +12,9 @@ struct segment_mapping {
     void *va;
 };
 
-struct segment_map_args {
-    struct cobj_ref segment;
-    struct cobj_ref pmap;
-    void *va;
-    uint64_t start_page;
-    uint64_t num_pages;
-    segment_map_mode mode;
+#define NUM_SG_MAPPINGS 16
+struct segment_map {
+    struct segment_mapping sm_ent[NUM_SG_MAPPINGS];
 };
 
 #endif

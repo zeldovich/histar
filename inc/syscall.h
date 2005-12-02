@@ -22,7 +22,6 @@ container_object_type
 	sys_container_get_type(struct cobj_ref o);
 int64_t	sys_container_get_c_idx(struct cobj_ref o);
 int	sys_container_store_cur_thread(uint64_t container);
-int	sys_container_store_cur_pmap(uint64_t container, int copy);
 
 int	sys_gate_create(uint64_t container, struct thread_entry *s);
 int	sys_gate_enter(struct cobj_ref gate);
@@ -30,13 +29,9 @@ int	sys_gate_enter(struct cobj_ref gate);
 int	sys_thread_create(uint64_t container);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);
 
-int	sys_pmap_create(uint64_t container);
-int	sys_pmap_unmap(struct cobj_ref pmap, void *start, uint64_t num_pages);
-
 int	sys_segment_create(uint64_t container, uint64_t num_pages);
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);
 int	sys_segment_get_npages(struct cobj_ref seg);
-int	sys_segment_map(struct cobj_ref seg, struct cobj_ref pmap, void *va,
-		uint64_t start_page, uint64_t num_pages, segment_map_mode mode);
+int	sys_segment_get_map(struct segment_map *sm);
 
 #endif

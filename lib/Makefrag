@@ -20,7 +20,8 @@ LIB_SRCFILES :=	\
 	lib/libmain.c \
 	lib/panic.c \
 	lib/console.c \
-	lib/readline.c
+	lib/readline.c \
+	lib/segment.c
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))

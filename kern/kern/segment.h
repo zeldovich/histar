@@ -17,18 +17,12 @@ struct Segment {
     struct Page *sg_page[NUM_SG_PAGES];
 };
 
-#define NUM_SG_MAPPINGS 16
-struct segment_map {
-    struct segment_mapping sm_ent[NUM_SG_MAPPINGS];
-};
-
 int  segment_alloc(struct Segment **sgp);
 void segment_free(struct Segment *sg);
 void segment_addref(struct Segment *sg);
 void segment_decref(struct Segment *sg);
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
 
-int  segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va_start,
-		 uint64_t start_page, uint64_t num_pages, segment_map_mode mode);
+int  segment_map_to_pmap(struct segment_map *segmap, struct Pagemap *pgmap);
 
 #endif

@@ -1,6 +1,7 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/stdio.h>
+#include <inc/memlayout.h>
 
 static volatile uint64_t counter;
 
@@ -36,8 +37,8 @@ main(int ac, char **av)
 
     char *stacktop1 = (void*) 0x710000000000;
     char *stacktop2 = (void*) 0x720000000000;
-    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop1 - 4096, 0, 1, segment_map_cow));
-    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop2 - 4096, 0, 1, segment_map_cow));
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop1 - PGSIZE, 0, 1, segment_map_cow));
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop2 - PGSIZE, 0, 1, segment_map_cow));
 
     uint64_t old_counter = counter;
 

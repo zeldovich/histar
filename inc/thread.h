@@ -2,11 +2,10 @@
 #define JOS_INC_THREAD_H
 
 #include <inc/types.h>
-#include <inc/container.h>
+#include <inc/segment.h>
 
 struct thread_entry {
-    struct cobj_ref te_pmap;
-    int te_pmap_copy;
+    struct segment_map te_segmap;
 
     void *te_entry;
     void *te_stack;

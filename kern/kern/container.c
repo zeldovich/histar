@@ -1,10 +1,10 @@
-#include <kern/container.h>
-#include <kern/unique.h>
-#include <machine/pmap.h>
 #include <machine/thread.h>
-#include <inc/error.h>
 #include <kern/gate.h>
 #include <kern/segment.h>
+#include <kern/container.h>
+#include <kern/label.h>
+#include <kern/unique.h>
+#include <inc/error.h>
 
 static struct Container_list container_list;
 
@@ -35,10 +35,6 @@ container_addref(container_object_type type, void *ptr)
 	((struct Thread *) ptr)->th_ref++;
 	break;
 
-    case cobj_pmap:
-	page_map_addref(ptr);
-	break;
-
     case cobj_gate:
 	((struct Gate*) ptr)->gt_ref++;
 	break;
@@ -58,6 +54,12 @@ container_addref(container_object_type type, void *ptr)
 int
 container_put(struct Container *c, container_object_type type, void *ptr)
 {
+    if (cur_thread) {
+	int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_eq);
+	if (r < 0)
+	    return r;
+    }
+
     for (int i = 0; i < NUM_CT_OBJ; i++) {
 	if (c->ct_obj[i].type == cobj_none) {
 	    c->ct_obj[i].type = type;
@@ -70,21 +72,42 @@ container_put(struct Container *c, container_object_type type, void *ptr)
     return -E_NO_MEM;
 }
 
-struct container_object *
-container_get(struct Container *c, uint32_t slot)
+int
+container_get(struct Container *c, uint64_t slot,
+	      container_object_type type,
+	      struct container_object **cop)
 {
-    if (slot >= NUM_CT_OBJ)
-	return 0;
+    if (cur_thread) {
+	int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_leq_starhi);
+	if (r < 0)
+	    return r;
+    }
 
-    return &c->ct_obj[slot];
+    if (slot >= NUM_CT_OBJ)
+	return -E_INVAL;
+    if (type != cobj_any && type != c->ct_obj[slot].type)
+	return -E_INVAL;
+
+    *cop = &c->ct_obj[slot];
+    return 0;
 }
 
-void
-container_unref(struct Container *c, uint32_t slot)
+int
+container_unref(struct Container *c, uint64_t slot)
 {
-    struct container_object *cobj = container_get(c, slot);
+    if (cur_thread) {
+	int r = label_compare(c->ct_hdr.label, cur_thread->th_label, label_eq);
+	if (r < 0)
+	    return r;
+    }
+
+    struct container_object *cobj;
+    int r = container_get(c, slot, cobj_any, &cobj);
+    if (r < 0)
+	return r;
+
     if (cobj == 0)
-	return;
+	return 0;
 
     switch (cobj->type) {
     case cobj_none:
@@ -92,10 +115,6 @@ container_unref(struct Container *c, uint32_t slot)
 
     case cobj_thread:
 	thread_decref(cobj->ptr);
-	break;
-
-    case cobj_pmap:
-	page_map_decref(cobj->ptr);
 	break;
 
     case cobj_gate:
@@ -116,6 +135,7 @@ container_unref(struct Container *c, uint32_t slot)
     }
 
     cobj->type = cobj_none;
+    return 0;
 }
 
 void
@@ -133,12 +153,29 @@ container_free(struct Container *c)
     page_free(p);
 }
 
-struct Container *
-container_find(uint64_t cidx)
+int
+container_find(struct Container **cp, uint64_t cidx)
+{
+    LIST_FOREACH(*cp, &container_list, ct_hdr.link)
+	if ((*cp)->ct_hdr.idx == cidx)
+	    return 0;
+
+    return -E_INVAL;
+}
+
+int
+cobj_get(struct cobj_ref ref, container_object_type type, void *storep)
 {
     struct Container *c;
-    LIST_FOREACH(c, &container_list, ct_hdr.link)
-	if (c->ct_hdr.idx == cidx)
-	    return c;
+    int r = container_find(&c, ref.container);
+    if (r < 0)
+	return r;
+
+    struct container_object *co;
+    r = container_get(c, ref.slot, type, &co);
+    if (r < 0)
+	return r;
+
+    *(void**)storep = co->ptr;
     return 0;
 }

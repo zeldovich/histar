@@ -21,7 +21,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/container.c \
 	    kern/kern/gate.c \
 	    kern/kern/label.c \
-	    kern/kern/segment.c
+	    kern/kern/segment.c \
+	    kern/kern/uinit.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 
@@ -33,17 +34,19 @@ KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
+	user/chatter1 \
+	user/chatter2 \
 	user/uregtest \
 	user/hello \
 	user/idle \
-	user/spin \
-	user/chatter1 \
-	user/chatter2 \
-	user/ct_unref \
-	user/gate_test \
-	user/thread_test \
 	user/jmptest \
+	user/spin \
 	user/shell
+
+KERN_BLAH := \
+	user/gate_test \
+	user/ct_unref \
+	user/thread_test \
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))

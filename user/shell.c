@@ -9,6 +9,8 @@ static char *cmd_argv[MAXARGS];
 static int cmd_argc;
 
 static char separators[] = " \t\n\r";
+// XXX stick all our garbage in the root container...
+static int ctemp = 0;
 
 static void builtin_help(int ac, char **av);
 
@@ -24,10 +26,6 @@ print_cobj(int type, struct cobj_ref cobj)
 
     case cobj_thread:
 	cprintf("thread\n");
-	break;
-
-    case cobj_pmap:
-	cprintf("pmap\n");
 	break;
 
     case cobj_container:
@@ -78,22 +76,25 @@ static struct {
 static int
 readdir()
 {
-    char *dirbuf = (char*) 0x6fff00000000;
-    int r = sys_segment_map(COBJ(1, 0), COBJ(-1, -1),
-			    dirbuf, 0, 1, segment_map_ro);
+    char *dirbuf;
+    int r = segment_map(ctemp, COBJ(1, 0), 0, (void**)&dirbuf, 0);
     if (r < 0) {
 	cprintf("cannot map dir segment: %d\n", r);
 	return r;
     }
 
-    int max_dirent;
-    memcpy(&max_dirent, dirbuf, 4);
-
+    int max_dirent = dirbuf[0];
     int dirsize = 0;
     for (int i = 1; i <= max_dirent; i++) {
 	dir[dirsize].idx = dirbuf[64*i];
 	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
 	dirsize++;
+    }
+
+    r = segment_unmap(ctemp, dirbuf);
+    if (r < 0) {
+	cprintf("cannot unmap dir segment: %d\n", r);
+	return r;
     }
 
     return dirsize;
@@ -115,21 +116,21 @@ builtin_ls(int ac, char **av)
 	cprintf("[%d] %s\n", i, dir[i].name);
 }
 
+#if 0
 static void
 builtin_spawn_seg(struct cobj_ref seg)
 {
-    int npages = sys_segment_get_npages(seg);
-    if (npages < 0) {
-	cprintf("cannot get number of segment pages: %d\n", npages);
+    char *segbuf;
+    uint64_t bytes;
+    int r = segment_map(ctemp, seg, 0, (void**)&segbuf, &bytes);
+    if (r < 0) {
+	cprintf("cannot map program segment: %d\n", r);
 	return;
     }
 
-    char *segbuf = (char*) 0x6ffe00000000;
-    int r = sys_segment_map(seg, COBJ(-1, -1), segbuf, 0, npages, segment_map_ro);
-    if (r < 0) {
-	cprintf("cannot map spawn segment: %d\n", r);
-	return;
-    }
+    struct segment_map segmap;
+    memset(&segmap, 0, sizeof(segmap));
+    //int si = 0;
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
     if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
@@ -137,19 +138,12 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    int pmap = sys_pmap_create(0);
-    if (pmap < 0) {
-	cprintf("cannot create pmap: %d\n", pmap);
-	return;
-    }
-
-#define PGSIZE 4096
+#if 0
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
 	if (ph->p_type != 1)
 	    continue;
 
-	// XXX assuming p_memsz isn't too much over p_filesz
 	int va_off = ph->p_vaddr & 0xfff;
 	r = sys_segment_map(seg, COBJ(0, pmap), (void*)(ph->p_vaddr - va_off),
 			    (ph->p_offset - va_off) / PGSIZE,
@@ -162,7 +156,15 @@ builtin_spawn_seg(struct cobj_ref seg)
 	//cprintf("ELF section (offset %x) base %x memsz %x filesz %x\n",
 	//	ph->p_offset, ph->p_vaddr, ph->p_memsz, ph->p_filesz);
     }
+#endif
 
+    r = segment_unmap(ctemp, segbuf);
+    if (r < 0) {
+	cprintf("cannot unmap program segment: %d\n", r);
+	return;
+    }
+
+#if 0
     int stack = sys_segment_create(0, 1);
     if (stack < 0) {
 	cprintf("cannot create stack segment: %d\n", stack);
@@ -199,6 +201,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     sys_container_unref(COBJ(0, pmap));
     cprintf("Running thread <0:%d>\n", thread);
+#endif
 }
 
 static void
@@ -222,6 +225,7 @@ builtin_spawn(int ac, char **av)
 
     cprintf("Unable to find %s\n", av[0]);
 }
+#endif
 
 static void
 builtin_unref(int ac, char **av)
@@ -251,7 +255,9 @@ static struct {
     { "help",	"Display the list of commands",	&builtin_help },
     { "lc",	"List a container",		&builtin_list_container },
     { "ls",	"List the directory",		&builtin_ls },
+#if 0
     { "spawn",	"Create a thread",		&builtin_spawn },
+#endif
     { "unref",	"Drop container object",	&builtin_unref },
 };
 

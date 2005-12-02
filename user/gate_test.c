@@ -1,6 +1,7 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/stdio.h>
+#include <inc/memlayout.h>
 
 static void
 gate_entry(uint64_t arg)
@@ -28,7 +29,7 @@ main(int ac, char **av)
 	panic("cannot create stack segment: %d", sg);
 
     cprintf("gate_test: about to call segment_map\n");
-    int r = sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop - 4096, 0, 1, segment_map_cow);
+    int r = sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop - PGSIZE, 0, 1, segment_map_cow);
     if (r < 0)
 	panic("cannot map stack segment: %d", r);
 

@@ -1,7 +1,6 @@
 #include <inc/types.h>
 #include <inc/syscall.h>
 #include <inc/syscall_num.h>
-#include <inc/syscall_param.h>
 
 void
 sys_yield()
@@ -45,12 +44,6 @@ sys_container_store_cur_thread(uint64_t container)
     return syscall(SYS_container_store_cur_thread, container, 0, 0, 0, 0);
 }
 
-int
-sys_container_store_cur_pmap(uint64_t container, int cow_data)
-{
-    return syscall(SYS_container_store_cur_pmap, container, cow_data, 0, 0, 0);
-}
-
 container_object_type
 sys_container_get_type(struct cobj_ref o)
 {
@@ -88,18 +81,6 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 }
 
 int
-sys_pmap_create(uint64_t container)
-{
-    return syscall(SYS_pmap_create, container, 0, 0, 0, 0);
-}
-
-int
-sys_pmap_unmap(struct cobj_ref pmap, void *start, uint64_t num_pages)
-{
-    return syscall(SYS_pmap_unmap, pmap.container, pmap.slot, (uint64_t) start, num_pages, 0);
-}
-
-int
 sys_segment_create(uint64_t container, uint64_t num_pages)
 {
     return syscall(SYS_segment_create, container, num_pages, 0, 0, 0);
@@ -118,20 +99,7 @@ sys_segment_get_npages(struct cobj_ref seg)
 }
 
 int
-sys_segment_map(struct cobj_ref segment,
-		struct cobj_ref pmap,
-		void *va,
-		uint64_t start_page,
-		uint64_t num_pages,
-		segment_map_mode mode)
+sys_segment_get_map(struct segment_map *sm)
 {
-    struct segment_map_args a =
-      { .segment = segment,
-	.pmap = pmap,
-	.va = va,
-	.start_page = start_page,
-	.num_pages = num_pages,
-	.mode = mode };
-
-    return syscall(SYS_segment_map, (uint64_t) &a, 0, 0, 0, 0);
+    return syscall(SYS_segment_get_map, (uint64_t) sm, 0, 0, 0, 0);
 }

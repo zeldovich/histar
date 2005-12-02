@@ -28,14 +28,17 @@ struct Container {
 LIST_HEAD(Container_list, Container);
 
 int  container_alloc(struct Container **cp);
+void container_free(struct Container *c);
+
+int  container_find(struct Container **cp, uint64_t cidx);
+int  container_get(struct Container *c, uint64_t slot,
+		   container_object_type type,
+		   struct container_object **cop);
 
 // on success, container_put(cobj_container) assumes ownership of the sub-container
 int  container_put(struct Container *c, container_object_type type, void *ptr);
+int  container_unref(struct Container *c, uint64_t slot);
 
-void container_unref(struct Container *c, uint32_t slot);
-void container_free(struct Container *c);
-struct container_object *container_get(struct Container *c, uint32_t slot);
-
-struct Container *container_find(uint64_t cidx);
+int  cobj_get(struct cobj_ref ref, container_object_type type, void *storep);
 
 #endif

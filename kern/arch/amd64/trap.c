@@ -64,7 +64,7 @@ page_fault (struct Trapframe *tf)
     void *fault_va = (void*) rcr2();
 
     if (cur_thread) {
-	int r = page_cow(cur_thread->th_pgmap, fault_va);
+	int r = thread_pagefault(fault_va);
 	if (r == 0)
 	    return;
     }

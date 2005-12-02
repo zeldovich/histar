@@ -7,7 +7,6 @@ typedef enum {
     cobj_none,
     cobj_container,
     cobj_thread,
-    cobj_pmap,
     cobj_gate,
     cobj_segment,
 

@@ -16,7 +16,6 @@ typedef enum {
     SYS_container_get_c_idx,	// get global index of sub-container
 
     SYS_container_store_cur_thread,
-    SYS_container_store_cur_pmap,
 
     SYS_gate_create,
     SYS_gate_enter,
@@ -24,13 +23,10 @@ typedef enum {
     SYS_thread_create,
     SYS_thread_start,
 
-    SYS_pmap_create,
-    SYS_pmap_unmap,
-
     SYS_segment_create,
     SYS_segment_resize,
     SYS_segment_get_npages,
-    SYS_segment_map,
+    SYS_segment_get_map,
 
     NSYSCALLS
 } syscall_num;
