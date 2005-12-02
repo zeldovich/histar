@@ -5,42 +5,23 @@
 #include <inc/error.h>
 
 int
-segment_alloc(struct Segment **sgp)
+segment_alloc(struct Label *l, struct Segment **sgp)
 {
-    struct Page *p;
-    int r = page_alloc(&p);
+    struct Segment *sg;
+    int r = kobject_alloc(kobj_segment, l, (struct kobject **)&sg);
     if (r < 0)
 	return r;
 
-    struct Segment *sg = page2kva(p);
     sg->sg_hdr.num_pages = 0;
-    sg->sg_hdr.label = 0;
 
     *sgp = sg;
     return 0;
 }
 
 void
-segment_free(struct Segment *sg)
+segment_gc(struct Segment *sg)
 {
     segment_set_npages(sg, 0);
-    if (sg->sg_hdr.label)
-	label_free(sg->sg_hdr.label);
-
-    page_free(pa2page(kva2pa(sg)));
-}
-
-void
-segment_addref(struct Segment *sg)
-{
-    pa2page(kva2pa(sg))->pp_ref++;
-}
-
-void
-segment_decref(struct Segment *sg)
-{
-    if (--pa2page(kva2pa(sg))->pp_ref == 0)
-	segment_free(sg);
 }
 
 int
@@ -111,7 +92,7 @@ segment_map_to_pmap(struct segment_map *segmap, struct Pagemap *pgmap)
 	    continue;
 
 	struct Segment *sg;
-	int r = cobj_get(segmap->sm_ent[i].segment, cobj_segment, &sg);
+	int r = cobj_get(segmap->sm_ent[i].segment, kobj_segment, (struct kobject **)&sg);
 	if (r < 0)
 	    return r;
 

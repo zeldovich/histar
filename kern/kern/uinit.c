@@ -66,19 +66,13 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	return -E_INVAL;
 
     struct Segment *sg;
-    int r = segment_alloc(&sg);
+    int r = segment_alloc(l, &sg);
     if (r < 0)
 	return r;
 
-    r = label_copy(l, &sg->sg_hdr.label);
-    if (r < 0) {
-	segment_free(sg);
-	return r;
-    }
-
     r = segment_set_npages(sg, (segsize + PGSIZE - 1) / PGSIZE);
     if (r < 0) {
-	segment_free(sg);
+	kobject_free(&sg->sg_hdr.ko);
 	return r;
     }
 
@@ -92,9 +86,9 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	bufsize -= bytes;
     }
 
-    int slot = container_put(c, cobj_segment, sg);
+    int slot = container_put(c, &sg->sg_hdr.ko);
     if (slot < 0)
-	segment_free(sg);
+	kobject_free(&sg->sg_hdr.ko);
     return slot;
 }
 
@@ -145,7 +139,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	    return segslot;
 	}
 
-	int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_hdr.idx, segslot),
+	int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_ko.ko_id, segslot),
 			       0, mem_pages, va);
 	if (r < 0) {
 	    cprintf("ELF: cannot map segment\n");
@@ -160,7 +154,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return stackslot;
     }
 
-    int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_hdr.idx, stackslot),
+    int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_ko.ko_id, stackslot),
 			   0, 1, (void*) (ULIM - PGSIZE));
     if (r < 0) {
 	cprintf("ELF: cannot map stack segment\n");
@@ -180,24 +174,20 @@ static void
 thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *prog)
 {
     struct Container *tc;
-    int r = container_alloc(&tc);
+    int r = container_alloc(l, &tc);
     if (r < 0)
 	panic("tce: cannot alloc container");
 
-    r = label_copy(l, &tc->ct_hdr.label);
-    if (r < 0)
-	panic("tce: cannot label container");
-
-    int tcslot = container_put(c, cobj_container, tc);
+    int tcslot = container_put(c, &tc->ct_ko);
     if (tcslot < 0)
 	panic("tce: cannot store container");
 
     struct Thread *t;
-    r = thread_alloc(&t);
+    r = thread_alloc(l, &t);
     if (r < 0)
 	panic("tce: cannot allocate thread");
 
-    r = container_put(tc, cobj_thread, t);
+    r = container_put(tc, &t->th_ko);
     if (r < 0)
 	panic("tce: cannot store thread");
 
@@ -211,11 +201,11 @@ thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *
 static void
 fs_init(struct Container *c, struct Label *l)
 {
-    // XXX yet another constant
+    // Directory block is segment #0 in fs container
     assert(0 == segment_create_embed(c, l, PGSIZE, 0, 0));
 
     struct Segment *fs_names;
-    assert(0 == cobj_get(COBJ(1, 0), cobj_segment, &fs_names));
+    assert(0 == cobj_get(COBJ(c->ct_ko.ko_id, 0), kobj_segment, (struct kobject **)&fs_names));
     char *fs_dir = (char*) page2kva(fs_names->sg_page[0]);
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
@@ -236,32 +226,34 @@ user_init(void)
     EMBED_DECLARE(spin);
     EMBED_DECLARE(hello);
     EMBED_DECLARE(jmptest);
+    EMBED_DECLARE(chatter1);
+    EMBED_DECLARE(chatter2);
+    EMBED_DECLARE(uregtest);
 /*
     EMBED_DECLARE(gate_test);
     EMBED_DECLARE(thread_test);
 */
     EMBED_DECLARE(shell);
 
-    // XXX have to alloc the container first, so that it gets ID 0
-    struct Container *rc;
-    assert(0 == container_alloc(&rc));
-
-    // XXX alloc a "root fs" container as ID 1 for now
-    struct Container *fsc;
-    assert(0 == container_alloc(&fsc));
-    assert(0 == container_put(rc, cobj_container, fsc));
-
+    // root handle and a label
     uint64_t root_handle = unique_alloc();
     struct Label *l;
     assert(0 == label_alloc(&l));
-
     l->lb_hdr.def_level = 1;
     assert(0 == label_set(l, root_handle, LB_LEVEL_STAR));
-    assert(0 == label_copy(l, &rc->ct_hdr.label));
-    assert(0 == label_copy(l, &fsc->ct_hdr.label));
+
+    // root container
+    struct Container *rc;
+    assert(0 == container_alloc(l, &rc));
+
+    // filesystem
+    struct Container *fsc;
+    assert(0 == container_alloc(l, &fsc));
+    assert(0 == container_put(rc, &fsc->ct_ko));
 
     fs_init(fsc, l);
 
+    // idle thread + init
     thread_create_embed(rc, l, &embed_idle);
     thread_create_embed(rc, l, &embed_shell);
 

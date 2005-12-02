@@ -3,6 +3,7 @@
 
 #include <machine/mmu.h>
 #include <kern/label.h>
+#include <kern/kobj.h>
 #include <inc/queue.h>
 #include <inc/segment.h>
 
@@ -14,13 +15,12 @@ typedef enum {
 } thread_status;
 
 struct Thread {
-    struct Trapframe th_tf __attribute__ ((aligned (16)));
+    struct kobject th_ko;
 
-    struct Label *th_label;
+    struct Trapframe th_tf __attribute__ ((aligned (16)));
     struct Pagemap *th_pgmap;
     struct segment_map th_segmap;
 
-    uint32_t th_ref;
     thread_status th_status;
 
     LIST_ENTRY(Thread) th_link;
@@ -33,9 +33,8 @@ TAILQ_HEAD(Thread_tqueue, Thread);
 extern struct Thread_list thread_list;
 extern struct Thread *cur_thread;
 
-int  thread_alloc(struct Thread **tp);
-void thread_decref(struct Thread *t);
-void thread_free(struct Thread *t);
+int  thread_alloc(struct Label *l, struct Thread **tp);
+void thread_gc(struct Thread *t);
 
 // Assumes ownership of label
 void thread_jump(struct Thread *t, struct Label *label, struct segment_map *segmap,

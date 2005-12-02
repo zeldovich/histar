@@ -44,16 +44,16 @@ sys_container_store_cur_thread(uint64_t container)
     return syscall(SYS_container_store_cur_thread, container, 0, 0, 0, 0);
 }
 
-container_object_type
+kobject_type_t
 sys_container_get_type(struct cobj_ref o)
 {
     return syscall(SYS_container_get_type, o.container, o.slot, 0, 0, 0);
 }
 
 int64_t
-sys_container_get_c_idx(struct cobj_ref o)
+sys_container_get_c_id(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_c_idx, o.container, o.slot, 0, 0, 0);
+    return syscall(SYS_container_get_c_id, o.container, o.slot, 0, 0, 0);
 }
 
 int

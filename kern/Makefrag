@@ -22,6 +22,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/gate.c \
 	    kern/kern/label.c \
 	    kern/kern/segment.c \
+	    kern/kern/kobj.c \
 	    kern/kern/uinit.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)

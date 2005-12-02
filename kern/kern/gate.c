@@ -2,33 +2,23 @@
 #include <machine/pmap.h>
 
 int
-gate_alloc(struct Gate **gp)
+gate_alloc(struct Label *l, struct Gate **gp)
 {
-    struct Page *p;
-    int r = page_alloc(&p);
+    struct Gate *g;
+    int r = kobject_alloc(kobj_gate, l, (struct kobject **)&g);
     if (r < 0)
 	return r;
 
-    struct Gate *g = page2kva(p);
-    memset(g, 0, sizeof(*g));
+    g->gt_target_label = 0;
+    memset(&g->gt_te, 0, sizeof(g->gt_te));
 
     *gp = g;
     return 0;
 }
 
 void
-gate_free(struct Gate *g)
+gate_gc(struct Gate *g)
 {
-    if (g->gt_recv_label)
-	label_free(g->gt_recv_label);
-    if (g->gt_send_label)
-	label_free(g->gt_send_label);
-    page_free(pa2page(kva2pa(g)));
-}
-
-void
-gate_decref(struct Gate *g)
-{
-    if (--g->gt_ref == 0)
-	gate_free(g);
+    if (g->gt_target_label)
+	label_free(g->gt_target_label);
 }

@@ -15,20 +15,13 @@
 // Helper functions
 static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
-
-static void (*syscall_cleanup) (void *);
-static void *syscall_cleanup_arg;
-#define SET_SYSCALL_CLEANUP(f, a)		\
-    do {					\
-	syscall_cleanup = (void(*)(void*)) (f);	\
-	syscall_cleanup_arg = (a);		\
-    } while (0)
+static struct kobject *syscall_cleanup_ko;
 
 static void __attribute__((__noreturn__))
-sysx_error(int r)
+syscall_error(int r)
 {
-    if (syscall_cleanup)
-	syscall_cleanup(syscall_cleanup_arg);
+    if (syscall_cleanup_ko)
+	kobject_free(syscall_cleanup_ko);
 
     if (r == -E_RESTART)
 	thread_syscall_restart(cur_thread);
@@ -37,34 +30,18 @@ sysx_error(int r)
     longjmp(&syscall_retjmp, 1);
 }
 
+static int syscall_debug = 0;
+#define check(x) _check(x, #x)
 static int
 _check(int r, const char *what)
 {
     if (r < 0) {
-	cprintf("syscall check failed: %s\n", what);
-	sysx_error(r);
+	if (syscall_debug)
+	    cprintf("syscall check failed: %s\n", what);
+	syscall_error(r);
     }
 
     return r;
-}
-
-#define check(x) _check(x, #x)
-
-static int
-sysx_get_cobj(struct container_object **cp, struct cobj_ref cobj, container_object_type cotype)
-{
-    struct Container *c;
-    int r = container_find(&c, cobj.container);
-    if (r < 0)
-	return r;
-
-    struct container_object *co;
-    r = container_get(c, cobj.slot, cotype, &co);
-    if (r < 0)
-	return r;
-
-    *cp = co;
-    return 0;
 }
 
 static int
@@ -90,7 +67,6 @@ static void
 sys_halt()
 {
     thread_halt(cur_thread);
-    schedule();
 }
 
 static void
@@ -110,7 +86,7 @@ sys_cgetc()
 
     TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
     thread_suspend(cur_thread);
-    sysx_error(-E_RESTART);
+    syscall_error(-E_RESTART);
 }
 
 static int
@@ -120,11 +96,10 @@ sys_container_alloc(uint64_t parent_ct)
     check(container_find(&parent, parent_ct));
 
     struct Container *c;
-    check(container_alloc(&c));
-    SET_SYSCALL_CLEANUP(container_free, c);
+    check(container_alloc(cur_thread->th_ko.ko_label, &c));
+    syscall_cleanup_ko = &c->ct_ko;
 
-    check(label_copy(cur_thread->th_label, &c->ct_hdr.label));
-    return check(container_put(parent, cobj_container, c));
+    return check(container_put(parent, &c->ct_ko));
 }
 
 static void
@@ -140,25 +115,23 @@ sys_container_store_cur_thread(uint64_t ct)
 {
     struct Container *c;
     check(container_find(&c, ct));
-    return check(container_put(c, cobj_thread, cur_thread));
+    return check(container_put(c, &cur_thread->th_ko));
 }
 
 static int
 sys_container_get_type(struct cobj_ref cobj)
 {
-    struct container_object *co;
-    check(sysx_get_cobj(&co, cobj, cobj_any));
-
-    return co->type;
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko));
+    return ko->ko_type;
 }
 
 static int64_t
-sys_container_get_c_idx(struct cobj_ref cobj)
+sys_container_get_c_id(struct cobj_ref cobj)
 {
-    struct container_object *co;
-    check(sysx_get_cobj(&co, cobj, cobj_container));
-
-    return ((struct Container *) co->ptr)->ct_hdr.idx;
+    struct Container *c;
+    check(cobj_get(cobj, kobj_container, (struct kobject **)&c));
+    return c->ct_ko.ko_id;
 }
 
 static int
@@ -168,14 +141,13 @@ sys_gate_create(uint64_t container, struct thread_entry *te)
     check(container_find(&c, container));
 
     struct Gate *g;
-    check(gate_alloc(&g));
-    SET_SYSCALL_CLEANUP(gate_free, g);
+    check(gate_alloc(cur_thread->th_ko.ko_label, &g));
+    syscall_cleanup_ko = &g->gt_ko;
 
     g->gt_te = *te;
+    check(label_copy(cur_thread->th_ko.ko_label, &g->gt_target_label));
 
-    check(label_copy(cur_thread->th_label, &g->gt_recv_label));
-    check(label_copy(cur_thread->th_label, &g->gt_send_label));
-    return check(container_put(c, cobj_gate, g));
+    return check(container_put(c, &g->gt_ko));
 }
 
 static int
@@ -185,40 +157,33 @@ sys_thread_create(uint64_t ct)
     check(container_find(&c, ct));
 
     struct Thread *t;
-    check(thread_alloc(&t));
-    SET_SYSCALL_CLEANUP(thread_free, t);
+    check(thread_alloc(cur_thread->th_ko.ko_label, &t));
+    syscall_cleanup_ko = &t->th_ko;
 
-    check(label_copy(cur_thread->th_label, &t->th_label));
-    int tslot = check(container_put(c, cobj_thread, t));
-
-    return tslot;
+    return check(container_put(c, &t->th_ko));
 }
 
 static void
 sys_gate_enter(struct cobj_ref gt)
 {
-    struct container_object *co_gt;
-    check(sysx_get_cobj(&co_gt, gt, cobj_gate));
-
-    struct Gate *g = co_gt->ptr;
-    check(label_compare(cur_thread->th_label, g->gt_recv_label, label_leq_starlo));
-
-    check(sysx_thread_jump(cur_thread, g->gt_send_label, &g->gt_te));
+    struct Gate *g;
+    check(cobj_get(gt, kobj_gate, (struct kobject **)&g));
+    check(label_compare(cur_thread->th_ko.ko_label, g->gt_ko.ko_label, label_leq_starlo));
+    check(sysx_thread_jump(cur_thread, g->gt_target_label, &g->gt_te));
 }
 
 static void
 sys_thread_start(struct cobj_ref thread, struct thread_entry *s)
 {
-    struct container_object *t_co;
-    check(sysx_get_cobj(&t_co, thread, cobj_thread));
+    struct Thread *t;
+    check(cobj_get(thread, kobj_thread, (struct kobject **)&t));
 
-    struct Thread *t = t_co->ptr;
-    check(label_compare(t->th_label, cur_thread->th_label, label_eq));
+    check(label_compare(t->th_ko.ko_label, cur_thread->th_ko.ko_label, label_eq));
 
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
-    check(sysx_thread_jump(t, cur_thread->th_label, s));
+    check(sysx_thread_jump(t, cur_thread->th_ko.ko_label, s));
     thread_set_runnable(t);
 }
 
@@ -229,34 +194,29 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
     check(container_find(&c, ct));
 
     struct Segment *sg;
-    check(segment_alloc(&sg));
-    SET_SYSCALL_CLEANUP(segment_free, sg);
+    check(segment_alloc(cur_thread->th_ko.ko_label, &sg));
+    syscall_cleanup_ko = &sg->sg_hdr.ko;
 
-    check(label_copy(cur_thread->th_label, &sg->sg_hdr.label));
     check(segment_set_npages(sg, num_pages));
-    return check(container_put(c, cobj_segment, sg));
+    return check(container_put(c, &sg->sg_hdr.ko));
 }
 
 static void
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
 {
-    struct container_object *co;
-    check(sysx_get_cobj(&co, sg_cobj, cobj_segment));
+    struct Segment *sg;
+    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
 
-    struct Segment *sg = co->ptr;
-    check(label_compare(cur_thread->th_label, sg->sg_hdr.label, label_eq));
+    check(label_compare(cur_thread->th_ko.ko_label, sg->sg_hdr.ko.ko_label, label_eq));
     check(segment_set_npages(sg, num_pages));
 }
 
 static int
 sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
-    struct container_object *co;
-    check(sysx_get_cobj(&co, sg_cobj, cobj_segment));
-
-    struct Segment *sg = co->ptr;
-    check(label_compare(sg->sg_hdr.label, cur_thread->th_label, label_leq_starhi));
-
+    struct Segment *sg;
+    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
+    check(label_compare(sg->sg_hdr.ko.ko_label, cur_thread->th_ko.ko_label, label_leq_starhi));
     return sg->sg_hdr.num_pages;
 }
 
@@ -270,7 +230,7 @@ uint64_t
 syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
 {
-    syscall_cleanup = 0;
+    syscall_cleanup_ko = 0;
     syscall_ret = 0;
 
     int r = setjmp(&syscall_retjmp);
@@ -310,8 +270,8 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	syscall_ret = sys_container_get_type(COBJ(a1, a2));
 	break;
 
-    case SYS_container_get_c_idx:
-	syscall_ret = sys_container_get_c_idx(COBJ(a1, a2));
+    case SYS_container_get_c_id:
+	syscall_ret = sys_container_get_c_id(COBJ(a1, a2));
 	break;
 
     case SYS_gate_create:

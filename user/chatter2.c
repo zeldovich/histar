@@ -6,6 +6,7 @@ main(int ac, char **av)
 {
     for (;;) {
 	cprintf("foo and yielding.\n");
-	sys_yield();
+	for (int i = 0; i < 10000; i++)
+	    sys_yield();
     }
 }

@@ -4,14 +4,18 @@
 #include <inc/string.h>
 #include <inc/elf64.h>
 #include <inc/memlayout.h>
+#include <inc/error.h>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
 static int cmd_argc;
 
 static char separators[] = " \t\n\r";
-// XXX stick all our garbage in the root container...
-static int ctemp = 0;
+
+// Container constants
+static int c_root = 1;
+static int c_fs = 2;
+static int c_temp = 1;
 
 static void builtin_help(int ac, char **av);
 
@@ -21,20 +25,20 @@ print_cobj(int type, struct cobj_ref cobj)
     int r;
 
     switch (type) {
-    case cobj_gate:
+    case kobj_gate:
 	cprintf("gate\n");
 	break;
 
-    case cobj_thread:
+    case kobj_thread:
 	cprintf("thread\n");
 	break;
 
-    case cobj_container:
-	r = sys_container_get_c_idx(cobj);
+    case kobj_container:
+	r = sys_container_get_c_id(cobj);
 	cprintf("container %d\n", r);
 	break;
 
-    case cobj_segment:
+    case kobj_segment:
 	r = sys_segment_get_npages(cobj);
 	cprintf("segment (%d pages)\n", r);
 	break;
@@ -57,13 +61,14 @@ builtin_list_container(int ac, char **av)
 
     for (int i = 0; i < 100; i++) {
 	int r = sys_container_get_type(COBJ(ct, i));
+	if (r == -E_NOT_FOUND)
+	    continue;
+
 	if (r < 0) {
 	    cprintf("sys_container_get_type(<%d,%d>): %d\n", ct, i, r);
 	    return;
 	}
 
-	if (r == cobj_none)
-	    continue;
 	cprintf("  %3d ", i);
 	print_cobj(r, COBJ(ct, i));
     }
@@ -71,14 +76,14 @@ builtin_list_container(int ac, char **av)
 
 static struct {
     char name[64];
-    uint64_t idx;
+    uint64_t slot;
 } dir[256];
 
 static int
 readdir()
 {
     char *dirbuf;
-    int r = segment_map(ctemp, COBJ(1, 0), 0, (void**)&dirbuf, 0);
+    int r = segment_map(c_temp, COBJ(c_fs, 0), 0, (void**)&dirbuf, 0);
     if (r < 0) {
 	cprintf("cannot map dir segment: %d\n", r);
 	return r;
@@ -87,12 +92,12 @@ readdir()
     int max_dirent = dirbuf[0];
     int dirsize = 0;
     for (int i = 1; i <= max_dirent; i++) {
-	dir[dirsize].idx = dirbuf[64*i];
+	dir[dirsize].slot = dirbuf[64*i];
 	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
 	dirsize++;
     }
 
-    r = segment_unmap(ctemp, dirbuf);
+    r = segment_unmap(c_temp, dirbuf);
     if (r < 0) {
 	cprintf("cannot unmap dir segment: %d\n", r);
 	return r;
@@ -120,29 +125,38 @@ builtin_ls(int ac, char **av)
 static void
 builtin_spawn_seg(struct cobj_ref seg)
 {
-    // XXX stick the new thread in the root container
-    uint64_t container = 0;
+    int c_spawn_slot = sys_container_alloc(c_root);
+    if (c_spawn_slot < 0) {
+	cprintf("cannot allocate container for new thread: %d\n", c_spawn_slot);
+	return;
+    }
+
+    int64_t c_spawn = sys_container_get_c_id(COBJ(c_root, c_spawn_slot));
+    if (c_spawn < 0) {
+	cprintf("cannot get new container ID: %d\n", c_spawn);
+	return;
+    }
 
     struct thread_entry e;
-    int r = elf_load(container, seg, &e);
+    int r = elf_load(c_spawn, seg, &e);
     if (r < 0) {
 	cprintf("cannot load ELF: %d\n", r);
 	return;
     }
 
-    int thread = sys_thread_create(0);
+    int thread = sys_thread_create(c_spawn);
     if (thread < 0) {
 	cprintf("cannot create thread: %d\n", thread);
 	return;
     }
 
-    r = sys_thread_start(COBJ(0, thread), &e);
+    r = sys_thread_start(COBJ(c_spawn, thread), &e);
     if (r < 0) {
 	cprintf("cannot start thread: %d\n", r);
 	return;
     }
 
-    cprintf("Running thread <0:%d>\n", thread);
+    cprintf("Running thread <%d:%d>\n", c_spawn, thread);
 }
 
 static void
@@ -159,7 +173,7 @@ builtin_spawn(int ac, char **av)
 
     for (int i = 0; i < r; i++) {
 	if (!strcmp(av[0], dir[i].name)) {
-	    builtin_spawn_seg(COBJ(1, dir[i].idx));
+	    builtin_spawn_seg(COBJ(c_fs, dir[i].slot));
 	    return;
 	}
     }

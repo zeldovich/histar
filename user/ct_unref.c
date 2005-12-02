@@ -21,12 +21,12 @@ main(int ac, char **av)
 	panic("cannot addref current thread: %d", r);
 
     for (int i = 1; i < 10; i++) {
-	container_object_type t = sys_container_get_type(COBJ(rc, i));
+	kobject_type_t t = sys_container_get_type(COBJ(rc, i));
 	cprintf("<%d:%d> type %s\n", rc, i,
-				     t == cobj_thread ? "thread" :
-				     t == cobj_container ? "container" :
-				     t == cobj_pmap ? "pmap" :
-				     t == cobj_none ? "none" : "other");
+				     t == kobj_thread ? "thread" :
+				     t == kobj_container ? "container" :
+				     t == kobj_segment ? "segment" :
+				     t == kobj_none ? "none" : "other");
 
 	if (i != sci)
 	    sys_container_unref(COBJ(rc, i));

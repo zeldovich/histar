@@ -3,19 +3,17 @@
 
 #include <machine/types.h>
 #include <kern/label.h>
+#include <kern/kobj.h>
 #include <inc/thread.h>
 
 struct Gate {
-    struct Label *gt_recv_label;
-    struct Label *gt_send_label;
+    struct kobject gt_ko;
 
-    uint32_t gt_ref;
-
+    struct Label *gt_target_label;
     struct thread_entry gt_te;
 };
 
-int  gate_alloc(struct Gate **gp);
-void gate_free(struct Gate *g);
-void gate_decref(struct Gate *g);
+int  gate_alloc(struct Label *l, struct Gate **gp);
+void gate_gc(struct Gate *g);
 
 #endif

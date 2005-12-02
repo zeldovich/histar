@@ -23,40 +23,30 @@ thread_suspend(struct Thread *t)
 }
 
 int
-thread_alloc(struct Thread **tp)
+thread_alloc(struct Label *l, struct Thread **tp)
 {
-    struct Page *thread_pg;
-    int r = page_alloc(&thread_pg);
+    struct Thread *t;
+    int r = kobject_alloc(kobj_thread, l, (struct kobject **)&t);
     if (r < 0)
 	return r;
 
-    struct Thread *t = page2kva(thread_pg);
-    static_assert(sizeof(*t) <= PGSIZE);
-
-    memset(t, 0, sizeof(*t));
-    LIST_INSERT_HEAD(&thread_list, t, th_link);
+    t->th_pgmap = 0;
     t->th_status = thread_not_started;
+
+    LIST_INSERT_HEAD(&thread_list, t, th_link);
 
     *tp = t;
     return 0;
 }
 
 void
-thread_decref(struct Thread *t)
-{
-    if (--t->th_ref == 0)
-	thread_free(t);
-}
-
-void
-thread_free(struct Thread *t)
+thread_gc(struct Thread *t)
 {
     thread_halt(t);
 
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
 	page_map_decref(t->th_pgmap);
-    page_free(pa2page(kva2pa(t)));
 }
 
 void
@@ -82,9 +72,9 @@ thread_jump(struct Thread *t, struct Label *label,
 	    struct segment_map *segmap, void *entry,
 	    void *stack, uint64_t arg)
 {
-    if (t->th_label)
-	label_free(t->th_label);
-    t->th_label = label;
+    if (t->th_ko.ko_label)
+	label_free(t->th_ko.ko_label);
+    t->th_ko.ko_label = label;
 
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
 	page_map_decref(t->th_pgmap);
