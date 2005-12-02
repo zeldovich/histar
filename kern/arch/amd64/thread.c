@@ -123,9 +123,5 @@ thread_pagefault(void *fault_va)
 	return 0;
     }
 
-    int r = page_cow(cur_thread->th_pgmap, fault_va);
-    if (r == 0)
-	return 0;
-
     return -1;
 }

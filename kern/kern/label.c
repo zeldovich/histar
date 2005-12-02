@@ -5,12 +5,12 @@
 int
 label_alloc(struct Label **lp)
 {
-    struct Page *p;
+    void *p;
     int r = page_alloc(&p);
     if (r < 0)
 	return r;
 
-    struct Label *l = page2kva(p);
+    struct Label *l = p;
     l->lb_hdr.num_ent = 0;
 
     *lp = l;
@@ -32,7 +32,7 @@ label_copy(struct Label *src, struct Label **dstp)
 void
 label_free(struct Label *l)
 {
-    page_free(pa2page(kva2pa(l)));
+    page_free(l);
 }
 
 static int

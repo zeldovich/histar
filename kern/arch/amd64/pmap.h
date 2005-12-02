@@ -26,76 +26,43 @@ extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
 LIST_HEAD (Page_list, Page);
-struct Page
-{
-  LIST_ENTRY (Page) pp_link;	/* free list link */
-
-  // Ref is the count of pointers (usually in page table entries)
-  // to this page.  This only holds for pages allocated using 
-  // page_alloc.  Pages allocated at boot time using pmap.c's
-  // boot_alloc do not have valid reference count fields.
-  uint32_t pp_ref;
+struct Page {
+    LIST_ENTRY (Page) pp_link;	/* free list link */
 };
 
-struct Pagemap
-{
+struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
 
-extern struct Page *pages;
 extern size_t npage;
 
 void pmap_init (void);
 
-void page_free (struct Page *pp);
-int  page_alloc (struct Page **pp_store);
-void page_decref (struct Page *pp);
-struct Page *page_lookup (struct Pagemap *pgmap, void *va);
-void page_remove (struct Pagemap *pgmap, void *va);
-int  page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm);
+int  page_alloc (void **p);
+void page_free (void *p);
 
-int  page_cow (struct Pagemap *pgmap, void *va);
-void page_map_free (struct Pagemap *pgmap);
-void page_map_decref (struct Pagemap *pgmap);
-void page_map_addref (struct Pagemap *pgmap);
-int  page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data);
 int  page_map_alloc (struct Pagemap **pm_store);
+void page_map_free (struct Pagemap *pgmap);
 
-inline ppn_t
-page2ppn (struct Page *pp)
-{
-  return pp - pages;
-}
-
-inline physaddr_t
-page2pa (struct Page *pp)
-{
-  return page2ppn (pp) << PGSHIFT;
-}
-
-inline struct Page *
-pa2page (physaddr_t pa)
-{
-  if (PPN (pa) >= npage)
-    panic ("pa2page called with invalid pa %lx", pa);
-  return &pages[PPN (pa)];
-}
+int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm);
+void page_remove (struct Pagemap *pgmap, void *va);
+void *page_lookup (struct Pagemap *pgmap, void *va);
 
 inline void *
-page2kva (struct Page *pp)
+pa2kva (physaddr_t pa)
 {
-  return (char *) PHYSBASE + page2pa (pp);
+    return (void*) (pa + PHYSBASE);
 }
 
 inline physaddr_t
 kva2pa (void *kva)
 {
-  physaddr_t va = (physaddr_t) kva;
-  if (va >= KERNBASE && va < KERNBASE + (npage << PGSHIFT))
-    return va - KERNBASE;
-  if (va >= PHYSBASE && va < PHYSBASE + (npage << PGSHIFT))
-    return va - PHYSBASE;
-  panic("kva2pa called with invalid kva %p", kva);
+    physaddr_t va = (physaddr_t) kva;
+    if (va >= KERNBASE && va < KERNBASE + (npage << PGSHIFT))
+	return va - KERNBASE;
+    if (va >= PHYSBASE && va < PHYSBASE + (npage << PGSHIFT))
+	return va - PHYSBASE;
+    panic("kva2pa called with invalid kva %p", kva);
 }
 
 /* This macro takes a user supplied address and turns it into

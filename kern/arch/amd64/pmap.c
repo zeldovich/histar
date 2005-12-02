@@ -23,7 +23,6 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
-struct Page *pages;		// Virtual address of physical page array
 static struct Page_list page_free_list;
 				// Free list of physical pages
 
@@ -78,12 +77,6 @@ boot_alloc (uint32_t n, uint32_t align)
   if (boot_freemem == 0)
     boot_freemem = end;
 
-  // Your code here:
-  //      Step 1: round boot_freemem up to be aligned properly
-  //      Step 2: save current value of boot_freemem as allocated chunk
-  //      Step 3: increase boot_freemem to record allocation
-  //      Step 4: return allocated chunk
-
   boot_freemem = (char *) ROUNDUP (boot_freemem, align);
   if (boot_freemem + n < boot_freemem
       || boot_freemem + n > (char *) (maxpa + KERNBASE))
@@ -93,155 +86,100 @@ boot_alloc (uint32_t n, uint32_t align)
   return v;
 }
 
-//
-// Return a page to the free list.
-// (This function should only be called when pp->pp_ref reaches 0.)
-//
 void
-page_free (struct Page *pp)
+page_free (void *v)
 {
-  if (pp->pp_ref) {
-    cprintf ("page_free: attempt to free mapped page - nothing done");
-    return;	   /* be conservative and assume page is still used */
-  }
+    struct Page *p = v;
+    if (PGOFF(p))
+	panic("page_free: not a page-aligned pointer %p", p);
 
-  int ppn = page2ppn (pp);
-  LIST_INSERT_HEAD (&page_free_list, &pages[ppn], pp_link);
+    LIST_INSERT_HEAD (&page_free_list, p, pp_link);
 }
 
-//
-// Initialize a Page structure.
-// The result has null links and 0 refcount.
-// Note that the corresponding physical page is NOT initialized!
-//
-static void
-page_initpp (struct Page *pp)
-{
-  memset (pp, 0, sizeof (*pp));
-}
-
-//
-// Allocates physical page(s).
-// Does NOT set the contents of the physical page to zero -
-// the caller must do that if necessary.
-//
-// *pp -- is set to point to the first Page struct of the newly allocated
-// page(s)
-//
-// RETURNS 
-//   0 -- on success
-//   -E_NO_MEM -- otherwise 
-//
-// Hint: pp_ref should not be incremented
 int
-page_alloc (struct Page **pp_store)
+page_alloc (void **vp)
 {
-  *pp_store = LIST_FIRST(&page_free_list);
-  if (*pp_store) {
-    LIST_REMOVE (*pp_store, pp_link);
-    page_initpp (*pp_store);
-    return 0;
-  }
+    struct Page *p = LIST_FIRST(&page_free_list);
+    if (p) {
+	LIST_REMOVE(p, pp_link);
+	*vp = p;
+	return 0;
+    }
 
-  cprintf("page alloc returned no mem\n");
-  return -E_NO_MEM;
+    cprintf("page_alloc: returning no mem\n");
+    return -E_NO_MEM;
 }
 
-//  
-// Initialize page structure and memory free list.  After this point,
-// ONLY allocate and deallocate physical memory via the
-// page_free_list, and NEVER use boot_alloc() or the related boot-time
-// functions above.
-//
 static void
 page_init (void)
 {
-  int inuse;
-  ptrdiff_t i;
+    int inuse;
+    ptrdiff_t i;
 
-  size_t n = npage * sizeof (struct Page);
-  pages = boot_alloc (n, PGSIZE);
-  memset (pages, 0, n);
+    // Align boot_freemem to page boundary.
+    boot_alloc (0, PGSIZE);
 
-  // Align boot_freemem to page boundary.
-  boot_alloc (0, PGSIZE);
+    for (i = 0; i < npage; i++) {
+	// Off-limits until proven otherwise.
+	inuse = 1;
 
-  for (i = 0; i < npage; i++) {
-    // Off-limits until proven otherwise.
-    inuse = 1;
+	// The bottom basemem bytes are free except page 0.
+	if (i != 0 && i < basemem / PGSIZE)
+	    inuse = 0;
 
-    // The bottom basemem bytes are free except page 0.
-    if (i != 0 && i < basemem / PGSIZE)
-      inuse = 0;
+	// The IO hole and the kernel abut.
 
-    // The IO hole and the kernel abut.
+	// The memory past the kernel is free.
+	if (i >= RELOC (boot_freemem) / PGSIZE)
+	    inuse = 0;
 
-    // The memory past the kernel is free.
-    if (i >= RELOC (boot_freemem) / PGSIZE)
-      inuse = 0;
-
-    pages[i].pp_ref = inuse;
-
-    if (!inuse)
-      page_free(&pages[i]);
-  }
-}
-
-//
-// Decrement the reference count on a page, freeing it if there are no more refs.
-//
-void
-page_decref (struct Page *pp)
-{
-  if (--pp->pp_ref == 0)
-    page_free (pp);
+	if (!inuse)
+	    page_free(pa2kva(i << PGSHIFT));
+    }
 }
 
 void
 pmap_init (void)
 {
-  i386_detect_memory ();
-  page_init ();
-}
-
-static int
-page_map_clone_level (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data, int pmlevel)
-{
-    struct Page *p;
-    int r = page_alloc(&p);
-    if (r < 0)
-	return r;
-
-    struct Pagemap *clone = page2kva(p);
-
-    // COW only the user half of the address space
-    int maxcow = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
-    int i;
-
-    for (i = 0; i < NPTENTRIES; i++) {
-	if (i < maxcow && (pgmap->pm_ent[i] & PTE_P)) {
-	    pa2page(PTE_ADDR(pgmap->pm_ent[i]))->pp_ref++;
-
-	    if (cow_data && (pgmap->pm_ent[i] & (PTE_W | PTE_COW)))
-		pgmap->pm_ent[i] = (pgmap->pm_ent[i] & ~PTE_W) | PTE_COW;
-	}
-	clone->pm_ent[i] = pgmap->pm_ent[i];
-    }
-
-    *pm_store = clone;
-    return 0;
-}
-
-int
-page_map_clone (struct Pagemap *pgmap, struct Pagemap **pm_store, int cow_data)
-{
-    return page_map_clone_level (pgmap, pm_store, cow_data, 3);
+    i386_detect_memory ();
+    page_init ();
 }
 
 int
 page_map_alloc (struct Pagemap **pm_store)
 {
-    return page_map_clone(&bootpml4, pm_store, 1);
+    void *pmap;
+    int r = page_alloc(&pmap);
+    if (r < 0)
+	return r;
+
+    memcpy(pmap, &bootpml4, PGSIZE);
+    *pm_store = pmap;
+    return 0;
+}
+
+static void
+page_map_free_level (struct Pagemap *pgmap, int pmlevel)
+{
+    // Skip the kernel half of the address space
+    int maxi = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
+    int i;
+
+    for (i = 0; i < maxi; i++) {
+	uint64_t ptent = pgmap->pm_ent[i];
+	if (!(ptent & PTE_P))
+	    continue;
+	if (pmlevel > 0)
+	    page_map_free_level(pa2kva(PTE_ADDR(ptent)), pmlevel - 1);
+    }
+
+    page_free(pgmap);
+}
+
+void
+page_map_free (struct Pagemap *pgmap)
+{
+    page_map_free_level (pgmap, 3);
 }
 
 //
@@ -253,7 +191,7 @@ page_map_alloc (struct Pagemap **pm_store)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int mutable, uint64_t **pte_store)
+pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
@@ -276,33 +214,17 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 	    return 0;
 	}
 
-	struct Page *pp;
-	int r = page_alloc(&pp);
-	if (r < 0)
-	    return r;
-	pp->pp_ref++;
-
-	memset(page2kva(pp), 0, PGSIZE);
-	*pm_entp = page2pa(pp) | PTE_P | PTE_U | PTE_W;
-    }
-
-    // If the intermediate map is shared (and we want to mutate), then do the copy.
-    struct Page *pm_next_page = pa2page(PTE_ADDR(*pm_entp));
-    struct Pagemap *pm_next = page2kva(pm_next_page);
-    if (mutable && pm_next_page->pp_ref > 1) {
-	struct Pagemap *pm_new;
-	int r = page_map_clone_level(pm_next, &pm_new, (*pm_entp & PTE_COW) ? 1 : 0, pmlevel - 1);
+	void *p;
+	int r = page_alloc(&p);
 	if (r < 0)
 	    return r;
 
-	page_map_addref(pm_new);
-	page_map_decref(pm_next);
-	pm_next = pm_new;
-
-	*pm_entp = kva2pa(pm_next) | PTE_W | (PTE_FLAGS(*pm_entp) & ~PTE_COW);
+	memset(p, 0, PGSIZE);
+	*pm_entp = kva2pa(p) | PTE_P | PTE_U | PTE_W;
     }
 
-    return pgdir_walk(pm_next, pmlevel-1, va, create, mutable, pte_store);
+    struct Pagemap *pm_next = pa2kva(PTE_ADDR(*pm_entp));
+    return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
 }
 
 //
@@ -313,13 +235,11 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, int 
 //
 // Return 0 if there is no page mapped at va.
 //
-// Hint: the TA solution uses pgdir_walk and pa2page.
-//
-static struct Page *
+static void *
 page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 0, (pte_store ? 1 : 0), &ptep);
+    int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
     if (r < 0)
 	panic("pgdir_walk(create=0) failed: %d", r);
 
@@ -329,10 +249,10 @@ page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
     if (ptep == 0 || !(*ptep & PTE_P))
 	return 0;
 
-    return pa2page (PTE_ADDR (*ptep));
+    return pa2kva (PTE_ADDR (*ptep));
 }
 
-struct Page *
+void *
 page_lookup (struct Pagemap *pgmap, void *va)
 {
     return page_lookup_internal(pgmap, va, 0);
@@ -354,27 +274,21 @@ tlb_invalidate (struct Pagemap *pgmap, void *va)
 // Unmaps the physical page at virtual address 'va'.
 //
 // Details:
-//   - The ref count on the physical page should decrement.
-//   - The physical page should be freed if the refcount reaches 0.
 //   - The pg table entry corresponding to 'va' should be set to 0.
 //     (if such a PTE exists)
 //   - The TLB must be invalidated if you remove an entry from
-//         the pg dir/pg table.
-//
-// Hint: The TA solution is implemented using page_lookup,
-//      tlb_invalidate, and page_decref.
+//     the pg dir/pg table.
 //
 void
 page_remove (struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
-    struct Page *pp = page_lookup_internal(pgmap, va, &ptep);
-    if (pp == 0)
+    void *p = page_lookup_internal(pgmap, va, &ptep);
+    if (p == 0)
 	return;
 
     *ptep = 0;
-    tlb_invalidate (pgmap, va);
-    page_decref (pp);
+    tlb_invalidate(pgmap, va);
 }
 
 //
@@ -383,110 +297,25 @@ page_remove (struct Pagemap *pgmap, void *va)
 //  entry should be set to 'perm|PTE_P'.
 //
 // Details
-//   - If there is already a page mapped at 'va', it is page_remove()d.
+//   - If there is already a page mapped at 'va', returns -E_BUSY.
 //   - If necesary, on demand, allocates a page table and inserts it into 'pgdir'.
-//   - pp->pp_ref should be incremented if the insertion succeeds
 //
 // RETURNS: 
 //   0 on success
 //   -E_NO_MEM, if page table couldn't be allocated
-//
-// Hint: The TA solution is implemented using
-//   pgdir_walk() and and page_remove().
+//   -E_BUSY, if another page is already mapped at va
 //
 int
-page_insert (struct Pagemap *pgmap, struct Page *pp, void *va, uint64_t perm)
+page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 1, 1, &ptep);
+    int r = pgdir_walk(pgmap, 3, va, 1, &ptep);
     if (r < 0)
 	return r;
-
-    // We must increment pp_ref before page_remove, so that
-    // if pp is already mapped at va (we're just changing perm),
-    // we don't lose the page when we decref in page_remove.
-    pp->pp_ref++;
 
     if (*ptep & PTE_P)
-	page_remove (pgmap, va);
+	return -E_BUSY;
 
-    *ptep = page2pa (pp) | perm | PTE_P;
-    return 0;
-}
-
-static void
-page_map_decref_level (struct Pagemap *pgmap, int pmlevel)
-{
-    struct Page *pgmap_p = pa2page(kva2pa(pgmap));
-    if (--pgmap_p->pp_ref == 0) {
-	// Skip the kernel half of the address space
-	int maxi = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
-	int i;
-
-	for (i = 0; i < maxi; i++) {
-	    uint64_t ptent = pgmap->pm_ent[i];
-	    if (!(ptent & PTE_P))
-		continue;
-
-	    struct Page *p = pa2page(PTE_ADDR(ptent));
-	    if (pmlevel == 0)
-		page_decref(p);
-	    else
-		page_map_decref_level(page2kva(p), pmlevel - 1);
-	}
-
-	page_free (pgmap_p);
-    }
-}
-
-void
-page_map_decref (struct Pagemap *pgmap)
-{
-    page_map_decref_level (pgmap, 3);
-}
-
-void
-page_map_addref (struct Pagemap *pgmap)
-{
-    struct Page *pgmap_p = pa2page(kva2pa(pgmap));
-    pgmap_p->pp_ref++;
-}
-
-void
-page_map_free (struct Pagemap *pgmap)
-{
-    struct Page *pgmap_p = pa2page(kva2pa(pgmap));
-    if (pgmap_p->pp_ref != 0)
-	panic("page_map_free(): nonzero refcount");
-
-    page_map_addref(pgmap);
-    page_map_decref(pgmap);
-}
-
-int
-page_cow (struct Pagemap *pgmap, void *va)
-{
-    uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 0, 1, &ptep);
-    if (r < 0)
-	return r;
-
-    if (ptep == 0 || !(*ptep & PTE_COW) || !(*ptep & PTE_P))
-	return -E_INVAL;
-
-    struct Page *old_page = pa2page(PTE_ADDR(*ptep));
-    if (old_page->pp_ref > 1) {
-	struct Page *new_page;
-	r = page_alloc(&new_page);
-	if (r < 0)
-	    return r;
-	new_page->pp_ref++;
-
-	memcpy(page2kva(new_page), page2kva(old_page), PGSIZE);
-	page_decref(old_page);
-	*ptep = page2pa(new_page) | PTE_FLAGS(*ptep);
-    }
-
-    *ptep = (*ptep & ~PTE_COW) | PTE_W;
+    *ptep = kva2pa(page) | perm | PTE_P;
     return 0;
 }

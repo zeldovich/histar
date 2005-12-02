@@ -31,19 +31,18 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
 	return -E_NO_MEM;
 
     for (int i = num_pages; i < sg->sg_hdr.num_pages; i++)
-	page_decref(sg->sg_page[i]);
+	page_free(sg->sg_page[i]);
 
     for (int i = sg->sg_hdr.num_pages; i < num_pages; i++) {
 	int r = page_alloc(&sg->sg_page[i]);
 	if (r < 0) {
 	    // free all the pages we allocated up to now
 	    for (i--; i >= sg->sg_hdr.num_pages; i--)
-		page_decref(sg->sg_page[i]);
+		page_free(sg->sg_page[i]);
 	    return r;
 	}
 
-	sg->sg_page[i]->pp_ref++;
-	memset(page2kva(sg->sg_page[i]), 0, PGSIZE);
+	memset(sg->sg_page[i], 0, PGSIZE);
     }
 
     sg->sg_hdr.num_pages = num_pages;

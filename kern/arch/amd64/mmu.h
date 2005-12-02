@@ -54,7 +54,6 @@
 #define PTE_D	0x040		/* Dirty */
 #define PTE_PS	0x080		/* Page size */
 #define PTE_G	0x100		/* Global */
-#define PTE_COW	0x200		/* Copy-on-write */
 #define PTE_PAT 0x1000		/* Page Attribute Table */
 #define PTE_NX 0x8000000000000000UL /* No execute */
 

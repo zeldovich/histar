@@ -20,12 +20,12 @@ kobject_get(kobject_id_t id, struct kobject **kp)
 int
 kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
 {
-    struct Page *p;
+    void *p;
     int r = page_alloc(&p);
     if (r < 0)
 	return r;
 
-    struct kobject *ko = page2kva(p);
+    struct kobject *ko = p;
     ko->ko_type = type;
     ko->ko_id = unique_alloc();
     ko->ko_ref = 0;
@@ -82,5 +82,5 @@ kobject_free(struct kobject *ko)
 	panic("Unknown kobject type %d\n", ko->ko_type);
     }
 
-    page_free(pa2page(kva2pa(ko)));
+    page_free(ko);
 }

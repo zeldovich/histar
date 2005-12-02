@@ -82,7 +82,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	    bytes = bufsize;
 
 	if (buf)
-	    memcpy(page2kva(sg->sg_page[i / PGSIZE]), &buf[i], bytes);
+	    memcpy(sg->sg_page[i / PGSIZE], &buf[i], bytes);
 	bufsize -= bytes;
     }
 
@@ -206,7 +206,7 @@ fs_init(struct Container *c, struct Label *l)
 
     struct Segment *fs_names;
     assert(0 == cobj_get(COBJ(c->ct_ko.ko_id, 0), kobj_segment, (struct kobject **)&fs_names));
-    char *fs_dir = (char*) page2kva(fs_names->sg_page[0]);
+    char *fs_dir = fs_names->sg_page[0];
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
 	int slot = segment_create_embed(c, l, e->size, e->buf, e->size);

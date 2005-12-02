@@ -16,7 +16,7 @@ struct segment_header {
 #define NUM_SG_PAGES	((PGSIZE - sizeof(struct segment_header)) / 8)
 struct Segment {
     struct segment_header sg_hdr;
-    struct Page *sg_page[NUM_SG_PAGES];
+    void *sg_page[NUM_SG_PAGES];
 };
 
 int  segment_alloc(struct Label *l, struct Segment **sgp);
