@@ -52,8 +52,9 @@ init_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	    return;
 	}
 
-	uint64_t offset = state.extra_page * PGSIZE;
 	state.extra_page++;
+	uint64_t offset = state.extra_page * PGSIZE;
+
 	disk_io(op_read, p, PGSIZE,
 		state.hdr->ph_map[state.map_slot].offset + offset,
 		&init_kobj_cb, 0);
@@ -108,7 +109,7 @@ int
 pstate_init()
 {
     // XXX disable for now, doesn't quite work yet
-    if (1)
+    if (0)
 	return -1;
 
     state.done = 0;
