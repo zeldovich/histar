@@ -8,11 +8,7 @@
 #include <dev/picirq.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
-#include <kern/container.h>
-#include <kern/label.h>
-#include <kern/unique.h>
 #include <kern/lib.h>
-#include <kern/segment.h>
 #include <kern/uinit.h>
 
 /*

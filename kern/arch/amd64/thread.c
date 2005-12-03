@@ -30,13 +30,21 @@ thread_alloc(struct Label *l, struct Thread **tp)
     if (r < 0)
 	return r;
 
-    t->th_pgmap = 0;
     t->th_status = thread_not_started;
-
-    LIST_INSERT_HEAD(&thread_list, t, th_link);
+    thread_swapin(t);
 
     *tp = t;
     return 0;
+}
+
+void
+thread_swapin(struct Thread *t)
+{
+    t->th_pgmap = &bootpml4;
+    LIST_INSERT_HEAD(&thread_list, t, th_link);
+
+    if (t->th_status == thread_suspended)
+	t->th_status = thread_runnable;
 }
 
 void

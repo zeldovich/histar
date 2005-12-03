@@ -12,8 +12,6 @@ segment_alloc(struct Label *l, struct Segment **sgp)
     if (r < 0)
 	return r;
 
-    sg->sg_hdr.num_pages = 0;
-
     *sgp = sg;
     return 0;
 }
@@ -30,14 +28,14 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
     if (num_pages > NUM_SG_PAGES)
 	return -E_NO_MEM;
 
-    for (int i = num_pages; i < sg->sg_hdr.num_pages; i++)
+    for (int i = num_pages; i < sg->sg_ko.ko_extra_pages; i++)
 	page_free(sg->sg_page[i]);
 
-    for (int i = sg->sg_hdr.num_pages; i < num_pages; i++) {
+    for (int i = sg->sg_ko.ko_extra_pages; i < num_pages; i++) {
 	int r = page_alloc(&sg->sg_page[i]);
 	if (r < 0) {
 	    // free all the pages we allocated up to now
-	    for (i--; i >= sg->sg_hdr.num_pages; i--)
+	    for (i--; i >= sg->sg_ko.ko_extra_pages; i--)
 		page_free(sg->sg_page[i]);
 	    return r;
 	}
@@ -45,7 +43,7 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
 	memset(sg->sg_page[i], 0, PGSIZE);
     }
 
-    sg->sg_hdr.num_pages = num_pages;
+    sg->sg_ko.ko_extra_pages = num_pages;
     return 0;
 }
 
@@ -57,7 +55,7 @@ segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
     if (PGOFF(cva))
 	return -E_INVAL;
 
-    if (start_page + num_pages > sg->sg_hdr.num_pages)
+    if (start_page + num_pages > sg->sg_ko.ko_extra_pages)
 	return -E_INVAL;
 
     for (int i = start_page; i < start_page + num_pages; i++) {
@@ -105,4 +103,16 @@ segment_map_to_pmap(struct segment_map *segmap, struct Pagemap *pgmap)
     }
 
     return 0;
+}
+
+void
+segment_swapin_page(struct Segment *sg, uint64_t page_num, void *p)
+{
+    sg->sg_page[page_num] = p;
+}
+
+void *
+segment_swapout_page(struct Segment *sg, uint64_t page_num)
+{
+    return sg->sg_page[page_num];
 }

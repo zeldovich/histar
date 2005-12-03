@@ -5,7 +5,8 @@
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/lib.h>
-#include <kern/unique.h>
+#include <kern/handle.h>
+#include <kern/pstate.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -72,7 +73,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 
     r = segment_set_npages(sg, (segsize + PGSIZE - 1) / PGSIZE);
     if (r < 0) {
-	kobject_free(&sg->sg_hdr.ko);
+	kobject_free(&sg->sg_ko);
 	return r;
     }
 
@@ -86,15 +87,15 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	bufsize -= bytes;
     }
 
-    int slot = container_put(c, &sg->sg_hdr.ko);
+    int slot = container_put(c, &sg->sg_ko);
     if (slot < 0)
-	kobject_free(&sg->sg_hdr.ko);
+	kobject_free(&sg->sg_ko);
     return slot;
 }
 
 static int
 thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
-		uint8_t *binary, uint64_t size)
+		uint8_t *binary, uint64_t size, uint64_t arg)
 {
     Elf64_Ehdr elf;
     if (elf_copyin(&elf, 0, sizeof(elf), binary, size) < 0) {
@@ -161,12 +162,12 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, 0);
+    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, arg);
     return 0;
 }
 
 static void
-thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *prog)
+thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *prog, uint64_t arg)
 {
     struct Container *tc;
     int r = container_alloc(l, &tc);
@@ -186,7 +187,7 @@ thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *
     if (r < 0)
 	panic("tce: cannot store thread");
 
-    r = thread_load_elf(tc, t, l, prog->buf, prog->size);
+    r = thread_load_elf(tc, t, l, prog->buf, prog->size, arg);
     if (r < 0)
 	panic("tce: cannot load ELF");
 
@@ -214,8 +215,8 @@ fs_init(struct Container *c, struct Label *l)
     }
 }
 
-void
-user_init(void)
+static void
+user_bootstrap()
 {
     EMBED_DECLARE(idle);
     EMBED_DECLARE(spin);
@@ -231,7 +232,7 @@ user_init(void)
     EMBED_DECLARE(shell);
 
     // root handle and a label
-    uint64_t root_handle = unique_alloc();
+    uint64_t root_handle = handle_alloc();
     struct Label l;
     memset(&l, 0, sizeof(l));
     l.lb_def_level = 1;
@@ -249,6 +250,18 @@ user_init(void)
     fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, &l, &embed_idle);
-    thread_create_embed(rc, &l, &embed_shell);
+    thread_create_embed(rc, &l, &embed_idle, 0);
+    thread_create_embed(rc, &l, &embed_shell, rc->ct_ko.ko_id);
+}
+
+void
+user_init(void)
+{
+    int r = pstate_init();
+    if (r < 0) {
+	cprintf("Unable to load persistent state: %d\n", r);
+	user_bootstrap();
+    } else {
+	cprintf("Persistent state loaded OK\n");
+    }
 }

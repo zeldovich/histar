@@ -23,4 +23,8 @@ int	segment_unmap(uint64_t ctemp, void *va);
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e);
 
+/* libmain.c */
+extern uint64_t start_arg;
+void	libmain(uint64_t arg) __attribute__((__noreturn__));
+
 #endif

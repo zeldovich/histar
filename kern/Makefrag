@@ -17,12 +17,14 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/syscall.c \
 	    kern/kern/intr.c \
 	    kern/kern/sched.c \
-	    kern/kern/unique.c \
+	    kern/kern/handle.c \
 	    kern/kern/container.c \
 	    kern/kern/gate.c \
 	    kern/kern/label.c \
 	    kern/kern/segment.c \
 	    kern/kern/kobj.c \
+	    kern/kern/timer.c \
+	    kern/kern/pstate.c \
 	    kern/kern/uinit.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)

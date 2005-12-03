@@ -7,15 +7,9 @@
 #include <kern/kobj.h>
 #include <inc/segment.h>
 
-struct segment_header {
-    struct kobject ko;
-
-    uint64_t num_pages;
-};
-
-#define NUM_SG_PAGES	((PGSIZE - sizeof(struct segment_header)) / 8)
+#define NUM_SG_PAGES	((PGSIZE - sizeof(struct kobject)) / 8)
 struct Segment {
-    struct segment_header sg_hdr;
+    struct kobject sg_ko;
     void *sg_page[NUM_SG_PAGES];
 };
 
@@ -24,5 +18,8 @@ void segment_gc(struct Segment *sg);
 
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
 int  segment_map_to_pmap(struct segment_map *segmap, struct Pagemap *pgmap);
+
+void segment_swapin_page(struct Segment *sg, uint64_t page_num, void *p);
+void *segment_swapout_page(struct Segment *sg, uint64_t page_num);
 
 #endif

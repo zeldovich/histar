@@ -3,6 +3,8 @@
 
 #include <machine/types.h>
 
-uint64_t unique_alloc();
+extern uint64_t handle_counter;
+
+uint64_t handle_alloc();
 
 #endif

@@ -7,7 +7,6 @@ include lib/$(ARCH)/Makefrag
 #include lib/pcre/Makefrag
 
 LIB_SRCFILES :=	\
-	lib/$(ARCH)/entry.S \
 	lib/$(ARCH)/strlen.S \
 	lib/$(ARCH)/longjmp.S \
 	lib/memcpy.c \

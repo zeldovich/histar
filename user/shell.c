@@ -12,10 +12,7 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
-// Container constants
-static int c_root = 1;
-static int c_fs = 2;
-static int c_temp = 1;
+static int c_root, c_temp;
 
 static void builtin_help(int ac, char **av);
 
@@ -76,12 +73,18 @@ builtin_list_container(int ac, char **av)
 
 static struct {
     char name[64];
-    uint64_t slot;
+    struct cobj_ref cobj;
 } dir[256];
 
 static int
 readdir()
 {
+    int64_t c_fs = sys_container_get_c_id(COBJ(c_root, 0));
+    if (c_fs < 0) {
+	cprintf("cannot get filesystem container id: %ld\n", c_fs);
+	return c_fs;
+    }
+
     char *dirbuf;
     int r = segment_map(c_temp, COBJ(c_fs, 0), 0, (void**)&dirbuf, 0);
     if (r < 0) {
@@ -92,7 +95,7 @@ readdir()
     int max_dirent = dirbuf[0];
     int dirsize = 0;
     for (int i = 1; i <= max_dirent; i++) {
-	dir[dirsize].slot = dirbuf[64*i];
+	dir[dirsize].cobj = COBJ(c_fs, dirbuf[64*i]);
 	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
 	dirsize++;
     }
@@ -173,7 +176,7 @@ builtin_spawn(int ac, char **av)
 
     for (int i = 0; i < r; i++) {
 	if (!strcmp(av[0], dir[i].name)) {
-	    builtin_spawn_seg(COBJ(c_fs, dir[i].slot));
+	    builtin_spawn_seg(dir[i].cobj);
 	    return;
 	}
     }
@@ -266,7 +269,10 @@ run_cmd(int ac, char **av)
 int
 main(int ac, char **av)
 {
-    cprintf("JOS shell\n");
+    c_root = start_arg;
+    c_temp = start_arg;
+
+    cprintf("JOS shell (root container %ld)\n", c_root);
 
     for (;;) {
 	char *cmd = readline("jos> ");

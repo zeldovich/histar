@@ -3,10 +3,10 @@
 #include <kern/segment.h>
 #include <kern/gate.h>
 #include <kern/kobj.h>
-#include <kern/unique.h>
+#include <kern/handle.h>
 #include <inc/error.h>
 
-static struct kobject_list ko_list;
+struct kobject_list ko_list;
 
 int
 kobject_get(kobject_id_t id, struct kobject **kp)
@@ -27,14 +27,40 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
 
     struct kobject *ko = p;
     ko->ko_type = type;
-    ko->ko_id = unique_alloc();
+    ko->ko_id = handle_alloc();
     ko->ko_ref = 0;
+    ko->ko_extra_pages = 0;
     ko->ko_label = *l;
 
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
 
     *kp = ko;
     return 0;
+}
+
+void
+kobject_swapin(struct kobject *ko)
+{
+    LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+
+    if (ko->ko_type == kobj_thread)
+	thread_swapin((struct Thread *) ko);
+}
+
+void
+kobject_swapin_page(struct kobject *ko, uint64_t page_num, void *p)
+{
+    if (ko->ko_type != kobj_segment)
+	panic("kobject_swapin_page: not a segment\n");
+    segment_swapin_page((struct Segment *) ko, page_num, p);
+}
+
+void *
+kobject_swapout_page(struct kobject *ko, uint64_t page_num)
+{
+    if (ko->ko_type != kobj_segment)
+	panic("kobject_swapout_page: not a segment\n");
+    return segment_swapout_page((struct Segment *) ko, page_num);
 }
 
 void

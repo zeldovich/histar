@@ -1,6 +1,6 @@
 #include <kern/intr.h>
 #include <kern/lib.h>
-#include <kern/sched.h>
+#include <kern/timer.h>
 #include <dev/disk.h>
 #include <dev/console.h>
 
@@ -9,7 +9,7 @@ irq_handler(int irqno)
 {
     switch (irqno) {
 	case 0:
-	    schedule();
+	    timer_intr();
 	    break;
 
 	case 1:

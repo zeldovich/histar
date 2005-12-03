@@ -187,10 +187,10 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
 
     struct Segment *sg;
     check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
-    syscall_cleanup_ko = &sg->sg_hdr.ko;
+    syscall_cleanup_ko = &sg->sg_ko;
 
     check(segment_set_npages(sg, num_pages));
-    return check(container_put(c, &sg->sg_hdr.ko));
+    return check(container_put(c, &sg->sg_ko));
 }
 
 static void
@@ -199,7 +199,7 @@ sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
     struct Segment *sg;
     check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
 
-    check(label_compare(&cur_thread->th_ko.ko_label, &sg->sg_hdr.ko.ko_label, label_eq));
+    check(label_compare(&cur_thread->th_ko.ko_label, &sg->sg_ko.ko_label, label_eq));
     check(segment_set_npages(sg, num_pages));
 }
 
@@ -208,8 +208,8 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     struct Segment *sg;
     check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
-    check(label_compare(&sg->sg_hdr.ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi));
-    return sg->sg_hdr.num_pages;
+    check(label_compare(&sg->sg_ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi));
+    return sg->sg_ko.ko_extra_pages;
 }
 
 static void
