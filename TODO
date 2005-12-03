@@ -1,6 +1,6 @@
 syscalls for specifying labels
 
-object persistence
-will probably need an iovec interface to disk_io()
-
 what to do about return gates?
+
+snapshotting pstate_sync()
+
