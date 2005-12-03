@@ -78,7 +78,8 @@ page_fault (struct Trapframe *tf)
 	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
 	}
     } else {
-	cprintf("user process page-faulted on %p\n", fault_va);
+	cprintf("user process page-faulted on %p @ %lx\n",
+		fault_va, tf->tf_rip);
 	thread_halt(cur_thread);
     }
 }
