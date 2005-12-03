@@ -150,7 +150,7 @@ ide_intr()
     // Ack IRQ by reading the status register
     int r = inb(idec->cmd_addr + IDE_REG_STATUS);
     if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
-	cprintf("spurious IDE interrupt, status %02x\n", r);
+	//cprintf("spurious IDE interrupt, status %02x\n", r);
 	return;
     }
 
@@ -161,8 +161,10 @@ ide_intr()
     uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     outb(idec->bm_addr + IDE_BM_STAT_REG, dma_status);
 
-    if (!(dma_status & IDE_BM_STAT_INTR))
-	cprintf("IDE DMA spurious interrupt?\n");
+    if (!(dma_status & IDE_BM_STAT_INTR)) {
+	//cprintf("IDE DMA spurious interrupt?\n");
+	return;
+    }
 
     if ((dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE))) {
 	cprintf("IDE DMA funny state: %02x\n", dma_status);
