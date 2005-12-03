@@ -108,10 +108,6 @@ init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, voi
 int
 pstate_init()
 {
-    // XXX disable for now, doesn't quite work yet
-    if (0)
-	return -1;
-
     state.done = 0;
     disk_io(op_read, &pstate_buf[0], PGSIZE, 0, &init_hdr_cb, 0);
     while (!state.done)
