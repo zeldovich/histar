@@ -2,5 +2,7 @@ syscalls for specifying labels
 
 what to do about return gates?
 
+demand-paging
+
 snapshotting pstate_sync()
 
