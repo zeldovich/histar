@@ -4,7 +4,10 @@
 #include <kern/handle.h>
 #include <kern/lib.h>
 
-static char pstate_buf[PGSIZE] __attribute__((__aligned__ (PGSIZE)));
+static union __attribute__ ((__aligned__ (PGSIZE))) {
+    struct pstate_header hdr;
+    char buf[PGSIZE];
+} pstate_buf;
 
 static struct {
     struct pstate_header *hdr;
@@ -93,7 +96,7 @@ init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, voi
 	return;
     }
 
-    state.hdr = (struct pstate_header *) buf;
+    state.hdr = &pstate_buf.hdr;
     if (state.hdr->ph_magic != PSTATE_MAGIC ||
 	state.hdr->ph_version != PSTATE_VERSION) {
 	cprintf("pstate_init_hdr: magic/version mismatch\n");
@@ -109,7 +112,7 @@ int
 pstate_init()
 {
     state.done = 0;
-    disk_io(op_read, &pstate_buf[0], PGSIZE, 0, &init_hdr_cb, 0);
+    disk_io(op_read, &pstate_buf.buf[0], PGSIZE, 0, &init_hdr_cb, 0);
     while (!state.done)
 	ide_intr();
 
@@ -192,7 +195,7 @@ sync_hdr_zero(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, v
 	return;
     }
 
-    state.hdr = (void *) &pstate_buf[0];
+    state.hdr = &pstate_buf.hdr;
     state.hdr->ph_magic = PSTATE_MAGIC;
     state.hdr->ph_version = PSTATE_VERSION;
     state.hdr->ph_handle_counter = handle_counter;
@@ -208,8 +211,8 @@ sync_hdr_zero(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, v
 void
 pstate_sync()
 {
-    memset(&pstate_buf[0], 0, PGSIZE);
-    disk_io(op_write, &pstate_buf[0], PGSIZE, 0, sync_hdr_zero, 0);
+    memset(&pstate_buf.buf[0], 0, PGSIZE);
+    disk_io(op_write, &pstate_buf.buf[0], PGSIZE, 0, sync_hdr_zero, 0);
     while (!state.done)
 	ide_intr();
 }
