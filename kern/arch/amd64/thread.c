@@ -126,8 +126,11 @@ thread_pagefault(void *fault_va)
 
 	r = segment_map_to_pmap(&cur_thread->th_segmap, pgmap);
 	if (r < 0) {
-	    cprintf("thread_pagefault(): cannot generate pagemap: %d\n", r);
 	    page_map_free(pgmap);
+	    if (r == -E_RESTART)
+		return 0;
+
+	    cprintf("thread_pagefault: cannot generate pagemap: %d\n", r);
 	    return r;
 	}
 

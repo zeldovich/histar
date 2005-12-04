@@ -3,6 +3,7 @@
 #include <kern/segment.h>
 #include <kern/gate.h>
 #include <kern/kobj.h>
+#include <kern/pstate.h>
 #include <kern/handle.h>
 #include <inc/error.h>
 
@@ -14,7 +15,12 @@ kobject_get(kobject_id_t id, struct kobject **kp)
     LIST_FOREACH(*kp, &ko_list, ko_link)
 	if ((*kp)->ko_id == id)
 	    return 0;
-    return -E_INVAL;
+
+    int r = pstate_swapin(id);
+    if (r < 0)
+	return r;
+
+    return -E_RESTART;
 }
 
 int

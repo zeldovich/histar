@@ -44,4 +44,7 @@ struct pstate_header {
 int  pstate_init();
 void pstate_sync();
 
+// suspends cur_thread, and wakes it up when it should try again
+int  pstate_swapin(kobject_id_t id);
+
 #endif

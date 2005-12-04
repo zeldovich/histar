@@ -4,8 +4,6 @@ larger labels
 
 what to do about return gates?
 
-demand-paging
-
 snapshotting pstate_sync()
 
 deal with segment fragmentation on-disk

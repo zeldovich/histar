@@ -1,4 +1,5 @@
 #include <machine/pmap.h>
+#include <machine/thread.h>
 #include <dev/disk.h>
 #include <kern/pstate.h>
 #include <kern/handle.h>
@@ -29,6 +30,7 @@ static struct {
 static struct {
     struct kobject *ko;
     int extra_page;
+    int slot;
 } swapin_state;
 
 //////////////////////////////////
@@ -81,127 +83,8 @@ freelist_commit(struct pstate_free_list *f)
 	    f->inuse[i] = 0;
 }
 
-//////////////////////////////////
-// Swap-in code
-//////////////////////////////////
-static void
-init_done()
-{
-    handle_counter = state.hdr->ph_handle_counter;
-    state.done = 1;
-}
-
-static void init_kobj();
-
-static void
-init_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
-{
-    if (stat != disk_io_success) {
-	cprintf("pstate_init_cb: disk IO failure\n");
-	state.done = -1;
-	return;
-    }
-
-    if (swapin_state.extra_page > 0)
-	kobject_swapin_page(swapin_state.ko,
-			    swapin_state.extra_page - 1,
-			    buf);
-
-    if (swapin_state.extra_page < swapin_state.ko->ko_extra_pages) {
-	void *p;
-	int r = page_alloc(&p);
-	if (r < 0) {
-	    cprintf("init_kobj_cb: cannot alloc page: %d\n", r);
-	    state.done = -1;
-	    return;
-	}
-
-	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
-	++swapin_state.extra_page;
-
-	disk_io(op_read, p, PGSIZE, offset, &init_kobj_cb, 0);
-    } else {
-	kobject_swapin(swapin_state.ko);
-	++state.slot;
-	init_kobj();
-    }
-}
-
-static void
-init_kobj()
-{
-    // Page in all threads and pinned objects, but demand-page the rest
-    while (state.slot < NUM_PH_OBJECTS) {
-	if (state.hdr->ph_map.ent[state.slot].offset == 0) {
-	    ++state.slot;
-	    continue;
-	}
-
-	if (state.hdr->ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
-	    break;
-	if (state.hdr->ph_map.ent[state.slot].type == kobj_thread)
-	    break;
-
-	++state.slot;
-    }
-
-    if (state.slot == NUM_PH_OBJECTS) {
-	init_done();
-	return;
-    }
-
-    void *p;
-    int r = page_alloc(&p);
-    if (r < 0) {
-	cprintf("init_kobj: cannot alloc page: %d\n", r);
-	state.done = -1;
-	return;
-    }
-
-    swapin_state.ko = p;
-    swapin_state.extra_page = 0;
-    disk_io(op_read, p, PGSIZE, state.hdr->ph_map.ent[state.slot].offset * PGSIZE, &init_kobj_cb, 0);
-}
-
-static void
-init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
-{
-    if (stat != disk_io_success) {
-	cprintf("pstate_init_cb: disk IO failure\n");
-	state.done = -1;
-	return;
-    }
-
-    state.hdr = &pstate_buf.hdr;
-    if (state.hdr->ph_magic != PSTATE_MAGIC ||
-	state.hdr->ph_version != PSTATE_VERSION)
-    {
-	cprintf("pstate_init_hdr: magic/version mismatch\n");
-
-	memset(&pstate_buf.hdr, 0, sizeof(pstate_buf.hdr));
-	freelist_init(&pstate_buf.hdr.ph_free);
-	state.done = -1;
-	return;
-    }
-
-    state.slot = 0;
-    init_kobj();
-}
-
-int
-pstate_init()
-{
-    memset(&pstate_buf.hdr, 0, sizeof(pstate_buf.hdr));
-    state.done = 0;
-    disk_io(op_read, &pstate_buf.buf[0], 2*PGSIZE, 0, &init_hdr_cb, 0);
-    while (!state.done)
-	ide_intr();
-
-    return state.done;
-}
-
 //////////////////////////////////////////////////
-// Swap-out code
+// Object map
 //////////////////////////////////////////////////
 
 static int
@@ -249,6 +132,191 @@ pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f, struct kobje
 
     return -1;
 }
+
+//////////////////////////////////
+// Swap-in code
+//////////////////////////////////
+
+static void
+swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+{
+    void (*cb)(int) = (void (*)(int)) arg;
+
+    if (stat != disk_io_success) {
+	cprintf("swapin_kobj_cb: disk IO failure\n");
+	(*cb) (-1);
+	return;
+    }
+
+    if (swapin_state.extra_page > 0)
+	kobject_swapin_page(swapin_state.ko,
+			    swapin_state.extra_page - 1,
+			    buf);
+
+    if (swapin_state.extra_page < swapin_state.ko->ko_extra_pages) {
+	void *p;
+	int r = page_alloc(&p);
+	if (r < 0) {
+	    cprintf("init_kobj_cb: cannot alloc page: %d\n", r);
+	    (*cb) (r);
+	    return;
+	}
+
+	uint64_t offset = (state.hdr->ph_map.ent[swapin_state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
+	++swapin_state.extra_page;
+
+	disk_io(op_read, p, PGSIZE, offset, &swapin_kobj_cb, arg);
+    } else {
+	kobject_swapin(swapin_state.ko);
+
+	swapin_state.ko = 0;
+	(*cb) (0);
+    }
+}
+
+static void
+swapin_kobj(int slot, void (*cb)(int)) {
+    void *p;
+    int r = page_alloc(&p);
+    if (r < 0) {
+	cprintf("swapin_kobj: cannot alloc page: %d\n", r);
+	(*cb) (r);
+	return;
+    }
+
+    if (swapin_state.ko)
+	panic("swapin_kobj: still active!");
+
+    swapin_state.ko = p;
+    swapin_state.extra_page = 0;
+    swapin_state.slot = slot;
+    disk_io(op_read, p, PGSIZE, state.hdr->ph_map.ent[slot].offset * PGSIZE, &swapin_kobj_cb, cb);
+}
+
+static struct Thread_tqueue swapin_tqueue;
+
+void
+pstate_swapin_cb(int r)
+{
+    if (r < 0)
+	cprintf("pstate_swapin_cb: error %d\n", r);
+
+    while (!TAILQ_EMPTY(&swapin_tqueue)) {
+	struct Thread *t = TAILQ_FIRST(&swapin_tqueue);
+	thread_set_runnable(t);
+	TAILQ_REMOVE(&swapin_tqueue, t, th_waiting);
+    }
+}
+
+int
+pstate_swapin(kobject_id_t id) {
+    //cprintf("pstate_swapin: object %ld\n", id);
+
+    int slot = pstate_map_findslot(&state.hdr->ph_map, id);
+    if (slot < 0)
+	return -E_INVAL;
+
+    thread_suspend(cur_thread);
+    TAILQ_INSERT_TAIL(&swapin_tqueue, cur_thread, th_waiting);
+
+    if (swapin_state.ko == 0)
+	swapin_kobj(slot, &pstate_swapin_cb);
+    return 0;
+}
+
+/////////////////////////////////////
+// Persistent-store initialization
+/////////////////////////////////////
+
+static void
+init_done()
+{
+    handle_counter = state.hdr->ph_handle_counter;
+    state.done = 1;
+}
+
+static void init_kobj();
+
+static void
+init_kobj_cb(int r)
+{
+    if (r < 0) {
+	cprintf("init_kobj_cb: error swapping in: %d\n", r);
+	state.done = r;
+	return;
+    }
+
+    ++state.slot;
+    init_kobj();
+}
+
+static void
+init_kobj()
+{
+    // Page in all threads and pinned objects, but demand-page the rest
+    while (state.slot < NUM_PH_OBJECTS) {
+	if (state.hdr->ph_map.ent[state.slot].offset == 0) {
+	    ++state.slot;
+	    continue;
+	}
+
+	if (state.hdr->ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
+	    break;
+	if (state.hdr->ph_map.ent[state.slot].type == kobj_thread)
+	    break;
+
+	++state.slot;
+    }
+
+    if (state.slot == NUM_PH_OBJECTS) {
+	init_done();
+	return;
+    }
+
+    swapin_kobj(state.slot, &init_kobj_cb);
+}
+
+static void
+init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+{
+    if (stat != disk_io_success) {
+	cprintf("pstate_init_cb: disk IO failure\n");
+	state.done = -1;
+	return;
+    }
+
+    state.hdr = &pstate_buf.hdr;
+    if (state.hdr->ph_magic != PSTATE_MAGIC ||
+	state.hdr->ph_version != PSTATE_VERSION)
+    {
+	cprintf("pstate_init_hdr: magic/version mismatch\n");
+
+	memset(&pstate_buf.hdr, 0, sizeof(pstate_buf.hdr));
+	freelist_init(&pstate_buf.hdr.ph_free);
+	state.done = -1;
+	return;
+    }
+
+    state.slot = 0;
+    init_kobj();
+}
+
+int
+pstate_init()
+{
+    TAILQ_INIT(&swapin_tqueue);
+
+    state.done = 0;
+    disk_io(op_read, &pstate_buf.buf[0], 2*PGSIZE, 0, &init_hdr_cb, 0);
+    while (!state.done)
+	ide_intr();
+
+    return state.done;
+}
+
+//////////////////////////////////////////////////
+// Swap-out code
+//////////////////////////////////////////////////
 
 static void
 sync_header_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
