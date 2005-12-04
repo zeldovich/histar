@@ -48,13 +48,18 @@ thread_swapin(struct Thread *t)
 }
 
 void
-thread_gc(struct Thread *t)
+thread_swapout(struct Thread *t)
 {
-    thread_halt(t);
-
     LIST_REMOVE(t, th_link);
     if (t->th_pgmap && t->th_pgmap != &bootpml4)
 	page_map_free(t->th_pgmap);
+}
+
+void
+thread_gc(struct Thread *t)
+{
+    thread_halt(t);
+    thread_swapout(t);
 }
 
 void

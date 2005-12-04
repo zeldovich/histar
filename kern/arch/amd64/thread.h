@@ -35,6 +35,7 @@ extern struct Thread *cur_thread;
 
 int  thread_alloc(struct Label *l, struct Thread **tp);
 void thread_swapin(struct Thread *t);
+void thread_swapout(struct Thread *t);
 void thread_gc(struct Thread *t);
 
 // Assumes ownership of label
