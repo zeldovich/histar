@@ -8,6 +8,7 @@ read/write flag to kobject_get()
 copy-on-write kobjects
 kobject pinning
 snapshotting pstate_sync()
+swapped-out zero-ref objects are never GC'ed
 
 deal with segment fragmentation on-disk
 
