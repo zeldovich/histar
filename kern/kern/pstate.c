@@ -362,6 +362,7 @@ sync_kobj()
 {
     while (swapout_state.ko && swapout_state.ko->ko_type == kobj_dead) {
 	pstate_kobj_free(&state.hdr->ph_map, &state.hdr->ph_free, swapout_state.ko);
+	kobject_swapout(swapout_state.ko);
 	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
     }
 
