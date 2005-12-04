@@ -200,7 +200,7 @@ swapin_kobj(int slot, void (*cb)(int)) {
 
 static struct Thread_tqueue swapin_tqueue;
 
-void
+static void
 pstate_swapin_cb(int r)
 {
     if (r < 0)
