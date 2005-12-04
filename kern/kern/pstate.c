@@ -17,12 +17,19 @@ static union __attribute__ ((__aligned__ (2*PGSIZE))) {
 static struct {
     struct pstate_header *hdr;
 
-    struct kobject *ko;
     int slot;
-    int extra_page;
-
     int done;
 } state;
+
+static struct {
+    struct kobject *ko;
+    int extra_page;
+} swapout_state;
+
+static struct {
+    struct kobject *ko;
+    int extra_page;
+} swapin_state;
 
 //////////////////////////////////
 // Free list management
@@ -95,10 +102,12 @@ init_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	return;
     }
 
-    if (state.extra_page > 0)
-	kobject_swapin_page(state.ko, state.extra_page - 1, buf);
+    if (swapin_state.extra_page > 0)
+	kobject_swapin_page(swapin_state.ko,
+			    swapin_state.extra_page - 1,
+			    buf);
 
-    if (state.extra_page < state.ko->ko_extra_pages) {
+    if (swapin_state.extra_page < swapin_state.ko->ko_extra_pages) {
 	void *p;
 	int r = page_alloc(&p);
 	if (r < 0) {
@@ -107,12 +116,12 @@ init_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	    return;
 	}
 
-	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + state.extra_page + 1) * PGSIZE;
-	++state.extra_page;
+	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
+	++swapin_state.extra_page;
 
 	disk_io(op_read, p, PGSIZE, offset, &init_kobj_cb, 0);
     } else {
-	kobject_swapin(state.ko);
+	kobject_swapin(swapin_state.ko);
 	++state.slot;
 	init_kobj();
     }
@@ -121,10 +130,16 @@ init_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 static void
 init_kobj()
 {
-    // XXX not impl yet
     // Page in all threads and pinned objects, but demand-page the rest
     while (state.slot < NUM_PH_OBJECTS) {
-	if (state.hdr->ph_map.ent[state.slot].offset != 0)
+	if (state.hdr->ph_map.ent[state.slot].offset == 0) {
+	    ++state.slot;
+	    continue;
+	}
+
+	if (state.hdr->ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
+	    break;
+	if (state.hdr->ph_map.ent[state.slot].type == kobj_thread)
 	    break;
 
 	++state.slot;
@@ -143,8 +158,8 @@ init_kobj()
 	return;
     }
 
-    state.ko = p;
-    state.extra_page = 0;
+    swapin_state.ko = p;
+    swapin_state.extra_page = 0;
     disk_io(op_read, p, PGSIZE, state.hdr->ph_map.ent[state.slot].offset * PGSIZE, &init_kobj_cb, 0);
 }
 
@@ -258,14 +273,14 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	return;
     }
 
-    if (state.extra_page < state.ko->ko_extra_pages) {
-	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + state.extra_page + 1) * PGSIZE;
-	void *p = kobject_swapout_page(state.ko, state.extra_page);
-	state.extra_page++;
+    if (swapout_state.extra_page < swapout_state.ko->ko_extra_pages) {
+	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + swapout_state.extra_page + 1) * PGSIZE;
+	void *p = kobject_swapout_page(swapout_state.ko, swapout_state.extra_page);
+	swapout_state.extra_page++;
 
 	disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
     } else {
-	state.ko = LIST_NEXT(state.ko, ko_link);
+	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
 	sync_kobj();
     }
 }
@@ -273,26 +288,26 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 static void
 sync_kobj()
 {
-    while (state.ko && state.ko->ko_type == kobj_dead) {
-	pstate_kobj_free(&state.hdr->ph_map, &state.hdr->ph_free, state.ko);
-	state.ko = LIST_NEXT(state.ko, ko_link);
+    while (swapout_state.ko && swapout_state.ko->ko_type == kobj_dead) {
+	pstate_kobj_free(&state.hdr->ph_map, &state.hdr->ph_free, swapout_state.ko);
+	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
     }
 
-    if (state.ko == 0) {
+    if (swapout_state.ko == 0) {
 	freelist_commit(&state.hdr->ph_free);
 	disk_io(op_write, state.hdr, 2*PGSIZE, 0, sync_header_cb, 0);
 	return;
     }
 
-    state.slot = pstate_kobj_alloc(&state.hdr->ph_map, &state.hdr->ph_free, state.ko);
+    state.slot = pstate_kobj_alloc(&state.hdr->ph_map, &state.hdr->ph_free, swapout_state.ko);
     if (state.slot < 0) {
 	cprintf("sync_kobj: cannot allocate space\n");
 	state.done = -1;
 	return;
     }
 
-    state.extra_page = 0;
-    disk_io(op_write, state.ko, PGSIZE, state.hdr->ph_map.ent[state.slot].offset * PGSIZE, sync_kobj_cb, 0);
+    swapout_state.extra_page = 0;
+    disk_io(op_write, swapout_state.ko, PGSIZE, state.hdr->ph_map.ent[state.slot].offset * PGSIZE, sync_kobj_cb, 0);
 }
 
 void
@@ -304,8 +319,8 @@ pstate_sync()
     state.hdr->ph_version = PSTATE_VERSION;
     state.hdr->ph_handle_counter = handle_counter;
 
-    state.ko = LIST_FIRST(&ko_list);
     state.done = 0;
+    swapout_state.ko = LIST_FIRST(&ko_list);
     sync_kobj();
 
     while (!state.done)
