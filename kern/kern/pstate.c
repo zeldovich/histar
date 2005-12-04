@@ -147,6 +147,12 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 	return;
     }
 
+    if (swapin_state.extra_page == 0) {
+	for (int i = 0; i < KOBJ_DIRECT_PAGES; i++)
+	    swapin_state.ko->ko_pages[i] = 0;
+	swapin_state.ko->ko_pages_indir1 = 0;
+    }
+
     if (swapin_state.extra_page > 0)
 	kobject_swapin_page(swapin_state.ko,
 			    swapin_state.extra_page - 1,
