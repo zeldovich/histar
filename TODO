@@ -8,3 +8,5 @@ demand-paging
 
 snapshotting pstate_sync()
 
+deal with segment fragmentation on-disk
+
