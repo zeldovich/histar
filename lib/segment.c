@@ -60,7 +60,10 @@ retry:
 	}
     }
 
-    // XXX check that va_end < ULIM
+    if (va_end >= (char*)ULIM) {
+	cprintf("out of virtual address space!\n");
+	return -E_NO_MEM;
+    }
 
     if (free_segslot < 0) {
 	cprintf("out of segment map slots\n");
