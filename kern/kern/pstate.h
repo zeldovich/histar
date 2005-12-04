@@ -4,23 +4,41 @@
 #include <machine/types.h>
 #include <kern/kobj.h>
 
-#define PSTATE_MAGIC	0x4A4F535053544154ULL
-#define PSTATE_VERSION	1
+//
+// A rather limited persistent-store implementation.
+// Eventually free lists & object location map should
+// be btrees, and we should have a redo log.
+//
 
-struct pstate_object_record {
+#define PSTATE_MAGIC	0x4A4F535053544154ULL
+#define PSTATE_VERSION	2
+
+struct pstate_mapent {
     kobject_id_t id;
-    uint64_t offset;
+    kobject_type_t type;
+    uint64_t flags;
+    uint64_t offset;	// if 0, means free entry
+    uint64_t pages;
 };
 
-#define NUM_PH_OBJECTS		200
+// Up to 4K on-disk pages in this free list
+#define NUM_PH_PAGES		PGSIZE
+struct pstate_free_list {
+    char inuse[NUM_PH_PAGES];
+};
+
+#define NUM_PH_OBJECTS		100
+struct pstate_map {
+    struct pstate_mapent ent[NUM_PH_OBJECTS];
+};
 
 struct pstate_header {
     uint64_t ph_magic;
     uint64_t ph_version;
-
     uint64_t ph_handle_counter;
 
-    struct pstate_object_record ph_map[NUM_PH_OBJECTS];
+    struct pstate_map ph_map;
+    struct pstate_free_list ph_free;
 };
 
 int  pstate_init();
