@@ -110,10 +110,17 @@ kobject_gc(struct kobject *ko)
 void
 kobject_gc_scan()
 {
+    // Clear cur_thread to avoid putting it to sleep on behalf of
+    // our swapped-in objects.
+    struct Thread *t = cur_thread;
+    cur_thread = 0;
+
     struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link)
 	if (ko->ko_ref == 0 && ko->ko_type != kobj_dead)
 	    kobject_gc(ko);
+
+    cur_thread = t;
 }
 
 void

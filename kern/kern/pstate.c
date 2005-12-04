@@ -216,8 +216,10 @@ pstate_swapin(kobject_id_t id) {
     if (slot < 0)
 	return -E_INVAL;
 
-    thread_suspend(cur_thread);
-    TAILQ_INSERT_TAIL(&swapin_tqueue, cur_thread, th_waiting);
+    if (cur_thread) {
+	thread_suspend(cur_thread);
+	TAILQ_INSERT_TAIL(&swapin_tqueue, cur_thread, th_waiting);
+    }
 
     if (swapin_state.ko == 0)
 	swapin_kobj(slot, &pstate_swapin_cb);
