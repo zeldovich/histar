@@ -113,7 +113,7 @@ pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f, struct kobje
 
     for (int i = 0; i < NUM_PH_OBJECTS; i++) {
 	if (m->ent[i].offset == 0) {
-	    uint64_t npages = ko->ko_extra_pages + 1;
+	    uint64_t npages = ko->ko_npages + 1;
 	    int64_t offset = freelist_alloc(f, npages);
 	    if (offset < 0) {
 		cprintf("pstate_kobj_alloc: no room for %ld pages\n", npages);
@@ -152,7 +152,7 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 			    swapin_state.extra_page - 1,
 			    buf);
 
-    if (swapin_state.extra_page < swapin_state.ko->ko_extra_pages) {
+    if (swapin_state.extra_page < swapin_state.ko->ko_npages) {
 	void *p;
 	int r = page_alloc(&p);
 	if (r < 0) {
@@ -342,11 +342,14 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	return;
     }
 
-    if (swapout_state.extra_page < swapout_state.ko->ko_extra_pages) {
+    if (swapout_state.extra_page < swapout_state.ko->ko_npages) {
 	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + swapout_state.extra_page + 1) * PGSIZE;
-	void *p = kobject_swapout_page(swapout_state.ko, swapout_state.extra_page);
-	swapout_state.extra_page++;
+	void *p;
+	int r = kobject_get_page(swapout_state.ko, swapout_state.extra_page, &p);
+	if (r < 0)
+	    panic("sync_kobj_cb: cannot get object page");
 
+	swapout_state.extra_page++;
 	disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
     } else {
 	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);

@@ -1,5 +1,6 @@
 #include <machine/types.h>
 #include <machine/thread.h>
+#include <machine/pmap.h>
 #include <kern/label.h>
 #include <kern/uinit.h>
 #include <kern/segment.h>
@@ -7,6 +8,7 @@
 #include <kern/lib.h>
 #include <kern/handle.h>
 #include <kern/pstate.h>
+#include <kern/gate.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -80,8 +82,14 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	if (bytes > bufsize)
 	    bytes = bufsize;
 
-	if (buf)
-	    memcpy(sg->sg_page[i / PGSIZE], &buf[i], bytes);
+	if (buf) {
+	    void *p;
+	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p);
+	    if (r < 0)
+		panic("segment_create_embed: cannot get page");
+
+	    memcpy(p, &buf[i], bytes);
+	}
 	bufsize -= bytes;
     }
 
@@ -202,7 +210,8 @@ fs_init(struct Container *c, struct Label *l)
 
     struct Segment *fs_names;
     assert(0 == cobj_get(COBJ(c->ct_ko.ko_id, 0), kobj_segment, (struct kobject **)&fs_names));
-    char *fs_dir = fs_names->sg_page[0];
+    char *fs_dir;
+    assert(0 == kobject_get_page(&fs_names->sg_ko, 0, (void**)&fs_dir));
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
 	int slot = segment_create_embed(c, l, e->size, e->buf, e->size);
@@ -258,6 +267,10 @@ user_bootstrap()
 void
 user_init(void)
 {
+    cprintf("kobject: %ld bytes\n", sizeof(struct kobject));
+    cprintf("Thread: %ld bytes\n", sizeof(struct Thread));
+    cprintf("Gate: %ld bytes\n", sizeof(struct Gate));
+
     int r = pstate_init();
     if (r < 0) {
 	cprintf("Unable to load persistent state: %d\n", r);

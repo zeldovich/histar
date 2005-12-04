@@ -198,7 +198,7 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
     struct Segment *sg;
     check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
     check(label_compare(&sg->sg_ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi));
-    return sg->sg_ko.ko_extra_pages;
+    return sg->sg_ko.ko_npages;
 }
 
 static void

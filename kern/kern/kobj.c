@@ -1,4 +1,5 @@
 #include <machine/thread.h>
+#include <machine/pmap.h>
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/gate.h>
@@ -43,6 +44,111 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     return 0;
 }
 
+static int
+kobject_get_pagep(struct kobject *kp, uint64_t npage, void ***pp)
+{
+    if (npage < KOBJ_DIRECT_PAGES) {
+	*pp = &kp->ko_pages[npage];
+	return 0;
+    }
+
+    npage -= KOBJ_DIRECT_PAGES;
+    if (npage < KOBJ_PAGES_PER_INDIR) {
+	if (kp->ko_pages_indir1 == 0) {
+	    int r = page_alloc((void**)&kp->ko_pages_indir1);
+	    if (r < 0)
+		return r;
+	    memset(kp->ko_pages_indir1, 0, PGSIZE);
+	}
+
+	*pp = &kp->ko_pages_indir1[npage];
+    }
+
+    return -E_INVAL;
+}
+
+static void
+kobject_free_pages(struct kobject *ko)
+{
+    for (int i = 0; i < KOBJ_DIRECT_PAGES; i++) {
+	if (ko->ko_pages[i]) {
+	    page_free(ko->ko_pages[i]);
+	    ko->ko_pages[i] = 0;
+	}
+    }
+
+    if (ko->ko_pages_indir1) {
+	for (int i = 0; i < KOBJ_PAGES_PER_INDIR; i++) {
+	    if (ko->ko_pages_indir1[i]) {
+		page_free(ko->ko_pages_indir1[i]);
+		ko->ko_pages_indir1[i] = 0;
+	    }
+	}
+	page_free(ko->ko_pages_indir1);
+	ko->ko_pages_indir1 = 0;
+    }
+
+    ko->ko_npages = 0;
+}
+
+int
+kobject_get_page(struct kobject *kp, uint64_t npage, void **pp)
+{
+    if (npage > kp->ko_npages)
+	return -E_INVAL;
+
+    void **pp2;
+    int r = kobject_get_pagep(kp, npage, &pp2);
+    *pp = *pp2;
+    return r;
+}
+
+int
+kobject_set_npages(struct kobject *kp, uint64_t npages)
+{
+    if (npages > KOBJ_DIRECT_PAGES + KOBJ_PAGES_PER_INDIR)
+	return -E_NO_MEM;
+
+    for (int64_t i = npages; i < kp->ko_npages; i++) {
+	void **pp;
+	int r = kobject_get_pagep(kp, i, &pp);
+	if (r < 0)
+	    return r;
+
+	page_free(*pp);
+	*pp = 0;
+    }
+
+    for (int64_t i = kp->ko_npages; i < npages; i++) {
+	void **pp;
+	int r = kobject_get_pagep(kp, i, &pp);
+	if (r < 0)
+	    return r;
+
+	if (*pp == 0)
+	    r = page_alloc(pp);
+
+	if (r < 0) {
+	    // free all the pages we allocated up to now
+	    for (; i >= kp->ko_npages; i--) {
+		int q = kobject_get_pagep(kp, i, &pp);
+		if (q < 0)
+		    panic("cannot lookup just-allocated page: %d", q);
+		if (*pp) {
+		    page_free(*pp);
+		    *pp = 0;
+		}
+	    }
+	    return r;
+	}
+
+	memset(*pp, 0, PGSIZE);
+    }
+
+    kp->ko_npages = npages;
+    return 0;
+}
+
 void
 kobject_swapin(struct kobject *ko)
 {
@@ -55,17 +161,12 @@ kobject_swapin(struct kobject *ko)
 void
 kobject_swapin_page(struct kobject *ko, uint64_t page_num, void *p)
 {
-    if (ko->ko_type != kobj_segment)
-	panic("kobject_swapin_page: not a segment\n");
-    segment_swapin_page((struct Segment *) ko, page_num, p);
-}
+    void **pp;
+    int r = kobject_get_pagep(ko, page_num, &pp);
+    if (r < 0)
+	panic("cannot get slot for swapped-in page: %d", r);
 
-void *
-kobject_swapout_page(struct kobject *ko, uint64_t page_num)
-{
-    if (ko->ko_type != kobj_segment)
-	panic("kobject_swapout_page: not a segment\n");
-    return segment_swapout_page((struct Segment *) ko, page_num);
+    *pp = p;
 }
 
 void
@@ -83,7 +184,7 @@ kobject_decref(struct kobject *ko)
 static void
 kobject_gc(struct kobject *ko)
 {
-    int r;
+    int r = 0;
 
     switch (ko->ko_type) {
     case kobj_thread:
@@ -95,7 +196,6 @@ kobject_gc(struct kobject *ko)
 	break;
 
     case kobj_segment:
-	r = segment_gc((struct Segment *) ko);
 	break;
 
     case kobj_container:
@@ -110,6 +210,8 @@ kobject_gc(struct kobject *ko)
 	return;
     if (r < 0)
 	cprintf("kobject_free: cannot GC type %d: %d\n", ko->ko_type, r);
+
+    kobject_free_pages(ko);
     ko->ko_type = kobj_dead;
 }
 
@@ -134,9 +236,8 @@ kobject_swapout(struct kobject *ko)
 {
     if (ko->ko_type == kobj_thread)
 	thread_swapout((struct Thread *) ko);
-    if (ko->ko_type == kobj_segment)
-	segment_swapout((struct Segment *) ko);
 
     LIST_REMOVE(ko, ko_link);
+    kobject_free_pages(ko);
     page_free(ko);
 }
