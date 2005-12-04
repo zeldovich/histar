@@ -6,8 +6,7 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
-// Align to avoid IDE-DMA problems (can't cross 64K boundary)
-static union __attribute__ ((__aligned__ (2*PGSIZE))) {
+static union {
     struct pstate_header hdr;
     char buf[2*PGSIZE];
 } pstate_buf;

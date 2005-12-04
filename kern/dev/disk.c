@@ -17,8 +17,9 @@ struct ide_op {
     disk_callback cb;
     void *cbarg;
 
-    // Align to 8 bytes to avoid spanning a 64K boundary.
-    struct ide_prd bm_prd __attribute__((aligned (8)));
+    // Align to 256 bytes to avoid spanning a 64K boundary.
+    // 17 slots is enough for up to 64K data (16 pages), the max for IDE.
+    struct ide_prd bm_prd[17] __attribute__((aligned (256)));
 };
 
 struct ide_channel {
@@ -106,6 +107,29 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 }
 
 static void
+ide_prd_fill(struct ide_prd *prdt, void *buf, uint64_t bytes)
+{
+    int slot = 0;
+    while (bytes > 0) {
+	int page_off = PGOFF(buf);
+	int page_bytes = PGSIZE - page_off;
+	if (page_bytes > bytes)
+	    page_bytes = bytes;
+
+	prdt[slot].addr = kva2pa(buf);
+	prdt[slot].count = page_bytes;
+
+	bytes -= page_bytes;
+	buf += page_bytes;
+
+	if (bytes == 0)
+	    prdt[slot].count |= IDE_PRD_EOT;
+
+	slot++;
+    }
+}
+
+static void
 ide_send(struct ide_channel *idec, uint32_t diskno)
 {
     // IDE DMA can only handle up to 64K
@@ -117,12 +141,12 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512, num_sectors);
 
     // Create the physical region descriptor table
-    idec->current_op.bm_prd.addr = kva2pa(idec->current_op.buf);
-    idec->current_op.bm_prd.count =
-	(idec->current_op.num_bytes & 0xffff) | IDE_PRD_EOT;
+    ide_prd_fill(&idec->current_op.bm_prd[0],
+		 idec->current_op.buf,
+		 idec->current_op.num_bytes);
 
     // Load table address
-    outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->current_op.bm_prd));
+    outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->current_op.bm_prd[0]));
 
     // Clear DMA interrupt/error flags, enable DMA for disks
     outb(idec->bm_addr + IDE_BM_STAT_REG,
@@ -286,42 +310,4 @@ disk_io(disk_op op, void *buf,
 
     ide_send(idec, the_ide_drive);
     return 0;
-}
-
-// Disk test routines
-
-static uint32_t disk_test_buf[128];	// Let's hope it doesn't cross 64k..
-static int disk_test_count;
-static char *disk_test_string = "hello disk.";
-
-static void
-disk_test_read_cb(disk_io_status s, void *buf, uint32_t count, uint64_t offset, void *arg)
-{
-    if (s != disk_io_success) {
-	cprintf("Unable to read from disk.\n");
-    } else {
-	cprintf("Reading from disk: %s\n", (char*) disk_test_buf);
-	if (disk_test_count++ == 0) {
-	    disk_test_string = "hello disk again.";
-	    disk_test();
-	}
-    }
-}
-
-static void
-disk_test_write_cb(disk_io_status s, void *buf, uint32_t count, uint64_t offset, void *arg)
-{
-    if (s != disk_io_success) {
-	cprintf("Unable to write to disk.\n");
-    } else {
-	memset(disk_test_buf, 0, 512);
-	disk_io(op_read, disk_test_buf, 512, 0, disk_test_read_cb, 0);
-    }
-}
-
-void
-disk_test()
-{
-    memcpy(disk_test_buf, disk_test_string, strlen(disk_test_string) + 1);
-    disk_io(op_write, disk_test_buf, 512, 0, disk_test_write_cb, 0);
 }
