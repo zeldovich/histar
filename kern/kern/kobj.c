@@ -26,10 +26,9 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
 	return r;
 
     struct kobject *ko = p;
+    memset(ko, 0, sizeof(*ko));
     ko->ko_type = type;
     ko->ko_id = handle_alloc();
-    ko->ko_ref = 0;
-    ko->ko_extra_pages = 0;
     ko->ko_label = *l;
 
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
@@ -97,8 +96,17 @@ kobject_free(struct kobject *ko)
 	break;
 
     default:
-	panic("Unknown kobject type %d\n", ko->ko_type);
+	panic("kobject_free: unknown kobject type %d\n", ko->ko_type);
     }
+
+    ko->ko_type = kobj_dead;
+}
+
+void
+kobject_swapout(struct kobject *ko)
+{
+    if (ko->ko_type == kobj_thread)
+	thread_swapout((struct Thread *) ko);
 
     LIST_REMOVE(ko, ko_link);
     page_free(ko);

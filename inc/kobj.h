@@ -9,6 +9,7 @@ typedef enum {
     kobj_gate,
     kobj_segment,
 
+    kobj_dead,
     kobj_any
 } kobject_type_t;
 

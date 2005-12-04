@@ -9,10 +9,13 @@
 typedef uint64_t kobject_id_t;
 #define kobject_id_null		((kobject_id_t) -1)
 
+#define	KOBJ_PIN_IDLE	0x01	// Pinned for the idle process
+
 struct kobject {
     kobject_type_t ko_type;
     kobject_id_t ko_id;
     uint64_t ko_ref;
+    uint64_t ko_flags;
     uint64_t ko_extra_pages;
     struct Label ko_label;
     LIST_ENTRY(kobject) ko_link;
@@ -24,11 +27,23 @@ extern struct kobject_list ko_list;
 int  kobject_get(kobject_id_t id, struct kobject **kp);
 int  kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp);
 
+// The object has been brought in from disk.
 void kobject_swapin(struct kobject *kp);
+
+// One of the object's extra pages has been brought in from disk.
 void kobject_swapin_page(struct kobject *kp, uint64_t page_num, void *p);
+
+// Get one of the object's extra pages to swap out to disk.
 void *kobject_swapout_page(struct kobject *kp, uint64_t page_num);
 
+// Called when the object has been written out to disk and the
+// in-memory copy should be discarded.
+void kobject_swapout(struct kobject *kp);
+
+// Called when the refcount drops to 0, or the object is otherwise
+// not going to be needed anymore.
 void kobject_free(struct kobject *kp);
+
 void kobject_incref(struct kobject *kp);
 void kobject_decref(struct kobject *kp);
 
