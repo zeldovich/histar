@@ -27,11 +27,11 @@ extern struct kobject_list ko_list;
 int  kobject_get(kobject_id_t id, struct kobject **kp);
 int  kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp);
 
-// The object has been brought in from disk.
-void kobject_swapin(struct kobject *kp);
-
 // One of the object's extra pages has been brought in from disk.
 void kobject_swapin_page(struct kobject *kp, uint64_t page_num, void *p);
+
+// The object has been fully brought in from disk.
+void kobject_swapin(struct kobject *kp);
 
 // Get one of the object's extra pages to swap out to disk.
 void *kobject_swapout_page(struct kobject *kp, uint64_t page_num);

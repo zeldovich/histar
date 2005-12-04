@@ -107,6 +107,8 @@ kobject_swapout(struct kobject *ko)
 {
     if (ko->ko_type == kobj_thread)
 	thread_swapout((struct Thread *) ko);
+    if (ko->ko_type == kobj_segment)
+	segment_swapout((struct Segment *) ko);
 
     LIST_REMOVE(ko, ko_link);
     page_free(ko);

@@ -22,6 +22,12 @@ segment_gc(struct Segment *sg)
     segment_set_npages(sg, 0);
 }
 
+void
+segment_swapout(struct Segment *sg)
+{
+    segment_set_npages(sg, 0);
+}
+
 int
 segment_set_npages(struct Segment *sg, uint64_t num_pages)
 {
