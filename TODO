@@ -4,6 +4,9 @@ larger labels
 
 what to do about return gates?
 
+read/write flag to kobject_get()
+copy-on-write kobjects
+kobject pinning
 snapshotting pstate_sync()
 
 deal with segment fragmentation on-disk
