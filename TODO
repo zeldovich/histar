@@ -11,3 +11,5 @@ snapshotting pstate_sync()
 
 deal with segment fragmentation on-disk
 
+check disk_io() return values
+

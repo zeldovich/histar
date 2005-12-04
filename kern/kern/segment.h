@@ -17,7 +17,7 @@ int  segment_alloc(struct Label *l, struct Segment **sgp);
 void segment_gc(struct Segment *sg);
 
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
-int  segment_map_to_pmap(struct segment_map *segmap, struct Pagemap *pgmap);
+int  segment_map_fill_pmap(struct segment_map *segmap, struct Pagemap *pgmap, void *va);
 
 void segment_swapout(struct Segment *sg);
 void segment_swapin_page(struct Segment *sg, uint64_t page_num, void *p);

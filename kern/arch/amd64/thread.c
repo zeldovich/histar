@@ -119,24 +119,20 @@ int
 thread_pagefault(void *fault_va)
 {
     if (cur_thread->th_pgmap == &bootpml4) {
-	struct Pagemap *pgmap;
-	int r = page_map_alloc(&pgmap);
+	int r = page_map_alloc(&cur_thread->th_pgmap);
 	if (r < 0)
 	    return r;
-
-	r = segment_map_to_pmap(&cur_thread->th_segmap, pgmap);
-	if (r < 0) {
-	    page_map_free(pgmap);
-	    if (r == -E_RESTART)
-		return 0;
-
-	    cprintf("thread_pagefault: cannot generate pagemap: %d\n", r);
-	    return r;
-	}
-
-	cur_thread->th_pgmap = pgmap;
-	return 0;
     }
 
-    return -1;
+    int r = segment_map_fill_pmap(&cur_thread->th_segmap,
+				  cur_thread->th_pgmap, fault_va);
+    if (r == -E_RESTART)
+	return 0;
+
+    if (r < 0) {
+	cprintf("thread_pagefault: cannot fill pagemap: %d\n", r);
+	return r;
+    }
+
+    return 0;
 }
