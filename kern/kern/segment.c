@@ -16,10 +16,10 @@ segment_alloc(struct Label *l, struct Segment **sgp)
     return 0;
 }
 
-void
+int
 segment_gc(struct Segment *sg)
 {
-    segment_set_npages(sg, 0);
+    return segment_set_npages(sg, 0);
 }
 
 void

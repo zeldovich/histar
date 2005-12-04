@@ -40,15 +40,9 @@ container_put(struct Container *c, struct kobject *ko)
     return -E_NO_MEM;
 }
 
-int
-container_unref(struct Container *c, uint64_t slot)
+static int
+container_unref2(struct Container *c, uint64_t slot)
 {
-    if (cur_thread) {
-	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
-	if (r < 0)
-	    return r;
-    }
-
     if (slot >= NUM_CT_OBJ)
 	return -E_INVAL;
 
@@ -61,21 +55,33 @@ container_unref(struct Container *c, uint64_t slot)
     if (r < 0)
 	return r;
 
-    // XXX user-controllable recursion depth, if ko->ko_type==kobj_container
     kobject_decref(ko);
     c->ct_obj[slot] = kobject_id_null;
     return 0;
 }
 
-void
+int
+container_unref(struct Container *c, uint64_t slot)
+{
+    if (cur_thread) {
+	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
+	if (r < 0)
+	    return r;
+    }
+
+    return container_unref2(c, slot);
+}
+
+int
 container_gc(struct Container *c)
 {
     for (int i = 0; i < NUM_CT_OBJ; i++) {
-	int r = container_unref(c, i);
-	// XXX no error-handling path
+	int r = container_unref2(c, i);
 	if (r < 0)
-	    cprintf("container_gc(): cannot unref slot %d: %d\n", i, r);
+	    return r;
     }
+
+    return 0;
 }
 
 int

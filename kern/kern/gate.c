@@ -16,7 +16,8 @@ gate_alloc(struct Label *l, struct Gate **gp)
     return 0;
 }
 
-void
+int
 gate_gc(struct Gate *g)
 {
+    return 0;
 }

@@ -55,11 +55,12 @@ thread_swapout(struct Thread *t)
 	page_map_free(t->th_pgmap);
 }
 
-void
+int
 thread_gc(struct Thread *t)
 {
     thread_halt(t);
     thread_swapout(t);
+    return 0;
 }
 
 void

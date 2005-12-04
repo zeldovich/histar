@@ -13,7 +13,7 @@ struct Container {
 };
 
 int  container_alloc(struct Label *l, struct Container **cp);
-void container_gc(struct Container *c);
+int  container_gc(struct Container *c);
 
 int  container_find(struct Container **cp, kobject_id_t id);
 int  container_put(struct Container *c, struct kobject *ko);

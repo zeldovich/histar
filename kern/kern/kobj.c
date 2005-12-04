@@ -83,27 +83,33 @@ kobject_decref(struct kobject *ko)
 static void
 kobject_gc(struct kobject *ko)
 {
+    int r;
+
     switch (ko->ko_type) {
     case kobj_thread:
-	thread_gc((struct Thread *) ko);
+	r = thread_gc((struct Thread *) ko);
 	break;
 
     case kobj_gate:
-	gate_gc((struct Gate *) ko);
+	r = gate_gc((struct Gate *) ko);
 	break;
 
     case kobj_segment:
-	segment_gc((struct Segment *) ko);
+	r = segment_gc((struct Segment *) ko);
 	break;
 
     case kobj_container:
-	container_gc((struct Container *) ko);
+	r = container_gc((struct Container *) ko);
 	break;
 
     default:
-	panic("kobject_free: unknown kobject type %d\n", ko->ko_type);
+	panic("kobject_free: unknown kobject type %d", ko->ko_type);
     }
 
+    if (r == -E_RESTART)
+	return;
+    if (r < 0)
+	cprintf("kobject_free: cannot GC type %d: %d\n", ko->ko_type, r);
     ko->ko_type = kobj_dead;
 }
 
