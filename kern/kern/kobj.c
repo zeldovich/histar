@@ -77,12 +77,11 @@ kobject_incref(struct kobject *ko)
 void
 kobject_decref(struct kobject *ko)
 {
-    if (--ko->ko_ref == 0)
-	kobject_free(ko);
+    --ko->ko_ref;
 }
 
-void
-kobject_free(struct kobject *ko)
+static void
+kobject_gc(struct kobject *ko)
 {
     switch (ko->ko_type) {
     case kobj_thread:
@@ -106,6 +105,15 @@ kobject_free(struct kobject *ko)
     }
 
     ko->ko_type = kobj_dead;
+}
+
+void
+kobject_gc_scan()
+{
+    struct kobject *ko;
+    LIST_FOREACH(ko, &ko_list, ko_link)
+	if (ko->ko_ref == 0 && ko->ko_type != kobj_dead)
+	    kobject_gc(ko);
 }
 
 void

@@ -40,9 +40,8 @@ void *kobject_swapout_page(struct kobject *kp, uint64_t page_num);
 // in-memory copy should be discarded.
 void kobject_swapout(struct kobject *kp);
 
-// Called when the refcount drops to 0, or the object is otherwise
-// not going to be needed anymore.
-void kobject_free(struct kobject *kp);
+// Called by the timer interrupt to garbage-collect free'd kobjects
+void kobject_gc_scan();
 
 void kobject_incref(struct kobject *kp);
 void kobject_decref(struct kobject *kp);

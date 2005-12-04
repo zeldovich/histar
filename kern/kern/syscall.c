@@ -15,14 +15,10 @@
 // Helper functions
 static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
-static struct kobject *syscall_cleanup_ko;
 
 static void __attribute__((__noreturn__))
 syscall_error(int r)
 {
-    if (syscall_cleanup_ko)
-	kobject_free(syscall_cleanup_ko);
-
     if (r == -E_RESTART)
 	thread_syscall_restart(cur_thread);
 
@@ -80,13 +76,9 @@ sys_cgetc()
 static int
 sys_container_alloc(uint64_t parent_ct)
 {
-    struct Container *parent;
+    struct Container *parent, *c;
     check(container_find(&parent, parent_ct));
-
-    struct Container *c;
     check(container_alloc(&cur_thread->th_ko.ko_label, &c));
-    syscall_cleanup_ko = &c->ct_ko;
-
     return check(container_put(parent, &c->ct_ko));
 }
 
@@ -130,7 +122,6 @@ sys_gate_create(uint64_t container, struct thread_entry *te)
 
     struct Gate *g;
     check(gate_alloc(&cur_thread->th_ko.ko_label, &g));
-    syscall_cleanup_ko = &g->gt_ko;
 
     g->gt_te = *te;
     g->gt_target_label = cur_thread->th_ko.ko_label;
@@ -146,7 +137,6 @@ sys_thread_create(uint64_t ct)
 
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
-    syscall_cleanup_ko = &t->th_ko;
 
     return check(container_put(c, &t->th_ko));
 }
@@ -187,7 +177,6 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
 
     struct Segment *sg;
     check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
-    syscall_cleanup_ko = &sg->sg_ko;
 
     check(segment_set_npages(sg, num_pages));
     return check(container_put(c, &sg->sg_ko));
@@ -222,7 +211,6 @@ uint64_t
 syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	uint64_t a3, uint64_t a4, uint64_t a5)
 {
-    syscall_cleanup_ko = 0;
     syscall_ret = 0;
 
     int r = setjmp(&syscall_retjmp);

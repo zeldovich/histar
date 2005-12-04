@@ -72,10 +72,8 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	return r;
 
     r = segment_set_npages(sg, (segsize + PGSIZE - 1) / PGSIZE);
-    if (r < 0) {
-	kobject_free(&sg->sg_ko);
+    if (r < 0)
 	return r;
-    }
 
     for (int i = 0; bufsize > 0; i += PGSIZE) {
 	uint64_t bytes = PGSIZE;
@@ -88,10 +86,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
     }
 
     sg->sg_ko.ko_flags = c->ct_ko.ko_flags;
-    int slot = container_put(c, &sg->sg_ko);
-    if (slot < 0)
-	kobject_free(&sg->sg_ko);
-    return slot;
+    return container_put(c, &sg->sg_ko);
 }
 
 static int
@@ -246,6 +241,7 @@ user_bootstrap()
     // root container
     struct Container *rc;
     assert(0 == container_alloc(&l, &rc));
+    kobject_incref(&rc->ct_ko);
 
     // filesystem
     struct Container *fsc;
