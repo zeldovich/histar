@@ -87,6 +87,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
 	bufsize -= bytes;
     }
 
+    sg->sg_ko.ko_flags = c->ct_ko.ko_flags;
     int slot = container_put(c, &sg->sg_ko);
     if (slot < 0)
 	kobject_free(&sg->sg_ko);
@@ -167,12 +168,15 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 }
 
 static void
-thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *prog, uint64_t arg)
+thread_create_embed(struct Container *c, struct Label *l,
+		    struct embedded_blob *prog, uint64_t arg,
+		    uint64_t koflag)
 {
     struct Container *tc;
     int r = container_alloc(l, &tc);
     if (r < 0)
 	panic("tce: cannot alloc container");
+    tc->ct_ko.ko_flags = koflag;
 
     int tcslot = container_put(c, &tc->ct_ko);
     if (tcslot < 0)
@@ -182,6 +186,7 @@ thread_create_embed(struct Container *c, struct Label *l, struct embedded_blob *
     r = thread_alloc(l, &t);
     if (r < 0)
 	panic("tce: cannot allocate thread");
+    t->th_ko.ko_flags = tc->ct_ko.ko_flags;
 
     r = container_put(tc, &t->th_ko);
     if (r < 0)
@@ -250,8 +255,8 @@ user_bootstrap()
     fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, &l, &embed_idle, 0);
-    thread_create_embed(rc, &l, &embed_shell, rc->ct_ko.ko_id);
+    thread_create_embed(rc, &l, &embed_idle, 0, KOBJ_PIN_IDLE);
+    thread_create_embed(rc, &l, &embed_shell, rc->ct_ko.ko_id, 0);
 }
 
 void
