@@ -57,6 +57,12 @@ sys_container_get_c_id(struct cobj_ref o)
 }
 
 int
+sys_container_nslots(uint64_t container)
+{
+    return syscall(SYS_container_nslots, container, 0, 0, 0, 0);
+}
+
+int
 sys_gate_create(uint64_t container, struct thread_entry *entry)
 {
     return syscall(SYS_gate_create, container, (uint64_t) entry, 0, 0, 0);

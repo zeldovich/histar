@@ -22,6 +22,7 @@ int	sys_container_unref(struct cobj_ref o);
 kobject_type_t
 	sys_container_get_type(struct cobj_ref o);
 int64_t	sys_container_get_c_id(struct cobj_ref o);
+int	sys_container_nslots(uint64_t container);
 int	sys_container_store_cur_thread(uint64_t container);
 
 int	sys_gate_create(uint64_t container, struct thread_entry *s);

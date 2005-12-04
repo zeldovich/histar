@@ -56,7 +56,13 @@ builtin_list_container(int ac, char **av)
     int ct = atoi(av[0]);
     cprintf("Container %d:\n", ct);
 
-    for (int i = 0; i < 100; i++) {
+    int nslots = sys_container_nslots(ct);
+    if (nslots < 0) {
+	cprintf("sys_container_nslots(%d): %d\n", ct, nslots);
+	return;
+    }
+
+    for (int i = 0; i < nslots; i++) {
 	int r = sys_container_get_type(COBJ(ct, i));
 	if (r == -E_NOT_FOUND)
 	    continue;

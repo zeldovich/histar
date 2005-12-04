@@ -114,6 +114,14 @@ sys_container_get_c_id(struct cobj_ref cobj)
     return c->ct_ko.ko_id;
 }
 
+static uint64_t
+sys_container_nslots(uint64_t container)
+{
+    struct Container *c;
+    check(container_find(&c, container));
+    return container_nslots(c);
+}
+
 static int
 sys_gate_create(uint64_t container, struct thread_entry *te)
 {
@@ -252,6 +260,10 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_container_get_c_id:
 	syscall_ret = sys_container_get_c_id(COBJ(a1, a2));
+	break;
+
+    case SYS_container_nslots:
+	syscall_ret = sys_container_nslots(a1);
 	break;
 
     case SYS_gate_create:
