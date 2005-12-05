@@ -33,8 +33,8 @@ static __inline void write_eflags(uint32_t eflags) __attribute__((always_inline)
 static __inline void halt(void) __attribute__((always_inline));
 static __inline void sti(void) __attribute__((always_inline));
 static __inline void cli(void) __attribute__((always_inline));
-static __inline uint32_t read_ebp(void) __attribute__((always_inline));
-static __inline uint32_t read_esp(void) __attribute__((always_inline));
+static __inline uint64_t read_rbp(void) __attribute__((always_inline));
+static __inline uint64_t read_rsp(void) __attribute__((always_inline));
 static __inline void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp);
 static __inline uint64_t read_tsc(void) __attribute__((always_inline));
 
@@ -254,20 +254,20 @@ cli(void)
         __asm __volatile("sti");
 }
 
-static __inline uint32_t
-read_ebp(void)
+static __inline uint64_t
+read_rbp(void)
 {
-        uint32_t ebp;
-        __asm __volatile("movl %%ebp,%0" : "=r" (ebp));
-        return ebp;
+        uint64_t rbp;
+        __asm __volatile("movq %%rbp,%0" : "=r" (rbp));
+        return rbp;
 }
 
-static __inline uint32_t
-read_esp(void)
+static __inline uint64_t
+read_rsp(void)
 {
-        uint32_t esp;
-        __asm __volatile("movl %%esp,%0" : "=r" (esp));
-        return esp;
+        uint64_t rsp;
+        __asm __volatile("movq %%rsp,%0" : "=r" (rsp));
+        return rsp;
 }
 
 static __inline void
