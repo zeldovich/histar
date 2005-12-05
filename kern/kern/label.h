@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/mmu.h>
+#include <inc/label.h>
 
 #define NUM_LB_ENT  4
 
@@ -24,6 +25,8 @@ level_comparator label_leq_starhi;
 level_comparator label_eq;
 
 int  label_set(struct Label *l, uint64_t handle, int level);
+int  label_to_ulabel(struct Label *l, struct ulabel *ul);
+int  ulabel_to_label(struct ulabel *ul, struct Label *l);
 
 // returns -1 if the comparator returns -1 on any relevant level pair
 int  label_compare(struct Label *l1, struct Label *l2, level_comparator cmp);

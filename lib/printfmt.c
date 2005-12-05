@@ -4,7 +4,7 @@
 
 #include <inc/types.h>
 #include <inc/error.h>
-#include <inc/asbestos.h>
+
 #ifdef JOS_KERNEL
 #include <kern/lib.h>
 #else /* !JOS_KERNEL */
@@ -227,27 +227,7 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
       }
       break;
 
-#ifdef JOS_KERNEL
-      // klabel
 #if 0
-    case 'L':{
-	const klabel_t *l = va_arg (ap, const klabel_t *);
-	label_printfmt (l, putch, putdat);
-	break;
-      }
-
-      // vnode: handle + environment
-    case 'V':{
-	const vnode_t *v = va_arg (ap, const vnode_t *);
-	if (v)
-	  printfmt (putch, putdat, "%H [%x.%s]", v->v_handle, v->v_env_id,
-		    v->v_device->name);
-	else
-	  printfmt (putch, putdat, "(null)");
-	break;
-      }
-#endif
-#else
       // label/llabel
     case 'L':{
 	const void *v = va_arg (ap, const void *);

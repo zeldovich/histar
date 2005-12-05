@@ -1,5 +1,6 @@
-#include <kern/label.h>
 #include <machine/pmap.h>
+#include <machine/trap.h>
+#include <kern/label.h>
 #include <inc/error.h>
 
 static int
@@ -32,6 +33,60 @@ label_set(struct Label *l, uint64_t handle, int level)
     }
 
     l->lb_ent[i] = LB_CODE(handle, level);
+    return 0;
+}
+
+int
+label_to_ulabel(struct Label *l, struct ulabel *ul)
+{
+    ul = TRUP(ul);
+
+    page_fault_mode = PFM_KILL;
+    ul->ul_default = l->lb_def_level;
+    ul->ul_nent = 0;
+    uint32_t ul_size = ul->ul_size;
+    uint64_t *ul_ent = TRUP(ul->ul_ent);
+    page_fault_mode = PFM_NONE;
+
+    for (int slot = 0; slot < l->lb_num_ent; slot++) {
+	if (slot > ul_size)
+	    return -E_NO_SPACE;
+
+	page_fault_mode = PFM_KILL;
+	ul_ent[slot] = l->lb_ent[slot];
+	ul->ul_nent++;
+	page_fault_mode = PFM_NONE;
+    }
+
+    return 0;
+}
+
+int
+ulabel_to_label(struct ulabel *ul, struct Label *l)
+{
+    ul = TRUP(ul);
+
+    page_fault_mode = PFM_KILL;
+    l->lb_def_level = ul->ul_default;
+    uint32_t ul_nent = ul->ul_nent;
+    uint64_t *ul_ent = TRUP(ul->ul_ent);
+    page_fault_mode = PFM_NONE;
+
+    l->lb_num_ent = 0;
+    for (int slot = 0; slot < ul_nent; slot++) {
+	if (slot >= NUM_LB_ENT)
+	    return -E_NO_SPACE;
+
+	page_fault_mode = PFM_KILL;
+	uint64_t ul_val = ul_ent[slot];
+	page_fault_mode = PFM_NONE;
+
+	if (LB_LEVEL(ul_val) < 0 && LB_LEVEL(ul_val) > LB_LEVEL_STAR)
+	    return -E_INVAL;
+	l->lb_ent[slot] = ul_val;
+	l->lb_num_ent++;
+    }
+
     return 0;
 }
 
