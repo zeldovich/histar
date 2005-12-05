@@ -30,7 +30,7 @@ int	sys_obj_get_label(struct cobj_ref o, struct ulabel *l);
 
 int64_t	sys_handle_create();
 
-int	sys_gate_create(uint64_t container, struct thread_entry *s);
+int	sys_gate_create(uint64_t container, struct thread_entry *s, struct ulabel *entry, struct ulabel *target);
 int	sys_gate_enter(struct cobj_ref gate);
 
 int	sys_thread_create(uint64_t container);

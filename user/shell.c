@@ -151,7 +151,9 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    struct thread_entry e;
+    // XXX these things are ridiculously huge
+    static struct thread_entry e;
+
     int r = elf_load(c_spawn, seg, &e);
     if (r < 0) {
 	cprintf("cannot load ELF: %d\n", r);

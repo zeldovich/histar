@@ -121,6 +121,17 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
     }
 
     newmap++;
+
+    uint64_t label_ents[8];
+    struct ulabel l = {
+	.ul_size = 8,
+	.ul_ent = &label_ents[0],
+    };
+
+    r = label_get_cur(ctemp, &l);
+    if (r < 0)
+	return r;
+
     struct thread_entry te = {
 	.te_segmap = *segmap,
 	.te_entry = longjmp,
@@ -128,7 +139,7 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 	.te_arg = (uint64_t) &ret,
     };
 
-    slot = sys_gate_create(ctemp, &te);
+    slot = sys_gate_create(ctemp, &te, &l, &l);
     if (slot < 0)
 	return slot;
 

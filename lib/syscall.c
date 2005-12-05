@@ -75,9 +75,9 @@ sys_container_nslots(uint64_t container)
 }
 
 int
-sys_gate_create(uint64_t container, struct thread_entry *entry)
+sys_gate_create(uint64_t container, struct thread_entry *te, struct ulabel *el, struct ulabel *tl)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) entry, 0, 0, 0);
+    return syscall(SYS_gate_create, container, (uint64_t) te, (uint64_t) el, (uint64_t) tl, 0);
 }
 
 int

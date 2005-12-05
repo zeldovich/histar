@@ -140,16 +140,21 @@ sys_container_nslots(uint64_t container)
 }
 
 static int
-sys_gate_create(uint64_t container, struct thread_entry *te)
+sys_gate_create(uint64_t container, struct thread_entry *te, struct ulabel *ul_e, struct ulabel *ul_t)
 {
+    struct Label l_e, l_t;
+    check(ulabel_to_label(ul_e, &l_e));
+    check(ulabel_to_label(ul_t, &l_t));
+    check(label_compare(&cur_thread->th_ko.ko_label, &l_t, label_leq_starlo));
+
     struct Container *c;
     check(container_find(&c, container));
 
     struct Gate *g;
-    check(gate_alloc(&cur_thread->th_ko.ko_label, &g));
+    check(gate_alloc(&l_e, &g));
 
     g->gt_te = *te;
-    g->gt_target_label = cur_thread->th_ko.ko_label;
+    g->gt_target_label = l_t;
 
     return check(container_put(c, &g->gt_ko));
 }
@@ -297,7 +302,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	    struct thread_entry e = *(struct thread_entry *) TRUP(a2);
 	    page_fault_mode = PFM_NONE;
 
-	    syscall_ret = sys_gate_create(a1, &e);
+	    syscall_ret = sys_gate_create(a1, &e, (struct ulabel*) a3, (struct ulabel*) a4);
 	}
 	break;
 

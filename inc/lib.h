@@ -3,6 +3,7 @@
 
 #include <inc/segment.h>
 #include <inc/thread.h>
+#include <inc/label.h>
 
 /* console.c */
 int	iscons(int fd);
@@ -26,5 +27,8 @@ int	elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e);
 /* libmain.c */
 extern uint64_t start_arg;
 void	libmain(uint64_t arg) __attribute__((__noreturn__));
+
+/* label.c */
+int	label_get_cur(uint64_t ctemp, struct ulabel *l);
 
 #endif

@@ -21,7 +21,8 @@ LIB_SRCFILES :=	\
 	lib/console.c \
 	lib/readline.c \
 	lib/segment.c \
-	lib/elf.c
+	lib/elf.c \
+	lib/label.c
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
