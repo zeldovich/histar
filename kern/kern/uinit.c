@@ -243,7 +243,7 @@ user_bootstrap()
     // root handle and a label
     uint64_t root_handle = handle_alloc();
     struct Label l;
-    memset(&l, 0, sizeof(l));
+    label_init(&l);
     l.lb_def_level = 1;
     assert(0 == label_set(&l, root_handle, LB_LEVEL_STAR));
 

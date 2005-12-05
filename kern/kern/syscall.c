@@ -8,6 +8,7 @@
 #include <kern/container.h>
 #include <kern/gate.h>
 #include <kern/segment.h>
+#include <kern/handle.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -96,6 +97,14 @@ sys_container_store_cur_thread(uint64_t ct)
     struct Container *c;
     check(container_find(&c, ct));
     return check(container_put(c, &cur_thread->th_ko));
+}
+
+static uint64_t
+sys_handle_create()
+{
+    uint64_t handle = handle_alloc();
+    check(label_set(&cur_thread->th_ko.ko_label, handle, LB_LEVEL_STAR));
+    return handle;
 }
 
 static int
@@ -252,6 +261,10 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_container_store_cur_thread:
 	syscall_ret = sys_container_store_cur_thread(a1);
+	break;
+
+    case SYS_handle_create:
+	syscall_ret = sys_handle_create();
 	break;
 
     case SYS_container_get_type:

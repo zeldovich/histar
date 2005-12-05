@@ -69,7 +69,7 @@ kva2pa (void *kva)
  * This macro takes a user supplied address and turns it into
  * something that will cause a fault if it is a kernel address.
  */
-#define TRUP(p) ((__typeof__(p)) (((uintptr_t)(p)) & ~(1ULL<<63)))
+#define TRUP(p) ((__typeof__(p)) (((uintptr_t)(p)) & ~(1L<<63)))
 
 #endif /* !__ASSEMBLER__ */
 

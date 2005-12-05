@@ -44,6 +44,12 @@ sys_container_store_cur_thread(uint64_t container)
     return syscall(SYS_container_store_cur_thread, container, 0, 0, 0, 0);
 }
 
+int64_t
+sys_handle_create()
+{
+    return syscall(SYS_handle_create, 0, 0, 0, 0, 0);
+}
+
 kobject_type_t
 sys_container_get_type(struct cobj_ref o)
 {

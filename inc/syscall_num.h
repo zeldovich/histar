@@ -15,8 +15,9 @@ typedef enum {
     SYS_container_get_type,	// get type of contained object
     SYS_container_get_c_id,	// get global id of sub-container
     SYS_container_nslots,
-
     SYS_container_store_cur_thread,
+
+    SYS_handle_create,
 
     SYS_gate_create,
     SYS_gate_enter,

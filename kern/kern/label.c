@@ -6,8 +6,8 @@
 static int
 label_find_slot(struct Label *l, uint64_t handle)
 {
-    for (int i = 0; i < l->lb_num_ent; i++)
-	if (LB_HANDLE(l->lb_ent[i]) == handle)
+    for (int i = 0; i < NUM_LB_ENT; i++)
+	if (l->lb_ent[i] != LB_ENT_EMPTY && LB_HANDLE(l->lb_ent[i]) == handle)
 	    return i;
 
     return -E_NO_MEM;
@@ -22,17 +22,31 @@ label_get_level(struct Label *l, uint64_t handle)
     return LB_LEVEL(l->lb_ent[i]);
 }
 
+void
+label_init(struct Label *l)
+{
+    for (int i = 0; i < NUM_LB_ENT; i++)
+	l->lb_ent[i] = LB_ENT_EMPTY;
+}
+
 int
 label_set(struct Label *l, uint64_t handle, int level)
 {
     int i = label_find_slot(l, handle);
     if (i < 0) {
-	if (l->lb_num_ent == NUM_LB_ENT)
-	    return -E_NO_MEM;
-	i = l->lb_num_ent++;
+	if (level == l->lb_def_level)
+	    return 0;
+
+	for (i = 0; i < NUM_LB_ENT; i++)
+	    if (l->lb_ent[i] == LB_ENT_EMPTY)
+		break;
+
+	if (i == NUM_LB_ENT)
+	    return -E_NO_SPACE;
     }
 
-    l->lb_ent[i] = LB_CODE(handle, level);
+    l->lb_ent[i] = (level == l->lb_def_level) ? LB_ENT_EMPTY
+					      : LB_CODE(handle, level);
     return 0;
 }
 
@@ -48,12 +62,17 @@ label_to_ulabel(struct Label *l, struct ulabel *ul)
     uint64_t *ul_ent = TRUP(ul->ul_ent);
     page_fault_mode = PFM_NONE;
 
-    for (int slot = 0; slot < l->lb_num_ent; slot++) {
-	if (slot > ul_size)
+    int slot = 0;
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	if (l->lb_ent[i] == LB_ENT_EMPTY)
+	    continue;
+
+	if (slot >= ul_size)
 	    return -E_NO_SPACE;
 
 	page_fault_mode = PFM_KILL;
-	ul_ent[slot] = l->lb_ent[slot];
+	ul_ent[slot] = l->lb_ent[i];
+	slot++;
 	ul->ul_nent++;
 	page_fault_mode = PFM_NONE;
     }
@@ -66,25 +85,25 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 {
     ul = TRUP(ul);
 
+    label_init(l);
     page_fault_mode = PFM_KILL;
     l->lb_def_level = ul->ul_default;
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = TRUP(ul->ul_ent);
     page_fault_mode = PFM_NONE;
 
-    l->lb_num_ent = 0;
-    for (int slot = 0; slot < ul_nent; slot++) {
-	if (slot >= NUM_LB_ENT)
-	    return -E_NO_SPACE;
-
+    for (int i = 0; i < ul_nent; i++) {
 	page_fault_mode = PFM_KILL;
-	uint64_t ul_val = ul_ent[slot];
+	uint64_t ul_val = ul_ent[i];
 	page_fault_mode = PFM_NONE;
 
-	if (LB_LEVEL(ul_val) < 0 && LB_LEVEL(ul_val) > LB_LEVEL_STAR)
+	int level = LB_LEVEL(ul_val);
+	if (level < 0 && level > LB_LEVEL_STAR)
 	    return -E_INVAL;
-	l->lb_ent[slot] = ul_val;
-	l->lb_num_ent++;
+
+	int r = label_set(l, LB_HANDLE(ul_val), level);
+	if (r < 0)
+	    return r;
     }
 
     return 0;
@@ -93,7 +112,10 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 int
 label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 {
-    for (int i = 0; i < l1->lb_num_ent; i++) {
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	if (l1->lb_ent[i] == LB_ENT_EMPTY)
+	    continue;
+
 	int l1l = LB_LEVEL(l1->lb_ent[i]);
 	int l2l = label_get_level(l2, LB_HANDLE(l1->lb_ent[i]));
 
@@ -102,7 +124,10 @@ label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 	    return r;
     }
 
-    for (int i = 0; i < l2->lb_num_ent; i++) {
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	if (l2->lb_ent[i] == LB_ENT_EMPTY)
+	    continue;
+
 	int l1l = label_get_level(l1, LB_HANDLE(l2->lb_ent[i]));
 	int l2l = LB_LEVEL(l2->lb_ent[i]);
 
