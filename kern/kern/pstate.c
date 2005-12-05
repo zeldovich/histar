@@ -6,6 +6,10 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
+// Authoritative copy of the header that's actually on disk.
+static struct pstate_header stable_hdr;
+
+// Scratch-space for a copy of the header used while reading/writing.
 static union {
     struct pstate_header hdr;
     char buf[2*PGSIZE];
@@ -167,10 +171,14 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 	    return;
 	}
 
-	uint64_t offset = (state.hdr->ph_map.ent[swapin_state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
+	uint64_t offset = (stable_hdr.ph_map.ent[swapin_state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
 	++swapin_state.extra_page;
 
-	disk_io(op_read, p, PGSIZE, offset, &swapin_kobj_cb, arg);
+	r = disk_io(op_read, p, PGSIZE, offset, &swapin_kobj_cb, arg);
+	if (r < 0) {
+	    cprintf("swapin_kobj_cb: cannot submit disk IO: %d\n", r);
+	    (*cb) (r);
+	}
     } else {
 	kobject_swapin(swapin_state.ko);
 
@@ -195,7 +203,11 @@ swapin_kobj(int slot, void (*cb)(int)) {
     swapin_state.ko = p;
     swapin_state.extra_page = 0;
     swapin_state.slot = slot;
-    disk_io(op_read, p, PGSIZE, state.hdr->ph_map.ent[slot].offset * PGSIZE, &swapin_kobj_cb, cb);
+    r = disk_io(op_read, p, PGSIZE, stable_hdr.ph_map.ent[slot].offset * PGSIZE, &swapin_kobj_cb, cb);
+    if (r < 0) {
+	cprintf("swapin_kobj: cannot submit disk IO: %d\n", r);
+	(*cb) (r);
+    }
 }
 
 static struct Thread_tqueue swapin_tqueue;
@@ -217,7 +229,7 @@ int
 pstate_swapin(kobject_id_t id) {
     //cprintf("pstate_swapin: object %ld\n", id);
 
-    int slot = pstate_map_findslot(&state.hdr->ph_map, id);
+    int slot = pstate_map_findslot(&stable_hdr.ph_map, id);
     if (slot < 0)
 	return -E_INVAL;
 
@@ -238,7 +250,7 @@ pstate_swapin(kobject_id_t id) {
 static void
 init_done()
 {
-    handle_counter = state.hdr->ph_handle_counter;
+    handle_counter = stable_hdr.ph_handle_counter;
     state.done = 1;
 }
 
@@ -262,14 +274,14 @@ init_kobj()
 {
     // Page in all threads and pinned objects, but demand-page the rest
     while (state.slot < NUM_PH_OBJECTS) {
-	if (state.hdr->ph_map.ent[state.slot].offset == 0) {
+	if (stable_hdr.ph_map.ent[state.slot].offset == 0) {
 	    ++state.slot;
 	    continue;
 	}
 
-	if (state.hdr->ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
+	if (stable_hdr.ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
 	    break;
-	if (state.hdr->ph_map.ent[state.slot].type == kobj_thread)
+	if (stable_hdr.ph_map.ent[state.slot].type == kobj_thread)
 	    break;
 
 	++state.slot;
@@ -292,15 +304,12 @@ init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, voi
 	return;
     }
 
-    state.hdr = &pstate_buf.hdr;
-    if (state.hdr->ph_magic != PSTATE_MAGIC ||
-	state.hdr->ph_version != PSTATE_VERSION)
+    memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
+    if (stable_hdr.ph_magic != PSTATE_MAGIC ||
+	stable_hdr.ph_version != PSTATE_VERSION)
     {
 	cprintf("pstate_init_hdr: magic/version mismatch\n");
-
-	memset(&pstate_buf.hdr, 0, sizeof(pstate_buf.hdr));
-	freelist_init(&pstate_buf.hdr.ph_free);
-	state.done = -1;
+	state.done = -E_INVAL;
 	return;
     }
 
@@ -314,9 +323,19 @@ pstate_init()
     TAILQ_INIT(&swapin_tqueue);
 
     state.done = 0;
-    disk_io(op_read, &pstate_buf.buf[0], 2*PGSIZE, 0, &init_hdr_cb, 0);
+    int r = disk_io(op_read, &pstate_buf.buf[0], 2*PGSIZE, 0, &init_hdr_cb, 0);
+    if (r < 0) {
+	cprintf("pstate_init: cannot submit disk IO\n");
+	return r;
+    }
+
     while (!state.done)
 	ide_intr();
+
+    if (state.done < 0) {
+	memset(&stable_hdr, 0, sizeof(stable_hdr));
+	freelist_init(&stable_hdr.ph_free);
+    }
 
     return state.done;
 }
@@ -334,6 +353,7 @@ sync_header_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 	return;
     }
 
+    memcpy(&stable_hdr, state.hdr, sizeof(stable_hdr));
     state.done = 1;
 }
 
@@ -356,7 +376,12 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	    panic("sync_kobj_cb: cannot get object page");
 
 	swapout_state.extra_page++;
-	disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
+	r = disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
+	if (r < 0) {
+	    cprintf("sync_kobj_cb: cannot submit disk IO: %d\n", r);
+	    state.done = r;
+	    return;
+	}
     } else {
 	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
 	sync_kobj();
@@ -374,7 +399,12 @@ sync_kobj()
 
     if (swapout_state.ko == 0) {
 	freelist_commit(&state.hdr->ph_free);
-	disk_io(op_write, state.hdr, 2*PGSIZE, 0, sync_header_cb, 0);
+	int r = disk_io(op_write, state.hdr, 2*PGSIZE, 0, sync_header_cb, 0);
+	if (r < 0) {
+	    cprintf("sync_kobj: cannot submit disk IO: %d\n", r);
+	    state.done = r;
+	}
+
 	return;
     }
 
@@ -386,7 +416,13 @@ sync_kobj()
     }
 
     swapout_state.extra_page = 0;
-    disk_io(op_write, swapout_state.ko, PGSIZE, state.hdr->ph_map.ent[state.slot].offset * PGSIZE, sync_kobj_cb, 0);
+    int r = disk_io(op_write, swapout_state.ko, PGSIZE,
+		    state.hdr->ph_map.ent[state.slot].offset * PGSIZE,
+		    sync_kobj_cb, 0);
+    if (r < 0) {
+	cprintf("sync_kobj: cannot submit disk IO: %d\n", r);
+	state.done = r;
+    }
 }
 
 void
@@ -394,6 +430,8 @@ pstate_sync()
 {
     static_assert(sizeof(pstate_buf.hdr) <= 2*PGSIZE);
     state.hdr = &pstate_buf.hdr;
+    memcpy(state.hdr, &stable_hdr, sizeof(stable_hdr));
+
     state.hdr->ph_magic = PSTATE_MAGIC;
     state.hdr->ph_version = PSTATE_VERSION;
     state.hdr->ph_handle_counter = handle_counter;

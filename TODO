@@ -12,5 +12,3 @@ swapped-out zero-ref objects are never GC'ed
 
 deal with segment fragmentation on-disk
 
-check disk_io() return values
-
