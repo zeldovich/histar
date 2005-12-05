@@ -76,9 +76,8 @@ segment_map_fill_pmap(struct segment_map *segmap, struct Pagemap *pgmap, void *v
 			segmap->sm_ent[i].start_page,
 			segmap->sm_ent[i].num_pages,
 			segmap->sm_ent[i].writable);
-	if (r < 0)
-	    return r;
+	return r;
     }
 
-    return 0;
+    return -E_FAULT;
 }
