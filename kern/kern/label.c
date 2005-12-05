@@ -92,6 +92,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     uint64_t *ul_ent = TRUP(ul->ul_ent);
     page_fault_mode = PFM_NONE;
 
+    // XXX minor annoyance if ul_nent is huge
     for (int i = 0; i < ul_nent; i++) {
 	page_fault_mode = PFM_KILL;
 	uint64_t ul_val = ul_ent[i];
