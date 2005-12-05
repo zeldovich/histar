@@ -10,7 +10,7 @@ void idt_init();
 void trapframe_pop(struct Trapframe *) __attribute__((__noreturn__));
 
 // For following user pointers in kernel-space
-extern int page_fault_mode;
+extern volatile int page_fault_mode;
 #define	PFM_NONE    0
 #define PFM_KILL    1
 

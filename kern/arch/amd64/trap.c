@@ -57,7 +57,8 @@ trapframe_print (struct Trapframe *tf)
     cprintf("rflags %016lx  err %08x\n", tf->tf_rflags, tf->tf_err);
 }
 
-int page_fault_mode = PFM_NONE;
+volatile int page_fault_mode = PFM_NONE;
+
 static void
 page_fault (struct Trapframe *tf)
 {
