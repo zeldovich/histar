@@ -7,6 +7,23 @@
 #include <inc/assert.h>
 #include <inc/error.h>
 
+void
+segment_map_print(struct segment_map *segmap)
+{
+    cprintf("segment  start  npages  w  va\n");
+    for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
+	if (segmap->sm_ent[i].num_pages == 0)
+	    continue;
+	cprintf("%3d.%-3d  %5d  %6d  %d  %p\n",
+		segmap->sm_ent[i].segment.container,
+		segmap->sm_ent[i].segment.slot,
+		segmap->sm_ent[i].start_page,
+		segmap->sm_ent[i].num_pages,
+		segmap->sm_ent[i].writable,
+		segmap->sm_ent[i].va);
+    }
+}
+
 int
 segment_unmap(uint64_t ctemp, void *va)
 {
@@ -90,13 +107,16 @@ retry:
 int
 segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 {
+    //cprintf("segment_map_change:\n");
+    //segment_map_print(segmap);
+
     int slot, r;
     int newmap = 0;
     struct jmp_buf ret;
 
     setjmp(&ret);
     if (newmap) {
-	sys_container_unref(COBJ(ctemp, slot));
+	sys_obj_unref(COBJ(ctemp, slot));
 	return 0;
     }
 

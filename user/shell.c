@@ -17,10 +17,26 @@ static int c_root, c_temp;
 static void builtin_help(int ac, char **av);
 
 static void
-print_cobj(int type, struct cobj_ref cobj)
+print_cobj(struct cobj_ref cobj)
 {
-    int r;
+    int type = sys_obj_get_type(cobj);
+    if (type == -E_NOT_FOUND)
+	return;
 
+    if (type < 0) {
+	cprintf("sys_obj_get_type <%ld.%ld>: %d\n", cobj.container, cobj.slot, type);
+	return;
+    }
+
+    int id = sys_obj_get_id(cobj);
+    if (id < 0) {
+	cprintf("sys_obj_get_id <%ld.%ld>: %d\n", cobj.container, cobj.slot, id);
+	return;
+    }
+
+    cprintf("%4ld %4d  ", cobj.slot, id);
+
+    int r;
     switch (type) {
     case kobj_gate:
 	cprintf("gate\n");
@@ -31,8 +47,7 @@ print_cobj(int type, struct cobj_ref cobj)
 	break;
 
     case kobj_container:
-	r = sys_container_get_c_id(cobj);
-	cprintf("container %d\n", r);
+	cprintf("container\n", r);
 	break;
 
     case kobj_segment:
@@ -55,6 +70,7 @@ builtin_list_container(int ac, char **av)
 
     int ct = atoi(av[0]);
     cprintf("Container %d:\n", ct);
+    cprintf("slot   id  object\n");
 
     int nslots = sys_container_nslots(ct);
     if (nslots < 0) {
@@ -62,19 +78,8 @@ builtin_list_container(int ac, char **av)
 	return;
     }
 
-    for (int i = 0; i < nslots; i++) {
-	int r = sys_container_get_type(COBJ(ct, i));
-	if (r == -E_NOT_FOUND)
-	    continue;
-
-	if (r < 0) {
-	    cprintf("sys_container_get_type(<%d,%d>): %d\n", ct, i, r);
-	    return;
-	}
-
-	cprintf("  %3d ", i);
-	print_cobj(r, COBJ(ct, i));
-    }
+    for (int i = 0; i < nslots; i++)
+	print_cobj(COBJ(ct, i));
 }
 
 static struct {
@@ -85,7 +90,7 @@ static struct {
 static int
 readdir()
 {
-    int64_t c_fs = sys_container_get_c_id(COBJ(c_root, 0));
+    int64_t c_fs = sys_obj_get_id(COBJ(c_root, 0));
     if (c_fs < 0) {
 	cprintf("cannot get filesystem container id: %ld\n", c_fs);
 	return c_fs;
@@ -140,7 +145,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    int64_t c_spawn = sys_container_get_c_id(COBJ(c_root, c_spawn_slot));
+    int64_t c_spawn = sys_obj_get_id(COBJ(c_root, c_spawn_slot));
     if (c_spawn < 0) {
 	cprintf("cannot get new container ID: %d\n", c_spawn);
 	return;
@@ -201,7 +206,7 @@ builtin_unref(int ac, char **av)
     int c = atoi(av[0]);
     int i = atoi(av[1]);
 
-    int r = sys_container_unref(COBJ(c, i));
+    int r = sys_obj_unref(COBJ(c, i));
     if (r < 0) {
 	cprintf("Cannot unref <%d:%d>: %d\n", c, i, r);
 	return;

@@ -33,9 +33,9 @@ sys_container_alloc(uint64_t parent)
 }
 
 int
-sys_container_unref(struct cobj_ref o)
+sys_obj_unref(struct cobj_ref o)
 {
-    return syscall(SYS_container_unref, o.container, o.slot, 0, 0, 0);
+    return syscall(SYS_obj_unref, o.container, o.slot, 0, 0, 0);
 }
 
 int
@@ -51,15 +51,21 @@ sys_handle_create()
 }
 
 kobject_type_t
-sys_container_get_type(struct cobj_ref o)
+sys_obj_get_type(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_type, o.container, o.slot, 0, 0, 0);
+    return syscall(SYS_obj_get_type, o.container, o.slot, 0, 0, 0);
 }
 
 int64_t
-sys_container_get_c_id(struct cobj_ref o)
+sys_obj_get_id(struct cobj_ref o)
 {
-    return syscall(SYS_container_get_c_id, o.container, o.slot, 0, 0, 0);
+    return syscall(SYS_obj_get_id, o.container, o.slot, 0, 0, 0);
+}
+
+int
+sys_obj_get_label(struct cobj_ref o, struct ulabel *l)
+{
+    return syscall(SYS_obj_get_label, o.container, o.slot, (uint64_t) l, 0, 0);
 }
 
 int

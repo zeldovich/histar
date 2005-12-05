@@ -11,11 +11,13 @@ typedef enum {
     SYS_cgetc,
 
     SYS_container_alloc,
-    SYS_container_unref,
-    SYS_container_get_type,	// get type of contained object
-    SYS_container_get_c_id,	// get global id of sub-container
     SYS_container_nslots,
     SYS_container_store_cur_thread,
+
+    SYS_obj_unref,
+    SYS_obj_get_type,
+    SYS_obj_get_id,	// get global id of an object (useful for containers)
+    SYS_obj_get_label,
 
     SYS_handle_create,
 

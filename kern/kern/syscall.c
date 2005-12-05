@@ -84,7 +84,7 @@ sys_container_alloc(uint64_t parent_ct)
 }
 
 static void
-sys_container_unref(struct cobj_ref cobj)
+sys_obj_unref(struct cobj_ref cobj)
 {
     struct Container *c;
     check(container_find(&c, cobj.container));
@@ -108,7 +108,7 @@ sys_handle_create()
 }
 
 static int
-sys_container_get_type(struct cobj_ref cobj)
+sys_obj_get_type(struct cobj_ref cobj)
 {
     struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko));
@@ -116,11 +116,19 @@ sys_container_get_type(struct cobj_ref cobj)
 }
 
 static int64_t
-sys_container_get_c_id(struct cobj_ref cobj)
+sys_obj_get_id(struct cobj_ref cobj)
 {
-    struct Container *c;
-    check(cobj_get(cobj, kobj_container, (struct kobject **)&c));
-    return c->ct_ko.ko_id;
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko));
+    return ko->ko_id;
+}
+
+static void
+sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
+{
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko));
+    check(label_to_ulabel(&ko->ko_label, ul));
 }
 
 static uint64_t
@@ -255,8 +263,8 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	syscall_ret = sys_container_alloc(a1);
 	break;
 
-    case SYS_container_unref:
-	sys_container_unref(COBJ(a1, a2));
+    case SYS_obj_unref:
+	sys_obj_unref(COBJ(a1, a2));
 	break;
 
     case SYS_container_store_cur_thread:
@@ -267,12 +275,16 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	syscall_ret = sys_handle_create();
 	break;
 
-    case SYS_container_get_type:
-	syscall_ret = sys_container_get_type(COBJ(a1, a2));
+    case SYS_obj_get_type:
+	syscall_ret = sys_obj_get_type(COBJ(a1, a2));
 	break;
 
-    case SYS_container_get_c_id:
-	syscall_ret = sys_container_get_c_id(COBJ(a1, a2));
+    case SYS_obj_get_id:
+	syscall_ret = sys_obj_get_id(COBJ(a1, a2));
+	break;
+
+    case SYS_obj_get_label:
+	sys_obj_get_label(COBJ(a1, a2), (struct ulabel *) a3);
 	break;
 
     case SYS_container_nslots:

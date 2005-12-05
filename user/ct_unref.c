@@ -12,7 +12,7 @@ main(int ac, char **av)
     if (sci < 0)
 	panic("cannot allocate sub-container: %d", sci);
 
-    int64_t sc = sys_container_get_c_idx(COBJ(rc, sci));
+    int64_t sc = sys_obj_get_id(COBJ(rc, sci));
     if (sc < 0)
 	panic("cannot get sub-container: %d", sc);
 
@@ -21,7 +21,7 @@ main(int ac, char **av)
 	panic("cannot addref current thread: %d", r);
 
     for (int i = 1; i < 10; i++) {
-	kobject_type_t t = sys_container_get_type(COBJ(rc, i));
+	kobject_type_t t = sys_obj_get_type(COBJ(rc, i));
 	cprintf("<%d:%d> type %s\n", rc, i,
 				     t == kobj_thread ? "thread" :
 				     t == kobj_container ? "container" :
