@@ -14,7 +14,7 @@ segment_map_print(struct segment_map *segmap)
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
 	if (segmap->sm_ent[i].num_pages == 0)
 	    continue;
-	cprintf("%3d.%-3d  %5d  %6d  %d  %p\n",
+	cprintf("%3ld.%-3ld  %5ld  %6ld  %d  %p\n",
 		segmap->sm_ent[i].segment.container,
 		segmap->sm_ent[i].segment.slot,
 		segmap->sm_ent[i].start_page,
@@ -110,13 +110,15 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
     //cprintf("segment_map_change:\n");
     //segment_map_print(segmap);
 
-    int slot, r;
+    int slot = -1;
+    int r;
     int newmap = 0;
     struct jmp_buf ret;
 
     setjmp(&ret);
     if (newmap) {
-	sys_obj_unref(COBJ(ctemp, slot));
+	if (slot >= 0)
+	    sys_obj_unref(COBJ(ctemp, slot));
 	return 0;
     }
 

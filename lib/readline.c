@@ -25,7 +25,7 @@ readline(const char *prompt)
 		c = getchar();
 		if (c < 0) {
 			if (c != -E_EOF)
-				cprintf("read error: %e\n", c);
+				cprintf("read error: %d\n", c);
 			return NULL;
 		} else if (c == KEY_UP) {
 			buf[i] = 0;

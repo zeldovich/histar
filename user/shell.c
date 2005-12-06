@@ -47,7 +47,7 @@ print_cobj(struct cobj_ref cobj)
 	break;
 
     case kobj_container:
-	cprintf("container\n", r);
+	cprintf("container\n");
 	break;
 
     case kobj_segment:
@@ -147,7 +147,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     int64_t c_spawn = sys_obj_get_id(COBJ(c_root, c_spawn_slot));
     if (c_spawn < 0) {
-	cprintf("cannot get new container ID: %d\n", c_spawn);
+	cprintf("cannot get new container ID: %ld\n", c_spawn);
 	return;
     }
 
@@ -172,7 +172,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    cprintf("Running thread <%d:%d>\n", c_spawn, thread);
+    cprintf("Running thread <%ld:%d>\n", c_spawn, thread);
 }
 
 static void
@@ -285,7 +285,7 @@ main(int ac, char **av)
     c_root = start_arg;
     c_temp = start_arg;
 
-    cprintf("JOS shell (root container %ld)\n", c_root);
+    cprintf("JOS shell (root container %d)\n", c_root);
 
     for (;;) {
 	char *cmd = readline("jos> ");
