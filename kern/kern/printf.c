@@ -1,9 +1,9 @@
 // Simple implementation of cprintf console output for the kernel,
 // based on printfmt() and the kernel console's putchar().
 
-#include <inc/types.h>
 #include <kern/lib.h>
 #include <dev/console.h>
+#include <inc/types.h>
 
 static void
 putch (int ch, void *cnt)

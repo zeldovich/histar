@@ -3,6 +3,7 @@
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/pstate.h>
+#include <kern/kobj.h>
 
 static uint64_t ticks = 0;
 

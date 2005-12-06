@@ -1,5 +1,5 @@
 #include <kern/gate.h>
-#include <machine/pmap.h>
+#include <kern/lib.h>
 
 int
 gate_alloc(struct Label *l, struct Gate **gp)

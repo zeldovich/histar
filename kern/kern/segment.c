@@ -1,5 +1,4 @@
 #include <machine/pmap.h>
-#include <machine/thread.h>
 #include <kern/label.h>
 #include <kern/container.h>
 #include <kern/segment.h>

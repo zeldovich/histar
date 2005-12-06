@@ -8,7 +8,6 @@
 #include <kern/lib.h>
 #include <kern/handle.h>
 #include <kern/pstate.h>
-#include <kern/gate.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -270,10 +269,6 @@ user_bootstrap()
 void
 user_init(void)
 {
-    cprintf("kobject: %ld bytes\n", sizeof(struct kobject));
-    cprintf("Thread: %ld bytes\n", sizeof(struct Thread));
-    cprintf("Gate: %ld bytes\n", sizeof(struct Gate));
-
     int r = pstate_init();
     if (r < 0) {
 	cprintf("Unable to load persistent state: %d\n", r);

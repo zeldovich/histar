@@ -1,6 +1,6 @@
+#include <machine/thread.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
-#include <machine/thread.h>
 
 // A really slow round-robin scheduler
 
