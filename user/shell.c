@@ -92,7 +92,7 @@ readdir()
 {
     int64_t c_fs = sys_obj_get_id(COBJ(c_root, 0));
     if (c_fs < 0) {
-	cprintf("cannot get filesystem container id: %ld\n", c_fs);
+	cprintf("cannot get filesystem container id: %s\n", e2s(c_fs));
 	return c_fs;
     }
 
@@ -147,7 +147,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     int64_t c_spawn = sys_obj_get_id(COBJ(c_root, c_spawn_slot));
     if (c_spawn < 0) {
-	cprintf("cannot get new container ID: %ld\n", c_spawn);
+	cprintf("cannot get new container ID: %s\n", e2s(c_spawn));
 	return;
     }
 
