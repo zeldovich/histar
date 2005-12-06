@@ -5,6 +5,8 @@ larger labels
 
 type-check for correct info_flow_type values (easier in C++)
 
+C type-safety for enums/int-typedefs: wrap in a struct
+
 * it would be nice if gate_enter() didn't automatically compute the
   contamination, but allowed the user to compute the target label
   and verified that it's OK.  benefit: easier to make return gate.
