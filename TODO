@@ -1,6 +1,7 @@
 segment copying with re-labeling
 container labeling
 verify/cleanup label checking
+it would be great to factor label checks into kobject_get()
 larger labels
 
 what to do about return gates?
