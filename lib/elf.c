@@ -37,21 +37,21 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	struct cobj_ref seg;
 	r = segment_alloc(container, va_off + ph->p_memsz, &seg);
 	if (r < 0) {
-	    cprintf("elf_load: cannot allocate elf segment: %d\n", r);
+	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
 	char *sbuf;
 	r = segment_map(container, seg, 1, (void**)&sbuf, 0);
 	if (r < 0) {
-	    cprintf("elf_load: cannot map elf segment: %d\n", r);
+	    cprintf("elf_load: cannot map elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
 	memcpy(sbuf + va_off, segbuf + va_off, ph->p_filesz);
 	r = segment_unmap(container, sbuf);
 	if (r < 0) {
-	    cprintf("elf_load: cannot unmap elf segment: %d\n", r);
+	    cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
@@ -65,14 +65,14 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
     r = segment_unmap(container, segbuf);
     if (r < 0) {
-	cprintf("elf_load: cannot unmap program segment: %d\n", r);
+	cprintf("elf_load: cannot unmap program segment: %s\n", e2s(r));
 	return r;
     }
 
     struct cobj_ref stack;
     r = segment_alloc(container, PGSIZE, &stack);
     if (r < 0) {
-	cprintf("elf_load: cannot create stack segment: %d\n", r);
+	cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
 	return r;
     }
 

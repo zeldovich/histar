@@ -131,7 +131,7 @@ thread_pagefault(void *fault_va)
 	return 0;
 
     if (r < 0) {
-	cprintf("thread_pagefault: cannot fill pagemap: %d\n", r);
+	cprintf("thread_pagefault: cannot fill pagemap: %s\n", e2s(r));
 	return r;
     }
 

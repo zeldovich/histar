@@ -271,7 +271,7 @@ user_init(void)
 {
     int r = pstate_init();
     if (r < 0) {
-	cprintf("Unable to load persistent state: %d\n", r);
+	cprintf("Unable to load persistent state: %s\n", e2s(r));
 	user_bootstrap();
     } else {
 	cprintf("Persistent state loaded OK\n");

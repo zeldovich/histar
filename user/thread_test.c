@@ -29,11 +29,11 @@ main(int ac, char **av)
 
     int pm = sys_container_store_cur_pmap(rc, 0);
     if (pm < 0)
-	panic("cannot store cur_pm: %d", pm);
+	panic("cannot store cur_pm: %s", e2s(pm));
 
     int sg = sys_segment_create(rc, 1);
     if (sg < 0)
-	panic("cannot create stack segment: %d", sg);
+	panic("cannot create stack segment: %s", e2s(sg));
 
     char *stacktop1 = (void*) 0x710000000000;
     char *stacktop2 = (void*) 0x720000000000;
@@ -52,11 +52,11 @@ main(int ac, char **av)
 
     int t1 = sys_thread_create(rc);
     if (t1 < 0)
-	panic("cannot create thread 1: %d", t1);
+	panic("cannot create thread 1: %s", e2s(t1));
 
     int t2 = sys_thread_create(rc);
     if (t2 < 0)
-	panic("cannot create thread 2: %d", t2);
+	panic("cannot create thread 2: %s", e2s(t2));
 
     assert(0 == sys_thread_start(COBJ(rc, t1), &e));
     e.te_stack = stacktop2;

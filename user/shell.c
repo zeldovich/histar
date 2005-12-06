@@ -24,13 +24,13 @@ print_cobj(struct cobj_ref cobj)
 	return;
 
     if (type < 0) {
-	cprintf("sys_obj_get_type <%ld.%ld>: %d\n", cobj.container, cobj.slot, type);
+	cprintf("sys_obj_get_type <%ld.%ld>: %s\n", cobj.container, cobj.slot, e2s(type));
 	return;
     }
 
     int id = sys_obj_get_id(cobj);
     if (id < 0) {
-	cprintf("sys_obj_get_id <%ld.%ld>: %d\n", cobj.container, cobj.slot, id);
+	cprintf("sys_obj_get_id <%ld.%ld>: %s\n", cobj.container, cobj.slot, e2s(id));
 	return;
     }
 
@@ -74,7 +74,7 @@ builtin_list_container(int ac, char **av)
 
     int nslots = sys_container_nslots(ct);
     if (nslots < 0) {
-	cprintf("sys_container_nslots(%d): %d\n", ct, nslots);
+	cprintf("sys_container_nslots(%d): %s\n", ct, e2s(nslots));
 	return;
     }
 
@@ -99,7 +99,7 @@ readdir()
     char *dirbuf;
     int r = segment_map(c_temp, COBJ(c_fs, 0), 0, (void**)&dirbuf, 0);
     if (r < 0) {
-	cprintf("cannot map dir segment: %d\n", r);
+	cprintf("cannot map dir segment: %s\n", e2s(r));
 	return r;
     }
 
@@ -113,7 +113,7 @@ readdir()
 
     r = segment_unmap(c_temp, dirbuf);
     if (r < 0) {
-	cprintf("cannot unmap dir segment: %d\n", r);
+	cprintf("cannot unmap dir segment: %s\n", e2s(r));
 	return r;
     }
 
@@ -141,7 +141,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 {
     int c_spawn_slot = sys_container_alloc(c_root);
     if (c_spawn_slot < 0) {
-	cprintf("cannot allocate container for new thread: %d\n", c_spawn_slot);
+	cprintf("cannot allocate container for new thread: %s\n", e2s(c_spawn_slot));
 	return;
     }
 
@@ -156,19 +156,19 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     int r = elf_load(c_spawn, seg, &e);
     if (r < 0) {
-	cprintf("cannot load ELF: %d\n", r);
+	cprintf("cannot load ELF: %s\n", e2s(r));
 	return;
     }
 
     int thread = sys_thread_create(c_spawn);
     if (thread < 0) {
-	cprintf("cannot create thread: %d\n", thread);
+	cprintf("cannot create thread: %s\n", e2s(thread));
 	return;
     }
 
     r = sys_thread_start(COBJ(c_spawn, thread), &e);
     if (r < 0) {
-	cprintf("cannot start thread: %d\n", r);
+	cprintf("cannot start thread: %s\n", e2s(r));
 	return;
     }
 
@@ -210,7 +210,7 @@ builtin_unref(int ac, char **av)
 
     int r = sys_obj_unref(COBJ(c, i));
     if (r < 0) {
-	cprintf("Cannot unref <%d:%d>: %d\n", c, i, r);
+	cprintf("Cannot unref <%d:%d>: %s\n", c, i, e2s(r));
 	return;
     }
 

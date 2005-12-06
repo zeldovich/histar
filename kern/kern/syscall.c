@@ -34,7 +34,7 @@ _check(int r, const char *what)
 {
     if (r < 0) {
 	if (syscall_debug)
-	    cprintf("syscall check failed: %s\n", what);
+	    cprintf("syscall check failed: %s: %s\n", what, e2s(r));
 	syscall_error(r);
     }
 

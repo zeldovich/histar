@@ -10,15 +10,15 @@ main(int ac, char **av)
 
     int sci = sys_container_alloc(rc);
     if (sci < 0)
-	panic("cannot allocate sub-container: %d", sci);
+	panic("cannot allocate sub-container: %s", e2s(sci));
 
     int64_t sc = sys_obj_get_id(COBJ(rc, sci));
     if (sc < 0)
-	panic("cannot get sub-container: %d", sc);
+	panic("cannot get sub-container: %d", e2s(sc));
 
     int r = sys_container_store_cur_thread(sc);
     if (r < 0)
-	panic("cannot addref current thread: %d", r);
+	panic("cannot addref current thread: %s", e2s(r));
 
     for (int i = 1; i < 10; i++) {
 	kobject_type_t t = sys_obj_get_type(COBJ(rc, i));

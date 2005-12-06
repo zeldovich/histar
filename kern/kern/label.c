@@ -42,7 +42,7 @@ label_set(struct Label *l, uint64_t handle, int level)
 		break;
 
 	if (i == NUM_LB_ENT)
-	    return -E_NO_SPACE;
+	    return -E_NO_MEM;
     }
 
     l->lb_ent[i] = (level == l->lb_def_level) ? LB_ENT_EMPTY

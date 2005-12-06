@@ -16,45 +16,34 @@
 /*
  * Space or zero padding and a field width are supported for the numeric
  * formats only. 
- * 
- * The special format %e takes an integer error code
- * and prints a string describing the error.
- * The integer may be positive or negative,
- * so that -E_NO_MEM and E_NO_MEM are equivalent.
  */
 
-static const char *const error_string[MAXERROR + 1] = {
-  NULL,				// 0
-  "unspecified error",
-  "bad environment",
-  "invalid parameter",
-  "memory fault",
-  "out of memory",		// 5
-  "out of environments",
-  "env is not recving",
-  "unexpected end of file",
-  "no free space on disk",
-  "too many files are open",	// 10
-  "file or block not found",
-  "invalid path",
-  "file already exists",
-  "file is not a valid executable",
-  "temporary failure",		// 15
-  "out of range",
-  "label error",
-  "device busy",
-  "no such device",
-  "connection aborted",		// 20
-  "connection reset",
-  "no connection",
-  "address in use",
-  "interface error",
-  "in progress",		// 25
-  "no upcall space",
-  "maybe",
-  "destination memory fault",
-  "permission"
+static const char *const error_string[E_MAXERROR + 1] = {
+    [0]		  = "no error",
+    [E_UNSPEC]	  = "unspecified error",
+    [E_INVAL]	  = "invalid parameter",
+    [E_NO_MEM]	  = "out of memory",
+    [E_RESTART]	  = "restart system call",
+    [E_NOT_FOUND] = "object not found",
+    [E_LABEL]	  = "label check failure",
+    [E_BUSY]	  = "device busy",
+    [E_NO_SPACE]  = "not enough space in buffer",
+    [E_RANGE]	  = "value out of range",
+    [E_EOF]	  = "unexpected end-of-file",
+    [E_MAXERROR]  = "error code out of range",
 };
+
+const char *
+e2s(int err) {
+    if (err < 0)
+	err = -err;
+    if (err > E_MAXERROR)
+	err = E_MAXERROR;
+    const char *s = error_string[err];
+    if (s == 0)
+	s = "missing error definition in error_string[] table";
+    return s;
+}
 
 /*
  * Print a number (base <= 16) in reverse order,
@@ -120,7 +109,7 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 	   va_list ap)
 {
   register const char *p;
-  register int ch, err;
+  register int ch;
   unsigned long long num;
   int base, lflag, width, precision, altflag;
   char padc;
@@ -195,23 +184,6 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
       // character
     case 'c':
       putch (va_arg (ap, int), putdat);
-      break;
-
-      // error message or positive return code
-    case 'e':
-      err = va_arg (ap, int);
-      if (err < 0) {
-	err = -err;
-	if (err > MAXERROR || (p = error_string[err]) == NULL)
-	  printfmt (putch, putdat, "error %d", err);
-	else
-	  printfmt (putch, putdat, "%s", p);
-      }
-      else {
-	num = err;
-	base = 10;
-	goto number;
-      }
       break;
 
       // handle

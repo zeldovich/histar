@@ -31,4 +31,7 @@ void	libmain(uint64_t arg) __attribute__((__noreturn__));
 /* label.c */
 int	label_get_cur(uint64_t ctemp, struct ulabel *l);
 
+/* printfmt.c */
+const char *e2s(int err);
+
 #endif

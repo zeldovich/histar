@@ -109,5 +109,5 @@ segment_map_fill_pmap(struct segment_map *segmap, struct Pagemap *pgmap, void *v
 	return r;
     }
 
-    return -E_FAULT;
+    return -E_INVAL;
 }

@@ -166,7 +166,7 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 	void *p;
 	int r = page_alloc(&p);
 	if (r < 0) {
-	    cprintf("init_kobj_cb: cannot alloc page: %d\n", r);
+	    cprintf("init_kobj_cb: cannot alloc page: %s\n", e2s(r));
 	    (*cb) (r);
 	    return;
 	}
@@ -176,7 +176,7 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 
 	r = disk_io(op_read, p, PGSIZE, offset, &swapin_kobj_cb, arg);
 	if (r < 0) {
-	    cprintf("swapin_kobj_cb: cannot submit disk IO: %d\n", r);
+	    cprintf("swapin_kobj_cb: cannot submit disk IO: %s\n", e2s(r));
 	    (*cb) (r);
 	}
     } else {
@@ -192,7 +192,7 @@ swapin_kobj(int slot, void (*cb)(int)) {
     void *p;
     int r = page_alloc(&p);
     if (r < 0) {
-	cprintf("swapin_kobj: cannot alloc page: %d\n", r);
+	cprintf("swapin_kobj: cannot alloc page: %s\n", e2s(r));
 	(*cb) (r);
 	return;
     }
@@ -205,7 +205,7 @@ swapin_kobj(int slot, void (*cb)(int)) {
     swapin_state.slot = slot;
     r = disk_io(op_read, p, PGSIZE, stable_hdr.ph_map.ent[slot].offset * PGSIZE, &swapin_kobj_cb, cb);
     if (r < 0) {
-	cprintf("swapin_kobj: cannot submit disk IO: %d\n", r);
+	cprintf("swapin_kobj: cannot submit disk IO: %s\n", e2s(r));
 	(*cb) (r);
     }
 }
@@ -216,7 +216,7 @@ static void
 pstate_swapin_cb(int r)
 {
     if (r < 0)
-	cprintf("pstate_swapin_cb: error %d\n", r);
+	cprintf("pstate_swapin_cb: %s\n", e2s(r));
 
     while (!TAILQ_EMPTY(&swapin_tqueue)) {
 	struct Thread *t = TAILQ_FIRST(&swapin_tqueue);
@@ -260,7 +260,7 @@ static void
 init_kobj_cb(int r)
 {
     if (r < 0) {
-	cprintf("init_kobj_cb: error swapping in: %d\n", r);
+	cprintf("init_kobj_cb: error swapping in: %s\n", e2s(r));
 	state.done = r;
 	return;
     }
@@ -378,7 +378,7 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
 	swapout_state.extra_page++;
 	r = disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
 	if (r < 0) {
-	    cprintf("sync_kobj_cb: cannot submit disk IO: %d\n", r);
+	    cprintf("sync_kobj_cb: cannot submit disk IO: %s\n", e2s(r));
 	    state.done = r;
 	    return;
 	}
@@ -401,7 +401,7 @@ sync_kobj()
 	freelist_commit(&state.hdr->ph_free);
 	int r = disk_io(op_write, state.hdr, 2*PGSIZE, 0, sync_header_cb, 0);
 	if (r < 0) {
-	    cprintf("sync_kobj: cannot submit disk IO: %d\n", r);
+	    cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
 	    state.done = r;
 	}
 
@@ -420,7 +420,7 @@ sync_kobj()
 		    state.hdr->ph_map.ent[state.slot].offset * PGSIZE,
 		    sync_kobj_cb, 0);
     if (r < 0) {
-	cprintf("sync_kobj: cannot submit disk IO: %d\n", r);
+	cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
 	state.done = r;
     }
 }
