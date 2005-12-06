@@ -21,7 +21,7 @@ implement MLTs
 kernel sleep primitive: sys_sleep_until_equal(int *ptr, int val)
 
 copy-on-write kobjects
-kobject pinning
+kobject pinning, page reclamation, LRU
 snapshotting pstate_sync()
 swapped-out zero-ref objects are never GC'ed
 
