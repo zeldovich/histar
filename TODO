@@ -18,6 +18,8 @@ type-check for correct info_flow_type values (easier in C++)
 
 implement MLTs
 
+kernel sleep primitive: sys_sleep_until_equal(int *ptr, int val)
+
 copy-on-write kobjects
 kobject pinning
 snapshotting pstate_sync()
