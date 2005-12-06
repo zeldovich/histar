@@ -63,7 +63,9 @@ elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
 }
 
 static int
-segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uint8_t *buf, uint64_t bufsize)
+segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
+		     uint8_t *buf, uint64_t bufsize,
+		     struct Segment **sg_store)
 {
     if (bufsize > segsize)
 	return -E_INVAL;
@@ -94,6 +96,8 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize, uin
     }
 
     sg->sg_ko.ko_flags = c->ct_ko.ko_flags;
+    if (sg_store)
+	*sg_store = sg;
     return container_put(c, &sg->sg_ko);
 }
 
@@ -138,7 +142,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	int segslot = segment_create_embed(c, l,
 					   mem_pages * PGSIZE,
 					   binary + ph.p_offset - page_offset,
-					   page_offset + ph.p_filesz);
+					   page_offset + ph.p_filesz, 0);
 	if (segslot < 0) {
 	    cprintf("ELF: cannot create segment\n");
 	    return segslot;
@@ -153,7 +157,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
     }
 
     // Map a stack
-    int stackslot = segment_create_embed(c, l, PGSIZE, 0, 0);
+    int stackslot = segment_create_embed(c, l, PGSIZE, 0, 0, 0);
     if (stackslot < 0) {
 	cprintf("ELF: cannot allocate stack segment\n");
 	return stackslot;
@@ -206,15 +210,14 @@ static void
 fs_init(struct Container *c, struct Label *l)
 {
     // Directory block is segment #0 in fs container
-    assert(0 == segment_create_embed(c, l, PGSIZE, 0, 0));
-
     struct Segment *fs_names;
-    assert(0 == cobj_get(COBJ(c->ct_ko.ko_id, 0), kobj_segment, (struct kobject **)&fs_names));
+    assert(0 == segment_create_embed(c, l, PGSIZE, 0, 0, &fs_names));
+
     char *fs_dir;
     assert(0 == kobject_get_page(&fs_names->sg_ko, 0, (void**)&fs_dir));
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
-	int slot = segment_create_embed(c, l, e->size, e->buf, e->size);
+	int slot = segment_create_embed(c, l, e->size, e->buf, e->size, 0);
 	if (slot < 0)
 	    panic("fs_init: cannot store embedded segment");
 
