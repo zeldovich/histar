@@ -10,6 +10,14 @@ type-check for correct info_flow_type values (easier in C++)
   and verified that it's OK.  benefit: easier to make return gate.
   is it OK to allow user to look at the gate's target label?
 
+* what to do about writable segments and contaminated gate entry?
+  in particular, the segment must be COW'ed, but what to name it?
+  possible that this could all be done at user-level by clever
+  gate-entry code (first map a stack using registers, then can do
+  C code).
+
+implement MLTs
+
 copy-on-write kobjects
 kobject pinning
 snapshotting pstate_sync()
