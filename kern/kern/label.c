@@ -117,10 +117,8 @@ label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 	if (l1->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
 
-	int l1l = LB_LEVEL(l1->lb_ent[i]);
-	int l2l = label_get_level(l2, LB_HANDLE(l1->lb_ent[i]));
-
-	int r = cmp(l1l, l2l);
+	uint64_t h = LB_HANDLE(l1->lb_ent[i]);
+	int r = cmp(label_get_level(l1, h), label_get_level(l2, h));
 	if (r < 0)
 	    return r;
     }
@@ -129,20 +127,51 @@ label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
 	if (l2->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
 
-	int l1l = label_get_level(l1, LB_HANDLE(l2->lb_ent[i]));
-	int l2l = LB_LEVEL(l2->lb_ent[i]);
-
-	int r = cmp(l1l, l2l);
+	uint64_t h = LB_HANDLE(l2->lb_ent[i]);
+	int r = cmp(label_get_level(l1, h), label_get_level(l2, h));
 	if (r < 0)
 	    return r;
     }
 
-    int l1d = l1->lb_def_level;
-    int l2d = l2->lb_def_level;
-
-    int r = cmp(l1d, l2d);
+    int r = cmp(l1->lb_def_level, l2->lb_def_level);
     if (r < 0)
 	return r;
+
+    return 0;
+}
+
+static int
+level_max(int a, int b, level_comparator leq)
+{
+    return (leq(a, b) >= 0) ? b : a;
+}
+
+int
+label_max(struct Label *a, struct Label *b, struct Label *dst, level_comparator leq)
+{
+    dst->lb_def_level = level_max(a->lb_def_level, b->lb_def_level, leq);
+
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	if (a->lb_ent[i] == LB_ENT_EMPTY)
+	    continue;
+
+	uint64_t h = LB_HANDLE(a->lb_ent[i]);
+	int r = label_set(dst, h, level_max(label_get_level(a, h),
+					    label_get_level(b, h), leq));
+	if (r < 0)
+	    return r;
+    }
+
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	if (b->lb_ent[i] == LB_ENT_EMPTY)
+	    continue;
+
+	uint64_t h = LB_HANDLE(b->lb_ent[i]);
+	int r = label_set(dst, h, level_max(label_get_level(a, h),
+					    label_get_level(b, h), leq));
+	if (r < 0)
+	    return r;
+    }
 
     return 0;
 }
