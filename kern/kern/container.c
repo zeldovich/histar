@@ -73,12 +73,6 @@ container_slot_alloc(struct Container *c, kobject_id_t **slotp)
 int
 container_put(struct Container *c, struct kobject *ko)
 {
-    if (cur_thread) {
-	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
-	if (r < 0)
-	    return r;
-    }
-
     kobject_id_t *slotp;
     int slot = container_slot_alloc(c, &slotp);
     if (slot < 0)
@@ -89,8 +83,8 @@ container_put(struct Container *c, struct kobject *ko)
     return slot;
 }
 
-static int
-container_unref2(struct Container *c, uint64_t slot)
+int
+container_unref(struct Container *c, uint64_t slot)
 {
     kobject_id_t *slotp;
     int r = container_slot_get(c, slot, &slotp);
@@ -102,25 +96,13 @@ container_unref2(struct Container *c, uint64_t slot)
 	return 0;
 
     struct kobject *ko;
-    r = kobject_get(id, &ko);
+    r = kobject_get(id, &ko, iflow_none);
     if (r < 0)
 	return r;
 
     kobject_decref(ko);
     *slotp = kobject_id_null;
     return 0;
-}
-
-int
-container_unref(struct Container *c, uint64_t slot)
-{
-    if (cur_thread) {
-	int r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq);
-	if (r < 0)
-	    return r;
-    }
-
-    return container_unref2(c, slot);
 }
 
 int
@@ -134,7 +116,7 @@ container_gc(struct Container *c)
 {
     int nslots = container_nslots(c);
     for (int i = 0; i < nslots; i++) {
-	int r = container_unref2(c, i);
+	int r = container_unref(c, i);
 	if (r < 0)
 	    return r;
     }
@@ -143,9 +125,9 @@ container_gc(struct Container *c)
 }
 
 int
-container_find(struct Container **cp, kobject_id_t id)
+container_find(struct Container **cp, kobject_id_t id, info_flow_type iflow)
 {
-    int r = kobject_get(id, (struct kobject **)cp);
+    int r = kobject_get(id, (struct kobject **)cp, iflow);
     if (r < 0)
 	return r;
     if ((*cp)->ct_ko.ko_type != kobj_container)
@@ -154,18 +136,12 @@ container_find(struct Container **cp, kobject_id_t id)
 }
 
 int
-cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep)
+cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep, info_flow_type iflow)
 {
     struct Container *c;
-    int r = container_find(&c, ref.container);
+    int r = container_find(&c, ref.container, iflow_read);
     if (r < 0)
 	return r;
-
-    if (cur_thread) {
-	r = label_compare(&c->ct_ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi);
-	if (r < 0)
-	    return r;
-    }
 
     kobject_id_t *slotp;
     r = container_slot_get(c, ref.slot, &slotp);
@@ -176,7 +152,7 @@ cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep)
 	return -E_NOT_FOUND;
 
     struct kobject *ko;
-    r = kobject_get(*slotp, &ko);
+    r = kobject_get(*slotp, &ko, iflow);
     if (r < 0)
 	return r;
 

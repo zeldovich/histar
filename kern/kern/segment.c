@@ -68,13 +68,9 @@ segment_map_fill_pmap(struct segment_map *segmap, struct Pagemap *pgmap, void *v
 	    continue;
 
 	struct Segment *sg;
-	int r = cobj_get(segmap->sm_ent[i].segment, kobj_segment, (struct kobject **)&sg);
-	if (r < 0)
-	    return r;
-
-	r = label_compare(&sg->sg_ko.ko_label,
-			  &cur_thread->th_ko.ko_label,
-			  segmap->sm_ent[i].writable ? label_eq : label_leq_starhi);
+	int r = cobj_get(segmap->sm_ent[i].segment, kobj_segment,
+			 (struct kobject **)&sg,
+			 segmap->sm_ent[i].writable ? iflow_write : iflow_read);
 	if (r < 0)
 	    return r;
 

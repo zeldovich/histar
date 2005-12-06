@@ -78,7 +78,7 @@ static int
 sys_container_alloc(uint64_t parent_ct)
 {
     struct Container *parent, *c;
-    check(container_find(&parent, parent_ct));
+    check(container_find(&parent, parent_ct, iflow_write));
     check(container_alloc(&cur_thread->th_ko.ko_label, &c));
     return check(container_put(parent, &c->ct_ko));
 }
@@ -87,7 +87,7 @@ static void
 sys_obj_unref(struct cobj_ref cobj)
 {
     struct Container *c;
-    check(container_find(&c, cobj.container));
+    check(container_find(&c, cobj.container, iflow_write));
     check(container_unref(c, cobj.slot));
 }
 
@@ -95,7 +95,7 @@ static int
 sys_container_store_cur_thread(uint64_t ct)
 {
     struct Container *c;
-    check(container_find(&c, ct));
+    check(container_find(&c, ct, iflow_write));
     return check(container_put(c, &cur_thread->th_ko));
 }
 
@@ -111,7 +111,8 @@ static int
 sys_obj_get_type(struct cobj_ref cobj)
 {
     struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko));
+    // XXX think harder about iflow_none here
+    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     return ko->ko_type;
 }
 
@@ -119,7 +120,8 @@ static int64_t
 sys_obj_get_id(struct cobj_ref cobj)
 {
     struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko));
+    // XXX think harder about iflow_none here
+    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     return ko->ko_id;
 }
 
@@ -127,7 +129,8 @@ static void
 sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 {
     struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko));
+    // XXX think harder about iflow_read here
+    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(label_to_ulabel(&ko->ko_label, ul));
 }
 
@@ -135,7 +138,7 @@ static uint64_t
 sys_container_nslots(uint64_t container)
 {
     struct Container *c;
-    check(container_find(&c, container));
+    check(container_find(&c, container, iflow_read));
     return container_nslots(c);
 }
 
@@ -148,7 +151,7 @@ sys_gate_create(uint64_t container, struct thread_entry *te, struct ulabel *ul_e
     check(label_compare(&cur_thread->th_ko.ko_label, &l_t, label_leq_starlo));
 
     struct Container *c;
-    check(container_find(&c, container));
+    check(container_find(&c, container, iflow_write));
 
     struct Gate *g;
     check(gate_alloc(&l_e, &g));
@@ -163,7 +166,7 @@ static int
 sys_thread_create(uint64_t ct)
 {
     struct Container *c;
-    check(container_find(&c, ct));
+    check(container_find(&c, ct, iflow_write));
 
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
@@ -175,9 +178,9 @@ static void
 sys_gate_enter(struct cobj_ref gt)
 {
     struct Gate *g;
-    check(cobj_get(gt, kobj_gate, (struct kobject **)&g));
-    check(label_compare(&cur_thread->th_ko.ko_label, &g->gt_ko.ko_label, label_leq_starlo));
+    check(cobj_get(gt, kobj_gate, (struct kobject **)&g, iflow_write_contaminate));
 
+    // XXX do the contaminate, or let the user compute it and verify
     struct thread_entry *e = &g->gt_te;
     thread_jump(cur_thread, &g->gt_target_label, &e->te_segmap,
 		e->te_entry, e->te_stack, e->te_arg);
@@ -187,9 +190,7 @@ static void
 sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 {
     struct Thread *t;
-    check(cobj_get(thread, kobj_thread, (struct kobject **)&t));
-
-    check(label_compare(&t->th_ko.ko_label, &cur_thread->th_ko.ko_label, label_eq));
+    check(cobj_get(thread, kobj_thread, (struct kobject **)&t, iflow_write));
 
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
@@ -203,7 +204,7 @@ static int
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
     struct Container *c;
-    check(container_find(&c, ct));
+    check(container_find(&c, ct, iflow_write));
 
     struct Segment *sg;
     check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
@@ -216,9 +217,7 @@ static void
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
 {
     struct Segment *sg;
-    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
-
-    check(label_compare(&cur_thread->th_ko.ko_label, &sg->sg_ko.ko_label, label_eq));
+    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg, iflow_write));
     check(segment_set_npages(sg, num_pages));
 }
 
@@ -226,8 +225,7 @@ static int
 sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     struct Segment *sg;
-    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg));
-    check(label_compare(&sg->sg_ko.ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi));
+    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg, iflow_read));
     return sg->sg_ko.ko_npages;
 }
 

@@ -1,12 +1,15 @@
-segment copying with re-labeling
-container labeling
-verify/cleanup label checking
-it would be great to factor label checks into kobject_get()
+user-specified segment labeling
+in-kernel segment copying
+user-specified container labeling
 larger labels
 
-what to do about return gates?
+type-check for correct info_flow_type values (easier in C++)
 
-read/write flag to kobject_get()
+* it would be nice if gate_enter() didn't automatically compute the
+  contamination, but allowed the user to compute the target label
+  and verified that it's OK.  benefit: easier to make return gate.
+  is it OK to allow user to look at the gate's target label?
+
 copy-on-write kobjects
 kobject pinning
 snapshotting pstate_sync()
