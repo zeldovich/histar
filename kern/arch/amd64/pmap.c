@@ -3,17 +3,9 @@
 #include <machine/x86.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
-#include <inc/error.h>
-#include <inc/stdarg.h>
-
 #include <dev/kclock.h>
 #include <kern/lib.h>
-#include <machine/atomic.h>
-#if 0
-#include <kern/labels.h>
-#include <kern/env.h>
-#include <kern/asbestos.h>
-#endif
+#include <inc/error.h>
 
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa;	// Maximum physical address

@@ -1,11 +1,11 @@
-#include "kern/lib.h"
-#include "machine/mmu.h"
+#include <machine/mmu.h>
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <machine/x86.h>
 #include <machine/thread.h>
-#include <kern/syscall.h>
 #include <dev/picirq.h>
+#include <kern/syscall.h>
+#include <kern/lib.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
 
