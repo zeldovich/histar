@@ -290,9 +290,9 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *e
 static __inline uint64_t
 read_tsc(void)
 {
-        uint64_t tsc;
-        __asm __volatile("rdtsc" : "=A" (tsc));
-        return tsc;
+	uint32_t a, d;
+	__asm __volatile("rdtsc" : "=a" (a), "=d" (d));
+	return ((uint64_t) a) | (((uint64_t) d) << 32);
 }
 
 
