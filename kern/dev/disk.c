@@ -45,12 +45,12 @@ static struct ide_channel the_ide_channel;
 static uint32_t the_ide_drive;
 
 static int
-ide_wait(struct ide_channel *idec, uint8_t flags)
+ide_wait(struct ide_channel *idec, uint8_t flagmask, uint8_t flagset)
 {
     uint64_t ts_start = read_tsc();
     for (;;) {
 	idec->ide_status = inb(idec->cmd_addr + IDE_REG_STATUS);
-	if ((idec->ide_status & (IDE_STAT_BSY | flags)) == flags)
+	if ((idec->ide_status & (IDE_STAT_BSY | flagmask)) == flagset)
 	    break;
 
 	uint64_t ts_diff = read_tsc() - ts_start;
@@ -99,7 +99,7 @@ static int
 ide_pio_in(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 {
     for (; num_sectors > 0; num_sectors--, buf += 512) {
-	int r = ide_wait(idec, IDE_STAT_DRDY);
+	int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
 
@@ -116,7 +116,7 @@ static int __attribute__((__unused__))
 ide_pio_out(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 {
     for (; num_sectors > 0; num_sectors--, buf += 512) {
-	int r = ide_wait(idec, IDE_STAT_DRDY);
+	int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
 
@@ -215,14 +215,21 @@ ide_intr()
 	idec->dma_wait = 0;
     }
 
-    r = ide_wait(idec, 0);
+    r = ide_wait(idec, 0, 0);
     if (r < 0) {
-	cprintf("ide_intr: timed out, failing\n");
+	cprintf("ide_intr: timed out waiting for unbusy\n");
 	ide_complete(idec, disk_io_failure);
 	return;
     }
 
     ide_dma_irqack(idec);
+
+    r = ide_wait(idec, IDE_STAT_DRDY | IDE_STAT_DRQ, IDE_STAT_DRDY);
+    if (r < 0) {
+	cprintf("ide_intr: timed out waiting for DRDY\n");
+	ide_complete(idec, disk_io_failure);
+	return;
+    }
 
     if ((idec->ide_status & (IDE_STAT_BSY | IDE_STAT_DF | IDE_STAT_ERR | IDE_STAT_DRQ)) ||
 	(idec->dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE)))
