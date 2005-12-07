@@ -250,7 +250,7 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     assert(idec->current_op.num_bytes <= (1 << 16));
 
     ide_select_drive(idec, diskno);
-    int r = ide_wait(idec, IDE_STAT_DRDY);
+    int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
     if (r < 0)
 	return r;
 
@@ -290,7 +290,7 @@ static union {
 static void
 ide_init(struct ide_channel *idec, uint32_t diskno)
 {
-    ide_wait(idec, IDE_STAT_DRDY);
+    ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_IDENTIFY);
