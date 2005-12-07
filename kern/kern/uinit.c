@@ -1,6 +1,8 @@
 #include <machine/types.h>
 #include <machine/thread.h>
 #include <machine/pmap.h>
+#include <machine/x86.h>
+#include <dev/console.h>
 #include <kern/label.h>
 #include <kern/uinit.h>
 #include <kern/segment.h>
@@ -269,6 +271,26 @@ user_bootstrap()
 void
 user_init(void)
 {
+    // XXX need some notion of time in the kernel, or at least
+    // an approximate sleep.
+    int discard = 0;
+    cprintf("About to load persistent state, hit 'x' to discard.\n");
+    for (int i = 0; i < 1000000; i++) {
+	int c = cons_getc();
+	if (c == 'x') {
+	    discard = 1;
+	    break;
+	}
+
+	inb(0x84);
+    }
+
+    if (discard) {
+	cprintf("Discarding persistent state.\n");
+	user_bootstrap();
+	return;
+    }
+
     int r = pstate_init();
     if (r < 0) {
 	cprintf("Unable to load persistent state: %s\n", e2s(r));
