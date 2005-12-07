@@ -26,6 +26,6 @@ int disk_io(disk_op op, void *buf,
 	    uint32_t count, uint64_t offset,
 	    disk_callback cb, void *cbarg);
 
-void ide_intr();
+void ide_intr(int polling);
 
 #endif

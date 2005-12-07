@@ -330,7 +330,7 @@ pstate_init()
     }
 
     while (!state.done)
-	ide_intr();
+	ide_intr(1);
 
     if (state.done < 0) {
 	memset(&stable_hdr, 0, sizeof(stable_hdr));
@@ -441,5 +441,5 @@ pstate_sync()
     sync_kobj();
 
     while (!state.done)
-	ide_intr();
+	ide_intr(1);
 }

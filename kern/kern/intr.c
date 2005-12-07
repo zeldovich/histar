@@ -25,7 +25,7 @@ irq_handler(int irqno)
 
 	case 14:
 	case 15:
-	    ide_intr();
+	    ide_intr(0);
 	    break;
 
 	default:

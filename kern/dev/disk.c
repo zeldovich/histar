@@ -35,12 +35,19 @@ struct ide_channel {
 static int
 ide_wait_ready(struct ide_channel *idec)
 {
-    int r;
+    uint8_t r;
 
+    uint64_t ts_start = read_tsc();
     for (;;) {
-	r = inb(idec->cmd_addr + IDE_REG_STATUS);
+	r = inb(idec->ctl_addr);
 	if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) == IDE_STAT_DRDY)
 	    break;
+
+	uint64_t ts_diff = read_tsc() - ts_start;
+	if (ts_diff > 1024 * 1024 * 1024) {
+	    cprintf("ide_wait_ready: stuck for %ld cycles, status %02x\n", ts_diff, r);
+	    return -E_BUSY;
+	}
     }
 
     if ((r & (IDE_STAT_DF | IDE_STAT_ERR))) {
@@ -166,15 +173,16 @@ static struct ide_channel the_ide_channel;
 static uint32_t the_ide_drive;
 
 void
-ide_intr()
+ide_intr(int polling)
 {
     struct ide_channel *idec = &the_ide_channel;
     disk_io_status iostat = disk_io_success;
 
     // Ack IRQ by reading the status register
-    int r = inb(idec->cmd_addr + IDE_REG_STATUS);
+    uint8_t r = inb(idec->cmd_addr + IDE_REG_STATUS);
     if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
-	//cprintf("spurious IDE interrupt, status %02x\n", r);
+	if (!polling)
+	    cprintf("spurious IDE interrupt, status %02x\n", r);
 	return;
     }
 
@@ -186,7 +194,8 @@ ide_intr()
     outb(idec->bm_addr + IDE_BM_STAT_REG, dma_status);
 
     if (!(dma_status & IDE_BM_STAT_INTR)) {
-	//cprintf("IDE DMA spurious interrupt?\n");
+	if (!polling)
+	    cprintf("IDE DMA spurious interrupt, status %02x\n", dma_status);
 	return;
     }
 
