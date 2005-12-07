@@ -3,10 +3,13 @@
 #include <kern/timer.h>
 #include <dev/disk.h>
 #include <dev/console.h>
+#include <dev/picirq.h>
 
 void
 irq_handler(int irqno)
 {
+    irq_eoi(irqno);
+
     switch (irqno) {
 	case 0:
 	    timer_intr();

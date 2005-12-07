@@ -24,6 +24,7 @@
 extern uint16_t irq_mask_8259A;
 void pic_init(void);
 void irq_setmask_8259A(uint16_t mask);
+void irq_eoi(int irqno);
 
 #endif // !__ASSEMBLER__
 
