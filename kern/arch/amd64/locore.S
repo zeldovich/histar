@@ -7,7 +7,7 @@
 	.text
 .globl	start
 start:	.code32
-	movl	%eax,%edx			// Save multiboot magic
+	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable PAE
 	orl	$(CR4_PAE|CR4_PGE),%eax
@@ -32,9 +32,9 @@ start:	.code32
 
 inlong:	.code64
 	movabsq	$(KSTACKTOP),%rsp		// set %rsp to top of stack
-	xorq	%rbp,%rbp			// clear frame pointer
-	movl	%edx,%edi			// pass multiboot magic
+	movl	%ebp,%edi			// restore & pass multiboot magic
 	movl	%ebx,%esi			// pass multiboot pointer
+	xorq	%rbp,%rbp			// clear frame pointer
 	movq	$init,%r11			// call init function
 	call	*%r11
 1:	jmp	1b				// shouldn't get here
