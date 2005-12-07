@@ -1,6 +1,7 @@
 # -*-Makefile-*-
 
 KERN_ARCH :=					\
+	$(ARCHDIR)/multiboot.S			\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/locore.S			\

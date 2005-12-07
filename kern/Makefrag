@@ -95,16 +95,6 @@ $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
 all: $(OBJDIR)/kern/bochs.img
 #all: $(OBJDIR)/kern/kernel
 
-grub: $(OBJDIR)/jos-grub
-
-install-grub: $(OBJDIR)/jos-grub $(OBJDIR)/fs/fs.img
-	false
-	cp $(OBJDIR)/jos-grub /boot/jos
-
-$(OBJDIR)/jos-grub: $(OBJDIR)/kern/kernel
-	false
-	$(OBJCOPY) --adjust-vma=0x10000000 $^ $@
-
 # How to build the kernbin structures
 $(OBJDIR)/kern/appkernbin.c: kern/Makefrag
 	echo '#include <kern/kernbin.h>' >$@
