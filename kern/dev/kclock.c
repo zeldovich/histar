@@ -3,6 +3,8 @@
 /* The Run Time Clock and other NVRAM access functions that go with it. */
 /* The run time clock is hard-wired to IRQ8. */
 
+#define HZ 1000
+
 #include <machine/x86.h>
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
@@ -30,10 +32,10 @@ mc146818_write (void *sc, unsigned reg, unsigned datum)
 void
 kclock_init (void)
 {
-  /* initialize 8253 clock to interrupt 1000 times/sec */
+  /* initialize 8253 clock to interrupt HZ times/sec */
   outb (TIMER_MODE, TIMER_SEL0 | TIMER_RATEGEN | TIMER_16BIT);
-  outb (IO_TIMER1, TIMER_DIV (1000) % 256);
-  outb (IO_TIMER1, TIMER_DIV (1000) / 256);
+  outb (IO_TIMER1, TIMER_DIV (HZ) % 256);
+  outb (IO_TIMER1, TIMER_DIV (HZ) / 256);
   cprintf ("Setup timer interrupts via 8259A\n");
   irq_setmask_8259A (irq_mask_8259A & ~(1 << 0));
 }
