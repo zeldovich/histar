@@ -24,6 +24,17 @@
 #define IDE_CTL_SRST	0x04
 #define IDE_CTL_NIEN	0x02
 
+// Error register bits
+#define IDE_ERR_BBK	0x80	// bad block
+#define IDE_ERR_CRC	0x80	// CRC error (UDMA)
+#define IDE_ERR_UNC	0x40	// uncorrectable data
+#define IDE_ERR_MC	0x20	// media changed
+#define IDE_ERR_IDNF	0x10	// ID not found
+#define IDE_ERR_MCR	0x08	// media change requested
+#define IDE_ERR_ABRT	0x04	// aborted command
+#define IDE_ERR_TK0NF	0x02	// track 0 not found
+#define IDE_ERR_AMNF	0x01	// address mark not found
+
 // Status bits
 #define IDE_STAT_BSY	0x80
 #define IDE_STAT_DRDY	0x40

@@ -342,7 +342,7 @@ pstate_init()
 	    cprintf("pstate_init: wedged for %ld, cb %d\n", ts_now - ts_start, state.cb);
 	    warned = 1;
 	}
-	ide_intr(1);
+	ide_intr();
     }
 
     if (state.done < 0) {
@@ -465,6 +465,6 @@ pstate_sync()
 	    cprintf("pstate_sync: wedged for %ld, cb %d\n", ts_now - ts_start, state.cb);
 	    warned = 1;
 	}
-	ide_intr(1);
+	ide_intr();
     }
 }

@@ -1,13 +1,10 @@
-#include <dev/disk.h>
-
-// PIO-based driver, copied from jos/fs/ide.c
-
 #include <machine/x86.h>
-#include <kern/lib.h>
-#include <dev/ide.h>
-#include <inc/error.h>
-#include <dev/picirq.h>
 #include <machine/pmap.h>
+#include <dev/ide.h>
+#include <dev/disk.h>
+#include <dev/picirq.h>
+#include <kern/lib.h>
+#include <inc/error.h>
 
 struct ide_op {
     disk_op op;
@@ -16,46 +13,70 @@ struct ide_op {
     uint64_t byte_offset;
     disk_callback cb;
     void *cbarg;
-
-    // Align to 256 bytes to avoid spanning a 64K boundary.
-    // 17 slots is enough for up to 64K data (16 pages), the max for IDE.
-    struct ide_prd bm_prd[17] __attribute__((aligned (256)));
 };
 
+// This is really an IDE channel coupled with one drive
 struct ide_channel {
+    // Hardware interface
     uint32_t cmd_addr;
     uint32_t ctl_addr;
     uint32_t bm_addr;
     uint32_t irq;
 
+    // Flags
+    bool_t dma_wait;
+    bool_t irq_wait;
+
+    // Status values
+    uint8_t ide_status;
+    uint8_t ide_error;
+    uint8_t dma_status;
+
     // 1-deep command queue
     struct ide_op current_op;
+
+    // Align to 256 bytes to avoid spanning a 64K boundary.
+    // 17 slots is enough for up to 64K data (16 pages), the max for DMA.
+    struct ide_prd bm_prd[17] __attribute__((aligned (256)));
 };
 
-static int
-ide_wait_ready(struct ide_channel *idec)
-{
-    uint8_t r;
+// One global IDE channel and drive on it, for now
+static struct ide_channel the_ide_channel;
+static uint32_t the_ide_drive;
 
+static int
+ide_wait(struct ide_channel *idec, uint8_t flags)
+{
     uint64_t ts_start = read_tsc();
     for (;;) {
-	r = inb(idec->ctl_addr);
-	if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) == IDE_STAT_DRDY)
+	idec->ide_status = inb(idec->cmd_addr + IDE_REG_STATUS);
+	if ((idec->ide_status & (IDE_STAT_BSY | flags)) == flags)
 	    break;
 
 	uint64_t ts_diff = read_tsc() - ts_start;
 	if (ts_diff > 1024 * 1024 * 1024) {
-	    cprintf("ide_wait_ready: stuck for %ld cycles, status %02x\n", ts_diff, r);
+	    cprintf("ide_wait: stuck for %ld cycles, status %02x\n",
+		    ts_diff, idec->ide_status);
 	    return -E_BUSY;
 	}
     }
 
-    if ((r & (IDE_STAT_DF | IDE_STAT_ERR))) {
-	cprintf("IDE error: %02x\n", r);
-	return -1;
+    if (idec->ide_status & IDE_STAT_ERR) {
+	idec->ide_error = inb(idec->cmd_addr + IDE_REG_ERROR);
+	cprintf("ide_wait: error, status %02x error bits %02x\n",
+		idec->ide_status, idec->ide_error);
     }
 
+    if (idec->ide_status & IDE_STAT_DF)
+	cprintf("ide_wait: data error, status %02x\n", idec->ide_status);
+
     return 0;
+}
+
+static void
+ide_select_drive(struct ide_channel *idec, uint32_t diskno)
+{
+    outb(idec->cmd_addr + IDE_REG_DEVICE, (diskno << 4));
 }
 
 static void
@@ -78,9 +99,12 @@ static int
 ide_pio_in(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 {
     for (; num_sectors > 0; num_sectors--, buf += 512) {
-	int r = ide_wait_ready(idec);
+	int r = ide_wait(idec, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
+
+	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	    return -1;
 
 	insl(idec->cmd_addr + IDE_REG_DATA, buf, 512 / 4);
     }
@@ -92,9 +116,12 @@ static int __attribute__((__unused__))
 ide_pio_out(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 {
     for (; num_sectors > 0; num_sectors--, buf += 512) {
-	int r = ide_wait_ready(idec);
+	int r = ide_wait(idec, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
+
+	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	    return -1;
 
 	outsl(idec->cmd_addr + IDE_REG_DATA, buf, 512 / 4);
     }
@@ -105,6 +132,9 @@ ide_pio_out(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 static void
 ide_complete(struct ide_channel *idec, disk_io_status stat)
 {
+    if (idec->current_op.op == op_none)
+	return;
+
     idec->current_op.op = op_none;
     idec->current_op.cb(stat,
 			idec->current_op.buf,
@@ -114,7 +144,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 }
 
 static void
-ide_prd_fill(struct ide_prd *prdt, void *buf, uint64_t bytes)
+ide_dma_start(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
 {
     int slot = 0;
     while (bytes > 0) {
@@ -123,17 +153,81 @@ ide_prd_fill(struct ide_prd *prdt, void *buf, uint64_t bytes)
 	if (page_bytes > bytes)
 	    page_bytes = bytes;
 
-	prdt[slot].addr = kva2pa(buf);
-	prdt[slot].count = page_bytes;
+	idec->bm_prd[slot].addr = kva2pa(buf);
+	idec->bm_prd[slot].count = page_bytes & 0xffff;
 
 	bytes -= page_bytes;
 	buf += page_bytes;
 
 	if (bytes == 0)
-	    prdt[slot].count |= IDE_PRD_EOT;
+	    idec->bm_prd[slot].count |= IDE_PRD_EOT;
 
 	slot++;
     }
+
+    outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->bm_prd[0]));
+    outb(idec->bm_addr + IDE_BM_STAT_REG,
+	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
+	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
+    outb(idec->bm_addr + IDE_BM_CMD_REG,
+	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
+}
+
+static int
+ide_dma_finish(struct ide_channel *idec)
+{
+    idec->dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
+    if (!(idec->dma_status & IDE_BM_STAT_INTR))
+	return -1;
+
+    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
+    return 0;
+}
+
+static void
+ide_dma_irqack(struct ide_channel *idec)
+{
+    outb(idec->bm_addr + IDE_BM_STAT_REG, inb(idec->bm_addr + IDE_BM_STAT_REG));
+}
+
+void
+ide_intr()
+{
+    int r;
+    struct ide_channel *idec = &the_ide_channel;
+
+    if (!idec->irq_wait) {
+	inb(idec->cmd_addr + IDE_REG_STATUS);
+	return;
+    }
+
+    if (idec->dma_wait) {
+	r = ide_dma_finish(idec);
+	if (r < 0)
+	    return;
+
+	idec->dma_wait = 0;
+    }
+
+    r = ide_wait(idec, 0);
+    if (r < 0) {
+	cprintf("ide_intr: timed out, failing\n");
+	ide_complete(idec, disk_io_failure);
+	return;
+    }
+
+    ide_dma_irqack(idec);
+
+    if ((idec->ide_status & (IDE_STAT_BSY | IDE_STAT_DF | IDE_STAT_ERR | IDE_STAT_DRQ)) ||
+	(idec->dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE)))
+    {
+	cprintf("ide_intr: IDE error %02x error bits %02x DMA status %02x\n",
+		idec->ide_status, idec->ide_error, idec->dma_status);
+	ide_complete(idec, disk_io_failure);
+	return;
+    }
+
+    ide_complete(idec, disk_io_success);
 }
 
 static int
@@ -142,78 +236,25 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     // IDE DMA can only handle up to 64K
     assert(idec->current_op.num_bytes <= (1 << 16));
 
-    uint32_t num_sectors = idec->current_op.num_bytes / 512;
-
-    int r = ide_wait_ready(idec);
+    ide_select_drive(idec, diskno);
+    int r = ide_wait(idec, IDE_STAT_DRDY);
     if (r < 0)
 	return r;
 
-    ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512, num_sectors);
-
-    // Create the physical region descriptor table
-    ide_prd_fill(&idec->current_op.bm_prd[0],
-		 idec->current_op.buf,
-		 idec->current_op.num_bytes);
-
-    // Load table address
-    outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->current_op.bm_prd[0]));
-
-    // Clear DMA interrupt/error flags, enable DMA for disks
-    outb(idec->bm_addr + IDE_BM_STAT_REG,
-	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
-	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
-
-    // Issue command to disk & DMA controller; clears IDE INTRQ
-    disk_op op = idec->current_op.op;
+    ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
+				     idec->current_op.num_bytes / 512);
     outb(idec->cmd_addr + IDE_REG_CMD,
-	 (op == op_read) ? IDE_CMD_READ_DMA : IDE_CMD_WRITE_DMA);
-    outb(idec->bm_addr + IDE_BM_CMD_REG,
-	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
+	 (idec->current_op.op == op_read) ? IDE_CMD_READ_DMA
+					  : IDE_CMD_WRITE_DMA);
+    ide_dma_start(idec, idec->current_op.op,
+			idec->current_op.buf,
+			idec->current_op.num_bytes);
+
+    idec->irq_wait = 1;
+    idec->dma_wait = 1;
+    idec->ide_error = 0;
 
     return 0;
-}
-
-// One global IDE channel and drive on it, for now
-static struct ide_channel the_ide_channel;
-static uint32_t the_ide_drive;
-
-void
-ide_intr(int polling)
-{
-    struct ide_channel *idec = &the_ide_channel;
-    disk_io_status iostat = disk_io_success;
-
-    // Ack IRQ by reading the status register
-    uint8_t ide_status = inb(idec->cmd_addr + IDE_REG_STATUS);
-    if ((ide_status & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
-	if (!polling)
-	    cprintf("spurious IDE interrupt, status %02x\n", ide_status);
-	return;
-    }
-
-    // Ack bus-master interrupt
-    uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
-    outb(idec->bm_addr + IDE_BM_STAT_REG, dma_status);
-
-    // Report any error conditions
-    if ((ide_status & (IDE_STAT_DF | IDE_STAT_ERR))) {
-	cprintf("IDE error: status %02x (DMA %02x)\n", ide_status, dma_status);
-	iostat = disk_io_failure;
-    }
-
-    if ((dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE))) {
-	cprintf("IDE DMA funny state: %02x (IDE status %02x)\n", dma_status, ide_status);
-	iostat = disk_io_failure;
-    }
-
-    // Stop DMA engine
-    outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
-
-    // Check that we had a command queued
-    if (idec->current_op.op == op_none)
-	return;
-
-    ide_complete(idec, iostat);
 }
 
 static void
@@ -234,7 +275,7 @@ static union {
 static void
 ide_init(struct ide_channel *idec, uint32_t diskno)
 {
-    ide_wait_ready(idec);
+    ide_wait(idec, IDE_STAT_DRDY);
 
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_IDENTIFY);
