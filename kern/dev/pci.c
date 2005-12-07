@@ -84,10 +84,12 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 		continue;
 
 	    uint32_t class = pci_conf_read(busno, dev, func, PCI_CLASS_REG);
+#if 0
 	    cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x ifa %x\n",
 		    busno, dev, func,
 		    PCI_VENDOR(id), PCI_PRODUCT(id),
 		    PCI_CLASS(class), PCI_SUBCLASS(class), PCI_INTERFACE(class));
+#endif
 
 	    uint32_t bar_width;
 	    for (bar = PCI_MAPREG_START; bar < PCI_MAPREG_END; bar += bar_width) {
