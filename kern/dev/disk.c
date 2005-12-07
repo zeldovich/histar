@@ -144,7 +144,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 }
 
 static void
-ide_dma_start(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
+ide_dma_init(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
 {
     int slot = 0;
     while (bytes > 0) {
@@ -169,8 +169,14 @@ ide_dma_start(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
     outb(idec->bm_addr + IDE_BM_STAT_REG,
 	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
+    outb(idec->bm_addr + IDE_BM_CMD_REG, (op == op_read) ? IDE_BM_CMD_WRITE : 0);
+}
+
+static void
+ide_dma_start(struct ide_channel *idec)
+{
     outb(idec->bm_addr + IDE_BM_CMD_REG,
-	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
+	 IDE_BM_CMD_START | inb(idec->bm_addr + IDE_BM_CMD_REG));
 }
 
 static int
@@ -241,14 +247,16 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     if (r < 0)
 	return r;
 
+    ide_dma_init(idec, idec->current_op.op,
+		       idec->current_op.buf,
+		       idec->current_op.num_bytes);
+
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
 				     idec->current_op.num_bytes / 512);
     outb(idec->cmd_addr + IDE_REG_CMD,
 	 (idec->current_op.op == op_read) ? IDE_CMD_READ_DMA
 					  : IDE_CMD_WRITE_DMA);
-    ide_dma_start(idec, idec->current_op.op,
-			idec->current_op.buf,
-			idec->current_op.num_bytes);
+    ide_dma_start(idec);
 
     idec->irq_wait = 1;
     idec->dma_wait = 1;
