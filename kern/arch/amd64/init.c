@@ -96,19 +96,23 @@ bss_init (void)
 }
 
 void
-init (void)
+init (uint32_t start_eax, uint32_t start_ebx)
 {
-  mmu_init ();
-  bss_init ();
-  idt_init ();
-  cons_init ();
-  pic_init ();
-  kclock_init ();
-  pmap_init ();
-  pci_init ();
+    struct multiboot_info *mbi = 0;
+    if (start_eax == MULTIBOOT_HEADER_MAGIC)
+	mbi = pa2kva(start_ebx);
 
-  user_init ();
+    mmu_init ();
+    bss_init ();
+    idt_init ();
+    cons_init ();
+    pic_init ();
+    kclock_init ();
+    pmap_init (mbi);
+    pci_init ();
 
-  cprintf("=== kernel ready, calling schedule() ===\n");
-  schedule();
+    user_init ();
+
+    cprintf("=== kernel ready, calling schedule() ===\n");
+    schedule();
 }

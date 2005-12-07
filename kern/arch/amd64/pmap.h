@@ -3,6 +3,7 @@
 
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
+#include <machine/multiboot.h>
 #ifndef __ASSEMBLER__
 #include <inc/queue.h>
 #include <kern/lib.h>
@@ -36,7 +37,7 @@ struct Pagemap {
 
 extern size_t npage;
 
-void pmap_init (void);
+void pmap_init (struct multiboot_info *mbi);
 
 int  page_alloc (void **p);
 void page_free (void *p);

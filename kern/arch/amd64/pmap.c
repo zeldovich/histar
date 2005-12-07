@@ -3,6 +3,7 @@
 #include <machine/x86.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
+#include <machine/multiboot.h>
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <inc/error.h>
@@ -25,24 +26,29 @@ nvram_read (int r)
 }
 
 static void
-i386_detect_memory (void)
+i386_detect_memory (struct multiboot_info *mbi)
 {
-  // CMOS tells us how many kilobytes there are
-  basemem = ROUNDDOWN (nvram_read (NVRAM_BASELO) * 1024, PGSIZE);
-  extmem = ROUNDDOWN (nvram_read (NVRAM_EXTLO) * 1024, PGSIZE);
+    if (mbi && (mbi->flags & MULTIBOOT_INFO_MEMORY)) {
+	basemem = ROUNDDOWN(mbi->mem_lower * 1024, PGSIZE);
+	extmem = ROUNDDOWN(mbi->mem_upper * 1024, PGSIZE);
+    } else {
+	// CMOS tells us how many kilobytes there are
+	basemem = ROUNDDOWN (nvram_read (NVRAM_BASELO) * 1024, PGSIZE);
+	extmem = ROUNDDOWN (nvram_read (NVRAM_EXTLO) * 1024, PGSIZE);
+    }
 
-  // Calculate the maxmium physical address based on whether
-  // or not there is any extended memory.  See comment in ../inc/mmu.h.
-  if (extmem)
-    maxpa = EXTPHYSMEM + extmem;
-  else
-    maxpa = basemem;
+    // Calculate the maxmium physical address based on whether
+    // or not there is any extended memory.  See comment in ../inc/mmu.h.
+    if (extmem)
+	maxpa = EXTPHYSMEM + extmem;
+    else
+	maxpa = basemem;
 
-  npage = maxpa / PGSIZE;
+    npage = maxpa / PGSIZE;
 
-  cprintf ("Physical memory: %dK available, ", (int) (maxpa / 1024));
-  cprintf ("base = %dK, extended = %dK\n", (int) (basemem / 1024),
-	   (int) (extmem / 1024));
+    cprintf("Physical memory: %dK available, ", (int) (maxpa / 1024));
+    cprintf("base = %dK, extended = %dK\n", (int) (basemem / 1024),
+	    (int) (extmem / 1024));
 }
 
 //
@@ -131,9 +137,9 @@ page_init (void)
 }
 
 void
-pmap_init (void)
+pmap_init (struct multiboot_info *mbi)
 {
-    i386_detect_memory ();
+    i386_detect_memory (mbi);
     page_init ();
 }
 

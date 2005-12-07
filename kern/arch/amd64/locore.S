@@ -7,6 +7,8 @@
 	.text
 .globl	start
 start:	.code32
+	movl	%eax,%edx			// Save multiboot magic
+
 	movl	%cr4,%eax			// Enable PAE
 	orl	$(CR4_PAE|CR4_PGE),%eax
 	movl	%eax,%cr4
@@ -22,15 +24,17 @@ start:	.code32
 	movl	$RELOC(PD_SKIP + gdtdesc),%eax	// Load GDT
 	lgdt	(%eax)
 
-	movl	$(RELOC (farptr)),%edx		// Far porter to inlong
+	movl	$(RELOC (farptr)),%ecx		// Far porter to inlong
 	movl	%cr0,%eax			// Enable paging
 	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS),%eax
 	movl	%eax,%cr0
-	ljmp	*(%edx)
+	ljmp	*(%ecx)
 
 inlong:	.code64
 	movabsq	$(KSTACKTOP),%rsp		// set %rsp to top of stack
-	xorl	%ebp,%ebp			// clear frame pointer
+	xorq	%rbp,%rbp			// clear frame pointer
+	movl	%edx,%edi			// pass multiboot magic
+	movl	%ebx,%esi			// pass multiboot pointer
 	movq	$init,%r11			// call init function
 	call	*%r11
 1:	jmp	1b				// shouldn't get here
