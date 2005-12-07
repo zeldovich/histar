@@ -128,6 +128,12 @@ lpt_putc (int c)
   outb (0x378 + 2, 0x08);
 }
 
+void
+lpt_intr()
+{
+    // do nothing
+}
+
 
 
 

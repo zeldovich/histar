@@ -23,6 +23,10 @@ irq_handler(int irqno)
 	    serial_intr();
 	    break;
 
+	case 7:
+	    lpt_intr();
+	    break;
+
 	case 14:
 	case 15:
 	    ide_intr();
