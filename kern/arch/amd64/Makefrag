@@ -22,5 +22,6 @@ KERN_DEV :=					\
 	kern/dev/kclock.c			\
 	kern/dev/picirq.c			\
 	kern/dev/disk.c				\
-	kern/dev/pci.c
+	kern/dev/pci.c				\
+	kern/dev/ne2kpci.c
 

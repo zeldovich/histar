@@ -1,8 +1,12 @@
+#include <machine/x86.h>
 #include <dev/pci.h>
 #include <dev/pcireg.h>
 #include <dev/disk.h>
+#include <dev/ne2kpci.h>
 #include <kern/lib.h>
-#include <machine/x86.h>
+
+// Flag to do "lspci" at bootup
+static int pci_show_devs = 0;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
@@ -57,6 +61,12 @@ pci_attach(uint32_t id, uint32_t class, struct pci_func *pcif)
 	PCI_SUBCLASS(class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
     {
 	disk_init(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(id) == 0x10ec && PCI_PRODUCT(id) == 0x8029) {
+	ne2kpci_attach(pcif);
+	return;
     }
 }
 
@@ -83,13 +93,16 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 	    if (PCI_VENDOR(id) == 0xffff)
 		continue;
 
+	    uint32_t intr = pci_conf_read(busno, dev, func, PCI_INTERRUPT_REG);
+	    pcif.irq_line = PCI_INTERRUPT_LINE(intr);
+
 	    uint32_t class = pci_conf_read(busno, dev, func, PCI_CLASS_REG);
-#if 0
-	    cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x ifa %x\n",
-		    busno, dev, func,
-		    PCI_VENDOR(id), PCI_PRODUCT(id),
-		    PCI_CLASS(class), PCI_SUBCLASS(class), PCI_INTERFACE(class));
-#endif
+	    if (pci_show_devs)
+		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x ifa %x irq %d\n",
+			busno, dev, func,
+			PCI_VENDOR(id), PCI_PRODUCT(id),
+			PCI_CLASS(class), PCI_SUBCLASS(class),
+			PCI_INTERFACE(class), pcif.irq_line);
 
 	    uint32_t bar_width;
 	    for (bar = PCI_MAPREG_START; bar < PCI_MAPREG_END; bar += bar_width) {
