@@ -136,7 +136,7 @@ ide_prd_fill(struct ide_prd *prdt, void *buf, uint64_t bytes)
     }
 }
 
-static void
+static int
 ide_send(struct ide_channel *idec, uint32_t diskno)
 {
     // IDE DMA can only handle up to 64K
@@ -144,7 +144,10 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
 
     uint32_t num_sectors = idec->current_op.num_bytes / 512;
 
-    ide_wait_ready(idec);
+    int r = ide_wait_ready(idec);
+    if (r < 0)
+	return r;
+
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512, num_sectors);
 
     // Create the physical region descriptor table
@@ -166,6 +169,8 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
 	 (op == op_read) ? IDE_CMD_READ_DMA : IDE_CMD_WRITE_DMA);
     outb(idec->bm_addr + IDE_BM_CMD_REG,
 	 IDE_BM_CMD_START | ((op == op_read) ? IDE_BM_CMD_WRITE : 0));
+
+    return 0;
 }
 
 // One global IDE channel and drive on it, for now
@@ -179,28 +184,25 @@ ide_intr(int polling)
     disk_io_status iostat = disk_io_success;
 
     // Ack IRQ by reading the status register
-    uint8_t r = inb(idec->cmd_addr + IDE_REG_STATUS);
-    if ((r & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
+    uint8_t ide_status = inb(idec->cmd_addr + IDE_REG_STATUS);
+    if ((ide_status & (IDE_STAT_BSY | IDE_STAT_DRDY)) != IDE_STAT_DRDY) {
 	if (!polling)
-	    cprintf("spurious IDE interrupt, status %02x\n", r);
+	    cprintf("spurious IDE interrupt, status %02x\n", ide_status);
 	return;
     }
-
-    if ((r & (IDE_STAT_DF | IDE_STAT_ERR)))
-	iostat = disk_io_failure;
 
     // Ack bus-master interrupt
     uint8_t dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     outb(idec->bm_addr + IDE_BM_STAT_REG, dma_status);
 
-    if (!(dma_status & IDE_BM_STAT_INTR)) {
-	if (!polling)
-	    cprintf("IDE DMA spurious interrupt, status %02x\n", dma_status);
-	return;
+    // Report any error conditions
+    if ((ide_status & (IDE_STAT_DF | IDE_STAT_ERR))) {
+	cprintf("IDE error: status %02x (DMA %02x)\n", ide_status, dma_status);
+	iostat = disk_io_failure;
     }
 
     if ((dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE))) {
-	cprintf("IDE DMA funny state: %02x\n", dma_status);
+	cprintf("IDE DMA funny state: %02x (IDE status %02x)\n", dma_status, ide_status);
 	iostat = disk_io_failure;
     }
 
@@ -317,6 +319,8 @@ disk_io(disk_op op, void *buf,
     curop->cb = cb;
     curop->cbarg = cbarg;
 
-    ide_send(idec, the_ide_drive);
-    return 0;
+    int r = ide_send(idec, the_ide_drive);
+    if (r < 0)
+	curop->op = op_none;
+    return r;
 }
