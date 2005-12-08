@@ -47,7 +47,7 @@ struct fxp_card {
 
     int tx_head;	// card transmitting from tx_head, -1 if none
     int tx_nextq;	// next slot for tx buffer
-    bool_t tx_halted;	// transmitter is not running or suspended
+    bool_t tx_halted;	// transmitter is not running and not suspended
 
     int64_t waitgen;
     struct Thread_tqueue waiting;
@@ -274,7 +274,7 @@ fxp_tx_start(struct fxp_card *c)
 static void __attribute__((unused))
 fxp_print_packet(struct netbuf_hdr *nb)
 {
-    cprintf("%p(%d/%d)", nb, nb->actual_count & FXP_SIZE_MASK, nb->size);
+    cprintf("nb(%d/%d)", nb->actual_count & FXP_SIZE_MASK, nb->size);
     if ((nb->actual_count & NETHDR_COUNT_DONE))
 	cprintf(" done");
     if ((nb->actual_count & NETHDR_COUNT_ERR))
@@ -289,50 +289,37 @@ fxp_print_packet(struct netbuf_hdr *nb)
 static void
 fxp_intr_rx(struct fxp_card *c)
 {
-    if (c->rx_head == -1)
-	return;
-
     for (;;) {
 	int i = c->rx_head;
-	if (!(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
+	if (i == -1 || !(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
 	    break;
 
+	kobject_decpin(&c->rx[i].sg->sg_ko);
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 	if (!(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_OK))
 	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 
-	kobject_decpin(&c->rx[i].sg->sg_ko);
-	c->rx[i].sg = 0;
-
 	c->rx_head = (i + 1) % FXP_RX_SLOTS;
-	if (c->rx_head == c->rx_nextq) {
+	if (c->rx_head == c->rx_nextq)
 	    c->rx_head = -1;
-	    break;
-	}
     }
 }
 
 static void
 fxp_intr_tx(struct fxp_card *c)
 {
-    if (c->tx_head == -1)
-	return;
-
     for (;;) {
 	int i = c->tx_head;
-	if (!(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
+	if (i == -1 || !(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
 	    break;
 
-	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 	kobject_decpin(&c->tx[i].sg->sg_ko);
-	c->tx[i].sg = 0;
+	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
 	c->tx_head = (i + 1) % FXP_TX_SLOTS;
-	if (c->tx_head == c->tx_nextq) {
+	if (c->tx_head == c->tx_nextq)
 	    c->tx_head = -1;
-	    break;
-	}
     }
 }
 
@@ -368,9 +355,9 @@ fxp_add_txbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
     c->tx[slot].nb = nb;
     c->tx[slot].sg = sg;
     kobject_incpin(&sg->sg_ko);
+
     c->tx[slot].tbd.tb_addr = kva2pa(c->tx[slot].nb + 1);
     c->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
-
     c->tx[slot].tcb.cb_status = 0;
     c->tx[slot].tcb.cb_command = FXP_CB_COMMAND_XMIT |
 	FXP_CB_COMMAND_SF | FXP_CB_COMMAND_I | FXP_CB_COMMAND_S;
@@ -404,6 +391,7 @@ fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
     c->rx[slot].nb = nb;
     c->rx[slot].sg = sg;
     kobject_incpin(&sg->sg_ko);
+
     c->rx[slot].rbd.rbd_buffer = kva2pa(c->rx[slot].nb + 1);
     c->rx[slot].rbd.rbd_size = (size & FXP_SIZE_MASK) | FXP_RBD_SIZE_EL;
     c->rx[slot].rfd.rfa_status = 0;
