@@ -74,6 +74,7 @@ main(int ac, char **av)
 		    memcpy(&txbuf[6], &mac[0], 6);
 		    txbuf[12] = 0x8; txbuf[13] = 0x6;
 
+		    tx->actual_count = 1;	// just to flag it as busy
 		    int r = sys_net_buf(seg, 8 * PGSIZE, netbuf_tx);
 		    if (r < 0)
 			cprintf("cannot transmit packet: %s\n", e2s(r));
