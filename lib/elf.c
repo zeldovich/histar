@@ -48,7 +48,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	    return r;
 	}
 
-	memcpy(sbuf + va_off, segbuf + va_off, ph->p_filesz);
+	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
 	r = segment_unmap(container, sbuf);
 	if (r < 0) {
 	    cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
