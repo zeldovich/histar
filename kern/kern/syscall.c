@@ -2,6 +2,7 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <dev/console.h>
+#include <dev/fxp.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>
 #include <kern/lib.h>
@@ -12,6 +13,7 @@
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
+#include <inc/netdev.h>
 
 // Helper functions
 static uint64_t syscall_ret;
@@ -29,8 +31,8 @@ syscall_error(int r)
 
 static int syscall_debug = 0;
 #define check(x) _check(x, #x)
-static int
-_check(int r, const char *what)
+static int64_t
+_check(int64_t r, const char *what)
 {
     if (r < 0) {
 	if (syscall_debug)
@@ -72,6 +74,21 @@ sys_cgetc()
     TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
     thread_suspend(cur_thread);
     syscall_error(-E_RESTART);
+}
+
+static int64_t
+sys_net_wait(int64_t waitgen)
+{
+    return check(fxp_thread_wait(cur_thread, waitgen));
+}
+
+static void
+sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type)
+{
+    // XXX think harder about labeling in this case...
+    struct Segment *sg;
+    check(cobj_get(seg, kobj_segment, (struct kobject **)&sg, iflow_none));
+    check(fxp_add_buf(sg, npage, pageoff, type));
 }
 
 static int
@@ -260,6 +277,14 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_cgetc:
 	syscall_ret = sys_cgetc((char*) a1);
+	break;
+
+    case SYS_net_wait:
+	syscall_ret = sys_net_wait(a1);
+	break;
+
+    case SYS_net_buf:
+	sys_net_buf(COBJ(a1, a2), a3, a4, a5);
 	break;
 
     case SYS_container_alloc:
