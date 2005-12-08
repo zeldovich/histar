@@ -33,7 +33,8 @@ sys_net_wait(int64_t waitgen)
 }
 
 int
-sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type)
+sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff,
+	    netbuf_type type)
 {
     return syscall(SYS_net_buf, seg.container, seg.slot, npage, pageoff, type);
 }
@@ -87,9 +88,11 @@ sys_container_nslots(uint64_t container)
 }
 
 int
-sys_gate_create(uint64_t container, struct thread_entry *te, struct ulabel *el, struct ulabel *tl)
+sys_gate_create(uint64_t container, struct thread_entry *te,
+		struct ulabel *el, struct ulabel *tl)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) te, (uint64_t) el, (uint64_t) tl, 0);
+    return syscall(SYS_gate_create, container, (uint64_t) te,
+		   (uint64_t) el, (uint64_t) tl, 0);
 }
 
 int
@@ -107,7 +110,8 @@ sys_thread_create(uint64_t container)
 int
 sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 {
-    return syscall(SYS_thread_start, thread.container, thread.slot, (uint64_t) entry, 0, 0);
+    return syscall(SYS_thread_start, thread.container, thread.slot,
+		   (uint64_t) entry, 0, 0);
 }
 
 int
@@ -119,7 +123,8 @@ sys_segment_create(uint64_t container, uint64_t num_pages)
 int
 sys_segment_resize(struct cobj_ref seg, uint64_t num_pages)
 {
-    return syscall(SYS_segment_resize, seg.container, seg.slot, num_pages, 0, 0);
+    return syscall(SYS_segment_resize, seg.container, seg.slot, num_pages,
+		   0, 0);
 }
 
 int

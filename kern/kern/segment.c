@@ -83,7 +83,8 @@ segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
 }
 
 int
-segment_map_fill_pmap(struct segment_map *segmap, struct Pagemap *pgmap, void *va)
+segment_map_fill_pmap(struct segment_map *segmap,
+		      struct Pagemap *pgmap, void *va)
 {
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
 	if (segmap->sm_ent[i].num_pages == 0)

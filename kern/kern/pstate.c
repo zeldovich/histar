@@ -102,7 +102,8 @@ pstate_map_findslot(struct pstate_map *m, kobject_id_t id)
 }
 
 static void
-pstate_kobj_free(struct pstate_map *m, struct pstate_free_list *f, struct kobject *ko)
+pstate_kobj_free(struct pstate_map *m, struct pstate_free_list *f,
+		 struct kobject *ko)
 {
     int slot = pstate_map_findslot(m, ko->ko_id);
     if (slot < 0)
@@ -113,7 +114,8 @@ pstate_kobj_free(struct pstate_map *m, struct pstate_free_list *f, struct kobjec
 }
 
 static int
-pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f, struct kobject *ko)
+pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f,
+		  struct kobject *ko)
 {
     pstate_kobj_free(m, f, ko);
 
@@ -143,7 +145,8 @@ pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f, struct kobje
 //////////////////////////////////
 
 static void
-swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+swapin_kobj_cb(disk_io_status stat, void *buf,
+	       uint32_t count, uint64_t offset, void *arg)
 {
     void (*cb)(int) = (void (*)(int)) arg;
 
@@ -173,7 +176,8 @@ swapin_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 	    return;
 	}
 
-	uint64_t offset = (stable_hdr.ph_map.ent[swapin_state.slot].offset + swapin_state.extra_page + 1) * PGSIZE;
+	uint64_t offset = (stable_hdr.ph_map.ent[swapin_state.slot].offset +
+			   swapin_state.extra_page + 1) * PGSIZE;
 	++swapin_state.extra_page;
 
 	state.cb = 4;
@@ -207,7 +211,9 @@ swapin_kobj(int slot, void (*cb)(int)) {
     swapin_state.extra_page = 0;
     swapin_state.slot = slot;
     state.cb = 5;
-    r = disk_io(op_read, p, PGSIZE, stable_hdr.ph_map.ent[slot].offset * PGSIZE, &swapin_kobj_cb, cb);
+    r = disk_io(op_read, p, PGSIZE,
+		stable_hdr.ph_map.ent[slot].offset * PGSIZE,
+		&swapin_kobj_cb, cb);
     if (r < 0) {
 	cprintf("swapin_kobj: cannot submit disk IO: %s\n", e2s(r));
 	(*cb) (r);
@@ -300,7 +306,8 @@ init_kobj()
 }
 
 static void
-init_hdr_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+init_hdr_cb(disk_io_status stat, void *buf,
+	    uint32_t count, uint64_t offset, void *arg)
 {
     if (stat != disk_io_success) {
 	cprintf("pstate_init_cb: disk IO failure\n");
@@ -339,7 +346,8 @@ pstate_init()
     while (!state.done) {
 	uint64_t ts_now = read_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
-	    cprintf("pstate_init: wedged for %ld, cb %d\n", ts_now - ts_start, state.cb);
+	    cprintf("pstate_init: wedged for %ld, cb %d\n",
+		    ts_now - ts_start, state.cb);
 	    warned = 1;
 	}
 	ide_intr();
@@ -358,7 +366,8 @@ pstate_init()
 //////////////////////////////////////////////////
 
 static void
-sync_header_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+sync_header_cb(disk_io_status stat, void *buf,
+	       uint32_t count, uint64_t offset, void *arg)
 {
     if (stat != disk_io_success) {
 	cprintf("sync_header_cb: io failure\n");
@@ -373,7 +382,8 @@ sync_header_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, 
 static void sync_kobj();
 
 static void
-sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, void *arg)
+sync_kobj_cb(disk_io_status stat, void *buf,
+	     uint32_t count, uint64_t offset, void *arg)
 {
     if (stat != disk_io_success) {
 	cprintf("sync_kobj_cb: disk IO failure\n");
@@ -382,9 +392,11 @@ sync_kobj_cb(disk_io_status stat, void *buf, uint32_t count, uint64_t offset, vo
     }
 
     if (swapout_state.extra_page < swapout_state.ko->ko_npages) {
-	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset + swapout_state.extra_page + 1) * PGSIZE;
+	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset +
+			   swapout_state.extra_page + 1) * PGSIZE;
 	void *p;
-	int r = kobject_get_page(swapout_state.ko, swapout_state.extra_page, &p);
+	int r = kobject_get_page(swapout_state.ko,
+				 swapout_state.extra_page, &p);
 	if (r < 0)
 	    panic("sync_kobj_cb: cannot get object page");
 
@@ -406,7 +418,8 @@ static void
 sync_kobj()
 {
     while (swapout_state.ko && swapout_state.ko->ko_type == kobj_dead) {
-	pstate_kobj_free(&state.hdr->ph_map, &state.hdr->ph_free, swapout_state.ko);
+	pstate_kobj_free(&state.hdr->ph_map,
+			 &state.hdr->ph_free, swapout_state.ko);
 	kobject_swapout(swapout_state.ko);
 	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
     }
@@ -423,7 +436,8 @@ sync_kobj()
 	return;
     }
 
-    state.slot = pstate_kobj_alloc(&state.hdr->ph_map, &state.hdr->ph_free, swapout_state.ko);
+    state.slot = pstate_kobj_alloc(&state.hdr->ph_map,
+				   &state.hdr->ph_free, swapout_state.ko);
     if (state.slot < 0) {
 	cprintf("sync_kobj: cannot allocate space\n");
 	state.done = -1;
@@ -462,7 +476,8 @@ pstate_sync()
     while (!state.done) {
 	uint64_t ts_now = read_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
-	    cprintf("pstate_sync: wedged for %ld, cb %d\n", ts_now - ts_start, state.cb);
+	    cprintf("pstate_sync: wedged for %ld, cb %d\n",
+		    ts_now - ts_start, state.cb);
 	    warned = 1;
 	}
 	ide_intr();

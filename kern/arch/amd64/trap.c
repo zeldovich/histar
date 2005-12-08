@@ -19,10 +19,12 @@ idt_init (void)
     int i;
     extern char trap_ec_entry_stub[], trap_noec_entry_stub[];
 
-#define	SET_TRAP_GATE(i, dpl)		\
-	SETGATE(idt[i], SEG_IG, GD_KT, &trap_entry_stubs[i].trap_entry_code[0], dpl)
-#define	SET_TRAP_CODE(i, ec_prefix)	\
-	memcpy(&trap_entry_stubs[i].trap_entry_code[0], trap_##ec_prefix##_entry_stub, 16)
+#define	SET_TRAP_GATE(i, dpl)					\
+	SETGATE(idt[i], SEG_IG, GD_KT,				\
+		&trap_entry_stubs[i].trap_entry_code[0], dpl)
+#define	SET_TRAP_CODE(i, ec_prefix)				\
+	memcpy(&trap_entry_stubs[i].trap_entry_code[0],		\
+	       trap_##ec_prefix##_entry_stub, 16)
 
     for (i = 0; i < 0x100; i++) {
 	SET_TRAP_CODE(i, noec);
@@ -48,13 +50,20 @@ idt_init (void)
 static void
 trapframe_print (struct Trapframe *tf)
 {
-    cprintf("rax %016lx  rbx %016lx  rcx %016lx\n", tf->tf_rax, tf->tf_rbx, tf->tf_rcx);
-    cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n", tf->tf_rdx, tf->tf_rsi, tf->tf_rdi);
-    cprintf("r8  %016lx  r9  %016lx  r10 %016lx\n", tf->tf_r8, tf->tf_r9, tf->tf_r10);
-    cprintf("r11 %016lx  r12 %016lx  r13 %016lx\n", tf->tf_r11, tf->tf_r12, tf->tf_r13);
-    cprintf("r14 %016lx  r15 %016lx  rbp %016lx\n", tf->tf_r14, tf->tf_r15, tf->tf_rbp);
-    cprintf("rip %016lx  rsp %016lx  cs %04x  ss %04x\n", tf->tf_rip, tf->tf_rsp, tf->tf_cs, tf->tf_ss);
-    cprintf("rflags %016lx  err %08x\n", tf->tf_rflags, tf->tf_err);
+    cprintf("rax %016lx  rbx %016lx  rcx %016lx\n",
+	    tf->tf_rax, tf->tf_rbx, tf->tf_rcx);
+    cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n",
+	    tf->tf_rdx, tf->tf_rsi, tf->tf_rdi);
+    cprintf("r8  %016lx  r9  %016lx  r10 %016lx\n",
+	    tf->tf_r8, tf->tf_r9, tf->tf_r10);
+    cprintf("r11 %016lx  r12 %016lx  r13 %016lx\n",
+	    tf->tf_r11, tf->tf_r12, tf->tf_r13);
+    cprintf("r14 %016lx  r15 %016lx  rbp %016lx\n",
+	    tf->tf_r14, tf->tf_r15, tf->tf_rbp);
+    cprintf("rip %016lx  rsp %016lx  cs %04x  ss %04x\n",
+	    tf->tf_rip, tf->tf_rsp, tf->tf_cs, tf->tf_ss);
+    cprintf("rflags %016lx  err %08x\n",
+	    tf->tf_rflags, tf->tf_err);
 }
 
 volatile int page_fault_mode = PFM_NONE;
@@ -114,7 +123,8 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 void __attribute__((__noreturn__))
 trap_handler (struct Trapframe *tf)
 {
-    uint32_t trapno = (tf->tf__trapentry_rip - (uint64_t)&trap_entry_stubs[0].trap_entry_code[0]) / 16;
+    uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
+    uint32_t trapno = (tf->tf__trapentry_rip - trap0rip) / 16;
 
     if (cur_thread == 0)
 	panic("trap %d with no active thread", trapno);

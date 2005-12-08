@@ -24,13 +24,15 @@ print_cobj(struct cobj_ref cobj)
 	return;
 
     if (type < 0) {
-	cprintf("sys_obj_get_type <%ld.%ld>: %s\n", cobj.container, cobj.slot, e2s(type));
+	cprintf("sys_obj_get_type <%ld.%ld>: %s\n",
+		cobj.container, cobj.slot, e2s(type));
 	return;
     }
 
     int id = sys_obj_get_id(cobj);
     if (id < 0) {
-	cprintf("sys_obj_get_id <%ld.%ld>: %s\n", cobj.container, cobj.slot, e2s(id));
+	cprintf("sys_obj_get_id <%ld.%ld>: %s\n",
+		cobj.container, cobj.slot, e2s(id));
 	return;
     }
 
@@ -141,7 +143,8 @@ builtin_spawn_seg(struct cobj_ref seg)
 {
     int c_spawn_slot = sys_container_alloc(c_root);
     if (c_spawn_slot < 0) {
-	cprintf("cannot allocate container for new thread: %s\n", e2s(c_spawn_slot));
+	cprintf("cannot allocate container for new thread: %s\n",
+		e2s(c_spawn_slot));
 	return;
     }
 

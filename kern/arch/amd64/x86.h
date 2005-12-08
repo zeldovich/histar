@@ -3,48 +3,51 @@
 
 #include <inc/types.h>
 
-static __inline void breakpoint(void) __attribute__((always_inline));
-static __inline uint8_t inb(int port) __attribute__((always_inline));
-static __inline void insb(int port, void *addr, int cnt) __attribute__((always_inline));
-static __inline uint16_t inw(int port) __attribute__((always_inline));
-static __inline void insw(int port, void *addr, int cnt) __attribute__((always_inline));
-static __inline uint32_t inl(int port) __attribute__((always_inline));
-static __inline void insl(int port, void *addr, int cnt) __attribute__((always_inline));
-static __inline void outb(int port, uint8_t data) __attribute__((always_inline));
-static __inline void outsb(int port, const void *addr, int cnt) __attribute__((always_inline));
-static __inline void outw(int port, uint16_t data) __attribute__((always_inline));
-static __inline void outsw(int port, const void *addr, int cnt) __attribute__((always_inline));
-static __inline void outsl(int port, const void *addr, int cnt) __attribute__((always_inline));
-static __inline void outl(int port, uint32_t data) __attribute__((always_inline));
-static __inline void invlpg(const void *addr) __attribute__((always_inline));
-static __inline void lidt(void *p) __attribute__((always_inline));
-static __inline void lldt(uint16_t sel) __attribute__((always_inline));
-static __inline void ltr(uint16_t sel) __attribute__((always_inline));
-static __inline void lcr0(uint32_t val) __attribute__((always_inline));
-static __inline uint32_t rcr0(void) __attribute__((always_inline));
-static __inline uint64_t rcr2(void) __attribute__((always_inline));
-static __inline void lcr3(uint64_t val) __attribute__((always_inline));
-static __inline uint64_t rcr3(void) __attribute__((always_inline));
-static __inline void lcr4(uint32_t val) __attribute__((always_inline));
-static __inline uint32_t rcr4(void) __attribute__((always_inline));
-static __inline void tlbflush(void) __attribute__((always_inline));
-static __inline uint32_t read_eflags(void) __attribute__((always_inline));
-static __inline void write_eflags(uint32_t eflags) __attribute__((always_inline));
-static __inline void halt(void) __attribute__((always_inline));
-static __inline void sti(void) __attribute__((always_inline));
-static __inline void cli(void) __attribute__((always_inline));
-static __inline uint64_t read_rbp(void) __attribute__((always_inline));
-static __inline uint64_t read_rsp(void) __attribute__((always_inline));
-static __inline void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp);
-static __inline uint64_t read_tsc(void) __attribute__((always_inline));
+#define X86_INST_ATTR	static __inline __attribute__((always_inline))
 
-static __inline void
+X86_INST_ATTR void breakpoint(void);
+X86_INST_ATTR uint8_t inb(int port);
+X86_INST_ATTR void insb(int port, void *addr, int cnt);
+X86_INST_ATTR uint16_t inw(int port);
+X86_INST_ATTR void insw(int port, void *addr, int cnt);
+X86_INST_ATTR uint32_t inl(int port);
+X86_INST_ATTR void insl(int port, void *addr, int cnt);
+X86_INST_ATTR void outb(int port, uint8_t data);
+X86_INST_ATTR void outsb(int port, const void *addr, int cnt);
+X86_INST_ATTR void outw(int port, uint16_t data);
+X86_INST_ATTR void outsw(int port, const void *addr, int cnt);
+X86_INST_ATTR void outsl(int port, const void *addr, int cnt);
+X86_INST_ATTR void outl(int port, uint32_t data);
+X86_INST_ATTR void invlpg(const void *addr);
+X86_INST_ATTR void lidt(void *p);
+X86_INST_ATTR void lldt(uint16_t sel);
+X86_INST_ATTR void ltr(uint16_t sel);
+X86_INST_ATTR void lcr0(uint32_t val);
+X86_INST_ATTR uint32_t rcr0(void);
+X86_INST_ATTR uint64_t rcr2(void);
+X86_INST_ATTR void lcr3(uint64_t val);
+X86_INST_ATTR uint64_t rcr3(void);
+X86_INST_ATTR void lcr4(uint32_t val);
+X86_INST_ATTR uint32_t rcr4(void);
+X86_INST_ATTR void tlbflush(void);
+X86_INST_ATTR uint32_t read_eflags(void);
+X86_INST_ATTR void write_eflags(uint32_t eflags);
+X86_INST_ATTR void halt(void);
+X86_INST_ATTR void sti(void);
+X86_INST_ATTR void cli(void);
+X86_INST_ATTR uint64_t read_rbp(void);
+X86_INST_ATTR uint64_t read_rsp(void);
+X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
+			 uint32_t *ecxp, uint32_t *edxp);
+X86_INST_ATTR uint64_t read_tsc(void);
+
+X86_INST_ATTR void
 breakpoint(void)
 {
 	__asm __volatile("int3");
 }
 
-static __inline uint8_t
+X86_INST_ATTR uint8_t
 inb(int port)
 {
 	uint8_t data;
@@ -52,7 +55,7 @@ inb(int port)
 	return data;
 }
 
-static __inline void
+X86_INST_ATTR void
 insb(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsb"			:
@@ -61,7 +64,7 @@ insb(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-static __inline uint16_t
+X86_INST_ATTR uint16_t
 inw(int port)
 {
 	uint16_t data;
@@ -69,7 +72,7 @@ inw(int port)
 	return data;
 }
 
-static __inline void
+X86_INST_ATTR void
 insw(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsw"			:
@@ -78,7 +81,7 @@ insw(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-static __inline uint32_t
+X86_INST_ATTR uint32_t
 inl(int port)
 {
 	uint32_t data;
@@ -86,7 +89,7 @@ inl(int port)
 	return data;
 }
 
-static __inline void
+X86_INST_ATTR void
 insl(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsl"			:
@@ -95,13 +98,13 @@ insl(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-static __inline void
+X86_INST_ATTR void
 outb(int port, uint8_t data)
 {
 	__asm __volatile("outb %0,%w1" : : "a" (data), "d" (port));
 }
 
-static __inline void
+X86_INST_ATTR void
 outsb(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsb"		:
@@ -110,13 +113,13 @@ outsb(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-static __inline void
+X86_INST_ATTR void
 outw(int port, uint16_t data)
 {
 	__asm __volatile("outw %0,%w1" : : "a" (data), "d" (port));
 }
 
-static __inline void
+X86_INST_ATTR void
 outsw(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsw"		:
@@ -125,7 +128,7 @@ outsw(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-static __inline void
+X86_INST_ATTR void
 outsl(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsl"		:
@@ -134,43 +137,43 @@ outsl(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-static __inline void
+X86_INST_ATTR void
 outl(int port, uint32_t data)
 {
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));
 }
 
-static __inline void 
+X86_INST_ATTR void 
 invlpg(const void *addr)
 { 
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
 }  
 
-static __inline void
+X86_INST_ATTR void
 lidt(void *p)
 {
 	__asm __volatile("lidt (%0)" : : "r" (p));
 }
 
-static __inline void
+X86_INST_ATTR void
 lldt(uint16_t sel)
 {
 	__asm __volatile("lldt %0" : : "r" (sel));
 }
 
-static __inline void
+X86_INST_ATTR void
 ltr(uint16_t sel)
 {
 	__asm __volatile("ltr %0" : : "r" (sel));
 }
 
-static __inline void
+X86_INST_ATTR void
 lcr0(uint32_t val)
 {
 	__asm __volatile("movl %0,%%cr0" : : "r" (val));
 }
 
-static __inline uint32_t
+X86_INST_ATTR uint32_t
 rcr0(void)
 {
 	uint32_t val;
@@ -178,7 +181,7 @@ rcr0(void)
 	return val;
 }
 
-static __inline uint64_t
+X86_INST_ATTR uint64_t
 rcr2(void)
 {
 	uint64_t val;
@@ -186,13 +189,13 @@ rcr2(void)
 	return val;
 }
 
-static __inline void
+X86_INST_ATTR void
 lcr3(uint64_t val)
 {
 	__asm __volatile("movq %0,%%cr3" : : "r" (val));
 }
 
-static __inline uint64_t
+X86_INST_ATTR uint64_t
 rcr3(void)
 {
 	uint64_t val;
@@ -200,13 +203,13 @@ rcr3(void)
 	return val;
 }
 
-static __inline void
+X86_INST_ATTR void
 lcr4(uint32_t val)
 {
 	__asm __volatile("movl %0,%%cr4" : : "r" (val));
 }
 
-static __inline uint32_t
+X86_INST_ATTR uint32_t
 rcr4(void)
 {
 	uint32_t cr4;
@@ -214,7 +217,7 @@ rcr4(void)
 	return cr4;
 }
 
-static __inline void
+X86_INST_ATTR void
 tlbflush(void)
 {
 	uint32_t cr3;
@@ -222,7 +225,7 @@ tlbflush(void)
 	__asm __volatile("movl %0,%%cr3" : : "r" (cr3));
 }
 
-static __inline uint32_t
+X86_INST_ATTR uint32_t
 read_eflags(void)
 {
         uint32_t eflags;
@@ -230,31 +233,31 @@ read_eflags(void)
         return eflags;
 }
 
-static __inline void
+X86_INST_ATTR void
 write_eflags(uint32_t eflags)
 {
         __asm __volatile("pushl %0; popfl" : : "r" (eflags));
 }
 
-static __inline void 
+X86_INST_ATTR void 
 halt(void) 
 {
         __asm __volatile("sti; hlt" ::: "memory"); //memory -- DMA?
 }
 
-static __inline void 
+X86_INST_ATTR void 
 sti(void) 
 {
         __asm __volatile("sti");
 }
 
-static __inline void 
+X86_INST_ATTR void 
 cli(void) 
 {
         __asm __volatile("sti");
 }
 
-static __inline uint64_t
+X86_INST_ATTR uint64_t
 read_rbp(void)
 {
         uint64_t rbp;
@@ -262,7 +265,7 @@ read_rbp(void)
         return rbp;
 }
 
-static __inline uint64_t
+X86_INST_ATTR uint64_t
 read_rsp(void)
 {
         uint64_t rsp;
@@ -270,8 +273,9 @@ read_rsp(void)
         return rsp;
 }
 
-static __inline void
-cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
+X86_INST_ATTR void
+cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
+      uint32_t *ecxp, uint32_t *edxp)
 {
 	uint32_t eax, ebx, ecx, edx;
 	__asm volatile("cpuid" 
@@ -287,7 +291,7 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *e
 		*edxp = edx;
 }
 
-static __inline uint64_t
+X86_INST_ATTR uint64_t
 read_tsc(void)
 {
 	uint32_t a, d;
@@ -298,7 +302,7 @@ read_tsc(void)
 
 // X86 byteswap operations
 
-static __inline unsigned long
+X86_INST_ATTR unsigned long
 __byte_swap_long (unsigned long in) 
 {
   unsigned long out;
@@ -311,7 +315,7 @@ __byte_swap_long (unsigned long in)
 /* XXX!!!!  Linux no longer uses an explicit xchgb instruction; it says GCC
    can figure out how to do that itself.  Need to verify Linux's compilation
    flags. */
-static __inline uint16_t
+X86_INST_ATTR uint16_t
 __byte_swap_word(uint16_t in)
 {
 	uint16_t out;

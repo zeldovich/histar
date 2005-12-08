@@ -339,7 +339,8 @@ fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
 }
 
 int
-fxp_add_buf(struct Segment *sg, uint64_t npage, uint32_t pageoff, netbuf_type type)
+fxp_add_buf(struct Segment *sg, uint64_t npage, uint32_t pageoff,
+	    netbuf_type type)
 {
     void *p;
     int r = kobject_get_page(&sg->sg_ko, npage, &p);

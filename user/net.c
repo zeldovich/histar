@@ -47,7 +47,8 @@ main(int ac, char **av)
 	for (int i = 0; i < 8; i++) {
 	    if ((rx[i]->actual_count & NETHDR_COUNT_DONE)) {
 		unsigned char *buf = (unsigned char *) (rx[i] + 1);
-		cprintf("[%d bytes] %02x:%02x:%02x:%02x:%02x:%02x > %02x:%02x:%02x:%02x:%02x:%02x type %02x%02x\n",
+		cprintf("[%d bytes] %02x:%02x:%02x:%02x:%02x:%02x > "
+		        "%02x:%02x:%02x:%02x:%02x:%02x type %02x%02x\n",
 			rx[i]->actual_count & NETHDR_COUNT_MASK,
 			buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
 			buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],

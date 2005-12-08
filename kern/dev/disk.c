@@ -169,7 +169,8 @@ ide_dma_init(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
     outb(idec->bm_addr + IDE_BM_STAT_REG,
 	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
-    outb(idec->bm_addr + IDE_BM_CMD_REG, (op == op_read) ? IDE_BM_CMD_WRITE : 0);
+    outb(idec->bm_addr + IDE_BM_CMD_REG,
+	 (op == op_read) ? IDE_BM_CMD_WRITE : 0);
 }
 
 static void
@@ -193,7 +194,8 @@ ide_dma_finish(struct ide_channel *idec)
 static void
 ide_dma_irqack(struct ide_channel *idec)
 {
-    outb(idec->bm_addr + IDE_BM_STAT_REG, inb(idec->bm_addr + IDE_BM_STAT_REG));
+    outb(idec->bm_addr + IDE_BM_STAT_REG,
+	 inb(idec->bm_addr + IDE_BM_STAT_REG));
 }
 
 void
@@ -231,7 +233,8 @@ ide_intr()
 	return;
     }
 
-    if ((idec->ide_status & (IDE_STAT_BSY | IDE_STAT_DF | IDE_STAT_ERR | IDE_STAT_DRQ)) ||
+    if ((idec->ide_status & (IDE_STAT_BSY | IDE_STAT_DF |
+			     IDE_STAT_ERR | IDE_STAT_DRQ)) ||
 	(idec->dma_status & (IDE_BM_STAT_ERROR | IDE_BM_STAT_ACTIVE)))
     {
 	cprintf("ide_intr: IDE error %02x error bits %02x DMA status %02x\n",
@@ -301,9 +304,12 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
 	return;
     }
 
-    ide_string_shuffle(identify_buf.id.serial, sizeof(identify_buf.id.serial));
-    ide_string_shuffle(identify_buf.id.model, sizeof(identify_buf.id.model));
-    ide_string_shuffle(identify_buf.id.firmware, sizeof(identify_buf.id.firmware));
+    ide_string_shuffle(identify_buf.id.serial,
+		       sizeof(identify_buf.id.serial));
+    ide_string_shuffle(identify_buf.id.model,
+		       sizeof(identify_buf.id.model));
+    ide_string_shuffle(identify_buf.id.firmware,
+		       sizeof(identify_buf.id.firmware));
 
     cprintf("IDE device (%d sectors, UDMA %s%s): %1.40s\n",
 	    identify_buf.id.lba_sectors,

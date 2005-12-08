@@ -15,13 +15,16 @@ kobject_iflow_check(struct kobject *ko, info_flow_type iflow)
 {
     switch (iflow) {
     case iflow_read:
-	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label, label_leq_starhi);
+	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
+			     label_leq_starhi);
 
     case iflow_write:
-	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label, label_eq);
+	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
+			     label_eq);
 
     case iflow_write_contaminate:
-	return label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label, label_leq_starlo);
+	return label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
+			     label_leq_starlo);
 
     case iflow_none:
 	return 0;

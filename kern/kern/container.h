@@ -19,10 +19,12 @@ int  container_alloc(struct Label *l, struct Container **cp);
 int  container_gc(struct Container *c);
 int  container_nslots(struct Container *c);
 
-int  container_find(struct Container **cp, kobject_id_t id, info_flow_type iflow);
+int  container_find(struct Container **cp, kobject_id_t id,
+		    info_flow_type iflow);
 int  container_put(struct Container *c, struct kobject *ko);
 int  container_unref(struct Container *c, uint64_t slot);
 
-int  cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep, info_flow_type iflow);
+int  cobj_get(struct cobj_ref ref, kobject_type_t type,
+	      struct kobject **storep, info_flow_type iflow);
 
 #endif

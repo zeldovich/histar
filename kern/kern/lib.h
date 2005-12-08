@@ -11,8 +11,10 @@ int strcmp (const char *s1, const char *s2);
 size_t strlen (const char *);
 
 void vprintfmt (void (*putch) (int, void *), void *putdat,
-		const char *fmt, va_list ap);
-int vcprintf (const char *fmt, va_list ap);
+		const char *fmt, va_list ap)
+		__attribute__((__format__ (__printf__, 3, 0)));
+int vcprintf (const char *fmt, va_list ap)
+	__attribute__((__format__ (__printf__, 1, 0)));
 int cprintf (const char *fmt, ...)
 	__attribute__((__format__ (__printf__, 1, 2)));
 

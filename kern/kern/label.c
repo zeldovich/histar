@@ -147,7 +147,8 @@ level_max(int a, int b, level_comparator leq)
 }
 
 int
-label_max(struct Label *a, struct Label *b, struct Label *dst, level_comparator leq)
+label_max(struct Label *a, struct Label *b,
+	  struct Label *dst, level_comparator leq)
 {
     dst->lb_def_level = level_max(a->lb_def_level, b->lb_def_level, leq);
 

@@ -57,7 +57,8 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
 	segmap->sm_ent[si].segment = seg;
 	segmap->sm_ent[si].start_page = 0;
-	segmap->sm_ent[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	segmap->sm_ent[si].num_pages = (va_off + ph->p_memsz +
+					PGSIZE - 1) / PGSIZE;
 	segmap->sm_ent[si].writable = 1;
 	segmap->sm_ent[si].va = (void*) (ph->p_vaddr - va_off);
 	si++;

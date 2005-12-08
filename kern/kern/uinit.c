@@ -35,7 +35,8 @@ static struct embedded_blob *all_embed;
     } while (0)
 
 static int
-elf_copyin(void *p, uint64_t offset, uint32_t count, uint8_t *binary, uint64_t size)
+elf_copyin(void *p, uint64_t offset, uint32_t count,
+	   uint8_t *binary, uint64_t size)
 {
     if (offset + count > size) {
 	cprintf("Reading past the end of ELF binary\n");
@@ -124,7 +125,9 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     for (int i = 0; i < elf.e_phnum; i++) {
 	Elf64_Phdr ph;
-	if (elf_copyin(&ph, elf.e_phoff + i * sizeof(ph), sizeof(ph), binary, size) < 0) {
+	if (elf_copyin(&ph, elf.e_phoff + i * sizeof(ph), sizeof(ph),
+		       binary, size) < 0)
+	{
 	    cprintf("ELF section header unreadable\n");
 	    return -E_INVAL;
 	}
@@ -150,7 +153,8 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	    return segslot;
 	}
 
-	int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_ko.ko_id, segslot),
+	int r = elf_add_segmap(&segmap, &segmap_i,
+			       COBJ(c->ct_ko.ko_id, segslot),
 			       0, mem_pages, va);
 	if (r < 0) {
 	    cprintf("ELF: cannot map segment\n");

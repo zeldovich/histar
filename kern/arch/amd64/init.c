@@ -31,7 +31,9 @@ _panic (const char *file, int line, const char *fmt, ...)
   panicstr = fmt;
 
   va_start (ap, fmt);
-  cprintf ("[%ld] kpanic: %s:%d: ", cur_thread ? cur_thread->th_ko.ko_id : 0, file, line);
+  cprintf ("[%ld] kpanic: %s:%d: ",
+	   cur_thread ? cur_thread->th_ko.ko_id : 0,
+	   file, line);
   vcprintf (fmt, ap);
   cprintf ("\n");
   va_end (ap);

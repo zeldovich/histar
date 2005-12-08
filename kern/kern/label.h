@@ -30,6 +30,7 @@ int  ulabel_to_label(struct ulabel *ul, struct Label *l);
 int  label_compare(struct Label *l1, struct Label *l2, level_comparator cmp);
 
 // computes max according to specified level ordering (<= operator)
-int  label_max(struct Label *a, struct Label *b, struct Label *dst, level_comparator cmp);
+int  label_max(struct Label *a, struct Label *b,
+	       struct Label *dst, level_comparator cmp);
 
 #endif

@@ -37,8 +37,10 @@ main(int ac, char **av)
 
     char *stacktop1 = (void*) 0x710000000000;
     char *stacktop2 = (void*) 0x720000000000;
-    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop1 - PGSIZE, 0, 1, segment_map_cow));
-    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm), stacktop2 - PGSIZE, 0, 1, segment_map_cow));
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm),
+				stacktop1 - PGSIZE, 0, 1, segment_map_cow));
+    assert(0 == sys_segment_map(COBJ(rc, sg), COBJ(rc, pm),
+				stacktop2 - PGSIZE, 0, 1, segment_map_cow));
 
     uint64_t old_counter = counter;
 
@@ -66,7 +68,8 @@ main(int ac, char **av)
     for (;;) {
 	uint64_t counter_save = counter;
 	if (counter_save != old_counter) {
-	    cprintf("thread_test: counter changed: %d -> %d\n", old_counter, counter_save);
+	    cprintf("thread_test: counter changed: %d -> %d\n",
+		    old_counter, counter_save);
 	    old_counter = counter_save;
 	}
 

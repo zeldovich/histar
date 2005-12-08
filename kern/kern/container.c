@@ -135,7 +135,8 @@ container_find(struct Container **cp, kobject_id_t id, info_flow_type iflow)
 }
 
 int
-cobj_get(struct cobj_ref ref, kobject_type_t type, struct kobject **storep, info_flow_type iflow)
+cobj_get(struct cobj_ref ref, kobject_type_t type,
+	 struct kobject **storep, info_flow_type iflow)
 {
     struct Container *c;
     int r = container_find(&c, ref.container, iflow_read);

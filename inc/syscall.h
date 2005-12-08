@@ -20,7 +20,8 @@ int	sys_cputs(const char *s);
 int	sys_cgetc();
 
 int64_t	sys_net_wait(int64_t waitgen);
-int	sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type);
+int	sys_net_buf(struct cobj_ref seg, uint64_t npage,
+		    uint32_t pageoff, netbuf_type type);
 
 int	sys_container_alloc(uint64_t parent);
 int	sys_container_store_cur_thread(uint64_t container);
@@ -34,7 +35,8 @@ int	sys_obj_get_label(struct cobj_ref o, struct ulabel *l);
 
 int64_t	sys_handle_create();
 
-int	sys_gate_create(uint64_t container, struct thread_entry *s, struct ulabel *entry, struct ulabel *target);
+int	sys_gate_create(uint64_t container, struct thread_entry *s,
+			struct ulabel *entry, struct ulabel *target);
 int	sys_gate_enter(struct cobj_ref gate);
 
 int	sys_thread_create(uint64_t container);

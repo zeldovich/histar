@@ -189,7 +189,8 @@ page_map_free (struct Pagemap *pgmap)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (struct Pagemap *pgmap, int pmlevel, const void *va, int create, uint64_t **pte_store)
+pgdir_walk (struct Pagemap *pgmap, int pmlevel,
+	    const void *va, int create, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
@@ -296,7 +297,7 @@ page_remove (struct Pagemap *pgmap, void *va)
 //
 // Details
 //   - If there is already a page mapped at 'va', returns -E_BUSY.
-//   - If necesary, on demand, allocates a page table and inserts it into 'pgdir'.
+//   - If necesary, allocates a page table and inserts it into 'pgdir'.
 //
 // RETURNS: 
 //   0 on success

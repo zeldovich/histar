@@ -8,6 +8,7 @@ struct cobj_ref {
     uint64_t slot;
 };
 
-#define COBJ(container, slot)	((struct cobj_ref) { (container), (slot) } )
+#define COBJ(container, slot) \
+	((struct cobj_ref) { (container), (slot) } )
 
 #endif

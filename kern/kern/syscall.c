@@ -83,7 +83,8 @@ sys_net_wait(int64_t waitgen)
 }
 
 static void
-sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type)
+sys_net_buf(struct cobj_ref seg, uint64_t npage,
+	    uint32_t pageoff, netbuf_type type)
 {
     // XXX think harder about labeling in this case...
     struct Segment *sg;
@@ -160,7 +161,8 @@ sys_container_nslots(uint64_t container)
 }
 
 static int
-sys_gate_create(uint64_t container, struct thread_entry *te, struct ulabel *ul_e, struct ulabel *ul_t)
+sys_gate_create(uint64_t container, struct thread_entry *te,
+		struct ulabel *ul_e, struct ulabel *ul_t)
 {
     struct Label l_e, l_t;
     check(ulabel_to_label(ul_e, &l_e));
@@ -195,7 +197,8 @@ static void
 sys_gate_enter(struct cobj_ref gt)
 {
     struct Gate *g;
-    check(cobj_get(gt, kobj_gate, (struct kobject **)&g, iflow_write_contaminate));
+    check(cobj_get(gt, kobj_gate, (struct kobject **)&g,
+		   iflow_write_contaminate));
 
     // XXX do the contaminate, or let the user compute it and verify
     struct thread_entry *e = &g->gt_te;
@@ -325,7 +328,9 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	    struct thread_entry e = *(struct thread_entry *) TRUP(a2);
 	    page_fault_mode = PFM_NONE;
 
-	    syscall_ret = sys_gate_create(a1, &e, (struct ulabel*) a3, (struct ulabel*) a4);
+	    syscall_ret = sys_gate_create(a1, &e,
+					  (struct ulabel*) a3,
+					  (struct ulabel*) a4);
 	}
 	break;
 

@@ -38,7 +38,8 @@ pci_conf_read(uint32_t bus, uint32_t dev, uint32_t func, uint32_t off)
 }
 
 static void
-pci_conf_write(uint32_t bus, uint32_t dev, uint32_t func, uint32_t off, uint32_t v)
+pci_conf_write(uint32_t bus, uint32_t dev, uint32_t func,
+	       uint32_t off, uint32_t v)
 {
     pci_conf1_set_addr(bus, dev, func, off);
     outl(pci_conf1_data_ioport, v);
@@ -83,11 +84,12 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 
     for (dev = 0; dev < 32; dev++) {
 	uint32_t bhlc = pci_conf_read(busno, dev, 0, PCI_BHLC_REG);
-	if (PCI_HDRTYPE_TYPE(bhlc) > 1)	    // Unsupported (or non-present) device
+	if (PCI_HDRTYPE_TYPE(bhlc) > 1)	    // Unsupported or no device
 	    continue;
 
 	if (PCI_HDRTYPE_TYPE(bhlc) == 1) {
-	    cprintf("PCI-to-PCI bridge not supported yet, some devices may be missing\n");
+	    cprintf("PCI-to-PCI bridge not supported yet, "
+		    "some devices may be missing\n");
 	    continue;
 	}
 
@@ -104,14 +106,16 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 
 	    uint32_t class = pci_conf_read(busno, dev, func, PCI_CLASS_REG);
 	    if (pci_show_devs)
-		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x ifa %x irq %d\n",
+		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x irq %d\n",
 			busno, dev, func,
 			PCI_VENDOR(id), PCI_PRODUCT(id),
 			PCI_CLASS(class), PCI_SUBCLASS(class),
-			PCI_INTERFACE(class), pcif.irq_line);
+			pcif.irq_line);
 
 	    uint32_t bar_width;
-	    for (bar = PCI_MAPREG_START; bar < PCI_MAPREG_END; bar += bar_width) {
+	    for (bar = PCI_MAPREG_START; bar < PCI_MAPREG_END;
+		 bar += bar_width)
+	    {
 		bar_width = 4;
 		pci_conf_write(busno, dev, func, bar, 0xffffffff);
 		uint32_t rv = pci_conf_read(busno, dev, func, bar);

@@ -39,7 +39,8 @@ void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t);
 
 // Assumes ownership of label
-void thread_jump(struct Thread *t, struct Label *label, struct segment_map *segmap,
+void thread_jump(struct Thread *t, struct Label *label,
+		 struct segment_map *segmap,
 		 void *entry, void *stack, uint64_t arg);
 void thread_syscall_restart(struct Thread *t);
 
