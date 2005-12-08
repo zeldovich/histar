@@ -158,7 +158,7 @@ segment_alloc(uint64_t container, uint64_t bytes, struct cobj_ref *cobj)
     int npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
     int slot = sys_segment_create(container, npages);
     if (slot < 0)
-	return 0;
+	return slot;
 
     *cobj = COBJ(container, slot);
     return 0;
