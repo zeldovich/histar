@@ -3,6 +3,9 @@ in-kernel segment copying
 user-specified container labeling
 larger labels
 
+ephemeral refcounts, to account for pagemaps and network buffers
+holding refs on segments
+
 type-check for correct info_flow_type values (easier in C++)
 
 C type-safety for enums/int-typedefs: wrap in a struct
