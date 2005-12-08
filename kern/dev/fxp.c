@@ -6,6 +6,7 @@
 #include <dev/fxp.h>
 #include <dev/fxpreg.h>
 #include <dev/picirq.h>
+#include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
@@ -34,6 +35,8 @@ struct fxp_rx_slot {
 struct fxp_card {
     uint8_t irq_line;
     uint32_t iobase;
+    uint8_t mac_addr[6];
+    int eeprom_width;
 
     struct fxp_tx_slot tx[FXP_TX_SLOTS];
     struct fxp_rx_slot rx[FXP_RX_SLOTS];
@@ -52,6 +55,75 @@ struct fxp_card {
 
 static struct fxp_card the_card;
 
+static void
+fxp_eeprom_shiftin(struct fxp_card *c, int data, int len)
+{
+    for (int x = 1 << (len - 1); x != 0; x >>= 1) {
+	kclock_delay(40);
+	uint16_t reg = ((data & x) ? FXP_EEPROM_EEDI : 0) | FXP_EEPROM_EECS;
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
+	kclock_delay(40);
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg | FXP_EEPROM_EESK);
+	kclock_delay(40);
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
+    }
+    kclock_delay(40);
+}
+
+static void
+fxp_eeprom_autosize(struct fxp_card *c)
+{
+    outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
+    kclock_delay(40);
+
+    fxp_eeprom_shiftin(c, FXP_EEPROM_OPC_READ, 3);
+    int x;
+    for (x = 1; x <= 8; x++) {
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
+	kclock_delay(40);
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS |
+						FXP_EEPROM_EESK);
+	kclock_delay(40);
+	uint16_t v = inw(c->iobase + FXP_CSR_EEPROMCONTROL);
+	if (!(v & FXP_EEPROM_EEDO))
+	    break;
+	kclock_delay(40);
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
+	kclock_delay(40);
+    }
+
+    outw(c->iobase + FXP_CSR_EEPROMCONTROL, 0);
+    kclock_delay(40);
+
+    c->eeprom_width = x;
+}
+
+static void
+fxp_eeprom_read(struct fxp_card *c, uint16_t *buf, int off, int count)
+{
+    for (int i = 0; i < count; i++) {
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
+	fxp_eeprom_shiftin(c, FXP_EEPROM_OPC_READ, 3);
+	fxp_eeprom_shiftin(c, i + off, c->eeprom_width);
+
+	uint16_t reg = FXP_EEPROM_EECS;
+	buf[i] = 0;
+
+	for (int x = 16; x > 0; x--) {
+	    outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg | FXP_EEPROM_EESK);
+	    kclock_delay(40);
+	    uint16_t v = inw(c->iobase + FXP_CSR_EEPROMCONTROL);
+	    if ((v & FXP_EEPROM_EEDO))
+		buf[i] |= (1 << (x - 1));
+	    outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
+	    kclock_delay(40);
+	}
+
+	outw(c->iobase + FXP_CSR_EEPROMCONTROL, 0);
+	kclock_delay(40);
+    }
+}
+
 void
 fxp_attach(struct pci_func *pcif)
 {
@@ -65,7 +137,6 @@ fxp_attach(struct pci_func *pcif)
 
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[1];
-    cprintf("fxp: irq %d io 0x%x\n", c->irq_line, c->iobase);
     irq_setmask_8259A(irq_mask_8259A & ~(1 << c->irq_line));
 
     TAILQ_INIT(&c->waiting);
@@ -93,6 +164,19 @@ fxp_attach(struct pci_func *pcif)
     c->tx_head = -1;
     c->tx_nextq = 0;
     c->tx_halted = 1;
+
+    uint16_t myaddr[3];
+    fxp_eeprom_autosize(c);
+    fxp_eeprom_read(c, &myaddr[0], 0, 3);
+    for (int i = 0; i < 3; i++) {
+	c->mac_addr[2*i + 0] = myaddr[i] & 0xff;
+	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
+    }
+
+    cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+	    c->irq_line, c->iobase,
+	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
+	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
 
     // XXX
     //
