@@ -304,6 +304,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	    memcpy((void*)TRUP(a1), &addrbuf[0], 6);
 	    page_fault_mode = PFM_NONE;
 	}
+	break;
 
     case SYS_container_alloc:
 	syscall_ret = sys_container_alloc(a1);
