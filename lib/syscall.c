@@ -26,6 +26,18 @@ sys_cgetc()
     return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
 }
 
+int64_t
+sys_net_wait(int64_t waitgen)
+{
+    return syscall(SYS_net_wait, waitgen, 0, 0, 0, 0);
+}
+
+int
+sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type)
+{
+    return syscall(SYS_net_buf, seg.container, seg.slot, npage, pageoff, type);
+}
+
 int
 sys_container_alloc(uint64_t parent)
 {

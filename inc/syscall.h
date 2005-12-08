@@ -8,6 +8,7 @@
 #include <inc/thread.h>
 #include <inc/kobj.h>
 #include <inc/label.h>
+#include <inc/netdev.h>
 
 uint64_t syscall(syscall_num num, uint64_t a1, uint64_t a2,
 		 uint64_t a3, uint64_t a4, uint64_t a5);
@@ -17,6 +18,9 @@ void	sys_halt();
 
 int	sys_cputs(const char *s);
 int	sys_cgetc();
+
+int64_t	sys_net_wait(int64_t waitgen);
+int	sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff, netbuf_type type);
 
 int	sys_container_alloc(uint64_t parent);
 int	sys_container_store_cur_thread(uint64_t container);

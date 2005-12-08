@@ -10,6 +10,9 @@ typedef enum {
     SYS_cputs,
     SYS_cgetc,
 
+    SYS_net_wait,
+    SYS_net_buf,
+
     SYS_container_alloc,
     SYS_container_nslots,
     SYS_container_store_cur_thread,
