@@ -1,5 +1,5 @@
 // Implementation of cprintf console output for user environments,
-// based on printfmt() and the sys_cputs() system call.
+// based on printfmt() and the sys_cons_puts() system call.
 //
 // cprintf is a debugging statement, not a generic output statement.
 // It is very important that it always go to the console, especially when 
@@ -28,7 +28,7 @@ putch(int ch, struct printbuf *b)
 	b->buf[b->idx++] = ch;
 	if (b->idx == 256-1) {
 		b->buf[b->idx] = 0;
-		sys_cputs(b->buf);
+		sys_cons_puts(b->buf);
 		b->idx = 0;
 	}
 	b->cnt++;
@@ -43,7 +43,7 @@ vcprintf(const char *fmt, va_list ap)
 	b.cnt = 0;
 	vprintfmt((void*)putch, &b, fmt, ap);
 	b.buf[b.idx] = 0;
-	sys_cputs(b.buf);
+	sys_cons_puts(b.buf);
 
 	return b.cnt;
 }

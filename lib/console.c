@@ -10,7 +10,7 @@ iscons(int fd)
 int
 getchar()
 {
-    return sys_cgetc();
+    return sys_cons_getc();
 }
 
 int
@@ -19,6 +19,6 @@ putchar(int c)
     char b[2];
     b[0] = c;
     b[1] = '\0';
-    sys_cputs(b);
+    sys_cons_puts(b);
     return 0;
 }

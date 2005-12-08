@@ -4,11 +4,8 @@
 #include <inc/container.h>
 
 typedef enum {
-    SYS_yield = 0,
-    SYS_halt,
-
-    SYS_cputs,
-    SYS_cgetc,
+    SYS_cons_puts = 0,
+    SYS_cons_getc,
 
     SYS_net_wait,
     SYS_net_buf,
@@ -30,6 +27,8 @@ typedef enum {
 
     SYS_thread_create,
     SYS_thread_start,
+    SYS_thread_yield,
+    SYS_thread_halt,
 
     SYS_segment_create,
     SYS_segment_resize,

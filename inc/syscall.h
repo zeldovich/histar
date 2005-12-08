@@ -13,11 +13,8 @@
 uint64_t syscall(syscall_num num, uint64_t a1, uint64_t a2,
 		 uint64_t a3, uint64_t a4, uint64_t a5);
 
-void	sys_yield();
-void	sys_halt();
-
-int	sys_cputs(const char *s);
-int	sys_cgetc();
+int	sys_cons_puts(const char *s);
+int	sys_cons_getc();
 
 int64_t	sys_net_wait(int64_t waitgen);
 int	sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type);
@@ -41,6 +38,8 @@ int	sys_gate_enter(struct cobj_ref gate);
 
 int	sys_thread_create(uint64_t container);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);
+void	sys_thread_yield();
+void	sys_thread_halt();
 
 int	sys_segment_create(uint64_t container, uint64_t num_pages);
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);

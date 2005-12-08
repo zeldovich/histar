@@ -45,19 +45,7 @@ _check(int64_t r, const char *what)
 
 // Syscall handlers
 static void
-sys_yield()
-{
-    schedule();
-}
-
-static void
-sys_halt()
-{
-    thread_halt(cur_thread);
-}
-
-static void
-sys_cputs(const char *s)
+sys_cons_puts(const char *s)
 {
     page_fault_mode = PFM_KILL;
     cprintf("%s", TRUP(s));
@@ -65,7 +53,7 @@ sys_cputs(const char *s)
 }
 
 static int
-sys_cgetc()
+sys_cons_getc()
 {
     int c = cons_getc();
     if (c != 0)
@@ -225,6 +213,18 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
     thread_set_runnable(t);
 }
 
+static void
+sys_thread_yield()
+{
+    schedule();
+}
+
+static void
+sys_thread_halt()
+{
+    thread_halt(cur_thread);
+}
+
 static int
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
@@ -271,20 +271,12 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	goto syscall_exit;
 
     switch (num) {
-    case SYS_yield:
-	sys_yield();
+    case SYS_cons_puts:
+	sys_cons_puts((const char*) a1);
 	break;
 
-    case SYS_halt:
-	sys_halt();
-	break;
-
-    case SYS_cputs:
-	sys_cputs((const char*) a1);
-	break;
-
-    case SYS_cgetc:
-	syscall_ret = sys_cgetc((char*) a1);
+    case SYS_cons_getc:
+	syscall_ret = sys_cons_getc((char*) a1);
 	break;
 
     case SYS_net_wait:
@@ -366,6 +358,14 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
 	    sys_thread_start(COBJ(a1, a2), &e);
 	}
+	break;
+
+    case SYS_thread_yield:
+	sys_thread_yield();
+	break;
+
+    case SYS_thread_halt:
+	sys_thread_halt();
 	break;
 
     case SYS_segment_create:

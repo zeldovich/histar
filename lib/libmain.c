@@ -10,7 +10,7 @@ libmain(uint64_t arg)
 {
     start_arg = arg;
     main(0, 0);
-    sys_halt();
+    sys_thread_halt();
 
     panic("libmain: still alive after sys_halt");
 }

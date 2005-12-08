@@ -14,5 +14,5 @@ _panic(const char *file, int line, const char *fmt, ...)
 	vcprintf(fmt, ap);
 	cprintf("\n");
 
-	sys_halt();
+	sys_thread_halt();
 }

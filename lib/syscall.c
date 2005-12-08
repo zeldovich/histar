@@ -2,28 +2,16 @@
 #include <inc/syscall.h>
 #include <inc/syscall_num.h>
 
-void
-sys_yield()
+int
+sys_cons_puts(const char *s)
 {
-    syscall(SYS_yield, 0, 0, 0, 0, 0);
-}
-
-void
-sys_halt()
-{
-    syscall(SYS_halt, 0, 0, 0, 0, 0);
+    return syscall(SYS_cons_puts, (uint64_t) s, 0, 0, 0, 0);
 }
 
 int
-sys_cputs(const char *s)
+sys_cons_getc()
 {
-    return syscall(SYS_cputs, (uint64_t) s, 0, 0, 0, 0);
-}
-
-int
-sys_cgetc()
-{
-    return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
+    return syscall(SYS_cons_getc, 0, 0, 0, 0, 0);
 }
 
 int64_t
@@ -117,6 +105,18 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 {
     return syscall(SYS_thread_start, thread.container, thread.slot,
 		   (uint64_t) entry, 0, 0);
+}
+
+void
+sys_thread_yield()
+{
+    syscall(SYS_thread_yield, 0, 0, 0, 0, 0);
+}
+
+void
+sys_thread_halt()
+{
+    syscall(SYS_thread_halt, 0, 0, 0, 0, 0);
 }
 
 int
