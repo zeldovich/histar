@@ -174,6 +174,7 @@ void
 kobject_swapin(struct kobject *ko)
 {
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    ko->ko_pin = 0;
 
     if (ko->ko_type == kobj_thread)
 	thread_swapin((struct Thread *) ko);
@@ -200,6 +201,18 @@ void
 kobject_decref(struct kobject *ko)
 {
     --ko->ko_ref;
+}
+
+void
+kobject_incpin(struct kobject *ko)
+{
+    --ko->ko_pin;
+}
+
+void
+kobject_decpin(struct kobject *ko)
+{
+    --ko->ko_pin;
 }
 
 static void

@@ -17,7 +17,8 @@ typedef uint64_t kobject_id_t;
 struct kobject {
     kobject_type_t ko_type;
     kobject_id_t ko_id;
-    uint64_t ko_ref;
+    uint32_t ko_pin;	// in-memory references (DMA, PTE)
+    uint32_t ko_ref;	// persistent references (containers)
     uint64_t ko_flags;
     uint64_t ko_npages;
     struct Label ko_label;
@@ -58,5 +59,8 @@ void kobject_gc_scan();
 
 void kobject_incref(struct kobject *kp);
 void kobject_decref(struct kobject *kp);
+
+void kobject_incpin(struct kobject *kp);
+void kobject_decpin(struct kobject *kp);
 
 #endif
