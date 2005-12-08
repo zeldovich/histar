@@ -1,0 +1,41 @@
+OBJDIRS += user/lwip
+OBJDIRS += user/lwip/api
+OBJDIRS += user/lwip/core
+OBJDIRS += user/lwip/core/ipv4
+OBJDIRS += user/lwip/arch
+OBJDIRS += user/lwip/netif
+
+LIB_SRCFILES += \
+	lib/lwip/api/api_lib.c \
+	lib/lwip/api/api_msg.c \
+	lib/lwip/api/err.c \
+	lib/lwip/api/sockets.c \
+	lib/lwip/api/tcpip.c \
+	lib/lwip/core/tcp_in.c \
+	lib/lwip/core/dhcp.c \
+	lib/lwip/core/inet.c \
+	lib/lwip/core/mem.c \
+	lib/lwip/core/memp.c \
+	lib/lwip/core/netif.c \
+	lib/lwip/core/pbuf.c \
+	lib/lwip/core/raw.c \
+	lib/lwip/core/stats.c \
+	lib/lwip/core/sys.c \
+	lib/lwip/core/tcp.c \
+	lib/lwip/core/ipv4/ip_addr.c \
+	lib/lwip/core/ipv4/icmp.c \
+	lib/lwip/core/ipv4/ip.c \
+	lib/lwip/core/ipv4/ip_frag.c \
+	lib/lwip/core/tcp_out.c \
+	lib/lwip/core/udp.c \
+	lib/lwip/netif/etharp.c \
+	lib/lwip/netif/loopif.c \
+	lib/lwip/jos64/jos64if.c
+
+$(OBJDIR)/lib/lwip/%.o: lib/lwip/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) \
+		-I$(TOP)/lib/lwip/include \
+		-I$(TOP)/lib/lwip/include/ipv4 \
+		-I$(TOP)/lib/lwip/jos64 -c -o $@ $<
+

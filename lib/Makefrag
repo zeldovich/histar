@@ -1,11 +1,5 @@
 OBJDIRS += lib lib/$(ARCH)
 
-include lib/$(ARCH)/Makefrag
-
-#include lib/net/Makefrag
-#include lib/sqlite/Makefrag
-#include lib/pcre/Makefrag
-
 LIB_SRCFILES :=	\
 	lib/$(ARCH)/strlen.S \
 	lib/$(ARCH)/longjmp.S \
@@ -23,6 +17,11 @@ LIB_SRCFILES :=	\
 	lib/segment.c \
 	lib/elf.c \
 	lib/label.c
+
+include lib/$(ARCH)/Makefrag
+include lib/lwip/Makefrag
+#include lib/sqlite/Makefrag
+#include lib/pcre/Makefrag
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
