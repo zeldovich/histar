@@ -12,7 +12,7 @@ main(int ac, char **av)
     uint64_t ctemp = 1;
 
     struct cobj_ref seg;
-    int r = segment_alloc(ctemp, 9 * PGSIZE, &seg);
+    int r = segment_alloc(ctemp, 8 * PGSIZE, &seg);
     if (r < 0)
 	panic("cannot allocate buffer segment: %s", e2s(r));
 
@@ -24,7 +24,6 @@ main(int ac, char **av)
 	panic("cannot map buffer segment: %s", e2s(r));
 
     struct netbuf_hdr *rx[8];
-    struct netbuf_hdr *tx;
     for (int i = 0; i < 8; i++) {
 	rx[i] = va + i * PGSIZE;
 	rx[i]->size = 2000;
@@ -41,11 +40,6 @@ main(int ac, char **av)
 
     cprintf("net: card address %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-    tx = va + 8 * PGSIZE;
-    tx->size = 256;
-    tx->actual_count = 0;
-    unsigned char *txbuf = (unsigned char *) (tx + 1);
 
     int64_t waitgen = 0;
     for (;;) {
@@ -66,27 +60,7 @@ main(int ac, char **av)
 		r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
 		if (r < 0)
 		    cprintf("cannot re-register rx buffer: %s\n", e2s(r));
-
-		if (tx->actual_count == 0) {
-		    txbuf[0] = 0; txbuf[1] = 0x7; txbuf[2] = 0xe9;
-		    txbuf[3] = 0xf; txbuf[4] = 0x1f; txbuf[5] = 0x3e;
-
-		    memcpy(&txbuf[6], &mac[0], 6);
-		    txbuf[12] = 0x8; txbuf[13] = 0x6;
-
-		    tx->actual_count = 1;	// just to flag it as busy
-		    int r = sys_net_buf(seg, 8 * PGSIZE, netbuf_tx);
-		    if (r < 0)
-			cprintf("cannot transmit packet: %s\n", e2s(r));
-		    else
-			cprintf("Transmitting packet\n");
-		}
 	    }
-	}
-
-	if ((tx->actual_count & NETHDR_COUNT_DONE)) {
-	    cprintf("tx complete\n");
-	    tx->actual_count = 0;
 	}
     }
 }
