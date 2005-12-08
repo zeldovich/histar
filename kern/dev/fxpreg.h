@@ -400,15 +400,6 @@ struct fxp_rfa {
 	volatile u_int8_t rbd_addr[4];
 	volatile u_int16_t actual_size;
 	volatile u_int16_t size;
-
-	/* Fields available only on the i82550/i82551 in extended RFD mode. */
-	volatile u_int16_t vlan_id;
-	volatile u_int8_t rx_parse_stat;
-	volatile u_int8_t reserved;
-	volatile u_int16_t security_stat;
-	volatile u_int8_t cksum_stat;
-	volatile u_int8_t zerocopy_stat;
-	volatile u_int8_t unused[8];
 };
 
 #define	RFA_SIZE		16
@@ -446,6 +437,23 @@ struct fxp_rfa {
 #define FXP_RFDX_P_TCP_PACKET			0x00
 #define FXP_RFDX_P_UDP_PACKET			0x01
 #define FXP_RFDX_P_IP_PACKET			0x03
+
+/*
+ * Receive Buffer Descriptor (RBD)
+ */
+struct fxp_rbd {
+	volatile u_int16_t rbd_count;
+	volatile u_int16_t rbd_pad0;
+	volatile u_int32_t rbd_link;
+	volatile u_int32_t rbd_buffer;
+	volatile u_int16_t rbd_size;
+	volatile u_int16_t rbd_pad1;
+};
+
+#define FXP_RBD_COUNT_EOF	0x8000	// end-of-frame
+#define FXP_RBD_COUNT_F		0x4000	// buffer fetch
+
+#define FXP_RBD_SIZE_EL		0x8000	// end-of-list 
 
 /*
  * Statistics dump area definitions
