@@ -10,8 +10,8 @@
 void	fxp_attach(struct pci_func *pcif);
 void	fxp_intr();
 
+void	fxp_macaddr(uint8_t *addrbuf);
 int64_t	fxp_thread_wait(struct Thread *t, int64_t gen);
-int	fxp_add_buf(struct Segment *sg, uint64_t npage, uint32_t pageoff,
-		    netbuf_type type);
+int	fxp_add_buf(struct Segment *sg, uint64_t offset, netbuf_type type);
 
 #endif

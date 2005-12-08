@@ -20,8 +20,8 @@ int	sys_cputs(const char *s);
 int	sys_cgetc();
 
 int64_t	sys_net_wait(int64_t waitgen);
-int	sys_net_buf(struct cobj_ref seg, uint64_t npage,
-		    uint32_t pageoff, netbuf_type type);
+int	sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type);
+int	sys_net_macaddr(uint8_t *buf);
 
 int	sys_container_alloc(uint64_t parent);
 int	sys_container_store_cur_thread(uint64_t container);

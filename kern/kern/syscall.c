@@ -83,13 +83,18 @@ sys_net_wait(int64_t waitgen)
 }
 
 static void
-sys_net_buf(struct cobj_ref seg, uint64_t npage,
-	    uint32_t pageoff, netbuf_type type)
+sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
 {
     // XXX think harder about labeling in this case...
     struct Segment *sg;
     check(cobj_get(seg, kobj_segment, (struct kobject **)&sg, iflow_none));
-    check(fxp_add_buf(sg, npage, pageoff, type));
+    check(fxp_add_buf(sg, offset, type));
+}
+
+static void
+sys_net_macaddr(uint8_t *addrbuf)
+{
+    fxp_macaddr(addrbuf);
 }
 
 static int
@@ -287,8 +292,18 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_net_buf:
-	sys_net_buf(COBJ(a1, a2), a3, a4, a5);
+	sys_net_buf(COBJ(a1, a2), a3, a4);
 	break;
+
+    case SYS_net_macaddr:
+	{
+	    uint8_t addrbuf[6];
+	    sys_net_macaddr(&addrbuf[0]);
+
+	    page_fault_mode = PFM_KILL;
+	    memcpy((void*)TRUP(a1), &addrbuf[0], 6);
+	    page_fault_mode = PFM_NONE;
+	}
 
     case SYS_container_alloc:
 	syscall_ret = sys_container_alloc(a1);

@@ -12,6 +12,7 @@ typedef enum {
 
     SYS_net_wait,
     SYS_net_buf,
+    SYS_net_macaddr,
 
     SYS_container_alloc,
     SYS_container_nslots,

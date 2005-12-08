@@ -29,10 +29,18 @@ main(int ac, char **av)
 	rx[i] = va + i * PGSIZE;
 	rx[i]->size = 2000;
 	rx[i]->actual_count = 0;
-	r = sys_net_buf(seg, i, 0, netbuf_rx);
+	r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
 	if (r < 0)
 	    panic("cannot register rx buffer: %s", e2s(r));
     }
+
+    uint8_t mac[6];
+    r = sys_net_macaddr(&mac[0]);
+    if (r < 0)
+	panic("cannot get MAC address: %s", e2s(r));
+
+    cprintf("net: card address %02x:%02x:%02x:%02x:%02x:%02x\n",
+	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     tx = va + 8 * PGSIZE;
     tx->size = 256;
@@ -55,7 +63,7 @@ main(int ac, char **av)
 			buf[12], buf[13]);
 
 		rx[i]->actual_count = 0;
-		r = sys_net_buf(seg, i, 0, netbuf_rx);
+		r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
 		if (r < 0)
 		    cprintf("cannot re-register rx buffer: %s\n", e2s(r));
 
@@ -63,10 +71,10 @@ main(int ac, char **av)
 		    txbuf[0] = 0; txbuf[1] = 0x7; txbuf[2] = 0xe9;
 		    txbuf[3] = 0xf; txbuf[4] = 0x1f; txbuf[5] = 0x3e;
 
-		    memset(&txbuf[6], 0xab, 6);
+		    memcpy(&txbuf[6], &mac[0], 6);
 		    txbuf[12] = 0x8; txbuf[13] = 0x6;
 
-		    int r = sys_net_buf(seg, 8, 0, netbuf_tx);
+		    int r = sys_net_buf(seg, 8 * PGSIZE, netbuf_tx);
 		    if (r < 0)
 			cprintf("cannot transmit packet: %s\n", e2s(r));
 		    else

@@ -185,6 +185,13 @@ fxp_attach(struct pci_func *pcif)
     // it for us.
 }
 
+void
+fxp_macaddr(uint8_t *addrbuf)
+{
+    struct fxp_card *c = &the_card;
+    memcpy(addrbuf, &c->mac_addr[0], 6);
+}
+
 static void
 fxp_thread_wakeup(struct fxp_card *c)
 {
@@ -411,9 +418,11 @@ fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
 }
 
 int
-fxp_add_buf(struct Segment *sg, uint64_t npage, uint32_t pageoff,
-	    netbuf_type type)
+fxp_add_buf(struct Segment *sg, uint64_t offset, netbuf_type type)
 {
+    uint64_t npage = offset / PGSIZE;
+    uint32_t pageoff = PGOFF(offset);
+
     void *p;
     int r = kobject_get_page(&sg->sg_ko, npage, &p);
     if (r < 0)

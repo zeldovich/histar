@@ -33,10 +33,15 @@ sys_net_wait(int64_t waitgen)
 }
 
 int
-sys_net_buf(struct cobj_ref seg, uint64_t npage, uint32_t pageoff,
-	    netbuf_type type)
+sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
 {
-    return syscall(SYS_net_buf, seg.container, seg.slot, npage, pageoff, type);
+    return syscall(SYS_net_buf, seg.container, seg.slot, offset, type, 0);
+}
+
+int
+sys_net_macaddr(uint8_t *addrbuf)
+{
+    return syscall(SYS_net_macaddr, (uint64_t) addrbuf, 0, 0, 0, 0);
 }
 
 int
