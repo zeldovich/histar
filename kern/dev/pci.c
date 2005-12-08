@@ -3,6 +3,7 @@
 #include <dev/pcireg.h>
 #include <dev/disk.h>
 #include <dev/ne2kpci.h>
+#include <dev/fxp.h>
 #include <kern/lib.h>
 
 // Flag to do "lspci" at bootup
@@ -66,6 +67,11 @@ pci_attach(uint32_t id, uint32_t class, struct pci_func *pcif)
 
     if (PCI_VENDOR(id) == 0x10ec && PCI_PRODUCT(id) == 0x8029) {
 	ne2kpci_attach(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(id) == 0x8086 && PCI_PRODUCT(id) == 0x1229) {
+	fxp_attach(pcif);
 	return;
     }
 }

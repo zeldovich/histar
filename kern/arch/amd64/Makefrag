@@ -23,5 +23,6 @@ KERN_DEV :=					\
 	kern/dev/picirq.c			\
 	kern/dev/disk.c				\
 	kern/dev/pci.c				\
-	kern/dev/ne2kpci.c
+	kern/dev/ne2kpci.c			\
+	kern/dev/fxp.c
 

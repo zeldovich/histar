@@ -4,6 +4,7 @@
 #include <dev/disk.h>
 #include <dev/console.h>
 #include <dev/picirq.h>
+#include <dev/fxp.h>
 
 void
 irq_handler(int irqno)
@@ -21,6 +22,10 @@ irq_handler(int irqno)
 
 	case 4:
 	    serial_intr();
+	    break;
+
+	case 5:
+	    fxp_intr();
 	    break;
 
 	case 7:
