@@ -3,6 +3,7 @@ in-kernel segment copying
 user-specified container labeling
 larger labels
 
+irq_register
 multiplexing between potentially different network adapters
 
 type-check for correct info_flow_type values (easier in C++)
