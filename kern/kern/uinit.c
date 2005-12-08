@@ -3,6 +3,7 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <dev/console.h>
+#include <dev/kclock.h>
 #include <kern/label.h>
 #include <kern/uinit.h>
 #include <kern/segment.h>
@@ -268,11 +269,9 @@ user_bootstrap()
 void
 user_init(void)
 {
-    // XXX need some notion of time in the kernel, or at least
-    // an approximate sleep.
     int discard = 0;
     cprintf("Loading persistent state: hit 'x' to discard, 'z' to load.\n");
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 1000; i++) {
 	int c = cons_getc();
 	if (c == 'x') {
 	    discard = 1;
@@ -281,7 +280,7 @@ user_init(void)
 	    break;
 	}
 
-	inb(0x84);
+	kclock_delay(1000);
     }
 
     if (discard) {

@@ -26,10 +26,12 @@
 /* NVRAM byte 36: current century.  (please increment in Dec99!) */
 #define NVRAM_CENTURY	(MC_NVRAM_START + 36)	/* RTC offset 0x32 */
 
-extern uint32_t jiffies;
+extern int kclock_hz;
 
 unsigned mc146818_read (void *sc, unsigned reg);
 void mc146818_write (void *sc, unsigned reg, unsigned datum);
 void kclock_init (void);
+int kclock_gettick (void);
+void kclock_delay (int usec);
 
 #endif // !JOS_KERN_KCLOCK_H
