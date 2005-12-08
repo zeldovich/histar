@@ -356,8 +356,12 @@ struct fxp_cb_tx {
  */
 struct fxp_tbd {
 	volatile u_int32_t tb_addr;
-	volatile u_int32_t tb_size;
+	volatile u_int16_t tb_size;
+	volatile u_int16_t tb_pad;
 };
+
+#define FXP_TBD_SIZE_EL		0x8000	// end-of-list
+#define FXP_SIZE_MASK		0x3fff	// mask out status/control bits
 
 /*
  * Control Block (CB) definitions
@@ -396,8 +400,8 @@ struct fxp_rfa {
 	/* Fields common to all i8255x chips. */
 	volatile u_int16_t rfa_status;
 	volatile u_int16_t rfa_control;
-	volatile u_int8_t link_addr[4];
-	volatile u_int8_t rbd_addr[4];
+	volatile u_int32_t link_addr;
+	volatile u_int32_t rbd_addr;
 	volatile u_int16_t actual_size;
 	volatile u_int16_t size;
 };
