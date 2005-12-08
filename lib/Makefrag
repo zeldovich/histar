@@ -16,7 +16,8 @@ LIB_SRCFILES :=	\
 	lib/readline.c \
 	lib/segment.c \
 	lib/elf.c \
-	lib/label.c
+	lib/label.c \
+	lib/thread.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag

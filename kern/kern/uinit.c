@@ -243,6 +243,7 @@ user_bootstrap()
     EMBED_DECLARE(chatter1);
     EMBED_DECLARE(chatter2);
     EMBED_DECLARE(uregtest);
+    EMBED_DECLARE(thread_test);
     EMBED_DECLARE(netwatch);
     EMBED_DECLARE(shell);
 

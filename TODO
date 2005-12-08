@@ -3,6 +3,9 @@ in-kernel segment copying
 user-specified container labeling
 larger labels
 
+segment_maps are value objects, and thus aren't so amenable to sharing.
+in particular, you can't have threads with shared mutable address space.
+
 irq_register
 multiplexing between potentially different network adapters
 make sure net works after system restart (bufs get removed from rings)
