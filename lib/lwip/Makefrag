@@ -35,5 +35,10 @@ LIB_SRCFILES += \
 	lib/lwip/core/udp.c \
 	lib/lwip/netif/etharp.c \
 	lib/lwip/netif/loopif.c \
+	lib/lwip/jos64/arch/sys_arch.c \
 	lib/lwip/jos64/jif/jif.c
+
+$(OBJDIR)/lib/lwip/%.o: lib/lwip/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Wno-unused-function -c -o $@ $<
 

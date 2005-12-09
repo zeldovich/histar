@@ -70,17 +70,24 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 		     uint8_t *buf, uint64_t bufsize,
 		     struct Segment **sg_store)
 {
-    if (bufsize > segsize)
+    if (bufsize > segsize) {
+	cprintf("segment_create_embed: bufsize %ld > segsize %ld\n",
+		bufsize, segsize);
 	return -E_INVAL;
+    }
 
     struct Segment *sg;
     int r = segment_alloc(l, &sg);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("segment_create_embed: cannot alloc segment: %s\n", e2s(r));
 	return r;
+    }
 
     r = segment_set_npages(sg, (segsize + PGSIZE - 1) / PGSIZE);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("segment_create_embed: cannot grow segment: %s\n", e2s(r));
 	return r;
+    }
 
     for (int i = 0; bufsize > 0; i += PGSIZE) {
 	uint64_t bytes = PGSIZE;
@@ -91,7 +98,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 	    void *p;
 	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p);
 	    if (r < 0)
-		panic("segment_create_embed: cannot get page");
+		panic("segment_create_embed: cannot get page: %s", e2s(r));
 
 	    memcpy(p, &buf[i], bytes);
 	}
@@ -188,26 +195,26 @@ thread_create_embed(struct Container *c, struct Label *l,
     struct Container *tc;
     int r = container_alloc(l, &tc);
     if (r < 0)
-	panic("tce: cannot alloc container");
+	panic("tce: cannot alloc container: %s", e2s(r));
     tc->ct_ko.ko_flags = koflag;
 
     int tcslot = container_put(c, &tc->ct_ko);
     if (tcslot < 0)
-	panic("tce: cannot store container");
+	panic("tce: cannot store container: %s", e2s(tcslot));
 
     struct Thread *t;
     r = thread_alloc(l, &t);
     if (r < 0)
-	panic("tce: cannot allocate thread");
+	panic("tce: cannot allocate thread: %s", e2s(r));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
 
     r = container_put(tc, &t->th_ko);
     if (r < 0)
-	panic("tce: cannot store thread");
+	panic("tce: cannot store thread: %s", e2s(r));
 
     r = thread_load_elf(tc, t, l, prog->buf, prog->size, arg);
     if (r < 0)
-	panic("tce: cannot load ELF");
+	panic("tce: cannot load ELF: %s", e2s(r));
 
     thread_set_runnable(t);
 }
@@ -225,7 +232,7 @@ fs_init(struct Container *c, struct Label *l)
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
 	int slot = segment_create_embed(c, l, e->size, e->buf, e->size, 0);
 	if (slot < 0)
-	    panic("fs_init: cannot store embedded segment");
+	    panic("fs_init: cannot store embedded segment: %s", e2s(slot));
 
 	char nent = ++fs_dir[0];
 	fs_dir[nent*64] = slot;
@@ -245,6 +252,7 @@ user_bootstrap()
     EMBED_DECLARE(uregtest);
     EMBED_DECLARE(thread_test);
     EMBED_DECLARE(netwatch);
+    //EMBED_DECLARE(netd);
     EMBED_DECLARE(shell);
 
     // root handle and a label
