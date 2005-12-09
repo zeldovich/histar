@@ -169,6 +169,9 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
+    // Pass the thread's container as the argument
+    e.te_arg = c_spawn;
+
     r = sys_thread_start(COBJ(c_spawn, thread), &e);
     if (r < 0) {
 	cprintf("cannot start thread: %s\n", e2s(r));
