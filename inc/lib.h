@@ -37,6 +37,7 @@ int	label_get_cur(uint64_t ctemp, struct ulabel *l);
 const char *e2s(int err);
 
 /* thread.c */
-int	thread_create(int container, void (*entry)(void*), void *arg, struct cobj_ref *threadp);
+int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp);
+int64_t thread_id(uint64_t ctemp);
 
 #endif

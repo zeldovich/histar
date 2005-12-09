@@ -49,6 +49,7 @@ struct fxp_card {
     int tx_nextq;	// next slot for tx buffer
     bool_t tx_halted;	// transmitter is not running and not suspended
 
+    uint64_t waiter;
     int64_t waitgen;
     struct Thread_tqueue waiting;
 
@@ -159,6 +160,50 @@ fxp_waitcomplete(volatile uint16_t *status)
     cprintf("fxp_waitcomplete: timed out\n");
 }
 
+static void
+fxp_buffer_reset(struct fxp_card *c)
+{
+    fxp_scb_wait(c);
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_ABORT);
+
+    // Wait for TX queue to drain
+    for (;;) {
+	int slot = c->tx_head;
+	if (slot == -1)
+	    break;
+
+	for (int i = 0; i < 1000; i++) {
+	    if ((c->tx[slot].tcb.cb_status & FXP_CB_STATUS_C))
+		break;
+	    kclock_delay(10);
+	}
+
+	c->tx_head = (slot + 1) % FXP_TX_SLOTS;
+	if (c->tx_head == c->tx_nextq)
+	    c->tx_head = -1;
+    }
+
+    for (int i = 0; i < FXP_TX_SLOTS; i++) {
+	if (c->tx[i].sg)
+	    kobject_decpin(&c->tx[i].sg->sg_ko);
+	c->tx[i].sg = 0;
+    }
+
+    for (int i = 0; i < FXP_RX_SLOTS; i++) {
+	if (c->rx[i].sg)
+	    kobject_decpin(&c->rx[i].sg->sg_ko);
+	c->rx[i].sg = 0;
+    }
+
+    c->rx_head = -1;
+    c->rx_nextq = 0;
+    c->rx_halted = 1;
+
+    c->tx_head = -1;
+    c->tx_nextq = 0;
+    c->tx_halted = 1;
+}
+
 void
 fxp_attach(struct pci_func *pcif)
 {
@@ -192,13 +237,7 @@ fxp_attach(struct pci_func *pcif)
 	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
     }
 
-    c->rx_head = -1;
-    c->rx_nextq = 0;
-    c->rx_halted = 1;
-
-    c->tx_head = -1;
-    c->tx_nextq = 0;
-    c->tx_halted = 1;
+    fxp_buffer_reset(c);
 
     // Initialize the card
     outl(c->iobase + FXP_CSR_PORT, FXP_PORT_SOFTWARE_RESET);
@@ -268,9 +307,16 @@ fxp_thread_wakeup(struct fxp_card *c)
 }
 
 int64_t
-fxp_thread_wait(struct Thread *t, int64_t gen)
+fxp_thread_wait(struct Thread *t, uint64_t waiter, int64_t gen)
 {
     struct fxp_card *c = &the_card;
+
+    if (waiter != c->waiter) {
+	c->waiter = waiter;
+	c->waitgen = 0;
+	fxp_buffer_reset(c);
+	return -E_AGAIN;
+    }
 
     if (gen != c->waitgen)
 	return c->waitgen;
@@ -345,6 +391,7 @@ fxp_intr_rx(struct fxp_card *c)
 	    break;
 
 	kobject_decpin(&c->rx[i].sg->sg_ko);
+	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 	if (!(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_OK))
@@ -365,6 +412,7 @@ fxp_intr_tx(struct fxp_card *c)
 	    break;
 
 	kobject_decpin(&c->tx[i].sg->sg_ko);
+	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
 	c->tx_head = (i + 1) % FXP_TX_SLOTS;

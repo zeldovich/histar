@@ -67,9 +67,9 @@ sys_cons_getc()
 }
 
 static int64_t
-sys_net_wait(int64_t waitgen)
+sys_net_wait(uint64_t waiter_id, int64_t waitgen)
 {
-    return check(fxp_thread_wait(cur_thread, waitgen));
+    return check(fxp_thread_wait(cur_thread, waiter_id, waitgen));
 }
 
 static void
@@ -290,7 +290,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_net_wait:
-	syscall_ret = sys_net_wait(a1);
+	syscall_ret = sys_net_wait(a1, a2);
 	break;
 
     case SYS_net_buf:

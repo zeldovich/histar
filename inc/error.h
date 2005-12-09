@@ -13,6 +13,7 @@ enum {
     E_LABEL,		// label check error
     E_BUSY,		// device busy
     E_NO_SPACE,		// not enough space in buffer
+    E_AGAIN,		// try again
 
     // user-space errors
     E_RANGE,		// value out of range

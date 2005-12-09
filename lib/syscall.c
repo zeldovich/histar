@@ -15,9 +15,9 @@ sys_cons_getc()
 }
 
 int64_t
-sys_net_wait(int64_t waitgen)
+sys_net_wait(uint64_t waiter_id, int64_t waitgen)
 {
-    return syscall(SYS_net_wait, waitgen, 0, 0, 0, 0);
+    return syscall(SYS_net_wait, waiter_id, waitgen, 0, 0, 0);
 }
 
 int

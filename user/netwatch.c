@@ -4,6 +4,18 @@
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/string.h>
+#include <inc/error.h>
+
+static void
+register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
+{
+    for (int i = 0; i < 8; i++) {
+	rx[i]->actual_count = 0;
+	int r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
+	if (r < 0)
+	    panic("cannot register rx buffer: %s", e2s(r));
+    }
+}
 
 int
 main(int ac, char **av)
@@ -27,11 +39,9 @@ main(int ac, char **av)
     for (int i = 0; i < 8; i++) {
 	rx[i] = va + i * PGSIZE;
 	rx[i]->size = 2000;
-	rx[i]->actual_count = 0;
-	r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
-	if (r < 0)
-	    panic("cannot register rx buffer: %s", e2s(r));
     }
+
+    register_rxbufs(seg, rx);
 
     uint8_t mac[6];
     r = sys_net_macaddr(&mac[0]);
@@ -42,9 +52,14 @@ main(int ac, char **av)
 	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     int64_t waitgen = 0;
+    int64_t waiter_id = thread_id(ctemp);
+    if (waiter_id < 0)
+	panic("cannot get thread id: %s", e2s(waiter_id));
+
     for (;;) {
-	waitgen = sys_net_wait(waitgen);
-	//cprintf("net: woken up, waitgen %ld\n", waitgen);
+	waitgen = sys_net_wait(waiter_id, waitgen);
+	if (waitgen == -E_AGAIN)
+	    register_rxbufs(seg, rx);
 
 	for (int i = 0; i < 8; i++) {
 	    if ((rx[i]->actual_count & NETHDR_COUNT_DONE)) {

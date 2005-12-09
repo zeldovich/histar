@@ -3,7 +3,7 @@
 #include <inc/syscall.h>
 
 int
-thread_create(int container, void (*entry)(void*), void *arg, struct cobj_ref *threadp)
+thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp)
 {
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
@@ -47,4 +47,16 @@ thread_create(int container, void (*entry)(void*), void *arg, struct cobj_ref *t
     }
 
     return 0;
+}
+
+int64_t
+thread_id(uint64_t ctemp)
+{
+    int slot = sys_container_store_cur_thread(ctemp);
+    if (slot < 0)
+	return slot;
+
+    int64_t id = sys_obj_get_id(COBJ(ctemp, slot));
+    sys_obj_unref(COBJ(ctemp, slot));
+    return id;
 }

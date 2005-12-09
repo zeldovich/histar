@@ -33,6 +33,7 @@
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/memlayout.h>
+#include <inc/error.h>
 
 #include <jif/jif.h>
 
@@ -55,6 +56,7 @@
 
 struct jif {
     struct eth_addr *ethaddr;
+    int64_t waiter_id;
     int64_t waitgen;
 
     struct netbuf_hdr *rx[JIF_BUFS];
@@ -78,11 +80,16 @@ low_level_init(struct netif *netif)
     if (r < 0)
 	panic("jif: cannot read MAC address");
 
+    // hard-coded root container
+    uint64_t container = 1;
+
     // Allocate transmit/receive pages
     struct jif *jif = netif->state;
     jif->waitgen = -1;
+    jif->waiter_id = thread_id(container);
+    if (jif->waiter_id < 0)
+	panic("jif: cannot get thread id: %s", e2s(jif->waiter_id));
   
-    uint64_t container = 1;	// hard-coded root container
     r = segment_alloc(container, JIF_BUFS * PGSIZE, &jif->buf_seg);
     if (r < 0)
 	panic("jif: cannot allocate %d buffer pages: %s\n",
@@ -211,8 +218,16 @@ low_level_input(struct netif *netif)
 	    }
 	}
 
-	if (rxslot == JIF_BUFS)
-	    jif->waitgen = sys_net_wait(jif->waitgen);
+	if (rxslot == JIF_BUFS) {
+	    jif->waitgen = sys_net_wait(jif->waiter_id, jif->waitgen);
+	    if (jif->waitgen == -E_AGAIN) {
+		// All buffers have been cleared
+		for (int i = 0; i < JIF_BUFS; i++) {
+		    jif->rx[i]->actual_count = (uint16_t) -1;
+		    jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
+		}
+	    }
+	}
     } while (rxslot == JIF_BUFS);
 
     uint16_t count = jif->rx[rxslot]->actual_count;

@@ -16,7 +16,7 @@ uint64_t syscall(syscall_num num, uint64_t a1, uint64_t a2,
 int	sys_cons_puts(const char *s);
 int	sys_cons_getc();
 
-int64_t	sys_net_wait(int64_t waitgen);
+int64_t	sys_net_wait(uint64_t waiter_id, int64_t waitgen);
 int	sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type);
 int	sys_net_macaddr(uint8_t *buf);
 
