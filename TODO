@@ -9,6 +9,7 @@ in particular, you can't have threads with shared mutable address space.
 irq_register
 multiplexing between potentially different network adapters
 make sure net works after system restart (bufs get removed from rings)
+label checking for network buffers
 
 type-check for correct info_flow_type values (easier in C++)
 
