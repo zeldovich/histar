@@ -13,7 +13,7 @@
 #include <lwip/dhcp.h>
 #include <netif/etharp.h>
 
-#include <jif.h>
+#include <jif/jif.h>
 
 // XXX abuse the root container
 static uint64_t container = 1;

@@ -34,6 +34,8 @@
 #include <inc/lib.h>
 #include <inc/memlayout.h>
 
+#include <jif/jif.h>
+
 #include "lwip/opt.h"
 #include "lwip/def.h"
 #include "lwip/mem.h"

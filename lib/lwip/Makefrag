@@ -35,5 +35,5 @@ LIB_SRCFILES += \
 	lib/lwip/core/udp.c \
 	lib/lwip/netif/etharp.c \
 	lib/lwip/netif/loopif.c \
-	lib/lwip/jos64/jif.c
+	lib/lwip/jos64/jif/jif.c
 
