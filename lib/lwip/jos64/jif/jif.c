@@ -167,8 +167,6 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	sys_thread_yield();
     }
 
-    cprintf("jif: sent packet %d bytes\n", txsize);
-
 #if ETH_PAD_SIZE
     pbuf_header(p, ETH_PAD_SIZE);			/* reclaim the padding word */
 #endif
@@ -226,7 +224,6 @@ low_level_input(struct netif *netif)
     }
 
     s16_t len = count & NETHDR_COUNT_MASK;
-    cprintf("jif: recv packet %d bytes\n", len);
 
 #if ETH_PAD_SIZE
     /* allow room for Ethernet padding */
