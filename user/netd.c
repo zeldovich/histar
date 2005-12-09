@@ -15,8 +15,7 @@
 
 #include <jif/jif.h>
 
-// XXX abuse the root container
-static uint64_t container = 1;
+static uint64_t container;
 
 struct timer_thread {
     int msec;
@@ -83,6 +82,9 @@ start_timer(struct timer_thread *t, void (*func)(), int msec)
 int
 main(int ac, char **av)
 {
+    // container is passed as argument to _start()
+    container = start_arg;
+
     struct netif nif;
     lwip_init(&nif);
     dhcp_start(&nif);
@@ -101,5 +103,5 @@ main(int ac, char **av)
     start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	DHCP_COARSE_TIMER_SECS * 1000);
 
     cprintf("netd: up and running\n");
-    sys_thread_halt();
+    sys_thread_halt();    
 }
