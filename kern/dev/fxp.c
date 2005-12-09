@@ -237,6 +237,8 @@ fxp_attach(struct pci_func *pcif)
 	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
     }
 
+    c->rx_head = -1;
+    c->tx_head = -1;
     fxp_buffer_reset(c);
 
     // Initialize the card
