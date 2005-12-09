@@ -51,6 +51,11 @@ struct fxp_card {
 
     int64_t waitgen;
     struct Thread_tqueue waiting;
+
+    union {
+	struct fxp_cb_config cb_config;
+	struct fxp_cb_ias cb_ias;
+    } setup;
 };
 
 static struct fxp_card the_card;
@@ -124,6 +129,36 @@ fxp_eeprom_read(struct fxp_card *c, uint16_t *buf, int off, int count)
     }
 }
 
+static void
+fxp_scb_wait(struct fxp_card *c)
+{
+    for (int i = 0; i < 100000; i++) {
+	uint8_t s = inb(c->iobase + FXP_CSR_SCB_COMMAND);
+	if (s == 0)
+	    return;
+    }
+
+    cprintf("fxp_scb_wait: timeout\n");
+}
+
+static void
+fxp_scb_cmd(struct fxp_card *c, uint8_t cmd)
+{
+    outb(c->iobase + FXP_CSR_SCB_COMMAND, cmd);
+}
+
+static void
+fxp_waitcomplete(volatile uint16_t *status)
+{
+    for (int i = 0; i < 1000; i++) {
+	if ((*status & FXP_CB_STATUS_C))
+	    return;
+	kclock_delay(1);
+    }
+
+    cprintf("fxp_waitcomplete: timed out\n");
+}
+
 void
 fxp_attach(struct pci_func *pcif)
 {
@@ -165,6 +200,10 @@ fxp_attach(struct pci_func *pcif)
     c->tx_nextq = 0;
     c->tx_halted = 1;
 
+    // Initialize the card
+    outl(c->iobase + FXP_CSR_PORT, FXP_PORT_SOFTWARE_RESET);
+    kclock_delay(50);
+
     uint16_t myaddr[3];
     fxp_eeprom_autosize(c);
     fxp_eeprom_read(c, &myaddr[0], 0, 3);
@@ -173,16 +212,28 @@ fxp_attach(struct pci_func *pcif)
 	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
     }
 
+    fxp_scb_wait(c);
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, 0);
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_BASE);
+    fxp_scb_wait(c);
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_BASE);
+
+    // Program MAC address into the adapter
+    c->setup.cb_ias.cb_status = 0;
+    c->setup.cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
+    c->setup.cb_ias.link_addr = 0xffffffff;
+    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->mac_addr[0], 6);
+
+    fxp_scb_wait(c);
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_ias));
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
+    fxp_waitcomplete(&c->setup.cb_ias.cb_status);
+
+    // All done
     cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    c->irq_line, c->iobase,
 	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
 	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
-
-    // XXX
-    //
-    // There's a good chance we should do more initialization here,
-    // but it seems to work anyway -- perhaps because pxegrub does
-    // it for us.
 }
 
 void
@@ -217,24 +268,6 @@ fxp_thread_wait(struct Thread *t, int64_t gen)
     TAILQ_INSERT_HEAD(&c->waiting, t, th_waiting);
     thread_suspend(t);
     return -E_RESTART;
-}
-
-static void
-fxp_scb_wait(struct fxp_card *c)
-{
-    for (int i = 0; i < 100000; i++) {
-	uint8_t s = inb(c->iobase + FXP_CSR_SCB_COMMAND);
-	if (s == 0)
-	    return;
-    }
-
-    cprintf("fxp_scb_wait: timeout\n");
-}
-
-static void
-fxp_scb_cmd(struct fxp_card *c, uint8_t cmd)
-{
-    outb(c->iobase + FXP_CSR_SCB_COMMAND, cmd);
 }
 
 static void
