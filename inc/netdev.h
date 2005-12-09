@@ -10,7 +10,7 @@ typedef enum {
 
 #define NETHDR_COUNT_DONE	0x8000
 #define NETHDR_COUNT_ERR	0x4000
-#define NETHDR_COUNT_MASK	0x3fff
+#define NETHDR_COUNT_MASK	0x0fff
 
 struct netbuf_hdr {
     uint16_t size;

@@ -5,6 +5,11 @@ OBJDIRS += user/lwip/core/ipv4
 OBJDIRS += user/lwip/arch
 OBJDIRS += user/lwip/netif
 
+USER_CFLAGS += \
+	-I$(TOP)/lib/lwip/include \
+	-I$(TOP)/lib/lwip/include/ipv4 \
+	-I$(TOP)/lib/lwip/jos64
+
 LIB_SRCFILES += \
 	lib/lwip/api/api_lib.c \
 	lib/lwip/api/api_msg.c \
@@ -30,12 +35,5 @@ LIB_SRCFILES += \
 	lib/lwip/core/udp.c \
 	lib/lwip/netif/etharp.c \
 	lib/lwip/netif/loopif.c \
-	lib/lwip/jos64/jos64if.c
-
-$(OBJDIR)/lib/lwip/%.o: lib/lwip/%.c
-	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) \
-		-I$(TOP)/lib/lwip/include \
-		-I$(TOP)/lib/lwip/include/ipv4 \
-		-I$(TOP)/lib/lwip/jos64 -c -o $@ $<
+	lib/lwip/jos64/jif.c
 
