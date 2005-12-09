@@ -86,6 +86,7 @@ kobject_get_pagep(struct kobject *kp, uint64_t npage, void ***pp)
 	}
 
 	*pp = &kp->ko_pages_indir1[npage];
+	return 0;
     }
 
     return -E_INVAL;
