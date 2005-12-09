@@ -11,6 +11,10 @@ multiplexing between potentially different network adapters
 make sure net works after system restart (bufs get removed from rings)
 label checking for network buffers
 
+IPC
+
+sockets API -- probably IPC to netd?
+
 type-check for correct info_flow_type values (easier in C++)
 
 C type-safety for enums/int-typedefs: wrap in a struct
@@ -28,7 +32,7 @@ C type-safety for enums/int-typedefs: wrap in a struct
 
 implement MLTs
 
-kernel sleep primitive: sys_sleep_until_equal(int *ptr, int val)
+kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 
 copy-on-write kobjects
 kobject pinning, page reclamation, LRU
