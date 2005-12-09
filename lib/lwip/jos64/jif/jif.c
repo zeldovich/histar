@@ -80,8 +80,8 @@ low_level_init(struct netif *netif)
     if (r < 0)
 	panic("jif: cannot read MAC address");
 
-    // hard-coded root container
-    uint64_t container = 1;
+    // container gets passed as the argument to _start()
+    uint64_t container = start_arg;
 
     // Allocate transmit/receive pages
     struct jif *jif = netif->state;
