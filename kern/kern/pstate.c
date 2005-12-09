@@ -220,7 +220,7 @@ swapin_kobj(int slot, void (*cb)(int)) {
     }
 }
 
-static struct Thread_tqueue swapin_tqueue;
+static struct Thread_list swapin_waiting;
 
 static void
 pstate_swapin_cb(int r)
@@ -228,10 +228,9 @@ pstate_swapin_cb(int r)
     if (r < 0)
 	cprintf("pstate_swapin_cb: %s\n", e2s(r));
 
-    while (!TAILQ_EMPTY(&swapin_tqueue)) {
-	struct Thread *t = TAILQ_FIRST(&swapin_tqueue);
+    while (!LIST_EMPTY(&swapin_waiting)) {
+	struct Thread *t = LIST_FIRST(&swapin_waiting);
 	thread_set_runnable(t);
-	TAILQ_REMOVE(&swapin_tqueue, t, th_waiting);
     }
 }
 
@@ -243,10 +242,8 @@ pstate_swapin(kobject_id_t id) {
     if (slot < 0)
 	return -E_INVAL;
 
-    if (cur_thread) {
-	thread_suspend(cur_thread);
-	TAILQ_INSERT_TAIL(&swapin_tqueue, cur_thread, th_waiting);
-    }
+    if (cur_thread)
+	thread_suspend(cur_thread, &swapin_waiting);
 
     if (swapin_state.ko == 0)
 	swapin_kobj(slot, &pstate_swapin_cb);
@@ -331,7 +328,7 @@ init_hdr_cb(disk_io_status stat, void *buf,
 int
 pstate_init()
 {
-    TAILQ_INIT(&swapin_tqueue);
+    LIST_INIT(&swapin_waiting);
 
     state.done = 0;
     state.cb = 6;

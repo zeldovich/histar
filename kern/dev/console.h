@@ -28,6 +28,6 @@ void lpt_intr(void);		// irq 7
 
 void putchar (int c);
 
-extern struct Thread_tqueue console_waiting_tqueue;
+extern struct Thread_list console_waiting;
 
 #endif /* _CONSOLE_H_ */

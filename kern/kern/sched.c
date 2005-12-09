@@ -10,7 +10,7 @@ static int
 is_last_alive()
 {
     struct Thread *t;
-    LIST_FOREACH(t, &thread_list, th_link)
+    LIST_FOREACH(t, &thread_list_runnable, th_link)
 	if (t == last_thread)
 	    return 1;
     return 0;
@@ -24,7 +24,7 @@ schedule()
     if (is_last_alive())
 	next = LIST_NEXT(last_thread, th_link);
     if (next == 0)
-	next = LIST_FIRST(&thread_list);
+	next = LIST_FIRST(&thread_list_runnable);
 
     struct Thread *guard = next;
     for (;;) {
@@ -36,7 +36,7 @@ schedule()
 
 	next = LIST_NEXT(next, th_link);
 	if (next == 0)
-	    next = LIST_FIRST(&thread_list);
+	    next = LIST_FIRST(&thread_list_runnable);
 	if (next == guard)
 	    panic("no runnable threads");
     }

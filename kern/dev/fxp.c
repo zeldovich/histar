@@ -33,10 +33,10 @@ struct fxp_rx_slot {
 
 // Static allocation ensures contiguous memory.
 struct fxp_card {
-    uint8_t irq_line;
     uint32_t iobase;
+    uint8_t irq_line;
     uint8_t mac_addr[6];
-    int eeprom_width;
+    uint16_t eeprom_width;
 
     struct fxp_tx_slot tx[FXP_TX_SLOTS];
     struct fxp_rx_slot rx[FXP_RX_SLOTS];
@@ -51,7 +51,7 @@ struct fxp_card {
 
     uint64_t waiter;
     int64_t waitgen;
-    struct Thread_tqueue waiting;
+    struct Thread_list waiting;
 
     union {
 	struct fxp_cb_config cb_config;
@@ -219,7 +219,7 @@ fxp_attach(struct pci_func *pcif)
     c->iobase = pcif->reg_base[1];
     irq_setmask_8259A(irq_mask_8259A & ~(1 << c->irq_line));
 
-    TAILQ_INIT(&c->waiting);
+    LIST_INIT(&c->waiting);
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	int next = (i + 1) % FXP_TX_SLOTS;
@@ -235,6 +235,7 @@ fxp_attach(struct pci_func *pcif)
 	memset(&c->rx[i], 0, sizeof(c->rx[i]));
 	c->rx[i].rfd.link_addr = kva2pa(&c->rx[next].rfd);
 	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
+	c->rx[i].rbd.rbd_link = kva2pa(&c->rx[next].rbd);
     }
 
     c->rx_head = -1;
@@ -301,10 +302,9 @@ fxp_thread_wakeup(struct fxp_card *c)
     if (c->waitgen <= 0)
 	c->waitgen = 1;
 
-    while (!TAILQ_EMPTY(&c->waiting)) {
-	struct Thread *t = TAILQ_FIRST(&c->waiting);
+    while (!LIST_EMPTY(&c->waiting)) {
+	struct Thread *t = LIST_FIRST(&c->waiting);
 	thread_set_runnable(t);
-	TAILQ_REMOVE(&c->waiting, t, th_waiting);
     }
 }
 
@@ -323,31 +323,29 @@ fxp_thread_wait(struct Thread *t, uint64_t waiter, int64_t gen)
     if (gen != c->waitgen)
 	return c->waitgen;
 
-    TAILQ_INSERT_HEAD(&c->waiting, t, th_waiting);
-    thread_suspend(t);
+    thread_suspend(t, &c->waiting);
     return -E_RESTART;
 }
 
-static void
+static int
 fxp_rx_start(struct fxp_card *c)
 {
     if (c->rx_head == -1) {
 	cprintf("fxp_rx_start: no packets\n");
-	return;
+	return -1;
     }
 
     if (!c->rx_halted) {
 	cprintf("fxp_rx_start: not halted\n");
-	return;
+	return -1;
     }
-
-    fxp_scb_wait(c);
-    fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_ABORT);
 
     fxp_scb_wait(c);
     outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->rx[c->rx_head].rfd));
     fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_START);
     c->rx_halted = 0;
+
+    return 0;
 }
 
 static void
@@ -437,7 +435,10 @@ fxp_intr()
 	fxp_intr_tx(c);
     if ((r & FXP_SCB_STATACK_RNR)) {
 	c->rx_halted = 1;
-	fxp_rx_start(c);
+	if (fxp_rx_start(c) < 0) {
+	    int s = inb(c->iobase + FXP_CSR_SCB_RUSCUS);
+	    cprintf("fxp_intr: receiver stopped, stat %x ru/cu %x\n", r, s);
+	}
     }
 
     fxp_thread_wakeup(c);
@@ -493,7 +494,7 @@ fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
     kobject_incpin(&sg->sg_ko);
 
     c->rx[slot].rbd.rbd_buffer = kva2pa(c->rx[slot].nb + 1);
-    c->rx[slot].rbd.rbd_size = (size & FXP_SIZE_MASK) | FXP_RBD_SIZE_EL;
+    c->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;
     c->rx[slot].rfd.rfa_status = 0;
     c->rx[slot].rfd.rfa_control = FXP_RFA_CONTROL_SF | FXP_RFA_CONTROL_S;
 

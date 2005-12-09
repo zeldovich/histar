@@ -8,18 +8,33 @@
 #include <inc/error.h>
 
 struct Thread *cur_thread;
-struct Thread_list thread_list;
+struct Thread_list thread_list_runnable;
+struct Thread_list thread_list_limbo;
 
 void
 thread_set_runnable(struct Thread *t)
 {
+    LIST_REMOVE(t, th_link);
+    LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
     t->th_status = thread_runnable;
 }
 
 void
-thread_suspend(struct Thread *t)
+thread_suspend(struct Thread *t, struct Thread_list *waitq)
 {
+    LIST_REMOVE(t, th_link);
+    LIST_INSERT_HEAD(waitq, t, th_link);
     t->th_status = thread_suspended;
+}
+
+void
+thread_halt(struct Thread *t)
+{
+    LIST_REMOVE(t, th_link);
+    LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
+    t->th_status = thread_halted;
+    if (cur_thread == t)
+	cur_thread = 0;
 }
 
 int
@@ -41,10 +56,13 @@ void
 thread_swapin(struct Thread *t)
 {
     t->th_pgmap = &bootpml4;
-    LIST_INSERT_HEAD(&thread_list, t, th_link);
-
     if (t->th_status == thread_suspended)
 	t->th_status = thread_runnable;
+
+    struct Thread_list *tq =
+	(t->th_status == thread_runnable) ? &thread_list_runnable
+					  : &thread_list_limbo;
+    LIST_INSERT_HEAD(tq, t, th_link);
 }
 
 void
@@ -71,14 +89,6 @@ thread_run(struct Thread *t)
 
     thread_switch(t);
     trapframe_pop(&t->th_tf);
-}
-
-void
-thread_halt(struct Thread *t)
-{
-    t->th_status = thread_halted;
-    if (cur_thread == t)
-	cur_thread = 0;
 }
 
 void

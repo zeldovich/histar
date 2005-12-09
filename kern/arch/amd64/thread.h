@@ -25,13 +25,12 @@ struct Thread {
     uint64_t th_wakeup_ticks;
 
     LIST_ENTRY(Thread) th_link;
-    TAILQ_ENTRY(Thread) th_waiting;
 };
 
 LIST_HEAD(Thread_list, Thread);
-TAILQ_HEAD(Thread_tqueue, Thread);
 
-extern struct Thread_list thread_list;
+extern struct Thread_list thread_list_runnable;
+extern struct Thread_list thread_list_limbo;
 extern struct Thread *cur_thread;
 
 int  thread_alloc(struct Label *l, struct Thread **tp);
@@ -46,7 +45,7 @@ void thread_jump(struct Thread *t, struct Label *label,
 void thread_syscall_restart(struct Thread *t);
 
 void thread_set_runnable(struct Thread *t);
-void thread_suspend(struct Thread *t);
+void thread_suspend(struct Thread *t, struct Thread_list *waitq);
 void thread_halt(struct Thread *t);
 
 void thread_switch(struct Thread *t);

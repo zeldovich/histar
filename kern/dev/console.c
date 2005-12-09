@@ -11,7 +11,7 @@
 
 void cons_intr (int (*proc) (void));
 
-struct Thread_tqueue console_waiting_tqueue;
+struct Thread_list console_waiting;
 
 // Stupid I/O delay routine necessitated by historical PC design flaws
 static void
@@ -531,10 +531,9 @@ cons_intr (int (*proc) (void))
   }
 
   // Wake up as many processes as we might be able to serve now
-  for (i = 0; i < new && !TAILQ_EMPTY (&console_waiting_tqueue); i++) {
-    struct Thread *t = TAILQ_FIRST (&console_waiting_tqueue);
+  for (i = 0; i < new && !LIST_EMPTY(&console_waiting); i++) {
+    struct Thread *t = LIST_FIRST(&console_waiting);
     thread_set_runnable(t);
-    TAILQ_REMOVE (&console_waiting_tqueue, t, th_waiting);
   }
 }
 
@@ -581,7 +580,7 @@ cons_init (void)
   kbd_init ();
   serial_init ();
 
-  TAILQ_INIT (&console_waiting_tqueue);
+  LIST_INIT (&console_waiting);
 
   output_start = read_tsc ();
   lpt_putc ('\n');

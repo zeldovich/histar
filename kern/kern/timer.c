@@ -8,19 +8,17 @@
 #include <inc/queue.h>
 
 uint64_t timer_ticks;
-struct Thread_tqueue timer_sleep_tqueue;
+struct Thread_list timer_sleep;
 
 static void
 wakeup_scan()
 {
-    struct Thread *t = TAILQ_FIRST(&timer_sleep_tqueue);
+    struct Thread *t = LIST_FIRST(&timer_sleep);
     while (t != 0) {
-	struct Thread *next = TAILQ_NEXT(t, th_waiting);
+	struct Thread *next = LIST_NEXT(t, th_link);
 
-	if (t->th_wakeup_ticks < timer_ticks) {
+	if (t->th_wakeup_ticks < timer_ticks)
 	    thread_set_runnable(t);
-	    TAILQ_REMOVE(&timer_sleep_tqueue, t, th_waiting);
-	}
 
 	t = next;
     }
@@ -42,5 +40,5 @@ timer_intr()
 void
 timer_init()
 {
-    TAILQ_INIT(&timer_sleep_tqueue);
+    LIST_INIT(&timer_sleep);
 }

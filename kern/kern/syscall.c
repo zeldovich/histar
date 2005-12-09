@@ -61,8 +61,7 @@ sys_cons_getc()
     if (c != 0)
 	return c;
 
-    TAILQ_INSERT_TAIL(&console_waiting_tqueue, cur_thread, th_waiting);
-    thread_suspend(cur_thread);
+    thread_suspend(cur_thread, &console_waiting);
     syscall_error(-E_RESTART);
 }
 
@@ -231,8 +230,7 @@ static void
 sys_thread_sleep(uint64_t msec)
 {
     cur_thread->th_wakeup_ticks = timer_ticks + kclock_msec_to_ticks(msec);
-    TAILQ_INSERT_TAIL(&timer_sleep_tqueue, cur_thread, th_waiting);
-    thread_suspend(cur_thread);
+    thread_suspend(cur_thread, &timer_sleep);
 }
 
 static int

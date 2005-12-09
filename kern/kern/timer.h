@@ -5,7 +5,7 @@
 #include <machine/thread.h>
 
 extern uint64_t timer_ticks;
-extern struct Thread_tqueue timer_sleep_tqueue;
+extern struct Thread_list timer_sleep;
 
 void timer_intr();
 void timer_init();
