@@ -79,6 +79,61 @@ start_timer(struct timer_thread *t, void (*func)(), int msec)
 	panic("cannot create timer thread: %s", e2s(r));
 }
 
+static err_t
+cb_sent(void *arg, struct tcp_pcb *c, u16_t len)
+{
+    int64_t remaining = (int64_t) arg;
+    remaining -= len;
+    tcp_arg(c, (void*)remaining);
+
+    if (remaining > 0)
+	return ERR_OK;
+
+    err_t e = tcp_close(c);
+    if (e)
+	panic("tcp_close: %d", e);
+
+    return ERR_OK;
+}
+
+static err_t
+cb_accept(void *arg, struct tcp_pcb *c, err_t err)
+{
+    static const char *msg = "Hello world.\n";
+
+    if (err)
+	panic("cb_accept: %d", err);
+
+    int64_t len = strlen(msg);
+    tcp_arg(c, (void*)len);
+    tcp_sent(c, &cb_sent);
+
+    err_t e = tcp_write(c, msg, len, 0);
+    if (e)
+	panic("tcp_write: %d", e);
+
+    return ERR_OK;
+}
+
+static void
+netd_server()
+{
+    // testing
+    struct tcp_pcb *srv = tcp_new();
+    if (!srv)
+	panic("tcp_new");
+
+    srv = tcp_listen(srv);
+    if (!srv)
+	panic("tcp_listen");
+
+    err_t e = tcp_bind(srv, IP_ADDR_ANY, 23);
+    if (e)
+	panic("tcp_bind: %d", e);
+
+    tcp_accept(srv, &cb_accept);
+}
+
 int
 main(int ac, char **av)
 {
@@ -103,5 +158,7 @@ main(int ac, char **av)
     start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	DHCP_COARSE_TIMER_SECS * 1000);
 
     cprintf("netd: up and running\n");
+
+    netd_server();
     sys_thread_halt();    
 }
