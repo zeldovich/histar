@@ -3,27 +3,6 @@
 
 #include <inc/types.h>
 
-/* Note: We DO NOT NEED this magic stuff yet, so don't pay the price for it */
-
-#if 1
-
-typedef uint32_t atomic_t;
-
-#define ATOMIC_INIT(i)			{ (i) }
-#define atomic_read(v)			(*(v))
-#define atomic_set(v, i)		((void)(*(v) = (i)))
-#define atomic_add(i, v)		((void)(*(v) += (i)))
-#define atomic_sub(i, v)		((void)(*(v) -= (i)))
-#define atomic_sub_and_test(i, v)	((*(v) -= (i)) == 0)
-#define atomic_inc(v)			((void)++*(v))
-#define atomic_dec(v)			((void)--*(v))
-#define atomic_dec_and_test(v)		((--*(v)) == 0)
-#define atomic_inc_and_test(v)		((++*(v)) == 0)
-#define atomic_clear_mask(mask, v)	((void)(*(v) &= ~(mask)))
-#define atomic_set_mask(mask, v)	((void)(*(v) |= (mask)))
-
-#else
-
 /*
  * Atomic operations that C can't guarantee us.  Useful for
  * resource counting etc..
@@ -197,6 +176,24 @@ static __inline__ int atomic_add_negative(int i, atomic_t *v)
 	return c;
 }
 
+/*
+ * Atomically compare the value in "v" with "old", and set "v" to "new"
+ * if equal.
+ *
+ * Return value is the previous value of "v".  So if return value is same
+ * as "old", the swap occurred, otherwise it did not.
+ */
+static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int new)
+{
+	int out;
+	__asm__ __volatile__(
+		LOCK "cmpxchgl %1,%2"
+		: "=a" (out)
+		: "q" (new), "m" (v->counter), "0" (old)
+		: "memory");
+	return out;
+}
+
 /* These are x86-specific, used by some header files */
 #define atomic_clear_mask(mask, addr) \
 __asm__ __volatile__(LOCK "andl %0,%1" \
@@ -213,8 +210,5 @@ __asm__ __volatile__(LOCK "orl %0,%1" \
 #define smp_mb__before_atomic_inc()	barrier()
 #define smp_mb__after_atomic_inc()	barrier()
 */
-
-#endif
-
 
 #endif
