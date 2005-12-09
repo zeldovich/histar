@@ -167,6 +167,8 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	sys_thread_yield();
     }
 
+    cprintf("jif: sent packet %d bytes\n", txsize);
+
 #if ETH_PAD_SIZE
     pbuf_header(p, ETH_PAD_SIZE);			/* reclaim the padding word */
 #endif
@@ -206,23 +208,25 @@ low_level_input(struct netif *netif)
 			    e2s(r));
 		    jif->rx[rxslot]->actual_count = -1;
 		}
-	    }
-
-	    if ((jif->rx[rxslot]->actual_count & NETHDR_COUNT_DONE))
+	    } else if ((jif->rx[rxslot]->actual_count & NETHDR_COUNT_DONE)) {
 		break;
+	    }
 	}
 
 	if (rxslot == JIF_BUFS)
 	    jif->waitgen = sys_net_wait(jif->waitgen);
     } while (rxslot == JIF_BUFS);
 
-    if ((jif->rx[rxslot]->actual_count & NETHDR_COUNT_ERR)) {
+    uint16_t count = jif->rx[rxslot]->actual_count;
+    jif->rx[rxslot]->actual_count = -1;
+
+    if ((count & NETHDR_COUNT_ERR)) {
 	cprintf("jif: rx packet error\n");
-	jif->rx[rxslot]->actual_count = -1;
 	return 0;
     }
 
-    s16_t len = jif->rx[rxslot]->actual_count & NETHDR_COUNT_MASK;
+    s16_t len = count & NETHDR_COUNT_MASK;
+    cprintf("jif: recv packet %d bytes\n", len);
 
 #if ETH_PAD_SIZE
     /* allow room for Ethernet padding */
