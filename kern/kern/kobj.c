@@ -263,7 +263,7 @@ kobject_gc_scan()
 
     struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link)
-	if (ko->ko_ref == 0 && ko->ko_type != kobj_dead)
+	if (ko->ko_ref == 0 && ko->ko_pin == 0 && ko->ko_type != kobj_dead)
 	    kobject_gc(ko);
 
     cur_thread = t;
