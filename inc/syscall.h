@@ -40,6 +40,7 @@ int	sys_thread_create(uint64_t container);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);
 void	sys_thread_yield();
 void	sys_thread_halt();
+void	sys_thread_sleep(uint64_t msec);
 
 int	sys_segment_create(uint64_t container, uint64_t num_pages);
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);

@@ -119,6 +119,12 @@ sys_thread_halt()
     syscall(SYS_thread_halt, 0, 0, 0, 0, 0);
 }
 
+void
+sys_thread_sleep(uint64_t msec)
+{
+    syscall(SYS_thread_sleep, msec, 0, 0, 0, 0);
+}
+
 int
 sys_segment_create(uint64_t container, uint64_t num_pages)
 {

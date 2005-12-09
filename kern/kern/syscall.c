@@ -3,6 +3,7 @@
 #include <machine/thread.h>
 #include <dev/console.h>
 #include <dev/fxp.h>
+#include <dev/kclock.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>
 #include <kern/lib.h>
@@ -10,6 +11,7 @@
 #include <kern/gate.h>
 #include <kern/segment.h>
 #include <kern/handle.h>
+#include <kern/timer.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -225,6 +227,14 @@ sys_thread_halt()
     thread_halt(cur_thread);
 }
 
+static void
+sys_thread_sleep(uint64_t msec)
+{
+    cur_thread->th_wakeup_ticks = timer_ticks + kclock_msec_to_ticks(msec);
+    TAILQ_INSERT_TAIL(&timer_sleep_tqueue, cur_thread, th_waiting);
+    thread_suspend(cur_thread);
+}
+
 static int
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
@@ -366,6 +376,10 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_thread_halt:
 	sys_thread_halt();
+	break;
+
+    case SYS_thread_sleep:
+	sys_thread_sleep(a1);
 	break;
 
     case SYS_segment_create:

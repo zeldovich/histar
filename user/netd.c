@@ -66,9 +66,7 @@ net_timer(void *arg)
 
     for (;;) {
 	t->func();
-
-	// XXX sleep!
-	sys_thread_yield();
+	sys_thread_sleep(t->msec);
     }
 }
 

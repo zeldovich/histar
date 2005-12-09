@@ -22,6 +22,7 @@ struct Thread {
     struct segment_map th_segmap;
 
     thread_status th_status;
+    uint64_t th_wakeup_ticks;
 
     LIST_ENTRY(Thread) th_link;
     TAILQ_ENTRY(Thread) th_waiting;

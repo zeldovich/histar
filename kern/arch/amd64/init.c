@@ -9,6 +9,7 @@
 #include <dev/kclock.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
+#include <kern/timer.h>
 #include <kern/uinit.h>
 
 /*
@@ -110,6 +111,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     cons_init ();
     pic_init ();
     kclock_init ();
+    timer_init ();
     pmap_init (mbi);
     pci_init ();
 

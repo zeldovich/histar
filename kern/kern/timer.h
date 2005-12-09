@@ -1,6 +1,13 @@
 #ifndef JOS_KERN_TIMER_H
 #define JOS_KERN_TIMER_H
 
+#include <machine/types.h>
+#include <machine/thread.h>
+
+extern uint64_t timer_ticks;
+extern struct Thread_tqueue timer_sleep_tqueue;
+
 void timer_intr();
+void timer_init();
 
 #endif

@@ -72,3 +72,9 @@ kclock_delay (int usec)
     tick_start = tick_now;
   }
 }
+
+uint64_t
+kclock_msec_to_ticks (uint64_t msec)
+{
+    return msec * kclock_hz / 1000;
+}
