@@ -20,15 +20,13 @@ register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 int
 main(int ac, char **av)
 {
-    // hard-coded root container
-    uint64_t ctemp = 1;
+    // our container gets passed as the argument to _start, for now
+    uint64_t ctemp = start_arg;
 
     struct cobj_ref seg;
     int r = segment_alloc(ctemp, 8 * PGSIZE, &seg);
     if (r < 0)
 	panic("cannot allocate buffer segment: %s", e2s(r));
-
-    cprintf("allocated segment %ld:%ld\n", seg.container, seg.slot);
 
     void *va;
     r = segment_map(ctemp, seg, 1, &va, 0);
