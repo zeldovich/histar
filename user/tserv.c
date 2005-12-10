@@ -4,10 +4,10 @@
 #include <inc/lib.h>
 
 static void
-gate_entry(char *arg)
+gate_entry(char *arg, struct cobj_ref ret_gate)
 {
-    cprintf("gate_entry: %s\n", arg);
-    thread_halt();
+    cprintf("server: gate_entry: %s\n", arg);
+    sys_gate_enter(ret_gate, 0, 0);
 }
 
 int

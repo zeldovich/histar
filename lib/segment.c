@@ -130,7 +130,7 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 	.ul_ent = &label_ents[0],
     };
 
-    r = label_get_cur(ctemp, &l);
+    r = thread_get_label(ctemp, &l);
     if (r < 0)
 	return r;
 

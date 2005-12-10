@@ -30,9 +30,6 @@ int	elf_load(uint64_t container, struct cobj_ref seg,
 extern uint64_t start_arg;
 void	libmain(uint64_t arg) __attribute__((__noreturn__));
 
-/* label.c */
-int	label_get_cur(uint64_t ctemp, struct ulabel *l);
-
 /* printfmt.c */
 const char *e2s(int err);
 
@@ -41,5 +38,8 @@ int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct co
 int64_t thread_id(uint64_t ctemp);
 void	thread_halt() __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
+
+/* gate.c */
+int	gate_call(uint64_t ctemp, struct cobj_ref gate);
 
 #endif

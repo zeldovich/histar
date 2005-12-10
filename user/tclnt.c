@@ -8,7 +8,7 @@ main(int ac, char **av)
     cprintf("client process starting.\n");
 
     int rc = 1;		// abuse the root container
-    //int myct = start_arg;
+    int myct = start_arg;
 
     int rslots = sys_container_nslots(rc);
     if (rslots < 0)
@@ -24,6 +24,10 @@ main(int ac, char **av)
     if (i == rslots)
 	panic("cannot find any gates in root container %d", rc);
 
-    int r = sys_gate_enter(COBJ(rc, i), 0, 0);
-    panic("still alive after gate_enter: %s", e2s(r));
+    cprintf("client: about to call into gate\n");
+    int r = gate_call(myct, COBJ(rc, i));
+    if (r < 0)
+	panic("gate_call: %s\n", e2s(r));
+
+    cprintf("client: back from the gate call\n");
 }
