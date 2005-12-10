@@ -41,7 +41,8 @@ int  thread_gc(struct Thread *t);
 // Assumes ownership of label
 void thread_jump(struct Thread *t, struct Label *label,
 		 struct segment_map *segmap,
-		 void *entry, void *stack, uint64_t arg);
+		 void *entry, void *stack,
+		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
 void thread_syscall_restart(struct Thread *t);
 
 void thread_set_runnable(struct Thread *t);

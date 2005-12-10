@@ -94,7 +94,8 @@ thread_run(struct Thread *t)
 void
 thread_jump(struct Thread *t, struct Label *label,
 	    struct segment_map *segmap, void *entry,
-	    void *stack, uint64_t arg)
+	    void *stack, uint64_t arg0,
+	    uint64_t arg1, uint64_t arg2)
 {
     t->th_ko.ko_label = *label;
 
@@ -110,7 +111,9 @@ thread_jump(struct Thread *t, struct Label *label,
     t->th_tf.tf_ss = GD_UD | 3;
     t->th_tf.tf_rip = (uint64_t) entry;
     t->th_tf.tf_rsp = (uint64_t) stack;
-    t->th_tf.tf_rdi = arg;
+    t->th_tf.tf_rdi = arg0;
+    t->th_tf.tf_rsi = arg1;
+    t->th_tf.tf_rdx = arg2;
 }
 
 void

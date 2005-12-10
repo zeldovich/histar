@@ -145,7 +145,7 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
     if (slot < 0)
 	return slot;
 
-    r = sys_gate_enter(COBJ(ctemp, slot));
+    r = sys_gate_enter(COBJ(ctemp, slot), 0, 0);
     if (r < 0)
 	return r;
 

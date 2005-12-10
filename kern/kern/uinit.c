@@ -183,7 +183,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, arg);
+    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, arg, 0, 0);
     return 0;
 }
 

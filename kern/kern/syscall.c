@@ -188,7 +188,7 @@ sys_thread_create(uint64_t ct)
 }
 
 static void
-sys_gate_enter(struct cobj_ref gt)
+sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 {
     struct Gate *g;
     check(cobj_get(gt, kobj_gate, (struct kobject **)&g,
@@ -197,7 +197,8 @@ sys_gate_enter(struct cobj_ref gt)
     // XXX do the contaminate, or let the user compute it and verify
     struct thread_entry *e = &g->gt_te;
     thread_jump(cur_thread, &g->gt_target_label, &e->te_segmap,
-		e->te_entry, e->te_stack, e->te_arg);
+		e->te_entry, e->te_stack,
+		e->te_arg, a1, a2);
 }
 
 static void
@@ -210,7 +211,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 	check(-E_INVAL);
 
     thread_jump(t, &cur_thread->th_ko.ko_label, &e->te_segmap,
-		e->te_entry, e->te_stack, e->te_arg);
+		e->te_entry, e->te_stack, e->te_arg, 0, 0);
     thread_set_runnable(t);
 }
 
@@ -351,7 +352,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_gate_enter:
-	sys_gate_enter(COBJ(a1, a2));
+	sys_gate_enter(COBJ(a1, a2), a3, a4);
 	break;
 
     case SYS_thread_create:

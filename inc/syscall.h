@@ -34,7 +34,7 @@ int64_t	sys_handle_create();
 
 int	sys_gate_create(uint64_t container, struct thread_entry *s,
 			struct ulabel *entry, struct ulabel *target);
-int	sys_gate_enter(struct cobj_ref gate);
+int	sys_gate_enter(struct cobj_ref gate, uint64_t a1, uint64_t a2);
 
 int	sys_thread_create(uint64_t container);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);

@@ -24,6 +24,6 @@ main(int ac, char **av)
     if (i == rslots)
 	panic("cannot find any gates in root container %d", rc);
 
-    int r = sys_gate_enter(COBJ(rc, i));
+    int r = sys_gate_enter(COBJ(rc, i), 0, 0);
     panic("still alive after gate_enter: %s", e2s(r));
 }
