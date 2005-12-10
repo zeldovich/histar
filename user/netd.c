@@ -12,6 +12,8 @@
 #include <lwip/udp.h>
 #include <lwip/dhcp.h>
 #include <netif/etharp.h>
+#include <lwip/sockets.h>
+#include <lwip/tcpip.h>
 
 #include <jif/jif.h>
 
@@ -79,59 +81,45 @@ start_timer(struct timer_thread *t, void (*func)(), int msec)
 	panic("cannot create timer thread: %s", e2s(r));
 }
 
-static err_t
-cb_sent(void *arg, struct tcp_pcb *c, u16_t len)
-{
-    int64_t remaining = (int64_t) arg;
-    remaining -= len;
-    tcp_arg(c, (void*)remaining);
-
-    if (remaining > 0)
-	return ERR_OK;
-
-    err_t e = tcp_close(c);
-    if (e)
-	panic("tcp_close: %d", e);
-
-    return ERR_OK;
-}
-
-static err_t
-cb_accept(void *arg, struct tcp_pcb *c, err_t err)
-{
-    static const char *msg = "Hello world.\n";
-
-    if (err)
-	panic("cb_accept: %d", err);
-
-    int64_t len = strlen(msg);
-    tcp_arg(c, (void*)len);
-    tcp_sent(c, &cb_sent);
-
-    err_t e = tcp_write(c, msg, len, 0);
-    if (e)
-	panic("tcp_write: %d", e);
-
-    return ERR_OK;
-}
-
 static void
 netd_server()
 {
-    // testing
-    struct tcp_pcb *srv = tcp_new();
-    if (!srv)
-	panic("tcp_new");
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0)
+        panic("cannot create socket: %d\n", s);
 
-    srv = tcp_listen(srv);
-    if (!srv)
-	panic("tcp_listen");
+    struct sockaddr_in sin;
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
+    sin.sin_port = htons(23);
+    int r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
+    if (r < 0)
+        panic("cannot bind socket: %d\n", r);
 
-    err_t e = tcp_bind(srv, IP_ADDR_ANY, 23);
-    if (e)
-	panic("tcp_bind: %d", e);
+    r = listen(s, 5);
+    if (r < 0)
+        panic("cannot listen on socket: %d\n", r);
 
-    tcp_accept(srv, &cb_accept);
+    cprintf("netd: server on port 23\n");
+    for (;;) {
+        socklen_t socklen = sizeof(sin);
+        int ss = accept(s, (struct sockaddr *)&sin, &socklen);
+        if (ss < 0) {
+            cprintf("cannot accept client: %d\n", ss);
+            continue;
+        }
+
+        char *msg = "Hello world.\n";
+        write(ss, msg, strlen(msg));
+        close(ss);
+    }
+}
+
+static void
+tcpip_init_done(void *arg)
+{
+    sys_sem_t *sem = arg;
+    sys_sem_signal(*sem);
 }
 
 int
@@ -157,7 +145,12 @@ main(int ac, char **av)
     start_timer(&t_dhcpf,   &dhcp_fine_tmr,	DHCP_FINE_TIMER_MSECS);
     start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	DHCP_COARSE_TIMER_SECS * 1000);
 
-    cprintf("netd: up and running\n");
+    sys_sem_t tcpip_init_sem = sys_sem_new(0);
+    tcpip_init(&tcpip_init_done, &tcpip_init_sem);
+    sys_sem_wait(tcpip_init_sem);
+    sys_sem_free(tcpip_init_sem);
+
+    cprintf("netd: running\n");
 
     netd_server();
     sys_thread_halt();    
