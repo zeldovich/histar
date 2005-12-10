@@ -1,6 +1,7 @@
 #include <inc/lib.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
 
 int
 thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp)
@@ -59,4 +60,23 @@ thread_id(uint64_t ctemp)
     int64_t id = sys_obj_get_id(COBJ(ctemp, slot));
     sys_obj_unref(COBJ(ctemp, slot));
     return id;
+}
+
+void
+thread_halt()
+{
+    sys_thread_halt();
+    panic("halt: still alive");
+}
+
+int
+thread_get_label(uint64_t ctemp, struct ulabel *ul)
+{
+    int slot = sys_container_store_cur_thread(ctemp);
+    if (slot < 0)
+	return slot;
+
+    int r = sys_obj_get_label(COBJ(ctemp, slot), ul);
+    sys_obj_unref(COBJ(ctemp, slot));
+    return r;
 }

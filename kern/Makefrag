@@ -47,6 +47,8 @@ KERN_BINFILES := \
 	user/netwatch \
 	user/thread_test \
 	user/netd \
+	user/tserv \
+	user/tclnt \
 	user/shell
 
 KERN_BLAH := \

@@ -188,9 +188,7 @@ sys_thread_entry(void *arg)
     threads[slot].start(threads[slot].arg);
     atomic_set(&threads[slot].inuse, 0);
     sys_obj_unref(threads[slot].tobj);
-    sys_thread_halt();
-
-    panic("lwip: sys_thread_entry: still alive");
+    thread_halt();
 }
 
 sys_thread_t
