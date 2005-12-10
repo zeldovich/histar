@@ -3,6 +3,10 @@ in-kernel segment copying
 user-specified container labeling
 larger labels
 
+container slots: should they be named by slot# or object-id?  potential
+race conditions w.r.t. slot re-use, but on the other hand we want to allow
+multiple refs to the same object from the same container (modularity)?
+
 segment_maps are value objects, and thus aren't so amenable to sharing.
 in particular, you can't have threads with shared mutable address space.
 

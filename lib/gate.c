@@ -6,6 +6,14 @@
 int
 gate_call(uint64_t ctemp, struct cobj_ref gate)
 {
+    // XXX
+    // need to prevent multiple returns via the return gate
+    // by allocating a new stack, storing an atomic_t counter
+    // on that stack, and unref'ing the stack when we're done
+    // to ensure that future gate entrants will pagefault.
+    // 
+    // unref the rgate first, then the stack.
+
     struct cobj_ref rgate;
     struct jmp_buf jmp;
     int returned = 0;
