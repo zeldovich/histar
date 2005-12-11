@@ -67,10 +67,10 @@ kva2pa (void *kva)
 }
 
 /*
- * This macro takes a user supplied address and turns it into
- * something that will cause a fault if it is a kernel address.
+ * Changes *ptrp such that it will not reference a kernel address,
+ * and makes sure the address is paged in (might return -E_RESTART).
  */
-#define TRUP(p) ((__typeof__(p)) (((uintptr_t)(p)) & ~(1L<<63)))
+int  page_user_incore(void **ptrp, int nbytes);
 
 #endif /* !__ASSEMBLER__ */
 

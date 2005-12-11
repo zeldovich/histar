@@ -53,14 +53,18 @@ label_set(struct Label *l, uint64_t handle, int level)
 int
 label_to_ulabel(struct Label *l, struct ulabel *ul)
 {
-    ul = TRUP(ul);
+    int r = page_user_incore((void**) &ul, sizeof(*ul));
+    if (r < 0)
+	return r;
 
-    page_fault_mode = PFM_KILL;
     ul->ul_default = l->lb_def_level;
     ul->ul_nent = 0;
     uint32_t ul_size = ul->ul_size;
-    uint64_t *ul_ent = TRUP(ul->ul_ent);
-    page_fault_mode = PFM_NONE;
+    uint64_t *ul_ent = ul->ul_ent;
+
+    r = page_user_incore((void**) &ul_ent, ul_size * sizeof(*ul_ent));
+    if (r < 0)
+	return r;
 
     int slot = 0;
     for (int i = 0; i < NUM_LB_ENT; i++) {
@@ -70,11 +74,9 @@ label_to_ulabel(struct Label *l, struct ulabel *ul)
 	if (slot >= ul_size)
 	    return -E_NO_SPACE;
 
-	page_fault_mode = PFM_KILL;
 	ul_ent[slot] = l->lb_ent[i];
 	slot++;
 	ul->ul_nent++;
-	page_fault_mode = PFM_NONE;
     }
 
     return 0;
@@ -83,20 +85,22 @@ label_to_ulabel(struct Label *l, struct ulabel *ul)
 int
 ulabel_to_label(struct ulabel *ul, struct Label *l)
 {
-    ul = TRUP(ul);
+    int r = page_user_incore((void**) &ul, sizeof(*ul));
+    if (r < 0)
+	return r;
 
     label_init(l);
-    page_fault_mode = PFM_KILL;
     l->lb_def_level = ul->ul_default;
     uint32_t ul_nent = ul->ul_nent;
-    uint64_t *ul_ent = TRUP(ul->ul_ent);
-    page_fault_mode = PFM_NONE;
+    uint64_t *ul_ent = ul->ul_ent;
+
+    r = page_user_incore((void**) &ul_ent, ul_nent * sizeof(*ul_ent));
+    if (r < 0)
+	return r;
 
     // XXX minor annoyance if ul_nent is huge
     for (int i = 0; i < ul_nent; i++) {
-	page_fault_mode = PFM_KILL;
 	uint64_t ul_val = ul_ent[i];
-	page_fault_mode = PFM_NONE;
 
 	int level = LB_LEVEL(ul_val);
 	if (level < 0 && level > LB_LEVEL_STAR)

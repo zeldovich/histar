@@ -67,18 +67,15 @@ trapframe_print (struct Trapframe *tf)
 	    tf->tf_rflags, tf->tf_err);
 }
 
-volatile int page_fault_mode = PFM_NONE;
-
 static void
 page_fault (struct Trapframe *tf)
 {
     void *fault_va = (void*) rcr2();
 
     if ((tf->tf_cs & 3) == 0) {
-	if (page_fault_mode == PFM_KILL) {
-	    cprintf("user-triggered kernel page fault, killing thread\n");
+	if ((uintptr_t) fault_va < PHYSBASE) {
+	    cprintf("kernel page fault on VA %p, killing thread\n", fault_va);
 	    thread_halt(cur_thread);
-	    page_fault_mode = PFM_NONE;
 	} else {
 	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
 	}

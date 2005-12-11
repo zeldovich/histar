@@ -50,9 +50,8 @@ _check(int64_t r, const char *what, int line)
 static void
 sys_cons_puts(const char *s)
 {
-    page_fault_mode = PFM_KILL;
-    cprintf("%s", TRUP(s));
-    page_fault_mode = PFM_NONE;
+    check(page_user_incore((void**) &s, 1));	// XXX figure out the size?
+    cprintf("%s", s);
 }
 
 static int
@@ -315,9 +314,8 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	    uint8_t addrbuf[6];
 	    sys_net_macaddr(&addrbuf[0]);
 
-	    page_fault_mode = PFM_KILL;
-	    memcpy((void*)TRUP(a1), &addrbuf[0], 6);
-	    page_fault_mode = PFM_NONE;
+	    check(page_user_incore((void**) &a1, 6));
+	    memcpy((void*) a1, &addrbuf[0], 6);
 	}
 	break;
 
@@ -351,9 +349,9 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_gate_create:
 	{
-	    page_fault_mode = PFM_KILL;
-	    struct thread_entry e = *(struct thread_entry *) TRUP(a2);
-	    page_fault_mode = PFM_NONE;
+	    struct thread_entry e;
+	    check(page_user_incore((void**) &a2, sizeof(e)));
+	    memcpy(&e, (void*) a2, sizeof(e));
 
 	    syscall_ret = sys_gate_create(a1, &e,
 					  (struct ulabel*) a3,
@@ -371,9 +369,9 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_thread_start:
 	{
-	    page_fault_mode = PFM_KILL;
-	    struct thread_entry e = *(struct thread_entry *) TRUP(a3);
-	    page_fault_mode = PFM_NONE;
+	    struct thread_entry e;
+	    check(page_user_incore((void**) &a3, sizeof(e)));
+	    memcpy(&e, (void*) a3, sizeof(e));
 
 	    sys_thread_start(COBJ(a1, a2), &e);
 	}
@@ -416,9 +414,8 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	    struct segment_map s;
 	    sys_segment_get_map(&s);
 
-	    page_fault_mode = PFM_KILL;
-	    *(struct segment_map *) TRUP(a1) = s;
-	    page_fault_mode = PFM_NONE;
+	    check(page_user_incore((void**) &a1, sizeof(s)));
+	    memcpy((void*) a1, &s, sizeof(s));
 	}
 	break;
 

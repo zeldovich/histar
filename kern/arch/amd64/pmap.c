@@ -318,3 +318,22 @@ page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
     *ptep = kva2pa(page) | perm | PTE_P;
     return 0;
 }
+
+int
+page_user_incore(void **ptrp, int nbytes)
+{
+    uintptr_t ptr = (uintptr_t) *ptrp;
+    ptr &= ~(1L << 63);
+
+    uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
+    for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
+	if (page_lookup(cur_thread->th_pgmap, (void*) va) == 0) {
+	    int r = thread_pagefault(cur_thread, (void*) va);
+	    if (r < 0)
+		return r;
+	}
+    }
+
+    *ptrp = (void*) ptr;
+    return 0;
+}
