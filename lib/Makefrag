@@ -17,7 +17,9 @@ LIB_SRCFILES :=	\
 	lib/segment.c \
 	lib/elf.c \
 	lib/thread.c \
-	lib/gate.c
+	lib/gate.c \
+	lib/netd_client.c \
+	lib/netd_server.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag

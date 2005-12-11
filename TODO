@@ -1,6 +1,7 @@
 think more about argument passing across gate calls & returns;
 in the current scheme with argument segments, who unrefs them,
 and will they have a thread label sufficient to do the unref?
+[ possible answer: call back into gate to "free" the buffer? ]
 
 user-specified segment labeling
 in-kernel segment copying
@@ -13,8 +14,6 @@ in particular, you can't have threads with shared mutable address space.
 irq_register
 multiplexing between potentially different network adapters
 label checking for network buffers
-
-sockets API -- probably IPC to netd?
 
 type-check for correct info_flow_type values (easier in C++)
 
@@ -30,6 +29,11 @@ C type-safety for enums/int-typedefs: wrap in a struct
   possible that this could all be done at user-level by clever
   gate-entry code (first map a stack using registers, then can do
   C code).
+
+  possible solution: stick a mutex (atomic_t) on the entry stack,
+  lock the mutex from asm without using the stack, then the rest
+  of the gate entry code maps a new stack, does whatever COW ops,
+  then jumps to new stack and unlocks the entry stack.
 
 implement MLTs
 
