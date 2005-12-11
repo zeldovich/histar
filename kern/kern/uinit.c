@@ -252,6 +252,7 @@ user_bootstrap()
     EMBED_DECLARE(spin);
     EMBED_DECLARE(hello);
     EMBED_DECLARE(jmptest);
+    EMBED_DECLARE(pftest);
     EMBED_DECLARE(chatter1);
     EMBED_DECLARE(chatter2);
     EMBED_DECLARE(uregtest);

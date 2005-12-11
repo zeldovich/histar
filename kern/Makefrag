@@ -43,6 +43,7 @@ KERN_BINFILES := \
 	user/hello \
 	user/idle \
 	user/jmptest \
+	user/pftest \
 	user/spin \
 	user/netwatch \
 	user/thread_test \
