@@ -64,5 +64,8 @@ typedef struct {
   Elf64_Xword	st_size;
 } Elf64_Sym;
 
+#define ELF_PF_X	0x01
+#define ELF_PF_W	0x02
+#define ELF_PF_R	0x04
 
 #endif /* !JOS_INC_ELF_H */
