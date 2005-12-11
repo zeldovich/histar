@@ -8,6 +8,7 @@
 #include <kern/lib.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
+#include <inc/error.h>
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -82,8 +83,8 @@ page_fault (struct Trapframe *tf)
 	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
 	}
     } else {
-	int r = thread_pagefault(fault_va);
-	if (r == 0)
+	int r = thread_pagefault(cur_thread, fault_va);
+	if (r == 0 || r == -E_RESTART)
 	    return;
 
 	cprintf("user process page-faulted on %p @ %lx\n",

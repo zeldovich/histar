@@ -52,6 +52,6 @@ void thread_halt(struct Thread *t);
 void thread_switch(struct Thread *t);
 void thread_run(struct Thread *t) __attribute__((__noreturn__));
 
-int  thread_pagefault(void *va);
+int  thread_pagefault(struct Thread *t, void *va);
 
 #endif

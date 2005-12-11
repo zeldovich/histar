@@ -130,18 +130,17 @@ thread_switch(struct Thread *t)
 }
 
 int
-thread_pagefault(void *fault_va)
+thread_pagefault(struct Thread *t, void *fault_va)
 {
-    if (cur_thread->th_pgmap == &bootpml4) {
-	int r = page_map_alloc(&cur_thread->th_pgmap);
+    if (t->th_pgmap == &bootpml4) {
+	int r = page_map_alloc(&t->th_pgmap);
 	if (r < 0)
 	    return r;
     }
 
-    int r = segment_map_fill_pmap(&cur_thread->th_segmap,
-				  cur_thread->th_pgmap, fault_va);
+    int r = segment_map_fill_pmap(&t->th_segmap, t->th_pgmap, fault_va);
     if (r == -E_RESTART)
-	return 0;
+	return r;
 
     if (r < 0) {
 	cprintf("thread_pagefault: cannot fill pagemap: %s\n", e2s(r));
