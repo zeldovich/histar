@@ -90,14 +90,10 @@ low_level_init(struct netif *netif)
     if (jif->waiter_id < 0)
 	panic("jif: cannot get thread id: %s", e2s(jif->waiter_id));
   
-    r = segment_alloc(container, JIF_BUFS * PGSIZE, &jif->buf_seg);
+    r = segment_alloc(container, JIF_BUFS * PGSIZE,
+		      &jif->buf_seg, &jif->buf_base);
     if (r < 0)
 	panic("jif: cannot allocate %d buffer pages: %s\n",
-	      JIF_BUFS, e2s(r));
-
-    r = segment_map(container, jif->buf_seg, 1, &jif->buf_base, 0);
-    if (r < 0)
-	panic("jif: canont map %d buffer pages: %s\n",
 	      JIF_BUFS, e2s(r));
 
     for (int i = 0; i < JIF_BUFS; i++) {
