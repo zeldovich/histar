@@ -73,12 +73,6 @@ page_fault (struct Trapframe *tf)
 {
     void *fault_va = (void*) rcr2();
 
-    if (cur_thread) {
-	int r = thread_pagefault(fault_va);
-	if (r == 0)
-	    return;
-    }
-
     if ((tf->tf_cs & 3) == 0) {
 	if (page_fault_mode == PFM_KILL) {
 	    cprintf("user-triggered kernel page fault, killing thread\n");
@@ -88,6 +82,10 @@ page_fault (struct Trapframe *tf)
 	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
 	}
     } else {
+	int r = thread_pagefault(fault_va);
+	if (r == 0)
+	    return;
+
 	cprintf("user process page-faulted on %p @ %lx\n",
 		fault_va, tf->tf_rip);
 	thread_halt(cur_thread);
