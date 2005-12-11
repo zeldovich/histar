@@ -10,9 +10,8 @@ main(int ac, char **av)
     uint64_t ct = start_arg;
 
     struct cobj_ref seg;
-    assert(0 == segment_alloc(ct, PGSIZE, &seg));
     void *va;
-    assert(0 == segment_map(ct, seg, 1, &va, 0));
+    assert(0 == segment_alloc(ct, PGSIZE, &seg, &va));
 
     struct ulabel ul = {
 	.ul_size = 32,

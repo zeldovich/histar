@@ -154,7 +154,8 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 }
 
 int
-segment_alloc(uint64_t container, uint64_t bytes, struct cobj_ref *cobj)
+segment_alloc(uint64_t container, uint64_t bytes,
+	      struct cobj_ref *cobj, void **va_p)
 {
     uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
     int64_t id = sys_segment_create(container, npages);
@@ -162,5 +163,19 @@ segment_alloc(uint64_t container, uint64_t bytes, struct cobj_ref *cobj)
 	return id;
 
     *cobj = COBJ(container, id);
+    if (va_p) {
+	uint64_t mapped_bytes;
+	int r = segment_map(container, *cobj, 1, va_p, &mapped_bytes);
+	if (r < 0) {
+	    sys_obj_unref(*cobj);
+	    return r;
+	}
+
+	if (mapped_bytes != npages * PGSIZE) {
+	    segment_unmap(container, *va_p);
+	    sys_obj_unref(*cobj);
+	    return -E_AGAIN;	// race condition maybe..
+	}
+    }
     return 0;
 }

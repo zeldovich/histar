@@ -17,7 +17,7 @@ char*	readline(const char *prompt);
 int	segment_map_change(uint64_t ctemp, struct segment_map *segmap);
 
 int	segment_alloc(uint64_t container, uint64_t bytes,
-		      struct cobj_ref *cobj);
+		      struct cobj_ref *cobj, void **va_p);
 int	segment_map(uint64_t ctemp, struct cobj_ref seg, int writable,
 		    void **va_store, uint64_t *bytes_store);
 int	segment_unmap(uint64_t ctemp, void *va);
@@ -40,6 +40,14 @@ void	thread_halt() __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
 
 /* gate.c */
-int	gate_call(uint64_t ctemp, struct cobj_ref gate);
+struct u_gate_entry {
+    uint64_t container;
+    struct cobj_ref gate;
+    void (*func) (void *, struct cobj_ref *);
+    void *func_arg;
+};
+int	gate_create(struct u_gate_entry *ug, uint64_t container,
+		    void (*func)(void*, struct cobj_ref*), void *func_arg);
+int	gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *arg);
 
 #endif

@@ -5,34 +5,99 @@
 #include <inc/atomic.h>
 #include <inc/memlayout.h>
 
-static int
-gate_call_unsafe(uint64_t ctemp, struct cobj_ref gate)
-{
-    int returned;
-    struct cobj_ref rgate;
-    struct jmp_buf jmp;
+struct gate_call_args {
+    struct cobj_ref return_gate;
+    struct cobj_ref arg;
+};
 
-    returned = 0;
-    setjmp(&jmp);
-    if (returned) {
-	sys_obj_unref(rgate);
-	return 0;
-    }
-    returned = 1;
+static void __attribute__((noreturn))
+gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+{
+    uint64_t tid = thread_id();
+    int r = sys_thread_addref(ug->container);
+    if (r < 0)
+	panic("gate_entry: cannot addref thread: %s", e2s(r));
+
+    struct gate_call_args *call_args;
+    r = segment_map(ug->container, call_args_obj, 0, (void**) &call_args, 0);
+    if (r < 0)
+	panic("gate_entry: cannot map argument page: %s", e2s(r));
+
+    struct cobj_ref arg = call_args->arg;
+    ug->func(ug->func_arg, &arg);
+
+    sys_obj_unref(COBJ(ug->container, tid));
+    r = sys_gate_enter(call_args->return_gate, arg.container, arg.object);
+    panic("gate_entry: unable to return: %s", e2s(r));
+}
+
+int
+gate_create(struct u_gate_entry *ug, uint64_t container,
+	    void (*func) (void*, struct cobj_ref*), void *func_arg)
+{
+    ug->container = container;
+    ug->func = func;
+    ug->func_arg = func_arg;
 
     uint64_t label_ents[8];
-    struct ulabel ul = {
-	.ul_size = 8,
-	.ul_ent = &label_ents[0],
-    };
+    struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
 
-    int r = thread_get_label(ctemp, &ul);
+    int r  = thread_get_label(container, &ul);
     if (r < 0)
 	return r;
 
     struct thread_entry te = {
-	.te_entry = longjmp,
-	.te_arg = (uint64_t) &jmp,
+	.te_entry = &gate_entry,
+	.te_stack = (void*) ULIM,	// XXX!!!
+	.te_arg = (uint64_t) ug,
+    };
+
+    r = sys_segment_get_map(&te.te_segmap);
+    if (r < 0)
+	return r;
+
+    int64_t gate_id = sys_gate_create(container, &te, &ul, &ul);
+    if (gate_id < 0)
+	return gate_id;
+
+    ug->gate = COBJ(container, gate_id);
+    return 0;
+}
+
+struct gate_return {
+    atomic_t return_count;
+    int *rvalp;
+    struct cobj_ref *argp;
+    struct jmp_buf *return_jmpbuf;
+};
+
+static void __attribute__((noreturn))
+gate_call_return(struct gate_return *gr, struct cobj_ref arg)
+{
+    if (atomic_compare_exchange(&gr->return_count, 0, 1) != 0)
+	panic("gate_call_return: multiple return");
+
+    *gr->rvalp = 0;
+    *gr->argp = arg;
+    longjmp(gr->return_jmpbuf, 1);
+}
+
+static int
+gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
+		       void *return_stack,
+		       struct cobj_ref *return_gatep)
+{
+    uint64_t label_ents[8];
+    struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
+
+    int r  = thread_get_label(ctemp, &ul);
+    if (r < 0)
+	return r;
+
+    struct thread_entry te = {
+	.te_entry = &gate_call_return,
+	.te_stack = return_stack + PGSIZE,
+	.te_arg = (uint64_t) gr,
     };
 
     r = sys_segment_get_map(&te.te_segmap);
@@ -43,59 +108,53 @@ gate_call_unsafe(uint64_t ctemp, struct cobj_ref gate)
     if (gate_id < 0)
 	return gate_id;
 
-    rgate = COBJ(ctemp, gate_id);
-    r = sys_gate_enter(gate, rgate.container, rgate.object);
-    sys_obj_unref(rgate);
-
-    if (r < 0)
-	return r;
-
-    panic("sys_gate_enter returned 0");
-}
-
-static void __attribute__((noreturn))
-gate_call_newstack(uint64_t ctemp, struct cobj_ref gate,
-		   struct jmp_buf *back, int *rvalp)
-{
-    atomic_t return_count = ATOMIC_INIT(0);
-
-    int rval = gate_call_unsafe(ctemp, gate);
-    if (atomic_compare_exchange(&return_count, 0, 1) == 0) {
-	*rvalp = rval;
-	longjmp(back, 1);
-    }
-
-    panic("gate_call_newstack: multiple return");
+    *return_gatep = COBJ(ctemp, gate_id);
+    return 0;
 }
 
 int
-gate_call(uint64_t ctemp, struct cobj_ref gate)
+gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 {
-    struct cobj_ref temp_stack_obj;
-    int r = segment_alloc(ctemp, PGSIZE, &temp_stack_obj);
+    struct cobj_ref gate_args_obj;
+    struct gate_call_args *gate_args;
+    int r = segment_alloc(ctemp, PGSIZE, &gate_args_obj, (void**) &gate_args);
     if (r < 0)
-	return r;
+	goto out1;
 
-    void *temp_stack_va;
-    r = segment_map(ctemp, temp_stack_obj, 1, &temp_stack_va, 0);
-    if (r < 0) {
-	sys_obj_unref(temp_stack_obj);
-	return r;
+    struct cobj_ref return_stack_obj;
+    void *return_stack;
+    r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack);
+    if (r < 0)
+	goto out2;
+
+    struct jmp_buf back_from_call;
+    struct gate_return *gr = return_stack;
+    atomic_set(&gr->return_count, 0);
+    gr->rvalp = &r;
+    gr->argp = argp;
+    gr->return_jmpbuf = &back_from_call;
+
+    struct cobj_ref return_gate;
+    if (setjmp(&back_from_call) == 0) {
+	r = gate_call_setup_return(ctemp, gr, return_stack, &return_gate);
+	if (r < 0)
+	    goto out3;
+
+	gate_args->return_gate = return_gate;
+	gate_args->arg = *argp;
+	r = sys_gate_enter(gate, gate_args_obj.container,
+				 gate_args_obj.object);
+	if (r == 0)
+	    panic("gate_call: sys_gate_enter returned 0");
     }
 
-    int rval;
-    struct jmp_buf back_from_newstack;
-    if (setjmp(&back_from_newstack) != 0) {
-	segment_unmap(ctemp, temp_stack_va);
-	sys_obj_unref(temp_stack_obj);
-	return rval;
-    }
-
-    struct jmp_buf jump_to_newstack;
-    if (setjmp(&jump_to_newstack) != 0)
-	gate_call_newstack(ctemp, gate, &back_from_newstack, &rval);
-
-    // XXX not particularly machine-independent..
-    jump_to_newstack.jb_rsp = (uintptr_t)temp_stack_va + PGSIZE;
-    longjmp(&jump_to_newstack, 1);
+    sys_obj_unref(return_gate);
+out3:
+    segment_unmap(ctemp, return_stack);
+    sys_obj_unref(return_stack_obj);
+out2:
+    segment_unmap(ctemp, gate_args);
+    sys_obj_unref(gate_args_obj);
+out1:
+    return r;
 }

@@ -35,16 +35,11 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
 	int va_off = ph->p_vaddr & 0xfff;
 	struct cobj_ref seg;
-	r = segment_alloc(container, va_off + ph->p_memsz, &seg);
+	char *sbuf;
+	r = segment_alloc(container, va_off + ph->p_memsz,
+			  &seg, (void**) &sbuf);
 	if (r < 0) {
 	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
-	    return r;
-	}
-
-	char *sbuf;
-	r = segment_map(container, seg, 1, (void**)&sbuf, 0);
-	if (r < 0) {
-	    cprintf("elf_load: cannot map elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
@@ -72,7 +67,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
     int stackpages = 2;
     struct cobj_ref stack;
-    r = segment_alloc(container, stackpages * PGSIZE, &stack);
+    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0);
     if (r < 0) {
 	cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
 	return r;

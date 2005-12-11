@@ -24,14 +24,10 @@ main(int ac, char **av)
     uint64_t ctemp = start_arg;
 
     struct cobj_ref seg;
-    int r = segment_alloc(ctemp, 8 * PGSIZE, &seg);
+    void *va;
+    int r = segment_alloc(ctemp, 8 * PGSIZE, &seg, &va);
     if (r < 0)
 	panic("cannot allocate buffer segment: %s", e2s(r));
-
-    void *va;
-    r = segment_map(ctemp, seg, 1, &va, 0);
-    if (r < 0)
-	panic("cannot map buffer segment: %s", e2s(r));
 
     struct netbuf_hdr *rx[8];
     for (int i = 0; i < 8; i++) {

@@ -8,16 +8,10 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
 {
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
-    int r = segment_alloc(container, stacksize, &stack);
+    void *stackbase;
+    int r = segment_alloc(container, stacksize, &stack, &stackbase);
     if (r < 0)
 	return r;
-
-    void *stackbase;
-    r = segment_map(container, stack, 1, &stackbase, 0);
-    if (r < 0) {
-	sys_obj_unref(stack);
-	return r;
-    }
 
     struct thread_entry e;
     r = sys_segment_get_map(&e.te_segmap);
