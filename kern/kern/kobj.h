@@ -9,7 +9,8 @@
 typedef uint64_t kobject_id_t;
 #define kobject_id_null		((kobject_id_t) -1)
 
-#define	KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
+#define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
+#define KOBJ_ZERO_REFS		0x02	// Should be in-core for GC
 
 #define KOBJ_DIRECT_PAGES	32
 #define KOBJ_PAGES_PER_INDIR	(PGSIZE / sizeof(void*))

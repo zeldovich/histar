@@ -34,9 +34,8 @@ implement MLTs
 kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 
 copy-on-write kobjects
-kobject pinning, page reclamation, LRU
+page reclamation, LRU
 snapshotting pstate_sync()
-swapped-out zero-ref objects are never GC'ed
 
 deal with segment fragmentation on-disk
 

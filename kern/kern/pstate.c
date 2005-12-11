@@ -133,6 +133,10 @@ pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f,
 	    m->ent[i].flags = ko->ko_flags;
 	    m->ent[i].offset = offset;
 	    m->ent[i].pages = npages;
+
+	    if (ko->ko_ref == 0)
+		m->ent[i].flags |= KOBJ_ZERO_REFS;
+
 	    return i;
 	}
     }
@@ -287,6 +291,8 @@ init_kobj()
 	}
 
 	if (stable_hdr.ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
+	    break;
+	if (stable_hdr.ph_map.ent[state.slot].flags & KOBJ_ZERO_REFS)
 	    break;
 	if (stable_hdr.ph_map.ent[state.slot].type == kobj_thread)
 	    break;
