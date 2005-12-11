@@ -1,3 +1,7 @@
+think more about argument passing across gate calls & returns;
+in the current scheme with argument segments, who unrefs them,
+and will they have a thread label sufficient to do the unref?
+
 user-specified segment labeling
 in-kernel segment copying
 user-specified container labeling
@@ -9,8 +13,6 @@ in particular, you can't have threads with shared mutable address space.
 irq_register
 multiplexing between potentially different network adapters
 label checking for network buffers
-
-IPC
 
 sockets API -- probably IPC to netd?
 
