@@ -2,28 +2,23 @@
 #include <inc/setjmp.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
+#include <inc/atomic.h>
+#include <inc/memlayout.h>
 
-int
-gate_call(uint64_t ctemp, struct cobj_ref gate)
+static int
+gate_call_unsafe(uint64_t ctemp, struct cobj_ref gate)
 {
-    // XXX
-    // need to prevent multiple returns via the return gate
-    // by allocating a new stack, storing an atomic_t counter
-    // on that stack, and unref'ing the stack when we're done
-    // to ensure that future gate entrants will pagefault.
-    // 
-    // unref the rgate first, then the stack.
-
+    int returned;
     struct cobj_ref rgate;
     struct jmp_buf jmp;
-    int returned = 0;
 
+    returned = 0;
     setjmp(&jmp);
     if (returned) {
 	sys_obj_unref(rgate);
 	return 0;
     }
-    returned++;
+    returned = 1;
 
     uint64_t label_ents[8];
     struct ulabel ul = {
@@ -56,4 +51,51 @@ gate_call(uint64_t ctemp, struct cobj_ref gate)
 	return r;
 
     panic("sys_gate_enter returned 0");
+}
+
+static void __attribute__((noreturn))
+gate_call_newstack(uint64_t ctemp, struct cobj_ref gate,
+		   struct jmp_buf *back, int *rvalp)
+{
+    atomic_t return_count = ATOMIC_INIT(0);
+
+    int rval = gate_call_unsafe(ctemp, gate);
+    if (atomic_compare_exchange(&return_count, 0, 1) == 0) {
+	*rvalp = rval;
+	longjmp(back, 1);
+    }
+
+    panic("gate_call_newstack: multiple return");
+}
+
+int
+gate_call(uint64_t ctemp, struct cobj_ref gate)
+{
+    struct cobj_ref temp_stack_obj;
+    int r = segment_alloc(ctemp, PGSIZE, &temp_stack_obj);
+    if (r < 0)
+	return r;
+
+    void *temp_stack_va;
+    r = segment_map(ctemp, temp_stack_obj, 1, &temp_stack_va, 0);
+    if (r < 0) {
+	sys_obj_unref(temp_stack_obj);
+	return r;
+    }
+
+    int rval;
+    struct jmp_buf back_from_newstack;
+    if (setjmp(&back_from_newstack) != 0) {
+	segment_unmap(ctemp, temp_stack_va);
+	sys_obj_unref(temp_stack_obj);
+	return rval;
+    }
+
+    struct jmp_buf jump_to_newstack;
+    if (setjmp(&jump_to_newstack) != 0)
+	gate_call_newstack(ctemp, gate, &back_from_newstack, &rval);
+
+    // XXX not particularly machine-independent..
+    jump_to_newstack.jb_rsp = (uintptr_t)temp_stack_va + PGSIZE;
+    longjmp(&jump_to_newstack, 1);
 }
