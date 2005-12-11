@@ -42,5 +42,5 @@ deal with segment fragmentation on-disk
 
 what happens when we suspend cur_thread via thread_pagefault()
 when we really incurred the fault in kernel-mode through a
-syscall pointer argument?
+syscall pointer argument?  [ user/pftest ]
 
