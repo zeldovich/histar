@@ -35,7 +35,7 @@ const char *e2s(int err);
 
 /* thread.c */
 int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp);
-int64_t thread_id(uint64_t ctemp);
+uint64_t thread_id();
 void	thread_halt() __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
 

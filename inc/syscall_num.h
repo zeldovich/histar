@@ -13,11 +13,10 @@ typedef enum {
 
     SYS_container_alloc,
     SYS_container_nslots,
-    SYS_container_store_cur_thread,
+    SYS_container_get_slot_id,
 
     SYS_obj_unref,
     SYS_obj_get_type,
-    SYS_obj_get_id,	// get global id of an object (useful for containers)
     SYS_obj_get_label,
 
     SYS_handle_create,
@@ -30,6 +29,8 @@ typedef enum {
     SYS_thread_yield,
     SYS_thread_halt,
     SYS_thread_sleep,
+    SYS_thread_id,
+    SYS_thread_addref,
 
     SYS_segment_create,
     SYS_segment_resize,

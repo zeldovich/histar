@@ -31,14 +31,14 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
     e.te_stack = stackbase + stacksize;
     e.te_arg = (uint64_t) arg;
 
-    int tslot = sys_thread_create(container);
-    if (tslot < 0) {
+    int64_t tid = sys_thread_create(container);
+    if (tid < 0) {
 	segment_unmap(container, stackbase);
 	sys_obj_unref(stack);
-	return tslot;
+	return tid;
     }
 
-    *threadp = COBJ(container, tslot);
+    *threadp = COBJ(container, tid);
     r = sys_thread_start(*threadp, &e);
     if (r < 0) {
 	segment_unmap(container, stackbase);
@@ -50,16 +50,13 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
     return 0;
 }
 
-int64_t
-thread_id(uint64_t ctemp)
+uint64_t
+thread_id()
 {
-    int slot = sys_container_store_cur_thread(ctemp);
-    if (slot < 0)
-	return slot;
-
-    int64_t id = sys_obj_get_id(COBJ(ctemp, slot));
-    sys_obj_unref(COBJ(ctemp, slot));
-    return id;
+    int64_t tid = sys_thread_id();
+    if (tid < 0)
+	panic("sys_thread_id: %s", e2s(tid));
+    return tid;
 }
 
 void
@@ -72,11 +69,12 @@ thread_halt()
 int
 thread_get_label(uint64_t ctemp, struct ulabel *ul)
 {
-    int slot = sys_container_store_cur_thread(ctemp);
-    if (slot < 0)
-	return slot;
+    uint64_t tid = thread_id();
+    int r = sys_thread_addref(ctemp);
+    if (r < 0)
+	return r;
 
-    int r = sys_obj_get_label(COBJ(ctemp, slot), ul);
-    sys_obj_unref(COBJ(ctemp, slot));
+    r = sys_obj_get_label(COBJ(ctemp, tid), ul);
+    sys_obj_unref(COBJ(ctemp, tid));
     return r;
 }

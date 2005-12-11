@@ -44,12 +44,12 @@ gate_call(uint64_t ctemp, struct cobj_ref gate)
     if (r < 0)
 	return r;
 
-    int slot = sys_gate_create(ctemp, &te, &ul, &ul);
-    if (slot < 0)
-	return slot;
+    int64_t gate_id = sys_gate_create(ctemp, &te, &ul, &ul);
+    if (gate_id < 0)
+	return gate_id;
 
-    rgate = COBJ(ctemp, slot);
-    r = sys_gate_enter(gate, rgate.container, rgate.slot);
+    rgate = COBJ(ctemp, gate_id);
+    r = sys_gate_enter(gate, rgate.container, rgate.object);
     sys_obj_unref(rgate);
 
     if (r < 0)

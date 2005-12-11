@@ -39,7 +39,7 @@ main(int ac, char **av)
 
     assert(0 == thread_get_label(myct, &ul));
 
-    int slot = sys_gate_create(rc, &te, &ul, &ul);
-    if (slot < 0)
-	panic("cannot create gate: %s", e2s(slot));
+    int gate = sys_gate_create(rc, &te, &ul, &ul);
+    if (gate < 0)
+	panic("cannot create gate: %s", e2s(gate));
 }

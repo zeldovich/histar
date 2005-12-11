@@ -49,7 +49,7 @@ elf_copyin(void *p, uint64_t offset, uint32_t count,
 
 static int
 elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
-	       uint64_t start_page, uint64_t num_pages, void *va)
+	       uint64_t start_page, uint64_t num_pages, void *va, int writable)
 {
     if (*smi >= NUM_SG_MAPPINGS) {
 	cprintf("ELF: too many segments\n");
@@ -59,7 +59,7 @@ elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
     sm->sm_ent[*smi].segment = seg;
     sm->sm_ent[*smi].start_page = start_page;
     sm->sm_ent[*smi].num_pages = num_pages;
-    sm->sm_ent[*smi].writable = 1;
+    sm->sm_ent[*smi].writable = writable;
     sm->sm_ent[*smi].va = va;
     (*smi)++;
     return 0;
@@ -151,18 +151,20 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	uint64_t page_offset = PGOFF(ph.p_offset);
 	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
 
-	int segslot = segment_create_embed(c, l,
-					   mem_pages * PGSIZE,
-					   binary + ph.p_offset - page_offset,
-					   page_offset + ph.p_filesz, 0);
-	if (segslot < 0) {
-	    cprintf("ELF: cannot create segment\n");
-	    return segslot;
+	struct Segment *s;
+	int r = segment_create_embed(c, l,
+				     mem_pages * PGSIZE,
+				     binary + ph.p_offset - page_offset,
+				     page_offset + ph.p_filesz, &s);
+	if (r < 0) {
+	    cprintf("ELF: cannot create segment: %s\n", e2s(r));
+	    return r;
 	}
 
-	int r = elf_add_segmap(&segmap, &segmap_i,
-			       COBJ(c->ct_ko.ko_id, segslot),
-			       0, mem_pages, va);
+	int writable = (ph.p_flags & ELF_PF_W) ? 1 : 0;
+	r = elf_add_segmap(&segmap, &segmap_i,
+			   COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
+			   0, mem_pages, va, writable);
 	if (r < 0) {
 	    cprintf("ELF: cannot map segment\n");
 	    return r;
@@ -170,16 +172,18 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
     }
 
     // Map a stack
-    int stackslot = segment_create_embed(c, l, PGSIZE, 0, 0, 0);
-    if (stackslot < 0) {
-	cprintf("ELF: cannot allocate stack segment\n");
-	return stackslot;
+    struct Segment *s;
+    int r = segment_create_embed(c, l, PGSIZE, 0, 0, &s);
+    if (r < 0) {
+	cprintf("ELF: cannot allocate stack segment: %s\n", e2s(r));
+	return r;
     }
 
-    int r = elf_add_segmap(&segmap, &segmap_i, COBJ(c->ct_ko.ko_id, stackslot),
-			   0, 1, (void*) (ULIM - PGSIZE));
+    r = elf_add_segmap(&segmap, &segmap_i,
+		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
+		       0, 1, (void*) (ULIM - PGSIZE), 1);
     if (r < 0) {
-	cprintf("ELF: cannot map stack segment\n");
+	cprintf("ELF: cannot map stack segment: %s\n", e2s(r));
 	return r;
     }
 
@@ -224,19 +228,20 @@ fs_init(struct Container *c, struct Label *l)
 {
     // Directory block is segment #0 in fs container
     struct Segment *fs_names;
-    assert(0 == segment_create_embed(c, l, PGSIZE, 0, 0, &fs_names));
+    assert(0 == segment_create_embed(c, l, 4*PGSIZE, 0, 0, &fs_names));
 
-    char *fs_dir;
+    uint64_t *fs_dir;
     assert(0 == kobject_get_page(&fs_names->sg_ko, 0, (void**)&fs_dir));
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
-	int slot = segment_create_embed(c, l, e->size, e->buf, e->size, 0);
-	if (slot < 0)
-	    panic("fs_init: cannot store embedded segment: %s", e2s(slot));
+	struct Segment *s;
+	int r = segment_create_embed(c, l, e->size, e->buf, e->size, &s);
+	if (r < 0)
+	    panic("fs_init: cannot store embedded segment: %s", e2s(r));
 
-	char nent = ++fs_dir[0];
-	fs_dir[nent*64] = slot;
-	memcpy(&fs_dir[nent*64+1], e->name, strlen(e->name) + 1);
+	uint64_t nent = ++fs_dir[0];
+	fs_dir[nent*16] = s->sg_ko.ko_id;
+	memcpy(&fs_dir[nent*16+1], e->name, strlen(e->name) + 1);
     }
 }
 

@@ -32,13 +32,14 @@ syscall_error(int r)
 }
 
 static int syscall_debug = 0;
-#define check(x) _check(x, #x)
+#define check(x) _check(x, #x, __LINE__)
 static int64_t
-_check(int64_t r, const char *what)
+_check(int64_t r, const char *what, int line)
 {
     if (r < 0) {
 	if (syscall_debug)
-	    cprintf("syscall check failed: %s: %s\n", what, e2s(r));
+	    cprintf("syscall check failed (line %d): %s: %s\n",
+		    line, what, e2s(r));
 	syscall_error(r);
     }
 
@@ -86,13 +87,14 @@ sys_net_macaddr(uint8_t *addrbuf)
     fxp_macaddr(addrbuf);
 }
 
-static int
+static kobject_id_t
 sys_container_alloc(uint64_t parent_ct)
 {
     struct Container *parent, *c;
     check(container_find(&parent, parent_ct, iflow_write));
     check(container_alloc(&cur_thread->th_ko.ko_label, &c));
-    return check(container_put(parent, &c->ct_ko));
+    check(container_put(parent, &c->ct_ko));
+    return c->ct_ko.ko_id;
 }
 
 static void
@@ -100,15 +102,21 @@ sys_obj_unref(struct cobj_ref cobj)
 {
     struct Container *c;
     check(container_find(&c, cobj.container, iflow_write));
-    check(container_unref(c, cobj.slot));
+
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
+    check(container_unref(c, ko));
 }
 
-static int
-sys_container_store_cur_thread(uint64_t ct)
+static kobject_id_t
+sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 {
     struct Container *c;
-    check(container_find(&c, ct, iflow_write));
-    return check(container_put(c, &cur_thread->th_ko));
+    check(container_find(&c, ct, iflow_read));
+
+    kobject_id_t id;
+    check(container_get(c, &id, slot));
+    return id;
 }
 
 static uint64_t
@@ -119,22 +127,13 @@ sys_handle_create()
     return handle;
 }
 
-static int
+static kobject_type_t
 sys_obj_get_type(struct cobj_ref cobj)
 {
     struct kobject *ko;
     // XXX think harder about iflow_none here
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     return ko->ko_type;
-}
-
-static int64_t
-sys_obj_get_id(struct cobj_ref cobj)
-{
-    struct kobject *ko;
-    // XXX think harder about iflow_none here
-    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    return ko->ko_id;
 }
 
 static void
@@ -154,7 +153,7 @@ sys_container_nslots(uint64_t container)
     return container_nslots(c);
 }
 
-static int
+static kobject_id_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
 		struct ulabel *ul_e, struct ulabel *ul_t)
 {
@@ -172,10 +171,11 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     g->gt_te = *te;
     g->gt_target_label = l_t;
 
-    return check(container_put(c, &g->gt_ko));
+    check(container_put(c, &g->gt_ko));
+    return g->gt_ko.ko_id;
 }
 
-static int
+static kobject_id_t
 sys_thread_create(uint64_t ct)
 {
     struct Container *c;
@@ -183,8 +183,8 @@ sys_thread_create(uint64_t ct)
 
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
-
-    return check(container_put(c, &t->th_ko));
+    check(container_put(c, &t->th_ko));
+    return t->th_ko.ko_id;
 }
 
 static void
@@ -234,7 +234,21 @@ sys_thread_sleep(uint64_t msec)
     thread_suspend(cur_thread, &timer_sleep);
 }
 
-static int
+static uint64_t
+sys_thread_id()
+{
+    return cur_thread->th_ko.ko_id;
+}
+
+static void
+sys_thread_addref(uint64_t ct)
+{
+    struct Container *c;
+    check(container_find(&c, ct, iflow_write));
+    check(container_put(c, &cur_thread->th_ko));
+}
+
+static kobject_id_t
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
     struct Container *c;
@@ -242,9 +256,9 @@ sys_segment_create(uint64_t ct, uint64_t num_pages)
 
     struct Segment *sg;
     check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
-
     check(segment_set_npages(sg, num_pages));
-    return check(container_put(c, &sg->sg_ko));
+    check(container_put(c, &sg->sg_ko));
+    return sg->sg_ko.ko_id;
 }
 
 static void
@@ -255,7 +269,7 @@ sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
     check(segment_set_npages(sg, num_pages));
 }
 
-static int
+static uint64_t
 sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     struct Segment *sg;
@@ -315,8 +329,8 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	sys_obj_unref(COBJ(a1, a2));
 	break;
 
-    case SYS_container_store_cur_thread:
-	syscall_ret = sys_container_store_cur_thread(a1);
+    case SYS_container_get_slot_id:
+	syscall_ret = sys_container_get_slot_id(a1, a2);
 	break;
 
     case SYS_handle_create:
@@ -325,10 +339,6 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_obj_get_type:
 	syscall_ret = sys_obj_get_type(COBJ(a1, a2));
-	break;
-
-    case SYS_obj_get_id:
-	syscall_ret = sys_obj_get_id(COBJ(a1, a2));
 	break;
 
     case SYS_obj_get_label:
@@ -379,6 +389,14 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_thread_sleep:
 	sys_thread_sleep(a1);
+	break;
+
+    case SYS_thread_id:
+	syscall_ret = sys_thread_id();
+	break;
+
+    case SYS_thread_addref:
+	sys_thread_addref(a1);
 	break;
 
     case SYS_segment_create:

@@ -6,6 +6,7 @@
 #include <inc/thread.h>
 #include <inc/assert.h>
 #include <inc/error.h>
+#include <inc/string.h>
 
 void
 segment_map_print(struct segment_map *segmap)
@@ -16,7 +17,7 @@ segment_map_print(struct segment_map *segmap)
 	    continue;
 	cprintf("%3ld.%-3ld  %5ld  %6ld  %d  %p\n",
 		segmap->sm_ent[i].segment.container,
-		segmap->sm_ent[i].segment.slot,
+		segmap->sm_ent[i].segment.object,
 		segmap->sm_ent[i].start_page,
 		segmap->sm_ent[i].num_pages,
 		segmap->sm_ent[i].writable,
@@ -46,7 +47,7 @@ int
 segment_map(uint64_t ctemp, struct cobj_ref seg, int writable,
 	    void **va_store, uint64_t *bytes_store)
 {
-    int npages = sys_segment_get_npages(seg);
+    int64_t npages = sys_segment_get_npages(seg);
     if (npages < 0)
 	return npages;
     uint64_t bytes = npages * PGSIZE;
@@ -110,15 +111,15 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
     //cprintf("segment_map_change:\n");
     //segment_map_print(segmap);
 
-    int slot = -1;
+    int64_t gate_id;
     int r;
     int newmap = 0;
     struct jmp_buf ret;
 
     setjmp(&ret);
     if (newmap) {
-	if (slot >= 0)
-	    sys_obj_unref(COBJ(ctemp, slot));
+	if (gate_id >= 0)
+	    sys_obj_unref(COBJ(ctemp, gate_id));
 	return 0;
     }
 
@@ -135,17 +136,17 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 	return r;
 
     struct thread_entry te = {
-	.te_segmap = *segmap,
 	.te_entry = longjmp,
 	.te_stack = 0,
 	.te_arg = (uint64_t) &ret,
     };
+    memcpy(&te.te_segmap, segmap, sizeof(*segmap));
 
-    slot = sys_gate_create(ctemp, &te, &l, &l);
-    if (slot < 0)
-	return slot;
+    gate_id = sys_gate_create(ctemp, &te, &l, &l);
+    if (gate_id < 0)
+	return gate_id;
 
-    r = sys_gate_enter(COBJ(ctemp, slot), 0, 0);
+    r = sys_gate_enter(COBJ(ctemp, gate_id), 0, 0);
     if (r < 0)
 	return r;
 
@@ -155,11 +156,11 @@ segment_map_change(uint64_t ctemp, struct segment_map *segmap)
 int
 segment_alloc(uint64_t container, uint64_t bytes, struct cobj_ref *cobj)
 {
-    int npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
-    int slot = sys_segment_create(container, npages);
-    if (slot < 0)
-	return slot;
+    uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
+    int64_t id = sys_segment_create(container, npages);
+    if (id < 0)
+	return id;
 
-    *cobj = COBJ(container, slot);
+    *cobj = COBJ(container, id);
     return 0;
 }

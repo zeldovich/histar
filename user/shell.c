@@ -12,31 +12,30 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
-static int c_root, c_temp;
+static uint64_t c_root, c_temp;
 
 static void builtin_help(int ac, char **av);
 
 static void
-print_cobj(struct cobj_ref cobj)
+print_cobj(uint64_t ct, uint64_t slot)
 {
-    int type = sys_obj_get_type(cobj);
-    if (type == -E_NOT_FOUND)
+    int64_t id = sys_container_get_slot_id(ct, slot);
+    if (id == -E_NOT_FOUND)
 	return;
+    if (id < 0) {
+	cprintf("cannot get slot %ld in %ld: %s\n", slot, ct, e2s(id));
+	return;
+    }
 
+    struct cobj_ref cobj = COBJ(ct, id);
+    int type = sys_obj_get_type(cobj);
     if (type < 0) {
 	cprintf("sys_obj_get_type <%ld.%ld>: %s\n",
-		cobj.container, cobj.slot, e2s(type));
+		cobj.container, cobj.object, e2s(type));
 	return;
     }
 
-    int id = sys_obj_get_id(cobj);
-    if (id < 0) {
-	cprintf("sys_obj_get_id <%ld.%ld>: %s\n",
-		cobj.container, cobj.slot, e2s(id));
-	return;
-    }
-
-    cprintf("%4ld %4d  ", cobj.slot, id);
+    cprintf("%5ld [%4ld]  ", id, slot);
 
     int r;
     switch (type) {
@@ -70,18 +69,18 @@ builtin_list_container(int ac, char **av)
 	return;
     }
 
-    int ct = atoi(av[0]);
-    cprintf("Container %d:\n", ct);
-    cprintf("slot   id  object\n");
+    uint64_t ct = atoi(av[0]);
+    cprintf("Container %ld:\n", ct);
+    cprintf("   id  slot   object\n");
 
-    int nslots = sys_container_nslots(ct);
+    int64_t nslots = sys_container_nslots(ct);
     if (nslots < 0) {
-	cprintf("sys_container_nslots(%d): %s\n", ct, e2s(nslots));
+	cprintf("sys_container_nslots(%ld): %s\n", ct, e2s(nslots));
 	return;
     }
 
-    for (int i = 0; i < nslots; i++)
-	print_cobj(COBJ(ct, i));
+    for (uint64_t i = 0; i < nslots; i++)
+	print_cobj(ct, i);
 }
 
 static struct {
@@ -92,26 +91,36 @@ static struct {
 static int
 readdir()
 {
-    int64_t c_fs = sys_obj_get_id(COBJ(c_root, 0));
+    int64_t c_fs = sys_container_get_slot_id(c_root, 0);
     if (c_fs < 0) {
 	cprintf("cannot get filesystem container id: %s\n", e2s(c_fs));
 	return c_fs;
     }
 
-    char *dirbuf;
-    int r = segment_map(c_temp, COBJ(c_fs, 0), 0, (void**)&dirbuf, 0);
+    int64_t dir_id = sys_container_get_slot_id(c_fs, 0);
+    if (dir_id < 0) {
+	cprintf("cannot get directory segment id: %s\n", e2s(dir_id));
+	return dir_id;
+    }
+
+    uint64_t *dirbuf;
+    int r = segment_map(c_temp, COBJ(c_fs, dir_id), 0, (void**)&dirbuf, 0);
     if (r < 0) {
-	cprintf("cannot map dir segment: %s\n", e2s(r));
+	cprintf("cannot map dir segment <%ld.%ld>: %s\n",
+		c_fs, dir_id, e2s(r));
 	return r;
     }
 
     int max_dirent = dirbuf[0];
     int dirsize = 0;
     for (int i = 1; i <= max_dirent; i++) {
-	dir[dirsize].cobj = COBJ(c_fs, dirbuf[64*i]);
-	strcpy(dir[dirsize].name, &dirbuf[64*i+1]);
+	dir[dirsize].cobj = COBJ(c_fs, dirbuf[16*i]);
+	strcpy(dir[dirsize].name, (char*)&dirbuf[16*i+1]);
+	//cprintf("readdir: %d %ld %s\n", dirsize,
+	//	dir[dirsize].cobj.object, dir[dirsize].name);
 	dirsize++;
     }
+    //cprintf("readdir: done\n");
 
     r = segment_unmap(c_temp, dirbuf);
     if (r < 0) {
@@ -135,22 +144,16 @@ builtin_ls(int ac, char **av)
 	return;
 
     for (int i = 0; i < r; i++)
-	cprintf("[%d] %s\n", i, dir[i].name);
+	cprintf("%s\n", dir[i].name);
 }
 
 static void
 builtin_spawn_seg(struct cobj_ref seg)
 {
-    int c_spawn_slot = sys_container_alloc(c_root);
-    if (c_spawn_slot < 0) {
-	cprintf("cannot allocate container for new thread: %s\n",
-		e2s(c_spawn_slot));
-	return;
-    }
-
-    int64_t c_spawn = sys_obj_get_id(COBJ(c_root, c_spawn_slot));
+    int64_t c_spawn = sys_container_alloc(c_root);
     if (c_spawn < 0) {
-	cprintf("cannot get new container ID: %s\n", e2s(c_spawn));
+	cprintf("cannot allocate container for new thread: %s\n",
+		e2s(c_spawn));
 	return;
     }
 
@@ -163,7 +166,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    int thread = sys_thread_create(c_spawn);
+    int64_t thread = sys_thread_create(c_spawn);
     if (thread < 0) {
 	cprintf("cannot create thread: %s\n", e2s(thread));
 	return;
@@ -178,7 +181,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 	return;
     }
 
-    cprintf("Running thread <%ld:%d>\n", c_spawn, thread);
+    cprintf("Running thread <%ld:%ld>\n", c_spawn, thread);
 }
 
 static void
@@ -207,20 +210,20 @@ static void
 builtin_unref(int ac, char **av)
 {
     if (ac != 2) {
-	cprintf("Usage: unref <container> <index>\n");
+	cprintf("Usage: unref <container> <object>\n");
 	return;
     }
 
-    int c = atoi(av[0]);
-    int i = atoi(av[1]);
+    uint64_t c = atoi(av[0]);
+    uint64_t i = atoi(av[1]);
 
     int r = sys_obj_unref(COBJ(c, i));
     if (r < 0) {
-	cprintf("Cannot unref <%d:%d>: %s\n", c, i, e2s(r));
+	cprintf("Cannot unref <%ld:%ld>: %s\n", c, i, e2s(r));
 	return;
     }
 
-    cprintf("Dropped <%d:%d>\n", c, i);
+    cprintf("Dropped <%ld:%ld>\n", c, i);
 }
 
 static struct {
@@ -291,7 +294,7 @@ main(int ac, char **av)
     c_root = start_arg;
     c_temp = start_arg;
 
-    cprintf("JOS shell (root container %d)\n", c_root);
+    cprintf("JOS shell (root container %ld)\n", c_root);
 
     for (;;) {
 	char *cmd = readline("jos> ");

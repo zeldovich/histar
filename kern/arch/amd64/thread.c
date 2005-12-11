@@ -103,7 +103,7 @@ thread_jump(struct Thread *t, struct Label *label,
 	page_map_free(t->th_pgmap);
     t->th_pgmap = &bootpml4;
 
-    t->th_segmap = *segmap;
+    memcpy(&t->th_segmap, segmap, sizeof(*segmap));
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;

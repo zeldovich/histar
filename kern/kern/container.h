@@ -6,25 +6,39 @@
 #include <kern/kobj.h>
 #include <inc/container.h>
 
-#define NUM_CT_OBJ_PER_PAGE	(PGSIZE / sizeof(kobject_id_t))
+struct container_slot {
+    kobject_id_t cs_id;
+    uint64_t cs_ref;
+};
+
+#define NUM_CT_SLOT_PER_PAGE	(PGSIZE / sizeof(struct container_slot))
 struct container_page {
-    kobject_id_t ct_obj[NUM_CT_OBJ_PER_PAGE];
+    struct container_slot ct_slot[NUM_CT_SLOT_PER_PAGE];
 };
 
 struct Container {
     struct kobject ct_ko;
 };
 
-int  container_alloc(struct Label *l, struct Container **cp);
-int  container_gc(struct Container *c);
-int  container_nslots(struct Container *c);
+int	container_alloc(struct Label *l, struct Container **cp);
+int	container_gc(struct Container *c);
+uint64_t container_nslots(struct Container *c);
 
-int  container_find(struct Container **cp, kobject_id_t id,
-		    info_flow_type iflow);
-int  container_put(struct Container *c, struct kobject *ko);
-int  container_unref(struct Container *c, uint64_t slot);
+// Find a container with the given ID
+int	container_find(struct Container **cp, kobject_id_t id,
+		       info_flow_type iflow);
 
-int  cobj_get(struct cobj_ref ref, kobject_type_t type,
-	      struct kobject **storep, info_flow_type iflow);
+// Store a reference to the object in the container
+int	container_put(struct Container *c, struct kobject *ko);
+
+// Get the object in a given container slot
+int	container_get(struct Container *c, kobject_id_t *idp, uint64_t slot);
+
+// Drop a reference to the given object from the container
+int	container_unref(struct Container *c, struct kobject *ko);
+
+// Find an object by <container-id, object-id> pair
+int	cobj_get(struct cobj_ref ref, kobject_type_t type,
+		 struct kobject **storep, info_flow_type iflow);
 
 #endif

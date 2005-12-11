@@ -5,10 +5,10 @@
 
 struct cobj_ref {
     uint64_t container;
-    uint64_t slot;
+    uint64_t object;
 };
 
-#define COBJ(container, slot) \
-	((struct cobj_ref) { (container), (slot) } )
+#define COBJ(container, object) \
+	((struct cobj_ref) { (container), (object) } )
 
 #endif
