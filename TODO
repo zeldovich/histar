@@ -11,6 +11,8 @@ larger labels
 segment_maps are value objects, and thus aren't so amenable to sharing.
 in particular, you can't have threads with shared mutable address space.
 
+ne2k driver
+
 irq_register
 multiplexing between potentially different network adapters
 label checking for network buffers
