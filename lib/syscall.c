@@ -9,7 +9,7 @@ sys_cons_puts(const char *s)
 }
 
 int
-sys_cons_getc()
+sys_cons_getc(void)
 {
     return syscall(SYS_cons_getc, 0, 0, 0, 0, 0);
 }
@@ -51,7 +51,7 @@ sys_container_get_slot_id(uint64_t container, uint64_t slot)
 }
 
 int64_t
-sys_handle_create()
+sys_handle_create(void)
 {
     return syscall(SYS_handle_create, 0, 0, 0, 0, 0);
 }
@@ -102,13 +102,13 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 }
 
 void
-sys_thread_yield()
+sys_thread_yield(void)
 {
     syscall(SYS_thread_yield, 0, 0, 0, 0, 0);
 }
 
 void
-sys_thread_halt()
+sys_thread_halt(void)
 {
     syscall(SYS_thread_halt, 0, 0, 0, 0, 0);
 }
@@ -120,7 +120,7 @@ sys_thread_sleep(uint64_t msec)
 }
 
 int64_t
-sys_thread_id()
+sys_thread_id(void)
 {
     return syscall(SYS_thread_id, 0, 0, 0, 0, 0);
 }

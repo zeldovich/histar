@@ -41,8 +41,8 @@ struct pstate_header {
     struct pstate_free_list ph_free;
 };
 
-int  pstate_init();
-void pstate_sync();
+int  pstate_init(void);
+void pstate_sync(void);
 
 // suspends cur_thread, and wakes it up when it should try again
 int  pstate_swapin(kobject_id_t id);

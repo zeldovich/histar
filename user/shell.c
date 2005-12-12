@@ -89,7 +89,7 @@ static struct {
 } dir[256];
 
 static int
-readdir()
+readdir(void)
 {
     int64_t c_fs = sys_container_get_slot_id(c_root, 0);
     if (c_fs < 0) {

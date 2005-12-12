@@ -7,7 +7,7 @@
 static struct Thread *last_thread;
 
 static int
-is_last_alive()
+is_last_alive(void)
 {
     struct Thread *t;
     LIST_FOREACH(t, &thread_list_runnable, th_link)
@@ -17,7 +17,7 @@ is_last_alive()
 }
 
 void
-schedule()
+schedule(void)
 {
     struct Thread *next = 0;
 

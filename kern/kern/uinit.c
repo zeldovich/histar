@@ -246,7 +246,7 @@ fs_init(struct Container *c, struct Label *l)
 }
 
 static void
-user_bootstrap()
+user_bootstrap(void)
 {
     EMBED_DECLARE(idle);
     EMBED_DECLARE(spin);

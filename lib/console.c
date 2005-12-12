@@ -8,7 +8,7 @@ iscons(int fd)
 }
 
 int
-getchar()
+getchar(void)
 {
     return sys_cons_getc();
 }

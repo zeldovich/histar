@@ -254,7 +254,7 @@ kobject_gc(struct kobject *ko)
 }
 
 void
-kobject_gc_scan()
+kobject_gc_scan(void)
 {
     // Clear cur_thread to avoid putting it to sleep on behalf of
     // our swapped-in objects.

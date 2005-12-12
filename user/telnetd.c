@@ -5,7 +5,7 @@
 #include <inc/netd.h>
 
 static void
-telnet_server()
+telnet_server(void)
 {
     int s = netd_socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0)

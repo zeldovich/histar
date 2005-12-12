@@ -180,10 +180,8 @@ sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
 static void __attribute__((noreturn))
 sys_thread_entry(void *arg)
 {
-    uint64_t container = start_arg;
-
     int slot = (uint64_t) arg;
-    threads[slot].tid = thread_id(container);
+    threads[slot].tid = thread_id();
     memset(&threads[slot].tmo, 0, sizeof(threads[slot].tmo));
     threads[slot].start(threads[slot].arg);
     atomic_set(&threads[slot].inuse, 0);
@@ -217,8 +215,7 @@ sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
 struct sys_timeouts *
 sys_arch_timeouts(void)
 {
-    int container = start_arg;
-    int64_t tid = thread_id(container);
+    int64_t tid = thread_id();
 
     int i;
     for (i = 0; i < NTHREADS; i++)

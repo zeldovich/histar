@@ -7,7 +7,7 @@
 
 /* console.c */
 int	iscons(int fd);
-int	getchar();
+int	getchar(void);
 int	putchar(int c);
 
 /* readline.c */
@@ -35,8 +35,8 @@ const char *e2s(int err);
 
 /* thread.c */
 int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp);
-uint64_t thread_id();
-void	thread_halt() __attribute__((noreturn));
+uint64_t thread_id(void);
+void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
 
 /* gate.c */

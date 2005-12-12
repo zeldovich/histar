@@ -422,7 +422,7 @@ fxp_intr_tx(struct fxp_card *c)
 }
 
 void
-fxp_intr()
+fxp_intr(void)
 {
     struct fxp_card *c = &the_card;
 

@@ -5,6 +5,6 @@
 
 extern uint64_t handle_counter;
 
-uint64_t handle_alloc();
+uint64_t handle_alloc(void);
 
 #endif

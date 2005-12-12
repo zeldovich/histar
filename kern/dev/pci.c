@@ -158,7 +158,9 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 // External PCI subsystem interface
 static struct pci_bus root_bus;
 
-void pci_init() {
+void
+pci_init(void)
+{
     root_bus.mem_base = root_bus.mem_limit = 0xf0000000;
     root_bus. io_base = root_bus. io_limit = 0xc000;
 

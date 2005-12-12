@@ -80,16 +80,16 @@ low_level_init(struct netif *netif)
     if (r < 0)
 	panic("jif: cannot read MAC address");
 
-    // container gets passed as the argument to _start()
-    uint64_t container = start_arg;
-
     // Allocate transmit/receive pages
     struct jif *jif = netif->state;
     jif->waitgen = -1;
-    jif->waiter_id = thread_id(container);
+    jif->waiter_id = thread_id();
     if (jif->waiter_id < 0)
 	panic("jif: cannot get thread id: %s", e2s(jif->waiter_id));
   
+    // container gets passed as the argument to _start()
+    uint64_t container = start_arg;
+
     r = segment_alloc(container, JIF_BUFS * PGSIZE,
 		      &jif->buf_seg, &jif->buf_base);
     if (r < 0)

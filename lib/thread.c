@@ -45,7 +45,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
 }
 
 uint64_t
-thread_id()
+thread_id(void)
 {
     int64_t tid = sys_thread_id();
     if (tid < 0)
@@ -54,7 +54,7 @@ thread_id()
 }
 
 void
-thread_halt()
+thread_halt(void)
 {
     sys_thread_halt();
     panic("halt: still alive");

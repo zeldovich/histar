@@ -11,7 +11,7 @@ uint64_t timer_ticks;
 struct Thread_list timer_sleep;
 
 static void
-wakeup_scan()
+wakeup_scan(void)
 {
     struct Thread *t = LIST_FIRST(&timer_sleep);
     while (t != 0) {
@@ -25,7 +25,7 @@ wakeup_scan()
 }
 
 void
-timer_intr()
+timer_intr(void)
 {
     kobject_gc_scan();
     wakeup_scan();
@@ -38,7 +38,7 @@ timer_intr()
 }
 
 void
-timer_init()
+timer_init(void)
 {
     LIST_INIT(&timer_sleep);
 }

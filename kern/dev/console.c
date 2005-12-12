@@ -129,7 +129,7 @@ lpt_putc (int c)
 }
 
 void
-lpt_intr()
+lpt_intr(void)
 {
     // do nothing
 }

@@ -199,7 +199,7 @@ ide_dma_irqack(struct ide_channel *idec)
 }
 
 void
-ide_intr()
+ide_intr(void)
 {
     int r;
     struct ide_channel *idec = &the_ide_channel;

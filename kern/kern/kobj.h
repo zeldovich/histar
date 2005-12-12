@@ -56,7 +56,7 @@ void kobject_swapin(struct kobject *kp);
 void kobject_swapout(struct kobject *kp);
 
 // Called by the timer interrupt to garbage-collect free'd kobjects
-void kobject_gc_scan();
+void kobject_gc_scan(void);
 
 void kobject_incref(struct kobject *kp);
 void kobject_decref(struct kobject *kp);

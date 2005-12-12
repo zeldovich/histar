@@ -8,7 +8,7 @@
 #include <inc/netdev.h>
 
 void	fxp_attach(struct pci_func *pcif);
-void	fxp_intr();
+void	fxp_intr(void);
 
 void	fxp_macaddr(uint8_t *addrbuf);
 int	fxp_add_buf(struct Segment *sg, uint64_t offset, netbuf_type type);

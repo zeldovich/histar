@@ -55,7 +55,7 @@ sys_cons_puts(const char *s)
 }
 
 static int
-sys_cons_getc()
+sys_cons_getc(void)
 {
     int c = cons_getc();
     if (c != 0)
@@ -119,7 +119,7 @@ sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 }
 
 static uint64_t
-sys_handle_create()
+sys_handle_create(void)
 {
     uint64_t handle = handle_alloc();
     check(label_set(&cur_thread->th_ko.ko_label, handle, LB_LEVEL_STAR));
@@ -215,13 +215,13 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 }
 
 static void
-sys_thread_yield()
+sys_thread_yield(void)
 {
     schedule();
 }
 
 static void
-sys_thread_halt()
+sys_thread_halt(void)
 {
     thread_halt(cur_thread);
 }
@@ -234,7 +234,7 @@ sys_thread_sleep(uint64_t msec)
 }
 
 static uint64_t
-sys_thread_id()
+sys_thread_id(void)
 {
     return cur_thread->th_ko.ko_id;
 }
@@ -298,7 +298,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_cons_getc:
-	syscall_ret = sys_cons_getc((char*) a1);
+	syscall_ret = sys_cons_getc();
 	break;
 
     case SYS_net_wait:

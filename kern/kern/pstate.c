@@ -259,7 +259,7 @@ pstate_swapin(kobject_id_t id) {
 /////////////////////////////////////
 
 static void
-init_done()
+init_done(void)
 {
     handle_counter = stable_hdr.ph_handle_counter;
     state.done = 1;
@@ -281,7 +281,7 @@ init_kobj_cb(int r)
 }
 
 static void
-init_kobj()
+init_kobj(void)
 {
     // Page in all threads and pinned objects, but demand-page the rest
     while (state.slot < NUM_PH_OBJECTS) {
@@ -332,7 +332,7 @@ init_hdr_cb(disk_io_status stat, void *buf,
 }
 
 int
-pstate_init()
+pstate_init(void)
 {
     LIST_INIT(&swapin_waiting);
 
@@ -418,7 +418,7 @@ sync_kobj_cb(disk_io_status stat, void *buf,
 }
 
 static void
-sync_kobj()
+sync_kobj(void)
 {
     while (swapout_state.ko && swapout_state.ko->ko_type == kobj_dead) {
 	pstate_kobj_free(&state.hdr->ph_map,
@@ -459,7 +459,7 @@ sync_kobj()
 }
 
 void
-pstate_sync()
+pstate_sync(void)
 {
     static_assert(sizeof(pstate_buf.hdr) <= 2*PGSIZE);
     state.hdr = &pstate_buf.hdr;

@@ -13,7 +13,7 @@ register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 	rx[i]->actual_count = 0;
 	int r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
 	if (r < 0)
-	    panic("cannot register rx buffer: %s", e2s(r));
+	    cprintf("cannot register rx buffer #%d: %s", i, e2s(r));
     }
 }
 
@@ -46,7 +46,7 @@ main(int ac, char **av)
 	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     int64_t waitgen = 0;
-    int64_t waiter_id = thread_id(ctemp);
+    int64_t waiter_id = thread_id();
     if (waiter_id < 0)
 	panic("cannot get thread id: %s", e2s(waiter_id));
 

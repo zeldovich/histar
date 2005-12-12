@@ -18,6 +18,6 @@ struct pci_bus {
     uint32_t io_limit;
 };
 
-void pci_init();
+void pci_init(void);
 
 #endif
