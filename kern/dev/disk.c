@@ -2,8 +2,8 @@
 #include <machine/pmap.h>
 #include <dev/ide.h>
 #include <dev/disk.h>
-#include <dev/picirq.h>
 #include <kern/lib.h>
+#include <kern/intr.h>
 #include <inc/error.h>
 
 struct ide_op {
@@ -22,6 +22,7 @@ struct ide_channel {
     uint32_t ctl_addr;
     uint32_t bm_addr;
     uint32_t irq;
+    struct interrupt_handler ih;
 
     // Flags
     bool_t dma_wait;
@@ -331,7 +332,9 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
 
     // Enable interrupts (clear the IDE_CTL_NIEN bit)
     outb(idec->ctl_addr, 0);
-    irq_setmask_8259A (irq_mask_8259A & ~(1 << idec->irq));
+
+    idec->ih.ih_func = &ide_intr;
+    irq_register(idec->irq, &idec->ih);
 }
 
 // Disk interface, from disk.h

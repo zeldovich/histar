@@ -5,7 +5,7 @@
 #include <inc/kbdreg.h>
 
 #include <dev/console.h>
-#include <dev/picirq.h>
+#include <kern/intr.h>
 #include <kern/monitor.h>
 #include <kern/lib.h>
 
@@ -59,7 +59,7 @@ serial_proc_data (void)
   return inb (COM1 + COM_RX);
 }
 
-void
+static void
 serial_intr (void)
 {
   if (serial_exists)
@@ -80,7 +80,7 @@ serial_putc (int c)
   outb (COM1 + COM_TX, c);
 }
 
-void
+static void
 serial_init (void)
 {
   // Turn off the FIFO
@@ -106,8 +106,10 @@ serial_init (void)
   (void) inb (COM1 + COM_RX);
 
   // Enable serial interrupts
-  if (serial_exists)
-    irq_setmask_8259A (irq_mask_8259A & ~(1 << 4));
+  if (serial_exists) {
+    static struct interrupt_handler ih = { .ih_func = &serial_intr };
+    irq_register(4, &ih);
+  }
 }
 
 
@@ -128,13 +130,18 @@ lpt_putc (int c)
   outb (0x378 + 2, 0x08);
 }
 
-void
+static void
 lpt_intr(void)
 {
     // do nothing
 }
 
-
+void
+lpt_init(void)
+{
+    static struct interrupt_handler ih = { .ih_func = &lpt_intr };
+    irq_register (7, &ih);
+}
 
 
 /***** Text-mode CGA/VGA display output *****/
@@ -482,18 +489,19 @@ kbd_proc_data (void)
   return c;
 }
 
-void
+static void
 kbd_intr (void)
 {
   cons_intr (kbd_proc_data);
 }
 
-void
+static void
 kbd_init (void)
 {
   // Drain the kbd buffer so that Bochs generates interrupts.
   kbd_intr ();
-  irq_setmask_8259A (irq_mask_8259A & ~(1 << 1));
+  static struct interrupt_handler ih = { .ih_func = &kbd_intr };
+  irq_register (1, &ih);
 }
 
 
@@ -579,6 +587,7 @@ cons_init (void)
   cga_init ();
   kbd_init ();
   serial_init ();
+  lpt_init ();
 
   LIST_INIT (&console_waiting);
 

@@ -7,7 +7,6 @@
 extern uint64_t timer_ticks;
 extern struct Thread_list timer_sleep;
 
-void timer_intr(void);
 void timer_init(void);
 
 #endif

@@ -22,10 +22,6 @@ void cons_init(void);
 void cons_putc(int c);
 int cons_getc(void);
 
-void kbd_intr(void);		// irq 1
-void serial_intr(void);		// irq 4
-void lpt_intr(void);		// irq 7
-
 void putchar (int c);
 
 extern struct Thread_list console_waiting;

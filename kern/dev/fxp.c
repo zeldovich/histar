@@ -2,14 +2,15 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/endian.h>
+#include <machine/x86.h>
 #include <dev/pci.h>
 #include <dev/fxp.h>
 #include <dev/fxpreg.h>
-#include <dev/picirq.h>
 #include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
+#include <kern/intr.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -37,6 +38,7 @@ struct fxp_card {
     uint8_t irq_line;
     uint8_t mac_addr[6];
     uint16_t eeprom_width;
+    struct interrupt_handler ih;
 
     struct fxp_tx_slot tx[FXP_TX_SLOTS];
     struct fxp_rx_slot rx[FXP_RX_SLOTS];
@@ -204,6 +206,9 @@ fxp_buffer_reset(struct fxp_card *c)
     c->tx_halted = 1;
 }
 
+// Forward declaration
+static void fxp_intr(void);
+
 void
 fxp_attach(struct pci_func *pcif)
 {
@@ -217,7 +222,8 @@ fxp_attach(struct pci_func *pcif)
 
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[1];
-    irq_setmask_8259A(irq_mask_8259A & ~(1 << c->irq_line));
+    c->ih.ih_func = &fxp_intr;
+    irq_register(c->irq_line, &c->ih);
 
     LIST_INIT(&c->waiting);
 
@@ -421,7 +427,7 @@ fxp_intr_tx(struct fxp_card *c)
     }
 }
 
-void
+static void
 fxp_intr(void)
 {
     struct fxp_card *c = &the_card;

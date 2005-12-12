@@ -5,6 +5,7 @@
 #include <kern/lib.h>
 #include <kern/pstate.h>
 #include <kern/kobj.h>
+#include <kern/intr.h>
 #include <inc/queue.h>
 
 uint64_t timer_ticks;
@@ -24,7 +25,7 @@ wakeup_scan(void)
     }
 }
 
-void
+static void
 timer_intr(void)
 {
     kobject_gc_scan();
@@ -40,5 +41,8 @@ timer_intr(void)
 void
 timer_init(void)
 {
+    static struct interrupt_handler timer_ih = { .ih_func = &timer_intr };
+
+    irq_register(0, &timer_ih);
     LIST_INIT(&timer_sleep);
 }
