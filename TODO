@@ -25,7 +25,7 @@ C type-safety for enums/int-typedefs: wrap in a struct
 * it would be nice if gate_enter() didn't automatically compute the
   contamination, but allowed the user to compute the target label
   and verified that it's OK.  benefit: easier to make return gate.
-  is it OK to allow user to look at the gate's target label?
+  is it OK to allow user to look at the gate's target label?  [NO]
 
 implement MLTs
 do COW in gate_enter_locked()
