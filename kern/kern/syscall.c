@@ -130,8 +130,7 @@ static kobject_type_t
 sys_obj_get_type(struct cobj_ref cobj)
 {
     struct kobject *ko;
-    // XXX think harder about iflow_none here
-    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
+    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     return ko->ko_type;
 }
 
@@ -139,7 +138,6 @@ static void
 sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 {
     struct kobject *ko;
-    // XXX think harder about iflow_read here
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(label_to_ulabel(&ko->ko_label, ul));
 }
