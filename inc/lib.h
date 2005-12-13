@@ -18,7 +18,7 @@ int	segment_map_change(uint64_t ctemp, struct segment_map *segmap);
 
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p);
-int	segment_map(uint64_t ctemp, struct cobj_ref seg, int writable,
+int	segment_map(uint64_t ctemp, struct cobj_ref seg, uint64_t flags,
 		    void **va_store, uint64_t *bytes_store);
 int	segment_unmap(uint64_t ctemp, void *va);
 

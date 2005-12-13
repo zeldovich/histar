@@ -18,14 +18,20 @@ void __attribute__((noreturn))
 gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 {
     struct gate_call_args *call_args;
-    int r = segment_map(ug->container, call_args_obj, 0, (void**) &call_args, 0);
+    int r = segment_map(ug->container, call_args_obj, SEGMAP_READ,
+			(void**) &call_args, 0);
     if (r < 0)
 	panic("gate_entry: cannot map argument page: %s", e2s(r));
 
     struct cobj_ref arg = call_args->arg;
-    ug->func(ug->func_arg, &arg);
+    struct cobj_ref return_gate = call_args->return_gate;
 
-    gate_return(ug, call_args->return_gate, arg);
+    r = segment_unmap(ug->container, call_args);
+    if (r < 0)
+	panic("gate_entry: cannot unmap argument page: %s", e2s(r));
+
+    ug->func(ug->func_arg, &arg);
+    gate_return(ug, return_gate, arg);
 }
 
 int

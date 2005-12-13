@@ -11,16 +11,16 @@
 void
 segment_map_print(struct segment_map *segmap)
 {
-    cprintf("segment  start  npages  w  va\n");
+    cprintf("segment  start  npages  f  va\n");
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
 	if (segmap->sm_ent[i].num_pages == 0)
 	    continue;
-	cprintf("%3ld.%-3ld  %5ld  %6ld  %d  %p\n",
+	cprintf("%3ld.%-3ld  %5ld  %6ld  %ld  %p\n",
 		segmap->sm_ent[i].segment.container,
 		segmap->sm_ent[i].segment.object,
 		segmap->sm_ent[i].start_page,
 		segmap->sm_ent[i].num_pages,
-		segmap->sm_ent[i].writable,
+		segmap->sm_ent[i].flags,
 		segmap->sm_ent[i].va);
     }
 }
@@ -44,9 +44,14 @@ segment_unmap(uint64_t ctemp, void *va)
 }
 
 int
-segment_map(uint64_t ctemp, struct cobj_ref seg, int writable,
+segment_map(uint64_t ctemp, struct cobj_ref seg, uint64_t flags,
 	    void **va_store, uint64_t *bytes_store)
 {
+    if (!(flags & SEGMAP_READ)) {
+	cprintf("segment_map: unreadable mappings not supported\n");
+	return -E_INVAL;
+    }
+
     int64_t npages = sys_segment_get_npages(seg);
     if (npages < 0)
 	return npages;
@@ -91,7 +96,7 @@ retry:
     segmap.sm_ent[free_segslot].segment = seg;
     segmap.sm_ent[free_segslot].start_page = 0;
     segmap.sm_ent[free_segslot].num_pages = npages;
-    segmap.sm_ent[free_segslot].writable = writable;
+    segmap.sm_ent[free_segslot].flags = flags;
     segmap.sm_ent[free_segslot].va = va_start;
 
     r = segment_map_change(ctemp, &segmap);
@@ -165,7 +170,8 @@ segment_alloc(uint64_t container, uint64_t bytes,
     *cobj = COBJ(container, id);
     if (va_p) {
 	uint64_t mapped_bytes;
-	int r = segment_map(container, *cobj, 1, va_p, &mapped_bytes);
+	int r = segment_map(container, *cobj, SEGMAP_READ | SEGMAP_WRITE,
+			    va_p, &mapped_bytes);
 	if (r < 0) {
 	    sys_obj_unref(*cobj);
 	    return r;

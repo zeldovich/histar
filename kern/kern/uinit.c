@@ -49,7 +49,7 @@ elf_copyin(void *p, uint64_t offset, uint32_t count,
 
 static int
 elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
-	       uint64_t start_page, uint64_t num_pages, void *va, int writable)
+	       uint64_t start_page, uint64_t num_pages, void *va, uint64_t flags)
 {
     if (*smi >= NUM_SG_MAPPINGS) {
 	cprintf("ELF: too many segments\n");
@@ -59,7 +59,7 @@ elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
     sm->sm_ent[*smi].segment = seg;
     sm->sm_ent[*smi].start_page = start_page;
     sm->sm_ent[*smi].num_pages = num_pages;
-    sm->sm_ent[*smi].writable = writable;
+    sm->sm_ent[*smi].flags = flags;
     sm->sm_ent[*smi].va = va;
     (*smi)++;
     return 0;
@@ -161,10 +161,9 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	    return r;
 	}
 
-	int writable = (ph.p_flags & ELF_PF_W) ? 1 : 0;
 	r = elf_add_segmap(&segmap, &segmap_i,
 			   COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-			   0, mem_pages, va, writable);
+			   0, mem_pages, va, ph.p_flags);
 	if (r < 0) {
 	    cprintf("ELF: cannot map segment\n");
 	    return r;
@@ -181,7 +180,8 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     r = elf_add_segmap(&segmap, &segmap_i,
 		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-		       0, 1, (void*) (ULIM - PGSIZE), 1);
+		       0, 1, (void*) (ULIM - PGSIZE),
+		       SEGMAP_READ | SEGMAP_WRITE);
     if (r < 0) {
 	cprintf("ELF: cannot map stack segment: %s\n", e2s(r));
 	return r;

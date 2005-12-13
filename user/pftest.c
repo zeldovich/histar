@@ -22,7 +22,7 @@ main(int ac, char **av)
     assert(0 == thread_get_label(ct, &ul));
 
     void *va2;
-    assert(0 == segment_map(ct, seg, 0, &va2, 0));
+    assert(0 == segment_map(ct, seg, SEGMAP_READ, &va2, 0));
     ul.ul_ent = va2;
 
     cprintf("Trying to get label into RO page\n");

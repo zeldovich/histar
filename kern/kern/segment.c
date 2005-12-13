@@ -52,7 +52,7 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
 
 static int
 segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
-	    uint64_t start_page, uint64_t num_pages, bool_t writable)
+	    uint64_t start_page, uint64_t num_pages, uint64_t flags)
 {
     char *cva = (char *) va;
     if (PGOFF(cva))
@@ -64,16 +64,22 @@ segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
 
 	if (((uint64_t) cva) >= ULIM)
 	    r = -E_INVAL;
-	if (r == 0)
-	    r = page_insert(pgmap, pp, cva,
-			    PTE_U | (writable ? PTE_W : 0));
+
+	uint64_t ptflags = PTE_NX;
+	if ((flags & SEGMAP_WRITE))
+	    ptflags |= PTE_W;
+	if ((flags & SEGMAP_EXEC))
+	    ptflags &= ~PTE_NX;
+
+	if (r == 0) {
+	    page_remove(pgmap, cva);
+	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
+	}
 	if (r < 0) {
-	    // unmap pages
-	    for (; i >= 0; i--) {
+	    for (; i >= start_page; i--) {
 		page_remove(pgmap, cva);
 		cva -= PGSIZE;
 	    }
-	    return r;
 	}
 
 	cva += PGSIZE;
@@ -95,10 +101,11 @@ segment_map_fill_pmap(struct segment_map *segmap,
 	if (va < va_start || va >= va_end)
 	    continue;
 
+	uint64_t flags = segmap->sm_ent[i].flags;
 	struct Segment *sg;
 	int r = cobj_get(segmap->sm_ent[i].segment, kobj_segment,
 			 (struct kobject **)&sg,
-			 segmap->sm_ent[i].writable ? iflow_write : iflow_read);
+			 (flags & SEGMAP_WRITE) ? iflow_write : iflow_read);
 	if (r < 0)
 	    return r;
 
@@ -106,7 +113,7 @@ segment_map_fill_pmap(struct segment_map *segmap,
 			segmap->sm_ent[i].va,
 			segmap->sm_ent[i].start_page,
 			segmap->sm_ent[i].num_pages,
-			segmap->sm_ent[i].writable);
+			flags);
 	return r;
     }
 

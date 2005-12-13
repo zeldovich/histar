@@ -104,7 +104,8 @@ readdir(void)
     }
 
     uint64_t *dirbuf;
-    int r = segment_map(c_temp, COBJ(c_fs, dir_id), 0, (void**)&dirbuf, 0);
+    int r = segment_map(c_temp, COBJ(c_fs, dir_id), SEGMAP_READ,
+			(void**)&dirbuf, 0);
     if (r < 0) {
 	cprintf("cannot map dir segment <%ld.%ld>: %s\n",
 		c_fs, dir_id, e2s(r));
