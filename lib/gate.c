@@ -32,8 +32,12 @@ int
 gate_create(struct u_gate_entry *ug, uint64_t container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg)
 {
+    // XXX should only need one page here, but until we do COW stacks,
+    // the lwip code takes up a lot of stack space..
+
+    int stackpages = 2;
     void *stackbase;
-    int r = segment_alloc(container, PGSIZE, &ug->stackpage, &stackbase);
+    int r = segment_alloc(container, stackpages * PGSIZE, &ug->stackpage, &stackbase);
     if (r < 0)
 	return r;
 
@@ -51,7 +55,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 
     struct thread_entry te = {
 	.te_entry = &gate_entry,
-	.te_stack = stackbase + PGSIZE,
+	.te_stack = stackbase + stackpages * PGSIZE,
 	.te_arg = (uint64_t) ug,
     };
 
