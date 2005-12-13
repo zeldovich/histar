@@ -84,8 +84,8 @@ page_fault (struct Trapframe *tf)
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
-	cprintf("user process page-faulted on %p @ %lx\n",
-		fault_va, tf->tf_rip);
+	cprintf("user process page-faulted on %p: rip=0x%lx, rsp=0x%lx\n",
+		fault_va, tf->tf_rip, tf->tf_rsp);
 	thread_halt(cur_thread);
     }
 }
