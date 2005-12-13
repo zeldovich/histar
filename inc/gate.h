@@ -12,6 +12,8 @@ struct u_gate_entry {
 
     struct cobj_ref gate;
     struct cobj_ref stackpage;
+    void *stackbase;
+
     void (*func) (void *, struct cobj_ref *);
     void *func_arg;
 };
