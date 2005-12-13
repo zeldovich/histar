@@ -6,12 +6,19 @@
 static void
 gate_entry(void *arg, struct cobj_ref *msg)
 {
-    cprintf("server: gate_entry: %s\n", (char*) arg);
-    cprintf("server: gate_entry: message %lx %lx\n",
-	    msg->container, msg->object);
+    uint64_t x1 = msg->container;
+    uint64_t x2 = msg->object;
+    uint64_t r = 0;
+    for (uint64_t i = 0; i < x1; i++)
+	r++;
+    for (uint64_t i = 0; i < x2; i++)
+	r++;
 
-    msg->container = 0xc0ffee;
-    msg->object = 0xdeadbeef;
+    cprintf("server: %ld + %ld = %ld\n",
+	    msg->container, msg->object, r);
+
+    msg->container = r;
+    msg->object = 0;
 }
 
 static struct u_gate_entry ug;

@@ -28,14 +28,16 @@ main(int ac, char **av)
     if (i == rslots)
 	panic("cannot find any gates in root container %d", rc);
 
-    struct cobj_ref arg = COBJ(0xabc, 0xdef);
-    cprintf("client: about to call into gate <%ld.%ld> with %lx %lx\n",
-	    rc, id, arg.container, arg.object);
+    uint64_t a = 2000000;
+    uint64_t b = 3000000;
 
-    int r = gate_call(myct, COBJ(rc, id), &arg);
-    if (r < 0)
-	panic("gate_call: %s\n", e2s(r));
+    for (;;) {
+	struct cobj_ref arg = COBJ(a, b);
+	int r = gate_call(myct, COBJ(rc, id), &arg);
+	if (r < 0)
+	    panic("gate_call: %s\n", e2s(r));
 
-    cprintf("client: back from the gate call: %lx %lx\n",
-	    arg.container, arg.object);
+	cprintf("client: back from the gate call: %ld + %ld = %ld (%ld)\n",
+		a, b, arg.container, arg.object);
+    }
 }
