@@ -56,6 +56,10 @@ print_cobj(uint64_t ct, uint64_t slot)
 	cprintf("segment (%d pages)\n", r);
 	break;
 
+    case kobj_address_space:
+	cprintf("address space\n");
+	break;
+
     default:
 	cprintf("unknown (%d)\n", type);
     }
@@ -104,7 +108,7 @@ readdir(void)
     }
 
     uint64_t *dirbuf;
-    int r = segment_map(c_temp, COBJ(c_fs, dir_id), SEGMAP_READ,
+    int r = segment_map(COBJ(c_fs, dir_id), SEGMAP_READ,
 			(void**)&dirbuf, 0);
     if (r < 0) {
 	cprintf("cannot map dir segment <%ld.%ld>: %s\n",
@@ -123,7 +127,7 @@ readdir(void)
     }
     //cprintf("readdir: done\n");
 
-    r = segment_unmap(c_temp, dirbuf);
+    r = segment_unmap(dirbuf);
     if (r < 0) {
 	cprintf("cannot unmap dir segment: %s\n", e2s(r));
 	return r;

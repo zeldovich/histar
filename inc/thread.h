@@ -5,8 +5,7 @@
 #include <inc/segment.h>
 
 struct thread_entry {
-    struct segment_map te_segmap;
-
+    struct cobj_ref te_as;
     void *te_entry;
     void *te_stack;
     uint64_t te_arg;

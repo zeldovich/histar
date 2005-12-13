@@ -14,13 +14,11 @@ int	putchar(int c);
 char*	readline(const char *prompt);
 
 /* segment.c */
-int	segment_map_change(uint64_t ctemp, struct segment_map *segmap);
-
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p);
-int	segment_map(uint64_t ctemp, struct cobj_ref seg, uint64_t flags,
+int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_store, uint64_t *bytes_store);
-int	segment_unmap(uint64_t ctemp, void *va);
+int	segment_unmap(void *va);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,

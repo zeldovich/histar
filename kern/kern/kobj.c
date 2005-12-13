@@ -1,5 +1,6 @@
 #include <machine/thread.h>
 #include <machine/pmap.h>
+#include <machine/as.h>
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/gate.h>
@@ -182,6 +183,8 @@ kobject_swapin(struct kobject *ko)
 
     if (ko->ko_type == kobj_thread)
 	thread_swapin((struct Thread *) ko);
+    if (ko->ko_type == kobj_address_space)
+	as_swapin((struct Address_space *) ko);
 }
 
 void
@@ -233,6 +236,10 @@ kobject_gc(struct kobject *ko)
 	r = container_gc((struct Container *) ko);
 	break;
 
+    case kobj_address_space:
+	r = as_gc((struct Address_space *) ko);
+	break;
+
     case kobj_gate:
     case kobj_segment:
 	break;
@@ -271,6 +278,8 @@ kobject_swapout(struct kobject *ko)
 {
     if (ko->ko_type == kobj_thread)
 	thread_swapout((struct Thread *) ko);
+    if (ko->ko_type == kobj_address_space)
+	as_swapout((struct Address_space *) ko);
 
     LIST_REMOVE(ko, ko_link);
     kobject_free_pages(ko);

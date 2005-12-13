@@ -1,9 +1,4 @@
-think more about argument passing across gate calls & returns;
-in the current scheme with argument segments, who unrefs them,
-and will they have a thread label sufficient to do the unref?
-[ possible answer: call back into gate to "free" the buffer? ]
-[ possible answer2: thread can hold a reference on one object,
-  and this would be the argument passed across call/return ]
+threads as 1-slot (or few-slot) containers
 
 what are the right label rules for containers?  consider an
 example of a gate that needs to store COW segments for different
@@ -14,9 +9,6 @@ user-specified segment labeling
 in-kernel segment copying
 user-specified container labeling
 larger labels
-
-segment_maps are value objects, and thus aren't so amenable to sharing.
-in particular, you can't have threads with shared mutable address space.
 
 ne2k driver
 

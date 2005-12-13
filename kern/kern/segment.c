@@ -1,4 +1,5 @@
 #include <machine/pmap.h>
+#include <machine/as.h>
 #include <kern/label.h>
 #include <kern/container.h>
 #include <kern/segment.h>
@@ -89,22 +90,22 @@ segment_map(struct Pagemap *pgmap, struct Segment *sg, void *va,
 }
 
 int
-segment_map_fill_pmap(struct segment_map *segmap,
+segment_map_fill_pmap(struct segment_mapping *segmap,
 		      struct Pagemap *pgmap, void *va)
 {
-    for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
-	uint64_t flags = segmap->sm_ent[i].flags;
+    for (int i = 0; i < NSEGMAP; i++) {
+	uint64_t flags = segmap[i].flags;
 	if (flags == 0)
 	    continue;
 
-	uint64_t start_page = segmap->sm_ent[i].start_page;
-	uint64_t npages = segmap->sm_ent[i].num_pages;
-	void *va_start = segmap->sm_ent[i].va;
+	uint64_t start_page = segmap[i].start_page;
+	uint64_t npages = segmap[i].num_pages;
+	void *va_start = segmap[i].va;
 	void *va_end = va_start + npages * PGSIZE;
 	if (va < va_start || va >= va_end)
 	    continue;
 
-	struct cobj_ref seg_ref = segmap->sm_ent[i].segment;
+	struct cobj_ref seg_ref = segmap[i].segment;
 	struct Segment *sg;
 	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
 			 (flags & SEGMAP_WRITE) ? iflow_write : iflow_read);

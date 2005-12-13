@@ -8,6 +8,7 @@ typedef enum {
     kobj_thread,
     kobj_gate,
     kobj_segment,
+    kobj_address_space,
 
     kobj_dead,
     kobj_any

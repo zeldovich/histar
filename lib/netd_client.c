@@ -53,7 +53,7 @@ netd_call(struct netd_op_args *a) {
     memcpy(a, va, sizeof(*a));
     int rval = a->rval;
 
-    segment_unmap(ctemp, va);
+    segment_unmap(va);
     sys_obj_unref(seg);
     return rval;
 }

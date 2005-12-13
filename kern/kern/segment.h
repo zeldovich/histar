@@ -14,7 +14,7 @@ int  segment_copy(struct Segment *src, struct Label *newl,
 		  struct Segment **dstp);
 
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
-int  segment_map_fill_pmap(struct segment_map *segmap,
+int  segment_map_fill_pmap(struct segment_mapping *segmap,
 			   struct Pagemap *pgmap, void *va);
 
 #endif

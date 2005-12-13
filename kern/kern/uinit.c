@@ -2,6 +2,7 @@
 #include <machine/thread.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <machine/as.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/label.h>
@@ -48,19 +49,19 @@ elf_copyin(void *p, uint64_t offset, uint32_t count,
 }
 
 static int
-elf_add_segmap(struct segment_map *sm, int *smi, struct cobj_ref seg,
+elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
 	       uint64_t start_page, uint64_t num_pages, void *va, uint64_t flags)
 {
-    if (*smi >= NUM_SG_MAPPINGS) {
+    if (*smi >= NSEGMAP) {
 	cprintf("ELF: too many segments\n");
 	return -E_NO_MEM;
     }
 
-    sm->sm_ent[*smi].segment = seg;
-    sm->sm_ent[*smi].start_page = start_page;
-    sm->sm_ent[*smi].num_pages = num_pages;
-    sm->sm_ent[*smi].flags = flags;
-    sm->sm_ent[*smi].va = va;
+    as->as_segmap[*smi].segment = seg;
+    as->as_segmap[*smi].start_page = start_page;
+    as->as_segmap[*smi].num_pages = num_pages;
+    as->as_segmap[*smi].flags = flags;
+    as->as_segmap[*smi].va = va;
     (*smi)++;
     return 0;
 }
@@ -126,9 +127,19 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return -E_INVAL;
     }
 
-    struct segment_map segmap;
-    memset(&segmap, 0, sizeof(segmap));
     int segmap_i = 0;
+    struct Address_space *as;
+    int r = as_alloc(l, &as);
+    if (r < 0) {
+	cprintf("thread_load_elf: cannot allocate AS: %s\n", e2s(r));
+	return r;
+    }
+
+    r = container_put(c, &as->as_ko);
+    if (r < 0) {
+	cprintf("thread_load_elf: cannot put AS in container: %s\n", e2s(r));
+	return r;
+    }
 
     for (int i = 0; i < elf.e_phnum; i++) {
 	Elf64_Phdr ph;
@@ -161,7 +172,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	    return r;
 	}
 
-	r = elf_add_segmap(&segmap, &segmap_i,
+	r = elf_add_segmap(as, &segmap_i,
 			   COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
 			   0, mem_pages, va, ph.p_flags);
 	if (r < 0) {
@@ -172,13 +183,13 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     // Map a stack
     struct Segment *s;
-    int r = segment_create_embed(c, l, PGSIZE, 0, 0, &s);
+    r = segment_create_embed(c, l, PGSIZE, 0, 0, &s);
     if (r < 0) {
 	cprintf("ELF: cannot allocate stack segment: %s\n", e2s(r));
 	return r;
     }
 
-    r = elf_add_segmap(&segmap, &segmap_i,
+    r = elf_add_segmap(as, &segmap_i,
 		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
 		       0, 1, (void*) (ULIM - PGSIZE),
 		       SEGMAP_READ | SEGMAP_WRITE);
@@ -187,7 +198,8 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    thread_jump(t, l, &segmap, (void*) elf.e_entry, (void*) ULIM, arg, 0, 0);
+    thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
+		(void*) elf.e_entry, (void*) ULIM, arg, 0, 0);
     return 0;
 }
 

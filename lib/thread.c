@@ -14,9 +14,9 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
 	return r;
 
     struct thread_entry e;
-    r = sys_segment_get_map(&e.te_segmap);
+    r = sys_thread_get_as(&e.te_as);
     if (r < 0) {
-	segment_unmap(container, stackbase);
+	segment_unmap(stackbase);
 	sys_obj_unref(stack);
 	return r;
     }
@@ -27,7 +27,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
 
     int64_t tid = sys_thread_create(container);
     if (tid < 0) {
-	segment_unmap(container, stackbase);
+	segment_unmap(stackbase);
 	sys_obj_unref(stack);
 	return tid;
     }
@@ -35,7 +35,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
     *threadp = COBJ(container, tid);
     r = sys_thread_start(*threadp, &e);
     if (r < 0) {
-	segment_unmap(container, stackbase);
+	segment_unmap(stackbase);
 	sys_obj_unref(stack);
 	sys_obj_unref(*threadp);
 	return r;

@@ -122,8 +122,10 @@ trap_handler (struct Trapframe *tf)
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (tf->tf__trapentry_rip - trap0rip) / 16;
 
-    if (cur_thread == 0)
+    if (cur_thread == 0) {
+	trapframe_print(tf);
 	panic("trap %d with no active thread", trapno);
+    }
 
     cur_thread->th_tf = *tf;
     trap_dispatch(trapno, &cur_thread->th_tf);

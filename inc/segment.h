@@ -18,9 +18,10 @@ struct segment_mapping {
     void *va;
 };
 
-#define NUM_SG_MAPPINGS 16
-struct segment_map {
-    struct segment_mapping sm_ent[NUM_SG_MAPPINGS];
+struct u_address_space {
+    uint64_t size;
+    uint64_t nent;
+    struct segment_mapping *ents;
 };
 
 #endif

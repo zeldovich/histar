@@ -11,14 +11,13 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 {
     char *segbuf;
     uint64_t bytes;
-    int r = segment_map(container, seg, SEGMAP_READ, (void**)&segbuf, &bytes);
+    int r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &bytes);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
 	return r;
     }
 
-    memset(e, 0, sizeof(*e));
-    struct segment_map *segmap = &e->te_segmap;
+    struct segment_mapping sm_ents[16];
     int si = 0;
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
@@ -44,22 +43,21 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	}
 
 	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
-	r = segment_unmap(container, sbuf);
+	r = segment_unmap(sbuf);
 	if (r < 0) {
 	    cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
-	segmap->sm_ent[si].segment = seg;
-	segmap->sm_ent[si].start_page = 0;
-	segmap->sm_ent[si].num_pages = (va_off + ph->p_memsz +
-					PGSIZE - 1) / PGSIZE;
-	segmap->sm_ent[si].flags = ph->p_flags;
-	segmap->sm_ent[si].va = (void*) (ph->p_vaddr - va_off);
+	sm_ents[si].segment = seg;
+	sm_ents[si].start_page = 0;
+	sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	sm_ents[si].flags = ph->p_flags;
+	sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
 	si++;
     }
 
-    r = segment_unmap(container, segbuf);
+    r = segment_unmap(segbuf);
     if (r < 0) {
 	cprintf("elf_load: cannot unmap program segment: %s\n", e2s(r));
 	return r;
@@ -75,11 +73,27 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
     char *stacktop = (char*) ULIM;
     e->te_stack = stacktop;
-    segmap->sm_ent[si].segment = stack;
-    segmap->sm_ent[si].start_page = 0;
-    segmap->sm_ent[si].num_pages = stackpages;
-    segmap->sm_ent[si].flags = SEGMAP_READ | SEGMAP_WRITE;
-    segmap->sm_ent[si].va = stacktop - stackpages * PGSIZE;
+
+    sm_ents[si].segment = stack;
+    sm_ents[si].start_page = 0;
+    sm_ents[si].num_pages = stackpages;
+    sm_ents[si].flags = SEGMAP_READ | SEGMAP_WRITE;
+    sm_ents[si].va = stacktop - stackpages * PGSIZE;
+    si++;
+
+    struct u_address_space uas = { .nent = si, .ents = &sm_ents[0] };
+    int64_t as_id = sys_as_create(container);
+    if (as_id < 0) {
+	cprintf("elf_load: cannot create address space: %s\n", e2s(r));
+	return as_id;
+    }
+
+    e->te_as = COBJ(container, as_id);
+    r = sys_as_set(e->te_as, &uas);
+    if (r < 0) {
+	cprintf("elf_load: cannot load address space: %s\n", e2s(r));
+	return r;
+    }
 
     return 0;
 }

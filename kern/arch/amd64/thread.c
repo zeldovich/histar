@@ -3,6 +3,7 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <machine/trap.h>
+#include <machine/as.h>
 #include <kern/segment.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
@@ -55,7 +56,8 @@ thread_alloc(struct Label *l, struct Thread **tp)
 void
 thread_swapin(struct Thread *t)
 {
-    t->th_pgmap = &bootpml4;
+    t->th_as = 0;
+
     if (t->th_status == thread_suspended)
 	t->th_status = thread_runnable;
 
@@ -69,8 +71,6 @@ void
 thread_swapout(struct Thread *t)
 {
     LIST_REMOVE(t, th_link);
-    if (t->th_pgmap && t->th_pgmap != &bootpml4)
-	page_map_free(t->th_pgmap);
 }
 
 int
@@ -93,17 +93,14 @@ thread_run(struct Thread *t)
 
 void
 thread_jump(struct Thread *t, struct Label *label,
-	    struct segment_map *segmap, void *entry,
+	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
 {
     t->th_ko.ko_label = *label;
 
-    if (t->th_pgmap && t->th_pgmap != &bootpml4)
-	page_map_free(t->th_pgmap);
-    t->th_pgmap = &bootpml4;
-
-    memcpy(&t->th_segmap, segmap, sizeof(*segmap));
+    t->th_as = 0;
+    t->th_asref = as;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
@@ -126,26 +123,21 @@ void
 thread_switch(struct Thread *t)
 {
     cur_thread = t;
-    lcr3(kva2pa(t->th_pgmap));
+    as_switch(t->th_as);
 }
 
 int
 thread_pagefault(struct Thread *t, void *fault_va)
 {
-    if (t->th_pgmap == &bootpml4) {
-	int r = page_map_alloc(&t->th_pgmap);
+    if (t->th_as == 0) {
+	struct Address_space *as;
+	int r = cobj_get(t->th_asref, kobj_address_space,
+			 (struct kobject **)&as, iflow_read);
 	if (r < 0)
 	    return r;
+
+	t->th_as = as;
     }
 
-    int r = segment_map_fill_pmap(&t->th_segmap, t->th_pgmap, fault_va);
-    if (r == -E_RESTART)
-	return r;
-
-    if (r < 0) {
-	cprintf("thread_pagefault: cannot fill pagemap: %s\n", e2s(r));
-	return r;
-    }
-
-    return 0;
+    return as_pagefault(t->th_as, fault_va);
 }

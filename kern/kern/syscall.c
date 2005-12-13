@@ -193,8 +193,8 @@ sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 
     // XXX do the contaminate, or let the user compute it and verify
     struct thread_entry *e = &g->gt_te;
-    thread_jump(cur_thread, &g->gt_target_label, &e->te_segmap,
-		e->te_entry, e->te_stack,
+    thread_jump(cur_thread, &g->gt_target_label,
+		e->te_as, e->te_entry, e->te_stack,
 		e->te_arg, a1, a2);
 }
 
@@ -207,8 +207,8 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
-    thread_jump(t, &cur_thread->th_ko.ko_label, &e->te_segmap,
-		e->te_entry, e->te_stack, e->te_arg, 0, 0);
+    thread_jump(t, &cur_thread->th_ko.ko_label,
+		e->te_as, e->te_entry, e->te_stack, e->te_arg, 0, 0);
     thread_set_runnable(t);
 }
 
@@ -245,6 +245,12 @@ sys_thread_addref(uint64_t ct)
     check(container_put(c, &cur_thread->th_ko));
 }
 
+static void
+sys_thread_get_as(struct cobj_ref *as_ref)
+{
+    *as_ref = cur_thread->th_asref;
+}
+
 static kobject_id_t
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
@@ -274,10 +280,34 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
     return sg->sg_ko.ko_npages;
 }
 
-static void
-sys_segment_get_map(struct segment_map *sm)
+static uint64_t
+sys_as_create(uint64_t container)
 {
-    *sm = cur_thread->th_segmap;
+    struct Container *c;
+    check(container_find(&c, container, iflow_write));
+
+    struct Address_space *as;
+    check(as_alloc(&cur_thread->th_ko.ko_label, &as));
+    check(container_put(c, &as->as_ko));
+    return as->as_ko.ko_id;
+}
+
+static void
+sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
+{
+    struct Address_space *as;
+    check(cobj_get(asref, kobj_address_space, (struct kobject **)&as,
+		   iflow_read));
+    check(as_to_user(as, uas));
+}
+
+static void
+sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
+{
+    struct Address_space *as;
+    check(cobj_get(asref, kobj_address_space, (struct kobject **)&as,
+		   iflow_write));
+    check(as_from_user(as, uas));
 }
 
 uint64_t
@@ -395,6 +425,16 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	sys_thread_addref(a1);
 	break;
 
+    case SYS_thread_get_as:
+	{
+	    struct cobj_ref as_ref;
+	    sys_thread_get_as(&as_ref);
+
+	    page_user_incore((void**) &a1, sizeof(as_ref));
+	    memcpy((void*) a1, &as_ref, sizeof(as_ref));
+	}
+	break;
+
     case SYS_segment_create:
 	syscall_ret = sys_segment_create(a1, a2);
 	break;
@@ -407,14 +447,16 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	syscall_ret = sys_segment_get_npages(COBJ(a1, a2));
 	break;
 
-    case SYS_segment_get_map:
-	{
-	    struct segment_map s;
-	    sys_segment_get_map(&s);
+    case SYS_as_create:
+	syscall_ret = sys_as_create(a1);
+	break;
 
-	    check(page_user_incore((void**) &a1, sizeof(s)));
-	    memcpy((void*) a1, &s, sizeof(s));
-	}
+    case SYS_as_get:
+	sys_as_get(COBJ(a1, a2), (struct u_address_space *) a3);
+	break;
+
+    case SYS_as_set:
+	sys_as_set(COBJ(a1, a2), (struct u_address_space *) a3);
 	break;
 
     default:

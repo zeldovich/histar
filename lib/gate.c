@@ -18,15 +18,14 @@ void __attribute__((noreturn))
 gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 {
     struct gate_call_args *call_args;
-    int r = segment_map(ug->container, call_args_obj, SEGMAP_READ,
-			(void**) &call_args, 0);
+    int r = segment_map(call_args_obj, SEGMAP_READ, (void**) &call_args, 0);
     if (r < 0)
 	panic("gate_entry: cannot map argument page: %s", e2s(r));
 
     struct cobj_ref arg = call_args->arg;
     struct cobj_ref return_gate = call_args->return_gate;
 
-    r = segment_unmap(ug->container, call_args);
+    r = segment_unmap(call_args);
     if (r < 0)
 	panic("gate_entry: cannot unmap argument page: %s", e2s(r));
 
@@ -65,7 +64,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 	.te_arg = (uint64_t) ug,
     };
 
-    r = sys_segment_get_map(&te.te_segmap);
+    r = sys_thread_get_as(&te.te_as);
     if (r < 0)
 	goto out;
 
@@ -80,7 +79,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 
 out:
     sys_obj_unref(ug->stackpage);
-    segment_unmap(container, ug->stackbase);
+    segment_unmap(ug->stackbase);
     return r;
 }
 
@@ -110,7 +109,7 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
     uint64_t label_ents[8];
     struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
 
-    int r  = thread_get_label(ctemp, &ul);
+    int r = thread_get_label(ctemp, &ul);
     if (r < 0)
 	return r;
 
@@ -120,7 +119,7 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
 	.te_arg = (uint64_t) gr,
     };
 
-    r = sys_segment_get_map(&te.te_segmap);
+    r = sys_thread_get_as(&te.te_as);
     if (r < 0)
 	return r;
 
@@ -170,10 +169,10 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
     sys_obj_unref(return_gate);
 out3:
-    segment_unmap(ctemp, return_stack);
+    segment_unmap(return_stack);
     sys_obj_unref(return_stack_obj);
 out2:
-    segment_unmap(ctemp, gate_args);
+    segment_unmap(gate_args);
     sys_obj_unref(gate_args_obj);
 out1:
     return r;

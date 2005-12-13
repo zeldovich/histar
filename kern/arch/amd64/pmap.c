@@ -271,7 +271,11 @@ static void
 tlb_invalidate (struct Pagemap *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
-    if (cur_thread == 0 || cur_thread->th_pgmap == pgmap)
+    if (cur_thread == 0)
+	return;
+    if (cur_thread->th_as == 0)
+	return;
+    if (cur_thread->th_as->as_pgmap == pgmap)
 	invlpg(va);
 }
 
@@ -331,10 +335,14 @@ page_user_incore(void **ptrp, int nbytes)
     uintptr_t ptr = (uintptr_t) *ptrp;
     ptr &= ~(1L << 63);
 
+    if (cur_thread == 0 || cur_thread->th_as == 0)
+	panic("page_user_incore: no thread or address space");
+    struct Address_space *as = cur_thread->th_as;
+
     uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
     for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
-	if (page_lookup(cur_thread->th_pgmap, (void*) va) == 0) {
-	    int r = thread_pagefault(cur_thread, (void*) va);
+	if (page_lookup(as->as_pgmap, (void*) va) == 0) {
+	    int r = as_pagefault(as, (void*) va);
 	    if (r < 0)
 		return r;
 	}

@@ -8,7 +8,6 @@
 #include <lwip/sockets.h>
 
 static struct u_gate_entry netd_gate;
-static uint64_t ctemp;
 
 static void
 netd_dispatch(struct netd_op_args *a)
@@ -60,20 +59,18 @@ static void
 netd_gate_entry(void *x, struct cobj_ref *arg)
 {
     struct netd_op_args *netd_op;
-    int r = segment_map(ctemp, *arg, SEGMAP_READ | SEGMAP_WRITE,
-			(void**)&netd_op, 0);
+    int r = segment_map(*arg, SEGMAP_READ | SEGMAP_WRITE, (void**)&netd_op, 0);
     if (r < 0)
 	panic("netd_gate_entry: cannot map args: %e\n", e2s(r));
 
     netd_dispatch(netd_op);
 
-    segment_unmap(ctemp, netd_op);
+    segment_unmap(netd_op);
 }
 
 int
 netd_server_init(uint64_t ct)
 {
-    ctemp = ct;
     int r = gate_create(&netd_gate, ct, &netd_gate_entry, 0);
     return r;
 }

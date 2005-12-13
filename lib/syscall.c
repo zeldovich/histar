@@ -131,6 +131,12 @@ sys_thread_addref(uint64_t container)
     return syscall(SYS_thread_addref, container, 0, 0, 0, 0);
 }
 
+int
+sys_thread_get_as(struct cobj_ref *as_obj)
+{
+    return syscall(SYS_thread_get_as, (uint64_t) as_obj, 0, 0, 0, 0);
+}
+
 int64_t
 sys_segment_create(uint64_t container, uint64_t num_pages)
 {
@@ -150,8 +156,20 @@ sys_segment_get_npages(struct cobj_ref seg)
     return syscall(SYS_segment_get_npages, seg.container, seg.object, 0, 0, 0);
 }
 
-int
-sys_segment_get_map(struct segment_map *sm)
+int64_t
+sys_as_create(uint64_t container)
 {
-    return syscall(SYS_segment_get_map, (uint64_t) sm, 0, 0, 0, 0);
+    return syscall(SYS_as_create, container, 0, 0, 0, 0);
+}
+
+int
+sys_as_get(struct cobj_ref as, struct u_address_space *uas)
+{
+    return syscall(SYS_as_get, as.container, as.object, (uint64_t) uas, 0, 0);
+}
+
+int
+sys_as_set(struct cobj_ref as, struct u_address_space *uas)
+{
+    return syscall(SYS_as_set, as.container, as.object, (uint64_t) uas, 0, 0);
 }

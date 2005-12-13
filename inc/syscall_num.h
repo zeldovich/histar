@@ -29,11 +29,15 @@ typedef enum {
     SYS_thread_sleep,
     SYS_thread_id,
     SYS_thread_addref,
+    SYS_thread_get_as,
 
     SYS_segment_create,
     SYS_segment_resize,
     SYS_segment_get_npages,
-    SYS_segment_get_map,
+
+    SYS_as_create,
+    SYS_as_get,
+    SYS_as_set,
 
     NSYSCALLS
 } syscall_num;
