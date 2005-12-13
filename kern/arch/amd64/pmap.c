@@ -237,10 +237,13 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
 static void *
 page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
+    if ((uintptr_t) va >= ULIM)
+	panic("page_lookup_internal: va %p over ULIM", va);
+
     uint64_t *ptep;
     int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
     if (r < 0)
-	panic("pgdir_walk(create=0) failed: %d", r);
+	panic("pgdir_walk(%p, create=0) failed: %d", va, r);
 
     if (pte_store)
 	*pte_store = ptep;
@@ -254,6 +257,9 @@ page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 void *
 page_lookup (struct Pagemap *pgmap, void *va)
 {
+    if ((uintptr_t) va >= ULIM)
+	return 0;
+
     return page_lookup_internal(pgmap, va, 0);
 }
 
