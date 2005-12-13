@@ -37,7 +37,7 @@ struct netd_op_accept_args {
 struct netd_op_write_args {
     int fd;
     uint32_t count;
-    char buf[1];
+    char buf[1024];
 };
 
 struct netd_op_close_args {

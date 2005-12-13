@@ -109,7 +109,7 @@ netd_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 int
 netd_write(int fd, const void *buf, size_t count)
 {
-    if (count > 4000)
+    if (count > 1024)
 	return -E_NO_SPACE;
 
     struct netd_op_args a;
