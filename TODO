@@ -5,6 +5,11 @@ and will they have a thread label sufficient to do the unref?
 [ possible answer2: thread can hold a reference on one object,
   and this would be the argument passed across call/return ]
 
+what are the right label rules for containers?  consider an
+example of a gate that needs to store COW segments for different
+contaminations.  in what container could it store these segments,
+and where would that container itself be stored?
+
 user-specified segment labeling
 in-kernel segment copying
 user-specified container labeling
