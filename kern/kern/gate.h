@@ -14,6 +14,5 @@ struct Gate {
 };
 
 int  gate_alloc(struct Label *l, struct Gate **gp);
-int  gate_gc(struct Gate *g);
 
 #endif

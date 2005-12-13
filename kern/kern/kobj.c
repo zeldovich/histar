@@ -229,15 +229,12 @@ kobject_gc(struct kobject *ko)
 	r = thread_gc((struct Thread *) ko);
 	break;
 
-    case kobj_gate:
-	r = gate_gc((struct Gate *) ko);
-	break;
-
-    case kobj_segment:
-	break;
-
     case kobj_container:
 	r = container_gc((struct Container *) ko);
+	break;
+
+    case kobj_gate:
+    case kobj_segment:
 	break;
 
     default:
