@@ -93,27 +93,25 @@ segment_map_fill_pmap(struct segment_map *segmap,
 		      struct Pagemap *pgmap, void *va)
 {
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
-	if (segmap->sm_ent[i].num_pages == 0)
+	uint64_t flags = segmap->sm_ent[i].flags;
+	if (flags == 0)
 	    continue;
 
+	uint64_t start_page = segmap->sm_ent[i].start_page;
+	uint64_t npages = segmap->sm_ent[i].num_pages;
 	void *va_start = segmap->sm_ent[i].va;
-	void *va_end = va_start + segmap->sm_ent[i].num_pages * PGSIZE;
+	void *va_end = va_start + npages * PGSIZE;
 	if (va < va_start || va >= va_end)
 	    continue;
 
-	uint64_t flags = segmap->sm_ent[i].flags;
+	struct cobj_ref seg_ref = segmap->sm_ent[i].segment;
 	struct Segment *sg;
-	int r = cobj_get(segmap->sm_ent[i].segment, kobj_segment,
-			 (struct kobject **)&sg,
+	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
 			 (flags & SEGMAP_WRITE) ? iflow_write : iflow_read);
 	if (r < 0)
 	    return r;
 
-	r = segment_map(pgmap, sg,
-			segmap->sm_ent[i].va,
-			segmap->sm_ent[i].start_page,
-			segmap->sm_ent[i].num_pages,
-			flags);
+	r = segment_map(pgmap, sg, va_start, start_page, npages, flags);
 	return r;
     }
 

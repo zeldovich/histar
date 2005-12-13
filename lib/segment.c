@@ -13,7 +13,7 @@ segment_map_print(struct segment_map *segmap)
 {
     cprintf("segment  start  npages  f  va\n");
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
-	if (segmap->sm_ent[i].num_pages == 0)
+	if (segmap->sm_ent[i].flags == 0)
 	    continue;
 	cprintf("%3ld.%-3ld  %5ld  %6ld  %ld  %p\n",
 		segmap->sm_ent[i].segment.container,
@@ -34,8 +34,8 @@ segment_unmap(uint64_t ctemp, void *va)
 	return r;
 
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
-	if (segmap.sm_ent[i].va == va && segmap.sm_ent[i].num_pages) {
-	    segmap.sm_ent[i].num_pages = 0;
+	if (segmap.sm_ent[i].va == va && segmap.sm_ent[i].flags) {
+	    segmap.sm_ent[i].flags = 0;
 	    return segment_map_change(ctemp, &segmap);
 	}
     }
@@ -69,7 +69,7 @@ segment_map(uint64_t ctemp, struct cobj_ref seg, uint64_t flags,
 retry:
     va_end = va_start + bytes;
     for (int i = 0; i < NUM_SG_MAPPINGS; i++) {
-	if (segmap.sm_ent[i].num_pages == 0) {
+	if (segmap.sm_ent[i].flags == 0) {
 	    free_segslot = i;
 	    continue;
 	}
