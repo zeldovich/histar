@@ -36,8 +36,8 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     // the lwip code takes up a lot of stack space..
 
     int stackpages = 2;
-    void *stackbase;
-    int r = segment_alloc(container, stackpages * PGSIZE, &ug->stackpage, &stackbase);
+    int r = segment_alloc(container, stackpages * PGSIZE,
+			  &ug->stackpage, &ug->stackbase);
     if (r < 0)
 	return r;
 
@@ -51,32 +51,30 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 
     r  = thread_get_label(container, &ul);
     if (r < 0)
-	goto out2;
+	goto out;
 
     struct thread_entry te = {
 	.te_entry = &gate_entry,
-	.te_stack = stackbase + stackpages * PGSIZE,
+	.te_stack = ug->stackbase + stackpages * PGSIZE,
 	.te_arg = (uint64_t) ug,
     };
 
     r = sys_segment_get_map(&te.te_segmap);
     if (r < 0)
-	goto out2;
+	goto out;
 
     int64_t gate_id = sys_gate_create(container, &te, &ul, &ul);
     if (gate_id < 0) {
 	r = gate_id;
-	goto out2;
+	goto out;
     }
 
     ug->gate = COBJ(container, gate_id);
-    r = 0;
-    goto out1;
+    return 0;
 
-out2:
+out:
     sys_obj_unref(ug->stackpage);
-out1:
-    segment_unmap(container, stackbase);
+    segment_unmap(container, ug->stackbase);
     return r;
 }
 
