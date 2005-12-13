@@ -3,6 +3,7 @@
 #include <inc/netd.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
+#include <inc/gate.h>
 
 #include <lwip/sockets.h>
 

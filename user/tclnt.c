@@ -1,6 +1,7 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/lib.h>
+#include <inc/gate.h>
 
 int
 main(int ac, char **av)
@@ -28,8 +29,9 @@ main(int ac, char **av)
     if (i == rslots)
 	panic("cannot find any gates in root container %d", rc);
 
-    uint64_t a = 2000000;
-    uint64_t b = 3000000;
+    uint64_t a = 20;
+    uint64_t b = 30;
+    int round = 0;
 
     for (;;) {
 	struct cobj_ref arg = COBJ(a, b);
@@ -37,7 +39,12 @@ main(int ac, char **av)
 	if (r < 0)
 	    panic("gate_call: %s\n", e2s(r));
 
-	cprintf("client: back from the gate call: %ld + %ld = %ld (%ld)\n",
-		a, b, arg.container, arg.object);
+	uint64_t sum = arg.container;
+	if (a + b != sum)
+	    cprintf("incorrect result: %ld + %ld = %ld\n", a, b, sum);
+
+	round++;
+	if ((round % 20) == 0)
+	    cprintf("tclnt %ld: did %d rounds\n", thread_id(), round);
     }
 }

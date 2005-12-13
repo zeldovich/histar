@@ -1,8 +1,6 @@
 #ifndef JOS_INC_SYSCALLNUM_H
 #define JOS_INC_SYSCALLNUM_H
 
-#include <inc/container.h>
-
 typedef enum {
     SYS_cons_puts = 0,
     SYS_cons_getc,

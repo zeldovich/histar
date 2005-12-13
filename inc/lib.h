@@ -39,15 +39,4 @@ uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
 
-/* gate.c */
-struct u_gate_entry {
-    uint64_t container;
-    struct cobj_ref gate;
-    void (*func) (void *, struct cobj_ref *);
-    void *func_arg;
-};
-int	gate_create(struct u_gate_entry *ug, uint64_t container,
-		    void (*func)(void*, struct cobj_ref*), void *func_arg);
-int	gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *arg);
-
 #endif

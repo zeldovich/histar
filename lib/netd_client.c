@@ -3,6 +3,7 @@
 #include <inc/netd.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
+#include <inc/gate.h>
 
 static struct cobj_ref netd_gate;
 static uint64_t ctemp;

@@ -3,9 +3,10 @@ OBJDIRS += lib lib/$(ARCH)
 LIB_SRCFILES :=	\
 	lib/$(ARCH)/strlen.S \
 	lib/$(ARCH)/longjmp.S \
+	lib/$(ARCH)/syscall_entry.S \
+	lib/$(ARCH)/gate_entry.c \
 	lib/memcpy.c \
 	lib/memset.c \
-	lib/$(ARCH)/syscall_entry.S \
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \

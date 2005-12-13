@@ -2,6 +2,8 @@ think more about argument passing across gate calls & returns;
 in the current scheme with argument segments, who unrefs them,
 and will they have a thread label sufficient to do the unref?
 [ possible answer: call back into gate to "free" the buffer? ]
+[ possible answer2: thread can hold a reference on one object,
+  and this would be the argument passed across call/return ]
 
 user-specified segment labeling
 in-kernel segment copying
@@ -25,18 +27,9 @@ C type-safety for enums/int-typedefs: wrap in a struct
   and verified that it's OK.  benefit: easier to make return gate.
   is it OK to allow user to look at the gate's target label?
 
-* what to do about writable segments and contaminated gate entry?
-  in particular, the segment must be COW'ed, but what to name it?
-  possible that this could all be done at user-level by clever
-  gate-entry code (first map a stack using registers, then can do
-  C code).
-
-  possible solution: stick a mutex (atomic_t) on the entry stack,
-  lock the mutex from asm without using the stack, then the rest
-  of the gate entry code maps a new stack, does whatever COW ops,
-  then jumps to new stack and unlocks the entry stack.
-
 implement MLTs
+do COW in gate_enter_locked()
+use MLTs to store COW mappings in gate_enter for later reuse
 
 kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 

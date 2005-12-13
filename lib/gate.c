@@ -1,4 +1,5 @@
 #include <inc/lib.h>
+#include <inc/gate.h>
 #include <inc/setjmp.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
@@ -10,31 +11,33 @@ struct gate_call_args {
     struct cobj_ref arg;
 };
 
-static void __attribute__((noreturn))
-gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
-{
-    uint64_t tid = thread_id();
-    int r = sys_thread_addref(ug->container);
-    if (r < 0)
-	panic("gate_entry: cannot addref thread: %s", e2s(r));
+// The assembly gate_entry code jumps here, once the thread has been
+// addref'ed to the container and the entry stack has been locked.
 
+void __attribute__((noreturn))
+gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+{
     struct gate_call_args *call_args;
-    r = segment_map(ug->container, call_args_obj, 0, (void**) &call_args, 0);
+    int r = segment_map(ug->container, call_args_obj, 0, (void**) &call_args, 0);
     if (r < 0)
 	panic("gate_entry: cannot map argument page: %s", e2s(r));
 
     struct cobj_ref arg = call_args->arg;
     ug->func(ug->func_arg, &arg);
 
-    sys_obj_unref(COBJ(ug->container, tid));
-    r = sys_gate_enter(call_args->return_gate, arg.container, arg.object);
-    panic("gate_entry: unable to return: %s", e2s(r));
+    gate_return(ug, call_args->return_gate, arg);
 }
 
 int
 gate_create(struct u_gate_entry *ug, uint64_t container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg)
 {
+    void *stackbase;
+    int r = segment_alloc(container, PGSIZE, &ug->stackpage, &stackbase);
+    if (r < 0)
+	return r;
+
+    atomic_set(&ug->entry_stack_use, 0);
     ug->container = container;
     ug->func = func;
     ug->func_arg = func_arg;
@@ -42,26 +45,35 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     uint64_t label_ents[8];
     struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
 
-    int r  = thread_get_label(container, &ul);
+    r  = thread_get_label(container, &ul);
     if (r < 0)
-	return r;
+	goto out2;
 
     struct thread_entry te = {
 	.te_entry = &gate_entry,
-	.te_stack = (void*) ULIM,	// XXX!!!
+	.te_stack = stackbase + PGSIZE,
 	.te_arg = (uint64_t) ug,
     };
 
     r = sys_segment_get_map(&te.te_segmap);
     if (r < 0)
-	return r;
+	goto out2;
 
     int64_t gate_id = sys_gate_create(container, &te, &ul, &ul);
-    if (gate_id < 0)
-	return gate_id;
+    if (gate_id < 0) {
+	r = gate_id;
+	goto out2;
+    }
 
     ug->gate = COBJ(container, gate_id);
-    return 0;
+    r = 0;
+    goto out1;
+
+out2:
+    sys_obj_unref(ug->stackpage);
+out1:
+    segment_unmap(container, stackbase);
+    return r;
 }
 
 struct gate_return {
