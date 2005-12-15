@@ -53,11 +53,6 @@ KERN_BINFILES := \
 	user/tclnt \
 	user/shell
 
-KERN_BLAH := \
-	user/gate_test \
-	user/ct_unref \
-	user/thread_test \
-
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
 
