@@ -80,7 +80,7 @@ segment_map(struct cobj_ref seg, uint64_t flags,
 	return r;
 
     int free_segslot = uas.nent;
-    char *va_start = (char *) 0x100000000;
+    char *va_start = (char *) UMMAPBASE;
     char *va_end;
 
 retry:
