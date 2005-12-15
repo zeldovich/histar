@@ -14,39 +14,39 @@ netd_dispatch(struct netd_op_args *a)
 {
     switch (a->op_type) {
     case netd_op_socket:
-	a->rval = socket(a->args.socket.domain,
-			 a->args.socket.type,
-			 a->args.socket.protocol);
+	a->rval = lwip_socket(a->args.socket.domain,
+			      a->args.socket.type,
+			      a->args.socket.protocol);
 	break;
 
     case netd_op_bind:
-	a->rval = bind(a->args.bind.fd,
-		       (struct sockaddr*) &a->args.bind.sin,
-		       sizeof(a->args.bind.sin));
+	a->rval = lwip_bind(a->args.bind.fd,
+			    (struct sockaddr*) &a->args.bind.sin,
+			    sizeof(a->args.bind.sin));
 	break;
 
     case netd_op_listen:
-	a->rval = listen(a->args.listen.fd,
-			 a->args.listen.backlog);
+	a->rval = lwip_listen(a->args.listen.fd,
+			      a->args.listen.backlog);
 	break;
 
     case netd_op_accept:
 	{
 	    socklen_t sinlen = sizeof(a->args.accept.sin);
-	    a->rval = accept(a->args.accept.fd,
-			     (struct sockaddr*) &a->args.accept.sin,
-			     &sinlen);
+	    a->rval = lwip_accept(a->args.accept.fd,
+				  (struct sockaddr*) &a->args.accept.sin,
+				  &sinlen);
 	}
 	break;
 
     case netd_op_write:
-	a->rval = write(a->args.write.fd,
-			&a->args.write.buf[0],
-			a->args.write.count);
+	a->rval = lwip_write(a->args.write.fd,
+			     &a->args.write.buf[0],
+			     a->args.write.count);
 	break;
 
     case netd_op_close:
-	a->rval = close(a->args.close.fd);
+	a->rval = lwip_close(a->args.close.fd);
 	break;
 
     default:
