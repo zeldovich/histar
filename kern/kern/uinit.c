@@ -191,7 +191,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     r = elf_add_segmap(as, &segmap_i,
 		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-		       0, 1, (void*) (ULIM - PGSIZE),
+		       0, 1, (void*) (USTACKTOP - PGSIZE),
 		       SEGMAP_READ | SEGMAP_WRITE);
     if (r < 0) {
 	cprintf("ELF: cannot map stack segment: %s\n", e2s(r));
@@ -199,7 +199,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
     }
 
     thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
-		(void*) elf.e_entry, (void*) ULIM, arg, 0, 0);
+		(void*) elf.e_entry, (void*) USTACKTOP, arg, 0, 0);
     return 0;
 }
 

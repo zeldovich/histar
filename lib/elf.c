@@ -71,7 +71,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	return r;
     }
 
-    char *stacktop = (char*) ULIM;
+    char *stacktop = (char*) USTACKTOP;
     e->te_stack = stacktop;
 
     sm_ents[si].segment = stack;

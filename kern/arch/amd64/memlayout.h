@@ -33,17 +33,21 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define KERNBASE UINT64 (0xffffffff80000000)
-#define RELOC(x) (CAST64 (x) - KERNBASE)
+#define KERNBASE	UINT64 (0xffffffff80000000)
+#define RELOC(x)	(CAST64 (x) - KERNBASE)
 
-#define PHYSBASE UINT64 (0xffff800000000000)
-#define KSTACKTOP (KERNBASE - PGSIZE)
-#define ULIM UINT64 (0x0000800000000000)
+#define PHYSBASE	UINT64 (0xffff800000000000)
+#define KSTACKTOP	(KERNBASE - PGSIZE)
+
+#define ULIM		UINT64 (0x0000800000000000)
 
 // At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
 // IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
 // at physical address EXTPHYSMEM.
 #define IOPHYSMEM	0x0A0000
 #define EXTPHYSMEM	0x100000
+
+// User-mode (below ULIM) address space layout conventions.
+#define USTACKTOP	UINT64 (0x0000400000000000)
 
 #endif
