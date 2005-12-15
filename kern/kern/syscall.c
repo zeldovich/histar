@@ -48,10 +48,14 @@ _check(int64_t r, const char *what, int line)
 
 // Syscall handlers
 static void
-sys_cons_puts(const char *s)
+sys_cons_puts(const char *s, uint64_t size)
 {
-    check(page_user_incore((void**) &s, 1));	// XXX figure out the size?
-    cprintf("%s", s);
+    int sz = size;
+    if (sz < 0)
+	syscall_error(-E_INVAL);
+
+    check(page_user_incore((void**) &s, sz));
+    cprintf("%.*s", sz, s);
 }
 
 static int
@@ -323,7 +327,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     switch (num) {
     case SYS_cons_puts:
-	sys_cons_puts((const char*) a1);
+	sys_cons_puts((const char*) a1, a2);
 	break;
 
     case SYS_cons_getc:

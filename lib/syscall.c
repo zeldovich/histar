@@ -3,9 +3,9 @@
 #include <inc/syscall_num.h>
 
 int
-sys_cons_puts(const char *s)
+sys_cons_puts(const char *s, uint64_t size)
 {
-    return syscall(SYS_cons_puts, (uint64_t) s, 0, 0, 0, 0);
+    return syscall(SYS_cons_puts, (uint64_t) s, size, 0, 0, 0);
 }
 
 int

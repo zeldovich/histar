@@ -21,16 +21,19 @@ struct printbuf {
 	char buf[256];
 };
 
+static void
+flush(struct printbuf *b)
+{
+	sys_cons_puts(b->buf, b->idx);
+	b->idx = 0;
+}
 
 static void
 putch(int ch, struct printbuf *b)
 {
 	b->buf[b->idx++] = ch;
-	if (b->idx == 256-1) {
-		b->buf[b->idx] = 0;
-		sys_cons_puts(b->buf);
-		b->idx = 0;
-	}
+	if (b->idx == 256)
+		flush(b);
 	b->cnt++;
 }
 
@@ -42,8 +45,7 @@ vcprintf(const char *fmt, va_list ap)
 	b.idx = 0;
 	b.cnt = 0;
 	vprintfmt((void*)putch, &b, fmt, ap);
-	b.buf[b.idx] = 0;
-	sys_cons_puts(b.buf);
+	flush(&b);
 
 	return b.cnt;
 }
