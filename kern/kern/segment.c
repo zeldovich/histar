@@ -108,7 +108,7 @@ segment_map_fill_pmap(struct segment_mapping *segmap,
 	struct cobj_ref seg_ref = segmap[i].segment;
 	struct Segment *sg;
 	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
-			 (flags & SEGMAP_WRITE) ? iflow_write : iflow_read);
+			 (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
 	if (r < 0)
 	    return r;
 

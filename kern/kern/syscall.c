@@ -99,8 +99,10 @@ sys_container_alloc(uint64_t parent_ct)
 static void
 sys_obj_unref(struct cobj_ref cobj)
 {
+    // iflow_rw because return code from container_unref
+    // indicates the object's presence.
     struct Container *c;
-    check(container_find(&c, cobj.container, iflow_write));
+    check(container_find(&c, cobj.container, iflow_rw));
 
     struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
@@ -188,8 +190,7 @@ static void
 sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 {
     struct Gate *g;
-    check(cobj_get(gt, kobj_gate, (struct kobject **)&g,
-		   iflow_write_contaminate));
+    check(cobj_get(gt, kobj_gate, (struct kobject **)&g, iflow_write));
 
     // XXX do the contaminate, or let the user compute it and verify
     struct thread_entry *e = &g->gt_te;
@@ -202,7 +203,7 @@ static void
 sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 {
     struct Thread *t;
-    check(cobj_get(thread, kobj_thread, (struct kobject **)&t, iflow_write));
+    check(cobj_get(thread, kobj_thread, (struct kobject **)&t, iflow_rw));
 
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);

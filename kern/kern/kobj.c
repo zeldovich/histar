@@ -14,25 +14,34 @@ struct kobject_list ko_list;
 static int
 kobject_iflow_check(struct kobject *ko, info_flow_type iflow)
 {
+    int r;
+
     switch (iflow) {
     case iflow_read:
-	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
-			     label_leq_starhi);
+	r = label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
+			  label_leq_starhi);
+	break;
 
     case iflow_write:
-	return label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
-			     label_eq);
+	r = label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
+			  label_leq_starlo);
+	break;
 
-    case iflow_write_contaminate:
-	return label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
-			     label_leq_starlo);
+    case iflow_rw:
+	r = kobject_iflow_check(ko, iflow_read);
+	if (r == 0)
+	    r = kobject_iflow_check(ko, iflow_write);
+	break;
 
     case iflow_none:
-	return 0;
+	r = 0;
+	break;
 
     default:
 	panic("kobject_get: unknown iflow type %d\n", iflow);
     }
+
+    return r;
 }
 
 int

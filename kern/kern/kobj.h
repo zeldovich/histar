@@ -33,10 +33,10 @@ LIST_HEAD(kobject_list, kobject);
 extern struct kobject_list ko_list;
 
 typedef enum {
-    iflow_read,			// reading from object
-    iflow_write,		// writing to object; will not contaminate
-    iflow_write_contaminate,	// writing to object; will contaminate
-    iflow_none			// internal/metadata use
+    iflow_read,
+    iflow_rw,
+    iflow_write,
+    iflow_none
 } info_flow_type;
 
 int  kobject_get(kobject_id_t id, struct kobject **kpp, info_flow_type iflow);
