@@ -9,6 +9,7 @@
 int	iscons(int fd);
 int	getchar(void);
 int	putchar(int c);
+int	opencons(uint64_t container);
 
 /* readline.c */
 char*	readline(const char *prompt);

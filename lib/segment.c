@@ -147,7 +147,7 @@ retry:
 	}
     }
 
-    if (va_end >= (char*) USTACKTOP) {
+    if (!fixed_va && va_end >= (char*) USTACKTOP) {
 	cprintf("out of virtual address space!\n");
 	return -E_NO_MEM;
     }

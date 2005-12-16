@@ -5,6 +5,7 @@
 #include <inc/elf64.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
+#include <inc/assert.h>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
@@ -23,45 +24,45 @@ print_cobj(uint64_t ct, uint64_t slot)
     if (id == -E_NOT_FOUND)
 	return;
     if (id < 0) {
-	cprintf("cannot get slot %ld in %ld: %s\n", slot, ct, e2s(id));
+	printf("cannot get slot %ld in %ld: %s\n", slot, ct, e2s(id));
 	return;
     }
 
     struct cobj_ref cobj = COBJ(ct, id);
     int type = sys_obj_get_type(cobj);
     if (type < 0) {
-	cprintf("sys_obj_get_type <%ld.%ld>: %s\n",
+	printf("sys_obj_get_type <%ld.%ld>: %s\n",
 		cobj.container, cobj.object, e2s(type));
 	return;
     }
 
-    cprintf("%5ld [%4ld]  ", id, slot);
+    printf("%5ld [%4ld]  ", id, slot);
 
     int r;
     switch (type) {
     case kobj_gate:
-	cprintf("gate\n");
+	printf("gate\n");
 	break;
 
     case kobj_thread:
-	cprintf("thread\n");
+	printf("thread\n");
 	break;
 
     case kobj_container:
-	cprintf("container\n");
+	printf("container\n");
 	break;
 
     case kobj_segment:
 	r = sys_segment_get_npages(cobj);
-	cprintf("segment (%d pages)\n", r);
+	printf("segment (%d pages)\n", r);
 	break;
 
     case kobj_address_space:
-	cprintf("address space\n");
+	printf("address space\n");
 	break;
 
     default:
-	cprintf("unknown (%d)\n", type);
+	printf("unknown (%d)\n", type);
     }
 }
 
@@ -69,17 +70,17 @@ static void
 builtin_list_container(int ac, char **av)
 {
     if (ac != 1) {
-	cprintf("Usage: lc <container-id>\n");
+	printf("Usage: lc <container-id>\n");
 	return;
     }
 
     uint64_t ct = atoi(av[0]);
-    cprintf("Container %ld:\n", ct);
-    cprintf("   id  slot   object\n");
+    printf("Container %ld:\n", ct);
+    printf("   id  slot   object\n");
 
     int64_t nslots = sys_container_nslots(ct);
     if (nslots < 0) {
-	cprintf("sys_container_nslots(%ld): %s\n", ct, e2s(nslots));
+	printf("sys_container_nslots(%ld): %s\n", ct, e2s(nslots));
 	return;
     }
 
@@ -97,13 +98,13 @@ readdir(void)
 {
     int64_t c_fs = sys_container_get_slot_id(c_root, 0);
     if (c_fs < 0) {
-	cprintf("cannot get filesystem container id: %s\n", e2s(c_fs));
+	printf("cannot get filesystem container id: %s\n", e2s(c_fs));
 	return c_fs;
     }
 
     int64_t dir_id = sys_container_get_slot_id(c_fs, 0);
     if (dir_id < 0) {
-	cprintf("cannot get directory segment id: %s\n", e2s(dir_id));
+	printf("cannot get directory segment id: %s\n", e2s(dir_id));
 	return dir_id;
     }
 
@@ -111,7 +112,7 @@ readdir(void)
     int r = segment_map(COBJ(c_fs, dir_id), SEGMAP_READ,
 			(void**)&dirbuf, 0);
     if (r < 0) {
-	cprintf("cannot map dir segment <%ld.%ld>: %s\n",
+	printf("cannot map dir segment <%ld.%ld>: %s\n",
 		c_fs, dir_id, e2s(r));
 	return r;
     }
@@ -121,15 +122,15 @@ readdir(void)
     for (int i = 1; i <= max_dirent; i++) {
 	dir[dirsize].cobj = COBJ(c_fs, dirbuf[16*i]);
 	strcpy(dir[dirsize].name, (char*)&dirbuf[16*i+1]);
-	//cprintf("readdir: %d %ld %s\n", dirsize,
+	//printf("readdir: %d %ld %s\n", dirsize,
 	//	dir[dirsize].cobj.object, dir[dirsize].name);
 	dirsize++;
     }
-    //cprintf("readdir: done\n");
+    //printf("readdir: done\n");
 
     r = segment_unmap(dirbuf);
     if (r < 0) {
-	cprintf("cannot unmap dir segment: %s\n", e2s(r));
+	printf("cannot unmap dir segment: %s\n", e2s(r));
 	return r;
     }
 
@@ -140,7 +141,7 @@ static void
 builtin_ls(int ac, char **av)
 {
     if (ac != 0) {
-	cprintf("Usage: ls\n");
+	printf("Usage: ls\n");
 	return;
     }
 
@@ -149,7 +150,7 @@ builtin_ls(int ac, char **av)
 	return;
 
     for (int i = 0; i < r; i++)
-	cprintf("%s\n", dir[i].name);
+	printf("%s\n", dir[i].name);
 }
 
 static void
@@ -157,7 +158,7 @@ builtin_spawn_seg(struct cobj_ref seg)
 {
     int64_t c_spawn = sys_container_alloc(c_root);
     if (c_spawn < 0) {
-	cprintf("cannot allocate container for new thread: %s\n",
+	printf("cannot allocate container for new thread: %s\n",
 		e2s(c_spawn));
 	return;
     }
@@ -167,13 +168,13 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     int r = elf_load(c_spawn, seg, &e);
     if (r < 0) {
-	cprintf("cannot load ELF: %s\n", e2s(r));
+	printf("cannot load ELF: %s\n", e2s(r));
 	return;
     }
 
     int64_t thread = sys_thread_create(c_spawn);
     if (thread < 0) {
-	cprintf("cannot create thread: %s\n", e2s(thread));
+	printf("cannot create thread: %s\n", e2s(thread));
 	return;
     }
 
@@ -182,18 +183,18 @@ builtin_spawn_seg(struct cobj_ref seg)
 
     r = sys_thread_start(COBJ(c_spawn, thread), &e);
     if (r < 0) {
-	cprintf("cannot start thread: %s\n", e2s(r));
+	printf("cannot start thread: %s\n", e2s(r));
 	return;
     }
 
-    cprintf("Running thread <%ld:%ld>\n", c_spawn, thread);
+    printf("Running thread <%ld:%ld>\n", c_spawn, thread);
 }
 
 static void
 builtin_spawn(int ac, char **av)
 {
     if (ac != 1) {
-	cprintf("Usage: spawn <program-name>\n");
+	printf("Usage: spawn <program-name>\n");
 	return;
     }
 
@@ -208,14 +209,14 @@ builtin_spawn(int ac, char **av)
 	}
     }
 
-    cprintf("Unable to find %s\n", av[0]);
+    printf("Unable to find %s\n", av[0]);
 }
 
 static void
 builtin_unref(int ac, char **av)
 {
     if (ac != 2) {
-	cprintf("Usage: unref <container> <object>\n");
+	printf("Usage: unref <container> <object>\n");
 	return;
     }
 
@@ -224,11 +225,11 @@ builtin_unref(int ac, char **av)
 
     int r = sys_obj_unref(COBJ(c, i));
     if (r < 0) {
-	cprintf("Cannot unref <%ld:%ld>: %s\n", c, i, e2s(r));
+	printf("Cannot unref <%ld:%ld>: %s\n", c, i, e2s(r));
 	return;
     }
 
-    cprintf("Dropped <%ld:%ld>\n", c, i);
+    printf("Dropped <%ld:%ld>\n", c, i);
 }
 
 static struct {
@@ -246,9 +247,9 @@ static struct {
 static void
 builtin_help(int ac, char **av)
 {
-    cprintf("Commands:\n");
+    printf("Commands:\n");
     for (int i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
-	cprintf("  %-10s %s\n", commands[i].name, commands[i].desc);
+	printf("  %-10s %s\n", commands[i].name, commands[i].desc);
 }
 
 static void
@@ -290,7 +291,7 @@ run_cmd(int ac, char **av)
 	}
     }
 
-    cprintf("%s: unknown command, try help\n", av[0]);
+    printf("%s: unknown command, try help\n", av[0]);
 }
 
 int
@@ -299,7 +300,11 @@ main(int ac, char **av)
     c_root = start_arg;
     c_temp = start_arg;
 
-    cprintf("JOS shell (root container %ld)\n", c_root);
+    assert(0 == opencons(c_temp));
+    assert(1 == dup(0, 1));
+    assert(2 == dup(0, 2));
+
+    printf("JOS shell (root container %ld)\n", c_root);
 
     for (;;) {
 	char *cmd = readline("jos> ");

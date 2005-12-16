@@ -2,8 +2,6 @@
 #include <inc/fd.h>
 #include <inc/lib.h>
 #include <inc/error.h>
-
-// XXX will we need this in the end?
 #include <inc/memlayout.h>
 
 // Maximum number of file descriptors a program may hold open concurrently
@@ -13,7 +11,7 @@
 // Return the 'struct Fd*' for file descriptor index i
 #define INDEX2FD(i)	((struct Fd*) (FDTABLE + (i)*PGSIZE))
 
-static int debug = 1;
+static int debug = 0;
 
 
 /********************************
@@ -43,7 +41,7 @@ fd2num(struct Fd *fd)
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
 int
-fd_alloc(struct Fd **fd_store)
+fd_alloc(uint64_t container, struct Fd **fd_store)
 {
 	int i;
 	struct Fd *fd;
@@ -52,14 +50,24 @@ fd_alloc(struct Fd **fd_store)
 		fd = INDEX2FD(i);
 		int r = segment_lookup(fd, 0, 0);
 		// XXX segment_lookup interface doesn't tell you what failed...
-		if (r == -E_NOT_FOUND) {
-			*fd_store = fd;
-			return 0;
-		}
+		if (r == -E_NOT_FOUND)
+			break;
 	}
 
 	*fd_store = 0;
-	return -E_MAX_OPEN;
+	if (i == MAXFD)
+		return -E_MAX_OPEN;
+
+	struct cobj_ref seg;
+	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd);
+	if (r < 0)
+		return r;
+
+	fd->fd_seg = seg;
+	atomic_set(&fd->fd_ref, 1);
+
+	*fd_store = fd;
+	return 0;
 }
 
 // Check that fdnum is in range and mapped.
@@ -91,25 +99,20 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 
 // Frees file descriptor 'fd' by closing the corresponding file
 // and unmapping the file descriptor page.
-// If 'must_exist' is 0, then fd can be a closed or nonexistent file
-// descriptor; the function will return 0 and have no other effect.
-// If 'must_exist' is 1, then fd_close returns -E_INVAL when passed a
-// closed or nonexistent file descriptor.
 // Returns 0 on success, < 0 on error.
 int
-fd_close(struct Fd *fd, bool must_exist)
+fd_close(struct Fd *fd)
 {
-	struct Fd *fd2;
-	struct Dev *dev;
-	int r;
-	if ((r = fd_lookup(fd2num(fd), &fd2)) < 0
-	    || fd != fd2)
-		return (must_exist ? r : 0);
-	if ((r = dev_lookup(fd->fd_dev_id, &dev)) >= 0)
-		r = (*dev->dev_close)(fd);
+	if (!atomic_dec_and_test(&fd->fd_ref))
+		return 0;
 
-	// Make sure fd is unmapped.  Might be a no-op if
-	// (*dev->dev_close)(fd) already unmapped it.
+	struct Dev *dev;
+	int r = dev_lookup(fd->fd_dev_id, &dev);
+	if (r < 0)
+		return r;
+
+	r = (*dev->dev_close)(fd);
+
 	segment_unmap(fd);
 	return r;
 }
@@ -123,7 +126,7 @@ fd_close(struct Fd *fd, bool must_exist)
 static struct Dev *devtab[] =
 {
 	&devcons,
-	&devsock,
+	//&devsock,
 	0
 };
 
@@ -150,7 +153,7 @@ close(int fdnum)
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
 	else
-		return fd_close(fd, 1);
+		return fd_close(fd);
 }
 
 void
@@ -186,6 +189,7 @@ dup(int oldfdnum, int newfdnum)
 	if (r < 0)
 		return r;
 
+	atomic_inc(&oldfd->fd_ref);
 	return newfdnum;
 }
 

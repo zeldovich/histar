@@ -1,6 +1,8 @@
 #ifndef JOS_INC_FD_H
 #define JOS_INC_FD_H
 
+#include <machine/atomic.h>
+#include <inc/container.h>
 #include <inc/types.h>
 
 // pre-declare for forward references
@@ -23,6 +25,10 @@ struct Fd
 	int fd_dev_id;
 	off_t fd_offset;
 	int fd_omode;
+
+	struct cobj_ref fd_seg;
+	atomic_t fd_ref;
+
 	union {
 		struct {
 			int s;
@@ -32,8 +38,8 @@ struct Fd
 
 char*	fd2data(struct Fd *fd);
 int	fd2num(struct Fd *fd);
-int	fd_alloc(struct Fd **fd_store);
-int	fd_close(struct Fd *fd, bool must_exist);
+int	fd_alloc(uint64_t container, struct Fd **fd_store);
+int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store);
 int	dev_lookup(int devid, struct Dev **dev_store);
 
