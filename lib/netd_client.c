@@ -42,7 +42,7 @@ netd_client_init(uint64_t ct)
 static int
 netd_call(struct netd_op_args *a) {
     struct cobj_ref seg;
-    void *va;
+    void *va = 0;
     int r = segment_alloc(ctemp, PGSIZE, &seg, &va);
     if (r < 0)
 	return r;

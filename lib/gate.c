@@ -17,7 +17,7 @@ struct gate_call_args {
 void __attribute__((noreturn))
 gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 {
-    struct gate_call_args *call_args;
+    struct gate_call_args *call_args = 0;
     int r = segment_map(call_args_obj, SEGMAP_READ, (void**) &call_args, 0);
     if (r < 0)
 	panic("gate_entry: cannot map argument page: %s", e2s(r));
@@ -40,6 +40,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     // XXX should only need one page here, but until we do COW stacks,
     // the lwip code takes up a lot of stack space..
 
+    ug->stackbase = 0;
     int stackpages = 2;
     int r = segment_alloc(container, stackpages * PGSIZE,
 			  &ug->stackpage, &ug->stackbase);
@@ -135,13 +136,13 @@ int
 gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 {
     struct cobj_ref gate_args_obj;
-    struct gate_call_args *gate_args;
+    struct gate_call_args *gate_args = 0;
     int r = segment_alloc(ctemp, PGSIZE, &gate_args_obj, (void**) &gate_args);
     if (r < 0)
 	goto out1;
 
     struct cobj_ref return_stack_obj;
-    void *return_stack;
+    void *return_stack = 0;
     r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack);
     if (r < 0)
 	goto out2;

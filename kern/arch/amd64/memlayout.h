@@ -50,5 +50,6 @@
 // User-mode (below ULIM) address space layout conventions.
 #define UMMAPBASE	UINT64 (0x0000000100000000)
 #define USTACKTOP	UINT64 (0x0000400000000000)
+#define UFDBASE		UINT64 (0x0000400010000000)
 
 #endif

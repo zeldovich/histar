@@ -107,7 +107,7 @@ readdir(void)
 	return dir_id;
     }
 
-    uint64_t *dirbuf;
+    uint64_t *dirbuf = 0;
     int r = segment_map(COBJ(c_fs, dir_id), SEGMAP_READ,
 			(void**)&dirbuf, 0);
     if (r < 0) {

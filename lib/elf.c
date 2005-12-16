@@ -9,7 +9,7 @@
 int
 elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 {
-    char *segbuf;
+    char *segbuf = 0;
     uint64_t bytes;
     int r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &bytes);
     if (r < 0) {
@@ -34,7 +34,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
 	int va_off = ph->p_vaddr & 0xfff;
 	struct cobj_ref seg;
-	char *sbuf;
+	char *sbuf = 0;
 	r = segment_alloc(container, va_off + ph->p_memsz,
 			  &seg, (void**) &sbuf);
 	if (r < 0) {

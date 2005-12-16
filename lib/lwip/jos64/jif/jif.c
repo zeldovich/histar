@@ -90,6 +90,7 @@ low_level_init(struct netif *netif)
     // container gets passed as the argument to _start()
     uint64_t container = start_arg;
 
+    jif->buf_base = 0;
     r = segment_alloc(container, JIF_BUFS * PGSIZE,
 		      &jif->buf_seg, &jif->buf_base);
     if (r < 0)

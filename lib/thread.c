@@ -8,7 +8,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
 {
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
-    void *stackbase;
+    void *stackbase = 0;
     int r = segment_alloc(container, stacksize, &stack, &stackbase);
     if (r < 0)
 	return r;

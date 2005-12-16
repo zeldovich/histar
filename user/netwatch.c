@@ -24,7 +24,7 @@ main(int ac, char **av)
     uint64_t ctemp = start_arg;
 
     struct cobj_ref seg;
-    void *va;
+    void *va = 0;
     int r = segment_alloc(ctemp, 8 * PGSIZE, &seg, &va);
     if (r < 0)
 	panic("cannot allocate buffer segment: %s", e2s(r));

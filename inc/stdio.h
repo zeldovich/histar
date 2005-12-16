@@ -23,4 +23,9 @@ int	cprintf(const char *fmt, ...)
 int	vcprintf(const char *fmt, va_list)
 	    __attribute__((__format__ (__printf__, 1, 0)));
 
+int	printf(const char *fmt, ...)
+	    __attribute__((__format__ (__printf__, 1, 2)));
+int	vprintf(const char *fmt, va_list)
+	    __attribute__((__format__ (__printf__, 1, 0)));
+
 #endif

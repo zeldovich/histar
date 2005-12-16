@@ -18,6 +18,7 @@ enum {
     // user-space errors
     E_RANGE,		// value out of range
     E_EOF,		// unexpected end-of-file
+    E_MAX_OPEN,		// out of file descriptors
     E_MAXERROR
 };
 

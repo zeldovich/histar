@@ -10,7 +10,7 @@ main(int ac, char **av)
     uint64_t ct = start_arg;
 
     struct cobj_ref seg;
-    void *va;
+    void *va = 0;
     assert(0 == segment_alloc(ct, PGSIZE, &seg, &va));
 
     struct ulabel ul = {
@@ -21,7 +21,7 @@ main(int ac, char **av)
     cprintf("Trying to get label..\n");
     assert(0 == thread_get_label(ct, &ul));
 
-    void *va2;
+    void *va2 = 0;
     assert(0 == segment_map(seg, SEGMAP_READ, &va2, 0));
     ul.ul_ent = va2;
 

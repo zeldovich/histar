@@ -53,8 +53,38 @@ segment_unmap(void *va)
 }
 
 int
+segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
+{
+    struct segment_mapping ents[NMAPPINGS];
+    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
+
+    struct cobj_ref as_ref;
+    int r = sys_thread_get_as(&as_ref);
+    if (r < 0)
+	return r;
+
+    r = sys_as_get(as_ref, &uas);
+    if (r < 0)
+	return r;
+
+    for (int i = 0; i < uas.nent; i++) {
+	void *va_start = uas.ents[i].va;
+	void *va_end = uas.ents[i].va + uas.ents[i].num_pages * PGSIZE;
+	if (va >= va_start && va < va_end) {
+	    if (seg)
+		*seg = uas.ents[i].segment;
+	    if (npage)
+		*npage = (va - va_start) / PGSIZE;
+	    return 0;
+	}
+    }
+
+    return -E_NOT_FOUND;
+}
+
+int
 segment_map(struct cobj_ref seg, uint64_t flags,
-	    void **va_store, uint64_t *bytes_store)
+	    void **va_p, uint64_t *bytes_store)
 {
     if (!(flags & SEGMAP_READ)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
@@ -83,6 +113,17 @@ segment_map(struct cobj_ref seg, uint64_t flags,
     char *va_start = (char *) UMMAPBASE;
     char *va_end;
 
+    bool_t fixed_va = 0;
+    if (va_p && *va_p) {
+	fixed_va = 1;
+	va_start = *va_p;
+
+	if (va_start >= (char *) ULIM) {
+	    cprintf("segment_map: VA %p over ulim\n", va_start);
+	    return -E_INVAL;
+	}
+    }
+
 retry:
     va_end = va_start + bytes;
     for (int i = 0; i < uas.nent; i++) {
@@ -94,9 +135,15 @@ retry:
 	char *m_start = uas.ents[i].va;
 	char *m_end = m_start + uas.ents[i].num_pages * PGSIZE;
 
-	if (m_start <= va_end && m_end >= va_start) {
+	// Leave unmapped gaps between mappings, when possible
+	if (!fixed_va && m_start <= va_end && m_end >= va_start) {
 	    va_start = m_end + PGSIZE;
 	    goto retry;
+	}
+
+	if (fixed_va && m_start < va_end && m_end > va_start) {
+	    cprintf("segment_map: fixed VA %p busy\n", va_start);
+	    return -E_NO_MEM;
 	}
     }
 
@@ -123,8 +170,8 @@ retry:
 
     if (bytes_store)
 	*bytes_store = bytes;
-    if (va_store)
-	*va_store = va_start;
+    if (va_p)
+	*va_p = va_start;
     return 0;
 }
 

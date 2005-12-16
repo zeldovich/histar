@@ -17,8 +17,9 @@ char*	readline(const char *prompt);
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p);
 int	segment_map(struct cobj_ref seg, uint64_t flags,
-		    void **va_store, uint64_t *bytes_store);
+		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
+int	segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
@@ -36,5 +37,15 @@ int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct co
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
+
+/* fd.c */
+ssize_t	read(int fd, void *buf, size_t nbytes);
+ssize_t	write(int fd, const void *buf, size_t nbytes);
+int	seek(int fd, off_t offset);
+int	dup(int oldfd, int newfd);
+int	close(int fd);
+
+void	close_all(void);
+ssize_t	readn(int fd, void *buf, size_t nbytes);
 
 #endif
