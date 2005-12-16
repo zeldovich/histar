@@ -116,7 +116,7 @@ main(int ac, char **av)
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    cprintf("netd: running\n");
+    printf("netd: running\n");
 
     uint64_t rc = 1;
     netd_server_init(rc);

@@ -23,12 +23,12 @@ telnet_server(void)
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
-    cprintf("netd: server on port 23\n");
+    printf("netd: server on port 23\n");
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = netd_accept(s, (struct sockaddr *)&sin, &socklen);
         if (ss < 0) {
-            cprintf("cannot accept client: %d\n", ss);
+            printf("cannot accept client: %d\n", ss);
             continue;
         }
 

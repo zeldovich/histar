@@ -180,12 +180,30 @@ dup(int oldfdnum, int newfdnum)
 	close(newfdnum);
 	struct Fd *newfd = INDEX2FD(newfdnum);
 
-	struct cobj_ref seg;
-	r = segment_lookup(oldfd, &seg, 0);
+	r = segment_map(oldfd->fd_seg, SEGMAP_READ | SEGMAP_WRITE,
+			(void**) &newfd, 0);
 	if (r < 0)
 		return r;
 
-	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE, (void**) &newfd, 0);
+	atomic_inc(&oldfd->fd_ref);
+	return newfdnum;
+}
+
+int
+dup_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
+{
+	struct Fd *oldfd;
+	int r = fd_lookup(oldfdnum, &oldfd);
+	if (r < 0)
+		return r;
+
+	// XXX only works for initial setup, as this doesn't close
+	// newfdnum in target address space if one aleady exists.
+	struct Fd *newfd = INDEX2FD(newfdnum);
+
+	r = segment_map_as(target_as, oldfd->fd_seg,
+			   SEGMAP_READ | SEGMAP_WRITE,
+			   (void**) &newfd, 0);
 	if (r < 0)
 		return r;
 

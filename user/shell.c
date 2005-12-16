@@ -154,43 +154,6 @@ builtin_ls(int ac, char **av)
 }
 
 static void
-builtin_spawn_seg(struct cobj_ref seg)
-{
-    int64_t c_spawn = sys_container_alloc(c_root);
-    if (c_spawn < 0) {
-	printf("cannot allocate container for new thread: %s\n",
-		e2s(c_spawn));
-	return;
-    }
-
-    // XXX these things are ridiculously huge
-    static struct thread_entry e;
-
-    int r = elf_load(c_spawn, seg, &e);
-    if (r < 0) {
-	printf("cannot load ELF: %s\n", e2s(r));
-	return;
-    }
-
-    int64_t thread = sys_thread_create(c_spawn);
-    if (thread < 0) {
-	printf("cannot create thread: %s\n", e2s(thread));
-	return;
-    }
-
-    // Pass the thread's container as the argument
-    e.te_arg = c_spawn;
-
-    r = sys_thread_start(COBJ(c_spawn, thread), &e);
-    if (r < 0) {
-	printf("cannot start thread: %s\n", e2s(r));
-	return;
-    }
-
-    printf("Running thread <%ld:%ld>\n", c_spawn, thread);
-}
-
-static void
 builtin_spawn(int ac, char **av)
 {
     if (ac != 1) {
@@ -204,7 +167,8 @@ builtin_spawn(int ac, char **av)
 
     for (int i = 0; i < r; i++) {
 	if (!strcmp(av[0], dir[i].name)) {
-	    builtin_spawn_seg(dir[i].cobj);
+	    int64_t c_spawn = spawn(c_root, dir[i].cobj);
+	    printf("Spawned in container %ld\n", c_spawn);
 	    return;
 	}
     }

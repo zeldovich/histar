@@ -86,6 +86,18 @@ int
 segment_map(struct cobj_ref seg, uint64_t flags,
 	    void **va_p, uint64_t *bytes_store)
 {
+    struct cobj_ref as;
+    int r = sys_thread_get_as(&as);
+    if (r < 0)
+	return r;
+
+    return segment_map_as(as, seg, flags, va_p, bytes_store);
+}
+
+int
+segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
+	       uint64_t flags, void **va_p, uint64_t *bytes_store)
+{
     if (!(flags & SEGMAP_READ)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
 	return -E_INVAL;
@@ -96,16 +108,11 @@ segment_map(struct cobj_ref seg, uint64_t flags,
 	return npages;
     uint64_t bytes = npages * PGSIZE;
 
-    struct cobj_ref as_ref;
-    int r = sys_thread_get_as(&as_ref);
-    if (r < 0)
-	return r;
-
     struct segment_mapping ents[NMAPPINGS];
     memset(&ents, 0, sizeof(ents));
 
     struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
-    r = sys_as_get(as_ref, &uas);
+    int r = sys_as_get(as_ref, &uas);
     if (r < 0)
 	return r;
 

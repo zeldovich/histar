@@ -17,6 +17,8 @@ char*	readline(const char *prompt);
 /* segment.c */
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p);
+int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
+		       uint64_t flags, void **vap, uint64_t *bytesp);
 int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
@@ -43,10 +45,16 @@ int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
 ssize_t	read(int fd, void *buf, size_t nbytes);
 ssize_t	write(int fd, const void *buf, size_t nbytes);
 int	seek(int fd, off_t offset);
+int	dup_as(int oldfd, int newfd, struct cobj_ref target_as);
 int	dup(int oldfd, int newfd);
 int	close(int fd);
 
 void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);
+
+/* spawn.c */
+int64_t spawn(uint64_t container, struct cobj_ref elf);
+int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
+		 int fd0, int fd1, int fd2);
 
 #endif

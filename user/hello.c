@@ -4,7 +4,7 @@
 int
 main(int ac, char **av)
 {
-    cprintf("Hello world: 0x%x\n", 0xdeadbeef);
+    printf("Hello world: 0x%x\n", 0xdeadbeef);
 
     return 0;
 }
