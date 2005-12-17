@@ -13,7 +13,7 @@ register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 	rx[i]->actual_count = 0;
 	int r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
 	if (r < 0)
-	    cprintf("cannot register rx buffer #%d: %s", i, e2s(r));
+	    cprintf("cannot register rx buffer #%d: %s\n", i, e2s(r));
     }
 }
 

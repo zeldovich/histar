@@ -7,7 +7,7 @@
 static void
 telnet_server(void)
 {
-    int s = netd_socket(AF_INET, SOCK_STREAM, 0);
+    int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0)
         panic("cannot create socket: %d\n", s);
 
@@ -15,26 +15,26 @@ telnet_server(void)
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
     sin.sin_port = htons(23);
-    int r = netd_bind(s, (struct sockaddr *)&sin, sizeof(sin));
+    int r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     if (r < 0)
         panic("cannot bind socket: %d\n", r);
 
-    r = netd_listen(s, 5);
+    r = listen(s, 5);
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
     printf("netd: server on port 23\n");
     for (;;) {
         socklen_t socklen = sizeof(sin);
-        int ss = netd_accept(s, (struct sockaddr *)&sin, &socklen);
+        int ss = accept(s, (struct sockaddr *)&sin, &socklen);
         if (ss < 0) {
             printf("cannot accept client: %d\n", ss);
             continue;
         }
 
         char *msg = "Hello world.\n";
-        netd_write(ss, msg, strlen(msg));
-        netd_close(ss);
+        write(ss, msg, strlen(msg));
+        close(ss);
     }
 }
 

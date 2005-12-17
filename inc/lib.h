@@ -5,6 +5,9 @@
 #include <inc/thread.h>
 #include <inc/label.h>
 
+#include <lwip/inet.h>
+#include <lwip/sockets.h>
+
 /* console.c */
 int	iscons(int fd);
 int	getchar(void);
@@ -48,6 +51,10 @@ int	seek(int fd, off_t offset);
 int	dup_as(int oldfd, int newfd, struct cobj_ref target_as);
 int	dup(int oldfd, int newfd);
 int	close(int fd);
+
+int	bind(int fd, struct sockaddr *addr, socklen_t addrlen);
+int	listen(int fd, int backlog);
+int	accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);

@@ -65,6 +65,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store)
 
 	fd->fd_seg = seg;
 	atomic_set(&fd->fd_ref, 1);
+	fd->fd_dev_id = 0;
 
 	*fd_store = fd;
 	return 0;
@@ -126,7 +127,7 @@ fd_close(struct Fd *fd)
 static struct Dev *devtab[] =
 {
 	&devcons,
-	//&devsock,
+	&devsock,
 	0
 };
 
@@ -279,4 +280,46 @@ seek(int fdnum, off_t offset)
 		return r;
 	fd->fd_offset = offset;
 	return 0;
+}
+
+int
+bind(int fdnum, struct sockaddr *addr, socklen_t addrlen)
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    return r;
+
+    return dev->dev_bind(fd, addr, addrlen);
+}
+
+int
+listen(int fdnum, int backlog)
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    return r;
+
+    return dev->dev_listen(fd, backlog);
+}
+
+int
+accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    return r;
+
+    return dev->dev_accept(fd, addr, addrlen);
 }
