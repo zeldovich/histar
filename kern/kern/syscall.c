@@ -2,7 +2,7 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <dev/console.h>
-#include <dev/fxp.h>
+#include <dev/netdev.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>
@@ -72,22 +72,34 @@ sys_cons_getc(void)
 static int64_t
 sys_net_wait(uint64_t waiter_id, int64_t waitgen)
 {
-    return check(fxp_thread_wait(cur_thread, waiter_id, waitgen));
+    struct net_device *ndev = the_net_device;
+    if (ndev == 0)
+	syscall_error(-E_INVAL);
+
+    return check(ndev->thread_wait(ndev->arg, cur_thread, waiter_id, waitgen));
 }
 
 static void
 sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
 {
+    struct net_device *ndev = the_net_device;
+    if (ndev == 0)
+	syscall_error(-E_INVAL);
+
     // XXX think harder about labeling in this case...
     struct Segment *sg;
     check(cobj_get(seg, kobj_segment, (struct kobject **)&sg, iflow_none));
-    check(fxp_add_buf(sg, offset, type));
+    check(ndev->add_buf(ndev->arg, sg, offset, type));
 }
 
 static void
 sys_net_macaddr(uint8_t *addrbuf)
 {
-    fxp_macaddr(addrbuf);
+    struct net_device *ndev = the_net_device;
+    if (ndev == 0)
+	syscall_error(-E_INVAL);
+
+    ndev->macaddr(ndev->arg, addrbuf);
 }
 
 static kobject_id_t

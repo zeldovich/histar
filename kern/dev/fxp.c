@@ -6,6 +6,7 @@
 #include <dev/pci.h>
 #include <dev/fxp.h>
 #include <dev/fxpreg.h>
+#include <dev/netdev.h>
 #include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
@@ -54,6 +55,8 @@ struct fxp_card {
     uint64_t waiter;
     int64_t waitgen;
     struct Thread_list waiting;
+
+    struct net_device netdev;
 
     union {
 	struct fxp_cb_config cb_config;
@@ -206,98 +209,10 @@ fxp_buffer_reset(struct fxp_card *c)
     c->tx_halted = 1;
 }
 
-// Forward declaration
-static void fxp_intr(void);
-
 void
-fxp_attach(struct pci_func *pcif)
+fxp_macaddr(void *a, uint8_t *addrbuf)
 {
-    struct fxp_card *c = &the_card;
-
-    if (pcif->reg_size[1] < 64) {
-	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
-		pcif->reg_size[1], pcif->reg_base[1]);
-	return;
-    }
-
-    c->irq_line = pcif->irq_line;
-    c->iobase = pcif->reg_base[1];
-    c->ih.ih_func = &fxp_intr;
-    irq_register(c->irq_line, &c->ih);
-
-    LIST_INIT(&c->waiting);
-
-    for (int i = 0; i < FXP_TX_SLOTS; i++) {
-	int next = (i + 1) % FXP_TX_SLOTS;
-	memset(&c->tx[i], 0, sizeof(c->tx[i]));
-	c->tx[i].tcb.link_addr = kva2pa(&c->tx[next].tcb);
-	c->tx[i].tcb.tbd_array_addr = kva2pa(&c->tx[next].tbd);
-	c->tx[i].tcb.tbd_number = 1;
-	c->tx[i].tcb.tx_threshold = 4;
-    }
-
-    for (int i = 0; i < FXP_RX_SLOTS; i++) {
-	int next = (i + 1) % FXP_RX_SLOTS;
-	memset(&c->rx[i], 0, sizeof(c->rx[i]));
-	c->rx[i].rfd.link_addr = kva2pa(&c->rx[next].rfd);
-	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
-	c->rx[i].rbd.rbd_link = kva2pa(&c->rx[next].rbd);
-    }
-
-    c->rx_head = -1;
-    c->tx_head = -1;
-    fxp_buffer_reset(c);
-
-    // Initialize the card
-    outl(c->iobase + FXP_CSR_PORT, FXP_PORT_SOFTWARE_RESET);
-    kclock_delay(50);
-
-    uint16_t myaddr[3];
-    fxp_eeprom_autosize(c);
-    fxp_eeprom_read(c, &myaddr[0], 0, 3);
-    for (int i = 0; i < 3; i++) {
-	c->mac_addr[2*i + 0] = myaddr[i] & 0xff;
-	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
-    }
-
-    fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, 0);
-    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_BASE);
-    fxp_scb_wait(c);
-    fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_BASE);
-
-    // Configure the card
-    memset(&c->setup.cb_config, 0, sizeof(c->setup.cb_config));
-    c->setup.cb_config.cb_command = FXP_CB_COMMAND_CONFIG | FXP_CB_COMMAND_EL;
-    c->setup.cb_config.byte_count = 8;
-    c->setup.cb_config.mediatype = 1;
-
-    fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_config));
-    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
-    fxp_waitcomplete(&c->setup.cb_config.cb_status);
-
-    // Program MAC address into the adapter
-    c->setup.cb_ias.cb_status = 0;
-    c->setup.cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
-    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->mac_addr[0], 6);
-
-    fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_ias));
-    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
-    fxp_waitcomplete(&c->setup.cb_ias.cb_status);
-
-    // All done
-    cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
-	    c->irq_line, c->iobase,
-	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
-	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
-}
-
-void
-fxp_macaddr(uint8_t *addrbuf)
-{
-    struct fxp_card *c = &the_card;
+    struct fxp_card *c = a;
     memcpy(addrbuf, &c->mac_addr[0], 6);
 }
 
@@ -315,9 +230,9 @@ fxp_thread_wakeup(struct fxp_card *c)
 }
 
 int64_t
-fxp_thread_wait(struct Thread *t, uint64_t waiter, int64_t gen)
+fxp_thread_wait(void *a, struct Thread *t, uint64_t waiter, int64_t gen)
 {
-    struct fxp_card *c = &the_card;
+    struct fxp_card *c = a;
 
     if (waiter != c->waiter) {
 	c->waiter = waiter;
@@ -451,9 +366,9 @@ fxp_intr(void)
 }
 
 static int
-fxp_add_txbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
+fxp_add_txbuf(struct fxp_card *c, struct Segment *sg,
+	      struct netbuf_hdr *nb, uint16_t size)
 {
-    struct fxp_card *c = &the_card;
     int slot = c->tx_nextq;
 
     if (slot == c->tx_head)
@@ -487,9 +402,9 @@ fxp_add_txbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
 }
 
 static int
-fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
+fxp_add_rxbuf(struct fxp_card *c, struct Segment *sg,
+	      struct netbuf_hdr *nb, uint16_t size)
 {
-    struct fxp_card *c = &the_card;
     int slot = c->rx_nextq;
 
     if (slot == c->rx_head)
@@ -518,8 +433,9 @@ fxp_add_rxbuf(struct Segment *sg, struct netbuf_hdr *nb, uint16_t size)
 }
 
 int
-fxp_add_buf(struct Segment *sg, uint64_t offset, netbuf_type type)
+fxp_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
 {
+    struct fxp_card *c = a;
     uint64_t npage = offset / PGSIZE;
     uint32_t pageoff = PGOFF(offset);
 
@@ -537,10 +453,104 @@ fxp_add_buf(struct Segment *sg, uint64_t offset, netbuf_type type)
 	return -E_INVAL;
 
     if (type == netbuf_rx) {
-	return fxp_add_rxbuf(sg, nb, size);
+	return fxp_add_rxbuf(c, sg, nb, size);
     } else if (type == netbuf_tx) {
-	return fxp_add_txbuf(sg, nb, size);
+	return fxp_add_txbuf(c, sg, nb, size);
     } else {
 	return -E_INVAL;
     }
+}
+
+void
+fxp_attach(struct pci_func *pcif)
+{
+    struct fxp_card *c = &the_card;
+
+    if (pcif->reg_size[1] < 64) {
+	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
+		pcif->reg_size[1], pcif->reg_base[1]);
+	return;
+    }
+
+    c->irq_line = pcif->irq_line;
+    c->iobase = pcif->reg_base[1];
+    c->ih.ih_func = &fxp_intr;
+
+    LIST_INIT(&c->waiting);
+
+    for (int i = 0; i < FXP_TX_SLOTS; i++) {
+	int next = (i + 1) % FXP_TX_SLOTS;
+	memset(&c->tx[i], 0, sizeof(c->tx[i]));
+	c->tx[i].tcb.link_addr = kva2pa(&c->tx[next].tcb);
+	c->tx[i].tcb.tbd_array_addr = kva2pa(&c->tx[next].tbd);
+	c->tx[i].tcb.tbd_number = 1;
+	c->tx[i].tcb.tx_threshold = 4;
+    }
+
+    for (int i = 0; i < FXP_RX_SLOTS; i++) {
+	int next = (i + 1) % FXP_RX_SLOTS;
+	memset(&c->rx[i], 0, sizeof(c->rx[i]));
+	c->rx[i].rfd.link_addr = kva2pa(&c->rx[next].rfd);
+	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
+	c->rx[i].rbd.rbd_link = kva2pa(&c->rx[next].rbd);
+    }
+
+    c->rx_head = -1;
+    c->tx_head = -1;
+    fxp_buffer_reset(c);
+
+    // Initialize the card
+    outl(c->iobase + FXP_CSR_PORT, FXP_PORT_SOFTWARE_RESET);
+    kclock_delay(50);
+
+    uint16_t myaddr[3];
+    fxp_eeprom_autosize(c);
+    fxp_eeprom_read(c, &myaddr[0], 0, 3);
+    for (int i = 0; i < 3; i++) {
+	c->mac_addr[2*i + 0] = myaddr[i] & 0xff;
+	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
+    }
+
+    fxp_scb_wait(c);
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, 0);
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_BASE);
+    fxp_scb_wait(c);
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_BASE);
+
+    // Configure the card
+    memset(&c->setup.cb_config, 0, sizeof(c->setup.cb_config));
+    c->setup.cb_config.cb_command = FXP_CB_COMMAND_CONFIG | FXP_CB_COMMAND_EL;
+    c->setup.cb_config.byte_count = 8;
+    c->setup.cb_config.mediatype = 1;
+
+    fxp_scb_wait(c);
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_config));
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
+    fxp_waitcomplete(&c->setup.cb_config.cb_status);
+
+    // Program MAC address into the adapter
+    c->setup.cb_ias.cb_status = 0;
+    c->setup.cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
+    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->mac_addr[0], 6);
+
+    fxp_scb_wait(c);
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_ias));
+    fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
+    fxp_waitcomplete(&c->setup.cb_ias.cb_status);
+
+    // Register card with kernel
+    irq_register(c->irq_line, &c->ih);
+
+    c->netdev.arg = c;
+    c->netdev.macaddr = &fxp_macaddr;
+    c->netdev.add_buf = &fxp_add_buf;
+    c->netdev.thread_wait = &fxp_thread_wait;
+
+    the_net_device = &c->netdev;
+
+    // All done
+    cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+	    c->irq_line, c->iobase,
+	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
+	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
 }
