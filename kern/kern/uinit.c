@@ -134,6 +134,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	cprintf("thread_load_elf: cannot allocate AS: %s\n", e2s(r));
 	return r;
     }
+    as->as_ko.ko_flags = c->ct_ko.ko_flags;
 
     r = container_put(c, &as->as_ko);
     if (r < 0) {
