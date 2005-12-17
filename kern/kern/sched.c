@@ -25,21 +25,8 @@ schedule(void)
 	next = LIST_NEXT(last_thread, th_link);
     if (next == 0)
 	next = LIST_FIRST(&thread_list_runnable);
-
-    struct Thread *guard = next;
-    for (;;) {
-	if (next == 0)
-	    panic("no runnable threads");
-
-	if (next->th_status == thread_runnable)
-	    break;
-
-	next = LIST_NEXT(next, th_link);
-	if (next == 0)
-	    next = LIST_FIRST(&thread_list_runnable);
-	if (next == guard)
-	    panic("no runnable threads");
-    }
+    if (next == 0)
+	panic("no runnable threads: %p", LIST_FIRST(&thread_list_runnable));
 
     last_thread = next;
     thread_run(next);
