@@ -57,6 +57,14 @@ pnic_buffer_reset(struct pnic_card *c)
 // Forward declaration
 static void pnic_intr(void);
 
+static void
+pnic_intr_enable(struct pnic_card *c)
+{
+    outw(c->iobase + PNIC_REG_LEN, 1);
+    outb(c->iobase + PNIC_REG_DATA, 1);
+    outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_MASK_IRQ);
+}
+
 void
 pnic_attach(struct pci_func *pcif)
 {
@@ -82,7 +90,6 @@ pnic_attach(struct pci_func *pcif)
     // Initialize the card
     outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_RESET);
 
-    // Read MAC address
     outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_READ_MAC);
     uint16_t sz = inw(c->iobase + PNIC_REG_LEN);
     if (sz != 6) {
@@ -91,10 +98,7 @@ pnic_attach(struct pci_func *pcif)
     }
     insb(c->iobase + PNIC_REG_DATA, &c->mac_addr[0], 6);
 
-    // Enable interrupts
-    outw(c->iobase + PNIC_REG_LEN, 1);
-    outb(c->iobase + PNIC_REG_DATA, 1);
-    outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_MASK_IRQ);
+    pnic_intr_enable(c);
 
     // All done
     cprintf("pnic: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -143,6 +147,14 @@ pnic_thread_wait(struct Thread *t, uint64_t waiter, int64_t gen)
 }
 
 static void
+pnic_flush_read(struct pnic_card *c, uint16_t size)
+{
+    // Not so efficient, but whatever
+    for (int i = 0; i < size; i++)
+	inb(c->iobase + PNIC_REG_DATA);
+}
+
+static void
 pnic_intr(void)
 {
     struct pnic_card *c = &the_card;
@@ -152,7 +164,7 @@ pnic_intr(void)
 	uint16_t size = inw(c->iobase + PNIC_REG_LEN);
 	if (size != 2) {
 	    cprintf("pnic_intr: PNIC_CMD_RECV_QLEN response size %d\n", size);
-	    return;
+	    break;
 	}
 
 	uint16_t qlen;
@@ -166,12 +178,14 @@ pnic_intr(void)
 	int i = c->rx_head;
 	if (i == -1) {
 	    cprintf("pnic_intr: out of receive buffers\n");
-	    break;
+	    pnic_flush_read(c, size);
+	    continue;
 	}
 
 	if (size > c->rx[i].size) {
 	    cprintf("pnic_intr: receive buffer too small: %d > %d\n",
 		    size, c->rx[i].size);
+	    pnic_flush_read(c, size);
 	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 	} else {
 	    void *buf = (c->rx[i].nb + 1);
@@ -190,6 +204,7 @@ pnic_intr(void)
     }
 
     pnic_thread_wakeup(c);
+    pnic_intr_enable(c);
 }
 
 static int
