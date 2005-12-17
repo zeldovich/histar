@@ -1,3 +1,5 @@
+threads should not have refcounts -- switch ownership on gate call?
+
 threads as 1-slot (or few-slot) containers
 
 what are the right label rules for containers?  consider an
