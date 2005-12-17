@@ -177,7 +177,7 @@ pnic_intr(void)
 
 	int i = c->rx_head;
 	if (i == -1) {
-	    cprintf("pnic_intr: out of receive buffers\n");
+	    //cprintf("pnic_intr: out of receive buffers\n");
 	    pnic_flush_read(c, size);
 	    continue;
 	}
