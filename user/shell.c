@@ -6,6 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/assert.h>
+#include <inc/fs.h>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
@@ -13,7 +14,8 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
-static uint64_t c_root, c_temp;
+static uint64_t c_root;
+static struct cobj_ref fs_root;
 
 static void builtin_help(int ac, char **av);
 
@@ -88,55 +90,6 @@ builtin_list_container(int ac, char **av)
 	print_cobj(ct, i);
 }
 
-static struct {
-    char name[64];
-    struct cobj_ref cobj;
-} dir[256];
-
-static int
-readdir(void)
-{
-    int64_t c_fs = sys_container_get_slot_id(c_root, 0);
-    if (c_fs < 0) {
-	printf("cannot get filesystem container id: %s\n", e2s(c_fs));
-	return c_fs;
-    }
-
-    int64_t dir_id = sys_container_get_slot_id(c_fs, 0);
-    if (dir_id < 0) {
-	printf("cannot get directory segment id: %s\n", e2s(dir_id));
-	return dir_id;
-    }
-
-    uint64_t *dirbuf = 0;
-    int r = segment_map(COBJ(c_fs, dir_id), SEGMAP_READ,
-			(void**)&dirbuf, 0);
-    if (r < 0) {
-	printf("cannot map dir segment <%ld.%ld>: %s\n",
-		c_fs, dir_id, e2s(r));
-	return r;
-    }
-
-    int max_dirent = dirbuf[0];
-    int dirsize = 0;
-    for (int i = 1; i <= max_dirent; i++) {
-	dir[dirsize].cobj = COBJ(c_fs, dirbuf[16*i]);
-	strcpy(dir[dirsize].name, (char*)&dirbuf[16*i+1]);
-	//printf("readdir: %d %ld %s\n", dirsize,
-	//	dir[dirsize].cobj.object, dir[dirsize].name);
-	dirsize++;
-    }
-    //printf("readdir: done\n");
-
-    r = segment_unmap(dirbuf);
-    if (r < 0) {
-	printf("cannot unmap dir segment: %s\n", e2s(r));
-	return r;
-    }
-
-    return dirsize;
-}
-
 static void
 builtin_ls(int ac, char **av)
 {
@@ -145,12 +98,18 @@ builtin_ls(int ac, char **av)
 	return;
     }
 
-    int r = readdir();
-    if (r < 0)
-	return;
+    int n = 0;
+    for (;;) {
+	struct fs_dent de;
+	int r = fs_get_dent(fs_root, n++, &de);
+	if (r < 0) {
+	    if (r != -E_RANGE)
+		cprintf("fs_get_dent: %s", e2s(r));
+	    break;
+	}
 
-    for (int i = 0; i < r; i++)
-	printf("%s\n", dir[i].name);
+	printf("%s\n", de.de_name);
+    }
 }
 
 static void
@@ -161,19 +120,15 @@ builtin_spawn(int ac, char **av)
 	return;
     }
 
-    int r = readdir();
-    if (r < 0)
+    struct cobj_ref o;
+    int r = fs_lookup(fs_root, av[0], &o);
+    if (r < 0) {
+	printf("cannot find %s: %s\n", av[0], e2s(r));
 	return;
-
-    for (int i = 0; i < r; i++) {
-	if (!strcmp(av[0], dir[i].name)) {
-	    int64_t c_spawn = spawn(c_root, dir[i].cobj);
-	    printf("Spawned in container %ld\n", c_spawn);
-	    return;
-	}
     }
 
-    printf("Unable to find %s\n", av[0]);
+    int64_t c_spawn = spawn(c_root, o);
+    printf("Spawned in container %ld\n", c_spawn);
 }
 
 static void
@@ -262,11 +217,14 @@ int
 main(int ac, char **av)
 {
     c_root = start_arg;
-    c_temp = start_arg;
 
-    assert(0 == opencons(c_temp));
+    assert(0 == opencons(c_root));
     assert(1 == dup(0, 1));
     assert(2 == dup(0, 2));
+
+    int r = fs_get_root(c_root, &fs_root);
+    if (r < 0)
+	panic("fs_get_root: %s", e2s(r));
 
     printf("JOS shell (root container %ld)\n", c_root);
 

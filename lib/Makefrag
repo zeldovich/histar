@@ -23,7 +23,8 @@ LIB_SRCFILES :=	\
 	lib/netd_server.c \
 	lib/fd.c \
 	lib/console.c \
-	lib/spawn.c
+	lib/spawn.c \
+	lib/fs.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
