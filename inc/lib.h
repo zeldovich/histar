@@ -32,8 +32,8 @@ int	elf_load(uint64_t container, struct cobj_ref seg,
 		 struct thread_entry *e);
 
 /* libmain.c */
-extern uint64_t start_arg;
-void	libmain(uint64_t arg) __attribute__((__noreturn__));
+extern uint64_t start_arg, start_arg1;
+void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 
 /* printfmt.c */
 const char *e2s(int err);

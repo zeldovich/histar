@@ -1,7 +1,7 @@
 #include <inc/lib.h>
 
 void
-_start(uint64_t arg)
+_start(uint64_t arg0, uint64_t arg1)
 {
-    libmain(arg);
+    libmain(arg0, arg1);
 }
