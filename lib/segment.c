@@ -8,7 +8,7 @@
 #include <inc/error.h>
 #include <inc/string.h>
 
-#define NMAPPINGS	16
+#define NMAPPINGS 32
 
 void
 segment_map_print(struct u_address_space *uas)
