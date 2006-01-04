@@ -202,7 +202,8 @@ kobject_swapin_page(struct kobject *ko, uint64_t page_num, void *p)
     void **pp;
     int r = kobject_get_pagep(ko, page_num, &pp);
     if (r < 0)
-	panic("cannot get slot for swapped-in page: %d", r);
+	panic("cannot get slot for object %ld page %ld: %s",
+	      ko->ko_id, page_num, e2s(r));
 
     *pp = p;
 }
