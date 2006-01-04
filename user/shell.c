@@ -217,6 +217,11 @@ main(int ac, char **av)
 
     for (;;) {
 	char *cmd = readline("jos> ");
+	if (cmd == 0) {
+	    printf("EOF\n");
+	    break;
+	}
+
 	parse_cmd(cmd);
 	run_cmd(cmd_argc, cmd_argv);
     }
