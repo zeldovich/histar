@@ -17,7 +17,7 @@ readline(const char *prompt)
 	buf = &allbufs[curbuf][0];
 
 	if (prompt != NULL)
-		cprintf("%s", prompt);
+		printf("%s", prompt);
 
 	i = 0;
 	echoing = iscons(0);
@@ -25,7 +25,7 @@ readline(const char *prompt)
 		c = getchar();
 		if (c < 0) {
 			if (c != -E_EOF)
-				cprintf("read error: %s\n", e2s(c));
+				printf("read error: %s\n", e2s(c));
 			return NULL;
 		} else if (c == KEY_UP) {
 			buf[i] = 0;
@@ -69,4 +69,3 @@ readline(const char *prompt)
 		}
 	}
 }
-
