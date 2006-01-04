@@ -161,6 +161,7 @@ retry:
 
     if (free_segslot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
+	segment_map_print(&uas);
 	return -E_NO_MEM;
     }
 
