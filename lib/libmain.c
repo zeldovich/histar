@@ -24,6 +24,8 @@ libmain(uint64_t arg0, uint64_t arg1)
     }
 
     main(argc, argv);
+
+    close_all();
     sys_thread_halt();
 
     panic("libmain: still alive after sys_halt");
