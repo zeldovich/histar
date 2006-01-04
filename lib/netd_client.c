@@ -6,9 +6,10 @@
 #include <inc/gate.h>
 #include <inc/fd.h>
 
+static int netd_client_inited;
 static struct cobj_ref netd_gate;
 
-int
+static int
 netd_client_init()
 {
     uint64_t rc = start_env->root_container;
@@ -29,6 +30,7 @@ netd_client_init()
 	    cprintf("netd_client_init: found gate <%ld.%ld>\n",
 		    rc, id);
 	    netd_gate = COBJ(rc, id);
+	    netd_client_inited = 1;
 	    return 0;
 	}
     }
@@ -39,6 +41,12 @@ netd_client_init()
 
 static int
 netd_call(struct netd_op_args *a) {
+    if (netd_client_inited == 0) {
+	int r = netd_client_init();
+	if (r < 0)
+	    return r;
+    }
+
     struct cobj_ref seg;
     void *va = 0;
     int r = segment_alloc(start_env->container, PGSIZE, &seg, &va);

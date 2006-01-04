@@ -33,11 +33,6 @@ telnet_server(void)
             continue;
         }
 
-	// just to test other things while i'm debugging the spawn code below
-	write(ss, "Hello world.\n", 13);
-	close(ss);
-	continue;
-
 	struct cobj_ref sh;
 	r = fs_lookup(start_env->fs_root, "shell", &sh);
 	if (r < 0) {
@@ -60,9 +55,5 @@ telnet_server(void)
 int
 main(int ac, char **av)
 {
-    int r = netd_client_init();
-    if (r < 0)
-	panic("initializing netd client: %s", e2s(r));
-
     telnet_server();
 }

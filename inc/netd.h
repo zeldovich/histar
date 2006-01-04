@@ -65,9 +65,7 @@ struct netd_op_args {
     } args;
 };
 
-int netd_client_init();
 int netd_server_init(uint64_t container);
-
 int socket(int domain, int type, int protocol);
 
 #endif
