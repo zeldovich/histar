@@ -6,7 +6,7 @@
 #include <kern/kobj.h>
 #include <inc/segment.h>
 
-#define NSEGMAP 16
+#define NSEGMAP 32
 struct Address_space {
     struct kobject as_ko;
 
