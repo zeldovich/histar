@@ -34,7 +34,8 @@ telnet_server(void)
         }
 
 	struct cobj_ref sh;
-	r = fs_lookup(start_env->fs_root, "shell", &sh);
+	const char *prog = "hello";
+	r = fs_lookup(start_env->fs_root, prog, &sh);
 	if (r < 0) {
 	    printf("cannot find shell: %s\n", e2s(r));
 	    close(ss);
