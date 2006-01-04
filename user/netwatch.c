@@ -20,8 +20,7 @@ register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 int
 main(int ac, char **av)
 {
-    // our container gets passed as the argument to _start, for now
-    uint64_t ctemp = start_arg;
+    uint64_t ctemp = start_env->container;
 
     struct cobj_ref seg;
     void *va = 0;

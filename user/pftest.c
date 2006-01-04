@@ -7,7 +7,7 @@
 int
 main(int ac, char **av)
 {
-    uint64_t ct = start_arg;
+    uint64_t ct = start_env->container;
 
     struct cobj_ref seg;
     void *va = 0;

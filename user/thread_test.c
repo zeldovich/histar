@@ -22,8 +22,7 @@ main(int ac, char **av)
 {
     uint64_t old_counter = counter;
 
-    // container passed as arg to _start()
-    int c_root = start_arg;
+    int c_root = start_env->container;
     struct cobj_ref t1, t2;
 
     int r = thread_create(c_root, &thread_entry, (void*)3, &t1);

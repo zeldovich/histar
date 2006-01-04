@@ -92,7 +92,7 @@ int
 main(int ac, char **av)
 {
     // container is passed as argument to _start()
-    container = start_arg;
+    container = start_env->container;
 
     struct netif nif;
     lwip_init(&nif);

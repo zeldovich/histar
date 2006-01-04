@@ -32,7 +32,15 @@ int	elf_load(uint64_t container, struct cobj_ref seg,
 		 struct thread_entry *e);
 
 /* libmain.c */
-extern uint64_t start_arg, start_arg1;
+typedef struct {
+    uint64_t container;
+    uint64_t root_container;
+    struct cobj_ref fs_root;
+} start_env_t;
+
+extern uint64_t start_arg0, start_arg1;
+extern start_env_t *start_env;
+
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 
 /* printfmt.c */

@@ -41,7 +41,7 @@ telnet_server(void)
 int
 main(int ac, char **av)
 {
-    uint64_t myct = start_arg;
+    uint64_t myct = start_env->container;
 
     int r = netd_client_init(myct);
     if (r < 0)

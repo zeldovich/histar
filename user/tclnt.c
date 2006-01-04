@@ -9,7 +9,7 @@ main(int ac, char **av)
     cprintf("client process starting.\n");
 
     uint64_t rc = 1;		// abuse the root container
-    uint64_t myct = start_arg;
+    uint64_t myct = start_env->container;
 
     int64_t rslots = sys_container_nslots(rc);
     if (rslots < 0)

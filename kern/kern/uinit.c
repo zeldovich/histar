@@ -200,7 +200,8 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
     }
 
     thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
-		(void*) elf.e_entry, (void*) USTACKTOP, arg, 0, 0);
+		(void*) elf.e_entry, (void*) USTACKTOP,
+		c->ct_ko.ko_id, arg, 0);
     return 0;
 }
 
@@ -276,6 +277,7 @@ user_bootstrap(void)
     EMBED_DECLARE(tserv);
     EMBED_DECLARE(tclnt);
     EMBED_DECLARE(shell);
+    EMBED_DECLARE(init);
 
     // root handle and a label
     uint64_t root_handle = handle_alloc();
@@ -297,8 +299,8 @@ user_bootstrap(void)
     fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, &l, &embed_idle, 0, KOBJ_PIN_IDLE);
-    thread_create_embed(rc, &l, &embed_shell, rc->ct_ko.ko_id, 0);
+    thread_create_embed(rc, &l, &embed_idle, rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+    thread_create_embed(rc, &l, &embed_init, rc->ct_ko.ko_id, 0);
 }
 
 void

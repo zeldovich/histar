@@ -51,6 +51,7 @@ KERN_BINFILES := \
 	user/telnetd \
 	user/tserv \
 	user/tclnt \
+	user/init \
 	user/shell
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))

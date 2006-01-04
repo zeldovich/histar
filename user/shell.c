@@ -14,9 +14,6 @@ static int cmd_argc;
 
 static char separators[] = " \t\n\r";
 
-static uint64_t c_root;
-static struct cobj_ref fs_root;
-
 static void builtin_help(int ac, char **av);
 
 static void
@@ -101,7 +98,7 @@ builtin_ls(int ac, char **av)
     int n = 0;
     for (;;) {
 	struct fs_dent de;
-	int r = fs_get_dent(fs_root, n++, &de);
+	int r = fs_get_dent(start_env->fs_root, n++, &de);
 	if (r < 0) {
 	    if (r != -E_RANGE)
 		cprintf("fs_get_dent: %s", e2s(r));
@@ -121,13 +118,13 @@ builtin_spawn(int ac, char **av)
     }
 
     struct cobj_ref o;
-    int r = fs_lookup(fs_root, av[0], &o);
+    int r = fs_lookup(start_env->fs_root, av[0], &o);
     if (r < 0) {
 	printf("cannot find %s: %s\n", av[0], e2s(r));
 	return;
     }
 
-    int64_t c_spawn = spawn(c_root, o);
+    int64_t c_spawn = spawn(start_env->root_container, o);
     printf("Spawned in container %ld\n", c_spawn);
 }
 
@@ -216,17 +213,7 @@ run_cmd(int ac, char **av)
 int
 main(int ac, char **av)
 {
-    c_root = start_arg;
-
-    assert(0 == opencons(c_root));
-    assert(1 == dup(0, 1));
-    assert(2 == dup(0, 2));
-
-    int r = fs_get_root(c_root, &fs_root);
-    if (r < 0)
-	panic("fs_get_root: %s", e2s(r));
-
-    printf("JOS shell (root container %ld)\n", c_root);
+    printf("JOS: shell\n");
 
     for (;;) {
 	char *cmd = readline("jos> ");

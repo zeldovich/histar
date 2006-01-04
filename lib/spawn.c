@@ -2,6 +2,7 @@
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/elf64.h>
+#include <inc/memlayout.h>
 
 int64_t
 spawn_fd(uint64_t container, struct cobj_ref elf,
@@ -34,6 +35,21 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
     if (r < 0)
 	goto err;
 
+    start_env_t *spawn_env = 0;
+    struct cobj_ref c_spawn_env;
+    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env);
+    if (r < 0)
+	goto err;
+
+    void *spawn_env_va = 0;
+    r = segment_map_as(e.te_as, c_spawn_env, SEGMAP_READ | SEGMAP_WRITE,
+		       &spawn_env_va, 0);
+    if (r < 0)
+	goto err;
+
+    memcpy(spawn_env, start_env, sizeof(*spawn_env));
+    spawn_env->container = c_spawn;
+
     int64_t thread = sys_thread_create(c_spawn);
     if (thread < 0) {
 	cprintf("cannot create thread: %s\n", e2s(thread));
@@ -41,8 +57,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
     }
 
-    // Pass the thread's container as the argument
-    e.te_arg = c_spawn;
+    e.te_arg = (uint64_t) spawn_env_va;
 
     r = sys_thread_start(COBJ(c_spawn, thread), &e);
     if (r < 0) {
