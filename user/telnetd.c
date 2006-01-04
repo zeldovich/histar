@@ -3,6 +3,7 @@
 #include <inc/assert.h>
 #include <inc/string.h>
 #include <inc/netd.h>
+#include <inc/fs.h>
 
 static void
 telnet_server(void)
@@ -32,18 +33,29 @@ telnet_server(void)
             continue;
         }
 
-        char *msg = "Hello world.\n";
-        write(ss, msg, strlen(msg));
-        close(ss);
+	struct cobj_ref sh;
+	r = fs_lookup(start_env->fs_root, "shell", &sh);
+	if (r < 0) {
+	    printf("cannot find shell: %s\n", e2s(r));
+	    close(ss);
+	    continue;
+	}
+
+	int64_t sp = spawn_fd(start_env->root_container, sh, ss, ss, ss);
+	if (sp < 0) {
+	    printf("cannot spawn shell: %s\n", e2s(sp));
+	    close(ss);
+	    continue;
+	}
+
+	close(ss);
     }
 }
 
 int
 main(int ac, char **av)
 {
-    uint64_t myct = start_env->container;
-
-    int r = netd_client_init(myct);
+    int r = netd_client_init();
     if (r < 0)
 	panic("initializing netd client: %s", e2s(r));
 

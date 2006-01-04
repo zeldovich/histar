@@ -7,14 +7,11 @@
 #include <inc/fd.h>
 
 static struct cobj_ref netd_gate;
-static uint64_t netd_ctemp;
 
 int
-netd_client_init(uint64_t ct)
+netd_client_init()
 {
-    netd_ctemp = ct;
-
-    uint64_t rc = 1;
+    uint64_t rc = start_env->root_container;
     int64_t nslots = sys_container_nslots(rc);
     if (nslots < 0)
 	return nslots;
@@ -44,12 +41,12 @@ static int
 netd_call(struct netd_op_args *a) {
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(netd_ctemp, PGSIZE, &seg, &va);
+    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va);
     if (r < 0)
 	return r;
 
     memcpy(va, a, sizeof(*a));
-    gate_call(netd_ctemp, netd_gate, &seg);
+    gate_call(start_env->container, netd_gate, &seg);
 
     memcpy(a, va, sizeof(*a));
     int rval = a->rval;
@@ -63,7 +60,7 @@ int
 socket(int domain, int type, int protocol)
 {
     struct Fd *fd;
-    int r = fd_alloc(netd_ctemp, &fd);
+    int r = fd_alloc(start_env->container, &fd);
     if (r < 0)
 	return r;
 
@@ -116,7 +113,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return -E_INVAL;
 
     struct Fd *nfd;
-    int r = fd_alloc(netd_ctemp, &nfd);
+    int r = fd_alloc(start_env->container, &nfd);
     if (r < 0)
 	return r;
 
