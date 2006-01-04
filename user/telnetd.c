@@ -33,6 +33,11 @@ telnet_server(void)
             continue;
         }
 
+	// just to test other things while i'm debugging the spawn code below
+	write(ss, "Hello world.\n", 13);
+	close(ss);
+	continue;
+
 	struct cobj_ref sh;
 	r = fs_lookup(start_env->fs_root, "shell", &sh);
 	if (r < 0) {
