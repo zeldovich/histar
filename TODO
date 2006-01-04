@@ -12,6 +12,8 @@ in-kernel segment copying
 user-specified container labeling
 larger labels
 
+fixed-size names for all objects
+
 ne2k driver
 
 label checking for network buffers
