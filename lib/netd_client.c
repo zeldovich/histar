@@ -27,8 +27,6 @@ netd_client_init()
 	    return type;
 
 	if (type == kobj_gate) {
-	    cprintf("netd_client_init: found gate <%ld.%ld>\n",
-		    rc, id);
 	    netd_gate = COBJ(rc, id);
 	    netd_client_inited = 1;
 	    return 0;
