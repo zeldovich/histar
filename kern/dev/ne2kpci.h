@@ -4,6 +4,5 @@
 #include <dev/pci.h>
 
 void ne2kpci_attach(struct pci_func *pcif);
-void ne2kpci_intr(void);
 
 #endif
