@@ -164,7 +164,7 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     struct netd_op_args a;
     a.op_type = netd_op_read;
     a.args.read.fd = fd->fd_data.sock.s;
-    a.args.read.count = 1024;
+    a.args.read.count = count;
     int r = netd_call(&a);
     if (r > 0)
 	memcpy(buf, &a.args.read.buf[0], r);
