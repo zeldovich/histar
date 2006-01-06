@@ -253,7 +253,7 @@ ne2kpci_rintr(void)
       else {
 	 ne2kpci_rmt_read(buf, size, (c->next_pkt << ED_PAGE_SHIFT) + 4) ;
 	 c->rx[i].nb->actual_count = size ;
-	 ne2kpci_print_packet(&c->rx[i]) ;
+	 //ne2kpci_print_packet(&c->rx[i]) ;
       }
       c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE ;
       
