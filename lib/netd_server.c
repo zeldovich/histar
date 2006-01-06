@@ -39,6 +39,12 @@ netd_dispatch(struct netd_op_args *a)
 	}
 	break;
 
+    case netd_op_read:
+	a->rval = lwip_read(a->args.read.fd,
+			    &a->args.read.buf[0],
+			    a->args.read.count);
+	break;
+
     case netd_op_write:
 	a->rval = lwip_write(a->args.write.fd,
 			     &a->args.write.buf[0],
