@@ -7,8 +7,22 @@
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/string.h>
+#include <inc/atomic.h>
 
 #define NMAPPINGS 32
+
+static atomic_t as_mutex;
+
+static void
+as_mutex_lock() {
+    while (atomic_compare_exchange(&as_mutex, 0, 1) != 0)
+	sys_thread_yield();
+}
+
+static void
+as_mutex_unlock() {
+    atomic_set(&as_mutex, 0);
+}
 
 void
 segment_map_print(struct u_address_space *uas)
@@ -38,17 +52,23 @@ segment_unmap(void *va)
     if (r < 0)
 	return r;
 
+    as_mutex_lock();
     r = sys_as_get(as_ref, &uas);
-    if (r < 0)
+    if (r < 0) {
+	as_mutex_unlock();
 	return r;
+    }
 
     for (int i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].va == va && uas.ents[i].flags) {
 	    uas.ents[i].flags = 0;
-	    return sys_as_set(as_ref, &uas);
+	    r = sys_as_set(as_ref, &uas);
+	    as_mutex_unlock();
+	    return r;
 	}
     }
 
+    as_mutex_unlock();
     return -E_INVAL;
 }
 
@@ -111,10 +131,14 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     struct segment_mapping ents[NMAPPINGS];
     memset(&ents, 0, sizeof(ents));
 
+    as_mutex_lock();
+
     struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
     int r = sys_as_get(as_ref, &uas);
-    if (r < 0)
+    if (r < 0) {
+	as_mutex_unlock();
 	return r;
+    }
 
     int free_segslot = uas.nent;
     char *va_start = (char *) UMMAPBASE;
@@ -127,6 +151,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 
 	if (va_start >= (char *) ULIM) {
 	    cprintf("segment_map: VA %p over ulim\n", va_start);
+	    as_mutex_unlock();
 	    return -E_INVAL;
 	}
     }
@@ -150,18 +175,21 @@ retry:
 
 	if (fixed_va && m_start < va_end && m_end > va_start) {
 	    cprintf("segment_map: fixed VA %p busy\n", va_start);
+	    as_mutex_unlock();
 	    return -E_NO_MEM;
 	}
     }
 
     if (!fixed_va && va_end >= (char*) USTACKTOP) {
 	cprintf("out of virtual address space!\n");
+	as_mutex_unlock();
 	return -E_NO_MEM;
     }
 
     if (free_segslot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
 	segment_map_print(&uas);
+	as_mutex_unlock();
 	return -E_NO_MEM;
     }
 
@@ -173,6 +201,7 @@ retry:
     uas.nent = NMAPPINGS;
 
     r = sys_as_set(as_ref, &uas);
+    as_mutex_unlock();
     if (r < 0)
 	return r;
 
