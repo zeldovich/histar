@@ -5,6 +5,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/longjmp.S \
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/gate_entry.c \
+	lib/$(ARCH)/stack.S \
 	lib/memcpy.c \
 	lib/memset.c \
 	lib/syscall.c \

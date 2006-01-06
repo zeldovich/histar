@@ -5,18 +5,41 @@
 #include <inc/assert.h>
 #include <inc/atomic.h>
 #include <inc/memlayout.h>
+#include <inc/stack.h>
 
 struct gate_call_args {
     struct cobj_ref return_gate;
     struct cobj_ref arg;
 };
 
-// The assembly gate_entry code jumps here, once the thread has been
-// addref'ed to the container and the entry stack has been locked.
+struct gate_entry_stack_info {
+    struct cobj_ref obj;
+    void *va;
+};
 
-void __attribute__((noreturn))
-gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+static void __attribute__((noreturn))
+gate_return_entrystack(struct u_gate_entry *ug,
+		       struct cobj_ref *return_gate_p,
+		       struct cobj_ref *arg_p,
+		       struct gate_entry_stack_info *stackinfp)
 {
+    struct gate_entry_stack_info stackinf = *stackinfp;
+    struct cobj_ref return_gate = *return_gate_p;
+    struct cobj_ref arg = *arg_p;
+
+    segment_unmap(stackinf.va);
+    sys_obj_unref(stackinf.obj);
+
+    gate_return(ug, return_gate, arg);
+}
+
+static void __attribute__((noreturn))
+gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
+		    struct gate_entry_stack_info *stackinfp)
+{
+    struct gate_entry_stack_info stackinf = *stackinfp;
+    atomic_set(&ug->entry_stack_use, 0);
+
     struct gate_call_args *call_args = 0;
     int r = segment_map(call_args_obj, SEGMAP_READ, (void**) &call_args, 0);
     if (r < 0)
@@ -30,19 +53,46 @@ gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 	panic("gate_entry: cannot unmap argument page: %s", e2s(r));
 
     ug->func(ug->func_arg, &arg);
-    gate_return(ug, return_gate, arg);
+
+    while (atomic_compare_exchange(&ug->entry_stack_use, 0, 1) != 0)
+	sys_thread_yield();
+
+    stack_switch((uint64_t) ug,
+		 (uint64_t) &return_gate,
+		 (uint64_t) &arg,
+		 (uint64_t) &stackinf,
+		 ug->stackbase + PGSIZE,
+		 &gate_return_entrystack);
+}
+
+// The assembly gate_entry code jumps here, once the thread has been
+// addref'ed to the container and the entry stack has been locked.
+void __attribute__((noreturn))
+gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+{
+    int stackpages = 2;
+
+    struct gate_entry_stack_info stackinf;
+    stackinf.va = 0;
+    int r = segment_alloc(ug->container, stackpages * PGSIZE,
+			  &stackinf.obj, &stackinf.va);
+    if (r < 0)
+	panic("gate_entry_locked: cannot allocate new stack: %s", e2s(r));
+
+    stack_switch((uint64_t) ug,
+		 call_args_obj.container,
+		 call_args_obj.object,
+		 (uint64_t) &stackinf,
+		 stackinf.va + stackpages * PGSIZE,
+		 &gate_entry_newstack);
 }
 
 int
 gate_create(struct u_gate_entry *ug, uint64_t container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg)
 {
-    // XXX should only need one page here, but until we do COW stacks,
-    // the lwip code takes up a lot of stack space..
-
     ug->stackbase = 0;
-    int stackpages = 2;
-    int r = segment_alloc(container, stackpages * PGSIZE,
+    int r = segment_alloc(container, PGSIZE,
 			  &ug->stackpage, &ug->stackbase);
     if (r < 0)
 	return r;
@@ -61,7 +111,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 
     struct thread_entry te = {
 	.te_entry = &gate_entry,
-	.te_stack = ug->stackbase + stackpages * PGSIZE,
+	.te_stack = ug->stackbase + PGSIZE,
 	.te_arg = (uint64_t) ug,
     };
 
