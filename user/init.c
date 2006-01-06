@@ -4,6 +4,22 @@
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/memlayout.h>
+#include <inc/syscall.h>
+
+static void
+spawn_fs(const char *pn)
+{
+    struct cobj_ref fsobj;
+    int r = fs_lookup(start_env->fs_root, pn, &fsobj);
+    if (r < 0)
+	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
+
+    r = spawn(start_env->root_container, fsobj);
+    if (r < 0)
+	panic("cannot spawn %s: %s\n", pn, e2s(r));
+
+    printf("init: spawned %s\n", pn);
+}
 
 int
 main(int ac, char **av)
@@ -28,14 +44,9 @@ main(int ac, char **av)
 
     printf("JOS: init (root container %ld)\n", c_root);
 
-    struct cobj_ref sh;
-    r = fs_lookup(start_env->fs_root, "shell", &sh);
-    if (r < 0)
-	panic("cannot find shell: %s", e2s(r));
-
-    r = spawn(c_root, sh);
-    if (r < 0)
-	panic("cannot spawn shell: %s", e2s(r));
+    spawn_fs("shell");
+    spawn_fs("netd");
+    spawn_fs("telnetd");
 
     return 0;
 }
