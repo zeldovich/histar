@@ -182,7 +182,11 @@ as_pagefault(struct Address_space *as, void *va)
 	return r;
 
     if (r < 0) {
-	cprintf("as_pagefault(%ld, %p): %s\n", as->as_ko.ko_id, va, e2s(r));
+	cprintf("as_pagefault(%ld: %s, %p): %s\n",
+			      as->as_ko.ko_id,
+			      as->as_ko.ko_name[0] ? &as->as_ko.ko_name[0]
+						   : "unnamed",
+			      va, e2s(r));
 	return r;
     }
 
