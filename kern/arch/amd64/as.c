@@ -1,6 +1,7 @@
 #include <machine/x86.h>
 #include <machine/as.h>
 #include <kern/segment.h>
+#include <kern/container.h>
 #include <inc/error.h>
 
 int
@@ -98,6 +99,74 @@ as_gc(struct Address_space *as)
     return 0;
 }
 
+static int
+as_pmap_fill_segment(struct Pagemap *pgmap, struct Segment *sg, void *va,
+		     uint64_t start_page, uint64_t num_pages, uint64_t flags)
+{
+    char *cva = (char *) va;
+    if (PGOFF(cva))
+	return -E_INVAL;
+
+    for (int64_t i = start_page; i < start_page + num_pages; i++) {
+	void *pp;
+	int r = kobject_get_page(&sg->sg_ko, i, &pp);
+
+	if (((uint64_t) cva) >= ULIM)
+	    r = -E_INVAL;
+
+	uint64_t ptflags = PTE_NX;
+	if ((flags & SEGMAP_WRITE))
+	    ptflags |= PTE_W;
+	if ((flags & SEGMAP_EXEC))
+	    ptflags &= ~PTE_NX;
+
+	if (r == 0) {
+	    page_remove(pgmap, cva);
+	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
+	}
+	if (r < 0) {
+	    for (; i >= start_page; i--) {
+		page_remove(pgmap, cva);
+		cva -= PGSIZE;
+	    }
+	}
+
+	cva += PGSIZE;
+    }
+
+    return 0;
+}
+
+static int
+as_pmap_fill(struct segment_mapping *segmap,
+	     struct Pagemap *pgmap, void *va)
+{
+    for (int i = 0; i < NSEGMAP; i++) {
+	uint64_t flags = segmap[i].flags;
+	if (flags == 0)
+	    continue;
+
+	uint64_t start_page = segmap[i].start_page;
+	uint64_t npages = segmap[i].num_pages;
+	void *va_start = segmap[i].va;
+	void *va_end = va_start + npages * PGSIZE;
+	if (va < va_start || va >= va_end)
+	    continue;
+
+	struct cobj_ref seg_ref = segmap[i].segment;
+	struct Segment *sg;
+	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
+			 (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
+	if (r < 0)
+	    return r;
+
+	r = as_pmap_fill_segment(pgmap, sg, va_start, start_page, npages, flags);
+	return r;
+    }
+
+    return -E_INVAL;
+}
+
 int
 as_pagefault(struct Address_space *as, void *va)
 {
@@ -107,7 +176,7 @@ as_pagefault(struct Address_space *as, void *va)
 	    return r;
     }
 
-    int r = segment_map_fill_pmap(&as->as_segmap[0], as->as_pgmap, va);
+    int r = as_pmap_fill(&as->as_segmap[0], as->as_pgmap, va);
     if (r == -E_RESTART)
 	return r;
 
