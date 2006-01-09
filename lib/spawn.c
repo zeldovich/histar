@@ -16,8 +16,17 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	return c_spawn;
     }
 
+    char name[KOBJ_NAME_LEN];
+    int r = sys_obj_get_name(elf, &name[0]);
+    if (r < 0)
+	goto err;
+
+    r = sys_obj_set_name(c_spawn_ref, &name[0]);
+    if (r < 0)
+	goto err;
+
     struct thread_entry e;
-    int r = elf_load(c_spawn, elf, &e);
+    r = elf_load(c_spawn, elf, &e);
     if (r < 0) {
 	cprintf("cannot load ELF: %s\n", e2s(r));
 	goto err;
@@ -41,6 +50,10 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
     if (r < 0)
 	goto err;
 
+    r = sys_obj_set_name(c_spawn_env, "env");
+    if (r < 0)
+	goto err;
+
     void *spawn_env_va = 0;
     r = segment_map_as(e.te_as, c_spawn_env, SEGMAP_READ | SEGMAP_WRITE,
 		       &spawn_env_va, 0);
@@ -56,10 +69,14 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	r = thread;
 	goto err;
     }
+    struct cobj_ref tobj = COBJ(c_spawn, thread);
+
+    r = sys_obj_set_name(tobj, &name[0]);
+    if (r < 0)
+	return r;
 
     e.te_arg = (uint64_t) spawn_env_va;
-
-    r = sys_thread_start(COBJ(c_spawn, thread), &e);
+    r = sys_thread_start(tobj, &e);
     if (r < 0) {
 	cprintf("cannot start thread: %s\n", e2s(r));
 	goto err;

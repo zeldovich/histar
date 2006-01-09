@@ -9,9 +9,14 @@
 int
 elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 {
+    char elfname[KOBJ_NAME_LEN], objname[KOBJ_NAME_LEN];
+    int r = sys_obj_get_name(seg, &elfname[0]);
+    if (r < 0)
+	return r;
+
     char *segbuf = 0;
     uint64_t bytes;
-    int r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &bytes);
+    r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &bytes);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
 	return r;
@@ -42,6 +47,11 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	    return r;
 	}
 
+	snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
+	r = sys_obj_set_name(seg, &objname[0]);
+	if (r < 0)
+	    return r;
+
 	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
 	r = segment_unmap(sbuf);
 	if (r < 0) {
@@ -71,6 +81,11 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	return r;
     }
 
+    snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
+    r = sys_obj_set_name(stack, &objname[0]);
+    if (r < 0)
+	return r;
+
     char *stacktop = (char*) USTACKTOP;
     e->te_stack = stacktop;
 
@@ -89,6 +104,10 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
     }
 
     e->te_as = COBJ(container, as_id);
+    r = sys_obj_set_name(e->te_as, &elfname[0]);
+    if (r < 0)
+	return r;
+
     r = sys_as_set(e->te_as, &uas);
     if (r < 0) {
 	cprintf("elf_load: cannot load address space: %s\n", e2s(r));
