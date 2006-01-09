@@ -11,9 +11,10 @@
 static struct pstate_header stable_hdr;
 
 // Scratch-space for a copy of the header used while reading/writing.
+#define PSTATE_BUF_SIZE		(3*PGSIZE)
 static union {
     struct pstate_header hdr;
-    char buf[2*PGSIZE];
+    char buf[PSTATE_BUF_SIZE];
 } pstate_buf;
 
 //////////////////////////////////
@@ -338,7 +339,7 @@ pstate_init(void)
 
     state.done = 0;
     state.cb = 6;
-    int r = disk_io(op_read, &pstate_buf.buf[0], 2*PGSIZE, 0, &init_hdr_cb, 0);
+    int r = disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0, &init_hdr_cb, 0);
     if (r < 0) {
 	cprintf("pstate_init: cannot submit disk IO\n");
 	return r;
@@ -430,7 +431,8 @@ sync_kobj(void)
     if (swapout_state.ko == 0) {
 	freelist_commit(&state.hdr->ph_free);
 	state.cb = 2;
-	int r = disk_io(op_write, state.hdr, 2*PGSIZE, 0, sync_header_cb, 0);
+	int r = disk_io(op_write, state.hdr, PSTATE_BUF_SIZE, 0,
+			sync_header_cb, 0);
 	if (r < 0) {
 	    cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
 	    state.done = r;
@@ -461,7 +463,7 @@ sync_kobj(void)
 void
 pstate_sync(void)
 {
-    static_assert(sizeof(pstate_buf.hdr) <= 2*PGSIZE);
+    static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     state.hdr = &pstate_buf.hdr;
     memcpy(state.hdr, &stable_hdr, sizeof(stable_hdr));
 

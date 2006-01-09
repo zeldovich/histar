@@ -27,7 +27,7 @@ struct pstate_free_list {
     char inuse[NUM_PH_PAGES];
 };
 
-#define NUM_PH_OBJECTS		100
+#define NUM_PH_OBJECTS		200
 struct pstate_map {
     struct pstate_mapent ent[NUM_PH_OBJECTS];
 };
