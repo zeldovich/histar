@@ -3,6 +3,7 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
+#include <inc/syscall.h>
 
 // Maximum number of file descriptors a program may hold open concurrently
 #define MAXFD		32
@@ -41,7 +42,7 @@ fd2num(struct Fd *fd)
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
 int
-fd_alloc(uint64_t container, struct Fd **fd_store)
+fd_alloc(uint64_t container, struct Fd **fd_store, char *name)
 {
 	int i;
 	struct Fd *fd;
@@ -63,6 +64,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store)
 	if (r < 0)
 		return r;
 
+	sys_obj_set_name(seg, name);
 	fd->fd_seg = seg;
 	atomic_set(&fd->fd_ref, 1);
 	fd->fd_dev_id = 0;

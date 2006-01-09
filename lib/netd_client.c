@@ -64,6 +64,8 @@ netd_call(struct netd_op_args *a) {
     if (r < 0)
 	return r;
 
+    sys_obj_set_name(seg, "netd_call args");
+
     memcpy(va, a, sizeof(*a));
     gate_call(start_env->container, netd_gate, &seg);
 
@@ -79,7 +81,7 @@ int
 socket(int domain, int type, int protocol)
 {
     struct Fd *fd;
-    int r = fd_alloc(start_env->container, &fd);
+    int r = fd_alloc(start_env->container, &fd, "socket fd");
     if (r < 0)
 	return r;
 
@@ -132,7 +134,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return -E_INVAL;
 
     struct Fd *nfd;
-    int r = fd_alloc(start_env->container, &nfd);
+    int r = fd_alloc(start_env->container, &nfd, "socket fd -- accept");
     if (r < 0)
 	return r;
 

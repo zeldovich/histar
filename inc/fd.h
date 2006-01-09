@@ -46,7 +46,7 @@ struct Fd
 
 char*	fd2data(struct Fd *fd);
 int	fd2num(struct Fd *fd);
-int	fd_alloc(uint64_t container, struct Fd **fd_store);
+int	fd_alloc(uint64_t container, struct Fd **fd_store, char *name);
 int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store);
 int	dev_lookup(int devid, struct Dev **dev_store);
