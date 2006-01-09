@@ -22,7 +22,15 @@ main(int ac, char **av)
 	    continue;
 
 	kobject_type_t type = sys_obj_get_type(COBJ(rc, id));
-	if (type == kobj_gate)
+	if (type != kobj_gate)
+	    continue;
+
+	char name[KOBJ_NAME_LEN];
+	int r = sys_obj_get_name(COBJ(rc, id), &name[0]);
+	if (r < 0)
+	    continue;
+
+	if (!strcmp(&name[0], "tserv"))
 	    break;
     }
 

@@ -77,6 +77,6 @@ netd_gate_entry(void *x, struct cobj_ref *arg)
 int
 netd_server_init(uint64_t ct)
 {
-    int r = gate_create(&netd_gate, ct, &netd_gate_entry, 0);
+    int r = gate_create(&netd_gate, ct, &netd_gate_entry, 0, "netd");
     return r;
 }

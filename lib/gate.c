@@ -79,6 +79,17 @@ gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
     if (r < 0)
 	panic("gate_entry_locked: cannot allocate new stack: %s", e2s(r));
 
+    char name[KOBJ_NAME_LEN];
+    r = sys_obj_get_name(ug->gate, &name[0]);
+    if (r < 0)
+	panic("gate_entry_locked: sys_obj_get_name: %s", e2s(r));
+
+    char sname[KOBJ_NAME_LEN];
+    snprintf(&sname[0], KOBJ_NAME_LEN, "gate stack for %s", name);
+    r = sys_obj_set_name(stackinf.obj, &sname[0]);
+    if (r < 0)
+	panic("gate_entry_locked: sys_obj_set_name: %s", e2s(r));
+
     stack_switch((uint64_t) ug,
 		 call_args_obj.container,
 		 call_args_obj.object,
@@ -89,11 +100,18 @@ gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 
 int
 gate_create(struct u_gate_entry *ug, uint64_t container,
-	    void (*func) (void*, struct cobj_ref*), void *func_arg)
+	    void (*func) (void*, struct cobj_ref*), void *func_arg,
+	    char *name)
 {
     ug->stackbase = 0;
     int r = segment_alloc(container, PGSIZE,
 			  &ug->stackpage, &ug->stackbase);
+    if (r < 0)
+	return r;
+
+    char sname[KOBJ_NAME_LEN];
+    snprintf(&sname[0], KOBJ_NAME_LEN, "entry stack for %s", name);
+    r = sys_obj_set_name(ug->stackpage, &sname[0]);
     if (r < 0)
 	return r;
 
@@ -105,7 +123,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     uint64_t label_ents[8];
     struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
 
-    r  = thread_get_label(container, &ul);
+    r = thread_get_label(container, &ul);
     if (r < 0)
 	goto out;
 
@@ -126,6 +144,7 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     }
 
     ug->gate = COBJ(container, gate_id);
+    sys_obj_set_name(ug->gate, name);
     return 0;
 
 out:
@@ -179,6 +198,7 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
 	return gate_id;
 
     *return_gatep = COBJ(ctemp, gate_id);
+    sys_obj_set_name(*return_gatep, "return gate");
     return 0;
 }
 
@@ -191,11 +211,15 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
     if (r < 0)
 	goto out1;
 
+    sys_obj_set_name(gate_args_obj, "gate call args");
+
     struct cobj_ref return_stack_obj;
     void *return_stack = 0;
     r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack);
     if (r < 0)
 	goto out2;
+
+    sys_obj_set_name(return_stack_obj, "gate return stack");
 
     struct jmp_buf back_from_call;
     struct gate_return *gr = return_stack;

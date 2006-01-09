@@ -22,12 +22,21 @@ netd_client_init()
 	if (id < 0)
 	    continue;
 
-	kobject_type_t type = sys_obj_get_type(COBJ(rc, id));
+	struct cobj_ref ko = COBJ(rc, id);
+	kobject_type_t type = sys_obj_get_type(ko);
 	if (type < 0)
 	    return type;
 
-	if (type == kobj_gate) {
-	    netd_gate = COBJ(rc, id);
+	if (type != kobj_gate)
+	    continue;
+
+	char name[KOBJ_NAME_LEN];
+	int r = sys_obj_get_name(ko, &name[0]);
+	if (r < 0)
+	    continue;
+
+	if (!strcmp(&name[0], "netd")) {
+	    netd_gate = ko;
 	    netd_client_inited = 1;
 	    return 0;
 	}

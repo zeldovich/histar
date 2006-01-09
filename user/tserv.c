@@ -29,7 +29,7 @@ main(int ac, char **av)
     int rc = 1;		// abuse the root container
 
     char *msg = "Hello world.";
-    int r = gate_create(&ug, rc, &ts_gate_entry, msg);
+    int r = gate_create(&ug, rc, &ts_gate_entry, msg, "tserv");
     if (r < 0)
 	panic("gate_create: %s", e2s(r));
 }
