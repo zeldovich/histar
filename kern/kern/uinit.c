@@ -278,6 +278,7 @@ user_bootstrap(void)
     EMBED_DECLARE(netwatch);
     EMBED_DECLARE(netd);
     EMBED_DECLARE(telnetd);
+    EMBED_DECLARE(httpd);
     EMBED_DECLARE(tserv);
     EMBED_DECLARE(tclnt);
     EMBED_DECLARE(shell);
