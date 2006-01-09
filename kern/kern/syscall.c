@@ -160,6 +160,24 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
     check(label_to_ulabel(&ko->ko_label, ul));
 }
 
+static void
+sys_obj_get_name(struct cobj_ref cobj, char *name)
+{
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
+    check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
+    strncpy(name, &ko->ko_name[0], KOBJ_NAME_LEN);
+}
+
+static void
+sys_obj_set_name(struct cobj_ref cobj, char *name)
+{
+    struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_write));
+    check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
+    strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
+}
+
 static uint64_t
 sys_container_nslots(uint64_t container)
 {
@@ -386,6 +404,14 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     case SYS_obj_get_label:
 	sys_obj_get_label(COBJ(a1, a2), (struct ulabel *) a3);
+	break;
+
+    case SYS_obj_get_name:
+	sys_obj_get_name(COBJ(a1, a2), (char *) a3);
+	break;
+
+    case SYS_obj_set_name:
+	sys_obj_set_name(COBJ(a1, a2), (char *) a3);
 	break;
 
     case SYS_container_nslots:

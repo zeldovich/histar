@@ -9,6 +9,7 @@ void *memcpy(void *dest, const void *src, size_t len);
 char *strchr (const char *p, int ch);
 int strcmp (const char *s1, const char *s2);
 size_t strlen (const char *);
+char *strncpy(char *dest, const char *src, size_t size);
 
 void vprintfmt (void (*putch) (int, void *), void *putdat,
 		const char *fmt, va_list ap)

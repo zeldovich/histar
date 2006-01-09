@@ -40,28 +40,38 @@ print_cobj(uint64_t ct, uint64_t slot)
     int r;
     switch (type) {
     case kobj_gate:
-	printf("gate\n");
+	printf("gate");
 	break;
 
     case kobj_thread:
-	printf("thread\n");
+	printf("thread");
 	break;
 
     case kobj_container:
-	printf("container\n");
+	printf("container");
 	break;
 
     case kobj_segment:
 	r = sys_segment_get_npages(cobj);
-	printf("segment (%d pages)\n", r);
+	printf("segment (%d pages)", r);
 	break;
 
     case kobj_address_space:
-	printf("address space\n");
+	printf("address space");
 	break;
 
     default:
-	printf("unknown (%d)\n", type);
+	printf("unknown (%d)", type);
+    }
+
+    char name[KOBJ_NAME_LEN];
+    r = sys_obj_get_name(cobj, &name[0]);
+    if (r < 0) {
+	printf(" (cannot get name: %s)\n", e2s(r));
+    } else if (name[0]) {
+	printf(": %s\n", name);
+    } else {
+	printf("\n");
     }
 }
 

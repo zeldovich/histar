@@ -24,6 +24,7 @@ struct kobject {
     uint64_t ko_npages;
     struct Label ko_label;
     LIST_ENTRY(kobject) ko_link;
+    char ko_name[KOBJ_NAME_LEN];
 
     void *ko_pages[KOBJ_DIRECT_PAGES];
     void **ko_pages_indir1;

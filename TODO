@@ -2,19 +2,10 @@ threads should not have refcounts -- switch ownership on gate call?
 
 threads as 1-slot (or few-slot) containers
 
-what are the right label rules for containers?  consider an
-example of a gate that needs to store COW segments for different
-contaminations.  in what container could it store these segments,
-and where would that container itself be stored?
-
 user-specified segment labeling
 in-kernel segment copying
 user-specified container labeling
 larger labels
-
-fixed-size names for all objects
-
-ne2k driver
 
 label checking for network buffers
 factor out common network driver code into kern/dev/netdev.c

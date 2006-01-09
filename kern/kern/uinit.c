@@ -207,14 +207,15 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
 static void
 thread_create_embed(struct Container *c, struct Label *l,
-		    struct embedded_blob *prog, uint64_t arg,
-		    uint64_t koflag)
+		    struct embedded_blob *prog, char *name,
+		    uint64_t arg, uint64_t koflag)
 {
     struct Container *tc;
     int r = container_alloc(l, &tc);
     if (r < 0)
 	panic("tce: cannot alloc container: %s", e2s(r));
     tc->ct_ko.ko_flags = koflag;
+    strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
 
     int tcslot = container_put(c, &tc->ct_ko);
     if (tcslot < 0)
@@ -225,6 +226,7 @@ thread_create_embed(struct Container *c, struct Label *l,
     if (r < 0)
 	panic("tce: cannot allocate thread: %s", e2s(r));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
+    strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
 
     r = container_put(tc, &t->th_ko);
     if (r < 0)
@@ -243,6 +245,7 @@ fs_init(struct Container *c, struct Label *l)
     // Directory block is segment #0 in fs container
     struct Segment *fs_names;
     assert(0 == segment_create_embed(c, l, 4*PGSIZE, 0, 0, &fs_names));
+    strncpy(&fs_names->sg_ko.ko_name[0], "directory", KOBJ_NAME_LEN - 1);
 
     uint64_t *fs_dir;
     assert(0 == kobject_get_page(&fs_names->sg_ko, 0, (void**)&fs_dir));
@@ -256,6 +259,7 @@ fs_init(struct Container *c, struct Label *l)
 	uint64_t nent = ++fs_dir[0];
 	fs_dir[nent*16] = s->sg_ko.ko_id;
 	memcpy(&fs_dir[nent*16+1], e->name, strlen(e->name) + 1);
+	strncpy(&s->sg_ko.ko_name[0], e->name, KOBJ_NAME_LEN - 1);
     }
 }
 
@@ -290,17 +294,19 @@ user_bootstrap(void)
     struct Container *rc;
     assert(0 == container_alloc(&l, &rc));
     kobject_incref(&rc->ct_ko);
+    strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
     assert(0 == container_alloc(&l, &fsc));
     assert(0 == container_put(rc, &fsc->ct_ko));
+    strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
     fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, &l, &embed_idle, rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
-    thread_create_embed(rc, &l, &embed_init, rc->ct_ko.ko_id, 0);
+    thread_create_embed(rc, &l, &embed_idle, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+    thread_create_embed(rc, &l, &embed_init, "init", rc->ct_ko.ko_id, 0);
 }
 
 void

@@ -68,6 +68,18 @@ sys_obj_get_label(struct cobj_ref o, struct ulabel *l)
     return syscall(SYS_obj_get_label, o.container, o.object, (uint64_t) l, 0, 0);
 }
 
+int
+sys_obj_get_name(struct cobj_ref o, char *name)
+{
+    return syscall(SYS_obj_get_name, o.container, o.object, (uint64_t) name, 0, 0);
+}
+
+int
+sys_obj_set_name(struct cobj_ref o, char *name)
+{
+    return syscall(SYS_obj_set_name, o.container, o.object, (uint64_t) name, 0, 0);
+}
+
 int64_t
 sys_container_nslots(uint64_t container)
 {

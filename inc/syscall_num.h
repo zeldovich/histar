@@ -16,6 +16,8 @@ typedef enum {
     SYS_obj_unref,
     SYS_obj_get_type,
     SYS_obj_get_label,
+    SYS_obj_get_name,
+    SYS_obj_set_name,
 
     SYS_handle_create,
 
