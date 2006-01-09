@@ -76,7 +76,7 @@ start_timer(struct timer_thread *t, void (*func)(), int msec)
 {
     t->msec = msec;
     t->func = func;
-    int r = thread_create(container, &net_timer, t, &t->thread);
+    int r = thread_create(container, &net_timer, t, &t->thread, "timer thread");
     if (r < 0)
 	panic("cannot create timer thread: %s", e2s(r));
 }
@@ -99,7 +99,8 @@ main(int ac, char **av)
     dhcp_start(&nif);
 
     struct cobj_ref receive_thread;
-    int r = thread_create(container, &net_receive, &nif, &receive_thread);
+    int r = thread_create(container, &net_receive, &nif, &receive_thread,
+			  "rx thread");
     if (r < 0)
 	panic("cannot create receiver thread: %s", e2s(r));
 

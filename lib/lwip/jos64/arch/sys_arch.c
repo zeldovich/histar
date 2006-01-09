@@ -205,7 +205,8 @@ sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
     threads[i].arg = arg;
 
     uint64_t container = start_env->container;
-    int r = thread_create(container, &sys_thread_entry, (void*)i, &threads[i].tobj);
+    int r = thread_create(container, &sys_thread_entry, (void*)i,
+			  &threads[i].tobj, "lwip thread");
     if (r < 0)
 	panic("lwip: sys_thread_new: cannot create: %s\n", e2s(r));
 

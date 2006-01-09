@@ -97,6 +97,8 @@ low_level_init(struct netif *netif)
 	panic("jif: cannot allocate %d buffer pages: %s\n",
 	      JIF_BUFS, e2s(r));
 
+    sys_obj_set_name(jif->buf_seg, "jif rx/tx buffers");
+
     for (int i = 0; i < JIF_BUFS; i++) {
 	jif->rx[i] = jif->buf_base + i * PGSIZE;
 	jif->rx[i]->size = 2000;

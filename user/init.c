@@ -46,7 +46,8 @@ main(int ac, char **av)
 
     spawn_fs("shell");
     spawn_fs("netd");
-    spawn_fs("telnetd");
+    //spawn_fs("telnetd");
+    spawn_fs("httpd");
 
     return 0;
 }

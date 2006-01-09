@@ -4,7 +4,8 @@
 #include <inc/assert.h>
 
 int
-thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp)
+thread_create(uint64_t container, void (*entry)(void*), void *arg,
+	      struct cobj_ref *threadp, char *name)
 {
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
@@ -12,6 +13,8 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
     int r = segment_alloc(container, stacksize, &stack, &stackbase);
     if (r < 0)
 	return r;
+
+    sys_obj_set_name(stack, "thread stack");
 
     struct thread_entry e;
     r = sys_thread_get_as(&e.te_as);
@@ -33,6 +36,8 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_r
     }
 
     *threadp = COBJ(container, tid);
+    sys_obj_set_name(*threadp, name);
+
     r = sys_thread_start(*threadp, &e);
     if (r < 0) {
 	segment_unmap(stackbase);

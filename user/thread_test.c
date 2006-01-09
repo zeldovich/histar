@@ -25,11 +25,11 @@ main(int ac, char **av)
     int c_root = start_env->container;
     struct cobj_ref t1, t2;
 
-    int r = thread_create(c_root, &thread_entry, (void*)3, &t1);
+    int r = thread_create(c_root, &thread_entry, (void*)3, &t1, "t1");
     if (r < 0)
 	printf("cannot create thread 1: %s\n", e2s(r));
 
-    r = thread_create(c_root, &thread_entry, (void*)4, &t2);
+    r = thread_create(c_root, &thread_entry, (void*)4, &t2, "t2");
     if (r < 0)
 	printf("cannot create thread 2: %s\n", e2s(r));
 

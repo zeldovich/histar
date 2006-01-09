@@ -57,7 +57,7 @@ http_server(void)
 
 	struct cobj_ref t;
 	int r = thread_create(start_env->container, &http_client,
-			      (void*) (int64_t) ss, &t);
+			      (void*) (int64_t) ss, &t, "http client");
 	if (r < 0) {
 	    printf("cannot spawn client thread: %s\n", e2s(r));
 	    close(ss);

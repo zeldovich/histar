@@ -47,7 +47,8 @@ void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 const char *e2s(int err);
 
 /* thread.c */
-int	thread_create(uint64_t container, void (*entry)(void*), void *arg, struct cobj_ref *threadp);
+int	thread_create(uint64_t container, void (*entry)(void*),
+		      void *arg, struct cobj_ref *threadp, char *name);
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
