@@ -138,30 +138,31 @@ as_pmap_fill_segment(struct Pagemap *pgmap, struct Segment *sg, void *va,
 }
 
 static int
-as_pmap_fill(struct segment_mapping *segmap,
-	     struct Pagemap *pgmap, void *va)
+as_pmap_fill(struct Address_space *as, void *va)
 {
     for (int i = 0; i < NSEGMAP; i++) {
-	uint64_t flags = segmap[i].flags;
+	struct segment_mapping *segmap = &as->as_segmap[i];
+
+	uint64_t flags = segmap->flags;
 	if (flags == 0)
 	    continue;
 
-	uint64_t start_page = segmap[i].start_page;
-	uint64_t npages = segmap[i].num_pages;
-	void *va_start = segmap[i].va;
+	uint64_t start_page = segmap->start_page;
+	uint64_t npages = segmap->num_pages;
+	void *va_start = segmap->va;
 	void *va_end = va_start + npages * PGSIZE;
 	if (va < va_start || va >= va_end)
 	    continue;
 
-	struct cobj_ref seg_ref = segmap[i].segment;
+	struct cobj_ref seg_ref = segmap->segment;
 	struct Segment *sg;
 	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
 			 (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
 	if (r < 0)
 	    return r;
 
-	r = as_pmap_fill_segment(pgmap, sg, va_start, start_page, npages, flags);
-	return r;
+	return as_pmap_fill_segment(as->as_pgmap, sg, va_start,
+				    start_page, npages, flags);
     }
 
     return -E_INVAL;
@@ -176,7 +177,7 @@ as_pagefault(struct Address_space *as, void *va)
 	    return r;
     }
 
-    int r = as_pmap_fill(&as->as_segmap[0], as->as_pgmap, va);
+    int r = as_pmap_fill(as, va);
     if (r == -E_RESTART)
 	return r;
 
