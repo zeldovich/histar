@@ -116,7 +116,10 @@ fd_close(struct Fd *fd)
 
 	r = (*dev->dev_close)(fd);
 
+	struct cobj_ref seg = fd->fd_seg;
 	segment_unmap(fd);
+	sys_obj_unref(seg);
+
 	return r;
 }
 
