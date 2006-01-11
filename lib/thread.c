@@ -3,46 +3,75 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 
+static void __attribute__((noreturn))
+thread_entry(void *arg)
+{
+    struct thread_args *ta = arg;
+
+    ta->entry(ta->arg);
+
+    // XXX need to unmap ta->stackbase
+    // but how without using asm?
+    // maybe jump to a static stack with a mutex around it..
+    sys_obj_unref(ta->container);
+
+    thread_halt();
+}
+
 int
 thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, char *name)
 {
+    int64_t thread_ct = sys_container_alloc(container);
+    if (thread_ct < 0)
+	return thread_ct;
+
+    struct cobj_ref tct = COBJ(container, thread_ct);
+    sys_obj_set_name(tct, name);
+
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
     void *stackbase = 0;
-    int r = segment_alloc(container, stacksize, &stack, &stackbase);
-    if (r < 0)
+    int r = segment_alloc(thread_ct, stacksize, &stack, &stackbase);
+    if (r < 0) {
+	sys_obj_unref(tct);
 	return r;
+    }
 
     sys_obj_set_name(stack, "thread stack");
+
+    struct thread_args *ta = stackbase + stacksize - sizeof(*ta);
+    ta->container = tct;
+    ta->stackbase = stackbase;
+    ta->entry = entry;
+    ta->arg = arg;
 
     struct thread_entry e;
     r = sys_thread_get_as(&e.te_as);
     if (r < 0) {
 	segment_unmap(stackbase);
-	sys_obj_unref(stack);
+	sys_obj_unref(tct);
 	return r;
     }
 
-    e.te_entry = entry;
-    e.te_stack = stackbase + stacksize;
-    e.te_arg = (uint64_t) arg;
+    e.te_entry = &thread_entry;
+    e.te_stack = ta;
+    e.te_arg = (uint64_t) ta;
 
-    int64_t tid = sys_thread_create(container);
+    int64_t tid = sys_thread_create(thread_ct);
     if (tid < 0) {
 	segment_unmap(stackbase);
-	sys_obj_unref(stack);
+	sys_obj_unref(tct);
 	return tid;
     }
 
-    *threadp = COBJ(container, tid);
+    *threadp = COBJ(thread_ct, tid);
     sys_obj_set_name(*threadp, name);
 
     r = sys_thread_start(*threadp, &e);
     if (r < 0) {
 	segment_unmap(stackbase);
-	sys_obj_unref(stack);
-	sys_obj_unref(*threadp);
+	sys_obj_unref(tct);
 	return r;
     }
 

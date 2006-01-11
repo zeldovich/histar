@@ -47,6 +47,14 @@ void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 const char *e2s(int err);
 
 /* thread.c */
+struct thread_args {
+    struct cobj_ref container;
+    void *stackbase;
+
+    void (*entry)(void *);
+    void *arg;
+};
+
 int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, char *name);
 uint64_t thread_id(void);

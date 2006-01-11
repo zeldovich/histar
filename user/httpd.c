@@ -20,11 +20,6 @@ http_client(void *arg)
 
     write(s, resp, strlen(resp));
     close(s);
-
-    sys_obj_unref(COBJ(start_env->container, thread_id()));
-    sys_thread_halt();
-
-    // XXX this doesn't GC the thread stack!
 }
 
 static void
