@@ -120,6 +120,9 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     if (r < 0)
 	return r;
 
+    // Ensure that we're not pinning any segments
+    as_invalidate(as);
+
     r = as_resize(as, nent);
     if (r < 0)
 	return r;
@@ -216,11 +219,18 @@ as_pmap_fill_segment(struct Address_space *as,
 	cva += PGSIZE;
     }
 
-    sm->sm_as = as;
-    sm->sm_sg = sg;
+    if (sm->sm_sg != sg) {
+	if (sm->sm_sg) {
+	    LIST_REMOVE(sm, sm_link);
+	    kobject_decpin(&sm->sm_sg->sg_ko);
+	}
 
-    LIST_INSERT_HEAD(&sg->sg_segmap_list, sm, sm_link);
-    kobject_incpin(&sg->sg_ko);
+	sm->sm_as = as;
+	sm->sm_sg = sg;
+
+	LIST_INSERT_HEAD(&sg->sg_segmap_list, sm, sm_link);
+	kobject_incpin(&sg->sg_ko);
+    }
 
     return 0;
 }
