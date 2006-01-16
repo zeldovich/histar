@@ -1,5 +1,5 @@
-#ifndef JOS_DEV_NETDEV_H
-#define JOS_DEV_NETDEV_H
+#ifndef JOS_KERN_NETDEV_H
+#define JOS_KERN_NETDEV_H
 
 #include <machine/types.h>
 #include <machine/thread.h>
