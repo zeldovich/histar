@@ -5,8 +5,22 @@
 #include <machine/types.h>
 #include <kern/kobj.h>
 #include <inc/segment.h>
+#include <inc/queue.h>
 
 #define NSEGMAP 32
+
+struct Address_space;
+
+struct segment_mapping {
+    struct u_segment_mapping sm_usm;
+
+    struct Address_space *sm_as;
+    struct Segment *sm_sg;
+    LIST_ENTRY(segment_mapping) sm_link;
+};
+
+LIST_HEAD(segmap_list, segment_mapping);
+
 struct Address_space {
     struct kobject as_ko;
 

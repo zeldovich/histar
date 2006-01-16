@@ -22,7 +22,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	return r;
     }
 
-    struct segment_mapping sm_ents[16];
+    struct u_segment_mapping sm_ents[16];
     int si = 0;
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;

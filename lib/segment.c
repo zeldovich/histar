@@ -44,7 +44,7 @@ segment_map_print(struct u_address_space *uas)
 int
 segment_unmap(void *va)
 {
-    struct segment_mapping ents[NMAPPINGS];
+    struct u_segment_mapping ents[NMAPPINGS];
     struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
 
     struct cobj_ref as_ref;
@@ -75,7 +75,7 @@ segment_unmap(void *va)
 int
 segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 {
-    struct segment_mapping ents[NMAPPINGS];
+    struct u_segment_mapping ents[NMAPPINGS];
     struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
 
     struct cobj_ref as_ref;
@@ -128,7 +128,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	return npages;
     uint64_t bytes = npages * PGSIZE;
 
-    struct segment_mapping ents[NMAPPINGS];
+    struct u_segment_mapping ents[NMAPPINGS];
     memset(&ents, 0, sizeof(ents));
 
     as_mutex_lock();

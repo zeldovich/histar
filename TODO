@@ -29,7 +29,6 @@ kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 copy-on-write kobjects
 page reclamation, LRU
 snapshotting pstate_sync()
-pin segment pages that are referenced in page maps
 
 deal with segment fragmentation on-disk
 

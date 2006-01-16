@@ -10,7 +10,7 @@
 #define SEGMAP_WRITE	0x02
 #define SEGMAP_READ	0x04
 
-struct segment_mapping {
+struct u_segment_mapping {
     struct cobj_ref segment;
     uint64_t start_page;
     uint64_t num_pages;
@@ -21,7 +21,7 @@ struct segment_mapping {
 struct u_address_space {
     uint64_t size;
     uint64_t nent;
-    struct segment_mapping *ents;
+    struct u_segment_mapping *ents;
 };
 
 #endif

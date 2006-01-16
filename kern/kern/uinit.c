@@ -57,11 +57,11 @@ elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
 	return -E_NO_MEM;
     }
 
-    as->as_segmap[*smi].segment = seg;
-    as->as_segmap[*smi].start_page = start_page;
-    as->as_segmap[*smi].num_pages = num_pages;
-    as->as_segmap[*smi].flags = flags;
-    as->as_segmap[*smi].va = va;
+    as->as_segmap[*smi].sm_usm.segment = seg;
+    as->as_segmap[*smi].sm_usm.start_page = start_page;
+    as->as_segmap[*smi].sm_usm.num_pages = num_pages;
+    as->as_segmap[*smi].sm_usm.flags = flags;
+    as->as_segmap[*smi].sm_usm.va = va;
     (*smi)++;
     return 0;
 }
