@@ -65,11 +65,15 @@ thread_swapin(struct Thread *t)
 	(t->th_status == thread_runnable) ? &thread_list_runnable
 					  : &thread_list_limbo;
     LIST_INSERT_HEAD(tq, t, th_link);
+
+    // Threads are always pinned in-core
+    kobject_incpin(&t->th_ko);
 }
 
 void
 thread_swapout(struct Thread *t)
 {
+    kobject_decpin(&t->th_ko);
     LIST_REMOVE(t, th_link);
 }
 
