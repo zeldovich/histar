@@ -30,6 +30,18 @@ struct kobject {
     void **ko_pages_indir1;
 };
 
+struct kobject_buf {
+    union {
+	struct kobject hdr;
+	uint8_t buf[1024];
+    } u;
+};
+
+struct kobject_pair {
+    struct kobject_buf active;
+    struct kobject_buf snapshot;
+};
+
 LIST_HEAD(kobject_list, kobject);
 extern struct kobject_list ko_list;
 

@@ -12,6 +12,8 @@ container_alloc(struct Label *l, struct Container **cp)
     if (r < 0)
 	return r;
 
+    static_assert(sizeof(*c) <= sizeof(struct kobject_buf));
+
     *cp = c;
     return 0;
 }

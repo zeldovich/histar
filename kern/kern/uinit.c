@@ -52,7 +52,7 @@ static int
 elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
 	       uint64_t start_page, uint64_t num_pages, void *va, uint64_t flags)
 {
-    if (*smi >= NSEGMAP) {
+    if (*smi >= N_SEGMAP_DIRECT) {
 	cprintf("ELF: too many segments\n");
 	return -E_NO_MEM;
     }

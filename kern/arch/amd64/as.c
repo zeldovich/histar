@@ -12,6 +12,8 @@ as_alloc(struct Label *l, struct Address_space **asp)
     if (r < 0)
 	return r;
 
+    static_assert(sizeof(*as) <= sizeof(struct kobject_buf));
+
     memset(&as->as_segmap, 0, sizeof(as->as_segmap));
     as_swapin(as);
 
@@ -24,6 +26,51 @@ as_invalidate(struct Address_space *as)
 {
     as_swapout(as);
     as_swapin(as);
+}
+
+static int
+as_nents(struct Address_space *as)
+{
+    return N_SEGMAP_DIRECT + as->as_ko.ko_npages * N_SEGMAP_PER_PAGE;
+}
+
+static int
+as_get_segmap(struct Address_space *as, struct segment_mapping **smp,
+	      uint64_t smi)
+{
+    if (smi < N_SEGMAP_DIRECT) {
+	*smp = &as->as_segmap[smi];
+	return 0;
+    }
+    smi -= N_SEGMAP_DIRECT;
+
+    for (uint64_t i = 0; i < as->as_ko.ko_npages; i++) {
+	if (smi < N_SEGMAP_PER_PAGE) {
+	    struct segment_mapping *p;
+	    int r = kobject_get_page(&as->as_ko, i, (void **) &p);
+	    if (r < 0)
+		return r;
+
+	    *smp = &p[smi];
+	    return 0;
+	}
+	smi -= N_SEGMAP_PER_PAGE;
+    }
+
+    return -E_RANGE;
+}
+
+static int
+as_resize(struct Address_space *as, uint64_t nent)
+{
+    uint64_t npages = 0;
+
+    if (nent > N_SEGMAP_DIRECT) {
+	nent -= N_SEGMAP_DIRECT;
+	npages = (nent + N_SEGMAP_PER_PAGE - 1) / N_SEGMAP_PER_PAGE;
+    }
+
+    return kobject_set_npages(&as->as_ko, npages);
 }
 
 int
@@ -40,14 +87,19 @@ as_to_user(struct Address_space *as, struct u_address_space *uas)
 	return r;
 
     uint64_t nent = 0;
-    for (uint64_t i = 0; i < NSEGMAP; i++) {
-	if (as->as_segmap[i].sm_usm.flags == 0)
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    return r;
+
+	if (sm->sm_usm.flags == 0)
 	    continue;
 
 	if (nent >= size)
 	    return -E_NO_SPACE;
 
-	ents[nent] = as->as_segmap[i].sm_usm;
+	ents[nent] = sm->sm_usm;
 	nent++;
     }
 
@@ -68,12 +120,20 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     if (r < 0)
 	return r;
 
-    if (nent > NSEGMAP)
-	return -E_NO_SPACE;
+    r = as_resize(as, nent);
+    if (r < 0)
+	return r;
 
-    memset(&as->as_segmap, 0, sizeof(as->as_segmap));
-    for (uint64_t i = 0; i < nent; i++)
-	as->as_segmap[i].sm_usm = ents[i];
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    return r;
+
+	memset(sm, 0, sizeof(*sm));
+	if (i < nent)
+	    sm->sm_usm = ents[i];
+    }
 
     as_invalidate(as);
     return 0;
@@ -84,8 +144,11 @@ as_swapin(struct Address_space *as)
 {
     as->as_pgmap = &bootpml4;
 
-    for (int i = 0; i < NSEGMAP; i++)
-	as->as_segmap[i].sm_sg = 0;
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	assert(0 == as_get_segmap(as, &sm, i));
+	sm->sm_sg = 0;
+    }
 }
 
 void
@@ -94,10 +157,12 @@ as_swapout(struct Address_space *as)
     if (as->as_pgmap && as->as_pgmap != &bootpml4)
 	page_map_free(as->as_pgmap);
 
-    for (int i = 0; i < NSEGMAP; i++) {
-	if (as->as_segmap[i].sm_sg) {
-	    LIST_REMOVE(&as->as_segmap[i], sm_link);
-	    kobject_decpin(&as->as_segmap[i].sm_sg->sg_ko);
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	assert(0 == as_get_segmap(as, &sm, i));
+	if (sm->sm_sg) {
+	    LIST_REMOVE(sm, sm_link);
+	    kobject_decpin(&sm->sm_sg->sg_ko);
 	}
     }
 }
@@ -163,8 +228,11 @@ as_pmap_fill_segment(struct Address_space *as,
 static int
 as_pmap_fill(struct Address_space *as, void *va)
 {
-    for (int i = 0; i < NSEGMAP; i++) {
-	struct segment_mapping *segmap = &as->as_segmap[i];
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *segmap;
+	int r = as_get_segmap(as, &segmap, i);
+	if (r < 0)
+	    return r;
 
 	uint64_t flags = segmap->sm_usm.flags;
 	if (flags == 0)
@@ -178,8 +246,8 @@ as_pmap_fill(struct Address_space *as, void *va)
 
 	struct cobj_ref seg_ref = segmap->sm_usm.segment;
 	struct Segment *sg;
-	int r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
-			 (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
+	r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
+		     (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
 	if (r < 0)
 	    return r;
 

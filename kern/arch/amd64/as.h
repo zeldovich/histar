@@ -7,8 +7,6 @@
 #include <inc/segment.h>
 #include <inc/queue.h>
 
-#define NSEGMAP 32
-
 struct Address_space;
 
 struct segment_mapping {
@@ -21,11 +19,14 @@ struct segment_mapping {
 
 LIST_HEAD(segmap_list, segment_mapping);
 
+#define N_SEGMAP_DIRECT		7
+#define N_SEGMAP_PER_PAGE	(PGSIZE / sizeof(struct segment_mapping))
+
 struct Address_space {
     struct kobject as_ko;
 
     struct Pagemap *as_pgmap;
-    struct segment_mapping as_segmap[NSEGMAP];
+    struct segment_mapping as_segmap[N_SEGMAP_DIRECT];
 };
 
 int  as_alloc(struct Label *l, struct Address_space **asp);

@@ -12,6 +12,8 @@ segment_alloc(struct Label *l, struct Segment **sgp)
     if (r < 0)
 	return r;
 
+    static_assert(sizeof(*sg) <= sizeof(struct kobject_buf));
+
     *sgp = sg;
     return 0;
 }

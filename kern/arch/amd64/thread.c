@@ -46,6 +46,8 @@ thread_alloc(struct Label *l, struct Thread **tp)
     if (r < 0)
 	return r;
 
+    static_assert(sizeof(*t) <= sizeof(struct kobject_buf));
+
     t->th_status = thread_not_started;
     thread_swapin(t);
 
