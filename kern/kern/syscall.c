@@ -2,7 +2,6 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <dev/console.h>
-#include <dev/netdev.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>
@@ -12,6 +11,7 @@
 #include <kern/segment.h>
 #include <kern/handle.h>
 #include <kern/timer.h>
+#include <kern/netdev.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>

@@ -25,7 +25,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/kobj.c \
 	    kern/kern/timer.c \
 	    kern/kern/pstate.c \
-	    kern/kern/uinit.c
+	    kern/kern/uinit.c \
+	    kern/kern/netdev.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 

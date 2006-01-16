@@ -6,12 +6,12 @@
 #include <dev/pci.h>
 #include <dev/pnic.h>
 #include <dev/pnicreg.h>
-#include <dev/netdev.h>
 #include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
+#include <kern/netdev.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>

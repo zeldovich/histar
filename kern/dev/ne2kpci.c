@@ -3,9 +3,9 @@
 #include <machine/x86.h>
 #include <dev/ne2kpci.h>
 #include <dev/dp8390reg.h>
-#include <dev/netdev.h>
 #include <kern/intr.h>
 #include <kern/lib.h>
+#include <kern/netdev.h>
 #include <inc/error.h>
 #include <inc/netdev.h>
 
