@@ -76,7 +76,7 @@ sys_net_wait(uint64_t waiter_id, int64_t waitgen)
     if (ndev == 0)
 	syscall_error(-E_INVAL);
 
-    return check(ndev->thread_wait(ndev->arg, cur_thread, waiter_id, waitgen));
+    return check(netdev_thread_wait(ndev, cur_thread, waiter_id, waitgen));
 }
 
 static void
@@ -89,7 +89,7 @@ sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
     // XXX think harder about labeling in this case...
     struct Segment *sg;
     check(cobj_get(seg, kobj_segment, (struct kobject **)&sg, iflow_none));
-    check(ndev->add_buf(ndev->arg, sg, offset, type));
+    check(netdev_add_buf(ndev, sg, offset, type));
 }
 
 static void
@@ -99,7 +99,7 @@ sys_net_macaddr(uint8_t *addrbuf)
     if (ndev == 0)
 	syscall_error(-E_INVAL);
 
-    ndev->macaddr(ndev->arg, addrbuf);
+    netdev_macaddr(ndev, addrbuf);
 }
 
 static kobject_id_t

@@ -31,7 +31,6 @@ struct ne2kpci_card {
    
    uint8_t irq_line ;
    uint32_t iobase ;
-   uint8_t mac_addr[6] ;
    struct interrupt_handler ih ;
    
    struct ne2kpci_rx_slot rx[NE2KPCI_RX_SLOTS];
@@ -40,10 +39,6 @@ struct ne2kpci_card {
    int rx_nextq;	// next slot for rx buffer
    uint8_t next_pkt ;
    
-   uint64_t waiter ;
-   int64_t waitgen ;
-   struct Thread_list waiting;
-
    struct net_device netdev ;
 };
 
@@ -62,43 +57,10 @@ ne2kpci_buffer_reset(struct ne2kpci_card *c)
    c->rx_nextq = 0;
 }
 
-void
-ne2kpci_macaddr(void *a, uint8_t *addrbuf)
-{
-    struct ne2kpci_card *c = a;
-    memcpy(addrbuf, &c->mac_addr[0], 6);
-}
-
 static void
-ne2kpci_thread_wakeup(struct ne2kpci_card *c)
+ne2kpci_buffer_reset_v(void *a)
 {
-    c->waitgen++;
-    if (c->waitgen <= 0)
-	c->waitgen = 1;
-
-    while (!LIST_EMPTY(&c->waiting)) {
-	struct Thread *t = LIST_FIRST(&c->waiting);
-	thread_set_runnable(t);
-    }
-}
-
-int64_t
-ne2kpci_thread_wait(void *a, struct Thread *t, uint64_t waiter, int64_t gen)
-{
-    struct ne2kpci_card *c = a;
-
-    if (waiter != c->waiter) {
-	c->waiter = waiter;
-	c->waitgen = 0;
-	ne2kpci_buffer_reset(c);
-	return -E_AGAIN;
-    }
-
-    if (gen != c->waitgen)
-	return c->waitgen;
-
-    thread_suspend(t, &c->waiting);
-    return -E_RESTART;
+    ne2kpci_buffer_reset(a);
 }
 
 static void
@@ -201,12 +163,12 @@ ne2kpci_init(void)
    uint8_t buf[12] ;
    ne2kpci_rmt_read(buf, 12, 0x00) ;
    for (int i = 0 ; i < 6 ; i++)
-      c->mac_addr[i] = buf[i * 2] ;
+      c->netdev.mac_addr[i] = buf[i * 2] ;
    
    // set the station address
    outb(c->iobase + ED_P0_CR, ED_CR_PAGE_1 | ED_CR_RD2  | ED_CR_STP);
    for (int i = 0 ; i < 6 ; i++) 
-      outb(c->iobase + ED_P1_PAR0 + i, c->mac_addr[i]) ;
+      outb(c->iobase + ED_P1_PAR0 + i, c->netdev.mac_addr[i]) ;
    
    // accept all multicast
    for (int i = 0 ; i < 8 ; i++)
@@ -298,7 +260,7 @@ ne2kpci_intr(void)
    
    outb(c->iobase + ED_P0_ISR, 0xFF) ;
 
-   ne2kpci_thread_wakeup(c) ;
+   netdev_thread_wakeup(&c->netdev) ;
 }
 
 static int
@@ -320,7 +282,7 @@ ne2kpci_add_txbuf(struct ne2kpci_card *c, struct Segment *sg,
    
    nb->actual_count |= NETHDR_COUNT_DONE ;
    
-   ne2kpci_thread_wakeup(c) ;
+   netdev_thread_wakeup(&c->netdev) ;
    return 0 ;
 }
 
@@ -378,15 +340,11 @@ void
 ne2kpci_attach(struct pci_func *pcif)
 {
     struct ne2kpci_card *c = &the_card;
+    memset(c, 0, sizeof(*c));
 
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[0];
     c->ih.ih_func = &ne2kpci_intr ;
-    
-    LIST_INIT(&c->waiting);
-    
-    for (int i = 0; i < NE2KPCI_RX_SLOTS; i++)
-       memset(&c->rx[i], 0, sizeof(c->rx[i]));
     
     ne2kpci_buffer_reset(c);
 
@@ -401,14 +359,14 @@ ne2kpci_attach(struct pci_func *pcif)
     irq_register(c->irq_line, &c->ih) ;
     
     c->netdev.arg = c ;
-    c->netdev.macaddr = &ne2kpci_macaddr ;
     c->netdev.add_buf = &ne2kpci_add_buf ;
-    c->netdev.thread_wait = &ne2kpci_thread_wait ;
+    c->netdev.buffer_reset = &ne2kpci_buffer_reset_v ;
     
     the_net_device = &c->netdev ;
     
     cprintf("ne2k: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    c->irq_line, c->iobase,
-	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
-	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
+	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
+	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
+	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
 }

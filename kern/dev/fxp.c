@@ -37,7 +37,6 @@ struct fxp_rx_slot {
 struct fxp_card {
     uint32_t iobase;
     uint8_t irq_line;
-    uint8_t mac_addr[6];
     uint16_t eeprom_width;
     struct interrupt_handler ih;
 
@@ -51,10 +50,6 @@ struct fxp_card {
     int tx_head;	// card transmitting from tx_head, -1 if none
     int tx_nextq;	// next slot for tx buffer
     bool_t tx_halted;	// transmitter is not running and not suspended
-
-    uint64_t waiter;
-    int64_t waitgen;
-    struct Thread_list waiting;
 
     struct net_device netdev;
 
@@ -209,43 +204,10 @@ fxp_buffer_reset(struct fxp_card *c)
     c->tx_halted = 1;
 }
 
-void
-fxp_macaddr(void *a, uint8_t *addrbuf)
-{
-    struct fxp_card *c = a;
-    memcpy(addrbuf, &c->mac_addr[0], 6);
-}
-
 static void
-fxp_thread_wakeup(struct fxp_card *c)
+fxp_buffer_reset_v(void *a)
 {
-    c->waitgen++;
-    if (c->waitgen <= 0)
-	c->waitgen = 1;
-
-    while (!LIST_EMPTY(&c->waiting)) {
-	struct Thread *t = LIST_FIRST(&c->waiting);
-	thread_set_runnable(t);
-    }
-}
-
-int64_t
-fxp_thread_wait(void *a, struct Thread *t, uint64_t waiter, int64_t gen)
-{
-    struct fxp_card *c = a;
-
-    if (waiter != c->waiter) {
-	c->waiter = waiter;
-	c->waitgen = 0;
-	fxp_buffer_reset(c);
-	return -E_AGAIN;
-    }
-
-    if (gen != c->waitgen)
-	return c->waitgen;
-
-    thread_suspend(t, &c->waiting);
-    return -E_RESTART;
+    fxp_buffer_reset(a);
 }
 
 static int
@@ -364,7 +326,7 @@ fxp_intr(void)
 	}
     }
 
-    fxp_thread_wakeup(c);
+    netdev_thread_wakeup(&c->netdev);
 }
 
 static int
@@ -467,6 +429,7 @@ void
 fxp_attach(struct pci_func *pcif)
 {
     struct fxp_card *c = &the_card;
+    memset(&c->netdev, 0, sizeof(c->netdev));
 
     if (pcif->reg_size[1] < 64) {
 	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
@@ -477,8 +440,6 @@ fxp_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[1];
     c->ih.ih_func = &fxp_intr;
-
-    LIST_INIT(&c->waiting);
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	int next = (i + 1) % FXP_TX_SLOTS;
@@ -509,8 +470,8 @@ fxp_attach(struct pci_func *pcif)
     fxp_eeprom_autosize(c);
     fxp_eeprom_read(c, &myaddr[0], 0, 3);
     for (int i = 0; i < 3; i++) {
-	c->mac_addr[2*i + 0] = myaddr[i] & 0xff;
-	c->mac_addr[2*i + 1] = myaddr[i] >> 8;
+	c->netdev.mac_addr[2*i + 0] = myaddr[i] & 0xff;
+	c->netdev.mac_addr[2*i + 1] = myaddr[i] >> 8;
     }
 
     fxp_scb_wait(c);
@@ -533,7 +494,7 @@ fxp_attach(struct pci_func *pcif)
     // Program MAC address into the adapter
     c->setup.cb_ias.cb_status = 0;
     c->setup.cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
-    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->mac_addr[0], 6);
+    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->netdev.mac_addr[0], 6);
 
     fxp_scb_wait(c);
     outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_ias));
@@ -544,15 +505,15 @@ fxp_attach(struct pci_func *pcif)
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
-    c->netdev.macaddr = &fxp_macaddr;
     c->netdev.add_buf = &fxp_add_buf;
-    c->netdev.thread_wait = &fxp_thread_wait;
+    c->netdev.buffer_reset = &fxp_buffer_reset_v;
 
     the_net_device = &c->netdev;
 
     // All done
     cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    c->irq_line, c->iobase,
-	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
-	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
+	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
+	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
+	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
 }

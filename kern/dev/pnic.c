@@ -27,17 +27,12 @@ struct pnic_rx_slot {
 struct pnic_card {
     uint32_t iobase;
     uint8_t irq_line;
-    uint8_t mac_addr[6];
     struct interrupt_handler ih;
 
     struct pnic_rx_slot rx[PNIC_RX_SLOTS];
 
     int rx_head;	// receive into rx_head, -1 if none
     int rx_nextq;	// next slot for rx buffer
-
-    uint64_t waiter;
-    int64_t waitgen;
-    struct Thread_list waiting;
 
     struct net_device netdev;
 };
@@ -58,50 +53,17 @@ pnic_buffer_reset(struct pnic_card *c)
 }
 
 static void
+pnic_buffer_reset_v(void *a)
+{
+    pnic_buffer_reset(a);
+}
+
+static void
 pnic_intr_enable(struct pnic_card *c)
 {
     outw(c->iobase + PNIC_REG_LEN, 1);
     outb(c->iobase + PNIC_REG_DATA, 1);
     outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_MASK_IRQ);
-}
-
-void
-pnic_macaddr(void *a, uint8_t *addrbuf)
-{
-    struct pnic_card *c = a;
-    memcpy(addrbuf, &c->mac_addr[0], 6);
-}
-
-static void
-pnic_thread_wakeup(struct pnic_card *c)
-{
-    c->waitgen++;
-    if (c->waitgen <= 0)
-	c->waitgen = 1;
-
-    while (!LIST_EMPTY(&c->waiting)) {
-	struct Thread *t = LIST_FIRST(&c->waiting);
-	thread_set_runnable(t);
-    }
-}
-
-int64_t
-pnic_thread_wait(void *a, struct Thread *t, uint64_t waiter, int64_t gen)
-{
-    struct pnic_card *c = a;
-
-    if (waiter != c->waiter) {
-	c->waiter = waiter;
-	c->waitgen = 0;
-	pnic_buffer_reset(c);
-	return -E_AGAIN;
-    }
-
-    if (gen != c->waitgen)
-	return c->waitgen;
-
-    thread_suspend(t, &c->waiting);
-    return -E_RESTART;
 }
 
 static void
@@ -161,7 +123,7 @@ pnic_intr(void)
 	    c->rx_head = -1;
     }
 
-    pnic_thread_wakeup(c);
+    netdev_thread_wakeup(&c->netdev);
     pnic_intr_enable(c);
 }
 
@@ -181,7 +143,7 @@ pnic_add_txbuf(struct pnic_card *c, struct Segment *sg,
     }
     nb->actual_count |= NETHDR_COUNT_DONE;
 
-    pnic_thread_wakeup(c);
+    netdev_thread_wakeup(&c->netdev);
     return 0;
 }
 
@@ -239,6 +201,7 @@ void
 pnic_attach(struct pci_func *pcif)
 {
     struct pnic_card *c = &the_card;
+    memset(c, 0, sizeof(*c));
 
     if (pcif->reg_size[4] < 5) {
 	cprintf("pnic_attach: io window too small %d\n", pcif->reg_size[4]);
@@ -248,11 +211,6 @@ pnic_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[4];
     c->ih.ih_func = &pnic_intr;
-
-    LIST_INIT(&c->waiting);
-
-    for (int i = 0; i < PNIC_RX_SLOTS; i++)
-	memset(&c->rx[i], 0, sizeof(c->rx[i]));
 
     pnic_buffer_reset(c);
 
@@ -265,15 +223,14 @@ pnic_attach(struct pci_func *pcif)
 	cprintf("pnic_attach: MAC address size mismatch (%d)\n", sz);
 	return;
     }
-    insb(c->iobase + PNIC_REG_DATA, &c->mac_addr[0], 6);
+    insb(c->iobase + PNIC_REG_DATA, &c->netdev.mac_addr[0], 6);
 
     pnic_intr_enable(c);
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
-    c->netdev.macaddr = &pnic_macaddr;
     c->netdev.add_buf = &pnic_add_buf;
-    c->netdev.thread_wait = &pnic_thread_wait;
+    c->netdev.buffer_reset = &pnic_buffer_reset_v;
 
     // Register this card with the kernel
     the_net_device = &c->netdev;
@@ -281,6 +238,7 @@ pnic_attach(struct pci_func *pcif)
     // All done
     cprintf("pnic: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    c->irq_line, c->iobase,
-	    c->mac_addr[0], c->mac_addr[1], c->mac_addr[2],
-	    c->mac_addr[3], c->mac_addr[4], c->mac_addr[5]);
+	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
+	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
+	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
 }

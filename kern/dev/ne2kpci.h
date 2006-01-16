@@ -1,5 +1,5 @@
-#ifndef JOS_KERN_DEV_NE2KPCI_H
-#define JOS_KERN_DEV_NE2KPCI_H
+#ifndef JOS_DEV_NE2KPCI_H
+#define JOS_DEV_NE2KPCI_H
 
 #include <dev/pci.h>
 

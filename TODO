@@ -8,7 +8,6 @@ user-specified container labeling
 larger labels
 
 label checking for network buffers
-factor out common network driver code into kern/dev/netdev.c
 
 type-check for correct info_flow_type values (easier in C++)
 
