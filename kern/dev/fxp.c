@@ -311,6 +311,7 @@ fxp_intr_rx(struct fxp_card *c)
 	if (i == -1 || !(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
 	    break;
 
+	// XXX mark the segment kobj as dirty; same in ne2k, pnic
 	kobject_decpin(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
@@ -332,6 +333,7 @@ fxp_intr_tx(struct fxp_card *c)
 	if (i == -1 || !(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
 	    break;
 
+	// XXX mark the segment kobj as dirty; same in ne2k, pnic
 	kobject_decpin(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
