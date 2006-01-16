@@ -75,6 +75,9 @@ thread_swapout(struct Thread *t)
 {
     kobject_decpin(&t->th_ko);
     LIST_REMOVE(t, th_link);
+
+    if (t->th_as)
+	kobject_decpin(&t->th_as->as_ko);
 }
 
 int
@@ -103,6 +106,8 @@ thread_jump(struct Thread *t, struct Label *label,
 {
     t->th_ko.ko_label = *label;
 
+    if (t->th_as)
+	kobject_decpin(&t->th_as->as_ko);
     t->th_as = 0;
     t->th_asref = as;
 
@@ -141,6 +146,7 @@ thread_pagefault(struct Thread *t, void *fault_va)
 	    return r;
 
 	t->th_as = as;
+	kobject_incpin(&t->th_as->as_ko);
     }
 
     return as_pagefault(t->th_as, fault_va);
