@@ -74,7 +74,8 @@ page_fault (struct Trapframe *tf)
 
     if ((tf->tf_cs & 3) == 0) {
 	if ((uintptr_t) fault_va < PHYSBASE) {
-	    cprintf("kernel page fault on VA %p, killing thread\n", fault_va);
+	    cprintf("kernel page fault on VA %p at %lx, killing thread\n",
+		    fault_va, tf->tf_rip);
 	    thread_halt(cur_thread);
 	} else {
 	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
