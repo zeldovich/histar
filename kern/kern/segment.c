@@ -13,6 +13,7 @@ segment_alloc(struct Label *l, struct Segment **sgp)
 	return r;
 
     static_assert(sizeof(*sg) <= sizeof(struct kobject_buf));
+    segment_swapin(sg);
 
     *sgp = sg;
     return 0;
