@@ -380,24 +380,44 @@ pstate_init(void)
 //////////////////////////////////////////////////
 
 static void
-sync_header_cb(disk_io_status stat, void *buf,
-	       uint32_t count, uint64_t offset, void *arg)
+sync_done(int r)
 {
-    if (stat != disk_io_success) {
-	cprintf("sync_header_cb: io failure\n");
-	state.done = -1;
-	return;
-    }
+    if (r < 0)
+	cprintf("pstate_sync: %s\n", e2s(r));
 
-    memcpy(&stable_hdr, state.hdr, sizeof(stable_hdr));
-    swapout_state.active = 0;
+    for (struct kobject *ko = LIST_FIRST(&ko_list); ko; ) {
+	struct kobject *ko_next = LIST_NEXT(ko, ko_link);
+
+	if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
+	    struct kobject_buf *snapbuf = kobject_get_snapbuf(ko);
+	    kobject_snapshot_release(ko);
+
+	    if (snapbuf->u.hdr.ko_type == kobj_dead)
+		kobject_swapout(ko);
+	}
+
+	ko = ko_next;
+    }
 
     if (pstate_sync_stats)
 	cprintf("pstate_sync: snap %d dead %d wrote %d pages %d\n",
 		swapout_state.snapshoted_kobj, swapout_state.dead_kobj,
 		swapout_state.written_kobj, swapout_state.written_pages);
+    swapout_state.active = 0;
+}
 
-    state.done = 1;
+static void
+sync_header_cb(disk_io_status stat, void *buf,
+	       uint32_t count, uint64_t offset, void *arg)
+{
+    if (stat != disk_io_success) {
+	cprintf("sync_header_cb: io failure\n");
+	sync_done(-1);
+	return;
+    }
+
+    memcpy(&stable_hdr, state.hdr, sizeof(stable_hdr));
+    sync_done(1);
 }
 
 static void sync_kobj();
@@ -408,7 +428,7 @@ sync_kobj_cb(disk_io_status stat, void *buf,
 {
     if (stat != disk_io_success) {
 	cprintf("sync_kobj_cb: disk IO failure\n");
-	state.done = -1;
+	sync_done(-1);
 	return;
     }
 
@@ -429,7 +449,7 @@ sync_kobj_cb(disk_io_status stat, void *buf,
 	swapout_state.written_pages++;
 	if (r < 0) {
 	    cprintf("sync_kobj_cb: cannot submit disk IO: %s\n", e2s(r));
-	    state.done = r;
+	    sync_done(r);
 	    return;
 	}
     } else {
@@ -454,8 +474,6 @@ sync_kobj(void)
 	if (snapbuf->u.hdr.ko_type == kobj_dead) {
 	    pstate_kobj_free(&state.hdr->ph_map,
 			     &state.hdr->ph_free, &snapbuf->u.hdr);
-	    kobject_snapshot_release(swapout_state.ko);
-	    kobject_swapout(swapout_state.ko);
 	    swapout_state.dead_kobj++;
 
 	    swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
@@ -472,7 +490,7 @@ sync_kobj(void)
 			sync_header_cb, 0);
 	if (r < 0) {
 	    cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
-	    state.done = r;
+	    sync_done(r);
 	}
 
 	return;
@@ -483,7 +501,7 @@ sync_kobj(void)
 				   &state.hdr->ph_free, &snapbuf->u.hdr);
     if (state.slot < 0) {
 	cprintf("sync_kobj: cannot allocate space\n");
-	state.done = -1;
+	sync_done(-1);
 	return;
     }
 
@@ -494,7 +512,7 @@ sync_kobj(void)
 		    sync_kobj_cb, 0);
     if (r < 0) {
 	cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
-	state.done = r;
+	sync_done(r);
     }
 }
 
@@ -514,7 +532,6 @@ pstate_sync(void)
     state.hdr->ph_version = PSTATE_VERSION;
     state.hdr->ph_handle_counter = handle_counter;
 
-    state.done = 0;
     state.cb = 0;
     swapout_state.ko = LIST_FIRST(&ko_list);
     swapout_state.written_kobj = 0;
