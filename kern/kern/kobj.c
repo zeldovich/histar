@@ -153,10 +153,13 @@ kobject_get_page(struct kobject *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
     if (rw == kobj_rw)
 	kp->ko_flags |= KOBJ_DIRTY;
 
-    void **pp2;
-    int r = kobject_get_pagep(kp, npage, &pp2);
-    *pp = *pp2;
-    return r;
+    void **kp_pagep;
+    int r = kobject_get_pagep(kp, npage, &kp_pagep);
+    if (r < 0)
+	return r;
+
+    *pp = *kp_pagep;
+    return 0;
 }
 
 int
@@ -333,6 +336,7 @@ kobject_swapout(struct kobject *ko)
 struct kobject_buf *
 kobject_get_snapbuf(struct kobject *ko)
 {
+    assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     struct kobject_pair *kp = (struct kobject_pair *) ko;
     return &kp->snapshot;
 }
@@ -340,6 +344,8 @@ kobject_get_snapbuf(struct kobject *ko)
 void
 kobject_snapshot(struct kobject *ko)
 {
+    assert(!(ko->ko_flags & KOBJ_SNAPSHOTING));
+
     if (ko->ko_type == kobj_segment)
 	segment_snapshot((struct Segment *) ko);
 
@@ -354,6 +360,7 @@ kobject_snapshot(struct kobject *ko)
 void
 kobject_snapshot_release(struct kobject *ko)
 {
+    assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_decpin(ko);
 
