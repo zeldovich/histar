@@ -120,18 +120,23 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     if (r < 0)
 	return r;
 
-    // Ensure that we're not pinning any segments
-    as_invalidate(as);
-
-    r = as_resize(as, nent);
-    if (r < 0)
-	return r;
+    // Shrinking AS'es is a little tricky, so we don't do it for now
+    if (nent > as_nents(as)) {
+	r = as_resize(as, nent);
+	if (r < 0)
+	    return r;
+    }
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
 	r = as_get_segmap(as, &sm, i);
 	if (r < 0)
 	    return r;
+
+	if (sm->sm_sg) {
+	    LIST_REMOVE(sm, sm_link);
+	    kobject_decpin(&sm->sm_sg->sg_ko);
+	}
 
 	memset(sm, 0, sizeof(*sm));
 	if (i < nent)
