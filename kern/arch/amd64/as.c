@@ -220,9 +220,11 @@ as_pmap_fill_segment(struct Address_space *as,
 	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
 	}
 	if (r < 0) {
-	    for (; i >= start_page; i--) {
+	    cva = sm->sm_usm.va;
+	    int64_t cleanup_end = i;
+	    for (i = start_page; i < cleanup_end; i++) {
 		page_remove(pgmap, cva);
-		cva -= PGSIZE;
+		cva += PGSIZE;
 	    }
 	    return r;
 	}
