@@ -97,7 +97,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p);
+	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, kobj_rw);
 	    if (r < 0)
 		panic("segment_create_embed: cannot get page: %s", e2s(r));
 
@@ -248,7 +248,8 @@ fs_init(struct Container *c, struct Label *l)
     strncpy(&fs_names->sg_ko.ko_name[0], "directory", KOBJ_NAME_LEN - 1);
 
     uint64_t *fs_dir;
-    assert(0 == kobject_get_page(&fs_names->sg_ko, 0, (void**)&fs_dir));
+    assert(0 == kobject_get_page(&fs_names->sg_ko, 0,
+				 (void**)&fs_dir, kobj_rw));
 
     for (struct embedded_blob *e = all_embed; e; e = e->next) {
 	struct Segment *s;

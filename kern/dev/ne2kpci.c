@@ -48,8 +48,10 @@ static void
 ne2kpci_buffer_reset(struct ne2kpci_card *c)
 {
    for (int i = 0; i < NE2KPCI_RX_SLOTS; i++) {
-      if (c->rx[i].sg)
+      if (c->rx[i].sg) {
 	 kobject_decpin(&c->rx[i].sg->sg_ko);
+	 c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+      }
       c->rx[i].sg = 0;
    }
    
@@ -220,6 +222,7 @@ ne2kpci_rintr(void)
       c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE ;
       
       kobject_decpin(&c->rx[i].sg->sg_ko);
+      c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
       c->rx[i].sg = 0;
       
       c->rx_head = (i + 1) % NE2KPCI_RX_SLOTS;
@@ -315,7 +318,7 @@ ne2kpci_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
    uint32_t pageoff = PGOFF(offset);
    
    void *p;
-   int r = kobject_get_page(&sg->sg_ko, npage, &p);
+   int r = kobject_get_page(&sg->sg_ko, npage, &p, kobj_rw);
    if (r < 0)
       return r;
    

@@ -36,7 +36,7 @@ as_nents(struct Address_space *as)
 
 static int
 as_get_segmap(struct Address_space *as, struct segment_mapping **smp,
-	      uint64_t smi)
+	      uint64_t smi, kobj_rw_mode rw)
 {
     if (smi < N_SEGMAP_DIRECT) {
 	*smp = &as->as_segmap[smi];
@@ -47,7 +47,7 @@ as_get_segmap(struct Address_space *as, struct segment_mapping **smp,
     for (uint64_t i = 0; i < as->as_ko.ko_npages; i++) {
 	if (smi < N_SEGMAP_PER_PAGE) {
 	    struct segment_mapping *p;
-	    int r = kobject_get_page(&as->as_ko, i, (void **) &p);
+	    int r = kobject_get_page(&as->as_ko, i, (void **) &p, rw);
 	    if (r < 0)
 		return r;
 
@@ -89,7 +89,7 @@ as_to_user(struct Address_space *as, struct u_address_space *uas)
     uint64_t nent = 0;
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	r = as_get_segmap(as, &sm, i);
+	r = as_get_segmap(as, &sm, i, kobj_ro);
 	if (r < 0)
 	    return r;
 
@@ -129,7 +129,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	r = as_get_segmap(as, &sm, i);
+	r = as_get_segmap(as, &sm, i, kobj_rw);
 	if (r < 0)
 	    return r;
 
@@ -154,7 +154,7 @@ as_swapin(struct Address_space *as)
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	assert(0 == as_get_segmap(as, &sm, i));
+	assert(0 == as_get_segmap(as, &sm, i, kobj_rw));
 	sm->sm_sg = 0;
     }
 }
@@ -167,7 +167,7 @@ as_swapout(struct Address_space *as)
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	assert(0 == as_get_segmap(as, &sm, i));
+	assert(0 == as_get_segmap(as, &sm, i, kobj_rw));
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
 	    kobject_decpin(&sm->sm_sg->sg_ko);
@@ -185,7 +185,8 @@ as_gc(struct Address_space *as)
 static int
 as_pmap_fill_segment(struct Address_space *as,
 		     struct Segment *sg,
-		     struct segment_mapping *sm)
+		     struct segment_mapping *sm,
+		     bool force_ro)
 {
     struct Pagemap *pgmap = as->as_pgmap;
 
@@ -197,9 +198,13 @@ as_pmap_fill_segment(struct Address_space *as,
     uint64_t num_pages = sm->sm_usm.num_pages;
     uint64_t flags = sm->sm_usm.flags;
 
+    if (force_ro)
+	flags &= ~SEGMAP_WRITE;
+
     for (int64_t i = start_page; i < start_page + num_pages; i++) {
 	void *pp;
-	int r = kobject_get_page(&sg->sg_ko, i, &pp);
+	int r = kobject_get_page(&sg->sg_ko, i, &pp,
+				 (flags & SEGMAP_WRITE) ? kobj_rw : kobj_ro);
 
 	if (((uint64_t) cva) >= ULIM)
 	    r = -E_INVAL;
@@ -246,7 +251,7 @@ as_pmap_fill(struct Address_space *as, void *va)
 {
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *segmap;
-	int r = as_get_segmap(as, &segmap, i);
+	int r = as_get_segmap(as, &segmap, i, kobj_ro);
 	if (r < 0)
 	    return r;
 
@@ -260,6 +265,11 @@ as_pmap_fill(struct Address_space *as, void *va)
 	if (va < va_start || va >= va_end)
 	    continue;
 
+	// Now grab it as read-write
+	r = as_get_segmap(as, &segmap, i, kobj_rw);
+	if (r < 0)
+	    return r;
+
 	struct cobj_ref seg_ref = segmap->sm_usm.segment;
 	struct Segment *sg;
 	r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
@@ -267,7 +277,7 @@ as_pmap_fill(struct Address_space *as, void *va)
 	if (r < 0)
 	    return r;
 
-	return as_pmap_fill_segment(as, sg, segmap);
+	return as_pmap_fill_segment(as, sg, segmap, 0);
     }
 
     return -E_INVAL;
@@ -303,4 +313,10 @@ as_switch(struct Address_space *as)
 {
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     lcr3(kva2pa(pgmap));
+}
+
+void
+as_segmap_snapshot(struct Address_space *as, struct segment_mapping *sm)
+{
+    assert(0 == as_pmap_fill_segment(as, sm->sm_sg, sm, 1));
 }

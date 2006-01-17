@@ -18,6 +18,12 @@ segment_alloc(struct Label *l, struct Segment **sgp)
     return 0;
 }
 
+void
+segment_swapin(struct Segment *sg)
+{
+    LIST_INIT(&sg->sg_segmap_list);
+}
+
 int
 segment_copy(struct Segment *src, struct Label *newl, struct Segment **dstp)
 {
@@ -32,10 +38,10 @@ segment_copy(struct Segment *src, struct Label *newl, struct Segment **dstp)
 
     for (int i = 0; i < src->sg_ko.ko_npages; i++) {
 	void *srcpg, *dstpg;
-	r = kobject_get_page(&src->sg_ko, i, &srcpg);
+	r = kobject_get_page(&src->sg_ko, i, &srcpg, kobj_ro);
 	if (r < 0)
 	    return r;
-	r = kobject_get_page(&dst->sg_ko, i, &dstpg);
+	r = kobject_get_page(&dst->sg_ko, i, &dstpg, kobj_rw);
 	if (r < 0)
 	    return r;
 
@@ -50,4 +56,12 @@ int
 segment_set_npages(struct Segment *sg, uint64_t num_pages)
 {
     return kobject_set_npages(&sg->sg_ko, num_pages);
+}
+
+void
+segment_snapshot(struct Segment *sg)
+{
+    struct segment_mapping *sm;
+    LIST_FOREACH(sm, &sg->sg_segmap_list, sm_link)
+	as_segmap_snapshot(sm->sm_as, sm);
 }

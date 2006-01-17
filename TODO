@@ -25,9 +25,7 @@ use MLTs to store COW mappings in gate_enter for later reuse
 
 kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 
-copy-on-write kobjects
+verify that KOBJ_DIRTY is set everywhere appropriately (probably isn't!!)
 page reclamation, LRU
-snapshotting pstate_sync()
-
 deal with segment fragmentation on-disk
 

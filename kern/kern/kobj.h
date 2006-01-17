@@ -11,6 +11,8 @@ typedef uint64_t kobject_id_t;
 
 #define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
 #define KOBJ_ZERO_REFS		0x02	// Should be in-core for GC
+#define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
+#define KOBJ_DIRTY		0x08	// Modified since last swapin/out
 
 #define KOBJ_DIRECT_PAGES	32
 #define KOBJ_PAGES_PER_INDIR	(PGSIZE / sizeof(void*))
@@ -52,11 +54,17 @@ typedef enum {
     iflow_none
 } info_flow_type;
 
+typedef enum {
+    kobj_ro,
+    kobj_rw
+} kobj_rw_mode;
+
 int  kobject_get(kobject_id_t id, struct kobject **kpp, info_flow_type iflow);
 int  kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kpp);
 
 int  kobject_set_npages(struct kobject *kp, uint64_t npages);
-int  kobject_get_page(struct kobject *kp, uint64_t page_num, void **pp);
+int  kobject_get_page(struct kobject *kp, uint64_t page_num,
+		      void **pp, kobj_rw_mode rw);
 
 // One of the object's extra pages has been brought in from disk.
 void kobject_swapin_page(struct kobject *kp, uint64_t page_num, void *p);
@@ -70,6 +78,11 @@ void kobject_swapout(struct kobject *kp);
 
 // Called by the timer interrupt to garbage-collect free'd kobjects
 void kobject_gc_scan(void);
+
+void kobject_snapshot(struct kobject *kp);
+void kobject_snapshot_release(struct kobject *kp);
+struct kobject_buf *
+     kobject_get_snapbuf(struct kobject *kp);
 
 void kobject_incref(struct kobject *kp);
 void kobject_decref(struct kobject *kp);

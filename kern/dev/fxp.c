@@ -184,14 +184,18 @@ fxp_buffer_reset(struct fxp_card *c)
     }
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
-	if (c->tx[i].sg)
+	if (c->tx[i].sg) {
 	    kobject_decpin(&c->tx[i].sg->sg_ko);
+	    c->tx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	}
 	c->tx[i].sg = 0;
     }
 
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
-	if (c->rx[i].sg)
+	if (c->rx[i].sg) {
 	    kobject_decpin(&c->rx[i].sg->sg_ko);
+	    c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	}
 	c->rx[i].sg = 0;
     }
 
@@ -273,8 +277,8 @@ fxp_intr_rx(struct fxp_card *c)
 	if (i == -1 || !(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
 	    break;
 
-	// XXX mark the segment kobj as dirty; same in ne2k, pnic
 	kobject_decpin(&c->rx[i].sg->sg_ko);
+	c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
@@ -295,8 +299,8 @@ fxp_intr_tx(struct fxp_card *c)
 	if (i == -1 || !(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
 	    break;
 
-	// XXX mark the segment kobj as dirty; same in ne2k, pnic
 	kobject_decpin(&c->tx[i].sg->sg_ko);
+	c->tx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
@@ -404,7 +408,7 @@ fxp_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
     uint32_t pageoff = PGOFF(offset);
 
     void *p;
-    int r = kobject_get_page(&sg->sg_ko, npage, &p);
+    int r = kobject_get_page(&sg->sg_ko, npage, &p, kobj_rw);
     if (r < 0)
 	return r;
 
