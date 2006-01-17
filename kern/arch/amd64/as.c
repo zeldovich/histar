@@ -219,6 +219,7 @@ as_pmap_fill_segment(struct Address_space *as,
 		page_remove(pgmap, cva);
 		cva -= PGSIZE;
 	    }
+	    return r;
 	}
 
 	cva += PGSIZE;
