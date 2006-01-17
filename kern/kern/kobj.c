@@ -259,7 +259,7 @@ kobject_decref(struct kobject *ko)
 void
 kobject_incpin(struct kobject *ko)
 {
-    --ko->ko_pin;
+    ++ko->ko_pin;
 }
 
 void
