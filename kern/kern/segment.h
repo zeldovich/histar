@@ -16,6 +16,7 @@ int  segment_copy(struct Segment *src, struct Label *newl,
 		  struct Segment **dstp);
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);
 void segment_snapshot(struct Segment *sg);
+void segment_invalidate(struct Segment *sg);
 void segment_swapin(struct Segment *sg);
 
 #endif

@@ -66,3 +66,12 @@ segment_snapshot(struct Segment *sg)
     LIST_FOREACH(sm, &sg->sg_segmap_list, sm_link)
 	as_segmap_snapshot(sm->sm_as, sm);
 }
+
+void
+segment_invalidate(struct Segment *sg)
+{
+    while (!LIST_EMPTY(&sg->sg_segmap_list)) {
+	struct segment_mapping *sm = LIST_FIRST(&sg->sg_segmap_list);
+	as_invalidate(sm->sm_as);
+    }
+}

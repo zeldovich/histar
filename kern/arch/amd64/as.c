@@ -21,7 +21,7 @@ as_alloc(struct Label *l, struct Address_space **asp)
     return 0;
 }
 
-static void
+void
 as_invalidate(struct Address_space *as)
 {
     as_swapout(as);

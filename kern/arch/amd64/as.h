@@ -37,6 +37,7 @@ void as_swapin(struct Address_space *as);
 void as_swapout(struct Address_space *as);
 int  as_gc(struct Address_space *as);
 void as_segmap_snapshot(struct Address_space *as, struct segment_mapping *sm);
+void as_invalidate(struct Address_space *as);
 
 int  as_pagefault(struct Address_space *as, void *va);
 void as_switch(struct Address_space *as);
