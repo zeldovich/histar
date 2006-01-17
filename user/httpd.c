@@ -6,6 +6,8 @@
 #include <inc/fs.h>
 #include <inc/syscall.h>
 
+static int reqs;
+
 static void
 http_client(void *arg)
 {
@@ -16,9 +18,11 @@ http_client(void *arg)
     if (cc < 0)
 	printf("httpd: cannot read request: %s\n", e2s(cc));
 
-    char *resp = "<h1>jos64 web server</h1><p>foo.\n";
+    snprintf(buf, sizeof(buf),
+	     "<h1>jos64 web server</h1><p>foo.<p>%d requests served\n",
+	     reqs++);
 
-    write(s, resp, strlen(resp));
+    write(s, buf, strlen(buf));
     close(s);
 }
 
