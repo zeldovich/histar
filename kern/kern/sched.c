@@ -26,7 +26,7 @@ schedule(void)
     if (next == 0)
 	next = LIST_FIRST(&thread_list_runnable);
     if (next == 0)
-	panic("no runnable threads: %p", LIST_FIRST(&thread_list_runnable));
+	panic("no runnable threads");
 
     last_thread = next;
     thread_run(next);
