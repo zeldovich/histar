@@ -9,7 +9,7 @@ struct ulabel {
     uint64_t *ul_ent;
 };
 
-#define LB_HANDLE(ent)		((ent) & 0x1fffffffffffffffULL)
+#define LB_HANDLE(ent)		((ent) & 0x1fffffffffffffffUL)
 #define LB_LEVEL(ent)		((ent) >> 61)
 
 #define LB_LEVEL_STAR		4
