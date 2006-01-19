@@ -188,56 +188,6 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
       putch (va_arg (ap, int), putdat);
       break;
 
-      // handle
-    case 'H':
-      num = va_arg (ap, handle_t);
-      printnum (putch, putdat, HVALUE (num), 16, MAX (width, 0), padc);
-      if (altflag) {
-	putch (' ', putdat);
-	if (LEVEL_VALID (HLEVEL (num)))
-	  putch (LEVEL_UNPARSE (HLEVEL (num)), putdat);
-	else
-	  putch ('?', putdat);
-      }
-      break;
-
-#if 0
-      // label/llabel
-    case 'L':{
-	const void *v = va_arg (ap, const void *);
-	size_t size;
-	level_t default_level;
-	const handle_t *handles;
-	if (!v) {
-	  printfmt (putch, putdat, "(null)");
-	  break;
-	}
-	else {
-	  const label_t *l = (const label_t *) v;
-	  size = l->size;
-	  default_level = l->default_level;
-	  handles = l->handles;
-	}
-	putch ('{', putdat);
-	for (; size > 0; ++handles, --size) {
-	  printnum (putch, putdat, HVALUE (*handles), 16, 0, padc);
-	  putch (' ', putdat);
-	  if (LEVEL_VALID (HLEVEL (*handles)))
-	    putch (LEVEL_UNPARSE (HLEVEL (*handles)), putdat);
-	  else
-	    putch ('?', putdat);
-	  putch (',', putdat);
-	  putch (' ', putdat);
-	}
-	if (LEVEL_VALID (default_level))
-	  putch (LEVEL_UNPARSE (default_level), putdat);
-	else
-	  putch ('?', putdat);
-	putch ('}', putdat);
-	break;
-      }
-#endif
-
       // string
     case 's':
       if ((p = va_arg (ap, char *)) == NULL)
