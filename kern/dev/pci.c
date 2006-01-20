@@ -58,26 +58,26 @@ pci_alloc_aligned(uint32_t *addrp, uint32_t size)
 }
 
 static void
-pci_attach(uint32_t id, uint32_t class, struct pci_func *pcif)
+pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
 {
-    if (PCI_CLASS(class) == PCI_CLASS_MASS_STORAGE &&
-	PCI_SUBCLASS(class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
+    if (PCI_CLASS(dev_class) == PCI_CLASS_MASS_STORAGE &&
+	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
     {
 	disk_init(pcif);
 	return;
     }
 
-    if (PCI_VENDOR(id) == 0x10ec && PCI_PRODUCT(id) == 0x8029) {
+    if (PCI_VENDOR(dev_id) == 0x10ec && PCI_PRODUCT(dev_id) == 0x8029) {
 	ne2kpci_attach(pcif);
 	return;
     }
 
-    if (PCI_VENDOR(id) == 0x8086 && PCI_PRODUCT(id) == 0x1229) {
+    if (PCI_VENDOR(dev_id) == 0x8086 && PCI_PRODUCT(dev_id) == 0x1229) {
 	fxp_attach(pcif);
 	return;
     }
 
-    if (PCI_VENDOR(id) == 0xfefe && PCI_PRODUCT(id) == 0xefef) {
+    if (PCI_VENDOR(dev_id) == 0xfefe && PCI_PRODUCT(dev_id) == 0xefef) {
 	pnic_attach(pcif);
 	return;
     }
@@ -103,19 +103,19 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 	    struct pci_func pcif;
 	    memset(&pcif, 0, sizeof(pcif));
 
-	    uint32_t id = pci_conf_read(busno, dev, func, PCI_ID_REG);
-	    if (PCI_VENDOR(id) == 0xffff)
+	    uint32_t dev_id = pci_conf_read(busno, dev, func, PCI_ID_REG);
+	    if (PCI_VENDOR(dev_id) == 0xffff)
 		continue;
 
 	    uint32_t intr = pci_conf_read(busno, dev, func, PCI_INTERRUPT_REG);
 	    pcif.irq_line = PCI_INTERRUPT_LINE(intr);
 
-	    uint32_t class = pci_conf_read(busno, dev, func, PCI_CLASS_REG);
+	    uint32_t dev_class = pci_conf_read(busno, dev, func, PCI_CLASS_REG);
 	    if (pci_show_devs)
 		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x irq %d\n",
 			busno, dev, func,
-			PCI_VENDOR(id), PCI_PRODUCT(id),
-			PCI_CLASS(class), PCI_SUBCLASS(class),
+			PCI_VENDOR(dev_id), PCI_PRODUCT(dev_id),
+			PCI_CLASS(dev_class), PCI_SUBCLASS(dev_class),
 			pcif.irq_line);
 
 	    uint32_t bar_width;
@@ -149,7 +149,7 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 		pcif.reg_size[regnum] = size;
 	    }
 
-	    pci_attach(id, class, &pcif);
+	    pci_attach(dev_id, dev_class, &pcif);
 	}
     }
 

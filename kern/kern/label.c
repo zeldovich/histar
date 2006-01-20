@@ -30,7 +30,7 @@ label_init(struct Label *l)
 }
 
 int
-label_set(struct Label *l, uint64_t handle, int level)
+label_set(struct Label *l, uint64_t handle, level_t level)
 {
     int i = label_find_slot(l, handle);
     if (i < 0) {
@@ -66,7 +66,7 @@ label_to_ulabel(struct Label *l, struct ulabel *ul)
     if (r < 0)
 	return r;
 
-    int slot = 0;
+    uint32_t slot = 0;
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (l->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
@@ -99,7 +99,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 	return r;
 
     // XXX minor annoyance if ul_nent is huge
-    for (int i = 0; i < ul_nent; i++) {
+    for (uint32_t i = 0; i < ul_nent; i++) {
 	uint64_t ul_val = ul_ent[i];
 
 	int level = LB_LEVEL(ul_val);

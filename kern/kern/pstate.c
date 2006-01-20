@@ -33,7 +33,7 @@ static struct {
 
 static struct {
     struct kobject *ko;
-    int extra_page;
+    uint64_t extra_page;
 
     int written_kobj;
     int written_pages;
@@ -45,7 +45,7 @@ static struct {
 
 static struct {
     struct kobject *ko;
-    int extra_page;
+    uint64_t extra_page;
     int slot;
 } swapin_state;
 
@@ -222,13 +222,13 @@ swapin_kobj(int slot, void (*cb)(int)) {
     if (swapin_state.ko)
 	panic("swapin_kobj: still active!");
 
-    swapin_state.ko = p;
+    swapin_state.ko = (struct kobject *) p;
     swapin_state.extra_page = 0;
     swapin_state.slot = slot;
     state.cb = 5;
     r = disk_io(op_read, p, PGSIZE,
 		stable_hdr.ph_map.ent[slot].offset * PGSIZE,
-		&swapin_kobj_cb, cb);
+		&swapin_kobj_cb, (void*) cb);
     if (r < 0) {
 	cprintf("swapin_kobj: cannot submit disk IO: %s\n", e2s(r));
 	(*cb) (r);

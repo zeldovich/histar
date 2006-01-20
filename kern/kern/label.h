@@ -14,13 +14,15 @@ struct Label {
 
 #define LB_ENT_EMPTY		(~(0L))
 
+typedef unsigned char level_t;
+
 typedef int (level_comparator)(int, int);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
 level_comparator label_eq;
 
 void label_init(struct Label *l);
-int  label_set(struct Label *l, uint64_t handle, int level);
+int  label_set(struct Label *l, uint64_t handle, level_t level);
 
 // user label handling
 int  label_to_ulabel(struct Label *l, struct ulabel *ul);

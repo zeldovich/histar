@@ -103,7 +103,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 {
     struct multiboot_info *mbi = 0;
     if (start_eax == MULTIBOOT_EAX_MAGIC)
-	mbi = pa2kva(start_ebx);
+	mbi = (struct multiboot_info *) pa2kva(start_ebx);
 
     mmu_init ();
     bss_init ();

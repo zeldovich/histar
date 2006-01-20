@@ -57,7 +57,7 @@ pnic_buffer_reset(struct pnic_card *c)
 static void
 pnic_buffer_reset_v(void *a)
 {
-    pnic_buffer_reset(a);
+    pnic_buffer_reset((struct pnic_card *) a);
 }
 
 static void
@@ -174,7 +174,7 @@ pnic_add_rxbuf(struct pnic_card *c, struct Segment *sg,
 int
 pnic_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
 {
-    struct pnic_card *c = a;
+    struct pnic_card *c = (struct pnic_card *) a;
     uint64_t npage = offset / PGSIZE;
     uint32_t pageoff = PGOFF(offset);
 
@@ -186,7 +186,7 @@ pnic_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
     if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
 	return -E_INVAL;
 
-    struct netbuf_hdr *nb = p + pageoff;
+    struct netbuf_hdr *nb = (struct netbuf_hdr *) ((char *) p + pageoff);
     uint16_t size = nb->size;
     if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
 	return -E_INVAL;

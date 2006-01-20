@@ -87,7 +87,7 @@ boot_alloc (uint32_t n, uint32_t align)
 void
 page_free (void *v)
 {
-    struct Page *p = v;
+    struct Page *p = (struct Page *) v;
     if (PGOFF(p))
 	panic("page_free: not a page-aligned pointer %p", p);
 
@@ -112,12 +112,11 @@ static void
 page_init (void)
 {
     int inuse;
-    ptrdiff_t i;
 
     // Align boot_freemem to page boundary.
     boot_alloc (0, PGSIZE);
 
-    for (i = 0; i < npage; i++) {
+    for (uint64_t i = 0; i < npage; i++) {
 	// Off-limits until proven otherwise.
 	inuse = 1;
 
@@ -152,7 +151,7 @@ page_map_alloc (struct Pagemap **pm_store)
 	return r;
 
     memcpy(pmap, &bootpml4, PGSIZE);
-    *pm_store = pmap;
+    *pm_store = (struct Pagemap *) pmap;
     return 0;
 }
 
@@ -167,8 +166,10 @@ page_map_free_level (struct Pagemap *pgmap, int pmlevel)
 	uint64_t ptent = pgmap->pm_ent[i];
 	if (!(ptent & PTE_P))
 	    continue;
-	if (pmlevel > 0)
-	    page_map_free_level(pa2kva(PTE_ADDR(ptent)), pmlevel - 1);
+	if (pmlevel > 0) {
+	    struct Pagemap *pm = (struct Pagemap *) pa2kva(PTE_ADDR(ptent));
+	    page_map_free_level(pm, pmlevel - 1);
+	}
     }
 
     page_free(pgmap);
@@ -222,7 +223,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
 	*pm_entp = kva2pa(p) | PTE_P | PTE_U | PTE_W;
     }
 
-    struct Pagemap *pm_next = pa2kva(PTE_ADDR(*pm_entp));
+    struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(*pm_entp));
     return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
 }
 

@@ -75,7 +75,7 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     if (r < 0)
 	return r;
 
-    struct kobject_pair *ko_pair = p;
+    struct kobject_pair *ko_pair = (struct kobject_pair *) p;
     static_assert(sizeof(*ko_pair) <= PGSIZE);
 
     struct kobject *ko = &ko_pair->active.u.hdr;
@@ -126,7 +126,7 @@ kobject_free_pages(struct kobject *ko)
     }
 
     if (ko->ko_pages_indir1) {
-	for (int i = 0; i < KOBJ_PAGES_PER_INDIR; i++) {
+	for (uint32_t i = 0; i < KOBJ_PAGES_PER_INDIR; i++) {
 	    if (ko->ko_pages_indir1[i]) {
 		page_free(ko->ko_pages_indir1[i]);
 		ko->ko_pages_indir1[i] = 0;
@@ -175,7 +175,7 @@ kobject_set_npages(struct kobject *kp, uint64_t npages)
 
     kp->ko_flags |= KOBJ_DIRTY;
 
-    for (int64_t i = npages; i < kp->ko_npages; i++) {
+    for (uint64_t i = npages; i < kp->ko_npages; i++) {
 	void **pp;
 	int r = kobject_get_pagep(kp, i, &pp);
 	if (r < 0)
@@ -185,7 +185,7 @@ kobject_set_npages(struct kobject *kp, uint64_t npages)
 	*pp = 0;
     }
 
-    for (int64_t i = kp->ko_npages; i < npages; i++) {
+    for (uint64_t i = kp->ko_npages; i < npages; i++) {
 	void **pp;
 	int r = kobject_get_pagep(kp, i, &pp);
 	if (r < 0)
@@ -196,8 +196,8 @@ kobject_set_npages(struct kobject *kp, uint64_t npages)
 
 	if (r < 0) {
 	    // free all the pages we allocated up to now
-	    for (; i >= kp->ko_npages; i--) {
-		int q = kobject_get_pagep(kp, i, &pp);
+	    for (uint64_t j = kp->ko_npages; j < i; j++) {
+		int q = kobject_get_pagep(kp, j, &pp);
 		if (q < 0)
 		    panic("cannot lookup just-allocated page: %d", q);
 		if (*pp) {

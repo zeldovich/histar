@@ -99,7 +99,9 @@ ide_select_sectors(struct ide_channel *idec, uint32_t diskno,
 static int
 ide_pio_in(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 {
-    for (; num_sectors > 0; num_sectors--, buf += 512) {
+    char *cbuf = (char *) buf;
+
+    for (; num_sectors > 0; num_sectors--, cbuf += 512) {
 	int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
@@ -107,16 +109,18 @@ ide_pio_in(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
 	    return -1;
 
-	insl(idec->cmd_addr + IDE_REG_DATA, buf, 512 / 4);
+	insl(idec->cmd_addr + IDE_REG_DATA, cbuf, 512 / 4);
     }
 
     return 0;
 }
 
 static int __attribute__((__unused__))
-ide_pio_out(struct ide_channel *idec, void *buf, uint32_t num_sectors)
+ide_pio_out(struct ide_channel *idec, const void *buf, uint32_t num_sectors)
 {
-    for (; num_sectors > 0; num_sectors--, buf += 512) {
+    const char *cbuf = (const char *) buf;
+
+    for (; num_sectors > 0; num_sectors--, cbuf += 512) {
 	int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 	if (r < 0)
 	    return r;
@@ -124,7 +128,7 @@ ide_pio_out(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
 	    return -1;
 
-	outsl(idec->cmd_addr + IDE_REG_DATA, buf, 512 / 4);
+	outsl(idec->cmd_addr + IDE_REG_DATA, cbuf, 512 / 4);
     }
 
     return 0;
@@ -147,18 +151,19 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 static void
 ide_dma_init(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
 {
+    char *cbuf = (char *) buf;
     int slot = 0;
     while (bytes > 0) {
-	int page_off = PGOFF(buf);
-	int page_bytes = PGSIZE - page_off;
+	int page_off = PGOFF(cbuf);
+	uint32_t page_bytes = PGSIZE - page_off;
 	if (page_bytes > bytes)
 	    page_bytes = bytes;
 
-	idec->bm_prd[slot].addr = kva2pa(buf);
+	idec->bm_prd[slot].addr = kva2pa(cbuf);
 	idec->bm_prd[slot].count = page_bytes & 0xffff;
 
 	bytes -= page_bytes;
-	buf += page_bytes;
+	cbuf += page_bytes;
 
 	if (bytes == 0)
 	    idec->bm_prd[slot].count |= IDE_PRD_EOT;

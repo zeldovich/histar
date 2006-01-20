@@ -37,7 +37,7 @@ segment_copy(struct Segment *src, struct Label *newl, struct Segment **dstp)
     if (r < 0)
 	return r;
 
-    for (int i = 0; i < src->sg_ko.ko_npages; i++) {
+    for (uint64_t i = 0; i < src->sg_ko.ko_npages; i++) {
 	void *srcpg, *dstpg;
 	r = kobject_get_page(&src->sg_ko, i, &srcpg, kobj_ro);
 	if (r < 0)

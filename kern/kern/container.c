@@ -47,7 +47,7 @@ container_slot_find(struct Container *c, kobject_id_t ko_id,
 	if (r < 0)
 	    return r;
 
-	for (int i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
+	for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
 	    struct container_slot *cs = &cpg->ct_slot[i];
 	    if (cs->cs_id == ko_id && cs->cs_ref > 0) {
 		if (csp)
@@ -69,7 +69,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 	if (r < 0)
 	    return r;
 
-	for (int i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
+	for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
 	    struct container_slot *cs = &cpg->ct_slot[i];
 	    if (cs->cs_ref == 0) {
 		*csp = cs;
@@ -88,7 +88,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
     if (r < 0)
 	panic("container_slot_alloc: cannot get newly-allocated page");
 
-    for (int i = 0; i < NUM_CT_SLOT_PER_PAGE; i++)
+    for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++)
 	cpg->ct_slot[i].cs_ref = 0;
 
     *csp = &cpg->ct_slot[0];

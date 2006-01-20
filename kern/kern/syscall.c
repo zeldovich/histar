@@ -22,7 +22,7 @@ static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
 
 static void __attribute__((__noreturn__))
-syscall_error(int r)
+syscall_error(int64_t r)
 {
     if (r == -E_RESTART)
 	thread_syscall_restart(cur_thread);
@@ -369,7 +369,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 	break;
 
     case SYS_net_buf:
-	sys_net_buf(COBJ(a1, a2), a3, a4);
+	sys_net_buf(COBJ(a1, a2), a3, (netbuf_type) a4);
 	break;
 
     case SYS_net_macaddr:
@@ -504,7 +504,7 @@ syscall(syscall_num num, uint64_t a1, uint64_t a2,
 
     default:
 	cprintf("Unknown syscall %d\n", num);
-	syscall_ret = -E_INVAL;
+	syscall_error(-E_INVAL);
     }
 
 syscall_exit:

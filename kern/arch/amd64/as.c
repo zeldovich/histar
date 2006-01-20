@@ -28,7 +28,7 @@ as_invalidate(struct Address_space *as)
     as_swapin(as);
 }
 
-static int
+static uint64_t
 as_nents(struct Address_space *as)
 {
     return N_SEGMAP_DIRECT + as->as_ko.ko_npages * N_SEGMAP_PER_PAGE;
@@ -190,7 +190,7 @@ as_pmap_fill_segment(struct Address_space *as,
 {
     struct Pagemap *pgmap = as->as_pgmap;
 
-    char *cva = sm->sm_usm.va;
+    char *cva = (char *) sm->sm_usm.va;
     if (PGOFF(cva))
 	return -E_INVAL;
 
@@ -201,7 +201,7 @@ as_pmap_fill_segment(struct Address_space *as,
     if (force_ro)
 	flags &= ~SEGMAP_WRITE;
 
-    for (int64_t i = start_page; i < start_page + num_pages; i++) {
+    for (uint64_t i = start_page; i < start_page + num_pages; i++) {
 	void *pp;
 	int r = kobject_get_page(&sg->sg_ko, i, &pp,
 				 (flags & SEGMAP_WRITE) ? kobj_rw : kobj_ro);
@@ -220,8 +220,8 @@ as_pmap_fill_segment(struct Address_space *as,
 	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
 	}
 	if (r < 0) {
-	    cva = sm->sm_usm.va;
-	    int64_t cleanup_end = i;
+	    cva = (char *) sm->sm_usm.va;
+	    uint64_t cleanup_end = i;
 	    for (i = start_page; i < cleanup_end; i++) {
 		page_remove(pgmap, cva);
 		cva += PGSIZE;
@@ -263,7 +263,7 @@ as_pmap_fill(struct Address_space *as, void *va)
 
 	uint64_t npages = segmap->sm_usm.num_pages;
 	void *va_start = segmap->sm_usm.va;
-	void *va_end = va_start + npages * PGSIZE;
+	void *va_end = (char*) va_start + npages * PGSIZE;
 	if (va < va_start || va >= va_end)
 	    continue;
 
