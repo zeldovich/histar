@@ -3,11 +3,11 @@
 
 #include <machine/types.h>
 #include <kern/label.h>
-#include <kern/kobj.h>
+#include <kern/kobjhdr.h>
 #include <inc/thread.h>
 
 struct Gate {
-    struct kobject gt_ko;
+    struct kobject_hdr gt_ko;
 
     struct Label gt_target_label;
     struct thread_entry gt_te;

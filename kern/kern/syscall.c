@@ -12,6 +12,7 @@
 #include <kern/handle.h>
 #include <kern/timer.h>
 #include <kern/netdev.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -87,8 +88,10 @@ sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
 	syscall_error(-E_INVAL);
 
     // XXX think harder about labeling in this case...
-    struct Segment *sg;
-    check(cobj_get(seg, kobj_segment, (struct kobject **)&sg, iflow_none));
+    const struct kobject *ko;
+    check(cobj_get(seg, kobj_segment, &ko, iflow_none));
+
+    const struct Segment *sg = &ko->u.sg;
     check(netdev_add_buf(ndev, sg, offset, type));
 }
 
@@ -105,10 +108,13 @@ sys_net_macaddr(uint8_t *addrbuf)
 static kobject_id_t
 sys_container_alloc(uint64_t parent_ct)
 {
-    struct Container *parent, *c;
+    const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_write));
+
+    struct Container *c;
     check(container_alloc(&cur_thread->th_ko.ko_label, &c));
-    check(container_put(parent, &c->ct_ko));
+
+    check(container_put(&kobject_dirty(&parent->ct_ko)->u.ct, &c->ct_ko));
     return c->ct_ko.ko_id;
 }
 
@@ -117,18 +123,18 @@ sys_obj_unref(struct cobj_ref cobj)
 {
     // iflow_rw because return code from container_unref
     // indicates the object's presence.
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, cobj.container, iflow_rw));
 
-    struct kobject *ko;
+    const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(container_unref(c, ko));
+    check(container_unref(&kobject_dirty(&c->ct_ko)->u.ct, &ko->u.hdr));
 }
 
 static kobject_id_t
 sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, ct, iflow_read));
 
     kobject_id_t id;
@@ -147,41 +153,42 @@ sys_handle_create(void)
 static kobject_type_t
 sys_obj_get_type(struct cobj_ref cobj)
 {
-    struct kobject *ko;
+    const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
-    return ko->ko_type;
+    return ko->u.hdr.ko_type;
 }
 
 static void
 sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 {
-    struct kobject *ko;
+    const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
-    check(label_to_ulabel(&ko->ko_label, ul));
+    check(label_to_ulabel(&ko->u.hdr.ko_label, ul));
 }
 
 static void
 sys_obj_get_name(struct cobj_ref cobj, char *name)
 {
-    struct kobject *ko;
+    const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
-    strncpy(name, &ko->ko_name[0], KOBJ_NAME_LEN);
+    strncpy(name, &ko->u.hdr.ko_name[0], KOBJ_NAME_LEN);
 }
 
 static void
 sys_obj_set_name(struct cobj_ref cobj, char *name)
 {
-    struct kobject *ko;
+    const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_write));
     check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
-    strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
+    strncpy(&kobject_dirty(&ko->u.hdr)->u.hdr.ko_name[0], name,
+	    KOBJ_NAME_LEN - 1);
 }
 
 static uint64_t
 sys_container_nslots(uint64_t container)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, container, iflow_read));
     return container_nslots(c);
 }
@@ -195,7 +202,7 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     check(ulabel_to_label(ul_t, &l_t));
     check(label_compare(&cur_thread->th_ko.ko_label, &l_t, label_leq_starlo));
 
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
     struct Gate *g;
@@ -204,30 +211,32 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     g->gt_te = *te;
     g->gt_target_label = l_t;
 
-    check(container_put(c, &g->gt_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &g->gt_ko));
     return g->gt_ko.ko_id;
 }
 
 static kobject_id_t
 sys_thread_create(uint64_t ct)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, ct, iflow_write));
 
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
-    check(container_put(c, &t->th_ko));
+
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &t->th_ko));
     return t->th_ko.ko_id;
 }
 
 static void
 sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 {
-    struct Gate *g;
-    check(cobj_get(gt, kobj_gate, (struct kobject **)&g, iflow_write));
+    const struct kobject *ko;
+    check(cobj_get(gt, kobj_gate, &ko, iflow_write));
 
+    const struct Gate *g = &ko->u.gt;
     // XXX do the contaminate, or let the user compute it and verify
-    struct thread_entry *e = &g->gt_te;
+    const struct thread_entry *e = &g->gt_te;
     thread_jump(cur_thread, &g->gt_target_label,
 		e->te_as, e->te_entry, e->te_stack,
 		e->te_arg, a1, a2);
@@ -236,9 +245,10 @@ sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 static void
 sys_thread_start(struct cobj_ref thread, struct thread_entry *e)
 {
-    struct Thread *t;
-    check(cobj_get(thread, kobj_thread, (struct kobject **)&t, iflow_rw));
+    const struct kobject *ko;
+    check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
 
+    struct Thread *t = &kobject_dirty(&ko->u.hdr)->u.th;
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
@@ -275,9 +285,9 @@ sys_thread_id(void)
 static void
 sys_thread_addref(uint64_t ct)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, ct, iflow_write));
-    check(container_put(c, &cur_thread->th_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &cur_thread->th_ko));
 }
 
 static void
@@ -289,60 +299,58 @@ sys_thread_get_as(struct cobj_ref *as_ref)
 static kobject_id_t
 sys_segment_create(uint64_t ct, uint64_t num_pages)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, ct, iflow_write));
 
     struct Segment *sg;
     check(segment_alloc(&cur_thread->th_ko.ko_label, &sg));
     check(segment_set_npages(sg, num_pages));
-    check(container_put(c, &sg->sg_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
 
 static void
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
 {
-    struct Segment *sg;
-    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg, iflow_write));
-    check(segment_set_npages(sg, num_pages));
+    const struct kobject *ko;
+    check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_write));
+    check(segment_set_npages(&kobject_dirty(&ko->u.hdr)->u.sg, num_pages));
 }
 
 static uint64_t
 sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
-    struct Segment *sg;
-    check(cobj_get(sg_cobj, kobj_segment, (struct kobject **)&sg, iflow_read));
-    return sg->sg_ko.ko_npages;
+    const struct kobject *ko;
+    check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_read));
+    return ko->u.sg.sg_ko.ko_npages;
 }
 
 static uint64_t
 sys_as_create(uint64_t container)
 {
-    struct Container *c;
+    const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
     struct Address_space *as;
     check(as_alloc(&cur_thread->th_ko.ko_label, &as));
-    check(container_put(c, &as->as_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
 
 static void
 sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
 {
-    struct Address_space *as;
-    check(cobj_get(asref, kobj_address_space, (struct kobject **)&as,
-		   iflow_read));
-    check(as_to_user(as, uas));
+    const struct kobject *ko;
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
+    check(as_to_user(&ko->u.as, uas));
 }
 
 static void
 sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
 {
-    struct Address_space *as;
-    check(cobj_get(asref, kobj_address_space, (struct kobject **)&as,
-		   iflow_write));
-    check(as_from_user(as, uas));
+    const struct kobject *ko;
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_write));
+    check(as_from_user(&kobject_dirty(&ko->u.hdr)->u.as, uas));
 }
 
 uint64_t

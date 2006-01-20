@@ -3,11 +3,11 @@
 
 #include <machine/types.h>
 #include <machine/as.h>
-#include <kern/kobj.h>
+#include <kern/kobjhdr.h>
 #include <inc/segment.h>
 
 struct Segment {
-    struct kobject sg_ko;
+    struct kobject_hdr sg_ko;
     struct segmap_list sg_segmap_list;
 };
 

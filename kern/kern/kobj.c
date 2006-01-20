@@ -12,8 +12,20 @@
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
 
+struct kobject *
+kobject_h2k(struct kobject_hdr *kh)
+{
+    return (struct kobject *) kh;
+}
+
+static struct kobject *
+kobject_const_h2k(const struct kobject_hdr *kh)
+{
+    return (struct kobject *) kh;
+}
+
 static int
-kobject_iflow_check(struct kobject *ko, info_flow_type iflow)
+kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
 {
     int r;
 
@@ -46,16 +58,16 @@ kobject_iflow_check(struct kobject *ko, info_flow_type iflow)
 }
 
 int
-kobject_get(kobject_id_t id, struct kobject **kp, info_flow_type iflow)
+kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 {
-    LIST_FOREACH(*kp, &ko_list, ko_link) {
-	if ((*kp)->ko_id == id) {
-	    int r = kobject_iflow_check(*kp, iflow);
+    struct kobject_hdr *ko;
+    LIST_FOREACH(ko, &ko_list, ko_link) {
+	if (ko->ko_id == id) {
+	    int r = kobject_iflow_check(ko, iflow);
 	    if (r < 0)
 		return r;
 
-	    if (iflow == iflow_rw || iflow == iflow_write)
-		(*kp)->ko_flags |= KOBJ_DIRTY;
+	    *kp = kobject_h2k(ko);
 	    return 0;
 	}
     }
@@ -78,21 +90,23 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     struct kobject_pair *ko_pair = (struct kobject_pair *) p;
     static_assert(sizeof(*ko_pair) <= PGSIZE);
 
-    struct kobject *ko = &ko_pair->active.u.hdr;
+    struct kobject *ko = &ko_pair->active;
     memset(ko, 0, sizeof(*ko));
-    ko->ko_type = type;
-    ko->ko_id = handle_alloc();
-    ko->ko_label = *l;
-    ko->ko_flags = KOBJ_DIRTY;
 
-    LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    struct kobject_hdr *kh = &ko->u.hdr;
+    kh->ko_type = type;
+    kh->ko_id = handle_alloc();
+    kh->ko_label = *l;
+    kh->ko_flags = KOBJ_DIRTY;
+
+    LIST_INSERT_HEAD(&ko_list, kh, ko_link);
 
     *kp = ko;
     return 0;
 }
 
 static int
-kobject_get_pagep(struct kobject *kp, uint64_t npage, void ***pp)
+kobject_get_pagep(struct kobject_hdr *kp, uint64_t npage, void ***pp)
 {
     if (npage < KOBJ_DIRECT_PAGES) {
 	*pp = &kp->ko_pages[npage];
@@ -116,7 +130,7 @@ kobject_get_pagep(struct kobject *kp, uint64_t npage, void ***pp)
 }
 
 static void
-kobject_free_pages(struct kobject *ko)
+kobject_free_pages(struct kobject_hdr *ko)
 {
     for (int i = 0; i < KOBJ_DIRECT_PAGES; i++) {
 	if (ko->ko_pages[i]) {
@@ -140,7 +154,7 @@ kobject_free_pages(struct kobject *ko)
 }
 
 int
-kobject_get_page(struct kobject *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
+kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
 {
     if (npage > kp->ko_npages)
 	return -E_INVAL;
@@ -151,10 +165,10 @@ kobject_get_page(struct kobject *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
     }
 
     if (rw == kobj_rw)
-	kp->ko_flags |= KOBJ_DIRTY;
+	kobject_dirty(kp);
 
     void **kp_pagep;
-    int r = kobject_get_pagep(kp, npage, &kp_pagep);
+    int r = kobject_get_pagep(&kobject_const_h2k(kp)->u.hdr, npage, &kp_pagep);
     if (r < 0)
 	return r;
 
@@ -163,7 +177,7 @@ kobject_get_page(struct kobject *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
 }
 
 int
-kobject_set_npages(struct kobject *kp, uint64_t npages)
+kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
 {
     if (npages > KOBJ_DIRECT_PAGES + KOBJ_PAGES_PER_INDIR)
 	return -E_NO_MEM;
@@ -172,8 +186,6 @@ kobject_set_npages(struct kobject *kp, uint64_t npages)
 	thread_suspend(cur_thread, &kobj_snapshot_waiting);
 	return -E_RESTART;
     }
-
-    kp->ko_flags |= KOBJ_DIRTY;
 
     for (uint64_t i = npages; i < kp->ko_npages; i++) {
 	void **pp;
@@ -215,57 +227,65 @@ kobject_set_npages(struct kobject *kp, uint64_t npages)
     return 0;
 }
 
+struct kobject *
+kobject_dirty(const struct kobject_hdr *kh)
+{
+    struct kobject *ko = kobject_const_h2k(kh);
+    ko->u.hdr.ko_flags |= KOBJ_DIRTY;
+    return ko;
+}
+
 void
 kobject_swapin(struct kobject *ko)
 {
-    LIST_INSERT_HEAD(&ko_list, ko, ko_link);
-    ko->ko_pin = 0;
-    ko->ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY);
+    LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
+    ko->u.hdr.ko_pin = 0;
+    ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY);
 
-    if (ko->ko_type == kobj_thread)
-	thread_swapin((struct Thread *) ko);
-    if (ko->ko_type == kobj_address_space)
-	as_swapin((struct Address_space *) ko);
-    if (ko->ko_type == kobj_segment)
-	segment_swapin((struct Segment *) ko);
+    if (ko->u.hdr.ko_type == kobj_thread)
+	thread_swapin(&ko->u.th);
+    if (ko->u.hdr.ko_type == kobj_address_space)
+	as_swapin(&ko->u.as);
+    if (ko->u.hdr.ko_type == kobj_segment)
+	segment_swapin(&ko->u.sg);
 }
 
 void
 kobject_swapin_page(struct kobject *ko, uint64_t page_num, void *p)
 {
     void **pp;
-    int r = kobject_get_pagep(ko, page_num, &pp);
+    int r = kobject_get_pagep(&ko->u.hdr, page_num, &pp);
     if (r < 0)
 	panic("cannot get slot for object %ld page %ld: %s",
-	      ko->ko_id, page_num, e2s(r));
+	      ko->u.hdr.ko_id, page_num, e2s(r));
 
     *pp = p;
 }
 
 void
-kobject_incref(struct kobject *ko)
+kobject_incref(const struct kobject_hdr *ko)
 {
-    ko->ko_flags |= KOBJ_DIRTY;
-    ++ko->ko_ref;
+    kobject_dirty(ko)->u.hdr.ko_ref++;
 }
 
 void
-kobject_decref(struct kobject *ko)
+kobject_decref(const struct kobject_hdr *ko)
 {
-    ko->ko_flags |= KOBJ_DIRTY;
-    --ko->ko_ref;
+    kobject_dirty(ko)->u.hdr.ko_ref--;
 }
 
 void
-kobject_incpin(struct kobject *ko)
+kobject_incpin(const struct kobject_hdr *ko)
 {
-    ++ko->ko_pin;
+    struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
+    ++m->ko_pin;
 }
 
 void
-kobject_decpin(struct kobject *ko)
+kobject_decpin(const struct kobject_hdr *ko)
 {
-    --ko->ko_pin;
+    struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
+    --m->ko_pin;
 }
 
 static void
@@ -273,17 +293,17 @@ kobject_gc(struct kobject *ko)
 {
     int r = 0;
 
-    switch (ko->ko_type) {
+    switch (ko->u.hdr.ko_type) {
     case kobj_thread:
-	r = thread_gc((struct Thread *) ko);
+	r = thread_gc(&ko->u.th);
 	break;
 
     case kobj_container:
-	r = container_gc((struct Container *) ko);
+	r = container_gc(&ko->u.ct);
 	break;
 
     case kobj_address_space:
-	r = as_gc((struct Address_space *) ko);
+	r = as_gc(&ko->u.as);
 	break;
 
     case kobj_gate:
@@ -291,17 +311,16 @@ kobject_gc(struct kobject *ko)
 	break;
 
     default:
-	panic("kobject_free: unknown kobject type %d", ko->ko_type);
+	panic("kobject_free: unknown kobject type %d", ko->u.hdr.ko_type);
     }
 
     if (r == -E_RESTART)
 	return;
     if (r < 0)
-	cprintf("kobject_free: cannot GC type %d: %d\n", ko->ko_type, r);
+	cprintf("kobject_free: cannot GC type %d: %d\n", ko->u.hdr.ko_type, r);
 
-    kobject_free_pages(ko);
-    ko->ko_type = kobj_dead;
-    ko->ko_flags |= KOBJ_DIRTY;
+    kobject_free_pages(&ko->u.hdr);
+    ko->u.hdr.ko_type = kobj_dead;
 }
 
 void
@@ -312,10 +331,10 @@ kobject_gc_scan(void)
     struct Thread *t = cur_thread;
     cur_thread = 0;
 
-    struct kobject *ko;
+    struct kobject_hdr *ko;
     LIST_FOREACH(ko, &ko_list, ko_link)
 	if (ko->ko_ref == 0 && ko->ko_pin == 0 && ko->ko_type != kobj_dead)
-	    kobject_gc(ko);
+	    kobject_gc(kobject_dirty(ko));
 
     cur_thread = t;
 }
@@ -323,18 +342,18 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
-    if (ko->ko_type == kobj_thread)
-	thread_swapout((struct Thread *) ko);
-    if (ko->ko_type == kobj_address_space)
-	as_swapout((struct Address_space *) ko);
+    if (ko->u.hdr.ko_type == kobj_thread)
+	thread_swapout(&ko->u.th);
+    if (ko->u.hdr.ko_type == kobj_address_space)
+	as_swapout(&ko->u.as);
 
-    LIST_REMOVE(ko, ko_link);
-    kobject_free_pages(ko);
+    LIST_REMOVE(&ko->u.hdr, ko_link);
+    kobject_free_pages(&ko->u.hdr);
     page_free(ko);
 }
 
-struct kobject_buf *
-kobject_get_snapbuf(struct kobject *ko)
+struct kobject *
+kobject_get_snapshot(struct kobject_hdr *ko)
 {
     assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     struct kobject_pair *kp = (struct kobject_pair *) ko;
@@ -342,23 +361,23 @@ kobject_get_snapbuf(struct kobject *ko)
 }
 
 void
-kobject_snapshot(struct kobject *ko)
+kobject_snapshot(struct kobject_hdr *ko)
 {
     assert(!(ko->ko_flags & KOBJ_SNAPSHOTING));
 
     if (ko->ko_type == kobj_segment)
-	segment_snapshot((struct Segment *) ko);
+	segment_snapshot(&kobject_h2k(ko)->u.sg);
 
     ko->ko_flags |= KOBJ_SNAPSHOTING;
     ko->ko_flags &= ~KOBJ_DIRTY;
     kobject_incpin(ko);
 
-    struct kobject_buf *snap = kobject_get_snapbuf(ko);
+    struct kobject *snap = kobject_get_snapshot(ko);
     memcpy(snap, ko, sizeof(*snap));
 }
 
 void
-kobject_snapshot_release(struct kobject *ko)
+kobject_snapshot_release(struct kobject_hdr *ko)
 {
     assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;

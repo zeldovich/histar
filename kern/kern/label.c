@@ -51,7 +51,7 @@ label_set(struct Label *l, uint64_t handle, level_t level)
 }
 
 int
-label_to_ulabel(struct Label *l, struct ulabel *ul)
+label_to_ulabel(const struct Label *l, struct ulabel *ul)
 {
     int r = page_user_incore((void**) &ul, sizeof(*ul));
     if (r < 0)

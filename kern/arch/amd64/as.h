@@ -3,7 +3,7 @@
 
 #include <machine/pmap.h>
 #include <machine/types.h>
-#include <kern/kobj.h>
+#include <kern/kobjhdr.h>
 #include <inc/segment.h>
 #include <inc/queue.h>
 
@@ -12,8 +12,8 @@ struct Address_space;
 struct segment_mapping {
     struct u_segment_mapping sm_usm;
 
-    struct Address_space *sm_as;
-    struct Segment *sm_sg;
+    const struct Address_space *sm_as;
+    const struct Segment *sm_sg;
     LIST_ENTRY(segment_mapping) sm_link;
 };
 
@@ -23,23 +23,23 @@ LIST_HEAD(segmap_list, segment_mapping);
 #define N_SEGMAP_PER_PAGE	(PGSIZE / sizeof(struct segment_mapping))
 
 struct Address_space {
-    struct kobject as_ko;
+    struct kobject_hdr as_ko;
 
     struct Pagemap *as_pgmap;
     struct segment_mapping as_segmap[N_SEGMAP_DIRECT];
 };
 
 int  as_alloc(struct Label *l, struct Address_space **asp);
-int  as_to_user(struct Address_space *as, struct u_address_space *uas);
+int  as_to_user(const struct Address_space *as, struct u_address_space *uas);
 int  as_from_user(struct Address_space *as, struct u_address_space *uas);
 
 void as_swapin(struct Address_space *as);
 void as_swapout(struct Address_space *as);
 int  as_gc(struct Address_space *as);
-void as_segmap_snapshot(struct Address_space *as, struct segment_mapping *sm);
-void as_invalidate(struct Address_space *as);
+void as_segmap_snapshot(const struct Address_space *as, struct segment_mapping *sm);
+void as_invalidate(const struct Address_space *as);
 
 int  as_pagefault(struct Address_space *as, void *va);
-void as_switch(struct Address_space *as);
+void as_switch(const struct Address_space *as);
 
 #endif

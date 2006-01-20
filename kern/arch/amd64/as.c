@@ -2,18 +2,18 @@
 #include <machine/as.h>
 #include <kern/segment.h>
 #include <kern/container.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 int
 as_alloc(struct Label *l, struct Address_space **asp)
 {
-    struct Address_space *as;
-    int r = kobject_alloc(kobj_address_space, l, (struct kobject **) &as);
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_address_space, l, &ko);
     if (r < 0)
 	return r;
 
-    static_assert(sizeof(*as) <= sizeof(struct kobject_buf));
-
+    struct Address_space *as = &ko->u.as;
     memset(&as->as_segmap, 0, sizeof(as->as_segmap));
     as_swapin(as);
 
@@ -22,22 +22,27 @@ as_alloc(struct Label *l, struct Address_space **asp)
 }
 
 void
-as_invalidate(struct Address_space *as)
+as_invalidate(const struct Address_space *as_const)
 {
+    struct Address_space *as = &kobject_dirty(&as_const->as_ko)->u.as;
+
     as_swapout(as);
     as_swapin(as);
 }
 
 static uint64_t
-as_nents(struct Address_space *as)
+as_nents(const struct Address_space *as)
 {
     return N_SEGMAP_DIRECT + as->as_ko.ko_npages * N_SEGMAP_PER_PAGE;
 }
 
 static int
-as_get_segmap(struct Address_space *as, struct segment_mapping **smp,
+as_get_segmap(const struct Address_space *const_as,
+	      struct segment_mapping **smp,
 	      uint64_t smi, kobj_rw_mode rw)
 {
+    struct Address_space *as = &kobject_dirty(&const_as->as_ko)->u.as;
+
     if (smi < N_SEGMAP_DIRECT) {
 	*smp = &as->as_segmap[smi];
 	return 0;
@@ -74,7 +79,7 @@ as_resize(struct Address_space *as, uint64_t nent)
 }
 
 int
-as_to_user(struct Address_space *as, struct u_address_space *uas)
+as_to_user(const struct Address_space *as, struct u_address_space *uas)
 {
     int r = page_user_incore((void**) &uas, sizeof(*uas));
     if (r < 0)
@@ -183,8 +188,8 @@ as_gc(struct Address_space *as)
 }
 
 static int
-as_pmap_fill_segment(struct Address_space *as,
-		     struct Segment *sg,
+as_pmap_fill_segment(const struct Address_space *as,
+		     const struct Segment *sg,
 		     struct segment_mapping *sm,
 		     bool force_ro)
 {
@@ -241,7 +246,8 @@ as_pmap_fill_segment(struct Address_space *as,
 	sm->sm_as = as;
 	sm->sm_sg = sg;
 
-	LIST_INSERT_HEAD(&sg->sg_segmap_list, sm, sm_link);
+	struct Segment *msg = &kobject_dirty(&sg->sg_ko)->u.sg;
+	LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
 	kobject_incpin(&sg->sg_ko);
     }
 
@@ -273,12 +279,13 @@ as_pmap_fill(struct Address_space *as, void *va)
 	    return r;
 
 	struct cobj_ref seg_ref = segmap->sm_usm.segment;
-	struct Segment *sg;
-	r = cobj_get(seg_ref, kobj_segment, (struct kobject **)&sg,
+	const struct kobject *ko;
+	r = cobj_get(seg_ref, kobj_segment, &ko,
 		     (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
 	if (r < 0)
 	    return r;
 
+	const struct Segment *sg = &ko->u.sg;
 	return as_pmap_fill_segment(as, sg, segmap, 0);
     }
 
@@ -311,14 +318,14 @@ as_pagefault(struct Address_space *as, void *va)
 }
 
 void
-as_switch(struct Address_space *as)
+as_switch(const struct Address_space *as)
 {
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     lcr3(kva2pa(pgmap));
 }
 
 void
-as_segmap_snapshot(struct Address_space *as, struct segment_mapping *sm)
+as_segmap_snapshot(const struct Address_space *as, struct segment_mapping *sm)
 {
     assert(0 == as_pmap_fill_segment(as, sm->sm_sg, sm, 1));
 }

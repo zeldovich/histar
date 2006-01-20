@@ -9,7 +9,7 @@
 struct net_device {
     void *arg;
 
-    int  (*add_buf) (void *a, struct Segment *sg,
+    int  (*add_buf) (void *a, const struct Segment *sg,
 		     uint64_t offset, netbuf_type type);
     void (*buffer_reset) (void *a);
 
@@ -41,7 +41,7 @@ int64_t netdev_thread_wait(struct net_device *ndev, struct Thread *t,
 void	netdev_thread_wakeup(struct net_device *ndev);
 
 void	netdev_macaddr(struct net_device *ndev, uint8_t *addrbuf);
-int	netdev_add_buf(struct net_device *ndev, struct Segment *sg,
+int	netdev_add_buf(struct net_device *ndev, const struct Segment *sg,
 		       uint64_t offset, netbuf_type type);
 
 #endif

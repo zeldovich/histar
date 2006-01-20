@@ -25,7 +25,7 @@ void label_init(struct Label *l);
 int  label_set(struct Label *l, uint64_t handle, level_t level);
 
 // user label handling
-int  label_to_ulabel(struct Label *l, struct ulabel *ul);
+int  label_to_ulabel(const struct Label *l, struct ulabel *ul);
 int  ulabel_to_label(struct ulabel *ul, struct Label *l);
 
 // returns an error if the comparator errors out on any relevant level pair

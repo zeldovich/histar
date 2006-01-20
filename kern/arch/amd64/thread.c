@@ -5,6 +5,7 @@
 #include <machine/trap.h>
 #include <machine/as.h>
 #include <kern/segment.h>
+#include <kern/kobj.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -41,13 +42,12 @@ thread_halt(struct Thread *t)
 int
 thread_alloc(struct Label *l, struct Thread **tp)
 {
-    struct Thread *t;
-    int r = kobject_alloc(kobj_thread, l, (struct kobject **)&t);
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_thread, l, &ko);
     if (r < 0)
 	return r;
 
-    static_assert(sizeof(*t) <= sizeof(struct kobject_buf));
-
+    struct Thread *t = &ko->u.th;
     t->th_status = thread_not_started;
     thread_swapin(t);
 
@@ -101,7 +101,7 @@ thread_run(struct Thread *t)
 }
 
 void
-thread_jump(struct Thread *t, struct Label *label,
+thread_jump(struct Thread *t, const struct Label *label,
 	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
@@ -141,15 +141,15 @@ int
 thread_pagefault(struct Thread *t, void *fault_va)
 {
     if (t->th_as == 0) {
-	struct Address_space *as;
-	int r = cobj_get(t->th_asref, kobj_address_space,
-			 (struct kobject **)&as, iflow_read);
+	const struct kobject *ko;
+	int r = cobj_get(t->th_asref, kobj_address_space, &ko, iflow_read);
 	if (r < 0)
 	    return r;
 
+	const struct Address_space *as = &ko->u.as;
 	t->th_as = as;
 	kobject_incpin(&t->th_as->as_ko);
     }
 
-    return as_pagefault(t->th_as, fault_va);
+    return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->u.as, fault_va);
 }

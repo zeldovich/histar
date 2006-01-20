@@ -6,6 +6,7 @@
 #include <kern/intr.h>
 #include <kern/lib.h>
 #include <kern/netdev.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 #include <inc/netdev.h>
 
@@ -22,7 +23,7 @@ struct ne2kpci_rx_slot {
    uint16_t size;
    struct dp8390_ring rrd ;
    struct netbuf_hdr *nb;
-   struct Segment *sg;
+   const struct Segment *sg;
 };
 
 
@@ -50,7 +51,7 @@ ne2kpci_buffer_reset(struct ne2kpci_card *c)
    for (int i = 0; i < NE2KPCI_RX_SLOTS; i++) {
       if (c->rx[i].sg) {
 	 kobject_decpin(&c->rx[i].sg->sg_ko);
-	 c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	 kobject_dirty(&c->rx[i].sg->sg_ko);
       }
       c->rx[i].sg = 0;
    }
@@ -222,7 +223,7 @@ ne2kpci_rintr(void)
       c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE ;
       
       kobject_decpin(&c->rx[i].sg->sg_ko);
-      c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+      kobject_dirty(&c->rx[i].sg->sg_ko);
       c->rx[i].sg = 0;
       
       c->rx_head = (i + 1) % NE2KPCI_RX_SLOTS;
@@ -267,7 +268,7 @@ ne2kpci_intr(void)
 }
 
 static int
-ne2kpci_add_txbuf(struct ne2kpci_card *c, struct Segment *sg,
+ne2kpci_add_txbuf(struct ne2kpci_card *c, const struct Segment *sg,
 		  struct netbuf_hdr *nb, uint16_t size)
 {
    // txp queue?
@@ -290,7 +291,7 @@ ne2kpci_add_txbuf(struct ne2kpci_card *c, struct Segment *sg,
 }
 
 static int
-ne2kpci_add_rxbuf(struct ne2kpci_card *c, struct Segment *sg,
+ne2kpci_add_rxbuf(struct ne2kpci_card *c, const struct Segment *sg,
 		  struct netbuf_hdr *nb, uint16_t size)
 {
    int slot = c->rx_nextq;
@@ -311,7 +312,7 @@ ne2kpci_add_rxbuf(struct ne2kpci_card *c, struct Segment *sg,
 }
 
 int
-ne2kpci_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
+ne2kpci_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
    struct ne2kpci_card *c = a;
    uint64_t npage = offset / PGSIZE;

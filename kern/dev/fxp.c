@@ -23,14 +23,14 @@ struct fxp_tx_slot {
     struct fxp_cb_tx tcb;
     struct fxp_tbd tbd;
     struct netbuf_hdr *nb;
-    struct Segment *sg;
+    const struct Segment *sg;
 };
 
 struct fxp_rx_slot {
     struct fxp_rfa rfd;
     struct fxp_rbd rbd;
     struct netbuf_hdr *nb;
-    struct Segment *sg;
+    const struct Segment *sg;
 };
 
 // Static allocation ensures contiguous memory.
@@ -186,7 +186,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	if (c->tx[i].sg) {
 	    kobject_decpin(&c->tx[i].sg->sg_ko);
-	    c->tx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	    kobject_dirty(&c->tx[i].sg->sg_ko);
 	}
 	c->tx[i].sg = 0;
     }
@@ -194,7 +194,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
 	    kobject_decpin(&c->rx[i].sg->sg_ko);
-	    c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
     }
@@ -278,7 +278,7 @@ fxp_intr_rx(struct fxp_card *c)
 	    break;
 
 	kobject_decpin(&c->rx[i].sg->sg_ko);
-	c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
@@ -300,7 +300,7 @@ fxp_intr_tx(struct fxp_card *c)
 	    break;
 
 	kobject_decpin(&c->tx[i].sg->sg_ko);
-	c->tx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	kobject_dirty(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
@@ -334,7 +334,7 @@ fxp_intr(void)
 }
 
 static int
-fxp_add_txbuf(struct fxp_card *c, struct Segment *sg,
+fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
 	      struct netbuf_hdr *nb, uint16_t size)
 {
     int slot = c->tx_nextq;
@@ -370,7 +370,7 @@ fxp_add_txbuf(struct fxp_card *c, struct Segment *sg,
 }
 
 static int
-fxp_add_rxbuf(struct fxp_card *c, struct Segment *sg,
+fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
 	      struct netbuf_hdr *nb, uint16_t size)
 {
     int slot = c->rx_nextq;
@@ -401,7 +401,7 @@ fxp_add_rxbuf(struct fxp_card *c, struct Segment *sg,
 }
 
 int
-fxp_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
+fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
     struct fxp_card *c = a;
     uint64_t npage = offset / PGSIZE;

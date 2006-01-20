@@ -6,6 +6,7 @@
 #include <machine/multiboot.h>
 #include <dev/kclock.h>
 #include <kern/lib.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 // These variables are set by i386_detect_memory()
@@ -338,12 +339,15 @@ page_user_incore(void **ptrp, int nbytes)
 
     if (cur_thread == 0 || cur_thread->th_as == 0)
 	panic("page_user_incore: no thread or address space");
-    struct Address_space *as = cur_thread->th_as;
+    const struct Address_space *as = cur_thread->th_as;
+
+    // XXX this might not deal so well with writable pages that are mapped RO
+    // for snapshotting....
 
     uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
     for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
 	if (page_lookup(as->as_pgmap, (void*) va) == 0) {
-	    int r = as_pagefault(as, (void*) va);
+	    int r = as_pagefault(&kobject_dirty(&as->as_ko)->u.as, (void*) va);
 	    if (r < 0)
 		return r;
 	}

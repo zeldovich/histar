@@ -4,7 +4,7 @@
 #include <machine/mmu.h>
 #include <machine/as.h>
 #include <kern/label.h>
-#include <kern/kobj.h>
+#include <kern/kobjhdr.h>
 #include <kern/container.h>
 #include <inc/queue.h>
 
@@ -16,12 +16,12 @@ typedef enum {
 } thread_status;
 
 struct Thread {
-    struct kobject th_ko;
+    struct kobject_hdr th_ko;
 
     struct Trapframe th_tf __attribute__ ((aligned (16)));
 
     struct cobj_ref th_asref;
-    struct Address_space *th_as;
+    const struct Address_space *th_as;
 
     thread_status th_status;
     uint64_t th_wakeup_ticks;
@@ -41,7 +41,7 @@ void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t);
 
 // Assumes ownership of label
-void thread_jump(struct Thread *t, struct Label *label,
+void thread_jump(struct Thread *t, const struct Label *label,
 		 struct cobj_ref as, void *entry, void *stack,
 		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
 void thread_syscall_restart(struct Thread *t);

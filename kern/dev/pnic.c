@@ -21,7 +21,7 @@
 struct pnic_rx_slot {
     uint16_t size;
     struct netbuf_hdr *nb;
-    struct Segment *sg;
+    const struct Segment *sg;
 };
 
 struct pnic_card {
@@ -45,7 +45,7 @@ pnic_buffer_reset(struct pnic_card *c)
     for (int i = 0; i < PNIC_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
 	    kobject_decpin(&c->rx[i].sg->sg_ko);
-	    c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
     }
@@ -118,7 +118,7 @@ pnic_intr(void)
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
 	kobject_decpin(&c->rx[i].sg->sg_ko);
-	c->rx[i].sg->sg_ko.ko_flags |= KOBJ_DIRTY;
+	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 
 	c->rx_head = (i + 1) % PNIC_RX_SLOTS;
@@ -131,7 +131,7 @@ pnic_intr(void)
 }
 
 static int
-pnic_add_txbuf(struct pnic_card *c, struct Segment *sg,
+pnic_add_txbuf(struct pnic_card *c, const struct Segment *sg,
 	       struct netbuf_hdr *nb, uint16_t size)
 {
     const char *buf = (const char *) (nb + 1);
@@ -151,7 +151,7 @@ pnic_add_txbuf(struct pnic_card *c, struct Segment *sg,
 }
 
 static int
-pnic_add_rxbuf(struct pnic_card *c, struct Segment *sg,
+pnic_add_rxbuf(struct pnic_card *c, const struct Segment *sg,
 	       struct netbuf_hdr *nb, uint16_t size)
 {
     int slot = c->rx_nextq;
@@ -172,7 +172,7 @@ pnic_add_rxbuf(struct pnic_card *c, struct Segment *sg,
 }
 
 int
-pnic_add_buf(void *a, struct Segment *sg, uint64_t offset, netbuf_type type)
+pnic_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
     struct pnic_card *c = (struct pnic_card *) a;
     uint64_t npage = offset / PGSIZE;

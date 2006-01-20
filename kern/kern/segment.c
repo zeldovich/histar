@@ -2,17 +2,18 @@
 #include <kern/label.h>
 #include <kern/container.h>
 #include <kern/segment.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 int
 segment_alloc(struct Label *l, struct Segment **sgp)
 {
-    struct Segment *sg;
-    int r = kobject_alloc(kobj_segment, l, (struct kobject **)&sg);
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_segment, l, &ko);
     if (r < 0)
 	return r;
 
-    static_assert(sizeof(*sg) <= sizeof(struct kobject_buf));
+    struct Segment *sg = &ko->u.sg;
     segment_swapin(sg);
 
     *sgp = sg;
