@@ -52,33 +52,6 @@ typedef long ptrdiff_t;
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
 
-
-// ASBESTOS TYPES
-typedef uint64_t handle_t;
-typedef int64_t handlediff_t;
-typedef unsigned char level_t;
-
-#define HANDLE_NULL	0ULL
-#define HVALUE_MASK	0xFFFFFFFFFFFFFFF8ULL
-#define HLEVEL_MASK	0x00000007
-#define HVALUE_SHIFT	3
-#define HLEVEL_SHIFT	61
-#define HVALUE(h)	((h) & HVALUE_MASK)
-#define HLEVEL(h)	((h) & HLEVEL_MASK)
-#define MKHANDLE(h, l)	(((h) & HVALUE_MASK) | ((handle_t)(l)))
-
-#define LSTAR		0
-#define LZERO		1
-#define LONE		2
-#define LTWO		3
-#define LTHREE		4
-#define LSPECIAL	5
-#define LBAD		0
-
-#define LEVEL_VALID(l)		((unsigned)(l) <= LTHREE)
-#define LEVEL_UNPARSE(l)	("*0123"[(l)])
-
-
 // Efficient min and max operations
 #define MIN(_a, _b)						\
 ({								\
