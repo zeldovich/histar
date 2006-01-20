@@ -4,6 +4,7 @@ threads as 1-slot (or few-slot) containers
 
 user-specified segment labeling
 segment_copy syscall
+in-kernel segment COW: beware of DMA
 user-specified container labeling
 larger labels (if needed?)
 
