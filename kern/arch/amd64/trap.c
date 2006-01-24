@@ -97,8 +97,9 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     switch (trapno) {
     case T_SYSCALL:
 	tf->tf_rax =
-	    syscall((syscall_num) tf->tf_rdi,
-		    tf->tf_rsi, tf->tf_rdx, tf->tf_rcx, tf->tf_r8, tf->tf_r9);
+	    syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
+		    tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
+		    tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 	break;
 
     case T_PGFLT:
