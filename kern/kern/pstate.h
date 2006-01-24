@@ -35,7 +35,9 @@ struct pstate_map {
 struct pstate_header {
     uint64_t ph_magic;
     uint64_t ph_version;
+
     uint64_t ph_handle_counter;
+    uint64_t ph_user_root_handle;
 
     struct pstate_map ph_map;
     struct pstate_free_list ph_free;

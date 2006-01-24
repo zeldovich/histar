@@ -3,6 +3,7 @@
 #include <machine/x86.h>
 #include <dev/disk.h>
 #include <kern/pstate.h>
+#include <kern/uinit.h>
 #include <kern/handle.h>
 #include <kern/lib.h>
 #include <inc/error.h>
@@ -273,6 +274,7 @@ static void
 init_done(void)
 {
     handle_counter = stable_hdr.ph_handle_counter;
+    user_root_handle = stable_hdr.ph_user_root_handle;
     state.done = 1;
 }
 
@@ -529,6 +531,7 @@ pstate_sync(void)
     state.hdr->ph_magic = PSTATE_MAGIC;
     state.hdr->ph_version = PSTATE_VERSION;
     state.hdr->ph_handle_counter = handle_counter;
+    state.hdr->ph_user_root_handle = user_root_handle;
 
     state.cb = 0;
     swapout_state.ko = LIST_FIRST(&ko_list);

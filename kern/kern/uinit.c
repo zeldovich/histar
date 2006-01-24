@@ -15,6 +15,8 @@
 #include <inc/elf64.h>
 #include <inc/error.h>
 
+uint64_t user_root_handle;
+
 struct embedded_blob {
     uint8_t *buf;
     uint64_t size;
@@ -286,11 +288,11 @@ user_bootstrap(void)
     EMBED_DECLARE(init);
 
     // root handle and a label
-    uint64_t root_handle = handle_alloc();
+    user_root_handle = handle_alloc();
     struct Label l;
     label_init(&l);
     l.lb_def_level = 1;
-    assert(0 == label_set(&l, root_handle, LB_LEVEL_STAR));
+    assert(0 == label_set(&l, user_root_handle, LB_LEVEL_STAR));
 
     // root container
     struct Container *rc;
