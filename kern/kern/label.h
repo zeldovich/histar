@@ -5,23 +5,23 @@
 #include <machine/mmu.h>
 #include <inc/label.h>
 
+typedef unsigned char level_t;
+
 #define NUM_LB_ENT	8
 
 struct Label {
-    uint32_t lb_def_level;
+    level_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT];
 };
 
 #define LB_ENT_EMPTY		(~(0L))
-
-typedef unsigned char level_t;
 
 typedef int (level_comparator)(int, int);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
 level_comparator label_eq;
 
-void label_init(struct Label *l);
+void label_init(struct Label *l, level_t def);
 int  label_set(struct Label *l, uint64_t handle, level_t level);
 
 // user label handling

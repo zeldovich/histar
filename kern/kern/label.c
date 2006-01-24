@@ -23,8 +23,9 @@ label_get_level(struct Label *l, uint64_t handle)
 }
 
 void
-label_init(struct Label *l)
+label_init(struct Label *l, level_t def)
 {
+    l->lb_def_level = def;
     for (int i = 0; i < NUM_LB_ENT; i++)
 	l->lb_ent[i] = LB_ENT_EMPTY;
 }
@@ -89,8 +90,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     if (r < 0)
 	return r;
 
-    label_init(l);
-    l->lb_def_level = ul->ul_default;
+    label_init(l, ul->ul_default);
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 

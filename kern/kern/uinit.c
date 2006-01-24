@@ -290,8 +290,7 @@ user_bootstrap(void)
     // root handle and a label
     user_root_handle = handle_alloc();
     struct Label l;
-    label_init(&l);
-    l.lb_def_level = 1;
+    label_init(&l, 1);
     assert(0 == label_set(&l, user_root_handle, LB_LEVEL_STAR));
 
     // root container
