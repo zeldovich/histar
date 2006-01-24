@@ -15,7 +15,7 @@ main(int ac, char **av)
     if (rslots < 0)
 	panic("sys_container_nslots: %s", e2s(rslots));
 
-    int64_t id, i;
+    int64_t id = 0, i;
     for (i = 0; i < rslots; i++) {
 	id = sys_container_get_slot_id(rc, i);
 	if (id < 0)
