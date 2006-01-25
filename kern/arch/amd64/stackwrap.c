@@ -86,8 +86,9 @@ disk_io_cb(disk_io_status status, void *b, uint32_t c, uint64_t o, void *arg)
     struct disk_io_state *ds = (struct disk_io_state *) arg;
     ds->status = status;
 
+    struct stackwrap_state *ss = ds->ss;
     if (setjmp(&ds->ss->entry_cb) != 0) {
-	stackwrap_check(ds->ss);
+	stackwrap_check(ss);
 	return;
     }
 
