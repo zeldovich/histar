@@ -4,6 +4,7 @@
 #include <inc/segment.h>
 #include <inc/thread.h>
 #include <inc/label.h>
+#include <inc/kobj.h>
 
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
@@ -80,5 +81,9 @@ ssize_t	readn(int fd, void *buf, size_t nbytes);
 int64_t spawn(uint64_t container, struct cobj_ref elf);
 int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
 		 int fd0, int fd1, int fd2);
+
+/* container.c */
+int64_t container_find(uint64_t container, kobject_type_t type,
+		       const char *name);
 
 #endif

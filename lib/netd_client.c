@@ -12,37 +12,14 @@ static struct cobj_ref netd_gate;
 static int
 netd_client_init()
 {
-    uint64_t rc = start_env->root_container;
-    int64_t nslots = sys_container_nslots(rc);
-    if (nslots < 0)
-	return nslots;
+    int64_t gate_id = container_find(start_env->root_container,
+				     kobj_gate, "netd");
+    if (gate_id < 0)
+	return gate_id;
 
-    for (uint64_t i = 0; i < nslots; i++) {
-	int64_t id = sys_container_get_slot_id(rc, i);
-	if (id < 0)
-	    continue;
-
-	struct cobj_ref ko = COBJ(rc, id);
-	kobject_type_t type = sys_obj_get_type(ko);
-	if (type < 0)
-	    return type;
-
-	if (type != kobj_gate)
-	    continue;
-
-	char name[KOBJ_NAME_LEN];
-	int r = sys_obj_get_name(ko, &name[0]);
-	if (r < 0)
-	    continue;
-
-	if (!strcmp(&name[0], "netd")) {
-	    netd_gate = ko;
-	    netd_client_inited = 1;
-	    return 0;
-	}
-    }
-
-    return -1;
+    netd_client_inited = 1;
+    netd_gate = COBJ(start_env->root_container, gate_id);
+    return 0;
 }
 
 static int

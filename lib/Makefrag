@@ -25,6 +25,7 @@ LIB_SRCFILES :=	\
 	lib/fd.c \
 	lib/console.c \
 	lib/spawn.c \
+	lib/container.c \
 	lib/fs.c
 
 include lib/$(ARCH)/Makefrag
