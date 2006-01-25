@@ -70,7 +70,7 @@ kva2pa (void *kva)
  * Changes *ptrp such that it will not reference a kernel address,
  * and makes sure the address is paged in (might return -E_RESTART).
  */
-int  page_user_incore(void **ptrp, int nbytes);
+int  page_user_incore(void **ptrp, uint64_t nbytes);
 
 #endif /* !__ASSEMBLER__ */
 

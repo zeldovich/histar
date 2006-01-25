@@ -332,7 +332,7 @@ page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
 }
 
 int
-page_user_incore(void **ptrp, int nbytes)
+page_user_incore(void **ptrp, uint64_t nbytes)
 {
     uintptr_t ptr = (uintptr_t) *ptrp;
     ptr &= ~(1L << 63);
@@ -344,12 +344,14 @@ page_user_incore(void **ptrp, int nbytes)
     // XXX this might not deal so well with writable pages that are mapped RO
     // for snapshotting....
 
-    uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
-    for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
-	if (page_lookup(as->as_pgmap, (void*) va) == 0) {
-	    int r = as_pagefault(&kobject_dirty(&as->as_ko)->u.as, (void*) va);
-	    if (r < 0)
-		return r;
+    if (nbytes > 0) {
+	uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
+	for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
+	    if (page_lookup(as->as_pgmap, (void*) va) == 0) {
+		int r = as_pagefault(&kobject_dirty(&as->as_ko)->u.as, (void*) va);
+		if (r < 0)
+		    return r;
+	    }
 	}
     }
 
