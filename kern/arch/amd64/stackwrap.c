@@ -9,9 +9,6 @@ struct stackwrap_state {
     stackwrap_fn fn;
     void *fn_arg;
 
-    stackwrap_cb cb;
-    void *cb_arg;
-
     void *stackbase;
     struct jmp_buf entry_cb;
 
@@ -37,7 +34,7 @@ stackwrap_entry(void)
 {
     struct stackwrap_state *ss = stackwrap_cur();
 
-    ss->cb(ss->cb_arg, ss->fn(ss->fn_arg));
+    ss->fn(ss->fn_arg);
     ss->alive = 0;
     longjmp(&ss->entry_cb, 1);
 }
@@ -50,8 +47,7 @@ stackwrap_check(struct stackwrap_state *ss)
 }
 
 int
-stackwrap_call(stackwrap_fn fn, void *fn_arg,
-	       stackwrap_cb cb, void *cb_arg)
+stackwrap_call(stackwrap_fn fn, void *fn_arg)
 {
     void *stackbase;
     int r = page_alloc(&stackbase);
@@ -61,8 +57,6 @@ stackwrap_call(stackwrap_fn fn, void *fn_arg,
     struct stackwrap_state *ss = (struct stackwrap_state *) stackbase;
     ss->fn = fn;
     ss->fn_arg = fn_arg;
-    ss->cb = cb;
-    ss->cb_arg = cb_arg;
     ss->stackbase = stackbase;
     ss->alive = 1;
     ss->magic = STACKWRAP_MAGIC;
