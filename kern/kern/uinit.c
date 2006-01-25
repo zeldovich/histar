@@ -269,6 +269,8 @@ fs_init(struct Container *c, struct Label *l)
 static void
 user_bootstrap(void)
 {
+    pstate_reset();
+
     EMBED_DECLARE(idle);
     EMBED_DECLARE(spin);
     EMBED_DECLARE(hello);

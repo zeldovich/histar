@@ -1,6 +1,7 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
+#include <machine/stackwrap.h>
 #include <dev/disk.h>
 #include <kern/pstate.h>
 #include <kern/uinit.h>
@@ -15,7 +16,8 @@ static int pstate_sync_stats = 0;
 static struct pstate_header stable_hdr;
 
 // Scratch-space for a copy of the header used while reading/writing.
-#define PSTATE_BUF_SIZE		(3*PGSIZE)
+#define N_HEADER_PAGES		3
+#define PSTATE_BUF_SIZE		(N_HEADER_PAGES * PGSIZE)
 static union {
     struct pstate_header hdr;
     char buf[PSTATE_BUF_SIZE];
@@ -33,22 +35,17 @@ static struct {
 } state;
 
 static struct {
-    struct kobject_hdr *ko;
-    uint64_t extra_page;
-
-    int written_kobj;
-    int written_pages;
-    int snapshoted_kobj;
-    int dead_kobj;
-
-    int active;
-} swapout_state;
-
-static struct {
     struct kobject *ko;
     uint64_t extra_page;
     int slot;
 } swapin_state;
+
+struct swapout_stats {
+    uint64_t written_kobj;
+    uint64_t written_pages;
+    uint64_t snapshoted_kobj;
+    uint64_t dead_kobj;
+};
 
 //////////////////////////////////
 // Free list management
@@ -57,8 +54,8 @@ static void
 freelist_init(struct pstate_free_list *f)
 {
     // Mark the header pages as being in-use
-    f->inuse[0] = 1;
-    f->inuse[1] = 1;
+    for (int i = 0; i < N_HEADER_PAGES; i++)
+	f->inuse[i] = 1;
 }
 
 static int64_t
@@ -344,6 +341,13 @@ init_hdr_cb(disk_io_status stat, void *buf,
     init_kobj();
 }
 
+void
+pstate_reset(void)
+{
+    memset(&stable_hdr, 0, sizeof(stable_hdr));
+    freelist_init(&stable_hdr.ph_free);
+}
+
 int
 pstate_init(void)
 {
@@ -369,11 +373,6 @@ pstate_init(void)
 	ide_intr();
     }
 
-    if (state.done < 0) {
-	memset(&stable_hdr, 0, sizeof(stable_hdr));
-	freelist_init(&stable_hdr.ph_free);
-    }
-
     return state.done;
 }
 
@@ -381,14 +380,117 @@ pstate_init(void)
 // Swap-out code
 //////////////////////////////////////////////////
 
-static void
-sync_done(int r)
+static int
+pstate_sync_kobj(struct pstate_header *hdr,
+		 struct swapout_stats *stats,
+		 struct kobject_hdr *ko)
 {
-    if (r < 0)
-	cprintf("pstate_sync: %s\n", e2s(r));
+    struct kobject *snap = kobject_get_snapshot(ko);
 
-    for (struct kobject_hdr *ko = LIST_FIRST(&ko_list); ko; ) {
-	struct kobject_hdr *ko_next = LIST_NEXT(ko, ko_link);
+    int slot = pstate_kobj_alloc(&hdr->ph_map, &hdr->ph_free, snap);
+    if (slot < 0) {
+	cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(slot));
+	return -1;
+    }
+
+    disk_io_status s =
+	stackwrap_disk_io(op_write, snap, sizeof(*snap),
+			  hdr->ph_map.ent[slot].offset * PGSIZE);
+    if (s != disk_io_success) {
+	cprintf("pstate_sync_kobj: error during disk io\n");
+	return -1;
+    }
+
+    for (uint64_t page = 0; page < snap->u.hdr.ko_npages; page++) {
+	uint64_t offset = (hdr->ph_map.ent[slot].offset + page + 1) * PGSIZE;
+	void *p;
+	int r = kobject_get_page(&snap->u.hdr, page, &p, kobj_ro);
+	if (r < 0)
+	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
+
+	s = stackwrap_disk_io(op_write, p, PGSIZE, offset);
+	if (s != disk_io_success) {
+	    cprintf("pstate_sync_kobj: error during disk io for page\n");
+	    return -1;
+	}
+
+	stats->written_pages++;
+    }
+
+    kobject_snapshot_release(ko);
+    stats->written_kobj++;
+    return 0;
+}
+
+static int
+pstate_sync_loop(struct pstate_header *hdr,
+		 struct swapout_stats *stats)
+{
+    struct kobject_hdr *ko;
+    LIST_FOREACH(ko, &ko_list, ko_link) {
+	if (!(ko->ko_flags & KOBJ_SNAPSHOTING))
+	    continue;
+
+	struct kobject *snap = kobject_get_snapshot(ko);
+	if (snap->u.hdr.ko_type == kobj_dead) {
+	    pstate_kobj_free(&hdr->ph_map, &hdr->ph_free, snap);
+	    stats->dead_kobj++;
+	    continue;
+	}
+
+	int r = pstate_sync_kobj(hdr, stats, ko);
+	if (r < 0)
+	    return r;
+    }
+
+    freelist_commit(&hdr->ph_free);
+    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    if (s == disk_io_success) {
+	memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
+	return 0;
+    } else {
+	cprintf("pstate_sync_stackwrap: error writing header\n");
+	return -1;
+    }
+}
+
+static void
+pstate_sync_stackwrap(void *arg)
+{
+    static int swapout_active;
+
+    if (swapout_active) {
+	cprintf("pstate_sync: another sync still active\n");
+	return;
+    }
+
+    swapout_active = 1;
+
+    static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
+    struct pstate_header *hdr = &pstate_buf.hdr;
+    memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
+    hdr->ph_magic = PSTATE_MAGIC;
+    hdr->ph_version = PSTATE_VERSION;
+    hdr->ph_handle_counter = handle_counter;
+    hdr->ph_user_root_handle = user_root_handle;
+
+    struct swapout_stats stats;
+    memset(&stats, 0, sizeof(stats));
+
+    struct kobject_hdr *ko, *ko_next;
+    LIST_FOREACH(ko, &ko_list, ko_link) {
+	if ((ko->ko_flags & KOBJ_DIRTY)) {
+	    kobject_snapshot(ko);
+	    stats.snapshoted_kobj++;
+	}
+    }
+
+    int r = pstate_sync_loop(hdr, &stats);
+    if (r < 0)
+	cprintf("pstate_sync_stackwrap: cannot sync\n");
+
+    for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
+	ko_next = LIST_NEXT(ko, ko_link);
 
 	if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
 	    struct kobject *snap = kobject_get_snapshot(ko);
@@ -397,157 +499,19 @@ sync_done(int r)
 	    if (snap->u.hdr.ko_type == kobj_dead)
 		kobject_swapout(kobject_h2k(ko));
 	}
-
-	ko = ko_next;
     }
 
     if (pstate_sync_stats)
-	cprintf("pstate_sync: snap %d dead %d wrote %d pages %d\n",
-		swapout_state.snapshoted_kobj, swapout_state.dead_kobj,
-		swapout_state.written_kobj, swapout_state.written_pages);
-    swapout_state.active = 0;
-}
-
-static void
-sync_header_cb(disk_io_status stat, void *buf,
-	       uint32_t count, uint64_t offset, void *arg)
-{
-    if (stat != disk_io_success) {
-	cprintf("sync_header_cb: io failure\n");
-	sync_done(-1);
-	return;
-    }
-
-    memcpy(&stable_hdr, state.hdr, sizeof(stable_hdr));
-    sync_done(1);
-}
-
-static void sync_kobj();
-
-static void
-sync_kobj_cb(disk_io_status stat, void *buf,
-	     uint32_t count, uint64_t offset, void *arg)
-{
-    if (stat != disk_io_success) {
-	cprintf("sync_kobj_cb: disk IO failure\n");
-	sync_done(-1);
-	return;
-    }
-
-    struct kobject *snap = kobject_get_snapshot(swapout_state.ko);
-    if (swapout_state.extra_page < snap->u.hdr.ko_npages) {
-	uint64_t offset = (state.hdr->ph_map.ent[state.slot].offset +
-			   swapout_state.extra_page + 1) * PGSIZE;
-	void *p;
-	int r = kobject_get_page(&snap->u.hdr,
-				 swapout_state.extra_page, &p, kobj_ro);
-	if (r < 0)
-	    panic("sync_kobj_cb: cannot get object page");
-
-	swapout_state.extra_page++;
-	state.cb = 1;
-	r = disk_io(op_write, p, PGSIZE, offset, sync_kobj_cb, 0);
-	swapout_state.written_pages++;
-	if (r < 0) {
-	    cprintf("sync_kobj_cb: cannot submit disk IO: %s\n", e2s(r));
-	    sync_done(r);
-	    return;
-	}
-    } else {
-	kobject_snapshot_release(swapout_state.ko);
-	swapout_state.written_kobj++;
-
-	swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
-	sync_kobj();
-    }
-}
-
-static void
-sync_kobj(void)
-{
-    while (swapout_state.ko) {
-	if (!(swapout_state.ko->ko_flags & KOBJ_SNAPSHOTING)) {
-	    swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
-	    continue;
-	}
-
-	struct kobject *snap = kobject_get_snapshot(swapout_state.ko);
-	if (snap->u.hdr.ko_type == kobj_dead) {
-	    pstate_kobj_free(&state.hdr->ph_map, &state.hdr->ph_free, snap);
-	    swapout_state.dead_kobj++;
-
-	    swapout_state.ko = LIST_NEXT(swapout_state.ko, ko_link);
-	    continue;
-	}
-
-	break;
-    }
-
-    if (swapout_state.ko == 0) {
-	freelist_commit(&state.hdr->ph_free);
-	state.cb = 2;
-	int r = disk_io(op_write, state.hdr, PSTATE_BUF_SIZE, 0,
-			sync_header_cb, 0);
-	if (r < 0) {
-	    cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
-	    sync_done(r);
-	}
-
-	return;
-    }
-
-    struct kobject *snap = kobject_get_snapshot(swapout_state.ko);
-    state.slot = pstate_kobj_alloc(&state.hdr->ph_map,
-				   &state.hdr->ph_free, snap);
-    if (state.slot < 0) {
-	cprintf("sync_kobj: cannot allocate space\n");
-	sync_done(-1);
-	return;
-    }
-
-    swapout_state.extra_page = 0;
-    state.cb = 3;
-    int r = disk_io(op_write, snap, sizeof(*snap),
-		    state.hdr->ph_map.ent[state.slot].offset * PGSIZE,
-		    sync_kobj_cb, 0);
-    if (r < 0) {
-	cprintf("sync_kobj: cannot submit disk IO: %s\n", e2s(r));
-	sync_done(r);
-    }
+	cprintf("pstate_sync: snap %ld dead %ld wrote %ld pages %ld\n",
+		stats.snapshoted_kobj, stats.dead_kobj,
+		stats.written_kobj, stats.written_pages);
+    swapout_active = 0;
 }
 
 void
 pstate_sync(void)
 {
-    if (swapout_state.active) {
-	cprintf("pstate_sync: another sync still active\n");
-	return;
-    }
-
-    static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
-    state.hdr = &pstate_buf.hdr;
-    memcpy(state.hdr, &stable_hdr, sizeof(stable_hdr));
-
-    state.hdr->ph_magic = PSTATE_MAGIC;
-    state.hdr->ph_version = PSTATE_VERSION;
-    state.hdr->ph_handle_counter = handle_counter;
-    state.hdr->ph_user_root_handle = user_root_handle;
-
-    state.cb = 0;
-    swapout_state.ko = LIST_FIRST(&ko_list);
-    swapout_state.written_kobj = 0;
-    swapout_state.written_pages = 0;
-    swapout_state.snapshoted_kobj = 0;
-    swapout_state.dead_kobj = 0;
-    swapout_state.active = 1;
-
-    struct kobject_hdr *ko;
-    LIST_FOREACH(ko, &ko_list, ko_link) {
-	if ((ko->ko_flags & KOBJ_DIRTY)) {
-	    kobject_snapshot(ko);
-	    swapout_state.snapshoted_kobj++;
-	}
-    }
-
-    sync_kobj();
+    int r = stackwrap_call(&pstate_sync_stackwrap, 0);
+    if (r < 0)
+	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }
