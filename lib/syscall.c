@@ -15,21 +15,28 @@ sys_cons_getc(void)
 }
 
 int64_t
-sys_net_wait(uint64_t waiter_id, int64_t waitgen)
+sys_net_create(uint64_t container, struct ulabel *l)
 {
-    return syscall(SYS_net_wait, waiter_id, waitgen);
+    return syscall(SYS_net_create, container, (uint64_t) l);
+}
+
+int64_t
+sys_net_wait(struct cobj_ref nd, uint64_t waiter_id, int64_t waitgen)
+{
+    return syscall(SYS_net_wait, nd, waiter_id, waitgen);
 }
 
 int
-sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
+sys_net_buf(struct cobj_ref nd, struct cobj_ref seg, uint64_t offset,
+	    netbuf_type type)
 {
-    return syscall(SYS_net_buf, seg, offset, type);
+    return syscall(SYS_net_buf, nd, seg, offset, type);
 }
 
 int
-sys_net_macaddr(uint8_t *addrbuf)
+sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
 {
-    return syscall(SYS_net_macaddr, (uint64_t) addrbuf);
+    return syscall(SYS_net_macaddr, nd, (uint64_t) addrbuf);
 }
 
 int64_t

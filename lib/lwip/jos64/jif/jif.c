@@ -55,7 +55,9 @@
 #define JIF_BUFS	8
 
 struct jif {
+    struct cobj_ref ndev;
     struct eth_addr *ethaddr;
+
     int64_t waiter_id;
     int64_t waitgen;
 
@@ -72,16 +74,23 @@ static const struct eth_addr ethbroadcast =
 static void
 low_level_init(struct netif *netif)
 {
+    struct jif *jif = netif->state;
+
+    int64_t ndev_id = container_find(start_env->root_container,
+				     kobj_netdev, 0);
+    if (ndev_id < 0)
+	panic("jif: cannot find netdev: %s", e2s(ndev_id));
+    jif->ndev = COBJ(start_env->root_container, ndev_id);
+
     netif->hwaddr_len = 6;
     netif->mtu = 1500;
     netif->flags = NETIF_FLAG_BROADCAST;
 
-    int r = sys_net_macaddr(&netif->hwaddr[0]);
+    int r = sys_net_macaddr(jif->ndev, &netif->hwaddr[0]);
     if (r < 0)
 	panic("jif: cannot read MAC address");
 
     // Allocate transmit/receive pages
-    struct jif *jif = netif->state;
     jif->waitgen = -1;
     jif->waiter_id = thread_id();
     if (jif->waiter_id < 0)
@@ -162,7 +171,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
 
     warned = 0;
     for (;;) {
-	int r = sys_net_buf(jif->buf_seg,
+	int r = sys_net_buf(jif->ndev, jif->buf_seg,
 			    (uint64_t) (txbase - jif->buf_base),
 			    netbuf_tx);
 	if (r >= 0)
@@ -204,7 +213,7 @@ low_level_input(struct netif *netif)
 		void *bufaddr = jif->rx[rxslot];
 
 		jif->rx[rxslot]->actual_count = 0;
-		int r = sys_net_buf(jif->buf_seg,
+		int r = sys_net_buf(jif->ndev, jif->buf_seg,
 				    (uint64_t) (bufaddr - jif->buf_base),
 				    netbuf_rx);
 		if (r < 0) {
@@ -218,7 +227,7 @@ low_level_input(struct netif *netif)
 	}
 
 	if (rxslot == JIF_BUFS) {
-	    jif->waitgen = sys_net_wait(jif->waiter_id, jif->waitgen);
+	    jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, jif->waitgen);
 	    if (jif->waitgen == -E_AGAIN) {
 		// All buffers have been cleared
 		for (int i = 0; i < JIF_BUFS; i++) {

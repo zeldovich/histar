@@ -6,12 +6,14 @@
 #include <inc/string.h>
 #include <inc/error.h>
 
+static struct cobj_ref ndev;
+
 static void
 register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 {
     for (int i = 0; i < 8; i++) {
 	rx[i]->actual_count = 0;
-	int r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
+	int r = sys_net_buf(ndev, seg, i * PGSIZE, netbuf_rx);
 	if (r < 0)
 	    cprintf("cannot register rx buffer #%d: %s\n", i, e2s(r));
     }
@@ -20,6 +22,12 @@ register_rxbufs(struct cobj_ref seg, struct netbuf_hdr **rx)
 int
 main(int ac, char **av)
 {
+    int64_t ndev_id = container_find(start_env->root_container, kobj_netdev, 0);
+    if (ndev_id < 0)
+	panic("finding netdev obj: %s", e2s(ndev_id));
+
+    struct cobj_ref ndev = COBJ(start_env->root_container, ndev_id);
+
     uint64_t ctemp = start_env->container;
 
     struct cobj_ref seg;
@@ -37,7 +45,7 @@ main(int ac, char **av)
     register_rxbufs(seg, rx);
 
     uint8_t mac[6];
-    r = sys_net_macaddr(&mac[0]);
+    r = sys_net_macaddr(ndev, &mac[0]);
     if (r < 0)
 	panic("cannot get MAC address: %s", e2s(r));
 
@@ -50,7 +58,7 @@ main(int ac, char **av)
 	panic("cannot get thread id: %s", e2s(waiter_id));
 
     for (;;) {
-	waitgen = sys_net_wait(waiter_id, waitgen);
+	waitgen = sys_net_wait(ndev, waiter_id, waitgen);
 	if (waitgen == -E_AGAIN)
 	    register_rxbufs(seg, rx);
 
@@ -65,7 +73,7 @@ main(int ac, char **av)
 			buf[12], buf[13]);
 
 		rx[i]->actual_count = 0;
-		r = sys_net_buf(seg, i * PGSIZE, netbuf_rx);
+		r = sys_net_buf(ndev, seg, i * PGSIZE, netbuf_rx);
 		if (r < 0)
 		    cprintf("cannot re-register rx buffer: %s\n", e2s(r));
 	    }

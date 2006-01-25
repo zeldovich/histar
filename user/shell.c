@@ -60,6 +60,10 @@ print_cobj(uint64_t ct, uint64_t slot)
 	printf("address space");
 	break;
 
+    case kobj_netdev:
+	printf("netdev");
+	break;
+
     default:
 	printf("unknown (%d)", type);
     }

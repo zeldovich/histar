@@ -8,8 +8,6 @@ in-kernel segment COW: beware of DMA
 user-specified container labeling
 larger labels (if needed?)
 
-label checking for network buffers
-
 * it would be nice if gate_enter() didn't automatically compute the
   contamination, but allowed the user to compute the target label
   and verified that it's OK.  benefit: easier to make return gate.

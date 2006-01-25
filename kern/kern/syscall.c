@@ -13,6 +13,7 @@
 #include <kern/timer.h>
 #include <kern/netdev.h>
 #include <kern/kobj.h>
+#include <kern/uinit.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -71,8 +72,33 @@ sys_cons_getc(void)
 }
 
 static int64_t
-sys_net_wait(uint64_t waiter_id, int64_t waitgen)
+sys_net_create(uint64_t container, struct ulabel *ul)
 {
+    // Must have PCL <= { root_handle 0 } to create a netdev
+    struct Label cl;
+    label_init(&cl, 1);
+    check(label_set(&cl, user_root_handle, 0));
+    check(label_compare(&cur_thread->th_ko.ko_label, &cl, label_leq_starlo));
+
+    struct Label l;
+    check(ulabel_to_label(ul, &l));
+
+    struct kobject *ko;
+    check(kobject_alloc(kobj_netdev, &l, &ko));
+
+    const struct Container *c;
+    check(container_find(&c, container, iflow_write));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &ko->u.hdr));
+
+    return ko->u.hdr.ko_id;
+}
+
+static int64_t
+sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
+{
+    const struct kobject *ko;
+    check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
+
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
 	syscall_error(-E_INVAL);
@@ -81,23 +107,29 @@ sys_net_wait(uint64_t waiter_id, int64_t waitgen)
 }
 
 static void
-sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
+sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
+	    netbuf_type type)
 {
+    const struct kobject *ko;
+    check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
+
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
 	syscall_error(-E_INVAL);
 
-    // XXX think harder about labeling in this case...
-    const struct kobject *ko;
-    check(cobj_get(seg, kobj_segment, &ko, iflow_none));
+    const struct kobject *ks;
+    check(cobj_get(seg, kobj_segment, &ks, iflow_rw));
 
-    const struct Segment *sg = &ko->u.sg;
+    const struct Segment *sg = &ks->u.sg;
     check(netdev_add_buf(ndev, sg, offset, type));
 }
 
 static void
-sys_net_macaddr(uint8_t *addrbuf)
+sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 {
+    const struct kobject *ko;
+    check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
+
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
 	syscall_error(-E_INVAL);
@@ -373,21 +405,25 @@ syscall(syscall_num num, uint64_t a1,
 	syscall_ret = sys_cons_getc();
 	break;
 
+    case SYS_net_create:
+	syscall_ret = sys_net_create(a1, (struct ulabel *) a2);
+	break;
+
     case SYS_net_wait:
-	syscall_ret = sys_net_wait(a1, a2);
+	syscall_ret = sys_net_wait(COBJ(a1, a2), a3, a4);
 	break;
 
     case SYS_net_buf:
-	sys_net_buf(COBJ(a1, a2), a3, (netbuf_type) a4);
+	sys_net_buf(COBJ(a1, a2), COBJ(a3, a4), a5, (netbuf_type) a6);
 	break;
 
     case SYS_net_macaddr:
 	{
 	    uint8_t addrbuf[6];
-	    sys_net_macaddr(&addrbuf[0]);
+	    sys_net_macaddr(COBJ(a1, a2), &addrbuf[0]);
 
-	    check(page_user_incore((void**) &a1, 6));
-	    memcpy((void*) a1, &addrbuf[0], 6);
+	    check(page_user_incore((void**) &a3, 6));
+	    memcpy((void*) a3, &addrbuf[0], 6);
 	}
 	break;
 

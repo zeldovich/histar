@@ -15,9 +15,12 @@ uint64_t syscall(syscall_num num, ...);
 int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);
 
-int64_t	sys_net_wait(uint64_t waiter_id, int64_t waitgen);
-int	sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type);
-int	sys_net_macaddr(uint8_t *buf);
+int64_t sys_net_create(uint64_t container, struct ulabel *l);
+int64_t	sys_net_wait(struct cobj_ref ndev, uint64_t waiter_id,
+		     int64_t waitgen);
+int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,
+		    uint64_t offset, netbuf_type type);
+int	sys_net_macaddr(struct cobj_ref ndev, uint8_t *buf);
 
 int64_t	sys_container_alloc(uint64_t parent);
 int64_t	sys_container_nslots(uint64_t container);

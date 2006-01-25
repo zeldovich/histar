@@ -5,6 +5,7 @@ typedef enum {
     SYS_cons_puts = 0,
     SYS_cons_getc,
 
+    SYS_net_create,
     SYS_net_wait,
     SYS_net_buf,
     SYS_net_macaddr,
