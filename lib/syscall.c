@@ -23,7 +23,7 @@ sys_net_wait(uint64_t waiter_id, int64_t waitgen)
 int
 sys_net_buf(struct cobj_ref seg, uint64_t offset, netbuf_type type)
 {
-    return syscall(SYS_net_buf, seg.container, seg.object, offset, type);
+    return syscall(SYS_net_buf, seg, offset, type);
 }
 
 int
@@ -41,7 +41,7 @@ sys_container_alloc(uint64_t parent)
 int
 sys_obj_unref(struct cobj_ref o)
 {
-    return syscall(SYS_obj_unref, o.container, o.object);
+    return syscall(SYS_obj_unref, o);
 }
 
 int64_t
@@ -59,25 +59,25 @@ sys_handle_create(void)
 kobject_type_t
 sys_obj_get_type(struct cobj_ref o)
 {
-    return syscall(SYS_obj_get_type, o.container, o.object);
+    return syscall(SYS_obj_get_type, o);
 }
 
 int
 sys_obj_get_label(struct cobj_ref o, struct ulabel *l)
 {
-    return syscall(SYS_obj_get_label, o.container, o.object, (uint64_t) l);
+    return syscall(SYS_obj_get_label, o, (uint64_t) l);
 }
 
 int
 sys_obj_get_name(struct cobj_ref o, char *name)
 {
-    return syscall(SYS_obj_get_name, o.container, o.object, (uint64_t) name);
+    return syscall(SYS_obj_get_name, o, (uint64_t) name);
 }
 
 int
 sys_obj_set_name(struct cobj_ref o, char *name)
 {
-    return syscall(SYS_obj_set_name, o.container, o.object, (uint64_t) name);
+    return syscall(SYS_obj_set_name, o, (uint64_t) name);
 }
 
 int64_t
@@ -97,7 +97,7 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
 int
 sys_gate_enter(struct cobj_ref gate, uint64_t a1, uint64_t a2)
 {
-    return syscall(SYS_gate_enter, gate.container, gate.object, a1, a2);
+    return syscall(SYS_gate_enter, gate, a1, a2);
 }
 
 int64_t
@@ -109,8 +109,7 @@ sys_thread_create(uint64_t container)
 int
 sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 {
-    return syscall(SYS_thread_start, thread.container, thread.object,
-		   (uint64_t) entry);
+    return syscall(SYS_thread_start, thread, (uint64_t) entry);
 }
 
 void
@@ -158,13 +157,13 @@ sys_segment_create(uint64_t container, uint64_t num_pages)
 int
 sys_segment_resize(struct cobj_ref seg, uint64_t num_pages)
 {
-    return syscall(SYS_segment_resize, seg.container, seg.object, num_pages);
+    return syscall(SYS_segment_resize, seg, num_pages);
 }
 
 int64_t
 sys_segment_get_npages(struct cobj_ref seg)
 {
-    return syscall(SYS_segment_get_npages, seg.container, seg.object);
+    return syscall(SYS_segment_get_npages, seg);
 }
 
 int64_t
@@ -176,11 +175,11 @@ sys_as_create(uint64_t container)
 int
 sys_as_get(struct cobj_ref as, struct u_address_space *uas)
 {
-    return syscall(SYS_as_get, as.container, as.object, (uint64_t) uas);
+    return syscall(SYS_as_get, as, (uint64_t) uas);
 }
 
 int
 sys_as_set(struct cobj_ref as, struct u_address_space *uas)
 {
-    return syscall(SYS_as_set, as.container, as.object, (uint64_t) uas);
+    return syscall(SYS_as_set, as, (uint64_t) uas);
 }
