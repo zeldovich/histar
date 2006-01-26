@@ -9,8 +9,11 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
-// Print stats on how much we write to disk each round?
-static int pstate_sync_stats = 0;
+// verbose flags
+static int pstate_init_debug = 0;
+static int pstate_swapin_debug = 0;
+static int pstate_swapout_debug = 0;
+static int pstate_swapout_stats = 0;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
@@ -24,32 +27,9 @@ static union {
 } pstate_buf;
 
 //////////////////////////////////
-// State for init/sync FSM's
-//////////////////////////////////
-static struct {
-    struct pstate_header *hdr;
-
-    int cb;
-    int slot;
-    int done;
-} state;
-
-static struct {
-    struct kobject *ko;
-    uint64_t extra_page;
-    int slot;
-} swapin_state;
-
-struct swapout_stats {
-    uint64_t written_kobj;
-    uint64_t written_pages;
-    uint64_t snapshoted_kobj;
-    uint64_t dead_kobj;
-};
-
-//////////////////////////////////
 // Free list management
 //////////////////////////////////
+
 static void
 freelist_init(struct pstate_free_list *f)
 {
@@ -157,87 +137,75 @@ pstate_kobj_alloc(struct pstate_map *m, struct pstate_free_list *f,
 // Swap-in code
 //////////////////////////////////
 
-static void
-swapin_kobj_cb(disk_io_status stat, void *buf,
-	       uint32_t count, uint64_t offset, void *arg)
+static int swapin_active;
+
+static int
+pstate_swapin_slot(int slot)
 {
-    void (*cb)(int) = (void (*)(int)) arg;
-
-    if (stat != disk_io_success) {
-	cprintf("swapin_kobj_cb: disk IO failure\n");
-	(*cb) (-1);
-	return;
-    }
-
-    if (swapin_state.extra_page == 0) {
-	for (int i = 0; i < KOBJ_DIRECT_PAGES; i++)
-	    swapin_state.ko->u.hdr.ko_pages[i] = 0;
-	swapin_state.ko->u.hdr.ko_pages_indir1 = 0;
-    }
-
-    if (swapin_state.extra_page > 0)
-	kobject_swapin_page(swapin_state.ko,
-			    swapin_state.extra_page - 1,
-			    buf);
-
-    if (swapin_state.extra_page < swapin_state.ko->u.hdr.ko_npages) {
-	void *p;
-	int r = page_alloc(&p);
-	if (r < 0) {
-	    cprintf("init_kobj_cb: cannot alloc page: %s\n", e2s(r));
-	    (*cb) (r);
-	    return;
-	}
-
-	uint64_t offset = (stable_hdr.ph_map.ent[swapin_state.slot].offset +
-			   swapin_state.extra_page + 1) * PGSIZE;
-	++swapin_state.extra_page;
-
-	state.cb = 4;
-	r = disk_io(op_read, p, PGSIZE, offset, &swapin_kobj_cb, arg);
-	if (r < 0) {
-	    cprintf("swapin_kobj_cb: cannot submit disk IO: %s\n", e2s(r));
-	    (*cb) (r);
-	}
-    } else {
-	kobject_swapin(swapin_state.ko);
-
-	swapin_state.ko = 0;
-	(*cb) (0);
-    }
-}
-
-static void
-swapin_kobj(int slot, void (*cb)(int)) {
     void *p;
     int r = page_alloc(&p);
     if (r < 0) {
-	cprintf("swapin_kobj: cannot alloc page: %s\n", e2s(r));
-	(*cb) (r);
-	return;
+	cprintf("pstate_swapin_slot: cannot alloc page: %s\n", e2s(r));
+	return r;
     }
 
-    if (swapin_state.ko)
-	panic("swapin_kobj: still active!");
+    assert(swapin_active == 0);
+    swapin_active = 1;
 
-    swapin_state.ko = (struct kobject *) p;
-    swapin_state.extra_page = 0;
-    swapin_state.slot = slot;
-    state.cb = 5;
-    r = disk_io(op_read, p, PGSIZE,
-		stable_hdr.ph_map.ent[slot].offset * PGSIZE,
-		&swapin_kobj_cb, (void*) cb);
-    if (r < 0) {
-	cprintf("swapin_kobj: cannot submit disk IO: %s\n", e2s(r));
-	(*cb) (r);
+    struct kobject *ko = (struct kobject *) p;
+    uint64_t offset = stable_hdr.ph_map.ent[slot].offset * PGSIZE;
+    disk_io_status s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
+    if (s != disk_io_success) {
+	cprintf("pstate_swapin_slot: cannot read object from disk\n");
+	swapin_active = 0;
+	return -1;
     }
+
+    for (int i = 0; i < KOBJ_DIRECT_PAGES; i++)
+	ko->u.hdr.ko_pages[i] = 0;
+    ko->u.hdr.ko_pages_indir1 = 0;
+
+    for (uint64_t page = 0; page < ko->u.hdr.ko_npages; page++) {
+	r = page_alloc(&p);
+	if (r < 0) {
+	    cprintf("pstate_swapin_slot: cannot alloc page: %s\n", e2s(r));
+	    swapin_active = 0;
+	    return r;
+	}
+
+	offset = (stable_hdr.ph_map.ent[slot].offset + page + 1) * PGSIZE;
+	s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
+	if (s != disk_io_success) {
+	    cprintf("pstate_swapin_slot: cannot read page from disk\n");
+	    swapin_active = 0;
+	    return -1;
+	}
+
+	kobject_swapin_page(ko, page, p);
+    }
+
+    if (pstate_swapin_debug)
+	cprintf("pstate_swapin_slot: slot %d id %ld npages %ld\n",
+		slot, ko->u.hdr.ko_id, ko->u.hdr.ko_npages);
+
+    kobject_swapin(ko);
+    swapin_active = 0;
+    return 0;
 }
 
-static struct Thread_list swapin_waiting;
-
 static void
-pstate_swapin_cb(int r)
+pstate_swapin_stackwrap(void *arg)
 {
+    static struct Thread_list swapin_waiting;
+
+    if (cur_thread)
+	thread_suspend(cur_thread, &swapin_waiting);
+
+    if (swapin_active)
+	return;
+
+    int slot = (int64_t) arg;
+    int r = pstate_swapin_slot(slot);
     if (r < 0)
 	cprintf("pstate_swapin_cb: %s\n", e2s(r));
 
@@ -251,15 +219,16 @@ int
 pstate_swapin(kobject_id_t id) {
     //cprintf("pstate_swapin: object %ld\n", id);
 
-    int slot = pstate_map_findslot(&stable_hdr.ph_map, id);
+    int64_t slot = pstate_map_findslot(&stable_hdr.ph_map, id);
     if (slot < 0)
 	return -E_INVAL;
 
-    if (cur_thread)
-	thread_suspend(cur_thread, &swapin_waiting);
+    int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) slot);
+    if (r < 0) {
+	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
+	return r;
+    }
 
-    if (swapin_state.ko == 0)
-	swapin_kobj(slot, &pstate_swapin_cb);
     return 0;
 }
 
@@ -267,65 +236,13 @@ pstate_swapin(kobject_id_t id) {
 // Persistent-store initialization
 /////////////////////////////////////
 
-static void
-init_done(void)
+static int
+pstate_init2()
 {
-    handle_counter = stable_hdr.ph_handle_counter;
-    user_root_handle = stable_hdr.ph_user_root_handle;
-    state.done = 1;
-}
-
-static void init_kobj();
-
-static void
-init_kobj_cb(int r)
-{
-    if (r < 0) {
-	cprintf("init_kobj_cb: error swapping in: %s\n", e2s(r));
-	state.done = r;
-	return;
-    }
-
-    ++state.slot;
-    init_kobj();
-}
-
-static void
-init_kobj(void)
-{
-    // Page in all threads and pinned objects, but demand-page the rest
-    while (state.slot < NUM_PH_OBJECTS) {
-	if (stable_hdr.ph_map.ent[state.slot].offset == 0) {
-	    ++state.slot;
-	    continue;
-	}
-
-	if (stable_hdr.ph_map.ent[state.slot].flags & KOBJ_PIN_IDLE)
-	    break;
-	if (stable_hdr.ph_map.ent[state.slot].flags & KOBJ_ZERO_REFS)
-	    break;
-	if (stable_hdr.ph_map.ent[state.slot].type == kobj_thread)
-	    break;
-
-	++state.slot;
-    }
-
-    if (state.slot == NUM_PH_OBJECTS) {
-	init_done();
-	return;
-    }
-
-    swapin_kobj(state.slot, &init_kobj_cb);
-}
-
-static void
-init_hdr_cb(disk_io_status stat, void *buf,
-	    uint32_t count, uint64_t offset, void *arg)
-{
-    if (stat != disk_io_success) {
-	cprintf("pstate_init_cb: disk IO failure\n");
-	state.done = -1;
-	return;
+    disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
+    if (s != disk_io_success) {
+	cprintf("pstate_init2: cannot read header\n");
+	return -1;
     }
 
     memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
@@ -333,12 +250,51 @@ init_hdr_cb(disk_io_status stat, void *buf,
 	stable_hdr.ph_version != PSTATE_VERSION)
     {
 	cprintf("pstate_init_hdr: magic/version mismatch\n");
-	state.done = -E_INVAL;
-	return;
+	return -E_INVAL;
     }
 
-    state.slot = 0;
-    init_kobj();
+    for (int slot = 0; slot < NUM_PH_OBJECTS; slot++) {
+	if (stable_hdr.ph_map.ent[slot].offset == 0)
+	    continue;
+
+	if (pstate_init_debug)
+	    cprintf("pstate_init2: slot %d flags 0x%lx type %d\n",
+		    slot,
+		    stable_hdr.ph_map.ent[slot].flags,
+		    stable_hdr.ph_map.ent[slot].type);
+
+	if ((stable_hdr.ph_map.ent[slot].flags & KOBJ_PIN_IDLE) ||
+	    (stable_hdr.ph_map.ent[slot].flags & KOBJ_ZERO_REFS) ||
+	    (stable_hdr.ph_map.ent[slot].type == kobj_thread))
+	{
+	    if (pstate_init_debug)
+		cprintf("pstate_init2: paging in slot %d\n", slot);
+
+	    int r = pstate_swapin_slot(slot);
+	    if (r < 0) {
+		cprintf("pstate_init2: cannot swapin slot %d: %s\n",
+			slot, e2s(r));
+		return r;
+	    }
+	}
+    }
+
+    handle_counter   = stable_hdr.ph_handle_counter;
+    user_root_handle = stable_hdr.ph_user_root_handle;
+
+    if (pstate_init_debug)
+	cprintf("pstate_init2: handle_counter %ld root_handle %ld\n",
+		handle_counter, user_root_handle);
+
+    return 1;
+}
+
+static void
+pstate_init_stackwrap(void *arg)
+{
+    int *donep = (int *) arg;
+
+    *donep = pstate_init2();
 }
 
 void
@@ -351,34 +307,39 @@ pstate_reset(void)
 int
 pstate_init(void)
 {
-    LIST_INIT(&swapin_waiting);
+    pstate_reset();
 
-    state.done = 0;
-    state.cb = 6;
-    int r = disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0, &init_hdr_cb, 0);
+    int done = 0;
+    int r = stackwrap_call(&pstate_init_stackwrap, &done);
     if (r < 0) {
-	cprintf("pstate_init: cannot submit disk IO\n");
+	cprintf("pstate_init: cannot stackwrap: %s\n", e2s(r));
 	return r;
     }
 
     uint64_t ts_start = read_tsc();
     int warned = 0;
-    while (!state.done) {
+    while (!done) {
 	uint64_t ts_now = read_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
-	    cprintf("pstate_init: wedged for %ld, cb %d\n",
-		    ts_now - ts_start, state.cb);
+	    cprintf("pstate_init: wedged for %ld\n", ts_now - ts_start);
 	    warned = 1;
 	}
 	ide_intr();
     }
 
-    return state.done;
+    return done;
 }
 
 //////////////////////////////////////////////////
 // Swap-out code
 //////////////////////////////////////////////////
+
+struct swapout_stats {
+    uint64_t written_kobj;
+    uint64_t written_pages;
+    uint64_t snapshoted_kobj;
+    uint64_t dead_kobj;
+};
 
 static int
 pstate_sync_kobj(struct pstate_header *hdr,
@@ -416,6 +377,10 @@ pstate_sync_kobj(struct pstate_header *hdr,
 
 	stats->written_pages++;
     }
+
+    if (pstate_swapout_debug)
+	cprintf("pstate_sync_kobj: id %ld npages %ld\n",
+		snap->u.hdr.ko_id, snap->u.hdr.ko_npages);
 
     kobject_snapshot_release(ko);
     stats->written_kobj++;
@@ -501,7 +466,7 @@ pstate_sync_stackwrap(void *arg)
 	}
     }
 
-    if (pstate_sync_stats)
+    if (pstate_swapout_stats)
 	cprintf("pstate_sync: snap %ld dead %ld wrote %ld pages %ld\n",
 		stats.snapshoted_kobj, stats.dead_kobj,
 		stats.written_kobj, stats.written_pages);
