@@ -191,11 +191,11 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    r = container_slot_find(c, ref.object, 0, kobj_ro);
+    r = kobject_get(ref.object, storep, iflow);
     if (r < 0)
 	return r;
 
-    r = kobject_get(ref.object, storep, iflow);
+    r = container_slot_find(c, (*storep)->u.hdr.ko_id, 0, kobj_ro);
     if (r < 0)
 	return r;
 
