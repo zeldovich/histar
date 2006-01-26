@@ -1,0 +1,125 @@
+#include <machine/memlayout.h>
+#include <kern/mlt.h>
+#include <kern/kobj.h>
+#include <inc/error.h>
+
+#define MLT_SLOTS_PER_PAGE	(PGSIZE / sizeof(struct mlt_entry))
+
+int
+mlt_alloc(struct Label *l, struct Mlt **mtp)
+{
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_mlt, l, &ko);
+    if (r < 0)
+	return r;
+
+    *mtp = &ko->u.mt;
+    return 0;
+}
+
+static uint64_t
+mlt_nslots(struct Mlt *mlt)
+{
+    return mlt->mt_ko.ko_npages * MLT_SLOTS_PER_PAGE;
+}
+
+static int
+mlt_get_slot(struct Mlt *mlt, struct mlt_entry **mep,
+	     uint64_t slot, kobj_rw_mode rw)
+{
+    int npage = slot / MLT_SLOTS_PER_PAGE;
+
+    void *p;
+    int r = kobject_get_page(&mlt->mt_ko, npage, &p, rw);
+    if (r < 0)
+	return r;
+
+    struct mlt_entry *meps = (struct mlt_entry *) p;
+    *mep = &meps[slot % MLT_SLOTS_PER_PAGE];
+    return 0;
+}
+
+static int
+mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
+{
+    uint64_t npage = mlt->mt_ko.ko_npages;
+    int r = kobject_set_npages(&mlt->mt_ko, npage + 1);
+    if (r < 0)
+	return r;
+
+    void *p;
+    r = kobject_get_page(&mlt->mt_ko, npage, &p, kobj_rw);
+    if (r < 0)
+	return r;
+
+    *mep = (struct mlt_entry *) p;
+    return 0;
+}
+
+int
+mlt_put(struct Mlt *mlt, uint8_t *buf)
+{
+    struct mlt_entry *me;
+    struct Label *l = &cur_thread->th_ko.ko_label;
+
+    int r;
+    struct mlt_entry *freeslot;
+    uint64_t slot, nslots = mlt_nslots(mlt);
+
+    for (slot = 0; slot < nslots; slot++) {
+	r = mlt_get_slot(mlt, &me, slot, kobj_rw);
+	if (r < 0)
+	    return r;
+
+	if (!me->me_inuse) {
+	    freeslot = me;
+	    continue;
+	}
+
+	r = label_compare(l, &me->me_l, label_eq);
+	if (r == 0)
+	    break;
+    }
+
+    if (slot == nslots) {
+	if (freeslot)
+	    me = freeslot;
+
+	if (!me) {
+	    r = mlt_grow(mlt, &me);
+	    if (r < 0)
+		return r;
+	}
+    }
+
+    me->me_l = *l;
+    memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
+    me->me_inuse = 1;
+    return 0;
+}
+
+int
+mlt_get(struct Mlt *mlt, uint8_t *buf)
+{
+    uint64_t nslots = mlt_nslots(mlt);
+
+    for (uint64_t slot = 0; slot < nslots; slot++) {
+	struct mlt_entry *me;
+	int r = mlt_get_slot(mlt, &me, slot, kobj_ro);
+	if (r < 0)
+	    return r;
+
+	if (!me->me_inuse)
+	    continue;
+
+	r = label_compare(&me->me_l, &cur_thread->th_ko.ko_label,
+			  label_leq_starhi);
+	if (r < 0)
+	    continue;
+
+	memcpy(buf, &me->me_buf[0], MLT_BUF_SIZE);
+	return 0;
+    }
+
+    return -E_NOT_FOUND;
+}

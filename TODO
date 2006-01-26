@@ -14,7 +14,6 @@ larger labels (if needed?)
   is it OK to allow user to look at the gate's target label?
   looks like yes..
 
-implement MLTs
 do COW in gate_enter_locked()
 use MLTs to store COW mappings in gate_enter for later reuse
 
@@ -23,4 +22,6 @@ kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
 page COW while snapshoting (need to COW indirect pages too)
 page reclamation, LRU
 deal with segment fragmentation on-disk
+
+do page-faulting threads always terminate?  e.g. write to unwritable page..
 

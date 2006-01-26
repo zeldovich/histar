@@ -9,6 +9,7 @@
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/gate.h>
+#include <kern/mlt.h>
 
 #define KOBJ_SIZE	(PGSIZE / 2)
 
@@ -22,6 +23,7 @@ struct kobject {
 	struct Gate gt;
 	struct Address_space as;
 	struct Segment sg;
+	struct Mlt mt;
     } u;
 };
 

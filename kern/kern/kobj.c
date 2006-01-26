@@ -319,6 +319,7 @@ kobject_gc(struct kobject *ko)
 
     case kobj_gate:
     case kobj_segment:
+    case kobj_mlt:
     case kobj_netdev:
 	break;
 
