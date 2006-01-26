@@ -42,6 +42,10 @@ typedef enum {
     SYS_as_get,
     SYS_as_set,
 
+    SYS_mlt_create,
+    SYS_mlt_put,
+    SYS_mlt_get,
+
     NSYSCALLS
 } syscall_num;
 

@@ -190,3 +190,21 @@ sys_as_set(struct cobj_ref as, struct u_address_space *uas)
 {
     return syscall(SYS_as_set, as, (uint64_t) uas);
 }
+
+int64_t
+sys_mlt_create(uint64_t container)
+{
+    return syscall(SYS_mlt_create, container);
+}
+
+int
+sys_mlt_get(struct cobj_ref mlt, uint8_t *buf)
+{
+    return syscall(SYS_mlt_get, mlt, buf);
+}
+
+int
+sys_mlt_put(struct cobj_ref mlt, uint8_t *buf)
+{
+    return syscall(SYS_mlt_put, mlt, buf);
+}
