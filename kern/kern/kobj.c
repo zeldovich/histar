@@ -82,8 +82,16 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 int
 kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
 {
+    int r;
+
+    if (cur_thread) {
+	r = label_compare(&cur_thread->th_ko.ko_label, l, label_leq_starlo);
+	if (r < 0)
+	    return r;
+    }
+
     void *p;
-    int r = page_alloc(&p);
+    r = page_alloc(&p);
     if (r < 0)
 	return r;
 
