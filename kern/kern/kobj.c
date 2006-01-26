@@ -29,6 +29,9 @@ kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
 {
     int r;
 
+    if (cur_thread == 0)
+	return 0;
+
     switch (iflow) {
     case iflow_read:
 	r = label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
