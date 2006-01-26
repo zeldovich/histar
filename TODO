@@ -24,4 +24,5 @@ page reclamation, LRU
 deal with segment fragmentation on-disk
 
 do page-faulting threads always terminate?  e.g. write to unwritable page..
+what about page_user_incore() -- should take ro/rw flag..
 

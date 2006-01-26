@@ -14,6 +14,7 @@
 #include <kern/netdev.h>
 #include <kern/kobj.h>
 #include <kern/uinit.h>
+#include <kern/mlt.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -385,6 +386,36 @@ sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
     check(as_from_user(&kobject_dirty(&ko->u.hdr)->u.as, uas));
 }
 
+static uint64_t
+sys_mlt_create(uint64_t container)
+{
+    const struct Container *c;
+    check(container_find(&c, container, iflow_write));
+
+    struct Mlt *mlt;
+    check(mlt_alloc(&cur_thread->th_ko.ko_label, &mlt));
+    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &mlt->mt_ko));
+    return mlt->mt_ko.ko_id;
+}
+
+static void
+sys_mlt_get(struct cobj_ref mlt, uint8_t *buf)
+{
+    const struct kobject *ko;
+    check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));
+    check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
+    check(mlt_get(&ko->u.mt, buf));
+}
+
+static void
+sys_mlt_put(struct cobj_ref mlt, uint8_t *buf)
+{
+    const struct kobject *ko;
+    check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
+    check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
+    check(mlt_put(&ko->u.mt, buf));
+}
+
 uint64_t
 syscall(syscall_num num, uint64_t a1,
 	uint64_t a2, uint64_t a3, uint64_t a4,
@@ -545,6 +576,18 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_as_set:
 	sys_as_set(COBJ(a1, a2), (struct u_address_space *) a3);
+	break;
+
+    case SYS_mlt_create:
+	syscall_ret = sys_mlt_create(a1);
+	break;
+
+    case SYS_mlt_get:
+	sys_mlt_get(COBJ(a1, a2), (uint8_t *) a3);
+	break;
+
+    case SYS_mlt_put:
+	sys_mlt_put(COBJ(a1, a2), (uint8_t *) a3);
 	break;
 
     default:
