@@ -18,9 +18,9 @@ struct mlt_entry {
 int  mlt_alloc(struct Label *l, struct Mlt **mtp);
 
 // store using cur_thread's label
-int  mlt_put(struct Mlt *mlt, uint8_t *buf);
+int  mlt_put(const struct Mlt *mlt, uint8_t *buf);
 
 // get the first matching entry
-int  mlt_get(struct Mlt *mlt, uint8_t *buf);
+int  mlt_get(const struct Mlt *mlt, uint8_t *buf);
 
 #endif

@@ -18,13 +18,13 @@ mlt_alloc(struct Label *l, struct Mlt **mtp)
 }
 
 static uint64_t
-mlt_nslots(struct Mlt *mlt)
+mlt_nslots(const struct Mlt *mlt)
 {
     return mlt->mt_ko.ko_npages * MLT_SLOTS_PER_PAGE;
 }
 
 static int
-mlt_get_slot(struct Mlt *mlt, struct mlt_entry **mep,
+mlt_get_slot(const struct Mlt *mlt, struct mlt_entry **mep,
 	     uint64_t slot, kobj_rw_mode rw)
 {
     int npage = slot / MLT_SLOTS_PER_PAGE;
@@ -57,7 +57,7 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 }
 
 int
-mlt_put(struct Mlt *mlt, uint8_t *buf)
+mlt_put(const struct Mlt *mlt, uint8_t *buf)
 {
     struct mlt_entry *me;
     struct Label *l = &cur_thread->th_ko.ko_label;
@@ -86,7 +86,7 @@ mlt_put(struct Mlt *mlt, uint8_t *buf)
 	    me = freeslot;
 
 	if (!me) {
-	    r = mlt_grow(mlt, &me);
+	    r = mlt_grow(&kobject_dirty(&mlt->mt_ko)->u.mt, &me);
 	    if (r < 0)
 		return r;
 	}
@@ -99,7 +99,7 @@ mlt_put(struct Mlt *mlt, uint8_t *buf)
 }
 
 int
-mlt_get(struct Mlt *mlt, uint8_t *buf)
+mlt_get(const struct Mlt *mlt, uint8_t *buf)
 {
     uint64_t nslots = mlt_nslots(mlt);
 
