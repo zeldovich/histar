@@ -27,12 +27,10 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/pstate.c \
 	    kern/kern/uinit.c \
 	    kern/kern/netdev.c \
-	    kern/kern/mlt.c
+	    kern/kern/mlt.c \
+	    $(OBJDIR)/kern/embedbin.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
-
-
-#			$(OBJDIR)/kern/appkernbin.c
 
 # Only build files if they exist.
 #KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
@@ -72,6 +70,9 @@ $(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.c
 $(OBJDIR)/kern/%.o: kern/kern/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: $(OBJDIR)/kern/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 $(OBJDIR)/kern/%.o: kern/dev/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
@@ -101,10 +102,10 @@ $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
 all: $(OBJDIR)/kern/bochs.img
 #all: $(OBJDIR)/kern/kernel
 
-# How to build the kernbin structures
-$(OBJDIR)/kern/appkernbin.c: kern/Makefrag
-	echo '#include <kern/kernbin.h>' >$@
+# How to build the embedded bin structures
+$(OBJDIR)/kern/embedbin.c: kern/Makefrag
+	echo '#include <kern/embedbin.h>' >$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sed 's/obj\/\([^\/]*\)\/\(.*\)/extern const uint8_t _binary_obj_\1_\2_start[], _binary_obj_\1_\2_size[];/' >>$@
-	echo 'struct Kernbin kernbins[] = {' >>$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | sed 's/obj\/\([^\/]*\)\/\(.*\)/{ "\2", _binary_obj_\1_\2_start, (int)_binary_obj_\1_\2_size },/' >>$@
+	echo 'struct embed_bin embed_bins[] = {' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | sed 's/obj\/\([^\/]*\)\/\(.*\)/{ "\2", _binary_obj_\1_\2_start, (uint64_t)_binary_obj_\1_\2_size },/' >>$@
 	echo "{ 0, 0, 0 } };" >>$@

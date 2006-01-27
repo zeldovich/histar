@@ -12,34 +12,15 @@
 #include <kern/lib.h>
 #include <kern/handle.h>
 #include <kern/pstate.h>
+#include <kern/embedbin.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
 uint64_t user_root_handle;
 
-struct embedded_blob {
-    uint8_t *buf;
-    uint64_t size;
-    const char *name;
-    struct embedded_blob *next;
-};
-static struct embedded_blob *all_embed;
-
-#define EMBED_DECLARE(n)					\
-    struct embedded_blob embed_##n;				\
-    do {							\
-	extern uint8_t _binary_obj_user_##n##_start[],		\
-		       _binary_obj_user_##n##_size[];		\
-	embed_##n.buf = _binary_obj_user_##n##_start;		\
-	embed_##n.size = (uint64_t) _binary_obj_user_##n##_size;\
-	embed_##n.name = #n;					\
-	embed_##n.next = all_embed;				\
-	all_embed = &embed_##n;					\
-    } while (0)
-
 static int
 elf_copyin(void *p, uint64_t offset, uint32_t count,
-	   uint8_t *binary, uint64_t size)
+	   const uint8_t *binary, uint64_t size)
 {
     if (offset + count > size) {
 	cprintf("Reading past the end of ELF binary\n");
@@ -70,7 +51,7 @@ elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
 
 static int
 segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
-		     uint8_t *buf, uint64_t bufsize,
+		     const uint8_t *buf, uint64_t bufsize,
 		     struct Segment **sg_store)
 {
     if (bufsize > segsize) {
@@ -116,7 +97,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 static int
 thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
-		uint8_t *binary, uint64_t size, uint64_t arg)
+		const uint8_t *binary, uint64_t size, uint64_t arg)
 {
     Elf64_Ehdr elf;
     if (elf_copyin(&elf, 0, sizeof(elf), binary, size) < 0) {
@@ -209,9 +190,17 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
 static void
 thread_create_embed(struct Container *c, struct Label *l,
-		    struct embedded_blob *prog, char *name,
-		    uint64_t arg, uint64_t koflag)
+		    const char *name, uint64_t arg, uint64_t koflag)
 {
+    struct embed_bin *prog = 0;
+
+    for (int i = 0; embed_bins[i].name; i++)
+	if (!strcmp(name, embed_bins[i].name))
+	    prog = &embed_bins[i];
+
+    if (prog == 0)
+	panic("thread_create_embed: cannot find binary for %s", name);
+
     struct Container *tc;
     int r = container_alloc(l, &tc);
     if (r < 0)
@@ -253,16 +242,20 @@ fs_init(struct Container *c, struct Label *l)
     assert(0 == kobject_get_page(&fs_names->sg_ko, 0,
 				 (void**)&fs_dir, kobj_rw));
 
-    for (struct embedded_blob *e = all_embed; e; e = e->next) {
+    for (int i = 0; embed_bins[i].name; i++) {
+	const char *name = embed_bins[i].name;
+	const uint8_t *buf = embed_bins[i].buf;
+	uint64_t size = embed_bins[i].size;
+
 	struct Segment *s;
-	int r = segment_create_embed(c, l, e->size, e->buf, e->size, &s);
+	int r = segment_create_embed(c, l, size, buf, size, &s);
 	if (r < 0)
 	    panic("fs_init: cannot store embedded segment: %s", e2s(r));
 
 	uint64_t nent = ++fs_dir[0];
 	fs_dir[nent*16] = s->sg_ko.ko_id;
-	memcpy(&fs_dir[nent*16+1], e->name, strlen(e->name) + 1);
-	strncpy(&s->sg_ko.ko_name[0], e->name, KOBJ_NAME_LEN - 1);
+	memcpy(&fs_dir[nent*16+1], name, strlen(name) + 1);
+	strncpy(&s->sg_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
 }
 
@@ -270,24 +263,6 @@ static void
 user_bootstrap(void)
 {
     pstate_reset();
-
-    EMBED_DECLARE(idle);
-    EMBED_DECLARE(spin);
-    EMBED_DECLARE(hello);
-    EMBED_DECLARE(jmptest);
-    EMBED_DECLARE(pftest);
-    EMBED_DECLARE(chatter1);
-    EMBED_DECLARE(chatter2);
-    EMBED_DECLARE(uregtest);
-    EMBED_DECLARE(thread_test);
-    EMBED_DECLARE(netwatch);
-    EMBED_DECLARE(netd);
-    EMBED_DECLARE(telnetd);
-    EMBED_DECLARE(httpd);
-    EMBED_DECLARE(tserv);
-    EMBED_DECLARE(tclnt);
-    EMBED_DECLARE(shell);
-    EMBED_DECLARE(init);
 
     // root handle and a label
     user_root_handle = handle_alloc();
@@ -310,8 +285,8 @@ user_bootstrap(void)
     fs_init(fsc, &l);
 
     // idle thread + init
-    thread_create_embed(rc, &l, &embed_idle, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
-    thread_create_embed(rc, &l, &embed_init, "init", rc->ct_ko.ko_id, 0);
+    thread_create_embed(rc, &l, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+    thread_create_embed(rc, &l, "init", rc->ct_ko.ko_id, 0);
 }
 
 void
