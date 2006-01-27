@@ -53,7 +53,8 @@ KERN_BINFILES := \
 	user/tclnt \
 	user/init \
 	user/httpd \
-	user/shell
+	user/shell \
+	user/mlt
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
