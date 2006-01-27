@@ -92,7 +92,7 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
 	}
     }
 
-    me->me_l = *l;
+    memcpy(&me->me_l, l, sizeof(*l));
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
     me->me_inuse = 1;
     return 0;
