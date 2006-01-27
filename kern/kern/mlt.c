@@ -59,11 +59,11 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 int
 mlt_put(const struct Mlt *mlt, uint8_t *buf)
 {
-    struct mlt_entry *me;
+    struct mlt_entry *me = 0;
     struct Label *l = &cur_thread->th_ko.ko_label;
 
     int r;
-    struct mlt_entry *freeslot;
+    struct mlt_entry *freeslot = 0;
     uint64_t slot, nslots = mlt_nslots(mlt);
 
     for (slot = 0; slot < nslots; slot++) {
@@ -92,7 +92,7 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
 	}
     }
 
-    memcpy(&me->me_l, l, sizeof(*l));
+    me->me_l = *l;
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
     me->me_inuse = 1;
     return 0;
