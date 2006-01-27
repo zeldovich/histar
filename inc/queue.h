@@ -115,7 +115,14 @@ struct {								\
  * Tail queue functions.
  */
 #define	TAILQ_FIRST(head)	((head)->tqh_first)
+
+#if 0
+/*
+ * See http://asbestos.cs.ucla.edu/cgi-bin/viewcvs.cgi/jos/inc/queue.h?r1=1.9&r2=1.10
+ * for a potentially useful patch.
+ */
 #define TAILQ_LAST(head)        (*((head)->tqh_last))
+#endif
 
 #define	TAILQ_EMPTY(head)	(TAILQ_FIRST(head) == NULL)
 
