@@ -19,4 +19,7 @@ typedef enum {
     kobj_any
 } kobject_type_t;
 
+typedef uint64_t kobject_id_t;
+#define kobject_id_null		((kobject_id_t) 0xffffffffffffffffUL)
+
 #endif
