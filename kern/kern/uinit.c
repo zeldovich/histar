@@ -182,9 +182,9 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
-		(void*) elf.e_entry, (void*) USTACKTOP,
-		c->ct_ko.ko_id, arg, 0);
+    assert(0 == thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
+			    (void*) elf.e_entry, (void*) USTACKTOP,
+			    c->ct_ko.ko_id, arg, 0));
     return 0;
 }
 

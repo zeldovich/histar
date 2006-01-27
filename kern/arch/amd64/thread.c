@@ -100,7 +100,7 @@ thread_run(struct Thread *t)
     trapframe_pop(&t->th_tf);
 }
 
-void
+int
 thread_jump(struct Thread *t, const struct Label *label,
 	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
@@ -122,6 +122,8 @@ thread_jump(struct Thread *t, const struct Label *label,
     t->th_tf.tf_rdi = arg0;
     t->th_tf.tf_rsi = arg1;
     t->th_tf.tf_rdx = arg2;
+
+    return 0;
 }
 
 void
