@@ -5,7 +5,7 @@
 int
 sys_cons_puts(const char *s, uint64_t size)
 {
-    return syscall(SYS_cons_puts, (uint64_t) s, size);
+    return syscall(SYS_cons_puts, s, size);
 }
 
 int
@@ -17,7 +17,7 @@ sys_cons_getc(void)
 int64_t
 sys_net_create(uint64_t container, struct ulabel *l)
 {
-    return syscall(SYS_net_create, container, (uint64_t) l);
+    return syscall(SYS_net_create, container, l);
 }
 
 int64_t
@@ -36,7 +36,7 @@ sys_net_buf(struct cobj_ref nd, struct cobj_ref seg, uint64_t offset,
 int
 sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
 {
-    return syscall(SYS_net_macaddr, nd, (uint64_t) addrbuf);
+    return syscall(SYS_net_macaddr, nd, addrbuf);
 }
 
 int64_t
@@ -72,19 +72,19 @@ sys_obj_get_type(struct cobj_ref o)
 int
 sys_obj_get_label(struct cobj_ref o, struct ulabel *l)
 {
-    return syscall(SYS_obj_get_label, o, (uint64_t) l);
+    return syscall(SYS_obj_get_label, o, l);
 }
 
 int
 sys_obj_get_name(struct cobj_ref o, char *name)
 {
-    return syscall(SYS_obj_get_name, o, (uint64_t) name);
+    return syscall(SYS_obj_get_name, o, name);
 }
 
 int
 sys_obj_set_name(struct cobj_ref o, char *name)
 {
-    return syscall(SYS_obj_set_name, o, (uint64_t) name);
+    return syscall(SYS_obj_set_name, o, name);
 }
 
 int64_t
@@ -97,8 +97,7 @@ int64_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
 		struct ulabel *el, struct ulabel *tl)
 {
-    return syscall(SYS_gate_create, container, (uint64_t) te,
-		   (uint64_t) el, (uint64_t) tl);
+    return syscall(SYS_gate_create, container, te, el, tl);
 }
 
 int
@@ -116,7 +115,7 @@ sys_thread_create(uint64_t container)
 int
 sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
 {
-    return syscall(SYS_thread_start, thread, (uint64_t) entry);
+    return syscall(SYS_thread_start, thread, entry);
 }
 
 void
@@ -152,7 +151,7 @@ sys_thread_addref(uint64_t container)
 int
 sys_thread_get_as(struct cobj_ref *as_obj)
 {
-    return syscall(SYS_thread_get_as, (uint64_t) as_obj);
+    return syscall(SYS_thread_get_as, as_obj);
 }
 
 int64_t
@@ -182,13 +181,13 @@ sys_as_create(uint64_t container)
 int
 sys_as_get(struct cobj_ref as, struct u_address_space *uas)
 {
-    return syscall(SYS_as_get, as, (uint64_t) uas);
+    return syscall(SYS_as_get, as, uas);
 }
 
 int
 sys_as_set(struct cobj_ref as, struct u_address_space *uas)
 {
-    return syscall(SYS_as_set, as, (uint64_t) uas);
+    return syscall(SYS_as_set, as, uas);
 }
 
 int64_t
