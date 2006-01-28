@@ -23,12 +23,4 @@ int	gate_create(struct u_gate_entry *ug, uint64_t container,
 		    char *name);
 int	gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *arg);
 
-// gate_entry.c
-void	__attribute__((noreturn))
-	gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj);
-void	__attribute__((noreturn))
-	gate_return(struct u_gate_entry *ug,
-		    struct cobj_ref return_gate, 
-		    struct cobj_ref return_arg);
-
 #endif

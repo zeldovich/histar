@@ -30,7 +30,12 @@ gate_return_entrystack(struct u_gate_entry *ug,
     segment_unmap(stackinf.va);
     sys_obj_unref(stackinf.obj);
 
-    gate_return(ug, return_gate, arg);
+    int r = sys_obj_unref(COBJ(ug->container, thread_id()));
+    if (r < 0)
+	panic("gate_return_entrystack: unref: %s", e2s(r));
+
+    r = sys_gate_enter(return_gate, arg.container, arg.object);
+    panic("gate_return_entrystack: gate_enter: %s", e2s(r));
 }
 
 static void __attribute__((noreturn))
@@ -65,17 +70,19 @@ gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
 		 &gate_return_entrystack);
 }
 
-// The assembly gate_entry code jumps here, once the thread has been
-// addref'ed to the container and the entry stack has been locked.
-void __attribute__((noreturn))
-gate_entry_locked(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+static void __attribute__((noreturn))
+gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
 {
+    int r = sys_thread_addref(ug->container);
+    if (r < 0)
+	panic("gate_entry: thread_addref ct=%ld: %s", ug->container, e2s(r));
+
     int stackpages = 2;
 
     struct gate_entry_stack_info stackinf;
     stackinf.va = 0;
-    int r = segment_alloc(ug->container, stackpages * PGSIZE,
-			  &stackinf.obj, &stackinf.va);
+    r = segment_alloc(ug->container, stackpages * PGSIZE,
+		      &stackinf.obj, &stackinf.va);
     if (r < 0)
 	panic("gate_entry_locked: cannot allocate new stack: %s", e2s(r));
 
