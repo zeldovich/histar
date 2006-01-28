@@ -39,22 +39,14 @@ gate_return_entrystack(struct u_gate_entry *ug,
 }
 
 static void __attribute__((noreturn))
-gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
+gate_entry_newstack(struct u_gate_entry *ug,
 		    struct gate_entry_stack_info *stackinfp)
 {
     struct gate_entry_stack_info stackinf = *stackinfp;
 
-    struct gate_call_args *call_args = 0;
-    int r = segment_map(call_args_obj, SEGMAP_READ, (void**) &call_args, 0);
-    if (r < 0)
-	panic("gate_entry: cannot map argument page: %s", e2s(r));
-
+    struct gate_call_args *call_args = ug->stackbase;
     struct cobj_ref arg = call_args->arg;
     struct cobj_ref return_gate = call_args->return_gate;
-
-    r = segment_unmap(call_args);
-    if (r < 0)
-	panic("gate_entry: cannot unmap argument page: %s", e2s(r));
 
     ug->func(ug->func_arg, &arg);
 
@@ -67,7 +59,7 @@ gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
 }
 
 static void __attribute__((noreturn))
-gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
+gate_entry(struct u_gate_entry *ug)
 {
     int r = sys_thread_addref(ug->container);
     if (r < 0)
@@ -93,10 +85,7 @@ gate_entry(struct u_gate_entry *ug, struct cobj_ref call_args_obj)
     if (r < 0)
 	panic("gate_entry_locked: sys_obj_set_name: %s", e2s(r));
 
-    stack_switch((uint64_t) ug,
-		 call_args_obj.container,
-		 call_args_obj.object,
-		 (uint64_t) &stackinf,
+    stack_switch((uint64_t) ug, (uint64_t) &stackinf, 0, 0,
 		 stackinf.va + stackpages * PGSIZE,
 		 &gate_entry_newstack);
 }
@@ -209,13 +198,10 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
     if (r < 0)
 	return r;
 
-    struct cobj_ref gate_args_obj;
     struct gate_call_args *gate_args = 0;
-    r = segment_alloc(ctemp, PGSIZE, &gate_args_obj, (void**) &gate_args);
+    r = segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, (void**)&gate_args, 0);
     if (r < 0)
-	goto out1;
-
-    sys_obj_set_name(gate_args_obj, "gate call args");
+	return r;
 
     struct cobj_ref return_stack_obj;
     void *return_stack = 0;
@@ -240,8 +226,7 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
 	gate_args->return_gate = return_gate;
 	gate_args->arg = *argp;
-	r = sys_gate_enter(gate, gate_args_obj.container,
-				 gate_args_obj.object);
+	r = sys_gate_enter(gate, 0, 0);
 	if (r == 0)
 	    panic("gate_call: sys_gate_enter returned 0");
     }
@@ -252,7 +237,5 @@ out3:
     sys_obj_unref(return_stack_obj);
 out2:
     segment_unmap(gate_args);
-    sys_obj_unref(gate_args_obj);
-out1:
     return r;
 }
