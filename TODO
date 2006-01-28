@@ -1,7 +1,9 @@
 threads should not have refcounts -- switch ownership on gate call?
 
 thread containers should not be nameable by container ID,
-and should not allow sub-containers
+and should not allow sub-containers or sub-threads.  probably
+a container should have a list of allowable objects, and the
+thread-specific containers won't allow containers or threads.
 
 user-specified segment labeling
 segment_copy syscall
@@ -15,7 +17,7 @@ larger labels (if needed?)
   is it OK to allow user to look at the gate's target label?
   looks like yes..
 
-do COW in gate_enter_locked()
+do COW in gate_enter()
 use MLTs to store COW mappings in gate_enter for later reuse
 
 kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
