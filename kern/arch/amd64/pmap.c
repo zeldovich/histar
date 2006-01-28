@@ -9,6 +9,8 @@
 #include <kern/kobj.h>
 #include <inc/error.h>
 
+static bool_t scrub_free_pages = 0;
+
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa;	// Maximum physical address
 size_t npage;			// Amount of physical memory (in pages)
@@ -94,6 +96,9 @@ page_free (void *v)
     struct Page *p = (struct Page *) v;
     if (PGOFF(p))
 	panic("page_free: not a page-aligned pointer %p", p);
+
+    if (scrub_free_pages)
+	memset(v, 0xde, PGSIZE);
 
     LIST_INSERT_HEAD (&page_free_list, p, pp_link);
     page_stats.pages_avail++;
