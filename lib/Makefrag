@@ -30,6 +30,7 @@ LIB_SRCFILES :=	\
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
+#include lib/btree/Makefrag
 #include lib/sqlite/Makefrag
 #include lib/pcre/Makefrag
 

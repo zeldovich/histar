@@ -28,6 +28,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/uinit.c \
 	    kern/kern/netdev.c \
 	    kern/kern/mlt.c \
+	    kern/kern/freelist.c \
 	    kern/kern/pagetree.c \
 	    $(OBJDIR)/kern/embedbin.c
 
@@ -82,6 +83,9 @@ $(OBJDIR)/kern/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) -c -o $@ $<
 $(OBJDIR)/kern/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: lib/btree/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 

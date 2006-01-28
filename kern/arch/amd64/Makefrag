@@ -14,6 +14,15 @@ KERN_ARCH :=					\
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
 	lib/$(ARCH)/longjmp.S			\
+	lib/btree/btree.c					\
+	lib/btree/btree_header.c			\
+	lib/btree/btree_search.c			\
+	lib/btree/btree_node.c			\
+	lib/btree/cache.c			\
+	lib/btree/btree_cache.c		\
+	lib/btree/btree_delete.c	\
+	lib/btree/btree_insert.c	\
+	lib/btree/btree_traverse.c	\
 	lib/memcpy.c				\
 	lib/memset.c				\
 	lib/printfmt.c				\
