@@ -4,12 +4,8 @@
 #include <inc/container.h>
 #include <inc/atomic.h>
 
-// The layout of container and entry_stack_use fields of this structure
-// is hard-coded in assembly.  Don't move them around.
 struct u_gate_entry {
     uint64_t container;
-    atomic_t entry_stack_use;
-
     struct cobj_ref gate;
     void *stackbase;
 

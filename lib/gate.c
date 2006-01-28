@@ -43,7 +43,6 @@ gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
 		    struct gate_entry_stack_info *stackinfp)
 {
     struct gate_entry_stack_info stackinf = *stackinfp;
-    atomic_set(&ug->entry_stack_use, 0);
 
     struct gate_call_args *call_args = 0;
     int r = segment_map(call_args_obj, SEGMAP_READ, (void**) &call_args, 0);
@@ -58,9 +57,6 @@ gate_entry_newstack(struct u_gate_entry *ug, struct cobj_ref call_args_obj,
 	panic("gate_entry: cannot unmap argument page: %s", e2s(r));
 
     ug->func(ug->func_arg, &arg);
-
-    while (atomic_compare_exchange(&ug->entry_stack_use, 0, 1) != 0)
-	sys_thread_yield();
 
     stack_switch((uint64_t) ug,
 		 (uint64_t) &return_gate,
@@ -120,7 +116,6 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     if (r < 0)
 	return r;
 
-    atomic_set(&ug->entry_stack_use, 0);
     ug->container = container;
     ug->func = func;
     ug->func_arg = func_arg;
