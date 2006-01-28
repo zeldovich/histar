@@ -464,10 +464,14 @@ pstate_sync_stackwrap(void *arg)
 	}
     }
 
-    if (pstate_swapout_stats)
+    if (pstate_swapout_stats) {
 	cprintf("pstate_sync: snap %ld dead %ld wrote %ld pages %ld\n",
 		stats.snapshoted_kobj, stats.dead_kobj,
 		stats.written_kobj, stats.written_pages);
+	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+		page_stats.pages_used, page_stats.pages_avail,
+		page_stats.allocations, page_stats.failures);
+    }
     swapout_active = 0;
 }
 

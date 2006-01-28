@@ -20,6 +20,9 @@ static char *boot_freemem;	// Pointer to next byte of free mem
 static struct Page_list page_free_list;
 				// Free list of physical pages
 
+// Global page allocation stats
+struct page_stats page_stats;
+
 static int
 nvram_read (int r)
 {
@@ -93,6 +96,8 @@ page_free (void *v)
 	panic("page_free: not a page-aligned pointer %p", p);
 
     LIST_INSERT_HEAD (&page_free_list, p, pp_link);
+    page_stats.pages_avail++;
+    page_stats.pages_used--;
 }
 
 int
@@ -102,10 +107,14 @@ page_alloc (void **vp)
     if (p) {
 	LIST_REMOVE(p, pp_link);
 	*vp = p;
+	page_stats.pages_avail--;
+	page_stats.pages_used++;
+	page_stats.allocations++;
 	return 0;
     }
 
     cprintf("page_alloc: returning no mem\n");
+    page_stats.failures++;
     return -E_NO_MEM;
 }
 
@@ -134,6 +143,8 @@ page_init (void)
 	if (!inuse)
 	    page_free(pa2kva(i << PGSHIFT));
     }
+
+    page_stats.pages_used = 0;
 }
 
 void

@@ -37,6 +37,13 @@ struct Pagemap {
 
 extern size_t npage;
 
+extern struct page_stats {
+    uint64_t pages_used;
+    uint64_t pages_avail;
+    uint64_t allocations;
+    uint64_t failures;
+} page_stats;
+
 void pmap_init (struct multiboot_info *mbi);
 
 int  page_alloc (void **p);
