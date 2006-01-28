@@ -337,6 +337,7 @@ struct swapout_stats {
     uint64_t written_pages;
     uint64_t snapshoted_kobj;
     uint64_t dead_kobj;
+    uint64_t total_kobj;
 };
 
 static int
@@ -442,6 +443,7 @@ pstate_sync_stackwrap(void *arg)
 
     struct kobject_hdr *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
+	stats.total_kobj++;
 	if ((ko->ko_flags & KOBJ_DIRTY)) {
 	    kobject_snapshot(ko);
 	    stats.snapshoted_kobj++;
@@ -465,8 +467,8 @@ pstate_sync_stackwrap(void *arg)
     }
 
     if (pstate_swapout_stats) {
-	cprintf("pstate_sync: snap %ld dead %ld wrote %ld pages %ld\n",
-		stats.snapshoted_kobj, stats.dead_kobj,
+	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
 		stats.written_kobj, stats.written_pages);
 	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
 		page_stats.pages_used, page_stats.pages_avail,
