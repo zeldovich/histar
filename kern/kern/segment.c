@@ -63,9 +63,7 @@ segment_set_npages(struct Segment *sg, uint64_t num_pages)
 void
 segment_snapshot(struct Segment *sg)
 {
-    struct segment_mapping *sm;
-    LIST_FOREACH(sm, &sg->sg_segmap_list, sm_link)
-	as_segmap_snapshot(sm->sm_as, sm);
+    segment_invalidate(sg);
 }
 
 void

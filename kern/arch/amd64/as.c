@@ -342,9 +342,3 @@ as_switch(const struct Address_space *as)
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     lcr3(kva2pa(pgmap));
 }
-
-void
-as_segmap_snapshot(const struct Address_space *as, struct segment_mapping *sm)
-{
-    as_invalidate(as);
-}
