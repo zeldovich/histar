@@ -33,7 +33,9 @@ timer_intr(void)
     wakeup_scan();
 
     timer_ticks++;
-    if (!(timer_ticks % kclock_hz))
+
+    uint64_t pstate_sync_interval = 5 * kclock_hz;
+    if (!(timer_ticks % pstate_sync_interval))
 	pstate_sync();
 
     schedule();
