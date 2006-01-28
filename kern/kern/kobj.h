@@ -41,14 +41,11 @@ int  kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kpp);
 
 int  kobject_set_npages(struct kobject_hdr *kp, uint64_t npages);
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
-		      void **pp, kobj_rw_mode rw);
+		      void **pp, page_rw_mode rw);
 
 // Mark the kobject as dirty and return the same kobject
 struct kobject *
      kobject_dirty(const struct kobject_hdr *kh);
-
-// One of the object's extra pages has been brought in from disk.
-void kobject_swapin_page(struct kobject *kp, uint64_t page_num, void *p);
 
 // The object has been brought in from disk.
 void kobject_swapin(struct kobject *kp);

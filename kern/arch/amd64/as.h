@@ -10,23 +10,23 @@
 struct Address_space;
 
 struct segment_mapping {
-    struct u_segment_mapping sm_usm;
-
     const struct Address_space *sm_as;
+    uint64_t sm_as_slot;
+
     const struct Segment *sm_sg;
     LIST_ENTRY(segment_mapping) sm_link;
 };
 
 LIST_HEAD(segmap_list, segment_mapping);
 
-#define N_SEGMAP_DIRECT		7
+#define N_USEGMAP_PER_PAGE	(PGSIZE / sizeof(struct u_segment_mapping))
 #define N_SEGMAP_PER_PAGE	(PGSIZE / sizeof(struct segment_mapping))
 
 struct Address_space {
     struct kobject_hdr as_ko;
 
+    struct pagetree as_segmap_pt;
     struct Pagemap *as_pgmap;
-    struct segment_mapping as_segmap[N_SEGMAP_DIRECT];
 };
 
 int  as_alloc(struct Label *l, struct Address_space **asp);

@@ -40,10 +40,10 @@ segment_copy(struct Segment *src, struct Label *newl, struct Segment **dstp)
 
     for (uint64_t i = 0; i < src->sg_ko.ko_npages; i++) {
 	void *srcpg, *dstpg;
-	r = kobject_get_page(&src->sg_ko, i, &srcpg, kobj_ro);
+	r = kobject_get_page(&src->sg_ko, i, &srcpg, page_ro);
 	if (r < 0)
 	    return r;
-	r = kobject_get_page(&dst->sg_ko, i, &dstpg, kobj_rw);
+	r = kobject_get_page(&dst->sg_ko, i, &dstpg, page_rw);
 	if (r < 0)
 	    return r;
 

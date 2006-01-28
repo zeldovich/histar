@@ -319,7 +319,7 @@ ne2kpci_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type 
    uint32_t pageoff = PGOFF(offset);
    
    void *p;
-   int r = kobject_get_page(&sg->sg_ko, npage, &p, kobj_rw);
+   int r = kobject_get_page(&sg->sg_ko, npage, &p, page_rw);
    if (r < 0)
       return r;
    

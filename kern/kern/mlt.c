@@ -25,7 +25,7 @@ mlt_nslots(const struct Mlt *mlt)
 
 static int
 mlt_get_slot(const struct Mlt *mlt, struct mlt_entry **mep,
-	     uint64_t slot, kobj_rw_mode rw)
+	     uint64_t slot, page_rw_mode rw)
 {
     int npage = slot / MLT_SLOTS_PER_PAGE;
 
@@ -48,7 +48,7 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 	return r;
 
     void *p;
-    r = kobject_get_page(&mlt->mt_ko, npage, &p, kobj_rw);
+    r = kobject_get_page(&mlt->mt_ko, npage, &p, page_rw);
     if (r < 0)
 	return r;
 
@@ -67,7 +67,7 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
     uint64_t slot, nslots = mlt_nslots(mlt);
 
     for (slot = 0; slot < nslots; slot++) {
-	r = mlt_get_slot(mlt, &me, slot, kobj_rw);
+	r = mlt_get_slot(mlt, &me, slot, page_rw);
 	if (r < 0)
 	    return r;
 
@@ -105,7 +105,7 @@ mlt_get(const struct Mlt *mlt, uint8_t *buf)
 
     for (uint64_t slot = 0; slot < nslots; slot++) {
 	struct mlt_entry *me;
-	int r = mlt_get_slot(mlt, &me, slot, kobj_ro);
+	int r = mlt_get_slot(mlt, &me, slot, page_ro);
 	if (r < 0)
 	    return r;
 

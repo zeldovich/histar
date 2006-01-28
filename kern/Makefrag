@@ -28,6 +28,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/uinit.c \
 	    kern/kern/netdev.c \
 	    kern/kern/mlt.c \
+	    kern/kern/pagetree.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)

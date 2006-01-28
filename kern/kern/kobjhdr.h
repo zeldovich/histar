@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <kern/label.h>
+#include <kern/pagetree.h>
 #include <inc/kobj.h>
 #include <inc/queue.h>
 
@@ -10,9 +11,6 @@
 #define KOBJ_ZERO_REFS		0x02	// Should be in-core for GC
 #define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
-
-#define KOBJ_DIRECT_PAGES	32
-#define KOBJ_PAGES_PER_INDIR	(PGSIZE / sizeof(void*))
 
 struct kobject_hdr {
     kobject_type_t ko_type;
@@ -25,8 +23,7 @@ struct kobject_hdr {
     LIST_ENTRY(kobject_hdr) ko_link;
     char ko_name[KOBJ_NAME_LEN];
 
-    void *ko_pages[KOBJ_DIRECT_PAGES];
-    void **ko_pages_indir1;
+    struct pagetree ko_pt;
 };
 
 typedef enum {
@@ -35,11 +32,6 @@ typedef enum {
     iflow_write,
     iflow_none
 } info_flow_type;
-
-typedef enum {
-    kobj_ro,
-    kobj_rw
-} kobj_rw_mode;
 
 struct kobject;
 

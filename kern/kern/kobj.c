@@ -109,6 +109,7 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     kh->ko_id = handle_alloc();
     kh->ko_label = *l;
     kh->ko_flags = KOBJ_DIRTY;
+    pagetree_init(&kh->ko_pt);
 
     LIST_INSERT_HEAD(&ko_list, kh, ko_link);
 
@@ -116,122 +117,47 @@ kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
     return 0;
 }
 
-static int
-kobject_get_pagep(struct kobject_hdr *kp, uint64_t npage, void ***pp)
-{
-    if (npage < KOBJ_DIRECT_PAGES) {
-	*pp = &kp->ko_pages[npage];
-	return 0;
-    }
-
-    npage -= KOBJ_DIRECT_PAGES;
-    if (npage < KOBJ_PAGES_PER_INDIR) {
-	if (kp->ko_pages_indir1 == 0) {
-	    int r = page_alloc((void**)&kp->ko_pages_indir1);
-	    if (r < 0)
-		return r;
-	    memset(kp->ko_pages_indir1, 0, PGSIZE);
-	}
-
-	*pp = &kp->ko_pages_indir1[npage];
-	return 0;
-    }
-
-    return -E_INVAL;
-}
-
-static void
-kobject_free_pages(struct kobject_hdr *ko)
-{
-    for (int i = 0; i < KOBJ_DIRECT_PAGES; i++) {
-	if (ko->ko_pages[i]) {
-	    page_free(ko->ko_pages[i]);
-	    ko->ko_pages[i] = 0;
-	}
-    }
-
-    if (ko->ko_pages_indir1) {
-	for (uint32_t i = 0; i < KOBJ_PAGES_PER_INDIR; i++) {
-	    if (ko->ko_pages_indir1[i]) {
-		page_free(ko->ko_pages_indir1[i]);
-		ko->ko_pages_indir1[i] = 0;
-	    }
-	}
-	page_free(ko->ko_pages_indir1);
-	ko->ko_pages_indir1 = 0;
-    }
-
-    ko->ko_npages = 0;
-}
-
 int
-kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, kobj_rw_mode rw)
+kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_rw_mode rw)
 {
-    if (npage > kp->ko_npages)
+    if (npage >= kp->ko_npages)
 	return -E_INVAL;
 
-    if (rw == kobj_rw && (kp->ko_flags & KOBJ_SNAPSHOTING)) {
-	thread_suspend(cur_thread, &kobj_snapshot_waiting);
-	return -E_RESTART;
-    }
-
-    if (rw == kobj_rw)
+    if (rw == page_rw)
 	kobject_dirty(kp);
 
-    void **kp_pagep;
-    int r = kobject_get_pagep(&kobject_const_h2k(kp)->u.hdr, npage, &kp_pagep);
-    if (r < 0)
-	return r;
-
-    *pp = *kp_pagep;
-    return 0;
+    return pagetree_get_page(&kobject_const_h2k(kp)->u.hdr.ko_pt,
+			     npage, pp, rw);
 }
 
 int
 kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
 {
-    if (npages > KOBJ_DIRECT_PAGES + KOBJ_PAGES_PER_INDIR)
+    if (npages > pagetree_maxpages())
 	return -E_NO_MEM;
 
-    if ((kp->ko_flags & KOBJ_SNAPSHOTING)) {
-	thread_suspend(cur_thread, &kobj_snapshot_waiting);
-	return -E_RESTART;
-    }
-
     for (uint64_t i = npages; i < kp->ko_npages; i++) {
-	void **pp;
-	int r = kobject_get_pagep(kp, i, &pp);
-	if (r < 0)
+	int r = pagetree_put_page(&kp->ko_pt, i, 0);
+	if (r < 0) {
+	    cprintf("XXX this leaves a hole in the kobject\n");
 	    return r;
-
-	page_free(*pp);
-	*pp = 0;
+	}
     }
 
     for (uint64_t i = kp->ko_npages; i < npages; i++) {
-	void **pp;
-	int r = kobject_get_pagep(kp, i, &pp);
-	if (r < 0)
-	    return r;
-
-	if (*pp == 0)
-	    r = page_alloc(pp);
+	void *p;
+	int r = page_alloc(&p);
+	if (r == 0)
+	    r = pagetree_put_page(&kp->ko_pt, i, p);
 
 	if (r < 0) {
 	    // free all the pages we allocated up to now
-	    for (uint64_t j = kp->ko_npages; j < i; j++) {
-		int q = kobject_get_pagep(kp, j, &pp);
-		if (q < 0)
-		    panic("cannot lookup just-allocated page: %d", q);
-		if (*pp) {
-		    page_free(*pp);
-		    *pp = 0;
-		}
-	    }
+	    for (uint64_t j = kp->ko_npages; j < i; j++)
+		assert(0 == pagetree_put_page(&kp->ko_pt, j, 0));
 	    return r;
 	}
 
-	memset(*pp, 0, PGSIZE);
+	memset(p, 0, PGSIZE);
     }
 
     kp->ko_npages = npages;
@@ -259,18 +185,6 @@ kobject_swapin(struct kobject *ko)
 	as_swapin(&ko->u.as);
     if (ko->u.hdr.ko_type == kobj_segment)
 	segment_swapin(&ko->u.sg);
-}
-
-void
-kobject_swapin_page(struct kobject *ko, uint64_t page_num, void *p)
-{
-    void **pp;
-    int r = kobject_get_pagep(&ko->u.hdr, page_num, &pp);
-    if (r < 0)
-	panic("cannot get slot for object %ld page %ld: %s",
-	      ko->u.hdr.ko_id, page_num, e2s(r));
-
-    *pp = p;
 }
 
 void
@@ -332,7 +246,7 @@ kobject_gc(struct kobject *ko)
     if (r < 0)
 	cprintf("kobject_free: cannot GC type %d: %d\n", ko->u.hdr.ko_type, r);
 
-    kobject_free_pages(&ko->u.hdr);
+    pagetree_free(&ko->u.hdr.ko_pt);
     ko->u.hdr.ko_type = kobj_dead;
 }
 
@@ -355,13 +269,15 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    assert(!(ko->u.hdr.ko_flags & KOBJ_SNAPSHOTING));
+
     if (ko->u.hdr.ko_type == kobj_thread)
 	thread_swapout(&ko->u.th);
     if (ko->u.hdr.ko_type == kobj_address_space)
 	as_swapout(&ko->u.as);
 
     LIST_REMOVE(&ko->u.hdr, ko_link);
-    kobject_free_pages(&ko->u.hdr);
+    pagetree_free(&ko->u.hdr.ko_pt);
     page_free(ko);
 }
 
@@ -387,14 +303,17 @@ kobject_snapshot(struct kobject_hdr *ko)
 
     struct kobject *snap = kobject_get_snapshot(ko);
     memcpy(snap, ko, sizeof(*snap));
+    pagetree_clone(&ko->ko_pt, &snap->u.hdr.ko_pt);
 }
 
 void
 kobject_snapshot_release(struct kobject_hdr *ko)
 {
-    assert((ko->ko_flags & KOBJ_SNAPSHOTING));
+    struct kobject *snap = kobject_get_snapshot(ko);
+
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_decpin(ko);
+    pagetree_clone_free(&snap->u.hdr.ko_pt, &ko->ko_pt);
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);

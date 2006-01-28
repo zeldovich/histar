@@ -35,16 +35,21 @@ static int
 elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
 	       uint64_t start_page, uint64_t num_pages, void *va, uint64_t flags)
 {
-    if (*smi >= N_SEGMAP_DIRECT) {
+    if (*smi >= N_SEGMAP_PER_PAGE) {
 	cprintf("ELF: too many segments\n");
 	return -E_NO_MEM;
     }
 
-    as->as_segmap[*smi].sm_usm.segment = seg;
-    as->as_segmap[*smi].sm_usm.start_page = start_page;
-    as->as_segmap[*smi].sm_usm.num_pages = num_pages;
-    as->as_segmap[*smi].sm_usm.flags = flags;
-    as->as_segmap[*smi].sm_usm.va = va;
+    assert(0 == kobject_set_npages(&as->as_ko, 1));
+
+    struct u_segment_mapping *usm;
+    assert(0 == kobject_get_page(&as->as_ko, 0, (void **)&usm, page_rw));
+
+    usm[*smi].segment = seg;
+    usm[*smi].start_page = start_page;
+    usm[*smi].num_pages = num_pages;
+    usm[*smi].flags = flags;
+    usm[*smi].va = va;
     (*smi)++;
     return 0;
 }
@@ -80,7 +85,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, kobj_rw);
+	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw);
 	    if (r < 0)
 		panic("segment_create_embed: cannot get page: %s", e2s(r));
 
@@ -240,7 +245,7 @@ fs_init(struct Container *c, struct Label *l)
 
     uint64_t *fs_dir;
     assert(0 == kobject_get_page(&fs_names->sg_ko, 0,
-				 (void**)&fs_dir, kobj_rw));
+				 (void**)&fs_dir, page_rw));
 
     for (int i = 0; embed_bins[i].name; i++) {
 	const char *name = embed_bins[i].name;

@@ -161,10 +161,7 @@ pstate_swapin_slot(int slot)
 	return -1;
     }
 
-    for (int i = 0; i < KOBJ_DIRECT_PAGES; i++)
-	ko->u.hdr.ko_pages[i] = 0;
-    ko->u.hdr.ko_pages_indir1 = 0;
-
+    pagetree_init(&ko->u.hdr.ko_pt);
     for (uint64_t page = 0; page < ko->u.hdr.ko_npages; page++) {
 	r = page_alloc(&p);
 	if (r < 0) {
@@ -181,7 +178,7 @@ pstate_swapin_slot(int slot)
 	    return -1;
 	}
 
-	kobject_swapin_page(ko, page, p);
+	assert(0 == pagetree_put_page(&ko->u.hdr.ko_pt, page, p));
     }
 
     if (pstate_swapin_debug)
@@ -365,7 +362,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
     for (uint64_t page = 0; page < snap->u.hdr.ko_npages; page++) {
 	uint64_t offset = (hdr->ph_map.ent[slot].offset + page + 1) * PGSIZE;
 	void *p;
-	int r = kobject_get_page(&snap->u.hdr, page, &p, kobj_ro);
+	int r = kobject_get_page(&snap->u.hdr, page, &p, page_ro);
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
