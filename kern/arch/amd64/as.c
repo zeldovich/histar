@@ -312,6 +312,8 @@ as_pagefault(struct Address_space *as, void *va)
 	int r = page_map_alloc(&as->as_pgmap);
 	if (r < 0)
 	    return r;
+
+	as->as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
     int r = as_pmap_fill(as, va);
@@ -333,6 +335,10 @@ as_pagefault(struct Address_space *as, void *va)
 void
 as_switch(const struct Address_space *as)
 {
+    // In case we have thread-specific kobjects cached here..
+    if (as && cur_thread && as->as_pgmap_tid != cur_thread->th_ko.ko_id)
+	as_invalidate(as);
+
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     lcr3(kva2pa(pgmap));
 }

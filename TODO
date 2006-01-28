@@ -1,6 +1,7 @@
 threads should not have refcounts -- switch ownership on gate call?
 
-threads as 1-slot (or few-slot) containers
+thread containers should not be nameable by container ID,
+and should not allow sub-containers
 
 user-specified segment labeling
 segment_copy syscall

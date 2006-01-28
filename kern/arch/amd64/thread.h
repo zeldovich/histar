@@ -23,6 +23,10 @@ struct Thread {
     struct cobj_ref th_asref;
     const struct Address_space *th_as;
 
+    // The thread's associated segment & container
+    kobject_id_t th_sg;
+    kobject_id_t th_ct;
+
     thread_status th_status;
     bool_t th_pinned;
     uint64_t th_wakeup_ticks;

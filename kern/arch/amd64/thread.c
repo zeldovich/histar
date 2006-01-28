@@ -5,6 +5,7 @@
 #include <machine/trap.h>
 #include <machine/as.h>
 #include <kern/segment.h>
+#include <kern/container.h>
 #include <kern/kobj.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
@@ -70,6 +71,29 @@ thread_alloc(struct Label *l, struct Thread **tp)
 
     struct Thread *t = &ko->u.th;
     t->th_status = thread_not_started;
+    t->th_sg = kobject_id_null;
+    t->th_ct = kobject_id_null;
+
+    struct Segment *sg;
+    r = segment_alloc(l, &sg);
+    if (r < 0)
+	return r;
+
+    t->th_sg = sg->sg_ko.ko_id;
+    kobject_incref(&sg->sg_ko);
+
+    struct Container *ct;
+    r = container_alloc(l, &ct);
+    if (r < 0)
+	return r;
+
+    t->th_ct = ct->ct_ko.ko_id;
+    kobject_incref(&ct->ct_ko);
+
+    r = container_put(ct, &sg->sg_ko);
+    if (r < 0)
+	return r;
+
     thread_swapin(t);
 
     *tp = t;
@@ -107,7 +131,29 @@ thread_swapout(struct Thread *t)
 int
 thread_gc(struct Thread *t)
 {
+    const struct kobject *ko;
+    int r;
+
     thread_halt(t);
+
+    if (t->th_sg != kobject_id_null) {
+	r = kobject_get(t->th_sg, &ko, iflow_none);
+	if (r < 0)
+	    return r;
+
+	kobject_decref(&ko->u.hdr);
+	t->th_sg = kobject_id_null;
+    }
+
+    if (t->th_ct != kobject_id_null) {
+	r = kobject_get(t->th_ct, &ko, iflow_none);
+	if (r < 0)
+	    return r;
+
+	kobject_decref(&ko->u.hdr);
+	t->th_ct = kobject_id_null;
+    }
+
     thread_swapout(t);
     return 0;
 }
@@ -128,7 +174,18 @@ thread_jump(struct Thread *t, const struct Label *label,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
 {
+    const struct kobject *ko_sg, *ko_ct;
+    int r = kobject_get(t->th_sg, &ko_sg, iflow_rw);
+    if (r < 0)
+	return r;
+
+    r = kobject_get(t->th_ct, &ko_ct, iflow_rw);
+    if (r < 0)
+	return r;
+
     t->th_ko.ko_label = *label;
+    kobject_dirty(&ko_sg->u.hdr)->u.hdr.ko_label = *label;
+    kobject_dirty(&ko_ct->u.hdr)->u.hdr.ko_label = *label;
 
     if (t->th_as)
 	kobject_decpin(&t->th_as->as_ko);

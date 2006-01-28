@@ -27,6 +27,7 @@ struct Address_space {
 
     struct pagetree as_segmap_pt;
     struct Pagemap *as_pgmap;
+    kobject_id_t as_pgmap_tid;
 };
 
 int  as_alloc(struct Label *l, struct Address_space **asp);

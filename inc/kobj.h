@@ -21,5 +21,7 @@ typedef enum {
 
 typedef uint64_t kobject_id_t;
 #define kobject_id_null		((kobject_id_t) 0xffffffffffffffffUL)
+#define kobject_id_thread_ct	((kobject_id_t) 0x4000000000000001UL)
+#define kobject_id_thread_sg	((kobject_id_t) 0x4000000000000002UL)
 
 #endif

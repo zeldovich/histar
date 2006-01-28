@@ -85,6 +85,12 @@ kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
 int
 kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 {
+    if (id == kobject_id_thread_ct)
+	id = cur_thread->th_ct;
+
+    if (id == kobject_id_thread_sg)
+	id = cur_thread->th_sg;
+
     struct kobject_hdr *ko;
     LIST_FOREACH(ko, &ko_list, ko_link) {
 	if (ko->ko_id == id) {
