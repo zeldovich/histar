@@ -225,8 +225,10 @@ sys_arch_timeouts(void)
 
     // Handle externally-started threads (XXX potentially a problem)
     static struct sys_timeouts global_tmo;
-    if (i == NTHREADS)
+    if (i == NTHREADS) {
+	//cprintf("sys_arch_timeouts: foreign thread %ld lacks own TLS\n", tid);
 	return &global_tmo;
+    }
 
     return &threads[i].tmo;
 }
