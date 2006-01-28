@@ -6,6 +6,7 @@
 #include <kern/pstate.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
+#include <dev/kclock.h>
 #include <inc/queue.h>
 
 uint64_t timer_ticks;
