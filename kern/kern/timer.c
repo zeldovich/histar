@@ -32,7 +32,7 @@ timer_intr(void)
     wakeup_scan();
 
     timer_ticks++;
-    if (!(timer_ticks % 1000))
+    if (!(timer_ticks % kclock_hz))
 	pstate_sync();
 
     schedule();
