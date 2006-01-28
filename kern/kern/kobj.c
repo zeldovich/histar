@@ -8,6 +8,7 @@
 #include <kern/pstate.h>
 #include <kern/handle.h>
 #include <inc/error.h>
+#include <inc/cksum.h>
 
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
@@ -22,6 +23,27 @@ static struct kobject *
 kobject_const_h2k(const struct kobject_hdr *kh)
 {
     return (struct kobject *) kh;
+}
+
+static uint64_t
+kobject_cksum(const struct kobject_hdr *ko)
+{
+    assert(ko);
+    uint64_t sum = 0;
+
+    // Compute checksum on everything but ko_cksum + ko_pt
+    sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_cksum));
+    sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
+		     sizeof(struct kobject) - sizeof(struct kobject_hdr));
+
+    for (uint64_t i = 0; i < ko->ko_npages; i++) {
+	void *p;
+	assert(0 == kobject_get_page(ko, i, &p, page_ro));
+	assert(p);
+	sum = cksum(sum, p, PGSIZE);
+    }
+
+    return sum;
 }
 
 static int
@@ -126,8 +148,12 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_r
     if (rw == page_rw)
 	kobject_dirty(kp);
 
-    return pagetree_get_page(&kobject_const_h2k(kp)->u.hdr.ko_pt,
-			     npage, pp, rw);
+    int r = pagetree_get_page(&kobject_const_h2k(kp)->u.hdr.ko_pt,
+			      npage, pp, rw);
+    if (r == 0 && *pp == 0)
+	panic("kobject_get_page: id %ld (%s) type %d npage %ld null",
+	      kp->ko_id, kp->ko_name, kp->ko_type, npage);
+    return r;
 }
 
 int
@@ -175,6 +201,13 @@ kobject_dirty(const struct kobject_hdr *kh)
 void
 kobject_swapin(struct kobject *ko)
 {
+    uint64_t sum1 = ko->u.hdr.ko_cksum;
+    uint64_t sum2 = kobject_cksum(&ko->u.hdr);
+
+    if (sum1 != sum2)
+	cprintf("kobject_swapin: %ld checksum mismatch: 0x%lx != 0x%lx\n",
+		ko->u.hdr.ko_id, sum1, sum2);
+
     LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
     ko->u.hdr.ko_pin = 0;
     ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY);
@@ -247,6 +280,7 @@ kobject_gc(struct kobject *ko)
 	cprintf("kobject_free: cannot GC type %d: %d\n", ko->u.hdr.ko_type, r);
 
     pagetree_free(&ko->u.hdr.ko_pt);
+    ko->u.hdr.ko_npages = 0;
     ko->u.hdr.ko_type = kobj_dead;
 }
 
@@ -301,8 +335,12 @@ kobject_snapshot(struct kobject_hdr *ko)
     ko->ko_flags &= ~KOBJ_DIRTY;
     kobject_incpin(ko);
 
+    uint64_t sum = kobject_cksum(ko);
+
     struct kobject *snap = kobject_get_snapshot(ko);
     memcpy(snap, ko, sizeof(*snap));
+    snap->u.hdr.ko_cksum = sum;
+
     pagetree_clone(&ko->ko_pt, &snap->u.hdr.ko_pt);
 }
 

@@ -23,6 +23,9 @@ struct kobject_hdr {
     LIST_ENTRY(kobject_hdr) ko_link;
     char ko_name[KOBJ_NAME_LEN];
 
+    // For verifying the persistence layer
+    uint64_t ko_cksum;
+
     struct pagetree ko_pt;
 };
 
