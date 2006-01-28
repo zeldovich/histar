@@ -24,6 +24,7 @@ struct Thread {
     const struct Address_space *th_as;
 
     thread_status th_status;
+    bool_t th_pinned;
     uint64_t th_wakeup_ticks;
 
     LIST_ENTRY(Thread) th_link;

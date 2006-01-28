@@ -13,12 +13,31 @@ struct Thread *cur_thread;
 struct Thread_list thread_list_runnable;
 struct Thread_list thread_list_limbo;
 
+static void
+thread_pin(struct Thread *t)
+{
+    if (!t->th_pinned) {
+	t->th_pinned = 1;
+	kobject_incpin(&t->th_ko);
+    }
+}
+
+static void
+thread_unpin(struct Thread *t)
+{
+    if (t->th_pinned) {
+	t->th_pinned = 0;
+	kobject_decpin(&t->th_ko);
+    }
+}
+
 void
 thread_set_runnable(struct Thread *t)
 {
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
     t->th_status = thread_runnable;
+    thread_pin(t);
 }
 
 void
@@ -27,6 +46,7 @@ thread_suspend(struct Thread *t, struct Thread_list *waitq)
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(waitq, t, th_link);
     t->th_status = thread_suspended;
+    thread_pin(t);
 }
 
 void
@@ -35,6 +55,7 @@ thread_halt(struct Thread *t)
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
     t->th_status = thread_halted;
+    thread_unpin(t);
     if (cur_thread == t)
 	cur_thread = 0;
 }
@@ -68,14 +89,15 @@ thread_swapin(struct Thread *t)
 					  : &thread_list_limbo;
     LIST_INSERT_HEAD(tq, t, th_link);
 
-    // Threads are always pinned in-core
-    kobject_incpin(&t->th_ko);
+    // Runnable and suspended threads are pinned
+    if (t->th_status == thread_runnable)
+	thread_pin(t);
 }
 
 void
 thread_swapout(struct Thread *t)
 {
-    kobject_decpin(&t->th_ko);
+    thread_unpin(t);
     LIST_REMOVE(t, th_link);
 
     if (t->th_as)
