@@ -11,7 +11,6 @@ struct u_gate_entry {
     atomic_t entry_stack_use;
 
     struct cobj_ref gate;
-    struct cobj_ref stackpage;
     void *stackbase;
 
     void (*func) (void *, struct cobj_ref *);

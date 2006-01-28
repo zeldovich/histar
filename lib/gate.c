@@ -103,15 +103,13 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg,
 	    char *name)
 {
-    ug->stackbase = 0;
-    int r = segment_alloc(container, PGSIZE,
-			  &ug->stackpage, &ug->stackbase);
+    struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
+    int r = sys_segment_resize(tseg, 1);
     if (r < 0)
 	return r;
 
-    char sname[KOBJ_NAME_LEN];
-    snprintf(&sname[0], KOBJ_NAME_LEN, "entry stack for %s", name);
-    r = sys_obj_set_name(ug->stackpage, &sname[0]);
+    ug->stackbase = 0;
+    r = segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, &ug->stackbase, 0);
     if (r < 0)
 	return r;
 
@@ -148,7 +146,6 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     return 0;
 
 out:
-    sys_obj_unref(ug->stackpage);
     segment_unmap(ug->stackbase);
     return r;
 }
@@ -205,9 +202,14 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
 int
 gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 {
+    struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
+    int r = sys_segment_resize(tseg, 1);
+    if (r < 0)
+	return r;
+
     struct cobj_ref gate_args_obj;
     struct gate_call_args *gate_args = 0;
-    int r = segment_alloc(ctemp, PGSIZE, &gate_args_obj, (void**) &gate_args);
+    r = segment_alloc(ctemp, PGSIZE, &gate_args_obj, (void**) &gate_args);
     if (r < 0)
 	goto out1;
 
