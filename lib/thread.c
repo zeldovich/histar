@@ -2,6 +2,19 @@
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
+#include <inc/atomic.h>
+#include <inc/stack.h>
+
+static atomic_t tl_stack_map_mutex;
+static void *tl_stack_base;
+
+static void __attribute__((noreturn))
+thread_exit(struct cobj_ref ct_obj, void *stackbase)
+{
+    segment_unmap(stackbase);
+    sys_obj_unref(ct_obj);
+    thread_halt();
+}
 
 static void __attribute__((noreturn))
 thread_entry(void *arg)
@@ -10,18 +23,40 @@ thread_entry(void *arg)
 
     ta->entry(ta->arg);
 
-    // XXX need to unmap ta->stackbase
-    // but how without using asm?
-    // maybe jump to a static stack with a mutex around it..
-    sys_obj_unref(ta->container);
-
-    thread_halt();
+    struct cobj_ref tls = COBJ(kobject_id_thread_ct,
+			       kobject_id_thread_sg);
+    assert(0 == sys_segment_resize(tls, 1));
+    stack_switch(ta->container.container, ta->container.object,
+		 (uint64_t) ta->stackbase, 0,
+		 tl_stack_base + PGSIZE, &thread_exit);
 }
 
 int
 thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, char *name)
 {
+    int r = 0;
+
+    if (tl_stack_base == 0) {
+	while (atomic_compare_exchange(&tl_stack_map_mutex, 0, 1) != 0)
+	    sys_thread_yield();
+
+	if (tl_stack_base == 0) {
+	    struct cobj_ref tls = COBJ(kobject_id_thread_ct,
+				       kobject_id_thread_sg);
+	    r = sys_segment_resize(tls, 1);
+	    if (r == 0)
+		r = segment_map(tls, SEGMAP_READ | SEGMAP_WRITE,
+				&tl_stack_base, 0);
+	}
+
+	atomic_set(&tl_stack_map_mutex, 0);
+	if (r < 0) {
+	    printf("thread_create: cannot map self-stack: %s\n", e2s(r));
+	    return r;
+	}
+    }
+
     int64_t thread_ct = sys_container_alloc(container);
     if (thread_ct < 0)
 	return thread_ct;
@@ -32,7 +67,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
     void *stackbase = 0;
-    int r = segment_alloc(thread_ct, stacksize, &stack, &stackbase);
+    r = segment_alloc(thread_ct, stacksize, &stack, &stackbase);
     if (r < 0) {
 	sys_obj_unref(tct);
 	return r;
