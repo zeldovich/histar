@@ -42,8 +42,7 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
-# Compiler flags
-# Note that -O2 is required for the boot loader to fit within 512 bytes;
+# Compiler flags.
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
 #CFLAGS	:= -g -Wall -Werror
