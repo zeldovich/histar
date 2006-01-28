@@ -3,7 +3,7 @@
 /* The Run Time Clock and other NVRAM access functions that go with it. */
 /* The run time clock is hard-wired to IRQ8. */
 
-int kclock_hz = 1000;
+int kclock_hz = 100;
 static int kclock_tval;
 
 #include <machine/x86.h>
