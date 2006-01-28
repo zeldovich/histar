@@ -214,7 +214,8 @@ pstate_swapin_stackwrap(void *arg)
 
 int
 pstate_swapin(kobject_id_t id) {
-    //cprintf("pstate_swapin: object %ld\n", id);
+    if (pstate_swapin_debug)
+	cprintf("pstate_swapin: object %ld\n", id);
 
     int64_t slot = pstate_map_findslot(&stable_hdr.ph_map, id);
     if (slot < 0)
