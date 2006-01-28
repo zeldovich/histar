@@ -31,10 +31,12 @@ pagetree_free_ent(pagetree_entry *clone_ent, pagetree_entry *base_ent, int level
     void *clone_page = pagetree_entry_page(*clone_ent);
     void *base_page = base_ent ? pagetree_entry_page(*base_ent) : 0;
 
-    if (base_ent)
+    if (base_ent) {
 	assert((clone_ent->flags & PAGETREE_RO));
-    else
-	assert(!(clone_ent->flags & (PAGETREE_RO | PAGETREE_COW)));
+    } else {
+	assert(!(clone_ent->flags & PAGETREE_RO));
+	assert(!(clone_ent->flags & PAGETREE_COW));
+    }
 
     if (base_ent && (base_ent->flags & PAGETREE_COW)) {
 	assert(clone_page == base_page);
