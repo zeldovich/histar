@@ -2,7 +2,6 @@
 #define JOS_INC_GATE_H
 
 #include <inc/container.h>
-#include <inc/atomic.h>
 
 struct u_gate_entry {
     uint64_t container;
