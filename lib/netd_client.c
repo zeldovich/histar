@@ -12,13 +12,17 @@ static struct cobj_ref netd_gate;
 static int
 netd_client_init()
 {
-    int64_t gate_id = container_find(start_env->root_container,
-				     kobj_gate, "netd");
+    int64_t netd_ct = container_find(start_env->root_container,
+				     kobj_container, "netd");
+    if (netd_ct < 0)
+	return netd_ct;
+
+    int64_t gate_id = container_find(netd_ct, kobj_gate, "netd");
     if (gate_id < 0)
 	return gate_id;
 
     netd_client_inited = 1;
-    netd_gate = COBJ(start_env->root_container, gate_id);
+    netd_gate = COBJ(netd_ct, gate_id);
     return 0;
 }
 
