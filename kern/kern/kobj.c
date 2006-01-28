@@ -151,6 +151,11 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_r
     if (npage >= kp->ko_npages)
 	return -E_INVAL;
 
+    if ((kp->ko_flags & KOBJ_SNAPSHOTING) && rw == page_rw && kp->ko_pin_pg) {
+	thread_suspend(cur_thread, &kobj_snapshot_waiting);
+	return -E_RESTART;
+    }
+
     if (rw == page_rw)
 	kobject_dirty(kp);
 
@@ -239,16 +244,32 @@ kobject_decref(const struct kobject_hdr *ko)
 }
 
 void
-kobject_incpin(const struct kobject_hdr *ko)
+kobject_pin_hdr(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
     ++m->ko_pin;
 }
 
 void
-kobject_decpin(const struct kobject_hdr *ko)
+kobject_unpin_hdr(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
+    --m->ko_pin;
+}
+
+void
+kobject_pin_page(const struct kobject_hdr *ko)
+{
+    struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
+    ++m->ko_pin_pg;
+    ++m->ko_pin;
+}
+
+void
+kobject_unpin_page(const struct kobject_hdr *ko)
+{
+    struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
+    --m->ko_pin_pg;
     --m->ko_pin;
 }
 
@@ -339,7 +360,7 @@ kobject_snapshot(struct kobject_hdr *ko)
 
     ko->ko_flags |= KOBJ_SNAPSHOTING;
     ko->ko_flags &= ~KOBJ_DIRTY;
-    kobject_incpin(ko);
+    kobject_pin_hdr(ko);
 
     uint64_t sum = kobject_cksum(ko);
 
@@ -356,7 +377,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
     struct kobject *snap = kobject_get_snapshot(ko);
 
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
-    kobject_decpin(ko);
+    kobject_unpin_hdr(ko);
     pagetree_clone_free(&snap->u.hdr.ko_pt, &ko->ko_pt);
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {

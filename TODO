@@ -7,7 +7,7 @@ thread-specific containers won't allow containers or threads.
 
 user-specified segment labeling
 segment_copy syscall
-in-kernel segment COW: beware of DMA
+in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 user-specified container labeling
 larger labels (if needed?)
 

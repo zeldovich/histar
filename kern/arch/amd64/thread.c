@@ -19,7 +19,7 @@ thread_pin(struct Thread *t)
 {
     if (!t->th_pinned) {
 	t->th_pinned = 1;
-	kobject_incpin(&t->th_ko);
+	kobject_pin_hdr(&t->th_ko);
     }
 }
 
@@ -28,7 +28,7 @@ thread_unpin(struct Thread *t)
 {
     if (t->th_pinned) {
 	t->th_pinned = 0;
-	kobject_decpin(&t->th_ko);
+	kobject_unpin_hdr(&t->th_ko);
     }
 }
 
@@ -125,7 +125,7 @@ thread_swapout(struct Thread *t)
     LIST_REMOVE(t, th_link);
 
     if (t->th_as)
-	kobject_decpin(&t->th_as->as_ko);
+	kobject_unpin_hdr(&t->th_as->as_ko);
 }
 
 int
@@ -188,7 +188,7 @@ thread_jump(struct Thread *t, const struct Label *label,
     kobject_dirty(&ko_ct->u.hdr)->u.hdr.ko_label = *label;
 
     if (t->th_as)
-	kobject_decpin(&t->th_as->as_ko);
+	kobject_unpin_hdr(&t->th_as->as_ko);
     t->th_as = 0;
     t->th_asref = as;
 
@@ -229,7 +229,7 @@ thread_pagefault(struct Thread *t, void *fault_va)
 
 	const struct Address_space *as = &ko->u.as;
 	t->th_as = as;
-	kobject_incpin(&t->th_as->as_ko);
+	kobject_pin_hdr(&t->th_as->as_ko);
     }
 
     return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->u.as, fault_va);

@@ -13,10 +13,13 @@
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
 
 struct kobject_hdr {
-    kobject_type_t ko_type;
     kobject_id_t ko_id;
-    uint32_t ko_pin;	// in-memory references (DMA, PTE)
+    kobject_type_t ko_type;
+
+    uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
+    uint32_t ko_pin;	// header is pinned (linked lists)
     uint32_t ko_ref;	// persistent references (containers)
+
     uint64_t ko_flags;
     uint64_t ko_npages;
     struct Label ko_label;

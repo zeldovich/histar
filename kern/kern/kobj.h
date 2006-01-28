@@ -67,7 +67,10 @@ struct kobject *
 void kobject_incref(const struct kobject_hdr *kp);
 void kobject_decref(const struct kobject_hdr *kp);
 
-void kobject_incpin(const struct kobject_hdr *kp);
-void kobject_decpin(const struct kobject_hdr *kp);
+void kobject_pin_hdr(const struct kobject_hdr *kp);
+void kobject_unpin_hdr(const struct kobject_hdr *kp);
+
+void kobject_pin_page(const struct kobject_hdr *kp);
+void kobject_unpin_page(const struct kobject_hdr *kp);
 
 #endif

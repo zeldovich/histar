@@ -157,7 +157,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
-	    kobject_decpin(&sm->sm_sg->sg_ko);
+	    kobject_unpin_page(&sm->sm_sg->sg_ko);
 	}
 
 	memset(sm, 0, sizeof(*sm));
@@ -188,7 +188,7 @@ as_swapout(struct Address_space *as)
 	assert(0 == as_get_segmap(as, &sm, i));
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
-	    kobject_decpin(&sm->sm_sg->sg_ko);
+	    kobject_unpin_page(&sm->sm_sg->sg_ko);
 	}
     }
 
@@ -252,7 +252,7 @@ as_pmap_fill_segment(const struct Address_space *as,
     if (sm->sm_sg != sg) {
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
-	    kobject_decpin(&sm->sm_sg->sg_ko);
+	    kobject_unpin_page(&sm->sm_sg->sg_ko);
 	}
 
 	sm->sm_as = as;
@@ -260,7 +260,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 
 	struct Segment *msg = &kobject_dirty(&sg->sg_ko)->u.sg;
 	LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
-	kobject_incpin(&sg->sg_ko);
+	kobject_pin_page(&sg->sg_ko);
     }
 
     return 0;

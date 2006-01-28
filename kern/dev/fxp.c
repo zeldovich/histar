@@ -185,7 +185,7 @@ fxp_buffer_reset(struct fxp_card *c)
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	if (c->tx[i].sg) {
-	    kobject_decpin(&c->tx[i].sg->sg_ko);
+	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
 	    kobject_dirty(&c->tx[i].sg->sg_ko);
 	}
 	c->tx[i].sg = 0;
@@ -193,7 +193,7 @@ fxp_buffer_reset(struct fxp_card *c)
 
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
-	    kobject_decpin(&c->rx[i].sg->sg_ko);
+	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
 	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
@@ -277,7 +277,7 @@ fxp_intr_rx(struct fxp_card *c)
 	if (i == -1 || !(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
 	    break;
 
-	kobject_decpin(&c->rx[i].sg->sg_ko);
+	kobject_unpin_page(&c->rx[i].sg->sg_ko);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
@@ -299,7 +299,7 @@ fxp_intr_tx(struct fxp_card *c)
 	if (i == -1 || !(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
 	    break;
 
-	kobject_decpin(&c->tx[i].sg->sg_ko);
+	kobject_unpin_page(&c->tx[i].sg->sg_ko);
 	kobject_dirty(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
@@ -344,7 +344,7 @@ fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
 
     c->tx[slot].nb = nb;
     c->tx[slot].sg = sg;
-    kobject_incpin(&sg->sg_ko);
+    kobject_pin_page(&sg->sg_ko);
 
     c->tx[slot].tbd.tb_addr = kva2pa(c->tx[slot].nb + 1);
     c->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
@@ -380,7 +380,7 @@ fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
 
     c->rx[slot].nb = nb;
     c->rx[slot].sg = sg;
-    kobject_incpin(&sg->sg_ko);
+    kobject_pin_page(&sg->sg_ko);
 
     c->rx[slot].rbd.rbd_buffer = kva2pa(c->rx[slot].nb + 1);
     c->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;
