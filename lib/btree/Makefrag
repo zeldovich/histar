@@ -1,0 +1,11 @@
+OBJDIRS += lib/btree
+
+USER_CFLAGS += \
+	-I$(TOP)/lib/btree
+
+LIB_SRCFILES += \
+	lib/btree/btree.c
+
+$(OBJDIR)/lib/btree/%.o: lib/btree/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Wno-unused-function -c -o $@ $<
