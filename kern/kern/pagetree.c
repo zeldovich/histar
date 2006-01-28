@@ -69,6 +69,8 @@ pagetree_clone_free(struct pagetree *clone, struct pagetree *base)
     for (int i = 0; i < PAGETREE_INDIRECTS; i++)
 	pagetree_free_ent(&clone->pt_indirect[i],
 			  base ? &base->pt_indirect[i] : 0, i+1);
+
+    pagetree_init(clone);
 }
 
 void
