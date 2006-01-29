@@ -45,7 +45,7 @@ main(int ac, char **av)
     printf("JOS: init (root container %ld)\n", c_root);
 
     spawn_fs("shell");
-    spawn_fs("netd");
+    spawn_fs("netd_mom");
     //spawn_fs("telnetd");
     spawn_fs("httpd");
 

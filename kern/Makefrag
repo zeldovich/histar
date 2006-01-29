@@ -50,6 +50,7 @@ KERN_BINFILES := \
 	user/netwatch \
 	user/thread_test \
 	user/netd \
+	user/netd_mom \
 	user/telnetd \
 	user/tserv \
 	user/tclnt \
