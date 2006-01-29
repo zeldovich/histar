@@ -408,36 +408,43 @@ pstate_sync_stackwrap(void *arg)
 
     struct kobject_hdr *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-		stats.total_kobj++;
-		if ((ko->ko_flags & KOBJ_DIRTY)) {
-		    kobject_snapshot(ko);
-		    stats.snapshoted_kobj++;
-		}
+	stats.total_kobj++;
+	if ((ko->ko_flags & KOBJ_DIRTY)) {
+	    kobject_snapshot(ko);
+	    ko->ko_flags |= KOBJ_SNAPSHOT_DIRTY;
+	    stats.snapshoted_kobj++;
+	}
     }
 
     int r = pstate_sync_loop(hdr, &stats);
     if (r < 0)
-		cprintf("pstate_sync_stackwrap: cannot sync\n");
+	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
-		ko_next = LIST_NEXT(ko, ko_link);
-	
-		if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
-		    struct kobject *snap = kobject_get_snapshot(ko);
-		    kobject_snapshot_release(ko);
-	
-		    if (snap->u.hdr.ko_type == kobj_dead)
-			kobject_swapout(kobject_h2k(ko));
-		}
+	ko_next = LIST_NEXT(ko, ko_link);
+
+	if ((ko->ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
+	    ko->ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
+	    if (r < 0)
+		ko->ko_flags |= KOBJ_DIRTY;
+	}
+
+	if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
+	    struct kobject *snap = kobject_get_snapshot(ko);
+	    kobject_snapshot_release(ko);
+
+	    if (r == 0 && snap->u.hdr.ko_type == kobj_dead)
+		kobject_swapout(kobject_h2k(ko));
+	}
     }
 
     if (pstate_swapout_stats) {
-		cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
-			stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
-			stats.written_kobj, stats.written_pages);
-		cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
-			page_stats.pages_used, page_stats.pages_avail,
-			page_stats.allocations, page_stats.failures);
+	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
+		stats.written_kobj, stats.written_pages);
+	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+		page_stats.pages_used, page_stats.pages_avail,
+		page_stats.allocations, page_stats.failures);
     }
     swapout_active = 0;
 }

@@ -226,7 +226,9 @@ kobject_swapin(struct kobject *ko)
 
     LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
     ko->u.hdr.ko_pin = 0;
-    ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY);
+    ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
+			    KOBJ_DIRTY |
+			    KOBJ_SNAPSHOT_DIRTY);
 
     if (ko->u.hdr.ko_type == kobj_thread)
 	thread_swapin(&ko->u.th);
