@@ -5,7 +5,7 @@
 #include <inc/memlayout.h>
 
 #define NSEGS		50
-#define SEGPAGES	10
+#define SEGPAGES	100
 
 struct cobj_ref segs[NSEGS];
 

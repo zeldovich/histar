@@ -383,10 +383,17 @@ pstate_sync_stackwrap(void *arg)
     swapout_active = 1;
 
     // If we don't have a valid header on disk, init the freelist
-    if (stable_hdr.ph_magic != PSTATE_MAGIC)
+    if (stable_hdr.ph_magic != PSTATE_MAGIC) {
+	uint64_t disk_pages = disk_bytes / PGSIZE;
+	assert(disk_pages > N_HEADER_PAGES);
+
+	if (pstate_swapout_debug)
+	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
+
 	freelist_init(&stable_hdr.ph_free,
 		      N_HEADER_PAGES,
-		      NUM_PH_PAGES - N_HEADER_PAGES);
+		      disk_pages - N_HEADER_PAGES);
+    }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     struct pstate_header *hdr = &pstate_buf.hdr;

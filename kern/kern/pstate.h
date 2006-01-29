@@ -22,9 +22,6 @@ struct pstate_mapent {
     uint64_t pages;
 };
 
-// Up to 4K on-disk pages in this free list
-#define NUM_PH_PAGES		PGSIZE
-
 #define NUM_PH_OBJECTS		200
 struct pstate_map {
     struct pstate_mapent ent[NUM_PH_OBJECTS];
