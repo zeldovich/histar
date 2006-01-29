@@ -26,6 +26,7 @@ LIB_SRCFILES :=	\
 	lib/spawn.c \
 	lib/container.c \
 	lib/cksum.c \
+	lib/malloc.c \
 	lib/fs.c
 
 include lib/$(ARCH)/Makefrag
