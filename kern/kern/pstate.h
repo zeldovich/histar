@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <kern/kobj.h>
+#include <kern/freelist.h>
 
 //
 // A rather limited persistent-store implementation.
@@ -23,9 +24,6 @@ struct pstate_mapent {
 
 // Up to 4K on-disk pages in this free list
 #define NUM_PH_PAGES		PGSIZE
-struct pstate_free_list {
-    char inuse[NUM_PH_PAGES];
-};
 
 #define NUM_PH_OBJECTS		200
 struct pstate_map {
@@ -40,7 +38,7 @@ struct pstate_header {
     uint64_t ph_user_root_handle;
 
     struct pstate_map ph_map;
-    struct pstate_free_list ph_free;
+    struct freelist ph_free ;
 };
 
 int  pstate_init(void);

@@ -35,7 +35,7 @@ btreeDestroyTraversal(struct btree_traversal *trav)
 		return NULL;
 
 	if (trav->node != NULL)
-		bt_destroy_node(trav->node);
+		btree_destroy_node(trav->node);
 
 	return NULL;
 }
@@ -109,7 +109,7 @@ btree_next_offset(struct btree_traversal *trav)
 	{
 		offset_t nextNodeOffset = trav->node->children[trav->pos];
 		
-		bt_destroy_node(trav->node);
+		btree_destroy_node(trav->node);
 
 		trav->node = NULL;
 
@@ -167,12 +167,12 @@ bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 
 	if (BTREE_IS_LEAF(rootNode))
 	{
-		bt_destroy_node(rootNode);
+		btree_destroy_node(rootNode);
 		return;
 	}
 	
 	for (j = 0; j <= rootNode->keyCount; j++)
 		bt_pretty_print(tree, rootNode->children[j], i + 1);
 
-	bt_destroy_node(rootNode);
+	btree_destroy_node(rootNode);
 }

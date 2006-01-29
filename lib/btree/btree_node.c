@@ -1,33 +1,10 @@
-/**
- * @file btree_node.c Node functions
- * 
- * $Id: btree_node.c,v 1.23 2002/06/23 10:28:05 chipx86 Exp $
- *
- * @Copyright (C) 1999-2002 The GNUpdate Project.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA  02111-1307, USA.
- */
-
 #include <lib/btree/btree.h>
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
 
 struct btree_node *
-bt_new_node(struct btree *tree)
+btree_new_node(struct btree *tree)
 {
 	struct btree_node *node ; 
 	if (tree->mm->alloc(tree, &node, tree->mm->arg) < 0)
@@ -37,7 +14,7 @@ bt_new_node(struct btree *tree)
 }
 
 void
-bt_destroy_node(struct btree_node * node)
+btree_destroy_node(struct btree_node * node)
 {
 	if (node == NULL)
 		return ;
@@ -60,22 +37,30 @@ bt_read_node(struct btree *tree, offset_t offset)
 			return n ;
 	}
 	
-	panic("bt_read_node: unable to read node %ld\n", offset) ;
+	panic("btree_read_node: unable to read node %ld\n", offset) ;
 	
 	return NULL ;
 }
 
 offset_t
-bt_write_node(struct btree_node *node)
+btree_write_node(struct btree_node *node)
 {
 	if (node == NULL)
 		return 0;
+	if (node->tree == NULL)
+		return 0;
 
-	return node->block.offset;
+	struct btree *tree = node->tree ;
+	if (tree->mm->write(node, tree->mm->arg) == 0)
+		return node->block.offset;
+		
+	panic("btree_write_node: unable to write node %ld", 
+		  node->block.offset) ;
+	return 0 ;
 }
 
 void
-bt_erase_node(struct btree_node *node)
+btree_erase_node(struct btree_node *node)
 {
 	struct btree *tree = node->tree ;
 	

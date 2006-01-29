@@ -112,7 +112,7 @@ __splitNode(struct btree *tree,
 	btree_keycpy(key, btree_key(rootNode->keys, div, tree->s_key), tree->s_key) ;
 	
 	
-	tempNode           = bt_new_node(tree);
+	tempNode           = btree_new_node(tree);
 	tempNode->keyCount = tree->order - 1 - div;
 
 	if (BTREE_IS_LEAF(rootNode))
@@ -139,7 +139,7 @@ __splitNode(struct btree *tree,
 	rootNode->children[i]     = 0;
 	tempNode->children[j + 1] = offset1;
 	
-	*filePos = bt_write_node(tempNode);
+	*filePos = btree_write_node(tempNode);
 
 	if (BTREE_IS_LEAF(rootNode))
 	{
@@ -155,9 +155,9 @@ __splitNode(struct btree *tree,
 	}
 
 	BTB_SET_DIRTY(rootNode->block);
-	bt_write_node(rootNode);
+	btree_write_node(rootNode);
 
-	bt_destroy_node(tempNode);
+	btree_destroy_node(tempNode);
 
 	return 1;
 }
@@ -243,7 +243,7 @@ __addKey(struct btree *tree,
 	}
 
 	BTB_SET_DIRTY(rootNode->block);
-	bt_write_node(rootNode);
+	btree_write_node(rootNode);
 
 	return 1;
 }
@@ -267,7 +267,7 @@ __insertKey(struct btree *tree,
 		else
 			success = __splitNode(tree, rootNode, key, filePos, split);
 
-		bt_destroy_node(rootNode);
+		btree_destroy_node(rootNode);
 
 		return success;
 	}
@@ -294,10 +294,12 @@ __insertKey(struct btree *tree,
 			__splitNode(tree, rootNode, key, filePos, split);
 	}
 
-	bt_destroy_node(rootNode);
+	btree_destroy_node(rootNode);
 	
 	return success;
 }
+
+#include <inc/assert.h>
 
 int
 btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
@@ -337,7 +339,7 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 
 	if (tree->root == 0 || split == 1)
 	{
-		struct btree_node *node = bt_new_node(tree);
+		struct btree_node *node = btree_new_node(tree);
 
 		//node->keys[0]     = key ;
 		btree_keycpy(btree_key(node->keys, 0, tree->s_key), k, tree->s_key) ;
@@ -348,7 +350,7 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 			node->children[0] = tree->_insFilePos;
 			BTREE_SET_LEAF(node);
 
-			bt_write_node(node);
+			btree_write_node(node);
 
 			bt_left_leaf_is(tree, node->block.offset);
 		}
@@ -357,11 +359,11 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 			node->children[0] = tree->root;
 			node->children[1] = tree->_insFilePos;
 
-			bt_write_node(node);
+			btree_write_node(node);
 		}
 
 		btree_root_node_is(tree, node->block.offset);
-		bt_destroy_node(node);
+		btree_destroy_node(node);
 	}
 	
 	return 0;	

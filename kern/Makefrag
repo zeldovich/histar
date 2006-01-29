@@ -46,6 +46,7 @@ KERN_BINFILES := \
 	user/idle \
 	user/jmptest \
 	user/pftest \
+	user/freelist_test \
 	user/spin \
 	user/netwatch \
 	user/thread_test \

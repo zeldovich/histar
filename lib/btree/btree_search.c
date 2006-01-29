@@ -63,7 +63,7 @@ __search(struct btree *tree,
 			btree_keycpy(key_store, 
 						 btree_key(rootNode->keys, i, tree->s_key), 
 						 tree->s_key) ;
-			bt_destroy_node(rootNode);
+			btree_destroy_node(rootNode);
 			return 1;
 		}
 		else if (match & match_ltet)
@@ -73,7 +73,7 @@ __search(struct btree *tree,
 				btree_keycpy(key_store, 
 							 btree_key(rootNode->keys, i - 1, tree->s_key),
 							 tree->s_key) ;
-				bt_destroy_node(rootNode);
+				btree_destroy_node(rootNode);
 				return 1 ;
 			}
 			else if (div > 0) {
@@ -82,7 +82,7 @@ __search(struct btree *tree,
 				
 				while(!BTREE_IS_LEAF(n)) {
 					temp = bt_read_node(tree, n->children[(int)n->keyCount]);
-					bt_destroy_node(n) ;
+					btree_destroy_node(n) ;
 					n = temp ;
 				}
 				
@@ -90,7 +90,7 @@ __search(struct btree *tree,
 				btree_keycpy(key_store,
 							 btree_key(n->keys, n->keyCount-1, tree->s_key),
 							 tree->s_key) ;
-				bt_destroy_node(n) ;
+				btree_destroy_node(n) ;
 				return 1 ;
 			}
 			
@@ -102,7 +102,7 @@ __search(struct btree *tree,
 				btree_keycpy(key_store,
 							 btree_key(rootNode->keys, i, tree->s_key),
 							 tree->s_key) ;
-				bt_destroy_node(rootNode);
+				btree_destroy_node(rootNode);
 				return 1 ;
 			}
 			else if (rootNode->children[(int)rootNode->keyCount]){
@@ -111,13 +111,13 @@ __search(struct btree *tree,
 				btree_keycpy(key_store,
 							 btree_key(n->keys, 0, tree->s_key),
 							 tree->s_key) ;
-				bt_destroy_node(n) ;
-				bt_destroy_node(rootNode);
+				btree_destroy_node(n) ;
+				btree_destroy_node(rootNode);
 				return 1 ;
 			}
 		}
 	
-		bt_destroy_node(rootNode);
+		btree_destroy_node(rootNode);
 		
 		return 0;
 	}
@@ -127,7 +127,7 @@ __search(struct btree *tree,
 	else
 		result = __search(tree, rootNode->children[i], key, match, last_right, div, key_store, val_store);
 
-	bt_destroy_node(rootNode);
+	btree_destroy_node(rootNode);
 
 	return result;
 }
