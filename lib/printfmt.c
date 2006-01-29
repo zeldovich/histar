@@ -29,6 +29,7 @@ static const char *const error_string[E_MAXERROR + 1] = {
     [E_BUSY]	  = "device busy",
     [E_NO_SPACE]  = "not enough space in buffer",
     [E_AGAIN]	  = "try again",
+    [E_IO]	  = "disk IO error",
     [E_RANGE]	  = "value out of range",
     [E_EOF]	  = "unexpected end-of-file",
     [E_MAX_OPEN]  = "out of file descriptors",

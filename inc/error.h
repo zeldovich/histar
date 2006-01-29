@@ -14,6 +14,7 @@ enum {
     E_BUSY,		// device busy
     E_NO_SPACE,		// not enough space in buffer
     E_AGAIN,		// try again
+    E_IO,		// disk IO error
 
     // user-space errors
     E_RANGE,		// value out of range
