@@ -17,6 +17,9 @@ netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
 	netdev_id = sys_net_create(ct, &ul);
 	if (netdev_id < 0)
 	    panic("cannot create netdev: %s", e2s(netdev_id));
+
+	printf("netd_mom: netdev %ld grant %ld taint %ld\n",
+	       netdev_id, net_grant, net_taint);
     }
 }
 
