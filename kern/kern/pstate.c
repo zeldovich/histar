@@ -438,7 +438,7 @@ pstate_sync(void)
 {
 	/*
 	static int goo = 0 ;
-	if (++goo == 2) {
+	if (++goo == 4) {
 		freelist_pretty_print(&stable_hdr.ph_free) ;
 		goo = 0 ;	
 	}*/

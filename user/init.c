@@ -48,7 +48,7 @@ main(int ac, char **av)
     spawn_fs("netd") ;
     //spawn_fs("netd_mom");
     //spawn_fs("telnetd");
-   	//spawn_fs("freelist_test") ;
+   	spawn_fs("freelist_test") ;
     spawn_fs("httpd");
 
     return 0;

@@ -1,5 +1,4 @@
 #include <machine/mmu.h>
-#include <lib/btree/btree_cache.h>
 #include <kern/freelist.h>
 #include <inc/error.h>
 #include <inc/string.h>
@@ -11,8 +10,8 @@
 #define CHUNK_ORDER (uint8_t) 169
 
 // global caches for both the btrees
-STRUCT_BTREE_CACHE(offset_cache, 200, OFFSET_ORDER, 1) ;						
-STRUCT_BTREE_CACHE(chunk_cache, 200, CHUNK_ORDER, 2) ;			   	
+STRUCT_BTREE_MAN(offset_cache, 200, OFFSET_ORDER, 1) ;						
+STRUCT_BTREE_MAN(chunk_cache, 200, CHUNK_ORDER, 2) ;			   	
 
 struct chunk
 {
@@ -28,7 +27,7 @@ static int
 frm_node(struct btree *tree, offset_t offset, struct btree_node **store, void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_cache_node(tree, offset, store, f->cache) ;
+	return btree_man_node(tree, offset, store, f->cache) ;
 }
 
 static int
@@ -48,7 +47,7 @@ frm_rem(void *arg, offset_t offset)
 			f->service = 1 ;
 	}
 	
-	return btree_cache_rem(f->cache, offset) ;
+	return btree_man_rem(f->cache, offset) ;
 }
 
 static int
@@ -65,14 +64,14 @@ frm_alloc(struct btree *tree, struct btree_node **store, void *arg)
 	if (f->n_use < (FRM_BUF_SIZE / 2))
 		f->service = 1 ;
 	
-	return btree_cache_alloc(tree, offset, store, f->cache) ;
+	return btree_man_alloc(tree, offset, store, f->cache) ;
 }
 
 static int 
 frm_pin_is(void *arg, offset_t offset, uint8_t pin)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_cache_pin_is(f->cache, offset, pin) ;
+	return btree_man_pin_is(f->cache, offset, pin) ;
 }
 
 static void 
@@ -126,11 +125,11 @@ static int
 frm_write(struct btree_node *node, void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_cache_write(node, f->cache) ;
+	return btree_man_write(node, f->cache) ;
 }
 
 static void
-frm_reset(struct frm *f, struct btree_cache *cache)
+frm_reset(struct frm *f, struct btree_man *cache)
 {
 	f->manager.alloc = &frm_alloc ;
 	f->manager.free = &frm_rem ;
@@ -141,17 +140,17 @@ frm_reset(struct frm *f, struct btree_cache *cache)
 	
 	f->cache = cache ;
 
-	btree_cache_init(f->cache) ;
+	btree_man_init(f->cache) ;
 }
 
 static void
-frm_setup(struct frm *f, struct btree_cache *cache)
+frm_setup(struct frm *f, struct btree_man *cache)
 {
 	frm_reset(f, cache) ;
 }
 
 static int 
-frm_init(struct frm *f, struct btree_cache *cache, uint64_t base, uint64_t npages)
+frm_init(struct frm *f, struct btree_man *cache, uint64_t base, uint64_t npages)
 {
 	memset(f, 0, sizeof(struct frm)) ;
 
@@ -161,7 +160,7 @@ frm_init(struct frm *f, struct btree_cache *cache, uint64_t base, uint64_t npage
 		f->to_use[i] = base + i ;
 	f->n_use = npages ;
 	
-	return btree_cache_init(f->cache) ;
+	return btree_man_init(f->cache) ;
 }
 
 //////////////////////////////

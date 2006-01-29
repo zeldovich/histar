@@ -2,7 +2,7 @@
 #define FREELIST_H_
 
 #include <lib/btree/btree.h>
-#include <lib/btree/btree_cache.h>
+#include <lib/btree/btree_man.h>
 
 // freelist resource manager
 // prevents the freelist from modifying the btrees, while they
@@ -10,7 +10,7 @@
 struct frm
 {
 	struct btree_manager manager ;
-	struct btree_cache *cache ;
+	struct btree_man *cache ;
 
 #define FRM_BUF_SIZE 10
 	uint64_t to_use[FRM_BUF_SIZE] ;
