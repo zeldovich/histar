@@ -357,8 +357,8 @@ page_user_incore(void **ptrp, uint64_t nbytes)
 	panic("page_user_incore: no thread or address space");
     const struct Address_space *as = cur_thread->th_as;
 
-    // XXX this might not deal so well with writable pages that are mapped RO
-    // for snapshotting....
+    // XXX this does not deal so well with writable pages that are mapped RO.
+    // (this doesn't happen right now, but might later, e.g. if we do COW-fork)
 
     if (nbytes > 0) {
 	uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
