@@ -1,6 +1,7 @@
 #include <inc/lib.h>
 #include <inc/atomic.h>
 #include <inc/syscall.h>
+#include <inc/queue.h>
 
 #include <lwip/sys.h>
 #include <arch/cc.h>
@@ -9,7 +10,6 @@
 #define NSEM		256
 #define NMBOX		64
 #define MBOXSLOTS	32
-#define NTHREADS	32
 
 struct sys_sem_entry {
     atomic_t inuse;
@@ -29,14 +29,11 @@ struct sys_mbox_entry {
 static struct sys_mbox_entry mboxes[NMBOX];
 
 struct sys_thread {
-    atomic_t inuse;
-    struct sys_timeouts tmo;
     uint64_t tid;
-    struct cobj_ref tobj;
-    void (*start) (void *);
-    void *arg;
+    struct sys_timeouts tmo;
+    LIST_ENTRY(sys_thread) link;
 };
-static struct sys_thread threads[NTHREADS];
+static LIST_HEAD(thread_list, sys_thread) threads;
 
 void
 sys_init()
@@ -177,40 +174,17 @@ sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
     return waited;
 }
 
-static void __attribute__((noreturn))
-sys_thread_entry(void *arg)
-{
-    int slot = (uint64_t) arg;
-    threads[slot].tid = thread_id();
-    memset(&threads[slot].tmo, 0, sizeof(threads[slot].tmo));
-    threads[slot].start(threads[slot].arg);
-    atomic_set(&threads[slot].inuse, 0);
-    sys_obj_unref(threads[slot].tobj);
-    thread_halt();
-}
-
 sys_thread_t
 sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
 {
-    uint64_t i;
-    for (i = 0; i < NTHREADS; i++) {
-	if (atomic_compare_exchange(&threads[i].inuse, 0, 1) == 0)
-	    break;
-    }
-
-    if (i == NTHREADS)
-	panic("lwip: sys_thread_new: out of thread structs\n");
-
-    threads[i].start = thread;
-    threads[i].arg = arg;
-
     uint64_t container = start_env->container;
-    int r = thread_create(container, &sys_thread_entry, (void*)i,
-			  &threads[i].tobj, "lwip thread");
+    struct cobj_ref tobj;
+    int r = thread_create(container, thread, arg,
+			  &tobj, "lwip thread");
     if (r < 0)
 	panic("lwip: sys_thread_new: cannot create: %s\n", e2s(r));
 
-    return i;
+    return tobj.object;
 }
 
 struct sys_timeouts *
@@ -218,17 +192,27 @@ sys_arch_timeouts(void)
 {
     int64_t tid = thread_id();
 
-    int i;
-    for (i = 0; i < NTHREADS; i++)
-	if (threads[i].tid == tid)
-	    break;
+    static atomic_t tls_mu;
+    while (atomic_compare_exchange(&tls_mu, 0, 1) != 0)
+	sys_thread_yield();
 
-    // Handle externally-started threads (XXX potentially a problem)
-    static struct sys_timeouts global_tmo;
-    if (i == NTHREADS) {
-	//cprintf("sys_arch_timeouts: foreign thread %ld lacks own TLS\n", tid);
-	return &global_tmo;
-    }
+    struct sys_thread *t;
+    LIST_FOREACH(t, &threads, link)
+	if (t->tid == tid)
+	    goto out;
 
-    return &threads[i].tmo;
+    t = malloc(sizeof(*t));
+    if (t == 0)
+	panic("sys_arch_timeouts: cannot malloc");
+
+    t->tid = tid;
+    memset(&t->tmo, 0, sizeof(t->tmo));
+    LIST_INSERT_HEAD(&threads, t, link);
+
+    // XXX need a callback when threads exit this address space,
+    // so that we can GC these thread-specific structs.
+
+out:
+    atomic_set(&tls_mu, 0);
+    return &t->tmo;
 }
