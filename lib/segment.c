@@ -159,6 +159,15 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 retry:
     va_end = va_start + bytes;
     for (int i = 0; i < uas.nent; i++) {
+	// If it's the same segment we're trying to map, allow remapping
+	if (fixed_va && uas.ents[i].flags &&
+	    uas.ents[i].segment.object == seg.object &&
+	    uas.ents[i].va == va_start &&
+	    uas.ents[i].start_page == 0)
+	{
+	    uas.ents[i].flags = 0;
+	}
+
 	if (uas.ents[i].flags == 0) {
 	    free_segslot = i;
 	    continue;
