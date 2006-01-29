@@ -4,7 +4,7 @@
 #include <inc/error.h>
 
 static int
-label_find_slot(struct Label *l, uint64_t handle)
+label_find_slot(const struct Label *l, uint64_t handle)
 {
     for (int i = 0; i < NUM_LB_ENT; i++)
 	if (l->lb_ent[i] != LB_ENT_EMPTY && LB_HANDLE(l->lb_ent[i]) == handle)
@@ -14,7 +14,7 @@ label_find_slot(struct Label *l, uint64_t handle)
 }
 
 static int
-label_get_level(struct Label *l, uint64_t handle)
+label_get_level(const struct Label *l, uint64_t handle)
 {
     int i = label_find_slot(l, handle);
     if (i < 0)
@@ -115,7 +115,8 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 }
 
 int
-label_compare(struct Label *l1, struct Label *l2, level_comparator cmp)
+label_compare(const struct Label *l1,
+	      const struct Label *l2, level_comparator cmp)
 {
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (l1->lb_ent[i] == LB_ENT_EMPTY)
@@ -151,7 +152,7 @@ level_max(int a, int b, level_comparator leq)
 }
 
 int
-label_max(struct Label *a, struct Label *b,
+label_max(const struct Label *a, const struct Label *b,
 	  struct Label *dst, level_comparator leq)
 {
     dst->lb_def_level = level_max(a->lb_def_level, b->lb_def_level, leq);

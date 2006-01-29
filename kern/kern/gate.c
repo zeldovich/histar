@@ -10,10 +10,6 @@ gate_alloc(struct Label *l, struct Gate **gp)
     if (r < 0)
 	return r;
 
-    struct Gate *g = &ko->u.gt;
-    memset(&g->gt_target_label, 0, sizeof(g->gt_target_label));
-    memset(&g->gt_te, 0, sizeof(g->gt_te));
-
-    *gp = g;
+    *gp = &ko->u.gt;
     return 0;
 }

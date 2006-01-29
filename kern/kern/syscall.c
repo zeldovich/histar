@@ -187,7 +187,8 @@ static kobject_type_t
 sys_obj_get_type(struct cobj_ref cobj)
 {
     const struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
+    // iflow_none because ko_type is immutable
+    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     return ko->u.hdr.ko_type;
 }
 
@@ -228,21 +229,19 @@ sys_container_nslots(uint64_t container)
 
 static kobject_id_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
-		struct ulabel *ul_e, struct ulabel *ul_t)
+		struct ulabel *ul_recv, struct ulabel *ul_send)
 {
-    struct Label l_e, l_t;
-    check(ulabel_to_label(ul_e, &l_e));
-    check(ulabel_to_label(ul_t, &l_t));
-    check(label_compare(&cur_thread->th_ko.ko_label, &l_t, label_leq_starlo));
-
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
     struct Gate *g;
-    check(gate_alloc(&l_e, &g));
+    check(gate_alloc(&cur_thread->th_ko.ko_label, &g));
 
     g->gt_te = *te;
-    g->gt_target_label = l_t;
+    check(ulabel_to_label(ul_recv, &g->gt_recv_label));
+    check(ulabel_to_label(ul_send, &g->gt_send_label));
+    check(label_compare(&cur_thread->th_ko.ko_label, &g->gt_send_label,
+			label_leq_starlo));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &g->gt_ko));
     return g->gt_ko.ko_id;
@@ -265,12 +264,16 @@ static void
 sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 {
     const struct kobject *ko;
-    check(cobj_get(gt, kobj_gate, &ko, iflow_write));
+    check(cobj_get(gt, kobj_gate, &ko, iflow_none));
 
     const struct Gate *g = &ko->u.gt;
+    check(label_compare(&cur_thread->th_ko.ko_label,
+			&g->gt_recv_label,
+			label_leq_starlo));
+
     // XXX do the contaminate, or let the user compute it and verify
     const struct thread_entry *e = &g->gt_te;
-    check(thread_jump(cur_thread, &g->gt_target_label,
+    check(thread_jump(cur_thread, &g->gt_send_label,
 		      e->te_as, e->te_entry, e->te_stack,
 		      e->te_arg, a1, a2));
 }

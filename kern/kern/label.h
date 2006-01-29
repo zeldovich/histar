@@ -29,10 +29,11 @@ int  label_to_ulabel(const struct Label *l, struct ulabel *ul);
 int  ulabel_to_label(struct ulabel *ul, struct Label *l);
 
 // returns an error if the comparator errors out on any relevant level pair
-int  label_compare(struct Label *l1, struct Label *l2, level_comparator cmp);
+int  label_compare(const struct Label *l1,
+		   const struct Label *l2, level_comparator cmp);
 
 // computes max according to specified level ordering (<= operator)
-int  label_max(struct Label *a, struct Label *b,
+int  label_max(const struct Label *a, const struct Label *b,
 	       struct Label *dst, level_comparator cmp);
 
 #endif

@@ -9,7 +9,9 @@
 struct Gate {
     struct kobject_hdr gt_ko;
 
-    struct Label gt_target_label;
+    struct Label gt_recv_label;
+    struct Label gt_send_label;
+
     struct thread_entry gt_te;
 };
 
