@@ -36,7 +36,7 @@ pstate_map_findslot(struct pstate_map *m, kobject_id_t id)
     for (int i = 0; i < NUM_PH_OBJECTS; i++)
 	if (m->ent[i].id == id && m->ent[i].offset != 0)
 	    return i;
-    return -1;
+    return -E_NOT_FOUND;
 }
 
 static void
@@ -79,7 +79,7 @@ pstate_kobj_alloc(struct pstate_map *m, struct freelist *f,
 	}
     }
 
-    return -1;
+    return -E_NO_SPACE;
 }
 
 //////////////////////////////////
@@ -107,7 +107,7 @@ pstate_swapin_slot(int slot)
     if (s != disk_io_success) {
 	cprintf("pstate_swapin_slot: cannot read object from disk\n");
 	swapin_active = 0;
-	return -1;
+	return -E_IO;
     }
 
     pagetree_init(&ko->u.hdr.ko_pt);
@@ -124,7 +124,7 @@ pstate_swapin_slot(int slot)
 	if (s != disk_io_success) {
 	    cprintf("pstate_swapin_slot: cannot read page from disk\n");
 	    swapin_active = 0;
-	    return -1;
+	    return -E_IO;
 	}
 
 	assert(0 == pagetree_put_page(&ko->u.hdr.ko_pt, page, p));
@@ -168,7 +168,7 @@ pstate_swapin(kobject_id_t id) {
 
     int64_t slot = pstate_map_findslot(&stable_hdr.ph_map, id);
     if (slot < 0)
-	return -E_INVAL;
+	return slot;
 
     int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) slot);
     if (r < 0) {
@@ -189,7 +189,7 @@ pstate_init2()
     disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
     if (s != disk_io_success) {
 		cprintf("pstate_init2: cannot read header\n");
-		return -1;
+		return -E_IO;
     }
 
     memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
@@ -303,7 +303,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
     int slot = pstate_kobj_alloc(&hdr->ph_map, &hdr->ph_free, snap);
     if (slot < 0) {
 		cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(slot));
-		return -1;
+		return slot;
     }
 
     disk_io_status s =
@@ -311,7 +311,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 			  hdr->ph_map.ent[slot].offset * PGSIZE);
     if (s != disk_io_success) {
 		cprintf("pstate_sync_kobj: error during disk io\n");
-		return -1;
+		return -E_IO;
     }
 
     for (uint64_t page = 0; page < snap->u.hdr.ko_npages; page++) {
@@ -324,7 +324,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 		s = stackwrap_disk_io(op_write, p, PGSIZE, offset);
 		if (s != disk_io_success) {
 		    cprintf("pstate_sync_kobj: error during disk io for page\n");
-		    return -1;
+		    return -E_IO;
 		}
 	
 		stats->written_pages++;
@@ -366,7 +366,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 		return 0;
     } else {
 		cprintf("pstate_sync_stackwrap: error writing header\n");
-		return -1;
+		return -E_IO;
     }
 }
 

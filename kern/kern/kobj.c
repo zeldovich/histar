@@ -104,8 +104,13 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
     }
 
     int r = pstate_swapin(id);
-    if (r < 0)
+    if (r < 0) {
+	// Should match the code returned by container_find() when trying
+	// to get an object of the wrong type.
+	if (r == -E_NOT_FOUND)
+	    r = -E_INVAL;
 	return r;
+    }
 
     return -E_RESTART;
 }

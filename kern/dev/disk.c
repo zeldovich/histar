@@ -107,7 +107,7 @@ ide_pio_in(struct ide_channel *idec, void *buf, uint32_t num_sectors)
 	    return r;
 
 	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
-	    return -1;
+	    return -E_IO;
 
 	insl(idec->cmd_addr + IDE_REG_DATA, cbuf, 512 / 4);
     }
@@ -126,7 +126,7 @@ ide_pio_out(struct ide_channel *idec, const void *buf, uint32_t num_sectors)
 	    return r;
 
 	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
-	    return -1;
+	    return -E_IO;
 
 	outsl(idec->cmd_addr + IDE_REG_DATA, cbuf, 512 / 4);
     }
@@ -191,7 +191,7 @@ ide_dma_finish(struct ide_channel *idec)
 {
     idec->dma_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     if (!(idec->dma_status & IDE_BM_STAT_INTR))
-	return -1;
+	return -E_IO;
 
     outb(idec->bm_addr + IDE_BM_CMD_REG, 0);
     return 0;
