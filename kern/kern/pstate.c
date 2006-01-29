@@ -249,7 +249,6 @@ void
 pstate_reset(void)
 {
     memset(&stable_hdr, 0, sizeof(stable_hdr));
-    freelist_init(&stable_hdr.ph_free, N_HEADER_PAGES, NUM_PH_PAGES - N_HEADER_PAGES) ;
 }
 
 int freelist_test(void) ;
@@ -259,9 +258,7 @@ pstate_init(void)
 {
    	//freelist_test() ; 
     
-    //pstate_reset();
-    memset(&stable_hdr, 0, sizeof(stable_hdr));
-    
+    pstate_reset();
 
     int done = 0;
     int r = stackwrap_call(&pstate_init_stackwrap, &done);
@@ -384,6 +381,12 @@ pstate_sync_stackwrap(void *arg)
     }
 
     swapout_active = 1;
+
+    // If we don't have a valid header on disk, init the freelist
+    if (stable_hdr.ph_magic != PSTATE_MAGIC)
+	freelist_init(&stable_hdr.ph_free,
+		      N_HEADER_PAGES,
+		      NUM_PH_PAGES - N_HEADER_PAGES);
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     struct pstate_header *hdr = &pstate_buf.hdr;
