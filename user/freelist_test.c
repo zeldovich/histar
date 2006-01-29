@@ -4,7 +4,10 @@
 #include <inc/assert.h>
 #include <inc/memlayout.h>
 
-struct cobj_ref segs[500] ;
+#define NSEGS		50
+#define SEGPAGES	10
+
+struct cobj_ref segs[NSEGS];
 
 uint64_t 
 rand_chunk(void)
@@ -20,21 +23,23 @@ test0()
     uint64_t ct = start_env->container;
     
 	int i = 0 ;
-	for (; i < 100 ; i++)
-		if ((r = segment_alloc(ct, PGSIZE, &segs[i], 0)) < 0)
+	for (; i < NSEGS ; i++)
+		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0)) < 0)
 			panic("error test0 %s", e2s(r)) ;
 
-	for (i = 0 ; i < 100 ; i+=2)
+	for (i = 0 ; i < NSEGS ; i+=2)
 		if ((r = sys_obj_unref(segs[i])) < 0)
 			panic("error test0 %s\n", e2s(r)) ;
 
-	for (i = 0 ; i < 100 ; i+=2)
-		if ((r = segment_alloc(ct, PGSIZE, &segs[i], 0)) < 0) 
+	for (i = 0 ; i < NSEGS ; i+=2)
+		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0)) < 0) 
 			panic("error test0 %s\n", e2s(r)) ;
 	
-	for (i = 0 ; i < 100 ; i++)
+/*
+	for (i = 0 ; i < NSEGS ; i++)
 		if ((r = sys_obj_unref(segs[i])) < 0)
 			panic("error test0 %s\n", e2s(r)) ;
+*/
 }
 
 int
