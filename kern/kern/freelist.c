@@ -179,7 +179,7 @@ freelist_alloc(struct freelist *l, uint64_t npages)
 	
 	// XXX: optimize...
 	
-	offset_t val = btree_gtet(&l->chunks,
+	int64_t val = btree_gtet(&l->chunks,
 						   (uint64_t *)&k,
 						   (uint64_t *)&k) ;
 	
@@ -217,11 +217,11 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 
 	l->free += npages ;
 	
-	offset_t l_npages = btree_ltet(&l->offsets,
+	int64_t l_npages = btree_ltet(&l->offsets,
 						   	  (uint64_t *)&l_base,
 						   	  (uint64_t *)&l_base) ;
 
-	offset_t g_npages = btree_gtet(&l->offsets,
+	int64_t g_npages = btree_gtet(&l->offsets,
 						   	  (uint64_t *)&g_base,
 						   	  (uint64_t *)&g_base) ;
 

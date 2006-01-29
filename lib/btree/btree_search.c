@@ -132,7 +132,7 @@ __search(struct btree *tree,
 	return result;
 }
 
-static offset_t
+static int64_t
 __btree_search(struct btree *tree, 
 		  const uint64_t *key, 
 		  char match, 
@@ -172,19 +172,19 @@ __btree_search(struct btree *tree,
 	return -E_NOT_FOUND ;
 }
 
-offset_t
+int64_t
 btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store)
 {
 	return __btree_search(tree, key, match_eq, key_store) ;	
 }
 
 
-offset_t 
+int64_t 
 btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store)
 {
 	return __btree_search(tree, key, match_ltet, key_store) ;	
 }
-offset_t 
+int64_t 
 btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store)
 {
 	return __btree_search(tree, key, match_gtet, key_store) ;	

@@ -47,6 +47,7 @@ struct btree
 struct btree_manager
 {
 	int (*node)(struct btree *tree, offset_t offset, struct btree_node **store, void *arg) ;
+	int (*write)(struct btree_node *node, void *arg) ;
 	int (*free)(void *arg, offset_t offset) ;
 	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
 	int (*pin_is)(void *arg, offset_t offset, uint8_t pin) ;
@@ -61,11 +62,11 @@ void 	 btree_init(struct btree * tree, char order, char key_size, struct btree_m
 uint64_t btree_size(struct btree *tree);
 
 // match key exactly
-offset_t btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int64_t btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
 // match the closest key less than or equal to the given key
-offset_t btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int64_t btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
 // match the closest key greater than or equal to the given key
-offset_t btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int64_t btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
 
 // debug
 void bt_pretty_print(struct btree *tree, offset_t rootOffset, int i);
