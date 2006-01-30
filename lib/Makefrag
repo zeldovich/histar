@@ -28,7 +28,8 @@ LIB_SRCFILES :=	\
 	lib/cksum.c \
 	lib/heap.c \
 	lib/malloc.c \
-	lib/fs.c
+	lib/fs.c \
+	lib/label.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag

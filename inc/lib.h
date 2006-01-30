@@ -94,4 +94,11 @@ void *malloc(size_t size);
 void free(void *ptr);
 void *realloc(void *ptr, size_t size);
 
+/* label.c */
+struct ulabel *label_alloc();
+void label_free(struct ulabel *l);
+struct ulabel *label_get_current();
+int  label_set_current(struct ulabel *l);
+int  label_set_level(struct ulabel *l, uint64_t handle, level_t level);
+
 #endif

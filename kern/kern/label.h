@@ -5,8 +5,6 @@
 #include <machine/mmu.h>
 #include <inc/label.h>
 
-typedef unsigned char level_t;
-
 #define NUM_LB_ENT	8
 
 struct Label {
