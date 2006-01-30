@@ -261,7 +261,8 @@ sys_thread_create(uint64_t ct)
 }
 
 static void
-sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
+sys_gate_enter(struct cobj_ref gt, struct ulabel *l,
+	       uint64_t a1, uint64_t a2)
 {
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
@@ -271,9 +272,17 @@ sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 			&g->gt_recv_label,
 			label_leq_starlo));
 
-    struct Label new_label;
+    struct Label bound;
     check(label_max(&g->gt_send_label, &cur_thread->th_ko.ko_label,
-		    &new_label, label_leq_starhi));
+		    &bound, label_leq_starhi));
+
+    struct Label new_label;
+    if (l == 0) {
+	new_label = bound;
+    } else {
+	check(ulabel_to_label(l, &new_label));
+	check(label_compare(&bound, &new_label, label_leq_starlo));
+    }
 
     const struct thread_entry *e = &g->gt_te;
     check(thread_jump(cur_thread, &new_label,
@@ -513,7 +522,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_gate_enter:
-	sys_gate_enter(COBJ(a1, a2), a3, a4);
+	sys_gate_enter(COBJ(a1, a2), (struct ulabel *) a3, a4, a5);
 	break;
 
     case SYS_thread_create:

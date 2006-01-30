@@ -34,7 +34,7 @@ gate_return_entrystack(struct u_gate_entry *ug,
     if (r < 0)
 	panic("gate_return_entrystack: unref: %s", e2s(r));
 
-    r = sys_gate_enter(return_gate, arg.container, arg.object);
+    r = sys_gate_enter(return_gate, 0, arg.container, arg.object);
     panic("gate_return_entrystack: gate_enter: %s", e2s(r));
 }
 
@@ -226,7 +226,7 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
 	gate_args->return_gate = return_gate;
 	gate_args->arg = *argp;
-	r = sys_gate_enter(gate, 0, 0);
+	r = sys_gate_enter(gate, 0, 0, 0);
 	if (r == 0)
 	    panic("gate_call: sys_gate_enter returned 0");
     }
