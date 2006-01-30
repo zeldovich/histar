@@ -155,7 +155,7 @@ int
 label_max(const struct Label *a, const struct Label *b,
 	  struct Label *dst, level_comparator leq)
 {
-    dst->lb_def_level = level_max(a->lb_def_level, b->lb_def_level, leq);
+    label_init(dst, level_max(a->lb_def_level, b->lb_def_level, leq));
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (a->lb_ent[i] == LB_ENT_EMPTY)
