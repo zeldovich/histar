@@ -1,15 +1,13 @@
 threads should not have refcounts -- switch ownership on gate call?
+the mutable label leaks information.
 
 thread containers should not be nameable by container ID,
 and should not allow sub-containers or sub-threads.  probably
 a container should have a list of allowable objects, and the
 thread-specific containers won't allow containers or threads.
 
-user-specified segment labeling
-segment_copy syscall
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 user-specified container labeling
-larger labels (if needed?)
 
 * it would be nice if gate_enter() didn't automatically compute the
   contamination, but allowed the user to compute the target label

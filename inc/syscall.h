@@ -50,7 +50,10 @@ int64_t sys_thread_id(void);
 int	sys_thread_addref(uint64_t container);
 int	sys_thread_get_as(struct cobj_ref *as_obj);
 
-int64_t	sys_segment_create(uint64_t container, uint64_t num_pages);
+int64_t	sys_segment_create(uint64_t container, uint64_t num_pages,
+			   struct ulabel *l);
+int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
+			 struct ulabel *l);
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);
 int64_t	sys_segment_get_npages(struct cobj_ref seg);
 

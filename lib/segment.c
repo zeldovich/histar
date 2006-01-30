@@ -225,7 +225,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	      struct cobj_ref *cobj, void **va_p)
 {
     uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
-    int64_t id = sys_segment_create(container, npages);
+    int64_t id = sys_segment_create(container, npages, 0);
     if (id < 0)
 	return id;
 

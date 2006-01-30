@@ -36,6 +36,7 @@ typedef enum {
     SYS_thread_get_as,
 
     SYS_segment_create,
+    SYS_segment_copy,
     SYS_segment_resize,
     SYS_segment_get_npages,
 

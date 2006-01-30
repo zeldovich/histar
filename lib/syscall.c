@@ -162,9 +162,15 @@ sys_thread_get_as(struct cobj_ref *as_obj)
 }
 
 int64_t
-sys_segment_create(uint64_t container, uint64_t num_pages)
+sys_segment_create(uint64_t container, uint64_t num_pages, struct ulabel *l)
 {
-    return syscall(SYS_segment_create, container, num_pages);
+    return syscall(SYS_segment_create, container, num_pages, l);
+}
+
+int64_t
+sys_segment_copy(struct cobj_ref seg, uint64_t container, struct ulabel *l)
+{
+    return syscall(SYS_segment_copy, seg, container, l);
 }
 
 int
