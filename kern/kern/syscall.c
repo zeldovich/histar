@@ -271,9 +271,12 @@ sys_gate_enter(struct cobj_ref gt, uint64_t a1, uint64_t a2)
 			&g->gt_recv_label,
 			label_leq_starlo));
 
-    // XXX do the contaminate, or let the user compute it and verify
+    struct Label new_label;
+    check(label_max(&g->gt_send_label, &cur_thread->th_ko.ko_label,
+		    &new_label, label_leq_starhi));
+
     const struct thread_entry *e = &g->gt_te;
-    check(thread_jump(cur_thread, &g->gt_send_label,
+    check(thread_jump(cur_thread, &new_label,
 		      e->te_as, e->te_entry, e->te_stack,
 		      e->te_arg, a1, a2));
 }
