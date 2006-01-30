@@ -86,8 +86,12 @@ int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
 int64_t container_find(uint64_t container, kobject_type_t type,
 		       const char *name);
 
+/* heap.c */
+void *sbrk(intptr_t x);
+
 /* malloc.c */
 void *malloc(size_t size);
 void free(void *ptr);
+void *realloc(void *ptr, size_t size);
 
 #endif
