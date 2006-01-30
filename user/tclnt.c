@@ -8,12 +8,14 @@ main(int ac, char **av)
 {
     cprintf("client process starting.\n");
 
-    uint64_t rc = 1;		// abuse the root container
     uint64_t myct = start_env->container;
 
-    int64_t gate_id = container_find(rc, kobj_gate, "tserv");
+    int64_t gate_id = container_find(start_env->root_container,
+				     kobj_gate, "tserv");
     if (gate_id < 0)
 	panic("finding tserv: %s", e2s(gate_id));
+
+    struct cobj_ref gate = COBJ(start_env->root_container, gate_id);
 
     uint64_t a = 20;
     uint64_t b = 30;
@@ -21,7 +23,7 @@ main(int ac, char **av)
 
     for (;;) {
 	struct cobj_ref arg = COBJ(a, b);
-	int r = gate_call(myct, COBJ(rc, gate_id), &arg);
+	int r = gate_call(myct, gate, &arg);
 	if (r < 0)
 	    panic("gate_call: %s\n", e2s(r));
 
