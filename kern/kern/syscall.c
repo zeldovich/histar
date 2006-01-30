@@ -196,6 +196,7 @@ static void
 sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 {
     const struct kobject *ko;
+    // label is mutable for threads and thread-specific segments & containers
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(label_to_ulabel(&ko->u.hdr.ko_label, ul));
 }
