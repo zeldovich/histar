@@ -30,9 +30,6 @@ do page-faulting threads always terminate?  e.g. write to unwritable page..
 lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c; need to
 have a callback of some sort for when threads enter/leave an AS.
 
-user-level label handling functions.  thread_get_label, thread_set_label,
-label_set_level/label_get_level, label_max..
-
 associate DMA/PTE pinning with physical pages rather than kobjects.
 currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
