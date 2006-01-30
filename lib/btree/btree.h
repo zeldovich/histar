@@ -50,16 +50,17 @@ struct btree_manager
 	int (*write)(struct btree_node *node, void *arg) ;
 	int (*free)(void *arg, offset_t offset) ;
 	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
-	int (*pin_is)(void *arg, offset_t offset, uint8_t pin) ;
+	int (*unpin)(void *arg) ;
 
 	void *arg ;
 } ;
 
-int 	 btree_insert(struct btree * tree, const uint64_t *key, offset_t offset) ;
+int 	 btree_insert(struct btree *tree, const uint64_t *key, offset_t offset) ;
 int64_t	 btree_delete(struct btree *tree, const uint64_t *key);
 char 	 btree_is_empty(struct btree *tree);
-void 	 btree_init(struct btree * tree, char order, char key_size, struct btree_manager * mm) ;
+void 	 btree_init(struct btree *tree, char order, char key_size, struct btree_manager * mm) ;
 uint64_t btree_size(struct btree *tree);
+void	 btree_release_nodes(struct btree *tree) ;
 
 // match key exactly
 int64_t btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;

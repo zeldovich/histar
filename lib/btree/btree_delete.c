@@ -23,7 +23,7 @@
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
-
+#include <inc/stdio.h>
 
 static char
 __removeKey(struct btree *tree, 
@@ -261,7 +261,7 @@ __borrowLeft(struct btree *tree,
 	return 1;
 }
 
-static char
+static char __attribute__((noinline))
 __mergeNode(struct btree *tree, 
 			struct btree_node *rootNode, 
 			struct btree_node *prevNode, 
@@ -310,6 +310,13 @@ __mergeNode(struct btree *tree,
 
 		btree_erase_node(rootNode);
 		__removeKey2(tree, prevNode, div - 1);
+		
+		btree_write_node(node);
+		btree_write_node(prevNode);
+
+		btree_destroy_node(node);
+		
+		
 	}
 	else
 	{
@@ -347,13 +354,16 @@ __mergeNode(struct btree *tree,
 		btree_erase_node(node);
 
 		__removeKey2(tree, prevNode, div);
+		
+		btree_write_node(prevNode);
+		btree_write_node(rootNode);
 	}
 
-	btree_write_node(node);
-	btree_write_node(prevNode);
-	btree_write_node(rootNode);
+	//btree_write_node(node);
+	//btree_write_node(prevNode);
+	//btree_write_node(rootNode);
 
-	btree_destroy_node(node);
+	//btree_destroy_node(node);
 
 	return 1;
 }
@@ -410,15 +420,17 @@ __delete(struct btree *tree,
 			__borrowLeft(tree, rootNode, prevNode, index))
 		{
 			*merged = 0;
+			btree_write_node(rootNode);
+			btree_write_node(prevNode);
 		}
 		else
 		{
 			*merged = 1;
 			__mergeNode(tree, rootNode, prevNode, index);
 		}
+		//btree_write_node(rootNode);
+		//btree_write_node(prevNode);
 
-		btree_write_node(rootNode);
-		btree_write_node(prevNode);
 	}
 
 	btree_destroy_node(rootNode);
@@ -449,6 +461,8 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	/* Read in the root node. */
 	rootNode = bt_read_node(tree, tree->root);
 	
+	//cprintf("btree_delete start\n") ;
+
 	for (i = 0;
 		 i < rootNode->keyCount && 
 		 btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key, tree->s_key) < 0;
@@ -460,15 +474,21 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	if (success == 0)
 	{
 		btree_destroy_node(rootNode);
+		btree_release_nodes(tree) ;
+		//cprintf("btree_delete stop\n") ;
 		return 0;
 	}
 	
 	bt_tree_size_is(tree, tree->size - 1);
 
+
 	if (BTREE_IS_LEAF(rootNode) && rootNode->keyCount == 0)
 	{
 		btree_root_node_is(tree, 0);
 		btree_erase_node(rootNode);
+		btree_release_nodes(tree) ;
+		//cprintf("btree_delete stop\n") ;
+		return filePos ;
 	}
 	else if (merged == 1 && rootNode->keyCount == 0)
 	{
@@ -484,9 +504,13 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_destroy_node(tempNode);
 
 		btree_erase_node(rootNode);
+		btree_release_nodes(tree) ;
+		//cprintf("btree_delete stop\n") ;
+		return filePos ;
 	}
-
 	btree_destroy_node(rootNode);
+	btree_release_nodes(tree) ;
+	//cprintf("btree_delete stop\n") ;
 	return filePos;
 }
 

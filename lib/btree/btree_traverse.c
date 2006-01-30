@@ -28,6 +28,7 @@
 #include <inc/string.h>
 #include <inc/error.h>
 
+#if 0
 struct btree_traversal *
 btreeDestroyTraversal(struct btree_traversal *trav)
 {
@@ -127,9 +128,10 @@ btree_next_offset(struct btree_traversal *trav)
 
 	return offset;
 }
+#endif
 
-void 
-bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
+static void 
+__bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 {
 	int j;
 	struct btree_node *rootNode;
@@ -138,7 +140,6 @@ bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 		cprintf("[ empty ]\n") ;
 		return ;
 	}
-	
 	
 	rootNode = bt_read_node(tree, rootOffset);
 
@@ -172,7 +173,14 @@ bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	}
 	
 	for (j = 0; j <= rootNode->keyCount; j++)
-		bt_pretty_print(tree, rootNode->children[j], i + 1);
+		__bt_pretty_print(tree, rootNode->children[j], i + 1);
 
 	btree_destroy_node(rootNode);
+}
+
+void
+bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
+{
+	__bt_pretty_print(tree, rootOffset, i) ;
+	btree_release_nodes(tree) ;
 }

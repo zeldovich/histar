@@ -16,6 +16,13 @@ btree_init(struct btree * t, char order, char key_size, struct btree_manager * m
 	t->mm = mm ;
 }
 
+void
+btree_release_nodes(struct btree *tree)
+{
+	if (tree->mm)
+		tree->mm->unpin(tree->mm->arg) ;	
+}
+
 uint64_t
 btree_size(struct btree *tree)
 {

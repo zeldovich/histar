@@ -29,7 +29,7 @@ int btree_man_alloc(struct btree *tree,
 
 int btree_man_rem(void *man, offset_t offset) ;
 int btree_man_init(void *man) ;
-int btree_man_pin_is(void *man, offset_t offset, uint8_t pin) ;
+int btree_man_unpin(void *man) ;
 int btree_man_write(struct btree_node *node, void *man) ;
 
 #endif /*BT_CACHE_H_*/

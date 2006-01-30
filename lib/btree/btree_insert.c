@@ -111,7 +111,6 @@ __splitNode(struct btree *tree,
 	//*key = rootNode->keys[div] ;
 	btree_keycpy(key, btree_key(rootNode->keys, div, tree->s_key), tree->s_key) ;
 	
-	
 	tempNode           = btree_new_node(tree);
 	tempNode->keyCount = tree->order - 1 - div;
 
@@ -299,8 +298,6 @@ __insertKey(struct btree *tree,
 	return success;
 }
 
-#include <inc/assert.h>
-
 int
 btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 {
@@ -330,6 +327,7 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 
 		if (success == 0)
 		{
+			btree_release_nodes(tree) ;
 			// duplicate
 			return -E_INVAL;;
 		}
@@ -365,6 +363,7 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 		btree_root_node_is(tree, node->block.offset);
 		btree_destroy_node(node);
 	}
-	
+
+	btree_release_nodes(tree) ;
 	return 0;	
 }

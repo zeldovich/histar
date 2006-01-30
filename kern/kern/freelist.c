@@ -9,6 +9,10 @@
 #define OFFSET_ORDER (uint8_t) 253
 #define CHUNK_ORDER (uint8_t) 169
 
+//#define OFFSET_ORDER (uint8_t) 4
+//#define CHUNK_ORDER (uint8_t) 4
+
+
 // global caches for both the btrees
 STRUCT_BTREE_MAN(offset_cache, 200, OFFSET_ORDER, 1) ;						
 STRUCT_BTREE_MAN(chunk_cache, 200, CHUNK_ORDER, 2) ;			   	
@@ -38,8 +42,9 @@ frm_rem(void *arg, offset_t offset)
 	if (f->n_free > FRM_BUF_SIZE)
 		panic("freelist node manager overflow") ;
 	
-	if (f->n_use < FRM_BUF_SIZE)
+	if (f->n_use < FRM_BUF_SIZE) {
 		f->to_use[f->n_use++] = offset ;
+	}
 	else {
 		f->to_free[f->n_free] = offset ;
 		f->n_free++ ;
@@ -60,18 +65,21 @@ frm_alloc(struct btree *tree, struct btree_node **store, void *arg)
 
 	offset_t offset = f->to_use[f->n_use - 1] ;
 	
+	f->to_use[f->n_use - 1] = 0 ;
 	f->n_use-- ;
 	if (f->n_use < (FRM_BUF_SIZE / 2))
 		f->service = 1 ;
 	
-	return btree_man_alloc(tree, offset, store, f->cache) ;
+	int r = btree_man_alloc(tree, offset, store, f->cache) ;
+	
+	return r ;
 }
 
 static int 
-frm_pin_is(void *arg, offset_t offset, uint8_t pin)
+frm_unpin(void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_man_pin_is(f->cache, offset, pin) ;
+	return btree_man_unpin(f->cache) ;
 }
 
 static void 
@@ -90,15 +98,17 @@ frm_service_one(struct frm *f, struct freelist *l)
 		return ;
 
 	// XXX: think about this a little more...
-	uint64_t npages = FRM_BUF_SIZE - (f->n_use + 2) ;
+	uint64_t npages = FRM_BUF_SIZE - (f->n_use + 3) ;
 	uint64_t base ; 
 	
 	// may inc f->n_free, or dec f->n_use
 	assert((base = freelist_alloc(l, npages)) > 0) ;
 
-	for (int i = 0 ; i < npages ; i++)
+	for (int i = 0 ; i < npages ; i++) {
 		f->to_use[f->n_use++] = base + i ;
-	
+	}
+		
+	assert(f->n_use <= 10) ;
 }
 
 static void
@@ -135,7 +145,7 @@ frm_reset(struct frm *f, struct btree_man *cache)
 	f->manager.free = &frm_rem ;
 	f->manager.node = &frm_node ;
 	f->manager.arg = f ;
-	f->manager.pin_is = &frm_pin_is ;
+	f->manager.unpin = &frm_unpin ;
 	f->manager.write = &frm_write ;
 	
 	f->cache = cache ;
@@ -208,6 +218,7 @@ freelist_alloc(struct freelist *l, uint64_t npages)
 		frm_service(l) ;	
 	
 		l->free -= npages ;
+		
 		return offset ;
 	}
 	return -E_NO_SPACE ;
@@ -219,7 +230,6 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 	offset_t l_base = base - 1 ;
 	offset_t g_base = base + 1 ;
 
-	
 	// XXX: could also be optimized...
 
 	l->free += npages ;
@@ -266,12 +276,14 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 		btree_delete(&l->chunks, (uint64_t *) &k) ;
 	}
 
+	
+
 	btree_insert(&l->offsets, &base, npages) ;
 	struct chunk k = { npages, base } ;
 	btree_insert(&l->chunks, (uint64_t *) &k, base) ;
-
+	
 	frm_service(l) ;
-			
+	
 	return 0 ;
 }
 
@@ -282,6 +294,18 @@ freelist_setup(uint8_t *b)
 	
 	frm_setup(&l->chunk_manager, &chunk_cache) ;
 	frm_setup(&l->offset_manager, &offset_cache) ;
+}
+
+void 
+freelist_serialize(struct freelist *f)
+{
+	f->chunk_manager.manager.arg = &f->chunk_manager ;
+	f->offset_manager.manager.arg = &f->offset_manager ;
+
+	f->chunks.mm = &f->chunk_manager.manager ;
+	f->offsets.mm = &f->offset_manager.manager ;
+	
+	return ;	
 }
 
 int 
@@ -314,6 +338,7 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t npages)
 //////////////////////////////
 // debug
 //////////////////////////////
+#include <lib/btree/cache.h>
 
 void
 freelist_pretty_print(struct freelist *l)
@@ -323,4 +348,8 @@ freelist_pretty_print(struct freelist *l)
 	cprintf("*offset tree (%ld)*\n", btree_size(&l->offsets)) ;
 	bt_pretty_print(&l->offsets, l->offsets.root, 0) ;
 	cprintf("num free %ld\n", l->free) ;
+	cprintf("num pinned %d\n", 
+			cache_num_pinned(l->chunk_manager.cache->cache)) ;
+	cprintf("num pinned %d\n", 
+			cache_num_pinned(l->offset_manager.cache->cache)) ;
 }

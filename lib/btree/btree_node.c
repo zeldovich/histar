@@ -19,12 +19,13 @@ btree_destroy_node(struct btree_node * node)
 	if (node == NULL)
 		return ;
 		
-	struct btree *tree = node->tree ;
+	//struct btree *tree = node->tree ;
 	
 	// XXX: fix the pin interface thing...
-	
+	/*
 	if (tree && tree->mm)
 		tree->mm->pin_is(tree->mm->arg, node->block.offset, 0) ;
+	*/
 }
 
 struct btree_node *
@@ -50,7 +51,12 @@ btree_write_node(struct btree_node *node)
 	if (node->tree == NULL)
 		return 0;
 
+	// XXX: check dirty bit
+
 	struct btree *tree = node->tree ;
+	
+	assert(tree) ;
+	
 	if (tree->mm->write(node, tree->mm->arg) == 0)
 		return node->block.offset;
 		

@@ -9,11 +9,13 @@ struct btree_traversal
 	uint16_t pos;        		 
 };
 
-int 	 btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
+// XXX: fix
+
+//int 	 btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
 // calls 'process' on each value in all leafs
-void 	 btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
-offset_t btree_first_offset(struct btree_traversal *trav);
-offset_t btree_next_offset(struct btree_traversal *trav);
+//void 	 btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
+//offset_t btree_first_offset(struct btree_traversal *trav);
+//offset_t btree_next_offset(struct btree_traversal *trav);
 
 
 #endif /*BTREE_TRAVERSE_H_*/

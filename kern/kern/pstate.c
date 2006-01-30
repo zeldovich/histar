@@ -362,7 +362,9 @@ pstate_sync_loop(struct pstate_header *hdr,
 
     disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
     if (s == disk_io_success) {
+		// XXX: talk to nick about this...
 		memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
+	    freelist_serialize(&stable_hdr.ph_free) ;
 		return 0;
     } else {
 		cprintf("pstate_sync_stackwrap: error writing header\n");
@@ -374,6 +376,14 @@ static void
 pstate_sync_stackwrap(void *arg)
 {
     static int swapout_active;
+
+	/*
+	static int goo = 0 ;
+	if (++goo == 4) {
+		freelist_pretty_print(&stable_hdr.ph_free) ;
+		goo = 0 ;	
+	}
+	*/
 
     if (swapout_active) {
 		cprintf("pstate_sync: another sync still active\n");
@@ -398,6 +408,12 @@ pstate_sync_stackwrap(void *arg)
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
+    
+    // XXX: talk to nick about this...
+    // Is it a good idea to copy, then copy back?
+    // mods to btree nodes will not be undone...inconsistent btree...
+    freelist_serialize(&hdr->ph_free) ;
+    
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
     hdr->ph_handle_counter = handle_counter;
@@ -453,13 +469,6 @@ pstate_sync_stackwrap(void *arg)
 void
 pstate_sync(void)
 {
-	/*
-	static int goo = 0 ;
-	if (++goo == 4) {
-		freelist_pretty_print(&stable_hdr.ph_free) ;
-		goo = 0 ;	
-	}*/
-	
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
 		cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));

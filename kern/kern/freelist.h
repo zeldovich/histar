@@ -39,7 +39,7 @@ int 	freelist_init(struct freelist *l, uint64_t offset, uint64_t npages) ;
 int 	freelist_free(struct freelist *l, uint64_t base, uint64_t npages) ;
 void	freelist_setup(uint8_t *b) ;
 int64_t freelist_alloc(struct freelist *l, uint64_t npages) ;
-
+void 	freelist_serialize(struct freelist *f) ;
 
 // debug
 void freelist_pretty_print(struct freelist *l) ;
