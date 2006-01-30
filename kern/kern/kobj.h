@@ -37,7 +37,8 @@ extern struct kobject_list ko_list;
 
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 info_flow_type iflow);
-int  kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kpp);
+int  kobject_alloc(kobject_type_t type, const struct Label *l,
+		   struct kobject **kpp);
 
 int  kobject_set_npages(struct kobject_hdr *kp, uint64_t npages);
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,

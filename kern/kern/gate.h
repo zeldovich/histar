@@ -15,6 +15,6 @@ struct Gate {
     struct thread_entry gt_te;
 };
 
-int  gate_alloc(struct Label *l, struct Gate **gp);
+int  gate_alloc(const struct Label *l, struct Gate **gp);
 
 #endif

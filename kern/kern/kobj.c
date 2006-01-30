@@ -116,7 +116,8 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 }
 
 int
-kobject_alloc(kobject_type_t type, struct Label *l, struct kobject **kp)
+kobject_alloc(kobject_type_t type, const struct Label *l,
+	      struct kobject **kp)
 {
     int r;
 

@@ -236,7 +236,8 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     check(container_find(&c, container, iflow_write));
 
     struct Gate *g;
-    check(gate_alloc(&cur_thread->th_ko.ko_label, &g));
+    // Inherit label from container
+    check(gate_alloc(&c->ct_ko.ko_label, &g));
 
     g->gt_te = *te;
     check(ulabel_to_label(ul_recv, &g->gt_recv_label));

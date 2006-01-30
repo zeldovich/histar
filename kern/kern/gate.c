@@ -3,7 +3,7 @@
 #include <kern/lib.h>
 
 int
-gate_alloc(struct Label *l, struct Gate **gp)
+gate_alloc(const struct Label *l, struct Gate **gp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_gate, l, &ko);
