@@ -8,7 +8,7 @@ btree_new_node(struct btree *tree)
 {
 	struct btree_node *node ; 
 	if (tree->mm->alloc(tree, &node, tree->mm->arg) < 0)
-		panic("bt_new_node: unable to alloc node") ;
+		panic("btree_new_node: unable to alloc node") ;
 		
 	return node;
 }

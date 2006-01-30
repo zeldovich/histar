@@ -382,8 +382,7 @@ pstate_sync_stackwrap(void *arg)
 	if (++goo == 4) {
 		freelist_pretty_print(&stable_hdr.ph_free) ;
 		goo = 0 ;	
-	}
-	*/
+	}*/
 
     if (swapout_active) {
 		cprintf("pstate_sync: another sync still active\n");

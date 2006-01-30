@@ -30,10 +30,9 @@ btree_man_node(struct btree *tree,
 	if ((r = cache_ent(manager->cache, offset, (uint8_t**) store)) == 0)
 		return 0 ;
 
-	// XXX: needs eviction/replacement
 	uint8_t *buf ;
 	if ((r = cache_alloc(manager->cache, offset, &buf)) < 0) {
-		cprintf("btree_man_node: cache fully pinned\n") ;
+		cprintf("btree_man_node: cache fully pinned (%d)\n", manager->cache->n_ent) ;
 		*store = 0 ;
 		return -E_NO_SPACE ;
 	}
@@ -99,6 +98,7 @@ btree_man_alloc(struct btree *tree,
 	uint8_t *buf ;
 
 	if ((r = cache_alloc(manager->cache, offset, &buf)) < 0) {
+		cprintf("btree_man_alloc: cache fully pinned (%d)\n", manager->cache->n_ent) ;
 		*store = 0 ;
 		return -E_NO_SPACE ;
 	}

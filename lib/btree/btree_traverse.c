@@ -130,8 +130,8 @@ btree_next_offset(struct btree_traversal *trav)
 }
 #endif
 
-static void 
-__bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
+void 
+bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 {
 	int j;
 	struct btree_node *rootNode;
@@ -173,14 +173,9 @@ __bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	}
 	
 	for (j = 0; j <= rootNode->keyCount; j++)
-		__bt_pretty_print(tree, rootNode->children[j], i + 1);
+		bt_pretty_print(tree, rootNode->children[j], i + 1);
 
 	btree_destroy_node(rootNode);
-}
-
-void
-bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
-{
-	__bt_pretty_print(tree, rootOffset, i) ;
 	btree_release_nodes(tree) ;
 }
+

@@ -9,8 +9,8 @@
 #define OFFSET_ORDER (uint8_t) 253
 #define CHUNK_ORDER (uint8_t) 169
 
-//#define OFFSET_ORDER (uint8_t) 4
-//#define CHUNK_ORDER (uint8_t) 4
+//#define OFFSET_ORDER (uint8_t) 3
+//#define CHUNK_ORDER (uint8_t) 3
 
 
 // global caches for both the btrees
