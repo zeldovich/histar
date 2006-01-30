@@ -7,21 +7,20 @@
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/string.h>
-#include <inc/atomic.h>
+#include <inc/mutex.h>
 
 #define NMAPPINGS 32
 
-static atomic_t as_mutex;
+static mutex_t as_mutex;
 
 static void
 as_mutex_lock() {
-    while (atomic_compare_exchange(&as_mutex, 0, 1) != 0)
-	sys_thread_yield();
+    mutex_lock(&as_mutex);
 }
 
 static void
 as_mutex_unlock() {
-    atomic_set(&as_mutex, 0);
+    mutex_unlock(&as_mutex);
 }
 
 void
