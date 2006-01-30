@@ -1,5 +1,5 @@
 #include <inc/lib.h>
-#include <inc/atomic.h>
+#include <inc/mutex.h>
 #include <inc/syscall.h>
 #include <inc/queue.h>
 
@@ -192,9 +192,8 @@ sys_arch_timeouts(void)
 {
     int64_t tid = thread_id();
 
-    static atomic_t tls_mu;
-    while (atomic_compare_exchange(&tls_mu, 0, 1) != 0)
-	sys_thread_yield();
+    static mutex_t tls_mu;
+    mutex_lock(&tls_mu);
 
     struct sys_thread *t;
     LIST_FOREACH(t, &threads, link)
@@ -213,6 +212,6 @@ sys_arch_timeouts(void)
     // so that we can GC these thread-specific structs.
 
 out:
-    atomic_set(&tls_mu, 0);
+    mutex_unlock(&tls_mu);
     return &t->tmo;
 }

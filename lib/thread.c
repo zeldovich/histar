@@ -2,10 +2,10 @@
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
-#include <inc/atomic.h>
+#include <inc/mutex.h>
 #include <inc/stack.h>
 
-static atomic_t tl_stack_map_mutex;
+static mutex_t tl_stack_map_mutex;
 static void *tl_stack_base;
 
 static void __attribute__((noreturn))
@@ -38,8 +38,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     int r = 0;
 
     if (tl_stack_base == 0) {
-	while (atomic_compare_exchange(&tl_stack_map_mutex, 0, 1) != 0)
-	    sys_thread_yield();
+	mutex_lock(&tl_stack_map_mutex);
 
 	if (tl_stack_base == 0) {
 	    struct cobj_ref tls = COBJ(kobject_id_thread_ct,
@@ -50,7 +49,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 				&tl_stack_base, 0);
 	}
 
-	atomic_set(&tl_stack_map_mutex, 0);
+	mutex_unlock(&tl_stack_map_mutex);
 	if (r < 0) {
 	    printf("thread_create: cannot map self-stack: %s\n", e2s(r));
 	    return r;
