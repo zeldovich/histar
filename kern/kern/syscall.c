@@ -249,6 +249,14 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     return g->gt_ko.ko_id;
 }
 
+static void
+sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
+{
+    const struct kobject *ko;
+    check(cobj_get(gate, kobj_gate, &ko, iflow_read));
+    check(label_to_ulabel(&ko->u.gt.gt_send_label, ul));
+}
+
 static kobject_id_t
 sys_thread_create(uint64_t ct)
 {
@@ -267,7 +275,7 @@ sys_gate_enter(struct cobj_ref gt, struct ulabel *l,
 	       uint64_t a1, uint64_t a2)
 {
     const struct kobject *ko;
-    check(cobj_get(gt, kobj_gate, &ko, iflow_none));
+    check(cobj_get(gt, kobj_gate, &ko, iflow_read));
 
     const struct Gate *g = &ko->u.gt;
     check(label_compare(&cur_thread->th_ko.ko_label,
@@ -525,6 +533,10 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_gate_enter:
 	sys_gate_enter(COBJ(a1, a2), (struct ulabel *) a3, a4, a5);
+	break;
+
+    case SYS_gate_send_label:
+	sys_gate_send_label(COBJ(a1, a2), (struct ulabel *) a3);
 	break;
 
     case SYS_thread_create:

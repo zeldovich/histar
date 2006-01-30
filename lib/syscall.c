@@ -107,6 +107,12 @@ sys_gate_enter(struct cobj_ref gate, struct ulabel *l,
     return syscall(SYS_gate_enter, gate, l, a1, a2);
 }
 
+int
+sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
+{
+    return syscall(SYS_gate_send_label, gate, ul);
+}
+
 int64_t
 sys_thread_create(uint64_t container)
 {

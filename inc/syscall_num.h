@@ -24,6 +24,7 @@ typedef enum {
 
     SYS_gate_create,
     SYS_gate_enter,
+    SYS_gate_send_label,
 
     SYS_thread_create,
     SYS_thread_start,
