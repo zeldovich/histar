@@ -13,14 +13,16 @@ btree_init(struct btree * t, char order, char key_size, struct btree_manager * m
 	t->min_intrn  = ((t->order + 1) / 2) - 1;
 	t->s_key = key_size ;
 	
-	t->mm = mm ;
+	if (mm)
+		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;
+	
 }
 
 void
 btree_release_nodes(struct btree *tree)
 {
-	if (tree->mm)
-		tree->mm->unpin(tree->mm->arg) ;	
+	if (tree->manager.unpin)
+		tree->manager.unpin(tree->manager.arg) ;	
 }
 
 uint64_t

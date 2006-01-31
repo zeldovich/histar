@@ -3,6 +3,7 @@
 #include <lib/btree/cache.h>
 #include <machine/stackwrap.h>
 #include <machine/mmu.h>
+#include <kern/freelist.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/string.h>
@@ -18,13 +19,18 @@
 #define SCRATCH_SIZE PGSIZE
 static uint8_t scratch[SCRATCH_SIZE] ;
 
+
+/////////////////////
+// btree simple
+/////////////////////
+
 int 
-btree_man_node(struct btree *tree, 
+btree_simple_node(struct btree *tree, 
 				 offset_t offset, 
 				 struct btree_node **store, 
 				 void *man)
 {
-	struct btree_man * manager = (struct btree_man *) man ;
+	struct btree_simple * manager = (struct btree_simple *) man ;
 	int r ;	
 
 	if ((r = cache_ent(manager->cache, offset, (uint8_t**) store)) == 0)
@@ -66,7 +72,7 @@ btree_man_node(struct btree *tree,
 }
 
 int 
-btree_man_write(struct btree_node *node, void *manager)
+btree_simple_write(struct btree_node *node, void *manager)
 {
 	struct btree *tree = node->tree ;
 	memcpy(scratch, node, BTREE_NODE_SIZE(tree->order, tree->s_key)) ;
@@ -86,12 +92,12 @@ btree_man_write(struct btree_node *node, void *manager)
 }
 
 int 
-btree_man_alloc(struct btree *tree, 
+btree_simple_alloc(struct btree *tree, 
 			  	  offset_t offset, 
 			  	  struct btree_node **store, 
 			  	  void *man)
 {
-	struct btree_man *manager = (struct btree_man *) man ;
+	struct btree_simple *manager = (struct btree_simple *) man ;
 	struct btree_node *node ;
 	
 	int 	r ;	
@@ -116,34 +122,70 @@ btree_man_alloc(struct btree *tree,
 	return 0 ;
 }
 
-/*
 int 
-btree_man_pin_is(void *man, offset_t offset, uint8_t pin)
+btree_simple_rem(void *man, offset_t offset)
 {
-	struct btree_man * manager = (struct btree_man *) man ;
-	return cache_pin_is(manager->cache, offset, pin) ;	
-}
-*/
-
-int 
-btree_man_rem(void *man, offset_t offset)
-{
-	struct btree_man * manager = (struct btree_man *) man ;
+	struct btree_simple * manager = (struct btree_simple *) man ;
 	return cache_rem(manager->cache, offset) ;
 }
 
 int 
-btree_man_unpin(void *man)
+btree_simple_unpin(void *man)
 {
-	struct btree_man * manager = (struct btree_man *) man ;
+	struct btree_simple * manager = (struct btree_simple *) man ;
 	return cache_unpin(manager->cache) ;
 }
 
 int 
-btree_man_init(void *man)
+btree_simple_init(struct btree_simple *sim, uint8_t order, 
+				 struct cache *cache)
 {
-	struct btree_man * manager = (struct btree_man *) man ;
-	cache_init(manager->cache) ;
+	sim->cache = cache ;
+	sim->order = order ;
+	cache_init(sim->cache) ;
 		
+	return 0 ;
+}
+
+/////////////////////
+// btree default
+/////////////////////
+
+static int
+btree_default_alloc(struct btree *tree, struct btree_node **store, void *arg)
+{
+	struct btree_default *def = (struct btree_default *) arg ;
+	offset_t off = freelist_alloc(def->fl, 1) ;
+	if (off < 0)
+		return off ;
+	
+	return btree_simple_alloc(tree, off, store, &def->simple) ;
+}
+
+int 
+btree_default_setup(struct btree_default *def, uint8_t order, uint8_t key_size,
+				    struct freelist *fl,struct cache *cache)
+{
+	btree_simple_init(&def->simple, order, cache) ;
+
+	def->fl = fl ;
+	
+	def->tree.manager.alloc = &btree_default_alloc ;
+	def->tree.manager.free = &btree_simple_rem ;
+	def->tree.manager.node = &btree_simple_node ;
+	def->tree.manager.arg = def ;
+	def->tree.manager.unpin = &btree_simple_unpin ;
+	def->tree.manager.write = &btree_simple_write ;
+	   	
+	return 0 ;				
+}
+
+int 
+btree_default_init(struct btree_default *def, uint8_t order, uint8_t key_size,
+				   struct freelist *fl,struct cache *cache)
+{
+	btree_init(&def->tree, order, key_size, NULL) ;
+	btree_default_setup(def, order, key_size, fl, cache) ;
+	   	
 	return 0 ;
 }

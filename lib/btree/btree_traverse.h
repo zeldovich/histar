@@ -6,16 +6,16 @@ struct btree_traversal
 	struct btree		*tree;       
 	struct btree_node 	*node;       
 	
-	uint16_t pos;        		 
+	uint16_t pos;
+	
+	const uint64_t	*key ;
+	offset_t		 val ;
 };
 
-// XXX: fix
-
-//int 	 btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
-// calls 'process' on each value in all leafs
-//void 	 btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
-//offset_t btree_first_offset(struct btree_traversal *trav);
-//offset_t btree_next_offset(struct btree_traversal *trav);
+int 	btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
+void 	btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
+char 	btree_first_offset(struct btree_traversal *trav);
+char 	btree_next_offset(struct btree_traversal *trav);
 
 
 #endif /*BTREE_TRAVERSE_H_*/

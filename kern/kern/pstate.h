@@ -36,6 +36,7 @@ struct pstate_header {
 
     struct pstate_map ph_map;
     struct freelist ph_free ;
+    struct btree_default ph_iobjs ;
 };
 
 int  pstate_init(void);

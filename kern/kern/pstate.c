@@ -8,6 +8,8 @@
 #include <kern/handle.h>
 #include <kern/lib.h>
 #include <inc/error.h>
+#include <lib/btree/btree_traverse.h>
+
 
 // verbose flags
 static int pstate_init_debug = 0;
@@ -17,6 +19,14 @@ static int pstate_swapout_stats = 0;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
+
+// assumed to be atomic
+static struct freelist flist ;
+
+// lits of objects to be loaded at startup
+struct btree_default iobjlist ;
+#define IOBJ_ORDER BTREE_MAX_ORDER1
+STRUCT_BTREE_CACHE(iobj_cache, 20, IOBJ_ORDER, 1) ;	
 
 // Scratch-space for a copy of the header used while reading/writing.
 #define N_HEADER_PAGES		3
@@ -45,9 +55,10 @@ pstate_kobj_free(struct pstate_map *m, struct freelist *f,
 {
     int slot = pstate_map_findslot(m, ko->u.hdr.ko_id);
     if (slot < 0)
-	return;
+		return;
 
     freelist_free(f, m->ent[slot].offset, m->ent[slot].pages);
+    btree_delete(&iobjlist.tree, &ko->u.hdr.ko_id) ;
     m->ent[slot].offset = 0;
 }
 
@@ -58,25 +69,31 @@ pstate_kobj_alloc(struct pstate_map *m, struct freelist *f,
     pstate_kobj_free(m, f, ko);
 
     for (int i = 0; i < NUM_PH_OBJECTS; i++) {
-	if (m->ent[i].offset == 0) {
-	    uint64_t npages = ko->u.hdr.ko_npages + 1;
-	    int64_t offset = freelist_alloc(f, npages);
-	    if (offset < 0) {
-		cprintf("pstate_kobj_alloc: no room for %ld pages\n", npages);
-		return offset;
-	    }
-
-	    m->ent[i].id = ko->u.hdr.ko_id;
-	    m->ent[i].type = ko->u.hdr.ko_type;
-	    m->ent[i].flags = ko->u.hdr.ko_flags;
-	    m->ent[i].offset = offset;
-	    m->ent[i].pages = npages;
-
-	    if (ko->u.hdr.ko_ref == 0)
-		m->ent[i].flags |= KOBJ_ZERO_REFS;
-
-	    return i;
-	}
+		if (m->ent[i].offset == 0) {
+		    uint64_t npages = ko->u.hdr.ko_npages + 1;
+		    int64_t offset = freelist_alloc(f, npages);
+		    if (offset < 0) {
+				cprintf("pstate_kobj_alloc: no room for %ld pages\n", npages);
+				return offset;
+		    }
+	
+		    m->ent[i].id = ko->u.hdr.ko_id;
+		    m->ent[i].type = ko->u.hdr.ko_type;
+		    m->ent[i].flags = ko->u.hdr.ko_flags;
+		    m->ent[i].offset = offset;
+		    m->ent[i].pages = npages;
+	
+		    if (ko->u.hdr.ko_ref == 0)
+				m->ent[i].flags |= KOBJ_ZERO_REFS;
+				
+			
+			if ((m->ent[i].flags & KOBJ_PIN_IDLE) ||
+			    (m->ent[i].flags & KOBJ_ZERO_REFS) ||
+			    (m->ent[i].type == kobj_thread))
+				btree_insert(&iobjlist.tree, &m->ent[i].id, 0) ;
+	
+		    return i;
+		}
     }
 
     return -E_NO_SPACE;
@@ -168,12 +185,12 @@ pstate_swapin(kobject_id_t id) {
 
     int64_t slot = pstate_map_findslot(&stable_hdr.ph_map, id);
     if (slot < 0)
-	return slot;
+		return slot;
 
     int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) slot);
     if (r < 0) {
-	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
-	return r;
+		cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
+		return r;
     }
 
     return 0;
@@ -182,6 +199,8 @@ pstate_swapin(kobject_id_t id) {
 /////////////////////////////////////
 // Persistent-store initialization
 /////////////////////////////////////
+
+void test(void) ;
 
 static int
 pstate_init2()
@@ -197,32 +216,45 @@ pstate_init2()
 		stable_hdr.ph_version != PSTATE_VERSION)
     {
 		cprintf("pstate_init_hdr: magic/version mismatch\n");
+
 		return -E_INVAL;
     }
-	freelist_setup((uint8_t *)&stable_hdr.ph_free) ;
+	// copy 'atomic' freelist into flist
+	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
+	freelist_setup((uint8_t *)&flist) ;
+	// copy 'atomic' initial object list into iobjlist
+	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
+	btree_default_setup(&iobjlist, IOBJ_ORDER, 1, &flist, &iobj_cache) ;
+
+	/* prints obj ids of objs that should be loaded on startup
+	struct btree_traversal trav ;
+	btree_init_traversal(&iobjlist.tree, &trav) ;
+	while (btree_next_offset(&trav))
+		cprintf("off %ld key %ld\n", trav.val, *trav.key) ;
+	*/
 
     for (int slot = 0; slot < NUM_PH_OBJECTS; slot++) {
 		if (stable_hdr.ph_map.ent[slot].offset == 0)
 		    continue;
 
-	if (pstate_init_debug)
-	    cprintf("pstate_init2: slot %d flags 0x%lx type %d\n",
-		    slot,
-		    stable_hdr.ph_map.ent[slot].flags,
-		    stable_hdr.ph_map.ent[slot].type);
+		if (pstate_init_debug)
+		    cprintf("pstate_init2: slot %d flags 0x%lx type %d\n",
+			    slot,
+			    stable_hdr.ph_map.ent[slot].flags,
+			    stable_hdr.ph_map.ent[slot].type);
 
 		if ((stable_hdr.ph_map.ent[slot].flags & KOBJ_PIN_IDLE) ||
 		    (stable_hdr.ph_map.ent[slot].flags & KOBJ_ZERO_REFS) ||
 		    (stable_hdr.ph_map.ent[slot].type == kobj_thread))
 		{
 		    if (pstate_init_debug)
-			cprintf("pstate_init2: paging in slot %d\n", slot);
+				cprintf("pstate_init2: paging in slot %d\n", slot);
 	
 		    int r = pstate_swapin_slot(slot);
 		    if (r < 0) {
-			cprintf("pstate_init2: cannot swapin slot %d: %s\n",
-				slot, e2s(r));
-			return r;
+				cprintf("pstate_init2: cannot swapin slot %d: %s\n",
+					slot, e2s(r));
+				return r;
 		    }
 		}
     }
@@ -251,13 +283,13 @@ pstate_reset(void)
     memset(&stable_hdr, 0, sizeof(stable_hdr));
 }
 
-int freelist_test(void) ;
-
 int
 pstate_init(void)
 {
    	//freelist_test() ; 
-    
+
+	static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= PGSIZE) ;
+
     pstate_reset();
 
     int done = 0;
@@ -300,7 +332,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 {
     struct kobject *snap = kobject_get_snapshot(ko);
 
-    int slot = pstate_kobj_alloc(&hdr->ph_map, &hdr->ph_free, snap);
+    int slot = pstate_kobj_alloc(&hdr->ph_map, &flist, snap);
     if (slot < 0) {
 		cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(slot));
 		return slot;
@@ -350,7 +382,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	
 		struct kobject *snap = kobject_get_snapshot(ko);
 		if (snap->u.hdr.ko_type == kobj_dead) {
-		    pstate_kobj_free(&hdr->ph_map, &hdr->ph_free, snap);
+		    pstate_kobj_free(&hdr->ph_map, &flist, snap);
 		    stats->dead_kobj++;
 		    continue;
 		}
@@ -359,12 +391,15 @@ pstate_sync_loop(struct pstate_header *hdr,
 		if (r < 0)
 		    return r;
     }
-
+	
+	// make sure 'atomic' flist is written
+	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;
+	// make sure 'atomic' iobjlist is written
+	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
+  
     disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
     if (s == disk_io_success) {
-		// XXX: talk to nick about this...
 		memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
-	    freelist_serialize(&stable_hdr.ph_free) ;
 		return 0;
     } else {
 		cprintf("pstate_sync_stackwrap: error writing header\n");
@@ -393,25 +428,21 @@ pstate_sync_stackwrap(void *arg)
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	uint64_t disk_pages = disk_bytes / PGSIZE;
-	assert(disk_pages > N_HEADER_PAGES);
-
-	if (pstate_swapout_debug)
-	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
-
-	freelist_init(&stable_hdr.ph_free,
-		      N_HEADER_PAGES,
-		      disk_pages - N_HEADER_PAGES);
+		uint64_t disk_pages = disk_bytes / PGSIZE;
+		assert(disk_pages > N_HEADER_PAGES);
+	
+		if (pstate_swapout_debug)
+		    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
+	
+		freelist_init(&flist,
+			      N_HEADER_PAGES,
+			      disk_pages - N_HEADER_PAGES);
+		btree_default_init(&iobjlist, IOBJ_ORDER, 1, &flist, &iobj_cache) ;
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
-    
-    // XXX: talk to nick about this...
-    // Is it a good idea to copy, then copy back?
-    // mods to btree nodes will not be undone...inconsistent btree...
-    freelist_serialize(&hdr->ph_free) ;
     
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
@@ -423,43 +454,43 @@ pstate_sync_stackwrap(void *arg)
 
     struct kobject_hdr *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-	stats.total_kobj++;
-	if ((ko->ko_flags & KOBJ_DIRTY)) {
-	    kobject_snapshot(ko);
-	    ko->ko_flags |= KOBJ_SNAPSHOT_DIRTY;
-	    stats.snapshoted_kobj++;
-	}
+		stats.total_kobj++;
+		if ((ko->ko_flags & KOBJ_DIRTY)) {
+		    kobject_snapshot(ko);
+		    ko->ko_flags |= KOBJ_SNAPSHOT_DIRTY;
+		    stats.snapshoted_kobj++;
+		}
     }
 
     int r = pstate_sync_loop(hdr, &stats);
     if (r < 0)
-	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
+		cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
-	ko_next = LIST_NEXT(ko, ko_link);
-
-	if ((ko->ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
-	    ko->ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
-	    if (r < 0)
-		ko->ko_flags |= KOBJ_DIRTY;
-	}
-
-	if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
-	    struct kobject *snap = kobject_get_snapshot(ko);
-	    kobject_snapshot_release(ko);
-
-	    if (r == 0 && snap->u.hdr.ko_type == kobj_dead)
-		kobject_swapout(kobject_h2k(ko));
-	}
+		ko_next = LIST_NEXT(ko, ko_link);
+	
+		if ((ko->ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
+		    ko->ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
+		    if (r < 0)
+			ko->ko_flags |= KOBJ_DIRTY;
+		}
+	
+		if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
+		    struct kobject *snap = kobject_get_snapshot(ko);
+		    kobject_snapshot_release(ko);
+	
+		    if (r == 0 && snap->u.hdr.ko_type == kobj_dead)
+			kobject_swapout(kobject_h2k(ko));
+		}
     }
 
     if (pstate_swapout_stats) {
-	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
-		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
-		stats.written_kobj, stats.written_pages);
-	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
-		page_stats.pages_used, page_stats.pages_avail,
-		page_stats.allocations, page_stats.failures);
+		cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+			stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
+			stats.written_kobj, stats.written_pages);
+		cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+			page_stats.pages_used, page_stats.pages_avail,
+			page_stats.allocations, page_stats.failures);
     }
     swapout_active = 0;
 }

@@ -306,7 +306,7 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t offset)
 	
 	btree_keycpy(k, key, tree->s_key) ;
 	
-	if (tree == NULL || offset == 0 || key == 0)
+	if (tree == NULL || key == 0)
 		return -E_INVAL;
 
 	success = 0;

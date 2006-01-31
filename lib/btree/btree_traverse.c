@@ -28,7 +28,6 @@
 #include <inc/string.h>
 #include <inc/error.h>
 
-#if 0
 struct btree_traversal *
 btreeDestroyTraversal(struct btree_traversal *trav)
 {
@@ -37,6 +36,8 @@ btreeDestroyTraversal(struct btree_traversal *trav)
 
 	if (trav->node != NULL)
 		btree_destroy_node(trav->node);
+
+	btree_release_nodes(trav->tree) ;
 
 	return NULL;
 }
@@ -74,11 +75,11 @@ btree_init_traversal(struct btree *tree, struct btree_traversal *trav)
 	return 0 ;
 }
 
-offset_t
+char
 btree_first_offset(struct btree_traversal *trav)
 {
 	if (trav == NULL)
-		return -1;
+		return 0 ;
 
 	if (trav->node != NULL)
 		return btree_next_offset(trav);
@@ -88,20 +89,22 @@ btree_first_offset(struct btree_traversal *trav)
 	trav->node = bt_read_node(trav->tree, trav->tree->left_leaf);
 
 	if (trav->node == NULL)
-		return -1;
+		return 0 ;
 
 	trav->pos = 1;
 
-	return trav->node->children[0];
+	trav->key = btree_key(trav->node->keys, 0, trav->tree->s_key) ;
+	trav->val = trav->node->children[0] ;
+
+	return 1 ;
 }
 
-offset_t
+char
 btree_next_offset(struct btree_traversal *trav)
 {
-	offset_t offset;
 	
 	if (trav == NULL)
-		return -1;
+		return 0 ;
 
 	if (trav->node == NULL)
 		return btree_first_offset(trav);
@@ -111,27 +114,28 @@ btree_next_offset(struct btree_traversal *trav)
 		offset_t nextNodeOffset = trav->node->children[trav->pos];
 		
 		btree_destroy_node(trav->node);
+		btree_release_nodes(trav->tree) ;
 
 		trav->node = NULL;
 
 		if (nextNodeOffset == 0)
-			return -1;
+			return 0 ;
 		
 		trav->node = bt_read_node(trav->tree, nextNodeOffset);
 
 		trav->pos = 0;
 	}
 
-	offset = trav->node->children[trav->pos];
+	
+	trav->val = trav->node->children[trav->pos];
+	trav->key = btree_key(trav->node->keys, trav->pos, trav->tree->s_key) ;
 
 	trav->pos++;
-
-	return offset;
+	return 1 ;
 }
-#endif
 
 void 
-bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
+btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 {
 	int j;
 	struct btree_node *rootNode;
@@ -173,7 +177,7 @@ bt_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	}
 	
 	for (j = 0; j <= rootNode->keyCount; j++)
-		bt_pretty_print(tree, rootNode->children[j], i + 1);
+		btree_pretty_print(tree, rootNode->children[j], i + 1);
 
 	btree_destroy_node(rootNode);
 	btree_release_nodes(tree) ;

@@ -23,11 +23,20 @@ struct btree_node
 	sizeof(uint64_t) * (order - 1) * (key_size))
 
 
-struct btree_manager ;
+struct btree_manager
+{
+	int (*node)(struct btree *tree, offset_t offset, struct btree_node **store, void *arg) ;
+	int (*write)(struct btree_node *node, void *arg) ;
+	int (*free)(void *arg, offset_t offset) ;
+	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
+	int (*unpin)(void *arg) ;
+
+	void *arg ;
+} ;
 
 struct btree
 {
-	struct btree_manager *mm ;
+	struct btree_manager manager ;
 
 	uint8_t	order; 
 	uint8_t	s_key ;
@@ -44,17 +53,6 @@ struct btree
 	offset_t _insFilePos;    
 };
 
-struct btree_manager
-{
-	int (*node)(struct btree *tree, offset_t offset, struct btree_node **store, void *arg) ;
-	int (*write)(struct btree_node *node, void *arg) ;
-	int (*free)(void *arg, offset_t offset) ;
-	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
-	int (*unpin)(void *arg) ;
-
-	void *arg ;
-} ;
-
 int 	 btree_insert(struct btree *tree, const uint64_t *key, offset_t offset) ;
 int64_t	 btree_delete(struct btree *tree, const uint64_t *key);
 char 	 btree_is_empty(struct btree *tree);
@@ -70,7 +68,7 @@ int64_t btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store)
 int64_t btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
 
 // debug
-void bt_pretty_print(struct btree *tree, offset_t rootOffset, int i);
+void btree_pretty_print(struct btree *tree, offset_t rootOffset, int i);
 
 #endif /* _BTREE_H_ */
 

@@ -2,15 +2,15 @@
 #define FREELIST_H_
 
 #include <lib/btree/btree.h>
-#include <lib/btree/btree_man.h>
+#include <lib/btree/btree_impl.h>
 
 // freelist resource manager
 // prevents the freelist from modifying the btrees, while they
 // are being modified by a call to freelist_alloc or freelist_free
 struct frm
 {
-	struct btree_manager manager ;
-	struct btree_man *cache ;
+	// XXX: make frm like btree_default
+	struct btree_simple simple ;
 
 #define FRM_BUF_SIZE 10
 	uint64_t to_use[FRM_BUF_SIZE] ;
@@ -28,8 +28,8 @@ struct freelist
 	struct btree chunks ;
 	struct btree offsets ;
 	
-	struct frm offset_manager ;
-	struct frm chunk_manager ;
+	struct frm offset_frm ;
+	struct frm chunk_frm ;
 	
 	
 	uint64_t free ;

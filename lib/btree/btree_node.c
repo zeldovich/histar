@@ -7,7 +7,7 @@ struct btree_node *
 btree_new_node(struct btree *tree)
 {
 	struct btree_node *node ; 
-	if (tree->mm->alloc(tree, &node, tree->mm->arg) < 0)
+	if (tree->manager.alloc(tree, &node, tree->manager.arg) < 0)
 		panic("btree_new_node: unable to alloc node") ;
 		
 	return node;
@@ -33,8 +33,8 @@ bt_read_node(struct btree *tree, offset_t offset)
 {
 	struct btree_node *n ;
 	
-	if (tree->mm) {
-		if (tree->mm->node(tree, offset, &n, tree->mm->arg) == 0)
+	if (tree->manager.node) {
+		if (tree->manager.node(tree, offset, &n, tree->manager.arg) == 0)
 			return n ;
 	}
 	
@@ -57,7 +57,7 @@ btree_write_node(struct btree_node *node)
 	
 	assert(tree) ;
 	
-	if (tree->mm->write(node, tree->mm->arg) == 0)
+	if (tree->manager.write(node, tree->manager.arg) == 0)
 		return node->block.offset;
 		
 	panic("btree_write_node: unable to write node %ld", 
@@ -70,6 +70,6 @@ btree_erase_node(struct btree_node *node)
 {
 	struct btree *tree = node->tree ;
 	
-	if (tree->mm)
-		tree->mm->free(tree->mm->arg, node->block.offset) ;
+	if (tree->manager.free)
+		tree->manager.free(tree->manager.arg, node->block.offset) ;
 }

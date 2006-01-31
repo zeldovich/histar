@@ -5,17 +5,14 @@
 #include <inc/stdio.h>
 #include <inc/assert.h>
 
-// largest possible orders
-#define OFFSET_ORDER (uint8_t) 253
-#define CHUNK_ORDER (uint8_t) 169
-
-//#define OFFSET_ORDER (uint8_t) 3
-//#define CHUNK_ORDER (uint8_t) 3
-
+#define OFFSET_ORDER 	BTREE_MAX_ORDER1
+#define CHUNK_ORDER 	BTREE_MAX_ORDER2
 
 // global caches for both the btrees
-STRUCT_BTREE_MAN(offset_cache, 200, OFFSET_ORDER, 1) ;						
-STRUCT_BTREE_MAN(chunk_cache, 200, CHUNK_ORDER, 2) ;			   	
+//STRUCT_BTREE_MAN(offset_cache, 200, OFFSET_ORDER, 1) ;						
+STRUCT_BTREE_CACHE(offset_cache, 200, OFFSET_ORDER, 1) ;						
+//STRUCT_BTREE_MAN(chunk_cache, 200, CHUNK_ORDER, 2) ;		
+STRUCT_BTREE_CACHE(chunk_cache, 200, CHUNK_ORDER, 2) ;				   	
 
 struct chunk
 {
@@ -31,7 +28,7 @@ static int
 frm_node(struct btree *tree, offset_t offset, struct btree_node **store, void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_man_node(tree, offset, store, f->cache) ;
+	return btree_simple_node(tree, offset, store, &f->simple) ;
 }
 
 static int
@@ -52,7 +49,7 @@ frm_rem(void *arg, offset_t offset)
 			f->service = 1 ;
 	}
 	
-	return btree_man_rem(f->cache, offset) ;
+	return btree_simple_rem(&f->simple, offset) ;
 }
 
 static int
@@ -70,7 +67,7 @@ frm_alloc(struct btree *tree, struct btree_node **store, void *arg)
 	if (f->n_use < (FRM_BUF_SIZE / 2))
 		f->service = 1 ;
 	
-	int r = btree_man_alloc(tree, offset, store, f->cache) ;
+	int r = btree_simple_alloc(tree, offset, store, &f->simple) ;
 	
 	return r ;
 }
@@ -79,7 +76,7 @@ static int
 frm_unpin(void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_man_unpin(f->cache) ;
+	return btree_simple_unpin(&f->simple) ;
 }
 
 static void 
@@ -114,8 +111,8 @@ frm_service_one(struct frm *f, struct freelist *l)
 static void
 frm_service(struct freelist *l)
 {
-	struct frm *chunk_manager = &l->chunk_manager ;
-	struct frm *offset_manager = &l->offset_manager ;
+	struct frm *chunk_manager = &l->chunk_frm ;
+	struct frm *offset_manager = &l->offset_frm ;
 	
 	while (chunk_manager->service && !chunk_manager->servicing  && 
 		   !offset_manager->servicing) {
@@ -135,42 +132,40 @@ static int
 frm_write(struct btree_node *node, void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_man_write(node, f->cache) ;
+	return btree_simple_write(node, &f->simple) ;
 }
 
 static void
-frm_reset(struct frm *f, struct btree_man *cache)
+frm_reset(struct frm *f, uint8_t order, struct cache *cache, struct btree_manager *manager)
 {
-	f->manager.alloc = &frm_alloc ;
-	f->manager.free = &frm_rem ;
-	f->manager.node = &frm_node ;
-	f->manager.arg = f ;
-	f->manager.unpin = &frm_unpin ;
-	f->manager.write = &frm_write ;
-	
-	f->cache = cache ;
+	btree_simple_init(&f->simple, order, cache) ;
 
-	btree_man_init(f->cache) ;
+	manager->alloc = &frm_alloc ;
+	manager->free = &frm_rem ;
+	manager->node = &frm_node ;
+	manager->arg = f ;
+	manager->unpin = &frm_unpin ;
+	manager->write = &frm_write ;
 }
 
 static void
-frm_setup(struct frm *f, struct btree_man *cache)
+frm_setup(struct frm *f, uint8_t order, struct cache *cache, struct btree_manager *manager)
 {
-	frm_reset(f, cache) ;
+	frm_reset(f, order, cache, manager) ;
 }
 
 static int 
-frm_init(struct frm *f, struct btree_man *cache, uint64_t base, uint64_t npages)
+frm_init(struct frm *f, uint64_t base, uint64_t npages, uint8_t order, struct cache *cache, struct btree_manager *manager)
 {
 	memset(f, 0, sizeof(struct frm)) ;
 
-	frm_reset(f, cache) ;
+	frm_reset(f, order, cache, manager) ;
 	
 	for (int i = 0 ; i < npages ; i++)
 		f->to_use[i] = base + i ;
 	f->n_use = npages ;
 	
-	return btree_man_init(f->cache) ;
+	return 0 ;
 }
 
 //////////////////////////////
@@ -292,13 +287,14 @@ freelist_setup(uint8_t *b)
 {
 	struct freelist *l = (struct freelist *)b ;
 	
-	frm_setup(&l->chunk_manager, &chunk_cache) ;
-	frm_setup(&l->offset_manager, &offset_cache) ;
+	frm_setup(&l->chunk_frm, CHUNK_ORDER, &chunk_cache, &l->chunks.manager) ;
+	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache, &l->offsets.manager) ;
 }
 
 void 
 freelist_serialize(struct freelist *f)
 {
+	/*
 	f->chunk_manager.manager.arg = &f->chunk_manager ;
 	f->offset_manager.manager.arg = &f->offset_manager ;
 
@@ -306,6 +302,7 @@ freelist_serialize(struct freelist *f)
 	f->offsets.mm = &f->offset_manager.manager ;
 	
 	return ;	
+	*/
 }
 
 int 
@@ -316,16 +313,21 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t npages)
 	static_assert(BTREE_NODE_SIZE(CHUNK_ORDER, 2) <= PGSIZE) ;
 	static_assert(BTREE_NODE_SIZE(OFFSET_ORDER, 1) <= PGSIZE) ;
 	
-	frm_init(&l->chunk_manager, &chunk_cache, base, FRM_BUF_SIZE) ;
+	// XXX: make frm like btree_default
+	
+	struct btree_manager temp1 ;
+	struct btree_manager temp2 ;
+	
+	frm_init(&l->chunk_frm, base, FRM_BUF_SIZE, CHUNK_ORDER, &chunk_cache, &temp1) ;
 	base += FRM_BUF_SIZE ;
 	npages -= FRM_BUF_SIZE ;
 
-	frm_init(&l->offset_manager, &offset_cache, base, FRM_BUF_SIZE) ;
+	frm_init(&l->offset_frm, base, FRM_BUF_SIZE, OFFSET_ORDER, &offset_cache, &temp2) ;
 	base += FRM_BUF_SIZE ;
 	npages -= FRM_BUF_SIZE ;
 	
-	btree_init(&l->chunks, CHUNK_ORDER, 2, &l->chunk_manager.manager) ;
-	btree_init(&l->offsets, OFFSET_ORDER, 1, &l->offset_manager.manager) ;
+	btree_init(&l->chunks, CHUNK_ORDER, 2, &temp1) ;
+	btree_init(&l->offsets, OFFSET_ORDER, 1, &temp2) ;
 
 	if ((r = freelist_insert(l, base, npages)) < 0)
 		return r ;
@@ -344,12 +346,12 @@ void
 freelist_pretty_print(struct freelist *l)
 {
 	cprintf("*chunk tree (%ld)*\n",btree_size(&l->chunks)) ;
-	bt_pretty_print(&l->chunks, l->chunks.root, 0) ;
+	btree_pretty_print(&l->chunks, l->chunks.root, 0) ;
 	cprintf("*offset tree (%ld)*\n", btree_size(&l->offsets)) ;
-	bt_pretty_print(&l->offsets, l->offsets.root, 0) ;
+	btree_pretty_print(&l->offsets, l->offsets.root, 0) ;
 	cprintf("num free %ld\n", l->free) ;
 	cprintf("num pinned %d\n", 
-			cache_num_pinned(l->chunk_manager.cache->cache)) ;
+			cache_num_pinned(l->chunk_frm.simple.cache)) ;
 	cprintf("num pinned %d\n", 
-			cache_num_pinned(l->offset_manager.cache->cache)) ;
+			cache_num_pinned(l->offset_frm.simple.cache)) ;
 }
