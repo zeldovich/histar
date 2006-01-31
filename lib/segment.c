@@ -11,6 +11,16 @@
 
 #define NMAPPINGS 32
 
+static struct ulabel *seg_create_label;
+
+void
+segment_default_label(struct ulabel *l)
+{
+    if (seg_create_label)
+	label_free(seg_create_label);
+    seg_create_label = l;
+}
+
 static mutex_t as_mutex;
 
 static void
@@ -225,7 +235,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	      struct cobj_ref *cobj, void **va_p)
 {
     uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
-    int64_t id = sys_segment_create(container, npages, 0);
+    int64_t id = sys_segment_create(container, npages, seg_create_label);
     if (id < 0)
 	return id;
 

@@ -27,6 +27,7 @@ int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
 int	segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage);
+void	segment_default_label(struct ulabel *l);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
