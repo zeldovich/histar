@@ -26,10 +26,10 @@ main(int ac, char **av)
     uint64_t b = 30;
     int round = 0;
 
-    for (;;) {
-	//struct ulabel *l = label_get_current();
-	//printf("tclnt: label %s\n", label_to_string(l));
-	//label_free(l);
+    for (int i = 0; i < 10; i++) {
+	struct ulabel *l = label_get_current();
+	printf("tclnt: label %s\n", label_to_string(l));
+	label_free(l);
 
 	struct cobj_ref arg = COBJ(a, b);
 	int r = gate_call(myct, gate, &arg);
