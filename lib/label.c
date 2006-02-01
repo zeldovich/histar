@@ -1,5 +1,6 @@
 #include <inc/lib.h>
 #include <inc/error.h>
+#include <inc/syscall.h>
 
 static int
 label_grow(struct ulabel *l)
@@ -10,6 +11,7 @@ label_grow(struct ulabel *l)
 	return -E_NO_MEM;
 
     memset(&newent[l->ul_size], 0, l->ul_size * sizeof(*l->ul_ent));
+    l->ul_size = newsize;
     l->ul_ent = newent;
     return 0;
 }
@@ -44,7 +46,17 @@ struct ulabel *
 label_get_current()
 {
     struct ulabel *l = label_alloc();
-    int r = thread_get_label(start_env->container, l);
+    int r;
+
+retry:
+    r = thread_get_label(start_env->container, l);
+
+    if (r == -E_NO_SPACE) {
+	r = label_grow(l);
+	if (r == 0)
+	    goto retry;
+    }
+
     if (r < 0) {
 	printf("label_get_current: %s\n", e2s(r));
 	label_free(l);
@@ -57,7 +69,7 @@ label_get_current()
 int
 label_set_current(struct ulabel *l)
 {
-    return -1;
+    return sys_thread_set_label(l);
 }
 
 static int
@@ -111,6 +123,9 @@ label_to_string(struct ulabel *l)
 
     char *buf = &bufs[bufidx][0];
     bufidx = (bufidx + 1) % nbufs;
+
+    if (l == 0)
+	return "(null)";
 
     uint32_t off = 0;
     off += snprintf(&buf[off], bufsize - off, "{ ");
