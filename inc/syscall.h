@@ -49,6 +49,7 @@ void	sys_thread_sleep(uint64_t msec);
 int64_t sys_thread_id(void);
 int	sys_thread_addref(uint64_t container);
 int	sys_thread_get_as(struct cobj_ref *as_obj);
+int	sys_thread_set_label(struct ulabel *l);
 
 int64_t	sys_segment_create(uint64_t container, uint64_t num_pages,
 			   struct ulabel *l);

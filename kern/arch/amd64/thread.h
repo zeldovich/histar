@@ -48,6 +48,7 @@ int  thread_gc(struct Thread *t);
 int  thread_jump(struct Thread *t, const struct Label *label,
 		 struct cobj_ref as, void *entry, void *stack,
 		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
+int  thread_change_label(struct Thread *t, const struct Label *l);
 void thread_syscall_restart(struct Thread *t);
 
 void thread_set_runnable(struct Thread *t);

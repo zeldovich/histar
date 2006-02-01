@@ -161,6 +161,12 @@ sys_thread_get_as(struct cobj_ref *as_obj)
     return syscall(SYS_thread_get_as, as_obj);
 }
 
+int
+sys_thread_set_label(struct ulabel *l)
+{
+    return syscall(SYS_thread_set_label, l);
+}
+
 int64_t
 sys_segment_create(uint64_t container, uint64_t num_pages, struct ulabel *l)
 {

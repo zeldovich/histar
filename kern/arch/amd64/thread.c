@@ -169,10 +169,7 @@ thread_run(struct Thread *t)
 }
 
 int
-thread_jump(struct Thread *t, const struct Label *label,
-	    struct cobj_ref as, void *entry,
-	    void *stack, uint64_t arg0,
-	    uint64_t arg1, uint64_t arg2)
+thread_change_label(struct Thread *t, const struct Label *label)
 {
     const struct kobject *ko_sg, *ko_ct;
     int r = kobject_get(t->th_sg, &ko_sg, iflow_rw);
@@ -186,6 +183,19 @@ thread_jump(struct Thread *t, const struct Label *label,
     t->th_ko.ko_label = *label;
     kobject_dirty(&ko_sg->u.hdr)->u.hdr.ko_label = *label;
     kobject_dirty(&ko_ct->u.hdr)->u.hdr.ko_label = *label;
+
+    return 0;
+}
+
+int
+thread_jump(struct Thread *t, const struct Label *label,
+	    struct cobj_ref as, void *entry,
+	    void *stack, uint64_t arg0,
+	    uint64_t arg1, uint64_t arg2)
+{
+    int r = thread_change_label(t, label);
+    if (r < 0)
+	return r;
 
     if (t->th_as)
 	kobject_unpin_hdr(&t->th_as->as_ko);

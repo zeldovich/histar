@@ -354,6 +354,16 @@ sys_thread_get_as(struct cobj_ref *as_ref)
     *as_ref = cur_thread->th_asref;
 }
 
+static void
+sys_thread_set_label(struct ulabel *ul)
+{
+    struct Label l;
+    check(ulabel_to_label(ul, &l));
+
+    check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
+    check(thread_change_label(cur_thread, &l));
+}
+
 static kobject_id_t
 sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul)
 {
@@ -608,6 +618,10 @@ syscall(syscall_num num, uint64_t a1,
 	    page_user_incore((void**) &a1, sizeof(as_ref));
 	    memcpy((void*) a1, &as_ref, sizeof(as_ref));
 	}
+	break;
+
+    case SYS_thread_set_label:
+	sys_thread_set_label((struct ulabel *) a1);
 	break;
 
     case SYS_segment_create:
