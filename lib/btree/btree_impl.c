@@ -1,4 +1,4 @@
-#include <lib/btree/btree_man.h>
+#include <lib/btree/btree_impl.h>
 #include <lib/btree/btree.h>
 #include <lib/btree/cache.h>
 #include <machine/stackwrap.h>
