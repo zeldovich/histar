@@ -8,6 +8,11 @@ main(int ac, char **av)
 {
     cprintf("client process starting.\n");
 
+    // make sure our segments are created with good labels
+    struct ulabel *l = label_get_current();
+    assert(l);
+    segment_default_label(l);
+
     uint64_t myct = start_env->container;
 
     int64_t gate_id = container_find(start_env->root_container,
@@ -22,6 +27,10 @@ main(int ac, char **av)
     int round = 0;
 
     for (;;) {
+	//struct ulabel *l = label_get_current();
+	//printf("tclnt: label %s\n", label_to_string(l));
+	//label_free(l);
+
 	struct cobj_ref arg = COBJ(a, b);
 	int r = gate_call(myct, gate, &arg);
 	if (r < 0)
