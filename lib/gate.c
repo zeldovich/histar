@@ -110,9 +110,10 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     ug->func_arg = func_arg;
 
     uint64_t label_ents[8];
-    struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
+    struct ulabel l_send = { .ul_size = 8, .ul_ent = &label_ents[0], };
+    struct ulabel l_recv = { .ul_nent = 0, .ul_default = 2 };
 
-    r = thread_get_label(container, &ul);
+    r = thread_get_label(container, &l_send);
     if (r < 0)
 	goto out;
 
@@ -126,7 +127,8 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     if (r < 0)
 	goto out;
 
-    int64_t gate_id = sys_gate_create(container, &te, &ul, &ul);
+    int64_t gate_id = sys_gate_create(container, &te,
+				      &l_recv, &l_send);
     if (gate_id < 0) {
 	r = gate_id;
 	goto out;
@@ -146,6 +148,7 @@ struct gate_return {
     int *rvalp;
     struct cobj_ref *argp;
     struct jmp_buf *return_jmpbuf;
+    int64_t return_handle;
 };
 
 static void __attribute__((noreturn))
@@ -153,6 +156,12 @@ gate_call_return(struct gate_return *gr, struct cobj_ref arg)
 {
     if (atomic_compare_exchange(&gr->return_count, 0, 1) != 0)
 	panic("gate_call_return: multiple return");
+
+    struct ulabel *l = label_get_current();
+    assert(l);
+
+    label_set_level(l, gr->return_handle, l->ul_default);
+    assert(0 == label_set_current(l));
 
     *gr->rvalp = 0;
     *gr->argp = arg;
@@ -164,10 +173,15 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
 		       void *return_stack,
 		       struct cobj_ref *return_gatep)
 {
-    uint64_t label_ents[8];
-    struct ulabel ul = { .ul_size = 8, .ul_ent = &label_ents[0], };
+    uint64_t recv_label_ents[1] = { LB_CODE(gr->return_handle, 0) };
+    struct ulabel l_recv = { .ul_nent = 1, .ul_default = 2,
+			     .ul_ent = &recv_label_ents[0] };
 
-    int r = thread_get_label(ctemp, &ul);
+    uint64_t send_label_ents[8];
+    struct ulabel l_send = { .ul_size = 8,
+			     .ul_ent = &send_label_ents[0] };
+
+    int r = thread_get_label(ctemp, &l_send);
     if (r < 0)
 	return r;
 
@@ -181,7 +195,8 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
     if (r < 0)
 	return r;
 
-    int64_t gate_id = sys_gate_create(ctemp, &te, &ul, &ul);
+    int64_t gate_id = sys_gate_create(ctemp, &te,
+				      &l_recv, &l_send);
     if (gate_id < 0)
 	return gate_id;
 
@@ -217,6 +232,13 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
     gr->rvalp = &r;
     gr->argp = argp;
     gr->return_jmpbuf = &back_from_call;
+    gr->return_handle = sys_handle_create();
+    if (gr->return_handle < 0) {
+	printf("gate_call: cannot alloc return handle: %s\n",
+	       e2s(gr->return_handle));
+	r = gr->return_handle;
+	goto out3;
+    }
 
     struct cobj_ref return_gate;
     if (setjmp(&back_from_call) == 0) {

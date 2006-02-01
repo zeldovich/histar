@@ -103,6 +103,11 @@ netdev_init(uint64_t ct)
 int
 main(int ac, char **av)
 {
+    // ensure our segments have reasonable labels
+    struct ulabel *l = label_get_current();
+    assert(l);
+    segment_default_label(l);
+
     // container is passed as argument to _start()
     container = start_env->container;
 

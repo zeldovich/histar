@@ -67,5 +67,9 @@ http_server(void)
 int
 main(int ac, char **av)
 {
+    struct ulabel *l = label_get_current();
+    assert(l);
+    segment_default_label(l);
+
     http_server();
 }
