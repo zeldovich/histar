@@ -97,3 +97,34 @@ label_get_level(struct ulabel *l, uint64_t handle)
     else
 	return LB_LEVEL(l->ul_ent[slot]);
 }
+
+const char *
+label_to_string(struct ulabel *l)
+{
+    enum {
+	nbufs = 4,
+	bufsize = 256
+    };
+
+    static char bufs[nbufs][bufsize];
+    static int bufidx;
+
+    char *buf = &bufs[bufidx][0];
+    bufidx = (bufidx + 1) % nbufs;
+
+    uint32_t off = 0;
+    off += snprintf(&buf[off], bufsize - off, "{ ");
+    for (int i = 0; i < l->ul_nent; i++) {
+	char level[4];
+	if (LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
+	    snprintf(&level[0], 4, "*");
+	else
+	    snprintf(&level[0], 4, "%d", LB_LEVEL(l->ul_ent[i]));
+
+	off += snprintf(&buf[off], bufsize - off, "%ld:%s ",
+			LB_HANDLE(l->ul_ent[i]), &level[0]);
+    }
+    off += snprintf(&buf[off], bufsize - off, "%d }", l->ul_default);
+
+    return buf;
+}

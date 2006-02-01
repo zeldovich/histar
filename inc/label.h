@@ -12,7 +12,7 @@ struct ulabel {
 };
 
 #define LB_HANDLE(ent)		((ent) & 0x1fffffffffffffffUL)
-#define LB_LEVEL(ent)		((ent) >> 61)
+#define LB_LEVEL(ent)		((level_t) ((ent) >> 61))
 
 #define LB_LEVEL_STAR		4
 #define LB_CODE(h, level)	((h) | (((uint64_t) (level)) << 61))
