@@ -82,12 +82,12 @@ label_find_slot(struct ulabel *l, uint64_t handle)
 }
 
 int
-label_set_level(struct ulabel *l, uint64_t handle, level_t level)
+label_set_level(struct ulabel *l, uint64_t handle, level_t level, bool_t grow)
 {
     int slot = label_find_slot(l, handle);
     if (slot < 0) {
 	if (l->ul_nent == l->ul_size) {
-	    int r = label_grow(l);
+	    int r = grow ? label_grow(l) : -E_NO_MEM;
 	    if (r < 0)
 		return r;
 	}

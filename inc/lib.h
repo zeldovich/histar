@@ -100,7 +100,9 @@ struct ulabel *label_alloc();
 void label_free(struct ulabel *l);
 struct ulabel *label_get_current();
 int  label_set_current(struct ulabel *l);
-int  label_set_level(struct ulabel *l, uint64_t handle, level_t level);
+int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
+		     bool_t grow);
+level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(struct ulabel *l);
 
 #endif
