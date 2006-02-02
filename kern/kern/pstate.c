@@ -96,8 +96,8 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 		(ko->u.hdr.ko_type == kobj_thread)) {
 		r = btree_insert(&iobjlist.tree, &ko->u.hdr.ko_id, &offset) ;
 		if (r < 0) {
-			cprintf("pstate_kobj_alloc: iobjlist insert failed,
-					disk full?\n") ;
+			cprintf("pstate_kobj_alloc: iobjlist insert failed, "
+				"disk full?\n") ;
 			return r ;	
 		}
 	}
