@@ -103,16 +103,12 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 	}
     }
 
-    int r = pstate_swapin(id);
-    if (r < 0) {
-	// Should match the code returned by container_find() when trying
-	// to get an object of the wrong type.
-	if (r == -E_NOT_FOUND)
-	    r = -E_INVAL;
-	return r;
-    }
+    // Should match the code returned by container_find() when trying
+    // to get an object of the wrong type.
+    if (kobject_negative_contains(id))
+	return -E_INVAL;
 
-    return -E_RESTART;
+    return pstate_swapin(id);
 }
 
 int
@@ -145,6 +141,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_flags = KOBJ_DIRTY;
     pagetree_init(&kh->ko_pt);
 
+    kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, kh, ko_link);
 
     *kp = ko;
@@ -225,6 +222,7 @@ kobject_swapin(struct kobject *ko)
 	cprintf("kobject_swapin: %ld checksum mismatch: 0x%lx != 0x%lx\n",
 		ko->u.hdr.ko_id, sum1, sum2);
 
+    kobject_negative_remove(ko->u.hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
     ko->u.hdr.ko_pin = 0;
     ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
@@ -392,4 +390,51 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);
 	thread_set_runnable(t);
     }
+}
+
+// Negative kobject id cache (objects that don't exist)
+enum {
+    kobject_neg_nent = 1024
+};
+static struct {
+    int inited;
+    int next;
+    kobject_id_t ents[kobject_neg_nent];
+} kobject_neg;
+
+void
+kobject_negative_insert(kobject_id_t id)
+{
+    if (!kobject_neg.inited)
+	for (int i = 0; i < kobject_neg_nent; i++)
+	    kobject_neg.ents[i] = kobject_id_null;
+
+    cprintf("kobject_negative_insert: %ld\n", id);
+    kobject_neg.inited = 1;
+    kobject_neg.ents[kobject_neg.next] = id;
+    kobject_neg.next = (kobject_neg.next + 1) % kobject_neg_nent;
+}
+
+void
+kobject_negative_remove(kobject_id_t id)
+{
+    if (!kobject_neg.inited)
+	return;
+
+    for (int i = 0; i < kobject_neg_nent; i++)
+	if (kobject_neg.ents[i] == id)
+	    kobject_neg.ents[i] = kobject_id_null;
+}
+
+bool_t
+kobject_negative_contains(kobject_id_t id)
+{
+    if (!kobject_neg.inited)
+	return 0;
+
+    for (int i = 0; i < kobject_neg_nent; i++)
+	if (kobject_neg.ents[i] == id)
+	    return 1;
+
+    return 0;
 }

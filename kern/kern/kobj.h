@@ -74,4 +74,8 @@ void kobject_unpin_hdr(const struct kobject_hdr *kp);
 void kobject_pin_page(const struct kobject_hdr *kp);
 void kobject_unpin_page(const struct kobject_hdr *kp);
 
+void kobject_negative_insert(kobject_id_t id);
+void kobject_negative_remove(kobject_id_t id);
+bool_t kobject_negative_contains(kobject_id_t id);
+
 #endif

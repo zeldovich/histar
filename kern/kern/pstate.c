@@ -113,7 +113,7 @@ static int swapin_active;
 static int
 pstate_swapin_off(offset_t off)
 {
-  	void *p;
+    void *p;
     int r = page_alloc(&p);
     if (r < 0) {
 		cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
@@ -169,44 +169,45 @@ pstate_swapin_stackwrap(void *arg)
     static struct Thread_list swapin_waiting;
 
     if (cur_thread)
-		thread_suspend(cur_thread, &swapin_waiting);
+	thread_suspend(cur_thread, &swapin_waiting);
 
     if (swapin_active)
-		return;
+	return;
 
-    offset_t off = (int64_t) arg;
-    int r = pstate_swapin_off(off);
-    if (r < 0)
-		cprintf("pstate_swapin_cb: %s\n", e2s(r));
+    kobject_id_t id = (kobject_id_t) arg;
+    kobject_id_t id_found;
+    struct mobject mobj;
+    int r = btree_search(&objmap.tree, &id, &id_found, (uint64_t *) &mobj);
+    if (r == -E_NOT_FOUND) {
+	if (pstate_swapin_debug)
+	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
+	kobject_negative_insert(id);
+    } else if (r < 0) {
+	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
+    } else {
+	r = pstate_swapin_off(mobj.off);
+	if (r < 0)
+	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
+    }
 
     while (!LIST_EMPTY(&swapin_waiting)) {
-		struct Thread *t = LIST_FIRST(&swapin_waiting);
-		thread_set_runnable(t);
+	struct Thread *t = LIST_FIRST(&swapin_waiting);
+	thread_set_runnable(t);
     }
 }
 
 int
 pstate_swapin(kobject_id_t id) {
     if (pstate_swapin_debug)
-		cprintf("pstate_swapin: object %ld\n", id);
+	cprintf("pstate_swapin: object %ld\n", id);
 
-    // XXX this is potentially bad, if we end up having to do disk IO;
-    // we aren't in a stackwrap yet.
-    //
-    // what we probably need is some sort of negative lookup cache, so
-    // that we can cache the absence of an entry.
-    struct mobject mobj ;
-    int r = btree_search(&objmap.tree, &id, &id, (uint64_t *) &mobj) ;
-	if (r < 0)
-		return r ;
-
-    r = stackwrap_call(&pstate_swapin_stackwrap, (void *) mobj.off);
+    int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) id);
     if (r < 0) {
-		cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
-		return r;
+	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
+	return r;
     }
 
-    return 0;
+    return -E_RESTART;
 }
 
 /////////////////////////////////////
