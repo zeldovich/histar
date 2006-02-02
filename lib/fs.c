@@ -32,7 +32,7 @@ fs_get_dent(struct cobj_ref d, int n, struct fs_dent *e)
     // The directory entries start with 1, so offset the index by 1
     n++;
 
-    if (n < 0 || n >= max_dent)
+    if (n < 0 || n > max_dent)
 	return -E_RANGE;
 
     e->de_cobj = COBJ(d.container, dirbuf[16*n]);
