@@ -377,10 +377,8 @@ disk_io(disk_op op, void *buf,
     struct ide_channel *idec = &the_ide_channel;
     struct ide_op *curop = &idec->current_op;
 
-    if (curop->op != op_none) {
-	cprintf("Disk busy, dropping IO request?\n");
+    if (curop->op != op_none)
 	return -E_BUSY;
-    }
 
     curop->op = op;
     curop->buf = buf;

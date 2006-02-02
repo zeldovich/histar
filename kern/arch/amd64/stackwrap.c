@@ -2,6 +2,7 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <inc/setjmp.h>
+#include <inc/error.h>
 
 #define STACKWRAP_MAGIC	0xabcd9262deed1713
 
@@ -89,6 +90,7 @@ stackwrap_call(stackwrap_fn fn, void *fn_arg)
 struct disk_io_request {
     struct stackwrap_state *ss;
     disk_io_status status;
+    LIST_ENTRY(disk_io_request) link;
 };
 
 static void
@@ -105,8 +107,28 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
     struct stackwrap_state *ss = stackwrap_cur();
     struct disk_io_request ds = { .ss = ss };
 
-    disk_io(op, buf, count, offset, &disk_io_cb, &ds);
-    stackwrap_sleep(ss);
+    static LIST_HEAD(disk_waiters_list, disk_io_request) disk_waiters;
+
+    for (;;) {
+	int r = disk_io(op, buf, count, offset, &disk_io_cb, &ds);
+	if (r == 0) {
+	    stackwrap_sleep(ss);
+	    break;
+	} else if (r == -E_BUSY) {
+	    LIST_INSERT_HEAD(&disk_waiters, &ds, link);
+	    stackwrap_sleep(ss);
+	} else if (r < 0) {
+	    cprintf("stackwrap_disk_io: unexpected error: %s\n", e2s(r));
+	    ds.status = disk_io_failure;
+	    break;
+	}
+    }
+
+    while (!LIST_EMPTY(&disk_waiters)) {
+	struct disk_io_request *rq = LIST_FIRST(&disk_waiters);
+	LIST_REMOVE(rq, link);
+	stackwrap_wakeup(rq->ss);
+    }
 
     return ds.status;
 }

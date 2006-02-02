@@ -108,8 +108,6 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 // Swap-in code
 //////////////////////////////////
 
-static int swapin_active;
-
 static int
 pstate_swapin_off(offset_t off)
 {
@@ -120,17 +118,12 @@ pstate_swapin_off(offset_t off)
 		return r;
     }
 
-    assert(swapin_active == 0);
-    swapin_active = 1;
-
     struct kobject *ko = (struct kobject *) p;
-		
-	offset_t offset = PGSIZE * off ;
+    offset_t offset = PGSIZE * off ;
     
     disk_io_status s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
     if (s != disk_io_success) {
 		cprintf("pstate_swapin_obj: cannot read object from disk\n");
-		swapin_active = 0;
 		return -E_IO;
     }
 
@@ -139,7 +132,6 @@ pstate_swapin_off(offset_t off)
 		r = page_alloc(&p);
 		if (r < 0) {
 		    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
-		    swapin_active = 0;
 		    return r;
 		}
 	
@@ -147,7 +139,6 @@ pstate_swapin_off(offset_t off)
 		s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
 		if (s != disk_io_success) {
 		    cprintf("pstate_swapin_obj: cannot read page from disk\n");
-		    swapin_active = 0;
 		    return -E_IO;
 		}
 	
@@ -159,7 +150,6 @@ pstate_swapin_off(offset_t off)
 			ko->u.hdr.ko_id, ko->u.hdr.ko_npages);
 
     kobject_swapin(ko);
-    swapin_active = 0;
     return 0;
 }
 
@@ -170,9 +160,6 @@ pstate_swapin_stackwrap(void *arg)
 
     if (cur_thread)
 	thread_suspend(cur_thread, &swapin_waiting);
-
-    if (swapin_active)
-	return;
 
     kobject_id_t id = (kobject_id_t) arg;
     kobject_id_t id_found;
