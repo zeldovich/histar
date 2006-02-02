@@ -15,7 +15,7 @@ struct mlt_entry {
     uint8_t me_buf[MLT_BUF_SIZE];
 };
 
-int  mlt_alloc(struct Label *l, struct Mlt **mtp);
+int  mlt_alloc(const struct Label *l, struct Mlt **mtp);
 
 // store using cur_thread's label
 int  mlt_put(const struct Mlt *mlt, uint8_t *buf);

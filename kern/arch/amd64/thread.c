@@ -10,7 +10,7 @@
 #include <inc/elf64.h>
 #include <inc/error.h>
 
-struct Thread *cur_thread;
+const struct Thread *cur_thread;
 struct Thread_list thread_list_runnable;
 struct Thread_list thread_list_limbo;
 
@@ -33,8 +33,10 @@ thread_unpin(struct Thread *t)
 }
 
 void
-thread_set_runnable(struct Thread *t)
+thread_set_runnable(const struct Thread *const_t)
 {
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
     t->th_status = thread_runnable;
@@ -42,8 +44,10 @@ thread_set_runnable(struct Thread *t)
 }
 
 void
-thread_suspend(struct Thread *t, struct Thread_list *waitq)
+thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 {
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(waitq, t, th_link);
     t->th_status = thread_suspended;
@@ -51,8 +55,10 @@ thread_suspend(struct Thread *t, struct Thread_list *waitq)
 }
 
 void
-thread_halt(struct Thread *t)
+thread_halt(const struct Thread *const_t)
 {
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
     t->th_status = thread_halted;
@@ -62,7 +68,7 @@ thread_halt(struct Thread *t)
 }
 
 int
-thread_alloc(struct Label *l, struct Thread **tp)
+thread_alloc(const struct Label *l, struct Thread **tp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_thread, l, &ko);
@@ -159,7 +165,7 @@ thread_gc(struct Thread *t)
 }
 
 void
-thread_run(struct Thread *t)
+thread_run(const struct Thread *t)
 {
     if (t->th_status != thread_runnable)
 	panic("trying to run a non-runnable thread %p", t);
@@ -169,8 +175,10 @@ thread_run(struct Thread *t)
 }
 
 int
-thread_change_label(struct Thread *t, const struct Label *label)
+thread_change_label(const struct Thread *const_t, const struct Label *label)
 {
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+
     const struct kobject *ko_sg, *ko_ct;
     int r = kobject_get(t->th_sg, &ko_sg, iflow_rw);
     if (r < 0)
@@ -188,11 +196,13 @@ thread_change_label(struct Thread *t, const struct Label *label)
 }
 
 int
-thread_jump(struct Thread *t, const struct Label *label,
+thread_jump(const struct Thread *const_t, const struct Label *label,
 	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
 {
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+
     int r = thread_change_label(t, label);
     if (r < 0)
 	return r;
@@ -216,20 +226,20 @@ thread_jump(struct Thread *t, const struct Label *label,
 }
 
 void
-thread_syscall_restart(struct Thread *t)
+thread_syscall_restart(const struct Thread *t)
 {
-    t->th_tf.tf_rip -= 2;
+    kobject_dirty(&t->th_ko)->u.th.th_tf.tf_rip -= 2;
 }
 
 void
-thread_switch(struct Thread *t)
+thread_switch(const struct Thread *t)
 {
     cur_thread = t;
     as_switch(t->th_as);
 }
 
 int
-thread_pagefault(struct Thread *t, void *fault_va)
+thread_pagefault(const struct Thread *t, void *fault_va)
 {
     if (t->th_as == 0) {
 	const struct kobject *ko;
@@ -238,7 +248,7 @@ thread_pagefault(struct Thread *t, void *fault_va)
 	    return r;
 
 	const struct Address_space *as = &ko->u.as;
-	t->th_as = as;
+	kobject_dirty(&t->th_ko)->u.th.th_as = as;
 	kobject_pin_hdr(&t->th_as->as_ko);
     }
 

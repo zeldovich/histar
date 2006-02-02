@@ -36,7 +36,7 @@ extern struct net_device *the_net_device;
 //  * Otherwise, a new generation number is returned (positive
 //    64-bit signed int).
 
-int64_t netdev_thread_wait(struct net_device *ndev, struct Thread *t,
+int64_t netdev_thread_wait(struct net_device *ndev, const struct Thread *t,
 			   uint64_t waiter, int64_t gen);
 void	netdev_thread_wakeup(struct net_device *ndev);
 

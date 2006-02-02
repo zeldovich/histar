@@ -5,7 +5,7 @@
 #include <inc/error.h>
 
 int
-container_alloc(struct Label *l, struct Container **cp)
+container_alloc(const struct Label *l, struct Container **cp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_container, l, &ko);
@@ -95,7 +95,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 }
 
 int
-container_put(struct Container *c, struct kobject_hdr *ko)
+container_put(struct Container *c, const struct kobject_hdr *ko)
 {
     struct container_slot *cs;
     int r = container_slot_find(c, ko->ko_id, &cs, page_rw);

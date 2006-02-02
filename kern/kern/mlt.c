@@ -6,7 +6,7 @@
 #define MLT_SLOTS_PER_PAGE	(PGSIZE / sizeof(struct mlt_entry))
 
 int
-mlt_alloc(struct Label *l, struct Mlt **mtp)
+mlt_alloc(const struct Label *l, struct Mlt **mtp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_mlt, l, &ko);
@@ -60,7 +60,7 @@ int
 mlt_put(const struct Mlt *mlt, uint8_t *buf)
 {
     struct mlt_entry *me = 0;
-    struct Label *l = &cur_thread->th_ko.ko_label;
+    const struct Label *l = &cur_thread->th_ko.ko_label;
 
     int r;
     struct mlt_entry *freeslot = 0;

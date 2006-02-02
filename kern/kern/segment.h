@@ -11,7 +11,7 @@ struct Segment {
     struct segmap_list sg_segmap_list;
 };
 
-int  segment_alloc(struct Label *l, struct Segment **sgp);
+int  segment_alloc(const struct Label *l, struct Segment **sgp);
 int  segment_copy(const struct Segment *src, struct Label *newl,
 		  struct Segment **dstp);
 int  segment_set_npages(struct Segment *sg, uint64_t num_pages);

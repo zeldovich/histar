@@ -17,7 +17,7 @@ netdev_add_buf(struct net_device *ndev, const struct Segment *sg,
 }
 
 int64_t
-netdev_thread_wait(struct net_device *ndev, struct Thread *t,
+netdev_thread_wait(struct net_device *ndev, const struct Thread *t,
 		   uint64_t waiter, int64_t gen)
 {
     if (waiter != ndev->waiter_id) {

@@ -322,7 +322,7 @@ kobject_gc_scan(void)
 {
     // Clear cur_thread to avoid putting it to sleep on behalf of
     // our swapped-in objects.
-    struct Thread *t = cur_thread;
+    const struct Thread *t = cur_thread;
     cur_thread = 0;
 
     struct kobject_hdr *ko;

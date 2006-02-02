@@ -6,7 +6,7 @@
 #include <inc/error.h>
 
 int
-as_alloc(struct Label *l, struct Address_space **asp)
+as_alloc(const struct Label *l, struct Address_space **asp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_address_space, l, &ko);

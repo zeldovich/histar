@@ -6,7 +6,7 @@
 #include <inc/error.h>
 
 int
-segment_alloc(struct Label *l, struct Segment **sgp)
+segment_alloc(const struct Label *l, struct Segment **sgp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_segment, l, &ko);

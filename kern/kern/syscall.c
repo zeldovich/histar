@@ -179,7 +179,11 @@ static uint64_t
 sys_handle_create(void)
 {
     uint64_t handle = handle_alloc();
-    check(label_set(&cur_thread->th_ko.ko_label, handle, LB_LEVEL_STAR));
+
+    struct Label l = cur_thread->th_ko.ko_label;
+    check(label_set(&l, handle, LB_LEVEL_STAR));
+    check(thread_change_label(cur_thread, &l));
+
     return handle;
 }
 
@@ -330,7 +334,8 @@ sys_thread_halt(void)
 static void
 sys_thread_sleep(uint64_t msec)
 {
-    cur_thread->th_wakeup_ticks = timer_ticks + kclock_msec_to_ticks(msec);
+    kobject_dirty(&cur_thread->th_ko)->u.th.th_wakeup_ticks =
+	timer_ticks + kclock_msec_to_ticks(msec);
     thread_suspend(cur_thread, &timer_sleep);
 }
 

@@ -7,6 +7,6 @@
 void idt_init(void);
 
 // Low-level trapframe jump in locore.S
-void trapframe_pop(struct Trapframe *) __attribute__((__noreturn__));
+void trapframe_pop(const struct Trapframe *) __attribute__((__noreturn__));
 
 #endif

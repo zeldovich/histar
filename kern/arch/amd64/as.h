@@ -30,7 +30,7 @@ struct Address_space {
     kobject_id_t as_pgmap_tid;
 };
 
-int  as_alloc(struct Label *l, struct Address_space **asp);
+int  as_alloc(const struct Label *l, struct Address_space **asp);
 int  as_to_user(const struct Address_space *as, struct u_address_space *uas);
 int  as_from_user(struct Address_space *as, struct u_address_space *uas);
 

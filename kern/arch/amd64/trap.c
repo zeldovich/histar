@@ -8,6 +8,7 @@
 #include <kern/lib.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 static struct {
@@ -132,8 +133,9 @@ trap_handler (struct Trapframe *tf)
 	panic("trap %d with no active thread", trapno);
     }
 
-    cur_thread->th_tf = *tf;
-    trap_dispatch(trapno, &cur_thread->th_tf);
+    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->u.th;
+    t->th_tf = *tf;
+    trap_dispatch(trapno, &t->th_tf);
 
     if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
 	schedule();

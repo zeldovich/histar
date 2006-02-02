@@ -38,26 +38,26 @@ LIST_HEAD(Thread_list, Thread);
 
 extern struct Thread_list thread_list_runnable;
 extern struct Thread_list thread_list_limbo;
-extern struct Thread *cur_thread;
+extern const struct Thread *cur_thread;
 
-int  thread_alloc(struct Label *l, struct Thread **tp);
+int  thread_alloc(const struct Label *l, struct Thread **tp);
 void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t);
 
-int  thread_jump(struct Thread *t, const struct Label *label,
+int  thread_jump(const struct Thread *t, const struct Label *label,
 		 struct cobj_ref as, void *entry, void *stack,
 		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
-int  thread_change_label(struct Thread *t, const struct Label *l);
-void thread_syscall_restart(struct Thread *t);
+int  thread_change_label(const struct Thread *t, const struct Label *l);
+void thread_syscall_restart(const struct Thread *t);
 
-void thread_set_runnable(struct Thread *t);
-void thread_suspend(struct Thread *t, struct Thread_list *waitq);
-void thread_halt(struct Thread *t);
+void thread_set_runnable(const struct Thread *t);
+void thread_suspend(const struct Thread *t, struct Thread_list *waitq);
+void thread_halt(const struct Thread *t);
 
-void thread_switch(struct Thread *t);
-void thread_run(struct Thread *t) __attribute__((__noreturn__));
+void thread_switch(const struct Thread *t);
+void thread_run(const struct Thread *t) __attribute__((__noreturn__));
 
-int  thread_pagefault(struct Thread *t, void *va);
+int  thread_pagefault(const struct Thread *t, void *va);
 
 #endif
