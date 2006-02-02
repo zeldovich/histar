@@ -13,6 +13,11 @@ main(int ac, char **av)
     assert(l);
     segment_default_label(l);
 
+    // create a private handle for ourselves
+    int64_t client_handle = sys_handle_create();
+    if (client_handle < 0)
+	panic("sys_handle_create: %s", e2s(client_handle));
+
     uint64_t myct = start_env->container;
 
     int64_t gate_id = container_find(start_env->root_container,
