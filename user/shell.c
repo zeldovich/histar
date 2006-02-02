@@ -109,45 +109,34 @@ builtin_list_container(int ac, char **av)
 	print_cobj(ct, i);
 }
 
-static void
-builtin_ls(int ac, char **av)
+static int64_t
+do_spawn(int ac, char **av)
 {
-    if (ac != 0) {
-	printf("Usage: ls\n");
-	return;
+    struct cobj_ref o;
+    int r = fs_lookup(start_env->fs_root, av[0], &o);
+    if (r < 0) {
+	printf("cannot find %s: %s\n", av[0], e2s(r));
+	return r;
     }
 
-    int n = 0;
-    for (;;) {
-	struct fs_dent de;
-	int r = fs_get_dent(start_env->fs_root, n++, &de);
-	if (r < 0) {
-	    if (r != -E_RANGE)
-		cprintf("fs_get_dent: %s", e2s(r));
-	    break;
-	}
+    int64_t c_spawn = spawn(start_env->root_container, o);
+    if (c_spawn < 0)
+	printf("cannot spawn %s: %s\n", av[0], e2s(c_spawn));
 
-	printf("%s\n", de.de_name);
-    }
+    return c_spawn;
 }
 
 static void
 builtin_spawn(int ac, char **av)
 {
-    if (ac != 1) {
+    if (ac < 1) {
 	printf("Usage: spawn <program-name>\n");
 	return;
     }
 
-    struct cobj_ref o;
-    int r = fs_lookup(start_env->fs_root, av[0], &o);
-    if (r < 0) {
-	printf("cannot find %s: %s\n", av[0], e2s(r));
-	return;
-    }
-
-    int64_t c_spawn = spawn(start_env->root_container, o);
-    printf("Spawned in container %ld\n", c_spawn);
+    int64_t ct = do_spawn(ac, av);
+    if (ct >= 0)
+	printf("Spawned in container %ld\n", ct);
 }
 
 static void
@@ -177,7 +166,6 @@ static struct {
 } commands[] = {
     { "help",	"Display the list of commands",	&builtin_help },
     { "lc",	"List a container",		&builtin_list_container },
-    { "ls",	"List the directory",		&builtin_ls },
     { "spawn",	"Create a thread",		&builtin_spawn },
     { "unref",	"Drop container object",	&builtin_unref },
 };
@@ -229,7 +217,7 @@ run_cmd(int ac, char **av)
 	}
     }
 
-    printf("%s: unknown command, try help\n", av[0]);
+    do_spawn(ac, av);
 }
 
 int
