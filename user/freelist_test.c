@@ -4,8 +4,8 @@
 #include <inc/assert.h>
 #include <inc/memlayout.h>
 
-#define NSEGS		2
-#define SEGPAGES	100
+#define NSEGS		200
+#define SEGPAGES	10
 
 struct cobj_ref segs[NSEGS];
 
