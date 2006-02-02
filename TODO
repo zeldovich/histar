@@ -37,3 +37,6 @@ some sort of disk queueing, or proper interlocking.  currently swapout
 can prevent swapin from scheduling its disk request, which suspends the
 requesting thread indefinitely.
 
+scatter-gather/iovec interface to disk_io() so that we can write out
+the entire object (or at least 64K worth of pages) in one request.
+
