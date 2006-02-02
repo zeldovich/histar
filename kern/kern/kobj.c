@@ -409,7 +409,6 @@ kobject_negative_insert(kobject_id_t id)
 	for (int i = 0; i < kobject_neg_nent; i++)
 	    kobject_neg.ents[i] = kobject_id_null;
 
-    cprintf("kobject_negative_insert: %ld\n", id);
     kobject_neg.inited = 1;
     kobject_neg.ents[kobject_neg.next] = id;
     kobject_neg.next = (kobject_neg.next + 1) % kobject_neg_nent;
