@@ -9,7 +9,7 @@ struct btree_traversal
 	uint16_t pos;
 	
 	const uint64_t	*key ;
-	offset_t		 val ;
+	const offset_t	*val ;
 };
 
 int 	btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;

@@ -87,7 +87,6 @@ btree_simple_write(struct btree_node *node, void *manager)
 		cprintf("btree_man_write: error writing node\n");
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -181,10 +180,11 @@ btree_default_setup(struct btree_default *def, uint8_t order, uint8_t key_size,
 }
 
 int 
-btree_default_init(struct btree_default *def, uint8_t order, uint8_t key_size,
+btree_default_init(struct btree_default *def, uint8_t order, 
+				   uint8_t key_size, uint8_t value_size,
 				   struct freelist *fl,struct cache *cache)
 {
-	btree_init(&def->tree, order, key_size, NULL) ;
+	btree_init(&def->tree, order, key_size, value_size, NULL) ;
 	btree_default_setup(def, order, key_size, fl, cache) ;
 	   	
 	return 0 ;

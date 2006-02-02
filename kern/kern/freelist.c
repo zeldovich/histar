@@ -9,9 +9,7 @@
 #define CHUNK_ORDER 	BTREE_MAX_ORDER2
 
 // global caches for both the btrees
-//STRUCT_BTREE_MAN(offset_cache, 200, OFFSET_ORDER, 1) ;						
 STRUCT_BTREE_CACHE(offset_cache, 200, OFFSET_ORDER, 1) ;						
-//STRUCT_BTREE_MAN(chunk_cache, 200, CHUNK_ORDER, 2) ;		
 STRUCT_BTREE_CACHE(chunk_cache, 200, CHUNK_ORDER, 2) ;				   	
 
 struct chunk
@@ -177,8 +175,8 @@ freelist_insert(struct freelist *l, uint64_t offset, uint64_t npages)
 {
 	struct chunk k = { npages, offset } ;
 	
-	btree_insert(&l->chunks, (offset_t *) &k, offset) ;
-	btree_insert(&l->offsets, &offset, npages) ;
+	btree_insert(&l->chunks, (offset_t *) &k, &offset) ;
+	btree_insert(&l->offsets, &offset, &npages) ;
 	
 	return 0 ;	
 }
@@ -191,11 +189,16 @@ freelist_alloc(struct freelist *l, uint64_t npages)
 	
 	// XXX: optimize...
 	
-	int64_t val = btree_gtet(&l->chunks,
+	int64_t val ;//= btree_gtet(&l->chunks,
+					//	   (uint64_t *)&k,
+						//   (uint64_t *)&k) ;
+	int r = btree_gtet(&l->chunks,
 						   (uint64_t *)&k,
-						   (uint64_t *)&k) ;
+						   (uint64_t *)&k,
+						   &val) ;
 	
-	if (val < 0)
+	
+	if (r < 0)
 		return -E_NO_SPACE ;
 	
 	if (1) {
@@ -204,8 +207,8 @@ freelist_alloc(struct freelist *l, uint64_t npages)
 		
 		k.npages -= npages ;
 		if (k.npages != 0) {
-			btree_insert(&l->offsets, &k.offset, k.npages) ;
-			btree_insert(&l->chunks, (uint64_t *)&k, k.offset) ;
+			btree_insert(&l->offsets, &k.offset, &k.npages) ;
+			btree_insert(&l->chunks, (uint64_t *)&k, &k.offset) ;
 		}
 		
 		offset = k.offset + k.npages ;		
@@ -229,25 +232,29 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 
 	l->free += npages ;
 	
-	int64_t l_npages = btree_ltet(&l->offsets,
-						   	  (uint64_t *)&l_base,
-						   	  (uint64_t *)&l_base) ;
+	int64_t l_npages ; 
+	int rl = btree_ltet(&l->offsets,
+						(uint64_t *)&l_base,
+						(uint64_t *)&l_base,
+						&l_npages) ;
 
-	int64_t g_npages = btree_gtet(&l->offsets,
-						   	  (uint64_t *)&g_base,
-						   	  (uint64_t *)&g_base) ;
+	int64_t g_npages ;  
+	int rg = btree_gtet(&l->offsets,
+			   (uint64_t *)&g_base,
+		   	   (uint64_t *)&g_base,
+		   	   &g_npages) ;
 
 	
 	char l_merge = 0 ;
 	char g_merge = 0 ;
 
 	
-	if (l_npages > 0) {
+	if (rl == 0) {
 		
 		if (l_base + l_npages == base)
 			l_merge = 1 ;
 	}
-	if (g_npages > 0) {
+	if (rg == 0) {
 		
 		if (base + npages == g_base)
 			g_merge = 1 ;
@@ -273,9 +280,9 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 
 	
 
-	btree_insert(&l->offsets, &base, npages) ;
+	btree_insert(&l->offsets, &base, &npages) ;
 	struct chunk k = { npages, base } ;
-	btree_insert(&l->chunks, (uint64_t *) &k, base) ;
+	btree_insert(&l->chunks, (uint64_t *) &k, &base) ;
 	
 	frm_service(l) ;
 	
@@ -326,8 +333,8 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t npages)
 	base += FRM_BUF_SIZE ;
 	npages -= FRM_BUF_SIZE ;
 	
-	btree_init(&l->chunks, CHUNK_ORDER, 2, &temp1) ;
-	btree_init(&l->offsets, OFFSET_ORDER, 1, &temp2) ;
+	btree_init(&l->chunks, CHUNK_ORDER, 2, 1, &temp1) ;
+	btree_init(&l->offsets, OFFSET_ORDER, 1, 1, &temp2) ;
 
 	if ((r = freelist_insert(l, base, npages)) < 0)
 		return r ;
@@ -340,6 +347,7 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t npages)
 //////////////////////////////
 // debug
 //////////////////////////////
+
 #include <lib/btree/cache.h>
 
 void
@@ -355,3 +363,4 @@ freelist_pretty_print(struct freelist *l)
 	cprintf("num pinned %d\n", 
 			cache_num_pinned(l->offset_frm.simple.cache)) ;
 }
+

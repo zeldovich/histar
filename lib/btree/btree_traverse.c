@@ -94,7 +94,8 @@ btree_first_offset(struct btree_traversal *trav)
 	trav->pos = 1;
 
 	trav->key = btree_key(trav->node->keys, 0, trav->tree->s_key) ;
-	trav->val = trav->node->children[0] ;
+	//trav->val = trav->node->children[0] ;
+	trav->val = btree_value(trav->node->children, 0, trav->tree->s_value) ;
 
 	return 1 ;
 }
@@ -111,7 +112,10 @@ btree_next_offset(struct btree_traversal *trav)
 
 	if (trav->pos == trav->node->keyCount)
 	{
-		offset_t nextNodeOffset = trav->node->children[trav->pos];
+		//offset_t nextNodeOffset = trav->node->children[trav->pos];
+		offset_t nextNodeOffset = *btree_value(trav->node->children, 
+											  trav->pos, 
+											  trav->tree->s_value);
 		
 		btree_destroy_node(trav->node);
 		btree_release_nodes(trav->tree) ;
@@ -127,7 +131,8 @@ btree_next_offset(struct btree_traversal *trav)
 	}
 
 	
-	trav->val = trav->node->children[trav->pos];
+	//trav->val = trav->node->children[trav->pos];
+	trav->val = btree_value(trav->node->children, trav->pos, trav->tree->s_value) ;
 	trav->key = btree_key(trav->node->keys, trav->pos, trav->tree->s_key) ;
 
 	trav->pos++;
@@ -164,9 +169,13 @@ btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	
 	}
 		//printf(" %ld .", rootNode->keys[j]);
-
-	for (j = tree->order - rootNode->keyCount; j > 1; j--)
-		cprintf(" _____ .");
+	
+	if (BTREE_IS_LEAF(rootNode))
+		for (j = btree_leaf_order(rootNode) - rootNode->keyCount; j > 1; j--)
+			cprintf(" _____ .");
+	else
+		for (j = tree->order - rootNode->keyCount; j > 1; j--)
+			cprintf(" _____ .");
 	
 	cprintf("] - %ld\n", rootOffset);
 

@@ -23,7 +23,9 @@
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
+#include <inc/error.h>
 #include <inc/stdio.h>
+#include <inc/assert.h>
 
 static char
 __removeKey(struct btree *tree, 
@@ -32,6 +34,8 @@ __removeKey(struct btree *tree,
 			offset_t *filePos)
 {
 	int i;
+	
+	assert(BTREE_IS_LEAF(rootNode)) ;
 	
 	for (i = 0;
 		 i < rootNode->keyCount && 
@@ -43,6 +47,9 @@ __removeKey(struct btree *tree,
 		btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key, tree->s_key) == 0)
 	{
 		*filePos = rootNode->children[i];
+		btree_valcpy(filePos, 
+					 btree_value(rootNode->children, i, tree->s_key), 
+					 tree->s_key) ;
 
 		for (; i < rootNode->keyCount - 1; i++)
 		{
@@ -51,14 +58,28 @@ __removeKey(struct btree *tree,
 			btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
 						 btree_key(rootNode->keys, i + 1, tree->s_key), 
 						 tree->s_key) ;
-			rootNode->children[i] = rootNode->children[i + 1];
+			//rootNode->children[i] = rootNode->children[i + 1];
+			const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+			const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
+			btree_valcpy(temp1, temp2, tree->s_value) ;
 		}
 
 		//rootNode->keys[i]         = 0;
 		//btree_keyset(&rootNode->keys[i], 0, tree->s_key) ;
 		btree_keyset(btree_key(rootNode->keys, i, tree->s_key), 0, tree->s_key) ;
-		rootNode->children[i]     = rootNode->children[i + 1];
-		rootNode->children[i + 1] = 0;
+		//rootNode->children[i]     = rootNode->children[i + 1];
+		const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+		const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+		
+		//rootNode->children[i + 1] = 0;
+		btree_valset(btree_value(rootNode->children, i + 1, tree->s_value),
+					 0,
+					 tree->s_value) ;
+		
+		btree_valset(btree_value(rootNode->children, i + 1, tree->s_value), 
+					 0, 
+					 tree->s_value) ;
 
 		rootNode->keyCount--;
 
@@ -78,6 +99,8 @@ __removeKey2(struct btree *tree,
 			 int index)
 {
 	int i;
+
+	assert(!BTREE_IS_LEAF(rootNode)) ;
 
 	for (i = index; i < rootNode->keyCount - 1; i++)
 	{
@@ -100,6 +123,46 @@ __removeKey2(struct btree *tree,
 	btree_write_node(rootNode);
 }
 
+static void
+__removeKeyLeaf2(struct btree *tree, 
+			 	  struct btree_node *rootNode, 
+			 	  int index)
+{
+	int i;
+
+	assert(BTREE_IS_LEAF(rootNode)) ;
+
+	for (i = index; i < rootNode->keyCount - 1; i++)
+	{
+		//rootNode->keys[i]     = rootNode->keys[i + 1];
+		btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
+					 btree_key(rootNode->keys, i + 1, tree->s_key), 
+					 tree->s_key) ;
+		//rootNode->children[i] = rootNode->children[i + 1];
+		const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+		const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+	}
+
+	//rootNode->keys[i]         = 0;
+	btree_keyset(btree_key(rootNode->keys, i, tree->s_key), 0, tree->s_key) ;
+	//rootNode->children[i]     = rootNode->children[i + 1];
+	const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+	const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
+	btree_valcpy(temp1, temp2, tree->s_value) ;
+
+	//rootNode->children[i + 1] = 0;
+	btree_valset(btree_value(rootNode->children, i + 1, tree->s_value),
+				 0,
+				 tree->s_value) ;
+
+	rootNode->keyCount--;
+
+	BTB_SET_DIRTY(rootNode->block);
+
+	btree_write_node(rootNode);
+}
+
 static char
 __borrowRight(struct btree *tree, 
 			  struct btree_node *rootNode, 
@@ -107,6 +170,8 @@ __borrowRight(struct btree *tree,
 			  int div)
 {
 	struct btree_node *node;
+
+	assert(!BTREE_IS_LEAF(rootNode)) ;
 
 	if (div >= prevNode->keyCount)
 		return 0;
@@ -163,6 +228,75 @@ __borrowRight(struct btree *tree,
 }
 
 static char
+__borrowRightLeaf(struct btree *tree, 
+			  	  struct btree_node *rootNode, 
+			  	  struct btree_node *prevNode, 
+			  	  int div)
+{
+	struct btree_node *node;
+
+	assert(BTREE_IS_LEAF(rootNode)) ;
+
+	if (div >= prevNode->keyCount)
+		return 0;
+
+	// ok, accessing twig children
+	node = bt_read_node(tree, prevNode->children[div + 1]);
+
+	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
+	{
+		//rootNode->children[rootNode->keyCount + 1] =
+		//	rootNode->children[(int)rootNode->keyCount];
+		const offset_t *temp1 = btree_value(rootNode->children, 
+										   rootNode->keyCount + 1, 
+										   tree->s_value) ;
+		const offset_t *temp2 = btree_value(rootNode->children,
+										   rootNode->keyCount,
+										   tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+		
+		//rootNode->keys[(int)rootNode->keyCount]     = node->keys[0] ;
+		btree_keycpy(btree_key(rootNode->keys, (int)rootNode->keyCount, tree->s_key), 
+					 btree_key(node->keys, 0, tree->s_key), 
+					 tree->s_key) ;
+		//rootNode->children[(int)rootNode->keyCount] = node->children[0];
+		temp1 = btree_value(rootNode->children, 
+							rootNode->keyCount, 
+							tree->s_value) ;
+		temp2 = btree_value(node->children,
+							0,
+							tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+
+		//prevNode->keys[div] = rootNode->keys[(int)rootNode->keyCount];
+		btree_keycpy(btree_key(prevNode->keys, div, tree->s_key),  
+					 btree_key(rootNode->keys, (int)rootNode->keyCount, tree->s_key),
+					 tree->s_key) ;
+	}
+	else if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn)
+	{
+		assert(0) ;
+	}
+	else
+	{
+		btree_destroy_node(node);
+
+		return 0;
+	}
+
+	BTB_SET_DIRTY(rootNode->block);
+	BTB_SET_DIRTY(prevNode->block);
+
+	rootNode->keyCount++;
+
+	__removeKeyLeaf2(tree, node, 0);
+
+	btree_destroy_node(node);
+	
+	return 1;
+}
+
+static char
 __borrowLeft(struct btree *tree, 
 			 struct btree_node *rootNode, 
 			 struct btree_node *prevNode, 
@@ -170,6 +304,8 @@ __borrowLeft(struct btree *tree,
 {
 	int i;
 	struct btree_node *node;
+
+	assert(!BTREE_IS_LEAF(rootNode)) ;
 
 	if (div == 0)
 		return 0;
@@ -261,7 +397,106 @@ __borrowLeft(struct btree *tree,
 	return 1;
 }
 
-static char __attribute__((noinline))
+static char
+__borrowLeftLeaf(struct btree *tree, 
+			 struct btree_node *rootNode, 
+			 struct btree_node *prevNode, 
+			 int div)
+{
+	int i;
+	struct btree_node *node;
+
+	assert(BTREE_IS_LEAF(rootNode)) ;
+
+	if (div == 0)
+		return 0;
+
+	// ok, reading twig children
+	node = bt_read_node(tree, prevNode->children[div - 1]);
+
+	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
+	{
+		for (i = rootNode->keyCount; i > 0; i--)
+		{
+			//rootNode->keys[i]         = rootNode->keys[i - 1];
+			btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
+						 btree_key(rootNode->keys, i - 1, tree->s_key),
+						 tree->s_key) ;
+			//rootNode->children[i + 1] = rootNode->children[i];
+			const offset_t *temp1 = btree_value(rootNode->children, 
+												i + 1, 
+												tree->s_value) ;
+			const offset_t *temp2 = btree_value(rootNode->children,
+												i,
+												tree->s_value) ;
+			btree_valcpy(temp1, temp2, tree->s_value) ;
+		}
+
+		//rootNode->children[1] = rootNode->children[0];
+		const offset_t *temp1 = btree_value(rootNode->children, 
+											1, 
+											tree->s_value) ;
+		const offset_t *temp2 = btree_value(rootNode->children,
+											0,
+											tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+		
+		//rootNode->keys[0]     = node->keys[node->keyCount - 1];
+		//btree_keycpy(&rootNode->keys[0], &node->keys[node->keyCount - 1], tree->s_key) ;
+		btree_keycpy(btree_key(rootNode->keys, 0, tree->s_key), 
+					 btree_key(node->keys, node->keyCount - 1, tree->s_key),
+					 tree->s_key) ;
+		//rootNode->children[0] = node->children[node->keyCount - 1];
+		temp1 = btree_value(rootNode->children, 0, tree->s_value) ;
+		temp2 = btree_value(node->children, node->keyCount - 1, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+
+		rootNode->keyCount++;
+
+		//prevNode->keys[div - 1]     = node->keys[node->keyCount - 2];
+		btree_keycpy(btree_key(prevNode->keys, div - 1, tree->s_key),  
+					 btree_key(node->keys, node->keyCount - 2, tree->s_key),  
+					 tree->s_key) ;
+
+
+		//node->children[node->keyCount - 1] =
+		//	node->children[(int)node->keyCount];
+		//node->children[(int)node->keyCount] = 0;
+		temp1 = temp2 ;
+		temp2 = btree_value(node->children, node->keyCount, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+		btree_valset(temp2, 0, tree->s_value) ;
+
+
+		//node->keys[node->keyCount - 1]     = 0;
+		btree_keyset(btree_key(node->keys, node->keyCount - 1, tree->s_key), 
+					 0, 
+					 tree->s_key) ;
+	}
+	else if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn)
+	{
+		assert(0) ;
+	}
+	else
+	{
+		btree_destroy_node(node);
+		
+		return 0;
+	}
+
+	node->keyCount--;
+
+	BTB_SET_DIRTY(rootNode->block);
+	BTB_SET_DIRTY(prevNode->block);
+	BTB_SET_DIRTY(node->block);
+
+	btree_write_node(node);
+	btree_destroy_node(node);
+
+	return 1;
+}
+
+static char
 __mergeNode(struct btree *tree, 
 			struct btree_node *rootNode, 
 			struct btree_node *prevNode, 
@@ -269,6 +504,8 @@ __mergeNode(struct btree *tree,
 {
 	int i, j;
 	struct btree_node *node;
+
+	assert(!BTREE_IS_LEAF(rootNode)) ;
 
 	/* Try to merge the node with its left sibling. */
 	if (div > 0)
@@ -368,6 +605,139 @@ __mergeNode(struct btree *tree,
 	return 1;
 }
 
+static char __attribute__((noinline))
+__mergeLeaf(struct btree *tree, 
+			struct btree_node *rootNode, 
+			struct btree_node *prevNode, 
+			int div)
+{
+	int i, j;
+	struct btree_node *node;
+
+	assert(BTREE_IS_LEAF(rootNode)) ;
+
+	/* Try to merge the node with its left sibling. */
+	if (div > 0)
+	{
+		node = bt_read_node(tree, prevNode->children[div - 1]);
+		i    = node->keyCount;
+
+		if (!BTREE_IS_LEAF(rootNode))
+		{
+			assert(0) ;
+			//node->keys[i]     = prevNode->keys[div - 1];
+			btree_keycpy(btree_key(node->keys, i, tree->s_key), 
+						 btree_key(prevNode->keys, div - 1, tree->s_key), 
+						 tree->s_key) ;
+			node->keyCount++;
+			
+			i++;
+		}
+
+		const offset_t *temp1 ;
+		const offset_t *temp2 ;
+
+		for (j = 0; j < rootNode->keyCount; j++, i++)
+		{
+			//node->keys[i]     = rootNode->keys[j];
+			btree_keycpy(btree_key(node->keys, i, tree->s_key), 
+						 btree_key(rootNode->keys, j, tree->s_key), 
+						 tree->s_key) ;
+			//node->children[i] = rootNode->children[j];
+			temp1 = btree_value(node->children, i, tree->s_value) ;
+			temp2 = btree_value(rootNode->children, j, tree->s_value) ;
+			btree_valcpy(temp1, temp2, tree->s_value) ;
+			
+			node->keyCount++;
+		}
+
+		//node->children[i] = rootNode->children[j];
+		temp1 = btree_value(node->children, i, tree->s_value) ;
+		temp2 = btree_value(rootNode->children, j, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+
+		BTB_SET_DIRTY(node->block);
+
+		btree_write_node(node);
+		
+		// ok, accessing twig node children
+		prevNode->children[div] = node->block.offset;
+
+		BTB_SET_DIRTY(prevNode->block);
+
+		btree_erase_node(rootNode);
+		__removeKey2(tree, prevNode, div - 1);
+		
+		btree_write_node(node);
+		btree_write_node(prevNode);
+
+		btree_destroy_node(node);
+		
+		
+	}
+	else
+	{
+		/* Must merge the node with its right sibling. */
+		node = bt_read_node(tree, prevNode->children[div + 1]);
+		i    = rootNode->keyCount;
+
+		if (!BTREE_IS_LEAF(rootNode))
+		{
+			assert(0) ;
+			//rootNode->keys[i]     = prevNode->keys[div];
+			btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
+						 btree_key(prevNode->keys, div, tree->s_key),  
+						 tree->s_key) ;
+			rootNode->keyCount++;
+			
+			i++;
+		}
+
+		const offset_t *temp1 ;
+		const offset_t *temp2 ;
+
+		for (j = 0; j < node->keyCount; j++, i++)
+		{
+			//rootNode->keys[i]     = node->keys[j];
+			btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
+						 btree_key(node->keys, j, tree->s_key),
+						 tree->s_key) ;
+			//rootNode->children[i] = node->children[j];
+			temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+			temp2 = btree_value(node->children, j, tree->s_value) ;
+			btree_valcpy(temp1, temp2, tree->s_value) ;
+
+			rootNode->keyCount++;
+		}
+		
+		//rootNode->children[i]       = node->children[j];
+		temp1 = btree_value(rootNode->children, i, tree->s_value) ;
+		temp2 = btree_value(node->children, j, tree->s_value) ;
+		btree_valcpy(temp1, temp2, tree->s_value) ;
+
+		// ok, accessing twig children
+		prevNode->children[div + 1] = rootNode->block.offset;
+
+		BTB_SET_DIRTY(rootNode->block);
+		BTB_SET_DIRTY(prevNode->block);
+
+		btree_erase_node(node);
+
+		__removeKey2(tree, prevNode, div);
+		
+		btree_write_node(prevNode);
+		btree_write_node(rootNode);
+	}
+
+	//btree_write_node(node);
+	//btree_write_node(prevNode);
+	//btree_write_node(rootNode);
+
+	//btree_destroy_node(node);
+
+	return 1;
+}
+
 static char
 __delete(struct btree *tree, 
 		 offset_t rootOffset, 
@@ -416,18 +786,35 @@ __delete(struct btree *tree,
 	}
 	else
 	{
-		if (__borrowRight(tree, rootNode, prevNode, index) ||
-			__borrowLeft(tree, rootNode, prevNode, index))
-		{
-			*merged = 0;
-			btree_write_node(rootNode);
-			btree_write_node(prevNode);
+		if (BTREE_IS_LEAF(rootNode)) {
+			if (__borrowRightLeaf(tree, rootNode, prevNode, index) ||
+				__borrowLeftLeaf(tree, rootNode, prevNode, index))
+			{
+				*merged = 0;
+				btree_write_node(rootNode);
+				btree_write_node(prevNode);
+			}
+			else
+			{
+				*merged = 1;
+				__mergeLeaf(tree, rootNode, prevNode, index);
+			}
 		}
-		else
-		{
-			*merged = 1;
-			__mergeNode(tree, rootNode, prevNode, index);
+		else {
+			if (__borrowRight(tree, rootNode, prevNode, index) ||
+				__borrowLeft(tree, rootNode, prevNode, index))
+			{
+				*merged = 0;
+				btree_write_node(rootNode);
+				btree_write_node(prevNode);
+			}
+			else
+			{
+				*merged = 1;
+				__mergeNode(tree, rootNode, prevNode, index);
+			}
 		}
+		
 		//btree_write_node(rootNode);
 		//btree_write_node(prevNode);
 
@@ -438,18 +825,19 @@ __delete(struct btree *tree,
 	return 1;
 }
 
-int64_t 
+char 
 btree_delete(struct btree *tree, const uint64_t *key)
 {
 	int i;
-	offset_t filePos;
+	offset_t filePos[tree->s_value] ;
 	char merged, success;
 	struct btree_node *rootNode;
 
-	if (tree == NULL || key == 0)
-		return 0;
+	if (tree == NULL || key == 0 || tree->root == 0)
+		return -E_INVAL ;
 
-	filePos = 0;
+	//filePos = 0;
+	btree_valset(filePos, 0, tree->s_value) ;
 	merged  = 0;
 	success = 0;
 
@@ -461,6 +849,8 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	/* Read in the root node. */
 	rootNode = bt_read_node(tree, tree->root);
 	
+
+	
 	//cprintf("btree_delete start\n") ;
 
 	for (i = 0;
@@ -469,14 +859,14 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		 i++)
 		;
 
-	success = __delete(tree, tree->root, NULL, key, i, &filePos, &merged);
+	success = __delete(tree, tree->root, NULL, key, i, filePos, &merged);
 
 	if (success == 0)
 	{
 		btree_destroy_node(rootNode);
 		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
-		return 0;
+		return -E_INVAL;
 	}
 	
 	bt_tree_size_is(tree, tree->size - 1);
@@ -488,7 +878,8 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_erase_node(rootNode);
 		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
-		return filePos ;
+		//return filePos ;
+		return 0 ;
 	}
 	else if (merged == 1 && rootNode->keyCount == 0)
 	{
@@ -506,12 +897,14 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_erase_node(rootNode);
 		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
-		return filePos ;
+		//return filePos ;
+		return 0 ;
 	}
 	btree_destroy_node(rootNode);
 	btree_release_nodes(tree) ;
 	//cprintf("btree_delete stop\n") ;
-	return filePos;
+	//return filePos;
+	return 0 ;
 }
 
 

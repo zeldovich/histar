@@ -20,6 +20,9 @@ cache_num_ent(struct cache *c)
 int 
 cache_alloc(struct cache *c, tag_t t, uint8_t **store) 
 {
+	if (t == 0)
+		return -E_INVAL ;
+	
 	struct cmeta *cm = TAILQ_FIRST(&c->lru_stack) ;
 	if (cm->inuse) {
 		while (cm->pin) {
@@ -49,6 +52,9 @@ cache_alloc(struct cache *c, tag_t t, uint8_t **store)
 int 
 cache_ent(struct cache *c, tag_t t, uint8_t **store) 
 {
+	if (t == 0)
+		return -E_INVAL ;
+	
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {
@@ -68,6 +74,9 @@ cache_ent(struct cache *c, tag_t t, uint8_t **store)
 int 
 cache_rem(struct cache *c, tag_t t)
 {
+	if (t == 0)
+		return -E_INVAL ;
+	
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {
@@ -87,6 +96,9 @@ cache_rem(struct cache *c, tag_t t)
 int 
 cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
 {
+	if (t == 0)
+		return -E_INVAL ;
+	
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {

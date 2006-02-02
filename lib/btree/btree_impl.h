@@ -10,11 +10,7 @@
 // max order for key size of 2
 #define BTREE_MAX_ORDER2 169
 
-// use to declare a btree manager
-#define STRUCT_BTREE_MAN(name, num_ent, order, key_size)	\
-	STRUCT_CACHE(name##_cache, num_ent, BTREE_NODE_SIZE(order, key_size)) ; \
-	struct btree_simple name = { (order), &(name##_cache) } ;
-// use to declare a btree manager
+// use to declare a cache for a btree
 #define STRUCT_BTREE_CACHE(name, num_ent, order, key_size)	\
 	STRUCT_CACHE(name, num_ent, BTREE_NODE_SIZE(order, key_size)) ;
 
@@ -47,8 +43,8 @@ int btree_simple_unpin(void *man) ;
 int btree_simple_write(struct btree_node *node, void *man) ;
 
 int btree_default_init(struct btree_default *def, uint8_t order, 
-					   uint8_t key_size, struct freelist *fl,
-					   struct cache *cache) ;
+				   uint8_t key_size, uint8_t value_size,
+				   struct freelist *fl,struct cache *cache) ;
 int btree_default_setup(struct btree_default *def, uint8_t order,
 						uint8_t key_size, struct freelist *fl,
 						struct cache *cache) ;

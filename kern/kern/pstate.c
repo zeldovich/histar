@@ -122,29 +122,29 @@ pstate_swapin_slot(int slot)
     uint64_t offset = stable_hdr.ph_map.ent[slot].offset * PGSIZE;
     disk_io_status s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
     if (s != disk_io_success) {
-	cprintf("pstate_swapin_slot: cannot read object from disk\n");
-	swapin_active = 0;
-	return -E_IO;
+		cprintf("pstate_swapin_slot: cannot read object from disk\n");
+		swapin_active = 0;
+		return -E_IO;
     }
 
     pagetree_init(&ko->u.hdr.ko_pt);
     for (uint64_t page = 0; page < ko->u.hdr.ko_npages; page++) {
-	r = page_alloc(&p);
-	if (r < 0) {
-	    cprintf("pstate_swapin_slot: cannot alloc page: %s\n", e2s(r));
-	    swapin_active = 0;
-	    return r;
-	}
-
-	offset = (stable_hdr.ph_map.ent[slot].offset + page + 1) * PGSIZE;
-	s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
-	if (s != disk_io_success) {
-	    cprintf("pstate_swapin_slot: cannot read page from disk\n");
-	    swapin_active = 0;
-	    return -E_IO;
-	}
-
-	assert(0 == pagetree_put_page(&ko->u.hdr.ko_pt, page, p));
+		r = page_alloc(&p);
+		if (r < 0) {
+		    cprintf("pstate_swapin_slot: cannot alloc page: %s\n", e2s(r));
+		    swapin_active = 0;
+		    return r;
+		}
+	
+		offset = (stable_hdr.ph_map.ent[slot].offset + page + 1) * PGSIZE;
+		s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
+		if (s != disk_io_success) {
+		    cprintf("pstate_swapin_slot: cannot read page from disk\n");
+		    swapin_active = 0;
+		    return -E_IO;
+		}
+	
+		assert(0 == pagetree_put_page(&ko->u.hdr.ko_pt, page, p));
     }
 
     if (pstate_swapin_debug)
@@ -200,8 +200,6 @@ pstate_swapin(kobject_id_t id) {
 // Persistent-store initialization
 /////////////////////////////////////
 
-void test(void) ;
-
 static int
 pstate_init2()
 {
@@ -226,11 +224,12 @@ pstate_init2()
 	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
 	btree_default_setup(&iobjlist, IOBJ_ORDER, 1, &flist, &iobj_cache) ;
 
-	/* prints obj ids of objs that should be loaded on startup
+	/* prints initial objects....
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.tree, &trav) ;
+	btree_pretty_print(&iobjlist.tree, iobjlist.tree.root, 0);
 	while (btree_next_offset(&trav))
-		cprintf("off %ld key %ld\n", trav.val, *trav.key) ;
+		cprintf("off %ld key %ld\n", *trav.val, *trav.key) ;
 	*/
 
     for (int slot = 0; slot < NUM_PH_OBJECTS; slot++) {
@@ -286,8 +285,6 @@ pstate_reset(void)
 int
 pstate_init(void)
 {
-   	//freelist_test() ; 
-
 	static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= PGSIZE) ;
 
     pstate_reset();
@@ -412,13 +409,6 @@ pstate_sync_stackwrap(void *arg)
 {
     static int swapout_active;
 
-	/*
-	static int goo = 0 ;
-	if (++goo == 4) {
-		freelist_pretty_print(&stable_hdr.ph_free) ;
-		goo = 0 ;	
-	}*/
-
     if (swapout_active) {
 		cprintf("pstate_sync: another sync still active\n");
 		return;
@@ -437,7 +427,7 @@ pstate_sync_stackwrap(void *arg)
 		freelist_init(&flist,
 			      N_HEADER_PAGES,
 			      disk_pages - N_HEADER_PAGES);
-		btree_default_init(&iobjlist, IOBJ_ORDER, 1, &flist, &iobj_cache) ;
+		btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);

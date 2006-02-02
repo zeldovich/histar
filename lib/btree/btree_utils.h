@@ -32,4 +32,11 @@ void 	btree_keycpy(const offset_t *dst, const offset_t *src, uint8_t s_key) ;
 void 	btree_keyset(const offset_t *dst, offset_t val, uint8_t s_key) ;
 
 
+struct btree_node ;
+const offset_t *btree_value(const offset_t *vals, const int i, uint8_t s_val) ;
+uint16_t btree_leaf_order(struct btree_node *n) ;
+void btree_valcpy(const offset_t *dst, const offset_t *src, uint8_t s_val) ;
+void btree_valset(const offset_t *dst, offset_t val, uint8_t s_val) ;
+
+
 #endif /*BT_UTILS_H_*/

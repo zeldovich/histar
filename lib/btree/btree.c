@@ -3,15 +3,18 @@
 #include <inc/string.h>
 
 void
-btree_init(struct btree * t, char order, char key_size, struct btree_manager * mm)
+btree_init(struct btree * t, char order, char key_size, 
+		   char value_size, struct btree_manager * mm)
 {
 	memset(t, 0, sizeof(struct btree));
 	
 	t->order = order;
 	
-	t->min_leaf = (t->order / 2);
+	t->min_leaf = ((t->order / value_size) / 2);
+	
 	t->min_intrn  = ((t->order + 1) / 2) - 1;
 	t->s_key = key_size ;
+	t->s_value = value_size ;
 	
 	if (mm)
 		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;
@@ -45,6 +48,8 @@ btree_is_empty(struct btree *tree)
 	return (btree_size(tree) == 0);
 }
 
+// XXX: inline all these guys?
+
 const offset_t *
 btree_key(const offset_t *keys, const int i, uint8_t s_key)
 {
@@ -70,5 +75,42 @@ btree_keycpy(const offset_t *dst, const offset_t *src, uint8_t s_key)
 void
 btree_keyset(const offset_t *dst, offset_t val, uint8_t s_key)
 {
-	memset((offset_t *)dst, val, s_key * sizeof(offset_t)) ;
+    offset_t *d = (offset_t *) dst;
+    
+	if (s_key) {
+	    do
+	      *d++ = val;
+	    while (--s_key != 0);
+	}
+}
+
+
+const offset_t *
+btree_value(const offset_t *vals, const int i, uint8_t s_val)
+{
+	return &vals[i * s_val] ;
+}
+
+uint16_t
+btree_leaf_order(struct btree_node *n)
+{
+	return (n->tree->order / n->tree->s_value) ;
+}
+
+void
+btree_valcpy(const offset_t *dst, const offset_t *src, uint8_t s_val)
+{
+	memcpy((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
+}
+
+void
+btree_valset(const offset_t *dst, offset_t val, uint8_t s_val)
+{
+    offset_t *d = (offset_t *) dst;
+
+	if (s_val) {
+	    do
+	      *d++ = val;
+	    while (--s_val != 0);
+	}
 }

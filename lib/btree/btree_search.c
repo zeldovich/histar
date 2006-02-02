@@ -59,7 +59,10 @@ __search(struct btree *tree,
 		if (i < rootNode->keyCount && 
 			btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key, tree->s_key) == 0)
 		{
-			*val_store = rootNode->children[i];
+			//*val_store = rootNode->children[i];
+			btree_valcpy(val_store,
+						 btree_value(rootNode->children, i, tree->s_value),
+						 tree->s_value) ;
 			btree_keycpy(key_store, 
 						 btree_key(rootNode->keys, i, tree->s_key), 
 						 tree->s_key) ;
@@ -69,7 +72,10 @@ __search(struct btree *tree,
 		else if (match & match_ltet)
 		{
 			if (i > 0) {
-				*val_store = rootNode->children[i - 1] ;	
+				//*val_store = rootNode->children[i - 1] ;	
+				btree_valcpy(val_store, 
+							 btree_value(rootNode->children, i - 1, tree->s_value),
+							 tree->s_value) ;
 				btree_keycpy(key_store, 
 							 btree_key(rootNode->keys, i - 1, tree->s_key),
 							 tree->s_key) ;
@@ -77,6 +83,7 @@ __search(struct btree *tree,
 				return 1 ;
 			}
 			else if (div > 0) {
+				// ok ,accessing a twig node or higher
 				struct btree_node *n = bt_read_node(tree, last_right->children[div - 1] );
 				struct btree_node *temp ;
 				
@@ -86,7 +93,10 @@ __search(struct btree *tree,
 					n = temp ;
 				}
 				
-				*val_store = n->children[n->keyCount-1] ;
+				//*val_store = n->children[n->keyCount-1] ;
+				btree_valcpy(val_store, 
+							 btree_value(n->children, n->keyCount - 1, tree->s_value),
+							 tree->s_value) ;
 				btree_keycpy(key_store,
 							 btree_key(n->keys, n->keyCount-1, tree->s_key),
 							 tree->s_key) ;
@@ -98,7 +108,11 @@ __search(struct btree *tree,
 		else if (match & match_gtet)
 		{
 			if (i < rootNode->keyCount) {
-				*val_store = rootNode->children[i] ;	
+				//*val_store = rootNode->children[i] ;	
+				btree_valcpy(val_store, 
+							 btree_value(rootNode->children, i, tree->s_value),
+							 tree->s_value) ;
+				
 				btree_keycpy(key_store,
 							 btree_key(rootNode->keys, i, tree->s_key),
 							 tree->s_key) ;
@@ -106,8 +120,16 @@ __search(struct btree *tree,
 				return 1 ;
 			}
 			else if (rootNode->children[(int)rootNode->keyCount]){
-				struct btree_node *n = bt_read_node(tree, rootNode->children[(int)rootNode->keyCount]);
-				*val_store = n->children[0] ;
+				//struct btree_node *n = bt_read_node(tree, rootNode->children[(int)rootNode->keyCount]);
+				const offset_t *temp1 = btree_value(rootNode->children,
+													rootNode->keyCount, 
+								 				   	tree->s_value) ;
+				// ok, reading next pointer in node
+				struct btree_node *n = bt_read_node(tree, *temp1);
+				//*val_store = n->children[0] ;
+				btree_valcpy(val_store, 
+							 btree_value(n->children, 0, tree->s_value),
+							 tree->s_value) ;
 				btree_keycpy(key_store,
 							 btree_key(n->keys, 0, tree->s_key),
 							 tree->s_key) ;
@@ -122,6 +144,7 @@ __search(struct btree *tree,
 		return 0;
 	}
 	
+	// accesses to children ok, can't be leafs
 	if (i > 0)
 		result = __search(tree, rootNode->children[i], key, match, rootNode, i, key_store, val_store);
 	else
@@ -132,18 +155,19 @@ __search(struct btree *tree,
 	return result;
 }
 
-static int64_t
+static int
 __btree_search(struct btree *tree, 
 		  const uint64_t *key, 
 		  char match, 
-		  uint64_t *key_store)
+		  uint64_t *key_store,
+		  uint64_t *val_store)
 {
 	char found;
 	
-	uint64_t val_store ;
+	//uint64_t val_store ;
 	
 	if (tree == NULL || key == 0)
-		return 0;
+		return -E_NOT_FOUND;
 
 	found   = 0;
 
@@ -152,10 +176,10 @@ __btree_search(struct btree *tree,
 	tree->left_leaf = bt_left_leaf(tree);
 
 	if (tree->root == 0)
-		return 0 ;
+		return -E_NOT_FOUND ;
 
 	if (btree_is_empty(tree) == 1)
-		return 0;
+		return -E_NOT_FOUND;
 
 	found = __search(tree, 
 					 tree->root, 
@@ -164,30 +188,32 @@ __btree_search(struct btree *tree,
 					 0, 
 					 0, 
 					 key_store, 
-					 &val_store);
+					 val_store);
 	
 	btree_release_nodes(tree) ;
 	
 	if (found != 0)
-		return val_store ;
+		return 0 ;
 
 	return -E_NOT_FOUND ;
 }
 
-int64_t
-btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store)
+int
+btree_search(struct btree *tree, const uint64_t *key, 
+			 uint64_t *key_store, uint64_t *val_store)
 {
-	return __btree_search(tree, key, match_eq, key_store) ;	
+	return __btree_search(tree, key, match_eq, key_store, val_store) ;	
 }
 
-
-int64_t 
-btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store)
+int 
+btree_ltet(struct btree *tree, const uint64_t *key, 
+		   uint64_t *key_store, uint64_t *val_store)
 {
-	return __btree_search(tree, key, match_ltet, key_store) ;	
+	return __btree_search(tree, key, match_ltet, key_store, val_store) ;	
 }
-int64_t 
-btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store)
+int 
+btree_gtet(struct btree *tree, const uint64_t *key, 
+		   uint64_t *key_store, uint64_t *val_store)
 {
-	return __btree_search(tree, key, match_gtet, key_store) ;	
+	return __btree_search(tree, key, match_gtet, key_store, val_store) ;	
 }

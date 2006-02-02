@@ -33,7 +33,7 @@ bt_read_node(struct btree *tree, offset_t offset)
 {
 	struct btree_node *n ;
 	
-	if (tree->manager.node) {
+	if (tree->manager.node && offset) {
 		if (tree->manager.node(tree, offset, &n, tree->manager.arg) == 0)
 			return n ;
 	}

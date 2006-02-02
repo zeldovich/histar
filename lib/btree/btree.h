@@ -19,8 +19,10 @@ struct btree_node
 	const uint64_t 	*keys ;
 };
 
-#define BTREE_NODE_SIZE(order, key_size) (sizeof(struct btree_node) + sizeof(offset_t) * order + \
-	sizeof(uint64_t) * (order - 1) * (key_size))
+#define BTREE_NODE_SIZE(order, key_size) \
+		(sizeof(struct btree_node) + \
+		sizeof(offset_t) * order + \
+		sizeof(uint64_t) * (order - 1) * (key_size))
 
 
 struct btree_manager
@@ -40,6 +42,7 @@ struct btree
 
 	uint8_t	order; 
 	uint8_t	s_key ;
+	uint8_t s_value ;
 	
 	uint64_t size; 
 
@@ -50,22 +53,26 @@ struct btree
 	offset_t left_leaf;       
 
 	// current filePos on inserts...no touch
-	offset_t _insFilePos;    
+	offset_t *_insFilePos;    
 };
 
-int 	 btree_insert(struct btree *tree, const uint64_t *key, offset_t offset) ;
-int64_t	 btree_delete(struct btree *tree, const uint64_t *key);
+int 	 btree_insert(struct btree *tree, const uint64_t *key, offset_t *val) ;
+char	 btree_delete(struct btree *tree, const uint64_t *key);
 char 	 btree_is_empty(struct btree *tree);
-void 	 btree_init(struct btree *tree, char order, char key_size, struct btree_manager * mm) ;
+void	 btree_init(struct btree * t, char order, char key_size, 
+		 		    char value_size, struct btree_manager * mm) ;
 uint64_t btree_size(struct btree *tree);
 void	 btree_release_nodes(struct btree *tree) ;
 
 // match key exactly
-int64_t btree_search(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int btree_search(struct btree *tree, const uint64_t *key, 
+					 uint64_t *key_store, uint64_t *val_store) ;
 // match the closest key less than or equal to the given key
-int64_t btree_ltet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int btree_ltet(struct btree *tree, const uint64_t *key, 
+				   uint64_t *key_store, uint64_t *val_store) ;
 // match the closest key greater than or equal to the given key
-int64_t btree_gtet(struct btree *tree, const uint64_t *key, uint64_t *key_store) ;
+int btree_gtet(struct btree *tree, const uint64_t *key, 
+				   uint64_t *key_store, uint64_t *val_store) ;
 
 // debug
 void btree_pretty_print(struct btree *tree, offset_t rootOffset, int i);
