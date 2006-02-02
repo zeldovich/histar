@@ -98,7 +98,7 @@ bss_init (void)
   memset (edata, 0, end - edata);
 }
 
-void
+void __attribute__((noreturn))
 init (uint32_t start_eax, uint32_t start_ebx)
 {
     struct multiboot_info *mbi = 0;
@@ -119,4 +119,5 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     cprintf("=== kernel ready, calling schedule() ===\n");
     schedule();
+    thread_run(cur_thread);
 }
