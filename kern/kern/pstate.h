@@ -14,19 +14,6 @@
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
 #define PSTATE_VERSION	2
 
-struct pstate_mapent {
-    kobject_id_t id;
-    kobject_type_t type;
-    uint64_t flags;
-    uint64_t offset;	// if 0, means free entry
-    uint64_t pages;
-};
-
-#define NUM_PH_OBJECTS		200
-struct pstate_map {
-    struct pstate_mapent ent[NUM_PH_OBJECTS];
-};
-
 struct pstate_header {
     uint64_t ph_magic;
     uint64_t ph_version;
@@ -34,10 +21,9 @@ struct pstate_header {
     uint64_t ph_handle_counter;
     uint64_t ph_user_root_handle;
 
-    struct pstate_map ph_map;
     struct freelist ph_free ;
     struct btree_default ph_iobjs ;
-    struct btree_default ph_map2 ;
+    struct btree_default ph_map ;
 };
 
 int  pstate_init(void);

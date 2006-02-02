@@ -15,7 +15,7 @@ struct btree_traversal
 int 	btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
 void 	btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
 char 	btree_first_offset(struct btree_traversal *trav);
-char 	btree_next_offset(struct btree_traversal *trav);
+char 	btree_next_entry(struct btree_traversal *trav);
 
 
 #endif /*BTREE_TRAVERSE_H_*/

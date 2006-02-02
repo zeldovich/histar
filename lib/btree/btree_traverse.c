@@ -55,7 +55,7 @@ btree_traverse(struct btree *tree, void (*process)(offset_t filePos))
 
 	for (offset = btree_first_offset(&trav);
 		 offset != -1;
-		 offset = btree_next_offset(&trav))
+		 offset = btree_next_entry(&trav))
 	{
 		process(offset);
 	}
@@ -82,7 +82,7 @@ btree_first_offset(struct btree_traversal *trav)
 		return 0 ;
 
 	if (trav->node != NULL)
-		return btree_next_offset(trav);
+		return btree_next_entry(trav);
 
 	trav->tree->left_leaf = bt_left_leaf(trav->tree);
 
@@ -101,7 +101,7 @@ btree_first_offset(struct btree_traversal *trav)
 }
 
 char
-btree_next_offset(struct btree_traversal *trav)
+btree_next_entry(struct btree_traversal *trav)
 {
 	
 	if (trav == NULL)
