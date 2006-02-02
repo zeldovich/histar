@@ -11,6 +11,7 @@ struct stackwrap_state {
 
     void *stackbase;
     struct jmp_buf entry_cb;
+    struct jmp_buf task_state;
 
     int alive;
     uint64_t magic;
@@ -46,6 +47,22 @@ stackwrap_check(struct stackwrap_state *ss)
 	page_free(ss->stackbase);
 }
 
+static void
+stackwrap_wakeup(struct stackwrap_state *ss)
+{
+    if (setjmp(&ss->entry_cb) == 0)
+	longjmp(&ss->task_state, 1);
+
+    stackwrap_check(ss);
+}
+
+static void
+stackwrap_sleep(struct stackwrap_state *ss)
+{
+    if (setjmp(&ss->task_state) == 0)
+	longjmp(&ss->entry_cb, 1);
+}
+
 int
 stackwrap_call(stackwrap_fn fn, void *fn_arg)
 {
@@ -60,51 +77,36 @@ stackwrap_call(stackwrap_fn fn, void *fn_arg)
     ss->stackbase = stackbase;
     ss->alive = 1;
     ss->magic = STACKWRAP_MAGIC;
+    ss->task_state.jb_rip = (uint64_t) &stackwrap_entry;
+    ss->task_state.jb_rsp = (uint64_t) stackbase + PGSIZE;
 
-    if (setjmp(&ss->entry_cb) != 0) {
-	stackwrap_check(ss);
-	return 0;
-    }
-
-    struct jmp_buf jb;
-    jb.jb_rip = (uint64_t) &stackwrap_entry;
-    jb.jb_rsp = (uint64_t) stackbase + PGSIZE;
-    longjmp(&jb, 1);
+    stackwrap_wakeup(ss);
+    return 0;
 }
 
 // Blocking disk I/O support
 
-struct disk_io_state {
+struct disk_io_request {
     struct stackwrap_state *ss;
-    struct jmp_buf ret;
     disk_io_status status;
 };
 
 static void
 disk_io_cb(disk_io_status status, void *b, uint32_t c, uint64_t o, void *arg)
 {
-    struct disk_io_state *ds = (struct disk_io_state *) arg;
+    struct disk_io_request *ds = (struct disk_io_request *) arg;
     ds->status = status;
-
-    struct stackwrap_state *ss = ds->ss;
-    if (setjmp(&ds->ss->entry_cb) != 0) {
-	stackwrap_check(ss);
-	return;
-    }
-
-    longjmp(&ds->ret, 1);
+    stackwrap_wakeup(ds->ss);
 }
 
 disk_io_status
 stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
 {
     struct stackwrap_state *ss = stackwrap_cur();
-    struct disk_io_state ds = { .ss = ss };
+    struct disk_io_request ds = { .ss = ss };
 
-    if (setjmp(&ds.ret) == 0) {
-	disk_io(op, buf, count, offset, &disk_io_cb, &ds);
-	longjmp(&ss->entry_cb, 1);
-    }
+    disk_io(op, buf, count, offset, &disk_io_cb, &ds);
+    stackwrap_sleep(ss);
 
     return ds.status;
 }
