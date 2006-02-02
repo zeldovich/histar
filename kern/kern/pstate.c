@@ -96,7 +96,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 		(ko->u.hdr.ko_type == kobj_thread)) {
 		r = btree_insert(&iobjlist.tree, &ko->u.hdr.ko_id, &offset) ;
 		if (r < 0) {
-			cprintf("pstate_kobj_alloc: iobjlist insert failed, \
+			cprintf("pstate_kobj_alloc: iobjlist insert failed,
 					disk full?\n") ;
 			return r ;	
 		}
@@ -190,6 +190,11 @@ pstate_swapin(kobject_id_t id) {
     if (pstate_swapin_debug)
 		cprintf("pstate_swapin: object %ld\n", id);
 
+    // XXX this is potentially bad, if we end up having to do disk IO;
+    // we aren't in a stackwrap yet.
+    //
+    // what we probably need is some sort of negative lookup cache, so
+    // that we can cache the absence of an entry.
     struct mobject mobj ;
     int r = btree_search(&objmap.tree, &id, &id, (uint64_t *) &mobj) ;
 	if (r < 0)
