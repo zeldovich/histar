@@ -162,7 +162,7 @@ btree_default_alloc(struct btree *tree, struct btree_node **store, void *arg)
 }
 
 int 
-btree_default_setup(struct btree_default *def, uint8_t order, uint8_t key_size,
+btree_default_setup(struct btree_default *def, uint8_t order,
 				    struct freelist *fl,struct cache *cache)
 {
 	btree_simple_init(&def->simple, order, cache) ;
@@ -185,7 +185,7 @@ btree_default_init(struct btree_default *def, uint8_t order,
 				   struct freelist *fl,struct cache *cache)
 {
 	btree_init(&def->tree, order, key_size, value_size, NULL) ;
-	btree_default_setup(def, order, key_size, fl, cache) ;
+	btree_default_setup(def, order, fl, cache) ;
 	   	
 	return 0 ;
 }

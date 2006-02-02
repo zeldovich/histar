@@ -15,7 +15,7 @@
 static int pstate_init_debug = 0;
 static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
-static int pstate_swapout_stats = 0;
+static int pstate_swapout_stats = 1;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
@@ -27,6 +27,11 @@ static struct freelist flist ;
 struct btree_default iobjlist ;
 #define IOBJ_ORDER BTREE_MAX_ORDER1
 STRUCT_BTREE_CACHE(iobj_cache, 20, IOBJ_ORDER, 1) ;	
+
+// lits of objects to be loaded at startup
+struct btree_default objmap ;
+#define OBJMAP_ORDER BTREE_MAX_ORDER1
+STRUCT_BTREE_CACHE(objmap_cache, 20, OBJMAP_ORDER, 1) ;	
 
 // Scratch-space for a copy of the header used while reading/writing.
 #define N_HEADER_PAGES		3
@@ -59,6 +64,7 @@ pstate_kobj_free(struct pstate_map *m, struct freelist *f,
 
     freelist_free(f, m->ent[slot].offset, m->ent[slot].pages);
     btree_delete(&iobjlist.tree, &ko->u.hdr.ko_id) ;
+    btree_delete(&objmap.tree, &ko->u.hdr.ko_id) ;
     m->ent[slot].offset = 0;
 }
 
@@ -217,12 +223,13 @@ pstate_init2()
 
 		return -E_INVAL;
     }
-	// copy 'atomic' freelist into flist
+	// XXX
 	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
 	freelist_setup((uint8_t *)&flist) ;
-	// copy 'atomic' initial object list into iobjlist
 	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
-	btree_default_setup(&iobjlist, IOBJ_ORDER, 1, &flist, &iobj_cache) ;
+	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
+	memcpy(&objmap, &stable_hdr.ph_map2, sizeof(objmap)) ;
+	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &iobj_cache) ;
 
 	/* prints initial objects....
 	struct btree_traversal trav ;
@@ -389,10 +396,10 @@ pstate_sync_loop(struct pstate_header *hdr,
 		    return r;
     }
 	
-	// make sure 'atomic' flist is written
+	// XXX
 	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;
-	// make sure 'atomic' iobjlist is written
 	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
+	memcpy(&hdr->ph_map2, &objmap, sizeof(objmap)) ;
   
     disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
     if (s == disk_io_success) {
@@ -428,6 +435,7 @@ pstate_sync_stackwrap(void *arg)
 			      N_HEADER_PAGES,
 			      disk_pages - N_HEADER_PAGES);
 		btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
+		btree_default_init(&objmap, OBJMAP_ORDER, 1, 2, &flist, &objmap_cache) ;
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);

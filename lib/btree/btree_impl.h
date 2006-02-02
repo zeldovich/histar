@@ -46,7 +46,6 @@ int btree_default_init(struct btree_default *def, uint8_t order,
 				   uint8_t key_size, uint8_t value_size,
 				   struct freelist *fl,struct cache *cache) ;
 int btree_default_setup(struct btree_default *def, uint8_t order,
-						uint8_t key_size, struct freelist *fl,
-						struct cache *cache) ;
+						struct freelist *fl, struct cache *cache) ;
 
 #endif /*BTREE_IMPL_H_*/
