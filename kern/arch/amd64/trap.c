@@ -73,20 +73,21 @@ page_fault (struct Trapframe *tf)
     void *fault_va = (void*) rcr2();
 
     if ((tf->tf_cs & 3) == 0) {
-	if ((uintptr_t) fault_va < PHYSBASE) {
-	    cprintf("kernel page fault on VA %p at %lx, halting thread %ld (%s)\n",
-		    fault_va, tf->tf_rip,
-		    cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
+	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",
+		cur_thread ? cur_thread->th_ko.ko_id : 0,
+		cur_thread ? cur_thread->th_ko.ko_name : "(null)",
+		fault_va, tf->tf_rip, tf->tf_rsp);
+
+	if ((uintptr_t) fault_va < PHYSBASE)
 	    thread_halt(cur_thread);
-	} else {
-	    panic("kernel page fault on VA %p at %lx", fault_va, tf->tf_rip);
-	}
+	else
+	    panic("kernel page fault");
     } else {
 	int r = thread_pagefault(cur_thread, fault_va);
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
-	cprintf("thread %ld (%s) faulted on %p: rip=0x%lx, rsp=0x%lx\n",
+	cprintf("user page fault: thread %ld (%s), va=%p: rip=0x%lx, rsp=0x%lx\n",
 		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name,
 		fault_va, tf->tf_rip, tf->tf_rsp);
 	thread_halt(cur_thread);
