@@ -33,10 +33,6 @@ currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
 
-some sort of disk queueing, or proper interlocking.  currently swapout
-can prevent swapin from scheduling its disk request, which suspends the
-requesting thread indefinitely.
-
 scatter-gather/iovec interface to disk_io() so that we can write out
 the entire object (or at least 64K worth of pages) in one request.
 
