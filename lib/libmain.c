@@ -22,6 +22,8 @@ libmain(uint64_t arg0, uint64_t arg1)
     start_arg1 = arg1;
 
     if (start_arg1 == 0) {
+	// This process has enough of an environment,
+	// unlike a bootstrap process.
 	start_env = (start_env_t *) start_arg0;
 
 	const char *p = &start_env->args[0];
@@ -34,6 +36,10 @@ libmain(uint64_t arg0, uint64_t arg1)
 	    p += len + 1;
 	    argc++;
 	}
+
+	struct ulabel *l = label_get_current();
+	assert(l);
+	segment_default_label(l);
     }
 
     main(argc, &argv[0]);

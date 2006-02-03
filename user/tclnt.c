@@ -8,11 +8,6 @@ main(int ac, char **av)
 {
     cprintf("client process starting.\n");
 
-    // make sure our segments are created with good labels
-    struct ulabel *l = label_get_current();
-    assert(l);
-    segment_default_label(l);
-
     // create a private handle for ourselves
     int64_t client_handle = sys_handle_create();
     if (client_handle < 0)

@@ -29,10 +29,6 @@ main(int ac, char **av)
 
     printf("server process starting: server handle %ld\n", srv_handle);
 
-    struct ulabel *l = label_get_current();
-    assert(l);
-    segment_default_label(l);
-
     int r = gate_create(&ug, start_env->root_container,
 			&ts_gate_entry, 0, "tserv");
     if (r < 0)
