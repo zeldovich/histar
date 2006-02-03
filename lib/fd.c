@@ -106,8 +106,10 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 int
 fd_close(struct Fd *fd)
 {
-	if (!atomic_dec_and_test(&fd->fd_ref))
+	if (!atomic_dec_and_test(&fd->fd_ref)) {
+		segment_unmap(fd);
 		return 0;
+	}
 
 	struct Dev *dev;
 	int r = dev_lookup(fd->fd_dev_id, &dev);
@@ -116,9 +118,8 @@ fd_close(struct Fd *fd)
 
 	r = (*dev->dev_close)(fd);
 
-	struct cobj_ref seg = fd->fd_seg;
+	sys_obj_unref(fd->fd_seg);
 	segment_unmap(fd);
-	sys_obj_unref(seg);
 
 	return r;
 }
