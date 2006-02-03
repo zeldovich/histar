@@ -5,5 +5,5 @@ int
 main(int ac, char **av)
 {
     for (;;)
-	cprintf("foo foo foo.\n");
+	printf("foo foo foo.\n");
 }

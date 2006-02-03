@@ -6,7 +6,7 @@
 int
 main(int ac, char **av)
 {
-    cprintf("client process starting.\n");
+    printf("client process starting.\n");
 
     // create a private handle for ourselves
     int64_t client_handle = sys_handle_create();
@@ -38,10 +38,10 @@ main(int ac, char **av)
 
 	uint64_t sum = arg.container;
 	if (a + b != sum)
-	    cprintf("incorrect result: %ld + %ld = %ld\n", a, b, sum);
+	    printf("incorrect result: %ld + %ld = %ld\n", a, b, sum);
 
 	round++;
 	if ((round % 20) == 0)
-	    cprintf("tclnt %ld: did %d rounds\n", thread_id(), round);
+	    printf("tclnt %ld: did %d rounds\n", thread_id(), round);
     }
 }

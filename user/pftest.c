@@ -18,13 +18,13 @@ main(int ac, char **av)
 	.ul_ent = va,
     };
 
-    cprintf("Trying to get label..\n");
+    printf("Trying to get label..\n");
     assert(0 == thread_get_label(ct, &ul));
 
     void *va2 = 0;
     assert(0 == segment_map(seg, SEGMAP_READ, &va2, 0));
     ul.ul_ent = va2;
 
-    cprintf("Trying to get label into RO page\n");
+    printf("Trying to get label into RO page\n");
     assert(0 == thread_get_label(ct, &ul));
 }

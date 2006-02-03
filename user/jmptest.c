@@ -8,10 +8,10 @@ main(int ac, char **av)
     struct jmp_buf jb;
 
     int r = setjmp(&jb);
-    cprintf("jmptest: setjmp(): %d\n", r);
+    printf("jmptest: setjmp(): %d\n", r);
 
     if (r == 0) {
-	cprintf("jmptest: longjmp'ing back\n");
+	printf("jmptest: longjmp'ing back\n");
 	longjmp(&jb, 7);
     }
 

@@ -46,5 +46,5 @@ int
 main(int ac, char **av)
 {
 	test0() ;
-	cprintf("test0 complete\n") ;
+	printf("test0 complete\n") ;
 }
