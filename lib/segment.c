@@ -50,21 +50,6 @@ segment_map_print(struct u_address_space *uas)
     }
 }
 
-void
-segment_as_print(struct cobj_ref as)
-{
-    struct u_segment_mapping ents[NMAPPINGS];
-    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
-
-    int r = sys_as_get(as, &uas);
-    if (r < 0) {
-	printf("sys_as_get: %s\n", e2s(r));
-	return;
-    }
-
-    segment_map_print(&uas);
-}
-
 int
 segment_unmap(void *va)
 {
