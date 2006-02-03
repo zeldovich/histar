@@ -159,6 +159,12 @@ builtin_unref(int ac, char **av)
     printf("Dropped <%ld:%ld>\n", c, i);
 }
 
+static void
+builtin_exit(int ac, char **av)
+{
+    close(0);
+}
+
 static struct {
     const char *name;
     const char *desc;
@@ -168,6 +174,7 @@ static struct {
     { "lc",	"List a container",		&builtin_list_container },
     { "spawn",	"Create a thread",		&builtin_spawn },
     { "unref",	"Drop container object",	&builtin_unref },
+    { "exit",	"Exit",				&builtin_exit },
 };
 
 static void
