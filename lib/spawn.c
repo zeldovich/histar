@@ -67,7 +67,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
     for (int i = 0; i < ac; i++) {
 	size_t len = strlen(av[i]);
 	memcpy(p, av[i], len);
-	p += len;
+	p += len + 1;
     }
 
     int64_t thread = sys_thread_create(c_spawn);
