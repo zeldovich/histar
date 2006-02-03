@@ -33,4 +33,7 @@ main(int ac, char **av)
 			&ts_gate_entry, 0, "tserv");
     if (r < 0)
 	panic("gate_create: %s", e2s(r));
+
+    for (;;)
+	sys_thread_sleep(1000);
 }

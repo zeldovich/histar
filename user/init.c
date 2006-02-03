@@ -51,5 +51,6 @@ main(int ac, char **av)
     //spawn_fs("freelist_test") ;
     spawn_fs("httpd");
 
-    return 0;
+    for (;;)
+	sys_thread_sleep(1000);
 }
