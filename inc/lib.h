@@ -38,6 +38,7 @@ typedef struct {
     uint64_t container;
     uint64_t root_container;
     struct cobj_ref fs_root;
+    const char args[0];
 } start_env_t;
 
 extern uint64_t start_arg0, start_arg1;
