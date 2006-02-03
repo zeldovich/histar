@@ -39,7 +39,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("fs_lookup: %s", e2s(r));
 
-    r = spawn(start_env->root_container, fsobj);
+    r = spawn(start_env->root_container, fsobj, 0, 0);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 

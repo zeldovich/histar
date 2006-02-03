@@ -14,7 +14,7 @@ spawn_fs(const char *pn)
     if (r < 0)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
-    r = spawn(start_env->root_container, fsobj);
+    r = spawn(start_env->root_container, fsobj, 0, 0);
     if (r < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(r));
 

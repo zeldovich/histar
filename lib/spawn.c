@@ -6,7 +6,7 @@
 
 int64_t
 spawn_fd(uint64_t container, struct cobj_ref elf,
-	 int fd0, int fd1, int fd2)
+	 int fd0, int fd1, int fd2, int ac, char **av)
 {
     int64_t c_spawn = sys_container_alloc(container);
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
@@ -63,6 +63,13 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->container = c_spawn;
 
+    char *p = &spawn_env->args[0];
+    for (int i = 0; i < ac; i++) {
+	size_t len = strlen(av[i]);
+	memcpy(p, av[i], len);
+	p += len;
+    }
+
     int64_t thread = sys_thread_create(c_spawn);
     if (thread < 0) {
 	cprintf("cannot create thread: %s\n", e2s(thread));
@@ -73,7 +80,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 
     r = sys_obj_set_name(tobj, &name[0]);
     if (r < 0)
-	return r;
+	goto err;
 
     e.te_arg = (uint64_t) spawn_env_va;
     r = sys_thread_start(tobj, &e);
@@ -82,15 +89,19 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
     }
 
-    return c_spawn;
+    goto out;
 
 err:
     sys_obj_unref(c_spawn_ref);
-    return r;
+    c_spawn = r;
+
+out:
+    segment_unmap(spawn_env);
+    return c_spawn;
 }
 
 int64_t
-spawn(uint64_t container, struct cobj_ref elf)
+spawn(uint64_t container, struct cobj_ref elf, int ac, char **av)
 {
-    return spawn_fd(container, elf, 0, 1, 2);
+    return spawn_fd(container, elf, 0, 1, 2, ac, av);
 }

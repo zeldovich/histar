@@ -42,7 +42,7 @@ telnet_server(void)
 	    continue;
 	}
 
-	int64_t sp = spawn_fd(start_env->root_container, sh, ss, ss, ss);
+	int64_t sp = spawn_fd(start_env->root_container, sh, ss, ss, ss, 0, 0);
 	if (sp < 0) {
 	    printf("cannot spawn shell: %s\n", e2s(sp));
 	    close(ss);
@@ -56,5 +56,9 @@ telnet_server(void)
 int
 main(int ac, char **av)
 {
+    struct ulabel *l = label_get_current();
+    assert(l);
+    segment_default_label(l);
+
     telnet_server();
 }
