@@ -7,6 +7,7 @@
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
+#include <kern/pagetree.h>
 #include <inc/error.h>
 
 static bool_t scrub_free_pages = 0;
@@ -133,6 +134,14 @@ page_init (void)
     int inuse;
 
     // Align boot_freemem to page boundary.
+    boot_alloc(0, PGSIZE);
+
+    // Allocate page status info for pagetree.
+    uint64_t sz = npage * sizeof(*pt_pages);
+    pt_pages = boot_alloc(sz, PGSIZE);
+    memset(pt_pages, 0, sz);
+
+    // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
     for (uint64_t i = 0; i < npage; i++) {

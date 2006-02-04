@@ -375,7 +375,7 @@ kobject_snapshot(struct kobject_hdr *ko)
     memcpy(snap, ko, sizeof(*snap));
     snap->u.hdr.ko_cksum = sum;
 
-    pagetree_clone(&ko->ko_pt, &snap->u.hdr.ko_pt);
+    pagetree_copy(&ko->ko_pt, &snap->u.hdr.ko_pt);
 }
 
 void
@@ -385,7 +385,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_unpin_hdr(ko);
-    pagetree_clone_free(&snap->u.hdr.ko_pt, &ko->ko_pt);
+    pagetree_free(&snap->u.hdr.ko_pt);
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);

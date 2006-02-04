@@ -4,20 +4,17 @@
 #include <machine/types.h>
 #include <machine/memlayout.h>
 
-typedef union {
+struct pagetree_page {
+    uint32_t pg_ref;	// references to this page from pagetree's
+    uint32_t pg_pin;	// hardware refs (DMA, PTE) -- for later use
+    uint32_t pg_indir;	// data page or indirect page
+};
+
+extern struct pagetree_page *pt_pages;
+
+typedef struct {
     void *page;
-    uint64_t flags;
 } pagetree_entry;
-
-#define PAGETREE_FLAG_MASK	0xfff
-#define PAGETREE_COW		0x01
-#define PAGETREE_RO		0x02
-
-static __inline __attribute__((always_inline)) void *
-pagetree_entry_page(pagetree_entry e)
-{
-    return (void*) (e.flags & ~PAGETREE_FLAG_MASK);
-}
 
 #define PAGETREE_DIRECT_PAGES		28
 #define PAGETREE_INDIRECTS		4
@@ -25,7 +22,6 @@ pagetree_entry_page(pagetree_entry e)
 
 /*
  * The page tree can store slightly over 512^PAGETREE_INDIRECTS pages.
- * Currently it supports a single-level COW snapshot.
  */
 
 struct pagetree {
@@ -45,13 +41,10 @@ typedef enum {
 // Fancy API for zeroing out
 void pagetree_init(struct pagetree *pt);
 
-// Create a read-only clone of src into dst
-void pagetree_clone(struct pagetree *src, struct pagetree *dst);
+// Copy (with COW) src into dst
+void pagetree_copy(struct pagetree *src, struct pagetree *dst);
 
-// Free a clone, including any pages that have been COW'ed in the base
-void pagetree_clone_free(struct pagetree *clone, struct pagetree *base);
-
-// Free the pagetree, including all of the pages
+// Free the pagetree, including all of the pages (that aren't shared)
 void pagetree_free(struct pagetree *pt);
 
 // Get a page currently stored in the page tree

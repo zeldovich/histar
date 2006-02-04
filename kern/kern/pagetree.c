@@ -3,6 +3,93 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
+struct pagetree_page *pt_pages;
+
+static struct pagetree_page *
+page_to_ptp(void *p)
+{
+    ppn_t pn = pa2ppn(kva2pa(p));
+    return &pt_pages[pn];
+}
+
+static void
+pagetree_free_page(void *p)
+{
+    struct pagetree_page *ptp = page_to_ptp(p);
+    assert(ptp->pg_ref == 0);
+    assert(ptp->pg_pin == 0);
+
+    if (ptp->pg_indir) {
+	struct pagetree_indirect_page *pip = p;
+	for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
+	    if (pip->pt_entry[i].page) {
+		pagetree_free_page(pip->pt_entry[i].page);
+		pip->pt_entry[i].page = 0;
+	    }
+	}
+    }
+
+    memset(ptp, 0, sizeof(*ptp));
+    page_free(p);
+}
+
+static void
+pagetree_decref(void *p)
+{
+    struct pagetree_page *ptp = page_to_ptp(p);
+    if (--ptp->pg_ref == 0)
+	pagetree_free_page(p);
+}
+
+static void
+pagetree_incref(void *p)
+{
+    struct pagetree_page *ptp = page_to_ptp(p);
+    ptp->pg_ref++;
+}
+
+static void
+pagetree_indir_copy(void *src, void *dst)
+{
+    struct pagetree_indirect_page *pdst = dst;
+
+    for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
+	if (pdst->pt_entry[i].page)
+	    pagetree_incref(pdst->pt_entry[i].page);
+
+    assert(page_to_ptp(src)->pg_indir);
+    page_to_ptp(dst)->pg_indir = 1;
+}
+
+static int
+pagetree_cow(pagetree_entry *ent, void (*copy_cb) (void *, void *))
+{
+    if (!ent->page)
+	return 0;
+
+    struct pagetree_page *ptp = page_to_ptp(ent->page);
+    assert(ptp->pg_ref > 0);
+
+    if (ptp->pg_ref > 1) {
+	void *copy;
+
+	int r = page_alloc(&copy);
+	if (r < 0)
+	    return r;
+
+	memcpy(copy, ent->page, PGSIZE);
+	pagetree_incref(copy);
+
+	if (copy_cb)
+	    copy_cb(ent->page, copy);
+
+	pagetree_decref(ent->page);
+	ent->page = copy;
+    }
+
+    return 0;
+}
+
 void
 pagetree_init(struct pagetree *pt)
 {
@@ -10,98 +97,40 @@ pagetree_init(struct pagetree *pt)
 }
 
 void
-pagetree_clone(struct pagetree *src, struct pagetree *dst)
+pagetree_copy(struct pagetree *src, struct pagetree *dst)
 {
     memcpy(dst, src, sizeof(*dst));
 
-    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
-	dst->pt_direct[i].flags |= PAGETREE_RO;
-	src->pt_direct[i].flags |= PAGETREE_COW;
-    }
+    // XXX need to deal with pinned pages...
 
-    for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
-	dst->pt_indirect[i].flags |= PAGETREE_RO;
-	src->pt_indirect[i].flags |= PAGETREE_COW;
-    }
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
+	if (dst->pt_direct[i].page)
+	    pagetree_incref(dst->pt_direct[i].page);
+
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
+	if (dst->pt_indirect[i].page)
+	    pagetree_incref(dst->pt_indirect[i].page);
 }
 
 static void
-pagetree_free_ent(pagetree_entry *clone_ent, pagetree_entry *base_ent, int level)
+pagetree_free_ent(pagetree_entry *ent)
 {
-    void *clone_page = pagetree_entry_page(*clone_ent);
-    void *base_page = base_ent ? pagetree_entry_page(*base_ent) : 0;
-
-    if (base_ent) {
-	assert((clone_ent->flags & PAGETREE_RO));
-    } else {
-	assert(!(clone_ent->flags & PAGETREE_RO));
-	assert(!(clone_ent->flags & PAGETREE_COW));
+    if (ent->page) {
+	pagetree_decref(ent->page);
+	ent->page = 0;
     }
-
-    if (base_ent && (base_ent->flags & PAGETREE_COW)) {
-	assert(clone_page == base_page);
-	base_ent->flags &= ~PAGETREE_COW;
-	clone_ent->page = 0;
-	return;
-    }
-
-    if (clone_page) {
-	if (level > 0) {
-	    struct pagetree_indirect_page *cip = clone_page;
-	    struct pagetree_indirect_page *bip = base_page;
-
-	    for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
-		pagetree_free_ent(&cip->pt_entry[i],
-				  bip ? &bip->pt_entry[i] : 0,
-				  level - 1);
-	}
-
-	page_free(clone_page);
-	clone_ent->page = 0;
-    }
-}
-
-void
-pagetree_clone_free(struct pagetree *clone, struct pagetree *base)
-{
-    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
-	pagetree_free_ent(&clone->pt_direct[i],
-			  base ? &base->pt_direct[i] : 0, 0);
-
-    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
-	pagetree_free_ent(&clone->pt_indirect[i],
-			  base ? &base->pt_indirect[i] : 0, i+1);
-
-    pagetree_init(clone);
 }
 
 void
 pagetree_free(struct pagetree *pt)
 {
-    pagetree_clone_free(pt, 0);
-}
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
+	pagetree_free_ent(&pt->pt_direct[i]);
 
-static int
-pagetree_ent_cow(pagetree_entry *ent)
-{
-    assert(!(ent->flags & PAGETREE_RO));
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
+	pagetree_free_ent(&pt->pt_indirect[i]);
 
-    if (ent->flags & PAGETREE_COW) {
-	void *page = pagetree_entry_page(*ent);
-	void *cow = 0;
-
-	if (page) {
-	    int r = page_alloc(&cow);
-	    if (r < 0)
-		return r;
-	    memcpy(cow, page, PGSIZE);
-	}
-
-	// also clears PAGETREE_COW
-	ent->page = cow;
-    }
-
-    return 0;
+    pagetree_init(pt);
 }
 
 static int
@@ -110,25 +139,24 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 			   int level)
 {
     if (rw == page_rw)
-	pagetree_ent_cow(indir);
+	pagetree_cow(indir, &pagetree_indir_copy);
 
-    struct pagetree_indirect_page *pip = pagetree_entry_page(*indir);
-    if (!pip) {
+    if (indir->page == 0) {
 	if (rw == page_ro) {
 	    *outp = 0;
 	    return 0;
 	}
 
-	void *page;
-	int r = page_alloc(&page);
+	int r = page_alloc(&indir->page);
 	if (r < 0)
 	    return r;
 
-	memset(page, 0, PGSIZE);
-	indir->page = page;
-	pip = page;
+	memset(indir->page, 0, PGSIZE);
+	pagetree_incref(indir->page);
+	page_to_ptp(indir->page)->pg_indir = 1;
     }
 
+    struct pagetree_indirect_page *pip = indir->page;
     if (level == 0) {
 	*outp = &pip->pt_entry[npage];
 	return 0;
@@ -178,18 +206,14 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
     if (r < 0)
 	return r;
 
-    void *page = ent ? pagetree_entry_page(*ent) : 0;
+    void *page = ent ? ent->page : 0;
     if (rw == page_ro || page == 0) {
 	*pagep = page;
 	return 0;
     }
 
-    if (ent->flags & PAGETREE_RO)
-	panic("writing to a pagetree clone: pt %p page %ld",
-	      pt, npage);
-
-    pagetree_ent_cow(ent);
-    *pagep = pagetree_entry_page(*ent);
+    pagetree_cow(ent, 0);
+    *pagep = ent->page;
     return 0;
 }
 
@@ -202,11 +226,12 @@ pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
 	return r;
 
     assert(ent != 0);
-    void *cur = pagetree_entry_page(*ent);
-    if (cur && !(ent->flags & PAGETREE_COW))
-	page_free(cur);
+    if (ent->page)
+	pagetree_decref(ent->page);
 
     ent->page = page;
+    pagetree_incref(page);
+
     return 0;
 }
 
