@@ -35,6 +35,8 @@ struct kobject_pair {
 LIST_HEAD(kobject_list, kobject_hdr);
 extern struct kobject_list ko_list;
 
+void kobject_init(void);
+
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 info_flow_type iflow);
 int  kobject_alloc(kobject_type_t type, const struct Label *l,
@@ -54,9 +56,6 @@ void kobject_swapin(struct kobject *kp);
 // Called when the object has been written out to disk and the
 // in-memory copy should be discarded.
 void kobject_swapout(struct kobject *kp);
-
-// Called by the timer interrupt to garbage-collect free'd kobjects
-void kobject_gc_scan(void);
 
 void kobject_snapshot(struct kobject_hdr *kp);
 void kobject_snapshot_release(struct kobject_hdr *kp);

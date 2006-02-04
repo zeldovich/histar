@@ -267,8 +267,6 @@ fs_init(struct Container *c, struct Label *l)
 static void
 user_bootstrap(void)
 {
-    pstate_reset();
-
     // root handle and a label
     user_root_handle = handle_alloc();
     struct Label l;
@@ -317,7 +315,7 @@ user_init(void)
 	return;
     }
 
-    int r = pstate_init();
+    int r = pstate_load();
     if (r < 0) {
 	cprintf("Unable to load persistent state: %s\n", e2s(r));
 	user_bootstrap();

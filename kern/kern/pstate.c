@@ -6,13 +6,14 @@
 #include <kern/pstate.h>
 #include <kern/uinit.h>
 #include <kern/handle.h>
+#include <kern/timer.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 #include <lib/btree/btree_traverse.h>
 
 
 // verbose flags
-static int pstate_init_debug = 0;
+static int pstate_load_debug = 0;
 static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
@@ -200,11 +201,11 @@ pstate_swapin(kobject_id_t id) {
 /////////////////////////////////////
 
 static int
-pstate_init2()
+pstate_load2()
 {
     disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
     if (s != disk_io_success) {
-		cprintf("pstate_init2: cannot read header\n");
+		cprintf("pstate_load2: cannot read header\n");
 		return -E_IO;
     }
 
@@ -212,7 +213,7 @@ pstate_init2()
     if (stable_hdr.ph_magic != PSTATE_MAGIC ||
 		stable_hdr.ph_version != PSTATE_VERSION)
     {
-		cprintf("pstate_init_hdr: magic/version mismatch\n");
+		cprintf("pstate_load2: magic/version mismatch\n");
 
 		return -E_INVAL;
     }
@@ -228,20 +229,20 @@ pstate_init2()
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.tree, &trav) ;
 	
-	if (pstate_init_debug)
+	if (pstate_load_debug)
 		btree_pretty_print(&iobjlist.tree, iobjlist.tree.root, 0);
 	
 	while (btree_next_entry(&trav)) {
 		
 		uint64_t id = *trav.key ;
 		offset_t off = *trav.val ;
-		if (pstate_init_debug)
-			cprintf("pstate_init2: paging in kobj %ld\n", id) ;
+		if (pstate_load_debug)
+			cprintf("pstate_load2: paging in kobj %ld\n", id) ;
 		
 		int r = pstate_swapin_off(off) ;
 		
 		if (r < 0) {
-			cprintf("pstate_init2: cannot swapin offset %ld: %s\n",
+			cprintf("pstate_load2: cannot swapin offset %ld: %s\n",
 					id, e2s(r)) ;
 			return r ;
 		}
@@ -250,49 +251,60 @@ pstate_init2()
     handle_counter   = stable_hdr.ph_handle_counter;
     user_root_handle = stable_hdr.ph_user_root_handle;
 
-    if (pstate_init_debug)
-		cprintf("pstate_init2: handle_counter %ld root_handle %ld\n",
+    if (pstate_load_debug)
+		cprintf("pstate_load2: handle_counter %ld root_handle %ld\n",
 			handle_counter, user_root_handle);
 
     return 1;
 }
 
 static void
-pstate_init_stackwrap(void *arg)
+pstate_load_stackwrap(void *arg)
 {
     int *donep = (int *) arg;
 
-    *donep = pstate_init2();
+    *donep = pstate_load2();
 }
 
-void
+static void
 pstate_reset(void)
 {
     memset(&stable_hdr, 0, sizeof(stable_hdr));
 }
 
-int
+void
 pstate_init(void)
 {
     pstate_reset();
 
+    static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };
+    sync_pt.pt_interval_ticks = kclock_hz;
+    timer_add_periodic(&sync_pt);
+}
+
+int
+pstate_load(void)
+{
     int done = 0;
-    int r = stackwrap_call(&pstate_init_stackwrap, &done);
+    int r = stackwrap_call(&pstate_load_stackwrap, &done);
     if (r < 0) {
-		cprintf("pstate_init: cannot stackwrap: %s\n", e2s(r));
-		return r;
+	cprintf("pstate_load: cannot stackwrap: %s\n", e2s(r));
+	return r;
     }
 
     uint64_t ts_start = read_tsc();
     int warned = 0;
     while (!done) {
-		uint64_t ts_now = read_tsc();
-		if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
-		    cprintf("pstate_init: wedged for %ld\n", ts_now - ts_start);
-		    warned = 1;
-		}
-		ide_intr();
+	uint64_t ts_now = read_tsc();
+	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
+	    cprintf("pstate_load: wedged for %ld\n", ts_now - ts_start);
+	    warned = 1;
+	}
+	ide_intr();
     }
+
+    if (done < 0)
+	pstate_reset();
 
     return done;
 }
@@ -481,5 +493,5 @@ pstate_sync(void)
 {
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
-		cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }

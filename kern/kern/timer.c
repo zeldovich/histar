@@ -1,16 +1,15 @@
 #include <machine/types.h>
 #include <machine/thread.h>
 #include <kern/timer.h>
-#include <kern/sched.h>
 #include <kern/lib.h>
-#include <kern/pstate.h>
-#include <kern/kobj.h>
 #include <kern/intr.h>
 #include <dev/kclock.h>
 #include <inc/queue.h>
 
 uint64_t timer_ticks;
 struct Thread_list timer_sleep;
+
+static LIST_HEAD(pt_list, periodic_task) periodic_tasks;
 
 static void
 wakeup_scan(void)
@@ -29,14 +28,22 @@ wakeup_scan(void)
 static void
 timer_intr(void)
 {
-    kobject_gc_scan();
-    wakeup_scan();
-
     timer_ticks++;
-    if (!(timer_ticks % kclock_hz))
-	pstate_sync();
 
-    schedule();
+    struct periodic_task *pt;
+    LIST_FOREACH(pt, &periodic_tasks, pt_link) {
+	if (pt->pt_wakeup_ticks < timer_ticks) {
+	    pt->pt_fn();
+	    pt->pt_wakeup_ticks = timer_ticks + pt->pt_interval_ticks;
+	}
+    }
+}
+
+void
+timer_add_periodic(struct periodic_task *pt)
+{
+    pt->pt_wakeup_ticks = 0;
+    LIST_INSERT_HEAD(&periodic_tasks, pt, pt_link);
 }
 
 void
@@ -46,4 +53,8 @@ timer_init(void)
 
     irq_register(0, &timer_ih);
     LIST_INIT(&timer_sleep);
+
+    static struct periodic_task sleep_pt =
+	{ .pt_fn = &wakeup_scan, .pt_interval_ticks = 1 };
+    timer_add_periodic(&sleep_pt);
 }

@@ -7,6 +7,7 @@
 #include <kern/kobj.h>
 #include <kern/pstate.h>
 #include <kern/handle.h>
+#include <kern/timer.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 
@@ -317,7 +318,7 @@ kobject_gc(struct kobject *ko)
     ko->u.hdr.ko_type = kobj_dead;
 }
 
-void
+static void
 kobject_gc_scan(void)
 {
     // Clear cur_thread to avoid putting it to sleep on behalf of
@@ -452,4 +453,12 @@ kobject_initial(const struct kobject *ko)
 	       ko->u.th.th_status == thread_suspended;
 
     return 0;
+}
+
+void
+kobject_init(void)
+{
+    static struct periodic_task gc_pt =
+	{ .pt_fn = &kobject_gc_scan, .pt_interval_ticks = 1 };
+    timer_add_periodic(&gc_pt);
 }

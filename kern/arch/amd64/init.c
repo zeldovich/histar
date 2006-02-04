@@ -11,6 +11,8 @@
 #include <kern/lib.h>
 #include <kern/timer.h>
 #include <kern/uinit.h>
+#include <kern/kobj.h>
+#include <kern/pstate.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -114,6 +116,10 @@ init (uint32_t start_eax, uint32_t start_ebx)
     timer_init ();
     pmap_init (mbi);
     pci_init ();
+
+    kobject_init ();
+    sched_init ();
+    pstate_init ();
 
     user_init ();
 

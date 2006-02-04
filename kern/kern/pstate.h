@@ -26,8 +26,8 @@ struct pstate_header {
     struct btree_default ph_map ;
 };
 
-int  pstate_init(void);
-void pstate_reset(void);
+void pstate_init(void);
+int  pstate_load(void);
 void pstate_sync(void);
 
 // suspends cur_thread, and wakes it up when it should try again
