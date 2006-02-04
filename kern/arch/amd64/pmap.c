@@ -19,7 +19,6 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
-struct Page *pages;
 
 struct Page_link {
     LIST_ENTRY(Page_link) pp_link;	// free list link
@@ -105,11 +104,6 @@ page_free (void *v)
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
-    struct Page *p = pa2page(kva2pa(v));
-    if (p->pg_ref != 0 || p->pg_pin != 0)
-	cprintf("page_free: page %p: ref %d pin %d\n",
-		p, p->pg_ref, p->pg_pin);
-
     LIST_INSERT_HEAD (&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
@@ -125,10 +119,6 @@ page_alloc (void **vp)
 	page_stats.pages_avail--;
 	page_stats.pages_used++;
 	page_stats.allocations++;
-
-	struct Page *p = pa2page(kva2pa(pl));
-	memset(p, 0, sizeof(*p));
-
 	return 0;
     }
 
@@ -143,14 +133,6 @@ page_init (void)
     int inuse;
 
     // Align boot_freemem to page boundary.
-    boot_alloc(0, PGSIZE);
-
-    // Allocate pages[] array.
-    size_t pages_size = npage * sizeof(*pages);
-    pages = boot_alloc(pages_size, PGSIZE);
-    memset(pages, 0, pages_size);
-
-    // Round up to another page.
     boot_alloc(0, PGSIZE);
 
     for (uint64_t i = 0; i < npage; i++) {
