@@ -26,11 +26,6 @@ extern struct Pseudodesc gdtdesc;
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
-LIST_HEAD (Page_list, Page);
-struct Page {
-    LIST_ENTRY (Page) pp_link;	/* free list link */
-};
-
 struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };

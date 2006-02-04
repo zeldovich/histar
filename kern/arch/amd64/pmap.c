@@ -19,7 +19,11 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
-static struct Page_list page_free_list;
+
+struct Page_link {
+    LIST_ENTRY(Page_link) pp_link;	// free list link
+};
+static LIST_HEAD(Page_list, Page_link) page_free_list;
 				// Free list of physical pages
 
 // Global page allocation stats
@@ -93,7 +97,7 @@ boot_alloc (uint32_t n, uint32_t align)
 void
 page_free (void *v)
 {
-    struct Page *p = (struct Page *) v;
+    struct Page_link *p = (struct Page_link *) v;
     if (PGOFF(p))
 	panic("page_free: not a page-aligned pointer %p", p);
 
@@ -108,7 +112,7 @@ page_free (void *v)
 int
 page_alloc (void **vp)
 {
-    struct Page *p = LIST_FIRST(&page_free_list);
+    struct Page_link *p = LIST_FIRST(&page_free_list);
     if (p) {
 	LIST_REMOVE(p, pp_link);
 	*vp = p;
