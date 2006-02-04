@@ -26,6 +26,13 @@ extern struct Pseudodesc gdtdesc;
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
+struct Page {
+    uint32_t pg_ref;	// for arbitrary use by page owner
+    uint32_t pg_pin;	// hardware refs to this phys page (DMA, PTE)
+};
+
+extern struct Page *pages;
+
 struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
@@ -66,6 +73,22 @@ kva2pa (void *kva)
     if (va >= PHYSBASE && va < PHYSBASE + (npage << PGSHIFT))
 	return va - PHYSBASE;
     panic("kva2pa called with invalid kva %p", kva);
+}
+
+inline struct Page *
+pa2page (physaddr_t pa)
+{
+    uint64_t pn = pa >> PGSHIFT;
+    if (pn > npage)
+	panic("pa2page: pa 0x%lx out of range, npage %ld", pa, npage);
+    return &pages[pn];
+}
+
+inline physaddr_t
+page2pa (struct Page *p)
+{
+    uint64_t pn = p - pages;
+    return (pn << PGSHIFT);
 }
 
 /*

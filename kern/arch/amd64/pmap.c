@@ -19,6 +19,7 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
+struct Page *pages;
 
 struct Page_link {
     LIST_ENTRY(Page_link) pp_link;	// free list link
@@ -97,14 +98,19 @@ boot_alloc (uint32_t n, uint32_t align)
 void
 page_free (void *v)
 {
-    struct Page_link *p = (struct Page_link *) v;
-    if (PGOFF(p))
-	panic("page_free: not a page-aligned pointer %p", p);
+    struct Page_link *pl = (struct Page_link *) v;
+    if (PGOFF(pl))
+	panic("page_free: not a page-aligned pointer %p", pl);
 
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
-    LIST_INSERT_HEAD (&page_free_list, p, pp_link);
+    struct Page *p = pa2page(kva2pa(v));
+    if (p->pg_ref != 0 || p->pg_pin != 0)
+	cprintf("page_free: page %p: ref %d pin %d\n",
+		p, p->pg_ref, p->pg_pin);
+
+    LIST_INSERT_HEAD (&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
 }
@@ -112,13 +118,17 @@ page_free (void *v)
 int
 page_alloc (void **vp)
 {
-    struct Page_link *p = LIST_FIRST(&page_free_list);
-    if (p) {
-	LIST_REMOVE(p, pp_link);
-	*vp = p;
+    struct Page_link *pl = LIST_FIRST(&page_free_list);
+    if (pl) {
+	LIST_REMOVE(pl, pp_link);
+	*vp = pl;
 	page_stats.pages_avail--;
 	page_stats.pages_used++;
 	page_stats.allocations++;
+
+	struct Page *p = pa2page(kva2pa(pl));
+	memset(p, 0, sizeof(*p));
+
 	return 0;
     }
 
@@ -133,7 +143,15 @@ page_init (void)
     int inuse;
 
     // Align boot_freemem to page boundary.
-    boot_alloc (0, PGSIZE);
+    boot_alloc(0, PGSIZE);
+
+    // Allocate pages[] array.
+    size_t pages_size = npage * sizeof(*pages);
+    pages = boot_alloc(pages_size, PGSIZE);
+    memset(pages, 0, pages_size);
+
+    // Round up to another page.
+    boot_alloc(0, PGSIZE);
 
     for (uint64_t i = 0; i < npage; i++) {
 	// Off-limits until proven otherwise.
