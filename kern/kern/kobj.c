@@ -437,3 +437,19 @@ kobject_negative_contains(kobject_id_t id)
 
     return 0;
 }
+
+bool_t
+kobject_initial(const struct kobject *ko)
+{
+    if ((ko->u.hdr.ko_flags & KOBJ_PIN_IDLE))
+	return 1;
+
+    if (ko->u.hdr.ko_ref == 0)
+	return 1;
+
+    if (ko->u.hdr.ko_type == kobj_thread)
+	return ko->u.th.th_status == thread_runnable ||
+	       ko->u.th.th_status == thread_suspended;
+
+    return 0;
+}

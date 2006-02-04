@@ -91,9 +91,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 		return r ;
 	}
 
-	if ((ko->u.hdr.ko_flags & KOBJ_PIN_IDLE) ||
-		(ko->u.hdr.ko_ref == 0) ||
-		(ko->u.hdr.ko_type == kobj_thread)) {
+	if (kobject_initial(ko)) {
 		r = btree_insert(&iobjlist.tree, &ko->u.hdr.ko_id, &offset) ;
 		if (r < 0) {
 			cprintf("pstate_kobj_alloc: iobjlist insert failed, "

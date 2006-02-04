@@ -78,4 +78,7 @@ void kobject_negative_insert(kobject_id_t id);
 void kobject_negative_remove(kobject_id_t id);
 bool_t kobject_negative_contains(kobject_id_t id);
 
+// object has to stay in-core or be brought in at startup
+bool_t kobject_initial(const struct kobject *ko);
+
 #endif
