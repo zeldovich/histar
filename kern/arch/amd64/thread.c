@@ -110,6 +110,7 @@ void
 thread_swapin(struct Thread *t)
 {
     t->th_as = 0;
+    t->th_pinned = 0;
 
     if (t->th_status == thread_suspended)
 	t->th_status = thread_runnable;
