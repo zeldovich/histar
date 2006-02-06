@@ -42,19 +42,13 @@ stackwrap_entry(void)
 }
 
 static void
-stackwrap_check(struct stackwrap_state *ss)
-{
-    if (ss->alive == 0)
-	page_free(ss->stackbase);
-}
-
-static void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
     if (setjmp(&ss->entry_cb) == 0)
 	longjmp(&ss->task_state, 1);
 
-    stackwrap_check(ss);
+    if (ss->alive == 0)
+	page_free(ss->stackbase);
 }
 
 static void
