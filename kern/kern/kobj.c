@@ -264,6 +264,10 @@ kobject_unpin_hdr(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
     --m->ko_pin;
+
+    if (m->ko_pin == (uint32_t) -1)
+	panic("kobject_unpin_hdr: underflow for object %ld (%s)",
+	      m->ko_id, m->ko_name);
 }
 
 void
@@ -271,7 +275,8 @@ kobject_pin_page(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
     ++m->ko_pin_pg;
-    ++m->ko_pin;
+
+    kobject_pin_hdr(ko);
 }
 
 void
@@ -279,7 +284,8 @@ kobject_unpin_page(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->u.hdr;
     --m->ko_pin_pg;
-    --m->ko_pin;
+
+    kobject_unpin_hdr(ko);
 }
 
 static void
@@ -339,6 +345,7 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    assert(ko->u.hdr.ko_pin == 0);
     assert(!(ko->u.hdr.ko_flags & KOBJ_SNAPSHOTING));
 
     if (ko->u.hdr.ko_type == kobj_thread)
