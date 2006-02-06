@@ -39,28 +39,29 @@ KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
-	user/chatter1 \
 	user/chatter2 \
-	user/uregtest \
 	user/hello \
 	user/idle \
-	user/jmptest \
-	user/pftest \
 	user/freelist_test \
 	user/spin \
-	user/netwatch \
-	user/thread_test \
 	user/netd \
 	user/netd_mom \
 	user/telnetd \
-	user/tserv \
-	user/tclnt \
 	user/init \
 	user/httpd \
 	user/shell \
-	user/mlt \
 	user/ls \
 	user/asprint
+
+	#user/chatter1 \
+	#user/mlt \
+	#user/tserv \
+	#user/tclnt \
+	#user/netwatch \
+	#user/thread_test \
+	#user/uregtest \
+	#user/jmptest \
+	#user/pftest \
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
