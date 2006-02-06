@@ -120,6 +120,10 @@ page_alloc (void **vp)
 	page_stats.pages_avail--;
 	page_stats.pages_used++;
 	page_stats.allocations++;
+
+	if (scrub_free_pages)
+	    memset(pl, 0xcd, PGSIZE);
+
 	return 0;
     }
 
