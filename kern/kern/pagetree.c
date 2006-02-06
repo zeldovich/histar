@@ -12,6 +12,8 @@ page_to_ptp(void *p)
     return &pt_pages[pn];
 }
 
+static void pagetree_decref(void *p);
+
 static void
 pagetree_free_page(void *p)
 {
@@ -23,7 +25,7 @@ pagetree_free_page(void *p)
 	struct pagetree_indirect_page *pip = p;
 	for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	    if (pip->pt_entry[i].page) {
-		pagetree_free_page(pip->pt_entry[i].page);
+		pagetree_decref(pip->pt_entry[i].page);
 		pip->pt_entry[i].page = 0;
 	    }
 	}
