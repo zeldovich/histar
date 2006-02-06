@@ -47,4 +47,7 @@ main(int ac, char **av)
 {
 	test0() ;
 	printf("test0 complete\n") ;
+
+	// avoid GC'ing the container done by libmain()
+	sys_thread_halt();
 }
