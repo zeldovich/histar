@@ -14,6 +14,8 @@
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
 
+static int kobject_reclaim_debug = 0;
+
 struct kobject *
 kobject_h2k(struct kobject_hdr *kh)
 {
@@ -455,10 +457,39 @@ kobject_initial(const struct kobject *ko)
     return 0;
 }
 
+static void
+kobject_reclaim(void)
+{
+    const struct Thread *t = cur_thread;
+    cur_thread = 0;
+
+    struct kobject_hdr *next;
+    for (struct kobject_hdr *kh = LIST_FIRST(&ko_list); kh != 0; kh = next) {
+	next = LIST_NEXT(kh, ko_link);
+	struct kobject *ko = kobject_h2k(kh);
+
+	if (kh->ko_pin || (kh->ko_flags & KOBJ_DIRTY) || kobject_initial(ko))
+	    continue;
+
+	if (kobject_reclaim_debug)
+	    cprintf("kobject_reclaim: swapping out %ld (%s)\n",
+		    kh->ko_id, kh->ko_name);
+
+	kobject_swapout(ko);
+    }
+
+    cur_thread = t;
+}
+
 void
 kobject_init(void)
 {
     static struct periodic_task gc_pt =
 	{ .pt_fn = &kobject_gc_scan, .pt_interval_ticks = 1 };
     timer_add_periodic(&gc_pt);
+
+    static struct periodic_task reclaim_pt =
+	{ .pt_fn = &kobject_reclaim };
+    reclaim_pt.pt_interval_ticks = kclock_hz;
+    timer_add_periodic(&reclaim_pt);
 }
