@@ -34,7 +34,7 @@ kobject_cksum(const struct kobject_hdr *ko)
     assert(ko);
     uint64_t sum = 0;
 
-    // Compute checksum on everything but ko_cksum + ko_pt
+    // Compute checksum on the persistent parts of kobject_hdr
     sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_cksum));
     sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
 		     sizeof(struct kobject) - sizeof(struct kobject_hdr));
@@ -222,12 +222,13 @@ kobject_swapin(struct kobject *ko)
     uint64_t sum2 = kobject_cksum(&ko->u.hdr);
 
     if (sum1 != sum2)
-	cprintf("kobject_swapin: %ld checksum mismatch: 0x%lx != 0x%lx\n",
-		ko->u.hdr.ko_id, sum1, sum2);
+	cprintf("kobject_swapin: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
+		ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
 
     kobject_negative_remove(ko->u.hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
     ko->u.hdr.ko_pin = 0;
+    ko->u.hdr.ko_pin_pg = 0;
     ko->u.hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
 			    KOBJ_DIRTY |
 			    KOBJ_SNAPSHOT_DIRTY);
@@ -345,6 +346,13 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    uint64_t sum1 = ko->u.hdr.ko_cksum;
+    uint64_t sum2 = kobject_cksum(&ko->u.hdr);
+
+    if (sum1 != sum2)
+	cprintf("kobject_swapout: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
+		ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
+
     assert(ko->u.hdr.ko_pin == 0);
     assert(!(ko->u.hdr.ko_flags & KOBJ_SNAPSHOTING));
 
@@ -374,15 +382,14 @@ kobject_snapshot(struct kobject_hdr *ko)
     if (ko->ko_type == kobj_segment)
 	segment_snapshot(&kobject_h2k(ko)->u.sg);
 
-    ko->ko_flags |= KOBJ_SNAPSHOTING;
     ko->ko_flags &= ~KOBJ_DIRTY;
+    ko->ko_cksum = kobject_cksum(ko);
+    ko->ko_flags |= KOBJ_SNAPSHOTING;
     kobject_pin_hdr(ko);
-
-    uint64_t sum = kobject_cksum(ko);
 
     struct kobject *snap = kobject_get_snapshot(ko);
     memcpy(snap, ko, sizeof(*snap));
-    snap->u.hdr.ko_cksum = sum;
+    snap->u.hdr.ko_flags &= ~KOBJ_SNAPSHOTING;
 
     pagetree_copy(&ko->ko_pt, &snap->u.hdr.ko_pt);
 }
@@ -475,7 +482,9 @@ kobject_reclaim(void)
 	next = LIST_NEXT(kh, ko_link);
 	struct kobject *ko = kobject_h2k(kh);
 
-	if (kh->ko_pin || (kh->ko_flags & KOBJ_DIRTY) || kobject_initial(ko))
+	if (kh->ko_pin || kobject_initial(ko))
+	    continue;
+	if ((kh->ko_flags & (KOBJ_DIRTY | KOBJ_SNAPSHOT_DIRTY)))
 	    continue;
 
 	if (kobject_reclaim_debug)
