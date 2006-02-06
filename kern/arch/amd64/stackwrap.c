@@ -102,6 +102,7 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
     struct disk_io_request ds = { .ss = ss };
 
     static LIST_HEAD(disk_waiters_list, disk_io_request) disk_waiters;
+    static bool_t disk_queue_full;
 
     for (;;) {
 	int r = disk_io(op, buf, count, offset, &disk_io_cb, &ds);
@@ -110,6 +111,7 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
 	    break;
 	} else if (r == -E_BUSY) {
 	    LIST_INSERT_HEAD(&disk_waiters, &ds, link);
+	    disk_queue_full = 1;
 	    stackwrap_sleep(ss);
 	} else if (r < 0) {
 	    cprintf("stackwrap_disk_io: unexpected error: %s\n", e2s(r));
@@ -118,7 +120,8 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
 	}
     }
 
-    while (!LIST_EMPTY(&disk_waiters)) {
+    disk_queue_full = 0;
+    while (!disk_queue_full && !LIST_EMPTY(&disk_waiters)) {
 	struct disk_io_request *rq = LIST_FIRST(&disk_waiters);
 	LIST_REMOVE(rq, link);
 	stackwrap_wakeup(rq->ss);
