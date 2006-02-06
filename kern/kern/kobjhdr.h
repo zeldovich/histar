@@ -16,18 +16,21 @@ struct kobject_hdr {
     kobject_id_t ko_id;
     kobject_type_t ko_type;
 
-    uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
-    uint32_t ko_pin;	// header is pinned (linked lists)
-    uint32_t ko_ref;	// persistent references (containers)
+    uint64_t ko_ref;	// persistent references (containers)
 
     uint64_t ko_flags;
     uint64_t ko_npages;
     struct Label ko_label;
-    LIST_ENTRY(kobject_hdr) ko_link;
     char ko_name[KOBJ_NAME_LEN];
 
     // For verifying the persistence layer
     uint64_t ko_cksum;
+
+    // Ephemeral state (doesn't persist across swapout)
+    uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
+    uint32_t ko_pin;	// header is pinned (linked lists)
+
+    LIST_ENTRY(kobject_hdr) ko_link;
 
     struct pagetree ko_pt;
 };
