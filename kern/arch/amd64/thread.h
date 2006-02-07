@@ -44,6 +44,7 @@ int  thread_alloc(const struct Label *l, struct Thread **tp);
 void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t);
+void thread_zero_refs(const struct Thread *t);
 
 int  thread_jump(const struct Thread *t, const struct Label *label,
 		 struct cobj_ref as, void *entry, void *stack,

@@ -380,9 +380,14 @@ kobject_gc_scan(void)
     cur_thread = 0;
 
     struct kobject_hdr *ko;
-    LIST_FOREACH(ko, &ko_list, ko_link)
-	if (ko->ko_ref == 0 && ko->ko_pin == 0 && ko->ko_type != kobj_dead)
-	    kobject_gc(kobject_dirty(ko));
+    LIST_FOREACH(ko, &ko_list, ko_link) {
+	if (ko->ko_ref == 0 && ko->ko_type != kobj_dead) {
+	    if (ko->ko_type == kobj_thread)
+		thread_zero_refs(&kobject_h2k(ko)->u.th);
+	    if (ko->ko_pin == 0)
+		kobject_gc(kobject_dirty(ko));
+	}
+    }
 
     cur_thread = t;
 }

@@ -135,13 +135,17 @@ thread_swapout(struct Thread *t)
 	kobject_unpin_hdr(&t->th_as->as_ko);
 }
 
+void
+thread_zero_refs(const struct Thread *t)
+{
+    thread_halt(t);
+}
+
 int
 thread_gc(struct Thread *t)
 {
     const struct kobject *ko;
     int r;
-
-    thread_halt(t);
 
     if (t->th_sg != kobject_id_null) {
 	r = kobject_get(t->th_sg, &ko, iflow_none);
