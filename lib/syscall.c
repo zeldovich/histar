@@ -193,9 +193,9 @@ sys_segment_get_npages(struct cobj_ref seg)
 }
 
 int64_t
-sys_as_create(uint64_t container)
+sys_as_create(uint64_t container, struct ulabel *l)
 {
-    return syscall(SYS_as_create, container);
+    return syscall(SYS_as_create, container, l);
 }
 
 int

@@ -59,7 +59,7 @@ int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);
 int64_t	sys_segment_get_npages(struct cobj_ref seg);
 
-int64_t sys_as_create(uint64_t container);
+int64_t sys_as_create(uint64_t container, struct ulabel *l);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
 

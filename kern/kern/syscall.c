@@ -441,13 +441,20 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 }
 
 static uint64_t
-sys_as_create(uint64_t container)
+sys_as_create(uint64_t container, struct ulabel *ul)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
+    struct Label l;
+    if (ul)
+	check(ulabel_to_label(ul, &l));
+    else
+	l = cur_thread->th_ko.ko_label;
+    check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
+
     struct Address_space *as;
-    check(as_alloc(&cur_thread->th_ko.ko_label, &as));
+    check(as_alloc(&l, &as));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
@@ -662,7 +669,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_as_create:
-	syscall_ret = sys_as_create(a1);
+	syscall_ret = sys_as_create(a1, (struct ulabel *) a2);
 	break;
 
     case SYS_as_get:
