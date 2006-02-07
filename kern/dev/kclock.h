@@ -28,8 +28,8 @@
 
 extern int kclock_hz;
 
-unsigned mc146818_read (void *sc, unsigned reg);
-void mc146818_write (void *sc, unsigned reg, unsigned datum);
+unsigned mc146818_read (unsigned reg);
+void mc146818_write (unsigned reg, unsigned datum);
 void kclock_init (void);
 int kclock_gettick (void);
 void kclock_delay (int usec);

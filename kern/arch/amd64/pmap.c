@@ -14,7 +14,7 @@ static bool_t scrub_free_pages = 0;
 
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa;	// Maximum physical address
-size_t npage;			// Amount of physical memory (in pages)
+size_t global_npages;		// Amount of physical memory (in pages)
 static size_t basemem;		// Amount of base memory (in bytes)
 static size_t extmem;		// Amount of extended memory (in bytes)
 
@@ -33,7 +33,7 @@ struct page_stats page_stats;
 static int
 nvram_read (int r)
 {
-  return mc146818_read (NULL, r) | (mc146818_read (NULL, r + 1) << 8);
+  return mc146818_read (r) | (mc146818_read (r + 1) << 8);
 }
 
 static void
@@ -55,7 +55,7 @@ i386_detect_memory (struct multiboot_info *mbi)
     else
 	maxpa = basemem;
 
-    npage = maxpa / PGSIZE;
+    global_npages = maxpa / PGSIZE;
 
     cprintf("Physical memory: %dK available, ", (int) (maxpa / 1024));
     cprintf("base = %dK, extended = %dK\n", (int) (basemem / 1024),
@@ -143,14 +143,14 @@ page_init (void)
     boot_alloc(0, PGSIZE);
 
     // Allocate page status info for pagetree.
-    uint64_t sz = npage * sizeof(*pt_pages);
+    uint64_t sz = global_npages * sizeof(*pt_pages);
     pt_pages = boot_alloc(sz, PGSIZE);
     memset(pt_pages, 0, sz);
 
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
-    for (uint64_t i = 0; i < npage; i++) {
+    for (uint64_t i = 0; i < global_npages; i++) {
 	// Off-limits until proven otherwise.
 	inuse = 1;
 

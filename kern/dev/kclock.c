@@ -15,14 +15,14 @@ static int kclock_tval;
 #include <kern/lib.h>
 
 unsigned
-mc146818_read (void *sc, unsigned reg)
+mc146818_read (unsigned reg)
 {
   outb (IO_RTC, reg);
   return inb (IO_RTC + 1);
 }
 
 void
-mc146818_write (void *sc, unsigned reg, unsigned datum)
+mc146818_write (unsigned reg, unsigned datum)
 {
   outb (IO_RTC, reg);
   outb (IO_RTC + 1, datum);

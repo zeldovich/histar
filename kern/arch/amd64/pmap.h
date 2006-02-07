@@ -30,7 +30,7 @@ struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
 
-extern size_t npage;
+extern size_t global_npages;
 
 extern struct page_stats {
     uint64_t pages_used;
@@ -51,37 +51,37 @@ int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm);
 void page_remove (struct Pagemap *pgmap, void *va);
 void *page_lookup (struct Pagemap *pgmap, void *va);
 
-inline void *
+static __inline void *
 pa2kva (physaddr_t pa)
 {
     return (void*) (pa + PHYSBASE);
 }
 
-inline physaddr_t
+static __inline physaddr_t
 kva2pa (void *kva)
 {
     physaddr_t va = (physaddr_t) kva;
-    if (va >= KERNBASE && va < KERNBASE + (npage << PGSHIFT))
+    if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
 	return va - KERNBASE;
-    if (va >= PHYSBASE && va < PHYSBASE + (npage << PGSHIFT))
+    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
 	return va - PHYSBASE;
     panic("kva2pa called with invalid kva %p", kva);
 }
 
-inline ppn_t
+static __inline ppn_t
 pa2ppn (physaddr_t pa)
 {
     ppn_t pn = pa >> PGSHIFT;
-    if (pn > npage)
-	panic("pa2ppn: pa 0x%lx out of range, npage %ld", pa, npage);
+    if (pn > global_npages)
+	panic("pa2ppn: pa 0x%lx out of range, npages %ld", pa, global_npages);
     return pn;
 }
 
-inline physaddr_t
+static __inline physaddr_t
 ppn2pa (ppn_t pn)
 {
-    if (pn > npage)
-	panic("ppn2pa: ppn %ld out of range, npage %ld", pn, npage);
+    if (pn > global_npages)
+	panic("ppn2pa: ppn %ld out of range, npages %ld", pn, global_npages);
     return (pn << PGSHIFT);
 }
 
