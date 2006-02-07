@@ -18,6 +18,8 @@ static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
 
+static int scrub_disk_pages = 0;
+
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
 
@@ -64,7 +66,18 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
     if (r == 0) {
     	assert(key == ko->u.hdr.ko_id) ;
 
-		freelist_free(f, mobj.off, mobj.npages) ;
+	if (scrub_disk_pages) {
+	    void *p;
+	    assert(0 == page_alloc(&p));
+	    memset(p, 0xc4, PGSIZE);
+
+	    for (int i = 0; i < mobj.npages; i++)
+		stackwrap_disk_io(op_write, p, PGSIZE, mobj.off * PGSIZE);
+
+	    page_free(p);
+	}
+
+	freelist_free(f, mobj.off, mobj.npages) ;
     	btree_delete(&iobjlist.tree, &ko->u.hdr.ko_id) ;
     	btree_delete(&objmap.tree, &ko->u.hdr.ko_id) ;
     }
