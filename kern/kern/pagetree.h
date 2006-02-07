@@ -55,6 +55,6 @@ int  pagetree_get_page(struct pagetree *pt, uint64_t npage, void **pagep,
 int  pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page);
 
 // Max number of pages in a pagetree
-uint64_t pagetree_maxpages();
+uint64_t pagetree_maxpages(void);
 
 #endif
