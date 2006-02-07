@@ -67,7 +67,7 @@ netd_gate_entry(void *x, struct cobj_ref *arg)
     struct netd_op_args *netd_op = 0;
     int r = segment_map(*arg, SEGMAP_READ | SEGMAP_WRITE, (void**)&netd_op, 0);
     if (r < 0)
-	panic("netd_gate_entry: cannot map args: %e\n", e2s(r));
+	panic("netd_gate_entry: cannot map args: %s\n", e2s(r));
 
     netd_dispatch(netd_op);
 

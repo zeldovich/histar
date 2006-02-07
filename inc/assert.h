@@ -5,7 +5,9 @@
 
 #include <inc/stdio.h>
 
-void _panic(const char*, int, const char*, ...) __attribute__((noreturn));
+void _panic(const char*, int, const char*, ...)
+	__attribute__((noreturn))
+	__attribute__((__format__ (__printf__, 3, 4)));
 
 #define panic(...) _panic(__FILE__, __LINE__, __VA_ARGS__)
 
