@@ -30,7 +30,7 @@ strcpy(char *dst, const char *src)
 
 char *
 strncpy(char *dst, const char *src, size_t n) {
-	int i;
+	size_t i;
 	char *p = dst;
 
 	for (i = 0; i < n; i++) {
