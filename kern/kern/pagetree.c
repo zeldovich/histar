@@ -23,7 +23,7 @@ pagetree_free_page(void *p)
 
     if (ptp->pg_indir) {
 	struct pagetree_indirect_page *pip = p;
-	for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
+	for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	    if (pip->pt_entry[i].page) {
 		pagetree_decref(pip->pt_entry[i].page);
 		pip->pt_entry[i].page = 0;
@@ -55,7 +55,7 @@ pagetree_indir_copy(void *src, void *dst)
 {
     struct pagetree_indirect_page *pdst = dst;
 
-    for (int i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
+    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
 	if (pdst->pt_entry[i].page)
 	    pagetree_incref(pdst->pt_entry[i].page);
 
@@ -168,8 +168,8 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
     for (int i = 0; i < level; i++)
 	n_pages_per_pip_entry *= PAGETREE_ENTRIES_PER_PAGE;
 
-    int next_slot = npage / n_pages_per_pip_entry;
-    int next_page = npage % n_pages_per_pip_entry;
+    uint32_t next_slot = npage / n_pages_per_pip_entry;
+    uint32_t next_page = npage % n_pages_per_pip_entry;
 
     assert(next_slot < PAGETREE_ENTRIES_PER_PAGE);
     return pagetree_get_entp_indirect(&pip->pt_entry[next_slot],

@@ -32,7 +32,7 @@ elf_copyin(void *p, uint64_t offset, uint32_t count,
 }
 
 static int
-elf_add_segmap(struct Address_space *as, int *smi, struct cobj_ref seg,
+elf_add_segmap(struct Address_space *as, uint32_t *smi, struct cobj_ref seg,
 	       uint64_t start_page, uint64_t num_pages, void *va, uint64_t flags)
 {
     if (*smi >= N_SEGMAP_PER_PAGE) {
@@ -85,7 +85,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    int r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw);
+	    r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw);
 	    if (r < 0)
 		panic("segment_create_embed: cannot get page: %s", e2s(r));
 
@@ -152,10 +152,10 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
 
 	struct Segment *s;
-	int r = segment_create_embed(c, l,
-				     mem_pages * PGSIZE,
-				     binary + ph.p_offset - page_offset,
-				     page_offset + ph.p_filesz, &s);
+	r = segment_create_embed(c, l,
+				 mem_pages * PGSIZE,
+				 binary + ph.p_offset - page_offset,
+				 page_offset + ph.p_filesz, &s);
 	if (r < 0) {
 	    cprintf("ELF: cannot create segment: %s\n", e2s(r));
 	    return r;
