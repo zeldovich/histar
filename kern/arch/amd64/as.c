@@ -223,12 +223,15 @@ as_pmap_fill_segment(const struct Address_space *as,
     uint64_t flags = usm->flags;
 
     for (uint64_t i = start_page; i < start_page + num_pages; i++) {
-	void *pp;
-	int r = kobject_get_page(&sg->sg_ko, i, &pp,
-				 (flags & SEGMAP_WRITE) ? page_rw : page_ro);
+	int r = 0;
 
 	if (((uint64_t) cva) >= ULIM)
 	    r = -E_INVAL;
+
+	void *pp;
+	if (r == 0)
+	    r = kobject_get_page(&sg->sg_ko, i, &pp,
+				 (flags & SEGMAP_WRITE) ? page_rw : page_ro);
 
 	uint64_t ptflags = PTE_NX;
 	if ((flags & SEGMAP_WRITE))
@@ -240,6 +243,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    page_remove(pgmap, cva);
 	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
 	}
+
 	if (r < 0) {
 	    cva = (char *) usm->va;
 	    uint64_t cleanup_end = i;
