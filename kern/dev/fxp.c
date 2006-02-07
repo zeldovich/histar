@@ -52,11 +52,6 @@ struct fxp_card {
     bool_t tx_halted;	// transmitter is not running and not suspended
 
     struct net_device netdev;
-
-    union {
-	struct fxp_cb_config cb_config;
-	struct fxp_cb_ias cb_ias;
-    } setup;
 };
 
 static struct fxp_card the_card;
@@ -485,25 +480,29 @@ fxp_attach(struct pci_func *pcif)
     fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_BASE);
 
     // Configure the card
-    memset(&c->setup.cb_config, 0, sizeof(c->setup.cb_config));
-    c->setup.cb_config.cb_command = FXP_CB_COMMAND_CONFIG | FXP_CB_COMMAND_EL;
-    c->setup.cb_config.byte_count = 8;
-    c->setup.cb_config.mediatype = 1;
+    static struct fxp_cb_config cb_config;
+
+    memset(&cb_config, 0, sizeof(cb_config));
+    cb_config.cb_command = FXP_CB_COMMAND_CONFIG | FXP_CB_COMMAND_EL;
+    cb_config.byte_count = 8;
+    cb_config.mediatype = 1;
 
     fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_config));
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&cb_config));
     fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
-    fxp_waitcomplete(&c->setup.cb_config.cb_status);
+    fxp_waitcomplete(&cb_config.cb_status);
 
     // Program MAC address into the adapter
-    c->setup.cb_ias.cb_status = 0;
-    c->setup.cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
-    memcpy((void*)&c->setup.cb_ias.macaddr[0], &c->netdev.mac_addr[0], 6);
+    static struct fxp_cb_ias cb_ias;
+
+    cb_ias.cb_status = 0;
+    cb_ias.cb_command = FXP_CB_COMMAND_IAS | FXP_CB_COMMAND_EL;
+    memcpy((void*)&cb_ias.macaddr[0], &c->netdev.mac_addr[0], 6);
 
     fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->setup.cb_ias));
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&cb_ias));
     fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
-    fxp_waitcomplete(&c->setup.cb_ias.cb_status);
+    fxp_waitcomplete(&cb_ias.cb_status);
 
     // Register card with kernel
     irq_register(c->irq_line, &c->ih);
