@@ -2,15 +2,16 @@ OBJDIRS += user
 
 $(OBJDIR)/user/%.o: user/%.c
 	@mkdir -p $(@D)
+	#$(CC) $(USER_CFLAGS) $(CSTD) $(WARNS) -c -o $@ $<
 	$(CC) $(USER_CFLAGS) $(CSTD) -c -o $@ $<
 
 #$(OBJDIR)/user/%.o: user/%.cc
 #	@mkdir -p $(@D)
-#	$(CXX) $(USER_CXXFLAGS) -c -o $@ $<
+#	$(CXX) $(USER_CXXFLAGS) $(WARNS) -c -o $@ $<
 
 $(OBJDIR)/user/%: user/%.S
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) -c -o $@.o $<
+	$(CC) $(USER_CFLAGS) $(WARNS) -c -o $@.o $<
 	$(LD) -o $@ -nostdlib $@.o
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)

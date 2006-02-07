@@ -42,15 +42,15 @@ LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
 $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(WARNS) -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(WARNS) -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) $(WARNS)  -c -o $@ $<
 
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@

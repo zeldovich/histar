@@ -44,6 +44,13 @@ PERL	:= perl
 
 # Compiler flags.
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
+
+WARNS	:= -Wformat=2 -Wuninitialized -Wextra -Wshadow \
+	   -Wbad-function-cast -Wcast-align -Wwrite-strings \
+	   -Wstrict-prototypes -Wmissing-prototypes -Wmissing-noreturn \
+	   -Winline -Wno-unused-parameter
+# Too many false positives: -Wconversion -Wcast-qual -Wunreachable-code
+
 DEFS	:=
 #CFLAGS	:= -g -Wall -Werror -fms-extensions
 CFLAGS	:= -g -Wall -Werror -fms-extensions -O2 -fno-builtin -fno-strict-aliasing
@@ -76,7 +83,7 @@ all:
 COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin 
 COMCXXFLAGS := -fno-exceptions -fno-rtti
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) -Werror $(DEFS) $(INCLUDES) -DJOS_KERNEL
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(WARNS)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_CFLAGS := $(COMFLAGS) $(DEFS) $(CFLAGS) $(INCLUDES) -DJOS_USER
 USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)
