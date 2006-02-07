@@ -108,5 +108,6 @@ int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
 level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(struct ulabel *l);
 int  label_grow(struct ulabel *l);
+struct ulabel *label_dup(struct ulabel *l);
 
 #endif

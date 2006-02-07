@@ -143,3 +143,23 @@ label_to_string(struct ulabel *l)
 
     return buf;
 }
+
+struct ulabel *
+label_dup(struct ulabel *l)
+{
+    struct ulabel *d = label_alloc();
+
+    while (d && d->ul_size < l->ul_nent) {
+	int r = label_grow(d);
+	if (r < 0) {
+	    label_free(d);
+	    return 0;
+	}
+    }
+
+    d->ul_nent = l->ul_nent;
+    d->ul_default = l->ul_default;
+    if (l->ul_nent)
+	memcpy(d->ul_ent, l->ul_ent, l->ul_nent * sizeof(*l->ul_ent));
+    return d;
+}
