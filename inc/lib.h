@@ -82,7 +82,8 @@ ssize_t	readn(int fd, void *buf, size_t nbytes);
 /* spawn.c */
 int64_t spawn(uint64_t container, struct cobj_ref elf, int ac, char **av);
 int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
-		 int fd0, int fd1, int fd2, int ac, char **av);
+		 int fd0, int fd1, int fd2, int ac, char **av,
+		 struct ulabel *l);
 
 /* container.c */
 int64_t container_find(uint64_t container, kobject_type_t type,

@@ -6,7 +6,8 @@
 
 int64_t
 spawn_fd(uint64_t container, struct cobj_ref elf,
-	 int fd0, int fd1, int fd2, int ac, char **av)
+	 int fd0, int fd1, int fd2, int ac, char **av,
+	 struct ulabel *l)
 {
     int64_t c_spawn = sys_container_alloc(container);
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
@@ -83,7 +84,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
 
     e.te_arg = (uint64_t) spawn_env_va;
-    r = sys_thread_start(tobj, &e, 0);
+    r = sys_thread_start(tobj, &e, l);
     if (r < 0) {
 	cprintf("cannot start thread: %s\n", e2s(r));
 	goto err;
@@ -103,5 +104,5 @@ out:
 int64_t
 spawn(uint64_t container, struct cobj_ref elf, int ac, char **av)
 {
-    return spawn_fd(container, elf, 0, 1, 2, ac, av);
+    return spawn_fd(container, elf, 0, 1, 2, ac, av, 0);
 }
