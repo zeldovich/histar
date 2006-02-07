@@ -71,7 +71,8 @@ trapframe_print (struct Trapframe *tf)
 static void
 page_fault (struct Trapframe *tf)
 {
-    void *fault_va = (void*) rcr2();
+    uint64_t fault_addr = rcr2();
+    void *fault_va = (void*) fault_addr;
 
     if ((tf->tf_cs & 3) == 0) {
 	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",
@@ -143,8 +144,10 @@ trap_handler (struct Trapframe *tf)
 }
 
 // Not static to avoid dead-code elimination
+void trap_field_symbols(void);
+
 void
-trap_field_symbols (void)
+trap_field_symbols(void)
 {
 #define TF_DEF(field)							\
   __asm volatile (".globl\t" #field "\n\t.set\t" #field ",%0"		\
