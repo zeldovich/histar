@@ -296,13 +296,13 @@ user_bootstrap(void)
 
     uint64_t idle_handle = handle_alloc();
     label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, idle_handle, 0));
+    assert(0 == label_set(&obj_label, idle_handle, LB_LEVEL_STAR));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, idle_handle, LB_LEVEL_STAR));
     thread_create_embed(rc, &obj_label, &th_label, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
 
     label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, user_root_handle, 0));
+    assert(0 == label_set(&obj_label, user_root_handle, LB_LEVEL_STAR));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, user_root_handle, LB_LEVEL_STAR));
     thread_create_embed(rc, &obj_label, &th_label, "init", rc->ct_ko.ko_id, 0);
