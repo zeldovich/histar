@@ -7,7 +7,6 @@ a container should have a list of allowable objects, and the
 thread-specific containers won't allow containers or threads.
 
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
-user-specified container labeling
 
 do COW in gate_enter()
 use MLTs to store COW mappings in gate_enter for later reuse

@@ -40,9 +40,9 @@ sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
 }
 
 int64_t
-sys_container_alloc(uint64_t parent)
+sys_container_alloc(uint64_t parent, struct ulabel *ul)
 {
-    return syscall(SYS_container_alloc, parent);
+    return syscall(SYS_container_alloc, parent, ul);
 }
 
 int

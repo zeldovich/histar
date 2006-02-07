@@ -9,7 +9,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	 int fd0, int fd1, int fd2, int ac, char **av,
 	 struct ulabel *l)
 {
-    int64_t c_spawn = sys_container_alloc(container);
+    int64_t c_spawn = sys_container_alloc(container, l);
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
     if (c_spawn < 0) {
 	cprintf("cannot allocate container for new thread: %s\n",

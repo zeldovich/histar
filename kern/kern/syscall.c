@@ -139,13 +139,20 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 }
 
 static kobject_id_t
-sys_container_alloc(uint64_t parent_ct)
+sys_container_alloc(uint64_t parent_ct, struct ulabel *ul)
 {
     const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_write));
 
+    struct Label l;
+    if (ul)
+	check(ulabel_to_label(ul, &l));
+    else
+	l = cur_thread->th_ko.ko_label;
+    check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
+
     struct Container *c;
-    check(container_alloc(&cur_thread->th_ko.ko_label, &c));
+    check(container_alloc(&l, &c));
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
@@ -535,7 +542,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_container_alloc:
-	syscall_ret = sys_container_alloc(a1);
+	syscall_ret = sys_container_alloc(a1, (struct ulabel *) a2);
 	break;
 
     case SYS_obj_unref:

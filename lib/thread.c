@@ -56,7 +56,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	}
     }
 
-    int64_t thread_ct = sys_container_alloc(container);
+    int64_t thread_ct = sys_container_alloc(container, 0);
     if (thread_ct < 0)
 	return thread_ct;
 
