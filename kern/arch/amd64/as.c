@@ -180,6 +180,10 @@ as_swapin(struct Address_space *as)
 void
 as_swapout(struct Address_space *as)
 {
+    // In case we're the current AS, make sure the page table we're about
+    // to free isn't the one being used by the CPU.
+    as_switch(0);
+
     if (as->as_pgmap && as->as_pgmap != &bootpml4)
 	page_map_free(as->as_pgmap);
 
