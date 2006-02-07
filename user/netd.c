@@ -133,6 +133,6 @@ main(int ac, char **av)
 
     printf("netd: running\n");
 
-    netd_server_init(container);
+    netd_server_init(start_env->root_container);
     sys_thread_halt();
 }
