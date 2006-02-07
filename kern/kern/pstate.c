@@ -71,7 +71,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	    assert(0 == page_alloc(&p));
 	    memset(p, 0xc4, PGSIZE);
 
-	    for (int i = 0; i < mobj.npages; i++)
+	    for (uint32_t i = 0; i < mobj.npages; i++)
 		stackwrap_disk_io(op_write, p, PGSIZE, mobj.off * PGSIZE);
 
 	    page_free(p);
@@ -225,7 +225,7 @@ pstate_swapin(kobject_id_t id)
 /////////////////////////////////////
 
 static int
-pstate_load2()
+pstate_load2(void)
 {
     disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
     if (s != disk_io_success) {
@@ -346,8 +346,7 @@ struct swapout_stats {
 };
 
 static int
-pstate_sync_kobj(struct pstate_header *hdr,
-		 struct swapout_stats *stats,
+pstate_sync_kobj(struct swapout_stats *stats,
 		 struct kobject_hdr *ko)
 {
     struct kobject *snap = kobject_get_snapshot(ko);
@@ -407,7 +406,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 		    continue;
 		}
 
-		int r = pstate_sync_kobj(hdr, stats, ko);
+		int r = pstate_sync_kobj(stats, ko);
 		if (r < 0)
 		    return r;
     }
@@ -428,7 +427,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg)
+pstate_sync_stackwrap(void *arg __attribute__((unused)))
 {
     static int swapout_active;
 
