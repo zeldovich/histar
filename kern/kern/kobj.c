@@ -16,6 +16,30 @@ struct Thread_list kobj_snapshot_waiting;
 
 static int kobject_reclaim_debug = 0;
 
+#define GEN_DEBUG 1
+static int kobject_gen_debug = GEN_DEBUG;
+
+#define kobject_gen_notify(ko) __kobject_gen_notify(ko, __LINE__)
+static void
+__kobject_gen_notify(const struct kobject_hdr *kh, int line)
+{
+#if GEN_DEBUG
+    enum { gen_size = 4096 };
+    static uint64_t kobject_last_seen_gen[gen_size];
+
+    assert(kh->ko_id < gen_size);
+    if (kobject_last_seen_gen[kh->ko_id] > kh->ko_gen) {
+	cprintf("kobject_gen_notify: id %ld (%s) type %d\n",
+		kh->ko_id, kh->ko_name, kh->ko_type);
+	cprintf("kobject_gen_notify: gen %ld seen %ld line %d\n",
+		kh->ko_gen, kobject_last_seen_gen[kh->ko_id], line);
+	panic("kobject rollback detected");
+    }
+
+    kobject_last_seen_gen[kh->ko_id] = kh->ko_gen;
+#endif
+}
+
 struct kobject *
 kobject_h2k(struct kobject_hdr *kh)
 {
@@ -102,6 +126,8 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 		return r;
 
 	    *kp = kobject_h2k(ko);
+	    if (kobject_gen_debug)
+		kobject_gen_notify(ko);
 	    return 0;
 	}
     }
@@ -148,6 +174,8 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     LIST_INSERT_HEAD(&ko_list, kh, ko_link);
 
     *kp = ko;
+    if (kobject_gen_debug)
+	kobject_gen_notify(kh);
     return 0;
 }
 
@@ -212,6 +240,12 @@ kobject_dirty(const struct kobject_hdr *kh)
 {
     struct kobject *ko = kobject_const_h2k(kh);
     ko->u.hdr.ko_flags |= KOBJ_DIRTY;
+
+    if (kobject_gen_debug) {
+	ko->u.hdr.ko_gen++;
+	kobject_gen_notify(kh);
+    }
+
     return ko;
 }
 
@@ -224,6 +258,9 @@ kobject_swapin(struct kobject *ko)
     if (sum1 != sum2)
 	cprintf("kobject_swapin: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
 		ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
+
+    if (kobject_gen_debug)
+	kobject_gen_notify(&ko->u.hdr);
 
     kobject_negative_remove(ko->u.hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, &ko->u.hdr, ko_link);
@@ -366,12 +403,25 @@ kobject_swapout(struct kobject *ko)
     page_free(ko);
 }
 
+static struct kobject *
+kobject_get_snapshot_internal(struct kobject_hdr *ko)
+{
+    struct kobject_pair *kp = (struct kobject_pair *) ko;
+    return &kp->snapshot;
+}
+
 struct kobject *
 kobject_get_snapshot(struct kobject_hdr *ko)
 {
     assert((ko->ko_flags & KOBJ_SNAPSHOTING));
-    struct kobject_pair *kp = (struct kobject_pair *) ko;
-    return &kp->snapshot;
+    struct kobject *snap = kobject_get_snapshot_internal(ko);
+
+    uint64_t sum = kobject_cksum(&snap->u.hdr);
+    if (sum != ko->ko_cksum)
+	cprintf("kobject_get_snapshot(%ld, %s): cksum changed 0x%lx -> 0x%lx\n",
+	        ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
+
+    return snap;
 }
 
 void
@@ -384,14 +434,13 @@ kobject_snapshot(struct kobject_hdr *ko)
 
     ko->ko_flags &= ~KOBJ_DIRTY;
     ko->ko_cksum = kobject_cksum(ko);
-    ko->ko_flags |= KOBJ_SNAPSHOTING;
     kobject_pin_hdr(ko);
 
-    struct kobject *snap = kobject_get_snapshot(ko);
+    struct kobject *snap = kobject_get_snapshot_internal(ko);
     memcpy(snap, ko, sizeof(*snap));
-    snap->u.hdr.ko_flags &= ~KOBJ_SNAPSHOTING;
-
     pagetree_copy(&ko->ko_pt, &snap->u.hdr.ko_pt);
+
+    ko->ko_flags |= KOBJ_SNAPSHOTING;
 }
 
 void
