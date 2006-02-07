@@ -6,7 +6,6 @@
 
 #include <dev/console.h>
 #include <kern/intr.h>
-#include <kern/monitor.h>
 #include <kern/lib.h>
 
 void cons_intr (int (*proc) (void));
@@ -51,7 +50,7 @@ static bool_t serial_exists;
 bool_t output2lpt = 0;
 bool_t output2com = 0;
 
-int
+static int
 serial_proc_data (void)
 {
   if (!(inb (COM1 + COM_LSR) & COM_LSR_DATA))
@@ -136,7 +135,7 @@ lpt_intr(void)
     // do nothing
 }
 
-void
+static void
 lpt_init(void)
 {
     static struct interrupt_handler ih = { .ih_func = &lpt_intr };
@@ -160,7 +159,7 @@ static int16_t crtsave_backscroll;
 static uint16_t crtsave_size;
 #endif
 
-void
+static void
 cga_init (void)
 {
   volatile uint16_t *cp;
@@ -193,7 +192,7 @@ cga_init (void)
 #if CRT_SAVEROWS > 0
 // Copy one screen's worth of data to or from the save buffer,
 // starting at line 'first_line'.
-void
+static void
 cga_savebuf_copy (int first_line, bool_t to_screen)
 {
   uint16_t *pos;
@@ -225,7 +224,7 @@ cga_savebuf_copy (int first_line, bool_t to_screen)
 #endif
 
 
-void
+static void
 cga_putc (int c)
 {
 #if CRT_SAVEROWS > 0
@@ -295,11 +294,11 @@ cga_putc (int c)
 }
 
 #if CRT_SAVEROWS > 0
-void
+static void
 cga_scroll (int delta)
 {
-  int new_backscroll =
-    MAX (MIN (crtsave_backscroll - delta, crtsave_size), 0);
+  int new_backscroll = MIN (crtsave_backscroll - delta, crtsave_size);
+  new_backscroll = MAX (new_backscroll, 0);
 
   if (new_backscroll == crtsave_backscroll)
     return;
@@ -482,9 +481,11 @@ kbd_proc_data (void)
   }
 #endif
 
+#if 0
   if (!(~shift & (CTL | ALT)) && c == KEY_END) {
     monitor (NULL);
   }
+#endif
 
   return c;
 }
@@ -625,7 +626,7 @@ getchar (void)
 }
 
 int
-iscons (int fdnum)
+iscons (int fdnum __attribute__((unused)))
 {
   // used by readline
   return 1;

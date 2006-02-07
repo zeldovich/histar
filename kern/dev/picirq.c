@@ -83,7 +83,7 @@ irq_setmask_8259A(uint16_t mask)
 }
 
 void
-irq_eoi(int irqno)
+irq_eoi(int irqno __attribute__((unused)))
 {
 	// OCW2: rse00xxx
 	//   r: rotate
