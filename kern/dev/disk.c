@@ -141,11 +141,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 	return;
 
     idec->current_op.op = op_none;
-    idec->current_op.cb(stat,
-			idec->current_op.buf,
-			idec->current_op.num_bytes,
-			idec->current_op.byte_offset,
-			idec->current_op.cbarg);
+    idec->current_op.cb(stat, idec->current_op.cbarg);
 }
 
 static void

@@ -11,8 +11,7 @@ typedef enum {
     disk_io_failure
 } disk_io_status;
 
-typedef void (*disk_callback) (disk_io_status, void *,
-			       uint32_t, uint64_t, void *);
+typedef void (*disk_callback) (disk_io_status, void *);
 
 void disk_init(struct pci_func *pcif);
 extern uint64_t disk_bytes;

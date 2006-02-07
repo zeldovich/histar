@@ -21,7 +21,8 @@ struct stackwrap_state {
 static struct stackwrap_state *
 stackwrap_cur(void)
 {
-    void *rsp = (void *) read_rsp();
+    uint64_t rsp_addr = read_rsp();
+    void *rsp = (void *) rsp_addr;
     void *base = ROUNDDOWN(rsp, PGSIZE);
     struct stackwrap_state *ss = (struct stackwrap_state *) base;
 
@@ -88,7 +89,7 @@ struct disk_io_request {
 };
 
 static void
-disk_io_cb(disk_io_status status, void *b, uint32_t c, uint64_t o, void *arg)
+disk_io_cb(disk_io_status status, void *arg)
 {
     struct disk_io_request *ds = (struct disk_io_request *) arg;
     ds->status = status;
