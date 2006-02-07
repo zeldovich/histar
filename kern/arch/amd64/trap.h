@@ -9,4 +9,10 @@ void idt_init(void);
 // Low-level trapframe jump in locore.S
 void trapframe_pop(const struct Trapframe *) __attribute__((__noreturn__));
 
+// Entry into kernel from the bootloader
+void init(uint32_t start_eax, uint32_t start_ebx) __attribute__((noreturn));
+
+// Entry into kernel from user space traps
+void trap_handler(struct Trapframe *tf) __attribute__((__noreturn__));
+
 #endif

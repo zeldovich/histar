@@ -63,7 +63,7 @@ abort (void)
     ;
 }
 
-void
+static void
 flush_tlb_hard (void)
 {
   uint64_t cr3;
