@@ -81,9 +81,9 @@ void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);
 
 /* spawn.c */
-int64_t spawn(uint64_t container, struct cobj_ref elf, int ac, char **av);
+int64_t spawn(uint64_t container, struct cobj_ref elf, int ac, const char **av);
 int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
-		 int fd0, int fd1, int fd2, int ac, char **av,
+		 int fd0, int fd1, int fd2, int ac, const char **av,
 		 struct ulabel *l);
 
 /* container.c */
@@ -109,5 +109,9 @@ level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(struct ulabel *l);
 int  label_grow(struct ulabel *l);
 struct ulabel *label_dup(struct ulabel *l);
+
+// for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default
+void label_max_default(struct ulabel *l);
+void label_change_star(struct ulabel *l, level_t new_level);
 
 #endif

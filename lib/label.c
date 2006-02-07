@@ -163,3 +163,23 @@ label_dup(struct ulabel *l)
 	memcpy(d->ul_ent, l->ul_ent, l->ul_nent * sizeof(*l->ul_ent));
     return d;
 }
+
+void
+label_change_star(struct ulabel *l, level_t new_level)
+{
+    for (uint32_t i = 0; i < l->ul_nent; i++)
+	if (LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
+	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), new_level);
+}
+
+void
+label_max_default(struct ulabel *l)
+{
+    if (l->ul_default == LB_LEVEL_STAR)
+	return;
+
+    for (uint32_t i = 0; i < l->ul_nent; i++)
+	if (LB_LEVEL(l->ul_ent[i]) < l->ul_default ||
+	    LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
+	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), l->ul_default);
+}

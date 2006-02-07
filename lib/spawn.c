@@ -7,7 +7,7 @@
 
 int64_t
 spawn_fd(uint64_t container, struct cobj_ref elf,
-	 int fd0, int fd1, int fd2, int ac, char **av,
+	 int fd0, int fd1, int fd2, int ac, const char **av,
 	 struct ulabel *l)
 {
     int r;
@@ -146,7 +146,7 @@ out:
 }
 
 int64_t
-spawn(uint64_t container, struct cobj_ref elf, int ac, char **av)
+spawn(uint64_t container, struct cobj_ref elf, int ac, const char **av)
 {
     return spawn_fd(container, elf, 0, 1, 2, ac, av, 0);
 }
