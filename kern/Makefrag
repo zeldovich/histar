@@ -13,7 +13,6 @@ ARCHDIR	:= kern/arch/$(ARCH)
 include $(ARCHDIR)/Makefrag
 
 KERN_GEN := kern/kern/printf.c \
-	    kern/kern/monitor.c \
 	    kern/kern/syscall.c \
 	    kern/kern/intr.c \
 	    kern/kern/sched.c \
