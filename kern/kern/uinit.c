@@ -101,7 +101,8 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 }
 
 static int
-thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
+thread_load_elf(struct Container *c, struct Thread *t,
+		struct Label *obj_label, struct Label *th_label,
 		const uint8_t *binary, uint64_t size, uint64_t arg)
 {
     Elf64_Ehdr elf;
@@ -117,7 +118,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     int segmap_i = 0;
     struct Address_space *as;
-    int r = as_alloc(l, &as);
+    int r = as_alloc(obj_label, &as);
     if (r < 0) {
 	cprintf("thread_load_elf: cannot allocate AS: %s\n", e2s(r));
 	return r;
@@ -152,7 +153,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
 
 	struct Segment *s;
-	r = segment_create_embed(c, l,
+	r = segment_create_embed(c, obj_label,
 				 mem_pages * PGSIZE,
 				 binary + ph.p_offset - page_offset,
 				 page_offset + ph.p_filesz, &s);
@@ -172,7 +173,7 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 
     // Map a stack
     struct Segment *s;
-    r = segment_create_embed(c, l, PGSIZE, 0, 0, &s);
+    r = segment_create_embed(c, obj_label, PGSIZE, 0, 0, &s);
     if (r < 0) {
 	cprintf("ELF: cannot allocate stack segment: %s\n", e2s(r));
 	return r;
@@ -187,14 +188,16 @@ thread_load_elf(struct Container *c, struct Thread *t, struct Label *l,
 	return r;
     }
 
-    assert(0 == thread_jump(t, l, COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
+    assert(0 == thread_jump(t, th_label,
+			    COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
 			    (void*) elf.e_entry, (void*) USTACKTOP,
 			    c->ct_ko.ko_id, arg, 0));
     return 0;
 }
 
 static void
-thread_create_embed(struct Container *c, struct Label *l,
+thread_create_embed(struct Container *c,
+		    struct Label *obj_label, struct Label *th_label,
 		    const char *name, uint64_t arg, uint64_t koflag)
 {
     struct embed_bin *prog = 0;
@@ -207,7 +210,7 @@ thread_create_embed(struct Container *c, struct Label *l,
 	panic("thread_create_embed: cannot find binary for %s", name);
 
     struct Container *tc;
-    int r = container_alloc(l, &tc);
+    int r = container_alloc(obj_label, &tc);
     if (r < 0)
 	panic("tce: cannot alloc container: %s", e2s(r));
     tc->ct_ko.ko_flags = koflag;
@@ -218,7 +221,7 @@ thread_create_embed(struct Container *c, struct Label *l,
 	panic("tce: cannot store container: %s", e2s(tcslot));
 
     struct Thread *t;
-    r = thread_alloc(l, &t);
+    r = thread_alloc(obj_label, &t);
     if (r < 0)
 	panic("tce: cannot allocate thread: %s", e2s(r));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
@@ -228,7 +231,7 @@ thread_create_embed(struct Container *c, struct Label *l,
     if (r < 0)
 	panic("tce: cannot store thread: %s", e2s(r));
 
-    r = thread_load_elf(tc, t, l, prog->buf, prog->size, arg);
+    r = thread_load_elf(tc, t, obj_label, th_label, prog->buf, prog->size, arg);
     if (r < 0)
 	panic("tce: cannot load ELF: %s", e2s(r));
 
@@ -269,27 +272,40 @@ user_bootstrap(void)
 {
     // root handle and a label
     user_root_handle = handle_alloc();
-    struct Label l;
-    label_init(&l, 1);
-    assert(0 == label_set(&l, user_root_handle, LB_LEVEL_STAR));
+
+    struct Label obj_label;
+    label_init(&obj_label, 1);
+    assert(0 == label_set(&obj_label, user_root_handle, 0));
 
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(&l, &rc));
+    assert(0 == container_alloc(&obj_label, &rc));
     kobject_incref(&rc->ct_ko);
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(&l, &fsc));
+    assert(0 == container_alloc(&obj_label, &fsc));
     assert(0 == container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
-    fs_init(fsc, &l);
+    fs_init(fsc, &obj_label);
 
     // idle thread + init
-    thread_create_embed(rc, &l, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
-    thread_create_embed(rc, &l, "init", rc->ct_ko.ko_id, 0);
+    struct Label th_label;
+
+    uint64_t idle_handle = handle_alloc();
+    label_init(&obj_label, 1);
+    assert(0 == label_set(&obj_label, idle_handle, 0));
+    label_init(&th_label, 1);
+    assert(0 == label_set(&th_label, idle_handle, LB_LEVEL_STAR));
+    thread_create_embed(rc, &obj_label, &th_label, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+
+    label_init(&obj_label, 1);
+    assert(0 == label_set(&obj_label, user_root_handle, 0));
+    label_init(&th_label, 1);
+    assert(0 == label_set(&th_label, user_root_handle, LB_LEVEL_STAR));
+    thread_create_embed(rc, &obj_label, &th_label, "init", rc->ct_ko.ko_id, 0);
 }
 
 void
