@@ -239,7 +239,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if (r < 0) {
 	    cva = (char *) usm->va;
 	    uint64_t cleanup_end = i;
-	    for (i = start_page; i < cleanup_end; i++) {
+	    for (i = start_page; i <= cleanup_end; i++) {
 		page_remove(pgmap, cva);
 		cva += PGSIZE;
 	    }
