@@ -101,7 +101,7 @@ low_level_init(struct netif *netif)
 
     jif->buf_base = 0;
     r = segment_alloc(container, JIF_BUFS * PGSIZE,
-		      &jif->buf_seg, &jif->buf_base);
+		      &jif->buf_seg, &jif->buf_base, 0);
     if (r < 0)
 	panic("jif: cannot allocate %d buffer pages: %s\n",
 	      JIF_BUFS, e2s(r));

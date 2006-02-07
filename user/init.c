@@ -33,7 +33,7 @@ main(int ac, char **av)
 
     start_env = 0;
     struct cobj_ref sa;
-    assert(0 == segment_alloc(c_self, PGSIZE, &sa, (void**) &start_env));
+    assert(0 == segment_alloc(c_self, PGSIZE, &sa, (void**) &start_env, 0));
 
     start_env->container = c_self;
     start_env->root_container = c_root;

@@ -27,7 +27,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
 
     struct thread_entry e;
-    r = elf_load(c_spawn, elf, &e);
+    r = elf_load(c_spawn, elf, &e, l);
     if (r < 0) {
 	cprintf("cannot load ELF: %s\n", e2s(r));
 	goto err;
@@ -47,7 +47,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 
     start_env_t *spawn_env = 0;
     struct cobj_ref c_spawn_env;
-    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env);
+    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, l);
     if (r < 0)
 	goto err;
 

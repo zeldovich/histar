@@ -60,7 +60,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 		return -E_MAX_OPEN;
 
 	struct cobj_ref seg;
-	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd);
+	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd, 0);
 	if (r < 0)
 		return r;
 

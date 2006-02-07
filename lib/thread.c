@@ -66,7 +66,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     int stacksize = 2 * PGSIZE;
     struct cobj_ref stack;
     void *stackbase = 0;
-    r = segment_alloc(thread_ct, stacksize, &stack, &stackbase);
+    r = segment_alloc(thread_ct, stacksize, &stack, &stackbase, 0);
     if (r < 0) {
 	sys_obj_unref(tct);
 	return r;

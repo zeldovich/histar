@@ -20,7 +20,8 @@ char*	readline(const char *prompt);
 
 /* segment.c */
 int	segment_alloc(uint64_t container, uint64_t bytes,
-		      struct cobj_ref *cobj, void **va_p);
+		      struct cobj_ref *cobj, void **va_p,
+		      struct ulabel *label);
 int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
 		       uint64_t flags, void **vap, uint64_t *bytesp);
 int	segment_map(struct cobj_ref seg, uint64_t flags,
@@ -31,7 +32,7 @@ void	segment_default_label(struct ulabel *l);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
-		 struct thread_entry *e);
+		 struct thread_entry *e, struct ulabel *label);
 
 /* libmain.c */
 typedef struct {

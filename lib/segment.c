@@ -232,10 +232,14 @@ retry:
 
 int
 segment_alloc(uint64_t container, uint64_t bytes,
-	      struct cobj_ref *cobj, void **va_p)
+	      struct cobj_ref *cobj, void **va_p,
+	      struct ulabel *label)
 {
+    if (label == 0)
+	label = seg_create_label;
+
     uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
-    int64_t id = sys_segment_create(container, npages, seg_create_label);
+    int64_t id = sys_segment_create(container, npages, label);
     if (id < 0)
 	return id;
 

@@ -44,7 +44,7 @@ netd_call(struct netd_op_args *a) {
 
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va);
+    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va, 0);
     if (r < 0)
 	return r;
 

@@ -117,7 +117,7 @@ gate_entry(struct u_gate_entry *ug)
     struct gate_entry_stack_info stackinf;
     stackinf.va = 0;
     r = segment_alloc(ug->container, stackpages * PGSIZE,
-		      &stackinf.obj, &stackinf.va);
+		      &stackinf.obj, &stackinf.va, 0);
     if (r < 0)
 	panic("gate_entry_locked: cannot allocate new stack: %s", e2s(r));
 
@@ -281,7 +281,7 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
     struct cobj_ref return_stack_obj;
     void *return_stack = 0;
-    r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack);
+    r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack, 0);
     if (r < 0)
 	goto out2;
 

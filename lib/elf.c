@@ -7,7 +7,8 @@
 #include <inc/error.h>
 
 int
-elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
+elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
+	 struct ulabel *label)
 {
     char elfname[KOBJ_NAME_LEN], objname[KOBJ_NAME_LEN];
     int r = sys_obj_get_name(seg, &elfname[0]);
@@ -41,7 +42,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	struct cobj_ref nseg;
 	char *sbuf = 0;
 	r = segment_alloc(container, va_off + ph->p_memsz,
-			  &nseg, (void**) &sbuf);
+			  &nseg, (void**) &sbuf, label);
 	if (r < 0) {
 	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
 	    return r;
@@ -75,7 +76,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 
     int stackpages = 2;
     struct cobj_ref stack;
-    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0);
+    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label);
     if (r < 0) {
 	cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
 	return r;
@@ -97,7 +98,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
     si++;
 
     struct u_address_space uas = { .nent = si, .ents = &sm_ents[0] };
-    int64_t as_id = sys_as_create(container);
+    int64_t as_id = sys_as_create(container, label);
     if (as_id < 0) {
 	cprintf("elf_load: cannot create address space: %s\n", e2s(r));
 	return as_id;
