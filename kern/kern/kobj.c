@@ -22,7 +22,8 @@ static int kobject_gen_debug = GEN_DEBUG;
 
 #define kobject_gen_notify(ko) __kobject_gen_notify(ko, __LINE__)
 static void
-__kobject_gen_notify(const struct kobject_hdr *kh, int line)
+__kobject_gen_notify(const struct kobject_hdr *kh __attribute__((unused)),
+		     int line __attribute__((unused)))
 {
 #if GEN_DEBUG
     enum { gen_size = 4096 };

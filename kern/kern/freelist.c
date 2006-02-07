@@ -99,7 +99,7 @@ frm_service_one(struct frm *f, struct freelist *l)
 	// may inc f->n_free, or dec f->n_use
 	assert((base = freelist_alloc(l, npages)) > 0) ;
 
-	for (int i = 0 ; i < npages ; i++) {
+	for (uint32_t i = 0 ; i < npages ; i++) {
 		f->to_use[f->n_use++] = base + i ;
 	}
 		
@@ -159,7 +159,7 @@ frm_init(struct frm *f, uint64_t base, uint64_t npages, uint8_t order, struct ca
 
 	frm_reset(f, order, cache, manager) ;
 	
-	for (int i = 0 ; i < npages ; i++)
+	for (uint32_t i = 0 ; i < npages ; i++)
 		f->to_use[i] = base + i ;
 	f->n_use = npages ;
 	
@@ -298,8 +298,8 @@ freelist_setup(uint8_t *b)
 	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache, &l->offsets.manager) ;
 }
 
-void 
-freelist_serialize(struct freelist *f)
+void
+freelist_serialize(struct freelist *f __attribute__((unused)))
 {
 	/*
 	f->chunk_manager.manager.arg = &f->chunk_manager ;
