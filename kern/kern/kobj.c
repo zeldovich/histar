@@ -15,6 +15,7 @@ struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
 
 static int kobject_reclaim_debug = 0;
+static int kobject_checksum_pedantic = 0;
 
 #define GEN_DEBUG 0
 static int kobject_gen_debug = GEN_DEBUG;
@@ -389,12 +390,14 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
-    uint64_t sum1 = ko->u.hdr.ko_cksum;
-    uint64_t sum2 = kobject_cksum(&ko->u.hdr);
+    if (kobject_checksum_pedantic) {
+	uint64_t sum1 = ko->u.hdr.ko_cksum;
+	uint64_t sum2 = kobject_cksum(&ko->u.hdr);
 
-    if (sum1 != sum2)
-	cprintf("kobject_swapout: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
-		ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
+	if (sum1 != sum2)
+	    cprintf("kobject_swapout: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
+		    ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
+    }
 
     assert(ko->u.hdr.ko_pin == 0);
     assert(!(ko->u.hdr.ko_flags & KOBJ_SNAPSHOTING));
@@ -422,10 +425,12 @@ kobject_get_snapshot(struct kobject_hdr *ko)
     assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     struct kobject *snap = kobject_get_snapshot_internal(ko);
 
-    uint64_t sum = kobject_cksum(&snap->u.hdr);
-    if (sum != ko->ko_cksum)
-	cprintf("kobject_get_snapshot(%ld, %s): cksum changed 0x%lx -> 0x%lx\n",
-	        ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
+    if (kobject_checksum_pedantic) {
+	uint64_t sum = kobject_cksum(&snap->u.hdr);
+	if (sum != ko->ko_cksum)
+	    cprintf("kobject_get_snapshot(%ld, %s): cksum changed 0x%lx -> 0x%lx\n",
+		    ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
+    }
 
     return snap;
 }
