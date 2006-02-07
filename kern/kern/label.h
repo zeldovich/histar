@@ -12,7 +12,7 @@ struct Label {
     uint64_t lb_ent[NUM_LB_ENT];
 };
 
-#define LB_ENT_EMPTY		(~(0L))
+#define LB_ENT_EMPTY		(~(0UL))
 
 typedef int (level_comparator)(int, int);
 level_comparator label_leq_starlo;

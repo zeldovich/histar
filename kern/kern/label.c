@@ -106,7 +106,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 	if (level < 0 && level > LB_LEVEL_STAR)
 	    return -E_INVAL;
 
-	int r = label_set(l, LB_HANDLE(ul_val), level);
+	r = label_set(l, LB_HANDLE(ul_val), level);
 	if (r < 0)
 	    return r;
     }
