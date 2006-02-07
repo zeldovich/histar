@@ -9,12 +9,6 @@ thread-specific containers won't allow containers or threads.
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 user-specified container labeling
 
-* it would be nice if gate_enter() didn't automatically compute the
-  contamination, but allowed the user to compute the target label
-  and verified that it's OK.  benefit: easier to make return gate.
-  is it OK to allow user to look at the gate's target label?
-  looks like yes..
-
 do COW in gate_enter()
 use MLTs to store COW mappings in gate_enter for later reuse
 
