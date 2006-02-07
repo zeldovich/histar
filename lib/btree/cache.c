@@ -93,7 +93,7 @@ cache_rem(struct cache *c, tag_t t)
 	return -E_NOT_FOUND ;		
 }
 
-int 
+static int __attribute__((unused))
 cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
 {
 	if (t == 0)

@@ -1,4 +1,5 @@
 #include <lib/btree/btree.h>
+#include <lib/btree/btree_node.h>
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>

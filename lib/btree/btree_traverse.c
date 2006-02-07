@@ -28,7 +28,7 @@
 #include <inc/string.h>
 #include <inc/error.h>
 
-struct btree_traversal *
+static struct btree_traversal *
 btreeDestroyTraversal(struct btree_traversal *trav)
 {
 	if (trav == NULL)
@@ -46,7 +46,7 @@ void
 btree_traverse(struct btree *tree, void (*process)(offset_t filePos))
 {
 	struct btree_traversal trav;
-	offset_t offset;
+	int64_t offset;
 	
 	if (tree == NULL || process == NULL)
 		return;

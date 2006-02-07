@@ -72,7 +72,7 @@ btree_simple_node(struct btree *tree,
 }
 
 int 
-btree_simple_write(struct btree_node *node, void *manager)
+btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
 {
 	struct btree *tree = node->tree ;
 	memcpy(scratch, node, BTREE_NODE_SIZE(tree->order, tree->s_key)) ;
@@ -154,7 +154,7 @@ static int
 btree_default_alloc(struct btree *tree, struct btree_node **store, void *arg)
 {
 	struct btree_default *def = (struct btree_default *) arg ;
-	offset_t off = freelist_alloc(def->fl, 1) ;
+	int64_t off = freelist_alloc(def->fl, 1) ;
 	if (off < 0)
 		return off ;
 	

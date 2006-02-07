@@ -1,5 +1,6 @@
 #include <inc/string.h>
 #include <lib/btree/btree.h>
+#include <lib/btree/btree_header.h>
 
 void 
 btree_root_node_is(struct btree *tree, offset_t offset)

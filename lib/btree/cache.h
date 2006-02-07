@@ -10,7 +10,8 @@ typedef uint64_t tag_t ;
 #define STRUCT_CACHE(name, n_ent, s_ent)	\
 	uint8_t name##_buf[(n_ent) * (s_ent)] ;	\
 	struct cmeta name##_cmeta[(n_ent * sizeof(struct cmeta))] ;	\
-	struct cache name =	{(n_ent), (s_ent), ((int)(n_ent) * (int)(s_ent)), name##_buf, name##_cmeta} ;
+	struct cache name = {(n_ent), (s_ent), ((int)(n_ent) * (int)(s_ent)), name##_buf, name##_cmeta, \
+			     {0, &name.lru_stack.tqh_first} } ;
 
 
 struct cmeta
