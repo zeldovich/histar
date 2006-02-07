@@ -16,7 +16,7 @@ struct Thread_list kobj_snapshot_waiting;
 
 static int kobject_reclaim_debug = 0;
 
-#define GEN_DEBUG 1
+#define GEN_DEBUG 0
 static int kobject_gen_debug = GEN_DEBUG;
 
 #define kobject_gen_notify(ko) __kobject_gen_notify(ko, __LINE__)
@@ -258,6 +258,12 @@ kobject_swapin(struct kobject *ko)
     if (sum1 != sum2)
 	cprintf("kobject_swapin: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
 		ko->u.hdr.ko_id, ko->u.hdr.ko_name, sum1, sum2);
+
+    struct kobject_hdr *kx;
+    LIST_FOREACH(kx, &ko_list, ko_link)
+	if (ko->u.hdr.ko_id == kx->ko_id)
+	    panic("kobject_swapin: duplicate %ld (%s)",
+		  ko->u.hdr.ko_id, ko->u.hdr.ko_name);
 
     if (kobject_gen_debug)
 	kobject_gen_notify(&ko->u.hdr);
