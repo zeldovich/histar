@@ -395,7 +395,7 @@ fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
     return 0;
 }
 
-int
+static int
 fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
     struct fxp_card *c = a;

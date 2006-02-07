@@ -131,7 +131,8 @@ pnic_intr(void)
 }
 
 static int
-pnic_add_txbuf(struct pnic_card *c, const struct Segment *sg,
+pnic_add_txbuf(struct pnic_card *c,
+	       const struct Segment *sg __attribute__((unused)),
 	       struct netbuf_hdr *nb, uint16_t size)
 {
     const char *buf = (const char *) (nb + 1);
@@ -171,7 +172,7 @@ pnic_add_rxbuf(struct pnic_card *c, const struct Segment *sg,
     return 0;
 }
 
-int
+static int
 pnic_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
     struct pnic_card *c = (struct pnic_card *) a;

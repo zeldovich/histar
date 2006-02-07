@@ -268,7 +268,8 @@ ne2kpci_intr(void)
 }
 
 static int
-ne2kpci_add_txbuf(struct ne2kpci_card *c, const struct Segment *sg,
+ne2kpci_add_txbuf(struct ne2kpci_card *c,
+		  const struct Segment *sg __attribute__((unused)),
 		  struct netbuf_hdr *nb, uint16_t size)
 {
    // txp queue?
@@ -311,7 +312,7 @@ ne2kpci_add_rxbuf(struct ne2kpci_card *c, const struct Segment *sg,
    return 0;
 }
 
-int
+static int
 ne2kpci_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
 {
    struct ne2kpci_card *c = a;
