@@ -11,13 +11,20 @@ int strcmp (const char *s1, const char *s2);
 size_t strlen (const char *);
 char *strncpy(char *dest, const char *src, size_t size);
 
+// printfmt.c
+int vsnprintf(char *str, size_t size, const char *fmt, va_list)
+	__attribute__((__format__ (__printf__, 3, 0)));
 void vprintfmt (void (*putch) (int, void *), void *putdat,
-		const char *fmt, va_list ap)
-		__attribute__((__format__ (__printf__, 3, 0)));
+	const char *fmt, va_list ap)
+	__attribute__((__format__ (__printf__, 3, 0)));
 int vcprintf (const char *fmt, va_list ap)
 	__attribute__((__format__ (__printf__, 1, 0)));
 int cprintf (const char *fmt, ...)
 	__attribute__((__format__ (__printf__, 1, 2)));
+int snprintf(char *str, size_t size, const char *fmt, ...)
+	__attribute__((__format__ (__printf__, 3, 4)));
+int sprintf(char *str, const char *fmt, ...)
+	__attribute__((__format__ (__printf__, 2, 3)));
 
 const char *e2s(int err);
 
@@ -40,5 +47,10 @@ do {						\
 
 // static_assert(x) will generate a compile-time error if 'x' is false.
 #define static_assert(x)	switch (x) case 0: case (x):
+
+// console.c
+void putchar (int c);
+int  getchar (void);
+int  iscons (int fd);
 
 #endif /* !JOS_KERN_LIB_H */
