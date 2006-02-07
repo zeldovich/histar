@@ -1,4 +1,5 @@
 #include <machine/types.h>
+#include <inc/cksum.h>
 
 uint64_t
 cksum(uint64_t init, const void *vbuf, uint64_t count)

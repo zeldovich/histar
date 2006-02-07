@@ -31,6 +31,7 @@
  */
 
 #include <inc/types.h>
+#include <inc/string.h>
 
 void *
 memset(void *dst, int c, size_t n)

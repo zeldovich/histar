@@ -1,6 +1,7 @@
 #include <inc/stdarg.h>
 #include <inc/stdio.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
 
 void
 _panic(const char *file, int line, const char *fmt, ...)
@@ -15,4 +16,6 @@ _panic(const char *file, int line, const char *fmt, ...)
 	cprintf("\n");
 
 	sys_thread_halt();
+	for (;;)
+		;
 }
