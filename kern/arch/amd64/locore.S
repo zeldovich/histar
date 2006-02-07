@@ -105,11 +105,7 @@ trap_entry:
 	callersave
 	calleesave
 	movq	%rsp,%rdi
-	call	trap_handler
-
-	// We should never return here
-	movq	$0xdeadbeef01020304, %rax
-	call	*%rax
+	jmp	trap_handler
 
 .globl	trapframe_pop
 trapframe_pop:
