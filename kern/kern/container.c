@@ -195,9 +195,12 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    r = container_slot_find(c, (*storep)->hdr.ko_id, 0, page_ro);
-    if (r < 0)
-	return r;
+    // A container "contains" itself
+    if ((*storep)->hdr.ko_id != c->ct_ko.ko_id) {
+	r = container_slot_find(c, (*storep)->hdr.ko_id, 0, page_ro);
+	if (r < 0)
+	    return r;
+    }
 
     if (type != kobj_any && type != (*storep)->hdr.ko_type)
 	return -E_INVAL;
