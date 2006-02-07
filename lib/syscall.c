@@ -82,7 +82,7 @@ sys_obj_get_name(struct cobj_ref o, char *name)
 }
 
 int
-sys_obj_set_name(struct cobj_ref o, char *name)
+sys_obj_set_name(struct cobj_ref o, const char *name)
 {
     return syscall(SYS_obj_set_name, o, name);
 }

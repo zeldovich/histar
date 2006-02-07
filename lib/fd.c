@@ -42,7 +42,7 @@ fd2num(struct Fd *fd)
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
 int
-fd_alloc(uint64_t container, struct Fd **fd_store, char *name)
+fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 {
 	int i;
 	struct Fd *fd;
@@ -241,7 +241,8 @@ read(int fdnum, void *buf, size_t n)
 ssize_t
 readn(int fdnum, void *buf, size_t n)
 {
-	int m, tot;
+	size_t tot;
+	int m;
 
 	for (tot = 0; tot < n; tot += m) {
 		m = read(fdnum, (char*)buf + tot, n - tot);

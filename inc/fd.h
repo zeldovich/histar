@@ -15,7 +15,7 @@ struct Dev;
 struct Dev
 {
 	int dev_id;
-	char *dev_name;
+	const char *dev_name;
 
 	int (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
 	int (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
@@ -46,7 +46,7 @@ struct Fd
 
 char*	fd2data(struct Fd *fd);
 int	fd2num(struct Fd *fd);
-int	fd_alloc(uint64_t container, struct Fd **fd_store, char *name);
+int	fd_alloc(uint64_t container, struct Fd **fd_store, const char *name);
 int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store);
 int	dev_lookup(int devid, struct Dev **dev_store);

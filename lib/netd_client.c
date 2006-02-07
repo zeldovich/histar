@@ -10,7 +10,7 @@ static int netd_client_inited;
 static struct cobj_ref netd_gate;
 
 static int
-netd_client_init()
+netd_client_init(void)
 {
 /*
     int64_t netd_ct = container_find(start_env->root_container,
@@ -87,7 +87,7 @@ socket(int domain, int type, int protocol)
     return fd2num(fd);
 }
 
-int
+static int
 sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
@@ -100,7 +100,7 @@ sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
     return netd_call(&a);
 }
 
-int
+static int
 sock_listen(struct Fd *fd, int backlog)
 {
     struct netd_op_args a;
@@ -110,7 +110,7 @@ sock_listen(struct Fd *fd, int backlog)
     return netd_call(&a);
 }
 
-int
+static int
 sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct netd_op_args a;
@@ -140,7 +140,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     return fd2num(nfd);
 }
 
-int
+static int
 sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     if (count > 1024)
@@ -154,7 +154,7 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     return netd_call(&a);
 }
 
-int
+static int
 sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     if (count > 1024)
@@ -170,7 +170,7 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     return r;
 }
 
-int
+static int
 sock_close(struct Fd *fd)
 {
     struct netd_op_args a;

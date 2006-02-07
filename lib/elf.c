@@ -38,17 +38,17 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	    continue;
 
 	int va_off = ph->p_vaddr & 0xfff;
-	struct cobj_ref seg;
+	struct cobj_ref nseg;
 	char *sbuf = 0;
 	r = segment_alloc(container, va_off + ph->p_memsz,
-			  &seg, (void**) &sbuf);
+			  &nseg, (void**) &sbuf);
 	if (r < 0) {
 	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
 	    return r;
 	}
 
 	snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
-	r = sys_obj_set_name(seg, &objname[0]);
+	r = sys_obj_set_name(nseg, &objname[0]);
 	if (r < 0)
 	    return r;
 
@@ -59,7 +59,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e)
 	    return r;
 	}
 
-	sm_ents[si].segment = seg;
+	sm_ents[si].segment = nseg;
 	sm_ents[si].start_page = 0;
 	sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
 	sm_ents[si].flags = ph->p_flags;

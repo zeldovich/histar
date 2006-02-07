@@ -9,15 +9,17 @@ container_find(uint64_t rc, kobject_type_t reqtype, const char *reqname)
     if (nslots < 0)
 	return nslots;
 
-    for (uint64_t i = 0; i < nslots; i++) {
+    for (int64_t i = 0; i < nslots; i++) {
 	int64_t id = sys_container_get_slot_id(rc, i);
 	if (id < 0)
 	    continue;
 
 	struct cobj_ref ko = COBJ(rc, id);
-	kobject_type_t type = sys_obj_get_type(ko);
-	if (type < 0)
-	    return type;
+	int t = sys_obj_get_type(ko);
+	if (t < 0)
+	    return t;
+
+	kobject_type_t type = t;
 	if (reqtype != kobj_any && reqtype != type)
 	    continue;
 

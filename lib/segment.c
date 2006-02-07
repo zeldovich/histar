@@ -24,12 +24,12 @@ segment_default_label(struct ulabel *l)
 static mutex_t as_mutex;
 
 static void
-as_mutex_lock() {
+as_mutex_lock(void) {
     mutex_lock(&as_mutex);
 }
 
 static void
-as_mutex_unlock() {
+as_mutex_unlock(void) {
     mutex_unlock(&as_mutex);
 }
 
@@ -37,7 +37,7 @@ static void
 segment_map_print(struct u_address_space *uas)
 {
     cprintf("segment  start  npages  f  va\n");
-    for (int i = 0; i < uas->nent; i++) {
+    for (uint64_t i = 0; i < uas->nent; i++) {
 	if (uas->ents[i].flags == 0)
 	    continue;
 	cprintf("%3ld.%-3ld  %5ld  %6ld  %ld  %p\n",
@@ -68,7 +68,7 @@ segment_unmap(void *va)
 	return r;
     }
 
-    for (int i = 0; i < uas.nent; i++) {
+    for (uint64_t i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].va == va && uas.ents[i].flags) {
 	    uas.ents[i].flags = 0;
 	    r = sys_as_set(as_ref, &uas);
@@ -96,7 +96,7 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
     if (r < 0)
 	return r;
 
-    for (int i = 0; i < uas.nent; i++) {
+    for (uint64_t i = 0; i < uas.nent; i++) {
 	void *va_start = uas.ents[i].va;
 	void *va_end = uas.ents[i].va + uas.ents[i].num_pages * PGSIZE;
 	if (va >= va_start && va < va_end) {
@@ -167,7 +167,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 
 retry:
     va_end = va_start + bytes;
-    for (int i = 0; i < uas.nent; i++) {
+    for (uint64_t i = 0; i < uas.nent; i++) {
 	// If it's the same segment we're trying to map, allow remapping
 	if (fixed_va && uas.ents[i].flags &&
 	    uas.ents[i].segment.object == seg.object &&

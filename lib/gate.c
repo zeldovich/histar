@@ -29,7 +29,7 @@ gate_compute_max_label(struct ulabel *g)
     }
 
     int r = 0;
-    for (int i = 0; i < cur->ul_nent; i++) {
+    for (uint32_t i = 0; i < cur->ul_nent; i++) {
 	uint64_t h = LB_HANDLE(cur->ul_ent[i]);
 	level_t cur_lv = LB_LEVEL(cur->ul_ent[i]);
 	if (cur_lv == LB_LEVEL_STAR)
@@ -140,7 +140,7 @@ gate_entry(struct u_gate_entry *ug)
 int
 gate_create(struct u_gate_entry *ug, uint64_t container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg,
-	    char *name)
+	    const char *name)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
     int r = sys_segment_resize(tseg, 1);
@@ -312,7 +312,7 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 	uint64_t gate_label_ents[nents];
 	struct ulabel gate_label = { .ul_size = nents, .ul_ent = &gate_label_ents[0] };
 
-	int r = sys_gate_send_label(gate, &gate_label);
+	r = sys_gate_send_label(gate, &gate_label);
 	if (r < 0) {
 	    printf("gate_call: getting send label: %s", e2s(r));
 	    goto out4;

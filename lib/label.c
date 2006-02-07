@@ -75,7 +75,7 @@ label_set_current(struct ulabel *l)
 static int
 label_find_slot(struct ulabel *l, uint64_t handle)
 {
-    for (int i = 0; i < l->ul_nent; i++)
+    for (uint32_t i = 0; i < l->ul_nent; i++)
 	if (LB_HANDLE(l->ul_ent[i]) == handle)
 	    return i;
     return -1;
@@ -129,7 +129,7 @@ label_to_string(struct ulabel *l)
 
     uint32_t off = 0;
     off += snprintf(&buf[off], bufsize - off, "{ ");
-    for (int i = 0; i < l->ul_nent; i++) {
+    for (uint32_t i = 0; i < l->ul_nent; i++) {
 	char level[4];
 	if (LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
 	    snprintf(&level[0], 4, "*");

@@ -65,14 +65,14 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
     return 1;
 }
 
-int
+static int
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
     sys_cons_puts(vbuf, n);
     return n;
 }
 
-int
+static int
 cons_close(struct Fd *fd)
 {
     return 0;
