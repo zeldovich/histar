@@ -169,9 +169,17 @@ static void
 pstate_swapin_stackwrap(void *arg)
 {
     static struct Thread_list swapin_waiting;
+    static int swapin_active;
 
     if (cur_thread)
 	thread_suspend(cur_thread, &swapin_waiting);
+
+    // XXX
+    // The reason for having only one swapin at a time is to avoid
+    // swapping in the same object twice.
+    if (swapin_active)
+	return;
+    swapin_active = 1;
 
     kobject_id_t id = (kobject_id_t) arg;
     kobject_id_t id_found;
@@ -189,6 +197,8 @@ pstate_swapin_stackwrap(void *arg)
 	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
     }
 
+    swapin_active = 0;
+
     while (!LIST_EMPTY(&swapin_waiting)) {
 	struct Thread *t = LIST_FIRST(&swapin_waiting);
 	thread_set_runnable(t);
@@ -196,7 +206,8 @@ pstate_swapin_stackwrap(void *arg)
 }
 
 int
-pstate_swapin(kobject_id_t id) {
+pstate_swapin(kobject_id_t id)
+{
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin: object %ld\n", id);
 
