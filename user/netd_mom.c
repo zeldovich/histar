@@ -42,7 +42,4 @@ main(int ac, char **av)
     r = spawn(start_env->root_container, fsobj, 0, 0);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
-
-    sys_obj_unref(COBJ(rc, ct));
-    sys_thread_halt();
 }
