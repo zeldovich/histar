@@ -17,6 +17,11 @@ int	snprintf(char *str, size_t size, const char *fmt, ...)
 int	vsnprintf(char *str, size_t size, const char *fmt, va_list)
 	    __attribute__((__format__ (__printf__, 3, 0)));
 
+int	sprintf(char *str, const char *fmt, ...)
+	    __attribute__((__format__ (__printf__, 2, 3)));
+
+const char *e2s(int err);
+
 // lib/printf.c
 int	cprintf(const char *fmt, ...)
 	    __attribute__((__format__ (__printf__, 1, 2)));
