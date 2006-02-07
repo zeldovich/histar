@@ -12,7 +12,7 @@ container_alloc(const struct Label *l, struct Container **cp)
     if (r < 0)
 	return r;
 
-    struct Container *c = &ko->u.ct;
+    struct Container *c = &ko->ct;
     *cp = c;
     return 0;
 }
@@ -160,7 +160,7 @@ container_gc(struct Container *c)
 		return r;
 
 	    cs->cs_ref--;
-	    kobject_decref(&kobject_dirty(&ko->u.hdr)->u.hdr);
+	    kobject_decref(&kobject_dirty(&ko->hdr)->hdr);
 	}
     }
 
@@ -175,10 +175,10 @@ container_find(const struct Container **cp, kobject_id_t id, info_flow_type iflo
     if (r < 0)
 	return r;
 
-    if (ko->u.hdr.ko_type != kobj_container)
+    if (ko->hdr.ko_type != kobj_container)
 	return -E_INVAL;
 
-    *cp = &ko->u.ct;
+    *cp = &ko->ct;
     return 0;
 }
 
@@ -195,11 +195,11 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    r = container_slot_find(c, (*storep)->u.hdr.ko_id, 0, page_ro);
+    r = container_slot_find(c, (*storep)->hdr.ko_id, 0, page_ro);
     if (r < 0)
 	return r;
 
-    if (type != kobj_any && type != (*storep)->u.hdr.ko_type)
+    if (type != kobj_any && type != (*storep)->hdr.ko_type)
 	return -E_INVAL;
 
     return 0;

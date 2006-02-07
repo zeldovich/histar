@@ -45,8 +45,8 @@ PERL	:= perl
 # Compiler flags.
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
-#CFLAGS	:= -g -Wall -Werror
-CFLAGS	:= -g -Wall -Werror -O2 -fno-builtin -fno-strict-aliasing
+#CFLAGS	:= -g -Wall -Werror -fms-extensions
+CFLAGS	:= -g -Wall -Werror -fms-extensions -O2 -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) \
 	-I$(TOP)/inc/net -I$(TOP)/inc/net/ipv4

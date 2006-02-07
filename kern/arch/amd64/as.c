@@ -13,7 +13,7 @@ as_alloc(const struct Label *l, struct Address_space **asp)
     if (r < 0)
 	return r;
 
-    struct Address_space *as = &ko->u.as;
+    struct Address_space *as = &ko->as;
     as_swapin(as);
 
     *asp = as;
@@ -23,7 +23,7 @@ as_alloc(const struct Label *l, struct Address_space **asp)
 void
 as_invalidate(const struct Address_space *as_const)
 {
-    struct Address_space *as = &kobject_dirty(&as_const->as_ko)->u.as;
+    struct Address_space *as = &kobject_dirty(&as_const->as_ko)->as;
 
     as_swapout(as);
     as_swapin(as);
@@ -266,7 +266,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	sm->sm_as = as;
 	sm->sm_sg = sg;
 
-	struct Segment *msg = &kobject_dirty(&sg->sg_ko)->u.sg;
+	struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
 	LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
 	kobject_pin_page(&sg->sg_ko);
     }
@@ -305,7 +305,7 @@ as_pmap_fill(struct Address_space *as, void *va)
 	if (r < 0)
 	    return r;
 
-	const struct Segment *sg = &ko->u.sg;
+	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
 	return as_pmap_fill_segment(as, sg, sm, usm);
     }

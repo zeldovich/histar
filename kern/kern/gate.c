@@ -10,6 +10,6 @@ gate_alloc(const struct Label *l, struct Gate **gp)
     if (r < 0)
 	return r;
 
-    *gp = &ko->u.gt;
+    *gp = &ko->gt;
     return 0;
 }

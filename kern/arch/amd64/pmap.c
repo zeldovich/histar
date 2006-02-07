@@ -383,7 +383,7 @@ page_user_incore(void **ptrp, uint64_t nbytes)
 	uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
 	for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
 	    if (page_lookup(as->as_pgmap, (void*) va) == 0) {
-		int r = as_pagefault(&kobject_dirty(&as->as_ko)->u.as, (void*) va);
+		int r = as_pagefault(&kobject_dirty(&as->as_ko)->as, (void*) va);
 		if (r < 0)
 		    return r;
 	    }

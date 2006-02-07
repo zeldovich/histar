@@ -89,9 +89,9 @@ sys_net_create(uint64_t container, struct ulabel *ul)
 
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &ko->u.hdr));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
 
-    return ko->u.hdr.ko_id;
+    return ko->hdr.ko_id;
 }
 
 static int64_t
@@ -121,7 +121,7 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
     const struct kobject *ks;
     check(cobj_get(seg, kobj_segment, &ks, iflow_rw));
 
-    const struct Segment *sg = &ks->u.sg;
+    const struct Segment *sg = &ks->sg;
     check(netdev_add_buf(ndev, sg, offset, type));
 }
 
@@ -147,7 +147,7 @@ sys_container_alloc(uint64_t parent_ct)
     struct Container *c;
     check(container_alloc(&cur_thread->th_ko.ko_label, &c));
 
-    check(container_put(&kobject_dirty(&parent->ct_ko)->u.ct, &c->ct_ko));
+    check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
 }
 
@@ -161,7 +161,7 @@ sys_obj_unref(struct cobj_ref cobj)
 
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(container_unref(&kobject_dirty(&c->ct_ko)->u.ct, &ko->u.hdr));
+    check(container_unref(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
 }
 
 static kobject_id_t
@@ -193,7 +193,7 @@ sys_obj_get_type(struct cobj_ref cobj)
     const struct kobject *ko;
     // iflow_none because ko_type is immutable
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    return ko->u.hdr.ko_type;
+    return ko->hdr.ko_type;
 }
 
 static void
@@ -202,7 +202,7 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
     const struct kobject *ko;
     // label is mutable for threads and thread-specific segments & containers
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
-    check(label_to_ulabel(&ko->u.hdr.ko_label, ul));
+    check(label_to_ulabel(&ko->hdr.ko_label, ul));
 }
 
 static void
@@ -211,7 +211,7 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
-    strncpy(name, &ko->u.hdr.ko_name[0], KOBJ_NAME_LEN);
+    strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
 }
 
 static void
@@ -220,7 +220,7 @@ sys_obj_set_name(struct cobj_ref cobj, char *name)
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_write));
     check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
-    strncpy(&kobject_dirty(&ko->u.hdr)->u.hdr.ko_name[0], name,
+    strncpy(&kobject_dirty(&ko->hdr)->hdr.ko_name[0], name,
 	    KOBJ_NAME_LEN - 1);
 }
 
@@ -249,7 +249,7 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     check(label_compare(&cur_thread->th_ko.ko_label, &g->gt_send_label,
 			label_leq_starlo));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &g->gt_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko));
     return g->gt_ko.ko_id;
 }
 
@@ -258,7 +258,7 @@ sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
 {
     const struct kobject *ko;
     check(cobj_get(gate, kobj_gate, &ko, iflow_read));
-    check(label_to_ulabel(&ko->u.gt.gt_send_label, ul));
+    check(label_to_ulabel(&ko->gt.gt_send_label, ul));
 }
 
 static kobject_id_t
@@ -270,7 +270,7 @@ sys_thread_create(uint64_t ct)
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
 
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &t->th_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
     return t->th_ko.ko_id;
 }
 
@@ -281,7 +281,7 @@ sys_gate_enter(struct cobj_ref gt, struct ulabel *l,
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_read));
 
-    const struct Gate *g = &ko->u.gt;
+    const struct Gate *g = &ko->gt;
     check(label_compare(&cur_thread->th_ko.ko_label,
 			&g->gt_recv_label,
 			label_leq_starlo));
@@ -311,7 +311,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e,
     const struct kobject *ko;
     check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
 
-    struct Thread *t = &kobject_dirty(&ko->u.hdr)->u.th;
+    struct Thread *t = &kobject_dirty(&ko->hdr)->th;
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
@@ -342,7 +342,7 @@ sys_thread_halt(void)
 static void
 sys_thread_sleep(uint64_t msec)
 {
-    kobject_dirty(&cur_thread->th_ko)->u.th.th_wakeup_ticks =
+    kobject_dirty(&cur_thread->th_ko)->th.th_wakeup_ticks =
 	timer_ticks + kclock_msec_to_ticks(msec);
     thread_suspend(cur_thread, &timer_sleep);
 }
@@ -358,7 +358,7 @@ sys_thread_addref(uint64_t ct)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &cur_thread->th_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &cur_thread->th_ko));
 }
 
 static void
@@ -392,7 +392,7 @@ sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul)
     struct Segment *sg;
     check(segment_alloc(&l, &sg));
     check(segment_set_npages(sg, num_pages));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &sg->sg_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
 
@@ -412,8 +412,8 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct, struct ulabel *ul)
 	l = cur_thread->th_ko.ko_label;
 
     struct Segment *sg;
-    check(segment_copy(&src->u.sg, &l, &sg));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &sg->sg_ko));
+    check(segment_copy(&src->sg, &l, &sg));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
 
@@ -422,7 +422,7 @@ sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_write));
-    check(segment_set_npages(&kobject_dirty(&ko->u.hdr)->u.sg, num_pages));
+    check(segment_set_npages(&kobject_dirty(&ko->hdr)->sg, num_pages));
 }
 
 static uint64_t
@@ -430,7 +430,7 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_read));
-    return ko->u.sg.sg_ko.ko_npages;
+    return ko->sg.sg_ko.ko_npages;
 }
 
 static uint64_t
@@ -441,7 +441,7 @@ sys_as_create(uint64_t container)
 
     struct Address_space *as;
     check(as_alloc(&cur_thread->th_ko.ko_label, &as));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &as->as_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
 
@@ -450,7 +450,7 @@ sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
-    check(as_to_user(&ko->u.as, uas));
+    check(as_to_user(&ko->as, uas));
 }
 
 static void
@@ -458,7 +458,7 @@ sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_write));
-    check(as_from_user(&kobject_dirty(&ko->u.hdr)->u.as, uas));
+    check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas));
 }
 
 static uint64_t
@@ -469,7 +469,7 @@ sys_mlt_create(uint64_t container)
 
     struct Mlt *mlt;
     check(mlt_alloc(&cur_thread->th_ko.ko_label, &mlt));
-    check(container_put(&kobject_dirty(&c->ct_ko)->u.ct, &mlt->mt_ko));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &mlt->mt_ko));
     return mlt->mt_ko.ko_id;
 }
 
@@ -479,7 +479,7 @@ sys_mlt_get(struct cobj_ref mlt, uint8_t *buf)
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));
     check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
-    check(mlt_get(&ko->u.mt, buf));
+    check(mlt_get(&ko->mt, buf));
 }
 
 static void
@@ -488,7 +488,7 @@ sys_mlt_put(struct cobj_ref mlt, uint8_t *buf)
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
     check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
-    check(mlt_put(&ko->u.mt, buf));
+    check(mlt_put(&ko->mt, buf));
 }
 
 uint64_t

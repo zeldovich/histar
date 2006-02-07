@@ -35,7 +35,7 @@ thread_unpin(struct Thread *t)
 void
 thread_set_runnable(const struct Thread *const_t)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
@@ -46,7 +46,7 @@ thread_set_runnable(const struct Thread *const_t)
 void
 thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(waitq, t, th_link);
@@ -57,7 +57,7 @@ thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 void
 thread_halt(const struct Thread *const_t)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
@@ -75,7 +75,7 @@ thread_alloc(const struct Label *l, struct Thread **tp)
     if (r < 0)
 	return r;
 
-    struct Thread *t = &ko->u.th;
+    struct Thread *t = &ko->th;
     t->th_status = thread_not_started;
     t->th_sg = kobject_id_null;
     t->th_ct = kobject_id_null;
@@ -152,7 +152,7 @@ thread_gc(struct Thread *t)
 	if (r < 0)
 	    return r;
 
-	kobject_decref(&ko->u.hdr);
+	kobject_decref(&ko->hdr);
 	t->th_sg = kobject_id_null;
     }
 
@@ -161,7 +161,7 @@ thread_gc(struct Thread *t)
 	if (r < 0)
 	    return r;
 
-	kobject_decref(&ko->u.hdr);
+	kobject_decref(&ko->hdr);
 	t->th_ct = kobject_id_null;
     }
 
@@ -182,7 +182,7 @@ thread_run(const struct Thread *t)
 int
 thread_change_label(const struct Thread *const_t, const struct Label *label)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     const struct kobject *ko_sg, *ko_ct;
     int r = kobject_get(t->th_sg, &ko_sg, iflow_rw);
@@ -194,8 +194,8 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
 	return r;
 
     t->th_ko.ko_label = *label;
-    kobject_dirty(&ko_sg->u.hdr)->u.hdr.ko_label = *label;
-    kobject_dirty(&ko_ct->u.hdr)->u.hdr.ko_label = *label;
+    kobject_dirty(&ko_sg->hdr)->hdr.ko_label = *label;
+    kobject_dirty(&ko_ct->hdr)->hdr.ko_label = *label;
 
     return 0;
 }
@@ -206,7 +206,7 @@ thread_jump(const struct Thread *const_t, const struct Label *label,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     int r = thread_change_label(t, label);
     if (r < 0)
@@ -233,7 +233,7 @@ thread_jump(const struct Thread *const_t, const struct Label *label,
 void
 thread_syscall_restart(const struct Thread *t)
 {
-    kobject_dirty(&t->th_ko)->u.th.th_tf.tf_rip -= 2;
+    kobject_dirty(&t->th_ko)->th.th_tf.tf_rip -= 2;
 }
 
 void
@@ -252,10 +252,10 @@ thread_pagefault(const struct Thread *t, void *fault_va)
 	if (r < 0)
 	    return r;
 
-	const struct Address_space *as = &ko->u.as;
-	kobject_dirty(&t->th_ko)->u.th.th_as = as;
+	const struct Address_space *as = &ko->as;
+	kobject_dirty(&t->th_ko)->th.th_as = as;
 	kobject_pin_hdr(&t->th_as->as_ko);
     }
 
-    return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->u.as, fault_va);
+    return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va);
 }

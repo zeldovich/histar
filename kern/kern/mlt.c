@@ -13,7 +13,7 @@ mlt_alloc(const struct Label *l, struct Mlt **mtp)
     if (r < 0)
 	return r;
 
-    *mtp = &ko->u.mt;
+    *mtp = &ko->mt;
     return 0;
 }
 
@@ -86,7 +86,7 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
 	    me = freeslot;
 
 	if (!me) {
-	    r = mlt_grow(&kobject_dirty(&mlt->mt_ko)->u.mt, &me);
+	    r = mlt_grow(&kobject_dirty(&mlt->mt_ko)->mt, &me);
 	    if (r < 0)
 		return r;
 	}

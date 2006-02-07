@@ -13,7 +13,7 @@ segment_alloc(const struct Label *l, struct Segment **sgp)
     if (r < 0)
 	return r;
 
-    struct Segment *sg = &ko->u.sg;
+    struct Segment *sg = &ko->sg;
     segment_swapin(sg);
 
     *sgp = sg;

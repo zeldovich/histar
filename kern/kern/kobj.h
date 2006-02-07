@@ -24,7 +24,7 @@ struct kobject {
 	struct Address_space as;
 	struct Segment sg;
 	struct Mlt mt;
-    } u;
+    };
 };
 
 struct kobject_pair {

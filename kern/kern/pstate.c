@@ -62,9 +62,9 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	uint64_t key ;
 	struct mobject mobj ;
 
-    int r = btree_search(&objmap.tree, &ko->u.hdr.ko_id, &key, (uint64_t *)&mobj) ;
+    int r = btree_search(&objmap.tree, &ko->hdr.ko_id, &key, (uint64_t *)&mobj) ;
     if (r == 0) {
-    	assert(key == ko->u.hdr.ko_id) ;
+    	assert(key == ko->hdr.ko_id) ;
 
 	if (scrub_disk_pages) {
 	    void *p;
@@ -78,8 +78,8 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	}
 
 	freelist_free(f, mobj.off, mobj.npages) ;
-    	btree_delete(&iobjlist.tree, &ko->u.hdr.ko_id) ;
-    	btree_delete(&objmap.tree, &ko->u.hdr.ko_id) ;
+    	btree_delete(&iobjlist.tree, &ko->hdr.ko_id) ;
+    	btree_delete(&objmap.tree, &ko->hdr.ko_id) ;
     }
 }
 
@@ -90,7 +90,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     pstate_kobj_free(f, ko);
 	
 
-	uint64_t npages = ko->u.hdr.ko_npages + 1;
+	uint64_t npages = ko->hdr.ko_npages + 1;
     int64_t offset = freelist_alloc(f, npages);
 	
 	if (offset < 0) {
@@ -99,14 +99,14 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     }
 
 	struct mobject mobj = { offset, npages } ;
-	r = btree_insert(&objmap.tree, &ko->u.hdr.ko_id, (uint64_t *)&mobj) ;
+	r = btree_insert(&objmap.tree, &ko->hdr.ko_id, (uint64_t *)&mobj) ;
 	if (r < 0) {
 		cprintf("pstate_kobj_alloc: objmap insert failed, disk full?\n") ;
 		return r ;
 	}
 
 	if (kobject_initial(ko)) {
-		r = btree_insert(&iobjlist.tree, &ko->u.hdr.ko_id, &offset) ;
+		r = btree_insert(&iobjlist.tree, &ko->hdr.ko_id, &offset) ;
 		if (r < 0) {
 			cprintf("pstate_kobj_alloc: iobjlist insert failed, "
 				"disk full?\n") ;
@@ -139,8 +139,8 @@ pstate_swapin_off(offset_t off)
 		return -E_IO;
     }
 
-    pagetree_init(&ko->u.hdr.ko_pt);
-    for (uint64_t page = 0; page < ko->u.hdr.ko_npages; page++) {
+    pagetree_init(&ko->hdr.ko_pt);
+    for (uint64_t page = 0; page < ko->hdr.ko_npages; page++) {
 		r = page_alloc(&p);
 		if (r < 0) {
 		    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
@@ -154,12 +154,12 @@ pstate_swapin_off(offset_t off)
 		    return -E_IO;
 		}
 	
-		assert(0 == pagetree_put_page(&ko->u.hdr.ko_pt, page, p));
+		assert(0 == pagetree_put_page(&ko->hdr.ko_pt, page, p));
     }
 
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin_obj: id %ld npages %ld\n",
-			ko->u.hdr.ko_id, ko->u.hdr.ko_npages);
+			ko->hdr.ko_id, ko->hdr.ko_npages);
 
     kobject_swapin(ko);
     return 0;
@@ -366,10 +366,10 @@ pstate_sync_kobj(struct pstate_header *hdr,
 		return -E_IO;
     }
 
-    for (uint64_t page = 0; page < snap->u.hdr.ko_npages; page++) {
+    for (uint64_t page = 0; page < snap->hdr.ko_npages; page++) {
 		uint64_t offset = (off + page + 1) * PGSIZE;
 		void *p;
-		int r = kobject_get_page(&snap->u.hdr, page, &p, page_ro);
+		int r = kobject_get_page(&snap->hdr, page, &p, page_ro);
 		if (r < 0)
 		    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 	
@@ -384,7 +384,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 
     if (pstate_swapout_debug)
 		cprintf("pstate_sync_kobj: id %ld npages %ld\n",
-			snap->u.hdr.ko_id, snap->u.hdr.ko_npages);
+			snap->hdr.ko_id, snap->hdr.ko_npages);
 
     kobject_snapshot_release(ko);
     stats->written_kobj++;
@@ -401,7 +401,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 		    continue;
 	
 		struct kobject *snap = kobject_get_snapshot(ko);
-		if (snap->u.hdr.ko_type == kobj_dead) {
+		if (snap->hdr.ko_type == kobj_dead) {
 		    pstate_kobj_free(&flist, snap);
 		    stats->dead_kobj++;
 		    continue;
@@ -495,7 +495,7 @@ pstate_sync_stackwrap(void *arg)
 		    struct kobject *snap = kobject_get_snapshot(ko);
 		    kobject_snapshot_release(ko);
 	
-		    if (r == 0 && snap->u.hdr.ko_type == kobj_dead)
+		    if (r == 0 && snap->hdr.ko_type == kobj_dead)
 				kobject_swapout(kobject_h2k(ko));
 		}
     }

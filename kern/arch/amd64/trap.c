@@ -133,7 +133,7 @@ trap_handler (struct Trapframe *tf)
 	panic("trap %d with no active thread", trapno);
     }
 
-    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->u.th;
+    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
     t->th_tf = *tf;
     trap_dispatch(trapno, &t->th_tf);
 
