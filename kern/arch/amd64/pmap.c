@@ -22,9 +22,9 @@ static size_t extmem;		// Amount of extended memory (in bytes)
 static char *boot_freemem;	// Pointer to next byte of free mem
 
 struct Page_link {
-    LIST_ENTRY(Page_link) pp_link;	// free list link
+    TAILQ_ENTRY(Page_link) pp_link;	// free list link
 };
-static LIST_HEAD(Page_list, Page_link) page_free_list;
+static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 				// Free list of physical pages
 
 // Global page allocation stats
@@ -105,7 +105,7 @@ page_free (void *v)
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
-    LIST_INSERT_HEAD (&page_free_list, pl, pp_link);
+    TAILQ_INSERT_TAIL(&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
 }
@@ -113,9 +113,9 @@ page_free (void *v)
 int
 page_alloc (void **vp)
 {
-    struct Page_link *pl = LIST_FIRST(&page_free_list);
+    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
     if (pl) {
-	LIST_REMOVE(pl, pp_link);
+	TAILQ_REMOVE(&page_free_list, pl, pp_link);
 	*vp = pl;
 	page_stats.pages_avail--;
 	page_stats.pages_used++;
@@ -135,6 +135,8 @@ page_alloc (void **vp)
 static void
 page_init (void)
 {
+    TAILQ_INIT(&page_free_list);
+
     int inuse;
 
     // Align boot_freemem to page boundary.
