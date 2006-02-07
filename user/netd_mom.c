@@ -27,7 +27,6 @@ int
 main(int ac, char **av)
 {
     uint64_t rc = start_env->root_container;
-    uint64_t ct = start_env->container;
 
     uint64_t net_grant = sys_handle_create();
     uint64_t net_taint = sys_handle_create();
@@ -39,7 +38,7 @@ main(int ac, char **av)
     if (r < 0)
 	panic("fs_lookup: %s", e2s(r));
 
-    r = spawn(start_env->root_container, fsobj, 0, 0);
+    r = spawn(rc, fsobj, 0, 0);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 }
