@@ -2,7 +2,7 @@
 #include <inc/error.h>
 #include <inc/syscall.h>
 
-static int
+int
 label_grow(struct ulabel *l)
 {
     uint32_t newsize = l->ul_size * 2;

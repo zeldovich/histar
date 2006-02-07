@@ -50,7 +50,8 @@ KERN_BINFILES := \
 	user/httpd \
 	user/shell \
 	user/ls \
-	user/asprint
+	user/asprint \
+	user/gl
 
 	#user/chatter1 \
 	#user/mlt \
