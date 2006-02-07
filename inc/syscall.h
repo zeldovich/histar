@@ -42,7 +42,8 @@ int	sys_gate_enter(struct cobj_ref gate, struct ulabel *label,
 int	sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul);
 
 int64_t	sys_thread_create(uint64_t container);
-int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s);
+int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s,
+			 struct ulabel *l);
 void	sys_thread_yield(void);
 void	sys_thread_halt(void);
 void	sys_thread_sleep(uint64_t msec);

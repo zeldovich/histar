@@ -120,9 +120,10 @@ sys_thread_create(uint64_t container)
 }
 
 int
-sys_thread_start(struct cobj_ref thread, struct thread_entry *entry)
+sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
+		 struct ulabel *ul)
 {
-    return syscall(SYS_thread_start, thread, entry);
+    return syscall(SYS_thread_start, thread, entry, ul);
 }
 
 void

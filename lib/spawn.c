@@ -83,7 +83,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
 
     e.te_arg = (uint64_t) spawn_env_va;
-    r = sys_thread_start(tobj, &e);
+    r = sys_thread_start(tobj, &e, 0);
     if (r < 0) {
 	cprintf("cannot start thread: %s\n", e2s(r));
 	goto err;
