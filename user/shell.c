@@ -119,7 +119,7 @@ do_spawn(int ac, char **av)
 	return r;
     }
 
-    int64_t c_spawn = spawn(start_env->root_container, o, ac, (const char **) av);
+    int64_t c_spawn = spawn(start_env->container, o, ac, (const char **) av);
     if (c_spawn < 0)
 	printf("cannot spawn %s: %s\n", av[0], e2s(c_spawn));
 
