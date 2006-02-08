@@ -71,8 +71,7 @@ trapframe_print (struct Trapframe *tf)
 static void
 page_fault (struct Trapframe *tf)
 {
-    uint64_t fault_addr = rcr2();
-    void *fault_va = (void*) fault_addr;
+    void *fault_va = (void*) rcr2();
 
     if ((tf->tf_cs & 3) == 0) {
 	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",

@@ -46,10 +46,10 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
 WARNS	:= -Wformat=2 -Wuninitialized -Wextra -Wshadow \
-	   -Wbad-function-cast -Wcast-align -Wwrite-strings \
+	   -Wcast-align -Wwrite-strings -Winline -Wno-unused-parameters \
 	   -Wstrict-prototypes -Wmissing-prototypes -Wmissing-noreturn \
-	   -Winline -Wno-unused-parameter
-# Too many false positives: -Wconversion -Wcast-qual -Wunreachable-code
+# Too many false positives:
+# -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast
 
 DEFS	:=
 #CFLAGS	:= -g -Wall -Werror -fms-extensions

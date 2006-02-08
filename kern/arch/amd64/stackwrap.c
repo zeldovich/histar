@@ -21,8 +21,7 @@ struct stackwrap_state {
 static struct stackwrap_state *
 stackwrap_cur(void)
 {
-    uint64_t rsp_addr = read_rsp();
-    void *rsp = (void *) rsp_addr;
+    void *rsp = (void *) read_rsp();
     void *base = ROUNDDOWN(rsp, PGSIZE);
     struct stackwrap_state *ss = (struct stackwrap_state *) base;
 
