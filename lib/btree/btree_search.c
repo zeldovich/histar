@@ -25,6 +25,7 @@
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
 #include <inc/error.h>
+#include <inc/assert.h>
 
 enum {
 	match_eq = 0,
@@ -47,6 +48,7 @@ __search(struct btree *tree,
 	char result;
 
 	rootNode = bt_read_node(tree, rootOffset);
+	assert(rootNode);
 	
 	for (i = 0;
 		 i < rootNode->keyCount && 
@@ -145,6 +147,8 @@ __search(struct btree *tree,
 	}
 	
 	// accesses to children ok, can't be leafs
+	assert(rootNode->children);
+
 	if (i > 0)
 		result = __search(tree, rootNode->children[i], key, match, rootNode, i, key_store, val_store);
 	else
