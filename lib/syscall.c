@@ -171,9 +171,10 @@ sys_segment_create(uint64_t container, uint64_t num_pages,
 }
 
 int64_t
-sys_segment_copy(struct cobj_ref seg, uint64_t container, struct ulabel *l)
+sys_segment_copy(struct cobj_ref seg, uint64_t container,
+		 struct ulabel *l, const char *name)
 {
-    return syscall(SYS_segment_copy, seg, container, l);
+    return syscall(SYS_segment_copy, seg, container, l, name);
 }
 
 int

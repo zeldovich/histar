@@ -66,6 +66,29 @@ retry:
     return l;
 }
 
+struct ulabel *
+label_get_obj(struct cobj_ref o)
+{
+    struct ulabel *l = label_alloc();
+    int r;
+
+retry:
+    r = sys_obj_get_label(o, l);
+    if (r == -E_NO_SPACE) {
+	r = label_grow(l);
+	if (r == 0)
+	    goto retry;
+    }
+
+    if (r < 0) {
+	printf("label_get_obj: %s\n", e2s(r));
+	label_free(l);
+	return 0;
+    }
+
+    return l;
+}
+
 int
 label_set_current(struct ulabel *l)
 {

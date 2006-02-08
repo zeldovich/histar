@@ -14,11 +14,17 @@
 static struct ulabel *seg_create_label;
 
 void
-segment_default_label(struct ulabel *l)
+segment_set_default_label(struct ulabel *l)
 {
     if (seg_create_label)
 	label_free(seg_create_label);
     seg_create_label = l;
+}
+
+struct ulabel *
+segment_get_default_label(void)
+{
+    return seg_create_label;
 }
 
 static mutex_t as_mutex;

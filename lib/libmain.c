@@ -39,7 +39,7 @@ libmain(uint64_t arg0, uint64_t arg1)
 
 	struct ulabel *l = label_get_current();
 	assert(l);
-	segment_default_label(l);
+	segment_set_default_label(l);
     }
 
     main(argc, &argv[0]);

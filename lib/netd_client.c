@@ -55,7 +55,16 @@ netd_call(struct netd_op_args *a) {
 	return r;
 
     memcpy(va, a, sizeof(*a));
+    segment_unmap(va);
+
     gate_call(netd_gate, &seg);
+
+    va = 0;
+    r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE, &va, 0);
+    if (r < 0) {
+	cprintf("netd_call: cannot map returned segment: %s\n", e2s(r));
+	return r;
+    }
 
     memcpy(a, va, sizeof(*a));
     int rval = a->rval;

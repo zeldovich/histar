@@ -28,7 +28,8 @@ int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
 int	segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage);
-void	segment_default_label(struct ulabel *l);
+void	segment_set_default_label(struct ulabel *l);
+struct ulabel *segment_get_default_label(void);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
@@ -103,6 +104,7 @@ void *realloc(void *ptr, size_t size);
 struct ulabel *label_alloc(void);
 void label_free(struct ulabel *l);
 struct ulabel *label_get_current(void);
+struct ulabel *label_get_obj(struct cobj_ref o);
 int  label_set_current(struct ulabel *l);
 int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
 		     bool_t grow);

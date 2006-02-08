@@ -411,7 +411,8 @@ sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul,
 }
 
 static kobject_id_t
-sys_segment_copy(struct cobj_ref seg, uint64_t ct, struct ulabel *ul)
+sys_segment_copy(struct cobj_ref seg, uint64_t ct,
+		 struct ulabel *ul, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
@@ -427,6 +428,8 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct, struct ulabel *ul)
 
     struct Segment *sg;
     check(segment_copy(&src->sg, &l, &sg));
+    alloc_set_name(&sg->sg_ko, name);
+
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
@@ -666,7 +669,9 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_segment_copy:
-	syscall_ret = sys_segment_copy(COBJ(a1, a2), a3, (struct ulabel *) a4);
+	syscall_ret = sys_segment_copy(COBJ(a1, a2), a3,
+				       (struct ulabel *) a4,
+				       (const char *) a5);
 	break;
 
     case SYS_segment_resize:

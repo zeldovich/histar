@@ -61,11 +61,11 @@ main(int ac, char **av)
 
     // This changes label to { h_root:0 1 }
     label_change_star(label, 0);
-    segment_default_label(label);
+    segment_set_default_label(label);
 
     int cons = opencons(start_env->root_container);
     assert(cons >= 0);
-    segment_default_label(0);
+    segment_set_default_label(0);
 
     // netd_mom should be the only process that needs our root handle at *,
     // in order to create an appropriately-labeled netdev object.
