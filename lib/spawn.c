@@ -85,6 +85,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
+    spawn_env->root_container = container;
     spawn_env->container = c_spawn;
 
     char *p = &spawn_env->args[0];
