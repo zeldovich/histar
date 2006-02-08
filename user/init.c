@@ -76,7 +76,7 @@ main(int ac, char **av)
 
     //spawn_fs(cons, "telnetd", 1);
     //spawn_fs(cons, "freelist_test", 1);
-    //spawn_fs(cons, "httpd", 1);
+    spawn_fs(cons, "httpd", 1);
 
     for (;;)
 	sys_thread_sleep(1000);
