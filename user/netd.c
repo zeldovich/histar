@@ -88,25 +88,10 @@ tcpip_init_done(void *arg)
     sys_sem_signal(*sem);
 }
 
-static void
-netdev_init(uint64_t ct)
-{
-    int64_t netdev_id = container_find(ct, kobj_netdev, 0);
-    if (netdev_id < 0) {
-	struct ulabel ul = { .ul_default = 1, .ul_nent = 0 };
-	netdev_id = sys_net_create(ct, &ul);
-	if (netdev_id < 0)
-	    panic("cannot create netdev: %s", e2s(netdev_id));
-    }
-}
-
 int
 main(int ac, char **av)
 {
-    // container is passed as argument to _start()
     container = start_env->container;
-
-    netdev_init(start_env->root_container);
 
     struct netif nif;
     lwip_init(&nif);

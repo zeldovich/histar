@@ -38,7 +38,23 @@ main(int ac, char **av)
     if (r < 0)
 	panic("fs_lookup: %s", e2s(r));
 
-    r = spawn(rc, fsobj, 0, 0);
+    struct ulabel *gate_ct_label = label_alloc();
+    assert(gate_ct_label);
+    gate_ct_label->ul_default = 1;
+    assert(0 == label_set_level(gate_ct_label, net_grant, 0, 1));
+    int64_t gate_ct = sys_container_alloc(rc, gate_ct_label);
+    if (gate_ct < 0)
+	panic("netd_mom: creating container for netd gate: %s", e2s(gate_ct));
+    assert(0 == sys_obj_set_name(COBJ(rc, gate_ct), "netd gate"));
+
+    struct ulabel *l = label_get_current();
+    assert(l);
+    label_max_default(l);
+    assert(0 == label_set_level(l, net_grant, LB_LEVEL_STAR, 1));
+    assert(0 == label_set_level(l, net_taint, LB_LEVEL_STAR, 1));
+
+    printf("netd_mom: spawning netd with label %s\n", label_to_string(l));
+    r = spawn_fd(rc, fsobj, 0, 1, 2, 0, 0, l);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 }

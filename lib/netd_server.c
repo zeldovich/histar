@@ -77,6 +77,10 @@ netd_gate_entry(void *x, struct cobj_ref *arg)
 int
 netd_server_init(uint64_t ct)
 {
-    int r = gate_create(&netd_gate, ct, &netd_gate_entry, 0, "netd");
+    int64_t netd_ct = container_find(ct, kobj_container, "netd gate");
+    if (netd_ct < 0)
+	return netd_ct;
+
+    int r = gate_create(&netd_gate, netd_ct, &netd_gate_entry, 0, "netd");
     return r;
 }
