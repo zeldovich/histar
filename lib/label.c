@@ -130,11 +130,15 @@ label_to_string(struct ulabel *l)
     uint32_t off = 0;
     off += snprintf(&buf[off], bufsize - off, "{ ");
     for (uint32_t i = 0; i < l->ul_nent; i++) {
+	level_t lv = LB_LEVEL(l->ul_ent[i]);
+	if (lv == l->ul_default)
+	    continue;
+
 	char level[4];
-	if (LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
+	if (lv == LB_LEVEL_STAR)
 	    snprintf(&level[0], 4, "*");
 	else
-	    snprintf(&level[0], 4, "%d", LB_LEVEL(l->ul_ent[i]));
+	    snprintf(&level[0], 4, "%d", lv);
 
 	off += snprintf(&buf[off], bufsize - off, "%ld:%s ",
 			LB_HANDLE(l->ul_ent[i]), &level[0]);
