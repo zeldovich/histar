@@ -29,3 +29,5 @@ goes to sleep because we don't know if it's safe to COW!
 scatter-gather/iovec interface to disk_io() so that we can write out
 the entire object (or at least 64K worth of pages) in one request.
 
+keep track of handles more explicitly.  root handle, process handle..
+
