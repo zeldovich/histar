@@ -46,7 +46,7 @@ libmain(uint64_t arg0, uint64_t arg1)
 
     close_all();
     if (start_env)
-	sys_obj_unref(COBJ(start_env->root_container, start_env->container));
+	sys_obj_unref(COBJ(start_env->parent_container, start_env->container));
     sys_thread_halt();
 
     panic("libmain: still alive after sys_halt");
