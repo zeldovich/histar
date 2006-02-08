@@ -21,7 +21,7 @@ char*	readline(const char *prompt);
 /* segment.c */
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p,
-		      struct ulabel *label);
+		      struct ulabel *label, const char *name);
 int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
 		       uint64_t flags, void **vap, uint64_t *bytesp);
 int	segment_map(struct cobj_ref seg, uint64_t flags,

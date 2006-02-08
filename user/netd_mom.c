@@ -14,7 +14,7 @@ netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
 	struct ulabel ul = { .ul_default = 1,
 			     .ul_nent = 2,
 			     .ul_ent = &net_label[0] };
-	netdev_id = sys_net_create(ct, &ul);
+	netdev_id = sys_net_create(ct, &ul, "courtesy of netd_mom");
 	if (netdev_id < 0)
 	    panic("cannot create netdev: %s", e2s(netdev_id));
 
@@ -42,10 +42,9 @@ main(int ac, char **av)
     assert(gate_ct_label);
     gate_ct_label->ul_default = 1;
     assert(0 == label_set_level(gate_ct_label, net_grant, 0, 1));
-    int64_t gate_ct = sys_container_alloc(rc, gate_ct_label);
+    int64_t gate_ct = sys_container_alloc(rc, gate_ct_label, "netd gate");
     if (gate_ct < 0)
 	panic("netd_mom: creating container for netd gate: %s", e2s(gate_ct));
-    assert(0 == sys_obj_set_name(COBJ(rc, gate_ct), "netd gate"));
 
     struct ulabel *l = label_get_current();
     assert(l);

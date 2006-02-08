@@ -32,7 +32,12 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
     }
 
-    c_spawn = sys_container_alloc(container, label);
+    char name[KOBJ_NAME_LEN];
+    r = sys_obj_get_name(elf, &name[0]);
+    if (r < 0)
+	goto err;
+
+    c_spawn = sys_container_alloc(container, label, &name[0]);
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
     if (c_spawn < 0) {
 	cprintf("cannot allocate container for new thread: %s\n",
@@ -40,15 +45,6 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	r = c_spawn;
 	goto err;
     }
-
-    char name[KOBJ_NAME_LEN];
-    r = sys_obj_get_name(elf, &name[0]);
-    if (r < 0)
-	goto err;
-
-    r = sys_obj_set_name(c_spawn_ref, &name[0]);
-    if (r < 0)
-	goto err;
 
     struct thread_entry e;
     r = elf_load(c_spawn, elf, &e, label);
@@ -70,11 +66,7 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	goto err;
 
     struct cobj_ref c_spawn_env;
-    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, label);
-    if (r < 0)
-	goto err;
-
-    r = sys_obj_set_name(c_spawn_env, "env");
+    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, label, "env");
     if (r < 0)
 	goto err;
 
@@ -95,17 +87,13 @@ spawn_fd(uint64_t container, struct cobj_ref elf,
 	p += len + 1;
     }
 
-    int64_t thread = sys_thread_create(c_spawn);
+    int64_t thread = sys_thread_create(c_spawn, &name[0]);
     if (thread < 0) {
 	cprintf("cannot create thread: %s\n", e2s(thread));
 	r = thread;
 	goto err;
     }
     struct cobj_ref tobj = COBJ(c_spawn, thread);
-
-    r = sys_obj_set_name(tobj, &name[0]);
-    if (r < 0)
-	goto err;
 
     r = label_set_level(label, process_handle, LB_LEVEL_STAR, 1);
     if (r < 0) {

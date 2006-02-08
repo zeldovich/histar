@@ -41,17 +41,13 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	int va_off = ph->p_vaddr & 0xfff;
 	struct cobj_ref nseg;
 	char *sbuf = 0;
+	snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
 	r = segment_alloc(container, va_off + ph->p_memsz,
-			  &nseg, (void**) &sbuf, label);
+			  &nseg, (void**) &sbuf, label, &objname[0]);
 	if (r < 0) {
 	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
 	    return r;
 	}
-
-	snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
-	r = sys_obj_set_name(nseg, &objname[0]);
-	if (r < 0)
-	    return r;
 
 	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
 	r = segment_unmap(sbuf);
@@ -76,16 +72,12 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
     int stackpages = 2;
     struct cobj_ref stack;
-    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label);
+    snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
+    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label, &objname[0]);
     if (r < 0) {
 	cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
 	return r;
     }
-
-    snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
-    r = sys_obj_set_name(stack, &objname[0]);
-    if (r < 0)
-	return r;
 
     char *stacktop = (char*) USTACKTOP;
     e->te_stack = stacktop;
@@ -98,17 +90,13 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     si++;
 
     struct u_address_space uas = { .nent = si, .ents = &sm_ents[0] };
-    int64_t as_id = sys_as_create(container, label);
+    int64_t as_id = sys_as_create(container, label, &elfname[0]);
     if (as_id < 0) {
 	cprintf("elf_load: cannot create address space: %s\n", e2s(r));
 	return as_id;
     }
 
     e->te_as = COBJ(container, as_id);
-    r = sys_obj_set_name(e->te_as, &elfname[0]);
-    if (r < 0)
-	return r;
-
     r = sys_as_set(e->te_as, &uas);
     if (r < 0) {
 	cprintf("elf_load: cannot load address space: %s\n", e2s(r));

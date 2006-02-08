@@ -60,11 +60,10 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 		return -E_MAX_OPEN;
 
 	struct cobj_ref seg;
-	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd, 0);
+	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd, 0, name);
 	if (r < 0)
 		return r;
 
-	sys_obj_set_name(seg, name);
 	fd->fd_seg = seg;
 	atomic_set(&fd->fd_ref, 1);
 	fd->fd_dev_id = 0;

@@ -22,13 +22,12 @@ sbrk(intptr_t x)
     if (!heap.inited) {
 	heap.base = (void *) UHEAP;
 	r = segment_alloc(start_env->container, 0,
-			  &heap.obj, &heap.base, 0);
+			  &heap.obj, &heap.base, 0, "heap");
 	if (r < 0) {
 	    printf("malloc: cannot allocate heap: %s\n", e2s(r));
 	    goto out;
 	}
 
-	sys_obj_set_name(heap.obj, "heap");
 	heap.inited = 1;
     }
 

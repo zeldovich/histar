@@ -101,12 +101,11 @@ low_level_init(struct netif *netif)
 
     jif->buf_base = 0;
     r = segment_alloc(container, JIF_BUFS * PGSIZE,
-		      &jif->buf_seg, &jif->buf_base, 0);
+		      &jif->buf_seg, &jif->buf_base,
+		      0, "jif rx/tx buffers");
     if (r < 0)
 	panic("jif: cannot allocate %d buffer pages: %s\n",
 	      JIF_BUFS, e2s(r));
-
-    sys_obj_set_name(jif->buf_seg, "jif rx/tx buffers");
 
     for (int i = 0; i < JIF_BUFS; i++) {
 	jif->rx[i] = jif->buf_base + i * PGSIZE;

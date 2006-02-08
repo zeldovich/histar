@@ -49,6 +49,15 @@ _check(int64_t r, const char *what, int line)
     return r;
 }
 
+static void
+alloc_set_name(struct kobject_hdr *ko, const char *name)
+{
+    if (name) {
+	check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
+	strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
+    }
+}
+
 // Syscall handlers
 static void
 sys_cons_puts(const char *s, uint64_t size)
@@ -73,7 +82,7 @@ sys_cons_getc(void)
 }
 
 static int64_t
-sys_net_create(uint64_t container, struct ulabel *ul)
+sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
     struct Label cl;
@@ -86,6 +95,7 @@ sys_net_create(uint64_t container, struct ulabel *ul)
 
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, &l, &ko));
+    alloc_set_name(&ko->hdr, name);
 
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
@@ -139,7 +149,7 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 }
 
 static kobject_id_t
-sys_container_alloc(uint64_t parent_ct, struct ulabel *ul)
+sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
 {
     const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_write));
@@ -153,6 +163,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul)
 
     struct Container *c;
     check(container_alloc(&l, &c));
+    alloc_set_name(&c->ct_ko, name);
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
@@ -216,19 +227,9 @@ static void
 sys_obj_get_name(struct cobj_ref cobj, char *name)
 {
     const struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
+    check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
     strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
-}
-
-static void
-sys_obj_set_name(struct cobj_ref cobj, char *name)
-{
-    const struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko, iflow_write));
-    check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
-    strncpy(&kobject_dirty(&ko->hdr)->hdr.ko_name[0], name,
-	    KOBJ_NAME_LEN - 1);
 }
 
 static uint64_t
@@ -241,7 +242,8 @@ sys_container_nslots(uint64_t container)
 
 static kobject_id_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
-		struct ulabel *ul_recv, struct ulabel *ul_send)
+		struct ulabel *ul_recv, struct ulabel *ul_send,
+		const char *name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
@@ -249,6 +251,7 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
     struct Gate *g;
     // Inherit label from container
     check(gate_alloc(&c->ct_ko.ko_label, &g));
+    alloc_set_name(&g->gt_ko, name);
 
     g->gt_te = *te;
     check(ulabel_to_label(ul_recv, &g->gt_recv_label));
@@ -269,13 +272,14 @@ sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
 }
 
 static kobject_id_t
-sys_thread_create(uint64_t ct)
+sys_thread_create(uint64_t ct, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
 
     struct Thread *t;
     check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
+    alloc_set_name(&t->th_ko, name);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
     return t->th_ko.ko_id;
@@ -385,7 +389,8 @@ sys_thread_set_label(struct ulabel *ul)
 }
 
 static kobject_id_t
-sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul)
+sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul,
+		   const char *name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
@@ -398,6 +403,8 @@ sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul)
 
     struct Segment *sg;
     check(segment_alloc(&l, &sg));
+    alloc_set_name(&sg->sg_ko, name);
+
     check(segment_set_npages(sg, num_pages));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
@@ -441,7 +448,7 @@ sys_segment_get_npages(struct cobj_ref sg_cobj)
 }
 
 static uint64_t
-sys_as_create(uint64_t container, struct ulabel *ul)
+sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
@@ -455,6 +462,8 @@ sys_as_create(uint64_t container, struct ulabel *ul)
 
     struct Address_space *as;
     check(as_alloc(&l, &as));
+    alloc_set_name(&as->as_ko, name);
+
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
@@ -476,13 +485,15 @@ sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
 }
 
 static uint64_t
-sys_mlt_create(uint64_t container)
+sys_mlt_create(uint64_t container, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
     struct Mlt *mlt;
     check(mlt_alloc(&cur_thread->th_ko.ko_label, &mlt));
+    alloc_set_name(&mlt->mt_ko, name);
+
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &mlt->mt_ko));
     return mlt->mt_ko.ko_id;
 }
@@ -527,7 +538,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_net_create:
-	syscall_ret = sys_net_create(a1, (struct ulabel *) a2);
+	syscall_ret = sys_net_create(a1, (struct ulabel *) a2, (const char *) a3);
 	break;
 
     case SYS_net_wait:
@@ -549,7 +560,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_container_alloc:
-	syscall_ret = sys_container_alloc(a1, (struct ulabel *) a2);
+	syscall_ret = sys_container_alloc(a1, (struct ulabel *) a2, (const char *) a3);
 	break;
 
     case SYS_obj_unref:
@@ -576,10 +587,6 @@ syscall(syscall_num num, uint64_t a1,
 	sys_obj_get_name(COBJ(a1, a2), (char *) a3);
 	break;
 
-    case SYS_obj_set_name:
-	sys_obj_set_name(COBJ(a1, a2), (char *) a3);
-	break;
-
     case SYS_container_nslots:
 	syscall_ret = sys_container_nslots(a1);
 	break;
@@ -592,7 +599,8 @@ syscall(syscall_num num, uint64_t a1,
 
 	    syscall_ret = sys_gate_create(a1, &e,
 					  (struct ulabel*) a3,
-					  (struct ulabel*) a4);
+					  (struct ulabel*) a4,
+					  (const char *) a5);
 	}
 	break;
 
@@ -605,7 +613,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_thread_create:
-	syscall_ret = sys_thread_create(a1);
+	syscall_ret = sys_thread_create(a1, (const char *) a2);
 	break;
 
     case SYS_thread_start:
@@ -653,7 +661,8 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_segment_create:
-	syscall_ret = sys_segment_create(a1, a2, (struct ulabel *) a3);
+	syscall_ret = sys_segment_create(a1, a2, (struct ulabel *) a3,
+					 (const char *) a4);
 	break;
 
     case SYS_segment_copy:
@@ -669,7 +678,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_as_create:
-	syscall_ret = sys_as_create(a1, (struct ulabel *) a2);
+	syscall_ret = sys_as_create(a1, (struct ulabel *) a2, (const char *) a3);
 	break;
 
     case SYS_as_get:
@@ -681,7 +690,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_mlt_create:
-	syscall_ret = sys_mlt_create(a1);
+	syscall_ret = sys_mlt_create(a1, (const char *) a2);
 	break;
 
     case SYS_mlt_get:

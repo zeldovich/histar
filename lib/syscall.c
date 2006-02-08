@@ -15,9 +15,9 @@ sys_cons_getc(void)
 }
 
 int64_t
-sys_net_create(uint64_t container, struct ulabel *l)
+sys_net_create(uint64_t container, struct ulabel *l, const char *name)
 {
-    return syscall(SYS_net_create, container, l);
+    return syscall(SYS_net_create, container, l, name);
 }
 
 int64_t
@@ -40,9 +40,9 @@ sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
 }
 
 int64_t
-sys_container_alloc(uint64_t parent, struct ulabel *ul)
+sys_container_alloc(uint64_t parent, struct ulabel *ul, const char *name)
 {
-    return syscall(SYS_container_alloc, parent, ul);
+    return syscall(SYS_container_alloc, parent, ul, name);
 }
 
 int
@@ -81,12 +81,6 @@ sys_obj_get_name(struct cobj_ref o, char *name)
     return syscall(SYS_obj_get_name, o, name);
 }
 
-int
-sys_obj_set_name(struct cobj_ref o, const char *name)
-{
-    return syscall(SYS_obj_set_name, o, name);
-}
-
 int64_t
 sys_container_nslots(uint64_t container)
 {
@@ -95,9 +89,10 @@ sys_container_nslots(uint64_t container)
 
 int64_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
-		struct ulabel *el, struct ulabel *tl)
+		struct ulabel *el, struct ulabel *tl,
+		const char *name)
 {
-    return syscall(SYS_gate_create, container, te, el, tl);
+    return syscall(SYS_gate_create, container, te, el, tl, name);
 }
 
 int
@@ -114,9 +109,9 @@ sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
 }
 
 int64_t
-sys_thread_create(uint64_t container)
+sys_thread_create(uint64_t container, const char *name)
 {
-    return syscall(SYS_thread_create, container);
+    return syscall(SYS_thread_create, container, name);
 }
 
 int
@@ -169,9 +164,10 @@ sys_thread_set_label(struct ulabel *l)
 }
 
 int64_t
-sys_segment_create(uint64_t container, uint64_t num_pages, struct ulabel *l)
+sys_segment_create(uint64_t container, uint64_t num_pages,
+		   struct ulabel *l, const char *name)
 {
-    return syscall(SYS_segment_create, container, num_pages, l);
+    return syscall(SYS_segment_create, container, num_pages, l, name);
 }
 
 int64_t
@@ -193,9 +189,9 @@ sys_segment_get_npages(struct cobj_ref seg)
 }
 
 int64_t
-sys_as_create(uint64_t container, struct ulabel *l)
+sys_as_create(uint64_t container, struct ulabel *l, const char *name)
 {
-    return syscall(SYS_as_create, container, l);
+    return syscall(SYS_as_create, container, l, name);
 }
 
 int
@@ -211,9 +207,9 @@ sys_as_set(struct cobj_ref as, struct u_address_space *uas)
 }
 
 int64_t
-sys_mlt_create(uint64_t container)
+sys_mlt_create(uint64_t container, const char *name)
 {
-    return syscall(SYS_mlt_create, container);
+    return syscall(SYS_mlt_create, container, name);
 }
 
 int

@@ -24,7 +24,7 @@ test0()
     
 	int i = 0 ;
 	for (; i < NSEGS ; i++)
-		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0, 0)) < 0)
+		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0, 0, 0)) < 0)
 			panic("error test0 %s", e2s(r)) ;
 
 	for (i = 0 ; i < NSEGS ; i+=2)
@@ -32,7 +32,7 @@ test0()
 			panic("error test0 %s\n", e2s(r)) ;
 
 	for (i = 0 ; i < NSEGS ; i+=2)
-		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0, 0)) < 0) 
+		if ((r = segment_alloc(ct, SEGPAGES * PGSIZE, &segs[i], 0, 0, 0)) < 0) 
 			panic("error test0 %s\n", e2s(r)) ;
 	
 /*

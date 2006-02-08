@@ -41,11 +41,10 @@ netd_call(struct netd_op_args *a) {
 
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va, 0);
+    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va,
+			  0, "netd_call() args");
     if (r < 0)
 	return r;
-
-    sys_obj_set_name(seg, "netd_call args");
 
     memcpy(va, a, sizeof(*a));
     gate_call(start_env->container, netd_gate, &seg);
