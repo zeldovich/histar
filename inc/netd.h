@@ -54,6 +54,7 @@ struct netd_op_close_args {
 struct netd_op_args {
     netd_op_t op_type;
     int rval;
+
     union {
 	struct netd_op_socket_args socket;
 	struct netd_op_bind_args bind;
@@ -62,7 +63,7 @@ struct netd_op_args {
 	struct netd_op_write_args write;
 	struct netd_op_read_args read;
 	struct netd_op_close_args close;
-    } args;
+    };
 };
 
 int netd_server_init(uint64_t container);

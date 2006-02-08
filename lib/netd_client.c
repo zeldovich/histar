@@ -71,9 +71,9 @@ socket(int domain, int type, int protocol)
 
     struct netd_op_args a;
     a.op_type = netd_op_socket;
-    a.args.socket.domain = domain;
-    a.args.socket.type = type;
-    a.args.socket.protocol = protocol;
+    a.socket.domain = domain;
+    a.socket.type = type;
+    a.socket.protocol = protocol;
     int sock = netd_call(&a);
 
     if (sock < 0) {
@@ -91,12 +91,12 @@ static int
 sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
-    if (addrlen != sizeof(a.args.bind.sin))
+    if (addrlen != sizeof(a.bind.sin))
 	return -E_INVAL;
 
     a.op_type = netd_op_bind;
-    a.args.bind.fd = fd->fd_sock.s;
-    memcpy(&a.args.bind.sin, addr, addrlen);
+    a.bind.fd = fd->fd_sock.s;
+    memcpy(&a.bind.sin, addr, addrlen);
     return netd_call(&a);
 }
 
@@ -105,8 +105,8 @@ sock_listen(struct Fd *fd, int backlog)
 {
     struct netd_op_args a;
     a.op_type = netd_op_listen;
-    a.args.listen.fd = fd->fd_sock.s;
-    a.args.listen.backlog = backlog;
+    a.listen.fd = fd->fd_sock.s;
+    a.listen.backlog = backlog;
     return netd_call(&a);
 }
 
@@ -114,7 +114,7 @@ static int
 sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct netd_op_args a;
-    if (*addrlen != sizeof(a.args.accept.sin))
+    if (*addrlen != sizeof(a.accept.sin))
 	return -E_INVAL;
 
     struct Fd *nfd;
@@ -123,8 +123,8 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return r;
 
     a.op_type = netd_op_accept;
-    a.args.accept.fd = fd->fd_sock.s;
-    memcpy(&a.args.accept.sin, addr, *addrlen);
+    a.accept.fd = fd->fd_sock.s;
+    memcpy(&a.accept.sin, addr, *addrlen);
     int sock = netd_call(&a);
 
     if (sock < 0) {
@@ -132,7 +132,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return sock;
     }
 
-    memcpy(addr, &a.args.accept.sin, *addrlen);
+    memcpy(addr, &a.accept.sin, *addrlen);
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
     nfd->fd_sock.s = sock;
@@ -148,9 +148,9 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 
     struct netd_op_args a;
     a.op_type = netd_op_write;
-    a.args.write.fd = fd->fd_sock.s;
-    a.args.write.count = count;
-    memcpy(&a.args.write.buf[0], buf, count);
+    a.write.fd = fd->fd_sock.s;
+    a.write.count = count;
+    memcpy(&a.write.buf[0], buf, count);
     return netd_call(&a);
 }
 
@@ -162,11 +162,11 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     struct netd_op_args a;
     a.op_type = netd_op_read;
-    a.args.read.fd = fd->fd_sock.s;
-    a.args.read.count = count;
+    a.read.fd = fd->fd_sock.s;
+    a.read.count = count;
     int r = netd_call(&a);
     if (r > 0)
-	memcpy(buf, &a.args.read.buf[0], r);
+	memcpy(buf, &a.read.buf[0], r);
     return r;
 }
 
@@ -175,7 +175,7 @@ sock_close(struct Fd *fd)
 {
     struct netd_op_args a;
     a.op_type = netd_op_close;
-    a.args.close.fd = fd->fd_sock.s;
+    a.close.fd = fd->fd_sock.s;
     return netd_call(&a);
 }
 
