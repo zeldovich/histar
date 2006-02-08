@@ -83,7 +83,7 @@ socket(int domain, int type, int protocol)
 
     fd->fd_dev_id = devsock.dev_id;
     fd->fd_omode = O_RDWR;
-    fd->fd_data.sock.s = sock;
+    fd->fd_sock.s = sock;
     return fd2num(fd);
 }
 
@@ -95,7 +95,7 @@ sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 	return -E_INVAL;
 
     a.op_type = netd_op_bind;
-    a.args.bind.fd = fd->fd_data.sock.s;
+    a.args.bind.fd = fd->fd_sock.s;
     memcpy(&a.args.bind.sin, addr, addrlen);
     return netd_call(&a);
 }
@@ -105,7 +105,7 @@ sock_listen(struct Fd *fd, int backlog)
 {
     struct netd_op_args a;
     a.op_type = netd_op_listen;
-    a.args.listen.fd = fd->fd_data.sock.s;
+    a.args.listen.fd = fd->fd_sock.s;
     a.args.listen.backlog = backlog;
     return netd_call(&a);
 }
@@ -123,7 +123,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return r;
 
     a.op_type = netd_op_accept;
-    a.args.accept.fd = fd->fd_data.sock.s;
+    a.args.accept.fd = fd->fd_sock.s;
     memcpy(&a.args.accept.sin, addr, *addrlen);
     int sock = netd_call(&a);
 
@@ -135,7 +135,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     memcpy(addr, &a.args.accept.sin, *addrlen);
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
-    nfd->fd_data.sock.s = sock;
+    nfd->fd_sock.s = sock;
 
     return fd2num(nfd);
 }
@@ -148,7 +148,7 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 
     struct netd_op_args a;
     a.op_type = netd_op_write;
-    a.args.write.fd = fd->fd_data.sock.s;
+    a.args.write.fd = fd->fd_sock.s;
     a.args.write.count = count;
     memcpy(&a.args.write.buf[0], buf, count);
     return netd_call(&a);
@@ -162,7 +162,7 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     struct netd_op_args a;
     a.op_type = netd_op_read;
-    a.args.read.fd = fd->fd_data.sock.s;
+    a.args.read.fd = fd->fd_sock.s;
     a.args.read.count = count;
     int r = netd_call(&a);
     if (r > 0)
@@ -175,7 +175,7 @@ sock_close(struct Fd *fd)
 {
     struct netd_op_args a;
     a.op_type = netd_op_close;
-    a.args.close.fd = fd->fd_data.sock.s;
+    a.args.close.fd = fd->fd_sock.s;
     return netd_call(&a);
 }
 

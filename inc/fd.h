@@ -33,6 +33,7 @@ struct Fd
 	int fd_dev_id;
 	off_t fd_offset;
 	int fd_omode;
+	int fd_immutable;
 
 	struct cobj_ref fd_seg;
 	atomic_t fd_ref;
@@ -40,8 +41,8 @@ struct Fd
 	union {
 		struct {
 			int s;
-		} sock;
-	} fd_data;
+		} fd_sock;
+	};
 };
 
 char*	fd2data(struct Fd *fd);

@@ -106,7 +106,7 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 int
 fd_close(struct Fd *fd)
 {
-	if (!atomic_dec_and_test(&fd->fd_ref)) {
+	if (fd->fd_immutable || !atomic_dec_and_test(&fd->fd_ref)) {
 		segment_unmap(fd);
 		return 0;
 	}
@@ -187,12 +187,15 @@ dup(int oldfdnum, int newfdnum)
 	close(newfdnum);
 	struct Fd *newfd = INDEX2FD(newfdnum);
 
-	r = segment_map(oldfd->fd_seg, SEGMAP_READ | SEGMAP_WRITE,
+	int immutable = oldfd->fd_immutable;
+	r = segment_map(oldfd->fd_seg,
+			SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
 			(void**) &newfd, 0);
 	if (r < 0)
 		return r;
 
-	atomic_inc(&oldfd->fd_ref);
+	if (!immutable)
+		atomic_inc(&oldfd->fd_ref);
 	return newfdnum;
 }
 
@@ -208,13 +211,15 @@ dup_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 	// newfdnum in target address space if one aleady exists.
 	struct Fd *newfd = INDEX2FD(newfdnum);
 
+	int immutable = oldfd->fd_immutable;
 	r = segment_map_as(target_as, oldfd->fd_seg,
-			   SEGMAP_READ | SEGMAP_WRITE,
+			   SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
 			   (void**) &newfd, 0);
 	if (r < 0)
 		return r;
 
-	atomic_inc(&oldfd->fd_ref);
+	if (!immutable)
+		atomic_inc(&oldfd->fd_ref);
 	return newfdnum;
 }
 
@@ -233,7 +238,7 @@ read(int fdnum, void *buf, size_t n)
 		return -E_INVAL;
 	}
 	r = (*dev->dev_read)(fd, buf, n, fd->fd_offset);
-	if (r >= 0)
+	if (r >= 0 && !fd->fd_immutable)
 		fd->fd_offset += r;
 	return r;
 }
@@ -272,7 +277,7 @@ write(int fdnum, const void *buf, size_t n)
 		cprintf("write %d %p %ld via dev %s\n",
 			fdnum, buf, n, dev->dev_name);
 	r = (*dev->dev_write)(fd, buf, n, fd->fd_offset);
-	if (r > 0)
+	if (r > 0 && !fd->fd_immutable)
 		fd->fd_offset += r;
 	return r;
 }
@@ -285,6 +290,8 @@ seek(int fdnum, off_t offset)
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
+	if (fd->fd_immutable)
+		return -E_BAD_OP;
 	fd->fd_offset = offset;
 	return 0;
 }
