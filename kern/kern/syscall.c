@@ -267,7 +267,7 @@ static void
 sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
 {
     const struct kobject *ko;
-    check(cobj_get(gate, kobj_gate, &ko, iflow_read));
+    check(cobj_get(gate, kobj_gate, &ko, iflow_none));
     check(label_to_ulabel(&ko->gt.gt_send_label, ul));
 }
 
@@ -290,7 +290,7 @@ sys_gate_enter(struct cobj_ref gt, struct ulabel *l,
 	       uint64_t a1, uint64_t a2)
 {
     const struct kobject *ko;
-    check(cobj_get(gt, kobj_gate, &ko, iflow_read));
+    check(cobj_get(gt, kobj_gate, &ko, iflow_none));
 
     const struct Gate *g = &ko->gt;
     check(label_compare(&cur_thread->th_ko.ko_label,

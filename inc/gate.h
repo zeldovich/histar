@@ -16,6 +16,6 @@ struct u_gate_entry {
 int	gate_create(struct u_gate_entry *ug, uint64_t container,
 		    void (*func)(void*, struct cobj_ref*), void *func_arg,
 		    const char *name);
-int	gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *arg);
+int	gate_call(struct cobj_ref gate, struct cobj_ref *arg);
 
 #endif

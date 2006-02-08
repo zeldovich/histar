@@ -24,7 +24,7 @@ label_alloc()
 	return 0;
 
     memset(l, 0, sizeof(*l));
-    l->ul_size = 4;
+    l->ul_size = 16;
     l->ul_nent = 0;
     l->ul_ent = malloc(l->ul_size * sizeof(*l->ul_ent));
     if (l->ul_ent == 0) {

@@ -211,7 +211,7 @@ gate_call_return(struct gate_return *gr, struct cobj_ref arg)
 }
 
 static int
-gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
+gate_call_setup_return(struct gate_return *gr,
 		       void *return_stack,
 		       struct cobj_ref *return_gatep)
 {
@@ -244,13 +244,15 @@ gate_call_setup_return(uint64_t ctemp, struct gate_return *gr,
     if (r < 0)
 	goto out;
 
-    int64_t gate_id = sys_gate_create(ctemp, &te, l_recv, l_send, "return gate");
+    uint64_t return_gate_ct = kobject_id_thread_ct;
+    int64_t gate_id = sys_gate_create(return_gate_ct, &te,
+				      l_recv, l_send, "return gate");
     if (gate_id < 0) {
 	r = gate_id;
 	goto out;
     }
 
-    *return_gatep = COBJ(ctemp, gate_id);
+    *return_gatep = COBJ(return_gate_ct, gate_id);
 
 out:
     if (l_recv)
@@ -261,7 +263,7 @@ out:
 }
 
 int
-gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
+gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
     int r = sys_segment_resize(tseg, 1);
@@ -275,7 +277,8 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
     struct cobj_ref return_stack_obj;
     void *return_stack = 0;
-    r = segment_alloc(ctemp, PGSIZE, &return_stack_obj, &return_stack,
+    r = segment_alloc(kobject_id_thread_ct, PGSIZE,
+		      &return_stack_obj, &return_stack,
 		      0, "gate return stack");
     if (r < 0)
 	goto out2;
@@ -296,7 +299,7 @@ gate_call(uint64_t ctemp, struct cobj_ref gate, struct cobj_ref *argp)
 
     struct cobj_ref return_gate;
     if (setjmp(&back_from_call) == 0) {
-	r = gate_call_setup_return(ctemp, gr, return_stack, &return_gate);
+	r = gate_call_setup_return(gr, return_stack, &return_gate);
 	if (r < 0)
 	    goto out3;
 

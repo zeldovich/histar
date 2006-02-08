@@ -39,15 +39,23 @@ netd_call(struct netd_op_args *a) {
 	return -1;
     }
 
+    struct ulabel *seg_label = label_get_current();
+    if (seg_label == 0) {
+	cprintf("netd_call: cannot get label\n");
+	return -E_NO_MEM;
+    }
+    label_change_star(seg_label, seg_label->ul_default);
+
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(start_env->container, PGSIZE, &seg, &va,
-			  0, "netd_call() args");
+    int r = segment_alloc(kobject_id_thread_ct, PGSIZE, &seg, &va,
+			  seg_label, "netd_call() args");
+    label_free(seg_label);
     if (r < 0)
 	return r;
 
     memcpy(va, a, sizeof(*a));
-    gate_call(start_env->container, netd_gate, &seg);
+    gate_call(netd_gate, &seg);
 
     memcpy(a, va, sizeof(*a));
     int rval = a->rval;
