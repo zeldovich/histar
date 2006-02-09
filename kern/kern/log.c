@@ -137,8 +137,6 @@ log_apply(void)
 		
 	struct log_header *lh = (struct log_header *)scratch ;
 
-	cprintf("log_apply: n_nodes %ld\n", lh->n_nodes) ;
-	
 	if (lh->n_nodes == 0)
 		return 0 ;
 	
