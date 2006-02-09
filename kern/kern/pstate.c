@@ -546,13 +546,6 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= PGSIZE) ;
 	static_assert(BTREE_NODE_SIZE(OBJMAP_ORDER, 1) <= PGSIZE) ;
 	
-	static int goo = 0 ;
-	if (++goo == 4) {
-		freelist_pretty_print(&flist) ;
-		goo = 0 ;	
-	}
-	
-	
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
     
