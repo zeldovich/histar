@@ -41,8 +41,10 @@ struct cache
 } ;
 
 int	cache_init(struct cache *c) ;
-int cache_alloc(struct cache *c, tag_t t, uint8_t **store) ;
+int cache_alloc(struct cache *c, tag_t tag, uint8_t **store) ;
+int cache_try_insert(struct cache *c, tag_t t, uint8_t *src, uint8_t **store) ;
 int cache_ent(struct cache *c, tag_t t, uint8_t **store) ;
+
 int cache_rem(struct cache *c, tag_t t) ;
 int cache_unpin(struct cache *c) ;
 

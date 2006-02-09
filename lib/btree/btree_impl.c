@@ -4,6 +4,7 @@
 #include <machine/stackwrap.h>
 #include <machine/mmu.h>
 #include <kern/freelist.h>
+#include <machine/pmap.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/string.h>
@@ -37,37 +38,43 @@ btree_simple_node(struct btree *tree,
 		return 0 ;
 
 	uint8_t *buf ;
-	if ((r = cache_alloc(manager->cache, offset, &buf)) < 0) {
-		cprintf("btree_man_node: cache fully pinned (%d)\n", manager->cache->n_ent) ;
-		*store = 0 ;
-		return -E_NO_SPACE ;
-	}
+	if (page_alloc((void**)&buf) < 0)
+		return -E_NO_MEM ;
 
-	// read node off disk
-	struct btree_node *node = node = CENT_NODE(buf) ;
-	node->block.offset = offset ;
-	node->tree = tree ;
 
 	disk_io_status s = 
 		stackwrap_disk_io(op_read, 
-						  scratch, 
-						  SCRATCH_SIZE, 
-						  node->block.offset * PGSIZE);
+						  buf, 
+						  PGSIZE, 
+						  offset * PGSIZE);
 	if (s != disk_io_success) {
 		cprintf("btree_man_node: error reading node\n");
+		page_free(buf) ;
 		*store = 0 ;
 		return -1;
 	}
 
-	memcpy(node, scratch, BTREE_NODE_SIZE(tree->order, tree->s_key)) ;
+	r = cache_try_insert(manager->cache, offset, 
+						buf, (uint8_t **)store) ;
+
+	page_free(buf)	 ;
+
+	if (r < 0) {
+		*store = 0 ;
+		return r ;
+	}
+
+	struct btree_node *node = *store ;
 
 	// setup pointers in node
-	node->children = CENT_CHILDREN(buf) ;
-	node->keys = CENT_KEYS(buf, manager->order) ;
 	node->block.offset = offset ;
 	node->tree = tree ;
-	*store = node ;
-	
+
+	node->children = CENT_CHILDREN(node) ;
+	node->keys = CENT_KEYS(node, manager->order) ;
+	node->block.offset = offset ;
+	node->tree = tree ;
+					
 	return 0 ;
 }
 

@@ -3,6 +3,7 @@
 #include <inc/error.h>
 #include <inc/string.h>
 #include <inc/stdio.h>
+#include <inc/assert.h>
 
 int
 cache_num_ent(struct cache *c)
@@ -18,9 +19,9 @@ cache_num_ent(struct cache *c)
 }
 
 int 
-cache_alloc(struct cache *c, tag_t t, uint8_t **store) 
+cache_alloc(struct cache *c, tag_t tag, uint8_t **store) 
 {
-	if (t == 0)
+	if (tag == 0)
 		return -E_INVAL ;
 	
 	struct cmeta *cm = TAILQ_FIRST(&c->lru_stack) ;
@@ -42,10 +43,30 @@ cache_alloc(struct cache *c, tag_t t, uint8_t **store)
 	TAILQ_INSERT_TAIL(&c->lru_stack, cm, cm_link) ;
 	
 	cm->inuse = 1 ;
-	cm->tag = t ;
 	cm->pin = 1 ;
+	cm->tag = tag ;
 	*store = &c->buf[cm->index * c->s_ent] ;
 	
+	return 0 ;
+}
+
+int
+cache_try_insert(struct cache *c, tag_t t, uint8_t *src, uint8_t **store)
+{
+	if (t == 0)
+		return -E_INVAL ;
+	
+	int r ; 
+	r = cache_ent(c, t, store) ;
+	if (r != -E_NOT_FOUND)
+		return r ;	// may be zero
+
+	r = cache_alloc(c, t, store) ;
+	if (r < 0)
+		return r ;
+
+	memcpy(*store, src, c->s_ent) ;
+
 	return 0 ;
 }
 
