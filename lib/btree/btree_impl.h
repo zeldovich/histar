@@ -6,9 +6,9 @@
 #include <inc/types.h>
 
 // max order for key size of 1
-#define BTREE_MAX_ORDER1 253
+#define BTREE_MAX_ORDER1 252
 // max order for key size of 2
-#define BTREE_MAX_ORDER2 169
+#define BTREE_MAX_ORDER2 168	
 
 // use to declare a cache for a btree
 #define STRUCT_BTREE_CACHE(name, num_ent, order, key_size)	\

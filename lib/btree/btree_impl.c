@@ -6,6 +6,7 @@
 #include <kern/freelist.h>
 #include <machine/pmap.h>
 #include <kern/lib.h>
+#include <kern/log.h>
 #include <inc/error.h>
 #include <inc/string.h>
 
@@ -17,8 +18,8 @@
     sizeof(offset_t) * order))
 
 // buffer for reading and writing nodes to disk
-#define SCRATCH_SIZE PGSIZE
-static uint8_t scratch[SCRATCH_SIZE] ;
+//#define SCRATCH_SIZE PGSIZE
+//static uint8_t scratch[SCRATCH_SIZE] ;
 
 
 /////////////////////
@@ -38,22 +39,24 @@ btree_simple_node(struct btree *tree,
 		return 0 ;
 
 	uint8_t *buf ;
-	if (page_alloc((void**)&buf) < 0)
-		return -E_NO_MEM ;
-
-
-	disk_io_status s = 
-		stackwrap_disk_io(op_read, 
-						  buf, 
-						  PGSIZE, 
-						  offset * PGSIZE);
-	if (s != disk_io_success) {
-		cprintf("btree_man_node: error reading node\n");
-		page_free(buf) ;
-		*store = 0 ;
-		return -1;
+	r = log_node(offset, (struct btree_node **)&buf) ;
+	if (r < 0) {
+		if (page_alloc((void**)&buf) < 0)
+			return -E_NO_MEM ;
+	
+		disk_io_status s = 
+			stackwrap_disk_io(op_read, 
+							  buf, 
+							  PGSIZE, 
+							  offset * PGSIZE);
+		if (s != disk_io_success) {
+			cprintf("btree_man_node: error reading node\n");
+			page_free(buf) ;
+			*store = 0 ;
+			return -1;
+		}
 	}
-
+	
 	r = cache_try_insert(manager->cache, offset, 
 						buf, (uint8_t **)store) ;
 
@@ -81,6 +84,7 @@ btree_simple_node(struct btree *tree,
 int 
 btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
 {
+	/*
 	struct btree *tree = node->tree ;
 	memcpy(scratch, node, BTREE_NODE_SIZE(tree->order, tree->s_key)) ;
 
@@ -93,7 +97,9 @@ btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)
 	if (s != disk_io_success) {
 		cprintf("btree_man_write: error writing node\n");
 		return -1;
-	}
+	}*/
+	
+	log_write(node) ;
 	return 0;
 }
 

@@ -28,6 +28,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/netdev.c \
 	    kern/kern/mlt.c \
 	    kern/kern/freelist.c \
+	    kern/kern/log.c	\
 	    kern/kern/pagetree.c \
 	    $(OBJDIR)/kern/embedbin.c
 

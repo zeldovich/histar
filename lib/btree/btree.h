@@ -2,6 +2,7 @@
 #define _BTREE_H_
 
 #include <inc/types.h>
+#include <inc/queue.h>
 #include <lib/btree/btree_utils.h>
 
 struct btree_node
@@ -17,6 +18,8 @@ struct btree_node
 	uint8_t 		keyCount ;          
 	offset_t 	   	*children ;    
 	const uint64_t 	*keys ;
+	
+	LIST_ENTRY(btree_node) node_link ;
 };
 
 #define BTREE_NODE_SIZE(order, key_size) \

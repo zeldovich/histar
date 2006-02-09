@@ -15,6 +15,9 @@
 #define PSTATE_VERSION	2
 
 struct pstate_header {
+	// needs to be in 1st sector of header
+    char ph_applying ;
+    
     uint64_t ph_magic;
     uint64_t ph_version;
 

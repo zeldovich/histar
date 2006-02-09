@@ -8,6 +8,7 @@
 #include <kern/handle.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
+#include <kern/log.h>
 #include <inc/error.h>
 #include <lib/btree/btree_traverse.h>
 
@@ -50,6 +51,9 @@ static union {
     struct pstate_header hdr;
     char buf[PSTATE_BUF_SIZE];
 } pstate_buf;
+
+#define LOG_OFFSET	N_HEADER_PAGES
+#define LOG_SIZE	100
 
 //////////////////////////////////////////////////
 // Object map
@@ -224,6 +228,8 @@ pstate_swapin(kobject_id_t id)
 // Persistent-store initialization
 /////////////////////////////////////
 
+static int pstate_sync_apply(void) ;
+
 static int
 pstate_load2(void)
 {
@@ -241,6 +247,14 @@ pstate_load2(void)
 
 		return -E_INVAL;
     }
+
+	log_init(LOG_OFFSET + 1, LOG_SIZE - 1) ;
+	
+	if(stable_hdr.ph_applying) {
+		cprintf("pstate_load2: applying log\n") ;
+		pstate_sync_apply() ;
+	    memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
+	}
 	
 	// XXX
 	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
@@ -391,6 +405,74 @@ pstate_sync_kobj(struct swapout_stats *stats,
 }
 
 static int
+pstate_sync_apply(void)
+{
+	struct pstate_header *hdr = &pstate_buf.hdr ;
+
+
+	// 1st, mark that appplying
+    hdr->ph_applying = 1 ;
+    disk_io_status s = stackwrap_disk_io(op_write, hdr, 
+    									 PSTATE_BUF_SIZE, 0) ;
+    if (s != disk_io_success) {
+    	cprintf("pstate_sync_apply: unable to mark applying\n") ;
+    	return -E_IO ;	
+    }
+
+    // 2nd, read flushed header copy
+    s = stackwrap_disk_io(op_read, hdr, 
+ 						 PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE) ;
+    if (s != disk_io_success) {
+    	cprintf("pstate_sync_apply: unable to read header\n") ;
+    	return -E_IO ;	
+    }
+
+	// 3rd, apply node log
+	int r = log_apply() ;
+	if (r < 0)
+		return r ;
+		
+	// 4th, write out new header
+	s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0) ;
+    if (s != disk_io_success) {
+    	cprintf("pstate_sync_apply: unable to write header\n") ;
+    	return -E_IO ;	
+    }
+
+	// 5th, unmark applying
+	hdr->ph_applying = 0 ;
+	s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0) ;
+    if (s != disk_io_success) {
+    	cprintf("pstate_sync_apply: unable to unmark applying\n") ;
+    	return -E_IO ;	
+    }
+
+	return 0 ;
+}
+
+static int
+pstate_sync_flush(void)
+{
+	struct pstate_header *hdr = &pstate_buf.hdr ;
+
+
+	// 1st, write a copy of the header
+    disk_io_status s = stackwrap_disk_io(op_write, hdr, 
+    									 PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE) ;
+    if (s != disk_io_success) {
+    	cprintf("pstate_sync_flush: unable to flush hdr\n") ;
+    	return -E_IO ;	
+    }
+
+    // 2nd, flush the node log
+	int r = log_flush() ;
+	if (r < 0)
+		return r ;
+    
+    return 0 ;
+}
+
+static int
 pstate_sync_loop(struct pstate_header *hdr,
 		 struct swapout_stats *stats)
 {
@@ -411,19 +493,25 @@ pstate_sync_loop(struct pstate_header *hdr,
 		    return r;
     }
 	
+	
 	// XXX
 	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;
 	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
 	memcpy(&hdr->ph_map, &objmap, sizeof(objmap)) ;
+	int r = pstate_sync_flush() ;
+	if (r < 0) {
+		cprintf("pstate_sync_loop: unable to flush\n") ;
+		return r ;
+	}
+		
+	r = pstate_sync_apply() ;
+	if (r < 0) {
+		cprintf("pstate_sync_loop: unable to apply\n") ;
+		return r ;
+	}
+
+	memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
   
-    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
-    if (s == disk_io_success) {
-		memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
-		return 0;
-    } else {
-		cprintf("pstate_sync_stackwrap: error writing header\n");
-		return -E_IO;
-    }
 }
 
 static void
@@ -445,9 +533,11 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		if (pstate_swapout_debug)
 		    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
 	
+		log_init(LOG_OFFSET + 1, LOG_SIZE - 1) ;
+	
 		freelist_init(&flist,
-			      N_HEADER_PAGES,
-			      disk_pages - N_HEADER_PAGES);
+			      N_HEADER_PAGES + LOG_SIZE,
+			      disk_pages - N_HEADER_PAGES - LOG_SIZE);
 		btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
 		btree_default_init(&objmap, OBJMAP_ORDER, 1, 2, &flist, &objmap_cache) ;
     }
@@ -455,6 +545,13 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
     static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= PGSIZE) ;
 	static_assert(BTREE_NODE_SIZE(OBJMAP_ORDER, 1) <= PGSIZE) ;
+	
+	static int goo = 0 ;
+	if (++goo == 4) {
+		freelist_pretty_print(&flist) ;
+		goo = 0 ;	
+	}
+	
 	
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
