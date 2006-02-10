@@ -52,8 +52,10 @@ static union {
     char buf[PSTATE_BUF_SIZE];
 } pstate_buf;
 
+// all units are in pages
 #define LOG_OFFSET	N_HEADER_PAGES
 #define LOG_SIZE	100
+#define LOG_MEMORY	50
 
 //////////////////////////////////////////////////
 // Object map
@@ -248,7 +250,7 @@ pstate_load2(void)
 		return -E_INVAL;
     }
 
-	log_init(LOG_OFFSET + 1, LOG_SIZE - 1) ;
+	log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 	
 	if(stable_hdr.ph_applying) {
 		cprintf("pstate_load2: applying log\n") ;
@@ -533,7 +535,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		if (pstate_swapout_debug)
 		    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
 	
-		log_init(LOG_OFFSET + 1, LOG_SIZE - 1) ;
+		log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 	
 		freelist_init(&flist,
 			      N_HEADER_PAGES + LOG_SIZE,
