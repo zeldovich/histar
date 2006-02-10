@@ -28,15 +28,90 @@ struct log
 // in memory log data
 static struct log log ;
 
-void
-log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
+int
+log_node(offset_t offset, struct btree_node **store)
 {
-	memset(&log, 0, sizeof(log)) ;
+	assert(log.on_disk == 0) ;
+	
+	struct btree_node *node ;
+	
+	LIST_FOREACH(node, &log.nodes, node_link) {
+		if (offset == node->block.offset) {
+			*store = node ;
+			return 0 ;
+		}
+	}
+	*store = 0 ;
+	return -E_NOT_FOUND ;	
+}
 
-	LIST_INIT(&log.nodes) ;	
-	log.offset = off ;
-	log.npages = npages ;
-	log.max_mem = max_mem ;
+static int
+log_write_list(struct node_list *nodes, uint64_t *count, offset_t off)
+{
+	disk_io_status s ;
+	uint64_t n = 0 ;
+	
+	if (LIST_EMPTY(nodes)) {
+		*count = 0 ;
+		return 0 ;
+	}
+		
+	struct btree_node *node ;
+		
+	LIST_FOREACH(node, nodes, node_link) {
+		if (off)
+			s = stackwrap_disk_io(op_write, node, PGSIZE, off++ * PGSIZE);
+		else
+			s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
+		if (s != disk_io_success) {
+			*count = n ;
+			return -E_IO ;
+		}
+		n++ ;
+	}
+	*count = n ;
+	return 0 ;
+}
+
+static uint64_t
+log_free_list(struct node_list *nodes)
+{
+	if (LIST_EMPTY(nodes)) {
+		return 0 ;	
+	}
+	
+	uint64_t n = 0 ;
+	struct btree_node *prev = LIST_FIRST(nodes) ;
+	struct btree_node *node = LIST_NEXT(prev, node_link) ;
+	
+	while(node) {
+		page_free(prev) ;
+		prev = node ;
+		node = LIST_NEXT(node, node_link) ;
+		n++ ;
+		
+	}
+	page_free(prev) ;	
+	LIST_INIT(nodes) ;
+	n++ ;
+	return n ;
+}
+
+static int
+log_read_log(offset_t off, uint64_t n_nodes, 
+			 struct node_list *nodes, uint64_t *count)
+{
+	int r ;
+	struct btree_node *node ;
+	disk_io_status s ;
+	
+	for (uint64_t i = 0 ; i < n_nodes ; i++, off++) {
+		if ((r = page_alloc((void **)&node)) < 0)
+			return r ;
+		s = stackwrap_disk_io(op_read, node, 
+							  PGSIZE, off * PGSIZE);
+		LIST_INSERT_HEAD(nodes, node, node_link) ;
+	}	
 }
 
 int
@@ -57,6 +132,14 @@ log_write(struct btree_node *node)
 	if (!found) {
 		// XXX
 		assert(log.in_mem < log.max_mem) ;
+
+		if (log.in_mem == log.max_mem) {
+			if ((r = log_flush()) < 0)
+				return r ;
+			uint64_t count = log_free_list(&log.nodes) ;
+			log.in_mem -= count ;
+			assert(log.in_mem == 0) ;
+		}
 		
 		if ((r = page_alloc((void **)&store)) < 0)
 			return r ;
@@ -70,70 +153,71 @@ log_write(struct btree_node *node)
 }
 
 int
-log_node(offset_t offset, struct btree_node **store)
-{
-	struct btree_node *node ;
-	
-	LIST_FOREACH(node, &log.nodes, node_link) {
-		if (offset == node->block.offset) {
-			*store = node ;
-			return 0 ;
-		}
-	}
-	*store = 0 ;
-	return -E_NOT_FOUND ;	
-}
-
-int
 log_flush(void)
 {
-	struct btree_node *node ;
-	struct btree_node *prev ;
-	
-	offset_t off = log.offset ;
-	uint64_t npages = log.npages ;
+	int r ;
+	disk_io_status s ;
 	
 	if (LIST_EMPTY(&log.nodes))
 		return 0 ;
 
-	assert(npages > log.in_mem + 1) ;
+	assert(log.npages > log.in_mem + log.on_disk + 1) ;
 
-	disk_io_status s ;
 
-	struct log_header lh = { log.in_mem } ;
+	uint64_t count ;
+	if ((r = log_write_list(&log.nodes, 
+							&count, 
+							log.offset + log.on_disk + 1)) < 0)
+		return r ;
+	assert(count == log.in_mem) ;
 
+	// write out a log header
+	struct log_header lh = { log.on_disk + log.in_mem } ;
 	memcpy(scratch, &lh, sizeof(lh)) ;
-	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, off++ * PGSIZE);
+
+	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.offset * PGSIZE);
 	if (s != disk_io_success)
 		return -E_IO ;
 
-	prev = LIST_FIRST(&log.nodes) ;
-	node = LIST_NEXT(prev, node_link) ;
+	log.on_disk += log.in_mem ;
 
-	while(node) {
-		memcpy(scratch, prev, BTREE_NODE_SIZE(prev->tree->order, prev->tree->s_key)) ;
-		s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, off++ * PGSIZE);
-		if (s != disk_io_success)
-			return -E_IO ;
+	return 0 ;
+}
 
-		//page_free(prev) ;
-		//log_head.n_nodes-- ;
+static int 
+log_apply_disk(void)
+{
+	int r ;
+	disk_io_status s ;
+	struct node_list nodes ;
 
-		prev = node ;
-		node = LIST_NEXT(node, node_link) ;
+	s = stackwrap_disk_io(op_read, scratch,
+						  SCRATCH_SIZE, log.offset * PGSIZE);
+	if (s != disk_io_success)
+		return -E_IO ;
+		
+	struct log_header *lh = (struct log_header *)scratch ;
+	if (lh->n_nodes == 0)
+		assert(0) ;
+	
+	uint64_t count ;
+	LIST_INIT(&nodes) ;
+	if ((r = log_read_log(log.offset + 1, lh->n_nodes, &nodes, &count)) < 0) {
+		log_free_list(&nodes) ;
+		return r ;			
 	}
 	
-	memcpy(scratch, prev, BTREE_NODE_SIZE(prev->tree->order, prev->tree->s_key)) ;
-	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, off++ * PGSIZE);
-	if (s != disk_io_success)
-		return -E_IO ;
-
-	//page_free(prev) ;
-	//log_head.n_nodes-- ;
-	//LIST_INIT(&nodes) ;
+	if ((r = log_write_list(&nodes, &count, 0)) < 0) {
+		log_free_list(&nodes) ;
+		return r ;
+	}
 	
+	if (count < lh->n_nodes) {
+		log_free_list(&nodes) ;
+		return -E_UNSPEC ;
+	}
 	
-	return 0 ;
+	log_free_list(&nodes) ;
 }
 
 int
@@ -141,58 +225,36 @@ log_apply(void)
 {
 	int r ;
 	struct btree_node *node ;
-	disk_io_status s ;
 
 	if (log.in_mem == 0) {
-		// try to apply log sitting on disk
-		offset_t off = log.offset ;
-		
-		s = stackwrap_disk_io(op_read, scratch,
-							  SCRATCH_SIZE, off++ * PGSIZE);
-		if (s != disk_io_success)
-			return -E_IO ;
-			
-		struct log_header *lh = (struct log_header *)scratch ;
-	
-		if (lh->n_nodes == 0)
-			return 0 ;
-		
-		// read all nodes from log into memory
-		for (uint64_t i = 0 ; i < lh->n_nodes ; i++, off++) {
-			if ((r = page_alloc((void **)&node)) < 0)
-				return r ;
-			s = stackwrap_disk_io(op_read, node, 
-								  PGSIZE, off * PGSIZE);
-			LIST_INSERT_HEAD(&log.nodes, node, node_link) ;
-			log.in_mem ++ ;
-		}
+		return log_apply_disk() ;
 	}
 	
 	struct btree_node *prev = LIST_FIRST(&log.nodes) ;
 	node = LIST_NEXT(prev, node_link) ;
 	
 	// write all nodes to their disk offset
-	while(node) {
-		s = stackwrap_disk_io(op_write, prev, PGSIZE, prev->block.offset * PGSIZE);
-		if (s != disk_io_success)
-			return -E_IO ;
+	uint64_t count ;
+	if ((r = log_write_list(&log.nodes, &count, 0)) < 0)
+		return r ;
 
-		page_free(prev) ;
-		log.in_mem-- ;
-		
-		prev = node ;
-		node = LIST_NEXT(node, node_link) ;
-	}
+	if (count != log_free_list(&log.nodes))
+		panic("log_apply: wrote diff num nodes than in memory?\n") ;
 	
-	s = stackwrap_disk_io(op_write, prev, PGSIZE, prev->block.offset * PGSIZE);
-	if (s != disk_io_success)
-		return -E_IO ;
-
-	page_free(prev) ;
-	log.in_mem-- ;
+	log.in_mem -= count ;
 	assert(log.in_mem == 0) ;
 
-	LIST_INIT(&log.nodes) ;
-	
+	log_init(log.offset, log.npages, log.max_mem) ;
 	return 0 ;	
+}
+
+void
+log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
+{
+	memset(&log, 0, sizeof(log)) ;
+
+	LIST_INIT(&log.nodes) ;	
+	log.offset = off ;
+	log.npages = npages ;
+	log.max_mem = max_mem ;
 }
