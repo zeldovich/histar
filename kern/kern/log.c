@@ -24,7 +24,6 @@ struct log
 	uint64_t on_disk ;
 } ;
 
-
 // in memory log data
 static struct log log ;
 
@@ -111,7 +110,8 @@ log_read_log(offset_t off, uint64_t n_nodes,
 		s = stackwrap_disk_io(op_read, node, 
 							  PGSIZE, off * PGSIZE);
 		LIST_INSERT_HEAD(nodes, node, node_link) ;
-	}	
+	}
+	return 0 ; 
 }
 
 int
@@ -129,10 +129,8 @@ log_write(struct btree_node *node)
 		}
 	}
 	
+	// might put the same node in the log multiple times
 	if (!found) {
-		// XXX
-		assert(log.in_mem < log.max_mem) ;
-
 		if (log.in_mem == log.max_mem) {
 			if ((r = log_flush()) < 0)
 				return r ;
@@ -161,8 +159,9 @@ log_flush(void)
 	if (LIST_EMPTY(&log.nodes))
 		return 0 ;
 
-	assert(log.npages > log.in_mem + log.on_disk + 1) ;
-
+	if (log.npages <= log.in_mem + log.on_disk + 1)
+		panic("log_flush: log overflow, %ld <= %ld + %ld + 1",
+			  log.npages, log.in_mem, log.on_disk) ;
 
 	uint64_t count ;
 	if ((r = log_write_list(&log.nodes, 
@@ -197,27 +196,37 @@ log_apply_disk(void)
 		return -E_IO ;
 		
 	struct log_header *lh = (struct log_header *)scratch ;
-	if (lh->n_nodes == 0)
-		assert(0) ;
+	uint64_t n_nodes = lh->n_nodes ;
+	if (n_nodes == 0)
+		return 0 ;
 	
-	uint64_t count ;
-	LIST_INIT(&nodes) ;
-	if ((r = log_read_log(log.offset + 1, lh->n_nodes, &nodes, &count)) < 0) {
+	uint64_t off = log.offset + 1 ;
+	
+	while (n_nodes) {
+		uint64_t n = MIN(n_nodes, log.max_mem) ;
+		n_nodes -= n ;
+		
+		uint64_t count ;
+		LIST_INIT(&nodes) ;
+		if ((r = log_read_log(off, n, &nodes, &count)) < 0) {
+			log_free_list(&nodes) ;
+			return r ;			
+		}
+		
+		
+		if ((r = log_write_list(&nodes, &count, 0)) < 0) {
+			log_free_list(&nodes) ;
+			return r ;
+		}
+		
+		if (count != n) {
+			log_free_list(&nodes) ;
+			return -E_UNSPEC ;
+		}
 		log_free_list(&nodes) ;
-		return r ;			
+		off += n ;
 	}
-	
-	if ((r = log_write_list(&nodes, &count, 0)) < 0) {
-		log_free_list(&nodes) ;
-		return r ;
-	}
-	
-	if (count < lh->n_nodes) {
-		log_free_list(&nodes) ;
-		return -E_UNSPEC ;
-	}
-	
-	log_free_list(&nodes) ;
+	return 0 ;
 }
 
 int
@@ -226,33 +235,37 @@ log_apply(void)
 	int r ;
 	struct btree_node *node ;
 
-	if (log.in_mem == 0) {
-		return log_apply_disk() ;
+	if (log.in_mem != 0) { // have an active in memory log
+		if (log.on_disk)
+			if ((r = log_apply_disk()) < 0)
+				return r ;
+
+		struct btree_node *prev = LIST_FIRST(&log.nodes) ;
+		node = LIST_NEXT(prev, node_link) ;
+			
+		uint64_t count ;
+		if ((r = log_write_list(&log.nodes, &count, 0)) < 0)
+			return r ;
+	
+		if (count != log_free_list(&log.nodes))
+			panic("log_apply: wrote diff num nodes than in memory?\n") ;
+		
+		log.in_mem -= count ;
+		assert(log.in_mem == 0) ;
+		
+		log_init(log.offset, log.npages, log.max_mem) ;
+		return 0 ;
 	}
-	
-	struct btree_node *prev = LIST_FIRST(&log.nodes) ;
-	node = LIST_NEXT(prev, node_link) ;
-	
-	// write all nodes to their disk offset
-	uint64_t count ;
-	if ((r = log_write_list(&log.nodes, &count, 0)) < 0)
-		return r ;
-
-	if (count != log_free_list(&log.nodes))
-		panic("log_apply: wrote diff num nodes than in memory?\n") ;
-	
-	log.in_mem -= count ;
-	assert(log.in_mem == 0) ;
-
-	log_init(log.offset, log.npages, log.max_mem) ;
-	return 0 ;	
+	else  // try to apply log sitting on disk
+		return log_apply_disk() ;
 }
 
 void
 log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
 {
 	memset(&log, 0, sizeof(log)) ;
-
+	
+	// logging will overwrite anything in the disk log
 	LIST_INIT(&log.nodes) ;	
 	log.offset = off ;
 	log.npages = npages ;
