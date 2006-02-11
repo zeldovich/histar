@@ -54,8 +54,8 @@ static union {
 
 // all units are in pages
 #define LOG_OFFSET	N_HEADER_PAGES
-#define LOG_SIZE	100
-#define LOG_MEMORY	50
+#define LOG_SIZE	200
+#define LOG_MEMORY	100
 
 //////////////////////////////////////////////////
 // Object map
@@ -428,7 +428,7 @@ pstate_sync_apply(void)
     	cprintf("pstate_sync_apply: unable to read header\n") ;
     	return -E_IO ;	
     }
-
+	
 	// 3rd, apply node log
 	int r = log_apply() ;
 	if (r < 0)
@@ -513,7 +513,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	}
 
 	memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
-  
+	return 0 ;
 }
 
 static void
