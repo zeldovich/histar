@@ -240,6 +240,7 @@ log_apply(void)
 			if ((r = log_apply_disk()) < 0)
 				return r ;
 
+		// XXX: this doesn't actually help w/ common case opt
 		struct btree_node *prev = LIST_FIRST(&log.nodes) ;
 		node = LIST_NEXT(prev, node_link) ;
 			
