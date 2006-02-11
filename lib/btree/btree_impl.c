@@ -17,10 +17,6 @@
 	((uint64_t *)((uint8_t *)ent + sizeof(struct btree_node) + \
     sizeof(offset_t) * order))
 
-// buffer for reading and writing nodes to disk
-//#define SCRATCH_SIZE PGSIZE
-//static uint8_t scratch[SCRATCH_SIZE] ;
-
 
 /////////////////////
 // btree simple
@@ -84,21 +80,6 @@ btree_simple_node(struct btree *tree,
 int 
 btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
 {
-	/*
-	struct btree *tree = node->tree ;
-	memcpy(scratch, node, BTREE_NODE_SIZE(tree->order, tree->s_key)) ;
-
-	disk_io_status s = 
-		stackwrap_disk_io(op_write, 
-						  scratch, 
-						  SCRATCH_SIZE, 
-						  node->block.offset * PGSIZE);
-
-	if (s != disk_io_success) {
-		cprintf("btree_man_write: error writing node\n");
-		return -1;
-	}*/
-	
 	log_write(node) ;
 	return 0;
 }
