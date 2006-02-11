@@ -30,7 +30,6 @@ static struct log log ;
 int
 log_node(offset_t offset, struct btree_node **store)
 {
-	assert(log.on_disk == 0) ;
 	
 	struct btree_node *node ;
 	
@@ -40,6 +39,8 @@ log_node(offset_t offset, struct btree_node **store)
 			return 0 ;
 		}
 	}
+	// XXX: need to search backwards through on disk log...
+	assert(log.on_disk == 0) ;
 	*store = 0 ;
 	return -E_NOT_FOUND ;	
 }
