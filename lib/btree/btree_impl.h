@@ -32,6 +32,15 @@ struct btree_default
 	struct btree tree ;
 } ;
 
+// btree is always stored in memory and isn't backed by disk
+struct btree_volatile
+{
+	offset_t off_count ;
+	struct node_list nodes ;
+	
+	struct btree tree ;
+} ; 
+
 int btree_simple_init(struct btree_simple *sim, uint8_t order, 
 					  struct cache *cache) ;
 int	btree_simple_node(struct btree *tree, offset_t offset, 
@@ -47,5 +56,9 @@ int btree_default_init(struct btree_default *def, uint8_t order,
 				   struct freelist *fl,struct cache *cache) ;
 int btree_default_setup(struct btree_default *def, uint8_t order,
 						struct freelist *fl, struct cache *cache) ;
+
+int btree_volatile_init(struct btree_volatile *vol, uint8_t order, 
+		  			   uint8_t key_size, uint8_t value_size) ;
+
 
 #endif /*BTREE_IMPL_H_*/

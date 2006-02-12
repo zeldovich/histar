@@ -28,6 +28,7 @@
 #include <inc/string.h>
 #include <inc/error.h>
 
+#if 0  // btree_traverse is broken
 static struct btree_traversal *
 btreeDestroyTraversal(struct btree_traversal *trav)
 {
@@ -41,7 +42,9 @@ btreeDestroyTraversal(struct btree_traversal *trav)
 
 	return NULL;
 }
+#endif
 
+#if 0  // broken
 void
 btree_traverse(struct btree *tree, void (*process)(offset_t filePos))
 {
@@ -62,6 +65,7 @@ btree_traverse(struct btree *tree, void (*process)(offset_t filePos))
 
 	btreeDestroyTraversal(&trav);
 }
+#endif
 
 int
 btree_init_traversal(struct btree *tree, struct btree_traversal *trav)

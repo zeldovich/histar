@@ -1,5 +1,6 @@
 #include <lib/btree/btree.h>
 #include <lib/btree/btree_header.h>
+#include <lib/btree/btree_node.h>
 #include <inc/string.h>
 
 void
@@ -19,6 +20,27 @@ btree_init(struct btree * t, char order, char key_size,
 	if (mm)
 		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;
 	
+}
+
+static void
+__btree_erase(struct btree *t, offset_t root)
+{
+	struct btree_node *n = bt_read_node(t, root) ;
+	
+	if (!BTREE_IS_LEAF(n)) {
+		for (int i = 0 ; i <= n->keyCount ; i++)
+			__btree_erase(t, n->children[i]) ;	
+	}
+	btree_erase_node(n) ;
+}
+
+void
+btree_erase(struct btree *t)
+{
+	__btree_erase(t, t->root) ;	
+	t->size = 0 ;
+	t->left_leaf = 0 ;
+	t->root = 0 ;
 }
 
 void

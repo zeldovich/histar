@@ -22,6 +22,8 @@ struct btree_node
 	LIST_ENTRY(btree_node) node_link ;
 };
 
+LIST_HEAD(node_list, btree_node);
+
 #define BTREE_NODE_SIZE(order, key_size) \
 		(sizeof(struct btree_node) + \
 		sizeof(offset_t) * order + \
@@ -66,6 +68,7 @@ void	 btree_init(struct btree * t, char order, char key_size,
 		 		    char value_size, struct btree_manager * mm) ;
 uint64_t btree_size(struct btree *tree);
 void	 btree_release_nodes(struct btree *tree) ;
+void 	 btree_erase(struct btree *t) ;
 
 // match key exactly
 int btree_search(struct btree *tree, const uint64_t *key, 

@@ -80,8 +80,7 @@ btree_simple_node(struct btree *tree,
 int 
 btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
 {
-	log_write(node) ;
-	return 0;
+	return log_write(node) ;
 }
 
 int 
@@ -180,6 +179,111 @@ btree_default_init(struct btree_default *def, uint8_t order,
 {
 	btree_init(&def->tree, order, key_size, value_size, NULL) ;
 	btree_default_setup(def, order, fl, cache) ;
+	   	
+	return 0 ;
+}
+
+/////////////////////
+// btree volatile
+/////////////////////
+
+static int 
+btree_volatile_node(struct btree *tree, 
+				 offset_t offset, 
+				 struct btree_node **store, 
+				 void *man)
+{
+	struct btree_volatile * vol = (struct btree_volatile *) man ;
+	
+	struct btree_node *node ;
+	LIST_FOREACH(node, &vol->nodes, node_link) {
+		if (node->block.offset == offset) {		
+			*store = node ;
+			return 0 ;
+		}
+	}
+	return -E_NOT_FOUND ;
+}
+
+static int
+btree_volatile_alloc(struct btree *tree, struct btree_node **store, void *arg)
+{
+	int r ;
+	
+	struct btree_volatile *vol = (struct btree_volatile *) arg ;
+	
+	void *p ;
+	if ((r = page_alloc(&p)) < 0)
+		return r ;
+	
+	struct btree_node *node = CENT_NODE(p) ;
+	memset(node, 0, sizeof(struct btree_node)) ;
+
+	// setup pointers in node
+	node->children = CENT_CHILDREN(p) ;
+	node->keys = CENT_KEYS(p, vol->tree.order) ;
+	node->block.offset = ++vol->off_count ;
+	node->tree = tree ;
+
+	*store = node ;
+	
+	LIST_INSERT_HEAD(&vol->nodes, node, node_link) ;
+	
+	return 0 ;	
+}
+
+static int 
+btree_volatile_rem(void *man, offset_t offset)
+{
+	struct btree_volatile * vol = (struct btree_volatile *) man ;
+	struct btree_node *node ;
+	LIST_FOREACH(node, &vol->nodes, node_link) {
+		if (node->block.offset == offset) {		
+			LIST_REMOVE(node, node_link) ;
+			page_free(node) ;
+			return 0 ;
+		}
+	}
+
+
+	return -E_NOT_FOUND ;
+}
+
+static int 
+btree_volatile_unpin(void *man)
+{
+	// do nothing
+	return 0 ;
+}
+
+static int 
+btree_volatile_write(struct btree_node *node, void *manager)
+{
+	// do nothing
+	return 0 ;
+}
+
+static int 
+btree_volatile_setup(struct btree_volatile *def)
+{
+	def->tree.manager.alloc = &btree_volatile_alloc ;
+	def->tree.manager.free = &btree_volatile_rem ;
+	def->tree.manager.node = &btree_volatile_node ;
+	def->tree.manager.arg = def ;
+	def->tree.manager.unpin = &btree_volatile_unpin ;
+	def->tree.manager.write = &btree_volatile_write ;
+	
+	def->off_count = 0 ;
+	LIST_INIT(&def->nodes) ;
+	return 0 ;				
+}
+
+int 
+btree_volatile_init(struct btree_volatile *vol, uint8_t order, 
+				   uint8_t key_size, uint8_t value_size)
+{
+	btree_init(&vol->tree, order, key_size, value_size, NULL) ;
+	btree_volatile_setup(vol) ;
 	   	
 	return 0 ;
 }

@@ -193,7 +193,8 @@ __splitLeaf(struct btree *tree,
 		btree_keycmp(key, btree_key(rootNode->keys, i, tree->s_key), tree->s_key) == 0 )  //cmp
 	{
 		*split = 0;
-		return 0;
+		btree_valcpy(btree_value(rootNode->children, i, tree->s_value), filePos, tree->s_value) ;
+		return 1;
 	}
 
 	*split = 1;
@@ -472,6 +473,7 @@ __addKeyToLeaf(struct btree *tree,
 	if (i < rootNode->keyCount && 
 		btree_keycmp(key, btree_key(rootNode->keys, i, tree->s_key), tree->s_key) == 0 )  // cmp
 	{
+		btree_valcpy(btree_value(rootNode->children, i, tree->s_value), filePos, tree->s_value) ;
 		return 0;
 	}
 	
