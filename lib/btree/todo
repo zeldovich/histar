@@ -9,3 +9,6 @@
 * for value sizes > 1, space from the key array should be given to the children
   array to support a larger order in leafs...right now space is wasted...need to
   change btree_init(), btree_node_order(), and setup of pointers in btree_impl.c
+  
+* btree_traverse.c is pretty broken.  Also btree_free might be causing weird
+  behavoir w/ traversal code.

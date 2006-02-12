@@ -22,31 +22,15 @@ struct log
 	struct node_list nodes ;
 
 	uint64_t on_disk ;
+	struct btree_volatile disk_map ;
 } ;
 
 // in memory log data
 static struct log log ;
 
-int
-log_node(offset_t offset, struct btree_node **store)
-{
-	
-	struct btree_node *node ;
-	
-	LIST_FOREACH(node, &log.nodes, node_link) {
-		if (offset == node->block.offset) {
-			*store = node ;
-			return 0 ;
-		}
-	}
-	// XXX: need to search backwards through on disk log...
-	assert(log.on_disk == 0) ;
-	*store = 0 ;
-	return -E_NOT_FOUND ;	
-}
-
 static int
-log_write_list(struct node_list *nodes, uint64_t *count, offset_t off)
+log_write_list(struct node_list *nodes, uint64_t *count, 
+			   offset_t off, struct btree *map)
 {
 	disk_io_status s ;
 	uint64_t n = 0 ;
@@ -59,10 +43,17 @@ log_write_list(struct node_list *nodes, uint64_t *count, offset_t off)
 	struct btree_node *node ;
 		
 	LIST_FOREACH(node, nodes, node_link) {
-		if (off)
-			s = stackwrap_disk_io(op_write, node, PGSIZE, off++ * PGSIZE);
+		if (off) {
+			s = stackwrap_disk_io(op_write, node, PGSIZE, off * PGSIZE);
+			if (map)
+				btree_insert(map, &node->block.offset, &off) ;
+			off++ ;
+		}
 		else
 			s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
+		
+		
+		
 		if (s != disk_io_success) {
 			*count = n ;
 			return -E_IO ;
@@ -113,6 +104,43 @@ log_read_log(offset_t off, uint64_t n_nodes,
 		LIST_INSERT_HEAD(nodes, node, node_link) ;
 	}
 	return 0 ; 
+}
+
+int
+log_node(offset_t offset, struct btree_node **store)
+{
+	
+	struct btree_node *node ;
+	int r ;
+	
+	LIST_FOREACH(node, &log.nodes, node_link) {
+		if (offset == node->block.offset) {
+			*store = node ;
+			return 0 ;
+		}
+	}
+
+	// XXX: test
+	assert(log.on_disk == 0) ;
+	offset_t log_off ;
+	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
+		return -E_NOT_FOUND ;
+	
+	if ((r = page_alloc((void **)store)) < 0)
+			return r ;
+
+	disk_io_status s = stackwrap_disk_io(op_read, *store, 
+							  			PGSIZE, log_off * PGSIZE);
+	if (s != disk_io_success) {
+		page_free(*store) ;	
+		*store = 0 ;
+		return -E_IO ;
+	}
+
+	LIST_INSERT_HEAD(&log.nodes, *store, node_link) ;
+	log.in_mem++ ;
+
+	return 0 ;
 }
 
 int
@@ -167,7 +195,8 @@ log_flush(void)
 	uint64_t count ;
 	if ((r = log_write_list(&log.nodes, 
 							&count, 
-							log.offset + log.on_disk + 1)) < 0)
+							log.offset + log.on_disk + 1,
+							&log.disk_map.tree)) < 0)
 		return r ;
 	assert(count == log.in_mem) ;
 
@@ -215,7 +244,7 @@ log_apply_disk(void)
 		}
 		
 		
-		if ((r = log_write_list(&nodes, &count, 0)) < 0) {
+		if ((r = log_write_list(&nodes, &count, 0, 0)) < 0) {
 			log_free_list(&nodes) ;
 			return r ;
 		}
@@ -246,7 +275,7 @@ log_apply(void)
 		node = LIST_NEXT(prev, node_link) ;
 			
 		uint64_t count ;
-		if ((r = log_write_list(&log.nodes, &count, 0)) < 0)
+		if ((r = log_write_list(&log.nodes, &count, 0, 0)) < 0)
 			return r ;
 	
 		if (count != log_free_list(&log.nodes))
@@ -255,11 +284,25 @@ log_apply(void)
 		log.in_mem -= count ;
 		assert(log.in_mem == 0) ;
 		
+		log_free() ;
 		log_init(log.offset, log.npages, log.max_mem) ;
 		return 0 ;
 	}
 	else  // try to apply log sitting on disk
 		return log_apply_disk() ;
+}
+
+void
+log_print_stats(void)
+{
+	cprintf("log_print_stats: in_mem %ld on_disk %ld\n", 
+			log.in_mem, log.on_disk) ;	
+}
+
+void
+log_free(void)
+{
+	btree_erase(&log.disk_map.tree) ;	
 }
 
 void
@@ -269,6 +312,7 @@ log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
 	
 	// logging will overwrite anything in the disk log
 	LIST_INIT(&log.nodes) ;	
+	btree_volatile_init(&log.disk_map, BTREE_MAX_ORDER1, 1, 1) ;
 	log.offset = off ;
 	log.npages = npages ;
 	log.max_mem = max_mem ;
