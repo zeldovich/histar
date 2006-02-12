@@ -5,10 +5,13 @@ OBJDIRS += user/lwip/core/ipv4
 OBJDIRS += user/lwip/arch
 OBJDIRS += user/lwip/netif
 
-USER_CFLAGS += \
+LWIP_INCLUDES := \
 	-I$(TOP)/lib/lwip/include \
 	-I$(TOP)/lib/lwip/include/ipv4 \
 	-I$(TOP)/lib/lwip/jos64
+
+USER_CFLAGS += $(LWIP_INCLUDES)
+USER_CXXFLAGS += $(LWIP_INCLUDES)
 
 LIB_SRCFILES += \
 	lib/lwip/api/api_lib.c \

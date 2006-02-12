@@ -45,9 +45,10 @@ PERL	:= perl
 # Compiler flags.
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
-WARNS	:= -Wformat=2 -Wuninitialized -Wextra -Wshadow \
-	   -Wcast-align -Wwrite-strings -Winline -Wno-unused-parameters \
-	   -Wstrict-prototypes -Wmissing-prototypes -Wmissing-noreturn \
+WARNS	 := -Wformat=2 -Wuninitialized -Wextra -Wshadow -Wmissing-noreturn \
+	    -Wcast-align -Wwrite-strings -Winline -Wno-unused-parameters
+CWARNS	 := $(WARNS) -Wstrict-prototypes -Wmissing-prototypes 
+CXXWARNS := $(WARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast
 
@@ -55,8 +56,7 @@ DEFS	:=
 #CFLAGS	:= -g -Wall -Werror -fms-extensions
 CFLAGS	:= -g -Wall -Werror -fms-extensions -O2 -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
-INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) \
-	-I$(TOP)/inc/net -I$(TOP)/inc/net/ipv4
+INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR)
 
 # Linker flags for user programs
 LDEPS	:= $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a
@@ -83,7 +83,7 @@ all:
 COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin 
 COMCXXFLAGS := -fno-exceptions -fno-rtti
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(WARNS)
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(CWARNS)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_CFLAGS := $(COMFLAGS) $(DEFS) $(CFLAGS) $(INCLUDES) -DJOS_USER
 USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)

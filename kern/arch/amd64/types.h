@@ -12,7 +12,6 @@
 #endif
 
 // Represents true-or-false values
-typedef int bool;
 typedef int bool_t;
 
 // Explicitly-sized versions of integer types

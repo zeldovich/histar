@@ -52,7 +52,8 @@ KERN_BINFILES := \
 	user/shell \
 	user/ls \
 	user/asprint \
-	user/gl
+	user/gl \
+	user/cpphello
 
 	#user/chatter1 \
 	#user/mlt \
