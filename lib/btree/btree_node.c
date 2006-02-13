@@ -3,6 +3,7 @@
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
+#include <inc/string.h>
 
 struct btree_node *
 btree_new_node(struct btree *tree)
@@ -10,7 +11,12 @@ btree_new_node(struct btree *tree)
 	struct btree_node *node ; 
 	if (tree->manager.alloc(tree, &node, tree->manager.arg) < 0)
 		panic("btree_new_node: unable to alloc node") ;
-		
+
+	
+	memset(node->children, 0, sizeof(offset_t) * tree->order)	 ;
+	memset((void *)node->keys, 0, 
+		   sizeof(uint64_t) * (tree->order - 1) * (tree->s_key)) ;
+	
 	return node;
 }
 
