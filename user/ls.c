@@ -30,7 +30,7 @@ main(int ac, char **av)
 	    if (r == -E_NOT_FOUND)
 		continue;
 	    if (r != -E_RANGE)
-		printf("fs_get_dent: %s", e2s(r));
+		printf("fs_get_dent: %s\n", e2s(r));
 	    break;
 	}
 
