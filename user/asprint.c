@@ -6,7 +6,6 @@
 static void
 as_print_ents(struct u_address_space *uas)
 {
-    cprintf("\n");
     cprintf("              va off npg rwx segment\n");
     for (int i = 0; i < uas->nent; i++) {
 	if (uas->ents[i].flags == 0)
