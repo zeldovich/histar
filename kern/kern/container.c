@@ -22,7 +22,7 @@ container_slot_get(const struct Container *c, uint64_t slotn,
 		   struct container_slot **csp, page_rw_mode rw)
 {
     uint64_t ko_page = 0;
-    while (slotn > NUM_CT_SLOT_PER_PAGE) {
+    while (slotn >= NUM_CT_SLOT_PER_PAGE) {
 	ko_page++;
 	slotn -= NUM_CT_SLOT_PER_PAGE;
     }
