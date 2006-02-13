@@ -65,39 +65,6 @@ log_write_list(struct node_list *nodes, uint64_t *count,
 	return 0 ;
 }
 
-#if 0
-static int
-log_write_list_map(struct node_list *nodes, uint64_t *count,
-				   struct btree *map)
-{
-	disk_io_status s ;
-	uint64_t n = 0 ;
-	
-	if (LIST_EMPTY(nodes)) {
-		*count = 0 ;
-		return 0 ;
-	}
-		
-	struct btree_node *node ;
-		
-	LIST_FOREACH(node, nodes, node_link) {
-			uint64_t key_store ;
-			uint64_t val_store ;
-			if (btree_search(map, &node->block.offset, 
-							 &key_store, &val_store) == 0) {
-				s = stackwrap_disk_io(op_write, node, PGSIZE, val_store * PGSIZE);
-				if (s != disk_io_success) {
-					*count = n ;
-					return -E_IO ;
-				}
-				n++ ;
-			}
-	}
-	*count = n ;
-	return 0 ;
-}
-#endif
-
 static uint64_t
 log_free_list(struct node_list *nodes)
 {
@@ -163,6 +130,24 @@ log_read_map(struct btree *map, struct node_list *nodes)
 	return 0 ; 
 }
 
+static int
+log_try_node(offset_t offset, struct btree_node *store)
+{
+	offset_t log_off ;
+	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
+		return -E_NOT_FOUND ;
+	
+	disk_io_status s = stackwrap_disk_io(op_read, store, 
+							  			PGSIZE, log_off * PGSIZE);
+	if (s != disk_io_success)
+		return -E_IO ;
+
+	if (store->block.offset != offset)
+		return 1 ;
+	
+	return 0 ;	
+}
+
 int
 log_node(offset_t offset, struct btree_node **store)
 {
@@ -180,7 +165,23 @@ log_node(offset_t offset, struct btree_node **store)
 	// XXX: test
 	if (log.on_disk == 0)
 		return -E_NOT_FOUND ;
+	
+	if ((r = page_alloc((void **)store)) < 0)
+			return r ;
+	int tries = 0 ;
+	while ((r = log_try_node(offset, *store)) == 1 && ++tries < 10) ;
 		
+	if (r < 0) {
+		page_free(*store) ;
+		return r ;
+	}		
+	if (r == 1) {
+		page_free(*store) ;
+		//return -E_UNSPEC ;
+		panic("log_node: could not read %ld in %d tries\n", offset, tries) ;
+	}
+
+	/*
 	offset_t log_off ;
 	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
 		return -E_NOT_FOUND ;
@@ -198,6 +199,7 @@ log_node(offset_t offset, struct btree_node **store)
 
 	LIST_INSERT_HEAD(&log.nodes, *store, node_link) ;
 	log.in_mem++ ;
+	*/
 
 	return 0 ;
 }
