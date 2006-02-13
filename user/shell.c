@@ -288,7 +288,10 @@ main(int ac, char **av)
     printf("JOS: shell\n");
 
     for (;;) {
-	char *cmd = readline("jos> ");
+	char prompt[64];
+	snprintf(prompt, sizeof(prompt), "[jos:%ld]> ",
+		 start_env->fs_cwd.obj.object);
+	char *cmd = readline(prompt);
 	if (cmd == 0) {
 	    printf("EOF\n");
 	    break;
