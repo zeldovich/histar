@@ -34,7 +34,7 @@ telnet_server(void)
         }
 
 	struct fs_inode sh;
-	const char *prog = "/shell";
+	const char *prog = "/bin/shell";
 	r = fs_namei(prog, &sh);
 	if (r < 0) {
 	    printf("cannot find shell: %s\n", e2s(r));
