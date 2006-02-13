@@ -122,7 +122,14 @@ fs_namei(const char *pn, struct fs_inode *o)
 int
 fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
 {
-    int64_t r = sys_container_alloc(dir.obj.object, 0, fn);
+    struct ulabel *l = label_get_current();
+    if (l == 0)
+	return -E_NO_MEM;
+
+    label_change_star(l, l->ul_default);
+
+    int64_t r = sys_container_alloc(dir.obj.object, l, fn);
+    label_free(l);
     if (r < 0)
 	return r;
 
