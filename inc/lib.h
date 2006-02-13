@@ -90,6 +90,7 @@ int64_t spawn(uint64_t container, struct fs_inode elf, int ac, const char **av);
 int64_t spawn_fd(uint64_t container, struct fs_inode elf,
 		 int fd0, int fd1, int fd2, int ac, const char **av,
 		 struct ulabel *l);
+int	spawn_wait(uint64_t childct);
 
 /* container.c */
 int64_t container_find(uint64_t container, kobject_type_t type,

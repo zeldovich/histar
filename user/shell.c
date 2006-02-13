@@ -159,6 +159,22 @@ builtin_spawn(int ac, char **av)
 }
 
 static void
+spawn_and_wait(int ac, char **av)
+{
+    int64_t ct = do_spawn(ac, av);
+    if (ct < 0)
+	return;
+
+    int r = spawn_wait(ct);
+    if (r < 0) {
+	printf("spawn_wait: %s\n", e2s(r));
+	return;
+    }
+
+    sys_obj_unref(COBJ(start_env->container, ct));
+}
+
+static void
 builtin_unref(int ac, char **av)
 {
     if (ac != 2) {
@@ -210,7 +226,7 @@ static struct {
 } commands[] = {
     { "help",	"Display the list of commands",	&builtin_help },
     { "lc",	"List a container",		&builtin_list_container },
-    { "spawn",	"Create a thread",		&builtin_spawn },
+    { "spawn",	"Run in background",		&builtin_spawn },
     { "unref",	"Drop container object",	&builtin_unref },
     { "exit",	"Exit",				&builtin_exit },
     { "cd",	"Change directory",		&builtin_cd },
@@ -263,7 +279,7 @@ run_cmd(int ac, char **av)
 	}
     }
 
-    do_spawn(ac, av);
+    spawn_and_wait(ac, av);
 }
 
 int

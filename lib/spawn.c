@@ -146,3 +146,18 @@ spawn(uint64_t container, struct fs_inode elf, int ac, const char **av)
 {
     return spawn_fd(container, elf, 0, 1, 2, ac, av, 0);
 }
+
+int
+spawn_wait(uint64_t childct)
+{
+    for (;;) {
+	int64_t obj = container_find(childct, kobj_segment, "dead flag");
+	if (obj < 0) {
+	    if (obj != -E_NOT_FOUND)
+		return obj;
+	    sys_thread_sleep(100);
+	} else {
+	    return 0;
+	}
+    }
+}
