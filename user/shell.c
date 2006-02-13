@@ -112,16 +112,23 @@ builtin_list_container(int ac, char **av)
 static int64_t
 do_spawn(int ac, char **av)
 {
+    const char *pn = av[0];
     struct fs_inode ino;
-    int r = fs_namei(av[0], &ino);
+    int r = fs_namei(pn, &ino);
+    if (r < 0 && pn[0] != '/') {
+	char buf[512];
+	snprintf(buf, sizeof(buf), "/bin/%s", pn);
+	r = fs_namei(buf, &ino);
+    }
+
     if (r < 0) {
-	printf("cannot find %s: %s\n", av[0], e2s(r));
+	printf("cannot find %s: %s\n", pn, e2s(r));
 	return r;
     }
 
     int64_t c_spawn = spawn(start_env->container, ino, ac, (const char **) av);
     if (c_spawn < 0)
-	printf("cannot spawn %s: %s\n", av[0], e2s(c_spawn));
+	printf("cannot spawn %s: %s\n", pn, e2s(c_spawn));
 
     return c_spawn;
 }

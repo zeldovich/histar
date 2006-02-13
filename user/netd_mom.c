@@ -34,7 +34,7 @@ main(int ac, char **av)
     netdev_init(rc, net_grant, net_taint);
 
     struct fs_inode netd_ino;
-    int r = fs_namei("/netd", &netd_ino);
+    int r = fs_namei("/bin/netd", &netd_ino);
     if (r < 0)
 	panic("fs_lookup: %s", e2s(r));
 

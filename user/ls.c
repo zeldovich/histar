@@ -8,7 +8,7 @@ main(int ac, char **av)
 {
     char *dname;
     if (ac == 1) {
-	dname = "/";
+	dname = "";
     } else if (ac == 2) {
 	dname = av[1];
     } else {
