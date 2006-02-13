@@ -3,6 +3,7 @@
 #include <machine/pmap.h>
 #include <machine/mmu.h>
 #include <machine/stackwrap.h>
+#include <lib/btree/btree_traverse.h>
 
 #define SCRATCH_SIZE PGSIZE
 static uint8_t scratch[SCRATCH_SIZE] ;
@@ -64,6 +65,39 @@ log_write_list(struct node_list *nodes, uint64_t *count,
 	return 0 ;
 }
 
+#if 0
+static int
+log_write_list_map(struct node_list *nodes, uint64_t *count,
+				   struct btree *map)
+{
+	disk_io_status s ;
+	uint64_t n = 0 ;
+	
+	if (LIST_EMPTY(nodes)) {
+		*count = 0 ;
+		return 0 ;
+	}
+		
+	struct btree_node *node ;
+		
+	LIST_FOREACH(node, nodes, node_link) {
+			uint64_t key_store ;
+			uint64_t val_store ;
+			if (btree_search(map, &node->block.offset, 
+							 &key_store, &val_store) == 0) {
+				s = stackwrap_disk_io(op_write, node, PGSIZE, val_store * PGSIZE);
+				if (s != disk_io_success) {
+					*count = n ;
+					return -E_IO ;
+				}
+				n++ ;
+			}
+	}
+	*count = n ;
+	return 0 ;
+}
+#endif
+
 static uint64_t
 log_free_list(struct node_list *nodes)
 {
@@ -106,6 +140,29 @@ log_read_log(offset_t off, uint64_t n_nodes,
 	return 0 ; 
 }
 
+static int
+log_read_map(struct btree *map, struct node_list *nodes)
+{
+	int r ;
+	struct btree_node *node ;
+	disk_io_status s ;
+	
+	struct btree_traversal trav ;
+	btree_init_traversal(map, &trav) ;
+	
+	while (btree_next_entry(&trav)) {
+		offset_t off = *trav.val ;
+			
+		if ((r = page_alloc((void **)&node)) < 0)
+			return r ;
+		s = stackwrap_disk_io(op_read, node, 
+							  PGSIZE, off * PGSIZE);
+		LIST_INSERT_HEAD(nodes, node, node_link) ;
+	}
+	
+	return 0 ; 
+}
+
 int
 log_node(offset_t offset, struct btree_node **store)
 {
@@ -121,7 +178,9 @@ log_node(offset_t offset, struct btree_node **store)
 	}
 
 	// XXX: test
-	assert(log.on_disk == 0) ;
+	if (log.on_disk == 0)
+		return -E_NOT_FOUND ;
+		
 	offset_t log_off ;
 	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
 		return -E_NOT_FOUND ;
@@ -140,6 +199,42 @@ log_node(offset_t offset, struct btree_node **store)
 	LIST_INSERT_HEAD(&log.nodes, *store, node_link) ;
 	log.in_mem++ ;
 
+	return 0 ;
+}
+
+int
+log_compact(void)
+{
+	offset_t off = log.offset + 1 ;
+	uint64_t n_nodes = 0 ;
+	struct node_list nodes ;
+	int r ;
+	uint64_t count ;
+	
+	LIST_INIT(&nodes) ;
+	log_read_map(&log.disk_map.tree, &nodes) ;
+	if ((r = log_write_list(&nodes, 
+							&count, 
+							off,
+							&log.disk_map.tree)) < 0) {
+		log_free_list(&nodes) ;							
+		return r ;
+	}
+		
+	n_nodes = count ;
+	
+	log_free_list(&nodes) ;
+	
+	// write out a log header
+	struct log_header lh = { n_nodes } ;
+	memcpy(scratch, &lh, sizeof(lh)) ;
+	
+	disk_io_status s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.offset * PGSIZE);
+	if (s != disk_io_success)
+		return -E_IO ;
+	
+	log.on_disk = n_nodes ;
+	
 	return 0 ;
 }
 
@@ -184,15 +279,20 @@ log_flush(void)
 {
 	int r ;
 	disk_io_status s ;
+	uint64_t count ;
 	
 	if (LIST_EMPTY(&log.nodes))
 		return 0 ;
 
-	if (log.npages <= log.in_mem + log.on_disk + 1)
-		panic("log_flush: log overflow, %ld <= %ld + %ld + 1",
-			  log.npages, log.in_mem, log.on_disk) ;
-
-	uint64_t count ;
+	if (log.npages <= log.in_mem + log.on_disk + 1) {
+		
+		uint64_t d = log.on_disk ;
+		if ((r = log_compact()) < 0) {
+			cprintf("log_flush: unable to compact: %s\n", e2s(r)) ;
+			return r ;	
+		}
+		cprintf("log_flush: compacted from %ld to %ld\n",d , log.on_disk) ;
+	}
 	if ((r = log_write_list(&log.nodes, 
 							&count, 
 							log.offset + log.on_disk + 1,
