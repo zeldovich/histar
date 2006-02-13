@@ -112,14 +112,14 @@ builtin_list_container(int ac, char **av)
 static int64_t
 do_spawn(int ac, char **av)
 {
-    struct cobj_ref o;
-    int r = fs_lookup(start_env->fs_root, av[0], &o);
+    struct fs_inode ino;
+    int r = fs_namei(av[0], &ino);
     if (r < 0) {
 	printf("cannot find %s: %s\n", av[0], e2s(r));
 	return r;
     }
 
-    int64_t c_spawn = spawn(start_env->container, o, ac, (const char **) av);
+    int64_t c_spawn = spawn(start_env->container, ino, ac, (const char **) av);
     if (c_spawn < 0)
 	printf("cannot spawn %s: %s\n", av[0], e2s(c_spawn));
 

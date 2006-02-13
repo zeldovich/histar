@@ -33,8 +33,8 @@ main(int ac, char **av)
 
     netdev_init(rc, net_grant, net_taint);
 
-    struct cobj_ref fsobj;
-    int r = fs_lookup(start_env->fs_root, "netd", &fsobj);
+    struct fs_inode netd_ino;
+    int r = fs_namei("/netd", &netd_ino);
     if (r < 0)
 	panic("fs_lookup: %s", e2s(r));
 
@@ -53,7 +53,7 @@ main(int ac, char **av)
     assert(0 == label_set_level(l, net_taint, LB_LEVEL_STAR, 1));
 
     printf("netd_mom: spawning netd with label %s\n", label_to_string(l));
-    r = spawn_fd(rc, fsobj, 0, 1, 2, 0, 0, l);
+    r = spawn_fd(rc, netd_ino, 0, 1, 2, 0, 0, l);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 }

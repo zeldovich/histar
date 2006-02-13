@@ -6,14 +6,22 @@
  */
 
 #include <inc/container.h>
+#include <inc/kobj.h>
 
-struct fs_dent {
-    char de_name[64];
-    struct cobj_ref de_cobj;
+struct fs_inode {
+    struct cobj_ref obj;
 };
 
-int  fs_get_root(uint64_t rc, struct cobj_ref *o);
-int  fs_get_dent(struct cobj_ref d, int n, struct fs_dent *e);
-int  fs_lookup(struct cobj_ref d, const char *pn, struct cobj_ref *o);
+struct fs_dent {
+    char de_name[KOBJ_NAME_LEN];
+    struct fs_inode de_inode;
+};
+
+int  fs_get_root(uint64_t container, struct fs_inode *rdirp);
+int  fs_get_dent(struct fs_inode dir, uint64_t n, struct fs_dent *e);
+int  fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
+int  fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o);
+int  fs_lookup_path(struct fs_inode root, const char *pn, struct fs_inode *o);
+int  fs_namei(const char *pn, struct fs_inode *o);
 
 #endif

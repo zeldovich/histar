@@ -33,9 +33,9 @@ telnet_server(void)
             continue;
         }
 
-	struct cobj_ref sh;
-	const char *prog = "shell";
-	r = fs_lookup(start_env->fs_root, prog, &sh);
+	struct fs_inode sh;
+	const char *prog = "/shell";
+	r = fs_namei(prog, &sh);
 	if (r < 0) {
 	    printf("cannot find shell: %s\n", e2s(r));
 	    close(ss);

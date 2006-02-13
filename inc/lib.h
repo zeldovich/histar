@@ -5,6 +5,7 @@
 #include <inc/thread.h>
 #include <inc/label.h>
 #include <inc/kobj.h>
+#include <inc/fs.h>
 
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
@@ -40,7 +41,8 @@ typedef struct {
     uint64_t container;
     uint64_t parent_container;
     uint64_t root_container;
-    struct cobj_ref fs_root;
+    struct fs_inode fs_root;
+    struct fs_inode fs_cwd;
     char args[0];
 } start_env_t;
 
@@ -83,8 +85,8 @@ void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);
 
 /* spawn.c */
-int64_t spawn(uint64_t container, struct cobj_ref elf, int ac, const char **av);
-int64_t spawn_fd(uint64_t container, struct cobj_ref elf,
+int64_t spawn(uint64_t container, struct fs_inode elf, int ac, const char **av);
+int64_t spawn_fd(uint64_t container, struct fs_inode elf,
 		 int fd0, int fd1, int fd2, int ac, const char **av,
 		 struct ulabel *l);
 

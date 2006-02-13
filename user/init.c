@@ -16,13 +16,13 @@ spawn_fs(int fd, const char *pn, int drop_root_handle)
     if (drop_root_handle)
 	label_max_default(l);
 
-    struct cobj_ref fsobj;
-    int r = fs_lookup(start_env->fs_root, pn, &fsobj);
+    struct fs_inode ino;
+    int r = fs_namei(pn, &ino);
     if (r < 0)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
     const char *argv[] = { pn };
-    r = spawn_fd(start_env->root_container, fsobj, fd, fd, fd, 1, &argv[0], l);
+    r = spawn_fd(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l);
     if (r < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(r));
 
@@ -48,10 +48,15 @@ main(int ac, char **av)
     start_env->container = c_self;
     start_env->root_container = c_root;
 
-    int r = fs_get_root(c_root, &start_env->fs_root);
+    int64_t fs_root_id = container_find(c_root, kobj_container, "fs root");
+    if (fs_root_id < 0)
+	panic("cannot find fs root: %s", e2s(fs_root_id));
+
+    int r = fs_get_root(fs_root_id, &start_env->fs_root);
     if (r < 0)
 	panic("fs_get_root: %s", e2s(r));
 
+    start_env->fs_cwd = start_env->fs_root;
     printf("JOS: init (root container %ld)\n", c_root);
 
     // Now that we're set up a reasonable environment,
@@ -69,14 +74,14 @@ main(int ac, char **av)
 
     // netd_mom should be the only process that needs our root handle at *,
     // in order to create an appropriately-labeled netdev object.
-    spawn_fs(cons, "netd_mom", 0);
+    //spawn_fs(cons, "/netd_mom", 0);
 
-    //spawn_fs(cons, "shell", 0);
-    spawn_fs(cons, "shell", 1);
+    //spawn_fs(cons, "/shell", 0);
+    spawn_fs(cons, "/shell", 1);
 
-    //spawn_fs(cons, "telnetd", 1);
-    //spawn_fs(cons, "freelist_test", 1);
-    spawn_fs(cons, "httpd", 1);
+    //spawn_fs(cons, "/telnetd", 1);
+    //spawn_fs(cons, "/freelist_test", 1);
+    //spawn_fs(cons, "/httpd", 1);
 
     for (;;)
 	sys_thread_sleep(1000);

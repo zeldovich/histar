@@ -241,15 +241,6 @@ thread_create_embed(struct Container *c,
 static void
 fs_init(struct Container *c, struct Label *l)
 {
-    // Directory block is segment #0 in fs container
-    struct Segment *fs_names;
-    assert(0 == segment_create_embed(c, l, 4*PGSIZE, 0, 0, &fs_names));
-    strncpy(&fs_names->sg_ko.ko_name[0], "directory", KOBJ_NAME_LEN - 1);
-
-    uint64_t *fs_dir;
-    assert(0 == kobject_get_page(&fs_names->sg_ko, 0,
-				 (void**)&fs_dir, page_rw));
-
     for (int i = 0; embed_bins[i].name; i++) {
 	const char *name = embed_bins[i].name;
 	const uint8_t *buf = embed_bins[i].buf;
@@ -260,9 +251,6 @@ fs_init(struct Container *c, struct Label *l)
 	if (r < 0)
 	    panic("fs_init: cannot store embedded segment: %s", e2s(r));
 
-	uint64_t nent = ++fs_dir[0];
-	fs_dir[nent*16] = s->sg_ko.ko_id;
-	memcpy(&fs_dir[nent*16+1], name, strlen(name) + 1);
 	strncpy(&s->sg_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
 }

@@ -6,13 +6,20 @@
 #include <inc/error.h>
 
 int64_t
-spawn_fd(uint64_t container, struct cobj_ref elf,
+spawn_fd(uint64_t container, struct fs_inode elf_ino,
 	 int fd0, int fd1, int fd2, int ac, const char **av,
 	 struct ulabel *l)
 {
     int r;
     start_env_t *spawn_env = 0;
     int64_t c_spawn = -1;
+
+    struct cobj_ref elf;
+    r = fs_get_obj(elf_ino, &elf);
+    if (r < 0) {
+	cprintf("spawn_fs: cannot convert inode to segment: %s\n", e2s(r));
+	return r;
+    }
 
     struct ulabel *label = l ? label_dup(l) : label_get_current();
     if (label == 0) {
@@ -135,7 +142,7 @@ out:
 }
 
 int64_t
-spawn(uint64_t container, struct cobj_ref elf, int ac, const char **av)
+spawn(uint64_t container, struct fs_inode elf, int ac, const char **av)
 {
     return spawn_fd(container, elf, 0, 1, 2, ac, av, 0);
 }
