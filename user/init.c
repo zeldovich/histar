@@ -74,14 +74,14 @@ main(int ac, char **av)
 
     // netd_mom should be the only process that needs our root handle at *,
     // in order to create an appropriately-labeled netdev object.
-    //spawn_fs(cons, "/netd_mom", 0);
+    spawn_fs(cons, "/netd_mom", 0);
 
     //spawn_fs(cons, "/shell", 0);
     spawn_fs(cons, "/shell", 1);
 
     //spawn_fs(cons, "/telnetd", 1);
     //spawn_fs(cons, "/freelist_test", 1);
-    //spawn_fs(cons, "/httpd", 1);
+    spawn_fs(cons, "/httpd", 1);
 
     for (;;)
 	sys_thread_sleep(1000);
