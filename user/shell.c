@@ -160,6 +160,25 @@ builtin_unref(int ac, char **av)
 }
 
 static void
+builtin_cd(int ac, char **av)
+{
+    if (ac != 1) {
+	printf("cd <pathname>\n");
+	return;
+    }
+
+    const char *pn = av[0];
+    struct fs_inode dir;
+    int r = fs_namei(pn, &dir);
+    if (r < 0) {
+	printf("cannot cd to %s: %s\n", pn, e2s(r));
+	return;
+    }
+
+    start_env->fs_cwd = dir;
+}
+
+static void
 builtin_exit(int ac, char **av)
 {
     close(0);
@@ -175,6 +194,7 @@ static struct {
     { "spawn",	"Create a thread",		&builtin_spawn },
     { "unref",	"Drop container object",	&builtin_unref },
     { "exit",	"Exit",				&builtin_exit },
+    { "cd",	"Change directory",		&builtin_cd },
 };
 
 static void

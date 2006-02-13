@@ -87,6 +87,16 @@ strchr(const char *s, int c)
 }
 
 char *
+strrchr(const char *s, int c)
+{
+	char *p = 0;
+	for (; *s; s++)
+		if (*s == c)
+			p = (char *) s;
+	return p;
+}
+
+char *
 strfind(const char *s, char c)
 {
 	for (; *s; s++)

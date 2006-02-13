@@ -24,4 +24,6 @@ int  fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_lookup_path(struct fs_inode root, const char *pn, struct fs_inode *o);
 int  fs_namei(const char *pn, struct fs_inode *o);
 
+int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o);
+
 #endif

@@ -53,6 +53,7 @@ KERN_BINFILES := \
 	user/ls \
 	user/asprint \
 	user/gl \
+	user/mkdir \
 	user/cpphello
 
 	#user/chatter1 \

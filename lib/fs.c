@@ -108,3 +108,14 @@ fs_namei(const char *pn, struct fs_inode *o)
     struct fs_inode d = pn[0] == '/' ? start_env->fs_root : start_env->fs_cwd;
     return fs_lookup_path(d, pn, o);
 }
+
+int
+fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
+{
+    int64_t r = sys_container_alloc(dir.obj.object, 0, fn);
+    if (r < 0)
+	return r;
+
+    o->obj = COBJ(dir.obj.object, r);
+    return 0;
+}
