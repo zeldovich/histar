@@ -295,6 +295,7 @@ static union {
 static void
 ide_init(struct ide_channel *idec, uint32_t diskno)
 {
+    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
     ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
