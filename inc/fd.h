@@ -26,6 +26,7 @@ struct Dev
 	int (*dev_bind)(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen);
 	int (*dev_listen)(struct Fd *fd, int backlog);
 	int (*dev_accept)(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen);
+	int (*dev_connect)(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen);
 };
 
 struct Fd

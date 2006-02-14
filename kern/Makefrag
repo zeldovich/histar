@@ -54,7 +54,8 @@ KERN_BINFILES := \
 	user/asprint \
 	user/gl \
 	user/mkdir \
-	user/cpphello
+	user/cpphello \
+	user/fetch
 
 	#user/chatter1 \
 	#user/mlt \

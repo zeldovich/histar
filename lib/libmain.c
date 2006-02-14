@@ -42,14 +42,21 @@ libmain(uint64_t arg0, uint64_t arg1)
 	segment_set_default_label(l);
     }
 
-    main(argc, &argv[0]);
+    int r = main(argc, &argv[0]);
 
+    exit(r);
+}
+
+void
+exit(int r)
+{
     close_all();
+
     if (start_env) {
 	sys_segment_create(start_env->container, 0, 0, "dead flag");
 	sys_obj_unref(COBJ(start_env->parent_container, start_env->container));
     }
-    sys_thread_halt();
 
-    panic("libmain: still alive after sys_halt");
+    sys_thread_halt();
+    panic("exit: still alive after sys_thread_halt");
 }

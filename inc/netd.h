@@ -9,6 +9,7 @@ typedef enum {
     netd_op_bind,
     netd_op_listen,
     netd_op_accept,
+    netd_op_connect,
     netd_op_write,
     netd_op_read,
     netd_op_close
@@ -31,6 +32,11 @@ struct netd_op_listen_args {
 };
 
 struct netd_op_accept_args {
+    int fd;
+    struct sockaddr_in sin;
+};
+
+struct netd_op_connect_args {
     int fd;
     struct sockaddr_in sin;
 };
@@ -60,6 +66,7 @@ struct netd_op_args {
 	struct netd_op_bind_args bind;
 	struct netd_op_listen_args listen;
 	struct netd_op_accept_args accept;
+	struct netd_op_connect_args connect;
 	struct netd_op_write_args write;
 	struct netd_op_read_args read;
 	struct netd_op_close_args close;

@@ -51,6 +51,7 @@ extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
+void    exit(int status) __attribute__((__noreturn__));
 
 /* printfmt.c */
 const char *e2s(int err);
@@ -81,6 +82,7 @@ int	close(int fd);
 int	bind(int fd, struct sockaddr *addr, socklen_t addrlen);
 int	listen(int fd, int backlog);
 int	accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
+int	connect(int fd, struct sockaddr *addr, socklen_t addrlen);
 
 void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);

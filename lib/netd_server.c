@@ -26,6 +26,12 @@ netd_dispatch(struct netd_op_args *a)
 			    sizeof(a->bind.sin));
 	break;
 
+    case netd_op_connect:
+	a->rval = lwip_connect(a->connect.fd,
+			       (struct sockaddr *) &a->connect.sin,
+			       sizeof(a->connect.sin));
+	break;
+
     case netd_op_listen:
 	a->rval = lwip_listen(a->listen.fd,
 			      a->listen.backlog);

@@ -114,6 +114,19 @@ sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 }
 
 static int
+sock_connect(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
+{
+    struct netd_op_args a;
+    if (addrlen != sizeof(a.bind.sin))
+	return -E_INVAL;
+
+    a.op_type = netd_op_connect;
+    a.connect.fd = fd->fd_sock.s;
+    memcpy(&a.connect.sin, addr, addrlen);
+    return netd_call(&a);
+}
+
+static int
 sock_listen(struct Fd *fd, int backlog)
 {
     struct netd_op_args a;
@@ -200,6 +213,7 @@ struct Dev devsock =
     .dev_write = sock_write,
     .dev_close = sock_close,
     .dev_bind = sock_bind,
+    .dev_connect = sock_connect,
     .dev_listen = sock_listen,
     .dev_accept = sock_accept
 };

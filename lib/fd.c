@@ -310,6 +310,20 @@ bind(int fdnum, struct sockaddr *addr, socklen_t addrlen)
 }
 
 int
+connect(int fdnum, struct sockaddr *addr, socklen_t addrlen)
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    return r;
+
+    return dev->dev_connect(fd, addr, addrlen);
+}
+
+int
 listen(int fdnum, int backlog)
 {
     int r;
