@@ -24,6 +24,8 @@ struct log
 
 	uint64_t on_disk ;
 	struct btree_volatile disk_map ;
+
+	char just_flushed ;
 } ;
 
 // in memory log data
@@ -133,6 +135,8 @@ log_read_map(struct btree *map, struct node_list *nodes)
 static int
 log_try_node(offset_t offset, struct btree_node *store)
 {
+	// when compacting, can have a race between the compaction function
+	// and log_node, since compacting modifies disk_map.
 	offset_t log_off ;
 	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
 		return -E_NOT_FOUND ;
@@ -149,15 +153,16 @@ log_try_node(offset_t offset, struct btree_node *store)
 }
 
 int
-log_node(offset_t offset, struct btree_node **store)
+log_node(offset_t offset, void *page)
 {
 	
 	struct btree_node *node ;
+	struct btree_node *store = (struct btree_node *) page ;
 	int r ;
 	
 	LIST_FOREACH(node, &log.nodes, node_link) {
 		if (offset == node->block.offset) {
-			*store = node ;
+			memcpy(store, node, PGSIZE) ;
 			return 0 ;
 		}
 	}
@@ -166,43 +171,20 @@ log_node(offset_t offset, struct btree_node **store)
 	if (log.on_disk == 0)
 		return -E_NOT_FOUND ;
 	
-	if ((r = page_alloc((void **)store)) < 0)
-			return r ;
 	int tries = 0 ;
-	while ((r = log_try_node(offset, *store)) == 1 && ++tries < 10) ;
+	// see comment in log_try_node
+	while ((r = log_try_node(offset, store)) == 1 && ++tries < 10) ;
 		
-	if (r < 0) {
-		page_free(*store) ;
+	if (r < 0)
 		return r ;
-	}		
-	if (r == 1) {
-		page_free(*store) ;
-		//return -E_UNSPEC ;
+
+	if (r == 1)
 		panic("log_node: could not read %ld in %d tries\n", offset, tries) ;
-	}
-
-	/*
-	offset_t log_off ;
-	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
-		return -E_NOT_FOUND ;
-	
-	if ((r = page_alloc((void **)store)) < 0)
-			return r ;
-
-	disk_io_status s = stackwrap_disk_io(op_read, *store, 
-							  			PGSIZE, log_off * PGSIZE);
-	if (s != disk_io_success) {
-		page_free(*store) ;	
-		*store = 0 ;
-		return -E_IO ;
-	}
-	*/
-
-	LIST_INSERT_HEAD(&log.nodes, *store, node_link) ;
-	log.in_mem++ ;
+		//return -E_UNSPEC ;
 
 	return 0 ;
 }
+
 
 int
 log_compact(void)

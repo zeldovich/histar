@@ -35,6 +35,63 @@ btree_simple_node(struct btree *tree,
 		return 0 ;
 
 	uint8_t *buf ;
+	if (page_alloc((void**)&buf) < 0)
+		return -E_NO_MEM ;
+	
+	r = log_node(offset, buf) ;
+	if (r < 0) {
+		// 'updated' node not in log, so read from disk
+		disk_io_status s = 
+			stackwrap_disk_io(op_read, 
+							  buf, 
+							  PGSIZE, 
+							  offset * PGSIZE);
+		if (s != disk_io_success) {
+			cprintf("btree_man_node: error reading node\n");
+			page_free(buf) ;
+			*store = 0 ;
+			return -1;
+		}
+	}
+	
+	r = cache_try_insert(manager->cache, offset, 
+						buf, (uint8_t **)store) ;
+
+	page_free(buf)	 ;
+
+	if (r < 0) {
+		*store = 0 ;
+		return r ;
+	}
+
+	struct btree_node *node = *store ;
+
+	// setup pointers in node
+	node->block.offset = offset ;
+	node->tree = tree ;
+
+	node->children = CENT_CHILDREN(node) ;
+	node->keys = CENT_KEYS(node, manager->order) ;
+	node->block.offset = offset ;
+	node->tree = tree ;
+					
+	return 0 ;
+}
+
+#if 0
+int 
+btree_simple_node(struct btree *tree, 
+				 offset_t offset, 
+				 struct btree_node **store, 
+				 void *man)
+{
+	struct btree_simple * manager = (struct btree_simple *) man ;
+	int r ;	
+
+	if ((r = cache_ent(manager->cache, offset, (uint8_t**) store)) == 0)
+		return 0 ;
+
+	uint8_t *buf ;
 	r = log_node(offset, (struct btree_node **)&buf) ;
 	if (r < 0) {
 		if (page_alloc((void**)&buf) < 0)
@@ -76,6 +133,8 @@ btree_simple_node(struct btree *tree,
 					
 	return 0 ;
 }
+#endif
+
 
 int 
 btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
