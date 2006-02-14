@@ -196,10 +196,10 @@ log_node(offset_t offset, struct btree_node **store)
 		*store = 0 ;
 		return -E_IO ;
 	}
+	*/
 
 	LIST_INSERT_HEAD(&log.nodes, *store, node_link) ;
 	log.in_mem++ ;
-	*/
 
 	return 0 ;
 }
