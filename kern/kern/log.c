@@ -2,6 +2,7 @@
 #include <kern/log.h>
 #include <machine/pmap.h>
 #include <machine/mmu.h>
+#include <machine/x86.h>
 #include <machine/stackwrap.h>
 #include <lib/btree/btree_traverse.h>
 
@@ -30,6 +31,48 @@ struct log
 
 // in memory log data
 static struct log log ;
+
+static struct
+{
+#define DLOG_SIZE 8
+	uint8_t	 types[DLOG_SIZE] ;
+	uint64_t times[DLOG_SIZE] ;
+
+	int	ins ;
+} dlog ;
+
+enum { flush = 0 , compact, apply } ;
+	
+static const char *const type_strings[] = {"flush", "compact", "apply"} ;
+
+static void 
+dlog_init(void)
+{
+	memset(&dlog, 0, sizeof(dlog)) ;
+}
+
+static void
+dlog_log(uint8_t type, uint64_t start, uint64_t stop)
+{
+	int i = dlog.ins ;
+	dlog.types[i] = type ;
+	dlog.times[i] = (stop - start) ;
+	dlog.ins = (dlog.ins + 1) % DLOG_SIZE ;
+}
+
+void 
+dlog_print(void)
+{
+	cprintf("dlog\n") ;
+	for (int i  = 0 ; i < DLOG_SIZE ; i++) {	
+		if (i == dlog.ins)
+			cprintf(" --------------------\n") ;
+		uint8_t type = dlog.types[i] ;
+		uint64_t time = dlog.times[i] ;
+		cprintf(" %s\t%ld\n", type_strings[type], time) ;	
+	}
+	cprintf("end\n") ;
+}
 
 static int
 log_write_list(struct node_list *nodes, uint64_t *count, 
@@ -265,6 +308,9 @@ log_flush(void)
 	disk_io_status s ;
 	uint64_t count ;
 	
+	uint64_t start, stop ;
+	start = read_tsc() ;
+	
 	if (LIST_EMPTY(&log.nodes))
 		return 0 ;
 
@@ -294,6 +340,9 @@ log_flush(void)
 
 	log.on_disk += log.in_mem ;
 
+	stop = read_tsc() ;
+
+	dlog_log(flush, start, stop) ;
 	return 0 ;
 }
 
@@ -348,6 +397,10 @@ log_apply(void)
 {
 	int r ;
 	struct btree_node *node ;
+	uint64_t start, stop ;
+	
+	start = read_tsc() ;
+
 
 	if (log.in_mem != 0) { // have an active in memory log
 		if (log.on_disk)
@@ -370,6 +423,10 @@ log_apply(void)
 		
 		log_free() ;
 		log_init(log.offset, log.npages, log.max_mem) ;
+		
+		stop = read_tsc() ;
+		
+		dlog_log(apply, start, stop) ;
 		return 0 ;
 	}
 	else  // try to apply log sitting on disk
@@ -392,6 +449,8 @@ log_free(void)
 void
 log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
 {
+	dlog_init() ;
+
 	memset(&log, 0, sizeof(log)) ;
 	
 	// logging will overwrite anything in the disk log

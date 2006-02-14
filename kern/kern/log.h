@@ -16,6 +16,6 @@ int log_node(offset_t offset, void *page) ;
 void log_free(void) ;
 void log_init(uint64_t off, uint64_t npages, uint64_t max_mem) ;
 void log_print_stats(void) ;
-
+void dlog_print(void) ;
 
 #endif /*LOG_H_*/

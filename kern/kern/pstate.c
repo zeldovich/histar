@@ -19,6 +19,7 @@ static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
 static int pstate_log_stats = 0;
+static int pstate_dlog_stats = 0;
 
 static int scrub_disk_pages = 0;
 
@@ -506,6 +507,10 @@ pstate_sync_loop(struct pstate_header *hdr,
 	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
 	memcpy(&hdr->ph_map, &objmap, sizeof(objmap)) ;
 	int r = pstate_sync_flush() ;
+	
+	if (pstate_dlog_stats)
+		dlog_print() ;
+	
 	if (r < 0) {
 		cprintf("pstate_sync_loop: unable to flush\n") ;
 		return r ;
