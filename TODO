@@ -31,3 +31,5 @@ the entire object (or at least 64K worth of pages) in one request.
 
 keep track of handles more explicitly.  root handle, process handle..
 
+make the mount table a separate segment that can be shared
+
