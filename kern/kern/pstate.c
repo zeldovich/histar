@@ -84,7 +84,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	    page_free(p);
 	}
 
-	freelist_free(f, mobj.off, mobj.npages) ;
+	freelist_free_later(f, mobj.off, mobj.npages) ;
     	btree_delete(&iobjlist.tree, &ko->hdr.ko_id) ;
     	btree_delete(&objmap.tree, &ko->hdr.ko_id) ;
     }
@@ -499,6 +499,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 		    return r;
     }
 	
+	freelist_commit(&flist) ;
 	
 	// XXX
 	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;

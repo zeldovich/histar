@@ -5,8 +5,8 @@
 #include <inc/stdio.h>
 #include <inc/assert.h>
 
-#define OFFSET_ORDER 	10//BTREE_MAX_ORDER1
-#define CHUNK_ORDER 	10//BTREE_MAX_ORDER2
+#define OFFSET_ORDER 	BTREE_MAX_ORDER1
+#define CHUNK_ORDER 	BTREE_MAX_ORDER2
 
 
 // global caches for both the btrees
