@@ -5,8 +5,9 @@
 #include <inc/stdio.h>
 #include <inc/assert.h>
 
-#define OFFSET_ORDER 	BTREE_MAX_ORDER1
-#define CHUNK_ORDER 	BTREE_MAX_ORDER2
+#define OFFSET_ORDER 	10//BTREE_MAX_ORDER1
+#define CHUNK_ORDER 	10//BTREE_MAX_ORDER2
+
 
 // global caches for both the btrees
 STRUCT_BTREE_CACHE(offset_cache, 200, OFFSET_ORDER, 1) ;						
@@ -289,6 +290,39 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t npages)
 	return 0 ;
 }
 
+static struct 
+{
+#define FREE_LATER_SIZE PGSIZE
+	uint64_t off[FREE_LATER_SIZE] ;
+	uint64_t npages[FREE_LATER_SIZE] ;
+	
+	int size ;
+} free_later ;
+
+void
+freelist_free_later(struct freelist *l, uint64_t base, uint64_t npages)
+{
+	int i = free_later.size ;
+	if (i >= FREE_LATER_SIZE)
+		panic("freelist_free_later: need to implement...") ;
+	free_later.off[i] = base ;
+	free_later.npages[i] = npages ;
+	
+	free_later.size++ ;
+}
+
+void 
+freelist_commit(struct freelist *l)
+{
+	int n = free_later.size ;
+	for (int i = 0 ; i < n ; i++) {
+		uint64_t base = free_later.off[i] ;
+		uint64_t npages = free_later.npages[i] ;
+		freelist_free(l, base, npages) ;
+	}
+	free_later.size = 0 ;
+}
+
 void
 freelist_setup(uint8_t *b)
 {
@@ -296,6 +330,8 @@ freelist_setup(uint8_t *b)
 	
 	frm_setup(&l->chunk_frm, CHUNK_ORDER, &chunk_cache, &l->chunks.manager) ;
 	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache, &l->offsets.manager) ;
+	
+	free_later.size = 0 ;
 }
 
 void
@@ -340,6 +376,8 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t npages)
 		return r ;
 		
 	l->free = npages ;
+		
+	free_later.size = 0 ;
 		
 	return 0 ;
 }
