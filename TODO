@@ -8,6 +8,10 @@ thread-specific containers won't allow containers or threads.
 
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 
+shouldn't be able to pass thread-specific segment to DMA!
+copy-and-drop this seg in the kernel instead of force-changing labels;
+this will DTRT because segment_copy needs to deal with DMA anyway.
+
 do COW in gate_enter()
 use MLTs to store COW mappings in gate_enter for later reuse
 
