@@ -4,6 +4,8 @@
 #include <inc/assert.h>
 #include <inc/fs.h>
 
+static int netd_mom_debug = 0;
+
 static void
 netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
 {
@@ -18,8 +20,9 @@ netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
 	if (netdev_id < 0)
 	    panic("cannot create netdev: %s", e2s(netdev_id));
 
-	printf("netd_mom: netdev %ld grant %ld taint %ld\n",
-	       netdev_id, net_grant, net_taint);
+	if (netd_mom_debug)
+	    printf("netd_mom: netdev %ld grant %ld taint %ld\n",
+		   netdev_id, net_grant, net_taint);
     }
 }
 
@@ -52,8 +55,19 @@ main(int ac, char **av)
     assert(0 == label_set_level(l, net_grant, LB_LEVEL_STAR, 1));
     assert(0 == label_set_level(l, net_taint, LB_LEVEL_STAR, 1));
 
-    printf("netd_mom: spawning netd with label %s\n", label_to_string(l));
-    r = spawn_fd(rc, netd_ino, 0, 1, 2, 0, 0, l);
+    char grant_arg[32], taint_arg[32];
+    sprintf(grant_arg, "%lu", net_grant);
+    sprintf(taint_arg, "%lu", net_taint);
+
+    const char *argv[3];
+    argv[0] = "netd";
+    argv[1] = grant_arg;
+    argv[2] = taint_arg;
+
+    if (netd_mom_debug)
+	printf("netd_mom: spawning netd with label %s\n", label_to_string(l));
+
+    r = spawn_fd(rc, netd_ino, 0, 1, 2, 3, &argv[0], l);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 }

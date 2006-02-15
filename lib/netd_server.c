@@ -9,10 +9,14 @@
 
 static struct u_gate_entry netd_gate;
 static int64_t netd_ct;
+static int netd_ready;
 
 static void
 netd_dispatch(struct netd_op_args *a)
 {
+    while (!netd_ready)
+	sys_thread_yield();
+
     switch (a->op_type) {
     case netd_op_socket:
 	a->rval = lwip_socket(a->socket.domain,
@@ -108,6 +112,13 @@ netd_server_init(uint64_t ct)
     if (netd_ct < 0)
 	return netd_ct;
 
+    netd_ready = 0;
     int r = gate_create(&netd_gate, netd_ct, &netd_gate_entry, 0, "netd");
     return r;
+}
+
+void
+netd_server_ready()
+{
+    netd_ready = 1;
 }

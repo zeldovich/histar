@@ -18,6 +18,7 @@
 #include <jif/jif.h>
 
 static uint64_t container;
+static int netd_debug = 1;
 
 struct timer_thread {
     int msec;
@@ -91,6 +92,26 @@ tcpip_init_done(void *arg)
 int
 main(int ac, char **av)
 {
+    if (ac != 3) {
+	printf("Usage: %s grant-handle taint-handle\n", av[0]);
+	return -1;
+    }
+
+    uint64_t grant, taint;
+    int r = strtoull(av[1], 0, 10, &grant);
+    if (r < 0)
+	panic("parsing grant handle %s: %s", av[1], e2s(r));
+
+    r = strtoull(av[2], 0, 10, &taint);
+    if (r < 0)
+	panic("parsing taint handle %s: %s", av[2], e2s(r));
+
+    if (netd_debug)
+	printf("netd: running with grant handle %ld, taint handle %ld\n",
+	       grant, taint);
+
+    netd_server_init(start_env->root_container);
+
     container = start_env->container;
 
     struct netif nif;
@@ -98,8 +119,8 @@ main(int ac, char **av)
     dhcp_start(&nif);
 
     struct cobj_ref receive_thread;
-    int r = thread_create(container, &net_receive, &nif, &receive_thread,
-			  "rx thread");
+    r = thread_create(container, &net_receive, &nif, &receive_thread,
+		      "rx thread");
     if (r < 0)
 	panic("cannot create receiver thread: %s", e2s(r));
 
@@ -118,6 +139,6 @@ main(int ac, char **av)
 
     printf("netd: running\n");
 
-    netd_server_init(start_env->root_container);
+    netd_server_ready();
     sys_thread_halt();
 }
