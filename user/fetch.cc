@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/netd.h>
 #include <inc/string.h>
 #include <inc/fs.h>
+#include <inc/syscall.h>
 }
 
 static int fetch_debug = 1;
@@ -187,6 +188,9 @@ main(int ac, char **av)
 	printf("Usage: %s url filename\n", av[0]);
 	return -1;
     }
+
+    // Create an MLT for dynamic taint
+    assert(sys_mlt_create(start_env->container, "dynamic taint") >= 0);
 
     const char *ustr = av[1];
     char *pn = av[2];
