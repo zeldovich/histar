@@ -84,7 +84,8 @@ gate_return_entrystack(struct u_gate_entry *ug,
 	panic("gate_return_entrystack: unref: %s", e2s(r));
 
     r = sys_gate_enter(return_gate, &gate_label, arg.container, arg.object);
-    panic("gate_return_entrystack: gate_enter: %s", e2s(r));
+    panic("gate_return_entrystack: gate_enter: label %s: %s",
+	  label_to_string(&gate_label), e2s(r));
 }
 
 static void __attribute__((noreturn))
@@ -232,7 +233,7 @@ gate_call_setup_return(struct gate_return *gr,
     if (l_recv == 0)
 	return -E_NO_MEM;
 
-    l_recv->ul_default = 2;
+    l_recv->ul_default = 3;
     int r = label_set_level(l_recv, gr->return_handle, 0, 1);
     if (r < 0)
 	return r;
