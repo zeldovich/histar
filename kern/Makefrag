@@ -55,6 +55,8 @@ KERN_BINFILES := \
 	user/gl \
 	user/mkdir \
 	user/cpphello \
+	user/rm \
+	user/cat \
 	user/fetch
 
 	#user/chatter1 \

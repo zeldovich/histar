@@ -21,6 +21,7 @@ enum {
     E_EOF,		// unexpected end-of-file
     E_MAX_OPEN,		// out of file descriptors
     E_BAD_OP,		// operation not supported
+    E_EXISTS,		// already exists
     E_MAXERROR
 };
 

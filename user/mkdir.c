@@ -12,17 +12,9 @@ main(int ac, char **av)
     }
 
     char *pn = av[1];
-    char *dname, *fn;
+    const char *dname, *fn;
 
-    char *slash = strrchr(pn, '/');
-    if (slash == 0) {
-	dname = "";
-	fn = pn;
-    } else {
-	*slash = '\0';
-	dname = pn;
-	fn = slash + 1;
-    }
+    fs_dirbase(pn, &dname, &fn);
 
     struct fs_inode dir;
     int r = fs_namei(dname, &dir);

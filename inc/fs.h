@@ -35,7 +35,15 @@ int  fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_lookup_path(struct fs_inode root, const char *pn, struct fs_inode *o);
 int  fs_namei(const char *pn, struct fs_inode *o);
 
+void fs_dirbase(char *pn, const char **dirname, const char **basename);
+
 int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root);
+int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f);
+int  fs_remove(struct fs_inode f);
+
+int  fs_pwrite(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
+int  fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
+int  fs_getsize(struct fs_inode f, uint64_t *len);
 
 #endif

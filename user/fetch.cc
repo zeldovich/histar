@@ -2,9 +2,10 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/netd.h>
 #include <inc/string.h>
+#include <inc/fs.h>
 }
 
-static int fetch_debug = 0;
+static int fetch_debug = 1;
 
 class url {
 public:	
@@ -187,7 +188,7 @@ main(int ac, char **av)
     }
 
     const char *ustr = av[1];
-    const char *pn = av[2];
+    char *pn = av[2];
 
     printf("Fetching %s into %s\n", ustr, pn);
 
@@ -218,14 +219,34 @@ main(int ac, char **av)
 	assert(resp);
     }
 
+    const char *dirname, *basename;
+    fs_dirbase(pn, &dirname, &basename);
+
+    struct fs_inode dir;
+    int r = fs_namei(dirname, &dir);
+    if (r < 0)
+	panic("cannot find directory %s: %s", dirname, e2s(r));
+
+    struct fs_inode file;
+    r = fs_create(dir, basename, &file);
+    if (r < 0)
+	panic("cannot create file %s: %s", basename, e2s(r));
+
+    uint64_t off = 0;
     for (;;) {
 	size_t cc = lp.read(buf, sizeof(buf));
 	if (cc == 0)
 	    break;
 
-	// XXX need file write support here!
-	write(1, buf, cc);
+	r = fs_pwrite(file, buf, cc, off);
+	if (r < 0)
+	    panic("fs_pwrite: %s", e2s(r));
+
+	off += cc;
+
+	if (fetch_debug)
+	    printf("wrote %ld bytes to file\n", cc);
     }
 
-    printf("\nDone.\n");
+    printf("Done.\n");
 }
