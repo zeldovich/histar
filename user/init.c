@@ -22,7 +22,7 @@ spawn_fs(int fd, const char *pn, int drop_root_handle)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
     const char *argv[] = { pn };
-    r = spawn_fd(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l);
+    r = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l);
     if (r < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(r));
 
@@ -102,7 +102,7 @@ init_procs(int cons)
 
     //spawn_fs(cons, "/bin/telnetd", 1);
     //spawn_fs(cons, "/bin/freelist_test", 1);
-    spawn_fs(cons, "/bin/httpd", 1);
+    //spawn_fs(cons, "/bin/httpd", 1);
 }
 
 int

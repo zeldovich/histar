@@ -89,6 +89,34 @@ tcpip_init_done(void *arg)
     sys_sem_signal(*sem);
 }
 
+static struct ulabel *
+force_taint_prepare(uint64_t taint)
+{
+    struct ulabel *l = label_get_current();
+    assert(l);
+    // XXX stay at LB_LEVEL_STAR for now -- dynamic taint is still broken
+    //assert(0 == label_set_level(l, taint, 3, 1));
+    assert(0 == label_set_level(l, taint, LB_LEVEL_STAR, 1));
+
+    segment_set_default_label(l);
+    int r = heap_relabel(l);
+    if (r < 0)
+	panic("cannot relabel heap: %s", e2s(r));
+
+    return l;
+}
+
+static void
+force_taint_commit(struct ulabel *l)
+{
+    int r = label_set_current(l);
+    if (r < 0)
+	panic("cannot reset label to %s: %s", label_to_string(l), e2s(r));
+
+    if (netd_debug)
+	printf("netd: switched to label %s\n", label_to_string(l));
+}
+
 int
 main(int ac, char **av)
 {
@@ -107,17 +135,18 @@ main(int ac, char **av)
 	panic("parsing taint handle %s: %s", av[2], e2s(r));
 
     if (netd_debug)
-	printf("netd: running with grant handle %ld, taint handle %ld\n",
+	printf("netd: grant handle %ld, taint handle %ld\n",
 	       grant, taint);
 
-    netd_server_init(start_env->root_container);
-
-    container = start_env->container;
+    struct ulabel *l = force_taint_prepare(taint);
+    netd_server_init(start_env->root_container, start_env->container, l);
+    force_taint_commit(l);
 
     struct netif nif;
     lwip_init(&nif);
     dhcp_start(&nif);
 
+    container = start_env->container;
     struct cobj_ref receive_thread;
     r = thread_create(container, &net_receive, &nif, &receive_thread,
 		      "rx thread");
@@ -137,7 +166,7 @@ main(int ac, char **av)
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    printf("netd: running\n");
+    printf("netd: ready\n");
 
     netd_server_ready();
     sys_thread_halt();

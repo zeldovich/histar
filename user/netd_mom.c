@@ -49,11 +49,17 @@ main(int ac, char **av)
     if (gate_ct < 0)
 	panic("netd_mom: creating container for netd gate: %s", e2s(gate_ct));
 
-    struct ulabel *l = label_get_current();
-    assert(l);
-    label_max_default(l);
-    assert(0 == label_set_level(l, net_grant, LB_LEVEL_STAR, 1));
-    assert(0 == label_set_level(l, net_taint, LB_LEVEL_STAR, 1));
+    struct ulabel *l_th = label_get_current();
+    assert(l_th);
+    label_max_default(l_th);
+    assert(0 == label_set_level(l_th, net_grant, LB_LEVEL_STAR, 1));
+    assert(0 == label_set_level(l_th, net_taint, LB_LEVEL_STAR, 1));
+
+    struct ulabel *l_obj = label_get_current();
+    assert(l_obj);
+    label_max_default(l_obj);
+    assert(0 == label_set_level(l_obj, net_grant, 0, 1));
+    assert(0 == label_set_level(l_obj, net_taint, 3, 1));
 
     char grant_arg[32], taint_arg[32];
     sprintf(grant_arg, "%lu", net_grant);
@@ -65,9 +71,10 @@ main(int ac, char **av)
     argv[2] = taint_arg;
 
     if (netd_mom_debug)
-	printf("netd_mom: spawning netd with label %s\n", label_to_string(l));
+	printf("netd_mom: object label %s, thread label %s\n",
+	       label_to_string(l_obj), label_to_string(l_th));
 
-    r = spawn_fd(rc, netd_ino, 0, 1, 2, 3, &argv[0], l);
+    r = spawn(rc, netd_ino, 0, 1, 2, 3, &argv[0], l_obj, l_th);
     if (r < 0)
 	panic("spawn: %s", e2s(r));
 }

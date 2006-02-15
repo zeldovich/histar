@@ -1,6 +1,7 @@
 #ifndef JOS_INC_NETD_H
 #define JOS_INC_NETD_H
 
+#include <inc/label.h>
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
 
@@ -73,7 +74,7 @@ struct netd_op_args {
     };
 };
 
-int  netd_server_init(uint64_t container);
+int  netd_server_init(uint64_t gate_ct, uint64_t entry_ct, struct ulabel *l);
 void netd_server_ready(void);
 
 int  socket(int domain, int type, int protocol);

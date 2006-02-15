@@ -6,36 +6,54 @@
 #include <inc/error.h>
 
 int64_t
-spawn_fd(uint64_t container, struct fs_inode elf_ino,
-	 int fd0, int fd1, int fd2, int ac, const char **av,
-	 struct ulabel *l)
+spawn(uint64_t container, struct fs_inode elf_ino,
+      int fd0, int fd1, int fd2, int ac, const char **av,
+      struct ulabel *obj_l, struct ulabel *thread_l)
 {
     int r;
     start_env_t *spawn_env = 0;
     int64_t c_spawn = -1;
+    struct ulabel *obj_label = 0;
+    struct ulabel *thread_label = 0;
+    int64_t process_handle = -1;
 
     struct cobj_ref elf;
     r = fs_get_obj(elf_ino, &elf);
     if (r < 0) {
-	cprintf("spawn_fs: cannot convert inode to segment: %s\n", e2s(r));
-	return r;
+	printf("spawn: cannot convert inode to segment: %s\n", e2s(r));
+	goto err;
     }
 
-    struct ulabel *label = l ? label_dup(l) : label_get_current();
-    if (label == 0) {
-	cprintf("spawn_fd: cannot allocate label\n");
-	return -E_NO_MEM;
+    obj_label = obj_l ? label_dup(obj_l) : label_get_current();
+    if (obj_label == 0) {
+	printf("spawn: cannot allocate label\n");
+	r = -E_NO_MEM;
+	goto err;
     }
 
-    int64_t process_handle = sys_handle_create();
+    thread_label = thread_l ? label_dup(thread_l) : label_get_current();
+    if (thread_l == 0) {
+	printf("spawn: cannot allocate label\n");
+	r = -E_NO_MEM;
+	goto err;
+    }
+
+    process_handle = sys_handle_create();
     if (process_handle < 0) {
-	cprintf("spawn_fd: cannot allocate handle: %s\n", e2s(process_handle));
-	return process_handle;
+	printf("spawn: cannot allocate handle: %s\n", e2s(process_handle));
+	r = process_handle;
+	goto err;
     }
 
-    r = label_set_level(label, process_handle, 0, 1);
+    r = label_set_level(obj_label, process_handle, 0, 1);
     if (r < 0) {
-	cprintf("spawn_fd: cannot grant process handle: %s\n", e2s(r));
+	printf("spawn: cannot grant process handle: %s\n", e2s(r));
+	goto err;
+    }
+
+    r = label_set_level(thread_label, process_handle, LB_LEVEL_STAR, 1);
+    if (r < 0) {
+	printf("spawn: cannot grant process handle: %s\n", e2s(r));
 	goto err;
     }
 
@@ -44,19 +62,19 @@ spawn_fd(uint64_t container, struct fs_inode elf_ino,
     if (r < 0)
 	goto err;
 
-    c_spawn = sys_container_alloc(container, label, &name[0]);
+    c_spawn = sys_container_alloc(container, obj_label, &name[0]);
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
     if (c_spawn < 0) {
-	cprintf("cannot allocate container for new thread: %s\n",
+	printf("cannot allocate container for new thread: %s\n",
 		e2s(c_spawn));
 	r = c_spawn;
 	goto err;
     }
 
     struct thread_entry e;
-    r = elf_load(c_spawn, elf, &e, label);
+    r = elf_load(c_spawn, elf, &e, obj_label);
     if (r < 0) {
-	cprintf("cannot load ELF: %s\n", e2s(r));
+	printf("cannot load ELF: %s\n", e2s(r));
 	goto err;
     }
 
@@ -73,7 +91,7 @@ spawn_fd(uint64_t container, struct fs_inode elf_ino,
 	goto err;
 
     struct cobj_ref c_spawn_env;
-    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, label, "env");
+    r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, obj_label, "env");
     if (r < 0)
 	goto err;
 
@@ -96,22 +114,16 @@ spawn_fd(uint64_t container, struct fs_inode elf_ino,
 
     int64_t thread = sys_thread_create(c_spawn, &name[0]);
     if (thread < 0) {
-	cprintf("cannot create thread: %s\n", e2s(thread));
+	printf("cannot create thread: %s\n", e2s(thread));
 	r = thread;
 	goto err;
     }
     struct cobj_ref tobj = COBJ(c_spawn, thread);
 
-    r = label_set_level(label, process_handle, LB_LEVEL_STAR, 1);
-    if (r < 0) {
-	cprintf("spawn_fd: cannot grant process handle *: %s\n", e2s(r));
-	goto err;
-    }
-
     e.te_arg = (uint64_t) spawn_env_va;
-    r = sys_thread_start(tobj, &e, label);
+    r = sys_thread_start(tobj, &e, thread_label);
     if (r < 0) {
-	cprintf("cannot start thread: %s\n", e2s(r));
+	printf("cannot start thread: %s\n", e2s(r));
 	goto err;
     }
 
@@ -123,28 +135,26 @@ err:
     c_spawn = r;
 
 out:
-    if (label)
-	label_free(label);
+    if (obj_label)
+	label_free(obj_label);
+    if (thread_label)
+	label_free(thread_label);
     if (spawn_env)
 	segment_unmap(spawn_env);
 
-    struct ulabel *label_self = label_get_current();
-    if (label_self == 0) {
-	cprintf("spawn_fd: cannot allocate self label for cleanup\n");
-    } else {
-	assert(0 == label_set_level(label_self, process_handle,
-				    label_self->ul_default, 1));
-	assert(0 == label_set_current(label_self));
-	label_free(label_self);
+    if (process_handle >= 0) {
+	struct ulabel *label_self = label_get_current();
+	if (label_self == 0) {
+	    printf("spawn: cannot allocate self label for cleanup\n");
+	} else {
+	    assert(0 == label_set_level(label_self, process_handle,
+					label_self->ul_default, 1));
+	    assert(0 == label_set_current(label_self));
+	    label_free(label_self);
+	}
     }
 
     return c_spawn;
-}
-
-int64_t
-spawn(uint64_t container, struct fs_inode elf, int ac, const char **av)
-{
-    return spawn_fd(container, elf, 0, 1, 2, ac, av, 0);
 }
 
 int

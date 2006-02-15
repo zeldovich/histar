@@ -134,10 +134,10 @@ do_spawn(int ac, char **av)
 
     label_change_star(label, label->ul_default);
 
-    int64_t c_spawn = spawn_fd(start_env->container, ino,
-			       0, 1, 2,
-			       ac, (const char **) av,
-			       label);
+    int64_t c_spawn = spawn(start_env->container, ino,
+			    0, 1, 2,
+			    ac, (const char **) av,
+			    label, label);
     label_free(label);
     if (c_spawn < 0)
 	printf("cannot spawn %s: %s\n", pn, e2s(c_spawn));

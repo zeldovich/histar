@@ -18,6 +18,8 @@ struct gate_entry_stack_info {
     void *va;
 };
 
+static int gate_debug = 0;
+
 // Compute the appropriate gate entry label.
 static int
 gate_compute_max_label(struct ulabel *g)
@@ -108,6 +110,16 @@ gate_entry_newstack(struct u_gate_entry *ug,
 static void __attribute__((noreturn))
 gate_entry(struct u_gate_entry *ug)
 {
+    if (gate_debug) {
+	struct ulabel *l = label_get_current();
+	if (l == 0) {
+	    printf("gate_entry: cannot get entry label\n");
+	} else {
+	    printf("gate_entry: entry label %s\n", label_to_string(l));
+	    label_free(l);
+	}
+    }
+
     int r = sys_thread_addref(ug->container);
     if (r < 0)
 	panic("gate_entry: thread_addref ct=%ld: %s", ug->container, e2s(r));
@@ -134,9 +146,11 @@ gate_entry(struct u_gate_entry *ug)
 }
 
 int
-gate_create(struct u_gate_entry *ug, uint64_t container,
+gate_create(struct u_gate_entry *ug,
+	    uint64_t gate_container,
+	    uint64_t entry_container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg,
-	    const char *name)
+	    const char *name, struct ulabel *l_send)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
     int r = sys_segment_resize(tseg, 1);
@@ -148,17 +162,16 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     if (r < 0)
 	return r;
 
-    ug->container = container;
+    ug->container = entry_container;
     ug->func = func;
     ug->func_arg = func_arg;
 
-    uint64_t label_ents[8];
-    struct ulabel l_send = { .ul_size = 8, .ul_ent = &label_ents[0], };
     struct ulabel l_recv = { .ul_nent = 0, .ul_default = 2 };
 
-    r = thread_get_label(container, &l_send);
-    if (r < 0)
-	goto out;
+    if (l_send == 0)
+	l_send = label_get_current();
+    if (l_send == 0)
+	return -E_NO_MEM;
 
     struct thread_entry te = {
 	.te_entry = &gate_entry,
@@ -170,14 +183,14 @@ gate_create(struct u_gate_entry *ug, uint64_t container,
     if (r < 0)
 	goto out;
 
-    int64_t gate_id = sys_gate_create(container, &te,
-				      &l_recv, &l_send, name);
+    int64_t gate_id = sys_gate_create(gate_container, &te,
+				      &l_recv, l_send, name);
     if (gate_id < 0) {
 	r = gate_id;
 	goto out;
     }
 
-    ug->gate = COBJ(container, gate_id);
+    ug->gate = COBJ(gate_container, gate_id);
     return 0;
 
 out:
@@ -325,6 +338,9 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 	    printf("gate_call: granting return handle: %s", e2s(r));
 	    goto out4;
 	}
+
+	if (gate_debug)
+	    printf("gate_call: target label %s\n", label_to_string(&gate_label));
 
 	// Invoke the gate
 	gate_args->return_gate = return_gate;

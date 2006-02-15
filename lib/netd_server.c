@@ -8,7 +8,7 @@
 #include <lwip/sockets.h>
 
 static struct u_gate_entry netd_gate;
-static int64_t netd_ct;
+static uint64_t netd_ct;
 static int netd_ready;
 
 static void
@@ -99,21 +99,23 @@ netd_gate_entry(void *x, struct cobj_ref *arg)
     int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
 					    l, "netd_gate_entry() reply");
     if (copy_back_id < 0)
-	panic("netd_gate_entry: cannot copy back: %s", e2s(copy_back_id));
+	panic("netd_gate_entry: cannot copy back with label %s: %s",
+	      label_to_string(l), e2s(copy_back_id));
     sys_obj_unref(arg_copy);
 
     *arg = COBJ(copy_back_ct, copy_back_id);
 }
 
 int
-netd_server_init(uint64_t ct)
+netd_server_init(uint64_t gate_ct, uint64_t entry_ct, struct ulabel *l)
 {
-    netd_ct = container_find(ct, kobj_container, "netd gate");
-    if (netd_ct < 0)
-	return netd_ct;
+    int64_t netd_gate_ct = container_find(gate_ct, kobj_container, "netd gate");
+    if (netd_gate_ct < 0)
+	return netd_gate_ct;
 
+    netd_ct = entry_ct;
     netd_ready = 0;
-    int r = gate_create(&netd_gate, netd_ct, &netd_gate_entry, 0, "netd");
+    int r = gate_create(&netd_gate, netd_gate_ct, entry_ct, &netd_gate_entry, 0, "netd", l);
     return r;
 }
 
