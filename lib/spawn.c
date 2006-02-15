@@ -26,14 +26,14 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     obj_label = obj_l ? label_dup(obj_l) : label_get_current();
     if (obj_label == 0) {
-	printf("spawn: cannot allocate label\n");
+	printf("spawn: cannot allocate object label\n");
 	r = -E_NO_MEM;
 	goto err;
     }
 
     thread_label = thread_l ? label_dup(thread_l) : label_get_current();
-    if (thread_l == 0) {
-	printf("spawn: cannot allocate label\n");
+    if (thread_label == 0) {
+	printf("spawn: cannot allocate thread label\n");
 	r = -E_NO_MEM;
 	goto err;
     }
