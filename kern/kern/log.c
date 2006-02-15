@@ -74,19 +74,45 @@ void
 dlog_print(void)
 {
 	cprintf("dlog\n") ;
+	
 	for (int i  = 0 ; i < DLOG_SIZE ; i++) {	
 		if (i == dlog.ins)
-			cprintf(" --------------------\n") ;
+			cprintf("--------------------------------\n") ;
 		uint8_t type = dlog.types[i] ;
 		uint64_t time = dlog.times[i] ;
-		cprintf(" %s\t%ld\n", type_strings[type], time) ;	
+		cprintf(" %8s\t%ld\n", type_strings[type], time) ;	
 	}
 	
 	cprintf("\n") ;
-	cprintf(" %s+\t%ld\n", type_strings[apply], dlog.max[apply]) ;
-	cprintf(" %s-\t%ld\n", type_strings[apply], dlog.min[apply]) ;
-	cprintf(" %s+\t%ld\n", type_strings[flush], dlog.max[flush]) ;
-	cprintf(" %s-\t%ld\n", type_strings[flush], dlog.min[flush]) ;
+	cprintf(" %8s+\t%ld\n", type_strings[apply], dlog.max[apply]) ;
+	cprintf(" %8s-\t%ld\n", type_strings[apply], dlog.min[apply]) ;
+	
+	cprintf(" %8s+\t%ld\n", type_strings[flush], dlog.max[flush]) ;
+	cprintf(" %8s-\t%ld\n", type_strings[flush], dlog.min[flush]) ;
+
+	uint64_t tot_ap = 0 ;
+	uint64_t tot_fl = 0 ;
+	
+	uint64_t cnt_ap = 0 ;
+	uint64_t cnt_fl = 0 ;
+	
+	for (int i = 0 ; i < DLOG_SIZE ; i++) {
+		uint8_t type = dlog.types[i] ;
+		uint64_t time = dlog.times[i] ;	
+		switch (type) {
+			case flush:
+				tot_fl += time ;
+				cnt_fl++ ;
+				break ;
+			case apply:
+				tot_ap += time ;
+				cnt_ap++ ;
+				break ;	
+		}
+	}
+	
+	cprintf(" %8s_ave\t%ld\n", type_strings[apply], tot_ap / cnt_ap) ;
+	cprintf(" %8s_ave\t%ld\n", type_strings[flush], tot_fl / cnt_fl) ;
 	
 	cprintf("end\n") ;
 }
@@ -392,7 +418,6 @@ log_apply_disk(void)
 			log_free_list(&nodes) ;
 			return r ;			
 		}
-		
 		
 		if ((r = log_write_list(&nodes, &count, 0, 0)) < 0) {
 			log_free_list(&nodes) ;
