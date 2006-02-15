@@ -18,7 +18,9 @@ struct gate_entry_stack_info {
     void *va;
 };
 
-static int gate_debug = 0;
+enum {
+    gate_debug = 1
+};
 
 // Compute the appropriate gate entry label.
 static int
@@ -82,6 +84,10 @@ gate_return_entrystack(struct u_gate_entry *ug,
     r = sys_obj_unref(COBJ(ug->container, thread_id()));
     if (r < 0)
 	panic("gate_return_entrystack: unref: %s", e2s(r));
+
+    if (gate_debug)
+	printf("gate_return_entrystack: return label %s\n",
+	       label_to_string(&gate_label));
 
     r = sys_gate_enter(return_gate, &gate_label, arg.container, arg.object);
     panic("gate_return_entrystack: gate_enter: label %s: %s",
@@ -210,6 +216,13 @@ struct gate_return {
 static void __attribute__((noreturn))
 gate_call_return(struct gate_return *gr, struct cobj_ref arg)
 {
+    if (gate_debug) {
+	const char *msg = "gate_call_return: hello world.\n";
+	sys_cons_puts(msg, strlen(msg));
+    }
+
+    //gate_return_cow();
+
     if (atomic_compare_exchange(&gr->return_count, 0, 1) != 0)
 	panic("gate_call_return: multiple return");
 
@@ -284,21 +297,21 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
     if (r < 0)
 	return r;
 
-    struct gate_call_args *gate_args = 0;
-    r = segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, (void**)&gate_args, 0);
+    void *thread_local_seg = 0;
+    r = segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, &thread_local_seg, 0);
     if (r < 0)
 	return r;
 
-    struct cobj_ref return_stack_obj;
-    void *return_stack = 0;
+    struct cobj_ref return_state_obj;
+    void *return_state = 0;
     r = segment_alloc(kobject_id_thread_ct, PGSIZE,
-		      &return_stack_obj, &return_stack,
-		      0, "gate return stack");
+		      &return_state_obj, &return_state,
+		      0, "gate return state");
     if (r < 0)
 	goto out2;
 
     struct jmp_buf back_from_call;
-    struct gate_return *gr = return_stack;
+    struct gate_return *gr = return_state;
     atomic_set(&gr->return_count, 0);
     gr->rvalp = &r;
     gr->argp = argp;
@@ -313,7 +326,7 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 
     struct cobj_ref return_gate;
     if (setjmp(&back_from_call) == 0) {
-	r = gate_call_setup_return(gr, return_stack, &return_gate);
+	r = gate_call_setup_return(gr, thread_local_seg, &return_gate);
 	if (r < 0)
 	    goto out3;
 
@@ -344,6 +357,7 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 	    printf("gate_call: target label %s\n", label_to_string(&gate_label));
 
 	// Invoke the gate
+	struct gate_call_args *gate_args = thread_local_seg;
 	gate_args->return_gate = return_gate;
 	gate_args->arg = *argp;
 	r = sys_gate_enter(gate, &gate_label, 0, 0);
@@ -354,9 +368,9 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 out4:
     sys_obj_unref(return_gate);
 out3:
-    segment_unmap(return_stack);
-    sys_obj_unref(return_stack_obj);
+    segment_unmap(return_state);
+    sys_obj_unref(return_state_obj);
 out2:
-    segment_unmap(gate_args);
+    segment_unmap(thread_local_seg);
     return r;
 }
