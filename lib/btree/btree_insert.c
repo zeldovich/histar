@@ -569,7 +569,7 @@ __insertKey(struct btree *tree,
 	char success = 0;
 	struct btree_node *rootNode;
 
-	rootNode = bt_read_node(tree, rootOffset);
+	rootNode = btree_read_node(tree, rootOffset);
 
 	if (BTREE_IS_LEAF(rootNode))
 	{

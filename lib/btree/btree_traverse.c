@@ -90,7 +90,7 @@ btree_first_offset(struct btree_traversal *trav)
 
 	trav->tree->left_leaf = bt_left_leaf(trav->tree);
 
-	trav->node = bt_read_node(trav->tree, trav->tree->left_leaf);
+	trav->node = btree_read_node(trav->tree, trav->tree->left_leaf);
 
 	if (trav->node == NULL)
 		return 0 ;
@@ -129,7 +129,7 @@ btree_next_entry(struct btree_traversal *trav)
 		if (nextNodeOffset == 0)
 			return 0 ;
 		
-		trav->node = bt_read_node(trav->tree, nextNodeOffset);
+		trav->node = btree_read_node(trav->tree, nextNodeOffset);
 
 		trav->pos = 0;
 	}
@@ -154,7 +154,7 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 		return ;
 	}
 	
-	rootNode = bt_read_node(tree, rootOffset);
+	rootNode = btree_read_node(tree, rootOffset);
 
 	for (j = i; j > 0; j--)
 		cprintf("    ");

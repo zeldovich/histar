@@ -36,7 +36,7 @@ btree_destroy_node(struct btree_node * node)
 }
 
 struct btree_node *
-bt_read_node(struct btree *tree, offset_t offset)
+btree_read_node(struct btree *tree, offset_t offset)
 {
 	struct btree_node *n ;
 	

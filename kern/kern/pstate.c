@@ -11,6 +11,7 @@
 #include <kern/log.h>
 #include <inc/error.h>
 #include <lib/btree/btree_traverse.h>
+#include <lib/btree/btree_debug.h>
 
 
 // verbose flags
@@ -268,6 +269,8 @@ pstate_load2(void)
 	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
 	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;
 	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &iobj_cache) ;
+
+	btree_sanity_check(&iobjlist.tree) ;
 
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.tree, &trav) ;

@@ -47,7 +47,7 @@ __search(struct btree *tree,
 	struct btree_node *rootNode;
 	char result;
 
-	rootNode = bt_read_node(tree, rootOffset);
+	rootNode = btree_read_node(tree, rootOffset);
 	assert(rootNode);
 	
 	for (i = 0;
@@ -86,11 +86,11 @@ __search(struct btree *tree,
 			}
 			else if (div > 0) {
 				// ok ,accessing a twig node or higher
-				struct btree_node *n = bt_read_node(tree, last_right->children[div - 1] );
+				struct btree_node *n = btree_read_node(tree, last_right->children[div - 1] );
 				struct btree_node *temp ;
 				
 				while(!BTREE_IS_LEAF(n)) {
-					temp = bt_read_node(tree, n->children[(int)n->keyCount]);
+					temp = btree_read_node(tree, n->children[(int)n->keyCount]);
 					btree_destroy_node(n) ;
 					n = temp ;
 				}
@@ -127,7 +127,7 @@ __search(struct btree *tree,
 													rootNode->keyCount, 
 								 				   	tree->s_value) ;
 				// ok, reading next pointer in node
-				struct btree_node *n = bt_read_node(tree, *temp1);
+				struct btree_node *n = btree_read_node(tree, *temp1);
 				//*val_store = n->children[0] ;
 				btree_valcpy(val_store, 
 							 btree_value(n->children, 0, tree->s_value),

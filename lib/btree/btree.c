@@ -25,7 +25,7 @@ btree_init(struct btree * t, char order, char key_size,
 static void
 __btree_erase(struct btree *t, offset_t root)
 {
-	struct btree_node *n = bt_read_node(t, root) ;
+	struct btree_node *n = btree_read_node(t, root) ;
 	
 	if (!BTREE_IS_LEAF(n)) {
 		for (int i = 0 ; i <= n->keyCount ; i++)
@@ -70,8 +70,11 @@ btree_is_empty(struct btree *tree)
 	return (btree_size(tree) == 0);
 }
 
-// XXX: inline all these guys?
+///////////////////////////////////
+// btree key and value helpers
+///////////////////////////////////
 
+// XXX: inline all these guys?
 const offset_t *
 btree_key(const offset_t *keys, const int i, uint8_t s_key)
 {

@@ -176,7 +176,7 @@ __borrowRight(struct btree *tree,
 	if (div >= prevNode->keyCount)
 		return 0;
 
-	node = bt_read_node(tree, prevNode->children[div + 1]);
+	node = btree_read_node(tree, prevNode->children[div + 1]);
 
 	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
 	{
@@ -241,7 +241,7 @@ __borrowRightLeaf(struct btree *tree,
 		return 0;
 
 	// ok, accessing twig children
-	node = bt_read_node(tree, prevNode->children[div + 1]);
+	node = btree_read_node(tree, prevNode->children[div + 1]);
 
 	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
 	{
@@ -310,7 +310,7 @@ __borrowLeft(struct btree *tree,
 	if (div == 0)
 		return 0;
 
-	node = bt_read_node(tree, prevNode->children[div - 1]);
+	node = btree_read_node(tree, prevNode->children[div - 1]);
 
 	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
 	{
@@ -412,7 +412,7 @@ __borrowLeftLeaf(struct btree *tree,
 		return 0;
 
 	// ok, reading twig children
-	node = bt_read_node(tree, prevNode->children[div - 1]);
+	node = btree_read_node(tree, prevNode->children[div - 1]);
 
 	if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf)
 	{
@@ -510,7 +510,7 @@ __mergeNode(struct btree *tree,
 	/* Try to merge the node with its left sibling. */
 	if (div > 0)
 	{
-		node = bt_read_node(tree, prevNode->children[div - 1]);
+		node = btree_read_node(tree, prevNode->children[div - 1]);
 		i    = node->keyCount;
 
 		if (!BTREE_IS_LEAF(rootNode))
@@ -558,7 +558,7 @@ __mergeNode(struct btree *tree,
 	else
 	{
 		/* Must merge the node with its right sibling. */
-		node = bt_read_node(tree, prevNode->children[div + 1]);
+		node = btree_read_node(tree, prevNode->children[div + 1]);
 		i    = rootNode->keyCount;
 
 		if (!BTREE_IS_LEAF(rootNode))
@@ -619,7 +619,7 @@ __mergeLeaf(struct btree *tree,
 	/* Try to merge the node with its left sibling. */
 	if (div > 0)
 	{
-		node = bt_read_node(tree, prevNode->children[div - 1]);
+		node = btree_read_node(tree, prevNode->children[div - 1]);
 		i    = node->keyCount;
 
 		if (!BTREE_IS_LEAF(rootNode))
@@ -678,7 +678,7 @@ __mergeLeaf(struct btree *tree,
 	else
 	{
 		/* Must merge the node with its right sibling. */
-		node = bt_read_node(tree, prevNode->children[div + 1]);
+		node = btree_read_node(tree, prevNode->children[div + 1]);
 		i    = rootNode->keyCount;
 
 		if (!BTREE_IS_LEAF(rootNode))
@@ -750,7 +750,7 @@ __delete(struct btree *tree,
 	char success = 0;
 	struct btree_node *rootNode;
 
-	rootNode = bt_read_node(tree, rootOffset);
+	rootNode = btree_read_node(tree, rootOffset);
 
 	if (BTREE_IS_LEAF(rootNode))
 	{
@@ -847,7 +847,7 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	tree->size     = bt_tree_size(tree);
 
 	/* Read in the root node. */
-	rootNode = bt_read_node(tree, tree->root);
+	rootNode = btree_read_node(tree, tree->root);
 	
 
 	
@@ -887,7 +887,7 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		
 		btree_root_node_is(tree, rootNode->children[0]);
 
-		tempNode = bt_read_node(tree, tree->root);
+		tempNode = btree_read_node(tree, tree->root);
 
 		BTB_SET_DIRTY(tempNode->block);
 
