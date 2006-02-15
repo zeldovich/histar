@@ -14,7 +14,7 @@ struct Label {
 
 #define LB_ENT_EMPTY		(~(0UL))
 
-typedef int (level_comparator)(int, int);
+typedef int (level_comparator)(level_t, level_t);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
 level_comparator label_eq;
