@@ -19,6 +19,7 @@
 
 static uint64_t container;
 static int netd_debug = 1;
+static int netd_force_taint = 0;
 
 struct timer_thread {
     int msec;
@@ -94,9 +95,9 @@ force_taint_prepare(uint64_t taint)
 {
     struct ulabel *l = label_get_current();
     assert(l);
-    // XXX stay at LB_LEVEL_STAR for now -- dynamic taint is still broken
-    //assert(0 == label_set_level(l, taint, 3, 1));
-    assert(0 == label_set_level(l, taint, LB_LEVEL_STAR, 1));
+
+    level_t taint_level = netd_force_taint ? 3 : LB_LEVEL_STAR;
+    assert(0 == label_set_level(l, taint, taint_level, 1));
 
     segment_set_default_label(l);
     int r = heap_relabel(l);
