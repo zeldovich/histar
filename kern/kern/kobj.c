@@ -352,9 +352,12 @@ kobject_gc(struct kobject *ko)
 	r = as_gc(&ko->as);
 	break;
 
+    case kobj_mlt:
+	r = mlt_gc(&ko->mt);
+	break;
+
     case kobj_gate:
     case kobj_segment:
-    case kobj_mlt:
     case kobj_netdev:
 	break;
 

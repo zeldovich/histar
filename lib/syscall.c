@@ -214,9 +214,9 @@ sys_mlt_create(uint64_t container, const char *name)
 }
 
 int
-sys_mlt_get(struct cobj_ref mlt, uint8_t *buf)
+sys_mlt_get(struct cobj_ref mlt, uint8_t *buf, uint64_t *ct_id)
 {
-    return syscall(SYS_mlt_get, mlt, buf);
+    return syscall(SYS_mlt_get, mlt, buf, ct_id);
 }
 
 int

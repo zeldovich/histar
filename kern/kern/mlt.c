@@ -39,6 +39,31 @@ mlt_get_slot(const struct Mlt *mlt, struct mlt_entry **mep,
     return 0;
 }
 
+int
+mlt_gc(struct Mlt *mlt)
+{
+    uint64_t nslots = mlt_nslots(mlt);
+    for (uint64_t i = 0; i < nslots; i++) {
+	struct mlt_entry *me;
+	int r = mlt_get_slot(mlt, &me, i, page_rw);
+	if (r < 0)
+	    return r;
+
+	if (!me->me_inuse)
+	    continue;
+
+	const struct kobject *ko;
+	r = kobject_get(me->me_ct, &ko, iflow_none);
+	if (r < 0)
+	    return r;
+
+	kobject_decref(&ko->hdr);
+	me->me_inuse = 0;
+    }
+
+    return 0;
+}
+
 static int
 mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 {
@@ -92,14 +117,20 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
 	}
     }
 
+    struct Container *ct;
+    r = container_alloc(l, &ct);
+    if (r < 0)
+	return r;
+
     me->me_l = *l;
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
+    me->me_ct = ct->ct_ko.ko_id;
     me->me_inuse = 1;
     return 0;
 }
 
 int
-mlt_get(const struct Mlt *mlt, uint8_t *buf)
+mlt_get(const struct Mlt *mlt, uint8_t *buf, kobject_id_t *ct_id)
 {
     uint64_t nslots = mlt_nslots(mlt);
 
@@ -117,7 +148,10 @@ mlt_get(const struct Mlt *mlt, uint8_t *buf)
 	if (r < 0)
 	    continue;
 
-	memcpy(buf, &me->me_buf[0], MLT_BUF_SIZE);
+	if (buf)
+	    memcpy(buf, &me->me_buf[0], MLT_BUF_SIZE);
+	if (ct_id)
+	    *ct_id = me->me_ct;
 	return 0;
     }
 

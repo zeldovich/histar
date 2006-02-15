@@ -57,10 +57,10 @@ KERN_BINFILES := \
 	user/cpphello \
 	user/rm \
 	user/cat \
+	user/mlt \
 	user/fetch
 
 	#user/chatter1 \
-	#user/mlt \
 	#user/tserv \
 	#user/tclnt \
 	#user/netwatch \

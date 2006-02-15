@@ -11,16 +11,18 @@ struct Mlt {
 
 struct mlt_entry {
     struct Label me_l;
+    kobject_id_t me_ct;
     uint8_t me_inuse;
     uint8_t me_buf[MLT_BUF_SIZE];
 };
 
 int  mlt_alloc(const struct Label *l, struct Mlt **mtp);
+int  mlt_gc(struct Mlt *mlt);
 
 // store using cur_thread's label
 int  mlt_put(const struct Mlt *mlt, uint8_t *buf);
 
 // get the first matching entry
-int  mlt_get(const struct Mlt *mlt, uint8_t *buf);
+int  mlt_get(const struct Mlt *mlt, uint8_t *buf, kobject_id_t *ct_id);
 
 #endif
