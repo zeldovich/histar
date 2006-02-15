@@ -38,6 +38,9 @@ static struct
 	uint8_t	 types[DLOG_SIZE] ;
 	uint64_t times[DLOG_SIZE] ;
 
+	uint64_t min[3] ;
+	uint64_t max[3] ;
+
 	int	ins ;
 } dlog ;
 
@@ -45,10 +48,13 @@ enum { flush = 0 , compact, apply } ;
 	
 static const char *const type_strings[] = {"flush", "compact", "apply"} ;
 
-static void 
+void 
 dlog_init(void)
 {
 	memset(&dlog, 0, sizeof(dlog)) ;
+	
+	dlog.min[flush] = ~0 ;
+	dlog.min[apply] = ~0 ;	
 }
 
 static void
@@ -57,6 +63,10 @@ dlog_log(uint8_t type, uint64_t start, uint64_t stop)
 	int i = dlog.ins ;
 	dlog.types[i] = type ;
 	dlog.times[i] = (stop - start) ;
+	if (dlog.min[type] > dlog.times[i])
+		dlog.min[type] = dlog.times[i] ;
+	if (dlog.max[type] < dlog.times[i])
+		dlog.max[type] = dlog.times[i] ;
 	dlog.ins = (dlog.ins + 1) % DLOG_SIZE ;
 }
 
@@ -71,6 +81,13 @@ dlog_print(void)
 		uint64_t time = dlog.times[i] ;
 		cprintf(" %s\t%ld\n", type_strings[type], time) ;	
 	}
+	
+	cprintf("\n") ;
+	cprintf(" %s+\t%ld\n", type_strings[apply], dlog.max[apply]) ;
+	cprintf(" %s-\t%ld\n", type_strings[apply], dlog.min[apply]) ;
+	cprintf(" %s+\t%ld\n", type_strings[flush], dlog.max[flush]) ;
+	cprintf(" %s-\t%ld\n", type_strings[flush], dlog.min[flush]) ;
+	
 	cprintf("end\n") ;
 }
 
@@ -449,8 +466,6 @@ log_free(void)
 void
 log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
 {
-	dlog_init() ;
-
 	memset(&log, 0, sizeof(log)) ;
 	
 	// logging will overwrite anything in the disk log
