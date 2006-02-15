@@ -19,7 +19,7 @@ struct gate_entry_stack_info {
 };
 
 enum {
-    gate_debug = 1
+    gate_debug = 0
 };
 
 // Compute the appropriate gate entry label.
