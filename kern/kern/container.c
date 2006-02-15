@@ -21,18 +21,15 @@ static int
 container_slot_get(const struct Container *c, uint64_t slotn,
 		   struct container_slot **csp, page_rw_mode rw)
 {
-    uint64_t ko_page = 0;
-    while (slotn >= NUM_CT_SLOT_PER_PAGE) {
-	ko_page++;
-	slotn -= NUM_CT_SLOT_PER_PAGE;
-    }
+    uint64_t ko_page = slotn / NUM_CT_SLOT_PER_PAGE;
+    uint64_t pg_slot = slotn % NUM_CT_SLOT_PER_PAGE;
 
     struct container_page *cpg;
     int r = kobject_get_page(&c->ct_ko, ko_page, (void**)&cpg, rw);
     if (r < 0)
 	return r;
 
-    *csp = &cpg->ct_slot[slotn];
+    *csp = &cpg->ct_slot[pg_slot];
     return 0;
 }
 
