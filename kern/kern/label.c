@@ -183,7 +183,7 @@ label_max(const struct Label *a, const struct Label *b,
 }
 
 int
-label_leq_starlo(int a, int b)
+label_leq_starlo(level_t a, level_t b)
 {
     if (a == LB_LEVEL_STAR)
 	return 0;
@@ -195,7 +195,7 @@ label_leq_starlo(int a, int b)
 }
 
 int
-label_leq_starhi(int a, int b)
+label_leq_starhi(level_t a, level_t b)
 {
     if (b == LB_LEVEL_STAR)
 	return 0;
@@ -207,7 +207,7 @@ label_leq_starhi(int a, int b)
 }
 
 int
-label_eq(int a, int b)
+label_eq(level_t a, level_t b)
 {
     if (a == b)
 	return 0;
