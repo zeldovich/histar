@@ -75,7 +75,7 @@ static int
 frm_unpin(void *arg)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_simple_unpin(&f->simple) ;
+	return btree_simple_unpin_all(&f->simple) ;
 }
 
 static void 
@@ -143,7 +143,7 @@ frm_reset(struct frm *f, uint8_t order, struct cache *cache, struct btree_manage
 	manager->free = &frm_rem ;
 	manager->node = &frm_node ;
 	manager->arg = f ;
-	manager->unpin = &frm_unpin ;
+	manager->unpin_all = &frm_unpin ;
 	manager->write = &frm_write ;
 }
 

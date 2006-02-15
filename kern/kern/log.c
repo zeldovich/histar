@@ -335,6 +335,7 @@ log_write(struct btree_node *node)
 		
 		if ((r = page_alloc((void **)&store)) < 0)
 			return r ;
+		memset(store, 0, PGSIZE) ;
 		log.in_mem++ ;
 	}
 		
