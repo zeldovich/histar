@@ -33,3 +33,8 @@ keep track of handles more explicitly.  root handle, process handle..
 
 make the mount table a separate segment that can be shared
 
+a nice c++ label object
+refcounted objects/pointers
+automatic cleanup through c++ destructors
+c++ throw support?
+
