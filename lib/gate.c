@@ -19,8 +19,71 @@ struct gate_entry_stack_info {
 };
 
 enum {
-    gate_debug = 0
+    gate_debug = 0,
 };
+
+// Copy the writable pieces of the address space
+enum {
+    gate_cow_label_ents = 64,
+    gate_cow_as_ents = 16,
+};
+
+static void
+gate_cow(void)
+{
+    uint64_t cur_ents[gate_cow_label_ents];
+    uint64_t obj_ents[gate_cow_label_ents];
+
+    struct ulabel cur_label =
+	{ .ul_size = gate_cow_label_ents, .ul_ent = &cur_ents[0] };
+    struct ulabel obj_label =
+	{ .ul_size = gate_cow_label_ents, .ul_ent = &obj_ents[0] };
+
+    int r = thread_get_label(&cur_label);
+    if (r < 0)
+	panic("gate_cow: thread_get_label: %s", e2s(r));
+
+    struct cobj_ref cur_as;
+    r = sys_thread_get_as(&cur_as);
+    if (r < 0)
+	panic("gate_cow: sys_thread_get_as: %s", e2s(r));
+
+    r = sys_obj_get_label(cur_as, &obj_label);
+    if (r < 0)
+	panic("gate_cow: cannot get as label: %s", e2s(r));
+
+    // if we can write to the address space, that's "good enough"
+    r = label_compare(&cur_label, &obj_label, label_leq_starlo);
+    if (r == 0) {
+	if (gate_debug)
+	    printf("gate_cow: no need to cow\n");
+	return;
+    }
+
+    struct u_segment_mapping uas_ents[gate_cow_as_ents];
+    struct u_address_space uas =
+	{ .size = gate_cow_as_ents, .ents = &uas_ents[0] };
+    r = sys_as_get(cur_as, &uas);
+    if (r < 0)
+	panic("gate_cow: sys_as_get: %s", e2s(r));
+
+    for (uint32_t i = 0; i < uas.nent; i++) {
+	if (!(uas.ents[i].flags & SEGMAP_WRITE))
+	    continue;
+
+	r = sys_obj_get_label(uas.ents[i].segment, &obj_label);
+	if (r < 0)
+	    panic("gate_cow: cannot get label: %s", e2s(r));
+
+	r = label_compare(&cur_label, &obj_label, label_leq_starlo);
+	if (r == 0)
+	    continue;
+
+	panic("where do i stick this thing?  %lu.%lu",
+	      uas.ents[i].segment.container,
+	      uas.ents[i].segment.object);
+    }
+}
 
 // Compute the appropriate gate entry label.
 static int
@@ -217,11 +280,16 @@ static void __attribute__((noreturn))
 gate_call_return(struct gate_return *gr, struct cobj_ref arg)
 {
     if (gate_debug) {
-	const char *msg = "gate_call_return: hello world.\n";
+	const char *msg = "gate_call_return: hello world\n";
 	sys_cons_puts(msg, strlen(msg));
     }
 
-    //gate_return_cow();
+    gate_cow();
+
+    if (gate_debug) {
+	const char *msg = "gate_call_return: after gate_cow\n";
+	sys_cons_puts(msg, strlen(msg));
+    }
 
     if (atomic_compare_exchange(&gr->return_count, 0, 1) != 0)
 	panic("gate_call_return: multiple return");
