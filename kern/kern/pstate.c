@@ -252,6 +252,7 @@ pstate_load2(void)
 		return -E_INVAL;
     }
 
+	dlog_init() ;
 	log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 	
 	if(stable_hdr.ph_applying) {
@@ -545,6 +546,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		if (pstate_swapout_debug)
 		    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
 	
+		dlog_init() ;
 		log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 	
 		freelist_init(&flist,
