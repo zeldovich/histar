@@ -157,7 +157,7 @@ container_gc(struct Container *c)
 		return r;
 
 	    cs->cs_ref--;
-	    kobject_decref(&kobject_dirty(&ko->hdr)->hdr);
+	    kobject_decref(&ko->hdr);
 	}
     }
 
