@@ -141,8 +141,6 @@ log_write_list(struct node_list *nodes, uint64_t *count,
 		else
 			s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
 		
-		
-		
 		if (s != disk_io_success) {
 			*count = n ;
 			return -E_IO ;
@@ -428,7 +426,6 @@ int
 log_apply(void)
 {
 	int r ;
-	//struct btree_node *node ;
 	uint64_t start, stop ;
 	
 	start = read_tsc() ;
