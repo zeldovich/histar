@@ -509,9 +509,6 @@ pstate_sync_loop(struct pstate_header *hdr,
 	memcpy(&hdr->ph_map, &objmap, sizeof(objmap)) ;
 	int r = pstate_sync_flush() ;
 	
-	if (pstate_dlog_stats)
-		dlog_print() ;
-	
 	if (r < 0) {
 		cprintf("pstate_sync_loop: unable to flush\n") ;
 		return r ;
@@ -523,6 +520,9 @@ pstate_sync_loop(struct pstate_header *hdr,
 		return r ;
 	}
 
+	if (pstate_dlog_stats)
+		dlog_print() ;
+		
 	memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
 	return 0 ;
 }

@@ -54,7 +54,7 @@ dlog_init(void)
 	memset(&dlog, 0, sizeof(dlog)) ;
 	
 	dlog.min[flush] = ~0 ;
-	dlog.min[apply] = ~0 ;	
+	dlog.min[apply] = ~0 ;
 }
 
 static void
@@ -111,8 +111,10 @@ dlog_print(void)
 		}
 	}
 	
-	cprintf(" %8s_ave\t%ld\n", type_strings[apply], tot_ap / cnt_ap) ;
-	cprintf(" %8s_ave\t%ld\n", type_strings[flush], tot_fl / cnt_fl) ;
+	if (cnt_ap)
+		cprintf(" %8s_ave\t%ld\n", type_strings[apply], tot_ap / cnt_ap) ;
+	if (cnt_fl)
+		cprintf(" %8s_ave\t%ld\n", type_strings[flush], tot_fl / cnt_fl) ;
 	
 	cprintf("end\n") ;
 }
@@ -339,6 +341,7 @@ log_write(struct btree_node *node)
 	memcpy(store, node, BTREE_NODE_SIZE(node->tree->order, node->tree->s_key)) ;
 	LIST_INSERT_HEAD(&log.nodes, store, node_link) ;
 
+	log.just_flushed = 0 ;	
 	return 0 ;	
 }
 
@@ -381,9 +384,11 @@ log_flush(void)
 
 	log.on_disk += log.in_mem ;
 
-	stop = read_tsc() ;
+	log.just_flushed = 1 ;
 
+	stop = read_tsc() ;
 	dlog_log(flush, start, stop) ;
+
 	return 0 ;
 }
 
@@ -439,6 +444,7 @@ log_apply(void)
 			if (log.just_flushed)
 				n_nodes -= log.in_mem ;	
 			
+			// XXX: should really be calling something like log_compact...
 			if ((r = log_apply_disk(off, n_nodes)) < 0)
 				return r ;
 		}
@@ -452,7 +458,7 @@ log_apply(void)
 		
 		log.in_mem -= count ;
 		assert(log.in_mem == 0) ;
-		
+				
 		log_free() ;
 		log_init(log.offset, log.npages, log.max_mem) ;
 		
