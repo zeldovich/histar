@@ -75,10 +75,6 @@ netd_dispatch(struct netd_op_args *a)
 static void
 netd_gate_entry(void *x, struct cobj_ref *arg)
 {
-    struct ulabel *l = label_get_obj(*arg);
-    if (l == 0)
-	panic("netd_gate_entry: cannot get label for args segment");
-
     int64_t arg_copy_id = sys_segment_copy(*arg, netd_ct,
 					   segment_get_default_label(),
 					   "netd_gate_entry() args");
@@ -95,12 +91,19 @@ netd_gate_entry(void *x, struct cobj_ref *arg)
     netd_dispatch(netd_op);
     segment_unmap(netd_op);
 
+    struct ulabel *l = label_get_current();
+    if (l == 0)
+	panic("cannot allocate label for segment copyback");
+    label_change_star(l, l->ul_default);
+
     uint64_t copy_back_ct = kobject_id_thread_ct;
     int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
 					    l, "netd_gate_entry() reply");
     if (copy_back_id < 0)
 	panic("netd_gate_entry: cannot copy back with label %s: %s",
 	      label_to_string(l), e2s(copy_back_id));
+
+    label_free(l);
     sys_obj_unref(arg_copy);
 
     *arg = COBJ(copy_back_ct, copy_back_id);
