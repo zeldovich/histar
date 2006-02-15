@@ -270,3 +270,15 @@ strcat(char *dest, const char *src) {
 	*dest = *src;
 	return p;
 }
+
+char *
+strstr(const char *haystack, const char *needle)
+{
+    size_t nlen = strlen(needle);
+
+    for (; *haystack; haystack++)
+	if (!strncmp(haystack, needle, nlen))
+	    return (char *) haystack;
+
+    return 0;
+}

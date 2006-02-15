@@ -6,6 +6,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/stack.S \
 	lib/memcpy.c \
+	lib/memmove.c \
 	lib/memset.c \
 	lib/syscall.c \
 	lib/printfmt.c \

@@ -13,6 +13,7 @@ char *	strchr(const char *s, int c);
 char *  strrchr(const char *s, int c);
 char *	strfind(const char *s, char c);
 char *  strcat(char *dest, const char *src);
+char *	strstr(const char *haystack, const char *needle);
 
 void *	memset(void *dest, int c, size_t len);
 void *	memcpy(void *dest, const void *src, size_t len);
