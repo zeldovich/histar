@@ -31,6 +31,7 @@ LIB_SRCFILES :=	\
 	lib/malloc.c \
 	lib/fs.c \
 	lib/label.c \
+	lib/cppglue.cc \
 	lib/cpplabel.cc
 
 include lib/$(ARCH)/Makefrag
