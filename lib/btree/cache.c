@@ -132,12 +132,29 @@ cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
 }
 
 int 
-cache_unpin(struct cache *c)
+cache_unpin_all(struct cache *c)
 {
 	int i = 0 ;
 	for(; i < c->n_ent ; i++)
 		c->meta[i].pin = 0 ;
 	return 0 ;	
+}
+
+int 
+cache_unpin_ent(struct cache *c, tag_t t)
+{
+	if (t == 0)
+		return -E_INVAL ;
+	
+	int i = 0 ;
+	for(; i < c->n_ent ; i++) {
+		if (c->meta[i].inuse && t == c->meta[i].tag) {
+			c->meta[i].pin = 0 ;
+			return 1 ;
+		}
+	}
+	
+	return -E_NOT_FOUND ;			
 }
 
 int 

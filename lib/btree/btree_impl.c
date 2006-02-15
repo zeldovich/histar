@@ -47,10 +47,10 @@ btree_simple_node(struct btree *tree,
 							  PGSIZE, 
 							  offset * PGSIZE);
 		if (s != disk_io_success) {
-			cprintf("btree_man_node: error reading node\n");
+			cprintf("btree_simple_node: error reading node from disk\n");
 			page_free(buf) ;
 			*store = 0 ;
-			return -1;
+			return -E_IO;
 		}
 	}
 	
@@ -77,64 +77,6 @@ btree_simple_node(struct btree *tree,
 					
 	return 0 ;
 }
-
-#if 0
-int 
-btree_simple_node(struct btree *tree, 
-				 offset_t offset, 
-				 struct btree_node **store, 
-				 void *man)
-{
-	struct btree_simple * manager = (struct btree_simple *) man ;
-	int r ;	
-
-	if ((r = cache_ent(manager->cache, offset, (uint8_t**) store)) == 0)
-		return 0 ;
-
-	uint8_t *buf ;
-	r = log_node(offset, (struct btree_node **)&buf) ;
-	if (r < 0) {
-		if (page_alloc((void**)&buf) < 0)
-			return -E_NO_MEM ;
-	
-		disk_io_status s = 
-			stackwrap_disk_io(op_read, 
-							  buf, 
-							  PGSIZE, 
-							  offset * PGSIZE);
-		if (s != disk_io_success) {
-			cprintf("btree_man_node: error reading node\n");
-			page_free(buf) ;
-			*store = 0 ;
-			return -1;
-		}
-	}
-	
-	r = cache_try_insert(manager->cache, offset, 
-						buf, (uint8_t **)store) ;
-
-	page_free(buf)	 ;
-
-	if (r < 0) {
-		*store = 0 ;
-		return r ;
-	}
-
-	struct btree_node *node = *store ;
-
-	// setup pointers in node
-	node->block.offset = offset ;
-	node->tree = tree ;
-
-	node->children = CENT_CHILDREN(node) ;
-	node->keys = CENT_KEYS(node, manager->order) ;
-	node->block.offset = offset ;
-	node->tree = tree ;
-					
-	return 0 ;
-}
-#endif
-
 
 int 
 btree_simple_write(struct btree_node *node, void *manager __attribute__((unused)))
@@ -181,10 +123,17 @@ btree_simple_rem(void *man, offset_t offset)
 }
 
 int 
-btree_simple_unpin(void *man)
+btree_simple_unpin_all(void *man)
 {
 	struct btree_simple * manager = (struct btree_simple *) man ;
-	return cache_unpin(manager->cache) ;
+	return cache_unpin_all(manager->cache) ;
+}
+
+int 
+btree_simple_unpin_node(void *man, offset_t offset)
+{
+	struct btree_simple * manager = (struct btree_simple *) man ;
+	return cache_unpin_ent(manager->cache, offset) ;
 }
 
 int 
@@ -225,7 +174,8 @@ btree_default_setup(struct btree_default *def, uint8_t order,
 	def->tree.manager.free = &btree_simple_rem ;
 	def->tree.manager.node = &btree_simple_node ;
 	def->tree.manager.arg = def ;
-	def->tree.manager.unpin = &btree_simple_unpin ;
+	def->tree.manager.unpin_all = &btree_simple_unpin_all ;
+	def->tree.manager.unpin_node = &btree_simple_unpin_node ;
 	def->tree.manager.write = &btree_simple_write ;
 	   	
 	return 0 ;				
@@ -316,6 +266,13 @@ btree_volatile_unpin(void *man)
 }
 
 static int 
+btree_volatile_unpin_node(void *man, offset_t offset)
+{
+	// do nothing
+	return 0 ;
+}
+
+static int 
 btree_volatile_write(struct btree_node *node, void *manager)
 {
 	// do nothing
@@ -329,7 +286,8 @@ btree_volatile_setup(struct btree_volatile *def)
 	def->tree.manager.free = &btree_volatile_rem ;
 	def->tree.manager.node = &btree_volatile_node ;
 	def->tree.manager.arg = def ;
-	def->tree.manager.unpin = &btree_volatile_unpin ;
+	def->tree.manager.unpin_all = &btree_volatile_unpin ;
+	def->tree.manager.unpin_node = &btree_volatile_unpin_node ;
 	def->tree.manager.write = &btree_volatile_write ;
 	
 	def->off_count = 0 ;

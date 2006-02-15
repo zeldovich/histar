@@ -36,7 +36,8 @@ struct btree_manager
 	int (*write)(struct btree_node *node, void *arg) ;
 	int (*free)(void *arg, offset_t offset) ;
 	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
-	int (*unpin)(void *arg) ;
+	int (*unpin_all)(void *arg) ;
+	int (*unpin_node)(void *arg, offset_t offset) ;
 
 	void *arg ;
 } ;

@@ -46,8 +46,8 @@ btree_erase(struct btree *t)
 void
 btree_release_nodes(struct btree *tree)
 {
-	if (tree->manager.unpin)
-		tree->manager.unpin(tree->manager.arg) ;	
+	if (tree->manager.unpin_all)
+		tree->manager.unpin_all(tree->manager.arg) ;	
 }
 
 uint64_t

@@ -48,7 +48,8 @@ int	btree_simple_node(struct btree *tree, offset_t offset,
 int btree_simple_alloc(struct btree *tree, offset_t offset, 
 					   struct btree_node **store, void *man) ;
 int btree_simple_rem(void *man, offset_t offset) ;
-int btree_simple_unpin(void *man) ;
+int btree_simple_unpin_all(void *man) ;
+int btree_simple_unpin_node(void *man, offset_t offset) ;
 int btree_simple_write(struct btree_node *node, void *man) ;
 
 int btree_default_init(struct btree_default *def, uint8_t order, 
