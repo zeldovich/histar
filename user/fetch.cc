@@ -118,7 +118,7 @@ class lineparser {
 public:
     lineparser(tcpconn *tc) : tc_(tc) {
 	pos_ = 0;
-	size_ = 1024;
+	size_ = 4096;
 	valid_ = 0;
 	buf_ = (char *) malloc(size_);
 	if (buf_ == 0)
@@ -131,7 +131,8 @@ public:
     }
 
     size_t read(char *buf, size_t len) {
-	refill();
+	if (valid_ == pos_)
+	    refill();
 
 	size_t queued = valid_ - pos_;
 	if (queued > len)
@@ -200,7 +201,7 @@ main(int ac, char **av)
     if (fetch_debug)
 	printf("Connected OK\n");
 
-    char buf[512];
+    char buf[1024];
     sprintf(buf, "GET %s HTTP/1.0\r\n\r\n", u.path());
     tc.write(buf, strlen(buf));
     if (fetch_debug)
