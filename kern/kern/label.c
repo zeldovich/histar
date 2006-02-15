@@ -213,3 +213,22 @@ label_eq(int a, int b)
 	return 0;
     return -E_LABEL;
 }
+
+void
+label_cprint(const struct Label *l)
+{
+    cprintf("Label %p: {", l);
+    for (int i = 0; i < NUM_LB_ENT; i++) {
+	uint64_t ent = l->lb_ent[i];
+	if (ent != LB_ENT_EMPTY) {
+	    level_t level = LB_LEVEL(ent);
+	    char lchar[2];
+	    if (level == LB_LEVEL_STAR)
+		lchar[0] = '*';
+	    else
+		snprintf(&lchar[0], 2, "%d", level);
+	    cprintf(" %lu:%c,", LB_HANDLE(ent), lchar[0]);
+	}
+    }
+    cprintf(" %d }\n", l->lb_def_level);
+}

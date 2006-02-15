@@ -34,4 +34,7 @@ int  label_compare(const struct Label *l1,
 int  label_max(const struct Label *a, const struct Label *b,
 	       struct Label *dst, level_comparator cmp);
 
+// debugging: print a label
+void label_cprint(const struct Label *l);
+
 #endif
