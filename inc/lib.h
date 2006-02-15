@@ -69,7 +69,7 @@ int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, char *name);
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
-int	thread_get_label(uint64_t ctemp, struct ulabel *ul);
+int	thread_get_label(struct ulabel *ul);
 
 /* fd.c */
 ssize_t	read(int fd, void *buf, size_t nbytes);
@@ -107,6 +107,9 @@ void free(void *ptr);
 void *realloc(void *ptr, size_t size);
 
 /* label.c */
+typedef int (label_comparator)(level_t, level_t);
+label_comparator label_leq_starlo;
+
 struct ulabel *label_alloc(void);
 void label_free(struct ulabel *l);
 struct ulabel *label_get_current(void);
@@ -118,6 +121,7 @@ level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(struct ulabel *l);
 int  label_grow(struct ulabel *l);
 struct ulabel *label_dup(struct ulabel *l);
+int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 
 // for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default
 void label_max_default(struct ulabel *l);

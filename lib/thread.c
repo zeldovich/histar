@@ -124,8 +124,10 @@ thread_halt(void)
 }
 
 int
-thread_get_label(uint64_t ctemp, struct ulabel *ul)
+thread_get_label(struct ulabel *ul)
 {
+    uint64_t ctemp = kobject_id_thread_ct;
+
     uint64_t tid = thread_id();
     int r = sys_thread_addref(ctemp);
     if (r < 0)

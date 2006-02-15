@@ -49,7 +49,7 @@ label_get_current()
     int r;
 
 retry:
-    r = thread_get_label(start_env->container, l);
+    r = thread_get_label(l);
 
     if (r == -E_NO_SPACE) {
 	r = label_grow(l);
@@ -209,4 +209,40 @@ label_max_default(struct ulabel *l)
 	if (LB_LEVEL(l->ul_ent[i]) < l->ul_default ||
 	    LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
 	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), l->ul_default);
+}
+
+int
+label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp)
+{
+    for (uint32_t i = 0; i < a->ul_nent; i++) {
+	uint64_t h = LB_HANDLE(a->ul_ent[i]);
+	int r = cmp(label_get_level(a, h), label_get_level(b, h));
+	if (r < 0)
+	    return r;
+    }
+
+    for (uint32_t i = 0; i < b->ul_nent; i++) {
+	uint64_t h = LB_HANDLE(b->ul_ent[i]);
+	int r = cmp(label_get_level(a, h), label_get_level(b, h));
+	if (r < 0)
+	    return r;
+    }
+
+    int r = cmp(a->ul_default, b->ul_default);
+    if (r < 0)
+	return r;
+
+    return 0;
+}
+
+int
+label_leq_starlo(level_t a, level_t b)
+{
+    if (a == LB_LEVEL_STAR)
+	return 0;
+    if (b == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
 }
