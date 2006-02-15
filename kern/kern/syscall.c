@@ -379,6 +379,12 @@ sys_thread_get_as(struct cobj_ref *as_ref)
 }
 
 static void
+sys_thread_set_as(struct cobj_ref as_ref)
+{
+    thread_change_as(cur_thread, as_ref);
+}
+
+static void
 sys_thread_set_label(struct ulabel *ul)
 {
     struct Label l;
@@ -658,6 +664,10 @@ syscall(syscall_num num, uint64_t a1,
 	    page_user_incore((void**) &a1, sizeof(as_ref));
 	    memcpy((void*) a1, &as_ref, sizeof(as_ref));
 	}
+	break;
+
+    case SYS_thread_set_as:
+	sys_thread_set_as(COBJ(a1, a2));
 	break;
 
     case SYS_thread_set_label:

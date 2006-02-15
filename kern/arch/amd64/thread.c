@@ -211,6 +211,15 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     return 0;
 }
 
+void
+thread_change_as(const struct Thread *const_t, struct cobj_ref as)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+
+    thread_clear_as(t);
+    t->th_asref = as;
+}
+
 int
 thread_jump(const struct Thread *const_t, const struct Label *label,
 	    struct cobj_ref as, void *entry,
@@ -223,8 +232,7 @@ thread_jump(const struct Thread *const_t, const struct Label *label,
     if (r < 0)
 	return r;
 
-    thread_clear_as(t);
-    t->th_asref = as;
+    thread_change_as(t, as);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;

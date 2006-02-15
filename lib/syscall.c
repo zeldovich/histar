@@ -158,6 +158,12 @@ sys_thread_get_as(struct cobj_ref *as_obj)
 }
 
 int
+sys_thread_set_as(struct cobj_ref as_obj)
+{
+    return syscall(SYS_thread_set_as, as_obj);
+}
+
+int
 sys_thread_set_label(struct ulabel *l)
 {
     return syscall(SYS_thread_set_label, l);
