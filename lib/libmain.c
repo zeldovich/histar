@@ -1,6 +1,7 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/lib.h>
+#include <inc/memlayout.h>
 
 extern int main(int argc, const char **argv);
 
@@ -40,6 +41,16 @@ libmain(uint64_t arg0, uint64_t arg1)
 	struct ulabel *l = label_get_current();
 	assert(l);
 	segment_set_default_label(l);
+
+	struct cobj_ref start_env_seg;
+	int r = segment_lookup(start_env, &start_env_seg, 0);
+	if (r < 0)
+	    panic("libmain: cannot find start_env segment: %s", e2s(r));
+
+	void *start_env_ro = (void *) USTARTENVRO;
+	r = segment_map(start_env_seg, SEGMAP_READ, &start_env_ro, 0);
+	if (r < 0)
+	    panic("libmain: cannot map start_env_ro: %s", e2s(r));
     }
 
     int r = main(argc, &argv[0]);

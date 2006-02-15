@@ -7,6 +7,7 @@
 #include <inc/memlayout.h>
 #include <inc/stack.h>
 #include <inc/error.h>
+#include <inc/mlt.h>
 
 struct gate_call_args {
     struct cobj_ref return_gate;
@@ -60,6 +61,22 @@ gate_cow(void)
 	return;
     }
 
+    struct cobj_ref mlt;
+    start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
+    r = container_find(start_env_ro->container, kobj_mlt, "dynamic taint");
+    if (r < 0)
+	panic("gate_cow: cannot find the MLT: %s", e2s(r));
+
+    char buf[MLT_BUF_SIZE];
+    r = sys_mlt_put(mlt, &buf[0]);
+    if (r < 0)
+	panic("gate_cow: cannot store garbage in MLT: %s", e2s(r));
+
+    uint64_t mlt_ct;
+    r = sys_mlt_get(mlt, &buf[0], &mlt_ct);
+    if (r < 0)
+	panic("gate_cow: cannot get MLT container: %s", e2s(r));
+
     struct u_segment_mapping uas_ents[gate_cow_as_ents];
     struct u_address_space uas =
 	{ .size = gate_cow_as_ents, .ents = &uas_ents[0] };
@@ -79,10 +96,26 @@ gate_cow(void)
 	if (r == 0)
 	    continue;
 
-	panic("where do i stick this thing?  %lu.%lu",
-	      uas.ents[i].segment.container,
-	      uas.ents[i].segment.object);
+	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+				      &cur_label, "gate cow");
+	if (id < 0)
+	    panic("gate_cow: cannot copy segment: %s", e2s(id));
+
+	uas.ents[i].segment = COBJ(mlt_ct, id);
     }
+
+    int64_t id = sys_as_create(mlt_ct, &cur_label, "gate cow as");
+    if (id < 0)
+	panic("gate_cow: cannot create new as: %s", e2s(id));
+
+    struct cobj_ref new_as = COBJ(mlt_ct, id);
+    r = sys_as_set(new_as, &uas);
+    if (r < 0)
+	panic("gate_cow: cannot populate new as: %s", e2s(r));
+
+    r = sys_thread_set_as(new_as);
+    if (r < 0)
+	panic("gate_cow: cannot switch to new as: %s", e2s(r));
 }
 
 // Compute the appropriate gate entry label.
