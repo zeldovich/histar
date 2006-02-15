@@ -390,23 +390,13 @@ log_flush(void)
 }
 
 static int 
-log_apply_disk(void)
+log_apply_disk(offset_t off, uint64_t n_nodes)
 {
 	int r ;
-	disk_io_status s ;
 	struct node_list nodes ;
 
-	s = stackwrap_disk_io(op_read, scratch,
-						  SCRATCH_SIZE, log.offset * PGSIZE);
-	if (s != disk_io_success)
-		return -E_IO ;
-		
-	struct log_header *lh = (struct log_header *)scratch ;
-	uint64_t n_nodes = lh->n_nodes ;
 	if (n_nodes == 0)
 		return 0 ;
-	
-	uint64_t off = log.offset + 1 ;
 	
 	while (n_nodes) {
 		uint64_t n = MIN(n_nodes, log.max_mem) ;
@@ -438,21 +428,24 @@ int
 log_apply(void)
 {
 	int r ;
-	struct btree_node *node ;
+	//struct btree_node *node ;
 	uint64_t start, stop ;
 	
 	start = read_tsc() ;
 
 
 	if (log.in_mem != 0) { // have an active in memory log
-		if (log.on_disk)
-			if ((r = log_apply_disk()) < 0)
-				return r ;
+		if (log.on_disk) {
+			offset_t off = log.offset + 1 ;
+			uint64_t n_nodes = log.on_disk ;
 
-		// XXX: this doesn't actually help w/ common case opt
-		struct btree_node *prev = LIST_FIRST(&log.nodes) ;
-		node = LIST_NEXT(prev, node_link) ;
+			if (log.just_flushed)
+				n_nodes -= log.in_mem ;	
 			
+			if ((r = log_apply_disk(off, n_nodes)) < 0)
+				return r ;
+		}
+
 		uint64_t count ;
 		if ((r = log_write_list(&log.nodes, &count, 0, 0)) < 0)
 			return r ;
@@ -471,8 +464,21 @@ log_apply(void)
 		dlog_log(apply, start, stop) ;
 		return 0 ;
 	}
-	else  // try to apply log sitting on disk
-		return log_apply_disk() ;
+	else  { // try to apply log sitting on disk
+		disk_io_status s = stackwrap_disk_io(op_read, scratch,
+							  SCRATCH_SIZE, log.offset * PGSIZE);
+		if (s != disk_io_success)
+			return -E_IO ;
+			
+		struct log_header *lh = (struct log_header *)scratch ;
+		uint64_t n_nodes = lh->n_nodes ;
+		if (n_nodes == 0)
+			return 0 ;
+		
+		uint64_t off = log.offset + 1 ;
+	
+		return log_apply_disk(off, n_nodes) ;
+	}
 }
 
 void
