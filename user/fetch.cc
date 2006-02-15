@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/netd.h>
+#include <inc/string.h>
 }
 
 static int fetch_debug = 0;
@@ -112,6 +113,71 @@ private:
     int fd_;
 };
 
+class lineparser {
+public:
+    lineparser(tcpconn *tc) : tc_(tc) {
+	pos_ = 0;
+	size_ = 1024;
+	valid_ = 0;
+	buf_ = (char *) malloc(size_);
+	if (buf_ == 0)
+	    panic("out of memory");
+    }
+
+    ~lineparser() {
+	if (buf_)
+	    free(buf_);
+    }
+
+    size_t read(char *buf, size_t len) {
+	refill();
+
+	size_t queued = valid_ - pos_;
+	if (queued > len)
+	    queued = len;
+	memcpy(buf, &buf_[pos_], queued);
+	pos_ += queued;
+	return queued;
+    }
+
+    const char *read_line() {
+	refill();
+
+	char *base = &buf_[pos_];
+	char *newline = strstr(base, "\r\n");
+	if (newline == 0)
+	    return 0;
+
+	*newline = '\0';
+	pos_ += (newline - base) + 2;
+	return base;
+    }
+
+private:
+    void refill() {
+	memmove(&buf_[0], &buf_[pos_], valid_ - pos_);
+	valid_ -= pos_;
+	pos_ = 0;
+
+	size_t space = size_ - valid_;
+	if (space > 0) {
+	    size_t cc = tc_->read(&buf_[valid_], space);
+	    valid_ += cc;
+
+	    if (fetch_debug)
+		printf("lineparser::refill: got another %ld bytes\n", cc);
+	}
+    }
+
+    tcpconn *tc_;
+
+    size_t size_;
+    char *buf_;
+
+    size_t pos_;
+    size_t valid_;
+};
+
 int
 main(int ac, char **av)
 {
@@ -139,5 +205,27 @@ main(int ac, char **av)
     if (fetch_debug)
 	printf("Sent request OK\n");
 
-    // XXX need file write support here!
+    lineparser lp(&tc);
+    const char *resp = lp.read_line();
+    assert(resp);
+    if (strncmp(resp, "HTTP/1.", 7))
+	panic("not an HTTP response: %s", resp);
+    if (strncmp(&resp[9], "200", 3))
+	panic("request error: %s", resp);
+
+    while (resp[0] != '\0') {
+	resp = lp.read_line();
+	assert(resp);
+    }
+
+    for (;;) {
+	size_t cc = lp.read(buf, sizeof(buf));
+	if (cc == 0)
+	    break;
+
+	// XXX need file write support here!
+	write(1, buf, cc);
+    }
+
+    printf("\nDone.\n");
 }
