@@ -125,14 +125,22 @@ thread_swapin(struct Thread *t)
 	thread_pin(t);
 }
 
+static void
+thread_clear_as(struct Thread *t)
+{
+    if (t->th_as) {
+	kobject_unpin_hdr(&t->th_as->as_ko);
+	t->th_as = 0;
+    }
+}
+
 void
 thread_swapout(struct Thread *t)
 {
     thread_unpin(t);
     LIST_REMOVE(t, th_link);
 
-    if (t->th_as)
-	kobject_unpin_hdr(&t->th_as->as_ko);
+    thread_clear_as(t);
 }
 
 void
@@ -197,6 +205,9 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     kobject_dirty(&ko_sg->hdr)->hdr.ko_label = *label;
     kobject_dirty(&ko_ct->hdr)->hdr.ko_label = *label;
 
+    // make sure all label checks get re-evaluated
+    thread_clear_as(t);
+
     return 0;
 }
 
@@ -212,9 +223,7 @@ thread_jump(const struct Thread *const_t, const struct Label *label,
     if (r < 0)
 	return r;
 
-    if (t->th_as)
-	kobject_unpin_hdr(&t->th_as->as_ko);
-    t->th_as = 0;
+    thread_clear_as(t);
     t->th_asref = as;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
@@ -255,6 +264,9 @@ thread_pagefault(const struct Thread *t, void *fault_va)
 	const struct Address_space *as = &ko->as;
 	kobject_dirty(&t->th_ko)->th.th_as = as;
 	kobject_pin_hdr(&t->th_as->as_ko);
+
+	// Just to ensure all label checks are up-to-date.
+	as_invalidate(as);
     }
 
     return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va);
