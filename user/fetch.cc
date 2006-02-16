@@ -82,6 +82,9 @@ public:
 	if (fd_ < 0)
 	    panic("socket: %s", e2s(fd_));
 
+	if (fetch_debug)
+	    printf("--- about to connect ---\n");
+
 	int r = connect(fd_, (struct sockaddr *) &sin, sizeof(sin));
 	if (r < 0)
 	    panic("connect: %s", e2s(r));
