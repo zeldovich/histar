@@ -101,8 +101,18 @@ gate_cow(void)
 		    uas.ents[i].segment.container,
 		    uas.ents[i].segment.object);
 
+	for (uint32_t j = 0; j < cur_label.ul_nent; j++) {
+	    uint64_t h = LB_HANDLE(cur_label.ul_ent[j]);
+	    level_t obj_level = label_get_level(&obj_label, h);
+	    level_t cur_level = label_get_level(&cur_label, h);
+	    if (cur_level == LB_LEVEL_STAR)
+		continue;
+	    if (obj_level == LB_LEVEL_STAR || obj_level < cur_level)
+		assert(0 == label_set_level(&obj_label, h, cur_level, 0));
+	}
+
 	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-			      &cur_label, "gate cow");
+			      &obj_label, "gate cow");
 	if (id < 0)
 	    panic("gate_cow: cannot copy segment: %s", e2s(id));
 
@@ -339,7 +349,13 @@ gate_call_return(struct gate_return *gr, struct cobj_ref arg)
     assert(l);
 
     assert(0 == label_set_level(l, gr->return_handle, l->ul_default, 1));
+
+    if (gate_debug)
+	printf("gate_call_return: switching label to %s\n",
+	       label_to_string(l));
+
     assert(0 == label_set_current(l));
+    label_free(l);
 
     *gr->rvalp = 0;
     *gr->argp = arg;
