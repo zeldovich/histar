@@ -27,7 +27,9 @@ LIB_SRCFILES += \
 	lib/cppsup/tinfo2.cc \
 	lib/cppsup/vterminate.cc
 
+CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
+
 $(OBJDIR)/lib/cppsup/%.o: lib/cppsup/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(CXXWARNS) -Wno-missing-noreturn -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) $(CXXWARNS) $(CPPSUP_FLAGS) -c -o $@ $<
 
