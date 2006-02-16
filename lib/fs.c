@@ -7,6 +7,7 @@
 #include <inc/mlt.h>
 
 static int fs_debug = 0;
+static int fs_label_debug = 0;
 
 static struct ulabel *
 fs_get_label(void)
@@ -76,21 +77,29 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 
     // Simple MLT support
     if (!strcmp(fn, "@mlt")) {
-	struct ulabel *l = label_get_current();
-	if (l == 0)
-	    return -E_NO_MEM;
-
-	label_change_star(l, l->ul_default);
 	char blob[MLT_BUF_SIZE];
-	int r = sys_mlt_put(dir.obj, l, &blob[0]);
-	label_free(l);
-	if (r < 0)
-	    return r;
-
 	uint64_t ct;
-	r = sys_mlt_get(dir.obj, &blob[0], &ct);
-	if (r < 0)
-	    return r;
+	int r = sys_mlt_get(dir.obj, &blob[0], &ct);
+	if (r < 0) {
+	    struct ulabel *l = label_get_current();
+	    if (l == 0)
+		return -E_NO_MEM;
+
+	    label_change_star(l, l->ul_default);
+
+	    if (fs_label_debug)
+		cprintf("Creating MLT branch with label %s\n",
+			label_to_string(l));
+
+	    r = sys_mlt_put(dir.obj, l, &blob[0]);
+	    label_free(l);
+	    if (r < 0)
+		return r;
+
+	    r = sys_mlt_get(dir.obj, &blob[0], &ct);
+	    if (r < 0)
+		return r;
+	}
 
 	o->obj = COBJ(ct, ct);
 	return 0;
@@ -197,6 +206,10 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 	return -E_NO_MEM;
 
     int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
+
+    if (fs_label_debug)
+	cprintf("Creating file with label %s\n", label_to_string(l));
+
     label_free(l);
     if (id < 0)
 	return id;
