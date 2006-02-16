@@ -226,7 +226,7 @@ sys_mlt_get(struct cobj_ref mlt, uint8_t *buf, uint64_t *ct_id)
 }
 
 int
-sys_mlt_put(struct cobj_ref mlt, uint8_t *buf)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf)
 {
-    return syscall(SYS_mlt_put, mlt, buf);
+    return syscall(SYS_mlt_put, mlt, l, buf);
 }

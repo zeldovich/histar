@@ -518,12 +518,20 @@ sys_mlt_get(struct cobj_ref mlt, uint8_t *buf, kobject_id_t *ct_id)
 }
 
 static void
-sys_mlt_put(struct cobj_ref mlt, uint8_t *buf)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
 {
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
+
+    struct Label l;
+    if (ul)
+	check(ulabel_to_label(ul, &l));
+    else
+	l = cur_thread->th_ko.ko_label;
+    check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
+
     check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
-    check(mlt_put(&ko->mt, buf));
+    check(mlt_put(&ko->mt, &l, buf));
 }
 
 uint64_t
@@ -714,7 +722,7 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_mlt_put:
-	sys_mlt_put(COBJ(a1, a2), (uint8_t *) a3);
+	sys_mlt_put(COBJ(a1, a2), (struct ulabel *) a3, (uint8_t *) a4);
 	break;
 
     default:

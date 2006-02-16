@@ -82,10 +82,9 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 }
 
 int
-mlt_put(const struct Mlt *mlt, uint8_t *buf)
+mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
 {
     struct mlt_entry *me = 0;
-    const struct Label *l = &cur_thread->th_ko.ko_label;
 
     int r;
     struct mlt_entry *freeslot = 0;
