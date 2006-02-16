@@ -18,8 +18,8 @@
 #include <jif/jif.h>
 
 static uint64_t container;
-static int netd_debug = 1;
-static int netd_force_taint = 0;
+static int netd_debug = 0;
+static int netd_force_taint = 1;
 
 struct timer_thread {
     int msec;
