@@ -16,7 +16,7 @@ static struct ulabel *seg_create_label;
 void
 segment_set_default_label(struct ulabel *l)
 {
-    if (seg_create_label)
+    if (seg_create_label && seg_create_label != l)
 	label_free(seg_create_label);
     seg_create_label = l;
 }
