@@ -30,6 +30,8 @@ OBJTYPE	:= elf64-x86-64
 CC	:= $(GCCPREFIX)gcc -pipe
 CXX	:= $(GCCPREFIX)c++ -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
+CRTBEGIN:= $(shell $(CC) -print-file-name=crtbegin.o)
+CRTEND  := $(shell $(CC) -print-file-name=crtend.o)
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
@@ -59,9 +61,12 @@ CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR)
 
 # Linker flags for user programs
-LDEPS	:= $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a
+LDENTRY := $(OBJDIR)/lib/entry.o
+CRTN	:= $(OBJDIR)/lib/crtn.o
+
+LDEPS	:= $(LDENTRY) $(CRTN) $(OBJDIR)/lib/libjos.a
 LDFLAGS := -nostdlib -L$(OBJDIR)/lib
-LIBS	:= $(OBJDIR)/lib/entry.o -ljos $(GCC_LIB)
+LIBS	:= -ljos $(GCC_LIB)
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

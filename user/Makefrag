@@ -15,7 +15,7 @@ $(OBJDIR)/user/%: user/%.S
 	$(LD) -o $@ -nostdlib $@.o
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)
-	$(LD) -o $@ $(LDFLAGS) $< $(LIBS)
+	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
 	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
 	$(NM) -n $@ > $@.sym
 
