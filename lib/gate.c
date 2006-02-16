@@ -30,6 +30,20 @@ enum {
 };
 
 static void
+gate_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
+{
+    for (uint32_t j = 0; j < cur_label->ul_nent; j++) {
+	uint64_t h = LB_HANDLE(cur_label->ul_ent[j]);
+	level_t obj_level = label_get_level(obj_label, h);
+	level_t cur_level = label_get_level(cur_label, h);
+	if (cur_level == LB_LEVEL_STAR)
+	    continue;
+	if (obj_level == LB_LEVEL_STAR || obj_level < cur_level)
+	    assert(0 == label_set_level(obj_label, h, cur_level, 0));
+    }
+}
+
+static void
 gate_cow(void)
 {
     uint64_t cur_ents[gate_cow_label_ents];
@@ -66,9 +80,15 @@ gate_cow(void)
     if (id < 0)
 	panic("gate_cow: cannot find the MLT: %s", e2s(id));
 
+    r = sys_obj_get_label(COBJ(start_env_ro->container, start_env_ro->container), &obj_label);
+    if (r < 0)
+	panic("gate_cow: cannot get parent container label: %s", e2s(r));
+
+    gate_cow_compute_label(&cur_label, &obj_label);
+
     struct cobj_ref mlt = COBJ(start_env_ro->container, id);
     char buf[MLT_BUF_SIZE];
-    r = sys_mlt_put(mlt, &buf[0]);
+    r = sys_mlt_put(mlt, &obj_label, &buf[0]);
     if (r < 0)
 	panic("gate_cow: cannot store garbage in MLT: %s", e2s(r));
 
@@ -101,15 +121,7 @@ gate_cow(void)
 		    uas.ents[i].segment.container,
 		    uas.ents[i].segment.object);
 
-	for (uint32_t j = 0; j < cur_label.ul_nent; j++) {
-	    uint64_t h = LB_HANDLE(cur_label.ul_ent[j]);
-	    level_t obj_level = label_get_level(&obj_label, h);
-	    level_t cur_level = label_get_level(&cur_label, h);
-	    if (cur_level == LB_LEVEL_STAR)
-		continue;
-	    if (obj_level == LB_LEVEL_STAR || obj_level < cur_level)
-		assert(0 == label_set_level(&obj_label, h, cur_level, 0));
-	}
+	gate_cow_compute_label(&cur_label, &obj_label);
 
 	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
 			      &obj_label, "gate cow");
@@ -119,7 +131,13 @@ gate_cow(void)
 	uas.ents[i].segment = COBJ(mlt_ct, id);
     }
 
-    id = sys_as_create(mlt_ct, &cur_label, "gate cow as");
+    r = sys_obj_get_label(cur_as, &obj_label);
+    if (r < 0)
+	panic("gate_cow: cannot get as label again: %s", e2s(r));
+
+    gate_cow_compute_label(&cur_label, &obj_label);
+
+    id = sys_as_create(mlt_ct, &obj_label, "gate cow as");
     if (id < 0)
 	panic("gate_cow: cannot create new as: %s", e2s(id));
 
@@ -330,17 +348,13 @@ struct gate_return {
 static void __attribute__((noreturn))
 gate_call_return(struct gate_return *gr, struct cobj_ref arg)
 {
-    if (gate_debug) {
-	const char *msg = "gate_call_return: hello world\n";
-	sys_cons_puts(msg, strlen(msg));
-    }
+    if (gate_debug)
+	cprintf("gate_call_return: hello world\n");
 
     gate_cow();
 
-    if (gate_debug) {
-	const char *msg = "gate_call_return: after gate_cow\n";
-	sys_cons_puts(msg, strlen(msg));
-    }
+    if (gate_debug)
+	cprintf("gate_call_return: after gate_cow\n");
 
     if (atomic_compare_exchange(&gr->return_count, 0, 1) != 0)
 	panic("gate_call_return: multiple return");
@@ -351,8 +365,8 @@ gate_call_return(struct gate_return *gr, struct cobj_ref arg)
     assert(0 == label_set_level(l, gr->return_handle, l->ul_default, 1));
 
     if (gate_debug)
-	printf("gate_call_return: switching label to %s\n",
-	       label_to_string(l));
+	cprintf("gate_call_return: switching label to %s\n",
+		label_to_string(l));
 
     assert(0 == label_set_current(l));
     label_free(l);
