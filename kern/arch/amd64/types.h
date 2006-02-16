@@ -2,13 +2,11 @@
 #define JOS_INC_TYPES_H
 
 #ifndef NULL
-#define NULL ((void*) 0)
+#define NULL (0)
 #endif
 
-#if __OPTIMIZE__
-#define inline extern __inline__
-#else
-#define inline static __inline__
+#ifndef inline
+#define inline __inline__
 #endif
 
 // Represents true-or-false values
