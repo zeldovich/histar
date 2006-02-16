@@ -43,13 +43,6 @@ btree_erase(struct btree *t)
 	t->root = 0 ;
 }
 
-void
-btree_release_nodes(struct btree *tree)
-{
-	if (tree->manager.unpin_all)
-		tree->manager.unpin_all(tree->manager.arg) ;	
-}
-
 uint64_t
 btree_size(struct btree *tree)
 {

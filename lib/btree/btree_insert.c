@@ -650,7 +650,6 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t *val)
 
 		if (success == 0)
 		{
-			btree_release_nodes(tree) ;
 			// duplicate
 			return -E_INVAL;;
 		}
@@ -690,6 +689,5 @@ btree_insert(struct btree * tree, const uint64_t *key, offset_t *val)
 		btree_destroy_node(node);
 	}
 
-	btree_release_nodes(tree) ;
 	return 0;	
 }

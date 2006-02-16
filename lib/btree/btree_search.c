@@ -194,7 +194,6 @@ __btree_search(struct btree *tree,
 					 key_store, 
 					 val_store);
 	
-	btree_release_nodes(tree) ;
 	
 	if (found != 0)
 		return 0 ;

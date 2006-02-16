@@ -72,11 +72,12 @@ frm_alloc(struct btree *tree, struct btree_node **store, void *arg)
 }
 
 static int 
-frm_unpin(void *arg)
+frm_unpin_node(void *arg, offset_t off)
 {
 	struct frm *f = (struct frm *) arg ;
-	return btree_simple_unpin_all(&f->simple) ;
+	return btree_simple_unpin_node(&f->simple, off) ;
 }
+
 
 static void 
 frm_service_one(struct frm *f, struct freelist *l)
@@ -143,7 +144,7 @@ frm_reset(struct frm *f, uint8_t order, struct cache *cache, struct btree_manage
 	manager->free = &frm_rem ;
 	manager->node = &frm_node ;
 	manager->arg = f ;
-	manager->unpin_all = &frm_unpin ;
+	manager->unpin_node = &frm_unpin_node ;
 	manager->write = &frm_write ;
 }
 
@@ -190,9 +191,7 @@ freelist_alloc(struct freelist *l, uint64_t npages)
 	
 	// XXX: optimize...
 	
-	int64_t val ;//= btree_gtet(&l->chunks,
-					//	   (uint64_t *)&k,
-						//   (uint64_t *)&k) ;
+	int64_t val ;
 	int r = btree_gtet(&l->chunks,
 						   (uint64_t *)&k,
 						   (uint64_t *)&k,

@@ -13,7 +13,7 @@ btree_leaf_count1(struct btree *tree, struct btree_node *root, uint64_t *count)
 		for (int i = 0 ; i <= root->keyCount ; i++) {
 			node = btree_read_node(tree, root->children[i]) ;
 			btree_leaf_count1(tree, node, count) ;
-			btree_unpin_node(tree, node) ;
+			//btree_unpin_node(tree, node) ;
 		}
 	}
 }
@@ -33,7 +33,7 @@ btree_leaf_count2(struct btree *tree)
 		next_off = *btree_value(node->children, 
 											  node->keyCount, 
 											  tree->s_value);
-		btree_unpin_node(tree, node) ;
+		//btree_unpin_node(tree, node) ;
 	}
 	
 	return count ;
@@ -52,7 +52,7 @@ btree_size_calc(struct btree *tree)
 		next_off = *btree_value(node->children, 
 											  node->keyCount, 
 											  tree->s_value);
-		btree_unpin_node(tree, node) ;
+		//btree_unpin_node(tree, node) ;
 	}
 	
 	return size ;	
@@ -64,10 +64,8 @@ btree_sanity_check(struct btree *tree)
 	uint64_t count1 = 0 ;
 	if (tree->root)
 		btree_leaf_count1(tree, btree_read_node(tree, tree->root), &count1) ;
-	btree_release_nodes(tree) ;
 
 	uint64_t count2 = btree_leaf_count2(tree) ;
-	btree_release_nodes(tree) ;
 	
 	if (count1 != count2) 
 		panic("btree_sanity_check: count mismatch: %ld %ld\n", count1, count2) ;

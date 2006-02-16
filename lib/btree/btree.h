@@ -36,7 +36,7 @@ struct btree_manager
 	int (*write)(struct btree_node *node, void *arg) ;
 	int (*free)(void *arg, offset_t offset) ;
 	int (*alloc)(struct btree *tree, struct btree_node **store, void *arg) ;
-	int (*unpin_all)(void *arg) ;
+	//int (*unpin_all)(void *arg) ;
 	int (*unpin_node)(void *arg, offset_t offset) ;
 
 	void *arg ;
@@ -68,7 +68,6 @@ char 	 btree_is_empty(struct btree *tree);
 void	 btree_init(struct btree * t, char order, char key_size, 
 		 		    char value_size, struct btree_manager * mm) ;
 uint64_t btree_size(struct btree *tree);
-void	 btree_release_nodes(struct btree *tree) ;
 void 	 btree_erase(struct btree *t) ;
 
 // match key exactly

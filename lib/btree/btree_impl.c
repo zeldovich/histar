@@ -123,17 +123,10 @@ btree_simple_rem(void *man, offset_t offset)
 }
 
 int 
-btree_simple_unpin_all(void *man)
-{
-	struct btree_simple * manager = (struct btree_simple *) man ;
-	return cache_unpin_all(manager->cache) ;
-}
-
-int 
 btree_simple_unpin_node(void *man, offset_t offset)
 {
 	struct btree_simple * manager = (struct btree_simple *) man ;
-	return cache_unpin_ent(manager->cache, offset) ;
+	return cache_dec_ref(manager->cache, offset) ;
 }
 
 int 
@@ -174,7 +167,6 @@ btree_default_setup(struct btree_default *def, uint8_t order,
 	def->tree.manager.free = &btree_simple_rem ;
 	def->tree.manager.node = &btree_simple_node ;
 	def->tree.manager.arg = def ;
-	def->tree.manager.unpin_all = &btree_simple_unpin_all ;
 	def->tree.manager.unpin_node = &btree_simple_unpin_node ;
 	def->tree.manager.write = &btree_simple_write ;
 	   	
@@ -259,13 +251,6 @@ btree_volatile_rem(void *man, offset_t offset)
 }
 
 static int 
-btree_volatile_unpin(void *man)
-{
-	// do nothing
-	return 0 ;
-}
-
-static int 
 btree_volatile_unpin_node(void *man, offset_t offset)
 {
 	// do nothing
@@ -286,7 +271,6 @@ btree_volatile_setup(struct btree_volatile *def)
 	def->tree.manager.free = &btree_volatile_rem ;
 	def->tree.manager.node = &btree_volatile_node ;
 	def->tree.manager.arg = def ;
-	def->tree.manager.unpin_all = &btree_volatile_unpin ;
 	def->tree.manager.unpin_node = &btree_volatile_unpin_node ;
 	def->tree.manager.write = &btree_volatile_write ;
 	

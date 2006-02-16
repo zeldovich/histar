@@ -864,7 +864,6 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	if (success == 0)
 	{
 		btree_destroy_node(rootNode);
-		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
 		return -E_INVAL;
 	}
@@ -876,7 +875,6 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	{
 		btree_root_node_is(tree, 0);
 		btree_erase_node(rootNode);
-		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
 		//return filePos ;
 		return 0 ;
@@ -895,13 +893,11 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_destroy_node(tempNode);
 
 		btree_erase_node(rootNode);
-		btree_release_nodes(tree) ;
 		//cprintf("btree_delete stop\n") ;
 		//return filePos ;
 		return 0 ;
 	}
 	btree_destroy_node(rootNode);
-	btree_release_nodes(tree) ;
 	//cprintf("btree_delete stop\n") ;
 	//return filePos;
 	return 0 ;

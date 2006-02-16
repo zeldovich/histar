@@ -16,8 +16,8 @@ typedef uint64_t tag_t ;
 
 struct cmeta
 {
-	uint8_t inuse ;
-	uint8_t	pin ;
+	uint8_t 	inuse ;
+	uint16_t	ref ;
 	
 	tag_t		tag ;
 	uint16_t	index ;
@@ -46,11 +46,13 @@ int cache_try_insert(struct cache *c, tag_t t, uint8_t *src, uint8_t **store) ;
 int cache_ent(struct cache *c, tag_t t, uint8_t **store) ;
 
 int cache_rem(struct cache *c, tag_t t) ;
-int cache_unpin_all(struct cache *c) ;
-int cache_unpin_ent(struct cache *c, tag_t t) ;
+//int cache_unpin_all(struct cache *c) ;
+//int cache_unpin_ent(struct cache *c, tag_t t) ;
 
 int cache_num_ent(struct cache *c) ;
 int cache_num_pinned(struct cache *c) ;
 
+int cache_inc_ref(struct cache *c, tag_t t) ;
+int cache_dec_ref(struct cache *c, tag_t t) ;
 
 #endif /*CACHE_H_*/

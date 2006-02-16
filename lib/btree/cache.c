@@ -26,7 +26,7 @@ cache_alloc(struct cache *c, tag_t tag, uint8_t **store)
 	
 	struct cmeta *cm = TAILQ_FIRST(&c->lru_stack) ;
 	if (cm->inuse) {
-		while (cm->pin) {
+		while (cm->ref) {
 			cm = TAILQ_NEXT(cm, cm_link) ;
 			if (cm == NULL) {
 				*store = 0 ;
@@ -43,7 +43,7 @@ cache_alloc(struct cache *c, tag_t tag, uint8_t **store)
 	TAILQ_INSERT_TAIL(&c->lru_stack, cm, cm_link) ;
 	
 	cm->inuse = 1 ;
-	cm->pin = 1 ;
+	cm->ref = 1 ;
 	cm->tag = tag ;
 	*store = &c->buf[cm->index * c->s_ent] ;
 	
@@ -82,7 +82,7 @@ cache_ent(struct cache *c, tag_t t, uint8_t **store)
 			*store = &c->buf[i * c->s_ent] ;
 			struct cmeta *cm  = &c->meta[i] ;			
 			TAILQ_REMOVE(&c->lru_stack, cm, cm_link);
-			cm->pin = 1;
+			cm->ref++ ;
 			TAILQ_INSERT_TAIL(&c->lru_stack, cm, cm_link);
 			return 0 ;
 		}
@@ -104,7 +104,10 @@ cache_rem(struct cache *c, tag_t t)
 			memset(&c->buf[i * c->s_ent], 0, c->s_ent) ;
 			//memset(&c->meta[i], 0 , sizeof(struct cmeta)) ;
 			c->meta[i].inuse = 0 ;
-			c->meta[i].pin = 0 ;
+			c->meta[i].ref--;
+			
+			assert(c->meta[i].ref == 0) ;
+			
 			c->meta[i].tag = 0 ;
 			TAILQ_REMOVE(&c->lru_stack, &c->meta[i], cm_link);
 			TAILQ_INSERT_HEAD(&c->lru_stack, &c->meta[i], cm_link);
@@ -114,8 +117,8 @@ cache_rem(struct cache *c, tag_t t)
 	return -E_NOT_FOUND ;		
 }
 
-static int __attribute__((unused))
-cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
+int
+cache_inc_ref(struct cache *c, tag_t t)
 {
 	if (t == 0)
 		return -E_INVAL ;
@@ -123,8 +126,8 @@ cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {
-			c->meta[i].pin = pin ;
-			return 1 ;
+			c->meta[i].ref++ ;
+			return 0 ;
 		}
 	}
 	
@@ -132,16 +135,7 @@ cache_pin_is(struct cache *c, tag_t t, uint8_t pin)
 }
 
 int 
-cache_unpin_all(struct cache *c)
-{
-	int i = 0 ;
-	for(; i < c->n_ent ; i++)
-		c->meta[i].pin = 0 ;
-	return 0 ;	
-}
-
-int 
-cache_unpin_ent(struct cache *c, tag_t t)
+cache_dec_ref(struct cache *c, tag_t t)
 {
 	if (t == 0)
 		return -E_INVAL ;
@@ -149,12 +143,12 @@ cache_unpin_ent(struct cache *c, tag_t t)
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {
-			c->meta[i].pin = 0 ;
-			return 1 ;
+			c->meta[i].ref-- ;
+			return 0 ;
 		}
 	}
 	
-	return -E_NOT_FOUND ;			
+	return -E_NOT_FOUND ;		
 }
 
 int 
@@ -164,7 +158,7 @@ cache_num_pinned(struct cache *c)
 
 	int i = 0 ;
 	for(; i < c->n_ent ; i++)
-		if (c->meta[i].inuse && c->meta[i].pin)
+		if (c->meta[i].inuse && c->meta[i].ref)
 			n++ ;
 
 	return n ;
