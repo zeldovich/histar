@@ -41,9 +41,13 @@ typedef struct {
     uint64_t container;
     uint64_t parent_container;
     uint64_t root_container;
+
+    struct cobj_ref taint_mlt;
+
     struct fs_mount_table fs_mtab;
     struct fs_inode fs_root;
     struct fs_inode fs_cwd;
+
     char args[0];
 } start_env_t;
 

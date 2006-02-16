@@ -192,9 +192,6 @@ main(int ac, char **av)
 	return -1;
     }
 
-    // Create an MLT for dynamic taint
-    assert(sys_mlt_create(start_env->container, "dynamic taint") >= 0);
-
     const char *ustr = av[1];
     char *pn = av[2];
 

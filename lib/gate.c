@@ -76,17 +76,13 @@ gate_cow(void)
     }
 
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
-    int64_t id = container_find(start_env_ro->container, kobj_mlt, "dynamic taint");
-    if (id < 0)
-	panic("gate_cow: cannot find the MLT: %s", e2s(id));
-
     r = sys_obj_get_label(COBJ(start_env_ro->container, start_env_ro->container), &obj_label);
     if (r < 0)
 	panic("gate_cow: cannot get parent container label: %s", e2s(r));
 
     gate_cow_compute_label(&cur_label, &obj_label);
 
-    struct cobj_ref mlt = COBJ(start_env_ro->container, id);
+    struct cobj_ref mlt = start_env_ro->taint_mlt;
     char buf[MLT_BUF_SIZE];
     r = sys_mlt_put(mlt, &obj_label, &buf[0]);
     if (r < 0)
@@ -128,8 +124,8 @@ gate_cow(void)
 	if (r < 0)
 	    panic("gate_cow: cannot get segment name: %s", e2s(r));
 
-	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-			      &obj_label, &namebuf[0]);
+	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+				      &obj_label, &namebuf[0]);
 	if (id < 0)
 	    panic("gate_cow: cannot copy segment: %s", e2s(id));
 
@@ -142,7 +138,7 @@ gate_cow(void)
 
     gate_cow_compute_label(&cur_label, &obj_label);
 
-    id = sys_as_create(mlt_ct, &obj_label, "gate cow as");
+    int64_t id = sys_as_create(mlt_ct, &obj_label, "gate cow as");
     if (id < 0)
 	panic("gate_cow: cannot create new as: %s", e2s(id));
 

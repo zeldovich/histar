@@ -51,6 +51,12 @@ libmain(uint64_t arg0, uint64_t arg1)
 	r = segment_map(start_env_seg, SEGMAP_READ, &start_env_ro, 0);
 	if (r < 0)
 	    panic("libmain: cannot map start_env_ro: %s", e2s(r));
+
+	int64_t id = sys_mlt_create(start_env->container, "dynamic taint");
+	if (id < 0)
+	    panic("libmain: cannot create dynamic taint MLT: %s", e2s(id));
+
+	start_env->taint_mlt = COBJ(start_env->container, id);
     }
 
     int r = main(argc, &argv[0]);
