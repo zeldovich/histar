@@ -4,6 +4,7 @@
 #include <inc/string.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
+#include <inc/mlt.h>
 
 static int fs_debug = 0;
 
@@ -71,6 +72,28 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	    *o = mnt->mnt_root;
 	    return 0;
 	}
+    }
+
+    // Simple MLT support
+    if (!strcmp(fn, "@mlt")) {
+	struct ulabel *l = label_get_current();
+	if (l == 0)
+	    return -E_NO_MEM;
+
+	label_change_star(l, l->ul_default);
+	char blob[MLT_BUF_SIZE];
+	int r = sys_mlt_put(dir.obj, l, &blob[0]);
+	label_free(l);
+	if (r < 0)
+	    return r;
+
+	uint64_t ct;
+	r = sys_mlt_get(dir.obj, &blob[0], &ct);
+	if (r < 0)
+	    return r;
+
+	o->obj = COBJ(ct, ct);
+	return 0;
     }
 
     struct fs_dent de;
