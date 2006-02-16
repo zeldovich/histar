@@ -35,7 +35,7 @@ label::get_ulabel()
 }
 
 const char *
-label::to_string()
+label::to_string() const
 {
     return label_to_string(buf_);
 }

@@ -14,7 +14,7 @@ public:
     level_t get(uint64_t handle);
 
     struct ulabel *get_ulabel();
-    const char *to_string();
+    const char *to_string() const;
 
 private:
     struct ulabel *buf_;

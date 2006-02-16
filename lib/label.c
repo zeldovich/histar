@@ -134,7 +134,7 @@ label_get_level(struct ulabel *l, uint64_t handle)
 }
 
 const char *
-label_to_string(struct ulabel *l)
+label_to_string(const struct ulabel *l)
 {
     enum {
 	nbufs = 4,
