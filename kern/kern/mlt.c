@@ -124,8 +124,10 @@ mlt_put(const struct Mlt *mlt, uint8_t *buf)
 
     me->me_l = *l;
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
-    me->me_ct = ct->ct_ko.ko_id;
     me->me_inuse = 1;
+    me->me_ct = ct->ct_ko.ko_id;
+    kobject_incref(&ct->ct_ko);
+
     return 0;
 }
 
