@@ -43,3 +43,5 @@ threads should not be able to raise their label arbitrarily.  can only
 raise/lower on handles where you have *; otherwise it's fixed, and there
 is only one "acceptable" level across gate entry (max PCL & send label).
 
+min/max labels on MLT to control contamination
+
