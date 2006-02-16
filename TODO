@@ -37,7 +37,6 @@ make the mount table a separate segment that can be shared
 a nice c++ label object
 refcounted objects/pointers
 automatic cleanup through c++ destructors
-c++ throw support?
 
 threads should not be able to raise their label arbitrarily.  can only
 raise/lower on handles where you have *; otherwise it's fixed, and there
