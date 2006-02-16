@@ -7,7 +7,7 @@
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/string.h>
-#include <inc/mutex.h>
+#include <inc/pthread.h>
 
 #define NMAPPINGS 32
 
@@ -27,16 +27,16 @@ segment_get_default_label(void)
     return seg_create_label;
 }
 
-static mutex_t as_mutex;
+static pthread_mutex_t as_mutex;
 
 static void
 as_mutex_lock(void) {
-    mutex_lock(&as_mutex);
+    pthread_mutex_lock(&as_mutex);
 }
 
 static void
 as_mutex_unlock(void) {
-    mutex_unlock(&as_mutex);
+    pthread_mutex_unlock(&as_mutex);
 }
 
 static void

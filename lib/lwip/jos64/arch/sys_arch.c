@@ -1,5 +1,5 @@
 #include <inc/lib.h>
-#include <inc/mutex.h>
+#include <inc/pthread.h>
 #include <inc/syscall.h>
 #include <inc/queue.h>
 
@@ -192,8 +192,8 @@ sys_arch_timeouts(void)
 {
     int64_t tid = thread_id();
 
-    static mutex_t tls_mu;
-    mutex_lock(&tls_mu);
+    static pthread_mutex_t tls_mu;
+    pthread_mutex_lock(&tls_mu);
 
     struct sys_thread *t;
     LIST_FOREACH(t, &threads, link)
@@ -212,6 +212,6 @@ sys_arch_timeouts(void)
     // so that we can GC these thread-specific structs.
 
 out:
-    mutex_unlock(&tls_mu);
+    pthread_mutex_unlock(&tls_mu);
     return &t->tmo;
 }

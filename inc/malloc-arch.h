@@ -11,6 +11,7 @@
 #define LACKS_UNISTD_H
 #define LACKS_SYS_PARAM_H
 
+#define USE_LOCKS	1
 #define HAVE_MMAP	0
 #define ABORT		assert(0)
 #define MALLOC_FAILURE_ACTION	do { } while (0)
