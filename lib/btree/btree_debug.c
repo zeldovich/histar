@@ -62,9 +62,8 @@ void
 btree_sanity_check(struct btree *tree)
 {
 	uint64_t count1 = 0 ;
-	struct btree_node *root = btree_read_node(tree, tree->root) ;
-	if (root)
-		btree_leaf_count1(tree, root, &count1) ;
+	if (tree->root)
+		btree_leaf_count1(tree, btree_read_node(tree, tree->root), &count1) ;
 	btree_release_nodes(tree) ;
 
 	uint64_t count2 = btree_leaf_count2(tree) ;

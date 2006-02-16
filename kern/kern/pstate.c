@@ -13,7 +13,6 @@
 #include <lib/btree/btree_traverse.h>
 #include <lib/btree/btree_debug.h>
 
-
 // verbose flags
 static int pstate_load_debug = 0;
 static int pstate_swapin_debug = 0;
@@ -59,6 +58,7 @@ static union {
 #define LOG_OFFSET	N_HEADER_PAGES
 #define LOG_SIZE	200
 #define LOG_MEMORY	100
+
 
 //////////////////////////////////////////////////
 // Object map
@@ -269,8 +269,6 @@ pstate_load2(void)
 	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
 	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;
 	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &iobj_cache) ;
-
-	btree_sanity_check(&iobjlist.tree) ;
 
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.tree, &trav) ;
@@ -510,6 +508,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;
 	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
 	memcpy(&hdr->ph_map, &objmap, sizeof(objmap)) ;
+	
 	int r = pstate_sync_flush() ;
 	
 	if (r < 0) {
@@ -525,7 +524,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 
 	if (pstate_dlog_stats)
 		dlog_print() ;
-		
+
 	memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
 	return 0 ;
 }
@@ -551,7 +550,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 	
 		dlog_init() ;
 		log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
-	
+		
 		freelist_init(&flist,
 			      N_HEADER_PAGES + LOG_SIZE,
 			      disk_pages - N_HEADER_PAGES - LOG_SIZE);

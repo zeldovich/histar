@@ -186,14 +186,16 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	if (BTREE_IS_LEAF(rootNode))
 	{
 		btree_destroy_node(rootNode);
+		btree_unpin_node(tree, rootNode);
 		return;
 	}
 	
 	for (j = 0; j <= rootNode->keyCount; j++)
-		btree_pretty_print(tree, rootNode->children[j], i + 1);
+		__btree_pretty_print(tree, rootNode->children[j], i + 1);
+
 
 	btree_destroy_node(rootNode);
-	btree_release_nodes(tree) ;
+	btree_unpin_node(tree, rootNode);
 }
 
 void 
