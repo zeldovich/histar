@@ -33,4 +33,13 @@ int	printf(const char *fmt, ...)
 int	vprintf(const char *fmt, va_list)
 	    __attribute__((__format__ (__printf__, 1, 0)));
 
+// lib/stdio.c
+typedef struct {
+    int fd;
+} FILE;
+
+extern FILE *stdin, *stdout, *stderr;
+
+int	fputs(const char *s, FILE *stream);
+
 #endif

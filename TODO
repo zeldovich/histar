@@ -46,4 +46,5 @@ is only one "acceptable" level across gate entry (max PCL & send label).
 min/max labels on MLT to control contamination
 
 MT-safe malloc
+MT-safe c++ support (lib/cppsup/bits/gthr.h)
 

@@ -81,7 +81,7 @@ all:
 	$(OBJDIR)/user/%.o
 
 COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin 
-COMCXXFLAGS := -fno-exceptions -fno-rtti
+COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(CWARNS)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)

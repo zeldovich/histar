@@ -11,6 +11,7 @@ LIB_SRCFILES :=	\
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \
+	lib/stdio.c \
 	lib/string.c \
 	lib/libmain.c \
 	lib/panic.c \
@@ -31,11 +32,11 @@ LIB_SRCFILES :=	\
 	lib/malloc.c \
 	lib/fs.c \
 	lib/label.c \
-	lib/cppglue.cc \
 	lib/cpplabel.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
+include lib/cppsup/Makefrag
 #include lib/btree/Makefrag
 #include lib/sqlite/Makefrag
 #include lib/pcre/Makefrag

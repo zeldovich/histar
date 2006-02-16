@@ -1,0 +1,14 @@
+#ifndef JOS_CPPSUP_CSTRING
+#define JOS_CPPSUP_CSTRING
+
+// jos64 glue
+
+extern "C" {
+#include <inc/string.h>
+}
+
+namespace std {
+    using ::memset;
+}
+
+#endif

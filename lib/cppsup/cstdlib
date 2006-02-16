@@ -1,0 +1,21 @@
+#ifndef JOS_CPPSUP_CSTDLIB
+#define JOS_CPPSUP_CSTDLIB
+
+// jos64 glue
+
+extern "C" {
+#include <inc/lib.h>
+}
+
+#undef abort
+extern "C" {
+void abort(void) __attribute__((noreturn));
+}
+
+namespace std {
+    using ::abort;
+    using ::malloc;
+    using ::free;
+}
+
+#endif
