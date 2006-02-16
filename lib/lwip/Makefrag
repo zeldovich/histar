@@ -1,10 +1,3 @@
-OBJDIRS += user/lwip
-OBJDIRS += user/lwip/api
-OBJDIRS += user/lwip/core
-OBJDIRS += user/lwip/core/ipv4
-OBJDIRS += user/lwip/arch
-OBJDIRS += user/lwip/netif
-
 LWIP_INCLUDES := \
 	-I$(TOP)/lib/lwip/include \
 	-I$(TOP)/lib/lwip/include/ipv4 \
