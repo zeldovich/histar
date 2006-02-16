@@ -123,8 +123,13 @@ gate_cow(void)
 
 	gate_cow_compute_label(&cur_label, &obj_label);
 
+	char namebuf[KOBJ_NAME_LEN];
+	r = sys_obj_get_name(uas.ents[i].segment, &namebuf[0]);
+	if (r < 0)
+	    panic("gate_cow: cannot get segment name: %s", e2s(r));
+
 	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-			      &obj_label, "gate cow");
+			      &obj_label, &namebuf[0]);
 	if (id < 0)
 	    panic("gate_cow: cannot copy segment: %s", e2s(id));
 
@@ -158,6 +163,8 @@ gate_cow(void)
 	gate_cow_compute_label(&cur_label, l_seg);
 	segment_set_default_label(l_seg);
     }
+
+    start_env->container = mlt_ct;
 }
 
 // Compute the appropriate gate entry label.
