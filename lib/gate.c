@@ -433,21 +433,30 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
     int r = sys_segment_resize(tseg, 1);
-    if (r < 0)
+    if (r < 0) {
+	if (gate_debug)
+	    cprintf("gate_call: cannot resize thread segment: %s\n", e2s(r));
 	return r;
+    }
 
     void *thread_local_seg = 0;
     r = segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, &thread_local_seg, 0);
-    if (r < 0)
+    if (r < 0) {
+	if (gate_debug)
+	    cprintf("gate_call: cannot map thread segment: %s\n", e2s(r));
 	return r;
+    }
 
     struct cobj_ref return_state_obj;
     void *return_state = 0;
     r = segment_alloc(kobject_id_thread_ct, PGSIZE,
 		      &return_state_obj, &return_state,
 		      0, "gate return state");
-    if (r < 0)
+    if (r < 0) {
+	if (gate_debug)
+	    cprintf("gate_call: cannot allocate return state: %s\n", e2s(r));
 	goto out2;
+    }
 
     struct jmp_buf back_from_call;
     struct gate_return *gr = return_state;
@@ -457,8 +466,8 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
     gr->return_jmpbuf = &back_from_call;
     gr->return_handle = sys_handle_create();
     if (gr->return_handle < 0) {
-	printf("gate_call: cannot alloc return handle: %s\n",
-	       e2s(gr->return_handle));
+	cprintf("gate_call: cannot alloc return handle: %s\n",
+	        e2s(gr->return_handle));
 	r = gr->return_handle;
 	goto out3;
     }
@@ -466,8 +475,10 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
     struct cobj_ref return_gate;
     if (setjmp(&back_from_call) == 0) {
 	r = gate_call_setup_return(gr, thread_local_seg, &return_gate);
-	if (r < 0)
+	if (r < 0) {
+	    cprintf("gate_call: cannot setup return gate: %s", e2s(r));
 	    goto out3;
+	}
 
 	// Compute the target label
 	uint64_t nents = 64;
@@ -476,19 +487,19 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 
 	r = sys_gate_send_label(gate, &gate_label);
 	if (r < 0) {
-	    printf("gate_call: getting send label: %s", e2s(r));
+	    cprintf("gate_call: getting send label: %s", e2s(r));
 	    goto out4;
 	}
 
 	r = gate_compute_max_label(&gate_label);
 	if (r < 0) {
-	    printf("gate_call: computing label: %s", e2s(r));
+	    cprintf("gate_call: computing label: %s", e2s(r));
 	    goto out4;
 	}
 
 	r = label_set_level(&gate_label, gr->return_handle, LB_LEVEL_STAR, 0);
 	if (r < 0) {
-	    printf("gate_call: granting return handle: %s", e2s(r));
+	    cprintf("gate_call: granting return handle: %s", e2s(r));
 	    goto out4;
 	}
 
