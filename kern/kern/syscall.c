@@ -500,7 +500,7 @@ sys_mlt_create(uint64_t container, const char *name)
     check(container_find(&c, container, iflow_write));
 
     struct Mlt *mlt;
-    check(mlt_alloc(&cur_thread->th_ko.ko_label, &mlt));
+    check(mlt_alloc(&c->ct_ko.ko_label, &mlt));
     alloc_set_name(&mlt->mt_ko, name);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &mlt->mt_ko));
