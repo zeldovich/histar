@@ -152,6 +152,12 @@ gate_cow(void)
 
     if (gate_debug)
 	cprintf("gate_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
+
+    struct ulabel *l_seg = segment_get_default_label();
+    if (l_seg) {
+	gate_cow_compute_label(&cur_label, l_seg);
+	segment_set_default_label(l_seg);
+    }
 }
 
 // Compute the appropriate gate entry label.
@@ -305,7 +311,8 @@ gate_create(struct u_gate_entry *ug,
     ug->func = func;
     ug->func_arg = func_arg;
 
-    struct ulabel l_recv = { .ul_nent = 0, .ul_default = 2 };
+    // XXX this should probably be more constrainted, or argument-specified
+    struct ulabel l_recv = { .ul_nent = 0, .ul_default = 3 };
 
     if (l_send == 0)
 	l_send = label_get_current();
