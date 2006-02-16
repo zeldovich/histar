@@ -17,7 +17,7 @@ main(int ac, char **av)
     char buf[MLT_BUF_SIZE];
     snprintf(buf, MLT_BUF_SIZE, "%s", "hello world.");
 
-    int r = sys_mlt_put(mlt, &buf[0]);
+    int r = sys_mlt_put(mlt, 0, &buf[0]);
     if (r < 0)
 	panic("mlt_put: %s", e2s(r));
 
