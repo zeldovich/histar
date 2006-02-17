@@ -105,6 +105,14 @@ static __inline__ void atomic_inc(atomic_t *v)
 		:"m" (v->counter));
 }
 
+static __inline__ void atomic_inc64(atomic64_t *v)
+{
+	__asm__ __volatile__(
+		ATOMIC_LOCK "incq %0"
+		:"=m" (v->counter)
+		:"m" (v->counter));
+}
+
 /**
  * atomic_dec - decrement atomic variable
  * @v: pointer of type atomic_t
