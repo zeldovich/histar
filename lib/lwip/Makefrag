@@ -3,6 +3,14 @@ LWIP_INCLUDES := \
 	-I$(TOP)/lib/lwip/include/ipv4 \
 	-I$(TOP)/lib/lwip/jos64
 
+OBJDIRS += \
+	lib/lwip/api \
+	lib/lwip/core \
+	lib/lwip/core/ipv4 \
+	lib/lwip/netif \
+	lib/lwip/jos64/arch \
+	lib/lwip/jos64/jif
+
 USER_CFLAGS += $(LWIP_INCLUDES)
 USER_CXXFLAGS += $(LWIP_INCLUDES)
 
