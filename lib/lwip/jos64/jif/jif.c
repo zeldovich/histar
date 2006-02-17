@@ -146,7 +146,9 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	if (txslot == JIF_BUFS) {
 	    if (!warned++)
 		cprintf("jif: out of tx bufs\n");
+	    lwip_core_unlock();
 	    sys_thread_yield();
+	    lwip_core_lock();
 	}
     } while (txslot == JIF_BUFS);
 
@@ -178,7 +180,9 @@ low_level_output(struct netif *netif, struct pbuf *p)
 
 	if (!warned++)
 	    cprintf("jif: can't setup tx slot: %s\n", e2s(r));
+	lwip_core_unlock();
 	sys_thread_yield();
+	lwip_core_lock();
     }
 
 #if ETH_PAD_SIZE
@@ -226,7 +230,9 @@ low_level_input(struct netif *netif)
 	}
 
 	if (rxslot == JIF_BUFS) {
+	    lwip_core_unlock();
 	    jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, jif->waitgen);
+	    lwip_core_lock();
 	    if (jif->waitgen == -E_AGAIN) {
 		// All buffers have been cleared
 		for (int i = 0; i < JIF_BUFS; i++) {

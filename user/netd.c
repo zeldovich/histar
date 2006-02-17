@@ -60,6 +60,7 @@ net_receive(void *arg)
 {
     struct netif *nif = arg;
 
+    lwip_core_lock();
     for (;;)
 	jif_input(nif);
 }
@@ -72,7 +73,9 @@ net_timer(void *arg)
     for (;;) {
 	uint64_t cur = sys_clock_msec();
 
+	lwip_core_lock();
 	t->func();
+	lwip_core_unlock();
 
 	uint64_t v = 0xabcd;
 	sys_thread_sync_wait(&v, v, cur + t->msec);
@@ -146,6 +149,8 @@ main(int ac, char **av)
 	printf("netd: grant handle %ld, taint handle %ld\n",
 	       grant, taint);
 
+    lwip_core_lock();
+
     struct ulabel *l = force_taint_prepare(taint);
     netd_server_init(start_env->root_container, start_env->container, l);
     force_taint_commit(l);
@@ -181,6 +186,9 @@ main(int ac, char **av)
     for (;;) {
 	if (netd_stats)
 	    stats_display();
+
+	lwip_core_unlock();
 	thread_sleep(5000);
+	lwip_core_lock();
     }
 }

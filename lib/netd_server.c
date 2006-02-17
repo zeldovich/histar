@@ -6,6 +6,7 @@
 #include <inc/gate.h>
 
 #include <lwip/sockets.h>
+#include <arch/sys_arch.h>
 
 static struct u_gate_entry netd_gate;
 static uint64_t netd_ct;
@@ -16,6 +17,8 @@ netd_dispatch(struct netd_op_args *a)
 {
     while (!netd_ready)
 	sys_thread_yield();
+
+    lwip_core_lock();
 
     switch (a->op_type) {
     case netd_op_socket:
@@ -70,6 +73,8 @@ netd_dispatch(struct netd_op_args *a)
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;
     }
+
+    lwip_core_unlock();
 }
 
 static void

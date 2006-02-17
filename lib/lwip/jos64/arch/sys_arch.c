@@ -144,7 +144,9 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	} else {
 	    uint64_t a = sys_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
+	    lwip_core_unlock();
 	    sys_thread_sync_wait(&sems[sem].counter.counter, 0, sleep_until);
+	    lwip_core_lock();
 	    uint64_t b = sys_clock_msec();
 	    waited += (b - a);
 	}
@@ -177,12 +179,34 @@ sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
     return waited;
 }
 
+struct lwip_thread {
+    void (*func)(void *arg);
+    void *arg;
+};
+
+static void
+lwip_thread_entry(void *arg)
+{
+    struct lwip_thread *lt = arg;
+    lwip_core_lock();
+    lt->func(lt->arg);
+    lwip_core_unlock();
+    free(lt);
+}
+
 sys_thread_t
 sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
 {
     uint64_t container = start_env->container;
     struct cobj_ref tobj;
-    int r = thread_create(container, thread, arg,
+    struct lwip_thread *lt = malloc(sizeof(*lt));
+    if (lt == 0)
+	panic("sys_thread_new: cannot allocate thread struct");
+
+    lt->func = thread;
+    lt->arg = arg;
+
+    int r = thread_create(container, &lwip_thread_entry, lt,
 			  &tobj, "lwip thread");
     if (r < 0)
 	panic("lwip: sys_thread_new: cannot create: %s\n", e2s(r));
@@ -194,9 +218,6 @@ struct sys_timeouts *
 sys_arch_timeouts(void)
 {
     int64_t tid = thread_id();
-
-    static pthread_mutex_t tls_mu;
-    pthread_mutex_lock(&tls_mu);
 
     struct sys_thread *t;
     LIST_FOREACH(t, &threads, link)
@@ -215,35 +236,20 @@ sys_arch_timeouts(void)
     // so that we can GC these thread-specific structs.
 
 out:
-    pthread_mutex_unlock(&tls_mu);
     return &t->tmo;
 }
 
-static atomic64_t prot_owner = ATOMIC_INIT(kobject_id_null);
-static int prot_count;
+// A lock that serializes all LWIP code
+static pthread_mutex_t lwip_core_mu;
 
-sys_prot_t
-sys_arch_protect()
+void
+lwip_core_lock(void)
 {
-    uint64_t tid = thread_id();
-    for (;;) {
-	uint64_t owner = atomic_compare_exchange64(&prot_owner, kobject_id_null, tid);
-	if (owner == kobject_id_null || owner == tid)
-	    break;
-
-	sys_thread_sync_wait(&prot_owner.counter, owner, ~0UL);
-    }
-
-    prot_count++;
-    return 0;
+    pthread_mutex_lock(&lwip_core_mu);
 }
 
 void
-sys_arch_unprotect(sys_prot_t x)
+lwip_core_unlock(void)
 {
-    assert(prot_count > 0);
-    if (--prot_count == 0) {
-	atomic_set(&prot_owner, kobject_id_null);
-	sys_thread_sync_wakeup(&prot_owner.counter);
-    }
+    pthread_mutex_unlock(&lwip_core_mu);
 }
