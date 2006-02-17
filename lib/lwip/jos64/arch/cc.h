@@ -22,7 +22,9 @@ typedef uintptr_t mem_ptr_t;
 #define PACK_STRUCT_BEGIN
 #define PACK_STRUCT_END
 
-#define LWIP_PLATFORM_DIAG(x)	cprintf(x)
+#define S16_F	"d"
+
+#define LWIP_PLATFORM_DIAG(x)	cprintf x
 #define LWIP_PLATFORM_ASSERT(x)	panic(x)
 
 // Our runtime is so incompetent..
