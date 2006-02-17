@@ -12,8 +12,6 @@ shouldn't be able to pass thread-specific segment to DMA!
 copy-and-drop this seg in the kernel instead of force-changing labels;
 this will DTRT because segment_copy needs to deal with DMA anyway.
 
-kernel waiting primitive: sys_wait_for_equal(int *ptr, int val)
-
 page reclamation, LRU
 deal with segment fragmentation on-disk
 
