@@ -46,3 +46,7 @@ MT-safe c++ support (lib/cppsup/bits/gthr.h)
 
 sys_thread_sync_wait() should invert page-addr into segment+offset
 
+netd_server doesn't do any checking on who's asking for what fd.
+socket() should grant a handle at * to the caller that will let
+them later do other socket operations.
+
