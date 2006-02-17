@@ -85,6 +85,9 @@ btree_first_offset(struct btree_traversal *trav)
 	if (trav == NULL)
 		return 0 ;
 
+	if (trav->tree->size == 0)
+		return 0 ;
+
 	if (trav->node != NULL)
 		return btree_next_entry(trav);
 

@@ -155,6 +155,14 @@ btree_default_alloc(struct btree *tree, struct btree_node **store, void *arg)
 	return btree_simple_alloc(tree, off, store, &def->simple) ;
 }
 
+static int 
+btree_default_free(void *man, offset_t offset)
+{
+	struct btree_default *def = (struct btree_default *) man ;
+	freelist_free_later(def->fl, offset, 1) ;
+	return cache_rem(def->simple.cache, offset) ;
+}
+
 int 
 btree_default_setup(struct btree_default *def, uint8_t order,
 				    struct freelist *fl,struct cache *cache)
@@ -164,7 +172,8 @@ btree_default_setup(struct btree_default *def, uint8_t order,
 	def->fl = fl ;
 	
 	def->tree.manager.alloc = &btree_default_alloc ;
-	def->tree.manager.free = &btree_simple_rem ;
+	//def->tree.manager.free = &btree_simple_rem ;
+	def->tree.manager.free = btree_default_free ;
 	def->tree.manager.node = &btree_simple_node ;
 	def->tree.manager.arg = def ;
 	def->tree.manager.unpin_node = &btree_simple_unpin_node ;

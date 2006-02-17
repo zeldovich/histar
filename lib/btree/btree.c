@@ -37,7 +37,8 @@ __btree_erase(struct btree *t, offset_t root)
 void
 btree_erase(struct btree *t)
 {
-	__btree_erase(t, t->root) ;	
+	if (t->root)
+		__btree_erase(t, t->root) ;	
 	t->size = 0 ;
 	t->left_leaf = 0 ;
 	t->root = 0 ;
