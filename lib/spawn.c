@@ -101,6 +101,11 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     if (r < 0)
 	goto err;
 
+    struct cobj_ref exit_status_seg;
+    r = segment_alloc(c_spawn, PGSIZE, &exit_status_seg, 0, obj_label, "exit status");
+    if (r < 0)
+	goto err;
+
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->parent_container = container;
     spawn_env->container = c_spawn;
@@ -160,14 +165,22 @@ out:
 int
 spawn_wait(uint64_t childct)
 {
-    for (;;) {
-	int64_t obj = container_find(childct, kobj_segment, "dead flag");
-	if (obj < 0) {
-	    if (obj != -E_NOT_FOUND)
-		return obj;
-	    thread_sleep(100);
-	} else {
-	    return 0;
-	}
+    uint64_t exited = 0;
+
+    while (exited == 0) {
+	int64_t obj = container_find(childct, kobj_segment, "exit status");
+	if (obj < 0)
+	    return obj;
+
+	uint64_t *exit_status = 0;
+	int r = segment_map(COBJ(childct, obj), SEGMAP_READ, (void **) &exit_status, 0);
+	if (r < 0)
+	    return r;
+
+	sys_thread_sync_wait(exit_status, 0, sys_clock_msec() + 10000);
+	exited = *exit_status;
+	segment_unmap(exit_status);
     }
+
+    return 0;
 }
