@@ -20,6 +20,7 @@
  * not some alias that contains the same information.
  */
 typedef struct { volatile uint32_t counter; } atomic_t;
+typedef struct { volatile uint64_t counter; } atomic64_t;
 
 #define ATOMIC_INIT(i)		{ (i) }
 
@@ -188,6 +189,17 @@ static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int new)
 	int out;
 	__asm__ __volatile__(
 		ATOMIC_LOCK "cmpxchgl %1,%2"
+		: "=a" (out)
+		: "q" (new), "m" (v->counter), "0" (old)
+		: "memory");
+	return out;
+}
+
+static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old, uint64_t new)
+{
+	uint64_t out;
+	__asm__ __volatile__(
+		ATOMIC_LOCK "cmpxchgq %1,%2"
 		: "=a" (out)
 		: "q" (new), "m" (v->counter), "0" (old)
 		: "memory");
