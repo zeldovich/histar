@@ -181,16 +181,29 @@ int
 fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root)
 {
     for (int i = 0; i < FS_NMOUNT; i++) {
-	if (start_env->fs_mtab.mtab_ent[i].mnt_name[0] == '\0') {
-	    strncpy(&start_env->fs_mtab.mtab_ent[i].mnt_name[0],
-		    mnt_name, KOBJ_NAME_LEN - 1);
-	    start_env->fs_mtab.mtab_ent[i].mnt_dir = dir;
-	    start_env->fs_mtab.mtab_ent[i].mnt_root = root;
+	struct fs_mtab_ent *ent = &start_env->fs_mtab.mtab_ent[i];
+	if (ent->mnt_name[0] == '\0') {
+	    strncpy(&ent->mnt_name[0], mnt_name, KOBJ_NAME_LEN - 1);
+	    ent->mnt_dir = dir;
+	    ent->mnt_root = root;
 	    return 0;
 	}
     }
 
     return -E_NO_SPACE;
+}
+
+void
+fs_unmount(struct fs_inode dir, const char *mnt_name)
+{
+    for (int i = 0; i < FS_NMOUNT; i++) {
+	struct fs_mtab_ent *ent = &start_env->fs_mtab.mtab_ent[i];
+	if (ent->mnt_dir.obj.object == dir.obj.object &&
+	    !strcmp(ent->mnt_name, mnt_name))
+	{
+	    ent->mnt_name[0] = '\0';
+	}
+    }
 }
 
 int

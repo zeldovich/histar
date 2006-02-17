@@ -345,6 +345,17 @@ main(int ac, char **av)
 {
     printf("JOS: shell\n");
 
+    struct fs_inode selfdir;
+    int r = fs_get_root(start_env->container, &selfdir);
+    if (r < 0) {
+	printf("shell: cannot get own container: %s\n", e2s(r));
+    } else {
+	fs_unmount(start_env->fs_root, "self");
+	r = fs_mount(start_env->fs_root, "self", selfdir);
+	if (r < 0)
+	    printf("shell: cannot mount /self: %s\n", e2s(r));
+    }
+
     for (;;) {
 	char prompt[64];
 	snprintf(prompt, sizeof(prompt), "[jos:%ld]> ",

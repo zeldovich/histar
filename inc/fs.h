@@ -39,6 +39,7 @@ void fs_dirbase(char *pn, const char **dirname, const char **basename);
 
 int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root);
+void fs_unmount(struct fs_inode dir, const char *mnt_name);
 int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f);
 int  fs_remove(struct fs_inode f);
 
