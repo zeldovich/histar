@@ -6,6 +6,7 @@
 typedef	int sys_sem_t;
 typedef int sys_mbox_t;
 typedef uint64_t sys_thread_t;
+typedef int sys_prot_t;
 
 #define SYS_MBOX_NULL	(-1)
 #define SYS_SEM_NULL	(-1)

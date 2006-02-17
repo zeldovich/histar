@@ -215,3 +215,29 @@ out:
     pthread_mutex_unlock(&tls_mu);
     return &t->tmo;
 }
+
+static atomic64_t prot_owner = ATOMIC_INIT(kobject_id_null);
+static int prot_count;
+
+sys_prot_t
+sys_arch_protect()
+{
+    uint64_t tid = thread_id();
+    for (;;) {
+	uint64_t owner = atomic_compare_exchange64(&prot_owner, kobject_id_null, tid);
+	if (owner == kobject_id_null || owner == tid)
+	    break;
+	sys_thread_yield();
+    }
+
+    prot_count++;
+    return 0;
+}
+
+void
+sys_arch_unprotect(sys_prot_t x)
+{
+    assert(prot_count > 0);
+    if (--prot_count == 0)
+	atomic_set(&prot_owner, kobject_id_null);
+}
