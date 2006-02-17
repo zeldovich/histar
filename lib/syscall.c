@@ -170,13 +170,13 @@ sys_thread_set_label(struct ulabel *l)
 }
 
 int
-sys_thread_sync_wait(uint64_t *addr, uint64_t val)
+sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val)
 {
     return syscall(SYS_thread_sync_wait, addr, val);
 }
 
 int
-sys_thread_sync_wakeup(uint64_t *addr)
+sys_thread_sync_wakeup(volatile uint64_t *addr)
 {
     return syscall(SYS_thread_sync_wakeup, addr);
 }

@@ -52,8 +52,8 @@ int	sys_thread_addref(uint64_t container);
 int	sys_thread_get_as(struct cobj_ref *as_obj);
 int	sys_thread_set_as(struct cobj_ref as_obj);
 int	sys_thread_set_label(struct ulabel *l);
-int	sys_thread_sync_wait(uint64_t *addr, uint64_t val);
-int	sys_thread_sync_wakeup(uint64_t *addr);
+int	sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val);
+int	sys_thread_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_segment_create(uint64_t container, uint64_t num_pages,
 			   struct ulabel *l, const char *name);
