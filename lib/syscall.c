@@ -169,6 +169,18 @@ sys_thread_set_label(struct ulabel *l)
     return syscall(SYS_thread_set_label, l);
 }
 
+int
+sys_thread_sync_wait(uint64_t *addr, uint64_t val)
+{
+    return syscall(SYS_thread_sync_wait, addr, val);
+}
+
+int
+sys_thread_sync_wakeup(uint64_t *addr)
+{
+    return syscall(SYS_thread_sync_wakeup, addr);
+}
+
 int64_t
 sys_segment_create(uint64_t container, uint64_t num_pages,
 		   struct ulabel *l, const char *name)

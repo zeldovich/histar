@@ -15,6 +15,7 @@
 #include <kern/kobj.h>
 #include <kern/uinit.h>
 #include <kern/mlt.h>
+#include <kern/sync.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -394,6 +395,20 @@ sys_thread_set_label(struct ulabel *ul)
     check(thread_change_label(cur_thread, &l));
 }
 
+static void
+sys_thread_sync_wait(uint64_t *addr, uint64_t val)
+{
+    check(page_user_incore((void**) &addr, sizeof(*addr)));
+    check(sync_wait(addr, val));
+}
+
+static void
+sys_thread_sync_wakeup(uint64_t *addr)
+{
+    check(page_user_incore((void**) &addr, sizeof(*addr)));
+    check(sync_wakeup(addr));
+}
+
 static kobject_id_t
 sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul,
 		   const char *name)
@@ -680,6 +695,14 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_thread_set_label:
 	sys_thread_set_label((struct ulabel *) a1);
+	break;
+
+    case SYS_thread_sync_wait:
+	sys_thread_sync_wait((uint64_t *) a1, a2);
+	break;
+
+    case SYS_thread_sync_wakeup:
+	sys_thread_sync_wakeup((uint64_t *) a1);
 	break;
 
     case SYS_segment_create:

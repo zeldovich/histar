@@ -32,9 +32,13 @@ typedef enum {
     SYS_thread_sleep,
     SYS_thread_id,
     SYS_thread_addref,
+    SYS_thread_set_label,
+
     SYS_thread_get_as,
     SYS_thread_set_as,
-    SYS_thread_set_label,
+
+    SYS_thread_sync_wait,
+    SYS_thread_sync_wakeup,
 
     SYS_segment_create,
     SYS_segment_copy,
