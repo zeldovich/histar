@@ -107,7 +107,6 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	goto err;
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
-    spawn_env->parent_container = container;
     spawn_env->container = c_spawn;
 
     char *p = &spawn_env->args[0];

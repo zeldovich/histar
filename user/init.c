@@ -40,7 +40,6 @@ init_env(uint64_t c_root, uint64_t c_self)
 
     start_env->container = c_self;
     start_env->root_container = c_root;
-    start_env->parent_container = c_root;
 
     // set the filesystem root to be the same as the container root
     int r = fs_get_root(c_root, &start_env->fs_root);
