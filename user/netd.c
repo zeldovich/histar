@@ -20,6 +20,7 @@
 static uint64_t container;
 static int netd_debug = 0;
 static int netd_force_taint = 1;
+static int netd_stats = 0;
 
 struct timer_thread {
     int msec;
@@ -172,5 +173,10 @@ main(int ac, char **av)
     printf("netd: ready\n");
 
     netd_server_ready();
-    sys_thread_halt();
+
+    for (;;) {
+	if (netd_stats)
+	    stats_display();
+	sys_thread_sleep(5000);
+    }
 }
