@@ -70,7 +70,7 @@ struct thread_args {
 };
 
 int	thread_create(uint64_t container, void (*entry)(void*),
-		      void *arg, struct cobj_ref *threadp, char *name);
+		      void *arg, struct cobj_ref *threadp, const char *name);
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);

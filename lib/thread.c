@@ -33,7 +33,7 @@ thread_entry(void *arg)
 
 int
 thread_create(uint64_t container, void (*entry)(void*), void *arg,
-	      struct cobj_ref *threadp, char *name)
+	      struct cobj_ref *threadp, const char *name)
 {
     int r = 0;
 
