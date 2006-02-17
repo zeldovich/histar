@@ -24,6 +24,7 @@ static int netd_force_taint = 1;
 struct timer_thread {
     int msec;
     void (*func)();
+    const char *name;
     struct cobj_ref thread;
 };
 
@@ -74,11 +75,12 @@ net_timer(void *arg)
 }
 
 static void
-start_timer(struct timer_thread *t, void (*func)(), int msec)
+start_timer(struct timer_thread *t, void (*func)(), const char *name, int msec)
 {
     t->msec = msec;
     t->func = func;
-    int r = thread_create(container, &net_timer, t, &t->thread, "timer thread");
+    t->name = name;
+    int r = thread_create(container, &net_timer, t, &t->thread, name);
     if (r < 0)
 	panic("cannot create timer thread: %s", e2s(r));
 }
@@ -156,11 +158,11 @@ main(int ac, char **av)
 
     struct timer_thread t_arp, t_tcpf, t_tcps, t_dhcpf, t_dhcpc;
 
-    start_timer(&t_arp,	    &etharp_tmr,	ARP_TMR_INTERVAL);
-    start_timer(&t_tcpf,    &tcp_fasttmr,	TCP_FAST_INTERVAL);
-    start_timer(&t_tcps,    &tcp_slowtmr,	TCP_SLOW_INTERVAL);
-    start_timer(&t_dhcpf,   &dhcp_fine_tmr,	DHCP_FINE_TIMER_MSECS);
-    start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	DHCP_COARSE_TIMER_SECS * 1000);
+    start_timer(&t_arp,	    &etharp_tmr,	"arp timer",	ARP_TMR_INTERVAL);
+    start_timer(&t_tcpf,    &tcp_fasttmr,	"tcp f timer",	TCP_FAST_INTERVAL);
+    start_timer(&t_tcps,    &tcp_slowtmr,	"tcp s timer",	TCP_SLOW_INTERVAL);
+    start_timer(&t_dhcpf,   &dhcp_fine_tmr,	"dhcp f timer",	DHCP_FINE_TIMER_MSECS);
+    start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	"dhcp c timer",	DHCP_COARSE_TIMER_SECS * 1000);
 
     sys_sem_t tcpip_init_sem = sys_sem_new(0);
     tcpip_init(&tcpip_init_done, &tcpip_init_sem);
