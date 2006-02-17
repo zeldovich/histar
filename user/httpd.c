@@ -19,6 +19,9 @@ http_client(void *arg)
 	printf("httpd: cannot read request: %s\n", e2s(cc));
 
     snprintf(buf, sizeof(buf),
+	     "HTTP/1.0 200 OK\r\n"
+	     "Content-Type: text/html\r\n"
+	     "\r\n"
 	     "<h1>jos64 web server</h1><p>foo.<p>%d requests served\n",
 	     reqs++);
 
