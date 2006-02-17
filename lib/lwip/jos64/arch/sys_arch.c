@@ -227,7 +227,8 @@ sys_arch_protect()
 	uint64_t owner = atomic_compare_exchange64(&prot_owner, kobject_id_null, tid);
 	if (owner == kobject_id_null || owner == tid)
 	    break;
-	sys_thread_yield();
+
+	sys_thread_sync_wait(&prot_owner.counter, owner);
     }
 
     prot_count++;
@@ -238,6 +239,8 @@ void
 sys_arch_unprotect(sys_prot_t x)
 {
     assert(prot_count > 0);
-    if (--prot_count == 0)
+    if (--prot_count == 0) {
 	atomic_set(&prot_owner, kobject_id_null);
+	sys_thread_sync_wakeup(&prot_owner.counter);
+    }
 }
