@@ -23,6 +23,7 @@ struct pstate_header {
 
     uint64_t ph_handle_counter;
     uint64_t ph_user_root_handle;
+    uint64_t ph_user_msec;
 
     struct freelist ph_free ;
     struct btree_default ph_iobjs ;

@@ -12,11 +12,10 @@
 #define MBOXSLOTS	32
 
 struct sys_sem_entry {
-    atomic_t inuse;
-    atomic_t counter;
+    atomic64_t inuse;
+    atomic64_t counter;
 };
 static struct sys_sem_entry sems[NSEM];
-static int sem_sleep_msec = 10;
 
 struct sys_mbox_entry {
     atomic_t inuse;
@@ -106,7 +105,7 @@ sys_sem_new(u8_t count)
 {
     int i;
     for (i = 0; i < NSEM; i++) {
-	if (atomic_compare_exchange(&sems[i].inuse, 0, 1) == 0)
+	if (atomic_compare_exchange64(&sems[i].inuse, 0, 1) == 0)
 	    break;
     }
 
@@ -128,7 +127,8 @@ sys_sem_free(sys_sem_t sem)
 void
 sys_sem_signal(sys_sem_t sem)
 {
-    atomic_inc(&sems[sem].counter);
+    atomic_inc64(&sems[sem].counter);
+    sys_thread_sync_wakeup(&sems[sem].counter.counter);
 }
 
 u32_t
@@ -137,13 +137,16 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
     u32_t waited = 0;
 
     while (tm_msec == 0 || waited < tm_msec) {
-	int v = atomic_read(&sems[sem].counter);
+	uint64_t v = atomic_read(&sems[sem].counter);
 	if (v > 0) {
-	    if (v == atomic_compare_exchange(&sems[sem].counter, v, v-1))
+	    if (v == atomic_compare_exchange64(&sems[sem].counter, v, v-1))
 		return waited;
 	} else {
-	    sys_thread_sleep(sem_sleep_msec);
-	    waited += sem_sleep_msec;
+	    uint64_t a = sys_clock_msec();
+	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
+	    sys_thread_sync_wait(&sems[sem].counter.counter, 0, sleep_until);
+	    uint64_t b = sys_clock_msec();
+	    waited += (b - a);
 	}
     }
 
@@ -228,7 +231,7 @@ sys_arch_protect()
 	if (owner == kobject_id_null || owner == tid)
 	    break;
 
-	sys_thread_sync_wait(&prot_owner.counter, owner);
+	sys_thread_sync_wait(&prot_owner.counter, owner, ~0UL);
     }
 
     prot_count++;

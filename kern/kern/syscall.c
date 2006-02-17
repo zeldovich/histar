@@ -351,14 +351,6 @@ sys_thread_halt(void)
     thread_halt(cur_thread);
 }
 
-static void
-sys_thread_sleep(uint64_t msec)
-{
-    kobject_dirty(&cur_thread->th_ko)->th.th_wakeup_ticks =
-	timer_ticks + kclock_msec_to_ticks(msec);
-    thread_suspend(cur_thread, &timer_sleep);
-}
-
 static uint64_t
 sys_thread_id(void)
 {
@@ -396,17 +388,23 @@ sys_thread_set_label(struct ulabel *ul)
 }
 
 static void
-sys_thread_sync_wait(uint64_t *addr, uint64_t val)
+sys_thread_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
-    check(sync_wait(addr, val));
+    check(sync_wait(addr, val, wakeup_at_msec));
 }
 
 static void
 sys_thread_sync_wakeup(uint64_t *addr)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
-    check(sync_wakeup(addr));
+    check(sync_wakeup_addr(addr));
+}
+
+static uint64_t
+sys_clock_msec(void)
+{
+    return timer_user_msec;
 }
 
 static kobject_id_t
@@ -667,10 +665,6 @@ syscall(syscall_num num, uint64_t a1,
 	sys_thread_halt();
 	break;
 
-    case SYS_thread_sleep:
-	sys_thread_sleep(a1);
-	break;
-
     case SYS_thread_id:
 	syscall_ret = sys_thread_id();
 	break;
@@ -698,11 +692,15 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_thread_sync_wait:
-	sys_thread_sync_wait((uint64_t *) a1, a2);
+	sys_thread_sync_wait((uint64_t *) a1, a2, a3);
 	break;
 
     case SYS_thread_sync_wakeup:
 	sys_thread_sync_wakeup((uint64_t *) a1);
+	break;
+
+    case SYS_clock_msec:
+	syscall_ret = sys_clock_msec();
 	break;
 
     case SYS_segment_create:

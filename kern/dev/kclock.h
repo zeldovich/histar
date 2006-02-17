@@ -34,6 +34,6 @@ void kclock_init (void);
 int kclock_gettick (void);
 void kclock_delay (int usec);
 
-uint64_t kclock_msec_to_ticks (uint64_t msec);
+uint64_t kclock_ticks_to_msec (uint64_t ticks);
 
 #endif // !JOS_KERN_KCLOCK_H

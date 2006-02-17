@@ -74,6 +74,7 @@ int	thread_create(uint64_t container, void (*entry)(void*),
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);
+void	thread_sleep(uint64_t msec);
 
 /* fd.c */
 ssize_t	read(int fd, void *buf, size_t nbytes);

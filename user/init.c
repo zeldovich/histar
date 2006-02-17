@@ -122,5 +122,5 @@ main(int ac, char **av)
     init_procs(cons);
 
     for (;;)
-	sys_thread_sleep(100000);
+	thread_sleep(100000);
 }

@@ -29,7 +29,6 @@ typedef enum {
     SYS_thread_start,
     SYS_thread_yield,
     SYS_thread_halt,
-    SYS_thread_sleep,
     SYS_thread_id,
     SYS_thread_addref,
     SYS_thread_set_label,
@@ -39,6 +38,8 @@ typedef enum {
 
     SYS_thread_sync_wait,
     SYS_thread_sync_wakeup,
+
+    SYS_clock_msec,
 
     SYS_segment_create,
     SYS_segment_copy,

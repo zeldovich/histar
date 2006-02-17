@@ -7,7 +7,8 @@
 #include <inc/queue.h>
 
 extern uint64_t timer_ticks;
-extern struct Thread_list timer_sleep;
+extern uint64_t timer_user_msec;
+extern uint64_t timer_user_msec_offset;
 
 struct periodic_task {
     // external

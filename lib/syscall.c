@@ -133,12 +133,6 @@ sys_thread_halt(void)
     syscall(SYS_thread_halt);
 }
 
-void
-sys_thread_sleep(uint64_t msec)
-{
-    syscall(SYS_thread_sleep, msec);
-}
-
 int64_t
 sys_thread_id(void)
 {
@@ -170,15 +164,21 @@ sys_thread_set_label(struct ulabel *l)
 }
 
 int
-sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val)
+sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
-    return syscall(SYS_thread_sync_wait, addr, val);
+    return syscall(SYS_thread_sync_wait, addr, val, msec);
 }
 
 int
 sys_thread_sync_wakeup(volatile uint64_t *addr)
 {
     return syscall(SYS_thread_sync_wakeup, addr);
+}
+
+int64_t
+sys_clock_msec(void)
+{
+    return syscall(SYS_clock_msec);
 }
 
 int64_t

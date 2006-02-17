@@ -21,7 +21,7 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 	if (cur == 0)
 	    break;
 
-	sys_thread_sync_wait(&mu->counter, cur);
+	sys_thread_sync_wait(&mu->counter, cur, ~0UL);
     }
     return 0;
 }

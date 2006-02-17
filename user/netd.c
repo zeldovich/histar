@@ -70,8 +70,12 @@ net_timer(void *arg)
     struct timer_thread *t = arg;
 
     for (;;) {
+	uint64_t cur = sys_clock_msec();
+
 	t->func();
-	sys_thread_sleep(t->msec);
+
+	uint64_t v = 0xabcd;
+	sys_thread_sync_wait(&v, v, cur + t->msec);
     }
 }
 
@@ -177,6 +181,6 @@ main(int ac, char **av)
     for (;;) {
 	if (netd_stats)
 	    stats_display();
-	sys_thread_sleep(5000);
+	thread_sleep(5000);
     }
 }

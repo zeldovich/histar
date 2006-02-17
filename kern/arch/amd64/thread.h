@@ -29,7 +29,9 @@ struct Thread {
 
     thread_status th_status;
     bool_t th_pinned;
-    uint64_t th_wakeup_ticks;
+
+    uint64_t th_wakeup_msec;
+    uint64_t th_wakeup_addr;
 
     LIST_ENTRY(Thread) th_link;
 };

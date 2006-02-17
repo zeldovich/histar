@@ -165,7 +165,7 @@ spawn_wait(uint64_t childct)
 	if (obj < 0) {
 	    if (obj != -E_NOT_FOUND)
 		return obj;
-	    sys_thread_sleep(100);
+	    thread_sleep(100);
 	} else {
 	    return 0;
 	}

@@ -137,3 +137,14 @@ thread_get_label(struct ulabel *ul)
     sys_obj_unref(COBJ(ctemp, tid));
     return r;
 }
+
+void
+thread_sleep(uint64_t msec)
+{
+    int64_t cur = sys_clock_msec();
+    if (cur < 0)
+	panic("thread_sleep: cannot read clock: %s\n", e2s(cur));
+
+    uint64_t v = 0xc0de;
+    sys_thread_sync_wait(&v, v, cur + msec);
+}

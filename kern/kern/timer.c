@@ -3,32 +3,22 @@
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/intr.h>
+#include <kern/sync.h>
 #include <dev/kclock.h>
 #include <inc/queue.h>
 
 uint64_t timer_ticks;
-struct Thread_list timer_sleep;
+uint64_t timer_user_msec_offset;
+uint64_t timer_user_msec;
 
 static LIST_HEAD(pt_list, periodic_task) periodic_tasks;
-
-static void
-wakeup_scan(void)
-{
-    struct Thread *t = LIST_FIRST(&timer_sleep);
-    while (t != 0) {
-	struct Thread *next = LIST_NEXT(t, th_link);
-
-	if (t->th_wakeup_ticks < timer_ticks)
-	    thread_set_runnable(t);
-
-	t = next;
-    }
-}
 
 static void
 timer_intr(void)
 {
     timer_ticks++;
+    timer_user_msec = timer_user_msec_offset +
+		      kclock_ticks_to_msec(timer_ticks);
 
     struct periodic_task *pt;
     LIST_FOREACH(pt, &periodic_tasks, pt_link) {
@@ -50,11 +40,9 @@ void
 timer_init(void)
 {
     static struct interrupt_handler timer_ih = { .ih_func = &timer_intr };
-
     irq_register(0, &timer_ih);
-    LIST_INIT(&timer_sleep);
 
-    static struct periodic_task sleep_pt =
-	{ .pt_fn = &wakeup_scan, .pt_interval_ticks = 1 };
-    timer_add_periodic(&sleep_pt);
+    static struct periodic_task sync_timer_pt =
+	{ .pt_fn = &sync_wakeup_timer, .pt_interval_ticks = 1 };
+    timer_add_periodic(&sync_timer_pt);
 }

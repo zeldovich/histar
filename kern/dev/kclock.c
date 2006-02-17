@@ -74,7 +74,7 @@ kclock_delay (int usec)
 }
 
 uint64_t
-kclock_msec_to_ticks (uint64_t msec)
+kclock_ticks_to_msec (uint64_t ticks)
 {
-    return msec * kclock_hz / 1000;
+    return ticks * 1000 / kclock_hz;
 }

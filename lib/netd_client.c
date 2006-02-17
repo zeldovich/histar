@@ -31,7 +31,7 @@ netd_call(struct netd_op_args *a) {
     for (int i = 0; i < 10 && netd_client_inited == 0; i++) {
 	int r = netd_client_init();
 	if (r < 0)
-	    sys_thread_sleep(100);
+	    thread_sleep(100);
     }
 
     if (netd_client_inited == 0) {
