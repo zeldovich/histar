@@ -29,6 +29,9 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 static __inline __attribute__((always_inline)) int
 pthread_mutex_unlock(pthread_mutex_t *mu)
 {
+    if (atomic_read(mu) == 0)
+	panic("pthread_mutex_unlock: %p not locked", mu);
+
     atomic_set(mu, 0);
     sys_thread_sync_wakeup(&mu->counter);
     return 0;
