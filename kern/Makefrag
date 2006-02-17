@@ -59,7 +59,8 @@ KERN_BINFILES := \
 	user/rm \
 	user/cat \
 	user/mlt \
-	user/fetch
+	user/fetch \
+	user/tcpsink
 
 	#user/chatter1 \
 	#user/tserv \
