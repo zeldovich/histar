@@ -18,7 +18,6 @@ static int pstate_load_debug = 0;
 static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
-static int pstate_log_stats = 0;
 static int pstate_dlog_stats = 0;
 
 static int scrub_disk_pages = 0;
@@ -436,9 +435,6 @@ pstate_sync_apply(void)
     	return -E_IO ;	
     }
     
-    if (pstate_log_stats)
-    	log_print_stats() ;
-	
 	// 3rd, apply node log
 	int r = log_apply() ;
 	if (r < 0)

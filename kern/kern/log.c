@@ -26,6 +26,7 @@ struct log
 	uint64_t on_disk ;
 	struct btree_volatile disk_map ;
 
+	uint64_t log_gen ;
 	char just_flushed ;
 } ;
 
@@ -120,8 +121,7 @@ dlog_print(void)
 }
 
 static int
-log_write_list(struct node_list *nodes, uint64_t *count, 
-			   offset_t off, struct btree *map)
+log_write_to_disk(struct node_list *nodes, uint64_t *count)
 {
 	disk_io_status s ;
 	uint64_t n = 0 ;
@@ -134,19 +134,44 @@ log_write_list(struct node_list *nodes, uint64_t *count,
 	struct btree_node *node ;
 		
 	LIST_FOREACH(node, nodes, node_link) {
-		if (off) {
-			s = stackwrap_disk_io(op_write, node, PGSIZE, off * PGSIZE);
-			if (map)
-				btree_insert(map, &node->block.offset, &off) ;
-			off++ ;
-		}
-		else
-			s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
+		s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
 		
 		if (s != disk_io_success) {
 			*count = n ;
 			return -E_IO ;
 		}
+		n++ ;
+	}
+	*count = n ;
+	return 0 ;
+}
+
+static int
+log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
+{
+	disk_io_status s ;
+	uint64_t n = 0 ;
+	
+	if (log.offset > off || log.npages + log.offset < off)
+		return -E_INVAL ;
+	
+	if (LIST_EMPTY(nodes)) {
+		*count = 0 ;
+		return 0 ;
+	}
+		
+	struct btree_node *node ;
+		
+	LIST_FOREACH(node, nodes, node_link) {
+		s = stackwrap_disk_io(op_write, node, PGSIZE, off * PGSIZE);
+		log.log_gen++ ;
+		if (s != disk_io_success) {
+			*count = n ;
+			return -E_IO ;
+		}
+
+		btree_insert(&log.disk_map.tree, &node->block.offset, &off) ;
+		off++ ;
 		n++ ;
 	}
 	*count = n ;
@@ -221,18 +246,20 @@ log_read_map(struct btree *map, struct node_list *nodes)
 static int
 log_try_node(offset_t offset, struct btree_node *store)
 {
-	// when compacting, can have a race between the compaction function
-	// and log_node, since compacting modifies disk_map.
+	// compacting modifies disk_map - can have a race w/ log_node
 	offset_t log_off ;
 	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
 		return -E_NOT_FOUND ;
+	
+	uint64_t gen = log.log_gen ;
 	
 	disk_io_status s = stackwrap_disk_io(op_read, store, 
 							  			PGSIZE, log_off * PGSIZE);
 	if (s != disk_io_success)
 		return -E_IO ;
 
-	if (store->block.offset != offset)
+	// compacting modified disk_map
+	if (store->block.offset != offset || gen != log.log_gen)
 		return 1 ;
 	
 	return 0 ;	
@@ -283,10 +310,11 @@ log_compact(void)
 	
 	LIST_INIT(&nodes) ;
 	log_read_map(&log.disk_map.tree, &nodes) ;
-	if ((r = log_write_list(&nodes, 
+	/*if ((r = log_write_to_disk(&nodes, 
 							&count, 
 							off,
-							&log.disk_map.tree)) < 0) {
+							&log.disk_map.tree)) < 0) {*/
+	if ((r = log_write_to_log(&nodes, &count,off)) < 0) {
 		log_free_list(&nodes) ;							
 		return r ;
 	}
@@ -299,7 +327,9 @@ log_compact(void)
 	struct log_header lh = { n_nodes } ;
 	memcpy(scratch, &lh, sizeof(lh)) ;
 	
-	disk_io_status s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.offset * PGSIZE);
+	disk_io_status s = stackwrap_disk_io(op_write, scratch, 
+									     SCRATCH_SIZE, log.offset * PGSIZE);
+	log.log_gen++ ;
 	if (s != disk_io_success)
 		return -E_IO ;
 	
@@ -370,10 +400,8 @@ log_flush(void)
 		if (log.npages <= log.in_mem + log.on_disk + 1)
 			panic("log_flush: log overflow") ;
 	}
-	if ((r = log_write_list(&log.nodes, 
-							&count, 
-							log.offset + log.on_disk + 1,
-							&log.disk_map.tree)) < 0)
+	uint64_t off = log.offset + log.on_disk + 1 ;
+	if ((r = log_write_to_log(&log.nodes, &count, off)) < 0)
 		return r ;
 	assert(count == log.in_mem) ;
 
@@ -382,6 +410,7 @@ log_flush(void)
 	memcpy(scratch, &lh, sizeof(lh)) ;
 
 	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.offset * PGSIZE);
+	log.log_gen++ ;
 	if (s != disk_io_success)
 		return -E_IO ;
 
@@ -415,7 +444,7 @@ log_apply_disk(offset_t off, uint64_t n_nodes)
 			return r ;			
 		}
 		
-		if ((r = log_write_list(&nodes, &count, 0, 0)) < 0) {
+		if ((r = log_write_to_disk(&nodes, &count)) < 0) {
 			log_free_list(&nodes) ;
 			return r ;
 		}
@@ -440,33 +469,31 @@ log_apply(void)
 
 
 	if (log.in_mem != 0) { // have an active in memory log
-		if (log.on_disk) {
-			offset_t off = log.offset + 1 ;
-			uint64_t n_nodes = log.on_disk ;
-
-			if (log.just_flushed)
-				n_nodes -= log.in_mem ;	
-			
-			// XXX: should really be calling something like log_compact...
-			if ((r = log_apply_disk(off, n_nodes)) < 0)
-				return r ;
-		}
-
 		uint64_t count ;
-		if ((r = log_write_list(&log.nodes, &count, 0, 0)) < 0)
+		if ((r = log_write_to_disk(&log.nodes, &count)) < 0)
 			return r ;
 	
+		struct btree_node *node ;
+
+		LIST_FOREACH(node, &log.nodes, node_link)
+			btree_delete(&log.disk_map.tree, &node->block.offset) ;
+
 		if (count != log_free_list(&log.nodes))
 			panic("log_apply: wrote diff num nodes than in memory?\n") ;
-		
+
 		log.in_mem -= count ;
 		assert(log.in_mem == 0) ;
+		
+		if (log.disk_map.tree.size) {
+			struct node_list in_log ;		
+			LIST_INIT(&in_log) ;
+			log_read_map(&log.disk_map.tree, &in_log) ;
+			log_write_to_disk(&in_log, &count) ;
+			log_free_list(&in_log) ;
+		}
 				
-		log_free() ;
-		log_init(log.offset, log.npages, log.max_mem) ;
-		
+		log_reset() ;
 		stop = read_tsc() ;
-		
 		dlog_log(apply, start, stop) ;
 		return 0 ;
 	}
@@ -488,16 +515,10 @@ log_apply(void)
 }
 
 void
-log_print_stats(void)
-{
-	cprintf("log_print_stats: in_mem %ld on_disk %ld\n", 
-			log.in_mem, log.on_disk) ;	
-}
-
-void
-log_free(void)
+log_reset(void)
 {
 	btree_erase(&log.disk_map.tree) ;	
+	log_init(log.offset, log.npages, log.max_mem) ;
 }
 
 void
