@@ -45,3 +45,5 @@ min/max labels on MLT to control contamination
 MT-safe c++ support (lib/cppsup/bits/gthr.h)
 lwip seems rather mt-unsafe -- should it get a big lock around it all?
 
+sys_thread_sync_wait() should invert page-addr into segment+offset
+
