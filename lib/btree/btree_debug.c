@@ -94,3 +94,21 @@ btree_sanity_check(struct btree *tree)
 	if (tree->root) 
 		btree_integrity_check(tree, tree->root) ;
 }
+
+static const char *const op_string[4] = {
+	"none",
+	"search",
+	"delete",
+	"insert"	
+} ;
+
+void
+btree_op_is(struct btree *tree, btree_op op)
+{
+#if 0
+	if (tree->op && op)
+		panic("btree_op_is: concurrent btree mod: %s while %s", 
+			  op_string[op], op_string[tree->op]) ;
+#endif 
+	tree->op = op ;
+}

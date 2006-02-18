@@ -42,6 +42,15 @@ struct btree_manager
 	void *arg ;
 } ;
 
+typedef enum {
+	btree_op_none = 0,
+	btree_op_search,
+	btree_op_delete,
+	btree_op_insert,
+} btree_op ;
+void btree_op_is(struct btree *tree, btree_op op)  ;
+
+
 struct btree
 {
 	struct btree_manager manager ;
@@ -58,6 +67,8 @@ struct btree
 	offset_t root;           
 	offset_t left_leaf;       
 
+	btree_op op ;
+	
 	// current filePos on inserts...no touch
 	offset_t *_insFilePos;    
 };
@@ -82,6 +93,7 @@ int btree_gtet(struct btree *tree, const uint64_t *key,
 
 // debug
 void btree_pretty_print(struct btree *tree, offset_t rootOffset, int i);
+
 
 #endif /* _BTREE_H_ */
 

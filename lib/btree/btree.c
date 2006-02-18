@@ -16,6 +16,7 @@ btree_init(struct btree * t, char order, char key_size,
 	t->min_intrn  = ((t->order + 1) / 2) - 1;
 	t->s_key = key_size ;
 	t->s_value = value_size ;
+	t->op = btree_op_none ;
 	
 	if (mm)
 		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;
