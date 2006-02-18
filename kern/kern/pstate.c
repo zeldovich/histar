@@ -373,39 +373,39 @@ pstate_sync_kobj(struct swapout_stats *stats,
 {
     struct kobject *snap = kobject_get_snapshot(ko);
 
-    int64_t off = pstate_kobj_alloc(&flist, snap) ;
+    int64_t off = pstate_kobj_alloc(&flist, snap);
     if (off < 0) {
-		cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(off));
-		return off;
+	cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(off));
+	return off;
     }
 
     disk_io_status s =
 	stackwrap_disk_io(op_write, snap, sizeof(*snap),
-			  		  off * PGSIZE);
+			  off * PGSIZE);
     if (s != disk_io_success) {
-		cprintf("pstate_sync_kobj: error during disk io\n");
-		return -E_IO;
+	cprintf("pstate_sync_kobj: error during disk io\n");
+	return -E_IO;
     }
 
     for (uint64_t page = 0; page < snap->hdr.ko_npages; page++) {
-		uint64_t offset = (off + page + 1) * PGSIZE;
-		void *p;
-		int r = kobject_get_page(&snap->hdr, page, &p, page_ro);
-		if (r < 0)
-		    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
-	
-		s = stackwrap_disk_io(op_write, p, PGSIZE, offset);
-		if (s != disk_io_success) {
-		    cprintf("pstate_sync_kobj: error during disk io for page\n");
-		    return -E_IO;
-		}
-	
-		stats->written_pages++;
+	uint64_t offset = (off + page + 1) * PGSIZE;
+	void *p;
+	int r = kobject_get_page(&snap->hdr, page, &p, page_ro);
+	if (r < 0)
+	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
+
+	s = stackwrap_disk_io(op_write, p, PGSIZE, offset);
+	if (s != disk_io_success) {
+	    cprintf("pstate_sync_kobj: error during disk io for page\n");
+	    return -E_IO;
+	}
+
+	stats->written_pages++;
     }
 
     if (pstate_swapout_debug)
-		cprintf("pstate_sync_kobj: id %ld npages %ld\n",
-			snap->hdr.ko_id, snap->hdr.ko_npages);
+	cprintf("pstate_sync_kobj: id %ld npages %ld\n",
+		snap->hdr.ko_id, snap->hdr.ko_npages);
 
     kobject_snapshot_release(ko);
     stats->written_kobj++;
