@@ -11,7 +11,7 @@
 #include <kern/gate.h>
 #include <kern/mlt.h>
 
-#define KOBJ_SIZE	(PGSIZE / 2)
+#define KOBJ_SIZE	1024
 
 struct kobject {
     union {
