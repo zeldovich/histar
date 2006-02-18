@@ -836,7 +836,7 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	if (tree == NULL || key == 0 || tree->root == 0)
 		return -E_INVAL ;
 
-	btree_op_is(tree, btree_op_delete) ;
+	btree_set_op(tree, btree_op_delete) ;
 
 	//filePos = 0;
 	btree_valset(filePos, 0, tree->s_value) ;
@@ -867,7 +867,7 @@ btree_delete(struct btree *tree, const uint64_t *key)
 	{
 		btree_destroy_node(rootNode);
 		//cprintf("btree_delete stop\n") ;
-		btree_op_is(tree, btree_op_none) ;
+		btree_unset_op(tree, btree_op_delete) ;
 		return -E_INVAL;
 	}
 	
@@ -880,7 +880,7 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_erase_node(rootNode);
 		//cprintf("btree_delete stop\n") ;
 		//return filePos ;
-		btree_op_is(tree, btree_op_none) ;
+		btree_unset_op(tree, btree_op_delete) ;
 		return 0 ;
 	}
 	else if (merged == 1 && rootNode->keyCount == 0)
@@ -899,13 +899,13 @@ btree_delete(struct btree *tree, const uint64_t *key)
 		btree_erase_node(rootNode);
 		//cprintf("btree_delete stop\n") ;
 		//return filePos ;
-		btree_op_is(tree, btree_op_none) ;
+		btree_unset_op(tree, btree_op_delete) ;
 		return 0 ;
 	}
 	btree_destroy_node(rootNode);
 	//cprintf("btree_delete stop\n") ;
 	//return filePos;
-	btree_op_is(tree, btree_op_none) ;
+	btree_unset_op(tree, btree_op_delete) ;
 	return 0 ;
 }
 

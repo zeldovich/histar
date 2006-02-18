@@ -103,12 +103,37 @@ static const char *const op_string[4] = {
 } ;
 
 void
-btree_op_is(struct btree *tree, btree_op op)
+btree_set_op(struct btree *tree, btree_op op)
 {
+	if (tree->op) {
+		panic("btree_set_op: setting %d while %d, %d times",
+		  		op, tree->op, tree->threads) ;
 #if 0
-	if (tree->op && op)
-		panic("btree_op_is: concurrent btree mod: %s while %s", 
-			  op_string[op], op_string[tree->op]) ;
-#endif 
-	tree->op = op ;
+		if (tree->op == btree_op_search &&
+			op == btree_op_search)
+			tree->threads++ ;	
+		else
+			panic("btree_set_op: setting %d while %d, %d times",
+				  op, tree->op, tree->threads) ;
+#endif
+	}
+	else {
+		tree->op = op ;
+		tree->threads++ ;	
+	}
+}
+
+void
+btree_unset_op(struct btree *tree, btree_op op)
+{
+	if (tree->op == op && tree->threads) {
+		tree->threads-- ;
+		if (tree->threads == 0)
+			tree->op = btree_op_none ;	
+	}
+#if 0
+	else 
+		panic("btree_unset_op: unsetting %d while %d, %d times",
+			  op, tree->op, tree->threads) ;
+#endif
 }

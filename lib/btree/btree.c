@@ -17,6 +17,7 @@ btree_init(struct btree * t, char order, char key_size,
 	t->s_key = key_size ;
 	t->s_value = value_size ;
 	t->op = btree_op_none ;
+	t->threads = 0 ;
 	
 	if (mm)
 		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;

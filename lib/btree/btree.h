@@ -48,7 +48,8 @@ typedef enum {
 	btree_op_delete,
 	btree_op_insert,
 } btree_op ;
-void btree_op_is(struct btree *tree, btree_op op)  ;
+void btree_set_op(struct btree *tree, btree_op op)  ;
+void btree_unset_op(struct btree *tree, btree_op op) ;
 
 
 struct btree
@@ -68,6 +69,7 @@ struct btree
 	offset_t left_leaf;       
 
 	btree_op op ;
+	int threads ;
 	
 	// current filePos on inserts...no touch
 	offset_t *_insFilePos;    
