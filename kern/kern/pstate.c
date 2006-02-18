@@ -367,6 +367,49 @@ struct swapout_stats {
     uint64_t total_kobj;
 };
 
+struct pstate_iov_collector {
+    struct iovec *iov_buf;
+    int iov_cnt;
+    int iov_max;
+
+    uint32_t iov_bytes;
+    uint64_t flush_off;
+};
+
+static int
+pstate_iov_flush(struct pstate_iov_collector *x)
+{
+    if (x->iov_bytes > 0) {
+	disk_io_status s =
+	    stackwrap_disk_iov(op_write, x->iov_buf, x->iov_cnt, x->flush_off);
+	if (s != disk_io_success) {
+	    cprintf("pstate_iov_flush: error during disk io\n");
+	    return -E_IO;
+	}
+    }
+
+    x->flush_off += x->iov_bytes;
+    x->iov_bytes = 0;
+    x->iov_cnt = 0;
+    return 0;
+}
+
+static int
+pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
+{
+    if (x->iov_cnt == x->iov_max) {
+	int r = pstate_iov_flush(x);
+	if (r < 0)
+	    return r;
+    }
+
+    x->iov_buf[x->iov_cnt].iov_base = buf;
+    x->iov_buf[x->iov_cnt].iov_len = size;
+    x->iov_cnt++;
+    x->iov_bytes += size;
+    return 0;
+}
+
 static int
 pstate_sync_kobj(struct swapout_stats *stats,
 		 struct kobject_hdr *ko)
@@ -379,29 +422,34 @@ pstate_sync_kobj(struct swapout_stats *stats,
 	return off;
     }
 
-    disk_io_status s =
-	stackwrap_disk_io(op_write, snap, sizeof(*snap),
-			  off * PGSIZE);
-    if (s != disk_io_success) {
-	cprintf("pstate_sync_kobj: error during disk io\n");
-	return -E_IO;
-    }
+    struct pstate_iov_collector x;
+    memset(&x, 0, sizeof(x));
+
+    struct iovec iov_buf[DISK_REQMAX / PGSIZE];
+    x.flush_off = off * PGSIZE;
+    x.iov_buf = &iov_buf[0];
+    x.iov_max = sizeof(iov_buf) / sizeof(iov_buf[0]);
+
+    int r = pstate_iov_append(&x, snap, PGSIZE);
+    if (r < 0)
+	return r;
 
     for (uint64_t page = 0; page < snap->hdr.ko_npages; page++) {
-	uint64_t offset = (off + page + 1) * PGSIZE;
 	void *p;
-	int r = kobject_get_page(&snap->hdr, page, &p, page_ro);
+	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
-	s = stackwrap_disk_io(op_write, p, PGSIZE, offset);
-	if (s != disk_io_success) {
-	    cprintf("pstate_sync_kobj: error during disk io for page\n");
-	    return -E_IO;
-	}
+	r = pstate_iov_append(&x, p, PGSIZE);
+	if (r < 0)
+	    return r;
 
 	stats->written_pages++;
     }
+
+    r = pstate_iov_flush(&x);
+    if (r < 0)
+	return r;
 
     if (pstate_swapout_debug)
 	cprintf("pstate_sync_kobj: id %ld npages %ld\n",
