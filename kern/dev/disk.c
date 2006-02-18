@@ -8,8 +8,8 @@
 
 struct ide_op {
     disk_op op;
-    void *buf;
-    uint32_t num_bytes;
+    struct iovec *iov_buf;
+    int iov_cnt;
     uint64_t byte_offset;
     disk_callback cb;
     void *cbarg;
@@ -38,7 +38,8 @@ struct ide_channel {
 
     // Align to 256 bytes to avoid spanning a 64K boundary.
     // 17 slots is enough for up to 64K data (16 pages), the max for DMA.
-    struct ide_prd bm_prd[17] __attribute__((aligned (256)));
+#define NPRDSLOTS	17
+    struct ide_prd bm_prd[NPRDSLOTS] __attribute__((aligned (256)));
 };
 
 // One global IDE channel and drive on it, for now
@@ -144,27 +145,41 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
     idec->current_op.cb(stat, idec->current_op.cbarg);
 }
 
-static void
-ide_dma_init(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
+static uint32_t
+ide_dma_init(struct ide_channel *idec, disk_op op,
+	     struct iovec *iov_buf, int iov_cnt)
 {
-    char *cbuf = (char *) buf;
-    int slot = 0;
-    while (bytes > 0) {
-	int page_off = PGOFF(cbuf);
+    int prd_slot = 0;
+    int iov_slot = 0;
+    uint32_t iov_slot_start = 0;
+    uint32_t nbytes = 0;
+
+    while (iov_slot < iov_cnt) {
+	assert(prd_slot < NPRDSLOTS);
+
+	void *buf = iov_buf[iov_slot].iov_base + iov_slot_start;
+	uint32_t bytes = iov_buf[iov_slot].iov_len - iov_slot_start;
+
+	int page_off = PGOFF(buf);
 	uint32_t page_bytes = PGSIZE - page_off;
 	if (page_bytes > bytes)
 	    page_bytes = bytes;
 
-	idec->bm_prd[slot].addr = kva2pa(cbuf);
-	idec->bm_prd[slot].count = page_bytes & 0xffff;
+	idec->bm_prd[prd_slot].addr = kva2pa(buf);
+	idec->bm_prd[prd_slot].count = page_bytes & 0xffff;
 
-	bytes -= page_bytes;
-	cbuf += page_bytes;
+	iov_slot_start += page_bytes;
+	nbytes += page_bytes;
 
-	if (bytes == 0)
-	    idec->bm_prd[slot].count |= IDE_PRD_EOT;
+	if (iov_slot_start == iov_buf[iov_slot].iov_len) {
+	    iov_slot++;
+	    iov_slot_start = 0;
+	}
 
-	slot++;
+	if (iov_slot == iov_cnt)
+	    idec->bm_prd[prd_slot].count |= IDE_PRD_EOT;
+
+	prd_slot++;
     }
 
     outl(idec->bm_addr + IDE_BM_PRDT_REG, kva2pa(&idec->bm_prd[0]));
@@ -173,6 +188,8 @@ ide_dma_init(struct ide_channel *idec, disk_op op, void *buf, uint64_t bytes)
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
     outb(idec->bm_addr + IDE_BM_CMD_REG,
 	 (op == op_read) ? IDE_BM_CMD_WRITE : 0);
+
+    return nbytes;
 }
 
 static void
@@ -251,20 +268,20 @@ ide_intr(void)
 static int
 ide_send(struct ide_channel *idec, uint32_t diskno)
 {
-    // IDE DMA can only handle up to 64K
-    assert(idec->current_op.num_bytes <= (1 << 16));
-
     ide_select_drive(idec, diskno);
     int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
     if (r < 0)
 	return r;
 
-    ide_dma_init(idec, idec->current_op.op,
-		       idec->current_op.buf,
-		       idec->current_op.num_bytes);
+    uint32_t num_bytes = ide_dma_init(idec, idec->current_op.op,
+					    idec->current_op.iov_buf,
+					    idec->current_op.iov_cnt);
+
+    if (num_bytes > (1 << 16))
+	panic("ide_send: request too big for IDE DMA: %d\n", num_bytes);
 
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
-				     idec->current_op.num_bytes / 512);
+				     num_bytes / 512);
     outb(idec->cmd_addr + IDE_REG_CMD,
 	 (idec->current_op.op == op_read) ? IDE_CMD_READ_DMA
 					  : IDE_CMD_WRITE_DMA);
@@ -367,9 +384,8 @@ disk_init(struct pci_func *pcif)
 }
 
 int
-disk_io(disk_op op, void *buf,
-	uint32_t num_bytes, uint64_t byte_offset,
-	disk_callback cb, void *cbarg)
+disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
+	uint64_t byte_offset, disk_callback cb, void *cbarg)
 {
     struct ide_channel *idec = &the_ide_channel;
     struct ide_op *curop = &idec->current_op;
@@ -378,8 +394,8 @@ disk_io(disk_op op, void *buf,
 	return -E_BUSY;
 
     curop->op = op;
-    curop->buf = buf;
-    curop->num_bytes = num_bytes;
+    curop->iov_buf = iov_buf;
+    curop->iov_cnt = iov_cnt;
     curop->byte_offset = byte_offset;
     curop->cb = cb;
     curop->cbarg = cbarg;

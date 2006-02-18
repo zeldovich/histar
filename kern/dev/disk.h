@@ -4,6 +4,9 @@
 #include <machine/types.h>
 #include <dev/pci.h>
 
+// IDE supports at most a 64K DMA request
+#define DISK_REQMAX	65536
+
 // Support for only one data disk, at the moment
 
 typedef enum {
@@ -22,9 +25,13 @@ typedef enum {
     op_write
 } disk_op;
 
-int disk_io(disk_op op, void *buf,
-	    uint32_t count, uint64_t offset,
-	    disk_callback cb, void *cbarg);
+struct iovec {
+    void *iov_base;
+    uint32_t iov_len;
+};
+
+int disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
+	    uint64_t offset, disk_callback cb, void *cbarg);
 
 void ide_intr(void);
 

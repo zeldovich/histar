@@ -96,7 +96,7 @@ disk_io_cb(disk_io_status status, void *arg)
 }
 
 disk_io_status
-stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
+stackwrap_disk_iov(disk_op op, struct iovec *iov_buf, int iov_cnt, uint64_t offset)
 {
     struct stackwrap_state *ss = stackwrap_cur();
     struct disk_io_request ds = { .ss = ss };
@@ -105,7 +105,7 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
     static bool_t disk_queue_full;
 
     for (;;) {
-	int r = disk_io(op, buf, count, offset, &disk_io_cb, &ds);
+	int r = disk_io(op, iov_buf, iov_cnt, offset, &disk_io_cb, &ds);
 	if (r == 0) {
 	    stackwrap_sleep(ss);
 	    break;
@@ -128,4 +128,11 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
     }
 
     return ds.status;
+}
+
+disk_io_status
+stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
+{
+    struct iovec iov = { buf, count };
+    return stackwrap_disk_iov(op, &iov, 1, offset);
 }
