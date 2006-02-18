@@ -8,26 +8,38 @@ static void
 usage(const char *n)
 {
     printf("Usage: %s container object\n", n);
+    printf("       %s pathname\n", n);
 }
 
 int
 main(int ac, char **av)
 {
-    if (ac != 3) {
-	usage(av[0]);
-	return -1;
-    }
-
     struct cobj_ref o;
-    if (strtoull(av[1], 0, 10, &o.container) < 0) {
+    if (ac == 3) {
+	if (strtoull(av[1], 0, 10, &o.container) < 0) {
+	    usage(av[0]);
+	    return -1;
+	}
+
+	if (strtoull(av[2], 0, 10, &o.object) < 0) {
+	    usage(av[0]);
+	    return -1;
+	}
+    } else if (ac == 2) {
+	struct fs_inode fs_obj;
+	int r = fs_namei(av[1], &fs_obj);
+	if (r < 0) {
+	    printf("Cannot find %s: %s\n", av[1], e2s(r));
+	    usage(av[0]);
+	    return -1;
+	}
+
+	o = fs_obj.obj;
+    } else {
 	usage(av[0]);
 	return -1;
     }
 
-    if (strtoull(av[2], 0, 10, &o.object) < 0) {
-	usage(av[0]);
-	return -1;
-    }
 
     struct ulabel *l = label_alloc();
     int r;
