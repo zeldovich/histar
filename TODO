@@ -1,5 +1,6 @@
 threads should not have refcounts -- switch ownership on gate call?
-the mutable label leaks information.
+the mutable label leaks information.  (does it?  if you can read the
+label, then info flow is allowed..  otherwise, it's not..)
 
 thread containers should not be nameable by container ID,
 and should not allow sub-containers or sub-threads.  probably
