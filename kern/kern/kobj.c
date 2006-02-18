@@ -160,6 +160,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 	return r;
 
     struct kobject_pair *ko_pair = (struct kobject_pair *) p;
+    static_assert(sizeof(ko_pair->active) == sizeof(ko_pair->active.buf));
     static_assert(sizeof(*ko_pair) <= PGSIZE);
 
     struct kobject *ko = &ko_pair->active;
