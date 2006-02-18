@@ -16,7 +16,7 @@ struct log_header
 
 struct log
 {
-	uint64_t offset ;
+	uint64_t byteoff ;
  	uint64_t npages ;
  	uint64_t max_mem ;
  	
@@ -134,7 +134,7 @@ log_write_to_disk(struct node_list *nodes, uint64_t *count)
 	struct btree_node *node ;
 		
 	LIST_FOREACH(node, nodes, node_link) {
-		s = stackwrap_disk_io(op_write, node, PGSIZE, node->block.offset * PGSIZE);
+		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, node->block.offset);
 		
 		if (s != disk_io_success) {
 			*count = n ;
@@ -152,7 +152,7 @@ log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 	disk_io_status s ;
 	uint64_t n = 0 ;
 	
-	if (log.offset > off || log.npages + log.offset < off)
+	if (log.byteoff > off || log.npages * PGSIZE + log.byteoff <= off)
 		return -E_INVAL ;
 	
 	if (LIST_EMPTY(nodes)) {
@@ -163,7 +163,7 @@ log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 	struct btree_node *node ;
 		
 	LIST_FOREACH(node, nodes, node_link) {
-		s = stackwrap_disk_io(op_write, node, PGSIZE, off * PGSIZE);
+		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, off);
 		log.log_gen++ ;
 		if (s != disk_io_success) {
 			*count = n ;
@@ -210,11 +210,10 @@ log_read_log(offset_t off, uint64_t n_nodes,
 	struct btree_node *node ;
 	disk_io_status s ;
 	
-	for (uint64_t i = 0 ; i < n_nodes ; i++, off++) {
+	for (uint64_t i = 0 ; i < n_nodes ; i++, off += BTREE_BLOCK_SIZE) {
 		if ((r = page_alloc((void **)&node)) < 0)
 			return r ;
-		s = stackwrap_disk_io(op_read, node, 
-							  PGSIZE, off * PGSIZE);
+		s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
 		LIST_INSERT_HEAD(nodes, node, node_link) ;
 	}
 	return 0 ; 
@@ -235,8 +234,7 @@ log_read_map(struct btree *map, struct node_list *nodes)
 			
 		if ((r = page_alloc((void **)&node)) < 0)
 			return r ;
-		s = stackwrap_disk_io(op_read, node, 
-							  PGSIZE, off * PGSIZE);
+		s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
 		LIST_INSERT_HEAD(nodes, node, node_link) ;
 	}
 	
@@ -253,8 +251,7 @@ log_try_node(offset_t offset, struct btree_node *store)
 	
 	uint64_t gen = log.log_gen ;
 	
-	disk_io_status s = stackwrap_disk_io(op_read, store, 
-							  			PGSIZE, log_off * PGSIZE);
+	disk_io_status s = stackwrap_disk_io(op_read, store, BTREE_BLOCK_SIZE, log_off);
 	if (s != disk_io_success)
 		return -E_IO ;
 
@@ -266,7 +263,7 @@ log_try_node(offset_t offset, struct btree_node *store)
 }
 
 int
-log_node(offset_t offset, void *page)
+log_node(offset_t byteoff, void *page)
 {
 	
 	struct btree_node *node ;
@@ -274,7 +271,7 @@ log_node(offset_t offset, void *page)
 	int r ;
 	
 	LIST_FOREACH(node, &log.nodes, node_link) {
-		if (offset == node->block.offset) {
+		if (byteoff == node->block.offset) {
 			memcpy(store, node, PGSIZE) ;
 			return 0 ;
 		}
@@ -286,13 +283,13 @@ log_node(offset_t offset, void *page)
 	
 	int tries = 0 ;
 	// see comment in log_try_node
-	while ((r = log_try_node(offset, store)) == 1 && ++tries < 10) ;
+	while ((r = log_try_node(byteoff, store)) == 1 && ++tries < 10) ;
 		
 	if (r < 0)
 		return r ;
 
 	if (r == 1)
-		panic("log_node: could not read %ld in %d tries\n", offset, tries) ;
+		panic("log_node: could not read %ld in %d tries\n", byteoff, tries) ;
 		//return -E_UNSPEC ;
 
 	return 0 ;
@@ -302,7 +299,7 @@ log_node(offset_t offset, void *page)
 int
 log_compact(void)
 {
-	offset_t off = log.offset + 1 ;
+	offset_t off = log.byteoff + PGSIZE ;
 	uint64_t n_nodes = 0 ;
 	struct node_list nodes ;
 	int r ;
@@ -327,8 +324,7 @@ log_compact(void)
 	struct log_header lh = { n_nodes } ;
 	memcpy(scratch, &lh, sizeof(lh)) ;
 	
-	disk_io_status s = stackwrap_disk_io(op_write, scratch, 
-									     SCRATCH_SIZE, log.offset * PGSIZE);
+	disk_io_status s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
 	log.log_gen++ ;
 	if (s != disk_io_success)
 		return -E_IO ;
@@ -400,7 +396,7 @@ log_flush(void)
 		if (log.npages <= log.in_mem + log.on_disk + 1)
 			panic("log_flush: log overflow") ;
 	}
-	uint64_t off = log.offset + log.on_disk + 1 ;
+	uint64_t off = log.byteoff + (log.on_disk + 1) * PGSIZE ;
 	if ((r = log_write_to_log(&log.nodes, &count, off)) < 0)
 		return r ;
 	assert(count == log.in_mem) ;
@@ -409,7 +405,7 @@ log_flush(void)
 	struct log_header lh = { log.on_disk + log.in_mem } ;
 	memcpy(scratch, &lh, sizeof(lh)) ;
 
-	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.offset * PGSIZE);
+	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
 	log.log_gen++ ;
 	if (s != disk_io_success)
 		return -E_IO ;
@@ -454,7 +450,7 @@ log_apply_disk(offset_t off, uint64_t n_nodes)
 			return -E_UNSPEC ;
 		}
 		log_free_list(&nodes) ;
-		off += n ;
+		off += n * PGSIZE ;
 	}
 	return 0 ;
 }
@@ -499,7 +495,7 @@ log_apply(void)
 	}
 	else  { // try to apply log sitting on disk
 		disk_io_status s = stackwrap_disk_io(op_read, scratch,
-							  SCRATCH_SIZE, log.offset * PGSIZE);
+							  SCRATCH_SIZE, log.byteoff);
 		if (s != disk_io_success)
 			return -E_IO ;
 			
@@ -508,7 +504,7 @@ log_apply(void)
 		if (n_nodes == 0)
 			return 0 ;
 		
-		uint64_t off = log.offset + 1 ;
+		uint64_t off = log.byteoff + PGSIZE ;
 	
 		return log_apply_disk(off, n_nodes) ;
 	}
@@ -518,18 +514,18 @@ void
 log_reset(void)
 {
 	btree_erase(&log.disk_map.tree) ;	
-	log_init(log.offset, log.npages, log.max_mem) ;
+	log_init(log.byteoff / PGSIZE, log.npages, log.max_mem) ;
 }
 
 void
-log_init(uint64_t off, uint64_t npages, uint64_t max_mem)
+log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem)
 {
 	memset(&log, 0, sizeof(log)) ;
 	
 	// logging will overwrite anything in the disk log
 	LIST_INIT(&log.nodes) ;	
 	btree_volatile_init(&log.disk_map, BTREE_MAX_ORDER1, 1, 1) ;
-	log.offset = off ;
+	log.byteoff = pageoff * PGSIZE;
 	log.npages = npages ;
 	log.max_mem = max_mem ;
 }

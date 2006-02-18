@@ -16,8 +16,8 @@ struct frm
 	uint64_t to_use[FRM_BUF_SIZE] ;
 	uint64_t to_free[FRM_BUF_SIZE] ;
 	
-	int n_use ;
-	int n_free ;
+	uint32_t n_use ;
+	uint32_t n_free ;
 
 	uint8_t service ;
 	uint8_t servicing ;
@@ -35,12 +35,12 @@ struct freelist
 	uint64_t free ;
 } ;
 
-int 	freelist_init(struct freelist *l, uint64_t offset, uint64_t npages) ;
-int 	freelist_free(struct freelist *l, uint64_t base, uint64_t npages) ;
+int	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes) ;
+int	freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes) ;
 void	freelist_setup(uint8_t *b) ;
-int64_t freelist_alloc(struct freelist *l, uint64_t npages) ;
+int64_t freelist_alloc(struct freelist *l, uint64_t nbytes) ;
 void 	freelist_serialize(struct freelist *f) ;
-void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t npages) ;
+void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes) ;
 void 	freelist_commit(struct freelist *l) ;
 
 // debug

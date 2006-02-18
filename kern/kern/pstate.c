@@ -41,7 +41,7 @@ STRUCT_BTREE_CACHE(objmap_cache, 20, OBJMAP_ORDER, 1) ;
 struct mobject
 {
 	offset_t off ;
-	uint64_t npages ;	
+	uint64_t nbytes ;	
 	
 } ;
 
@@ -79,13 +79,13 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	    assert(0 == page_alloc(&p));
 	    memset(p, 0xc4, PGSIZE);
 
-	    for (uint32_t i = 0; i < mobj.npages; i++)
-		stackwrap_disk_io(op_write, p, PGSIZE, mobj.off * PGSIZE);
+	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
+		stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
 
 	    page_free(p);
 	}
 
-	freelist_free_later(f, mobj.off, mobj.npages) ;
+	freelist_free_later(f, mobj.off, mobj.nbytes) ;
     	btree_delete(&iobjlist.tree, &ko->hdr.ko_id) ;
     	btree_delete(&objmap.tree, &ko->hdr.ko_id) ;
     }
@@ -98,15 +98,15 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     pstate_kobj_free(f, ko);
 	
 
-	uint64_t npages = ko->hdr.ko_npages + 1;
-    int64_t offset = freelist_alloc(f, npages);
+    uint64_t nbytes = KOBJ_SIZE + ko->hdr.ko_npages * PGSIZE;
+    int64_t offset = freelist_alloc(f, nbytes);
 	
-	if (offset < 0) {
-		cprintf("pstate_kobj_alloc: no room for %ld pages\n", npages);
-		return offset;
+    if (offset < 0) {
+	cprintf("pstate_kobj_alloc: no room for %ld bytes\n", nbytes);
+	return offset;
     }
 
-	struct mobject mobj = { offset, npages } ;
+	struct mobject mobj = { offset, nbytes } ;
 	r = btree_insert(&objmap.tree, &ko->hdr.ko_id, (uint64_t *)&mobj) ;
 	if (r < 0) {
 		cprintf("pstate_kobj_alloc: objmap insert failed, disk full?\n") ;
@@ -139,9 +139,8 @@ pstate_swapin_off(offset_t off)
     }
 
     struct kobject *ko = (struct kobject *) p;
-    offset_t offset = PGSIZE * off ;
-    
-    disk_io_status s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
+
+    disk_io_status s = stackwrap_disk_io(op_read, p, KOBJ_SIZE, off);
     if (s != disk_io_success) {
 		cprintf("pstate_swapin_obj: cannot read object from disk\n");
 		return -E_IO;
@@ -155,8 +154,7 @@ pstate_swapin_off(offset_t off)
 		    return r;
 		}
 	
-		offset = (off + page + 1) * PGSIZE;
-		s = stackwrap_disk_io(op_read, p, PGSIZE, offset);
+		s = stackwrap_disk_io(op_read, p, PGSIZE, off + KOBJ_SIZE + page * PGSIZE);
 		if (s != disk_io_success) {
 		    cprintf("pstate_swapin_obj: cannot read page from disk\n");
 		    return -E_IO;
@@ -426,11 +424,11 @@ pstate_sync_kobj(struct swapout_stats *stats,
     memset(&x, 0, sizeof(x));
 
     struct iovec iov_buf[DISK_REQMAX / PGSIZE];
-    x.flush_off = off * PGSIZE;
+    x.flush_off = off;
     x.iov_buf = &iov_buf[0];
     x.iov_max = sizeof(iov_buf) / sizeof(iov_buf[0]);
 
-    int r = pstate_iov_append(&x, snap, PGSIZE);
+    int r = pstate_iov_append(&x, snap, KOBJ_SIZE);
     if (r < 0)
 	return r;
 
@@ -590,7 +588,8 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
 		uint64_t disk_pages = disk_bytes / PGSIZE;
-		assert(disk_pages > N_HEADER_PAGES);
+		uint64_t reserved_pages = N_HEADER_PAGES + LOG_SIZE;
+		assert(disk_pages > reserved_pages);
 	
 		if (pstate_swapout_debug)
 		    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
@@ -599,16 +598,16 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 		
 		freelist_init(&flist,
-			      N_HEADER_PAGES + LOG_SIZE,
-			      disk_pages - N_HEADER_PAGES - LOG_SIZE);
+			      reserved_pages * PGSIZE,
+			      (disk_pages - reserved_pages) * PGSIZE);
 		btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
 		btree_default_init(&objmap, OBJMAP_ORDER, 1, 2, &flist, &objmap_cache) ;
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
-    static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= PGSIZE) ;
-	static_assert(BTREE_NODE_SIZE(OBJMAP_ORDER, 1) <= PGSIZE) ;
-	
+    static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= BTREE_BLOCK_SIZE) ;
+    static_assert(BTREE_NODE_SIZE(OBJMAP_ORDER, 1) <= BTREE_BLOCK_SIZE) ;
+
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
     

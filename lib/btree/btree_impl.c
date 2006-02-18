@@ -44,8 +44,8 @@ btree_simple_node(struct btree *tree,
 		disk_io_status s = 
 			stackwrap_disk_io(op_read, 
 							  buf, 
-							  PGSIZE, 
-							  offset * PGSIZE);
+							  BTREE_BLOCK_SIZE,
+							  offset);
 		if (s != disk_io_success) {
 			cprintf("btree_simple_node: error reading node from disk\n");
 			page_free(buf) ;
@@ -148,7 +148,7 @@ static int
 btree_default_alloc(struct btree *tree, struct btree_node **store, void *arg)
 {
 	struct btree_default *def = (struct btree_default *) arg ;
-	int64_t off = freelist_alloc(def->fl, 1) ;
+	int64_t off = freelist_alloc(def->fl, BTREE_BLOCK_SIZE) ;
 	if (off < 0)
 		return off ;
 	
@@ -159,7 +159,7 @@ static int
 btree_default_free(void *man, offset_t offset)
 {
 	struct btree_default *def = (struct btree_default *) man ;
-	freelist_free_later(def->fl, offset, 1) ;
+	freelist_free_later(def->fl, offset, BTREE_BLOCK_SIZE) ;
 	return cache_rem(def->simple.cache, offset) ;
 }
 

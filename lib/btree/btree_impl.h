@@ -5,6 +5,8 @@
 #include <lib/btree/cache.h>
 #include <inc/types.h>
 
+// maximum size of a btree node -- currently cannot exceed PGSIZE
+#define BTREE_BLOCK_SIZE PGSIZE
 // max order for key size of 1
 #define BTREE_MAX_ORDER1 252
 // max order for key size of 2
