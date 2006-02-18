@@ -5,7 +5,7 @@
 #include <inc/netd.h>
 #include <inc/fs.h>
 
-static int label_debug = 1;
+static int label_debug = 0;
 
 static void
 telnet_server(void)
