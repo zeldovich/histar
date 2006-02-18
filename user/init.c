@@ -22,7 +22,7 @@ spawn_fs(int fd, const char *pn, int drop_root_handle)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
     const char *argv[] = { pn };
-    r = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l);
+    r = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l, 0);
     if (r < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(r));
 

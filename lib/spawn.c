@@ -4,11 +4,15 @@
 #include <inc/elf64.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
+#include <inc/fd.h>
+
+static int label_debug = 0;
 
 int64_t
 spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2, int ac, const char **av,
-      struct ulabel *obj_l, struct ulabel *thread_l)
+      struct ulabel *obj_l, struct ulabel *thread_l,
+      uint64_t flags)
 {
     int r;
     start_env_t *spawn_env = 0;
@@ -78,17 +82,73 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	goto err;
     }
 
-    r = dup_as(fd0, 0, e.te_as);
-    if (r < 0)
-	goto err;
+    int fdnum[3] = { fd0, fd1, fd2 };
 
-    r = dup_as(fd1, 1, e.te_as);
-    if (r < 0)
-	goto err;
+    if ((flags & SPAWN_MOVE_FD)) {
+	int i, j;
 
-    r = dup_as(fd2, 2, e.te_as);
-    if (r < 0)
-	goto err;
+	struct ulabel *fd_label = label_dup(obj_label);
+	assert(0 == label_set_level(fd_label, process_handle,
+				    fd_label->ul_default, 1));
+
+	// Find all of the source FD's, increment refcounts
+	struct Fd *fd[3];
+	struct cobj_ref src_seg[3];
+	for (i = 0; i < 3; i++) {
+	    r = fd_lookup(fdnum[i], &fd[i], &src_seg[i]);
+	    if (r < 0)
+		goto err;
+
+	    atomic_inc(&fd[i]->fd_ref);
+	}
+
+	// Drop refcounts on the fd, one per real FD object, and unmap
+	for (i = 0; i < 3; i++) {
+	    for (j = 0; j < i; j++)
+		if (src_seg[i].object == src_seg[j].object)
+		    break;
+
+	    if (i == j)
+		atomic_dec(&fd[i]->fd_ref);
+	    fd_unmap(fd[i]);
+	}
+
+	// Move the FDs into the new container, and map them
+	struct cobj_ref dst_seg[3];
+	for (i = 0; i < 3; i++) {
+	    for (j = 0; j < i; j++)
+		if (src_seg[i].object == src_seg[j].object)
+		    break;
+
+	    if (i == j) {
+		if (label_debug)
+		    printf("spawn: copying fd with label %s\n",
+			   label_to_string(fd_label));
+
+		int64_t id = sys_segment_copy(src_seg[i], c_spawn,
+					      fd_label, "moved fd");
+		if (id < 0) {
+		    r = id;
+		    goto err;
+		}
+
+		sys_obj_unref(src_seg[i]);
+		dst_seg[i] = COBJ(c_spawn, id);
+	    }
+
+	    r = fd_map_as(e.te_as, dst_seg[j], i);
+	    if (r < 0)
+		goto err;
+	}
+
+	label_free(fd_label);
+    } else {
+	for (int i = 0; i < 3; i++) {
+	    r = dup_as(fdnum[i], i, e.te_as);
+	    if (r < 0)
+		goto err;
+	}
+    }
 
     struct cobj_ref c_spawn_env;
     r = segment_alloc(c_spawn, PGSIZE, &c_spawn_env, (void**) &spawn_env, obj_label, "env");
@@ -123,6 +183,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	goto err;
     }
     struct cobj_ref tobj = COBJ(c_spawn, thread);
+
+    if (label_debug)
+	printf("spawn: starting thread with label %s\n",
+	       label_to_string(thread_label));
 
     e.te_arg = (uint64_t) spawn_env_va;
     r = sys_thread_start(tobj, &e, thread_label);

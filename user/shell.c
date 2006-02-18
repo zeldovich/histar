@@ -12,6 +12,8 @@
 static char *cmd_argv[MAXARGS];
 static int cmd_argc;
 
+static int label_debug = 0;
+
 static char separators[] = " \t\n\r";
 
 static void builtin_help(int ac, char **av);
@@ -134,10 +136,14 @@ do_spawn(int ac, char **av)
 
     label_change_star(label, label->ul_default);
 
+    if (label_debug)
+	printf("shell: spawning with label %s\n",
+	       label_to_string(label));
+
     int64_t c_spawn = spawn(start_env->container, ino,
 			    0, 1, 2,
 			    ac, (const char **) av,
-			    label, label);
+			    label, label, 0);
     label_free(label);
     if (c_spawn < 0)
 	printf("cannot spawn %s: %s\n", pn, e2s(c_spawn));

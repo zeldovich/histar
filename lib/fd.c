@@ -50,8 +50,9 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	for (i = 0; i < MAXFD; i++) {
 		fd = INDEX2FD(i);
 		int r = segment_lookup(fd, 0, 0);
-		// XXX segment_lookup interface doesn't tell you what failed...
-		if (r == -E_NOT_FOUND)
+		if (r < 0)
+			return r;
+		if (r == 0)
 			break;
 	}
 
@@ -64,7 +65,6 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	if (r < 0)
 		return r;
 
-	fd->fd_seg = seg;
 	atomic_set(&fd->fd_ref, 1);
 	fd->fd_dev_id = 0;
 
@@ -79,7 +79,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 // Errors are:
 //	-E_INVAL: fdnum was either not in range or not mapped.
 int
-fd_lookup(int fdnum, struct Fd **fd_store)
+fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
 {
 	if (fdnum < 0 || fdnum >= MAXFD) {
 		if (debug)
@@ -88,8 +88,10 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 	}
 	struct Fd *fd = INDEX2FD(fdnum);
 
-	int r = segment_lookup(fd, 0, 0);
-	if (r < 0) {
+	int r = segment_lookup(fd, objp, 0);
+	if (r < 0)
+		return r;
+	if (r == 0) {
 		if (debug)
 			cprintf("[%lx] closed fd %d\n", thread_id(), fdnum);
 		return -E_INVAL;
@@ -110,17 +112,39 @@ fd_close(struct Fd *fd)
 		return 0;
 	}
 
+	struct cobj_ref fd_seg;
+	int r = segment_lookup(fd, &fd_seg, 0);
+	if (r < 0)
+		return r;
+	if (r == 0)
+		return -E_NOT_FOUND;
+
 	struct Dev *dev;
-	int r = dev_lookup(fd->fd_dev_id, &dev);
+	r = dev_lookup(fd->fd_dev_id, &dev);
 	if (r < 0)
 		return r;
 
 	r = (*dev->dev_close)(fd);
 
-	sys_obj_unref(fd->fd_seg);
+	sys_obj_unref(fd_seg);
 	segment_unmap(fd);
 
 	return r;
+}
+
+
+int
+fd_map_as(struct cobj_ref as, struct cobj_ref fd_seg, int fdnum)
+{
+	struct Fd *fd = INDEX2FD(fdnum);
+	return segment_map_as(as, fd_seg, SEGMAP_READ | SEGMAP_WRITE,
+			      (void **) &fd, 0);
+}
+
+int
+fd_unmap(struct Fd *fd)
+{
+	return segment_unmap(fd);
 }
 
 
@@ -156,7 +180,7 @@ close(int fdnum)
 	struct Fd *fd;
 	int r;
 
-	if ((r = fd_lookup(fdnum, &fd)) < 0)
+	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
 		return r;
 	else
 		return fd_close(fd);
@@ -179,7 +203,8 @@ int
 dup(int oldfdnum, int newfdnum)
 {
 	struct Fd *oldfd;
-	int r = fd_lookup(oldfdnum, &oldfd);
+	struct cobj_ref fd_seg;
+	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
 	if (r < 0)
 		return r;
 
@@ -187,7 +212,7 @@ dup(int oldfdnum, int newfdnum)
 	struct Fd *newfd = INDEX2FD(newfdnum);
 
 	int immutable = oldfd->fd_immutable;
-	r = segment_map(oldfd->fd_seg,
+	r = segment_map(fd_seg,
 			SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
 			(void**) &newfd, 0);
 	if (r < 0)
@@ -202,7 +227,8 @@ int
 dup_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 {
 	struct Fd *oldfd;
-	int r = fd_lookup(oldfdnum, &oldfd);
+	struct cobj_ref fd_seg;
+	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
 	if (r < 0)
 		return r;
 
@@ -211,7 +237,7 @@ dup_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 	struct Fd *newfd = INDEX2FD(newfdnum);
 
 	int immutable = oldfd->fd_immutable;
-	r = segment_map_as(target_as, oldfd->fd_seg,
+	r = segment_map_as(target_as, fd_seg,
 			   SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
 			   (void**) &newfd, 0);
 	if (r < 0)
@@ -229,7 +255,7 @@ read(int fdnum, void *buf, size_t n)
 	struct Dev *dev;
 	struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd)) < 0
+	if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
@@ -265,7 +291,7 @@ write(int fdnum, const void *buf, size_t n)
 	struct Dev *dev;
 	struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd)) < 0
+	if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
@@ -287,7 +313,7 @@ seek(int fdnum, off_t offset)
 	int r;
 	struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd)) < 0)
+	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
 		return r;
 	if (fd->fd_immutable)
 		return -E_BAD_OP;
@@ -302,7 +328,7 @@ bind(int fdnum, struct sockaddr *addr, socklen_t addrlen)
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -316,7 +342,7 @@ connect(int fdnum, struct sockaddr *addr, socklen_t addrlen)
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -330,7 +356,7 @@ listen(int fdnum, int backlog)
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -344,7 +370,7 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 

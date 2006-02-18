@@ -44,7 +44,7 @@ libmain(uint64_t arg0, uint64_t arg1)
 
 	struct cobj_ref start_env_seg;
 	int r = segment_lookup(start_env, &start_env_seg, 0);
-	if (r < 0)
+	if (r < 0 || r == 0)
 	    panic("libmain: cannot find start_env segment: %s", e2s(r));
 
 	void *start_env_ro = (void *) USTARTENVRO;

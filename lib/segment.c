@@ -110,11 +110,37 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 		*seg = uas.ents[i].segment;
 	    if (npage)
 		*npage = (va - va_start) / PGSIZE;
-	    return 0;
+	    return 1;
 	}
     }
 
-    return -E_NOT_FOUND;
+    return 0;
+}
+
+int
+segment_lookup_obj(uint64_t oid, void **vap)
+{
+    struct u_segment_mapping ents[NMAPPINGS];
+    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
+
+    struct cobj_ref as_ref;
+    int r = sys_thread_get_as(&as_ref);
+    if (r < 0)
+	return r;
+
+    r = sys_as_get(as_ref, &uas);
+    if (r < 0)
+	return r;
+
+    for (uint64_t i = 0; i < uas.nent; i++) {
+	if (uas.ents[i].segment.object == oid) {
+	    if (vap)
+		*vap = uas.ents[i].va;
+	    return 1;
+	}
+    }
+
+    return 0;
 }
 
 int
