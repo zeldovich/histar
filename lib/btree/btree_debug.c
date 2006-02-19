@@ -106,12 +106,10 @@ void
 btree_set_op(struct btree *tree, btree_op op)
 {
 	if (tree->op) {
-		panic("btree_set_op: setting %d while %d, %d times",
-		  		op, tree->op, tree->threads) ;
-#if 0
 		if (tree->op == btree_op_search &&
 			op == btree_op_search)
 			tree->threads++ ;	
+#if 0
 		else
 			panic("btree_set_op: setting %d while %d, %d times",
 				  op, tree->op, tree->threads) ;
