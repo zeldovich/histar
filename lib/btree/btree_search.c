@@ -103,6 +103,7 @@ __search(struct btree *tree,
 							 btree_key(n->keys, n->keyCount-1, tree->s_key),
 							 tree->s_key) ;
 				btree_destroy_node(n) ;
+				btree_destroy_node(rootNode) ;
 				return 1 ;
 			}
 			
@@ -146,7 +147,7 @@ __search(struct btree *tree,
 		return 0;
 	}
 	
-	// accesses to children ok, can't be leafs
+	// accesses to children ok, since rootNode can't be a leaf
 	assert(rootNode->children);
 
 	if (i > 0)
