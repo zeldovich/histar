@@ -32,7 +32,8 @@ LIB_SRCFILES :=	\
 	lib/malloc.c \
 	lib/fs.c \
 	lib/label.c \
-	lib/cpplabel.cc
+	lib/cpplabel.cc \
+	lib/nethelper.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
