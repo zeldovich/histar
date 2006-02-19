@@ -79,7 +79,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
     if (!strcmp(fn, "@mlt")) {
 	char blob[MLT_BUF_SIZE];
 	uint64_t ct;
-	int r = sys_mlt_get(dir.obj, &blob[0], &ct);
+	int r = sys_mlt_get(dir.obj, 0, 0, &blob[0], &ct);
 	if (r < 0) {
 	    struct ulabel *l = label_get_current();
 	    if (l == 0)
@@ -96,7 +96,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	    if (r < 0)
 		return r;
 
-	    r = sys_mlt_get(dir.obj, &blob[0], &ct);
+	    r = sys_mlt_get(dir.obj, 0, 0, &blob[0], &ct);
 	    if (r < 0)
 		return r;
 	}

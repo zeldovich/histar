@@ -131,7 +131,8 @@ mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
 }
 
 int
-mlt_get(const struct Mlt *mlt, uint8_t *buf, kobject_id_t *ct_id)
+mlt_get(const struct Mlt *mlt, uint64_t idx, struct Label *l,
+	uint8_t *buf, kobject_id_t *ct_id)
 {
     uint64_t nslots = mlt_nslots(mlt);
 
@@ -149,10 +150,18 @@ mlt_get(const struct Mlt *mlt, uint8_t *buf, kobject_id_t *ct_id)
 	if (r < 0)
 	    continue;
 
+	if (idx > 0) {
+	    idx--;
+	    continue;
+	}
+
 	if (buf)
 	    memcpy(buf, &me->me_buf[0], MLT_BUF_SIZE);
 	if (ct_id)
 	    *ct_id = me->me_ct;
+	if (l)
+	    *l = me->me_l;
+
 	return 0;
     }
 

@@ -70,6 +70,7 @@ int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
 
 int64_t sys_mlt_create(uint64_t container, const char *name);
 int	sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf);
-int	sys_mlt_get(struct cobj_ref mlt, uint8_t *buf, uint64_t *ct_id);
+int	sys_mlt_get(struct cobj_ref mlt, uint64_t idx,
+		    struct ulabel *l, uint8_t *buf, uint64_t *ct_id);
 
 #endif

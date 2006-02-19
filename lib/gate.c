@@ -88,8 +88,9 @@ gate_cow(void)
     if (r < 0)
 	panic("gate_cow: cannot store garbage in MLT: %s", e2s(r));
 
+    // XXX should iterate through MLT slots to find a writable label
     uint64_t mlt_ct;
-    r = sys_mlt_get(mlt, &buf[0], &mlt_ct);
+    r = sys_mlt_get(mlt, 0, 0, &buf[0], &mlt_ct);
     if (r < 0)
 	panic("gate_cow: cannot get MLT container: %s", e2s(r));
 

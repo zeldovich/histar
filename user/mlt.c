@@ -23,7 +23,7 @@ main(int ac, char **av)
 
     memset(&buf[0], 0, MLT_BUF_SIZE);
     uint64_t ct_id;
-    r = sys_mlt_get(mlt, &buf[0], &ct_id);
+    r = sys_mlt_get(mlt, 0, 0, &buf[0], &ct_id);
     if (r < 0)
 	panic("mlt_get: %s", e2s(r));
 
