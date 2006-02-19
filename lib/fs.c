@@ -26,8 +26,8 @@ fs_get_root(uint64_t ct, struct fs_inode *rdirp)
     return 0;
 }
 
-int
-fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
+static int
+fs_get_dent_ct(struct fs_inode d, uint64_t n, struct fs_dent *e)
 {
     int64_t slot_id = sys_container_get_slot_id(d.obj.object, n);
     if (slot_id < 0) {
@@ -44,11 +44,48 @@ fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
     if (r < 0)
 	return r;
 
-    if (fs_debug)
-	cprintf("fs_get_dent: dir %ld obj %ld name %s\n",
-		d.obj.object, slot_id, &e->de_name[0]);
-
     return 0;
+}
+
+static int
+fs_get_dent_mlt(struct fs_inode d, uint64_t n, struct fs_dent *e)
+{
+    char buf[MLT_BUF_SIZE];
+    uint64_t ct;
+    int r = sys_mlt_get(d.obj, n, 0, &buf[0], &ct);
+    if (r < 0) {
+	if (r == -E_NOT_FOUND)
+	    return -E_RANGE;
+	return r;
+    }
+
+    e->de_inode.obj = COBJ(ct, ct);
+    snprintf(&e->de_name[0], sizeof(e->de_name), "%lu", ct);
+    return 0;
+}
+
+int
+fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
+{
+    int type = sys_obj_get_type(d.obj);
+    if (type < 0)
+	return type;
+
+    // For the debugging cprintf further down
+    e->de_name[0] = '\0';
+
+    int r = -E_INVAL;
+    if (type == kobj_container)
+	r = fs_get_dent_ct(d, n, e);
+    else if (type == kobj_mlt)
+	r = fs_get_dent_mlt(d, n, e);
+
+    if (fs_debug)
+	cprintf("fs_get_dent: dir %ld r %d obj %ld name %s\n",
+		d.obj.object, r, e->de_inode.obj.object,
+		&e->de_name[0]);
+
+    return r;
 }
 
 int
