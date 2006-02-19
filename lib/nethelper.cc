@@ -18,6 +18,18 @@ errormsg::errormsg(const char *fmt, ...)
     va_end(ap);
 }
 
+void
+errormsg::print_where() const
+{
+    int depth = backtracer_depth();
+    printf("Backtrace for error %s:\n", what());
+    for (int i = 0; i < depth; i++) {
+	void *addr = backtracer_addr(i);
+	printf("  %p\n", addr);
+    }
+    printf("End of backtrace\n");
+}
+
 url::url(const char *s) : host_(0), path_(0)
 {
     static const char *prefix = "http://";

@@ -3,6 +3,7 @@ extern "C" {
 };
 
 #include <inc/cpplabel.hh>
+#include <inc/nethelper.hh>
 
 int
 main(int ac, char **av)
@@ -26,6 +27,12 @@ main(int ac, char **av)
 	printf("caught a %d\n", x);
     } catch (...) {
 	printf("caught something\n");
+    }
+
+    try {
+	url u("foo://bar");
+    } catch (errormsg &e) {
+	e.print_where();
     }
 
     return 0;

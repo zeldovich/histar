@@ -5,12 +5,14 @@ extern "C" {
 #include <inc/types.h>
 }
 #include <exception>
+#include <inc/backtracer.hh>
 
-class errormsg : public std::exception {
+class errormsg : public std::exception, public backtracer {
 public:
     errormsg(const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
     virtual const char *what() const throw () { return &msg[0]; }
+    void print_where() const;
 
 private:
     char msg[256];

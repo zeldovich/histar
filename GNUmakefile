@@ -58,7 +58,7 @@ DEFS	:=
 #CFLAGS	:= -g -Wall -Werror -fms-extensions
 CFLAGS	:= -g -Wall -Werror -fms-extensions -O2 -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
-INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR)
+INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(TOP)/inc/gcc
 
 # Linker flags for user programs
 LDENTRY := $(OBJDIR)/lib/entry.o

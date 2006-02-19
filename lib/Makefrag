@@ -33,7 +33,8 @@ LIB_SRCFILES :=	\
 	lib/fs.c \
 	lib/label.c \
 	lib/cpplabel.cc \
-	lib/nethelper.cc
+	lib/nethelper.cc \
+	lib/backtrace.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
