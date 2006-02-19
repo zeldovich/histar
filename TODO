@@ -53,5 +53,3 @@ them later do other socket operations.
 fd's should have grant handles that would automatically get granted
 across spawn when appropriate.
 
-how to manage a system in a fully-persistent world?
-
