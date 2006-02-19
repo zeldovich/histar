@@ -65,6 +65,18 @@ http_client(void *arg)
 	    if (type == kobj_segment) {
 		snprintf(buf, sizeof(buf), "segment\n");
 		tc.write(buf, strlen(buf));
+
+		uint64_t sz;
+		r = fs_getsize(ino, &sz);
+		if (r < 0)
+		    throw errormsg("fs_getsize: %s", e2s(r));
+
+		for (uint64_t off = 0; off < sz; off += sizeof(buf)) {
+		    r = fs_pread(ino, &buf[0], sizeof(buf), off);
+		    if (r < 0)
+			throw errormsg("fs_pread: %s", e2s(r));
+		    tc.write(buf, sizeof(buf));
+		}
 	    } else if (type == kobj_container || type == kobj_mlt) {
 		snprintf(buf, sizeof(buf), "directory or mlt\n");
 		tc.write(buf, strlen(buf));
