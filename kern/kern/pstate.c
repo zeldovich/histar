@@ -71,6 +71,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	struct mobject mobj ;
 
     int r = btree_search(&objmap.tree, &ko->hdr.ko_id, &key, (uint64_t *)&mobj) ;
+	 
     if (r == 0) {
     	assert(key == ko->hdr.ko_id) ;
 
@@ -86,6 +87,9 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	}
 
 	freelist_free_later(f, mobj.off, mobj.nbytes) ;
+    	//if (cache_num_pinned(&objmap_cache))
+    	//	panic("pstate_kobj_free: objmap_cache, num pinned %d", cache_num_pinned(&objmap_cache)) ;
+    		
     	btree_delete(&iobjlist.tree, &ko->hdr.ko_id) ;
     	btree_delete(&objmap.tree, &ko->hdr.ko_id) ;
     }
@@ -97,7 +101,6 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     int r ;
     pstate_kobj_free(f, ko);
 	
-
     uint64_t nbytes = KOBJ_SIZE + ko->hdr.ko_npages * PGSIZE;
     int64_t offset = freelist_alloc(f, nbytes);
 	
@@ -115,6 +118,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 
 	if (kobject_initial(ko)) {
 		r = btree_insert(&iobjlist.tree, &ko->hdr.ko_id, &offset) ;
+		
 		if (r < 0) {
 			cprintf("pstate_kobj_alloc: iobjlist insert failed, "
 				"disk full?\n") ;
@@ -265,7 +269,7 @@ pstate_load2(void)
 	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
 	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
 	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;
-	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &iobj_cache) ;
+	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &objmap_cache) ;
 
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.tree, &trav) ;
@@ -584,7 +588,6 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		return;
     }
     swapout_active = 1;
-
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
 		uint64_t disk_pages = disk_bytes / PGSIZE;
