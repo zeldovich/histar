@@ -81,7 +81,8 @@ btree_key(const offset_t *keys, const int i, uint8_t s_key)
 int64_t
 btree_keycmp(const offset_t *key1, const offset_t *key2, uint8_t s_key)
 {
-	int i = 0, r = 0 ;
+	int i = 0 ; 
+	int64_t r = 0 ;
 	for (; r == 0 && i < s_key ; i++)
 		r = key1[i] - key2[i] ;	
 	return r ;
