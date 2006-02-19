@@ -150,19 +150,23 @@ lineparser::read(char *buf, size_t len)
 const char *
 lineparser::read_line()
 {
-    refill();
-
+retry:
     char *base = &buf_[pos_];
     char *newline = strstr(base, "\r\n");
-    if (newline == 0)
+    if (newline == 0) {
+	size_t cc = refill();
+	if (cc > 0)
+	    goto retry;
+
 	return 0;
+    }
 
     *newline = '\0';
     pos_ += (newline - base) + 2;
     return base;
 }
 
-void
+size_t
 lineparser::refill()
 {
     memmove(&buf_[0], &buf_[pos_], valid_ - pos_);
@@ -173,5 +177,8 @@ lineparser::refill()
     if (space > 0) {
 	size_t cc = tc_->read(&buf_[valid_], space);
 	valid_ += cc;
+	return cc;
     }
+
+    return 0;
 }

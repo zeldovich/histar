@@ -51,7 +51,7 @@ public:
     const char *read_line();
 
 private:
-    void refill();
+    size_t refill();
 
     tcpconn *tc_;
 
