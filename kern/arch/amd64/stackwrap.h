@@ -13,4 +13,9 @@ disk_io_status stackwrap_disk_io(disk_op op, void *buf,
 disk_io_status stackwrap_disk_iov(disk_op op, struct iovec *iov_buf,
 				  int iov_len, uint64_t offset);
 
+struct stackwrap_state;
+struct stackwrap_state *stackwrap_cur(void);
+void stackwrap_wakeup(struct stackwrap_state *ss);
+void stackwrap_sleep(struct stackwrap_state *ss);
+
 #endif

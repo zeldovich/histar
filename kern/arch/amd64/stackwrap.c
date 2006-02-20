@@ -18,7 +18,7 @@ struct stackwrap_state {
     uint64_t magic;
 };
 
-static struct stackwrap_state *
+struct stackwrap_state *
 stackwrap_cur(void)
 {
     void *rsp = (void *) read_rsp();
@@ -41,7 +41,7 @@ stackwrap_entry(void)
     longjmp(&ss->entry_cb, 1);
 }
 
-static void
+void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
     if (setjmp(&ss->entry_cb) == 0)
@@ -51,7 +51,7 @@ stackwrap_wakeup(struct stackwrap_state *ss)
 	page_free(ss->stackbase);
 }
 
-static void
+void
 stackwrap_sleep(struct stackwrap_state *ss)
 {
     if (setjmp(&ss->task_state) == 0)
