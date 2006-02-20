@@ -136,3 +136,35 @@ stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
     struct iovec iov = { buf, count };
     return stackwrap_disk_iov(op, &iov, 1, offset);
 }
+
+// Locks
+
+struct lock_waiter {
+    struct stackwrap_state *ss;
+    LIST_ENTRY(lock_waiter) link;
+};
+
+void
+lock_acquire(struct lock *l)
+{
+    while (l->locked) {
+        struct lock_waiter w;
+        w.ss = stackwrap_cur();
+        LIST_INSERT_HEAD(&l->waiters, &w, link);
+        stackwrap_sleep(w.ss);
+    }
+
+    l->locked = 1;
+}
+
+void
+lock_release(struct lock *l)
+{
+    l->locked = 0;
+    struct lock_waiter *w = LIST_FIRST(&l->waiters);
+    if (w == 0)
+        return;
+    LIST_REMOVE(w, link);
+    stackwrap_wakeup(w->ss);
+}
+
