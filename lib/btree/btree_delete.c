@@ -826,8 +826,11 @@ __delete(struct btree *tree,
 }
 
 char 
-btree_delete(struct btree *tree, const uint64_t *key)
+btree_delete(void *t, const uint64_t *key)
 {
+	struct btree *tree = (struct btree *)t ;
+	assert(tree->magic == BTREE_MAGIC) ;
+	
 	int i;
 	offset_t filePos[tree->s_value] ;
 	char merged, success;

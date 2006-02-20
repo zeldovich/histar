@@ -167,18 +167,22 @@ int
 btree_default_setup(struct btree_default *def, uint8_t order,
 				    struct freelist *fl,struct cache *cache)
 {
+	struct btree_manager mm ;
+	
 	btree_simple_init(&def->simple, order, cache) ;
+	
 
 	def->fl = fl ;
 	
-	def->tree.manager.alloc = &btree_default_alloc ;
-	//def->tree.manager.free = &btree_simple_rem ;
-	def->tree.manager.free = btree_default_free ;
-	def->tree.manager.node = &btree_simple_node ;
-	def->tree.manager.arg = def ;
-	def->tree.manager.unpin_node = &btree_simple_unpin_node ;
-	def->tree.manager.write = &btree_simple_write ;
-	   	
+	mm.alloc = &btree_default_alloc ;
+	mm.free = btree_default_free ;
+	mm.node = &btree_simple_node ;
+	mm.arg = def ;
+	mm.unpin_node = &btree_simple_unpin_node ;
+	mm.write = &btree_simple_write ;
+
+	btree_manager_is(&def->simple.tree, &mm) ;
+	 
 	return 0 ;				
 }
 
@@ -187,7 +191,7 @@ btree_default_init(struct btree_default *def, uint8_t order,
 				   uint8_t key_size, uint8_t value_size,
 				   struct freelist *fl,struct cache *cache)
 {
-	btree_init(&def->tree, order, key_size, value_size, NULL) ;
+	btree_init(&def->simple.tree, order, key_size, value_size, NULL) ;
 	btree_default_setup(def, order, fl, cache) ;
 	   	
 	return 0 ;
@@ -276,12 +280,16 @@ btree_volatile_write(struct btree_node *node, void *manager)
 static int 
 btree_volatile_setup(struct btree_volatile *def)
 {
-	def->tree.manager.alloc = &btree_volatile_alloc ;
-	def->tree.manager.free = &btree_volatile_rem ;
-	def->tree.manager.node = &btree_volatile_node ;
-	def->tree.manager.arg = def ;
-	def->tree.manager.unpin_node = &btree_volatile_unpin_node ;
-	def->tree.manager.write = &btree_volatile_write ;
+	struct btree_manager mm ;
+	
+	mm.alloc = &btree_volatile_alloc ;
+	mm.free = &btree_volatile_rem ;
+	mm.node = &btree_volatile_node ;
+	mm.arg = def ;
+	mm.unpin_node = &btree_volatile_unpin_node ;
+	mm.write = &btree_volatile_write ;
+	
+	btree_manager_is(&def->tree, &mm) ;
 	
 	def->off_count = 0 ;
 	LIST_INIT(&def->nodes) ;

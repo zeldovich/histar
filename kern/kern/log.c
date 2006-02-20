@@ -170,7 +170,7 @@ log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 			return -E_IO ;
 		}
 
-		btree_insert(&log.disk_map.tree, &node->block.offset, &off) ;
+		btree_insert(&log.disk_map, &node->block.offset, &off) ;
 		off++ ;
 		n++ ;
 	}
@@ -246,7 +246,7 @@ log_try_node(offset_t offset, struct btree_node *store)
 {
 	// compacting modifies disk_map - can have a race w/ log_node
 	offset_t log_off ;
-	if (btree_search(&log.disk_map.tree, &offset, &offset, &log_off) < 0)
+	if (btree_search(&log.disk_map, &offset, &offset, &log_off) < 0)
 		return -E_NOT_FOUND ;
 	
 	uint64_t gen = log.log_gen ;

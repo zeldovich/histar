@@ -172,7 +172,7 @@ __btree_search(struct btree *tree,
 	//uint64_t val_store ;
 	
 	if (tree == NULL || key == 0)
-		return -E_NOT_FOUND;
+		return -E_NOT_FOUND ;
 
 	found   = 0;
 
@@ -205,21 +205,24 @@ __btree_search(struct btree *tree,
 }
 
 int
-btree_search(struct btree *tree, const uint64_t *key, 
+btree_search(void *tree, const uint64_t *key, 
 			 uint64_t *key_store, uint64_t *val_store)
 {
+	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
 	return __btree_search(tree, key, match_eq, key_store, val_store) ;	
 }
 
 int 
-btree_ltet(struct btree *tree, const uint64_t *key, 
+btree_ltet(void *tree, const uint64_t *key, 
 		   uint64_t *key_store, uint64_t *val_store)
 {
+	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
 	return __btree_search(tree, key, match_ltet, key_store, val_store) ;	
 }
 int 
-btree_gtet(struct btree *tree, const uint64_t *key, 
+btree_gtet(void *tree, const uint64_t *key, 
 		   uint64_t *key_store, uint64_t *val_store)
 {
+	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
 	return __btree_search(tree, key, match_gtet, key_store, val_store) ;	
 }

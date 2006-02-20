@@ -20,8 +20,10 @@
 // doesn't provide functionality for allocating nodes persistently.
 struct btree_simple
 {
+	struct btree tree ;
+
 	uint8_t	order ;
-	struct cache *cache ;	
+	struct cache *cache ;
 } ;
 
 // default kernel level btree manager...freelist is used for allocating
@@ -30,17 +32,15 @@ struct btree_default
 {
 	struct btree_simple simple ;
 	struct freelist *fl ;
-	
-	struct btree tree ;
 } ;
 
 // btree is always stored in memory and isn't backed by disk
 struct btree_volatile
 {
+	struct btree tree ;
+
 	offset_t off_count ;
 	struct node_list nodes ;
-	
-	struct btree tree ;
 } ; 
 
 int btree_simple_init(struct btree_simple *sim, uint8_t order, 

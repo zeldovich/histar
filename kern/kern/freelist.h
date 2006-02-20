@@ -9,7 +9,6 @@
 // are being modified by a call to freelist_alloc or freelist_free
 struct frm
 {
-	// XXX: make frm like btree_default
 	struct btree_simple simple ;
 
 #define FRM_BUF_SIZE 10
@@ -25,21 +24,16 @@ struct frm
 
 struct freelist
 {
-	struct btree chunks ;
-	struct btree offsets ;
-	
 	struct frm offset_frm ;
 	struct frm chunk_frm ;
-	
 	
 	uint64_t free ;
 } ;
 
 int	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes) ;
 int	freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes) ;
-void	freelist_setup(uint8_t *b) ;
+void	freelist_serialize(uint8_t *b) ;
 int64_t freelist_alloc(struct freelist *l, uint64_t nbytes) ;
-void 	freelist_serialize(struct freelist *f) ;
 void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes) ;
 void 	freelist_commit(struct freelist *l) ;
 

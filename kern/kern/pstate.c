@@ -70,28 +70,25 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	uint64_t key ;
 	struct mobject mobj ;
 
-    int r = btree_search(&objmap.tree, &ko->hdr.ko_id, &key, (uint64_t *)&mobj) ;
+    int r = btree_search(&objmap, &ko->hdr.ko_id, &key, (uint64_t *)&mobj) ;
 	 
     if (r == 0) {
     	assert(key == ko->hdr.ko_id) ;
 
-	if (scrub_disk_pages) {
-	    void *p;
-	    assert(0 == page_alloc(&p));
-	    memset(p, 0xc4, PGSIZE);
-
-	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
-		stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
-
-	    page_free(p);
-	}
-
-	freelist_free_later(f, mobj.off, mobj.nbytes) ;
-    	//if (cache_num_pinned(&objmap_cache))
-    	//	panic("pstate_kobj_free: objmap_cache, num pinned %d", cache_num_pinned(&objmap_cache)) ;
-    		
-    	btree_delete(&iobjlist.tree, &ko->hdr.ko_id) ;
-    	btree_delete(&objmap.tree, &ko->hdr.ko_id) ;
+		if (scrub_disk_pages) {
+		    void *p;
+		    assert(0 == page_alloc(&p));
+		    memset(p, 0xc4, PGSIZE);
+	
+		    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
+			stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
+	
+		    page_free(p);
+		}
+	
+		freelist_free_later(f, mobj.off, mobj.nbytes) ;
+		btree_delete(&iobjlist, &ko->hdr.ko_id) ;
+		btree_delete(&objmap, &ko->hdr.ko_id) ;
     }
 }
 
@@ -110,14 +107,14 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     }
 
 	struct mobject mobj = { offset, nbytes } ;
-	r = btree_insert(&objmap.tree, &ko->hdr.ko_id, (uint64_t *)&mobj) ;
+	r = btree_insert(&objmap, &ko->hdr.ko_id, (uint64_t *)&mobj) ;
 	if (r < 0) {
 		cprintf("pstate_kobj_alloc: objmap insert failed, disk full?\n") ;
 		return r ;
 	}
 
 	if (kobject_initial(ko)) {
-		r = btree_insert(&iobjlist.tree, &ko->hdr.ko_id, &offset) ;
+		r = btree_insert(&iobjlist, &ko->hdr.ko_id, &offset) ;
 		
 		if (r < 0) {
 			cprintf("pstate_kobj_alloc: iobjlist insert failed, "
@@ -194,7 +191,7 @@ pstate_swapin_stackwrap(void *arg)
     kobject_id_t id = (kobject_id_t) arg;
     kobject_id_t id_found;
     struct mobject mobj;
-    int r = btree_search(&objmap.tree, &id, &id_found, (uint64_t *) &mobj);
+    int r = btree_search(&objmap, &id, &id_found, (uint64_t *) &mobj);
     if (r == -E_NOT_FOUND) {
 	if (pstate_swapin_debug)
 	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
@@ -265,17 +262,17 @@ pstate_load2(void)
 	
 	// XXX
 	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
-	freelist_setup((uint8_t *)&flist) ;
+	freelist_serialize((uint8_t *)&flist) ;
 	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
 	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
 	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;
 	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &objmap_cache) ;
 
 	struct btree_traversal trav ;
-	btree_init_traversal(&iobjlist.tree, &trav) ;
+	btree_init_traversal(&iobjlist.simple.tree, &trav) ;
 	
 	if (pstate_load_debug)
-		btree_pretty_print(&iobjlist.tree, iobjlist.tree.root, 0);
+		btree_pretty_print(&iobjlist.simple.tree);
 	
 	while (btree_next_entry(&trav)) {
 		

@@ -136,30 +136,35 @@ frm_write(struct btree_node *node, void *arg)
 }
 
 static void
-frm_reset(struct frm *f, uint8_t order, struct cache *cache, struct btree_manager *manager)
+frm_reset(struct frm *f, uint8_t order, struct cache *cache)
 {
 	btree_simple_init(&f->simple, order, cache) ;
 
-	manager->alloc = &frm_alloc ;
-	manager->free = &frm_rem ;
-	manager->node = &frm_node ;
-	manager->arg = f ;
-	manager->unpin_node = &frm_unpin_node ;
-	manager->write = &frm_write ;
+	struct btree_manager mm ;
+	mm.alloc = &frm_alloc ;
+	mm.free = &frm_rem ;
+	mm.node = &frm_node ;
+	mm.arg = f ;
+	mm.unpin_node = &frm_unpin_node ;
+	mm.write = &frm_write ;
+	
+	btree_manager_is(&f->simple.tree, &mm) ;
 }
 
 static void
-frm_setup(struct frm *f, uint8_t order, struct cache *cache, struct btree_manager *manager)
+frm_setup(struct frm *f, uint8_t order, struct cache *cache)
 {
-	frm_reset(f, order, cache, manager) ;
+	frm_reset(f, order, cache) ;
 }
 
 static uint32_t
-frm_init(struct frm *f, uint64_t base, uint8_t order, struct cache *cache, struct btree_manager *manager)
+frm_init(struct frm *f, uint64_t base, 
+		uint8_t order, uint8_t key_size, 
+		uint8_t value_size, struct cache *cache)
 {
 	memset(f, 0, sizeof(struct frm)) ;
-
-	frm_reset(f, order, cache, manager) ;
+	btree_init(&f->simple.tree, order, key_size, value_size, NULL) ;
+	frm_reset(f, order, cache) ;
 	
 	f->n_use = FRM_BUF_SIZE ;
 	for (uint32_t i = 0 ; i < f->n_use ; i++)
@@ -177,8 +182,8 @@ freelist_insert(struct freelist *l, uint64_t offset, uint64_t nbytes)
 {
 	struct chunk k = { nbytes, offset } ;
 	
-	btree_insert(&l->chunks, (offset_t *) &k, &offset) ;
-	btree_insert(&l->offsets, &offset, &nbytes) ;
+	btree_insert(&l->chunk_frm, (offset_t *) &k, &offset) ;
+	btree_insert(&l->offset_frm, &offset, &nbytes) ;
 	
 	return 0 ;	
 }
@@ -192,7 +197,7 @@ freelist_alloc(struct freelist *l, uint64_t nbytes)
 	// XXX: optimize...
 	
 	int64_t val ;
-	int r = btree_gtet(&l->chunks,
+	int r = btree_gtet(&l->chunk_frm,
 						   (uint64_t *)&k,
 						   (uint64_t *)&k,
 						   &val) ;
@@ -201,25 +206,23 @@ freelist_alloc(struct freelist *l, uint64_t nbytes)
 	if (r < 0)
 		return -E_NO_SPACE ;
 	
-	if (1) {
-		btree_delete(&l->offsets, &k.offset) ;
-		btree_delete(&l->chunks, (uint64_t *)&k) ;
-		
-		k.nbytes -= nbytes ;
-		if (k.nbytes != 0) {
-			btree_insert(&l->offsets, &k.offset, &k.nbytes) ;
-			btree_insert(&l->chunks, (uint64_t *)&k, &k.offset) ;
-		}
-		
-		offset = k.offset + k.nbytes ;		
-		
-		frm_service(l) ;	
+	btree_delete(&l->offset_frm, &k.offset) ;
+	btree_delete(&l->chunk_frm, (uint64_t *)&k) ;
 	
-		l->free -= nbytes ;
-		
-		return offset ;
+	k.nbytes -= nbytes ;
+	if (k.nbytes != 0) {
+		btree_insert(&l->offset_frm, &k.offset, &k.nbytes) ;
+		btree_insert(&l->chunk_frm, (uint64_t *)&k, &k.offset) ;
 	}
-	return -E_NO_SPACE ;
+	
+	offset = k.offset + k.nbytes ;		
+	
+	frm_service(l) ;	
+
+	l->free -= nbytes ;
+	
+	return offset ;
+
 }
 
 int 
@@ -233,13 +236,13 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 	l->free += nbytes ;
 	
 	int64_t l_nbytes ; 
-	int rl = btree_ltet(&l->offsets,
+	int rl = btree_ltet(&l->offset_frm,
 						(uint64_t *)&l_base,
 						(uint64_t *)&l_base,
 						&l_nbytes) ;
 
 	int64_t g_nbytes ;  
-	int rg = btree_gtet(&l->offsets,
+	int rg = btree_gtet(&l->offset_frm,
 			   (uint64_t *)&g_base,
 		   	   (uint64_t *)&g_base,
 		   	   &g_nbytes) ;
@@ -264,25 +267,25 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 		base = l_base ;
 		nbytes += l_nbytes ;
 		
-		btree_delete(&l->offsets, &l_base) ;
+		btree_delete(&l->offset_frm, &l_base) ;
 		struct chunk k = { l_nbytes, l_base } ;
-		btree_delete(&l->chunks, (uint64_t *) &k) ;
+		btree_delete(&l->chunk_frm, (uint64_t *) &k) ;
 		
 	}
 	
 	if (g_merge) {
 		nbytes += g_nbytes ;
 		
-		btree_delete(&l->offsets, &g_base) ;
+		btree_delete(&l->offset_frm, &g_base) ;
 		struct chunk k = { g_nbytes, g_base } ;
-		btree_delete(&l->chunks, (uint64_t *) &k) ;
+		btree_delete(&l->chunk_frm, (uint64_t *) &k) ;
 	}
 
 	
 
-	btree_insert(&l->offsets, &base, &nbytes) ;
+	btree_insert(&l->offset_frm, &base, &nbytes) ;
 	struct chunk k = { nbytes, base } ;
-	btree_insert(&l->chunks, (uint64_t *) &k, &base) ;
+	btree_insert(&l->chunk_frm, (uint64_t *) &k, &base) ;
 	
 	frm_service(l) ;
 	
@@ -323,28 +326,14 @@ freelist_commit(struct freelist *l)
 }
 
 void
-freelist_setup(uint8_t *b)
+freelist_serialize(uint8_t *b)
 {
 	struct freelist *l = (struct freelist *)b ;
 	
-	frm_setup(&l->chunk_frm, CHUNK_ORDER, &chunk_cache, &l->chunks.manager) ;
-	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache, &l->offsets.manager) ;
+	frm_setup(&l->chunk_frm, CHUNK_ORDER, &chunk_cache) ;
+	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache) ;
 	
 	free_later.size = 0 ;
-}
-
-void
-freelist_serialize(struct freelist *f __attribute__((unused)))
-{
-	/*
-	f->chunk_manager.manager.arg = &f->chunk_manager ;
-	f->offset_manager.manager.arg = &f->offset_manager ;
-
-	f->chunks.mm = &f->chunk_manager.manager ;
-	f->offsets.mm = &f->offset_manager.manager ;
-	
-	return ;	
-	*/
 }
 
 int 
@@ -355,23 +344,15 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 	static_assert(BTREE_NODE_SIZE(CHUNK_ORDER, 2) <= BTREE_BLOCK_SIZE) ;
 	static_assert(BTREE_NODE_SIZE(OFFSET_ORDER, 1) <= BTREE_BLOCK_SIZE) ;
 	
-	// XXX: make frm like btree_default
-	
-	struct btree_manager temp1 ;
-	struct btree_manager temp2 ;
-
 	uint32_t frm_bytes;
-	frm_bytes = frm_init(&l->chunk_frm, base, CHUNK_ORDER, &chunk_cache, &temp1) ;
+	frm_bytes = frm_init(&l->chunk_frm, base, CHUNK_ORDER, 2, 1, &chunk_cache) ;
 	base += frm_bytes;
 	nbytes -= frm_bytes;
 
-	frm_bytes = frm_init(&l->offset_frm, base, OFFSET_ORDER, &offset_cache, &temp2) ;
+	frm_bytes = frm_init(&l->offset_frm, base, OFFSET_ORDER, 1, 1, &offset_cache) ;
 	base += frm_bytes;
 	nbytes -= frm_bytes;
 	
-	btree_init(&l->chunks, CHUNK_ORDER, 2, 1, &temp1) ;
-	btree_init(&l->offsets, OFFSET_ORDER, 1, 1, &temp2) ;
-
 	if ((r = freelist_insert(l, base, nbytes)) < 0)
 		return r ;
 		
@@ -391,10 +372,10 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 void
 freelist_pretty_print(struct freelist *l)
 {
-	cprintf("*chunk tree (%ld)*\n",btree_size(&l->chunks)) ;
-	btree_pretty_print(&l->chunks, l->chunks.root, 0) ;
-	cprintf("*offset tree (%ld)*\n", btree_size(&l->offsets)) ;
-	btree_pretty_print(&l->offsets, l->offsets.root, 0) ;
+	cprintf("*chunk tree (%ld)*\n",btree_size(&l->chunk_frm.simple.tree)) ;
+	btree_pretty_print(&l->chunk_frm.simple.tree) ;
+	cprintf("*offset tree (%ld)*\n", btree_size(&l->offset_frm.simple.tree)) ;
+	btree_pretty_print(&l->offset_frm.simple.tree) ;
 	cprintf("num free %ld\n", l->free) ;
 	cprintf("num pinned %d\n", 
 			cache_num_pinned(l->chunk_frm.simple.cache)) ;

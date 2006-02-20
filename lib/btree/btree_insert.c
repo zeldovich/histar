@@ -617,9 +617,12 @@ __insertKey(struct btree *tree,
 }
 
 int
-btree_insert(struct btree * tree, const uint64_t *key, offset_t *val)
+btree_insert(void *t, const uint64_t *key, offset_t *val)
 {
 	char  success, split;
+	struct btree *tree = (struct btree *)t ;
+	assert(tree->magic == BTREE_MAGIC) ;
+
 	uint64_t k[tree->s_key] ;
 	uint64_t v[tree->s_value] ;
 	

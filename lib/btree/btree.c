@@ -16,12 +16,13 @@ btree_init(struct btree * t, char order, char key_size,
 	t->min_intrn  = ((t->order + 1) / 2) - 1;
 	t->s_key = key_size ;
 	t->s_value = value_size ;
+
 	t->op = btree_op_none ;
 	t->threads = 0 ;
+
+	t->magic = BTREE_MAGIC ;
 	
-	if (mm)
-		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;
-	
+	btree_manager_is(t, mm) ;
 }
 
 static void
@@ -64,6 +65,13 @@ btree_is_empty(struct btree *tree)
 		return 1;
 
 	return (btree_size(tree) == 0);
+}
+
+void
+btree_manager_is(struct btree *t, struct btree_manager *mm)
+{
+	if (mm)
+		memcpy(&t->manager, mm, sizeof(struct btree_manager)) ;	
 }
 
 ///////////////////////////////////

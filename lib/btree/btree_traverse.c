@@ -201,8 +201,8 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 }
 
 void 
-btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
+btree_pretty_print(struct btree *tree)
 {
-	__btree_pretty_print(tree, rootOffset, i) ;
+	__btree_pretty_print(tree, tree->root, 0) ;
 }
 

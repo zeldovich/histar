@@ -51,6 +51,9 @@ typedef enum {
 void btree_set_op(struct btree *tree, btree_op op)  ;
 void btree_unset_op(struct btree *tree, btree_op op) ;
 
+void btree_manager_is(struct btree *t, struct btree_manager *mm) ;
+
+#define BTREE_MAGIC 0xcdef9425feed7980
 
 struct btree
 {
@@ -71,12 +74,14 @@ struct btree
 	btree_op op ;
 	int threads ;
 	
+	uint64_t magic ;
+	
 	// current filePos on inserts...no touch
 	offset_t *_insFilePos;    
 };
 
-int 	 btree_insert(struct btree *tree, const uint64_t *key, offset_t *val) ;
-char	 btree_delete(struct btree *tree, const uint64_t *key);
+int 	 btree_insert(void *tree, const uint64_t *key, offset_t *val) ;
+char	 btree_delete(void *tree, const uint64_t *key);
 char 	 btree_is_empty(struct btree *tree);
 void	 btree_init(struct btree * t, char order, char key_size, 
 		 		    char value_size, struct btree_manager * mm) ;
@@ -84,17 +89,17 @@ uint64_t btree_size(struct btree *tree);
 void 	 btree_erase(struct btree *t) ;
 
 // match key exactly
-int btree_search(struct btree *tree, const uint64_t *key, 
+int btree_search(void *tree, const uint64_t *key, 
 					 uint64_t *key_store, uint64_t *val_store) ;
 // match the closest key less than or equal to the given key
-int btree_ltet(struct btree *tree, const uint64_t *key, 
-				   uint64_t *key_store, uint64_t *val_store) ;
+int btree_ltet(void *tree, const uint64_t *key, 
+			   uint64_t *key_store, uint64_t *val_store) ;
 // match the closest key greater than or equal to the given key
-int btree_gtet(struct btree *tree, const uint64_t *key, 
-				   uint64_t *key_store, uint64_t *val_store) ;
+int btree_gtet(void *tree, const uint64_t *key, 
+			   uint64_t *key_store, uint64_t *val_store) ;
 
 // debug
-void btree_pretty_print(struct btree *tree, offset_t rootOffset, int i);
+void btree_pretty_print(struct btree *tree);
 
 
 #endif /* _BTREE_H_ */
