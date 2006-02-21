@@ -100,8 +100,6 @@ btree_set_op(struct btree *tree, btree_op op)
 void
 btree_unset_op(struct btree *tree, btree_op op)
 {
-	lock_release(&tree->lock) ;
-	
 	if (tree->op == op && tree->threads) {
 		tree->threads-- ;
 		if (tree->threads == 0)
@@ -110,4 +108,6 @@ btree_unset_op(struct btree *tree, btree_op op)
 	else 
 		panic("btree_unset_op: unsetting %d while %d, %d times",
 			  op, tree->op, tree->threads) ;
+
+	lock_release(&tree->lock) ;
 }
