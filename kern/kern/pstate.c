@@ -1,3 +1,5 @@
+#include <lib/btree/btree_traverse.h>
+#include <lib/btree/btree_debug.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
@@ -10,8 +12,6 @@
 #include <kern/lib.h>
 #include <kern/log.h>
 #include <inc/error.h>
-#include <lib/btree/btree_traverse.h>
-#include <lib/btree/btree_debug.h>
 
 // verbose flags
 static int pstate_load_debug = 0;
@@ -262,7 +262,7 @@ pstate_load2(void)
 	
 	// XXX
 	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
-	freelist_serialize((uint8_t *)&flist) ;
+	freelist_setup((uint8_t *)&flist) ;
 	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
 	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
 	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;

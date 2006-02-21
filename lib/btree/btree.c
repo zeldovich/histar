@@ -2,6 +2,7 @@
 #include <lib/btree/btree_header.h>
 #include <lib/btree/btree_node.h>
 #include <inc/string.h>
+#include <inc/assert.h> 
 
 void
 btree_init(struct btree * t, char order, char key_size, 
@@ -75,72 +76,39 @@ btree_manager_is(struct btree *t, struct btree_manager *mm)
 }
 
 ///////////////////////////////////
-// btree key and value helpers
+// concurrency
 ///////////////////////////////////
 
-// XXX: inline all these guys?
-const offset_t *
-btree_key(const offset_t *keys, const int i, uint8_t s_key)
-{
-	return &keys[i * s_key] ;
-}
-
-
-int64_t
-btree_keycmp(const offset_t *key1, const offset_t *key2, uint8_t s_key)
-{
-	int i = 0 ; 
-	int64_t r = 0 ;
-	for (; r == 0 && i < s_key ; i++)
-		r = key1[i] - key2[i] ;	
-	return r ;
-}
-
 void
-btree_keycpy(const offset_t *dst, const offset_t *src, uint8_t s_key)
+btree_set_op(struct btree *tree, btree_op op)
 {
-	memcpy((offset_t *)dst, src, s_key * sizeof(offset_t)) ;
-}
+	lock_acquire(&tree->lock) ;
 
-void
-btree_keyset(const offset_t *dst, offset_t val, uint8_t s_key)
-{
-    offset_t *d = (offset_t *) dst;
-    
-	if (s_key) {
-	    do
-	      *d++ = val;
-	    while (--s_key != 0);
+	if (tree->op) {
+		if (tree->op == btree_op_search &&
+			op == btree_op_search)
+			tree->threads++ ;	
+		else
+			panic("btree_set_op: setting %d while %d, %d times",
+				  op, tree->op, tree->threads) ;
+	}
+	else {
+		tree->op = op ;
+		tree->threads++ ;	
 	}
 }
 
-
-const offset_t *
-btree_value(const offset_t *vals, const int i, uint8_t s_val)
-{
-	return &vals[i * s_val] ;
-}
-
-uint16_t
-btree_leaf_order(struct btree_node *n)
-{
-	return (n->tree->order / n->tree->s_value) ;
-}
-
 void
-btree_valcpy(const offset_t *dst, const offset_t *src, uint8_t s_val)
+btree_unset_op(struct btree *tree, btree_op op)
 {
-	memcpy((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
-}
-
-void
-btree_valset(const offset_t *dst, offset_t val, uint8_t s_val)
-{
-    offset_t *d = (offset_t *) dst;
-
-	if (s_val) {
-	    do
-	      *d++ = val;
-	    while (--s_val != 0);
+	lock_release(&tree->lock) ;
+	
+	if (tree->op == op && tree->threads) {
+		tree->threads-- ;
+		if (tree->threads == 0)
+			tree->op = btree_op_none ;	
 	}
+	else 
+		panic("btree_unset_op: unsetting %d while %d, %d times",
+			  op, tree->op, tree->threads) ;
 }

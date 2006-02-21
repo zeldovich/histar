@@ -1,3 +1,4 @@
+#include <lib/btree/btree_debug.h>
 #include <machine/mmu.h>
 #include <kern/freelist.h>
 #include <inc/error.h>
@@ -326,7 +327,7 @@ freelist_commit(struct freelist *l)
 }
 
 void
-freelist_serialize(uint8_t *b)
+freelist_setup(uint8_t *b)
 {
 	struct freelist *l = (struct freelist *)b ;
 	

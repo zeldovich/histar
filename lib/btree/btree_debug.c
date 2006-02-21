@@ -95,43 +95,63 @@ btree_sanity_check(struct btree *tree)
 		btree_integrity_check(tree, tree->root) ;
 }
 
-static const char *const op_string[4] = {
-	"none",
-	"search",
-	"delete",
-	"insert"	
-} ;
-
-void
-btree_set_op(struct btree *tree, btree_op op)
+static void
+__btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 {
-	lock_acquire(&tree->lock) ;
+	int j;
+	struct btree_node *rootNode;
 
-	if (tree->op) {
-		if (tree->op == btree_op_search &&
-			op == btree_op_search)
-			tree->threads++ ;	
-		else
-			panic("btree_set_op: setting %d while %d, %d times",
-				  op, tree->op, tree->threads) ;
+	if (rootOffset == 0) {
+		cprintf("[ empty ]\n") ;
+		return ;
 	}
-	else {
-		tree->op = op ;
-		tree->threads++ ;	
+	
+	rootNode = btree_read_node(tree, rootOffset);
+
+	for (j = i; j > 0; j--)
+		cprintf("    ");
+
+	cprintf("[.");
+
+	for (j = 0; j < rootNode->keyCount; j++) {
+		const offset_t *off = btree_key(rootNode->keys, j, tree->s_key) ;
+		//printf(" %ld .", *off);
+		cprintf(" %ld", off[0]);
+		int k = 1 ;
+		for (; k < tree->s_key ; k++) {
+			cprintf("|%ld", off[k]) ; 	
+		}
+		cprintf(" .") ;
+	
 	}
+		//printf(" %ld .", rootNode->keys[j]);
+	
+	if (BTREE_IS_LEAF(rootNode))
+		for (j = BTREE_LEAF_ORDER(rootNode) - rootNode->keyCount; j > 1; j--)
+			cprintf(" _____ .");
+	else
+		for (j = tree->order - rootNode->keyCount; j > 1; j--)
+			cprintf(" _____ .");
+	
+	cprintf("] - %ld\n", rootOffset);
+
+	if (BTREE_IS_LEAF(rootNode))
+	{
+		btree_destroy_node(rootNode);
+		//btree_unpin_node(tree, rootNode);
+		return;
+	}
+	
+	for (j = 0; j <= rootNode->keyCount; j++)
+		__btree_pretty_print(tree, rootNode->children[j], i + 1);
+
+
+	btree_destroy_node(rootNode);
+	//btree_unpin_node(tree, rootNode);
 }
 
-void
-btree_unset_op(struct btree *tree, btree_op op)
+void 
+btree_pretty_print(struct btree *tree)
 {
-	lock_release(&tree->lock) ;
-	
-	if (tree->op == op && tree->threads) {
-		tree->threads-- ;
-		if (tree->threads == 0)
-			tree->op = btree_op_none ;	
-	}
-	else 
-		panic("btree_unset_op: unsetting %d while %d, %d times",
-			  op, tree->op, tree->threads) ;
+	__btree_pretty_print(tree, tree->root, 0) ;
 }
