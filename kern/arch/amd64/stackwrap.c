@@ -145,6 +145,12 @@ struct lock_waiter {
 };
 
 void
+lock_init(struct lock *l)
+{
+	memset(l, 0, sizeof(*l)) ;	
+}
+
+void
 lock_acquire(struct lock *l)
 {
     while (l->locked) {

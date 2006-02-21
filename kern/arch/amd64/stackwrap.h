@@ -22,6 +22,7 @@ struct lock {
 
 void lock_acquire(struct lock *l) ;
 void lock_release(struct lock *l) ;
+void lock_init(struct lock *l) ;
 
 struct stackwrap_state;
 struct stackwrap_state *stackwrap_cur(void);

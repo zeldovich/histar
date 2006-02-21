@@ -136,7 +136,9 @@ btree_simple_init(struct btree_simple *sim, uint8_t order,
 	sim->cache = cache ;
 	sim->order = order ;
 	cache_init(sim->cache) ;
-		
+	
+	lock_init(&sim->tree.lock) ;
+	
 	return 0 ;
 }
 

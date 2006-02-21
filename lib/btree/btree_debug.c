@@ -105,15 +105,15 @@ static const char *const op_string[4] = {
 void
 btree_set_op(struct btree *tree, btree_op op)
 {
+	lock_acquire(&tree->lock) ;
+
 	if (tree->op) {
 		if (tree->op == btree_op_search &&
 			op == btree_op_search)
 			tree->threads++ ;	
-#if 0
 		else
 			panic("btree_set_op: setting %d while %d, %d times",
 				  op, tree->op, tree->threads) ;
-#endif
 	}
 	else {
 		tree->op = op ;
@@ -124,14 +124,14 @@ btree_set_op(struct btree *tree, btree_op op)
 void
 btree_unset_op(struct btree *tree, btree_op op)
 {
+	lock_release(&tree->lock) ;
+	
 	if (tree->op == op && tree->threads) {
 		tree->threads-- ;
 		if (tree->threads == 0)
 			tree->op = btree_op_none ;	
 	}
-#if 0
 	else 
 		panic("btree_unset_op: unsetting %d while %d, %d times",
 			  op, tree->op, tree->threads) ;
-#endif
 }

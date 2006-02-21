@@ -4,6 +4,7 @@
 #include <inc/types.h>
 #include <inc/queue.h>
 #include <lib/btree/btree_utils.h>
+#include <machine/stackwrap.h>
 
 struct btree_node
 {
@@ -75,6 +76,7 @@ struct btree
 	int threads ;
 	
 	uint64_t magic ;
+	struct lock lock ;
 	
 	// current filePos on inserts...no touch
 	offset_t *_insFilePos;    
