@@ -22,9 +22,9 @@ spawn_fs(int fd, const char *pn, int drop_root_handle)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
     const char *argv[] = { pn };
-    r = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l, 0);
-    if (r < 0)
-	panic("cannot spawn %s: %s\n", pn, e2s(r));
+    int64_t ct = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l, 0);
+    if (ct < 0)
+	panic("cannot spawn %s: %s\n", pn, e2s(ct));
 
     printf("init: spawned %s with label %s\n", pn, label_to_string(l));
     label_free(l);

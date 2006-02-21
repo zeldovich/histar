@@ -74,7 +74,7 @@ main(int ac, char **av)
 	printf("netd_mom: object label %s, thread label %s\n",
 	       label_to_string(l_obj), label_to_string(l_th));
 
-    r = spawn(rc, netd_ino, 0, 1, 2, 3, &argv[0], l_obj, l_th, 0);
-    if (r < 0)
-	panic("spawn: %s", e2s(r));
+    int64_t ct = spawn(rc, netd_ino, 0, 1, 2, 3, &argv[0], l_obj, l_th, 0);
+    if (ct < 0)
+	panic("spawn: %s", e2s(ct));
 }

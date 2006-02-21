@@ -97,7 +97,13 @@ builtin_list_container(int ac, char **av)
 	return;
     }
 
-    uint64_t ct = atoi(av[0]);
+    uint64_t ct;
+    int r = strtoull(av[0], 0, 10, &ct);
+    if (r < 0) {
+	printf("bad number: %s\n", av[0]);
+	return;
+    }
+
     printf("Container %ld:\n", ct);
     printf("   id  slot   object\n");
 
