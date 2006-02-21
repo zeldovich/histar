@@ -45,6 +45,8 @@ struct btree_volatile
 
 int btree_simple_init(struct btree_simple *sim, uint8_t order, 
 					  struct cache *cache) ;
+int btree_simple_reset(struct btree_simple *sim, uint8_t order, 
+					 struct cache *cache)  ;
 int	btree_simple_node(struct btree *tree, offset_t offset, 
 					  struct btree_node **store, void *man) ;
 int btree_simple_alloc(struct btree *tree, offset_t offset, 
@@ -57,8 +59,9 @@ int btree_simple_write(struct btree_node *node, void *man) ;
 int btree_default_init(struct btree_default *def, uint8_t order, 
 				   uint8_t key_size, uint8_t value_size,
 				   struct freelist *fl,struct cache *cache) ;
-int btree_default_setup(struct btree_default *def, uint8_t order,
-						struct freelist *fl, struct cache *cache) ;
+void btree_default_deserialize(struct btree_default *def, struct freelist *fl, 
+							  struct cache *cache, void *buf) ;
+void btree_default_serialize(void *buf, struct btree_default *def)  ;
 
 int btree_volatile_init(struct btree_volatile *vol, uint8_t order, 
 		  			   uint8_t key_size, uint8_t value_size) ;

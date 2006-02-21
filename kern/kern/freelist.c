@@ -137,7 +137,7 @@ frm_write(struct btree_node *node, void *arg)
 static void
 frm_reset(struct frm *f, uint8_t order, struct cache *cache)
 {
-	btree_simple_init(&f->simple, order, cache) ;
+	btree_simple_reset(&f->simple, order, cache) ;
 
 	struct btree_manager mm ;
 	mm.alloc = &frm_alloc ;
@@ -151,9 +151,10 @@ frm_reset(struct frm *f, uint8_t order, struct cache *cache)
 }
 
 static void
-frm_setup(struct frm *f, uint8_t order, struct cache *cache)
+frm_deserialize(struct frm *f, uint8_t order, struct cache *cache, void *buf)
 {
-	frm_reset(f, order, cache) ;
+	memcpy(f, buf, sizeof(*f)) ;
+	frm_reset(f, order, cache)	 ;
 }
 
 static uint32_t
@@ -325,14 +326,20 @@ freelist_commit(struct freelist *l)
 }
 
 void
-freelist_setup(uint8_t *b)
+freelist_deserialize(struct freelist *l, void *buf)
 {
-	struct freelist *l = (struct freelist *)b ;
-	
-	frm_setup(&l->chunk_frm, CHUNK_ORDER, &chunk_cache) ;
-	frm_setup(&l->offset_frm, OFFSET_ORDER, &offset_cache) ;
-	
+	struct freelist *l2 = (struct freelist *) buf ;
+	frm_deserialize(&l->chunk_frm, CHUNK_ORDER, &chunk_cache, &l2->chunk_frm) ;
+	frm_deserialize(&l->offset_frm, OFFSET_ORDER, &offset_cache, &l2->offset_frm) ;
+	l->free = l2->free ;
+
+	// XXX
 	free_later.size = 0 ;
+}
+void
+freelist_serialize(void *buf, struct freelist *l)
+{
+	memcpy(buf, l, sizeof(*l)) ;	
 }
 
 int 

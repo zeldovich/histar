@@ -37,6 +37,9 @@ int64_t freelist_alloc(struct freelist *l, uint64_t nbytes) ;
 void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes) ;
 void 	freelist_commit(struct freelist *l) ;
 
+void	freelist_deserialize(struct freelist *l, void *buf) ;
+void	freelist_serialize(void *buf, struct freelist *l) ;
+
 // debug
 void freelist_pretty_print(struct freelist *l) ;
 void freelist_sanity_check(struct freelist *l) ;

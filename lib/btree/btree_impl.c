@@ -141,6 +141,13 @@ btree_simple_init(struct btree_simple *sim, uint8_t order,
 	return 0 ;
 }
 
+int 
+btree_simple_reset(struct btree_simple *sim, uint8_t order, 
+				 struct cache *cache) 
+{
+	return btree_simple_init(sim, order, cache) ;	
+}
+
 /////////////////////
 // btree default
 /////////////////////
@@ -164,15 +171,14 @@ btree_default_free(void *man, offset_t offset)
 	return cache_rem(def->simple.cache, offset) ;
 }
 
-int 
-btree_default_setup(struct btree_default *def, uint8_t order,
+static int 
+btree_default_reset(struct btree_default *def, uint8_t order,
 				    struct freelist *fl,struct cache *cache)
 {
 	struct btree_manager mm ;
 	
-	btree_simple_init(&def->simple, order, cache) ;
+	btree_simple_reset(&def->simple, order, cache) ;
 	
-
 	def->fl = fl ;
 	
 	mm.alloc = &btree_default_alloc ;
@@ -182,9 +188,25 @@ btree_default_setup(struct btree_default *def, uint8_t order,
 	mm.unpin_node = &btree_simple_unpin_node ;
 	mm.write = &btree_simple_write ;
 
+	// XXX
 	btree_manager_is(&def->simple.tree, &mm) ;
 	 
 	return 0 ;				
+}
+
+void
+btree_default_deserialize(struct btree_default *def, struct freelist *fl, 
+						  struct cache *cache, void *buf)
+{
+	memcpy(def, buf, sizeof(*def)) ;
+	// XXX
+	btree_default_reset(def, def->simple.tree.order, fl, cache); 
+}
+
+void
+btree_default_serialize(void *buf, struct btree_default *def) 
+{
+	memcpy(buf, def, sizeof(*def)) ;	
 }
 
 int 
@@ -193,7 +215,7 @@ btree_default_init(struct btree_default *def, uint8_t order,
 				   struct freelist *fl,struct cache *cache)
 {
 	btree_init(&def->simple.tree, order, key_size, value_size, NULL) ;
-	btree_default_setup(def, order, fl, cache) ;
+	btree_default_reset(def, order, fl, cache) ;
 	   	
 	return 0 ;
 }

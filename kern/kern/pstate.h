@@ -27,9 +27,9 @@ struct pstate_header {
     uint64_t ph_user_msec;
     uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
-    struct freelist ph_free ;
-    struct btree_default ph_iobjs ;
-    struct btree_default ph_map ;
+    uint8_t ph_free[sizeof(struct freelist)] ;
+    uint8_t ph_iobjs[sizeof(struct btree_default)] ;
+    uint8_t ph_map[sizeof(struct btree_default)] ;
 };
 
 void pstate_init(void);

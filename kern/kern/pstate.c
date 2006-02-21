@@ -260,13 +260,9 @@ pstate_load2(void)
 	    memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
 	}
 	
-	// XXX
-	memcpy(&flist, &stable_hdr.ph_free, sizeof(flist)) ;
-	freelist_setup((uint8_t *)&flist) ;
-	memcpy(&iobjlist, &stable_hdr.ph_iobjs, sizeof(iobjlist)) ;
-	btree_default_setup(&iobjlist, IOBJ_ORDER, &flist, &iobj_cache) ;
-	memcpy(&objmap, &stable_hdr.ph_map, sizeof(objmap)) ;
-	btree_default_setup(&objmap, OBJMAP_ORDER, &flist, &objmap_cache) ;
+	freelist_deserialize(&flist, &stable_hdr.ph_free) ;
+	btree_default_deserialize(&iobjlist, &flist, &iobj_cache, &stable_hdr.ph_iobjs) ;
+	btree_default_deserialize(&objmap, &flist, &objmap_cache, &stable_hdr.ph_map) ;
 
 	struct btree_traversal trav ;
 	btree_init_traversal(&iobjlist.simple.tree, &trav) ;
@@ -551,10 +547,9 @@ pstate_sync_loop(struct pstate_header *hdr,
 	
 	freelist_commit(&flist) ;
 	
-	// XXX
-	memcpy(&hdr->ph_free, &flist, sizeof(flist)) ;
-	memcpy(&hdr->ph_iobjs, &iobjlist, sizeof(iobjlist)) ;
-	memcpy(&hdr->ph_map, &objmap, sizeof(objmap)) ;
+	freelist_serialize(&hdr->ph_free, &flist) ;
+	btree_default_serialize(&hdr->ph_iobjs, &iobjlist) ;
+	btree_default_serialize(&hdr->ph_map, &objmap) ;
 	
 	int r = pstate_sync_flush() ;
 	
