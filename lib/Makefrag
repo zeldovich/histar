@@ -21,6 +21,7 @@ LIB_SRCFILES :=	\
 	lib/elf.c \
 	lib/thread.c \
 	lib/gate.c \
+	lib/taint.c \
 	lib/netd_client.c \
 	lib/netd_server.c \
 	lib/fd.c \
