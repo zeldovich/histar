@@ -3,9 +3,6 @@
 /* The Run Time Clock and other NVRAM access functions that go with it. */
 /* The run time clock is hard-wired to IRQ8. */
 
-int kclock_hz = 100;
-static int kclock_tval;
-
 #include <machine/x86.h>
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
@@ -13,6 +10,9 @@ static int kclock_tval;
 #include <dev/kclock.h>
 #include <dev/picirq.h>
 #include <kern/lib.h>
+
+int kclock_hz = 100;
+static int kclock_tval;
 
 unsigned
 mc146818_read (unsigned reg)

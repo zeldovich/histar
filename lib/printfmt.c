@@ -105,10 +105,6 @@ getint (va_list ap, int lflag)
 }
 
 
-// Main function to format and print a string.
-void printfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
-	       ...);
-
 void
 vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 	   va_list ap)

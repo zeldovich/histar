@@ -8,7 +8,6 @@
 #include <kern/lib.h>
 #include <kern/log.h>
 #include <inc/error.h>
-#include <inc/string.h>
 
 #define CENT_NODE(ent) ((struct btree_node *)ent)
 #define CENT_CHILDREN(ent) \

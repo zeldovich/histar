@@ -57,9 +57,6 @@ extern start_env_t *start_env;
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 void    exit(int status) __attribute__((__noreturn__));
 
-/* printfmt.c */
-const char *e2s(int err);
-
 /* thread.c */
 struct thread_args {
     struct cobj_ref container;

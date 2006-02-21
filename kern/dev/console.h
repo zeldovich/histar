@@ -23,6 +23,8 @@ void cons_putc(int c);
 int cons_getc(void);
 
 void putchar (int c);
+int  getchar (void);
+int  iscons (int fd);
 
 extern struct Thread_list console_waiting;
 
