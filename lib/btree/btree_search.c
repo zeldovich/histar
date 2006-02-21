@@ -24,8 +24,8 @@
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
+#include <kern/lib.h>
 #include <inc/error.h>
-#include <inc/assert.h>
 
 enum {
 	match_eq = 0,

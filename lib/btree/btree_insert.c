@@ -23,10 +23,8 @@
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
-#include <inc/stdio.h>
+#include <kern/lib.h>
 #include <inc/error.h>
-
-#include <inc/assert.h>
 
 static char
 __splitNode(struct btree *tree, 

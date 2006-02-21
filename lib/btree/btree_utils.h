@@ -1,9 +1,9 @@
 #ifndef BT_UTILS_H_
 #define BT_UTILS_H_
 
-#include <inc/types.h>
+#include <machine/types.h>
+#include <kern/lib.h>
 #include <inc/queue.h>
-#include <inc/string.h>
 
 typedef uint64_t offset_t ;
 

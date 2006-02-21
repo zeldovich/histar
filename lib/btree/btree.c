@@ -1,8 +1,7 @@
 #include <lib/btree/btree.h>
 #include <lib/btree/btree_header.h>
 #include <lib/btree/btree_node.h>
-#include <inc/string.h>
-#include <inc/assert.h> 
+#include <kern/lib.h>
 
 void
 btree_init(struct btree * t, char order, char key_size, 

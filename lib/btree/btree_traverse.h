@@ -1,5 +1,6 @@
 #ifndef BTREE_TRAVERSE_H_
 #define BTREE_TRAVERSE_H_
+
 #include <lib/btree/btree_utils.h>
 #include <inc/types.h>
 

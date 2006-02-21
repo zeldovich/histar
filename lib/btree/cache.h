@@ -1,7 +1,7 @@
 #ifndef CACHE_H_
 #define CACHE_H_
 
-#include <inc/types.h>
+#include <machine/types.h>
 #include <inc/queue.h>
 
 typedef uint64_t tag_t ;

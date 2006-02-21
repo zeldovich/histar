@@ -1,9 +1,7 @@
 #include <lib/btree/btree.h>
 #include <lib/btree/cache.h>
+#include <kern/lib.h>
 #include <inc/error.h>
-#include <inc/string.h>
-#include <inc/stdio.h>
-#include <inc/assert.h>
 
 int
 cache_num_ent(struct cache *c)

@@ -24,8 +24,7 @@
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
 #include <lib/btree/btree_traverse.h>
-#include <inc/stdio.h>
-#include <inc/string.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 
 #if 0  // btree_traverse is broken

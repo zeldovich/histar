@@ -1,4 +1,3 @@
-#include <inc/string.h>
 #include <lib/btree/btree.h>
 #include <lib/btree/btree_header.h>
 

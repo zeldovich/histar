@@ -1,10 +1,8 @@
 #include <lib/btree/btree_debug.h>
-#include <machine/mmu.h>
+#include <machine/memlayout.h>
 #include <kern/freelist.h>
+#include <kern/lib.h>
 #include <inc/error.h>
-#include <inc/string.h>
-#include <inc/stdio.h>
-#include <inc/assert.h>
 
 #define OFFSET_ORDER 	BTREE_MAX_ORDER1
 #define CHUNK_ORDER 	BTREE_MAX_ORDER2

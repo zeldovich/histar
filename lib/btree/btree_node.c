@@ -1,9 +1,6 @@
 #include <lib/btree/btree.h>
 #include <lib/btree/btree_node.h>
-#include <inc/types.h>
-#include <inc/stdio.h>
-#include <inc/assert.h>
-#include <inc/string.h>
+#include <kern/lib.h>
 
 struct btree_node *
 btree_new_node(struct btree *tree)

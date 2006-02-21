@@ -1,6 +1,6 @@
 #include <lib/btree/btree_debug.h>
 #include <lib/btree/btree_node.h>
-#include <inc/assert.h>
+#include <kern/lib.h>
 
 static void
 btree_leaf_count1(struct btree *tree, offset_t root, uint64_t *count)

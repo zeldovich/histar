@@ -23,9 +23,8 @@
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
 #include <lib/btree/btree_header.h>
+#include <kern/lib.h>
 #include <inc/error.h>
-#include <inc/stdio.h>
-#include <inc/assert.h>
 
 static char
 __removeKey(struct btree *tree, 
