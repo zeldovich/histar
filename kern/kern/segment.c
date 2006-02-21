@@ -58,6 +58,7 @@ segment_copy(const struct Segment *src, struct Label *newl,
 int
 segment_set_npages(struct Segment *sg, uint64_t num_pages)
 {
+    segment_invalidate(sg);
     return kobject_set_npages(&sg->sg_ko, num_pages);
 }
 
