@@ -26,6 +26,8 @@ currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
 
+also should fix problem with segment_set_npages() on a DMA segment
+
 iovec-based swapin
 
 keep track of handles more explicitly.  root handle, process handle..
