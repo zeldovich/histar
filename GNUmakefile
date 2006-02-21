@@ -56,8 +56,9 @@ CXXWARNS := $(WARNS)
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast
 
 DEFS	:=
-#CFLAGS	:= -g -Wall -Werror -fms-extensions
-CFLAGS	:= -g -Wall -Werror -fms-extensions -O2 -fno-builtin -fno-strict-aliasing
+OPTFLAG := -O2
+#OPTFLAG := -O3 -march=opteron
+CFLAGS	:= -g -Wall -Werror -fms-extensions $(OPTFLAG) -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(TOP)/inc/gcc
 
