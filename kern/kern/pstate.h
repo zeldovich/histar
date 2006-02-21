@@ -4,6 +4,7 @@
 #include <machine/types.h>
 #include <kern/kobj.h>
 #include <kern/freelist.h>
+#include <kern/handle.h>
 
 //
 // A rather limited persistent-store implementation.
@@ -24,6 +25,7 @@ struct pstate_header {
     uint64_t ph_handle_counter;
     uint64_t ph_user_root_handle;
     uint64_t ph_user_msec;
+    uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
     struct freelist ph_free ;
     struct btree_default ph_iobjs ;

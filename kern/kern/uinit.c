@@ -258,6 +258,8 @@ fs_init(struct Container *c, struct Label *l)
 static void
 user_bootstrap(void)
 {
+    handle_key_generate();
+
     // root handle and a label
     user_root_handle = handle_alloc();
 

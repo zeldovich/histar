@@ -292,6 +292,7 @@ pstate_load2(void)
 		
     handle_counter   = stable_hdr.ph_handle_counter;
     user_root_handle = stable_hdr.ph_user_root_handle;
+    memcpy(&handle_key[0], &stable_hdr.ph_handle_key, HANDLE_KEY_SIZE);
 
     if (timer_user_msec < stable_hdr.ph_user_msec)
 	timer_user_msec_offset = stable_hdr.ph_user_msec - timer_user_msec;
@@ -616,6 +617,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     hdr->ph_handle_counter = handle_counter;
     hdr->ph_user_root_handle = user_root_handle;
     hdr->ph_user_msec = timer_user_msec;
+    memcpy(&hdr->ph_handle_key[0], &handle_key[0], HANDLE_KEY_SIZE);
 
     struct swapout_stats stats;
     memset(&stats, 0, sizeof(stats));
