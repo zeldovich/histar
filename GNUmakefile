@@ -47,9 +47,10 @@ PERL	:= perl
 # Compiler flags.
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
-WARNS	 := -Wformat=2 -Wuninitialized -Wextra -Wshadow -Wmissing-noreturn \
-	    -Wcast-align -Wwrite-strings -Winline -Wno-unused-parameters
-CWARNS	 := $(WARNS) -Wstrict-prototypes -Wmissing-prototypes 
+WARNS	 := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
+	    -Wwrite-strings -Winline -Wno-unused-parameters \
+	    -Wmissing-format-attribute
+CWARNS	 := $(WARNS) -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations
 CXXWARNS := $(WARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast
