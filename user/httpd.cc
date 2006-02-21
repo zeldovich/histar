@@ -112,7 +112,7 @@ http_client(void *arg)
     }
 }
 
-static void
+static void __attribute__((noreturn))
 http_server(void)
 {
     int s = socket(AF_INET, SOCK_STREAM, 0);
