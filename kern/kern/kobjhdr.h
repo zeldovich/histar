@@ -33,6 +33,7 @@ struct kobject_hdr {
     uint32_t ko_pin;	// header is pinned (linked lists)
 
     LIST_ENTRY(kobject_hdr) ko_link;
+    LIST_ENTRY(kobject_hdr) ko_hash;
 
     struct pagetree ko_pt;
 };

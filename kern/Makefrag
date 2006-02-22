@@ -31,6 +31,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/log.c	\
 	    kern/kern/pagetree.c \
 	    kern/kern/sync.c \
+	    kern/kern/ht.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)

@@ -8,11 +8,14 @@
 #include <kern/pstate.h>
 #include <kern/handle.h>
 #include <kern/timer.h>
+#include <kern/ht.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
+
+static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 
 static int kobject_reclaim_debug = 0;
 static int kobject_checksum_pedantic = 0;
@@ -121,7 +124,7 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 	id = cur_thread->th_sg;
 
     struct kobject_hdr *ko;
-    LIST_FOREACH(ko, &ko_list, ko_link) {
+    LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
 	if (ko->ko_id == id) {
 	    int r = kobject_iflow_check(ko, iflow);
 	    if (r < 0)
@@ -175,6 +178,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 
     kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, kh, ko_link);
+    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), kh, ko_hash);
 
     *kp = ko;
     if (kobject_gen_debug)
@@ -273,6 +277,8 @@ kobject_swapin(struct kobject *ko)
 
     kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, &ko->hdr, ko_link);
+    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), &ko->hdr, ko_hash);
+
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
     ko->hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
@@ -418,6 +424,7 @@ kobject_swapout(struct kobject *ko)
 	as_swapout(&ko->as);
 
     LIST_REMOVE(&ko->hdr, ko_link);
+    LIST_REMOVE(&ko->hdr, ko_hash);
     pagetree_free(&ko->hdr.ko_pt);
     page_free(ko);
 }
