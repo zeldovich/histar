@@ -31,7 +31,9 @@ LIB_SRCFILES :=	\
 	lib/cksum.c \
 	lib/heap.c \
 	lib/malloc.c \
-	lib/fs.c \
+	lib/fs_dir.c \
+	lib/fs_file.c \
+	lib/fs_mount.c \
 	lib/file.c \
 	lib/label.c \
 	lib/cpplabel.cc \

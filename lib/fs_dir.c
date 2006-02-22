@@ -5,9 +5,21 @@
 #include <inc/error.h>
 #include <inc/memlayout.h>
 #include <inc/mlt.h>
+#include <inc/pthread.h>
 
 static int fs_debug = 0;
 static int fs_label_debug = 0;
+
+struct fs_dirslot {
+    uint64_t id;
+    uint8_t inuse;
+    char name[KOBJ_NAME_LEN];
+};
+
+struct fs_directory {
+    pthread_mutex_t lock;
+    struct fs_dirslot slots[0];
+};
 
 static struct ulabel *
 fs_get_label(void)
@@ -16,14 +28,6 @@ fs_get_label(void)
     if (l)
 	label_change_star(l, l->ul_default);
     return l;
-}
-
-int
-fs_get_root(uint64_t ct, struct fs_inode *rdirp)
-{
-    // no directory segment (yet?)
-    rdirp->obj = COBJ(ct, ct);
-    return 0;
 }
 
 static int
@@ -86,13 +90,6 @@ fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
 		&e->de_name[0]);
 
     return r;
-}
-
-int
-fs_get_obj(struct fs_inode ino, struct cobj_ref *segp)
-{
-    *segp = ino.obj;
-    return 0;
 }
 
 int
@@ -215,35 +212,6 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
 }
 
 int
-fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root)
-{
-    for (int i = 0; i < FS_NMOUNT; i++) {
-	struct fs_mtab_ent *ent = &start_env->fs_mtab.mtab_ent[i];
-	if (ent->mnt_name[0] == '\0') {
-	    strncpy(&ent->mnt_name[0], mnt_name, KOBJ_NAME_LEN - 1);
-	    ent->mnt_dir = dir;
-	    ent->mnt_root = root;
-	    return 0;
-	}
-    }
-
-    return -E_NO_SPACE;
-}
-
-void
-fs_unmount(struct fs_inode dir, const char *mnt_name)
-{
-    for (int i = 0; i < FS_NMOUNT; i++) {
-	struct fs_mtab_ent *ent = &start_env->fs_mtab.mtab_ent[i];
-	if (ent->mnt_dir.obj.object == dir.obj.object &&
-	    !strcmp(ent->mnt_name, mnt_name))
-	{
-	    ent->mnt_name[0] = '\0';
-	}
-    }
-}
-
-int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 {
     // XXX not atomic
@@ -286,61 +254,4 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 	*dirname = pn;
 	*basename = slash + 1;
     }
-}
-
-int
-fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
-{
-    uint64_t cursize;
-    int r = fs_getsize(f, &cursize);
-    if (r < 0)
-	return r;
-
-    uint64_t endpt = off + count;
-    if (endpt > cursize)
-	sys_segment_resize(f.obj, (endpt + PGSIZE - 1) / PGSIZE);
-
-    char *map = 0;
-    r = segment_map(f.obj, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, 0);
-    if (r < 0)
-	return r;
-
-    memcpy(&map[off], buf, count);
-    segment_unmap(map);
-
-    return 0;
-}
-
-int
-fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
-{
-    uint64_t cursize;
-    int r = fs_getsize(f, &cursize);
-    if (r < 0)
-	return r;
-
-    uint64_t endpt = off + count;
-    if (endpt > cursize)
-	return -E_RANGE;
-
-    char *map = 0;
-    r = segment_map(f.obj, SEGMAP_READ, (void **) &map, 0);
-    if (r < 0)
-	return r;
-
-    memcpy(buf, &map[off], count);
-    segment_unmap(map);
-
-    return 0;
-}
-
-int
-fs_getsize(struct fs_inode f, uint64_t *len)
-{
-    int64_t npages = sys_segment_get_npages(f.obj);
-    if (npages < 0)
-	return npages;
-
-    *len = npages * PGSIZE;
-    return 0;
 }
