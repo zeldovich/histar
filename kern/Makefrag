@@ -56,7 +56,9 @@ KERN_BINFILES := \
 	user/cpphello \
 	user/rm \
 	user/cat \
-	user/fetch
+	user/fetch \
+	user/performance_small \
+	user/performance_large 
 
 	#user/tcpsink
 	#user/spin \
