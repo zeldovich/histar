@@ -1,8 +1,8 @@
 // not to be compiled as a seperate translation unit...
 
-#define O_RDWR 		0x00000001
-#define O_RDONLY 	0x00000002
-#define O_CREAT 	0x00000004
+#include <inc/fd.h>
+#include <inc/syscall.h>
+
 #define O_TRUNC 	0x00000008
 
 #define S_IRWXU 	0x00000001
@@ -26,7 +26,7 @@ umask(int mask)
 int 
 time(int *t)
 {
-	return 0 ;	
+	return sys_clock_msec() / 1000;
 }
 
 int
