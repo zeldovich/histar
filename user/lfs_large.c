@@ -7,8 +7,30 @@
 #include <inc/string.h>
 #include <inc/stdio.h>
 #include <inc/lib.h>
-#include <user/performance_wrap.ss>
-#endif
+#include <inc/fd.h>
+#include <inc/syscall.h>
+
+struct stat
+{
+	int st_uid ;
+} ;
+#define O_TRUNC         0x00000008
+
+#define S_IRWXU         0x00700
+#define S_IRUSR			0x00400
+#define S_IWUSR			0x00200
+
+#define umask(a)
+#define fsync(fd) 
+#define sync()
+#define fstat(a, s) ((s)->st_uid = 0)
+#define fchown(a, b, c) 0
+#define srandom(a)
+#define getpid() 0
+#define time(a) (sys_clock_msec()/1000)
+#define creat(fd, mode) open(fd, O_CREAT|O_WRONLY|O_TRUNC, mode)
+
+#endif // JOS64
 
 #if LINUX
 #include "sys/types.h"
@@ -18,7 +40,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#endif
+#endif // LINUX
 
 #define SIZE	8192
 
@@ -28,10 +50,6 @@ static char *prog_name;
 static int fd;
 
 extern int errno;
-
-
-#define TRULY_RANDOM
-
 
 int f(int i, int n)
 {
@@ -51,43 +69,42 @@ write_test(int n, int size, int sequential)
     s = time(0);
     
     if((fd = open(name, O_RDWR, 0)) < 0) {
-	printf("%s: open %d failed %d %d\n", prog_name, i, fd, errno);
-	exit(1);
+		printf("write_test: open %s failed: %d\n", name, fd);
+		exit(1);
     }
 
     for (i = 0; i < n; i ++) {
-	if (!sequential) {
-
+		if (!sequential) {
+	
 #ifdef TRULY_RANDOM
-	    pos = (random() % n) * size;
+		    pos = (random() % n) * size;
 #else
-	    pos = f(i, n) * size;
+		    pos = f(i, n) * size;
 #endif
-
-	    if ((r = lseek(fd, pos, 0)) < 0) {
-		printf("%s: lseek failed %d %d\n", prog_name, r, errno);
-	    }
-	}
-
-	if ((r = write(fd, buf, size)) < 0) {
-	    printf("%s: write failed %d %d (%ld)\n", prog_name, r, errno,
-		   pos);
-	    exit(1);
-	}
+	
+		    if ((r = seek(fd, pos)) < 0) {
+				printf("write_test: seek failed %s: %d\n", name, r);
+		    }
+		}
+	
+		if ((r = write(fd, buf, size)) < 0) {
+		    printf("write_test: write failed %s: %d\n", name, r) ;
+		    exit(1);
+		}
     }
     
     fsync(fd);
     fstat(fd, &statb);
     if (fchown(fd, statb.st_uid, -1) < 0) {
-	perror("fchown");
+		printf("write_test: fchown error\n");
     }
 
     if ((r = close(fd)) < 0) {
-	printf("%s: close failed %d %d\n", prog_name, r, errno);
+		printf("write_test: close failed %s: %d\n", name, r);
     }
 
     fin = time(0);
-    printf("%s: write took %d sec\n", prog_name, fin - s);
+    printf("write_test: write took %d sec\n", fin - s);
 
 }
 
@@ -112,32 +129,32 @@ read_test(int n, int size, int sequential)
     s = time(0);
     
     if((fd = open(name, O_RDONLY, 0)) < 0) {
-	printf("%s: open %d failed %d %d\n", prog_name, i, fd, errno);
-	exit(1);
+		printf("read_test: open %s failed: %d\n", name,fd);
+		exit(1);
     }
 
     for (i = 0; i < n; i ++) {
-	if (!sequential) {
-
+		if (!sequential) {
+	
 #ifdef TRULY_RANDOM
-	    pos = (random() % n) * size;
+		    pos = (random() % n) * size;
 #else
-	    pos = g(i, n) * size;
+		    pos = g(i, n) * size;
 #endif
-
-	    if ((r = lseek(fd, pos, 0)) < 0) {
-		printf("%s: lseek failed %d %d\n", prog_name, r, errno);
-	    }
-	}
-
-	if ((r = read(fd, buf, size)) < 0) {
-	    printf("%s: read failed %d %d\n", prog_name, r, errno);
-	    exit(1);
-	}
+	
+		    if ((r = seek(fd, pos)) < 0) {
+				printf("read_test: seek failed %s: %d\n", name, r);
+		    }
+		}
+	
+		if ((r = read(fd, buf, size)) < 0) {
+		    printf("read_test: read failed %s: %d\n", name, r);
+		    exit(1);
+		}
     }
     
     if ((r = close(fd)) < 0) {
-	printf("%s: close failed %d %d\n", prog_name, r, errno);
+		printf("read_test: close failed %s: %d\n", name, r);
     }
     
 
@@ -155,21 +172,21 @@ flush_cache()
     int r = 0 ;
 
     if((fd = open("t", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
-	printf("%s: create %d failed %d %d\n", prog_name, i, fd, errno);
-	exit(1);
+		printf("flush_cache: create t failed: %d\n", fd);
+		exit(1);
     }
 
     for (i = 0; i < 15000; i ++) {
-	if ((r = write(fd, buf, 4096)) < 0) {
-	    printf("%s: write failed %d %d\n", prog_name, r, errno);
-	    exit(1);
-	}
+		if ((r = write(fd, buf, 4096)) < 0) {
+		    printf("flush_cache: write t failed: %d\n", r);
+		    exit(1);
+		}
     }
     
     fsync(fd);
 
     if ((r = close(fd)) < 0) {
-	printf("%s: mnx_close failed %d %d\n", prog_name, r, errno);
+		printf("flush_cache: close t failed: %d\n", r);
     }
 
     unlink("t");
@@ -185,8 +202,8 @@ int main(int argc, char *argv[])
     prog_name = argv[0];
 
     if (argc != 3) {
-	printf("%s: %s num size\n", prog_name, prog_name);
-	exit(1);
+		printf("%s: %s num size\n", prog_name, prog_name);
+		exit(1);
     }
 
     n = atoi(argv[1]);
@@ -197,8 +214,8 @@ int main(int argc, char *argv[])
     srandom(getpid());
 
     if((fd = creat(name, S_IRUSR | S_IWUSR)) < 0) {
-	printf("%s: create %d failed %d\n", prog_name, fd, errno);
-	exit(1);
+		printf("main: create %s failed: %d\n", name, fd);
+		exit(1);
     }
 
     write_test(n, size, 1);

@@ -172,7 +172,7 @@ delete_test(int n)
     int j;
  
     unsigned s = 0 , f = 0;
-    //s = time(0);
+    s = time(0);
     for (i = 0, j = 0; i < n; i ++) {
 
 	sprintf(name, "d%d/g%d", j, i);
@@ -185,9 +185,9 @@ delete_test(int n)
 	if ((i+1) % 100 == 0) j++;
     }
 
-    //fsync(fd);
+    fsync(fd);
 
-    //f = time(0);
+    f = time(0);
     printf("delete_test: unlink took %d sec\n", f - s);
 }
 
