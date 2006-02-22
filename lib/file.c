@@ -43,7 +43,7 @@ open(const char *pn, int flags, int mode)
 {
     int r;
     struct fs_inode ino;
-    if ((flags | O_CREAT)) {
+    if ((flags & O_CREAT)) {
 	char *pn2 = malloc(strlen(pn) + 1);
 	if (pn2 == 0)
 	    return -E_NO_MEM;
