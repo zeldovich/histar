@@ -11,6 +11,7 @@
 #define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
 #define KOBJ_SNAPSHOT_DIRTY	0x10	// Dirty if swapout fails
+#define KOBJ_LABEL_MUTABLE	0x20	// Label can change after creation
 
 struct kobject_hdr {
     kobject_id_t ko_id;

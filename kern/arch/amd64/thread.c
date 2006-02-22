@@ -79,6 +79,7 @@ thread_alloc(const struct Label *l, struct Thread **tp)
     t->th_status = thread_not_started;
     t->th_sg = kobject_id_null;
     t->th_ct = kobject_id_null;
+    t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
     struct Segment *sg;
     r = segment_alloc(l, &sg);
@@ -87,6 +88,7 @@ thread_alloc(const struct Label *l, struct Thread **tp)
 
     t->th_sg = sg->sg_ko.ko_id;
     kobject_incref(&sg->sg_ko);
+    sg->sg_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
     struct Container *ct;
     r = container_alloc(l, &ct);
@@ -95,6 +97,7 @@ thread_alloc(const struct Label *l, struct Thread **tp)
 
     t->th_ct = ct->ct_ko.ko_id;
     kobject_incref(&ct->ct_ko);
+    ct->ct_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
     r = container_put(ct, &sg->sg_ko);
     if (r < 0)
