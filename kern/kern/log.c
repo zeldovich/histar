@@ -393,8 +393,9 @@ log_flush(void)
 			return r ;	
 		}
 		cprintf("log_flush: compacted from %ld to %ld\n",d , log.on_disk) ;
-		if (log.npages <= log.in_mem + log.on_disk + 1)
-			panic("log_flush: log overflow") ;
+		uint64_t needed = log.in_mem + log.on_disk + 1 ;
+		if (log.npages <= needed)
+			panic("log_flush: log overflow, %ld <= %ld", log.npages, needed) ;
 	}
 	uint64_t off = log.byteoff + (log.on_disk + 1) * PGSIZE ;
 	if ((r = log_write_to_log(&log.nodes, &count, off)) < 0)
