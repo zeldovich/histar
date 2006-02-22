@@ -8,6 +8,7 @@
 #include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/fd.h>
+#include <inc/syscall.h>
 
 #define O_TRUNC         0x00000008
 
@@ -15,7 +16,7 @@
 
 #define umask(a)
 #define fsync(fd) 
-#define time(a) 0
+#define time(a) (sys_clock_msec()/1000)
 #endif // JOS64
 
 #if LINUX
