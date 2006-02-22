@@ -7,10 +7,8 @@
 #include <inc/string.h>
 #include <inc/stdio.h>
 #include <inc/lib.h>
+#include <inc/fd.h>
 
-#define O_RDWR          0x00000001
-#define O_RDONLY        0x00000002
-#define O_CREAT         0x00000004
 #define O_TRUNC         0x00000008
 
 #define S_IRWXU         0x00000001
