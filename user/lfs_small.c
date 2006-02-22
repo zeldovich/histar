@@ -7,8 +7,18 @@
 #include <inc/string.h>
 #include <inc/stdio.h>
 #include <inc/lib.h>
-#include <user/performance_wrap.ss>
-#endif
+
+#define O_RDWR          0x00000001
+#define O_RDONLY        0x00000002
+#define O_CREAT         0x00000004
+#define O_TRUNC         0x00000008
+
+#define S_IRWXU         0x00000001
+
+#define umask(a)
+#define fsync(fd) 
+#define time(a) 0
+#endif // JOS64
 
 #if LINUX
 #include "sys/types.h"
@@ -16,7 +26,7 @@
 #include <sys/timeb.h>
 #include <errno.h>
 #include "fcntl.h"
-#endif
+#endif // LINUX
 
 static char buf[40960];
 static char name[32];
@@ -50,28 +60,28 @@ creat_test(int n, int size)
     int fd;
     int j;
 
-    unsigned s, f;
+    unsigned s = 0 , f = 0 ;
     s = time(0);
 
     for (i = 0, j = 0; i < n; i ++) {
 
-	sprintf(name, "d%d/g%d", j, i);
-
-	if((fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
-	    printf("%s: create %d failed %d %d\n", prog_name, i, fd, errno);
-	    exit(1);
-	}
-
-	if ((r = write(fd, buf, size)) < 0) {
-	    printf("%s: write failed %d %d\n", prog_name, r, errno);
-	    exit(1);
-	}
-
-	if ((r = close(fd)) < 0) {
-	    printf("%s: close failed %d %d\n", prog_name, r, errno);
-	}
-
-	if ((i+1) % 100 == 0) j++;
+		sprintf(name, "d%d/g%d", j, i);
+	
+		if((fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
+		    printf("creat_test: create %d failed: %d\n", i, fd);
+		    exit(1);
+		}
+	
+		if ((r = write(fd, buf, size)) < 0) {
+		    printf("creat_test: write failed: %d\n", r);
+		    exit(1);
+		}
+	
+		if ((r = close(fd)) < 0) {
+		    printf("creat_test: close failed %d\n", r);
+		}
+	
+		if ((i+1) % 100 == 0) j++;
 
     }
 
@@ -87,28 +97,30 @@ write_test(char *name, int n, int size)
 {
     int i = 0 ;
     int r;
-    int s;
     int fd;
-    long pos = 0 ;
-
-    s = time(0);
+    unsigned s = 0 , f = 0 ;
+    
+    s = time(0) ;
     
     if((fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
-	printf("%s: create %d failed %d %d\n", prog_name, i, fd, errno);
-	exit(1);
+		printf("write_test: create of %s failed: %dn", name, fd);
+		exit(1);
     }
 
     for (i = 0; i < n; i ++) {
-	if ((r = write(fd, buf, size)) < 0) {
-	    printf("%s: write failed %d %d (%ld)\n", prog_name, r, errno,
-		   pos);
-	    exit(1);
-	}
+		if ((r = write(fd, buf, size)) < 0) {
+		    printf("write_test: write to %s failed: %d\n", name, r);
+		    exit(1);
+		}
     }
     
     if ((r = close(fd)) < 0) {
-	printf("%s: mnx_close failed %d %d\n", prog_name, r, errno);
+		printf("write_test: close failed: %d\n", r);
     }
+    
+    f = time(0) ;
+    
+    printf("write_test: write took %d sec\n", f - s);
 }
 
 
@@ -126,33 +138,31 @@ read_test(int n, int size)
     int fd;
     int j;
 
-    unsigned s, f;
+    unsigned s = 0 , f = 0 ;
     s = time(0);
     for (i = 0, j = 0; i < n; i ++) {
 
-	sprintf(name, "d%d/g%d", j, i);
+		sprintf(name, "d%d/g%d", j, i);
+	
+		if((fd = open(name, O_RDONLY, 0)) < 0) {
+		    printf("read_test: open %d failed %d\n", i, fd);
+		    exit(1);
+		}
+	
+		if ((r = read(fd, buf, size)) < 0) {
+		    printf("read_test: read failed %d\n", r);
+		    exit(1);
+		}
+	
+		if ((r = close(fd)) < 0) {
+		    printf("read_test: close failed %d\n", r);
+		}
 
-	if((fd = open(name, O_RDONLY, 0)) < 0) {
-	    printf("%s: open %d failed %d %d\n", prog_name, i, fd, errno);
-	    exit(1);
-	}
-
-	if ((r = read(fd, buf, size)) < 0) {
-	    printf("%s: read failed %d %d\n", prog_name, r, errno);
-	    exit(1);
-	}
-
-	if ((r = close(fd)) < 0) {
-	    printf("%s: close failed %d %d\n", prog_name, r, errno);
-	}
-
-	if ((i+1) % 100 == 0) j++;
+		if ((i+1) % 100 == 0) j++;
     }
 
-    f = time(0);
-    printf("%s: read took %d sec\n",
-	   prog_name,
-	   f - s);
+	f = time(0);
+    printf("read_test: read took %d sec\n", f - s);
 }
 
 void 
@@ -160,11 +170,10 @@ delete_test(int n)
 {	
     int i;
     int r;
-    int fd;
     int j;
  
-    unsigned s, f;
-    s = time(0);
+    unsigned s = 0 , f = 0;
+    //s = time(0);
     for (i = 0, j = 0; i < n; i ++) {
 
 	sprintf(name, "d%d/g%d", j, i);
@@ -177,12 +186,10 @@ delete_test(int n)
 	if ((i+1) % 100 == 0) j++;
     }
 
-    fsync(fd);
+    //fsync(fd);
 
-    f = time(0);
-    printf("%s: unlink took %d sec\n",
-	   prog_name,
-	   f - s);
+    //f = time(0);
+    printf("delete_test: unlink took %d sec\n", f - s);
 }
 
 

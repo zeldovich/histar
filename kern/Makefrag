@@ -57,9 +57,8 @@ KERN_BINFILES := \
 	user/rm \
 	user/cat \
 	user/fetch \
-	user/performance_small \
-	user/performance_large 
-
+	user/lfs_small 
+	
 	#user/tcpsink
 	#user/spin \
 	#user/hello \
