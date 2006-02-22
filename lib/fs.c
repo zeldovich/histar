@@ -289,7 +289,7 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 }
 
 int
-fs_pwrite(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
+fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 {
     uint64_t cursize;
     int r = fs_getsize(f, &cursize);

@@ -132,4 +132,8 @@ int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 void label_max_default(struct ulabel *l);
 void label_change_star(struct ulabel *l, level_t new_level);
 
+/* file.c */
+int  open(const char *pn, int flags, int mode);
+int  mkdir(const char *pn, int mode);
+
 #endif

@@ -4,6 +4,7 @@
 #include <machine/atomic.h>
 #include <inc/container.h>
 #include <inc/types.h>
+#include <inc/fs.h>
 
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
@@ -42,6 +43,10 @@ struct Fd
 		struct {
 			int s;
 		} fd_sock;
+
+		struct {
+			struct fs_inode ino;
+		} fd_file;
 	};
 };
 
@@ -56,10 +61,12 @@ int	dev_lookup(int devid, struct Dev **dev_store);
 
 extern struct Dev devcons;
 extern struct Dev devsock;
+extern struct Dev devfile;
 
 #define O_RDONLY	0x0000
 #define O_WRONLY	0x0001
 #define O_RDWR		0x0002
 #define O_ACCMODE	(O_RDONLY | O_RDWR | O_WRONLY)
+#define O_CREAT		0x0004
 
 #endif

@@ -43,7 +43,7 @@ void fs_unmount(struct fs_inode dir, const char *mnt_name);
 int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f);
 int  fs_remove(struct fs_inode f);
 
-int  fs_pwrite(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
+int  fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
 int  fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
 int  fs_getsize(struct fs_inode f, uint64_t *len);
 

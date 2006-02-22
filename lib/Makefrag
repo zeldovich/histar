@@ -32,6 +32,7 @@ LIB_SRCFILES :=	\
 	lib/heap.c \
 	lib/malloc.c \
 	lib/fs.c \
+	lib/file.c \
 	lib/label.c \
 	lib/cpplabel.cc \
 	lib/nethelper.cc \

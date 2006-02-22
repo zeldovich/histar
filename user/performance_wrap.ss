@@ -24,12 +24,6 @@ umask(int mask)
 }
 
 int 
-mkdir(const char *pathname, int mode)
-{
-	return 0 ; 	
-}
-
-int 
 time(int *t)
 {
 	return 0 ;	
@@ -43,12 +37,6 @@ fsync(int fd)
 
 int
 unlink(const char *pathname)
-{
-	return 0 ;	
-}
-
-int 
-open(const char *pathname, int flags, int mode)
 {
 	return 0 ;	
 }
