@@ -28,6 +28,17 @@ mkdir(const char *pn, int mode)
 }
 
 int
+unlink(const char *pn)
+{
+    struct fs_inode f;
+    int r = fs_namei(pn, &f);
+    if (r < 0)
+	return r;
+
+    return fs_remove(f);
+}
+
+int
 open(const char *pn, int flags, int mode)
 {
     int r;

@@ -35,12 +35,6 @@ fsync(int fd)
 	return 0 ;	
 }
 
-int
-unlink(const char *pathname)
-{
-	return 0 ;	
-}
-
 void
 srandom(unsigned int seed)
 {
@@ -92,5 +86,5 @@ fstat(int filedes, struct stat *buf)
 int 
 creat(const char *pathname, int mode)
 {
-	return 0 ;
+	return open(pathname, O_RDWR | O_CREAT, mode);
 }
