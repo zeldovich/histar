@@ -171,7 +171,7 @@ log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 		}
 
 		btree_insert(&log.disk_map, &node->block.offset, &off) ;
-		off++ ;
+		off += PGSIZE ;
 		n++ ;
 	}
 	*count = n ;
@@ -235,7 +235,10 @@ log_read_map(struct btree *map, struct node_list *nodes)
 		if ((r = page_alloc((void **)&node)) < 0)
 			return r ;
 		s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
-		LIST_INSERT_HEAD(nodes, node, node_link) ;
+		
+                assert(node->block.offset == *trav.key) ;
+                
+                LIST_INSERT_HEAD(nodes, node, node_link) ;
 	}
 	
 	return 0 ; 
