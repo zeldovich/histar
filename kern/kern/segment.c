@@ -59,6 +59,8 @@ int
 segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
 {
     segment_invalidate(sg);
+    if (sg->sg_ko.ko_pin_pg)
+	return -E_BUSY;
     return kobject_set_nbytes(&sg->sg_ko, num_bytes);
 }
 

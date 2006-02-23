@@ -18,6 +18,7 @@ struct container_page {
 
 struct Container {
     struct kobject_hdr ct_ko;
+    bool_t ct_avoid[kobj_ntypes];	// cannot store certain objects
 };
 
 int	container_alloc(const struct Label *l, struct Container **cp);

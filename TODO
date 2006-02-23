@@ -1,12 +1,3 @@
-threads should not have refcounts -- switch ownership on gate call?
-the mutable label leaks information.  (does it?  if you can read the
-label, then info flow is allowed..  otherwise, it's not..)
-
-thread containers should not be nameable by container ID,
-and should not allow sub-containers or sub-threads.  probably
-a container should have a list of allowable objects, and the
-thread-specific containers won't allow containers or threads.
-
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 
 shouldn't be able to pass thread-specific segment to DMA!
@@ -25,8 +16,6 @@ associate DMA/PTE pinning with physical pages rather than kobjects.
 currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
-
-also should fix problem with segment_set_npages() on a DMA segment
 
 iovec-based swapin
 

@@ -12,10 +12,10 @@ typedef enum {
     kobj_segment,
     kobj_address_space,
     kobj_mlt,
-
     kobj_netdev,
-
     kobj_dead,
+
+    kobj_ntypes,
     kobj_any
 } kobject_type_t;
 

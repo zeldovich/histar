@@ -103,6 +103,9 @@ thread_alloc(const struct Label *l, struct Thread **tp)
     t->th_ct = ct->ct_ko.ko_id;
     kobject_incref(&ct->ct_ko);
     ct->ct_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
+    ct->ct_avoid[kobj_container] = 1;
+    ct->ct_avoid[kobj_thread] = 1;
+    ct->ct_avoid[kobj_mlt] = 1;
 
     r = container_put(ct, &sg->sg_ko);
     if (r < 0)

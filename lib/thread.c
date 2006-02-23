@@ -126,16 +126,9 @@ thread_halt(void)
 int
 thread_get_label(struct ulabel *ul)
 {
-    uint64_t ctemp = kobject_id_thread_ct;
-
     uint64_t tid = thread_id();
-    int r = sys_thread_addref(ctemp);
-    if (r < 0)
-	return r;
 
-    r = sys_obj_get_label(COBJ(ctemp, tid), ul);
-    sys_obj_unref(COBJ(ctemp, tid));
-    return r;
+    return sys_obj_get_label(COBJ(kobject_id_thread_ct, tid), ul);
 }
 
 void

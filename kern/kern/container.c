@@ -94,6 +94,10 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 int
 container_put(struct Container *c, const struct kobject_hdr *ko)
 {
+    assert(ko->ko_type < kobj_ntypes);
+    if (c->ct_avoid[ko->ko_type])
+	return -E_INVAL;
+
     struct container_slot *cs;
     int r = container_slot_find(c, ko->ko_id, &cs, page_rw);
     if (r == -E_NOT_FOUND)
@@ -192,8 +196,14 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    // A container "contains" itself
-    if ((*storep)->hdr.ko_id != c->ct_ko.ko_id) {
+    // Every container "contains" itself and the current thread,
+    // to make it easier to name those things.
+    kobject_id_t id_found = (*storep)->hdr.ko_id;
+    if (id_found == c->ct_ko.ko_id ||
+	(cur_thread && id_found == cur_thread->th_ko.ko_id))
+    {
+	// Do nothing
+    } else {
 	r = container_slot_find(c, (*storep)->hdr.ko_id, 0, page_ro);
 	if (r < 0)
 	    return r;
