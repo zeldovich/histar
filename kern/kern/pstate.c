@@ -96,7 +96,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     int r;
     pstate_kobj_free(f, ko);
 
-    uint64_t nbytes = KOBJ_SIZE + ROUNDUP(ko->hdr.ko_nbytes, PGSIZE);
+    uint64_t nbytes = KOBJ_SIZE + ROUNDUP(ko->hdr.ko_nbytes, 512);
     int64_t offset = freelist_alloc(f, nbytes);
 
     if (offset < 0) {
@@ -152,7 +152,12 @@ pstate_swapin_off(offset_t off)
 	    return r;
 	}
 
-	s = stackwrap_disk_io(op_read, p, PGSIZE, off + KOBJ_SIZE + page * PGSIZE);
+	uint32_t pagebytes = MIN(ROUNDUP(ko->hdr.ko_nbytes - page * PGSIZE,
+					 512), (uint32_t) PGSIZE);
+	if (pagebytes != PGSIZE)
+	    memset(p, 0, PGSIZE);
+
+	s = stackwrap_disk_io(op_read, p, pagebytes, off + KOBJ_SIZE + page * PGSIZE);
 	if (s != disk_io_success) {
 	    cprintf("pstate_swapin_obj: cannot read page from disk\n");
 	    return -E_IO;
@@ -430,7 +435,9 @@ pstate_sync_kobj(struct swapout_stats *stats,
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
-	r = pstate_iov_append(&x, p, PGSIZE);
+	uint32_t pagebytes = MIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
+					 512), (uint32_t) PGSIZE);
+	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
 	    return r;
 

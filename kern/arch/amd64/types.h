@@ -67,8 +67,8 @@ typedef int32_t off_t;
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)				\
 ({						\
-	uintptr_t __a = (uintptr_t) (a);	\
-	(__typeof__(a)) (__a - __a % (n));	\
+	uintptr_t __ra = (uintptr_t) (a);	\
+	(__typeof__(a)) (__ra - __ra % (n));	\
 })
 // Round up to the nearest multiple of n
 #define ROUNDUP(a, n)							\
