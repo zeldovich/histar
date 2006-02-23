@@ -10,6 +10,9 @@
 #include <inc/pthread.h>
 
 #define NMAPPINGS 32
+static struct u_segment_mapping ents[NMAPPINGS];
+static struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
+static pthread_mutex_t as_mutex;
 
 static struct ulabel *seg_create_label;
 
@@ -27,8 +30,6 @@ segment_get_default_label(void)
     return seg_create_label;
 }
 
-static pthread_mutex_t as_mutex;
-
 static void
 as_mutex_lock(void) {
     pthread_mutex_lock(&as_mutex);
@@ -40,28 +41,25 @@ as_mutex_unlock(void) {
 }
 
 static void
-segment_map_print(struct u_address_space *uas)
+segment_map_print(struct u_address_space *as)
 {
     cprintf("segment  start  npages  f  va\n");
-    for (uint64_t i = 0; i < uas->nent; i++) {
-	if (uas->ents[i].flags == 0)
+    for (uint64_t i = 0; i < as->nent; i++) {
+	if (as->ents[i].flags == 0)
 	    continue;
 	cprintf("%3ld.%-3ld  %5ld  %6ld  %ld  %p\n",
-		uas->ents[i].segment.container,
-		uas->ents[i].segment.object,
-		uas->ents[i].start_page,
-		uas->ents[i].num_pages,
-		uas->ents[i].flags,
-		uas->ents[i].va);
+		as->ents[i].segment.container,
+		as->ents[i].segment.object,
+		as->ents[i].start_page,
+		as->ents[i].num_pages,
+		as->ents[i].flags,
+		as->ents[i].va);
     }
 }
 
 int
 segment_unmap(void *va)
 {
-    struct u_segment_mapping ents[NMAPPINGS];
-    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
-
     struct cobj_ref as_ref;
     int r = sys_thread_get_as(&as_ref);
     if (r < 0)
@@ -90,17 +88,17 @@ segment_unmap(void *va)
 int
 segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 {
-    struct u_segment_mapping ents[NMAPPINGS];
-    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
-
     struct cobj_ref as_ref;
     int r = sys_thread_get_as(&as_ref);
     if (r < 0)
 	return r;
 
+    as_mutex_lock();
     r = sys_as_get(as_ref, &uas);
-    if (r < 0)
+    if (r < 0) {
+	as_mutex_unlock();
 	return r;
+    }
 
     for (uint64_t i = 0; i < uas.nent; i++) {
 	void *va_start = uas.ents[i].va;
@@ -110,36 +108,40 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 		*seg = uas.ents[i].segment;
 	    if (npage)
 		*npage = (va - va_start) / PGSIZE;
+	    as_mutex_unlock();
 	    return 1;
 	}
     }
 
+    as_mutex_unlock();
     return 0;
 }
 
 int
 segment_lookup_obj(uint64_t oid, void **vap)
 {
-    struct u_segment_mapping ents[NMAPPINGS];
-    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
-
     struct cobj_ref as_ref;
     int r = sys_thread_get_as(&as_ref);
     if (r < 0)
 	return r;
 
+    as_mutex_lock();
     r = sys_as_get(as_ref, &uas);
-    if (r < 0)
+    if (r < 0) {
+	as_mutex_unlock();
 	return r;
+    }
 
     for (uint64_t i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].segment.object == oid) {
 	    if (vap)
 		*vap = uas.ents[i].va;
+	    as_mutex_unlock();
 	    return 1;
 	}
     }
 
+    as_mutex_unlock();
     return 0;
 }
 
@@ -169,12 +171,8 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	return npages;
     uint64_t bytes = npages * PGSIZE;
 
-    struct u_segment_mapping ents[NMAPPINGS];
-    memset(&ents, 0, sizeof(ents));
-
     as_mutex_lock();
-
-    struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
+    memset(&ents, 0, sizeof(ents));
     int r = sys_as_get(as_ref, &uas);
     if (r < 0) {
 	as_mutex_unlock();
