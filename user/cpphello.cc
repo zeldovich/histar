@@ -4,6 +4,7 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/nethelper.hh>
+#include <inc/error.hh>
 
 int
 main(int ac, char **av)
@@ -31,7 +32,7 @@ main(int ac, char **av)
 
     try {
 	url u("foo://bar");
-    } catch (errormsg &e) {
+    } catch (basic_exception &e) {
 	e.print_where();
     }
 

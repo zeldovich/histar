@@ -5,7 +5,9 @@ extern "C" {
 #include <inc/fs.h>
 #include <inc/syscall.h>
 }
+
 #include <inc/nethelper.hh>
+#include <inc/error.hh>
 
 static int fetch_debug = 1;
 
@@ -41,9 +43,9 @@ try
     const char *resp = lp.read_line();
     assert(resp);
     if (strncmp(resp, "HTTP/1.", 7))
-	throw errormsg("not an HTTP response: %s", resp);
+	throw basic_exception("not an HTTP response: %s", resp);
     if (strncmp(&resp[9], "200", 3))
-	throw errormsg("request error: %s", resp);
+	throw basic_exception("request error: %s", resp);
 
     while (resp[0] != '\0') {
 	resp = lp.read_line();
@@ -56,12 +58,12 @@ try
     struct fs_inode dir;
     int r = fs_namei(dirname, &dir);
     if (r < 0)
-	throw errormsg("cannot find directory %s: %s", dirname, e2s(r));
+	throw error(r, "cannot find directory %s: %s", dirname, e2s(r));
 
     struct fs_inode file;
     r = fs_create(dir, basename, &file);
     if (r < 0)
-	throw errormsg("cannot create file %s: %s", basename, e2s(r));
+	throw error(r, "cannot create file %s", basename);
 
     uint64_t off = 0;
     for (;;) {
@@ -71,7 +73,7 @@ try
 
 	r = fs_pwrite(file, buf, cc, off);
 	if (r < 0)
-	    throw errormsg("fs_pwrite: %s", e2s(r));
+	    throw error(r, "fs_pwrite");
 
 	off += cc;
 

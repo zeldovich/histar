@@ -1,4 +1,5 @@
 #include <inc/nethelper.hh>
+#include <inc/error.hh>
 #include <new>
 
 extern "C" {
@@ -9,37 +10,16 @@ extern "C" {
 #include <inc/syscall.h>
 }
 
-errormsg::errormsg(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(&msg[0], sizeof(msg), fmt, ap);
-    va_end(ap);
-}
-
-void
-errormsg::print_where() const
-{
-    int depth = backtracer_depth();
-    printf("Backtrace for error %s:\n", what());
-    for (int i = 0; i < depth; i++) {
-	void *addr = backtracer_addr(i);
-	printf("  %p\n", addr);
-    }
-    printf("End of backtrace\n");
-}
-
 url::url(const char *s) : host_(0), path_(0)
 {
     static const char *prefix = "http://";
     if (strncmp(s, prefix, strlen(prefix)))
-	throw errormsg("bad URL type: %s", s);
+	throw basic_exception("bad URL type: %s", s);
 
     const char *h = s + strlen(prefix);
     char *slash = strchr(h, '/');
     if (slash == 0)
-	throw errormsg("poorly formatted URL: %s", s);
+	throw basic_exception("poorly formatted URL: %s", s);
 
     size_t hostlen = slash - h;
     host_ = (char *) malloc(hostlen + 1);
@@ -68,7 +48,7 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
 
     for (int i = 0; i < 4; i++) {
 	if (p == 0)
-	    throw errormsg("bad ip address: %s", hostname);
+	    throw basic_exception("bad ip address: %s", hostname);
 
 	int v = atoi(p);
 	p = strchr(p, '.');
@@ -76,7 +56,7 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
 	    p++;
 
 	if (v < 0 || v >= 256)
-	    throw errormsg("bad ip octet: %s", hostname);
+	    throw basic_exception("bad ip octet: %s", hostname);
 
 	ip = (ip << 8) | v;
     }
@@ -88,11 +68,11 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
 
     fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_ < 0)
-	throw errormsg("socket: %s", e2s(fd_));
+	throw error(fd_, "socket");
 
     int r = connect(fd_, (struct sockaddr *) &sin, sizeof(sin));
     if (r < 0)
-	throw errormsg("connect: %s", e2s(r));
+	throw error(r, "connect");
 }
 
 tcpconn::tcpconn(int fd)
@@ -114,7 +94,7 @@ tcpconn::write(const char *buf, size_t count)
     while (done < count) {
 	ssize_t r = ::write(fd_, buf + done, count - done);
 	if (r <= 0)
-	    throw errormsg("cannot write: %s", e2s(r));
+	    throw error(r, "cannot write");
 	done += r;
     }
 }
@@ -124,7 +104,7 @@ tcpconn::read(char *buf, size_t len)
 {
     ssize_t r = ::read(fd_, buf, len);
     if (r < 0)
-	throw errormsg("cannot read: %s", e2s(r));
+	throw error(r, "cannot read");
 
     return r;
 }

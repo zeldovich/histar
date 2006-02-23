@@ -8,7 +8,9 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/error.h>
 }
+
 #include <inc/nethelper.hh>
+#include <inc/error.hh>
 
 static int reqs;
 
@@ -23,12 +25,12 @@ http_client(void *arg)
 
 	const char *req = lp.read_line();
 	if (req == 0 || strncmp(req, "GET ", 4))
-	    throw errormsg("bad http request: %s", req);
+	    throw basic_exception("bad http request: %s", req);
 
 	const char *pn_start = req + 4;
 	char *space = strchr(pn_start, ' ');
 	if (space == 0)
-	    throw errormsg("no space in http req: %s", req);
+	    throw basic_exception("no space in http req: %s", req);
 
 	char pnbuf[512];
 	strncpy(&pnbuf[0], pn_start, space - pn_start);
@@ -37,7 +39,7 @@ http_client(void *arg)
 	while (req[0] != '\0') {
 	    req = lp.read_line();
 	    if (req == 0)
-		throw errormsg("client EOF");
+		throw basic_exception("client EOF");
 	}
 
 	char buf[1024];
@@ -56,11 +58,11 @@ http_client(void *arg)
 	    struct fs_inode ino;
 	    int r = fs_namei(pnbuf, &ino);
 	    if (r < 0)
-		throw errormsg("fs_namei: %s", e2s(r));
+		throw error(r, "fs_namei");
 
 	    int type = sys_obj_get_type(ino.obj);
 	    if (type < 0)
-		throw errormsg("sys_obj_get_type: %s", e2s(r));
+		throw error(r, "sys_obj_get_type");
 
 	    if (type == kobj_segment) {
 		snprintf(buf, sizeof(buf), "segment\n");
@@ -69,12 +71,12 @@ http_client(void *arg)
 		uint64_t sz;
 		r = fs_getsize(ino, &sz);
 		if (r < 0)
-		    throw errormsg("fs_getsize: %s", e2s(r));
+		    throw error(r, "fs_getsize");
 
 		for (uint64_t off = 0; off < sz; off += sizeof(buf)) {
 		    r = fs_pread(ino, &buf[0], sizeof(buf), off);
 		    if (r < 0)
-			throw errormsg("fs_pread: %s", e2s(r));
+			throw error(r, "fs_pread");
 		    tc.write(buf, sizeof(buf));
 		}
 	    } else if (type == kobj_container || type == kobj_mlt) {
@@ -89,7 +91,7 @@ http_client(void *arg)
 		    if (r == -E_NOT_FOUND)
 			continue;
 		    if (r < 0)
-			throw errormsg("fs_get_dent: %s", e2s(r));
+			throw error(r, "fs_get_dent");
 
 		    snprintf(buf, sizeof(buf),
 			     "<a href=\"%s%s%s\">%s/%s</a>\n",
