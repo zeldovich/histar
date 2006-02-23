@@ -11,12 +11,12 @@ start_env_t *start_env;
 
 #define MAXARGS	16
 
+static int argc = 0;
+static const char *argv[MAXARGS];
+
 void
 libmain(uint64_t arg0, uint64_t arg1)
 {
-    int argc = 0;
-    const char *argv[MAXARGS];
-
     memset(&argv, 0, sizeof(argv));
 
     start_arg0 = arg0;
