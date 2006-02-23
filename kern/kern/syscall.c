@@ -1,6 +1,7 @@
 #include <machine/trap.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
+#include <machine/x86.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
@@ -16,11 +17,11 @@
 #include <kern/uinit.h>
 #include <kern/mlt.h>
 #include <kern/sync.h>
+#include <kern/prof.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
-
 // Helper functions
 static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
@@ -560,203 +561,209 @@ syscall(syscall_num num, uint64_t a1,
 {
     syscall_ret = 0;
 
+	uint64_t s, f ;
+
     int r = setjmp(&syscall_retjmp);
     if (r != 0)
 	goto syscall_exit;
 
+	s = read_tsc() ;
+	
     switch (num) {
-    case SYS_cons_puts:
-	sys_cons_puts((const char*) a1, a2);
-	break;
-
-    case SYS_cons_getc:
-	syscall_ret = sys_cons_getc();
-	break;
-
-    case SYS_net_create:
-	syscall_ret = sys_net_create(a1, (struct ulabel *) a2, (const char *) a3);
-	break;
-
-    case SYS_net_wait:
-	syscall_ret = sys_net_wait(COBJ(a1, a2), a3, a4);
-	break;
-
-    case SYS_net_buf:
-	sys_net_buf(COBJ(a1, a2), COBJ(a3, a4), a5, (netbuf_type) a6);
-	break;
-
-    case SYS_net_macaddr:
-	{
-	    uint8_t addrbuf[6];
-	    sys_net_macaddr(COBJ(a1, a2), &addrbuf[0]);
-
-	    check(page_user_incore((void**) &a3, 6));
-	    memcpy((void*) a3, &addrbuf[0], 6);
-	}
-	break;
-
-    case SYS_container_alloc:
-	syscall_ret = sys_container_alloc(a1, (struct ulabel *) a2, (const char *) a3);
-	break;
-
-    case SYS_obj_unref:
-	sys_obj_unref(COBJ(a1, a2));
-	break;
-
-    case SYS_container_get_slot_id:
-	syscall_ret = sys_container_get_slot_id(a1, a2);
-	break;
-
-    case SYS_handle_create:
-	syscall_ret = sys_handle_create();
-	break;
-
-    case SYS_obj_get_type:
-	syscall_ret = sys_obj_get_type(COBJ(a1, a2));
-	break;
-
-    case SYS_obj_get_label:
-	sys_obj_get_label(COBJ(a1, a2), (struct ulabel *) a3);
-	break;
-
-    case SYS_obj_get_name:
-	sys_obj_get_name(COBJ(a1, a2), (char *) a3);
-	break;
-
-    case SYS_container_nslots:
-	syscall_ret = sys_container_nslots(a1);
-	break;
-
-    case SYS_gate_create:
-	{
-	    struct thread_entry e;
-	    check(page_user_incore((void**) &a2, sizeof(e)));
-	    memcpy(&e, (void*) a2, sizeof(e));
-
-	    syscall_ret = sys_gate_create(a1, &e,
-					  (struct ulabel*) a3,
-					  (struct ulabel*) a4,
-					  (const char *) a5);
-	}
-	break;
-
-    case SYS_gate_enter:
-	sys_gate_enter(COBJ(a1, a2), (struct ulabel *) a3, a4, a5);
-	break;
-
-    case SYS_gate_send_label:
-	sys_gate_send_label(COBJ(a1, a2), (struct ulabel *) a3);
-	break;
-
-    case SYS_thread_create:
-	syscall_ret = sys_thread_create(a1, (const char *) a2);
-	break;
-
-    case SYS_thread_start:
-	{
-	    struct thread_entry e;
-	    check(page_user_incore((void**) &a3, sizeof(e)));
-	    memcpy(&e, (void*) a3, sizeof(e));
-
-	    sys_thread_start(COBJ(a1, a2), &e, (struct ulabel *) a4);
-	}
-	break;
-
-    case SYS_thread_yield:
-	sys_thread_yield();
-	break;
-
-    case SYS_thread_halt:
-	sys_thread_halt();
-	break;
-
-    case SYS_thread_id:
-	syscall_ret = sys_thread_id();
-	break;
-
-    case SYS_thread_addref:
-	sys_thread_addref(a1);
-	break;
-
-    case SYS_thread_get_as:
-	{
-	    struct cobj_ref as_ref;
-	    sys_thread_get_as(&as_ref);
-
-	    page_user_incore((void**) &a1, sizeof(as_ref));
-	    memcpy((void*) a1, &as_ref, sizeof(as_ref));
-	}
-	break;
-
-    case SYS_thread_set_as:
-	sys_thread_set_as(COBJ(a1, a2));
-	break;
-
-    case SYS_thread_set_label:
-	sys_thread_set_label((struct ulabel *) a1);
-	break;
-
-    case SYS_thread_sync_wait:
-	sys_thread_sync_wait((uint64_t *) a1, a2, a3);
-	break;
-
-    case SYS_thread_sync_wakeup:
-	sys_thread_sync_wakeup((uint64_t *) a1);
-	break;
-
-    case SYS_clock_msec:
-	syscall_ret = sys_clock_msec();
-	break;
-
-    case SYS_segment_create:
-	syscall_ret = sys_segment_create(a1, a2, (struct ulabel *) a3,
-					 (const char *) a4);
-	break;
-
-    case SYS_segment_copy:
-	syscall_ret = sys_segment_copy(COBJ(a1, a2), a3,
-				       (struct ulabel *) a4,
-				       (const char *) a5);
-	break;
-
-    case SYS_segment_resize:
-	sys_segment_resize(COBJ(a1, a2), a3);
-	break;
-
-    case SYS_segment_get_npages:
-	syscall_ret = sys_segment_get_npages(COBJ(a1, a2));
-	break;
-
-    case SYS_as_create:
-	syscall_ret = sys_as_create(a1, (struct ulabel *) a2, (const char *) a3);
-	break;
-
-    case SYS_as_get:
-	sys_as_get(COBJ(a1, a2), (struct u_address_space *) a3);
-	break;
-
-    case SYS_as_set:
-	sys_as_set(COBJ(a1, a2), (struct u_address_space *) a3);
-	break;
-
-    case SYS_mlt_create:
-	syscall_ret = sys_mlt_create(a1, (const char *) a2);
-	break;
-
-    case SYS_mlt_get:
-	sys_mlt_get(COBJ(a1, a2), a3, (struct ulabel *) a4,
-		    (uint8_t *) a5, (kobject_id_t *) a6);
-	break;
-
-    case SYS_mlt_put:
-	sys_mlt_put(COBJ(a1, a2), (struct ulabel *) a3, (uint8_t *) a4);
-	break;
-
-    default:
-	cprintf("Unknown syscall %d\n", num);
-	syscall_error(-E_INVAL);
+	    case SYS_cons_puts:
+		sys_cons_puts((const char*) a1, a2);
+		break;
+	
+	    case SYS_cons_getc:
+		syscall_ret = sys_cons_getc();
+		break;
+	
+	    case SYS_net_create:
+		syscall_ret = sys_net_create(a1, (struct ulabel *) a2, (const char *) a3);
+		break;
+	
+	    case SYS_net_wait:
+		syscall_ret = sys_net_wait(COBJ(a1, a2), a3, a4);
+		break;
+	
+	    case SYS_net_buf:
+		sys_net_buf(COBJ(a1, a2), COBJ(a3, a4), a5, (netbuf_type) a6);
+		break;
+	
+	    case SYS_net_macaddr:
+		{
+		    uint8_t addrbuf[6];
+		    sys_net_macaddr(COBJ(a1, a2), &addrbuf[0]);
+	
+		    check(page_user_incore((void**) &a3, 6));
+		    memcpy((void*) a3, &addrbuf[0], 6);
+		}
+		break;
+	
+	    case SYS_container_alloc:
+		syscall_ret = sys_container_alloc(a1, (struct ulabel *) a2, (const char *) a3);
+		break;
+	
+	    case SYS_obj_unref:
+		sys_obj_unref(COBJ(a1, a2));
+		break;
+	
+	    case SYS_container_get_slot_id:
+		syscall_ret = sys_container_get_slot_id(a1, a2);
+		break;
+	
+	    case SYS_handle_create:
+		syscall_ret = sys_handle_create();
+		break;
+	
+	    case SYS_obj_get_type:
+		syscall_ret = sys_obj_get_type(COBJ(a1, a2));
+		break;
+	
+	    case SYS_obj_get_label:
+		sys_obj_get_label(COBJ(a1, a2), (struct ulabel *) a3);
+		break;
+	
+	    case SYS_obj_get_name:
+		sys_obj_get_name(COBJ(a1, a2), (char *) a3);
+		break;
+	
+	    case SYS_container_nslots:
+		syscall_ret = sys_container_nslots(a1);
+		break;
+	
+	    case SYS_gate_create:
+		{
+		    struct thread_entry e;
+		    check(page_user_incore((void**) &a2, sizeof(e)));
+		    memcpy(&e, (void*) a2, sizeof(e));
+	
+		    syscall_ret = sys_gate_create(a1, &e,
+						  (struct ulabel*) a3,
+						  (struct ulabel*) a4,
+						  (const char *) a5);
+		}
+		break;
+	
+	    case SYS_gate_enter:
+		sys_gate_enter(COBJ(a1, a2), (struct ulabel *) a3, a4, a5);
+		break;
+	
+	    case SYS_gate_send_label:
+		sys_gate_send_label(COBJ(a1, a2), (struct ulabel *) a3);
+		break;
+	
+	    case SYS_thread_create:
+		syscall_ret = sys_thread_create(a1, (const char *) a2);
+		break;
+	
+	    case SYS_thread_start:
+		{
+		    struct thread_entry e;
+		    check(page_user_incore((void**) &a3, sizeof(e)));
+		    memcpy(&e, (void*) a3, sizeof(e));
+	
+		    sys_thread_start(COBJ(a1, a2), &e, (struct ulabel *) a4);
+		}
+		break;
+	
+	    case SYS_thread_yield:
+		sys_thread_yield();
+		break;
+	
+	    case SYS_thread_halt:
+		sys_thread_halt();
+		break;
+	
+	    case SYS_thread_id:
+		syscall_ret = sys_thread_id();
+		break;
+	
+	    case SYS_thread_addref:
+		sys_thread_addref(a1);
+		break;
+	
+	    case SYS_thread_get_as:
+		{
+		    struct cobj_ref as_ref;
+		    sys_thread_get_as(&as_ref);
+	
+		    page_user_incore((void**) &a1, sizeof(as_ref));
+		    memcpy((void*) a1, &as_ref, sizeof(as_ref));
+		}
+		break;
+	
+	    case SYS_thread_set_as:
+		sys_thread_set_as(COBJ(a1, a2));
+		break;
+	
+	    case SYS_thread_set_label:
+		sys_thread_set_label((struct ulabel *) a1);
+		break;
+	
+	    case SYS_thread_sync_wait:
+		sys_thread_sync_wait((uint64_t *) a1, a2, a3);
+		break;
+	
+	    case SYS_thread_sync_wakeup:
+		sys_thread_sync_wakeup((uint64_t *) a1);
+		break;
+	
+	    case SYS_clock_msec:
+		syscall_ret = sys_clock_msec();
+		break;
+	
+	    case SYS_segment_create:
+		syscall_ret = sys_segment_create(a1, a2, (struct ulabel *) a3,
+						 (const char *) a4);
+		break;
+	
+	    case SYS_segment_copy:
+		syscall_ret = sys_segment_copy(COBJ(a1, a2), a3,
+					       (struct ulabel *) a4,
+					       (const char *) a5);
+		break;
+	
+	    case SYS_segment_resize:
+		sys_segment_resize(COBJ(a1, a2), a3);
+		break;
+	
+	    case SYS_segment_get_npages:
+		syscall_ret = sys_segment_get_npages(COBJ(a1, a2));
+		break;
+	
+	    case SYS_as_create:
+		syscall_ret = sys_as_create(a1, (struct ulabel *) a2, (const char *) a3);
+		break;
+	
+	    case SYS_as_get:
+		sys_as_get(COBJ(a1, a2), (struct u_address_space *) a3);
+		break;
+	
+	    case SYS_as_set:
+		sys_as_set(COBJ(a1, a2), (struct u_address_space *) a3);
+		break;
+	
+	    case SYS_mlt_create:
+		syscall_ret = sys_mlt_create(a1, (const char *) a2);
+		break;
+	
+	    case SYS_mlt_get:
+		sys_mlt_get(COBJ(a1, a2), a3, (struct ulabel *) a4,
+			    (uint8_t *) a5, (kobject_id_t *) a6);
+		break;
+	
+	    case SYS_mlt_put:
+		sys_mlt_put(COBJ(a1, a2), (struct ulabel *) a3, (uint8_t *) a4);
+		break;
+	
+	    default:
+		cprintf("Unknown syscall %d\n", num);
+		syscall_error(-E_INVAL);
     }
-
+	f = read_tsc() ;
+	
+	prof_syscall(num, f - s) ;
 syscall_exit:
     return syscall_ret;
 }

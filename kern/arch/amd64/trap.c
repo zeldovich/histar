@@ -9,6 +9,7 @@
 #include <kern/intr.h>
 #include <kern/sched.h>
 #include <kern/kobj.h>
+#include <kern/prof.h>
 #include <inc/error.h>
 
 static struct {
@@ -98,28 +99,33 @@ page_fault (struct Trapframe *tf)
 static void
 trap_dispatch (int trapno, struct Trapframe *tf)
 {
+    uint64_t s, f ;
+    
+    s = read_tsc() ;
     switch (trapno) {
-    case T_SYSCALL:
-	tf->tf_rax =
-	    syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
-		    tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
-		    tf->tf_r9,  tf->tf_r10, tf->tf_r11);
-	break;
-
-    case T_PGFLT:
-	page_fault(tf);
-	break;
-
-    default:
-	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-	    irq_handler(trapno - IRQ_OFFSET);
-	    break;
-	}
-
-	cprintf("Unknown trap %d, trapframe:\n", trapno);
-	trapframe_print(tf);
-	thread_halt(cur_thread);
+	    case T_SYSCALL:
+		tf->tf_rax =
+		    syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
+			    tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
+			    tf->tf_r9,  tf->tf_r10, tf->tf_r11);
+		break;
+	
+	    case T_PGFLT:
+			page_fault(tf);
+		break;
+	
+	    default:
+		if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
+		    irq_handler(trapno - IRQ_OFFSET);
+		    break;
+		}
+	
+		cprintf("Unknown trap %d, trapframe:\n", trapno);
+		trapframe_print(tf);
+		thread_halt(cur_thread);
     }
+	f = read_tsc() ;
+	prof_trap(trapno, f - s) ;
 }
 
 void __attribute__((__noreturn__))

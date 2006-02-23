@@ -13,6 +13,7 @@
 #include <kern/uinit.h>
 #include <kern/kobj.h>
 #include <kern/pstate.h>
+#include <kern/prof.h>
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
@@ -120,7 +121,9 @@ init (uint32_t start_eax, uint32_t start_ebx)
     kobject_init ();
     sched_init ();
     pstate_init ();
-
+	
+	prof_init() ;
+	
     user_init ();
 
     cprintf("=== kernel ready, calling schedule() ===\n");
