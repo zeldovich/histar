@@ -90,6 +90,11 @@ thread_alloc(const struct Label *l, struct Thread **tp)
     kobject_incref(&sg->sg_ko);
     sg->sg_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
+    r = segment_set_nbytes(sg, PGSIZE);
+    if (r < 0)
+	return r;
+    sg->sg_ko.ko_min_bytes = PGSIZE;
+
     struct Container *ct;
     r = container_alloc(l, &ct);
     if (r < 0)

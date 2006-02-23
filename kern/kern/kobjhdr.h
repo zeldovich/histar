@@ -21,6 +21,7 @@ struct kobject_hdr {
 
     uint64_t ko_flags;
     uint64_t ko_nbytes;
+    uint64_t ko_min_bytes;	// cannot shrink below this size
     struct Label ko_label;
     char ko_name[KOBJ_NAME_LEN];
 

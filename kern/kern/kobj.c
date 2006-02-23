@@ -217,10 +217,12 @@ kobject_npages(const struct kobject_hdr *kp)
 int
 kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 {
-    uint64_t npages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
+    if (nbytes < kp->ko_min_bytes)
+	return -E_RANGE;
 
+    uint64_t npages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
     if (npages > pagetree_maxpages())
-	return -E_NO_MEM;
+	return -E_RANGE;
 
     for (uint64_t i = npages; i < kobject_npages(kp); i++) {
 	int r = pagetree_put_page(&kp->ko_pt, i, 0);

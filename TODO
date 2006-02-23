@@ -7,8 +7,6 @@ and should not allow sub-containers or sub-threads.  probably
 a container should have a list of allowable objects, and the
 thread-specific containers won't allow containers or threads.
 
-enforce a minimum size of PGSIZE on the thread-specific segment
-
 in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
 
 shouldn't be able to pass thread-specific segment to DMA!
