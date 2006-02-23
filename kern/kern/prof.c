@@ -12,8 +12,10 @@ struct entry {
 
 struct entry sysc_table[NSYSCALLS] ;
 struct entry trap_table[NTRAPS] ;
+struct entry user_table[1];
 
 static struct periodic_task timer ;
+static int prof_print_enable = 1;
 
 void 
 prof_init(void) 
@@ -22,10 +24,9 @@ prof_init(void)
 	memset(trap_table, 0, sizeof(trap_table)) ;
 	
 	timer.pt_fn = &prof_print ;
-	timer.pt_interval_ticks = 1000 ;
-#if PROF_PRINT
-	timer_add_periodic(&timer) ;		
-#endif
+	timer.pt_interval_ticks = kclock_hz * 10;
+	if (prof_print_enable)
+		timer_add_periodic(&timer) ;		
 }
 
 void 
@@ -45,15 +46,34 @@ prof_trap(int num, uint64_t time)
 }
 
 void
+prof_user(uint64_t time)
+{
+	user_table[0].count++;
+	user_table[0].time += time;
+}
+
+static void
+print_entry(struct entry *tab, int i)
+{
+	if (tab[i].count)
+		cprintf("%3d: count %12ld total %12ld avg %12ld\n",
+			i,
+			tab[i].count,
+			tab[i].time,
+			tab[i].time / tab[i].count);
+}
+
+void
 prof_print(void)
 {
-	for (int i = 0 ; i < NSYSCALLS ; i++) {	
-		if (sysc_table[i].count)
-			cprintf("%d - %ld %ld\n", i, sysc_table[i].count, sysc_table[i].time) ;	
-	}
-	
-	for (int i = 0 ; i < NTRAPS ; i++) {
-		if (trap_table[i].count)
-			cprintf("%d - %ld %ld\n", i, trap_table[i].count, trap_table[i].time) ;	
-	}
+	cprintf("prof_print: syscalls\n");
+	for (int i = 0 ; i < NSYSCALLS ; i++)
+		print_entry(&sysc_table[0], i);
+
+	cprintf("prof_print: traps\n");
+	for (int i = 0 ; i < NTRAPS ; i++)
+		print_entry(&trap_table[0], i);
+
+	cprintf("prof_print: user\n");
+	print_entry(&user_table[0], 0);
 }

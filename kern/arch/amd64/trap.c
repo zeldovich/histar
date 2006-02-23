@@ -12,6 +12,8 @@
 #include <kern/prof.h>
 #include <inc/error.h>
 
+uint64_t trap_user_iret_tsc;
+
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
 } trap_entry_stubs[256];
@@ -101,6 +103,8 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 {
     uint64_t s, f;
     s = read_tsc();
+
+    prof_user(s - trap_user_iret_tsc);
 
     switch (trapno) {
     case T_SYSCALL:

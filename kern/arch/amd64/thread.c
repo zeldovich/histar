@@ -187,6 +187,7 @@ thread_run(const struct Thread *t)
 	panic("trying to run a non-runnable thread %p", t);
 
     thread_switch(t);
+    trap_user_iret_tsc = read_tsc();
     trapframe_pop(&t->th_tf);
 }
 
