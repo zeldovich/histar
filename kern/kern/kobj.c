@@ -17,7 +17,7 @@ struct Thread_list kobj_snapshot_waiting;
 
 static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 
-static int kobject_reclaim_debug = 0;
+static int kobject_reclaim_debug = 1;
 static int kobject_checksum_pedantic = 0;
 
 #define GEN_DEBUG 0
@@ -551,6 +551,10 @@ kobject_initial(const struct kobject *ko)
 static void
 kobject_reclaim(void)
 {
+    // A rather simple heuristic for when to clean up
+    if (page_stats.pages_avail > global_npages / 4)
+	return;
+
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
