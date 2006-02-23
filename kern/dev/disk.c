@@ -141,6 +141,12 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
     if (idec->current_op.op == op_none)
 	return;
 
+    if (stat == disk_io_failure)
+	cprintf("ide_complete: %s error at byte offset %lu\n",
+		idec->current_op.op == op_read ? "read" :
+		idec->current_op.op == op_write ? "write" : "unknown",
+		idec->current_op.byte_offset);
+
     idec->current_op.op = op_none;
     idec->current_op.cb(stat, idec->current_op.cbarg);
 }
