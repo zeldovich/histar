@@ -56,7 +56,7 @@ static union {
 // all units are in pages
 #define LOG_OFFSET	N_HEADER_PAGES
 #define LOG_SIZE	2000
-#define LOG_MEMORY	LOG_SIZE
+#define LOG_MEMORY	100
 
 
 //////////////////////////////////////////////////
