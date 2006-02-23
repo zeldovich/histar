@@ -53,6 +53,14 @@ prof_user(uint64_t time)
 }
 
 static void
+prof_reset(void)
+{
+	memset(sysc_table, 0, sizeof(sysc_table));
+	memset(trap_table, 0, sizeof(trap_table));
+	memset(user_table, 0, sizeof(user_table));
+}
+
+static void
 print_entry(struct entry *tab, int i)
 {
 	if (tab[i].count)
@@ -76,4 +84,6 @@ prof_print(void)
 
 	cprintf("prof_print: user\n");
 	print_entry(&user_table[0], 0);
+
+	prof_reset();
 }
