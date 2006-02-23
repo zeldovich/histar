@@ -121,9 +121,9 @@ init (uint32_t start_eax, uint32_t start_ebx)
     kobject_init ();
     sched_init ();
     pstate_init ();
-	
-	prof_init() ;
-	
+
+    prof_init();
+
     user_init ();
 
     cprintf("=== kernel ready, calling schedule() ===\n");
