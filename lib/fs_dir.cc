@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include <inc/error.hh>
+#include <inc/scopeguard.hh>
 
 static int fs_debug = 0;
 static int fs_label_debug = 0;
@@ -267,9 +268,12 @@ retry:
 	if (lcur == 0)
 	    return -E_NO_MEM;
 
+	scope_guard<struct ulabel *> lf1(label_free, lcur);
+
 	lslot = label_alloc();
 	if (lslot == 0)
 	    return -E_NO_MEM;
+	scope_guard<struct ulabel *> lf2(label_free, lslot);
 
 	int r = -1;
 
@@ -300,13 +304,8 @@ retry:
 	    if (r < 0)
 		return r;
 
-	    label_free(lslot);
-	    label_free(lcur);
 	    goto retry;
 	}
-
-	label_free(lslot);
-	label_free(lcur);
 
 	o->obj = COBJ(ct, ct);
 	return 0;
@@ -386,21 +385,16 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
     struct ulabel *l = fs_get_label();
     if (l == 0)
 	return -E_NO_MEM;
+    scope_guard<struct ulabel *> lf(label_free, l);
 
     int64_t id = sys_container_alloc(dir.obj.object, l, fn);
-    if (id < 0) {
-	label_free(l);
+    if (id < 0)
 	return id;
-    }
 
     o->obj = COBJ(dir.obj.object, id);
     int r = fs_dir_init(*o, l);
-    if (r < 0) {
-	label_free(l);
+    if (r < 0)
 	return r;
-    }
-
-    label_free(l);
 
     try {
 	fs_opendir od(dir, 1);
@@ -440,12 +434,12 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
     struct ulabel *l = fs_get_label();
     if (l == 0)
 	return -E_NO_MEM;
+    scope_guard<struct ulabel *> lf(label_free, l);
 
     if (fs_label_debug)
 	cprintf("Creating file with label %s\n", label_to_string(l));
 
     int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
-    label_free(l);
     if (id < 0)
 	return id;
 
