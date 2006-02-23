@@ -20,7 +20,7 @@ mlt_alloc(const struct Label *l, struct Mlt **mtp)
 static uint64_t
 mlt_nslots(const struct Mlt *mlt)
 {
-    return mlt->mt_ko.ko_npages * MLT_SLOTS_PER_PAGE;
+    return kobject_npages(&mlt->mt_ko) * MLT_SLOTS_PER_PAGE;
 }
 
 static int
@@ -67,8 +67,8 @@ mlt_gc(struct Mlt *mlt)
 static int
 mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 {
-    uint64_t npage = mlt->mt_ko.ko_npages;
-    int r = kobject_set_npages(&mlt->mt_ko, npage + 1);
+    uint64_t npage = kobject_npages(&mlt->mt_ko);
+    int r = kobject_set_nbytes(&mlt->mt_ko, (npage + 1) * PGSIZE);
     if (r < 0)
 	return r;
 
@@ -82,7 +82,8 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 }
 
 int
-mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
+mlt_put(const struct Mlt *mlt, const struct Label *l,
+	uint8_t *buf, kobject_id_t *ct_id)
 {
     struct mlt_entry *me = 0;
 
@@ -116,16 +117,20 @@ mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
 	}
     }
 
-    struct Container *ct;
-    r = container_alloc(l, &ct);
-    if (r < 0)
-	return r;
+    if (!me->me_inuse) {
+	struct Container *ct;
+	r = container_alloc(l, &ct);
+	if (r < 0)
+	    return r;
 
-    me->me_l = *l;
+	me->me_l = *l;
+	me->me_inuse = 1;
+	me->me_ct = ct->ct_ko.ko_id;
+	kobject_incref(&ct->ct_ko);
+    }
+
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
-    me->me_inuse = 1;
-    me->me_ct = ct->ct_ko.ko_id;
-    kobject_incref(&ct->ct_ko);
+    *ct_id = me->me_ct;
 
     return 0;
 }

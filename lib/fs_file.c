@@ -15,7 +15,7 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 
     uint64_t endpt = off + count;
     if (endpt > cursize)
-	sys_segment_resize(f.obj, (endpt + PGSIZE - 1) / PGSIZE);
+	sys_segment_resize(f.obj, endpt);
 
     char *map = 0;
     r = segment_map(f.obj, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, 0);
@@ -54,10 +54,10 @@ fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 int
 fs_getsize(struct fs_inode f, uint64_t *len)
 {
-    int64_t npages = sys_segment_get_npages(f.obj);
-    if (npages < 0)
-	return npages;
+    int64_t nbytes = sys_segment_get_nbytes(f.obj);
+    if (nbytes < 0)
+	return nbytes;
 
-    *len = npages * PGSIZE;
+    *len = nbytes;
     return 0;
 }

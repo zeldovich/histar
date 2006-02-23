@@ -132,15 +132,15 @@ private:
     void grow() {
 	assert(writable_);
 
-	int64_t curpages = sys_segment_get_npages(dseg_);
-	if (curpages < 0)
-	    throw error(curpages, "sys_segment_get_npages");
+	int64_t curbytes = sys_segment_get_nbytes(dseg_);
+	if (curbytes < 0)
+	    throw error(curbytes, "sys_segment_get_nbytes");
 
 	int r = segment_unmap(dir_);
 	if (r < 0)
 	    throw error(r, "segment_unmap");
 
-	r = sys_segment_resize(dseg_, curpages + 1);
+	r = sys_segment_resize(dseg_, curbytes + PGSIZE);
 	if (r < 0)
 	    throw error(r, "sys_segment_resize");
 
@@ -261,16 +261,13 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	uint8_t blob[MLT_BUF_SIZE];
 	uint64_t ct;
 	int retry_count = 0;
-	struct ulabel *lcur, *lslot;
 
-retry:
-	lcur = label_get_current();
+	struct ulabel *lcur = label_get_current();
 	if (lcur == 0)
 	    return -E_NO_MEM;
-
 	scope_guard<struct ulabel *> lf1(label_free, lcur);
 
-	lslot = label_alloc();
+	struct ulabel *lslot = label_alloc();
 	if (lslot == 0)
 	    return -E_NO_MEM;
 	scope_guard<struct ulabel *> lf2(label_free, lslot);
@@ -300,11 +297,12 @@ retry:
 		cprintf("Creating MLT branch with label %s\n",
 			label_to_string(lcur));
 
-	    r = sys_mlt_put(dir.obj, lcur, &blob[0]);
+	    r = sys_mlt_put(dir.obj, lcur, &blob[0], &ct);
 	    if (r < 0)
 		return r;
 
-	    goto retry;
+	    o->obj = COBJ(ct, ct);
+	    fs_dir_init(*o, lcur);
 	}
 
 	o->obj = COBJ(ct, ct);

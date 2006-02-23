@@ -161,7 +161,7 @@ gate_create(struct u_gate_entry *ug,
 	    const char *name, struct ulabel *l_send)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
-    int r = sys_segment_resize(tseg, 1);
+    int r = sys_segment_resize(tseg, PGSIZE);
     if (r < 0)
 	return r;
 
@@ -302,7 +302,7 @@ int
 gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
-    int r = sys_segment_resize(tseg, 1);
+    int r = sys_segment_resize(tseg, PGSIZE);
     if (r < 0) {
 	if (gate_debug)
 	    cprintf("gate_call: cannot resize thread segment: %s\n", e2s(r));

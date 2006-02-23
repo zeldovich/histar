@@ -42,7 +42,9 @@ int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 int  kobject_alloc(kobject_type_t type, const struct Label *l,
 		   struct kobject **kpp);
 
-int  kobject_set_npages(struct kobject_hdr *kp, uint64_t npages);
+int  kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes);
+uint64_t
+     kobject_npages(const struct kobject_hdr *kp);
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
 		      void **pp, page_rw_mode rw);
 

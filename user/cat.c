@@ -29,9 +29,7 @@ main(int ac, char **av)
     uint64_t off = 0;
     while (off < maxoff) {
 	char buf[512];
-	size_t cc = maxoff - off;
-	if (cc > sizeof(buf))
-	    cc = sizeof(buf);
+	size_t cc = MIN(sizeof(buf), maxoff - off);
 
 	int r = fs_pread(f, &buf[0], cc, off);
 	if (r < 0) {

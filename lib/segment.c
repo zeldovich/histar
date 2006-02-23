@@ -166,10 +166,10 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	return -E_INVAL;
     }
 
-    int64_t npages = sys_segment_get_npages(seg);
-    if (npages < 0)
-	return npages;
-    uint64_t bytes = npages * PGSIZE;
+    int64_t nbytes = sys_segment_get_nbytes(seg);
+    if (nbytes < 0)
+	return nbytes;
+    uint64_t map_bytes = ROUNDUP(nbytes, PGSIZE);
 
     as_mutex_lock();
     memset(&ents, 0, sizeof(ents));
@@ -196,7 +196,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     }
 
 retry:
-    va_end = va_start + bytes;
+    va_end = va_start + map_bytes;
     for (uint64_t i = 0; i < uas.nent; i++) {
 	// If it's the same segment we're trying to map, allow remapping
 	if (fixed_va && uas.ents[i].flags &&
@@ -243,7 +243,7 @@ retry:
 
     uas.ents[free_segslot].segment = seg;
     uas.ents[free_segslot].start_page = 0;
-    uas.ents[free_segslot].num_pages = npages;
+    uas.ents[free_segslot].num_pages = map_bytes / PGSIZE;
     uas.ents[free_segslot].flags = flags;
     uas.ents[free_segslot].va = va_start;
     uas.nent = NMAPPINGS;
@@ -254,7 +254,7 @@ retry:
 	return r;
 
     if (bytes_store)
-	*bytes_store = bytes;
+	*bytes_store = map_bytes;
     if (va_p)
 	*va_p = va_start;
     return 0;
@@ -268,8 +268,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
     if (label == 0)
 	label = seg_create_label;
 
-    uint64_t npages = ROUNDUP(bytes, PGSIZE) / PGSIZE;
-    int64_t id = sys_segment_create(container, npages, label, name);
+    int64_t id = sys_segment_create(container, bytes, label, name);
     if (id < 0)
 	return id;
 
@@ -284,7 +283,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	    return r;
 	}
 
-	if (mapped_bytes != npages * PGSIZE) {
+	if (mapped_bytes != ROUNDUP(bytes, PGSIZE)) {
 	    segment_unmap(*va_p);
 	    sys_obj_unref(*cobj);
 	    return -E_AGAIN;	// race condition maybe..

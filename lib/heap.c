@@ -51,10 +51,9 @@ sbrk(intptr_t x)
     }
 
     size_t nbrk = heap.brk + x;
-    uint64_t npages = (nbrk + PGSIZE - 1) / PGSIZE;
-    r = sys_segment_resize(heapobj, npages);
+    r = sys_segment_resize(heapobj, nbrk);
     if (r < 0) {
-	printf("sbrk: resizing heap to %ld pages: %s\n", npages, e2s(r));
+	printf("sbrk: resizing heap to %ld: %s\n", nbrk, e2s(r));
 	goto out;
     }
 

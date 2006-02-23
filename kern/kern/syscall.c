@@ -410,7 +410,7 @@ sys_clock_msec(void)
 }
 
 static kobject_id_t
-sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul,
+sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
 		   const char *name)
 {
     const struct Container *c;
@@ -426,7 +426,7 @@ sys_segment_create(uint64_t ct, uint64_t num_pages, struct ulabel *ul,
     check(segment_alloc(&l, &sg));
     alloc_set_name(&sg->sg_ko, name);
 
-    check(segment_set_npages(sg, num_pages));
+    check(segment_set_nbytes(sg, num_bytes));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
@@ -456,19 +456,19 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
 }
 
 static void
-sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_pages)
+sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_write));
-    check(segment_set_npages(&kobject_dirty(&ko->hdr)->sg, num_pages));
+    check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes));
 }
 
 static uint64_t
-sys_segment_get_npages(struct cobj_ref sg_cobj)
+sys_segment_get_nbytes(struct cobj_ref sg_cobj)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_read));
-    return ko->sg.sg_ko.ko_npages;
+    return ko->sg.sg_ko.ko_nbytes;
 }
 
 static uint64_t
@@ -537,7 +537,7 @@ sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *ul, uint8_t *buf, 
 }
 
 static void
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf, kobject_id_t *ct_id)
 {
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
@@ -550,7 +550,7 @@ sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
     check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
 
     check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
-    check(mlt_put(&ko->mt, &l, buf));
+    check(mlt_put(&ko->mt, &l, buf, ct_id));
 }
 
 uint64_t
@@ -727,8 +727,8 @@ syscall(syscall_num num, uint64_t a1,
 	sys_segment_resize(COBJ(a1, a2), a3);
 	break;
 
-    case SYS_segment_get_npages:
-	syscall_ret = sys_segment_get_npages(COBJ(a1, a2));
+    case SYS_segment_get_nbytes:
+	syscall_ret = sys_segment_get_nbytes(COBJ(a1, a2));
 	break;
 
     case SYS_as_create:
@@ -753,7 +753,8 @@ syscall(syscall_num num, uint64_t a1,
 	break;
 
     case SYS_mlt_put:
-	sys_mlt_put(COBJ(a1, a2), (struct ulabel *) a3, (uint8_t *) a4);
+	sys_mlt_put(COBJ(a1, a2), (struct ulabel *) a3,
+		    (uint8_t *) a4, (kobject_id_t *) a5);
 	break;
 
     default:

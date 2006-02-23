@@ -40,7 +40,7 @@ elf_add_segmap(struct Address_space *as, uint32_t *smi, struct cobj_ref seg,
 	return -E_NO_MEM;
     }
 
-    assert(0 == kobject_set_npages(&as->as_ko, 1));
+    assert(0 == kobject_set_nbytes(&as->as_ko, PGSIZE));
 
     struct u_segment_mapping *usm;
     assert(0 == kobject_get_page(&as->as_ko, 0, (void **)&usm, page_rw));
@@ -72,7 +72,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 	return r;
     }
 
-    r = segment_set_npages(sg, (segsize + PGSIZE - 1) / PGSIZE);
+    r = segment_set_nbytes(sg, ROUNDUP(segsize, PGSIZE));
     if (r < 0) {
 	cprintf("segment_create_embed: cannot grow segment: %s\n", e2s(r));
 	return r;

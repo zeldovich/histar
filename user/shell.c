@@ -55,11 +55,11 @@ print_cobj(uint64_t ct, uint64_t slot)
 
     case kobj_segment:
 	printf("segment");
-	r = sys_segment_get_npages(cobj);
+	r = sys_segment_get_nbytes(cobj);
 	if (r < 0)
-	    printf(" (cannot get pages: %s)", e2s(r));
+	    printf(" (cannot get bytes: %s)", e2s(r));
 	else
-	    printf(" (%d pages)", r);
+	    printf(" (%d bytes)", r);
 	break;
 
     case kobj_address_space:

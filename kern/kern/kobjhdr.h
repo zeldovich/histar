@@ -20,7 +20,7 @@ struct kobject_hdr {
     uint64_t ko_ref;	// persistent references (containers)
 
     uint64_t ko_flags;
-    uint64_t ko_npages;
+    uint64_t ko_nbytes;
     struct Label ko_label;
     char ko_name[KOBJ_NAME_LEN];
 

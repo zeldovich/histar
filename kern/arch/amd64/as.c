@@ -32,7 +32,7 @@ as_invalidate(const struct Address_space *as_const)
 static uint64_t
 as_nents(const struct Address_space *as)
 {
-    return as->as_ko.ko_npages * N_USEGMAP_PER_PAGE;
+    return kobject_npages(&as->as_ko) * N_USEGMAP_PER_PAGE;
 }
 
 static int
@@ -86,7 +86,7 @@ static int
 as_resize(struct Address_space *as, uint64_t nent)
 {
     uint64_t npages = (nent + N_USEGMAP_PER_PAGE - 1) / N_USEGMAP_PER_PAGE;
-    return kobject_set_npages(&as->as_ko, npages);
+    return kobject_set_nbytes(&as->as_ko, npages * PGSIZE);
 }
 
 int

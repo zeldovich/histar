@@ -74,10 +74,11 @@ http_client(void *arg)
 		    throw error(r, "fs_getsize");
 
 		for (uint64_t off = 0; off < sz; off += sizeof(buf)) {
-		    r = fs_pread(ino, &buf[0], sizeof(buf), off);
+		    size_t cc = MIN(sizeof(buf), sz - off);
+		    r = fs_pread(ino, &buf[0], cc, off);
 		    if (r < 0)
 			throw error(r, "fs_pread");
-		    tc.write(buf, sizeof(buf));
+		    tc.write(buf, cc);
 		}
 	    } else if (type == kobj_container || type == kobj_mlt) {
 		snprintf(buf, sizeof(buf), "directory or mlt\n");

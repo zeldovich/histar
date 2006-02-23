@@ -182,10 +182,10 @@ sys_clock_msec(void)
 }
 
 int64_t
-sys_segment_create(uint64_t container, uint64_t num_pages,
+sys_segment_create(uint64_t container, uint64_t num_bytes,
 		   struct ulabel *l, const char *name)
 {
-    return syscall(SYS_segment_create, container, num_pages, l, name);
+    return syscall(SYS_segment_create, container, num_bytes, l, name);
 }
 
 int64_t
@@ -196,15 +196,15 @@ sys_segment_copy(struct cobj_ref seg, uint64_t container,
 }
 
 int
-sys_segment_resize(struct cobj_ref seg, uint64_t num_pages)
+sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes)
 {
-    return syscall(SYS_segment_resize, seg, num_pages);
+    return syscall(SYS_segment_resize, seg, num_bytes);
 }
 
 int64_t
-sys_segment_get_npages(struct cobj_ref seg)
+sys_segment_get_nbytes(struct cobj_ref seg)
 {
-    return syscall(SYS_segment_get_npages, seg);
+    return syscall(SYS_segment_get_nbytes, seg);
 }
 
 int64_t
@@ -238,7 +238,7 @@ sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *l, uint8_t *buf, u
 }
 
 int
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf, uint64_t *ct_id)
 {
-    return syscall(SYS_mlt_put, mlt, l, buf);
+    return syscall(SYS_mlt_put, mlt, l, buf, ct_id);
 }

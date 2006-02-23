@@ -57,19 +57,20 @@ int	sys_thread_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_clock_msec(void);
 
-int64_t	sys_segment_create(uint64_t container, uint64_t num_pages,
+int64_t	sys_segment_create(uint64_t container, uint64_t num_bytes,
 			   struct ulabel *l, const char *name);
 int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
 			 struct ulabel *l, const char *name);
-int	sys_segment_resize(struct cobj_ref seg, uint64_t num_pages);
-int64_t	sys_segment_get_npages(struct cobj_ref seg);
+int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes);
+int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
 
 int64_t sys_as_create(uint64_t container, struct ulabel *l, const char *name);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
 
 int64_t sys_mlt_create(uint64_t container, const char *name);
-int	sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf);
+int	sys_mlt_put(struct cobj_ref mlt,
+		    struct ulabel *l, uint8_t *buf, uint64_t *ct_id);
 int	sys_mlt_get(struct cobj_ref mlt, uint64_t idx,
 		    struct ulabel *l, uint8_t *buf, uint64_t *ct_id);
 

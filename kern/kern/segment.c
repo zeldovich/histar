@@ -35,11 +35,11 @@ segment_copy(const struct Segment *src, struct Label *newl,
     if (r < 0)
 	return r;
 
-    r = segment_set_npages(dst, src->sg_ko.ko_npages);
+    r = segment_set_nbytes(dst, src->sg_ko.ko_nbytes);
     if (r < 0)
 	return r;
 
-    for (uint64_t i = 0; i < src->sg_ko.ko_npages; i++) {
+    for (uint64_t i = 0; i < kobject_npages(&src->sg_ko); i++) {
 	void *srcpg, *dstpg;
 	r = kobject_get_page(&src->sg_ko, i, &srcpg, page_ro);
 	if (r < 0)
@@ -56,10 +56,10 @@ segment_copy(const struct Segment *src, struct Label *newl,
 }
 
 int
-segment_set_npages(struct Segment *sg, uint64_t num_pages)
+segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
 {
     segment_invalidate(sg);
-    return kobject_set_npages(&sg->sg_ko, num_pages);
+    return kobject_set_nbytes(&sg->sg_ko, num_bytes);
 }
 
 void

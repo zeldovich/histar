@@ -44,7 +44,7 @@ typedef enum {
     SYS_segment_create,
     SYS_segment_copy,
     SYS_segment_resize,
-    SYS_segment_get_npages,
+    SYS_segment_get_nbytes,
 
     SYS_as_create,
     SYS_as_get,

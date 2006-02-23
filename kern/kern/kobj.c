@@ -68,9 +68,9 @@ kobject_cksum(const struct kobject_hdr *ko)
     sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
 		     sizeof(struct kobject) - sizeof(struct kobject_hdr));
 
-    for (uint64_t i = 0; i < ko->ko_npages; i++) {
+    for (uint64_t i = 0; i < ko->ko_nbytes; i += PGSIZE) {
 	void *p;
-	assert(0 == kobject_get_page(ko, i, &p, page_ro));
+	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_ro));
 	assert(p);
 	sum = cksum(sum, p, PGSIZE);
     }
@@ -189,7 +189,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 int
 kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_rw_mode rw)
 {
-    if (npage >= kp->ko_npages)
+    if (npage >= kobject_npages(kp))
 	return -E_INVAL;
 
     if ((kp->ko_flags & KOBJ_SNAPSHOTING) && rw == page_rw && kp->ko_pin_pg) {
@@ -208,13 +208,21 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_r
     return r;
 }
 
-int
-kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
+uint64_t
+kobject_npages(const struct kobject_hdr *kp)
 {
+    return ROUNDUP(kp->ko_nbytes, PGSIZE) / PGSIZE;
+}
+
+int
+kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
+{
+    uint64_t npages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
+
     if (npages > pagetree_maxpages())
 	return -E_NO_MEM;
 
-    for (uint64_t i = npages; i < kp->ko_npages; i++) {
+    for (uint64_t i = npages; i < kobject_npages(kp); i++) {
 	int r = pagetree_put_page(&kp->ko_pt, i, 0);
 	if (r < 0) {
 	    cprintf("XXX this leaves a hole in the kobject\n");
@@ -222,7 +230,7 @@ kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
 	}
     }
 
-    for (uint64_t i = kp->ko_npages; i < npages; i++) {
+    for (uint64_t i = kobject_npages(kp); i < npages; i++) {
 	void *p;
 	int r = page_alloc(&p);
 	if (r == 0)
@@ -230,7 +238,7 @@ kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
 
 	if (r < 0) {
 	    // free all the pages we allocated up to now
-	    for (uint64_t j = kp->ko_npages; j < i; j++)
+	    for (uint64_t j = kobject_npages(kp); j < i; j++)
 		assert(0 == pagetree_put_page(&kp->ko_pt, j, 0));
 	    return r;
 	}
@@ -238,7 +246,7 @@ kobject_set_npages(struct kobject_hdr *kp, uint64_t npages)
 	memset(p, 0, PGSIZE);
     }
 
-    kp->ko_npages = npages;
+    kp->ko_nbytes = nbytes;
     return 0;
 }
 
@@ -378,7 +386,7 @@ kobject_gc(struct kobject *ko)
 	cprintf("kobject_free: cannot GC type %d: %d\n", ko->hdr.ko_type, r);
 
     pagetree_free(&ko->hdr.ko_pt);
-    ko->hdr.ko_npages = 0;
+    ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;
 }
 

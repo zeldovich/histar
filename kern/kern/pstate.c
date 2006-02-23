@@ -98,7 +98,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     int r ;
     pstate_kobj_free(f, ko);
 	
-    uint64_t nbytes = KOBJ_SIZE + ko->hdr.ko_npages * PGSIZE;
+    uint64_t nbytes = KOBJ_SIZE + ROUNDUP(ko->hdr.ko_nbytes, PGSIZE);
     int64_t offset = freelist_alloc(f, nbytes);
 	
     if (offset < 0) {
@@ -148,7 +148,7 @@ pstate_swapin_off(offset_t off)
     }
 
     pagetree_init(&ko->hdr.ko_pt);
-    for (uint64_t page = 0; page < ko->hdr.ko_npages; page++) {
+    for (uint64_t page = 0; page < kobject_npages(&ko->hdr); page++) {
 		r = page_alloc(&p);
 		if (r < 0) {
 		    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
@@ -165,8 +165,8 @@ pstate_swapin_off(offset_t off)
     }
 
     if (pstate_swapin_debug)
-	cprintf("pstate_swapin_obj: id %ld npages %ld\n",
-			ko->hdr.ko_id, ko->hdr.ko_npages);
+	cprintf("pstate_swapin_obj: id %ld nbytes %ld\n",
+			ko->hdr.ko_id, ko->hdr.ko_nbytes);
 
     kobject_swapin(ko);
     return 0;
@@ -430,7 +430,7 @@ pstate_sync_kobj(struct swapout_stats *stats,
     if (r < 0)
 	return r;
 
-    for (uint64_t page = 0; page < snap->hdr.ko_npages; page++) {
+    for (uint64_t page = 0; page < kobject_npages(&snap->hdr); page++) {
 	void *p;
 	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
 	if (r < 0)
@@ -448,8 +448,8 @@ pstate_sync_kobj(struct swapout_stats *stats,
 	return r;
 
     if (pstate_swapout_debug)
-	cprintf("pstate_sync_kobj: id %ld npages %ld\n",
-		snap->hdr.ko_id, snap->hdr.ko_npages);
+	cprintf("pstate_sync_kobj: id %ld nbytes %ld\n",
+		snap->hdr.ko_id, snap->hdr.ko_nbytes);
 
     kobject_snapshot_release(ko);
     stats->written_kobj++;
