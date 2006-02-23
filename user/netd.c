@@ -106,7 +106,7 @@ force_taint_prepare(uint64_t taint)
     struct ulabel *l = label_get_current();
     assert(l);
 
-    level_t taint_level = netd_force_taint ? 3 : LB_LEVEL_STAR;
+    level_t taint_level = netd_force_taint ? 2 : LB_LEVEL_STAR;
     assert(0 == label_set_level(l, taint, taint_level, 1));
 
     segment_set_default_label(l);

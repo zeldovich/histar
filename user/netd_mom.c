@@ -12,7 +12,7 @@ netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
     int64_t netdev_id = container_find(ct, kobj_netdev, 0);
     if (netdev_id < 0) {
 	uint64_t net_label[2] = { LB_CODE(net_grant, 0),
-				  LB_CODE(net_taint, 3) };
+				  LB_CODE(net_taint, 2) };
 	struct ulabel ul = { .ul_default = 1,
 			     .ul_nent = 2,
 			     .ul_ent = &net_label[0] };
@@ -59,7 +59,7 @@ main(int ac, char **av)
     assert(l_obj);
     label_max_default(l_obj);
     assert(0 == label_set_level(l_obj, net_grant, 0, 1));
-    assert(0 == label_set_level(l_obj, net_taint, 3, 1));
+    assert(0 == label_set_level(l_obj, net_taint, 2, 1));
 
     char grant_arg[32], taint_arg[32];
     sprintf(grant_arg, "%lu", net_grant);
