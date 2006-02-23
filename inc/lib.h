@@ -114,6 +114,7 @@ void *realloc(void *ptr, size_t size);
 /* label.c */
 typedef int (label_comparator)(level_t, level_t);
 label_comparator label_leq_starlo;
+label_comparator label_leq_starhi;
 
 struct ulabel *label_alloc(void);
 void label_free(struct ulabel *l);

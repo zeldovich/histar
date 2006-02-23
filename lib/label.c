@@ -246,3 +246,15 @@ label_leq_starlo(level_t a, level_t b)
 	return 0;
     return -E_LABEL;
 }
+
+int
+label_leq_starhi(level_t a, level_t b)
+{
+    if (b == LB_LEVEL_STAR)
+	return 0;
+    if (a == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}

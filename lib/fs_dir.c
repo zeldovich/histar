@@ -21,6 +21,21 @@ struct fs_directory {
     struct fs_dirslot slots[0];
 };
 
+struct fs_opendir {
+    struct fs_inode ino;
+    int opened;
+    struct fs_directory *dir;
+    uint64_t dirsize;
+};
+
+/*
+int
+fs_dir_open(struct fs_opendir *s, struct fs_inode dir)
+{
+    
+}
+*/
+
 static struct ulabel *
 fs_get_label(void)
 {
@@ -113,27 +128,54 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
     if (!strcmp(fn, "@mlt")) {
 	char blob[MLT_BUF_SIZE];
 	uint64_t ct;
-	int r = sys_mlt_get(dir.obj, 0, 0, &blob[0], &ct);
-	if (r < 0) {
-	    struct ulabel *l = label_get_current();
-	    if (l == 0)
-		return -E_NO_MEM;
+	int retry_count = 0;
+	struct ulabel *lcur, *lslot;
 
-	    label_change_star(l, l->ul_default);
+retry:
+	lcur = label_get_current();
+	if (lcur == 0)
+	    return -E_NO_MEM;
+
+	lslot = label_alloc();
+	if (lslot == 0)
+	    return -E_NO_MEM;
+
+	int r = -1;
+
+	for (uint64_t slot = 0; r < 0; slot++) {
+	    r = sys_mlt_get(dir.obj, slot, lslot, &blob[0], &ct);
+	    if (r < 0) {
+		if (r == -E_NOT_FOUND)
+		    break;
+		return r;
+	    }
+
+	    r = label_compare(lcur, lslot, label_leq_starlo);
+	    if (r == 0)
+		r = label_compare(lslot, lcur, label_leq_starhi);
+	}
+
+	if (r < 0) {
+	    if (retry_count++ > 0)
+		return -E_INVAL;
+
+	    label_change_star(lcur, lcur->ul_default);
 
 	    if (fs_label_debug)
 		cprintf("Creating MLT branch with label %s\n",
-			label_to_string(l));
+			label_to_string(lcur));
 
-	    r = sys_mlt_put(dir.obj, l, &blob[0]);
-	    label_free(l);
+	    r = sys_mlt_put(dir.obj, lcur, &blob[0]);
 	    if (r < 0)
 		return r;
 
-	    r = sys_mlt_get(dir.obj, 0, 0, &blob[0], &ct);
-	    if (r < 0)
-		return r;
+	    label_free(lslot);
+	    label_free(lcur);
+	    goto retry;
 	}
+
+	label_free(lslot);
+	label_free(lcur);
 
 	o->obj = COBJ(ct, ct);
 	return 0;
