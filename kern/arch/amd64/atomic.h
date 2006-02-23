@@ -186,30 +186,30 @@ static __inline__ int atomic_add_negative(int i, atomic_t *v)
 }
 
 /*
- * Atomically compare the value in "v" with "old", and set "v" to "new"
+ * Atomically compare the value in "v" with "old", and set "v" to "newv"
  * if equal.
  *
  * Return value is the previous value of "v".  So if return value is same
  * as "old", the swap occurred, otherwise it did not.
  */
-static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int new)
+static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int newv)
 {
 	int out;
 	__asm__ __volatile__(
 		ATOMIC_LOCK "cmpxchgl %1,%2"
 		: "=a" (out)
-		: "q" (new), "m" (v->counter), "0" (old)
+		: "q" (newv), "m" (v->counter), "0" (old)
 		: "memory");
 	return out;
 }
 
-static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old, uint64_t new)
+static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old, uint64_t newv)
 {
 	uint64_t out;
 	__asm__ __volatile__(
 		ATOMIC_LOCK "cmpxchgq %1,%2"
 		: "=a" (out)
-		: "q" (new), "m" (v->counter), "0" (old)
+		: "q" (newv), "m" (v->counter), "0" (old)
 		: "memory");
 	return out;
 }
