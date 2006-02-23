@@ -23,18 +23,156 @@ struct fs_directory {
 
 struct fs_opendir {
     struct fs_inode ino;
-    int opened;
+
+    int writable;
+    struct cobj_ref dseg;
     struct fs_directory *dir;
-    uint64_t dirsize;
+    void *dir_end;
 };
 
-/*
-int
-fs_dir_open(struct fs_opendir *s, struct fs_inode dir)
+static int
+fs_dir_init(struct fs_inode dir, struct ulabel *l)
 {
-    
+    struct cobj_ref dseg;
+    return segment_alloc(dir.obj.object, PGSIZE, &dseg, 0, l, "directory segment");
 }
-*/
+
+static int
+fs_dir_open(struct fs_opendir *s, struct fs_inode dir, int writable)
+{
+    s->writable = writable;
+    s->ino = dir;
+
+    int64_t r = sys_container_get_slot_id(dir.obj.object, 0);
+    if (r < 0)
+	return r;
+
+    s->dseg = COBJ(dir.obj.object, r);
+
+    char name[KOBJ_NAME_LEN];
+    r = sys_obj_get_name(s->dseg, &name[0]);
+    if (r < 0)
+	return r;
+    if (strcmp(&name[0], "directory segment"))
+	return -E_NOT_FOUND;
+
+    s->dir = 0;
+    uint64_t perm = SEGMAP_READ;
+    if (s->writable)
+	perm |= SEGMAP_WRITE;
+
+    uint64_t dirsize;
+    r = segment_map(s->dseg, perm, (void **) &s->dir, &dirsize);
+    if (r < 0)
+	return r;
+
+    s->dir_end = ((void *) s->dir) + dirsize;
+
+    if (s->writable)
+	pthread_mutex_lock(&s->dir->lock);
+    return 0;
+}
+
+static int
+fs_dir_grow(struct fs_opendir *s)
+{
+    assert(s->writable);
+
+    int64_t curpages = sys_segment_get_npages(s->dseg);
+    if (curpages < 0)
+	return curpages;
+
+    int r = segment_unmap(s->dir);
+    if (r < 0)
+	return r;
+
+    r = sys_segment_resize(s->dseg, curpages + 1);
+    if (r < 0)
+	return r;
+
+    uint64_t dirsize;
+    r = segment_map(s->dseg, SEGMAP_READ | SEGMAP_WRITE,
+		    (void **) &s->dir, &dirsize);
+    if (r < 0)
+	return r;
+
+    s->dir_end = ((void *) s->dir) + dirsize;
+    return 0;
+}
+
+static void
+fs_dir_close(struct fs_opendir *s)
+{
+    if (s->writable)
+	pthread_mutex_unlock(&s->dir->lock);
+    segment_unmap(s->dir);
+}
+
+static void
+fs_dir_remove(struct fs_opendir *s, uint64_t id)
+{
+    struct fs_dirslot *slot;
+
+    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++)
+	if (slot->inuse && slot->id == id)
+	    slot->inuse = 0;
+}
+
+static int
+fs_dir_lookup(struct fs_opendir *s, const char *fn, uint64_t *idp)
+{
+    struct fs_dirslot *slot;
+
+    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++) {
+	if (slot->inuse && !strcmp(slot->name, fn)) {
+	    *idp = slot->id;
+	    return 0;
+	}
+    }
+
+    return -E_NOT_FOUND;
+}
+
+static int __attribute__((unused))
+fs_dir_getslot(struct fs_opendir *s, uint32_t n, char *fn, uint64_t *idp)
+{
+    struct fs_dirslot *slot = &s->dir->slots[n];
+    if (slot + 1 > (struct fs_dirslot *) s->dir_end)
+	return -E_RANGE;
+    if (slot->inuse == 0)
+	return -E_NOT_FOUND;
+
+    memcpy(fn, &slot->name[0], KOBJ_NAME_LEN);
+    *idp = slot->id;
+    return 0;
+}
+
+static int
+fs_dir_put(struct fs_opendir *s, const char *fn, uint64_t id)
+{
+    uint64_t old_id;
+    int r = fs_dir_lookup(s, fn, &old_id);
+    if (r >= 0)
+	return -E_EXISTS;
+
+    struct fs_dirslot *slot;
+
+retry:
+    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++) {
+	if (!slot->inuse) {
+	    strncpy(&slot->name[0], fn, KOBJ_NAME_LEN - 1);
+	    slot->id = id;
+	    slot->inuse = 1;
+	    return 0;
+	}
+    }
+
+    r = fs_dir_grow(s);
+    if (r < 0)
+	return r;
+
+    goto retry;
+}
 
 static struct ulabel *
 fs_get_label(void)
@@ -181,11 +319,26 @@ retry:
 	return 0;
     }
 
+    struct fs_opendir od;
+    int r = fs_dir_open(&od, dir, 0);
+    if (r >= 0) {
+	uint64_t id;
+	r = fs_dir_lookup(&od, fn, &id);
+	if (r < 0) {
+	    fs_dir_close(&od);
+	    return r;
+	}
+
+	o->obj = COBJ(dir.obj.object, id);
+	fs_dir_close(&od);
+	return 0;
+    }
+
     struct fs_dent de;
     int n = 0;
 
     for (;;) {
-	int r = fs_get_dent(dir, n++, &de);
+	r = fs_get_dent(dir, n++, &de);
 	if (r < 0) {
 	    if (r == -E_NOT_FOUND)
 		continue;
@@ -240,30 +393,89 @@ fs_namei(const char *pn, struct fs_inode *o)
 int
 fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
 {
-    struct ulabel *l = fs_get_label();
-    if (l == 0)
-	return -E_NO_MEM;
+    struct fs_opendir od;
+    int use_od = 1;
+    int r = fs_dir_open(&od, dir, 1);
+    if (r < 0)
+	use_od = 0;
 
-    int64_t r = sys_container_alloc(dir.obj.object, l, fn);
+    struct ulabel *l = fs_get_label();
+    if (l == 0) {
+	if (use_od)
+	    fs_dir_close(&od);
+	return -E_NO_MEM;
+    }
+
+    int64_t id = sys_container_alloc(dir.obj.object, l, fn);
     label_free(l);
+    if (id < 0) {
+	if (use_od)
+	    fs_dir_close(&od);
+	return id;
+    }
+
+    o->obj = COBJ(dir.obj.object, id);
+
+    r = fs_dir_init(*o, l);
+    if (r < 0) {
+	fs_dir_close(&od);
+	return r;
+    }
+
+    if (use_od) {
+	r = fs_dir_put(&od, fn, id);
+	if (r < 0) {
+	    sys_obj_unref(o->obj);
+	    fs_dir_close(&od);
+	    return r;
+	}
+
+	fs_dir_close(&od);
+    }
+
+    return 0;
+}
+
+int
+fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o)
+{
+    struct fs_opendir od;
+    int r = fs_dir_open(&od, dir, 1);
     if (r < 0)
 	return r;
 
-    o->obj = COBJ(dir.obj.object, r);
+    int64_t id = sys_mlt_create(dir.obj.object, fn);
+    if (id < 0) {
+	fs_dir_close(&od);
+	return id;
+    }
+
+    o->obj = COBJ(dir.obj.object, id);
+
+    r = fs_dir_put(&od, fn, id);
+    if (r < 0) {
+	sys_obj_unref(o->obj);
+	fs_dir_close(&od);
+	return r;
+    }
+
+    fs_dir_close(&od);
     return 0;
 }
 
 int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 {
-    // XXX not atomic
-    int r = fs_lookup_one(dir, fn, f);
-    if (r >= 0)
-	return -E_EXISTS;
+    struct fs_opendir od;
+    int r = fs_dir_open(&od, dir, 1);
+    if (r < 0)
+	return r;
 
     struct ulabel *l = fs_get_label();
-    if (l == 0)
+    if (l == 0) {
+	fs_dir_close(&od);
 	return -E_NO_MEM;
+    }
 
     int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
 
@@ -271,17 +483,41 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 	cprintf("Creating file with label %s\n", label_to_string(l));
 
     label_free(l);
-    if (id < 0)
+    if (id < 0) {
+	fs_dir_close(&od);
 	return id;
+    }
+
+    r = fs_dir_put(&od, fn, id);
+    if (r < 0) {
+	sys_obj_unref(COBJ(dir.obj.object, id));
+	fs_dir_close(&od);
+	return r;
+    }
 
     f->obj = COBJ(dir.obj.object, id);
+    fs_dir_close(&od);
     return 0;
 }
 
 int
 fs_remove(struct fs_inode f)
 {
-    return sys_obj_unref(f.obj);
+    struct fs_inode dir = { COBJ(f.obj.container, f.obj.container) };
+    struct fs_opendir od;
+    int r = fs_dir_open(&od, dir, 1);
+    if (r < 0)
+	return r;
+
+    r = sys_obj_unref(f.obj);
+    if (r < 0) {
+	fs_dir_close(&od);
+	return r;
+    }
+
+    fs_dir_remove(&od, f.obj.object);
+    fs_dir_close(&od);
+    return 0;
 }
 
 void

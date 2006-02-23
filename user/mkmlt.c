@@ -24,7 +24,8 @@ main(int ac, char **av)
 	return r;
     }
 
-    r = sys_mlt_create(dir.obj.object, fn);
+    struct fs_inode mlt;
+    r = fs_mkmlt(dir, fn, &mlt);
     if (r < 0) {
 	printf("cannot create mlt %s: %s\n", fn, e2s(r));
 	return r;
