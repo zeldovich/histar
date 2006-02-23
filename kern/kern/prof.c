@@ -15,7 +15,7 @@ struct entry trap_table[NTRAPS] ;
 struct entry user_table[1];
 
 static struct periodic_task timer ;
-static int prof_print_enable = 1;
+static int prof_print_enable = 0;
 
 void 
 prof_init(void) 
