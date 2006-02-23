@@ -21,7 +21,7 @@ struct sys_mbox_entry {
     atomic_t inuse;
     int head, nextq;
     void *msg[MBOXSLOTS];
-    sys_sem_t mutex;
+    pthread_mutex_t mutex;
     sys_sem_t queued_msg;
     sys_sem_t free_msg;
 };
@@ -55,12 +55,10 @@ sys_mbox_new()
 
     mboxes[i].head = -1;
     mboxes[i].nextq = 0;
-    mboxes[i].mutex = sys_sem_new(1);
     mboxes[i].queued_msg = sys_sem_new(0);
     mboxes[i].free_msg = sys_sem_new(MBOXSLOTS);
 
-    if (mboxes[i].mutex == SYS_SEM_NULL ||
-	mboxes[i].queued_msg == SYS_SEM_NULL ||
+    if (mboxes[i].queued_msg == SYS_SEM_NULL ||
 	mboxes[i].free_msg == SYS_SEM_NULL)
     {
 	sys_mbox_free(i);
@@ -74,7 +72,6 @@ sys_mbox_new()
 void
 sys_mbox_free(sys_mbox_t mbox)
 {
-    sys_sem_free(mboxes[mbox].mutex);
     sys_sem_free(mboxes[mbox].queued_msg);
     sys_sem_free(mboxes[mbox].free_msg);
     atomic_set(&mboxes[mbox].inuse, 0);
@@ -84,7 +81,7 @@ void
 sys_mbox_post(sys_mbox_t mbox, void *msg)
 {
     sys_arch_sem_wait(mboxes[mbox].free_msg, 0);
-    sys_arch_sem_wait(mboxes[mbox].mutex, 0);
+    pthread_mutex_lock(&mboxes[mbox].mutex);
 
     if (mboxes[mbox].nextq == mboxes[mbox].head)
 	panic("lwip: sys_mbox_post: no space for message");
@@ -96,7 +93,7 @@ sys_mbox_post(sys_mbox_t mbox, void *msg)
     if (mboxes[mbox].head == -1)
 	mboxes[mbox].head = slot;
 
-    sys_sem_signal(mboxes[mbox].mutex);
+    pthread_mutex_unlock(&mboxes[mbox].mutex);
     sys_sem_signal(mboxes[mbox].queued_msg);
 }
 
@@ -162,7 +159,7 @@ sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
     if (waited == SYS_ARCH_TIMEOUT)
 	return waited;
 
-    sys_arch_sem_wait(mboxes[mbox].mutex, 0);
+    pthread_mutex_lock(&mboxes[mbox].mutex);
 
     int slot = mboxes[mbox].head;
     if (slot == -1)
@@ -174,8 +171,8 @@ sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
     if (mboxes[mbox].head == mboxes[mbox].nextq)
 	mboxes[mbox].head = -1;
 
+    pthread_mutex_unlock(&mboxes[mbox].mutex);
     sys_sem_signal(mboxes[mbox].free_msg);
-    sys_sem_signal(mboxes[mbox].mutex);
     return waited;
 }
 
