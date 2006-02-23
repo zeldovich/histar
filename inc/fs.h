@@ -31,8 +31,6 @@ struct fs_mount_table {
 int  fs_get_root(uint64_t container, struct fs_inode *rdirp);
 int  fs_get_dent(struct fs_inode dir, uint64_t n, struct fs_dent *e);
 int  fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
-int  fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o);
-int  fs_lookup_path(struct fs_inode root, const char *pn, struct fs_inode *o);
 int  fs_namei(const char *pn, struct fs_inode *o);
 
 void fs_dirbase(char *pn, const char **dirname, const char **basename);

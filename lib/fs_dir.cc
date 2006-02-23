@@ -1,3 +1,4 @@
+extern "C" {
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
@@ -6,6 +7,9 @@
 #include <inc/memlayout.h>
 #include <inc/mlt.h>
 #include <inc/pthread.h>
+}
+
+#include <inc/error.hh>
 
 static int fs_debug = 0;
 static int fs_label_debug = 0;
@@ -21,13 +25,139 @@ struct fs_directory {
     struct fs_dirslot slots[0];
 };
 
-struct fs_opendir {
-    struct fs_inode ino;
+class missing_dir_segment : public error {
+public:
+    missing_dir_segment(int r, const char *m) : error(r, "%s", m) {}
+};
 
-    int writable;
-    struct cobj_ref dseg;
-    struct fs_directory *dir;
-    void *dir_end;
+class fs_opendir {
+public:
+    fs_opendir(const struct fs_inode &dir, int writable)
+	: ino_(dir), writable_(writable)
+    {
+	int64_t r = sys_container_get_slot_id(dir.obj.object, 0);
+	if (r < 0)
+	    throw missing_dir_segment(r, "sys_container_get_slot_id");
+
+	dseg_ = COBJ(dir.obj.object, r);
+
+	char name[KOBJ_NAME_LEN];
+	r = sys_obj_get_name(dseg_, &name[0]);
+	if (r < 0)
+	    throw missing_dir_segment(r, "sys_obj_get_name");
+	if (strcmp(&name[0], "directory segment"))
+	    throw missing_dir_segment(-E_NOT_FOUND, &name[0]);
+
+	dir_ = 0;
+	uint64_t perm = SEGMAP_READ;
+	if (writable_)
+	    perm |= SEGMAP_WRITE;
+
+	uint64_t dirsize;
+	r = segment_map(dseg_, perm, (void **) &dir_, &dirsize);
+	if (r < 0)
+	    throw error(r, "segment_map");
+
+	dir_end_ = ((char *) dir_) + dirsize;
+
+	if (writable_)
+	    pthread_mutex_lock(&dir_->lock);
+    }
+
+    ~fs_opendir() {
+	if (writable_)
+	    pthread_mutex_unlock(&dir_->lock);
+	segment_unmap(dir_);
+    }
+
+    void remove(uint64_t id) {
+	struct fs_dirslot *slot;
+
+	for (slot = &dir_->slots[0]; (slot + 1) <= (struct fs_dirslot *) dir_end_; slot++)
+	    if (slot->inuse && slot->id == id)
+		slot->inuse = 0;
+    }
+
+    int lookup(const char *fn, uint64_t *idp) {
+	struct fs_dirslot *slot;
+
+	for (slot = &dir_->slots[0]; (slot + 1) <= (struct fs_dirslot *) dir_end_; slot++) {
+	    if (slot->inuse && !strcmp(slot->name, fn)) {
+		*idp = slot->id;
+		return 0;
+	    }
+	}
+
+	return -E_NOT_FOUND;
+    }
+
+    void put(const char *fn, uint64_t id) {
+	uint64_t old_id;
+	int r = lookup(fn, &old_id);
+	if (r >= 0)
+	    throw error(-E_EXISTS, "file already exists");
+
+	for (;;) {
+	    struct fs_dirslot *slot;
+	    for (slot = &dir_->slots[0];
+		 (slot + 1) <= (struct fs_dirslot *) dir_end_;
+		 slot++)
+	    {
+		if (!slot->inuse) {
+		    strncpy(&slot->name[0], fn, KOBJ_NAME_LEN - 1);
+		    slot->id = id;
+		    slot->inuse = 1;
+		    return;
+		}
+	    }
+
+	    grow();
+	}
+    }
+
+    int getslot(uint32_t n, char *fn, uint64_t *idp) {
+	struct fs_dirslot *slot = &dir_->slots[n];
+	if (slot + 1 > (struct fs_dirslot *) dir_end_)
+	    return -E_RANGE;
+	if (slot->inuse == 0)
+	    return -E_NOT_FOUND;
+
+	memcpy(fn, &slot->name[0], KOBJ_NAME_LEN);
+	*idp = slot->id;
+	return 0;
+    }
+
+private:
+    void grow() {
+	assert(writable_);
+
+	int64_t curpages = sys_segment_get_npages(dseg_);
+	if (curpages < 0)
+	    throw error(curpages, "sys_segment_get_npages");
+
+	int r = segment_unmap(dir_);
+	if (r < 0)
+	    throw error(r, "segment_unmap");
+
+	r = sys_segment_resize(dseg_, curpages + 1);
+	if (r < 0)
+	    throw error(r, "sys_segment_resize");
+
+	uint64_t dirsize;
+	r = segment_map(dseg_, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &dir_, &dirsize);
+	if (r < 0)
+	    throw error(r, "segment_map");
+
+	dir_end_ = ((char *) dir_) + dirsize;
+    }
+
+    struct fs_inode ino_;
+
+    int writable_;
+    struct cobj_ref dseg_;
+    struct fs_directory *dir_;
+    void *dir_end_;
 };
 
 static int
@@ -35,143 +165,6 @@ fs_dir_init(struct fs_inode dir, struct ulabel *l)
 {
     struct cobj_ref dseg;
     return segment_alloc(dir.obj.object, PGSIZE, &dseg, 0, l, "directory segment");
-}
-
-static int
-fs_dir_open(struct fs_opendir *s, struct fs_inode dir, int writable)
-{
-    s->writable = writable;
-    s->ino = dir;
-
-    int64_t r = sys_container_get_slot_id(dir.obj.object, 0);
-    if (r < 0)
-	return r;
-
-    s->dseg = COBJ(dir.obj.object, r);
-
-    char name[KOBJ_NAME_LEN];
-    r = sys_obj_get_name(s->dseg, &name[0]);
-    if (r < 0)
-	return r;
-    if (strcmp(&name[0], "directory segment"))
-	return -E_NOT_FOUND;
-
-    s->dir = 0;
-    uint64_t perm = SEGMAP_READ;
-    if (s->writable)
-	perm |= SEGMAP_WRITE;
-
-    uint64_t dirsize;
-    r = segment_map(s->dseg, perm, (void **) &s->dir, &dirsize);
-    if (r < 0)
-	return r;
-
-    s->dir_end = ((void *) s->dir) + dirsize;
-
-    if (s->writable)
-	pthread_mutex_lock(&s->dir->lock);
-    return 0;
-}
-
-static int
-fs_dir_grow(struct fs_opendir *s)
-{
-    assert(s->writable);
-
-    int64_t curpages = sys_segment_get_npages(s->dseg);
-    if (curpages < 0)
-	return curpages;
-
-    int r = segment_unmap(s->dir);
-    if (r < 0)
-	return r;
-
-    r = sys_segment_resize(s->dseg, curpages + 1);
-    if (r < 0)
-	return r;
-
-    uint64_t dirsize;
-    r = segment_map(s->dseg, SEGMAP_READ | SEGMAP_WRITE,
-		    (void **) &s->dir, &dirsize);
-    if (r < 0)
-	return r;
-
-    s->dir_end = ((void *) s->dir) + dirsize;
-    return 0;
-}
-
-static void
-fs_dir_close(struct fs_opendir *s)
-{
-    if (s->writable)
-	pthread_mutex_unlock(&s->dir->lock);
-    segment_unmap(s->dir);
-}
-
-static void
-fs_dir_remove(struct fs_opendir *s, uint64_t id)
-{
-    struct fs_dirslot *slot;
-
-    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++)
-	if (slot->inuse && slot->id == id)
-	    slot->inuse = 0;
-}
-
-static int
-fs_dir_lookup(struct fs_opendir *s, const char *fn, uint64_t *idp)
-{
-    struct fs_dirslot *slot;
-
-    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++) {
-	if (slot->inuse && !strcmp(slot->name, fn)) {
-	    *idp = slot->id;
-	    return 0;
-	}
-    }
-
-    return -E_NOT_FOUND;
-}
-
-static int __attribute__((unused))
-fs_dir_getslot(struct fs_opendir *s, uint32_t n, char *fn, uint64_t *idp)
-{
-    struct fs_dirslot *slot = &s->dir->slots[n];
-    if (slot + 1 > (struct fs_dirslot *) s->dir_end)
-	return -E_RANGE;
-    if (slot->inuse == 0)
-	return -E_NOT_FOUND;
-
-    memcpy(fn, &slot->name[0], KOBJ_NAME_LEN);
-    *idp = slot->id;
-    return 0;
-}
-
-static int
-fs_dir_put(struct fs_opendir *s, const char *fn, uint64_t id)
-{
-    uint64_t old_id;
-    int r = fs_dir_lookup(s, fn, &old_id);
-    if (r >= 0)
-	return -E_EXISTS;
-
-    struct fs_dirslot *slot;
-
-retry:
-    for (slot = &s->dir->slots[0]; (slot + 1) <= (struct fs_dirslot *) s->dir_end; slot++) {
-	if (!slot->inuse) {
-	    strncpy(&slot->name[0], fn, KOBJ_NAME_LEN - 1);
-	    slot->id = id;
-	    slot->inuse = 1;
-	    return 0;
-	}
-    }
-
-    r = fs_dir_grow(s);
-    if (r < 0)
-	return r;
-
-    goto retry;
 }
 
 static struct ulabel *
@@ -207,7 +200,7 @@ fs_get_dent_ct(struct fs_inode d, uint64_t n, struct fs_dent *e)
 static int
 fs_get_dent_mlt(struct fs_inode d, uint64_t n, struct fs_dent *e)
 {
-    char buf[MLT_BUF_SIZE];
+    uint8_t buf[MLT_BUF_SIZE];
     uint64_t ct;
     int r = sys_mlt_get(d.obj, n, 0, &buf[0], &ct);
     if (r < 0) {
@@ -245,7 +238,7 @@ fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
     return r;
 }
 
-int
+static int
 fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 {
     if (fs_debug)
@@ -264,7 +257,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 
     // Simple MLT support
     if (!strcmp(fn, "@mlt")) {
-	char blob[MLT_BUF_SIZE];
+	uint8_t blob[MLT_BUF_SIZE];
 	uint64_t ct;
 	int retry_count = 0;
 	struct ulabel *lcur, *lslot;
@@ -319,26 +312,23 @@ retry:
 	return 0;
     }
 
-    struct fs_opendir od;
-    int r = fs_dir_open(&od, dir, 0);
-    if (r >= 0) {
+    try {
+	fs_opendir od(dir, 0);
+
 	uint64_t id;
-	r = fs_dir_lookup(&od, fn, &id);
-	if (r < 0) {
-	    fs_dir_close(&od);
+	int r = od.lookup(fn, &id);
+	if (r < 0)
 	    return r;
-	}
 
 	o->obj = COBJ(dir.obj.object, id);
-	fs_dir_close(&od);
 	return 0;
-    }
+    } catch (missing_dir_segment &e) {}
 
     struct fs_dent de;
     int n = 0;
 
     for (;;) {
-	r = fs_get_dent(dir, n++, &de);
+	int r = fs_get_dent(dir, n++, &de);
 	if (r < 0) {
 	    if (r == -E_NOT_FOUND)
 		continue;
@@ -354,7 +344,7 @@ retry:
     }
 }
 
-int
+static int
 fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 {
     *o = dir;
@@ -393,44 +383,32 @@ fs_namei(const char *pn, struct fs_inode *o)
 int
 fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
 {
-    struct fs_opendir od;
-    int use_od = 1;
-    int r = fs_dir_open(&od, dir, 1);
-    if (r < 0)
-	use_od = 0;
-
     struct ulabel *l = fs_get_label();
-    if (l == 0) {
-	if (use_od)
-	    fs_dir_close(&od);
+    if (l == 0)
 	return -E_NO_MEM;
-    }
 
     int64_t id = sys_container_alloc(dir.obj.object, l, fn);
-    label_free(l);
     if (id < 0) {
-	if (use_od)
-	    fs_dir_close(&od);
+	label_free(l);
 	return id;
     }
 
     o->obj = COBJ(dir.obj.object, id);
-
-    r = fs_dir_init(*o, l);
+    int r = fs_dir_init(*o, l);
     if (r < 0) {
-	fs_dir_close(&od);
+	label_free(l);
 	return r;
     }
 
-    if (use_od) {
-	r = fs_dir_put(&od, fn, id);
-	if (r < 0) {
-	    sys_obj_unref(o->obj);
-	    fs_dir_close(&od);
-	    return r;
-	}
+    label_free(l);
 
-	fs_dir_close(&od);
+    try {
+	fs_opendir od(dir, 1);
+	od.put(fn, id);
+    } catch (missing_dir_segment &e) {
+    } catch (error &e) {
+	sys_obj_unref(o->obj);
+	return e.err();
     }
 
     return 0;
@@ -439,84 +417,67 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
 int
 fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o)
 {
-    struct fs_opendir od;
-    int r = fs_dir_open(&od, dir, 1);
-    if (r < 0)
-	return r;
-
     int64_t id = sys_mlt_create(dir.obj.object, fn);
-    if (id < 0) {
-	fs_dir_close(&od);
+    if (id < 0)
 	return id;
-    }
 
     o->obj = COBJ(dir.obj.object, id);
 
-    r = fs_dir_put(&od, fn, id);
-    if (r < 0) {
+    try {
+	fs_opendir od(dir, 1);
+	od.put(fn, id);
+    } catch (error &e) {
 	sys_obj_unref(o->obj);
-	fs_dir_close(&od);
-	return r;
+	return e.err();
     }
 
-    fs_dir_close(&od);
     return 0;
 }
 
 int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 {
-    struct fs_opendir od;
-    int r = fs_dir_open(&od, dir, 1);
-    if (r < 0)
-	return r;
-
     struct ulabel *l = fs_get_label();
-    if (l == 0) {
-	fs_dir_close(&od);
+    if (l == 0)
 	return -E_NO_MEM;
-    }
-
-    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
 
     if (fs_label_debug)
 	cprintf("Creating file with label %s\n", label_to_string(l));
 
+    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
     label_free(l);
-    if (id < 0) {
-	fs_dir_close(&od);
+    if (id < 0)
 	return id;
-    }
-
-    r = fs_dir_put(&od, fn, id);
-    if (r < 0) {
-	sys_obj_unref(COBJ(dir.obj.object, id));
-	fs_dir_close(&od);
-	return r;
-    }
 
     f->obj = COBJ(dir.obj.object, id);
-    fs_dir_close(&od);
+
+    try {
+	fs_opendir od(dir, 1);
+	od.put(fn, id);
+    } catch (error &e) {
+	sys_obj_unref(f->obj);
+	return e.err();
+    }
+
     return 0;
 }
 
 int
 fs_remove(struct fs_inode f)
 {
-    struct fs_inode dir = { COBJ(f.obj.container, f.obj.container) };
-    struct fs_opendir od;
-    int r = fs_dir_open(&od, dir, 1);
-    if (r < 0)
-	return r;
+    try {
+	struct fs_inode dir = { COBJ(f.obj.container, f.obj.container) };
+	fs_opendir od(dir, 1);
 
-    r = sys_obj_unref(f.obj);
-    if (r < 0) {
-	fs_dir_close(&od);
-	return r;
+	int r = sys_obj_unref(f.obj);
+	if (r < 0)
+	    return r;
+
+	od.remove(f.obj.object);
+    } catch (error &e) {
+	return e.err();
     }
 
-    fs_dir_remove(&od, f.obj.object);
-    fs_dir_close(&od);
     return 0;
 }
 
