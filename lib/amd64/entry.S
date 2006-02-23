@@ -11,7 +11,7 @@ ENTRY(_start)
 	// Call libmain with the right args
 	movq	%r12, %rdi
 	movq	%r13, %rsi
-	call	libmain
+	jmp	libmain
 
 .section .init
 	.globl _init
