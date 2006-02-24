@@ -19,6 +19,7 @@ static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 
 static int kobject_reclaim_debug = 1;
 static int kobject_checksum_pedantic = 0;
+static int kobject_print_sizes = 0;
 
 #define GEN_DEBUG 0
 static int kobject_gen_debug = GEN_DEBUG;
@@ -603,4 +604,17 @@ kobject_init(void)
 	{ .pt_fn = &kobject_reclaim };
     reclaim_pt.pt_interval_ticks = kclock_hz;
     timer_add_periodic(&reclaim_pt);
+
+    if (kobject_print_sizes) {
+	cprintf("kobject sizes:\n");
+	cprintf("hdr %ld label %ld\n",
+		sizeof(struct kobject_hdr), sizeof(struct Label));
+	cprintf("ct %ld th %ld gt %ld as %ld sg %ld mlt %ld\n",
+		sizeof(struct Container),
+		sizeof(struct Thread),
+		sizeof(struct Gate),
+		sizeof(struct Address_space),
+		sizeof(struct Segment),
+		sizeof(struct Mlt));
+    }
 }
