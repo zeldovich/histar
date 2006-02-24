@@ -26,24 +26,22 @@ static int scrub_disk_pages = 0;
 static struct pstate_header stable_hdr;
 
 // assumed to be atomic
-static struct freelist flist ;
+static struct freelist flist;
 
-// lits of objects to be loaded at startup
-struct btree_default iobjlist ;
+// list of objects to be loaded at startup
+struct btree_default iobjlist;
 #define IOBJ_ORDER BTREE_MAX_ORDER1
-STRUCT_BTREE_CACHE(iobj_cache, 20, IOBJ_ORDER, 1) ;	
+STRUCT_BTREE_CACHE(iobj_cache, 20, IOBJ_ORDER, 1);
 
-// lits of objects to be loaded at startup
-struct btree_default objmap ;
+// list of objects to be loaded at startup
+struct btree_default objmap;
 #define OBJMAP_ORDER BTREE_MAX_ORDER1
-STRUCT_BTREE_CACHE(objmap_cache, 20, OBJMAP_ORDER, 1) ;	
+STRUCT_BTREE_CACHE(objmap_cache, 20, OBJMAP_ORDER, 1);
 
-struct mobject
-{
-	offset_t off ;
-	uint64_t nbytes ;	
-	
-} ;
+struct mobject {
+    offset_t off;
+    uint64_t nbytes;
+};
 
 // Scratch-space for a copy of the header used while reading/writing.
 #define N_HEADER_PAGES		1
