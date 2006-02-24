@@ -237,7 +237,8 @@ static int
 as_pmap_fill_segment(const struct Address_space *as,
 		     const struct Segment *sg,
 		     struct segment_mapping *sm,
-		     const struct u_segment_mapping *usm)
+		     const struct u_segment_mapping *usm,
+		     int invalidate)
 {
     struct Pagemap *pgmap = as->as_pgmap;
     int progress = 0;
@@ -272,7 +273,8 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    if (oldp != pp)
 		progress = 1;
 
-	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
+	    if (!invalidate)
+		r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
 	}
 
 	if (r < 0) {
@@ -288,12 +290,13 @@ as_pmap_fill_segment(const struct Address_space *as,
 	cva += PGSIZE;
     }
 
-    if (sm->sm_sg != sg) {
-	if (sm->sm_sg) {
-	    LIST_REMOVE(sm, sm_link);
-	    kobject_unpin_page(&sm->sm_sg->sg_ko);
-	}
+    if (sm->sm_sg) {
+	LIST_REMOVE(sm, sm_link);
+	kobject_unpin_page(&sm->sm_sg->sg_ko);
+	sm->sm_sg = 0;
+    }
 
+    if (!invalidate) {
 	sm->sm_as = as;
 	sm->sm_sg = sg;
 
@@ -302,7 +305,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	kobject_pin_page(&sg->sg_ko);
     }
 
-    return progress ? 0 : -E_INVAL;
+    return progress;
 }
 
 static int
@@ -338,7 +341,12 @@ as_pmap_fill(struct Address_space *as, void *va)
 
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
-	return as_pmap_fill_segment(as, sg, sm, usm);
+	r = as_pmap_fill_segment(as, sg, sm, usm, 0);
+	if (r < 0)
+	    return r;
+	if (r == 0)
+	    return -E_INVAL;	// no progress
+	return 0;
     }
 
     return -E_NOT_FOUND;
@@ -385,7 +393,21 @@ as_switch(const struct Address_space *as)
 void
 as_invalidate_sm(struct segment_mapping *sm)
 {
-    // XXX be more precise for performance
-    if (sm->sm_sg)
-	as_invalidate(sm->sm_as);
+    if (!sm->sm_sg)
+	return;
+
+    const struct u_segment_mapping *usm;
+    int r = as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_ro);
+    if (r < 0)
+	goto err;
+
+    r = as_pmap_fill_segment(sm->sm_as, sm->sm_sg, sm, usm, 1);
+    if (r < 0)
+	goto err;
+
+    return;
+
+err:
+    cprintf("as_invalidate_sm: fallback to full invalidation: %s\n", e2s(r));
+    as_invalidate(sm->sm_as);
 }
