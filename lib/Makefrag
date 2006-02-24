@@ -26,12 +26,12 @@ LIB_SRCFILES :=	\
 	lib/netd_server.c \
 	lib/fd.c \
 	lib/console.c \
-	lib/spawn.c \
+	lib/spawn.cc \
 	lib/container.c \
 	lib/cksum.c \
 	lib/heap.c \
 	lib/malloc.c \
-	lib/fs_dir.c \
+	lib/fs_dir.cc \
 	lib/fs_file.c \
 	lib/fs_mount.c \
 	lib/file.c \

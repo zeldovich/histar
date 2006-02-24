@@ -265,12 +265,12 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	struct ulabel *lcur = label_get_current();
 	if (lcur == 0)
 	    return -E_NO_MEM;
-	scope_guard<struct ulabel *> lf1(label_free, lcur);
+	scope_guard<void, struct ulabel *> lf1(label_free, lcur);
 
 	struct ulabel *lslot = label_alloc();
 	if (lslot == 0)
 	    return -E_NO_MEM;
-	scope_guard<struct ulabel *> lf2(label_free, lslot);
+	scope_guard<void, struct ulabel *> lf2(label_free, lslot);
 
 	int r = -1;
 
@@ -383,7 +383,7 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
     struct ulabel *l = fs_get_label();
     if (l == 0)
 	return -E_NO_MEM;
-    scope_guard<struct ulabel *> lf(label_free, l);
+    scope_guard<void, struct ulabel *> lf(label_free, l);
 
     int64_t id = sys_container_alloc(dir.obj.object, l, fn);
     if (id < 0)
@@ -432,7 +432,7 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
     struct ulabel *l = fs_get_label();
     if (l == 0)
 	return -E_NO_MEM;
-    scope_guard<struct ulabel *> lf(label_free, l);
+    scope_guard<void, struct ulabel *> lf(label_free, l);
 
     if (fs_label_debug)
 	cprintf("Creating file with label %s\n", label_to_string(l));

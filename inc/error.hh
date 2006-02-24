@@ -29,4 +29,11 @@ private:
     int err_;
 };
 
+#define error_check(expr)			\
+    do {					\
+	int64_t r = (expr);			\
+	if (r < 0)				\
+	    throw error(r, "%s", #expr);	\
+    } while (0)
+
 #endif

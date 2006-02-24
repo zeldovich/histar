@@ -1,10 +1,10 @@
 #ifndef JOS_INC_SCOPEGUARD_HH
 #define JOS_INC_SCOPEGUARD_HH
 
-template <class T>
+template <class R, class T>
 class scope_guard {
 public:
-    scope_guard(void (*cb)(T), T p) : cb_(cb), p_(p), active_(true) {}
+    scope_guard(R (*cb)(T), T p) : cb_(cb), p_(p), active_(true) {}
     void dismiss() { active_ = false; }
 
     ~scope_guard() {
@@ -13,7 +13,7 @@ public:
     }
 
 private:
-    void (*cb_) (T);
+    R (*cb_) (T);
     T p_;
     bool active_;
 };
