@@ -66,13 +66,14 @@ kobject_cksum(const struct kobject_hdr *ko)
     // Compute checksum on the persistent parts of kobject_hdr
     sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_cksum));
     sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
-		     sizeof(struct kobject) - sizeof(struct kobject_hdr));
+		     sizeof(struct kobject_persistent) -
+		     sizeof(struct kobject_hdr));
 
     for (uint64_t i = 0; i < ko->ko_nbytes; i += PGSIZE) {
 	void *p;
 	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_ro));
 	assert(p);
-	sum = cksum(sum, p, PGSIZE);
+	sum = cksum(sum, p, MIN((uint32_t) PGSIZE, ko->ko_nbytes - i * PGSIZE));
     }
 
     return sum;
@@ -163,7 +164,8 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 	return r;
 
     struct kobject_pair *ko_pair = (struct kobject_pair *) p;
-    static_assert(sizeof(ko_pair->active) == sizeof(ko_pair->active.buf));
+    static_assert(sizeof(struct kobject) == KOBJ_MEM_SIZE);
+    static_assert(sizeof(struct kobject_persistent) == KOBJ_DISK_SIZE);
     static_assert(sizeof(*ko_pair) <= PGSIZE);
 
     struct kobject *ko = &ko_pair->active;
@@ -174,7 +176,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_id = handle_alloc();
     kh->ko_label = *l;
     kh->ko_flags = KOBJ_DIRTY;
-    pagetree_init(&kh->ko_pt);
+    pagetree_init(&ko->ko_pt);
 
     kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, kh, ko_link);
@@ -200,7 +202,7 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_r
     if (rw == page_rw)
 	kobject_dirty(kp);
 
-    int r = pagetree_get_page(&kobject_const_h2k(kp)->hdr.ko_pt,
+    int r = pagetree_get_page(&kobject_const_h2k(kp)->ko_pt,
 			      npage, pp, rw);
     if (r == 0 && *pp == 0)
 	panic("kobject_get_page: id %ld (%s) type %d npage %ld null",
@@ -220,12 +222,14 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     if (nbytes < kp->ko_min_bytes)
 	return -E_RANGE;
 
+    struct kobject *ko = kobject_h2k(kp);
+
     uint64_t npages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
     if (npages > pagetree_maxpages())
 	return -E_RANGE;
 
     for (uint64_t i = npages; i < kobject_npages(kp); i++) {
-	int r = pagetree_put_page(&kp->ko_pt, i, 0);
+	int r = pagetree_put_page(&ko->ko_pt, i, 0);
 	if (r < 0) {
 	    cprintf("XXX this leaves a hole in the kobject\n");
 	    return r;
@@ -236,12 +240,12 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	void *p;
 	int r = page_alloc(&p);
 	if (r == 0)
-	    r = pagetree_put_page(&kp->ko_pt, i, p);
+	    r = pagetree_put_page(&ko->ko_pt, i, p);
 
 	if (r < 0) {
 	    // free all the pages we allocated up to now
 	    for (uint64_t j = kobject_npages(kp); j < i; j++)
-		assert(0 == pagetree_put_page(&kp->ko_pt, j, 0));
+		assert(0 == pagetree_put_page(&ko->ko_pt, j, 0));
 	    return r;
 	}
 
@@ -387,7 +391,7 @@ kobject_gc(struct kobject *ko)
     if (r < 0)
 	cprintf("kobject_free: cannot GC type %d: %d\n", ko->hdr.ko_type, r);
 
-    pagetree_free(&ko->hdr.ko_pt);
+    pagetree_free(&ko->ko_pt);
     ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;
 }
@@ -435,7 +439,7 @@ kobject_swapout(struct kobject *ko)
 
     LIST_REMOVE(&ko->hdr, ko_link);
     LIST_REMOVE(&ko->hdr, ko_hash);
-    pagetree_free(&ko->hdr.ko_pt);
+    pagetree_free(&ko->ko_pt);
     page_free(ko);
 }
 
@@ -475,8 +479,8 @@ kobject_snapshot(struct kobject_hdr *ko)
     kobject_pin_hdr(ko);
 
     struct kobject *snap = kobject_get_snapshot_internal(ko);
-    memcpy(snap, ko, sizeof(*snap));
-    pagetree_copy(&ko->ko_pt, &snap->hdr.ko_pt);
+    memcpy(snap, ko, KOBJ_DISK_SIZE);
+    pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt);
 
     ko->ko_flags |= KOBJ_SNAPSHOTING;
 }
@@ -488,7 +492,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_unpin_hdr(ko);
-    pagetree_free(&snap->hdr.ko_pt);
+    pagetree_free(&snap->ko_pt);
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);

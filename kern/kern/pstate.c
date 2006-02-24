@@ -96,7 +96,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     int r;
     pstate_kobj_free(f, ko);
 
-    uint64_t nbytes = KOBJ_SIZE + ROUNDUP(ko->hdr.ko_nbytes, 512);
+    uint64_t nbytes = KOBJ_DISK_SIZE + ROUNDUP(ko->hdr.ko_nbytes, 512);
     int64_t offset = freelist_alloc(f, nbytes);
 
     if (offset < 0) {
@@ -138,13 +138,13 @@ pstate_swapin_off(offset_t off)
 
     struct kobject *ko = (struct kobject *) p;
 
-    disk_io_status s = stackwrap_disk_io(op_read, p, KOBJ_SIZE, off);
+    disk_io_status s = stackwrap_disk_io(op_read, p, KOBJ_DISK_SIZE, off);
     if (s != disk_io_success) {
 	cprintf("pstate_swapin_obj: cannot read object from disk\n");
 	return -E_IO;
     }
 
-    pagetree_init(&ko->hdr.ko_pt);
+    pagetree_init(&ko->ko_pt);
     for (uint64_t page = 0; page < kobject_npages(&ko->hdr); page++) {
 	r = page_alloc(&p);
 	if (r < 0) {
@@ -157,13 +157,14 @@ pstate_swapin_off(offset_t off)
 	if (pagebytes != PGSIZE)
 	    memset(p, 0, PGSIZE);
 
-	s = stackwrap_disk_io(op_read, p, pagebytes, off + KOBJ_SIZE + page * PGSIZE);
+	s = stackwrap_disk_io(op_read, p, pagebytes,
+			      off + KOBJ_DISK_SIZE + page * PGSIZE);
 	if (s != disk_io_success) {
 	    cprintf("pstate_swapin_obj: cannot read page from disk\n");
 	    return -E_IO;
 	}
 
-	assert(0 == pagetree_put_page(&ko->hdr.ko_pt, page, p));
+	assert(0 == pagetree_put_page(&ko->ko_pt, page, p));
     }
 
     if (pstate_swapin_debug)
@@ -425,7 +426,7 @@ pstate_sync_kobj(struct swapout_stats *stats,
     x.iov_buf = &iov_buf[0];
     x.iov_max = sizeof(iov_buf) / sizeof(iov_buf[0]);
 
-    int r = pstate_iov_append(&x, snap, KOBJ_SIZE);
+    int r = pstate_iov_append(&x, snap, KOBJ_DISK_SIZE);
     if (r < 0)
 	return r;
 

@@ -10,13 +10,15 @@
 #include <kern/segment.h>
 #include <kern/gate.h>
 #include <kern/mlt.h>
+#include <kern/pagetree.h>
 
-#define KOBJ_SIZE	1024
+#define KOBJ_DISK_SIZE	512
+#define KOBJ_MEM_SIZE	1024
 
-struct kobject {
+struct kobject_persistent {
     union {
 	struct kobject_hdr hdr;
-	char buf[KOBJ_SIZE];
+	char disk_buf[KOBJ_DISK_SIZE];
 
 	struct Container ct;
 	struct Thread th;
@@ -24,6 +26,17 @@ struct kobject {
 	struct Address_space as;
 	struct Segment sg;
 	struct Mlt mt;
+    };
+};
+
+struct kobject {
+    union {
+	char mem_buf[KOBJ_MEM_SIZE];
+
+	struct {
+	    struct kobject_persistent;
+	    struct pagetree ko_pt;
+	};
     };
 };
 

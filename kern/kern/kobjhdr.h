@@ -3,7 +3,6 @@
 
 #include <machine/types.h>
 #include <kern/label.h>
-#include <kern/pagetree.h>
 #include <inc/kobj.h>
 #include <inc/queue.h>
 
@@ -35,8 +34,6 @@ struct kobject_hdr {
 
     LIST_ENTRY(kobject_hdr) ko_link;
     LIST_ENTRY(kobject_hdr) ko_hash;
-
-    struct pagetree ko_pt;
 };
 
 typedef enum {
