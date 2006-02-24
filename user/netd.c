@@ -152,7 +152,9 @@ main(int ac, char **av)
     lwip_core_lock();
 
     struct ulabel *l = force_taint_prepare(taint);
-    netd_server_init(start_env->root_container, start_env->container, l);
+    r = netd_server_init(start_env->root_container, start_env->container, l);
+    if (r < 0)
+	panic("netd_server_init: %s", e2s(r));
     force_taint_commit(l);
 
     struct netif nif;
