@@ -153,10 +153,7 @@ trap_handler (struct Trapframe *tf)
     thread_run(cur_thread);
 }
 
-// Not static to avoid dead-code elimination
-void trap_field_symbols(void);
-
-void
+static void __attribute__((used))
 trap_field_symbols(void)
 {
 #define TF_DEF(field)							\
