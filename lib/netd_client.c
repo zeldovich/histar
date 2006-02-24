@@ -9,6 +9,16 @@
 static int netd_client_inited;
 static struct cobj_ref netd_gate;
 
+const struct host_entry host_table[] = {
+    { "market", "market.scs.stanford.edu" },
+    { "market.scs.stanford.edu", "171.66.3.9" },
+
+    { "suif", "suif.stanford.edu" },
+    { "suif.stanford.edu", "171.64.73.155" },
+
+    { 0, 0 }
+};
+
 static int
 netd_client_init(void)
 {

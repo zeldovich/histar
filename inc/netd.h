@@ -79,4 +79,11 @@ void netd_server_ready(void);
 
 int  socket(int domain, int type, int protocol);
 
+struct host_entry {
+    const char *alias;
+    const char *name;
+};
+
+extern const struct host_entry host_table[];
+
 #endif
