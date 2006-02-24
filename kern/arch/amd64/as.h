@@ -40,6 +40,7 @@ void as_swapin(struct Address_space *as);
 void as_swapout(struct Address_space *as);
 int  as_gc(struct Address_space *as);
 void as_invalidate(const struct Address_space *as);
+void as_invalidate_sm(struct segment_mapping *sm);
 
 int  as_pagefault(struct Address_space *as, void *va);
 void as_switch(const struct Address_space *as);

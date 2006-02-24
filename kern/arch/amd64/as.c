@@ -192,15 +192,7 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 	return r;
 
     *usm = *usm_new;
-
-    if (sm->sm_sg) {
-	LIST_REMOVE(sm, sm_link);
-	kobject_unpin_page(&sm->sm_sg->sg_ko);
-	sm->sm_sg = 0;
-
-	// XXX be more precise
-	as_invalidate(as);
-    }
+    as_invalidate_sm(sm);
 
     return 0;
 }
@@ -388,4 +380,12 @@ as_switch(const struct Address_space *as)
 
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     lcr3(kva2pa(pgmap));
+}
+
+void
+as_invalidate_sm(struct segment_mapping *sm)
+{
+    // XXX be more precise for performance
+    if (sm->sm_sg)
+	as_invalidate(sm->sm_as);
 }
