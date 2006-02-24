@@ -68,7 +68,9 @@ thread_halt(const struct Thread *const_t)
 }
 
 int
-thread_alloc(const struct Label *l, struct Thread **tp)
+thread_alloc(const struct Label *l,
+	     const struct Label *clearance,
+	     struct Thread **tp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_thread, l, &ko);
@@ -80,6 +82,7 @@ thread_alloc(const struct Label *l, struct Thread **tp)
     t->th_sg = kobject_id_null;
     t->th_ct = kobject_id_null;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
+    t->th_clearance = *clearance;
 
     struct Segment *sg;
     r = segment_alloc(l, &sg);
@@ -233,7 +236,9 @@ thread_change_as(const struct Thread *const_t, struct cobj_ref as)
 }
 
 int
-thread_jump(const struct Thread *const_t, const struct Label *label,
+thread_jump(const struct Thread *const_t,
+	    const struct Label *label,
+	    const struct Label *clearance,
 	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
 	    uint64_t arg1, uint64_t arg2)
@@ -243,6 +248,8 @@ thread_jump(const struct Thread *const_t, const struct Label *label,
     int r = thread_change_label(t, label);
     if (r < 0)
 	return r;
+
+    t->th_clearance = *clearance;
 
     thread_change_as(t, as);
 

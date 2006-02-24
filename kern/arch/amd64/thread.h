@@ -43,13 +43,17 @@ extern struct Thread_list thread_list_runnable;
 extern struct Thread_list thread_list_limbo;
 extern const struct Thread *cur_thread;
 
-int  thread_alloc(const struct Label *l, struct Thread **tp);
+int  thread_alloc(const struct Label *l,
+		  const struct Label *clearance,
+		  struct Thread **tp);
 void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t);
 void thread_zero_refs(const struct Thread *t);
 
-int  thread_jump(const struct Thread *t, const struct Label *label,
+int  thread_jump(const struct Thread *t,
+		 const struct Label *label,
+		 const struct Label *clearance,
 		 struct cobj_ref as, void *entry, void *stack,
 		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
 int  thread_change_label(const struct Thread *t, const struct Label *l);

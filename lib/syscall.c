@@ -116,9 +116,9 @@ sys_thread_create(uint64_t container, const char *name)
 
 int
 sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
-		 struct ulabel *ul)
+		 struct ulabel *ul, struct ulabel *clearance)
 {
-    return syscall(SYS_thread_start, thread, entry, ul);
+    return syscall(SYS_thread_start, thread, entry, ul, clearance);
 }
 
 void

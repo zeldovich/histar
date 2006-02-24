@@ -188,8 +188,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	printf("spawn: starting thread with label %s\n",
 	       label_to_string(thread_label));
 
+    struct ulabel *thread_clearance = 0;
     e.te_arg = (uint64_t) spawn_env_va;
-    r = sys_thread_start(tobj, &e, thread_label);
+    r = sys_thread_start(tobj, &e, thread_label, thread_clearance);
     if (r < 0) {
 	printf("cannot start thread: %s\n", e2s(r));
 	goto err;

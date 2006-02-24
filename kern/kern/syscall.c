@@ -281,7 +281,9 @@ sys_thread_create(uint64_t ct, const char *name)
     check(container_find(&c, ct, iflow_write));
 
     struct Thread *t;
-    check(thread_alloc(&cur_thread->th_ko.ko_label, &t));
+    check(thread_alloc(&cur_thread->th_ko.ko_label,
+		       &cur_thread->th_clearance,
+		       &t));
     alloc_set_name(&t->th_ko, name);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
@@ -305,22 +307,27 @@ sys_gate_enter(struct cobj_ref gt, struct ulabel *l,
 		    &bound, label_leq_starhi));
 
     struct Label new_label;
-    if (l == 0) {
+    if (l == 0)
 	new_label = bound;
-    } else {
+    else
 	check(ulabel_to_label(l, &new_label));
-	check(label_compare(&bound, &new_label, label_leq_starlo));
-    }
+    check(label_compare(&bound, &new_label, label_leq_starlo));
+
+    struct Label new_clearance;
+    // XXX
+    label_init(&new_clearance, 2);
 
     const struct thread_entry *e = &g->gt_te;
-    check(thread_jump(cur_thread, &new_label,
+    check(thread_jump(cur_thread,
+		      &new_label,
+		      &new_clearance,
 		      e->te_as, e->te_entry, e->te_stack,
 		      e->te_arg, a1, a2));
 }
 
 static void
 sys_thread_start(struct cobj_ref thread, struct thread_entry *e,
-		 struct ulabel *ul)
+		 struct ulabel *ul, struct ulabel *uclear)
 {
     const struct kobject *ko;
     check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
@@ -329,14 +336,24 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e,
     if (t->th_status != thread_not_started)
 	check(-E_INVAL);
 
-    struct Label l;
+    struct Label new_label;
     if (ul)
-	check(ulabel_to_label(ul, &l));
+	check(ulabel_to_label(ul, &new_label));
     else
-	l = cur_thread->th_ko.ko_label;
+	new_label = cur_thread->th_ko.ko_label;
 
-    check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
-    check(thread_jump(t, &l, e->te_as, e->te_entry, e->te_stack,
+    struct Label new_clearance;
+    if (uclear)
+	check(ulabel_to_label(uclear, &new_clearance));
+    else
+	new_clearance = cur_thread->th_clearance;
+
+    check(label_compare(&cur_thread->th_ko.ko_label, &new_label, label_leq_starlo));
+    check(label_compare(&new_clearance, &cur_thread->th_clearance, label_leq_starhi));
+
+    check(thread_jump(t,
+		      &new_label, &new_clearance,
+		      e->te_as, e->te_entry, e->te_stack,
 		      e->te_arg, 0, 0));
     thread_set_runnable(t);
 }
@@ -386,6 +403,7 @@ sys_thread_set_label(struct ulabel *ul)
     check(ulabel_to_label(ul, &l));
 
     check(label_compare(&cur_thread->th_ko.ko_label, &l, label_leq_starlo));
+    check(label_compare(&l, &cur_thread->th_clearance, label_leq_starlo));
     check(thread_change_label(cur_thread, &l));
 }
 
@@ -662,7 +680,9 @@ syscall(syscall_num num, uint64_t a1,
 	    check(page_user_incore((void**) &a3, sizeof(e)));
 	    memcpy(&e, (void*) a3, sizeof(e));
 
-	    sys_thread_start(COBJ(a1, a2), &e, (struct ulabel *) a4);
+	    sys_thread_start(COBJ(a1, a2), &e,
+			     (struct ulabel *) a4,
+			     (struct ulabel *) a5);
 	}
 	break;
 

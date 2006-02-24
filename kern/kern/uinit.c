@@ -102,7 +102,9 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 static int
 thread_load_elf(struct Container *c, struct Thread *t,
-		struct Label *obj_label, struct Label *th_label,
+		struct Label *obj_label,
+		struct Label *th_label,
+		struct Label *th_clearance,
 		const uint8_t *binary, uint64_t size, uint64_t arg)
 {
     Elf64_Ehdr elf;
@@ -188,7 +190,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
-    assert(0 == thread_jump(t, th_label,
+    assert(0 == thread_jump(t, th_label, th_clearance,
 			    COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
 			    (void*) elf.e_entry, (void*) USTACKTOP,
 			    c->ct_ko.ko_id, arg, 0));
@@ -197,7 +199,9 @@ thread_load_elf(struct Container *c, struct Thread *t,
 
 static void
 thread_create_embed(struct Container *c,
-		    struct Label *obj_label, struct Label *th_label,
+		    struct Label *obj_label,
+		    struct Label *th_label,
+		    struct Label *th_clearance,
 		    const char *name, uint64_t arg, uint64_t koflag)
 {
     struct embed_bin *prog = 0;
@@ -221,7 +225,7 @@ thread_create_embed(struct Container *c,
 	panic("tce: cannot store container: %s", e2s(tcslot));
 
     struct Thread *t;
-    r = thread_alloc(obj_label, &t);
+    r = thread_alloc(th_label, th_clearance, &t);
     if (r < 0)
 	panic("tce: cannot allocate thread: %s", e2s(r));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
@@ -231,7 +235,9 @@ thread_create_embed(struct Container *c,
     if (r < 0)
 	panic("tce: cannot store thread: %s", e2s(r));
 
-    r = thread_load_elf(tc, t, obj_label, th_label, prog->buf, prog->size, arg);
+    r = thread_load_elf(tc, t,
+			obj_label, th_label, th_clearance,
+			prog->buf, prog->size, arg);
     if (r < 0)
 	panic("tce: cannot load ELF: %s", e2s(r));
 
@@ -283,19 +289,23 @@ user_bootstrap(void)
 
     // idle thread + init
     struct Label th_label;
+    struct Label th_clearance;
+    label_init(&th_clearance, 2);
 
     uint64_t idle_handle = handle_alloc();
     label_init(&obj_label, 1);
     assert(0 == label_set(&obj_label, idle_handle, LB_LEVEL_STAR));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, idle_handle, LB_LEVEL_STAR));
-    thread_create_embed(rc, &obj_label, &th_label, "idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+    thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
+			"idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
 
     label_init(&obj_label, 1);
     assert(0 == label_set(&obj_label, user_root_handle, LB_LEVEL_STAR));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, user_root_handle, LB_LEVEL_STAR));
-    thread_create_embed(rc, &obj_label, &th_label, "init", rc->ct_ko.ko_id, 0);
+    thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
+			"init", rc->ct_ko.ko_id, 0);
 }
 
 void

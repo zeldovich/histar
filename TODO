@@ -24,9 +24,9 @@ make the mount table a separate segment that can be shared
 a nice c++ label object
 refcounted objects/pointers
 
-threads should not be able to raise their label arbitrarily.
-should have something equivalent to a receive label, which
-indicates the maximum of your thread's label.
+thread clearance:
+ - more meaningful checks across gate transitions
+ - sys_thread_set_clearance()
 
 min/max labels on MLT to control contamination
 
