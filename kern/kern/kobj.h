@@ -36,6 +36,9 @@ struct kobject {
 	struct {
 	    struct kobject_persistent;
 	    struct pagetree ko_pt;
+
+	    LIST_ENTRY(kobject) ko_link;
+	    LIST_ENTRY(kobject) ko_hash;
 	};
     };
 };
@@ -45,7 +48,7 @@ struct kobject_pair {
     struct kobject snapshot;
 };
 
-LIST_HEAD(kobject_list, kobject_hdr);
+LIST_HEAD(kobject_list, kobject);
 extern struct kobject_list ko_list;
 
 void kobject_init(void);

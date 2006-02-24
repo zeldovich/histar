@@ -31,9 +31,6 @@ struct kobject_hdr {
     // Ephemeral state (doesn't persist across swapout)
     uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
     uint32_t ko_pin;	// header is pinned (linked lists)
-
-    LIST_ENTRY(kobject_hdr) ko_link;
-    LIST_ENTRY(kobject_hdr) ko_hash;
 };
 
 typedef enum {

@@ -125,16 +125,16 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
     if (id == kobject_id_thread_sg)
 	id = cur_thread->th_sg;
 
-    struct kobject_hdr *ko;
+    struct kobject *ko;
     LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
-	if (ko->ko_id == id) {
-	    int r = kobject_iflow_check(ko, iflow);
+	if (ko->hdr.ko_id == id) {
+	    int r = kobject_iflow_check(&ko->hdr, iflow);
 	    if (r < 0)
 		return r;
 
-	    *kp = kobject_h2k(ko);
+	    *kp = ko;
 	    if (kobject_gen_debug)
-		kobject_gen_notify(ko);
+		kobject_gen_notify(&ko->hdr);
 	    return 0;
 	}
     }
@@ -180,8 +180,8 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     pagetree_init(&ko->ko_pt);
 
     kobject_negative_remove(kh->ko_id);
-    LIST_INSERT_HEAD(&ko_list, kh, ko_link);
-    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), kh, ko_hash);
+    LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), ko, ko_hash);
 
     *kp = ko;
     if (kobject_gen_debug)
@@ -281,9 +281,9 @@ kobject_swapin(struct kobject *ko)
 	cprintf("kobject_swapin: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
 		ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
 
-    struct kobject_hdr *kx;
+    struct kobject *kx;
     LIST_FOREACH(kx, &ko_list, ko_link)
-	if (ko->hdr.ko_id == kx->ko_id)
+	if (ko->hdr.ko_id == kx->hdr.ko_id)
 	    panic("kobject_swapin: duplicate %ld (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
 
@@ -291,8 +291,8 @@ kobject_swapin(struct kobject *ko)
 	kobject_gen_notify(&ko->hdr);
 
     kobject_negative_remove(ko->hdr.ko_id);
-    LIST_INSERT_HEAD(&ko_list, &ko->hdr, ko_link);
-    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), &ko->hdr, ko_hash);
+    LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), ko, ko_hash);
 
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
@@ -405,13 +405,13 @@ kobject_gc_scan(void)
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
-    struct kobject_hdr *ko;
+    struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-	if (ko->ko_ref == 0 && ko->ko_type != kobj_dead) {
-	    if (ko->ko_type == kobj_thread)
-		thread_zero_refs(&kobject_h2k(ko)->th);
-	    if (ko->ko_pin == 0)
-		kobject_gc(kobject_dirty(ko));
+	if (ko->hdr.ko_ref == 0 && ko->hdr.ko_type != kobj_dead) {
+	    if (ko->hdr.ko_type == kobj_thread)
+		thread_zero_refs(&ko->th);
+	    if (ko->hdr.ko_pin == 0)
+		kobject_gc(kobject_dirty(&ko->hdr));
 	}
     }
 
@@ -438,8 +438,8 @@ kobject_swapout(struct kobject *ko)
     if (ko->hdr.ko_type == kobj_address_space)
 	as_swapout(&ko->as);
 
-    LIST_REMOVE(&ko->hdr, ko_link);
-    LIST_REMOVE(&ko->hdr, ko_hash);
+    LIST_REMOVE(ko, ko_link);
+    LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt);
     page_free(ko);
 }
@@ -573,19 +573,18 @@ kobject_reclaim(void)
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
-    struct kobject_hdr *next;
-    for (struct kobject_hdr *kh = LIST_FIRST(&ko_list); kh != 0; kh = next) {
-	next = LIST_NEXT(kh, ko_link);
-	struct kobject *ko = kobject_h2k(kh);
+    struct kobject *next;
+    for (struct kobject *ko = LIST_FIRST(&ko_list); ko != 0; ko = next) {
+	next = LIST_NEXT(ko, ko_link);
 
-	if (kh->ko_pin || kobject_initial(ko))
+	if (ko->hdr.ko_pin || kobject_initial(ko))
 	    continue;
-	if ((kh->ko_flags & (KOBJ_DIRTY | KOBJ_SNAPSHOT_DIRTY)))
+	if ((ko->hdr.ko_flags & (KOBJ_DIRTY | KOBJ_SNAPSHOT_DIRTY)))
 	    continue;
 
 	if (kobject_reclaim_debug)
 	    cprintf("kobject_reclaim: swapping out %ld (%s)\n",
-		    kh->ko_id, kh->ko_name);
+		    ko->hdr.ko_id, ko->hdr.ko_name);
 
 	kobject_swapout(ko);
     }

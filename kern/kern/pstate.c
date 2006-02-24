@@ -552,19 +552,19 @@ static int
 pstate_sync_loop(struct pstate_header *hdr,
 		 struct swapout_stats *stats)
 {
-    struct kobject_hdr *ko;
+    struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-	if (!(ko->ko_flags & KOBJ_SNAPSHOTING))
+	if (!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING))
 	    continue;
 
-	struct kobject *snap = kobject_get_snapshot(ko);
+	struct kobject *snap = kobject_get_snapshot(&ko->hdr);
 	if (snap->hdr.ko_type == kobj_dead) {
 	    pstate_kobj_free(&flist, snap);
 	    stats->dead_kobj++;
 	    continue;
 	}
 
-	int r = pstate_sync_kobj(stats, ko);
+	int r = pstate_sync_kobj(stats, &ko->hdr);
 	if (r < 0)
 	    return r;
     }
@@ -641,12 +641,12 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     struct swapout_stats stats;
     memset(&stats, 0, sizeof(stats));
 
-    struct kobject_hdr *ko, *ko_next;
+    struct kobject *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
 	stats.total_kobj++;
-	if ((ko->ko_flags & KOBJ_DIRTY)) {
-	    kobject_snapshot(ko);
-	    ko->ko_flags |= KOBJ_SNAPSHOT_DIRTY;
+	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
+	    kobject_snapshot(&ko->hdr);
+	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;
 	    stats.snapshoted_kobj++;
 	}
     }
@@ -658,18 +658,18 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
 	ko_next = LIST_NEXT(ko, ko_link);
 
-	if ((ko->ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
-	    ko->ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
+	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
+	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
 	    if (r < 0)
-		ko->ko_flags |= KOBJ_DIRTY;
+		ko->hdr.ko_flags |= KOBJ_DIRTY;
 	}
 
-	if ((ko->ko_flags & KOBJ_SNAPSHOTING)) {
-	    struct kobject *snap = kobject_get_snapshot(ko);
-	    kobject_snapshot_release(ko);
+	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
+	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+	    kobject_snapshot_release(&ko->hdr);
 
 	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
-		kobject_swapout(kobject_h2k(ko));
+		kobject_swapout(ko);
 	}
     }
 
