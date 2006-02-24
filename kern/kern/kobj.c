@@ -19,7 +19,7 @@ static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 
 static int kobject_reclaim_debug = 1;
 static int kobject_checksum_pedantic = 0;
-static int kobject_print_sizes = 1;
+static int kobject_print_sizes = 0;
 
 struct kobject *
 kobject_h2k(struct kobject_hdr *kh)

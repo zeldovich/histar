@@ -18,10 +18,11 @@ typedef enum {
 struct Thread {
     struct kobject_hdr th_ko;
 
-    struct Trapframe th_tf __attribute__ ((aligned (16)));
-
     struct cobj_ref th_asref;
     const struct Address_space *th_as;
+
+    struct Trapframe th_tf __attribute__ ((aligned (16)));
+    struct Label th_clearance;
 
     // The thread's associated segment & container
     kobject_id_t th_sg;
