@@ -12,7 +12,7 @@ struct Segment {
 };
 
 int  segment_alloc(const struct Label *l, struct Segment **sgp);
-int  segment_copy(const struct Segment *src, struct Label *newl,
+int  segment_copy(const struct Segment *src, const struct Label *newl,
 		  struct Segment **dstp);
 int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes);
 void segment_snapshot(struct Segment *sg);

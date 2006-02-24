@@ -27,7 +27,7 @@ segment_swapin(struct Segment *sg)
 }
 
 int
-segment_copy(const struct Segment *src, struct Label *newl,
+segment_copy(const struct Segment *src, const struct Label *newl,
 	     struct Segment **dstp)
 {
     struct Segment *dst;
