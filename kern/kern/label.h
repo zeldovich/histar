@@ -32,7 +32,7 @@ int  label_compare(const struct Label *l1,
 
 // computes max according to specified level ordering (<= operator)
 int  label_max(const struct Label *a, const struct Label *b,
-	       struct Label *dst, level_comparator cmp);
+	       struct Label *dst, level_comparator leq);
 
 // debugging: print a label
 void label_cprint(const struct Label *l);
