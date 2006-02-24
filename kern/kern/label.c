@@ -214,6 +214,14 @@ label_eq(level_t a, level_t b)
     return -E_LABEL;
 }
 
+int
+label_leq_rhs_low_except_star(level_t a, level_t b)
+{
+    if (b == LB_LEVEL_STAR)
+	return 0;
+    return -E_LABEL;
+}
+
 void
 label_cprint(const struct Label *l)
 {

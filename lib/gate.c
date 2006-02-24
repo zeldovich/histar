@@ -74,7 +74,7 @@ gate_return_entrystack(struct u_gate_entry *ug,
     uint64_t gate_label_ents[nents];
     struct ulabel gate_label = { .ul_size = nents, .ul_ent = &gate_label_ents[0] };
 
-    int r = sys_gate_send_label(return_gate, &gate_label);
+    int r = sys_obj_get_label(return_gate, &gate_label);
     if (r < 0)
 	panic("gate_return_entrystack: getting send label: %s", e2s(r));
 
@@ -90,7 +90,11 @@ gate_return_entrystack(struct u_gate_entry *ug,
 	printf("gate_return_entrystack: return label %s\n",
 	       label_to_string(&gate_label));
 
-    r = sys_gate_enter(return_gate, &gate_label, arg.container, arg.object);
+    struct ulabel return_clearance = { .ul_nent = 0, .ul_default = 2 };
+
+    r = sys_gate_enter(return_gate,
+		       &gate_label, &return_clearance,
+		       arg.container, arg.object);
     panic("gate_return_entrystack: gate_enter: label %s: %s",
 	  label_to_string(&gate_label), e2s(r));
 }
@@ -158,7 +162,9 @@ gate_create(struct u_gate_entry *ug,
 	    uint64_t gate_container,
 	    uint64_t entry_container,
 	    void (*func) (void*, struct cobj_ref*), void *func_arg,
-	    const char *name, struct ulabel *l_send)
+	    const char *name,
+	    struct ulabel *l_send,
+	    struct ulabel *l_recv)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
     int r = sys_segment_resize(tseg, PGSIZE);
@@ -173,9 +179,6 @@ gate_create(struct u_gate_entry *ug,
     ug->container = entry_container;
     ug->func = func;
     ug->func_arg = func_arg;
-
-    // XXX this should probably be more constrainted, or argument-specified
-    struct ulabel l_recv = { .ul_nent = 0, .ul_default = 3 };
 
     if (l_send == 0)
 	l_send = label_get_current();
@@ -193,7 +196,7 @@ gate_create(struct u_gate_entry *ug,
 	goto out;
 
     int64_t gate_id = sys_gate_create(gate_container, &te,
-				      &l_recv, l_send, name);
+				      l_recv, l_send, name);
     if (gate_id < 0) {
 	r = gate_id;
 	goto out;
@@ -255,7 +258,7 @@ gate_call_setup_return(struct gate_return *gr,
     if (l_recv == 0)
 	return -E_NO_MEM;
 
-    l_recv->ul_default = 3;
+    l_recv->ul_default = 2;
     int r = label_set_level(l_recv, gr->return_handle, 0, 1);
     if (r < 0)
 	return r;
@@ -355,7 +358,7 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 	uint64_t gate_label_ents[nents];
 	struct ulabel gate_label = { .ul_size = nents, .ul_ent = &gate_label_ents[0] };
 
-	r = sys_gate_send_label(gate, &gate_label);
+	r = sys_obj_get_label(gate, &gate_label);
 	if (r < 0) {
 	    cprintf("gate_call: getting send label: %s", e2s(r));
 	    goto out4;
@@ -380,7 +383,7 @@ gate_call(struct cobj_ref gate, struct cobj_ref *argp)
 	struct gate_call_args *gate_args = thread_local_seg;
 	gate_args->return_gate = return_gate;
 	gate_args->arg = *argp;
-	r = sys_gate_enter(gate, &gate_label, 0, 0);
+	r = sys_gate_enter(gate, &gate_label, 0, 0, 0);
 	if (r == 0)
 	    panic("gate_call: sys_gate_enter returned 0");
     }

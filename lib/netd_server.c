@@ -121,9 +121,13 @@ netd_server_init(uint64_t gate_ct, uint64_t entry_ct, struct ulabel *l)
     if (netd_gate_ct < 0)
 	return netd_gate_ct;
 
+    struct ulabel l_recv = { .ul_default = 2, .ul_nent = 0 };
+
     netd_ct = entry_ct;
     netd_ready = 0;
-    int r = gate_create(&netd_gate, netd_gate_ct, entry_ct, &netd_gate_entry, 0, "netd", l);
+    int r = gate_create(&netd_gate, netd_gate_ct, entry_ct,
+			&netd_gate_entry, 0, "netd",
+			l, &l_recv);
     return r;
 }
 

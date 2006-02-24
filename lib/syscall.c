@@ -96,16 +96,18 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
 }
 
 int
-sys_gate_enter(struct cobj_ref gate, struct ulabel *l,
+sys_gate_enter(struct cobj_ref gate,
+	       struct ulabel *l,
+	       struct ulabel *clearance,
 	       uint64_t a1, uint64_t a2)
 {
-    return syscall(SYS_gate_enter, gate, l, a1, a2);
+    return syscall(SYS_gate_enter, gate, l, clearance, a1, a2);
 }
 
 int
-sys_gate_send_label(struct cobj_ref gate, struct ulabel *ul)
+sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
 {
-    return syscall(SYS_gate_send_label, gate, ul);
+    return syscall(SYS_gate_clearance, gate, ul);
 }
 
 int64_t

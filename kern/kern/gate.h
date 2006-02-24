@@ -9,12 +9,12 @@
 struct Gate {
     struct kobject_hdr gt_ko;
 
-    struct Label gt_recv_label;
-    struct Label gt_send_label;
-
+    struct Label gt_clearance;
     struct thread_entry gt_te;
 };
 
-int  gate_alloc(const struct Label *l, struct Gate **gp);
+int  gate_alloc(const struct Label *l,
+		const struct Label *clearance,
+		struct Gate **gp);
 
 #endif

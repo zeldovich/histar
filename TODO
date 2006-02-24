@@ -24,9 +24,6 @@ make the mount table a separate segment that can be shared
 a nice c++ label object
 refcounted objects/pointers
 
-thread clearance:
- - more meaningful checks across gate transitions
-
 min/max labels on MLT to control contamination
 
 MT-safe c++ support (lib/cppsup/bits/gthr.h)

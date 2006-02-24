@@ -18,7 +18,9 @@ int	gate_create(struct u_gate_entry *ug,
 		    uint64_t gate_container,
 		    uint64_t entry_container,
 		    void (*func)(void*, struct cobj_ref*), void *func_arg,
-		    const char *name, struct ulabel *l_send);
+		    const char *name,
+		    struct ulabel *l_send,
+		    struct ulabel *l_recv);
 int	gate_call(struct cobj_ref gate, struct cobj_ref *arg);
 
 #endif
