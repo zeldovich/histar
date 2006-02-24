@@ -61,14 +61,15 @@ prof_reset(void)
 }
 
 static void
-print_entry(struct entry *tab, int i)
+print_entry(struct entry *tab, int i, const char *name)
 {
 	if (tab[i].count)
-		cprintf("%3d: count %12ld total %12ld avg %12ld\n",
+		cprintf("%2d cnt%12ld tot%12ld avg%12ld %s\n",
 			i,
 			tab[i].count,
 			tab[i].time,
-			tab[i].time / tab[i].count);
+			tab[i].time / tab[i].count,
+			name);
 }
 
 void
@@ -76,14 +77,14 @@ prof_print(void)
 {
 	cprintf("prof_print: syscalls\n");
 	for (int i = 0 ; i < NSYSCALLS ; i++)
-		print_entry(&sysc_table[0], i);
+		print_entry(&sysc_table[0], i, syscall2s(i));
 
 	cprintf("prof_print: traps\n");
 	for (int i = 0 ; i < NTRAPS ; i++)
-		print_entry(&trap_table[0], i);
+		print_entry(&trap_table[0], i, "trap");
 
 	cprintf("prof_print: user\n");
-	print_entry(&user_table[0], 0);
+	print_entry(&user_table[0], 0, "user");
 
 	prof_reset();
 }

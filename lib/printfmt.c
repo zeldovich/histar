@@ -4,6 +4,7 @@
 
 #include <inc/types.h>
 #include <inc/error.h>
+#include <inc/syscall_num.h>
 
 #ifdef JOS_KERNEL
 #include <kern/lib.h>
@@ -48,6 +49,19 @@ e2s(int err) {
     if (s == 0)
 	s = "missing error definition in error_string[] table";
     return s;
+}
+
+#define SYSCALL_ENTRY(name) [SYS_##name] = #name,
+static const char *const syscall_names[NSYSCALLS] = {
+    ALL_SYSCALLS
+};
+#undef SYSCALL_ENTRY
+
+const char *
+syscall2s(uint32_t sys) {
+    if (sys >= NSYSCALLS)
+	return "out of range";
+    return syscall_names[sys];
 }
 
 /*

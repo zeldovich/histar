@@ -1,61 +1,55 @@
 #ifndef JOS_INC_SYSCALLNUM_H
 #define JOS_INC_SYSCALLNUM_H
 
+#define ALL_SYSCALLS \
+    SYSCALL_ENTRY(cons_puts)			\
+    SYSCALL_ENTRY(cons_getc)			\
+    SYSCALL_ENTRY(net_create)			\
+    SYSCALL_ENTRY(net_wait)			\
+    SYSCALL_ENTRY(net_buf)			\
+    SYSCALL_ENTRY(net_macaddr)			\
+    SYSCALL_ENTRY(container_alloc)		\
+    SYSCALL_ENTRY(container_nslots)		\
+    SYSCALL_ENTRY(container_get_slot_id)	\
+    SYSCALL_ENTRY(obj_unref)			\
+    SYSCALL_ENTRY(obj_get_type)			\
+    SYSCALL_ENTRY(obj_get_label)		\
+    SYSCALL_ENTRY(obj_get_name)			\
+    SYSCALL_ENTRY(handle_create)		\
+    SYSCALL_ENTRY(gate_create)			\
+    SYSCALL_ENTRY(gate_enter)			\
+    SYSCALL_ENTRY(gate_clearance)		\
+    SYSCALL_ENTRY(thread_create)		\
+    SYSCALL_ENTRY(thread_start)			\
+    SYSCALL_ENTRY(thread_yield)			\
+    SYSCALL_ENTRY(thread_halt)			\
+    SYSCALL_ENTRY(thread_id)			\
+    SYSCALL_ENTRY(thread_addref)		\
+    SYSCALL_ENTRY(thread_set_label)		\
+    SYSCALL_ENTRY(thread_set_clearance)		\
+    SYSCALL_ENTRY(thread_get_as)		\
+    SYSCALL_ENTRY(thread_set_as)		\
+    SYSCALL_ENTRY(thread_sync_wait)		\
+    SYSCALL_ENTRY(thread_sync_wakeup)		\
+    SYSCALL_ENTRY(clock_msec)			\
+    SYSCALL_ENTRY(segment_create)		\
+    SYSCALL_ENTRY(segment_copy)			\
+    SYSCALL_ENTRY(segment_resize)		\
+    SYSCALL_ENTRY(segment_get_nbytes)		\
+    SYSCALL_ENTRY(as_create)			\
+    SYSCALL_ENTRY(as_get)			\
+    SYSCALL_ENTRY(as_set)			\
+    SYSCALL_ENTRY(mlt_create)			\
+    SYSCALL_ENTRY(mlt_put)			\
+    SYSCALL_ENTRY(mlt_get)			\
+
+#define SYSCALL_ENTRY(name)	SYS_##name,
+
 typedef enum {
-    SYS_cons_puts = 0,
-    SYS_cons_getc,
-
-    SYS_net_create,
-    SYS_net_wait,
-    SYS_net_buf,
-    SYS_net_macaddr,
-
-    SYS_container_alloc,
-    SYS_container_nslots,
-    SYS_container_get_slot_id,
-
-    SYS_obj_unref,
-    SYS_obj_get_type,
-    SYS_obj_get_label,
-    SYS_obj_get_name,
-
-    SYS_handle_create,
-
-    SYS_gate_create,
-    SYS_gate_enter,
-    SYS_gate_clearance,
-
-    SYS_thread_create,
-    SYS_thread_start,
-    SYS_thread_yield,
-    SYS_thread_halt,
-    SYS_thread_id,
-    SYS_thread_addref,
-    SYS_thread_set_label,
-    SYS_thread_set_clearance,
-
-    SYS_thread_get_as,
-    SYS_thread_set_as,
-
-    SYS_thread_sync_wait,
-    SYS_thread_sync_wakeup,
-
-    SYS_clock_msec,
-
-    SYS_segment_create,
-    SYS_segment_copy,
-    SYS_segment_resize,
-    SYS_segment_get_nbytes,
-
-    SYS_as_create,
-    SYS_as_get,
-    SYS_as_set,
-
-    SYS_mlt_create,
-    SYS_mlt_put,
-    SYS_mlt_get,
-
+    ALL_SYSCALLS
     NSYSCALLS
 } syscall_num;
+
+#undef SYSCALL_ENTRY
 
 #endif
