@@ -51,6 +51,7 @@ int	sys_thread_addref(uint64_t container);
 int	sys_thread_get_as(struct cobj_ref *as_obj);
 int	sys_thread_set_as(struct cobj_ref as_obj);
 int	sys_thread_set_label(struct ulabel *l);
+int	sys_thread_set_clearance(struct ulabel *l);
 int	sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val,
 			     uint64_t wakeup_at_msec);
 int	sys_thread_sync_wakeup(volatile uint64_t *addr);

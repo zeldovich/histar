@@ -26,7 +26,6 @@ refcounted objects/pointers
 
 thread clearance:
  - more meaningful checks across gate transitions
- - sys_thread_set_clearance()
 
 min/max labels on MLT to control contamination
 

@@ -408,6 +408,19 @@ sys_thread_set_label(struct ulabel *ul)
 }
 
 static void
+sys_thread_set_clearance(struct ulabel *uclear)
+{
+    struct Label clearance;
+    check(ulabel_to_label(uclear, &clearance));
+
+    struct Label clearance_bound;
+    check(label_max(&cur_thread->th_clearance, &cur_thread->th_ko.ko_label,
+		    &clearance_bound, label_leq_starhi));
+    check(label_compare(&clearance, &clearance_bound, label_leq_starhi));
+    kobject_dirty(&cur_thread->th_ko)->th.th_clearance = clearance;
+}
+
+static void
 sys_thread_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
@@ -718,6 +731,10 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_thread_set_label:
 	sys_thread_set_label((struct ulabel *) a1);
+	break;
+
+    case SYS_thread_set_clearance:
+	sys_thread_set_clearance((struct ulabel *) a1);
 	break;
 
     case SYS_thread_sync_wait:

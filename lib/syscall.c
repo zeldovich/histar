@@ -164,6 +164,12 @@ sys_thread_set_label(struct ulabel *l)
 }
 
 int
+sys_thread_set_clearance(struct ulabel *l)
+{
+    return syscall(SYS_thread_set_clearance, l);
+}
+
+int
 sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_thread_sync_wait, addr, val, msec);
