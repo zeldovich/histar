@@ -9,9 +9,12 @@
 #include <inc/string.h>
 #include <inc/pthread.h>
 
-#define NMAPPINGS 32
-static struct u_segment_mapping ents[NMAPPINGS];
-static struct u_address_space uas = { .size = NMAPPINGS, .ents = &ents[0] };
+#define NMAPPINGS 64
+static struct u_segment_mapping cache_ents[NMAPPINGS];
+static struct u_address_space cache_uas = { .size = NMAPPINGS,
+					    .ents = &cache_ents[0] };
+static uint64_t cache_asid = kobject_id_null;
+
 static pthread_mutex_t as_mutex;
 
 static struct ulabel *seg_create_label;
@@ -40,6 +43,28 @@ as_mutex_unlock(void) {
     pthread_mutex_unlock(&as_mutex);
 }
 
+static int
+cache_refresh(struct cobj_ref as)
+{
+    if (as.object == cache_asid)
+	return 0;
+
+    int r = sys_as_get(as, &cache_uas);
+    if (r < 0) {
+	cache_asid = kobject_id_null;
+	return r;
+    }
+
+    cache_asid = as.object;
+    return 0;
+}
+
+static void
+cache_invalidate(void)
+{
+    cache_asid = kobject_id_null;
+}
+
 static void
 segment_map_print(struct u_address_space *as)
 {
@@ -66,16 +91,18 @@ segment_unmap(void *va)
 	return r;
 
     as_mutex_lock();
-    r = sys_as_get(as_ref, &uas);
+    r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
 	return r;
     }
 
-    for (uint64_t i = 0; i < uas.nent; i++) {
-	if (uas.ents[i].va == va && uas.ents[i].flags) {
-	    uas.ents[i].flags = 0;
-	    r = sys_as_set(as_ref, &uas);
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	if (cache_uas.ents[i].va == va && cache_uas.ents[i].flags) {
+	    cache_uas.ents[i].flags = 0;
+	    r = sys_as_set(as_ref, &cache_uas);
+	    if (r < 0)
+		cache_invalidate();
 	    as_mutex_unlock();
 	    return r;
 	}
@@ -94,18 +121,18 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 	return r;
 
     as_mutex_lock();
-    r = sys_as_get(as_ref, &uas);
+    r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
 	return r;
     }
 
-    for (uint64_t i = 0; i < uas.nent; i++) {
-	void *va_start = uas.ents[i].va;
-	void *va_end = uas.ents[i].va + uas.ents[i].num_pages * PGSIZE;
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	void *va_start = cache_uas.ents[i].va;
+	void *va_end = cache_uas.ents[i].va + cache_uas.ents[i].num_pages * PGSIZE;
 	if (va >= va_start && va < va_end) {
 	    if (seg)
-		*seg = uas.ents[i].segment;
+		*seg = cache_uas.ents[i].segment;
 	    if (npage)
 		*npage = (va - va_start) / PGSIZE;
 	    as_mutex_unlock();
@@ -126,16 +153,16 @@ segment_lookup_obj(uint64_t oid, void **vap)
 	return r;
 
     as_mutex_lock();
-    r = sys_as_get(as_ref, &uas);
+    r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
 	return r;
     }
 
-    for (uint64_t i = 0; i < uas.nent; i++) {
-	if (uas.ents[i].segment.object == oid) {
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	if (cache_uas.ents[i].segment.object == oid) {
 	    if (vap)
-		*vap = uas.ents[i].va;
+		*vap = cache_uas.ents[i].va;
 	    as_mutex_unlock();
 	    return 1;
 	}
@@ -172,14 +199,13 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     uint64_t map_bytes = ROUNDUP(nbytes, PGSIZE);
 
     as_mutex_lock();
-    memset(&ents, 0, sizeof(ents));
-    int r = sys_as_get(as_ref, &uas);
+    int r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
 	return r;
     }
 
-    int free_segslot = uas.nent;
+    uint32_t free_segslot = cache_uas.nent;
     char *va_start = (char *) UMMAPBASE;
     char *va_end;
 
@@ -197,23 +223,23 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 
 retry:
     va_end = va_start + map_bytes;
-    for (uint64_t i = 0; i < uas.nent; i++) {
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	// If it's the same segment we're trying to map, allow remapping
-	if (fixed_va && uas.ents[i].flags &&
-	    uas.ents[i].segment.object == seg.object &&
-	    uas.ents[i].va == va_start &&
-	    uas.ents[i].start_page == 0)
+	if (fixed_va && cache_uas.ents[i].flags &&
+	    cache_uas.ents[i].segment.object == seg.object &&
+	    cache_uas.ents[i].va == va_start &&
+	    cache_uas.ents[i].start_page == 0)
 	{
-	    uas.ents[i].flags = 0;
+	    cache_uas.ents[i].flags = 0;
 	}
 
-	if (uas.ents[i].flags == 0) {
+	if (cache_uas.ents[i].flags == 0) {
 	    free_segslot = i;
 	    continue;
 	}
 
-	char *m_start = uas.ents[i].va;
-	char *m_end = m_start + uas.ents[i].num_pages * PGSIZE;
+	char *m_start = cache_uas.ents[i].va;
+	char *m_end = m_start + cache_uas.ents[i].num_pages * PGSIZE;
 
 	// Leave unmapped gaps between mappings, when possible
 	if (!fixed_va && m_start <= va_end && m_end >= va_start) {
@@ -236,19 +262,24 @@ retry:
 
     if (free_segslot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
-	segment_map_print(&uas);
+	segment_map_print(&cache_uas);
 	as_mutex_unlock();
 	return -E_NO_MEM;
     }
 
-    uas.ents[free_segslot].segment = seg;
-    uas.ents[free_segslot].start_page = 0;
-    uas.ents[free_segslot].num_pages = map_bytes / PGSIZE;
-    uas.ents[free_segslot].flags = flags;
-    uas.ents[free_segslot].va = va_start;
-    uas.nent = NMAPPINGS;
+    cache_uas.ents[free_segslot].segment = seg;
+    cache_uas.ents[free_segslot].start_page = 0;
+    cache_uas.ents[free_segslot].num_pages = map_bytes / PGSIZE;
+    cache_uas.ents[free_segslot].flags = flags;
+    cache_uas.ents[free_segslot].va = va_start;
 
-    r = sys_as_set(as_ref, &uas);
+    if (free_segslot == cache_uas.nent)
+	cache_uas.nent = free_segslot + 1;
+
+    r = sys_as_set(as_ref, &cache_uas);
+    if (r < 0)
+	cache_invalidate();
+
     as_mutex_unlock();
     if (r < 0)
 	return r;
