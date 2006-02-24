@@ -81,7 +81,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 
 	    page_free(p);
 	}
-	
+
 	freelist_free_later(f, mobj.off, mobj.nbytes);
 	btree_delete(&iobjlist, &ko->hdr.ko_id);
 	btree_delete(&objmap, &ko->hdr.ko_id);
@@ -110,8 +110,9 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     }
 
     if (kobject_initial(ko)) {
-	r = btree_insert(&iobjlist, &ko->hdr.ko_id, &offset) ;
-		
+	uint64_t dummy = 0;
+	r = btree_insert(&iobjlist, &ko->hdr.ko_id, &dummy);
+
 	if (r < 0) {
 	    cprintf("pstate_kobj_alloc: iobjlist insert failed, disk full?\n");
 	    return r;
@@ -125,11 +126,10 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 //////////////////////////////////////////////////
 
 struct pstate_iov_collector {
-    struct iovec *iov_buf;
-    int iov_cnt;
-    int iov_max;
-
+    struct iovec iov_buf[DISK_REQMAX / PGSIZE];
+    uint32_t iov_cnt;
     uint32_t iov_bytes;
+
     uint64_t flush_off;
     disk_op flush_op;
 };
@@ -155,7 +155,9 @@ pstate_iov_flush(struct pstate_iov_collector *x)
 static int
 pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
 {
-    if (x->iov_cnt == x->iov_max) {
+    uint32_t iov_max = sizeof(x->iov_buf) / sizeof(x->iov_buf[0]);
+
+    if (x->iov_cnt == iov_max) {
 	int r = pstate_iov_flush(x);
 	if (r < 0)
 	    return r;
@@ -173,7 +175,7 @@ pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
 //////////////////////////////////
 
 static int
-pstate_swapin_off(offset_t off)
+pstate_swapin_mobj(struct mobject mobj)
 {
     void *p;
     int r = page_alloc(&p);
@@ -183,35 +185,45 @@ pstate_swapin_off(offset_t off)
     }
 
     struct kobject *ko = (struct kobject *) p;
-
-    disk_io_status s = stackwrap_disk_io(op_read, p, KOBJ_DISK_SIZE, off);
-    if (s != disk_io_success) {
-	cprintf("pstate_swapin_obj: cannot read object from disk\n");
-	return -E_IO;
-    }
-
     pagetree_init(&ko->ko_pt);
-    for (uint64_t page = 0; page < kobject_npages(&ko->hdr); page++) {
+
+    struct pstate_iov_collector x;
+    memset(&x, 0, sizeof(x));
+
+    x.flush_off = mobj.off;
+    x.flush_op = op_read;
+
+    r = pstate_iov_append(&x, p, KOBJ_DISK_SIZE);
+    if (r < 0)
+	goto err;
+
+    uint64_t ko_bytes = mobj.nbytes - KOBJ_DISK_SIZE;
+    for (uint64_t page = 0; page < ROUNDUP(ko_bytes, PGSIZE) / PGSIZE; page++) {
 	r = page_alloc(&p);
 	if (r < 0) {
 	    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
 	    return r;
 	}
 
-	uint32_t pagebytes = MIN(ROUNDUP(ko->hdr.ko_nbytes - page * PGSIZE,
+	r = pagetree_put_page(&ko->ko_pt, page, p);
+	if (r < 0) {
+	    page_free(p);
+	    goto err;
+	}
+
+	uint32_t pagebytes = MIN(ROUNDUP(ko_bytes - page * PGSIZE,
 					 512), (uint32_t) PGSIZE);
 	if (pagebytes != PGSIZE)
 	    memset(p, 0, PGSIZE);
 
-	s = stackwrap_disk_io(op_read, p, pagebytes,
-			      off + KOBJ_DISK_SIZE + page * PGSIZE);
-	if (s != disk_io_success) {
-	    cprintf("pstate_swapin_obj: cannot read page from disk\n");
-	    return -E_IO;
-	}
-
-	assert(0 == pagetree_put_page(&ko->ko_pt, page, p));
+	r = pstate_iov_append(&x, p, pagebytes);
+	if (r < 0)
+	    goto err;
     }
+
+    r = pstate_iov_flush(&x);
+    if (r < 0)
+	goto err;
 
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin_obj: id %ld nbytes %ld\n",
@@ -219,6 +231,33 @@ pstate_swapin_off(offset_t off)
 
     kobject_swapin(ko);
     return 0;
+
+err:
+    pagetree_free(&ko->ko_pt);
+    page_free(p);
+    return r;
+}
+
+static int
+pstate_swapin_id(kobject_id_t id)
+{
+    kobject_id_t id_found;
+    struct mobject mobj;
+
+    int r = btree_search(&objmap, &id, &id_found, (uint64_t *) &mobj);
+    if (r == -E_NOT_FOUND) {
+	if (pstate_swapin_debug)
+	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
+	kobject_negative_insert(id);
+    } else if (r < 0) {
+	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
+    } else {
+	r = pstate_swapin_mobj(mobj);
+	if (r < 0)
+	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
+    }
+
+    return r;
 }
 
 static void
@@ -238,20 +277,7 @@ pstate_swapin_stackwrap(void *arg)
     swapin_active = 1;
 
     kobject_id_t id = (kobject_id_t) arg;
-    kobject_id_t id_found;
-    struct mobject mobj;
-    int r = btree_search(&objmap, &id, &id_found, (uint64_t *) &mobj);
-    if (r == -E_NOT_FOUND) {
-	if (pstate_swapin_debug)
-	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
-	kobject_negative_insert(id);
-    } else if (r < 0) {
-	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
-    } else {
-	r = pstate_swapin_off(mobj.off);
-	if (r < 0)
-	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
-    }
+    pstate_swapin_id(id);
 
     swapin_active = 0;
 
@@ -299,12 +325,12 @@ pstate_load2(void)
 	return -E_INVAL;
     }
 
-    dlog_init() ;
-    log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
-	
-    if(stable_hdr.ph_applying) {
-	cprintf("pstate_load2: applying log\n") ;
-	pstate_sync_apply() ;
+    dlog_init();
+    log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY);
+
+    if (stable_hdr.ph_applying) {
+	cprintf("pstate_load2: applying log\n");
+	pstate_sync_apply();
 	memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
     }
 
@@ -320,15 +346,12 @@ pstate_load2(void)
 
     while (btree_next_entry(&trav)) {
 	uint64_t id = *trav.key;
-	offset_t off = *trav.val;
 	if (pstate_load_debug)
 	    cprintf("pstate_load2: paging in kobj %ld\n", id);
 
-	int r = pstate_swapin_off(off);
-
+	int r = pstate_swapin_id(id);
 	if (r < 0) {
-	    cprintf("pstate_load2: cannot swapin offset %ld: %s\n",
-		    id, e2s(r));
+	    cprintf("pstate_load2: cannot swapin %ld: %s\n", id, e2s(r));
 	    return r;
 	}
     }
@@ -424,11 +447,8 @@ pstate_sync_kobj(struct swapout_stats *stats,
     struct pstate_iov_collector x;
     memset(&x, 0, sizeof(x));
 
-    struct iovec iov_buf[DISK_REQMAX / PGSIZE];
     x.flush_off = off;
     x.flush_op = op_write;
-    x.iov_buf = &iov_buf[0];
-    x.iov_max = sizeof(iov_buf) / sizeof(iov_buf[0]);
 
     int r = pstate_iov_append(&x, snap, KOBJ_DISK_SIZE);
     if (r < 0)
