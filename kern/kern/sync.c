@@ -27,7 +27,7 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
     return -E_RESTART;
 }
 
-int
+void
 sync_wakeup_addr(uint64_t *addr)
 {
     if (sync_debug)
@@ -42,8 +42,6 @@ sync_wakeup_addr(uint64_t *addr)
 
 	t = next;
     }
-
-    return 0;
 }
 
 void

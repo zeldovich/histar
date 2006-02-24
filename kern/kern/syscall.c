@@ -450,7 +450,7 @@ static void
 sys_thread_sync_wakeup(uint64_t *addr)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
-    check(sync_wakeup_addr(addr));
+    sync_wakeup_addr(addr);
 }
 
 static uint64_t
