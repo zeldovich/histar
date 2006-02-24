@@ -91,7 +91,6 @@ thread_alloc(const struct Label *l,
 
     t->th_sg = sg->sg_ko.ko_id;
     kobject_incref(&sg->sg_ko);
-    sg->sg_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
 
     r = segment_set_nbytes(sg, PGSIZE);
     if (r < 0)
@@ -216,8 +215,26 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     if (r < 0)
 	return r;
 
+    struct Segment *sg_new;
+    r = segment_copy(&ko_sg->sg, &t->th_ko.ko_label, &sg_new);
+    if (r < 0)
+	return r;
+
+    struct Container *ct = &kobject_dirty(&ko_ct->hdr)->ct;
+    r = container_unref(ct, &ko_sg->hdr);
+    if (r < 0)
+	return r;
+
+    r = container_put(ct, &sg_new->sg_ko);
+    if (r < 0)
+	return r;
+
+    t->th_sg = sg_new->sg_ko.ko_id;
+    kobject_decref(&ko_sg->hdr);
+    kobject_incref(&sg_new->sg_ko);
+
     t->th_ko.ko_label = *label;
-    kobject_dirty(&ko_sg->hdr)->hdr.ko_label = *label;
+    sg_new->sg_ko.ko_label = *label;
     kobject_dirty(&ko_ct->hdr)->hdr.ko_label = *label;
 
     // make sure all label checks get re-evaluated
