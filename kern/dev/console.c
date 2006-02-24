@@ -2,6 +2,7 @@
 
 #include <machine/x86.h>
 #include <machine/pmap.h>
+#include <machine/pchw.h>
 #include <inc/kbdreg.h>
 
 #include <dev/console.h>
@@ -462,14 +463,7 @@ kbd_proc_data (void)
   // Ctrl-Alt-Del: reboot
   if (!(~shift & (CTL | ALT)) && c == KEY_DEL) {
     cprintf ("Rebooting!\n");
-    outb (0x92, 0x3);		// courtesy of Chris Frost
-
-#if 0
-    // triple fault - courtesy of Cliff Frey
-    extern struct Gatedesc idt[256];
-    memset (idt, 0, sizeof (idt));
-    lcr3 (0);
-#endif
+    machine_reboot();
   }
 
 #if 0

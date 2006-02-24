@@ -45,7 +45,7 @@ struct mobject {
 
 // Scratch-space for a copy of the header used while reading/writing.
 #define N_HEADER_PAGES		1
-#define PSTATE_BUF_SIZE		(N_HEADER_PAGES * PGSIZE)
+#define PSTATE_BUF_SIZE		512
 static union {
     struct pstate_header hdr;
     char buf[PSTATE_BUF_SIZE];
@@ -384,16 +384,6 @@ pstate_reset(void)
     memset(&stable_hdr, 0, sizeof(stable_hdr));
 }
 
-void
-pstate_init(void)
-{
-    pstate_reset();
-
-    static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };
-    sync_pt.pt_interval_ticks = kclock_hz;
-    timer_add_periodic(&sync_pt);
-}
-
 int
 pstate_load(void)
 {
@@ -696,10 +686,20 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 }
 
 
-void
+static void
 pstate_sync(void)
 {
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
 	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+}
+
+void
+pstate_init(void)
+{
+    pstate_reset();
+
+    static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };
+    sync_pt.pt_interval_ticks = kclock_hz;
+    timer_add_periodic(&sync_pt);
 }

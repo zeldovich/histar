@@ -16,9 +16,9 @@
 #define PSTATE_VERSION	2
 
 struct pstate_header {
-	// needs to be in 1st sector of header
-    char ph_applying ;
-    
+    // needs to be in 1st sector of header
+    char ph_applying;
+
     uint64_t ph_magic;
     uint64_t ph_version;
 
@@ -27,14 +27,13 @@ struct pstate_header {
     uint64_t ph_user_msec;
     uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
-    uint8_t ph_free[sizeof(struct freelist)] ;
-    uint8_t ph_iobjs[sizeof(struct btree_default)] ;
-    uint8_t ph_map[sizeof(struct btree_default)] ;
+    uint8_t ph_free[sizeof(struct freelist)];
+    uint8_t ph_iobjs[sizeof(struct btree_default)];
+    uint8_t ph_map[sizeof(struct btree_default)];
 };
 
 void pstate_init(void);
 int  pstate_load(void) __attribute__ ((warn_unused_result));
-void pstate_sync(void);
 
 // suspends cur_thread, and wakes it up when it should try again
 int  pstate_swapin(kobject_id_t id) __attribute__ ((warn_unused_result));
