@@ -15,6 +15,8 @@
 #include <kern/pstate.h>
 #include <kern/prof.h>
 
+char boot_cmdline[256];
+
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
  * to indicate that the kernel has already called panic.
@@ -104,19 +106,25 @@ bss_init (void)
 void __attribute__((noreturn))
 init (uint32_t start_eax, uint32_t start_ebx)
 {
+    mmu_init();
+    bss_init();
+
     struct multiboot_info *mbi = 0;
     if (start_eax == MULTIBOOT_EAX_MAGIC)
 	mbi = (struct multiboot_info *) pa2kva(start_ebx);
 
-    mmu_init ();
-    bss_init ();
-    idt_init ();
-    cons_init ();
-    pic_init ();
-    kclock_init ();
-    timer_init ();
-    pmap_init (mbi);
-    pci_init ();
+    if (mbi && (mbi->flags & MULTIBOOT_INFO_CMDLINE)) {
+	char *cmdline = pa2kva(mbi->cmdline);
+	strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
+    }
+
+    idt_init();
+    cons_init();
+    pic_init();
+    kclock_init();
+    timer_init();
+    pmap_init(mbi);
+    pci_init();
 
     kobject_init ();
     sched_init ();

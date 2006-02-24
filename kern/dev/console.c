@@ -602,6 +602,11 @@ cons_init (void)
   if (read_tsc () - output_start < 0x100000)
     output2com = 1;
 
+  if (strstr(&boot_cmdline[0], "serial=off"))
+    output2com = 0;
+  if (strstr(&boot_cmdline[0], "lpt=off"))
+    output2lpt = 0;
+
   if (!serial_exists)
     cprintf ("Serial port does not exist!\n");
 }

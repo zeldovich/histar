@@ -26,6 +26,11 @@ extern struct Pseudodesc gdtdesc;
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
+/* init.c */
+extern char boot_cmdline[];
+
+/* pmap.c */
+
 struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };

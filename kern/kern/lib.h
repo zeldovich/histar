@@ -10,6 +10,7 @@ char *strchr (const char *p, int ch);
 int strcmp (const char *s1, const char *s2);
 size_t strlen (const char *);
 char *strncpy(char *dest, const char *src, size_t size);
+char *strstr(const char *haystack, const char *needle);
 
 // printfmt.c
 int vsnprintf(char *str, size_t size, const char *fmt, va_list)
