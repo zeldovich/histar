@@ -19,32 +19,7 @@ static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 
 static int kobject_reclaim_debug = 1;
 static int kobject_checksum_pedantic = 0;
-static int kobject_print_sizes = 0;
-
-#define GEN_DEBUG 0
-static int kobject_gen_debug = GEN_DEBUG;
-
-#define kobject_gen_notify(ko) __kobject_gen_notify(ko, __LINE__)
-static void
-__kobject_gen_notify(const struct kobject_hdr *kh __attribute__((unused)),
-		     int line __attribute__((unused)))
-{
-#if GEN_DEBUG
-    enum { gen_size = 4096 };
-    static uint64_t kobject_last_seen_gen[gen_size];
-
-    assert(kh->ko_id < gen_size);
-    if (kobject_last_seen_gen[kh->ko_id] > kh->ko_gen) {
-	cprintf("kobject_gen_notify: id %ld (%s) type %d\n",
-		kh->ko_id, kh->ko_name, kh->ko_type);
-	cprintf("kobject_gen_notify: gen %ld seen %ld line %d\n",
-		kh->ko_gen, kobject_last_seen_gen[kh->ko_id], line);
-	panic("kobject rollback detected");
-    }
-
-    kobject_last_seen_gen[kh->ko_id] = kh->ko_gen;
-#endif
-}
+static int kobject_print_sizes = 1;
 
 struct kobject *
 kobject_h2k(struct kobject_hdr *kh)
@@ -133,8 +108,6 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 		return r;
 
 	    *kp = ko;
-	    if (kobject_gen_debug)
-		kobject_gen_notify(&ko->hdr);
 	    return 0;
 	}
     }
@@ -184,8 +157,6 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), ko, ko_hash);
 
     *kp = ko;
-    if (kobject_gen_debug)
-	kobject_gen_notify(kh);
     return 0;
 }
 
@@ -262,12 +233,6 @@ kobject_dirty(const struct kobject_hdr *kh)
 {
     struct kobject *ko = kobject_const_h2k(kh);
     ko->hdr.ko_flags |= KOBJ_DIRTY;
-
-    if (kobject_gen_debug) {
-	ko->hdr.ko_gen++;
-	kobject_gen_notify(kh);
-    }
-
     return ko;
 }
 
@@ -286,9 +251,6 @@ kobject_swapin(struct kobject *ko)
 	if (ko->hdr.ko_id == kx->hdr.ko_id)
 	    panic("kobject_swapin: duplicate %ld (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
-
-    if (kobject_gen_debug)
-	kobject_gen_notify(&ko->hdr);
 
     kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
