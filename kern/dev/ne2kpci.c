@@ -10,7 +10,7 @@
 #include <inc/error.h>
 #include <inc/netdev.h>
 
-#define NE2KPCI_RX_SLOTS 16
+#define NE2KPCI_RX_SLOTS 64
 
 #define NE2KPCI_TXP_BUF 0x40
 #define NE2KPCI_PSTART  0x46

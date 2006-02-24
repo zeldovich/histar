@@ -52,7 +52,7 @@
 #define IFNAME0 'e'
 #define IFNAME1 'n'
 
-#define JIF_BUFS	8
+#define JIF_BUFS	64
 
 struct jif {
     struct cobj_ref ndev;
@@ -220,8 +220,7 @@ low_level_input(struct netif *netif)
 				    (uint64_t) (bufaddr - jif->buf_base),
 				    netbuf_rx);
 		if (r < 0) {
-		    cprintf("jif: cannot feed rx packet: %s\n",
-			    e2s(r));
+		    cprintf("jif: cannot feed rx packet: %s\n", e2s(r));
 		    jif->rx[rxslot]->actual_count = -1;
 		}
 	    } else if ((jif->rx[rxslot]->actual_count & NETHDR_COUNT_DONE)) {

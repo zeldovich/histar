@@ -16,8 +16,8 @@
 #include <inc/netdev.h>
 #include <inc/error.h>
 
-#define FXP_RX_SLOTS	16
-#define FXP_TX_SLOTS	16
+#define FXP_RX_SLOTS	64
+#define FXP_TX_SLOTS	64
 
 struct fxp_tx_slot {
     struct fxp_cb_tx tcb;

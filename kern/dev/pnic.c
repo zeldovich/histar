@@ -16,7 +16,7 @@
 #include <inc/netdev.h>
 #include <inc/error.h>
 
-#define PNIC_RX_SLOTS	16
+#define PNIC_RX_SLOTS	64
 
 struct pnic_rx_slot {
     uint16_t size;
