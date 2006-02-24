@@ -33,10 +33,10 @@ struct pstate_header {
 };
 
 void pstate_init(void);
-int  pstate_load(void);
+int  pstate_load(void) __attribute__ ((warn_unused_result));
 void pstate_sync(void);
 
 // suspends cur_thread, and wakes it up when it should try again
-int  pstate_swapin(kobject_id_t id);
+int  pstate_swapin(kobject_id_t id) __attribute__ ((warn_unused_result));
 
 #endif

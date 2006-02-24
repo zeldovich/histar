@@ -11,10 +11,13 @@ struct Segment {
     struct segmap_list sg_segmap_list;
 };
 
-int  segment_alloc(const struct Label *l, struct Segment **sgp);
+int  segment_alloc(const struct Label *l, struct Segment **sgp)
+    __attribute__ ((warn_unused_result));
 int  segment_copy(const struct Segment *src, const struct Label *newl,
-		  struct Segment **dstp);
-int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes);
+		  struct Segment **dstp)
+    __attribute__ ((warn_unused_result));
+int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
+    __attribute__ ((warn_unused_result));
 void segment_snapshot(struct Segment *sg);
 void segment_invalidate(struct Segment *sg);
 void segment_swapin(struct Segment *sg);

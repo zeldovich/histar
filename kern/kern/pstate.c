@@ -72,12 +72,13 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
     	assert(key == ko->hdr.ko_id);
 
 	if (scrub_disk_pages) {
+	    disk_io_status s;
 	    void *p;
 	    assert(0 == page_alloc(&p));
 	    memset(p, 0xc4, PGSIZE);
 
 	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
-		stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
+		s = stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
 
 	    page_free(p);
 	}
@@ -569,13 +570,17 @@ pstate_sync_loop(struct pstate_header *hdr,
 	    return r;
     }
 
-    freelist_commit(&flist);
+    int r = freelist_commit(&flist);
+    if (r < 0) {
+	cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
+	return r;
+    }
 
     freelist_serialize(&hdr->ph_free, &flist);
     btree_default_serialize(&hdr->ph_iobjs, &iobjlist);
     btree_default_serialize(&hdr->ph_map, &objmap);
 
-    int r = pstate_sync_flush();
+    r = pstate_sync_flush();
     if (r < 0) {
 	cprintf("pstate_sync_loop: unable to flush\n") ;
 	return r ;
@@ -617,9 +622,14 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 	dlog_init() ;
 	log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
 
-	freelist_init(&flist,
-		      reserved_pages * PGSIZE,
-		      (disk_pages - reserved_pages) * PGSIZE);
+	int r = freelist_init(&flist,
+			      reserved_pages * PGSIZE,
+			      (disk_pages - reserved_pages) * PGSIZE);
+	if (r < 0) {
+	    cprintf("pstate_sync_stackwarp: cannot init freelist: %s", e2s(r));
+	    return;
+	}
+
 	btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
 	btree_default_init(&objmap, OBJMAP_ORDER, 1, 2, &flist, &objmap_cache) ;
     }

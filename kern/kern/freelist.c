@@ -313,16 +313,19 @@ freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes)
 	free_later.size++ ;
 }
 
-void 
+int
 freelist_commit(struct freelist *l)
 {
 	int n = free_later.size ;
 	for (int i = 0 ; i < n ; i++) {
 		uint64_t base = free_later.off[i] ;
 		uint64_t nbytes = free_later.nbytes[i] ;
-		freelist_free(l, base, nbytes) ;
+		int r = freelist_free(l, base, nbytes) ;
+		if (r < 0)
+			return r;
 	}
 	free_later.size = 0 ;
+	return 0;
 }
 
 void

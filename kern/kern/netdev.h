@@ -42,6 +42,7 @@ void	netdev_thread_wakeup(struct net_device *ndev);
 
 void	netdev_macaddr(struct net_device *ndev, uint8_t *addrbuf);
 int	netdev_add_buf(struct net_device *ndev, const struct Segment *sg,
-		       uint64_t offset, netbuf_type type);
+		       uint64_t offset, netbuf_type type)
+	__attribute__ ((warn_unused_result));
 
 #endif

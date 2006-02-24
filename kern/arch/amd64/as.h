@@ -31,18 +31,24 @@ struct Address_space {
     kobject_id_t as_pgmap_tid;
 };
 
-int  as_alloc(const struct Label *l, struct Address_space **asp);
-int  as_to_user(const struct Address_space *as, struct u_address_space *uas);
-int  as_from_user(struct Address_space *as, struct u_address_space *uas);
-int  as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm);
+int  as_alloc(const struct Label *l, struct Address_space **asp)
+    __attribute__ ((warn_unused_result));
+int  as_to_user(const struct Address_space *as, struct u_address_space *uas)
+    __attribute__ ((warn_unused_result));
+int  as_from_user(struct Address_space *as, struct u_address_space *uas)
+    __attribute__ ((warn_unused_result));
+int  as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm)
+    __attribute__ ((warn_unused_result));
 
 void as_swapin(struct Address_space *as);
 void as_swapout(struct Address_space *as);
-int  as_gc(struct Address_space *as);
+int  as_gc(struct Address_space *as)
+    __attribute__ ((warn_unused_result));
 void as_invalidate(const struct Address_space *as);
 void as_invalidate_sm(struct segment_mapping *sm);
 
-int  as_pagefault(struct Address_space *as, void *va);
+int  as_pagefault(struct Address_space *as, void *va)
+    __attribute__ ((warn_unused_result));
 void as_switch(const struct Address_space *as);
 
 #endif

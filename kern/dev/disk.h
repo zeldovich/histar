@@ -31,7 +31,8 @@ struct iovec {
 };
 
 int disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
-	    uint64_t offset, disk_callback cb, void *cbarg);
+	    uint64_t offset, disk_callback cb, void *cbarg)
+	__attribute__ ((warn_unused_result));
 
 void ide_intr(void);
 

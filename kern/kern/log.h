@@ -8,11 +8,16 @@
 
 #define LOG_COMPACT_MEM 50 
 
-int log_apply(void) ;
-int log_write(struct btree_node *node) ;
-int log_flush(void) ;
-int log_compact(void) ;
-int log_node(offset_t byteoff, void *page) ;
+int log_apply(void)
+    __attribute__ ((warn_unused_result));
+int log_write(struct btree_node *node)
+    __attribute__ ((warn_unused_result));
+int log_flush(void)
+    __attribute__ ((warn_unused_result));
+int log_compact(void)
+    __attribute__ ((warn_unused_result));
+int log_node(offset_t byteoff, void *page)
+    __attribute__ ((warn_unused_result));
 void log_reset(void) ;
 void log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem) ;
 

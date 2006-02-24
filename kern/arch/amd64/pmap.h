@@ -41,13 +41,16 @@ extern struct page_stats {
 
 void pmap_init (struct multiboot_info *mbi);
 
-int  page_alloc (void **p);
+int  page_alloc (void **p)
+    __attribute__ ((warn_unused_result));
 void page_free (void *p);
 
-int  page_map_alloc (struct Pagemap **pm_store);
+int  page_map_alloc (struct Pagemap **pm_store)
+    __attribute__ ((warn_unused_result));
 void page_map_free (struct Pagemap *pgmap);
 
-int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm);
+int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
+    __attribute__ ((warn_unused_result));
 void *page_remove (struct Pagemap *pgmap, void *va);
 void *page_lookup (struct Pagemap *pgmap, void *va);
 
@@ -89,7 +92,8 @@ ppn2pa (ppn_t pn)
  * Changes *ptrp such that it will not reference a kernel address,
  * and makes sure the address is paged in (might return -E_RESTART).
  */
-int  page_user_incore(void **ptrp, uint64_t nbytes);
+int  page_user_incore(void **ptrp, uint64_t nbytes)
+    __attribute__ ((warn_unused_result));
 
 #endif /* !__ASSEMBLER__ */
 

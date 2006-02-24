@@ -54,15 +54,19 @@ extern struct kobject_list ko_list;
 void kobject_init(void);
 
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
-		 info_flow_type iflow);
+		 info_flow_type iflow)
+    __attribute__ ((warn_unused_result));
 int  kobject_alloc(kobject_type_t type, const struct Label *l,
-		   struct kobject **kpp);
+		   struct kobject **kpp)
+    __attribute__ ((warn_unused_result));
 
-int  kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes);
+int  kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
+    __attribute__ ((warn_unused_result));
 uint64_t
      kobject_npages(const struct kobject_hdr *kp);
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
-		      void **pp, page_rw_mode rw);
+		      void **pp, page_rw_mode rw)
+    __attribute__ ((warn_unused_result));
 
 // Mark the kobject as dirty and return the same kobject
 struct kobject *

@@ -30,12 +30,15 @@ struct freelist
 	uint64_t free ;
 } ;
 
-int	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes) ;
-int	freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes) ;
+int	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
+    __attribute__ ((warn_unused_result));
+int	freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
+    __attribute__ ((warn_unused_result));
 void	freelist_setup(uint8_t *b) ;
 int64_t freelist_alloc(struct freelist *l, uint64_t nbytes) ;
 void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes) ;
-void 	freelist_commit(struct freelist *l) ;
+int 	freelist_commit(struct freelist *l)
+    __attribute__ ((warn_unused_result));
 
 void	freelist_deserialize(struct freelist *l, void *buf) ;
 void	freelist_serialize(void *buf, struct freelist *l) ;

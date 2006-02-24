@@ -749,7 +749,7 @@ syscall(syscall_num num, uint64_t a1,
 	    struct cobj_ref as_ref;
 	    sys_thread_get_as(&as_ref);
 
-	    page_user_incore((void**) &a1, sizeof(as_ref));
+	    check(page_user_incore((void**) &a1, sizeof(as_ref)));
 	    memcpy((void*) a1, &as_ref, sizeof(as_ref));
 	}
 	break;

@@ -49,10 +49,12 @@ void pagetree_free(struct pagetree *pt);
 
 // Get a page currently stored in the page tree
 int  pagetree_get_page(struct pagetree *pt, uint64_t npage, void **pagep,
-		       page_rw_mode rw);
+		       page_rw_mode rw)
+    __attribute__ ((warn_unused_result));
 
 // Put a page into the page tree
-int  pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page);
+int  pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
+    __attribute__ ((warn_unused_result));
 
 // Max number of pages in a pagetree
 uint64_t pagetree_maxpages(void);

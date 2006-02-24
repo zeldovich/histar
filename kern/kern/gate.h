@@ -15,6 +15,7 @@ struct Gate {
 
 int  gate_alloc(const struct Label *l,
 		const struct Label *clearance,
-		struct Gate **gp);
+		struct Gate **gp)
+    __attribute__ ((warn_unused_result));
 
 #endif

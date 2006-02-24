@@ -48,15 +48,18 @@ int  thread_alloc(const struct Label *l,
 		  struct Thread **tp);
 void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
-int  thread_gc(struct Thread *t);
+int  thread_gc(struct Thread *t)
+    __attribute__ ((warn_unused_result));
 void thread_zero_refs(const struct Thread *t);
 
 int  thread_jump(const struct Thread *t,
 		 const struct Label *label,
 		 const struct Label *clearance,
 		 struct cobj_ref as, void *entry, void *stack,
-		 uint64_t arg0, uint64_t arg1, uint64_t arg2);
-int  thread_change_label(const struct Thread *t, const struct Label *l);
+		 uint64_t arg0, uint64_t arg1, uint64_t arg2)
+    __attribute__ ((warn_unused_result));
+int  thread_change_label(const struct Thread *t, const struct Label *l)
+    __attribute__ ((warn_unused_result));
 void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
 
@@ -67,6 +70,7 @@ void thread_halt(const struct Thread *t);
 void thread_switch(const struct Thread *t);
 void thread_run(const struct Thread *t) __attribute__((__noreturn__));
 
-int  thread_pagefault(const struct Thread *t, void *va);
+int  thread_pagefault(const struct Thread *t, void *va)
+    __attribute__ ((warn_unused_result));
 
 #endif
