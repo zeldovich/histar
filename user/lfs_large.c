@@ -27,7 +27,7 @@ struct stat
 #define fchown(a, b, c) 0
 #define srandom(a)
 #define getpid() 0
-#define time(a) (sys_clock_msec()/1000)
+#define time_msec() sys_clock_msec()
 #define creat(fd, mode) open(fd, O_CREAT|O_WRONLY|O_TRUNC, mode)
 
 #endif // JOS64
@@ -43,6 +43,7 @@ struct stat
 #include <sys/resource.h>
 
 #define seek(fd, offset) lseek(fd, offset, SEEK_SET)
+#define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX
 
 #define SIZE	8192
@@ -69,7 +70,7 @@ write_test(int n, int size, int sequential)
 	struct stat statb;
     
     unsigned s, fin;
-    s = time(0);
+    s = time_msec();
     
     if((fd = open(name, O_RDWR, 0)) < 0) {
 		printf("write_test: open %s failed: %d\n", name, fd);
@@ -106,8 +107,8 @@ write_test(int n, int size, int sequential)
 		printf("write_test: close failed %s: %d\n", name, r);
     }
 
-    fin = time(0);
-    printf("write_test: write took %d sec\n", fin - s);
+    fin = time_msec();
+    printf("write_test: write took %d msec\n", fin - s);
 
 }
 
@@ -129,7 +130,7 @@ read_test(int n, int size, int sequential)
 
 
     unsigned s, fin;
-    s = time(0);
+    s = time_msec();
     
     if((fd = open(name, O_RDONLY, 0)) < 0) {
 		printf("read_test: open %s failed: %d\n", name,fd);
@@ -161,8 +162,8 @@ read_test(int n, int size, int sequential)
     }
     
 
-    fin = time(0);
-    printf("%s: read took %d sec\n",
+    fin = time_msec();
+    printf("%s: read took %d msec\n",
 	   prog_name,
 	   fin - s);
 }

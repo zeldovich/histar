@@ -16,7 +16,7 @@
 
 #define umask(a)
 #define fsync(fd) 
-#define time(a) (sys_clock_msec()/1000)
+#define time_msec() sys_clock_msec()
 #endif // JOS64
 
 #if LINUX
@@ -25,6 +25,8 @@
 #include <sys/timeb.h>
 #include <errno.h>
 #include "fcntl.h"
+
+#define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX
 
 static char buf[40960];
@@ -60,7 +62,7 @@ creat_test(int n, int size)
     int j;
 
     unsigned s = 0 , f = 0 ;
-    s = time(0);
+    s = time_msec();
 
     for (i = 0, j = 0; i < n; i ++) {
 
@@ -86,8 +88,8 @@ creat_test(int n, int size)
 
     fsync(fd);
 
-    f = time(0);
-    printf("%s: creat took %d sec\n",  prog_name,  f - s);
+    f = time_msec();
+    printf("%s: creat took %d msec\n",  prog_name,  f - s);
 }
 
 
@@ -99,7 +101,7 @@ write_test(char *name, int n, int size)
     int fd;
     unsigned s = 0 , f = 0 ;
     
-    s = time(0) ;
+    s = time_msec() ;
     
     if((fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
 		printf("write_test: create of %s failed: %dn", name, fd);
@@ -117,9 +119,9 @@ write_test(char *name, int n, int size)
 		printf("write_test: close failed: %d\n", r);
     }
     
-    f = time(0) ;
+    f = time_msec() ;
     
-    printf("write_test: write took %d sec\n", f - s);
+    printf("write_test: write took %d msec\n", f - s);
 }
 
 
@@ -138,7 +140,7 @@ read_test(int n, int size)
     int j;
 
     unsigned s = 0 , f = 0 ;
-    s = time(0);
+    s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
 		sprintf(name, "d%d/g%d", j, i);
@@ -160,8 +162,8 @@ read_test(int n, int size)
 		if ((i+1) % 100 == 0) j++;
     }
 
-	f = time(0);
-    printf("read_test: read took %d sec\n", f - s);
+	f = time_msec();
+    printf("read_test: read took %d msec\n", f - s);
 }
 
 void 
@@ -172,7 +174,7 @@ delete_test(int n)
     int j;
  
     unsigned s = 0 , f = 0;
-    s = time(0);
+    s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
 	sprintf(name, "d%d/g%d", j, i);
@@ -187,8 +189,8 @@ delete_test(int n)
 
     //fsync(fd);
 
-    f = time(0);
-    printf("delete_test: unlink took %d sec\n", f - s);
+    f = time_msec();
+    printf("delete_test: unlink took %d msec\n", f - s);
 }
 
 
