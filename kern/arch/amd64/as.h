@@ -4,6 +4,7 @@
 #include <machine/pmap.h>
 #include <machine/types.h>
 #include <kern/kobjhdr.h>
+#include <kern/pagetree.h>
 #include <inc/segment.h>
 #include <inc/queue.h>
 
