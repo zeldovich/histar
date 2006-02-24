@@ -1,7 +1,12 @@
 // LFS large file benchmark
 
+#ifdef JOS_USER
 #define JOS64 1
 #define LINUX 0
+#else
+#define JOS64 0
+#define LINUX 1
+#endif
 
 #if JOS64
 #include <inc/string.h>
