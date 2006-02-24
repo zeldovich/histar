@@ -1,14 +1,12 @@
 #include <inc/cpplabel.hh>
-
-extern "C" {
-#include <inc/assert.h>
-};
+#include <inc/error.hh>
+#include <new>
 
 label::label(level_t l)
 {
     buf_ = label_alloc();
     if (buf_ == 0)
-	panic("label alloc");
+	throw std::bad_alloc();
 
     buf_->ul_default = l;
 }
@@ -18,7 +16,7 @@ label::set(uint64_t handle, level_t level)
 {
     int r = label_set_level(buf_, handle, level, 1);
     if (r < 0)
-	panic("label set: %s", e2s(r));
+	throw error(r, "label_set_level");
 }
 
 level_t
