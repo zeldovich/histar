@@ -122,6 +122,54 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     return offset;
 }
 
+//////////////////////////////////////////////////
+// Scatter-gather buffering logic
+//////////////////////////////////////////////////
+
+struct pstate_iov_collector {
+    struct iovec *iov_buf;
+    int iov_cnt;
+    int iov_max;
+
+    uint32_t iov_bytes;
+    uint64_t flush_off;
+    disk_op flush_op;
+};
+
+static int
+pstate_iov_flush(struct pstate_iov_collector *x)
+{
+    if (x->iov_bytes > 0) {
+	disk_io_status s =
+	    stackwrap_disk_iov(x->flush_op, x->iov_buf, x->iov_cnt, x->flush_off);
+	if (s != disk_io_success) {
+	    cprintf("pstate_iov_flush: error during disk io\n");
+	    return -E_IO;
+	}
+    }
+
+    x->flush_off += x->iov_bytes;
+    x->iov_bytes = 0;
+    x->iov_cnt = 0;
+    return 0;
+}
+
+static int
+pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
+{
+    if (x->iov_cnt == x->iov_max) {
+	int r = pstate_iov_flush(x);
+	if (r < 0)
+	    return r;
+    }
+
+    x->iov_buf[x->iov_cnt].iov_base = buf;
+    x->iov_buf[x->iov_cnt].iov_len = size;
+    x->iov_cnt++;
+    x->iov_bytes += size;
+    return 0;
+}
+
 //////////////////////////////////
 // Swap-in code
 //////////////////////////////////
@@ -363,49 +411,6 @@ struct swapout_stats {
     uint64_t total_kobj;
 };
 
-struct pstate_iov_collector {
-    struct iovec *iov_buf;
-    int iov_cnt;
-    int iov_max;
-
-    uint32_t iov_bytes;
-    uint64_t flush_off;
-};
-
-static int
-pstate_iov_flush(struct pstate_iov_collector *x)
-{
-    if (x->iov_bytes > 0) {
-	disk_io_status s =
-	    stackwrap_disk_iov(op_write, x->iov_buf, x->iov_cnt, x->flush_off);
-	if (s != disk_io_success) {
-	    cprintf("pstate_iov_flush: error during disk io\n");
-	    return -E_IO;
-	}
-    }
-
-    x->flush_off += x->iov_bytes;
-    x->iov_bytes = 0;
-    x->iov_cnt = 0;
-    return 0;
-}
-
-static int
-pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
-{
-    if (x->iov_cnt == x->iov_max) {
-	int r = pstate_iov_flush(x);
-	if (r < 0)
-	    return r;
-    }
-
-    x->iov_buf[x->iov_cnt].iov_base = buf;
-    x->iov_buf[x->iov_cnt].iov_len = size;
-    x->iov_cnt++;
-    x->iov_bytes += size;
-    return 0;
-}
-
 static int
 pstate_sync_kobj(struct swapout_stats *stats,
 		 struct kobject_hdr *ko)
@@ -423,6 +428,7 @@ pstate_sync_kobj(struct swapout_stats *stats,
 
     struct iovec iov_buf[DISK_REQMAX / PGSIZE];
     x.flush_off = off;
+    x.flush_op = op_write;
     x.iov_buf = &iov_buf[0];
     x.iov_max = sizeof(iov_buf) / sizeof(iov_buf[0]);
 
