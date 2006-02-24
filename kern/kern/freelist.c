@@ -294,7 +294,7 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 
 static struct 
 {
-#define FREE_LATER_SIZE PGSIZE
+#define FREE_LATER_SIZE 16384
 	uint64_t off[FREE_LATER_SIZE] ;
 	uint64_t nbytes[FREE_LATER_SIZE] ;
 	
