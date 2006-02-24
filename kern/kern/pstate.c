@@ -45,7 +45,7 @@ struct mobject {
 
 // Scratch-space for a copy of the header used while reading/writing.
 #define N_HEADER_PAGES		1
-#define PSTATE_BUF_SIZE		512
+#define PSTATE_BUF_SIZE		PGSIZE
 static union {
     struct pstate_header hdr;
     char buf[PSTATE_BUF_SIZE];
