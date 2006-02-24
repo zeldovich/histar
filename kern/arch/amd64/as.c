@@ -287,11 +287,6 @@ as_pmap_fill(struct Address_space *as, void *va)
 	if (r < 0)
 	    return r;
 
-	struct segment_mapping *sm;
-	r = as_get_segmap(as, &sm, i);
-	if (r < 0)
-	    return r;
-
 	uint64_t flags = usm->flags;
 	if (flags == 0)
 	    continue;
@@ -306,6 +301,11 @@ as_pmap_fill(struct Address_space *as, void *va)
 	const struct kobject *ko;
 	r = cobj_get(seg_ref, kobj_segment, &ko,
 		     (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
+	if (r < 0)
+	    return r;
+
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
 	if (r < 0)
 	    return r;
 
