@@ -185,7 +185,7 @@ delete_test(int n)
 	if ((i+1) % 100 == 0) j++;
     }
 
-    fsync(fd);
+    //fsync(fd);
 
     f = time(0);
     printf("delete_test: unlink took %d sec\n", f - s);

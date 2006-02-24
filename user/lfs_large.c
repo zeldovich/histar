@@ -33,6 +33,7 @@ struct stat
 #endif // JOS64
 
 #if LINUX
+#include <unistd.h>
 #include "sys/types.h"
 #include "sys/stat.h"
 #include "fcntl.h"
@@ -40,6 +41,8 @@ struct stat
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#define seek(fd, offset) lseek(fd, offset, SEEK_SET)
 #endif // LINUX
 
 #define SIZE	8192
