@@ -49,6 +49,7 @@ elf_add_segmap(struct Address_space *as, uint32_t *smi, struct cobj_ref seg,
     usm[*smi].start_page = start_page;
     usm[*smi].num_pages = num_pages;
     usm[*smi].flags = flags;
+    usm[*smi].kslot = *smi;
     usm[*smi].va = va;
     (*smi)++;
     return 0;

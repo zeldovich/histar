@@ -34,6 +34,7 @@ struct Address_space {
 int  as_alloc(const struct Label *l, struct Address_space **asp);
 int  as_to_user(const struct Address_space *as, struct u_address_space *uas);
 int  as_from_user(struct Address_space *as, struct u_address_space *uas);
+int  as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm);
 
 void as_swapin(struct Address_space *as);
 void as_swapout(struct Address_space *as);

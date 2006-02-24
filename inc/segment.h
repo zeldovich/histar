@@ -14,7 +14,8 @@ struct u_segment_mapping {
     struct cobj_ref segment;
     uint64_t start_page;
     uint64_t num_pages;
-    uint64_t flags;
+    uint32_t kslot;
+    uint32_t flags;
     void *va;
 };
 

@@ -72,7 +72,7 @@ segment_map_print(struct u_address_space *as)
     for (uint64_t i = 0; i < as->nent; i++) {
 	if (as->ents[i].flags == 0)
 	    continue;
-	cprintf("%3ld.%-3ld  %5ld  %6ld  %ld  %p\n",
+	cprintf("%3ld.%-3ld  %5ld  %6ld  %d  %p\n",
 		as->ents[i].segment.container,
 		as->ents[i].segment.object,
 		as->ents[i].start_page,
@@ -100,7 +100,9 @@ segment_unmap(void *va)
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	if (cache_uas.ents[i].va == va && cache_uas.ents[i].flags) {
 	    cache_uas.ents[i].flags = 0;
-	    r = sys_as_set(as_ref, &cache_uas);
+	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+	    if (r < 0)
+		r = sys_as_set(as_ref, &cache_uas);
 	    if (r < 0)
 		cache_invalidate();
 	    as_mutex_unlock();
@@ -130,7 +132,7 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	void *va_start = cache_uas.ents[i].va;
 	void *va_end = cache_uas.ents[i].va + cache_uas.ents[i].num_pages * PGSIZE;
-	if (va >= va_start && va < va_end) {
+	if (cache_uas.ents[i].flags && va >= va_start && va < va_end) {
 	    if (seg)
 		*seg = cache_uas.ents[i].segment;
 	    if (npage)
@@ -160,7 +162,7 @@ segment_lookup_obj(uint64_t oid, void **vap)
     }
 
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
-	if (cache_uas.ents[i].segment.object == oid) {
+	if (cache_uas.ents[i].flags && cache_uas.ents[i].segment.object == oid) {
 	    if (vap)
 		*vap = cache_uas.ents[i].va;
 	    as_mutex_unlock();
@@ -205,7 +207,9 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	return r;
     }
 
+    int slot_optimize = 1;
     uint32_t free_segslot = cache_uas.nent;
+    uint32_t free_kslot = 0;
     char *va_start = (char *) UMMAPBASE;
     char *va_end;
 
@@ -231,12 +235,16 @@ retry:
 	    cache_uas.ents[i].start_page == 0)
 	{
 	    cache_uas.ents[i].flags = 0;
+	    slot_optimize = 0;
 	}
 
 	if (cache_uas.ents[i].flags == 0) {
 	    free_segslot = i;
 	    continue;
 	}
+
+	if (cache_uas.ents[i].kslot >= free_kslot)
+	    free_kslot = cache_uas.ents[i].kslot + 1;
 
 	char *m_start = cache_uas.ents[i].va;
 	char *m_end = m_start + cache_uas.ents[i].num_pages * PGSIZE;
@@ -272,11 +280,18 @@ retry:
     cache_uas.ents[free_segslot].num_pages = map_bytes / PGSIZE;
     cache_uas.ents[free_segslot].flags = flags;
     cache_uas.ents[free_segslot].va = va_start;
+    cache_uas.ents[free_segslot].kslot = free_kslot;
 
     if (free_segslot == cache_uas.nent)
 	cache_uas.nent = free_segslot + 1;
 
-    r = sys_as_set(as_ref, &cache_uas);
+    if (slot_optimize)
+	r = sys_as_set_slot(as_ref, &cache_uas.ents[free_segslot]);
+    else
+	r = -1;
+
+    if (r < 0)
+	r = sys_as_set(as_ref, &cache_uas);
     if (r < 0)
 	cache_invalidate();
 

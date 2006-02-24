@@ -131,7 +131,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 	return r;
 
     uint64_t nent = uas->nent;
-    const struct u_segment_mapping *ents = uas->ents;
+    struct u_segment_mapping *ents = uas->ents;
     r = page_user_incore((void**) &ents, sizeof(*ents) * nent);
     if (r < 0)
 	return r;
@@ -162,11 +162,46 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 
 	memset(sm, 0, sizeof(*sm));
 	memset(usm, 0, sizeof(*usm));
-	if (i < nent)
+	if (i < nent) {
+	    ents[i].kslot = i;
 	    *usm = ents[i];
+	}
     }
 
     as_invalidate(as);
+    return 0;
+}
+
+int
+as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
+{
+    int r = page_user_incore((void **) &usm_new, sizeof(*usm_new));
+    if (r < 0)
+	return r;
+
+    uint64_t slot = usm_new->kslot;
+
+    struct u_segment_mapping *usm;
+    r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm, slot, page_rw);
+    if (r < 0)
+	return r;
+
+    struct segment_mapping *sm;
+    r = as_get_segmap(as, &sm, slot);
+    if (r < 0)
+	return r;
+
+    *usm = *usm_new;
+
+    if (sm->sm_sg) {
+	LIST_REMOVE(sm, sm_link);
+	kobject_unpin_page(&sm->sm_sg->sg_ko);
+	sm->sm_sg = 0;
+
+	// XXX be more precise
+	as_invalidate(as);
+    }
+
     return 0;
 }
 
@@ -314,7 +349,7 @@ as_pmap_fill(struct Address_space *as, void *va)
 	return as_pmap_fill_segment(as, sg, sm, usm);
     }
 
-    return -E_INVAL;
+    return -E_NOT_FOUND;
 }
 
 int

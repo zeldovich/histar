@@ -554,8 +554,16 @@ static void
 sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
 {
     const struct kobject *ko;
-    check(cobj_get(asref, kobj_address_space, &ko, iflow_write));
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
     check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas));
+}
+
+static void
+sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
+{
+    const struct kobject *ko;
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
+    check(as_set_uslot(&kobject_dirty(&ko->hdr)->as, usm));
 }
 
 static uint64_t
@@ -799,6 +807,10 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_as_set:
 	sys_as_set(COBJ(a1, a2), (struct u_address_space *) a3);
+	break;
+
+    case SYS_as_set_slot:
+	sys_as_set_slot(COBJ(a1, a2), (struct u_segment_mapping *) a3);
 	break;
 
     case SYS_mlt_create:

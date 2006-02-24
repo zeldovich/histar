@@ -39,6 +39,7 @@
     SYSCALL_ENTRY(as_create)			\
     SYSCALL_ENTRY(as_get)			\
     SYSCALL_ENTRY(as_set)			\
+    SYSCALL_ENTRY(as_set_slot)			\
     SYSCALL_ENTRY(mlt_create)			\
     SYSCALL_ENTRY(mlt_put)			\
     SYSCALL_ENTRY(mlt_get)			\

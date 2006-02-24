@@ -70,6 +70,7 @@ int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
 int64_t sys_as_create(uint64_t container, struct ulabel *l, const char *name);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
+int	sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 
 int64_t sys_mlt_create(uint64_t container, const char *name);
 int	sys_mlt_put(struct cobj_ref mlt,
