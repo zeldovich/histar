@@ -61,7 +61,7 @@ KERN_BINFILES := \
 	user/fetch \
 	user/lfs_small \
 	user/lfs_large
-	
+
 	#user/tcpsink
 	#user/spin \
 	#user/hello \

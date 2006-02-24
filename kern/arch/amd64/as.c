@@ -213,6 +213,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 		     const struct u_segment_mapping *usm)
 {
     struct Pagemap *pgmap = as->as_pgmap;
+    int progress = 0;
 
     char *cva = (char *) usm->va;
     if (PGOFF(cva))
@@ -240,7 +241,10 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    ptflags &= ~PTE_NX;
 
 	if (r == 0) {
-	    page_remove(pgmap, cva);
+	    void *oldp = page_remove(pgmap, cva);
+	    if (oldp != pp)
+		progress = 1;
+
 	    r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
 	}
 
@@ -271,7 +275,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	kobject_pin_page(&sg->sg_ko);
     }
 
-    return 0;
+    return progress ? 0 : -E_INVAL;
 }
 
 static int

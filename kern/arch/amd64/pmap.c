@@ -325,16 +325,16 @@ tlb_invalidate (struct Pagemap *pgmap, void *va)
 //   - The TLB must be invalidated if you remove an entry from
 //     the pg dir/pg table.
 //
-void
+void *
 page_remove (struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
     void *p = page_lookup_internal(pgmap, va, &ptep);
-    if (p == 0)
-	return;
-
-    *ptep = 0;
-    tlb_invalidate(pgmap, va);
+    if (p) {
+	*ptep = 0;
+	tlb_invalidate(pgmap, va);
+    }
+    return p;
 }
 
 //

@@ -48,7 +48,7 @@ int  page_map_alloc (struct Pagemap **pm_store);
 void page_map_free (struct Pagemap *pgmap);
 
 int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm);
-void page_remove (struct Pagemap *pgmap, void *va);
+void *page_remove (struct Pagemap *pgmap, void *va);
 void *page_lookup (struct Pagemap *pgmap, void *va);
 
 static __inline void *
