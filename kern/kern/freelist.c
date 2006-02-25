@@ -3,6 +3,7 @@
 #include <kern/freelist.h>
 #include <kern/lib.h>
 #include <inc/error.h>
+#include <inc/dstack.h>
 
 #define OFFSET_ORDER 	BTREE_MAX_ORDER1
 #define CHUNK_ORDER 	BTREE_MAX_ORDER2
@@ -292,40 +293,28 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 	return 0 ;
 }
 
-static struct 
-{
-#define FREE_LATER_SIZE 16384
-	uint64_t off[FREE_LATER_SIZE] ;
-	uint64_t nbytes[FREE_LATER_SIZE] ;
-	
-	int size ;
-} free_later ;
+static struct dstack free_later ;
 
 void
 freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
-	int i = free_later.size ;
-	if (i >= FREE_LATER_SIZE)
-		panic("freelist_free_later: need to implement...") ;
-	free_later.off[i] = base ;
-	free_later.nbytes[i] = nbytes ;
-	
-	free_later.size++ ;
+	dstack_push(&free_later, base) ;
+        dstack_push(&free_later, nbytes) ;
 }
 
 int
 freelist_commit(struct freelist *l)
 {
-	int n = free_later.size ;
-	for (int i = 0 ; i < n ; i++) {
-		uint64_t base = free_later.off[i] ;
-		uint64_t nbytes = free_later.nbytes[i] ;
-		int r = freelist_free(l, base, nbytes) ;
-		if (r < 0)
-			return r;
-	}
-	free_later.size = 0 ;
-	return 0;
+        int r ;
+        
+        while (!dstack_empty(&free_later)) {
+                uint64_t nbytes = dstack_pop(&free_later) ;
+                uint64_t base = dstack_pop(&free_later) ;
+                if ((r = freelist_free(l, base, nbytes)) < 0)
+                        return r ;
+        }
+
+        return 0 ;
 }
 
 void
@@ -337,7 +326,7 @@ freelist_deserialize(struct freelist *l, void *buf)
 	l->free = l2->free ;
 
 	// XXX
-	free_later.size = 0 ;
+	dstack_init(&free_later) ;
 }
 void
 freelist_serialize(void *buf, struct freelist *l)
@@ -367,8 +356,9 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 		
 	l->free = nbytes ;
 		
-	free_later.size = 0 ;
-		
+        // XXX
+        dstack_init(&free_later) ;
+
 	return 0 ;
 }
 
