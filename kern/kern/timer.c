@@ -7,7 +7,7 @@
 #include <dev/kclock.h>
 #include <inc/queue.h>
 
-uint64_t timer_ticks;
+static uint64_t timer_ticks;
 uint64_t timer_user_msec_offset;
 uint64_t timer_user_msec;
 
