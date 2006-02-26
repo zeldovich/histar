@@ -26,7 +26,7 @@ return_setup(struct cobj_ref *g, struct jmp_buf *jb,
 	     void *tls, uint64_t return_handle)
 {
     label clear;
-    error_check(sys_thread_get_clearance(clear.to_ulabel()));
+    thread_cur_clearance(&clear);
     clear.set(return_handle, 0);
 
     label label;
