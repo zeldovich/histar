@@ -16,4 +16,7 @@
 #define ABORT		assert(0)
 #define MALLOC_FAILURE_ACTION	do { } while (0)
 
+#define CORRUPTION_ERROR_ACTION(m)	panic("malloc corruption")
+#define USAGE_ERROR_ACTION(m, p)	panic("bad free: %p", p)
+
 #endif
