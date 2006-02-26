@@ -87,7 +87,8 @@ label::grow()
 
     if (ul_.ul_needed) {
 	uint64_t newsize = ul_.ul_size + ul_.ul_needed;
-	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newsize);
+	uint64_t newbytes = newsize * sizeof(ul_.ul_ent[0]);
+	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newbytes);
 	if (newent == 0)
 	    throw std::bad_alloc();
 
