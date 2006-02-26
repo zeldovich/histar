@@ -138,7 +138,7 @@ gatesrv_return::ret_tls(struct cobj_ref param,
     tmp.merge(dec_label, &tgt_label, label::min, label::leq_starlo);
 
     error_check(sys_gate_clearance(rgate_, tmp.to_ulabel()));
-    tmp.merge(dec_clear, &tgt_clear, label::max, label::leq_starhi);
+    tmp.merge(dec_clear, &tgt_clear, label::max, label::leq_starlo);
 
     error_check(sys_obj_unref(COBJ(thread_ct_, thread_id())));
     error_check(sys_gate_enter(rgate_,
