@@ -1,6 +1,8 @@
 #ifndef JOS_INC_SCOPEGUARD_HH
 #define JOS_INC_SCOPEGUARD_HH
 
+#include <inc/error.hh>
+
 template <class R, class T>
 class scope_guard {
 public:
@@ -8,8 +10,13 @@ public:
     void dismiss() { active_ = false; }
 
     ~scope_guard() {
-	if (active_)
-	    cb_(p_);
+	if (active_) {
+	    try {
+		cb_(p_);
+	    } catch (std::exception &e) {
+		printf("~scope_guard: %s\n", e.what());
+	    }
+	}
     }
 
 private:

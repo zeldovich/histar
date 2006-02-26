@@ -11,19 +11,15 @@ extern "C" {
 void
 thread_drop_star(uint64_t handle)
 {
-    try {
-	label clear;
-	thread_cur_clearance(&clear);
-	clear.set(handle, clear.get_default());
-	error_check(sys_thread_set_clearance(clear.to_ulabel()));
+    label clear;
+    thread_cur_clearance(&clear);
+    clear.set(handle, clear.get_default());
+    error_check(sys_thread_set_clearance(clear.to_ulabel()));
 
-	label self;
-	thread_cur_label(&self);
-	self.set(handle, self.get_default());
-	error_check(sys_thread_set_label(self.to_ulabel()));
-    } catch (std::exception &e) {
-	printf("thread_drop_star: %s\n", e.what());
-    }
+    label self;
+    thread_cur_label(&self);
+    self.set(handle, self.get_default());
+    error_check(sys_thread_set_label(self.to_ulabel()));
 }
 
 void
