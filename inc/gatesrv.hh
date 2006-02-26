@@ -2,20 +2,22 @@
 #define JOS_INC_GATESRV_HH
 
 #include <inc/error.hh>
+#include <inc/cpplabel.hh>
 
 class gatesrv_return {
 public:
     gatesrv_return(struct cobj_ref rgate, uint64_t tct, void *tls, void *stack)
 	: rgate_(rgate), thread_ct_(tct), tls_(tls), stack_(stack) {}
-    void ret(struct cobj_ref param, struct ulabel *label,
-	     struct ulabel *clearance) __attribute__((noreturn));
+    void ret(struct cobj_ref param,
+	     label *decontaminate_label,	// { 3 } for none
+	     label *decontaminate_clearance)	// { 0 } for none
+	__attribute__((noreturn));
 
 private:
     static void ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
-			     struct ulabel *label, struct ulabel *clearance)
+			     label *label, label *clearance)
 	__attribute__((noreturn));
-    void ret_tls(struct cobj_ref param, struct ulabel *label,
-		 struct ulabel *clearance)
+    void ret_tls(struct cobj_ref param, label *label, label *clearance)
 	__attribute__((noreturn));
 
     struct cobj_ref rgate_;
@@ -29,7 +31,7 @@ typedef void (*gatesrv_entry_t) (void *, struct cobj_ref, gatesrv_return *);
 class gatesrv {
 public:
     gatesrv(uint64_t gate_container, const char *name,
-	    struct ulabel *label, struct ulabel *clearance);
+	    label *label, label *clearance);
     ~gatesrv();
 
     // Entry container used for thread reference and entry stack

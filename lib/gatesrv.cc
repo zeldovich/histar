@@ -8,9 +8,10 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/gateparam.hh>
 #include <inc/scopeguard.hh>
+#include <inc/cpplabel.hh>
 
 gatesrv::gatesrv(uint64_t gate_ct, const char *name,
-		 struct ulabel *label, struct ulabel *clearance)
+		 label *label, label *clearance)
     : stackpages_(2), active_(0)
 {
     struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
@@ -24,7 +25,9 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
     te.te_arg = (uint64_t) this;
     error_check(sys_thread_get_as(&te.te_as));
 
-    int64_t gate_id = sys_gate_create(gate_ct, &te, label, clearance, name);
+    int64_t gate_id = sys_gate_create(gate_ct, &te,
+				      label->to_ulabel(),
+				      clearance->to_ulabel(), name);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
@@ -93,9 +96,7 @@ gatesrv::entry(void *stack)
 }
 
 void
-gatesrv_return::ret(struct cobj_ref param,
-		    struct ulabel *label,
-		    struct ulabel *clearance)
+gatesrv_return::ret(struct cobj_ref param, label *label, label *clearance)
 {
     stack_switch((uint64_t) this, (uint64_t) &param,
 		 (uint64_t) label, (uint64_t) clearance,
@@ -105,8 +106,7 @@ gatesrv_return::ret(struct cobj_ref param,
 
 void
 gatesrv_return::ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
-			     struct ulabel *label,
-			     struct ulabel *clearance)
+			     label *label, label *clearance)
 {
     try {
 	r->ret_tls(*pp, label, clearance);
@@ -118,20 +118,32 @@ gatesrv_return::ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
 
 void
 gatesrv_return::ret_tls(struct cobj_ref param,
-			struct ulabel *label,
-			struct ulabel *clearance)
+			label *dec_label, label *dec_clear)
 {
     struct cobj_ref stackseg;
     error_check(segment_lookup(stack_, &stackseg, 0));
     error_check(segment_unmap(stack_));
     error_check(sys_obj_unref(stackseg));
 
-    // XXX need to manipulate label & clearance appropriately;
-    // perhaps treat them like the decontaminate-send and
-    // decontaminate-receive labels in jos32
+    enum { label_buf_size = 64 };
+    uint64_t tgt_label_ent[label_buf_size];
+    uint64_t tgt_clear_ent[label_buf_size];
+    uint64_t tmp_ent[label_buf_size];
+
+    label tgt_label(&tgt_label_ent[0], label_buf_size);
+    label tgt_clear(&tgt_clear_ent[0], label_buf_size);
+    label tmp(&tmp_ent[0], label_buf_size);
+
+    error_check(sys_obj_get_label(rgate_, tmp.to_ulabel()));
+    tmp.merge(dec_label, &tgt_label, label::min, label::leq_starlo);
+
+    error_check(sys_gate_clearance(rgate_, tmp.to_ulabel()));
+    tmp.merge(dec_clear, &tgt_clear, label::max, label::leq_starhi);
 
     error_check(sys_obj_unref(COBJ(thread_ct_, thread_id())));
-    error_check(sys_gate_enter(rgate_, label, clearance,
+    error_check(sys_gate_enter(rgate_,
+			       tgt_label.to_ulabel(),
+			       tgt_clear.to_ulabel(),
 			       param.container, param.object));
     throw basic_exception("gatesrv_return::ret_tls: still alive");
 }
