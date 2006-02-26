@@ -6,6 +6,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
+static int label_debug = 1;
+
 void
 gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr)
 {
@@ -31,6 +33,10 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr)
     // Compute the target clearance
     error_check(sys_gate_clearance(gate, tgt_clear.to_ulabel()));
     tgt_clear.merge_with(dr, label::max, label::leq_starlo);
+
+    if (label_debug)
+	cprintf("gate_invoke: label %s, clearance %s\n",
+		tgt_label.to_string(), tgt_clear.to_string());
 
     error_check(sys_gate_enter(gate,
 			       tgt_label.to_ulabel(),
