@@ -43,7 +43,6 @@ KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/idle \
-	user/freelist_test \
 	user/netd \
 	user/netd_mom \
 	user/telnetd \
@@ -63,6 +62,7 @@ KERN_BINFILES := \
 	user/lfs_large \
 	user/privtest
 
+	#user/freelist_test \
 	#user/tcpsink
 	#user/spin \
 	#user/hello \
