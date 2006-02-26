@@ -10,29 +10,9 @@ extern "C" {
 
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 static int label_debug = 0;
-
-static void
-drop_star(uint64_t handle)
-{
-    struct ulabel *self = label_get_current();
-    if (self == 0) {
-	printf("drop_star: cannot allocate label for cleanup\n");
-	return;
-    }
-    scope_guard<void, struct ulabel *> self_free(label_free, self);
-
-    int r = label_set_level(self, handle, self->ul_default, 1);
-    if (r < 0) {
-	printf("drop_star: cannot reset handle %lu: %s\n", handle, e2s(r));
-	return;
-    }
-
-    r = label_set_current(self);
-    if (r < 0)
-	printf("drop_star: cannot change label: %s\n", e2s(r));
-}
 
 static uint64_t
 xspawn(uint64_t container, struct fs_inode elf_ino,
@@ -56,7 +36,7 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
     int64_t process_handle = sys_handle_create();
     if (process_handle < 0)
 	throw error(process_handle, "alloc handle");
-    scope_guard<void, uint64_t> handle_cleanup(drop_star, process_handle);
+    scope_guard<void, uint64_t> handle_cleanup(thread_drop_star, process_handle);
 
     error_check(label_set_level(obj_label, process_handle, 0, 1));
     error_check(label_set_level(thread_label, process_handle, LB_LEVEL_STAR, 1));

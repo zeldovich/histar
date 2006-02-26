@@ -39,6 +39,7 @@ LIB_SRCFILES :=	\
 	lib/file.c \
 	lib/label.c \
 	lib/cpplabel.cc \
+	lib/labelutil.cc \
 	lib/nethelper.cc \
 	lib/error.cc \
 	lib/backtrace.c
