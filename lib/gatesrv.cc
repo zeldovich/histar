@@ -23,7 +23,7 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
     // Designated initializers are not supported in g++
     struct thread_entry te;
     te.te_entry = (void *) &entry_tls_stub;
-    te.te_stack = (char *) tls_ + PGSIZE;
+    te.te_stack = (char *) tls_ + PGSIZE - 8;
     te.te_arg = (uint64_t) this;
     error_check(sys_thread_get_as(&te.te_as));
 

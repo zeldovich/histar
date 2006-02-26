@@ -34,7 +34,7 @@ return_setup(struct cobj_ref *g, struct jmp_buf *jb,
 
     struct thread_entry te;
     te.te_entry = (void *) &return_stub;
-    te.te_stack = (char *) tls + PGSIZE;
+    te.te_stack = (char *) tls + PGSIZE - 8;
     te.te_arg = (uint64_t) jb;
     error_check(sys_thread_get_as(&te.te_as));
 
