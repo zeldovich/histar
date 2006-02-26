@@ -7,5 +7,6 @@ extern "C" {
 void
 print_backtrace()
 {
-    basic_exception("Backtrace requested").print_where();
+    basic_exception("backtrace tid=%ld ct=%ld",
+		    thread_id(), start_env->container).print_where();
 }
