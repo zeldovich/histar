@@ -44,6 +44,8 @@ public:
     void set_entry_function(gatesrv_entry_t f, void *arg) { f_ = f; arg_ = arg; }
     void enable() { active_ = 1; }
 
+    struct cobj_ref gate() { return gate_obj_; }
+
 private:
     static void entry_tls_stub(gatesrv *s) __attribute__((noreturn));
     void entry_tls() __attribute__((noreturn));
