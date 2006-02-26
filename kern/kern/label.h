@@ -18,7 +18,7 @@ typedef int (level_comparator)(level_t, level_t);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
 level_comparator label_eq;
-level_comparator label_leq_rhs_low_except_star;
+level_comparator label_leq_starhi_rhs_0_except_star;
 
 void label_init(struct Label *l, level_t def);
 int  label_set(struct Label *l, uint64_t handle, level_t level)

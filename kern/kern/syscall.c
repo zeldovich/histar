@@ -325,7 +325,7 @@ sys_gate_enter(struct cobj_ref gt,
     // Same as the gate clearance except for caller's * handles
     struct Label clearance_bound;
     check(label_max(&g->gt_clearance, &cur_thread->th_ko.ko_label,
-		    &clearance_bound, label_leq_rhs_low_except_star));
+		    &clearance_bound, label_leq_starhi_rhs_0_except_star));
 
     struct Label new_clearance;
     if (uclearance == 0)

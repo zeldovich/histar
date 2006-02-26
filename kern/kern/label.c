@@ -215,11 +215,9 @@ label_eq(level_t a, level_t b)
 }
 
 int
-label_leq_rhs_low_except_star(level_t a, level_t b)
+label_leq_starhi_rhs_0_except_star(level_t a, level_t b)
 {
-    if (b == LB_LEVEL_STAR)
-	return 0;
-    return -E_LABEL;
+    return label_leq_starhi(a, b == LB_LEVEL_STAR ? LB_LEVEL_STAR : 0);
 }
 
 void
