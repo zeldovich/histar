@@ -20,6 +20,7 @@ public:
     void set(uint64_t handle, level_t level);
 
     level_t get_default() { return ul_.ul_default; }
+    void set_default(level_t l) { ul_.ul_default = l; }
     void reset(level_t def);
 
     const char *to_string() const { return label_to_string(&ul_); }
@@ -27,6 +28,7 @@ public:
 
     int compare(label *b, label_comparator cmp);
     void merge(label *b, label *out, level_merger m, level_comparator cmp);
+    void merge_with(label *b, level_merger m, level_comparator cmp);
 
     static int leq_starlo(level_t a, level_t b);
     static int leq_starhi(level_t a, level_t b);
@@ -36,6 +38,7 @@ public:
     static level_t min(level_t a, level_t b, level_comparator cmp);
 
 private:
+    label(const label &l) { /* not implemented yet */ }
     void grow();
 
     uint64_t *slot_grow(uint64_t handle);

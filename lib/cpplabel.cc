@@ -142,6 +142,21 @@ label::merge(label *b, label *out, level_merger m, level_comparator cmp)
     }
 }
 
+void
+label::merge_with(label *b, level_merger m, level_comparator cmp)
+{
+    set_default(m(get_default(), b->get_default(), cmp));
+    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
+	set(h, m(get(h), b->get(h), cmp));
+    }
+
+    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
+	set(h, m(get(h), b->get(h), cmp));
+    }
+}
+
 level_t
 label::max(level_t a, level_t b, level_comparator leq)
 {
