@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
+#include <inc/syscall.h>
 }
 
 #include <inc/labelutil.hh>
@@ -38,5 +39,18 @@ thread_cur_label(label *l)
 	    l->grow();
 	else if (r < 0)
 	    throw error(r, "thread_get_label");
+    } while (r == -E_NO_SPACE);
+}
+
+void
+thread_cur_clearance(label *l)
+{
+    int r;
+    do {
+	r = sys_thread_get_clearance(l->to_ulabel());
+	if (r == -E_NO_SPACE)
+	    l->grow();
+	else if (r < 0)
+	    throw error(r, "sys_thread_get_clearance");
     } while (r == -E_NO_SPACE);
 }
