@@ -31,9 +31,9 @@ private:
 
 #define error_check(expr)			\
     do {					\
-	int64_t r = (expr);			\
-	if (r < 0)				\
-	    throw error(r, "%s", #expr);	\
+	int64_t __r = (expr);			\
+	if (__r < 0)				\
+	    throw error(__r, "%s", #expr);	\
     } while (0)
 
 #endif
