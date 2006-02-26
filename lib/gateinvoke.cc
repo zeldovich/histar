@@ -14,7 +14,7 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,
 {
     struct cobj_ref thread_self = COBJ(kobject_id_thread_ct, thread_id());
 
-    enum { label_buf_size = 64 };
+    enum { label_buf_size = 48 };
     uint64_t tgt_label_ent[label_buf_size];
     uint64_t tgt_clear_ent[label_buf_size];
     uint64_t tmp_ent[label_buf_size];
