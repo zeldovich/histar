@@ -46,7 +46,8 @@ LIB_SRCFILES :=	\
 	lib/nethelper.cc \
 	lib/error.cc \
 	lib/backtrace.c \
-	lib/debug.cc
+	lib/debug.cc \
+	lib/privstore.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
