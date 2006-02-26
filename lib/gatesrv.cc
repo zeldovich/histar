@@ -28,8 +28,8 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
     error_check(sys_thread_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gate_ct, &te,
-				      label->to_ulabel(),
-				      clearance->to_ulabel(), name);
+				      clearance->to_ulabel(),
+				      label->to_ulabel(), name);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
