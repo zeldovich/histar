@@ -1,9 +1,11 @@
 extern "C" {
 #include <inc/lib.h>
+#include <inc/error.h>
 }
 
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
+#include <inc/error.hh>
 
 void
 thread_drop_star(uint64_t handle)
@@ -24,4 +26,17 @@ thread_drop_star(uint64_t handle)
     r = label_set_current(self);
     if (r < 0)
 	printf("thread_drop_star: cannot change label: %s\n", e2s(r));
+}
+
+void
+thread_cur_label(label *l)
+{
+    int r;
+    do {
+	r = thread_get_label(l->to_ulabel());
+	if (r == -E_NO_SPACE)
+	    l->grow();
+	else if (r < 0)
+	    throw error(r, "thread_get_label");
+    } while (r == -E_NO_SPACE);
 }
