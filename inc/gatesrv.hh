@@ -9,17 +9,18 @@ public:
     gatesrv_return(struct cobj_ref rgate, uint64_t tct, void *tls, void *stack)
 	: rgate_(rgate), thread_ct_(tct), tls_(tls), stack_(stack) {}
     void ret(struct cobj_ref param,
+	     label *contaminate_label,		// { * } for none
 	     label *decontaminate_label,	// { 3 } for none
 	     label *decontaminate_clearance)	// { 0 } for none
 	__attribute__((noreturn));
 
 private:
-    static void ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
-			     label *label, label *clearance)
+    static void ret_tls_stub(gatesrv_return *r, label *cs, label *ds, label *dr)
 	__attribute__((noreturn));
-    void ret_tls(struct cobj_ref param, label *label, label *clearance)
+    void ret_tls(label *cs, label *ds, label *dr)
 	__attribute__((noreturn));
 
+    struct cobj_ref param_;
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
     void *tls_;

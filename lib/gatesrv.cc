@@ -96,20 +96,19 @@ gatesrv::entry(void *stack)
 }
 
 void
-gatesrv_return::ret(struct cobj_ref param, label *label, label *clearance)
+gatesrv_return::ret(struct cobj_ref param, label *cs, label *ds, label *dr)
 {
-    stack_switch((uint64_t) this, (uint64_t) &param,
-		 (uint64_t) label, (uint64_t) clearance,
+    param_ = param;
+    stack_switch((uint64_t) this, (uint64_t) cs, (uint64_t) ds, (uint64_t) dr,
 		 (char *) tls_ + PGSIZE,
 		 (void *) &ret_tls_stub);
 }
 
 void
-gatesrv_return::ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
-			     label *label, label *clearance)
+gatesrv_return::ret_tls_stub(gatesrv_return *r, label *cs, label *ds, label *dr)
 {
     try {
-	r->ret_tls(*pp, label, clearance);
+	r->ret_tls(cs, ds, dr);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
 	thread_halt();
@@ -117,9 +116,11 @@ gatesrv_return::ret_tls_stub(gatesrv_return *r, struct cobj_ref *pp,
 }
 
 void
-gatesrv_return::ret_tls(struct cobj_ref param,
-			label *dec_label, label *dec_clear)
+gatesrv_return::ret_tls(label *cs, label *ds, label *dr)
 {
+    struct cobj_ref param = param_;
+    struct cobj_ref rgate = rgate_;
+    struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;
     error_check(segment_lookup(stack_, &stackseg, 0));
     error_check(segment_unmap(stack_));
@@ -134,14 +135,20 @@ gatesrv_return::ret_tls(struct cobj_ref param,
     label tgt_clear(&tgt_clear_ent[0], label_buf_size);
     label tmp(&tmp_ent[0], label_buf_size);
 
-    error_check(sys_obj_get_label(rgate_, tmp.to_ulabel()));
-    tmp.merge(dec_label, &tgt_label, label::min, label::leq_starlo);
+    // Compute the target label
+    error_check(sys_obj_get_label(rgate, tgt_label.to_ulabel()));
+    tgt_label.merge_with(ds, label::min, label::leq_starlo);
 
-    error_check(sys_gate_clearance(rgate_, tmp.to_ulabel()));
-    tmp.merge(dec_clear, &tgt_clear, label::max, label::leq_starlo);
+    error_check(sys_obj_get_label(thread_self, tmp.to_ulabel()));
+    tgt_label.merge_with(&tmp, label::max, label::leq_starlo);
+    tgt_label.merge_with(cs, label::max, label::leq_starlo);
 
-    error_check(sys_obj_unref(COBJ(thread_ct_, thread_id())));
-    error_check(sys_gate_enter(rgate_,
+    // Compute the target clearance
+    error_check(sys_gate_clearance(rgate, tgt_clear.to_ulabel()));
+    tgt_clear.merge_with(dr, label::max, label::leq_starlo);
+
+    error_check(sys_obj_unref(thread_self));
+    error_check(sys_gate_enter(rgate,
 			       tgt_label.to_ulabel(),
 			       tgt_clear.to_ulabel(),
 			       param.container, param.object));
