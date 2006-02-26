@@ -51,10 +51,7 @@ void
 gate_call(struct cobj_ref gate, struct cobj_ref *param,
 	  label *cs, label *ds, label *dr)
 {
-    struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
-    void *tls = 0;
-    error_check(segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, &tls, 0));
-    scope_guard<int, void *> g(segment_unmap, tls);
+    void *tls = (void *) UTLS;
 
     int64_t return_handle = sys_handle_create();
     error_check(return_handle);

@@ -5,8 +5,7 @@
 #include <inc/pthread.h>
 #include <inc/stack.h>
 
-static pthread_mutex_t tl_stack_map_mutex;
-static void *tl_stack_base;
+static void *tl_stack_base = (void *) UTLS;
 
 static void __attribute__((noreturn))
 thread_exit(struct cobj_ref ct_obj, void *stackbase)
@@ -23,9 +22,6 @@ thread_entry(void *arg)
 
     ta->entry(ta->arg);
 
-    struct cobj_ref tls = COBJ(kobject_id_thread_ct,
-			       kobject_id_thread_sg);
-    assert(0 == sys_segment_resize(tls, PGSIZE));
     stack_switch(ta->container.container, ta->container.object,
 		 (uint64_t) ta->stackbase, 0,
 		 tl_stack_base + PGSIZE, &thread_exit);
@@ -36,25 +32,6 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, const char *name)
 {
     int r = 0;
-
-    if (tl_stack_base == 0) {
-	pthread_mutex_lock(&tl_stack_map_mutex);
-
-	if (tl_stack_base == 0) {
-	    struct cobj_ref tls = COBJ(kobject_id_thread_ct,
-				       kobject_id_thread_sg);
-	    r = sys_segment_resize(tls, PGSIZE);
-	    if (r == 0)
-		r = segment_map(tls, SEGMAP_READ | SEGMAP_WRITE,
-				&tl_stack_base, 0);
-	}
-
-	pthread_mutex_unlock(&tl_stack_map_mutex);
-	if (r < 0) {
-	    printf("thread_create: cannot map self-stack: %s\n", e2s(r));
-	    return r;
-	}
-    }
 
     int64_t thread_ct = sys_container_alloc(container, 0, name);
     if (thread_ct < 0)

@@ -13,13 +13,8 @@ extern "C" {
 
 gatesrv::gatesrv(uint64_t gate_ct, const char *name,
 		 label *label, label *clearance)
-    : stackpages_(2), active_(0)
+    : tls_((void *) UTLS), stackpages_(2), active_(0)
 {
-    struct cobj_ref tseg = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
-    tls_ = 0;
-    error_check(segment_map(tseg, SEGMAP_READ | SEGMAP_WRITE, &tls_, 0));
-    scope_guard<int, void *> g(segment_unmap, tls_);
-
     // Designated initializers are not supported in g++
     struct thread_entry te;
     te.te_entry = (void *) &entry_tls_stub;
@@ -34,12 +29,10 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
 	throw error(gate_id, "sys_gate_create");
 
     gate_obj_ = COBJ(gate_ct, gate_id);
-    g.dismiss();
 }
 
 gatesrv::~gatesrv()
 {
-    segment_unmap(tls_);
     sys_obj_unref(gate_obj_);
 }
 

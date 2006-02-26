@@ -48,6 +48,12 @@ setup_env(uint64_t envaddr)
     if (r < 0)
 	panic("libmain: cannot map start_env_ro: %s", e2s(r));
 
+    struct cobj_ref tls = COBJ(kobject_id_thread_ct, kobject_id_thread_sg);
+    void *tls_va = (void *) UTLS;
+    r = segment_map(tls, SEGMAP_READ | SEGMAP_WRITE, &tls_va, 0);
+    if (r < 0)
+	panic("libmain: cannot map tls: %s", e2s(r));
+
     int64_t id = sys_mlt_create(start_env->container, "dynamic taint");
     if (id < 0)
 	panic("libmain: cannot create dynamic taint MLT: %s", e2s(id));
