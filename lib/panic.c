@@ -16,5 +16,7 @@ _panic(const char *file, int line, const char *fmt, ...)
 	vcprintf(fmt, ap);
 	cprintf("\n");
 
+	print_backtrace();
+
 	exit(-1);
 }

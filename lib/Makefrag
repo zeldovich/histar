@@ -43,7 +43,8 @@ LIB_SRCFILES :=	\
 	lib/labelutil.cc \
 	lib/nethelper.cc \
 	lib/error.cc \
-	lib/backtrace.c
+	lib/backtrace.c \
+	lib/debug.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
