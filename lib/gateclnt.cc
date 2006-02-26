@@ -30,8 +30,7 @@ return_setup(struct cobj_ref *g, struct jmp_buf *jb,
     clear.set(return_handle, 0);
 
     label label;
-    struct cobj_ref thread_self = COBJ(kobject_id_thread_ct, thread_id());
-    error_check(sys_obj_get_label(thread_self, label.to_ulabel()));
+    thread_cur_label(&label);
 
     struct thread_entry te;
     te.te_entry = (void *) &return_stub;
