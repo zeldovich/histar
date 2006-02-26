@@ -9,7 +9,8 @@ extern "C" {
 static int label_debug = 1;
 
 void
-gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr)
+gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,
+	    gate_invoke_cb cb, void *arg)
 {
     struct cobj_ref thread_self = COBJ(kobject_id_thread_ct, thread_id());
 
@@ -34,6 +35,9 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr)
     // Compute the target clearance
     error_check(sys_gate_clearance(gate, tgt_clear.to_ulabel()));
     tgt_clear.merge_with(dr, label::max, label::leq_starlo);
+
+    if (cb)
+	cb(cs, ds, dr, arg);
 
     if (label_debug)
 	cprintf("gate_invoke: label %s, clearance %s\n",

@@ -72,7 +72,7 @@ gate_call(struct cobj_ref gate, struct cobj_ref *param,
     d->return_gate = return_gate;
 
     if (setjmp(&back_from_call) == 0)
-	gate_invoke(gate, cs, &new_ds, dr);
+	gate_invoke(gate, cs, &new_ds, dr, 0, 0);
 
     *param = d->param;
 }

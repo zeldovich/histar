@@ -123,13 +123,27 @@ gatesrv_return::ret_tls_stub(gatesrv_return *r, label *cs, label *ds, label *dr)
 void
 gatesrv_return::ret_tls(label *cs, label *ds, label *dr)
 {
-    struct cobj_ref rgate = rgate_;
+    gate_invoke(rgate_, cs, ds, dr, &cleanup_stub, this);
+}
+
+void
+gatesrv_return::cleanup_stub(label *cs, label *ds, label *dr, void *arg)
+{
+    gatesrv_return *r = (gatesrv_return *) arg;
+    r->cleanup(cs, ds, dr);
+}
+
+void
+gatesrv_return::cleanup(label *cs, label *ds, label *dr)
+{
+    delete cs;
+    delete ds;
+    delete dr;
+
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;
     error_check(segment_lookup(stack_, &stackseg, 0));
     error_check(segment_unmap(stack_));
     error_check(sys_obj_unref(stackseg));
     error_check(sys_obj_unref(thread_self));
-
-    gate_invoke(rgate, cs, ds, dr);
 }

@@ -8,6 +8,8 @@ class gatesrv_return {
 public:
     gatesrv_return(struct cobj_ref rgate, uint64_t tct, void *tls, void *stack)
 	: rgate_(rgate), thread_ct_(tct), tls_(tls), stack_(stack) {}
+
+    // ret will delete the three labels passed to it
     void ret(struct cobj_ref param,
 	     label *contaminate_label,		// { * } for none
 	     label *decontaminate_label,	// { 3 } for none
@@ -19,6 +21,9 @@ private:
 	__attribute__((noreturn));
     void ret_tls(label *cs, label *ds, label *dr)
 	__attribute__((noreturn));
+
+    static void cleanup_stub(label *cs, label *ds, label *dr, void *arg);
+    void cleanup(label *cs, label *ds, label *dr);
 
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
