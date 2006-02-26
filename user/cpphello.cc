@@ -19,7 +19,16 @@ main(int ac, char **av)
     label *l2 = new label(2);
     l2->set(9, LB_LEVEL_STAR);
     printf("label 2 says %s\n", l2->to_string());
-    delete l2;
+
+    label o;
+    l.merge(l2, &o, label::max, label::leq_starlo);
+    printf("max<starlo>: %s\n", o.to_string());
+
+    l.merge(l2, &o, label::max, label::leq_starhi);
+    printf("max<starhi>: %s\n", o.to_string());
+
+    l.merge(l2, &o, label::min, label::leq_starhi);
+    printf("min<starhi>: %s\n", o.to_string());
 
     try {
 	int x = 5;

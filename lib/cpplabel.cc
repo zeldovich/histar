@@ -1,25 +1,31 @@
 extern "C" {
 #include <inc/lib.h>
+#include <inc/error.h>
 }
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 #include <new>
 
+label::label() : dynamic_(true)
+{
+    ul_.ul_size = 0;
+    ul_.ul_ent = 0;
+    reset(LB_LEVEL_UNDEF);
+}
+
 label::label(level_t def) : dynamic_(true)
 {
     ul_.ul_size = 0;
-    ul_.ul_nent = 0;
-    ul_.ul_default = def;
     ul_.ul_ent = 0;
+    reset(def);
 }
 
 label::label(uint64_t *ents, size_t size) : dynamic_(false)
 {
     ul_.ul_size = size;
-    ul_.ul_nent = 0;
-    ul_.ul_default = LB_LEVEL_UNDEF;
     ul_.ul_ent = ents;
+    reset(LB_LEVEL_UNDEF);
 }
 
 label::~label()
@@ -74,6 +80,13 @@ label::grow()
     ul_.ul_size = newsize;
 }
 
+void
+label::reset(level_t def)
+{
+    ul_.ul_nent = 0;
+    ul_.ul_default = def;
+}
+
 level_t
 label::get(uint64_t handle)
 {
@@ -86,4 +99,89 @@ label::set(uint64_t handle, level_t level)
 {
     uint64_t *s = slot_alloc(handle);
     *s = LB_CODE(handle, level);
+}
+
+int
+label::compare(label *b, label_comparator cmp)
+{
+    int r;
+
+    r = cmp(ul_.ul_default, b->ul_.ul_default);
+    if (r < 0)
+	return r;
+
+    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
+	r = cmp(get(h), b->get(h));
+	if (r < 0)
+	    return r;
+    }
+
+    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
+	r = cmp(get(h), b->get(h));
+	if (r < 0)
+	    return r;
+    }
+
+    return 0;
+}
+
+void
+label::merge(label *b, label *out, level_merger m, level_comparator cmp)
+{
+    out->reset(m(get_default(), b->get_default(), cmp));
+    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
+	out->set(h, m(get(h), b->get(h), cmp));
+    }
+
+    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
+	out->set(h, m(get(h), b->get(h), cmp));
+    }
+}
+
+level_t
+label::max(level_t a, level_t b, level_comparator leq)
+{
+    return leq(a, b) == 0 ? b : a;
+}
+
+level_t
+label::min(level_t a, level_t b, level_comparator leq)
+{
+    return leq(a, b) == 0 ? a : b;
+}
+
+int
+label::leq_starlo(level_t a, level_t b)
+{
+    if (a == LB_LEVEL_STAR)
+	return 0;
+    if (b == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}
+
+int
+label::leq_starhi(level_t a, level_t b)
+{
+    if (b == LB_LEVEL_STAR)
+	return 0;
+    if (a == LB_LEVEL_STAR)
+	return -E_LABEL;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}
+
+int
+label::eq(level_t a, level_t b)
+{
+    if (a == b)
+	return 0;
+    return -E_LABEL;
 }
