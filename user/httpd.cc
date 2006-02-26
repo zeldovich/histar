@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <inc/fd.h>
 }
 
 #include <inc/nethelper.hh>

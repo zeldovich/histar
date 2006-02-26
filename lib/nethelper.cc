@@ -8,6 +8,7 @@ extern "C" {
 #include <inc/string.h>
 #include <inc/fs.h>
 #include <inc/syscall.h>
+#include <inc/fd.h>
 }
 
 url::url(const char *s) : host_(0), path_(0)

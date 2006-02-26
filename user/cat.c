@@ -2,6 +2,7 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/fs.h>
+#include <inc/fd.h>
 
 int
 main(int ac, char **av)

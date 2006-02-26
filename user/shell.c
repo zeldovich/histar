@@ -7,6 +7,7 @@
 #include <inc/error.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
+#include <inc/fd.h>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];

@@ -2,6 +2,7 @@
 #include <inc/assert.h>
 #include <inc/lib.h>
 #include <inc/memlayout.h>
+#include <inc/fd.h>
 
 extern int main(int argc, const char **argv);
 

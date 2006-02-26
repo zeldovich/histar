@@ -4,6 +4,7 @@
 #include <inc/string.h>
 #include <inc/netd.h>
 #include <inc/fs.h>
+#include <inc/fd.h>
 
 static int label_debug = 0;
 

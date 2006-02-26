@@ -5,6 +5,7 @@
 #include <inc/fs.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+#include <inc/fd.h>
 
 static void
 spawn_fs(int fd, const char *pn, int drop_root_handle)

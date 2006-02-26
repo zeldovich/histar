@@ -1,6 +1,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/lib.h>
+#include <inc/fd.h>
 
 static FILE stdf[] = { {0}, {1}, {2} };
 FILE *stdin = &stdf[0];
