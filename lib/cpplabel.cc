@@ -63,8 +63,10 @@ label::slot_grow(uint64_t handle)
 	    return &ul_.ul_ent[i];
 
     uint64_t n = ul_.ul_nent;
-    if (n >= ul_.ul_size)
+    if (n >= ul_.ul_size) {
+	ul_.ul_needed = MAX(ul_.ul_size, 8UL);
 	grow();
+    }
 
     ul_.ul_nent++;
     ul_.ul_ent[n] = LB_CODE(handle, ul_.ul_default);
@@ -83,13 +85,15 @@ label::grow()
     if (!dynamic_)
 	throw basic_exception("label::grow: statically allocated");
 
-    uint64_t newsize = MAX(ul_.ul_size, 8UL) * 2;
-    uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newsize);
-    if (newent == 0)
-	throw std::bad_alloc();
+    if (ul_.ul_needed) {
+	uint64_t newsize = ul_.ul_size + ul_.ul_needed;
+	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newsize);
+	if (newent == 0)
+	    throw std::bad_alloc();
 
-    ul_.ul_ent = newent;
-    ul_.ul_size = newsize;
+	ul_.ul_ent = newent;
+	ul_.ul_size = newsize;
+    }
 }
 
 void
