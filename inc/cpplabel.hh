@@ -20,7 +20,6 @@ public:
     void set(uint64_t handle, level_t level);
 
     level_t get_default() { return ul_.ul_default; }
-    void set_default(level_t level) { ul_.ul_default = level; }
     void reset(level_t def);
 
     const char *to_string() const { return label_to_string(&ul_); }
