@@ -1,11 +1,13 @@
-#include <inc/memlayout.h>
-#include <inc/syscall.h>
-#include <inc/stdio.h>
-#include <inc/lib.h>
 #include <inc/assert.h>
+#include <inc/error.h>
+#include <inc/lib.h>
+#include <inc/syscall.h>
+#include <inc/memlayout.h>
+#include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
 
+#include <lwip/sockets.h>
 #include <lwip/netif.h>
 #include <lwip/stats.h>
 #include <lwip/sys.h>
@@ -13,18 +15,17 @@
 #include <lwip/udp.h>
 #include <lwip/dhcp.h>
 #include <lwip/tcpip.h>
+#include <arch/sys_arch.h>
 #include <netif/etharp.h>
 
 #include <jif/jif.h>
 
-static uint64_t container;
-static int netd_debug = 0;
-static int netd_force_taint = 1;
+// various netd initialization and threads
 static int netd_stats = 0;
 
 struct timer_thread {
     int msec;
-    void (*func)();
+    void (*func)(void);
     const char *name;
     struct cobj_ref thread;
 };
@@ -58,7 +59,7 @@ lwip_init(struct netif *nif)
 static void __attribute__((noreturn))
 net_receive(void *arg)
 {
-    struct netif *nif = arg;
+    struct netif *nif = (struct netif *) arg;
 
     lwip_core_lock();
     for (;;)
@@ -68,7 +69,7 @@ net_receive(void *arg)
 static void __attribute__((noreturn))
 net_timer(void *arg)
 {
-    struct timer_thread *t = arg;
+    struct timer_thread *t = (struct timer_thread *) arg;
 
     for (;;) {
 	uint64_t cur = sys_clock_msec();
@@ -83,12 +84,12 @@ net_timer(void *arg)
 }
 
 static void
-start_timer(struct timer_thread *t, void (*func)(), const char *name, int msec)
+start_timer(struct timer_thread *t, void (*func)(void), const char *name, int msec)
 {
     t->msec = msec;
     t->func = func;
     t->name = name;
-    int r = thread_create(container, &net_timer, t, &t->thread, name);
+    int r = thread_create(start_env->container, &net_timer, t, &t->thread, name);
     if (r < 0)
 	panic("cannot create timer thread: %s", e2s(r));
 }
@@ -96,75 +97,23 @@ start_timer(struct timer_thread *t, void (*func)(), const char *name, int msec)
 static void
 tcpip_init_done(void *arg)
 {
-    sys_sem_t *sem = arg;
+    sys_sem_t *sem = (sys_sem_t *) arg;
     sys_sem_signal(*sem);
 }
 
-static struct ulabel *
-force_taint_prepare(uint64_t taint)
+void
+netd_lwip_init(void (*cb)(void *), void *cbarg)
 {
-    struct ulabel *l = label_get_current();
-    assert(l);
-
-    level_t taint_level = netd_force_taint ? 2 : LB_LEVEL_STAR;
-    assert(0 == label_set_level(l, taint, taint_level, 1));
-
-    segment_set_default_label(l);
-    int r = heap_relabel(l);
-    if (r < 0)
-	panic("cannot relabel heap: %s", e2s(r));
-
-    return l;
-}
-
-static void
-force_taint_commit(struct ulabel *l)
-{
-    int r = label_set_current(l);
-    if (r < 0)
-	panic("cannot reset label to %s: %s", label_to_string(l), e2s(r));
-
-    if (netd_debug)
-	printf("netd: switched to label %s\n", label_to_string(l));
-}
-
-int
-main(int ac, char **av)
-{
-    if (ac != 3) {
-	printf("Usage: %s grant-handle taint-handle\n", av[0]);
-	return -1;
-    }
-
-    uint64_t grant, taint;
-    int r = strtoull(av[1], 0, 10, &grant);
-    if (r < 0)
-	panic("parsing grant handle %s: %s", av[1], e2s(r));
-
-    r = strtoull(av[2], 0, 10, &taint);
-    if (r < 0)
-	panic("parsing taint handle %s: %s", av[2], e2s(r));
-
-    if (netd_debug)
-	printf("netd: grant handle %ld, taint handle %ld\n",
-	       grant, taint);
-
     lwip_core_lock();
-
-    struct ulabel *l = force_taint_prepare(taint);
-    r = netd_server_init(start_env->root_container, start_env->container, l);
-    if (r < 0)
-	panic("netd_server_init: %s", e2s(r));
-    force_taint_commit(l);
 
     struct netif nif;
     lwip_init(&nif);
     dhcp_start(&nif);
 
-    container = start_env->container;
+    uint64_t container = start_env->container;
     struct cobj_ref receive_thread;
-    r = thread_create(container, &net_receive, &nif, &receive_thread,
-		      "rx thread");
+    int r = thread_create(container, &net_receive, &nif, &receive_thread,
+			  "rx thread");
     if (r < 0)
 	panic("cannot create receiver thread: %s", e2s(r));
 
@@ -181,9 +130,7 @@ main(int ac, char **av)
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    printf("netd: ready\n");
-
-    netd_server_ready();
+    cb(cbarg);
 
     for (;;) {
 	if (netd_stats)

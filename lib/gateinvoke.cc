@@ -6,7 +6,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
-static int label_debug = 1;
+static int label_debug = 0;
 
 void
 gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,

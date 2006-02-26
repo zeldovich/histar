@@ -20,13 +20,15 @@ LIB_SRCFILES :=	\
 	lib/segment.c \
 	lib/elf.c \
 	lib/thread.c \
-	lib/gate.c \
 	lib/gatesrv.cc \
 	lib/gateclnt.cc \
 	lib/gateinvoke.cc \
 	lib/taint.c \
-	lib/netd_client.c \
-	lib/netd_server.c \
+	lib/netd_client.cc \
+	lib/netd_gatesrv.cc \
+	lib/netd_fd.c \
+	lib/netd_lwip.c \
+	lib/netd_lwipinit.c \
 	lib/fd.c \
 	lib/console.c \
 	lib/spawn.cc \
