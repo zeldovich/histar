@@ -14,6 +14,7 @@ public:
     label();
     label(level_t def);
     label(uint64_t *ents, size_t size);
+    label(const label &l);
     ~label();
 
     level_t get(uint64_t handle);
@@ -38,7 +39,6 @@ public:
     static level_t min(level_t a, level_t b, level_comparator cmp);
 
 private:
-    label(const label &l) { /* not implemented yet */ }
     void grow();
 
     uint64_t *slot_grow(uint64_t handle);

@@ -28,6 +28,18 @@ label::label(uint64_t *ents, size_t size) : dynamic_(false)
     reset(LB_LEVEL_UNDEF);
 }
 
+label::label(const label &o) : dynamic_(true)
+{
+    ul_ = o.ul_;
+    if (o.ul_.ul_ent) {
+	size_t sz = ul_.ul_size * sizeof(ul_.ul_ent[0]);
+	ul_.ul_ent = (uint64_t *) malloc(sz);
+	if (ul_.ul_ent == 0)
+	    throw std::bad_alloc();
+	memcpy(ul_.ul_ent, o.ul_.ul_ent, sz);
+    }
+}
+
 label::~label()
 {
     if (dynamic_ && ul_.ul_ent)
