@@ -173,6 +173,16 @@ label::merge_with(label *b, level_merger m, level_comparator cmp)
     }
 }
 
+void
+label::transform(level_changer t)
+{
+    set_default(t(get_default()));
+    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
+	set(h, t(get(h)));
+    }
+}
+
 level_t
 label::max(level_t a, level_t b, level_comparator leq)
 {
@@ -215,4 +225,12 @@ label::eq(level_t a, level_t b)
     if (a == b)
 	return 0;
     return -E_LABEL;
+}
+
+level_t
+label::star_to_0(level_t l)
+{
+    if (l == LB_LEVEL_STAR)
+	return 0;
+    return l;
 }
