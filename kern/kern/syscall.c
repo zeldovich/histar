@@ -441,6 +441,12 @@ sys_thread_set_clearance(struct ulabel *uclear)
 }
 
 static void
+sys_thread_get_clearance(struct ulabel *uclear)
+{
+    check(label_to_ulabel(&cur_thread->th_clearance, uclear));
+}
+
+static void
 sys_thread_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
@@ -765,6 +771,10 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_thread_set_clearance:
 	sys_thread_set_clearance((struct ulabel *) a1);
+	break;
+
+    case SYS_thread_get_clearance:
+	sys_thread_get_clearance((struct ulabel *) a1);
 	break;
 
     case SYS_thread_sync_wait:

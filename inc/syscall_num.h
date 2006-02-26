@@ -27,6 +27,7 @@
     SYSCALL_ENTRY(thread_addref)		\
     SYSCALL_ENTRY(thread_set_label)		\
     SYSCALL_ENTRY(thread_set_clearance)		\
+    SYSCALL_ENTRY(thread_get_clearance)		\
     SYSCALL_ENTRY(thread_get_as)		\
     SYSCALL_ENTRY(thread_set_as)		\
     SYSCALL_ENTRY(thread_sync_wait)		\
