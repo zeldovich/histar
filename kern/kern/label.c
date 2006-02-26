@@ -68,19 +68,23 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 	return r;
 
     uint32_t slot = 0;
+    uint32_t overflow = 0;
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (l->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
 
-	if (slot >= ul_size)
-	    return -E_NO_SPACE;
-
-	ul_ent[slot] = l->lb_ent[i];
-	slot++;
-	ul->ul_nent++;
+	if (slot < ul_size) {
+	    ul_ent[slot] = l->lb_ent[i];
+	    slot++;
+	} else {
+	    overflow++;
+	}
     }
 
-    return 0;
+    ul->ul_nent = slot;
+    ul->ul_needed = overflow;
+
+    return overflow ? -E_NO_SPACE : 0;
 }
 
 int

@@ -1,6 +1,8 @@
 #ifndef JOS_INC_LABEL_H
 #define JOS_INC_LABEL_H
 
+#include <machine/types.h>
+
 typedef unsigned char level_t;
 
 struct ulabel {
@@ -8,6 +10,8 @@ struct ulabel {
     uint32_t ul_nent;
 
     level_t ul_default;
+    uint32_t ul_needed;
+
     uint64_t *ul_ent;
 };
 
