@@ -30,3 +30,7 @@ them later do other socket operations.
 fd's should have grant handles that would automatically get granted
 across spawn when appropriate.
 
+gate caveat: whenever you call a low-clearance gate (e.g. { x0 3 }, like
+a return gate), the target clearance is probably going to be too low.
+should remember to reset your clearance higher before doing much else.
+
