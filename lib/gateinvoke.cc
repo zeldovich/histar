@@ -27,7 +27,8 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr)
     tgt_label.merge_with(ds, label::min, label::leq_starlo);
 
     error_check(sys_obj_get_label(thread_self, tmp.to_ulabel()));
-    tgt_label.merge_with(&tmp, label::max, label::leq_starlo);
+    tmp.transform(label::star_to_0);
+    tgt_label.merge_with(&tmp, label::max, label::leq_starhi);
     tgt_label.merge_with(cs, label::max, label::leq_starlo);
 
     // Compute the target clearance
