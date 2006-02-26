@@ -100,9 +100,8 @@ init_procs(int cons)
     //spawn_fs(cons, "/bin/shell", 0);
     spawn_fs(cons, "/bin/shell", 1);
 
-    //spawn_fs(cons, "/bin/telnetd", 1);
-    //spawn_fs(cons, "/bin/freelist_test", 1);
-    //spawn_fs(cons, "/bin/httpd", 1);
+    spawn_fs(cons, "/bin/telnetd", 1);
+    spawn_fs(cons, "/bin/httpd", 1);
 }
 
 int
