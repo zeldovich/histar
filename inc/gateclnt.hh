@@ -1,9 +1,11 @@
 #ifndef JOS_INC_GATECLNT_HH
 #define JOS_INC_GATECLNT_HH
 
-
+#include <inc/cpplabel.hh>
 
 void gate_call(struct cobj_ref gate, struct cobj_ref *param,
-	       struct ulabel *label, struct ulabel *clearance);
+	       label *contaminate_label,		// { * } for none
+	       label *decontaminate_label,		// { 3 } for none
+	       label *decontaminate_clearance);		// { 0 } for none
 
 #endif

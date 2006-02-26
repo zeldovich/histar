@@ -23,6 +23,7 @@ LIB_SRCFILES :=	\
 	lib/gate.c \
 	lib/gatesrv.cc \
 	lib/gateclnt.cc \
+	lib/gateinvoke.cc \
 	lib/taint.c \
 	lib/netd_client.c \
 	lib/netd_server.c \

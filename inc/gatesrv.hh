@@ -20,7 +20,6 @@ private:
     void ret_tls(label *cs, label *ds, label *dr)
 	__attribute__((noreturn));
 
-    struct cobj_ref param_;
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
     void *tls_;
