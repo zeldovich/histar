@@ -40,7 +40,8 @@ return_setup(struct cobj_ref *g, struct jmp_buf *jb,
 
     uint64_t ct = kobject_id_thread_ct;
     int64_t id = sys_gate_create(ct, &te,
-				 label.to_ulabel(), clear.to_ulabel(),
+				 clear.to_ulabel(),
+				 label.to_ulabel(),
 				 "return gate");
     error_check(id);
     *g = COBJ(ct, id);
