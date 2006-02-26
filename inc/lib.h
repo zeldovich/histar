@@ -138,4 +138,7 @@ int  open(const char *pn, int flags, int mode);
 int  mkdir(const char *pn, int mode);
 int  unlink(const char *pn);
 
+/* debug.cc */
+void print_backtrace(void);
+
 #endif
