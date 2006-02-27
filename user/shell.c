@@ -178,13 +178,22 @@ spawn_and_wait(int ac, char **av)
     if (ct < 0)
 	return;
 
-    int r = spawn_wait(ct);
+    int64_t code;
+    int r = process_wait(ct, &code);
     if (r < 0) {
 	printf("spawn_wait: %s\n", e2s(r));
 	return;
     }
 
-    sys_obj_unref(COBJ(start_env->container, ct));
+    if (r == PROCESS_EXITED) {
+	if (code)
+	    printf("Exited with code %ld\n", code);
+	sys_obj_unref(COBJ(start_env->container, ct));
+    } else if (r == PROCESS_TAINTED) {
+	printf("Process tainted itself, detaching.\n");
+    } else {
+	printf("Process reports unknown status %d\n", r);
+    }
 }
 
 static void

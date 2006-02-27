@@ -172,24 +172,59 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 }
 
 int
-spawn_wait(uint64_t childct)
+process_wait(uint64_t childct, int64_t *exit_code)
 {
-    uint64_t exited = 0;
+    uint64_t proc_status = PROCESS_RUNNING;
 
-    while (exited == 0) {
+    while (proc_status == PROCESS_RUNNING) {
 	int64_t obj = container_find(childct, kobj_segment, "exit status");
 	if (obj < 0)
 	    return obj;
 
-	uint64_t *exit_status = 0;
-	int r = segment_map(COBJ(childct, obj), SEGMAP_READ, (void **) &exit_status, 0);
+	struct process_state *ps = 0;
+	int r = segment_map(COBJ(childct, obj), SEGMAP_READ, (void **) &ps, 0);
 	if (r < 0)
 	    return r;
 
-	sys_thread_sync_wait(exit_status, 0, sys_clock_msec() + 10000);
-	exited = *exit_status;
-	segment_unmap(exit_status);
+	sys_thread_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_msec() + 10000);
+	proc_status = ps->status;
+	if (proc_status == PROCESS_EXITED && exit_code)
+	    *exit_code = ps->exit_code;
+	segment_unmap(ps);
     }
 
+    return proc_status;
+}
+
+static int
+process_update_state(uint64_t state, int64_t exit_code)
+{
+    int64_t obj = container_find(start_env->container, kobj_segment, "exit status");
+    if (obj < 0)
+	return obj;
+
+    struct process_state *ps = 0;
+    int r = segment_map(COBJ(start_env->container, obj),
+			SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &ps, 0);
+    if (r < 0)
+	return r;
+
+    ps->exit_code = exit_code;
+    ps->status = state;
+    sys_thread_sync_wakeup(&ps->status);
+    segment_unmap(ps);
     return 0;
+}
+
+int
+process_report_taint(void)
+{
+    return process_update_state(PROCESS_TAINTED, 0);
+}
+
+int
+process_report_exit(int64_t code)
+{
+    return process_update_state(PROCESS_EXITED, code);
 }

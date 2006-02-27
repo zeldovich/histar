@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/setjmp.h>
 #include <inc/taint.h>
+#include <inc/lib.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -48,6 +49,8 @@ try
     if (fs_taint_debug)
 	printf("fs_taint_self: file label %s, new label %s\n",
 	       fl.to_string(), tl.to_string());
+
+    process_report_taint();
 
     struct jmp_buf back;
     if (setjmp(&back) == 0)

@@ -78,21 +78,8 @@ exit(int rval)
 {
     close_all();
 
-    if (start_env) {
-	int64_t obj = container_find(start_env->container, kobj_segment, "exit status");
-	if (obj >= 0) {
-	    uint64_t *exit_status = 0;
-	    int r = segment_map(COBJ(start_env->container, obj),
-				SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &exit_status, 0);
-	    if (r >= 0) {
-		*exit_status = 1;
-		sys_thread_sync_wakeup(exit_status);
-		segment_unmap(exit_status);
-	    }
-	}
-    }
+    if (start_env)
+	process_report_exit(rval);
 
-    sys_thread_halt();
-    panic("exit: still alive after sys_thread_halt");
+    thread_halt();
 }
