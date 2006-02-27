@@ -34,3 +34,7 @@ gate caveat: whenever you call a low-clearance gate (e.g. { x0 3 }, like
 a return gate), the target clearance is probably going to be too low.
 should remember to reset your clearance higher before doing much else.
 
+spawn labels should not be absolute; instead, do something like the
+contaminate-send/decontaminate-receive labels, which just constrain
+the resulting label selection.
+
