@@ -57,6 +57,7 @@ KERN_BINFILES := \
 	user/cpphello \
 	user/rm \
 	user/cat \
+	user/cp \
 	user/fetch \
 	user/lfs_small \
 	user/lfs_large \
