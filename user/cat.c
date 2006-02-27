@@ -21,11 +21,21 @@ main(int ac, char **av)
     }
 
     uint64_t maxoff;
-    r = fs_getsize(f, &maxoff);
-    if (r < 0) {
-	printf("cannot stat %s: %s\n", pn, e2s(r));
-	return r;
-    }
+    do {
+	r = fs_getsize(f, &maxoff);
+	if (r < 0) {
+	    printf("cannot stat %s: %s\n", pn, e2s(r));
+	    if (r == -E_LABEL) {
+		int q = fs_taint_self(f);
+		if (q < 0) {
+		    printf("cannot taint self: %s\n", e2s(q));
+		    return q;
+		}
+	    } else {
+		return r;
+	    }
+	}
+    } while (r == -E_LABEL);
 
     uint64_t off = 0;
     while (off < maxoff) {

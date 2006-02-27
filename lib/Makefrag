@@ -39,6 +39,7 @@ LIB_SRCFILES :=	\
 	lib/fs_dir.cc \
 	lib/fs_file.c \
 	lib/fs_mount.c \
+	lib/fs_taint.cc \
 	lib/file.c \
 	lib/label.c \
 	lib/cpplabel.cc \
