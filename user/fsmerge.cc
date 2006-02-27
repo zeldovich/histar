@@ -36,7 +36,7 @@ merge_mlt_file(struct fs_inode file, struct fs_inode dst)
 	       file.obj.container, file.obj.object,
 	       dst.obj.object);
 
-    error_check(sys_segment_addref(file.obj, dst.obj.object));
+    error_check(fs_link(dst, &name[0], file));
 }
 
 static void

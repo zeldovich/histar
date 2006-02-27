@@ -455,6 +455,24 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 }
 
 int
+fs_link(struct fs_inode dir, const char *fn, struct fs_inode f)
+{
+    int r = sys_segment_addref(f.obj, dir.obj.object);
+    if (r < 0)
+	return r;
+
+    try {
+	fs_opendir od(dir, 1);
+	od.put(fn, f.obj.object);
+    } catch (error &e) {
+	sys_obj_unref(COBJ(dir.obj.object, f.obj.object));
+	return e.err();
+    }
+
+    return 0;
+}
+
+int
 fs_remove(struct fs_inode f)
 {
     try {
