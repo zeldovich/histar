@@ -35,6 +35,7 @@
     SYSCALL_ENTRY(clock_msec)			\
     SYSCALL_ENTRY(segment_create)		\
     SYSCALL_ENTRY(segment_copy)			\
+    SYSCALL_ENTRY(segment_addref)		\
     SYSCALL_ENTRY(segment_resize)		\
     SYSCALL_ENTRY(segment_get_nbytes)		\
     SYSCALL_ENTRY(as_create)			\

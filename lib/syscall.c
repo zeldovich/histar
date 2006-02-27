@@ -209,6 +209,12 @@ sys_segment_copy(struct cobj_ref seg, uint64_t container,
 }
 
 int
+sys_segment_addref(struct cobj_ref seg, uint64_t ct)
+{
+    return syscall(SYS_segment_addref, seg, ct);
+}
+
+int
 sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes)
 {
     return syscall(SYS_segment_resize, seg, num_bytes);

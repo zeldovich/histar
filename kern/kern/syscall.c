@@ -512,6 +512,17 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
 }
 
 static void
+sys_segment_addref(struct cobj_ref seg, uint64_t ct)
+{
+    const struct Container *c;
+    check(container_find(&c, ct, iflow_write));
+
+    const struct kobject *ko;
+    check(cobj_get(seg, kobj_segment, &ko, iflow_none));
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+}
+
+static void
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes)
 {
     const struct kobject *ko;
@@ -796,6 +807,10 @@ syscall(syscall_num num, uint64_t a1,
 	syscall_ret = sys_segment_copy(COBJ(a1, a2), a3,
 				       (struct ulabel *) a4,
 				       (const char *) a5);
+	break;
+
+    case SYS_segment_addref:
+	sys_segment_addref(COBJ(a1, a2), a3);
 	break;
 
     case SYS_segment_resize:
