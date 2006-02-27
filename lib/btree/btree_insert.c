@@ -687,7 +687,7 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 
 			btree_write_node(node);
 		}
-
+                btree_height_is(tree, tree->height + 1) ;
 		btree_root_node_is(tree, node->block.offset);
 		btree_destroy_node(node);
 	}

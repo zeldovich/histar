@@ -879,9 +879,8 @@ btree_delete(void *t, const uint64_t *key)
 	if (BTREE_IS_LEAF(rootNode) && rootNode->keyCount == 0)
 	{
 		btree_root_node_is(tree, 0);
+                btree_height_is(tree, 0) ;
 		btree_erase_node(rootNode);
-		//cprintf("btree_delete stop\n") ;
-		//return filePos ;
 		btree_unset_op(tree, btree_op_delete) ;
 		return 0 ;
 	}
@@ -899,14 +898,13 @@ btree_delete(void *t, const uint64_t *key)
 		btree_destroy_node(tempNode);
 
 		btree_erase_node(rootNode);
-		//cprintf("btree_delete stop\n") ;
-		//return filePos ;
+                
+                btree_height_is(tree, tree->height - 1) ;
+                
 		btree_unset_op(tree, btree_op_delete) ;
 		return 0 ;
 	}
 	btree_destroy_node(rootNode);
-	//cprintf("btree_delete stop\n") ;
-	//return filePos;
 	btree_unset_op(tree, btree_op_delete) ;
 	return 0 ;
 }

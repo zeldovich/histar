@@ -17,11 +17,10 @@ btree_init(struct btree * t, char order, char key_size,
 	t->s_key = key_size ;
 	t->s_value = value_size ;
 
-	t->op = btree_op_none ;
-	t->threads = 0 ;
-
 	t->magic = BTREE_MAGIC ;
-	
+	t->size = 0 ;
+        t->height = 0 ;
+        
 	btree_manager_is(t, mm) ;
 }
 
@@ -45,6 +44,7 @@ btree_erase(struct btree *t)
 	t->size = 0 ;
 	t->left_leaf = 0 ;
 	t->root = 0 ;
+        t->height = 0 ;
 }
 
 uint64_t
@@ -82,32 +82,10 @@ void
 btree_set_op(struct btree *tree, btree_op op)
 {
 	lock_acquire(&tree->lock) ;
-
-	if (tree->op) {
-		if (tree->op == btree_op_search &&
-			op == btree_op_search)
-			tree->threads++ ;	
-		else
-			panic("btree_set_op: setting %d while %d, %d times",
-				  op, tree->op, tree->threads) ;
-	}
-	else {
-		tree->op = op ;
-		tree->threads++ ;	
-	}
 }
 
 void
 btree_unset_op(struct btree *tree, btree_op op)
 {
-	if (tree->op == op && tree->threads) {
-		tree->threads-- ;
-		if (tree->threads == 0)
-			tree->op = btree_op_none ;	
-	}
-	else 
-		panic("btree_unset_op: unsetting %d while %d, %d times",
-			  op, tree->op, tree->threads) ;
-
 	lock_release(&tree->lock) ;
 }

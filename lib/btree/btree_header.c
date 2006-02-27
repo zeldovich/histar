@@ -8,9 +8,15 @@ btree_root_node_is(struct btree *tree, offset_t offset)
 }
 
 void
-bt_tree_size_is(struct btree * tree, unsigned long size)
+bt_tree_size_is(struct btree *tree, unsigned long size)
 {
 	tree->size = size ;
+}
+
+void
+btree_height_is(struct btree *tree, uint64_t h)
+{
+        tree->height = h ;       
 }
 
 offset_t

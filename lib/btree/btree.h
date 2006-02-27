@@ -45,6 +45,7 @@ struct btree
 	uint8_t s_value ;
 	
 	uint64_t size; 
+        uint64_t height ;
 
 	uint8_t min_leaf;   
 	uint8_t min_intrn;    
@@ -52,9 +53,6 @@ struct btree
 	offset_t root;           
 	offset_t left_leaf;       
 
-	btree_op op ;
-	int threads ;
-	
 	uint64_t magic ;
 	struct lock lock ;
 	
