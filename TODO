@@ -38,3 +38,7 @@ spawn labels should not be absolute; instead, do something like the
 contaminate-send/decontaminate-receive labels, which just constrain
 the resulting label selection.
 
+since a process knows when it's about to taint itself (at least in
+case of fs_taint_self, and we can guess about netd maybe), it would
+be nice to say good-bye to the parent process, so it can stop waiting.
+
