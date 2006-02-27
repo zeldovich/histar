@@ -484,6 +484,8 @@ fs_remove(struct fs_inode f)
 	    return r;
 
 	od.remove(f.obj.object);
+    } catch (missing_dir_segment &e) {
+	return sys_obj_unref(f.obj);
     } catch (error &e) {
 	return e.err();
     }
