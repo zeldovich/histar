@@ -56,7 +56,7 @@ int  thread_jump(const struct Thread *t,
 		 const struct Label *label,
 		 const struct Label *clearance,
 		 struct cobj_ref as, void *entry, void *stack,
-		 uint64_t arg0, uint64_t arg1, uint64_t arg2)
+		 uint64_t arg0, uint64_t arg1)
     __attribute__ ((warn_unused_result));
 int  thread_change_label(const struct Thread *t, const struct Label *l)
     __attribute__ ((warn_unused_result));

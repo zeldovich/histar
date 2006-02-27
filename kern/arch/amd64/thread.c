@@ -258,7 +258,7 @@ thread_jump(const struct Thread *const_t,
 	    const struct Label *clearance,
 	    struct cobj_ref as, void *entry,
 	    void *stack, uint64_t arg0,
-	    uint64_t arg1, uint64_t arg2)
+	    uint64_t arg1)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
@@ -278,7 +278,6 @@ thread_jump(const struct Thread *const_t,
     t->th_tf.tf_rsp = (uint64_t) stack;
     t->th_tf.tf_rdi = arg0;
     t->th_tf.tf_rsi = arg1;
-    t->th_tf.tf_rdx = arg2;
 
     return 0;
 }

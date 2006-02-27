@@ -39,8 +39,7 @@ int64_t	sys_gate_create(uint64_t container, struct thread_entry *s,
 			const char *name);
 int	sys_gate_enter(struct cobj_ref gate,
 		       struct ulabel *label,
-		       struct ulabel *clearance,
-		       uint64_t a1, uint64_t a2);
+		       struct ulabel *clearance);
 int	sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul);
 
 int64_t	sys_thread_create(uint64_t container, const char *name);

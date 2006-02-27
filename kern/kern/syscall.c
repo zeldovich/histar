@@ -300,8 +300,7 @@ sys_thread_create(uint64_t ct, const char *name)
 static void
 sys_gate_enter(struct cobj_ref gt,
 	       struct ulabel *ul,
-	       struct ulabel *uclearance,
-	       uint64_t a1, uint64_t a2)
+	       struct ulabel *uclearance)
 {
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
@@ -342,7 +341,7 @@ sys_gate_enter(struct cobj_ref gt,
 		      &new_label,
 		      &new_clearance,
 		      e->te_as, e->te_entry, e->te_stack,
-		      e->te_arg, a1, a2));
+		      e->te_arg, 0));
 }
 
 static void
@@ -374,7 +373,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e,
     check(thread_jump(t,
 		      &new_label, &new_clearance,
 		      e->te_as, e->te_entry, e->te_stack,
-		      e->te_arg, 0, 0));
+		      e->te_arg, 0));
     thread_set_runnable(t);
 }
 
@@ -711,8 +710,7 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_gate_enter:
 	sys_gate_enter(COBJ(a1, a2),
-		       (struct ulabel *) a3, (struct ulabel *) a4,
-		       a5, a6);
+		       (struct ulabel *) a3, (struct ulabel *) a4);
 	break;
 
     case SYS_gate_clearance:
