@@ -60,7 +60,8 @@ KERN_BINFILES := \
 	user/fetch \
 	user/lfs_small \
 	user/lfs_large \
-	user/privtest
+	user/privtest \
+	user/fsmerge
 
 	#user/freelist_test \
 	#user/tcpsink
