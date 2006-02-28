@@ -15,6 +15,12 @@ merge_mlt_file(struct fs_inode file, struct fs_inode dst)
     int type = sys_obj_get_type(file.obj);
     error_check(type);
 
+    // we don't really know how to merge containers quite yet,
+    // need to change cobj_get() to do iflow_none on the container
+    // if the object == container itself.
+    if (type == kobj_container)
+	return;
+
     if (type != kobj_segment) {
 	printf("fs_merge: funny object %lu.%lu type %d\n",
 	       file.obj.container, file.obj.object, type);
