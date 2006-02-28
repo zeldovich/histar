@@ -31,6 +31,7 @@ kobject_type_t
 	sys_obj_get_type(struct cobj_ref o);
 int	sys_obj_get_label(struct cobj_ref o, struct ulabel *l);
 int	sys_obj_get_name(struct cobj_ref o, char *name);
+int64_t	sys_obj_get_bytes(struct cobj_ref o);
 
 int64_t	sys_handle_create(void);
 

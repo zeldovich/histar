@@ -15,6 +15,7 @@
     SYSCALL_ENTRY(obj_get_type)			\
     SYSCALL_ENTRY(obj_get_label)		\
     SYSCALL_ENTRY(obj_get_name)			\
+    SYSCALL_ENTRY(obj_get_bytes)		\
     SYSCALL_ENTRY(handle_create)		\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\

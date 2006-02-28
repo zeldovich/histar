@@ -82,6 +82,12 @@ sys_obj_get_name(struct cobj_ref o, char *name)
 }
 
 int64_t
+sys_obj_get_bytes(struct cobj_ref o)
+{
+    return syscall(SYS_obj_get_bytes, o);
+}
+
+int64_t
 sys_container_nslots(uint64_t container)
 {
     return syscall(SYS_container_nslots, container);

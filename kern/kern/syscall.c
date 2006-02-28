@@ -237,6 +237,14 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
 }
 
 static uint64_t
+sys_obj_get_bytes(struct cobj_ref o)
+{
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_read));
+    return ROUNDUP(KOBJ_DISK_SIZE + ko->hdr.ko_nbytes, 512);
+}
+
+static uint64_t
 sys_container_nslots(uint64_t container)
 {
     const struct Container *c;
@@ -700,6 +708,10 @@ syscall(syscall_num num, uint64_t a1,
 
     case SYS_obj_get_name:
 	sys_obj_get_name(COBJ(a1, a2), (char *) a3);
+	break;
+
+    case SYS_obj_get_bytes:
+	syscall_ret = sys_obj_get_bytes(COBJ(a1, a2));
 	break;
 
     case SYS_container_nslots:
