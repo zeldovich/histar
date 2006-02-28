@@ -48,7 +48,8 @@ LIB_SRCFILES :=	\
 	lib/error.cc \
 	lib/backtrace.c \
 	lib/debug.cc \
-	lib/privstore.cc
+	lib/privstore.cc \
+	lib/sha1.c
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag
