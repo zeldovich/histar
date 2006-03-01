@@ -203,6 +203,8 @@ label_change_star(struct ulabel *l, level_t new_level)
     for (uint32_t i = 0; i < l->ul_nent; i++)
 	if (LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
 	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), new_level);
+    if (l->ul_default == LB_LEVEL_STAR)
+	l->ul_default = new_level;
 }
 
 void
