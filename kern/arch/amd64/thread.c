@@ -125,16 +125,16 @@ thread_swapin(struct Thread *t)
     t->th_as = 0;
     t->th_pinned = 0;
 
-    if (t->th_status == thread_suspended)
+    if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
 
     struct Thread_list *tq =
-	(t->th_status == thread_runnable) ? &thread_list_runnable
-					  : &thread_list_limbo;
+	SAFE_EQUAL(t->th_status, thread_runnable) ? &thread_list_runnable
+						  : &thread_list_limbo;
     LIST_INSERT_HEAD(tq, t, th_link);
 
     // Runnable and suspended threads are pinned
-    if (t->th_status == thread_runnable)
+    if (SAFE_EQUAL(t->th_status, thread_runnable))
 	thread_pin(t);
 }
 
@@ -193,7 +193,7 @@ thread_gc(struct Thread *t)
 void
 thread_run(const struct Thread *t)
 {
-    if (t->th_status != thread_runnable)
+    if (!SAFE_EQUAL(t->th_status, thread_runnable))
 	panic("trying to run a non-runnable thread %p", t);
 
     thread_switch(t);

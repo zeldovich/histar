@@ -35,8 +35,8 @@ struct pagetree_indirect_page {
 };
 
 typedef SAFE_TYPE(int) page_rw_mode;
-#define page_ro	    SAFE_WRAP(page_rw_mode, 0)
-#define page_rw	    SAFE_WRAP(page_rw_mode, 1)
+#define page_ro	    SAFE_WRAP(page_rw_mode, 1)
+#define page_rw	    SAFE_WRAP(page_rw_mode, 2)
 
 // Fancy API for zeroing out
 void pagetree_init(struct pagetree *pt);

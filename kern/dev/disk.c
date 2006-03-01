@@ -138,13 +138,13 @@ ide_pio_out(struct ide_channel *idec, const void *buf, uint32_t num_sectors)
 static void
 ide_complete(struct ide_channel *idec, disk_io_status stat)
 {
-    if (idec->current_op.op == op_none)
+    if (SAFE_EQUAL(idec->current_op.op, op_none))
 	return;
 
-    if (stat == disk_io_failure)
+    if (SAFE_EQUAL(stat, disk_io_failure))
 	cprintf("ide_complete: %s error at byte offset %lu\n",
-		idec->current_op.op == op_read ? "read" :
-		idec->current_op.op == op_write ? "write" : "unknown",
+		SAFE_EQUAL(idec->current_op.op, op_read) ? "read" :
+		SAFE_EQUAL(idec->current_op.op, op_write) ? "write" : "unknown",
 		idec->current_op.byte_offset);
 
     idec->current_op.op = op_none;
@@ -193,7 +193,7 @@ ide_dma_init(struct ide_channel *idec, disk_op op,
 	 IDE_BM_STAT_D0_DMA | IDE_BM_STAT_D1_DMA |
 	 IDE_BM_STAT_INTR | IDE_BM_STAT_ERROR);
     outb(idec->bm_addr + IDE_BM_CMD_REG,
-	 (op == op_read) ? IDE_BM_CMD_WRITE : 0);
+	 SAFE_EQUAL(op, op_read) ? IDE_BM_CMD_WRITE : 0);
 
     return nbytes;
 }
@@ -292,8 +292,8 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
 				     num_bytes / 512);
     outb(idec->cmd_addr + IDE_REG_CMD,
-	 (idec->current_op.op == op_read) ? IDE_CMD_READ_DMA
-					  : IDE_CMD_WRITE_DMA);
+	 SAFE_EQUAL(idec->current_op.op, op_read) ? IDE_CMD_READ_DMA
+						  : IDE_CMD_WRITE_DMA);
     ide_dma_start(idec);
 
     idec->irq_wait = 1;
@@ -399,7 +399,7 @@ disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
     struct ide_channel *idec = &the_ide_channel;
     struct ide_op *curop = &idec->current_op;
 
-    if (curop->op != op_none)
+    if (!SAFE_EQUAL(curop->op, op_none))
 	return -E_BUSY;
 
     curop->op = op;

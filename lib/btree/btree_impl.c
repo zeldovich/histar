@@ -45,7 +45,7 @@ btree_simple_node(struct btree *tree,
 							  buf, 
 							  BTREE_BLOCK_SIZE,
 							  offset);
-		if (s != disk_io_success) {
+		if (!SAFE_EQUAL(s, disk_io_success)) {
 			cprintf("btree_simple_node: error reading node from disk\n");
 			page_free(buf) ;
 			*store = 0 ;

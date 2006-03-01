@@ -360,7 +360,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *e,
     check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
 
     struct Thread *t = &kobject_dirty(&ko->hdr)->th;
-    if (t->th_status != thread_not_started)
+    if (!SAFE_EQUAL(t->th_status, thread_not_started))
 	check(-E_INVAL);
 
     struct Label new_label;

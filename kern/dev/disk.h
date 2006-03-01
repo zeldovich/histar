@@ -3,27 +3,26 @@
 
 #include <machine/types.h>
 #include <dev/pci.h>
+#include <inc/safetype.h>
 
 // IDE supports at most a 64K DMA request
 #define DISK_REQMAX	65536
 
 // Support for only one data disk, at the moment
 
-typedef enum {
-    disk_io_success,
-    disk_io_failure
-} disk_io_status;
+typedef SAFE_TYPE(int) disk_io_status;
+#define disk_io_success SAFE_WRAP(disk_io_status, 1)
+#define disk_io_failure SAFE_WRAP(disk_io_status, 2)
 
 typedef void (*disk_callback) (disk_io_status, void *);
 
 void disk_init(struct pci_func *pcif);
 extern uint64_t disk_bytes;
 
-typedef enum {
-    op_none = 0,
-    op_read,
-    op_write
-} disk_op;
+typedef SAFE_TYPE(int) disk_op;
+#define op_none  SAFE_WRAP(disk_op, 0)
+#define op_read  SAFE_WRAP(disk_op, 1)
+#define op_write SAFE_WRAP(disk_op, 2)
 
 struct iovec {
     void *iov_base;

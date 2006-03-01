@@ -8,12 +8,11 @@
 #include <kern/container.h>
 #include <inc/queue.h>
 
-typedef enum {
-    thread_runnable,
-    thread_suspended,
-    thread_halted,
-    thread_not_started
-} thread_status;
+typedef SAFE_TYPE(int) thread_status;
+#define thread_not_started	SAFE_WRAP(thread_status, 1)
+#define thread_runnable		SAFE_WRAP(thread_status, 2)
+#define thread_suspended	SAFE_WRAP(thread_status, 3)
+#define thread_halted		SAFE_WRAP(thread_status, 4)
 
 struct Thread {
     struct kobject_hdr th_ko;

@@ -5,6 +5,7 @@
 #include <kern/label.h>
 #include <inc/kobj.h>
 #include <inc/queue.h>
+#include <inc/safetype.h>
 
 #define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
 #define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
@@ -32,12 +33,12 @@ struct kobject_hdr {
     uint32_t ko_pin;	// header is pinned (linked lists)
 };
 
-typedef enum {
-    iflow_read,
-    iflow_rw,
-    iflow_write,
-    iflow_none
-} info_flow_type;
+typedef SAFE_TYPE(int) info_flow_type;
+#define iflow_read  SAFE_WRAP(info_flow_type, 1)
+#define iflow_write SAFE_WRAP(info_flow_type, 2)
+#define iflow_rw    SAFE_WRAP(info_flow_type, 3)
+#define iflow_none  SAFE_WRAP(info_flow_type, 4)
+#define iflow_alloc SAFE_WRAP(info_flow_type, 5)
 
 struct kobject;
 

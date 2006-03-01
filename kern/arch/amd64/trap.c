@@ -148,7 +148,7 @@ trap_handler (struct Trapframe *tf)
     t->th_tf = *tf;
     trap_dispatch(trapno, &t->th_tf);
 
-    if (cur_thread == 0 || cur_thread->th_status != thread_runnable)
+    if (cur_thread == 0 || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();
     thread_run(cur_thread);
 }

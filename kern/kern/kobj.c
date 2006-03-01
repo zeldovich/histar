@@ -63,29 +63,20 @@ kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
     if (cur_thread == 0)
 	return 0;
 
-    switch (iflow) {
-    case iflow_read:
+    if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
 			  label_leq_starhi);
-	break;
-
-    case iflow_write:
+    } else if (SAFE_EQUAL(iflow, iflow_write)) {
 	r = label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
 			  label_leq_starlo);
-	break;
-
-    case iflow_rw:
+    } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = kobject_iflow_check(ko, iflow_read);
 	if (r == 0)
 	    r = kobject_iflow_check(ko, iflow_write);
-	break;
-
-    case iflow_none:
+    } else if (SAFE_EQUAL(iflow, iflow_none)) {
 	r = 0;
-	break;
-
-    default:
-	panic("kobject_get: unknown iflow type %d\n", iflow);
+    } else {
+	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
     }
 
     return r;
@@ -464,9 +455,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 }
 
 // Negative kobject id cache (objects that don't exist)
-enum {
-    kobject_neg_nent = 1024
-};
+enum { kobject_neg_nent = 1024 };
 static struct {
     int inited;
     int next;
@@ -519,8 +508,8 @@ kobject_initial(const struct kobject *ko)
 	return 1;
 
     if (ko->hdr.ko_type == kobj_thread)
-	return ko->th.th_status == thread_runnable ||
-	       ko->th.th_status == thread_suspended;
+	return SAFE_EQUAL(ko->th.th_status, thread_runnable) ||
+	       SAFE_EQUAL(ko->th.th_status, thread_suspended);
 
     return 0;
 }

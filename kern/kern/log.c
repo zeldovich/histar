@@ -136,7 +136,7 @@ log_write_to_disk(struct node_list *nodes, uint64_t *count)
 	LIST_FOREACH(node, nodes, node_link) {
 		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, node->block.offset);
 		
-		if (s != disk_io_success) {
+		if (!SAFE_EQUAL(s, disk_io_success)) {
 			*count = n ;
 			return -E_IO ;
 		}
@@ -165,7 +165,7 @@ log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 	LIST_FOREACH(node, nodes, node_link) {
 		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, off);
 		log.log_gen++ ;
-		if (s != disk_io_success) {
+		if (!SAFE_EQUAL(s, disk_io_success)) {
 			*count = n ;
 			return -E_IO ;
 		}
@@ -255,7 +255,7 @@ log_try_node(offset_t offset, struct btree_node *store)
 	uint64_t gen = log.log_gen ;
 	
 	disk_io_status s = stackwrap_disk_io(op_read, store, BTREE_BLOCK_SIZE, log_off);
-	if (s != disk_io_success)
+	if (!SAFE_EQUAL(s, disk_io_success))
 		return -E_IO ;
 
 	// compacting modified disk_map
@@ -329,7 +329,7 @@ log_compact(void)
 	
 	disk_io_status s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
 	log.log_gen++ ;
-	if (s != disk_io_success)
+	if (!SAFE_EQUAL(s, disk_io_success))
 		return -E_IO ;
 	
 	log.on_disk = n_nodes ;
@@ -411,7 +411,7 @@ log_flush(void)
 
 	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
 	log.log_gen++ ;
-	if (s != disk_io_success)
+	if (!SAFE_EQUAL(s, disk_io_success))
 		return -E_IO ;
 
 	log.on_disk += log.in_mem ;
@@ -500,7 +500,7 @@ log_apply(void)
 	else  { // try to apply log sitting on disk
 		disk_io_status s = stackwrap_disk_io(op_read, scratch,
 							  SCRATCH_SIZE, log.byteoff);
-		if (s != disk_io_success)
+		if (!SAFE_EQUAL(s, disk_io_success))
 			return -E_IO ;
 			
 		struct log_header *lh = (struct log_header *)scratch ;

@@ -141,7 +141,7 @@ pstate_iov_flush(struct pstate_iov_collector *x)
     if (x->iov_bytes > 0) {
 	disk_io_status s =
 	    stackwrap_disk_iov(x->flush_op, x->iov_buf, x->iov_cnt, x->flush_off);
-	if (s != disk_io_success) {
+	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    cprintf("pstate_iov_flush: error during disk io\n");
 	    return -E_IO;
 	}
@@ -313,7 +313,7 @@ static int
 pstate_load2(void)
 {
     disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_load2: cannot read header\n");
 	return -E_IO;
     }
@@ -482,7 +482,7 @@ pstate_sync_apply(void)
     hdr->ph_applying = 1 ;
     disk_io_status s = stackwrap_disk_io(op_write, hdr,
 					 PSTATE_BUF_SIZE, 0);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_apply: unable to mark applying\n");
 	return -E_IO ;	
     }
@@ -490,7 +490,7 @@ pstate_sync_apply(void)
     // 2nd, read flushed header copy
     s = stackwrap_disk_io(op_read, hdr,
 			  PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_apply: unable to read header\n");
 	return -E_IO;
     }
@@ -502,7 +502,7 @@ pstate_sync_apply(void)
 
     // 4th, write out new header
     s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_apply: unable to write header\n");
 	return -E_IO;
     }
@@ -510,7 +510,7 @@ pstate_sync_apply(void)
     // 5th, unmark applying
     hdr->ph_applying = 0;
     s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_apply: unable to unmark applying\n");
 	return -E_IO;
     }
@@ -526,7 +526,7 @@ pstate_sync_flush(void)
     // 1st, write a copy of the header
     disk_io_status s = stackwrap_disk_io(op_write, hdr,
 					 PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE);
-    if (s != disk_io_success) {
+    if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_flush: unable to flush hdr\n");
 	return -E_IO;
     }
