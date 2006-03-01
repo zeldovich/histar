@@ -306,8 +306,7 @@ user_bootstrap(void)
 
     label_init(&obj_label, 1);
     assert(0 == label_set(&obj_label, user_root_handle, 0));
-    label_init(&th_label, 1);
-    assert(0 == label_set(&th_label, user_root_handle, LB_LEVEL_STAR));
+    label_init(&th_label, LB_LEVEL_STAR);
     thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
