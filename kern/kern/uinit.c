@@ -106,7 +106,8 @@ thread_load_elf(struct Container *c, struct Thread *t,
 		struct Label *obj_label,
 		struct Label *th_label,
 		struct Label *th_clearance,
-		const uint8_t *binary, uint64_t size, uint64_t arg)
+		const uint8_t *binary, uint64_t size,
+		uint64_t arg0, uint64_t arg1)
 {
     Elf64_Ehdr elf;
     if (elf_copyin(&elf, 0, sizeof(elf), binary, size) < 0) {
@@ -194,7 +195,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     assert(0 == thread_jump(t, th_label, th_clearance,
 			    COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
 			    (void*) elf.e_entry, (void*) USTACKTOP,
-			    c->ct_ko.ko_id, arg));
+			    arg0, arg1));
     return 0;
 }
 
@@ -203,7 +204,9 @@ thread_create_embed(struct Container *c,
 		    struct Label *obj_label,
 		    struct Label *th_label,
 		    struct Label *th_clearance,
-		    const char *name, uint64_t arg, uint64_t koflag)
+		    const char *name,
+		    uint64_t arg0, uint64_t arg1,
+		    uint64_t koflag)
 {
     struct embed_bin *prog = 0;
 
@@ -238,7 +241,7 @@ thread_create_embed(struct Container *c,
 
     r = thread_load_elf(tc, t,
 			obj_label, th_label, th_clearance,
-			prog->buf, prog->size, arg);
+			prog->buf, prog->size, arg0, arg1);
     if (r < 0)
 	panic("tce: cannot load ELF: %s", e2s(r));
 
@@ -295,18 +298,18 @@ user_bootstrap(void)
 
     uint64_t idle_handle = handle_alloc();
     label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, idle_handle, LB_LEVEL_STAR));
+    assert(0 == label_set(&obj_label, idle_handle, 0));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, idle_handle, LB_LEVEL_STAR));
     thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
-			"idle", rc->ct_ko.ko_id, KOBJ_PIN_IDLE);
+			"idle", 1, 1, KOBJ_PIN_IDLE);
 
     label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, user_root_handle, LB_LEVEL_STAR));
+    assert(0 == label_set(&obj_label, user_root_handle, 0));
     label_init(&th_label, 1);
     assert(0 == label_set(&th_label, user_root_handle, LB_LEVEL_STAR));
     thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
-			"init", rc->ct_ko.ko_id, 0);
+			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
 
 void

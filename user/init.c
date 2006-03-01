@@ -8,27 +8,23 @@
 #include <inc/fd.h>
 
 static void
-spawn_fs(int fd, const char *pn, int drop_root_handle)
+spawn_fs(int fd, const char *pn, struct ulabel *thread_label)
 {
-    struct ulabel *l = label_get_current();
-    if (l == 0)
-	panic("cannot get current label\n");
-
-    if (drop_root_handle)
-	label_max_default(l);
-
     struct fs_inode ino;
     int r = fs_namei(pn, &ino);
     if (r < 0)
 	panic("cannot fs_lookup %s: %s\n", pn, e2s(r));
 
     const char *argv[] = { pn };
-    int64_t ct = spawn(start_env->root_container, ino, fd, fd, fd, 1, &argv[0], l, l, 0);
+    int64_t ct = spawn(start_env->root_container, ino,
+		       fd, fd, fd, 1, &argv[0],
+		       thread_label, thread_label,
+		       0);
     if (ct < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(ct));
 
-    printf("init: spawned %s with label %s\n", pn, label_to_string(l));
-    label_free(l);
+    printf("init: spawned %s with label %s\n",
+	   pn, label_to_string(thread_label));
 }
 
 static void
@@ -72,15 +68,15 @@ init_env(uint64_t c_root, uint64_t c_self)
 }
 
 static int
-init_console()
+init_console(uint64_t h_root)
 {
     // Now that we're set up a reasonable environment,
     // create a shared console fd.
-    struct ulabel *label = label_get_current();
+    struct ulabel *label = label_alloc();
     assert(label);
 
-    // This changes label to { h_root:0 1 }
-    label_change_star(label, 0);
+    label->ul_default = 1;
+    assert(0 == label_set_level(label, h_root, 0, 1));
     segment_set_default_label(label);
 
     int cons = opencons(start_env->root_container);
@@ -91,24 +87,36 @@ init_console()
 }
 
 static void
-init_procs(int cons)
+init_procs(int cons, uint64_t h_root)
 {
+    struct ulabel *with_hroot = label_alloc();
+    struct ulabel *without_hroot = label_alloc();
+    assert(with_hroot && without_hroot);
+
+    with_hroot->ul_default = 1;
+    without_hroot->ul_default = 1;
+    assert(0 == label_set_level(with_hroot, h_root, LB_LEVEL_STAR, 1));
+
     // netd_mom should be the only process that needs our root handle at *,
     // in order to create an appropriately-labeled netdev object.
-    spawn_fs(cons, "/bin/netd_mom", 0);
+    spawn_fs(cons, "/bin/netd_mom", with_hroot);
 
-    //spawn_fs(cons, "/bin/shell", 0);
-    spawn_fs(cons, "/bin/shell", 1);
+    //spawn_fs(cons, "/bin/shell", with_hroot);
+    spawn_fs(cons, "/bin/shell", without_hroot);
 
-    //spawn_fs(cons, "/bin/telnetd", 1);
-    //spawn_fs(cons, "/bin/httpd", 1);
+    //spawn_fs(cons, "/bin/telnetd", without_hroot);
+    //spawn_fs(cons, "/bin/httpd", without_hroot);
 }
 
 int
 main(int ac, char **av)
 {
-    uint64_t c_self = start_arg0;
-    uint64_t c_root = start_arg1;
+    uint64_t c_root = start_arg0;
+    uint64_t h_root = start_arg1;
+
+    int64_t c_self = container_find(c_root, kobj_container, "init");
+    if (c_self < 0)
+	panic("cannot find init container: %s", e2s(c_self));
 
     assert(0 == opencons(c_self));
     assert(1 == dup(0, 1));
@@ -117,8 +125,8 @@ main(int ac, char **av)
     printf("JOS: init (root container %ld)\n", c_root);
 
     init_env(c_root, c_self);
-    int cons = init_console();
-    init_procs(cons);
+    int cons = init_console(h_root);
+    init_procs(cons, h_root);
 
     for (;;)
 	thread_sleep(100000);
