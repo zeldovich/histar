@@ -34,5 +34,9 @@ handle_alloc(void)
     uint64_t new_count = handle_counter++;
     uint64_t new_crypt = bf61_encipher(&handle_key_ctx, new_count);
 
-    return handle_encrypt ? new_crypt : new_count;
+    uint64_t h = handle_encrypt ? new_crypt : new_count;
+    if (h == 0)
+	h = handle_alloc();
+
+    return h;
 }
