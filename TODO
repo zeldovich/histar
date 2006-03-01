@@ -38,3 +38,5 @@ spawn labels should not be absolute; instead, do something like the
 contaminate-send/decontaminate-receive labels, which just constrain
 the resulting label selection.
 
+better separation between kernel, user-space and shared header files
+
