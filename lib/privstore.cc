@@ -26,11 +26,7 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
 void
 saved_privilege::acquire()
 {
-    label cs(LB_LEVEL_STAR);
-    label ds(3);
-    label dr(0);
-
-    gate_call(gate_->gate(), 0, &cs, &ds, &dr);
+    gate_call(gate_->gate(), 0, 0, 0, 0);
 }
 
 void
@@ -45,13 +41,10 @@ saved_privilege::entry_stub(void *arg,
 void
 saved_privilege::entry(gatesrv_return *r)
 {
-    label *cs = new label(LB_LEVEL_STAR);
     label *ds = new label(3);
-    label *dr = new label(0);
-
     ds->set(handle_, LB_LEVEL_STAR);
 
-    r->ret(cs, ds, dr);
+    r->ret(0, ds, 0);
 }
 
 privilege_store::privilege_store(uint64_t h)

@@ -17,10 +17,7 @@ admind_entry(void *x, struct gate_call_data *parm, gatesrv_return *r)
     }
 
     try {
-	label *cs = new label(LB_LEVEL_STAR);
-	label *ds = new label(3);
-	label *dr = new label(0);
-	r->ret(cs, ds, dr);
+	r->ret(0, 0, 0);
     } catch (std::exception &e) {
 	printf("admind_entry: ret: %s\n", e.what());
     }

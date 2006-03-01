@@ -64,13 +64,9 @@ netd_call(struct netd_op_args *a) {
     segment_unmap(va);
 
     try {
-	label cs(LB_LEVEL_STAR);
-	label ds(3);
-	label dr(0);
-
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	gate_call(netd_gate, &gcd, &cs, &ds, &dr);
+	gate_call(netd_gate, &gcd, 0, 0, 0);
 	seg = gcd.param_obj;
     } catch (error &e) {
 	printf("netd_call: %s\n", e.what());

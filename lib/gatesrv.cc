@@ -126,9 +126,12 @@ gatesrv_return::cleanup_stub(label *cs, label *ds, label *dr, void *arg)
 void
 gatesrv_return::cleanup(label *cs, label *ds, label *dr)
 {
-    delete cs;
-    delete ds;
-    delete dr;
+    if (cs)
+	delete cs;
+    if (ds)
+	delete ds;
+    if (dr)
+	delete dr;
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;

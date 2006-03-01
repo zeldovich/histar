@@ -48,11 +48,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     sys_obj_unref(arg_copy);
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
 
-    label *cs = new label(LB_LEVEL_STAR);
-    label *ds = new label(3);
-    label *dr = new label(0);
-
-    rg->ret(cs, ds, dr);
+    rg->ret(0, 0, 0);
 }
 
 gatesrv *
