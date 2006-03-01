@@ -3,7 +3,7 @@
 
 #include <inc/types.h>
 
-#define X86_INST_ATTR	static __inline __attribute__((always_inline))
+#define X86_INST_ATTR	static __inline __attribute__((always_inline, no_instrument_function))
 
 X86_INST_ATTR void breakpoint(void);
 X86_INST_ATTR uint8_t inb(int port);
