@@ -1,3 +1,4 @@
+extern "C" {
 #include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/string.h>
@@ -6,9 +7,12 @@
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+}
+
+#include <inc/cpplabel.hh>
 
 static void
-spawn_fs(int fd, const char *pn, struct ulabel *thread_label)
+spawn_fs(int fd, const char *pn, label *tl)
 {
     struct fs_inode ino;
     int r = fs_namei(pn, &ino);
@@ -18,13 +22,12 @@ spawn_fs(int fd, const char *pn, struct ulabel *thread_label)
     const char *argv[] = { pn };
     int64_t ct = spawn(start_env->root_container, ino,
 		       fd, fd, fd, 1, &argv[0],
-		       thread_label, thread_label,
+		       tl->to_ulabel(), tl->to_ulabel(),
 		       0);
     if (ct < 0)
 	panic("cannot spawn %s: %s\n", pn, e2s(ct));
 
-    printf("init: spawned %s with label %s\n",
-	   pn, label_to_string(thread_label));
+    printf("init: spawned %s with label %s\n", pn, tl->to_string());
 }
 
 static void
@@ -89,23 +92,19 @@ init_console(uint64_t h_root)
 static void
 init_procs(int cons, uint64_t h_root)
 {
-    struct ulabel *with_hroot = label_alloc();
-    struct ulabel *without_hroot = label_alloc();
-    assert(with_hroot && without_hroot);
-
-    with_hroot->ul_default = 1;
-    without_hroot->ul_default = 1;
-    assert(0 == label_set_level(with_hroot, h_root, LB_LEVEL_STAR, 1));
+    label without_hroot(1);
+    label with_hroot(1);
+    with_hroot.set(h_root, LB_LEVEL_STAR);
 
     // netd_mom should be the only process that needs our root handle at *,
     // in order to create an appropriately-labeled netdev object.
-    spawn_fs(cons, "/bin/netd_mom", with_hroot);
+    spawn_fs(cons, "/bin/netd_mom", &with_hroot);
 
-    //spawn_fs(cons, "/bin/shell", with_hroot);
-    spawn_fs(cons, "/bin/shell", without_hroot);
+    //spawn_fs(cons, "/bin/shell", &with_hroot);
+    spawn_fs(cons, "/bin/shell", &without_hroot);
 
-    //spawn_fs(cons, "/bin/telnetd", without_hroot);
-    //spawn_fs(cons, "/bin/httpd", without_hroot);
+    //spawn_fs(cons, "/bin/telnetd", &without_hroot);
+    //spawn_fs(cons, "/bin/httpd", &without_hroot);
 }
 
 int
