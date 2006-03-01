@@ -133,6 +133,17 @@ label_get_level(struct ulabel *l, uint64_t handle)
 	return LB_LEVEL(l->ul_ent[slot]);
 }
 
+static char
+level_to_char(level_t lv)
+{
+    char lbuf[4];
+    if (lv == LB_LEVEL_STAR)
+	snprintf(&lbuf[0], sizeof(lbuf), "*");
+    else
+	snprintf(&lbuf[0], sizeof(lbuf), "%d", lv);
+    return lbuf[0];
+}
+
 const char *
 label_to_string(const struct ulabel *l)
 {
@@ -157,16 +168,11 @@ label_to_string(const struct ulabel *l)
 	if (lv == l->ul_default)
 	    continue;
 
-	char level[4];
-	if (lv == LB_LEVEL_STAR)
-	    snprintf(&level[0], 4, "*");
-	else
-	    snprintf(&level[0], 4, "%d", lv);
-
-	off += snprintf(&buf[off], bufsize - off, "%ld:%s ",
-			LB_HANDLE(l->ul_ent[i]), &level[0]);
+	off += snprintf(&buf[off], bufsize - off, "%ld:%c ",
+			LB_HANDLE(l->ul_ent[i]), level_to_char(lv));
     }
-    off += snprintf(&buf[off], bufsize - off, "%d }", l->ul_default);
+    off += snprintf(&buf[off], bufsize - off, "%c }",
+		    level_to_char(l->ul_default));
 
     return buf;
 }
