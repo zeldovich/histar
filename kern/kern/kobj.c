@@ -166,12 +166,12 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_r
     if (npage >= kobject_npages(kp))
 	return -E_INVAL;
 
-    if ((kp->ko_flags & KOBJ_SNAPSHOTING) && rw == page_rw && kp->ko_pin_pg) {
+    if ((kp->ko_flags & KOBJ_SNAPSHOTING) && SAFE_EQUAL(rw, page_rw) && kp->ko_pin_pg) {
 	thread_suspend(cur_thread, &kobj_snapshot_waiting);
 	return -E_RESTART;
     }
 
-    if (rw == page_rw)
+    if (SAFE_EQUAL(rw, page_rw))
 	kobject_dirty(kp);
 
     int r = pagetree_get_page(&kobject_const_h2k(kp)->ko_pt,

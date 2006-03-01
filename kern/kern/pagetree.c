@@ -140,11 +140,11 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 			   pagetree_entry **outp, page_rw_mode rw,
 			   int level)
 {
-    if (rw == page_rw)
+    if (SAFE_EQUAL(rw, page_rw))
 	pagetree_cow(indir, &pagetree_indir_copy);
 
     if (indir->page == 0) {
-	if (rw == page_ro) {
+	if (SAFE_EQUAL(rw, page_ro)) {
 	    *outp = 0;
 	    return 0;
 	}
@@ -209,7 +209,7 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
 	return r;
 
     void *page = ent ? ent->page : 0;
-    if (rw == page_ro || page == 0) {
+    if (SAFE_EQUAL(rw, page_ro) || page == 0) {
 	*pagep = page;
 	return 0;
     }

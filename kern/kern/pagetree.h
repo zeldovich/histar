@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/memlayout.h>
+#include <inc/safetype.h>
 
 struct pagetree_page {
     uint32_t pg_ref;	// references to this page from pagetree's
@@ -33,10 +34,9 @@ struct pagetree_indirect_page {
     pagetree_entry pt_entry[PAGETREE_ENTRIES_PER_PAGE];
 };
 
-typedef enum {
-    page_ro,
-    page_rw
-} page_rw_mode;
+typedef SAFE_TYPE(int) page_rw_mode;
+#define page_ro	    SAFE_WRAP(page_rw_mode, 0)
+#define page_rw	    SAFE_WRAP(page_rw_mode, 1)
 
 // Fancy API for zeroing out
 void pagetree_init(struct pagetree *pt);
