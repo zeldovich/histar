@@ -30,7 +30,8 @@ KERN_LIB :=					\
 	lib/cksum.c				\
 	lib/bf60.c				\
 	lib/string.c				\
-	lib/dstack.c
+	lib/dstack.c				\
+	lib/hashtable.c
 
 KERN_DEV :=					\
 	kern/dev/console.c			\
