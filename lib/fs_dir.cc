@@ -173,7 +173,7 @@ fs_get_label(void)
 {
     struct ulabel *l = label_get_current();
     if (l)
-	label_change_star(l, l->ul_default);
+	label_change_star(l, 1);
     return l;
 }
 
