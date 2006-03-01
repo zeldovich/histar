@@ -17,6 +17,7 @@ struct Label {
 typedef int (level_comparator)(level_t, level_t);
 level_comparator label_leq_starlo;
 level_comparator label_leq_starhi;
+level_comparator label_leq_starok;
 level_comparator label_eq;
 level_comparator label_leq_starhi_rhs_0_except_star;
 

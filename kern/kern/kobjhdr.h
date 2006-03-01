@@ -38,7 +38,6 @@ typedef SAFE_TYPE(int) info_flow_type;
 #define iflow_write SAFE_WRAP(info_flow_type, 2)
 #define iflow_rw    SAFE_WRAP(info_flow_type, 3)
 #define iflow_none  SAFE_WRAP(info_flow_type, 4)
-#define iflow_alloc SAFE_WRAP(info_flow_type, 5)
 
 struct kobject;
 

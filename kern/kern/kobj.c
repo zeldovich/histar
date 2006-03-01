@@ -65,14 +65,13 @@ kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
 
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
-			  label_leq_starhi);
+			  label_leq_starok);
     } else if (SAFE_EQUAL(iflow, iflow_write)) {
 	r = label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
 			  label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
-	r = kobject_iflow_check(ko, iflow_read);
-	if (r == 0)
-	    r = kobject_iflow_check(ko, iflow_write);
+	r = kobject_iflow_check(ko, iflow_read) ? :
+	    kobject_iflow_check(ko, iflow_write);
     } else if (SAFE_EQUAL(iflow, iflow_none)) {
 	r = 0;
     } else {

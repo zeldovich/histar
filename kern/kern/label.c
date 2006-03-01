@@ -211,6 +211,16 @@ label_leq_starhi(level_t a, level_t b)
 }
 
 int
+label_leq_starok(level_t a, level_t b)
+{
+    if (a == LB_LEVEL_STAR || b == LB_LEVEL_STAR)
+	return 0;
+    if (a <= b)
+	return 0;
+    return -E_LABEL;
+}
+
+int
 label_eq(level_t a, level_t b)
 {
     if (a == b)
