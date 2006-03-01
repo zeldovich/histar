@@ -4,6 +4,7 @@
 // This is something like a *-handle pickler
 
 #include <inc/gatesrv.hh>
+#include <inc/gateparam.hh>
 
 class saved_privilege {
 public:
@@ -14,7 +15,7 @@ public:
     void acquire();
 
 private:
-    static void entry_stub(void *arg, struct cobj_ref p, gatesrv_return *r)
+    static void entry_stub(void *arg, struct gate_call_data *gcd, gatesrv_return *r)
 	__attribute__((noreturn));
     void entry(gatesrv_return *r) __attribute__((noreturn));
 

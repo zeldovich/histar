@@ -30,12 +30,13 @@ saved_privilege::acquire()
     label ds(3);
     label dr(0);
 
-    struct cobj_ref param;
-    gate_call(gate_->gate(), &param, &cs, &ds, &dr);
+    gate_call(gate_->gate(), 0, &cs, &ds, &dr);
 }
 
 void
-saved_privilege::entry_stub(void *arg, struct cobj_ref p, gatesrv_return *r)
+saved_privilege::entry_stub(void *arg,
+			    struct gate_call_data *gcd,
+			    gatesrv_return *r)
 {
     saved_privilege *sp = (saved_privilege *) arg;
     sp->entry(r);
@@ -50,8 +51,7 @@ saved_privilege::entry(gatesrv_return *r)
 
     ds->set(handle_, LB_LEVEL_STAR);
 
-    struct cobj_ref param;
-    r->ret(param, cs, ds, dr);
+    r->ret(cs, ds, dr);
 }
 
 privilege_store::privilege_store(uint64_t h)

@@ -9,6 +9,7 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/gateclnt.hh>
+#include <inc/gateparam.hh>
 #include <inc/error.hh>
 
 static int netd_client_inited;
@@ -67,7 +68,10 @@ netd_call(struct netd_op_args *a) {
 	label ds(3);
 	label dr(0);
 
-	gate_call(netd_gate, &seg, &cs, &ds, &dr);
+	struct gate_call_data gcd;
+	gcd.param_obj = seg;
+	gate_call(netd_gate, &gcd, &cs, &ds, &dr);
+	seg = gcd.param_obj;
     } catch (error &e) {
 	printf("netd_call: %s\n", e.what());
 	return e.err();

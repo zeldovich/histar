@@ -7,12 +7,14 @@ extern "C" {
 }
 
 #include <inc/gatesrv.hh>
+#include <inc/gateparam.hh>
 #include <inc/cpplabel.hh>
 
 static void __attribute__((noreturn))
-netd_gate_entry(void *x, struct cobj_ref arg, gatesrv_return *rg)
+netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     uint64_t netd_ct = (uint64_t) x;
+    struct cobj_ref arg = gcd->param_obj;
 
     int64_t arg_copy_id = sys_segment_copy(arg, netd_ct,
 					   segment_get_default_label(),
@@ -44,12 +46,13 @@ netd_gate_entry(void *x, struct cobj_ref arg, gatesrv_return *rg)
 
     label_free(l);
     sys_obj_unref(arg_copy);
+    gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
 
     label *cs = new label(LB_LEVEL_STAR);
     label *ds = new label(3);
     label *dr = new label(0);
 
-    rg->ret(COBJ(copy_back_ct, copy_back_id), cs, ds, dr);
+    rg->ret(cs, ds, dr);
 }
 
 gatesrv *

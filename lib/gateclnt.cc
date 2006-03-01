@@ -48,7 +48,7 @@ return_setup(struct cobj_ref *g, struct jmp_buf *jb,
 }
 
 void
-gate_call(struct cobj_ref gate, struct cobj_ref *param,
+gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
 	  label *cs, label *ds, label *dr)
 {
     void *tls = (void *) UTLS;
@@ -66,11 +66,13 @@ gate_call(struct cobj_ref gate, struct cobj_ref *param,
     new_ds.set(return_handle, LB_LEVEL_STAR);
 
     struct gate_call_data *d = (struct gate_call_data *) tls;
-    d->param = *param;
+    if (gcd_param)
+	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate;
 
     if (setjmp(&back_from_call) == 0)
 	gate_invoke(gate, cs, &new_ds, dr, 0, 0);
 
-    *param = d->param;
+    if (gcd_param)
+	memcpy(gcd_param, d, sizeof(*d));
 }

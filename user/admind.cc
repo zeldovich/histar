@@ -1,16 +1,17 @@
 #include <inc/gatesrv.hh>
+#include <inc/gateparam.hh>
 
 static void
-admind_dispatch(struct cobj_ref *parm)
+admind_dispatch(struct gate_call_data *parm)
 {
     printf("admind_dispatch\n");
 }
 
 static void __attribute__((noreturn))
-admind_entry(void *x, struct cobj_ref parm, gatesrv_return *r)
+admind_entry(void *x, struct gate_call_data *parm, gatesrv_return *r)
 {
     try {
-	admind_dispatch(&parm);
+	admind_dispatch(parm);
     } catch (std::exception &e) {
 	printf("admind_entry: %s\n", e.what());
     }
@@ -19,7 +20,7 @@ admind_entry(void *x, struct cobj_ref parm, gatesrv_return *r)
 	label *cs = new label(LB_LEVEL_STAR);
 	label *ds = new label(3);
 	label *dr = new label(0);
-	r->ret(parm, cs, ds, dr);
+	r->ret(cs, ds, dr);
     } catch (std::exception &e) {
 	printf("admind_entry: ret: %s\n", e.what());
     }

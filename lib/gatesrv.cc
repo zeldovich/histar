@@ -86,17 +86,14 @@ gatesrv::entry(void *stack)
     struct gate_call_data *d = (struct gate_call_data *) tls_;
 
     gatesrv_return ret(d->return_gate, entry_container_, tls_, stack);
-    f_(arg_, d->param, &ret);
+    f_(arg_, d, &ret);
 
     throw basic_exception("gatesrv::entry: function returned\n");
 }
 
 void
-gatesrv_return::ret(struct cobj_ref param, label *cs, label *ds, label *dr)
+gatesrv_return::ret(label *cs, label *ds, label *dr)
 {
-    struct gate_call_data *d = (struct gate_call_data *) tls_;
-    d->param = param;
-
     stack_switch((uint64_t) this, (uint64_t) cs, (uint64_t) ds, (uint64_t) dr,
 		 (char *) tls_ + PGSIZE,
 		 (void *) &ret_tls_stub);

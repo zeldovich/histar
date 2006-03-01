@@ -10,8 +10,7 @@ public:
 	: rgate_(rgate), thread_ct_(tct), tls_(tls), stack_(stack) {}
 
     // ret will delete the three labels passed to it
-    void ret(struct cobj_ref param,
-	     label *contaminate_label,		// { * } for none
+    void ret(label *contaminate_label,		// { * } for none
 	     label *decontaminate_label,	// { 3 } for none
 	     label *decontaminate_clearance)	// { 0 } for none
 	__attribute__((noreturn));
@@ -31,7 +30,8 @@ private:
     void *stack_;
 };
 
-typedef void (*gatesrv_entry_t) (void *, struct cobj_ref, gatesrv_return *);
+typedef void (*gatesrv_entry_t)
+	(void *, struct gate_call_data *, gatesrv_return *);
 
 class gatesrv {
 public:
