@@ -22,8 +22,8 @@
 #define PBUF_POOL_BUFSIZE	2000
 
 #define TCP_MSS			1440
-#define TCP_SND_BUF		2880
-#define TCP_SND_QUEUELEN	(8 * TCP_SND_BUF/TCP_MSS)
-#define TCP_WND			(32*TCP_MSS)
+#define TCP_SND_BUF		(42 * TCP_MSS)
+#define TCP_SND_QUEUELEN	(3 * TCP_SND_BUF/TCP_MSS)
+#define TCP_WND			(32 * TCP_MSS)
 
 #endif
