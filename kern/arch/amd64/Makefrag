@@ -25,6 +25,7 @@ KERN_LIB :=					\
 	lib/btree/btree_traverse.c		\
 	lib/btree/btree_debug.c			\
 	lib/memcpy.c				\
+	lib/memmove.c				\
 	lib/memset.c				\
 	lib/printfmt.c				\
 	lib/cksum.c				\
