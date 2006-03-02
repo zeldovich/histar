@@ -22,8 +22,14 @@ static int prof_print_enable = 0;
 static struct periodic_task timer2 ;
 
 // for profiling using gcc's -finstrument-functions
-static int cyg_prof_print_enable = 0 ;
-static int cyg_prof_enable = 0 ;
+static int cyg_prof_print_enable = 1 ;
+static int cyg_prof_enable = 1 ;
+
+#define NUM_PROFILED 2 
+static uint64_t cyg_profiled_func[NUM_PROFILED] = {
+        (uint64_t)&memset,
+        (uint64_t)&memcpy,
+} ;
 
 struct func_stamp
 {
@@ -36,18 +42,13 @@ struct cyg_stack
         uint64_t stack_base ;
         
         int size ;     
-        //uint64_t func_addr[PGSIZE] ;       
         struct func_stamp func_stamp[PGSIZE] ;       
-} ;
-
-struct cyg_stats
-{
-        uint64_t count ;       
-        uint64_t time ;
 } ;
 
 static struct
 {
+        char enable ;
+
 #define NUM_STACKS 16
         // map from sp base to stack holding enters
         struct cyg_stack stack[NUM_STACKS] ;
@@ -58,10 +59,9 @@ static struct
         struct hashentry stats_lookup_back[NUM_SYMS] ;
      
         int stat_size ;
-        struct cyg_stats stat[NUM_SYMS] ;
+        struct entry stat[NUM_SYMS] ;
         
 } cyg_data ;
-
 
 void __attribute__((no_instrument_function))
 prof_init(void) 
@@ -83,7 +83,8 @@ prof_init(void)
         if (cyg_prof_print_enable)
                 timer_add_periodic(&timer2) ;	
                 
-        cyg_prof_enable = 0 ;
+        if (cyg_prof_enable)
+                cyg_data.enable = 1 ;
 }
 
 void 
@@ -146,20 +147,23 @@ prof_print(void)
 	prof_reset();
 }
 
-// XXX
+static void __attribute__((no_instrument_function))
+cyg_profile_reset(void)
+{
+        memset(cyg_data.stat, 0, sizeof(cyg_data.stat)) ;
+}
+
 static void __attribute__((no_instrument_function))
 cyg_profile_func(void *func_addr, uint64_t time)
 {
         uint64_t func = (uint64_t) func_addr ;
         uint64_t val ;
         
-        cyg_prof_enable = 0 ;
         if (hash_get(&cyg_data.stats_lookup, func, &val) < 0) {
                 val = cyg_data.stat_size++;
                 if (hash_put(&cyg_data.stats_lookup, func, val) < 0)
                         return ;
         }
-        cyg_prof_enable = 1 ;
         
         cyg_data.stat[val].count++ ;
         cyg_data.stat[val].time += time ;
@@ -167,22 +171,13 @@ cyg_profile_func(void *func_addr, uint64_t time)
         return ;
 }
 
-static void __attribute__((no_instrument_function))
-cyg_profile_dump(void)
-{
-        for (int i = 0 ; i < NUM_STACKS ; i++) {              
-                cprintf(" base %lx\n", cyg_data.stack[i].stack_base) ;      
-                cprintf("  top %lx\n", cyg_data.stack[i].func_stamp[cyg_data.stack[i].size - 1].func_addr) ;       
-        }
-}
-
 void __attribute__((no_instrument_function))
 __cyg_profile_func_enter(void *this_fn, void *call_site)
 {
-        if (!cyg_prof_enable)
+        if (!cyg_data.enable)
                 return ;
         
-        cyg_prof_enable = 0 ;
+        cyg_data.enable = 0 ;
         uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
         int i = 0 ;
         for (; i < NUM_STACKS ; i++) {
@@ -197,11 +192,8 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
                                 break ;       
                         }
                 }
-        }
-
-        if (i == NUM_STACKS) {
-                cyg_profile_dump() ;
-                panic("__cyg_profile_func_enter: out of func addr stacks") ;
+                if (i == NUM_STACKS)
+                        panic("__cyg_profile_func_enter: out of func addr stacks") ;
         }
 
         cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].func_addr = (uint64_t) this_fn ;
@@ -211,16 +203,16 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
         if (cyg_data.stack[i].size == PGSIZE)
                 panic("__cyg_profile_func_enter: overflow func addr stack") ;
         
-        cyg_prof_enable = 1 ;
+        cyg_data.enable = 1 ;
 }        
 
 void __attribute__((no_instrument_function))
 __cyg_profile_func_exit(void *this_fn, void *call_site)
 {
-        if (!cyg_prof_enable)
+        if (!cyg_data.enable)
                 return ;
 
-        cyg_prof_enable = 0 ;
+        cyg_data.enable = 0 ;
         uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
         int i = 0 ;
         for (; i < NUM_STACKS ; i++) {
@@ -245,12 +237,14 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
 
         uint64_t time = read_tsc() - cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].tsc ;
         cyg_profile_func(this_fn, time) ;
+
+        cyg_data.enable = 1 ;
 }
 
 void __attribute__ ((no_instrument_function))
 cyg_profile_free_stack(uint64_t sp)
 {
-        if (!cyg_prof_enable)
+        if (!cyg_data.enable)
                 return ;
         
         sp = ROUNDUP(sp, PGSIZE) ;
@@ -267,20 +261,20 @@ cyg_profile_free_stack(uint64_t sp)
 void __attribute__((no_instrument_function))
 cyg_profile_print(void) 
 {
-        if (!cyg_prof_enable)
+        if (!cyg_data.enable)
                 return ;
                 
-        cyg_prof_enable = 0 ;
-        /*
-        uint64_t func = (uint64_t) &pstate_test ;
-        uint64_t val ;
+        cyg_data.enable = 0 ;
         
-        if (hash_get(&cyg_data.stats_lookup, func, &val) == 0) {
-                cprintf("profile: %d\n", cyg_data.stat[val].count) ;
+        cprintf("cyg_profile_print: selected functions\n");
+        for (int i = 0 ; i < NUM_PROFILED ; i++) {
+                uint64_t val ;
+                char buf[32] ;
+                if (hash_get(&cyg_data.stats_lookup, cyg_profiled_func[i], &val) == 0) {
+                        sprintf(buf, "%lx", cyg_profiled_func[i]) ;
+                        print_entry(cyg_data.stat, val, buf) ;
+                }
         }
-        else {
-                cprintf("profile: no hashtable entry\n") ;   
-        }
-        */
-        cyg_prof_enable = 1 ;
+        cyg_profile_reset() ;
+        cyg_data.enable = 1 ;
 }
