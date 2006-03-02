@@ -30,6 +30,7 @@ static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
     (uint64_t)&memset,
     (uint64_t)&memcpy,
 } ;
+static uint64_t cyg_profs_threshold = 100000000UL;
 
 struct func_stamp
 {
@@ -231,8 +232,7 @@ cyg_profile_print(void)
         }
     }
 
-#if 0
-    cprintf("cyg_profile_print: all functions\n");
+    cprintf("cyg_profile_print: over-threshold functions\n");
     for (int i = 0; i < cyg_data.stat_size; i++) {
 	char buf[32];
         uint64_t key = cyg_data.stats_lookup_back[i].key;
@@ -240,9 +240,9 @@ cyg_profile_print(void)
         if (!key)
             continue;
         sprintf(buf, "%lx", key);
-        print_entry(cyg_data.stat, val, buf);
+	if (cyg_data.stat[val].time > cyg_profs_threshold)
+	    print_entry(cyg_data.stat, val, buf);
     }
-#endif
 
     cyg_profile_reset() ;
     cyg_data.enable = 1 ;
