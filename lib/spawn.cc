@@ -222,10 +222,18 @@ process_wait(struct child_process *child, int64_t *exit_code)
 static int
 process_update_state(uint64_t state, int64_t exit_code)
 {
+    label lseg, lcur;
+    thread_cur_label(&lcur);
+    obj_get_label(start_env->process_status_seg, &lseg);
+
+    int r = lcur.compare(&lseg, label::leq_starlo);
+    if (r < 0)
+	return r;
+
     struct process_state *ps = 0;
-    int r = segment_map(start_env->process_status_seg,
-			SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &ps, 0);
+    r = segment_map(start_env->process_status_seg,
+		    SEGMAP_READ | SEGMAP_WRITE,
+		    (void **) &ps, 0);
     if (r < 0)
 	return r;
 
