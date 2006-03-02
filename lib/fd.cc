@@ -1,9 +1,11 @@
+extern "C" {
 #include <inc/stdio.h>
 #include <inc/fd.h>
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+}
 
 // Maximum number of file descriptors a program may hold open concurrently
 #define MAXFD		32
