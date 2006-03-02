@@ -43,6 +43,11 @@ typedef struct {
     uint64_t root_container;
 
     struct cobj_ref taint_mlt;
+    struct cobj_ref process_status_seg;
+
+    // Handles that ensure process integrity
+    uint64_t process_grant;
+    uint64_t process_taint;
 
     struct fs_mount_table fs_mtab;
     struct fs_inode fs_root;

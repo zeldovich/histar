@@ -52,14 +52,20 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     label object_label(thread_label);
     object_label.transform(label::star_to, object_label.get_default());
 
-    // Generate a private handle for the new process
-    int64_t process_handle = sys_handle_create();
-    if (process_handle < 0)
-	throw error(process_handle, "alloc handle");
-    scope_guard<void, uint64_t> handle_cleanup(thread_drop_star, process_handle);
+    // Generate some private handles for the new process
+    int64_t process_grant = sys_handle_create();
+    error_check(process_grant);
+    scope_guard<void, uint64_t> pgrant_cleanup(thread_drop_star, process_grant);
 
-    object_label.set(process_handle, 0);
-    thread_label.set(process_handle, LB_LEVEL_STAR);
+    int64_t process_taint = sys_handle_create();
+    error_check(process_taint);
+    scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
+
+    object_label.set(process_grant, 0);
+    // XXX not quite ready yet -- we share some things out of the main container
+    //object_label.set(process_taint, 3);
+    thread_label.set(process_grant, LB_LEVEL_STAR);
+    thread_label.set(process_taint, LB_LEVEL_STAR);
 
     // Now spawn with computed labels
     struct cobj_ref elf;
@@ -84,8 +90,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     if ((flags & SPAWN_MOVE_FD)) {
 	int i, j;
 
+	// XXX this should go away when we get per-fd handles?
 	label fd_label(object_label);
-	fd_label.set(process_handle, fd_label.get_default());
+	fd_label.set(process_taint, fd_label.get_default());
+	fd_label.set(process_grant, fd_label.get_default());
 
 	// Find all of the source FD's, increment refcounts
 	struct Fd *fd[3];
@@ -157,6 +165,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->container = c_spawn;
+    spawn_env->process_grant = process_grant;
+    spawn_env->process_taint = process_taint;
+    spawn_env->process_status_seg = exit_status_seg;
 
     char *p = &spawn_env->args[0];
     for (int i = 0; i < ac; i++) {
@@ -211,12 +222,8 @@ process_wait(uint64_t childct, int64_t *exit_code)
 static int
 process_update_state(uint64_t state, int64_t exit_code)
 {
-    int64_t obj = container_find(start_env->container, kobj_segment, "exit status");
-    if (obj < 0)
-	return obj;
-
     struct process_state *ps = 0;
-    int r = segment_map(COBJ(start_env->container, obj),
+    int r = segment_map(start_env->process_status_seg,
 			SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &ps, 0);
     if (r < 0)
