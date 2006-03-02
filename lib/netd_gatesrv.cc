@@ -10,6 +10,8 @@ extern "C" {
 #include <inc/gateparam.hh>
 #include <inc/cpplabel.hh>
 
+static uint64_t netd_taint_handle;
+
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
@@ -32,30 +34,36 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     netd_dispatch(netd_op);
     segment_unmap(netd_op);
 
-    struct ulabel *l = label_get_current();
-    if (l == 0)
-	panic("cannot allocate label for segment copyback");
-    label_change_star(l, l->ul_default);
+    label args_label(1);
+    args_label.set(netd_taint_handle, 2);
 
     uint64_t copy_back_ct = kobject_id_thread_ct;
     int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
-					    l, "netd_gate_entry() reply");
+					    args_label.to_ulabel(),
+					    "netd_gate_entry reply");
     if (copy_back_id < 0)
 	panic("netd_gate_entry: cannot copy back with label %s: %s",
-	      label_to_string(l), e2s(copy_back_id));
+	      args_label.to_string(), e2s(copy_back_id));
 
-    label_free(l);
     sys_obj_unref(arg_copy);
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
 
-    rg->ret(0, 0, 0);
+    // Contaminate the caller with { taint:2 }
+    label *cs = new label(LB_LEVEL_STAR);
+    cs->set(netd_taint_handle, 2);
+
+    rg->ret(cs, 0, 0);
 }
 
 gatesrv *
-netd_server_init(uint64_t gate_ct, uint64_t entry_ct, label *l, label *clear)
+netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
+		 uint64_t taint_handle,
+		 label *l, label *clear)
 {
     int64_t netd_gate_ct = container_find(gate_ct, kobj_container, "netd gate");
     error_check(netd_gate_ct);
+
+    netd_taint_handle = taint_handle;
 
     try {
 	gatesrv *g = new gatesrv(netd_gate_ct, "netd", l, clear);

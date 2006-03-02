@@ -13,7 +13,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_debug = 0;
-static int netd_force_taint = 1;
+static int netd_force_taint = 0;
 
 static label *
 force_taint_prepare(uint64_t taint)
@@ -79,6 +79,7 @@ main(int ac, char **av)
 
 	srv = netd_server_init(start_env->root_container,
 			       start_env->container,
+			       taint,
 			       l, &clear);
 
 	force_taint_commit(l);

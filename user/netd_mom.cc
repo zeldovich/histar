@@ -8,6 +8,7 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+#include <inc/spawn.hh>
 
 static int netd_mom_debug = 0;
 
@@ -40,18 +41,16 @@ fs_declassify_init(uint64_t net_taint)
     struct fs_inode fsmerge;
     error_check(fs_namei("/bin/fsmerge", &fsmerge));
 
-    label l_th(1);
-    l_th.set(net_taint, LB_LEVEL_STAR);
-
-    label l_obj(1);
+    label ds(3);
+    ds.set(net_taint, LB_LEVEL_STAR);
 
     const char *argv[3] = { "fsmerge", "/x/m", "/x/m/@mlt" };
-    error_check(spawn(start_env->root_container,
-		      fsmerge,
-		      0, 1, 2,
-		      3, &argv[0],
-		      l_obj.to_ulabel(), l_th.to_ulabel(),
-		      0));
+    spawn(start_env->root_container,
+	  fsmerge,
+	  0, 1, 2,
+	  3, &argv[0],
+	  0, &ds, 0, 0,
+	  0);
 }
 
 int
@@ -77,13 +76,9 @@ try
 					  "netd gate");
     error_check(gate_ct);
 
-    label l_th(1);
-    l_th.set(net_grant, LB_LEVEL_STAR);
-    l_th.set(net_taint, LB_LEVEL_STAR);
-
-    label l_obj(1);
-    l_obj.set(net_grant, 0);
-    l_obj.set(net_taint, 2);
+    label ds(3);
+    ds.set(net_grant, LB_LEVEL_STAR);
+    ds.set(net_taint, LB_LEVEL_STAR);
 
     char grant_arg[32], taint_arg[32];
     sprintf(grant_arg, "%lu", net_grant);
@@ -95,13 +90,15 @@ try
     argv[2] = taint_arg;
 
     if (netd_mom_debug)
-	printf("netd_mom: object label %s, thread label %s\n",
-	       l_obj.to_string(), l_th.to_string());
+	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
 
-    int64_t ct = spawn(rc, netd_ino, 0, 1, 2, 3, &argv[0],
-		       l_obj.to_ulabel(), l_th.to_ulabel(), 0);
-    if (ct < 0)
-	panic("spawn: %s", e2s(ct));
+    uint64_t ct = spawn(rc, netd_ino,
+		        0, 1, 2,
+		        3, &argv[0],
+			0, &ds, 0, 0,
+		        0);
+    if (netd_mom_debug)
+	printf("netd_mom: spawned netd in container %lu\n", ct);
 
     fs_declassify_init(net_taint);
 } catch (std::exception &e) {

@@ -11,9 +11,10 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+#include <inc/spawn.hh>
 
 static void
-spawn_fs(int fd, const char *pn, const char *arg, label *tl)
+spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 {
     struct fs_inode ino;
     int r = fs_namei(pn, &ino);
@@ -21,15 +22,13 @@ spawn_fs(int fd, const char *pn, const char *arg, label *tl)
 	throw error(r, "cannot fs_lookup %s", pn);
 
     const char *argv[] = { pn, arg };
-    int64_t ct = spawn(start_env->root_container, ino,
-		       fd, fd, fd,
-		       arg ? 2 : 1, &argv[0],
-		       tl->to_ulabel(), tl->to_ulabel(),
-		       0);
-    if (ct < 0)
-	throw error(ct, "cannot spawn %s", pn);
+    uint64_t ct = spawn(start_env->root_container, ino,
+			fd, fd, fd,
+			arg ? 2 : 1, &argv[0],
+			0, ds, 0, 0,
+			0);
 
-    printf("init: spawned %s with label %s\n", pn, tl->to_string());
+    printf("init: spawned %s in %lu, ds = %s\n", pn, ct, ds->to_string());
 }
 
 static void
@@ -94,10 +93,10 @@ init_console(uint64_t h_root)
 static void
 init_procs(int cons, uint64_t h_root)
 {
-    label star(LB_LEVEL_STAR);
-    label without_hroot(1);
-    label with_hroot(1);
-    with_hroot.set(h_root, LB_LEVEL_STAR);
+    label ds_star(LB_LEVEL_STAR);
+    label ds_none(3);
+    label ds_hroot(3);
+    ds_hroot.set(h_root, LB_LEVEL_STAR);
 
     int64_t h_adm = sys_handle_create();
     error_check(h_adm);
@@ -107,16 +106,16 @@ init_procs(int cons, uint64_t h_root)
 
     // netd_mom should be the only process that needs { h_root:* },
     // in order to create an appropriately-labeled netdev object.
-    spawn_fs(cons, "/bin/netd_mom", 0, &with_hroot);
+    spawn_fs(cons, "/bin/netd_mom", 0, &ds_hroot);
 
     // admin server gets { * }
-    spawn_fs(cons, "/bin/admind", &h_adm_buf[0], &star);
+    spawn_fs(cons, "/bin/admind", &h_adm_buf[0], &ds_star);
 
-    //spawn_fs(cons, "/bin/shell", 0, &with_hroot);
-    spawn_fs(cons, "/bin/shell", 0, &without_hroot);
+    //spawn_fs(cons, "/bin/shell", 0, &ds_hroot);
+    spawn_fs(cons, "/bin/shell", 0, &ds_none);
 
-    //spawn_fs(cons, "/bin/telnetd", 0, &without_hroot);
-    //spawn_fs(cons, "/bin/httpd", 0, &without_hroot);
+    //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
+    //spawn_fs(cons, "/bin/httpd", 0, &ds_none);
 }
 
 int

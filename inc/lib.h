@@ -73,7 +73,7 @@ void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);
 void	thread_sleep(uint64_t msec);
 
-/* spawn.c */
+/* spawn.cc */
 #define	PROCESS_RUNNING		0
 #define PROCESS_TAINTED		1
 #define PROCESS_EXITED		2
@@ -83,12 +83,6 @@ struct process_state {
     int64_t exit_code;
 };
 
-#define	SPAWN_MOVE_FD	0x01
-
-int64_t spawn(uint64_t container, struct fs_inode elf,
-	      int fd0, int fd1, int fd2, int ac, const char **av,
-	      struct ulabel *obj_l, struct ulabel *thread_l,
-	      uint64_t flags);
 int	process_wait(uint64_t childct, int64_t *exit_code);
 int	process_report_taint(void);
 int	process_report_exit(int64_t code);

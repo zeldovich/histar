@@ -11,40 +11,65 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
+#include <inc/spawn.hh>
 
 static int label_debug = 0;
 
-static uint64_t
-xspawn(uint64_t container, struct fs_inode elf_ino,
-       int fd0, int fd1, int fd2, int ac, const char **av,
-       struct ulabel *obj_l, struct ulabel *thread_l,
-       uint64_t flags)
+uint64_t
+spawn(uint64_t container, struct fs_inode elf_ino,
+      int fd0, int fd1, int fd2,
+      int ac, const char **av,
+      label *cs, label *ds, label *cr, label *dr,
+      uint64_t flags)
 {
-    struct cobj_ref elf;
-    error_check(fs_get_obj(elf_ino, &elf));
+    label tmp;
 
-    struct ulabel *obj_label = obj_l ? label_dup(obj_l) : label_get_current();
-    if (obj_label == 0)
-	throw error(-E_NO_MEM, "alloc object label");
-    scope_guard<void, struct ulabel *> ol_free(label_free, obj_label);
+    // Compute receive label for new process
+    label thread_clear(2);
 
-    struct ulabel *thread_label = thread_l ? label_dup(thread_l) : label_get_current();
-    if (thread_label == 0)
-	throw error(-E_NO_MEM, "alloc thread label");
-    scope_guard<void, struct ulabel *> tl_free(label_free, thread_label);
+    thread_cur_clearance(&tmp);
+    thread_clear.merge_with(&tmp, label::min, label::leq_starhi);
 
+    if (cr)
+	thread_clear.merge_with(cr, label::min, label::leq_starhi);
+    if (dr)
+	thread_clear.merge_with(dr, label::max, label::leq_starhi);
+
+    // Compute send label for new process
+    label thread_label(1);
+
+    thread_cur_label(&tmp);
+    tmp.transform(label::star_to, 0);
+    thread_label.merge_with(&tmp, label::max, label::leq_starlo);
+
+    if (cs)
+	thread_label.merge_with(cs, label::max, label::leq_starlo);
+    if (ds)
+	thread_label.merge_with(ds, label::min, label::leq_starlo);
+
+    // Objects for new process are effectively the same label, except
+    // we can drop the stars altogether -- they're discretionary.
+    label object_label(thread_label);
+    object_label.transform(label::star_to, object_label.get_default());
+
+    // Generate a private handle for the new process
     int64_t process_handle = sys_handle_create();
     if (process_handle < 0)
 	throw error(process_handle, "alloc handle");
     scope_guard<void, uint64_t> handle_cleanup(thread_drop_star, process_handle);
 
-    error_check(label_set_level(obj_label, process_handle, 0, 1));
-    error_check(label_set_level(thread_label, process_handle, LB_LEVEL_STAR, 1));
+    object_label.set(process_handle, 0);
+    thread_label.set(process_handle, LB_LEVEL_STAR);
+
+    // Now spawn with computed labels
+    struct cobj_ref elf;
+    error_check(fs_get_obj(elf_ino, &elf));
 
     char name[KOBJ_NAME_LEN];
     error_check(sys_obj_get_name(elf, &name[0]));
 
-    int64_t c_spawn = sys_container_alloc(container, obj_label, &name[0]);
+    int64_t c_spawn = sys_container_alloc(container,
+					  object_label.to_ulabel(), &name[0]);
     if (c_spawn < 0)
 	throw error(c_spawn, "allocate container");
 
@@ -52,20 +77,15 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
     scope_guard<int, struct cobj_ref> c_spawn_drop(sys_obj_unref, c_spawn_ref);
 
     struct thread_entry e;
-    error_check(elf_load(c_spawn, elf, &e, obj_label));
+    error_check(elf_load(c_spawn, elf, &e, object_label.to_ulabel()));
 
     int fdnum[3] = { fd0, fd1, fd2 };
 
     if ((flags & SPAWN_MOVE_FD)) {
 	int i, j;
 
-	struct ulabel *fd_label = label_dup(obj_label);
-	if (fd_label == 0)
-	    throw error(-E_NO_MEM, "allocating fd_label");
-	scope_guard<void, struct ulabel *> fdl_free(label_free, fd_label);
-
-	error_check(label_set_level(fd_label, process_handle,
-				    fd_label->ul_default, 1));
+	label fd_label(object_label);
+	fd_label.set(process_handle, fd_label.get_default());
 
 	// Find all of the source FD's, increment refcounts
 	struct Fd *fd[3];
@@ -96,10 +116,11 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
 	    if (i == j) {
 		if (label_debug)
 		    printf("spawn: copying fd with label %s\n",
-			   label_to_string(fd_label));
+			   fd_label.to_string());
 
 		int64_t id = sys_segment_copy(src_seg[i], c_spawn,
-					      fd_label, "moved fd");
+					      fd_label.to_ulabel(),
+					      "moved fd");
 		if (id < 0)
 		    throw error(id, "fd segment copy");
 
@@ -114,10 +135,18 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
 	    error_check(dup_as(fdnum[i], i, e.te_as));
     }
 
+    // XXX doesn't quite work??
+/*
+    struct cobj_ref heap_obj;
+    error_check(segment_alloc(c_spawn, 1, &heap_obj, 0,
+			      object_label.to_ulabel(), "heap"));
+*/
+
     start_env_t *spawn_env = 0;
     struct cobj_ref c_spawn_env;
     error_check(segment_alloc(c_spawn, PGSIZE, &c_spawn_env,
-			      (void**) &spawn_env, obj_label, "env"));
+			      (void**) &spawn_env, object_label.to_ulabel(),
+			      "env"));
     scope_guard<int, void *> spawn_env_unmap(segment_unmap, spawn_env);
 
     void *spawn_env_va = 0;
@@ -127,7 +156,7 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
 
     struct cobj_ref exit_status_seg;
     error_check(segment_alloc(c_spawn, PGSIZE, &exit_status_seg,
-			      0, obj_label, "exit status"));
+			      0, object_label.to_ulabel(), "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->container = c_spawn;
@@ -146,29 +175,15 @@ xspawn(uint64_t container, struct fs_inode elf_ino,
 
     if (label_debug)
 	printf("spawn: starting thread with label %s\n",
-	       label_to_string(thread_label));
+	       thread_label.to_string());
 
-    struct ulabel *thread_clearance = 0;
     e.te_arg = (uint64_t) spawn_env_va;
-    error_check(sys_thread_start(tobj, &e, thread_label, thread_clearance));
+    error_check(sys_thread_start(tobj, &e,
+				 thread_label.to_ulabel(),
+				 thread_clear.to_ulabel()));
 
     c_spawn_drop.dismiss();
     return c_spawn;
-}
-
-int64_t
-spawn(uint64_t container, struct fs_inode elf_ino,
-      int fd0, int fd1, int fd2, int ac, const char **av,
-      struct ulabel *obj_l, struct ulabel *thread_l,
-      uint64_t flags)
-{
-    try {
-	return xspawn(container, elf_ino, fd0, fd1, fd2,
-		      ac, av, obj_l, thread_l, flags);
-    } catch (error &e) {
-	printf("spawn: %s\n", e.what());
-	return e.err();
-    }
 }
 
 int

@@ -11,11 +11,12 @@ extern "C" {
 #include <inc/fd.h>
 }
 
+#include <inc/spawn.hh>
+#include <inc/error.hh>
+
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
 static int cmd_argc;
-
-static int label_debug = 0;
 
 static char separators[] = " \t\n\r";
 
@@ -137,27 +138,17 @@ do_spawn(int ac, char **av)
 	return r;
     }
 
-    struct ulabel *label = label_get_current();
-    if (label == 0) {
-	printf("cannot get label: out of memory?\n");
-	return -E_NO_MEM;
+    try {
+        uint64_t c_spawn = spawn(start_env->container, ino,
+				 0, 1, 2,
+				 ac, (const char **) av,
+				 0, 0, 0, 0,
+				 0);
+	return c_spawn;
+    } catch (std::exception &e) {
+	printf("spawn: %s\n", e.what());
+	return -1;
     }
-
-    label_change_star(label, label->ul_default);
-
-    if (label_debug)
-	printf("shell: spawning with label %s\n",
-	       label_to_string(label));
-
-    int64_t c_spawn = spawn(start_env->container, ino,
-			    0, 1, 2,
-			    ac, (const char **) av,
-			    label, label, 0);
-    label_free(label);
-    if (c_spawn < 0)
-	printf("cannot spawn %s: %s\n", pn, e2s(c_spawn));
-
-    return c_spawn;
 }
 
 static void

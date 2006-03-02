@@ -8,7 +8,7 @@ extern "C" {
 #include <inc/fd.h>
 }
 
-static int label_debug = 0;
+#include <inc/spawn.hh>
 
 static void
 telnet_server(void)
@@ -28,11 +28,6 @@ telnet_server(void)
     r = listen(s, 5);
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
-
-    struct ulabel *l = label_get_current();
-    if (l == 0)
-	panic("cannot get current label");
-    label_change_star(l, l->ul_default);
 
     printf("telnetd: server on port 23\n");
     for (;;) {
@@ -55,14 +50,10 @@ telnet_server(void)
 	const char *argv[1];
 	argv[0] = "shell";
 
-	if (label_debug)
-	    cprintf("telnetd: spawning shell with label %s\n",
-		    label_to_string(l));
-
 	int64_t sp = spawn(start_env->container, sh,
 			   ss, ss, ss,
 			   1, &argv[0], 
-			   l, l,
+			   0, 0, 0, 0,
 			   SPAWN_MOVE_FD);
 	close(ss);
 

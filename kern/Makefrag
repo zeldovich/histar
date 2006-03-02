@@ -52,21 +52,21 @@ KERN_BINFILES := \
 	user/ls \
 	user/asprint \
 	user/gl \
-	user/mkdir \
-	user/mkmlt \
-	user/cpphello \
-	user/rm \
 	user/cat \
-	user/cp \
 	user/fetch \
-	user/lfs_small \
-	user/lfs_large \
-	user/privtest \
 	user/fsmerge \
-	user/sha1sum \
 	user/admind \
 	user/admctl
 
+	#user/privtest \
+	#user/mkdir \
+	#user/mkmlt \
+	#user/cpphello \
+	#user/rm \
+	#user/cp \
+	#user/lfs_small \
+	#user/lfs_large \
+	#user/sha1sum \
 	#user/freelist_test \
 	#user/tcpsink
 	#user/spin \
