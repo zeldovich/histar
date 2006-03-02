@@ -122,7 +122,7 @@ static void
 print_entry(struct entry *tab, int i, const char *name)
 {
 	if (tab[i].count)
-		cprintf("%2d cnt%12ld tot%12ld avg%12ld %s\n",
+		cprintf("%3d cnt%12ld tot%12ld avg%12ld %s\n",
 			i,
 			tab[i].count,
 			tab[i].time,
