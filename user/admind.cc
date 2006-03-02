@@ -8,6 +8,12 @@ extern "C" {
 #include <inc/gateparam.hh>
 
 static void
+admind_top(uint64_t ct, struct admind_reply *reply)
+{
+    throw error(-E_BAD_OP, "admind_top not implemented yet");
+}
+
+static void
 admind_dispatch(struct gate_call_data *parm)
 {
     struct admind_req *req = (struct admind_req *) &parm->param_buf[0];
@@ -16,18 +22,25 @@ admind_dispatch(struct gate_call_data *parm)
     static_assert(sizeof(*req) <= sizeof(parm->param_buf));
     static_assert(sizeof(*reply) <= sizeof(parm->param_buf));
 
-    switch (req->op) {
-    case admind_op_get_top:
-	reply->err = -999;
-	break;
+    int err = 0;
+    try {
+	switch (req->op) {
+	case admind_op_get_top:
+	    admind_top(req->obj.object, reply);
+	    break;
 
-    case admind_op_drop:
-	reply->err = sys_obj_unref(req->obj);
-	break;
+	case admind_op_drop:
+	    error_check(sys_obj_unref(req->obj));
+	    break;
 
-    default:
-	reply->err = -E_BAD_OP;
+	default:
+	    throw error(-E_BAD_OP, "unknown op %d", req->op);
+	}
+    } catch (error &e) {
+	err = e.err();
+	printf("admind_dispatch: %s\n", e.what());
     }
+    reply->err = err;
 }
 
 static void __attribute__((noreturn))
