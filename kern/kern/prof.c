@@ -22,8 +22,8 @@ static int prof_print_enable = 0;
 static struct periodic_task timer2 ;
 
 // for profiling using gcc's -finstrument-functions
-static int cyg_prof_print_enable = 1 ;
-static int cyg_prof_enable = 1 ;
+static int cyg_prof_print_enable = 0 ;
+static int cyg_prof_enable = 0 ;
 
 #define NUM_PROFS_PRINTED 2 
 static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
