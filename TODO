@@ -40,3 +40,11 @@ the resulting label selection.
 
 better separation between kernel, user-space and shared header files
 
+how to expose thread-local container and segment?  is it safe?
+
+right now objects at * can be read by anyone -- this means a thread
+that has * can be observed by anyone else.  does this make it really
+hard to write secure services that have * but don't actually want to
+expose their state?  maybe * should be treated like 3 in the context
+of reading?
+
