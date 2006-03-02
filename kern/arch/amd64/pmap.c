@@ -232,6 +232,7 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
     assert(pmlevel >= 0 && pmlevel <= 3);
 
     uint64_t *pm_entp = &pgmap->pm_ent[PDX(pmlevel, va)];
+    uint64_t pm_ent = *pm_entp;
 
     // If we made it all the way down, return the PTE
     if (pmlevel == 0) {
@@ -240,11 +241,11 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
     }
 
     // We don't handle superpages (2MB) yet
-    if ((*pm_entp & PTE_PS))
+    if ((pm_ent & PTE_PS))
 	return -E_INVAL;
 
     // If an intermediate page map is missing, allocate it (if asked for)
-    if (!(*pm_entp & PTE_P)) {
+    if (!(pm_ent & PTE_P)) {
 	if (!create) {
 	    *pte_store = 0;
 	    return 0;
@@ -256,10 +257,11 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
 	    return r;
 
 	memset(p, 0, PGSIZE);
-	*pm_entp = kva2pa(p) | PTE_P | PTE_U | PTE_W;
+	pm_ent = kva2pa(p) | PTE_P | PTE_U | PTE_W;
+	*pm_entp = pm_ent;
     }
 
-    struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(*pm_entp));
+    struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(pm_ent));
     return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
 }
 
