@@ -30,7 +30,7 @@ static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
     (uint64_t)&memset,
     (uint64_t)&memcpy,
 } ;
-static uint64_t cyg_profs_threshold = 100000000UL;
+static uint64_t cyg_profs_threshold = 1000000000UL;
 
 struct func_stamp
 {
