@@ -41,13 +41,16 @@ X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 			 uint32_t *ecxp, uint32_t *edxp);
 X86_INST_ATTR uint64_t read_tsc(void);
 
-X86_INST_ATTR void
+X86_INST_ATTR unsigned long __byte_swap_long(unsigned long in);
+X86_INST_ATTR uint16_t __byte_swap_word(uint16_t in);
+
+void
 breakpoint(void)
 {
 	__asm __volatile("int3");
 }
 
-X86_INST_ATTR uint8_t
+uint8_t
 inb(int port)
 {
 	uint8_t data;
@@ -55,7 +58,7 @@ inb(int port)
 	return data;
 }
 
-X86_INST_ATTR void
+void
 insb(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsb"			:
@@ -64,7 +67,7 @@ insb(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-X86_INST_ATTR uint16_t
+uint16_t
 inw(int port)
 {
 	uint16_t data;
@@ -72,7 +75,7 @@ inw(int port)
 	return data;
 }
 
-X86_INST_ATTR void
+void
 insw(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsw"			:
@@ -81,7 +84,7 @@ insw(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-X86_INST_ATTR uint32_t
+uint32_t
 inl(int port)
 {
 	uint32_t data;
@@ -89,7 +92,7 @@ inl(int port)
 	return data;
 }
 
-X86_INST_ATTR void
+void
 insl(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsl"			:
@@ -98,13 +101,13 @@ insl(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-X86_INST_ATTR void
+void
 outb(int port, uint8_t data)
 {
 	__asm __volatile("outb %0,%w1" : : "a" (data), "d" (port));
 }
 
-X86_INST_ATTR void
+void
 outsb(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsb"		:
@@ -113,13 +116,13 @@ outsb(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-X86_INST_ATTR void
+void
 outw(int port, uint16_t data)
 {
 	__asm __volatile("outw %0,%w1" : : "a" (data), "d" (port));
 }
 
-X86_INST_ATTR void
+void
 outsw(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsw"		:
@@ -128,7 +131,7 @@ outsw(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-X86_INST_ATTR void
+void
 outsl(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsl"		:
@@ -137,43 +140,43 @@ outsl(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-X86_INST_ATTR void
+void
 outl(int port, uint32_t data)
 {
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));
 }
 
-X86_INST_ATTR void 
+void 
 invlpg(const void *addr)
 { 
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
 }  
 
-X86_INST_ATTR void
+void
 lidt(void *p)
 {
 	__asm __volatile("lidt (%0)" : : "r" (p));
 }
 
-X86_INST_ATTR void
+void
 lldt(uint16_t sel)
 {
 	__asm __volatile("lldt %0" : : "r" (sel));
 }
 
-X86_INST_ATTR void
+void
 ltr(uint16_t sel)
 {
 	__asm __volatile("ltr %0" : : "r" (sel));
 }
 
-X86_INST_ATTR void
+void
 lcr0(uint32_t val)
 {
 	__asm __volatile("movl %0,%%cr0" : : "r" (val));
 }
 
-X86_INST_ATTR uint32_t
+uint32_t
 rcr0(void)
 {
 	uint32_t val;
@@ -181,7 +184,7 @@ rcr0(void)
 	return val;
 }
 
-X86_INST_ATTR uint64_t
+uint64_t
 rcr2(void)
 {
 	uint64_t val;
@@ -189,13 +192,13 @@ rcr2(void)
 	return val;
 }
 
-X86_INST_ATTR void
+void
 lcr3(uint64_t val)
 {
 	__asm __volatile("movq %0,%%cr3" : : "r" (val));
 }
 
-X86_INST_ATTR uint64_t
+uint64_t
 rcr3(void)
 {
 	uint64_t val;
@@ -203,13 +206,13 @@ rcr3(void)
 	return val;
 }
 
-X86_INST_ATTR void
+void
 lcr4(uint32_t val)
 {
 	__asm __volatile("movl %0,%%cr4" : : "r" (val));
 }
 
-X86_INST_ATTR uint32_t
+uint32_t
 rcr4(void)
 {
 	uint32_t cr4;
@@ -217,7 +220,7 @@ rcr4(void)
 	return cr4;
 }
 
-X86_INST_ATTR void
+void
 tlbflush(void)
 {
 	uint32_t cr3;
@@ -225,7 +228,7 @@ tlbflush(void)
 	__asm __volatile("movl %0,%%cr3" : : "r" (cr3));
 }
 
-X86_INST_ATTR uint32_t
+uint32_t
 read_eflags(void)
 {
         uint32_t eflags;
@@ -233,31 +236,31 @@ read_eflags(void)
         return eflags;
 }
 
-X86_INST_ATTR void
+void
 write_eflags(uint32_t eflags)
 {
         __asm __volatile("pushl %0; popfl" : : "r" (eflags));
 }
 
-X86_INST_ATTR void 
+void 
 halt(void) 
 {
         __asm __volatile("sti; hlt" ::: "memory"); //memory -- DMA?
 }
 
-X86_INST_ATTR void 
+void 
 sti(void) 
 {
         __asm __volatile("sti");
 }
 
-X86_INST_ATTR void 
+void 
 cli(void) 
 {
         __asm __volatile("sti");
 }
 
-X86_INST_ATTR uint64_t
+uint64_t
 read_rbp(void)
 {
         uint64_t rbp;
@@ -265,7 +268,7 @@ read_rbp(void)
         return rbp;
 }
 
-X86_INST_ATTR uint64_t
+uint64_t
 read_rsp(void)
 {
         uint64_t rsp;
@@ -273,7 +276,7 @@ read_rsp(void)
         return rsp;
 }
 
-X86_INST_ATTR void
+void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
       uint32_t *ecxp, uint32_t *edxp)
 {
@@ -291,7 +294,7 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 		*edxp = edx;
 }
 
-X86_INST_ATTR uint64_t
+uint64_t
 read_tsc(void)
 {
 	uint32_t a, d;
@@ -302,7 +305,7 @@ read_tsc(void)
 
 // X86 byteswap operations
 
-X86_INST_ATTR unsigned long
+unsigned long
 __byte_swap_long (unsigned long in) 
 {
   unsigned long out;
@@ -315,7 +318,7 @@ __byte_swap_long (unsigned long in)
 /* XXX!!!!  Linux no longer uses an explicit xchgb instruction; it says GCC
    can figure out how to do that itself.  Need to verify Linux's compilation
    flags. */
-X86_INST_ATTR uint16_t
+uint16_t
 __byte_swap_word(uint16_t in)
 {
 	uint16_t out;
