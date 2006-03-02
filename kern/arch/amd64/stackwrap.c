@@ -31,7 +31,7 @@ stackwrap_cur(void)
     return ss;
 }
 
-static void __attribute__((noreturn))
+static void __attribute__((noreturn, no_instrument_function))
 stackwrap_entry(void)
 {
     struct stackwrap_state *ss = stackwrap_cur();

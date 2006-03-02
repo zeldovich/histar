@@ -133,11 +133,13 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     prof_trap(trapno, f - s);
 }
 
-void __attribute__((__noreturn__))
+void __attribute__((__noreturn__, no_instrument_function))
 trap_handler (struct Trapframe *tf)
 {
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (tf->tf__trapentry_rip - trap0rip) / 16;
+
+    cyg_profile_free_stack(read_rsp()) ;
 
     if (cur_thread == 0) {
 	trapframe_print(tf);

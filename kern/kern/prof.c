@@ -1,4 +1,5 @@
 #include <machine/trapcodes.h>
+#include <machine/x86.h>
 #include <lib/hashtable.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
@@ -21,28 +22,37 @@ static int prof_print_enable = 0;
 static struct periodic_task timer2 ;
 
 // for profiling using gcc's -finstrument-functions
-static struct history
-{
-#define HISTORY_SIZE PGSIZE
-        void *func_enter[HISTORY_SIZE] ;
-        int enter_size ;
-
-} cyg_history ;
-
-#define NUM_SYMS 800
-static struct
-{
-        int count[NUM_SYMS] ;
-        int size ;     
-} cyg_data ;
-
 static int cyg_prof_print_enable = 0 ;
 static int cyg_prof_enable = 0 ;
 
+struct cyg_stack
+{
+        uint64_t stack_base ;
+        
+        int size ;     
+        uint64_t func_addr[PGSIZE] ;       
+} ;
 
-static struct hashentry back[NUM_SYMS] ;
-static struct hashtable cyg_lookup ;
+struct cyg_stats
+{
+        int count ;       
+} ;
 
+static struct
+{
+#define NUM_STACKS 16
+        // map from sp base to stack holding enters
+        struct cyg_stack stack[NUM_STACKS] ;
+
+#define NUM_SYMS 800
+        // map from func ptr to index into stats table
+        struct hashtable stats_lookup ;
+        struct hashentry stats_lookup_back[NUM_SYMS] ;
+     
+        int stat_size ;
+        struct cyg_stats stat[NUM_SYMS] ;
+        
+} cyg_data ;
 
 
 void __attribute__((no_instrument_function))
@@ -51,8 +61,8 @@ prof_init(void)
 	memset(sysc_table, 0, sizeof(sysc_table)) ;
 	memset(trap_table, 0, sizeof(trap_table)) ;
 	
-        hash_init(&cyg_lookup, back, NUM_SYMS) ;
         memset(&cyg_data, 0, sizeof(cyg_data)) ;
+        hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS) ;
         
         
 	timer.pt_fn = &prof_print ;
@@ -65,7 +75,7 @@ prof_init(void)
         if (cyg_prof_print_enable)
                 timer_add_periodic(&timer2) ;	
                 
-        cyg_prof_enable = 1 ;
+        cyg_prof_enable = 0 ;
 }
 
 void 
@@ -129,8 +139,6 @@ prof_print(void)
 }
 
 // XXX
-// This doesn't work properly, due to multiple threads and 
-// functions that may not return...
 static void __attribute__((no_instrument_function))
 cyg_profile_kludge(void *func_addr)
 {
@@ -138,15 +146,25 @@ cyg_profile_kludge(void *func_addr)
         uint64_t val ;
         
         cyg_prof_enable = 0 ;
-        if (hash_get(&cyg_lookup, func, &val) < 0) {
-                val = cyg_data.size++ ;
-                if (hash_put(&cyg_lookup, func, val) < 0)
+        if (hash_get(&cyg_data.stats_lookup, func, &val) < 0) {
+                val = cyg_data.stat_size++;
+                if (hash_put(&cyg_data.stats_lookup, func, val) < 0)
                         return ;
         }
         cyg_prof_enable = 1 ;
         
-        cyg_data.count[val]++ ;
+        cyg_data.stat[val].count++ ;
+        
         return ;
+}
+
+static void __attribute__((no_instrument_function))
+cyg_profile_dump(void)
+{
+        for (int i = 0 ; i < NUM_STACKS ; i++) {              
+                cprintf(" base %lx\n", cyg_data.stack[i].stack_base) ;      
+                cprintf("  top %lx\n", cyg_data.stack[i].func_addr[cyg_data.stack[i].size - 1]) ;       
+        }
 }
 
 void __attribute__((no_instrument_function))
@@ -155,15 +173,35 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
         if (!cyg_prof_enable)
                 return ;
         
-        if (!(cyg_history.enter_size < HISTORY_SIZE)) {
-                cyg_prof_enable = 0 ;
-                cprintf("__cyg_profile_func_enter: no more space\n") ;
-                cyg_prof_enable = 1 ;
-                return ; 
+        cyg_prof_enable = 0 ;
+        uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
+        int i = 0 ;
+        for (; i < NUM_STACKS ; i++) {
+                if (cyg_data.stack[i].stack_base == sp)
+                        break ;                               
         }
         
-        cyg_history.func_enter[cyg_history.enter_size] = this_fn ;
-        cyg_history.enter_size++ ;
+        if (i == NUM_STACKS) {
+                for (i = 0 ; i < NUM_STACKS ; i++) {       
+                        if (cyg_data.stack[i].stack_base == 0) {
+                                cyg_data.stack[i].stack_base = sp ;
+                                break ;       
+                        }
+                }
+        }
+
+        if (i == NUM_STACKS) {
+                cyg_profile_dump() ;
+                panic("__cyg_profile_func_enter: out of func addr stacks") ;
+        }
+
+        cyg_data.stack[i].func_addr[cyg_data.stack[i].size] = (uint64_t) this_fn ;
+        cyg_data.stack[i].size++ ;
+        
+        if (cyg_data.stack[i].size == PGSIZE)
+                panic("__cyg_profile_func_enter: overflow func addr stack") ;
+        
+        cyg_prof_enable = 1 ;
 }        
 
 void __attribute__((no_instrument_function))
@@ -172,32 +210,65 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
         if (!cyg_prof_enable)
                 return ;
 
-        // XXX
-        if (cyg_history.enter_size == 0)
-                return ;
-        else if (cyg_history.func_enter[cyg_history.enter_size - 1] != this_fn) {
-                cyg_history.enter_size = 0 ;
-                return ;
+        cyg_prof_enable = 0 ;
+        uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
+        int i = 0 ;
+        for (; i < NUM_STACKS ; i++) {
+                if (cyg_data.stack[i].stack_base == sp)
+                        break ;                               
         }
-                   
-        cyg_history.enter_size-- ;
+
+        assert(i < NUM_STACKS) ;
+
+        while (1) {
+                cyg_data.stack[i].size-- ;
+                if (cyg_data.stack[i].func_addr[cyg_data.stack[i].size] == (uint64_t)this_fn)
+                        break ;
+                        
+                if (cyg_data.stack[i].size == 0)
+                        panic("__cyg_profile_func_exit: func addr stack bottomed out") ;
+        }
+       
+        if (cyg_data.stack[i].size == 0)
+                cyg_data.stack[i].stack_base = 0 ;
+
         cyg_profile_kludge(this_fn) ;
 }
 
-// for kobject_alloc lookup
-#include <kern/kobj.h>
+void __attribute__ ((no_instrument_function))
+cyg_profile_free_stack(uint64_t sp)
+{
+        if (!cyg_prof_enable)
+                return ;
+        
+        sp = ROUNDUP(sp, PGSIZE) ;
+        
+        for (int i = 0 ; i < NUM_STACKS ; i++) {
+                if (cyg_data.stack[i].stack_base == sp) {
+                        cyg_data.stack[i].stack_base = 0 ;                               
+                        cyg_data.stack[i].size = 0 ;
+                        return ;
+                }
+        }        
+}
 
 void __attribute__((no_instrument_function))
 cyg_profile_print(void) 
 {
-        cyg_prof_enable = 0 ;
-        
-        uint64_t val ;
-        if (hash_get(&cyg_lookup, (uint64_t)&kobject_alloc, &val) < 0) {
-                cprintf("no hashtable mapping\n") ;
-                cyg_prof_enable = 1 ;
+        if (!cyg_prof_enable)
                 return ;
+                
+        cyg_prof_enable = 0 ;
+        /*
+        uint64_t func = (uint64_t) &pstate_test ;
+        uint64_t val ;
+        
+        if (hash_get(&cyg_data.stats_lookup, func, &val) == 0) {
+                cprintf("profile: %d\n", cyg_data.stat[val].count) ;
         }
-        cprintf("cyg_data.count[val] %d\n", cyg_data.count[val]) ;
+        else {
+                cprintf("profile: no hashtable entry\n") ;   
+        }
+        */
         cyg_prof_enable = 1 ;
 }
