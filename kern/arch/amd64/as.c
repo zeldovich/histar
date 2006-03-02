@@ -387,7 +387,10 @@ as_switch(const struct Address_space *as)
 	as_invalidate(as);
 
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
-    lcr3(kva2pa(pgmap));
+    uint64_t new_cr3 = kva2pa(pgmap);
+    uint64_t cur_cr3 = rcr3();
+    if (cur_cr3 != new_cr3)
+	lcr3(new_cr3);
 }
 
 void
