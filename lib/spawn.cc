@@ -49,8 +49,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     // Objects for new process are effectively the same label, except
     // we can drop the stars altogether -- they're discretionary.
-    label object_label(thread_label);
-    object_label.transform(label::star_to, object_label.get_default());
+    label base_object_label(thread_label);
+    base_object_label.transform(label::star_to,
+				base_object_label.get_default());
+    label proc_object_label(base_object_label);
 
     // Generate some private handles for the new process
     int64_t process_grant = sys_handle_create();
@@ -61,9 +63,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(process_taint);
     scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
 
-    object_label.set(process_grant, 0);
-    // XXX not quite ready yet -- we share some things out of the main container
-    //object_label.set(process_taint, 3);
+    proc_object_label.set(process_grant, 0);
+    proc_object_label.set(process_taint, 3);
     thread_label.set(process_grant, LB_LEVEL_STAR);
     thread_label.set(process_taint, LB_LEVEL_STAR);
 
@@ -75,25 +76,27 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(sys_obj_get_name(elf, &name[0]));
 
     int64_t c_spawn = sys_container_alloc(container,
-					  object_label.to_ulabel(), &name[0]);
-    if (c_spawn < 0)
-	throw error(c_spawn, "allocate container");
+					  proc_object_label.to_ulabel(),
+					  &name[0]);
+    error_check(c_spawn);
 
     struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
     scope_guard<int, struct cobj_ref> c_spawn_drop(sys_obj_unref, c_spawn_ref);
 
+    int64_t c_share = sys_container_alloc(c_spawn,
+					  base_object_label.to_ulabel(),
+					  "shared container");
+    error_check(c_share);
+
     struct thread_entry e;
-    error_check(elf_load(c_spawn, elf, &e, object_label.to_ulabel()));
+    error_check(elf_load(c_spawn, elf, &e, proc_object_label.to_ulabel()));
 
     int fdnum[3] = { fd0, fd1, fd2 };
 
     if ((flags & SPAWN_MOVE_FD)) {
 	int i, j;
 
-	// XXX this should go away when we get per-fd handles?
-	label fd_label(object_label);
-	fd_label.set(process_taint, fd_label.get_default());
-	fd_label.set(process_grant, fd_label.get_default());
+	label fd_label(base_object_label);
 
 	// Find all of the source FD's, increment refcounts
 	struct Fd *fd[3];
@@ -126,14 +129,13 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 		    printf("spawn: copying fd with label %s\n",
 			   fd_label.to_string());
 
-		int64_t id = sys_segment_copy(src_seg[i], c_spawn,
+		int64_t id = sys_segment_copy(src_seg[i], c_share,
 					      fd_label.to_ulabel(),
 					      "moved fd");
-		if (id < 0)
-		    throw error(id, "fd segment copy");
+		error_check(id);
 
 		sys_obj_unref(src_seg[i]);
-		dst_seg[i] = COBJ(c_spawn, id);
+		dst_seg[i] = COBJ(c_share, id);
 	    }
 
 	    error_check(fd_map_as(e.te_as, dst_seg[j], i));
@@ -145,12 +147,13 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     struct cobj_ref heap_obj;
     error_check(segment_alloc(c_spawn, 0, &heap_obj, 0,
-			      object_label.to_ulabel(), "heap"));
+			      proc_object_label.to_ulabel(), "heap"));
 
     start_env_t *spawn_env = 0;
     struct cobj_ref c_spawn_env;
     error_check(segment_alloc(c_spawn, PGSIZE, &c_spawn_env,
-			      (void**) &spawn_env, object_label.to_ulabel(),
+			      (void**) &spawn_env,
+			      proc_object_label.to_ulabel(),
 			      "env"));
     scope_guard<int, void *> spawn_env_unmap(segment_unmap, spawn_env);
 
@@ -160,8 +163,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 			       &spawn_env_va, 0));
 
     struct cobj_ref exit_status_seg;
-    error_check(segment_alloc(c_spawn, PGSIZE, &exit_status_seg,
-			      0, object_label.to_ulabel(), "exit status"));
+    error_check(segment_alloc(c_share, PGSIZE, &exit_status_seg,
+			      0, base_object_label.to_ulabel(),
+			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->container = c_spawn;
@@ -177,8 +181,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     }
 
     int64_t thread = sys_thread_create(c_spawn, &name[0]);
-    if (thread < 0)
-	throw error(thread, "creating thread");
+    error_check(thread);
     struct cobj_ref tobj = COBJ(c_spawn, thread);
 
     if (label_debug)
