@@ -1,3 +1,4 @@
+extern "C" {
 #include <inc/syscall.h>
 #include <inc/stdio.h>
 #include <inc/lib.h>
@@ -8,6 +9,7 @@
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
+}
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
@@ -114,7 +116,7 @@ builtin_list_container(int ac, char **av)
 	return;
     }
 
-    for (uint64_t i = 0; i < nslots; i++)
+    for (int64_t i = 0; i < nslots; i++)
 	print_cobj(ct, i);
 }
 
@@ -316,7 +318,7 @@ static void
 builtin_help(int ac, char **av)
 {
     printf("Commands:\n");
-    for (int i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
+    for (uint32_t i = 0; i < sizeof(commands)/sizeof(commands[0]); i++)
 	printf("  %-10s %s\n", commands[i].name, commands[i].desc);
 }
 
@@ -352,7 +354,7 @@ run_cmd(int ac, char **av)
     if (ac == 0)
 	return;
 
-    for (int i = 0; i < sizeof(commands)/sizeof(commands[0]); i++) {
+    for (uint32_t i = 0; i < sizeof(commands)/sizeof(commands[0]); i++) {
 	if (!strcmp(av[0], commands[i].name)) {
 	    commands[i].func(ac-1, av+1);
 	    return;

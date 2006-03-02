@@ -1,3 +1,4 @@
+extern "C" {
 #include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
@@ -5,6 +6,7 @@
 #include <inc/netd.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
+}
 
 static int label_debug = 0;
 
