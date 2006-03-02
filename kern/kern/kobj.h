@@ -39,6 +39,7 @@ struct kobject {
 
 	    LIST_ENTRY(kobject) ko_link;
 	    LIST_ENTRY(kobject) ko_hash;
+	    LIST_ENTRY(kobject) ko_gc_link;
 	};
     };
 };

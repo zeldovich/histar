@@ -16,6 +16,7 @@ struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
 
 static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
+static struct kobject_list ko_gc_list;
 
 static int kobject_reclaim_debug = 1;
 static int kobject_checksum_pedantic = 0;
@@ -144,6 +145,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 
     kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), ko, ko_hash);
 
     *kp = ko;
@@ -244,6 +246,8 @@ kobject_swapin(struct kobject *ko)
 
     kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    if (ko->hdr.ko_ref == 0)
+	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), ko, ko_hash);
 
     ko->hdr.ko_pin = 0;
@@ -261,15 +265,21 @@ kobject_swapin(struct kobject *ko)
 }
 
 void
-kobject_incref(const struct kobject_hdr *ko)
+kobject_incref(const struct kobject_hdr *kh)
 {
-    kobject_dirty(ko)->hdr.ko_ref++;
+    struct kobject *ko = kobject_dirty(kh);
+    if (ko->hdr.ko_ref == 0)
+	LIST_REMOVE(ko, ko_gc_link);
+    ko->hdr.ko_ref++;
 }
 
 void
-kobject_decref(const struct kobject_hdr *ko)
+kobject_decref(const struct kobject_hdr *kh)
 {
-    kobject_dirty(ko)->hdr.ko_ref--;
+    struct kobject *ko = kobject_dirty(kh);
+    ko->hdr.ko_ref--;
+    if (ko->hdr.ko_ref == 0)
+	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 }
 
 void
@@ -358,7 +368,7 @@ kobject_gc_scan(void)
     cur_thread = 0;
 
     struct kobject *ko;
-    LIST_FOREACH(ko, &ko_list, ko_link) {
+    LIST_FOREACH(ko, &ko_gc_list, ko_gc_link) {
 	if (ko->hdr.ko_ref == 0 && ko->hdr.ko_type != kobj_dead) {
 	    if (ko->hdr.ko_type == kobj_thread)
 		thread_zero_refs(&ko->th);
@@ -391,6 +401,8 @@ kobject_swapout(struct kobject *ko)
 	as_swapout(&ko->as);
 
     LIST_REMOVE(ko, ko_link);
+    if (ko->hdr.ko_ref == 0)
+	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt);
     page_free(ko);
