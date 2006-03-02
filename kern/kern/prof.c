@@ -25,17 +25,25 @@ static struct periodic_task timer2 ;
 static int cyg_prof_print_enable = 0 ;
 static int cyg_prof_enable = 0 ;
 
+struct func_stamp
+{
+        uint64_t func_addr ;
+        uint64_t tsc ;        
+} ;
+
 struct cyg_stack
 {
         uint64_t stack_base ;
         
         int size ;     
-        uint64_t func_addr[PGSIZE] ;       
+        //uint64_t func_addr[PGSIZE] ;       
+        struct func_stamp func_stamp[PGSIZE] ;       
 } ;
 
 struct cyg_stats
 {
-        int count ;       
+        uint64_t count ;       
+        uint64_t time ;
 } ;
 
 static struct
@@ -140,7 +148,7 @@ prof_print(void)
 
 // XXX
 static void __attribute__((no_instrument_function))
-cyg_profile_kludge(void *func_addr)
+cyg_profile_func(void *func_addr, uint64_t time)
 {
         uint64_t func = (uint64_t) func_addr ;
         uint64_t val ;
@@ -154,6 +162,7 @@ cyg_profile_kludge(void *func_addr)
         cyg_prof_enable = 1 ;
         
         cyg_data.stat[val].count++ ;
+        cyg_data.stat[val].time += time ;
         
         return ;
 }
@@ -163,7 +172,7 @@ cyg_profile_dump(void)
 {
         for (int i = 0 ; i < NUM_STACKS ; i++) {              
                 cprintf(" base %lx\n", cyg_data.stack[i].stack_base) ;      
-                cprintf("  top %lx\n", cyg_data.stack[i].func_addr[cyg_data.stack[i].size - 1]) ;       
+                cprintf("  top %lx\n", cyg_data.stack[i].func_stamp[cyg_data.stack[i].size - 1].func_addr) ;       
         }
 }
 
@@ -195,7 +204,8 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
                 panic("__cyg_profile_func_enter: out of func addr stacks") ;
         }
 
-        cyg_data.stack[i].func_addr[cyg_data.stack[i].size] = (uint64_t) this_fn ;
+        cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].func_addr = (uint64_t) this_fn ;
+        cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].tsc = read_tsc() ;
         cyg_data.stack[i].size++ ;
         
         if (cyg_data.stack[i].size == PGSIZE)
@@ -222,7 +232,7 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
 
         while (1) {
                 cyg_data.stack[i].size-- ;
-                if (cyg_data.stack[i].func_addr[cyg_data.stack[i].size] == (uint64_t)this_fn)
+                if (cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].func_addr == (uint64_t)this_fn)
                         break ;
                         
                 if (cyg_data.stack[i].size == 0)
@@ -232,7 +242,9 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
         if (cyg_data.stack[i].size == 0)
                 cyg_data.stack[i].stack_base = 0 ;
 
-        cyg_profile_kludge(this_fn) ;
+
+        uint64_t time = read_tsc() - cyg_data.stack[i].func_stamp[cyg_data.stack[i].size].tsc ;
+        cyg_profile_func(this_fn, time) ;
 }
 
 void __attribute__ ((no_instrument_function))
