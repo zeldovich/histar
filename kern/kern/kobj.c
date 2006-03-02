@@ -19,6 +19,7 @@ static HASH_TABLE(kobject_hash, struct kobject_list, 8191) ko_hash;
 static struct kobject_list ko_gc_list;
 
 static int kobject_reclaim_debug = 1;
+static int kobject_checksum_enable = 1;
 static int kobject_checksum_pedantic = 0;
 static int kobject_print_sizes = 0;
 
@@ -37,6 +38,9 @@ kobject_const_h2k(const struct kobject_hdr *kh)
 static uint64_t
 kobject_cksum(const struct kobject_hdr *ko)
 {
+    if (!kobject_checksum_enable)
+	return 0;
+
     assert(ko);
     uint64_t sum = 0;
 
