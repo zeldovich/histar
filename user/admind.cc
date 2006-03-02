@@ -1,10 +1,33 @@
+extern "C" {
+#include <inc/admind.h>
+#include <inc/syscall.h>
+#include <inc/error.h>
+}
+
 #include <inc/gatesrv.hh>
 #include <inc/gateparam.hh>
 
 static void
 admind_dispatch(struct gate_call_data *parm)
 {
-    printf("admind_dispatch\n");
+    struct admind_req *req = (struct admind_req *) &parm->param_buf[0];
+    struct admind_reply *reply = (struct admind_reply *) &parm->param_buf[0];
+
+    static_assert(sizeof(*req) <= sizeof(parm->param_buf));
+    static_assert(sizeof(*reply) <= sizeof(parm->param_buf));
+
+    switch (req->op) {
+    case admind_op_get_top:
+	reply->err = -999;
+	break;
+
+    case admind_op_drop:
+	reply->err = sys_obj_unref(req->obj);
+	break;
+
+    default:
+	reply->err = -E_BAD_OP;
+    }
 }
 
 static void __attribute__((noreturn))

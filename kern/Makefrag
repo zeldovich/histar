@@ -64,7 +64,8 @@ KERN_BINFILES := \
 	user/privtest \
 	user/fsmerge \
 	user/sha1sum \
-	user/admind
+	user/admind \
+	user/admctl
 
 	#user/freelist_test \
 	#user/tcpsink
