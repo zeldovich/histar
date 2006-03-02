@@ -14,12 +14,13 @@ struct Label {
 
 #define LB_ENT_EMPTY		(~(0UL))
 
-typedef int (level_comparator)(level_t, level_t);
-level_comparator label_leq_starlo;
-level_comparator label_leq_starhi;
-level_comparator label_leq_starok;
-level_comparator label_eq;
-level_comparator label_leq_starhi_rhs_0_except_star;
+struct level_comparator_buf;
+typedef struct level_comparator_buf *level_comparator;
+extern level_comparator label_leq_starlo;
+extern level_comparator label_leq_starhi;
+extern level_comparator label_leq_starok;
+extern level_comparator label_eq;
+extern level_comparator label_leq_starhi_rhs_0_except_star;
 
 void label_init(struct Label *l, level_t def);
 int  label_set(struct Label *l, uint64_t handle, level_t level)

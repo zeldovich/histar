@@ -3,6 +3,87 @@
 #include <kern/label.h>
 #include <inc/error.h>
 
+////////////////////////////////
+// Level comparison functions
+////////////////////////////////
+
+typedef int (level_comparator_fn) (level_t, level_t);
+struct level_comparator_buf {
+    level_comparator_fn *gen;
+    int inited;
+    int8_t cmp[LB_LEVEL_STAR + 1][LB_LEVEL_STAR + 1];
+    int8_t max[LB_LEVEL_STAR + 1][LB_LEVEL_STAR + 1];
+};
+
+static int
+label_leq_starlo_fn(level_t a, level_t b)
+{
+    if (a == LB_LEVEL_STAR)
+	return 0;
+    if (b == LB_LEVEL_STAR)
+	return -E_LABEL;
+    return (a <= b) ? 0 : -E_LABEL;
+}
+
+static int
+label_leq_starhi_fn(level_t a, level_t b)
+{
+    if (b == LB_LEVEL_STAR)
+	return 0;
+    if (a == LB_LEVEL_STAR)
+	return -E_LABEL;
+    return (a <= b) ? 0 : -E_LABEL;
+}
+
+static int
+label_leq_starok_fn(level_t a, level_t b)
+{
+    if (a == LB_LEVEL_STAR || b == LB_LEVEL_STAR)
+	return 0;
+    return (a <= b) ? 0 : -E_LABEL;
+}
+
+static int
+label_eq_fn(level_t a, level_t b)
+{
+    return (a == b) ? 0 : -E_LABEL;
+}
+
+static int
+label_leq_starhi_rhs_0_except_star_fn(level_t a, level_t b)
+{
+    return label_leq_starhi_fn(a, b == LB_LEVEL_STAR ? LB_LEVEL_STAR : 0);
+}
+
+#define LEVEL_COMPARATOR(x)						\
+    static struct level_comparator_buf x##_buf = { .gen = &x##_fn };	\
+    level_comparator x = &x##_buf
+
+LEVEL_COMPARATOR(label_leq_starok);
+LEVEL_COMPARATOR(label_leq_starlo);
+LEVEL_COMPARATOR(label_leq_starhi);
+LEVEL_COMPARATOR(label_eq);
+LEVEL_COMPARATOR(label_leq_starhi_rhs_0_except_star);
+
+static void
+level_comparator_init(level_comparator c)
+{
+    if (c->inited)
+	return;
+
+    for (int a = 0; a <= LB_LEVEL_STAR; a++) {
+	for (int b = 0; b <= LB_LEVEL_STAR; b++) {
+	    c->cmp[a][b] = c->gen(a, b);
+	    c->max[a][b] = (c->cmp[a][b] == 0) ? b : a;
+	}
+    }
+    c->inited = 1;
+}
+
+////////////////////
+// Label handling
+////////////////////
+
 static int
 label_find_slot(const struct Label *l, uint64_t handle)
 {
@@ -122,12 +203,15 @@ int
 label_compare(const struct Label *l1,
 	      const struct Label *l2, level_comparator cmp)
 {
+    level_comparator_init(cmp);
+
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (l1->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
 
 	uint64_t h = LB_HANDLE(l1->lb_ent[i]);
-	int r = cmp(label_get_level(l1, h), label_get_level(l2, h));
+	level_t lv1 = LB_LEVEL(l1->lb_ent[i]);
+	int r = cmp->cmp[lv1][label_get_level(l2, h)];
 	if (r < 0)
 	    return r;
     }
@@ -137,37 +221,33 @@ label_compare(const struct Label *l1,
 	    continue;
 
 	uint64_t h = LB_HANDLE(l2->lb_ent[i]);
-	int r = cmp(label_get_level(l1, h), label_get_level(l2, h));
+	level_t lv2 = LB_LEVEL(l2->lb_ent[i]);
+	int r = cmp->cmp[label_get_level(l1, h)][lv2];
 	if (r < 0)
 	    return r;
     }
 
-    int r = cmp(l1->lb_def_level, l2->lb_def_level);
+    int r = cmp->cmp[l1->lb_def_level][l2->lb_def_level];
     if (r < 0)
 	return r;
 
     return 0;
 }
 
-static int
-level_max(int a, int b, level_comparator leq)
-{
-    return (leq(a, b) >= 0) ? b : a;
-}
-
 int
 label_max(const struct Label *a, const struct Label *b,
 	  struct Label *dst, level_comparator leq)
 {
-    label_init(dst, level_max(a->lb_def_level, b->lb_def_level, leq));
+    level_comparator_init(leq);
+    label_init(dst, leq->max[a->lb_def_level][b->lb_def_level]);
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (a->lb_ent[i] == LB_ENT_EMPTY)
 	    continue;
 
 	uint64_t h = LB_HANDLE(a->lb_ent[i]);
-	int r = label_set(dst, h, level_max(label_get_level(a, h),
-					    label_get_level(b, h), leq));
+	level_t alv = LB_LEVEL(a->lb_ent[i]);
+	int r = label_set(dst, h, leq->max[alv][label_get_level(b, h)]);
 	if (r < 0)
 	    return r;
     }
@@ -177,8 +257,8 @@ label_max(const struct Label *a, const struct Label *b,
 	    continue;
 
 	uint64_t h = LB_HANDLE(b->lb_ent[i]);
-	int r = label_set(dst, h, level_max(label_get_level(a, h),
-					    label_get_level(b, h), leq));
+	level_t blv = LB_LEVEL(b->lb_ent[i]);
+	int r = label_set(dst, h, leq->max[label_get_level(a, h)][blv]);
 	if (r < 0)
 	    return r;
     }
@@ -186,53 +266,9 @@ label_max(const struct Label *a, const struct Label *b,
     return 0;
 }
 
-int
-label_leq_starlo(level_t a, level_t b)
-{
-    if (a == LB_LEVEL_STAR)
-	return 0;
-    if (b == LB_LEVEL_STAR)
-	return -E_LABEL;
-    if (a <= b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label_leq_starhi(level_t a, level_t b)
-{
-    if (b == LB_LEVEL_STAR)
-	return 0;
-    if (a == LB_LEVEL_STAR)
-	return -E_LABEL;
-    if (a <= b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label_leq_starok(level_t a, level_t b)
-{
-    if (a == LB_LEVEL_STAR || b == LB_LEVEL_STAR)
-	return 0;
-    if (a <= b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label_eq(level_t a, level_t b)
-{
-    if (a == b)
-	return 0;
-    return -E_LABEL;
-}
-
-int
-label_leq_starhi_rhs_0_except_star(level_t a, level_t b)
-{
-    return label_leq_starhi(a, b == LB_LEVEL_STAR ? LB_LEVEL_STAR : 0);
-}
+///////////////////////////
+// Label pretty-printing
+///////////////////////////
 
 void
 label_cprint(const struct Label *l)
