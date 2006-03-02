@@ -89,7 +89,7 @@ all:
 COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin 
 COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -finstrument-functions
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) $(KERN_PROF)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_CFLAGS := $(COMFLAGS) $(DEFS) $(CFLAGS) $(INCLUDES) -DJOS_USER
 USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)
@@ -138,6 +138,10 @@ clean:
 distclean: clean
 	rm -f conf/gcc.mk
 	find . -type f \( -name '*~' -o -name '.*~' \) -exec rm -f \{\} \;
+
+# Need a rebuild when switching b/t prof and non-prof output...
+prof:
+	make 'KERN_PROF=-finstrument-functions'
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
