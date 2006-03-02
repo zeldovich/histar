@@ -12,6 +12,7 @@ typedef uint32_t Elf64_Word;
 typedef int32_t Elf64_Sword;
 typedef uint64_t Elf64_Xword;
 typedef int64_t Elf64_Sxword;
+typedef int16_t Elf64_Section;
 
 typedef struct {
   Elf64_Word      e_magic;

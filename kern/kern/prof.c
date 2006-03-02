@@ -241,17 +241,17 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
         cyg_data.enable = 0 ;
         uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
         
-        struct cyg_stack *stack ;
-        if ((stack = stack_for(sp)) == 0)
-                assert((stack = stack_alloc(sp)) != 0) ; 
+        struct cyg_stack *s ;
+        if ((s = stack_for(sp)) == 0)
+                assert((s = stack_alloc(sp)) != 0) ; 
                 // out of func addr stacks
 
-        stack->func_stamp[stack->size].func_addr = (uint64_t) this_fn ;
-        stack->func_stamp[stack->size].tsc = read_tsc() ;
-        stack->size++ ;
+        s->func_stamp[s->size].func_addr = (uint64_t) this_fn ;
+        s->func_stamp[s->size].tsc = read_tsc() ;
+        s->size++ ;
         
         // overflow func addr stack
-        assert(stack->size != PGSIZE) ;
+        assert(s->size != PGSIZE) ;
 
         cyg_data.enable = 1 ;
 }    
@@ -262,20 +262,22 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
         if (!cyg_data.enable)
                 return ;
 
+        uint64_t f = read_tsc() ;
+
         cyg_data.enable = 0 ;
         uint64_t sp = ROUNDUP(read_rsp(), PGSIZE) ;
         
-        struct cyg_stack *stack = stack_for(sp) ;
+        struct cyg_stack *s = stack_for(sp) ;
         
         while (1) {
-                stack->size-- ;
-                if (stack->func_stamp[stack->size].func_addr == (uint64_t)this_fn)
+                s->size-- ;
+                if (s->func_stamp[s->size].func_addr == (uint64_t)this_fn)
                         break ;
                 // bottom out func addr stack
-                assert(stack->size != 0) ;        
+                assert(s->size != 0) ;        
         }
        
-        uint64_t time = read_tsc() - stack->func_stamp[stack->size].tsc ;
+        uint64_t time = f - s->func_stamp[s->size].tsc ;
         cyg_profile_data(this_fn, time) ;
 
         cyg_data.enable = 1 ;
