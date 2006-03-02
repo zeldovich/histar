@@ -50,36 +50,30 @@ __removeKey(struct btree *tree,
 					 btree_value(rootNode->children, i, tree->s_key), 
 					 tree->s_key) ;
 
-		for (; i < rootNode->keyCount - 1; i++)
-		{
-			//rootNode->keys[i]     = rootNode->keys[i + 1];
-			//btree_keycpy(&rootNode->keys[i], &rootNode->keys[i + 1], tree->s_key) ;
-			btree_keycpy(btree_key(rootNode->keys, i, tree->s_key), 
-						 btree_key(rootNode->keys, i + 1, tree->s_key), 
-						 tree->s_key) ;
-			//rootNode->children[i] = rootNode->children[i + 1];
-			const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
-			const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
-			btree_valcpy(temp1, temp2, tree->s_value) ;
-		}
+		// Move keys i+1 through keyCount-1 into i through keyCount-2
+		btree_keymove(btree_key(rootNode->keys, i,   tree->s_key),
+			      btree_key(rootNode->keys, i+1, tree->s_key),
+			      tree->s_key * (rootNode->keyCount - i - 1));
 
+		// Move values i+1 through keyCount-1 into i through keyCount-2
+		btree_valmove(btree_value(rootNode->children, i,   tree->s_value),
+			      btree_value(rootNode->children, i+1, tree->s_value),
+			      tree->s_value * (rootNode->keyCount - i - 1));
+
+		i = rootNode->keyCount - 1;
 		//rootNode->keys[i]         = 0;
-		//btree_keyset(&rootNode->keys[i], 0, tree->s_key) ;
 		btree_keyset(btree_key(rootNode->keys, i, tree->s_key), 0, tree->s_key) ;
+
 		//rootNode->children[i]     = rootNode->children[i + 1];
 		const offset_t *temp1 = btree_value(rootNode->children, i, tree->s_value) ;
 		const offset_t *temp2 = btree_value(rootNode->children, i + 1, tree->s_value) ;
 		btree_valcpy(temp1, temp2, tree->s_value) ;
-		
+
 		//rootNode->children[i + 1] = 0;
 		btree_valset(btree_value(rootNode->children, i + 1, tree->s_value),
 					 0,
 					 tree->s_value) ;
 		
-		btree_valset(btree_value(rootNode->children, i + 1, tree->s_value), 
-					 0, 
-					 tree->s_value) ;
-
 		rootNode->keyCount--;
 
 		BTB_SET_DIRTY(rootNode->block);
