@@ -22,8 +22,8 @@ static int prof_print_enable = 0;
 static struct periodic_task timer2 ;
 
 // for profiling using gcc's -finstrument-functions
-static int cyg_prof_print_enable = 0 ;
-static int cyg_prof_enable = 0 ;
+static int cyg_prof_print_enable = 1 ;
+static int cyg_prof_enable = 1 ;
 
 #define NUM_PROFS_PRINTED 2 
 static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
@@ -34,7 +34,7 @@ static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
 struct func_stamp
 {
     uint64_t func_addr ;
-    uint64_t tsc ;        
+    uint64_t entry_tsc ;
 } ;
 
 struct cyg_stack
@@ -60,6 +60,8 @@ static struct
     int stat_size ;
     struct entry stat[NUM_SYMS] ;
         
+    uint64_t last_tsc;
+
 } cyg_data ;
 
 void __attribute__((no_instrument_function))
@@ -178,7 +180,7 @@ cyg_profile_reset(void)
 }
 
 static void __attribute__((no_instrument_function))
-cyg_profile_data(void *func_addr, uint64_t time)
+cyg_profile_data(void *func_addr, uint64_t time, int count)
 {
     uint64_t func = (uint64_t) func_addr ;
     uint64_t val ;
@@ -189,7 +191,7 @@ cyg_profile_data(void *func_addr, uint64_t time)
             return ;
     }
     
-    cyg_data.stat[val].count++ ;
+    cyg_data.stat[val].count += count ;
     cyg_data.stat[val].time += time ;
     
     return ;
@@ -228,6 +230,20 @@ cyg_profile_print(void)
             print_entry(cyg_data.stat, val, buf) ;
         }
     }
+
+#if 0
+    cprintf("cyg_profile_print: all functions\n");
+    for (int i = 0; i < cyg_data.stat_size; i++) {
+	char buf[32];
+        uint64_t key = cyg_data.stats_lookup_back[i].key;
+        uint64_t val = cyg_data.stats_lookup_back[i].val;
+        if (!key)
+            continue;
+        sprintf(buf, "%lx", key);
+        print_entry(cyg_data.stat, val, buf);
+    }
+#endif
+
     cyg_profile_reset() ;
     cyg_data.enable = 1 ;
 }
@@ -246,8 +262,15 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
         assert((s = stack_alloc(sp)) != 0) ; 
         // out of func addr stacks
 
+    uint64_t f = read_tsc();
+    if (s->size > 0) {
+	uint64_t caller = s->func_stamp[s->size - 1].func_addr;
+	cyg_profile_data((void *) caller, f - cyg_data.last_tsc, 0) ;
+    }
+    cyg_data.last_tsc = f;
+
     s->func_stamp[s->size].func_addr = (uint64_t) this_fn ;
-    s->func_stamp[s->size].tsc = read_tsc() ;
+    s->func_stamp[s->size].entry_tsc = read_tsc() ;
     s->size++ ;
     
     // overflow func addr stack
@@ -277,8 +300,13 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
         assert(s->size != 0) ;        
     }
        
-    uint64_t time = f - s->func_stamp[s->size].tsc ;
-    cyg_profile_data(this_fn, time) ;
+    uint64_t time = f - cyg_data.last_tsc;
+    cyg_data.last_tsc = f;
+    cyg_profile_data(this_fn, time, 1) ;
+
+    // To account for time spent in a function including all of the
+    // children called from there, use this:
+    //uint64_t time_with_children = f - s->func_stamp[s->size].entry_tsc;
 
     cyg_data.enable = 1 ;
 }
