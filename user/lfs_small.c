@@ -88,6 +88,7 @@ creat_test(int n, int size)
 		}
 	
 		if ((i+1) % 100 == 0) j++;
+		if (j % 100 == 0) j = 0;
 
     }
 
@@ -165,6 +166,7 @@ read_test(int n, int size)
 		}
 
 		if ((i+1) % 100 == 0) j++;
+		if (j % 100 == 0) j = 0;
     }
 
 	f = time_msec();
@@ -190,6 +192,7 @@ delete_test(int n)
 	}
 
 	if ((i+1) % 100 == 0) j++;
+	if (j % 100 == 0) j = 0;
     }
 
     //fsync(fd);
