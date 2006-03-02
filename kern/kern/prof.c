@@ -233,7 +233,7 @@ cyg_profile_print(void)
     }
 
     cprintf("cyg_profile_print: over-threshold functions\n");
-    for (int i = 0; i < cyg_data.stat_size; i++) {
+    for (int i = 0; i < NUM_SYMS ; i++) {
 	char buf[32];
         uint64_t key = cyg_data.stats_lookup_back[i].key;
         uint64_t val = cyg_data.stats_lookup_back[i].val;
