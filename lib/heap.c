@@ -34,8 +34,10 @@ sbrk(intptr_t x)
 
     struct cobj_ref heapobj;
     if (!heap.inited) {
-	r = segment_alloc(start_env->container, 0,
-			  &heapobj, &heap_base, 0, "heap");
+	r = find_heap(&heapobj);
+	if (r < 0)
+	    r = segment_alloc(start_env->container, 0,
+			      &heapobj, &heap_base, 0, "heap");
 	if (r < 0) {
 	    printf("sbrk: cannot allocate heap: %s\n", e2s(r));
 	    goto out;

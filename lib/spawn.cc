@@ -135,12 +135,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    error_check(dup_as(fdnum[i], i, e.te_as));
     }
 
-    // XXX doesn't quite work??
-/*
     struct cobj_ref heap_obj;
-    error_check(segment_alloc(c_spawn, 1, &heap_obj, 0,
+    error_check(segment_alloc(c_spawn, 0, &heap_obj, 0,
 			      object_label.to_ulabel(), "heap"));
-*/
 
     start_env_t *spawn_env = 0;
     struct cobj_ref c_spawn_env;
