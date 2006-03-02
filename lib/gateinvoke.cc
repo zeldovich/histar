@@ -29,7 +29,7 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,
 	tgt_label.merge_with(ds, label::min, label::leq_starlo);
 
     error_check(sys_obj_get_label(thread_self, tmp.to_ulabel()));
-    tmp.transform(label::star_to_0);
+    tmp.transform(label::star_to, 0);
     tgt_label.merge_with(&tmp, label::max, label::leq_starhi);
     if (cs)
 	tgt_label.merge_with(cs, label::max, label::leq_starlo);

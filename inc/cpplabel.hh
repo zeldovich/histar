@@ -8,7 +8,7 @@ extern "C" {
 
 typedef int (*level_comparator) (level_t, level_t);
 typedef level_t (*level_merger) (level_t, level_t, level_comparator);
-typedef level_t (*level_changer) (level_t);
+typedef level_t (*level_changer) (level_t, int);
 
 class label {
 public:
@@ -33,7 +33,7 @@ public:
     int compare(label *b, label_comparator cmp);
     void merge(label *b, label *out, level_merger m, level_comparator cmp);
     void merge_with(label *b, level_merger m, level_comparator cmp);
-    void transform(level_changer t);
+    void transform(level_changer t, int arg);
 
     static int leq_starlo(level_t a, level_t b);
     static int leq_starhi(level_t a, level_t b);
@@ -42,7 +42,7 @@ public:
     static level_t max(level_t a, level_t b, level_comparator cmp);
     static level_t min(level_t a, level_t b, level_comparator cmp);
 
-    static level_t star_to_0(level_t l);
+    static level_t star_to(level_t l, int arg);
 
 private:
     uint64_t *slot_grow(uint64_t handle);
