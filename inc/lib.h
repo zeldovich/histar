@@ -88,7 +88,12 @@ struct process_state {
     int64_t exit_code;
 };
 
-int	process_wait(uint64_t childct, int64_t *exit_code);
+struct child_process {
+    uint64_t container;
+    struct cobj_ref wait_seg;
+};
+
+int	process_wait(struct child_process *child, int64_t *exit_code);
 int	process_report_taint(void);
 int	process_report_exit(int64_t code);
 

@@ -122,7 +122,7 @@ builtin_list_container(int ac, char **av)
 }
 
 static int64_t
-do_spawn(int ac, char **av)
+do_spawn(int ac, char **av, struct child_process *childp)
 {
     const char *pn = av[0];
     struct fs_inode ino;
@@ -139,12 +139,14 @@ do_spawn(int ac, char **av)
     }
 
     try {
-        uint64_t c_spawn = spawn(start_env->container, ino,
-				 0, 1, 2,
-				 ac, (const char **) av,
-				 0, 0, 0, 0,
-				 0);
-	return c_spawn;
+	struct child_process child;
+        child = spawn(start_env->container, ino,
+		      0, 1, 2,
+		      ac, (const char **) av,
+		      0, 0, 0, 0,
+		      0);
+	*childp = child;
+	return child.container;
     } catch (std::exception &e) {
 	printf("spawn: %s\n", e.what());
 	return -1;
@@ -159,7 +161,8 @@ builtin_spawn(int ac, char **av)
 	return;
     }
 
-    int64_t ct = do_spawn(ac, av);
+    struct child_process child;
+    int64_t ct = do_spawn(ac, av, &child);
     if (ct >= 0)
 	printf("Spawned in container %ld\n", ct);
 }
@@ -167,12 +170,13 @@ builtin_spawn(int ac, char **av)
 static void
 spawn_and_wait(int ac, char **av)
 {
-    int64_t ct = do_spawn(ac, av);
+    struct child_process child;
+    int64_t ct = do_spawn(ac, av, &child);
     if (ct < 0)
 	return;
 
     int64_t code;
-    int r = process_wait(ct, &code);
+    int r = process_wait(&child, &code);
     if (r < 0) {
 	printf("spawn_wait: %s\n", e2s(r));
 	return;

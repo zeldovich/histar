@@ -50,17 +50,12 @@ telnet_server(void)
 	const char *argv[1];
 	argv[0] = "shell";
 
-	int64_t sp = spawn(start_env->container, sh,
-			   ss, ss, ss,
-			   1, &argv[0], 
-			   0, 0, 0, 0,
-			   SPAWN_MOVE_FD);
+	spawn(start_env->container, sh,
+	      ss, ss, ss,
+	      1, &argv[0], 
+	      0, 0, 0, 0,
+	      SPAWN_MOVE_FD);
 	close(ss);
-
-	if (sp < 0) {
-	    printf("cannot spawn shell: %s\n", e2s(sp));
-	    continue;
-	}
     }
 }
 

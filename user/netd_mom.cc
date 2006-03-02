@@ -92,13 +92,11 @@ try
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
 
-    uint64_t ct = spawn(rc, netd_ino,
-		        0, 1, 2,
-		        3, &argv[0],
-			0, &ds, 0, 0,
-		        0);
-    if (netd_mom_debug)
-	printf("netd_mom: spawned netd in container %lu\n", ct);
+    spawn(rc, netd_ino,
+	  0, 1, 2,
+	  3, &argv[0],
+	  0, &ds, 0, 0,
+	  0);
 
     fs_declassify_init(net_taint);
 } catch (std::exception &e) {

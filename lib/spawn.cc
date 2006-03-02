@@ -15,7 +15,7 @@ extern "C" {
 
 static int label_debug = 0;
 
-uint64_t
+struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
@@ -190,22 +190,22 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 				 thread_label.to_ulabel(),
 				 thread_clear.to_ulabel()));
 
+    struct child_process child;
+    child.container = c_spawn;
+    child.wait_seg = exit_status_seg;
+
     c_spawn_drop.dismiss();
-    return c_spawn;
+    return child;
 }
 
 int
-process_wait(uint64_t childct, int64_t *exit_code)
+process_wait(struct child_process *child, int64_t *exit_code)
 {
     uint64_t proc_status = PROCESS_RUNNING;
 
     while (proc_status == PROCESS_RUNNING) {
-	int64_t obj = container_find(childct, kobj_segment, "exit status");
-	if (obj < 0)
-	    return obj;
-
 	struct process_state *ps = 0;
-	int r = segment_map(COBJ(childct, obj), SEGMAP_READ, (void **) &ps, 0);
+	int r = segment_map(child->wait_seg, SEGMAP_READ, (void **) &ps, 0);
 	if (r < 0)
 	    return r;
 

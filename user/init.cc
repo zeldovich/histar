@@ -22,13 +22,13 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	throw error(r, "cannot fs_lookup %s", pn);
 
     const char *argv[] = { pn, arg };
-    uint64_t ct = spawn(start_env->root_container, ino,
-			fd, fd, fd,
-			arg ? 2 : 1, &argv[0],
-			0, ds, 0, 0,
-			0);
+    spawn(start_env->root_container, ino,
+	  fd, fd, fd,
+	  arg ? 2 : 1, &argv[0],
+	  0, ds, 0, 0,
+	  0);
 
-    printf("init: spawned %s in %lu, ds = %s\n", pn, ct, ds->to_string());
+    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
 }
 
 static void
