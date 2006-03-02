@@ -62,7 +62,7 @@ gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
     return_setup(&return_gate, &back_from_call, tls, return_handle);
     scope_guard<int, struct cobj_ref> g2(sys_obj_unref, return_gate);
 
-    label new_ds(*ds);
+    label new_ds(ds ? *ds : label());
     new_ds.set(return_handle, LB_LEVEL_STAR);
 
     struct gate_call_data *d = (struct gate_call_data *) tls;
