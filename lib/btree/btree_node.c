@@ -71,8 +71,10 @@ btree_write_node(struct btree_node *node)
 void
 btree_erase_node(struct btree_node *node)
 {
-	struct btree *tree = node->tree ;
+	int r ;
+    struct btree *tree = node->tree ;
 	
 	if (tree->manager.free)
-		tree->manager.free(tree->manager.arg, node->block.offset) ;
+		if ((r = tree->manager.free(tree->manager.arg, node->block.offset)) < 0)
+            panic("btree_erase_node: unable to erase node %ld: %s\n", node->block.offset, e2s(r)) ;
 }

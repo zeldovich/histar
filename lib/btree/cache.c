@@ -104,7 +104,8 @@ cache_rem(struct cache *c, tag_t t)
 			c->meta[i].inuse = 0 ;
 			c->meta[i].ref--;
 			
-			assert(c->meta[i].ref == 0) ;
+			if (c->meta[i].ref != 0)
+                panic("cache_rem: entry %ld still have refs: %d", t, c->meta[i].ref) ;
 			
 			c->meta[i].tag = 0 ;
 			TAILQ_REMOVE(&c->lru_stack, &c->meta[i], cm_link);
