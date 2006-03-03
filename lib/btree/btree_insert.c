@@ -98,7 +98,7 @@ __splitNode(struct btree *tree,
 
 	i = div + 1;
 
-    // Copy keys right half of keys into new right sibling
+    // Copy right half of keys into new right sibling
     btree_keycpy(btree_key(tempNode->keys, 0, tree->s_key), 
                  btree_key(rootNode->keys, i, tree->s_key), 
                  tree->s_key * (tempNode->keyCount - 1)) ;
@@ -142,7 +142,7 @@ __splitLeaf(struct btree *tree,
 {
 	struct btree_node *tempNode;
 	uint64_t   temp1[tree->s_key] ;
-	offset_t   offset1[tree->s_value];//, offset2[tree->s_value];
+	offset_t   offset1[tree->s_value];
 	int        i, j, div;
 
 	assert(BTREE_IS_LEAF(rootNode)) ;
@@ -220,7 +220,7 @@ __splitLeaf(struct btree *tree,
 
 	i = div + 1;
 
-    // Copy keys right half of keys into new right sibling
+    // Copy right half of keys into new right sibling
     btree_keycpy(btree_key(tempNode->keys, 0, tree->s_key), 
                  btree_key(rootNode->keys, i, tree->s_key), 
                  tree->s_key * (tempNode->keyCount - 1)) ;
