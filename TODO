@@ -41,3 +41,5 @@ hard to write secure services that have * but don't actually want to
 expose their state?  maybe * should be treated like 3 in the context
 of reading?
 
+large kernel labels (value objects)
+

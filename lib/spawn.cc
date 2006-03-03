@@ -146,7 +146,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    error_check(fd_lookup(fdnum[i], &fd, 0));
 	    error_check(dup_as(fdnum[i], i, e.te_as));
 	    thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
-	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
+	    if (!fd->fd_immutable)
+		thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
 	}
     }
 
