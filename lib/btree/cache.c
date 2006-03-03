@@ -105,7 +105,7 @@ cache_rem(struct cache *c, tag_t t)
 			c->meta[i].ref--;
 			
 			if (c->meta[i].ref != 0)
-                panic("cache_rem: entry %ld still have refs: %d", t, c->meta[i].ref) ;
+                panic("cache_rem: entry %ld still has refs: %d", t, c->meta[i].ref) ;
 			
 			c->meta[i].tag = 0 ;
 			TAILQ_REMOVE(&c->lru_stack, &c->meta[i], cm_link);
@@ -116,6 +116,7 @@ cache_rem(struct cache *c, tag_t t)
 	return -E_NOT_FOUND ;		
 }
 
+/*
 int
 cache_inc_ref(struct cache *c, tag_t t)
 {
@@ -132,6 +133,7 @@ cache_inc_ref(struct cache *c, tag_t t)
 	
 	return -E_NOT_FOUND ;		
 }
+*/
 
 int 
 cache_dec_ref(struct cache *c, tag_t t)
@@ -142,6 +144,8 @@ cache_dec_ref(struct cache *c, tag_t t)
 	int i = 0 ;
 	for(; i < c->n_ent ; i++) {
 		if (c->meta[i].inuse && t == c->meta[i].tag) {
+            if (c->meta[i].ref == 0)
+                panic("cache_dec_ref: ref count is already 0 for %ld", t) ;
 			c->meta[i].ref-- ;
 			return 0 ;
 		}

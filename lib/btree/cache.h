@@ -46,8 +46,6 @@ int cache_try_insert(struct cache *c, tag_t t, uint8_t *src, uint8_t **store) ;
 int cache_ent(struct cache *c, tag_t t, uint8_t **store) ;
 
 int cache_rem(struct cache *c, tag_t t) ;
-//int cache_unpin_all(struct cache *c) ;
-//int cache_unpin_ent(struct cache *c, tag_t t) ;
 
 int cache_num_ent(struct cache *c) ;
 int cache_num_pinned(struct cache *c) ;
