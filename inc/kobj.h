@@ -13,6 +13,7 @@ typedef enum {
     kobj_address_space,
     kobj_mlt,
     kobj_netdev,
+    kobj_label,
     kobj_dead,
 
     kobj_ntypes,
