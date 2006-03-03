@@ -56,17 +56,17 @@ KERN_BINFILES := \
 	user/fetch \
 	user/fsmerge \
 	user/admind \
-	user/admctl
+	user/admctl \
+	user/privtest \
+	user/mkdir \
+	user/mkmlt \
+	user/cpphello \
+	user/rm \
+	user/cp \
+	user/lfs_small \
+	user/lfs_large \
+	user/sha1sum
 
-	#user/privtest \
-	#user/mkdir \
-	#user/mkmlt \
-	#user/cpphello \
-	#user/rm \
-	#user/cp \
-	#user/lfs_small \
-	#user/lfs_large \
-	#user/sha1sum \
 	#user/freelist_test \
 	#user/tcpsink
 	#user/spin \
