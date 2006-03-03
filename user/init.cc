@@ -129,18 +129,19 @@ try
     if (c_self < 0)
 	throw error(c_self, "cannot find init container");
 
+    cprintf("JOS: init (root container %ld)\n", c_root);
+
+    init_env(c_root, c_self);
+
     assert(0 == opencons(c_self));
     assert(1 == dup(0, 1));
     assert(2 == dup(0, 2));
 
-    printf("JOS: init (root container %ld)\n", c_root);
-
-    init_env(c_root, c_self);
     int cons = init_console(h_root);
     init_procs(cons, h_root);
 
     for (;;)
 	thread_sleep(100000);
 } catch (std::exception &e) {
-    printf("init: %s\n", e.what());
+    cprintf("init: %s\n", e.what());
 }
