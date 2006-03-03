@@ -7,6 +7,10 @@ extern "C" {
 #include <inc/syscall.h>
 }
 
+#include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
+#include <inc/scopeguard.hh>
+
 // Maximum number of file descriptors a program may hold open concurrently
 #define MAXFD		32
 // Bottom of file descriptor area
@@ -26,6 +30,24 @@ int
 fd2num(struct Fd *fd)
 {
 	return ((uintptr_t) fd - FDTABLE) / PGSIZE;
+}
+
+static int
+fd_count_handles(uint64_t taint, uint64_t grant)
+{
+	int cnt = 0;
+
+	for (int i = 0; i < MAXFD; i++) {
+		struct Fd *fd;
+		if (fd_lookup(i, &fd, 0) < 0)
+			continue;
+		if (fd->fd_taint == taint)
+			cnt++;
+		if (fd->fd_grant == grant)
+			cnt++;
+	}
+
+	return cnt;
 }
 
 // Finds the smallest i from 0 to MAXFD-1 that doesn't have
@@ -62,13 +84,40 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	if (i == MAXFD)
 		return -E_MAX_OPEN;
 
+	int64_t fd_grant = sys_handle_create();
+	if (fd_grant < 0)
+		return fd_grant;
+	scope_guard<void, uint64_t> grant_drop(thread_drop_star, fd_grant);
+
+	int64_t fd_taint = sys_handle_create();
+	if (fd_taint < 0)
+		return fd_taint;
+	scope_guard<void, uint64_t> taint_drop(thread_drop_star, fd_taint);
+
+	label l;
+	try {
+		thread_cur_label(&l);
+		l.transform(label::star_to, l.get_default());
+		l.set(fd_grant, 0);
+		l.set(fd_taint, 3);
+	} catch (error &e) {
+		cprintf("fd_alloc: %s\n", e.what());
+		return e.err();
+	}
+
 	struct cobj_ref seg;
-	int r = segment_alloc(container, PGSIZE, &seg, (void**)&fd, 0, name);
+	int r = segment_alloc(container, PGSIZE, &seg,
+			      (void**)&fd, l.to_ulabel(), name);
 	if (r < 0)
 		return r;
 
 	atomic_set(&fd->fd_ref, 1);
 	fd->fd_dev_id = 0;
+	fd->fd_grant = fd_grant;
+	fd->fd_taint = fd_taint;
+
+	grant_drop.dismiss();
+	taint_drop.dismiss();
 
 	*fd_store = fd;
 	return 0;
@@ -109,13 +158,16 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
 int
 fd_close(struct Fd *fd)
 {
-	if (fd->fd_immutable || !atomic_dec_and_test(&fd->fd_ref)) {
-		segment_unmap(fd);
-		return 0;
-	}
+	int r = 0;
+	uint64_t fd_taint = fd->fd_taint;
+	uint64_t fd_grant = fd->fd_grant;
+	int handle_refs = fd_count_handles(fd_taint, fd_grant);
+
+	if (fd->fd_immutable || !atomic_dec_and_test(&fd->fd_ref))
+		goto out;
 
 	struct cobj_ref fd_seg;
-	int r = segment_lookup(fd, &fd_seg, 0);
+	r = segment_lookup(fd, &fd_seg, 0);
 	if (r < 0)
 		return r;
 	if (r == 0)
@@ -129,8 +181,15 @@ fd_close(struct Fd *fd)
 	r = (*dev->dev_close)(fd);
 
 	sys_obj_unref(fd_seg);
-	segment_unmap(fd);
 
+out:
+	if (handle_refs == 2) try {
+		thread_drop_star(fd_taint);
+		thread_drop_star(fd_grant);
+	} catch (std::exception &e) {
+		cprintf("fd_close: cannot drop handle: %s\n", e.what());
+	}
+	segment_unmap(fd);
 	return r;
 }
 

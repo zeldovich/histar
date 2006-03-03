@@ -141,8 +141,13 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    error_check(fd_map_as(e.te_as, dst_seg[j], i));
 	}
     } else {
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++) {
+	    struct Fd *fd;
+	    error_check(fd_lookup(fdnum[i], &fd, 0));
 	    error_check(dup_as(fdnum[i], i, e.te_as));
+	    thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
+	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
+	}
     }
 
     struct cobj_ref heap_obj;

@@ -37,6 +37,10 @@ struct Fd
 	int fd_omode;
 	int fd_immutable;
 
+	// handles for this fd
+	uint64_t fd_grant;
+	uint64_t fd_taint;
+
 	atomic_t fd_ref;
 
 	union {

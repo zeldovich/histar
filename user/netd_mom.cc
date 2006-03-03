@@ -9,8 +9,9 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 #include <inc/spawn.hh>
+#include <inc/labelutil.hh>
 
-static int netd_mom_debug = 0;
+static int netd_mom_debug = 1;
 
 static void
 netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
@@ -91,6 +92,12 @@ try
 
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
+
+    if (netd_mom_debug) {
+	label cur;
+	thread_cur_label(&cur);
+	printf("netd_mom: current label %s\n", cur.to_string());
+    }
 
     spawn(rc, netd_ino,
 	  0, 1, 2,
