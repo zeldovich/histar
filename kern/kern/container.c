@@ -156,7 +156,7 @@ container_gc(struct Container *c)
 
 	while (cs->cs_ref > 0) {
 	    const struct kobject *ko;
-	    r = kobject_get(cs->cs_id, &ko, iflow_none);
+	    r = kobject_get(cs->cs_id, &ko, kobj_any, iflow_none);
 	    if (r < 0)
 		return r;
 
@@ -172,12 +172,9 @@ int
 container_find(const struct Container **cp, kobject_id_t id, info_flow_type iflow)
 {
     const struct kobject *ko;
-    int r = kobject_get(id, &ko, iflow);
+    int r = kobject_get(id, &ko, kobj_container, iflow);
     if (r < 0)
 	return r;
-
-    if (ko->hdr.ko_type != kobj_container)
-	return -E_INVAL;
 
     *cp = &ko->ct;
     return 0;
@@ -192,7 +189,7 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    r = kobject_get(ref.object, storep, iflow);
+    r = kobject_get(ref.object, storep, kobj_any, iflow);
     if (r < 0)
 	return r;
 
@@ -209,6 +206,8 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
 	    return r;
     }
 
+    // Do this check here because it should only expose information
+    // once we have checked that the object is in the container.
     if (type != kobj_any && type != (*storep)->hdr.ko_type)
 	return -E_INVAL;
 

@@ -55,7 +55,7 @@ extern struct kobject_list ko_list;
 void kobject_init(void);
 
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
-		 info_flow_type iflow)
+		 kobject_type_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 int  kobject_alloc(kobject_type_t type, const struct Label *l,
 		   struct kobject **kpp)

@@ -169,7 +169,7 @@ thread_gc(struct Thread *t)
     int r;
 
     if (t->th_sg != kobject_id_null) {
-	r = kobject_get(t->th_sg, &ko, iflow_none);
+	r = kobject_get(t->th_sg, &ko, kobj_segment, iflow_none);
 	if (r < 0)
 	    return r;
 
@@ -178,7 +178,7 @@ thread_gc(struct Thread *t)
     }
 
     if (t->th_ct != kobject_id_null) {
-	r = kobject_get(t->th_ct, &ko, iflow_none);
+	r = kobject_get(t->th_ct, &ko, kobj_container, iflow_none);
 	if (r < 0)
 	    return r;
 
@@ -207,11 +207,11 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     const struct kobject *ko_sg, *ko_ct;
-    int r = kobject_get(t->th_sg, &ko_sg, iflow_rw);
+    int r = kobject_get(t->th_sg, &ko_sg, kobj_segment, iflow_rw);
     if (r < 0)
 	return r;
 
-    r = kobject_get(t->th_ct, &ko_ct, iflow_rw);
+    r = kobject_get(t->th_ct, &ko_ct, kobj_container, iflow_rw);
     if (r < 0)
 	return r;
 

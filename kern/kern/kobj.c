@@ -87,7 +87,8 @@ kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
 }
 
 int
-kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
+kobject_get(kobject_id_t id, const struct kobject **kp,
+	    kobject_type_t type, info_flow_type iflow)
 {
     if (id == kobject_id_thread_ct)
 	id = cur_thread->th_ct;
@@ -102,12 +103,15 @@ kobject_get(kobject_id_t id, const struct kobject **kp, info_flow_type iflow)
 	    if (r < 0)
 		return r;
 
+	    if (type != kobj_any && type != ko->hdr.ko_type)
+		return -E_INVAL;
+
 	    *kp = ko;
 	    return 0;
 	}
     }
 
-    // Should match the code returned by container_find() when trying
+    // Should match the code returned above when trying
     // to get an object of the wrong type.
     if (kobject_negative_contains(id))
 	return -E_INVAL;

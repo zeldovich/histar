@@ -53,7 +53,7 @@ mlt_gc(struct Mlt *mlt)
 	    continue;
 
 	const struct kobject *ko;
-	r = kobject_get(me->me_ct, &ko, iflow_none);
+	r = kobject_get(me->me_ct, &ko, kobj_container, iflow_none);
 	if (r < 0)
 	    return r;
 
