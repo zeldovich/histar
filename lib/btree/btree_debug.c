@@ -74,25 +74,27 @@ btree_integrity_check(struct btree *tree, offset_t root)
 }
 
 void
-btree_sanity_check(struct btree *tree)
+btree_sanity_check(void *tree)
 {
-	uint64_t count1 = 0 ;
-	if (tree->root) 
-		btree_leaf_count1(tree, tree->root, &count1) ;
+    struct btree *btree = (struct btree *) tree ;
 
-	uint64_t count2 = btree_leaf_count2(tree) ;
+	uint64_t count1 = 0 ;
+	if (btree->root) 
+		btree_leaf_count1(btree, btree->root, &count1) ;
+
+	uint64_t count2 = btree_leaf_count2(btree) ;
 	
 	if (count1 != count2) 
 		panic("btree_sanity_check: count mismatch: %ld %ld\n", count1, count2) ;
 	
-	uint64_t size1 = tree->size ;
-	uint64_t size2 = btree_size_calc(tree) ;
+	uint64_t size1 = btree->size ;
+	uint64_t size2 = btree_size_calc(btree) ;
 	
 	if (size1 != size2)
 		panic("btree_sanity_check: size mismatch: %ld %ld\n", size1, size2) ;
 	
-	if (tree->root) 
-		btree_integrity_check(tree, tree->root) ;
+	if (btree->root) 
+		btree_integrity_check(btree, btree->root) ;
 }
 
 static void
@@ -151,7 +153,8 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 }
 
 void 
-btree_pretty_print(struct btree *tree)
+btree_pretty_print(void *tree)
 {
-	__btree_pretty_print(tree, tree->root, 0) ;
+    struct btree *btree = (struct btree *)tree ;
+	__btree_pretty_print(btree, btree->root, 0) ;
 }

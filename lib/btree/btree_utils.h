@@ -31,8 +31,8 @@ typedef uint64_t offset_t ;
 		sizeof(offset_t) * order + \
 		sizeof(uint64_t) * (order - 1) * (key_size))
 
-#define BTREE_LEAF_ORDER(node) \
-	(node->tree->order / node->tree->s_value)
+#define BTREE_LEAF_ORDER(leaf) \
+	(leaf->tree->order / leaf->tree->s_value)
 
 struct btree_node ;
 struct btree ;
