@@ -70,7 +70,7 @@ taint_cow(void)
     taint_cow_compute_label(&cur_label, &obj_label);
 
     struct cobj_ref mlt = start_env_ro->taint_mlt;
-    char buf[MLT_BUF_SIZE];
+    uint8_t buf[MLT_BUF_SIZE];
     uint64_t mlt_ct;
     r = sys_mlt_put(mlt, &obj_label, &buf[0], &mlt_ct);
     if (r < 0)

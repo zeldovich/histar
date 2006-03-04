@@ -100,7 +100,7 @@ ne2kpci_print_packet(struct ne2kpci_rx_slot *rx)
    cprintf("stat 0x%02x next 0x%02x count %d\n", 
 	   rx->rrd.rsr, rx->rrd.next_packet, rx->rrd.count) ;
    
-   unsigned char *buf = (char*) (rx->nb + 1);
+   unsigned char *buf = (unsigned char*) (rx->nb + 1);
    for (int i = 0 ; i < 25 ; i++)
       cprintf(" %02x", buf[i]);
    cprintf("\n");

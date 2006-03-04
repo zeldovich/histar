@@ -120,7 +120,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return -E_INVAL;
     }
 
-    int segmap_i = 0;
+    uint32_t segmap_i = 0;
     struct Address_space *as;
     int r = as_alloc(obj_label, &as);
     if (r < 0) {

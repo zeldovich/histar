@@ -197,7 +197,7 @@ freelist_alloc(struct freelist *l, uint64_t nbytes)
 	
 	// XXX: optimize...
 	
-	int64_t val ;
+	uint64_t val ;
 	int r = btree_gtet(&l->chunk_frm,
 						   (uint64_t *)&k,
 						   (uint64_t *)&k,
@@ -236,13 +236,13 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 
 	l->free += nbytes ;
 	
-	int64_t l_nbytes ; 
+	uint64_t l_nbytes ; 
 	int rl = btree_ltet(&l->offset_frm,
 						(uint64_t *)&l_base,
 						(uint64_t *)&l_base,
 						&l_nbytes) ;
 
-	int64_t g_nbytes ;  
+	uint64_t g_nbytes ;  
 	int rg = btree_gtet(&l->offset_frm,
 			   (uint64_t *)&g_base,
 		   	   (uint64_t *)&g_base,

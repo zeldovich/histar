@@ -258,7 +258,7 @@ fxp_print_packet(struct netbuf_hdr *nb)
     if ((nb->actual_count & NETHDR_COUNT_ERR))
 	cprintf(" err");
 
-    unsigned char *buf = (char*) (nb + 1);
+    unsigned char *buf = (unsigned char*) (nb + 1);
     for (int i = 0; i < 25; i++)
 	cprintf(" %02x", buf[i]);
     cprintf("\n");
