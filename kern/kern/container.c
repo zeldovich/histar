@@ -208,6 +208,7 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
 
     // Do this check here because it should only expose information
     // once we have checked that the object is in the container.
+    // Should be the same error code as in kobject_get() for bad type.
     if (type != kobj_any && type != (*storep)->hdr.ko_type)
 	return -E_INVAL;
 
