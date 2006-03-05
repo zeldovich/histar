@@ -92,63 +92,16 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(elf_load(c_spawn, elf, &e, proc_object_label.to_ulabel()));
 
     int fdnum[3] = { fd0, fd1, fd2 };
+    for (int i = 0; i < 3; i++) {
+	if ((flags & SPAWN_MOVE_FD))
+	    error_check(fd_move(fdnum[i], c_share));
 
-    if ((flags & SPAWN_MOVE_FD)) {
-	int i, j;
-
-	label fd_label(base_object_label);
-
-	// Find all of the source FD's, increment refcounts
-	struct Fd *fd[3];
-	struct cobj_ref src_seg[3];
-	for (i = 0; i < 3; i++) {
-	    error_check(fd_lookup(fdnum[i], &fd[i], &src_seg[i]));
-	    atomic_inc(&fd[i]->fd_ref);
-	}
-
-	// Drop refcounts on the fd, one per real FD object, and unmap
-	for (i = 0; i < 3; i++) {
-	    for (j = 0; j < i; j++)
-		if (src_seg[i].object == src_seg[j].object)
-		    break;
-
-	    if (i == j)
-		atomic_dec(&fd[i]->fd_ref);
-	    fd_unmap(fd[i]);
-	}
-
-	// Move the FDs into the new container, and map them
-	struct cobj_ref dst_seg[3];
-	for (i = 0; i < 3; i++) {
-	    for (j = 0; j < i; j++)
-		if (src_seg[i].object == src_seg[j].object)
-		    break;
-
-	    if (i == j) {
-		if (label_debug)
-		    printf("spawn: copying fd with label %s\n",
-			   fd_label.to_string());
-
-		int64_t id = sys_segment_copy(src_seg[i], c_share,
-					      fd_label.to_ulabel(),
-					      "moved fd");
-		error_check(id);
-
-		sys_obj_unref(src_seg[i]);
-		dst_seg[i] = COBJ(c_share, id);
-	    }
-
-	    error_check(fd_map_as(e.te_as, dst_seg[j], i));
-	}
-    } else {
-	for (int i = 0; i < 3; i++) {
-	    struct Fd *fd;
-	    error_check(fd_lookup(fdnum[i], &fd, 0));
-	    error_check(dup_as(fdnum[i], i, e.te_as));
-	    thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
-	    if (!fd->fd_immutable)
-		thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
-	}
+	struct Fd *fd;
+	error_check(fd_lookup(fdnum[i], &fd, 0));
+	error_check(dup_as(fdnum[i], i, e.te_as));
+	thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
+	if (!fd->fd_immutable)
+	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
     }
 
     struct cobj_ref heap_obj;

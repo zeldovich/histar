@@ -43,6 +43,3 @@ of reading?
 
 expose kobj_label's at the syscall API to get label sharing
 
-separate fd protection and ownership: SPAWN_MOVE_FD should first
-relocate the fd into c_share and then grant the fd to the child.
-

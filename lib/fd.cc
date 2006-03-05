@@ -242,6 +242,47 @@ fd_unmap(struct Fd *fd)
 	return segment_unmap(fd);
 }
 
+int
+fd_move(int fdnum, uint64_t container)
+{
+    struct Fd *fd;
+    struct cobj_ref oldseg;
+    int r = fd_lookup(fdnum, &fd, &oldseg);
+    if (r < 0)
+	return r;
+
+    if (oldseg.container == container)
+	return 0;
+
+    r = sys_segment_addref(oldseg, container);
+    if (r < 0)
+	return r;
+
+    // XXX the failure semantics are not very good: if we fail
+    // to remap some of the FDs mapping this segment, we leave
+    // the segment referenced in both of the containers, and
+    // with FDs referencing both containers.  so we assert().
+
+    struct cobj_ref newseg = COBJ(container, oldseg.object);
+    for (int i = 0; i < MAXFD; i++) {
+	r = fd_lookup(i, &fd, &oldseg);
+	if (r < 0)
+	    continue;
+
+	if (oldseg.object == newseg.object &&
+	    oldseg.container != newseg.container)
+	{
+	    int perm = fd->fd_immutable ? SEGMAP_READ
+					: SEGMAP_READ | SEGMAP_WRITE;
+	    assert(0 == segment_unmap(fd));
+	    assert(0 == segment_map(newseg, perm, (void **) &fd, 0));
+	}
+    }
+
+    sys_obj_unref(oldseg);
+    return 0;
+}
+
 
 /******************
  * FILE FUNCTIONS *
