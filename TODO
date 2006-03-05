@@ -41,5 +41,8 @@ hard to write secure services that have * but don't actually want to
 expose their state?  maybe * should be treated like 3 in the context
 of reading?
 
-large kernel labels (value objects)
+expose kobj_label's at the syscall API to get label sharing
+
+separate fd protection and ownership: SPAWN_MOVE_FD should first
+relocate the fd into c_share and then grant the fd to the child.
 
