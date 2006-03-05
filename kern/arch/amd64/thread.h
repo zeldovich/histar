@@ -21,7 +21,7 @@ struct Thread {
     const struct Address_space *th_as;
 
     struct Trapframe th_tf __attribute__ ((aligned (16)));
-    struct Label th_clearance;
+    uint64_t th_clearance_id;
 
     // The thread's associated segment & container
     kobject_id_t th_sg;

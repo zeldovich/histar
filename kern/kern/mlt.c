@@ -101,7 +101,13 @@ mlt_put(const struct Mlt *mlt, const struct Label *l,
 	    continue;
 	}
 
-	r = label_compare(l, &me->me_l, label_eq);
+	const struct kobject *me_lb_ko;
+	r = kobject_get(me->me_lb_id, &me_lb_ko, kobj_label, iflow_none);
+	if (r < 0)
+	    return r;
+	const struct Label *me_lb = &me_lb_ko->lb;
+
+	r = label_compare(l, me_lb, label_eq);
 	if (r == 0)
 	    break;
     }
@@ -123,10 +129,11 @@ mlt_put(const struct Mlt *mlt, const struct Label *l,
 	if (r < 0)
 	    return r;
 
-	me->me_l = *l;
+	me->me_lb_id = l->lb_ko.ko_id;
 	me->me_inuse = 1;
 	me->me_ct = ct->ct_ko.ko_id;
 	kobject_incref(&ct->ct_ko);
+	kobject_incref(&l->lb_ko);
     }
 
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
@@ -136,22 +143,32 @@ mlt_put(const struct Mlt *mlt, const struct Label *l,
 }
 
 int
-mlt_get(const struct Mlt *mlt, uint64_t idx, struct Label *l,
+mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
 	uint8_t *buf, kobject_id_t *ct_id)
 {
     uint64_t nslots = mlt_nslots(mlt);
 
+    const struct Label *cur_th_label;
+    int r = kobject_get_label(&cur_thread->th_ko, &cur_th_label);
+    if (r < 0)
+	return r;
+
     for (uint64_t slot = 0; slot < nslots; slot++) {
 	struct mlt_entry *me;
-	int r = mlt_get_slot(mlt, &me, slot, page_ro);
+	r = mlt_get_slot(mlt, &me, slot, page_ro);
 	if (r < 0)
 	    return r;
 
 	if (!me->me_inuse)
 	    continue;
 
-	r = label_compare(&me->me_l, &cur_thread->th_ko.ko_label,
-			  label_leq_starhi);
+	const struct kobject *me_lb_ko;
+	r = kobject_get(me->me_lb_id, &me_lb_ko, kobj_label, iflow_none);
+	if (r < 0)
+	    return r;
+	const struct Label *me_lb = &me_lb_ko->lb;
+
+	r = label_compare(me_lb, cur_th_label, label_leq_starhi);
 	if (r < 0)
 	    continue;
 
@@ -165,7 +182,7 @@ mlt_get(const struct Mlt *mlt, uint64_t idx, struct Label *l,
 	if (ct_id)
 	    *ct_id = me->me_ct;
 	if (l)
-	    *l = me->me_l;
+	    *l = me_lb;
 
 	return 0;
     }

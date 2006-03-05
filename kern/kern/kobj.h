@@ -10,6 +10,7 @@
 #include <kern/segment.h>
 #include <kern/gate.h>
 #include <kern/mlt.h>
+#include <kern/label.h>
 #include <kern/pagetree.h>
 
 #define KOBJ_DISK_SIZE	512
@@ -26,6 +27,7 @@ struct kobject_persistent {
 	struct Address_space as;
 	struct Segment sg;
 	struct Mlt mt;
+	struct Label lb;
     };
 };
 
@@ -68,6 +70,16 @@ uint64_t
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
 		      void **pp, page_rw_mode rw)
     __attribute__ ((warn_unused_result));
+
+int  kobject_get_label(const struct kobject_hdr *kp,
+		       const struct Label **lpp)
+    __attribute__ ((warn_unused_result));
+int  kobject_set_label(struct kobject_hdr *kp,
+		       const struct Label *lp)
+    __attribute__ ((warn_unused_result));
+void kobject_set_label_prepared(struct kobject_hdr *kp,
+				const struct Label *old_label,
+				const struct Label *new_label);
 
 // Mark the kobject as dirty and return the same kobject
 struct kobject *

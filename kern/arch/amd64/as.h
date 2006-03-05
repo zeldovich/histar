@@ -5,6 +5,7 @@
 #include <machine/types.h>
 #include <kern/kobjhdr.h>
 #include <kern/pagetree.h>
+#include <kern/label.h>
 #include <inc/segment.h>
 #include <inc/queue.h>
 

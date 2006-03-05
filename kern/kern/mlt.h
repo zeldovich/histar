@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <kern/kobjhdr.h>
+#include <kern/label.h>
 #include <inc/mlt.h>
 
 struct Mlt {
@@ -10,7 +11,7 @@ struct Mlt {
 };
 
 struct mlt_entry {
-    struct Label me_l;
+    uint64_t me_lb_id;
     kobject_id_t me_ct;
     uint8_t me_inuse;
     uint8_t me_buf[MLT_BUF_SIZE];
@@ -24,7 +25,7 @@ int  mlt_gc(struct Mlt *mlt)
 int  mlt_put(const struct Mlt *mlt, const struct Label *l,
 	     uint8_t *buf, kobject_id_t *ct_id)
     __attribute__ ((warn_unused_result));
-int  mlt_get(const struct Mlt *mlt, uint64_t idx, struct Label *l,
+int  mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
 	     uint8_t *buf, kobject_id_t *ct_id)
     __attribute__ ((warn_unused_result));
 

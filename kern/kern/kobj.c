@@ -61,19 +61,24 @@ kobject_cksum(const struct kobject_hdr *ko)
 }
 
 static int
-kobject_iflow_check(struct kobject_hdr *ko, info_flow_type iflow)
+kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 {
-    int r;
-
     if (cur_thread == 0)
 	return 0;
 
+    const struct Label *th_label, *ko_label;
+    int r = kobject_get_label(&cur_thread->th_ko, &th_label);
+    if (r < 0)
+	return r;
+
+    r = kobject_get_label(ko, &ko_label);
+    if (r < 0)
+	return r;
+
     if (SAFE_EQUAL(iflow, iflow_read)) {
-	r = label_compare(&ko->ko_label, &cur_thread->th_ko.ko_label,
-			  label_leq_starok);
+	r = label_compare(ko_label, th_label, label_leq_starok);
     } else if (SAFE_EQUAL(iflow, iflow_write)) {
-	r = label_compare(&cur_thread->th_ko.ko_label, &ko->ko_label,
-			  label_leq_starlo);
+	r = label_compare(th_label, ko_label, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = kobject_iflow_check(ko, iflow_read) ? :
 	    kobject_iflow_check(ko, iflow_write);
@@ -99,7 +104,8 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     struct kobject *ko;
     LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
 	if (ko->hdr.ko_id == id) {
-	    int r = kobject_iflow_check(&ko->hdr, iflow);
+	    int r = ko->hdr.ko_type == kobj_label ? 0 :
+		    kobject_iflow_check(&ko->hdr, iflow);
 	    if (r < 0)
 		return r;
 
@@ -120,19 +126,49 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
 }
 
 int
+kobject_get_label(const struct kobject_hdr *kp,
+		  const struct Label **lpp)
+{
+    const struct kobject *label_ko;
+    int r = kobject_get(kp->ko_label_id, &label_ko, kobj_label, iflow_none);
+    if (r < 0)
+	return r;
+
+    *lpp = &label_ko->lb;
+    return 0;
+}
+
+int
+kobject_set_label(struct kobject_hdr *kp,
+		  const struct Label *new_label)
+{
+    const struct kobject *old_label;
+    int r = kobject_get(kp->ko_label_id, &old_label, kobj_label, iflow_none);
+    if (r < 0)
+	return r;
+
+    kobject_set_label_prepared(kp, &old_label->lb, new_label);
+    return 0;
+}
+
+void
+kobject_set_label_prepared(struct kobject_hdr *kp,
+			   const struct Label *old_label,
+			   const struct Label *new_label)
+{
+    kobject_decref(&old_label->lb_ko);
+    kobject_incref(&new_label->lb_ko);
+    kp->ko_label_id = new_label->lb_ko.ko_id;
+}
+
+int
 kobject_alloc(kobject_type_t type, const struct Label *l,
 	      struct kobject **kp)
 {
-    int r;
-
-    if (cur_thread) {
-	r = label_compare(&cur_thread->th_ko.ko_label, l, label_leq_starlo);
-	if (r < 0)
-	    return r;
-    }
+    assert(type == kobj_label || l != 0);
 
     void *p;
-    r = page_alloc(&p);
+    int r = page_alloc(&p);
     if (r < 0)
 	return r;
 
@@ -147,10 +183,19 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
-    kh->ko_label = *l;
+    kh->ko_label_id = l ? l->lb_ko.ko_id : kobject_id_null;
     kh->ko_flags = KOBJ_DIRTY;
     pagetree_init(&ko->ko_pt);
 
+    // Make sure that it's legal to allocate object at this label!
+    r = l ? kobject_iflow_check(kh, iflow_write) : 0;
+    if (r < 0) {
+	page_free(p);
+	return r;
+    }
+
+    if (l)
+	kobject_incref(&l->lb_ko);
     kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
@@ -261,8 +306,8 @@ kobject_swapin(struct kobject *ko)
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
     ko->hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
-			    KOBJ_DIRTY |
-			    KOBJ_SNAPSHOT_DIRTY);
+			  KOBJ_DIRTY |
+			  KOBJ_SNAPSHOT_DIRTY);
 
     if (ko->hdr.ko_type == kobj_thread)
 	thread_swapin(&ko->th);
@@ -326,10 +371,17 @@ kobject_unpin_page(const struct kobject_hdr *ko)
     kobject_unpin_hdr(ko);
 }
 
-static void
+static int
 kobject_gc(struct kobject *ko)
 {
     int r = 0;
+    const struct Label *l = 0;
+
+    if (ko->hdr.ko_type != kobj_label) {
+	r = kobject_get_label(&ko->hdr, &l);
+	if (r < 0)
+	    return r;
+    }
 
     switch (ko->hdr.ko_type) {
     case kobj_thread:
@@ -349,19 +401,23 @@ kobject_gc(struct kobject *ko)
 	break;
 
     case kobj_gate:
+	r = gate_gc(&ko->gt);
+	break;
+
     case kobj_segment:
     case kobj_netdev:
+    case kobj_label:
 	break;
 
     default:
 	panic("kobject_free: unknown kobject type %d", ko->hdr.ko_type);
     }
 
-    if (r == -E_RESTART)
-	return;
     if (r < 0)
-	cprintf("kobject_free: cannot GC type %d: %d\n", ko->hdr.ko_type, r);
+	return r;
 
+    if (l)
+	kobject_decref(&l->lb_ko);
     pagetree_free(&ko->ko_pt);
     ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;
@@ -380,8 +436,12 @@ kobject_gc_scan(void)
 	if (ko->hdr.ko_ref == 0 && ko->hdr.ko_type != kobj_dead) {
 	    if (ko->hdr.ko_type == kobj_thread)
 		thread_zero_refs(&ko->th);
-	    if (ko->hdr.ko_pin == 0)
-		kobject_gc(kobject_dirty(&ko->hdr));
+	    if (ko->hdr.ko_pin == 0) {
+		int r = kobject_gc(kobject_dirty(&ko->hdr));
+		if (r < 0 && r != -E_RESTART)
+		    cprintf("kobject_gc_scan: %ld type %d: %s\n",
+			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
+	    }
 	}
     }
 

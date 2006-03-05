@@ -1,6 +1,7 @@
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <kern/label.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 ////////////////////////////////
@@ -103,12 +104,37 @@ label_get_level(const struct Label *l, uint64_t handle)
     return LB_LEVEL(l->lb_ent[i]);
 }
 
-void
-label_init(struct Label *l, level_t def)
+int
+label_alloc(struct Label **lp, level_t def)
 {
+    struct kobject *ko;
+    int r = kobject_alloc(kobj_label, 0, &ko);
+    if (r < 0)
+	return r;
+
+    struct Label *l = &ko->lb;
     l->lb_def_level = def;
     for (int i = 0; i < NUM_LB_ENT; i++)
 	l->lb_ent[i] = LB_ENT_EMPTY;
+
+    *lp = l;
+    return 0;
+}
+
+int
+label_copy(const struct Label *src, struct Label **dstp)
+{
+    struct Label *dst;
+    int r = label_alloc(&dst, LB_LEVEL_UNDEF);
+    if (r < 0)
+	return r;
+
+    dst->lb_def_level = src->lb_def_level;
+    for (int i = 0; i < NUM_LB_ENT; i++)
+	dst->lb_ent[i] = src->lb_ent[i];
+
+    *dstp = dst;
+    return 0;
 }
 
 int
@@ -175,7 +201,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     if (r < 0)
 	return r;
 
-    label_init(l, ul->ul_default);
+    l->lb_def_level = ul->ul_default;
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 
@@ -239,7 +265,7 @@ label_max(const struct Label *a, const struct Label *b,
 	  struct Label *dst, level_comparator leq)
 {
     level_comparator_init(leq);
-    label_init(dst, leq->max[a->lb_def_level][b->lb_def_level]);
+    dst->lb_def_level = leq->max[a->lb_def_level][b->lb_def_level];
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	if (a->lb_ent[i] == LB_ENT_EMPTY)

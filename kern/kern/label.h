@@ -3,11 +3,14 @@
 
 #include <machine/types.h>
 #include <machine/mmu.h>
+#include <kern/kobjhdr.h>
 #include <inc/label.h>
 
-#define NUM_LB_ENT	8
+#define NUM_LB_ENT	32
 
 struct Label {
+    struct kobject_hdr lb_ko;
+
     level_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT];
 };
@@ -22,7 +25,11 @@ extern level_comparator label_leq_starok;
 extern level_comparator label_eq;
 extern level_comparator label_leq_starhi_rhs_0_except_star;
 
-void label_init(struct Label *l, level_t def);
+int  label_alloc(struct Label **l, level_t def)
+    __attribute__ ((warn_unused_result));
+int  label_copy(const struct Label *src, struct Label **dst)
+    __attribute__ ((warn_unused_result));
+
 int  label_set(struct Label *l, uint64_t handle, level_t level)
     __attribute__ ((warn_unused_result));
 

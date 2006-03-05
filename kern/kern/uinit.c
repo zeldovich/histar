@@ -273,41 +273,48 @@ user_bootstrap(void)
     // root handle and a label
     user_root_handle = handle_alloc();
 
-    struct Label obj_label;
-    label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, user_root_handle, 0));
+    struct Label *obj_label;
+    assert(0 == label_alloc(&obj_label, 1));
+    assert(0 == label_set(obj_label, user_root_handle, 0));
 
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(&obj_label, &rc));
+    assert(0 == container_alloc(obj_label, &rc));
     kobject_incref(&rc->ct_ko);
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(&obj_label, &fsc));
+    assert(0 == container_alloc(obj_label, &fsc));
     assert(0 == container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
-    fs_init(fsc, &obj_label);
+    fs_init(fsc, obj_label);
 
-    // idle thread + init
-    struct Label th_label;
-    struct Label th_clearance;
-    label_init(&th_clearance, 2);
+    // every thread gets a clearance of { 2 } by default
+    struct Label *th_clearance;
+    assert(0 == label_alloc(&th_clearance, 2));
+
+    // idle: thread { idle:* 1 }, objects { idle:0 1 }, clearance { 2 }
+    struct Label *idle_th_label;
+    struct Label *idle_obj_label;
+    assert(0 == label_alloc(&idle_th_label, 1));
+    assert(0 == label_alloc(&idle_obj_label, 1));
 
     uint64_t idle_handle = handle_alloc();
-    label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, idle_handle, 0));
-    label_init(&th_label, 1);
-    assert(0 == label_set(&th_label, idle_handle, LB_LEVEL_STAR));
-    thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
+    assert(0 == label_set(idle_obj_label, idle_handle, 0));
+    assert(0 == label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
+    thread_create_embed(rc, idle_obj_label, idle_th_label, th_clearance,
 			"idle", 1, 1, KOBJ_PIN_IDLE);
 
-    label_init(&obj_label, 1);
-    assert(0 == label_set(&obj_label, user_root_handle, 0));
-    label_init(&th_label, LB_LEVEL_STAR);
-    thread_create_embed(rc, &obj_label, &th_label, &th_clearance,
+    // init: thread { * }, objects { root:0 1 }, clearance { 2 }
+    struct Label *init_th_label;
+    struct Label *init_obj_label;
+    assert(0 == label_alloc(&init_th_label, LB_LEVEL_STAR));
+    assert(0 == label_alloc(&init_obj_label, 1));
+
+    assert(0 == label_set(init_obj_label, user_root_handle, 0));
+    thread_create_embed(rc, init_obj_label, init_th_label, th_clearance,
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
 

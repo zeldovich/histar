@@ -82,7 +82,8 @@ thread_alloc(const struct Label *l,
     t->th_sg = kobject_id_null;
     t->th_ct = kobject_id_null;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    t->th_clearance = *clearance;
+    t->th_clearance_id = clearance->lb_ko.ko_id;
+    kobject_incref(&clearance->lb_ko);
 
     struct Segment *sg;
     r = segment_alloc(l, &sg);
@@ -186,6 +187,15 @@ thread_gc(struct Thread *t)
 	t->th_ct = kobject_id_null;
     }
 
+    if (t->th_clearance_id != kobject_id_null) {
+	r = kobject_get(t->th_clearance_id, &ko, kobj_label, iflow_none);
+	if (r < 0)
+	    return r;
+
+	kobject_decref(&ko->hdr);
+	t->th_clearance_id = kobject_id_null;
+    }
+
     thread_swapout(t);
     return 0;
 }
@@ -202,7 +212,8 @@ thread_run(const struct Thread *t)
 }
 
 int
-thread_change_label(const struct Thread *const_t, const struct Label *label)
+thread_change_label(const struct Thread *const_t,
+		    const struct Label *new_label)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
@@ -215,11 +226,28 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     if (r < 0)
 	return r;
 
-    struct Segment *sg_new;
-    r = segment_copy(&ko_sg->sg, &t->th_ko.ko_label, &sg_new);
+    // Prepare labels for all of the objects
+    const struct Label *cur_th_label, *cur_sg_label, *cur_ct_label;
+    r = kobject_get_label(&t->th_ko, &cur_th_label);
     if (r < 0)
 	return r;
 
+    r = kobject_get_label(&ko_sg->hdr, &cur_sg_label);
+    if (r < 0)
+	return r;
+
+    r = kobject_get_label(&ko_ct->hdr, &cur_ct_label);
+    if (r < 0)
+	return r;
+
+    // Copy with current label first, because kobject_alloc() checks
+    // that you can write to the newly allocated object.
+    struct Segment *sg_new;
+    r = segment_copy(&ko_sg->sg, cur_th_label, &sg_new);
+    if (r < 0)
+	return r;
+
+    // Remove the old segment from the thread container, add the new one
     struct Container *ct = &kobject_dirty(&ko_ct->hdr)->ct;
     r = container_unref(ct, &ko_sg->hdr);
     if (r < 0)
@@ -229,13 +257,14 @@ thread_change_label(const struct Thread *const_t, const struct Label *label)
     if (r < 0)
 	return r;
 
+    // Commit point
     t->th_sg = sg_new->sg_ko.ko_id;
     kobject_decref(&ko_sg->hdr);
     kobject_incref(&sg_new->sg_ko);
 
-    t->th_ko.ko_label = *label;
-    sg_new->sg_ko.ko_label = *label;
-    kobject_dirty(&ko_ct->hdr)->hdr.ko_label = *label;
+    kobject_set_label_prepared(&t->th_ko,      cur_th_label, new_label);
+    kobject_set_label_prepared(&sg_new->sg_ko, cur_sg_label, new_label);
+    kobject_set_label_prepared(&ct->ct_ko,     cur_ct_label, new_label);
 
     // make sure all label checks get re-evaluated
     thread_clear_as(t);
@@ -262,11 +291,19 @@ thread_jump(const struct Thread *const_t,
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
-    int r = thread_change_label(t, label);
+    const struct kobject *cur_clearance_ko;
+    int r = kobject_get(t->th_clearance_id, &cur_clearance_ko,
+			kobj_label, iflow_none);
     if (r < 0)
 	return r;
 
-    t->th_clearance = *clearance;
+    r = thread_change_label(t, label);
+    if (r < 0)
+	return r;
+
+    t->th_clearance_id = clearance->lb_ko.ko_id;
+    kobject_decref(&cur_clearance_ko->hdr);
+    kobject_incref(&clearance->lb_ko);
 
     thread_change_as(t, as);
 

@@ -2,7 +2,6 @@
 #define JOS_KERN_KOBJHDR_H
 
 #include <machine/types.h>
-#include <kern/label.h>
 #include <inc/kobj.h>
 #include <inc/queue.h>
 #include <inc/safetype.h>
@@ -22,7 +21,7 @@ struct kobject_hdr {
     uint64_t ko_flags;
     uint64_t ko_nbytes;
     uint64_t ko_min_bytes;	// cannot shrink below this size
-    struct Label ko_label;
+    uint64_t ko_label_id;	// id of label object (holds refcount)
     char ko_name[KOBJ_NAME_LEN];
 
     // For verifying the persistence layer

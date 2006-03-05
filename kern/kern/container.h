@@ -4,6 +4,7 @@
 #include <machine/types.h>
 #include <machine/mmu.h>
 #include <kern/kobjhdr.h>
+#include <kern/label.h>
 #include <inc/container.h>
 
 struct container_slot {
