@@ -48,43 +48,33 @@ void btree_set_op(struct btree *tree, btree_op op)  ;
 void btree_unset_op(struct btree *tree, btree_op op) ;
 
 #define BTREE_OP_ATTR	static __inline __attribute__((always_inline))
-BTREE_OP_ATTR const offset_t * btree_key(const offset_t *keys, const int i, uint8_t s_key) ;
-BTREE_OP_ATTR int64_t btree_keycmp(const offset_t *key1, const offset_t *key2, uint8_t s_key) ;
-BTREE_OP_ATTR void btree_keycpy(const offset_t *dst, const offset_t *src, uint8_t s_key) ;
-BTREE_OP_ATTR void btree_keymove(const offset_t *dst, const offset_t *src, uint8_t s_key) ;
-BTREE_OP_ATTR void btree_keyset(const offset_t *dst, offset_t val, uint8_t s_key) ;
-
-BTREE_OP_ATTR const offset_t *btree_value(const offset_t *vals, const int i, uint8_t s_val) ;
-BTREE_OP_ATTR void btree_valcpy(const offset_t *dst, const offset_t *src, uint8_t s_val) ;
-BTREE_OP_ATTR void btree_valmove(const offset_t *dst, const offset_t *src, uint8_t s_val) ;
-BTREE_OP_ATTR void btree_valset(const offset_t *dst, offset_t val, uint8_t s_val) ;
 
 BTREE_OP_ATTR const offset_t *
 btree_key(const offset_t *keys, const int i, uint8_t s_key)
 {
-	return &keys[i * s_key] ;
+    return &keys[i * s_key] ;
 }
 
 BTREE_OP_ATTR int64_t
 btree_keycmp(const offset_t *key1, const offset_t *key2, uint8_t s_key)
 {
-	int i = 0 ; 
-	int64_t r = 0 ;
-	for (; r == 0 && i < s_key ; i++)
-		r = key1[i] - key2[i] ;	
-	return r ;
+    int i = 0 ; 
+    int64_t r = 0 ;
+    for (; r == 0 && i < s_key ; i++)
+	r = key1[i] - key2[i] ;	
+    return r ;
 }
 
 BTREE_OP_ATTR void
 btree_keycpy(const offset_t *dst, const offset_t *src, uint8_t s_key)
 {
-	memcpy((offset_t *)dst, src, s_key * sizeof(offset_t)) ;
+    memcpy((offset_t *)dst, src, s_key * sizeof(offset_t)) ;
 }
 
 BTREE_OP_ATTR void
 btree_keymove(const offset_t *dst, const offset_t *src, uint8_t s_key)
 {
-	memmove((offset_t *)dst, src, s_key * sizeof(offset_t)) ;
+    memmove((offset_t *)dst, src, s_key * sizeof(offset_t)) ;
 }
 
 BTREE_OP_ATTR void
@@ -92,29 +82,29 @@ btree_keyset(const offset_t *dst, offset_t val, uint8_t s_key)
 {
     offset_t *d = (offset_t *) dst;
     
-	if (s_key) {
-	    do
-	      *d++ = val;
-	    while (--s_key != 0);
-	}
+    if (s_key) {
+	do
+	    *d++ = val;
+	while (--s_key != 0);
+    }
 }
 
 BTREE_OP_ATTR const offset_t *
 btree_value(const offset_t *vals, const int i, uint8_t s_val)
 {
-	return &vals[i * s_val] ;
+    return &vals[i * s_val] ;
 }
 
 BTREE_OP_ATTR void
 btree_valcpy(const offset_t *dst, const offset_t *src, uint8_t s_val)
 {
-	memcpy((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
+    memcpy((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
 }
 
 BTREE_OP_ATTR void
 btree_valmove(const offset_t *dst, const offset_t *src, uint8_t s_val)
 {
-	memmove((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
+    memmove((offset_t *)dst, src, s_val * sizeof(offset_t)) ;
 }
 
 BTREE_OP_ATTR void
@@ -122,11 +112,11 @@ btree_valset(const offset_t *dst, offset_t val, uint8_t s_val)
 {
     offset_t *d = (offset_t *) dst;
 
-	if (s_val) {
-	    do
-	      *d++ = val;
-	    while (--s_val != 0);
-	}
+    if (s_val) {
+	do
+	    *d++ = val;
+	while (--s_val != 0);
+    }
 }
 
 #endif /*BT_UTILS_H_*/
