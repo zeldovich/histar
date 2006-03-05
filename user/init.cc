@@ -71,25 +71,6 @@ init_env(uint64_t c_root, uint64_t c_self)
     start_env->fs_cwd = start_env->fs_root;
 }
 
-static int
-init_console(uint64_t h_root)
-{
-    // Now that we're set up a reasonable environment,
-    // create a shared console fd.
-    struct ulabel *label = label_alloc();
-    assert(label);
-
-    label->ul_default = 1;
-    error_check(label_set_level(label, h_root, 0, 1));
-    segment_set_default_label(label);
-
-    int cons = opencons(start_env->root_container);
-    assert(cons >= 0);
-    segment_set_default_label(0);
-
-    return cons;
-}
-
 static void
 init_procs(int cons, uint64_t h_root)
 {
@@ -133,11 +114,13 @@ try
 
     init_env(c_root, c_self);
 
-    assert(0 == opencons(c_self));
+    int cons = opencons(start_env->root_container);
+    if (cons != 0)
+	throw error(cons, "cannot opencons: %d", cons);
+
     assert(1 == dup(0, 1));
     assert(2 == dup(0, 2));
 
-    int cons = init_console(h_root);
     init_procs(cons, h_root);
 
     for (;;)
