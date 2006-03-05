@@ -208,6 +208,11 @@ thread_create_embed(struct Container *c,
 		    uint64_t arg0, uint64_t arg1,
 		    uint64_t koflag)
 {
+    // pin the labels of the idle process
+    obj_label->lb_ko.ko_flags |= koflag;
+    th_label->lb_ko.ko_flags |= koflag;
+    th_clearance->lb_ko.ko_flags |= koflag;
+
     struct embed_bin *prog = 0;
 
     for (int i = 0; embed_bins[i].name; i++)
