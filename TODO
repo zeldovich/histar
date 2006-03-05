@@ -45,3 +45,10 @@ expose kobj_label's at the syscall API to get label sharing
 
 better MLT support in the filesystem: unification et al
 
+multiple threads that have different labels in the same AS is a little
+strange.  when you want to give an fd to another thread, you have to
+grant it fd handles at *; similarly, when you close an fd, you should
+make sure no other thread has those handles at * (otherwise they'll
+never get GCed from the label).  maybe it makes sense to have some
+sort of label shared by threads that goes along with an AS?
+
