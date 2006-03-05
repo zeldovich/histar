@@ -21,6 +21,8 @@ int log_node(offset_t byteoff, void *page)
 void log_reset(void) ;
 void log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem) ;
 
+void log_free(offset_t off) ;
+
 void dlog_print(void) ;
 void dlog_init(void) ;
 

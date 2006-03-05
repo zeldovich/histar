@@ -375,6 +375,21 @@ log_write(struct btree_node *node)
 	return 0 ;	
 }
 
+void
+log_free(offset_t byteoff)
+{
+    struct btree_node *node ;
+    
+    LIST_FOREACH(node, &log.nodes, node_link) {
+        if (byteoff == node->block.offset) {
+            LIST_REMOVE(node, node_link) ;
+            log.in_mem-- ;
+            break ;
+        }
+    }
+    btree_delete(&log.disk_map.tree, &byteoff) ;
+}
+
 int
 log_flush(void)
 {

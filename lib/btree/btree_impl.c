@@ -118,6 +118,7 @@ int
 btree_simple_rem(void *man, offset_t offset)
 {
 	struct btree_simple * manager = (struct btree_simple *) man ;
+    log_free(offset) ;
 	return cache_rem(manager->cache, offset) ;
 }
 
@@ -168,7 +169,8 @@ btree_default_free(void *man, offset_t offset)
 {
 	struct btree_default *def = (struct btree_default *) man ;
 	freelist_free_later(def->fl, offset, BTREE_BLOCK_SIZE) ;
-	return cache_rem(def->simple.cache, offset) ;
+	log_free(offset) ;
+    return cache_rem(def->simple.cache, offset) ;
 }
 
 static int 

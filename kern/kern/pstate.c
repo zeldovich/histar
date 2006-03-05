@@ -565,6 +565,11 @@ pstate_sync_loop(struct pstate_header *hdr,
 	cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
 	return r;
     }
+    
+    btree_set_op(&iobjlist.simple.tree, 0) ;
+    btree_set_op(&objmap.simple.tree, 0) ;
+    btree_set_op(&flist.chunk_frm.simple.tree, 0) ;
+    btree_set_op(&flist.offset_frm.simple.tree, 0) ;
 
     freelist_serialize(&hdr->ph_free, &flist);
     btree_default_serialize(&hdr->ph_iobjs, &iobjlist);
@@ -581,6 +586,11 @@ pstate_sync_loop(struct pstate_header *hdr,
 	cprintf("pstate_sync_loop: unable to apply\n");
 	return r;
     }
+
+    btree_unset_op(&iobjlist.simple.tree, 0) ;
+    btree_unset_op(&objmap.simple.tree, 0) ;
+    btree_unset_op(&flist.chunk_frm.simple.tree, 0) ;
+    btree_unset_op(&flist.offset_frm.simple.tree, 0) ;
 
     if (pstate_dlog_stats)
 	dlog_print();
