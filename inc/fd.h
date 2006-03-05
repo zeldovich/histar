@@ -59,9 +59,8 @@ int	fd2num(struct Fd *fd);
 int	fd_alloc(uint64_t container, struct Fd **fd_store, const char *name);
 int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp);
-int	fd_map_as(struct cobj_ref as, struct cobj_ref fd_seg, int fdnum);
-int	fd_unmap(struct Fd *fd);
 int	fd_move(int fdnum, uint64_t container);
+void	fd_give_up_privilege(int fdnum);
 int	dev_lookup(int devid, struct Dev **dev_store);
 
 extern struct Dev devcons;

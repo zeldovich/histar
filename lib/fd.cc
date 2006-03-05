@@ -191,9 +191,7 @@ fd_close(struct Fd *fd)
 	fd_handles_init();
 
 	int r = 0;
-	uint64_t fd_taint = fd->fd_taint;
-	uint64_t fd_grant = fd->fd_grant;
-	int handle_refs = fd_count_handles(fd_taint, fd_grant);
+	int handle_refs = fd_count_handles(fd->fd_taint, fd->fd_grant);
 
 	if (fd->fd_immutable || !atomic_dec_and_test(&fd->fd_ref))
 		goto out;
@@ -216,8 +214,7 @@ fd_close(struct Fd *fd)
 
 out:
 	if (handle_refs == 2) try {
-		thread_drop_star(fd_taint);
-		thread_drop_star(fd_grant);
+		fd_give_up_privilege(fd2num(fd));
 	} catch (std::exception &e) {
 		cprintf("fd_close: cannot drop handle: %s\n", e.what());
 	}
@@ -225,21 +222,6 @@ out:
 	fd_handles[fd2num(fd)].fd_grant = kobject_id_null;
 	segment_unmap(fd);
 	return r;
-}
-
-
-int
-fd_map_as(struct cobj_ref as, struct cobj_ref fd_seg, int fdnum)
-{
-	struct Fd *fd = INDEX2FD(fdnum);
-	return segment_map_as(as, fd_seg, SEGMAP_READ | SEGMAP_WRITE,
-			      (void **) &fd, 0);
-}
-
-int
-fd_unmap(struct Fd *fd)
-{
-	return segment_unmap(fd);
 }
 
 int
@@ -281,6 +263,13 @@ fd_move(int fdnum, uint64_t container)
 
     sys_obj_unref(oldseg);
     return 0;
+}
+
+void
+fd_give_up_privilege(int fdnum)
+{
+    thread_drop_star(fd_handles[fdnum].fd_taint);
+    thread_drop_star(fd_handles[fdnum].fd_grant);
 }
 
 

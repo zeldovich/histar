@@ -150,6 +150,8 @@ http_server(void)
 	if (r < 0) {
 	    printf("cannot spawn client thread: %s\n", e2s(r));
 	    close(ss);
+	} else {
+	    fd_give_up_privilege(ss);
 	}
     }
 }
