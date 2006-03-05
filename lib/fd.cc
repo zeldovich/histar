@@ -18,6 +18,15 @@ extern "C" {
 // Return the 'struct Fd*' for file descriptor index i
 #define INDEX2FD(i)	((struct Fd*) (FDTABLE + (i)*PGSIZE))
 
+// Multiple threads with different labels could be running in the same address
+// space, so it's useful to have a common place accessible by all threads to
+// store this information.
+static struct {
+    uint64_t fd_taint;
+    uint64_t fd_grant;
+} fd_handles[MAXFD];
+static int fd_handles_inited;
+
 static int debug = 0;
 
 
@@ -38,16 +47,33 @@ fd_count_handles(uint64_t taint, uint64_t grant)
 	int cnt = 0;
 
 	for (int i = 0; i < MAXFD; i++) {
-		struct Fd *fd;
-		if (fd_lookup(i, &fd, 0) < 0)
-			continue;
-		if (fd->fd_taint == taint)
+		if (fd_handles[i].fd_taint == taint)
 			cnt++;
-		if (fd->fd_grant == grant)
+		if (fd_handles[i].fd_grant == grant)
 			cnt++;
 	}
 
 	return cnt;
+}
+
+static void
+fd_handles_init(void)
+{
+    if (fd_handles_inited)
+	return;
+
+    for (int i = 0; i < MAXFD; i++) {
+	struct Fd *fd;
+	int r = fd_lookup(i, &fd, 0);
+	if (r < 0) {
+	    fd_handles[i].fd_grant = kobject_id_null;
+	    fd_handles[i].fd_taint = kobject_id_null;
+	} else {
+	    fd_handles[i].fd_grant = fd->fd_grant;
+	    fd_handles[i].fd_taint = fd->fd_taint;
+	}
+    }
+    fd_handles_inited = 1;
 }
 
 // Finds the smallest i from 0 to MAXFD-1 that doesn't have
@@ -68,6 +94,8 @@ fd_count_handles(uint64_t taint, uint64_t grant)
 int
 fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 {
+	fd_handles_init();
+
 	int i;
 	struct Fd *fd;
 
@@ -115,6 +143,8 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	fd->fd_dev_id = 0;
 	fd->fd_grant = fd_grant;
 	fd->fd_taint = fd_taint;
+	fd_handles[fd2num(fd)].fd_grant = fd_grant;
+	fd_handles[fd2num(fd)].fd_taint = fd_taint;
 
 	grant_drop.dismiss();
 	taint_drop.dismiss();
@@ -158,6 +188,8 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
 int
 fd_close(struct Fd *fd)
 {
+	fd_handles_init();
+
 	int r = 0;
 	uint64_t fd_taint = fd->fd_taint;
 	uint64_t fd_grant = fd->fd_grant;
@@ -189,6 +221,8 @@ out:
 	} catch (std::exception &e) {
 		cprintf("fd_close: cannot drop handle: %s\n", e.what());
 	}
+	fd_handles[fd2num(fd)].fd_taint = kobject_id_null;
+	fd_handles[fd2num(fd)].fd_grant = kobject_id_null;
 	segment_unmap(fd);
 	return r;
 }
