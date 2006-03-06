@@ -12,19 +12,11 @@ typedef uint64_t offset_t ;
 #define BTB_SET_FLAG(block, flag)    (block).flags |= ((flag) << 4)
 #define BTB_GET_FLAG(block, flag)    (((block).flags >> 4) & (flag))
 
-#define BTB_IS_DIRTY(block)    (((block).dirty) == 1)
-#define BTB_SET_DIRTY(block)   (block).dirty = 1
-#define BTB_CLEAR_DIRTY(block) (block).dirty = 0
-
 #define BTREE_IS_LEAF(node) (BTB_GET_FLAG((node)->block, BTREE_FLAG_LEAF) == 1)
 #define BTREE_SET_LEAF(node) BTB_SET_FLAG((node)->block, BTREE_FLAG_LEAF)
 
 #define BTB_SET_FLAG(block, flag)    (block).flags |= ((flag) << 4)
 #define BTB_GET_FLAG(block, flag)    (((block).flags >> 4) & (flag))
-
-#define BTB_IS_DIRTY(block)    (((block).dirty) == 1)
-#define BTB_SET_DIRTY(block)   (block).dirty = 1
-#define BTB_CLEAR_DIRTY(block) (block).dirty = 0
 
 #define BTREE_NODE_SIZE(order, key_size) \
 		(sizeof(struct btree_node) + \

@@ -125,7 +125,6 @@ __splitNode(struct btree *tree,
 
 	btree_keyset(btree_key(rootNode->keys, (int)rootNode->keyCount, tree->s_key), 0, tree->s_key) ;
 
-	BTB_SET_DIRTY(rootNode->block);
 	btree_write_node(rootNode);
 
 	btree_destroy_node(tempNode);
@@ -255,7 +254,6 @@ __splitLeaf(struct btree *tree,
 				 tree->s_value) ;
 					 
 
-	BTB_SET_DIRTY(rootNode->block);
 	btree_write_node(rootNode);
 
 	btree_destroy_node(tempNode);
@@ -315,7 +313,6 @@ __addKey(struct btree *tree,
 	}
 	
 
-	BTB_SET_DIRTY(rootNode->block);
 	btree_write_node(rootNode);
 
 	return 1;
@@ -371,7 +368,6 @@ __addKeyToLeaf(struct btree *tree,
 				 filePos,
 				 tree->s_value) ;
 
-	BTB_SET_DIRTY(rootNode->block);
 	btree_write_node(rootNode);
 
 	return 1;

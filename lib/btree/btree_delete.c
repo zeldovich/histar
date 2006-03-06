@@ -72,8 +72,6 @@ __removeKey(struct btree *tree,
 		
 		rootNode->keyCount--;
 
-		BTB_SET_DIRTY(rootNode->block);
-
 		btree_write_node(rootNode);
 
 		return 1;
@@ -108,8 +106,6 @@ __removeKey2(struct btree *tree,
 
 	rootNode->keyCount--;
 
-	BTB_SET_DIRTY(rootNode->block);
-
 	btree_write_node(rootNode);
 }
 
@@ -139,8 +135,6 @@ __removeKeyLeaf2(struct btree *tree,
 				 tree->s_value) ;
 
 	rootNode->keyCount--;
-
-	BTB_SET_DIRTY(rootNode->block);
 
 	btree_write_node(rootNode);
 }
@@ -178,9 +172,6 @@ __borrowRight(struct btree *tree,
 
 		return 0;
 	}
-
-	BTB_SET_DIRTY(rootNode->block);
-	BTB_SET_DIRTY(prevNode->block);
 
 	rootNode->keyCount++;
 
@@ -238,9 +229,6 @@ __borrowRightLeaf(struct btree *tree,
 
 		return 0;
 	}
-
-	BTB_SET_DIRTY(rootNode->block);
-	BTB_SET_DIRTY(prevNode->block);
 
 	rootNode->keyCount++;
 
@@ -301,10 +289,6 @@ __borrowLeft(struct btree *tree,
 	}
 
 	node->keyCount--;
-
-	BTB_SET_DIRTY(rootNode->block);
-	BTB_SET_DIRTY(prevNode->block);
-	BTB_SET_DIRTY(node->block);
 
 	btree_write_node(node);
 	btree_destroy_node(node);
@@ -378,10 +362,6 @@ __borrowLeftLeaf(struct btree *tree,
 
 	node->keyCount--;
 
-	BTB_SET_DIRTY(rootNode->block);
-	BTB_SET_DIRTY(prevNode->block);
-	BTB_SET_DIRTY(node->block);
-
 	btree_write_node(node);
 	btree_destroy_node(node);
 
@@ -427,13 +407,9 @@ __mergeNode(struct btree *tree,
 
 		node->children[i] = rootNode->children[j];
 
-		BTB_SET_DIRTY(node->block);
-
 		btree_write_node(node);
 		
 		prevNode->children[div] = node->block.offset;
-
-		BTB_SET_DIRTY(prevNode->block);
 
 		btree_erase_node(rootNode);
 		__removeKey2(tree, prevNode, div - 1);
@@ -471,9 +447,6 @@ __mergeNode(struct btree *tree,
         
 		rootNode->children[i]       = node->children[j];
 		prevNode->children[div + 1] = rootNode->block.offset;
-
-		BTB_SET_DIRTY(rootNode->block);
-		BTB_SET_DIRTY(prevNode->block);
 
 		btree_erase_node(node);
 
@@ -513,14 +486,10 @@ __mergeLeaf(struct btree *tree,
 
         node->keyCount += rootNode->keyCount ;
         
-		BTB_SET_DIRTY(node->block);
-
 		btree_write_node(node);
 		
 		// ok, accessing twig node children
 		prevNode->children[div] = node->block.offset;
-
-		BTB_SET_DIRTY(prevNode->block);
 
 		btree_erase_node(rootNode);
 		__removeKey2(tree, prevNode, div - 1);
@@ -547,9 +516,6 @@ __mergeLeaf(struct btree *tree,
 
 		// ok, accessing twig children
 		prevNode->children[div + 1] = rootNode->block.offset;
-
-		BTB_SET_DIRTY(rootNode->block);
-		BTB_SET_DIRTY(prevNode->block);
 
 		btree_erase_node(node);
 
@@ -702,8 +668,6 @@ btree_delete(void *t, const uint64_t *key)
 		btree_root_node_is(tree, rootNode->children[0]);
 
 		tempNode = btree_read_node(tree, tree->root);
-
-		BTB_SET_DIRTY(tempNode->block);
 
 		btree_write_node(tempNode);
 		btree_destroy_node(tempNode);

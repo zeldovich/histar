@@ -13,7 +13,6 @@ struct btree_node
 	struct {
 		offset_t offset ;
         uint16_t flags ;
-        char 	 dirty;
 	} block ;
 
 	uint8_t 		keyCount ;          
@@ -21,6 +20,7 @@ struct btree_node
 	const uint64_t 	*keys ;
 	
 	LIST_ENTRY(btree_node) node_link ;
+    uint64_t    bytesize ;
 };
 
 struct btree_manager
@@ -54,6 +54,8 @@ struct btree
 	offset_t left_leaf;       
 
 	uint64_t magic ;
+    uint64_t id ;
+    
 	struct lock lock ;
 	
 	// current filePos on inserts...no touch
