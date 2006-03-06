@@ -183,7 +183,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
-    kh->ko_label_id = l ? l->lb_ko.ko_id : kobject_id_null;
+    kh->ko_label_id = l ? l->lb_ko.ko_id : 0;
     kh->ko_flags = KOBJ_DIRTY;
     pagetree_init(&ko->ko_pt);
 
@@ -536,7 +536,6 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 // Negative kobject id cache (objects that don't exist)
 enum { kobject_neg_nent = 1024 };
 static struct {
-    int inited;
     int next;
     kobject_id_t ents[kobject_neg_nent];
 } kobject_neg;
@@ -544,11 +543,6 @@ static struct {
 void
 kobject_negative_insert(kobject_id_t id)
 {
-    if (!kobject_neg.inited)
-	for (int i = 0; i < kobject_neg_nent; i++)
-	    kobject_neg.ents[i] = kobject_id_null;
-
-    kobject_neg.inited = 1;
     kobject_neg.ents[kobject_neg.next] = id;
     kobject_neg.next = (kobject_neg.next + 1) % kobject_neg_nent;
 }
@@ -556,24 +550,17 @@ kobject_negative_insert(kobject_id_t id)
 void
 kobject_negative_remove(kobject_id_t id)
 {
-    if (!kobject_neg.inited)
-	return;
-
     for (int i = 0; i < kobject_neg_nent; i++)
 	if (kobject_neg.ents[i] == id)
-	    kobject_neg.ents[i] = kobject_id_null;
+	    kobject_neg.ents[i] = 0;
 }
 
 bool_t
 kobject_negative_contains(kobject_id_t id)
 {
-    if (!kobject_neg.inited)
-	return 0;
-
     for (int i = 0; i < kobject_neg_nent; i++)
 	if (kobject_neg.ents[i] == id)
 	    return 1;
-
     return 0;
 }
 

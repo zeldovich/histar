@@ -13,7 +13,7 @@
 static struct u_segment_mapping cache_ents[NMAPPINGS];
 static struct u_address_space cache_uas = { .size = NMAPPINGS,
 					    .ents = &cache_ents[0] };
-static uint64_t cache_asid = kobject_id_null;
+static uint64_t cache_asid;
 
 static pthread_mutex_t as_mutex;
 
@@ -51,7 +51,7 @@ cache_refresh(struct cobj_ref as)
 
     int r = sys_as_get(as, &cache_uas);
     if (r < 0) {
-	cache_asid = kobject_id_null;
+	cache_asid = 0;
 	return r;
     }
 
@@ -62,7 +62,7 @@ cache_refresh(struct cobj_ref as)
 static void
 cache_invalidate(void)
 {
-    cache_asid = kobject_id_null;
+    cache_asid = 0;
 }
 
 static void

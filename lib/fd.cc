@@ -65,13 +65,10 @@ fd_handles_init(void)
     for (int i = 0; i < MAXFD; i++) {
 	struct Fd *fd;
 	int r = fd_lookup(i, &fd, 0);
-	if (r < 0) {
-	    fd_handles[i].fd_grant = kobject_id_null;
-	    fd_handles[i].fd_taint = kobject_id_null;
-	} else {
-	    fd_handles[i].fd_grant = fd->fd_grant;
-	    fd_handles[i].fd_taint = fd->fd_taint;
-	}
+	if (r < 0)
+	    continue;
+	fd_handles[i].fd_grant = fd->fd_grant;
+	fd_handles[i].fd_taint = fd->fd_taint;
     }
     fd_handles_inited = 1;
 }
@@ -218,8 +215,8 @@ out:
 	} catch (std::exception &e) {
 		cprintf("fd_close: cannot drop handle: %s\n", e.what());
 	}
-	fd_handles[fd2num(fd)].fd_taint = kobject_id_null;
-	fd_handles[fd2num(fd)].fd_grant = kobject_id_null;
+	fd_handles[fd2num(fd)].fd_taint = 0;
+	fd_handles[fd2num(fd)].fd_grant = 0;
 	segment_unmap(fd);
 	return r;
 }

@@ -79,8 +79,6 @@ thread_alloc(const struct Label *l,
 
     struct Thread *t = &ko->th;
     t->th_status = thread_not_started;
-    t->th_sg = kobject_id_null;
-    t->th_ct = kobject_id_null;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
     t->th_clearance_id = clearance->lb_ko.ko_id;
     kobject_incref(&clearance->lb_ko);
@@ -169,31 +167,31 @@ thread_gc(struct Thread *t)
     const struct kobject *ko;
     int r;
 
-    if (t->th_sg != kobject_id_null) {
+    if (t->th_sg) {
 	r = kobject_get(t->th_sg, &ko, kobj_segment, iflow_none);
 	if (r < 0)
 	    return r;
 
 	kobject_decref(&ko->hdr);
-	t->th_sg = kobject_id_null;
+	t->th_sg = 0;
     }
 
-    if (t->th_ct != kobject_id_null) {
+    if (t->th_ct) {
 	r = kobject_get(t->th_ct, &ko, kobj_container, iflow_none);
 	if (r < 0)
 	    return r;
 
 	kobject_decref(&ko->hdr);
-	t->th_ct = kobject_id_null;
+	t->th_ct = 0;
     }
 
-    if (t->th_clearance_id != kobject_id_null) {
+    if (t->th_clearance_id) {
 	r = kobject_get(t->th_clearance_id, &ko, kobj_label, iflow_none);
 	if (r < 0)
 	    return r;
 
 	kobject_decref(&ko->hdr);
-	t->th_clearance_id = kobject_id_null;
+	t->th_clearance_id = 0;
     }
 
     thread_swapout(t);
