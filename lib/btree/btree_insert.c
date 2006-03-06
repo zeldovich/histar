@@ -451,7 +451,7 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 	success = 0;
 	split = 0;
 
-	btree_set_op(tree, btree_op_insert) ;
+	btree_lock(tree) ;
 	tree->_insFilePos = v ;
 	
 	if (tree->root != 0)
@@ -462,7 +462,7 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 		if (success == 0)
 		{
 			// duplicate
-			btree_unset_op(tree, btree_op_insert) ;
+			btree_unlock(tree) ;
 			return -E_INVAL;;
 		}
 	}
@@ -499,6 +499,6 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 		btree_destroy_node(node);
 	}
 
-	btree_unset_op(tree, btree_op_insert) ;
+	btree_unlock(tree) ;
 	return 0;	
 }

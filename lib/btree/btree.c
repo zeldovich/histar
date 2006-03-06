@@ -79,13 +79,13 @@ btree_manager_is(struct btree *t, struct btree_manager *mm)
 ///////////////////////////////////
 
 void
-btree_set_op(struct btree *tree, btree_op op)
+btree_lock(struct btree *tree)
 {
 	lock_acquire(&tree->lock) ;
 }
 
 void
-btree_unset_op(struct btree *tree, btree_op op)
+btree_unlock(struct btree *tree)
 {
 	lock_release(&tree->lock) ;
 }

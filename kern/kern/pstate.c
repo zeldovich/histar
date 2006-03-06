@@ -566,10 +566,10 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return r;
     }
     
-    btree_set_op(&iobjlist.simple.tree, 0) ;
-    btree_set_op(&objmap.simple.tree, 0) ;
-    btree_set_op(&flist.chunk_frm.simple.tree, 0) ;
-    btree_set_op(&flist.offset_frm.simple.tree, 0) ;
+    btree_lock(&iobjlist.simple.tree) ;
+    btree_lock(&objmap.simple.tree) ;
+    btree_lock(&flist.chunk_frm.simple.tree) ;
+    btree_lock(&flist.offset_frm.simple.tree) ;
 
     freelist_serialize(&hdr->ph_free, &flist);
     btree_default_serialize(&hdr->ph_iobjs, &iobjlist);
@@ -587,10 +587,10 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return r;
     }
 
-    btree_unset_op(&iobjlist.simple.tree, 0) ;
-    btree_unset_op(&objmap.simple.tree, 0) ;
-    btree_unset_op(&flist.chunk_frm.simple.tree, 0) ;
-    btree_unset_op(&flist.offset_frm.simple.tree, 0) ;
+    btree_unlock(&iobjlist.simple.tree) ;
+    btree_unlock(&objmap.simple.tree) ;
+    btree_unlock(&flist.chunk_frm.simple.tree) ;
+    btree_unlock(&flist.offset_frm.simple.tree) ;
 
     if (pstate_dlog_stats)
 	dlog_print();

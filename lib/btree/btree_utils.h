@@ -38,14 +38,8 @@ struct btree_node ;
 struct btree ;
 LIST_HEAD(node_list, btree_node);
 
-typedef enum {
-	btree_op_none = 0,
-	btree_op_search,
-	btree_op_delete,
-	btree_op_insert,
-} btree_op ;
-void btree_set_op(struct btree *tree, btree_op op)  ;
-void btree_unset_op(struct btree *tree, btree_op op) ;
+void btree_lock(struct btree *tree)  ;
+void btree_unlock(struct btree *tree) ;
 
 #define BTREE_OP_ATTR	static __inline __attribute__((always_inline))
 

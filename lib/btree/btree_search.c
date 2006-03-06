@@ -186,7 +186,7 @@ __btree_search(struct btree *tree,
 	if (btree_is_empty(tree) == 1)
 		return -E_NOT_FOUND;
 
-	btree_set_op(tree, btree_op_search) ;
+	btree_lock(tree) ;
 	found = __search(tree, 
 					 tree->root, 
 					 key, 
@@ -195,7 +195,7 @@ __btree_search(struct btree *tree,
 					 0, 
 					 key_store, 
 					 val_store);
-	btree_unset_op(tree, btree_op_search) ;
+	btree_unlock(tree) ;
 	
 	
 	if (found != 0)

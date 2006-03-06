@@ -659,7 +659,7 @@ btree_delete(void *t, const uint64_t *key)
 	if (tree == NULL || key == 0 || tree->root == 0)
 		return -E_INVAL ;
 
-	btree_set_op(tree, btree_op_delete) ;
+	btree_lock(tree) ;
 
 	btree_valset(filePos, 0, tree->s_value) ;
 	merged  = 0;
@@ -680,7 +680,7 @@ btree_delete(void *t, const uint64_t *key)
 	if (success == 0)
 	{
 		btree_destroy_node(rootNode);
-		btree_unset_op(tree, btree_op_delete) ;
+		btree_unlock(tree) ;
 		return -E_INVAL;
 	}
 	
@@ -692,7 +692,7 @@ btree_delete(void *t, const uint64_t *key)
 		btree_root_node_is(tree, 0);
                 btree_height_is(tree, 0) ;
 		btree_erase_node(rootNode);
-		btree_unset_op(tree, btree_op_delete) ;
+		btree_unlock(tree) ;
 		return 0 ;
 	}
 	else if (merged == 1 && rootNode->keyCount == 0)
@@ -712,11 +712,11 @@ btree_delete(void *t, const uint64_t *key)
                 
         btree_height_is(tree, tree->height - 1) ;
                 
-		btree_unset_op(tree, btree_op_delete) ;
+		btree_unlock(tree) ;
 		return 0 ;
 	}
 	btree_destroy_node(rootNode);
-	btree_unset_op(tree, btree_op_delete) ;
+	btree_unlock(tree) ;
 	return 0 ;
 }
 
