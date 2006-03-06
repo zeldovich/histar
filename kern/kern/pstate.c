@@ -5,6 +5,7 @@
 #include <machine/x86.h>
 #include <machine/stackwrap.h>
 #include <dev/disk.h>
+#include <kern/disklayout.h>
 #include <kern/pstate.h>
 #include <kern/uinit.h>
 #include <kern/handle.h>
@@ -44,17 +45,13 @@ struct mobject {
 };
 
 // Scratch-space for a copy of the header used while reading/writing.
-#define N_HEADER_PAGES		1
 #define PSTATE_BUF_SIZE		PGSIZE
 static union {
     struct pstate_header hdr;
     char buf[PSTATE_BUF_SIZE];
 } pstate_buf;
 
-// all units are in pages
-#define LOG_OFFSET	N_HEADER_PAGES
-#define LOG_SIZE	3000
-#define LOG_MEMORY	100
+
 
 
 //////////////////////////////////////////////////
@@ -478,7 +475,7 @@ pstate_sync_apply(void)
 {
     struct pstate_header *hdr = &pstate_buf.hdr ;
 
-    // 1st, mark that appplying
+    // 1st, mark that applying
     hdr->ph_applying = 1 ;
     disk_io_status s = stackwrap_disk_io(op_write, hdr,
 					 PSTATE_BUF_SIZE, 0);
