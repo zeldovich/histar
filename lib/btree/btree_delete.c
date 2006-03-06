@@ -94,7 +94,7 @@ __removeKey2(struct btree *tree,
     // Move keys index+1 through keyCount-1 to index through keyCount-2 
     btree_keymove(btree_key(rootNode->keys, index, tree->s_key), 
                  btree_key(rootNode->keys, index + 1, tree->s_key), 
-                 tree->s_key * (rootNode->keyCount - 1)) ;
+                 tree->s_key * (rootNode->keyCount - 1 - index)) ;
 
     // Move ptrs index+1 through keyCount to index through keyCount-1
     for (i = index; i < rootNode->keyCount ; i++)
@@ -123,12 +123,12 @@ __removeKeyLeaf2(struct btree *tree,
 	// Move keys index+1 through keyCount-1 to index through keyCount-2 
     btree_keymove(btree_key(rootNode->keys, index, tree->s_key), 
                  btree_key(rootNode->keys, index + 1, tree->s_key), 
-                 tree->s_key * (rootNode->keyCount - 1)) ;
+                 tree->s_key * (rootNode->keyCount - 1 - index)) ;
 
     // Move values index+1 through keyCount to index through keyCount-1
     btree_valmove(btree_value(rootNode->children, index, tree->s_value),
                   btree_value(rootNode->children, index + 1, tree->s_value),
-                  tree->s_value * (rootNode->keyCount)) ;
+                  tree->s_value * (rootNode->keyCount - index)) ;
     
 	btree_keyset(btree_key(rootNode->keys, rootNode->keyCount - 1, tree->s_key), 
                  0, 
