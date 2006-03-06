@@ -3,6 +3,10 @@
 #include <inc/stdio.h>
 #include <inc/error.h>
 
+#define TOMB  0xFFFFFFFFFFFFFFFF
+#define LEN   1
+#define LEV   0xDEADBEEF
+
 // hash function from: http://burtleburtle.net/bob/hash/evahash.html 
 
 /*
@@ -94,7 +98,7 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
         uint64_t lev = 0xDEADBEEF ;
         uint64_t probe = 0 ;
    
-        if (key == 0)
+        if (key == 0 || key == TOMB)
                 return -E_INVAL ;
 
         if (table->size == table->capacity)
@@ -103,12 +107,12 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
         int i ;
         for (i = 0 ; i < table->capacity ; i++) {
                 probe = (hash2(&key, len, lev) + i) % table->capacity ;
-                if (table->table[probe].key == 0)
+                if (table->entry[probe].key == 0)
                         break ;               
         }              
 
-        table->table[probe].key = key ;
-        table->table[probe].val = val ;
+        table->entry[probe].key = key ;
+        table->entry[probe].val = val ;
         table->size++ ;
         return 0 ;
 }
@@ -120,23 +124,52 @@ hash_get(struct hashtable *table, uint64_t key, uint64_t *val)
         uint64_t lev = 0xDEADBEEF ;
         uint64_t probe ;
    
+        if (key == 0 || key == TOMB)
+                return -E_INVAL ;
+   
         for (int i = 0 ; i < table->capacity ; i++) {
                 probe = (hash2(&key, len, lev) + i) % table->capacity ;
-                if (table->table[probe].key == key) {
-                        *val = table->table[probe].val ;
+                if (table->entry[probe].key == key) {
+                        *val = table->entry[probe].val ;
                         return 0 ;
                 }
-                else if (table->table[probe].key == 0)
+                else if (table->entry[probe].key == 0)
                         break ;
         }
         return -E_NOT_FOUND ;
+}
+
+int
+hash_del(struct hashtable *table, uint64_t key)
+{
+    uint64_t len = 1 ;
+    uint64_t lev = 0xDEADBEEF ;
+    uint64_t probe ;
+   
+   
+    if (key == 0 || key == TOMB)
+        return -E_INVAL ;
+        
+    for (int i = 0 ; i < table->capacity ; i++) {
+            probe = (hash2(&key, len, lev) + i) % table->capacity ;
+            if (table->entry[probe].key == key) {
+                    table->entry[probe].key = TOMB ;
+                    table->entry[probe].val = 0 ;
+                    table->size-- ;
+                    return 0 ;
+            }
+            else if (table->entry[probe].key == 0)
+                    break ;
+    }
+
+    return -E_NOT_FOUND ;   
 }
 
 void
 hash_init(struct hashtable *table, struct hashentry *back, int n)
 {
         memset(back, 0, sizeof(struct hashentry) * n) ;
-        table->table = back ;
+        table->entry = back ;
         table->capacity = n ;      
         table->size = 0 ; 
 }
@@ -146,5 +179,33 @@ hash_print(struct hashtable *table)
 {
         int i ;
         for (i = 0 ; i < table->capacity ; i++)
-                cprintf("i %d key %ld val %ld\n", i, table->table[i].key, table->table[i].val) ;
+                cprintf("i %d key %ld val %ld\n", i, table->entry[i].key, table->entry[i].val) ;
+}
+
+
+void 
+hashiter_init(struct hashtable *table, struct hashiter *iter)
+{
+    memset(iter, 0, sizeof(*iter)) ;
+    iter->hi_table = table ;
+    return ;   
+}
+
+int 
+hashiter_next(struct hashiter *iter)
+{
+    struct hashtable *t = iter->hi_table ;
+    
+    int i = iter->hi_index ;
+    for (; i < t->capacity ; i++) {
+        if (t->entry[i].key != 0 &&
+            t->entry[i].key != TOMB)
+        {
+            iter->hi_index = i + 1 ;
+            iter->hi_val = t->entry[i].val ;
+            iter->hi_key = t->entry[i].key ; 
+            return 1 ;
+        }
+    }
+    return 0 ;
 }
