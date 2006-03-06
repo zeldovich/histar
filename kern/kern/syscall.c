@@ -25,6 +25,7 @@
 
 // Helper functions
 static const struct Label *cur_th_label;
+static const struct Label *cur_th_clearance;
 static uint64_t syscall_ret;
 static struct jmp_buf syscall_retjmp;
 
@@ -274,11 +275,6 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     const struct Container *c;
     check(container_find(&c, container, iflow_write));
 
-    const struct kobject *cur_th_clearance_ko;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *cur_th_clearance = &cur_th_clearance_ko->lb;
-
     struct Label *l_send;
     check(label_alloc(&l_send, LB_LEVEL_UNDEF));
     check(ulabel_to_label(ul_send, l_send));
@@ -322,12 +318,8 @@ sys_thread_create(uint64_t ct, const char *name)
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
 
-    const struct kobject *cur_th_clearance;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance,
-		      kobj_label, iflow_none));
-
     struct Thread *t;
-    check(thread_alloc(cur_th_label, &cur_th_clearance->lb, &t));
+    check(thread_alloc(cur_th_label, cur_th_clearance, &t));
     alloc_set_name(&t->th_ko, name);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
@@ -409,11 +401,6 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     if (!SAFE_EQUAL(t->th_status, thread_not_started))
 	check(-E_INVAL);
 
-    const struct kobject *cur_th_clearance_ko;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *cur_th_clearance = &cur_th_clearance_ko->lb;
-
     const struct Label *new_label;
     if (ul) {
 	struct Label *tmp;
@@ -489,11 +476,6 @@ sys_thread_set_label(struct ulabel *ul)
     check(label_alloc(&l, LB_LEVEL_UNDEF));
     check(ulabel_to_label(ul, l));
 
-    const struct kobject *cur_th_clearance_ko;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *cur_th_clearance = &cur_th_clearance_ko->lb;
-
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(label_compare(l, cur_th_clearance, label_leq_starlo));
     check(thread_change_label(cur_thread, l));
@@ -505,11 +487,6 @@ sys_thread_set_clearance(struct ulabel *uclear)
     struct Label *clearance;
     check(label_alloc(&clearance, LB_LEVEL_UNDEF));
     check(ulabel_to_label(uclear, clearance));
-
-    const struct kobject *cur_th_clearance_ko;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *cur_th_clearance = &cur_th_clearance_ko->lb;
 
     struct Label *clearance_bound;
     check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
@@ -526,11 +503,6 @@ sys_thread_set_clearance(struct ulabel *uclear)
 static void
 sys_thread_get_clearance(struct ulabel *uclear)
 {
-    const struct kobject *cur_th_clearance_ko;
-    check(kobject_get(cur_thread->th_clearance_id, &cur_th_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *cur_th_clearance = &cur_th_clearance_ko->lb;
-
     check(label_to_ulabel(cur_th_clearance, uclear));
 }
 
@@ -801,6 +773,11 @@ syscall(syscall_num num, uint64_t a1,
 
     if (setjmp(&syscall_retjmp) == 0) {
 	check(kobject_get_label(&cur_thread->th_ko, &cur_th_label));
+
+	const struct kobject *ko;
+	check(kobject_get(cur_thread->th_clearance_id, &ko,
+			  kobj_label, iflow_none));
+	cur_th_clearance = &ko->lb;
 
 	if (num < NSYSCALLS) {
 	    void_syscall v_fn = void_syscalls[num];
