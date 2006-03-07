@@ -76,11 +76,15 @@ low_level_init(struct netif *netif)
 {
     struct jif *jif = netif->state;
 
-    int64_t ndev_id = container_find(start_env->root_container,
-				     kobj_netdev, 0);
+    int64_t nmom_ct = container_find(start_env->root_container,
+				     kobj_container, "netd_mom");
+    if (nmom_ct < 0)
+	panic("jif: cannot find netd_mom: %s", e2s(nmom_ct));
+
+    int64_t ndev_id = container_find(nmom_ct, kobj_netdev, 0);
     if (ndev_id < 0)
 	panic("jif: cannot find netdev: %s", e2s(ndev_id));
-    jif->ndev = COBJ(start_env->root_container, ndev_id);
+    jif->ndev = COBJ(nmom_ct, ndev_id);
 
     netif->hwaddr_len = 6;
     netif->mtu = 1500;

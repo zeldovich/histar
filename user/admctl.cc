@@ -22,10 +22,13 @@ try
     if (ac < 2)
 	usage(av[0]);
 
-    int64_t admid = container_find(start_env->root_container,
-				   kobj_gate, "admgate");
-    error_check(admid);
-    struct cobj_ref admgate = COBJ(start_env->root_container, admid);
+    int64_t admct = container_find(start_env->root_container,
+				   kobj_container, "admind");
+    error_check(admct);
+
+    int64_t admgt = container_find(admct, kobj_gate, "admgate");
+    error_check(admgt);
+    struct cobj_ref admgate = COBJ(admct, admgt);
 
     struct gate_call_data gcd;
     struct admind_req *req = (struct admind_req *) &gcd.param_buf[0];

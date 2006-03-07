@@ -58,15 +58,13 @@ int
 main(int ac, char **av)
 try
 {
-    uint64_t rc = start_env->root_container;
-
     int64_t net_grant = sys_handle_create();
     int64_t net_taint = sys_handle_create();
 
     error_check(net_grant);
     error_check(net_taint);
 
-    netdev_init(rc, net_grant, net_taint);
+    netdev_init(start_env->shared_container, net_grant, net_taint);
 
     struct fs_inode netd_ino;
     error_check(fs_namei("/bin/netd", &netd_ino));
@@ -93,7 +91,7 @@ try
 	printf("netd_mom: current label %s\n", cur.to_string());
     }
 
-    spawn(rc, netd_ino,
+    spawn(start_env->root_container, netd_ino,
 	  0, 1, 2,
 	  3, &argv[0],
 	  0, &ds, 0, 0,

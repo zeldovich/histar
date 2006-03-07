@@ -38,7 +38,6 @@ fs_dir_ct::remove(const char *name, fs_inode ino)
 {
     if (ino.obj.container != ino_.obj.object)
 	throw basic_exception("fs_dir_ct::remove: wrong container");
-    error_check(sys_obj_unref(ino.obj));
 }
 
 int

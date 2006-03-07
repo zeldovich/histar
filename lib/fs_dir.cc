@@ -182,10 +182,10 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	    return 0;
 	return -E_NOT_FOUND;
     } catch (error &e) {
-	cprintf("fs_lookup_one: %s", e.what());
+	cprintf("fs_lookup_one: %s\n", e.what());
 	return e.err();
     } catch (std::exception &e) {
-	cprintf("fs_lookup_one: %s", e.what());
+	cprintf("fs_lookup_one: %s\n", e.what());
 	return -E_INVAL;
     }
 }

@@ -122,8 +122,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 			       &spawn_env_va, 0));
 
     struct cobj_ref exit_status_seg;
-    error_check(segment_alloc(c_top, PGSIZE, &exit_status_seg,
-			      0, base_object_label.to_ulabel(),
+    error_check(segment_alloc(c_top, sizeof(struct process_state),
+			      &exit_status_seg, 0,
+			      base_object_label.to_ulabel(),
 			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));

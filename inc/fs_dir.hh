@@ -31,8 +31,7 @@ public:
 
 // Basic container directory:
 // - list() enumerates container
-// - insert() only checks that inode is in the same container
-// - remove() unreferences the inode from the container
+// - insert() and remove() check that this is the right container
 class fs_dir_ct : public fs_dir {
 public:
     fs_dir_ct(fs_inode dir) : ino_(dir) {}
