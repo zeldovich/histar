@@ -60,23 +60,18 @@ netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
 {
-    int64_t netd_gate_ct = container_find(gate_ct, kobj_container, "netd gate");
-    error_check(netd_gate_ct);
-
     netd_taint_handle = taint_handle;
 
     try {
-	gatesrv *g = new gatesrv(netd_gate_ct, "netd", l, clear);
+	gatesrv *g = new gatesrv(gate_ct, "netd", l, clear);
 	g->set_entry_container(entry_ct);
 	g->set_entry_function(&netd_gate_entry, (void *) entry_ct);
 	return g;
     } catch (error &e) {
 	printf("netd_server_init: %s\n", e.what());
-	//return e.err();
 	throw;
     } catch (std::exception &e) {
 	printf("netd_server_init: %s\n", e.what());
-	//return -1;
 	throw;
     }
 }

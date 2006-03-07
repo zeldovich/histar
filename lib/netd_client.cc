@@ -19,7 +19,7 @@ static int
 netd_client_init(void)
 {
     int64_t netd_ct = container_find(start_env->root_container,
-				     kobj_container, "netd gate");
+				     kobj_container, "netd");
     if (netd_ct < 0)
 	return netd_ct;
 

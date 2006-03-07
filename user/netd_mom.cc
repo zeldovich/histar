@@ -71,12 +71,6 @@ try
     struct fs_inode netd_ino;
     error_check(fs_namei("/bin/netd", &netd_ino));
 
-    label gate_ct_label(1);
-    gate_ct_label.set(net_grant, 0);
-    int64_t gate_ct = sys_container_alloc(rc, gate_ct_label.to_ulabel(),
-					  "netd gate");
-    error_check(gate_ct);
-
     label ds(3);
     ds.set(net_grant, LB_LEVEL_STAR);
     ds.set(net_taint, LB_LEVEL_STAR);

@@ -77,7 +77,7 @@ main(int ac, char **av)
 	label *l = force_taint_prepare(taint);
 	label clear(2);
 
-	srv = netd_server_init(start_env->root_container,
+	srv = netd_server_init(start_env->shared_container,
 			       start_env->proc_container,
 			       taint,
 			       l, &clear);
