@@ -30,12 +30,31 @@ mkdir(const char *pn, int mode)
 int
 unlink(const char *pn)
 {
-    struct fs_inode f;
-    int r = fs_namei(pn, &f);
-    if (r < 0)
-	return r;
+    char *pn2 = malloc(strlen(pn) + 1);
+    if (pn2 == 0)
+	return -E_NO_MEM;
 
-    return fs_remove(f);
+    strcpy(pn2, pn);
+    const char *dirname, *basename;
+    fs_dirbase(pn2, &dirname, &basename);
+
+    struct fs_inode dir;
+    int r = fs_namei(dirname, &dir);
+    if (r < 0) {
+	free(pn2);
+	return r;
+    }
+
+    struct fs_inode f;
+    r = fs_namei(pn, &f);
+    if (r < 0) {
+	free(pn2);
+	return r;
+    }
+
+    r = fs_remove(dir, basename, f);
+    free(pn2);
+    return r;
 }
 
 int

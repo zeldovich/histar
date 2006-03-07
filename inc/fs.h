@@ -30,8 +30,8 @@ struct fs_mount_table {
 
 struct fs_readdir_state {
     struct fs_inode dir;
-    int (*fn) (struct fs_readdir_state *, struct fs_dent *, int *);
-    uint64_t n;
+    void *fs_dir_obj;
+    void *fs_dir_iterator_obj;
 };
 
 int  fs_get_root(uint64_t container, struct fs_inode *rdirp);
@@ -49,7 +49,7 @@ int  fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root);
 void fs_unmount(struct fs_inode dir, const char *mnt_name);
 int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f);
-int  fs_remove(struct fs_inode f);
+int  fs_remove(struct fs_inode dir, const char *fn, struct fs_inode f);
 int  fs_link(struct fs_inode dir, const char *fn, struct fs_inode f);
 
 int  fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
