@@ -75,26 +75,26 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     char name[KOBJ_NAME_LEN];
     error_check(sys_obj_get_name(elf, &name[0]));
 
-    int64_t c_spawn = sys_container_alloc(container,
-					  proc_object_label.to_ulabel(),
-					  &name[0]);
-    error_check(c_spawn);
+    int64_t c_top = sys_container_alloc(container,
+					base_object_label.to_ulabel(),
+					&name[0]);
+    error_check(c_top);
 
-    struct cobj_ref c_spawn_ref = COBJ(container, c_spawn);
-    scope_guard<int, struct cobj_ref> c_spawn_drop(sys_obj_unref, c_spawn_ref);
+    struct cobj_ref c_top_ref = COBJ(container, c_top);
+    scope_guard<int, struct cobj_ref> c_top_drop(sys_obj_unref, c_top_ref);
 
-    int64_t c_share = sys_container_alloc(c_spawn,
-					  base_object_label.to_ulabel(),
-					  "shared container");
-    error_check(c_share);
+    int64_t c_proc = sys_container_alloc(c_top,
+					 proc_object_label.to_ulabel(),
+					 "process");
+    error_check(c_proc);
 
     struct thread_entry e;
-    error_check(elf_load(c_spawn, elf, &e, proc_object_label.to_ulabel()));
+    error_check(elf_load(c_proc, elf, &e, proc_object_label.to_ulabel()));
 
     int fdnum[3] = { fd0, fd1, fd2 };
     for (int i = 0; i < 3; i++) {
 	if ((flags & SPAWN_MOVE_FD))
-	    error_check(fd_move(fdnum[i], c_share));
+	    error_check(fd_move(fdnum[i], c_top));
 
 	struct Fd *fd;
 	error_check(fd_lookup(fdnum[i], &fd, 0));
@@ -105,29 +105,30 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     }
 
     struct cobj_ref heap_obj;
-    error_check(segment_alloc(c_spawn, 0, &heap_obj, 0,
+    error_check(segment_alloc(c_proc, 0, &heap_obj, 0,
 			      proc_object_label.to_ulabel(), "heap"));
 
     start_env_t *spawn_env = 0;
-    struct cobj_ref c_spawn_env;
-    error_check(segment_alloc(c_spawn, PGSIZE, &c_spawn_env,
+    struct cobj_ref spawn_env_obj;
+    error_check(segment_alloc(c_proc, PGSIZE, &spawn_env_obj,
 			      (void**) &spawn_env,
 			      proc_object_label.to_ulabel(),
 			      "env"));
     scope_guard<int, void *> spawn_env_unmap(segment_unmap, spawn_env);
 
     void *spawn_env_va = 0;
-    error_check(segment_map_as(e.te_as, c_spawn_env,
+    error_check(segment_map_as(e.te_as, spawn_env_obj,
 			       SEGMAP_READ | SEGMAP_WRITE,
 			       &spawn_env_va, 0));
 
     struct cobj_ref exit_status_seg;
-    error_check(segment_alloc(c_share, PGSIZE, &exit_status_seg,
+    error_check(segment_alloc(c_top, PGSIZE, &exit_status_seg,
 			      0, base_object_label.to_ulabel(),
 			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
-    spawn_env->container = c_spawn;
+    spawn_env->container = c_proc;
+    spawn_env->shared_container = c_top;
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
@@ -139,9 +140,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	p += len + 1;
     }
 
-    int64_t thread = sys_thread_create(c_spawn, &name[0]);
+    int64_t thread = sys_thread_create(c_proc, &name[0]);
     error_check(thread);
-    struct cobj_ref tobj = COBJ(c_spawn, thread);
+    struct cobj_ref tobj = COBJ(c_proc, thread);
 
     if (label_debug)
 	printf("spawn: starting thread with label %s\n",
@@ -153,10 +154,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 				 thread_clear.to_ulabel()));
 
     struct child_process child;
-    child.container = c_spawn;
+    child.container = c_top;
     child.wait_seg = exit_status_seg;
 
-    c_spawn_drop.dismiss();
+    c_top_drop.dismiss();
     return child;
 }
 
