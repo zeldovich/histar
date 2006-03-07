@@ -82,7 +82,7 @@ try
     //recv.set(adm_handle, 0);
 
     gatesrv g(start_env->root_container, "admgate", &send, &recv);
-    g.set_entry_container(start_env->container);
+    g.set_entry_container(start_env->proc_container);
     g.set_entry_function(&admind_entry, 0);
     g.enable();
 

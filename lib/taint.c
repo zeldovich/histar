@@ -62,8 +62,8 @@ taint_cow(void)
     }
 
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
-    ERRCHECK(sys_obj_get_label(COBJ(start_env_ro->container,
-				    start_env_ro->container), &obj_label));
+    ERRCHECK(sys_obj_get_label(COBJ(start_env_ro->proc_container,
+				    start_env_ro->proc_container), &obj_label));
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
@@ -126,5 +126,10 @@ taint_cow(void)
 	segment_set_default_label(l_seg);
     }
 
-    start_env->container = mlt_ct;
+    start_env->proc_container = mlt_ct;
+
+    // XXX we probably won't be able to the old shared_container
+    // anymore, so might as well use the new container for anything
+    // that would have gone there..
+    start_env->shared_container = mlt_ct;
 }

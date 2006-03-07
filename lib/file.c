@@ -89,7 +89,7 @@ open(const char *pn, int flags, int mode)
     }
 
     struct Fd *fd;
-    r = fd_alloc(start_env->container, &fd, "file fd");
+    r = fd_alloc(start_env->proc_container, &fd, "file fd");
     if (r < 0)
 	return r;
 

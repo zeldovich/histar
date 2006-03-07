@@ -95,9 +95,9 @@ low_level_init(struct netif *netif)
     jif->waiter_id = thread_id();
     if (jif->waiter_id < 0)
 	panic("jif: cannot get thread id: %s", e2s(jif->waiter_id));
-  
+
     // container gets passed as the argument to _start()
-    uint64_t container = start_env->container;
+    uint64_t container = start_env->proc_container;
 
     jif->buf_base = 0;
     r = segment_alloc(container, JIF_BUFS * PGSIZE,

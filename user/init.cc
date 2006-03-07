@@ -39,7 +39,8 @@ init_env(uint64_t c_root, uint64_t c_self)
     error_check(segment_alloc(c_self, PGSIZE, &sa, (void**) &start_env,
 			      0, "init env"));
 
-    start_env->container = c_self;
+    start_env->proc_container = c_self;
+    start_env->shared_container = c_self;
     start_env->root_container = c_root;
 
     // set the filesystem root to be the same as the container root

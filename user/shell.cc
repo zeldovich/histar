@@ -140,7 +140,7 @@ do_spawn(int ac, char **av, struct child_process *childp)
 
     try {
 	struct child_process child;
-        child = spawn(start_env->container, ino,
+        child = spawn(start_env->shared_container, ino,
 		      0, 1, 2,
 		      ac, (const char **) av,
 		      0, 0, 0, 0,
@@ -185,7 +185,7 @@ spawn_and_wait(int ac, char **av)
     if (r == PROCESS_EXITED) {
 	if (code)
 	    printf("Exited with code %ld\n", code);
-	sys_obj_unref(COBJ(start_env->container, ct));
+	sys_obj_unref(COBJ(start_env->shared_container, ct));
     } else if (r == PROCESS_TAINTED) {
 	printf("Process tainted itself, detaching.\n");
     } else {
@@ -365,7 +365,7 @@ main(int ac, char **av)
     printf("JOS: shell\n");
 
     struct fs_inode selfdir;
-    int r = fs_get_root(start_env->container, &selfdir);
+    int r = fs_get_root(start_env->shared_container, &selfdir);
     if (r < 0) {
 	printf("shell: cannot get own container: %s\n", e2s(r));
     } else {

@@ -54,11 +54,11 @@ setup_env(uint64_t envaddr)
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
 
-    int64_t id = sys_mlt_create(start_env->container, "dynamic taint");
+    int64_t id = sys_mlt_create(start_env->proc_container, "dynamic taint");
     if (id < 0)
 	panic("libmain: cannot create dynamic taint MLT: %s", e2s(id));
 
-    start_env->taint_mlt = COBJ(start_env->container, id);
+    start_env->taint_mlt = COBJ(start_env->proc_container, id);
 }
 
 void

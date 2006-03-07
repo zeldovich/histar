@@ -127,7 +127,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
-    spawn_env->container = c_proc;
+    spawn_env->proc_container = c_proc;
     spawn_env->shared_container = c_top;
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;

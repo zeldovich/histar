@@ -194,7 +194,7 @@ lwip_thread_entry(void *arg)
 sys_thread_t
 sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
 {
-    uint64_t container = start_env->container;
+    uint64_t container = start_env->proc_container;
     struct cobj_ref tobj;
     struct lwip_thread *lt = malloc(sizeof(*lt));
     if (lt == 0)

@@ -89,7 +89,8 @@ start_timer(struct timer_thread *t, void (*func)(void), const char *name, int ms
     t->msec = msec;
     t->func = func;
     t->name = name;
-    int r = thread_create(start_env->container, &net_timer, t, &t->thread, name);
+    int r = thread_create(start_env->proc_container, &net_timer,
+			  t, &t->thread, name);
     if (r < 0)
 	panic("cannot create timer thread: %s", e2s(r));
 }
@@ -110,10 +111,9 @@ netd_lwip_init(void (*cb)(void *), void *cbarg)
     lwip_init(&nif);
     dhcp_start(&nif);
 
-    uint64_t container = start_env->container;
     struct cobj_ref receive_thread;
-    int r = thread_create(container, &net_receive, &nif, &receive_thread,
-			  "rx thread");
+    int r = thread_create(start_env->proc_container, &net_receive, &nif,
+			  &receive_thread, "rx thread");
     if (r < 0)
 	panic("cannot create receiver thread: %s", e2s(r));
 

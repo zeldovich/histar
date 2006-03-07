@@ -50,7 +50,7 @@ telnet_server(void)
 	const char *argv[1];
 	argv[0] = "shell";
 
-	spawn(start_env->container, sh,
+	spawn(start_env->shared_container, sh,
 	      ss, ss, ss,
 	      1, &argv[0], 
 	      0, 0, 0, 0,

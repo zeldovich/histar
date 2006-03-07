@@ -14,11 +14,11 @@ static void *heap_base = (void *) UHEAP;
 static int
 find_heap(struct cobj_ref *o)
 {
-    int64_t id = container_find(start_env->container, kobj_segment, "heap");
+    int64_t id = container_find(start_env->proc_container, kobj_segment, "heap");
     if (id < 0)
 	return id;
 
-    *o = COBJ(start_env->container, id);
+    *o = COBJ(start_env->proc_container, id);
     return 0;
 
     //return segment_lookup(heap_base, o, 0);
@@ -36,7 +36,7 @@ sbrk(intptr_t x)
     if (!heap.inited) {
 	r = find_heap(&heapobj);
 	if (r < 0)
-	    r = segment_alloc(start_env->container, 0,
+	    r = segment_alloc(start_env->proc_container, 0,
 			      &heapobj, &heap_base, 0, "heap");
 	if (r < 0) {
 	    printf("sbrk: cannot allocate heap: %s\n", e2s(r));
@@ -87,7 +87,7 @@ heap_relabel(struct ulabel *l)
 	    goto out;
 	}
 
-	r = sys_segment_copy(heapobj, start_env->container, l, "heap");
+	r = sys_segment_copy(heapobj, start_env->proc_container, l, "heap");
 	if (r < 0) {
 	    printf("heap_relabel: cannot copy: %s\n", e2s(r));
 	    goto out;
@@ -101,7 +101,7 @@ heap_relabel(struct ulabel *l)
 	}
 
 	sys_obj_unref(heapobj);
-	heapobj = COBJ(start_env->container, nid);
+	heapobj = COBJ(start_env->proc_container, nid);
 	r = segment_map(heapobj, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
 	if (r < 0) {
 	    printf("heap_relabel: cannot remap: %s\n", e2s(r));
