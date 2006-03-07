@@ -27,7 +27,8 @@ LIB_SRCFILES += \
 	lib/cppsup/new_opvnt.cc \
 	lib/cppsup/tinfo.cc \
 	lib/cppsup/tinfo2.cc \
-	lib/cppsup/vterminate.cc
+	lib/cppsup/vterminate.cc \
+	lib/cppsup/pure.cc
 
 CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
 
