@@ -178,64 +178,89 @@ fs_get_label(void)
 }
 
 static int
-fs_get_dent_ct(struct fs_inode d, uint64_t n, struct fs_dent *e)
+fs_readdir_dent_ct(struct fs_readdir_state *s, struct fs_dent *e, int *retry)
 {
-    int64_t slot_id = sys_container_get_slot_id(d.obj.object, n);
+    int64_t slot_id = sys_container_get_slot_id(s->dir.obj.object, s->n++);
     if (slot_id < 0) {
 	if (slot_id == -E_INVAL)
-	    return -E_RANGE;
-	if (slot_id == -E_NOT_FOUND)
-	    return -E_NOT_FOUND;
+	    return 0;
+	if (slot_id == -E_NOT_FOUND) {
+	    *retry = 1;
+	    return 0;
+	}
 	return slot_id;
     }
 
-    e->de_inode.obj = COBJ(d.obj.object, slot_id);
+    e->de_inode.obj = COBJ(s->dir.obj.object, slot_id);
 
     int r = sys_obj_get_name(e->de_inode.obj, &e->de_name[0]);
     if (r < 0)
 	return r;
 
-    return 0;
+    return 1;
 }
 
 static int
-fs_get_dent_mlt(struct fs_inode d, uint64_t n, struct fs_dent *e)
+fs_readdir_dent_mlt(struct fs_readdir_state *s, struct fs_dent *e, int *retry)
 {
     uint8_t buf[MLT_BUF_SIZE];
     uint64_t ct;
-    int r = sys_mlt_get(d.obj, n, 0, &buf[0], &ct);
+    int r = sys_mlt_get(s->dir.obj, s->n++, 0, &buf[0], &ct);
     if (r < 0) {
 	if (r == -E_NOT_FOUND)
-	    return -E_RANGE;
+	    return 0;
 	return r;
     }
 
     e->de_inode.obj = COBJ(ct, ct);
     snprintf(&e->de_name[0], sizeof(e->de_name), "%lu", ct);
-    return 0;
+    return 1;
 }
 
 int
-fs_get_dent(struct fs_inode d, uint64_t n, struct fs_dent *e)
+fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir)
 {
-    int type = sys_obj_get_type(d.obj);
+    memset(s, 0, sizeof(*s));
+    s->dir = dir;
+
+    int type = sys_obj_get_type(dir.obj);
     if (type < 0)
 	return type;
 
+    if (type == kobj_container)
+	s->fn = &fs_readdir_dent_ct;
+    else if (type == kobj_mlt)
+	s->fn = &fs_readdir_dent_mlt;
+    else
+	return -E_INVAL;
+
+    return 0;
+}
+
+void
+fs_readdir_close(struct fs_readdir_state *s)
+{
+}
+
+int
+fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *e)
+{
+again:
     // For the debugging cprintf further down
     e->de_name[0] = '\0';
 
-    int r = -E_INVAL;
-    if (type == kobj_container)
-	r = fs_get_dent_ct(d, n, e);
-    else if (type == kobj_mlt)
-	r = fs_get_dent_mlt(d, n, e);
+    int retry = 0;
+    int r = s->fn(s, e, &retry);
 
     if (fs_debug)
 	cprintf("fs_get_dent: dir %ld r %d obj %ld name %s\n",
-		d.obj.object, r, e->de_inode.obj.object,
+		s->dir.obj.object, r, e->de_inode.obj.object,
 		&e->de_name[0]);
 
+    if (r < 0)
+	return r;
+    if (retry)
+	goto again;
     return r;
 }
 
@@ -321,18 +346,19 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	return 0;
     } catch (missing_dir_segment &e) {}
 
-    struct fs_dent de;
-    int n = 0;
+    struct fs_readdir_state s;
+    int r = fs_readdir_init(&s, dir);
+    if (r < 0)
+	return r;
+    scope_guard<void, fs_readdir_state *> g(fs_readdir_close, &s);
 
     for (;;) {
-	int r = fs_get_dent(dir, n++, &de);
-	if (r < 0) {
-	    if (r == -E_NOT_FOUND)
-		continue;
-	    if (r == -E_RANGE)
-		return -E_NOT_FOUND;
+	struct fs_dent de;
+	r = fs_readdir_dent(&s, &de);
+	if (r == 0)
+	    return -E_NOT_FOUND;
+	if (r < 0)
 	    return r;
-	}
 
 	if (!strcmp(fn, de.de_name)) {
 	    *o = de.de_inode;

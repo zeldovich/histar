@@ -12,6 +12,7 @@ extern "C" {
 
 #include <inc/nethelper.hh>
 #include <inc/error.hh>
+#include <inc/scopeguard.hh>
 
 static int reqs;
 
@@ -85,15 +86,17 @@ http_client(void *arg)
 		snprintf(buf, sizeof(buf), "directory or mlt\n");
 		tc.write(buf, strlen(buf));
 
-		struct fs_dent de;
-		for (uint64_t n = 0; ; n++) {
-		    r = fs_get_dent(ino, n, &de);
-		    if (r == -E_RANGE)
-			break;
-		    if (r == -E_NOT_FOUND)
-			continue;
+		struct fs_readdir_state rs;
+		error_check(fs_readdir_init(&rs, ino));
+		scope_guard<void, fs_readdir_state *> g(fs_readdir_close, &rs);
+
+		for (;;) {
+		    struct fs_dent de;
+		    r = fs_readdir_dent(&rs, &de);
 		    if (r < 0)
-			throw error(r, "fs_get_dent");
+			throw error(r, "fs_readdir_dent");
+		    if (r == 0)
+			break;
 
 		    snprintf(buf, sizeof(buf),
 			     "<a href=\"%s%s%s\">%s/%s</a>\n",

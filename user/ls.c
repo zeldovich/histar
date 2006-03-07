@@ -23,16 +23,22 @@ main(int ac, char **av)
 	return r;
     }
 
-    for (uint64_t n = 0; ; n++) {
+    struct fs_readdir_state s;
+    r = fs_readdir_init(&s, dir);
+    if (r < 0) {
+	printf("fs_readdir_init: %s\n", e2s(r));
+	return r;
+    }
+
+    for (;;) {
 	struct fs_dent de;
-	r = fs_get_dent(dir, n, &de);
+	r = fs_readdir_dent(&s, &de);
 	if (r < 0) {
-	    if (r == -E_NOT_FOUND)
-		continue;
-	    if (r != -E_RANGE)
-		printf("fs_get_dent: %s\n", e2s(r));
-	    break;
+	    printf("fs_readdir_dent: %s\n", e2s(r));
+	    return r;
 	}
+	if (r == 0)
+	    break;
 
 	printf("%s\n", de.de_name);
     }

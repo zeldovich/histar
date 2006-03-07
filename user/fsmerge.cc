@@ -6,6 +6,7 @@ extern "C" {
 }
 
 #include <inc/error.hh>
+#include <inc/scopeguard.hh>
 
 static int merge_debug = 0;
 
@@ -54,15 +55,17 @@ merge_mlt_slot(struct fs_inode mct, struct fs_inode dst)
     if (merge_debug)
 	printf("found non-trivial MLT slot %lu\n", mct.obj.object);
 
-    for (uint64_t i = 0; ; i++) {
+    struct fs_readdir_state s;
+    error_check(fs_readdir_init(&s, mct));
+    scope_guard<void, fs_readdir_state *> g(fs_readdir_close, &s);
+
+    for (;;) {
 	struct fs_dent de;
-	int r = fs_get_dent(mct, i, &de);
-	if (r == -E_NOT_FOUND)
-	    continue;
-	if (r == -E_RANGE)
-	    break;
+	int r = fs_readdir_dent(&s, &de);
 	if (r < 0)
-	    throw error(r, "merge_mlt_slot: fs_get_dent");
+	    throw error(r, "merge_mlt_slot: fs_readdir_dent");
+	if (r == 0)
+	    break;
 
 	merge_mlt_file(de.de_inode, dst);
     }
@@ -71,15 +74,17 @@ merge_mlt_slot(struct fs_inode mct, struct fs_inode dst)
 static void
 merge_mlt(struct fs_inode src, struct fs_inode dst)
 {
+    struct fs_readdir_state s;
+    error_check(fs_readdir_init(&s, src));
+    scope_guard<void, fs_readdir_state *> g(fs_readdir_close, &s);
+
     for (uint64_t i = 0; ; i++) {
 	struct fs_dent de;
-	int r = fs_get_dent(src, i, &de);
-	if (r == -E_NOT_FOUND)
-	    continue;
-	if (r == -E_RANGE)
-	    break;
+	int r = fs_readdir_dent(&s, &de);
 	if (r < 0)
-	    throw error(r, "merge_mlt: fs_get_dent");
+	    throw error(r, "merge_mlt: fs_readdir_dent");
+	if (r == 0)
+	    break;
 
 	merge_mlt_slot(de.de_inode, dst);
     }

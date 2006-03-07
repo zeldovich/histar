@@ -28,10 +28,19 @@ struct fs_mount_table {
     struct fs_mtab_ent mtab_ent[FS_NMOUNT];
 };
 
+struct fs_readdir_state {
+    struct fs_inode dir;
+    int (*fn) (struct fs_readdir_state *, struct fs_dent *, int *);
+    uint64_t n;
+};
+
 int  fs_get_root(uint64_t container, struct fs_inode *rdirp);
-int  fs_get_dent(struct fs_inode dir, uint64_t n, struct fs_dent *e);
 int  fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
 int  fs_namei(const char *pn, struct fs_inode *o);
+
+int  fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir);
+int  fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de);
+void fs_readdir_close(struct fs_readdir_state *s);
 
 void fs_dirbase(char *pn, const char **dirname, const char **basename);
 
