@@ -66,12 +66,13 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     if (cur_thread == 0)
 	return 0;
 
-    const struct Label *th_label, *ko_label;
-    int r = kobject_get_label(&cur_thread->th_ko, &th_label);
+    const struct Label *th_label;
+    int r = kobject_get_label(&cur_thread->th_ko, kolabel_contaminate, &th_label);
     if (r < 0)
 	return r;
 
-    r = kobject_get_label(ko, &ko_label);
+    const struct Label *ko_label;
+    r = kobject_get_label(ko, kolabel_contaminate, &ko_label);
     if (r < 0)
 	return r;
 
@@ -126,39 +127,51 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
 }
 
 int
-kobject_get_label(const struct kobject_hdr *kp,
+kobject_get_label(const struct kobject_hdr *kp, int idx,
 		  const struct Label **lpp)
 {
-    const struct kobject *label_ko;
-    int r = kobject_get(kp->ko_label_id, &label_ko, kobj_label, iflow_none);
-    if (r < 0)
-	return r;
+    if (kp->ko_label[idx]) {
+	const struct kobject *ko;
+	int r = kobject_get(kp->ko_label[idx], &ko, kobj_label, iflow_none);
+	if (r < 0)
+	    return r;
+	*lpp = &ko->lb;
+    } else {
+	*lpp = 0;
+    }
 
-    *lpp = &label_ko->lb;
     return 0;
 }
 
 int
-kobject_set_label(struct kobject_hdr *kp,
+kobject_set_label(struct kobject_hdr *kp, int idx,
 		  const struct Label *new_label)
 {
-    const struct kobject *old_label;
-    int r = kobject_get(kp->ko_label_id, &old_label, kobj_label, iflow_none);
+    const struct Label *old_label;
+    int r = kobject_get_label(kp, idx, &old_label);
     if (r < 0)
 	return r;
 
-    kobject_set_label_prepared(kp, &old_label->lb, new_label);
+    kobject_set_label_prepared(kp, idx, old_label, new_label);
     return 0;
 }
 
 void
-kobject_set_label_prepared(struct kobject_hdr *kp,
+kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 			   const struct Label *old_label,
 			   const struct Label *new_label)
 {
-    kobject_decref(&old_label->lb_ko);
-    kobject_incref(&new_label->lb_ko);
-    kp->ko_label_id = new_label->lb_ko.ko_id;
+    if (old_label) {
+	assert(kp->ko_label[idx] == old_label->lb_ko.ko_id);
+	kobject_decref(&old_label->lb_ko);
+    } else {
+	assert(kp->ko_label[idx] == 0);
+    }
+
+    if (new_label)
+	kobject_incref(&new_label->lb_ko);
+
+    kp->ko_label[idx] = new_label ? new_label->lb_ko.ko_id : 0;
 }
 
 int
@@ -183,19 +196,18 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
-    kh->ko_label_id = l ? l->lb_ko.ko_id : 0;
     kh->ko_flags = KOBJ_DIRTY;
     pagetree_init(&ko->ko_pt);
+    kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
 
     // Make sure that it's legal to allocate object at this label!
     r = l ? kobject_iflow_check(kh, iflow_write) : 0;
     if (r < 0) {
+	kobject_set_label_prepared(kh, kolabel_contaminate, l, 0);
 	page_free(p);
 	return r;
     }
 
-    if (l)
-	kobject_incref(&l->lb_ko);
     kobject_negative_remove(kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
@@ -374,11 +386,10 @@ kobject_unpin_page(const struct kobject_hdr *ko)
 static int
 kobject_gc(struct kobject *ko)
 {
-    int r = 0;
-    const struct Label *l = 0;
-
-    if (ko->hdr.ko_type != kobj_label) {
-	r = kobject_get_label(&ko->hdr, &l);
+    int r;
+    const struct Label *l[kolabel_max];
+    for (int i = 0; i < kolabel_max; i++) {
+	r = kobject_get_label(&ko->hdr, i, &l[i]);
 	if (r < 0)
 	    return r;
     }
@@ -401,9 +412,6 @@ kobject_gc(struct kobject *ko)
 	break;
 
     case kobj_gate:
-	r = gate_gc(&ko->gt);
-	break;
-
     case kobj_segment:
     case kobj_netdev:
     case kobj_label:
@@ -416,8 +424,9 @@ kobject_gc(struct kobject *ko)
     if (r < 0)
 	return r;
 
-    if (l)
-	kobject_decref(&l->lb_ko);
+    for (int i = 0; i < kolabel_max; i++)
+	kobject_set_label_prepared(&ko->hdr, i, l[i], 0);
+
     pagetree_free(&ko->ko_pt);
     ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;

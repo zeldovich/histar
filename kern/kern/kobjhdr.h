@@ -6,6 +6,12 @@
 #include <inc/queue.h>
 #include <inc/safetype.h>
 
+enum {
+    kolabel_contaminate,
+    kolabel_clearance,
+    kolabel_max
+};
+
 #define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
 #define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
@@ -20,8 +26,8 @@ struct kobject_hdr {
 
     uint64_t ko_flags;
     uint64_t ko_nbytes;
-    uint64_t ko_min_bytes;	// cannot shrink below this size
-    uint64_t ko_label_id;	// id of label object (holds refcount)
+    uint64_t ko_min_bytes;		// cannot shrink below this size
+    uint64_t ko_label[kolabel_max];	// id of label object (holds refcount)
     char ko_name[KOBJ_NAME_LEN];
 
     // For verifying the persistence layer

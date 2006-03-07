@@ -234,7 +234,7 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 	check(cobj_get(cobj, kobj_any, &ko, iflow_read));
 
     const struct Label *l;
-    check(kobject_get_label(&ko->hdr, &l));
+    check(kobject_get_label(&ko->hdr, kolabel_contaminate, &l));
     check(label_to_ulabel(l, ul));
 }
 
@@ -306,10 +306,9 @@ sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
     const struct kobject *ko;
     check(cobj_get(gate, kobj_gate, &ko, iflow_none));
 
-    const struct kobject *clear;
-    check(kobject_get(ko->gt.gt_clearance_id, &clear,
-		      kobj_label, iflow_none));
-    check(label_to_ulabel(&clear->lb, ul));
+    const struct Label *clear;
+    check(kobject_get_label(&ko->hdr, kolabel_clearance, &clear));
+    check(label_to_ulabel(clear, ul));
 }
 
 static int64_t
@@ -335,13 +334,9 @@ sys_gate_enter(struct cobj_ref gt,
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
     const struct Gate *g = &ko->gt;
 
-    const struct Label *gt_label;
-    check(kobject_get_label(&g->gt_ko, &gt_label));
-
-    const struct kobject *gt_clearance_ko;
-    check(kobject_get(g->gt_clearance_id, &gt_clearance_ko,
-		      kobj_label, iflow_none));
-    const struct Label *gt_clearance = &gt_clearance_ko->lb;
+    const struct Label *gt_label, *gt_clearance;
+    check(kobject_get_label(&g->gt_ko, kolabel_contaminate, &gt_label));
+    check(kobject_get_label(&g->gt_ko, kolabel_clearance, &gt_clearance));
 
     check(label_compare(cur_th_label, gt_clearance, label_leq_starlo));
 
@@ -494,10 +489,8 @@ sys_thread_set_clearance(struct ulabel *uclear)
 		    clearance_bound, label_leq_starhi));
 
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
-
-    kobject_incref(&clearance->lb_ko);
-    kobject_decref(&cur_th_clearance->lb_ko);
-    kobject_dirty(&cur_thread->th_ko)->th.th_clearance_id = clearance->lb_ko.ko_id;
+    kobject_set_label_prepared(&kobject_dirty(&cur_thread->th_ko)->hdr,
+			       kolabel_clearance, cur_th_clearance, clearance);
 }
 
 static void
@@ -662,7 +655,7 @@ sys_mlt_create(uint64_t container, const char *name)
     check(container_find(&c, container, iflow_write));
 
     const struct Label *ct_label;
-    check(kobject_get_label(&c->ct_ko, &ct_label));
+    check(kobject_get_label(&c->ct_ko, kolabel_contaminate, &ct_label));
 
     struct Mlt *mlt;
     check(mlt_alloc(ct_label, &mlt));
@@ -772,12 +765,10 @@ syscall(syscall_num num, uint64_t a1,
     s = read_tsc();
 
     if (setjmp(&syscall_retjmp) == 0) {
-	check(kobject_get_label(&cur_thread->th_ko, &cur_th_label));
-
-	const struct kobject *ko;
-	check(kobject_get(cur_thread->th_clearance_id, &ko,
-			  kobj_label, iflow_none));
-	cur_th_clearance = &ko->lb;
+	check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
+				&cur_th_label));
+	check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance,
+				&cur_th_clearance));
 
 	if (num < NSYSCALLS) {
 	    void_syscall v_fn = void_syscalls[num];

@@ -59,7 +59,8 @@ void kobject_init(void);
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
 		 kobject_type_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
-int  kobject_alloc(kobject_type_t type, const struct Label *l,
+int  kobject_alloc(kobject_type_t type,
+		   const struct Label *contaminate,
 		   struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 
@@ -71,13 +72,13 @@ int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
 		      void **pp, page_rw_mode rw)
     __attribute__ ((warn_unused_result));
 
-int  kobject_get_label(const struct kobject_hdr *kp,
+int  kobject_get_label(const struct kobject_hdr *kp, int idx,
 		       const struct Label **lpp)
     __attribute__ ((warn_unused_result));
-int  kobject_set_label(struct kobject_hdr *kp,
+int  kobject_set_label(struct kobject_hdr *kp, int idx,
 		       const struct Label *lp)
     __attribute__ ((warn_unused_result));
-void kobject_set_label_prepared(struct kobject_hdr *kp,
+void kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 				const struct Label *old_label,
 				const struct Label *new_label);
 

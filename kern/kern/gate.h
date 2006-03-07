@@ -9,16 +9,12 @@
 struct Gate {
     struct kobject_hdr gt_ko;
 
-    uint64_t gt_clearance_id;
     struct thread_entry gt_te;
 };
 
 int  gate_alloc(const struct Label *l,
 		const struct Label *clearance,
 		struct Gate **gp)
-    __attribute__ ((warn_unused_result));
-
-int  gate_gc(struct Gate *g)
     __attribute__ ((warn_unused_result));
 
 #endif

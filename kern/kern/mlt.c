@@ -149,7 +149,7 @@ mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
     uint64_t nslots = mlt_nslots(mlt);
 
     const struct Label *cur_th_label;
-    int r = kobject_get_label(&cur_thread->th_ko, &cur_th_label);
+    int r = kobject_get_label(&cur_thread->th_ko, kolabel_contaminate, &cur_th_label);
     if (r < 0)
 	return r;
 

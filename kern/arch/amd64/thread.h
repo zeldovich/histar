@@ -21,7 +21,6 @@ struct Thread {
     const struct Address_space *th_as;
 
     struct Trapframe th_tf __attribute__ ((aligned (16)));
-    uint64_t th_clearance_id;
 
     // The thread's associated segment & container
     kobject_id_t th_sg;
@@ -42,7 +41,7 @@ extern struct Thread_list thread_list_runnable;
 extern struct Thread_list thread_list_limbo;
 extern const struct Thread *cur_thread;
 
-int  thread_alloc(const struct Label *l,
+int  thread_alloc(const struct Label *contaminate,
 		  const struct Label *clearance,
 		  struct Thread **tp);
 void thread_swapin(struct Thread *t);
@@ -52,7 +51,7 @@ int  thread_gc(struct Thread *t)
 void thread_zero_refs(const struct Thread *t);
 
 int  thread_jump(const struct Thread *t,
-		 const struct Label *label,
+		 const struct Label *contaminate,
 		 const struct Label *clearance,
 		 struct cobj_ref as, void *entry, void *stack,
 		 uint64_t arg0, uint64_t arg1)

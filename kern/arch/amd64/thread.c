@@ -68,23 +68,22 @@ thread_halt(const struct Thread *const_t)
 }
 
 int
-thread_alloc(const struct Label *l,
+thread_alloc(const struct Label *contaminate,
 	     const struct Label *clearance,
 	     struct Thread **tp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_thread, l, &ko);
+    int r = kobject_alloc(kobj_thread, contaminate, &ko);
     if (r < 0)
 	return r;
 
     struct Thread *t = &ko->th;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    t->th_clearance_id = clearance->lb_ko.ko_id;
-    kobject_incref(&clearance->lb_ko);
+    kobject_set_label_prepared(&t->th_ko, kolabel_clearance, 0, clearance);
 
     struct Segment *sg;
-    r = segment_alloc(l, &sg);
+    r = segment_alloc(contaminate, &sg);
     if (r < 0)
 	return r;
 
@@ -97,7 +96,7 @@ thread_alloc(const struct Label *l,
     sg->sg_ko.ko_min_bytes = PGSIZE;
 
     struct Container *ct;
-    r = container_alloc(l, &ct);
+    r = container_alloc(contaminate, &ct);
     if (r < 0)
 	return r;
 
@@ -185,15 +184,6 @@ thread_gc(struct Thread *t)
 	t->th_ct = 0;
     }
 
-    if (t->th_clearance_id) {
-	r = kobject_get(t->th_clearance_id, &ko, kobj_label, iflow_none);
-	if (r < 0)
-	    return r;
-
-	kobject_decref(&ko->hdr);
-	t->th_clearance_id = 0;
-    }
-
     thread_swapout(t);
     return 0;
 }
@@ -226,15 +216,15 @@ thread_change_label(const struct Thread *const_t,
 
     // Prepare labels for all of the objects
     const struct Label *cur_th_label, *cur_sg_label, *cur_ct_label;
-    r = kobject_get_label(&t->th_ko, &cur_th_label);
+    r = kobject_get_label(&t->th_ko, kolabel_contaminate, &cur_th_label);
     if (r < 0)
 	return r;
 
-    r = kobject_get_label(&ko_sg->hdr, &cur_sg_label);
+    r = kobject_get_label(&ko_sg->hdr, kolabel_contaminate, &cur_sg_label);
     if (r < 0)
 	return r;
 
-    r = kobject_get_label(&ko_ct->hdr, &cur_ct_label);
+    r = kobject_get_label(&ko_ct->hdr, kolabel_contaminate, &cur_ct_label);
     if (r < 0)
 	return r;
 
@@ -260,9 +250,9 @@ thread_change_label(const struct Thread *const_t,
     kobject_decref(&ko_sg->hdr);
     kobject_incref(&sg_new->sg_ko);
 
-    kobject_set_label_prepared(&t->th_ko,      cur_th_label, new_label);
-    kobject_set_label_prepared(&sg_new->sg_ko, cur_sg_label, new_label);
-    kobject_set_label_prepared(&ct->ct_ko,     cur_ct_label, new_label);
+    kobject_set_label_prepared(&t->th_ko,      kolabel_contaminate, cur_th_label, new_label);
+    kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate, cur_sg_label, new_label);
+    kobject_set_label_prepared(&ct->ct_ko,     kolabel_contaminate, cur_ct_label, new_label);
 
     // make sure all label checks get re-evaluated
     thread_clear_as(t);
@@ -289,9 +279,8 @@ thread_jump(const struct Thread *const_t,
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
-    const struct kobject *cur_clearance_ko;
-    int r = kobject_get(t->th_clearance_id, &cur_clearance_ko,
-			kobj_label, iflow_none);
+    const struct Label *cur_clearance;
+    int r = kobject_get_label(&t->th_ko, kolabel_clearance, &cur_clearance);
     if (r < 0)
 	return r;
 
@@ -299,10 +288,8 @@ thread_jump(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
-    t->th_clearance_id = clearance->lb_ko.ko_id;
-    kobject_decref(&cur_clearance_ko->hdr);
-    kobject_incref(&clearance->lb_ko);
-
+    kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
+			       cur_clearance, clearance);
     thread_change_as(t, as);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
