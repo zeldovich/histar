@@ -3,6 +3,11 @@
 
 #include <inc/error.hh>
 
+template <class T>
+void delete_obj(T *o) {
+    delete o;
+}
+
 template <class R, class T>
 class scope_guard {
 public:
