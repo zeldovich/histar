@@ -30,6 +30,13 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     }
 }
 
+#define ERRCHECK(e) \
+    do {					\
+	int64_t __r = e;			\
+	if (__r < 0)				\
+	    panic("%s: %s", #e, e2s(__r));	\
+    } while (0)
+
 void
 taint_cow(void)
 {
@@ -41,21 +48,13 @@ taint_cow(void)
     struct ulabel obj_label =
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
-    int r = thread_get_label(&cur_label);
-    if (r < 0)
-	panic("taint_cow: thread_get_label: %s", e2s(r));
-
     struct cobj_ref cur_as;
-    r = sys_thread_get_as(&cur_as);
-    if (r < 0)
-	panic("taint_cow: sys_thread_get_as: %s", e2s(r));
-
-    r = sys_obj_get_label(cur_as, &obj_label);
-    if (r < 0)
-	panic("taint_cow: cannot get as label: %s", e2s(r));
+    ERRCHECK(sys_thread_get_as(&cur_as));
+    ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
+    ERRCHECK(thread_get_label(&cur_label));
 
     // if we can write to the address space, that's "good enough"
-    r = label_compare(&cur_label, &obj_label, label_leq_starlo);
+    int r = label_compare(&cur_label, &obj_label, label_leq_starlo);
     if (r == 0) {
 	if (taint_debug)
 	    printf("taint_cow: no need to cow\n");
@@ -63,33 +62,26 @@ taint_cow(void)
     }
 
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
-    r = sys_obj_get_label(COBJ(start_env_ro->container, start_env_ro->container), &obj_label);
-    if (r < 0)
-	panic("taint_cow: cannot get parent container label: %s", e2s(r));
+    ERRCHECK(sys_obj_get_label(COBJ(start_env_ro->container,
+				    start_env_ro->container), &obj_label));
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
     struct cobj_ref mlt = start_env_ro->taint_mlt;
     uint8_t buf[MLT_BUF_SIZE];
     uint64_t mlt_ct;
-    r = sys_mlt_put(mlt, &obj_label, &buf[0], &mlt_ct);
-    if (r < 0)
-	panic("taint_cow: cannot store garbage in MLT: %s", e2s(r));
+    ERRCHECK(sys_mlt_put(mlt, &obj_label, &buf[0], &mlt_ct));
 
     struct u_segment_mapping uas_ents[taint_cow_as_ents];
     struct u_address_space uas =
 	{ .size = taint_cow_as_ents, .ents = &uas_ents[0] };
-    r = sys_as_get(cur_as, &uas);
-    if (r < 0)
-	panic("taint_cow: sys_as_get: %s", e2s(r));
+    ERRCHECK(sys_as_get(cur_as, &uas));
 
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (!(uas.ents[i].flags & SEGMAP_WRITE))
 	    continue;
 
-	r = sys_obj_get_label(uas.ents[i].segment, &obj_label);
-	if (r < 0)
-	    panic("taint_cow: cannot get label: %s", e2s(r));
+	ERRCHECK(sys_obj_get_label(uas.ents[i].segment, &obj_label));
 
 	r = label_compare(&cur_label, &obj_label, label_leq_starlo);
 	if (r == 0)
@@ -103,9 +95,7 @@ taint_cow(void)
 	taint_cow_compute_label(&cur_label, &obj_label);
 
 	char namebuf[KOBJ_NAME_LEN];
-	r = sys_obj_get_name(uas.ents[i].segment, &namebuf[0]);
-	if (r < 0)
-	    panic("taint_cow: cannot get segment name: %s", e2s(r));
+	ERRCHECK(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
 	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
 				      &obj_label, &namebuf[0]);
@@ -115,9 +105,7 @@ taint_cow(void)
 	uas.ents[i].segment = COBJ(mlt_ct, id);
     }
 
-    r = sys_obj_get_label(cur_as, &obj_label);
-    if (r < 0)
-	panic("taint_cow: cannot get as label again: %s", e2s(r));
+    ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
@@ -126,13 +114,8 @@ taint_cow(void)
 	panic("taint_cow: cannot create new as: %s", e2s(id));
 
     struct cobj_ref new_as = COBJ(mlt_ct, id);
-    r = sys_as_set(new_as, &uas);
-    if (r < 0)
-	panic("taint_cow: cannot populate new as: %s", e2s(r));
-
-    r = sys_thread_set_as(new_as);
-    if (r < 0)
-	panic("taint_cow: cannot switch to new as: %s", e2s(r));
+    ERRCHECK(sys_as_set(new_as, &uas));
+    ERRCHECK(sys_thread_set_as(new_as));
 
     if (taint_debug)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
