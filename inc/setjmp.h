@@ -6,4 +6,6 @@
 int  setjmp(struct jmp_buf *buf);
 void longjmp(struct jmp_buf *buf, uint64_t val) __attribute__((__noreturn__));
 
+typedef struct jmp_buf sigjmp_buf;
+
 #endif
