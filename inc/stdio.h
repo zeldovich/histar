@@ -43,4 +43,6 @@ extern FILE *stdin, *stdout, *stderr;
 
 int	fputs(const char *s, FILE *stream);
 
+#define EOF (-1)
+
 #endif

@@ -25,4 +25,6 @@ long	strtol(const char *s, char **endptr, int base);
 int	strtoull(const char *s, char **endptr, int base, uint64_t *result);
 int	atoi(const char *nptr);
 
+#define strerror(errno) e2s(errno)
+
 #endif /* not JOS_INC_STRING_H */
