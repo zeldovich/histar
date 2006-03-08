@@ -44,10 +44,11 @@ struct btree_obj
 #define FCHUNK_ORDER    BTREE_MAX_ORDER2
 #define FOFFSET_ORDER   BTREE_MAX_ORDER1
 
+// should be at least max tree height + 1
 #define OBJMAP_CACHE_SIZE   20
 #define IOBJ_CACHE_SIZE     20
-#define FCHUNK_CACHE_SIZE   200
-#define FOFFSET_CACHE_SIZE  200
+#define FCHUNK_CACHE_SIZE   20
+#define FOFFSET_CACHE_SIZE  20
 
 #define OBJMAP_KEY_SIZE     1
 #define IOBJ_KEY_SIZE       1
@@ -73,7 +74,11 @@ STRUCT_BTREE_CACHE(foffset_cache, FOFFSET_CACHE_SIZE, FOFFSET_ORDER, FOFFSET_KEY
 
 static struct btree_obj btree[BTREE_COUNT] ;
 
-extern struct freelist flist ;
+extern struct freelist freelist ;
+
+///////////////////////////////
+// btree interface
+///////////////////////////////
 
 int 
 btree_alloc_node(uint64_t id, uint8_t **mem, uint64_t *off)
@@ -119,6 +124,10 @@ btree_save_node(uint64_t id, struct btree_node *n)
 
     return btree[id].save(n) ;      
 }
+
+///////////////////////////////
+// client interface
+///////////////////////////////
 
 int 
 btree_search(uint64_t id, const uint64_t *key, 
@@ -192,6 +201,10 @@ btree_unlock_all(void)
         btree_unlock(i) ;
 }
 
+///////////////////////////////
+// manager
+///////////////////////////////
+
 struct cache*
 btree_cache(uint64_t id)
 {
@@ -232,7 +245,7 @@ init_ephem(void)
     btree[BTREE_FCHUNK].free = frm_free ;
     btree[BTREE_FCHUNK].btree = &fchunk ;
     btree[BTREE_FCHUNK].cache = &fchunk_cache ;
-    btree[BTREE_FCHUNK].arg = &flist.chunk_frm ;
+    btree[BTREE_FCHUNK].arg = &freelist.chunk_frm ;
     strcpy(btree[BTREE_FCHUNK].name, FCHUNK_NAME) ;
     cache_init(&fchunk_cache) ;
     lock_init(&btree[BTREE_FCHUNK].lock) ;
@@ -244,7 +257,7 @@ init_ephem(void)
     btree[BTREE_FOFFSET].free = frm_free ;
     btree[BTREE_FOFFSET].btree = &foffset ;
     btree[BTREE_FOFFSET].cache = &foffset_cache ;
-    btree[BTREE_FOFFSET].arg = &flist.offset_frm ;
+    btree[BTREE_FOFFSET].arg = &freelist.offset_frm ;
     strcpy(btree[BTREE_FOFFSET].name, FOFFSET_NAME) ;
     cache_init(&foffset_cache) ;
     lock_init(&btree[BTREE_FOFFSET].lock) ;

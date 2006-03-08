@@ -7,7 +7,7 @@
 #include <inc/error.h>
 #include <kern/log.h>
 
-extern struct freelist flist ;
+extern struct freelist freelist ;
 
 int
 pbtree_open_node(uint64_t id, offset_t offset, uint8_t **mem)
@@ -64,7 +64,7 @@ pbtree_save_node(struct btree_node *node)
 int
 pbtree_new_node(uint64_t id, uint8_t **mem, uint64_t *off, void *arg)
 {
-    int64_t offset = freelist_alloc(&flist, BTREE_BLOCK_SIZE) ;
+    int64_t offset = freelist_alloc(&freelist, BTREE_BLOCK_SIZE) ;
 
     if (offset < 0)
         return offset ;
@@ -85,7 +85,7 @@ pbtree_new_node(uint64_t id, uint8_t **mem, uint64_t *off, void *arg)
 int
 pbtree_free_node(uint64_t id, offset_t offset, void *arg)
 {
-    freelist_free_later(&flist, offset, BTREE_BLOCK_SIZE) ;
+    freelist_free_later(&freelist, offset, BTREE_BLOCK_SIZE) ;
     log_free(offset) ;
     return cache_rem(btree_cache(id), offset) ;
 }

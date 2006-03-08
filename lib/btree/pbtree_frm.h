@@ -3,6 +3,7 @@
 
 #include <lib/btree/btree_utils.h>
 
+// buffer for freelist node operations
 struct frm
 {
 #define FRM_BUF_SIZE 10  // 2x the value of the freelist btree's max height

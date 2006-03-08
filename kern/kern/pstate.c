@@ -17,7 +17,6 @@ static int pstate_load_debug = 0;
 static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
-static int pstate_dlog_stats = 0;
 
 static int scrub_disk_pages = 0;
 
@@ -25,7 +24,7 @@ static int scrub_disk_pages = 0;
 static struct pstate_header stable_hdr;
 
 // Global freelist for disk
-struct freelist flist;
+struct freelist freelist;
 
 struct mobject {
     offset_t off;
@@ -292,7 +291,7 @@ pstate_swapin(kobject_id_t id)
 // Persistent-store initialization
 /////////////////////////////////////
 
-static int pstate_sync_apply(void) ;
+static int pstate_sync_apply(struct pstate_header *hdr) ;
 
 static int
 pstate_load2(void)
@@ -303,6 +302,8 @@ pstate_load2(void)
 	return -E_IO;
     }
 
+    log_init();
+
     memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
     if (stable_hdr.ph_magic != PSTATE_MAGIC ||
 	stable_hdr.ph_version != PSTATE_VERSION)
@@ -311,16 +312,13 @@ pstate_load2(void)
 	return -E_INVAL;
     }
 
-    dlog_init();
-    log_init(LOG_OFFSET + 1, LOG_PAGES - 1, LOG_MEMORY);
-
     if (stable_hdr.ph_applying) {
 	cprintf("pstate_load2: applying log\n");
-	pstate_sync_apply();
+	pstate_sync_apply(&pstate_buf.hdr);
 	memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
     }
 
-    freelist_deserialize(&flist, &stable_hdr.ph_free);
+    freelist_deserialize(&freelist, &stable_hdr.ph_free);
     btree_manager_deserialize(&stable_hdr.ph_btrees) ;
 
     struct btree_traversal trav;
@@ -410,7 +408,7 @@ pstate_sync_kobj(struct swapout_stats *stats,
 {
     struct kobject *snap = kobject_get_snapshot(ko);
 
-    int64_t off = pstate_kobj_alloc(&flist, snap);
+    int64_t off = pstate_kobj_alloc(&freelist, snap);
     if (off < 0) {
 	cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(off));
 	return off;
@@ -455,67 +453,65 @@ pstate_sync_kobj(struct swapout_stats *stats,
 }
 
 static int
-pstate_sync_apply(void)
+pstate_sync_apply(struct pstate_header *hdr)
 {
-    struct pstate_header *hdr = &pstate_buf.hdr ;
-
     // 1st, mark that applying
     hdr->ph_applying = 1 ;
-    disk_io_status s = stackwrap_disk_io(op_write, hdr,
-					 PSTATE_BUF_SIZE, 0);
+    disk_io_status s = stackwrap_disk_io(op_write, hdr,PSTATE_BUF_SIZE, 
+                                         HEADER_OFFSET * PGSIZE);
     if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_sync_apply: unable to mark applying\n");
-	return -E_IO ;	
+    	cprintf("pstate_sync_apply: unable to mark applying\n");
+    	return -E_IO ;	
     }
 
     // 2nd, read flushed header copy
-    s = stackwrap_disk_io(op_read, hdr,
-			  PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE);
+    s = stackwrap_disk_io(op_read, hdr, PSTATE_BUF_SIZE, 
+                          HEADER_OFFSET2 * PGSIZE);
     if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_sync_apply: unable to read header\n");
-	return -E_IO;
+    	cprintf("pstate_sync_apply: unable to read header\n");
+    	return -E_IO;
     }
     
     // 3rd, apply node log
     int r = log_apply();
     if (r < 0)
-	return r;
+	   return r;
 
     // 4th, write out new header
-    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
+                          HEADER_OFFSET * PGSIZE);
     if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_sync_apply: unable to write header\n");
-	return -E_IO;
+    	cprintf("pstate_sync_apply: unable to write header\n");
+    	return -E_IO;
     }
 
     // 5th, unmark applying
     hdr->ph_applying = 0;
-    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
+                          HEADER_OFFSET * PGSIZE);
     if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_sync_apply: unable to unmark applying\n");
-	return -E_IO;
+	   cprintf("pstate_sync_apply: unable to unmark applying\n");
+	   return -E_IO;
     }
 
     return 0;
 }
 
 static int
-pstate_sync_flush(void)
+pstate_sync_flush(struct pstate_header *hdr)
 {
-    struct pstate_header *hdr = &pstate_buf.hdr;
-
     // 1st, write a copy of the header
-    disk_io_status s = stackwrap_disk_io(op_write, hdr,
-					 PSTATE_BUF_SIZE, LOG_OFFSET * PGSIZE);
+    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
+                                         HEADER_OFFSET2 * PGSIZE);
     if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_sync_flush: unable to flush hdr\n");
-	return -E_IO;
+    	cprintf("pstate_sync_flush: unable to flush hdr\n");
+    	return -E_IO;
     }
 
     // 2nd, flush the node log
     int r = log_flush();
     if (r < 0)
-	return r;
+	   return r;
 
     return 0;
 }
@@ -531,7 +527,7 @@ pstate_sync_loop(struct pstate_header *hdr,
         
         struct kobject *snap = kobject_get_snapshot(&ko->hdr);
         if (snap->hdr.ko_type == kobj_dead) {
-            pstate_kobj_free(&flist, snap);
+            pstate_kobj_free(&freelist, snap);
             stats->dead_kobj++;
             continue;
         }
@@ -541,36 +537,30 @@ pstate_sync_loop(struct pstate_header *hdr,
             return r;
     }
 
-
-    int r = freelist_commit(&flist);
+    int r = freelist_commit(&freelist);
     if (r < 0) {
-	cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
-	return r;
+        cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
+        return r;
     }
-    
-
 
     btree_lock_all() ;
     
-    freelist_serialize(&hdr->ph_free, &flist);
+    freelist_serialize(&hdr->ph_free, &freelist);
     btree_manager_serialize(&hdr->ph_btrees);
 
-    r = pstate_sync_flush();
+    r = pstate_sync_flush(hdr);
     if (r < 0) {
-	cprintf("pstate_sync_loop: unable to flush\n") ;
-	return r ;
+    	cprintf("pstate_sync_loop: unable to flush\n") ;
+    	return r ;
     }
 
-    r = pstate_sync_apply();
+    r = pstate_sync_apply(hdr);
     if (r < 0) {
-	cprintf("pstate_sync_loop: unable to apply\n");
-	return r;
+    	cprintf("pstate_sync_loop: unable to apply\n");
+    	return r;
     }
 
     btree_unlock_all() ;
-
-    if (pstate_dlog_stats)
-	dlog_print();
 
     memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
     return 0;
@@ -582,33 +572,24 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     static int swapout_active;
 
     if (swapout_active) {
-	cprintf("pstate_sync: another sync still active\n");
-	return;
+    	cprintf("pstate_sync: another sync still active\n");
+    	return;
     }
     swapout_active = 1;
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-    	uint64_t disk_pages = disk_bytes / PGSIZE;
-    	uint64_t reserved_pages = HEADER_PAGES + LOG_PAGES;
+    	uint64_t disk_pages = disk_bytes / PGSIZE ;
+    	uint64_t reserved_pages = RESERVED_PAGES ;
     	assert(disk_pages > reserved_pages);
     
     	if (pstate_swapout_debug)
     	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
     
-    	dlog_init() ;
-    	log_init(LOG_OFFSET + 1, LOG_PAGES - 1, LOG_MEMORY) ;
-    
         btree_manager_init() ;
-    
-    	int r = freelist_init(&flist,
-    			      reserved_pages * PGSIZE,
-    			      (disk_pages - reserved_pages) * PGSIZE);
-                 
-    	if (r < 0) {
-    	    cprintf("pstate_sync_stackwarp: cannot init freelist: %s", e2s(r));
-    	    return;
-    	}
+    	freelist_init(&freelist,
+                     reserved_pages * PGSIZE,
+		             (disk_pages - reserved_pages) * PGSIZE);
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
@@ -628,45 +609,44 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     struct kobject *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-	stats.total_kobj++;
-	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
-	    kobject_snapshot(&ko->hdr);
-	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;
-	    stats.snapshoted_kobj++;
-	}
+    	stats.total_kobj++;
+    	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
+    	    kobject_snapshot(&ko->hdr);
+    	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;
+    	    stats.snapshoted_kobj++;
+    	}
     }
 
     int r = pstate_sync_loop(hdr, &stats);
     if (r < 0)
-	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
+	   cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
-	ko_next = LIST_NEXT(ko, ko_link);
-
-	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
-	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
-	    if (r < 0)
-		ko->hdr.ko_flags |= KOBJ_DIRTY;
-	}
-
-	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
-	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-	    kobject_snapshot_release(&ko->hdr);
-
-	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
-		kobject_swapout(ko);
-	}
+    	ko_next = LIST_NEXT(ko, ko_link);
+    
+    	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
+    	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
+    	    if (r < 0)
+    		ko->hdr.ko_flags |= KOBJ_DIRTY;
+    	}
+    
+    	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
+    	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+    	    kobject_snapshot_release(&ko->hdr);
+    
+    	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
+    		kobject_swapout(ko);
+    	}
     }
 
     if (pstate_swapout_stats) {
-	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
-		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
-		stats.written_kobj, stats.written_pages);
-	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
-		page_stats.pages_used, page_stats.pages_avail,
-		page_stats.allocations, page_stats.failures);
+    	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+    		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
+    		stats.written_kobj, stats.written_pages);
+    	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+    		page_stats.pages_used, page_stats.pages_avail,
+    		page_stats.allocations, page_stats.failures);
     }
-
 
     swapout_active = 0;
 }
@@ -677,7 +657,7 @@ pstate_sync(void)
 {
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
-	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+	   cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }
 
 void

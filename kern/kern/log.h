@@ -4,7 +4,8 @@
 #include <inc/btree.h>
 #include <inc/types.h>
 
-#define LOG_COMPACT_MEM 50 
+// max pages for log buffer
+#define LOG_MEMORY          100  
 
 int log_apply(void)
     __attribute__ ((warn_unused_result));
@@ -17,11 +18,8 @@ int log_compact(void)
 int log_node(offset_t byteoff, void *page)
     __attribute__ ((warn_unused_result));
 void log_reset(void) ;
-void log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem) ;
+void log_init(void) ;
 
 void log_free(offset_t off) ;
-
-void dlog_print(void) ;
-void dlog_init(void) ;
 
 #endif /*LOG_H_*/

@@ -8,6 +8,7 @@
 #include <inc/queue.h>
 #include <inc/error.h>
 #include <lib/hashtable.h>
+#include <kern/disklayout.h>
 
 #define SCRATCH_SIZE PGSIZE
 static uint8_t scratch[SCRATCH_SIZE] ;
@@ -36,93 +37,6 @@ struct log
 
 // in memory log data
 static struct log log ;
-
-static struct
-{
-#define DLOG_SIZE 8
-	uint8_t	 types[DLOG_SIZE] ;
-	uint64_t times[DLOG_SIZE] ;
-
-	uint64_t min[3] ;
-	uint64_t max[3] ;
-
-	int	ins ;
-} dlog ;
-
-enum { flush = 0 , compact, apply } ;
-	
-static const char *const type_strings[] = {"flush", "compact", "apply"} ;
-
-void 
-dlog_init(void)
-{
-	memset(&dlog, 0, sizeof(dlog)) ;
-	
-	dlog.min[flush] = ~0 ;
-	dlog.min[apply] = ~0 ;
-}
-
-static void
-dlog_log(uint8_t type, uint64_t start, uint64_t stop)
-{
-	int i = dlog.ins ;
-	dlog.types[i] = type ;
-	dlog.times[i] = (stop - start) ;
-	if (dlog.min[type] > dlog.times[i])
-		dlog.min[type] = dlog.times[i] ;
-	if (dlog.max[type] < dlog.times[i])
-		dlog.max[type] = dlog.times[i] ;
-	dlog.ins = (dlog.ins + 1) % DLOG_SIZE ;
-}
-
-void 
-dlog_print(void)
-{
-	cprintf("dlog\n") ;
-	
-	for (int i  = 0 ; i < DLOG_SIZE ; i++) {	
-		if (i == dlog.ins)
-			cprintf("--------------------------------\n") ;
-		uint8_t type = dlog.types[i] ;
-		uint64_t time = dlog.times[i] ;
-		cprintf(" %8s\t%ld\n", type_strings[type], time) ;	
-	}
-	
-	cprintf("\n") ;
-	cprintf(" %8s+\t%ld\n", type_strings[apply], dlog.max[apply]) ;
-	cprintf(" %8s-\t%ld\n", type_strings[apply], dlog.min[apply]) ;
-	
-	cprintf(" %8s+\t%ld\n", type_strings[flush], dlog.max[flush]) ;
-	cprintf(" %8s-\t%ld\n", type_strings[flush], dlog.min[flush]) ;
-
-	uint64_t tot_ap = 0 ;
-	uint64_t tot_fl = 0 ;
-	
-	uint64_t cnt_ap = 0 ;
-	uint64_t cnt_fl = 0 ;
-	
-	for (int i = 0 ; i < DLOG_SIZE ; i++) {
-		uint8_t type = dlog.types[i] ;
-		uint64_t time = dlog.times[i] ;	
-		switch (type) {
-			case flush:
-				tot_fl += time ;
-				cnt_fl++ ;
-				break ;
-			case apply:
-				tot_ap += time ;
-				cnt_ap++ ;
-				break ;	
-		}
-	}
-	
-	if (cnt_ap)
-		cprintf(" %8s_ave\t%ld\n", type_strings[apply], tot_ap / cnt_ap) ;
-	if (cnt_fl)
-		cprintf(" %8s_ave\t%ld\n", type_strings[flush], tot_fl / cnt_fl) ;
-	
-	cprintf("end\n") ;
-}
 
 static int
 log_write_to_disk(struct node_list *nodes, uint64_t *count)
@@ -336,6 +250,7 @@ log_compact(void)
 	
     LIST_INIT(&nodes) ;
 	
+    // XXX: potentially a lot of nodes read from disk
     log_read_map2(&log.disk_map2, &nodes) ;
 	
 	if ((r = log_write_to_log(&nodes, &count,off)) < 0) {
@@ -458,7 +373,6 @@ log_flush(void)
 	log.just_flushed = 1 ;
 
 	stop = read_tsc() ;
-	dlog_log(flush, start, stop) ;
 
 	return 0 ;
 }
@@ -532,9 +446,8 @@ log_apply(void)
 			log_free_list(&in_log) ;
 		}
 				
-		log_reset() ;
+		log_init() ;
 		stop = read_tsc() ;
-		dlog_log(apply, start, stop) ;
 		return 0 ;
 	}
 	else  { // try to apply log sitting on disk
@@ -555,20 +468,14 @@ log_apply(void)
 }
 
 void
-log_reset(void)
-{
-	log_init(log.byteoff / PGSIZE, log.npages, log.max_mem) ;
-}
-
-void
-log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem)
+log_init(void)
 {
 	memset(&log, 0, sizeof(log)) ;
 	
 	// logging will overwrite anything in the disk log
 	LIST_INIT(&log.nodes) ;	
 	hash_init(&log.disk_map2, log.map_back, LOG_PAGES) ;
-	log.byteoff = pageoff * PGSIZE;
-	log.npages = npages ;
-	log.max_mem = max_mem ;
+	log.byteoff = LOG_OFFSET * PGSIZE;
+	log.npages = LOG_PAGES ;
+	log.max_mem = LOG_MEMORY ;
 }

@@ -151,7 +151,8 @@ freelist_commit(struct freelist *l)
 void
 freelist_deserialize(struct freelist *l, void *buf)
 {
-	// XXX
+	memcpy(l, buf, sizeof(struct freelist)) ;
+    // XXX
 	dstack_init(&free_later) ;
 }
 void
@@ -160,7 +161,7 @@ freelist_serialize(void *buf, struct freelist *l)
 	memcpy(buf, l, sizeof(*l)) ;	
 }
 
-int 
+void 
 freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
 	int r ;
@@ -175,12 +176,10 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 	nbytes -= frm_bytes;
 	
 	if ((r = freelist_insert(l, base, nbytes)) < 0)
-		return r ;
+		panic("freelist_init: insert failed: %s", e2s(r)) ;
 
 	l->free = nbytes ;
 		
     // XXX
     dstack_init(&free_later) ;
-
-	return 0 ;
 }
