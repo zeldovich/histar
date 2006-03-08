@@ -6,6 +6,8 @@
 #include <inc/types.h>
 #include <inc/fs.h>
 
+#include <fcntl.h>
+
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
 
@@ -67,17 +69,11 @@ extern struct Dev devcons;
 extern struct Dev devsock;
 extern struct Dev devfile;
 
-#define O_RDONLY	0x0000
-#define O_WRONLY	0x0001
-#define O_RDWR		0x0002
-#define O_ACCMODE	(O_RDONLY | O_RDWR | O_WRONLY)
-#define O_CREAT		0x0004
-
 ssize_t	read(int fd, void *buf, size_t nbytes);
 ssize_t	write(int fd, const void *buf, size_t nbytes);
 int	seek(int fd, off_t offset);
-int	dup_as(int oldfd, int newfd, struct cobj_ref target_as);
-int	dup(int oldfd, int newfd);
+int	dup2_as(int oldfd, int newfd, struct cobj_ref target_as);
+int	dup2(int oldfd, int newfd);
 int	close(int fd);
 
 int	bind(int fd, struct sockaddr *addr, socklen_t addrlen);

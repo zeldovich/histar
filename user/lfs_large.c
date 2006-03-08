@@ -21,8 +21,6 @@ struct stat
 {
 	int st_uid ;
 } ;
-#define O_TRUNC         0x00000008
-
 #define S_IRWXU         0x00700
 #define S_IRUSR			0x00400
 #define S_IWUSR			0x00200

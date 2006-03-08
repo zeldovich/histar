@@ -16,8 +16,6 @@
 #include <inc/syscall.h>
 #include <unistd.h>
 
-#define O_TRUNC         0x00000008
-
 #define S_IRWXU         0x00000001
 
 #define umask(a)

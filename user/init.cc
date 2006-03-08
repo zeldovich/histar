@@ -124,8 +124,8 @@ try
     if (cons != 0)
 	throw error(cons, "cannot opencons: %d", cons);
 
-    assert(1 == dup(0, 1));
-    assert(2 == dup(0, 2));
+    assert(1 == dup2(0, 1));
+    assert(2 == dup2(0, 2));
 
     init_procs(cons, h_root);
 

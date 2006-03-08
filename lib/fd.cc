@@ -323,7 +323,7 @@ close_all(void)
 // Closes any previously open file descriptor at 'newfdnum'.
 // This is implemented using virtual memory tricks (of course!).
 int
-dup(int oldfdnum, int newfdnum)
+dup2(int oldfdnum, int newfdnum)
 {
 	struct Fd *oldfd;
 	struct cobj_ref fd_seg;
@@ -347,7 +347,7 @@ dup(int oldfdnum, int newfdnum)
 }
 
 int
-dup_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
+dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 {
 	struct Fd *oldfd;
 	struct cobj_ref fd_seg;
