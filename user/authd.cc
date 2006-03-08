@@ -42,7 +42,7 @@ user_gate_find(char *uname)
 }
 
 static void __attribute__((noreturn))
-authd_user_login(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+authd_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     user_gate *ugate = (user_gate *) arg;
     authd_req *req = (authd_req *) &parm->param_buf[0];
@@ -55,6 +55,8 @@ authd_user_login(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 	if (strcmp(req->pass, u->pass))
 	    throw error(-E_INVAL, "bad password");
+	if (req->op == authd_chpass)
+	    memcpy(&u->pass[0], &req->npass[0], sizeof(u->pass));
 
 	label *ds = new label(3);
 	ds->set(u->grant, LB_LEVEL_STAR);
@@ -66,10 +68,10 @@ authd_user_login(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 	gr->ret(0, ds, 0);
     } catch (error &e) {
-	cprintf("authd_user_login: %s\n", e.what());
+	cprintf("authd_user_entry: %s\n", e.what());
 	reply->err = e.err();
     } catch (std::exception &e) {
-	cprintf("authd_user_login: %s\n", e.what());
+	cprintf("authd_user_entry: %s\n", e.what());
 	reply->err = -E_INVAL;
     }
     gr->ret(0, 0, 0);
@@ -115,7 +117,7 @@ create_user(char *uname, char *pass, uint64_t *ug, uint64_t *ut)
 
     ugate->ug_gate = new gatesrv(users_ct, uname, &th_ctm, &th_clr);
     ugate->ug_gate->set_entry_container(start_env->proc_container);
-    ugate->ug_gate->set_entry_function(&authd_user_login, (void *) ugate);
+    ugate->ug_gate->set_entry_function(&authd_user_entry, (void *) ugate);
     ugate->ug_gate->enable();
 
     ugate_drop.dismiss();
@@ -148,15 +150,16 @@ authd_dispatch(authd_req *req, authd_reply *reply)
 	sys_obj_unref(ug->ug_seg);
 	LIST_REMOVE(ug, ug_link);
 	delete ug;
-    } else if (req->op == authd_login) {
+    } else if (req->op == authd_login || req->op == authd_chpass) {
 	struct user_gate *ug = user_gate_find(req->user);
 	if (!ug)
 	    throw error(-E_INVAL, "user does not exist");
 
 	gate_call_data gcd;
 	authd_req *lreq = (authd_req *) &gcd.param_buf[0];
-	memcpy(lreq->pass, req->pass, sizeof(lreq->pass));
 	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
+
+	memcpy(lreq, req, sizeof(*lreq));
 	gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
 
 	if (lrep->err)

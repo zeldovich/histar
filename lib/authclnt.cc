@@ -7,7 +7,7 @@ extern "C" {
 #include <inc/authclnt.hh>
 #include <inc/error.hh>
 
-void auth_call(int op, const char *user, const char *pass,
+void auth_call(int op, const char *user, const char *pass, const char *npass,
 	       uint64_t *ut, uint64_t *ug)
 {
     gate_call_data gcd;
@@ -24,6 +24,7 @@ void auth_call(int op, const char *user, const char *pass,
     req->op = op;
     strncpy(&req->user[0], user, sizeof(req->user));
     strncpy(&req->pass[0], pass, sizeof(req->pass));
+    strncpy(&req->npass[0], npass, sizeof(req->npass));
 
     gate_call(COBJ(authd_ct, authd_gt), &gcd, 0, 0, 0);
 

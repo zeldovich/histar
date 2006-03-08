@@ -12,7 +12,7 @@ login(char *u, char *p)
     printf("logging in as %s, pw %s\n", u, p);
 
     uint64_t t, g;
-    auth_call(authd_login, u, p, &t, &g);
+    auth_call(authd_login, u, p, "", &t, &g);
 
     printf("taint %lu grant %lu\n", t, g);
 }
