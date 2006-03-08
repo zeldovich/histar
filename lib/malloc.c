@@ -1147,9 +1147,7 @@ int mspace_mallopt(int, int);
 #pragma warning( disable : 4146 ) /* no "unsigned" warnings */
 #endif /* WIN32 */
 
-#if 0	// jos64
 #include <stdio.h>       /* for printing in malloc_stats */
-#endif	// jos64
 
 #ifndef LACKS_ERRNO_H
 #include <errno.h>       /* for MALLOC_FAILURE_ACTION */

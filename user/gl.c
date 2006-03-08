@@ -1,8 +1,8 @@
-#include <inc/lib.h>
-#include <inc/stdio.h>
-#include <inc/string.h>
-#include <inc/syscall.h>
-#include <inc/error.h>
+#include <lib.h>
+#include <stdio.h>
+#include <string.h>
+#include <syscall.h>
+#include <error.h>
 
 static void
 usage(const char *n)

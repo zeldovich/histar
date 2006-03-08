@@ -1,7 +1,7 @@
-#include <inc/stdio.h>
-#include <inc/lib.h>
-#include <inc/error.h>
-#include <inc/fs.h>
+#include <stdio.h>
+#include <lib.h>
+#include <error.h>
+#include <fs.h>
 
 int
 main(int ac, char **av)
