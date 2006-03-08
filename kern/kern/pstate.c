@@ -302,8 +302,6 @@ pstate_load2(void)
 	return -E_IO;
     }
 
-    log_init();
-
     memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
     if (stable_hdr.ph_magic != PSTATE_MAGIC ||
 	stable_hdr.ph_version != PSTATE_VERSION)
@@ -311,6 +309,8 @@ pstate_load2(void)
 	cprintf("pstate_load2: magic/version mismatch\n");
 	return -E_INVAL;
     }
+
+    log_init();
 
     if (stable_hdr.ph_applying) {
 	cprintf("pstate_load2: applying log\n");
@@ -586,6 +586,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     	if (pstate_swapout_debug)
     	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
     
+        log_init(); 
         btree_manager_init() ;
     	freelist_init(&freelist,
                      reserved_pages * PGSIZE,
