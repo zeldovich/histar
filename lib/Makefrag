@@ -52,7 +52,8 @@ LIB_SRCFILES :=	\
 	lib/backtrace.c \
 	lib/debug.cc \
 	lib/privstore.cc \
-	lib/sha1.c
+	lib/sha1.c \
+	lib/authclnt.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/lwip/Makefrag

@@ -11,7 +11,7 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/labelutil.hh>
 
-static int netd_mom_debug = 1;
+static int netd_mom_debug = 0;
 
 static void
 netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)

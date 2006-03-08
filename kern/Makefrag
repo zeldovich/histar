@@ -65,7 +65,10 @@ KERN_BINFILES := \
 	user/cp \
 	user/lfs_small \
 	user/lfs_large \
-	user/sha1sum
+	user/sha1sum \
+	user/authd \
+	user/login \
+	user/uadm
 
 	#user/freelist_test \
 	#user/tcpsink

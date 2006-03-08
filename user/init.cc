@@ -13,6 +13,8 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/spawn.hh>
 
+static int init_debug = 0;
+
 static void
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 {
@@ -28,7 +30,8 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	  0, ds, 0, 0,
 	  0);
 
-    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
+    if (init_debug)
+	printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
 }
 
 static void
@@ -92,6 +95,8 @@ init_procs(int cons, uint64_t h_root)
 
     // admin server gets { * }
     spawn_fs(cons, "/bin/admind", &h_adm_buf[0], &ds_star);
+
+    spawn_fs(cons, "/bin/authd", 0, &ds_none);
 
     //spawn_fs(cons, "/bin/shell", 0, &ds_hroot);
     spawn_fs(cons, "/bin/shell", 0, &ds_none);
