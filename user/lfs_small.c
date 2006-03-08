@@ -14,6 +14,7 @@
 #include <inc/lib.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
+#include <unistd.h>
 
 #define O_TRUNC         0x00000008
 

@@ -3,6 +3,8 @@
 #include <inc/error.h>
 #include <inc/fs.h>
 
+#include <unistd.h>
+
 int
 main(int ac, char **av)
 {

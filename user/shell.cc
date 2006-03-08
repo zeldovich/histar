@@ -9,6 +9,8 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
+
+#include <unistd.h>
 }
 
 #include <inc/spawn.hh>
@@ -233,14 +235,11 @@ builtin_cd(int ac, char **av)
     }
 
     const char *pn = av[0];
-    struct fs_inode dir;
-    int r = fs_namei(pn, &dir);
+    int r = chdir(pn);
     if (r < 0) {
 	printf("cannot cd to %s: %s\n", pn, e2s(r));
 	return;
     }
-
-    start_env->fs_cwd = dir;
 }
 
 static void

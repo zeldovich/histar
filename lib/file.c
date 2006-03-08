@@ -3,6 +3,8 @@
 #include <inc/fd.h>
 #include <inc/error.h>
 
+#include <unistd.h>
+
 int
 mkdir(const char *pn, int mode)
 {
@@ -55,6 +57,18 @@ unlink(const char *pn)
     r = fs_remove(dir, basename, f);
     free(pn2);
     return r;
+}
+
+int
+chdir(const char *pn)
+{
+    struct fs_inode dir;
+    int r = fs_namei(pn, &dir);
+    if (r < 0)
+	return r;
+
+    start_env->fs_cwd = dir;
+    return 0;
 }
 
 int

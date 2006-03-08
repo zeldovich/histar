@@ -8,6 +8,8 @@
 #define LINUX 1
 #endif
 
+#include <unistd.h>
+
 #if JOS64
 #include <inc/string.h>
 #include <inc/stdio.h>
@@ -38,7 +40,6 @@ struct stat
 #endif // JOS64
 
 #if LINUX
-#include <unistd.h>
 #include "sys/types.h"
 #include "sys/stat.h"
 #include "fcntl.h"
