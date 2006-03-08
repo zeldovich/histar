@@ -122,6 +122,7 @@ include boot/Makefrag
 include kern/Makefrag
 include lib/Makefrag
 include user/Makefrag
+include pkg/Makefrag
 #include fs/Makefrag
 #include asfs/Makefrag
 #include okws/Makefrag

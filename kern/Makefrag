@@ -70,6 +70,8 @@ KERN_BINFILES := \
 	user/login \
 	user/uadm
 
+	#user/ksh
+
 	#user/freelist_test \
 	#user/tcpsink
 	#user/spin \

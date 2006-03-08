@@ -1,0 +1,18 @@
+KSH_SRCFILES = \
+	alloc.c c_ksh.c c_sh.c c_test.c c_ulimit.c edit.c emacs.c eval.c \
+	exec.c expr.c history.c io.c jobs.c lex.c mail.c main.c misc.c path.c \
+	shf.c syn.c table.c trap.c tree.c tty.c var.c version.c vi.c
+
+KSH_OBJFILES := $(KSH_SRCFILES)
+KSH_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/ksh/%.o, $(KSH_OBJFILES))
+
+$(OBJDIR)/pkg/ksh/%.o: pkg/ksh/%.c
+	@mkdir -p $(@D)
+	#$(CC) $(USER_CFLAGS) $(CSTD) $(CWARNS) -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -c -o $@ $<
+
+$(OBJDIR)/user/ksh: $(KSH_OBJFILES) $(LDEPS)
+	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
+	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
+	$(NM) -n $@ > $@.sym
+
