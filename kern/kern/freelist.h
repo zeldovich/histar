@@ -2,25 +2,7 @@
 #define FREELIST_H_
 
 #include <lib/btree/btree.h>
-#include <lib/btree/btree_impl.h>
-
-// freelist resource manager
-// prevents the freelist from modifying the btrees, while they
-// are being modified by a call to freelist_alloc or freelist_free
-struct frm
-{
-	struct btree_simple simple ;
-
-#define FRM_BUF_SIZE 10
-	uint64_t to_use[FRM_BUF_SIZE] ;
-	uint64_t to_free[FRM_BUF_SIZE] ;
-	
-	uint32_t n_use ;
-	uint32_t n_free ;
-
-	uint8_t service ;
-	uint8_t servicing ;
-} ;
+#include <lib/btree/pbtree_frm.h>
 
 struct freelist
 {

@@ -20,9 +20,11 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA  02111-1307, USA.
  */
+
+#include <lib/btree/btree_impl.h>
+#include <lib/btree/btree_manager.h>
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
-#include <lib/btree/btree_header.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 
@@ -785,9 +787,8 @@ __delete(struct btree *tree,
 }
 
 char 
-btree_delete(void *t, const uint64_t *key)
+btree_delete_impl(struct btree *tree, const uint64_t *key)
 {
-	struct btree *tree = (struct btree *)t ;
 	assert(tree->magic == BTREE_MAGIC) ;
 	
 	int i;
@@ -798,25 +799,16 @@ btree_delete(void *t, const uint64_t *key)
 	if (tree == NULL || key == 0 || tree->root == 0)
 		return -E_INVAL ;
 
-	btree_lock(tree) ;
+	btree_lock(tree->id) ;
 
 	//filePos = 0;
 	btree_valset(filePos, 0, tree->s_value) ;
 	merged  = 0;
 	success = 0;
 
-	// XXX: remove?
-	tree->root     = bt_root_node(tree);
-	tree->left_leaf = bt_left_leaf(tree);
-	tree->size     = bt_tree_size(tree);
-
 	/* Read in the root node. */
 	rootNode = btree_read_node(tree, tree->root);
 	
-
-	
-	//cprintf("btree_delete start\n") ;
-
 	for (i = 0;
 		 i < rootNode->keyCount && 
 		 btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key, tree->s_key) < 0;
@@ -829,26 +821,26 @@ btree_delete(void *t, const uint64_t *key)
 	{
 		btree_destroy_node(rootNode);
 		//cprintf("btree_delete stop\n") ;
-		btree_unlock(tree) ;
+		btree_unlock(tree->id) ;
 		return -E_INVAL;
 	}
 	
-	bt_tree_size_is(tree, tree->size - 1);
+	tree->size-- ;
 
 
 	if (BTREE_IS_LEAF(rootNode) && rootNode->keyCount == 0)
 	{
-		btree_root_node_is(tree, 0);
-                btree_height_is(tree, 0) ;
+		tree->root = 0 ;
+        tree->height = 0 ;
 		btree_erase_node(rootNode);
-		btree_unlock(tree) ;
+		btree_unlock(tree->id) ;
 		return 0 ;
 	}
 	else if (merged == 1 && rootNode->keyCount == 0)
 	{
 		struct btree_node *tempNode;
 		
-		btree_root_node_is(tree, rootNode->children[0]);
+		tree->root = rootNode->children[0] ;
 
 		tempNode = btree_read_node(tree, tree->root);
 
@@ -857,13 +849,13 @@ btree_delete(void *t, const uint64_t *key)
 
 		btree_erase_node(rootNode);
                 
-                btree_height_is(tree, tree->height - 1) ;
+        tree->height = tree->height - 1 ;
                 
-		btree_unlock(tree) ;
+		btree_unlock(tree->id) ;
 		return 0 ;
 	}
 	btree_destroy_node(rootNode);
-	btree_unlock(tree) ;
+	btree_unlock(tree->id) ;
 	return 0 ;
 }
 

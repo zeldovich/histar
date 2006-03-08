@@ -20,9 +20,10 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA  02111-1307, USA.
  */
+#include <lib/btree/btree_impl.h>
+#include <lib/btree/btree_manager.h>
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
-#include <lib/btree/btree_header.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 
@@ -581,10 +582,9 @@ __insertKey(struct btree *tree,
 }
 
 int
-btree_insert(void *t, const uint64_t *key, offset_t *val)
+btree_insert_impl(struct btree *tree, const uint64_t *key, offset_t *val)
 {
 	char  success, split;
-	struct btree *tree = (struct btree *)t ;
 	assert(tree->magic == BTREE_MAGIC) ;
 
 	uint64_t k[tree->s_key] ;
@@ -602,15 +602,9 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 	success = 0;
 	split = 0;
 
-	btree_lock(tree) ;
+	btree_lock(tree->id) ;
 	tree->_insFilePos = v ;
 	
-	/* Read in the tree data. */
-	// XXX: remove?
-	tree->root     = bt_root_node(tree);
-	tree->left_leaf = bt_left_leaf(tree);
-	tree->size     = bt_tree_size(tree);
-
 	if (tree->root != 0)
 	{
 		success = __insertKey(tree, tree->root, k, tree->_insFilePos,
@@ -619,13 +613,13 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 		if (success == 0)
 		{
 			// duplicate
-			btree_unlock(tree) ;
+			btree_unlock(tree->id) ;
 			return -E_INVAL;;
 		}
 	}
 	
-	bt_tree_size_is(tree, tree->size + 1) ;
-
+	tree->size++ ;
+    
 	if (tree->root == 0 || split == 1)
 	{
 		struct btree_node *node = btree_new_node(tree);
@@ -644,7 +638,7 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 
 			btree_write_node(node);
 
-			bt_left_leaf_is(tree, node->block.offset);
+			tree->left_leaf = node->block.offset ;
 		}
 		else
 		{
@@ -653,11 +647,11 @@ btree_insert(void *t, const uint64_t *key, offset_t *val)
 
 			btree_write_node(node);
 		}
-                btree_height_is(tree, tree->height + 1) ;
-		btree_root_node_is(tree, node->block.offset);
+        tree->height++ ;
+		tree->root = node->block.offset ;
 		btree_destroy_node(node);
 	}
 
-	btree_unlock(tree) ;
+	btree_unlock(tree->id) ;
 	return 0;	
 }

@@ -22,7 +22,6 @@
  */
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
-#include <lib/btree/btree_header.h>
 #include <lib/btree/btree_traverse.h>
 #include <kern/lib.h>
 #include <inc/error.h>
@@ -67,7 +66,7 @@ btree_traverse(struct btree *tree, void (*process)(offset_t filePos))
 #endif
 
 int
-btree_init_traversal(struct btree *tree, struct btree_traversal *trav)
+btree_init_traversal_impl(struct btree *tree, struct btree_traversal *trav)
 {
 	if (tree == NULL)
 		return -E_INVAL ;
@@ -89,8 +88,6 @@ btree_first_offset(struct btree_traversal *trav)
 
 	if (trav->node != NULL)
 		return btree_next_entry(trav);
-
-	trav->tree->left_leaf = bt_left_leaf(trav->tree);
 
 	trav->node = btree_read_node(trav->tree, trav->tree->left_leaf);
 

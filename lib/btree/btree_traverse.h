@@ -3,22 +3,9 @@
 
 #include <lib/btree/btree_utils.h>
 #include <inc/types.h>
+#include <lib/btree/btree.h>
 
-struct btree_traversal
-{
-	struct btree		*tree;       
-	struct btree_node 	*node;       
-	
-	uint16_t pos;
-	
-	const uint64_t	*key ;
-	const offset_t	*val ;
-};
-
-int 	btree_init_traversal(struct btree *tree, struct btree_traversal *trav) ;
-//void 	btree_traverse(struct btree *tree, void (*process)(offset_t filePos)) ;
+int 	btree_init_traversal_impl(struct btree *tree, struct btree_traversal *trav) ;
 char 	btree_first_offset(struct btree_traversal *trav);
-char 	btree_next_entry(struct btree_traversal *trav);
-
 
 #endif /*BTREE_TRAVERSE_H_*/

@@ -21,9 +21,10 @@
  * Boston, MA  02111-1307, USA.
  */
 
+#include <lib/btree/btree_impl.h>
+#include <lib/btree/btree_manager.h>
 #include <lib/btree/btree_utils.h>
 #include <lib/btree/btree_node.h>
-#include <lib/btree/btree_header.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 
@@ -161,7 +162,7 @@ __search(struct btree *tree,
 }
 
 static int
-__btree_search(struct btree *tree, 
+search(struct btree *tree, 
 		  const uint64_t *key, 
 		  char match, 
 		  uint64_t *key_store,
@@ -176,17 +177,13 @@ __btree_search(struct btree *tree,
 
 	found   = 0;
 
-	/* Read in the tree data. */
-	tree->root     = bt_root_node(tree);
-	tree->left_leaf = bt_left_leaf(tree);
-
 	if (tree->root == 0)
 		return -E_NOT_FOUND ;
 
-	if (btree_is_empty(tree) == 1)
+	if (btree_is_empty_impl(tree) == 1)
 		return -E_NOT_FOUND;
 
-	btree_lock(tree) ;
+	btree_lock(tree->id) ;
 	found = __search(tree, 
 					 tree->root, 
 					 key, 
@@ -195,7 +192,7 @@ __btree_search(struct btree *tree,
 					 0, 
 					 key_store, 
 					 val_store);
-	btree_unlock(tree) ;
+	btree_unlock(tree->id) ;
 	
 	
 	if (found != 0)
@@ -205,24 +202,24 @@ __btree_search(struct btree *tree,
 }
 
 int
-btree_search(void *tree, const uint64_t *key, 
+btree_search_impl(struct btree *tree, const uint64_t *key, 
 			 uint64_t *key_store, uint64_t *val_store)
 {
 	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
-	return __btree_search(tree, key, match_eq, key_store, val_store) ;	
+	return search(tree, key, match_eq, key_store, val_store) ;	
 }
 
 int 
-btree_ltet(void *tree, const uint64_t *key, 
+btree_ltet_impl(struct btree *tree, const uint64_t *key, 
 		   uint64_t *key_store, uint64_t *val_store)
 {
 	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
-	return __btree_search(tree, key, match_ltet, key_store, val_store) ;	
+	return search(tree, key, match_ltet, key_store, val_store) ;	
 }
 int 
-btree_gtet(void *tree, const uint64_t *key, 
+btree_gtet_impl(struct btree *tree, const uint64_t *key, 
 		   uint64_t *key_store, uint64_t *val_store)
 {
 	assert(((struct btree *)tree)->magic == BTREE_MAGIC) ;
-	return __btree_search(tree, key, match_gtet, key_store, val_store) ;	
+	return search(tree, key, match_gtet, key_store, val_store) ;	
 }

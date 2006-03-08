@@ -1,5 +1,3 @@
-#include <lib/btree/btree_traverse.h>
-#include <lib/btree/btree_debug.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
@@ -26,18 +24,8 @@ static int scrub_disk_pages = 0;
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
 
-// assumed to be atomic
-static struct freelist flist;
-
-// list of objects to be loaded at startup
-struct btree_default iobjlist;
-#define IOBJ_ORDER BTREE_MAX_ORDER1
-STRUCT_BTREE_CACHE(iobj_cache, 20, IOBJ_ORDER, 1);
-
-// list of objects to be loaded at startup
-struct btree_default objmap;
-#define OBJMAP_ORDER BTREE_MAX_ORDER1
-STRUCT_BTREE_CACHE(objmap_cache, 20, OBJMAP_ORDER, 1);
+// Global freelist for disk
+struct freelist flist;
 
 struct mobject {
     offset_t off;
@@ -51,9 +39,6 @@ static union {
     char buf[PSTATE_BUF_SIZE];
 } pstate_buf;
 
-
-
-
 //////////////////////////////////////////////////
 // Object map
 //////////////////////////////////////////////////
@@ -64,7 +49,9 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
     uint64_t key;
     struct mobject mobj;
 
-    int r = btree_search(&objmap, &ko->hdr.ko_id, &key, (uint64_t *)&mobj);
+    
+    int r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &key, (uint64_t *)&mobj);
+    
     if (r == 0) {
     	assert(key == ko->hdr.ko_id);
 
@@ -81,8 +68,8 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	}
 
 	freelist_free_later(f, mobj.off, mobj.nbytes);
-	btree_delete(&iobjlist, &ko->hdr.ko_id);
-	btree_delete(&objmap, &ko->hdr.ko_id);
+	btree_delete(BTREE_IOBJ, &ko->hdr.ko_id);
+    btree_delete(BTREE_OBJMAP, &ko->hdr.ko_id);
     }
 }
 
@@ -101,7 +88,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     }
 
     struct mobject mobj = { offset, nbytes };
-    r = btree_insert(&objmap, &ko->hdr.ko_id, (uint64_t *)&mobj);
+    r = btree_insert(BTREE_OBJMAP, &ko->hdr.ko_id, (uint64_t *)&mobj);
     if (r < 0) {
 	cprintf("pstate_kobj_alloc: objmap insert failed, disk full?\n");
 	return r;
@@ -109,13 +96,14 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 
     if (kobject_initial(ko)) {
 	uint64_t dummy = 0;
-	r = btree_insert(&iobjlist, &ko->hdr.ko_id, &dummy);
+    r = btree_insert(BTREE_IOBJ, &ko->hdr.ko_id, &dummy);
 
 	if (r < 0) {
 	    cprintf("pstate_kobj_alloc: iobjlist insert failed, disk full?\n");
 	    return r;
 	}
     }
+    
     return offset;
 }
 
@@ -242,7 +230,7 @@ pstate_swapin_id(kobject_id_t id)
     kobject_id_t id_found;
     struct mobject mobj;
 
-    int r = btree_search(&objmap, &id, &id_found, (uint64_t *) &mobj);
+    int r = btree_search(BTREE_OBJMAP, &id, &id_found, (uint64_t *) &mobj);
     if (r == -E_NOT_FOUND) {
 	if (pstate_swapin_debug)
 	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
@@ -324,7 +312,7 @@ pstate_load2(void)
     }
 
     dlog_init();
-    log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY);
+    log_init(LOG_OFFSET + 1, LOG_PAGES - 1, LOG_MEMORY);
 
     if (stable_hdr.ph_applying) {
 	cprintf("pstate_load2: applying log\n");
@@ -333,14 +321,10 @@ pstate_load2(void)
     }
 
     freelist_deserialize(&flist, &stable_hdr.ph_free);
-    btree_default_deserialize(&iobjlist, &flist, &iobj_cache, &stable_hdr.ph_iobjs);
-    btree_default_deserialize(&objmap, &flist, &objmap_cache, &stable_hdr.ph_map);
+    btree_manager_deserialize(&stable_hdr.ph_btrees) ;
 
     struct btree_traversal trav;
-    btree_init_traversal(&iobjlist.simple.tree, &trav);
-
-    if (pstate_load_debug)
-	btree_pretty_print(&iobjlist.simple.tree);
+    btree_init_traversal(BTREE_IOBJ, &trav) ;
 
     while (btree_next_entry(&trav)) {
 	uint64_t id = *trav.key;
@@ -542,20 +526,21 @@ pstate_sync_loop(struct pstate_header *hdr,
 {
     struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-	if (!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING))
-	    continue;
-
-	struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-	if (snap->hdr.ko_type == kobj_dead) {
-	    pstate_kobj_free(&flist, snap);
-	    stats->dead_kobj++;
-	    continue;
-	}
-
-	int r = pstate_sync_kobj(stats, &ko->hdr);
-	if (r < 0)
-	    return r;
+        if (!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING))
+            continue;
+        
+        struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+        if (snap->hdr.ko_type == kobj_dead) {
+            pstate_kobj_free(&flist, snap);
+            stats->dead_kobj++;
+            continue;
+        }
+        
+        int r = pstate_sync_kobj(stats, &ko->hdr);
+        if (r < 0)
+            return r;
     }
+
 
     int r = freelist_commit(&flist);
     if (r < 0) {
@@ -563,14 +548,12 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return r;
     }
     
-    btree_lock(&iobjlist.simple.tree) ;
-    btree_lock(&objmap.simple.tree) ;
-    btree_lock(&flist.chunk_frm.simple.tree) ;
-    btree_lock(&flist.offset_frm.simple.tree) ;
 
+
+    btree_lock_all() ;
+    
     freelist_serialize(&hdr->ph_free, &flist);
-    btree_default_serialize(&hdr->ph_iobjs, &iobjlist);
-    btree_default_serialize(&hdr->ph_map, &objmap);
+    btree_manager_serialize(&hdr->ph_btrees);
 
     r = pstate_sync_flush();
     if (r < 0) {
@@ -584,10 +567,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return r;
     }
 
-    btree_unlock(&iobjlist.simple.tree) ;
-    btree_unlock(&objmap.simple.tree) ;
-    btree_unlock(&flist.chunk_frm.simple.tree) ;
-    btree_unlock(&flist.offset_frm.simple.tree) ;
+    btree_unlock_all() ;
 
     if (pstate_dlog_stats)
 	dlog_print();
@@ -609,31 +589,29 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	uint64_t disk_pages = disk_bytes / PGSIZE;
-	uint64_t reserved_pages = N_HEADER_PAGES + LOG_SIZE;
-	assert(disk_pages > reserved_pages);
-
-	if (pstate_swapout_debug)
-	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
-
-	dlog_init() ;
-	log_init(LOG_OFFSET + 1, LOG_SIZE - 1, LOG_MEMORY) ;
-
-	int r = freelist_init(&flist,
-			      reserved_pages * PGSIZE,
-			      (disk_pages - reserved_pages) * PGSIZE);
-	if (r < 0) {
-	    cprintf("pstate_sync_stackwarp: cannot init freelist: %s", e2s(r));
-	    return;
-	}
-
-	btree_default_init(&iobjlist, IOBJ_ORDER, 1, 1, &flist, &iobj_cache) ;
-	btree_default_init(&objmap, OBJMAP_ORDER, 1, 2, &flist, &objmap_cache) ;
+    	uint64_t disk_pages = disk_bytes / PGSIZE;
+    	uint64_t reserved_pages = HEADER_PAGES + LOG_PAGES;
+    	assert(disk_pages > reserved_pages);
+    
+    	if (pstate_swapout_debug)
+    	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
+    
+    	dlog_init() ;
+    	log_init(LOG_OFFSET + 1, LOG_PAGES - 1, LOG_MEMORY) ;
+    
+        btree_manager_init() ;
+    
+    	int r = freelist_init(&flist,
+    			      reserved_pages * PGSIZE,
+    			      (disk_pages - reserved_pages) * PGSIZE);
+                 
+    	if (r < 0) {
+    	    cprintf("pstate_sync_stackwarp: cannot init freelist: %s", e2s(r));
+    	    return;
+    	}
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
-    static_assert(BTREE_NODE_SIZE(IOBJ_ORDER, 1) <= BTREE_BLOCK_SIZE) ;
-    static_assert(BTREE_NODE_SIZE(OBJMAP_ORDER, 1) <= BTREE_BLOCK_SIZE) ;
 
     struct pstate_header *hdr = &pstate_buf.hdr;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
@@ -688,6 +666,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		page_stats.pages_used, page_stats.pages_avail,
 		page_stats.allocations, page_stats.failures);
     }
+
 
     swapout_active = 0;
 }

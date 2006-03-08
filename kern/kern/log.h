@@ -1,9 +1,7 @@
 #ifndef LOG_H_
 #define LOG_H_
 
-#include <lib/btree/btree.h>
-#include <inc/queue.h>
-#include <kern/freelist.h>
+#include <inc/btree.h>
 #include <inc/types.h>
 
 #define LOG_COMPACT_MEM 50 

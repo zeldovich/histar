@@ -5,15 +5,10 @@
 #include <kern/kobj.h>
 #include <kern/freelist.h>
 #include <kern/handle.h>
-
-//
-// A rather limited persistent-store implementation.
-// Eventually free lists & object location map should
-// be btrees, and we should have a redo log.
-//
+#include <inc/btree.h>
 
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
-#define PSTATE_VERSION	2
+#define PSTATE_VERSION	3
 
 struct pstate_header {
     // needs to be in 1st sector of header
@@ -28,8 +23,7 @@ struct pstate_header {
     uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
     uint8_t ph_free[sizeof(struct freelist)];
-    uint8_t ph_iobjs[sizeof(struct btree_default)];
-    uint8_t ph_map[sizeof(struct btree_default)];
+    uint8_t ph_btrees[BTREE_COUNT * sizeof(struct btree)] ;
 };
 
 void pstate_init(void);

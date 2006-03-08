@@ -30,9 +30,6 @@ struct btree_node ;
 struct btree ;
 LIST_HEAD(node_list, btree_node);
 
-void btree_lock(struct btree *tree)  ;
-void btree_unlock(struct btree *tree) ;
-
 #define BTREE_OP_ATTR	static __inline __attribute__((always_inline))
 
 BTREE_OP_ATTR const offset_t *

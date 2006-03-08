@@ -74,7 +74,7 @@ btree_integrity_check(struct btree *tree, offset_t root)
 }
 
 void
-btree_sanity_check(void *tree)
+btree_sanity_check_impl(void *tree)
 {
     struct btree *btree = (struct btree *) tree ;
 
@@ -153,7 +153,7 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 }
 
 void 
-btree_pretty_print(void *tree)
+btree_pretty_print_impl(void *tree)
 {
     struct btree *btree = (struct btree *)tree ;
 	__btree_pretty_print(btree, btree->root, 0) ;

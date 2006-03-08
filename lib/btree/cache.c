@@ -45,6 +45,10 @@ cache_alloc(struct cache *c, tag_t tag, uint8_t **store)
 	cm->tag = tag ;
 	*store = &c->buf[cm->index * c->s_ent] ;
 	
+    if ((uint64_t)*store == 0xffffffff80df1a40)
+        cprintf("cm->index %d\n", cm->index) ;   
+    
+    
 	return 0 ;
 }
 
@@ -115,25 +119,6 @@ cache_rem(struct cache *c, tag_t t)
 	}
 	return -E_NOT_FOUND ;		
 }
-
-/*
-int
-cache_inc_ref(struct cache *c, tag_t t)
-{
-	if (t == 0)
-		return -E_INVAL ;
-	
-	int i = 0 ;
-	for(; i < c->n_ent ; i++) {
-		if (c->meta[i].inuse && t == c->meta[i].tag) {
-			c->meta[i].ref++ ;
-			return 0 ;
-		}
-	}
-	
-	return -E_NOT_FOUND ;		
-}
-*/
 
 int 
 cache_dec_ref(struct cache *c, tag_t t)

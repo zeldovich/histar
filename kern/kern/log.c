@@ -1,11 +1,12 @@
-#include <inc/error.h>
-#include <kern/log.h>
-#include <kern/disklayout.h>
 #include <machine/pmap.h>
 #include <machine/mmu.h>
 #include <machine/x86.h>
 #include <machine/stackwrap.h>
-#include <lib/btree/btree_traverse.h>
+#include <kern/log.h>
+#include <kern/disklayout.h>
+#include <kern/freelist.h>
+#include <inc/queue.h>
+#include <inc/error.h>
 #include <lib/hashtable.h>
 
 #define SCRATCH_SIZE PGSIZE
@@ -27,7 +28,7 @@ struct log
 
 	uint64_t on_disk ;
     struct hashtable disk_map2 ;
-    struct hashentry map_back[LOG_SIZE] ;
+    struct hashentry map_back[LOG_PAGES] ;
 
 	uint64_t log_gen ;
 	char just_flushed ;
@@ -566,7 +567,7 @@ log_init(uint64_t pageoff, uint64_t npages, uint64_t max_mem)
 	
 	// logging will overwrite anything in the disk log
 	LIST_INIT(&log.nodes) ;	
-	hash_init(&log.disk_map2, log.map_back, LOG_SIZE) ;
+	hash_init(&log.disk_map2, log.map_back, LOG_PAGES) ;
 	log.byteoff = pageoff * PGSIZE;
 	log.npages = npages ;
 	log.max_mem = max_mem ;
