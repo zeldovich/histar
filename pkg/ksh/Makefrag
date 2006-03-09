@@ -13,6 +13,4 @@ $(OBJDIR)/pkg/ksh/%.o: pkg/ksh/%.c
 
 $(OBJDIR)/user/ksh: $(KSH_OBJFILES) $(LDEPS)
 	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
-	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
-	$(NM) -n $@ > $@.sym
 

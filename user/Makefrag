@@ -16,6 +16,4 @@ $(OBJDIR)/user/%: user/%.S
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)
 	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
-	$(OBJDUMP) -S $@ > $@.asm || echo objdump of $@ failed!
-	$(NM) -n $@ > $@.sym
 
