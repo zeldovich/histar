@@ -122,7 +122,7 @@ struct ulabel *label_get_current(void);
 struct ulabel *label_get_obj(struct cobj_ref o);
 int  label_set_current(struct ulabel *l);
 int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
-		     bool_t grow);
+		     int grow);
 level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(const struct ulabel *l);
 int  label_grow(struct ulabel *l);

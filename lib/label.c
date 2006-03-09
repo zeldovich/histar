@@ -105,7 +105,7 @@ label_find_slot(struct ulabel *l, uint64_t handle)
 }
 
 int
-label_set_level(struct ulabel *l, uint64_t handle, level_t level, bool_t grow)
+label_set_level(struct ulabel *l, uint64_t handle, level_t level, int grow)
 {
     int slot = label_find_slot(l, handle);
     if (slot < 0) {
