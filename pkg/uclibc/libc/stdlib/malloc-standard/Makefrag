@@ -1,2 +1,4 @@
+OBJDIRS += pkg/uclibc/libc/stdlib/malloc-standard
+
 MALLOC_CSRC := malloc.c calloc.c realloc.c free.c memalign.c mallopt.c mallinfo.c
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdlib/malloc-standard/%.c, $(MALLOC_CSRC))

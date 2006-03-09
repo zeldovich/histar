@@ -1,3 +1,6 @@
+OBJDIRS += \
+	pkg/uclibc/libc/misc/assert
+
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c
 

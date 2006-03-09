@@ -1,3 +1,5 @@
+OBJDIRS += pkg/uclibc/libc/string
+
 STRING_MSRC := pkg/uclibc/libc/string/wstring.c
 
 STRING_MOBJ := \

@@ -1,3 +1,4 @@
+OBJDIRS += pkg/uclibc/libc/stdio
 
 MSRC	:= pkg/uclibc/libc/stdio/vfprintf.c
 MOBJ	:= vfprintf.o _ppfs_init.o _ppfs_prepargs.o _ppfs_setargs.o _ppfs_parsespec.o \

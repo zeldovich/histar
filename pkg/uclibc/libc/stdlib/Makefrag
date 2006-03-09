@@ -1,3 +1,5 @@
+OBJDIRS += pkg/uclibc/libc/stdlib
+
 include pkg/uclibc/libc/stdlib/malloc-standard/Makefrag
 
 MSRC	:= pkg/uclibc/libc/stdlib/stdlib.c
