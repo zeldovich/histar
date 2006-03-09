@@ -1,0 +1,20 @@
+STRING_MSRC := pkg/uclibc/libc/string/wstring.c
+
+STRING_MOBJ := \
+	basename.o bcopy.o bzero.o dirname.o ffs.o memccpy.o memchr.o memcmp.o \
+        memcpy.o memmove.o mempcpy.o memrchr.o  memset.o rawmemchr.o stpcpy.o \
+        stpncpy.o strcasecmp.o strcasestr.o strcat.o strchrnul.o strchr.o \
+        strcmp.o strcpy.o strcspn.o strdup.o strlen.o strncasecmp.o strncat.o \
+        strncmp.o strncpy.o strndup.o strnlen.o strpbrk.o strrchr.o strsep.o \
+        strspn.o strstr.o strtok.o strtok_r.o strerror.o __xpg_strerror_r.o \
+        _string_syserrmsgs.o __glibc_strerror_r.o \
+        _string_syssigmsgs.o sys_siglist.o strsignal.o psignal.o \
+         __xpg_basename.o strlcat.o strlcpy.o sys_errlist.o memmem.o
+
+STRING_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(STRING_MOBJ))
+LIBC_OBJFILES += $(STRING_MOBJ)
+
+$(STRING_MOBJ): $(STRING_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/string/%.o,%,$@) $< -c -o $@
+

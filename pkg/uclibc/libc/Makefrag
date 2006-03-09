@@ -1,0 +1,15 @@
+
+include pkg/uclibc/libc/string/Makefrag
+include pkg/uclibc/libc/stdlib/Makefrag
+
+LIBC_OBJFILES += $(patsubst %.c, $(OBJDIR)/%.o, $(LIBC_SRCFILES))
+
+$(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBC_OBJFILES)
+
