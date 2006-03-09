@@ -188,8 +188,16 @@ static int
 process_update_state(uint64_t state, int64_t exit_code)
 {
     label lseg, lcur;
-    thread_cur_label(&lcur);
-    obj_get_label(start_env->process_status_seg, &lseg);
+    try {
+	thread_cur_label(&lcur);
+	obj_get_label(start_env->process_status_seg, &lseg);
+    } catch (error &e) {
+	cprintf("process_update_state: %s\n", e.what());
+	return e.err();
+    } catch (std::exception &e) {
+	cprintf("process_update_state: %s\n", e.what());
+	return -E_INVAL;
+    }
 
     int r = lcur.compare(&lseg, label::leq_starlo);
     if (r < 0)
