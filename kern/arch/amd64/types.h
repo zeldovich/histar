@@ -26,6 +26,7 @@ typedef unsigned long uint64_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
 #endif /* CODE32 */
+typedef uint64_t __uint64_t;
 
 // Pointers and addresses are 64 bits long.
 // We use pointer types to represent virtual addresses,
