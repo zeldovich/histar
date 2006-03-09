@@ -71,7 +71,7 @@ try
     }
 
     uint64_t adm_handle;
-    error_check(strtoull(av[1], 0, 10, &adm_handle));
+    error_check(strtou64(av[1], 0, 10, &adm_handle));
 
     label send(LB_LEVEL_STAR);
     label recv(1);

@@ -104,7 +104,7 @@ builtin_list_container(int ac, char **av)
     }
 
     uint64_t ct;
-    int r = strtoull(av[0], 0, 10, &ct);
+    int r = strtou64(av[0], 0, 10, &ct);
     if (r < 0) {
 	printf("bad number: %s\n", av[0]);
 	return;
@@ -205,13 +205,13 @@ builtin_unref(int ac, char **av)
 
     uint64_t c, i;
 
-    int r = strtoull(av[0], 0, 10, &c);
+    int r = strtou64(av[0], 0, 10, &c);
     if (r < 0) {
 	printf("bad number: %s\n", av[0]);
 	return;
     }
 
-    r = strtoull(av[1], 0, 10, &i);
+    r = strtou64(av[1], 0, 10, &i);
     if (r < 0) {
 	printf("bad number: %s\n", av[1]);
 	return;
@@ -260,7 +260,7 @@ builtin_mount(int ac, char **av)
 	const char *ctarg = av[2];
 
 	uint64_t ct;
-	int r = strtoull(ctarg, 0, 10, &ct);
+	int r = strtou64(ctarg, 0, 10, &ct);
 	if (r < 0) {
 	    printf("bad number: %s\n", ctarg);
 	    return;

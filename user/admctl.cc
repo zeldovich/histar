@@ -44,8 +44,8 @@ try
 	if (ac != 4)
 	    usage(av[0]);
 
-	error_check(strtoull(av[2], 0, 10, &ct));
-	error_check(strtoull(av[3], 0, 10, &id));
+	error_check(strtou64(av[2], 0, 10, &ct));
+	error_check(strtou64(av[3], 0, 10, &id));
 
 	req->op = admind_op_drop;
 	req->obj = COBJ(ct, id);

@@ -60,11 +60,11 @@ main(int ac, char **av)
     }
 
     uint64_t grant, taint;
-    int r = strtoull(av[1], 0, 10, &grant);
+    int r = strtou64(av[1], 0, 10, &grant);
     if (r < 0)
 	panic("parsing grant handle %s: %s", av[1], e2s(r));
 
-    r = strtoull(av[2], 0, 10, &taint);
+    r = strtou64(av[2], 0, 10, &taint);
     if (r < 0)
 	panic("parsing taint handle %s: %s", av[2], e2s(r));
 

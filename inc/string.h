@@ -22,7 +22,7 @@ int	memcmp(const void *s1, const void *s2, size_t len);
 void *	memfind(const void *s, int c, size_t len);
 
 long	strtol(const char *s, char **endptr, int base);
-int	strtoull(const char *s, char **endptr, int base, uint64_t *result);
+int	strtou64(const char *s, char **endptr, int base, uint64_t *result);
 int	atoi(const char *nptr);
 
 char *  strdup(const char *s);

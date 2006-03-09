@@ -158,7 +158,7 @@ static uint64_t unsigned64_overflow_vals[] = {
 };
 
 int
-strtoull(const char *begin, char **endptr, int base, uint64_t *return_value)
+strtou64(const char *begin, char **endptr, int base, uint64_t *return_value)
 {
 	register const char *s = begin;
 	uint64_t val, overflow_val;
@@ -229,7 +229,7 @@ int
 atoi(const char *nptr)
 {
 	uint64_t val;
-	strtoull(nptr, NULL, 10, &val);
+	strtou64(nptr, NULL, 10, &val);
 	return (int) val;
 }
 

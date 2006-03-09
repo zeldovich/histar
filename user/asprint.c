@@ -61,12 +61,12 @@ main(int ac, char **av)
     }
 
     struct cobj_ref as;
-    if (strtoull(av[1], 0, 10, &as.container) < 0) {
+    if (strtou64(av[1], 0, 10, &as.container) < 0) {
 	usage(av[0]);
 	return -1;
     }
 
-    if (strtoull(av[2], 0, 10, &as.object) < 0) {
+    if (strtou64(av[2], 0, 10, &as.object) < 0) {
 	usage(av[0]);
 	return -1;
     }
