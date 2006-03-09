@@ -10,6 +10,8 @@ extern "C" {
 #include <inc/fd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
 }
 
 url::url(const char *s) : host_(0), path_(0)

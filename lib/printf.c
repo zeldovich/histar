@@ -34,13 +34,6 @@ cons_flush(struct printbuf *b)
 }
 
 static void
-fd_flush(struct printbuf *b)
-{
-	write(b->fd, b->buf, b->idx);
-	b->idx = 0;
-}
-
-static void
 flush(struct printbuf *b)
 {
 	b->flush(b);
@@ -77,34 +70,6 @@ cprintf(const char *fmt, ...)
 
 	va_start(ap, fmt);
 	cnt = vcprintf(fmt, ap);
-	va_end(ap);
-
-	return cnt;
-}
-
-int
-vprintf(const char *fmt, va_list ap)
-{
-	struct printbuf b;
-
-	b.idx = 0;
-	b.cnt = 0;
-	b.fd = 1;
-	b.flush = &fd_flush;
-	vprintfmt((void*)putch, &b, fmt, ap);
-	flush(&b);
-
-	return b.cnt;
-}
-
-int
-printf(const char *fmt, ...)
-{
-	va_list ap;
-	int cnt;
-
-	va_start(ap, fmt);
-	cnt = vprintf(fmt, ap);
 	va_end(ap);
 
 	return cnt;

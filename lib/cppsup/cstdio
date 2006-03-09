@@ -4,7 +4,7 @@
 // jos64 glue
 
 extern "C" {
-#include <inc/stdio.h>
+#include <stdio.h>
 }
 
 namespace std {

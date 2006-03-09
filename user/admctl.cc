@@ -1,5 +1,9 @@
 extern "C" {
 #include <inc/admind.h>
+#include <string.h>
+#include <inc/string.h>
+#include <stdio.h>
+#include <stdlib.h>
 }
 
 #include <inc/gateclnt.hh>

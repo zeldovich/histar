@@ -6,6 +6,9 @@ extern "C" {
 #include <inc/netd.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/socket.h>
 }
 
 #include <inc/spawn.hh>

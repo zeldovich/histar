@@ -8,15 +8,17 @@
 #define LINUX 1
 #endif
 
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #if JOS64
-#include <inc/string.h>
-#include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
-#include <unistd.h>
-
-#define S_IRWXU         0x00000001
 
 #define umask(a)
 #define fsync(fd) 
@@ -28,13 +30,12 @@
 #include "sys/stat.h"
 #include <sys/timeb.h>
 #include <errno.h>
-#include "fcntl.h"
 
 #define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX
 
 static char buf[40960];
-static char name[32];
+static char namebuf[32];
 static char *prog_name;
 
 #define NDIR 100
@@ -42,7 +43,7 @@ static char *prog_name;
 
 static char dir[32];
 
-void 
+static void 
 creat_dir()
 {
     int i;
@@ -57,7 +58,7 @@ creat_dir()
 
 
 
-void
+static void
 creat_test(int n, int size)
 {
     int i;
@@ -70,9 +71,9 @@ creat_test(int n, int size)
 
     for (i = 0, j = 0; i < n; i ++) {
 
-		sprintf(name, "d%d/g%d", j, i);
+		sprintf(namebuf, "d%d/g%d", j, i);
 	
-		if((fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
+		if((fd = open(namebuf, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
 		    printf("creat_test: create %d failed: %d\n", i, fd);
 		    exit(1);
 		}
@@ -98,8 +99,9 @@ creat_test(int n, int size)
 }
 
 
-void
-write_test(char *name, int n, int size)
+#if 0
+static void
+write_test(const char *name, int n, int size)
 {
     int i = 0 ;
     int r;
@@ -128,15 +130,18 @@ write_test(char *name, int n, int size)
     
     printf("write_test: write took %d msec\n", f - s);
 }
+#endif
 
 
-void
+#if 0
+static void
 flush_cache()
 {
     write_test("t", 20000, 4096);
 }
+#endif
 
-void
+static void
 read_test(int n, int size)
 {
     int i;
@@ -148,9 +153,9 @@ read_test(int n, int size)
     s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
-		sprintf(name, "d%d/g%d", j, i);
+		sprintf(namebuf, "d%d/g%d", j, i);
 	
-		if((fd = open(name, O_RDONLY, 0)) < 0) {
+		if((fd = open(namebuf, O_RDONLY, 0)) < 0) {
 		    printf("read_test: open %d failed %d\n", i, fd);
 		    exit(1);
 		}
@@ -172,7 +177,7 @@ read_test(int n, int size)
     printf("read_test: read took %d msec\n", f - s);
 }
 
-void 
+static void 
 delete_test(int n)
 {	
     int i;
@@ -183,9 +188,9 @@ delete_test(int n)
     s = time_msec();
     for (i = 0, j = 0; i < n; i ++) {
 
-	sprintf(name, "d%d/g%d", j, i);
+	sprintf(namebuf, "d%d/g%d", j, i);
 
-	if ((r = unlink(name)) < 0) {
+	if ((r = unlink(namebuf)) < 0) {
 	    printf("%s: unlink failed %d\n", prog_name, r);
 	    exit(1);
 	}

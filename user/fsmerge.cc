@@ -3,6 +3,8 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/syscall.h>
+#include <string.h>
+#include <stdlib.h>
 }
 
 #include <inc/error.hh>

@@ -4,12 +4,7 @@
 // jos64 glue
 
 extern "C" {
-#include <inc/lib.h>
-}
-
-#undef abort
-extern "C" {
-void abort(void) __attribute__((noreturn));
+#include <stdlib.h>
 }
 
 namespace std {

@@ -3,6 +3,8 @@
 #include <inc/error.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
+#include <stdio.h>
+#include <unistd.h>
 
 int
 main(int ac, char **av)
@@ -42,7 +44,7 @@ main(int ac, char **av)
 	char buf[512];
 	size_t cc = MIN(sizeof(buf), maxoff - off);
 
-	int r = fs_pread(f, &buf[0], cc, off);
+	r = fs_pread(f, &buf[0], cc, off);
 	if (r < 0) {
 	    printf("cannot read %s: %s\n", pn, e2s(r));
 	    return r;

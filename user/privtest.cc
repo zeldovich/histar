@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/syscall.h>
+#include <stdio.h>
 }
 
 #include <inc/privstore.hh>

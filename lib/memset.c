@@ -30,8 +30,9 @@
  * SUCH DAMAGE.
  */
 
-#include <inc/types.h>
-#include <inc/string.h>
+#ifdef JOS_KERNEL
+#include <kern/lib.h>
+#endif
 
 void *
 memset(void *dst, int c, size_t n)

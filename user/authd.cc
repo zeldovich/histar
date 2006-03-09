@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/authd.h>
 #include <inc/error.h>
 #include <inc/queue.h>
+#include <string.h>
 }
 
 #include <inc/gatesrv.hh>

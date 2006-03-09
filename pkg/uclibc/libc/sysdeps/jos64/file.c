@@ -3,6 +3,9 @@
 #include <inc/fd.h>
 #include <inc/error.h>
 
+#include <fcntl.h>
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 int
@@ -72,7 +75,7 @@ chdir(const char *pn)
 }
 
 int
-open(const char *pn, int flags, int mode)
+__libc_open(const char *pn, int flags, ...) __THROW
 {
     int r;
     struct fs_inode ino;
@@ -139,3 +142,6 @@ struct Dev devfile = {
     .dev_write = file_write,
     .dev_close = file_close,
 };
+
+weak_alias(__libc_open, open);
+

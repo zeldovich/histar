@@ -3,6 +3,7 @@
 #include <inc/error.h>
 #include <inc/fs.h>
 
+#include <stdio.h>
 #include <unistd.h>
 
 int

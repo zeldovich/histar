@@ -8,22 +8,18 @@
 #define LINUX 1
 #endif
 
+#include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if JOS64
-#include <inc/string.h>
-#include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
-
-struct stat
-{
-	int st_uid ;
-} ;
-#define S_IRWXU         0x00700
-#define S_IRUSR			0x00400
-#define S_IWUSR			0x00200
 
 #define umask(a)
 #define fsync(fd) 
@@ -38,33 +34,30 @@ struct stat
 #endif // JOS64
 
 #if LINUX
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "fcntl.h"
 #include <sys/timeb.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#define seek(fd, offset) lseek(fd, offset, SEEK_SET)
 #define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX
 
+#define seek(fd, offset) lseek(fd, offset, SEEK_SET)
 #define SIZE	8192
 
 static char buf[SIZE];
 static char name[32] = "test_file";
 static char *prog_name;
-static int fd;
 
 extern int errno;
 
-int f(int i, int n)
+static int
+f(int i, int n)
 {
     return ((i * 11) % n);
 }
 
-void
+static void
 write_test(int n, int size, int sequential)
 {
     int i = 0 ;
@@ -117,14 +110,15 @@ write_test(int n, int size, int sequential)
 }
 
 
-int g(int i, int n)
+static int
+g(int i, int n)
 {
     if (i % 2 == 0) return(n / 2 + i / 2);
     else return(i / 2);
 }
 
 
-void
+static void
 read_test(int n, int size, int sequential)
 {
     int i = 0 ;
@@ -173,11 +167,12 @@ read_test(int n, int size, int sequential)
 }
 
 
-void
+static void __attribute__((unused))
 flush_cache()
 {
     int i = 0 ;
     int r = 0 ;
+    int fd;
 
     if((fd = open("t", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
 		printf("flush_cache: create t failed: %d\n", fd);
@@ -221,6 +216,7 @@ int main(int argc, char *argv[])
 
     srandom(getpid());
 
+    int fd;
     if((fd = creat(name, S_IRUSR | S_IWUSR)) < 0) {
 		printf("main: create %s failed: %d\n", name, fd);
 		exit(1);

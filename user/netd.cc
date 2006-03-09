@@ -1,10 +1,11 @@
 extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
-#include <inc/stdio.h>
+#include <stdio.h>
+#include <inc/string.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
-#include <inc/string.h>
+#include <string.h>
 #include <inc/netd.h>
 }
 

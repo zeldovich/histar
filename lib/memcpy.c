@@ -30,8 +30,9 @@
  * SUCH DAMAGE.
  */
 
-#include <inc/types.h>
-#include <inc/string.h>
+#ifdef JOS_KERNEL
+#include <kern/lib.h>
+#endif
 
 /*
  * sizeof(word) MUST BE A POWER OF TWO

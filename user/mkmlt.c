@@ -3,6 +3,7 @@
 #include <inc/error.h>
 #include <inc/fs.h>
 #include <inc/syscall.h>
+#include <stdio.h>
 
 int
 main(int ac, char **av)

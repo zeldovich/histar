@@ -2,26 +2,7 @@
 #include <inc/error.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
-
-int
-putchar(int ch)
-{
-    unsigned char c = ch;
-    write(1, &c, 1);
-    return c;
-}
-
-int
-getchar(void)
-{
-    unsigned char c;
-    int r = read(0, &c, 1);
-    if (r < 0)
-	return r;
-    if (r == 0)
-	return -E_EOF;
-    return c;
-}
+#include <fcntl.h>
 
 int
 iscons(int fdnum)

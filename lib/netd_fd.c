@@ -6,6 +6,7 @@
 #include <inc/fd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/socket.h>
 
 const struct host_entry host_table[] = {
     { "market", "market.scs.stanford.edu" },
@@ -59,7 +60,7 @@ socket(int domain, int type, int protocol)
 }
 
 static int
-sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
+sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
     struct sockaddr_in sin;
@@ -75,7 +76,7 @@ sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 }
 
 static int
-sock_connect(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
+sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
     struct sockaddr_in sin;

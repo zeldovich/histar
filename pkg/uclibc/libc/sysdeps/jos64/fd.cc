@@ -7,6 +7,9 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/socket.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -36,6 +39,12 @@ static int debug = 0;
  * FILE DESCRIPTOR MANIPULATORS *
  *                              *
  ********************************/
+
+int
+getdtablesize(void) __THROW
+{
+    return MAXFD;
+}
 
 int
 fd2num(struct Fd *fd)
@@ -300,7 +309,7 @@ dev_lookup(int dev_id, struct Dev **dev)
 }
 
 int
-close(int fdnum)
+close(int fdnum) __THROW
 {
 	struct Fd *fd;
 	int r;
@@ -325,7 +334,7 @@ close_all(void)
 // Closes any previously open file descriptor at 'newfdnum'.
 // This is implemented using virtual memory tricks (of course!).
 int
-dup2(int oldfdnum, int newfdnum)
+dup2(int oldfdnum, int newfdnum) __THROW
 {
 	struct Fd *oldfd;
 	struct cobj_ref fd_seg;
@@ -374,7 +383,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 }
 
 ssize_t
-read(int fdnum, void *buf, size_t n)
+read(int fdnum, void *buf, size_t n) __THROW
 {
 	int r;
 	struct Dev *dev;
@@ -410,7 +419,7 @@ readn(int fdnum, void *buf, size_t n)
 }
 
 ssize_t
-write(int fdnum, const void *buf, size_t n)
+write(int fdnum, const void *buf, size_t n) __THROW
 {
 	int r;
 	struct Dev *dev;
@@ -433,21 +442,7 @@ write(int fdnum, const void *buf, size_t n)
 }
 
 int
-seek(int fdnum, off_t offset)
-{
-	int r;
-	struct Fd *fd;
-
-	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
-		return r;
-	if (fd->fd_immutable)
-		return -E_BAD_OP;
-	fd->fd_offset = offset;
-	return 0;
-}
-
-int
-bind(int fdnum, struct sockaddr *addr, socklen_t addrlen)
+bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
     int r;
     struct Fd *fd;
@@ -461,7 +456,7 @@ bind(int fdnum, struct sockaddr *addr, socklen_t addrlen)
 }
 
 int
-connect(int fdnum, struct sockaddr *addr, socklen_t addrlen)
+connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
     int r;
     struct Fd *fd;
@@ -475,7 +470,7 @@ connect(int fdnum, struct sockaddr *addr, socklen_t addrlen)
 }
 
 int
-listen(int fdnum, int backlog)
+listen(int fdnum, int backlog) __THROW
 {
     int r;
     struct Fd *fd;
@@ -489,7 +484,7 @@ listen(int fdnum, int backlog)
 }
 
 int
-accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
+accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
     int r;
     struct Fd *fd;
@@ -500,4 +495,55 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
 	    return r;
 
     return dev->dev_accept(fd, addr, addrlen);
+}
+
+int
+fstat(int filedes, struct stat *buf) __THROW
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+extern "C" int
+__libc_fcntl(int fd, int cmd, ...)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+off_t
+lseek(int fdnum, off_t offset, int whence) __THROW
+{
+    return lseek64(fdnum, offset, whence);
+}
+
+__off64_t
+lseek64(int fdnum, __off64_t offset, int whence) __THROW
+{
+    int r;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+	__set_errno(r);
+	return -1;
+    }
+
+    if (fd->fd_immutable) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    if (whence == SEEK_SET) {
+	fd->fd_offset = offset;
+    } else if (whence == SEEK_CUR) {
+	fd->fd_offset += offset;
+    } else if (whence == SEEK_END) {
+	__set_errno(ENOSYS);
+	return -1;
+    } else {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return 0;
 }

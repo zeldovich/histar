@@ -1,8 +1,10 @@
 #include <stdio.h>
-#include <lib.h>
-#include <error.h>
-#include <fs.h>
-#include <fd.h>
+#include <inc/lib.h>
+#include <inc/error.h>
+#include <inc/fs.h>
+#include <inc/fd.h>
+#include <string.h>
+#include <inc/stdio.h>
 
 int
 main(int ac, char **av)

@@ -49,8 +49,7 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
 WARNS	 := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
-	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute \
-	    -Werror
+	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
 CWARNS	 := $(WARNS) -Wmissing-prototypes -Wmissing-declarations
 CXXWARNS := $(WARNS)
 # Too many false positives:
@@ -72,7 +71,7 @@ LDEPS	:= $(LDENTRY) $(CRTN) \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a
 LDFLAGS := -nostdlib -L$(OBJDIR)/lib
-LIBS	:= -ljos -llwip -lc $(GCC_LIB)
+LIBS	:= -ljos -llwip -lc -ljos -lc $(GCC_LIB)
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -95,9 +94,9 @@ COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin
 COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_INC   := $(INCLUDES)
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) $(KERN_PROF)
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
-USER_INC   := $(INCLUDES) -I$(TOP)/inc
+USER_INC   := $(INCLUDES)
 USER_CFLAGS := $(COMFLAGS) $(DEFS) $(CFLAGS) $(USER_INC) -DJOS_USER
 USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)
 

@@ -1,16 +1,15 @@
 extern "C" {
 #include <inc/syscall.h>
-#include <inc/stdio.h>
 #include <inc/lib.h>
 #include <inc/string.h>
-#include <inc/elf64.h>
-#include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
 
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 }
 
 #include <inc/spawn.hh>

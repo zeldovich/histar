@@ -854,7 +854,9 @@ extern void *sbrk (intptr_t __delta) __THROW;
 
    In Mach, all system calls take normal arguments and always return an
    error code (zero for success).  */
+#if 0	// jos64
 extern long int syscall (long int __sysno, ...) __THROW;
+#endif
 
 #endif	/* Use misc.  */
 

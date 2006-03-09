@@ -10,9 +10,9 @@
 #include <kern/lib.h>
 #else /* !JOS_KERNEL */
 #include <inc/stdio.h>
-#include <inc/string.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <string.h>
 #endif /* !JOS_KERNEL */
 
 /*
@@ -288,6 +288,7 @@ printfmt (void (*putch) (int, void *), void *putdat, const char *fmt, ...)
   va_end (ap);
 }
 
+#ifdef JOS_KERNEL
 struct sprintbuf
 {
   char *buf;
@@ -345,3 +346,4 @@ sprintf (char *buf, const char *fmt, ...)
 
   return cnt;
 }
+#endif

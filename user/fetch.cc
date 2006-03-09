@@ -4,6 +4,10 @@ extern "C" {
 #include <inc/string.h>
 #include <inc/fs.h>
 #include <inc/syscall.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <inc/assert.h>
 }
 
 #include <inc/nethelper.hh>

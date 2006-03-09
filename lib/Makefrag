@@ -5,13 +5,9 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/longjmp.S \
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/stack.S \
-	lib/memcpy.c \
-	lib/memmove.c \
-	lib/memset.c \
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \
-	lib/stdio.c \
 	lib/string.c \
 	lib/libmain.c \
 	lib/panic.c \
@@ -29,13 +25,10 @@ LIB_SRCFILES :=	\
 	lib/netd_fd.c \
 	lib/netd_lwip.c \
 	lib/netd_lwipinit.c \
-	lib/fd.c \
 	lib/console.c \
 	lib/spawn.cc \
 	lib/container.c \
 	lib/cksum.c \
-	lib/heap.c \
-	lib/malloc.c \
 	lib/fs_dir.cc \
 	lib/fs_dir_ct.cc \
 	lib/fs_dir_dseg.cc \
@@ -43,7 +36,6 @@ LIB_SRCFILES :=	\
 	lib/fs_file.c \
 	lib/fs_mount.c \
 	lib/fs_taint.cc \
-	lib/file.c \
 	lib/label.c \
 	lib/cpplabel.cc \
 	lib/labelutil.cc \
@@ -68,7 +60,7 @@ LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
 $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(CWARNS) -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(CWARNS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
@@ -76,11 +68,11 @@ $(OBJDIR)/lib/%.o: lib/%.cc
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(CWARNS) -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) $(CWARNS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CWARNS)  -c -o $@ $<
+	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@

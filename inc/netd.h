@@ -84,7 +84,6 @@ void netd_dispatch(struct netd_op_args *a);
 void netd_lwip_init(void (*cb)(void*), void *cbarg) __attribute__((noreturn));
 
 int  netd_call(struct netd_op_args *a);
-int  socket(int domain, int type, int protocol);
 
 struct host_entry {
     const char *alias;

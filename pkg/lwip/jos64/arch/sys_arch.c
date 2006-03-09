@@ -2,6 +2,7 @@
 #include <inc/pthread.h>
 #include <inc/syscall.h>
 #include <inc/queue.h>
+#include <stdlib.h>
 
 #include <lwip/sys.h>
 #include <arch/cc.h>

@@ -7,13 +7,8 @@
 #include <inc/kobj.h>
 #include <inc/fs.h>
 
-#include <lwip/inet.h>
-#include <lwip/sockets.h>
-
 /* console.c */
 int	iscons(int fd);
-int	getchar(void);
-int	putchar(int c);
 int	opencons(uint64_t container);
 
 /* readline.c */
@@ -61,7 +56,6 @@ extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
-void    exit(int status) __attribute__((__noreturn__));
 
 /* thread.c */
 struct thread_args {
@@ -102,14 +96,8 @@ int	process_report_exit(int64_t code);
 int64_t container_find(uint64_t container, kobject_type_t type,
 		       const char *name);
 
-/* heap.c */
-void *sbrk(intptr_t x);
+/* sbrk.c */
 int  heap_relabel(struct ulabel *l);
-
-/* malloc.c */
-void *malloc(size_t size);
-void free(void *ptr);
-void *realloc(void *ptr, size_t size);
 
 /* label.c */
 typedef int (label_comparator)(level_t, level_t);
@@ -132,10 +120,6 @@ int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 // for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default
 void label_max_default(struct ulabel *l);
 void label_change_star(struct ulabel *l, level_t new_level);
-
-/* file.c */
-int  open(const char *pn, int flags, int mode);
-int  mkdir(const char *pn, int mode);
 
 /* debug.cc */
 void print_backtrace(void);

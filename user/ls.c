@@ -1,12 +1,13 @@
 #include <stdio.h>
-#include <lib.h>
-#include <error.h>
-#include <fs.h>
+#include <inc/stdio.h>
+#include <inc/lib.h>
+#include <inc/error.h>
+#include <inc/fs.h>
 
 int
 main(int ac, char **av)
 {
-    char *dname;
+    const char *dname;
     if (ac == 1) {
 	dname = "";
     } else if (ac == 2) {

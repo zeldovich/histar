@@ -6,10 +6,7 @@
 #include <inc/types.h>
 #include <inc/fs.h>
 
-#include <fcntl.h>
-
-#include <lwip/inet.h>
-#include <lwip/sockets.h>
+#include <arpa/inet.h>
 
 // pre-declare for forward references
 struct Fd;
@@ -26,10 +23,10 @@ struct Dev
 	int (*dev_seek)(struct Fd *fd, off_t pos);
 	int (*dev_trunc)(struct Fd *fd, off_t length);
 
-	int (*dev_bind)(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen);
+	int (*dev_bind)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
 	int (*dev_listen)(struct Fd *fd, int backlog);
 	int (*dev_accept)(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen);
-	int (*dev_connect)(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen);
+	int (*dev_connect)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
 };
 
 struct Fd
@@ -69,18 +66,7 @@ extern struct Dev devcons;
 extern struct Dev devsock;
 extern struct Dev devfile;
 
-ssize_t	read(int fd, void *buf, size_t nbytes);
-ssize_t	write(int fd, const void *buf, size_t nbytes);
-int	seek(int fd, off_t offset);
 int	dup2_as(int oldfd, int newfd, struct cobj_ref target_as);
-int	dup2(int oldfd, int newfd);
-int	close(int fd);
-
-int	bind(int fd, struct sockaddr *addr, socklen_t addrlen);
-int	listen(int fd, int backlog);
-int	accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
-int	connect(int fd, struct sockaddr *addr, socklen_t addrlen);
-
 void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);
 

@@ -1,6 +1,9 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/authd.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 }
 
 #include <inc/error.hh>

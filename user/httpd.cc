@@ -8,6 +8,9 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/error.h>
 #include <inc/fd.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
 }
 
 #include <inc/nethelper.hh>

@@ -2,12 +2,15 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <inc/assert.h>
 
 static void
 as_print_ents(struct u_address_space *uas)
 {
     cprintf("              va off npg rwx segment\n");
-    for (int i = 0; i < uas->nent; i++) {
+    for (uint32_t i = 0; i < uas->nent; i++) {
 	if (uas->ents[i].flags == 0)
 	    continue;
 

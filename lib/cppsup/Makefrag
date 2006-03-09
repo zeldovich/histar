@@ -4,7 +4,6 @@ USER_CXXFLAGS += $(CPPSUP_INCLUDES)
 OBJDIRS += lib/cppsup
 
 LIB_SRCFILES += \
-	lib/cppsup/jos64-glue.cc \
 	lib/cppsup/eh_personality.cc \
 	lib/cppsup/eh_globals.cc \
 	lib/cppsup/eh_terminate.cc \
@@ -34,5 +33,5 @@ CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
 
 $(OBJDIR)/lib/cppsup/%.o: lib/cppsup/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(CXXWARNS) $(CPPSUP_FLAGS) -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) $(CXXWARNS) -Werror $(CPPSUP_FLAGS) -c -o $@ $<
 

@@ -1,18 +1,26 @@
 #include <inc/types.h>
+#include <endian.h>
 #include <inc/lib.h>
-#include <inc/string.h>
+#include <string.h>
 #include <inc/sha1.h>
 
-#define BYTE_ORDER LITTLE_ENDIAN
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
 /* blk0() and blk() perform the initial expand. */
 /* I got the idea of expanding during the round function from SSLeay */
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifndef __BYTE_ORDER
+#error __BYTE_ORDER not defined
+#endif
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \
     |(rol(block->l[i],8)&0x00FF00FF))
 #else
+#if __BYTE_ORDER == __BIG_ENDIAN
 #define blk0(i) block->l[i]
+#else
+#error funny __BYTE_ORDER
+#endif
 #endif
 #define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
     ^block->l[(i+2)&15]^block->l[i&15],1))

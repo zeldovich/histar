@@ -74,14 +74,3 @@ libmain(uint64_t arg0, uint64_t arg1)
 
     exit(main(argc, &argv[0]));
 }
-
-void
-exit(int rval)
-{
-    close_all();
-
-    if (start_env)
-	process_report_exit(rval);
-
-    thread_halt();
-}

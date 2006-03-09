@@ -2,6 +2,10 @@ extern "C" {
 #include <inc/admind.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <inc/string.h>
+#include <inc/assert.h>
 }
 
 #include <inc/gatesrv.hh>
