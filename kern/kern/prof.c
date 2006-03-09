@@ -1,6 +1,6 @@
 #include <machine/trapcodes.h>
 #include <machine/x86.h>
-#include <lib/hashtable.h>
+#include <kern/hashtable.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
 #include <kern/lib.h>

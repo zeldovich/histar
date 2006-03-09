@@ -1,8 +1,8 @@
 #ifndef LOG_H_
 #define LOG_H_
 
-#include <inc/btree.h>
-#include <inc/types.h>
+#include <kern/btree.h>
+#include <machine/types.h>
 
 // max pages for log buffer
 #define LOG_MEMORY          100  

@@ -1,8 +1,8 @@
 #include <kern/freelist.h>
 #include <kern/lib.h>
+#include <kern/dstack.h>
+#include <kern/btree.h>
 #include <inc/error.h>
-#include <inc/dstack.h>
-#include <inc/btree.h>
 
 struct chunk
 {

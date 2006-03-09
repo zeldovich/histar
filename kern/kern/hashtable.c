@@ -1,5 +1,5 @@
 #include <kern/lib.h>
-#include <lib/hashtable.h>
+#include <kern/hashtable.h>
 #include <inc/error.h>
 
 #define TOMB  0xFFFFFFFFFFFFFFFF

@@ -5,10 +5,10 @@
 #include <kern/log.h>
 #include <kern/disklayout.h>
 #include <kern/freelist.h>
+#include <kern/hashtable.h>
+#include <kern/disklayout.h>
 #include <inc/queue.h>
 #include <inc/error.h>
-#include <lib/hashtable.h>
-#include <kern/disklayout.h>
 
 #define SCRATCH_SIZE PGSIZE
 static uint8_t scratch[SCRATCH_SIZE] ;

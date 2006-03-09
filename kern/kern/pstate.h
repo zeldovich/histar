@@ -5,7 +5,7 @@
 #include <kern/kobj.h>
 #include <kern/freelist.h>
 #include <kern/handle.h>
-#include <inc/btree.h>
+#include <kern/btree.h>
 
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
 #define PSTATE_VERSION	3

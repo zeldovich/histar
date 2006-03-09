@@ -33,6 +33,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/sync.c \
 	    kern/kern/ht.c \
 	    kern/kern/prof.c \
+	    kern/kern/hashtable.c \
+	    kern/kern/dstack.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)

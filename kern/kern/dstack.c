@@ -1,5 +1,5 @@
-#include <inc/dstack.h>
 #include <machine/pmap.h>
+#include <kern/dstack.h>
 
 #define DSTACK_BUF_SIZE ((PGSIZE - sizeof(LIST_ENTRY(dstack_page))) \
                         / sizeof(uint64_t))
