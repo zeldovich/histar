@@ -3,9 +3,9 @@ UCLIBC_INCLUDES := \
 	-Ipkg/uclibc/libc/sysdeps/linux/common \
 	-Ipkg/uclibc/include
 
+UCLIBC_CFLAGS := -nostdinc $(UCLIBC_INCLUDES) $(USER_CFLAGS) -D_LIBC
+
 #USER_CFLAGS := $(UCLIBC_INCLUDES) $(USER_CFLAGS)
 #USER_CXXFLAGS := $(UCLIBC_INCLUDES) $(USER_CXXFLAGS)
-
-UCLIBC_CFLAGS := -nostdinc $(USER_CFLAGS) -D_LIBC
 
 include pkg/uclibc/libc/Makefrag
