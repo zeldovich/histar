@@ -1,7 +1,7 @@
 #ifndef JOS_INC_NETDEV_H
 #define JOS_INC_NETDEV_H
 
-#include <machine/types.h>
+#include <inc/types.h>
 
 typedef enum {
     netbuf_rx,

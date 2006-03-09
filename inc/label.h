@@ -1,7 +1,7 @@
 #ifndef JOS_INC_LABEL_H
 #define JOS_INC_LABEL_H
 
-#include <machine/types.h>
+#include <inc/types.h>
 
 typedef unsigned char level_t;
 
