@@ -1,9 +1,15 @@
 OBJDIRS += \
 	pkg/uclibc/libc/misc/assert \
-	pkg/uclibc/libc/misc/ctype
+	pkg/uclibc/libc/misc/ctype \
+	pkg/uclibc/libc/misc/internal
+
+MISC_INTERNALS_CSRC := \
+	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c
 
 LIBC_SRCFILES += \
-	pkg/uclibc/libc/misc/assert/__assert.c
+	pkg/uclibc/libc/misc/assert/__assert.c \
+	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC))
+
 
 CTYPE_MSRC := pkg/uclibc/libc/misc/ctype/ctype.c
 CTYPE_MOBJ := \
