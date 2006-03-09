@@ -3,6 +3,6 @@
 
 #include <lib.h>
 
-int mkstemp(char *template);
+int mkstemp(char *tmpl);
 
 #endif
