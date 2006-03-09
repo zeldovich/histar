@@ -1,6 +1,23 @@
 OBJDIRS += \
-	pkg/uclibc/libc/misc/assert
+	pkg/uclibc/libc/misc/assert \
+	pkg/uclibc/libc/misc/ctype
 
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c
+
+CTYPE_MSRC := pkg/uclibc/libc/misc/ctype/ctype.c
+CTYPE_MOBJ := \
+	isalnum.o isalpha.o isascii.o iscntrl.o isdigit.o \
+        isgraph.o islower.o isprint.o ispunct.o isspace.o \
+        isupper.o isxdigit.o toascii.o tolower.o toupper.o \
+        isblank.o isxlower.o isxupper.o \
+	__C_ctype_b.o __C_ctype_tolower.o __C_ctype_toupper.o \
+        __ctype_b_loc.o __ctype_tolower_loc.o __ctype_toupper_loc.o \
+        __ctype_assert.o isctype.o
+CTYPE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o, $(CTYPE_MOBJ))
+LIBC_OBJFILES += $(CTYPE_MOBJ)
+
+$(CTYPE_MOBJ): $(CTYPE_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o,%,$@) $< -c -o $@
 
