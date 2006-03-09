@@ -20,20 +20,24 @@ static int init_debug = 0;
 static void
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 {
-    struct fs_inode ino;
-    int r = fs_namei(pn, &ino);
-    if (r < 0)
-	throw error(r, "cannot fs_lookup %s", pn);
+    try {
+	struct fs_inode ino;
+	int r = fs_namei(pn, &ino);
+	if (r < 0)
+	    throw error(r, "cannot fs_lookup %s", pn);
 
-    const char *argv[] = { pn, arg };
-    spawn(start_env->root_container, ino,
-	  fd, fd, fd,
-	  arg ? 2 : 1, &argv[0],
-	  0, ds, 0, 0,
-	  0);
+	const char *argv[] = { pn, arg };
+	spawn(start_env->root_container, ino,
+	      fd, fd, fd,
+	      arg ? 2 : 1, &argv[0],
+	      0, ds, 0, 0,
+	      0);
 
-    if (init_debug)
-	printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
+	if (init_debug)
+	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
+    } catch (std::exception &e) {
+	cprintf("spawn_fs(%s): %s\n", pn, e.what());
+    }
 }
 
 static void
