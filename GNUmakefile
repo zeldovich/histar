@@ -66,9 +66,9 @@ INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 LDENTRY := $(OBJDIR)/lib/entry.o
 CRTN	:= $(OBJDIR)/lib/crtn.o
 
-LDEPS	:= $(LDENTRY) $(CRTN) $(OBJDIR)/lib/libjos.a
+LDEPS	:= $(LDENTRY) $(CRTN) $(OBJDIR)/lib/libjos.a $(OBJDIR)/lib/liblwip.a
 LDFLAGS := -nostdlib -L$(OBJDIR)/lib
-LIBS	:= -ljos $(GCC_LIB)
+LIBS	:= -ljos -llwip $(GCC_LIB)
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

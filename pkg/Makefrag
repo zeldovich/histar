@@ -1,1 +1,2 @@
 include pkg/ksh/Makefrag
+include pkg/lwip/Makefrag

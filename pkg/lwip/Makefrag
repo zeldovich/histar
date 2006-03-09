@@ -1,0 +1,54 @@
+LWIP_INCLUDES := \
+	-I$(TOP)/pkg/lwip/include \
+	-I$(TOP)/pkg/lwip/include/ipv4 \
+	-I$(TOP)/pkg/lwip/jos64
+
+OBJDIRS += \
+	pkg/lwip/api \
+	pkg/lwip/core \
+	pkg/lwip/core/ipv4 \
+	pkg/lwip/netif \
+	pkg/lwip/jos64/arch \
+	pkg/lwip/jos64/jif
+
+USER_CFLAGS   += $(LWIP_INCLUDES)
+USER_CXXFLAGS += $(LWIP_INCLUDES)
+
+LWIP_SRCFILES += \
+	pkg/lwip/api/api_lib.c \
+	pkg/lwip/api/api_msg.c \
+	pkg/lwip/api/err.c \
+	pkg/lwip/api/sockets.c \
+	pkg/lwip/api/tcpip.c \
+	pkg/lwip/core/tcp_in.c \
+	pkg/lwip/core/dhcp.c \
+	pkg/lwip/core/inet.c \
+	pkg/lwip/core/mem.c \
+	pkg/lwip/core/memp.c \
+	pkg/lwip/core/netif.c \
+	pkg/lwip/core/pbuf.c \
+	pkg/lwip/core/raw.c \
+	pkg/lwip/core/stats.c \
+	pkg/lwip/core/sys.c \
+	pkg/lwip/core/tcp.c \
+	pkg/lwip/core/ipv4/ip_addr.c \
+	pkg/lwip/core/ipv4/icmp.c \
+	pkg/lwip/core/ipv4/ip.c \
+	pkg/lwip/core/ipv4/ip_frag.c \
+	pkg/lwip/core/tcp_out.c \
+	pkg/lwip/core/udp.c \
+	pkg/lwip/netif/etharp.c \
+	pkg/lwip/netif/loopif.c \
+	pkg/lwip/jos64/arch/sys_arch.c \
+	pkg/lwip/jos64/jif/jif.c
+
+LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
+
+$(OBJDIR)/pkg/lwip/%.o: pkg/lwip/%.c
+	@mkdir -p $(@D)
+	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Wno-unused-function -c -o $@ $<
+
+$(OBJDIR)/lib/liblwip.a: $(LWIP_OBJFILES)
+	@mkdir -p $(@D)
+	$(AR) r $@ $(LWIP_OBJFILES)
+
