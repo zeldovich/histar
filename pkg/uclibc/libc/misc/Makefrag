@@ -1,0 +1,3 @@
+LIBC_SRCFILES += \
+	pkg/uclibc/libc/misc/assert/__assert.c
+
