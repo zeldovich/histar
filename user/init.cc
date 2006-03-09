@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/stdio.h>
+#include <stdio.h>
 #include <inc/lib.h>
 #include <inc/string.h>
 #include <inc/assert.h>
@@ -7,6 +8,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <unistd.h>
 }
 
 #include <inc/cpplabel.hh>
