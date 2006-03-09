@@ -1,0 +1,36 @@
+
+MSRC	:= pkg/uclibc/libc/stdio/vfprintf.c
+MOBJ	:= vfprintf.o _ppfs_init.o _ppfs_prepargs.o _ppfs_setargs.o _ppfs_parsespec.o \
+	   register_printf_function.o parse_printf_format.o
+MOBJ    := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(MOBJ))
+
+MSRC2	:= pkg/uclibc/libc/stdio/scanf.c
+MOBJ2	:= vfscanf.o __scan_cookie.o __psfs_parse_spec.o __psfs_do_numeric.o \
+           scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o
+MOBJ2   := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(MOBJ2))
+
+STDIO_CSRC := \
+	fclose.c fcloseall.c fdopen.c fgetpos.c fopen.c freopen.c \
+        fseeko.c fsetpos.c ftello.c getdelim.c getline.c gets.c getw.c \
+        perror.c puts.c putw.c remove.c rewind.c setbuf.c setbuffer.c \
+        setlinebuf.c setvbuf.c ungetc.c \
+        printf.c vprintf.c vsprintf.c fprintf.c snprintf.c dprintf.c \
+        asprintf.c sprintf.c vasprintf.c vdprintf.c vsnprintf.c \
+        tmpfile.c tmpnam.c tmpnam_r.c popen.c tempnam.c ctermid.c \
+	_READ.c _WRITE.c _adjust_pos.c _fopen.c _fwrite.c \
+        _rfill.c _stdio.c _trans2r.c _trans2w.c _wcommit.c \
+        _cs_funcs.c _load_inttype.c _store_inttype.c _uintmaxtostr.c \
+	__fbufsize.c __flbf.c __fpending.c __fpurge.c __freadable.c \
+        __freading.c __fsetlocking.c __fwritable.c __fwriting.c _flushlbf.c
+
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%.c, $(STDIO_CSRC))
+LIBC_OBJFILES += $(MOBJ) $(MOBJ2)
+
+$(MOBJ): $(MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
+
+$(MOBJ2): $(MSRC2)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
+
