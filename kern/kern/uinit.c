@@ -176,8 +176,9 @@ thread_load_elf(struct Container *c, struct Thread *t,
     }
 
     // Map a stack
+    int stackpages = 2;
     struct Segment *s;
-    r = segment_create_embed(c, obj_label, PGSIZE, 0, 0, &s);
+    r = segment_create_embed(c, obj_label, stackpages * PGSIZE, 0, 0, &s);
     if (r < 0) {
 	cprintf("ELF: cannot allocate stack segment: %s\n", e2s(r));
 	return r;
@@ -185,7 +186,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 
     r = elf_add_segmap(as, &segmap_i,
 		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-		       0, 1, (void*) (USTACKTOP - PGSIZE),
+		       0, stackpages, (void*) (USTACKTOP - stackpages * PGSIZE),
 		       SEGMAP_READ | SEGMAP_WRITE);
     if (r < 0) {
 	cprintf("ELF: cannot map stack segment: %s\n", e2s(r));
