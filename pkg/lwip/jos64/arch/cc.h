@@ -4,7 +4,6 @@
 #include <inc/types.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-#include <inc/endian.h>
 
 typedef uint32_t u32_t;
 typedef int32_t s32_t;
@@ -29,5 +28,7 @@ typedef uintptr_t mem_ptr_t;
 
 // Our runtime is so incompetent..
 #define LWIP_PROVIDE_ERRNO
+
+#define BYTE_ORDER LITTLE_ENDIAN
 
 #endif

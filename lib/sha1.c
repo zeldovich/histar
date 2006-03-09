@@ -1,9 +1,9 @@
 #include <inc/types.h>
-#include <inc/endian.h>
 #include <inc/lib.h>
 #include <inc/string.h>
 #include <inc/sha1.h>
 
+#define BYTE_ORDER LITTLE_ENDIAN
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
 /* blk0() and blk() perform the initial expand. */
