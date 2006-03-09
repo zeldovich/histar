@@ -1,14 +1,16 @@
 OBJDIRS += pkg/uclibc/libc/stdio
 
-MSRC	:= pkg/uclibc/libc/stdio/vfprintf.c
-MOBJ	:= vfprintf.o _ppfs_init.o _ppfs_prepargs.o _ppfs_setargs.o _ppfs_parsespec.o \
-	   register_printf_function.o parse_printf_format.o
-MOBJ    := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(MOBJ))
+STDIO_MSRC := pkg/uclibc/libc/stdio/vfprintf.c
+STDIO_MOBJ := \
+	vfprintf.o _ppfs_init.o _ppfs_prepargs.o _ppfs_setargs.o _ppfs_parsespec.o \
+	register_printf_function.o parse_printf_format.o
+STDIO_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(STDIO_MOBJ))
 
-MSRC2	:= pkg/uclibc/libc/stdio/scanf.c
-MOBJ2	:= vfscanf.o __scan_cookie.o __psfs_parse_spec.o __psfs_do_numeric.o \
-           scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o
-MOBJ2   := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(MOBJ2))
+STDIO_MSRC2 := pkg/uclibc/libc/stdio/scanf.c
+STDIO_MOBJ2 := \
+	vfscanf.o __scan_cookie.o __psfs_parse_spec.o __psfs_do_numeric.o \
+        scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o
+STDIO_MOBJ2 := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(STDIO_MOBJ2))
 
 STDIO_CSRC := \
 	fclose.c fcloseall.c fdopen.c fgetpos.c fopen.c freopen.c \
@@ -30,13 +32,13 @@ STDIO_CUSRC := \
 
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%.c, $(STDIO_CSRC))
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%_unlocked.c, $(STDIO_CUSRC))
-LIBC_OBJFILES += $(MOBJ) $(MOBJ2)
+LIBC_OBJFILES += $(STDIO_MOBJ) $(STDIO_MOBJ2)
 
-$(MOBJ): $(MSRC)
+$(STDIO_MOBJ): $(STDIO_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
 
-$(MOBJ2): $(MSRC2)
+$(STDIO_MOBJ2): $(STDIO_MSRC2)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
 
