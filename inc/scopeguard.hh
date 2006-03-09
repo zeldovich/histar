@@ -1,6 +1,10 @@
 #ifndef JOS_INC_SCOPEGUARD_HH
 #define JOS_INC_SCOPEGUARD_HH
 
+extern "C" {
+#include <stdio.h>
+}
+
 #include <inc/error.hh>
 
 template <class T>

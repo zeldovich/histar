@@ -3,6 +3,7 @@
 
 #include <inc/atomic.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
 
 typedef atomic64_t pthread_mutex_t;
 #define PTHREAD_MUTEX_INITIALIZER   ATOMIC_INIT(0)
