@@ -5,7 +5,13 @@
 extern "C" {
 #endif
 
-#include <types.h>
+#include <sys/types.h>
+
+typedef __uint64_t size_t;
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 #ifdef __cplusplus
 }
