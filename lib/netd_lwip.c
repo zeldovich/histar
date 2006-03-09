@@ -10,10 +10,28 @@
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
 
+static void
+netd_to_lwip(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
+{
+    sin->sin_family = AF_INET;
+    sin->sin_port = nsin->sin_port;
+    sin->sin_addr.s_addr = nsin->sin_addr;
+}
+
+static void
+lwip_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
+{
+    nsin->sin_port = sin->sin_port;
+    nsin->sin_addr = sin->sin_addr.s_addr;
+}
+
 void
 netd_dispatch(struct netd_op_args *a)
 {
     lwip_core_lock();
+
+    struct sockaddr_in sin;
+    socklen_t sinlen = sizeof(sin);
 
     switch (a->op_type) {
     case netd_op_socket:
@@ -23,15 +41,17 @@ netd_dispatch(struct netd_op_args *a)
 	break;
 
     case netd_op_bind:
+	netd_to_lwip(&a->bind.sin, &sin);
+
 	a->rval = lwip_bind(a->bind.fd,
-			    (struct sockaddr*) &a->bind.sin,
-			    sizeof(a->bind.sin));
+			    (struct sockaddr *) &sin, sinlen);
 	break;
 
     case netd_op_connect:
+	netd_to_lwip(&a->connect.sin, &sin);
+
 	a->rval = lwip_connect(a->connect.fd,
-			       (struct sockaddr *) &a->connect.sin,
-			       sizeof(a->connect.sin));
+			       (struct sockaddr *) &sin, sinlen);
 	break;
 
     case netd_op_listen:
@@ -40,12 +60,9 @@ netd_dispatch(struct netd_op_args *a)
 	break;
 
     case netd_op_accept:
-	{
-	    socklen_t sinlen = sizeof(a->accept.sin);
-	    a->rval = lwip_accept(a->accept.fd,
-				  (struct sockaddr*) &a->accept.sin,
-				  &sinlen);
-	}
+	a->rval = lwip_accept(a->accept.fd,
+			      (struct sockaddr *) &sin, &sinlen);
+	lwip_to_netd(&sin, &a->accept.sin);
 	break;
 
     case netd_op_read:

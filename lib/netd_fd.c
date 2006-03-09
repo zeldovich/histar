@@ -15,6 +15,21 @@ const struct host_entry host_table[] = {
     { 0, 0 }
 };
 
+static void
+libc_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
+{
+    nsin->sin_addr = sin->sin_addr.s_addr;
+    nsin->sin_port = sin->sin_port;
+}
+
+static void
+netd_to_libc(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
+{
+    sin->sin_family = AF_INET;
+    sin->sin_addr.s_addr = nsin->sin_addr;
+    sin->sin_port = nsin->sin_port;
+}
+
 int
 socket(int domain, int type, int protocol)
 {
@@ -45,12 +60,15 @@ static int
 sock_bind(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
-    if (addrlen != sizeof(a.bind.sin))
+    struct sockaddr_in sin;
+    if (addrlen != sizeof(sin))
 	return -E_INVAL;
+
+    memcpy(&sin, addr, sizeof(sin));
 
     a.op_type = netd_op_bind;
     a.bind.fd = fd->fd_sock.s;
-    memcpy(&a.bind.sin, addr, addrlen);
+    libc_to_netd(&sin, &a.bind.sin);
     return netd_call(&a);
 }
 
@@ -58,12 +76,15 @@ static int
 sock_connect(struct Fd *fd, struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
-    if (addrlen != sizeof(a.bind.sin))
+    struct sockaddr_in sin;
+    if (addrlen != sizeof(sin))
 	return -E_INVAL;
+
+    memcpy(&sin, addr, sizeof(sin));
 
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
-    memcpy(&a.connect.sin, addr, addrlen);
+    libc_to_netd(&sin, &a.connect.sin);
     return netd_call(&a);
 }
 
@@ -81,7 +102,8 @@ static int
 sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct netd_op_args a;
-    if (*addrlen != sizeof(a.accept.sin))
+    struct sockaddr_in sin;
+    if (*addrlen != sizeof(sin))
 	return -E_INVAL;
 
     struct Fd *nfd;
@@ -91,7 +113,6 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 
     a.op_type = netd_op_accept;
     a.accept.fd = fd->fd_sock.s;
-    memcpy(&a.accept.sin, addr, *addrlen);
     int sock = netd_call(&a);
 
     if (sock < 0) {
@@ -99,10 +120,12 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return sock;
     }
 
-    memcpy(addr, &a.accept.sin, *addrlen);
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
     nfd->fd_sock.s = sock;
+
+    netd_to_libc(&a.accept.sin, &sin);
+    memcpy(addr, &sin, sizeof(sin));
 
     return fd2num(nfd);
 }

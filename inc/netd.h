@@ -1,9 +1,15 @@
 #ifndef JOS_INC_NETD_H
 #define JOS_INC_NETD_H
 
-#include <inc/label.h>
-#include <lwip/inet.h>
-#include <lwip/sockets.h>
+#include <inc/types.h>
+
+// We define our own sockaddr_in because we need to translate
+// between libc and lwip sockaddr_in equivalents.
+struct netd_sockaddr_in {
+    // These are network-order (big-endian)
+    uint16_t sin_port;
+    uint32_t sin_addr;
+};
 
 typedef enum {
     netd_op_socket,
@@ -24,7 +30,7 @@ struct netd_op_socket_args {
 
 struct netd_op_bind_args {
     int fd;		
-    struct sockaddr_in sin;
+    struct netd_sockaddr_in sin;
 };
 
 struct netd_op_listen_args {
@@ -34,12 +40,12 @@ struct netd_op_listen_args {
 
 struct netd_op_accept_args {
     int fd;
-    struct sockaddr_in sin;
+    struct netd_sockaddr_in sin;
 };
 
 struct netd_op_connect_args {
     int fd;
-    struct sockaddr_in sin;
+    struct netd_sockaddr_in sin;
 };
 
 struct netd_op_write_args {
