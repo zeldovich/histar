@@ -1,5 +1,5 @@
-#ifndef JOS_INC_TYPES_H
-#define JOS_INC_TYPES_H
+#ifndef JOS_MACHINE_TYPES_H
+#define JOS_MACHINE_TYPES_H
 
 #ifndef NULL
 #define NULL (0)
