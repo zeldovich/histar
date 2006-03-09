@@ -1,6 +1,5 @@
+#include <kern/lib.h>
 #include <lib/hashtable.h>
-#include <inc/string.h>
-#include <inc/stdio.h>
 #include <inc/error.h>
 
 #define TOMB  0xFFFFFFFFFFFFFFFF
