@@ -11,6 +11,7 @@
 #else /* !JOS_KERNEL */
 #include <inc/stdio.h>
 #include <inc/string.h>
+#include <stddef.h>
 #include <stdarg.h>
 #endif /* !JOS_KERNEL */
 
@@ -58,8 +59,8 @@ static const char *const syscall_names[NSYSCALLS] = {
 #undef SYSCALL_ENTRY
 
 const char *
-syscall2s(uint32_t sys) {
-    if (sys >= NSYSCALLS)
+syscall2s(int sys) {
+    if (sys < 0 || sys >= NSYSCALLS)
 	return "out of range";
     return syscall_names[sys];
 }

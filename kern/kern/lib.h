@@ -32,7 +32,7 @@ int sprintf(char *str, const char *fmt, ...)
 	__attribute__((__format__ (__printf__, 2, 3)));
 
 const char *e2s(int err);
-const char *syscall2s(uint32_t sys);
+const char *syscall2s(int sys);
 
 void abort (void) __attribute__((__noreturn__));
 void _panic (const char *file, int line, const char *fmt, ...)
