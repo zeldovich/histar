@@ -4,6 +4,8 @@ extern "C" {
 #include <inc/setjmp.h>
 #include <inc/taint.h>
 #include <inc/memlayout.h>
+
+#include <string.h>
 }
 
 #include <inc/gateclnt.hh>

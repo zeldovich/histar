@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/syscall.h>
+#include <inc/stdio.h>
 }
 
 #include <inc/gateinvoke.hh>

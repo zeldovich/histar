@@ -5,10 +5,11 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/netd.h>
-#include <inc/string.h>
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <stdlib.h>
+#include <string.h>
 }
 
 url::url(const char *s) : host_(0), path_(0)

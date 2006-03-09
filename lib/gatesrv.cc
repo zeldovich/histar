@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/memlayout.h>
 #include <inc/stack.h>
+#include <stdio.h>
 }
 
 #include <inc/gatesrv.hh>

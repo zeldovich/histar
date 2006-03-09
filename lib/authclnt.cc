@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/authd.h>
+#include <string.h>
 }
 
 #include <inc/gateclnt.hh>

@@ -1,6 +1,7 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/syscall.h>
+#include <string.h>
 
 int64_t
 container_find(uint64_t rc, kobject_type_t reqtype, const char *reqname)

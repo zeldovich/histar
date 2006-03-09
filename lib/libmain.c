@@ -3,6 +3,8 @@
 #include <inc/lib.h>
 #include <inc/memlayout.h>
 #include <inc/fd.h>
+#include <string.h>
+#include <stdlib.h>
 
 extern int main(int argc, const char **argv);
 

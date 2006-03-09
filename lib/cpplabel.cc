@@ -1,6 +1,8 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
+#include <stdlib.h>
+#include <string.h>
 }
 
 #include <inc/cpplabel.hh>

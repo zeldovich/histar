@@ -3,6 +3,7 @@
 extern "C" {
 #include <inc/stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 }
 
 basic_exception::basic_exception(const char *fmt, ...)

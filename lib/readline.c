@@ -1,7 +1,9 @@
+#include <stdio.h>
 #include <inc/stdio.h>
 #include <inc/error.h>
 #include <inc/kbdreg.h>
 #include <inc/lib.h>
+#include <stddef.h>
 
 #define BUFLEN 1024
 #define NBUFS 4

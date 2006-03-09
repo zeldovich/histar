@@ -1,6 +1,6 @@
 extern "C" {
 #include <inc/syscall.h>
-#include <inc/string.h>
+#include <string.h>
 #include <inc/error.h>
 }
 

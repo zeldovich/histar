@@ -3,6 +3,7 @@
 #include <inc/assert.h>
 #include <inc/lib.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 void
 _panic(const char *file, int line, const char *fmt, ...)

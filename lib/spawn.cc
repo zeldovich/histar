@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/fd.h>
+#include <string.h>
 }
 
 #include <inc/scopeguard.hh>

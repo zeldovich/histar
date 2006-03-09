@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/netd.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -68,10 +69,10 @@ netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
 	g->set_entry_function(&netd_gate_entry, (void *) entry_ct);
 	return g;
     } catch (error &e) {
-	printf("netd_server_init: %s\n", e.what());
+	cprintf("netd_server_init: %s\n", e.what());
 	throw;
     } catch (std::exception &e) {
-	printf("netd_server_init: %s\n", e.what());
+	cprintf("netd_server_init: %s\n", e.what());
 	throw;
     }
 }

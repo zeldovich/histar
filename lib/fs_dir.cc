@@ -2,11 +2,11 @@ extern "C" {
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
-#include <inc/string.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
 #include <inc/mlt.h>
 #include <inc/pthread.h>
+#include <string.h>
 }
 
 #include <inc/fs_dir.hh>

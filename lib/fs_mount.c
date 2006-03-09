@@ -1,6 +1,6 @@
 #include <inc/fs.h>
 #include <inc/lib.h>
-#include <inc/string.h>
+#include <string.h>
 #include <inc/error.h>
 
 int

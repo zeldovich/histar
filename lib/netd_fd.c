@@ -4,6 +4,8 @@
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <fcntl.h>
+#include <string.h>
 
 const struct host_entry host_table[] = {
     { "market", "market.scs.stanford.edu" },

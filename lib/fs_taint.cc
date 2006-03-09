@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/setjmp.h>
 #include <inc/taint.h>
 #include <inc/lib.h>
+#include <inc/stdio.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -47,7 +48,7 @@ try
     tl.merge_with(&fl, label::max, label::leq_starhi);
 
     if (fs_taint_debug)
-	printf("fs_taint_self: file label %s, new label %s\n",
+	cprintf("fs_taint_self: file label %s, new label %s\n",
 	       fl.to_string(), tl.to_string());
 
     process_report_taint();
@@ -60,6 +61,6 @@ try
 
     return r;
 } catch (error &e) {
-    printf("fs_taint_self: %s\n", e.what());
+    cprintf("fs_taint_self: %s\n", e.what());
     return e.err();
 }

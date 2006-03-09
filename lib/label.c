@@ -1,6 +1,10 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/syscall.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <inc/stdio.h>
+#include <string.h>
 
 int
 label_grow(struct ulabel *l)

@@ -2,6 +2,7 @@
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/pthread.h>
+#include <inc/stdio.h>
 
 static struct {
     int inited;
@@ -39,7 +40,7 @@ sbrk(intptr_t x)
 	    r = segment_alloc(start_env->proc_container, 0,
 			      &heapobj, &heap_base, 0, "heap");
 	if (r < 0) {
-	    printf("sbrk: cannot allocate heap: %s\n", e2s(r));
+	    cprintf("sbrk: cannot allocate heap: %s\n", e2s(r));
 	    goto out;
 	}
 
@@ -47,7 +48,7 @@ sbrk(intptr_t x)
     } else {
 	r = find_heap(&heapobj);
 	if (r < 0) {
-	    printf("sbrk: cannot find heap: %s\n", e2s(r));
+	    cprintf("sbrk: cannot find heap: %s\n", e2s(r));
 	    goto out;
 	}
     }
@@ -55,13 +56,13 @@ sbrk(intptr_t x)
     size_t nbrk = heap.brk + x;
     r = sys_segment_resize(heapobj, nbrk);
     if (r < 0) {
-	printf("sbrk: resizing heap to %ld: %s\n", nbrk, e2s(r));
+	cprintf("sbrk: resizing heap to %ld: %s\n", nbrk, e2s(r));
 	goto out;
     }
 
     r = segment_map(heapobj, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
     if (r < 0) {
-	printf("sbrk: mapping heap: %s\n", e2s(r));
+	cprintf("sbrk: mapping heap: %s\n", e2s(r));
 	goto out;
     }
 
@@ -83,20 +84,20 @@ heap_relabel(struct ulabel *l)
 	struct cobj_ref heapobj;
 	r = find_heap(&heapobj);
 	if (r < 0) {
-	    printf("heap_relabel: cannot find heap: %s\n", e2s(r));
+	    cprintf("heap_relabel: cannot find heap: %s\n", e2s(r));
 	    goto out;
 	}
 
 	r = sys_segment_copy(heapobj, start_env->proc_container, l, "heap");
 	if (r < 0) {
-	    printf("heap_relabel: cannot copy: %s\n", e2s(r));
+	    cprintf("heap_relabel: cannot copy: %s\n", e2s(r));
 	    goto out;
 	}
 	uint64_t nid = r;
 
 	r = segment_unmap(heap_base);
 	if (r < 0) {
-	    printf("heap_relabel: cannot unmap: %s\n", e2s(r));
+	    cprintf("heap_relabel: cannot unmap: %s\n", e2s(r));
 	    goto out;
 	}
 
@@ -104,7 +105,7 @@ heap_relabel(struct ulabel *l)
 	heapobj = COBJ(start_env->proc_container, nid);
 	r = segment_map(heapobj, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
 	if (r < 0) {
-	    printf("heap_relabel: cannot remap: %s\n", e2s(r));
+	    cprintf("heap_relabel: cannot remap: %s\n", e2s(r));
 	    goto out;
 	}
     }

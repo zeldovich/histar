@@ -6,6 +6,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
+#include <string.h>
 
 #include <lwip/sockets.h>
 #include <lwip/netif.h>

@@ -2,7 +2,7 @@ extern "C" {
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
-#include <inc/string.h>
+#include <string.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
 }

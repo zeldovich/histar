@@ -5,6 +5,8 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <inc/stdio.h>
+#include <string.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -69,10 +71,10 @@ netd_call(struct netd_op_args *a) {
 	gate_call(netd_gate, &gcd, 0, 0, 0);
 	seg = gcd.param_obj;
     } catch (error &e) {
-	printf("netd_call: %s\n", e.what());
+	cprintf("netd_call: %s\n", e.what());
 	return e.err();
     } catch (std::exception &e) {
-	printf("netd_call: %s\n", e.what());
+	cprintf("netd_call: %s\n", e.what());
 	return -1;
     }
 

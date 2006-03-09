@@ -5,6 +5,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/mlt.h>
+#include <inc/stdio.h>
 
 enum {
     taint_debug = 0,
@@ -57,7 +58,7 @@ taint_cow(void)
     int r = label_compare(&cur_label, &obj_label, label_leq_starlo);
     if (r == 0) {
 	if (taint_debug)
-	    printf("taint_cow: no need to cow\n");
+	    cprintf("taint_cow: no need to cow\n");
 	return;
     }
 

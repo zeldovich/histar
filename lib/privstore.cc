@@ -5,6 +5,10 @@
 #include <inc/gateclnt.hh>
 #include <new>
 
+extern "C" {
+#include <stdlib.h>
+}
+
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
     : handle_(h)
 {

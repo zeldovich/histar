@@ -5,6 +5,8 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
+#include <fcntl.h>
 }
 
 #include <inc/cpplabel.hh>
