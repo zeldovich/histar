@@ -40,12 +40,20 @@ typedef uint64_t physaddr_t;
 typedef uint64_t ppn_t;
 
 // size_t is what sizeof returns
+#ifndef __defined_size_t
+#define __defined_size_t
 typedef unsigned long size_t;
+#endif
+
 // ssize_t is a signed version of ssize_t, used in case there might be an
 // error return.
 typedef long ssize_t;
+
 // ptrdiff_t is the result of subtracting two pointers
+#ifndef __defined_ptrdiff_t
+#define __defined_ptrdiff_t
 typedef long ptrdiff_t;
+#endif
 
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;

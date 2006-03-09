@@ -5,12 +5,22 @@
 extern "C" {
 #endif
 
-#include <sys/types.h>
+#ifndef __defined_size_t
+#define __defined_size_t
+typedef unsigned long size_t;
+#endif
 
-typedef __uint64_t size_t;
+#ifndef __defined_ptrdiff_t
+#define __defined_ptrdiff_t
+typedef long ptrdiff_t;
+#endif
 
 #ifndef NULL
 #define NULL 0
+#endif
+
+#ifndef offsetof
+#define offsetof(type, member)  ((size_t) (&((type*)0)->member))
 #endif
 
 #ifdef __cplusplus
