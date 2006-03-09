@@ -39,21 +39,9 @@ typedef uint64_t physaddr_t;
 // Page numbers are 32 bits long.
 typedef uint64_t ppn_t;
 
-// size_t is what sizeof returns
-#ifndef __defined_size_t
-#define __defined_size_t
-typedef unsigned long size_t;
-#endif
-
 // ssize_t is a signed version of ssize_t, used in case there might be an
 // error return.
 typedef long ssize_t;
-
-// ptrdiff_t is the result of subtracting two pointers
-#ifndef __defined_ptrdiff_t
-#define __defined_ptrdiff_t
-typedef long ptrdiff_t;
-#endif
 
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
@@ -86,9 +74,8 @@ typedef int32_t off_t;
 	(__typeof__(a)) (ROUNDDOWN((uintptr_t) (a) + __n - 1, __n));	\
 })
 
-// Return the offset of 'member' relative to the beginning of a struct type
-#define offsetof(type, member)  ((size_t) (&((type*)0)->member))
-
 typedef uint32_t time_t;
+
+#include <stddef.h>	// gcc header file
 
 #endif /* !JOS_INC_TYPES_H */

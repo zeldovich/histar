@@ -1,8 +1,8 @@
-#include <inc/stdarg.h>
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/lib.h>
+#include <stdarg.h>
 
 void
 _panic(const char *file, int line, const char *fmt, ...)

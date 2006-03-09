@@ -2,7 +2,7 @@
 #define JOS_INC_STDIO_H
 
 #include <inc/types.h>
-#include <inc/stdarg.h>
+#include <stdarg.h>
 
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat,

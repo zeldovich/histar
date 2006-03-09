@@ -1,8 +1,8 @@
 #ifndef JOS_KERN_LIB_H
 #define JOS_KERN_LIB_H
 
-#include <inc/stdarg.h>
-#include <inc/types.h>
+#include <machine/types.h>
+#include <stdarg.h>	// gcc header file
 
 void *memset(void *dest, int c, size_t len);
 void *memcpy(void *dest, const void *src, size_t len);

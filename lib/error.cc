@@ -1,8 +1,8 @@
 #include <inc/error.hh>
 
 extern "C" {
-#include <inc/stdarg.h>
 #include <inc/stdio.h>
+#include <stdarg.h>
 }
 
 basic_exception::basic_exception(const char *fmt, ...)

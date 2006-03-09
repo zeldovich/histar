@@ -11,7 +11,7 @@
 #else /* !JOS_KERNEL */
 #include <inc/stdio.h>
 #include <inc/string.h>
-#include <inc/stdarg.h>
+#include <stdarg.h>
 #endif /* !JOS_KERNEL */
 
 /*

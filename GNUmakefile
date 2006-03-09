@@ -32,6 +32,7 @@ CXX	:= $(GCCPREFIX)c++ -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
 CRTBEGIN:= $(shell $(CC) -print-file-name=crtbegin.o)
 CRTEND  := $(shell $(CC) -print-file-name=crtend.o)
+GCC_INC := $(shell $(CC) -print-file-name=crtbegin.o | sed -e s,crtbegin.o,include,)
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
@@ -59,7 +60,7 @@ OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
 CFLAGS	:= -g -Wall -Werror -fms-extensions $(OPTFLAG) -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
-INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(TOP)/inc/gcc
+INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 
 # Linker flags for user programs
 LDENTRY := $(OBJDIR)/lib/entry.o

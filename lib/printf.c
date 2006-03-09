@@ -7,10 +7,10 @@
 
 #include <inc/types.h>
 #include <inc/stdio.h>
-#include <inc/stdarg.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/fd.h>
+#include <stdarg.h>
 
 // Collect up to 256 characters into a buffer
 // and perform ONE system call to print all of them,
