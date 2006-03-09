@@ -213,7 +213,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     char *va_start = (char *) UMMAPBASE;
     char *va_end;
 
-    bool_t fixed_va = 0;
+    int fixed_va = 0;
     if (va_p && *va_p) {
 	fixed_va = 1;
 	va_start = *va_p;
