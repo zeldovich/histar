@@ -21,7 +21,7 @@
 
 /* For uClibc, always optimize for size -- this should disable
  * a lot of expensive inlining... */
-#define __OPTIMIZE_SIZE__   1
+/* #define __OPTIMIZE_SIZE__   1 */		// disable for jos64
 
 /* These are defined by the user (or the compiler)
    to specify the desired environment:
