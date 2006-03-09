@@ -1,0 +1,9 @@
+OBJDIRS += pkg/uclibc/libc/unistd
+
+UNISTD_CSRC := \
+	sleep.c usleep.c ualarm.c getpass.c sysconf.c getlogin.c \
+        fpathconf.c confstr.c pathconf.c swab.c usershell.c \
+        getsubopt.c daemon.c getopt.c
+
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/unistd/%.c, $(UNISTD_CSRC))
+

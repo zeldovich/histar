@@ -4,7 +4,7 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/internal
 
 MISC_INTERNALS_CSRC := \
-	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c
+	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c static.c
 
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \

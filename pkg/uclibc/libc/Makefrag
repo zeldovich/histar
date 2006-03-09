@@ -1,6 +1,7 @@
 
 include pkg/uclibc/libc/string/Makefrag
 include pkg/uclibc/libc/stdlib/Makefrag
+include pkg/uclibc/libc/unistd/Makefrag
 include pkg/uclibc/libc/stdio/Makefrag
 include pkg/uclibc/libc/misc/Makefrag
 
@@ -15,6 +16,10 @@ $(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
 $(OBJDIR)/pkg/uclibc/libc/%_unlocked.o : pkg/uclibc/libc/%.c
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -D__DO_UNLOCKED -c -o $@ $<
+
+$(OBJDIR)/pkg/uclibc/libc/%_64.o : pkg/uclibc/libc/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -D__DO_LARGEFILE -c -o $@ $<
 
 $(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
 	@mkdir -p $(@D)

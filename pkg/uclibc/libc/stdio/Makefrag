@@ -30,8 +30,12 @@ STDIO_CUSRC := \
 	clearerr.c feof.c ferror.c fflush.c fgetc.c fgets.c fileno.c \
         fputc.c fputs.c fread.c fwrite.c getchar.c putchar.c
 
+STDIO_C64SRC := \
+	fgetpos.c fopen.c freopen.c fseeko.c fsetpos.c ftello.c
+
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%.c, $(STDIO_CSRC))
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%_unlocked.c, $(STDIO_CUSRC))
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%_64.c, $(STDIO_C64SRC))
 LIBC_OBJFILES += $(STDIO_MOBJ) $(STDIO_MOBJ2)
 
 $(STDIO_MOBJ): $(STDIO_MSRC)
