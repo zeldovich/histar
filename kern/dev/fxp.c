@@ -1,7 +1,6 @@
 #include <machine/thread.h>
 #include <machine/types.h>
 #include <machine/pmap.h>
-#include <machine/endian.h>
 #include <machine/x86.h>
 #include <dev/pci.h>
 #include <dev/fxp.h>
