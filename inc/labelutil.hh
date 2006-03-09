@@ -2,7 +2,7 @@
 #define JOS_INC_LABELUTIL_HH
 
 extern "C" {
-#include <machine/types.h>
+#include <inc/types.h>
 }
 
 #include <inc/cpplabel.hh>

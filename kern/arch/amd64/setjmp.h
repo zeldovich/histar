@@ -1,7 +1,7 @@
 #ifndef JOS_MACHINE_SETJMP_H
 #define JOS_MACHINE_SETJMP_H
 
-#include <machine/types.h>
+#include <inc/types.h>
 
 struct jmp_buf {
     uint64_t jb_rip;
