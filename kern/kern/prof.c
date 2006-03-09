@@ -3,7 +3,7 @@
 #include <lib/hashtable.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
-#include <inc/string.h>
+#include <kern/lib.h>
 
 struct entry {
 	uint64_t count ;

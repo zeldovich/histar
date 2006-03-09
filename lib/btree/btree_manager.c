@@ -6,8 +6,8 @@
 #include <lib/btree/btree.h>
 #include <kern/freelist.h>
 #include <kern/disklayout.h>
+#include <kern/lib.h>
 #include <machine/pmap.h>
-#include <inc/string.h>
 #include <inc/error.h>
 
 // max order for key size of 1
@@ -18,6 +18,7 @@
 // use to declare a cache for a btree
 #define STRUCT_BTREE_CACHE(name, num_ent, order, key_size)  \
     STRUCT_CACHE(name, num_ent, BTREE_NODE_SIZE(order, key_size)) ;
+#define BTREE_NAME_SIZE 32
 
 struct btree_obj
 {
@@ -30,7 +31,7 @@ struct btree_obj
     struct btree *btree ;
     struct lock lock ;
     struct cache *cache ;
-    char name[32] ;
+    char name[BTREE_NAME_SIZE] ;
     void *arg ;
 } ;
 
@@ -223,7 +224,7 @@ init_ephem(void)
     btree[BTREE_OBJMAP].free = pbtree_free_node ;
     btree[BTREE_OBJMAP].btree = &objmap ;
     btree[BTREE_OBJMAP].cache = &objmap_cache ;
-    strcpy(btree[BTREE_OBJMAP].name, OBJMAP_NAME) ;
+    strncpy(btree[BTREE_OBJMAP].name, OBJMAP_NAME, BTREE_NAME_SIZE) ;
     cache_init(&objmap_cache) ;
     lock_init(&btree[BTREE_OBJMAP].lock) ;
     
@@ -234,7 +235,7 @@ init_ephem(void)
     btree[BTREE_IOBJ].free = pbtree_free_node ;
     btree[BTREE_IOBJ].btree = &iobj ;
     btree[BTREE_IOBJ].cache = &iobj_cache ;
-    strcpy(btree[BTREE_IOBJ].name, IOBJ_NAME) ;
+    strncpy(btree[BTREE_IOBJ].name, IOBJ_NAME, BTREE_NAME_SIZE) ;
     cache_init(&iobj_cache) ;
     lock_init(&btree[BTREE_IOBJ].lock) ;
     
@@ -246,7 +247,7 @@ init_ephem(void)
     btree[BTREE_FCHUNK].btree = &fchunk ;
     btree[BTREE_FCHUNK].cache = &fchunk_cache ;
     btree[BTREE_FCHUNK].arg = &freelist.chunk_frm ;
-    strcpy(btree[BTREE_FCHUNK].name, FCHUNK_NAME) ;
+    strncpy(btree[BTREE_FCHUNK].name, FCHUNK_NAME, BTREE_NAME_SIZE) ;
     cache_init(&fchunk_cache) ;
     lock_init(&btree[BTREE_FCHUNK].lock) ;
     
@@ -258,7 +259,7 @@ init_ephem(void)
     btree[BTREE_FOFFSET].btree = &foffset ;
     btree[BTREE_FOFFSET].cache = &foffset_cache ;
     btree[BTREE_FOFFSET].arg = &freelist.offset_frm ;
-    strcpy(btree[BTREE_FOFFSET].name, FOFFSET_NAME) ;
+    strncpy(btree[BTREE_FOFFSET].name, FOFFSET_NAME, BTREE_NAME_SIZE) ;
     cache_init(&foffset_cache) ;
     lock_init(&btree[BTREE_FOFFSET].lock) ;
     
