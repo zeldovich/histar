@@ -49,7 +49,8 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
 WARNS	 := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
-	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
+	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute \
+	    -Werror
 CWARNS	 := $(WARNS) -Wmissing-prototypes -Wmissing-declarations
 CXXWARNS := $(WARNS)
 # Too many false positives:
@@ -58,7 +59,7 @@ CXXWARNS := $(WARNS)
 DEFS	:=
 OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
-CFLAGS	:= -g -Wall -Werror -fms-extensions $(OPTFLAG) -fno-builtin -fno-strict-aliasing
+CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-builtin -fno-strict-aliasing
 CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 
@@ -66,9 +67,12 @@ INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 LDENTRY := $(OBJDIR)/lib/entry.o
 CRTN	:= $(OBJDIR)/lib/crtn.o
 
-LDEPS	:= $(LDENTRY) $(CRTN) $(OBJDIR)/lib/libjos.a $(OBJDIR)/lib/liblwip.a
+LDEPS	:= $(LDENTRY) $(CRTN) \
+	   $(OBJDIR)/lib/libjos.a \
+	   $(OBJDIR)/lib/liblwip.a \
+	   $(OBJDIR)/lib/libc.a
 LDFLAGS := -nostdlib -L$(OBJDIR)/lib
-LIBS	:= -ljos -llwip $(GCC_LIB)
+LIBS	:= -ljos -llwip -lc $(GCC_LIB)
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -96,7 +100,6 @@ KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_INC   := $(INCLUDES) -I$(TOP)/inc
 USER_CFLAGS := $(COMFLAGS) $(DEFS) $(CFLAGS) $(USER_INC) -DJOS_USER
 USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)
-HOST_CFLAGS := $(CFLAGS) -Ihostinc/
 
 
 # try to infer the correct GCCPREFIX
