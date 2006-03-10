@@ -365,6 +365,10 @@ dup2(int oldfdnum, int newfdnum) __THROW
 
     if (!immutable)
 	atomic_inc(&oldfd->fd_ref);
+
+    fd_handles[newfdnum].fd_taint = oldfd->fd_taint;
+    fd_handles[newfdnum].fd_grant = oldfd->fd_grant;
+
     return newfdnum;
 }
 
