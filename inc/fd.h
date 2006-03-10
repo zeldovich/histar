@@ -60,6 +60,7 @@ struct Fd
 
 	struct {
 	    struct fs_inode ino;
+	    struct fs_readdir_pos readdir_pos;
 	} fd_file;
 
 	struct {

@@ -9,7 +9,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 int
-fs_dir_ct::list(fs_dir_iterator *i, fs_dent *de)
+fs_dir_ct::list(fs_readdir_pos *i, fs_dent *de)
 {
 retry:
     int64_t id = sys_container_get_slot_id(ino_.obj.object, i->a++);
@@ -41,7 +41,7 @@ fs_dir_ct::remove(const char *name, fs_inode ino)
 }
 
 int
-fs_dir::lookup(const char *name, fs_dir_iterator *i, fs_inode *ino)
+fs_dir::lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
 {
     for (;;) {
 	struct fs_dent de;

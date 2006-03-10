@@ -11,7 +11,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 int
-fs_dir_mlt::list(fs_dir_iterator *i, fs_dent *de)
+fs_dir_mlt::list(fs_readdir_pos *i, fs_dent *de)
 {
     uint8_t buf[MLT_BUF_SIZE];
     uint64_t ct;

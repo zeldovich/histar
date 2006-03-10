@@ -28,6 +28,11 @@ struct fs_mount_table {
     struct fs_mtab_ent mtab_ent[FS_NMOUNT];
 };
 
+struct fs_readdir_pos {
+    uint64_t a;
+    uint64_t b;
+};
+
 struct fs_readdir_state {
     struct fs_inode dir;
     void *fs_dir_obj;

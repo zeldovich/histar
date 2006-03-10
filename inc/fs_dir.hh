@@ -7,10 +7,9 @@ extern "C" {
 
 #include <inc/error.hh>
 
-class fs_dir_iterator {
+class fs_dir_iterator : public fs_readdir_pos {
 public:
-    fs_dir_iterator() : a(0), b(0) {}
-    uint64_t a, b;
+    fs_dir_iterator() { a = 0; b = 0; }
 };
 
 // A directory is simply a mapping of names to inodes.
@@ -23,10 +22,10 @@ public:
     virtual void remove(const char *name, fs_inode ino) = 0;
 
     // Returns 1 if found, 0 if not found
-    virtual int lookup(const char *name, fs_dir_iterator *i, fs_inode *ino);
+    virtual int lookup(const char *name, fs_readdir_pos *i, fs_inode *ino);
 
     // Returns 1 on valid entry, 0 for EOF
-    virtual int list(fs_dir_iterator *i, fs_dent *de) = 0;
+    virtual int list(fs_readdir_pos *i, fs_dent *de) = 0;
 };
 
 // Basic container directory:
@@ -38,7 +37,7 @@ public:
 
     virtual void insert(const char *name, fs_inode ino);
     virtual void remove(const char *name, fs_inode ino);
-    virtual int list(fs_dir_iterator *i, fs_dent *de);
+    virtual int list(fs_readdir_pos *i, fs_dent *de);
 
 private:
     fs_inode ino_;
@@ -57,8 +56,8 @@ public:
 
     virtual void insert(const char *name, fs_inode ino);
     virtual void remove(const char *name, fs_inode ino);
-    virtual int lookup(const char *name, fs_dir_iterator *i, fs_inode *ino);
-    virtual int list(fs_dir_iterator *i, fs_dent *de);
+    virtual int lookup(const char *name, fs_readdir_pos *i, fs_inode *ino);
+    virtual int list(fs_readdir_pos *i, fs_dent *de);
 
     static void init(fs_inode dir);
 
@@ -86,7 +85,7 @@ public:
 	throw error(-E_BAD_OP, "fs_dir_mlt::remove");
     }
 
-    virtual int list(fs_dir_iterator *i, fs_dent *de);
+    virtual int list(fs_readdir_pos *i, fs_dent *de);
 
 private:
     fs_inode ino_;

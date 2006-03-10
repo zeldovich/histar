@@ -74,7 +74,7 @@ fs_dir_dseg::remove(const char *name, fs_inode ino)
 }
 
 int
-fs_dir_dseg::lookup(const char *name, fs_dir_iterator *i, fs_inode *ino)
+fs_dir_dseg::lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
 {
     for (;;) {
 	fs_dirslot *slot = &dir_->slots[i->a++];
@@ -115,7 +115,7 @@ fs_dir_dseg::insert(const char *name, fs_inode ino)
 }
 
 int
-fs_dir_dseg::list(fs_dir_iterator *i, fs_dent *de)
+fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
 {
 retry:
     struct fs_dirslot *slot = &dir_->slots[i->a++];
