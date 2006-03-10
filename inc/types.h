@@ -8,22 +8,10 @@
 #ifdef JOS_USER
 #include <sys/types.h>
 #include <stdint.h>
+#include <sys/param.h>
 
 // The macros below are also defined in kern/arch/amd64/types.h.
 // Would be nice to unify them..
-
-#define MIN(_a, _b)                                             \
-({                                                              \
-        __typeof__(_a) __a = (_a);                              \
-        __typeof__(_b) __b = (_b);                              \
-        __a <= __b ? __a : __b;                                 \
-})
-#define MAX(_a, _b)                                             \
-({                                                              \
-        __typeof__(_a) __a = (_a);                              \
-        __typeof__(_b) __b = (_b);                              \
-        __a >= __b ? __a : __b;                                 \
-})
 
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
