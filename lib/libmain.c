@@ -36,6 +36,9 @@ setup_env(uint64_t envaddr)
 	argc++;
     }
 
+    extern const char *__progname;
+    __progname = argv[0];
+
     struct ulabel *l = label_get_current();
     assert(l);
     segment_set_default_label(l);
