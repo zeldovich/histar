@@ -21,7 +21,7 @@
 
 #include <limits.h>
 #include <linux/limits.h>
-#include <linux/param.h> 
+#include <linux/param.h>
 
 /* BSD names for some <limits.h> values.  */
 
