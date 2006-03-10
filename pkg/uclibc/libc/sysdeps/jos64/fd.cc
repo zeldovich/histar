@@ -570,7 +570,14 @@ int
 flock(int fd, int operation) __THROW
 {
     __set_errno(ENOSYS);
-    return -1;   
+    return -1;
+}
+
+int
+fchown(int fd, uid_t owner, gid_t group) __THROW
+{
+    __set_errno(ENOSYS);
+    return -1;
 }
 
 int

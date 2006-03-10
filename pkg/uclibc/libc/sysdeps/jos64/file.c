@@ -66,6 +66,13 @@ unlink(const char *pn)
 }
 
 int
+rename(const char *src, const char *dst)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+int
 chdir(const char *pn)
 {
     struct fs_inode dir;
@@ -114,4 +121,20 @@ readlink(const char *pn, char *buf, size_t bufsize)
 {
     __set_errno(EINVAL);
     return -1;
+}
+
+char *
+getcwd(char *buf, size_t size)
+{
+    if (buf == 0) {
+	if (size == 0)
+	    size = 256;
+	buf = malloc(size);
+	if (buf == 0)
+	    return -1;
+    }
+
+    // XXX we do not have a ".." yet
+    sprintf(buf, "/unknown");
+    return buf;
 }

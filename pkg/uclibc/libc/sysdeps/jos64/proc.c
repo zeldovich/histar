@@ -45,3 +45,24 @@ getpgrp(void)
 {
     return getpgid(0);
 }
+
+pid_t
+waitpid(pid_t pid, int *wait_stat, int options)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+int
+fork(void)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+int
+execve(const char * filename, char *const * argv, char *const * envp)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}

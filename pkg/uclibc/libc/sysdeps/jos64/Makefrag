@@ -15,7 +15,10 @@ UCLIBC_JOS64_CSRC := \
 	proc.c \
 	time.c \
 	rlim.c \
-	host.c
+	host.c \
+	dir.c \
+	pipe.c \
+	misc.c
 
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 
