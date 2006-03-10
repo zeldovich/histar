@@ -73,9 +73,8 @@ KERN_BINFILES := \
 	user/authd \
 	user/login \
 	user/uadm \
-	user/echo
-
-	#user/ksh
+	user/echo \
+	user/ksh
 
 	#user/freelist_test \
 	#user/tcpsink
