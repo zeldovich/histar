@@ -66,6 +66,7 @@ KERN_BINFILES := \
 	user/cpphello \
 	user/rm \
 	user/cp \
+	user/mkfile \
 	user/lfs_small \
 	user/lfs_large \
 	user/sha1sum \
