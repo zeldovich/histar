@@ -1,8 +1,8 @@
 #ifndef FREELIST_H_
 #define FREELIST_H_
 
-#include <lib/btree/btree.h>
-#include <lib/btree/pbtree_frm.h>
+#include <btree/btree.h>
+#include <btree/pbtree_frm.h>
 
 struct freelist
 {

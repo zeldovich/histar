@@ -1,7 +1,7 @@
-#include <lib/btree/btree.h>
-#include <lib/btree/btree_node.h>
+#include <btree/btree.h>
+#include <btree/btree_node.h>
 #include <kern/lib.h>
-#include <lib/btree/btree_impl.h>
+#include <btree/btree_impl.h>
 
 void
 btree_init_impl(struct btree * t, uint64_t id, char order, char key_size, char value_size)

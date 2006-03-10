@@ -1,8 +1,8 @@
 #ifndef BTREE_MANAGER_H_
 #define BTREE_MANAGER_H_
 
-#include <lib/btree/btree.h>
-#include <lib/btree/btree_traverse.h>
+#include <btree/btree.h>
+#include <btree/btree_traverse.h>
 #include <inc/types.h>
 
 #define BTREE_OBJMAP    0

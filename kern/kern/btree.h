@@ -1,3 +1,3 @@
-#include <lib/btree/btree.h>
-#include <lib/btree/btree_manager.h>
+#include <btree/btree.h>
+#include <btree/btree_manager.h>
 

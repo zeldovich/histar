@@ -1,7 +1,7 @@
 #ifndef BTREE_KERN_H_
 #define BTREE_KERN_H_
 
-#include <lib/btree/btree_utils.h>
+#include <btree/btree_utils.h>
 #include <inc/types.h>
 
 int pbtree_open_node(uint64_t id, offset_t offset, uint8_t **mem) ;

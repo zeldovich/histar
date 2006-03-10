@@ -1,7 +1,7 @@
 #ifndef _BTREE_NODE_H_
 #define _BTREE_NODE_H_
 
-#include <lib/btree/btree.h>
+#include <btree/btree.h>
 
 struct btree_node *btree_new_node(struct btree *tree);
 struct btree_node *btree_read_node(struct btree * tree, offset_t offset) ;

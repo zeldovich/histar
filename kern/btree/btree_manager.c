@@ -1,9 +1,9 @@
-#include <lib/btree/btree_manager.h>
-#include <lib/btree/btree_debug.h>
-#include <lib/btree/btree_impl.h>
-#include <lib/btree/btree_node.h>
-#include <lib/btree/pbtree.h>
-#include <lib/btree/btree.h>
+#include <btree/btree_manager.h>
+#include <btree/btree_debug.h>
+#include <btree/btree_impl.h>
+#include <btree/btree_node.h>
+#include <btree/pbtree.h>
+#include <btree/btree.h>
 #include <kern/freelist.h>
 #include <kern/disklayout.h>
 #include <kern/lib.h>

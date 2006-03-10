@@ -1,5 +1,5 @@
-#include <lib/btree/btree.h>
-#include <lib/btree/cache.h>
+#include <btree/btree.h>
+#include <btree/cache.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 

@@ -1,7 +1,7 @@
-#include <lib/btree/pbtree.h>
-#include <lib/btree/btree_manager.h>
-#include <lib/btree/cache.h>
-#include <lib/btree/btree.h>
+#include <btree/pbtree.h>
+#include <btree/btree_manager.h>
+#include <btree/cache.h>
+#include <btree/btree.h>
 #include <kern/freelist.h>
 #include <machine/pmap.h>
 #include <inc/error.h>

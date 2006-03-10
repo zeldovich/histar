@@ -20,10 +20,10 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA  02111-1307, USA.
  */
-#include <lib/btree/btree_impl.h>
-#include <lib/btree/btree_manager.h>
-#include <lib/btree/btree_utils.h>
-#include <lib/btree/btree_node.h>
+#include <btree/btree_impl.h>
+#include <btree/btree_manager.h>
+#include <btree/btree_utils.h>
+#include <btree/btree_node.h>
 #include <kern/lib.h>
 #include <inc/error.h>
 

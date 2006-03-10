@@ -1,6 +1,6 @@
-#include <lib/btree/btree.h>
-#include <lib/btree/btree_node.h>
-#include <lib/btree/btree_manager.h>
+#include <btree/btree.h>
+#include <btree/btree_node.h>
+#include <btree/btree_manager.h>
 #include <kern/lib.h>
 
 #define CENT_NODE(ent) ((struct btree_node *)ent)

@@ -1,7 +1,7 @@
 #ifndef FRM_H_
 #define FRM_H_
 
-#include <lib/btree/btree_utils.h>
+#include <btree/btree_utils.h>
 
 // buffer for freelist node operations
 struct frm

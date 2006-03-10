@@ -37,7 +37,20 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/dstack.c \
 	    $(OBJDIR)/kern/embedbin.c
 
-KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB)
+KERN_BTREE := \
+	    kern/btree/btree.c \
+	    kern/btree/btree_search.c \
+	    kern/btree/btree_node.c \
+	    kern/btree/cache.c \
+	    kern/btree/pbtree_frm.c \
+	    kern/btree/btree_manager.c \
+	    kern/btree/pbtree.c \
+	    kern/btree/btree_delete.c \
+	    kern/btree/btree_insert.c \
+	    kern/btree/btree_traverse.c \
+	    kern/btree/btree_debug.c
+
+KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
 # Only build files if they exist.
 #KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
@@ -112,13 +125,13 @@ $(OBJDIR)/kern/%.o: $(OBJDIR)/kern/%.c
 $(OBJDIR)/kern/%.o: kern/dev/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/btree/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 $(OBJDIR)/kern/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) -c -o $@ $<
 $(OBJDIR)/kern/%.o: lib/%.c
-	@mkdir -p $(@D)
-	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
-$(OBJDIR)/kern/%.o: lib/btree/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 

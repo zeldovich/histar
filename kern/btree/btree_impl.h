@@ -1,8 +1,8 @@
 #ifndef BTREE_IMPL_H_
 #define BTREE_IMPL_H_
 
-#include <lib/btree/btree.h>
-#include <lib/btree/cache.h>
+#include <btree/btree.h>
+#include <btree/cache.h>
 #include <inc/types.h>
 
 int      btree_insert_impl(struct btree *tree, const uint64_t *key, offset_t *val) ;

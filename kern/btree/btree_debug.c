@@ -1,5 +1,5 @@
-#include <lib/btree/btree_debug.h>
-#include <lib/btree/btree_node.h>
+#include <btree/btree_debug.h>
+#include <btree/btree_node.h>
 #include <kern/lib.h>
 
 static void
