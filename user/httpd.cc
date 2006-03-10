@@ -95,7 +95,7 @@ http_client(void *arg)
 
 		for (;;) {
 		    struct fs_dent de;
-		    r = fs_readdir_dent(&rs, &de);
+		    r = fs_readdir_dent(&rs, &de, 0);
 		    if (r < 0)
 			throw error(r, "fs_readdir_dent");
 		    if (r == 0)

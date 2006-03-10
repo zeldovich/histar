@@ -44,7 +44,8 @@ int  fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
 int  fs_namei(const char *pn, struct fs_inode *o);
 
 int  fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir);
-int  fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de);
+int  fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
+		     struct fs_readdir_pos *p);
 void fs_readdir_close(struct fs_readdir_state *s);
 
 void fs_dirbase(char *pn, const char **dirname, const char **basename);

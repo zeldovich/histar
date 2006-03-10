@@ -28,7 +28,7 @@ struct Dev
     int (*dev_trunc)(struct Fd *fd, off_t length);
     int (*dev_stat)(struct Fd *fd, struct stat *buf);
 
-    int (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, int count);
+    ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
 
     int (*dev_bind)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
     int (*dev_listen)(struct Fd *fd, int backlog);

@@ -63,7 +63,7 @@ merge_mlt_slot(struct fs_inode mct, struct fs_inode dst)
 
     for (;;) {
 	struct fs_dent de;
-	int r = fs_readdir_dent(&s, &de);
+	int r = fs_readdir_dent(&s, &de, 0);
 	if (r < 0)
 	    throw error(r, "merge_mlt_slot: fs_readdir_dent");
 	if (r == 0)
@@ -82,7 +82,7 @@ merge_mlt(struct fs_inode src, struct fs_inode dst)
 
     for (uint64_t i = 0; ; i++) {
 	struct fs_dent de;
-	int r = fs_readdir_dent(&s, &de);
+	int r = fs_readdir_dent(&s, &de, 0);
 	if (r < 0)
 	    throw error(r, "merge_mlt: fs_readdir_dent");
 	if (r == 0)

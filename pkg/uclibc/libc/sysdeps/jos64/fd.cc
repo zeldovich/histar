@@ -765,8 +765,8 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     return -1;
 }
 
-extern "C" int
-__getdents (int fdnum, struct dirent *buf, int count)
+extern "C" ssize_t
+__getdents (int fdnum, struct dirent *buf, size_t nbytes)
 {
     int r;
     struct Fd *fd;
@@ -784,7 +784,7 @@ __getdents (int fdnum, struct dirent *buf, int count)
 	return -1;
     }
 
-    return dev->dev_getdents(fd, buf, count);
+    return dev->dev_getdents(fd, buf, nbytes);
 }
 
 weak_alias(__libc_fcntl, fcntl);

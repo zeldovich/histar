@@ -74,17 +74,21 @@ fs_readdir_close(struct fs_readdir_state *s)
 }
 
 int
-fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de)
+fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
+		struct fs_readdir_pos *p)
 {
     fs_dir *d = (fs_dir *) s->fs_dir_obj;
     fs_dir_iterator *i = (fs_dir_iterator *) s->fs_dir_iterator_obj;
+
+    if (p == 0)
+	p = i;
 
     // For the debugging cprintf further down
     de->de_name[0] = '\0';
 
     int r;
     try {
-	r = d->list(i, de);
+	r = d->list(p, de);
     } catch (error &e) {
 	cprintf("fs_readdir_dent: %s\n", e.what());
 	r = e.err();

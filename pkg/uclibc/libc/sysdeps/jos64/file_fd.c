@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -130,11 +131,65 @@ file_stat(struct Fd *fd, struct stat *buf)
     return 0;
 }
 
-static int
-file_getdents(struct Fd *fd, struct dirent *buf, int count)
+static ssize_t
+file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
 {
-    set_enosys();
-    return -1;
+    struct fs_readdir_state s;
+
+    int r = fs_readdir_init(&s, fd->fd_file.ino);
+    if (r < 0) {
+	__set_errno(ENOTDIR);
+	return -1;
+    }
+
+    size_t dirent_base = offsetof (struct dirent, d_name);
+
+    size_t cc = 0;
+    for (;;) {
+	if (cc >= nbytes)
+	    break;
+
+	struct fs_readdir_pos savepos = fd->fd_file.readdir_pos;
+	struct fs_dent de;
+	r = fs_readdir_dent(&s, &de, &fd->fd_file.readdir_pos);
+	if (r <= 0) {
+	    fs_readdir_close(&s);
+	    fd->fd_file.readdir_pos = savepos;
+
+	    if (cc > 0)
+		return cc;
+	    if (r == 0)
+		return 0;
+
+	    __set_errno(EIO);
+	    return -1;
+	}
+
+	size_t space = nbytes - cc;
+	size_t namlen = strlen(&de.de_name[0]);
+	size_t reclen = dirent_base + namlen + 1;
+	if (space < reclen) {
+	    fd->fd_file.readdir_pos = savepos;
+	    break;
+	}
+
+	buf->d_ino = de.de_inode.obj.object;
+	buf->d_off = buf->d_ino;
+	buf->d_reclen = reclen;
+	buf->d_type = DT_UNKNOWN;
+	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);
+
+	buf = (struct dirent *) (((char *) buf) + reclen);
+    }
+
+    fs_readdir_close(&s);
+
+    if (cc == 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return cc;
 }
 
 struct Dev devfile = {

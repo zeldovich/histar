@@ -33,7 +33,7 @@ main(int ac, char **av)
 
     for (;;) {
 	struct fs_dent de;
-	r = fs_readdir_dent(&s, &de);
+	r = fs_readdir_dent(&s, &de, 0);
 	if (r < 0) {
 	    printf("fs_readdir_dent: %s\n", e2s(r));
 	    return r;
