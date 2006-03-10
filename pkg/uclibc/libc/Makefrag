@@ -4,6 +4,7 @@ include pkg/uclibc/libc/stdlib/Makefrag
 include pkg/uclibc/libc/unistd/Makefrag
 include pkg/uclibc/libc/stdio/Makefrag
 include pkg/uclibc/libc/misc/Makefrag
+include pkg/uclibc/libc/termios/Makefrag
 
 include pkg/uclibc/libc/sysdeps/jos64/Makefrag
 
