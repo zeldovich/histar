@@ -85,8 +85,6 @@ KERN_BINFILES := \
 	user/sha1sum \
 	user/authd \
 	user/login \
-	user/fooclnt \
-	user/foosrv	\
 	user/uadm \
 	user/echo \
 	user/ksh
