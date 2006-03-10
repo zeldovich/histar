@@ -11,6 +11,7 @@ extern "C" {
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -570,6 +571,13 @@ flock(int fd, int operation) __THROW
 {
     __set_errno(ENOSYS);
     return -1;   
+}
+
+int
+ioctl(int d, unsigned long int request, ...) __THROW
+{
+    __set_errno(ENOSYS);
+    return -1;
 }
 
 weak_alias(__libc_fcntl, fcntl);
