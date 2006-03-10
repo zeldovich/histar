@@ -2,11 +2,11 @@ OBJDIRS += user
 
 $(OBJDIR)/user/%.o: user/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) $(CWARNS) -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
 $(OBJDIR)/user/%.o: user/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(CXXWARNS) -Werror -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/user/%: user/%.S
 	@mkdir -p $(@D)
