@@ -2,6 +2,9 @@
 #include <signal.h>
 #include <unistd.h>
 
+// BSD compat
+const char *sys_signame[_NSIG];
+
 int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
