@@ -102,3 +102,9 @@ lstat(const char *file_name, struct stat *buf)
     return stat(file_name, buf);
 }
 
+int
+access(const char *pn, int mode)
+{
+    // XXX lie about it, for now..
+    return 0;
+}

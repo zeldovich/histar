@@ -1,3 +1,4 @@
+#include <inc/stdio.h>
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
@@ -30,4 +31,18 @@ raise(int sig)
 
     cprintf("raise(%d)\n", sig);
     _exit(-sig);
+}
+
+int
+kill(pid_t pid, int sig)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+int
+killpg(int pgrp, int sig)
+{
+    __set_errno(ENOSYS);
+    return -1;
 }

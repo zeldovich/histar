@@ -12,3 +12,9 @@ getppid()
 {
     return 0;
 }
+
+int
+nice(int n)
+{
+    return 0;
+}
