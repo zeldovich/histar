@@ -573,7 +573,7 @@ select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 
 // XXX
 int 
-send(int fdnum, void *dataptr, int size, unsigned int flags) __THROW
+send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 {
     set_enosys();
     return -1;
@@ -581,7 +581,7 @@ send(int fdnum, void *dataptr, int size, unsigned int flags) __THROW
 
 // XXX
 int 
-recv(int fdnum, void *mem, int len, unsigned int flags) __THROW
+recv(int fdnum, void *mem, size_t len, int flags) __THROW
 {
     set_enosys();
     return -1;
