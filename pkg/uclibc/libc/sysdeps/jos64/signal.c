@@ -63,3 +63,10 @@ siglongjmp(sigjmp_buf env, int val)
 {
     jos_longjmp((struct jos_jmp_buf *) env, val ? : 1);
 }
+
+__sighandler_t
+signal(int signum, __sighandler_t handler)
+{
+    __set_errno(ENOSYS);
+    return SIG_ERR;
+}
