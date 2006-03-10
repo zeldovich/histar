@@ -17,7 +17,6 @@ UCLIBC_JOS64_CSRC := \
 	time.c \
 	rlim.c \
 	host.c \
-	dir.c \
 	pipe.c \
 	misc.c
 

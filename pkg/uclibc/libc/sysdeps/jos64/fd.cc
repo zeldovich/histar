@@ -665,7 +665,14 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
 	return -1;
     }
 
-    set_enosys();
+    if (cmd == F_SETFD || cmd == F_GETFD) {
+	// XXX
+	cprintf("__libc_fcntl: ignoring F_SETFD/F_GETFD\n");
+	return 0;
+    }
+
+    cprintf("Unimplemented fcntl call: %d\n", cmd);
+    __set_errno(ENOSYS);
     return -1;
 }
 
@@ -756,6 +763,28 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 
     __set_errno(EINVAL);
     return -1;
+}
+
+extern "C" int
+__getdents (int fdnum, struct dirent *buf, int count)
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if (dev->dev_getdents == 0) {
+	__set_errno(EOPNOTSUPP);
+	return -1;
+    }
+
+    return dev->dev_getdents(fd, buf, count);
 }
 
 weak_alias(__libc_fcntl, fcntl);

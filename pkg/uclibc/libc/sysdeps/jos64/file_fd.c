@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <bits/unimpl.h>
+
 int
 __libc_open(const char *pn, int flags, ...) __THROW
 {
@@ -128,6 +130,13 @@ file_stat(struct Fd *fd, struct stat *buf)
     return 0;
 }
 
+static int
+file_getdents(struct Fd *fd, struct dirent *buf, int count)
+{
+    set_enosys();
+    return -1;
+}
+
 struct Dev devfile = {
     .dev_id = 'f',
     .dev_name = "file",
@@ -135,6 +144,7 @@ struct Dev devfile = {
     .dev_write = file_write,
     .dev_close = file_close,
     .dev_stat = file_stat,
+    .dev_getdents = file_getdents,
 };
 
 weak_alias(__libc_open, open);
