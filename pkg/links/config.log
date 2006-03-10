@@ -1,0 +1,515 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:559: checking for a BSD compatible install
+configure:612: checking whether build environment is sane
+configure:669: checking whether make sets ${MAKE}
+configure:715: checking for working aclocal
+configure:728: checking for working autoconf
+configure:741: checking for working automake
+configure:754: checking for working autoheader
+configure:767: checking for working makeinfo
+configure:787: checking for gcc
+configure:900: checking whether the C compiler (gcc  ) works
+configure:916: gcc -o conftest    conftest.c  1>&5
+configure:942: checking whether the C compiler (gcc  ) is a cross-compiler
+configure:947: checking whether we are using GNU C
+configure:956: gcc -E conftest.c
+configure:975: checking whether gcc accepts -g
+configure:1011: checking for mawk
+configure:1042: checking for EMX
+configure:1053: gcc -c -g -O2  conftest.c 1>&5
+configure: In function `main':
+configure:1048: error: `kill' undeclared (first use in this function)
+configure:1048: error: (Each undeclared identifier is reported only once
+configure:1048: error: for each function it appears in.)
+configure:1048: error: parse error before "me"
+configure: failed program was:
+#line 1044 "configure"
+#include "confdefs.h"
+
+int main() {
+#ifndef __EMX__
+kill me!
+#endif 
+; return 0; }
+configure:1067: checking for typeof
+configure:1077: gcc -c -g -O2  conftest.c 1>&5
+configure:1094: checking for long long
+configure:1103: gcc -c -g -O2  conftest.c 1>&5
+configure:1124: checking for dirent.h that defines DIR
+configure:1137: gcc -c -g -O2  conftest.c 1>&5
+configure:1162: checking for opendir in -ldir
+configure:1181: gcc -o conftest -g -O2   conftest.c -ldir   1>&5
+/usr/bin/ld: cannot find -ldir
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 1170 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char opendir();
+
+int main() {
+opendir()
+; return 0; }
+configure:1245: checking how to run the C preprocessor
+configure:1266: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1325: checking for ANSI C header files
+configure:1338: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1405: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:1429: checking for sys/wait.h that is POSIX.1 compatible
+configure:1450: gcc -c -g -O2  conftest.c 1>&5
+configure:1474: checking for fcntl.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1474: checking for limits.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1474: checking for sys/ioctl.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1474: checking for sys/time.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1474: checking for time.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1474: checking for unistd.h
+configure:1484: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1514: checking for sigaction.h
+configure:1524: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1520:23: sigaction.h: No such file or directory
+configure: failed program was:
+#line 1519 "configure"
+#include "confdefs.h"
+#include <sigaction.h>
+configure:1554: checking for netinet/in_systm.h
+configure:1564: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1594: checking for netinet/in_system.h
+configure:1604: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1600:31: netinet/in_system.h: No such file or directory
+configure: failed program was:
+#line 1599 "configure"
+#include "confdefs.h"
+#include <netinet/in_system.h>
+configure:1634: checking for netinet/ip.h
+configure:1644: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1674: checking for sys/select.h
+configure:1684: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1714: checking for sys/resource.h
+configure:1724: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1754: checking for wait.h
+configure:1764: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1794: checking for sys/utsname.h
+configure:1804: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1834: checking for sys/un.h
+configure:1844: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1874: checking for sys/fmutex.h
+configure:1884: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1880:24: sys/fmutex.h: No such file or directory
+configure: failed program was:
+#line 1879 "configure"
+#include "confdefs.h"
+#include <sys/fmutex.h>
+configure:1914: checking for sys/cygwin.h
+configure:1924: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1920:24: sys/cygwin.h: No such file or directory
+configure: failed program was:
+#line 1919 "configure"
+#include "confdefs.h"
+#include <sys/cygwin.h>
+configure:1954: checking for io.h
+configure:1964: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1960:16: io.h: No such file or directory
+configure: failed program was:
+#line 1959 "configure"
+#include "confdefs.h"
+#include <io.h>
+configure:1992: checking for working const
+configure:2046: gcc -c -g -O2  conftest.c 1>&5
+configure:2067: checking for inline
+configure:2081: gcc -c -g -O2  conftest.c 1>&5
+configure:2107: checking for size_t
+configure:2140: checking whether time.h and sys/time.h may both be included
+configure:2154: gcc -c -g -O2  conftest.c 1>&5
+configure:2175: checking whether struct tm is in sys/time.h or time.h
+configure:2188: gcc -c -g -O2  conftest.c 1>&5
+configure:2211: checking whether gcc needs -traditional
+configure:2257: checking for 8-bit clean memcmp
+configure:2275: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2293: checking return type of signal handlers
+configure:2315: gcc -c -g -O2  conftest.c 1>&5
+configure:2334: checking for strftime
+configure:2362: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2346: warning: conflicting types for built-in function 'strftime'
+configure:2430: checking for vprintf
+configure:2458: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2442: warning: conflicting types for built-in function 'vprintf'
+configure:2537: checking for gettimeofday
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for mkdir
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for select
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for strcspn
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2549: warning: conflicting types for built-in function 'strcspn'
+configure:2537: checking for strerror
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for strstr
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2549: warning: conflicting types for built-in function 'strstr'
+configure:2537: checking for strtol
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for strtoul
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for alarm
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2537: checking for chmod
+configure:2565: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2592: checking for getpid
+configure:2620: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2592: checking for setpgid
+configure:2620: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2592: checking for getpgid
+configure:2620: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2592: checking for setpgrp
+configure:2620: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2592: checking for getpgrp
+configure:2620: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2647: checking for popen
+configure:2675: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2702: checking for uname
+configure:2730: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2756: checking for Gpm_Open in -lgpm
+configure:2775: gcc -o conftest -g -O2   conftest.c -lgpm   1>&5
+/usr/bin/ld: cannot find -lgpm
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 2764 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char Gpm_Open();
+
+int main() {
+Gpm_Open()
+; return 0; }
+configure:2806: checking for gpm.h
+configure:2816: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:2812:17: gpm.h: No such file or directory
+configure: failed program was:
+#line 2811 "configure"
+#include "confdefs.h"
+#include <gpm.h>
+configure:2844: checking for socket
+configure:2872: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2942: checking for setsockopt
+configure:2970: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:3044: checking for gethostbyname
+configure:3072: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:3188: checking for gethostbyaddr
+configure:3216: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:3240: checking for herror
+configure:3268: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:3291: checking for cfmakeraw
+configure:3319: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:3345: checking for cygwin_conv_to_full_win32_path
+configure:3373: gcc -o conftest -g -O2   conftest.c  1>&5
+/tmp/ccYG2GqB.o: In function `main':
+/home/silasb/downloads/links-0.99/configure:3367: undefined reference to `cygwin_conv_to_full_win32_path'
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 3350 "configure"
+#include "confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char cygwin_conv_to_full_win32_path(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char cygwin_conv_to_full_win32_path();
+
+int main() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_cygwin_conv_to_full_win32_path) || defined (__stub___cygwin_conv_to_full_win32_path)
+choke me
+#else
+cygwin_conv_to_full_win32_path();
+#endif
+
+; return 0; }
+configure:3399: checking for OS/2 threads
+configure:3410: gcc -o conftest -g -O2 -Zmt   conftest.c  1>&5
+gcc: unrecognized option `-Zmt'
+/tmp/ccIWcBIL.o: In function `main':
+/home/silasb/downloads/links-0.99/configure:3406: undefined reference to `_beginthread'
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 3403 "configure"
+#include "confdefs.h"
+#include <stdlib.h>
+int main() {
+_beginthread(NULL, NULL, 0, NULL)
+; return 0; }
+configure:3439: checking for MouOpen
+configure:3467: gcc -o conftest -g -O2   conftest.c  1>&5
+/tmp/ccaSjj9Q.o: In function `main':
+/home/silasb/downloads/links-0.99/configure:3461: undefined reference to `MouOpen'
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 3444 "configure"
+#include "confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char MouOpen(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char MouOpen();
+
+int main() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_MouOpen) || defined (__stub___MouOpen)
+choke me
+#else
+MouOpen();
+#endif
+
+; return 0; }
+configure:3490: checking for _read_kbd
+configure:3518: gcc -o conftest -g -O2   conftest.c  1>&5
+/tmp/cccmVX2Y.o: In function `main':
+/home/silasb/downloads/links-0.99/configure:3512: undefined reference to `_read_kbd'
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 3495 "configure"
+#include "confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char _read_kbd(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char _read_kbd();
+
+int main() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub__read_kbd) || defined (__stub____read_kbd)
+choke me
+#else
+_read_kbd();
+#endif
+
+; return 0; }
+configure:3542: checking for XFree for OS/2
+configure:3601: checking for dlopen in -ldl
+configure:3620: gcc -o conftest -g -O2   conftest.c -ldl   1>&5
+configure:3665: checking for pkg-config
+configure:3709: checking for openssl
+configure:3792: checking for OpenSSL
+configure:3809: gcc -o conftest -g -O2   conftest.c -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2   conftest.c -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2   conftest.c -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2   conftest.c -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/local/openssl/include   conftest.c -L/usr/local/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/local/openssl/include   conftest.c -L/usr/local/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/lib/openssl/include   conftest.c -L/usr/lib/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/lib/openssl/include   conftest.c -L/usr/lib/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/local/ssl/include   conftest.c -L/usr/local/ssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/local/ssl/include   conftest.c -L/usr/local/ssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/local/www/include   conftest.c -L/usr/local/www/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/local/www/include   conftest.c -L/usr/local/www/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/lib/ssl/include   conftest.c -L/usr/lib/ssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/lib/ssl/include   conftest.c -L/usr/lib/ssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/local/include   conftest.c -L/usr/local/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/local/include   conftest.c -L/usr/local/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/usr/pkg/include   conftest.c -L/usr/pkg/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/usr/pkg/include   conftest.c -L/usr/pkg/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/opt/include   conftest.c -L/opt/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/opt/include   conftest.c -L/opt/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
+configure:3809: gcc -o conftest -g -O2 -I/opt/openssl/include   conftest.c -L/opt/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3803:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3802 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+OpenSSL_add_all_algorithms()
+; return 0; }
+configure:3828: gcc -o conftest -g -O2 -I/opt/openssl/include   conftest.c -L/opt/openssl/lib -lssl -lcrypto -ldl  1>&5
+configure:3822:25: openssl/ssl.h: No such file or directory
+configure: failed program was:
+#line 3821 "configure"
+#include "confdefs.h"
+#include <openssl/ssl.h>
+int main() {
+SSLeay_add_ssl_algorithms()
+; return 0; }
