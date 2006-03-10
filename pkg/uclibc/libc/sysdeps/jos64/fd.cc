@@ -615,6 +615,19 @@ fchown(int fd, uid_t owner, gid_t group) __THROW
 }
 
 int
+fd_set_isatty(int fdnum, int isit)
+{
+    int r;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+	return r;
+
+    fd->fd_isatty = isit;
+    return 0;
+}
+
+int
 ioctl(int fdnum, unsigned long int req, ...) __THROW
 {
     int r;

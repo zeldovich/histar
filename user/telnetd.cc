@@ -41,6 +41,8 @@ telnet_server(void)
             continue;
         }
 
+	fd_set_isatty(ss, 1);
+
 	struct fs_inode sh;
 	const char *prog = "/bin/shell";
 	r = fs_namei(prog, &sh);

@@ -64,6 +64,7 @@ int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp);
 int	fd_move(int fdnum, uint64_t container);
 void	fd_give_up_privilege(int fdnum);
+int	fd_set_isatty(int fdnum, int isit);
 int	dev_lookup(int devid, struct Dev **dev_store);
 
 extern struct Dev devcons;
