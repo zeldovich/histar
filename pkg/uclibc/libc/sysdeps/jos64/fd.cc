@@ -505,7 +505,7 @@ fstat(int filedes, struct stat *buf) __THROW
 }
 
 extern "C" int
-__libc_fcntl(int fd, int cmd, ...)
+__libc_fcntl(int fd, int cmd, ...) __THROW
 {
     __set_errno(ENOSYS);
     return -1;
@@ -547,3 +547,5 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
 
     return 0;
 }
+
+weak_alias(__libc_fcntl, fcntl);
