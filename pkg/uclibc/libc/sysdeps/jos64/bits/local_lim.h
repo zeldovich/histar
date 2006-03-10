@@ -8,6 +8,8 @@
 
 #define CHILD_MAX	999
 
+#define PIPE_BUF	128
+
 // Not clear where this should go..  BSD-compat stuff
 #define SIZE_T_MAX	UINT_MAX	// BSD source is not so 64-bit clean
 #define QUAD_MAX	LLONG_MAX

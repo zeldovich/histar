@@ -297,6 +297,7 @@ static struct Dev *devtab[] =
 	&devcons,
 	&devsock,
 	&devfile,
+	&devpipe,
 	0
 };
 
@@ -342,25 +343,42 @@ close_all(void)
 int
 dup2(int oldfdnum, int newfdnum) __THROW
 {
-	struct Fd *oldfd;
-	struct cobj_ref fd_seg;
-	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
+    struct Fd *oldfd;
+    struct cobj_ref fd_seg;
+    int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
+    if (r < 0) {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    close(newfdnum);
+    struct Fd *newfd = INDEX2FD(newfdnum);
+
+    int immutable = oldfd->fd_immutable;
+    r = segment_map(fd_seg,
+		    SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
+		    (void**) &newfd, 0);
+    if (r < 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    if (!immutable)
+	atomic_inc(&oldfd->fd_ref);
+    return newfdnum;
+}
+
+int
+dup(int fdnum) __THROW
+{
+    for (int i = 0; i < MAXFD; i++) {
+	int r = fd_lookup(i, 0, 0);
 	if (r < 0)
-		return r;
+	    return dup2(fdnum, i);
+    }
 
-	close(newfdnum);
-	struct Fd *newfd = INDEX2FD(newfdnum);
-
-	int immutable = oldfd->fd_immutable;
-	r = segment_map(fd_seg,
-			SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
-			(void**) &newfd, 0);
-	if (r < 0)
-		return r;
-
-	if (!immutable)
-		atomic_inc(&oldfd->fd_ref);
-	return newfdnum;
+    __set_errno(EMFILE);
+    return -1;
 }
 
 int
