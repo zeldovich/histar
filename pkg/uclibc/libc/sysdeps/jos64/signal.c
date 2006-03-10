@@ -25,6 +25,13 @@ __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *o
 }
 
 int
+sigsuspend(const sigset_t *mask)
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+int
 kill(pid_t pid, int sig)
 {
     uint64_t self = thread_id();
