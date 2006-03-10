@@ -1,5 +1,6 @@
 UCLIBC_INCLUDES := \
 	-Ipkg/uclibc/libc/sysdeps/jos64 \
+	-Ipkg/uclibc/libc/sysdeps/linux/x86_64 \
 	-Ipkg/uclibc/libc/sysdeps/linux/common \
 	-Ipkg/uclibc/include
 
