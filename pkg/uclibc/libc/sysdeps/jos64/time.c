@@ -1,13 +1,10 @@
 #include <inc/syscall.h>
-#include <time.h>
+#include <sys/time.h>
 
-time_t
-time(time_t *tp)
+int
+gettimeofday(struct timeval *tv, struct timezone *tz)
 {
     uint64_t msec = sys_clock_msec();
-    time_t t = msec / 1000;
-
-    if (tp)
-	*tp = t;
-    return t;
+    tv->tv_sec = msec / 1000;
+    tv->tv_usec = (msec % 1000) * 1000;
 }
