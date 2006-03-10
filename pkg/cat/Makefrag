@@ -1,0 +1,10 @@
+CAT_SRCFILES := cat.c
+CAT_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/cat/%.o, $(CAT_SRCFILES))
+
+$(OBJDIR)/pkg/cat/%.o: pkg/cat/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
+
+$(OBJDIR)/user/cat: $(CAT_OBJFILES) $(LDEPS)
+	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
+

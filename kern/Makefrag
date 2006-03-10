@@ -54,6 +54,7 @@ KERN_BINFILES := \
 	user/ls \
 	user/asprint \
 	user/gl \
+	user/jcat \
 	user/cat \
 	user/fetch \
 	user/fsmerge \

@@ -2,3 +2,4 @@ include pkg/ksh/Makefrag
 include pkg/uclibc/Makefrag
 include pkg/lwip/Makefrag
 include pkg/echo/Makefrag
+include pkg/cat/Makefrag
