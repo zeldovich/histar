@@ -123,9 +123,22 @@ __libc_open(const char *pn, int flags, ...) __THROW
 static ssize_t
 file_read(struct Fd *fd, void *buf, size_t n, off_t offset)
 {
-    int r = fs_pread(fd->fd_file.ino, buf, n, offset);
+    uint64_t flen;
+    int r = fs_getsize(fd->fd_file.ino, &flen);
     if (r < 0) {
-	cprintf("file_read: %s\n", e2s(r));
+	cprintf("file_read: fs_getsize: %s\n", e2s(r));
+	__set_errno(EIO);
+	return -1;
+    }
+
+    if (offset > flen)
+	n = 0;
+    else
+	n = MIN(n, flen - offset);
+
+    r = fs_pread(fd->fd_file.ino, buf, n, offset);
+    if (r < 0) {
+	cprintf("file_read: fs_pread: %s\n", e2s(r));
 	__set_errno(EIO);
 	return -1;
     }
