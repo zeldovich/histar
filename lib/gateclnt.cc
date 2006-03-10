@@ -17,14 +17,14 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static void __attribute__((noreturn))
-return_stub(struct jmp_buf *jb)
+return_stub(struct jos_jmp_buf *jb)
 {
     taint_cow();
-    longjmp(jb, 1);
+    jos_longjmp(jb, 1);
 }
 
 static void
-return_setup(struct cobj_ref *g, struct jmp_buf *jb,
+return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
 	     void *tls, uint64_t return_handle)
 {
     label clear;
@@ -60,7 +60,7 @@ gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
     scope_guard<void, uint64_t> g1(thread_drop_star, return_handle);
 
     struct cobj_ref return_gate;
-    struct jmp_buf back_from_call;
+    struct jos_jmp_buf back_from_call;
     return_setup(&return_gate, &back_from_call, tls, return_handle);
     scope_guard<int, struct cobj_ref> g2(sys_obj_unref, return_gate);
 
@@ -72,7 +72,7 @@ gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate;
 
-    if (setjmp(&back_from_call) == 0)
+    if (jos_setjmp(&back_from_call) == 0)
 	gate_invoke(gate, cs, &new_ds, dr, 0, 0);
 
     if (gcd_param)

@@ -11,8 +11,8 @@ struct stackwrap_state {
     void *fn_arg;
 
     void *stackbase;
-    struct jmp_buf entry_cb;
-    struct jmp_buf task_state;
+    struct jos_jmp_buf entry_cb;
+    struct jos_jmp_buf task_state;
 
     int alive;
     uint64_t magic;
@@ -38,14 +38,14 @@ stackwrap_entry(void)
 
     ss->fn(ss->fn_arg);
     ss->alive = 0;
-    longjmp(&ss->entry_cb, 1);
+    jos_longjmp(&ss->entry_cb, 1);
 }
 
 void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
-    if (setjmp(&ss->entry_cb) == 0)
-	longjmp(&ss->task_state, 1);
+    if (jos_setjmp(&ss->entry_cb) == 0)
+	jos_longjmp(&ss->task_state, 1);
 
     if (ss->alive == 0)
 	page_free(ss->stackbase);
@@ -54,8 +54,8 @@ stackwrap_wakeup(struct stackwrap_state *ss)
 void
 stackwrap_sleep(struct stackwrap_state *ss)
 {
-    if (setjmp(&ss->task_state) == 0)
-	longjmp(&ss->entry_cb, 1);
+    if (jos_setjmp(&ss->task_state) == 0)
+	jos_longjmp(&ss->entry_cb, 1);
 }
 
 int

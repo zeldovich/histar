@@ -1,6 +1,6 @@
 #include <machine/asm.h>
 
-ENTRY(setjmp)
+ENTRY(jos_setjmp)
 	popq	%rax
 	movq	%rax,  0(%rdi)
 	movq	%rsp,  8(%rdi)
@@ -15,7 +15,7 @@ ENTRY(setjmp)
 	movq	$0, %rax
 	ret
 
-ENTRY(longjmp)
+ENTRY(jos_longjmp)
 	movq	 0(%rdi), %rax
 	movq	 8(%rdi), %rsp
 	movq	16(%rdi), %rbp

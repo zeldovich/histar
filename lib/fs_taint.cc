@@ -17,7 +17,7 @@ extern "C" {
 static int fs_taint_debug = 0;
 
 static void __attribute__((noreturn))
-taint_tls(int *rp, struct ulabel *ul, struct jmp_buf *back)
+taint_tls(int *rp, struct ulabel *ul, struct jos_jmp_buf *back)
 {
     *rp = 0;
     int r = sys_thread_set_label(ul);
@@ -25,7 +25,7 @@ taint_tls(int *rp, struct ulabel *ul, struct jmp_buf *back)
 	*rp = r;
     else
 	taint_cow();
-    longjmp(back, 1);
+    jos_longjmp(back, 1);
 }
 
 int
@@ -53,8 +53,8 @@ try
 
     process_report_taint();
 
-    struct jmp_buf back;
-    if (setjmp(&back) == 0)
+    struct jos_jmp_buf back;
+    if (jos_setjmp(&back) == 0)
 	stack_switch((uint64_t) &r, (uint64_t) tl.to_ulabel(),
 		     (uint64_t) &back, 0,
 		     (char *) UTLS + PGSIZE, (void *) &taint_tls);

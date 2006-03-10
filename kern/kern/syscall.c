@@ -27,7 +27,7 @@
 static const struct Label *cur_th_label;
 static const struct Label *cur_th_clearance;
 static uint64_t syscall_ret;
-static struct jmp_buf syscall_retjmp;
+static struct jos_jmp_buf syscall_retjmp;
 
 static void __attribute__((__noreturn__))
 syscall_error(int64_t r)
@@ -36,7 +36,7 @@ syscall_error(int64_t r)
 	thread_syscall_restart(cur_thread);
 
     syscall_ret = r;
-    longjmp(&syscall_retjmp, 1);
+    jos_longjmp(&syscall_retjmp, 1);
 }
 
 static int syscall_debug = 0;
@@ -764,7 +764,7 @@ syscall(syscall_num num, uint64_t a1,
     uint64_t s, f;
     s = read_tsc();
 
-    if (setjmp(&syscall_retjmp) == 0) {
+    if (jos_setjmp(&syscall_retjmp) == 0) {
 	check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
 				&cur_th_label));
 	check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance,

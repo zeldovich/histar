@@ -3,7 +3,7 @@
 
 #include <inc/types.h>
 
-struct jmp_buf {
+struct jos_jmp_buf {
     uint64_t jb_rip;
     uint64_t jb_rsp;
     uint64_t jb_rbp;
