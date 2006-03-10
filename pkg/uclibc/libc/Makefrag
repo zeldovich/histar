@@ -6,6 +6,7 @@ include pkg/uclibc/libc/stdio/Makefrag
 include pkg/uclibc/libc/misc/Makefrag
 include pkg/uclibc/libc/termios/Makefrag
 include pkg/uclibc/libc/signal/Makefrag
+include pkg/uclibc/libc/pwd_grp/Makefrag
 
 include pkg/uclibc/libc/sysdeps/jos64/Makefrag
 
