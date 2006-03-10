@@ -20,6 +20,7 @@
 #define _SYS_PARAM_H	1
 
 #include <limits.h>
+#include <asm/param.h>
 
 /* BSD names for some <limits.h> values.  */
 

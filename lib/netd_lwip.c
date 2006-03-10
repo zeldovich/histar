@@ -81,6 +81,35 @@ netd_dispatch(struct netd_op_args *a)
 	a->rval = lwip_close(a->close.fd);
 	break;
 
+    case netd_op_getsockname:
+        a->rval = lwip_getsockname(a->getsockname.fd, 
+                                   a->getsockname.addr, 
+                                   a->getsockname.addrlen) ;
+        break ;
+    
+    case netd_op_getpeername:
+        a->rval = lwip_getpeername(a->getpeername.fd, 
+                                   a->getpeername.addr, 
+                                   a->getpeername.addrlen) ;
+
+        break ;
+
+    case netd_op_setsockopt:
+        a->rval = lwip_setsockopt(a->setsockopt.fd, 
+                                  a->setsockopt.level,
+                                  a->setsockopt.optname,
+                                  a->setsockopt.optval,
+                                  a->setsockopt.optlen) ;
+        break ;
+
+    case netd_op_getsockopt:
+        a->rval = lwip_getsockopt(a->getsockopt.fd, 
+                                  a->getsockopt.level,
+                                  a->getsockopt.optname,
+                                  a->getsockopt.optval,
+                                  a->getsockopt.optlen) ;
+        break ;
+
     default:
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;

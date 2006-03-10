@@ -301,6 +301,8 @@ struct ucred
   gid_t gid;			/* GID of sending process.  */
 };
 
+#include <asm/socket.h>
+
 /* Structure used to manipulate the SO_LINGER option.  */
 struct linger
   {

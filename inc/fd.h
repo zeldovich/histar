@@ -6,6 +6,8 @@
 #include <inc/types.h>
 #include <inc/fs.h>
 
+#include <sys/select.h>
+
 #include <arpa/inet.h>
 
 struct stat;
@@ -30,6 +32,12 @@ struct Dev
 	int (*dev_listen)(struct Fd *fd, int backlog);
 	int (*dev_accept)(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen);
 	int (*dev_connect)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
+    int (*dev_getsockname)(struct Fd *fd, struct sockaddr *name, socklen_t *namelen) ;
+    int (*dev_getpeername)(struct Fd *fd, struct sockaddr *name, socklen_t *namelen) ;
+    int (*dev_setsockopt)(struct Fd *fd, int level, int optname, 
+                          const void *optval, socklen_t optlen) ;
+    int (*dev_getsockopt)(struct Fd *fd, int level, int optname, 
+                          void *optval, socklen_t *optlen) ;
 };
 
 struct Fd

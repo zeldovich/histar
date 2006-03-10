@@ -1,4 +1,4 @@
-
+include pkg/uclibc/libc/inet/Makefrag
 include pkg/uclibc/libc/string/Makefrag
 include pkg/uclibc/libc/stdlib/Makefrag
 include pkg/uclibc/libc/unistd/Makefrag

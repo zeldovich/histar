@@ -172,6 +172,63 @@ sock_close(struct Fd *fd)
     return netd_call(&a);
 }
 
+static int 
+sock_getsockname(struct Fd *fd, struct sockaddr *addr, 
+                 socklen_t *addrlen)
+{
+    struct netd_op_args a;
+
+    a.op_type = netd_op_getsockname;
+    a.getsockname.addr = addr ;
+    a.getsockname.addrlen = addrlen ;
+    a.getsockname.fd = fd->fd_sock.s;
+    return netd_call(&a);
+}
+
+static int 
+sock_getpeername(struct Fd *fd, struct sockaddr *addr, 
+                 socklen_t *addrlen)
+{
+    struct netd_op_args a;
+
+    a.op_type = netd_op_getsockname;
+    a.getpeername.addr = addr ;
+    a.getpeername.addrlen = addrlen ;
+    a.getpeername.fd = fd->fd_sock.s;
+    return netd_call(&a);
+}
+    
+static int 
+sock_setsockopt(struct Fd *fd, int level, int optname, 
+                const void *optval, socklen_t optlen)
+{
+    struct netd_op_args a;
+
+    a.op_type = netd_op_setsockopt;
+    a.setsockopt.level = level ;
+    a.setsockopt.optname = optname ;
+    a.setsockopt.optval = (void *)optval ;
+    a.setsockopt.optlen = optlen ;
+    a.setsockopt.fd = fd->fd_sock.s ;
+    return netd_call(&a);            
+}
+    
+static int 
+sock_getsockopt(struct Fd *fd, int level, int optname, 
+                void *optval, socklen_t *optlen) 
+{
+    struct netd_op_args a;
+
+    a.op_type = netd_op_getsockopt;
+    a.getsockopt.level = level ;
+    a.getsockopt.optname = optname ;
+    a.getsockopt.optval = optval ;
+    a.getsockopt.optlen = optlen ;
+    a.getsockopt.fd = fd->fd_sock.s ;
+    return netd_call(&a);  
+}
+
+
 struct Dev devsock = 
 {
     .dev_id = 's',
@@ -182,5 +239,9 @@ struct Dev devsock =
     .dev_bind = sock_bind,
     .dev_connect = sock_connect,
     .dev_listen = sock_listen,
-    .dev_accept = sock_accept
+    .dev_accept = sock_accept,
+    .dev_getsockname = sock_getsockname,
+    .dev_getpeername = sock_getpeername,
+    .dev_setsockopt = sock_setsockopt,
+    .dev_getsockopt = sock_getsockopt
 };

@@ -503,6 +503,87 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
     return dev->dev_accept(fd, addr, addrlen);
 }
 
+int 
+getsockname(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+        return r;
+
+    return dev->dev_getsockname(fd, addr, addrlen);
+}
+
+int 
+getpeername(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+        return r;
+
+    return dev->dev_getpeername(fd, addr, addrlen);   
+}
+
+
+int 
+setsockopt(int fdnum, int level, int optname, const void *optval, 
+           socklen_t optlen) __THROW
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+        return r;
+
+    return dev->dev_setsockopt(fd, level, optname, optval, optlen);       
+}
+               
+int 
+getsockopt(int fdnum, int level, int optname,void *optval, 
+           socklen_t *optlen) __THROW
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+        return r;
+
+    return dev->dev_getsockopt(fd, level, optname, optval, optlen);    
+}
+
+// XXX
+int
+select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
+       struct timeval *timeout) __THROW
+{
+    return 0 ;   
+}
+
+// XXX
+int 
+send(int fdnum, void *dataptr, int size, unsigned int flags) __THROW
+{
+    return 0 ;
+}
+
+// XXX
+int 
+recv(int fdnum, void *mem, int len, unsigned int flags) __THROW
+{
+    return 0 ;   
+}
+
 int
 fstat(int fdnum, struct stat *buf) __THROW
 {

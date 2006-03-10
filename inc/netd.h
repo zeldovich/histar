@@ -19,7 +19,11 @@ typedef enum {
     netd_op_connect,
     netd_op_write,
     netd_op_read,
-    netd_op_close
+    netd_op_close,
+    netd_op_getsockname,
+    netd_op_getpeername,
+    netd_op_setsockopt,
+    netd_op_getsockopt,
 } netd_op_t;
 
 struct netd_op_socket_args {
@@ -64,6 +68,34 @@ struct netd_op_close_args {
     int fd;
 };
 
+struct netd_op_getsockname_args {
+    int fd;     
+    void *addr ;
+    uint32_t *addrlen ;
+} ;
+    
+struct netd_op_getpeername_args {
+    int fd;     
+    void *addr ;
+    uint32_t *addrlen ;
+} ;
+   
+struct netd_op_setsockopt_args {
+    int fd ;
+    int level ;
+    int optname ;
+    void *optval ;
+    uint32_t optlen ;
+} ;
+   
+struct netd_op_getsockopt_args {
+    int fd ;
+    int level ;
+    int optname ;
+    void *optval ;
+    uint32_t *optlen ;    
+} ;
+
 struct netd_op_args {
     netd_op_t op_type;
     int rval;
@@ -77,6 +109,10 @@ struct netd_op_args {
 	struct netd_op_write_args write;
 	struct netd_op_read_args read;
 	struct netd_op_close_args close;
+    struct netd_op_getsockname_args getsockname ;
+    struct netd_op_getpeername_args getpeername ;
+    struct netd_op_setsockopt_args setsockopt ;
+    struct netd_op_getsockopt_args getsockopt ;
     };
 };
 
