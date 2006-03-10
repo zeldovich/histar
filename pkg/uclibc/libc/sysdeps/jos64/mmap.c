@@ -1,6 +1,8 @@
 #include <errno.h>
 #include <sys/mman.h>
 
+#include <bits/unimpl.h>
+
 void *
 mmap(void *start, size_t length, int prot , int flags, int fd, off_t offset)
 {
@@ -9,20 +11,20 @@ mmap(void *start, size_t length, int prot , int flags, int fd, off_t offset)
 	return MAP_FAILED;
     }
 
-    __set_errno(ENOSYS);
+    set_enosys();
     return MAP_FAILED;
 }
 
 int
 munmap(void *start, size_t length)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 void *
 mremap(void *old_address, size_t old_size, size_t new_size, int may_move)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return MAP_FAILED;
 }

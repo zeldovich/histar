@@ -7,27 +7,29 @@
 #include <setjmp.h>
 #include <inc/setjmp.h>
 
+#include <bits/unimpl.h>
+
 // BSD compat
 const char *sys_signame[_NSIG];
 
 int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 int
 sigsuspend(const sigset_t *mask)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
@@ -40,7 +42,7 @@ kill(pid_t pid, int sig)
 	thread_halt();
     }
 
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
@@ -60,6 +62,6 @@ siglongjmp(sigjmp_buf env, int val)
 __sighandler_t
 signal(int signum, __sighandler_t handler)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return SIG_ERR;
 }

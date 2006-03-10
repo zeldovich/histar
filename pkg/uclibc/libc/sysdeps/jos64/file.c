@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <bits/unimpl.h>
+
 int
 mkdir(const char *pn, mode_t mode)
 {
@@ -68,7 +70,7 @@ unlink(const char *pn)
 int
 rename(const char *src, const char *dst)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 

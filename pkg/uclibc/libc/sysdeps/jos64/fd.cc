@@ -12,6 +12,8 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+
+#include <bits/unimpl.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -525,7 +527,7 @@ fstat(int fdnum, struct stat *buf) __THROW
 extern "C" int
 __libc_fcntl(int fd, int cmd, ...) __THROW
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
@@ -556,7 +558,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
     } else if (whence == SEEK_CUR) {
 	fd->fd_offset += offset;
     } else if (whence == SEEK_END) {
-	__set_errno(ENOSYS);
+	set_enosys();
 	return -1;
     } else {
 	__set_errno(EINVAL);
@@ -569,14 +571,14 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
 int
 flock(int fd, int operation) __THROW
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 int
 fchown(int fd, uid_t owner, gid_t group) __THROW
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 

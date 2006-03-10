@@ -2,6 +2,8 @@
 #include <sys/time.h>
 #include <errno.h>
 
+#include <bits/unimpl.h>
+
 int
 gettimeofday(struct timeval *tv, struct timezone *tz)
 {
@@ -13,7 +15,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 int
 alarm(int sec)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 

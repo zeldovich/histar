@@ -1,23 +1,25 @@
 #include <errno.h>
 #include <sys/resource.h>
 
+#include <bits/unimpl.h>
+
 int
 getrlimit(int resource, struct rlimit *rlim)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 int
 getrusage(int who, struct rusage *usage)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
 
 int
 setrlimit(int resource, const struct rlimit *rlim)
 {
-    __set_errno(ENOSYS);
+    set_enosys();
     return -1;
 }
