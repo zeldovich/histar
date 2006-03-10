@@ -18,35 +18,21 @@ sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 }
 
 int
-sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+__syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
     __set_errno(ENOSYS);
     return -1;
-}
-
-int
-raise(int sig)
-{
-    if (sig == SIGABRT) {
-	cprintf("raising SIGABRT\n");
-	process_report_exit(-SIGABRT);
-	thread_halt();
-    }
-
-    cprintf("raise(%d)\n", sig);
-    _exit(-sig);
 }
 
 int
 kill(pid_t pid, int sig)
 {
-    __set_errno(ENOSYS);
-    return -1;
-}
+    uint64_t self = thread_id();
+    if (pid == self) {
+	cprintf("kill(): signal %d for self\n", sig);
+	thread_halt();
+    }
 
-int
-killpg(int pgrp, int sig)
-{
     __set_errno(ENOSYS);
     return -1;
 }

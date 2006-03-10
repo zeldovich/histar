@@ -1,0 +1,16 @@
+OBJDIRS += pkg/uclibc/libc/signal
+
+SIGNAL_CSRC := \
+	allocrtsig.c killpg.c raise.c sigaction.c sigaddset.c sigandset.c \
+        sigblock.c sigdelset.c sigempty.c sigfillset.c siggetmask.c sighold.c \
+        sigignore.c sigintr.c sigisempty.c sigismem.c sigjmp.c signal.c \
+        sigorset.c sigpause.c sigrelse.c sigset.c sigsetmask.c sigsetops.c \
+        sysv_signal.c sigwait.c
+
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/signal/%.c, $(SIGNAL_CSRC))
+LIBC_OBJFILES += $(SIGNAL_MOBJ)
+
+$(SIGNAL_MOBJ): $(SIGNAL_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/signal/%.o,%,$@) $< -c -o $@
+

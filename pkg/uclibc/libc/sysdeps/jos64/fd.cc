@@ -10,6 +10,7 @@ extern "C" {
 #include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/file.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -562,6 +563,13 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
     }
 
     return 0;
+}
+
+int
+flock(int fd, int operation) __THROW
+{
+    __set_errno(ENOSYS);
+    return -1;   
 }
 
 weak_alias(__libc_fcntl, fcntl);
