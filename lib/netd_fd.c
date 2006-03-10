@@ -172,17 +172,22 @@ sock_close(struct Fd *fd)
     return netd_call(&a);
 }
 
-static int 
+static int
 sock_getsockname(struct Fd *fd, struct sockaddr *addr, 
                  socklen_t *addrlen)
 {
     struct netd_op_args a;
+    struct sockaddr_in sin;
+
+    if (*addrlen != sizeof(sin))
+	return -E_INVAL;
 
     a.op_type = netd_op_getsockname;
-    a.getsockname.addr = addr ;
-    a.getsockname.addrlen = addrlen ;
     a.getsockname.fd = fd->fd_sock.s;
-    return netd_call(&a);
+    int r = netd_call(&a);
+    netd_to_libc(&a.getsockname.sin, &sin);
+    memcpy(addr, &sin, sizeof(sin));
+    return r;
 }
 
 static int 
@@ -190,42 +195,54 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
                  socklen_t *addrlen)
 {
     struct netd_op_args a;
+    struct sockaddr_in sin;
+
+    if (*addrlen != sizeof(sin))
+	return -E_INVAL;
 
     a.op_type = netd_op_getsockname;
-    a.getpeername.addr = addr ;
-    a.getpeername.addrlen = addrlen ;
     a.getpeername.fd = fd->fd_sock.s;
-    return netd_call(&a);
+    int r = netd_call(&a);
+    netd_to_libc(&a.getpeername.sin, &sin);
+    memcpy(addr, &sin, sizeof(sin));
+    return r;
 }
-    
-static int 
+
+static int
 sock_setsockopt(struct Fd *fd, int level, int optname, 
                 const void *optval, socklen_t optlen)
 {
     struct netd_op_args a;
 
+    if (optlen > sizeof(a.setsockopt.optval))
+	return -E_INVAL;
+
     a.op_type = netd_op_setsockopt;
-    a.setsockopt.level = level ;
-    a.setsockopt.optname = optname ;
-    a.setsockopt.optval = (void *)optval ;
-    a.setsockopt.optlen = optlen ;
-    a.setsockopt.fd = fd->fd_sock.s ;
-    return netd_call(&a);            
+    a.setsockopt.level = level;
+    a.setsockopt.optname = optname;
+    memcpy(&a.setsockopt.optval[0], optval, optlen);
+    a.setsockopt.optlen = optlen;
+    a.setsockopt.fd = fd->fd_sock.s;
+    return netd_call(&a);
 }
     
-static int 
-sock_getsockopt(struct Fd *fd, int level, int optname, 
-                void *optval, socklen_t *optlen) 
+static int
+sock_getsockopt(struct Fd *fd, int level, int optname,
+                void *optval, socklen_t *optlen)
 {
     struct netd_op_args a;
 
     a.op_type = netd_op_getsockopt;
-    a.getsockopt.level = level ;
-    a.getsockopt.optname = optname ;
-    a.getsockopt.optval = optval ;
-    a.getsockopt.optlen = optlen ;
-    a.getsockopt.fd = fd->fd_sock.s ;
-    return netd_call(&a);  
+    a.getsockopt.level = level;
+    a.getsockopt.optname = optname;
+    a.getsockopt.fd = fd->fd_sock.s;
+    int r = netd_call(&a);
+
+    if (a.getsockopt.optlen > *optlen)
+	return -E_INVAL;
+    *optlen = a.getsockopt.optlen;
+    memcpy(optval, &a.getsockopt.optval[0], a.getsockopt.optlen);
+    return r;
 }
 
 

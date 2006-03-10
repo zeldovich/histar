@@ -83,31 +83,31 @@ netd_dispatch(struct netd_op_args *a)
 
     case netd_op_getsockname:
         a->rval = lwip_getsockname(a->getsockname.fd, 
-                                   a->getsockname.addr, 
-                                   a->getsockname.addrlen) ;
+                                   (struct sockaddr *) &sin, &sinlen);
+	lwip_to_netd(&sin, &a->getsockname.sin);
         break ;
     
     case netd_op_getpeername:
         a->rval = lwip_getpeername(a->getpeername.fd, 
-                                   a->getpeername.addr, 
-                                   a->getpeername.addrlen) ;
-
+                                   (struct sockaddr *) &sin, &sinlen);
+	lwip_to_netd(&sin, &a->getpeername.sin);
         break ;
 
     case netd_op_setsockopt:
-        a->rval = lwip_setsockopt(a->setsockopt.fd, 
+        a->rval = lwip_setsockopt(a->setsockopt.fd,
                                   a->setsockopt.level,
                                   a->setsockopt.optname,
-                                  a->setsockopt.optval,
-                                  a->setsockopt.optlen) ;
-        break ;
+                                  &a->setsockopt.optval[0],
+                                  a->setsockopt.optlen);
+        break;
 
     case netd_op_getsockopt:
+	a->getsockopt.optlen = sizeof(a->getsockopt.optval);
         a->rval = lwip_getsockopt(a->getsockopt.fd, 
                                   a->getsockopt.level,
                                   a->getsockopt.optname,
-                                  a->getsockopt.optval,
-                                  a->getsockopt.optlen) ;
+                                  &a->getsockopt.optval[0],
+                                  &a->getsockopt.optlen);
         break ;
 
     default:

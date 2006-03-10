@@ -69,32 +69,30 @@ struct netd_op_close_args {
 };
 
 struct netd_op_getsockname_args {
-    int fd;     
-    void *addr ;
-    uint32_t *addrlen ;
-} ;
-    
+    int fd;
+    struct netd_sockaddr_in sin;
+};
+
 struct netd_op_getpeername_args {
     int fd;     
-    void *addr ;
-    uint32_t *addrlen ;
-} ;
-   
+    struct netd_sockaddr_in sin;
+};
+
 struct netd_op_setsockopt_args {
-    int fd ;
-    int level ;
-    int optname ;
-    void *optval ;
-    uint32_t optlen ;
-} ;
-   
+    int fd;
+    int level;
+    int optname;
+    char optval[16];
+    uint32_t optlen;
+};
+
 struct netd_op_getsockopt_args {
-    int fd ;
-    int level ;
-    int optname ;
-    void *optval ;
-    uint32_t *optlen ;    
-} ;
+    int fd;
+    int level;
+    int optname;
+    char optval[16];
+    uint32_t optlen;
+};
 
 struct netd_op_args {
     netd_op_t op_type;
@@ -109,10 +107,10 @@ struct netd_op_args {
 	struct netd_op_write_args write;
 	struct netd_op_read_args read;
 	struct netd_op_close_args close;
-    struct netd_op_getsockname_args getsockname ;
-    struct netd_op_getpeername_args getpeername ;
-    struct netd_op_setsockopt_args setsockopt ;
-    struct netd_op_getsockopt_args getsockopt ;
+	struct netd_op_getsockname_args getsockname;
+	struct netd_op_getpeername_args getpeername;
+	struct netd_op_setsockopt_args setsockopt;
+	struct netd_op_getsockopt_args getsockopt;
     };
 };
 
