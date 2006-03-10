@@ -126,4 +126,5 @@ struct Dev devfile = {
 };
 
 weak_alias(__libc_open, open);
+weak_alias(__libc_open, open64);
 

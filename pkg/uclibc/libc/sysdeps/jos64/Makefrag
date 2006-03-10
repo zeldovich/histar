@@ -12,7 +12,8 @@ UCLIBC_JOS64_CSRC := \
 	fd.cc \
 	file.c \
 	file_fd.c \
-	proc.c
+	proc.c \
+	time.c
 
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 
