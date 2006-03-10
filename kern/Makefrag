@@ -87,9 +87,8 @@ KERN_BINFILES := \
 	user/login \
 	user/uadm \
 	user/echo \
-	user/ksh
-	
-	#user/links
+	user/ksh \
+	user/links
 
 	#user/freelist_test \
 	#user/tcpsink
@@ -146,7 +145,7 @@ $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
-	dd if=/dev/zero of=$(OBJDIR)/kern/bochs.img~ count=40160 2>/dev/null
+	dd if=/dev/zero of=$(OBJDIR)/kern/bochs.img~ bs=1024k count=64 2>/dev/null
 	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/kern/bochs.img~ \
 		conv=notrunc 2>/dev/null
 	dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/bochs.img~ seek=1 \
