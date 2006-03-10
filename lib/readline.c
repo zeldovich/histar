@@ -67,6 +67,7 @@ readline(const char *prompt)
 			if (echoing)
 				putchar(c);
 			buf[i] = 0;
+			fflush(stdout);
 			return buf;
 		}
 	}
