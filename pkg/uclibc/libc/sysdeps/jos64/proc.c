@@ -61,17 +61,3 @@ wait4(pid_t pid, int *status, int options, struct rusage *rusage)
     set_enosys();
     return -1;
 }
-
-int
-fork(void)
-{
-    set_enosys();
-    return -1;
-}
-
-int
-execve(const char * filename, char *const * argv, char *const * envp)
-{
-    set_enosys();
-    return -1;
-}
