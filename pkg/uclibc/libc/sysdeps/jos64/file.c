@@ -108,3 +108,10 @@ access(const char *pn, int mode)
     // XXX lie about it, for now..
     return 0;
 }
+
+int
+readlink(const char *pn, char *buf, size_t bufsize)
+{
+    __set_errno(EINVAL);
+    return -1;
+}
