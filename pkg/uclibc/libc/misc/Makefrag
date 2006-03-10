@@ -6,9 +6,13 @@ OBJDIRS += \
 MISC_INTERNALS_CSRC := \
 	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c static.c
 
+MISC_ERROR_CSRC := \
+	error.c err.c
+
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
-	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC))
+	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC))
 
 
 CTYPE_MSRC := pkg/uclibc/libc/misc/ctype/ctype.c
@@ -23,7 +27,16 @@ CTYPE_MOBJ := \
 CTYPE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o, $(CTYPE_MOBJ))
 LIBC_OBJFILES += $(CTYPE_MOBJ)
 
+LOCALE_MSRC := pkg/uclibc/libc/misc/locale/locale.c
+LOCALE_MOBJ := setlocale.o localeconv.o _locale_init.o nl_langinfo.o
+LOCALE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/locale/%.o, $(LOCALE_MOBJ))
+LIBC_OBJFILES += $(LOCALE_MOBJ)
+
 $(CTYPE_MOBJ): $(CTYPE_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o,%,$@) $< -c -o $@
+
+$(LOCALE_MOBJ): $(LOCALE_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/locale/%.o,%,$@) $< -c -o $@
 
