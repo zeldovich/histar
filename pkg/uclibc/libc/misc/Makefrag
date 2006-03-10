@@ -1,7 +1,11 @@
 OBJDIRS += \
 	pkg/uclibc/libc/misc/assert \
 	pkg/uclibc/libc/misc/ctype \
-	pkg/uclibc/libc/misc/internal
+	pkg/uclibc/libc/misc/error \
+	pkg/uclibc/libc/misc/internals \
+	pkg/uclibc/libc/misc/locale \
+	pkg/uclibc/libc/misc/dirent \
+	pkg/uclibc/libc/misc/time
 
 ##
 ## Source files that can be built directly

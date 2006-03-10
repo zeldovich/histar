@@ -1,4 +1,6 @@
-OBJDIRS += pkg/uclibc/libc/sysdeps/jos64
+OBJDIRS += \
+	pkg/uclibc/libc/sysdeps/jos64 \
+	pkg/uclibc/libc/sysdeps/linux/common
 
 UCLIBC_JOS64_CSRC := \
 	sbrk.c \

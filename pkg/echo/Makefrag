@@ -1,3 +1,5 @@
+OBJDIRS += pkg/echo
+
 ECHO_SRCFILES := echo.c
 ECHO_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/echo/%.o, $(ECHO_SRCFILES))
 

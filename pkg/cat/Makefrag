@@ -1,3 +1,5 @@
+OBJDIRS += pkg/cat
+
 CAT_SRCFILES := cat.c
 CAT_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/cat/%.o, $(CAT_SRCFILES))
 
