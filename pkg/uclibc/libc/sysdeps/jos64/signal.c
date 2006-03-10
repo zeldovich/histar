@@ -51,8 +51,7 @@ kill(pid_t pid, int sig)
 int
 __sigsetjmp(jmp_buf __env, int __savemask)
 {
-    jos_setjmp((struct jos_jmp_buf *) __env);
-    return 0;
+    return jos_setjmp((struct jos_jmp_buf *) __env);
 }
 
 void
