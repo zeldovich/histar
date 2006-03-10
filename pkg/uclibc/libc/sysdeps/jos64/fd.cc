@@ -385,7 +385,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 ssize_t
 read(int fdnum, void *buf, size_t n) __THROW
 {
-	int r;
+	int64_t r;
 	struct Dev *dev;
 	struct Fd *fd;
 
@@ -406,7 +406,7 @@ ssize_t
 readn(int fdnum, void *buf, size_t n)
 {
 	size_t tot;
-	int m;
+	int64_t m;
 
 	for (tot = 0; tot < n; tot += m) {
 		m = read(fdnum, (char*)buf + tot, n - tot);
@@ -421,7 +421,7 @@ readn(int fdnum, void *buf, size_t n)
 ssize_t
 write(int fdnum, const void *buf, size_t n) __THROW
 {
-	int r;
+	int64_t r;
 	struct Dev *dev;
 	struct Fd *fd;
 
@@ -498,10 +498,26 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 }
 
 int
-fstat(int filedes, struct stat *buf) __THROW
+fstat(int fdnum, struct stat *buf) __THROW
 {
-    __set_errno(ENOSYS);
-    return -1;
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	cprintf("fstat(%d): %s\n", fdnum, e2s(r));
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if (dev->dev_stat == 0) {
+	__set_errno(EOPNOTSUPP);
+	return -1;
+    }
+
+    return dev->dev_stat(fd, buf);
 }
 
 extern "C" int

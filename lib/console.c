@@ -3,6 +3,8 @@
 #include <inc/fd.h>
 #include <inc/syscall.h>
 #include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
 
 int
 iscons(int fdnum)
@@ -29,7 +31,7 @@ opencons(uint64_t container)
     return fd2num(fd);
 }
 
-static int
+static ssize_t
 cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 {
     int c;
@@ -47,7 +49,7 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
     return 1;
 }
 
-static int
+static ssize_t
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
     sys_cons_puts(vbuf, n);
@@ -60,6 +62,13 @@ cons_close(struct Fd *fd)
     return 0;
 }
 
+static int
+cons_stat(struct Fd *fd, struct stat *buf)
+{
+    memset(buf, 0, sizeof(*buf));
+    return 0;
+}
+
 struct Dev devcons =
 {
     .dev_id = 'c',
@@ -67,4 +76,5 @@ struct Dev devcons =
     .dev_read = cons_read,
     .dev_write = cons_write,
     .dev_close = cons_close,
+    .dev_stat = cons_stat,
 };

@@ -8,6 +8,8 @@
 
 #include <arpa/inet.h>
 
+struct stat;
+
 // pre-declare for forward references
 struct Fd;
 struct Dev;
@@ -17,11 +19,12 @@ struct Dev
 	int dev_id;
 	const char *dev_name;
 
-	int (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
-	int (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
+	ssize_t (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
+	ssize_t (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
 	int (*dev_close)(struct Fd *fd);
 	int (*dev_seek)(struct Fd *fd, off_t pos);
 	int (*dev_trunc)(struct Fd *fd, off_t length);
+	int (*dev_stat)(struct Fd *fd, struct stat *buf);
 
 	int (*dev_bind)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
 	int (*dev_listen)(struct Fd *fd, int backlog);

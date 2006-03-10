@@ -133,7 +133,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     return fd2num(nfd);
 }
 
-static int
+static ssize_t
 sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     if (count > 1024)
@@ -147,7 +147,7 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     return netd_call(&a);
 }
 
-static int
+static ssize_t
 sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     if (count > 1024)

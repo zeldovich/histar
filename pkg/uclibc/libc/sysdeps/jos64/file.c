@@ -2,14 +2,17 @@
 #include <inc/lib.h>
 #include <inc/fd.h>
 #include <inc/error.h>
+#include <inc/stdio.h>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 int
-mkdir(const char *pn, int mode)
+mkdir(const char *pn, mode_t mode)
 {
     char *pn2 = malloc(strlen(pn) + 1);
     if (pn2 == 0)
@@ -117,21 +120,52 @@ __libc_open(const char *pn, int flags, ...) __THROW
     return fd2num(fd);
 }
 
-static int
+static ssize_t
 file_read(struct Fd *fd, void *buf, size_t n, off_t offset)
 {
-    return fs_pread(fd->fd_file.ino, buf, n, offset);
+    int r = fs_pread(fd->fd_file.ino, buf, n, offset);
+    if (r < 0) {
+	cprintf("file_read: %s\n", e2s(r));
+	__set_errno(EIO);
+	return -1;
+    }
+
+    return n;
 }
 
-static int
+static ssize_t
 file_write(struct Fd *fd, const void *buf, size_t n, off_t offset)
 {
-    return fs_pwrite(fd->fd_file.ino, buf, n, offset);
+    int r = fs_pwrite(fd->fd_file.ino, buf, n, offset);
+    if (r < 0) {
+	cprintf("file_write: %s\n", e2s(r));
+	__set_errno(EIO);
+	return -1;
+    }
+
+    return n;
 }
 
 static int
 file_close(struct Fd *fd)
 {
+    return 0;
+}
+
+static int
+file_stat(struct Fd *fd, struct stat *buf)
+{
+    uint64_t len;
+    int r = fs_getsize(fd->fd_file.ino, &len);
+    if (r < 0) {
+	cprintf("file_stat: %s\n", e2s(r));
+	__set_errno(EIO);
+	return -1;
+    }
+
+    memset(buf, 0, sizeof(*buf));
+    buf->st_size = len;
+
     return 0;
 }
 
@@ -141,6 +175,7 @@ struct Dev devfile = {
     .dev_read = file_read,
     .dev_write = file_write,
     .dev_close = file_close,
+    .dev_stat = file_stat,
 };
 
 weak_alias(__libc_open, open);
