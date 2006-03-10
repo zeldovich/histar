@@ -15,14 +15,16 @@ const char *sys_signame[_NSIG];
 int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-    set_enosys();
+    __set_errno(ENOSYS);
+    //set_enosys();
     return -1;
 }
 
 int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
-    set_enosys();
+    __set_errno(ENOSYS);
+    //set_enosys();
     return -1;
 }
 
