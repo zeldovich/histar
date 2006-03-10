@@ -46,7 +46,6 @@ TAR	:= gtar
 PERL	:= perl
 
 # Compiler flags.
-# -fno-builtin is required to avoid refs to undefined functions in the kernel.
 
 WARNS	 := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
 	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
@@ -58,7 +57,7 @@ CXXWARNS := $(WARNS)
 DEFS	:=
 OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
-CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-builtin -fno-strict-aliasing
+CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing
 CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 
@@ -90,15 +89,16 @@ all:
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
 	$(OBJDIR)/user/%.o
 
-COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD # -fno-builtin 
+COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD
 COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_INC   := $(INCLUDES)
 KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_INC   := $(INCLUDES)
-USER_CFLAGS := $(COMFLAGS) $(DEFS) $(USER_INC) -DJOS_USER $(CWARNS)
-USER_CXXFLAGS := $(USER_CFLAGS) $(COMCXXFLAGS)
+USER_COMFLAGS := $(COMFLAGS) $(DEFS) $(USER_INC) -DJOS_USER
+USER_CFLAGS := $(USER_COMFLAGS) $(CWARNS)
+USER_CXXFLAGS := $(USER_COMFLAGS) $(COMCXXFLAGS) $(CXXWARNS)
 
 
 # try to infer the correct GCCPREFIX
