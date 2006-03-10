@@ -13,12 +13,18 @@ MISC_INTERNALS_CSRC := \
 MISC_ERROR_CSRC := \
 	error.c err.c
 
+MISC_DIRENT_CSRC := \
+	alphasort.c closedir.c dirfd.c opendir.c readdir.c rewinddir.c scandir.c \
+        seekdir.c telldir.c readdir64.c alphasort64.c scandir64.c readdir_r.c \
+        readdir64_r.c
+
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
 	pkg/uclibc/libc/misc/time/adjtime.c \
 	pkg/uclibc/libc/misc/time/ftime.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC))
+	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC))
 
 ##
 ## Combined source files (multiple object files per .c file)
