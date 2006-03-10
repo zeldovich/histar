@@ -70,7 +70,8 @@ KERN_BINFILES := \
 	user/sha1sum \
 	user/authd \
 	user/login \
-	user/uadm
+	user/uadm \
+	user/echo
 
 	#user/ksh
 
