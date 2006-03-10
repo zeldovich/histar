@@ -10,7 +10,9 @@ UCLIBC_JOS64_CSRC := \
 	mmap.c \
 	memlayout.c \
 	fd.cc \
-	file.c
+	file.c \
+	file_fd.c \
+	proc.c
 
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 
