@@ -55,6 +55,13 @@ waitpid(pid_t pid, int *wait_stat, int options)
     return -1;
 }
 
+pid_t
+wait4(pid_t pid, int *status, int options, struct rusage *rusage)
+{
+    set_enosys();
+    return -1;
+}
+
 int
 fork(void)
 {

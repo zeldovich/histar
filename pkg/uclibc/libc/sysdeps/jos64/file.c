@@ -69,6 +69,12 @@ unlink(const char *pn)
 }
 
 int
+rmdir(const char *pn)
+{
+    return unlink(pn);
+}
+
+int
 rename(const char *src, const char *dst)
 {
     set_enosys();
