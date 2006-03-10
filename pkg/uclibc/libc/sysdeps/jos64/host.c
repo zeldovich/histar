@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 static char hostname[32];
 
@@ -25,5 +26,17 @@ sethostname(const char *name, size_t len)
     }
 
     strcpy(&hostname[0], name);
+    return 0;
+}
+
+int
+uname (struct utsname *name) __THROW
+{
+    name->sysname[0] = '\0';
+    name->nodename[0] = '\0';
+    name->release[0] = '\0';
+    name->version[0] = '\0';
+    name->machine[0] = '\0';
+
     return 0;
 }

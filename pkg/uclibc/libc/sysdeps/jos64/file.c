@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <utime.h>
 #include <sys/stat.h>
 
 #include <bits/unimpl.h>
@@ -90,6 +91,13 @@ mode_t
 umask(mode_t mask)
 {
     return 0;
+}
+
+int
+utime (const char *file, const struct utimbuf *file_times) __THROW
+{
+    set_enosys();
+    return -1;
 }
 
 int
