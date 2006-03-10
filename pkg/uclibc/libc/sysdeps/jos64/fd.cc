@@ -542,7 +542,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
     struct Fd *fd;
 
     if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
-	__set_errno(r);
+	__set_errno(EBADF);
 	return -1;
     }
 
@@ -581,9 +581,27 @@ fchown(int fd, uid_t owner, gid_t group) __THROW
 }
 
 int
-ioctl(int d, unsigned long int request, ...) __THROW
+ioctl(int fdnum, unsigned long int req, ...) __THROW
 {
-    __set_errno(ENOSYS);
+    int r;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if (req == TCGETS) {
+	if (fd->fd_isatty) {
+	    // cheat, we really just wants ksh to go into interactive mode
+	    return 0;
+	}
+
+	__set_errno(ENOTTY);
+	return -1;
+    }
+
+    __set_errno(EINVAL);
     return -1;
 }
 

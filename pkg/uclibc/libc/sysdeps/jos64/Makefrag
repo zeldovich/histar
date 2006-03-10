@@ -2,7 +2,6 @@ OBJDIRS += pkg/uclibc/libc/sysdeps/jos64
 
 UCLIBC_JOS64_CSRC := \
 	sbrk.c \
-	tty.c \
 	errno.c \
 	signal.c \
 	exit.c \

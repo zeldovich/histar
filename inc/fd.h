@@ -38,6 +38,7 @@ struct Fd
 	off_t fd_offset;
 	int fd_omode;
 	int fd_immutable;
+	int fd_isatty;
 
 	// handles for this fd
 	uint64_t fd_grant;

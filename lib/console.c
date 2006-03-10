@@ -28,6 +28,7 @@ opencons(uint64_t container)
     fd->fd_dev_id = devcons.dev_id;
     fd->fd_omode = O_RDWR;
     fd->fd_immutable = 1;
+    fd->fd_isatty = 1;
     return fd2num(fd);
 }
 
