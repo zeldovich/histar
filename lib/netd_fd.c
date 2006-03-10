@@ -37,7 +37,7 @@ int
 socket(int domain, int type, int protocol)
 {
     struct Fd *fd;
-    int r = fd_alloc(start_env->proc_container, &fd, "socket fd");
+    int r = fd_alloc(start_env->shared_container, &fd, "socket fd");
     if (r < 0)
 	return r;
 
@@ -110,7 +110,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	return -E_INVAL;
 
     struct Fd *nfd;
-    int r = fd_alloc(start_env->proc_container, &nfd, "socket fd -- accept");
+    int r = fd_alloc(start_env->shared_container, &nfd, "socket fd -- accept");
     if (r < 0)
 	return r;
 

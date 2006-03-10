@@ -46,7 +46,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
     }
 
     struct Fd *fd;
-    r = fd_alloc(start_env->proc_container, &fd, "file fd");
+    r = fd_alloc(start_env->shared_container, &fd, "file fd");
     if (r < 0)
 	return r;
 

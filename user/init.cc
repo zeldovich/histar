@@ -126,7 +126,7 @@ try
 
     init_env(c_root, c_self);
 
-    int cons = opencons(start_env->shared_container);
+    int cons = opencons();
     if (cons != 0)
 	throw error(cons, "cannot opencons: %d", cons);
 

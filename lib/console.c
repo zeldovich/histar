@@ -18,12 +18,12 @@ iscons(int fdnum)
 }
 
 int
-opencons(uint64_t container)
+opencons(void)
 {
     int r;
     struct Fd* fd;
 
-    if ((r = fd_alloc(container, &fd, "console fd")) < 0)
+    if ((r = fd_alloc(start_env->shared_container, &fd, "console fd")) < 0)
 	return r;
     fd->fd_dev_id = devcons.dev_id;
     fd->fd_omode = O_RDWR;

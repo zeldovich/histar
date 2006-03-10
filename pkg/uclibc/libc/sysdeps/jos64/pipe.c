@@ -9,7 +9,7 @@ int
 pipe(int fds[2])
 {
     struct Fd *fd;
-    int r = fd_alloc(start_env->proc_container, &fd, "pipe fd");
+    int r = fd_alloc(start_env->shared_container, &fd, "pipe fd");
     if (r < 0) {
 	__set_errno(ENOMEM);
 	return -1;

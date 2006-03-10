@@ -9,7 +9,7 @@
 
 /* console.c */
 int	iscons(int fd);
-int	opencons(uint64_t container);
+int	opencons(void);
 
 /* readline.c */
 char*	readline(const char *prompt);
