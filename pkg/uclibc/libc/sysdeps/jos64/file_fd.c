@@ -102,16 +102,28 @@ file_close(struct Fd *fd)
 static int
 file_stat(struct Fd *fd, struct stat *buf)
 {
-    uint64_t len;
-    int r = fs_getsize(fd->fd_file.ino, &len);
-    if (r < 0) {
-	cprintf("file_stat: %s\n", e2s(r));
+    int type = sys_obj_get_type(fd->fd_file.ino.obj);
+    if (type < 0) {
+	cprintf("file_stat: get_type: %s\n", e2s(type));
 	__set_errno(EIO);
 	return -1;
     }
 
     memset(buf, 0, sizeof(*buf));
-    buf->st_size = len;
+    if (type == kobj_container || type == kobj_mlt) {
+	buf->st_mode = __S_IFDIR;
+    } else {
+	buf->st_mode = __S_IFREG;
+
+	uint64_t len;
+	int r = fs_getsize(fd->fd_file.ino, &len);
+	if (r < 0) {
+	    cprintf("file_stat: getsize: %s\n", e2s(r));
+	    __set_errno(EIO);
+	    return -1;
+	}
+	buf->st_size = len;
+    }
 
     return 0;
 }
