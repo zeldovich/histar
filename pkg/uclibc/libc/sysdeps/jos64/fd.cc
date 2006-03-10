@@ -190,7 +190,9 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
 		return -E_INVAL;
 	}
 
-	*fd_store = fd;
+	if (fd_store)
+		*fd_store = fd;
+
 	return 0;
 }
 
@@ -525,8 +527,38 @@ fstat(int fdnum, struct stat *buf) __THROW
 }
 
 extern "C" int
-__libc_fcntl(int fd, int cmd, ...) __THROW
+__libc_fcntl(int fdnum, int cmd, ...) __THROW
 {
+    int r;
+    va_list ap;
+    long arg;
+    struct flock *flock;
+    struct Fd *fd;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    va_start(ap, cmd);
+    if (cmd == F_DUPFD || cmd == F_GETFD || cmd == F_SETFD) {
+	arg = va_arg(ap, long);
+    } else if (cmd == F_GETFL || cmd == F_SETFL) {
+	flock = va_arg(ap, struct flock *);
+    }
+    va_end(ap);
+
+    if (cmd == F_DUPFD) {
+	for (int i = arg; i < MAXFD; i++) {
+	    r = fd_lookup(i, 0, 0);
+	    if (r < 0)
+		return dup2(fdnum, i);
+	}
+
+	__set_errno(EMFILE);
+	return -1;
+    }
+
     set_enosys();
     return -1;
 }
