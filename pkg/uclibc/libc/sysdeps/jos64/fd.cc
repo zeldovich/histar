@@ -10,6 +10,7 @@ extern "C" {
 #include <errno.h>
 #include <unistd.h>
 #include <termios.h>
+#include <termios/kernel_termios.h>
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
@@ -757,7 +758,7 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     int r;
     va_list ap;
     struct Fd *fd;
-    struct termios *termios_p ;
+    struct __kernel_termios *k_termios;
 
     if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
     	__set_errno(EBADF);
@@ -766,7 +767,7 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 
     va_start(ap, req);
     if (req == TCGETS) {
-       termios_p = va_arg(ap, struct termios *);
+       k_termios = va_arg(ap, struct __kernel_termios *);
     }
     va_end(ap);
 
@@ -775,11 +776,14 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     	   __set_errno(ENOTTY);
         	return -1;
     	}
-        termios_p->c_iflag = 0 ;
-        termios_p->c_oflag = 0 ;
-        termios_p->c_cflag = 0 ;
-        termios_p->c_lflag = 0 ;
-        termios_p->c_line = 0 ;
+        // XXX
+        if (k_termios) {
+            k_termios->c_iflag = 0 ;
+            k_termios->c_oflag = 0 ;
+            k_termios->c_cflag = 0 ;
+            k_termios->c_lflag = 0 ;
+            k_termios->c_line = 0 ;
+        }
 	    return 0;
     }
 
