@@ -342,7 +342,7 @@ static inline unsigned char *init_str_x(unsigned char *file, int line)
 	return p;
 }
 
-static inline void add_to_str(unsigned char **s, int *l, unsigned char *a)
+static inline void add_to_str(unsigned char **s, int *l, const unsigned char *a)
 {
 	unsigned char *p;
 	int ll = strlen(a);
@@ -472,7 +472,7 @@ static inline int isA(unsigned char c)
 	        c == '_' || c == '-';
 }
 
-static inline int casecmp(unsigned char *c1, unsigned char *c2, int len)
+static inline int casecmp(const unsigned char *c1, const unsigned char *c2, int len)
 {
 	int i;
 	for (i = 0; i < len; i++) if (upcase(c1[i]) != upcase(c2[i])) return 1;
@@ -1989,8 +1989,8 @@ struct option {
 	void (*wr_cfg)(struct option *, unsigned char **, int *);
 	int min, max;
 	void *ptr;
-	unsigned char *cfg_name;
-	unsigned char *cmd_name;
+	const unsigned char *cfg_name;
+	const unsigned char *cmd_name;
 };
 
 unsigned char *parse_options(int, unsigned char *[]);

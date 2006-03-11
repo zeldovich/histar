@@ -10,8 +10,8 @@ for i in $languages; do
 	echo -n $i" " 1>&2
 	echo
 	echo 'struct translation translation_'$i' [] = {'
-	echo '  0, NULL,'
-	cat $i.lng | sed 's/^/  /'
+	echo ' { 0, NULL },'
+	cat  $i.lng | sed 's/^/{ /' | sed 's/\",/\" },/'
 	echo '  0, NULL'
 	echo '};'
 	n=`expr $n + 1`

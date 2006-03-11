@@ -2,7 +2,7 @@
 
 struct translation {
 	int code;
-	unsigned char *name;
+	const unsigned char *name;
 };
 
 struct translation_desc {

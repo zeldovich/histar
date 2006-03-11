@@ -6,8 +6,8 @@ struct table_entry {
 };
 
 struct codepage_desc {
-	unsigned char *name;
-	unsigned char **aliases;
+	const unsigned char *name;
+	const unsigned char **aliases;
 	struct table_entry *table;
 };
 
@@ -15,7 +15,7 @@ struct codepage_desc {
 #include "uni_7b.inc"
 #include "entity.inc"
 
-char *strings[256] = {
+const char *strings[256] = {
 	"\000", "\001", "\002", "\003", "\004", "\005", "\006", "\007",
 	"\010", "\011", "\012", "\013", "\014", "\015", "\016", "\017",
 	"\020", "\021", "\022", "\023", "\024", "\025", "\026", "\033",

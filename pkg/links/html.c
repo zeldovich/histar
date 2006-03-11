@@ -241,7 +241,7 @@ void roman(char *p, unsigned n)
 }
 
 struct color_spec {
-	char *name;
+	const char *name;
 	int rgb;
 };
 
@@ -1926,7 +1926,7 @@ void html_link(unsigned char *a)
 }
 
 struct element_info {
-	char *name;
+	const char *name;
 	void (*func)(unsigned char *);
 	int linebreak;
 	int nopair;
