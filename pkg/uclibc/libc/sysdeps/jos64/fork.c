@@ -4,7 +4,7 @@
 
 #include <bits/unimpl.h>
 
-int
+pid_t
 fork(void)
 {
     set_enosys();
