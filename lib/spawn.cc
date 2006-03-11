@@ -50,10 +50,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     // Objects for new process are effectively the same label, except
     // we can drop the stars altogether -- they're discretionary.
-    label base_object_label(thread_label);
-    base_object_label.transform(label::star_to,
-				base_object_label.get_default());
-    label proc_object_label(base_object_label);
+    label integrity_object_label(thread_label);
+    integrity_object_label.transform(label::star_to,
+				     integrity_object_label.get_default());
+    label proc_object_label(integrity_object_label);
 
     // Generate some private handles for the new process
     int64_t process_grant = sys_handle_create();
@@ -64,10 +64,11 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(process_taint);
     scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
 
-    proc_object_label.set(process_grant, 0);
-    proc_object_label.set(process_taint, 3);
     thread_label.set(process_grant, LB_LEVEL_STAR);
     thread_label.set(process_taint, LB_LEVEL_STAR);
+    proc_object_label.set(process_grant, 0);
+    proc_object_label.set(process_taint, 3);
+    integrity_object_label.set(process_grant, 0);
 
     // Now spawn with computed labels
     struct cobj_ref elf;
@@ -77,7 +78,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(sys_obj_get_name(elf, &name[0]));
 
     int64_t c_top = sys_container_alloc(container,
-					base_object_label.to_ulabel(),
+					integrity_object_label.to_ulabel(),
 					&name[0]);
     error_check(c_top);
 
@@ -125,7 +126,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     struct cobj_ref exit_status_seg;
     error_check(segment_alloc(c_top, sizeof(struct process_state),
 			      &exit_status_seg, 0,
-			      base_object_label.to_ulabel(),
+			      integrity_object_label.to_ulabel(),
 			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
