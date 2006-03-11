@@ -9,6 +9,7 @@ extern "C" {
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <termios.h>
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
@@ -589,8 +590,7 @@ int
 select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
-    set_enosys();
-    return -1;
+        return 0 ;
 }
 
 // XXX
@@ -648,27 +648,38 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
 
     va_start(ap, cmd);
     if (cmd == F_DUPFD || cmd == F_GETFD || cmd == F_SETFD) {
-	arg = va_arg(ap, long);
-    } else if (cmd == F_GETFL || cmd == F_SETFL) {
-	flock = va_arg(ap, struct flock *);
+	   arg = va_arg(ap, long);
+    } else if (cmd == F_GETFL || cmd == F_SETFL) { 
+        arg = va_arg(ap, long);
+	    // F_GETLK, F_SETLK and F_SETLKW take a struct flock for an arg
+        // but not F_GETFL and F_SETFL...I think.
+        // flock = va_arg(ap, struct flock *);
     }
     va_end(ap);
 
     if (cmd == F_DUPFD) {
-	for (int i = arg; i < MAXFD; i++) {
-	    r = fd_lookup(i, 0, 0);
-	    if (r < 0)
-		return dup2(fdnum, i);
-	}
-
-	__set_errno(EMFILE);
-	return -1;
+    	for (int i = arg; i < MAXFD; i++) {
+    	    r = fd_lookup(i, 0, 0);
+    	    if (r < 0)
+    		  return dup2(fdnum, i);
+    	}
+    
+    	__set_errno(EMFILE);
+    	return -1;
     }
 
     if (cmd == F_SETFD || cmd == F_GETFD) {
 	// XXX
 	cprintf("__libc_fcntl: ignoring F_SETFD/F_GETFD\n");
 	return 0;
+    }
+
+    if (cmd == F_SETFL) {
+        // XXX
+        r = fd_lookup(fdnum, &fd, 0) ;   
+        fd->fd_omode |= arg ;
+        cprintf("__libc_fcntl: blindly setting for F_SETFL\n");
+        return 0 ;
     }
 
     cprintf("Unimplemented fcntl call: %d\n", cmd);
@@ -744,21 +755,32 @@ int
 ioctl(int fdnum, unsigned long int req, ...) __THROW
 {
     int r;
+    va_list ap;
     struct Fd *fd;
+    struct termios *termios_p ;
 
     if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
-	__set_errno(EBADF);
-	return -1;
+    	__set_errno(EBADF);
+    	return -1;
     }
 
+    va_start(ap, req);
     if (req == TCGETS) {
-	if (fd->fd_isatty) {
-	    // cheat, we really just wants ksh to go into interactive mode
-	    return 0;
-	}
+       termios_p = va_arg(ap, struct termios *);
+    }
+    va_end(ap);
 
-	__set_errno(ENOTTY);
-	return -1;
+    if (req == TCGETS) {
+    	if (!fd->fd_isatty) {
+    	   __set_errno(ENOTTY);
+        	return -1;
+    	}
+        termios_p->c_iflag = 0 ;
+        termios_p->c_oflag = 0 ;
+        termios_p->c_cflag = 0 ;
+        termios_p->c_lflag = 0 ;
+        termios_p->c_line = 0 ;
+	    return 0;
     }
 
     __set_errno(EINVAL);

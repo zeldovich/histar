@@ -12,11 +12,11 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
     tv->tv_usec = (msec % 1000) * 1000;
 }
 
+// XXX
 int
 alarm(int sec)
 {
-    set_enosys();
-    return -1;
+    return 0 ;
 }
 
 int
