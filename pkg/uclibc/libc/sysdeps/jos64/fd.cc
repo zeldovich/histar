@@ -679,7 +679,7 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
         // XXX
         r = fd_lookup(fdnum, &fd, 0) ;   
         fd->fd_omode |= arg ;
-        cprintf("__libc_fcntl: blindly setting for F_SETFL\n");
+        cprintf("__libc_fcntl: blindly F_SETFL\n");
         return 0 ;
     }
 
@@ -783,9 +783,19 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
             k_termios->c_cflag = 0 ;
             k_termios->c_lflag = 0 ;
             k_termios->c_line = 0 ;
+            printf("ioctl: TCGETS: returning bad termios\n") ;
         }
 	    return 0;
     }
+    if (req == TCSETS) {
+         if (!fd->fd_isatty) {
+           __set_errno(ENOTTY);
+            return -1;
+        }
+        
+        printf("ioctl: TCSETS: not actually setting termios\n") ;  
+    }
+
 
     __set_errno(EINVAL);
     return -1;
