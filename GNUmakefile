@@ -136,6 +136,9 @@ include pkg/Makefrag
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
 
+tags:
+	@:
+
 # For deleting the build
 clean:
 	rm -rf $(OBJDIR)/.deps $(OBJDIR)/*
@@ -167,4 +170,4 @@ obj/machine:
 always:
 	@:
 
-.PHONY: all always clean distclean
+.PHONY: all always clean distclean tags

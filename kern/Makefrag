@@ -155,8 +155,19 @@ $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
 all: $(OBJDIR)/kern/bochs.img
 #all: $(OBJDIR)/kern/kernel
 
+tags: $(OBJDIR)/kern/TAGS
+
+KERN_HDRFILES = $(shell find kern/kern kern/arch/${ARCH} -name '*.h' -print) \
+	inc/syscall.h inc/syscall_num.h inc/container.h inc/segment.h \
+	inc/thread.h inc/kobj.h inc/label.h inc/netdev.h
+
+$(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
+	@rm -f $@
+	etags -o $@ $^
+
 # How to build the embedded bin structures
 $(OBJDIR)/kern/embedbin.c: kern/Makefrag
+	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sed 's/obj\/\([^\/]*\)\/\(.*\)/extern const uint8_t _binary_obj_\1_\2_start[], _binary_obj_\1_\2_size[];/' >>$@
 	echo 'struct embed_bin embed_bins[] = {' >>$@
