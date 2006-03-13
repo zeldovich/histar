@@ -158,6 +158,7 @@ all: $(OBJDIR)/kern/bochs.img
 tags: $(OBJDIR)/kern/TAGS
 
 KERN_HDRFILES = $(shell find kern/kern kern/arch/${ARCH} -name '*.h' -print) \
+	inc/safetype.h \
 	inc/syscall.h inc/syscall_num.h inc/container.h inc/segment.h \
 	inc/thread.h inc/kobj.h inc/label.h inc/netdev.h
 
