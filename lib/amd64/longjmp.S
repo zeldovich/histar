@@ -1,7 +1,7 @@
 #include <machine/asm.h>
 
 ENTRY(jos_setjmp)
-	popq	%rax
+	popq	%rax		// %rip pushed by call
 	movq	%rax,  0(%rdi)
 	movq	%rsp,  8(%rdi)
 	movq	%rbp, 16(%rdi)
@@ -16,7 +16,7 @@ ENTRY(jos_setjmp)
 	ret
 
 ENTRY(jos_longjmp)
-	movq	 0(%rdi), %rax
+	movq	 0(%rdi), %rax	// %rip
 	movq	 8(%rdi), %rsp
 	movq	16(%rdi), %rbp
 	movq	24(%rdi), %rbx
@@ -25,7 +25,15 @@ ENTRY(jos_longjmp)
 	movq	48(%rdi), %r14
 	movq	56(%rdi), %r15
 
-	pushq	%rax
+	pushq	%rax		// push %rip for ret
+
+	xorq	%rax, %rax	// never return 0
+	cmp	%rsi, %rax
+	jnz	1f
+	movq	$1, %rax
+	jmp	2f
+1:
 	movq	%rsi, %rax
+2:
 	ret
 
