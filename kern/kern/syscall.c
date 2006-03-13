@@ -72,7 +72,7 @@ sys_cons_puts(const char *s, uint64_t size)
 	syscall_error(-E_INVAL);
 
     check(page_user_incore((void**) &s, sz));
-    cprintf("%.*s", sz, s);
+    tty_write(s, sz) ;
 }
 
 static int64_t
