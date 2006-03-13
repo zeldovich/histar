@@ -70,6 +70,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     while (fd->fd_pipe.bytes == 0) {
         pthread_mutex_unlock(&fd->fd_pipe.mu);
         if (atomic_read(&fd->fd_ref) == 1)
+            return 0 ;
 	    sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
 	    pthread_mutex_lock(&fd->fd_pipe.mu);
     }
