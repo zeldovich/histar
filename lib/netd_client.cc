@@ -67,7 +67,11 @@ netd_call(struct netd_op_args *a) {
     segment_unmap(va);
 
     if (tainted == 0) {
-	process_report_taint();
+	// XXX this isn't smart enough to figure out if we're already
+	// tainted or not.  this makes it rather annoying for running
+	// stuff over telnetd.
+
+	// process_report_taint();
 	tainted = 1;
     }
 
