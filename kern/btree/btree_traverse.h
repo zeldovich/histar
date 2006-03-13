@@ -5,7 +5,8 @@
 #include <inc/types.h>
 #include <btree/btree.h>
 
-int 	btree_init_traversal_impl(struct btree *tree, struct btree_traversal *trav) ;
-char 	btree_first_offset(struct btree_traversal *trav);
+int btree_init_traversal_impl(struct btree *tree,
+			      struct btree_traversal *trav);
+char btree_first_offset(struct btree_traversal *trav);
 
-#endif /*BTREE_TRAVERSE_H_*/
+#endif /*BTREE_TRAVERSE_H_ */

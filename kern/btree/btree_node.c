@@ -13,88 +13,88 @@
 static void
 btree_init_node(struct btree_node *n, struct btree *t, uint64_t off)
 {
-    memset(n, 0, sizeof(struct btree_node)) ;
+    memset(n, 0, sizeof(struct btree_node));
 
     // setup pointers in node
-    n->children = CENT_CHILDREN(n) ;
-    n->keys = CENT_KEYS(n, t->order) ;
-    n->block.offset = off ;
-    n->tree = t ;   
-    
-    memset(n->children, 0, sizeof(offset_t) * t->order)    ;
-    memset((void *)n->keys, 0, 
-           sizeof(uint64_t) * (t->order - 1) * (t->s_key)) ;
+    n->children = CENT_CHILDREN(n);
+    n->keys = CENT_KEYS(n, t->order);
+    n->block.offset = off;
+    n->tree = t;
+
+    memset(n->children, 0, sizeof(offset_t) * t->order);
+    memset((void *) n->keys, 0,
+	   sizeof(uint64_t) * (t->order - 1) * (t->s_key));
 }
 
 struct btree_node *
 btree_new_node(struct btree *tree)
 {
-    int r ;
-	struct btree_node *node ; 
-    uint8_t *n ;
-    uint64_t off ;
+    int r;
+    struct btree_node *node;
+    uint8_t *n;
+    uint64_t off;
     if ((r = btree_alloc_node(tree->id, &n, &off)) < 0)
-        panic("btree_new_node: unable to alloc mem: %s", e2s(r)) ;   
-    
+	panic("btree_new_node: unable to alloc mem: %s", e2s(r));
 
-    node = (struct btree_node *)n ;
-    btree_init_node(node, tree, off) ;
 
-	return node;
+    node = (struct btree_node *) n;
+    btree_init_node(node, tree, off);
+
+    return node;
 }
 
 void
-btree_destroy_node(struct btree_node * node)
+btree_destroy_node(struct btree_node *node)
 {
-	int r ;
-    
+    int r;
+
     // XXX: in btree_delete.c a node can be erased, then destroyed.
     if (node->tree == 0 && node->block.offset == 0)
-		return ;
-	
-	struct btree *tree = node->tree ;
-    
+	return;
+
+    struct btree *tree = node->tree;
+
     if ((r = btree_close_node(tree->id, node->block.offset)) < 0)
-        panic("btree_destroy_node: unable to close node: %s", e2s(r)) ;
+	panic("btree_destroy_node: unable to close node: %s", e2s(r));
 }
 
 struct btree_node *
 btree_read_node(struct btree *tree, offset_t offset)
 {
-	struct btree_node *n ;
-    uint8_t *mem ;
-	int r ;
+    struct btree_node *n;
+    uint8_t *mem;
+    int r;
 
     if ((r = btree_open_node(tree->id, offset, &mem)) < 0)
-        panic("btree_read_node: unable to read node: %s", e2s(r)) ;
+	panic("btree_read_node: unable to read node: %s", e2s(r));
 
-    n = (struct btree_node *)mem ;
-    n->children = CENT_CHILDREN(n) ;
-    n->keys = CENT_KEYS(n, tree->order) ;
-    n->tree = tree ;
+    n = (struct btree_node *) mem;
+    n->children = CENT_CHILDREN(n);
+    n->keys = CENT_KEYS(n, tree->order);
+    n->tree = tree;
 
-	return n ;
+    return n;
 }
 
 offset_t
-btree_write_node(struct btree_node *node)
+btree_write_node(struct btree_node * node)
 {
-    int r ;
+    int r;
 
-	struct btree *tree = node->tree ;
-	
+    struct btree *tree = node->tree;
+
     if ((r = btree_save_node(tree->id, node)) < 0)
-        panic("btree_write_node: unable to write node: %s", e2s(r)) ;
-    
-	return node->block.offset;
+	panic("btree_write_node: unable to write node: %s", e2s(r));
+
+    return node->block.offset;
 }
 
 void
 btree_erase_node(struct btree_node *node)
 {
-	int r ;
-    struct btree *tree = node->tree ;
-	
+    int r;
+    struct btree *tree = node->tree;
+
     if ((r = btree_free_node(tree->id, node->block.offset)) < 0)
-        panic("btree_erase_node: unable to free node: %s", e2s(r)) ;
+	panic("btree_erase_node: unable to free node: %s", e2s(r));
 }
