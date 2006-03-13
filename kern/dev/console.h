@@ -18,21 +18,6 @@ void putchar (int c);
 int  getchar (void);
 int  iscons (int fd);
 
-// XXX
-struct tty
-{
-    void (*tty_putc) (struct tty *tty, int c) ;
-    void (*tty_write) (struct tty *tty, const char *b, int n) ;
-    // need 'virtual console' specific data
-    // need termios stuff...?  Don't think it will matter for Links...
-    // vt example:
-    // drivers/char/vt.c
-} ;
-
-
-void tty_write (const char *b, int n) ;
-void tty_putc (int c) ;
-
 extern struct Thread_list console_waiting;
 
 

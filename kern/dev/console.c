@@ -439,24 +439,6 @@ cons_init (void)
     cprintf ("Serial port does not exist!\n");
 }
 
-void
-tty_write (const char *b, int n)
-{
-    if (the_tty)
-        the_tty->tty_write(the_tty, b, n) ;
-    else
-        cprintf("%.*s", n, b);
-}
-
-void
-tty_putc (int n)
-{
-    if (the_tty)
-        the_tty->tty_putc(the_tty, n) ;
-    else
-        cons_putc(n) ;
-}
-
 // `High'-level console I/O.  Used by readline and cprintf.
 
 void
