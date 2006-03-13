@@ -4,12 +4,15 @@ extern "C" {
 #include <inc/syscall.h>
 #include <unistd.h>
 #include <errno.h>
+#include <inc/setjmp.h>
 }
 
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
 #include <inc/scopeguard.hh>
+
+static int fork_debug = 0;
 
 static pid_t
 do_fork()
@@ -21,8 +24,13 @@ do_fork()
     thread_cur_clearance(&thread_clearance);
     thread_cur_label(&thread_contaminate);
 
-    thread_clearance.set(start_env->process_grant, 1);
-    thread_clearance.set(start_env->process_taint, 1);
+    if (fork_debug)
+	cprintf("fork: current labels %s / %s\n",
+		thread_contaminate.to_string(),
+		thread_clearance.to_string());
+
+    thread_contaminate.set(start_env->process_grant, 1);
+    thread_contaminate.set(start_env->process_taint, 1);
 
     // Compute the mandatory contamination for objects
     label integrity_label(thread_contaminate);
@@ -59,9 +67,84 @@ do_fork()
 					  "process");
     error_check(proc_ct);
 
-    // ...
+    // Prepare a setjmp buffer for the new thread, before we copy our stack!
+    struct jos_jmp_buf jb;
+    if (jos_setjmp(&jb) != 0) {
+	if (fork_debug)
+	    cprintf("fork: new thread running\n");
 
-    throw basic_exception("do_fork: not implemented");
+	start_env->shared_container = top_ct;
+	start_env->proc_container = proc_ct;
+
+	pgrant_cleanup.dismiss();
+	ptaint_cleanup.dismiss();
+	top_drop.dismiss();
+
+	return 0;
+    }
+
+    // Copy the address space, much like taint_cow() in lib/taint.c
+    enum { uas_size = 64 };
+    struct u_segment_mapping uas_ents[uas_size];
+    struct u_address_space uas;
+    uas.size = uas_size;
+    uas.ents = &uas_ents[0];
+
+    struct cobj_ref cur_as;
+    error_check(sys_thread_get_as(&cur_as));
+    error_check(sys_as_get(cur_as, &uas));
+
+    for (uint32_t i = 0; i < uas.nent; i++) {
+	// What gets copied across fork() and what stays shared?
+	// Our heuristic is that anything in the process container
+	// gets copied (heap, stacks, data); everything else stays
+	// shared.  This works well for FDs which are in the shared
+	// container.
+	if (uas.ents[i].segment.container != start_env->proc_container)
+	    continue;
+
+	char namebuf[KOBJ_NAME_LEN];
+	error_check(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
+
+	int64_t id = sys_segment_copy(uas.ents[i].segment, proc_ct,
+				      secret_label.to_ulabel(), &namebuf[0]);
+	error_check(id);
+
+	uas.ents[i].segment = COBJ(proc_ct, id);
+    }
+
+    // Go through the file descriptors and increment the refcounts..
+    // XXX
+
+    // Construct the new AS object and a non-running thread
+    int64_t id = sys_as_create(proc_ct, secret_label.to_ulabel(), "forked AS");
+    error_check(id);
+
+    struct cobj_ref new_as = COBJ(proc_ct, id);
+    error_check(sys_as_set(new_as, &uas));
+
+    id = sys_thread_create(proc_ct, "forked thread");
+    error_check(id);
+    struct cobj_ref new_th = COBJ(proc_ct, id);
+
+    // Create a new thread that jumps into the new AS
+    struct thread_entry te;
+    te.te_as = new_as;
+    te.te_entry = (void *) &jos_longjmp;
+    te.te_stack = 0;
+    te.te_arg = (uint64_t) &jb;
+
+    if (fork_debug)
+	cprintf("fork: new thread labels %s / %s\n",
+		thread_contaminate.to_string(),
+		thread_clearance.to_string());
+
+    error_check(sys_thread_start(new_th, &te,
+				 thread_contaminate.to_ulabel(),
+				 thread_clearance.to_ulabel()));
+
+    top_drop.dismiss();
+    return top_ct;
 }
 
 pid_t
