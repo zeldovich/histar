@@ -1,21 +1,16 @@
 OBJDIRS += lib/vt
 
-LIB_SRCFILES += lib/vt/vt.c	\
-				lib/vt/vtlex.yy.c
+LIB_SRCFILES += lib/vt/vt.c lib/vt/vtlex.yy.c
 
-obj/lib/vt/vt.o: lib/vt/vt.c
+$(OBJDIR)/lib/vt/%.o: lib/vt/%.c
 	@mkdir -p $(@D)
 	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
-lib/vt/vtlex.yy.c:
-	$(LEX) -o lib/vt/vtlex.yy.c lib/vt/vtlex.yy
+$(OBJDIR)/lib/vt/vtlex.yy.c: lib/vt/vtlex.yy
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o obj/lib/vt/vtlex.yy.o lib/vt/vtlex.yy.c
+	$(LEX) -o$(OBJDIR)/lib/vt/vtlex.yy.c lib/vt/vtlex.yy
 
-obj/lib/vt/vtlex.yy.o: lib/vt/vtlex.yy
-	$(LEX) -o lib/vt/vtlex.yy.c lib/vt/vtlex.yy
+$(OBJDIR)/lib/vt/vtlex.yy.o: $(OBJDIR)/lib/vt/vtlex.yy.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o obj/lib/vt/vtlex.yy.o lib/vt/vtlex.yy.c
-
-
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 

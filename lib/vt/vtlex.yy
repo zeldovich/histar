@@ -10,13 +10,16 @@ PN		[0-9]+
 STR		[^\033]*
 
 /* Escape Sequences */
-SCS		{ESC}(\(|\))[AB012]	/* select character set */
+		/* select character set */
+SCS		{ESC}(\(|\))[AB012]
 
 /* Control Sequences */
-CUP		{CSI}{PN};{PN}H	/* cursor position */
+		/* cursor position */
+CUP		{CSI}{PN};{PN}H
 
 /* ANSI Compatibility */
-SCUR	{ESC}7			/* save cursor attributes */
+		/* save cursor attributes */
+SCUR		{ESC}7
 
 %%
 
