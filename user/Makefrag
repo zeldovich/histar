@@ -2,7 +2,7 @@ OBJDIRS += user
 
 $(OBJDIR)/user/%.o: user/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
 $(OBJDIR)/user/%.o: user/%.cc
 	@mkdir -p $(@D)
