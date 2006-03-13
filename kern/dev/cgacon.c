@@ -10,9 +10,6 @@ static unsigned addr_6845;
 static uint16_t *crt_buf;
 static uint16_t crt_pos;
 
-// Scrollback support
-#define CRT_SAVEROWS    1024
-
 #if CRT_SAVEROWS > 0
 static uint16_t crtsave_buf[CRT_SAVEROWS * CRT_COLS];
 static uint16_t crtsave_pos;

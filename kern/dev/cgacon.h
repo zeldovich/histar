@@ -16,4 +16,7 @@ void cga_scroll (int delta) ;
 #define CRT_COLS    80
 #define CRT_SIZE    (CRT_ROWS * CRT_COLS)
 
+// Scrollback support
+#define CRT_SAVEROWS	1024
+
 #endif /*CGACON_H_*/
