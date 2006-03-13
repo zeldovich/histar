@@ -586,10 +586,10 @@ getsockopt(int fdnum, int level, int optname,void *optval,
 
 // XXX
 int
-select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
+select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
-        return 0 ;
+    return maxfd;
 }
 
 ssize_t
