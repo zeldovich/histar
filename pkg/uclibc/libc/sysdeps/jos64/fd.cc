@@ -592,20 +592,48 @@ select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         return 0 ;
 }
 
-// XXX
-int 
+ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 {
-    set_enosys();
-    return -1;
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if (dev->dev_send == 0) {
+	__set_errno(EOPNOTSUPP);
+	return -1;
+    }
+
+    return dev->dev_send(fd, dataptr, size, flags);
 }
 
-// XXX
-int 
+ssize_t
 recv(int fdnum, void *mem, size_t len, int flags) __THROW
 {
-    set_enosys();
-    return -1;
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    if (dev->dev_recv == 0) {
+	__set_errno(EOPNOTSUPP);
+	return -1;
+    }
+
+    return dev->dev_recv(fd, mem, len, flags);
 }
 
 int

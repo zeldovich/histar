@@ -24,6 +24,8 @@ typedef enum {
     netd_op_getpeername,
     netd_op_setsockopt,
     netd_op_getsockopt,
+    netd_op_send,
+    netd_op_recv,
 } netd_op_t;
 
 struct netd_op_socket_args {
@@ -61,6 +63,20 @@ struct netd_op_write_args {
 struct netd_op_read_args {
     int fd;
     uint32_t count;
+    char buf[1024];
+};
+
+struct netd_op_send_args {
+    int fd;
+    uint32_t count;
+    int flags;
+    char buf[1024];
+};
+
+struct netd_op_recv_args {
+    int fd;
+    uint32_t count;
+    int flags;
     char buf[1024];
 };
 
@@ -111,6 +127,8 @@ struct netd_op_args {
 	struct netd_op_getpeername_args getpeername;
 	struct netd_op_setsockopt_args setsockopt;
 	struct netd_op_getsockopt_args getsockopt;
+	struct netd_op_recv_args recv;
+	struct netd_op_send_args send;
     };
 };
 

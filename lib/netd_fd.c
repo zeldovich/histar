@@ -164,6 +164,38 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     return r;
 }
 
+static ssize_t
+sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
+{
+    if (count > 1024)
+	count = 1024;
+
+    struct netd_op_args a;
+    a.op_type = netd_op_send;
+    a.send.fd = fd->fd_sock.s;
+    a.send.count = count;
+    a.send.flags = flags;
+    memcpy(&a.send.buf[0], buf, count);
+    return netd_call(&a);
+}
+
+static ssize_t
+sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
+{
+    if (count > 1024)
+	count = 1024;
+
+    struct netd_op_args a;
+    a.op_type = netd_op_recv;
+    a.recv.fd = fd->fd_sock.s;
+    a.recv.count = count;
+    a.recv.flags = flags;
+    int r = netd_call(&a);
+    if (r > 0)
+	memcpy(buf, &a.recv.buf[0], r);
+    return r;
+}
+
 static int
 sock_close(struct Fd *fd)
 {
@@ -260,6 +292,8 @@ struct Dev devsock =
     .dev_name = "sock",
     .dev_read = sock_read,
     .dev_write = sock_write,
+    .dev_recv = sock_recv,
+    .dev_send = sock_send,
     .dev_close = sock_close,
     .dev_bind = sock_bind,
     .dev_connect = sock_connect,

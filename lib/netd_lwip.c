@@ -77,6 +77,18 @@ netd_dispatch(struct netd_op_args *a)
 			     a->write.count);
 	break;
 
+    case netd_op_recv:
+	a->rval = lwip_recv(a->recv.fd,
+			    &a->recv.buf[0],
+			    a->recv.count, a->recv.flags);
+	break;
+
+    case netd_op_send:
+	a->rval = lwip_send(a->send.fd,
+			    &a->send.buf[0],
+			    a->send.count, a->send.flags);
+	break;
+
     case netd_op_close:
 	a->rval = lwip_close(a->close.fd);
 	break;
