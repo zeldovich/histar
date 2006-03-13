@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 const struct host_entry host_table[] = {
     { "market", "market.scs.stanford.edu" },
@@ -245,6 +246,13 @@ sock_getsockopt(struct Fd *fd, int level, int optname,
     return r;
 }
 
+static int
+sock_stat(struct Fd *fd, struct stat *buf)
+{
+    memset(buf, 0, sizeof(*buf));
+    buf->st_mode |= __S_IFSOCK;
+    return 0;
+}
 
 struct Dev devsock = 
 {
@@ -260,5 +268,6 @@ struct Dev devsock =
     .dev_getsockname = sock_getsockname,
     .dev_getpeername = sock_getpeername,
     .dev_setsockopt = sock_setsockopt,
-    .dev_getsockopt = sock_getsockopt
+    .dev_getsockopt = sock_getsockopt,
+    .dev_stat = sock_stat,
 };
