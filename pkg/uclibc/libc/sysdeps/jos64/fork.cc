@@ -103,11 +103,6 @@ do_fork()
 	if (uas.ents[i].flags == 0)
 	    continue;
 
-	if ((uas.ents[i].flags & SEGMAP_CLOEXEC)) {
-	    uas.ents[i].flags = 0;
-	    continue;
-	}
-
 	// XXX the fd refcounts are not garbage-collected on failure..
 	void *va = uas.ents[i].va;
 	if (va >= fd_base && va < fd_end) {
