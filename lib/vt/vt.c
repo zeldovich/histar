@@ -1,6 +1,7 @@
 #include <lib/vt/vtlexgl.h>
 #include <lib/vt/lex.h>
 #include <lib/vt/vt.h>
+#include <inc/syscall.h>
 #include <stdio.h>
 #include <string.h>
 
