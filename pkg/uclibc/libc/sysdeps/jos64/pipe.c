@@ -34,8 +34,12 @@ pipe(int fds[2])
 static ssize_t
 pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    if (atomic_read(&fd->fd_ref) == 1)
-        return 0 ;
+    if (atomic_read(&fd->fd_ref) == 1) {
+	// Should raise SIGPIPE when we have signals.
+	__set_errno(EPIPE);
+	return -1;
+    }
+
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
 
     pthread_mutex_lock(&fd->fd_pipe.mu);
@@ -68,11 +72,16 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     pthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes == 0) {
-        pthread_mutex_unlock(&fd->fd_pipe.mu);
-        if (atomic_read(&fd->fd_ref) == 1)
-            return 0 ;
-	    sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
-	    pthread_mutex_lock(&fd->fd_pipe.mu);
+	uint32_t ref = atomic_read(&fd->fd_ref);
+	pthread_mutex_unlock(&fd->fd_pipe.mu);
+
+	// EOF when the other end has been closed
+	if (ref == 1)
+	    return 0;
+
+	// Need to periodically wake up and check for EOF
+	sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
+	pthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
@@ -95,7 +104,10 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 static int
 pipe_close(struct Fd *fd)
 {
-    return 0;
+    // Wake up any readers that might be waiting for EOF.
+    // Not completely reliable; we still need to check for EOF
+    // with a timeout in pipe_read().
+    sys_thread_sync_wakeup(&fd->fd_pipe.bytes);
 }
 
 struct Dev devpipe = {
