@@ -113,10 +113,11 @@ file_stat(struct Fd *fd, struct stat *buf)
     }
 
     memset(buf, 0, sizeof(*buf));
+    buf->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
     if (type == kobj_container || type == kobj_mlt) {
-	buf->st_mode = __S_IFDIR;
+	buf->st_mode |= __S_IFDIR;
     } else {
-	buf->st_mode = __S_IFREG;
+	buf->st_mode |= __S_IFREG;
 
 	uint64_t len;
 	int r = fs_getsize(fd->fd_file.ino, &len);
