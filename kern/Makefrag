@@ -87,7 +87,8 @@ KERN_BINFILES := \
 	user/uadm \
 	user/echo \
 	user/ksh \
-	user/links
+	user/links \
+	user/dnstest
 
 	#user/freelist_test \
 	#user/tcpsink

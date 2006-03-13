@@ -3,6 +3,7 @@ extern "C" {
 #include <stdio.h>
 #include <inc/lib.h>
 #include <inc/string.h>
+#include <string.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/memlayout.h>
@@ -67,6 +68,16 @@ init_env(uint64_t c_root, uint64_t c_self)
     // create a scratch container
     struct fs_inode scratch;
     error_check(fs_mkdir(start_env->fs_root, "x", &scratch));
+
+    struct fs_inode etc;
+    error_check(fs_mkdir(start_env->fs_root, "etc", &etc));
+
+    struct fs_inode resolv;
+    error_check(fs_create(etc, "hosts", &resolv));
+    error_check(fs_create(etc, "resolv.conf", &resolv));
+
+    const char *resolv_conf = "nameserver 171.66.3.11\n";
+    error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
 
     // start out in the root directory
     start_env->fs_cwd = start_env->fs_root;
