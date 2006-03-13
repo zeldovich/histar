@@ -48,7 +48,7 @@ int  fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
 		     struct fs_readdir_pos *p);
 void fs_readdir_close(struct fs_readdir_state *s);
 
-void fs_dirbase(char *pn, const char **dirname, const char **basename);
+void fs_dirbase(char *pn, const char **dirname, const char **basenam);
 
 int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o);
