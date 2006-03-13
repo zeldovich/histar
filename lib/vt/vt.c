@@ -5,12 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
-// not thread safe, but will be replaced by appropriate system
-// calls...
 // http://www.vt100.net/docs/vt100-ug/chapter3.html
 
 #define MAX_ESC 32
-static char scratch[MAX_ESC] ;
 
 static void
 cons_puts(const char *vbuf, int n)
@@ -18,39 +15,43 @@ cons_puts(const char *vbuf, int n)
     sys_cons_puts(vbuf, n);      
 }
 
+static void
+vt_debug(const char *s, int n)
+{
+   char buf[MAX_ESC] ;
+    
+    sprintf(buf, "%s(%d)\n", s, n) ;
+    cons_puts(buf, strlen(buf)) ;
+}   
+
 void
 vt_handle_ESC(const char *text, int n)
 {
-    sprintf(scratch, "ESC(%d)\n", n) ;
-    cons_puts(scratch, strlen(scratch)) ;
+    vt_debug("ESC", n) ;
 }
 
 void
 vt_handle_CSI(const char *text, int n)
 {
-    sprintf(scratch, "CSI(%d)\n", n) ;
-    cons_puts(scratch, strlen(scratch)) ;
+    vt_debug("CSI", n) ;
 }
 
 void 
 vt_handle_SCS(const char *text, int n)
 {
-    sprintf(scratch, "SCS(%d)\n", n) ;   
-    cons_puts(scratch, strlen(scratch)) ;
+    vt_debug("SCS", n) ;   
 }
 
 void
 vt_handle_SCUR(const char *text, int n)
 {
-    sprintf(scratch, "SCUR(%d)\n", n) ;   
-    cons_puts(scratch, strlen(scratch)) ;
+    vt_debug("SCUR", n) ;   
 }
 
 void
 vt_handle_CUP(const char *text, int n)
 {
-    sprintf(scratch, "CUP(%d)\n", n) ;   
-    cons_puts(scratch, strlen(scratch)) ;
+    vt_debug("CUP", n) ;   
 }
 
 void
