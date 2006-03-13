@@ -10,6 +10,9 @@
 #define SEGMAP_WRITE	0x02
 #define SEGMAP_READ	0x04
 
+// User-interpreted flags
+#define SEGMAP_CLOEXEC	0x08
+
 struct u_segment_mapping {
     struct cobj_ref segment;
     uint64_t start_page;

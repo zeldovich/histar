@@ -22,8 +22,6 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
-// Maximum number of file descriptors a program may hold open concurrently
-#define MAXFD		32
 // Bottom of file descriptor area
 #define FDTABLE		(UFDBASE)
 // Return the 'struct Fd*' for file descriptor index i

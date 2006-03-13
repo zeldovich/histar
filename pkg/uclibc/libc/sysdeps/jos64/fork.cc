@@ -4,7 +4,9 @@ extern "C" {
 #include <inc/syscall.h>
 #include <unistd.h>
 #include <errno.h>
+#include <inc/fd.h>
 #include <inc/setjmp.h>
+#include <inc/memlayout.h>
 }
 
 #include <inc/error.hh>
@@ -94,7 +96,26 @@ do_fork()
     error_check(sys_thread_get_as(&cur_as));
     error_check(sys_as_get(cur_as, &uas));
 
+    void *fd_base = (void *) UFDBASE;
+    void *fd_end = ((char *) fd_base) + MAXFD * PGSIZE;
+
     for (uint32_t i = 0; i < uas.nent; i++) {
+	if (uas.ents[i].flags == 0)
+	    continue;
+
+	if ((uas.ents[i].flags & SEGMAP_CLOEXEC)) {
+	    uas.ents[i].flags = 0;
+	    continue;
+	}
+
+	// XXX the fd refcounts are not garbage-collected on failure..
+	void *va = uas.ents[i].va;
+	if (va >= fd_base && va < fd_end) {
+	    struct Fd *fd = (struct Fd *) va;
+	    if (!fd->fd_immutable)
+		atomic_inc(&fd->fd_ref);
+	}
+
 	// What gets copied across fork() and what stays shared?
 	// Our heuristic is that anything in the process container
 	// gets copied (heap, stacks, data); everything else stays
@@ -112,9 +133,6 @@ do_fork()
 
 	uas.ents[i].segment = COBJ(proc_ct, id);
     }
-
-    // Go through the file descriptors and increment the refcounts..
-    // XXX
 
     // Construct the new AS object and a non-running thread
     int64_t id = sys_as_create(proc_ct, secret_label.to_ulabel(), "forked AS");
