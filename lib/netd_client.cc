@@ -16,6 +16,7 @@ extern "C" {
 
 static int netd_client_inited;
 static struct cobj_ref netd_gate;
+static int tainted;
 
 static int
 netd_client_init(void)
@@ -64,6 +65,11 @@ netd_call(struct netd_op_args *a) {
 
     memcpy(va, a, sizeof(*a));
     segment_unmap(va);
+
+    if (tainted == 0) {
+	process_report_taint();
+	tainted = 1;
+    }
 
     try {
 	struct gate_call_data gcd;
