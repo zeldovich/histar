@@ -709,6 +709,10 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
         return 0 ;
     }
 
+    if (cmd == F_GETFL) {
+        return fd->fd_omode ;
+    }
+
     cprintf("Unimplemented fcntl call: %d\n", cmd);
     __set_errno(ENOSYS);
     return -1;

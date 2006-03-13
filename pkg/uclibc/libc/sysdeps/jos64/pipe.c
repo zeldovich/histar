@@ -34,6 +34,8 @@ pipe(int fds[2])
 static ssize_t
 pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
+    if (atomic_read(&fd->fd_ref) == 1)
+        return 0 ;
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
 
     pthread_mutex_lock(&fd->fd_pipe.mu);
@@ -66,9 +68,10 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     pthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes == 0) {
-	pthread_mutex_unlock(&fd->fd_pipe.mu);
-	sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, ~0UL);
-	pthread_mutex_lock(&fd->fd_pipe.mu);
+        pthread_mutex_unlock(&fd->fd_pipe.mu);
+        if (atomic_read(&fd->fd_ref) == 1)
+	    sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
+	    pthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
