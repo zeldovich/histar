@@ -1,6 +1,7 @@
 #include <inc/fd.h>
 #include <inc/lib.h>
 
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -16,6 +17,7 @@ pipe(int fds[2])
     }
 
     fd->fd_dev_id = devpipe.dev_id;
+    fd->fd_omode = O_RDWR;
 
     int fdnum = fd2num(fd);
     int ofd = dup(fdnum);
