@@ -126,7 +126,7 @@ void
 sys_sem_signal(sys_sem_t sem)
 {
     atomic_inc64(&sems[sem].counter);
-    sys_thread_sync_wakeup(&sems[sem].counter.counter);
+    sys_sync_wakeup(&sems[sem].counter.counter);
 }
 
 u32_t
@@ -143,7 +143,7 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	    uint64_t a = sys_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
 	    lwip_core_unlock();
-	    sys_thread_sync_wait(&sems[sem].counter.counter, 0, sleep_until);
+	    sys_sync_wait(&sems[sem].counter.counter, 0, sleep_until);
 	    lwip_core_lock();
 	    uint64_t b = sys_clock_msec();
 	    waited += (b - a);

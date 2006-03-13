@@ -93,7 +93,7 @@ do_fork()
     uas.ents = &uas_ents[0];
 
     struct cobj_ref cur_as;
-    error_check(sys_thread_get_as(&cur_as));
+    error_check(sys_self_get_as(&cur_as));
     error_check(sys_as_get(cur_as, &uas));
 
     void *fd_base = (void *) UFDBASE;

@@ -21,7 +21,7 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
     te.te_entry = (void *) &entry_tls_stub;
     te.te_stack = (char *) tls_ + PGSIZE - 8;
     te.te_arg = (uint64_t) this;
-    error_check(sys_thread_get_as(&te.te_as));
+    error_check(sys_self_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gate_ct, &te,
 				      clearance->to_ulabel(),
@@ -52,9 +52,9 @@ void
 gatesrv::entry_tls()
 {
     while (!active_)
-	sys_thread_yield();
+	sys_self_yield();
 
-    error_check(sys_thread_addref(entry_container_));
+    error_check(sys_self_addref(entry_container_));
     scope_guard<int, struct cobj_ref>
 	g(sys_obj_unref, COBJ(entry_container_, thread_id()));
 

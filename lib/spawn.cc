@@ -175,7 +175,7 @@ process_wait(struct child_process *child, int64_t *exit_code)
 	if (r < 0)
 	    return r;
 
-	sys_thread_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_msec() + 10000);
+	sys_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_msec() + 10000);
 	proc_status = ps->status;
 	if (proc_status == PROCESS_EXITED && exit_code)
 	    *exit_code = ps->exit_code;
@@ -213,7 +213,7 @@ process_update_state(uint64_t state, int64_t exit_code)
 
     ps->exit_code = exit_code;
     ps->status = state;
-    sys_thread_sync_wakeup(&ps->status);
+    sys_sync_wakeup(&ps->status);
     segment_unmap(ps);
     return 0;
 }

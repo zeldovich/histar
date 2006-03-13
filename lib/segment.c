@@ -86,7 +86,7 @@ int
 segment_unmap(void *va)
 {
     struct cobj_ref as_ref;
-    int r = sys_thread_get_as(&as_ref);
+    int r = sys_self_get_as(&as_ref);
     if (r < 0)
 	return r;
 
@@ -118,7 +118,7 @@ int
 segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 {
     struct cobj_ref as_ref;
-    int r = sys_thread_get_as(&as_ref);
+    int r = sys_self_get_as(&as_ref);
     if (r < 0)
 	return r;
 
@@ -150,7 +150,7 @@ int
 segment_lookup_obj(uint64_t oid, void **vap)
 {
     struct cobj_ref as_ref;
-    int r = sys_thread_get_as(&as_ref);
+    int r = sys_self_get_as(&as_ref);
     if (r < 0)
 	return r;
 
@@ -179,7 +179,7 @@ segment_map(struct cobj_ref seg, uint64_t flags,
 	    void **va_p, uint64_t *bytes_store)
 {
     struct cobj_ref as;
-    int r = sys_thread_get_as(&as);
+    int r = sys_self_get_as(&as);
     if (r < 0)
 	return r;
 

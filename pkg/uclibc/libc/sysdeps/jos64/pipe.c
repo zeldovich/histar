@@ -46,7 +46,7 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     while (fd->fd_pipe.bytes > bufsize - PIPE_BUF) {
 	uint64_t b = fd->fd_pipe.bytes;
 	pthread_mutex_unlock(&fd->fd_pipe.mu);
-	sys_thread_sync_wait(&fd->fd_pipe.bytes, b, ~0UL);
+	sys_sync_wait(&fd->fd_pipe.bytes, b, ~0UL);
 	pthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
@@ -61,7 +61,7 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     memcpy(&fd->fd_pipe.buf[0],   buf + cc1, cc2);
 
     fd->fd_pipe.bytes += cc;
-    sys_thread_sync_wakeup(&fd->fd_pipe.bytes);
+    sys_sync_wakeup(&fd->fd_pipe.bytes);
 
     pthread_mutex_unlock(&fd->fd_pipe.mu);
     return count;
@@ -80,7 +80,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	    return 0;
 
 	// Need to periodically wake up and check for EOF
-	sys_thread_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
+	sys_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
 	pthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
@@ -95,7 +95,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     fd->fd_pipe.read_ptr = (idx + cc) % bufsize;
     fd->fd_pipe.bytes -= cc;
-    sys_thread_sync_wakeup(&fd->fd_pipe.bytes);
+    sys_sync_wakeup(&fd->fd_pipe.bytes);
 
     pthread_mutex_unlock(&fd->fd_pipe.mu);
     return cc;
@@ -107,7 +107,7 @@ pipe_close(struct Fd *fd)
     // Wake up any readers that might be waiting for EOF.
     // Not completely reliable; we still need to check for EOF
     // with a timeout in pipe_read().
-    sys_thread_sync_wakeup(&fd->fd_pipe.bytes);
+    sys_sync_wakeup(&fd->fd_pipe.bytes);
 }
 
 struct Dev devpipe = {

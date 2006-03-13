@@ -27,7 +27,7 @@ nanosleep(const struct timespec *req, struct timespec *rem)
 
     uint64_t now = start;
     do {
-	sys_thread_sync_wait(&now, now, end);
+	sys_sync_wait(&now, now, end);
 	now = sys_clock_msec();
     } while (now < end);
 

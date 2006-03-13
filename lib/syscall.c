@@ -129,69 +129,69 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
 }
 
 void
-sys_thread_yield(void)
+sys_self_yield(void)
 {
-    syscall(SYS_thread_yield);
+    syscall(SYS_self_yield);
 }
 
 void
-sys_thread_halt(void)
+sys_self_halt(void)
 {
-    syscall(SYS_thread_halt);
+    syscall(SYS_self_halt);
 }
 
 int64_t
-sys_thread_id(void)
+sys_self_id(void)
 {
-    return syscall(SYS_thread_id);
+    return syscall(SYS_self_id);
 }
 
 int
-sys_thread_addref(uint64_t container)
+sys_self_addref(uint64_t container)
 {
-    return syscall(SYS_thread_addref, container);
+    return syscall(SYS_self_addref, container);
 }
 
 int
-sys_thread_get_as(struct cobj_ref *as_obj)
+sys_self_get_as(struct cobj_ref *as_obj)
 {
-    return syscall(SYS_thread_get_as, as_obj);
+    return syscall(SYS_self_get_as, as_obj);
 }
 
 int
-sys_thread_set_as(struct cobj_ref as_obj)
+sys_self_set_as(struct cobj_ref as_obj)
 {
-    return syscall(SYS_thread_set_as, as_obj);
+    return syscall(SYS_self_set_as, as_obj);
 }
 
 int
-sys_thread_set_label(struct ulabel *l)
+sys_self_set_label(struct ulabel *l)
 {
-    return syscall(SYS_thread_set_label, l);
+    return syscall(SYS_self_set_label, l);
 }
 
 int
-sys_thread_set_clearance(struct ulabel *l)
+sys_self_set_clearance(struct ulabel *l)
 {
-    return syscall(SYS_thread_set_clearance, l);
+    return syscall(SYS_self_set_clearance, l);
 }
 
 int
-sys_thread_get_clearance(struct ulabel *l)
+sys_self_get_clearance(struct ulabel *l)
 {
-    return syscall(SYS_thread_get_clearance, l);
+    return syscall(SYS_self_get_clearance, l);
 }
 
 int
-sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
+sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
-    return syscall(SYS_thread_sync_wait, addr, val, msec);
+    return syscall(SYS_sync_wait, addr, val, msec);
 }
 
 int
-sys_thread_sync_wakeup(volatile uint64_t *addr)
+sys_sync_wakeup(volatile uint64_t *addr)
 {
-    return syscall(SYS_thread_sync_wakeup, addr);
+    return syscall(SYS_sync_wakeup, addr);
 }
 
 int64_t

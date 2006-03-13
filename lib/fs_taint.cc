@@ -20,7 +20,7 @@ static void __attribute__((noreturn))
 taint_tls(int *rp, struct ulabel *ul, struct jos_jmp_buf *back)
 {
     *rp = 0;
-    int r = sys_thread_set_label(ul);
+    int r = sys_self_set_label(ul);
     if (r < 0)
 	*rp = r;
     else

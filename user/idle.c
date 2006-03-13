@@ -5,5 +5,5 @@ int
 main(int ac, char **av)
 {
     for (;;)
-	sys_thread_yield();
+	sys_self_yield();
 }

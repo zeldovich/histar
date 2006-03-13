@@ -55,7 +55,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     ta->arg = arg;
 
     struct thread_entry e;
-    r = sys_thread_get_as(&e.te_as);
+    r = sys_self_get_as(&e.te_as);
     if (r < 0) {
 	segment_unmap(stackbase);
 	sys_obj_unref(tct);
@@ -87,16 +87,16 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 uint64_t
 thread_id(void)
 {
-    int64_t tid = sys_thread_id();
+    int64_t tid = sys_self_id();
     if (tid < 0)
-	panic("sys_thread_id: %s", e2s(tid));
+	panic("sys_self_id: %s", e2s(tid));
     return tid;
 }
 
 void
 thread_halt(void)
 {
-    sys_thread_halt();
+    sys_self_halt();
     panic("halt: still alive");
 }
 
@@ -116,5 +116,5 @@ thread_sleep(uint64_t msec)
 	panic("thread_sleep: cannot read clock: %s\n", e2s(cur));
 
     uint64_t v = 0xc0de;
-    sys_thread_sync_wait(&v, v, cur + msec);
+    sys_sync_wait(&v, v, cur + msec);
 }

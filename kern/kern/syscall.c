@@ -426,25 +426,25 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 }
 
 static void
-sys_thread_yield(void)
+sys_self_yield(void)
 {
     schedule();
 }
 
 static void
-sys_thread_halt(void)
+sys_self_halt(void)
 {
     thread_halt(cur_thread);
 }
 
 static int64_t
-sys_thread_id(void)
+sys_self_id(void)
 {
     return cur_thread->th_ko.ko_id;
 }
 
 static void
-sys_thread_addref(uint64_t ct)
+sys_self_addref(uint64_t ct)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_write));
@@ -452,20 +452,20 @@ sys_thread_addref(uint64_t ct)
 }
 
 static void
-sys_thread_get_as(struct cobj_ref *as_ref)
+sys_self_get_as(struct cobj_ref *as_ref)
 {
     check(page_user_incore((void **) &as_ref, sizeof(*as_ref)));
     *as_ref = cur_thread->th_asref;
 }
 
 static void
-sys_thread_set_as(struct cobj_ref as_ref)
+sys_self_set_as(struct cobj_ref as_ref)
 {
     thread_change_as(cur_thread, as_ref);
 }
 
 static void
-sys_thread_set_label(struct ulabel *ul)
+sys_self_set_label(struct ulabel *ul)
 {
     struct Label *l;
     check(label_alloc(&l, LB_LEVEL_UNDEF));
@@ -477,7 +477,7 @@ sys_thread_set_label(struct ulabel *ul)
 }
 
 static void
-sys_thread_set_clearance(struct ulabel *uclear)
+sys_self_set_clearance(struct ulabel *uclear)
 {
     struct Label *clearance;
     check(label_alloc(&clearance, LB_LEVEL_UNDEF));
@@ -494,20 +494,20 @@ sys_thread_set_clearance(struct ulabel *uclear)
 }
 
 static void
-sys_thread_get_clearance(struct ulabel *uclear)
+sys_self_get_clearance(struct ulabel *uclear)
 {
     check(label_to_ulabel(cur_th_clearance, uclear));
 }
 
 static void
-sys_thread_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
+sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
     check(sync_wait(addr, val, wakeup_at_msec));
 }
 
 static void
-sys_thread_sync_wakeup(uint64_t *addr)
+sys_sync_wakeup(uint64_t *addr)
 {
     check(page_user_incore((void**) &addr, sizeof(*addr)));
     sync_wakeup_addr(addr);
@@ -713,17 +713,17 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_get_name),
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
-    SYSCALL_DISPATCH(thread_yield),
     SYSCALL_DISPATCH(thread_start),
-    SYSCALL_DISPATCH(thread_halt),
-    SYSCALL_DISPATCH(thread_addref),
-    SYSCALL_DISPATCH(thread_get_as),
-    SYSCALL_DISPATCH(thread_set_as),
-    SYSCALL_DISPATCH(thread_set_label),
-    SYSCALL_DISPATCH(thread_set_clearance),
-    SYSCALL_DISPATCH(thread_get_clearance),
-    SYSCALL_DISPATCH(thread_sync_wait),
-    SYSCALL_DISPATCH(thread_sync_wakeup),
+    SYSCALL_DISPATCH(self_yield),
+    SYSCALL_DISPATCH(self_halt),
+    SYSCALL_DISPATCH(self_addref),
+    SYSCALL_DISPATCH(self_get_as),
+    SYSCALL_DISPATCH(self_set_as),
+    SYSCALL_DISPATCH(self_set_label),
+    SYSCALL_DISPATCH(self_set_clearance),
+    SYSCALL_DISPATCH(self_get_clearance),
+    SYSCALL_DISPATCH(sync_wait),
+    SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),
     SYSCALL_DISPATCH(segment_resize),
     SYSCALL_DISPATCH(as_get),
@@ -743,8 +743,8 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
     SYSCALL_DISPATCH(container_nslots),
-    SYSCALL_DISPATCH(thread_id),
     SYSCALL_DISPATCH(thread_create),
+    SYSCALL_DISPATCH(self_id),
     SYSCALL_DISPATCH(clock_msec),
     SYSCALL_DISPATCH(segment_create),
     SYSCALL_DISPATCH(segment_copy),

@@ -46,18 +46,20 @@ int	sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul);
 int64_t	sys_thread_create(uint64_t container, const char *name);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s,
 			 struct ulabel *l, struct ulabel *clearance);
-void	sys_thread_yield(void);
-void	sys_thread_halt(void);
-int64_t sys_thread_id(void);
-int	sys_thread_addref(uint64_t container);
-int	sys_thread_get_as(struct cobj_ref *as_obj);
-int	sys_thread_set_as(struct cobj_ref as_obj);
-int	sys_thread_set_label(struct ulabel *l);
-int	sys_thread_set_clearance(struct ulabel *l);
-int	sys_thread_get_clearance(struct ulabel *l);
-int	sys_thread_sync_wait(volatile uint64_t *addr, uint64_t val,
-			     uint64_t wakeup_at_msec);
-int	sys_thread_sync_wakeup(volatile uint64_t *addr);
+
+void	sys_self_yield(void);
+void	sys_self_halt(void);
+int64_t sys_self_id(void);
+int	sys_self_addref(uint64_t container);
+int	sys_self_get_as(struct cobj_ref *as_obj);
+int	sys_self_set_as(struct cobj_ref as_obj);
+int	sys_self_set_label(struct ulabel *l);
+int	sys_self_set_clearance(struct ulabel *l);
+int	sys_self_get_clearance(struct ulabel *l);
+
+int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
+		      uint64_t wakeup_at_msec);
+int	sys_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_clock_msec(void);
 

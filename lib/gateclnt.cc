@@ -38,7 +38,7 @@ return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
     te.te_entry = (void *) &return_stub;
     te.te_stack = (char *) tls + PGSIZE - 8;
     te.te_arg = (uint64_t) jb;
-    error_check(sys_thread_get_as(&te.te_as));
+    error_check(sys_self_get_as(&te.te_as));
 
     uint64_t ct = kobject_id_thread_ct;
     int64_t id = sys_gate_create(ct, &te,

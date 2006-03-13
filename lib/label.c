@@ -96,7 +96,7 @@ retry:
 int
 label_set_current(struct ulabel *l)
 {
-    return sys_thread_set_label(l);
+    return sys_self_set_label(l);
 }
 
 static int

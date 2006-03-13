@@ -50,7 +50,7 @@ taint_cow(void)
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
     struct cobj_ref cur_as;
-    ERRCHECK(sys_thread_get_as(&cur_as));
+    ERRCHECK(sys_self_get_as(&cur_as));
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
     ERRCHECK(thread_get_label(&cur_label));
 
@@ -116,7 +116,7 @@ taint_cow(void)
 
     struct cobj_ref new_as = COBJ(mlt_ct, id);
     ERRCHECK(sys_as_set(new_as, &uas));
-    ERRCHECK(sys_thread_set_as(new_as));
+    ERRCHECK(sys_self_set_as(new_as));
 
     if (taint_debug)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);

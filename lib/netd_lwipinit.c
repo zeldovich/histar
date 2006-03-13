@@ -80,7 +80,7 @@ net_timer(void *arg)
 	lwip_core_unlock();
 
 	uint64_t v = 0xabcd;
-	sys_thread_sync_wait(&v, v, cur + t->msec);
+	sys_sync_wait(&v, v, cur + t->msec);
     }
 }
 

@@ -22,7 +22,7 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 	if (cur == 0)
 	    break;
 
-	sys_thread_sync_wait(&mu->counter, cur, ~0UL);
+	sys_sync_wait(&mu->counter, cur, ~0UL);
     }
     return 0;
 }
@@ -34,7 +34,7 @@ pthread_mutex_unlock(pthread_mutex_t *mu)
 	panic("pthread_mutex_unlock: %p not locked", mu);
 
     atomic_set(mu, 0);
-    sys_thread_sync_wakeup(&mu->counter);
+    sys_sync_wakeup(&mu->counter);
     return 0;
 }
 

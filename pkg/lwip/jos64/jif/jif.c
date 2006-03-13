@@ -151,7 +151,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	    if (!warned++)
 		cprintf("jif: out of tx bufs\n");
 	    lwip_core_unlock();
-	    sys_thread_yield();
+	    sys_self_yield();
 	    lwip_core_lock();
 	}
     } while (txslot == JIF_BUFS);
@@ -185,7 +185,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
 	if (!warned++)
 	    cprintf("jif: can't setup tx slot: %s\n", e2s(r));
 	lwip_core_unlock();
-	sys_thread_yield();
+	sys_self_yield();
 	lwip_core_lock();
     }
 

@@ -22,17 +22,17 @@
     SYSCALL_ENTRY(gate_clearance)		\
     SYSCALL_ENTRY(thread_create)		\
     SYSCALL_ENTRY(thread_start)			\
-    SYSCALL_ENTRY(thread_yield)			\
-    SYSCALL_ENTRY(thread_halt)			\
-    SYSCALL_ENTRY(thread_id)			\
-    SYSCALL_ENTRY(thread_addref)		\
-    SYSCALL_ENTRY(thread_set_label)		\
-    SYSCALL_ENTRY(thread_set_clearance)		\
-    SYSCALL_ENTRY(thread_get_clearance)		\
-    SYSCALL_ENTRY(thread_get_as)		\
-    SYSCALL_ENTRY(thread_set_as)		\
-    SYSCALL_ENTRY(thread_sync_wait)		\
-    SYSCALL_ENTRY(thread_sync_wakeup)		\
+    SYSCALL_ENTRY(self_yield)			\
+    SYSCALL_ENTRY(self_halt)			\
+    SYSCALL_ENTRY(self_id)			\
+    SYSCALL_ENTRY(self_addref)			\
+    SYSCALL_ENTRY(self_set_label)		\
+    SYSCALL_ENTRY(self_set_clearance)		\
+    SYSCALL_ENTRY(self_get_clearance)		\
+    SYSCALL_ENTRY(self_get_as)			\
+    SYSCALL_ENTRY(self_set_as)			\
+    SYSCALL_ENTRY(sync_wait)			\
+    SYSCALL_ENTRY(sync_wakeup)			\
     SYSCALL_ENTRY(clock_msec)			\
     SYSCALL_ENTRY(segment_create)		\
     SYSCALL_ENTRY(segment_copy)			\
