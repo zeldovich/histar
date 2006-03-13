@@ -16,7 +16,6 @@ int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
     __set_errno(ENOSYS);
-    //set_enosys();
     return -1;
 }
 
@@ -24,14 +23,13 @@ int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
     __set_errno(ENOSYS);
-    //set_enosys();
     return -1;
 }
 
 int
 sigsuspend(const sigset_t *mask)
 {
-    set_enosys();
+    __set_errno(ENOSYS);
     return -1;
 }
 
