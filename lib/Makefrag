@@ -49,7 +49,7 @@ LIB_SRCFILES :=	\
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
-#include lib/btree/Makefrag
+include lib/vt/Makefrag
 #include lib/sqlite/Makefrag
 #include lib/pcre/Makefrag
 

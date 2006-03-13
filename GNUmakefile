@@ -39,6 +39,7 @@ LD	:= $(GCCPREFIX)ld
 OBJCOPY	:= $(GCCPREFIX)objcopy
 OBJDUMP	:= $(GCCPREFIX)objdump
 NM	:= $(GCCPREFIX)nm
+LEX	:= flex
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
