@@ -53,9 +53,7 @@ init_env(uint64_t c_root, uint64_t c_self)
     start_env->root_container = c_root;
 
     // set the filesystem root to be the same as the container root
-    int r = fs_get_root(c_root, &start_env->fs_root);
-    if (r < 0)
-	throw error(r, "fs_get_root");
+    error_check(fs_get_root(c_root, &start_env->fs_root));
 
     // mount binaries on /bin
     int64_t fs_bin_id = container_find(c_root, kobj_container, "fs root");
@@ -63,19 +61,12 @@ init_env(uint64_t c_root, uint64_t c_self)
 	throw error(fs_bin_id, "cannot find /bin");
 
     struct fs_inode bin_dir;
-    r = fs_get_root(fs_bin_id, &bin_dir);
-    if (r < 0)
-	throw error(r, "fs_get_root for /bin");
-
-    r = fs_mount(start_env->fs_root, "bin", bin_dir);
-    if (r < 0)
-	throw error(r, "fs_mount /bin");
+    error_check(fs_get_root(fs_bin_id, &bin_dir));
+    error_check(fs_mount(start_env->fs_root, "bin", bin_dir));
 
     // create a scratch container
     struct fs_inode scratch;
-    r = fs_mkdir(start_env->fs_root, "x", &scratch);
-    if (r < 0)
-	throw error(r, "creating /x");
+    error_check(fs_mkdir(start_env->fs_root, "x", &scratch));
 
     // start out in the root directory
     start_env->fs_cwd = start_env->fs_root;
