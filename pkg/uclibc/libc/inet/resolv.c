@@ -75,6 +75,8 @@
  * SOFTWARE.
  */
 
+#include <inc/lib.h>
+
 /*
  *
  *  5-Oct-2000 W. Greathouse  wgreathouse@smva.com
@@ -797,7 +799,9 @@ int __dns_lookup(const char *name, int type, int nscount, char **nsip,
 			goto tryall;
 		}
 
+cprintf("about to call recv\n");
 		len = recv(fd, packet, 512, 0);
+cprintf("recv: %d\n", len);
 		if (len < HFIXEDSZ) {
 			/* too short ! */
 			goto again;

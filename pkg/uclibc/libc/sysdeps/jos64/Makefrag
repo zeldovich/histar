@@ -5,7 +5,7 @@ OBJDIRS += \
 UCLIBC_JOS64_CSRC := \
 	sbrk.c errno.c signal.c exit.c uidgid.c mmap.c memlayout.c fd.cc \
 	file.c file_fd.c proc.c time.c rlim.c host.c pipe.c misc.c fork.cc \
-	exec.c
+	exec.cc
 
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 
