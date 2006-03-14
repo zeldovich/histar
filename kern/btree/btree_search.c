@@ -74,8 +74,7 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 		struct btree_node *temp;
 
 		while (!BTREE_IS_LEAF(n)) {
-		    temp =
-			btree_read_node(tree, n->children[(int) n->keyCount]);
+		    temp = btree_read_node(tree, n->children[n->keyCount]);
 		    btree_destroy_node(n);
 		    n = temp;
 		}

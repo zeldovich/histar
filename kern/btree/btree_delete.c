@@ -265,10 +265,9 @@ __borrowLeft(struct btree *tree, struct btree_node *rootNode,
 	btree_keycpy(btree_key(prevNode, div - 1),
 		     btree_key(node, node->keyCount - 2), tree->s_key);
 
-	node->children[node->keyCount - 1] =
-	    node->children[(int) node->keyCount];
+	node->children[node->keyCount - 1] = node->children[node->keyCount];
 
-	node->children[(int) node->keyCount] = 0;
+	node->children[node->keyCount] = 0;
 
 	//node->keys[node->keyCount - 1]     = 0;
 	btree_keyset(btree_key(node, node->keyCount - 1), 0, tree->s_key);
@@ -284,7 +283,7 @@ __borrowLeft(struct btree *tree, struct btree_node *rootNode,
 	//rootNode->keys[0]     = prevNode->keys[div - 1];
 	btree_keycpy(btree_key(rootNode, 0), btree_key(prevNode, div - 1),
 		     tree->s_key);
-	rootNode->children[0] = node->children[(int) node->keyCount];
+	rootNode->children[0] = node->children[node->keyCount];
 
 	rootNode->keyCount++;
 
@@ -292,7 +291,7 @@ __borrowLeft(struct btree *tree, struct btree_node *rootNode,
 	btree_keycpy(btree_key(prevNode, div - 1),
 		     btree_key(node, node->keyCount - 1), tree->s_key);
 
-	node->children[(int) node->keyCount] = 0;
+	node->children[node->keyCount] = 0;
 
 	//node->keys[node->keyCount - 1]     = 0;
 	btree_keyset(btree_key(node, node->keyCount - 1), 0, tree->s_key);
@@ -357,7 +356,7 @@ __borrowLeftLeaf(struct btree *tree, struct btree_node *rootNode,
 		     btree_key(node, node->keyCount - 2), tree->s_key);
 
 	//node->children[node->keyCount - 1] =
-	//      node->children[(int)node->keyCount];
+	//      node->children[node->keyCount];
 	//node->children[node->keyCount] = 0;
 	temp1 = temp2;
 	temp2 = btree_value(node, node->keyCount);
