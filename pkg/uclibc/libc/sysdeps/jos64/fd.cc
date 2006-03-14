@@ -591,6 +591,22 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 {
     if (exceptset)
         FD_ZERO(exceptset) ;
+    
+    // avoid blocking on stdin reads
+    if (readset && FD_ISSET(fileno(stdin), readset)) {
+        struct Fd *fd;
+        struct Dev *dev;
+        int r ;
+        if ((r = fd_lookup(fileno(stdin), &fd, 0)) < 0
+        || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+            cprintf("select: stdin select failed\n") ;
+            return maxfd ;
+        }
+        
+        if (!dev->dev_readselect(fd))
+           FD_CLR(fileno(stdin), readset) ;
+        ;
+    }
     return maxfd;
 }
 
@@ -698,14 +714,15 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
     }
 
     if (cmd == F_SETFD || cmd == F_GETFD) {
-	// XXX
-	cprintf("__libc_fcntl: ignoring F_SETFD/F_GETFD\n");
-	return 0;
+    	// XXX
+    	cprintf("__libc_fcntl: ignoring F_SETFD/F_GETFD\n");
+    	return 0;
     }
 
     if (cmd == F_SETFL) {
-        // XXX
-        r = fd_lookup(fdnum, &fd, 0) ;   
+        // XXX: not the correct semantics at all
+        if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+            return r ;
         fd->fd_omode |= arg ;
         cprintf("__libc_fcntl: blindly F_SETFL\n");
         return 0 ;
