@@ -103,4 +103,24 @@ btree_valset(const offset_t * dst, offset_t val, int s_val)
     }
 }
 
+BTREE_OP_ATTR void
+bt_keycpy(struct btree_node *dst_node, int dst_idx,
+	  struct btree_node *src_node, int src_idx)
+{
+    assert(dst_node->tree->s_key == src_node->tree->s_key);
+    btree_keycpy(btree_key(dst_node, dst_idx),
+		 btree_key(src_node, src_idx),
+		 dst_node->tree->s_key);
+}
+
+BTREE_OP_ATTR void
+bt_valcpy(struct btree_node *dst_node, int dst_idx,
+	  struct btree_node *src_node, int src_idx)
+{
+    assert(dst_node->tree->s_value == src_node->tree->s_value);
+    btree_valcpy(btree_value(dst_node, dst_idx),
+		 btree_value(src_node, src_idx),
+		 dst_node->tree->s_value);
+}
+
 #endif /*BT_UTILS_H_ */

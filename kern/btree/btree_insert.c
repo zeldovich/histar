@@ -108,8 +108,7 @@ __splitNode(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 
     for (j = 0; j < tempNode->keyCount - 1; j++, i++) {
 	//tempNode->keys[j]     = rootNode->keys[i];
-	btree_keycpy(btree_key(tempNode, j), btree_key(rootNode, i),
-		     tree->s_key);
+	bt_keycpy(tempNode, j, rootNode, i);
 	tempNode->children[j] = rootNode->children[i];
 
 	//rootNode->keys[i]     = 0;
@@ -243,8 +242,7 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 
     for (j = 0; j < tempNode->keyCount - 1; j++, i++) {
 	//tempNode->keys[j]     = rootNode->keys[i];
-	btree_keycpy(btree_key(tempNode, j), btree_key(rootNode, i),
-		     tree->s_key);
+	bt_keycpy(tempNode, j, rootNode, i);
 
 	//tempNode->children[j] = rootNode->children[i];
 	const offset_t *temp_child = btree_value(tempNode, j);
