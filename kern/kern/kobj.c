@@ -80,8 +80,7 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 	return r;
 
     if (ko_label == 0)
-	panic("null label on %ld (%s, type %d)\n",
-	      ko->ko_id, &ko->ko_name[0], ko->ko_type);
+	return -E_LABEL;
 
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare(ko_label, th_label, label_leq_starok);
@@ -97,15 +96,23 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     return r;
 }
 
-int
-kobject_get(kobject_id_t id, const struct kobject **kp,
-	    kobject_type_t type, info_flow_type iflow)
+kobject_id_t
+kobject_translate_id(kobject_id_t id)
 {
     if (id == kobject_id_thread_ct)
 	id = cur_thread->th_ct;
 
     if (id == kobject_id_thread_sg)
 	id = cur_thread->th_sg;
+
+    return id;
+}
+
+int
+kobject_get(kobject_id_t id, const struct kobject **kp,
+	    kobject_type_t type, info_flow_type iflow)
+{
+    id = kobject_translate_id(id);
 
     struct kobject *ko;
     LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {

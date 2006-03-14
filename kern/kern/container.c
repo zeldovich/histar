@@ -189,28 +189,15 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     if (r < 0)
 	return r;
 
-    r = kobject_get(ref.object, storep, kobj_any, iflow);
-    if (r < 0)
-	return r;
-
-    // Every container "contains" itself and the current thread,
-    // to make it easier to name those things.
-    kobject_id_t id_found = (*storep)->hdr.ko_id;
-    if (id_found == c->ct_ko.ko_id ||
-	(cur_thread && id_found == cur_thread->th_ko.ko_id))
-    {
-	// Do nothing
+    uint64_t id = kobject_translate_id(ref.object);
+    if (id == c->ct_ko.ko_id || (cur_thread && id == cur_thread->th_ko.ko_id)) {
+	// Every container "contains" itself and the current thread,
+	// to make it easier to name those things.
     } else {
-	r = container_slot_find(c, (*storep)->hdr.ko_id, 0, page_ro);
+	r = container_slot_find(c, id, 0, page_ro);
 	if (r < 0)
 	    return r;
     }
 
-    // Do this check here because it should only expose information
-    // once we have checked that the object is in the container.
-    // Should be the same error code as in kobject_get() for bad type.
-    if (type != kobj_any && type != (*storep)->hdr.ko_type)
-	return -E_INVAL;
-
-    return 0;
+    return kobject_get(id, storep, type, iflow);
 }

@@ -64,6 +64,10 @@ int  kobject_alloc(kobject_type_t type,
 		   struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 
+kobject_id_t
+     kobject_translate_id(kobject_id_t id)
+    __attribute__ ((warn_unused_result));
+
 int  kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     __attribute__ ((warn_unused_result));
 uint64_t
