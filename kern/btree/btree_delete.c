@@ -45,10 +45,10 @@ __removeKey(struct btree *tree,
     if (BTREE_IS_LEAF(rootNode) && i < rootNode->keyCount &&
 	btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key,
 		     tree->s_key) == 0) {
-	*filePos = rootNode->children[i];
+	// *filePos = rootNode->children[i];
 	btree_valcpy(filePos,
-		     btree_value(rootNode->children, i, tree->s_key),
-		     tree->s_key);
+		     btree_value(rootNode->children, i, tree->s_value),
+		     tree->s_value);
 
 	// Move keys i+1 through keyCount-1 into i through keyCount-2
 	btree_keymove(btree_key(rootNode->keys, i, tree->s_key),
