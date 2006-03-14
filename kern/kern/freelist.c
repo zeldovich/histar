@@ -14,8 +14,13 @@ freelist_insert(struct freelist *l, uint64_t offset, uint64_t nbytes)
 {
     struct chunk k = { nbytes, offset };
 
-    btree_insert(BTREE_FCHUNK, (offset_t *) & k, &offset);
-    btree_insert(BTREE_FOFFSET, &offset, &nbytes);
+    int r = btree_insert(BTREE_FCHUNK, (offset_t *) & k, &offset);
+    if (r < 0)
+	return r;
+
+    r = btree_insert(BTREE_FOFFSET, &offset, &nbytes);
+    if (r < 0)
+	return r;
 
     return 0;
 }
@@ -30,21 +35,29 @@ freelist_alloc(struct freelist * l, uint64_t nbytes)
 
     uint64_t val;
     int r = btree_gtet(BTREE_FCHUNK,
-		       (uint64_t *) & k,
-		       (uint64_t *) & k,
+		       (uint64_t *) &k,
+		       (uint64_t *) &k,
 		       &val);
-
-
     if (r < 0)
 	return -E_NO_SPACE;
 
-    btree_delete(BTREE_FOFFSET, &k.offset);
-    btree_delete(BTREE_FCHUNK, (uint64_t *) & k);
+    r = btree_delete(BTREE_FOFFSET, &k.offset);
+    if (r < 0)
+	return r;
+
+    r = btree_delete(BTREE_FCHUNK, (uint64_t *) &k);
+    if (r < 0)
+	return r;
 
     k.nbytes -= nbytes;
     if (k.nbytes != 0) {
-	btree_insert(BTREE_FOFFSET, &k.offset, &k.nbytes);
-	btree_insert(BTREE_FCHUNK, (uint64_t *) & k, &k.offset);
+	r = btree_insert(BTREE_FOFFSET, &k.offset, &k.nbytes);
+	if (r < 0)
+	    return r;
+
+	r = btree_insert(BTREE_FCHUNK, (uint64_t *) & k, &k.offset);
+	if (r < 0)
+	    return r;
     }
 
     offset = k.offset + k.nbytes;
@@ -60,6 +73,7 @@ freelist_alloc(struct freelist * l, uint64_t nbytes)
 int
 freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
+    int r;
     offset_t l_base = base - 1;
     offset_t g_base = base + 1;
 
@@ -84,39 +98,49 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
     char g_merge = 0;
 
 
-    if (rl == 0) {
-
+    if (rl == 0)
 	if (l_base + l_nbytes == base)
 	    l_merge = 1;
-    }
-    if (rg == 0) {
 
+    if (rg == 0)
 	if (base + nbytes == g_base)
 	    g_merge = 1;
-    }
 
     if (l_merge) {
 	base = l_base;
 	nbytes += l_nbytes;
 
-	btree_delete(BTREE_FOFFSET, &l_base);
+	r = btree_delete(BTREE_FOFFSET, &l_base);
+	if (r < 0)
+	    return r;
+
 	struct chunk k = { l_nbytes, l_base };
-	btree_delete(BTREE_FCHUNK, (uint64_t *) & k);
+	r = btree_delete(BTREE_FCHUNK, (uint64_t *) & k);
+	if (r < 0)
+	    return r;
     }
 
     if (g_merge) {
 	nbytes += g_nbytes;
 
-	btree_delete(BTREE_FOFFSET, &g_base);
+	r = btree_delete(BTREE_FOFFSET, &g_base);
+	if (r < 0)
+	    return r;
+
 	struct chunk k = { g_nbytes, g_base };
-	btree_delete(BTREE_FCHUNK, (uint64_t *) & k);
+	r = btree_delete(BTREE_FCHUNK, (uint64_t *) & k);
+	if (r < 0)
+	    return r;
     }
 
+    r = btree_insert(BTREE_FOFFSET, &base, &nbytes);
+    if (r < 0)
+	return r;
 
-
-    btree_insert(BTREE_FOFFSET, &base, &nbytes);
     struct chunk k = { nbytes, base };
-    btree_insert(BTREE_FCHUNK, (uint64_t *) & k, &base);
+    r = btree_insert(BTREE_FCHUNK, (uint64_t *) & k, &base);
+    if (r < 0)
+	return r;
 
     frm_service(l);
 

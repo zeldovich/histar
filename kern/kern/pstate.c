@@ -47,10 +47,8 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 {
     uint64_t key;
     struct mobject mobj;
-
     
     int r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &key, (uint64_t *)&mobj);
-    
     if (r == 0) {
     	assert(key == ko->hdr.ko_id);
 
@@ -67,8 +65,10 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	}
 
 	freelist_free_later(f, mobj.off, mobj.nbytes);
-	btree_delete(BTREE_IOBJ, &ko->hdr.ko_id);
-    btree_delete(BTREE_OBJMAP, &ko->hdr.ko_id);
+	assert(0 == btree_delete(BTREE_OBJMAP, &ko->hdr.ko_id));
+
+	r = btree_delete(BTREE_IOBJ, &ko->hdr.ko_id);
+	assert(r == 0 || r == -E_NOT_FOUND);
     }
 }
 
@@ -322,14 +322,16 @@ pstate_load2(void)
     btree_manager_deserialize(&stable_hdr.ph_btrees) ;
 
     struct btree_traversal trav;
-    btree_init_traversal(BTREE_IOBJ, &trav) ;
+    int r = btree_init_traversal(BTREE_IOBJ, &trav);
+    if (r < 0)
+	return r;
 
     while (btree_next_entry(&trav)) {
 	uint64_t id = *trav.key;
 	if (pstate_load_debug)
 	    cprintf("pstate_load2: paging in kobj %ld\n", id);
 
-	int r = pstate_swapin_id(id);
+	r = pstate_swapin_id(id);
 	if (r < 0) {
 	    cprintf("pstate_load2: cannot swapin %ld: %s\n", id, e2s(r));
 	    return r;

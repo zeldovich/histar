@@ -2,6 +2,7 @@
 #define FRM_H_
 
 #include <btree/btree_utils.h>
+#include <btree/pbtree.h>
 
 // buffer for freelist node operations
 struct frm {
@@ -18,11 +19,9 @@ struct frm {
 
 struct freelist;
 
-int frm_free(uint64_t id, offset_t offset, void *arg);
-int frm_new(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg);
 void frm_service_one(struct frm *f, struct freelist *l);
 void frm_service(struct freelist *l);
-uint32_t frm_init(struct frm *f, uint64_t base);
-
+uint32_t frm_init(struct frm *f, uint64_t base)
+    __attribute__ ((warn_unused_result));
 
 #endif /*FRM_H_ */

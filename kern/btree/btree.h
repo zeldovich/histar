@@ -59,18 +59,25 @@ struct btree_traversal {
     const offset_t *val;
 };
 
-int btree_insert(uint64_t id, const uint64_t * key, offset_t * val);
-char btree_delete(uint64_t id, const uint64_t * key);
+int btree_insert(uint64_t id, const uint64_t * key, offset_t * val)
+    __attribute__ ((warn_unused_result));
+char btree_delete(uint64_t id, const uint64_t * key)
+    __attribute__ ((warn_unused_result));
 
 int btree_search(uint64_t id, const uint64_t * key, uint64_t * key_store,
-		 uint64_t * val_store);
+		 uint64_t * val_store)
+    __attribute__ ((warn_unused_result));
 int btree_ltet(uint64_t id, const uint64_t * key, uint64_t * key_store,
-	       uint64_t * val_store);
+	       uint64_t * val_store)
+    __attribute__ ((warn_unused_result));
 int btree_gtet(uint64_t id, const uint64_t * key, uint64_t * key_store,
-	       uint64_t * val_store);
+	       uint64_t * val_store)
+    __attribute__ ((warn_unused_result));
 
-int btree_init_traversal(uint64_t id, struct btree_traversal *trav);
-char btree_next_entry(struct btree_traversal *trav);
+int btree_init_traversal(uint64_t id, struct btree_traversal *trav)
+    __attribute__ ((warn_unused_result));
+char btree_next_entry(struct btree_traversal *trav)
+    __attribute__ ((warn_unused_result));
 
 void btree_pretty_print(uint64_t id);
 

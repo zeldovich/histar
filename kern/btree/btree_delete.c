@@ -749,7 +749,7 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
 	btree_destroy_node(rootNode);
 	//cprintf("btree_delete stop\n") ;
 	btree_unlock(tree->id);
-	return -E_INVAL;
+	return -E_NOT_FOUND;
     }
 
     tree->size--;
