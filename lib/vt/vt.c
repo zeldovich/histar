@@ -73,14 +73,14 @@ vt_write(const void *vbuf, size_t n, off_t offset)
     f = fdopen(fd[0], "r") ;
     if (f == 0)
         return -1 ;
-    yyset_in(f) ;
-    yyset_out(stdout) ;
+    vtlexin_is(f) ;
+    vtlexout_is(stdout) ;
 
     write(fd[1], vbuf, n) ;
     if ((r = close(fd[1])) < 0)
         printf("close: %d\n", r)  ;
     
-    vt_lex() ;
+    vtlex() ;
     
     close(fd[0]) ;
     
