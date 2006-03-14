@@ -1,3 +1,4 @@
+extern "C" {
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
@@ -12,6 +13,7 @@
 #include <machine/trapcodes.h>
 
 #include <bits/unimpl.h>
+}
 
 // BSD compat
 const char *sys_signame[_NSIG];
@@ -122,13 +124,13 @@ signal_gate_create(void)
 
 // System calls emulated in jos64
 int
-sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
 {
     __set_errno(ENOSYS);
     return -1;
 }
 
-int
+extern "C" int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
     __set_errno(ENOSYS);
@@ -136,14 +138,14 @@ __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *o
 }
 
 int
-sigsuspend(const sigset_t *mask)
+sigsuspend(const sigset_t *mask) __THROW
 {
     __set_errno(ENOSYS);
     return -1;
 }
 
 int
-kill(pid_t pid, int sig)
+kill(pid_t pid, int sig) __THROW
 {
     uint64_t self = thread_id();
     if (pid == self) {
@@ -156,13 +158,13 @@ kill(pid_t pid, int sig)
 }
 
 int
-__sigsetjmp(jmp_buf __env, int __savemask)
+__sigsetjmp(jmp_buf __env, int __savemask) __THROW
 {
     return jos_setjmp((struct jos_jmp_buf *) __env);
 }
 
 void
-siglongjmp(sigjmp_buf env, int val)
+siglongjmp(sigjmp_buf env, int val) __THROW
 {
     jos_longjmp((struct jos_jmp_buf *) env, val ? : 1);
 }
