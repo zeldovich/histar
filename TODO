@@ -62,3 +62,7 @@ thread halt-and-copy
 
 thread fault handling (fixed VA dispatch table & exception stack)
 
+change page_user_incore() to take a read/write arg, and check the
+PTE for writable entries, so we don't need to second-guess whether
+the memory access will succeed.
+

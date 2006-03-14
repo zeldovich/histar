@@ -4,6 +4,7 @@
 #include <machine/x86.h>
 #include <machine/trap.h>
 #include <machine/as.h>
+#include <machine/utrap.h>
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/kobj.h>
@@ -320,9 +321,11 @@ thread_switch(const struct Thread *t)
 int
 thread_pagefault(const struct Thread *t, void *fault_va)
 {
+    int r;
+
     if (t->th_as == 0) {
 	const struct kobject *ko;
-	int r = cobj_get(t->th_asref, kobj_address_space, &ko, iflow_read);
+	r = cobj_get(t->th_asref, kobj_address_space, &ko, iflow_read);
 	if (r < 0)
 	    return r;
 
@@ -334,5 +337,49 @@ thread_pagefault(const struct Thread *t, void *fault_va)
 	as_invalidate(as);
     }
 
-    return as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va);
+    r = as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va);
+    if (r >= 0 || r == -E_RESTART)
+	return r;
+
+    r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uint64_t) fault_va);
+    return r;
+}
+
+int
+thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t arg)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+
+    // Right now this only works for the current thread, because
+    // page_user_incore() does not take an address space argument.
+
+    void *stacktop;
+    uint64_t rsp = t->th_tf.tf_rsp;
+    if (rsp > UTRAPSTACK && rsp < UTRAPSTACKTOP)
+	stacktop = (void *) rsp - 8;
+    else
+	stacktop = (void *) UTRAPSTACKTOP;
+
+    struct UTrapframe t_utf;
+    t_utf.utf_trap_src = src;
+    t_utf.utf_trap_num = num;
+    t_utf.utf_trap_arg = arg;
+#define UTF_COPY(r) t_utf.utf_##r = t->th_tf.tf_##r
+    UTF_COPY(rax);  UTF_COPY(rbx);  UTF_COPY(rcx);  UTF_COPY(rdx);
+    UTF_COPY(rsi);  UTF_COPY(rdi);  UTF_COPY(rbp);  UTF_COPY(rsp);
+    UTF_COPY(r8);   UTF_COPY(r9);   UTF_COPY(r10);  UTF_COPY(r11);
+    UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
+    UTF_COPY(rip);  UTF_COPY(rflags);
+#undef UTF_COPY
+
+    struct UTrapframe *utf = stacktop - sizeof(*utf);
+    int r = page_user_incore((void **) &utf, sizeof(*utf));
+    if (r < 0)
+	return r;
+
+    memcpy(utf, &t_utf, sizeof(*utf));
+    t->th_tf.tf_rsp = (uint64_t) utf;
+    t->th_tf.tf_rip = UTRAPHANDLER;
+    thread_set_runnable(t);
+    return 0;
 }

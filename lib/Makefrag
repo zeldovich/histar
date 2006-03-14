@@ -5,6 +5,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/longjmp.S \
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/stack.S \
+	lib/$(ARCH)/trapstub.S \
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \
@@ -45,7 +46,8 @@ LIB_SRCFILES :=	\
 	lib/debug.cc \
 	lib/privstore.cc \
 	lib/sha1.c \
-	lib/authclnt.cc
+	lib/authclnt.cc \
+	lib/utrap.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag

@@ -3,11 +3,13 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/memlayout.h>
+#include <stdio.h>
+#include <string.h>
 
 int
 main(int ac, char **av)
 {
-    uint64_t ct = start_env->container;
+    uint64_t ct = start_env->shared_container;
 
     struct cobj_ref seg;
     void *va = 0;
