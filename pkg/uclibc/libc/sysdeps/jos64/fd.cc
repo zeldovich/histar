@@ -137,7 +137,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	label l;
 	try {
 		thread_cur_label(&l);
-		l.transform(label::star_to, l.get_default());
+		l.transform(label::star_to, 1);
 		l.set(fd_grant, 0);
 		l.set(fd_taint, 3);
 	} catch (error &e) {
