@@ -14,9 +14,10 @@ static struct jos_jmp_buf jb;
 static void __attribute__((noreturn))
 trap_handler(struct UTrapframe *utf)
 {
-    printf("src %d num %d arg 0x%lx\n",
-	    utf->utf_trap_src, utf->utf_trap_num,
-	    utf->utf_trap_arg);
+    cprintf("utf %p size %ld, src %d num %d arg 0x%lx\n",
+            utf, sizeof(*utf),
+            utf->utf_trap_src, utf->utf_trap_num,
+            utf->utf_trap_arg);
     jos_longjmp(&jb, 1);
 }
 
