@@ -104,7 +104,7 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     alloc_set_name(&ko->hdr, name);
 
     const struct Container *c;
-    check(container_find(&c, container, iflow_write));
+    check(container_find(&c, container, iflow_rw));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
 
     return ko->hdr.ko_id;
@@ -159,7 +159,7 @@ static int64_t
 sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
 {
     const struct Container *parent;
-    check(container_find(&parent, parent_ct, iflow_write));
+    check(container_find(&parent, parent_ct, iflow_rw));
 
     const struct Label *l;
     if (ul) {
@@ -273,7 +273,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     memcpy(&te, ute, sizeof(te));
 
     const struct Container *c;
-    check(container_find(&c, container, iflow_write));
+    check(container_find(&c, container, iflow_rw));
 
     struct Label *l_send;
     check(label_alloc(&l_send, LB_LEVEL_UNDEF));
@@ -315,7 +315,7 @@ static int64_t
 sys_thread_create(uint64_t ct, const char *name)
 {
     const struct Container *c;
-    check(container_find(&c, ct, iflow_write));
+    check(container_find(&c, ct, iflow_rw));
 
     struct Thread *t;
     check(thread_alloc(cur_th_label, cur_th_clearance, &t));
@@ -447,7 +447,7 @@ static void
 sys_self_addref(uint64_t ct)
 {
     const struct Container *c;
-    check(container_find(&c, ct, iflow_write));
+    check(container_find(&c, ct, iflow_rw));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &cur_thread->th_ko));
 }
 
@@ -524,7 +524,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
 		   const char *name)
 {
     const struct Container *c;
-    check(container_find(&c, ct, iflow_write));
+    check(container_find(&c, ct, iflow_rw));
 
     const struct Label *l;
     if (ul) {
@@ -550,7 +550,7 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
 		 struct ulabel *ul, const char *name)
 {
     const struct Container *c;
-    check(container_find(&c, ct, iflow_write));
+    check(container_find(&c, ct, iflow_rw));
 
     const struct kobject *src;
     check(cobj_get(seg, kobj_segment, &src, iflow_read));
@@ -577,7 +577,7 @@ static void
 sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 {
     const struct Container *c;
-    check(container_find(&c, ct, iflow_write));
+    check(container_find(&c, ct, iflow_rw));
 
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_none));
@@ -604,7 +604,7 @@ static int64_t
 sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     const struct Container *c;
-    check(container_find(&c, container, iflow_write));
+    check(container_find(&c, container, iflow_rw));
 
     const struct Label *l;
     if (ul) {
@@ -652,7 +652,7 @@ static int64_t
 sys_mlt_create(uint64_t container, const char *name)
 {
     const struct Container *c;
-    check(container_find(&c, container, iflow_write));
+    check(container_find(&c, container, iflow_rw));
 
     const struct Label *ct_label;
     check(kobject_get_label(&c->ct_ko, kolabel_contaminate, &ct_label));
