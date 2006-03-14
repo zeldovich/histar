@@ -6,12 +6,25 @@
 #include <stddef.h>
 #include <string.h>
 
+static void (*handler) (struct UTrapframe *);
+
+void
+utrap_set_handler(void (*fn) (struct UTrapframe *))
+{
+    handler = fn;
+}
+
 void
 utrap_entry(struct UTrapframe *utf)
 {
-    cprintf("utrap_entry..\n");
+    if (handler) {
+	handler(utf);
+    } else {
+	cprintf("utrap_entry: unhandled trap src %d num %d arg 0x%lx\n",
+		utf->utf_trap_src, utf->utf_trap_num, utf->utf_trap_arg);
+	sys_self_halt();
+    }
 
-    sys_self_halt();
     utrap_ret(utf);
 }
 

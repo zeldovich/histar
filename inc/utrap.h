@@ -11,5 +11,6 @@ void utrap_ret(struct UTrapframe *utf) __attribute__((noreturn));
 // C fault handler
 void utrap_entry(struct UTrapframe *utf) __attribute__((noreturn));
 int  utrap_init(void);
+void utrap_set_handler(void (*fn)(struct UTrapframe *));
 
 #endif

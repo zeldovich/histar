@@ -3,12 +3,30 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/memlayout.h>
+#include <inc/setjmp.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <inc/utrap.h>
+
+static struct jos_jmp_buf jb;
+
+static void __attribute__((noreturn))
+trap_handler(struct UTrapframe *utf)
+{
+    jos_longjmp(&jb, 1);
+}
 
 int
 main(int ac, char **av)
 {
+    if (jos_setjmp(&jb) != 0) {
+	printf("utrap handler caught something\n");
+	exit(-1);
+    }
+
+    utrap_set_handler(&trap_handler);
+
     uint64_t ct = start_env->shared_container;
 
     struct cobj_ref seg;
