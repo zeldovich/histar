@@ -72,16 +72,17 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     pthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes == 0) {
-	uint32_t ref = atomic_read(&fd->fd_ref);
-	pthread_mutex_unlock(&fd->fd_pipe.mu);
-
-	// EOF when the other end has been closed
-	if (ref == 1)
-	    return 0;
-
-	// Need to periodically wake up and check for EOF
-	sys_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
-	pthread_mutex_lock(&fd->fd_pipe.mu);
+    	uint32_t ref = atomic_read(&fd->fd_ref);
+        int nonblock = fd->fd_omode & O_NONBLOCK ;
+    	pthread_mutex_unlock(&fd->fd_pipe.mu);
+    
+    	// EOF when the other end has been closed, or 0_NONBLOCK
+    	if (ref == 1 || nonblock)
+    	    return 0;
+    
+    	// Need to periodically wake up and check for EOF
+    	sys_sync_wait(&fd->fd_pipe.bytes, 0, 1000);
+    	pthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
