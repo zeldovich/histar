@@ -40,10 +40,6 @@ setup_env(uint64_t envaddr)
     extern const char *__progname;
     __progname = argv[0];
 
-    struct ulabel *l = label_get_current();
-    assert(l);
-    segment_set_default_label(l);
-
     struct cobj_ref start_env_seg;
     int r = segment_lookup(start_env, &start_env_seg, 0);
     if (r < 0 || r == 0)

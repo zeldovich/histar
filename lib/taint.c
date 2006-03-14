@@ -126,12 +126,6 @@ taint_cow(void)
     if (taint_debug)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
 
-    struct ulabel *l_seg = segment_get_default_label();
-    if (l_seg) {
-	taint_cow_compute_label(&cur_label, l_seg);
-	segment_set_default_label(l_seg);
-    }
-
     start_env->proc_container = mlt_ct;
 
     // XXX we probably won't be able to the old shared_container
