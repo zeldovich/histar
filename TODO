@@ -56,3 +56,9 @@ for discretionary handles (at *) we could implement this at user-space,
 by using lib/privstore.cc to stash away/drop privilege.  for handles
 at non-* levels, this might be a non-issue?
 
+===
+
+thread halt-and-copy
+
+thread fault handling (fixed VA dispatch table & exception stack)
+
