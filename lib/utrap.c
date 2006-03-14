@@ -31,9 +31,9 @@ utrap_entry(struct UTrapframe *utf)
 int
 utrap_init(void)
 {
-    void *utrap_stack = (void *) UTRAPSTACKTOP - PGSIZE;
+    void *utrap_stack = (void *) UTRAPSTACKTOP - 2 * PGSIZE;
     struct cobj_ref o;
-    int r = segment_alloc(start_env->proc_container, PGSIZE,
+    int r = segment_alloc(start_env->proc_container, 2 * PGSIZE,
 			  &o, &utrap_stack, 0, "trap stack");
     if (r < 0)
 	return r;
