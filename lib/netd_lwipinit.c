@@ -133,12 +133,25 @@ netd_lwip_init(void (*cb)(void *), void *cbarg)
 
     cb(cbarg);
 
+    int dhcp_state = 0;
+    const char *dhcp_states[] = {
+	[DHCP_SELECTING] "selecting",
+	[DHCP_CHECKING] "checking",
+	[DHCP_BOUND] "bound",
+    };
+
     for (;;) {
+	if (dhcp_state != nif.dhcp->state) {
+	    dhcp_state = nif.dhcp->state;
+	    cprintf("netd: DHCP state %d (%s)\n", dhcp_state,
+		    dhcp_states[dhcp_state] ? : "unknown");
+	}
+
 	if (netd_stats)
 	    stats_display();
 
 	lwip_core_unlock();
-	thread_sleep(5000);
+	thread_sleep(1000);
 	lwip_core_lock();
     }
 }
