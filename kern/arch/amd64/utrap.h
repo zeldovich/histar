@@ -3,7 +3,7 @@
 
 #include <inc/types.h>
 
-struct UTrapRegs {
+struct UTrapframe {
     uint64_t utf_rax;
     uint64_t utf_rbx;
     uint64_t utf_rcx;
@@ -26,17 +26,13 @@ struct UTrapRegs {
 
     uint64_t utf_rip;
     uint64_t utf_rflags;
-};
-
-struct UTrapframe {
-    struct UTrapRegs;
 
     uint32_t utf_trap_src;
     uint32_t utf_trap_num;
     uint64_t utf_trap_arg;
 };
 
-#define UTRAP_SRC_HW	0
-#define UTRAP_SRC_USER	1
+#define UTRAP_SRC_HW	1
+#define UTRAP_SRC_USER	2
 
 #endif
