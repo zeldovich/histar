@@ -589,6 +589,8 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
+    if (exceptset)
+        FD_ZERO(exceptset) ;
     return maxfd;
 }
 
