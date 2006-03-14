@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 int
 pipe(int fds[2])
@@ -35,7 +36,7 @@ static ssize_t
 pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     if (atomic_read(&fd->fd_ref) == 1) {
-	// Should raise SIGPIPE when we have signals.
+	raise(SIGPIPE);
 	__set_errno(EPIPE);
 	return -1;
     }
