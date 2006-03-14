@@ -36,7 +36,7 @@ do_fork()
 
     // Compute the mandatory contamination for objects
     label integrity_label(thread_contaminate);
-    integrity_label.transform(label::star_to, 1);
+    integrity_label.transform(label::star_to, integrity_label.get_default());
 
     label secret_label(integrity_label);
 
@@ -69,6 +69,13 @@ do_fork()
 					  "process");
     error_check(proc_ct);
 
+    // Create an exit status for it
+    struct cobj_ref exit_status_seg;
+    error_check(segment_alloc(top_ct, sizeof(struct process_state),
+			      &exit_status_seg, 0,
+			      integrity_label.to_ulabel(),
+			      "exit status"));
+
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
     struct jos_jmp_buf jb;
     if (jos_setjmp(&jb) != 0) {
@@ -77,6 +84,11 @@ do_fork()
 
 	start_env->shared_container = top_ct;
 	start_env->proc_container = proc_ct;
+
+	start_env->process_status_seg = exit_status_seg;
+
+	start_env->process_grant = process_grant;
+	start_env->process_taint = process_taint;
 
 	pgrant_cleanup.dismiss();
 	ptaint_cleanup.dismiss();
