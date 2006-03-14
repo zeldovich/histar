@@ -338,7 +338,7 @@ __borrowLeftLeaf(struct btree *tree, struct btree_node *rootNode,
 	//node->children[node->keyCount - 1] =
 	//      node->children[node->keyCount];
 	//node->children[node->keyCount] = 0;
-	temp1 = temp2;
+	temp1 = btree_value(node, node->keyCount - 1);
 	temp2 = btree_value(node, node->keyCount);
 	btree_valcpy(temp1, temp2, tree->s_value);
 	btree_valset(temp2, 0, tree->s_value);
