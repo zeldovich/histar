@@ -11,8 +11,6 @@
 #include <kern/intr.h>
 #include <kern/lib.h>
 
-struct tty *the_tty = 0 ;
-
 void cons_intr (int (*proc) (void));
 
 struct Thread_list console_waiting;
@@ -394,6 +392,17 @@ cons_getc (void)
     return c;
   }
   return 0;
+}
+
+
+
+int
+cons_probe (void)
+{
+    serial_intr ();
+    kbd_intr ();
+    
+    return (cons.rpos != cons.wpos) ;
 }
 
 // output a character to the console

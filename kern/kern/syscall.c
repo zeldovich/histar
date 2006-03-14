@@ -87,6 +87,12 @@ sys_cons_getc(void)
 }
 
 static int64_t
+sys_cons_probe(void)
+{
+    return cons_probe() ;
+}
+
+static int64_t
 sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
@@ -735,6 +741,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
 
 static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(cons_getc),
+    SYSCALL_DISPATCH(cons_probe),
     SYSCALL_DISPATCH(net_create),
     SYSCALL_DISPATCH(net_wait),
     SYSCALL_DISPATCH(handle_create),

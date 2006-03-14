@@ -41,16 +41,16 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 	return 0;
 
     while ((c = sys_cons_getc()) == 0)
-	sys_self_yield();
+        sys_self_yield();
     if (c < 0)
-	return c;
+	   return c;
     if (c == 0x04)	// ctl-d is eof
-	return 0;
+	   return 0;
     *(char*)vbuf = c;
     return 1;
 }
 
-//#include <lib/vt/vt.h>
+#include <lib/vt/vt.h>
 
 static ssize_t
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
@@ -73,6 +73,14 @@ cons_stat(struct Fd *fd, struct stat *buf)
     return 0;
 }
 
+#include <stdio.h>
+
+static int
+cons_readselect(struct Fd *fd)
+{
+    return sys_cons_probe() ;
+}
+
 struct Dev devcons =
 {
     .dev_id = 'c',
@@ -81,4 +89,5 @@ struct Dev devcons =
     .dev_write = cons_write,
     .dev_close = cons_close,
     .dev_stat = cons_stat,
+    .dev_readselect = cons_readselect,
 };

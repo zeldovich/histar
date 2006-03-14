@@ -12,7 +12,7 @@
 void cons_init(void);
 void cons_putc (int c) ;
 int cons_getc (void) ;
-
+int cons_probe (void) ;
 
 void putchar (int c);
 int  getchar (void);

@@ -32,6 +32,7 @@ struct Dev
     int (*dev_seek)(struct Fd *fd, off_t pos);
     int (*dev_trunc)(struct Fd *fd, off_t length);
     int (*dev_stat)(struct Fd *fd, struct stat *buf);
+    int (*dev_readselect)(struct Fd *fd) ;
 
     ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
 

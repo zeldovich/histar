@@ -14,6 +14,12 @@ sys_cons_getc(void)
     return syscall(SYS_cons_getc);
 }
 
+int
+sys_cons_probe(void)
+{
+    return syscall(SYS_cons_probe);
+}
+
 int64_t
 sys_net_create(uint64_t container, struct ulabel *l, const char *name)
 {
