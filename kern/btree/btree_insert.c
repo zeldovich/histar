@@ -127,13 +127,12 @@ __splitNode(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 
     if (BTREE_IS_LEAF(rootNode)) {
 	rootNode->keyCount = div + 1;
-	rootNode->children[(int) rootNode->keyCount] = *filePos;
+	rootNode->children[rootNode->keyCount] = *filePos;
     } else {
 	rootNode->keyCount = div;
 
-	//rootNode->keys[(int)rootNode->keyCount]     = 0 ;
-	btree_keyset(btree_key(rootNode, (int) rootNode->keyCount), 0,
-		     tree->s_key);
+	//rootNode->keys[rootNode->keyCount]     = 0 ;
+	btree_keyset(btree_key(rootNode, rootNode->keyCount), 0, tree->s_key);
     }
 
     btree_write_node(rootNode);
@@ -277,16 +276,15 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 
     if (BTREE_IS_LEAF(rootNode)) {
 	rootNode->keyCount = div + 1;
-	//rootNode->children[(int)rootNode->keyCount] = *filePos;
-	btree_valcpy(btree_value(rootNode, (int) rootNode->keyCount), filePos,
+	//rootNode->children[rootNode->keyCount] = *filePos;
+	btree_valcpy(btree_value(rootNode, rootNode->keyCount), filePos,
 		     tree->s_value);
 
     } else {
 	rootNode->keyCount = div;
 
-	//rootNode->keys[(int)rootNode->keyCount]     = 0 ;
-	btree_keyset(btree_key(rootNode, (int) rootNode->keyCount), 0,
-		     tree->s_key);
+	//rootNode->keys[rootNode->keyCount]     = 0 ;
+	btree_keyset(btree_key(rootNode, rootNode->keyCount), 0, tree->s_key);
     }
 
     btree_write_node(rootNode);

@@ -99,8 +99,8 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 		btree_keycpy(key_store, btree_key(rootNode, i), tree->s_key);
 		btree_destroy_node(rootNode);
 		return 1;
-	    } else if (rootNode->children[(int) rootNode->keyCount]) {
-		//struct btree_node *n = bt_read_node(tree, rootNode->children[(int)rootNode->keyCount]);
+	    } else if (rootNode->children[rootNode->keyCount]) {
+		//struct btree_node *n = bt_read_node(tree, rootNode->children[rootNode->keyCount]);
 		const offset_t *temp1 =
 		    btree_value(rootNode, rootNode->keyCount);
 		// ok, reading next pointer in node

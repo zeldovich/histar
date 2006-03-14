@@ -145,20 +145,19 @@ __borrowRight(struct btree *tree, struct btree_node *rootNode,
 
     if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf) {
 	rootNode->children[rootNode->keyCount + 1] =
-	    rootNode->children[(int) rootNode->keyCount];
+	    rootNode->children[rootNode->keyCount];
 
-	//rootNode->keys[(int)rootNode->keyCount]     = node->keys[0] ;
-	btree_keycpy(btree_key(rootNode, (int) rootNode->keyCount),
+	//rootNode->keys[rootNode->keyCount]     = node->keys[0] ;
+	btree_keycpy(btree_key(rootNode, rootNode->keyCount),
 		     btree_key(node, 0), tree->s_key);
-	rootNode->children[(int) rootNode->keyCount] = node->children[0];
+	rootNode->children[rootNode->keyCount] = node->children[0];
 
-	//prevNode->keys[div] = rootNode->keys[(int)rootNode->keyCount];
+	//prevNode->keys[div] = rootNode->keys[rootNode->keyCount];
 	btree_keycpy(btree_key(prevNode, div),
-		     btree_key(rootNode, (int) rootNode->keyCount),
-		     tree->s_key);
+		     btree_key(rootNode, rootNode->keyCount), tree->s_key);
     } else if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn) {
-	//rootNode->keys[(int)rootNode->keyCount] = prevNode->keys[div];
-	btree_keycpy(btree_key(rootNode, (int) rootNode->keyCount),
+	//rootNode->keys[rootNode->keyCount] = prevNode->keys[div];
+	btree_keycpy(btree_key(rootNode, rootNode->keyCount),
 		     btree_key(prevNode, div), tree->s_key);
 
 	//prevNode->keys[div]                         = node->keys[0] ;
@@ -202,19 +201,18 @@ __borrowRightLeaf(struct btree *tree, struct btree_node *rootNode,
 	const offset_t *temp2 = btree_value(rootNode, rootNode->keyCount);
 	btree_valcpy(temp1, temp2, tree->s_value);
 
-	//rootNode->keys[(int)rootNode->keyCount]     = node->keys[0] ;
+	//rootNode->keys[rootNode->keyCount]     = node->keys[0] ;
 	btree_keycpy(btree_key(rootNode, rootNode->keyCount),
 		     btree_key(node, 0), tree->s_key);
 
-	//rootNode->children[(int)rootNode->keyCount] = node->children[0];
+	//rootNode->children[rootNode->keyCount] = node->children[0];
 	temp1 = btree_value(rootNode, rootNode->keyCount);
 	temp2 = btree_value(node, 0);
 	btree_valcpy(temp1, temp2, tree->s_value);
 
-	//prevNode->keys[div] = rootNode->keys[(int)rootNode->keyCount];
+	//prevNode->keys[div] = rootNode->keys[rootNode->keyCount];
 	btree_keycpy(btree_key(prevNode, div),
-		     btree_key(rootNode, (int) rootNode->keyCount),
-		     tree->s_key);
+		     btree_key(rootNode, rootNode->keyCount), tree->s_key);
     } else if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn) {
 	assert(0);
     } else {
