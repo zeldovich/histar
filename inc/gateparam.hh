@@ -8,7 +8,7 @@ struct gate_call_data {
     // and as a result, should only be modified by the correct thread!
     union {
 	struct cobj_ref param_obj;
-	char param_buf[64];
+	char param_buf[128];
     };
 };
 
