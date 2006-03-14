@@ -472,9 +472,9 @@ __addKeyToLeaf(struct btree *tree,
 	if (BTREE_IS_LEAF(rootNode)) {
 	    //rootNode->children[i + 1] = rootNode->children[i];
 	    const offset_t *temp3 =
-		btree_value(rootNode->children, i + 1, tree->s_key);
+		btree_value(rootNode->children, i + 1, tree->s_value);
 	    const offset_t *temp4 =
-		btree_value(rootNode->children, i, tree->s_key);
+		btree_value(rootNode->children, i, tree->s_value);
 	    btree_valcpy(temp3, temp4, tree->s_value);
 	    //rootNode->children[i]     = *filePos;
 	    btree_valcpy(btree_value(rootNode->children, i, tree->s_value),
