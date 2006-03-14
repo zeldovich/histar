@@ -357,7 +357,10 @@ void in_term(struct terminal *term)
 	}
 	term->input_queue = iq;
 	if ((r = read(term->fdin, iq + term->qlen, ALLOC_GR)) < 0) {
-		if (r == -1 && errno != ECONNRESET) error("ERROR: error %d on terminal: could not read event", errno);
+        if (errno == EAGAIN)  // SBW
+            return ;
+		if (r == -1 && errno != ECONNRESET) 
+            error("ERROR: error %d on terminal: could not read event", errno);
 		destroy_terminal(term);
 		return;
 	}
