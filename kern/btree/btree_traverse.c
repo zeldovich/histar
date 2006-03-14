@@ -54,8 +54,8 @@ btree_traverse(struct btree *tree, void (*process) (offset_t filePos))
 
     btree_init_traversal(tree, &trav);
 
-    for (offset = btree_first_offset(&trav);
-	 offset != -1; offset = btree_next_entry(&trav)) {
+    for (offset = btree_first_offset(&trav); offset != -1;
+	 offset = btree_next_entry(&trav)) {
 	process(offset);
     }
 
@@ -94,9 +94,9 @@ btree_first_offset(struct btree_traversal *trav)
 
     trav->pos = 1;
 
-    trav->key = btree_key(trav->node->keys, 0, trav->tree->s_key);
+    trav->key = btree_key(trav->node, 0);
     //trav->val = trav->node->children[0] ;
-    trav->val = btree_value(trav->node->children, 0, trav->tree->s_value);
+    trav->val = btree_value(trav->node, 0);
 
     return 1;
 }
@@ -113,9 +113,7 @@ btree_next_entry(struct btree_traversal *trav)
 
     if (trav->pos == trav->node->keyCount) {
 	//offset_t nextNodeOffset = trav->node->children[trav->pos];
-	offset_t nextNodeOffset = *btree_value(trav->node->children,
-					       trav->pos,
-					       trav->tree->s_value);
+	offset_t nextNodeOffset = *btree_value(trav->node, trav->pos);
 
 	btree_destroy_node(trav->node);
 
@@ -128,11 +126,9 @@ btree_next_entry(struct btree_traversal *trav)
 
 	trav->pos = 0;
     }
-
     //trav->val = trav->node->children[trav->pos];
-    trav->val =
-	btree_value(trav->node->children, trav->pos, trav->tree->s_value);
-    trav->key = btree_key(trav->node->keys, trav->pos, trav->tree->s_key);
+    trav->val = btree_value(trav->node, trav->pos);
+    trav->key = btree_key(trav->node, trav->pos);
 
     trav->pos++;
     return 1;

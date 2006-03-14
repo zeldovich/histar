@@ -3,11 +3,12 @@
 
 #include <inc/types.h>
 #include <inc/queue.h>
-#include <btree/btree_utils.h>
 #include <machine/stackwrap.h>
 
 // maximum size of a btree node -- currently cannot exceed PGSIZE
 #define BTREE_BLOCK_SIZE PGSIZE
+
+typedef uint64_t offset_t;
 
 struct btree_node {
     struct btree *tree;

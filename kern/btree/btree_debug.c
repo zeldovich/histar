@@ -1,5 +1,6 @@
 #include <btree/btree_debug.h>
 #include <btree/btree_node.h>
+#include <btree/btree_utils.h>
 #include <kern/lib.h>
 
 static void
@@ -27,8 +28,7 @@ btree_leaf_count2(struct btree *tree)
     while (next_off) {
 	node = btree_read_node(tree, next_off);
 	count++;
-	next_off = *btree_value(node->children,
-				node->keyCount, tree->s_value);
+	next_off = *btree_value(node, node->keyCount);
 	btree_destroy_node(node);
     }
 
@@ -45,8 +45,7 @@ btree_size_calc(struct btree *tree)
     while (next_off) {
 	node = btree_read_node(tree, next_off);
 	size += node->keyCount;
-	next_off = *btree_value(node->children,
-				node->keyCount, tree->s_value);
+	next_off = *btree_value(node, node->keyCount);
 	btree_destroy_node(node);
     }
 
@@ -115,7 +114,7 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
     cprintf("[.");
 
     for (j = 0; j < rootNode->keyCount; j++) {
-	const offset_t *off = btree_key(rootNode->keys, j, tree->s_key);
+	const offset_t *off = btree_key(rootNode, j);
 	//printf(" %ld .", *off);
 	cprintf(" %ld", off[0]);
 	int k = 1;

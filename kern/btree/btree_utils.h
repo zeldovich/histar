@@ -4,8 +4,7 @@
 #include <machine/types.h>
 #include <kern/lib.h>
 #include <inc/queue.h>
-
-typedef uint64_t offset_t;
+#include <btree/btree.h>
 
 #define BTREE_FLAG_LEAF     1
 
@@ -33,9 +32,10 @@ LIST_HEAD(node_list, btree_node);
 #define BTREE_OP_ATTR	static __inline __attribute__((always_inline))
 
 BTREE_OP_ATTR const offset_t *
-btree_key(const offset_t * keys, const int i, int s_key)
+btree_key(struct btree_node *node, const int idx)
 {
-    return &keys[i * s_key];
+    int s_key = node->tree->s_key;
+    return &node->keys[idx * s_key];
 }
 
 BTREE_OP_ATTR int64_t
@@ -73,9 +73,10 @@ btree_keyset(const offset_t * dst, offset_t val, int s_key)
 }
 
 BTREE_OP_ATTR const offset_t *
-btree_value(const offset_t * vals, const int i, int s_val)
+btree_value(struct btree_node *node, const int idx)
 {
-    return &vals[i * s_val];
+    int s_val = node->tree->s_value;
+    return &node->children[idx * s_val];
 }
 
 BTREE_OP_ATTR void

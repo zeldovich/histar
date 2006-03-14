@@ -133,22 +133,22 @@ btree_save_node(uint64_t id, struct btree_node *n)
 ///////////////////////////////
 
 int
-btree_search(uint64_t id, const uint64_t * key,
-	     uint64_t * key_store, uint64_t * val_store)
+btree_search(uint64_t id, const uint64_t * key, uint64_t * key_store,
+	     uint64_t * val_store)
 {
     return btree_search_impl(btree[id].btree, key, key_store, val_store);
 }
 
 int
-btree_ltet(uint64_t id, const uint64_t * key,
-	   uint64_t * key_store, uint64_t * val_store)
+btree_ltet(uint64_t id, const uint64_t * key, uint64_t * key_store,
+	   uint64_t * val_store)
 {
     return btree_ltet_impl(btree[id].btree, key, key_store, val_store);
 }
 
 int
-btree_gtet(uint64_t id, const uint64_t * key,
-	   uint64_t * key_store, uint64_t * val_store)
+btree_gtet(uint64_t id, const uint64_t * key, uint64_t * key_store,
+	   uint64_t * val_store)
 {
     return btree_gtet_impl(btree[id].btree, key, key_store, val_store);
 }

@@ -35,12 +35,9 @@ enum {
 };
 
 static char
-__search(struct btree *tree,
-	 offset_t rootOffset,
-	 const uint64_t * key,
-	 char match,
-	 struct btree_node *last_right,
-	 int div, uint64_t * key_store, offset_t * val_store)
+__search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
+	 char match, struct btree_node *last_right, int div,
+	 uint64_t * key_store, offset_t * val_store)
 {
     int i;
     struct btree_node *rootNode;
@@ -50,31 +47,23 @@ __search(struct btree *tree,
     assert(rootNode);
 
     for (i = 0;
-	 i < rootNode->keyCount &&
-	 btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key,
-		      tree->s_key) < 0; i++);
+	 i < rootNode->keyCount
+	 && btree_keycmp(btree_key(rootNode, i), key, tree->s_key) < 0; i++) ;
 
     if (BTREE_IS_LEAF(rootNode)) {
-	if (i < rootNode->keyCount &&
-	    btree_keycmp(btree_key(rootNode->keys, i, tree->s_key), key,
-			 tree->s_key) == 0) {
+	if (i < rootNode->keyCount
+	    && btree_keycmp(btree_key(rootNode, i), key, tree->s_key) == 0) {
 	    //*val_store = rootNode->children[i];
-	    btree_valcpy(val_store,
-			 btree_value(rootNode->children, i, tree->s_value),
-			 tree->s_value);
-	    btree_keycpy(key_store,
-			 btree_key(rootNode->keys, i, tree->s_key),
-			 tree->s_key);
+	    btree_valcpy(val_store, btree_value(rootNode, i), tree->s_value);
+	    btree_keycpy(key_store, btree_key(rootNode, i), tree->s_key);
 	    btree_destroy_node(rootNode);
 	    return 1;
 	} else if (match & match_ltet) {
 	    if (i > 0) {
 		//*val_store = rootNode->children[i - 1] ;      
-		btree_valcpy(val_store,
-			     btree_value(rootNode->children, i - 1,
-					 tree->s_value), tree->s_value);
-		btree_keycpy(key_store,
-			     btree_key(rootNode->keys, i - 1, tree->s_key),
+		btree_valcpy(val_store, btree_value(rootNode, i - 1),
+			     tree->s_value);
+		btree_keycpy(key_store, btree_key(rootNode, i - 1),
 			     tree->s_key);
 		btree_destroy_node(rootNode);
 		return 1;
@@ -92,11 +81,9 @@ __search(struct btree *tree,
 		}
 
 		//*val_store = n->children[n->keyCount-1] ;
-		btree_valcpy(val_store,
-			     btree_value(n->children, n->keyCount - 1,
-					 tree->s_value), tree->s_value);
-		btree_keycpy(key_store,
-			     btree_key(n->keys, n->keyCount - 1, tree->s_key),
+		btree_valcpy(val_store, btree_value(n, n->keyCount - 1),
+			     tree->s_value);
+		btree_keycpy(key_store, btree_key(n, n->keyCount - 1),
 			     tree->s_key);
 		btree_destroy_node(n);
 		btree_destroy_node(rootNode);
@@ -106,28 +93,21 @@ __search(struct btree *tree,
 	} else if (match & match_gtet) {
 	    if (i < rootNode->keyCount) {
 		//*val_store = rootNode->children[i] ;  
-		btree_valcpy(val_store,
-			     btree_value(rootNode->children, i,
-					 tree->s_value), tree->s_value);
+		btree_valcpy(val_store, btree_value(rootNode, i),
+			     tree->s_value);
 
-		btree_keycpy(key_store,
-			     btree_key(rootNode->keys, i, tree->s_key),
-			     tree->s_key);
+		btree_keycpy(key_store, btree_key(rootNode, i), tree->s_key);
 		btree_destroy_node(rootNode);
 		return 1;
 	    } else if (rootNode->children[(int) rootNode->keyCount]) {
 		//struct btree_node *n = bt_read_node(tree, rootNode->children[(int)rootNode->keyCount]);
-		const offset_t *temp1 = btree_value(rootNode->children,
-						    rootNode->keyCount,
-						    tree->s_value);
+		const offset_t *temp1 =
+		    btree_value(rootNode, rootNode->keyCount);
 		// ok, reading next pointer in node
 		struct btree_node *n = btree_read_node(tree, *temp1);
 		//*val_store = n->children[0] ;
-		btree_valcpy(val_store,
-			     btree_value(n->children, 0, tree->s_value),
-			     tree->s_value);
-		btree_keycpy(key_store,
-			     btree_key(n->keys, 0, tree->s_key), tree->s_key);
+		btree_valcpy(val_store, btree_value(n, 0), tree->s_value);
+		btree_keycpy(key_store, btree_key(n, 0), tree->s_key);
 		btree_destroy_node(n);
 		btree_destroy_node(rootNode);
 		return 1;
@@ -156,9 +136,8 @@ __search(struct btree *tree,
 }
 
 static int
-search(struct btree *tree,
-       const uint64_t * key,
-       char match, uint64_t * key_store, uint64_t * val_store)
+search(struct btree *tree, const uint64_t * key, char match,
+       uint64_t * key_store, uint64_t * val_store)
 {
     char found;
 
@@ -176,8 +155,8 @@ search(struct btree *tree,
 	return -E_NOT_FOUND;
 
     btree_lock(tree->id);
-    found = __search(tree,
-		     tree->root, key, match, 0, 0, key_store, val_store);
+    found =
+	__search(tree, tree->root, key, match, 0, 0, key_store, val_store);
     btree_unlock(tree->id);
 
 
