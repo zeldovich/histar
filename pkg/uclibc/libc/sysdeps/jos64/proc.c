@@ -7,7 +7,7 @@
 pid_t
 getpid()
 {
-    return thread_id();
+    return start_env->shared_container;
 }
 
 pid_t
