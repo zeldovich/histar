@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <lib/vt/vt.h>
 
 int
 iscons(int fdnum)
@@ -50,8 +51,6 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
     return 1;
 }
 
-#include <lib/vt/vt.h>
-
 static ssize_t
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
@@ -72,8 +71,6 @@ cons_stat(struct Fd *fd, struct stat *buf)
     memset(buf, 0, sizeof(*buf));
     return 0;
 }
-
-#include <stdio.h>
 
 static int
 cons_readselect(struct Fd *fd)
