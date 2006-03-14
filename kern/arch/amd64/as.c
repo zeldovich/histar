@@ -94,13 +94,13 @@ as_resize(struct Address_space *as, uint64_t nent)
 int
 as_to_user(const struct Address_space *as, struct u_address_space *uas)
 {
-    int r = page_user_incore((void**) &uas, sizeof(*uas));
+    int r = check_user_access(uas, sizeof(*uas), SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
     uint64_t size = uas->size;
     struct u_segment_mapping *ents = uas->ents;
-    r = page_user_incore((void**) &ents, sizeof(*ents) * size);
+    r = check_user_access(ents, sizeof(*ents) * size, SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -128,13 +128,13 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
 int
 as_from_user(struct Address_space *as, struct u_address_space *uas)
 {
-    int r = page_user_incore((void**) &uas, sizeof(*uas));
+    int r = check_user_access(uas, sizeof(*uas), 0);
     if (r < 0)
 	return r;
 
     uint64_t nent = uas->nent;
     struct u_segment_mapping *ents = uas->ents;
-    r = page_user_incore((void**) &ents, sizeof(*ents) * nent);
+    r = check_user_access(ents, sizeof(*ents) * nent, SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -177,7 +177,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 int
 as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 {
-    int r = page_user_incore((void **) &usm_new, sizeof(*usm_new));
+    int r = check_user_access(&usm_new, sizeof(*usm_new), 0);
     if (r < 0)
 	return r;
 
@@ -243,7 +243,6 @@ as_pmap_fill_segment(const struct Address_space *as,
 		     int invalidate)
 {
     struct Pagemap *pgmap = as->as_pgmap;
-    int progress = 0;
 
     char *cva = (char *) usm->va;
     if (PGOFF(cva))
@@ -271,9 +270,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    ptflags &= ~PTE_NX;
 
 	if (r == 0) {
-	    void *oldp = page_remove(pgmap, cva);
-	    if (oldp != pp)
-		progress = 1;
+	    page_remove(pgmap, cva);
 
 	    if (!invalidate)
 		r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
@@ -307,11 +304,11 @@ as_pmap_fill_segment(const struct Address_space *as,
 	kobject_pin_page(&sg->sg_ko);
     }
 
-    return progress;
+    return 0;
 }
 
 static int
-as_pmap_fill(struct Address_space *as, void *va)
+as_pmap_fill(struct Address_space *as, void *va, uint32_t reqflags)
 {
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	const struct u_segment_mapping *usm;
@@ -321,6 +318,8 @@ as_pmap_fill(struct Address_space *as, void *va)
 
 	uint64_t flags = usm->flags;
 	if (flags == 0)
+	    continue;
+	if ((flags & reqflags) != reqflags)
 	    continue;
 
 	uint64_t npages = usm->num_pages;
@@ -343,19 +342,14 @@ as_pmap_fill(struct Address_space *as, void *va)
 
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
-	r = as_pmap_fill_segment(as, sg, sm, usm, 0);
-	if (r < 0)
-	    return r;
-	if (r == 0)
-	    return -E_INVAL;	// no progress
-	return 0;
+	return as_pmap_fill_segment(as, sg, sm, usm, 0);
     }
 
     return -E_NOT_FOUND;
 }
 
 int
-as_pagefault(struct Address_space *as, void *va)
+as_pagefault(struct Address_space *as, void *va, uint32_t reqflags)
 {
     if (as->as_pgmap == &bootpml4) {
 	int r = page_map_alloc(&as->as_pgmap);
@@ -365,7 +359,7 @@ as_pagefault(struct Address_space *as, void *va)
 	as->as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
-    int r = as_pmap_fill(as, va);
+    int r = as_pmap_fill(as, va, reqflags);
     if (r == -E_RESTART)
 	return r;
 

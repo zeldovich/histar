@@ -161,7 +161,7 @@ label_set(struct Label *l, uint64_t handle, level_t level)
 int
 label_to_ulabel(const struct Label *l, struct ulabel *ul)
 {
-    int r = page_user_incore((void**) &ul, sizeof(*ul));
+    int r = check_user_access(ul, sizeof(*ul), SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -170,7 +170,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
     uint32_t ul_size = ul->ul_size;
     uint64_t *ul_ent = ul->ul_ent;
 
-    r = page_user_incore((void**) &ul_ent, ul_size * sizeof(*ul_ent));
+    r = check_user_access(ul_ent, ul_size * sizeof(*ul_ent), SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -197,7 +197,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 int
 ulabel_to_label(struct ulabel *ul, struct Label *l)
 {
-    int r = page_user_incore((void**) &ul, sizeof(*ul));
+    int r = check_user_access(ul, sizeof(*ul), 0);
     if (r < 0)
 	return r;
 
@@ -205,7 +205,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 
-    r = page_user_incore((void**) &ul_ent, ul_nent * sizeof(*ul_ent));
+    r = check_user_access(ul_ent, ul_nent * sizeof(*ul_ent), 0);
     if (r < 0)
 	return r;
 

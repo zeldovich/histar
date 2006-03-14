@@ -319,25 +319,33 @@ thread_switch(const struct Thread *t)
 }
 
 int
-thread_pagefault(const struct Thread *t, void *fault_va)
+thread_load_as(const struct Thread *t)
 {
-    int r;
+    if (t->th_as)
+	return 0;
 
-    if (t->th_as == 0) {
-	const struct kobject *ko;
-	r = cobj_get(t->th_asref, kobj_address_space, &ko, iflow_read);
-	if (r < 0)
-	    return r;
+    const struct kobject *ko;
+    int r = cobj_get(t->th_asref, kobj_address_space, &ko, iflow_read);
+    if (r < 0)
+	return r;
 
-	const struct Address_space *as = &ko->as;
-	kobject_dirty(&t->th_ko)->th.th_as = as;
-	kobject_pin_hdr(&t->th_as->as_ko);
+    const struct Address_space *as = &ko->as;
+    kobject_dirty(&t->th_ko)->th.th_as = as;
+    kobject_pin_hdr(&t->th_as->as_ko);
 
-	// Just to ensure all label checks are up-to-date.
-	as_invalidate(as);
-    }
+    // Just to ensure all label checks are up-to-date.
+    as_invalidate(as);
+    return 0;
+}
 
-    r = as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va);
+int
+thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
+{
+    int r = thread_load_as(t);
+    if (r < 0)
+	return r;
+
+    r = as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va, reqflags);
     if (r >= 0 || r == -E_RESTART)
 	return r;
 
@@ -349,9 +357,11 @@ int
 thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t arg)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    int r = thread_load_as(t);
+    if (r < 0)
+	return r;
 
-    // Right now this only works for the current thread, because
-    // page_user_incore() does not take an address space argument.
+    as_switch(t->th_as);
 
     void *stacktop;
     uint64_t rsp = t->th_tf.tf_rsp;
@@ -373,13 +383,16 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
 #undef UTF_COPY
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
-    int r = page_user_incore((void **) &utf, sizeof(*utf));
+    r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
     if (r < 0)
-	return r;
+	goto out;
 
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_rsp = (uint64_t) utf;
     t->th_tf.tf_rip = UTRAPHANDLER;
     thread_set_runnable(t);
-    return 0;
+
+out:
+    as_switch(cur_thread->th_as);
+    return r;
 }

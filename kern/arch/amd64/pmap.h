@@ -94,10 +94,10 @@ ppn2pa (ppn_t pn)
 }
 
 /*
- * Changes *ptrp such that it will not reference a kernel address,
+ * Checks that [ptr .. ptr + nbytes) is valid user memory,
  * and makes sure the address is paged in (might return -E_RESTART).
  */
-int  page_user_incore(void **ptrp, uint64_t nbytes)
+int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
 
 #endif /* !__ASSEMBLER__ */

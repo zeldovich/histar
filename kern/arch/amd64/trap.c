@@ -72,9 +72,10 @@ trapframe_print (struct Trapframe *tf)
 }
 
 static void
-page_fault (struct Trapframe *tf)
+page_fault (struct Trapframe *tf, uint32_t err)
 {
     void *fault_va = (void*) rcr2();
+    uint32_t reqflags = (err & PTE_W) ? SEGMAP_WRITE : 0;
 
     if ((tf->tf_cs & 3) == 0) {
 	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",
@@ -82,12 +83,9 @@ page_fault (struct Trapframe *tf)
 		cur_thread ? cur_thread->th_ko.ko_name : "(null)",
 		fault_va, tf->tf_rip, tf->tf_rsp);
 
-	if ((uintptr_t) fault_va < PHYSBASE)
-	    thread_halt(cur_thread);
-	else
-	    panic("kernel page fault");
+	panic("kernel page fault");
     } else {
-	int r = thread_pagefault(cur_thread, fault_va);
+	int r = thread_pagefault(cur_thread, fault_va, reqflags);
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
@@ -115,7 +113,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 	break;
 
     case T_PGFLT:
-	page_fault(tf);
+	page_fault(tf, tf->tf_err);
 	break;
 
     default:

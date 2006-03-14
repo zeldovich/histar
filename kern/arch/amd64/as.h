@@ -50,7 +50,7 @@ int  as_gc(struct Address_space *as)
 void as_invalidate(const struct Address_space *as);
 void as_invalidate_sm(struct segment_mapping *sm);
 
-int  as_pagefault(struct Address_space *as, void *va)
+int  as_pagefault(struct Address_space *as, void *va, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
 void as_switch(const struct Address_space *as);
 

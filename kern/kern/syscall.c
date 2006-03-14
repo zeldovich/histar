@@ -58,7 +58,7 @@ static void
 alloc_set_name(struct kobject_hdr *ko, const char *name)
 {
     if (name) {
-	check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
+	check(check_user_access(name, KOBJ_NAME_LEN, 0));
 	strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
 }
@@ -71,7 +71,7 @@ sys_cons_puts(const char *s, uint64_t size)
     if (sz < 0)
 	syscall_error(-E_INVAL);
 
-    check(page_user_incore((void**) &s, sz));
+    check(check_user_access(s, sz, 0));
     cprintf("%.*s", sz, s);
 }
 
@@ -157,7 +157,7 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     if (ndev == 0)
 	syscall_error(-E_INVAL);
 
-    check(page_user_incore((void**) &addrbuf, 6));
+    check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
     netdev_macaddr(ndev, addrbuf);
 }
 
@@ -249,7 +249,7 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(page_user_incore((void **) &name, KOBJ_NAME_LEN));
+    check(check_user_access(name, KOBJ_NAME_LEN, SEGMAP_WRITE));
     strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
 }
 
@@ -275,7 +275,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
 		const char *name)
 {
     struct thread_entry te;
-    check(page_user_incore((void **) &ute, sizeof(te)));
+    check(check_user_access(ute, sizeof(te), 0));
     memcpy(&te, ute, sizeof(te));
 
     const struct Container *c;
@@ -392,7 +392,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 		 struct ulabel *ul, struct ulabel *uclear)
 {
     struct thread_entry te;
-    check(page_user_incore((void **) &ute, sizeof(te)));
+    check(check_user_access(ute, sizeof(te), 0));
     memcpy(&te, ute, sizeof(te));
 
     const struct kobject *ko;
@@ -460,7 +460,7 @@ sys_self_addref(uint64_t ct)
 static void
 sys_self_get_as(struct cobj_ref *as_ref)
 {
-    check(page_user_incore((void **) &as_ref, sizeof(*as_ref)));
+    check(check_user_access(as_ref, sizeof(*as_ref), SEGMAP_WRITE));
     *as_ref = cur_thread->th_asref;
 }
 
@@ -508,14 +508,14 @@ sys_self_get_clearance(struct ulabel *uclear)
 static void
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
-    check(page_user_incore((void**) &addr, sizeof(*addr)));
+    check(check_user_access(addr, sizeof(*addr), 0));
     check(sync_wait(addr, val, wakeup_at_msec));
 }
 
 static void
 sys_sync_wakeup(uint64_t *addr)
 {
-    check(page_user_incore((void**) &addr, sizeof(*addr)));
+    check(check_user_access(addr, sizeof(*addr), 0));
     sync_wakeup_addr(addr);
 }
 
@@ -676,8 +676,8 @@ sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *ul, uint8_t *buf, 
 {
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));
-    check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
-    check(page_user_incore((void**) &ct_id, sizeof(kobject_id_t)));
+    check(check_user_access(buf, MLT_BUF_SIZE, SEGMAP_WRITE));
+    check(check_user_access(ct_id, sizeof(kobject_id_t), SEGMAP_WRITE));
 
     const struct Label *l;
     check(mlt_get(&ko->mt, idx, &l, buf, ct_id));
@@ -702,7 +702,8 @@ sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf, kobject_id_t *
     }
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
-    check(page_user_incore((void**) &buf, MLT_BUF_SIZE));
+    check(check_user_access(buf, MLT_BUF_SIZE, 0));
+    check(check_user_access(ct_id, sizeof(kobject_id_t), SEGMAP_WRITE));
     check(mlt_put(&ko->mt, l, buf, ct_id));
 }
 

@@ -367,29 +367,24 @@ page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
 }
 
 int
-page_user_incore(void **ptrp, uint64_t nbytes)
+check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 {
-    uintptr_t ptr = (uintptr_t) *ptrp;
-    ptr &= ~(1L << 63);
+    assert(cur_thread && cur_as);
 
-    if (cur_thread == 0 || cur_thread->th_as == 0)
-	panic("page_user_incore: no thread or address space");
-    const struct Address_space *as = cur_thread->th_as;
-
-    // XXX this does not deal so well with writable pages that are mapped RO.
-    // (this doesn't happen right now, but might later, e.g. if we do COW-fork)
+    uintptr_t iptr = (uintptr_t) ptr;
+    if (iptr >= ULIM || iptr + nbytes > ULIM)
+	return -E_INVAL;
 
     if (nbytes > 0) {
-	uintptr_t end = ROUNDUP(ptr + nbytes, PGSIZE);
-	for (uintptr_t va = ROUNDDOWN(ptr, PGSIZE); va < end; va += PGSIZE) {
-	    if (page_lookup(as->as_pgmap, (void*) va) == 0) {
-		int r = as_pagefault(&kobject_dirty(&as->as_ko)->as, (void*) va);
-		if (r < 0)
-		    return r;
-	    }
+	struct Address_space *as = &kobject_dirty(&cur_as->as_ko)->as;
+	uintptr_t start = (uintptr_t) ROUNDDOWN(ptr, PGSIZE);
+	uintptr_t end = (uintptr_t) ROUNDUP(ptr + nbytes, PGSIZE);
+	for (uintptr_t va = start; va < end; va += PGSIZE) {
+	    int r = as_pagefault(as, (void *) va, reqflags);
+	    if (r < 0)
+		return r;
 	}
     }
 
-    *ptrp = (void*) ptr;
     return 0;
 }
