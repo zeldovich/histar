@@ -5,6 +5,8 @@
 #include <kern/kobj.h>
 #include <inc/error.h>
 
+const struct Address_space *cur_as;
+
 int
 as_alloc(const struct Label *l, struct Address_space **asp)
 {
@@ -385,6 +387,8 @@ as_switch(const struct Address_space *as)
     // In case we have thread-specific kobjects cached here..
     if (as && cur_thread && as->as_pgmap_tid != cur_thread->th_ko.ko_id)
 	as_invalidate(as);
+
+    cur_as = as;
 
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     uint64_t new_cr3 = kva2pa(pgmap);

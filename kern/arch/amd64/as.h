@@ -32,6 +32,8 @@ struct Address_space {
     kobject_id_t as_pgmap_tid;
 };
 
+extern const struct Address_space *cur_as;
+
 int  as_alloc(const struct Label *l, struct Address_space **asp)
     __attribute__ ((warn_unused_result));
 int  as_to_user(const struct Address_space *as, struct u_address_space *uas)
