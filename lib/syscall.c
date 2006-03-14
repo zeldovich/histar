@@ -134,6 +134,12 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
     return syscall(SYS_thread_start, thread, entry, ul, clearance);
 }
 
+int
+sys_thread_trap(struct cobj_ref thread, uint32_t trapno, uint64_t arg)
+{
+    return syscall(SYS_thread_trap, thread, trapno, arg);
+}
+
 void
 sys_self_yield(void)
 {

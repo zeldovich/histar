@@ -2,6 +2,7 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
+#include <machine/utrap.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
@@ -432,6 +433,14 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 }
 
 static void
+sys_thread_trap(struct cobj_ref thread, uint32_t trapno, uint64_t arg)
+{
+    const struct kobject *ko;
+    check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
+    check(thread_utrap(&ko->th, UTRAP_SRC_USER, trapno, arg));
+}
+
+static void
 sys_self_yield(void)
 {
     schedule();
@@ -721,6 +730,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
     SYSCALL_DISPATCH(thread_start),
+    SYSCALL_DISPATCH(thread_trap),
     SYSCALL_DISPATCH(self_yield),
     SYSCALL_DISPATCH(self_halt),
     SYSCALL_DISPATCH(self_addref),

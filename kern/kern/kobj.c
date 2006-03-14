@@ -83,7 +83,7 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 	return -E_LABEL;
 
     if (SAFE_EQUAL(iflow, iflow_read)) {
-	r = label_compare(ko_label, th_label, label_leq_starok);
+	r = label_compare(ko_label, th_label, label_leq_starhi);
     } else if (SAFE_EQUAL(iflow, iflow_write)) {
 	r = label_compare(th_label, ko_label, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {

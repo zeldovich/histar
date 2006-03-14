@@ -47,6 +47,7 @@ int	sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul);
 int64_t	sys_thread_create(uint64_t container, const char *name);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s,
 			 struct ulabel *l, struct ulabel *clearance);
+int	sys_thread_trap(struct cobj_ref thread, uint32_t trapno, uint64_t arg);
 
 void	sys_self_yield(void);
 void	sys_self_halt(void);

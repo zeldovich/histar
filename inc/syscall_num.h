@@ -23,6 +23,7 @@
     SYSCALL_ENTRY(gate_clearance)		\
     SYSCALL_ENTRY(thread_create)		\
     SYSCALL_ENTRY(thread_start)			\
+    SYSCALL_ENTRY(thread_trap)			\
     SYSCALL_ENTRY(self_yield)			\
     SYSCALL_ENTRY(self_halt)			\
     SYSCALL_ENTRY(self_id)			\
