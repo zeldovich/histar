@@ -147,10 +147,13 @@ sigsuspend(const sigset_t *mask) __THROW
 int
 kill(pid_t pid, int sig) __THROW
 {
-    uint64_t self = thread_id();
+    pid_t self = getpid();
     if (pid == self) {
-	cprintf("kill(): signal %d for self\n", sig);
-	thread_halt();
+	siginfo_t si;
+	memset(&si, 0, sizeof(si));
+	si.si_signo = sig;
+	signal_dispatch(&si);
+	return 0;
     }
 
     set_enosys();
