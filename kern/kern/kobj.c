@@ -65,16 +65,23 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 {
     if (cur_thread == 0)
 	return 0;
+    if (SAFE_EQUAL(iflow, iflow_none))
+	return 0;
 
     const struct Label *th_label;
     int r = kobject_get_label(&cur_thread->th_ko, kolabel_contaminate, &th_label);
     if (r < 0)
 	return r;
+    assert(th_label);
 
     const struct Label *ko_label;
     r = kobject_get_label(ko, kolabel_contaminate, &ko_label);
     if (r < 0)
 	return r;
+
+    if (ko_label == 0)
+	panic("null label on %ld (%s, type %d)\n",
+	      ko->ko_id, &ko->ko_name[0], ko->ko_type);
 
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare(ko_label, th_label, label_leq_starok);
@@ -83,8 +90,6 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = kobject_iflow_check(ko, iflow_read) ? :
 	    kobject_iflow_check(ko, iflow_write);
-    } else if (SAFE_EQUAL(iflow, iflow_none)) {
-	r = 0;
     } else {
 	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
     }

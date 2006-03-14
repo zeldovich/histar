@@ -229,6 +229,9 @@ int
 label_compare(const struct Label *l1,
 	      const struct Label *l2, level_comparator cmp)
 {
+    assert(l1);
+    assert(l2);
+
     level_comparator_init(cmp);
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
