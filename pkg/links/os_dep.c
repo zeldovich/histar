@@ -1107,11 +1107,10 @@ static void
 lthread_wrap(void *arg)
 {
     struct lthread_arg *a = (struct lthread_arg *) arg ;
-    printf("IN THREAD WRAP!!!!!!!!!!!!!\n") ;
     a->fn(a->arg, a->wfd) ;
-    printf("END THREAD WRAP!!!!!!!!!!!!!\n") ;
     write(a->wfd, "x", 1);
     close(a->wfd) ;
+    free(a) ;
 }
 
 static int
@@ -1124,17 +1123,20 @@ lthread_start(void (*fn)(void *arg, int wfd), void *arg)
     if ((r = pipe(fd)) < 0)
         return r ;
     
+    // Links closes fd[0] in a callback associated with fd[0]
+    // fd[1] is closed when the child thread finishes
     fcntl(fd[0], F_SETFL, O_NONBLOCK);
     fcntl(fd[1], F_SETFL, O_NONBLOCK);
     
+    // child deallocates
     struct lthread_arg *larg = malloc(sizeof(struct lthread_arg)) ;
+    
     larg->fn = fn ;
     larg->arg = arg ;
     larg->wfd = fd[1] ;    
     
     r = thread_create(start_env->proc_container, &lthread_wrap,
                       larg, &t, "links thread");
-
 
     if (r < 0)
         return -1 ;
@@ -1150,8 +1152,6 @@ int start_thread(void (*fn)(void *, int), void *ptr, int l)
 
 int start_thread(void (*fn)(void *, int), void *ptr, int l)
 {
-	printf("start_thread: ...\n") ;
-    
     int p[2];
 	int f;
 	if (c_pipe(p) < 0) return -1;
