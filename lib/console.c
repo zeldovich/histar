@@ -78,7 +78,7 @@ cons_stat(struct Fd *fd, struct stat *buf)
 static int
 cons_readselect(struct Fd *fd)
 {
-    return sys_cons_probe() ;
+    return sys_cons_probe();
 }
 
 struct Dev devcons =
