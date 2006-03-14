@@ -188,16 +188,14 @@ __borrowRightLeaf(struct btree *tree, struct btree_node *rootNode,
     if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf) {
 	//rootNode->children[rootNode->keyCount + 1] =
 	//      rootNode->children[rootNode->keyCount];
-	btree_valcpy(btree_value(rootNode, rootNode->keyCount + 1),
-		     btree_value(rootNode, rootNode->keyCount),
-		     tree->s_value);
+	bt_valcpy(rootNode, rootNode->keyCount + 1, rootNode,
+		  rootNode->keyCount);
 
 	//rootNode->keys[rootNode->keyCount]     = node->keys[0] ;
 	bt_keycpy(rootNode, rootNode->keyCount, node, 0);
 
 	//rootNode->children[rootNode->keyCount] = node->children[0];
-	btree_valcpy(btree_value(rootNode, rootNode->keyCount),
-		     btree_value(node, 0), tree->s_value);
+	bt_valcpy(rootNode, rootNode->keyCount, node, 0);
 
 	//prevNode->keys[div] = rootNode->keys[rootNode->keyCount];
 	bt_keycpy(prevNode, div, rootNode, rootNode->keyCount);
@@ -312,20 +310,17 @@ __borrowLeftLeaf(struct btree *tree, struct btree_node *rootNode,
 	    bt_keycpy(rootNode, i, rootNode, i - 1);
 
 	    //rootNode->children[i + 1] = rootNode->children[i];
-	    btree_valcpy(btree_value(rootNode, i + 1),
-			 btree_value(rootNode, i), tree->s_value);
+	    bt_valcpy(rootNode, i + 1, rootNode, i);
 	}
 
 	//rootNode->children[1] = rootNode->children[0];
-	btree_valcpy(btree_value(rootNode, 1), btree_value(rootNode, 0),
-		     tree->s_value);
+	bt_valcpy(rootNode, 1, rootNode, 0);
 
 	//rootNode->keys[0]     = node->keys[node->keyCount - 1];
 	bt_keycpy(rootNode, 0, node, node->keyCount - 1);
 
 	//rootNode->children[0] = node->children[node->keyCount - 1];
-	btree_valcpy(btree_value(rootNode, 0),
-		     btree_value(node, node->keyCount - 1), tree->s_value);
+	bt_valcpy(rootNode, 0, node, node->keyCount - 1);
 
 	rootNode->keyCount++;
 
@@ -335,8 +330,7 @@ __borrowLeftLeaf(struct btree *tree, struct btree_node *rootNode,
 	//node->children[node->keyCount - 1] =
 	//      node->children[node->keyCount];
 	//node->children[node->keyCount] = 0;
-	btree_valcpy(btree_value(node, node->keyCount - 1),
-		     btree_value(node, node->keyCount), tree->s_value);
+	bt_valcpy(node, node->keyCount - 1, node, node->keyCount);
 	btree_valset(btree_value(node, node->keyCount), 0, tree->s_value);
 
 	//node->keys[node->keyCount - 1]     = 0;
@@ -507,15 +501,13 @@ __mergeLeaf(struct btree *tree, struct btree_node *rootNode,
 	    //rootNode->keys[i]     = node->keys[j];
 	    bt_keycpy(rootNode, i, node, j);
 	    //rootNode->children[i] = node->children[j];
-	    btree_valcpy(btree_value(rootNode, i), btree_value(node, j),
-			 tree->s_value);
+	    bt_valcpy(rootNode, i, node, j);
 
 	    rootNode->keyCount++;
 	}
 
 	//rootNode->children[i]       = node->children[j];
-	btree_valcpy(btree_value(rootNode, i), btree_value(node, j),
-		     tree->s_value);
+	bt_valcpy(rootNode, i, node, j);
 
 	// ok, accessing twig children
 	prevNode->children[div + 1] = rootNode->block.offset;
