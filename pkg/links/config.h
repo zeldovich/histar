@@ -162,6 +162,8 @@
 
 #define JOS64_THREADS 1
 
+#define NO_ASYNC_LOOKUP 1
+
 /* Define if you have the gpm library (-lgpm).  */
 /* #undef HAVE_LIBGPM */
 
