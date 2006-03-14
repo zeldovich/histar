@@ -160,6 +160,8 @@
 /* Define if you have the dl library (-ldl).  */
 #define HAVE_LIBDL 1
 
+#define JOS64_THREADS 1
+
 /* Define if you have the gpm library (-lgpm).  */
 /* #undef HAVE_LIBGPM */
 
@@ -225,7 +227,7 @@
 /* #undef HAVE_CLONE */
 
 /* */
-/* #undef HAVE_PTHREADS */
+/* #define HAVE_PTHREADS 1 */
 
 /* */
 /* #undef HAVE_SSL */

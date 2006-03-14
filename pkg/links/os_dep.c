@@ -1092,11 +1092,67 @@ int start_thread(void (*fn)(void *, int), void *ptr, int l)
 	return p[0];
 }
 
+#elif defined(JOS64_THREADS)
+
+#include <inc/lib.h>
+
+struct lthread_arg
+{
+    void (*fn)(void *arg, int wfd) ;
+    void *arg ;     
+    int wfd ;
+} ;
+
+static void 
+lthread_wrap(void *arg)
+{
+    struct lthread_arg *a = (struct lthread_arg *) arg ;
+    printf("IN THREAD WRAP!!!!!!!!!!!!!\n") ;
+    a->fn(a->arg, a->wfd) ;
+    printf("END THREAD WRAP!!!!!!!!!!!!!\n") ;
+    write(a->wfd, "x", 1);
+    close(a->wfd) ;
+}
+
+static int
+lthread_start(void (*fn)(void *arg, int wfd), void *arg)
+{
+    int r ;
+    struct cobj_ref t;
+    int fd[2] ;
+    
+    if ((r = pipe(fd)) < 0)
+        return r ;
+    
+    fcntl(fd[0], F_SETFL, O_NONBLOCK);
+    fcntl(fd[1], F_SETFL, O_NONBLOCK);
+    
+    struct lthread_arg *larg = malloc(sizeof(struct lthread_arg)) ;
+    larg->fn = fn ;
+    larg->arg = arg ;
+    larg->wfd = fd[1] ;    
+    
+    r = thread_create(start_env->proc_container, &lthread_wrap,
+                      larg, &t, "links thread");
+
+
+    if (r < 0)
+        return -1 ;
+    return fd[0] ;
+}
+
+int start_thread(void (*fn)(void *, int), void *ptr, int l)
+{
+    return lthread_start(fn, ptr) ;   
+}
+
 #else /* HAVE_BEGINTHREAD */
 
 int start_thread(void (*fn)(void *, int), void *ptr, int l)
 {
-	int p[2];
+	printf("start_thread: ...\n") ;
+    
+    int p[2];
 	int f;
 	if (c_pipe(p) < 0) return -1;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
