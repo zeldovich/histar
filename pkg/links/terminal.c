@@ -350,16 +350,24 @@ void in_term(struct terminal *term)
 	struct event *ev;
 	int r;
 	unsigned char *iq;
-	if (!(iq = mem_realloc(term->input_queue, term->qlen + ALLOC_GR))) {
+	
+    if (!(iq = mem_realloc(term->input_queue, term->qlen + ALLOC_GR))) {
 		destroy_terminal(term);
 		return;
 	}
 	term->input_queue = iq;
-	if ((r = read(term->fdin, iq + term->qlen, ALLOC_GR)) <= 0) {
+	if ((r = read(term->fdin, iq + term->qlen, ALLOC_GR)) < 0) {
 		if (r == -1 && errno != ECONNRESET) error("ERROR: error %d on terminal: could not read event", errno);
 		destroy_terminal(term);
 		return;
 	}
+    else if(r == 0) {  // SBW
+        return;
+    }
+    
+    
+    
+    
 	term->qlen += r;
 	test_queue:
 	if (term->qlen < sizeof(struct event)) return;
