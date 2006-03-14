@@ -29,6 +29,12 @@ kobject_h2k(struct kobject_hdr *kh)
     return (struct kobject *) kh;
 }
 
+const struct kobject *
+kobject_ch2ck(const struct kobject_hdr *kh)
+{
+    return (const struct kobject *) kh;
+}
+
 static struct kobject *
 kobject_const_h2k(const struct kobject_hdr *kh)
 {

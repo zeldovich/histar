@@ -103,6 +103,8 @@ struct kobject *
      kobject_get_snapshot(struct kobject_hdr *kp);
 struct kobject *
      kobject_h2k(struct kobject_hdr *kh);
+const struct kobject *
+     kobject_ch2ck(const struct kobject_hdr *kh);
 
 void kobject_incref(const struct kobject_hdr *kp);
 void kobject_decref(const struct kobject_hdr *kp);

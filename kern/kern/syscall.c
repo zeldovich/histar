@@ -64,6 +64,28 @@ alloc_set_name(struct kobject_hdr *ko, const char *name)
     }
 }
 
+static void
+alloc_ulabel(struct ulabel *ul, const struct Label **lp,
+	     const struct kobject_hdr *inherit_from)
+{
+    if (ul) {
+	struct Label *nl;
+	check(label_alloc(&nl, LB_LEVEL_UNDEF));
+	check(ulabel_to_label(ul, nl));
+	*lp = nl;
+    } else if (inherit_from) {
+	if (inherit_from->ko_type == kobj_label)
+	    *lp = &kobject_ch2ck(inherit_from)->lb;
+	else
+	    check(kobject_get_label(inherit_from, kolabel_contaminate, lp));
+
+	if (!*lp)
+	    syscall_error(-E_INVAL);
+    } else {
+	syscall_error(-E_INVAL);
+    }
+}
+
 // Syscall handlers
 static void
 sys_cons_puts(const char *s, uint64_t size)
@@ -102,9 +124,8 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     check(label_set(cl, user_root_handle, 0));
     check(label_compare(cur_th_label, cl, label_leq_starlo));
 
-    struct Label *l;
-    check(label_alloc(&l, LB_LEVEL_UNDEF));
-    check(ulabel_to_label(ul, l));
+    const struct Label *l;
+    alloc_ulabel(ul, &l, 0);
 
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, &ko));
@@ -169,14 +190,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
     check(container_find(&parent, parent_ct, iflow_rw));
 
     const struct Label *l;
-    if (ul) {
-	struct Label *nl;
-	check(label_alloc(&nl, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, nl));
-	l = nl;
-    } else {
-	l = cur_th_label;
-    }
+    alloc_ulabel(ul, &l, &parent->ct_ko);
 
     struct Container *c;
     check(container_alloc(l, &c));
@@ -282,9 +296,8 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
 
-    struct Label *l_send;
-    check(label_alloc(&l_send, LB_LEVEL_UNDEF));
-    check(ulabel_to_label(ul_send, l_send));
+    const struct Label *l_send;
+    alloc_ulabel(ul_send, &l_send, 0);
     check(label_compare(cur_th_label, l_send, label_leq_starlo));
     check(label_compare(l_send, cur_th_clearance, label_leq_starlo));
 
@@ -293,9 +306,8 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     check(label_max(cur_th_label, cur_th_clearance,
 		    clearance_bound, label_leq_starhi));
 
-    struct Label *clearance;
-    check(label_alloc(&clearance, LB_LEVEL_UNDEF));
-    check(ulabel_to_label(ul_recv, clearance));
+    const struct Label *clearance;
+    alloc_ulabel(ul_recv, &clearance, 0);
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
 
     struct Gate *g;
@@ -351,13 +363,8 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_alloc(&label_bound, LB_LEVEL_UNDEF));
     check(label_max(gt_label, cur_th_label, label_bound, label_leq_starhi));
 
-    struct Label *new_label;
-    if (ul == 0) {
-	new_label = label_bound;
-    } else {
-	check(label_alloc(&new_label, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, new_label));
-    }
+    const struct Label *new_label;
+    alloc_ulabel(ul, &new_label, &label_bound->lb_ko);
     check(label_compare(label_bound, new_label, label_leq_starlo));
 
     // Same as the gate clearance except for caller's * handles
@@ -367,14 +374,7 @@ sys_gate_enter(struct cobj_ref gt,
 		    clearance_bound, label_leq_starhi_rhs_0_except_star));
 
     const struct Label *new_clearance;
-    if (uclearance == 0) {
-	new_clearance = gt_clearance;
-    } else {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(uclearance, tmp));
-	new_clearance = tmp;
-    }
+    alloc_ulabel(uclearance, &new_clearance, &gt_clearance->lb_ko);
     check(label_compare(new_clearance, clearance_bound, label_leq_starhi));
 
     // Check that we aren't exceeding the clearance in the end
@@ -404,24 +404,10 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 	check(-E_INVAL);
 
     const struct Label *new_label;
-    if (ul) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, tmp));
-	new_label = tmp;
-    } else {
-	new_label = cur_th_label;
-    }
+    alloc_ulabel(ul, &new_label, &cur_th_label->lb_ko);
 
     const struct Label *new_clearance;
-    if (uclear) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(uclear, tmp));
-	new_clearance = tmp;
-    } else {
-	new_clearance = cur_th_clearance;
-    }
+    alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko);
 
     check(label_compare(cur_th_label, new_label, label_leq_starlo));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi));
@@ -482,9 +468,8 @@ sys_self_set_as(struct cobj_ref as_ref)
 static void
 sys_self_set_label(struct ulabel *ul)
 {
-    struct Label *l;
-    check(label_alloc(&l, LB_LEVEL_UNDEF));
-    check(ulabel_to_label(ul, l));
+    const struct Label *l;
+    alloc_ulabel(ul, &l, 0);
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(label_compare(l, cur_th_clearance, label_leq_starlo));
@@ -494,9 +479,8 @@ sys_self_set_label(struct ulabel *ul)
 static void
 sys_self_set_clearance(struct ulabel *uclear)
 {
-    struct Label *clearance;
-    check(label_alloc(&clearance, LB_LEVEL_UNDEF));
-    check(ulabel_to_label(uclear, clearance));
+    const struct Label *clearance;
+    alloc_ulabel(uclear, &clearance, 0);
 
     struct Label *clearance_bound;
     check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
@@ -542,14 +526,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
     check(container_find(&c, ct, iflow_rw));
 
     const struct Label *l;
-    if (ul) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, tmp));
-	l = tmp;
-    } else {
-	l = cur_th_label;
-    }
+    alloc_ulabel(ul, &l, &c->ct_ko);
 
     struct Segment *sg;
     check(segment_alloc(l, &sg));
@@ -571,14 +548,7 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
     check(cobj_get(seg, kobj_segment, &src, iflow_read));
 
     const struct Label *l;
-    if (ul) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, tmp));
-	l = tmp;
-    } else {
-	l = cur_th_label;
-    }
+    alloc_ulabel(ul, &l, &c->ct_ko);
 
     struct Segment *sg;
     check(segment_copy(&src->sg, l, &sg));
@@ -622,14 +592,7 @@ sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
     check(container_find(&c, container, iflow_rw));
 
     const struct Label *l;
-    if (ul) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, tmp));
-	l = tmp;
-    } else {
-	l = cur_th_label;
-    }
+    alloc_ulabel(ul, &l, &c->ct_ko);
 
     struct Address_space *as;
     check(as_alloc(l, &as));
@@ -701,14 +664,7 @@ sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf, kobject_id_t *
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
 
     const struct Label *l;
-    if (ul) {
-	struct Label *tmp;
-	check(label_alloc(&tmp, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, tmp));
-	l = tmp;
-    } else {
-	l = cur_th_label;
-    }
+    alloc_ulabel(ul, &l, &cur_th_label->lb_ko);
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(check_user_access(buf, MLT_BUF_SIZE, 0));
