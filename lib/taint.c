@@ -81,6 +81,8 @@ taint_cow(void)
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (!(uas.ents[i].flags & SEGMAP_WRITE))
 	    continue;
+	if (uas.ents[i].segment.container == mlt_ct)
+	    continue;
 
 	ERRCHECK(sys_obj_get_label(uas.ents[i].segment, &obj_label));
 
@@ -103,7 +105,10 @@ taint_cow(void)
 	if (id < 0)
 	    panic("taint_cow: cannot copy segment: %s", e2s(id));
 
-	uas.ents[i].segment = COBJ(mlt_ct, id);
+	uint64_t old_id = uas.ents[i].segment.object;
+	for (uint32_t j = 0; j < uas.nent; j++)
+	    if (uas.ents[j].segment.object == old_id)
+		uas.ents[j].segment = COBJ(mlt_ct, id);
     }
 
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));

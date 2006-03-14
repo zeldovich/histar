@@ -114,6 +114,8 @@ do_fork()
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].flags == 0)
 	    continue;
+	if (uas.ents[i].segment.container == proc_ct)
+	    continue;
 
 	// XXX the fd refcounts are not garbage-collected on failure..
 	void *va = uas.ents[i].va;
@@ -138,7 +140,10 @@ do_fork()
 				      secret_label.to_ulabel(), &namebuf[0]);
 	error_check(id);
 
-	uas.ents[i].segment = COBJ(proc_ct, id);
+	uint64_t old_id = uas.ents[i].segment.object;
+	for (uint32_t j = 0; j < uas.nent; j++)
+	    if (uas.ents[j].segment.object == old_id)
+		uas.ents[j].segment = COBJ(proc_ct, id);
     }
 
     // Construct the new AS object and a non-running thread
