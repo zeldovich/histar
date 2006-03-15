@@ -41,7 +41,7 @@ gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,
 	tgt_clear.merge_with(dr, label::max, label::leq_starlo);
 
     if (cb)
-	cb(cs, ds, dr, arg);
+	cb(cs, ds, dr, &tgt_label, &tgt_clear, arg);
 
     if (label_debug)
 	cprintf("gate_invoke: label %s, clearance %s\n",

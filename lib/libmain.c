@@ -56,11 +56,6 @@ setup_env(uint64_t envaddr)
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
 
-    int64_t id = sys_mlt_create(start_env->proc_container, "dynamic taint");
-    if (id < 0)
-	panic("libmain: cannot create dynamic taint MLT: %s", e2s(id));
-    start_env->taint_mlt = COBJ(start_env->proc_container, id);
-
     r = utrap_init();
     if (r < 0)
 	panic("libmain: cannot setup utrap: %s", e2s(r));

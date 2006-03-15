@@ -4,7 +4,6 @@
 #include <inc/assert.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
-#include <inc/mlt.h>
 #include <inc/stdio.h>
 
 enum {
@@ -39,7 +38,7 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     } while (0)
 
 void
-taint_cow(void)
+taint_cow(uint64_t mlt_like_container)
 {
     uint64_t cur_ents[taint_cow_label_ents];
     uint64_t obj_ents[taint_cow_label_ents];
@@ -68,10 +67,12 @@ taint_cow(void)
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
-    struct cobj_ref mlt = start_env_ro->taint_mlt;
-    uint8_t buf[MLT_BUF_SIZE];
-    uint64_t mlt_ct;
-    ERRCHECK(sys_mlt_put(mlt, &obj_label, &buf[0], &mlt_ct));
+    int64_t mlt_ct_id = sys_container_alloc(mlt_like_container, &obj_label,
+					    "taint_cow container");
+    ERRCHECK(mlt_ct_id);
+
+    // To placate gcc which is obsessed with signedness
+    uint64_t mlt_ct = mlt_ct_id;
 
     struct u_segment_mapping uas_ents[taint_cow_as_ents];
     struct u_address_space uas =

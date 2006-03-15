@@ -19,7 +19,8 @@ extern "C" {
 static void __attribute__((noreturn))
 return_stub(struct jos_jmp_buf *jb)
 {
-    taint_cow();
+    struct gate_call_data *gcd = (struct gate_call_data *) UTLS;
+    taint_cow(gcd->mlt_like_container);
     jos_longjmp(jb, 1);
 }
 
@@ -45,8 +46,34 @@ return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
 				 clear.to_ulabel(),
 				 label.to_ulabel(),
 				 "return gate");
-    error_check(id);
+    if (id < 0)
+	throw error(id, "return_setup: creating return gate");
+
     *g = COBJ(ct, id);
+}
+
+static void
+make_mlt_like_ct(label *cs, label *ds, label *dr,
+		 label *tgt_s, label *tgt_r,
+		 void *arg)
+{
+    uint64_t *ctp = (uint64_t *) arg;
+
+    label mlt_like_label(*tgt_s);
+    label thread_label;
+    thread_cur_label(&thread_label);
+
+    // XXX should grant a preset handle at * so others cannot use it
+    mlt_like_label.merge_with(&thread_label, label::max, label::leq_starlo);
+    mlt_like_label.transform(label::star_to, 1);
+
+    int64_t id = sys_container_alloc(start_env->proc_container,
+				     mlt_like_label.to_ulabel(),
+				     "gate call mlt-like thing");
+    if (id < 0)
+	throw error(id, "make_mlt_like_ct: creating container");
+
+    *ctp = id;
 }
 
 void
@@ -73,7 +100,8 @@ gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
     d->return_gate = return_gate;
 
     if (jos_setjmp(&back_from_call) == 0)
-	gate_invoke(gate, cs, &new_ds, dr, 0, 0);
+	gate_invoke(gate, cs, &new_ds, dr,
+		    &make_mlt_like_ct, &d->mlt_like_container);
 
     if (gcd_param)
 	memcpy(gcd_param, d, sizeof(*d));

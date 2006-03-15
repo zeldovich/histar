@@ -118,14 +118,16 @@ gatesrv_return::ret_tls(label *cs, label *ds, label *dr)
 }
 
 void
-gatesrv_return::cleanup_stub(label *cs, label *ds, label *dr, void *arg)
+gatesrv_return::cleanup_stub(label *cs, label *ds, label *dr,
+			     label *tgt_s, label *tgt_r, void *arg)
 {
     gatesrv_return *r = (gatesrv_return *) arg;
-    r->cleanup(cs, ds, dr);
+    r->cleanup(cs, ds, dr, tgt_s, tgt_r);
 }
 
 void
-gatesrv_return::cleanup(label *cs, label *ds, label *dr)
+gatesrv_return::cleanup(label *cs, label *ds, label *dr,
+			label *tgt_s, label *tgt_r)
 {
     if (cs)
 	delete cs;
@@ -133,6 +135,21 @@ gatesrv_return::cleanup(label *cs, label *ds, label *dr)
 	delete ds;
     if (dr)
 	delete dr;
+
+    // New scope so that mlt_like_label gets freed
+    {
+	label mlt_like_label(*tgt_s);
+	mlt_like_label.transform(label::star_to, 1);
+
+	gate_call_data *gcd = (gate_call_data *) tls_;
+	int64_t id = sys_container_alloc(gcd->mlt_like_container,
+					 mlt_like_label.to_ulabel(),
+					 "gate return mlt-like thing");
+	if (id < 0)
+	    throw error(id, "gatesrv_return: allocating mlt-like thing");
+
+	gcd->mlt_like_container = id;
+    }
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;

@@ -21,8 +21,10 @@ private:
     void ret_tls(label *cs, label *ds, label *dr)
 	__attribute__((noreturn));
 
-    static void cleanup_stub(label *cs, label *ds, label *dr, void *arg);
-    void cleanup(label *cs, label *ds, label *dr);
+    static void cleanup_stub(label *cs, label *ds, label *dr,
+			     label *tgt_s, label *tgt_r, void *arg);
+    void cleanup(label *cs, label *ds, label *dr,
+		 label *tgt_s, label *tgt_r);
 
     struct cobj_ref rgate_;
     uint64_t thread_ct_;

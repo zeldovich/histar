@@ -77,10 +77,6 @@ do_fork()
 			      integrity_label.to_ulabel(),
 			      "exit status"));
 
-    // Create an MLT for contaminations
-    int64_t mlt_id = sys_mlt_create(proc_ct, "dynamic taint");
-    error_check(mlt_id);
-
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
     struct jos_jmp_buf jb;
     if (jos_setjmp(&jb) != 0) {
@@ -93,7 +89,6 @@ do_fork()
 	start_env->proc_container = proc_ct;
 
 	start_env->process_status_seg = exit_status_seg;
-	start_env->taint_mlt = COBJ(proc_ct, mlt_id);
 
 	start_env->process_grant = process_grant;
 	start_env->process_taint = process_taint;

@@ -39,7 +39,6 @@ typedef struct {
     uint64_t shared_container;
     uint64_t root_container;
 
-    struct cobj_ref taint_mlt;
     struct cobj_ref process_status_seg;
 
     // Handles that ensure process integrity
