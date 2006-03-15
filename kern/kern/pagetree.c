@@ -230,11 +230,9 @@ pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
     assert(ent != 0);
     if (ent->page)
 	pagetree_decref(ent->page);
-
-    if (page) {
-        ent->page = page;
-        pagetree_incref(page);
-    }
+    if (page)
+	pagetree_incref(page);
+    ent->page = page;
 
     return 0;
 }
