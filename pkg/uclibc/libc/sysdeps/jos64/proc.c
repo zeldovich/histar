@@ -13,7 +13,7 @@ getpid()
 pid_t
 getppid()
 {
-    return 0;
+    return start_env->ppid;
 }
 
 int
@@ -36,23 +36,10 @@ getpgid(pid_t pid)
     return -1;
 }
 
-int
-setpgrp(void)
-{
-    return setpgid(0, 0);
-}
-
 pid_t
 getpgrp(void)
 {
     return getpgid(0);
-}
-
-pid_t
-waitpid(pid_t pid, int *wait_stat, int options)
-{
-    set_enosys();
-    return -1;
 }
 
 pid_t

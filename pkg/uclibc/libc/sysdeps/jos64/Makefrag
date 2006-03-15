@@ -10,5 +10,7 @@ UCLIBC_JOS64_CSRC := \
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 
 LIBC_SRCFILES += \
-	pkg/uclibc/libc/sysdeps/linux/common/time.c
+	pkg/uclibc/libc/sysdeps/linux/common/time.c \
+	pkg/uclibc/libc/sysdeps/linux/common/waitpid.c \
+	pkg/uclibc/libc/sysdeps/linux/common/setpgrp.c
 
