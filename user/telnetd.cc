@@ -13,6 +13,18 @@ extern "C" {
 
 #include <inc/spawn.hh>
 
+enum {
+    T_IAC = 255,
+    T_WILL = 251,
+};
+
+enum {
+    T_ECHO = 1,
+    T_SGA = 3,
+};
+
+static int enable_telnetopts = 0;
+
 static void
 telnet_server(void)
 {
@@ -41,13 +53,19 @@ telnet_server(void)
             continue;
         }
 
+	if (enable_telnetopts) {
+	    char telnetopts[] = { T_IAC, T_WILL, T_ECHO,
+				  T_IAC, T_WILL, T_SGA };
+	    write(ss, &telnetopts[0], sizeof(telnetopts));
+	}
+
 	fd_set_isatty(ss, 1);
 
 	struct fs_inode sh;
-	const char *prog = "/bin/shell";
+	const char *prog = "/bin/jshell";
 	r = fs_namei(prog, &sh);
 	if (r < 0) {
-	    printf("cannot find shell: %s\n", e2s(r));
+	    printf("cannot find %s: %s\n", prog, e2s(r));
 	    close(ss);
 	    continue;
 	}
