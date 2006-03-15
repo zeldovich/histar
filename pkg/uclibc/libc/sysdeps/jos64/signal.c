@@ -3,6 +3,7 @@
 #include <inc/stdio.h>
 #include <errno.h>
 #include <signal.h>
+#include <inc/signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <setjmp.h>
@@ -14,6 +15,8 @@
 
 #include <bits/unimpl.h>
 #include <bits/signalgate.h>
+
+static int signal_debug = 0;
 
 // BSD compat
 const char *sys_signame[_NSIG];
@@ -176,27 +179,34 @@ sigsuspend(const sigset_t *mask) __THROW
 int
 kill(pid_t pid, int sig) __THROW
 {
-    pid_t self = getpid();
-
     siginfo_t si;
     memset(&si, 0, sizeof(si));
-    si.si_pid = self;
+    si.si_pid = getpid();
     si.si_signo = sig;
+    return kill_siginfo(pid, &si);
+}
+
+int
+kill_siginfo(pid_t pid, siginfo_t *si)
+{
+    pid_t self = getpid();
 
     if (pid == self) {
-	signal_dispatch(&si);
+	signal_dispatch(si);
 	return 0;
     }
 
     uint64_t ct = pid;
     int64_t gate_id = container_find(ct, kobj_gate, "signal");
     if (gate_id < 0) {
-	cprintf("kill: cannot find signal gate in %ld: %s\n", ct, e2s(gate_id));
+	if (signal_debug)
+	    cprintf("kill: cannot find signal gate in %ld: %s\n",
+		    ct, e2s(gate_id));
 	__set_errno(ESRCH);
 	return -1;
     }
 
-    return signal_gate_send(COBJ(ct, gate_id), &si);
+    return signal_gate_send(COBJ(ct, gate_id), si);
 }
 
 int
