@@ -5,7 +5,6 @@ OBJDIRS += pkg/links
 
 LINKS_SRCFILES :=	\
 	pkg/links/af_unix.c	\
-	pkg/links/beos.c	\
 	pkg/links/bfu.c	\
 	pkg/links/bookmarks.c	\
 	pkg/links/cache.c	\
