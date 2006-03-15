@@ -67,7 +67,7 @@ typedef __u_int __mode_t;		/* Type of file attribute bitmasks.  */
 typedef __u_int __nlink_t;		/* Type of file link counts.  */
 typedef long int __off_t;		/* Type of file sizes and offsets.  */
 typedef __quad_t __loff_t;		/* Type of file sizes and offsets.  */
-typedef __u_long __pid_t;		/* Type of process identifications.  */
+typedef long __pid_t;			/* Type of process identifications.  */
 typedef int __ssize_t;			/* Type of a byte count, or error.  */
 typedef __u_long __rlim_t;		/* Type of resource counts.  */
 typedef __u_quad_t __rlim64_t;		/* Type of resource counts (LFS).  */
