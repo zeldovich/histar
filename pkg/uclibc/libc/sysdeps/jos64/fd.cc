@@ -720,17 +720,17 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
     }
 
     if (cmd == F_SETFL) {
-        if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
-            return r ;
+	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+	    return r;
         
-        int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK) ;
-        arg &= mask ;
-        fd->fd_omode |= arg ;
-        return 0 ;
+	int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK);
+	fd->fd_omode &= ~mask;
+	fd->fd_omode |= (arg & mask);
+	return 0;
     }
 
     if (cmd == F_GETFL) {
-        return fd->fd_omode ;
+        return fd->fd_omode;
     }
 
     cprintf("Unimplemented fcntl call: %d\n", cmd);
