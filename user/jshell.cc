@@ -97,16 +97,21 @@ print_cobj(uint64_t ct, uint64_t slot)
 static void
 builtin_list_container(int ac, char **av)
 {
-    if (ac != 1) {
-	printf("Usage: lc <container-id>\n");
+    if (ac != 0 && ac != 1) {
+	printf("Usage: lc [container-id]\n");
 	return;
     }
 
+    int r;
     uint64_t ct;
-    int r = strtou64(av[0], 0, 10, &ct);
-    if (r < 0) {
-	printf("bad number: %s\n", av[0]);
-	return;
+    if (ac == 1) {
+	r = strtou64(av[0], 0, 10, &ct);
+	if (r < 0) {
+	    printf("bad number: %s\n", av[0]);
+	    return;
+	}
+    } else {
+	ct = start_env->fs_cwd.obj.object;
     }
 
     printf("Container %ld:\n", ct);
