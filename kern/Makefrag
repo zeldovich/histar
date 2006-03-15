@@ -63,7 +63,7 @@ KERN_BINFILES := \
 	user/telnetd \
 	user/init \
 	user/httpd \
-	user/shell \
+	user/jshell \
 	user/ls \
 	user/asprint \
 	user/gl \
