@@ -104,10 +104,12 @@ init_procs(int cons, uint64_t h_root)
     // admin server gets { * }
     spawn_fs(cons, "/bin/admind", &h_adm_buf[0], &ds_star);
 
+    // auth server has no higher privilege
     spawn_fs(cons, "/bin/authd", 0, &ds_none);
 
     //spawn_fs(cons, "/bin/jshell", 0, &ds_hroot);
-    spawn_fs(cons, "/bin/jshell", 0, &ds_none);
+    //spawn_fs(cons, "/bin/jshell", 0, &ds_none);
+    spawn_fs(cons, "/bin/ksh", 0, &ds_none);
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
     //spawn_fs(cons, "/bin/httpd", 0, &ds_none);
