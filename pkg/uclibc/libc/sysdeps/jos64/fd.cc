@@ -79,9 +79,10 @@ fd_handles_init(void)
 
     for (int i = 0; i < MAXFD; i++) {
 	struct Fd *fd;
-	int r = fd_lookup(i, &fd, 0);
+	int r = fd_lookup(i, &fd, 0, 0);
 	if (r < 0)
 	    continue;
+
 	fd_handles[i].fd_grant = fd->fd_grant;
 	fd_handles[i].fd_taint = fd->fd_taint;
     }
@@ -113,7 +114,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 
 	for (i = 0; i < MAXFD; i++) {
 		fd = INDEX2FD(i);
-		int r = segment_lookup(fd, 0, 0);
+		int r = segment_lookup(fd, 0, 0, 0);
 		if (r < 0)
 			return r;
 		if (r == 0)
@@ -172,7 +173,7 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 // Errors are:
 //	-E_INVAL: fdnum was either not in range or not mapped.
 int
-fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
+fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flagsp)
 {
 	if (fdnum < 0 || fdnum >= MAXFD) {
 		if (debug)
@@ -181,7 +182,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp)
 	}
 	struct Fd *fd = INDEX2FD(fdnum);
 
-	int r = segment_lookup(fd, objp, 0);
+	int r = segment_lookup(fd, objp, 0, flagsp);
 	if (r < 0)
 		return r;
 	if (r == 0) {
@@ -211,7 +212,7 @@ fd_close(struct Fd *fd)
 		goto out;
 
 	struct cobj_ref fd_seg;
-	r = segment_lookup(fd, &fd_seg, 0);
+	r = segment_lookup(fd, &fd_seg, 0, 0);
 	if (r < 0)
 		return r;
 	if (r == 0)
@@ -243,7 +244,7 @@ fd_move(int fdnum, uint64_t container)
 {
     struct Fd *fd;
     struct cobj_ref oldseg;
-    int r = fd_lookup(fdnum, &fd, &oldseg);
+    int r = fd_lookup(fdnum, &fd, &oldseg, 0);
     if (r < 0)
 	return r;
 
@@ -261,7 +262,7 @@ fd_move(int fdnum, uint64_t container)
 
     struct cobj_ref newseg = COBJ(container, oldseg.object);
     for (int i = 0; i < MAXFD; i++) {
-	r = fd_lookup(i, &fd, &oldseg);
+	r = fd_lookup(i, &fd, &oldseg, 0);
 	if (r < 0)
 	    continue;
 
@@ -284,6 +285,12 @@ fd_give_up_privilege(int fdnum)
 {
     thread_drop_star(fd_handles[fdnum].fd_taint);
     thread_drop_star(fd_handles[fdnum].fd_grant);
+}
+
+int
+fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
+{
+    return segment_map(fd_seg, fd_flags, (void **) &fd, 0);
 }
 
 
@@ -321,7 +328,7 @@ close(int fdnum) __THROW
 	struct Fd *fd;
 	int r;
 
-	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 		return r;
 	else
 		return fd_close(fd);
@@ -345,7 +352,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
 {
     struct Fd *oldfd;
     struct cobj_ref fd_seg;
-    int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
+    int r = fd_lookup(oldfdnum, &oldfd, &fd_seg, 0);
     if (r < 0) {
 	__set_errno(EBADF);
 	return -1;
@@ -376,7 +383,7 @@ int
 dup(int fdnum) __THROW
 {
     for (int i = 0; i < MAXFD; i++) {
-	int r = fd_lookup(i, 0, 0);
+	int r = fd_lookup(i, 0, 0, 0);
 	if (r < 0)
 	    return dup2(fdnum, i);
     }
@@ -390,7 +397,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
 {
 	struct Fd *oldfd;
 	struct cobj_ref fd_seg;
-	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg);
+	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg, 0);
 	if (r < 0)
 		return r;
 
@@ -417,7 +424,7 @@ read(int fdnum, void *buf, size_t n) __THROW
 	struct Dev *dev;
 	struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
@@ -453,7 +460,7 @@ write(int fdnum, const void *buf, size_t n) __THROW
 	struct Dev *dev;
 	struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
@@ -476,7 +483,7 @@ bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -490,7 +497,7 @@ connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -504,7 +511,7 @@ listen(int fdnum, int backlog) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -518,7 +525,7 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	    return r;
 
@@ -532,7 +539,7 @@ getsockname(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
         return r;
 
@@ -546,7 +553,7 @@ getpeername(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
         return r;
 
@@ -562,7 +569,7 @@ setsockopt(int fdnum, int level, int optname, const void *optval,
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
         return r;
 
@@ -577,7 +584,7 @@ getsockopt(int fdnum, int level, int optname,void *optval,
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
         return r;
 
@@ -597,8 +604,8 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         struct Fd *fd;
         struct Dev *dev;
         int r ;
-        if ((r = fd_lookup(fileno(stdin), &fd, 0)) < 0
-        || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+        if ((r = fd_lookup(fileno(stdin), &fd, 0, 0)) < 0
+	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
             cprintf("select: stdin select failed\n") ;
             return maxfd ;
         }
@@ -617,7 +624,7 @@ send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
     {
 	__set_errno(EBADF);
@@ -639,7 +646,7 @@ recv(int fdnum, void *mem, size_t len, int flags) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
     {
 	__set_errno(EBADF);
@@ -661,7 +668,7 @@ fstat(int fdnum, struct stat *buf) __THROW
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
     {
 	cprintf("fstat(%d): %s\n", fdnum, e2s(r));
@@ -686,41 +693,54 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
     struct flock *flock;
     struct Fd *fd;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+    struct cobj_ref fd_obj;
+    uint64_t fd_flags;
+
+    if ((r = fd_lookup(fdnum, &fd, &fd_obj, &fd_flags)) < 0) {
 	__set_errno(EBADF);
 	return -1;
     }
 
     va_start(ap, cmd);
     if (cmd == F_DUPFD || cmd == F_GETFD || cmd == F_SETFD) {
-	   arg = va_arg(ap, long);
+	arg = va_arg(ap, long);
     } else if (cmd == F_GETFL || cmd == F_SETFL) { 
-        arg = va_arg(ap, long);
-	    // F_GETLK, F_SETLK and F_SETLKW take a struct flock for an arg
-        // but not F_GETFL and F_SETFL...I think.
-        // flock = va_arg(ap, struct flock *);
+	arg = va_arg(ap, long);
+    } else if (cmd == F_GETLK || cmd == F_SETLK || cmd == F_SETLKW) {
+	flock = va_arg(ap, struct flock *);
     }
     va_end(ap);
 
     if (cmd == F_DUPFD) {
     	for (int i = arg; i < MAXFD; i++) {
-    	    r = fd_lookup(i, 0, 0);
+    	    r = fd_lookup(i, 0, 0, 0);
     	    if (r < 0)
-    		  return dup2(fdnum, i);
+		return dup2(fdnum, i);
     	}
     
     	__set_errno(EMFILE);
     	return -1;
     }
 
-    if (cmd == F_SETFD || cmd == F_GETFD) {
-    	// XXX
-    	cprintf("__libc_fcntl: ignoring F_SETFD/F_GETFD\n");
-    	return 0;
+    if (cmd == F_GETFD)
+	return (fd_flags & SEGMAP_CLOEXEC) ? FD_CLOEXEC : 0;
+
+    if (cmd == F_SETFD) {
+	fd_flags &= ~SEGMAP_CLOEXEC;
+	if ((arg & FD_CLOEXEC))
+	    fd_flags |= SEGMAP_CLOEXEC;
+
+	r = fd_setflags(fd, fd_obj, fd_flags);
+	if (r < 0) {
+	    __set_errno(EINVAL);
+	    return -1;
+	}
+
+	return 0;
     }
 
     if (cmd == F_SETFL) {
-	if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 	    return r;
         
 	int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK);
@@ -750,7 +770,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
     int r;
     struct Fd *fd;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
 	__set_errno(EBADF);
 	return -1;
     }
@@ -795,7 +815,7 @@ fd_set_isatty(int fdnum, int isit)
     int r;
     struct Fd *fd;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 	return r;
 
     fd->fd_isatty = isit;
@@ -810,7 +830,7 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     struct Fd *fd;
     struct __kernel_termios *k_termios;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0) {
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
     	__set_errno(EBADF);
     	return -1;
     }
@@ -857,7 +877,7 @@ __getdents (int fdnum, struct dirent *buf, size_t nbytes)
     struct Fd *fd;
     struct Dev *dev;
 
-    if ((r = fd_lookup(fdnum, &fd, 0)) < 0
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
     {
 	__set_errno(EBADF);

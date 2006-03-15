@@ -41,7 +41,7 @@ setup_env(uint64_t envaddr)
     __progname = argv[0];
 
     struct cobj_ref start_env_seg;
-    int r = segment_lookup(start_env, &start_env_seg, 0);
+    int r = segment_lookup(start_env, &start_env_seg, 0, 0);
     if (r < 0 || r == 0)
 	panic("libmain: cannot find start_env segment: %s", e2s(r));
 

@@ -99,7 +99,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    error_check(fd_move(fdnum[i], c_top));
 
 	struct Fd *fd;
-	error_check(fd_lookup(fdnum[i], &fd, 0));
+	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
 	error_check(dup2_as(fdnum[i], i, e.te_as));
 	thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
 	if (!fd->fd_immutable)

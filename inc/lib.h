@@ -23,7 +23,8 @@ int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
 int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
-int	segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage);
+int	segment_lookup(void *va, struct cobj_ref *seg,
+		       uint64_t *npage, uint64_t *flagsp);
 int	segment_lookup_obj(uint64_t oid, void **vap);
 void	segment_set_default_label(struct ulabel *l);
 struct ulabel *segment_get_default_label(void);

@@ -136,7 +136,7 @@ gatesrv_return::cleanup(label *cs, label *ds, label *dr)
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;
-    error_check(segment_lookup(stack_, &stackseg, 0));
+    error_check(segment_lookup(stack_, &stackseg, 0, 0));
     error_check(segment_unmap(stack_));
     error_check(sys_obj_unref(stackseg));
     error_check(sys_obj_unref(thread_self));

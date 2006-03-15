@@ -115,7 +115,7 @@ segment_unmap(void *va)
 }
 
 int
-segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
+segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp)
 {
     struct cobj_ref as_ref;
     int r = sys_self_get_as(&as_ref);
@@ -137,6 +137,8 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage)
 		*seg = cache_uas.ents[i].segment;
 	    if (npage)
 		*npage = (va - va_start) / PGSIZE;
+	    if (flagsp)
+		*flagsp = cache_uas.ents[i].flags;
 	    as_mutex_unlock();
 	    return 1;
 	}
