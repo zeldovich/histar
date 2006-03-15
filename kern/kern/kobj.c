@@ -607,11 +607,17 @@ kobject_initial(const struct kobject *ko)
     return 0;
 }
 
+static int
+kobject_reclaim_check(void)
+{
+    // A rather simple heuristic for when to clean up
+    return (page_stats.pages_avail < global_npages / 4);
+}
+
 static void
 kobject_reclaim(void)
 {
-    // A rather simple heuristic for when to clean up
-    if (page_stats.pages_avail > global_npages / 4)
+    if (!kobject_reclaim_check())
 	return;
 
     const struct Thread *t = cur_thread;
@@ -631,6 +637,13 @@ kobject_reclaim(void)
 		    ko->hdr.ko_id, ko->hdr.ko_name);
 
 	kobject_swapout(ko);
+    }
+
+    if (kobject_reclaim_check()) {
+	cprintf("kobject_reclaim: unable to reclaim much memory\n");
+	cprintf("kobject_reclaim: used %ld avail %ld alloc %ld fail %ld\n",
+		page_stats.pages_used, page_stats.pages_avail,
+		page_stats.allocations, page_stats.failures);
     }
 
     cur_thread = t;
