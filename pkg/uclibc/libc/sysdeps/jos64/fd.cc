@@ -720,11 +720,12 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
     }
 
     if (cmd == F_SETFL) {
-        // XXX: not the correct semantics at all
         if ((r = fd_lookup(fdnum, &fd, 0)) < 0)
             return r ;
+        
+        int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK) ;
+        arg &= mask ;
         fd->fd_omode |= arg ;
-        cprintf("__libc_fcntl: blindly F_SETFL\n");
         return 0 ;
     }
 
