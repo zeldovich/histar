@@ -4,7 +4,7 @@
 #include <bits/unimpl.h>
 
 int
-getrlimit(int resource, struct rlimit *rlim)
+getrlimit(__rlimit_resource_t resource, struct rlimit *rlim)
 {
     set_enosys();
     return -1;
@@ -18,7 +18,7 @@ getrusage(int who, struct rusage *usage)
 }
 
 int
-setrlimit(int resource, const struct rlimit *rlim)
+setrlimit(__rlimit_resource_t resource, const struct rlimit *rlim)
 {
     set_enosys();
     return -1;
