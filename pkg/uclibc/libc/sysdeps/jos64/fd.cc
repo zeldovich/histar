@@ -6,16 +6,18 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <termios.h>
+
 #include <termios/kernel_termios.h>
+#include <bits/unimpl.h>
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
 
-#include <bits/unimpl.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <termios.h>
+#include <string.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -846,14 +848,9 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 	    return -1;
     	}
 
-        if (k_termios) {
-	    k_termios->c_iflag = 0;
-            k_termios->c_oflag = 0;
-            k_termios->c_cflag = 0;
-            k_termios->c_lflag = 0;
-            k_termios->c_line = 0;
-            //cprintf("ioctl: TCGETS: returning bad termios\n") ;
-        }
+	if (k_termios)
+	    memset(k_termios, 0, sizeof(*k_termios));
+
 	return 0;
     }
 
