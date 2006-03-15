@@ -86,6 +86,8 @@ do_fork()
 	if (fork_debug)
 	    cprintf("fork: new thread running\n");
 
+	start_env->ppid = start_env->shared_container;
+
 	start_env->shared_container = top_ct;
 	start_env->proc_container = proc_ct;
 

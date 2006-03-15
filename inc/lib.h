@@ -49,6 +49,8 @@ typedef struct {
     struct fs_inode fs_root;
     struct fs_inode fs_cwd;
 
+    uint64_t ppid;
+
     char args[0];
 } start_env_t;
 

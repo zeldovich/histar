@@ -26,6 +26,8 @@ static siginfo_t siginfos[_NSIG];
 static void
 signal_dispatch_sa(struct sigaction *sa, siginfo_t *si)
 {
+    extern const char *__progname;
+
     if (sa->sa_handler == SIG_IGN)
 	return;
 
@@ -36,11 +38,11 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si)
 	case SIGKILL: case SIGBUS:  case SIGSEGV: case SIGPIPE:
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
 	case SIGXCPU: case SIGXFSZ: case SIGSTKFLT:
-	    cprintf("signal_dispatch: fatal signal %d\n", si->si_signo);
+	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
 	    exit(-1);
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
-	    cprintf("signal_dispatch: should stop process: %d\n", si->si_signo);
+	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
 	    return;
 
 	case SIGURG:  case SIGCONT: case SIGCHLD: case SIGWINCH:
@@ -48,7 +50,7 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si)
 	    return;
 
 	default:
-	    cprintf("signal_dispatch: unhandled default %d\n", si->si_signo);
+	    cprintf("%s: unhandled default signal %d\n", __progname, si->si_signo);
 	    exit(-1);
 	}
     }
