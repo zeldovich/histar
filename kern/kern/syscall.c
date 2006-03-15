@@ -508,7 +508,7 @@ sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 static void
 sys_sync_wakeup(uint64_t *addr)
 {
-    check(check_user_access(addr, sizeof(*addr), 0));
+    check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE));
     sync_wakeup_addr(addr);
 }
 
