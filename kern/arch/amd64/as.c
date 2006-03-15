@@ -359,20 +359,7 @@ as_pagefault(struct Address_space *as, void *va, uint32_t reqflags)
 	as->as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
-    int r = as_pmap_fill(as, va, reqflags);
-    if (r == -E_RESTART)
-	return r;
-
-    if (r < 0) {
-	cprintf("as_pagefault(%ld: %s, %p): %s\n",
-			      as->as_ko.ko_id,
-			      as->as_ko.ko_name[0] ? &as->as_ko.ko_name[0]
-						   : "unnamed",
-			      va, e2s(r));
-	return r;
-    }
-
-    return 0;
+    return as_pmap_fill(as, va, reqflags);
 }
 
 void

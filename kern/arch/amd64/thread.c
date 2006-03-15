@@ -350,6 +350,13 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 	return r;
 
     r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uint64_t) fault_va);
+    if (r >= 0 || r != -E_RESTART)
+	return r;
+
+    cprintf("thread_pagefault(th %ld %s, as %ld %s, va %p): %s\n",
+	    t->th_ko.ko_id, &t->th_ko.ko_name[0],
+	    t->th_as->as_ko.ko_id, &t->th_as->as_ko.ko_name[0],
+	    fault_va, e2s(r));
     return r;
 }
 
