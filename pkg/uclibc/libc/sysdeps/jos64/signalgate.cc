@@ -19,6 +19,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
+static gatesrv *gs;
+
 static void __attribute__ ((noreturn))
 signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 {
@@ -30,15 +32,21 @@ signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 }
 
 void
-signal_gate_init(void)
+signal_gate_close(void)
 {
-    static gatesrv *gs;
     if (gs) {
 	try {
 	    delete gs;
 	} catch (...) {}
+
 	gs = 0;
     }
+}
+
+void
+signal_gate_init(void)
+{
+    signal_gate_close();
 
     try {
 	label tl, tc;

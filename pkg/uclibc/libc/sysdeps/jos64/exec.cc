@@ -6,8 +6,10 @@ extern "C" {
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 #include <bits/unimpl.h>
+#include <bits/signalgate.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -98,6 +100,7 @@ do_execve(fs_inode bin, char *const *argv)
     // Die
     proc_drop.dismiss();
     close_all();
+    signal_gate_close();
     sys_obj_unref(COBJ(start_env->shared_container, start_env->proc_container));
     thread_halt();
 }
