@@ -64,8 +64,10 @@ readline(const char *prompt)
 			i--;
 		}
 		else if (c == '\n' || c == '\r') {
-			if (echoing)
-				putchar(c);
+			if (echoing) {
+				putchar('\r');
+				putchar('\n');
+			}
 			buf[i] = 0;
 			fflush(stdout);
 			return buf;

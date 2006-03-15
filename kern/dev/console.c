@@ -71,10 +71,6 @@ serial_intr (void)
 static void
 serial_putc (int c)
 {
-  // XXX disgusting
-  if (c == '\r')
-    serial_putc('\n');
-
   int i;
 
   for (i = 0; !(inb (COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800; i++)
