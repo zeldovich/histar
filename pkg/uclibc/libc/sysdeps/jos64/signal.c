@@ -1,4 +1,3 @@
-extern "C" {
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
@@ -14,13 +13,7 @@ extern "C" {
 #include <machine/trapcodes.h>
 
 #include <bits/unimpl.h>
-}
-
-#include <inc/gateparam.hh>
-#include <inc/gateclnt.hh>
-#include <inc/gatesrv.hh>
-#include <inc/cpplabel.hh>
-#include <inc/labelutil.hh>
+#include <bits/signalgate.h>
 
 // BSD compat
 const char *sys_signame[_NSIG];
@@ -114,6 +107,22 @@ signal_utrap(struct UTrapframe *utf)
     signal_dispatch(&si);
 }
 
+void
+signal_process_remote(siginfo_t *si)
+{
+    uint32_t signo = si->si_signo;
+    if (signo < _NSIG) {
+	siginfos[signo] = *si;
+	int64_t id = container_find(start_env->proc_container, kobj_thread, 0);
+	if (id >= 0) {
+	    struct cobj_ref tobj = COBJ(start_env->proc_container, id);
+	    int r = sys_thread_trap(tobj, 0, signo);
+	    if (r < 0)
+		cprintf("signal_process_remote: trap main thread: %s\n", e2s(r));
+	}
+    }
+}
+
 static void
 signal_utrap_init(void)
 {
@@ -124,52 +133,11 @@ signal_utrap_init(void)
     }
 }
 
-// Signal gates
-static void
-signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
-{
-    siginfo_t *si = (siginfo_t *) &gcd->param_buf[0];
-    static_assert(sizeof(*si) <= sizeof(gcd->param_buf));
-
-    uint32_t signo = si->si_signo;
-    if (signo < _NSIG) {
-	siginfos[signo] = *si;
-	int64_t id = container_find(start_env->proc_container, kobj_thread, 0);
-	if (id >= 0) {
-	    struct cobj_ref tobj = COBJ(start_env->proc_container, id);
-	    int r = sys_thread_trap(tobj, 0, signo);
-	    if (r < 0)
-		cprintf("signal_gate_entry: trap main thread: %s\n", e2s(r));
-	}
-    }
-
-    gr->ret(0, 0, 0);
-}
-
 void
-signal_gate_create(void)
+signal_init(void)
 {
     signal_utrap_init();
-
-    static gatesrv *gs;
-    if (gs) {
-	try {
-	    delete gs;
-	} catch (...) {}
-	gs = 0;
-    }
-
-    try {
-	label tl, tc;
-	thread_cur_label(&tl);
-	thread_cur_clearance(&tc);
-	gs = new gatesrv(start_env->shared_container, "signal", &tl, &tc);
-	gs->set_entry_container(start_env->proc_container);
-	gs->set_entry_function(&signal_gate_entry, 0);
-	gs->enable();
-    } catch (std::exception &e) {
-	cprintf("signal_gate_create: %s\n", e.what());
-    }
+    signal_gate_init();
 }
 
 // System calls emulated in jos64
@@ -180,7 +148,7 @@ sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
     return -1;
 }
 
-extern "C" int
+int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
     if (signum < 0 || signum >= _NSIG) {
@@ -188,9 +156,11 @@ __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *o
 	return -1;
     }
 
-    if (oldact)
-	*oldact = sigactions[signum];
-    sigactions[signum] = *act;
+    // XXX the memcpy below somehow crashes ksh..  huh?
+    if (oldact && 0)
+	memcpy(oldact, &sigactions[signum], sizeof(*oldact));
+    if (act)
+	memcpy(&sigactions[signum], act, sizeof(*act));
     return 0;
 }
 
@@ -205,11 +175,13 @@ int
 kill(pid_t pid, int sig) __THROW
 {
     pid_t self = getpid();
+
+    siginfo_t si;
+    memset(&si, 0, sizeof(si));
+    si.si_pid = self;
+    si.si_signo = sig;
+
     if (pid == self) {
-	siginfo_t si;
-	memset(&si, 0, sizeof(si));
-	si.si_signo = sig;
-	si.si_pid = self;
 	signal_dispatch(&si);
 	return 0;
     }
@@ -222,22 +194,7 @@ kill(pid_t pid, int sig) __THROW
 	return -1;
     }
 
-    struct gate_call_data gcd;
-    memset(&gcd, 0, sizeof(gcd));
-
-    siginfo_t *si = (siginfo_t *) &gcd.param_buf[0];
-    si->si_pid = self;
-    si->si_signo = sig;
-
-    try {
-	gate_call(COBJ(ct, gate_id), &gcd, 0, 0, 0);
-    } catch (std::exception &e) {
-	cprintf("kill: gate_call: %s\n", e.what());
-	__set_errno(EPERM);
-	return -1;
-    }
-
-    return 0;
+    return signal_gate_send(COBJ(ct, gate_id), &si);
 }
 
 int

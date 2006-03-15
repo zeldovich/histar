@@ -99,7 +99,7 @@ do_fork()
 	ptaint_cleanup.dismiss();
 	top_drop.dismiss();
 
-	signal_gate_create();
+	signal_init();
 
 	return 0;
     }

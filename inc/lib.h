@@ -124,7 +124,7 @@ void label_change_star(struct ulabel *l, level_t new_level);
 /* debug.cc */
 void print_backtrace(void);
 
-/* signal.cc */
-void signal_gate_create(void);
+/* signal.c */
+void signal_init(void);
 
 #endif

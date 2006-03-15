@@ -65,7 +65,7 @@ setup_env(uint64_t envaddr)
     if (r < 0)
 	panic("libmain: cannot setup utrap: %s", e2s(r));
 
-    signal_gate_create();
+    signal_init();
 }
 
 void
