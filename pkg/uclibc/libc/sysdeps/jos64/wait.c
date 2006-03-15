@@ -105,6 +105,10 @@ again:
 	    LIST_REMOVE(wc, wc_link);
 	    pid = wc->wc_pid;
 	    free(wc);
+
+	    // Clean up the child process's container
+	    sys_obj_unref(COBJ(start_env->shared_container, pid));
+
 	    return pid;
 	}
     }
