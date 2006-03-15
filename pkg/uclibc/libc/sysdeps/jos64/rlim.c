@@ -13,7 +13,7 @@ getrlimit(int resource, struct rlimit *rlim)
 int
 getrusage(int who, struct rusage *usage)
 {
-    set_enosys();
+    __set_errno(ENOSYS);
     return -1;
 }
 

@@ -816,36 +816,35 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     }
 
     va_start(ap, req);
-    if (req == TCGETS) {
-       k_termios = va_arg(ap, struct __kernel_termios *);
-    }
+    if (req == TCGETS)
+	k_termios = va_arg(ap, struct __kernel_termios *);
     va_end(ap);
 
     if (req == TCGETS) {
     	if (!fd->fd_isatty) {
-    	   __set_errno(ENOTTY);
-        	return -1;
+	    __set_errno(ENOTTY);
+	    return -1;
     	}
-        // XXX
+
         if (k_termios) {
-            k_termios->c_iflag = 0 ;
-            k_termios->c_oflag = 0 ;
-            k_termios->c_cflag = 0 ;
-            k_termios->c_lflag = 0 ;
-            k_termios->c_line = 0 ;
-            printf("ioctl: TCGETS: returning bad termios\n") ;
+	    k_termios->c_iflag = 0;
+            k_termios->c_oflag = 0;
+            k_termios->c_cflag = 0;
+            k_termios->c_lflag = 0;
+            k_termios->c_line = 0;
+            //cprintf("ioctl: TCGETS: returning bad termios\n") ;
         }
-	    return 0;
-    }
-    if (req == TCSETS) {
-         if (!fd->fd_isatty) {
-           __set_errno(ENOTTY);
-            return -1;
-        }
-        
-        printf("ioctl: TCSETS: not actually setting termios\n") ;  
+	return 0;
     }
 
+    if (req == TCSETS) {
+        if (!fd->fd_isatty) {
+	    __set_errno(ENOTTY);
+            return -1;
+        }
+
+        //cprintf("ioctl: TCSETS: not actually setting termios\n") ;  
+    }
 
     __set_errno(EINVAL);
     return -1;

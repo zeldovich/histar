@@ -26,7 +26,7 @@ nice(int n)
 int
 setpgid(pid_t pid, pid_t pgid)
 {
-    set_enosys();
+    __set_errno(ENOSYS);
     return -1;
 }
 

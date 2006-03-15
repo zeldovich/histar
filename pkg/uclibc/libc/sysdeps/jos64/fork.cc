@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/setjmp.h>
 #include <inc/memlayout.h>
+#include <inc/wait.h>
 }
 
 #include <inc/error.hh>
@@ -102,6 +103,7 @@ do_fork()
 	top_drop.dismiss();
 
 	signal_init();
+	child_clear();
 
 	return 0;
     }
@@ -183,6 +185,8 @@ do_fork()
 				 thread_clearance.to_ulabel()));
 
     top_drop.dismiss();
+
+    child_add(top_ct, exit_status_seg);
     return top_ct;
 }
 
