@@ -41,7 +41,7 @@ mkdir(const char *pn, mode_t mode)
     }
 
     struct fs_inode ndir;
-    r = fs_mkdir(dir, basename, &ndir);
+    r = fs_mkdir(dir, basename, &ndir, 0);
     free(pn2);
     return r;
 }

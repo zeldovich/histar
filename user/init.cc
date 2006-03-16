@@ -69,11 +69,13 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_mount(start_env->fs_root, "bin", bin_dir));
 
     // create a scratch container
+    label lx(1);
+
     struct fs_inode scratch;
-    error_check(fs_mkdir(start_env->fs_root, "x", &scratch));
+    error_check(fs_mkdir(start_env->fs_root, "x", &scratch, lx.to_ulabel()));
 
     struct fs_inode etc;
-    error_check(fs_mkdir(start_env->fs_root, "etc", &etc));
+    error_check(fs_mkdir(start_env->fs_root, "etc", &etc, 0));
 
     struct fs_inode resolv;
     error_check(fs_create(etc, "hosts", &resolv));

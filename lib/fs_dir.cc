@@ -16,15 +16,6 @@ extern "C" {
 static int fs_debug = 0;
 static int fs_label_debug = 0;
 
-static struct ulabel *
-fs_get_label(void)
-{
-    struct ulabel *l = label_get_current();
-    if (l)
-	label_change_star(l, 1);
-    return l;
-}
-
 static fs_dir *
 fs_dir_open(fs_inode dir, bool writable)
 {
@@ -231,13 +222,8 @@ fs_namei(const char *pn, struct fs_inode *o)
 }
 
 int
-fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o)
+fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l)
 {
-    struct ulabel *l = fs_get_label();
-    if (l == 0)
-	return -E_NO_MEM;
-    scope_guard<void, struct ulabel *> lf(label_free, l);
-
     int64_t id = sys_container_alloc(dir.obj.object, l, fn);
     if (id < 0)
 	return id;
@@ -286,15 +272,7 @@ fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o)
 int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 {
-    struct ulabel *l = fs_get_label();
-    if (l == 0)
-	return -E_NO_MEM;
-    scope_guard<void, struct ulabel *> lf(label_free, l);
-
-    if (fs_label_debug)
-	cprintf("Creating file with label %s\n", label_to_string(l));
-
-    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
+    int64_t id = sys_segment_create(dir.obj.object, 0, 0, fn);
     if (id < 0)
 	return id;
 

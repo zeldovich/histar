@@ -7,6 +7,7 @@
 
 #include <inc/container.h>
 #include <inc/kobj.h>
+#include <inc/label.h>
 
 struct fs_inode {
     struct cobj_ref obj;
@@ -50,7 +51,7 @@ void fs_readdir_close(struct fs_readdir_state *s);
 
 void fs_dirbase(char *pn, const char **dirname, const char **basenam);
 
-int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o);
+int  fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l);
 int  fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o);
 int  fs_mount(struct fs_inode dir, const char *mnt_name, struct fs_inode root);
 void fs_unmount(struct fs_inode dir, const char *mnt_name);
