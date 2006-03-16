@@ -617,7 +617,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     struct timeval start ;
     gettimeofday(&start, 0) ;
     
-    while (!ready) {
+    while (1) {
         for (int i = 0 ; i < maxfd ; i++) {
             if (readset && FD_ISSET(i, readset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
@@ -650,7 +650,10 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             if (timercmp(&elapsed, timeout, >))
                 break ;
         }
-        usleep(500000) ;
+        if (!ready) ;
+            usleep(100000) ;
+        else
+            break ;
     }
     
     if (writeset)
