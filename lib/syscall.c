@@ -20,6 +20,12 @@ sys_cons_probe(void)
     return syscall(SYS_cons_probe);
 }
 
+int
+sys_cons_cursor(int line, int col)
+{
+    return syscall(SYS_cons_cursor, line, col);
+}
+
 int64_t
 sys_net_create(uint64_t container, struct ulabel *l, const char *name)
 {

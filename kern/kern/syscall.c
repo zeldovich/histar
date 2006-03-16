@@ -109,6 +109,12 @@ sys_cons_getc(void)
     syscall_error(-E_RESTART);
 }
 
+static void
+sys_cons_cursor(int line, int col)
+{
+    cons_cursor(line, col) ;
+}
+
 static int64_t
 sys_cons_probe(void)
 {
@@ -678,6 +684,7 @@ typedef int64_t (*s64_syscall) ();
 
 static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(cons_puts),
+    SYSCALL_DISPATCH(cons_cursor),
     SYSCALL_DISPATCH(net_macaddr),
     SYSCALL_DISPATCH(net_buf),
     SYSCALL_DISPATCH(obj_unref),

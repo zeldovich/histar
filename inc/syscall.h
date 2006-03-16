@@ -14,6 +14,7 @@ uint64_t syscall(syscall_num num, ...);
 
 int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);
+int sys_cons_cursor(int line, int col);
 int	sys_cons_probe(void);
 
 int64_t sys_net_create(uint64_t container, struct ulabel *l, const char *name);

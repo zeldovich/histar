@@ -3,7 +3,9 @@
 #include <lib/vt/vt.h>
 #include <inc/syscall.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 // http://www.vt100.net/docs/vt100-ug/chapter3.html
 
@@ -18,10 +20,9 @@ cons_puts(const char *vbuf, int n)
 static void
 vt_debug(const char *s, int n)
 {
-   char buf[MAX_ESC] ;
-    
-    sprintf(buf, "%s(%d)\n", s, n) ;
-    cons_puts(buf, strlen(buf)) ;
+    //char buf[MAX_ESC] ;
+    //sprintf(buf, "%s(%d)\n", s, n) ;
+    //cons_puts(buf, strlen(buf)) ;
 }   
 
 void
@@ -43,6 +44,12 @@ vt_handle_SCS(const char *text, int n)
 }
 
 void
+vt_handle_RCUR(const char *text, int n)
+{
+    vt_debug("RCUR", n) ;   
+}
+
+void
 vt_handle_SCUR(const char *text, int n)
 {
     vt_debug("SCUR", n) ;   
@@ -51,7 +58,29 @@ vt_handle_SCUR(const char *text, int n)
 void
 vt_handle_CUP(const char *text, int n)
 {
+    char buf[32] ;
+    memcpy(buf, &text[2], n - 3) ;
+    buf[n - 3] = 0 ;
+    char *bk = index(buf, ';') ;
+    *bk = 0 ;
+    int line = atoi(buf) ;
+    int col = atoi(bk + 1) ;
+    
     vt_debug("CUP", n) ;   
+    // vt origin (1,1)
+    sys_cons_cursor(line - 1, col - 1) ;
+}
+
+void
+vt_handle_ED(const char *text, int n)
+{
+    vt_debug("ED", n) ;   
+}
+
+void
+vt_handle_SGR(const char *text, int n)
+{
+    vt_debug("SGR", n) ;   
 }
 
 void
@@ -63,48 +92,14 @@ vt_handle_STR(const char *text, int n)
 int
 vt_write(const void *vbuf, size_t n, off_t offset)
 {
-    int fd[2] ;
-    int r ;
-    FILE *f ;
+    char *buf = malloc(n + 1) ;
+    memcpy(buf, vbuf, n) ;
+    buf[n] = 0 ;
     
-    if ((r = pipe(fd)) < 0)
-        return r ;
-    
-    f = fdopen(fd[0], "r") ;
-    if (f == 0)
-        return -1 ;
-    vtlexin_is(f) ;
-    vtlexout_is(stdout) ;
-
-    write(fd[1], vbuf, n) ;
-    if ((r = close(fd[1])) < 0)
-        printf("close: %d\n", r)  ;
-    
-    vtlex() ;
-    
-    close(fd[0]) ;
-    
+    struct yy_buffer_state* bs = vtscan_string(buf) ;
+    vtswitch_buffer(bs) ;
+    vtlex() ; 
+   
     return 0 ;
 }
-
-
-/*
-static const char test[] = "\033)0\0337NORMAL\033[1;1HThis is a normal string" ;
-
-
-// test main
-int
-main(int ac, char **av)
-{
-    const char *t ;
-    
-    if (ac == 2)
-        t = av[1] ;
-    else
-        t = test ;
-
-    if (vt_write(t, strlen(t), 0) < 0)
-        printf("vt_write: test error\n") ;
-    return 0 ;
-}*/
 
