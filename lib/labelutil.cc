@@ -60,3 +60,16 @@ obj_get_label(struct cobj_ref o, label *l)
 	    throw error(r, "sys_obj_get_label");
     } while (r == -E_NO_SPACE);
 }
+
+void
+gate_get_clearance(struct cobj_ref o, label *l)
+{
+    int r;
+    do {
+	r = sys_gate_clearance(o, l->to_ulabel());
+	if (r == -E_NO_SPACE)
+	    l->grow();
+	else if (r < 0)
+	    throw error(r, "sys_gate_clearance");
+    } while (r == -E_NO_SPACE);
+}
