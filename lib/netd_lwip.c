@@ -129,9 +129,9 @@ netd_dispatch(struct netd_op_args *a)
         struct timeval tv = {0, 0} ;
     
         if (a->select.write)
-            a->rval = lwip_select(a->select.fd, 0, &set, 0, &tv) ;
+            a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv) ;
         else
-            a->rval = lwip_select(a->select.fd, &set, 0, 0, &tv) ;
+            a->rval = lwip_select(a->select.fd + 1, &set, 0, 0, &tv) ;
         
         break ;
     }
