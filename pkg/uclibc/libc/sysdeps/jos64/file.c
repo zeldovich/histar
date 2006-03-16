@@ -19,6 +19,13 @@
 int
 mkdir(const char *pn, mode_t mode)
 {
+    struct fs_inode dir;
+    int r = fs_namei(pn, &dir);
+    if (r == 0) {
+	__set_errno(EEXIST);
+	return -1;
+    }
+
     char *pn2 = malloc(strlen(pn) + 1);
     if (pn2 == 0)
 	return -E_NO_MEM;
@@ -27,8 +34,7 @@ mkdir(const char *pn, mode_t mode)
     const char *dirname, *basename;
     fs_dirbase(pn2, &dirname, &basename);
 
-    struct fs_inode dir;
-    int r = fs_namei(dirname, &dir);
+    r = fs_namei(dirname, &dir);
     if (r < 0) {
 	free(pn2);
 	return r;

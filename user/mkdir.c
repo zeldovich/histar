@@ -1,8 +1,9 @@
-#include <inc/stdio.h>
-#include <inc/lib.h>
-#include <inc/error.h>
-#include <inc/fs.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+
+#include <sys/stat.h>
 
 int
 main(int ac, char **av)
@@ -13,21 +14,10 @@ main(int ac, char **av)
     }
 
     char *pn = av[1];
-    const char *dname, *fn;
 
-    fs_dirbase(pn, &dname, &fn);
+    int r = mkdir(pn, 0777);
+    if (r < 0)
+	printf("cannot mkdir %s: %s\n", pn, strerror(errno));
 
-    struct fs_inode dir;
-    int r = fs_namei(dname, &dir);
-    if (r < 0) {
-	printf("cannot lookup %s: %s\n", dname, e2s(r));
-	return r;
-    }
-
-    struct fs_inode ndir;
-    r = fs_mkdir(dir, fn, &ndir);
-    if (r < 0) {
-	printf("cannot mkdir %s: %s\n", fn, e2s(r));
-	return r;
-    } 
+    return r;
 }
