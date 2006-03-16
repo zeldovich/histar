@@ -1,14 +1,16 @@
 extern "C" {
 #include <inc/stdio.h>
-#include <stdio.h>
 #include <inc/lib.h>
 #include <inc/string.h>
-#include <string.h>
+#include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 }
 
@@ -41,7 +43,7 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 }
 
 static void
-init_env(uint64_t c_root, uint64_t c_self)
+init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 {
     start_env = 0;
     struct cobj_ref sa;
@@ -51,6 +53,8 @@ init_env(uint64_t c_root, uint64_t c_self)
     start_env->proc_container = c_self;
     start_env->shared_container = c_self;
     start_env->root_container = c_root;
+    start_env->process_grant = h_root;
+    start_env->process_taint = sys_handle_create();
 
     // set the filesystem root to be the same as the container root
     error_check(fs_get_root(c_root, &start_env->fs_root));
@@ -127,7 +131,7 @@ try
 
     cprintf("JOS: init (root container %ld)\n", c_root);
 
-    init_env(c_root, c_self);
+    init_env(c_root, c_self, h_root);
 
     int cons = opencons();
     if (cons != 0)
