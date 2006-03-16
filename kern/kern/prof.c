@@ -22,7 +22,7 @@ static int prof_print_enable = 0;
 static struct periodic_task timer2;
 
 // for profiling using gcc's -finstrument-functions
-static int cyg_prof_print_enable = 1;
+static int cyg_prof_print_enable = 0;
 
 static void *cyg_profs_printed[] = {
     &memset,
@@ -117,7 +117,7 @@ prof_reset(void)
 static void
 print_entry(struct entry *tab, int i, const char *name)
 {
-    if (tab[i].count > 100)
+    if (tab[i].count)
 	cprintf("%3d cnt%12ld tot%12ld avg%12ld %s\n",
 		i,
 		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
@@ -130,14 +130,12 @@ prof_print(void)
     for (int i = 0; i < NSYSCALLS; i++)
 	print_entry(&sysc_table[0], i, syscall2s(i));
 
-/*
     cprintf("prof_print: traps\n");
     for (int i = 0; i < NTRAPS; i++)
 	print_entry(&trap_table[0], i, "trap");
 
     cprintf("prof_print: user\n");
     print_entry(&user_table[0], 0, "user");
-*/
 
     prof_reset();
 }
