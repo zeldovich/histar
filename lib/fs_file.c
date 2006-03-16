@@ -61,3 +61,9 @@ fs_getsize(struct fs_inode f, uint64_t *len)
     *len = nbytes;
     return 0;
 }
+
+int
+fs_resize(struct fs_inode f, uint64_t len)
+{
+    return sys_segment_resize(f.obj, len);
+}

@@ -60,6 +60,7 @@ int  fs_link(struct fs_inode dir, const char *fn, struct fs_inode f);
 
 int  fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
 int  fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);
+int  fs_resize(struct fs_inode f, uint64_t len);
 int  fs_getsize(struct fs_inode f, uint64_t *len);
 
 int  fs_taint_self(struct fs_inode f);
