@@ -17,12 +17,24 @@
 int
 __libc_open(const char *pn, int flags, ...) __THROW
 {
-    int r;
     struct fs_inode ino;
-    if ((flags & O_CREAT)) {
+    int r = fs_namei(pn, &ino);
+    if (r == 0) {
+	if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL)) {
+	    __set_errno(EEXIST);
+	    return -1;
+	}
+    } else if (r == -E_NOT_FOUND) {
+	if (!(flags & O_CREAT)) {
+	    __set_errno(ENOENT);
+	    return -1;
+	}
+
 	char *pn2 = malloc(strlen(pn) + 1);
-	if (pn2 == 0)
-	    return -E_NO_MEM;
+	if (pn2 == 0) {
+	    __set_errno(ENOMEM);
+	    return -1;
+	}
 
 	strcpy(pn2, pn);
 	const char *dirname, *basename;
@@ -32,23 +44,27 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	r = fs_namei(dirname, &dir);
 	if (r < 0) {
 	    free(pn2);
-	    return r;
+	    __set_errno(ENOENT);
+	    return -1;
 	}
 
 	r = fs_create(dir, basename, &ino);
 	free(pn2);
-	if (r < 0)
-	    return r;
+	if (r < 0) {
+	    __set_errno(EPERM);
+	    return -1;
+	}
     } else {
-	r = fs_namei(pn, &ino);
-	if (r < 0)
-	    return r;
+	__set_errno(EPERM);
+	return -1;
     }
 
     struct Fd *fd;
     r = fd_alloc(start_env->shared_container, &fd, "file fd");
-    if (r < 0)
-	return r;
+    if (r < 0) {
+	__set_errno(ENOMEM);
+	return -1;
+    }
 
     fd->fd_dev_id = devfile.dev_id;
     fd->fd_omode = flags;
