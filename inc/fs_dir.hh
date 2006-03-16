@@ -59,6 +59,10 @@ public:
     virtual int lookup(const char *name, fs_readdir_pos *i, fs_inode *ino);
     virtual int list(fs_readdir_pos *i, fs_dent *de);
 
+    void lock();
+    void unlock();
+    void refresh();
+
     static void init(fs_inode dir);
 
 private:
@@ -66,10 +70,31 @@ private:
     void grow();
 
     bool writable_;
+    bool locked_;
     fs_inode ino_;
     struct cobj_ref dseg_;
     struct fs_directory *dir_;
     void *dir_end_;
+};
+
+// Cached segment-based directory
+class fs_dir_dseg_cached : public fs_dir {
+public:
+    fs_dir_dseg_cached(fs_inode dir, bool writable);
+    virtual ~fs_dir_dseg_cached();
+
+    virtual void insert(const char *name, fs_inode ino)
+	{ backer_->insert(name, ino); }
+    virtual void remove(const char *name, fs_inode ino)
+	{ backer_->remove(name, ino); }
+    virtual int lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
+	{ return backer_->lookup(name, i, ino); }
+    virtual int list(fs_readdir_pos *i, fs_dent *de)
+	{ return backer_->list(i, de); }
+
+private:
+    fs_dir_dseg *backer_;
+    int slot_;
 };
 
 // Non-unionizing MLT support

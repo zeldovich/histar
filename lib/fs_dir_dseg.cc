@@ -22,11 +22,12 @@ struct fs_dirslot {
 
 struct fs_directory {
     pthread_mutex_t lock;
+    uint64_t extra_pages;
     struct fs_dirslot slots[0];
 };
 
 fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
-    : writable_(writable), ino_(dir)
+    : writable_(writable), locked_(false), ino_(dir)
 {
     int64_t r = sys_container_get_slot_id(ino_.obj.object, 0);
     if (r < 0)
@@ -51,14 +52,12 @@ fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
 
     dir_end_ = ((char *) dir_) + dirsize;
 
-    if (writable_)
-	pthread_mutex_lock(&dir_->lock);
+    lock();
 }
 
 fs_dir_dseg::~fs_dir_dseg()
 {
-    if (writable_)
-	pthread_mutex_unlock(&dir_->lock);
+    unlock();
     segment_unmap(dir_);
 }
 
@@ -141,18 +140,43 @@ fs_dir_dseg::grow()
 {
     check_writable();
 
-    int64_t curbytes = sys_segment_get_nbytes(dseg_);
-    if (curbytes < 0)
-	throw error(curbytes, "sys_segment_get_nbytes");
+    uint64_t pages = dir_->extra_pages + 1;
+    error_check(sys_segment_resize(dseg_, (pages + 1) * PGSIZE));
+    dir_->extra_pages = pages;
 
-    error_check(segment_unmap(dir_));
-    error_check(sys_segment_resize(dseg_, curbytes + PGSIZE));
+    refresh();
+}
 
-    uint64_t dirsize;
-    error_check(segment_map(dseg_, SEGMAP_READ | SEGMAP_WRITE,
-			    (void **) &dir_, &dirsize));
+void
+fs_dir_dseg::lock()
+{
+    if (writable_) {
+	pthread_mutex_lock(&dir_->lock);
+	locked_ = true;
+    }
+}
 
-    dir_end_ = ((char *) dir_) + dirsize;
+void
+fs_dir_dseg::unlock()
+{
+    if (writable_ && locked_) {
+	pthread_mutex_unlock(&dir_->lock);
+	locked_ = false;
+    }
+}
+
+void
+fs_dir_dseg::refresh()
+{
+    uint64_t mapped_bytes = (uint64_t) ((char *) dir_end_ - (char *) dir_);
+    if (mapped_bytes != (dir_->extra_pages + 1) * PGSIZE) {
+	uint64_t dirsize;
+	error_check(segment_unmap(dir_));
+	error_check(segment_map(dseg_, SEGMAP_READ | (writable_ ? SEGMAP_WRITE : 0),
+				(void **) &dir_, &dirsize));
+
+	dir_end_ = ((char *) dir_) + dirsize;
+    }
 }
 
 void
@@ -164,4 +188,57 @@ fs_dir_dseg::init(fs_inode dir)
     struct cobj_ref dseg;
     error_check(segment_alloc(dir.obj.object, PGSIZE, &dseg,
 			      0, l.to_ulabel(), "directory segment"));
+}
+
+// Directory segment caching
+enum { dseg_cache_size = 8 };
+
+static struct dseg_cache_entry {
+    fs_inode dir;
+    bool writable;
+    fs_dir_dseg *dseg;
+    int ref;
+} dseg_cache[dseg_cache_size];
+
+static int dseg_cache_next;
+
+fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
+{
+    for (int i = 0; i < dseg_cache_size; i++) {
+	if (dir.obj.object == dseg_cache[i].dir.obj.object &&
+	    writable == dseg_cache[i].writable)
+	{
+	    backer_ = dseg_cache[i].dseg;
+	    backer_->lock();
+	    backer_->refresh();
+	    dseg_cache[i].ref++;
+	    slot_ = i;
+	    return;
+	}
+    }
+
+    dseg_cache_next++;
+
+    for (int i = 0; i < dseg_cache_size; i++) {
+	slot_ = (dseg_cache_next + i) % dseg_cache_size;
+	if (dseg_cache[slot_].ref)
+	    continue;
+	if (dseg_cache[slot_].dseg)
+	    delete dseg_cache[slot_].dseg;
+
+	backer_ = new fs_dir_dseg(dir, writable);
+	dseg_cache[slot_].ref = 1;
+	dseg_cache[slot_].dseg = backer_;
+	dseg_cache[slot_].dir = dir;
+	dseg_cache[slot_].writable = writable;
+	return;
+    }
+
+    throw basic_exception("out of dseg cache slots");
+}
+
+fs_dir_dseg_cached::~fs_dir_dseg_cached()
+{
+    backer_->unlock();
+    dseg_cache[slot_].ref--;
 }

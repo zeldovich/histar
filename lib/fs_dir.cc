@@ -34,7 +34,7 @@ fs_dir_open(fs_inode dir, bool writable)
 
     if (type == kobj_container) {
 	try {
-	    return new fs_dir_dseg(dir, writable);
+	    return new fs_dir_dseg_cached(dir, writable);
 	} catch (missing_dir_segment &m) {
 	    return new fs_dir_ct(dir);
 	}
