@@ -6,9 +6,6 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
-#include <sys/select.h>
-#include <sys/time.h>
-
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
