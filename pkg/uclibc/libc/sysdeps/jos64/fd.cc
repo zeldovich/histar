@@ -831,8 +831,11 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
     } else if (whence == SEEK_CUR) {
 	fd->fd_offset += offset;
     } else if (whence == SEEK_END) {
-	set_enosys();
-	return -1;
+	struct stat st;
+	if (fstat(fdnum, &st) < 0)
+	    return -1;
+
+	fd->fd_offset = st.st_size + offset;
     } else {
 	__set_errno(EINVAL);
 	return -1;
