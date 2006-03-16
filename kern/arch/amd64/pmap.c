@@ -375,11 +375,23 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     if (iptr >= ULIM || iptr + nbytes > ULIM)
 	return -E_INVAL;
 
+    uint64_t pte_flags = PTE_P | PTE_U;
+    if ((reqflags & SEGMAP_WRITE))
+	pte_flags |= PTE_W;
+
     if (nbytes > 0) {
 	struct Address_space *as = &kobject_dirty(&cur_as->as_ko)->as;
 	uintptr_t start = (uintptr_t) ROUNDDOWN(ptr, PGSIZE);
 	uintptr_t end = (uintptr_t) ROUNDUP(ptr + nbytes, PGSIZE);
 	for (uintptr_t va = start; va < end; va += PGSIZE) {
+	    if (va >= ULIM)
+		return -E_INVAL;
+
+	    uint64_t *ptep;
+	    if (page_lookup_internal(as->as_pgmap, (void *) va, &ptep) &&
+		(*ptep & pte_flags) == pte_flags)
+		continue;
+
 	    int r = as_pagefault(as, (void *) va, reqflags);
 	    if (r < 0)
 		return r;
