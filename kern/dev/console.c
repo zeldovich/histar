@@ -477,11 +477,8 @@ kbd_proc_data (void)
   }
 #endif
 
-#if 0
-  if (!(~shift & (CTL | ALT)) && c == KEY_END) {
-    monitor (NULL);
-  }
-#endif
+  if (!(~shift & (CTL | ALT)) && c == KEY_END)
+    panic("halt requested");
 
   return c;
 }
