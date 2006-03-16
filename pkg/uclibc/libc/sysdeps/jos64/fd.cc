@@ -650,7 +650,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             if (timercmp(&elapsed, timeout, >))
                 break ;
         }
-        if (!ready) ;
+        if (!ready)
             usleep(100000) ;
         else
             break ;
