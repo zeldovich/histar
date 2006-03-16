@@ -38,7 +38,7 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     } while (0)
 
 void
-taint_cow(uint64_t mlt_like_container)
+taint_cow(uint64_t taint_container)
 {
     uint64_t cur_ents[taint_cow_label_ents];
     uint64_t obj_ents[taint_cow_label_ents];
@@ -67,7 +67,7 @@ taint_cow(uint64_t mlt_like_container)
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
-    int64_t mlt_ct_id = sys_container_alloc(mlt_like_container, &obj_label,
+    int64_t mlt_ct_id = sys_container_alloc(taint_container, &obj_label,
 					    "taint_cow container");
     ERRCHECK(mlt_ct_id);
 
