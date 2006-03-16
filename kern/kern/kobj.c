@@ -562,7 +562,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 }
 
 // Negative kobject id cache (objects that don't exist)
-enum { kobject_neg_nent = 1024 };
+enum { kobject_neg_nent = 16 };
 static struct {
     int next;
     kobject_id_t ents[kobject_neg_nent];
