@@ -13,6 +13,7 @@ enum {
 };
 
 #define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
+#define KOBJ_ON_DISK		0x02	// Might have some version on disk
 #define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
 #define KOBJ_SNAPSHOT_DIRTY	0x10	// Dirty if swapout fails

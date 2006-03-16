@@ -448,6 +448,7 @@ pstate_sync_kobj(struct swapout_stats *stats,
 	cprintf("pstate_sync_kobj: id %ld nbytes %ld\n",
 		snap->hdr.ko_id, snap->hdr.ko_nbytes);
 
+    ko->ko_flags |= KOBJ_ON_DISK;
     kobject_snapshot_release(ko);
     stats->written_kobj++;
     return 0;
@@ -527,7 +528,7 @@ pstate_sync_loop(struct pstate_header *hdr,
             continue;
         
         struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-        if (snap->hdr.ko_type == kobj_dead) {
+        if (snap->hdr.ko_type == kobj_dead && (snap->hdr.ko_flags & KOBJ_ON_DISK)) {
             pstate_kobj_free(&freelist, snap);
             stats->dead_kobj++;
             continue;
@@ -587,7 +588,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     	if (pstate_swapout_debug)
     	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
     
-        log_init(); 
+        log_init();
         btree_manager_init();
     	freelist_init(&freelist, reserved_pages * PGSIZE,
 		      (disk_pages - reserved_pages) * PGSIZE);
@@ -620,7 +621,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     int r = pstate_sync_loop(hdr, &stats);
     if (r < 0)
-	   cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
+	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
     	ko_next = LIST_NEXT(ko, ko_link);
@@ -635,8 +636,8 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
     	    kobject_snapshot_release(&ko->hdr);
     
-    	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
-    		kobject_swapout(ko);
+	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
+		ko->hdr.ko_flags &= ~KOBJ_ON_DISK;
     	}
     }
 
