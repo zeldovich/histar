@@ -12,6 +12,7 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -613,7 +614,10 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     struct Dev *dev;
     int r ;
     
-    //while (!ready) {
+    struct timeval start ;
+    gettimeofday(&start, 0) ;
+    
+    while (!ready) {
         for (int i = 0 ; i < maxfd ; i++) {
             if (readset && FD_ISSET(i, readset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
@@ -638,7 +642,16 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
                 }
             }
         }
-    //}
+        // XXX can exceed timeout...
+        if (timeout) {
+            struct timeval now, elapsed ;
+            gettimeofday(&now, 0) ;
+            timeradd(&start, &now, &elapsed) ;
+            if (timercmp(&elapsed, timeout, >))
+                break ;
+        }
+        usleep(500000) ;
+    }
     
     if (writeset)
         memcpy(writeset, &rwriteset, sizeof(*writeset)) ;
