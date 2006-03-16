@@ -6,6 +6,9 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
+#include <sys/select.h>
+#include <sys/time.h>
+
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
@@ -122,14 +125,19 @@ netd_dispatch(struct netd_op_args *a)
                                   &a->getsockopt.optlen);
         break ;
 
-    case netd_op_select:
-        a->rval = lwip_select(a->select.maxfdp1,
-                              a->select.readset,
-                              a->select.writeset,
-                              a->select.exceptset,
-                              a->select.timeout) ;
+    case netd_op_select: {
+        fd_set set ;
+        FD_ZERO(&set) ;
+        FD_SET(a->select.fd, &set) ;
+        struct timeval tv = {0, 0} ;
+    
+        if (a->select.write)
+            a->rval = lwip_select(a->select.fd, 0, &set, 0, &tv) ;
+        else
+            a->rval = lwip_select(a->select.fd, &set, 0, 0, &tv) ;
+        
         break ;
-
+    }
     default:
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;

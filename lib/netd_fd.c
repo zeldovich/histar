@@ -8,8 +8,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/select.h>
-#include <sys/time.h>
 
 const struct host_entry host_table[] = {
     { "market", "market.scs.stanford.edu" },
@@ -292,24 +290,9 @@ static int
 sock_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct netd_op_args a;
-    fd_set set ;
-    FD_ZERO(&set) ;
-    FD_SET(fd->fd_sock.s, &set) ;
-    struct timeval tv = {0, 0} ;
-    
     a.op_type = netd_op_select ;
-    a.select.maxfdp1 = fd->fd_sock.s ;
-    a.select.exceptset = 0 ;
-    a.select.timeout = &tv ;
-    
-    if (probe == dev_probe_write) {
-        a.select.writeset = &set ;
-        a.select.readset = 0 ;
-    }
-    else {
-        a.select.writeset = 0 ;
-        a.select.readset = &set ;
-    }
+    a.select.fd = fd->fd_sock.s ;
+    a.select.write = probe == dev_probe_write ? 1 : 0 ;
     return netd_call(&a);
 }
 

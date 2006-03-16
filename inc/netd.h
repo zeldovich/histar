@@ -114,11 +114,8 @@ struct netd_op_getsockopt_args {
 
 
 struct netd_op_select_args {
-    int maxfdp1 ;
-    fd_set *readset ;
-    fd_set *writeset ;
-    fd_set *exceptset ;
-    struct timeval *timeout ;
+    int fd ;
+    char write ;
 };
 
 struct netd_op_args {
