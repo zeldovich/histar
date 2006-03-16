@@ -604,6 +604,9 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     
     fd_set rreadset ;
     fd_set rwriteset ;
+    FD_ZERO(&rreadset) ;
+    FD_ZERO(&rwriteset) ;
+    
     int ready = 0 ;
     
     struct Fd *fd;
