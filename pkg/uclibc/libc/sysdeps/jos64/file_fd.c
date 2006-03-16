@@ -17,6 +17,11 @@
 int
 __libc_open(const char *pn, int flags, ...) __THROW
 {
+    if (!strcmp(pn, "")) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     struct fs_inode ino;
     int r = fs_namei(pn, &ino);
     if (r == 0) {
@@ -59,6 +64,14 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	return -1;
     }
 
+    if ((flags & O_TRUNC)) {
+	r = fs_resize(ino, 0);
+	if (r < 0) {
+	    __set_errno(EPERM);
+	    return -1;
+	}
+    }
+
     struct Fd *fd;
     r = fd_alloc(start_env->shared_container, &fd, "file fd");
     if (r < 0) {
@@ -69,6 +82,9 @@ __libc_open(const char *pn, int flags, ...) __THROW
     fd->fd_dev_id = devfile.dev_id;
     fd->fd_omode = flags;
     fd->fd_file.ino = ino;
+
+    if ((flags & O_APPEND))
+	fs_getsize(ino, &fd->fd_offset);
 
     return fd2num(fd);
 }
