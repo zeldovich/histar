@@ -7,6 +7,8 @@
 #include <string.h>
 #include <signal.h>
 
+#include <sys/stat.h>
+
 int
 pipe(int fds[2])
 {
@@ -128,6 +130,13 @@ pipe_probe(struct Fd *fd, dev_probe_t probe)
     return fd->fd_pipe.bytes ;
 }
 
+static int
+pipe_stat(struct Fd *fd, struct stat *buf)
+{
+    memset(buf, 0, sizeof(*buf));
+    return 0;
+}
+
 struct Dev devpipe = {
     .dev_id = 'p',
     .dev_name = "pipe",
@@ -135,4 +144,5 @@ struct Dev devpipe = {
     .dev_write = pipe_write,
     .dev_close = pipe_close,
     .dev_probe = pipe_probe,
+    .dev_stat = pipe_stat,
 };
