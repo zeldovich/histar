@@ -226,8 +226,8 @@ page_map_free (struct Pagemap *pgmap)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 static int
-pgdir_walk (struct Pagemap *pgmap, int pmlevel,
-	    const void *va, int create, uint64_t **pte_store)
+pgdir_walk_internal (struct Pagemap *pgmap, int pmlevel,
+		     const void *va, int create, uint64_t **pte_store)
 {
     assert(pmlevel >= 0 && pmlevel <= 3);
 
@@ -262,7 +262,14 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
     }
 
     struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(pm_ent));
-    return pgdir_walk(pm_next, pmlevel-1, va, create, pte_store);
+    return pgdir_walk_internal(pm_next, pmlevel-1, va, create, pte_store);
+}
+
+int
+pgdir_walk(struct Pagemap *pgmap, const void *va,
+	   int create, uint64_t **pte_store)
+{
+    return pgdir_walk_internal(pgmap, 3, va, create, pte_store);
 }
 
 //
@@ -273,14 +280,14 @@ pgdir_walk (struct Pagemap *pgmap, int pmlevel,
 //
 // Return 0 if there is no page mapped at va.
 //
-static void *
-page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
+void *
+page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     if ((uintptr_t) va >= ULIM)
-	panic("page_lookup_internal: va %p over ULIM", va);
+	panic("page_lookup: va %p over ULIM", va);
 
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 0, &ptep);
+    int r = pgdir_walk(pgmap, va, 0, &ptep);
     if (r < 0)
 	panic("pgdir_walk(%p, create=0) failed: %d", va, r);
 
@@ -293,20 +300,11 @@ page_lookup_internal (struct Pagemap *pgmap, void *va, uint64_t **pte_store)
     return pa2kva (PTE_ADDR (*ptep));
 }
 
-void *
-page_lookup (struct Pagemap *pgmap, void *va)
-{
-    if ((uintptr_t) va >= ULIM)
-	return 0;
-
-    return page_lookup_internal(pgmap, va, 0);
-}
-
 //
 // Invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
 //
-static void
+void
 tlb_invalidate (struct Pagemap *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
@@ -327,7 +325,7 @@ void *
 page_remove (struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
-    void *p = page_lookup_internal(pgmap, va, &ptep);
+    void *p = page_lookup(pgmap, va, &ptep);
     if (p) {
 	*ptep = 0;
 	tlb_invalidate(pgmap, va);
@@ -353,7 +351,7 @@ int
 page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
 {
     uint64_t *ptep;
-    int r = pgdir_walk(pgmap, 3, va, 1, &ptep);
+    int r = pgdir_walk(pgmap, va, 1, &ptep);
     if (r < 0)
 	return r;
 
@@ -386,7 +384,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 		return -E_INVAL;
 
 	    uint64_t *ptep;
-	    if (page_lookup_internal(as->as_pgmap, (void *) va, &ptep) &&
+	    if (page_lookup(as->as_pgmap, (void *) va, &ptep) &&
 		(*ptep & pte_flags) == pte_flags)
 		continue;
 

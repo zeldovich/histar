@@ -7,6 +7,8 @@
 
 const struct Address_space *cur_as;
 
+static int as_debug = 0;
+
 int
 as_alloc(const struct Label *l, struct Address_space **asp)
 {
@@ -26,6 +28,9 @@ void
 as_invalidate(const struct Address_space *as_const)
 {
     struct Address_space *as = &kobject_dirty(&as_const->as_ko)->as;
+
+    if (as_debug)
+	cprintf("as_invalidate\n");
 
     as_swapout(as);
     as_swapin(as);
@@ -263,20 +268,28 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    r = kobject_get_page(&sg->sg_ko, i, &pp,
 				 (flags & SEGMAP_WRITE) ? page_rw : page_ro);
 
-	uint64_t ptflags = PTE_NX;
+	uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
 	if ((flags & SEGMAP_WRITE))
 	    ptflags |= PTE_W;
 	if ((flags & SEGMAP_EXEC))
 	    ptflags &= ~PTE_NX;
 
 	if (r == 0) {
-	    page_remove(pgmap, cva);
-
-	    if (!invalidate)
-		r = page_insert(pgmap, pp, cva, PTE_U | ptflags);
+	    if (invalidate) {
+		page_remove(pgmap, cva);
+	    } else {
+		uint64_t *ptep;
+		r = pgdir_walk(pgmap, cva, 1, &ptep);
+		if (r >= 0) {
+		    *ptep = kva2pa(pp) | ptflags;
+		    tlb_invalidate(pgmap, cva);
+		}
+	    }
 	}
 
 	if (r < 0) {
+	    cprintf("as_pmap_fill_segment: %s\n", e2s(r));
+
 	    cva = (char *) usm->va;
 	    uint64_t cleanup_end = i;
 	    for (i = start_page; i <= cleanup_end; i++) {
@@ -383,6 +396,9 @@ as_invalidate_sm(struct segment_mapping *sm)
 {
     if (!sm->sm_sg)
 	return;
+
+    if (as_debug)
+	cprintf("as_invalidate_sm\n");
 
     const struct u_segment_mapping *usm;
     int r = as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_ro);
