@@ -120,7 +120,12 @@ pipe_close(struct Fd *fd)
 static int
 pipe_probe(struct Fd *fd, dev_probe_t probe)
 {
-    return 1 ;
+    if (probe == dev_probe_write) {
+        if (fd->fd_pipe.bytes >  sizeof(fd->fd_pipe.buf) - PIPE_BUF)
+            return 0 ;
+        return 1 ;   
+    }
+    return fd->fd_pipe.bytes ;
 }
 
 struct Dev devpipe = {
