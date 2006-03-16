@@ -17,16 +17,15 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static void __attribute__((noreturn))
-return_stub(struct jos_jmp_buf *jb)
+return_stub(jos_jmp_buf *jb)
 {
-    struct gate_call_data *gcd = (struct gate_call_data *) UTLS;
-    taint_cow(gcd->mlt_like_container);
+    gate_call_data *gcd = (gate_call_data *) UTLS;
+    taint_cow(gcd->taint_container);
     jos_longjmp(jb, 1);
 }
 
 static void
-return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
-	     void *tls, uint64_t return_handle)
+return_setup(cobj_ref *g, jos_jmp_buf *jb, void *tls, uint64_t return_handle)
 {
     label clear;
     thread_cur_clearance(&clear);
@@ -35,7 +34,7 @@ return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
     label label;
     thread_cur_label(&label);
 
-    struct thread_entry te;
+    thread_entry te;
     te.te_entry = (void *) &return_stub;
     te.te_stack = (char *) tls + PGSIZE - 8;
     te.te_arg = (uint64_t) jb;
@@ -52,32 +51,8 @@ return_setup(struct cobj_ref *g, struct jos_jmp_buf *jb,
     *g = COBJ(ct, id);
 }
 
-static void
-make_mlt_like_ct(label *cs, label *ds, label *dr,
-		 label *tgt_s, label *tgt_r,
-		 void *arg)
-{
-    uint64_t *ctp = (uint64_t *) arg;
-
-    label mlt_like_label(*tgt_s);
-    label thread_label;
-    thread_cur_label(&thread_label);
-
-    // XXX should grant a preset handle at * so others cannot use it
-    mlt_like_label.merge_with(&thread_label, label::max, label::leq_starlo);
-    mlt_like_label.transform(label::star_to, 1);
-
-    int64_t id = sys_container_alloc(start_env->proc_container,
-				     mlt_like_label.to_ulabel(),
-				     "gate call mlt-like thing");
-    if (id < 0)
-	throw error(id, "make_mlt_like_ct: creating container");
-
-    *ctp = id;
-}
-
 void
-gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
+gate_call(cobj_ref gate, gate_call_data *gcd_param,
 	  label *cs, label *ds, label *dr)
 {
     void *tls = (void *) UTLS;
@@ -86,23 +61,47 @@ gate_call(struct cobj_ref gate, struct gate_call_data *gcd_param,
     error_check(return_handle);
     scope_guard<void, uint64_t> g1(thread_drop_star, return_handle);
 
-    struct cobj_ref return_gate;
-    struct jos_jmp_buf back_from_call;
+    cobj_ref return_gate;
+    jos_jmp_buf back_from_call;
     return_setup(&return_gate, &back_from_call, tls, return_handle);
-    scope_guard<int, struct cobj_ref> g2(sys_obj_unref, return_gate);
+    scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     label new_ds(ds ? *ds : label());
     new_ds.set(return_handle, LB_LEVEL_STAR);
 
-    struct gate_call_data *d = (struct gate_call_data *) tls;
+    // Compute the target labels
+    label tgt_label, tgt_clear;
+    gate_compute_labels(gate, cs, &new_ds, dr, &tgt_label, &tgt_clear);
+
+    // Create an MLT-like container for tainted data to live in
+    label taint_ct_label, thread_label;
+    thread_cur_label(&thread_label);
+
+    // XXX should grant a preset handle at *, so others cannot use it..
+    thread_label.merge(&tgt_label, &taint_ct_label, label::max, label::leq_starlo);
+    taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
+
+    int64_t taint_ct = sys_container_alloc(start_env->shared_container,
+					   taint_ct_label.to_ulabel(),
+					   "gate call taint");
+    if (taint_ct < 0)
+	throw error(taint_ct, "gate_call: creating tainted container");
+
+    scope_guard<int, cobj_ref> taint_ct_cleanup
+	(sys_obj_unref, COBJ(start_env->shared_container, taint_ct));
+
+    // Gate call parameters
+    gate_call_data *d = (gate_call_data *) tls;
     if (gcd_param)
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate;
+    d->taint_container = taint_ct;
 
+    // Off into the gate!
     if (jos_setjmp(&back_from_call) == 0)
-	gate_invoke(gate, cs, &new_ds, dr,
-		    &make_mlt_like_ct, &d->mlt_like_container);
+	gate_invoke(gate, &tgt_label, &tgt_clear, 0, 0);
 
+    // Copy back the arguments
     if (gcd_param)
 	memcpy(gcd_param, d, sizeof(*d));
 }

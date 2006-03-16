@@ -6,49 +6,76 @@ extern "C" {
 #include <inc/gateinvoke.hh>
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 static int label_debug = 0;
 
 void
-gate_invoke(struct cobj_ref gate, label *cs, label *ds, label *dr,
+gate_compute_labels(struct cobj_ref gate,
+		    label *cs, label *ds, label *dr,
+		    label *tgt_label, label *tgt_clear)
+{
+    label tmp;
+
+    // Compute the target label
+    obj_get_label(gate, tgt_label);
+    if (ds) {
+	tgt_label->merge(ds, &tmp, label::min, label::leq_starlo);
+	tgt_label->copy_from(&tmp);
+    }
+
+    label thread_label;
+    thread_cur_label(&thread_label);
+    thread_label.transform(label::star_to, 0);
+    tgt_label->merge(&thread_label, &tmp, label::max, label::leq_starhi);
+    tgt_label->copy_from(&tmp);
+
+    if (cs) {
+	tgt_label->merge(cs, &tmp, label::max, label::leq_starlo);
+	tgt_label->copy_from(&tmp);
+    }
+
+    // Compute the target clearance
+    gate_get_clearance(gate, tgt_clear);
+    if (dr) {
+	tgt_clear->merge(dr, &tmp, label::max, label::leq_starlo);
+	tgt_clear->copy_from(&tmp);
+    }
+
+    if (label_debug) {
+	cprintf("gate_compute_labels: cs %s ds %s dr %s\n",
+		cs ? cs->to_string() : "null",
+		ds ? ds->to_string() : "null",
+		dr ? dr->to_string() : "null");
+	cprintf("gate_compute_labels: tgt label %s clearance %s\n",
+		tgt_label->to_string(), tgt_clear->to_string());
+    }
+}
+
+
+void
+gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
 	    gate_invoke_cb cb, void *arg)
 {
-    struct cobj_ref thread_self = COBJ(kobject_id_thread_ct, thread_id());
-
     enum { label_buf_size = 48 };
     uint64_t tgt_label_ent[label_buf_size];
     uint64_t tgt_clear_ent[label_buf_size];
-    uint64_t tmp_ent[label_buf_size];
 
-    label tgt_label(&tgt_label_ent[0], label_buf_size);
-    label tgt_clear(&tgt_clear_ent[0], label_buf_size);
-    label tmp(&tmp_ent[0], label_buf_size);
+    label tgt_label_stack(&tgt_label_ent[0], label_buf_size);
+    label tgt_clear_stack(&tgt_clear_ent[0], label_buf_size);
 
-    // Compute the target label
-    error_check(sys_obj_get_label(gate, tgt_label.to_ulabel()));
-    if (ds)
-	tgt_label.merge_with(ds, label::min, label::leq_starlo);
-
-    error_check(sys_obj_get_label(thread_self, tmp.to_ulabel()));
-    tmp.transform(label::star_to, 0);
-    tgt_label.merge_with(&tmp, label::max, label::leq_starhi);
-    if (cs)
-	tgt_label.merge_with(cs, label::max, label::leq_starlo);
-
-    // Compute the target clearance
-    error_check(sys_gate_clearance(gate, tgt_clear.to_ulabel()));
-    if (dr)
-	tgt_clear.merge_with(dr, label::max, label::leq_starlo);
+    tgt_label_stack.copy_from(tgt_label);
+    tgt_clear_stack.copy_from(tgt_clear);
 
     if (cb)
-	cb(cs, ds, dr, &tgt_label, &tgt_clear, arg);
+	cb(tgt_label, tgt_clear, arg);
 
     if (label_debug)
 	cprintf("gate_invoke: label %s, clearance %s\n",
-		tgt_label.to_string(), tgt_clear.to_string());
+		tgt_label_stack.to_string(), tgt_clear_stack.to_string());
 
     error_check(sys_gate_enter(gate,
-			       tgt_label.to_ulabel(),
-			       tgt_clear.to_ulabel()));
+			       tgt_label_stack.to_ulabel(),
+			       tgt_clear_stack.to_ulabel()));
     throw basic_exception("gate_invoke: still alive");
 }

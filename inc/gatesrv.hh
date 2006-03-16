@@ -16,15 +16,13 @@ public:
 	__attribute__((noreturn));
 
 private:
-    static void ret_tls_stub(gatesrv_return *r, label *cs, label *ds, label *dr)
+    static void ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
-    void ret_tls(label *cs, label *ds, label *dr)
+    void ret_tls(label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
 
-    static void cleanup_stub(label *cs, label *ds, label *dr,
-			     label *tgt_s, label *tgt_r, void *arg);
-    void cleanup(label *cs, label *ds, label *dr,
-		 label *tgt_s, label *tgt_r);
+    static void cleanup_stub(label *tgt_s, label *tgt_r, void *arg);
+    void cleanup(label *tgt_s, label *tgt_r);
 
     struct cobj_ref rgate_;
     uint64_t thread_ct_;

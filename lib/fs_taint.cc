@@ -48,17 +48,18 @@ try
     label tl;
     thread_cur_label(&tl);
 
-    tl.merge_with(&fl, label::max, label::leq_starhi);
+    label tgt;
+    tl.merge(&fl, &tgt, label::max, label::leq_starhi);
 
     if (fs_taint_debug)
 	cprintf("fs_taint_self: file label %s, new label %s\n",
-	       fl.to_string(), tl.to_string());
+	       fl.to_string(), tgt.to_string());
 
     process_report_taint();
 
     struct jos_jmp_buf back;
     if (jos_setjmp(&back) == 0)
-	stack_switch((uint64_t) &r, (uint64_t) tl.to_ulabel(),
+	stack_switch((uint64_t) &r, (uint64_t) tgt.to_ulabel(),
 		     (uint64_t) &back, 0,
 		     (char *) UTLS + PGSIZE, (void *) &taint_tls);
 

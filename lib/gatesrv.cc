@@ -11,6 +11,7 @@ extern "C" {
 #include <inc/gateinvoke.hh>
 #include <inc/scopeguard.hh>
 #include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
 
 gatesrv::gatesrv(uint64_t gate_ct, const char *name,
 		 label *label, label *clearance)
@@ -95,40 +96,11 @@ gatesrv::entry(void *stack)
 void
 gatesrv_return::ret(label *cs, label *ds, label *dr)
 {
-    stack_switch((uint64_t) this, (uint64_t) cs, (uint64_t) ds, (uint64_t) dr,
-		 (char *) tls_ + PGSIZE,
-		 (void *) &ret_tls_stub);
-}
+    label *tgt_label = new label();
+    label *tgt_clear = new label();
 
-void
-gatesrv_return::ret_tls_stub(gatesrv_return *r, label *cs, label *ds, label *dr)
-{
-    try {
-	r->ret_tls(cs, ds, dr);
-    } catch (std::exception &e) {
-	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
-	thread_halt();
-    }
-}
+    gate_compute_labels(rgate_, cs, ds, dr, tgt_label, tgt_clear);
 
-void
-gatesrv_return::ret_tls(label *cs, label *ds, label *dr)
-{
-    gate_invoke(rgate_, cs, ds, dr, &cleanup_stub, this);
-}
-
-void
-gatesrv_return::cleanup_stub(label *cs, label *ds, label *dr,
-			     label *tgt_s, label *tgt_r, void *arg)
-{
-    gatesrv_return *r = (gatesrv_return *) arg;
-    r->cleanup(cs, ds, dr, tgt_s, tgt_r);
-}
-
-void
-gatesrv_return::cleanup(label *cs, label *ds, label *dr,
-			label *tgt_s, label *tgt_r)
-{
     if (cs)
 	delete cs;
     if (ds)
@@ -136,20 +108,59 @@ gatesrv_return::cleanup(label *cs, label *ds, label *dr,
     if (dr)
 	delete dr;
 
-    // New scope so that mlt_like_label gets freed
+    // Create an MLT-like container for tainted data.
+    // New scope to free thread_label and taint_ct_label.
     {
-	label mlt_like_label(*tgt_s);
-	mlt_like_label.transform(label::star_to, 1);
+	label taint_ct_label, thread_label;
+	thread_cur_label(&thread_label);
+
+	thread_label.merge(tgt_label, &taint_ct_label, label::max, label::leq_starlo);
+	taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
 
 	gate_call_data *gcd = (gate_call_data *) tls_;
-	int64_t id = sys_container_alloc(gcd->mlt_like_container,
-					 mlt_like_label.to_ulabel(),
-					 "gate return mlt-like thing");
+	int64_t id = sys_container_alloc(gcd->taint_container,
+					 taint_ct_label.to_ulabel(),
+					 "gate return taint");
 	if (id < 0)
-	    throw error(id, "gatesrv_return: allocating mlt-like thing");
+	    throw error(id, "gatesrv_return: allocating taint container");
 
-	gcd->mlt_like_container = id;
+	gcd->taint_container = id;
     }
+
+    stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
+		 (char *) tls_ + PGSIZE,
+		 (void *) &ret_tls_stub);
+}
+
+void
+gatesrv_return::ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
+{
+    try {
+	r->ret_tls(tgt_label, tgt_clear);
+    } catch (std::exception &e) {
+	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
+	thread_halt();
+    }
+}
+
+void
+gatesrv_return::ret_tls(label *tgt_label, label *tgt_clear)
+{
+    gate_invoke(rgate_, tgt_label, tgt_clear, &cleanup_stub, this);
+}
+
+void
+gatesrv_return::cleanup_stub(label *tgt_s, label *tgt_r, void *arg)
+{
+    gatesrv_return *r = (gatesrv_return *) arg;
+    r->cleanup(tgt_s, tgt_r);
+}
+
+void
+gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
+{
+    delete tgt_s;
+    delete tgt_r;
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     struct cobj_ref stackseg;

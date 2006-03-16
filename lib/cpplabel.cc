@@ -49,7 +49,7 @@ label::~label()
 }
 
 uint64_t *
-label::slot_find(uint64_t handle)
+label::slot_find(uint64_t handle) const
 {
     for (uint64_t i = 0; i < ul_.ul_nent; i++)
 	if (LB_HANDLE(ul_.ul_ent[i]) == handle)
@@ -107,7 +107,7 @@ label::reset(level_t def)
 }
 
 level_t
-label::get(uint64_t handle)
+label::get(uint64_t handle) const
 {
     uint64_t *s = slot_find(handle);
     return s ? LB_LEVEL(*s) : ul_.ul_default;
@@ -118,6 +118,16 @@ label::set(uint64_t handle, level_t level)
 {
     uint64_t *s = slot_alloc(handle);
     *s = LB_CODE(handle, level);
+}
+
+void
+label::copy_from(const label *src)
+{
+    reset(src->ul_.ul_default);
+    for (uint64_t i = 0; i < src->ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(src->ul_.ul_ent[i]);
+	set(h, src->get(h));
+    }
 }
 
 int
@@ -158,21 +168,6 @@ label::merge(label *b, label *out, level_merger m, level_comparator cmp)
     for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
 	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
 	out->set(h, m(get(h), b->get(h), cmp));
-    }
-}
-
-void
-label::merge_with(label *b, level_merger m, level_comparator cmp)
-{
-    set_default(m(get_default(), b->get_default(), cmp));
-    for (uint64_t i = 0; i < b->ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(b->ul_.ul_ent[i]);
-	set(h, m(get(h), b->get(h), cmp));
-    }
-
-    for (uint64_t i = 0; i < ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(ul_.ul_ent[i]);
-	set(h, m(get(h), b->get(h), cmp));
     }
 }
 

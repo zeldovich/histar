@@ -23,30 +23,40 @@ spawn(uint64_t container, struct fs_inode elf_ino,
       label *cs, label *ds, label *cr, label *dr,
       uint64_t flags)
 {
-    label tmp;
+    label tmp, out;
 
     // Compute receive label for new process
     label thread_clear(2);
 
     thread_cur_clearance(&tmp);
-    thread_clear.merge_with(&tmp, label::min, label::leq_starhi);
+    thread_clear.merge(&tmp, &out, label::min, label::leq_starhi);
+    thread_clear.copy_from(&out);
 
-    if (cr)
-	thread_clear.merge_with(cr, label::min, label::leq_starhi);
-    if (dr)
-	thread_clear.merge_with(dr, label::max, label::leq_starhi);
+    if (cr) {
+	thread_clear.merge(cr, &out, label::min, label::leq_starhi);
+	thread_clear.copy_from(&out);
+    }
+    if (dr) {
+	thread_clear.merge(dr, &out, label::max, label::leq_starhi);
+	thread_clear.copy_from(&out);
+    }
 
     // Compute send label for new process
     label thread_label(1);
 
     thread_cur_label(&tmp);
     tmp.transform(label::star_to, 0);
-    thread_label.merge_with(&tmp, label::max, label::leq_starlo);
+    thread_label.merge(&tmp, &out, label::max, label::leq_starlo);
+    thread_label.copy_from(&out);
 
-    if (cs)
-	thread_label.merge_with(cs, label::max, label::leq_starlo);
-    if (ds)
-	thread_label.merge_with(ds, label::min, label::leq_starlo);
+    if (cs) {
+	thread_label.merge(cs, &out, label::max, label::leq_starlo);
+	thread_label.copy_from(&out);
+    }
+    if (ds) {
+	thread_label.merge(ds, &out, label::min, label::leq_starlo);
+	thread_label.copy_from(&out);
+    }
 
     // Objects for new process are effectively the same label, except
     // we can drop the stars altogether -- they're discretionary.
