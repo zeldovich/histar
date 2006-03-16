@@ -19,6 +19,12 @@ struct stat;
 struct Fd;
 struct Dev;
 
+typedef enum
+{
+    dev_probe_read,
+    dev_probe_write,    
+} dev_probe_t ;
+
 struct Dev
 {
     int dev_id;
@@ -32,7 +38,7 @@ struct Dev
     int (*dev_seek)(struct Fd *fd, off_t pos);
     int (*dev_trunc)(struct Fd *fd, off_t length);
     int (*dev_stat)(struct Fd *fd, struct stat *buf);
-    int (*dev_readselect)(struct Fd *fd) ;
+    int (*dev_probe)(struct Fd *fd, dev_probe_t probe) ;
 
     ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
 

@@ -286,6 +286,12 @@ sock_stat(struct Fd *fd, struct stat *buf)
     return 0;
 }
 
+static int
+sock_probe(struct Fd *fd, dev_probe_t probe)
+{
+    return 1 ;
+}
+
 struct Dev devsock = 
 {
     .dev_id = 's',
@@ -304,4 +310,5 @@ struct Dev devsock =
     .dev_setsockopt = sock_setsockopt,
     .dev_getsockopt = sock_getsockopt,
     .dev_stat = sock_stat,
+    .dev_probe = sock_probe,
 };

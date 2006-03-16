@@ -117,10 +117,17 @@ pipe_close(struct Fd *fd)
     sys_sync_wakeup(&fd->fd_pipe.bytes);
 }
 
+static int
+pipe_probe(struct Fd *fd, dev_probe_t probe)
+{
+    return 1 ;
+}
+
 struct Dev devpipe = {
     .dev_id = 'p',
     .dev_name = "pipe",
     .dev_read = pipe_read,
     .dev_write = pipe_write,
     .dev_close = pipe_close,
+    .dev_probe = pipe_probe,
 };

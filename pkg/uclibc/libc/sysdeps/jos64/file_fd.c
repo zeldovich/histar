@@ -194,6 +194,12 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
     return cc;
 }
 
+static int
+file_probe(struct Fd *fd, dev_probe_t probe)
+{
+    return 1 ;
+}
+
 struct Dev devfile = {
     .dev_id = 'f',
     .dev_name = "file",
@@ -202,6 +208,7 @@ struct Dev devfile = {
     .dev_close = file_close,
     .dev_stat = file_stat,
     .dev_getdents = file_getdents,
+    .dev_probe = file_probe,
 };
 
 weak_alias(__libc_open, open);

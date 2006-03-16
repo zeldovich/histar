@@ -598,25 +598,50 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
+    // XXX
     if (exceptset)
         FD_ZERO(exceptset) ;
     
-    // avoid blocking on stdin reads
-    if (readset && FD_ISSET(fileno(stdin), readset)) {
-        struct Fd *fd;
-        struct Dev *dev;
-        int r ;
-        if ((r = fd_lookup(fileno(stdin), &fd, 0, 0)) < 0
-	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
-            cprintf("select: stdin select failed\n") ;
-            return maxfd ;
+    fd_set rreadset ;
+    fd_set rwriteset ;
+    int ready = 0 ;
+    
+    struct Fd *fd;
+    struct Dev *dev;
+    int r ;
+    
+    //while (!ready) {
+        for (int i = 0 ; i < maxfd ; i++) {
+            if (readset && FD_ISSET(i, readset)) {
+                if ((r = fd_lookup(i, &fd, 0, 0)) < 0
+                || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+                    __set_errno(EBADF);
+                    return -1 ;
+                }
+                if (dev->dev_probe(fd, dev_probe_read)) {
+                    FD_SET(i, &rreadset) ;
+                    ready++ ;    
+                }
+            }
+            if (writeset && FD_ISSET(i, writeset)) {
+                if ((r = fd_lookup(i, &fd, 0, 0)) < 0
+                || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+                    __set_errno(EBADF);
+                    return -1 ;
+                }
+                if (dev->dev_probe(fd, dev_probe_write)) {
+                    FD_SET(i, &rwriteset) ;
+                    ready++ ;    
+                }
+            }
         }
-        
-        if (!dev->dev_readselect(fd))
-           FD_CLR(fileno(stdin), readset) ;
-        ;
-    }
-    return maxfd;
+    //}
+    
+    if (writeset)
+        memcpy(writeset, &rwriteset, sizeof(*writeset)) ;
+    if (readset)
+        memcpy(readset, &rreadset, sizeof(*readset)) ;
+    return ready ;
 }
 
 ssize_t
@@ -691,8 +716,8 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
 {
     int r;
     va_list ap;
-    long arg;
-    struct flock *flock;
+    long arg = 0 ;
+    struct flock *flock = 0 ;
     struct Fd *fd;
 
     struct cobj_ref fd_obj;

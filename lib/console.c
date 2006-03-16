@@ -73,9 +73,11 @@ cons_stat(struct Fd *fd, struct stat *buf)
 }
 
 static int
-cons_readselect(struct Fd *fd)
+cons_probe(struct Fd *fd, dev_probe_t probe)
 {
-    return sys_cons_probe();
+    if (probe == dev_probe_read)
+        return sys_cons_probe();
+    return 1 ;
 }
 
 struct Dev devcons =
@@ -86,5 +88,5 @@ struct Dev devcons =
     .dev_write = cons_write,
     .dev_close = cons_close,
     .dev_stat = cons_stat,
-    .dev_readselect = cons_readselect,
+    .dev_probe = cons_probe,
 };
