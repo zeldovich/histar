@@ -73,7 +73,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
     }
 
     struct Fd *fd;
-    r = fd_alloc(start_env->shared_container, &fd, "file fd");
+    r = fd_alloc(&fd, "file fd");
     if (r < 0) {
 	__set_errno(ENOMEM);
 	return -1;

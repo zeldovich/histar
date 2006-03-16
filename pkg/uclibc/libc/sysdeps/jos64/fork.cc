@@ -20,6 +20,10 @@ static int fork_debug = 0;
 static pid_t
 do_fork()
 {
+    // Make all FDs independent of the process taint/grant handles
+    for (int i = 0; i < MAXFD; i++)
+	fd_make_public(i);
+
     // New process gets the same label as this process,
     // except we take away our process taint&grant * and
     // instead give it its own process taint&grant *.

@@ -108,7 +108,7 @@ fd_handles_init(void)
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
 int
-fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
+fd_alloc(struct Fd **fd_store, const char *name)
 {
 	fd_handles_init();
 
@@ -128,45 +128,107 @@ fd_alloc(uint64_t container, struct Fd **fd_store, const char *name)
 	if (i == MAXFD)
 		return -E_MAX_OPEN;
 
-	int64_t fd_grant = sys_handle_create();
-	if (fd_grant < 0)
-		return fd_grant;
-	scope_guard<void, uint64_t> grant_drop(thread_drop_star, fd_grant);
-
-	int64_t fd_taint = sys_handle_create();
-	if (fd_taint < 0)
-		return fd_taint;
-	scope_guard<void, uint64_t> taint_drop(thread_drop_star, fd_taint);
-
 	label l;
 	try {
 		thread_cur_label(&l);
 		l.transform(label::star_to, 1);
-		l.set(fd_grant, 0);
-		l.set(fd_taint, 3);
+		l.set(start_env->process_grant, 0);
+		l.set(start_env->process_taint, 3);
 	} catch (error &e) {
 		cprintf("fd_alloc: %s\n", e.what());
 		return e.err();
 	}
 
 	struct cobj_ref seg;
-	int r = segment_alloc(container, PGSIZE, &seg,
+	int r = segment_alloc(start_env->proc_container, PGSIZE, &seg,
 			      (void**)&fd, l.to_ulabel(), name);
 	if (r < 0)
 		return r;
 
 	atomic_set(&fd->fd_ref, 1);
 	fd->fd_dev_id = 0;
-	fd->fd_grant = fd_grant;
-	fd->fd_taint = fd_taint;
-	fd_handles[fd2num(fd)].fd_grant = fd_grant;
-	fd_handles[fd2num(fd)].fd_taint = fd_taint;
-
-	grant_drop.dismiss();
-	taint_drop.dismiss();
+	fd->fd_private = 1;
 
 	*fd_store = fd;
 	return 0;
+}
+
+int
+fd_make_public(int fdnum)
+{
+    fd_handles_init();
+
+    struct Fd *fd;
+    struct cobj_ref old_seg;
+    uint64_t fd_flags;
+    int r = fd_lookup(fdnum, &fd, &old_seg, &fd_flags);
+    if (r < 0)
+	return r;
+
+    if (fd->fd_private == 0)
+	return 0;
+
+    if (fd->fd_immutable)
+	return -E_LABEL;
+
+    int64_t fd_grant = sys_handle_create();
+    if (fd_grant < 0)
+	return fd_grant;
+    scope_guard<void, uint64_t> grant_drop(thread_drop_star, fd_grant);
+
+    int64_t fd_taint = sys_handle_create();
+    if (fd_taint < 0)
+	return fd_taint;
+    scope_guard<void, uint64_t> taint_drop(thread_drop_star, fd_taint);
+
+    label l;
+    thread_cur_label(&l);
+    l.transform(label::star_to, 1);
+    l.set(fd_grant, 0);
+    l.set(fd_taint, 3);
+
+    char name[KOBJ_NAME_LEN];
+    r = sys_obj_get_name(old_seg, &name[0]);
+    if (r < 0)
+	return r;
+
+    int64_t new_id = sys_segment_copy(old_seg, start_env->shared_container,
+				      l.to_ulabel(), &name[0]);
+    if (new_id < 0)
+	return new_id;
+
+    struct cobj_ref new_seg = COBJ(start_env->shared_container, new_id);
+
+    for (int i = 0; i < MAXFD; i++) {
+	struct Fd *ifd;
+	struct cobj_ref iobj;
+	uint64_t iflags;
+
+	if (fd_lookup(i, &ifd, &iobj, &iflags) < 0)
+	    continue;
+
+	if (iobj.object == old_seg.object) {
+	    assert(0 == sys_segment_addref(new_seg, start_env->shared_container));
+	    assert(0 == segment_unmap(ifd));
+	    assert(0 == segment_map(new_seg, iflags, (void **) &ifd, 0));
+	    sys_obj_unref(old_seg);
+
+	    fd_handles[i].fd_grant = fd_grant;
+	    fd_handles[i].fd_taint = fd_taint;
+	}
+    }
+
+    // Drop an extraneous reference
+    assert(0 == sys_obj_unref(new_seg));
+
+    fd->fd_grant = fd_grant;
+    fd->fd_taint = fd_taint;
+    fd->fd_private = 0;
+
+    grant_drop.dismiss();
+    taint_drop.dismiss();
+
+    return 0;
 }
 
 // Check that fdnum is in range and mapped.
@@ -206,39 +268,39 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 int
 fd_close(struct Fd *fd)
 {
-	fd_handles_init();
+    fd_handles_init();
 
-	int r = 0;
-	int handle_refs = fd_count_handles(fd->fd_taint, fd->fd_grant);
+    int r = 0;
+    int handle_refs = fd_count_handles(fd->fd_taint, fd->fd_grant);
 
-	struct cobj_ref fd_seg;
-	r = segment_lookup(fd, &fd_seg, 0, 0);
-	if (r < 0)
-		return r;
-	if (r == 0)
-		return -E_NOT_FOUND;
-
-	struct Dev *dev;
-	r = dev_lookup(fd->fd_dev_id, &dev);
-	if (r < 0)
-		return r;
-
-	if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref))
-		r = (*dev->dev_close)(fd);
-
-	if (handle_refs == 2) try {
-		fd_give_up_privilege(fd2num(fd));
-	} catch (std::exception &e) {
-		cprintf("fd_close: cannot drop handle: %s\n", e.what());
-	}
-
-	fd_handles[fd2num(fd)].fd_taint = 0;
-	fd_handles[fd2num(fd)].fd_grant = 0;
-
-	segment_unmap(fd);
-	sys_obj_unref(fd_seg);
-
+    struct cobj_ref fd_seg;
+    r = segment_lookup(fd, &fd_seg, 0, 0);
+    if (r < 0)
 	return r;
+    if (r == 0)
+	return -E_NOT_FOUND;
+
+    struct Dev *dev;
+    r = dev_lookup(fd->fd_dev_id, &dev);
+    if (r < 0)
+	return r;
+
+    if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref))
+	r = (*dev->dev_close)(fd);
+
+    if (handle_refs == 2) try {
+	fd_give_up_privilege(fd2num(fd));
+    } catch (std::exception &e) {
+	cprintf("fd_close: cannot drop handle: %s\n", e.what());
+    }
+
+    fd_handles[fd2num(fd)].fd_taint = 0;
+    fd_handles[fd2num(fd)].fd_grant = 0;
+
+    segment_unmap(fd);
+    sys_obj_unref(fd_seg);
+
+    return r;
 }
 
 void
@@ -363,9 +425,15 @@ dup(int fdnum) __THROW
 int
 dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_ct)
 {
+    int r = fd_make_public(oldfdnum);
+    if (r < 0) {
+	cprintf("dup2_as: make_public: %s\n", e2s(r));
+	return r;
+    }
+
     struct Fd *oldfd;
     struct cobj_ref old_seg;
-    int r = fd_lookup(oldfdnum, &oldfd, &old_seg, 0);
+    r = fd_lookup(oldfdnum, &oldfd, &old_seg, 0);
     if (r < 0) {
 	cprintf("dup2_as: fd_lookup: %s\n", e2s(r));
 	return r;

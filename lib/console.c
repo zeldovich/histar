@@ -24,12 +24,21 @@ opencons(void)
     int r;
     struct Fd* fd;
 
-    if ((r = fd_alloc(start_env->shared_container, &fd, "console fd")) < 0)
+    if ((r = fd_alloc(&fd, "console fd")) < 0)
 	return r;
+
     fd->fd_dev_id = devcons.dev_id;
     fd->fd_omode = O_RDWR;
-    fd->fd_immutable = 1;
     fd->fd_isatty = 1;
+
+    r = fd_make_public(fd2num(fd));
+    if (r < 0) {
+	cprintf("opencons: cannot make public: %s\n", e2s(r));
+	fd_close(fd);
+	return r;
+    }
+
+    fd->fd_immutable = 1;
     return fd2num(fd);
 }
 
