@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <utime.h>
+#include <stdio.h>
+
 #include <sys/stat.h>
 
 #include <bits/unimpl.h>
@@ -147,7 +149,7 @@ getcwd(char *buf, size_t size)
 	    size = 256;
 	buf = malloc(size);
 	if (buf == 0)
-	    return -1;
+	    return 0;
     }
 
     // XXX we do not have a ".." yet
