@@ -6,30 +6,31 @@
 #include <kern/lib.h>
 
 struct entry {
-	uint64_t count ;
-	uint64_t time ;
-} ;
+    uint64_t count;
+    uint64_t time;
+};
 
 #define NTRAPS (T_SYSCALL + 1)
 
-struct entry sysc_table[NSYSCALLS] ;
-struct entry trap_table[NTRAPS] ;
+struct entry sysc_table[NSYSCALLS];
+struct entry trap_table[NTRAPS];
 struct entry user_table[1];
 
-static struct periodic_task timer ;
+static struct periodic_task timer;
 static int prof_print_enable = 0;
 
-static struct periodic_task timer2 ;
+static struct periodic_task timer2;
 
 // for profiling using gcc's -finstrument-functions
-static int cyg_prof_print_enable = 0 ;
-static int cyg_prof_enable = 0 ;
+static int cyg_prof_print_enable = 0;
+static int cyg_prof_enable = 0;
 
-#define NUM_PROFS_PRINTED 2 
-static uint64_t cyg_profs_printed[NUM_PROFS_PRINTED] = {
-    (uint64_t)&memset,
-    (uint64_t)&memcpy,
-} ;
+static void *cyg_profs_printed[] = {
+    &memset,
+    &memcpy,
+};
+
+#define NUM_PROFS_PRINTED (sizeof(cyg_profs_printed) / sizeof(cyg_profs_printed[0]))
 static uint64_t cyg_profs_threshold = 1000000000UL;
 
 struct func_stamp
@@ -223,12 +224,12 @@ cyg_profile_print(void)
     cyg_data.enable = 0 ;
     
     cprintf("cyg_profile_print: selected functions\n");
-    for (int i = 0 ; i < NUM_PROFS_PRINTED ; i++) {
-        uint64_t val ;
-        char buf[32] ;
-        if (hash_get(&cyg_data.stats_lookup, cyg_profs_printed[i], &val) == 0) {
-            sprintf(buf, "%lx", cyg_profs_printed[i]) ;
-            print_entry(cyg_data.stat, val, buf) ;
+    for (uint32_t i = 0 ; i < NUM_PROFS_PRINTED ; i++) {
+        uint64_t val;
+        char buf[32];
+        if (hash_get(&cyg_data.stats_lookup, (uint64_t) cyg_profs_printed[i], &val) == 0) {
+            sprintf(buf, "%lx", (uint64_t) cyg_profs_printed[i]);
+            print_entry(cyg_data.stat, val, buf);
         }
     }
 
