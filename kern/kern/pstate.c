@@ -95,8 +95,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 
     if (kobject_initial(ko)) {
 	uint64_t dummy = 0;
-    r = btree_insert(BTREE_IOBJ, &ko->hdr.ko_id, &dummy);
-
+	r = btree_insert(BTREE_IOBJ, &ko->hdr.ko_id, &dummy);
 	if (r < 0) {
 	    cprintf("pstate_kobj_alloc: iobjlist insert failed, disk full?\n");
 	    return r;
@@ -589,10 +588,9 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
     
         log_init(); 
-        btree_manager_init() ;
-    	freelist_init(&freelist,
-                     reserved_pages * PGSIZE,
-		             (disk_pages - reserved_pages) * PGSIZE);
+        btree_manager_init();
+    	freelist_init(&freelist, reserved_pages * PGSIZE,
+		      (disk_pages - reserved_pages) * PGSIZE);
     }
 
     static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
