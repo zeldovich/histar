@@ -123,9 +123,13 @@ do_fork()
 	if (uas.ents[i].segment.container == proc_ct)
 	    continue;
 
+	// FDs are a special case
 	// XXX the fd refcounts are not garbage-collected on failure..
 	void *va = uas.ents[i].va;
 	if (va >= fd_base && va < fd_end) {
+	    error_check(sys_segment_addref(uas.ents[i].segment, top_ct));
+	    uas.ents[i].segment.container = top_ct;
+
 	    struct Fd *fd = (struct Fd *) va;
 	    if (!fd->fd_immutable)
 		atomic_inc(&fd->fd_ref);

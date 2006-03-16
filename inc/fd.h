@@ -93,7 +93,6 @@ int	fd_alloc(uint64_t container, struct Fd **fd_store, const char *name);
 int	fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flagsp);
 int	fd_setflags(struct Fd *fd, struct cobj_ref obj, uint64_t newflags);
-int	fd_move(int fdnum, uint64_t container);
 void	fd_give_up_privilege(int fdnum);
 int	fd_set_isatty(int fdnum, int isit);
 int	dev_lookup(int devid, struct Dev **dev_store);
@@ -103,7 +102,8 @@ extern struct Dev devsock;
 extern struct Dev devfile;
 extern struct Dev devpipe;
 
-int	dup2_as(int oldfd, int newfd, struct cobj_ref target_as);
+int	dup2_as(int oldfd, int newfd,
+		struct cobj_ref target_as, uint64_t target_ct);
 void	close_all(void);
 ssize_t	readn(int fd, void *buf, size_t nbytes);
 

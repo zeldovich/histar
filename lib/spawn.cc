@@ -20,8 +20,7 @@ struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
-      label *cs, label *ds, label *cr, label *dr,
-      uint64_t flags)
+      label *cs, label *ds, label *cr, label *dr)
 {
     label tmp, out;
 
@@ -105,12 +104,9 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     int fdnum[3] = { fd0, fd1, fd2 };
     for (int i = 0; i < 3; i++) {
-	if ((flags & SPAWN_MOVE_FD))
-	    error_check(fd_move(fdnum[i], c_top));
-
 	struct Fd *fd;
 	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
-	error_check(dup2_as(fdnum[i], i, e.te_as));
+	error_check(dup2_as(fdnum[i], i, e.te_as, c_top));
 	thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
 	if (!fd->fd_immutable)
 	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);

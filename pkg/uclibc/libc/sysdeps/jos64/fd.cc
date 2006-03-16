@@ -211,9 +211,6 @@ fd_close(struct Fd *fd)
 	int r = 0;
 	int handle_refs = fd_count_handles(fd->fd_taint, fd->fd_grant);
 
-	if (fd->fd_immutable || !atomic_dec_and_test(&fd->fd_ref))
-		goto out;
-
 	struct cobj_ref fd_seg;
 	r = segment_lookup(fd, &fd_seg, 0, 0);
 	if (r < 0)
@@ -226,61 +223,22 @@ fd_close(struct Fd *fd)
 	if (r < 0)
 		return r;
 
-	r = (*dev->dev_close)(fd);
+	if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref))
+		r = (*dev->dev_close)(fd);
 
-	sys_obj_unref(fd_seg);
-
-out:
 	if (handle_refs == 2) try {
 		fd_give_up_privilege(fd2num(fd));
 	} catch (std::exception &e) {
 		cprintf("fd_close: cannot drop handle: %s\n", e.what());
 	}
+
 	fd_handles[fd2num(fd)].fd_taint = 0;
 	fd_handles[fd2num(fd)].fd_grant = 0;
+
 	segment_unmap(fd);
+	sys_obj_unref(fd_seg);
+
 	return r;
-}
-
-int
-fd_move(int fdnum, uint64_t container)
-{
-    struct Fd *fd;
-    struct cobj_ref oldseg;
-    int r = fd_lookup(fdnum, &fd, &oldseg, 0);
-    if (r < 0)
-	return r;
-
-    if (oldseg.container == container)
-	return 0;
-
-    r = sys_segment_addref(oldseg, container);
-    if (r < 0)
-	return r;
-
-    // XXX the failure semantics are not very good: if we fail
-    // to remap some of the FDs mapping this segment, we leave
-    // the segment referenced in both of the containers, and
-    // with FDs referencing both containers.  so we assert().
-
-    struct cobj_ref newseg = COBJ(container, oldseg.object);
-    for (int i = 0; i < MAXFD; i++) {
-	r = fd_lookup(i, &fd, &oldseg, 0);
-	if (r < 0)
-	    continue;
-
-	if (oldseg.object == newseg.object &&
-	    oldseg.container != newseg.container)
-	{
-	    int perm = fd->fd_immutable ? SEGMAP_READ
-					: SEGMAP_READ | SEGMAP_WRITE;
-	    assert(0 == segment_unmap(fd));
-	    assert(0 == segment_map(newseg, perm, (void **) &fd, 0));
-	}
-    }
-
-    sys_obj_unref(oldseg);
-    return 0;
 }
 
 void
@@ -361,6 +319,12 @@ dup2(int oldfdnum, int newfdnum) __THROW
 	return -1;
     }
 
+    r = sys_segment_addref(fd_seg, fd_seg.container);
+    if (r < 0) {
+	__set_errno(EPERM);
+	return -1;
+    }
+
     close(newfdnum);
     struct Fd *newfd = INDEX2FD(newfdnum);
 
@@ -369,6 +333,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
 		    SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
 		    (void**) &newfd, 0);
     if (r < 0) {
+	sys_obj_unref(fd_seg);
 	__set_errno(EINVAL);
 	return -1;
     }
@@ -396,28 +361,45 @@ dup(int fdnum) __THROW
 }
 
 int
-dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as)
+dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_ct)
 {
-	struct Fd *oldfd;
-	struct cobj_ref fd_seg;
-	int r = fd_lookup(oldfdnum, &oldfd, &fd_seg, 0);
-	if (r < 0)
-		return r;
+    struct Fd *oldfd;
+    struct cobj_ref old_seg;
+    int r = fd_lookup(oldfdnum, &oldfd, &old_seg, 0);
+    if (r < 0) {
+	cprintf("dup2_as: fd_lookup: %s\n", e2s(r));
+	return r;
+    }
 
-	// XXX only works for initial setup, as this doesn't close
-	// newfdnum in target address space if one aleady exists.
-	struct Fd *newfd = INDEX2FD(newfdnum);
+    r = sys_segment_addref(old_seg, target_ct);
+    if (r < 0) {
+	cprintf("dup2_as: sys_segment_addref: %s\n", e2s(r));
 
-	int immutable = oldfd->fd_immutable;
-	r = segment_map_as(target_as, fd_seg,
-			   SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
-			   (void**) &newfd, 0);
-	if (r < 0)
-		return r;
+	r = sys_obj_get_type(old_seg);
+	cprintf("dup2_as: get type %d %s\n", r, e2s(r));
 
-	if (!immutable)
-		atomic_inc(&oldfd->fd_ref);
-	return newfdnum;
+	return r;
+    }
+
+    struct cobj_ref new_seg = COBJ(target_ct, old_seg.object);
+
+    // XXX only works for initial setup, as this doesn't close
+    // newfdnum in target address space if one aleady exists.
+    struct Fd *newfd = INDEX2FD(newfdnum);
+
+    int immutable = oldfd->fd_immutable;
+    r = segment_map_as(target_as, new_seg,
+		       SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
+		       (void**) &newfd, 0);
+    if (r < 0) {
+	cprintf("dup2_as: segment_map_as: %s\n", e2s(r));
+	sys_obj_unref(new_seg);
+	return r;
+    }
+
+    if (!immutable)
+	atomic_inc(&oldfd->fd_ref);
+    return newfdnum;
 }
 
 ssize_t

@@ -31,8 +31,7 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	spawn(start_env->root_container, ino,
 	      fd, fd, fd,
 	      arg ? 2 : 1, &argv[0],
-	      0, ds, 0, 0,
-	      0);
+	      0, ds, 0, 0);
 
 	if (init_debug)
 	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());

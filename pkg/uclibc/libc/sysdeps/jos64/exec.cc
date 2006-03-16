@@ -31,9 +31,16 @@ do_execve(fs_inode bin, char *const *argv)
     secret_label.set(start_env->process_grant, 0);
     secret_label.set(start_env->process_taint, 3);
 
+    // Figure out the name
+    char name[KOBJ_NAME_LEN];
+    error_check(sys_obj_get_name(bin.obj, &name[0]));
+
+    char buf[KOBJ_NAME_LEN];
+    snprintf(&buf[0], KOBJ_NAME_LEN, "exec:%s", &name[0]);
+
     // Allocate new process container
     int64_t proc_ct = sys_container_alloc(start_env->shared_container,
-					  secret_label.to_ulabel(), "process:exec");
+					  secret_label.to_ulabel(), &buf[0]);
     error_check(proc_ct);
 
     cobj_ref proc_ref = COBJ(start_env->shared_container, proc_ct);
@@ -54,7 +61,7 @@ do_execve(fs_inode bin, char *const *argv)
 	if ((fd_flags & SEGMAP_CLOEXEC))
 	    continue;
 
-	error_check(dup2_as(i, i, e.te_as));
+	error_check(dup2_as(i, i, e.te_as, start_env->shared_container));
     }
 
     // Create an initial properly-labeled heap
@@ -88,7 +95,7 @@ do_execve(fs_inode bin, char *const *argv)
     e.te_arg = (uint64_t) new_env_va;
 
     // Create a thread
-    int64_t tid = sys_thread_create(proc_ct, "exec'ed thread");
+    int64_t tid = sys_thread_create(proc_ct, &name[0]);
     error_check(tid);
     struct cobj_ref th_ref = COBJ(proc_ct, tid);
 
