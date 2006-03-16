@@ -310,9 +310,7 @@ static void
 tlb_invalidate (struct Pagemap *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
-    if (cur_thread == 0 || cur_thread->th_as == 0)
-	return;
-    if (cur_thread->th_as->as_pgmap == pgmap)
+    if (cur_as && cur_as->as_pgmap == pgmap)
 	invlpg(va);
 }
 
