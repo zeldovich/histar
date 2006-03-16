@@ -122,6 +122,14 @@ netd_dispatch(struct netd_op_args *a)
                                   &a->getsockopt.optlen);
         break ;
 
+    case netd_op_select:
+        a->rval = lwip_select(a->select.maxfdp1,
+                              a->select.readset,
+                              a->select.writeset,
+                              a->select.exceptset,
+                              a->select.timeout) ;
+        break ;
+
     default:
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;
