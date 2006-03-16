@@ -23,7 +23,6 @@ static struct periodic_task timer2;
 
 // for profiling using gcc's -finstrument-functions
 static int cyg_prof_print_enable = 0;
-static int cyg_prof_enable = 0;
 
 static void *cyg_profs_printed[] = {
     &memset,
@@ -46,7 +45,7 @@ struct cyg_stack {
 };
 
 static struct {
-    char enable;
+    char disable;	// to avoid re-entry while profiling
 
 #define NUM_STACKS 16
     struct cyg_stack stack[NUM_STACKS];
@@ -60,7 +59,6 @@ static struct {
     struct entry stat[NUM_SYMS];
 
     uint64_t last_tsc;
-
 } cyg_data;
 
 void __attribute__ ((no_instrument_function))
@@ -81,9 +79,6 @@ prof_init(void)
     timer2.pt_interval_ticks = kclock_hz * 10;
     if (cyg_prof_print_enable)
 	timer_add_periodic(&timer2);
-
-    if (cyg_prof_enable)
-	cyg_data.enable = 1;
 }
 
 void
@@ -196,7 +191,7 @@ cyg_profile_data(void *func_addr, uint64_t time, int count)
 void __attribute__ ((no_instrument_function))
 cyg_profile_free_stack(uint64_t sp)
 {
-    if (!cyg_data.enable)
+    if (cyg_data.disable)
 	return;
 
     sp = ROUNDUP(sp, PGSIZE);
@@ -212,10 +207,10 @@ cyg_profile_free_stack(uint64_t sp)
 void __attribute__ ((no_instrument_function))
 cyg_profile_print(void)
 {
-    if (!cyg_data.enable)
+    if (cyg_data.disable)
 	return;
 
-    cyg_data.enable = 0;
+    cyg_data.disable = 1;
 
     cprintf("cyg_profile_print: selected functions\n");
     for (uint32_t i = 0; i < NUM_PROFS_PRINTED; i++) {
@@ -242,16 +237,16 @@ cyg_profile_print(void)
     }
 
     cyg_profile_reset();
-    cyg_data.enable = 1;
+    cyg_data.disable = 0;
 }
 
 void __attribute__ ((no_instrument_function))
 __cyg_profile_func_enter(void *this_fn, void *call_site)
 {
-    if (!cyg_data.enable)
+    if (cyg_data.disable)
 	return;
 
-    cyg_data.enable = 0;
+    cyg_data.disable = 1;
     uint64_t sp = ROUNDUP(read_rsp(), PGSIZE);
 
     struct cyg_stack *s;
@@ -273,18 +268,18 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
     // overflow func addr stack
     assert(s->size != PGSIZE);
 
-    cyg_data.enable = 1;
+    cyg_data.disable = 0;
 }
 
 void __attribute__ ((no_instrument_function))
 __cyg_profile_func_exit(void *this_fn, void *call_site)
 {
-    if (!cyg_data.enable)
+    if (cyg_data.disable)
 	return;
 
     uint64_t f = read_tsc();
 
-    cyg_data.enable = 0;
+    cyg_data.disable = 1;
     uint64_t sp = ROUNDUP(read_rsp(), PGSIZE);
 
     struct cyg_stack *s = stack_for(sp);
@@ -305,5 +300,5 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
     // children called from there, use this:
     //uint64_t time_with_children = f - s->func_stamp[s->size].entry_tsc;
 
-    cyg_data.enable = 1;
+    cyg_data.disable = 0;
 }
