@@ -17,6 +17,7 @@
 #include <bits/signalgate.h>
 
 static int signal_debug = 0;
+static uint64_t signal_counter;
 
 // BSD compat
 const char *sys_signame[_NSIG];
@@ -73,6 +74,9 @@ signal_dispatch(siginfo_t *si)
     signal_dispatch_sa(sa, si);
 
     // XXX restore saved sigmask
+
+    signal_counter++;
+    sys_sync_wakeup(&signal_counter);
 }
 
 static void
@@ -172,7 +176,20 @@ __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *o
 int
 sigsuspend(const sigset_t *mask) __THROW
 {
-    __set_errno(ENOSYS);
+    uint64_t ctr = signal_counter;
+
+    int i;
+    for (i = 1; i < _NSIG; i++) {
+	if (sigismember(mask, i)) {
+	    set_enosys();
+	    return -1;
+	}
+    }
+
+    // Since our signal masking is nonexistant, we fudge with a timeout
+    sys_sync_wait(&signal_counter, ctr, sys_clock_msec() + 1000);
+
+    __set_errno(EINTR);
     return -1;
 }
 
