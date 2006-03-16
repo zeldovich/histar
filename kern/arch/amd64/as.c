@@ -177,7 +177,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 int
 as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 {
-    int r = check_user_access(&usm_new, sizeof(*usm_new), 0);
+    int r = check_user_access(usm_new, sizeof(*usm_new), 0);
     if (r < 0)
 	return r;
 
