@@ -60,6 +60,5 @@ store all * handles in a privstore
 
 what's chewing up cycles?
 
-jos64 unix emulation problems:
- * select
+non-resizable segments
 
