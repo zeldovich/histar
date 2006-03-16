@@ -448,6 +448,7 @@ kobject_gc(struct kobject *ko)
     pagetree_free(&ko->ko_pt);
     ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;
+    return 0;
 }
 
 static void
