@@ -27,6 +27,8 @@ extern level_comparator label_leq_starhi_rhs_0_except_star;
 
 int  label_alloc(struct Label **l, level_t def)
     __attribute__ ((warn_unused_result));
+void label_swapin(struct Label *l);
+
 int  label_copy(const struct Label *src, struct Label **dst)
     __attribute__ ((warn_unused_result));
 

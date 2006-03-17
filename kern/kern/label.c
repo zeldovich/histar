@@ -121,6 +121,12 @@ label_alloc(struct Label **lp, level_t def)
     return 0;
 }
 
+void
+label_swapin(struct Label *l)
+{
+    // nothing for now
+}
+
 int
 label_copy(const struct Label *src, struct Label **dstp)
 {
