@@ -21,8 +21,6 @@ static uint64_t	cache_thread_id;
 
 static pthread_mutex_t as_mutex;
 
-enum { segment_delay_unmap = 0 };
-
 static void
 as_mutex_lock(void) {
     pthread_mutex_lock(&as_mutex);
@@ -36,19 +34,13 @@ as_mutex_unlock(void) {
 static void
 cache_uas_flush(void)
 {
-    int needflush = 0;
-
     for (uint32_t i = 0; i < cache_uas.nent; i++) {
 	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
 	    cache_uas.ents[i].flags = 0;
-	    needflush = 1;
+	    int r = sys_as_set_slot(cache_asref, &cache_uas.ents[i]);
+	    if (r < 0)
+		panic("cache_uas_flush: writeback: %s", e2s(r));
 	}
-    }
-
-    if (needflush) {
-	int r = sys_as_set(cache_asref, &cache_uas);
-	if (r < 0)
-	    panic("cache_uas_flush: cannot writeback: %s", e2s(r));
     }
 }
 
@@ -124,7 +116,7 @@ segment_map_print(struct u_address_space *as)
 }
 
 int
-segment_unmap(void *va)
+segment_unmap_delayed(void *va, int can_delay)
 {
     as_mutex_lock();
 
@@ -146,7 +138,7 @@ segment_unmap(void *va)
 	    cache_uas.ents[i].flags &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP))
 	{
-	    if (segment_delay_unmap) {
+	    if (can_delay) {
 		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
 		as_mutex_unlock();
 		return 0;
@@ -163,6 +155,12 @@ segment_unmap(void *va)
 
     as_mutex_unlock();
     return -E_INVAL;
+}
+
+int
+segment_unmap(void *va)
+{
+    return segment_unmap_delayed(va, 0);
 }
 
 int
@@ -486,7 +484,6 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	if (mapped_bytes != bytes) {
 	    segment_unmap(*va_p);
 	    sys_obj_unref(*cobj);
-	    segment_unmap_flush();
 	    return -E_AGAIN;	// race condition maybe..
 	}
     }
