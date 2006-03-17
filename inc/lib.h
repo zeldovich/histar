@@ -26,11 +26,12 @@ int	segment_unmap(void *va);
 int	segment_lookup(void *va, struct cobj_ref *seg,
 		       uint64_t *npage, uint64_t *flagsp);
 int	segment_lookup_obj(uint64_t oid, void **vap);
-void	segment_set_default_label(struct ulabel *l);
-struct ulabel *segment_get_default_label(void);
 
 // Notify that the thread has changed AS objects
 void	segment_as_switched(void);
+
+// Flush buffered unmap requests
+void	segment_unmap_flush(void);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,

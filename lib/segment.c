@@ -19,22 +19,6 @@ static uint64_t	cache_thread_id;
 
 static pthread_mutex_t as_mutex;
 
-static struct ulabel *seg_create_label;
-
-void
-segment_set_default_label(struct ulabel *l)
-{
-    if (seg_create_label && seg_create_label != l)
-	label_free(seg_create_label);
-    seg_create_label = l;
-}
-
-struct ulabel *
-segment_get_default_label(void)
-{
-    return seg_create_label;
-}
-
 static void
 as_mutex_lock(void) {
     pthread_mutex_lock(&as_mutex);
@@ -350,9 +334,6 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	      struct cobj_ref *cobj, void **va_p,
 	      struct ulabel *label, const char *name)
 {
-    if (label == 0)
-	label = seg_create_label;
-
     int64_t id = sys_segment_create(container, bytes, label, name);
     if (id < 0)
 	return id;

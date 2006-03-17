@@ -14,35 +14,6 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_debug = 0;
-static int netd_force_taint = 0;
-
-static label *
-force_taint_prepare(uint64_t taint)
-{
-    label *l = new label();
-    thread_cur_label(l);
-
-    level_t taint_level = netd_force_taint ? 2 : LB_LEVEL_STAR;
-    l->set(taint, taint_level);
-
-    segment_set_default_label(l->to_ulabel());
-    int r = heap_relabel(l->to_ulabel());
-    if (r < 0)
-	panic("cannot relabel heap: %s", e2s(r));
-
-    return l;
-}
-
-static void
-force_taint_commit(label *l)
-{
-    int r = label_set_current(l->to_ulabel());
-    if (r < 0)
-	panic("cannot reset label to %s: %s", l->to_string(), e2s(r));
-
-    if (netd_debug)
-	printf("netd: switched to label %s\n", l->to_string());
-}
 
 static void
 ready_cb(void *arg)
@@ -75,15 +46,15 @@ main(int ac, char **av)
 
     gatesrv *srv;
     try {
-	label *l = force_taint_prepare(taint);
+	label cntm;
 	label clear(2);
+
+	thread_cur_label(&cntm);
 
 	srv = netd_server_init(start_env->shared_container,
 			       start_env->proc_container,
 			       taint,
-			       l, &clear);
-
-	force_taint_commit(l);
+			       &cntm, &clear);
     } catch (std::exception &e) {
 	panic("%s", e.what());
     }

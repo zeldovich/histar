@@ -19,8 +19,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     uint64_t netd_ct = (uint64_t) x;
     struct cobj_ref arg = gcd->param_obj;
 
-    int64_t arg_copy_id = sys_segment_copy(arg, netd_ct,
-					   segment_get_default_label(),
+    int64_t arg_copy_id = sys_segment_copy(arg, netd_ct, 0,
 					   "netd_gate_entry() args");
     if (arg_copy_id < 0)
 	panic("netd_gate_entry: cannot copy args: %s", e2s(arg_copy_id));
