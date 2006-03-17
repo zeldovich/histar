@@ -10,12 +10,10 @@
 
 #define HASH_SLOT(table, key)					\
     ({								\
-	uint64_t hv = ht_hash((void *) &(key), sizeof(key));	\
+	static_assert(sizeof(key) == sizeof(uint64_t));		\
 	uint64_t size = sizeof((table)->ht_slot) /		\
 			sizeof((table)->ht_slot[0]);		\
-	&((table)->ht_slot[hv % size]);				\
+	&((table)->ht_slot[(key) % size]);			\
     })
-
-uint64_t ht_hash(uint8_t *blob, uint32_t len);
 
 #endif
