@@ -43,6 +43,9 @@ int  ulabel_to_label(struct ulabel *ul, struct Label *l)
 int  label_compare(const struct Label *l1,
 		   const struct Label *l2, level_comparator cmp)
     __attribute__ ((warn_unused_result));
+int  label_compare_id(kobject_id_t l1,
+		      kobject_id_t l2, level_comparator cmp)
+    __attribute__ ((warn_unused_result));
 
 // computes max according to specified level ordering (<= operator)
 int  label_max(const struct Label *a, const struct Label *b,

@@ -74,24 +74,18 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     if (SAFE_EQUAL(iflow, iflow_none))
 	return 0;
 
-    const struct Label *th_label;
-    int r = kobject_get_label(&cur_thread->th_ko, kolabel_contaminate, &th_label);
-    if (r < 0)
-	return r;
-    assert(th_label);
+    kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
+    kobject_id_t ko_label_id = ko->ko_label[kolabel_contaminate];
 
-    const struct Label *ko_label;
-    r = kobject_get_label(ko, kolabel_contaminate, &ko_label);
-    if (r < 0)
-	return r;
-
-    if (ko_label == 0)
+    assert(th_label_id);
+    if (ko_label_id == 0)
 	return -E_LABEL;
 
+    int r = 0;
     if (SAFE_EQUAL(iflow, iflow_read)) {
-	r = label_compare(ko_label, th_label, label_leq_starhi);
+	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
     } else if (SAFE_EQUAL(iflow, iflow_write)) {
-	r = label_compare(th_label, ko_label, label_leq_starlo);
+	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = kobject_iflow_check(ko, iflow_read) ? :
 	    kobject_iflow_check(ko, iflow_write);

@@ -236,6 +236,29 @@ static struct compare_cache_ent compare_cache[compare_cache_size];
 static int compare_cache_next;
 
 int
+label_compare_id(kobject_id_t l1_id, kobject_id_t l2_id, level_comparator cmp)
+{
+    for (int i = 0; i < compare_cache_size; i++)
+	if (compare_cache[i].lhs == l1_id &&
+	    compare_cache[i].rhs == l2_id &&
+	    compare_cache[i].cmp == cmp)
+	    return 0;
+
+    const struct kobject *l1_ko, *l2_ko;
+    int r;
+
+    r = kobject_get(l1_id, &l1_ko, kobj_label, iflow_none);
+    if (r < 0)
+	return r;
+
+    r = kobject_get(l2_id, &l2_ko, kobj_label, iflow_none);
+    if (r < 0)
+	return r;
+
+    return label_compare(&l1_ko->lb, &l2_ko->lb, cmp);
+}
+
+int
 label_compare(const struct Label *l1,
 	      const struct Label *l2, level_comparator cmp)
 {
