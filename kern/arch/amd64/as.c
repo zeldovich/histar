@@ -257,16 +257,22 @@ as_pmap_fill_segment(const struct Address_space *as,
     uint64_t num_pages = usm->num_pages;
     uint64_t flags = usm->flags;
 
-    for (uint64_t i = start_page; i < start_page + num_pages; i++) {
-	int r = 0;
+    uint64_t i;
+    int r = 0;
 
-	if (((uint64_t) cva) >= ULIM)
+    for (i = start_page; i < start_page + num_pages; i++) {
+	if (((uint64_t) cva) >= ULIM) {
 	    r = -E_INVAL;
+	    goto err;
+	}
 
-	void *pp;
-	if (r == 0)
+	void *pp = 0;
+	if (!invalidate) {
 	    r = kobject_get_page(&sg->sg_ko, i, &pp,
 				 (flags & SEGMAP_WRITE) ? page_rw : page_ro);
+	    if (r < 0)
+		goto err;
+	}
 
 	uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
 	if ((flags & SEGMAP_WRITE))
@@ -274,29 +280,16 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if ((flags & SEGMAP_EXEC))
 	    ptflags &= ~PTE_NX;
 
-	if (r == 0) {
-	    if (invalidate) {
-		page_remove(pgmap, cva);
-	    } else {
-		uint64_t *ptep;
-		r = pgdir_walk(pgmap, cva, 1, &ptep);
-		if (r >= 0) {
-		    *ptep = kva2pa(pp) | ptflags;
-		    tlb_invalidate(pgmap, cva);
-		}
-	    }
-	}
+	if (invalidate) {
+	    page_remove(pgmap, cva);
+	} else {
+	    uint64_t *ptep;
+	    r = pgdir_walk(pgmap, cva, 1, &ptep);
+	    if (r < 0)
+		goto err;
 
-	if (r < 0) {
-	    cprintf("as_pmap_fill_segment: %s\n", e2s(r));
-
-	    cva = (char *) usm->va;
-	    uint64_t cleanup_end = i;
-	    for (i = start_page; i <= cleanup_end; i++) {
-		page_remove(pgmap, cva);
-		cva += PGSIZE;
-	    }
-	    return r;
+	    *ptep = kva2pa(pp) | ptflags;
+	    tlb_invalidate(pgmap, cva);
 	}
 
 	cva += PGSIZE;
@@ -318,6 +311,18 @@ as_pmap_fill_segment(const struct Address_space *as,
     }
 
     return 0;
+
+err:
+    cprintf("as_pmap_fill_segment: %s\n", e2s(r));
+
+    cva = (char *) usm->va;
+    uint64_t cleanup_end = i;
+    for (i = start_page; i <= cleanup_end; i++) {
+	if ((uint64_t) cva < ULIM)
+	    page_remove(pgmap, cva);
+	cva += PGSIZE;
+    }
+    return r;
 }
 
 static int
