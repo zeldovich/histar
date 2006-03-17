@@ -8,9 +8,10 @@ kobj_weak_put(struct kobj_weak_ptr *wp,
 {
     if (wp->wp_kobj)
 	LIST_REMOVE(wp, wp_link);
+    if (ko)
+	LIST_INSERT_HEAD(&ko->ko_weak_refs, wp, wp_link);
 
     wp->wp_kobj = ko;
-    LIST_INSERT_HEAD(&ko->ko_weak_refs, wp, wp_link);
 }
 
 void
