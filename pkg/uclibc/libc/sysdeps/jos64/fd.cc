@@ -205,9 +205,6 @@ fd_make_public(int fdnum)
     if (new_id < 0)
 	return new_id;
 
-    if (old_seg.object == fd_segment_cache.obj.object)
-	fd_segment_cache.valid = 0;
-
     struct cobj_ref new_seg = COBJ(start_env->shared_container, new_id);
 
     for (int i = 0; i < MAXFD; i++) {
