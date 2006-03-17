@@ -187,7 +187,8 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     if (r < 0)
 	return r;
 
-    uint64_t slot = usm_new->kslot;
+    struct u_segment_mapping usm_copy = *usm_new;
+    uint64_t slot = usm_copy.kslot;
 
     struct u_segment_mapping *usm;
     r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm, slot, page_rw);
@@ -199,8 +200,10 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     if (r < 0)
 	return r;
 
-    *usm = *usm_new;
+    // Invalidate any pre-existing mappings first..
     as_invalidate_sm(sm);
+
+    *usm = usm_copy;
 
     return 0;
 }
