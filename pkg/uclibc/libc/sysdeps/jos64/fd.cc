@@ -128,20 +128,10 @@ fd_alloc(struct Fd **fd_store, const char *name)
 	if (i == MAXFD)
 		return -E_MAX_OPEN;
 
-	label l;
-	try {
-		thread_cur_label(&l);
-		l.transform(label::star_to, 1);
-		l.set(start_env->process_grant, 0);
-		l.set(start_env->process_taint, 3);
-	} catch (error &e) {
-		cprintf("fd_alloc: %s\n", e.what());
-		return e.err();
-	}
-
+	// Inherit label from container, which is { P_T:3, P_G:0, 1 }
 	struct cobj_ref seg;
 	int r = segment_alloc(start_env->proc_container, PGSIZE, &seg,
-			      (void**)&fd, l.to_ulabel(), name);
+			      (void**)&fd, 0, name);
 	if (r < 0)
 		return r;
 
