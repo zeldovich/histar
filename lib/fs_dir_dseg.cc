@@ -172,6 +172,8 @@ fs_dir_dseg::refresh()
     if (mapped_bytes != (dir_->extra_pages + 1) * PGSIZE) {
 	uint64_t dirsize;
 	error_check(segment_unmap(dir_));
+
+	dir_ = 0;
 	error_check(segment_map(dseg_, SEGMAP_READ | (writable_ ? SEGMAP_WRITE : 0),
 				(void **) &dir_, &dirsize));
 
