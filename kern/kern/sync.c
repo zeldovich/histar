@@ -19,7 +19,7 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
     if (wakeup_msec <= timer_user_msec)
 	return 0;
 
-    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
+    struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
     t->th_wakeup_msec = wakeup_msec;
     t->th_wakeup_addr = PGOFF(addr);
 

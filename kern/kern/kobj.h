@@ -94,6 +94,10 @@ void kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 struct kobject *
      kobject_dirty(const struct kobject_hdr *kh);
 
+// Do not mark the kobject as dirty, for ephemeral fields
+struct kobject *
+     kobject_ephemeral_dirty(const struct kobject_hdr *kh);
+
 // The object has been brought in from disk.
 void kobject_swapin(struct kobject *kp);
 

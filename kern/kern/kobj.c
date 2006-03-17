@@ -315,6 +315,12 @@ kobject_dirty(const struct kobject_hdr *kh)
     return ko;
 }
 
+struct kobject *
+kobject_ephemeral_dirty(const struct kobject_hdr *kh)
+{
+    return kobject_const_h2k(kh);
+}
+
 void
 kobject_swapin(struct kobject *ko)
 {
