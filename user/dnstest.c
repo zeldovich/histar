@@ -21,6 +21,5 @@ lookup(void)
 int
 main(int ac, char **av)
 {
-    if (fork() == 0)
-        lookup() ;
+    lookup();
 }
