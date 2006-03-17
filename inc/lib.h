@@ -59,7 +59,11 @@ typedef struct {
 
 extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
-extern void *tls_base;
+
+extern uint64_t *tls_tidp;	// 8 bytes for cached thread ID
+extern void *tls_gate_args;	// struct gate_call_args
+extern void *tls_stack_top;	// same as tls_gate_args, grows down
+extern void *tls_base;		// base
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 

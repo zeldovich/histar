@@ -22,7 +22,7 @@ thread_entry(void *arg)
 
     stack_switch(ta->container.container, ta->container.object,
 		 (uint64_t) ta->stackbase, 0,
-		 tls_base + PGSIZE, &thread_exit);
+		 tls_stack_top, &thread_exit);
 }
 
 int
@@ -85,8 +85,6 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 uint64_t
 thread_id(void)
 {
-    uint64_t *tls_tidp = (uint64_t *) tls_base;
-
     if (tls_tidp) {
 	uint64_t tls_tid = *tls_tidp;
 	if (tls_tid)

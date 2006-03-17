@@ -4,12 +4,12 @@ extern "C" {
 #include <inc/setjmp.h>
 #include <inc/taint.h>
 #include <inc/memlayout.h>
+#include <inc/gateparam.h>
 
 #include <string.h>
 }
 
 #include <inc/gateclnt.hh>
-#include <inc/gateparam.hh>
 #include <inc/gateinvoke.hh>
 #include <inc/cpplabel.hh>
 #include <inc/scopeguard.hh>
@@ -19,13 +19,13 @@ extern "C" {
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb)
 {
-    gate_call_data *gcd = (gate_call_data *) UTLS;
+    gate_call_data *gcd = (gate_call_data *) tls_gate_args;
     taint_cow(gcd->taint_container);
     jos_longjmp(jb, 1);
 }
 
 static void
-return_setup(cobj_ref *g, jos_jmp_buf *jb, char *tls, uint64_t return_handle)
+return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle)
 {
     label clear;
     thread_cur_clearance(&clear);
@@ -36,7 +36,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, char *tls, uint64_t return_handle)
 
     thread_entry te;
     te.te_entry = (void *) &return_stub;
-    te.te_stack = tls + PGSIZE - 8;
+    te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg = (uint64_t) jb;
     error_check(sys_self_get_as(&te.te_as));
 
@@ -55,15 +55,13 @@ void
 gate_call(cobj_ref gate, gate_call_data *gcd_param,
 	  label *cs, label *ds, label *dr)
 {
-    char *tls = (char *) UTLS;
-
     int64_t return_handle = sys_handle_create();
     error_check(return_handle);
     scope_guard<void, uint64_t> g1(thread_drop_star, return_handle);
 
     cobj_ref return_gate;
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate, &back_from_call, tls, return_handle);
+    return_setup(&return_gate, &back_from_call, return_handle);
     scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     label new_ds(ds ? *ds : label());
@@ -90,8 +88,8 @@ gate_call(cobj_ref gate, gate_call_data *gcd_param,
     scope_guard<int, cobj_ref> taint_ct_cleanup
 	(sys_obj_unref, COBJ(start_env->shared_container, taint_ct));
 
-    // Gate call parameters; skip over 8-byte cached thread ID
-    gate_call_data *d = (gate_call_data *) (tls + 8);
+    // Gate call parameters
+    gate_call_data *d = (gate_call_data *) tls_gate_args;
     if (gcd_param)
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate;
@@ -102,8 +100,8 @@ gate_call(cobj_ref gate, gate_call_data *gcd_param,
 	gate_invoke(gate, &tgt_label, &tgt_clear, 0, 0);
 
     // Restore cached thread ID, just to be safe
-    uint64_t *tls_tidp = (uint64_t *) tls;
-    *tls_tidp = sys_self_id();
+    if (tls_tidp)
+	*tls_tidp = sys_self_id();
 
     // Copy back the arguments
     if (gcd_param)

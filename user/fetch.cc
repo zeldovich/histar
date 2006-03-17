@@ -82,7 +82,7 @@ try
 	off += cc;
 
 	if (fetch_debug)
-	    printf("wrote %ld bytes to file\n", cr);
+	    printf("wrote %lld bytes to file\n", cr);
     }
 
     printf("Done.\n");

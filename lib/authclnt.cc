@@ -1,10 +1,11 @@
 extern "C" {
 #include <inc/authd.h>
+#include <inc/gateparam.h>
+
 #include <string.h>
 }
 
 #include <inc/gateclnt.hh>
-#include <inc/gateparam.hh>
 #include <inc/authclnt.hh>
 #include <inc/error.hh>
 

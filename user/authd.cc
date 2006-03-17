@@ -3,11 +3,12 @@ extern "C" {
 #include <inc/authd.h>
 #include <inc/error.h>
 #include <inc/queue.h>
+#include <inc/gateparam.h>
+
 #include <string.h>
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/gateparam.hh>
 #include <inc/gateclnt.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>

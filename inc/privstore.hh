@@ -3,8 +3,11 @@
 
 // This is something like a *-handle pickler
 
+extern "C" {
+#include <inc/gateparam.h>
+}
+
 #include <inc/gatesrv.hh>
-#include <inc/gateparam.hh>
 
 class saved_privilege {
 public:

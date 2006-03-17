@@ -1,5 +1,8 @@
-#ifndef JOS_INC_GATEPARAM_HH
-#define JOS_INC_GATEPARAM_HH
+#ifndef JOS_INC_GATEPARAM_H
+#define JOS_INC_GATEPARAM_H
+
+#include <inc/types.h>
+#include <inc/container.h>
 
 struct gate_call_data {
     struct cobj_ref return_gate;

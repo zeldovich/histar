@@ -2,14 +2,15 @@ extern "C" {
 #include <inc/admind.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/gateparam.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/gateparam.hh>
 
 static void
 admind_top(uint64_t ct, struct admind_reply *reply)

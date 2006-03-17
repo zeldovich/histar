@@ -1,13 +1,14 @@
 extern "C" {
 #include <inc/admind.h>
-#include <string.h>
 #include <inc/string.h>
+#include <inc/gateparam.h>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 }
 
 #include <inc/gateclnt.hh>
-#include <inc/gateparam.hh>
 #include <inc/error.hh>
 
 static void __attribute__((noreturn))

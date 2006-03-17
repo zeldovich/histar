@@ -2,18 +2,20 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
+#include <inc/setjmp.h>
+#include <inc/utrap.h>
+#include <inc/assert.h>
+#include <inc/gateparam.h>
+
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inc/setjmp.h>
-#include <inc/utrap.h>
-#include <inc/assert.h>
+
 #include <bits/signalgate.h>
 }
 
-#include <inc/gateparam.hh>
 #include <inc/gateclnt.hh>
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>

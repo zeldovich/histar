@@ -3,11 +3,12 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/memlayout.h>
 #include <inc/stack.h>
+#include <inc/gateparam.h>
+
 #include <stdio.h>
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/gateparam.hh>
 #include <inc/gateinvoke.hh>
 #include <inc/scopeguard.hh>
 #include <inc/cpplabel.hh>
@@ -15,12 +16,12 @@ extern "C" {
 
 gatesrv::gatesrv(uint64_t gate_ct, const char *name,
 		 label *label, label *clearance)
-    : tls_((char *) UTLS), stackpages_(2), active_(0)
+    : stackpages_(2), active_(0)
 {
     // Designated initializers are not supported in g++
     struct thread_entry te;
     te.te_entry = (void *) &entry_tls_stub;
-    te.te_stack = (char *) tls_ + PGSIZE - 8;
+    te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg = (uint64_t) this;
     error_check(sys_self_get_as(&te.te_as));
 
@@ -56,8 +57,8 @@ gatesrv::entry_tls()
 	sys_self_yield();
 
     // Reset our cached thread ID, stored in TLS
-    uint64_t *tls_tidp = (uint64_t *) tls_;
-    *tls_tidp = sys_self_id();
+    if (tls_tidp)
+	*tls_tidp = sys_self_id();
 
     error_check(sys_self_addref(entry_container_));
     scope_guard<int, struct cobj_ref>
@@ -88,11 +89,10 @@ gatesrv::entry_stub(gatesrv *s, void *stack)
 void
 gatesrv::entry(void *stack)
 {
-    // Arguments for gate call passed on the bottom of the tls,
-    // skipping over the first 8 bytes (cached thread ID)
-    struct gate_call_data *d = (struct gate_call_data *) (tls_ + 8);
+    // Arguments for gate call passed on the top of the TLS stack.
+    gate_call_data *d = (gate_call_data *) tls_gate_args;
 
-    gatesrv_return ret(d->return_gate, entry_container_, tls_, stack);
+    gatesrv_return ret(d->return_gate, entry_container_, stack);
     f_(arg_, d, &ret);
 
     throw basic_exception("gatesrv::entry: function returned\n");
@@ -122,7 +122,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	thread_label.merge(tgt_label, &taint_ct_label, label::max, label::leq_starlo);
 	taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
 
-	gate_call_data *gcd = (gate_call_data *) (tls_ + 8);
+	gate_call_data *gcd = (gate_call_data *) tls_gate_args;
 	int64_t id = sys_container_alloc(gcd->taint_container,
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint");
@@ -133,8 +133,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
     }
 
     stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
-		 (char *) tls_ + PGSIZE,
-		 (void *) &ret_tls_stub);
+		 tls_stack_top, (void *) &ret_tls_stub);
 }
 
 void

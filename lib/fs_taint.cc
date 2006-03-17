@@ -61,7 +61,7 @@ try
     if (jos_setjmp(&back) == 0)
 	stack_switch((uint64_t) &r, (uint64_t) tgt.to_ulabel(),
 		     (uint64_t) &back, 0,
-		     (char *) UTLS + PGSIZE, (void *) &taint_tls);
+		     tls_stack_top, (void *) &taint_tls);
 
     return r;
 } catch (error &e) {

@@ -6,12 +6,13 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/fd.h>
 #include <inc/stdio.h>
+#include <inc/gateparam.h>
+
 #include <string.h>
 }
 
 #include <inc/cpplabel.hh>
 #include <inc/gateclnt.hh>
-#include <inc/gateparam.hh>
 #include <inc/error.hh>
 
 static int netd_client_inited;

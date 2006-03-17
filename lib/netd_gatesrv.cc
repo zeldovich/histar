@@ -5,10 +5,10 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
+#include <inc/gateparam.h>
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/gateparam.hh>
 #include <inc/cpplabel.hh>
 
 static uint64_t netd_taint_handle;
