@@ -24,7 +24,7 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 	return r;
 
     memcpy(&map[off], buf, count);
-    segment_unmap(map);
+    segment_unmap_delayed(map, 1);
 
     return count;
 }
@@ -44,7 +44,7 @@ fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 	count = MIN(count, cursize - off);
 
     memcpy(buf, &map[off], count);
-    segment_unmap(map);
+    segment_unmap_delayed(map, 1);
 
     return count;
 }
