@@ -302,7 +302,7 @@ retry:
 	return r;
 
     if (bytes_store)
-	*bytes_store = map_bytes;
+	*bytes_store = nbytes;
     if (va_p)
 	*va_p = va_start;
     return 0;
