@@ -459,10 +459,6 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     r = sys_segment_addref(old_seg, target_ct);
     if (r < 0) {
 	cprintf("dup2_as: sys_segment_addref: %s\n", e2s(r));
-
-	r = sys_obj_get_type(old_seg);
-	cprintf("dup2_as: get type %d %s\n", r, e2s(r));
-
 	return r;
     }
 
