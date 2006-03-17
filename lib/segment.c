@@ -424,6 +424,15 @@ retry:
 	} while (conflict);
     }
 
+    // See if we need to do any actual work
+    cache_uas.ents[slot].flags &= ~SEGMAP_DELAYED_UNMAP;
+    if (slot < cache_uas.nent &&
+	!memcmp(&cache_uas.ents[slot], &usm, sizeof(usm)))
+    {
+	as_mutex_unlock();
+	return 0;
+    }
+
     // Upload the slot into the kernel
     cache_uas.ents[slot] = usm;
     if (slot == cache_uas.nent)
