@@ -306,7 +306,7 @@ fd_close(struct Fd *fd)
     } else {
 	sys_obj_unref(fd_seg);
     }
-    segment_unmap(fd);
+    segment_unmap_delayed(fd, 1);
 
     if (handle_refs == 2) try {
 	fd_give_up_privilege(fd2num(fd));

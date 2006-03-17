@@ -96,6 +96,12 @@ gate_call(cobj_ref gate, gate_call_data *gcd_param,
     d->return_gate = return_gate;
     d->taint_container = taint_ct;
 
+    // Flush delayed unmap segment mappings; if we come back tainted,
+    // we won't be able to look at our in-memory delayed unmap cache.
+    // Perhaps this should be fixed by allowing a RW-mapping to be
+    // mapped RO if that's all that the labeling permits.
+    segment_unmap_flush();
+
     // Off into the gate!
     if (jos_setjmp(&back_from_call) == 0)
 	gate_invoke(gate, &tgt_label, &tgt_clear, 0, 0);

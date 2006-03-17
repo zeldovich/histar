@@ -114,6 +114,8 @@ do_fork()
     uas.size = uas_size;
     uas.ents = &uas_ents[0];
 
+    segment_unmap_flush();
+
     struct cobj_ref cur_as;
     error_check(sys_self_get_as(&cur_as));
     error_check(sys_as_get(cur_as, &uas));
