@@ -330,7 +330,7 @@ thread_load_as(const struct Thread *t)
 	return r;
 
     const struct Address_space *as = &ko->as;
-    kobject_dirty(&t->th_ko)->th.th_as = as;
+    kobject_ephemeral_dirty(&t->th_ko)->th.th_as = as;
     kobject_pin_hdr(&t->th_as->as_ko);
 
     // Just to ensure all label checks are up-to-date.
@@ -345,7 +345,7 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
     if (r < 0)
 	return r;
 
-    r = as_pagefault(&kobject_dirty(&t->th_as->as_ko)->as, fault_va, reqflags);
+    r = as_pagefault(t->th_as, fault_va, reqflags);
     if (r >= 0 || r == -E_RESTART)
 	return r;
 

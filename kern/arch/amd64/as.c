@@ -326,7 +326,7 @@ err:
 }
 
 static int
-as_pmap_fill(struct Address_space *as, void *va, uint32_t reqflags)
+as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 {
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	const struct u_segment_mapping *usm;
@@ -367,14 +367,16 @@ as_pmap_fill(struct Address_space *as, void *va, uint32_t reqflags)
 }
 
 int
-as_pagefault(struct Address_space *as, void *va, uint32_t reqflags)
+as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
 {
     if (as->as_pgmap == &bootpml4) {
-	int r = page_map_alloc(&as->as_pgmap);
+	struct Address_space *mas = &kobject_dirty(&as->as_ko)->as;
+
+	int r = page_map_alloc(&mas->as_pgmap);
 	if (r < 0)
 	    return r;
 
-	as->as_pgmap_tid = cur_thread->th_ko.ko_id;
+	mas->as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
     return as_pmap_fill(as, va, reqflags);
@@ -389,10 +391,14 @@ as_switch(const struct Address_space *as)
 
     cur_as = as;
 
+    int dirty_tlb = as ? as->as_dirty_tlb : 0;
+    if (dirty_tlb)
+	kobject_ephemeral_dirty(&as->as_ko)->as.as_dirty_tlb = 0;
+
     struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
     uint64_t new_cr3 = kva2pa(pgmap);
     uint64_t cur_cr3 = rcr3();
-    if (cur_cr3 != new_cr3)
+    if (cur_cr3 != new_cr3 || dirty_tlb)
 	lcr3(new_cr3);
 }
 

@@ -376,7 +376,6 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	pte_flags |= PTE_W;
 
     if (nbytes > 0) {
-	struct Address_space *as = &kobject_dirty(&cur_as->as_ko)->as;
 	uintptr_t start = (uintptr_t) ROUNDDOWN(ptr, PGSIZE);
 	uintptr_t end = (uintptr_t) ROUNDUP(ptr + nbytes, PGSIZE);
 	for (uintptr_t va = start; va < end; va += PGSIZE) {
@@ -384,11 +383,11 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 		return -E_INVAL;
 
 	    uint64_t *ptep;
-	    if (page_lookup(as->as_pgmap, (void *) va, &ptep) &&
+	    if (page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
 		(*ptep & pte_flags) == pte_flags)
 		continue;
 
-	    int r = as_pagefault(as, (void *) va, reqflags);
+	    int r = as_pagefault(cur_as, (void *) va, reqflags);
 	    if (r < 0)
 		return r;
 	}

@@ -30,6 +30,7 @@ struct Address_space {
     struct pagetree as_segmap_pt;
     struct Pagemap *as_pgmap;
     kobject_id_t as_pgmap_tid;
+    int as_dirty_tlb;
 };
 
 extern const struct Address_space *cur_as;
@@ -50,7 +51,7 @@ int  as_gc(struct Address_space *as)
 void as_invalidate(const struct Address_space *as);
 void as_invalidate_sm(struct segment_mapping *sm);
 
-int  as_pagefault(struct Address_space *as, void *va, uint32_t reqflags)
+int  as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
 void as_switch(const struct Address_space *as);
 
