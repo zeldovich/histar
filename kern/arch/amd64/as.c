@@ -248,7 +248,6 @@ as_pmap_fill_segment(const struct Address_space *as,
 		     const struct u_segment_mapping *usm,
 		     int invalidate)
 {
-    int progress = 0;
     struct Pagemap *pgmap = as->as_pgmap;
 
     char *cva = (char *) usm->va;
@@ -298,11 +297,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    if (r < 0)
 		goto err;
 
-	    uint64_t npte = kva2pa(pp) | ptflags;
-	    if (*ptep != npte) {
-		progress = 1;
-		*ptep = npte;
-	    }
+	    *ptep = kva2pa(pp) | ptflags;
 	}
 
 	if (num_pages <= as_invlpg_max)
@@ -326,7 +321,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	kobject_pin_page(&sg->sg_ko);
     }
 
-    return progress;
+    return 0;
 
 err:
     cprintf("as_pmap_fill_segment: %s\n", e2s(r));
@@ -376,12 +371,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
-	r = as_pmap_fill_segment(as, sg, sm, usm, 0);
-	if (r < 0)
-	    return r;
-	if (r == 0)
-	    return -E_INVAL;	// no progress
-	return 0;
+	return as_pmap_fill_segment(as, sg, sm, usm, 0);
     }
 
     return -E_NOT_FOUND;

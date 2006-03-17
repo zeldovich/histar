@@ -76,7 +76,12 @@ static void
 page_fault (struct Trapframe *tf, uint32_t err)
 {
     void *fault_va = (void*) rcr2();
-    uint32_t reqflags = (err & PTE_W) ? SEGMAP_WRITE : 0;
+    uint32_t reqflags = 0;
+
+    if ((err & FEC_W))
+	reqflags |= SEGMAP_WRITE;
+    if ((err & FEC_I))
+	reqflags |= SEGMAP_EXEC;
 
     if ((tf->tf_cs & 3) == 0) {
 	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",
