@@ -32,19 +32,17 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 int
 fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 {
+    char *map = 0;
     uint64_t cursize;
-    int r = fs_getsize(f, &cursize);
+    int r = segment_map(f.obj, SEGMAP_READ, (void **) &map, &cursize);
     if (r < 0)
 	return r;
 
     uint64_t endpt = off + count;
-    if (endpt > cursize)
+    if (endpt > cursize) {
+	segment_unmap(map);
 	return -E_RANGE;
-
-    char *map = 0;
-    r = segment_map(f.obj, SEGMAP_READ, (void **) &map, 0);
-    if (r < 0)
-	return r;
+    }
 
     memcpy(buf, &map[off], count);
     segment_unmap(map);
