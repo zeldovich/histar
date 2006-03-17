@@ -9,6 +9,8 @@
 #include <inc/string.h>
 #include <inc/pthread.h>
 
+#include <string.h>
+
 #define NMAPPINGS 64
 static struct u_segment_mapping cache_ents[NMAPPINGS];
 static struct u_address_space cache_uas = { .size = NMAPPINGS,
@@ -78,11 +80,12 @@ segment_as_switched(void)
 static void
 segment_map_print(struct u_address_space *as)
 {
-    cprintf("segment  start  npages  f  va\n");
+    cprintf("slot  kslot  segment  start  npages  f  va\n");
     for (uint64_t i = 0; i < as->nent; i++) {
 	if (as->ents[i].flags == 0)
 	    continue;
-	cprintf("%3ld.%-3ld  %5ld  %6ld  %d  %p\n",
+	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %d  %p\n",
+		i, as->ents[i].kslot,
 		as->ents[i].segment.container,
 		as->ents[i].segment.object,
 		as->ents[i].start_page,
