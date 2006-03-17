@@ -29,6 +29,9 @@ int	segment_lookup_obj(uint64_t oid, void **vap);
 void	segment_set_default_label(struct ulabel *l);
 struct ulabel *segment_get_default_label(void);
 
+// Notify that the thread has changed AS objects
+void	segment_as_switched(void);
+
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
 		 struct thread_entry *e, struct ulabel *label);
@@ -56,6 +59,7 @@ typedef struct {
 
 extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
+extern void *tls_base;
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 

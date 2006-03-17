@@ -12,6 +12,7 @@ extern int main(int argc, const char **argv);
 uint64_t start_arg0;
 uint64_t start_arg1;
 start_env_t *start_env;
+void *tls_base;
 
 #define MAXARGS	16
 
@@ -55,6 +56,8 @@ setup_env(uint64_t envaddr)
     r = segment_map(tls, SEGMAP_READ | SEGMAP_WRITE, &tls_va, 0);
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
+
+    tls_base = tls_va;
 
     r = utrap_init();
     if (r < 0)

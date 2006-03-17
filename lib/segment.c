@@ -15,6 +15,9 @@ static struct u_address_space cache_uas = { .size = NMAPPINGS,
 					    .ents = &cache_ents[0] };
 static uint64_t cache_asid;
 
+static struct cobj_ref cache_thread_as;
+static uint64_t	cache_thread_id;
+
 static pthread_mutex_t as_mutex;
 
 static struct ulabel *seg_create_label;
@@ -65,6 +68,28 @@ cache_invalidate(void)
     cache_asid = 0;
 }
 
+static int
+self_get_as(struct cobj_ref *refp)
+{
+    uint64_t tid = thread_id();
+    if (tid != cache_thread_id) {
+	int r = sys_self_get_as(&cache_thread_as);
+	if (r < 0)
+	    return r;
+
+	cache_thread_id = tid;
+    }
+
+    *refp = cache_thread_as;
+    return 0;
+}
+
+void
+segment_as_switched(void)
+{
+    cache_thread_id = 0;
+}
+
 static void
 segment_map_print(struct u_address_space *as)
 {
@@ -85,12 +110,15 @@ segment_map_print(struct u_address_space *as)
 int
 segment_unmap(void *va)
 {
-    struct cobj_ref as_ref;
-    int r = sys_self_get_as(&as_ref);
-    if (r < 0)
-	return r;
-
     as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
     r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
@@ -117,12 +145,15 @@ segment_unmap(void *va)
 int
 segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp)
 {
-    struct cobj_ref as_ref;
-    int r = sys_self_get_as(&as_ref);
-    if (r < 0)
-	return r;
-
     as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
     r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
@@ -151,12 +182,15 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp
 int
 segment_lookup_obj(uint64_t oid, void **vap)
 {
-    struct cobj_ref as_ref;
-    int r = sys_self_get_as(&as_ref);
-    if (r < 0)
-	return r;
-
     as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
     r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
@@ -181,7 +215,9 @@ segment_map(struct cobj_ref seg, uint64_t flags,
 	    void **va_p, uint64_t *bytes_store)
 {
     struct cobj_ref as;
-    int r = sys_self_get_as(&as);
+    as_mutex_lock();
+    int r = self_get_as(&as);
+    as_mutex_unlock();
     if (r < 0)
 	return r;
 

@@ -5,8 +5,6 @@
 #include <inc/pthread.h>
 #include <inc/stack.h>
 
-static void *tl_stack_base = (void *) UTLS;
-
 static void __attribute__((noreturn))
 thread_exit(struct cobj_ref ct_obj, void *stackbase)
 {
@@ -24,7 +22,7 @@ thread_entry(void *arg)
 
     stack_switch(ta->container.container, ta->container.object,
 		 (uint64_t) ta->stackbase, 0,
-		 tl_stack_base + PGSIZE, &thread_exit);
+		 tls_base + PGSIZE, &thread_exit);
 }
 
 int
@@ -87,17 +85,21 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 uint64_t
 thread_id(void)
 {
-    uint64_t *tls_tidp = (uint64_t *) UTLS;
-    uint64_t tls_tid = *tls_tidp;
+    uint64_t *tls_tidp = (uint64_t *) tls_base;
 
-    if (tls_tidp == 0) {
-	int64_t tid = sys_self_id();
-	if (tid < 0)
-	    panic("sys_self_id: %s", e2s(tid));
-	tls_tid = *tls_tidp = tid;
+    if (tls_tidp) {
+	uint64_t tls_tid = *tls_tidp;
+	if (tls_tid)
+	    return tls_tid;
     }
 
-    return tls_tid;
+    int64_t tid = sys_self_id();
+    if (tid < 0)
+	panic("sys_self_id: %s", e2s(tid));
+
+    if (tls_tidp)
+	*tls_tidp = tid;
+    return tid;
 }
 
 void

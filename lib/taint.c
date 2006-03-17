@@ -123,6 +123,7 @@ taint_cow(uint64_t taint_container)
     struct cobj_ref new_as = COBJ(mlt_ct, id);
     ERRCHECK(sys_as_set(new_as, &uas));
     ERRCHECK(sys_self_set_as(new_as));
+    segment_as_switched();
 
     if (taint_debug)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
