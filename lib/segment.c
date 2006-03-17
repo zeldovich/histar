@@ -21,6 +21,8 @@ static uint64_t	cache_thread_id;
 
 static pthread_mutex_t as_mutex;
 
+enum { segment_debug = 0 };
+
 static void
 as_mutex_lock(void) {
     pthread_mutex_lock(&as_mutex);
@@ -37,6 +39,10 @@ cache_uas_flush(void)
     for (uint32_t i = 0; i < cache_uas.nent; i++) {
 	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
 	    cache_uas.ents[i].flags = 0;
+
+	    if (segment_debug)
+		cprintf("cache_uas_flush: va %p\n", cache_uas.ents[i].va);
+
 	    int r = sys_as_set_slot(cache_asref, &cache_uas.ents[i]);
 	    if (r < 0)
 		panic("cache_uas_flush: writeback: %s", e2s(r));
@@ -143,6 +149,9 @@ segment_unmap_delayed(void *va, int can_delay)
 		as_mutex_unlock();
 		return 0;
 	    }
+
+	    if (segment_debug)
+		cprintf("segment_unmap: va %p\n", cache_uas.ents[i].va);
 
 	    cache_uas.ents[i].flags = 0;
 	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
@@ -350,6 +359,11 @@ retry:
 		} else {
 		    // Multiple delay-unmapped segments; must force unmap.
 		    cache_uas.ents[i].flags = 0;
+
+		    if (segment_debug)
+			cprintf("segment_map: overlap 1, va %p\n",
+				cache_uas.ents[i].va);
+
 		    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
 		    if (r < 0) {
 			cprintf("segment_map: flush unmap: %s\n", e2s(r));
@@ -366,6 +380,11 @@ retry:
     // we need to free the delayed unmapping.
     if (match_segslot != cache_uas.nent && delay_overlap != cache_uas.nent) {
 	cache_uas.ents[delay_overlap].flags = 0;
+
+	if (segment_debug)
+	    cprintf("segment_map: overlap 2, va %p\n",
+		    cache_uas.ents[delay_overlap].va);
+
 	r = sys_as_set_slot(as_ref, &cache_uas.ents[delay_overlap]);
 	if (r < 0) {
 	    cprintf("segment_map: flush unmap 2: %s\n", e2s(r));
