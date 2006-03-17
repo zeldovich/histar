@@ -7,7 +7,8 @@
 
 const struct Address_space *cur_as;
 
-static int as_debug = 0;
+enum { as_debug = 0 };
+enum { as_invlpg_max = 1 };
 
 int
 as_alloc(const struct Label *l, struct Address_space **asp)
@@ -260,6 +261,9 @@ as_pmap_fill_segment(const struct Address_space *as,
     uint64_t i;
     int r = 0;
 
+    if (num_pages > as_invlpg_max)
+	kobject_ephemeral_dirty(&as->as_ko)->as.as_dirty_tlb = 1;
+
     for (i = start_page; i < start_page + num_pages; i++) {
 	if (((uint64_t) cva) >= ULIM) {
 	    r = -E_INVAL;
@@ -280,17 +284,24 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if ((flags & SEGMAP_EXEC))
 	    ptflags &= ~PTE_NX;
 
+	uint64_t *ptep;
 	if (invalidate) {
-	    page_remove(pgmap, cva);
+	    r = pgdir_walk(pgmap, cva, 0, &ptep);
+	    if (r < 0)
+		goto err;
+
+	    if (ptep)
+		*ptep = 0;
 	} else {
-	    uint64_t *ptep;
 	    r = pgdir_walk(pgmap, cva, 1, &ptep);
 	    if (r < 0)
 		goto err;
 
 	    *ptep = kva2pa(pp) | ptflags;
-	    tlb_invalidate(pgmap, cva);
 	}
+
+	if (num_pages <= as_invlpg_max)
+	    tlb_invalidate(pgmap, cva);
 
 	cva += PGSIZE;
     }
