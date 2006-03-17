@@ -15,7 +15,6 @@ static struct u_address_space cache_uas = { .size = NMAPPINGS,
 					    .ents = &cache_ents[0] };
 static uint64_t cache_asid;
 
-static struct cobj_ref cache_thread_as;
 static uint64_t	cache_thread_id;
 
 static pthread_mutex_t as_mutex;
@@ -71,16 +70,18 @@ cache_invalidate(void)
 static int
 self_get_as(struct cobj_ref *refp)
 {
+    static struct cobj_ref cached_thread_as;
+
     uint64_t tid = thread_id();
     if (tid != cache_thread_id) {
-	int r = sys_self_get_as(&cache_thread_as);
+	int r = sys_self_get_as(&cached_thread_as);
 	if (r < 0)
 	    return r;
 
 	cache_thread_id = tid;
     }
 
-    *refp = cache_thread_as;
+    *refp = cached_thread_as;
     return 0;
 }
 
