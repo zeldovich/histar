@@ -331,7 +331,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	    return r;
 	}
 
-	if (mapped_bytes != ROUNDUP(bytes, PGSIZE)) {
+	if (mapped_bytes != bytes) {
 	    segment_unmap(*va_p);
 	    sys_obj_unref(*cobj);
 	    return -E_AGAIN;	// race condition maybe..

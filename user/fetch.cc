@@ -75,14 +75,14 @@ try
 	if (cc == 0)
 	    break;
 
-	r = fs_pwrite(file, buf, cc, off);
-	if (r < 0)
-	    throw error(r, "fs_pwrite");
+	ssize_t cr = fs_pwrite(file, buf, cc, off);
+	if (cr < 0)
+	    throw error(cr, "fs_pwrite");
 
 	off += cc;
 
 	if (fetch_debug)
-	    printf("wrote %ld bytes to file\n", cc);
+	    printf("wrote %ld bytes to file\n", cr);
     }
 
     printf("Done.\n");

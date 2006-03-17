@@ -80,10 +80,10 @@ http_client(void *arg)
 
 		for (uint64_t off = 0; off < sz; off += sizeof(buf)) {
 		    size_t cc = MIN(sizeof(buf), sz - off);
-		    r = fs_pread(ino, &buf[0], cc, off);
-		    if (r < 0)
-			throw error(r, "fs_pread");
-		    tc.write(buf, cc);
+		    ssize_t cr = fs_pread(ino, &buf[0], cc, off);
+		    if (cr < 0)
+			throw error(cr, "fs_pread");
+		    tc.write(buf, cr);
 		}
 	    } else if (type == kobj_container || type == kobj_mlt) {
 		snprintf(buf, sizeof(buf), "directory or mlt\n");

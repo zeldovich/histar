@@ -6,7 +6,7 @@
 
 #include <string.h>
 
-int
+ssize_t
 fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 {
     uint64_t cursize;
@@ -26,10 +26,10 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
     memcpy(&map[off], buf, count);
     segment_unmap(map);
 
-    return 0;
+    return count;
 }
 
-int
+ssize_t
 fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 {
     char *map = 0;
@@ -38,16 +38,15 @@ fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
     if (r < 0)
 	return r;
 
-    uint64_t endpt = off + count;
-    if (endpt > cursize) {
-	segment_unmap(map);
-	return -E_RANGE;
-    }
+    if (off > cursize)
+	count = 0;
+    else
+	count = MIN(count, cursize - off);
 
     memcpy(buf, &map[off], count);
     segment_unmap(map);
 
-    return 0;
+    return count;
 }
 
 int

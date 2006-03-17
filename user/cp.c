@@ -63,19 +63,19 @@ main(int ac, char **av)
 	char buf[512];
 	size_t cc = MIN(sizeof(buf), maxoff - off);
 
-	r = fs_pread(src, &buf[0], cc, off);
-	if (r < 0) {
-	    printf("cannot read %s: %s\n", src_pn, e2s(r));
-	    return r;
+	ssize_t cr = fs_pread(src, &buf[0], cc, off);
+	if (cr < 0) {
+	    printf("cannot read %s: %s\n", src_pn, e2s(cr));
+	    return cr;
 	}
 
-	r = fs_pwrite(dst, &buf[0], cc, off);
-	if (r < 0) {
-	    printf("cannot write: %s\n", e2s(r));
-	    return r;
+	cr = fs_pwrite(dst, &buf[0], cr, off);
+	if (cr < 0) {
+	    printf("cannot write: %s\n", e2s(cr));
+	    return cr;
 	}
 
-	off += cc;
+	off += cr;
     }
 
     return 0;
