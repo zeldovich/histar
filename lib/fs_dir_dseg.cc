@@ -151,6 +151,9 @@ void
 fs_dir_dseg::lock()
 {
     if (writable_) {
+	if (locked_)
+	    panic("fs_dir_dseg::lock: already locked\n");
+
 	pthread_mutex_lock(&dir_->lock);
 	locked_ = true;
     }
