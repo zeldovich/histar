@@ -471,8 +471,10 @@ kobject_gc_scan(void)
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
-    struct kobject *ko;
-    LIST_FOREACH(ko, &ko_gc_list, ko_gc_link) {
+    struct kobject *ko, *next;
+    for (ko = LIST_FIRST(&ko_gc_list); ko; ko = next) {
+	next = LIST_NEXT(ko, ko_gc_link);
+
 	if (ko->hdr.ko_ref) {
 	    cprintf("kobject_gc_scan: referenced object on GC list!\n");
 	    continue;
