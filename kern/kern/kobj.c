@@ -343,7 +343,6 @@ kobject_swapin(struct kobject *ko)
     if (ko->hdr.ko_ref == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), ko, ko_hash);
-    memset(&ko->ko_weak_refs, 0, sizeof(ko->ko_weak_refs));
 
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
@@ -521,6 +520,8 @@ kobject_swapout(struct kobject *ko)
     if (ko->hdr.ko_type == kobj_address_space)
 	as_swapout(&ko->as);
 
+    for (int i = 0; i < kolabel_max; i++)
+	kobj_weak_put(&ko->ko_label_cache[i], 0);
     kobj_weak_drop(&ko->ko_weak_refs);
 
     LIST_REMOVE(ko, ko_link);
