@@ -23,7 +23,7 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 	    break;
 
 	atomic_compare_exchange64(mu, 1, 2);
-	sys_sync_wait(&mu->counter, cur, ~0UL);
+	sys_sync_wait(&mu->counter, 2, ~0UL);
     }
     return 0;
 }
