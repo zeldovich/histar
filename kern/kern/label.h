@@ -13,12 +13,6 @@ struct Label {
 
     level_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT];
-
-    kobject_id_t lb_lhs_compares_with;
-    void *	 lb_lhs_compares_using;
-
-    kobject_id_t lb_rhs_compares_with;
-    void *	 lb_rhs_compares_using;
 };
 
 #define LB_ENT_EMPTY		(~(0UL))
@@ -33,8 +27,6 @@ extern level_comparator label_leq_starhi_rhs_0_except_star;
 
 int  label_alloc(struct Label **l, level_t def)
     __attribute__ ((warn_unused_result));
-void label_swapin(struct Label *l);
-
 int  label_copy(const struct Label *src, struct Label **dst)
     __attribute__ ((warn_unused_result));
 

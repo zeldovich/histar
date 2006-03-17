@@ -121,13 +121,6 @@ label_alloc(struct Label **lp, level_t def)
     return 0;
 }
 
-void
-label_swapin(struct Label *l)
-{
-    l->lb_lhs_compares_using = 0;
-    l->lb_rhs_compares_using = 0;
-}
-
 int
 label_copy(const struct Label *src, struct Label **dstp)
 {
@@ -232,6 +225,16 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     return 0;
 }
 
+struct compare_cache_ent {
+    kobject_id_t lhs;
+    kobject_id_t rhs;
+    level_comparator cmp;
+};
+
+enum { compare_cache_size = 16 };
+static struct compare_cache_ent compare_cache[compare_cache_size];
+static int compare_cache_next;
+
 int
 label_compare(const struct Label *l1,
 	      const struct Label *l2, level_comparator cmp)
@@ -239,13 +242,14 @@ label_compare(const struct Label *l1,
     assert(l1);
     assert(l2);
 
-    if (l1->lb_lhs_compares_with == l2->lb_ko.ko_id &&
-	l1->lb_lhs_compares_using == cmp)
-	return 0;
+    kobject_id_t lhs_id = l1->lb_ko.ko_id;
+    kobject_id_t rhs_id = l2->lb_ko.ko_id;
 
-    if (l2->lb_rhs_compares_with == l1->lb_ko.ko_id &&
-	l2->lb_rhs_compares_using == cmp)
-	return 0;
+    for (int i = 0; i < compare_cache_size; i++)
+	if (compare_cache[i].lhs == lhs_id &&
+	    compare_cache[i].rhs == rhs_id &&
+	    compare_cache[i].cmp == cmp)
+	    return 0;
 
     level_comparator_init(cmp);
 
@@ -275,15 +279,10 @@ label_compare(const struct Label *l1,
     if (r < 0)
 	return r;
 
-    // Cast the label to a non-const; but we are modifying ephemeral fields.
-    struct Label *l1m = (struct Label *) l1;
-    struct Label *l2m = (struct Label *) l2;
-
-    l1m->lb_lhs_compares_with = l2->lb_ko.ko_id;
-    l1m->lb_lhs_compares_using = cmp;
-
-    l2m->lb_rhs_compares_with = l1->lb_ko.ko_id;
-    l2m->lb_rhs_compares_using = cmp;
+    int cache_slot = (compare_cache_next++) % compare_cache_size;
+    compare_cache[cache_slot].lhs = lhs_id;
+    compare_cache[cache_slot].rhs = rhs_id;
+    compare_cache[cache_slot].cmp = cmp;
 
     return 0;
 }

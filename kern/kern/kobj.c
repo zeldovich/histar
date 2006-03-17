@@ -355,8 +355,6 @@ kobject_swapin(struct kobject *ko)
 	as_swapin(&ko->as);
     if (ko->hdr.ko_type == kobj_segment)
 	segment_swapin(&ko->sg);
-    if (ko->hdr.ko_type == kobj_label)
-	label_swapin(&ko->lb);
 }
 
 void
