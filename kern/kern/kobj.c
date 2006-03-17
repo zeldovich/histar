@@ -275,11 +275,12 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 
     struct kobject *ko = kobject_h2k(kp);
 
+    uint64_t curnpg = kobject_npages(kp);
     uint64_t npages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
     if (npages > pagetree_maxpages())
 	return -E_RANGE;
 
-    for (uint64_t i = npages; i < kobject_npages(kp); i++) {
+    for (uint64_t i = npages; i < curnpg; i++) {
 	int r = pagetree_put_page(&ko->ko_pt, i, 0);
 	if (r < 0) {
 	    cprintf("XXX this leaves a hole in the kobject\n");
@@ -287,7 +288,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	}
     }
 
-    for (uint64_t i = kobject_npages(kp); i < npages; i++) {
+    for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
 	int r = page_alloc(&p);
 	if (r == 0)
