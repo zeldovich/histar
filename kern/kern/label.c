@@ -124,7 +124,8 @@ label_alloc(struct Label **lp, level_t def)
 void
 label_swapin(struct Label *l)
 {
-    // nothing for now
+    l->lb_lhs_compares_using = 0;
+    l->lb_rhs_compares_using = 0;
 }
 
 int
@@ -238,6 +239,14 @@ label_compare(const struct Label *l1,
     assert(l1);
     assert(l2);
 
+    if (l1->lb_lhs_compares_with == l2->lb_ko.ko_id &&
+	l1->lb_lhs_compares_using == cmp)
+	return 0;
+
+    if (l2->lb_rhs_compares_with == l1->lb_ko.ko_id &&
+	l2->lb_rhs_compares_using == cmp)
+	return 0;
+
     level_comparator_init(cmp);
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
@@ -265,6 +274,16 @@ label_compare(const struct Label *l1,
     int r = cmp->cmp[l1->lb_def_level][l2->lb_def_level];
     if (r < 0)
 	return r;
+
+    // Cast the label to a non-const; but we are modifying ephemeral fields.
+    struct Label *l1m = (struct Label *) l1;
+    struct Label *l2m = (struct Label *) l2;
+
+    l1m->lb_lhs_compares_with = l2->lb_ko.ko_id;
+    l1m->lb_lhs_compares_using = cmp;
+
+    l2m->lb_rhs_compares_with = l1->lb_ko.ko_id;
+    l2m->lb_rhs_compares_using = cmp;
 
     return 0;
 }

@@ -13,6 +13,12 @@ struct Label {
 
     level_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT];
+
+    kobject_id_t lb_lhs_compares_with;
+    void *	 lb_lhs_compares_using;
+
+    kobject_id_t lb_rhs_compares_with;
+    void *	 lb_rhs_compares_using;
 };
 
 #define LB_ENT_EMPTY		(~(0UL))
