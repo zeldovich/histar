@@ -53,6 +53,10 @@ main(int ac, char **av)
     //assert(0 == thread_get_label(&ul));
 
     printf("Trying to write into RO page\n");
-    memcpy(va2, "hello world", 10);
+    //memcpy(va2, "hello world", 10);
+
+    printf("Trying to execute funny instruction\n");
+    __asm__("swapgs");
+
     printf("done\n");
 }

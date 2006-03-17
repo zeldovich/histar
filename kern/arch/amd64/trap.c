@@ -3,6 +3,7 @@
 #include <machine/trap.h>
 #include <machine/x86.h>
 #include <machine/thread.h>
+#include <machine/utrap.h>
 #include <dev/picirq.h>
 #include <kern/syscall.h>
 #include <kern/lib.h>
@@ -99,6 +100,7 @@ page_fault (struct Trapframe *tf, uint32_t err)
 static void
 trap_dispatch (int trapno, struct Trapframe *tf)
 {
+    int r;
     uint64_t s, f;
     s = read_tsc();
 
@@ -122,9 +124,13 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 	    break;
 	}
 
-	cprintf("Unknown trap %d, trapframe:\n", trapno);
-	trapframe_print(tf);
-	thread_halt(cur_thread);
+	r = thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, 0);
+	if (r != 0 && r != -E_RESTART) {
+	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
+		    trapno, e2s(r));
+	    trapframe_print(tf);
+	    thread_halt(cur_thread);
+	}
     }
 
     f = read_tsc();
