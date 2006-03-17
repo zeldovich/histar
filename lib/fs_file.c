@@ -1,9 +1,10 @@
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
-#include <string.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
+
+#include <string.h>
 
 int
 fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)

@@ -22,6 +22,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	return -1;
     }
 
+    int just_created = 0;
     struct fs_inode ino;
     int r = fs_namei(pn, &ino);
     if (r == 0) {
@@ -59,12 +60,14 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    __set_errno(EPERM);
 	    return -1;
 	}
+
+	just_created = 1;
     } else {
 	__set_errno(EPERM);
 	return -1;
     }
 
-    if ((flags & O_TRUNC)) {
+    if ((flags & O_TRUNC) && !just_created) {
 	r = fs_resize(ino, 0);
 	if (r < 0) {
 	    __set_errno(EPERM);
