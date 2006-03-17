@@ -18,7 +18,7 @@ struct log_header
 	uint64_t n_nodes ;
 } ;
 
-struct log
+static struct
 {
 	uint64_t byteoff ;
  	uint64_t npages ;
@@ -28,454 +28,312 @@ struct log
 	struct node_list nodes ;
 
 	uint64_t on_disk ;
-    struct hashtable disk_map2 ;
+    struct hashtable disk_map ;
     struct hashentry map_back[LOG_PAGES] ;
-
-	uint64_t log_gen ;
-	char just_flushed ;
-} ;
-
-// in memory log data
-static struct log log ;
+} log ;
 
 static int
 log_write_to_disk(struct node_list *nodes, uint64_t *count)
 {
-	disk_io_status s ;
-	uint64_t n = 0 ;
+	disk_io_status s;
+	uint64_t n = 0;
 	
-	if (LIST_EMPTY(nodes)) {
-		*count = 0 ;
-		return 0 ;
-	}
-		
-	struct btree_node *node ;
-		
+	struct btree_node *node;
 	LIST_FOREACH(node, nodes, node_link) {
-		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, node->block.offset);
-		
+		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, 
+                              node->block.offset);
 		if (!SAFE_EQUAL(s, disk_io_success)) {
-			*count = n ;
-			return -E_IO ;
+			*count = n;
+			return -E_IO;
 		}
-		n++ ;
+		n++;
 	}
-	*count = n ;
-	return 0 ;
+	*count = n;
+	return 0;
 }
 
 static int
 log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 {
-	disk_io_status s ;
-	uint64_t n = 0 ;
-	
-	if (log.byteoff > off || log.npages * PGSIZE + log.byteoff <= off)
-		return -E_INVAL ;
-	
-	if (LIST_EMPTY(nodes)) {
-		*count = 0 ;
-		return 0 ;
-	}
-		
-	struct btree_node *node ;
-		
-	LIST_FOREACH(node, nodes, node_link) {
-		s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, off);
-		log.log_gen++ ;
-		if (!SAFE_EQUAL(s, disk_io_success)) {
-			*count = n ;
-			return -E_IO ;
-		}
+    disk_io_status s;
+    uint64_t n = 0;
+    assert(log.byteoff < off);
 
-        hash_put(&log.disk_map2, node->block.offset, off) ;
-		off += PGSIZE ;
-		n++ ;
-	}
-	*count = n ;
-	return 0 ;
+    struct btree_node *node;
+    LIST_FOREACH(node, nodes, node_link) {
+        assert(off + n * PGSIZE < log.npages * PGSIZE + log.byteoff);
+        s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE, 
+                              off + n * PGSIZE);
+        if (!SAFE_EQUAL(s, disk_io_success)) {
+            *count = n;
+            return -E_IO;
+        }
+        hash_put(&log.disk_map, node->block.offset, off + n * PGSIZE);
+        n++;
+    }
+    *count = n;
+    return 0;
 }
 
 static uint64_t
 log_free_list(struct node_list *nodes)
 {
-	if (LIST_EMPTY(nodes)) {
-		return 0 ;	
-	}
-	
-	uint64_t n = 0 ;
-	struct btree_node *prev = LIST_FIRST(nodes) ;
-	struct btree_node *node = LIST_NEXT(prev, node_link) ;
-	
-	while(node) {
-		page_free(prev) ;
-		prev = node ;
-		node = LIST_NEXT(node, node_link) ;
-		n++ ;
-		
-	}
-	page_free(prev) ;	
-	LIST_INIT(nodes) ;
-	n++ ;
-	return n ;
+    uint64_t n = 0;
+    struct btree_node *prev, *next;
+
+    for (prev = LIST_FIRST(nodes); prev; prev = next, n++) {
+        next = LIST_NEXT(prev, node_link);
+        LIST_REMOVE(prev, node_link);
+        page_free(prev);
+    }
+    return n;
 }
 
 static int
-log_read_log(offset_t off, uint64_t n_nodes, 
-			 struct node_list *nodes, uint64_t *count)
+log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
 {
-	int r ;
-	struct btree_node *node ;
-	disk_io_status s ;
-	
-	for (uint64_t i = 0 ; i < n_nodes ; i++, off += BTREE_BLOCK_SIZE) {
-		if ((r = page_alloc((void **)&node)) < 0)
-			return r ;
-		s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
-		LIST_INSERT_HEAD(nodes, node, node_link) ;
-	}
-	return 0 ; 
+    int r;
+    struct btree_node *node;
+    disk_io_status s;
+    
+    for (uint64_t i = 0 ; i < n_nodes ; i++, off += BTREE_BLOCK_SIZE) {
+        if ((r = page_alloc((void **)&node)) < 0)
+            return r;
+        s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
+        if (!SAFE_EQUAL(s, disk_io_success))
+            return -E_IO;
+        LIST_INSERT_HEAD(nodes, node, node_link);
+    }
+    return 0; 
 }
 
 static int
-log_read_map2(struct hashtable *map, struct node_list *nodes)
+log_read_map(struct hashtable *map, struct node_list *nodes)
 {
-    int r ;
-    struct btree_node *node ;
-    disk_io_status s ;
+    int r;
+    struct btree_node *node;
+    disk_io_status s;
+    struct hashiter iter;
     
-    struct hashiter iter ;
-    hashiter_init(map, &iter) ;
-    
-    while (hashiter_next(&iter)) {
-        offset_t off = iter.hi_val ;
-            
+    for (hashiter_init(map, &iter); hashiter_next(&iter);) {
+        offset_t off = iter.hi_val;
         if ((r = page_alloc((void **)&node)) < 0)
             return r ;
         s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
-        assert(node->block.offset == iter.hi_key) ;
-        LIST_INSERT_HEAD(nodes, node, node_link) ;
+        if (!SAFE_EQUAL(s, disk_io_success))
+            return -E_IO;
+        assert(node->block.offset == iter.hi_key);
+        LIST_INSERT_HEAD(nodes, node, node_link);
     }
-    return 0 ; 
-}
-
-static int
-log_try_node(offset_t offset, struct btree_node *store)
-{
-	// compacting modifies disk_map - can have a race w/ log_node
-    offset_t log_off ;
-	
-    if (hash_get(&log.disk_map2, offset, &log_off) < 0)
-       return -E_NOT_FOUND ;
-    
-	uint64_t gen = log.log_gen ;
-	
-	disk_io_status s = stackwrap_disk_io(op_read, store, BTREE_BLOCK_SIZE, log_off);
-	if (!SAFE_EQUAL(s, disk_io_success))
-		return -E_IO ;
-
-	// compacting modified disk_map
-	if (store->block.offset != offset || gen != log.log_gen)
-		return 1 ;
-	
-	return 0 ;	
+    return 0 ;
 }
 
 int
 log_node(offset_t byteoff, void *page)
 {
-	
-	struct btree_node *node ;
-	struct btree_node *store = (struct btree_node *) page ;
-	int r ;
-	
-	LIST_FOREACH(node, &log.nodes, node_link) {
-		if (byteoff == node->block.offset) {
-			memcpy(store, node, PGSIZE) ;
-			return 0 ;
-		}
-	}
-
-	// XXX: test
-	if (log.on_disk == 0)
-		return -E_NOT_FOUND ;
-	
-	int tries = 0 ;
-	// see comment in log_try_node
-	while ((r = log_try_node(byteoff, store)) == 1 && ++tries < 10) ;
-		
-	if (r < 0)
-		return r ;
-
-	if (r == 1)
-		panic("log_node: could not read %ld in %d tries\n", byteoff, tries) ;
-		//return -E_UNSPEC ;
-
-	return 0 ;
-}
-
-#if 0
-static char
-lists_equal(struct node_list *l1, struct node_list *l2)
-{
-    struct btree_node *n1 ;
-    struct btree_node *n2 ;
     
-    
-    
-    LIST_FOREACH(n1, l1, node_link) {
-        char found = 0 ;
-        LIST_FOREACH(n2, l2, node_link) {
-            if (n1->block.offset == n2->block.offset) {
-                found = 1 ;
-                break ;   
-            }
-                
+    struct btree_node *node ;
+    struct btree_node *store = (struct btree_node *) page ;
+    LIST_FOREACH(node, &log.nodes, node_link) {
+        if (byteoff == node->block.offset) {
+            memcpy(store, node, PGSIZE);
+            return 0;
         }
-        if (!found)
-            return 0 ;
     }
-    return 1 ;
-}
-#endif
+    // look in on-disk log
+    offset_t log_off ;
+    if (hash_get(&log.disk_map, byteoff, &log_off) < 0)
+       return -E_NOT_FOUND;
+    disk_io_status s = 
+        stackwrap_disk_io(op_read, store, BTREE_BLOCK_SIZE, log_off);
+    if (!SAFE_EQUAL(s, disk_io_success))
+        return -E_IO;
 
-int
+    return 0;  
+}
+
+static int
 log_compact(void)
 {
-	offset_t off = log.byteoff + PGSIZE ;
-	uint64_t n_nodes = 0 ;
-    struct node_list nodes ;
-	int r ;
-	uint64_t count ;
+	offset_t off = log.byteoff + PGSIZE;
+    struct node_list nodes;
+	uint64_t count = 0;
+	int r;
 	
     LIST_INIT(&nodes) ;
-	
     // XXX: potentially a lot of nodes read from disk
-    log_read_map2(&log.disk_map2, &nodes) ;
-	
-	if ((r = log_write_to_log(&nodes, &count,off)) < 0) {
-		log_free_list(&nodes) ;							
-		return r ;
-	}
-		
-	n_nodes = count ;
-	
-	log_free_list(&nodes) ;
-	
+    log_read_map(&log.disk_map, &nodes);
+    r = log_write_to_log(&nodes, &count, off);
+	log_free_list(&nodes);							
+	if (r < 0)
+		return r;
+
 	// write out a log header
-	struct log_header lh = { n_nodes } ;
-	memcpy(scratch, &lh, sizeof(lh)) ;
-	
-	disk_io_status s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
-	log.log_gen++ ;
+	struct log_header lh = { count };
+	memcpy(scratch, &lh, sizeof(lh));
+	disk_io_status s = 
+        stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
 	if (!SAFE_EQUAL(s, disk_io_success))
 		return -E_IO ;
 	
-	log.on_disk = n_nodes ;
-	
-	return 0 ;
+	log.on_disk = count;
+	return 0;
 }
 
 int
 log_write(struct btree_node *node)
 {
-	int r ;
-	char found = 0 ;	
-	struct btree_node *store ;
+	int r;
+	char found = 0;	
+	struct btree_node *store;
 	
 	LIST_FOREACH(store, &log.nodes, node_link) {
 		if (store->block.offset == node->block.offset) {
-			LIST_REMOVE(store, node_link) ;
-			found = 1 ;
-			break ;	
+			LIST_REMOVE(store, node_link);
+			found = 1;
+			break;	
 		}
 	}
-	
-	// might put the same node in the log multiple times
 	if (!found) {
 		if (log.in_mem == log.max_mem) {
 			if ((r = log_flush()) < 0)
-				return r ;
-			uint64_t count = log_free_list(&log.nodes) ;
-			log.in_mem -= count ;
-			assert(log.in_mem == 0) ;
+				return r;
+			uint64_t count = log_free_list(&log.nodes);
+			log.in_mem -= count;
+			assert(log.in_mem == 0);
 		}
-		
 		if ((r = page_alloc((void **)&store)) < 0)
 			return r ;
-		memset(store, 0, PGSIZE) ;
-		log.in_mem++ ;
+		memset(store, 0, PGSIZE);
+		log.in_mem++;
 	}
-		
-	memcpy(store, node, BTREE_NODE_SIZE(node->tree->order, node->tree->s_key)) ;
-	LIST_INSERT_HEAD(&log.nodes, store, node_link) ;
-
-	log.just_flushed = 0 ;	
-	return 0 ;	
+	
+	memcpy(store, node, BTREE_NODE_SIZE(node->tree->order, node->tree->s_key));
+	LIST_INSERT_HEAD(&log.nodes, store, node_link);
+	return 0;	
 }
 
 void
 log_free(offset_t byteoff)
 {
-    struct btree_node *node ;
-    
+    struct btree_node *node;
     LIST_FOREACH(node, &log.nodes, node_link) {
         if (byteoff == node->block.offset) {
-            LIST_REMOVE(node, node_link) ;
-            log.in_mem-- ;
-            break ;
+            LIST_REMOVE(node, node_link);
+            log.in_mem--;
+            break;
         }
     }
-    hash_del(&log.disk_map2, byteoff) ;
+    hash_del(&log.disk_map, byteoff);
 }
 
 int
 log_flush(void)
 {
-	int r ;
-	disk_io_status s ;
-	uint64_t count ;
-	
-	uint64_t start, stop ;
-	start = read_tsc() ;
-	
-	if (LIST_EMPTY(&log.nodes))
-		return 0 ;
+	int r;
+	disk_io_status s;
 
+	if (LIST_EMPTY(&log.nodes))
+		return 0;
 	if (log.npages <= log.in_mem + log.on_disk + 1) {
-		
-		uint64_t d = log.on_disk ;
+		uint64_t d = log.on_disk;
 		if ((r = log_compact()) < 0) {
-			cprintf("log_flush: unable to compact: %s\n", e2s(r)) ;
-			return r ;	
+			cprintf("log_flush: unable to compact: %s\n", e2s(r));
+			return r;	
 		}
-		cprintf("log_flush: compacted from %ld to %ld\n",d , log.on_disk) ;
-		uint64_t needed = log.in_mem + log.on_disk + 1 ;
-		if (log.npages <= needed)
-			panic("log_flush: log overflow, %ld <= %ld", log.npages, needed) ;
+		cprintf("log_flush: compacted from %ld to %ld\n",d , log.on_disk);
+		uint64_t needed = log.in_mem + log.on_disk + 1;
+		assert(log.npages >= needed);
 	}
-	uint64_t off = log.byteoff + (log.on_disk + 1) * PGSIZE ;
+    uint64_t count;
+	uint64_t off = log.byteoff + (log.on_disk + 1) * PGSIZE;
 	if ((r = log_write_to_log(&log.nodes, &count, off)) < 0)
-		return r ;
-	assert(count == log.in_mem) ;
+		return r;
+	assert(count == log.in_mem);
 
 	// write out a log header
-	struct log_header lh = { log.on_disk + log.in_mem } ;
-	memcpy(scratch, &lh, sizeof(lh)) ;
-
+	log.on_disk += log.in_mem;
+	struct log_header lh = { log.on_disk };
+	memcpy(scratch, &lh, sizeof(lh));
 	s = stackwrap_disk_io(op_write, scratch, SCRATCH_SIZE, log.byteoff);
-	log.log_gen++ ;
 	if (!SAFE_EQUAL(s, disk_io_success))
-		return -E_IO ;
-
-	log.on_disk += log.in_mem ;
-
-	log.just_flushed = 1 ;
-
-	stop = read_tsc() ;
-
-	return 0 ;
+		return -E_IO;
+	return 0;
 }
 
 static int 
 log_apply_disk(offset_t off, uint64_t n_nodes)
 {
-	int r ;
-	struct node_list nodes ;
+	int r;
+	struct node_list nodes;
+	uint64_t count, n;
 
-	if (n_nodes == 0)
-		return 0 ;
-	
 	while (n_nodes) {
-		uint64_t n = MIN(n_nodes, log.max_mem) ;
-		n_nodes -= n ;
-		
-		uint64_t count ;
-		LIST_INIT(&nodes) ;
-		if ((r = log_read_log(off, n, &nodes, &count)) < 0) {
-			log_free_list(&nodes) ;
+		n = MIN(n_nodes, log.max_mem);
+		n_nodes -= n;
+		LIST_INIT(&nodes);
+		if ((r = log_read_log(off, n, &nodes)) < 0) {
+			log_free_list(&nodes);
 			return r ;			
 		}
-		
 		if ((r = log_write_to_disk(&nodes, &count)) < 0) {
-			log_free_list(&nodes) ;
-			return r ;
+			log_free_list(&nodes);
+			return r;
 		}
-		
-		if (count != n) {
-			log_free_list(&nodes) ;
-			return -E_UNSPEC ;
-		}
-		log_free_list(&nodes) ;
-		off += n * PGSIZE ;
+		assert(count == n);
+		log_free_list(&nodes);
+		off += n * PGSIZE;
 	}
-	return 0 ;
+	return 0;
 }
 
 int
 log_apply(void)
 {
-	int r ;
-	uint64_t start, stop ;
-	
-	start = read_tsc() ;
-
-
+	int r;
 	if (log.in_mem != 0) { // have an active in memory log
-		uint64_t count ;
+		uint64_t count;
 		if ((r = log_write_to_disk(&log.nodes, &count)) < 0)
-			return r ;
-	
-		struct btree_node *node ;
-
+			return r;
+		struct btree_node *node;
         LIST_FOREACH(node, &log.nodes, node_link)
-            hash_del(&log.disk_map2, node->block.offset) ;
+            hash_del(&log.disk_map, node->block.offset);
+        assert(count == log_free_list(&log.nodes));
+		log.in_mem -= count;
+		assert(log.in_mem == 0);
 
-		if (count != log_free_list(&log.nodes))
-			panic("log_apply: wrote diff num nodes than in memory?\n") ;
-
-		log.in_mem -= count ;
-		assert(log.in_mem == 0) ;
-		
-        
-        if (log.disk_map2.size) {
-            struct node_list in_log ;		
-			LIST_INIT(&in_log) ;
-			log_read_map2(&log.disk_map2, &in_log) ;
-			log_write_to_disk(&in_log, &count) ;
-			log_free_list(&in_log) ;
+        if (log.disk_map.size) {
+            struct node_list in_log;		
+			LIST_INIT(&in_log);
+			log_read_map(&log.disk_map, &in_log);
+			log_write_to_disk(&in_log, &count);
+			log_free_list(&in_log);
 		}
-				
-		log_init() ;
-		stop = read_tsc() ;
-		return 0 ;
+		log_init();
+		return 0;
 	}
 	else  { // try to apply log sitting on disk
 		disk_io_status s = stackwrap_disk_io(op_read, scratch,
 							  SCRATCH_SIZE, log.byteoff);
 		if (!SAFE_EQUAL(s, disk_io_success))
-			return -E_IO ;
-			
-		struct log_header *lh = (struct log_header *)scratch ;
-		uint64_t n_nodes = lh->n_nodes ;
+			return -E_IO;
+		struct log_header *lh = (struct log_header *)scratch;
+		uint64_t n_nodes = lh->n_nodes;
 		if (n_nodes == 0)
-			return 0 ;
-		
-		uint64_t off = log.byteoff + PGSIZE ;
-	
-		return log_apply_disk(off, n_nodes) ;
+			return 0;
+		uint64_t off = log.byteoff + PGSIZE;
+		return log_apply_disk(off, n_nodes);
 	}
 }
 
 void
 log_init(void)
 {
-	memset(&log, 0, sizeof(log)) ;
-	
+	memset(&log, 0, sizeof(log));
 	// logging will overwrite anything in the disk log
-	LIST_INIT(&log.nodes) ;	
-	hash_init(&log.disk_map2, log.map_back, LOG_PAGES) ;
+	LIST_INIT(&log.nodes);	
+	hash_init(&log.disk_map, log.map_back, LOG_PAGES);
 	log.byteoff = LOG_OFFSET * PGSIZE;
-	log.npages = LOG_PAGES ;
-	log.max_mem = LOG_MEMORY ;
+	log.npages = LOG_PAGES;
+	log.max_mem = LOG_MEMORY;
 }

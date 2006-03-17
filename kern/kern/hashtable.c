@@ -106,7 +106,8 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
         int i ;
         for (i = 0 ; i < table->capacity ; i++) {
                 probe = (hash2(&key, len, lev) + i) % table->capacity ;
-                if (table->entry[probe].key == 0)
+                if (table->entry[probe].key == 0 
+                || table->entry[probe].key == key)
                         break ;               
         }              
 
