@@ -107,40 +107,58 @@ fd_handles_init(void)
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
+
+static struct {
+    int valid;
+    struct cobj_ref obj;
+} fd_segment_cache;
+
 int
 fd_alloc(struct Fd **fd_store, const char *name)
 {
-	fd_handles_init();
+    fd_handles_init();
 
-	int i;
-	struct Fd *fd;
+    int i;
+    struct Fd *fd;
 
-	for (i = 0; i < MAXFD; i++) {
-		fd = INDEX2FD(i);
-		int r = segment_lookup(fd, 0, 0, 0);
-		if (r < 0)
-			return r;
-		if (r == 0)
-			break;
-	}
-
-	*fd_store = 0;
-	if (i == MAXFD)
-		return -E_MAX_OPEN;
-
-	// Inherit label from container, which is { P_T:3, P_G:0, 1 }
-	struct cobj_ref seg;
-	int r = segment_alloc(start_env->proc_container, PGSIZE, &seg,
-			      (void**)&fd, 0, name);
+    for (i = 0; i < MAXFD; i++) {
+	fd = INDEX2FD(i);
+	int r = segment_lookup(fd, 0, 0, 0);
 	if (r < 0)
-		return r;
+	    return r;
+	if (r == 0)
+	    break;
+    }
 
-	atomic_set(&fd->fd_ref, 1);
-	fd->fd_dev_id = 0;
-	fd->fd_private = 1;
+    *fd_store = 0;
+    if (i == MAXFD)
+	return -E_MAX_OPEN;
 
-	*fd_store = fd;
-	return 0;
+    // Inherit label from container, which is { P_T:3, P_G:0, 1 }
+    struct cobj_ref seg;
+    int r;
+
+    if (fd_segment_cache.valid) {
+	fd_segment_cache.valid = 0;
+	seg = fd_segment_cache.obj;
+	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &fd, 0);
+    } else {
+	char nbuf[KOBJ_NAME_LEN];
+	snprintf(&nbuf[0], KOBJ_NAME_LEN, "fd_alloc: %s", name);
+	r = segment_alloc(start_env->proc_container, PGSIZE, &seg,
+			  (void **) &fd, 0, &nbuf[0]);
+    }
+
+    if (r < 0)
+	return r;
+
+    atomic_set(&fd->fd_ref, 1);
+    fd->fd_dev_id = 0;
+    fd->fd_private = 1;
+
+    *fd_store = fd;
+    return 0;
 }
 
 int
@@ -186,6 +204,9 @@ fd_make_public(int fdnum)
 				      l.to_ulabel(), &name[0]);
     if (new_id < 0)
 	return new_id;
+
+    if (old_seg.object == fd_segment_cache.obj.object)
+	fd_segment_cache.valid = 0;
 
     struct cobj_ref new_seg = COBJ(start_env->shared_container, new_id);
 
@@ -275,8 +296,20 @@ fd_close(struct Fd *fd)
     if (r < 0)
 	return r;
 
-    if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref))
+    int lastref = 0;
+    if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref)) {
+	lastref = 1;
 	r = (*dev->dev_close)(fd);
+    }
+
+    if (fd->fd_private && lastref && !fd_segment_cache.valid) {
+	memset(fd, 0, PGSIZE);
+	fd_segment_cache.valid = 1;
+	fd_segment_cache.obj = fd_seg;
+    } else {
+	sys_obj_unref(fd_seg);
+    }
+    segment_unmap(fd);
 
     if (handle_refs == 2) try {
 	fd_give_up_privilege(fd2num(fd));
@@ -286,9 +319,6 @@ fd_close(struct Fd *fd)
 
     fd_handles[fd2num(fd)].fd_taint = 0;
     fd_handles[fd2num(fd)].fd_grant = 0;
-
-    segment_unmap(fd);
-    sys_obj_unref(fd_seg);
 
     return r;
 }
