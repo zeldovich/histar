@@ -33,8 +33,6 @@ better separation between kernel, user-space and shared header files
 
 how to expose thread-local container and segment?  is it safe?
 
-treat * like 3 in object label for reading
-
 expose kobj_label's at the syscall API to get label sharing
 
 better MLT support in the filesystem: unification et al
