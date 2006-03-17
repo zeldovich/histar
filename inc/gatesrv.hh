@@ -6,7 +6,7 @@
 
 class gatesrv_return {
 public:
-    gatesrv_return(struct cobj_ref rgate, uint64_t tct, void *tls, void *stack)
+    gatesrv_return(struct cobj_ref rgate, uint64_t tct, char *tls, void *stack)
 	: rgate_(rgate), thread_ct_(tct), tls_(tls), stack_(stack) {}
 
     // ret will delete the three labels passed to it
@@ -26,7 +26,7 @@ private:
 
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
-    void *tls_;
+    char *tls_;
     void *stack_;
 };
 
@@ -53,7 +53,7 @@ private:
     void entry(void *stack) __attribute__((noreturn));
 
     struct cobj_ref gate_obj_;
-    void *tls_;		// thread-local-segment
+    char *tls_;		// thread-local-segment
     uint32_t stackpages_;
 
     uint64_t entry_container_;

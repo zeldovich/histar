@@ -87,10 +87,17 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 uint64_t
 thread_id(void)
 {
-    int64_t tid = sys_self_id();
-    if (tid < 0)
-	panic("sys_self_id: %s", e2s(tid));
-    return tid;
+    uint64_t *tls_tidp = (uint64_t *) UTLS;
+    uint64_t tls_tid = *tls_tidp;
+
+    if (tls_tidp == 0) {
+	int64_t tid = sys_self_id();
+	if (tid < 0)
+	    panic("sys_self_id: %s", e2s(tid));
+	tls_tid = *tls_tidp = tid;
+    }
+
+    return tls_tid;
 }
 
 void
