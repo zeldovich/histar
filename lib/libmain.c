@@ -65,6 +65,7 @@ setup_env(uint64_t envaddr)
     tls_base = tls_va;
     tls_tidp = tls_base + PGSIZE - sizeof(uint64_t);
     tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(struct gate_call_data);
+    assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
 
     r = utrap_init();

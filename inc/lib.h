@@ -62,6 +62,7 @@ extern start_env_t *start_env;
 
 extern uint64_t *tls_tidp;	// 8 bytes for cached thread ID
 extern void *tls_gate_args;	// struct gate_call_args
+#define TLS_GATE_ARGS	(UTLS + PGSIZE - sizeof(uint64_t) - sizeof(struct gate_call_data))
 extern void *tls_stack_top;	// same as tls_gate_args, grows down
 extern void *tls_base;		// base
 

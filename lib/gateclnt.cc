@@ -19,7 +19,8 @@ extern "C" {
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb)
 {
-    gate_call_data *gcd = (gate_call_data *) tls_gate_args;
+    // Note: cannot use tls_gate_args variable since it's in RW-mapped space
+    gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
     taint_cow(gcd->taint_container);
     jos_longjmp(jb, 1);
 }

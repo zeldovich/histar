@@ -48,10 +48,11 @@ taint_cow(uint64_t taint_container)
     struct ulabel obj_label =
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
+    struct cobj_ref cur_th = COBJ(kobject_id_thread_ct, sys_self_id());
     struct cobj_ref cur_as;
     ERRCHECK(sys_self_get_as(&cur_as));
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
-    ERRCHECK(thread_get_label(&cur_label));
+    ERRCHECK(sys_obj_get_label(cur_th, &cur_label));
 
     // if we can write to the address space, that's "good enough"
     int r = label_compare(&cur_label, &obj_label, label_leq_starlo);
