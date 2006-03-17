@@ -106,11 +106,11 @@ segment_as_switched(void)
 static void
 segment_map_print(struct u_address_space *as)
 {
-    cprintf("slot  kslot  segment  start  npages  f  va\n");
+    cprintf("slot  kslot  segment  start  npages  fl  va\n");
     for (uint64_t i = 0; i < as->nent; i++) {
 	if (as->ents[i].flags == 0)
 	    continue;
-	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %d  %p\n",
+	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %02x  %p\n",
 		i, as->ents[i].kslot,
 		as->ents[i].segment.container,
 		as->ents[i].segment.object,
@@ -403,6 +403,11 @@ retry:
     if (match_segslot != cache_uas.nent)
 	slot = match_segslot;
 
+    if (segment_debug)
+	cprintf("segment_map: nent %ld empty %d delay %d overlap %d exact %d\n",
+		cache_uas.nent, empty_segslot, delay_segslot,
+		delay_overlap, match_segslot);
+
     // Make sure we aren't out of slots
     if (slot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
@@ -454,6 +459,12 @@ retry:
     cache_uas.ents[slot] = usm;
     if (slot == cache_uas.nent)
 	cache_uas.nent = slot + 1;
+
+    if (segment_debug)
+	cprintf("segment_map: mapping <%ld.%ld> at %p\n",
+		cache_uas.ents[slot].segment.container,
+		cache_uas.ents[slot].segment.object,
+		cache_uas.ents[slot].va);
 
     r = sys_as_set_slot(as_ref, &cache_uas.ents[slot]);
 
