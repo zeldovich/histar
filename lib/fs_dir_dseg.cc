@@ -47,7 +47,7 @@ fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
     if (writable_)
 	perm |= SEGMAP_WRITE;
 
-    uint64_t dirsize;
+    uint64_t dirsize = 0;
     error_check(segment_map(dseg_, perm, (void **) &dir_, &dirsize));
 
     dir_end_ = ((char *) dir_) + dirsize;
@@ -173,10 +173,10 @@ fs_dir_dseg::refresh()
 {
     uint64_t mapped_bytes = (uint64_t) ((char *) dir_end_ - (char *) dir_);
     if (mapped_bytes != (dir_->extra_pages + 1) * PGSIZE) {
-	uint64_t dirsize;
 	error_check(segment_unmap(dir_));
 
 	dir_ = 0;
+	uint64_t dirsize = 0;
 	error_check(segment_map(dseg_, SEGMAP_READ | (writable_ ? SEGMAP_WRITE : 0),
 				(void **) &dir_, &dirsize));
 

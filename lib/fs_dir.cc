@@ -16,12 +16,30 @@ extern "C" {
 static int fs_debug = 0;
 static int fs_label_debug = 0;
 
+enum { type_cache_size = 16 };
+static int type_cache_next;
+static struct {
+    uint64_t obj;
+    int type;
+} type_cache[type_cache_size];;
+
 static fs_dir *
 fs_dir_open(fs_inode dir, bool writable)
 {
-    int type = sys_obj_get_type(dir.obj);
-    if (type < 0)
-	throw error(type, "sys_obj_get_type");
+    int type = -1;
+    for (uint32_t i = 0; i < type_cache_size; i++)
+	if (type_cache[i].obj == dir.obj.object)
+	    type = type_cache[i].type;
+
+    if (type < 0) {
+	type = sys_obj_get_type(dir.obj);
+	if (type < 0)
+	    throw error(type, "sys_obj_get_type");
+
+	int slot = (type_cache_next++) % type_cache_size;
+	type_cache[slot].obj = dir.obj.object;
+	type_cache[slot].type = type;
+    }
 
     if (type == kobj_container) {
 	try {

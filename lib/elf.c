@@ -17,8 +17,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return r;
 
     char *segbuf = 0;
-    uint64_t bytes;
-    r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &bytes);
+    r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, 0);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
 	return r;

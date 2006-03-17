@@ -269,10 +269,15 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	return -E_INVAL;
     }
 
-    int64_t nbytes = sys_segment_get_nbytes(seg);
-    if (nbytes < 0) {
-	cprintf("segment_map: cannot stat segment: %s\n", e2s(nbytes));
-	return nbytes;
+    int64_t nbytes;
+    if (bytes_store && *bytes_store) {
+	nbytes = *bytes_store;
+    } else {
+	nbytes = sys_segment_get_nbytes(seg);
+	if (nbytes < 0) {
+	    cprintf("segment_map: cannot stat segment: %s\n", e2s(nbytes));
+	    return nbytes;
+	}
     }
 
     uint64_t map_bytes = ROUNDUP(nbytes, PGSIZE);
@@ -503,7 +508,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
     *cobj = COBJ(container, id);
 
     if (va_p) {
-	uint64_t mapped_bytes;
+	uint64_t mapped_bytes = 0;
 	int r = segment_map(*cobj, SEGMAP_READ | SEGMAP_WRITE,
 			    va_p, &mapped_bytes);
 	if (r < 0) {

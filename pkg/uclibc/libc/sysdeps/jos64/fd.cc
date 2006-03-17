@@ -141,8 +141,10 @@ fd_alloc(struct Fd **fd_store, const char *name)
     if (fd_segment_cache.valid) {
 	fd_segment_cache.valid = 0;
 	seg = fd_segment_cache.obj;
+
+	uint64_t pgsize = PGSIZE;
 	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &fd, 0);
+			(void **) &fd, &pgsize);
     } else {
 	char nbuf[KOBJ_NAME_LEN];
 	snprintf(&nbuf[0], KOBJ_NAME_LEN, "fd_alloc: %s", name);
@@ -216,9 +218,10 @@ fd_make_public(int fdnum)
 	    continue;
 
 	if (iobj.object == old_seg.object) {
+	    uint64_t pgsize = PGSIZE;
 	    assert(0 == sys_segment_addref(new_seg, start_env->shared_container));
 	    assert(0 == segment_unmap(ifd));
-	    assert(0 == segment_map(new_seg, iflags, (void **) &ifd, 0));
+	    assert(0 == segment_map(new_seg, iflags, (void **) &ifd, &pgsize));
 	    sys_obj_unref(old_seg);
 
 	    fd_handles[i].fd_grant = fd_grant;
@@ -330,7 +333,8 @@ fd_give_up_privilege(int fdnum)
 int
 fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 {
-    return segment_map(fd_seg, fd_flags, (void **) &fd, 0);
+    uint64_t pgsize = PGSIZE;
+    return segment_map(fd_seg, fd_flags, (void **) &fd, &pgsize);
 }
 
 
@@ -408,9 +412,10 @@ dup2(int oldfdnum, int newfdnum) __THROW
     struct Fd *newfd = INDEX2FD(newfdnum);
 
     int immutable = oldfd->fd_immutable;
+    uint64_t pgsize = PGSIZE;
     r = segment_map(fd_seg,
 		    SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
-		    (void**) &newfd, 0);
+		    (void**) &newfd, &pgsize);
     if (r < 0) {
 	sys_obj_unref(fd_seg);
 	__set_errno(EINVAL);

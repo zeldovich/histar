@@ -15,11 +15,13 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 	return r;
 
     uint64_t endpt = off + count;
-    if (endpt > cursize)
+    if (endpt > cursize) {
 	sys_segment_resize(f.obj, endpt);
+	cursize = endpt;
+    }
 
     char *map = 0;
-    r = segment_map(f.obj, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, 0);
+    r = segment_map(f.obj, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, &cursize);
     if (r < 0)
 	return r;
 
@@ -33,7 +35,7 @@ ssize_t
 fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 {
     char *map = 0;
-    uint64_t cursize;
+    uint64_t cursize = 0;
     int r = segment_map(f.obj, SEGMAP_READ, (void **) &map, &cursize);
     if (r < 0)
 	return r;
