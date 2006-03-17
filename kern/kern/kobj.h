@@ -12,6 +12,7 @@
 #include <kern/mlt.h>
 #include <kern/label.h>
 #include <kern/pagetree.h>
+#include <kern/kocache.h>
 
 #define KOBJ_DISK_SIZE	512
 #define KOBJ_MEM_SIZE	1024
@@ -42,6 +43,9 @@ struct kobject {
 	    LIST_ENTRY(kobject) ko_link;
 	    LIST_ENTRY(kobject) ko_hash;
 	    LIST_ENTRY(kobject) ko_gc_link;
+
+	    struct kobj_weak_ptr ko_label_cache[kolabel_max];
+	    struct kobj_weak_refs ko_weak_refs;
 	};
     };
 };

@@ -34,6 +34,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/prof.c \
 	    kern/kern/hashtable.c \
 	    kern/kern/dstack.c \
+	    kern/kern/kocache.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_BTREE := \
