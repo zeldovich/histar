@@ -15,11 +15,13 @@
 static struct u_segment_mapping cache_ents[NMAPPINGS];
 static struct u_address_space cache_uas = { .size = NMAPPINGS,
 					    .ents = &cache_ents[0] };
-static uint64_t cache_asid;
+static struct cobj_ref cache_asref;
 
 static uint64_t	cache_thread_id;
 
 static pthread_mutex_t as_mutex;
+
+enum { segment_delay_unmap = 0 };
 
 static void
 as_mutex_lock(void) {
@@ -31,26 +33,52 @@ as_mutex_unlock(void) {
     pthread_mutex_unlock(&as_mutex);
 }
 
-static int
-cache_refresh(struct cobj_ref as)
+static void
+cache_uas_flush(void)
 {
-    if (as.object == cache_asid)
-	return 0;
+    int needflush = 0;
 
-    int r = sys_as_get(as, &cache_uas);
-    if (r < 0) {
-	cache_asid = 0;
-	return r;
+    for (uint32_t i = 0; i < cache_uas.nent; i++) {
+	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
+	    cache_uas.ents[i].flags = 0;
+	    needflush = 1;
+	}
     }
 
-    cache_asid = as.object;
-    return 0;
+    if (needflush) {
+	int r = sys_as_set(cache_asref, &cache_uas);
+	if (r < 0)
+	    panic("cache_uas_flush: cannot writeback: %s", e2s(r));
+    }
 }
 
 static void
 cache_invalidate(void)
 {
-    cache_asid = 0;
+    cache_uas_flush();
+    cache_asref.object = 0;
+}
+
+static int
+cache_refresh(struct cobj_ref as)
+{
+    if (as.object == cache_asref.object)
+	return 0;
+
+    int r = sys_as_get(as, &cache_uas);
+    if (r < 0) {
+	cache_invalidate();
+	return r;
+    }
+
+    cache_asref = as;
+    return 0;
+}
+
+void
+segment_unmap_flush(void)
+{
+    cache_uas_flush();
 }
 
 static int
@@ -114,11 +142,18 @@ segment_unmap(void *va)
     }
 
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
-	if (cache_uas.ents[i].va == va && cache_uas.ents[i].flags) {
+	if (cache_uas.ents[i].va == va &&
+	    cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP))
+	{
+	    if (segment_delay_unmap) {
+		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
+		as_mutex_unlock();
+		return 0;
+	    }
+
 	    cache_uas.ents[i].flags = 0;
 	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
-	    if (r < 0)
-		r = sys_as_set(as_ref, &cache_uas);
 	    if (r < 0)
 		cache_invalidate();
 	    as_mutex_unlock();
@@ -151,7 +186,10 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	void *va_start = cache_uas.ents[i].va;
 	void *va_end = cache_uas.ents[i].va + cache_uas.ents[i].num_pages * PGSIZE;
-	if (cache_uas.ents[i].flags && va >= va_start && va < va_end) {
+	if (cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+	    va >= va_start && va < va_end)
+	{
 	    if (seg)
 		*seg = cache_uas.ents[i].segment;
 	    if (npage)
@@ -186,7 +224,10 @@ segment_lookup_obj(uint64_t oid, void **vap)
     }
 
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
-	if (cache_uas.ents[i].flags && cache_uas.ents[i].segment.object == oid) {
+	if (cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+	    cache_uas.ents[i].segment.object == oid)
+	{
 	    if (vap)
 		*vap = cache_uas.ents[i].va;
 	    as_mutex_unlock();
@@ -222,113 +263,194 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     }
 
     int64_t nbytes = sys_segment_get_nbytes(seg);
-    if (nbytes < 0)
+    if (nbytes < 0) {
+	cprintf("segment_map: cannot stat segment: %s\n", e2s(nbytes));
 	return nbytes;
+    }
+
     uint64_t map_bytes = ROUNDUP(nbytes, PGSIZE);
 
     as_mutex_lock();
     int r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
+	cprintf("segment_map: cache_refresh: %s\n", e2s(r));
 	return r;
     }
 
-    int slot_optimize = 1;
-    uint32_t free_segslot = cache_uas.nent;
-    uint32_t free_kslot = 0;
-    char *va_start = (char *) UMMAPBASE;
-    char *va_end;
+    char *map_start, *map_end;
 
-    int fixed_va = 0;
     if (va_p && *va_p) {
-	fixed_va = 1;
-	va_start = *va_p;
-
-	if (va_start >= (char *) ULIM) {
-	    cprintf("segment_map: VA %p over ulim\n", va_start);
-	    as_mutex_unlock();
-	    return -E_INVAL;
-	}
-    }
+	map_start = (char *) *va_p;
+	map_end = map_start + map_bytes;
+    } else {
+	// If we don't have a fixed address, try to find a free one.
+	map_start = (char *) UMMAPBASE;
 
 retry:
-    va_end = va_start + map_bytes;
+	map_end = map_start + map_bytes;
+
+	for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	    if (!cache_uas.ents[i].flags)
+		continue;
+
+	    char *ent_start = cache_uas.ents[i].va;
+	    char *ent_end = ent_start + cache_uas.ents[i].num_pages * PGSIZE;
+
+	    // Leave page gaps between mappings for good measure
+	    if (ent_start <= map_end && ent_end >= map_start) {
+		map_start = ent_end + PGSIZE;
+		goto retry;
+	    }
+	}
+    }
+
+    // Now try to map the segment at [map_start .. map_end)
+    // We must scan the list of mapped segments again, and:
+    //  * Check that the range does not overlap any live segments,
+    //  * Flush out any overlapping delayed-unmap segmets.
+
+    // While scanning, keep track of what slot we can use for the mapping.
+    uint32_t match_segslot = cache_uas.nent;	// Matching live slot
+    uint32_t delay_overlap = cache_uas.nent;	// Overlapping
+    uint32_t delay_segslot = cache_uas.nent;	// Non-overlapping
+    uint32_t empty_segslot = cache_uas.nent;	// Not delay-unmapped
+
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
-	// If it's the same segment we're trying to map, allow remapping
-	if (fixed_va && cache_uas.ents[i].flags &&
-	    cache_uas.ents[i].segment.object == seg.object &&
-	    cache_uas.ents[i].va == va_start &&
-	    cache_uas.ents[i].start_page == 0)
+	char *ent_start = cache_uas.ents[i].va;
+	char *ent_end = ent_start + cache_uas.ents[i].num_pages * PGSIZE;
+
+	// If this segment is live and overlaps with our range, bail out.
+	if (cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+	    ent_start < map_end && ent_end > map_start)
 	{
-	    cache_uas.ents[i].flags = 0;
-	    slot_optimize = 0;
+	    // Except that it's OK if it's the same exact segment?
+	    if (cache_uas.ents[i].segment.object == seg.object &&
+		cache_uas.ents[i].va == map_start &&
+		cache_uas.ents[i].start_page == 0 &&
+		match_segslot == cache_uas.nent)
+	    {
+		match_segslot = i;
+	    } else {
+		cprintf("segment_map: VA %p busy\n", map_start);
+		cache_invalidate();
+		as_mutex_unlock();
+		return -E_BUSY;
+	    }
 	}
 
-	if (cache_uas.ents[i].flags == 0) {
-	    free_segslot = i;
-	    continue;
+	if (!cache_uas.ents[i].flags)
+	    empty_segslot = i;
+
+	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
+	    delay_segslot = i;
+
+	    if (ent_start < map_end && ent_end > map_start) {
+		if (delay_overlap == cache_uas.nent) {
+		    delay_overlap = i;
+		} else {
+		    // Multiple delay-unmapped segments; must force unmap.
+		    cache_uas.ents[i].flags = 0;
+		    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+		    if (r < 0) {
+			cprintf("segment_map: flush unmap: %s\n", e2s(r));
+			cache_invalidate();
+			as_mutex_unlock();
+			return r;
+		    }
+		}
+	    }
 	}
+    }
 
-	if (cache_uas.ents[i].kslot >= free_kslot)
-	    free_kslot = cache_uas.ents[i].kslot + 1;
-
-	char *m_start = cache_uas.ents[i].va;
-	char *m_end = m_start + cache_uas.ents[i].num_pages * PGSIZE;
-
-	// Leave unmapped gaps between mappings, when possible
-	if (!fixed_va && m_start <= va_end && m_end >= va_start) {
-	    va_start = m_end + PGSIZE;
-	    goto retry;
-	}
-
-	if (fixed_va && m_start < va_end && m_end > va_start) {
-	    cprintf("segment_map: fixed VA %p busy\n", va_start);
+    // If we found an exact live match and an overlapping delayed-unmapping,
+    // we need to free the delayed unmapping.
+    if (match_segslot != cache_uas.nent && delay_overlap != cache_uas.nent) {
+	cache_uas.ents[delay_overlap].flags = 0;
+	r = sys_as_set_slot(as_ref, &cache_uas.ents[delay_overlap]);
+	if (r < 0) {
+	    cprintf("segment_map: flush unmap 2: %s\n", e2s(r));
+	    cache_invalidate();
 	    as_mutex_unlock();
-	    return -E_NO_MEM;
+	    return r;
 	}
     }
 
-    if (!fixed_va && va_end >= (char*) USTACKTOP) {
-	cprintf("out of virtual address space!\n");
-	as_mutex_unlock();
-	return -E_NO_MEM;
-    }
+    // Figure out which slot to use.
+    uint32_t slot = empty_segslot;
+    if (delay_segslot != cache_uas.nent)
+	slot = delay_segslot;
+    if (delay_overlap != cache_uas.nent)
+	slot = delay_overlap;
+    if (match_segslot != cache_uas.nent)
+	slot = match_segslot;
 
-    if (free_segslot >= NMAPPINGS) {
+    // Make sure we aren't out of slots
+    if (slot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
+	cache_invalidate();
 	segment_map_print(&cache_uas);
 	as_mutex_unlock();
 	return -E_NO_MEM;
     }
 
-    cache_uas.ents[free_segslot].segment = seg;
-    cache_uas.ents[free_segslot].start_page = 0;
-    cache_uas.ents[free_segslot].num_pages = map_bytes / PGSIZE;
-    cache_uas.ents[free_segslot].flags = flags;
-    cache_uas.ents[free_segslot].va = va_start;
-    cache_uas.ents[free_segslot].kslot = free_kslot;
+    // Construct the mapping entry
+    struct u_segment_mapping usm;
+    usm.segment = seg;
+    usm.start_page = 0;
+    usm.num_pages = map_bytes / PGSIZE;
+    usm.flags = flags;
+    usm.va = map_start;
 
-    if (free_segslot == cache_uas.nent)
-	cache_uas.nent = free_segslot + 1;
+    // If we're going to be replacing an existing entry,
+    // reuse its kernel slot.
+    if (slot < cache_uas.nent && cache_uas.ents[slot].flags) {
+	usm.kslot = cache_uas.ents[slot].kslot;
+    } else {
+	// Find a free kernel slot.
+	usm.kslot = 0;
+	int conflict;
+	do {
+	    conflict = 0;
+	    for (uint32_t i = 0; i < cache_uas.nent; i++) {
+		if (cache_uas.ents[i].flags &&
+		    cache_uas.ents[i].kslot == usm.kslot)
+		{
+		    usm.kslot++;
+		    conflict++;
+		}
+	    }
+	} while (conflict);
+    }
 
-    if (slot_optimize)
-	r = sys_as_set_slot(as_ref, &cache_uas.ents[free_segslot]);
-    else
-	r = -1;
+    // Upload the slot into the kernel
+    cache_uas.ents[slot] = usm;
+    if (slot == cache_uas.nent)
+	cache_uas.nent = slot + 1;
 
-    if (r < 0)
+    r = sys_as_set_slot(as_ref, &cache_uas.ents[slot]);
+
+    // Fall back to full sys_as_set() because sys_as_set_slot()
+    // does not grow the address space (if we're out of free slots).
+    if (r < 0) {
+	cprintf("segment_map: trying to grow address space\n");
 	r = sys_as_set(as_ref, &cache_uas);
+    }
+
     if (r < 0)
 	cache_invalidate();
 
     as_mutex_unlock();
-    if (r < 0)
+    if (r < 0) {
+	cprintf("segment_map: kslot %d, %s\n", usm.kslot, e2s(r));
 	return r;
+    }
 
     if (bytes_store)
 	*bytes_store = nbytes;
     if (va_p)
-	*va_p = va_start;
+	*va_p = map_start;
     return 0;
 }
 
@@ -355,6 +477,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 	if (mapped_bytes != bytes) {
 	    segment_unmap(*va_p);
 	    sys_obj_unref(*cobj);
+	    segment_unmap_flush();
 	    return -E_AGAIN;	// race condition maybe..
 	}
     }
