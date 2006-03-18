@@ -244,13 +244,25 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 }
 
 int
-__sigsetjmp(jmp_buf __env, int __savemask) __THROW
+__sigsetjmp(jmp_buf env, int savemask) __THROW
 {
-    return jos_setjmp((struct jos_jmp_buf *) __env);
+    return jos_setjmp((struct jos_jmp_buf *) env);
 }
 
 void
 siglongjmp(sigjmp_buf env, int val) __THROW
+{
+    jos_longjmp((struct jos_jmp_buf *) env, val);
+}
+
+int
+_setjmp(jmp_buf env)
+{
+    return jos_setjmp((struct jos_jmp_buf *) env);
+}
+
+void
+longjmp(jmp_buf env, int val)
 {
     jos_longjmp((struct jos_jmp_buf *) env, val);
 }
