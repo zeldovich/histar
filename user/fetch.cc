@@ -81,8 +81,11 @@ try
 
 	off += cc;
 
-	if (fetch_debug)
-	    printf("wrote %lld bytes to file\n", cr);
+	static size_t reported;
+	if (off > reported + 16384) {
+	    printf("Fetched %ld bytes\n", off);
+	    reported = off;
+	}
     }
 
     printf("Done.\n");
