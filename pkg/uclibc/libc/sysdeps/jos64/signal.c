@@ -167,8 +167,11 @@ signal_init(void)
 int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
 {
-    __set_errno(ENOSYS);
-    return -1;
+    // Fake it; sleep in particular refuses to sleep if we return error
+    if (oldset)
+	__sigemptyset(oldset);
+
+    return 0;
 }
 
 int
