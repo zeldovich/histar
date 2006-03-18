@@ -116,19 +116,33 @@ signal_utrap(struct UTrapframe *utf)
     signal_dispatch(&si);
 }
 
+int
+kill_thread_siginfo(struct cobj_ref tid, siginfo_t *si)
+{
+    uint32_t signo = si->si_signo;
+    if (signo >= _NSIG) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    siginfos[signo] = *si;
+    int r = sys_thread_trap(tid, 0, signo);
+    if (r < 0) {
+	cprintf("kill_thread_siginfo: cannot trap: %s\n", e2s(r));
+	__set_errno(EPERM);
+	return -1;
+    }
+
+    return 0;
+}
+
 void
 signal_process_remote(siginfo_t *si)
 {
-    uint32_t signo = si->si_signo;
-    if (signo < _NSIG) {
-	siginfos[signo] = *si;
-	int64_t id = container_find(start_env->proc_container, kobj_thread, 0);
-	if (id >= 0) {
-	    struct cobj_ref tobj = COBJ(start_env->proc_container, id);
-	    int r = sys_thread_trap(tobj, 0, signo);
-	    if (r < 0)
-		cprintf("signal_process_remote: trap main thread: %s\n", e2s(r));
-	}
+    int64_t id = container_find(start_env->proc_container, kobj_thread, 0);
+    if (id >= 0) {
+	struct cobj_ref tobj = COBJ(start_env->proc_container, id);
+	kill_thread_siginfo(tobj, si);
     }
 }
 
