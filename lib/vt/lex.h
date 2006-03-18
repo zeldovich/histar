@@ -9,8 +9,8 @@ extern FILE *yyout ;
 // flex is janky, avoid diffs between flex versions
 #define vtlexin_is(_F) (yyin = f)
 #define vtlexout_is(_F) (yyout = f)
-#define vtscan_string(_BUF) yy_scan_string(_BUF)
-#define vtswitch_buffer(_BUF) yy_switch_to_buffer(_BUF)
+#define vtscan_string(_BUF) josvt_yy_scan_string(_BUF)
+#define vtswitch_buffer(_BUF) josvt_yy_switch_to_buffer(_BUF)
 #define YY_DECL int vtlex(void)
 YY_DECL ;
 

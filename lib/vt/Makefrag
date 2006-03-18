@@ -8,7 +8,7 @@ $(OBJDIR)/lib/vt/%.o: lib/vt/%.c
 
 $(OBJDIR)/lib/vt/vtlex.yy.c: lib/vt/vtlex.yy
 	@mkdir -p $(@D)
-	$(LEX) -o$(OBJDIR)/lib/vt/vtlex.yy.c lib/vt/vtlex.yy
+	$(LEX) -Pjosvt_yy -o$(OBJDIR)/lib/vt/vtlex.yy.c lib/vt/vtlex.yy
 
 $(OBJDIR)/lib/vt/vtlex.yy.o: $(OBJDIR)/lib/vt/vtlex.yy.c
 	@mkdir -p $(@D)
