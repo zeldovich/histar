@@ -16,6 +16,9 @@ const struct host_entry host_table[] = {
     { "suif", "suif.stanford.edu" },
     { "suif.stanford.edu", "171.64.73.155" },
 
+    { "moscow", "moscow.scs.stanford.edu" },
+    { "moscow.scs.stanford.edu", "171.66.3.151" },
+
     { 0, 0 }
 };
 
