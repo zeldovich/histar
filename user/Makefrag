@@ -14,5 +14,5 @@ $(OBJDIR)/user/%: user/%.S
 	$(LD) -o $@ -nostdlib $@.o
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(LDEPS)
-	$(LD) -o $@ $(LDFLAGS) $(CRT1) $(CRTI) $(CRTBEGIN) $< $(LIBS) $(CRTEND) $(CRTN)
+	$(CC) -o $@ $(LDFLAGS) $< $(LIBS)
 

@@ -30,8 +30,6 @@ OBJTYPE	:= elf64-x86-64
 CC	:= $(GCCPREFIX)gcc -pipe
 CXX	:= $(GCCPREFIX)c++ -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
-CRTBEGIN:= $(shell $(CC) -print-file-name=crtbegin.o)
-CRTEND  := $(shell $(CC) -print-file-name=crtend.o)
 GCC_INC := $(shell $(CC) -print-file-name=crtbegin.o | sed -e s,crtbegin.o,include,)
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
@@ -71,8 +69,8 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a
-LDFLAGS := -nostdlib -L$(OBJDIR)/lib
-LIBS	:= -ljos -llwip -lc -ljos -lc $(GCC_LIB)
+LDFLAGS := -B$(OBJDIR)/lib -L$(OBJDIR)/lib
+LIBS	:= -ljos -llwip -lc -ljos -lc
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
