@@ -55,8 +55,10 @@ at non-* levels, this might be a non-issue?
 thread halt-and-copy
 
 store all * handles in a privstore
+ - pending more discussion on thread signaling label rules (thread groups?)
 
 what's chewing up cycles?
+ - seems to be largely userspace now; need a userspace profiler of sorts?
 
 non-resizable segments
 
