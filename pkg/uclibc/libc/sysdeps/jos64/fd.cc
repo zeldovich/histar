@@ -39,6 +39,13 @@ static struct {
 } fd_handles[MAXFD];
 static int fd_handles_inited;
 
+static struct {
+    int valid;
+    int mapped;
+    struct cobj_ref seg;
+    uint64_t flags;
+} fd_map_cache[MAXFD];
+
 static int debug = 0;
 
 
@@ -123,10 +130,8 @@ fd_alloc(struct Fd **fd_store, const char *name)
 
     for (i = 0; i < MAXFD; i++) {
 	fd = INDEX2FD(i);
-	int r = segment_lookup(fd, 0, 0, 0);
+	int r = fd_lookup(i, 0, 0, 0);
 	if (r < 0)
-	    return r;
-	if (r == 0)
 	    break;
     }
 
@@ -154,6 +159,11 @@ fd_alloc(struct Fd **fd_store, const char *name)
 
     if (r < 0)
 	return r;
+
+    fd_map_cache[i].valid = 1;
+    fd_map_cache[i].mapped = 1;
+    fd_map_cache[i].seg = seg;
+    fd_map_cache[i].flags = SEGMAP_READ | SEGMAP_WRITE;
 
     atomic_set(&fd->fd_ref, 1);
     fd->fd_dev_id = 0;
@@ -224,6 +234,11 @@ fd_make_public(int fdnum)
 	    assert(0 == segment_map(new_seg, iflags, (void **) &ifd, &pgsize));
 	    sys_obj_unref(old_seg);
 
+	    fd_map_cache[i].mapped = 1;
+	    fd_map_cache[i].valid = 1;
+	    fd_map_cache[i].seg = new_seg;
+	    fd_map_cache[i].flags = iflags;
+
 	    fd_handles[i].fd_grant = fd_grant;
 	    fd_handles[i].fd_taint = fd_taint;
 	}
@@ -251,26 +266,47 @@ fd_make_public(int fdnum)
 int
 fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flagsp)
 {
-	if (fdnum < 0 || fdnum >= MAXFD) {
-		if (debug)
-			cprintf("[%lx] bad fd %d\n", thread_id(), fdnum);
-		return -E_INVAL;
-	}
-	struct Fd *fd = INDEX2FD(fdnum);
+    if (fdnum < 0 || fdnum >= MAXFD) {
+	if (debug)
+	    cprintf("[%lx] bad fd %d\n", thread_id(), fdnum);
+	return -E_INVAL;
+    }
+    struct Fd *fd = INDEX2FD(fdnum);
 
-	int r = segment_lookup(fd, objp, 0, flagsp);
+    int r;
+    struct cobj_ref seg;
+    uint64_t flags;
+    if (fd_map_cache[fdnum].valid) {
+	seg = fd_map_cache[fdnum].seg;
+	flags = fd_map_cache[fdnum].flags;
+	r = fd_map_cache[fdnum].mapped;
+    } else {
+	r = segment_lookup(fd, &seg, 0, &flags);
 	if (r < 0)
-		return r;
-	if (r == 0) {
-		if (debug)
-			cprintf("[%lx] closed fd %d\n", thread_id(), fdnum);
-		return -E_INVAL;
+	    return r;
+
+	fd_map_cache[fdnum].mapped = r;
+	fd_map_cache[fdnum].valid = 1;
+	if (r > 0) {
+	    fd_map_cache[fdnum].seg = seg;
+	    fd_map_cache[fdnum].flags = flags;
 	}
+    }
 
-	if (fd_store)
-		*fd_store = fd;
+    if (r == 0) {
+	if (debug)
+	    cprintf("[%lx] closed fd %d\n", thread_id(), fdnum);
+	return -E_INVAL;
+    }
 
-	return 0;
+    if (fd_store)
+	*fd_store = fd;
+    if (objp)
+	*objp = seg;
+    if (flagsp)
+	*flagsp = flags;
+
+    return 0;
 }
 
 // Frees file descriptor 'fd' by closing the corresponding file
@@ -311,6 +347,9 @@ fd_close(struct Fd *fd)
     }
     segment_unmap_delayed(fd, 1);
 
+    fd_map_cache[fd2num(fd)].valid = 1;
+    fd_map_cache[fd2num(fd)].mapped = 0;
+
     if (handle_refs == 2) try {
 	fd_give_up_privilege(fd2num(fd));
     } catch (std::exception &e) {
@@ -334,7 +373,17 @@ int
 fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 {
     uint64_t pgsize = PGSIZE;
-    return segment_map(fd_seg, fd_flags, (void **) &fd, &pgsize);
+    int r = segment_map(fd_seg, fd_flags, (void **) &fd, &pgsize);
+    if (r < 0) {
+	fd_map_cache[fd2num(fd)].valid = 0;
+	return r;
+    }
+
+    fd_map_cache[fd2num(fd)].valid = 1;
+    fd_map_cache[fd2num(fd)].mapped = 1;
+    fd_map_cache[fd2num(fd)].seg = fd_seg;
+    fd_map_cache[fd2num(fd)].flags = fd_flags;
+    return 0;
 }
 
 
@@ -413,14 +462,20 @@ dup2(int oldfdnum, int newfdnum) __THROW
 
     int immutable = oldfd->fd_immutable;
     uint64_t pgsize = PGSIZE;
-    r = segment_map(fd_seg,
-		    SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
+    uint64_t flags = SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE);
+    r = segment_map(fd_seg, flags,
 		    (void**) &newfd, &pgsize);
     if (r < 0) {
+	fd_map_cache[newfdnum].valid = 0;
 	sys_obj_unref(fd_seg);
 	__set_errno(EINVAL);
 	return -1;
     }
+
+    fd_map_cache[newfdnum].mapped = 1;
+    fd_map_cache[newfdnum].valid = 1;
+    fd_map_cache[newfdnum].seg = fd_seg;
+    fd_map_cache[newfdnum].flags = flags;
 
     if (!immutable)
 	atomic_inc(&oldfd->fd_ref);
