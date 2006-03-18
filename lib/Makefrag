@@ -62,19 +62,19 @@ LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
 $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(CXX) -nostdinc $(USER_CXXFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@

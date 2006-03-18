@@ -46,7 +46,7 @@ LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
 
 $(OBJDIR)/pkg/lwip/%.o: pkg/lwip/%.c
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(USER_CFLAGS) $(CSTD) -Wno-unused-function -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -Wno-unused-function -c -o $@ $<
 
 $(OBJDIR)/lib/liblwip.a: $(LWIP_OBJFILES)
 	@mkdir -p $(@D)

@@ -11,10 +11,10 @@ BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
 $(OBJDIR)/boot/%.o: boot/%.S
 	@mkdir -p $(@D)
-	$(CC) -m32 -DCODE32 -nostdinc -g -Os $(INCLUDES) -c -o $@ $<
+	$(CC) -m32 -DCODE32 -g -Os $(INCLUDES) -c -o $@ $<
 
 $(OBJDIR)/boot/main.o: boot/main.c
-	$(CC) -m32 -DCODE32 -nostdinc -g -Os $(INCLUDES) $(CSTD) -c -o $@ $<
+	$(CC) -m32 -DCODE32 -g -Os $(INCLUDES) $(CSTD) -c -o $@ $<
 
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	$(LD) -melf_i386 -N -e start -Ttext 0x7C00 -o $@.out $^

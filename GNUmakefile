@@ -30,7 +30,6 @@ OBJTYPE	:= elf64-x86-64
 CC	:= $(GCCPREFIX)gcc -pipe
 CXX	:= $(GCCPREFIX)c++ -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
-GCC_INC := $(shell $(CC) -print-file-name=crtbegin.o | sed -e s,crtbegin.o,include,)
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
@@ -58,7 +57,7 @@ OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
 CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing
 CSTD	:= -std=c99
-INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
+INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR)
 
 # Linker flags for user programs
 CRT1	:= $(OBJDIR)/lib/crt1.o
@@ -89,7 +88,7 @@ all:
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
 	$(OBJDIR)/user/%.o
 
-COMFLAGS   := $(CFLAGS) -nostdinc -Wall -MD
+COMFLAGS   := $(CFLAGS) -Wall -MD
 COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_INC   := $(INCLUDES)
