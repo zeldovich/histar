@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <bits/unimpl.h>
 
@@ -161,4 +162,16 @@ getcwd(char *buf, size_t size)
     // XXX we do not have a ".." yet
     sprintf(buf, "/unknown");
     return buf;
+}
+
+int
+chown(const char *path, uid_t owner, gid_t group)
+{
+    return 0;
+}
+
+int
+chmod(const char *path, mode_t mode)
+{
+    return 0;
 }
