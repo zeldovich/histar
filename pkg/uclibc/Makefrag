@@ -1,8 +1,8 @@
 UCLIBC_INCLUDES := \
-	-Ipkg/uclibc/libc/sysdeps/jos64 \
-	-Ipkg/uclibc/libc/sysdeps/linux/x86_64 \
-	-Ipkg/uclibc/libc/sysdeps/linux/common \
-	-Ipkg/uclibc/include
+	-I$(TOP)/pkg/uclibc/libc/sysdeps/jos64 \
+	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/x86_64 \
+	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
+	-I$(TOP)/pkg/uclibc/include
 
 UCLIBC_CFLAGS   := $(UCLIBC_INCLUDES) $(USER_CFLAGS)   -D_LIBC
 UCLIBC_CXXFLAGS := $(UCLIBC_INCLUDES) $(USER_CXXFLAGS) -D_LIBC

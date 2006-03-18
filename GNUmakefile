@@ -57,7 +57,7 @@ OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
 CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing
 CSTD	:= -std=c99
-INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR)
+INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
 # Linker flags for user programs
 CRT1	:= $(OBJDIR)/lib/crt1.o
