@@ -1,14 +1,11 @@
 .section .init
 .global	_init
 .type	_init, %function
-	addq $8, %rsp
-	ret
-.size _init, .-_init
+_init:
+	subq	$8, %rsp
 
 .section .fini
 .global	_fini
 .type	_fini, %function
-	addq $8, %rsp
-	ret
-.size _fini, .-_fini
+	subq	$8, %rsp
 

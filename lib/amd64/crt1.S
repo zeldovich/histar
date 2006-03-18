@@ -13,8 +13,3 @@ ENTRY(_start)
 	movq	%r13, %rsi
 	call	libmain
 
-.section .init
-	.globl _init
-	.type  _init, @function
-_init:
-

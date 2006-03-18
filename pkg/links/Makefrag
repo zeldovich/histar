@@ -45,4 +45,4 @@ $(OBJDIR)/pkg/links/%.o: pkg/links/%.c
 	$(CC) $(USER_CFLAGS) $(LINKS_INCLUDES) -DHAVE_CONFIG_H $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/links: $(LINKS_OBJFILES) $(LDEPS)
-	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $(LINKS_OBJFILES) $(LIBS) $(CRTEND) $(CRTN)
+	$(LD) -o $@ $(LDFLAGS) $(CRT1) $(CRTI) $(CRTBEGIN) $(LINKS_OBJFILES) $(LIBS) $(CRTEND) $(CRTN)

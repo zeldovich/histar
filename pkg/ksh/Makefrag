@@ -13,5 +13,5 @@ $(OBJDIR)/pkg/ksh/%.o: pkg/ksh/%.c
 	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/ksh: $(KSH_OBJFILES) $(LDEPS)
-	$(LD) -o $@ $(LDFLAGS) $(LDENTRY) $(CRTBEGIN) $(KSH_OBJFILES) $(LIBS) $(CRTEND) $(CRTN)
+	$(LD) -o $@ $(LDFLAGS) $(CRT1) $(CRTI) $(CRTBEGIN) $(KSH_OBJFILES) $(LIBS) $(CRTEND) $(CRTN)
 

@@ -63,10 +63,11 @@ CSTD	:= -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(OBJDIR) -I$(GCC_INC)
 
 # Linker flags for user programs
-LDENTRY := $(OBJDIR)/lib/entry.o
+CRT1	:= $(OBJDIR)/lib/crt1.o
+CRTI	:= $(OBJDIR)/lib/crti.o
 CRTN	:= $(OBJDIR)/lib/crtn.o
 
-LDEPS	:= $(LDENTRY) $(CRTN) \
+LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a
