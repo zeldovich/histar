@@ -24,7 +24,8 @@ STDIO_CSRC := \
         _rfill.c _stdio.c _trans2r.c _trans2w.c _wcommit.c \
         _cs_funcs.c _load_inttype.c _store_inttype.c _uintmaxtostr.c \
 	__fbufsize.c __flbf.c __fpending.c __fpurge.c __freadable.c \
-        __freading.c __fsetlocking.c __fwritable.c __fwriting.c _flushlbf.c
+        __freading.c __fsetlocking.c __fwritable.c __fwriting.c _flushlbf.c \
+	_fpmaxtostr.c
 
 STDIO_CUSRC := \
 	clearerr.c feof.c ferror.c fflush.c fgetc.c fgets.c fileno.c \

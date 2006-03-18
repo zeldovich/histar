@@ -59,8 +59,8 @@
 #undef __ARCH_BIG_ENDIAN__
 #undef __ARCH_HAS_NO_MMU__
 #define __ARCH_HAS_MMU__ 1
-#undef __UCLIBC_HAS_FLOATS__
-#define __KERNEL_SOURCE__ "/usr/src/kernels/2.6.15-1.1833_FC4-x86_64"
+#define __UCLIBC_HAS_FLOATS__ 1
+#undef __KERNEL_SOURCE__
 #define __C_SYMBOL_PREFIX__ ""
 #define __HAVE_DOT_CONFIG__ 1
 
