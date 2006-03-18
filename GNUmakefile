@@ -127,10 +127,6 @@ include kern/Makefrag
 include lib/Makefrag
 include user/Makefrag
 include pkg/Makefrag
-#include fs/Makefrag
-#include asfs/Makefrag
-#include okws/Makefrag
-#include okdb/Makefrag
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
