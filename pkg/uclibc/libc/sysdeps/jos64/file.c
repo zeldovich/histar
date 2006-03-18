@@ -111,8 +111,8 @@ umask(mode_t mask)
 int
 utime (const char *file, const struct utimbuf *file_times) __THROW
 {
-    set_enosys();
-    return -1;
+    memset(file_times, 0, sizeof(*file_times));
+    return 0;
 }
 
 int
