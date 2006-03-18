@@ -12,6 +12,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 static uint64_t netd_taint_handle;
+enum { netd_do_taint = 0 };
 
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
@@ -35,7 +36,9 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     segment_unmap(netd_op);
 
     label args_label(1);
-    args_label.set(netd_taint_handle, 2);
+
+    if (netd_do_taint)
+	args_label.set(netd_taint_handle, 2);
 
     uint64_t copy_back_ct = kobject_id_thread_ct;
     int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
@@ -50,7 +53,8 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
     // Contaminate the caller with { taint:2 }
     label *cs = new label(LB_LEVEL_STAR);
-    cs->set(netd_taint_handle, 2);
+    if (netd_do_taint)
+	cs->set(netd_taint_handle, 2);
 
     rg->ret(cs, 0, 0);
 }
