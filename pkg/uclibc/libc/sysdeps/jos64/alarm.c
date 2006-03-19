@@ -12,6 +12,8 @@
 #include <sys/time.h>
 
 static struct cobj_ref alarm_worker_obj;
+static uint64_t alarm_worker_ct;
+
 static struct cobj_ref alarm_target_obj;
 
 static atomic64_t alarm_at_msec;
@@ -41,7 +43,7 @@ alarm_worker(void *arg)
 unsigned int
 alarm(unsigned int seconds)
 {
-    if (alarm_worker_obj.container != start_env->proc_container) {
+    if (alarm_worker_ct != start_env->proc_container) {
 	alarm_target_obj = COBJ(start_env->proc_container, thread_id());
 	atomic_set(&alarm_at_msec, ~0UL);
 
@@ -53,6 +55,8 @@ alarm(unsigned int seconds)
 	    __set_errno(ENOMEM);
 	    return -1;
 	}
+
+	alarm_worker_ct = start_env->proc_container;
     }
 
     uint64_t now = sys_clock_msec();
