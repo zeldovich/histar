@@ -470,32 +470,42 @@ kobject_gc_scan(void)
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
-    struct kobject *ko, *next;
-    for (ko = LIST_FIRST(&ko_gc_list); ko; ko = next) {
-	next = LIST_NEXT(ko, ko_gc_link);
+    // Keep running GC until we make no more progress.  This is so that
+    // all objects in a zero-ref container get GCed in the same pass.
+    int progress;
 
-	if (ko->hdr.ko_ref) {
-	    cprintf("kobject_gc_scan: referenced object on GC list!\n");
-	    continue;
+    do {
+	progress = 0;
+
+	struct kobject *ko, *next;
+	for (ko = LIST_FIRST(&ko_gc_list); ko; ko = next) {
+	    next = LIST_NEXT(ko, ko_gc_link);
+
+	    if (ko->hdr.ko_ref) {
+		cprintf("kobject_gc_scan: referenced object on GC list!\n");
+		continue;
+	    }
+
+	    // Inform threads so that they can halt, even if pinned
+	    if (ko->hdr.ko_type == kobj_thread)
+		thread_zero_refs(&ko->th);
+
+	    if (ko->hdr.ko_pin)
+		continue;
+
+	    if (ko->hdr.ko_type == kobj_dead) {
+		if (!(ko->hdr.ko_flags & KOBJ_ON_DISK))
+		    kobject_swapout(ko);
+	    } else {
+		int r = kobject_gc(kobject_dirty(&ko->hdr));
+		if (r >= 0)
+		    progress = 1;
+		if (r < 0 && r != -E_RESTART)
+		    cprintf("kobject_gc_scan: %ld type %d: %s\n",
+			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
+	    }
 	}
-
-	// Inform threads so that they can halt, even if pinned
-	if (ko->hdr.ko_type == kobj_thread)
-	    thread_zero_refs(&ko->th);
-
-	if (ko->hdr.ko_pin)
-	    continue;
-
-	if (ko->hdr.ko_type == kobj_dead) {
-	    if (!(ko->hdr.ko_flags & KOBJ_ON_DISK))
-		kobject_swapout(ko);
-	} else {
-	    int r = kobject_gc(kobject_dirty(&ko->hdr));
-	    if (r < 0 && r != -E_RESTART)
-		cprintf("kobject_gc_scan: %ld type %d: %s\n",
-			ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
-	}
-    }
+    } while (progress);
 
     cur_thread = t;
 }
