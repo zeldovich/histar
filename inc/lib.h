@@ -34,6 +34,9 @@ void	segment_as_switched(void);
 // Flush buffered unmap requests
 void	segment_unmap_flush(void);
 
+// For debugging purposes
+void	segment_map_print(struct u_address_space *as);
+
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
 		 struct thread_entry *e, struct ulabel *label);

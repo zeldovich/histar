@@ -166,6 +166,11 @@ do_fork()
     int64_t id = sys_as_create(proc_ct, 0, "forked AS");
     error_check(id);
 
+    if (fork_debug) {
+	cprintf("fork: new AS:\n");
+	segment_map_print(&uas);
+    }
+
     struct cobj_ref new_as = COBJ(proc_ct, id);
     error_check(sys_as_set(new_as, &uas));
 

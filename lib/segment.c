@@ -103,7 +103,7 @@ segment_as_switched(void)
     cache_thread_id = 0;
 }
 
-static void
+void
 segment_map_print(struct u_address_space *as)
 {
     cprintf("slot  kslot  segment  start  npages  fl  va\n");
