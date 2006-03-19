@@ -29,6 +29,8 @@ typedef uintptr_t mem_ptr_t;
 // Our runtime is so incompetent..
 #define LWIP_PROVIDE_ERRNO
 
+#ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
+#endif
 
 #endif
