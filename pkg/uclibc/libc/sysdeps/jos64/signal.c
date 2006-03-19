@@ -28,7 +28,7 @@ static siginfo_t siginfos[_NSIG];
 
 // Trap handler to invoke signals
 static void
-signal_dispatch_sa(struct sigaction *sa, siginfo_t *si)
+signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
     extern const char *__progname;
 
@@ -59,11 +59,11 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si)
 	}
     }
 
-    sa->sa_sigaction(si->si_signo, si, 0);
+    sa->sa_sigaction(si->si_signo, si, sc);
 }
 
 static void
-signal_dispatch(siginfo_t *si)
+signal_dispatch(siginfo_t *si, struct sigcontext *sc)
 {
     struct sigaction *sa = &sigactions[si->si_signo];
 
@@ -71,7 +71,7 @@ signal_dispatch(siginfo_t *si)
 
     // XXX save current sigmask; mask the signal and sa->sa_mask
 
-    signal_dispatch_sa(sa, si);
+    signal_dispatch_sa(sa, si, sc);
 
     // XXX restore saved sigmask
 
@@ -113,7 +113,7 @@ signal_utrap(struct UTrapframe *utf)
 	si.si_code = ILL_ILLTRP;
     }
 
-    signal_dispatch(&si);
+    signal_dispatch(&si, (struct sigcontext *) utf);
 }
 
 int
@@ -226,7 +226,7 @@ kill_siginfo(pid_t pid, siginfo_t *si)
     pid_t self = getpid();
 
     if (pid == self) {
-	signal_dispatch(si);
+	signal_dispatch(si, 0);
 	return 0;
     }
 
