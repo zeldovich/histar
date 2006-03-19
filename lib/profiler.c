@@ -10,13 +10,16 @@
 #include <string.h>
 #include <errno.h>
 
+static uint64_t delay_msec = 10;
+enum { buffer_size = 4096 };
+
 static struct cobj_ref prof_thread;
 static struct cobj_ref prof_target;
 static int prof_enable;
 
 static uint64_t prof_rip;
-
-static uint64_t delay_msec = 10;
+static uint64_t prof_samples[buffer_size];
+static uint64_t prof_sample_next;
 
 static void
 profiler_sig(int signo, siginfo_t *si, void *arg)
@@ -43,7 +46,8 @@ profiler_thread(void *arg)
 	while (!prof_rip)
 	    sys_self_yield();
 
-	// printf("profiler_thread: sampled RIP %lx\n", prof_rip);
+	prof_samples[prof_sample_next] = prof_rip;
+	prof_sample_next = (prof_sample_next + 1) % buffer_size;
     }
 }
 
@@ -51,7 +55,12 @@ static void
 profiler_exit(void)
 {
     prof_enable = 2;
-    cprintf("profiler_exit\n");
+
+    printf("Profiling samples:");
+    for (uint32_t i = 0; i < buffer_size; i++)
+	if (prof_samples[i])
+	    printf(" %lx", prof_samples[i]);
+    printf("\n");
 }
 
 void
