@@ -116,10 +116,7 @@ fd_handles_init(void)
 //	-E_MAX_FD: no more file descriptors
 // On error, *fd_store is set to 0.
 
-static struct {
-    int valid;
-    struct cobj_ref obj;
-} fd_segment_cache;
+static struct cobj_ref fd_segment_cache;
 
 int
 fd_alloc(struct Fd **fd_store, const char *name)
@@ -144,9 +141,9 @@ fd_alloc(struct Fd **fd_store, const char *name)
     struct cobj_ref seg;
     int r;
 
-    if (fd_segment_cache.valid) {
-	fd_segment_cache.valid = 0;
-	seg = fd_segment_cache.obj;
+    if (fd_segment_cache.container == start_env->proc_container) {
+	seg = fd_segment_cache;
+	fd_segment_cache.container = 0;
 
 	uint64_t pgsize = PGSIZE;
 	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE,
@@ -339,10 +336,11 @@ fd_close(struct Fd *fd)
 	r = (*dev->dev_close)(fd);
     }
 
-    if (fd->fd_private && lastref && !fd_segment_cache.valid) {
+    if (fd->fd_private && lastref &&
+	fd_segment_cache.container != start_env->proc_container)
+    {
 	memset(fd, 0, offsetof(struct Fd, fd_dev_state));
-	fd_segment_cache.valid = 1;
-	fd_segment_cache.obj = fd_seg;
+	fd_segment_cache = fd_seg;
     } else {
 	sys_obj_unref(fd_seg);
     }
