@@ -163,7 +163,7 @@ do_fork()
     }
 
     // Construct the new AS object and a non-running thread
-    int64_t id = sys_as_create(proc_ct, secret_label.to_ulabel(), "forked AS");
+    int64_t id = sys_as_create(proc_ct, 0, "forked AS");
     error_check(id);
 
     struct cobj_ref new_as = COBJ(proc_ct, id);
