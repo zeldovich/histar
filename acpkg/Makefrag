@@ -10,6 +10,8 @@ ACENV += CPPFLAGS=\"$(ACPKG_CPPFLAGS)\"
 ACENV += CC=\"$(CC)\"
 ACENV += CPP=\"$(CC) -E $(ACPKG_CPPFLAGS)\"
 
+ACENV_BUILD := CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
+
 ## This is for old(?) autoconf versions (like gzip) that ignore LDFLAGS/CPPFLAGS
 ACENV += CFLAGS=\"$(ACPKG_LDFLAGS) $(ACPKG_CPPFLAGS)\"
 
@@ -30,3 +32,36 @@ binutils:
 	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
+## not the same problem...
+##	http://sourceware.org/ml/crossgcc/2005-07/msg00015.html
+
+GCC_JOS_VARS := \
+	sys_errlist sys_nerr sys_siglist
+
+GCC_JOS_YES := \
+	asprintf atexit basename bcmp bcopy bsearch bzero calloc \
+	clock ffs getcwd getpagesize gettimeofday index insque memchr \
+	memcmp memcpy memmove mempcpy memset mkstemps putenv random \
+	rename rindex setenv snprintf sigsetmask stpcpy stpncpy strcasecmp \
+	strchr strdup strncasecmp strndup strrchr strstr strtod strtol strtoul \
+	strverscmp tmpnam vasprintf vfprintf vprintf vsnprintf vsprintf waitpid \
+	getrusage on_exit psignal strerror strsignal sysconf times sbrk \
+	realpath canonicalize_file_name sysctl wait3 wait4 __fsetlocking
+
+GCC_JOS_NO := \
+	pstat_getstatic pstat_getdynamic sysmp getsysinfo table _doprnt
+
+GCC_JOS_FORK := fork vfork
+	
+GCC_ENVVARS := $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_YES))
+GCC_ENVVARS += $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_FORK))
+GCC_ENVVARS += $(patsubst %, libiberty_cv_var_%=yes, $(GCC_JOS_VARS))
+GCC_ENVVARS += $(patsubst %, ac_cv_func_%=no, $(GCC_JOS_NO))
+
+gcc:
+	@mkdir -p $(ACPKG_PREFIX)
+	#find $(TOP)/acpkg/gcc-4.1.0 -name config.cache | xargs rm
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) ./configure $(AUTOCONF_ARGS) --disable-nls --without-libcpp --without-headers --with-newlib --disable-threads --disable-shared" )
+	#( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) gmake clean" )
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) gmake $(GCC_ENVVARS)" )
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) gmake install" )
