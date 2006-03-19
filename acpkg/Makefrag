@@ -1,0 +1,20 @@
+ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
+ACPKG_CPPFLAGS	:= $(USER_CFLAGS)
+ACPKG_BUILD_SYS	:= $($(TOP)/acpkg/config.guess)
+AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
+		   --prefix=$(TOP)/acpkg/inst
+
+ACENV += LDFLAGS=\"$(ACPKG_LDFLAGS)\"
+ACENV += CPPFLAGS=\"$(ACPKG_CPPFLAGS)\"
+ACENV += CFLAGS=\"$(ACPKG_LDFLAGS) $(ACPKG_CPPFLAGS)\"
+ACENV += CC=\"$(CC)\"
+ACENV += CPP=\"$(CC) -E $(ACPKG_CPPFLAGS)\"
+
+$(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip:
+	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
+	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake clean" )
+	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake" )
+	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake install" )
+	cp acpkg/inst/bin/gzip   $(OBJDIR)/user/gzip
+	cp acpkg/inst/bin/gunzip $(OBJDIR)/user/gunzip
+

@@ -68,7 +68,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a
-LDFLAGS := -B$(OBJDIR)/lib -L$(OBJDIR)/lib
+LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib
 LIBS	:= -ljos -llwip -lc -ljos -lc
 
 # Lists that the */Makefrag makefile fragments will add to
@@ -127,6 +127,7 @@ include kern/Makefrag
 include lib/Makefrag
 include user/Makefrag
 include pkg/Makefrag
+include acpkg/Makefrag
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
