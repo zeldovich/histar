@@ -127,7 +127,8 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint");
 	if (id < 0)
-	    throw error(id, "gatesrv_return: allocating taint container");
+	    throw error(id, "gatesrv_return: allocating taint container in %ld",
+			gcd->taint_container);
 
 	gcd->taint_container = id;
     }
