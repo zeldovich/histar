@@ -27,9 +27,24 @@ static struct sigaction sigactions[_NSIG];
 static siginfo_t siginfos[_NSIG];
 
 // Trap handler to invoke signals
+
+static void
+sig_fatal(void)
+{
+    static int recursive;
+
+    if (recursive) {
+	sys_self_halt();
+    } else {
+	recursive = 1;
+	exit(-1);
+    }
+}
+
 static void
 signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
+    static int recursive_fatal;
     extern const char *__progname;
 
     if (sa->sa_handler == SIG_IGN)
@@ -42,7 +57,8 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
 	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
-	    exit(-1);
+	    sig_fatal();
+	    break;
 
 	case SIGSEGV: case SIGBUS:  case SIGILL:
 	    cprintf("%s: fatal signal %d, addr=%p\n",
@@ -50,6 +66,8 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	    if (sc)
 		cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
 			__progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
+
+	    sig_fatal();
 	    break;
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
