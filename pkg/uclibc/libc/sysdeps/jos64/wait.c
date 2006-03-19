@@ -121,14 +121,3 @@ again:
     __set_errno(ECHILD);
     return -1;
 }
-
-pid_t
-waitpid(pid_t pid, int *status, int options)
-{
-    wait4(pid, status, options, 0);   
-}
-
-pid_t
-wait(int *status) {
-    waitpid(-1, status, 0);
-}
