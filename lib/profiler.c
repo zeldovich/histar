@@ -1,6 +1,8 @@
 #include <inc/profiler.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
+#include <inc/syscall.h>
+#include <inc/signal.h>
 
 #include <stdio.h>
 #include <signal.h>
@@ -12,21 +14,43 @@ static struct cobj_ref prof_thread;
 static struct cobj_ref prof_target;
 static int prof_enable;
 
+static uint64_t prof_rip;
+
+static uint64_t delay_msec = 10;
+
 static void
 profiler_sig(int signo, siginfo_t *si, void *arg)
 {
-    printf("profiler signal\n");
+    struct sigcontext *sc = (struct sigcontext *) arg;
+    prof_rip = sc->sc_utf.utf_rip;
 }
 
 static void
 profiler_thread(void *arg)
 {
-    cprintf("profiler_thread\n");
+    uint64_t now = sys_clock_msec();
+    siginfo_t si;
+    memset(&si, 0, sizeof(si));
+    si.si_signo = SIGUSR1;
+
+    while (prof_enable < 2) {
+	sys_sync_wait(&now, now, now + delay_msec);
+	now = sys_clock_msec();
+
+	prof_rip = 0;
+	kill_thread_siginfo(prof_target, &si);
+
+	while (!prof_rip)
+	    sys_self_yield();
+
+	// printf("profiler_thread: sampled RIP %lx\n", prof_rip);
+    }
 }
 
 static void
 profiler_exit(void)
 {
+    prof_enable = 2;
     cprintf("profiler_exit\n");
 }
 
