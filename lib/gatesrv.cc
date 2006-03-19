@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/stack.h>
 #include <inc/gateparam.h>
+#include <inc/stdio.h>
 
 #include <stdio.h>
 }
@@ -126,11 +127,13 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	int64_t id = sys_container_alloc(gcd->taint_container,
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint");
-	if (id < 0)
-	    throw error(id, "gatesrv_return: allocating taint container in %ld",
-			gcd->taint_container);
-
-	gcd->taint_container = id;
+	if (id < 0) {
+	    cprintf("gatesrv_return: allocating taint container in %ld: %s\n",
+		    gcd->taint_container, e2s(id));
+	    gcd->taint_container = 0;
+	} else {
+	    gcd->taint_container = id;
+	}
     }
 
     stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
