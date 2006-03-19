@@ -444,7 +444,8 @@ dup2(int oldfdnum, int newfdnum) __THROW
 {
     struct Fd *oldfd;
     struct cobj_ref fd_seg;
-    int r = fd_lookup(oldfdnum, &oldfd, &fd_seg, 0);
+    uint64_t fd_flags;
+    int r = fd_lookup(oldfdnum, &oldfd, &fd_seg, &fd_flags);
     if (r < 0) {
 	__set_errno(EBADF);
 	return -1;
@@ -461,8 +462,8 @@ dup2(int oldfdnum, int newfdnum) __THROW
 
     int immutable = oldfd->fd_immutable;
     uint64_t pgsize = PGSIZE;
-    uint64_t flags = SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE);
-    r = segment_map(fd_seg, flags,
+    fd_flags &= ~SEGMAP_CLOEXEC;
+    r = segment_map(fd_seg, fd_flags,
 		    (void**) &newfd, &pgsize);
     if (r < 0) {
 	fd_map_cache[newfdnum].valid_proc_ct = 0;
@@ -474,7 +475,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     fd_map_cache[newfdnum].mapped = 1;
     fd_map_cache[newfdnum].valid_proc_ct = start_env->proc_container;
     fd_map_cache[newfdnum].seg = fd_seg;
-    fd_map_cache[newfdnum].flags = flags;
+    fd_map_cache[newfdnum].flags = fd_flags;
 
     if (!immutable)
 	atomic_inc(&oldfd->fd_ref);
@@ -509,7 +510,8 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 
     struct Fd *oldfd;
     struct cobj_ref old_seg;
-    r = fd_lookup(oldfdnum, &oldfd, &old_seg, 0);
+    uint64_t fd_flags;
+    r = fd_lookup(oldfdnum, &oldfd, &old_seg, &fd_flags);
     if (r < 0) {
 	cprintf("dup2_as: fd_lookup: %s\n", e2s(r));
 	return r;
@@ -537,8 +539,11 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     struct Fd *newfd = INDEX2FD(newfdnum);
 
     int immutable = oldfd->fd_immutable;
-    r = segment_map_as(target_as, new_seg,
-		       SEGMAP_READ | (immutable ? 0 : SEGMAP_WRITE),
+    fd_flags &= ~SEGMAP_CLOEXEC;
+    if (immutable)
+	fd_flags &= ~SEGMAP_WRITE;
+
+    r = segment_map_as(target_as, new_seg, fd_flags,
 		       (void**) &newfd, 0);
     if (r < 0) {
 	cprintf("dup2_as: segment_map_as: %s\n", e2s(r));
