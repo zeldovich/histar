@@ -71,6 +71,9 @@ struct Fd
 
     union {
 	struct {
+	} fd_dev_state;
+
+	struct {
 	    int s;
 	} fd_sock;
 
@@ -80,10 +83,10 @@ struct Fd
 	} fd_file;
 
 	struct {
-	    char buf[512];
 	    uint32_t read_ptr;	// read at this offset
 	    uint64_t bytes;	// # bytes in circular buffer
 	    pthread_mutex_t mu;
+	    char buf[512];
 	} fd_pipe;
     };
 };

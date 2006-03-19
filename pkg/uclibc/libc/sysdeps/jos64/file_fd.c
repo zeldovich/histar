@@ -85,6 +85,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
     fd->fd_dev_id = devfile.dev_id;
     fd->fd_omode = flags;
     fd->fd_file.ino = ino;
+    memset(&fd->fd_file.readdir_pos, 0, sizeof(fd->fd_file.readdir_pos));
 
     if ((flags & O_APPEND))
 	fs_getsize(ino, &fd->fd_offset);

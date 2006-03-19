@@ -19,6 +19,7 @@ extern "C" {
 #include <unistd.h>
 #include <termios.h>
 #include <string.h>
+#include <stddef.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -339,7 +340,7 @@ fd_close(struct Fd *fd)
     }
 
     if (fd->fd_private && lastref && !fd_segment_cache.valid) {
-	memset(fd, 0, PGSIZE);
+	memset(fd, 0, offsetof(struct Fd, fd_dev_state));
 	fd_segment_cache.valid = 1;
 	fd_segment_cache.obj = fd_seg;
     } else {

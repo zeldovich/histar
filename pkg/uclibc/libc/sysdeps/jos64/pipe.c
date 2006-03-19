@@ -22,6 +22,10 @@ pipe(int fds[2])
     fd->fd_dev_id = devpipe.dev_id;
     fd->fd_omode = O_RDWR;
 
+    fd->fd_pipe.read_ptr = 0;
+    fd->fd_pipe.bytes = 0;
+    memset(&fd->fd_pipe.mu, 0, sizeof(fd->fd_pipe.mu));
+
     int fdnum = fd2num(fd);
     int ofd = dup(fdnum);
     if (ofd < 0) {
