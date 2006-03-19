@@ -7,6 +7,6 @@ $(OBJDIR)/pkg/cat/%.o: pkg/cat/%.c
 	@mkdir -p $(@D)
 	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
-$(OBJDIR)/user/cat: $(CAT_OBJFILES) $(LDEPS)
+$(OBJDIR)/user/cat.debuginfo: $(CAT_OBJFILES) $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $< $(LIBS)
 

@@ -36,6 +36,7 @@ LD	:= $(GCCPREFIX)ld
 OBJCOPY	:= $(GCCPREFIX)objcopy
 OBJDUMP	:= $(GCCPREFIX)objdump
 NM	:= $(GCCPREFIX)nm
+STRIP	:= $(GCCPREFIX)strip
 LEX	:= flex
 
 # Native commands
@@ -86,7 +87,7 @@ all:
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
-	$(OBJDIR)/user/%.o
+	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo
 
 COMFLAGS   := $(CFLAGS) -Wall -MD
 COMCXXFLAGS := 
