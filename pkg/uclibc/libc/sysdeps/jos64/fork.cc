@@ -153,7 +153,7 @@ do_fork()
 	error_check(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
 	int64_t id = sys_segment_copy(uas.ents[i].segment, proc_ct,
-				      secret_label.to_ulabel(), &namebuf[0]);
+				      0, &namebuf[0]);
 	error_check(id);
 
 	uint64_t old_id = uas.ents[i].segment.object;
