@@ -47,7 +47,8 @@ LIB_SRCFILES :=	\
 	lib/privstore.cc \
 	lib/sha1.c \
 	lib/authclnt.cc \
-	lib/utrap.c
+	lib/utrap.c \
+	lib/profiler.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
@@ -62,7 +63,7 @@ LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
 $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)

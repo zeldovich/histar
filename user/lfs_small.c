@@ -19,6 +19,7 @@
 #include <inc/lib.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
+#include <inc/profiler.h>
 
 #define umask(a)
 #define fsync(fd) 
@@ -218,6 +219,10 @@ main(int argc, char *argv[])
 	printf("%s: %s num size\n", prog_name, prog_name);
 	exit(1);
     }
+
+#ifdef JOS_USER
+    profiler_init();
+#endif
 
     n = atoi(argv[1]);
     size = atoi(argv[2]);
