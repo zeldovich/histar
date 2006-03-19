@@ -37,13 +37,20 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 
     if (sa->sa_handler == SIG_DFL) {
 	switch (si->si_signo) {
-	case SIGHUP:  case SIGINT:  case SIGQUIT: case SIGILL:
+	case SIGHUP:  case SIGINT:  case SIGQUIT: case SIGSTKFLT:
 	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
-	case SIGKILL: case SIGBUS:  case SIGSEGV: case SIGPIPE:
+	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
-	case SIGXCPU: case SIGXFSZ: case SIGSTKFLT:
 	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
 	    exit(-1);
+
+	case SIGSEGV: case SIGBUS:  case SIGILL:
+	    cprintf("%s: fatal signal %d, addr=%p\n",
+		    __progname, si->si_signo, si->si_addr);
+	    if (sc)
+		cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
+			__progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
+	    break;
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
 	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
@@ -88,9 +95,6 @@ signal_utrap(struct UTrapframe *utf)
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) utf->utf_trap_arg;
 	if (utf->utf_trap_num == T_PGFLT) {
-	    cprintf("signal_utrap: pagefault, va=0x%lx, rip=0x%lx, rsp=0x%lx\n",
-		    utf->utf_trap_arg, utf->utf_rip, utf->utf_rsp);
-
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
 	} else {
