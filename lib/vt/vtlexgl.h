@@ -11,6 +11,6 @@ void vt_handle_ED(const char *text, int n) ;
 void vt_handle_SGR(const char *text, int n) ;
 void vt_handle_STR(const char *text, int n) ;
 
-#define HANDLE(_T) vt_handle_##_T(yytext, yyleng)
+#define HANDLE(_T) vt_handle_##_T(josvt_yytext, josvt_yyleng)
 
 #endif /*VTLEXGL_H_*/
