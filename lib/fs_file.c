@@ -3,6 +3,8 @@
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
+#include <inc/stdio.h>
+#include <inc/assert.h>
 
 #include <string.h>
 

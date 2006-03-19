@@ -309,6 +309,14 @@ retry:
 	    char *ent_start = cache_uas.ents[i].va;
 	    char *ent_end = ent_start + cache_uas.ents[i].num_pages * PGSIZE;
 
+	    // Delayed-unmap entries in general do not conflict; the logic
+	    // further down will unmap anything that's in the way.
+	    // We try to keep them intact in case we'll reuse them soon.
+	    // However, for the same object, we want to reuse it!
+	    if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+		cache_uas.ents[i].segment.object == seg.object)
+		continue;
+
 	    // Leave page gaps between mappings for good measure
 	    if (ent_start <= map_end && ent_end >= map_start) {
 		map_start = ent_end + PGSIZE;
@@ -416,8 +424,8 @@ retry:
     // Make sure we aren't out of slots
     if (slot >= NMAPPINGS) {
 	cprintf("out of segment map slots\n");
-	cache_invalidate();
 	segment_map_print(&cache_uas);
+	cache_invalidate();
 	as_mutex_unlock();
 	return -E_NO_MEM;
     }
@@ -457,7 +465,7 @@ retry:
 	!memcmp(&cache_uas.ents[slot], &usm, sizeof(usm)))
     {
 	as_mutex_unlock();
-	return 0;
+	goto out;
     }
 
     // Upload the slot into the kernel
@@ -466,10 +474,10 @@ retry:
 	cache_uas.nent = slot + 1;
 
     if (segment_debug)
-	cprintf("segment_map: mapping <%ld.%ld> at %p\n",
+	cprintf("segment_map: mapping <%ld.%ld> at %p, slot %d\n",
 		cache_uas.ents[slot].segment.container,
 		cache_uas.ents[slot].segment.object,
-		cache_uas.ents[slot].va);
+		cache_uas.ents[slot].va, slot);
 
     r = sys_as_set_slot(as_ref, &cache_uas.ents[slot]);
 
@@ -489,6 +497,7 @@ retry:
 	return r;
     }
 
+out:
     if (bytes_store)
 	*bytes_store = nbytes;
     if (va_p)
