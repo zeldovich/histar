@@ -41,7 +41,7 @@ static struct {
 static int fd_handles_inited;
 
 static struct {
-    int valid;
+    uint64_t valid_proc_ct;
     int mapped;
     struct cobj_ref seg;
     uint64_t flags;
@@ -158,7 +158,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
     if (r < 0)
 	return r;
 
-    fd_map_cache[i].valid = 1;
+    fd_map_cache[i].valid_proc_ct = start_env->proc_container;
     fd_map_cache[i].mapped = 1;
     fd_map_cache[i].seg = seg;
     fd_map_cache[i].flags = SEGMAP_READ | SEGMAP_WRITE;
@@ -233,7 +233,7 @@ fd_make_public(int fdnum)
 	    sys_obj_unref(old_seg);
 
 	    fd_map_cache[i].mapped = 1;
-	    fd_map_cache[i].valid = 1;
+	    fd_map_cache[i].valid_proc_ct = start_env->proc_container;
 	    fd_map_cache[i].seg = new_seg;
 	    fd_map_cache[i].flags = iflags;
 
@@ -274,7 +274,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
     int r;
     struct cobj_ref seg;
     uint64_t flags;
-    if (fd_map_cache[fdnum].valid) {
+    if (fd_map_cache[fdnum].valid_proc_ct == start_env->proc_container) {
 	seg = fd_map_cache[fdnum].seg;
 	flags = fd_map_cache[fdnum].flags;
 	r = fd_map_cache[fdnum].mapped;
@@ -284,7 +284,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 	    return r;
 
 	fd_map_cache[fdnum].mapped = r;
-	fd_map_cache[fdnum].valid = 1;
+	fd_map_cache[fdnum].valid_proc_ct = start_env->proc_container;
 	if (r > 0) {
 	    fd_map_cache[fdnum].seg = seg;
 	    fd_map_cache[fdnum].flags = flags;
@@ -346,7 +346,7 @@ fd_close(struct Fd *fd)
     }
     segment_unmap_delayed(fd, 1);
 
-    fd_map_cache[fd2num(fd)].valid = 1;
+    fd_map_cache[fd2num(fd)].valid_proc_ct = start_env->proc_container;
     fd_map_cache[fd2num(fd)].mapped = 0;
 
     if (handle_refs == 2) try {
@@ -374,11 +374,11 @@ fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
     uint64_t pgsize = PGSIZE;
     int r = segment_map(fd_seg, fd_flags, (void **) &fd, &pgsize);
     if (r < 0) {
-	fd_map_cache[fd2num(fd)].valid = 0;
+	fd_map_cache[fd2num(fd)].valid_proc_ct = 0;
 	return r;
     }
 
-    fd_map_cache[fd2num(fd)].valid = 1;
+    fd_map_cache[fd2num(fd)].valid_proc_ct = start_env->proc_container;
     fd_map_cache[fd2num(fd)].mapped = 1;
     fd_map_cache[fd2num(fd)].seg = fd_seg;
     fd_map_cache[fd2num(fd)].flags = fd_flags;
@@ -465,14 +465,14 @@ dup2(int oldfdnum, int newfdnum) __THROW
     r = segment_map(fd_seg, flags,
 		    (void**) &newfd, &pgsize);
     if (r < 0) {
-	fd_map_cache[newfdnum].valid = 0;
+	fd_map_cache[newfdnum].valid_proc_ct = 0;
 	sys_obj_unref(fd_seg);
 	__set_errno(EINVAL);
 	return -1;
     }
 
     fd_map_cache[newfdnum].mapped = 1;
-    fd_map_cache[newfdnum].valid = 1;
+    fd_map_cache[newfdnum].valid_proc_ct = start_env->proc_container;
     fd_map_cache[newfdnum].seg = fd_seg;
     fd_map_cache[newfdnum].flags = flags;
 
@@ -513,6 +513,15 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     if (r < 0) {
 	cprintf("dup2_as: fd_lookup: %s\n", e2s(r));
 	return r;
+    }
+
+    if (old_seg.container != start_env->shared_container &&
+	old_seg.container != start_env->proc_container)
+    {
+	cprintf("dup2_as: strange container %ld (shared %ld proc %ld)\n",
+		old_seg.container,
+		start_env->shared_container,
+		start_env->proc_container);
     }
 
     r = sys_segment_addref(old_seg, target_ct);
