@@ -393,5 +393,8 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	}
     }
 
+    // Flush any stale TLB entries that might have arisen from as_pagefault()
+    as_switch(cur_as);
+
     return 0;
 }
