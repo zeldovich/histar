@@ -11,6 +11,7 @@ OBJDIRS += \
 	pkg/lwip/jos64/arch \
 	pkg/lwip/jos64/jif
 
+USER_INC      += $(LWIP_INCLUDES)
 USER_CFLAGS   += $(LWIP_INCLUDES)
 USER_CXXFLAGS += $(LWIP_INCLUDES)
 
