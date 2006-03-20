@@ -77,7 +77,9 @@
 #define __SIGRTMIN	32
 #define __SIGRTMAX	(_NSIG - 1)
 
-// BSD compat signals -- not that we do anything useful with them anyway
+/*
+ * BSD compat signals -- not that we do anything useful with them anyway
+ */
 #define SIGINFO		32
 extern const char *sys_signame[_NSIG];
 
