@@ -1,4 +1,6 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
+ACPKG_BINDIR	:= $(OBJDIR)/acpkg-bin
+
 ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
@@ -15,55 +17,67 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) 
 ## like binutils and gcc.
 
 ACENV += LDFLAGS=\"$(ACPKG_LDFLAGS)\"
-ACENV += CPPFLAGS=\"$(ACPKG_CPPFLAGS)\"
-ACENV += CFLAGS=\"$(ACPKG_LDFLAGS) $(ACPKG_CPPFLAGS)\"
+ACENV += CFLAGS=\"$(ACPKG_LDFLAGS)\"
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
-ACENV += CC=\"$(CC)\"
-ACENV += CPP=\"$(CC) -E $(ACPKG_CPPFLAGS)\"
 
-$(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip:
+ACENV += CC=\"$(CC)\"
+ACENV += PATH=\"$(TOP)/$(ACPKG_BINDIR):$$PATH\"
+
+##
+## Create a wrapper around gcc that passes it all of the flags we want.
+##
+REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
+ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc
+
+$(ACPKG_BINS):
+	@mkdir -p $(ACPKG_BINDIR)
+	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-gcc
+	echo "exec $(REAL_TARGET_GCC) $(ACPKG_CPPFLAGS) \"\$$@\"" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
+	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
+
+$(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
-	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
-	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake clean" )
-	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake" )
-	( cd $(TOP)/acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake install" )
+	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
+	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake" )
+	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake install" )
 	cp $(OBJDIR)/acpkg/bin/gzip   $(OBJDIR)/user/gzip
 	cp $(OBJDIR)/acpkg/bin/gunzip $(OBJDIR)/user/gunzip
 
-binutils:
+binutils: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
-	-find $(TOP)/acpkg/binutils-2.16.1 -name config.cache | xargs rm
-	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --enable-64-bit-bfd --enable-shared=no" )
-	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake clean" )
-	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
-	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
+	-find acpkg/binutils-2.16.1 -name config.cache | xargs rm
+	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --enable-64-bit-bfd --enable-shared=no" )
+	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-gcc3.4.4:
+gcc3.4.4: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
-	-find $(TOP)/acpkg/gcc-3.4.4 -name config.cache | xargs rm -f
-	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_makefile_in.patch
-	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_gcc_makefile_in.patch
-	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
-	#( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake clean" )
-	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake LANGUAGES=c" )
-	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
+	-find acpkg/gcc-3.4.4 -name config.cache | xargs rm -f
+	-find acpkg/gcc-3.4.4 -name config.status | xargs rm -f
+	-patch -d acpkg/gcc-3.4.4 -N -p1 < acpkg/patches/gcc34.patch
+	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
+	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake LANGUAGES=c" )
+	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
 
-gcc3.4.5:
+gcc3.4.5: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
-	-find $(TOP)/acpkg/gcc-3.4.5 -name config.cache | xargs rm -f
-	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.5_makefile_in.patch
-	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.5_gcc_makefile_in.patch
-	( cd $(TOP)/acpkg/gcc-3.4.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
-	#( cd $(TOP)/acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
-	( cd $(TOP)/acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
-	( cd $(TOP)/acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
+	-find acpkg/gcc-3.4.5 -name config.cache | xargs rm -f
+	-find acpkg/gcc-3.4.5 -name config.status | xargs rm -f
+	-patch -d acpkg/gcc-3.4.5 -N -p1 < acpkg/patches/gcc34.patch
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 
 $(OBJDIR)/user/gcc344: gcc3.4.4
 	cp $(OBJDIR)/acpkg/bin/gcc   $(OBJDIR)/user/gcc344
-	
+
 ## GCC 4.1.0
 ## not the same problem...
 ##	http://sourceware.org/ml/crossgcc/2005-07/msg00015.html
