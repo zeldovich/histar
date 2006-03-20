@@ -37,9 +37,9 @@ binutils:
 
 gcc3.4.4:
 	@mkdir -p $(ACPKG_PREFIX)
-	find $(TOP)/acpkg/gcc-3.4.4 -name config.cache | xargs rm
-	find $(TOP)/acpkg/gcc-3.4.4 -name config.log | xargs rm
-	find $(TOP)/acpkg/gcc-3.4.4 -name config.status | xargs rm
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.cache | xargs rm -f
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.log | xargs rm -f
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.status | xargs rm -f
 	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_makefile_in.patch
 	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_gcc_makefile_in.patch
 	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) $(ACENV_BUILD) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
