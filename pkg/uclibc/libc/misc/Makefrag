@@ -6,6 +6,7 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/locale \
 	pkg/uclibc/libc/misc/dirent \
 	pkg/uclibc/libc/misc/time \
+	pkg/uclibc/libc/misc/fnmatch \
 	pkg/uclibc/libc/misc/gnu
 
 ##
