@@ -42,7 +42,7 @@ typedef SAFE_TYPE(int) page_rw_mode;
 void pagetree_init(struct pagetree *pt);
 
 // Copy (with COW) src into dst
-void pagetree_copy(struct pagetree *src, struct pagetree *dst);
+void pagetree_copy(const struct pagetree *src, struct pagetree *dst);
 
 // Free the pagetree, including all of the pages (that aren't shared)
 void pagetree_free(struct pagetree *pt);

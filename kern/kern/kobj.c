@@ -308,6 +308,22 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     return 0;
 }
 
+int
+kobject_copy_pages(const struct kobject_hdr *srch,
+		   struct kobject_hdr *dsth)
+{
+    const struct kobject *src = kobject_ch2ck(srch);
+    struct kobject *dst = kobject_h2k(dsth);
+
+    int r = kobject_set_nbytes(dsth, 0);
+    if (r < 0)
+	return r;
+
+    pagetree_copy(&src->ko_pt, &dst->ko_pt);
+    dsth->ko_nbytes = srch->ko_nbytes;
+    return 0;
+}
+
 struct kobject *
 kobject_dirty(const struct kobject_hdr *kh)
 {

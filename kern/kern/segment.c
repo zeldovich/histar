@@ -35,20 +35,27 @@ segment_copy(const struct Segment *src, const struct Label *newl,
     if (r < 0)
 	return r;
 
-    r = segment_set_nbytes(dst, src->sg_ko.ko_nbytes);
-    if (r < 0)
-	return r;
-
-    for (uint64_t i = 0; i < kobject_npages(&src->sg_ko); i++) {
-	void *srcpg, *dstpg;
-	r = kobject_get_page(&src->sg_ko, i, &srcpg, page_ro);
-	if (r < 0)
-	    return r;
-	r = kobject_get_page(&dst->sg_ko, i, &dstpg, page_rw);
+    segment_invalidate(src);
+    if (src->sg_ko.ko_pin_pg) {
+	r = segment_set_nbytes(dst, src->sg_ko.ko_nbytes);
 	if (r < 0)
 	    return r;
 
-	memcpy(dstpg, srcpg, PGSIZE);
+	for (uint64_t i = 0; i < kobject_npages(&src->sg_ko); i++) {
+	    void *srcpg, *dstpg;
+	    r = kobject_get_page(&src->sg_ko, i, &srcpg, page_ro);
+	    if (r < 0)
+		return r;
+	    r = kobject_get_page(&dst->sg_ko, i, &dstpg, page_rw);
+	    if (r < 0)
+		return r;
+
+	    memcpy(dstpg, srcpg, PGSIZE);
+	}
+    } else {
+	r = kobject_copy_pages(&src->sg_ko, &dst->sg_ko);
+	if (r < 0)
+	    return r;
     }
 
     *dstp = dst;

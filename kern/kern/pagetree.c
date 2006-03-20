@@ -99,7 +99,7 @@ pagetree_init(struct pagetree *pt)
 }
 
 void
-pagetree_copy(struct pagetree *src, struct pagetree *dst)
+pagetree_copy(const struct pagetree *src, struct pagetree *dst)
 {
     memcpy(dst, src, sizeof(*dst));
 

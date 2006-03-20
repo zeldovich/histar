@@ -130,4 +130,8 @@ bool_t kobject_negative_contains(kobject_id_t id);
 // object has to stay in-core or be brought in at startup
 bool_t kobject_initial(const struct kobject *ko);
 
+// copy pages from one kobject into another
+int  kobject_copy_pages(const struct kobject_hdr *src,
+			struct kobject_hdr *dst);
+
 #endif
