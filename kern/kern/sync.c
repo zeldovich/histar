@@ -24,7 +24,7 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
     t->th_wakeup_addr = PGOFF(addr);
 
     thread_suspend(cur_thread, &sync_waiting);
-    return -E_RESTART;
+    return 0;
 }
 
 void
