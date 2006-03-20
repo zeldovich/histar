@@ -32,6 +32,25 @@ binutils:
 	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd $(TOP)/acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
+## For building gcc, you must use a cross-compiler of the same version you are
+## trying to build.
+
+gcc3.4.4:
+	@mkdir -p $(ACPKG_PREFIX)
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.cache | xargs rm
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.log | xargs rm
+	find $(TOP)/acpkg/gcc-3.4.4 -name config.status | xargs rm
+	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_makefile_in.patch
+	-patch -d $(TOP)/acpkg -N -p0 <$(TOP)/acpkg/patches/gcc3.4.4_gcc_makefile_in.patch
+	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) $(ACENV_BUILD) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
+	#( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) $(ACENV_BUILD) gmake clean" )
+	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) $(ACENV_BUILD) gmake LANGUAGES=c" )
+	( cd $(TOP)/acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
+
+$(OBJDIR)/user/gcc344: gcc3.4.4
+	cp $(OBJDIR)/acpkg/bin/gcc   $(OBJDIR)/user/gcc344
+	
+## GCC 4.1.0
 ## not the same problem...
 ##	http://sourceware.org/ml/crossgcc/2005-07/msg00015.html
 
@@ -44,14 +63,15 @@ GCC_JOS_YES := \
 	memcmp memcpy memmove mempcpy memset mkstemps putenv random \
 	rename rindex setenv snprintf sigsetmask stpcpy stpncpy strcasecmp \
 	strchr strdup strncasecmp strndup strrchr strstr strtod strtol strtoul \
-	strverscmp tmpnam vasprintf vfprintf vprintf vsnprintf vsprintf waitpid \
-	getrusage on_exit psignal strerror strsignal sysconf times sbrk \
+	tmpnam vasprintf vfprintf vprintf vsnprintf vsprintf waitpid \
+	getrusage on_exit psignal strerror strsignal sysconf sbrk \
 	realpath canonicalize_file_name sysctl wait3 wait4 __fsetlocking
 
 GCC_JOS_NO := \
-	pstat_getstatic pstat_getdynamic sysmp getsysinfo table _doprnt
+	pstat_getstatic pstat_getdynamic strverscmp sysmp getsysinfo table _doprnt times \
+	mkstemps vfork
 
-GCC_JOS_FORK := fork vfork
+GCC_JOS_FORK := fork
 	
 GCC_JOS_SEARCH := strerror
 	
@@ -61,10 +81,13 @@ GCC_ENVVARS += $(patsubst %, libiberty_cv_var_%=yes, $(GCC_JOS_VARS))
 GCC_ENVVARS += $(patsubst %, ac_cv_func_%=no, $(GCC_JOS_NO))
 GCC_ENVVARS += $(patsubst %, ac_cv_search_%="none required", $(GCC_JOS_SEARCH))
 
-gcc:
+GCC_BUILD_FLAGS := JOS64_BUILD_CPPFLAGS=\"-g -O2 -Wall \"
+
+gcc4.1.0:
 	@mkdir -p $(ACPKG_PREFIX)
 	#find $(TOP)/acpkg/gcc-4.1.0 -name config.cache | xargs rm
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) ./configure $(AUTOCONF_ARGS) --disable-nls --without-libcpp --without-headers --with-newlib --disable-threads --disable-shared" )
-	#( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) gmake clean" )
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(ACENV_BUILD) gmake $(GCC_ENVVARS)" )
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) gmake install" )
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) $(ACENV_BUILD) ./configure $(AUTOCONF_ARGS) --disable-nls --without-libcpp --without-headers --with-newlib --disable-threads --disable-shared" )
+	#( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) $(ACENV_BUILD) gmake clean" )
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) $(ACENV_BUILD) gmake $(GCC_ENVVARS) LANGUAGES=c" )
+	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) gmake install" )
+	

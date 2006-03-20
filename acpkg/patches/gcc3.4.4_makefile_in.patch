@@ -1,0 +1,12 @@
+--- gcc-3.4.4_bad/Makefile.in	2005-05-19 02:58:00.000000000 -0700
++++ gcc-3.4.4/Makefile.in	2006-03-20 04:56:29.000000000 -0800
+@@ -17604,6 +17604,9 @@
+ configure-build-libiberty:
+ 	@test ! -f $(BUILD_SUBDIR)/libiberty/Makefile || exit 0; \
+ 	$(SHELL) $(srcdir)/mkinstalldirs $(BUILD_SUBDIR)/libiberty ; \
++	cp $(srcdir)/install-sh $(BUILD_SUBDIR)/install-sh ;\
++	cp $(srcdir)/config.sub $(BUILD_SUBDIR)/config.sub ;\
++	cp $(srcdir)/config-ml.in $(BUILD_SUBDIR)/config-ml.in ;\
+ 	r=`${PWD_COMMAND}`; export r; \
+ 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+ 	AR="$(AR_FOR_BUILD)"; export AR; \
