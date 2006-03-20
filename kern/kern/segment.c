@@ -71,7 +71,7 @@ segment_snapshot(struct Segment *sg)
 }
 
 void
-segment_invalidate(struct Segment *sg)
+segment_invalidate(const struct Segment *sg)
 {
     while (!LIST_EMPTY(&sg->sg_segmap_list)) {
 	struct segment_mapping *sm = LIST_FIRST(&sg->sg_segmap_list);
