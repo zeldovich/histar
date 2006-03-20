@@ -31,7 +31,7 @@ netdev_thread_wait(struct net_device *ndev, const struct Thread *t,
 	return ndev->wait_gen;
 
     thread_suspend(t, &ndev->wait_list);
-    return -E_RESTART;
+    return 0;
 }
 
 void
