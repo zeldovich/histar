@@ -53,7 +53,6 @@ CXXWARNS := $(WARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 
-DEFS	:=
 OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
 CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing
@@ -93,10 +92,10 @@ COMFLAGS   := $(CFLAGS) -Wall -MD
 COMCXXFLAGS := 
 KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_INC   := $(INCLUDES)
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(DEFS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
 USER_INC   := $(INCLUDES)
-USER_COMFLAGS := $(COMFLAGS) $(DEFS) $(USER_INC) -DJOS_USER
+USER_COMFLAGS := $(COMFLAGS) $(USER_INC) -DJOS_USER
 USER_CFLAGS := $(USER_COMFLAGS) $(CWARNS)
 USER_CXXFLAGS := $(USER_COMFLAGS) $(COMCXXFLAGS) $(CXXWARNS)
 
