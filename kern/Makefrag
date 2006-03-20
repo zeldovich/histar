@@ -89,7 +89,10 @@ KERN_BINFILES := \
 	user/ksh \
 	user/links \
 	user/dnstest \
-	user/pftest
+	user/pftest \
+	user/execbench \
+	user/ipcbench \
+	user/true
 
 	#user/freelist_test \
 	#user/tcpsink
