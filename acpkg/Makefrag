@@ -53,10 +53,13 @@ GCC_JOS_NO := \
 
 GCC_JOS_FORK := fork vfork
 	
+GCC_JOS_SEARCH := strerror
+	
 GCC_ENVVARS := $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_YES))
 GCC_ENVVARS += $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_FORK))
 GCC_ENVVARS += $(patsubst %, libiberty_cv_var_%=yes, $(GCC_JOS_VARS))
 GCC_ENVVARS += $(patsubst %, ac_cv_func_%=no, $(GCC_JOS_NO))
+GCC_ENVVARS += $(patsubst %, ac_cv_search_%="none required", $(GCC_JOS_SEARCH))
 
 gcc:
 	@mkdir -p $(ACPKG_PREFIX)
