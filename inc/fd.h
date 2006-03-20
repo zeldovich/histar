@@ -83,8 +83,10 @@ struct Fd
 	} fd_file;
 
 	struct {
-	    uint32_t read_ptr;	// read at this offset
 	    uint64_t bytes;	// # bytes in circular buffer
+	    uint32_t read_ptr;	// read at this offset
+	    char reader_waiting;
+	    char writer_waiting;
 	    pthread_mutex_t mu;
 	    char buf[512];
 	} fd_pipe;

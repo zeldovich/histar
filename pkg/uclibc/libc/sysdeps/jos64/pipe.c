@@ -25,6 +25,8 @@ pipe(int fds[2])
     fd->fd_pipe.read_ptr = 0;
     fd->fd_pipe.bytes = 0;
     memset(&fd->fd_pipe.mu, 0, sizeof(fd->fd_pipe.mu));
+    fd->fd_pipe.reader_waiting = 0;
+    fd->fd_pipe.writer_waiting = 0;
 
     int fdnum = fd2num(fd);
     int ofd = dup(fdnum);
@@ -52,6 +54,7 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     pthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes > bufsize - PIPE_BUF) {
 	uint64_t b = fd->fd_pipe.bytes;
+	fd->fd_pipe.writer_waiting = 1;
 	pthread_mutex_unlock(&fd->fd_pipe.mu);
 	sys_sync_wait(&fd->fd_pipe.bytes, b, ~0UL);
 	pthread_mutex_lock(&fd->fd_pipe.mu);
@@ -68,7 +71,10 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     memcpy(&fd->fd_pipe.buf[0],   buf + cc1, cc2);
 
     fd->fd_pipe.bytes += cc;
-    sys_sync_wakeup(&fd->fd_pipe.bytes);
+    if (fd->fd_pipe.reader_waiting) {
+	fd->fd_pipe.reader_waiting = 0;
+	sys_sync_wakeup(&fd->fd_pipe.bytes);
+    }
 
     pthread_mutex_unlock(&fd->fd_pipe.mu);
     return count;
@@ -81,6 +87,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     while (fd->fd_pipe.bytes == 0) {
 	uint32_t ref = atomic_read(&fd->fd_ref);
 	int nonblock = (fd->fd_omode & O_NONBLOCK);
+	fd->fd_pipe.reader_waiting = 1;
 	pthread_mutex_unlock(&fd->fd_pipe.mu);
 
     	// EOF when the other end has been closed
@@ -108,7 +115,10 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     fd->fd_pipe.read_ptr = (idx + cc) % bufsize;
     fd->fd_pipe.bytes -= cc;
-    sys_sync_wakeup(&fd->fd_pipe.bytes);
+    if (fd->fd_pipe.writer_waiting) {
+	fd->fd_pipe.writer_waiting = 0;
+	sys_sync_wakeup(&fd->fd_pipe.bytes);
+    }
 
     pthread_mutex_unlock(&fd->fd_pipe.mu);
     return cc;
