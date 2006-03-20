@@ -4,13 +4,17 @@
 #include <inc/types.h>
 #include <inc/container.h>
 
-// Must define at least one of these for the entry to be valid.
-// These match with the ELF flags (inc/elf64.h).
+/*
+ * Must define at least one of these for the entry to be valid.
+ * These match with the ELF flags (inc/elf64.h).
+ */
 #define SEGMAP_EXEC		0x01
 #define SEGMAP_WRITE		0x02
 #define SEGMAP_READ		0x04
 
-// User-interpreted flags
+/*
+ * User-interpreted flags
+ */
 #define SEGMAP_CLOEXEC		0x08
 #define SEGMAP_DELAYED_UNMAP	0x10
 

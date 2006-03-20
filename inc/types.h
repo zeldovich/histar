@@ -10,17 +10,24 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-// The macros below are also defined in kern/arch/amd64/types.h.
-// Would be nice to unify them..
+/*
+ * The macros below are also defined in kern/arch/amd64/types.h.
+ * Would be nice to unify them..
+ */
 
-// Rounding operations (efficient when n is a power of 2)
-// Round down to the nearest multiple of n
+/*
+ * Rounding operations (efficient when n is a power of 2)
+ * Round down to the nearest multiple of n
+ */
 #define ROUNDDOWN(a, n)                         \
 ({                                              \
         uintptr_t __ra = (uintptr_t) (a);       \
         (__typeof__(a)) (__ra - __ra % (n));    \
 })
-// Round up to the nearest multiple of n
+
+/*
+ * Round up to the nearest multiple of n
+ */
 #define ROUNDUP(a, n)                                                   \
 ({                                                                      \
         uintptr_t __n = (uintptr_t) (n);                                \

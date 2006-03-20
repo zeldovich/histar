@@ -12,10 +12,10 @@
 
 struct stat;
 
-// Maximum number of file descriptors a program may hold open concurrently
+/* Maximum number of file descriptors a program may hold open concurrently */
 #define MAXFD		32
 
-// pre-declare for forward references
+/* pre-declare for forward references */
 struct Fd;
 struct Dev;
 
@@ -63,7 +63,7 @@ struct Fd
     int fd_isatty;
     int fd_private;
 
-    // handles for this fd
+    /* handles for this fd */
     uint64_t fd_grant;
     uint64_t fd_taint;
 
@@ -83,8 +83,8 @@ struct Fd
 	} fd_file;
 
 	struct {
-	    uint64_t bytes;	// # bytes in circular buffer
-	    uint32_t read_ptr;	// read at this offset
+	    uint64_t bytes;	/* # bytes in circular buffer */
+	    uint32_t read_ptr;	/* read at this offset */
 	    char reader_waiting;
 	    char writer_waiting;
 	    pthread_mutex_t mu;
@@ -103,7 +103,7 @@ void	fd_give_up_privilege(int fdnum);
 int	fd_set_isatty(int fdnum, int isit);
 int	dev_lookup(int devid, struct Dev **dev_store);
 
-// Allocates individual handles for this FD
+/* Allocates individual handles for this FD */
 int	fd_make_public(int fdnum);
 
 extern struct Dev devcons;

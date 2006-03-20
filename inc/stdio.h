@@ -4,7 +4,7 @@
 #include <inc/types.h>
 #include <stdarg.h>
 
-// lib/printfmt.c
+/* lib/printfmt.c */
 void	printfmt(void (*putch)(int, void*), void *putdat,
 	    const char *fmt, ...)
 	    __attribute__((__format__ (__printf__, 3, 4)));
@@ -15,7 +15,7 @@ void	vprintfmt(void (*putch)(int, void*), void *putdat,
 const char *e2s(int err);
 const char *syscall2s(int sys);
 
-// lib/printf.c
+/* lib/printf.c */
 int	cprintf(const char *fmt, ...)
 	    __attribute__((__format__ (__printf__, 1, 2)));
 int	vcprintf(const char *fmt, va_list)

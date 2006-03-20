@@ -28,13 +28,13 @@ int	segment_lookup(void *va, struct cobj_ref *seg,
 		       uint64_t *npage, uint64_t *flagsp);
 int	segment_lookup_obj(uint64_t oid, void **vap);
 
-// Notify that the thread has changed AS objects
+/* Notify that the thread has changed AS objects */
 void	segment_as_switched(void);
 
-// Flush buffered unmap requests
+/* Flush buffered unmap requests */
 void	segment_unmap_flush(void);
 
-// For debugging purposes
+/* For debugging purposes */
 void	segment_map_print(struct u_address_space *as);
 
 /* elf.c */
@@ -49,7 +49,7 @@ typedef struct {
 
     struct cobj_ref process_status_seg;
 
-    // Handles that ensure process integrity
+    /* Handles that ensure process integrity */
     uint64_t process_grant;
     uint64_t process_taint;
 
@@ -65,11 +65,11 @@ typedef struct {
 extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
 
-extern uint64_t *tls_tidp;	// 8 bytes for cached thread ID
-extern void *tls_gate_args;	// struct gate_call_args
+extern uint64_t *tls_tidp;	/* 8 bytes for cached thread ID */
+extern void *tls_gate_args;	/* struct gate_call_args */
 #define TLS_GATE_ARGS	(UTLS + PGSIZE - sizeof(uint64_t) - sizeof(struct gate_call_data))
-extern void *tls_stack_top;	// same as tls_gate_args, grows down
-extern void *tls_base;		// base
+extern void *tls_stack_top;	/* same as tls_gate_args, grows down */
+extern void *tls_base;		/* base */
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 
@@ -133,7 +133,7 @@ int  label_grow(struct ulabel *l);
 struct ulabel *label_dup(struct ulabel *l);
 int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 
-// for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default
+/* for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default */
 void label_max_default(struct ulabel *l);
 void label_change_star(struct ulabel *l, level_t new_level);
 
