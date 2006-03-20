@@ -1,5 +1,8 @@
 // LFS small file benchmark
 
+enum { lfs_profiling = 0 };
+enum { lfs_iterations = 1 };
+
 #ifdef JOS_USER
 #define JOS64 1
 #define LINUX 0
@@ -221,7 +224,8 @@ main(int argc, char *argv[])
     }
 
 #ifdef JOS_USER
-    profiler_init();
+    if (lfs_profiling)
+	profiler_init();
 #endif
 
     n = atoi(argv[1]);
@@ -231,9 +235,11 @@ main(int argc, char *argv[])
 
     creat_dir();
 
-    creat_test(n, size);
-    read_test(n, size);
-    delete_test(n);
+    for (int i = 0; i < lfs_iterations; i++) {
+	creat_test(n, size);
+	read_test(n, size);
+	delete_test(n);
+    }
 
     unlink("t");
 }
