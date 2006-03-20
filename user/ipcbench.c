@@ -32,10 +32,17 @@ main(int ac, char **av)
 
     pid_t pid = fork();
     if (pid == 0) {
+	close(to_worker[1]);
+	close(from_worker[0]);
+
 	for (;;) {
 	    uint64_t v;
-	    if (read(to_worker[0], &v, sizeof(v)) < 0)
+	    ssize_t cc = read(to_worker[0], &v, sizeof(v));
+	    if (cc < 0)
 		xperror("read");
+
+	    if (cc == 0)
+		exit(0);
 
 	    v++;
 	    if (write(from_worker[1], &v, sizeof(v)) < 0)
