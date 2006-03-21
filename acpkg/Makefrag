@@ -52,6 +52,13 @@ binutils: $(ACPKG_BINS)
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
+openvpn:
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-lzo --disable-ssl --disable-crypto" )
+	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake install" )
+
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 

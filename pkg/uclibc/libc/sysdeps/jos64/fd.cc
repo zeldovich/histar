@@ -822,6 +822,14 @@ send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 }
 
 ssize_t
+sendto(int fdnum, const void *dataptr, size_t len, int flags, 
+       const struct sockaddr *to, socklen_t tolen) __THROW
+{
+    set_enosys();
+    return -1;        
+}
+
+ssize_t
 recv(int fdnum, void *mem, size_t len, int flags) __THROW
 {
     int r;
@@ -842,6 +850,22 @@ recv(int fdnum, void *mem, size_t len, int flags) __THROW
 
     return dev->dev_recv(fd, mem, len, flags);
 }
+
+ssize_t
+recvfrom(int fdnum, void *mem, size_t len, int flags, 
+         struct sockaddr *from, socklen_t *fromlen) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
+ssize_t 
+recvmsg(int fdnum, struct msghdr *msg, int flags) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
 
 int
 fstat(int fdnum, struct stat *buf) __THROW
