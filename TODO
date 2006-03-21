@@ -81,3 +81,10 @@ how to deal with system calls returning E_RESOURCE?  every call to be checked?
 
 fsync, sync, reboot
 
+unix users as handles -- integrate/extend the existing authd strawman?
+
+make jos64 a usable environment:
+ * gcc/binutils
+ * some sort of editor (nvi, nano, ..)
+ * tetex
+
