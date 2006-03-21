@@ -11,8 +11,6 @@ currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
 
-keep track of handles more explicitly.  root handle, process handle..
-
 make the mount table a separate segment that can be shared
 
 min/max labels on MLT to control contamination
@@ -52,13 +50,34 @@ at non-* levels, this might be a non-issue?
 
 ===
 
-thread halt-and-copy
-
 store all * handles in a privstore
  - pending more discussion on thread signaling label rules (thread groups?)
 
-what's chewing up cycles?
- - seems to be largely userspace now; need a userspace profiler of sorts?
+===
 
+fix netd bug (fetch'ing files hangs for some files but not others)
+
+tun/tap driver for openvpn
+allow multiple netd's (specify netd gate in fd_sock)
+tun/tap-backed interface for lwip
+vpn netd
+
+how to integrate tainting with the shell?  maybe something along these lines:
+  sh% run_tainted vpn_red sh
+  vpn_red% .. running as { vpn_red:2 1 }
+  vpn_red% declassify_exit
+  sh% run_tainted vpn_green sh
+  vpn_green% .. running as { vpn_green:2 1 }
+  vpn_green% declassify_exit
+  sh% 
+
+container resource limits
+thread halt-and-copy
 non-resizable segments
+
+user-space resource allocators
+
+how to deal with system calls returning E_RESOURCE?  every call to be checked?
+
+fsync, sync, reboot
 
