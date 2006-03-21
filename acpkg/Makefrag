@@ -32,7 +32,7 @@ ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc
 $(ACPKG_BINS):
 	@mkdir -p $(ACPKG_BINDIR)
 	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-gcc
-	echo "exec $(REAL_TARGET_GCC) $(ACPKG_CPPFLAGS) \"\$$@\"" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
+	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
 
 $(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip: $(ACPKG_BINS)
@@ -52,7 +52,7 @@ binutils: $(ACPKG_BINS)
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
-openvpn:
+openvpn: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-lzo --disable-ssl --disable-crypto" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake clean" )
