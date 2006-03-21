@@ -14,6 +14,9 @@
 
 #include <bits/unimpl.h>
 
+// Fake prototype to make GCC happy
+int __libc_open(const char *pn, int flags, ...) __THROW;
+
 int
 __libc_open(const char *pn, int flags, ...) __THROW
 {

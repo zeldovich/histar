@@ -4,6 +4,8 @@
 #include <inc/pthread.h>
 #include <inc/stdio.h>
 
+#include <unistd.h>
+
 static struct {
     int inited;
     pthread_mutex_t mu;

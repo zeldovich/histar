@@ -16,6 +16,10 @@ LIBC_COBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(LIBC_COBJFILES))
 
 LIBC_OBJFILES += $(LIBC_COBJFILES)
 
+$(OBJDIR)/pkg/uclibc/libc/sysdeps/jos64/%.o: pkg/uclibc/libc/sysdeps/jos64/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -Werror -c -o $@ $<
+
 $(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -c -o $@ $<

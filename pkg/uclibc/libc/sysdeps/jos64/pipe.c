@@ -131,6 +131,7 @@ pipe_close(struct Fd *fd)
     // Not completely reliable; we still need to check for EOF
     // with a timeout in pipe_read().
     sys_sync_wakeup(&fd->fd_pipe.bytes);
+    return 0;
 }
 
 static int

@@ -18,7 +18,7 @@ static struct cobj_ref alarm_target_obj;
 
 static atomic64_t alarm_at_msec;
 
-static void
+static void __attribute__((noreturn))
 alarm_worker(void *arg)
 {
     siginfo_t si;

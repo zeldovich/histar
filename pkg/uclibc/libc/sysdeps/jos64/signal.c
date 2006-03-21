@@ -46,7 +46,6 @@ sig_fatal(void)
 static void
 signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
-    static int recursive_fatal;
     extern const char *__progname;
 
     if (sa->sa_handler == SIG_IGN)
@@ -209,6 +208,9 @@ sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
 
     return 0;
 }
+
+// Fake prototype to make GCC happy.
+int __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 
 int
 __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
