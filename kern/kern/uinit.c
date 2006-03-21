@@ -224,7 +224,7 @@ thread_create_embed(struct Container *c,
 	panic("thread_create_embed: cannot find binary for %s", name);
 
     struct Container *tc;
-    int r = container_alloc(obj_label, &tc);
+    int r = container_alloc(obj_label, &tc, c->ct_ko.ko_id);
     if (r < 0)
 	panic("tce: cannot alloc container: %s", e2s(r));
     tc->ct_ko.ko_flags = koflag;
@@ -283,15 +283,22 @@ user_bootstrap(void)
     assert(0 == label_alloc(&obj_label, 1));
     assert(0 == label_set(obj_label, user_root_handle, 0));
 
+    // root-parent container; not readable by anyone
+    struct Label *root_parent_label;
+    struct Container *root_parent;
+    assert(0 == label_alloc(&root_parent_label, 3));
+    assert(0 == container_alloc(root_parent_label, &root_parent, 0));
+    strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
+
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(obj_label, &rc));
+    assert(0 == container_alloc(obj_label, &rc, root_parent->ct_ko.ko_id));
     kobject_incref(&rc->ct_ko);
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(obj_label, &fsc));
+    assert(0 == container_alloc(obj_label, &fsc, rc->ct_ko.ko_id));
     assert(0 == container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 

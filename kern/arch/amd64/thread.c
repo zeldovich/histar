@@ -96,8 +96,10 @@ thread_alloc(const struct Label *contaminate,
 	return r;
     sg->sg_ko.ko_min_bytes = PGSIZE;
 
+    // XXX
+    // Thread-local container has no parent?
     struct Container *ct;
-    r = container_alloc(contaminate, &ct);
+    r = container_alloc(contaminate, &ct, 0);
     if (r < 0)
 	return r;
 

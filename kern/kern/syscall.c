@@ -199,7 +199,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
     alloc_ulabel(ul, &l, &parent->ct_ko);
 
     struct Container *c;
-    check(container_alloc(l, &c));
+    check(container_alloc(l, &c, parent->ct_ko.ko_id));
     alloc_set_name(&c->ct_ko, name);
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));

@@ -5,7 +5,8 @@
 #include <inc/error.h>
 
 int
-container_alloc(const struct Label *l, struct Container **cp)
+container_alloc(const struct Label *l, struct Container **cp,
+		kobject_id_t parent_id)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_container, l, &ko);
@@ -13,6 +14,8 @@ container_alloc(const struct Label *l, struct Container **cp)
 	return r;
 
     struct Container *c = &ko->ct;
+    c->ct_parent = parent_id;
+
     *cp = c;
     return 0;
 }

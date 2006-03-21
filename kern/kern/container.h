@@ -19,10 +19,12 @@ struct container_page {
 
 struct Container {
     struct kobject_hdr ct_ko;
+    kobject_id_t ct_parent;
     bool_t ct_avoid[kobj_ntypes];	// cannot store certain objects
 };
 
-int	container_alloc(const struct Label *l, struct Container **cp)
+int	container_alloc(const struct Label *l, struct Container **cp,
+			kobject_id_t parent_id)
     __attribute__ ((warn_unused_result));
 int	container_gc(struct Container *c)
     __attribute__ ((warn_unused_result));
