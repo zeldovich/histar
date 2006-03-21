@@ -28,23 +28,37 @@ mkdir(const char *pn, mode_t mode)
     }
 
     char *pn2 = malloc(strlen(pn) + 1);
-    if (pn2 == 0)
-	return -E_NO_MEM;
+    if (pn2 == 0) {
+        __set_errno(ENOMEM);
+        return -1;
+    }
 
     strcpy(pn2, pn);
     const char *dirname, *basename;
     fs_dirbase(pn2, &dirname, &basename);
 
     r = fs_namei(dirname, &dir);
-    if (r < 0) {
-	free(pn2);
-	return r;
-    }
+    if (r < 0)
+        goto done ;
 
     struct fs_inode ndir;
     r = fs_mkdir(dir, basename, &ndir, 0);
+
+done:
     free(pn2);
-    return r;
+    switch (r) {
+        case 0:
+            return 0;
+        case -E_INVAL:
+        case -E_LABEL:
+            __set_errno(EACCES);
+            return -1;
+        case -E_NOT_FOUND:
+            __set_errno(ENOTDIR);
+            return -1;
+        default:
+            return -1;
+    }
 }
 
 int
