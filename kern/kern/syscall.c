@@ -291,6 +291,14 @@ sys_container_nslots(uint64_t container)
 }
 
 static int64_t
+sys_container_get_parent(uint64_t container)
+{
+    const struct Container *c;
+    check(container_find(&c, container, iflow_read));
+    return c->ct_parent;
+}
+
+static int64_t
 sys_gate_create(uint64_t container, struct thread_entry *ute,
 		struct ulabel *ul_recv, struct ulabel *ul_send,
 		const char *name)
@@ -724,6 +732,7 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
     SYSCALL_DISPATCH(container_nslots),
+    SYSCALL_DISPATCH(container_get_parent),
     SYSCALL_DISPATCH(thread_create),
     SYSCALL_DISPATCH(self_id),
     SYSCALL_DISPATCH(clock_msec),

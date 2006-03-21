@@ -64,6 +64,12 @@ sys_obj_unref(struct cobj_ref o)
 }
 
 int64_t
+sys_container_get_parent(uint64_t container)
+{
+    return syscall(SYS_container_get_parent, container);
+}
+
+int64_t
 sys_container_get_slot_id(uint64_t container, uint64_t slot)
 {
     return syscall(SYS_container_get_slot_id, container, slot);
