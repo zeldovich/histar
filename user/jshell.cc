@@ -270,11 +270,7 @@ builtin_mount(int ac, char **av)
 	}
 
 	struct fs_inode dir, root;
-	r = fs_get_root(ct, &root);
-	if (r < 0) {
-	    printf("fs_get_root(%ld): %s\n", ct, e2s(r));
-	    return;
-	}
+	fs_get_root(ct, &root);
 
 	r = fs_namei(mdir, &dir);
 	if (r < 0) {
@@ -367,15 +363,12 @@ main(int ac, char **av)
     printf("JOS: shell\n");
 
     struct fs_inode selfdir;
-    int r = fs_get_root(start_env->shared_container, &selfdir);
-    if (r < 0) {
-	printf("shell: cannot get own container: %s\n", e2s(r));
-    } else {
-	fs_unmount(start_env->fs_root, "self");
-	r = fs_mount(start_env->fs_root, "self", selfdir);
-	if (r < 0)
-	    printf("shell: cannot mount /self: %s\n", e2s(r));
-    }
+    fs_get_root(start_env->shared_container, &selfdir);
+
+    fs_unmount(start_env->fs_root, "self");
+    int r = fs_mount(start_env->fs_root, "self", selfdir);
+    if (r < 0)
+	printf("shell: cannot mount /self: %s\n", e2s(r));
 
     for (;;) {
 	char prompt[64];

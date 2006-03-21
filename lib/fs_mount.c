@@ -3,19 +3,16 @@
 #include <string.h>
 #include <inc/error.h>
 
-int
+void
 fs_get_root(uint64_t ct, struct fs_inode *rdirp)
 {
-    // no directory segment (yet?)
     rdirp->obj = COBJ(ct, ct);
-    return 0;
 }
 
-int
+void
 fs_get_obj(struct fs_inode ino, struct cobj_ref *segp)
 {
     *segp = ino.obj;
-    return 0;
 }
 
 int

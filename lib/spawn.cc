@@ -81,7 +81,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     // Now spawn with computed labels
     struct cobj_ref elf;
-    error_check(fs_get_obj(elf_ino, &elf));
+    fs_get_obj(elf_ino, &elf);
 
     char name[KOBJ_NAME_LEN];
     error_check(sys_obj_get_name(elf, &name[0]));
