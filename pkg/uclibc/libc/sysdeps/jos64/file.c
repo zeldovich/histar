@@ -111,7 +111,6 @@ umask(mode_t mask)
 int
 utime (const char *file, const struct utimbuf *file_times) __THROW
 {
-    memset(file_times, 0, sizeof(*file_times));
     return 0;
 }
 
@@ -151,17 +150,80 @@ readlink(const char *pn, char *buf, size_t bufsize)
 char *
 getcwd(char *buf, size_t size)
 {
+    int alloc = 0;
+
     if (buf == 0) {
 	if (size == 0)
 	    size = 256;
+
+	alloc = 1;
 	buf = malloc(size);
 	if (buf == 0)
 	    return 0;
     }
 
-    // XXX we do not have a ".." yet
-    sprintf(buf, "/unknown");
+    char tmpbuf[256];
+    tmpbuf[0] = '\0';
+
+    struct fs_inode ino = start_env->fs_cwd;
+    while (ino.obj.object != start_env->fs_root.obj.object) {
+	int64_t parent_ct = sys_container_get_parent(ino.obj.object);
+	if (parent_ct < 0) {
+	    cprintf("getcwd: cannot get parent: %s\n", e2s(parent_ct));
+	    goto err;
+	}
+
+	struct fs_inode parent_ino;
+	fs_get_root(parent_ct, &parent_ino);
+
+	struct fs_readdir_state s;
+	int r = fs_readdir_init(&s, parent_ino);
+	if (r < 0) {
+	    cprintf("getcwd: fs_readdir_init: %s\n", e2s(r));
+	    goto err;
+	}
+
+	for (;;) {
+	    struct fs_dent de;
+	    r = fs_readdir_dent(&s, &de, 0);
+	    if (r < 0) {
+		cprintf("getcwd: fs_readdir_dent: %s\n", e2s(r));
+		fs_readdir_close(&s);
+		goto err;
+	    }
+
+	    if (r == 0) {
+		cprintf("getcwd: fs_readdir_dent: cannot find %ld in parent %ld\n",
+			ino.obj.object, parent_ct);
+		fs_readdir_close(&s);
+		goto err;
+	    }
+
+	    if (de.de_inode.obj.object == ino.obj.object) {
+		char tmp2[sizeof(tmpbuf)];
+
+		if (tmpbuf[0] == '\0') {
+		    snprintf(&tmp2[0], sizeof(tmp2), "%s", &de.de_name[0]);
+		} else {
+		    snprintf(&tmp2[0], sizeof(tmp2), "%s/%s", &de.de_name[0], &tmpbuf[0]);
+		}
+
+		memcpy(&tmpbuf[0], &tmp2[0], sizeof(tmpbuf));
+		break;
+	    }
+	}
+
+	fs_readdir_close(&s);
+	ino = parent_ino;
+    }
+
+    snprintf(buf, size, "/%s", &tmpbuf[0]);
     return buf;
+
+err:
+    if (alloc)
+	free(buf);
+    return 0;
 }
 
 int
