@@ -88,3 +88,7 @@ make jos64 a usable environment:
  * some sort of editor (nvi, nano, ..)
  * tetex
 
+system management in a fully-persistent world
+ * restarting services (how does it interact with handles & gates?)
+ * upgrades (signing binaries => integrity handles)
+
