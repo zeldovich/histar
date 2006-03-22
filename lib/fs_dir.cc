@@ -121,6 +121,11 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	cprintf("fs_lookup_one: dir %ld fn %s\n",
 		dir.obj.object, fn);
 
+    if (!strcmp(fn, ".")) {
+	*o = dir;
+	return 0;
+    }
+
     for (int i = 0; i < FS_NMOUNT; i++) {
 	struct fs_mtab_ent *mnt = &start_env->fs_mtab.mtab_ent[i];
 	if (mnt->mnt_dir.obj.object == dir.obj.object &&
