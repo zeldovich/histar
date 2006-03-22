@@ -60,10 +60,10 @@ acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
 	rm -f $@
 	touch $@
 
-$(OBJDIR)/user/%: $(OBJDIR)/acpkg/bin/%
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
 	cp $< $@
 
-$(OBJDIR)/user/%: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 	cp $< $@
 
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
