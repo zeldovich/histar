@@ -87,7 +87,9 @@ ncurses.conf acpkg/ncurses-5.5/Makefile:
 ncurses: $(ACPKG_WRAPS) acpkg/ncurses-5.5/Makefile
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
 $(OBJDIR)/lib/libncurses.a: ncurses
 	cp $(OBJDIR)/acpkg/lib/libncurses.a   $(OBJDIR)/lib/libncurses.a
 $(OBJDIR)/tars/terminfo_tar: ncurses
