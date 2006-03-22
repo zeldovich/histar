@@ -35,6 +35,8 @@ expose kobj_label's at the syscall API to get label sharing
 
 better MLT support in the filesystem: unification et al
 
+floating point context switching support -- grow the thread kobject?
+
 ===
 
 multiple threads that have different labels in the same AS is a little
