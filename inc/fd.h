@@ -90,6 +90,11 @@ struct Fd
 	    pthread_mutex_t mu;
 	    char buf[512];
 	} fd_pipe;
+
+	struct {
+	    struct cobj_ref tun_seg;
+	    int tun_a;
+	} fd_tun;
     };
 };
 
@@ -106,10 +111,11 @@ int	dev_lookup(int devid, struct Dev **dev_store);
 /* Allocates individual handles for this FD */
 int	fd_make_public(int fdnum);
 
-extern struct Dev devcons;
-extern struct Dev devsock;
-extern struct Dev devfile;
-extern struct Dev devpipe;
+extern struct Dev devcons;	/* type 'c' */
+extern struct Dev devsock;	/* type 's' */
+extern struct Dev devfile;	/* type 'f' */
+extern struct Dev devpipe;	/* type 'p' */
+extern struct Dev devtun;	/* type 't' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);
