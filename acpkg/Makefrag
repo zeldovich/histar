@@ -50,14 +50,15 @@ acpkg/%/Makefile: $(ACPKG_WRAPS)
 		$(AUTOCONF_ARGS) \
 		$(AUTOCONF_$(patsubst acpkg/%/Makefile,%,$@))" )
 
-acpkg/%/__build: acpkg/%/Makefile
+acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
+	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
+	    sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
 	    sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
 	    sh -c "$(ACENV) gmake install" )
-
 	rm -f $@
-	ln -s Makefile $@
+	touch $@
 
 $(OBJDIR)/user/%: $(OBJDIR)/acpkg/bin/%
 	cp $< $@
