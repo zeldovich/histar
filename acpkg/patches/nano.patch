@@ -1,0 +1,11 @@
+--- nano-1.2.3_bad/configure	2004-02-17 20:35:57.000000000 -0800
++++ nano-1.2.3/configure	2006-03-21 22:48:31.000000000 -0800
+@@ -5688,7 +5688,7 @@
+ See \`config.log' for more details." >&5
+ echo "$as_me: error: cannot run test program while cross compiling
+ See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
++   }
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */

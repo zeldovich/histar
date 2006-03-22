@@ -71,6 +71,7 @@ ncurses: $(ACPKG_BINS)
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 nano: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
+	-patch -d acpkg/nano-1.2.3 -N -p1 <acpkg/patches/nano.patch
 	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
 	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake" )
