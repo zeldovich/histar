@@ -62,11 +62,17 @@ acpkg/%/__build: acpkg/%/Makefile
 $(OBJDIR)/user/%: $(OBJDIR)/acpkg/bin/%
 	cp $< $@
 
+$(OBJDIR)/user/%: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
+	cp $< $@
+
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
 $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
+
+## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
+$(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
 $(OBJDIR)/tars/test_tar $(OBJDIR)/tars/test_gz: acpkg/test.tar acpkg/test.gz
 	@mkdir -p $(OBJDIR)/tars
@@ -92,11 +98,6 @@ $(OBJDIR)/user/tcdemo: ncurses
 binutils: acpkg/binutils-2.16.1/Makefile
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
-
-## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
-openvpn: acpkg/openvpn-2.0.5/Makefile
-	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 nano: $(ACPKG_WRAPS)
