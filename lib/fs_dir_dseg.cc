@@ -206,14 +206,18 @@ static struct dseg_cache_entry {
 } dseg_cache[dseg_cache_size];
 
 static int dseg_cache_next;
+static pthread_mutex_t dseg_cache_mu;
 
 fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
 {
+    scoped_pthread_lock l(&dseg_cache_mu);
+
     for (int i = 0; i < dseg_cache_size; i++) {
 	if (dir.obj.object == dseg_cache[i].dir.obj.object &&
 	    writable == dseg_cache[i].writable)
 	{
 	    backer_ = dseg_cache[i].dseg;
+	    assert(backer_);
 	    backer_->lock();
 	    backer_->refresh();
 	    dseg_cache[i].ref++;
@@ -228,8 +232,10 @@ fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
 	slot_ = (dseg_cache_next + i) % dseg_cache_size;
 	if (dseg_cache[slot_].ref)
 	    continue;
-	if (dseg_cache[slot_].dseg)
+	if (dseg_cache[slot_].dseg) {
 	    delete dseg_cache[slot_].dseg;
+	    dseg_cache[slot_].dseg = 0;
+	}
 
 	backer_ = new fs_dir_dseg(dir, writable);
 	dseg_cache[slot_].ref = 1;
@@ -244,6 +250,7 @@ fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
 
 fs_dir_dseg_cached::~fs_dir_dseg_cached()
 {
+    assert(backer_);
     backer_->unlock();
     dseg_cache[slot_].ref--;
 }
