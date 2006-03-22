@@ -35,14 +35,46 @@ $(ACPKG_BINS):
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
 
-$(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip: $(ACPKG_BINS)
-	@mkdir -p $(ACPKG_PREFIX)
+## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
+gzip.conf acpkg/gzip-1.2.4a/Makefile:
+	-( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
-	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake clean" )
+$(OBJDIR)/user/gzip: $(ACPKG_BINS) acpkg/gzip-1.2.4a/Makefile 
+	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake" )
 	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake install" )
 	cp $(OBJDIR)/acpkg/bin/gzip   $(OBJDIR)/user/gzip
-	cp $(OBJDIR)/acpkg/bin/gunzip $(OBJDIR)/user/gunzip
+
+## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
+tar.conf acpkg/tar-1.15/Makefile:
+	-( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/tar-1.15 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
+$(OBJDIR)/user/tar: $(ACPKG_BINS) acpkg/tar-1.15/Makefile 
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake install" )
+	cp $(OBJDIR)/acpkg/bin/tar $(OBJDIR)/user/tar
+
+$(OBJDIR)/tars/test_tar $(OBJDIR)/tars/test_gz: acpkg/test.tar acpkg/test.gz
+	@mkdir -p $(OBJDIR)/tars
+	cp acpkg/test.tar $(OBJDIR)/tars/test_tar
+	cp acpkg/test.gz $(OBJDIR)/tars/test_gz
+
+## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
+ncurses.conf acpkg/ncurses-5.5/Makefile:
+	-( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --without-cxx-binding" )
+ncurses: $(ACPKG_BINS) acpkg/ncurses-5.5/Makefile
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
+$(OBJDIR)/lib/libncurses.a: ncurses
+	cp $(OBJDIR)/acpkg/lib/libncurses.a   $(OBJDIR)/lib/libncurses.a
+$(OBJDIR)/tars/terminfo_tar: ncurses
+	@mkdir -p $(OBJDIR)/tars
+	tar -cvf $(OBJDIR)/tars/terminfo_tar -C $(ACPKG_PREFIX) share/
+$(OBJDIR)/user/tcdemo: ncurses
+	cp acpkg/ncurses-5.5/test/demo_termcap $(OBJDIR)/user/tcdemo 
 
 binutils: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
@@ -60,13 +92,6 @@ openvpn: $(ACPKG_BINS)
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake install" )
 
-## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
-ncurses: $(ACPKG_BINS)
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --without-cxx-binding" )
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 nano: $(ACPKG_BINS)
