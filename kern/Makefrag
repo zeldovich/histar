@@ -92,8 +92,11 @@ KERN_BINFILES := \
 	user/pftest \
 	user/execbench \
 	user/ipcbench \
-	user/true
+	user/true 
 
+	#user/gzip \
+	#user/tar \
+	#user/tcdemo \
 	#user/freelist_test \
 	#user/tcpsink
 	#user/spin \
@@ -108,6 +111,13 @@ KERN_BINFILES := \
 	#user/jmptest \
 	#user/pftest \
 	#user/mlt \
+
+KERN_TARFILES := \
+	#tars/test_tar \
+	#tars/test_gz \
+	#tars/terminfo_tar
+	
+KERN_BINFILES += $(KERN_TARFILES)
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
