@@ -61,6 +61,27 @@ done:
     }
 }
 
+int 
+link(const char *oldpath, const char *newpath)
+{
+    set_enosys();
+    return -1;
+}
+
+int 
+symlink(const char *oldpath, const char *newpath)
+{
+    set_enosys();
+    return -1;
+}
+
+int 
+mknod(const char *pathname, mode_t mode, dev_t dev)
+{
+    set_enosys();
+    return -1;
+}
+
 int
 unlink(const char *pn)
 {
@@ -251,3 +272,10 @@ chmod(const char *path, mode_t mode)
 {
     return 0;
 }
+
+int 
+creat(const char *pathname, mode_t mode)
+{
+    return open(pathname, O_CREAT|O_WRONLY|O_TRUNC, mode);
+}
+
