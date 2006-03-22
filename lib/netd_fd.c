@@ -253,6 +253,12 @@ sock_setsockopt(struct Fd *fd, int level, int optname,
     if (optlen > sizeof(a.setsockopt.optval))
 	return -E_INVAL;
 
+    if (level == SOL_SOCKET) {
+	// LWIP does not support these, so fake it..
+	if (optname == SO_REUSEADDR || optname == SO_REUSEPORT)
+	    return 0;
+    }
+
     a.op_type = netd_op_setsockopt;
     a.setsockopt.level = level;
     a.setsockopt.optname = optname;
