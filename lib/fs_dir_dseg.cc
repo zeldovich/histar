@@ -232,12 +232,12 @@ fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
 	slot_ = (dseg_cache_next + i) % dseg_cache_size;
 	if (dseg_cache[slot_].ref)
 	    continue;
-	if (dseg_cache[slot_].dseg) {
-	    delete dseg_cache[slot_].dseg;
-	    dseg_cache[slot_].dseg = 0;
-	}
 
 	backer_ = new fs_dir_dseg(dir, writable);
+
+	if (dseg_cache[slot_].dseg)
+	    delete dseg_cache[slot_].dseg;
+
 	dseg_cache[slot_].ref = 1;
 	dseg_cache[slot_].dseg = backer_;
 	dseg_cache[slot_].dir = dir;
