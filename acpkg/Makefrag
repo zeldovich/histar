@@ -1,5 +1,5 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
-ACPKG_BINDIR	:= $(OBJDIR)/acpkg-bin
+ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
 ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER
@@ -21,39 +21,52 @@ ACENV += CFLAGS=\"$(ACPKG_LDFLAGS)\"
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 
 ACENV += CC=\"$(CC)\"
-ACENV += PATH=\"$(TOP)/$(ACPKG_BINDIR):$$PATH\"
+ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
+
+##
+## ./configure arguments for different packages
+##
+AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
+AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 
 ##
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc
+ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
-$(ACPKG_BINS):
-	@mkdir -p $(ACPKG_BINDIR)
-	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-gcc
-	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
-	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
+$(ACPKG_WRAPS):
+	@mkdir -p $(ACPKG_WRAPDIR)
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+
+acpkg/%/Makefile: $(ACPKG_WRAPS)
+	@mkdir -p $(ACPKG_PREFIX)
+	-( cd acpkg/$(patsubst acpkg/%/Makefile,%,$@) && \
+	    sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/$(patsubst acpkg/%/Makefile,%,$@) && \
+	    sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) \
+		$(AUTOCONF_$(patsubst acpkg/%/Makefile,%,$@))" )
+
+acpkg/%/__build: acpkg/%/Makefile
+	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
+	    sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
+	    sh -c "$(ACENV) gmake install" )
+
+	rm -f $@
+	ln -s Makefile $@
+
+$(OBJDIR)/user/%: $(OBJDIR)/acpkg/bin/%
+	cp $< $@
 
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
-gzip.conf acpkg/gzip-1.2.4a/Makefile:
-	-( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
-$(OBJDIR)/user/gzip: $(ACPKG_BINS) acpkg/gzip-1.2.4a/Makefile 
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake" )
-	( cd acpkg/gzip-1.2.4a && sh -c "$(ACENV) gmake install" )
-	cp $(OBJDIR)/acpkg/bin/gzip   $(OBJDIR)/user/gzip
+$(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
-tar.conf acpkg/tar-1.15/Makefile:
-	-( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/tar-1.15 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
-$(OBJDIR)/user/tar: $(ACPKG_BINS) acpkg/tar-1.15/Makefile 
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/tar-1.15 && sh -c "$(ACENV) gmake install" )
-	cp $(OBJDIR)/acpkg/bin/tar $(OBJDIR)/user/tar
+$(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 
 $(OBJDIR)/tars/test_tar $(OBJDIR)/tars/test_gz: acpkg/test.tar acpkg/test.gz
 	@mkdir -p $(OBJDIR)/tars
@@ -64,7 +77,7 @@ $(OBJDIR)/tars/test_tar $(OBJDIR)/tars/test_gz: acpkg/test.tar acpkg/test.gz
 ncurses.conf acpkg/ncurses-5.5/Makefile:
 	-( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --without-cxx-binding" )
-ncurses: $(ACPKG_BINS) acpkg/ncurses-5.5/Makefile
+ncurses: $(ACPKG_WRAPS) acpkg/ncurses-5.5/Makefile
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
@@ -76,25 +89,17 @@ $(OBJDIR)/tars/terminfo_tar: ncurses
 $(OBJDIR)/user/tcdemo: ncurses
 	cp acpkg/ncurses-5.5/test/demo_termcap $(OBJDIR)/user/tcdemo 
 
-binutils: $(ACPKG_BINS)
-	@mkdir -p $(ACPKG_PREFIX)
-	-find acpkg/binutils-2.16.1 -name config.cache | xargs rm
-	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --enable-64-bit-bfd --enable-shared=no" )
-	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake clean" )
+binutils: acpkg/binutils-2.16.1/Makefile
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
-openvpn: $(ACPKG_BINS)
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-lzo --disable-ssl --disable-crypto" )
-	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake clean" )
+openvpn: acpkg/openvpn-2.0.5/Makefile
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake install" )
 
-
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
-nano: $(ACPKG_BINS)
+nano: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	-patch -d acpkg/nano-1.2.3 -N -p1 <acpkg/patches/nano.patch
 	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
@@ -103,7 +108,7 @@ nano: $(ACPKG_BINS)
 	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
-nvi: $(ACPKG_BINS)
+nvi: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) vi_cv_sprintf_count=yes ./configure $(AUTOCONF_ARGS) --disable-curses" )
 	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake clean" )
@@ -113,7 +118,7 @@ nvi: $(ACPKG_BINS)
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-gcc3.4.4: $(ACPKG_BINS)
+gcc3.4.4: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	-find acpkg/gcc-3.4.4 -name config.cache | xargs rm -f
 	-find acpkg/gcc-3.4.4 -name config.status | xargs rm -f
@@ -123,7 +128,7 @@ gcc3.4.4: $(ACPKG_BINS)
 	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
 
-gcc3.4.5: $(ACPKG_BINS)
+gcc3.4.5: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	-find acpkg/gcc-3.4.5 -name config.cache | xargs rm -f
 	-find acpkg/gcc-3.4.5 -name config.status | xargs rm -f
@@ -136,44 +141,3 @@ gcc3.4.5: $(ACPKG_BINS)
 $(OBJDIR)/user/gcc344: gcc3.4.4
 	cp $(OBJDIR)/acpkg/bin/gcc   $(OBJDIR)/user/gcc344
 
-## GCC 4.1.0
-## not the same problem...
-##	http://sourceware.org/ml/crossgcc/2005-07/msg00015.html
-
-GCC_JOS_VARS := \
-	sys_errlist sys_nerr sys_siglist
-
-GCC_JOS_YES := \
-	asprintf atexit basename bcmp bcopy bsearch bzero calloc \
-	clock ffs getcwd getpagesize gettimeofday index insque memchr \
-	memcmp memcpy memmove mempcpy memset mkstemps putenv random \
-	rename rindex setenv snprintf sigsetmask stpcpy stpncpy strcasecmp \
-	strchr strdup strncasecmp strndup strrchr strstr strtod strtol strtoul \
-	tmpnam vasprintf vfprintf vprintf vsnprintf vsprintf waitpid \
-	getrusage on_exit psignal strerror strsignal sysconf sbrk \
-	realpath canonicalize_file_name sysctl wait3 wait4 __fsetlocking
-
-GCC_JOS_NO := \
-	pstat_getstatic pstat_getdynamic strverscmp sysmp getsysinfo table _doprnt times \
-	mkstemps vfork
-
-GCC_JOS_FORK := fork
-	
-GCC_JOS_SEARCH := strerror
-	
-GCC_ENVVARS := $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_YES))
-GCC_ENVVARS += $(patsubst %, ac_cv_func_%=yes, $(GCC_JOS_FORK))
-GCC_ENVVARS += $(patsubst %, libiberty_cv_var_%=yes, $(GCC_JOS_VARS))
-GCC_ENVVARS += $(patsubst %, ac_cv_func_%=no, $(GCC_JOS_NO))
-GCC_ENVVARS += $(patsubst %, ac_cv_search_%="none required", $(GCC_JOS_SEARCH))
-
-GCC_BUILD_FLAGS := JOS64_BUILD_CPPFLAGS=\"-g -O2 -Wall \"
-
-gcc4.1.0:
-	@mkdir -p $(ACPKG_PREFIX)
-	#find $(TOP)/acpkg/gcc-4.1.0 -name config.cache | xargs rm
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) ./configure $(AUTOCONF_ARGS) --disable-nls --without-libcpp --without-headers --with-newlib --disable-threads --disable-shared" )
-	#( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) gmake clean" )
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) gmake $(GCC_ENVVARS) LANGUAGES=c" )
-	( cd $(TOP)/acpkg/gcc-4.1.0 && sh -c "$(ACENV) $(GCC_BUILD_FLAGS) gmake install" )
-	
