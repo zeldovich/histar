@@ -48,7 +48,8 @@ LIB_SRCFILES :=	\
 	lib/sha1.c \
 	lib/authclnt.cc \
 	lib/utrap.c \
-	lib/profiler.c
+	lib/profiler.c \
+	lib/tun.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
