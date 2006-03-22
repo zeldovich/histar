@@ -27,17 +27,13 @@ ACENV += PATH=\"$(TOP)/$(ACPKG_BINDIR):$$PATH\"
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-REAL_TARGET_GXX	:= $(shell which $(TARGET)-g++)
-ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc $(ACPKG_BINDIR)/$(TARGET)-g++
+ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc
 
 $(ACPKG_BINS):
 	@mkdir -p $(ACPKG_BINDIR)
 	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-gcc
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
-	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-g++
-	echo "exec $(REAL_TARGET_GXX) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-g++
-	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-g++
 
 $(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
@@ -71,6 +67,22 @@ ncurses: $(ACPKG_BINS)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
+
+## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
+nano: $(ACPKG_BINS)
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
+	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake install" )
+
+## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
+nvi: $(ACPKG_BINS)
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) vi_cv_sprintf_count=yes ./configure $(AUTOCONF_ARGS) --disable-curses" )
+	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake" )
+	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake install" )
 
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
