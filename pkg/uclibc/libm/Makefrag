@@ -27,5 +27,5 @@ $(LIBM_COBJFILES): $(OBJDIR)/pkg/uclibc/libm/%.o : pkg/uclibc/libm/%.c
 $(OBJDIR)/lib/libm.a: $(LIBM_OBJFILES)
 	@mkdir -p $(@D)
 	rm -f $@
-	$(AR) r $@ $(LIBC_OBJFILES)
+	$(AR) r $@ $(LIBM_OBJFILES)
 	
