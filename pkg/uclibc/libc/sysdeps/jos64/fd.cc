@@ -890,6 +890,14 @@ fstat(int fdnum, struct stat *buf) __THROW
     return dev->dev_stat(fd, buf);
 }
 
+extern "C" int 
+fstatfs(int fdnum, struct statfs *buf) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
+
 extern "C" int
 __libc_fcntl(int fdnum, int cmd, ...) __THROW
 {

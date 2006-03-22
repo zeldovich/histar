@@ -27,13 +27,17 @@ ACENV += PATH=\"$(TOP)/$(ACPKG_BINDIR):$$PATH\"
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc
+REAL_TARGET_GXX	:= $(shell which $(TARGET)-g++)
+ACPKG_BINS	:= $(ACPKG_BINDIR)/$(TARGET)-gcc $(ACPKG_BINDIR)/$(TARGET)-g++
 
 $(ACPKG_BINS):
 	@mkdir -p $(ACPKG_BINDIR)
 	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-gcc
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-gcc
+	echo "#!/bin/sh" > $(ACPKG_BINDIR)/$(TARGET)-g++
+	echo "exec $(REAL_TARGET_GXX) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_BINDIR)/$(TARGET)-g++
+	chmod a+x $(ACPKG_BINDIR)/$(TARGET)-g++
 
 $(OBJDIR)/user/gzip $(OBJDIR)/user/gunzip: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
@@ -52,12 +56,21 @@ binutils: $(ACPKG_BINS)
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
+## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 openvpn: $(ACPKG_BINS)
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-lzo --disable-ssl --disable-crypto" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openvpn-2.0.5 && sh -c "$(ACENV) gmake install" )
+
+## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
+ncurses: $(ACPKG_BINS)
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --without-cxx-binding" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install" )
 
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
