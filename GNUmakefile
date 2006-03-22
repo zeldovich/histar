@@ -67,7 +67,8 @@ CRTN	:= $(OBJDIR)/lib/crtn.o
 LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
-	   $(OBJDIR)/lib/libc.a
+	   $(OBJDIR)/lib/libc.a \
+	   $(OBJDIR)/lib/libm.a
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib
 LIBS	:= -ljos -llwip -lc -ljos -lc
 

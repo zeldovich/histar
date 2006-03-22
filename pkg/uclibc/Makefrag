@@ -12,3 +12,4 @@ USER_CXXFLAGS := $(UCLIBC_INCLUDES) $(USER_CXXFLAGS)
 USER_INC      := $(UCLIBC_INCLUDES) $(USER_INC)
 
 include pkg/uclibc/libc/Makefrag
+include pkg/uclibc/libm/Makefrag
