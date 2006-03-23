@@ -246,48 +246,6 @@ builtin_cd(int ac, char **av)
 }
 
 static void
-builtin_mount(int ac, char **av)
-{
-    if (ac == 0) {
-	for (int i = 0; i < FS_NMOUNT; i++) {
-	    struct fs_mtab_ent *mtab = &fs_mtab->mtab_ent[i];
-	    if (mtab->mnt_name[0])
-		printf("<%ld.%ld>: %s -> <%ld.%ld>\n",
-		       mtab->mnt_dir.obj.container, mtab->mnt_dir.obj.object,
-		       mtab->mnt_name,
-		       mtab->mnt_root.obj.container, mtab->mnt_root.obj.object);
-	}
-    } else if (ac == 3) {
-	const char *mdir = av[0];
-	const char *mname = av[1];
-	const char *ctarg = av[2];
-
-	uint64_t ct;
-	int r = strtou64(ctarg, 0, 10, &ct);
-	if (r < 0) {
-	    printf("bad number: %s\n", ctarg);
-	    return;
-	}
-
-	struct fs_inode dir, root;
-	fs_get_root(ct, &root);
-
-	r = fs_namei(mdir, &dir);
-	if (r < 0) {
-	    printf("fs_namei(%s): %s\n", mdir, e2s(r));
-	    return;
-	}
-
-	r = fs_mount(dir, mname, root);
-	if (r < 0)
-	    printf("fs_mount: %s\n", e2s(r));
-    } else {
-	printf("Usage: mount\n");
-	printf("       mount <directory> <name> <container>\n");
-    }
-}
-
-static void
 builtin_exit(int ac, char **av)
 {
     close(0);
@@ -304,7 +262,6 @@ static struct {
     { "unref",	"Drop container object",	&builtin_unref },
     { "exit",	"Exit",				&builtin_exit },
     { "cd",	"Change directory",		&builtin_cd },
-    { "mount",	"Mount a container in the FS",	&builtin_mount },
 };
 
 static void

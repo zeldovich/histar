@@ -93,7 +93,9 @@ KERN_BINFILES := \
 	user/pftest \
 	user/execbench \
 	user/ipcbench \
-	user/true
+	user/true \
+	user/mount \
+	user/umount
 
 	#user/gzip \
 	#user/tar \
