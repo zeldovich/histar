@@ -46,10 +46,6 @@
 
 #include "netif/etharp.h"
 
-/* Define those to better describe your network interface. */
-#define IFNAME0 'e'
-#define IFNAME1 'n'
-
 #define JIF_BUFS	64
 
 struct jif {
@@ -392,10 +388,9 @@ jif_init(struct netif *netif)
     }
 
     netif->state = jif;
-    netif->name[0] = IFNAME0;
-    netif->name[1] = IFNAME1;
     netif->output = jif_output;
     netif->linkoutput = low_level_output;
+    memcpy(&netif->name[0], "en", 2);
 
     jif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
 
