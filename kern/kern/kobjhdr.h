@@ -25,6 +25,15 @@ struct kobject_hdr {
 
     uint64_t ko_ref;	// persistent references (containers)
 
+    // Bytes reserved for this object.  Counts towards the parent container's
+    // ct_quota_used, and represents the space that is taken up (or could be
+    // taken up, without information flow) by this object.
+    //
+    // For container objects, the space represented by ko_quota_reserve is
+    // used to provide space for objects in the container (by incrementing
+    // the container's ct_quota_used).
+    uint64_t ko_quota_reserve;
+
     uint64_t ko_flags;
     uint64_t ko_nbytes;
     uint64_t ko_min_bytes;		// cannot shrink below this size

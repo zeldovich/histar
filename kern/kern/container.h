@@ -22,10 +22,8 @@ struct Container {
 
     kobject_id_t ct_parent;
 
-    // Number of bytes reserved for this container and its sub-objects.
-    uint64_t ct_quota_total;
-
     // Number of bytes that this container and its sub-objects are taking up.
+    // Must always be less than ko_quota_reserve.
     uint64_t ct_quota_used;
 
     bool_t ct_avoid[kobj_ntypes];	// cannot store certain objects
