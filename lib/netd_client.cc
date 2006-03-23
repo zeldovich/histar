@@ -21,10 +21,14 @@ static int tainted;
 static int
 netd_client_init(void)
 {
-    int64_t netd_ct = container_find(start_env->root_container,
-				     kobj_container, "netd");
-    if (netd_ct < 0)
-	return netd_ct;
+    struct fs_inode netd_ct_ino;
+    int r = fs_namei("/netd", &netd_ct_ino);
+    if (r < 0) {
+	cprintf("netd_client_init: fs_namei /netd: %s\n", e2s(r));
+	return r;
+    }
+
+    uint64_t netd_ct = netd_ct_ino.obj.object;
 
     int64_t gate_id = container_find(netd_ct, kobj_gate, "netd");
     if (gate_id < 0)
