@@ -88,6 +88,8 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi) ? :
 	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
+    } else if (SAFE_EQUAL(iflow, iflow_alloc)) {
+	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else {
 	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
     }
@@ -222,7 +224,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
 
     // Make sure that it's legal to allocate object at this label!
-    r = l ? kobject_iflow_check(kh, iflow_write) : 0;
+    r = l ? kobject_iflow_check(kh, iflow_alloc) : 0;
     if (r < 0) {
 	kobject_set_label_prepared(kh, kolabel_contaminate, l, 0);
 	page_free(p);
