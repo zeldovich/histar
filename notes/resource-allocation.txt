@@ -43,8 +43,19 @@ don't have any interesting resource properties of their own..
 Floating point register state can potentially grow a thread..?
 Likely punt for now; force user to explicitly enable FP support.
 
+---
+
 Probably the right thing to do is to define a resource trap,
 and trap the thread when it runs out of resources in some container.
 Pass the container as an argument to the trap handler, and how many
 more bytes it needs in that container.
+
+Actually, traps should only be used for cases when there isn't an
+explicit error channel to user code.  In this case we have a perfectly
+good return value, and the user syscall wrapper just needs to vector
+to the resource allocator when it gets -E_RESOURCE; for every operation
+there is just one container whose resources are being used (hopefully?)
+so we know what container to grow.  Then the only question is knowing
+how much space we need -- but maybe this doesn't matter very much since
+we will transfer large amounts of disk space quota anyway.
 
