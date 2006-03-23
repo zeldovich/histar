@@ -67,5 +67,5 @@ main(int ac, char **av)
     }
 
     netd_lwip_init(&ready_cb, srv, netd_if_tun, &tun,
-		   0x0a080002, 0xffffff00, 0x0a080001);
+		   0x0200080a, 0x00ffffff, 0x0100080a);
 }
