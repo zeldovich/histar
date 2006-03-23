@@ -1,0 +1,26 @@
+=== secrecy / privacy ===
+
+* lots of different security compartments; either many different
+  users or different parts of a user's data (finance, class, ..)
+
+* preclude data from leaking outside, or at least not without
+  being sanitized in some way
+
+potential things to think about:
+
++ google search history
+  - lots of users' data on the same server
+  - what operations do users want from it?  what's the declassifier?
+  - what does google want to do with the data?
+
++ crypto as declassifier
+  - small piece of code that keeps your crypto key
+  - taints when decrypted, declassifies when encrypted
+
+=== integrity ===
+
+...
+
+spyware?
+untrusted code that shouldn't be able to modify e.g. financial data?
+

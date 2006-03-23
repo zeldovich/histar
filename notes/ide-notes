@@ -1,0 +1,84 @@
+NetBSD:
+
+    dev/pci/pciide_common.c
+    dev/ic/wdc.c
+    dev/ata/ata_wdc.c [actual impl of IDE HDD stuff]
+    dev/ata/wd.c [seems to be detached from specific HW stuff]
+    dev/ata/ata.c [doesn't seem too relevant]
+
+noone uses WDC_CAPABILITY_SELECT (wdc->select)
+
+=== pciide_common.c ===
+
+PCI IDE sets WDC_CAPABILITY_IRQACK when doing DMA, 
+since you need to clear the DMA controller's ISR
+
+pciide_dma_init + start:
+ - clear ISR
+ - write PRD
+ - write direction bit
+ - write direction bit + start
+
+pciide_dma_finish:
+ - unless forcing, !IDEDMA_CTL_INTR returns WDC_DMAST_NOIRQ
+ - clear start bit (but leave others alone?!)
+ - IDEDMA_CTL_ERR: error
+ - !IDEDMA_CTL_INTR: WDC_DMAST_NOIRQ
+ - IDEDMA_CTL_ACT: WDC_DMAST_UNDER, comment claims only OK for ATAPI
+
+interrupt handling:
+ pciide_compat_intr -> wdcintr
+ pciide_pci_intr -> wdcintr (+ logic to optimize for which bus to service)
+
+=== wdc.c ===
+
+wdcintr:
+    two flags: IRQ_WAIT and DMA_WAIT
+    clear IDE ISR (read status reg) even if not IRQ_WAIT
+
+    if in DMA_WAIT, then do dma_finish and save dma_status
+	if dma_status says NOIRQ, return from wdcintr!
+
+    calls wdc_ata_bio_intr (set up in wdc_ata_bio)
+
+wdc_dmawait:
+    call pciide_dma_finish for a while, then force it
+    save dma_status
+
+wdcwait:
+    wait for status register to be not BSY and some bits set
+
+wdc_exec_command:
+    wdccommand_start
+    wdccommand_intr
+    wdccommand_done
+    XXX
+
+wdccommand:
+    used to issue all commands; just writes the regs
+
+wdccommandext:
+    LBA48 version of the above
+
+=== ata_wdc.c ===
+
+_wdc_ata_bio_start:
+    dma_init
+    write drive selector into drive/head register (+ WDSD_IBM)
+    wdc_wait_for_ready(): wait for !BSY and DRDY
+    issue IDE command (READDMA/WRITEDMA)
+    start DMA
+    set DMA_WAIT
+    set IRQ_WAIT
+
+wdc_ata_bio_intr:
+    wdc_wait_for_unbusy(): wait until !BSY
+    IRQACK the DMA engine
+
+    check for errors: IDE_STAT_BSY, IDE_STAT_DF, IDE_STAT_ERR
+    if IDE_STAT_ERR, read error register, error out only on some(?!)
+
+    if dma_status was any of NOIRQ, UNDERRUN, ERROR, then it's an error
+
+    if IDE is IDE_STAT_DRQ, then something is wrong, it's an error
+

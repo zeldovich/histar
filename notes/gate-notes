@@ -1,0 +1,75 @@
+From mazieres-u23jmnutrdixiyz5rdkyxmssc6@temporary-address.scs.stanford.edu Mon Oct 10 18:01:11 2005
+Date: Tue, 04 Oct 2005 18:08:20 -0700
+From: David Mazieres
+    <mazieres-u23jmnutrdixiyz5rdkyxmssc6@temporary-address.scs.stanford.edu>
+To: nickolai@cs.stanford.edu
+Subject: Gate notes
+
+The program counter always has a label associated with it, PCL.
+For label L, let L*(h) = { * if L(h) == *, 3 otherwise }
+For label L, let L-(h) = { 0 if L(h) == *, L(h) otherwise }
+Let <=~ mean <= but where * is high
+let max~ mean max where * is high
+
+Two types of device:
+
+  * Segments
+
+    Segment S has a label S_L
+
+    Idea: You can write/send to a segment only if S_L = PCL
+    You can read/receive from a segment only if S_L <=~ PCL
+
+  * Gates
+
+    Gate G has a send label G_S and a receive label G_R
+    Gate G has an address space, which is a list of
+      (virtual address, segment, mode) pairs, with mode in { RW, RO, COW }
+    Gate G has an entry point (virtual address) G_E
+
+Operations:
+
+You can create a handle
+  Kernel returns unique (since boot) h
+  PCL(h) := *
+
+You can create a segment
+
+You can copy a segment S1 to create S2
+  Can specify S2_L, but must have min (S1_L, PCL*) <= S2_L 
+  Note1: obvious implementation would be COW 
+  Note2: If S1 no longer referenced, implementation need not copy;
+    in that case "copy" just changes the label and name of a segment
+
+You can create a gate so long as:
+  PCL <= G_S
+  Note: G_R can be anything
+  For any (VA, S, mode) in the list,
+    S_S <=~ PCL, and
+    min (S_L, G_S*) = G_S, or
+    S_L <=~ G_S and mode is RO or COW.
+
+You can modify an existing gate so long as:
+  PCL <= the previous value of G_S
+  PCL <= G_S (meaning the new value of G_S)
+  G_R(h) changes only if PCL(h) = * (or doesn't change? DEBATABLE)
+  For any (VA, S, mode) in the list,
+    S_S <=~ PCL, and
+    min (S_L, G_S*) = G_S, or
+    S_L <=~ G_S and mode is RO or COW.
+
+You can copy a gate G1 to create a new gate G2, so long as:
+  G2_R <= min (G1_R, PCL*)
+  min (G1_S, PCL) <= G2_S
+  The (VA, S, mode) lists in G1 and G2 are identical
+  For any (VA, S, mode) in G2's list,
+    min (S_L, G_S*) = G2_S, or
+    S_L <= G2_S and mode is RO or COW.
+
+You can *invoke* a gate when:
+  PCL <= G_R
+  Let PCL' := max~ (G_S, PCL-)
+  For any (VA, S, mode):
+    min (S_L, PCL'*) = PCL', or
+    S_L <=~ PCL' and mode is RO or COW.
+  After invocation, the virtual address switches and PCL := PCL'

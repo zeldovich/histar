@@ -1,0 +1,74 @@
+Deallocating object O is equivalent to writing to it.
+If A deallocates O and B can read O, B will observe
+it is no longer able to read O, and thus get information
+from A.  Thus it should be the case that A <= B.
+
+Here we assume that container objects have fixed labels;
+i.e. a container's label never changes.
+
+===
+
+For non-container objects, object O can only be named
+if it is currently referenced in container C that is
+readable by the current thread T.  That is, C <= T.
+If T' deallocates O, it must modify C, thus requiring
+T' <= C.  So, it stands that T' <= C <= T, and security
+is preserved.
+
+===
+
+For containers, a similar property can be achieved as
+long as containers are named starting from the root,
+which cannot be deallocated.  Suppose we want to access
+container C, and the path from the root is:
+
+    R -> C1 -> C2 -> .. -> Cn -> C
+
+Here "T can access C" means that T can attempt to read
+or write to C, and the only necessary check is C <= T
+or T <= C.
+
+Lemma 1: T can access R.
+
+    R cannot be deallocated, and no information is
+    conveyed by its presence.
+
+Lemma 2: if T can access Cn, and Cn -> Cn+1, then
+T can access Cn+1 if Cn <= T.
+
+    For any T' that can deallocate Cn+1, it stands that T'
+    can write to Cn:  T' <= Cn, so T' <= Cn <= T.  T' can
+    legally write to T.
+
+By induction, T can access C if R <= T, C1 <= T, .., Cn <= T;
+that is, C is named as the path from the root, and evaluated
+that way.
+
+===
+
+What if T deallocates C2, where C1 -> C2 -> C3?
+To deallocate C2, it must be that T <= C1, but T
+is also deallocating C3.
+
+Suppose T <= C2; then it's OK for T to deallocate C3.
+
+Suppose C2 < T, and thus C2 < C1.
+Then it might not be OK to for T to modify C2.
+
+Consider some T' trying to name C3; then C1 <= T' and C2 <= T'.
+Since T deallocates C2, T <= C1, and thereby T <= C1 <= T', so
+it's fine for T' to learn information from T.
+
+So, as long as containers are named along the path from the root,
+it's OK for T to deallocate C3 in this case.
+
+===
+
+So if we do naming from the root, we should be OK.
+Two questions:
+
+(1) does this preclude interesting configurations, e.g. the
+    gate container with a {3} label that we were discussing?
+
+(2) how to implement this efficiently?
+

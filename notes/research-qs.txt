@@ -1,0 +1,48 @@
+
+full persistence forces a lot of issues that otherwise are solved by reboot:
+    - resource revocation / reclaim
+    - user resource leaks -- e.g. leaking netd sockets
+    - software failures
+
+system management in a fully-persistent world
+    - restarting components
+    - upgrades
+
+    - translate digital signatures into integrity levels (e.g. signature checker
+      runs with Mozilla:* and downloads Firefox updates as Mozilla:0)
+
+privilege-separated filesystem (partly done?)
+    - tracks taint information
+    - goes with applications that act on individual pieces of data?
+
+privilege-separated database
+    - goes with applications that touch lots of pieces of data
+    - large number of different data taints
+    - client does not trust db; db does not trust client
+    - interesting questions
+	* indexing and trust (hashing, trusted index, etc)
+	* usability vs security tradeoff -- how hard is it to
+	  start using new queries, upgrade DB, etc?
+
+differences from "jos32" asbestos:
+    - separate mechanism from policies and abstractions
+	* C_S, D_S, D_R are all a way of specifying the resulting
+	  label; the kernel computes only one bound and allows
+	  user-space to choose the label any way it wants -- it can
+	  do it using the same equation as jos32 (with CS/DS/DR) or
+	  anything else that's within information flow limits.
+	  for that matter, where's C_R?  you may want to atomically
+	  grant and take away clearance (recv label) at the same time.
+
+    - "fork-on-taint" model is forced by information flow constraints,
+      resulting in fewer covert channels and more confidence in the
+      system's enforcement of the label policy.
+
+    - easier to understand 
+	* kernel portion is simple and independent of how user-space
+	  uses it, and is really the place where you need a strict
+	  mathematical definition of label operations the most.
+	* user-level wrappers that implement C_S/D_S/D_R can be
+	  explained more loosely -- granting of privilege, adding or
+	  removing taint, etc.
+

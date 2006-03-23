@@ -1,0 +1,5 @@
+what's the point of having netd labels if anyone can call sys_net_ioctl?
+
+anyone can declassify {x:2} into {x:1} via netd?
+for that matter, what is netd's labeling?
+
