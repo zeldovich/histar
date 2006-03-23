@@ -53,7 +53,7 @@ typedef struct {
     uint64_t process_grant;
     uint64_t process_taint;
 
-    struct fs_mount_table fs_mtab;
+    struct cobj_ref fs_mtab_seg;
     struct fs_inode fs_root;
     struct fs_inode fs_cwd;
 
@@ -64,6 +64,7 @@ typedef struct {
 
 extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
+extern struct fs_mount_table *fs_mtab;
 
 extern uint64_t *tls_tidp;	/* 8 bytes for cached thread ID */
 extern void *tls_gate_args;	/* struct gate_call_args */

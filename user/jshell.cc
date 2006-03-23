@@ -250,7 +250,7 @@ builtin_mount(int ac, char **av)
 {
     if (ac == 0) {
 	for (int i = 0; i < FS_NMOUNT; i++) {
-	    struct fs_mtab_ent *mtab = &start_env->fs_mtab.mtab_ent[i];
+	    struct fs_mtab_ent *mtab = &fs_mtab->mtab_ent[i];
 	    if (mtab->mnt_name[0])
 		printf("<%ld.%ld>: %s -> <%ld.%ld>\n",
 		       mtab->mnt_dir.obj.container, mtab->mnt_dir.obj.object,

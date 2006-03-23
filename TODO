@@ -11,8 +11,6 @@ currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
 
-make the mount table a separate segment that can be shared
-
 min/max labels on MLT to control contamination
 
 MT-safe c++ support (lib/cppsup/bits/gthr.h)

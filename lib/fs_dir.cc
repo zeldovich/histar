@@ -127,7 +127,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
     }
 
     for (int i = 0; i < FS_NMOUNT; i++) {
-	struct fs_mtab_ent *mnt = &start_env->fs_mtab.mtab_ent[i];
+	struct fs_mtab_ent *mnt = &fs_mtab->mtab_ent[i];
 	if (mnt->mnt_dir.obj.object == dir.obj.object &&
 	    !strcmp(&mnt->mnt_name[0], fn))
 	{
