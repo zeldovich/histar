@@ -366,5 +366,9 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 	*slash = '\0';
 	*dirname = pn;
 	*basename = slash + 1;
+
+	// Corner case: if pn is "/foo", then dirname="/" and basename="foo"
+	if (**dirname == '\0')
+	    *dirname = "/";
     }
 }

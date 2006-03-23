@@ -53,10 +53,8 @@ store all * handles in a privstore
 
 fix netd bug (fetch'ing files hangs for some files but not others)
 
-tun/tap driver for openvpn
-allow multiple netd's (specify netd gate in fd_sock)
-tun/tap-backed interface for lwip
-vpn netd
+vpn netd: tainting
+declassify exit
 
 how to integrate tainting with the shell?  maybe something along these lines:
   sh% run_tainted vpn_red sh
