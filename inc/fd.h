@@ -74,6 +74,7 @@ struct Fd
 	} fd_dev_state;
 
 	struct {
+	    struct cobj_ref netd_gate;
 	    int s;
 	} fd_sock;
 

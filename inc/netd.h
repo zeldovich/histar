@@ -2,6 +2,7 @@
 #define JOS_INC_NETD_H
 
 #include <inc/types.h>
+#include <inc/container.h>
 #include <sys/select.h>
 
 // We define our own sockaddr_in because we need to translate
@@ -137,14 +138,16 @@ struct netd_op_args {
 	struct netd_op_getsockopt_args getsockopt;
 	struct netd_op_recv_args recv;
 	struct netd_op_send_args send;
-    struct netd_op_select_args select;
+	struct netd_op_select_args select;
     };
 };
 
 void netd_dispatch(struct netd_op_args *a);
 void netd_lwip_init(void (*cb)(void*), void *cbarg) __attribute__((noreturn));
 
-int  netd_call(struct netd_op_args *a);
+int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
+struct cobj_ref netd_get_gate(void);
+void netd_set_gate(struct cobj_ref g);
 
 struct host_entry {
     const char *alias;

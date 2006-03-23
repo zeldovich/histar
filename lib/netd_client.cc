@@ -15,7 +15,6 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
 
-static int netd_client_inited;
 static struct cobj_ref netd_gate;
 static int tainted;
 
@@ -31,24 +30,34 @@ netd_client_init(void)
     if (gate_id < 0)
 	return gate_id;
 
-    netd_client_inited = 1;
     netd_gate = COBJ(netd_ct, gate_id);
     return 0;
 }
 
-int
-netd_call(struct netd_op_args *a) {
-    for (int i = 0; i < 10 && netd_client_inited == 0; i++) {
+struct cobj_ref
+netd_get_gate(void)
+{
+    for (int i = 0; i < 10 && netd_gate.object == 0; i++) {
 	int r = netd_client_init();
 	if (r < 0)
 	    thread_sleep(100);
     }
 
-    if (netd_client_inited == 0) {
+    if (netd_gate.object == 0)
 	cprintf("netd_call: cannot initialize netd client\n");
-	return -1;
-    }
 
+    return netd_gate;
+}
+
+void
+netd_set_gate(struct cobj_ref g)
+{
+    netd_gate = g;
+}
+
+int
+netd_call(struct cobj_ref gate, struct netd_op_args *a)
+{
     struct ulabel *seg_label = label_get_current();
     if (seg_label == 0) {
 	cprintf("netd_call: cannot get label\n");
@@ -79,7 +88,7 @@ netd_call(struct netd_op_args *a) {
     try {
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	gate_call(netd_gate, &gcd, 0, 0, 0);
+	gate_call(gate, &gcd, 0, 0, 0);
 	seg = gcd.param_obj;
     } catch (error &e) {
 	cprintf("netd_call: %s\n", e.what());

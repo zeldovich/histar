@@ -40,6 +40,8 @@ netd_to_libc(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
 int
 socket(int domain, int type, int protocol)
 {
+    struct cobj_ref netd_gate = netd_get_gate();
+
     struct Fd *fd;
     int r = fd_alloc(&fd, "socket fd");
     if (r < 0)
@@ -50,7 +52,7 @@ socket(int domain, int type, int protocol)
     a.socket.domain = domain;
     a.socket.type = type;
     a.socket.protocol = protocol;
-    int sock = netd_call(&a);
+    int sock = netd_call(netd_gate, &a);
 
     if (sock < 0) {
 	fd_close(fd);
@@ -60,6 +62,7 @@ socket(int domain, int type, int protocol)
     fd->fd_dev_id = devsock.dev_id;
     fd->fd_omode = O_RDWR;
     fd->fd_sock.s = sock;
+    fd->fd_sock.netd_gate = netd_gate;
     return fd2num(fd);
 }
 
@@ -76,7 +79,7 @@ sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a.op_type = netd_op_bind;
     a.bind.fd = fd->fd_sock.s;
     libc_to_netd(&sin, &a.bind.sin);
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -92,7 +95,7 @@ sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
     libc_to_netd(&sin, &a.connect.sin);
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -102,7 +105,7 @@ sock_listen(struct Fd *fd, int backlog)
     a.op_type = netd_op_listen;
     a.listen.fd = fd->fd_sock.s;
     a.listen.backlog = backlog;
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -120,7 +123,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 
     a.op_type = netd_op_accept;
     a.accept.fd = fd->fd_sock.s;
-    int sock = netd_call(&a);
+    int sock = netd_call(fd->fd_sock.netd_gate, &a);
 
     if (sock < 0) {
 	fd_close(nfd);
@@ -130,6 +133,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
     nfd->fd_sock.s = sock;
+    nfd->fd_sock.netd_gate = fd->fd_sock.netd_gate;
 
     netd_to_libc(&a.accept.sin, &sin);
     memcpy(addr, &sin, sizeof(sin));
@@ -148,7 +152,7 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     a.write.fd = fd->fd_sock.s;
     a.write.count = count;
     memcpy(&a.write.buf[0], buf, count);
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static ssize_t
@@ -161,7 +165,7 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     a.op_type = netd_op_read;
     a.read.fd = fd->fd_sock.s;
     a.read.count = count;
-    int r = netd_call(&a);
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
     if (r > 0)
 	memcpy(buf, &a.read.buf[0], r);
     return r;
@@ -179,7 +183,7 @@ sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
     a.send.count = count;
     a.send.flags = flags;
     memcpy(&a.send.buf[0], buf, count);
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static ssize_t
@@ -193,7 +197,7 @@ sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
     a.recv.fd = fd->fd_sock.s;
     a.recv.count = count;
     a.recv.flags = flags;
-    int r = netd_call(&a);
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
     if (r > 0)
 	memcpy(buf, &a.recv.buf[0], r);
     return r;
@@ -205,7 +209,7 @@ sock_close(struct Fd *fd)
     struct netd_op_args a;
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -220,7 +224,7 @@ sock_getsockname(struct Fd *fd, struct sockaddr *addr,
 
     a.op_type = netd_op_getsockname;
     a.getsockname.fd = fd->fd_sock.s;
-    int r = netd_call(&a);
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
     netd_to_libc(&a.getsockname.sin, &sin);
     memcpy(addr, &sin, sizeof(sin));
     return r;
@@ -238,7 +242,7 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
 
     a.op_type = netd_op_getsockname;
     a.getpeername.fd = fd->fd_sock.s;
-    int r = netd_call(&a);
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
     netd_to_libc(&a.getpeername.sin, &sin);
     memcpy(addr, &sin, sizeof(sin));
     return r;
@@ -265,7 +269,7 @@ sock_setsockopt(struct Fd *fd, int level, int optname,
     memcpy(&a.setsockopt.optval[0], optval, optlen);
     a.setsockopt.optlen = optlen;
     a.setsockopt.fd = fd->fd_sock.s;
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
     
 static int
@@ -278,7 +282,7 @@ sock_getsockopt(struct Fd *fd, int level, int optname,
     a.getsockopt.level = level;
     a.getsockopt.optname = optname;
     a.getsockopt.fd = fd->fd_sock.s;
-    int r = netd_call(&a);
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
 
     if (a.getsockopt.optlen > *optlen)
 	return -E_INVAL;
@@ -302,7 +306,7 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
     a.op_type = netd_op_select ;
     a.select.fd = fd->fd_sock.s ;
     a.select.write = probe == dev_probe_write ? 1 : 0 ;
-    return netd_call(&a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 struct Dev devsock = 
