@@ -22,6 +22,12 @@ typedef uintptr_t mem_ptr_t;
 #define PACK_STRUCT_END
 
 #define S16_F	"d"
+#define U16_F	"u"
+#define X16_F	"x"
+
+#define S32_F	"d"
+#define U32_F	"u"
+#define X32_F	"x"
 
 #define LWIP_PLATFORM_DIAG(x)	cprintf x
 #define LWIP_PLATFORM_ASSERT(x)	panic(x)

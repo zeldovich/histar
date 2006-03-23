@@ -26,4 +26,11 @@
 #define TCP_SND_QUEUELEN	(3 * TCP_SND_BUF/TCP_MSS)
 #define TCP_WND			(32 * TCP_MSS)
 
+#if 0
+#define LWIP_DEBUG	1
+#define IP_DEBUG	(0x80)
+#define DBG_TYPES_ON	(0x80)
+#define DBG_MIN_LEVEL	0
+#endif
+
 #endif
