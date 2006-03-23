@@ -69,9 +69,10 @@ kobject_cksum(const struct kobject_hdr *ko)
 static int
 kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 {
-    if (cur_thread == 0)
-	return 0;
     if (SAFE_EQUAL(iflow, iflow_none))
+	return 0;
+
+    if (cur_thread == 0)
 	return 0;
 
     kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
@@ -84,11 +85,9 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     int r = 0;
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
-    } else if (SAFE_EQUAL(iflow, iflow_write)) {
-	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
-	r = kobject_iflow_check(ko, iflow_read) ? :
-	    kobject_iflow_check(ko, iflow_write);
+	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi) ? :
+	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else {
 	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
     }
