@@ -63,7 +63,9 @@ tun_output(struct netif *netif, struct pbuf *p, struct ip_addr *ipaddr)
     }
 
     struct tun_if *tun = netif->state;
+    lwip_core_unlock();
     write(tun->fd, &buf[0], txsize);
+    lwip_core_lock();
 
     return ERR_OK;
 }
@@ -74,7 +76,9 @@ tun_input(struct netif *netif)
     struct tun_if *tun = netif->state;
     static char buf[tun_mtu];
 
+    lwip_core_unlock();
     ssize_t cc = read(tun->fd, &buf[0], tun_mtu);
+    lwip_core_lock();
     if (cc < 0) {
 	cprintf("tun_input: cannot read packet\n");
 	return;
