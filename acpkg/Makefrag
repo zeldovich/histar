@@ -70,15 +70,18 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
-$(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
+$(OBJDIR)/acpkg/bin/tar: tar.patch acpkg/tar-1.15/__build
+
+tar.patch:
+	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_buffer.patch
+	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_system.patch
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
-$(OBJDIR)/tars/test_tar $(OBJDIR)/tars/test_gz: acpkg/test.tar acpkg/test.gz
+$(OBJDIR)/tars/test_tar: acpkg/test.tar
 	@mkdir -p $(OBJDIR)/tars
 	cp acpkg/test.tar $(OBJDIR)/tars/test_tar
-	cp acpkg/test.gz $(OBJDIR)/tars/test_gz
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 ncurses.conf acpkg/ncurses-5.5/Makefile:
