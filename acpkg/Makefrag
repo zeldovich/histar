@@ -41,22 +41,18 @@ $(ACPKG_WRAPS):
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
+acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
 acpkg/%/Makefile: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
-	-( cd acpkg/$(patsubst acpkg/%/Makefile,%,$@) && \
-	    sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/$(patsubst acpkg/%/Makefile,%,$@) && \
-	    sh -c "$(ACENV) ./configure \
-		$(AUTOCONF_ARGS) \
-		$(AUTOCONF_$(patsubst acpkg/%/Makefile,%,$@))" )
+	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 
+acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
 acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
-	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
-	    sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
-	    sh -c "$(ACENV) gmake" )
-	( cd acpkg/$(patsubst acpkg/%/__build,%,$@) && \
-	    sh -c "$(ACENV) gmake install" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	rm -f $@
 	touch $@
 
