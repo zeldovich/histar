@@ -34,6 +34,7 @@ static const char *const error_string[E_MAXERROR + 1] = {
     [E_IO]	  = "disk IO error",
     [E_FIXEDSIZE] = "objetc is fixed-sized",
     [E_VARSIZE]	  = "object is variable-sized",
+    [E_RESOURCE]  = "container out of space",
     [E_RANGE]	  = "value out of range",
     [E_EOF]	  = "unexpected end-of-file",
     [E_MAX_OPEN]  = "out of file descriptors",

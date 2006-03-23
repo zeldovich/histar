@@ -17,6 +17,7 @@ enum {
     E_IO,		// disk IO error
     E_FIXEDSIZE,	// object is fixed-size
     E_VARSIZE,		// object is variable-sized
+    E_RESOURCE,		// container out of space
 
     // user-space errors
     E_RANGE,		// value out of range
