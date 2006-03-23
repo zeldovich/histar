@@ -591,7 +591,7 @@ static void
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes, uint32_t final)
 {
     const struct kobject *ko;
-    check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_write));
+    check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_rw));
     check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes, final ? 1 : 0));
 }
 
