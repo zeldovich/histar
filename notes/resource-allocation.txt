@@ -1,0 +1,50 @@
+Syscalls that affect resource use:
+
+    Any sort of object creation:
+
+	sys_net_create
+	sys_container_alloc
+	sys_gate_create
+	sys_thread_create
+	sys_segment_create
+	sys_segment_copy
+	sys_as_create
+
+    Hardlink creation:
+
+	sys_self_addref	    [[ replace with halt-and-copy? ]]
+	sys_segment_addref
+
+    Object deletion:
+
+	sys_obj_unref
+
+    Objects changing size:
+
+	sys_segment_resize
+	sys_as_set
+	anything that puts things in containers -- can resize container
+	    [[ so effectively all of the above ]]
+
+    Label operations:
+
+	sys_handle_create
+	sys_gate_enter
+	sys_thread_start
+	sys_self_set_label
+	sys_self_set_clearance
+
+	*** How to deal with label objects taking up space?
+	    Seems like we have to make them explicit then..
+
+MLTs will be collections of these symlink/blob objects so they
+don't have any interesting resource properties of their own..
+
+Floating point register state can potentially grow a thread..?
+Likely punt for now; force user to explicitly enable FP support.
+
+Probably the right thing to do is to define a resource trap,
+and trap the thread when it runs out of resources in some container.
+Pass the container as an argument to the trap handler, and how many
+more bytes it needs in that container.
+
