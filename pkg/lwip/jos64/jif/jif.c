@@ -46,8 +46,6 @@
 
 #include "netif/etharp.h"
 
-#include "jif.h"
-
 /* Define those to better describe your network interface. */
 #define IFNAME0 'e'
 #define IFNAME1 'n'
