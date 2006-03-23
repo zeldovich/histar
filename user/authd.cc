@@ -51,30 +51,30 @@ authd_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     authd_reply *reply = (authd_reply *) &parm->param_buf[0];
 
     try {
-	struct user *u = 0;
-	error_check(segment_map(ugate->ug_seg, SEGMAP_READ | SEGMAP_WRITE, (void **)&u, 0));
-	scope_guard<int, void *> unmap(segment_unmap, u);
-
-	if (strcmp(req->pass, u->pass))
-	    throw error(-E_INVAL, "bad password");
-	if (req->op == authd_chpass)
-	    memcpy(&u->pass[0], &req->npass[0], sizeof(u->pass));
-
-	label *ds = new label(3);
-	ds->set(u->grant, LB_LEVEL_STAR);
-	ds->set(u->taint, LB_LEVEL_STAR);
-
-	reply->err = 0;
-	reply->user_taint = u->taint;
-	reply->user_grant = u->grant;
-
-	gr->ret(0, ds, 0);
+    	struct user *u = 0;
+    	error_check(segment_map(ugate->ug_seg, SEGMAP_READ | SEGMAP_WRITE, (void **)&u, 0));
+    	scope_guard<int, void *> unmap(segment_unmap, u);
+    
+    	if (strcmp(req->pass, u->pass))
+    	    throw error(-E_INVAL, "bad password");
+    	if (req->op == authd_chpass)
+    	    memcpy(&u->pass[0], &req->npass[0], sizeof(u->pass));
+    
+    	label *ds = new label(3);
+    	ds->set(u->grant, LB_LEVEL_STAR);
+    	ds->set(u->taint, LB_LEVEL_STAR);
+    
+    	reply->err = 0;
+    	reply->user_taint = u->taint;
+    	reply->user_grant = u->grant;
+    
+    	gr->ret(0, ds, 0);
     } catch (error &e) {
-	cprintf("authd_user_entry: %s\n", e.what());
-	reply->err = e.err();
+    	cprintf("authd_user_entry: %s\n", e.what());
+    	reply->err = e.err();
     } catch (std::exception &e) {
-	cprintf("authd_user_entry: %s\n", e.what());
-	reply->err = -E_INVAL;
+    	cprintf("authd_user_entry: %s\n", e.what());
+    	reply->err = -E_INVAL;
     }
     gr->ret(0, 0, 0);
 }
@@ -134,43 +134,43 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     static pthread_mutex_t users_mu;
 
     if (req->op == authd_adduser) {
-	scoped_pthread_lock l(&users_mu);
-
-	struct user_gate *ug = user_gate_find(req->user);
-	if (ug)
-	    throw error(-E_EXISTS, "user already exists");
-
-	create_user(req->user, req->pass, &reply->user_grant, &reply->user_taint);
+    	scoped_pthread_lock l(&users_mu);
+    
+    	struct user_gate *ug = user_gate_find(req->user);
+    	if (ug)
+    	    throw error(-E_EXISTS, "user already exists");
+    
+    	create_user(req->user, req->pass, &reply->user_grant, &reply->user_taint);
     } else if (req->op == authd_deluser) {
-	scoped_pthread_lock l(&users_mu);
-
-	struct user_gate *ug = user_gate_find(req->user);
-	if (!ug)
-	    throw error(-E_INVAL, "user does not exist");
-
-	delete ug->ug_gate;
-	sys_obj_unref(ug->ug_seg);
-	LIST_REMOVE(ug, ug_link);
-	delete ug;
+    	scoped_pthread_lock l(&users_mu);
+    
+    	struct user_gate *ug = user_gate_find(req->user);
+    	if (!ug)
+    	    throw error(-E_INVAL, "user does not exist");
+    
+    	delete ug->ug_gate;
+    	sys_obj_unref(ug->ug_seg);
+    	LIST_REMOVE(ug, ug_link);
+    	delete ug;
     } else if (req->op == authd_login || req->op == authd_chpass) {
-	struct user_gate *ug = user_gate_find(req->user);
-	if (!ug)
-	    throw error(-E_INVAL, "user does not exist");
+    	struct user_gate *ug = user_gate_find(req->user);
+    	if (!ug)
+    	    throw error(-E_INVAL, "user does not exist");
+    
+    	gate_call_data gcd;
+    	authd_req *lreq = (authd_req *) &gcd.param_buf[0];
+    	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
+    
+    	memcpy(lreq, req, sizeof(*lreq));
+    	gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
 
-	gate_call_data gcd;
-	authd_req *lreq = (authd_req *) &gcd.param_buf[0];
-	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
-
-	memcpy(lreq, req, sizeof(*lreq));
-	gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
-
-	if (lrep->err)
-	    throw error(lrep->err, "response from authd_login");
-
-	reply->user_taint = lrep->user_taint;
-	reply->user_grant = lrep->user_grant;
+    	if (lrep->err)
+    	    throw error(lrep->err, "response from authd_login");
+    
+    	reply->user_taint = lrep->user_taint;
+    	reply->user_grant = lrep->user_grant;
     } else {
-	throw error(-E_BAD_OP, "unknown op %d", req->op);
+	   throw error(-E_BAD_OP, "unknown op %d", req->op);
     }
 }
 
@@ -186,25 +186,25 @@ authd_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     req.pass[sizeof(req.pass) - 1] = '\0';
 
     try {
-	authd_dispatch(&req, &reply);
-	if (reply.user_taint && reply.user_grant) {
-	    ds = new label(3);
-	    ds->set(reply.user_taint, LB_LEVEL_STAR);
-	    ds->set(reply.user_grant, LB_LEVEL_STAR);
-	}
+    	authd_dispatch(&req, &reply);
+    	if (reply.user_taint && reply.user_grant) {
+        	    ds = new label(3);
+        	    ds->set(reply.user_taint, LB_LEVEL_STAR);
+        	    ds->set(reply.user_grant, LB_LEVEL_STAR);
+	   }
     } catch (error &e) {
-	cprintf("authd_entry: %s\n", e.what());
-	reply.err = e.err();
+    	cprintf("authd_entry: %s\n", e.what());
+    	reply.err = e.err();
     } catch (std::exception &e) {
-	cprintf("authd_entry: %s\n", e.what());
-	reply.err = -E_INVAL;
+    	cprintf("authd_entry: %s\n", e.what());
+    	reply.err = -E_INVAL;
     }
 
     memcpy(&parm->param_buf[0], &reply, sizeof(reply));
     if (reply.err) {
-	if (ds)
-	    delete ds;
-	ds = 0;
+    	if (ds)
+    	    delete ds;
+    	ds = 0;
     }
 
     gr->ret(0, ds, 0);
@@ -231,6 +231,10 @@ authd_init()
     g->set_entry_container(start_env->proc_container);
     g->set_entry_function(&authd_entry, 0);
     g->enable();
+    
+    uint64_t ug;
+    uint64_t ut;
+    create_user((char*)"root", (char*)"", &ug, &ut);
 }
 
 int

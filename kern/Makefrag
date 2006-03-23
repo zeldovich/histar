@@ -94,6 +94,7 @@ KERN_BINFILES := \
 	user/execbench \
 	user/ipcbench \
 	user/true \
+	user/pl \
 	user/mount \
 	user/umount
 

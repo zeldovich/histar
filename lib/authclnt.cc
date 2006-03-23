@@ -9,7 +9,8 @@ extern "C" {
 #include <inc/authclnt.hh>
 #include <inc/error.hh>
 
-void auth_call(int op, const char *user, const char *pass, const char *npass,
+int 
+auth_call(int op, const char *user, const char *pass, const char *npass,
 	       uint64_t *ut, uint64_t *ug)
 {
     gate_call_data gcd;
@@ -32,5 +33,5 @@ void auth_call(int op, const char *user, const char *pass, const char *npass,
 
     *ut = reply->user_taint;
     *ug = reply->user_grant;
-    error_check(reply->err);    
+    return reply->err;    
 }
