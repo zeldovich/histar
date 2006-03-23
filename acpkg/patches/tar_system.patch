@@ -1,0 +1,11 @@
+--- tar-1.15_old/lib/system.h	2004-09-06 06:49:42.000000000 -0700
++++ tar-1.15/lib/system.h	2006-03-22 17:07:57.000000000 -0800
+@@ -22,6 +22,8 @@
+ # include <config.h>
+ #endif
+ 
++#include <locale.h>
++
+ #include <alloca.h>
+ 
+ #ifndef __attribute__
