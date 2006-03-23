@@ -546,7 +546,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
     check(segment_alloc(l, &sg));
     alloc_set_name(&sg->sg_ko, name);
 
-    check(segment_set_nbytes(sg, num_bytes));
+    check(segment_set_nbytes(sg, num_bytes, 0));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
@@ -579,16 +579,20 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
     check(container_find(&c, ct, iflow_rw));
 
     const struct kobject *ko;
-    check(cobj_get(seg, kobj_segment, &ko, iflow_none));
+    check(cobj_get(seg, kobj_segment, &ko, iflow_read));
+
+    if (!ko->sg.sg_fixed_size)
+	syscall_error(-E_VARSIZE);
+
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
 }
 
 static void
-sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes)
+sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes, uint32_t final)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_write));
-    check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes));
+    check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes, final ? 1 : 0));
 }
 
 static int64_t

@@ -90,3 +90,6 @@ system management in a fully-persistent world
 
 split the gate clearance into clearance & verify labels.
 
+console FD is not writable by most processes but they want to hard-link it.
+what of our rule that you cannot hard-link a segment without being able to write it?
+

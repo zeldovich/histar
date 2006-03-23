@@ -24,7 +24,7 @@ tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
 {
     struct cobj_ref tseg = tino.obj;
 
-    int r = sys_segment_resize(tseg, sizeof(struct tun_seg));
+    int r = sys_segment_resize(tseg, sizeof(struct tun_seg), 0);
     if (r < 0) {
 	errno = EPERM;
 	return -1;

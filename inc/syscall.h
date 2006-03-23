@@ -72,7 +72,7 @@ int64_t	sys_segment_create(uint64_t container, uint64_t num_bytes,
 int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
 			 struct ulabel *l, const char *name);
 int	sys_segment_addref(struct cobj_ref seg, uint64_t ct);
-int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes);
+int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes, uint32_t final);
 int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
 
 int64_t sys_as_create(uint64_t container, struct ulabel *l, const char *name);

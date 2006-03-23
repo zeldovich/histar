@@ -91,7 +91,7 @@ thread_alloc(const struct Label *contaminate,
     t->th_sg = sg->sg_ko.ko_id;
     kobject_incref(&sg->sg_ko);
 
-    r = segment_set_nbytes(sg, PGSIZE);
+    r = segment_set_nbytes(sg, PGSIZE, 0);
     if (r < 0)
 	return r;
     sg->sg_ko.ko_min_bytes = PGSIZE;

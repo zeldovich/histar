@@ -141,7 +141,7 @@ fs_dir_dseg::grow()
     check_writable();
 
     uint64_t pages = dir_->extra_pages + 1;
-    error_check(sys_segment_resize(dseg_, (pages + 1) * PGSIZE));
+    error_check(sys_segment_resize(dseg_, (pages + 1) * PGSIZE, 0));
     dir_->extra_pages = pages;
 
     refresh();

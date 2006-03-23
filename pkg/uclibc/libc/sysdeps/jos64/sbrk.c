@@ -56,7 +56,7 @@ sbrk(intptr_t x)
     }
 
     size_t nbrk = heap.brk + x;
-    r = sys_segment_resize(heapobj, nbrk);
+    r = sys_segment_resize(heapobj, nbrk, 0);
     if (r < 0) {
 	cprintf("sbrk: resizing heap to %ld: %s\n", nbrk, e2s(r));
 	goto out;

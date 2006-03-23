@@ -245,9 +245,9 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 }
 
 int
-sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes)
+sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes, uint32_t final)
 {
-    return syscall(SYS_segment_resize, seg, num_bytes);
+    return syscall(SYS_segment_resize, seg, num_bytes, final);
 }
 
 int64_t

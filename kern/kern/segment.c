@@ -37,7 +37,7 @@ segment_copy(const struct Segment *src, const struct Label *newl,
 
     segment_invalidate(src);
     if (src->sg_ko.ko_pin_pg) {
-	r = segment_set_nbytes(dst, src->sg_ko.ko_nbytes);
+	r = segment_set_nbytes(dst, src->sg_ko.ko_nbytes, 0);
 	if (r < 0)
 	    return r;
 
@@ -63,12 +63,21 @@ segment_copy(const struct Segment *src, const struct Label *newl,
 }
 
 int
-segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
+segment_set_nbytes(struct Segment *sg, uint64_t num_bytes, uint8_t final)
 {
+    if (sg->sg_fixed_size)
+	return -E_FIXEDSIZE;
+
     segment_invalidate(sg);
     if (sg->sg_ko.ko_pin_pg)
 	return -E_BUSY;
-    return kobject_set_nbytes(&sg->sg_ko, num_bytes);
+
+    int r = kobject_set_nbytes(&sg->sg_ko, num_bytes);
+    if (r < 0)
+	return r;
+
+    sg->sg_fixed_size = final;
+    return 0;
 }
 
 void
