@@ -288,12 +288,13 @@ user_bootstrap(void)
     struct Container *root_parent;
     assert(0 == label_alloc(&root_parent_label, 3));
     assert(0 == container_alloc(root_parent_label, &root_parent, 0));
+    kobject_incref(&root_parent->ct_ko);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container
     struct Container *rc;
     assert(0 == container_alloc(obj_label, &rc, root_parent->ct_ko.ko_id));
-    kobject_incref(&rc->ct_ko);
+    assert(0 == container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
