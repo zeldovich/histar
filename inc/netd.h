@@ -142,8 +142,17 @@ struct netd_op_args {
     };
 };
 
+typedef enum {
+    netd_if_jif,
+    netd_if_tun,
+} netd_dev_type;
+
+void netd_lwip_init(void (*cb)(void*), void *cbarg,
+		    netd_dev_type type, void *if_state,
+		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
+    __attribute__((noreturn));
+
 void netd_dispatch(struct netd_op_args *a);
-void netd_lwip_init(void (*cb)(void*), void *cbarg) __attribute__((noreturn));
 
 int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 struct cobj_ref netd_get_gate(void);

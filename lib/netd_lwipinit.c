@@ -25,6 +25,8 @@
 // various netd initialization and threads
 static int netd_stats = 0;
 
+static netd_dev_type dev_type;
+
 struct timer_thread {
     int msec;
     void (*func)(void);
@@ -33,7 +35,8 @@ struct timer_thread {
 };
 
 static void
-lwip_init(struct netif *nif)
+lwip_init(struct netif *nif, void *if_state,
+	  uint32_t init_addr, uint32_t init_mask, uint32_t init_gw)
 {
     // lwIP initialization sequence, as suggested by lwip/doc/rawapi.txt
     stats_init();
@@ -47,11 +50,14 @@ lwip_init(struct netif *nif)
     tcp_init();
 
     struct ip_addr ipaddr, netmask, gateway;
-    memset(&ipaddr,  0, sizeof(ipaddr));
-    memset(&netmask, 0, sizeof(netmask));
-    memset(&gateway, 0, sizeof(gateway));
+    ipaddr.addr  = init_addr;
+    netmask.addr = init_mask;
+    gateway.addr = init_gw;
 
-    if (0 == netif_add(nif, &ipaddr, &netmask, &gateway, 0, jif_init, ip_input))
+    if (0 == netif_add(nif, &ipaddr, &netmask, &gateway,
+		       if_state,
+		       (dev_type == netd_if_jif ? jif_init : tun_init),
+		       ip_input))
 	panic("lwip_init: error in netif_add\n");
 
     netif_set_default(nif);
@@ -64,8 +70,14 @@ net_receive(void *arg)
     struct netif *nif = (struct netif *) arg;
 
     lwip_core_lock();
-    for (;;)
-	jif_input(nif);
+    for (;;) {
+	if (dev_type == netd_if_jif)
+	    jif_input(nif);
+	else if (dev_type == netd_if_tun)
+	    tun_input(nif);
+	else
+	    panic("bad netif type %d", dev_type);
+    }
 }
 
 static void __attribute__((noreturn))
@@ -105,13 +117,19 @@ tcpip_init_done(void *arg)
 }
 
 void
-netd_lwip_init(void (*cb)(void *), void *cbarg)
+netd_lwip_init(void (*cb)(void *), void *cbarg,
+	       netd_dev_type type, void *if_state,
+	       uint32_t ipaddr, uint32_t netmask, uint32_t gw)
 {
     lwip_core_lock();
 
+    dev_type = type;
+
     struct netif nif;
-    lwip_init(&nif);
-    dhcp_start(&nif);
+    lwip_init(&nif, if_state, ipaddr, netmask, gw);
+
+    if (ipaddr == 0)
+	dhcp_start(&nif);
 
     struct cobj_ref receive_thread;
     int r = thread_create(start_env->proc_container, &net_receive, &nif,
@@ -121,11 +139,16 @@ netd_lwip_init(void (*cb)(void *), void *cbarg)
 
     struct timer_thread t_arp, t_tcpf, t_tcps, t_dhcpf, t_dhcpc;
 
-    start_timer(&t_arp,	    &etharp_tmr,	"arp timer",	ARP_TMR_INTERVAL);
-    start_timer(&t_tcpf,    &tcp_fasttmr,	"tcp f timer",	TCP_FAST_INTERVAL);
-    start_timer(&t_tcps,    &tcp_slowtmr,	"tcp s timer",	TCP_SLOW_INTERVAL);
-    start_timer(&t_dhcpf,   &dhcp_fine_tmr,	"dhcp f timer",	DHCP_FINE_TIMER_MSECS);
-    start_timer(&t_dhcpc,   &dhcp_coarse_tmr,	"dhcp c timer",	DHCP_COARSE_TIMER_SECS * 1000);
+    if (dev_type != netd_if_tun)
+	start_timer(&t_arp, &etharp_tmr, "arp timer", ARP_TMR_INTERVAL);
+
+    start_timer(&t_tcpf, &tcp_fasttmr, "tcp f timer", TCP_FAST_INTERVAL);
+    start_timer(&t_tcps, &tcp_slowtmr, "tcp s timer", TCP_SLOW_INTERVAL);
+
+    if (ipaddr == 0) {
+	start_timer(&t_dhcpf, &dhcp_fine_tmr,	"dhcp f timer",	DHCP_FINE_TIMER_MSECS);
+	start_timer(&t_dhcpc, &dhcp_coarse_tmr,	"dhcp c timer",	DHCP_COARSE_TIMER_SECS * 1000);
+    }
 
     sys_sem_t tcpip_init_sem = sys_sem_new(0);
     tcpip_init(&tcpip_init_done, &tcpip_init_sem);
@@ -142,7 +165,7 @@ netd_lwip_init(void (*cb)(void *), void *cbarg)
     };
 
     for (;;) {
-	if (dhcp_state != nif.dhcp->state) {
+	if (ipaddr == 0 && dhcp_state != nif.dhcp->state) {
 	    dhcp_state = nif.dhcp->state;
 	    cprintf("netd: DHCP state %d (%s)\n", dhcp_state,
 		    dhcp_states[dhcp_state] ? : "unknown");

@@ -59,5 +59,5 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, srv);
+    netd_lwip_init(&ready_cb, srv, netd_if_jif, 0, 0, 0, 0);
 }
