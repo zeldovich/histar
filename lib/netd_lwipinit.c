@@ -20,6 +20,7 @@
 #include <netif/etharp.h>
 
 #include <jif/jif.h>
+#include <jif/tun.h>
 
 // various netd initialization and threads
 static int netd_stats = 0;
