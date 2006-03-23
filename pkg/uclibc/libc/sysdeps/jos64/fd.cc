@@ -1021,8 +1021,10 @@ flock(int fd, int operation) __THROW
 int
 fchown(int fd, uid_t owner, gid_t group) __THROW
 {
-    set_enosys();
-    return -1;
+    // XXX, returns success for apps that would fail on 
+    // an error.
+    cprintf("fchown: not implemented\n") ;  
+    return 0;
 }
 
 int
@@ -1073,8 +1075,6 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 	    __set_errno(ENOTTY);
             return -1;
         }
-
-        //cprintf("ioctl: TCSETS: not actually setting termios\n") ;  
     }
 
     __set_errno(EINVAL);
