@@ -62,9 +62,6 @@ struct jif {
     void *buf_base;
 };
 
-static const struct eth_addr ethbroadcast =
-	{{0xff,0xff,0xff,0xff,0xff,0xff}};
-
 static void
 low_level_init(struct netif *netif)
 {
