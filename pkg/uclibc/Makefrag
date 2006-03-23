@@ -4,12 +4,10 @@ UCLIBC_INCLUDES := \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
 	-I$(TOP)/pkg/uclibc/include
 
-UCLIBC_CFLAGS   := $(UCLIBC_INCLUDES) $(USER_CFLAGS)   -D_LIBC
-UCLIBC_CXXFLAGS := $(UCLIBC_INCLUDES) $(USER_CXXFLAGS) -D_LIBC
+USER_INC := $(UCLIBC_INCLUDES) $(USER_INC)
 
-USER_CFLAGS   := $(UCLIBC_INCLUDES) $(USER_CFLAGS)
-USER_CXXFLAGS := $(UCLIBC_INCLUDES) $(USER_CXXFLAGS)
-USER_INC      := $(UCLIBC_INCLUDES) $(USER_INC)
+UCLIBC_CFLAGS   = $(USER_CFLAGS)   -D_LIBC
+UCLIBC_CXXFLAGS = $(USER_CXXFLAGS) -D_LIBC
 
 include pkg/uclibc/libc/Makefrag
 include pkg/uclibc/libm/Makefrag

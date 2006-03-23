@@ -11,9 +11,7 @@ OBJDIRS += \
 	pkg/lwip/jos64/arch \
 	pkg/lwip/jos64/jif
 
-USER_INC      += $(LWIP_INCLUDES)
-USER_CFLAGS   += $(LWIP_INCLUDES)
-USER_CXXFLAGS += $(LWIP_INCLUDES)
+USER_INC += $(LWIP_INCLUDES)
 
 LWIP_SRCFILES += \
 	pkg/lwip/api/api_lib.c \

@@ -46,17 +46,17 @@ PERL	:= perl
 
 # Compiler flags.
 
-WARNS	 := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
+COMWARNS := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
 	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
-CWARNS	 := $(WARNS) -Wmissing-prototypes -Wmissing-declarations
-CXXWARNS := $(WARNS)
+CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations
+CXXWARNS := $(COMWARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 
 OPTFLAG := -O2
 #OPTFLAG := -O3 -march=opteron
-CFLAGS	:= -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing
-CSTD	:= -std=c99
+COMFLAGS := -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing -Wall -MD
+CSTD	 := -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
 # Linker flags for user programs
@@ -89,17 +89,12 @@ all:
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
 	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo
 
-COMFLAGS   := $(CFLAGS) -Wall -MD
-COMCXXFLAGS := 
-KFLAGS     := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
-KERN_INC   := $(INCLUDES)
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(KERN_INC) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
-KERN_CXXFLAGS := $(KERN_CFLAGS) $(COMCXXFLAGS)
-USER_INC   := $(INCLUDES)
-USER_COMFLAGS := $(COMFLAGS) $(USER_INC) -DJOS_USER
-USER_CFLAGS := $(USER_COMFLAGS) $(CWARNS)
-USER_CXXFLAGS := $(USER_COMFLAGS) $(COMCXXFLAGS) $(CXXWARNS)
-
+KFLAGS      := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
+KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
+USER_INC    := $(INCLUDES)
+USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
+USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
+USER_CXXFLAGS = $(USER_COMFLAGS) $(CXXWARNS)
 
 # try to infer the correct GCCPREFIX
 conf/gcc.mk:
