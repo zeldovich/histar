@@ -46,8 +46,7 @@ at non-* levels, this might be a non-issue?
 
 ===
 
-store all * handles in a privstore
- - pending more discussion on thread signaling label rules (thread groups?)
+store all * handles in a privstore; thread label *'s is a cache..
 
 ===
 
