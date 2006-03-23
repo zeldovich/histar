@@ -37,6 +37,12 @@ Syscalls that affect resource use:
 	*** How to deal with label objects taking up space?
 	    Seems like we have to make them explicit then..
 
+	    Cannot do this -- the rule has to be that space is
+	    reserved in the system for every hard link.  Thus,
+	    since every object has a hard link to its label,
+	    every object has to claim space for it.  Similar
+	    to resource allocation for hard-linked segments.
+
 MLTs will be collections of these symlink/blob objects so they
 don't have any interesting resource properties of their own..
 
