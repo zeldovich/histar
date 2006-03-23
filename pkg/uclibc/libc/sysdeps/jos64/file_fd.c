@@ -50,7 +50,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    return -1;
 	}
 
-	return tun_open(ino, tun_suffix);
+	return tun_open(ino, tun_suffix, flags);
     }
 
     if (!strcmp(pn, "")) {

@@ -20,7 +20,7 @@ struct tun_seg {
 };
 
 int
-tun_open(struct fs_inode tino, const char *pn_suffix)
+tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
 {
     struct cobj_ref tseg = tino.obj;
 
@@ -49,7 +49,7 @@ tun_open(struct fs_inode tino, const char *pn_suffix)
     }
 
     fd->fd_dev_id = devtun.dev_id;
-    fd->fd_omode = O_RDWR;
+    fd->fd_omode = flags;
     fd->fd_tun.tun_seg = tseg;
     fd->fd_tun.tun_a = tun_a;
 
@@ -59,7 +59,7 @@ tun_open(struct fs_inode tino, const char *pn_suffix)
 static ssize_t
 tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 {
-    struct tun_seg *ts;
+    struct tun_seg *ts = 0;
     int r = segment_map(fd->fd_tun.tun_seg, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &ts, 0);
     if (r < 0) {
@@ -76,6 +76,12 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 	plen = atomic_read(&tp->len);
 	if (plen)
 	    break;
+
+	if ((fd->fd_omode & O_NONBLOCK)) {
+	    errno = EAGAIN;
+	    goto out;
+	}
+
 	sys_sync_wait(&atomic_read(&tp->len), 0, ~0UL);
     }
 
@@ -105,7 +111,7 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	return -1;
     }
 
-    struct tun_seg *ts;
+    struct tun_seg *ts = 0;
     int r = segment_map(fd->fd_tun.tun_seg, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &ts, 0);
     if (r < 0) {
@@ -114,23 +120,55 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	return -1;
     }
 
+    ssize_t cc = -1;
     struct tun_pipe *tp = &ts->p[!fd->fd_tun.tun_a];
 
     for (;;) {
 	uint64_t plen = atomic_read(&tp->len);
-	cprintf("tun_write: plen = %ld\n", plen);
 	if (!plen)
 	    break;
-	cprintf("tun_write: blocking\n");
+
+	if ((fd->fd_omode & O_NONBLOCK)) {
+	    errno = EAGAIN;
+	    goto out;
+	}
+
 	sys_sync_wait(&atomic_read(&tp->len), plen, ~0UL);
     }
 
     memcpy(&tp->buf[0], buf, len);
     atomic_set(&tp->len, len);
     sys_sync_wakeup(&atomic_read(&tp->len));
+    cc = len;
+
+out:
+    segment_unmap_delayed(ts, 1);
+    return cc;
+}
+
+static int
+tun_probe(struct Fd *fd, dev_probe_t probe)
+{
+    struct tun_seg *ts = 0;
+    int r = segment_map(fd->fd_tun.tun_seg, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &ts, 0);
+    if (r < 0) {
+	cprintf("tun_probe: cannot segment_map: %s\n", e2s(r));
+	errno = EIO;
+	return -1;
+    }
+
+    int rv;
+    if (probe == dev_probe_read) {
+	struct tun_pipe *tp = &ts->p[fd->fd_tun.tun_a];
+	rv = atomic_read(&tp->len) ? 1 : 0;
+    } else {
+	struct tun_pipe *tp = &ts->p[!fd->fd_tun.tun_a];
+	rv = atomic_read(&tp->len) ? 0 : 1;
+    }
 
     segment_unmap_delayed(ts, 1);
-    return len;
+    return rv;
 }
 
 static int
@@ -144,5 +182,6 @@ struct Dev devtun = {
     .dev_name = "tun",
     .dev_read = &tun_read,
     .dev_write = &tun_write,
+    .dev_probe = &tun_probe,
     .dev_close = &tun_close,
 };

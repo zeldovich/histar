@@ -3,6 +3,6 @@
 
 #include <inc/fd.h>
 
-int  tun_open(struct fs_inode tseg, const char *pn_suffix);
+int  tun_open(struct fs_inode tseg, const char *pn_suffix, int flags);
 
 #endif
