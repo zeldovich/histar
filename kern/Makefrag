@@ -60,6 +60,7 @@ KERN_BINFILES := \
 	user/idle \
 	user/netd \
 	user/netd_mom \
+	user/netd_vpn \
 	user/telnetd \
 	user/init \
 	user/httpd \
@@ -92,7 +93,7 @@ KERN_BINFILES := \
 	user/pftest \
 	user/execbench \
 	user/ipcbench \
-	user/true 
+	user/true
 
 	#user/gzip \
 	#user/tar \
