@@ -14,6 +14,8 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
 
+#include <signal.h>
+
 static int label_debug = 0;
 
 struct child_process
@@ -233,5 +235,8 @@ process_report_taint(void)
 int
 process_report_exit(int64_t code)
 {
-    return process_update_state(PROCESS_EXITED, code);
+    int r = process_update_state(PROCESS_EXITED, code);
+    if (r >= 0)
+	kill(start_env->ppid, SIGCHLD);
+    return r;
 }

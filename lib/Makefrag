@@ -49,7 +49,8 @@ LIB_SRCFILES :=	\
 	lib/authclnt.cc \
 	lib/utrap.c \
 	lib/profiler.c \
-	lib/tun.c
+	lib/tun.c \
+	lib/exit_declass.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
@@ -68,7 +69,7 @@ $(OBJDIR)/lib/%.o: lib/%.c
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)

@@ -12,7 +12,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 static uint64_t netd_taint_handle;
-enum { netd_do_taint = 0 };
+enum { netd_do_taint = 1 };
 
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)

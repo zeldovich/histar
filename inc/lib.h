@@ -94,6 +94,7 @@ void	thread_sleep(uint64_t msec);
 #define	PROCESS_RUNNING		0
 #define PROCESS_TAINTED		1
 #define PROCESS_EXITED		2
+#define PROCESS_TAINTED_EXIT	3
 
 struct process_state {
     uint64_t status;
