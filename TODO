@@ -52,17 +52,6 @@ store all * handles in a privstore; thread label *'s is a cache..
 
 fix netd bug (fetch'ing files hangs for some files but not others)
 
-vpn netd: tainting
-declassify exit
-
-how to integrate tainting with the shell?  maybe something along these lines:
-  sh% run_tainted vpn_red sh
-  vpn_red% .. running as { vpn_red:2 1 }
-  vpn_red% declassify_exit
-  sh% run_tainted vpn_green sh
-  vpn_green% .. running as { vpn_green:2 1 }
-  vpn_green% declassify_exit
-  sh% 
 also need to figure out how to specify which capability-like *-handles to pass
 across fork/exec/spawn.  e.g. want to pass unix-user *-handles when spawning
 processes, but not your process taint/grant handles.
@@ -72,8 +61,6 @@ thread halt-and-copy
 non-resizable segments
 
 user-space resource allocators
-
-how to deal with system calls returning E_RESOURCE?  every call to be checked?
 
 fsync, sync, reboot
 
@@ -92,6 +79,7 @@ split the gate clearance into clearance & verify labels.
 
 console FD is not writable by most processes but they want to hard-link it.
 what of our rule that you cannot hard-link a segment without being able to write it?
+can workaround in this case by using the existing console FD from another container.
 
 we seem to have a potential confused deputy problem with our file access
 mechanism..  how do you access a file using only a subset of your credentials?
