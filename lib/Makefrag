@@ -50,7 +50,7 @@ LIB_SRCFILES :=	\
 	lib/utrap.c \
 	lib/profiler.c \
 	lib/tun.c \
-	lib/exit_declass.cc
+	lib/declassify.cc
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag

@@ -6,7 +6,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/gateparam.h>
-#include <inc/exit_declass.h>
+#include <inc/declassify.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -65,12 +65,12 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
 
-	gatesrv *g = new gatesrv(gcd->taint_container, "exit declassifier",
+	gatesrv *g = new gatesrv(gcd->taint_container, "declassifier",
 				 &tl, &tc);
 	g->set_entry_container(start_env->proc_container);
-	g->set_entry_function(&exit_declassifier, 0);
+	g->set_entry_function(&declassifier, 0);
 	g->enable();
-	gcd->exit_gate = g->gate();
+	gcd->declassify_gate = g->gate();
 
 	cs->set(netd_taint_handle, 2);
     }

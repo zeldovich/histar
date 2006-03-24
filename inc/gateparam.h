@@ -8,7 +8,7 @@ struct gate_call_data {
     struct cobj_ref return_gate;
 
     uint64_t taint_container;
-    struct cobj_ref exit_gate;		// exit status declassifier
+    struct cobj_ref declassify_gate;
 
     /*
      * WARNING: this gate_call_data is usually in thread-local memory,
