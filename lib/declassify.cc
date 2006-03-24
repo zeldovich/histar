@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/declassify.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
+#include <inc/assert.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -22,6 +23,7 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
     struct declassify_args *darg =
 	(struct declassify_args *) &gcd->param_buf[0];
+    static_assert(sizeof(*darg) <= sizeof(gcd->param_buf));
 
     // XXX
     // somehow need to avoid confused deputy problem here -- should only
