@@ -13,21 +13,22 @@ extern "C" {
 static void
 login(char *u, char *p)
 {
-    uint64_t t, g;
-    if (auth_call(authd_login, u, p, "", &t, &g) < 0) {
+    authd_reply reply;
+    if (auth_call(authd_login, u, p, "", &reply) < 0) {
         printf("login failed\n");
         return;    
     }
 
     printf("logging in as %s, pw %s\n", u, p);
-    printf("taint %lu grant %lu\n", t, g);
+    printf("uid %ld taint %lu grant %lu\n", 
+	   reply.user_id, reply.user_taint, reply.user_grant);
     
     struct fs_inode fsshell;
     error_check(fs_namei("/bin/ksh", &fsshell));
 
     label ds(3);
-    ds.set(t, LB_LEVEL_STAR);
-    ds.set(g, LB_LEVEL_STAR);
+    ds.set(reply.user_taint, LB_LEVEL_STAR);
+    ds.set(reply.user_grant, LB_LEVEL_STAR);
 
     const char *argv[1] = { "/bin/ksh" };
     struct child_process shell = spawn(start_env->shared_container,

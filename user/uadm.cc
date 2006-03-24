@@ -43,8 +43,7 @@ main(int ac, char **av)
 	if (op == authd_chpass)
 	    npass = readline("new password: ");
 
-	uint64_t t, g;
-	auth_call(op, uname, pass, npass, &t, &g);
+	auth_call(op, uname, pass, npass, 0);
     } catch (std::exception &e) {
 	printf("%s\n", e.what());
     }

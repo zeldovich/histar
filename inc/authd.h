@@ -8,6 +8,7 @@ enum {
     authd_adduser,
     authd_deluser,
     authd_chpass,
+    authd_getuid,
 };
 
 struct authd_req {
@@ -19,6 +20,7 @@ struct authd_req {
 
 struct authd_reply {
     int err;
+    uint64_t user_id;
     uint64_t user_taint;
     uint64_t user_grant;
 };

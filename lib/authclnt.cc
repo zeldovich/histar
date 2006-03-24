@@ -8,10 +8,11 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/authclnt.hh>
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 int 
 auth_call(int op, const char *user, const char *pass, const char *npass,
-	       uint64_t *ut, uint64_t *ug)
+	  authd_reply *r)
 {
     gate_call_data gcd;
     authd_req *req = (authd_req *) &gcd.param_buf[0];
@@ -28,10 +29,14 @@ auth_call(int op, const char *user, const char *pass, const char *npass,
     strncpy(&req->user[0], user, sizeof(req->user));
     strncpy(&req->pass[0], pass, sizeof(req->pass));
     strncpy(&req->npass[0], npass, sizeof(req->npass));
+    
+    label ds;
+    thread_cur_label(&ds);
+    // XXX grant all handles?
+    gate_call(COBJ(authd_ct, authd_gt), &gcd, 0, &ds, 0);
+ 
+    if (r)
+	memcpy(r, reply, sizeof(*r));
 
-    gate_call(COBJ(authd_ct, authd_gt), &gcd, 0, 0, 0);
-
-    *ut = reply->user_taint;
-    *ug = reply->user_grant;
     return reply->err;    
 }

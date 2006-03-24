@@ -17,6 +17,10 @@ extern "C" {
 #include <inc/error.hh>
 
 static uint64_t users_ct;
+static uint64_t root_taint;
+static uint64_t root_grant;
+
+static uint64_t id_count;
 
 struct user_gate {
     LIST_ENTRY(user_gate) ug_link;
@@ -27,6 +31,7 @@ struct user_gate {
 LIST_HEAD(user_gates, user_gate) ug_head;
 
 struct user {
+    uint64_t id;
     char name[16];
     char pass[16];
     uint64_t grant;
@@ -43,6 +48,15 @@ user_gate_find(char *uname)
     return 0;
 }
 
+static char
+at_star(uint64_t taint, uint64_t grant)
+{
+    label l;
+    thread_cur_label(&l);
+    return (l.get(taint) == LB_LEVEL_STAR &&
+	    l.get(grant) == LB_LEVEL_STAR);
+}
+
 static void __attribute__((noreturn))
 authd_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
@@ -54,7 +68,15 @@ authd_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     	struct user *u = 0;
     	error_check(segment_map(ugate->ug_seg, SEGMAP_READ | SEGMAP_WRITE, (void **)&u, 0));
     	scope_guard<int, void *> unmap(segment_unmap, u);
-    
+	
+	if (req->op == authd_getuid) {
+	    reply->user_id = u->id;
+	    reply->user_taint = u->taint;
+	    reply->user_grant = u->grant;
+	    reply->err = 0;
+	    gr->ret(0, 0, 0);
+	}
+	
     	if (strcmp(req->pass, u->pass))
     	    throw error(-E_INVAL, "bad password");
     	if (req->op == authd_chpass)
@@ -67,7 +89,8 @@ authd_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     	reply->err = 0;
     	reply->user_taint = u->taint;
     	reply->user_grant = u->grant;
-    
+	reply->user_id = u->id;
+
     	gr->ret(0, ds, 0);
     } catch (error &e) {
     	cprintf("authd_user_entry: %s\n", e.what());
@@ -109,6 +132,7 @@ create_user(char *uname, char *pass, uint64_t *ug, uint64_t *ut)
 
     u->grant = g;
     u->taint = t;
+    u->id = id_count++;
     memcpy(&u->name[0], uname, sizeof(u->name));
     memcpy(&u->pass[0], pass, sizeof(u->pass));
 
@@ -134,7 +158,9 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     static pthread_mutex_t users_mu;
 
     if (req->op == authd_adduser) {
-    	scoped_pthread_lock l(&users_mu);
+	if (!at_star(root_taint, root_grant))
+	    throw error(-E_BAD_OP, "only root can add users"); 
+	scoped_pthread_lock l(&users_mu);
     
     	struct user_gate *ug = user_gate_find(req->user);
     	if (ug)
@@ -142,7 +168,9 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     
     	create_user(req->user, req->pass, &reply->user_grant, &reply->user_taint);
     } else if (req->op == authd_deluser) {
-    	scoped_pthread_lock l(&users_mu);
+    	if (!at_star(root_taint, root_grant))
+	    throw error(-E_BAD_OP, "only root can delete users"); 
+	scoped_pthread_lock l(&users_mu);
     
     	struct user_gate *ug = user_gate_find(req->user);
     	if (!ug)
@@ -169,6 +197,27 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     
     	reply->user_taint = lrep->user_taint;
     	reply->user_grant = lrep->user_grant;
+	reply->user_id = lrep->user_id;
+    } else if (req->op == authd_getuid) {
+	 struct user_gate *ug;
+	 LIST_FOREACH(ug, &ug_head, ug_link) {
+	     gate_call_data gcd;
+	     authd_req *lreq = (authd_req *) &gcd.param_buf[0];
+	     authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
+	     
+	     memcpy(lreq, req, sizeof(*lreq));
+	     gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
+	     
+	     if (lrep->err)
+		 throw error(lrep->err, "response from authd_login");
+	     if (at_star(lrep->user_taint, lrep->user_grant)) {
+		 reply->user_taint = lrep->user_taint;
+		 reply->user_grant = lrep->user_grant;
+		 reply->user_id = lrep->user_id;
+		 return;
+	     }
+	 }
+	 throw error(-E_INVAL, "no current user");
     } else {
 	   throw error(-E_BAD_OP, "unknown op %d", req->op);
     }
@@ -232,9 +281,7 @@ authd_init()
     g->set_entry_function(&authd_entry, 0);
     g->enable();
     
-    uint64_t ug;
-    uint64_t ut;
-    create_user((char*)"root", (char*)"", &ug, &ut);
+    create_user((char*)"root", (char*)"", &root_grant, &root_taint);
 }
 
 int
