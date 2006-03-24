@@ -52,9 +52,6 @@ KERN_BTREE := \
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
-# Only build files if they exist.
-#KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
-
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/idle \
