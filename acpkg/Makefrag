@@ -41,6 +41,7 @@ $(ACPKG_WRAPS):
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
+.PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
 acpkg/%/Makefile: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
@@ -53,7 +54,6 @@ acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
-	rm -f $@
 	touch $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
