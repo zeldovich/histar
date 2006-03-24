@@ -32,9 +32,6 @@ typedef uintptr_t mem_ptr_t;
 #define LWIP_PLATFORM_DIAG(x)	cprintf x
 #define LWIP_PLATFORM_ASSERT(x)	panic(x)
 
-// Our runtime is so incompetent..
-#define LWIP_PROVIDE_ERRNO
-
 #ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
