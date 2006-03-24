@@ -9,6 +9,8 @@ enum declassify_reqtype {
 
 struct declassify_args {
     int req;
+    int status;
+
     union {
 	struct {
 	    struct cobj_ref status_seg;
