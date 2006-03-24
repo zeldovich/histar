@@ -93,3 +93,6 @@ split the gate clearance into clearance & verify labels.
 console FD is not writable by most processes but they want to hard-link it.
 what of our rule that you cannot hard-link a segment without being able to write it?
 
+we seem to have a potential confused deputy problem with our file access
+mechanism..  how do you access a file using only a subset of your credentials?
+
