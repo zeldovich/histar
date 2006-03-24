@@ -96,3 +96,6 @@ what of our rule that you cannot hard-link a segment without being able to write
 we seem to have a potential confused deputy problem with our file access
 mechanism..  how do you access a file using only a subset of your credentials?
 
+gatesrv should not be an object: all state should live in the kernel gate.
+otherwise it's hard to GC the c++ object when the kernel object goes away.
+
