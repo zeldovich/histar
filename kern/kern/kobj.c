@@ -271,9 +271,6 @@ kobject_npages(const struct kobject_hdr *kp)
 int
 kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 {
-    if (nbytes < kp->ko_min_bytes)
-	return -E_RANGE;
-
     struct kobject *ko = kobject_h2k(kp);
 
     uint64_t curnpg = kobject_npages(kp);

@@ -91,10 +91,9 @@ thread_alloc(const struct Label *contaminate,
     t->th_sg = sg->sg_ko.ko_id;
     kobject_incref(&sg->sg_ko);
 
-    r = segment_set_nbytes(sg, PGSIZE, 0);
+    r = segment_set_nbytes(sg, PGSIZE, 1);
     if (r < 0)
 	return r;
-    sg->sg_ko.ko_min_bytes = PGSIZE;
 
     // XXX
     // Thread-local container has no parent?
@@ -235,6 +234,11 @@ thread_change_label(const struct Thread *const_t,
     // that you can write to the newly allocated object.
     struct Segment *sg_new;
     r = segment_copy(&ko_sg->sg, cur_th_label, &sg_new);
+    if (r < 0)
+	return r;
+
+    // Pin the size of the segment at PGSIZE
+    r = segment_set_nbytes(sg_new, PGSIZE, 1);
     if (r < 0)
 	return r;
 
