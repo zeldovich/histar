@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include <inc/gatesrv.hh>
+#include <inc/gateclnt.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
@@ -13,6 +14,11 @@ extern "C" {
 void
 exit_declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
+    if (start_env->exit_gate.object) {
+	gate_call(start_env->exit_gate, gcd, 0, 0, 0);
+	gr->ret(0, 0, 0);
+    }
+
     struct exit_declass_args *darg =
 	(struct exit_declass_args *) &gcd->param_buf[0];
 
