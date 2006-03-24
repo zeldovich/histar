@@ -6,6 +6,9 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/fd.h>
+#include <inc/gateparam.h>
+#include <inc/exit_declass.h>
+
 #include <string.h>
 }
 
@@ -13,6 +16,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
+#include <inc/gateclnt.hh>
 
 #include <signal.h>
 
@@ -235,6 +239,28 @@ process_report_taint(void)
 int
 process_report_exit(int64_t code)
 {
+    if (start_env->exit_gate.object) {
+	try {
+	    struct gate_call_data gcd;
+	    struct exit_declass_args *darg =
+		(struct exit_declass_args *) &gcd.param_buf[0];
+	    darg->status_seg = start_env->process_status_seg;
+	    darg->parent_pid = start_env->ppid;
+
+	    // Grant the exit declassifier our process grant handle,
+	    // so that it can write to our process status segment.
+	    label ds(3);
+	    ds.set(start_env->process_grant, LB_LEVEL_STAR);
+
+	    gate_call(start_env->exit_gate, &gcd, 0, &ds, 0);
+	} catch (std::exception &e) {
+	    cprintf("process_report_exit: %s\n", e.what());
+	    return -1;
+	}
+
+	return 0;
+    }
+
     int r = process_update_state(PROCESS_EXITED, code);
     if (r >= 0)
 	kill(start_env->ppid, SIGCHLD);

@@ -6,10 +6,12 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/gateparam.h>
+#include <inc/exit_declass.h>
 }
 
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
 
 static uint64_t netd_taint_handle;
 enum { netd_do_taint = 1 };
@@ -53,8 +55,25 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
     // Contaminate the caller with { taint:2 }
     label *cs = new label(LB_LEVEL_STAR);
-    if (netd_do_taint)
+    if (netd_do_taint) {
+	// XXX
+	// having gatesrv as an object seems like a bad idea.
+	// we really want to encapsulate all of the state into the gate,
+	// so that we don't leak memory as we create more and more gates..
+	label tl, tc;
+
+	thread_cur_label(&tl);
+	thread_cur_clearance(&tc);
+
+	gatesrv *g = new gatesrv(gcd->taint_container, "exit declassifier",
+				 &tl, &tc);
+	g->set_entry_container(start_env->proc_container);
+	g->set_entry_function(&exit_declassifier, 0);
+	g->enable();
+	gcd->exit_gate = g->gate();
+
 	cs->set(netd_taint_handle, 2);
+    }
 
     rg->ret(cs, 0, 0);
 }

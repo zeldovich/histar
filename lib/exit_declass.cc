@@ -16,6 +16,11 @@ exit_declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
     struct exit_declass_args *darg =
 	(struct exit_declass_args *) &gcd->param_buf[0];
 
+    // XXX
+    // somehow need to avoid confused deputy problem here -- should only
+    // exercise the caller's privilege when updating their exit status
+    // segment and delivering SIGCHLD.
+
     struct process_state *ps = 0;
     int r = segment_map(darg->status_seg, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &ps, 0);

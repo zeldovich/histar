@@ -21,7 +21,7 @@ return_stub(jos_jmp_buf *jb)
 {
     // Note: cannot use tls_gate_args variable since it's in RW-mapped space
     gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
-    taint_cow(gcd->taint_container);
+    taint_cow(gcd->taint_container, gcd->exit_gate);
     jos_longjmp(jb, 1);
 }
 

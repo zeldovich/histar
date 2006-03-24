@@ -38,7 +38,7 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     } while (0)
 
 void
-taint_cow(uint64_t taint_container)
+taint_cow(uint64_t taint_container, struct cobj_ref exit_gate)
 {
     uint64_t cur_ents[taint_cow_label_ents];
     uint64_t obj_ents[taint_cow_label_ents];
@@ -130,6 +130,7 @@ taint_cow(uint64_t taint_container)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
 
     start_env->proc_container = mlt_ct;
+    start_env->exit_gate = exit_gate;
 
     // XXX we probably won't be able to the old shared_container
     // anymore, so might as well use the new container for anything

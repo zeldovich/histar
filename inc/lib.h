@@ -48,6 +48,7 @@ typedef struct {
     uint64_t root_container;
 
     struct cobj_ref process_status_seg;
+    struct cobj_ref exit_gate;
 
     /* Handles that ensure process integrity */
     uint64_t process_grant;

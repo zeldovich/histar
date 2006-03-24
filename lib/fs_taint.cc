@@ -26,7 +26,7 @@ taint_tls(int *rp, struct ulabel *ul, struct jos_jmp_buf *back)
     } else {
 	// XXX should actually allocate a container just
 	// before we call sys_self_set_label..
-	taint_cow(0);
+	taint_cow(0, COBJ(0, 0));
     }
     jos_longjmp(back, 1);
 }
