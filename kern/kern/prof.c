@@ -18,6 +18,8 @@ struct entry user_table[1];
 
 static struct periodic_task timer;
 static int prof_print_enable = 0;
+enum { prof_print_count_threshold = 100 };
+enum { prof_print_cycles_threshold = 10000000UL };
 
 static struct periodic_task timer2;
 
@@ -117,7 +119,8 @@ prof_reset(void)
 static void
 print_entry(struct entry *tab, int i, const char *name)
 {
-    if (tab[i].count)
+    if (tab[i].count > prof_print_count_threshold ||
+	tab[i].time > prof_print_cycles_threshold)
 	cprintf("%3d cnt%12ld tot%12ld avg%12ld %s\n",
 		i,
 		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
