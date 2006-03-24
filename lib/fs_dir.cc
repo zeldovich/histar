@@ -6,9 +6,13 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/mlt.h>
 #include <inc/pthread.h>
+#include <inc/declassify.h>
+#include <inc/gateparam.h>
+
 #include <string.h>
 }
 
+#include <inc/gateclnt.hh>
 #include <inc/fs_dir.hh>
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
@@ -296,8 +300,23 @@ int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 {
     int64_t id = sys_segment_create(dir.obj.object, 0, 0, fn);
-    if (id < 0)
+    if (id < 0) {
+	if (id == -E_LABEL && start_env->declassify_gate.object) {
+	    struct gate_call_data gcd;
+	    struct declassify_args *darg =
+		(struct declassify_args *) &gcd.param_buf[0];
+	    darg->req = declassify_fs_create;
+	    darg->fs_create.dir = dir;
+	    snprintf(&darg->fs_create.name[0],
+		     sizeof(darg->fs_create.name),
+		     "%s", fn);
+	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0);
+	    *f = darg->fs_create.new_file;
+	    return darg->status;
+	}
+
 	return id;
+    }
 
     f->obj = COBJ(dir.obj.object, id);
 

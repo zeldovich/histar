@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
+#include <inc/error.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -41,8 +42,14 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 	}
 
 	kill(darg->exit.parent_pid, SIGCHLD);
+    } else if (darg->req == declassify_fs_create) {
+	darg->fs_create.name[sizeof(darg->fs_create.name) - 1] = '\0';
+	darg->status = fs_create(darg->fs_create.dir,
+				 &darg->fs_create.name[0],
+				 &darg->fs_create.new_file);
     } else {
 	cprintf("exit_declassifier: unknown request type %d\n", darg->req);
+	darg->status = -E_BAD_OP;
     }
 
     gr->ret(0, 0, 0);
