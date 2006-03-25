@@ -28,13 +28,15 @@ int64_t	sys_container_alloc(uint64_t parent, struct ulabel *l, const char *name)
 int64_t	sys_container_get_nslots(uint64_t container);
 int64_t sys_container_get_parent(uint64_t container);
 int64_t	sys_container_get_slot_id(uint64_t container, uint64_t slot);
+int64_t sys_container_get_avail_quota(uint64_t container);
+int	sys_container_move_quota(uint64_t src, uint64_t dst, uint64_t nbytes);
 
 int	sys_obj_unref(struct cobj_ref o);
 kobject_type_t
 	sys_obj_get_type(struct cobj_ref o);
 int	sys_obj_get_label(struct cobj_ref o, struct ulabel *l);
 int	sys_obj_get_name(struct cobj_ref o, char *name);
-int64_t	sys_obj_get_bytes(struct cobj_ref o);
+int64_t	sys_obj_get_reserve(struct cobj_ref o);
 
 int64_t	sys_handle_create(void);
 

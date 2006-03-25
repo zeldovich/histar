@@ -76,6 +76,18 @@ sys_container_get_slot_id(uint64_t container, uint64_t slot)
 }
 
 int64_t
+sys_container_get_avail_quota(uint64_t container)
+{
+    return syscall(SYS_container_get_avail_quota, container);
+}
+
+int
+sys_container_move_quota(uint64_t src, uint64_t dst, uint64_t nbytes)
+{
+    return syscall(SYS_container_move_quota, src, dst, nbytes);
+}
+
+int64_t
 sys_handle_create(void)
 {
     return syscall(SYS_handle_create);
@@ -100,9 +112,9 @@ sys_obj_get_name(struct cobj_ref o, char *name)
 }
 
 int64_t
-sys_obj_get_bytes(struct cobj_ref o)
+sys_obj_get_reserve(struct cobj_ref o)
 {
-    return syscall(SYS_obj_get_bytes, o);
+    return syscall(SYS_obj_get_reserve, o);
 }
 
 int64_t

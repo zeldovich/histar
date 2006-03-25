@@ -275,11 +275,11 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
 }
 
 static int64_t
-sys_obj_get_bytes(struct cobj_ref o)
+sys_obj_get_reserve(struct cobj_ref o)
 {
     const struct kobject *ko;
     check(cobj_get(o, kobj_any, &ko, iflow_read));
-    return ROUNDUP(KOBJ_DISK_SIZE + ko->hdr.ko_nbytes, 512);
+    return ko->hdr.ko_quota_reserve;
 }
 
 static int64_t
@@ -296,6 +296,32 @@ sys_container_get_parent(uint64_t container)
     const struct Container *c;
     check(container_find(&c, container, iflow_read));
     return c->ct_parent;
+}
+
+static int64_t
+sys_container_get_avail_quota(uint64_t container)
+{
+    const struct Container *c;
+    check(container_find(&c, container, iflow_read));
+    return c->ct_ko.ko_quota_reserve - c->ct_quota_used;
+}
+
+static void
+sys_container_move_quota(uint64_t src_id, uint64_t dst_id, uint64_t nbytes)
+{
+    const struct Container *src, *dst;
+    check(container_find(&src, src_id, iflow_rw));
+    check(container_find(&dst, dst_id, iflow_write));
+
+    // Ensure that there is a parent-child relationship..
+    if (src->ct_parent != dst_id && dst->ct_parent != src_id)
+	syscall_error(-E_INVAL);
+
+    if (src->ct_ko.ko_quota_reserve - src->ct_quota_used > nbytes)
+	syscall_error(-E_RESOURCE);
+
+    kobject_dirty(&src->ct_ko)->ct.ct_quota_used += nbytes;
+    kobject_dirty(&dst->ct_ko)->hdr.ko_quota_reserve += nbytes;
 }
 
 static int64_t
@@ -699,6 +725,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(cons_cursor),
     SYSCALL_DISPATCH(net_macaddr),
     SYSCALL_DISPATCH(net_buf),
+    SYSCALL_DISPATCH(container_move_quota),
     SYSCALL_DISPATCH(obj_unref),
     SYSCALL_DISPATCH(obj_get_label),
     SYSCALL_DISPATCH(obj_get_name),
@@ -731,12 +758,13 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(net_create),
     SYSCALL_DISPATCH(net_wait),
     SYSCALL_DISPATCH(handle_create),
-    SYSCALL_DISPATCH(obj_get_bytes),
+    SYSCALL_DISPATCH(obj_get_reserve),
     SYSCALL_DISPATCH(obj_get_type),
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
     SYSCALL_DISPATCH(container_get_nslots),
     SYSCALL_DISPATCH(container_get_parent),
+    SYSCALL_DISPATCH(container_get_avail_quota),
     SYSCALL_DISPATCH(thread_create),
     SYSCALL_DISPATCH(self_id),
     SYSCALL_DISPATCH(clock_msec),
