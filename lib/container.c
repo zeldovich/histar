@@ -6,7 +6,7 @@
 int64_t
 container_find(uint64_t rc, kobject_type_t reqtype, const char *reqname)
 {
-    int64_t nslots = sys_container_nslots(rc);
+    int64_t nslots = sys_container_get_nslots(rc);
     if (nslots < 0)
 	return nslots;
 

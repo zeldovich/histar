@@ -117,7 +117,7 @@ builtin_list_container(int ac, char **av)
     printf("Container %ld:\n", ct);
     printf("   id  slot   object\n");
 
-    int64_t nslots = sys_container_nslots(ct);
+    int64_t nslots = sys_container_get_nslots(ct);
     if (nslots < 0) {
 	printf("sys_container_nslots(%ld): %s\n", ct, e2s(nslots));
 	return;

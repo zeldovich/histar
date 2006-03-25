@@ -11,7 +11,7 @@
     SYSCALL_ENTRY(net_buf)			\
     SYSCALL_ENTRY(net_macaddr)			\
     SYSCALL_ENTRY(container_alloc)		\
-    SYSCALL_ENTRY(container_nslots)		\
+    SYSCALL_ENTRY(container_get_nslots)		\
     SYSCALL_ENTRY(container_get_parent)		\
     SYSCALL_ENTRY(container_get_slot_id)	\
     SYSCALL_ENTRY(obj_unref)			\

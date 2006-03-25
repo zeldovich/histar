@@ -106,9 +106,9 @@ sys_obj_get_bytes(struct cobj_ref o)
 }
 
 int64_t
-sys_container_nslots(uint64_t container)
+sys_container_get_nslots(uint64_t container)
 {
-    return syscall(SYS_container_nslots, container);
+    return syscall(SYS_container_get_nslots, container);
 }
 
 int64_t

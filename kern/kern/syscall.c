@@ -283,7 +283,7 @@ sys_obj_get_bytes(struct cobj_ref o)
 }
 
 static int64_t
-sys_container_nslots(uint64_t container)
+sys_container_get_nslots(uint64_t container)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_read));
@@ -735,7 +735,7 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_get_type),
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
-    SYSCALL_DISPATCH(container_nslots),
+    SYSCALL_DISPATCH(container_get_nslots),
     SYSCALL_DISPATCH(container_get_parent),
     SYSCALL_DISPATCH(thread_create),
     SYSCALL_DISPATCH(self_id),
