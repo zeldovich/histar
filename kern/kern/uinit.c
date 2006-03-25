@@ -18,6 +18,13 @@
 
 uint64_t user_root_handle;
 
+#define assert_check(expr)			\
+    do {					\
+	int __r = (expr);			\
+	if (__r < 0)				\
+	    panic("%s: %s", #expr, e2s(__r));	\
+    } while (0)
+
 static int
 elf_copyin(void *p, uint64_t offset, uint32_t count,
 	   const uint8_t *binary, uint64_t size)
@@ -40,10 +47,10 @@ elf_add_segmap(struct Address_space *as, uint32_t *smi, struct cobj_ref seg,
 	return -E_NO_MEM;
     }
 
-    assert(0 == kobject_set_nbytes(&as->as_ko, PGSIZE));
+    assert_check(kobject_set_nbytes(&as->as_ko, PGSIZE));
 
     struct u_segment_mapping *usm;
-    assert(0 == kobject_get_page(&as->as_ko, 0, (void **)&usm, page_rw));
+    assert_check(kobject_get_page(&as->as_ko, 0, (void **)&usm, page_rw));
 
     usm[*smi].segment = seg;
     usm[*smi].start_page = start_page;
@@ -86,7 +93,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    assert(0 == kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw));
+	    assert_check(kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw));
 	    memcpy(p, &buf[i], bytes);
 	}
 	bufsize -= bytes;
@@ -190,10 +197,10 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
-    assert(0 == thread_jump(t, th_label, th_clearance,
-			    COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
-			    (void*) elf.e_entry, (void*) USTACKTOP,
-			    arg0, arg1));
+    assert_check(thread_jump(t, th_label, th_clearance,
+			     COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
+			     (void*) elf.e_entry, (void*) USTACKTOP,
+			     arg0, arg1));
     return 0;
 }
 
@@ -221,20 +228,20 @@ thread_create_embed(struct Container *c,
 	panic("thread_create_embed: cannot find binary for %s", name);
 
     struct Container *tc;
-    assert(0 == container_alloc(obj_label, &tc));
+    assert_check(container_alloc(obj_label, &tc));
     tc->ct_ko.ko_flags = koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko) >= 0);
 
     struct Thread *t;
-    assert(0 == thread_alloc(th_label, th_clearance, &t));
+    assert_check(thread_alloc(th_label, th_clearance, &t));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
 
-    assert(0 == container_put(tc, &t->th_ko));
-    assert(0 == thread_load_elf(tc, t,
-				obj_label, th_label, th_clearance,
-				prog->buf, prog->size, arg0, arg1));
+    assert_check(container_put(tc, &t->th_ko));
+    assert_check(thread_load_elf(tc, t,
+				 obj_label, th_label, th_clearance,
+				 prog->buf, prog->size, arg0, arg1));
 
     thread_set_runnable(t);
 }
@@ -248,7 +255,7 @@ fs_init(struct Container *c, struct Label *l)
 	uint64_t size = embed_bins[i].size;
 
 	struct Segment *s;
-	assert(0 == segment_create_embed(c, l, size, buf, size, &s));
+	assert_check(segment_create_embed(c, l, size, buf, size, &s));
 	strncpy(&s->sg_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
 }
@@ -262,54 +269,56 @@ user_bootstrap(void)
     user_root_handle = handle_alloc();
 
     struct Label *obj_label;
-    assert(0 == label_alloc(&obj_label, 1));
-    assert(0 == label_set(obj_label, user_root_handle, 0));
+    assert_check(label_alloc(&obj_label, 1));
+    assert_check(label_set(obj_label, user_root_handle, 0));
 
     // root-parent container; not readable by anyone
     struct Label *root_parent_label;
     struct Container *root_parent;
-    assert(0 == label_alloc(&root_parent_label, 3));
-    assert(0 == container_alloc(root_parent_label, &root_parent));
+    assert_check(label_alloc(&root_parent_label, 3));
+    assert_check(container_alloc(root_parent_label, &root_parent));
+    root_parent->ct_ko.ko_quota_reserve += (1UL << 63);
     kobject_incref(&root_parent->ct_ko);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(obj_label, &rc));
-    assert(0 == container_put(root_parent, &rc->ct_ko));
+    assert_check(container_alloc(obj_label, &rc));
+    rc->ct_ko.ko_quota_reserve += (1UL << 62);
+    assert_check(container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(obj_label, &fsc));
-    assert(0 == container_put(rc, &fsc->ct_ko));
+    assert_check(container_alloc(obj_label, &fsc));
+    assert_check(container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
     fs_init(fsc, obj_label);
 
     // every thread gets a clearance of { 2 } by default
     struct Label *th_clearance;
-    assert(0 == label_alloc(&th_clearance, 2));
+    assert_check(label_alloc(&th_clearance, 2));
 
     // idle: thread { idle:* 1 }, objects { idle:0 1 }, clearance { 2 }
     struct Label *idle_th_label;
     struct Label *idle_obj_label;
-    assert(0 == label_alloc(&idle_th_label, 1));
-    assert(0 == label_alloc(&idle_obj_label, 1));
+    assert_check(label_alloc(&idle_th_label, 1));
+    assert_check(label_alloc(&idle_obj_label, 1));
 
     uint64_t idle_handle = handle_alloc();
-    assert(0 == label_set(idle_obj_label, idle_handle, 0));
-    assert(0 == label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
+    assert_check(label_set(idle_obj_label, idle_handle, 0));
+    assert_check(label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
     thread_create_embed(rc, idle_obj_label, idle_th_label, th_clearance,
 			"idle", 1, 1, KOBJ_PIN_IDLE);
 
     // init: thread { * }, objects { root:0 1 }, clearance { 2 }
     struct Label *init_th_label;
     struct Label *init_obj_label;
-    assert(0 == label_alloc(&init_th_label, LB_LEVEL_STAR));
-    assert(0 == label_alloc(&init_obj_label, 1));
+    assert_check(label_alloc(&init_th_label, LB_LEVEL_STAR));
+    assert_check(label_alloc(&init_obj_label, 1));
 
-    assert(0 == label_set(init_obj_label, user_root_handle, 0));
+    assert_check(label_set(init_obj_label, user_root_handle, 0));
     thread_create_embed(rc, init_obj_label, init_th_label, th_clearance,
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }

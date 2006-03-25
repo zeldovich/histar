@@ -13,6 +13,7 @@ container_alloc(const struct Label *l, struct Container **cp)
 	return r;
 
     struct Container *c = &ko->ct;
+    c->ct_quota_used = c->ct_ko.ko_quota_reserve;
     *cp = c;
     return 0;
 }
@@ -91,6 +92,38 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
     return 0;
 }
 
+static int
+container_slot_addref(struct Container *c, struct container_slot *cs,
+		      const struct kobject_hdr *ko)
+{
+#if 0
+    cprintf("container_slot_addref: resv %lx used %lx obj %lx\n",
+	    c->ct_ko.ko_quota_reserve,
+	    c->ct_quota_used,
+	    ko->ko_quota_reserve);
+#endif
+
+#if 0
+    if (c->ct_ko.ko_quota_reserve - c->ct_quota_used < ko->ko_quota_reserve)
+	return -E_RESOURCE;
+#endif
+
+    cs->cs_id = ko->ko_id;
+    cs->cs_ref++;
+    kobject_incref(ko);
+    c->ct_quota_used += ko->ko_quota_reserve;
+    return 0;
+}
+
+static void
+container_slot_decref(struct Container *c, struct container_slot *cs,
+		      const struct kobject_hdr *ko)
+{
+    cs->cs_ref--;
+    kobject_decref(ko);
+    c->ct_quota_used -= ko->ko_quota_reserve;
+}
+
 int
 container_put(struct Container *c, const struct kobject_hdr *ko)
 {
@@ -105,9 +138,9 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
     if (r < 0)
 	return r;
 
-    cs->cs_id = ko->ko_id;
-    cs->cs_ref++;
-    kobject_incref(ko);
+    r = container_slot_addref(c, cs, ko);
+    if (r < 0)
+	return r;
 
     if (!(ko->ko_flags & KOBJ_MULTIHOMED)) {
 	if (ko->ko_parent)
@@ -141,8 +174,7 @@ container_unref(struct Container *c, const struct kobject_hdr *ko)
     if (r < 0)
 	return r;
 
-    cs->cs_ref--;
-    kobject_decref(ko);
+    container_slot_decref(c, cs, ko);
     return 0;
 }
 
@@ -168,8 +200,7 @@ container_gc(struct Container *c)
 	    if (r < 0)
 		return r;
 
-	    cs->cs_ref--;
-	    kobject_decref(&ko->hdr);
+	    container_slot_decref(c, cs, &ko->hdr);
 	}
     }
 

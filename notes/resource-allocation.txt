@@ -2,28 +2,28 @@ Syscalls that affect resource use:
 
     Any sort of object creation:
 
-	sys_net_create
-	sys_container_alloc
-	sys_gate_create
-	sys_thread_create
-	sys_segment_create
-	sys_segment_copy
-	sys_as_create
+	+ sys_net_create
+	+ sys_container_alloc
+	+ sys_gate_create
+	+ sys_thread_create
+	+ sys_segment_create
+	+ sys_segment_copy
+	+ sys_as_create
 
     Hardlink creation:
 
-	sys_self_addref	    [[ replace with halt-and-copy? ]]
-	sys_segment_addref
+	+ sys_self_addref	    [[ replace with halt-and-copy? ]]
+	+ sys_segment_addref
 
     Object deletion:
 
-	sys_obj_unref
+	+ sys_obj_unref
 
     Objects changing size:
 
-	sys_segment_resize
-	sys_as_set
-	anything that puts things in containers -- can resize container
+	+ sys_segment_resize
+	+ sys_as_set
+	+ anything that puts things in containers -- can resize container
 	    [[ so effectively all of the above ]]
 
     Label operations:

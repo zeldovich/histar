@@ -45,6 +45,7 @@ print_cobj(uint64_t ct, uint64_t slot)
     printf("%5ld [%4ld]  ", id, slot);
 
     int r;
+    int64_t r64;
     switch (type) {
     case kobj_gate:
 	printf("gate");
@@ -56,6 +57,9 @@ print_cobj(uint64_t ct, uint64_t slot)
 
     case kobj_container:
 	printf("container");
+	r64 = sys_container_get_avail_quota(id);
+	if (r64 >= 0)
+	    printf(" (quota avail: %ld)", r64);
 	break;
 
     case kobj_segment:
@@ -86,12 +90,16 @@ print_cobj(uint64_t ct, uint64_t slot)
     char name[KOBJ_NAME_LEN];
     r = sys_obj_get_name(cobj, &name[0]);
     if (r < 0) {
-	printf(" (cannot get name: %s)\n", e2s(r));
+	printf(" (cannot get name: %s)", e2s(r));
     } else if (name[0]) {
-	printf(": %s\n", name);
-    } else {
-	printf("\n");
+	printf(": %s", name);
     }
+
+    int64_t size = sys_obj_get_reserve(cobj);
+    if (size >= 0)
+	printf(" (quota: %ld)", size);
+
+    printf("\n");
 }
 
 static void
@@ -114,7 +122,10 @@ builtin_list_container(int ac, char **av)
 	ct = start_env->fs_cwd.obj.object;
     }
 
-    printf("Container %ld:\n", ct);
+    int64_t ct_quota = sys_obj_get_reserve(COBJ(ct, ct));
+    int64_t ct_avail = sys_container_get_avail_quota(ct);
+
+    printf("Container %ld (%ld bytes, %ld avail):\n", ct, ct_quota, ct_avail);
     printf("   id  slot   object\n");
 
     int64_t nslots = sys_container_get_nslots(ct);

@@ -222,6 +222,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
     kh->ko_flags = KOBJ_DIRTY;
+    kh->ko_quota_reserve = KOBJ_DISK_SIZE;
     pagetree_init(&ko->ko_pt);
     kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
 
@@ -273,6 +274,9 @@ kobject_npages(const struct kobject_hdr *kp)
 int
 kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 {
+    int r;
+    assert(!(kp->ko_flags & KOBJ_MULTIHOMED));
+
     struct kobject *ko = kobject_h2k(kp);
 
     uint64_t curnpg = kobject_npages(kp);
@@ -280,17 +284,35 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     if (npages > pagetree_maxpages())
 	return -E_RANGE;
 
-    for (uint64_t i = npages; i < curnpg; i++) {
-	int r = pagetree_put_page(&ko->ko_pt, i, 0);
-	if (r < 0) {
-	    cprintf("XXX this leaves a hole in the kobject\n");
+    const struct Container *parent_ct = 0;
+    if (kp->ko_parent) {
+	r = container_find(&parent_ct, kp->ko_parent, iflow_rw);
+	if (r < 0)
 	    return r;
-	}
+
+#if 0
+	cprintf("kobject_set_nbytes: parent reserve %lx used %lx cur %lx npages %lx\n",
+		parent_ct->ct_ko.ko_quota_reserve,
+		parent_ct->ct_quota_used,
+		curnpg, npages);
+#endif
+
+#if 0
+	if (parent_ct->ct_ko.ko_quota_reserve - parent_ct->ct_quota_used +
+	    curnpg * PGSIZE < npages * PGSIZE)
+	    return -E_RESOURCE;
+#endif
+    }
+
+    for (uint64_t i = npages; i < curnpg; i++) {
+	r = pagetree_put_page(&ko->ko_pt, i, 0);
+	if (r < 0)
+	    panic("kobject_set_nbytes: cannot drop page: %s", e2s(r));
     }
 
     for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
-	int r = page_alloc(&p);
+	r = page_alloc(&p);
 	if (r == 0)
 	    r = pagetree_put_page(&ko->ko_pt, i, p);
 
@@ -304,7 +326,11 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	memset(p, 0, PGSIZE);
     }
 
+    int64_t quota_diff = (npages - curnpg) * PGSIZE;
     kp->ko_nbytes = nbytes;
+    kp->ko_quota_reserve += quota_diff;
+    if (parent_ct)
+	kobject_dirty(&parent_ct->ct_ko)->ct.ct_quota_used += quota_diff;
     return 0;
 }
 
@@ -319,8 +345,14 @@ kobject_copy_pages(const struct kobject_hdr *srch,
     if (r < 0)
 	return r;
 
+    if (dsth->ko_parent) {
+	cprintf("kobject_copy_pages: referenced segments not supported\n");
+	return -E_INVAL;
+    }
+
     pagetree_copy(&src->ko_pt, &dst->ko_pt);
     dsth->ko_nbytes = srch->ko_nbytes;
+    dsth->ko_quota_reserve += ROUNDUP(srch->ko_nbytes, PGSIZE);
     return 0;
 }
 
