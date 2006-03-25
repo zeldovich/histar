@@ -22,9 +22,8 @@ struct Thread {
 
     struct Trapframe th_tf __attribute__ ((aligned (16)));
 
-    // The thread's associated segment & container
+    // The thread-local segment
     kobject_id_t th_sg;
-    kobject_id_t th_ct;
 
     thread_status th_status;
     bool_t th_pinned;

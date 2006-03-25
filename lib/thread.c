@@ -112,7 +112,7 @@ thread_get_label(struct ulabel *ul)
 {
     uint64_t tid = thread_id();
 
-    return sys_obj_get_label(COBJ(kobject_id_thread_ct, tid), ul);
+    return sys_obj_get_label(COBJ(0, tid), ul);
 }
 
 void

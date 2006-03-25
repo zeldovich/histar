@@ -26,7 +26,7 @@ return_stub(jos_jmp_buf *jb)
 }
 
 static void
-return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle)
+return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
 {
     label clear;
     thread_cur_clearance(&clear);
@@ -41,7 +41,6 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle)
     te.te_arg = (uint64_t) jb;
     error_check(sys_self_get_as(&te.te_as));
 
-    uint64_t ct = kobject_id_thread_ct;
     int64_t id = sys_gate_create(ct, &te,
 				 clear.to_ulabel(),
 				 label.to_ulabel(),
@@ -52,18 +51,12 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle)
     *g = COBJ(ct, id);
 }
 
-void
-gate_call(cobj_ref gate, gate_call_data *gcd_param,
-	  label *cs, label *ds, label *dr)
+gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
+		     label *cs, label *ds, label *dr)
 {
     int64_t return_handle = sys_handle_create();
     error_check(return_handle);
     scope_guard<void, uint64_t> g1(thread_drop_star, return_handle);
-
-    cobj_ref return_gate;
-    jos_jmp_buf back_from_call;
-    return_setup(&return_gate, &back_from_call, return_handle);
-    scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     label new_ds(ds ? *ds : label());
     new_ds.set(return_handle, LB_LEVEL_STAR);
@@ -86,8 +79,14 @@ gate_call(cobj_ref gate, gate_call_data *gcd_param,
     if (taint_ct < 0)
 	throw error(taint_ct, "gate_call: creating tainted container");
 
-    scope_guard<int, cobj_ref> taint_ct_cleanup
-	(sys_obj_unref, COBJ(start_env->shared_container, taint_ct));
+    taint_ct_obj_ = COBJ(start_env->shared_container, taint_ct);
+    scope_guard<int, cobj_ref> taint_ct_cleanup(sys_obj_unref, taint_ct_obj_);
+
+    // Create a return gate in the taint container
+    cobj_ref return_gate;
+    jos_jmp_buf back_from_call;
+    return_setup(&return_gate, &back_from_call, return_handle, taint_ct);
+    scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     // Gate call parameters
     gate_call_data *d = (gate_call_data *) tls_gate_args;
@@ -113,4 +112,11 @@ gate_call(cobj_ref gate, gate_call_data *gcd_param,
     // Copy back the arguments
     if (gcd_param)
 	memcpy(gcd_param, d, sizeof(*d));
+
+    taint_ct_cleanup.dismiss();
+}
+
+gate_call::~gate_call()
+{
+    sys_obj_unref(taint_ct_obj_);
 }

@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 static struct cobj_ref netd_gate;
 static int tainted;
@@ -62,18 +63,19 @@ netd_set_gate(struct cobj_ref g)
 int
 netd_call(struct cobj_ref gate, struct netd_op_args *a)
 {
-    struct ulabel *seg_label = label_get_current();
-    if (seg_label == 0) {
-	cprintf("netd_call: cannot get label\n");
-	return -E_NO_MEM;
+    label seg_label;
+    try {
+	thread_cur_label(&seg_label);
+	seg_label.transform(label::star_to, seg_label.get_default());
+    } catch (error &e) {
+	cprintf("netd_call: %s\n", e.what());
+	return e.err();
     }
-    label_change_star(seg_label, seg_label->ul_default);
 
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(kobject_id_thread_ct, PGSIZE, &seg, &va,
-			  seg_label, "netd_call() args");
-    label_free(seg_label);
+    int r = segment_alloc(start_env->shared_container, sizeof(*a), &seg, &va,
+			  seg_label.to_ulabel(), "netd_call() args");
     if (r < 0)
 	return r;
 
@@ -92,8 +94,22 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
     try {
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	gate_call(gate, &gcd, 0, 0, 0);
+	gate_call c(gate, &gcd, 0, 0, 0);
+
+	sys_obj_unref(seg);
 	seg = gcd.param_obj;
+
+	va = 0;
+	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE, &va, 0);
+	if (r < 0) {
+	    cprintf("netd_call: cannot map returned segment: %s\n", e2s(r));
+	    return r;
+	}
+
+	memcpy(a, va, sizeof(*a));
+
+	segment_unmap(va);
+	sys_obj_unref(seg);
     } catch (error &e) {
 	cprintf("netd_call: %s\n", e.what());
 	return e.err();
@@ -102,17 +118,5 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	return -1;
     }
 
-    va = 0;
-    r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE, &va, 0);
-    if (r < 0) {
-	cprintf("netd_call: cannot map returned segment: %s\n", e2s(r));
-	return r;
-    }
-
-    memcpy(a, va, sizeof(*a));
-    int rval = a->rval;
-
-    segment_unmap(va);
-    sys_obj_unref(seg);
-    return rval;
+    return a->rval;
 }

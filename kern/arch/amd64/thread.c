@@ -6,7 +6,6 @@
 #include <machine/as.h>
 #include <machine/utrap.h>
 #include <kern/segment.h>
-#include <kern/container.h>
 #include <kern/kobj.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
@@ -95,27 +94,6 @@ thread_alloc(const struct Label *contaminate,
     if (r < 0)
 	return r;
 
-    // XXX
-    // Thread-local container has no parent?
-    // XXX
-    // give it some resources out of the blue, for now
-    struct Container *ct;
-    r = container_alloc(contaminate, &ct);
-    if (r < 0)
-	return r;
-    ct->ct_ko.ko_quota_reserve = (1UL << 32);
-
-    t->th_ct = ct->ct_ko.ko_id;
-    kobject_incref(&ct->ct_ko);
-    ct->ct_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    ct->ct_avoid[kobj_container] = 1;
-    ct->ct_avoid[kobj_thread] = 1;
-    ct->ct_avoid[kobj_mlt] = 1;
-
-    r = container_put(ct, &sg->sg_ko);
-    if (r < 0)
-	return r;
-
     thread_swapin(t);
 
     *tp = t;
@@ -168,25 +146,14 @@ thread_zero_refs(const struct Thread *t)
 int
 thread_gc(struct Thread *t)
 {
-    const struct kobject *ko;
-    int r;
-
     if (t->th_sg) {
-	r = kobject_get(t->th_sg, &ko, kobj_segment, iflow_none);
+	const struct kobject *ko;
+	int r = kobject_get(t->th_sg, &ko, kobj_segment, iflow_none);
 	if (r < 0)
 	    return r;
 
 	kobject_decref(&ko->hdr);
 	t->th_sg = 0;
-    }
-
-    if (t->th_ct) {
-	r = kobject_get(t->th_ct, &ko, kobj_container, iflow_none);
-	if (r < 0)
-	    return r;
-
-	kobject_decref(&ko->hdr);
-	t->th_ct = 0;
     }
 
     thread_swapout(t);
@@ -210,26 +177,18 @@ thread_change_label(const struct Thread *const_t,
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
-    const struct kobject *ko_sg, *ko_ct;
+    const struct kobject *ko_sg;
     int r = kobject_get(t->th_sg, &ko_sg, kobj_segment, iflow_rw);
     if (r < 0)
 	return r;
 
-    r = kobject_get(t->th_ct, &ko_ct, kobj_container, iflow_rw);
-    if (r < 0)
-	return r;
-
     // Prepare labels for all of the objects
-    const struct Label *cur_th_label, *cur_sg_label, *cur_ct_label;
+    const struct Label *cur_th_label, *cur_sg_label;
     r = kobject_get_label(&t->th_ko, kolabel_contaminate, &cur_th_label);
     if (r < 0)
 	return r;
 
     r = kobject_get_label(&ko_sg->hdr, kolabel_contaminate, &cur_sg_label);
-    if (r < 0)
-	return r;
-
-    r = kobject_get_label(&ko_ct->hdr, kolabel_contaminate, &cur_ct_label);
     if (r < 0)
 	return r;
 
@@ -245,16 +204,6 @@ thread_change_label(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
-    // Remove the old segment from the thread container, add the new one
-    struct Container *ct = &kobject_dirty(&ko_ct->hdr)->ct;
-    r = container_unref(ct, &ko_sg->hdr);
-    if (r < 0)
-	return r;
-
-    r = container_put(ct, &sg_new->sg_ko);
-    if (r < 0)
-	return r;
-
     // Commit point
     t->th_sg = sg_new->sg_ko.ko_id;
     kobject_decref(&ko_sg->hdr);
@@ -262,7 +211,6 @@ thread_change_label(const struct Thread *const_t,
 
     kobject_set_label_prepared(&t->th_ko,      kolabel_contaminate, cur_th_label, new_label);
     kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate, cur_sg_label, new_label);
-    kobject_set_label_prepared(&ct->ct_ko,     kolabel_contaminate, cur_ct_label, new_label);
 
     // make sure all label checks get re-evaluated
     thread_clear_as(t);

@@ -12,8 +12,8 @@ enum {
 
 // Copy the writable pieces of the address space
 enum {
-    taint_cow_label_ents = 64,
-    taint_cow_as_ents = 16,
+    taint_cow_label_ents = 32,
+    taint_cow_as_ents = 32,
 };
 
 static void
@@ -48,7 +48,7 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     struct ulabel obj_label =
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
-    struct cobj_ref cur_th = COBJ(kobject_id_thread_ct, sys_self_id());
+    struct cobj_ref cur_th = COBJ(0, sys_self_id());
     struct cobj_ref cur_as;
     ERRCHECK(sys_self_get_as(&cur_as));
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
@@ -130,10 +130,6 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 	cprintf("taint_cow: new as: %lu.%lu\n", new_as.container, new_as.object);
 
     start_env->proc_container = mlt_ct;
+    start_env->shared_container = taint_container;
     start_env->declassify_gate = declassify_gate;
-
-    // XXX we probably won't be able to the old shared_container
-    // anymore, so might as well use the new container for anything
-    // that would have gone there..
-    start_env->shared_container = mlt_ct;
 }

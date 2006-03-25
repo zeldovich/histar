@@ -25,7 +25,8 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     int64_t arg_copy_id = sys_segment_copy(arg, netd_ct, 0,
 					   "netd_gate_entry() args");
     if (arg_copy_id < 0)
-	panic("netd_gate_entry: cannot copy args: %s", e2s(arg_copy_id));
+	panic("netd_gate_entry: cannot copy <%ld.%ld> args: %s",
+	      arg.container, arg.object, e2s(arg_copy_id));
     sys_obj_unref(arg);
 
     struct cobj_ref arg_copy = COBJ(netd_ct, arg_copy_id);
@@ -42,7 +43,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     if (netd_do_taint)
 	args_label.set(netd_taint_handle, 2);
 
-    uint64_t copy_back_ct = kobject_id_thread_ct;
+    uint64_t copy_back_ct = gcd->taint_container;
     int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
 					    args_label.to_ulabel(),
 					    "netd_gate_entry reply");

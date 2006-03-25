@@ -223,20 +223,25 @@ int
 cobj_get(struct cobj_ref ref, kobject_type_t type,
 	 const struct kobject **storep, info_flow_type iflow)
 {
-    const struct Container *c;
-    int r = container_find(&c, ref.container, iflow_read);
-    if (r < 0)
-	return r;
+    // Some objects can be named without a container -- the current
+    // thread and the thread-local segment.
+    bool_t global_object =
+	(ref.object == kobject_id_thread_sg) ||
+	(cur_thread && ref.object == cur_thread->th_ko.ko_id);
 
-    uint64_t id = kobject_translate_id(ref.object);
-    if (id == c->ct_ko.ko_id || (cur_thread && id == cur_thread->th_ko.ko_id)) {
-	// Every container "contains" itself and the current thread,
-	// to make it easier to name those things.
-    } else {
-	r = container_slot_find(c, id, 0, page_ro);
+    if (!global_object) {
+	const struct Container *c;
+	int r = container_find(&c, ref.container, iflow_read);
 	if (r < 0)
 	    return r;
+
+	// Every container "contains" itself
+	if (ref.object != c->ct_ko.ko_id) {
+	    r = container_slot_find(c, ref.object, 0, page_ro);
+	    if (r < 0)
+		return r;
+	}
     }
 
-    return kobject_get(id, storep, type, iflow);
+    return kobject_get(ref.object, storep, type, iflow);
 }
