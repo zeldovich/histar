@@ -284,25 +284,28 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     if (npages > pagetree_maxpages())
 	return -E_RANGE;
 
-    const struct Container *parent_ct = 0;
-    if (kp->ko_parent) {
-	r = container_find(&parent_ct, kp->ko_parent, iflow_rw);
+    const struct Container *resource_ct = 0;
+    if (kp->ko_type == kobj_container) {
+	resource_ct = &kobject_h2k(kp)->ct;
+    } else if (kp->ko_parent) {
+	r = container_find(&resource_ct, kp->ko_parent, iflow_rw);
 	if (r < 0)
 	    return r;
 
 #if 0
 	cprintf("kobject_set_nbytes: parent reserve %lx used %lx cur %lx npages %lx\n",
-		parent_ct->ct_ko.ko_quota_reserve,
-		parent_ct->ct_quota_used,
+		resource_ct->ct_ko.ko_quota_reserve,
+		resource_ct->ct_quota_used,
 		curnpg, npages);
 #endif
+    }
 
 #if 0
-	if (parent_ct->ct_ko.ko_quota_reserve - parent_ct->ct_quota_used +
-	    curnpg * PGSIZE < npages * PGSIZE)
-	    return -E_RESOURCE;
+    if (resource_ct &&
+	resource_ct->ct_ko.ko_quota_reserve - resource_ct->ct_quota_used +
+	curnpg * PGSIZE < npages * PGSIZE)
+	return -E_RESOURCE;
 #endif
-    }
 
     for (uint64_t i = npages; i < curnpg; i++) {
 	r = pagetree_put_page(&ko->ko_pt, i, 0);
@@ -328,9 +331,10 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 
     int64_t quota_diff = (npages - curnpg) * PGSIZE;
     kp->ko_nbytes = nbytes;
-    kp->ko_quota_reserve += quota_diff;
-    if (parent_ct)
-	kobject_dirty(&parent_ct->ct_ko)->ct.ct_quota_used += quota_diff;
+    if (kp->ko_type != kobj_container)
+	kp->ko_quota_reserve += quota_diff;
+    if (resource_ct)
+	kobject_dirty(&resource_ct->ct_ko)->ct.ct_quota_used += quota_diff;
     return 0;
 }
 
