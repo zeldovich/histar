@@ -199,7 +199,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
     alloc_ulabel(ul, &l, &parent->ct_ko);
 
     struct Container *c;
-    check(container_alloc(l, &c, parent->ct_ko.ko_id));
+    check(container_alloc(l, &c));
     alloc_set_name(&c->ct_ko, name);
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
@@ -295,7 +295,7 @@ sys_container_get_parent(uint64_t container)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_read));
-    return c->ct_parent;
+    return c->ct_ko.ko_parent;
 }
 
 static int64_t
@@ -314,7 +314,7 @@ sys_container_move_quota(uint64_t src_id, uint64_t dst_id, uint64_t nbytes)
     check(container_find(&dst, dst_id, iflow_write));
 
     // Ensure that there is a parent-child relationship..
-    if (src->ct_parent != dst_id && dst->ct_parent != src_id)
+    if (src->ct_ko.ko_parent != dst_id && dst->ct_ko.ko_parent != src_id)
 	syscall_error(-E_INVAL);
 
     if (src->ct_ko.ko_quota_reserve - src->ct_quota_used > nbytes)

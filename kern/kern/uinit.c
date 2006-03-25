@@ -86,10 +86,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    r = kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw);
-	    if (r < 0)
-		panic("segment_create_embed: cannot get page: %s", e2s(r));
-
+	    assert(0 == kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw));
 	    memcpy(p, &buf[i], bytes);
 	}
 	bufsize -= bytes;
@@ -224,32 +221,20 @@ thread_create_embed(struct Container *c,
 	panic("thread_create_embed: cannot find binary for %s", name);
 
     struct Container *tc;
-    int r = container_alloc(obj_label, &tc, c->ct_ko.ko_id);
-    if (r < 0)
-	panic("tce: cannot alloc container: %s", e2s(r));
+    assert(0 == container_alloc(obj_label, &tc));
     tc->ct_ko.ko_flags = koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
-
-    int tcslot = container_put(c, &tc->ct_ko);
-    if (tcslot < 0)
-	panic("tce: cannot store container: %s", e2s(tcslot));
+    assert(container_put(c, &tc->ct_ko) >= 0);
 
     struct Thread *t;
-    r = thread_alloc(th_label, th_clearance, &t);
-    if (r < 0)
-	panic("tce: cannot allocate thread: %s", e2s(r));
+    assert(0 == thread_alloc(th_label, th_clearance, &t));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
 
-    r = container_put(tc, &t->th_ko);
-    if (r < 0)
-	panic("tce: cannot store thread: %s", e2s(r));
-
-    r = thread_load_elf(tc, t,
-			obj_label, th_label, th_clearance,
-			prog->buf, prog->size, arg0, arg1);
-    if (r < 0)
-	panic("tce: cannot load ELF: %s", e2s(r));
+    assert(0 == container_put(tc, &t->th_ko));
+    assert(0 == thread_load_elf(tc, t,
+				obj_label, th_label, th_clearance,
+				prog->buf, prog->size, arg0, arg1));
 
     thread_set_runnable(t);
 }
@@ -263,10 +248,7 @@ fs_init(struct Container *c, struct Label *l)
 	uint64_t size = embed_bins[i].size;
 
 	struct Segment *s;
-	int r = segment_create_embed(c, l, size, buf, size, &s);
-	if (r < 0)
-	    panic("fs_init: cannot store embedded segment: %s", e2s(r));
-
+	assert(0 == segment_create_embed(c, l, size, buf, size, &s));
 	strncpy(&s->sg_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
 }
@@ -287,19 +269,19 @@ user_bootstrap(void)
     struct Label *root_parent_label;
     struct Container *root_parent;
     assert(0 == label_alloc(&root_parent_label, 3));
-    assert(0 == container_alloc(root_parent_label, &root_parent, 0));
+    assert(0 == container_alloc(root_parent_label, &root_parent));
     kobject_incref(&root_parent->ct_ko);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container
     struct Container *rc;
-    assert(0 == container_alloc(obj_label, &rc, root_parent->ct_ko.ko_id));
+    assert(0 == container_alloc(obj_label, &rc));
     assert(0 == container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
-    assert(0 == container_alloc(obj_label, &fsc, rc->ct_ko.ko_id));
+    assert(0 == container_alloc(obj_label, &fsc));
     assert(0 == container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 

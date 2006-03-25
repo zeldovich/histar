@@ -98,7 +98,7 @@ thread_alloc(const struct Label *contaminate,
     // XXX
     // Thread-local container has no parent?
     struct Container *ct;
-    r = container_alloc(contaminate, &ct, 0);
+    r = container_alloc(contaminate, &ct);
     if (r < 0)
 	return r;
 

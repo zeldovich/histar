@@ -5,8 +5,7 @@
 #include <inc/error.h>
 
 int
-container_alloc(const struct Label *l, struct Container **cp,
-		kobject_id_t parent_id)
+container_alloc(const struct Label *l, struct Container **cp)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_container, l, &ko);
@@ -14,8 +13,6 @@ container_alloc(const struct Label *l, struct Container **cp,
 	return r;
 
     struct Container *c = &ko->ct;
-    c->ct_parent = parent_id;
-
     *cp = c;
     return 0;
 }
@@ -111,6 +108,14 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
     cs->cs_id = ko->ko_id;
     cs->cs_ref++;
     kobject_incref(ko);
+
+    if (!(ko->ko_flags & KOBJ_MULTIHOMED)) {
+	if (ko->ko_parent)
+	    kobject_dirty(ko)->hdr.ko_flags |= KOBJ_MULTIHOMED;
+	else
+	    kobject_dirty(ko)->hdr.ko_parent = c->ct_ko.ko_id;
+    }
+
     return 0;
 }
 

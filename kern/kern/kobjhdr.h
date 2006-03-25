@@ -18,6 +18,7 @@ enum {
 #define KOBJ_DIRTY		0x08	// Modified since last swapin/out
 #define KOBJ_SNAPSHOT_DIRTY	0x10	// Dirty if swapout fails
 #define KOBJ_LABEL_MUTABLE	0x20	// Label can change after creation
+#define KOBJ_MULTIHOMED		0x40	// Multiple hard links
 
 struct kobject_hdr {
     kobject_id_t ko_id;
@@ -33,6 +34,11 @@ struct kobject_hdr {
     // used to provide space for objects in the container (by incrementing
     // the container's ct_quota_used).
     uint64_t ko_quota_reserve;
+
+    // Container that holds this object; only meaningful if KOBJ_MULTIHOMED
+    // is not set.  Used to adjust container's quota when object changes
+    // size (but only a single-homed object can change size).
+    uint64_t ko_parent;
 
     uint64_t ko_flags;
     uint64_t ko_nbytes;

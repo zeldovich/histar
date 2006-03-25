@@ -126,7 +126,7 @@ mlt_put(const struct Mlt *mlt, const struct Label *l,
     if (!me->me_inuse) {
 	// XXX mlt-allocated containers should be removed
 	struct Container *ct;
-	r = container_alloc(l, &ct, 0);
+	r = container_alloc(l, &ct);
 	if (r < 0)
 	    return r;
 
