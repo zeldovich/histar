@@ -40,3 +40,18 @@ auth_call(int op, const char *user, const char *pass, const char *npass,
 
     return reply->err;    
 }
+
+int 
+auth_getuid(uint64_t *uid, uint64_t *t, uint64_t *g)
+{
+    authd_reply reply;
+    if (auth_call(authd_getuid, "", "", "", &reply) < 0)
+        return -1;
+    if (uid)
+        *uid = reply.user_id;
+    if (t)
+        *t = reply.user_taint;
+    if (g)
+        *g = reply.user_grant; 
+    return 0;
+}
