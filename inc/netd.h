@@ -62,27 +62,27 @@ struct netd_op_connect_args {
 struct netd_op_write_args {
     int fd;
     uint32_t count;
-    char buf[netd_bufsize];
+    char buf[netd_buf_size];
 };
 
 struct netd_op_read_args {
     int fd;
     uint32_t count;
-    char buf[netd_bufsize];
+    char buf[netd_buf_size];
 };
 
 struct netd_op_send_args {
     int fd;
     uint32_t count;
     int flags;
-    char buf[netd_bufsize];
+    char buf[netd_buf_size];
 };
 
 struct netd_op_recv_args {
     int fd;
     uint32_t count;
     int flags;
-    char buf[netd_bufsize];
+    char buf[netd_buf_size];
 };
 
 struct netd_op_close_args {
