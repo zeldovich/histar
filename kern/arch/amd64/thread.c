@@ -97,10 +97,13 @@ thread_alloc(const struct Label *contaminate,
 
     // XXX
     // Thread-local container has no parent?
+    // XXX
+    // give it some resources out of the blue, for now
     struct Container *ct;
     r = container_alloc(contaminate, &ct);
     if (r < 0)
 	return r;
+    ct->ct_ko.ko_quota_reserve = (1UL << 32);
 
     t->th_ct = ct->ct_ko.ko_id;
     kobject_incref(&ct->ct_ko);

@@ -229,6 +229,7 @@ thread_create_embed(struct Container *c,
 
     struct Container *tc;
     assert_check(container_alloc(obj_label, &tc));
+    tc->ct_ko.ko_quota_reserve = (1UL << 32);
     tc->ct_ko.ko_flags = koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko) >= 0);
@@ -291,6 +292,7 @@ user_bootstrap(void)
     // filesystem
     struct Container *fsc;
     assert_check(container_alloc(obj_label, &fsc));
+    fsc->ct_ko.ko_quota_reserve = (1UL << 32);
     assert_check(container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
