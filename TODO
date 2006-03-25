@@ -56,7 +56,6 @@ also need to figure out how to specify which capability-like *-handles to pass
 across fork/exec/spawn.  e.g. want to pass unix-user *-handles when spawning
 processes, but not your process taint/grant handles.
 
-thread halt-and-copy
 proper accounting for object label size
 user-space resource allocators
 
