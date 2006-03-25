@@ -144,8 +144,8 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 static ssize_t
 sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    if (count > 1024)
-	count = 1024;
+    if (count > netd_buf_size)
+	count = netd_buf_size;
 
     struct netd_op_args a;
     a.op_type = netd_op_write;
@@ -158,8 +158,8 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static ssize_t
 sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    if (count > 1024)
-	count = 1024;
+    if (count > netd_buf_size)
+	count = netd_buf_size;
 
     struct netd_op_args a;
     a.op_type = netd_op_read;
@@ -174,8 +174,8 @@ sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 static ssize_t
 sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
 {
-    if (count > 1024)
-	count = 1024;
+    if (count > netd_buf_size)
+	count = netd_buf_size;
 
     struct netd_op_args a;
     a.op_type = netd_op_send;
@@ -189,8 +189,8 @@ sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
 static ssize_t
 sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
 {
-    if (count > 1024)
-	count = 1024;
+    if (count > netd_buf_size)
+	count = netd_buf_size;
 
     struct netd_op_args a;
     a.op_type = netd_op_recv;

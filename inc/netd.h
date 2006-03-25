@@ -13,6 +13,8 @@ struct netd_sockaddr_in {
     uint32_t sin_addr;
 };
 
+enum { netd_buf_size = 2048 };
+
 typedef enum {
     netd_op_socket,
     netd_op_bind,
@@ -60,27 +62,27 @@ struct netd_op_connect_args {
 struct netd_op_write_args {
     int fd;
     uint32_t count;
-    char buf[1024];
+    char buf[netd_bufsize];
 };
 
 struct netd_op_read_args {
     int fd;
     uint32_t count;
-    char buf[1024];
+    char buf[netd_bufsize];
 };
 
 struct netd_op_send_args {
     int fd;
     uint32_t count;
     int flags;
-    char buf[1024];
+    char buf[netd_bufsize];
 };
 
 struct netd_op_recv_args {
     int fd;
     uint32_t count;
     int flags;
-    char buf[1024];
+    char buf[netd_bufsize];
 };
 
 struct netd_op_close_args {
