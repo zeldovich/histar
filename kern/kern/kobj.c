@@ -85,6 +85,8 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     int r = 0;
     if (SAFE_EQUAL(iflow, iflow_read)) {
 	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
+    } else if (SAFE_EQUAL(iflow, iflow_write)) {
+	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
 	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi) ? :
 	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
