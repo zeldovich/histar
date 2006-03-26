@@ -40,7 +40,7 @@ login(char *u, char *p)
     process_wait(&shell, &e);
 }
 
-static void
+static void __attribute__((noreturn))
 prompt()
 {
     char user[32], pass[32];

@@ -12,7 +12,7 @@ extern "C" {
 
 #include <inc/gatesrv.hh>
 
-static void
+static void __attribute__((noreturn))
 admind_top(uint64_t ct, struct admind_reply *reply)
 {
     throw error(-E_BAD_OP, "admind_top not implemented yet");

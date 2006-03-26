@@ -16,7 +16,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
-static void
+static void __attribute__((noreturn))
 do_execve(fs_inode bin, char *const *argv)
 {
     // Reuse the top-level container and process taint/grant labels,
