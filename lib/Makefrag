@@ -69,7 +69,7 @@ $(OBJDIR)/lib/%.o: lib/%.c
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)

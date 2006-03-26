@@ -46,9 +46,9 @@ PERL	:= perl
 
 # Compiler flags.
 
-COMWARNS := -Wformat=2 -Wextra -Wshadow -Wmissing-noreturn -Wcast-align \
+COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
 	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
-CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations
+CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
 CXXWARNS := $(COMWARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
