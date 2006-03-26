@@ -126,18 +126,13 @@ label_comparator label_leq_starhi;
 struct ulabel *label_alloc(void);
 void label_free(struct ulabel *l);
 struct ulabel *label_get_current(void);
-struct ulabel *label_get_obj(struct cobj_ref o);
-int  label_set_current(struct ulabel *l);
 int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
 		     int grow);
 level_t label_get_level(struct ulabel *l, uint64_t handle);
 const char *label_to_string(const struct ulabel *l);
 int  label_grow(struct ulabel *l);
-struct ulabel *label_dup(struct ulabel *l);
 int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 
-/* for all i, if l->ul_ent[i] < l->ul_default then l->ul_ent[i] := l->ul_default */
-void label_max_default(struct ulabel *l);
 void label_change_star(struct ulabel *l, level_t new_level);
 
 /* debug.cc */

@@ -70,35 +70,6 @@ retry:
     return l;
 }
 
-struct ulabel *
-label_get_obj(struct cobj_ref o)
-{
-    struct ulabel *l = label_alloc();
-    int r;
-
-retry:
-    r = sys_obj_get_label(o, l);
-    if (r == -E_NO_SPACE) {
-	r = label_grow(l);
-	if (r == 0)
-	    goto retry;
-    }
-
-    if (r < 0) {
-	printf("label_get_obj: %s\n", e2s(r));
-	label_free(l);
-	return 0;
-    }
-
-    return l;
-}
-
-int
-label_set_current(struct ulabel *l)
-{
-    return sys_self_set_label(l);
-}
-
 static int
 label_find_slot(struct ulabel *l, uint64_t handle)
 {
@@ -181,26 +152,6 @@ label_to_string(const struct ulabel *l)
     return buf;
 }
 
-struct ulabel *
-label_dup(struct ulabel *l)
-{
-    struct ulabel *d = label_alloc();
-
-    while (d && d->ul_size < l->ul_nent) {
-	int r = label_grow(d);
-	if (r < 0) {
-	    label_free(d);
-	    return 0;
-	}
-    }
-
-    d->ul_nent = l->ul_nent;
-    d->ul_default = l->ul_default;
-    if (l->ul_nent)
-	memcpy(d->ul_ent, l->ul_ent, l->ul_nent * sizeof(*l->ul_ent));
-    return d;
-}
-
 void
 label_change_star(struct ulabel *l, level_t new_level)
 {
@@ -209,18 +160,6 @@ label_change_star(struct ulabel *l, level_t new_level)
 	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), new_level);
     if (l->ul_default == LB_LEVEL_STAR)
 	l->ul_default = new_level;
-}
-
-void
-label_max_default(struct ulabel *l)
-{
-    if (l->ul_default == LB_LEVEL_STAR)
-	return;
-
-    for (uint32_t i = 0; i < l->ul_nent; i++)
-	if (LB_LEVEL(l->ul_ent[i]) < l->ul_default ||
-	    LB_LEVEL(l->ul_ent[i]) == LB_LEVEL_STAR)
-	    l->ul_ent[i] = LB_CODE(LB_HANDLE(l->ul_ent[i]), l->ul_default);
 }
 
 int
