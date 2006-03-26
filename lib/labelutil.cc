@@ -23,53 +23,51 @@ thread_drop_star(uint64_t handle)
 }
 
 void
-thread_cur_label(label *l)
+get_label_retry(label *l, int (*fn) (struct ulabel *))
 {
     int r;
     do {
-	r = thread_get_label(l->to_ulabel());
+	r = fn(l->to_ulabel());
 	if (r == -E_NO_SPACE)
 	    l->grow();
 	else if (r < 0)
-	    throw error(r, "thread_get_label");
+	    throw error(r, "getting label");
     } while (r == -E_NO_SPACE);
+}
+
+void
+get_label_retry_obj(label *l, int (*fn) (struct cobj_ref, struct ulabel *), struct cobj_ref o)
+{
+    int r;
+    do {
+	r = fn(o, l->to_ulabel());
+	if (r == -E_NO_SPACE)
+	    l->grow();
+	else if (r < 0)
+	    throw error(r, "getting object label");
+    } while (r == -E_NO_SPACE);
+}
+
+void
+thread_cur_label(label *l)
+{
+    get_label_retry(l, thread_get_label);
 }
 
 void
 thread_cur_clearance(label *l)
 {
-    int r;
-    do {
-	r = sys_self_get_clearance(l->to_ulabel());
-	if (r == -E_NO_SPACE)
-	    l->grow();
-	else if (r < 0)
-	    throw error(r, "sys_self_get_clearance");
-    } while (r == -E_NO_SPACE);
+    get_label_retry(l, &sys_self_get_clearance);
 }
 
 void
 obj_get_label(struct cobj_ref o, label *l)
 {
-    int r;
-    do {
-	r = sys_obj_get_label(o, l->to_ulabel());
-	if (r == -E_NO_SPACE)
-	    l->grow();
-	else if (r < 0)
-	    throw error(r, "sys_obj_get_label");
-    } while (r == -E_NO_SPACE);
+    get_label_retry_obj(l, &sys_obj_get_label, o);
 }
 
 void
 gate_get_clearance(struct cobj_ref o, label *l)
 {
-    int r;
-    do {
-	r = sys_gate_clearance(o, l->to_ulabel());
-	if (r == -E_NO_SPACE)
-	    l->grow();
-	else if (r < 0)
-	    throw error(r, "sys_gate_clearance");
-    } while (r == -E_NO_SPACE);
+    get_label_retry_obj(l, &sys_gate_clearance, o);
 }
