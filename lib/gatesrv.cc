@@ -134,6 +134,9 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	} else {
 	    gcd->taint_container = id;
 	}
+
+	label verify(3);
+	sys_self_set_verify(verify.to_ulabel());
     }
 
     stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,

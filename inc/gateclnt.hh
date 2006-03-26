@@ -15,7 +15,8 @@ public:
     gate_call(struct cobj_ref gate, struct gate_call_data *gcd,
 	      label *contaminate_label,		// { * } for none
 	      label *decontaminate_label,	// { 3 } for none
-	      label *decontaminate_clearance);	// { 0 } for none
+	      label *decontaminate_clearance,	// { 0 } for none
+	      label *verify);			// { 3 } for none
     ~gate_call();
 
 private:

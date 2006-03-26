@@ -30,7 +30,7 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
 void
 saved_privilege::acquire()
 {
-    gate_call(gate_->gate(), 0, 0, 0, 0);
+    gate_call(gate_->gate(), 0, 0, 0, 0, 0);
 }
 
 void

@@ -52,7 +52,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
 }
 
 gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
-		     label *cs, label *ds, label *dr)
+		     label *cs, label *ds, label *dr, label *verify)
 {
     int64_t return_handle = sys_handle_create();
     error_check(return_handle);
@@ -64,6 +64,10 @@ gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
     // Compute the target labels
     label tgt_label, tgt_clear;
     gate_compute_labels(gate, cs, &new_ds, dr, &tgt_label, &tgt_clear);
+
+    // Set the verify label
+    label v3(3);
+    sys_self_set_verify(verify ? verify->to_ulabel() : v3.to_ulabel());
 
     // Create an MLT-like container for tainted data to live in
     label taint_ct_label, thread_label;

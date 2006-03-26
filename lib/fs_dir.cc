@@ -310,7 +310,7 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
 	    snprintf(&darg->fs_create.name[0],
 		     sizeof(darg->fs_create.name),
 		     "%s", fn);
-	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0);
+	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0, 0);
 	    *f = darg->fs_create.new_file;
 	    return darg->status;
 	}

@@ -253,7 +253,7 @@ process_report_exit(int64_t code)
 	    label ds(3);
 	    ds.set(start_env->process_grant, LB_LEVEL_STAR);
 
-	    gate_call(start_env->declassify_gate, &gcd, 0, &ds, 0);
+	    gate_call(start_env->declassify_gate, &gcd, 0, &ds, 0, &ds);
 	} catch (std::exception &e) {
 	    cprintf("process_report_exit: %s\n", e.what());
 	    return -1;

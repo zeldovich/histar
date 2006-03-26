@@ -94,7 +94,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
     try {
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	gate_call c(gate, &gcd, 0, 0, 0);
+	gate_call c(gate, &gcd, 0, 0, 0, 0);
 
 	sys_obj_unref(seg);
 	seg = gcd.param_obj;

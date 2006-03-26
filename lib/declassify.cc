@@ -18,7 +18,7 @@ void __attribute__((noreturn))
 declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
     if (start_env->declassify_gate.object) {
-	gate_call(start_env->declassify_gate, gcd, 0, 0, 0);
+	gate_call(start_env->declassify_gate, gcd, 0, 0, 0, 0);
 	gr->ret(0, 0, 0);
     }
 

@@ -33,7 +33,7 @@ auth_call(int op, const char *user, const char *pass, const char *npass,
     label ds;
     thread_cur_label(&ds);
     // XXX grant all handles?
-    gate_call(COBJ(authd_ct, authd_gt), &gcd, 0, &ds, 0);
+    gate_call(COBJ(authd_ct, authd_gt), &gcd, 0, &ds, 0, 0);
  
     if (r)
 	memcpy(r, reply, sizeof(*r));

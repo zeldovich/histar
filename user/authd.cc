@@ -199,7 +199,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
     
     	memcpy(lreq, req, sizeof(*lreq));
-    	gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
+    	gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0, 0);
 
     	if (lrep->err)
     	    throw error(lrep->err, "response from authd_login");
@@ -215,7 +215,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
             authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
             
             memcpy(lreq, req, sizeof(*lreq));
-            gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0);
+            gate_call(ug->ug_gate->gate(), &gcd, 0, 0, 0, 0);
             
             if (lrep->err)
                 throw error(lrep->err, "response from authd_login");
