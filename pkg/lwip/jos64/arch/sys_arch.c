@@ -2,7 +2,9 @@
 #include <inc/pthread.h>
 #include <inc/syscall.h>
 #include <inc/queue.h>
+
 #include <stdlib.h>
+#include <string.h>
 
 #include <lwip/sys.h>
 #include <arch/cc.h>
@@ -156,7 +158,7 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 u32_t
 sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
 {
-    int waited = sys_arch_sem_wait(mboxes[mbox].queued_msg, tm_msec);
+    u32_t waited = sys_arch_sem_wait(mboxes[mbox].queued_msg, tm_msec);
     if (waited == SYS_ARCH_TIMEOUT)
 	return waited;
 
@@ -215,7 +217,7 @@ sys_thread_new(void (* thread)(void *arg), void *arg, int prio)
 struct sys_timeouts *
 sys_arch_timeouts(void)
 {
-    int64_t tid = thread_id();
+    uint64_t tid = thread_id();
 
     struct sys_thread *t;
     LIST_FOREACH(t, &threads, link)

@@ -14,7 +14,7 @@ extern "C" {
 
 #include <signal.h>
 
-void
+void __attribute__((noreturn))
 declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
     if (start_env->declassify_gate.object) {

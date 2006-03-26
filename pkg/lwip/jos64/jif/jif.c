@@ -35,6 +35,8 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 
+#include <string.h>
+
 #include <jif/jif.h>
 
 #include "lwip/opt.h"
