@@ -69,7 +69,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	gatesrv *g = new gatesrv(gcd->taint_container, "declassifier",
 				 &tl, &tc);
 	g->set_entry_container(start_env->proc_container);
-	g->set_entry_function(&declassifier, 0);
+	g->set_entry_function(&declassifier, (void *) netd_taint_handle);
 	g->enable();
 	gcd->declassify_gate = g->gate();
 

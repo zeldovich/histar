@@ -17,10 +17,21 @@ extern "C" {
 void __attribute__((noreturn))
 declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
+    uint64_t declassify_handle = (uint64_t) arg;
+
+    label verify;
+    thread_cur_verify(&verify);
+    verify.set(declassify_handle, verify.get_default());
+
     if (start_env->declassify_gate.object) {
-	gate_call(start_env->declassify_gate, gcd, 0, 0, 0, 0);
+	gate_call(start_env->declassify_gate, gcd, 0, &verify, 0, &verify);
 	gr->ret(0, 0, 0);
     }
+
+    // XXX
+    // would be nice if we could change our label to something like
+    // verify + return-handle, and perform whatever declassification
+    // actions in that context?
 
     struct declassify_args *darg =
 	(struct declassify_args *) &gcd->param_buf[0];

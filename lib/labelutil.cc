@@ -61,6 +61,12 @@ thread_cur_clearance(label *l)
 }
 
 void
+thread_cur_verify(label *l)
+{
+    get_label_retry(l, &sys_self_get_verify);
+}
+
+void
 obj_get_label(struct cobj_ref o, label *l)
 {
     get_label_retry_obj(l, &sys_obj_get_label, o);
