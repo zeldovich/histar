@@ -127,7 +127,7 @@ do_fork()
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].flags == 0)
 	    continue;
-	if (uas.ents[i].segment.container == proc_ct)
+	if (uas.ents[i].segment.container == (uint64_t) proc_ct)
 	    continue;
 
 	// FDs are a special case
