@@ -219,6 +219,18 @@ sys_self_get_clearance(struct ulabel *l)
 }
 
 int
+sys_self_set_verify(struct ulabel *l)
+{
+    return syscall(SYS_self_set_verify, l);
+}
+
+int
+sys_self_get_verify(struct ulabel *l)
+{
+    return syscall(SYS_self_get_verify, l);
+}
+
+int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_sync_wait, addr, val, msec);

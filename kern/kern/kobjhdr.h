@@ -9,6 +9,7 @@
 enum {
     kolabel_contaminate,
     kolabel_clearance,
+    kolabel_verify,
     kolabel_max
 };
 

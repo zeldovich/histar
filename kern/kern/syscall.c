@@ -389,6 +389,12 @@ sys_gate_enter(struct cobj_ref gt,
 	       struct ulabel *ul,
 	       struct ulabel *uclearance)
 {
+    // Verify that the caller has supplied a valid verify label
+    const struct Label *verify;
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify, &verify));
+    if (verify)
+	check(label_compare(cur_th_label, verify, label_leq_starlo));
+
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
     const struct Gate *g = &ko->gt;
@@ -536,6 +542,25 @@ static void
 sys_self_get_clearance(struct ulabel *uclear)
 {
     check(label_to_ulabel(cur_th_clearance, uclear));
+}
+
+static void
+sys_self_set_verify(struct ulabel *uv)
+{
+    const struct Label *v;
+    alloc_ulabel(uv, &v, 0);
+    check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
+			    kolabel_verify, v));
+}
+
+static void
+sys_self_get_verify(struct ulabel *uv)
+{
+    const struct Label *v;
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify, &v));
+    if (!v)
+	check(label_alloc((struct Label **) &v, 3));
+    check(label_to_ulabel(v, uv));
 }
 
 static void
@@ -741,6 +766,8 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_set_label),
     SYSCALL_DISPATCH(self_set_clearance),
     SYSCALL_DISPATCH(self_get_clearance),
+    SYSCALL_DISPATCH(self_set_verify),
+    SYSCALL_DISPATCH(self_get_verify),
     SYSCALL_DISPATCH(sync_wait),
     SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),

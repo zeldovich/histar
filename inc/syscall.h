@@ -62,6 +62,8 @@ int	sys_self_set_as(struct cobj_ref as_obj);
 int	sys_self_set_label(struct ulabel *l);
 int	sys_self_set_clearance(struct ulabel *l);
 int	sys_self_get_clearance(struct ulabel *l);
+int	sys_self_set_verify(struct ulabel *l);
+int	sys_self_get_verify(struct ulabel *l);
 
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
 		      uint64_t wakeup_at_msec);

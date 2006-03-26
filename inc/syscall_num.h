@@ -35,6 +35,8 @@
     SYSCALL_ENTRY(self_set_label)		\
     SYSCALL_ENTRY(self_set_clearance)		\
     SYSCALL_ENTRY(self_get_clearance)		\
+    SYSCALL_ENTRY(self_set_verify)		\
+    SYSCALL_ENTRY(self_get_verify)		\
     SYSCALL_ENTRY(self_get_as)			\
     SYSCALL_ENTRY(self_set_as)			\
     SYSCALL_ENTRY(sync_wait)			\
