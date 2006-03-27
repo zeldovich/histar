@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <grp.h>
 #include <sys/types.h>
 
 uid_t
@@ -57,6 +58,12 @@ setreuid(uid_t ruid, uid_t euid)
 
 int
 setregid(gid_t rgid, gid_t egid)
+{
+    return 0;
+}
+
+int
+setgroups(size_t size, const gid_t *list)
 {
     return 0;
 }
