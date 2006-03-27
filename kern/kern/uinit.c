@@ -80,7 +80,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 	return r;
     }
 
-    r = segment_set_nbytes(sg, ROUNDUP(segsize, PGSIZE), 0);
+    r = segment_set_nbytes(sg, segsize, 0);
     if (r < 0) {
 	cprintf("segment_create_embed: cannot grow segment: %s\n", e2s(r));
 	return r;
