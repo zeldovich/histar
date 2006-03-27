@@ -28,12 +28,16 @@ ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ##
 AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
+AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
+AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 
 ##
 ## Patches to apply to various packages
 ##
 PATCHFILE_coreutils-5.94    := coreutils-5.94.patch
 PATCHFILE_tar-1.15	    := tar-1.15.patch
+PATCHFILE_gcc-3.4.4	    := gcc34.patch
+PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -52,6 +56,8 @@ $(ACPKG_WRAPS):
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
 acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	@mkdir -p $(ACPKG_PREFIX)
+	-find acpkg/$(PKGNAME) -name config.cache | xargs rm -f
+	-find acpkg/$(PKGNAME) -name config.status | xargs rm -f
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
@@ -135,26 +141,15 @@ nvi: $(ACPKG_WRAPS)
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-gcc3.4.4: $(ACPKG_WRAPS)
+gcc3.4.4: acpkg/gcc-3.4.4/Makefile
 	@mkdir -p $(ACPKG_PREFIX)
-	-find acpkg/gcc-3.4.4 -name config.cache | xargs rm -f
-	-find acpkg/gcc-3.4.4 -name config.status | xargs rm -f
-	-patch -d acpkg/gcc-3.4.4 -N -p1 < acpkg/patches/gcc34.patch
-	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
 	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
 
-gcc3.4.5: $(ACPKG_WRAPS)
+gcc3.4.5: acpkg/gcc-3.4.5/Makefile
 	@mkdir -p $(ACPKG_PREFIX)
-	-find acpkg/gcc-3.4.5 -name config.cache | xargs rm -f
-	-find acpkg/gcc-3.4.5 -name config.status | xargs rm -f
-	-patch -d acpkg/gcc-3.4.5 -N -p1 < acpkg/patches/gcc34.patch
-	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --disable-nls --without-headers --with-newlib --disable-threads --disable-shared" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
-
-$(OBJDIR)/user/gcc344: gcc3.4.4
-	cp $(OBJDIR)/acpkg/bin/gcc   $(OBJDIR)/user/gcc344
 
