@@ -13,6 +13,7 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/statfs.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -894,13 +895,19 @@ fstat(int fdnum, struct stat *buf) __THROW
     return DEV_CALL(dev, stat, fd, buf);
 }
 
-extern "C" int 
+int 
 fstatfs(int fdnum, struct statfs *buf) __THROW
 {
     set_enosys();
     return -1;
 }
 
+int
+statfs(const char *path, struct statfs *buf) __THROW
+{
+    set_enosys();
+    return -1;
+}
 
 extern "C" int
 __libc_fcntl(int fdnum, int cmd, ...) __THROW
