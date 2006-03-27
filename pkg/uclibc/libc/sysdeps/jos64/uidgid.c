@@ -48,3 +48,15 @@ setegid(gid_t gid)
 {
     return 0;
 }
+
+int
+setreuid(uid_t ruid, uid_t euid)
+{
+    return 0;
+}
+
+int
+setregid(gid_t rgid, gid_t egid)
+{
+    return 0;
+}
