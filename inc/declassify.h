@@ -7,6 +7,7 @@
 enum declassify_reqtype {
     declassify_exit,
     declassify_fs_create,
+    declassify_fs_resize,
 };
 
 struct declassify_args {
@@ -24,6 +25,11 @@ struct declassify_args {
 	    char name[KOBJ_NAME_LEN];
 	    struct fs_inode new_file;
 	} fs_create;
+
+	struct {
+	    struct fs_inode ino;
+	    uint64_t len;
+	} fs_resize;
     };
 };
 
