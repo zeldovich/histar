@@ -81,6 +81,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     thread_label.set(process_grant, LB_LEVEL_STAR);
     thread_label.set(process_taint, LB_LEVEL_STAR);
+    if (start_env->user_grant && start_env->user_taint) {
+	thread_label.set(start_env->user_grant, LB_LEVEL_STAR);
+	thread_label.set(start_env->user_taint, LB_LEVEL_STAR);
+    }
     proc_object_label.set(process_grant, 0);
     proc_object_label.set(process_taint, 3);
     integrity_object_label.set(process_grant, 0);
@@ -147,6 +151,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
+    spawn_env->user_grant = start_env->user_grant;
+    spawn_env->user_taint = start_env->user_taint;
 
     char *p = &spawn_env->args[0];
     for (int i = 0; i < ac; i++) {

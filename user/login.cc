@@ -25,17 +25,16 @@ login(char *u, char *p)
     
     struct fs_inode fsshell;
     error_check(fs_namei("/bin/ksh", &fsshell));
-
-    label ds(3);
-    ds.set(reply.user_taint, LB_LEVEL_STAR);
-    ds.set(reply.user_grant, LB_LEVEL_STAR);
-
+    
+    start_env->user_taint = reply.user_taint;
+    start_env->user_grant = reply.user_grant;
+    
     const char *argv[1] = { "/bin/ksh" };
     struct child_process shell = spawn(start_env->shared_container,
                                        fsshell,
                                        0, 1, 2,
                                        1, &argv[0],
-                                       0, &ds, 0, 0);
+                                       0, 0, 0, 0);
     int64_t e;
     process_wait(&shell, &e);
 }

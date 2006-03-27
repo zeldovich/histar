@@ -54,6 +54,9 @@ typedef struct {
     uint64_t process_grant;
     uint64_t process_taint;
 
+    uint64_t user_taint;
+    uint64_t user_grant;
+    
     struct cobj_ref fs_mtab_seg;
     struct fs_inode fs_root;
     struct fs_inode fs_cwd;
