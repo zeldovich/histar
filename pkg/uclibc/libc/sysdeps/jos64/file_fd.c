@@ -90,7 +90,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    return -1;
 	}
 
-	r = fs_create(dir, basename, &ino);
+	r = fs_create(dir, basename, &ino, 0);
 	free(pn2);
 	if (r < 0) {
 	    __set_errno(EPERM);

@@ -52,7 +52,7 @@ main(int ac, char **av)
     }
 
     struct fs_inode dst;
-    r = fs_create(dst_dir, fn, &dst);
+    r = fs_create(dst_dir, fn, &dst, 0);
     if (r < 0) {
 	printf("cannot create destination file: %s\n", e2s(r));
 	return r;

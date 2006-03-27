@@ -297,9 +297,9 @@ fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o)
 }
 
 int
-fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f)
+fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel *l)
 {
-    int64_t id = sys_segment_create(dir.obj.object, 0, 0, fn);
+    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
     if (id < 0) {
 	if (id == -E_LABEL && start_env->declassify_gate.object) {
 	    struct gate_call_data gcd;

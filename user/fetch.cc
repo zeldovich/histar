@@ -65,7 +65,7 @@ try
 	throw error(r, "cannot find directory %s: %s", dirname, e2s(r));
 
     struct fs_inode file;
-    r = fs_create(dir, basename, &file);
+    r = fs_create(dir, basename, &file, 0);
     if (r < 0)
 	throw error(r, "cannot create file %s", basename);
 
