@@ -8,7 +8,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/time \
 	pkg/uclibc/libc/misc/fnmatch \
 	pkg/uclibc/libc/misc/gnu \
-	pkg/uclibc/libc/misc/mntent
+	pkg/uclibc/libc/misc/mntent \
+	pkg/uclibc/libc/misc/wchar
 
 ##
 ## Source files that can be built directly
@@ -66,6 +67,14 @@ TIME_MOBJ := \
 TIME_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/time/%.o, $(TIME_MOBJ))
 LIBC_OBJFILES += $(TIME_MOBJ)
 
+WCHAR_MSRC := pkg/uclibc/libc/misc/wchar/wchar.c
+WCHAR_MOBJ := \
+	btowc.o wctob.o mbsinit.o mbrlen.o mbrtowc.o wcrtomb.o mbsrtowcs.o \
+        wcsrtombs.o _wchar_utf8sntowcs.o _wchar_wcsntoutf8s.o \
+        __mbsnrtowcs.o __wcsnrtombs.o wcwidth.o wcswidth.o
+WCHAR_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o, $(WCHAR_MOBJ))
+LIBC_OBJFILES += $(WCHAR_MOBJ)
+
 $(CTYPE_MOBJ): $(CTYPE_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o,%,$@) $< -c -o $@
@@ -77,4 +86,8 @@ $(LOCALE_MOBJ): $(LOCALE_MSRC)
 $(TIME_MOBJ): $(TIME_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/time/%.o,%,$@) $< -c -o $@
+
+$(WCHAR_MOBJ): $(WCHAR_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o,%,$@) $< -c -o $@
 
