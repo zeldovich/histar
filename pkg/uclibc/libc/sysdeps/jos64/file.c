@@ -171,7 +171,12 @@ lstat(const char *file_name, struct stat *buf)
 int
 access(const char *pn, int mode)
 {
+    int fd = open(pn, O_RDONLY);
+    if (fd < 0)
+	return -1;
+
     // XXX lie about it, for now..
+    close(fd);
     return 0;
 }
 
