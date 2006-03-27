@@ -47,6 +47,7 @@ LIB_SRCFILES :=	\
 	lib/privstore.cc \
 	lib/sha1.c \
 	lib/authclnt.cc \
+	lib/groupclnt.cc \
 	lib/utrap.c \
 	lib/profiler.c \
 	lib/tun.c \

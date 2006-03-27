@@ -84,15 +84,15 @@ KERN_BINFILES := \
 	user/uadm \
 	user/echo \
 	user/ksh \
-	user/links \
 	user/dnstest \
 	user/pftest \
 	user/execbench \
 	user/ipcbench \
 	user/true \
-	user/pl \
 	user/mount \
-	user/umount
+	user/umount \
+	user/gadm \
+	user/grptest
 
 	#user/gzip \
 	#user/tar \
