@@ -68,7 +68,8 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
-	   $(OBJDIR)/lib/libm.a
+	   $(OBJDIR)/lib/libm.a \
+	   $(OBJDIR)/lib/libcrypt.a
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib
 LIBS	:= -ljos -llwip -lc -ljos -lc
 
