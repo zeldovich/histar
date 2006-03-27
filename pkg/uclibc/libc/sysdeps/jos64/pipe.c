@@ -77,7 +77,7 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     }
 
     pthread_mutex_unlock(&fd->fd_pipe.mu);
-    return count;
+    return cc;
 }
 
 static ssize_t
