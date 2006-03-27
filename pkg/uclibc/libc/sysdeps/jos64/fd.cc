@@ -1120,4 +1120,11 @@ ftruncate(int fdnum, off_t length) __THROW
     return DEV_CALL(dev, trunc, fd, length);
 }
 
+int
+fsync(int fdnum) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
 weak_alias(__libc_fcntl, fcntl);
