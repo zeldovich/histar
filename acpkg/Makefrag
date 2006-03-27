@@ -72,6 +72,12 @@ tar.patch:
 	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_buffer.patch
 	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_system.patch
 
+## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
+$(OBJDIR)/acpkg/bin/od: coreutils.patch acpkg/coreutils-5.94/__build
+
+coreutils.patch:
+	-patch -d acpkg/coreutils-5.94 -N -p1 < acpkg/patches/coreutils-5.94.patch
+
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 

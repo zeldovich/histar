@@ -1,0 +1,23 @@
+--- coreutils-5.94/src/Makefile.am	2006/03/27 05:08:50	1.1
++++ coreutils-5.94/src/Makefile.am	2006/03/27 06:48:31
+@@ -88,7 +88,8 @@
+ sleep_LDADD = $(nanosec_libs)
+ tail_LDADD = $(nanosec_libs)
+ 
+-uptime_LDADD = $(LDADD) $(GETLOADAVG_LIBS)
++# If necessary, add -lm to resolve use of pow in lib/strtod.c.
++uptime_LDADD = $(LDADD) $(POW_LIB) $(GETLOADAVG_LIBS)
+ 
+ su_LDADD = $(LDADD) $(LIB_CRYPT)
+ 
+--- coreutils-5.94/src/Makefile.in	2006/03/27 06:48:37	1.1
++++ coreutils-5.94/src/Makefile.in	2006/03/27 06:48:59
+@@ -840,7 +840,7 @@
+ nanosec_libs = $(LDADD) $(POW_LIB) $(LIB_NANOSLEEP)
+ sleep_LDADD = $(nanosec_libs)
+ tail_LDADD = $(nanosec_libs)
+-uptime_LDADD = $(LDADD) $(GETLOADAVG_LIBS)
++uptime_LDADD = $(LDADD) $(POW_LIB) $(GETLOADAVG_LIBS)
+ su_LDADD = $(LDADD) $(LIB_CRYPT)
+ SUFFIXES = .sh
+ installed_su = $(DESTDIR)$(bindir)/`echo su|sed '$(transform)'`
