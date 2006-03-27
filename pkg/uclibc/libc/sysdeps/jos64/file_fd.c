@@ -259,6 +259,19 @@ file_probe(struct Fd *fd, dev_probe_t probe)
     return 1 ;
 }
 
+static int
+file_trunc(struct Fd *fd, off_t pos)
+{
+    int r = fs_resize(fd->fd_file.ino, pos);
+    if (r < 0) {
+	cprintf("file_trunc: %s\n", e2s(r));
+	__set_errno(EPERM);
+	return -1;
+    }
+
+    return 0;
+}
+
 struct Dev devfile = {
     .dev_id = 'f',
     .dev_name = "file",
@@ -268,6 +281,7 @@ struct Dev devfile = {
     .dev_stat = file_stat,
     .dev_getdents = file_getdents,
     .dev_probe = file_probe,
+    .dev_trunc = file_trunc,
 };
 
 weak_alias(__libc_open, open);

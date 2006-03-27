@@ -1103,4 +1103,21 @@ __getdents (int fdnum, struct dirent *buf, size_t nbytes)
     return DEV_CALL(dev, getdents, fd, buf, nbytes);
 }
 
+int
+ftruncate(int fdnum, off_t length) __THROW
+{
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    return DEV_CALL(dev, trunc, fd, length);
+}
+
 weak_alias(__libc_fcntl, fcntl);
