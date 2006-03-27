@@ -75,6 +75,13 @@ fs_dir_dseg::remove(const char *name, fs_inode ino)
 int
 fs_dir_dseg::lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
 {
+    if (!(i->b++) && !strcmp(name, "..")) {
+	int64_t parent_id;
+	error_check((parent_id = sys_container_get_parent(ino_.obj.object)));
+	ino->obj = COBJ(parent_id, parent_id);
+	return 1;
+    }
+
     for (;;) {
 	fs_dirslot *slot = &dir_->slots[i->a++];
 	if ((slot + 1) > (fs_dirslot *) dir_end_)
@@ -116,6 +123,21 @@ fs_dir_dseg::insert(const char *name, fs_inode ino)
 int
 fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
 {
+    int64_t parent_id;
+
+    switch (i->b++) {
+    case 0:
+	sprintf(&de->de_name[0], ".");
+	de->de_inode = ino_;
+	return 1;
+
+    case 1:
+	sprintf(&de->de_name[0], "..");
+	error_check((parent_id = sys_container_get_parent(ino_.obj.object)));
+	de->de_inode.obj = COBJ(parent_id, parent_id);
+	return 1;
+    }
+
 retry:
     struct fs_dirslot *slot = &dir_->slots[i->a++];
     if (slot + 1 > (struct fs_dirslot *) dir_end_)
