@@ -89,3 +89,6 @@ more aggressive labeling:
  - netd args segment should be labeled with gate-call handle.
  - taint_ct in gate_call/gate_return should be labeled with gate-call handle.
 
+growing stacks would be nice; gnu programs like stack space, but it's a waste
+to keep a statically-sized huge stack.
+
