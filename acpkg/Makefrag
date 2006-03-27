@@ -30,6 +30,13 @@ AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 
 ##
+## Patches to apply to various packages
+##
+PATCHFILE_coreutils-5.94    := coreutils-5.94.patch
+PATCHFILE_tar-1.15	    := tar-1.15.patch
+PATCHFILE_default	    := empty.patch
+
+##
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
@@ -43,12 +50,20 @@ $(ACPKG_WRAPS):
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
-acpkg/%/Makefile: $(ACPKG_WRAPS)
+acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 
+.PRECIOUS: acpkg/%/__patch
+acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
+acpkg/%/__patch: PATCHFILE=$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
+acpkg/%/__patch: acpkg/patches/$(PATCHFILE)
+	patch -d acpkg/$(PKGNAME) -p1 < acpkg/patches/$(PATCHFILE)
+	touch $@
+
+.PRECIOUS: acpkg/%/__build
 acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
 acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
@@ -66,17 +81,10 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
-$(OBJDIR)/acpkg/bin/tar: tar.patch acpkg/tar-1.15/__build
-
-tar.patch:
-	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_buffer.patch
-	-patch -d acpkg/tar-1.15 -N -p1 < acpkg/patches/tar_system.patch
+$(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
-$(OBJDIR)/acpkg/bin/od: coreutils.patch acpkg/coreutils-5.94/__build
-
-coreutils.patch:
-	-patch -d acpkg/coreutils-5.94 -N -p1 < acpkg/patches/coreutils-5.94.patch
+$(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
