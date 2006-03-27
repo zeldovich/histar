@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/fs_dir.hh>
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
+#include <inc/labelutil.hh>
 
 static int fs_debug = 0;
 static int fs_label_debug = 0;
@@ -310,7 +311,10 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel
 	    snprintf(&darg->fs_create.name[0],
 		     sizeof(darg->fs_create.name),
 		     "%s", fn);
-	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0, 0);
+
+	    label verify;
+	    thread_cur_label(&verify);
+	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0, &verify);
 	    *f = darg->fs_create.new_file;
 	    return darg->status;
 	}

@@ -14,6 +14,8 @@ extern "C" {
 
 #include <signal.h>
 
+enum { declass_debug = 0 };
+
 void __attribute__((noreturn))
 declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
@@ -21,10 +23,14 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
     label verify;
     thread_cur_verify(&verify);
-    verify.set(declassify_handle, verify.get_default());
+    if (declass_debug)
+	cprintf("declassify: verify label %s\n", verify.to_string());
+
+    label declassified(verify);
+    declassified.set(declassify_handle, declassified.get_default());
 
     if (start_env->declassify_gate.object) {
-	gate_call(start_env->declassify_gate, gcd, 0, &verify, 0, &verify);
+	gate_call(start_env->declassify_gate, gcd, 0, &declassified, 0, &declassified);
 	gr->ret(0, 0, 0);
     }
 
@@ -54,10 +60,17 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
 	kill(darg->exit.parent_pid, SIGCHLD);
     } else if (darg->req == declassify_fs_create) {
+	label file_label(verify);
+	file_label.transform(label::star_to, file_label.get_default());
+
+	if (declass_debug)
+	    cprintf("declassify: file label %s\n", file_label.to_string());
+
 	darg->fs_create.name[sizeof(darg->fs_create.name) - 1] = '\0';
 	darg->status = fs_create(darg->fs_create.dir,
 				 &darg->fs_create.name[0],
-				 &darg->fs_create.new_file, 0);
+				 &darg->fs_create.new_file,
+				 file_label.to_ulabel());
     } else {
 	cprintf("exit_declassifier: unknown request type %d\n", darg->req);
 	darg->status = -E_BAD_OP;
