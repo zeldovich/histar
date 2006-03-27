@@ -18,7 +18,10 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
 
     uint64_t endpt = off + count;
     if (endpt > cursize) {
-	sys_segment_resize(f.obj, endpt, 0);
+	r = fs_resize(f, endpt);
+	if (r < 0)
+	    return r;
+
 	cursize = endpt;
     }
 
