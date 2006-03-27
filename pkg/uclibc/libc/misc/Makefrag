@@ -9,7 +9,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/fnmatch \
 	pkg/uclibc/libc/misc/gnu \
 	pkg/uclibc/libc/misc/mntent \
-	pkg/uclibc/libc/misc/wchar
+	pkg/uclibc/libc/misc/wchar \
+	pkg/uclibc/libc/misc/wctype
 
 ##
 ## Source files that can be built directly
@@ -75,6 +76,16 @@ WCHAR_MOBJ := \
 WCHAR_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o, $(WCHAR_MOBJ))
 LIBC_OBJFILES += $(WCHAR_MOBJ)
 
+WCTYPE_MSRC := pkg/uclibc/libc/misc/wctype/wctype.c
+WCTYPE_MOBJ := \
+	iswalnum.o iswalpha.o iswcntrl.o iswdigit.o iswgraph.o \
+        iswlower.o iswprint.o iswpunct.o iswspace.o iswupper.o \
+        iswxdigit.o iswblank.o wctrans.o towctrans.o \
+        wctype.o iswctype.o towlower.o towupper.o
+WCTYPE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/wctype/%.o, $(WCTYPE_MOBJ))
+LIBC_OBJFILES += $(WCTYPE_MOBJ)
+
+$(CTYPE_MOBJ): $(CTYPE_MSRC)
 $(CTYPE_MOBJ): $(CTYPE_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o,%,$@) $< -c -o $@
@@ -90,4 +101,8 @@ $(TIME_MOBJ): $(TIME_MSRC)
 $(WCHAR_MOBJ): $(WCHAR_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o,%,$@) $< -c -o $@
+
+$(WCTYPE_MOBJ): $(WCTYPE_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/wctype/%.o,%,$@) $< -c -o $@
 
