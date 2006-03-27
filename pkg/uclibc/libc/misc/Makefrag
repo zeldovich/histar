@@ -7,7 +7,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/dirent \
 	pkg/uclibc/libc/misc/time \
 	pkg/uclibc/libc/misc/fnmatch \
-	pkg/uclibc/libc/misc/gnu
+	pkg/uclibc/libc/misc/gnu \
+	pkg/uclibc/libc/misc/mntent
 
 ##
 ## Source files that can be built directly
@@ -30,6 +31,7 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/time/ftime.c \
 	pkg/uclibc/libc/misc/fnmatch/fnmatch.c \
 	pkg/uclibc/libc/misc/gnu/obstack.c \
+	pkg/uclibc/libc/misc/mntent/mntent.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC))
