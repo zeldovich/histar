@@ -6,7 +6,10 @@ STDLIB_MSRC := pkg/uclibc/libc/stdlib/stdlib.c
 STDLIB_MOBJ := \
 	abs.o labs.o atoi.o atol.o strtol.o strtoul.o _stdlib_strto_l.o \
 	qsort.o bsearch.o atof.o \
-	llabs.o atoll.o strtoll.o strtoull.o _stdlib_strto_ll.o
+	llabs.o atoll.o strtoll.o strtoull.o _stdlib_strto_ll.o \
+	mblen.o mbtowc.o wctomb.o mbstowcs.o wcstombs.o \
+        _stdlib_mb_cur_max.o _stdlib_wcsto_l.o _stdlib_wcsto_ll.o \
+        wcstol.o wcstoul.o wcstoll.o wcstoull.o
 STDLIB_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o, $(STDLIB_MOBJ))
 
 STDLIB_MSRC1 := pkg/uclibc/libc/stdlib/strtod.c
