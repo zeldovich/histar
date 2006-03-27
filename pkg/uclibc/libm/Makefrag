@@ -1,3 +1,5 @@
+OBJDIRS += pkg/uclibc/libm
+
 LIBM_CSRC =   w_acos.c w_asin.c s_atan.c w_atan2.c s_ceil.c s_cos.c \
 	 w_cosh.c w_exp.c s_fabs.c s_floor.c w_fmod.c s_frexp.c \
 	 s_ldexp.c w_log.c w_log10.c s_modf.c w_pow.c s_sin.c \
