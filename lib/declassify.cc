@@ -71,6 +71,8 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 				 &darg->fs_create.name[0],
 				 &darg->fs_create.new_file,
 				 file_label.to_ulabel());
+    } else if (darg->req == declassify_fs_resize) {
+	darg->status = fs_resize(darg->fs_resize.ino, darg->fs_resize.len);
     } else {
 	cprintf("exit_declassifier: unknown request type %d\n", darg->req);
 	darg->status = -E_BAD_OP;
