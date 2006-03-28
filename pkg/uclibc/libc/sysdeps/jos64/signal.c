@@ -116,6 +116,16 @@ signal_utrap(struct UTrapframe *utf)
 	if (utf->utf_trap_num == T_PGFLT) {
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
+	} else if (utf->utf_trap_num == T_DEVICE) {
+	    int r = sys_self_enable_fp();
+	    if (r >= 0) {
+		//cprintf("signal_utrap: enabled floating-point\n");
+		return;
+	    }
+
+	    cprintf("signal_utrap: cannot enable fp: %s\n", e2s(r));
+	    si.si_signo = SIGILL;
+	    si.si_code = ILL_ILLTRP;
 	} else {
 	    cprintf("signal_utrap: unknown hw trap %d\n", utf->utf_trap_num);
 	    si.si_signo = SIGILL;

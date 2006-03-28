@@ -25,6 +25,7 @@ Syscalls that affect resource use:
 	+ sys_as_set
 	+ anything that puts things in containers -- can resize container
 	    [[ so effectively all of the above ]]
+	sys_self_enable_fp
 
     Label operations:
 

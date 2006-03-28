@@ -231,6 +231,12 @@ sys_self_get_verify(struct ulabel *l)
 }
 
 int
+sys_self_enable_fp(void)
+{
+    return syscall(SYS_self_enable_fp);
+}
+
+int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_sync_wait, addr, val, msec);
