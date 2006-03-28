@@ -21,6 +21,7 @@ main (int ac, char **av)
                                        fs_share_fetch,
                                        0, 1, 2,
                                        3, &argv[0],
+                                       0, 0,
                                        0, 0, 0, 0);
     int64_t e;
     process_wait(&share_fetch, &e);
@@ -36,6 +37,7 @@ main (int ac, char **av)
                                        fs_share_tar,
                                        0, 1, 2,
                                        5, &argv2[0],
+                                       0, 0,
                                        0, 0, 0, 0);
     process_wait(&share_tar, &e);
     return 0;

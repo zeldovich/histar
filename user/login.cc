@@ -30,10 +30,12 @@ login(char *u, char *p)
     start_env->user_grant = reply.user_grant;
     
     const char *argv[1] = { "/bin/ksh" };
+    const char *envv[2] = { "TERM=vt100", "TERMINFO=/x/share/terminfo" };
     struct child_process shell = spawn(start_env->shared_container,
                                        fsshell,
                                        0, 1, 2,
                                        1, &argv[0],
+                                       2, &envv[0],
                                        0, 0, 0, 0);
     int64_t e;
     process_wait(&shell, &e);

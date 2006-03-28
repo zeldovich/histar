@@ -50,7 +50,8 @@ fs_declassify_init(uint64_t net_taint)
 	  fsmerge,
 	  0, 1, 2,
 	  3, &argv[0],
-	  0, &ds, 0, 0);
+	  0, 0,
+      0, &ds, 0, 0);
 }
 
 int
@@ -93,7 +94,8 @@ try
     spawn(start_env->root_container, netd_ino,
 	  0, 1, 2,
 	  3, &argv[0],
-	  0, &ds, 0, 0);
+	  0, 0,
+      0, &ds, 0, 0);
 
     fs_declassify_init(net_taint);
 } catch (std::exception &e) {

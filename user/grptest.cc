@@ -65,6 +65,7 @@ read(uint64_t taint)
                                        fscat,
                                        0, 1, 2,
                                        2, &argv[0],
+                                       0, 0,
                                        0, &ds, 0, 0);
     int64_t e;
     process_wait(&cat, &e);    

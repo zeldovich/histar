@@ -160,6 +160,7 @@ do_spawn(int ac, char **av, struct child_process *childp)
         child = spawn(start_env->shared_container, ino,
 		      0, 1, 2,
 		      ac, (const char **) av,
+              0, 0,
 		      0, 0, 0, 0);
 	*childp = child;
 	return child.container;

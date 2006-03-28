@@ -76,6 +76,7 @@ telnet_server(void)
 	spawn(start_env->shared_container, sh,
 	      ss, ss, ss,
 	      1, &argv[0], 
+          0, 0,
 	      0, 0, 0, 0);
 	close(ss);
     }

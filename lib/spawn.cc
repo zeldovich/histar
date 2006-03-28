@@ -26,6 +26,7 @@ struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
+      int envc, const char **envv,
       label *cs, label *ds, label *cr, label *dr)
 {
     label tmp, out;
@@ -155,10 +156,19 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     char *p = &spawn_env->args[0];
     for (int i = 0; i < ac; i++) {
-	size_t len = strlen(av[i]);
-	memcpy(p, av[i], len);
-	p += len + 1;
+    	size_t len = strlen(av[i]);
+    	memcpy(p, av[i], len);
+    	p += len + 1;
     }
+    
+    p++;
+    for (int i = 0; i < envc; i++) {
+        size_t len = strlen(envv[i]);    
+        memcpy(p, envv[i], len);
+        p += len + 1;
+    }
+    
+    
 
     int64_t thread = sys_thread_create(c_proc, &name[0]);
     error_check(thread);
