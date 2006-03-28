@@ -22,9 +22,7 @@ struct tun_seg {
 int
 tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
 {
-    struct cobj_ref tseg = tino.obj;
-
-    int r = sys_segment_resize(tseg, sizeof(struct tun_seg), 0);
+    int r = fs_resize(tino, sizeof(struct tun_seg));
     if (r < 0) {
 	errno = EPERM;
 	return -1;
@@ -50,7 +48,7 @@ tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
 
     fd->fd_dev_id = devtun.dev_id;
     fd->fd_omode = flags;
-    fd->fd_tun.tun_seg = tseg;
+    fd->fd_tun.tun_seg = tino.obj;
     fd->fd_tun.tun_a = tun_a;
 
     return fd2num(fd);

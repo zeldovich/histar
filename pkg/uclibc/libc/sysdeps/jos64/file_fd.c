@@ -44,6 +44,21 @@ __libc_open(const char *pn, int flags, ...) __THROW
 
 	struct fs_inode ino;
 	int r = fs_namei(pn2, &ino);
+	if (r == -E_NOT_FOUND) {
+	    const char *dirname, *basename;
+	    fs_dirbase(pn2, &dirname, &basename);
+
+	    struct fs_inode dir;
+	    r = fs_namei(dirname, &dir);
+	    if (r < 0) {
+		free(pn2);
+		__set_errno(ENOENT);
+		return -1;
+	    }
+
+	    r = fs_create(dir, basename, &ino, 0);
+	}
+
 	free(pn2);
 	if (r < 0) {
 	    __set_errno(ENOENT);
