@@ -9,7 +9,7 @@
 #include <inc/queue.h>
 #include <inc/thread.h>
 
-typedef SAFE_TYPE(int) thread_status;
+typedef SAFE_TYPE(uint8_t) thread_status;
 #define thread_not_started	SAFE_WRAP(thread_status, 1)
 #define thread_runnable		SAFE_WRAP(thread_status, 2)
 #define thread_suspended	SAFE_WRAP(thread_status, 3)
@@ -27,7 +27,8 @@ struct Thread {
     kobject_id_t th_sg;
 
     thread_status th_status;
-    bool_t th_pinned;
+    uint8_t th_pinned : 1;
+    uint8_t th_fp_enabled : 1;
 
     uint64_t th_wakeup_msec;
     uint64_t th_wakeup_addr;
@@ -59,6 +60,7 @@ int  thread_change_label(const struct Thread *t, const struct Label *l)
     __attribute__ ((warn_unused_result));
 void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
+int  thread_enable_fp(const struct Thread *t);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);

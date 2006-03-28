@@ -168,7 +168,32 @@ thread_run(const struct Thread *t)
 
     thread_switch(t);
     trap_user_iret_tsc = read_tsc();
+
+    if (t->th_fp_enabled) {
+	void *p;
+	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_ro));
+	lcr0(rcr0() & ~CR0_TS);
+	fxrstor((const struct Fpregs *) p);
+    } else {
+	lcr0(rcr0() | CR0_TS);
+    }
+
     trapframe_pop(&t->th_tf);
+}
+
+int
+thread_enable_fp(const struct Thread *const_t)
+{
+    if (const_t->th_fp_enabled)
+	return 0;
+
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    int r = kobject_set_nbytes(&t->th_ko, sizeof(struct Fpregs));
+    if (r < 0)
+	return r;
+
+    t->th_fp_enabled = 1;
+    return 0;
 }
 
 int

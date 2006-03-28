@@ -157,6 +157,13 @@ trap_handler (struct Trapframe *tf)
 
     struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
     t->th_tf = *tf;
+    if (t->th_fp_enabled) {
+	void *p;
+	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_rw));
+	lcr0(rcr0() & ~CR0_TS);
+	fxsave((struct Fpregs *) p);
+    }
+
     trap_dispatch(trapno, &t->th_tf);
 
     if (cur_thread == 0 || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
