@@ -48,6 +48,7 @@ do_execve(fs_inode bin, char *const *argv)
 
     // Load ELF binary into container
     thread_entry e;
+    memset(&e, 0, sizeof(e));
     error_check(elf_load(proc_ct, bin.obj, &e, secret_label.to_ulabel()));
 
     // Move our file descriptors over to the new process
@@ -92,7 +93,7 @@ do_execve(fs_inode bin, char *const *argv)
     error_check(segment_map_as(e.te_as, new_env_ref,
 			       SEGMAP_READ | SEGMAP_WRITE,
 			       &new_env_va, 0));
-    e.te_arg = (uint64_t) new_env_va;
+    e.te_arg[0] = (uint64_t) new_env_va;
 
     // Create a thread
     int64_t tid = sys_thread_create(proc_ct, &name[0]);

@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/stdio.h>
 
 #include <stdio.h>
+#include <string.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -21,9 +22,10 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
 {
     // Designated initializers are not supported in g++
     struct thread_entry te;
+    memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &entry_tls_stub;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg = (uint64_t) this;
+    te.te_arg[0] = (uint64_t) this;
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gate_ct, &te,

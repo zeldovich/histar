@@ -36,9 +36,10 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     thread_cur_label(&label);
 
     thread_entry te;
+    memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &return_stub;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg = (uint64_t) jb;
+    te.te_arg[0] = (uint64_t) jb;
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t id = sys_gate_create(ct, &te,

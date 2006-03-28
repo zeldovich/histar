@@ -110,6 +110,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(c_proc);
 
     struct thread_entry e;
+    memset(&e, 0, sizeof(e));
     error_check(elf_load(c_proc, elf, &e, proc_object_label.to_ulabel()));
 
     int fdnum[3] = { fd0, fd1, fd2 };
@@ -167,7 +168,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	printf("spawn: starting thread with label %s\n",
 	       thread_label.to_string());
 
-    e.te_arg = (uint64_t) spawn_env_va;
+    e.te_arg[0] = (uint64_t) spawn_env_va;
     error_check(sys_thread_start(tobj, &e,
 				 thread_label.to_ulabel(),
 				 thread_clear.to_ulabel()));

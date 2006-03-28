@@ -62,7 +62,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 
     e.te_entry = &thread_entry;
     e.te_stack = ta;
-    e.te_arg = (uint64_t) ta;
+    e.te_arg[0] = (uint64_t) ta;
 
     int64_t tid = sys_thread_create(thread_ct, name);
     if (tid < 0) {

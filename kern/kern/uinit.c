@@ -197,10 +197,14 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
-    assert_check(thread_jump(t, th_label, th_clearance,
-			     COBJ(c->ct_ko.ko_id, as->as_ko.ko_id),
-			     (void*) elf.e_entry, (void*) USTACKTOP,
-			     arg0, arg1));
+    struct thread_entry te;
+    memset(&te, 0, sizeof(te));
+    te.te_as = COBJ(c->ct_ko.ko_id, as->as_ko.ko_id);
+    te.te_entry = (void *) elf.e_entry;
+    te.te_stack = (void *) USTACKTOP;
+    te.te_arg[0] = arg0;
+    te.te_arg[1] = arg1;
+    assert_check(thread_jump(t, th_label, th_clearance, &te));
     return 0;
 }
 

@@ -231,9 +231,7 @@ int
 thread_jump(const struct Thread *const_t,
 	    const struct Label *label,
 	    const struct Label *clearance,
-	    struct cobj_ref as, void *entry,
-	    void *stack, uint64_t arg0,
-	    uint64_t arg1)
+	    const struct thread_entry *te)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
@@ -248,16 +246,20 @@ thread_jump(const struct Thread *const_t,
 
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
 			       cur_clearance, clearance);
-    thread_change_as(t, as);
+    thread_change_as(t, te->te_as);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT | 3;
     t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rip = (uint64_t) entry;
-    t->th_tf.tf_rsp = (uint64_t) stack;
-    t->th_tf.tf_rdi = arg0;
-    t->th_tf.tf_rsi = arg1;
+    t->th_tf.tf_rip = (uint64_t) te->te_entry;
+    t->th_tf.tf_rsp = (uint64_t) te->te_stack;
+    t->th_tf.tf_rdi = te->te_arg[0];
+    t->th_tf.tf_rsi = te->te_arg[1];
+    t->th_tf.tf_rdx = te->te_arg[2];
+    t->th_tf.tf_rcx = te->te_arg[3];
+    t->th_tf.tf_r8  = te->te_arg[4];
+    t->th_tf.tf_r9  = te->te_arg[5];
 
     return 0;
 }

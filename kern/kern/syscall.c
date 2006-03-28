@@ -426,12 +426,7 @@ sys_gate_enter(struct cobj_ref gt,
     // Check that we aren't exceeding the clearance in the end
     check(label_compare(new_label, new_clearance, label_leq_starlo));
 
-    const struct thread_entry *e = &g->gt_te;
-    check(thread_jump(cur_thread,
-		      new_label,
-		      new_clearance,
-		      e->te_as, e->te_entry, e->te_stack,
-		      e->te_arg, 0));
+    check(thread_jump(cur_thread, new_label, new_clearance, &g->gt_te));
 }
 
 static void
@@ -458,9 +453,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(label_compare(cur_th_label, new_label, label_leq_starlo));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi));
 
-    check(thread_jump(t, new_label, new_clearance,
-		      te.te_as, te.te_entry, te.te_stack,
-		      te.te_arg, 0));
+    check(thread_jump(t, new_label, new_clearance, &te));
     thread_set_runnable(t);
 }
 

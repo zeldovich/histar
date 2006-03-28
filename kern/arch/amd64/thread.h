@@ -7,6 +7,7 @@
 #include <kern/kobjhdr.h>
 #include <kern/container.h>
 #include <inc/queue.h>
+#include <inc/thread.h>
 
 typedef SAFE_TYPE(int) thread_status;
 #define thread_not_started	SAFE_WRAP(thread_status, 1)
@@ -52,8 +53,7 @@ void thread_zero_refs(const struct Thread *t);
 int  thread_jump(const struct Thread *t,
 		 const struct Label *contaminate,
 		 const struct Label *clearance,
-		 struct cobj_ref as, void *entry, void *stack,
-		 uint64_t arg0, uint64_t arg1)
+		 const struct thread_entry *te)
     __attribute__ ((warn_unused_result));
 int  thread_change_label(const struct Thread *t, const struct Label *l)
     __attribute__ ((warn_unused_result));
