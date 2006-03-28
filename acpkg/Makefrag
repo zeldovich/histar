@@ -65,7 +65,7 @@ acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 .PRECIOUS: acpkg/%/__patch
 acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
 acpkg/%/__patch: PATCHFILE=$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
-acpkg/%/__patch: acpkg/patches/$(PATCHFILE)
+acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
 	patch -d acpkg/$(PKGNAME) -p1 < acpkg/patches/$(PATCHFILE)
 	touch $@
 
