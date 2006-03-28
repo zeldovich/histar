@@ -9,14 +9,3 @@
  #include <alloca.h>
  
  #ifndef __attribute__
---- tar-1.15_old/src/buffer.c	2004-11-26 10:57:09.000000000 -0800
-+++ tar-1.15/src/buffer.c	2006-03-22 17:02:39.000000000 -0800
-@@ -121,7 +121,7 @@
- 
- /* Time-related functions */
- 
--double duration;
-+uint64_t duration;
- 
- void
- set_start_time ()
