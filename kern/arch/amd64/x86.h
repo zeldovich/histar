@@ -2,6 +2,7 @@
 #define JOS_INC_X86_H
 
 #include <inc/types.h>
+#include <machine/mmu.h>
 
 #define X86_INST_ATTR	static __inline __attribute__((always_inline, no_instrument_function))
 
@@ -40,6 +41,8 @@ X86_INST_ATTR uint64_t read_rsp(void);
 X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 			 uint32_t *ecxp, uint32_t *edxp);
 X86_INST_ATTR uint64_t read_tsc(void);
+X86_INST_ATTR void fnsave(struct Fpregs *f);
+X86_INST_ATTR void frstor(struct Fpregs *f);
 
 X86_INST_ATTR unsigned long __byte_swap_long(unsigned long in);
 X86_INST_ATTR uint16_t __byte_swap_word(uint16_t in);
@@ -301,6 +304,19 @@ read_tsc(void)
 	__asm __volatile("rdtsc" : "=a" (a), "=d" (d));
 	return ((uint64_t) a) | (((uint64_t) d) << 32);
 }
+
+void
+fnsave(struct Fpregs *f)
+{
+    __asm __volatile("fnsave %0" : "=r" (f));
+}
+
+void
+frstor(struct Fpregs *f)
+{
+    __asm __volatile("frstor %0" : "=r" (f));
+}
+
 
 
 // X86 byteswap operations
