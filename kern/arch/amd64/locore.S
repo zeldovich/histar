@@ -10,7 +10,7 @@ start:	.code32
 	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable PAE
-	orl	$(CR4_PAE|CR4_PGE),%eax
+	orl	$(CR4_PAE|CR4_PGE|CR4_OSFXSR),%eax
 	movl	%eax,%cr4
 
 	movl	$RELOC(bootpml4),%eax		// Load CR3
