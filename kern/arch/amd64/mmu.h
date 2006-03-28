@@ -244,20 +244,8 @@ struct Trapframe {
   uint8_t tf__pad3[7];
 };
 
-struct Fpreg80 {
-    uint16_t sig[4];
-    uint16_t exp;
-};
-
 struct Fpregs {
-    uint32_t fpr_fcw;
-    uint32_t fpr_fsw;
-    uint32_t fpr_ftw;
-    uint32_t fpr_ipoff;
-    uint32_t fpr_cs;
-    uint32_t fpr_dataoff;
-    uint32_t fpr_ds;
-    struct Fpreg80 fpr_reg[8];
+    uint8_t fpr_pad[512];
 };
 
 #endif /* !__ASSEMBLER__ */
