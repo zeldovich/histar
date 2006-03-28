@@ -159,6 +159,7 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 
     int dhcp_state = 0;
     const char *dhcp_states[] = {
+	[DHCP_RENEWING] "renewing",
 	[DHCP_SELECTING] "selecting",
 	[DHCP_CHECKING] "checking",
 	[DHCP_BOUND] "bound",
