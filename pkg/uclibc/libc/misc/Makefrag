@@ -10,7 +10,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/gnu \
 	pkg/uclibc/libc/misc/mntent \
 	pkg/uclibc/libc/misc/wchar \
-	pkg/uclibc/libc/misc/wctype
+	pkg/uclibc/libc/misc/wctype \
+	pkg/uclibc/libc/misc/regex
 
 ##
 ## Source files that can be built directly
