@@ -89,6 +89,9 @@ $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
 $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 
+## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
+$(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
+
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 
@@ -109,26 +112,16 @@ ncurses: $(ACPKG_WRAPS) acpkg/ncurses-5.5/Makefile
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
-$(OBJDIR)/lib/libncurses.a: ncurses
 	cp $(OBJDIR)/acpkg/lib/libncurses.a   $(OBJDIR)/lib/libncurses.a
-$(OBJDIR)/tars/terminfo_tar: ncurses
-	@mkdir -p $(OBJDIR)/tars
-	tar -cvf $(OBJDIR)/tars/terminfo_tar -C $(ACPKG_PREFIX) share/
+	ln -fs $(OBJDIR)/acpkg/include/ncurses/curses.h $(OBJDIR)/acpkg/include/curses.h
 $(OBJDIR)/user/tcdemo: ncurses
 	cp acpkg/ncurses-5.5/test/demo_termcap $(OBJDIR)/user/tcdemo 
+$(OBJDIR)/user/tcdemo2: ncurses
+	cp acpkg/ncurses-5.5/test/firework $(OBJDIR)/user/tcdemo2
 
 binutils: acpkg/binutils-2.16.1/Makefile
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
-
-## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
-nano: $(ACPKG_WRAPS)
-	@mkdir -p $(ACPKG_PREFIX)
-	-patch -d acpkg/nano-1.2.3 -N -p1 <acpkg/patches/nano.patch
-	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS)" )
-	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/nano-1.2.3 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
 nvi: $(ACPKG_WRAPS)
