@@ -27,6 +27,9 @@ MISC_DIRENT_CSRC := \
         seekdir.c telldir.c readdir64.c alphasort64.c scandir64.c readdir_r.c \
         readdir64_r.c
 
+MISC_REGEX_CSRC := \
+	regex.c
+
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
 	pkg/uclibc/libc/misc/time/adjtime.c \
@@ -36,7 +39,8 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/mntent/mntent.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC))
+	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/regex/%.c, $(MISC_REGEX_CSRC))
 
 ##
 ## Combined source files (multiple object files per .c file)
