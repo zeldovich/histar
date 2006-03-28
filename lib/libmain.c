@@ -35,13 +35,23 @@ setup_env(uint64_t envaddr)
 
     const char *p = &start_env->args[0];
     for (int i = 0; i < MAXARGS; i++) {
-	size_t len = strlen(p);
-	if (len == 0)
-	    break;
+    	size_t len = strlen(p);
+    	if (len == 0)
+    	    break;
+    
+    	argv[argc] = p;
+    	p += len + 1;
+    	argc++;
+    }
 
-	argv[argc] = p;
-	p += len + 1;
-	argc++;
+    p++;
+    for (int i = 0; *p ;i++) {
+        size_t len = strlen(p);
+        char *value = strpbrk(p, "=");
+        *value = 0;
+        value++;        
+        setenv(p, value, 1);
+        p += len + 1;
     }
 
     extern const char *__progname;

@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static void __attribute__((noreturn))
-do_execve(fs_inode bin, char *const *argv)
+do_execve(fs_inode bin, char *const *argv, char *const *envp)
 {
     // Reuse the top-level container and process taint/grant labels,
     // but create a new "process" container in the top-level container.
@@ -83,9 +83,16 @@ do_execve(fs_inode bin, char *const *argv)
 
     char *p = &new_env->args[0];
     for (int i = 0; argv[i]; i++) {
-	size_t len = strlen(argv[i]);
-	memcpy(p, argv[i], len);
-	p += len + 1;
+    	size_t len = strlen(argv[i]);
+    	memcpy(p, argv[i], len);
+    	p += len + 1;
+    }
+
+    p++;
+    for (int i = 0; envp[i]; i++) {
+        size_t len = strlen(envp[i]);    
+        memcpy(p, envp[i], len);
+        p += len + 1;
     }
 
     // Map environment in new address space
@@ -117,17 +124,16 @@ int
 execve(const char *filename, char *const *argv, char *const *envp) __THROW
 {
     try {
-	fs_inode bin;
-	int r = fs_namei(filename, &bin);
-	if (r < 0) {
-	    __set_errno(ENOENT);
-	    return -1;
-	}
-
-	do_execve(bin, argv);
+        fs_inode bin;
+        int r = fs_namei(filename, &bin);
+        if (r < 0) {
+            __set_errno(ENOENT);
+            return -1;
+        }
+        do_execve(bin, argv, envp);
     } catch (std::exception &e) {
-	cprintf("execve: %s\n", e.what());
-	__set_errno(EINVAL);
-	return -1;
-    }
+        cprintf("execve: %s\n", e.what());
+        __set_errno(EINVAL);
+        return -1;
+    }   
 }
