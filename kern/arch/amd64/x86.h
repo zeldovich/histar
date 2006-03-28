@@ -23,8 +23,8 @@ X86_INST_ATTR void invlpg(const void *addr);
 X86_INST_ATTR void lidt(void *p);
 X86_INST_ATTR void lldt(uint16_t sel);
 X86_INST_ATTR void ltr(uint16_t sel);
-X86_INST_ATTR void lcr0(uint32_t val);
-X86_INST_ATTR uint32_t rcr0(void);
+X86_INST_ATTR void lcr0(uint64_t val);
+X86_INST_ATTR uint64_t rcr0(void);
 X86_INST_ATTR uint64_t rcr2(void);
 X86_INST_ATTR void lcr3(uint64_t val);
 X86_INST_ATTR uint64_t rcr3(void);
@@ -41,8 +41,8 @@ X86_INST_ATTR uint64_t read_rsp(void);
 X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 			 uint32_t *ecxp, uint32_t *edxp);
 X86_INST_ATTR uint64_t read_tsc(void);
-X86_INST_ATTR void fnsave(struct Fpregs *f);
-X86_INST_ATTR void frstor(struct Fpregs *f);
+X86_INST_ATTR void fxsave(struct Fpregs *f);
+X86_INST_ATTR void fxrstor(const struct Fpregs *f);
 
 X86_INST_ATTR unsigned long __byte_swap_long(unsigned long in);
 X86_INST_ATTR uint16_t __byte_swap_word(uint16_t in);
@@ -174,16 +174,16 @@ ltr(uint16_t sel)
 }
 
 void
-lcr0(uint32_t val)
+lcr0(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr0" : : "r" (val));
+	__asm __volatile("movq %0,%%cr0" : : "r" (val));
 }
 
-uint32_t
+uint64_t
 rcr0(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr0,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr0,%0" : "=r" (val));
 	return val;
 }
 
@@ -306,15 +306,15 @@ read_tsc(void)
 }
 
 void
-fnsave(struct Fpregs *f)
+fxsave(struct Fpregs *f)
 {
-    __asm __volatile("fnsave %0" : "=r" (f));
+    __asm __volatile("fxsave %0" : "=m" (*f) : : "memory");
 }
 
 void
-frstor(struct Fpregs *f)
+fxrstor(const struct Fpregs *f)
 {
-    __asm __volatile("frstor %0" : "=r" (f));
+    __asm __volatile("fxrstor %0" : : "m" (*f));
 }
 
 
