@@ -14,9 +14,10 @@ struct container_slot {
 
 #define NUM_CT_SLOT_PER_PAGE	(PGSIZE / sizeof(struct container_slot))
 struct container_page {
-    struct container_slot ct_slot[NUM_CT_SLOT_PER_PAGE];
+    struct container_slot cpg_slot[NUM_CT_SLOT_PER_PAGE];
 };
 
+#define NUM_CT_SLOT_INLINE	16
 struct Container {
     struct kobject_hdr ct_ko;
 
@@ -25,6 +26,8 @@ struct Container {
     uint64_t ct_quota_used;
 
     bool_t ct_avoid[kobj_ntypes];	// cannot store certain objects
+
+    struct container_slot ct_slots[NUM_CT_SLOT_INLINE];
 };
 
 int	container_alloc(const struct Label *l, struct Container **cp)

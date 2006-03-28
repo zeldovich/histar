@@ -22,6 +22,14 @@ static int
 container_slot_get(const struct Container *c, uint64_t slotn,
 		   struct container_slot **csp, page_rw_mode rw)
 {
+    if (slotn < NUM_CT_SLOT_INLINE) {
+	if (SAFE_EQUAL(rw, page_rw))
+	    kobject_dirty(&c->ct_ko);
+	*csp = (struct container_slot *) &c->ct_slots[slotn];
+	return 0;
+    }
+    slotn -= NUM_CT_SLOT_INLINE;
+
     uint64_t ko_page = slotn / NUM_CT_SLOT_PER_PAGE;
     uint64_t pg_slot = slotn % NUM_CT_SLOT_PER_PAGE;
 
@@ -30,7 +38,7 @@ container_slot_get(const struct Container *c, uint64_t slotn,
     if (r < 0)
 	return r;
 
-    *csp = &cpg->ct_slot[pg_slot];
+    *csp = &cpg->cpg_slot[pg_slot];
     return 0;
 }
 
@@ -38,6 +46,17 @@ static int
 container_slot_find(const struct Container *c, kobject_id_t ko_id,
 		    struct container_slot **csp, page_rw_mode rw)
 {
+    for (uint32_t i = 0; i < NUM_CT_SLOT_INLINE; i++) {
+	const struct container_slot *cs = &c->ct_slots[i];
+	if (cs->cs_id == ko_id && cs->cs_ref > 0) {
+	    if (csp)
+		*csp = (struct container_slot *) cs;
+	    if (SAFE_EQUAL(rw, page_rw))
+		kobject_dirty(&c->ct_ko);
+	    return 0;
+	}
+    }
+
     for (uint64_t ko_page = 0; ko_page < kobject_npages(&c->ct_ko); ko_page++) {
 	struct container_page *cpg;
 	int r = kobject_get_page(&c->ct_ko, ko_page, (void**)&cpg, rw);
@@ -45,7 +64,7 @@ container_slot_find(const struct Container *c, kobject_id_t ko_id,
 	    return r;
 
 	for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
-	    struct container_slot *cs = &cpg->ct_slot[i];
+	    struct container_slot *cs = &cpg->cpg_slot[i];
 	    if (cs->cs_id == ko_id && cs->cs_ref > 0) {
 		if (csp)
 		    *csp = cs;
@@ -60,6 +79,14 @@ container_slot_find(const struct Container *c, kobject_id_t ko_id,
 static int
 container_slot_alloc(struct Container *c, struct container_slot **csp)
 {
+    for (uint32_t i = 0; i < NUM_CT_SLOT_INLINE; i++) {
+	struct container_slot *cs = &c->ct_slots[i];
+	if (cs->cs_ref == 0) {
+	    *csp = cs;
+	    return 0;
+	}
+    }
+
     for (uint64_t ko_page = 0; ko_page < kobject_npages(&c->ct_ko); ko_page++) {
 	struct container_page *cpg;
 	int r = kobject_get_page(&c->ct_ko, ko_page, (void**)&cpg, page_rw);
@@ -67,7 +94,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 	    return r;
 
 	for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++) {
-	    struct container_slot *cs = &cpg->ct_slot[i];
+	    struct container_slot *cs = &cpg->cpg_slot[i];
 	    if (cs->cs_ref == 0) {
 		*csp = cs;
 		return 0;
@@ -86,9 +113,9 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 	panic("container_slot_alloc: cannot get newly-allocated page");
 
     for (uint32_t i = 0; i < NUM_CT_SLOT_PER_PAGE; i++)
-	cpg->ct_slot[i].cs_ref = 0;
+	cpg->cpg_slot[i].cs_ref = 0;
 
-    *csp = &cpg->ct_slot[0];
+    *csp = &cpg->cpg_slot[0];
     return 0;
 }
 
@@ -181,7 +208,8 @@ container_unref(struct Container *c, const struct kobject_hdr *ko)
 uint64_t
 container_nslots(const struct Container *c)
 {
-    return kobject_npages(&c->ct_ko) * NUM_CT_SLOT_PER_PAGE;
+    return NUM_CT_SLOT_INLINE +
+	   kobject_npages(&c->ct_ko) * NUM_CT_SLOT_PER_PAGE;
 }
 
 int
