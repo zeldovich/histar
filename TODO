@@ -23,7 +23,7 @@ them later do other socket operations.
 
 better separation between kernel, user-space and shared header files
 
-how to expose thread-local container and segment?  is it safe?
+how to expose thread-local segment?  is it safe?
 
 expose kobj_label's at the syscall API to get label sharing
 
