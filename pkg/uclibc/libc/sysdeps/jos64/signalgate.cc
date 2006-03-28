@@ -21,7 +21,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-static gatesrv *gs;
+static struct cobj_ref gs;
 
 static void __attribute__ ((noreturn))
 signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
@@ -36,12 +36,9 @@ signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 void
 signal_gate_close(void)
 {
-    if (gs) {
-	try {
-	    delete gs;
-	} catch (...) {}
-
-	gs = 0;
+    if (gs.object) {
+	sys_obj_unref(gs);
+	gs.object = 0;
     }
 }
 
@@ -54,10 +51,9 @@ signal_gate_init(void)
 	label tl, tc;
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
-	gs = new gatesrv(start_env->shared_container, "signal", &tl, &tc);
-	gs->set_entry_container(start_env->proc_container);
-	gs->set_entry_function(&signal_gate_entry, 0);
-	gs->enable();
+	gs = gate_create(start_env->shared_container, "signal", &tl, &tc,
+			 start_env->proc_container,
+			 &signal_gate_entry, 0);
     } catch (std::exception &e) {
 	cprintf("signal_gate_create: %s\n", e.what());
     }

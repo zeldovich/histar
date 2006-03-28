@@ -86,10 +86,10 @@ try
     // { adm_handle:* } when running admctl, but not for other things..
     //recv.set(adm_handle, 0);
 
-    gatesrv g(start_env->shared_container, "admgate", &send, &recv);
-    g.set_entry_container(start_env->proc_container);
-    g.set_entry_function(&admind_entry, 0);
-    g.enable();
+    struct cobj_ref g =
+	gate_create(start_env->shared_container, "admgate", &send, &recv,
+		    start_env->proc_container,
+		    &admind_entry, 0);
 
     thread_halt();
 } catch (std::exception &e) {

@@ -80,9 +80,6 @@ can workaround in this case by using the existing console FD from another contai
 we seem to have a potential confused deputy problem with our file access
 mechanism..  how do you access a file using only a subset of your credentials?
 
-gatesrv should not be an object: all state should live in the kernel gate.
-otherwise it's hard to GC the c++ object when the kernel object goes away.
-
 more aggressive labeling:
  - netd args segment should be labeled with gate-call handle.
  - taint_ct in gate_call/gate_return should be labeled with gate-call handle.

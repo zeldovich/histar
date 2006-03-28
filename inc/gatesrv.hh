@@ -32,32 +32,10 @@ private:
 typedef void (*gatesrv_entry_t)
 	(void *, struct gate_call_data *, gatesrv_return *);
 
-class gatesrv {
-public:
-    gatesrv(uint64_t gate_container, const char *name,
-	    label *label, label *clearance);
-    ~gatesrv();
-
-    // Entry container used for thread reference and entry stack
-    void set_entry_container(uint64_t ct) { entry_container_ = ct; }
-    void set_entry_function(gatesrv_entry_t f, void *arg) { f_ = f; arg_ = arg; }
-    void enable() { active_ = 1; }
-
-    struct cobj_ref gate() { return gate_obj_; }
-
-private:
-    static void entry_tls_stub(gatesrv *s) __attribute__((noreturn));
-    void entry_tls() __attribute__((noreturn));
-    static void entry_stub(gatesrv *s, void *stack) __attribute__((noreturn));
-    void entry(void *stack) __attribute__((noreturn));
-
-    struct cobj_ref gate_obj_;
-    uint32_t stackpages_;
-
-    uint64_t entry_container_;
-    gatesrv_entry_t f_;
-    void *arg_;
-    int active_;
-};
+struct cobj_ref
+    gate_create(uint64_t gate_container, const char *name,
+		label *label, label *clearance,
+		uint64_t entry_container,
+		gatesrv_entry_t func, void *arg);
 
 #endif

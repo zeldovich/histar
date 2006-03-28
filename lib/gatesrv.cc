@@ -16,16 +16,66 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-gatesrv::gatesrv(uint64_t gate_ct, const char *name,
-		 label *label, label *clearance)
-    : stackpages_(2), active_(0)
+enum { gate_stack_pages = 2 };
+
+static void __attribute__((noreturn))
+gatesrv_entry(uint64_t entry_ct, gatesrv_entry_t fn, void *arg, void *stack)
 {
-    // Designated initializers are not supported in g++
+    try {
+	// Arguments for gate call passed on the top of the TLS stack.
+	gate_call_data *d = (gate_call_data *) tls_gate_args;
+
+	gatesrv_return ret(d->return_gate, entry_ct, stack);
+	fn(arg, d, &ret);
+
+	throw basic_exception("gatesrv_entry: function returned\n");
+    } catch (std::exception &e) {
+	// XXX need to clean up thread stack & refcount
+	printf("gatesrv_entry: %s\n", e.what());
+	thread_halt();
+    }
+}
+
+static void __attribute__((noreturn))
+gatesrv_entry_tls(uint64_t entry_ct, gatesrv_entry_t fn, void *arg)
+{
+    try {
+	// Reset our cached thread ID, stored in TLS
+	if (tls_tidp)
+	    *tls_tidp = sys_self_id();
+
+	error_check(sys_self_addref(entry_ct));
+	scope_guard<int, struct cobj_ref>
+	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
+
+	struct cobj_ref stackobj;
+	void *stack = 0;
+	error_check(segment_alloc(entry_ct, gate_stack_pages * PGSIZE,
+				  &stackobj, &stack, 0, "gate thread stack"));
+	g.dismiss();
+
+	stack_switch(entry_ct, (uint64_t) fn, (uint64_t) arg, (uint64_t) stack,
+		     (char *) stack + gate_stack_pages * PGSIZE,
+		     (void *) &gatesrv_entry);
+    } catch (std::exception &e) {
+	printf("gatesrv_entry_tls: %s\n", e.what());
+	thread_halt();
+    }
+}
+
+struct cobj_ref
+gate_create(uint64_t gate_ct, const char *name,
+	    label *label, label *clearance,
+	    uint64_t entry_ct,
+	    gatesrv_entry_t func, void *arg)
+{
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
-    te.te_entry = (void *) &entry_tls_stub;
+    te.te_entry = (void *) &gatesrv_entry_tls;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg[0] = (uint64_t) this;
+    te.te_arg[0] = entry_ct;
+    te.te_arg[1] = (uint64_t) func;
+    te.te_arg[2] = (uint64_t) arg;
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gate_ct, &te,
@@ -34,71 +84,7 @@ gatesrv::gatesrv(uint64_t gate_ct, const char *name,
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
-    gate_obj_ = COBJ(gate_ct, gate_id);
-}
-
-gatesrv::~gatesrv()
-{
-    sys_obj_unref(gate_obj_);
-}
-
-void
-gatesrv::entry_tls_stub(gatesrv *s)
-{
-    try {
-	s->entry_tls();
-    } catch (std::exception &e) {
-	printf("gatesrv::entry_tls_stub: %s\n", e.what());
-	thread_halt();
-    }
-}
-
-void
-gatesrv::entry_tls()
-{
-    while (!active_)
-	sys_self_yield();
-
-    // Reset our cached thread ID, stored in TLS
-    if (tls_tidp)
-	*tls_tidp = sys_self_id();
-
-    error_check(sys_self_addref(entry_container_));
-    scope_guard<int, struct cobj_ref>
-	g(sys_obj_unref, COBJ(entry_container_, thread_id()));
-
-    struct cobj_ref stackobj;
-    void *stack = 0;
-    error_check(segment_alloc(entry_container_, stackpages_ * PGSIZE,
-			      &stackobj, &stack, 0, "gate thread stack"));
-    g.dismiss();
-
-    stack_switch((uint64_t) this, (uint64_t) stack, 0, 0,
-		 (char *) stack + stackpages_ * PGSIZE,
-		 (void *) &entry_stub);
-}
-
-void
-gatesrv::entry_stub(gatesrv *s, void *stack)
-{
-    try {
-	s->entry(stack);
-    } catch (std::exception &e) {
-	printf("gatesrv::entry_stub: %s\n", e.what());
-	thread_halt();
-    }
-}
-
-void
-gatesrv::entry(void *stack)
-{
-    // Arguments for gate call passed on the top of the TLS stack.
-    gate_call_data *d = (gate_call_data *) tls_gate_args;
-
-    gatesrv_return ret(d->return_gate, entry_container_, stack);
-    f_(arg_, d, &ret);
-
-    throw basic_exception("gatesrv::entry: function returned\n");
+    return COBJ(gate_ct, gate_id);
 }
 
 void

@@ -14,11 +14,15 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static uint64_t netd_taint_handle;
+static int netd_server_enabled;
 enum { netd_do_taint = 0 };
 
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
+    while (!netd_server_enabled)
+	sys_self_yield();
+
     uint64_t netd_ct = (uint64_t) x;
     struct cobj_ref arg = gcd->param_obj;
 
@@ -57,21 +61,15 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     // Contaminate the caller with { taint:2 }
     label *cs = new label(LB_LEVEL_STAR);
     if (netd_do_taint) {
-	// XXX
-	// having gatesrv as an object seems like a bad idea.
-	// we really want to encapsulate all of the state into the gate,
-	// so that we don't leak memory as we create more and more gates..
 	label tl, tc;
 
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
 
-	gatesrv *g = new gatesrv(gcd->taint_container, "declassifier",
-				 &tl, &tc);
-	g->set_entry_container(start_env->proc_container);
-	g->set_entry_function(&declassifier, (void *) netd_taint_handle);
-	g->enable();
-	gcd->declassify_gate = g->gate();
+	gcd->declassify_gate =
+	    gate_create(gcd->taint_container, "declassifier", &tl, &tc,
+			start_env->proc_container,
+			&declassifier, (void *) netd_taint_handle);
 
 	cs->set(netd_taint_handle, 2);
     }
@@ -79,7 +77,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     rg->ret(cs, 0, 0);
 }
 
-gatesrv *
+struct cobj_ref
 netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
@@ -87,10 +85,9 @@ netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
     netd_taint_handle = taint_handle;
 
     try {
-	gatesrv *g = new gatesrv(gate_ct, "netd", l, clear);
-	g->set_entry_container(entry_ct);
-	g->set_entry_function(&netd_gate_entry, (void *) entry_ct);
-	return g;
+	return gate_create(gate_ct, "netd", l, clear,
+			   entry_ct,
+			   &netd_gate_entry, (void *) entry_ct);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());
 	throw;
@@ -98,4 +95,10 @@ netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
 	cprintf("netd_server_init: %s\n", e.what());
 	throw;
     }
+}
+
+void
+netd_server_enable(void)
+{
+    netd_server_enabled = 1;
 }

@@ -27,7 +27,7 @@ struct gate_data {
     LIST_ENTRY(gate_data) gd_link;
     char gd_name[16];
     struct cobj_ref gd_seg;
-    gatesrv *gd_gate;
+    struct cobj_ref gd_gate;
 };
 LIST_HEAD(user_gates, gate_data) ug_head;
 LIST_HEAD(group_gates, gate_data) gg_head;
@@ -249,10 +249,10 @@ alloc_user(char *uname, char *pass, uint64_t g, uint64_t t)
     thread_cur_clearance(&th_clr);
     th_clr.set(start_env->process_grant, 0);
 
-    ugate->gd_gate = new gatesrv(users_ct, uname, &th_ctm, &th_clr);
-    ugate->gd_gate->set_entry_container(start_env->proc_container);
-    ugate->gd_gate->set_entry_function(&authd_user_entry, (void *) ugate);
-    ugate->gd_gate->enable();
+    ugate->gd_gate = 
+	gate_create(users_ct, uname, &th_ctm, &th_clr,
+		    start_env->proc_container,
+		    &authd_user_entry, (void *) ugate);
 
     ugate_drop.dismiss();
     useg_drop.dismiss();
@@ -312,10 +312,10 @@ alloc_group(char *gname, uint64_t creator_grant,
     th_clr.set(start_env->process_grant, 0);
     th_ctm.set(creator_taint, 1);
     
-    ggate->gd_gate = new gatesrv(groups_ct, gname, &th_ctm, &th_clr);
-    ggate->gd_gate->set_entry_container(start_env->proc_container);
-    ggate->gd_gate->set_entry_function(&authd_group_entry, (void *) ggate);
-    ggate->gd_gate->enable();
+    ggate->gd_gate =
+	gate_create(groups_ct, gname, &th_ctm, &th_clr,
+		    start_env->proc_container,
+		    &authd_group_entry, (void *) ggate);
 
     ggate_drop.dismiss();
     gseg_drop.dismiss();
@@ -353,8 +353,8 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     	struct gate_data *ug = gate_data_find(req->user);
     	if (!ug)
     	    throw error(-E_INVAL, "user does not exist");
-    
-    	delete ug->gd_gate;
+
+    	sys_obj_unref(ug->gd_gate);
     	sys_obj_unref(ug->gd_seg);
     	LIST_REMOVE(ug, gd_link);
     	delete ug;
@@ -368,7 +368,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
     
     	memcpy(lreq, req, sizeof(*lreq));
-    	gate_call(ug->gd_gate->gate(), &gcd, 0, 0, 0, 0);
+    	gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
 
     	if (lrep->err)
     	    throw error(lrep->err, "response from authd_login");
@@ -397,7 +397,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
         
         label ds;
         thread_cur_label(&ds);
-        gate_call(gg->gd_gate->gate(), &gcd, 0, &ds, 0, 0);
+        gate_call(gg->gd_gate, &gcd, 0, &ds, 0, 0);
 
         if (lrep->err)
             throw error(lrep->err, "response from authd_login");
@@ -413,7 +413,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
             authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
             
             memcpy(lreq, req, sizeof(*lreq));
-            gate_call(ug->gd_gate->gate(), &gcd, 0, 0, 0, 0);
+            gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
             
             if (lrep->err)
                 throw error(lrep->err, "response from authd_login");
@@ -435,7 +435,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
         authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
             
         memcpy(lreq, req, sizeof(*lreq));
-        gate_call(ug->gd_gate->gate(), &gcd, 0, 0, 0, 0);
+        gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
         
         if (lrep->err)
             throw error(lrep->err, "response from authd_login");
@@ -529,12 +529,11 @@ authd_init()
     th_ctm.set(root_grant, 1);
     th_ctm.set(root_taint, 1);
     
-    gatesrv *g = new gatesrv(start_env->shared_container,
-                 "authd",
-                 &th_ctm, &th_clr);
-    g->set_entry_container(start_env->proc_container);
-    g->set_entry_function(&authd_entry, 0);
-    g->enable();   
+    struct cobj_ref g =
+	gate_create(start_env->shared_container,
+		    "authd", &th_ctm, &th_clr,
+		    start_env->proc_container,
+		    &authd_entry, 0);
 }
 
 int

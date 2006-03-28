@@ -23,8 +23,7 @@ static int netd_debug = 0;
 static void
 ready_cb(void *arg)
 {
-    gatesrv *srv = (gatesrv *) arg;
-    srv->enable();
+    netd_server_enable();
     printf("netd: ready\n");
 }
 
@@ -51,7 +50,7 @@ main(int ac, char **av)
 	exit(-1);
     }
 
-    gatesrv *srv;
+    struct cobj_ref srv;
     try {
 	label cntm;
 	label clear(2);
@@ -66,6 +65,6 @@ main(int ac, char **av)
 	panic("%s", e.what());
     }
 
-    netd_lwip_init(&ready_cb, srv, netd_if_tun, &tun,
+    netd_lwip_init(&ready_cb, 0, netd_if_tun, &tun,
 		   0x0200080a, 0x00ffffff, 0x0100080a);
 }

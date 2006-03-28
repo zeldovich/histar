@@ -20,17 +20,16 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
     thread_cur_clearance(&clear);
     clear.set(guard, 0);
 
-    gate_ = new gatesrv(start_env->proc_container, "saved privilege",
-			&l, &clear);
-    gate_->set_entry_container(start_env->proc_container);
-    gate_->set_entry_function(&entry_stub, this);
-    gate_->enable();
+    gate_ = gate_create(start_env->proc_container, "saved privilege",
+			&l, &clear,
+			start_env->proc_container,
+			&entry_stub, this);
 }
 
 void
 saved_privilege::acquire()
 {
-    gate_call(gate_->gate(), 0, 0, 0, 0, 0);
+    gate_call(gate_, 0, 0, 0, 0, 0);
 }
 
 void

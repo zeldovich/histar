@@ -5,6 +5,7 @@
 
 extern "C" {
 #include <inc/gateparam.h>
+#include <inc/syscall.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -12,7 +13,7 @@ extern "C" {
 class saved_privilege {
 public:
     saved_privilege(uint64_t guard, uint64_t h);
-    ~saved_privilege() { delete gate_; }
+    ~saved_privilege() { sys_obj_unref(gate_); }
 
     uint64_t handle() { return handle_; }
     void acquire();
@@ -23,7 +24,7 @@ private:
     void entry(gatesrv_return *r) __attribute__((noreturn));
 
     uint64_t handle_;
-    gatesrv *gate_;
+    struct cobj_ref gate_;
 };
 
 class privilege_store {
