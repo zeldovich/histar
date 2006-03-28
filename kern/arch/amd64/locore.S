@@ -26,7 +26,7 @@ start:	.code32
 
 	movl	$(RELOC (farptr)),%ecx		// Far porter to inlong
 	movl	%cr0,%eax			// Enable paging
-	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS),%eax
+	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS|CR0_MP),%eax
 	movl	%eax,%cr0
 	ljmp	*(%ecx)
 
