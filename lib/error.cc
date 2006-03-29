@@ -25,12 +25,12 @@ void
 basic_exception::print_where() const
 {
     int depth = backtracer_depth();
-    printf("Backtrace for error %s:\n", what());
+    fprintf(stderr, "Backtrace for error %s:\n", what());
     for (int i = 0; i < depth; i++) {
 	void *addr = backtracer_addr(i);
-	printf("  %p\n", addr);
+	fprintf(stderr, "  %p\n", addr);
     }
-    printf("End of backtrace\n");
+    fprintf(stderr, "End of backtrace\n");
 }
 
 error::error(int r, const char *fmt, ...) : err_(r)
