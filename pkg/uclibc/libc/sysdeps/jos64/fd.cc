@@ -1134,4 +1134,11 @@ fsync(int fdnum) __THROW
     return -1;
 }
 
+int
+shutdown(int s, int how) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
 weak_alias(__libc_fcntl, fcntl);

@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include <sys/time.h>
+#include <sys/times.h>
 
 #include <bits/unimpl.h>
 
@@ -29,4 +30,11 @@ nanosleep(const struct timespec *req, struct timespec *rem)
     } while (now < end);
 
     return 0;
+}
+
+clock_t
+times(struct tms *buf)
+{
+    set_enosys();
+    return -1;
 }
