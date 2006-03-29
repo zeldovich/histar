@@ -11,7 +11,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/mntent \
 	pkg/uclibc/libc/misc/wchar \
 	pkg/uclibc/libc/misc/wctype \
-	pkg/uclibc/libc/misc/regex
+	pkg/uclibc/libc/misc/regex \
+	pkg/uclibc/libc/misc/syslog
 
 ##
 ## Source files that can be built directly
@@ -28,9 +29,6 @@ MISC_DIRENT_CSRC := \
         seekdir.c telldir.c readdir64.c alphasort64.c scandir64.c readdir_r.c \
         readdir64_r.c
 
-MISC_REGEX_CSRC := \
-	regex.c
-
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
 	pkg/uclibc/libc/misc/time/adjtime.c \
@@ -38,10 +36,11 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/fnmatch/fnmatch.c \
 	pkg/uclibc/libc/misc/gnu/obstack.c \
 	pkg/uclibc/libc/misc/mntent/mntent.c \
+	pkg/uclibc/libc/misc/syslog/syslog.c \
+	pkg/uclibc/libc/misc/regex/regex.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/regex/%.c, $(MISC_REGEX_CSRC))
+	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC))
 
 ##
 ## Combined source files (multiple object files per .c file)
