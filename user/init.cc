@@ -85,12 +85,18 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     struct fs_inode etc;
     error_check(fs_mkdir(start_env->fs_root, "etc", &etc, 0));
 
-    struct fs_inode resolv;
-    error_check(fs_create(etc, "hosts", &resolv, 0));
+    struct fs_inode hosts, resolv, passwd;
+    error_check(fs_create(etc, "hosts", &hosts, 0));
     error_check(fs_create(etc, "resolv.conf", &resolv, 0));
+    error_check(fs_create(etc, "passwd", &passwd, 0));
 
     const char *resolv_conf = "nameserver 171.66.3.11\n";
     error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
+
+    const char *passwd_data =
+	"root:x:0:0:root:/:/bin/ksh\n"
+	"ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin\n";
+    error_check(fs_pwrite(passwd, passwd_data, strlen(passwd_data), 0));
 
     // start out in the root directory
     start_env->fs_cwd = start_env->fs_root;
