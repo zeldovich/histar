@@ -39,6 +39,10 @@ try
     thread_cur_label(&th_label);
     thread_cur_clearance(&th_clear);
 
+    // Protect the gate entry state (text/data segment,
+    // initial address space, etc).
+    th_label.set(start_env->process_grant, 1);
+
     struct cobj_ref g =
 	gate_create(start_env->shared_container, "db gate",
 		    &th_label, &th_clear,
