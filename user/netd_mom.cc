@@ -30,30 +30,6 @@ netdev_init(uint64_t ct, uint64_t net_grant, uint64_t net_taint)
     }
 }
 
-static void
-fs_declassify_init(uint64_t net_taint)
-{
-    struct fs_inode x;
-    error_check(fs_namei("/x", &x));
-
-    struct fs_inode mlt;
-    error_check(fs_mkmlt(x, "m", &mlt));
-
-    struct fs_inode fsmerge;
-    error_check(fs_namei("/bin/fsmerge", &fsmerge));
-
-    label ds(3);
-    ds.set(net_taint, LB_LEVEL_STAR);
-
-    const char *argv[3] = { "fsmerge", "/x/m", "/x/m/@mlt" };
-    spawn(start_env->root_container,
-	  fsmerge,
-	  0, 1, 2,
-	  3, &argv[0],
-	  0, 0,
-      0, &ds, 0, 0);
-}
-
 int
 main(int ac, char **av)
 try
@@ -96,8 +72,6 @@ try
 	  3, &argv[0],
 	  0, 0,
       0, &ds, 0, 0);
-
-    fs_declassify_init(net_taint);
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
 }

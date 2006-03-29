@@ -547,8 +547,6 @@ main(int ac, char **av)
 	uint64_t rg;
 	error_check(strtou64(av[1], 0, 10, &rg));
 
-	cprintf("rg = %ld\n", rg);
-
     	authd_init(rg);
     	thread_halt();
     } catch (std::exception &e) {
