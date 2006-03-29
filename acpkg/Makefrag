@@ -41,6 +41,11 @@ PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_default	    := empty.patch
 
 ##
+## Packages we want to include
+##
+ACPKG_BUILD_LIST := tar-1.15 gzip-1.2.4a
+
+##
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
@@ -83,7 +88,7 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 	cp $< $@
 
-$(OBJDIR)/user/acpkg_tar: $(wildcard $(OBJDIR)/acpkg/*/*)
+$(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	tar -cf $@ -C $(OBJDIR)/acpkg .
