@@ -121,7 +121,7 @@ openssl: $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
 	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
-	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install" )
+	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install_sw" )
 	
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
