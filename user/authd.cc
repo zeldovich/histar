@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/queue.h>
 #include <inc/gateparam.h>
+#include <inc/string.h>
 
 #include <string.h>
 }
@@ -493,13 +494,11 @@ authd_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 
 static void
-authd_init()
+authd_init(uint64_t rg)
 {
-    int64_t rg = sys_handle_create();
     int64_t rt = sys_handle_create();
-    error_check(rg);
     error_check(rt);
-    
+ 
     root_grant = rg;
     root_taint = rt;
     
@@ -507,7 +506,7 @@ authd_init()
     label u_ctm(1);
     u_ctm.set(start_env->process_grant, 0);
     u_ctm.set(start_env->process_taint, 3);
-    u_ctm.set(root_taint, 0);
+    u_ctm.set(root_grant, 0);
     int64_t ct = sys_container_alloc(start_env->shared_container,
                      u_ctm.to_ulabel(), "users");
     error_check(ct);
@@ -540,7 +539,17 @@ int
 main(int ac, char **av)
 {
     try {
-    	authd_init();
+	if (ac != 2) {
+	    cprintf("Usage: %s root-grant-handle\n", av[0]);
+	    return -1;
+	}
+
+	uint64_t rg;
+	error_check(strtou64(av[1], 0, 10, &rg));
+
+	cprintf("rg = %ld\n", rg);
+
+    	authd_init(rg);
     	thread_halt();
     } catch (std::exception &e) {
     	printf("authd: %s\n", e.what());

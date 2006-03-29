@@ -99,32 +99,19 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 static void
 init_procs(int cons, uint64_t h_root)
 {
-    label ds_star(LB_LEVEL_STAR);
     label ds_none(3);
     label ds_hroot(3);
     ds_hroot.set(h_root, LB_LEVEL_STAR);
 
-    int64_t h_adm = sys_handle_create();
-    error_check(h_adm);
+    char h_root_buf[32];
+    snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
 
-    char h_adm_buf[32];
-    snprintf(&h_adm_buf[0], sizeof(h_adm_buf), "%lu", h_adm);
+    spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
+    spawn_fs(cons, "/bin/admind",   &h_root_buf[0], &ds_hroot);
+    spawn_fs(cons, "/bin/authd",    &h_root_buf[0], &ds_hroot);
 
-    // netd_mom should be the only process that needs { h_root:* },
-    // in order to create an appropriately-labeled netdev object.
-    spawn_fs(cons, "/bin/netd_mom", 0, &ds_hroot);
-
-    // admin server gets { * }
-    spawn_fs(cons, "/bin/admind", &h_adm_buf[0], &ds_star);
-
-    // auth server has no higher privilege
-    spawn_fs(cons, "/bin/authd", 0, &ds_none);
-
-    //spawn_fs(cons, "/bin/login", 0, &ds_none);
-    spawn_fs(cons, "/bin/ksh", 0, &ds_none);
-    
-    //spawn_fs(cons, "/bin/jshell", 0, &ds_hroot);
-    //spawn_fs(cons, "/bin/jshell", 0, &ds_none);
+    spawn_fs(cons, "/bin/login", 0, &ds_none);
+    //spawn_fs(cons, "/bin/ksh", 0, &ds_none);
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
     //spawn_fs(cons, "/bin/httpd", 0, &ds_none);
