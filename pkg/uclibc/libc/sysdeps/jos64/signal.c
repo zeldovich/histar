@@ -39,6 +39,8 @@ sig_fatal(void)
 	sys_self_halt();
     } else {
 	recursive = 1;
+
+	print_backtrace();
 	exit(-1);
     }
 }
