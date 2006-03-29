@@ -14,7 +14,7 @@ $(OBJDIR)/user/%: user/%.S
 	$(LD) -o $@ -nostdlib $@.o
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $< $(LIBS)
+	$(CC) -o $@ $(LDFLAGS) $<
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@

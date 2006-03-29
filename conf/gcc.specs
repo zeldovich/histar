@@ -1,0 +1,3 @@
+*lib:
+-ljos -llwip -lc -ljos -lc
+

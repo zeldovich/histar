@@ -8,5 +8,5 @@ $(OBJDIR)/pkg/echo/%.o: pkg/echo/%.c
 	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/echo.debuginfo: $(ECHO_OBJFILES) $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $< $(LIBS)
+	$(CC) -o $@ $(LDFLAGS) $<
 

@@ -13,5 +13,5 @@ $(OBJDIR)/pkg/ksh/%.o: pkg/ksh/%.c
 	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/ksh.debuginfo: $(KSH_OBJFILES) $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $(KSH_OBJFILES) $(LIBS)
+	$(CC) -o $@ $(LDFLAGS) $(KSH_OBJFILES)
 

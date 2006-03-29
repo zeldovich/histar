@@ -45,5 +45,5 @@ $(OBJDIR)/pkg/links/%.o: pkg/links/%.c
 	$(CC) $(USER_CFLAGS) $(LINKS_INCLUDES) -DHAVE_CONFIG_H $(CSTD) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/links.debuginfo: $(LINKS_OBJFILES) $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $(LINKS_OBJFILES) $(LIBS)
+	$(CC) -o $@ $(LDFLAGS) $(LINKS_OBJFILES)
 

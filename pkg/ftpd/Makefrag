@@ -15,5 +15,5 @@ $(OBJDIR)/pkg/ftpd/%.c: pkg/ftpd/%.y
 	$(YACC) -o $@ $<
 
 $(OBJDIR)/user/ftpd.debuginfo: $(FTPD_OBJFILES) $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $(FTPD_OBJFILES) $(LIBS) -lcrypt
+	$(CC) -o $@ $(LDFLAGS) $(FTPD_OBJFILES) -lcrypt
 
