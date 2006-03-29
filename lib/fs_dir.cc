@@ -19,7 +19,6 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int fs_debug = 0;
-static int fs_label_debug = 0;
 
 enum { type_cache_size = 16 };
 static int type_cache_next;
@@ -141,6 +140,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	}
     }
 
+#if 0
     // Simple MLT support
     if (!strcmp(fn, "@mlt")) {
 	uint8_t blob[MLT_BUF_SIZE];
@@ -193,6 +193,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	o->obj = COBJ(ct, ct);
 	return 0;
     }
+#endif
 
     try {
 	fs_dir *d = fs_dir_open(dir, 0);

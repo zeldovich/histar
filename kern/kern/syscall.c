@@ -712,21 +712,20 @@ sys_mlt_create(uint64_t container, const char *name)
 }
 
 static void
-sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *ul, uint8_t *buf, kobject_id_t *ct_id)
+sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *ul, uint8_t *buf)
 {
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));
     check(check_user_access(buf, MLT_BUF_SIZE, SEGMAP_WRITE));
-    check(check_user_access(ct_id, sizeof(kobject_id_t), SEGMAP_WRITE));
 
     const struct Label *l;
-    check(mlt_get(&ko->mt, idx, &l, buf, ct_id));
+    check(mlt_get(&ko->mt, idx, &l, buf));
     if (ul)
 	check(label_to_ulabel(l, ul));
 }
 
 static void
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf, kobject_id_t *ct_id)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
 {
     const struct kobject *ko;
     check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
@@ -736,8 +735,7 @@ sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf, kobject_id_t *
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(check_user_access(buf, MLT_BUF_SIZE, 0));
-    check(check_user_access(ct_id, sizeof(kobject_id_t), SEGMAP_WRITE));
-    check(mlt_put(&ko->mt, l, buf, ct_id));
+    check(mlt_put(&ko->mt, l, buf));
 }
 
 typedef void (*void_syscall) ();

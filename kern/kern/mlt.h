@@ -12,7 +12,6 @@ struct Mlt {
 
 struct mlt_entry {
     uint64_t me_lb_id;
-    kobject_id_t me_ct;
     uint8_t me_inuse;
     uint8_t me_buf[MLT_BUF_SIZE];
 };
@@ -22,11 +21,9 @@ int  mlt_alloc(const struct Label *l, struct Mlt **mtp)
 int  mlt_gc(struct Mlt *mlt)
     __attribute__ ((warn_unused_result));
 
-int  mlt_put(const struct Mlt *mlt, const struct Label *l,
-	     uint8_t *buf, kobject_id_t *ct_id)
+int  mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
     __attribute__ ((warn_unused_result));
-int  mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
-	     uint8_t *buf, kobject_id_t *ct_id)
+int  mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l, uint8_t *buf)
     __attribute__ ((warn_unused_result));
 
 #endif

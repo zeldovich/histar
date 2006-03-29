@@ -13,6 +13,9 @@ extern "C" {
 int
 fs_dir_mlt::list(fs_readdir_pos *i, fs_dent *de)
 {
+    return 0;
+
+#if 0
     uint8_t buf[MLT_BUF_SIZE];
     uint64_t ct;
     int r = sys_mlt_get(ino_.obj, i->a++, 0, &buf[0], &ct);
@@ -25,4 +28,5 @@ fs_dir_mlt::list(fs_readdir_pos *i, fs_dent *de)
     de->de_inode.obj = COBJ(ct, ct);
     snprintf(&de->de_name[0], sizeof(de->de_name), "%lu", ct);
     return 1;
+#endif
 }

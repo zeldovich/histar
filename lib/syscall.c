@@ -317,13 +317,13 @@ sys_mlt_create(uint64_t container, const char *name)
 }
 
 int
-sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *l, uint8_t *buf, uint64_t *ct_id)
+sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *l, uint8_t *buf)
 {
-    return syscall(SYS_mlt_get, mlt, idx, l, buf, ct_id);
+    return syscall(SYS_mlt_get, mlt, idx, l, buf);
 }
 
 int
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf, uint64_t *ct_id)
+sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf)
 {
-    return syscall(SYS_mlt_put, mlt, l, buf, ct_id);
+    return syscall(SYS_mlt_put, mlt, l, buf);
 }

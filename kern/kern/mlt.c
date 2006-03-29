@@ -53,7 +53,7 @@ mlt_gc(struct Mlt *mlt)
 	    continue;
 
 	const struct kobject *ko;
-	r = kobject_get(me->me_ct, &ko, kobj_container, iflow_none);
+	r = kobject_get(me->me_lb_id, &ko, kobj_label, iflow_none);
 	if (r < 0)
 	    return r;
 
@@ -82,8 +82,7 @@ mlt_grow(struct Mlt *mlt, struct mlt_entry **mep)
 }
 
 int
-mlt_put(const struct Mlt *mlt, const struct Label *l,
-	uint8_t *buf, kobject_id_t *ct_id)
+mlt_put(const struct Mlt *mlt, const struct Label *l, uint8_t *buf)
 {
     struct mlt_entry *me = 0;
 
@@ -124,28 +123,17 @@ mlt_put(const struct Mlt *mlt, const struct Label *l,
     }
 
     if (!me->me_inuse) {
-	// XXX mlt-allocated containers should be removed
-	struct Container *ct;
-	r = container_alloc(l, &ct);
-	if (r < 0)
-	    return r;
-
 	me->me_lb_id = l->lb_ko.ko_id;
 	me->me_inuse = 1;
-	me->me_ct = ct->ct_ko.ko_id;
-	kobject_incref(&ct->ct_ko);
 	kobject_incref(&l->lb_ko);
     }
 
     memcpy(&me->me_buf[0], buf, MLT_BUF_SIZE);
-    *ct_id = me->me_ct;
-
     return 0;
 }
 
 int
-mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
-	uint8_t *buf, kobject_id_t *ct_id)
+mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l, uint8_t *buf)
 {
     uint64_t nslots = mlt_nslots(mlt);
 
@@ -180,8 +168,6 @@ mlt_get(const struct Mlt *mlt, uint64_t idx, const struct Label **l,
 
 	if (buf)
 	    memcpy(buf, &me->me_buf[0], MLT_BUF_SIZE);
-	if (ct_id)
-	    *ct_id = me->me_ct;
 	if (l)
 	    *l = me_lb;
 
