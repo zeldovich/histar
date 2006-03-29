@@ -49,6 +49,9 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    return r;
 	}
 
+	// Finalize the size of this section, so it can be hard-linked
+	sys_segment_resize(nseg, va_off + ph->p_memsz, 1);
+
 	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
 	r = segment_unmap(sbuf);
 	if (r < 0) {

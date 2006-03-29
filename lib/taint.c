@@ -40,6 +40,7 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
 void
 taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 {
+    char namebuf[KOBJ_NAME_LEN];
     uint64_t cur_ents[taint_cow_label_ents];
     uint64_t obj_ents[taint_cow_label_ents];
 
@@ -81,7 +82,8 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     ERRCHECK(sys_as_get(cur_as, &uas));
 
     for (uint32_t i = 0; i < uas.nent; i++) {
-	if (!(uas.ents[i].flags & SEGMAP_WRITE))
+	if (!(uas.ents[i].flags & SEGMAP_WRITE) &&
+	    uas.ents[i].segment.container != start_env_ro->proc_container)
 	    continue;
 	if (uas.ents[i].segment.container == mlt_ct)
 	    continue;
@@ -99,13 +101,18 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 
 	taint_cow_compute_label(&cur_label, &obj_label);
 
-	char namebuf[KOBJ_NAME_LEN];
 	ERRCHECK(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
-	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-				      &obj_label, &namebuf[0]);
-	if (id < 0)
-	    panic("taint_cow: cannot copy segment: %s", e2s(id));
+	int64_t id;
+	if ((uas.ents[i].flags & SEGMAP_WRITE)) {
+	    id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+				  &obj_label, &namebuf[0]);
+	    if (id < 0)
+		panic("taint_cow: cannot copy segment: %s", e2s(id));
+	} else {
+	    ERRCHECK(sys_segment_addref(uas.ents[i].segment, mlt_ct));
+	    id = uas.ents[i].segment.object;
+	}
 
 	uint64_t old_id = uas.ents[i].segment.object;
 	for (uint32_t j = 0; j < uas.nent; j++)
@@ -117,7 +124,8 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 
     taint_cow_compute_label(&cur_label, &obj_label);
 
-    int64_t id = sys_as_create(mlt_ct, &obj_label, "taint cow as");
+    ERRCHECK(sys_obj_get_name(cur_as, &namebuf[0]));
+    int64_t id = sys_as_create(mlt_ct, &obj_label, &namebuf[0]);
     if (id < 0)
 	panic("taint_cow: cannot create new as: %s", e2s(id));
 
