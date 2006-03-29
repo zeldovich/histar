@@ -1,7 +1,7 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
-ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc -lcrypt
+ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
@@ -124,7 +124,7 @@ openssl: acpkg/openssl-0.9.8a/__patch
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake build_libs" )
 	
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-$(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
+openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
 
 
 
