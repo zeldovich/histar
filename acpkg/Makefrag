@@ -16,8 +16,6 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) 
 ## Target system is only applicable to programs that generate binary output,
 ## like binutils and gcc.
 
-ACENV += LDFLAGS=\"$(ACPKG_LDFLAGS)\"
-ACENV += CFLAGS=\"$(ACPKG_LDFLAGS)\"
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 ACENV += LIBS=\"\"
 
@@ -56,7 +54,7 @@ ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 $(ACPKG_WRAPS):
 	@mkdir -p $(ACPKG_WRAPDIR)
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
-	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
 .PRECIOUS: acpkg/%/Makefile
@@ -111,7 +109,7 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
-zlib:
+zlib: $(ACPKG_WRAPS)
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	@mkdir -p $(ACPKG_PREFIX)
@@ -119,10 +117,11 @@ zlib:
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
-openssl: acpkg/openssl-0.9.8a/__patch
+openssl: $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
 	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
-	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake build_libs" )
+	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
+	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install" )
 	
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
