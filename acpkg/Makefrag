@@ -1,7 +1,7 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
-ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
+ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc -lcrypt
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
@@ -38,6 +38,7 @@ PATCHFILE_coreutils-5.94    := coreutils-5.94.patch
 PATCHFILE_tar-1.15	    := tar-1.15.patch
 PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
+PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -64,7 +65,7 @@ acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	-find acpkg/$(PKGNAME) -name config.cache | xargs rm -f
 	-find acpkg/$(PKGNAME) -name config.status | xargs rm -f
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) LIBS=-lcrypt ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 
 .PRECIOUS: acpkg/%/__patch
@@ -108,9 +109,32 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
+## http://www.zlib.net/zlib-1.2.3.tar.gz
+zlib:
+	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	@mkdir -p $(ACPKG_PREFIX)
+	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake install" )
+
+## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
+openssl: acpkg/openssl-0.9.8a/__patch
+	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake build_libs" )
+	
+## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
+$(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
+
+
+
 $(OBJDIR)/tars/test_tar: acpkg/test.tar
 	@mkdir -p $(OBJDIR)/tars
 	cp acpkg/test.tar $(OBJDIR)/tars/test_tar
+
+$(OBJDIR)/tars/gcc_tgz:
+	@mkdir -p $(OBJDIR)/tars
+	cp acpkg/gcc.tar.gz $(OBJDIR)/tars/gcc_tgz
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 ncurses.conf acpkg/ncurses-5.5/Makefile:

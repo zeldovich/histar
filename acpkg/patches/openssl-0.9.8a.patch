@@ -1,0 +1,12 @@
+--- openssl-0.9.8a_bad/Configure	2005-08-02 03:59:42.000000000 -0700
++++ openssl-0.9.8a/Configure	2006-03-28 18:55:05.000000000 -0800
+@@ -172,6 +172,9 @@
+ "gcc",		"gcc:-O3::(unknown):::BN_LLONG:::",
+ "cc",		"cc:-O::(unknown)::::::",
+ 
++# jos64 configs
++"x86_64-jos-linux", "x86_64-jos-linux-gcc:-O2::(unknown):::BN_LLONG:::::::::::::::::x86_64-jos-linux-ranlib:",
++
+ ####VOS Configurations
+ "vos-gcc","gcc:-O3 -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
+ "debug-vos-gcc","gcc:-O0 -g -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN -DBN_DEBUG -DREF_CHECK -DCONF_DEBUG -DCRYPTO_MDEBUG::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
