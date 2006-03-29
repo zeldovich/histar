@@ -58,7 +58,6 @@ main(int ac, char **av)
 	thread_cur_label(&cntm);
 
 	srv = netd_server_init(start_env->shared_container,
-			       start_env->proc_container,
 			       taint,
 			       &cntm, &clear);
     } catch (std::exception &e) {

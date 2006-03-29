@@ -35,7 +35,6 @@ typedef void (*gatesrv_entry_t)
 struct cobj_ref
     gate_create(uint64_t gate_container, const char *name,
 		label *label, label *clearance,
-		uint64_t entry_container,
 		gatesrv_entry_t func, void *arg);
 
 #endif

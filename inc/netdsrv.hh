@@ -5,7 +5,7 @@
 #include <inc/gatesrv.hh>
 
 struct cobj_ref
-    netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
+    netd_server_init(uint64_t gate_ct,
 		     uint64_t taint_handle,
 		     label *l, label *clear);
 void netd_server_enable(void);

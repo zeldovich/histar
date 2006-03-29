@@ -88,7 +88,6 @@ try
 
     struct cobj_ref g =
 	gate_create(start_env->shared_container, "admgate", &send, &recv,
-		    start_env->proc_container,
 		    &admind_entry, 0);
 
     thread_halt();

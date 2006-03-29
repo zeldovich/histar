@@ -252,7 +252,6 @@ alloc_user(char *uname, char *pass, uint64_t g, uint64_t t)
 
     ugate->gd_gate = 
 	gate_create(users_ct, uname, &th_ctm, &th_clr,
-		    start_env->proc_container,
 		    &authd_user_entry, (void *) ugate);
 
     ugate_drop.dismiss();
@@ -315,7 +314,6 @@ alloc_group(char *gname, uint64_t creator_grant,
     
     ggate->gd_gate =
 	gate_create(groups_ct, gname, &th_ctm, &th_clr,
-		    start_env->proc_container,
 		    &authd_group_entry, (void *) ggate);
 
     ggate_drop.dismiss();
@@ -531,7 +529,6 @@ authd_init(uint64_t rg)
     struct cobj_ref g =
 	gate_create(start_env->shared_container,
 		    "authd", &th_ctm, &th_clr,
-		    start_env->proc_container,
 		    &authd_entry, 0);
 }
 

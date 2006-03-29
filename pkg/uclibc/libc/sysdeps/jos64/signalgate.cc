@@ -52,7 +52,6 @@ signal_gate_init(void)
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
 	gs = gate_create(start_env->shared_container, "signal", &tl, &tc,
-			 start_env->proc_container,
 			 &signal_gate_entry, 0);
     } catch (std::exception &e) {
 	cprintf("signal_gate_create: %s\n", e.what());

@@ -22,7 +22,6 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
 
     gate_ = gate_create(start_env->proc_container, "saved privilege",
 			&l, &clear,
-			start_env->proc_container,
 			&entry_stub, this);
 }
 

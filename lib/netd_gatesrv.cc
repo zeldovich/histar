@@ -68,7 +68,6 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	gcd->declassify_gate =
 	    gate_create(gcd->taint_container, "declassifier", &tl, &tc,
-			start_env->proc_container,
 			&declassifier, (void *) netd_taint_handle);
 
 	cs->set(netd_taint_handle, 2);
@@ -78,15 +77,15 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 }
 
 struct cobj_ref
-netd_server_init(uint64_t gate_ct, uint64_t entry_ct,
+netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
 {
     netd_taint_handle = taint_handle;
 
     try {
+	uint64_t entry_ct = start_env->proc_container;
 	return gate_create(gate_ct, "netd", l, clear,
-			   entry_ct,
 			   &netd_gate_entry, (void *) entry_ct);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());

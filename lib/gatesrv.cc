@@ -19,13 +19,13 @@ extern "C" {
 enum { gate_stack_pages = 2 };
 
 static void __attribute__((noreturn))
-gatesrv_entry(uint64_t entry_ct, gatesrv_entry_t fn, void *arg, void *stack)
+gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack)
 {
     try {
 	// Arguments for gate call passed on the top of the TLS stack.
 	gate_call_data *d = (gate_call_data *) tls_gate_args;
 
-	gatesrv_return ret(d->return_gate, entry_ct, stack);
+	gatesrv_return ret(d->return_gate, start_env->proc_container, stack);
 	fn(arg, d, &ret);
 
 	throw basic_exception("gatesrv_entry: function returned\n");
@@ -37,13 +37,14 @@ gatesrv_entry(uint64_t entry_ct, gatesrv_entry_t fn, void *arg, void *stack)
 }
 
 static void __attribute__((noreturn))
-gatesrv_entry_tls(uint64_t entry_ct, gatesrv_entry_t fn, void *arg)
+gatesrv_entry_tls(gatesrv_entry_t fn, void *arg)
 {
     try {
 	// Reset our cached thread ID, stored in TLS
 	if (tls_tidp)
 	    *tls_tidp = sys_self_id();
 
+	uint64_t entry_ct = start_env->proc_container;
 	error_check(sys_self_addref(entry_ct));
 	scope_guard<int, struct cobj_ref>
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
@@ -54,7 +55,7 @@ gatesrv_entry_tls(uint64_t entry_ct, gatesrv_entry_t fn, void *arg)
 				  &stackobj, &stack, 0, "gate thread stack"));
 	g.dismiss();
 
-	stack_switch(entry_ct, (uint64_t) fn, (uint64_t) arg, (uint64_t) stack,
+	stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stack, 0,
 		     (char *) stack + gate_stack_pages * PGSIZE,
 		     (void *) &gatesrv_entry);
     } catch (std::exception &e) {
@@ -66,16 +67,14 @@ gatesrv_entry_tls(uint64_t entry_ct, gatesrv_entry_t fn, void *arg)
 struct cobj_ref
 gate_create(uint64_t gate_ct, const char *name,
 	    label *label, label *clearance,
-	    uint64_t entry_ct,
 	    gatesrv_entry_t func, void *arg)
 {
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &gatesrv_entry_tls;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg[0] = entry_ct;
-    te.te_arg[1] = (uint64_t) func;
-    te.te_arg[2] = (uint64_t) arg;
+    te.te_arg[0] = (uint64_t) func;
+    te.te_arg[1] = (uint64_t) arg;
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gate_ct, &te,
