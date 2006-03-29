@@ -1,0 +1,19 @@
+OBJDIRS += pkg/ftpd
+
+FTPD_SRCFILES := ftpd.c popen.c vis.c ftpcmd.c
+FTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/ftpd/%.o, $(FTPD_SRCFILES))
+
+$(OBJDIR)/pkg/ftpd/%.o: pkg/ftpd/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) -D_GNU_SOURCE -Ipkg/ftpd -c -o $@ $<
+
+$(OBJDIR)/pkg/ftpd/%.o: $(OBJDIR)/pkg/ftpd/%.c
+	$(CC) $(USER_CFLAGS) -D_GNU_SOURCE -Ipkg/ftpd -c -o $@ $<
+
+$(OBJDIR)/pkg/ftpd/%.c: pkg/ftpd/%.y
+	@mkdir -p $(@D)
+	$(YACC) -o $@ $<
+
+$(OBJDIR)/user/ftpd.debuginfo: $(FTPD_OBJFILES) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $(FTPD_OBJFILES) $(LIBS) -lcrypt
+

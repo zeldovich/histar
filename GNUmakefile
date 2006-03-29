@@ -38,6 +38,7 @@ OBJDUMP	:= $(GCCPREFIX)objdump
 NM	:= $(GCCPREFIX)nm
 STRIP	:= $(GCCPREFIX)strip
 LEX	:= flex
+YACC	:= bison
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe

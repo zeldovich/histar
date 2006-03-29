@@ -93,7 +93,8 @@ KERN_BINFILES := \
 	user/umount \
 	user/gadm \
 	user/grptest \
-	user/tcpserv
+	user/tcpserv \
+	user/ftpd
 
 	#user/gzip \
 	#user/tar \

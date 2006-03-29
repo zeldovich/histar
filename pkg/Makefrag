@@ -4,3 +4,4 @@ include pkg/lwip/Makefrag
 include pkg/echo/Makefrag
 include pkg/cat/Makefrag
 include pkg/links/Makefrag
+include pkg/ftpd/Makefrag
