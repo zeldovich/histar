@@ -113,12 +113,6 @@ conf/gcc.mk:
 	echo "*** To turn off this error: echo GCCPREFIX= >conf/gcc.mk" 1>&2; \
 	echo "***" 1>&2; exit 1; fi
 
-# variables should be recursive
-FSIMGTXTFILES =
-USERAPPS =
-OKWSAPPS =
-OKDBAPPS =
-
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
