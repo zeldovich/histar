@@ -313,18 +313,20 @@ user_bootstrap(void)
     assert_check(label_alloc(&idle_obj_label, 1));
 
     uint64_t idle_handle = handle_alloc();
-    assert_check(label_set(idle_obj_label, idle_handle, 0));
     assert_check(label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
+    assert_check(label_set(idle_obj_label, idle_handle, 0));
     thread_create_embed(rc, idle_obj_label, idle_th_label, th_clearance,
 			"idle", 1, 1, KOBJ_PIN_IDLE);
 
-    // init: thread { * }, objects { root:0 1 }, clearance { 2 }
+    // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { 2 }
     struct Label *init_th_label;
     struct Label *init_obj_label;
-    assert_check(label_alloc(&init_th_label, LB_LEVEL_STAR));
+    assert_check(label_alloc(&init_th_label, 1));
     assert_check(label_alloc(&init_obj_label, 1));
 
+    assert_check(label_set(init_th_label, user_root_handle, LB_LEVEL_STAR));
     assert_check(label_set(init_obj_label, user_root_handle, 0));
+
     thread_create_embed(rc, init_obj_label, init_th_label, th_clearance,
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
