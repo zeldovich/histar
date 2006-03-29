@@ -1,0 +1,11 @@
+--- openssh-4.3p2_bad/misc.c	2006-01-31 02:49:28.000000000 -0800
++++ openssh-4.3p2/misc.c	2006-03-29 01:53:56.000000000 -0800
+@@ -580,7 +580,7 @@
+ }
+ 
+ int
+-tun_open(int tun, int mode)
++openssh_tun_open(int tun, int mode)
+ {
+ #if defined(CUSTOM_SYS_TUN_OPEN)
+ 	return (sys_tun_open(tun, mode));

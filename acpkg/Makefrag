@@ -38,6 +38,7 @@ PATCHFILE_tar-1.15	    := tar-1.15.patch
 PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
+PATCHFILE_openssh-4.3p2    := openssh-4.3p2.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -125,7 +126,7 @@ openssl: $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
 	
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 #openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
-openssh: $(ACPKG_WRAPS)
+openssh: $(ACPKG_WRAPS) acpkg/openssh-4.3p2/__patch
 	-( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep" )
 	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
