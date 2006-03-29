@@ -284,3 +284,16 @@ creat(const char *pathname, mode_t mode)
     return open(pathname, O_CREAT|O_WRONLY|O_TRUNC, mode);
 }
 
+int
+chroot(const char *pathname)
+{
+    struct fs_inode dir;
+    int r = fs_namei(pathname, &dir);
+    if (r < 0) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
+    start_env->fs_root = dir;
+    return 0;
+}

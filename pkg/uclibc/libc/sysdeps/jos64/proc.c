@@ -42,3 +42,10 @@ getpgrp(void)
 {
     return __getpgid(0);
 }
+
+pid_t
+setsid(void)
+{
+    set_enosys();
+    return -1;
+}
