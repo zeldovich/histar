@@ -83,6 +83,11 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 	cp $< $@
 
+$(OBJDIR)/user/acpkg_tar: $(wildcard $(OBJDIR)/acpkg/*/*)
+	rm -f $@
+	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
+	tar -cf $@ -C $(OBJDIR)/acpkg .
+
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
