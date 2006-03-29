@@ -1,8 +1,8 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
-ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc
-ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER
+ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc -L$(TOP)/$(ACPKG_PREFIX)/lib
+ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
