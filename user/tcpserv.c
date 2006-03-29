@@ -50,7 +50,6 @@ main(int ac, char **av)
 	    close(s);
 	    dup2(c, 0);
 	    dup2(c, 1);
-	    dup2(c, 2);
 	    close(c);
 	    execv(av[2], &av[2]);
 	    xperror("execve");
