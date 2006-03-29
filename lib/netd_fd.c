@@ -66,6 +66,12 @@ socket(int domain, int type, int protocol)
     return fd2num(fd);
 }
 
+int
+socketpair(int domain, int type, int protocol, int sv[2])
+{
+    return -1;    
+}
+
 static int
 sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {

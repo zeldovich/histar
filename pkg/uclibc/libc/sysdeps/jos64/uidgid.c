@@ -67,3 +67,8 @@ setgroups(size_t size, const gid_t *list)
 {
     return 0;
 }
+
+int getgroups(int size, gid_t *list)
+{
+    return 0;    
+}

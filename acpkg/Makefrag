@@ -43,7 +43,7 @@ PATCHFILE_default	    := empty.patch
 ##
 ## Packages we want to include
 ##
-ACPKG_BUILD_LIST := tar-1.15 gzip-1.2.4a
+ACPKG_BUILD_LIST := tar-1.15 gzip-1.2.4a 
 
 ##
 ## Create a wrapper around gcc that passes it all of the flags we want.
@@ -124,9 +124,12 @@ openssl: $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install_sw" )
 	
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
-
-
+#openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
+openssh: $(ACPKG_WRAPS)
+	-( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
 
 $(OBJDIR)/tars/test_tar: acpkg/test.tar
 	@mkdir -p $(OBJDIR)/tars
