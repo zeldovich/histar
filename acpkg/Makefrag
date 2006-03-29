@@ -1,7 +1,8 @@
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
-ACPKG_LDFLAGS	:= -static $(LDFLAGS) -ljos -lc -ljos -lc -L$(TOP)/$(ACPKG_PREFIX)/lib
+ACPKG_LDFLAGS	:= -static $(LDFLAGS) -L$(TOP)/$(ACPKG_PREFIX)/lib \
+		   -specs=$(TOP)/$(ACPKG_WRAPDIR)/jos-gcc-specs
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
@@ -50,13 +51,17 @@ ACPKG_BUILD_LIST := tar-1.15 gzip-1.2.4a
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc $(ACPKG_WRAPDIR)/jos-gcc-specs
 
 $(ACPKG_WRAPS):
 	@mkdir -p $(ACPKG_WRAPDIR)
+
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+
+	echo "*lib:" > $(ACPKG_WRAPDIR)/jos-gcc-specs
+	echo "-ljos -lc -ljos -lc" >> $(ACPKG_WRAPDIR)/jos-gcc-specs
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
