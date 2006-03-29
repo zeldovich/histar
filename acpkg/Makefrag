@@ -19,6 +19,7 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) 
 ACENV += LDFLAGS=\"$(ACPKG_LDFLAGS)\"
 ACENV += CFLAGS=\"$(ACPKG_LDFLAGS)\"
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
+ACENV += LIBS=\"-lcrypt\"
 
 ACENV += CC=\"$(CC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
@@ -65,7 +66,7 @@ acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	-find acpkg/$(PKGNAME) -name config.cache | xargs rm -f
 	-find acpkg/$(PKGNAME) -name config.status | xargs rm -f
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) LIBS=-lcrypt ./configure \
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 
 .PRECIOUS: acpkg/%/__patch
