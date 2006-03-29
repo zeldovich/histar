@@ -331,6 +331,19 @@ user_bootstrap(void)
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
 
+static void
+free_embed(void)
+{
+    for (int i = 0; embed_bins[i].name; i++) {
+	void *buf_start = (void *) embed_bins[i].buf;
+	void *buf_end = buf_start + embed_bins[i].size;
+
+	for (void *b = ROUNDUP(buf_start, PGSIZE);
+	     b + PGSIZE <= buf_end; b += PGSIZE)
+	    page_free(b);
+    }
+}
+
 void
 user_init(void)
 {
@@ -351,6 +364,7 @@ user_init(void)
     if (discard) {
 	cprintf("Discarding persistent state.\n");
 	user_bootstrap();
+	free_embed();
 	return;
     }
 
@@ -361,4 +375,6 @@ user_init(void)
     } else {
 	cprintf("Persistent state loaded OK\n");
     }
+
+    free_embed();
 }
