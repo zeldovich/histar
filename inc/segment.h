@@ -17,6 +17,7 @@
  */
 #define SEGMAP_CLOEXEC		0x08
 #define SEGMAP_DELAYED_UNMAP	0x10
+#define SEGMAP_ANON_MMAP	0x20
 
 struct u_segment_mapping {
     struct cobj_ref segment;

@@ -199,8 +199,9 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp
 	{
 	    if (seg)
 		*seg = cache_uas.ents[i].segment;
+	    // XXX this doesn't actually say what the base offset is..
 	    if (npage)
-		*npage = (va - va_start) / PGSIZE;
+		*npage = cache_uas.ents[i].num_pages;
 	    if (flagsp)
 		*flagsp = cache_uas.ents[i].flags;
 	    as_mutex_unlock();
