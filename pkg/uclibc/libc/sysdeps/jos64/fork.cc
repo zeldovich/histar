@@ -214,3 +214,9 @@ fork(void) __THROW
 	return -1;
     }
 }
+
+pid_t
+vfork(void) __THROW
+{
+    return fork();
+}
