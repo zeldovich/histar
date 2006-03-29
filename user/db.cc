@@ -12,7 +12,7 @@ extern "C" {
 #include <inc/db_schema.hh>
 
 static int64_t db_table_grant;
-static int64_t db_table_rows_ct;
+static int64_t db_table_ct;
 
 static void __attribute__((noreturn))
 db_entry(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
@@ -30,7 +30,7 @@ try
     db_table_label.set(start_env->process_taint, 3);
     db_table_label.set(db_table_grant, 0);
 
-    error_check((db_table_rows_ct =
+    error_check((db_table_ct =
 	sys_container_alloc(start_env->shared_container,
 			    db_table_label.to_ulabel(),
 			    "db table")));
