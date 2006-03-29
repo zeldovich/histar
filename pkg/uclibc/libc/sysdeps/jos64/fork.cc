@@ -22,6 +22,8 @@ static int fork_debug = 0;
 static pid_t
 do_fork()
 {
+    char namebuf[KOBJ_NAME_LEN];
+
     // Make all FDs independent of the process taint/grant handles
     for (int i = 0; i < MAXFD; i++)
 	fd_make_public(i);
@@ -151,7 +153,6 @@ do_fork()
 	if (uas.ents[i].segment.container != start_env->proc_container)
 	    continue;
 
-	char namebuf[KOBJ_NAME_LEN];
 	error_check(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
 	int64_t id = sys_segment_copy(uas.ents[i].segment, proc_ct,
@@ -165,7 +166,8 @@ do_fork()
     }
 
     // Construct the new AS object and a non-running thread
-    int64_t id = sys_as_create(proc_ct, 0, "forked AS");
+    sys_obj_get_name(cur_as, &namebuf[0]);
+    int64_t id = sys_as_create(proc_ct, 0, &namebuf[0]);
     error_check(id);
 
     if (fork_debug) {
@@ -176,7 +178,8 @@ do_fork()
     struct cobj_ref new_as = COBJ(proc_ct, id);
     error_check(sys_as_set(new_as, &uas));
 
-    id = sys_thread_create(proc_ct, "forked thread");
+    sys_obj_get_name(COBJ(0, thread_id()), &namebuf[0]);
+    id = sys_thread_create(proc_ct, &namebuf[0]);
     error_check(id);
     struct cobj_ref new_th = COBJ(proc_ct, id);
 
