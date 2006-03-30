@@ -82,16 +82,21 @@ http_client(void *arg)
 		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
 		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
 
+		label cs(LB_LEVEL_STAR);
+		cs.set(reply.user_taint, 3);
+
+		label dr(0);
+		dr.set(reply.user_taint, 3);
+
 		gate_call_data gcd;
 		strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
-		gate_call gc(COBJ(worker_ct, worker_gt), &gcd, 0, 0, 0, 0);
+		gate_call gc(COBJ(worker_ct, worker_gt), &gcd, &cs, 0, &dr, 0);
 
 		void *va = 0;
 		uint64_t len;
 		error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
 		scope_guard<int, void *> unmap(segment_unmap, va);
 
-		cprintf("%s", (const char *) va);
 		tc.write((const char *) va, len);
 		return;
 	    }

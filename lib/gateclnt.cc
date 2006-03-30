@@ -26,10 +26,15 @@ return_stub(jos_jmp_buf *jb)
 }
 
 static void
-return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
+return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct, label *dr)
 {
     label clear;
     thread_cur_clearance(&clear);
+    if (dr) {
+	label out;
+	clear.merge(dr, &out, label::max, label::leq_starlo);
+	clear.copy_from(&out);
+    }
     clear.set(return_handle, 0);
 
     label label;
@@ -90,7 +95,7 @@ gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
     // Create a return gate in the taint container
     cobj_ref return_gate;
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate, &back_from_call, return_handle, taint_ct);
+    return_setup(&return_gate, &back_from_call, return_handle, taint_ct, dr);
     scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     // Gate call parameters
