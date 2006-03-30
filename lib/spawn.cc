@@ -174,9 +174,16 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(thread);
     struct cobj_ref tobj = COBJ(c_proc, thread);
 
-    if (label_debug)
-	printf("spawn: starting thread with label %s\n",
-	       thread_label.to_string());
+    if (label_debug) {
+	thread_cur_label(&tmp);
+	printf("spawn: current label %s\n", tmp.to_string());
+
+	thread_cur_clearance(&tmp);
+	printf("spawn: current clearance: %s\n", tmp.to_string());
+
+	printf("spawn: starting thread with label %s, clear %s\n",
+	       thread_label.to_string(), thread_clear.to_string());
+    }
 
     e.te_arg[0] = (uint64_t) spawn_env_va;
     error_check(sys_thread_start(tobj, &e,
