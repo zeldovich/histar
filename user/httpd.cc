@@ -21,6 +21,8 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 #include <inc/authclnt.hh>
+#include <inc/cpplabel.hh>
+#include <inc/spawn.hh>
 
 static void
 http_client(void *arg)
@@ -74,14 +76,41 @@ http_client(void *arg)
 
 	    authd_reply reply;
 	    if (auth_call(authd_login, user, pass, "", &reply) == 0) {
-		snprintf(buf, sizeof(buf),
-			"HTTP/1.0 200 OK\r\n"
-			"Content-Type: text/html\r\n"
-			"\r\n"
-			"<h1>Hello %s.  Taint %ld Grant %ld.\r\n",
-			user, reply.user_taint, reply.user_grant);
-		tc.write(buf, strlen(buf));
-		return;
+		label clear(2);
+		clear.set(reply.user_taint, 3);
+		error_check(sys_self_set_clearance(clear.to_ulabel()));
+
+		label taint_label(LB_LEVEL_STAR);
+		taint_label.set(reply.user_taint, 3);
+
+		label untaint_label(3);
+		untaint_label.set(reply.user_grant, LB_LEVEL_STAR);
+
+		struct fs_inode worker_elf;
+		error_check(fs_namei("/bin/httpd_worker", &worker_elf));
+
+		int fds[2];
+		error_check(pipe(fds));
+
+		const char *argv[] = { "httpd_worker", &pnbuf[0] };
+		const char *envv[] = {};
+
+		spawn(start_env->shared_container, worker_elf,
+		      0, fds[1], fds[1],
+		      2, &argv[0],
+		      0, &envv[0],
+		      &taint_label, &untaint_label, 0, 0);
+
+		close(fds[1]);
+
+		for (;;) {
+		    ssize_t cc = read(fds[0], buf, sizeof(buf));
+		    if (cc < 0)
+			throw error(cc, "reading from worker pipe");
+		    if (cc == 0)
+			return;
+		    tc.write(buf, cc);
+		}
 	    }
 	}
 

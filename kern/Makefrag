@@ -61,6 +61,7 @@ KERN_BINFILES := \
 	user/telnetd \
 	user/init \
 	user/httpd \
+	user/httpd_worker \
 	user/jshell \
 	user/ls \
 	user/asprint \
