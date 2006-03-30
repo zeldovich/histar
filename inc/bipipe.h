@@ -1,5 +1,5 @@
-#ifndef JOS_INC_TUN_H
-#define JOS_INC_TUN_H
+#ifndef JOS_INC_BIPIPE_H
+#define JOS_INC_BIPIPE_H
 
 #include <inc/fd.h>
 
