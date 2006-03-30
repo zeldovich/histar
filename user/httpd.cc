@@ -8,20 +8,24 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/error.h>
 #include <inc/fd.h>
+#include <inc/base64.h>
+#include <inc/authd.h>
+
 #include <string.h>
 #include <unistd.h>
+
 #include <sys/socket.h>
 }
 
 #include <inc/nethelper.hh>
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
-
-static int reqs;
+#include <inc/authclnt.hh>
 
 static void
 http_client(void *arg)
 {
+    char buf[512];
     int s = (int64_t) arg;
 
     try {
@@ -37,86 +41,57 @@ http_client(void *arg)
 	if (space == 0)
 	    throw basic_exception("no space in http req: %s", req);
 
-	char pnbuf[512];
+	char pnbuf[256];
 	strncpy(&pnbuf[0], pn_start, space - pn_start);
 	pnbuf[sizeof(pnbuf) - 1] = '\0';
 
+	char auth[64];
+	auth[0] = '\0';
 	while (req[0] != '\0') {
 	    req = lp.read_line();
 	    if (req == 0)
 		throw basic_exception("client EOF");
+
+	    const char *auth_prefix = "Authorization: Basic ";
+	    if (!strncmp(req, auth_prefix, strlen(auth_prefix))) {
+		strncpy(&auth[0], req + strlen(auth_prefix), sizeof(auth));
+		auth[sizeof(auth) - 1] = '\0';
+	    }
 	}
 
-	char buf[1024];
+	if (auth[0]) {
+	    char *authdata = base64_decode(&auth[0]);
+	    if (authdata == 0)
+		throw error(-E_NO_MEM, "base64_decode");
+
+	    char *colon = strchr(authdata, ':');
+	    if (colon == 0)
+		throw basic_exception("badly formatted authorization data");
+
+	    *colon = 0;
+	    char *user = authdata;
+	    char *pass = colon + 1;
+
+	    authd_reply reply;
+	    if (auth_call(authd_login, user, pass, "", &reply) == 0) {
+		snprintf(buf, sizeof(buf),
+			"HTTP/1.0 200 OK\r\n"
+			"Content-Type: text/html\r\n"
+			"\r\n"
+			"<h1>Hello %s.  Taint %ld Grant %ld.\r\n",
+			user, reply.user_taint, reply.user_grant);
+		tc.write(buf, strlen(buf));
+		return;
+	    }
+	}
+
 	snprintf(buf, sizeof(buf),
-		"HTTP/1.0 200 OK\r\n"
+		"HTTP/1.0 401 Forbidden\r\n"
+		"WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
 		"Content-Type: text/html\r\n"
 		"\r\n"
-		"<h1>jos64 web server: request %d</h1><p><hr><pre>\n",
-		reqs++);
+		"<h1>Please log in.</h1>\r\n");
 	tc.write(buf, strlen(buf));
-
-	try {
-	    snprintf(buf, sizeof(buf), "Trying to lookup %s\n", pnbuf);
-	    tc.write(buf, strlen(buf));
-
-	    struct fs_inode ino;
-	    int r = fs_namei(pnbuf, &ino);
-	    if (r < 0)
-		throw error(r, "fs_namei");
-
-	    int type = sys_obj_get_type(ino.obj);
-	    if (type < 0)
-		throw error(r, "sys_obj_get_type");
-
-	    if (type == kobj_segment) {
-		snprintf(buf, sizeof(buf), "segment\n");
-		tc.write(buf, strlen(buf));
-
-		uint64_t sz;
-		r = fs_getsize(ino, &sz);
-		if (r < 0)
-		    throw error(r, "fs_getsize");
-
-		for (uint64_t off = 0; off < sz; off += sizeof(buf)) {
-		    size_t cc = MIN(sizeof(buf), sz - off);
-		    ssize_t cr = fs_pread(ino, &buf[0], cc, off);
-		    if (cr < 0)
-			throw error(cr, "fs_pread");
-		    tc.write(buf, cr);
-		}
-	    } else if (type == kobj_container || type == kobj_mlt) {
-		snprintf(buf, sizeof(buf), "directory or mlt\n");
-		tc.write(buf, strlen(buf));
-
-		struct fs_readdir_state rs;
-		error_check(fs_readdir_init(&rs, ino));
-		scope_guard<void, fs_readdir_state *> g(fs_readdir_close, &rs);
-
-		for (;;) {
-		    struct fs_dent de;
-		    r = fs_readdir_dent(&rs, &de, 0);
-		    if (r < 0)
-			throw error(r, "fs_readdir_dent");
-		    if (r == 0)
-			break;
-
-		    snprintf(buf, sizeof(buf),
-			     "<a href=\"%s%s%s\">%s/%s</a>\n",
-			     pnbuf,
-			     pnbuf[strlen(pnbuf) - 1] == '/' ? "" : "/",
-			     &de.de_name[0],
-			     pnbuf, &de.de_name[0]);
-		    tc.write(buf, strlen(buf));
-		}
-	    } else {
-		snprintf(buf, sizeof(buf), "type %d\n", type);
-		tc.write(buf, strlen(buf));
-	    }
-	} catch (std::exception &e) {
-	    const char *what = e.what();
-	    tc.write(what, strlen(what));
-	}
     } catch (std::exception &e) {
 	printf("http_client: %s\n", e.what());
     }
