@@ -53,7 +53,8 @@ LIB_SRCFILES :=	\
 	lib/profiler.c \
 	lib/tun.c \
 	lib/declassify.cc \
-	lib/resalloc.cc
+	lib/resalloc.cc \
+	lib/base64.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
