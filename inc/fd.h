@@ -92,6 +92,11 @@ struct Fd
 	    char buf[512];
 	} fd_pipe;
 
+    	struct {
+	    struct cobj_ref bipipe_seg;
+            int bipipe_a;
+    	} fd_bipipe;
+
 	struct {
 	    struct cobj_ref tun_seg;
 	    int tun_a;
@@ -117,6 +122,7 @@ extern struct Dev devsock;	/* type 's' */
 extern struct Dev devfile;	/* type 'f' */
 extern struct Dev devpipe;	/* type 'p' */
 extern struct Dev devtun;	/* type 't' */
+extern struct Dev devbipipe;	/* type 'b' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

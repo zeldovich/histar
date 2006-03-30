@@ -54,6 +54,7 @@ LIB_SRCFILES :=	\
 	lib/tun.c \
 	lib/declassify.cc \
 	lib/resalloc.cc \
+	lib/bipipe.c \
 	lib/base64.c
 
 include lib/$(ARCH)/Makefrag

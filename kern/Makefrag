@@ -95,7 +95,8 @@ KERN_BINFILES := \
 	user/grptest \
 	user/tcpserv \
 	user/ftpd \
-	user/db
+	user/db \
+	user/foo
 
 	#user/gzip \
 	#user/tar \
