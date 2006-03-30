@@ -120,7 +120,8 @@ init_procs(int cons, uint64_t h_root)
     spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
-    //spawn_fs(cons, "/bin/httpd", 0, &ds_none);
+    spawn_fs(cons, "/bin/httpd", 0, &ds_none);
+    spawn_fs(cons, "/bin/httpd_worker", 0, &ds_none);
 }
 
 int
