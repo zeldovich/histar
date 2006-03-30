@@ -59,7 +59,7 @@ gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
     error_check(return_handle);
     scope_guard<void, uint64_t> g1(thread_drop_star, return_handle);
 
-    label new_ds(ds ? *ds : label());
+    label new_ds(ds ? *ds : label(3));
     new_ds.set(return_handle, LB_LEVEL_STAR);
 
     // Compute the target labels
