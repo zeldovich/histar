@@ -186,6 +186,8 @@ thread_enable_fp(const struct Thread *const_t)
 {
     if (const_t->th_fp_enabled)
 	return 0;
+    if ((const_t->th_ko.ko_flags & KOBJ_MULTIHOMED))
+	return -E_FIXEDSIZE;
 
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
     int r = kobject_set_nbytes(&t->th_ko, sizeof(struct Fpregs));
