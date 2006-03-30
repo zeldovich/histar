@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/stack.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
+#include <inc/taint.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -40,6 +41,10 @@ static void __attribute__((noreturn))
 gatesrv_entry_tls(gatesrv_entry_t fn, void *arg)
 {
     try {
+	// Copy-on-write if we are tainted
+	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
+	taint_cow(gcd->taint_container, gcd->declassify_gate);
+
 	// Reset our cached thread ID, stored in TLS
 	if (tls_tidp)
 	    *tls_tidp = sys_self_id();
