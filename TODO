@@ -71,8 +71,6 @@ system management in a fully-persistent world
  * restarting services (how does it interact with handles & gates?)
  * upgrades (signing binaries => integrity handles)
 
-split the gate clearance into clearance & verify labels.
-
 console FD is not writable by most processes but they want to hard-link it.
 what of our rule that you cannot hard-link a segment without being able to write it?
 can workaround in this case by using the existing console FD from another container.
