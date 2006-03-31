@@ -58,6 +58,7 @@ static int
 rand_stat(struct Fd *fd, struct stat *buf)
 {
     memset(buf, 0, sizeof(*buf));
+    buf->st_dev = 1; // anything != 0
     return 0;
 }
 
