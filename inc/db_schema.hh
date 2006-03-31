@@ -6,6 +6,9 @@ extern "C" {
 }
 
 struct db_row {
+    // Metadata (public)
+    uint64_t dbr_taint;
+
     // Public information visible to anyone
     uint64_t dbr_id;
     uint32_t dbr_zipcode;
@@ -16,6 +19,13 @@ struct db_row {
 
     // Private information -- can be declassified in some ways
     uint8_t dbr_match_vector[256];
+};
+
+// Database gate interface
+
+enum {
+    db_req_insert,
+    db_req_lookup_zip
 };
 
 struct db_query {
