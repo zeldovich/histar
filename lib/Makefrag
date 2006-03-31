@@ -55,7 +55,8 @@ LIB_SRCFILES :=	\
 	lib/declassify.cc \
 	lib/resalloc.cc \
 	lib/bipipe.c \
-	lib/base64.c
+	lib/base64.c \
+	lib/rand.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag

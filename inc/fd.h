@@ -123,6 +123,7 @@ extern struct Dev devfile;	/* type 'f' */
 extern struct Dev devpipe;	/* type 'p' */
 extern struct Dev devtun;	/* type 't' */
 extern struct Dev devbipipe;	/* type 'b' */
+extern struct Dev devrand;  	/* type 'r' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);
