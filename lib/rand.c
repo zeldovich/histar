@@ -55,6 +55,13 @@ rand_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
+rand_stat(struct Fd *fd, struct stat *buf)
+{
+    memset(buf, 0, sizeof(*buf));
+    return 0;
+}
+
+static int
 rand_close(struct Fd *fd)
 {
     return 0;
@@ -66,5 +73,6 @@ struct Dev devrand = {
     .dev_read = &rand_read,
     .dev_write = &rand_write,
     .dev_probe = &rand_probe,
+    .dev_stat = &rand_stat,
     .dev_close = &rand_close,
 };
