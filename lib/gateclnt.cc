@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/taint.h>
 #include <inc/memlayout.h>
 #include <inc/gateparam.h>
+#include <inc/stdio.h>
 
 #include <string.h>
 }
@@ -15,6 +16,8 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
+
+static int gate_call_label_debug = 0;
 
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb)
@@ -82,6 +85,9 @@ gate_call::gate_call(cobj_ref gate, gate_call_data *gcd_param,
     // XXX should grant a preset handle at *, so others cannot use it..
     thread_label.merge(&tgt_label, &taint_ct_label, label::max, label::leq_starlo);
     taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
+
+    if (gate_call_label_debug)
+	cprintf("gate_call: taint ct label %s\n", taint_ct_label.to_string());
 
     int64_t taint_ct = sys_container_alloc(start_env->shared_container,
 					   taint_ct_label.to_ulabel(),
