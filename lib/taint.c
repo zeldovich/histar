@@ -19,13 +19,23 @@ enum {
 static void
 taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
 {
-    for (uint32_t j = 0; j < cur_label->ul_nent; j++) {
-	uint64_t h = LB_HANDLE(cur_label->ul_ent[j]);
+    for (uint32_t i = 0; i < cur_label->ul_nent; i++) {
+	uint64_t h = LB_HANDLE(cur_label->ul_ent[i]);
 	level_t obj_level = label_get_level(obj_label, h);
 	level_t cur_level = label_get_level(cur_label, h);
 	if (cur_level == LB_LEVEL_STAR)
 	    continue;
-	if (obj_level == LB_LEVEL_STAR || obj_level < cur_level)
+	if (obj_level < cur_level)
+	    assert(0 == label_set_level(obj_label, h, cur_level, 0));
+    }
+
+    for (uint32_t i = 0; i < obj_label->ul_nent; i++) {
+	uint64_t h = LB_HANDLE(obj_label->ul_ent[i]);
+	level_t obj_level = label_get_level(obj_label, h);
+	level_t cur_level = label_get_level(cur_label, h);
+	if (cur_level == LB_LEVEL_STAR)
+	    continue;
+	if (obj_level < cur_level)
 	    assert(0 == label_set_level(obj_label, h, cur_level, 0));
     }
 }
