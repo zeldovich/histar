@@ -1,10 +1,48 @@
 #include <machine/asm.h>
 
 ENTRY(utrap_stub)
-	movq	$utrap_entry, %rax
-	movq	%rsp, %rdi
+	// This piece has to be position-independent.
+	movq	$utrap_entry_asm, %rax
 	jmp	*%rax
 ENTRY(utrap_stub_end)
+	nop
+
+ENTRY(utrap_entry_asm)
+	.cfi_startproc
+
+	// To be sure, this is what CFA always starts as, on function entry.
+	.cfi_def_cfa rsp, 8
+
+	// First of all, save the address of the UTrapframe
+	movq	%rsp, %rdi
+
+	// Now make up a fake call-frame from the faulting instruction
+	pushq	utf_rip(%rdi)
+
+	// Tell DWARF2 about our saved registers
+	.cfi_offset rax,  0*8
+	.cfi_offset rbx,  1*8
+	.cfi_offset rcx,  2*8
+	.cfi_offset rdx,  3*8
+
+	.cfi_offset rsi,  4*8
+	.cfi_offset rdi,  5*8
+	.cfi_offset rbp,  6*8
+	.cfi_offset rsp,  7*8
+
+	.cfi_offset r8,   8*8
+	.cfi_offset r9,   9*8
+	.cfi_offset r10, 10*8
+	.cfi_offset r11, 11*8
+
+	.cfi_offset r12, 12*8
+	.cfi_offset r13, 13*8
+	.cfi_offset r14, 14*8
+	.cfi_offset r15, 15*8
+
+	// Off we go
+	call	utrap_entry
+	.cfi_endproc
 
 ENTRY(utrap_ret)
 	movq	%rdi, %rsp
