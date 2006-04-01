@@ -7,21 +7,29 @@ ENTRY(utrap_stub)
 ENTRY(utrap_stub_end)
 
 ENTRY(utrap_ret)
-	// Shift the return stack down by 8
-	movq	utf_rsp(%rdi), %rax
-	subq	$8, %rax
-	movq	%rax, utf_rsp(%rdi)
-
-	// Store the return RIP in that 8 bytes
-	movq	utf_rip(%rdi), %rbx
-	movq	%rbx, (%rax)
-
-	// Restore all registers except RSP & RIP
 	movq	%rdi, %rsp
 
-	push	utf_rflags(%rsp)
-	popfq
+	// Generate an iret frame on the stack to atomically restore
+	// rflags, rsp and rip.
+	//
+	// Even though we are writing below our stack pointer, it's OK;
+	// it's in our red zone (128 bytes below %rsp) -- see ABI spec.
+	movq	$0, -8(%rsp)
+	movw	%ss, -8(%rsp)
 
+	movq	utf_rsp(%rsp), %rax
+	movq	%rax, -16(%rsp)
+
+	movq	utf_rflags(%rsp), %rax
+	movq	%rax, -24(%rsp)
+
+	movq	$0, -32(%rsp)
+	movw	%cs, -32(%rsp)
+
+	movq	utf_rip(%rsp), %rax
+	movq	%rax, -40(%rsp)
+
+	// Restore all registers except rflags, rsp and rip.
 	movq	utf_rax(%rsp), %rax
 	movq	utf_rbx(%rsp), %rbx
 	movq	utf_rcx(%rsp), %rcx
@@ -41,7 +49,7 @@ ENTRY(utrap_ret)
 	movq	utf_r14(%rsp), %r14
 	movq	utf_r15(%rsp), %r15
 
-	// Now restore RSP and return (the RIP is already there)
-	movq	utf_rsp(%rsp), %rsp
-	ret
+	// Restore rip, rsp and rflags using the iret frame.
+	subq	$40, %rsp
+	iretq
 
