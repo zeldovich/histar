@@ -361,7 +361,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     void *stacktop;
     uint64_t rsp = t->th_tf.tf_rsp;
     if (rsp > UTRAPSTACK && rsp < UTRAPSTACKTOP)
-	stacktop = (void *) rsp - 8;
+	stacktop = (void *) rsp - 128;	// Skip red zone (see ABI spec)
     else
 	stacktop = (void *) UTRAPSTACKTOP;
 
