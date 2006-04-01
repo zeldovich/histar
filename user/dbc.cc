@@ -41,6 +41,9 @@ try
 	error_check(segment_alloc(start_env->shared_container, sizeof(*dbr),
 				  &dbq->obj, (void **) &dbr, 0, "insert row"));
 
+	if (!start_env->user_taint)
+	    throw basic_exception("not logged into authd");
+
 	dbr->dbr_taint = start_env->user_taint;
 	dbr->dbr_zipcode = 95060;
 	sprintf(&dbr->dbr_nickname[0], "Test nickname");
