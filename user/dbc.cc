@@ -37,9 +37,12 @@ try
     db_row *dbr = 0;
 
     if (!strcmp(opstr, "insert")) {
+	label row_l(1);
+
 	dbq->reqtype = db_req_insert;
 	error_check(segment_alloc(start_env->shared_container, sizeof(*dbr),
-				  &dbq->obj, (void **) &dbr, 0, "insert row"));
+				  &dbq->obj, (void **) &dbr,
+				  row_l.to_ulabel(), "insert row"));
 
 	if (!start_env->user_taint)
 	    throw basic_exception("not logged into authd");
@@ -64,7 +67,7 @@ try
 	gate_call gc(g, &gcd, 0, 0, 0, 0);
 
 	dbr = 0;
-	uint64_t reply_bytes;
+	uint64_t reply_bytes = 0;
 	error_check(segment_map(dbq->obj, SEGMAP_READ, (void **) &dbr, &reply_bytes));
 	for (uint32_t i = 0; i < reply_bytes / sizeof(*dbr); i++) {
 	    printf("ID %ld, Zip %d, Nick %s\n",
