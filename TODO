@@ -85,3 +85,12 @@ more aggressive labeling:
 growing stacks would be nice; gnu programs like stack space, but it's a waste
 to keep a statically-sized huge stack.
 
+should be more careful in dealing with segments passed in via gates; namely,
+need to avoid page faults.  can arise for two reasons: first, we map the segment
+into our AS but don't have the privilege to read or write to it.  this can be
+fixed by segment_map() checking the label.  second, the other side can drop the
+segment and the service (other side of gate) will fault because the segment is
+gone.  for this, need either to copy all segments first, or to have a careful-read
+and careful-write wrapper that does setjmp() first, and the segfault handler will
+longjmp().
+
