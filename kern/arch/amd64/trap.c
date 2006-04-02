@@ -105,7 +105,7 @@ page_fault (struct Trapframe *tf, uint32_t err)
 static void
 trap_dispatch (int trapno, struct Trapframe *tf)
 {
-    int r;
+    int64_t r;
     uint64_t s, f;
     s = read_tsc();
 
@@ -113,10 +113,11 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
-	tf->tf_rax =
-	    syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
+	r = syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
 		    tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
 		    tf->tf_r9,  tf->tf_r10, tf->tf_r11);
+	if (r != -E_RESTART)
+	    tf->tf_rax = r;
 	break;
 
     case T_PGFLT:
