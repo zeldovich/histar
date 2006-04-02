@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/db_schema.hh>
 #include <inc/scopeguard.hh>
+#include <inc/gateclnt.hh>
 
 enum { db_debug_visible = 1 };
 
@@ -92,6 +93,13 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
     int64_t ct_slots;
     error_check(ct_slots = sys_container_get_nslots(db_table_ct));
 
+    // XXX right now this returns every DB row; implement select predicates later..
+
+    cobj_ref reply_seg;
+    uint64_t out_bytes = 0;
+    error_check(segment_alloc(reply_ct, out_bytes, &reply_seg,
+			      0, 0, "db reply"));
+
     for (int64_t i = 0; i < ct_slots; i++) {
 	int64_t id = sys_container_get_slot_id(db_table_ct, i);
 	if (id == -E_NOT_FOUND)
@@ -104,11 +112,38 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 	if (type != kobj_gate)
 	    continue;
 
-	cprintf("lookup: found a gate..\n");
+	cprintf("yo 0\n");
 
-	// for each gate, ask it for its public information.
-	// match on zip code, append to result segment.
+	gate_call_data gcd;
+	memset(&gcd, 0, sizeof(gcd));
+	gate_call gc(COBJ(db_table_ct, id), &gcd, 0, 0, 0, 0);
+
+	cprintf("yo 1\n");
+
+	db_row *row = 0;
+	error_check(segment_map(gcd.param_obj, SEGMAP_READ, (void **) &row, 0));
+	scope_guard<int, void *> unmap(segment_unmap, row);
+
+	cprintf("yo 2\n");
+
+	out_bytes += sizeof(*row);
+	error_check(sys_segment_resize(reply_seg, out_bytes, 0));
+
+	cprintf("yo 3\n");
+
+	db_row *out = 0;
+	error_check(segment_map(reply_seg, SEGMAP_READ | SEGMAP_WRITE,
+				(void **) &out, &out_bytes));
+	scope_guard<int, void *> unmap2(segment_unmap, out);
+
+	cprintf("yo 4\n");
+
+	memcpy(out, row, sizeof(*row));
+
+	cprintf("yo 5\n");
     }
+
+    dbr->obj = reply_seg;
 }
 
 static void
