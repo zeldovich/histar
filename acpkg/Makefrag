@@ -46,7 +46,7 @@ PATCHFILE_default	    := empty.patch
 ##
 ## Packages we want to include
 ##
-ACPKG_BUILD_LIST := tar-1.15 gzip-1.2.4a 
+ACPKG_BUILD_LIST := tar-1.15 
 
 ##
 ## Create a wrapper around gcc that passes it all of the flags we want.
@@ -91,11 +91,14 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
 	cp $< $@
 
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/%
+	cp $< $@
+
 $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	tar -cf $@ -C $(OBJDIR)/acpkg .
-
+   	
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
@@ -112,7 +115,21 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
 ## http://download.sourceforge.net/dmalloc/dmalloc-5.4.2.tgz
-dmalloc $(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
+$(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
+
+## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
+$(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
+$(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
+	rm -f $@
+	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
+	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
+	echo "Port 22" >> $(OBJDIR)/acpkg/etc/sshd_config
+	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
+	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
+	echo "HostKey /etc/ssh_host_dsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
+	tar -cf $@ -C $(OBJDIR)/acpkg etc/sshd_config \
+				  etc/ssh_host_dsa_key \
+  				  etc/ssh_host_rsa_key
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
 zlib: $(ACPKG_WRAPS)
@@ -123,28 +140,12 @@ zlib: $(ACPKG_WRAPS)
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake install" )
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
-openssl: $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
+openssl: zlib $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
 	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install_sw" )
-	
-## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-#openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
-openssh: $(ACPKG_WRAPS) acpkg/openssh-4.3p2/__patch
-	-( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep" )
-	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
-
-$(OBJDIR)/tars/test_tar: acpkg/test.tar
-	@mkdir -p $(OBJDIR)/tars
-	cp acpkg/test.tar $(OBJDIR)/tars/test_tar
-
-$(OBJDIR)/tars/gcc_tgz:
-	@mkdir -p $(OBJDIR)/tars
-	cp acpkg/gcc.tar.gz $(OBJDIR)/tars/gcc_tgz
-
+	 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 ncurses.conf acpkg/ncurses-5.5/Makefile:
 	-( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake distclean" )
@@ -189,3 +190,19 @@ gcc3.4.5: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 
+
+##
+## debug sshd
+##
+
+## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
+#openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
+openssh: $(ACPKG_WRAPS) acpkg/openssh-4.3p2/__patch
+	##-( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake clean" )
+	##( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
+
+dmalloc:
+	( cd acpkg/dmalloc-5.4.2 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/dmalloc-5.4.2 && sh -c "$(ACENV) gmake install" )
