@@ -32,9 +32,24 @@ private:
 typedef void (*gatesrv_entry_t)
 	(void *, struct gate_call_data *, gatesrv_return *);
 
-struct cobj_ref
-    gate_create(uint64_t gate_container, const char *name,
-		label *label, label *clearance,
-		gatesrv_entry_t func, void *arg);
+class gatesrv_descriptor {
+public:
+    gatesrv_descriptor() : as_(COBJ(0, 0)) {};
+
+    uint64_t gate_container_;
+    const char *name_;
+
+    cobj_ref as_;
+    label *label_;
+    label *clearance_;
+
+    gatesrv_entry_t func_;
+    void *arg_;
+};
+
+struct cobj_ref gate_create(gatesrv_descriptor *dsc);
+struct cobj_ref gate_create(uint64_t gate_container, const char *name,
+			    label *label, label *clearance,
+			    gatesrv_entry_t func, void *arg);
 
 #endif

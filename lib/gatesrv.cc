@@ -74,21 +74,38 @@ gate_create(uint64_t gate_ct, const char *name,
 	    label *label, label *clearance,
 	    gatesrv_entry_t func, void *arg)
 {
+    gatesrv_descriptor gd;
+    gd.gate_container_ = gate_ct;
+    gd.name_ = name;
+    gd.label_ = label;
+    gd.clearance_ = clearance;
+    gd.func_ = func;
+    gd.arg_ = arg;
+
+    return gate_create(&gd);
+}
+
+struct cobj_ref
+gate_create(gatesrv_descriptor *gd)
+{
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &gatesrv_entry_tls;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg[0] = (uint64_t) func;
-    te.te_arg[1] = (uint64_t) arg;
-    error_check(sys_self_get_as(&te.te_as));
+    te.te_arg[0] = (uint64_t) gd->func_;
+    te.te_arg[1] = (uint64_t) gd->arg_;
+    te.te_as = gd->as_;
 
-    int64_t gate_id = sys_gate_create(gate_ct, &te,
-				      clearance->to_ulabel(),
-				      label->to_ulabel(), name);
+    if (te.te_as.object == 0)
+	error_check(sys_self_get_as(&te.te_as));
+
+    int64_t gate_id = sys_gate_create(gd->gate_container_, &te,
+				      gd->clearance_->to_ulabel(),
+				      gd->label_->to_ulabel(), gd->name_);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
-    return COBJ(gate_ct, gate_id);
+    return COBJ(gd->gate_container_, gate_id);
 }
 
 void
