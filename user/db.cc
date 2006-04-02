@@ -18,6 +18,7 @@ extern "C" {
 
 enum { db_debug_visible = 1 };
 
+static cobj_ref db_as;
 static int64_t db_table_grant;
 static int64_t db_table_ct;
 static cobj_ref db_table_seg;
@@ -82,8 +83,16 @@ db_insert(label *v, db_query *dbq, db_reply *dbr)
     label gate_label;
     thread_cur_label(&gate_label);
 
-    gate_create(db_table_ct, name, &gate_label, &gate_clear,
-		&db_row_entry, (void *) copy_id);
+    gatesrv_descriptor gd;
+    gd.gate_container_ = db_table_ct;
+    gd.name_ = name;
+    gd.as_ = db_as;
+    gd.label_ = &gate_label;
+    gd.clearance_ = &gate_clear;
+    gd.func_ = &db_row_entry;
+    gd.arg_ = (void *) copy_id;
+
+    gate_create(&gd);
     row_drop.dismiss();
 }
 
@@ -195,6 +204,7 @@ int
 main(int ac, char **av)
 try
 {
+    error_check(sys_self_get_as(&db_as));
     error_check((db_table_grant = sys_handle_create()));
 
     label db_table_label(1);
