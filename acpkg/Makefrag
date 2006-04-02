@@ -29,6 +29,7 @@ AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
+AUTOCONF_dmalloc-5.4.2	    := --disable-cxx
 
 ##
 ## Patches to apply to various packages
@@ -39,6 +40,7 @@ PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2    := openssh-4.3p2.patch
+PATCHFILE_dmalloc-5.4.2    := dmalloc-5.4.2.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -108,6 +110,9 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
+
+## http://download.sourceforge.net/dmalloc/dmalloc-5.4.2.tgz
+dmalloc $(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
 zlib: $(ACPKG_WRAPS)
