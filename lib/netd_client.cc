@@ -17,7 +17,6 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static struct cobj_ref netd_gate;
-static int tainted;
 
 static int
 netd_client_init(void)
@@ -63,53 +62,26 @@ netd_set_gate(struct cobj_ref g)
 int
 netd_call(struct cobj_ref gate, struct netd_op_args *a)
 {
-    label seg_label;
     try {
-	thread_cur_label(&seg_label);
-	seg_label.transform(label::star_to, seg_label.get_default());
-    } catch (error &e) {
-	cprintf("netd_call: %s\n", e.what());
-	return e.err();
-    }
+	gate_call c(gate, 0, 0, 0);
 
-    struct cobj_ref seg;
-    void *va = 0;
-    int r = segment_alloc(start_env->shared_container, sizeof(*a), &seg, &va,
-			  seg_label.to_ulabel(), "netd_call() args");
-    if (r < 0)
-	return r;
+	struct cobj_ref seg;
+	void *va = 0;
+	error_check(segment_alloc(c.taint_ct(), sizeof(*a), &seg, &va,
+				  c.obj_label()->to_ulabel(), "netd_call() args"));
 
-    memcpy(va, a, sizeof(*a));
-    segment_unmap(va);
+	memcpy(va, a, sizeof(*a));
+	segment_unmap(va);
 
-    if (tainted == 0) {
-	// XXX this isn't smart enough to figure out if we're already
-	// tainted or not.  this makes it rather annoying for running
-	// stuff over telnetd.
-
-	// process_report_taint();
-	tainted = 1;
-    }
-
-    try {
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	gate_call c(gate, &gcd, 0, 0, 0, 0);
-
-	sys_obj_unref(seg);
-	seg = gcd.param_obj;
+	c.call(&gcd, 0);
 
 	va = 0;
-	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE, &va, 0);
-	if (r < 0) {
-	    cprintf("netd_call: cannot map returned segment: %s\n", e2s(r));
-	    return r;
-	}
+	error_check(segment_map(gcd.param_obj, SEGMAP_READ | SEGMAP_WRITE, &va, 0));
 
 	memcpy(a, va, sizeof(*a));
-
 	segment_unmap(va);
-	sys_obj_unref(seg);
     } catch (error &e) {
 	cprintf("netd_call: %s\n", e.what());
 	return e.err();

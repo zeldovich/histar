@@ -30,7 +30,7 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
     declassified.set(declassify_handle, declassified.get_default());
 
     if (start_env->declassify_gate.object) {
-	gate_call(start_env->declassify_gate, gcd, 0, &declassified, 0, &declassified);
+	gate_call(start_env->declassify_gate, 0, &declassified, 0).call(gcd, &declassified);
 	gr->ret(0, 0, 0);
     }
 

@@ -90,7 +90,8 @@ http_client(void *arg)
 
 		gate_call_data gcd;
 		strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
-		gate_call gc(COBJ(worker_ct, worker_gt), &gcd, &cs, 0, &dr, 0);
+		gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
+		gc.call(&gcd, 0);
 
 		void *va = 0;
 		uint64_t len;

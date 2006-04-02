@@ -116,7 +116,8 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 
 	gate_call_data gcd;
 	memset(&gcd, 0, sizeof(gcd));
-	gate_call gc(COBJ(db_table_ct, id), &gcd, 0, 0, 0, 0);
+	gate_call gc(COBJ(db_table_ct, id), 0, 0, 0);
+	gc.call(&gcd, 0);
 
 	cprintf("yo 1\n");
 

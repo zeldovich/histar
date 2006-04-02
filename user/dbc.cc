@@ -57,14 +57,15 @@ try
 	label grant_taint(3);
 	grant_taint.set(dbr->dbr_taint, LB_LEVEL_STAR);
 
-	gate_call(g, &gcd, 0, &grant_taint, 0, &grant_taint);
+	gate_call(g, 0, &grant_taint, 0).call(&gcd, &grant_taint);
     } else if (!strcmp(opstr, "lookup")) {
 	dbq->reqtype = db_req_lookup_zip;
 	error_check(segment_alloc(start_env->shared_container, sizeof(*dbr),
 				  &dbq->obj, (void **) &dbr, 0, "query row"));
 	dbr->dbr_zipcode = 95060;
 
-	gate_call gc(g, &gcd, 0, 0, 0, 0);
+	gate_call gc(g, 0, 0, 0);
+	gc.call(&gcd, 0);
 
 	dbr = 0;
 	uint64_t reply_bytes = 0;

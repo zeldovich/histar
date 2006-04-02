@@ -367,7 +367,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
     	authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
     
     	memcpy(lreq, req, sizeof(*lreq));
-    	gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
+    	gate_call(ug->gd_gate, 0, 0, 0).call(&gcd, 0);
 
     	if (lrep->err)
     	    throw error(lrep->err, "response from authd_login");
@@ -396,7 +396,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
         
         label ds;
         thread_cur_label(&ds);
-        gate_call(gg->gd_gate, &gcd, 0, &ds, 0, 0);
+        gate_call(gg->gd_gate, 0, &ds, 0).call(&gcd, 0);
 
         if (lrep->err)
             throw error(lrep->err, "response from authd_login");
@@ -412,7 +412,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
             authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
             
             memcpy(lreq, req, sizeof(*lreq));
-            gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
+            gate_call(ug->gd_gate, 0, 0, 0).call(&gcd, 0);
             
             if (lrep->err)
                 throw error(lrep->err, "response from authd_login");
@@ -434,7 +434,7 @@ authd_dispatch(authd_req *req, authd_reply *reply)
         authd_reply *lrep = (authd_reply *) &gcd.param_buf[0];
             
         memcpy(lreq, req, sizeof(*lreq));
-        gate_call(ug->gd_gate, &gcd, 0, 0, 0, 0);
+        gate_call(ug->gd_gate, 0, 0, 0).call(&gcd, 0);
         
         if (lrep->err)
             throw error(lrep->err, "response from authd_login");

@@ -315,7 +315,7 @@ fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel
 
 	    label verify;
 	    thread_cur_label(&verify);
-	    gate_call(start_env->declassify_gate, &gcd, 0, 0, 0, &verify);
+	    gate_call(start_env->declassify_gate, 0, 0, 0).call(&gcd, &verify);
 	    *f = darg->fs_create.new_file;
 	    return darg->status;
 	}
