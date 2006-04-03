@@ -138,17 +138,7 @@ __borrowRight(struct btree *tree, struct btree_node *rootNode,
 
     node = btree_read_node(tree, prevNode->children[div + 1]);
 
-    if (BTREE_IS_LEAF(node) && node->keyCount > tree->min_leaf) {
-	rootNode->children[rootNode->keyCount + 1] =
-	    rootNode->children[rootNode->keyCount];
-
-	//rootNode->keys[rootNode->keyCount]     = node->keys[0] ;
-	bt_keycpy(rootNode, rootNode->keyCount, node, 0);
-	rootNode->children[rootNode->keyCount] = node->children[0];
-
-	//prevNode->keys[div] = rootNode->keys[rootNode->keyCount];
-	bt_keycpy(prevNode, div, rootNode, rootNode->keyCount);
-    } else if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn) {
+    if (node->keyCount > tree->min_intrn) {
 	//rootNode->keys[rootNode->keyCount] = prevNode->keys[div];
 	bt_keycpy(rootNode, rootNode->keyCount, prevNode, div);
 
@@ -227,7 +217,7 @@ __borrowLeft(struct btree *tree, struct btree_node *rootNode,
 
     node = btree_read_node(tree, prevNode->children[div - 1]);
 
-    if (!BTREE_IS_LEAF(node) && node->keyCount > tree->min_intrn) {
+    if (node->keyCount > tree->min_intrn) {
         for (i = rootNode->keyCount; i > 0; i--) {
             //rootNode->keys[i]         = rootNode->keys[i - 1];
             bt_keycpy(rootNode, i, rootNode, i - 1);
