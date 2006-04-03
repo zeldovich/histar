@@ -32,6 +32,7 @@ AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disabl
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_dmalloc-5.4.2	    := --disable-cxx
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
+AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 
 ##
 ## Patches to apply to various packages
@@ -124,6 +125,11 @@ $(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build
+acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
+	touch $@
+
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
 	rm -f $@
@@ -207,14 +213,6 @@ gcc3.4.5: acpkg/gcc-3.4.5/Makefile
 ##
 ## debug sshd
 ##
-
-## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-#openssh $(OBJDIR)/acpkg/sbin/$(TARGET)-sshd: acpkg/openssh-4.3p2/__build
-openssh: $(ACPKG_WRAPS) acpkg/openssh-4.3p2/__patch
-	##-( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake clean" )
-	##( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep" )
-	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
 
 dmalloc:
 	( cd acpkg/dmalloc-5.4.2 && sh -c "$(ACENV) gmake" )
