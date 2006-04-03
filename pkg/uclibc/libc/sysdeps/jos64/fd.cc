@@ -753,13 +753,17 @@ getsockopt(int fdnum, int level, int optname,void *optval,
 }
 
 // XXX
+// one issue is selecting on fd_set with size < sizeof(fd_set)...
+// this can happen with fd_set *set = malloc(x).  Use FD_* macros
+// carefully on arguments, and shouldn't use FD_ZERO on readset, 
+// writeset or execept set.
 int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
     // XXX
-    if (exceptset)
-        FD_ZERO(exceptset) ;
+    for (int i = 0 ; i < maxfd ; i++)
+        FD_CLR(i, exceptset) ;
     
     fd_set rreadset ;
     fd_set rwriteset ;
