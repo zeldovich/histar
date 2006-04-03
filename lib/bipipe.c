@@ -8,10 +8,10 @@
 #include <string.h>
 #include <fcntl.h>
 
-enum { bipipe_max_msg = 2000 };
+enum { bipipe_bufsz = 2000 };
 
 struct one_pipe {
-    char buf[bipipe_max_msg];
+    char buf[bipipe_bufsz];
     atomic64_t len;
 };
 
@@ -100,17 +100,10 @@ bipipe_read(struct Fd *fd, void *buf, size_t len, off_t offset)
         sys_sync_wait(&atomic_read(&op->len), 0, ~0UL);
     }
 
-    if (plen > len) {
-        cprintf("bipipe_read: too big for buf: %ld > %ld\n", plen, len);
-        atomic_set(&op->len, 0);
-        errno = E2BIG;
-        goto out;
-    }
-
-    memcpy(buf, &op->buf[0], plen);
-    atomic_set(&op->len, 0);
+    cc = MIN(len, plen);
+    memcpy(buf, &op->buf[0], cc);
+    atomic_set(&op->len, plen - cc);
     sys_sync_wakeup(&atomic_read(&op->len));
-    cc = plen;
 
 out:
     segment_unmap_delayed(bs, 1);
@@ -121,12 +114,6 @@ out:
 static ssize_t
 bipipe_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
-    if (len > bipipe_max_msg) {
-    	cprintf("bipipe_write: buf too big: %ld > %d\n", len, bipipe_max_msg);
-    	errno = E2BIG;
-    	return -1;
-    }
-
     struct bipipe_seg *bs = 0;
     int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &bs, 0);
@@ -138,11 +125,12 @@ bipipe_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 
     ssize_t cc = -1;
     struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-
+    
+    uint64_t plen;
     for (;;) {
-    	uint64_t plen = atomic_read(&op->len);
+    	plen = atomic_read(&op->len);
 
-    	if (!plen)
+    	if (plen < bipipe_bufsz)
     	    break;
     
     	if ((fd->fd_omode & O_NONBLOCK)) {
@@ -152,10 +140,10 @@ bipipe_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     
     	sys_sync_wait(&atomic_read(&op->len), plen, ~0UL);
     }
-    memcpy(&op->buf[0], buf, len);
-    atomic_set(&op->len, len);
+    cc = MIN(bipipe_bufsz - plen, len); 
+    memcpy(&op->buf[plen], buf, cc);
+    atomic_set(&op->len, plen + cc);
     sys_sync_wakeup(&atomic_read(&op->len));
-    cc = len;
 
 out:
     segment_unmap_delayed(bs, 1);
