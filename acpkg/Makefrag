@@ -31,7 +31,7 @@ AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared
 AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_dmalloc-5.4.2	    := --disable-cxx
-AUTOCONF_clamav-0.88	    := --disable-clamav
+AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 
 ##
 ## Patches to apply to various packages
