@@ -157,6 +157,7 @@ acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS)
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install_sw" )
+	touch $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 ncurses.conf acpkg/ncurses-5.5/Makefile:
