@@ -762,8 +762,9 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
     // XXX
-    for (int i = 0 ; i < maxfd ; i++)
-        FD_CLR(i, exceptset) ;
+    if (exceptset)
+	for (int i = 0 ; exceptset && i < maxfd ; i++)
+	    FD_CLR(i, exceptset) ;
     
     fd_set rreadset ;
     fd_set rwriteset ;
