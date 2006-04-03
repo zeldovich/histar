@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <time.h>
+#include <string.h>
 
 #include <sys/time.h>
 #include <sys/times.h>
@@ -35,6 +36,6 @@ nanosleep(const struct timespec *req, struct timespec *rem)
 clock_t
 times(struct tms *buf)
 {
-    set_enosys();
-    return -1;
+    memset(buf, 0, sizeof(*buf));
+    return sys_clock_msec();
 }
