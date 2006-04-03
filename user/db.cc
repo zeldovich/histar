@@ -35,18 +35,29 @@ db_row_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	cobj_ref row_seg = COBJ(db_table_ct, row_seg_id);
 
 	db_row *row = 0;
-	error_check(segment_map(row_seg, SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &row, 0));
+	error_check(segment_map(row_seg, SEGMAP_READ, (void **) &row, 0));
 	scope_guard<int, void*> unmap(segment_unmap, row);
+
+	db_row *qry = 0;
+	uint64_t qbytes = 0;
+	error_check(segment_map(gcd->param_obj, SEGMAP_READ, (void **) &qry, &qbytes));
+	scope_guard<int, void*> unmap2(segment_unmap, qry);
+
+	if (qbytes != sizeof(*qry))
+	    throw basic_exception("bad query segment length, %ld != %ld\n",
+				  qbytes, sizeof(*qry));
 
 	db_row *out = 0;
 	error_check(segment_alloc(gcd->taint_container, sizeof(*row),
 				  &gcd->param_obj, (void **) &out, 0, 0));
-	scope_guard<int, void*> unmap2(segment_unmap, out);
+	scope_guard<int, void*> unmap3(segment_unmap, out);
 
 	out->dbr_taint = row->dbr_taint;
 	out->dbr_id = row->dbr_id;
 	out->dbr_zipcode = row->dbr_zipcode;
+
+	for (int i = 0; i < db_row_match_ents; i++)
+	    out->dbr_match_dot += qry->dbr_match_vector[i] * row->dbr_match_vector[i];
 
 	memcpy(&out->dbr_nickname[0],
 	       &row->dbr_nickname[0],
@@ -121,8 +132,6 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
     int64_t ct_slots;
     error_check(ct_slots = sys_container_get_nslots(db_table_ct));
 
-    // XXX right now this returns every DB row; implement select predicates later..
-
     cobj_ref reply_seg;
     error_check(segment_alloc(reply_ct, 0, &reply_seg,
 			      0, 0, "db reply"));
@@ -142,6 +151,8 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 
 	gate_call_data gcd;
 	memset(&gcd, 0, sizeof(gcd));
+	gcd.param_obj = dbq->obj;
+
 	gate_call gc(COBJ(db_table_ct, id), 0, 0, 0);
 	gc.call(&gcd, 0);
 
@@ -175,7 +186,7 @@ db_handle_query(db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 	db_insert(&verify, dbq, dbr);
 	break;
 
-    case db_req_lookup_zip:
+    case db_req_lookup_all:
 	db_lookup(&verify, dbq, dbr, reply_ct);
 	break;
 
@@ -187,14 +198,14 @@ db_handle_query(db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 static void __attribute__((noreturn))
 db_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 {
-    db_query *dbq = (db_query *) &gcd->param_buf[0];
+    db_query dbq = *(db_query *) &gcd->param_buf[0];
     db_reply *dbr = (db_reply *) &gcd->param_buf[0];
 
     try {
 	db_reply db_rep;
 	memset(&db_rep, 0, sizeof(db_rep));
 
-	db_handle_query(dbq, &db_rep, gcd->taint_container);
+	db_handle_query(&dbq, &db_rep, gcd->taint_container);
 
 	*dbr = db_rep;
     } catch (error &e) {

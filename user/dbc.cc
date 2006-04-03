@@ -51,7 +51,7 @@ try
 	dbr->dbr_zipcode = 95060;
 	sprintf(&dbr->dbr_nickname[0], "Test nickname");
 	sprintf(&dbr->dbr_name[0], "Real name, or not");
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < db_row_match_ents; i++)
 	    dbr->dbr_match_vector[i] = i % 64;
 
 	label grant_taint(3);
@@ -59,10 +59,12 @@ try
 
 	gate_call(g, 0, &grant_taint, 0).call(&gcd, &grant_taint);
     } else if (!strcmp(opstr, "lookup")) {
-	dbq->reqtype = db_req_lookup_zip;
+	dbq->reqtype = db_req_lookup_all;
 	error_check(segment_alloc(start_env->shared_container, sizeof(*dbr),
 				  &dbq->obj, (void **) &dbr, 0, "query row"));
 	dbr->dbr_zipcode = 95060;
+	for (int i = 0; i < db_row_match_ents; i++)
+	    dbr->dbr_match_vector[i] = (i * 2 + 5) % 64;
 
 	gate_call gc(g, 0, 0, 0);
 	gc.call(&gcd, 0);
@@ -71,10 +73,11 @@ try
 	uint64_t reply_bytes = 0;
 	error_check(segment_map(dbq->obj, SEGMAP_READ, (void **) &dbr, &reply_bytes));
 	for (uint32_t i = 0; i < reply_bytes / sizeof(*dbr); i++) {
-	    printf("ID %ld, Zip %d, Nick %s\n",
+	    printf("ID: %ld, Zip: %d, Nick: %s, Dot-product: %d\n",
 		    dbr[i].dbr_id,
 		    dbr[i].dbr_zipcode,
-		    dbr[i].dbr_nickname);
+		    dbr[i].dbr_nickname,
+		    dbr[i].dbr_match_dot);
 	}
     } else {
 	usage();

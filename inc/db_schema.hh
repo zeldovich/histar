@@ -5,6 +5,8 @@ extern "C" {
 #include <inc/container.h>
 }
 
+enum { db_row_match_ents = 256 };
+
 struct db_row {
     // Metadata (public)
     uint64_t dbr_taint;
@@ -18,14 +20,17 @@ struct db_row {
     char dbr_name[64];
 
     // Private information -- can be declassified in some ways
-    uint8_t dbr_match_vector[256];
+    uint8_t dbr_match_vector[db_row_match_ents];
+
+    // Not actual database columns
+    uint32_t dbr_match_dot;	// Used to return match dot product
 };
 
 // Database gate interface
 
 enum {
     db_req_insert,
-    db_req_lookup_zip
+    db_req_lookup_all,
 };
 
 struct db_query {
