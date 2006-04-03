@@ -21,6 +21,7 @@ ACENV += LIBS=\"\"
 
 ACENV += CC=\"$(CC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
+ACENV += ac_cv_func_setpgrp_void=yes
 
 ##
 ## ./configure arguments for different packages
@@ -30,6 +31,7 @@ AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared
 AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_dmalloc-5.4.2	    := --disable-cxx
+AUTOCONF_clamav-0.88	    := --disable-clamav
 
 ##
 ## Patches to apply to various packages
@@ -39,7 +41,7 @@ PATCHFILE_tar-1.15	    := tar-1.15.patch
 PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
-PATCHFILE_openssh-4.3p2    := openssh-4.3p2.patch
+PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
 PATCHFILE_dmalloc-5.4.2    := dmalloc-5.4.2.patch
 PATCHFILE_default	    := empty.patch
 
@@ -132,12 +134,16 @@ $(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
   				  etc/ssh_host_rsa_key
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
-zlib: $(ACPKG_WRAPS)
+acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	@mkdir -p $(ACPKG_PREFIX)
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/zlib-1.2.3 && sh -c "$(ACENV) gmake install" )
+	touch $@
+
+## http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
+acpkg/clamav-0.88/__build: acpkg/zlib-1.2.3/__build
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 openssl: zlib $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch

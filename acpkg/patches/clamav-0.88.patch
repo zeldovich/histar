@@ -1,0 +1,236 @@
+--- clamav-0.88/configure	2006/03/31 01:31:18	1.1
++++ clamav-0.88/configure	2006/04/03 20:59:46
+@@ -10082,11 +10082,9 @@
+         echo "$as_me:$LINENO: checking whether snprintf correctly terminates long strings" >&5
+ echo $ECHO_N "checking whether snprintf correctly terminates long strings... $ECHO_C" >&6
+         if test "$cross_compiling" = yes; then
+-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&5
+-echo "$as_me: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
++
++echo "assuming yes for cross-compile"
++
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+@@ -11606,100 +11604,14 @@
+ _ACEOF
+ 
+ 
+-if test "$cross_compiling" = yes; then
+-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&5
+-echo "$as_me: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
+-else
+-  cat >conftest.$ac_ext <<_ACEOF
+-/* confdefs.h.  */
+-_ACEOF
+-cat confdefs.h >>conftest.$ac_ext
+-cat >>conftest.$ac_ext <<_ACEOF
+-/* end confdefs.h.  */
+-
+-#include <sys/types.h>
+-#include <netinet/in.h>
+-int main(int argc, char **argv) { in_port_t pt; pt = 0; return pt; }
+-
+-_ACEOF
+-rm -f conftest$ac_exeext
+-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+-  (eval $ac_link) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+-  (eval $ac_try) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); }; }; then
+-
+ cat >>confdefs.h <<\_ACEOF
+ #define HAVE_IN_PORT_T 1
+ _ACEOF
+ 
+-else
+-  echo "$as_me: program exited with status $ac_status" >&5
+-echo "$as_me: failed program was:" >&5
+-sed 's/^/| /' conftest.$ac_ext >&5
+-
+-( exit $ac_status )
+-echo "$as_me:$LINENO: result: in_port_t is not defined" >&5
+-echo "${ECHO_T}in_port_t is not defined" >&6
+-fi
+-rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-fi
+-
+-if test "$cross_compiling" = yes; then
+-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&5
+-echo "$as_me: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
+-else
+-  cat >conftest.$ac_ext <<_ACEOF
+-/* confdefs.h.  */
+-_ACEOF
+-cat confdefs.h >>conftest.$ac_ext
+-cat >>conftest.$ac_ext <<_ACEOF
+-/* end confdefs.h.  */
+-
+-#include <sys/types.h>
+-#include <netinet/in.h>
+-int main(int argc, char **argv) { in_addr_t pt; pt = 0; return pt; }
+-
+-_ACEOF
+-rm -f conftest$ac_exeext
+-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+-  (eval $ac_link) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+-  (eval $ac_try) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); }; }; then
+-
+ cat >>confdefs.h <<\_ACEOF
+ #define HAVE_IN_ADDR_T 1
+ _ACEOF
+ 
+-else
+-  echo "$as_me: program exited with status $ac_status" >&5
+-echo "$as_me: failed program was:" >&5
+-sed 's/^/| /' conftest.$ac_ext >&5
+-
+-( exit $ac_status )
+-echo "$as_me:$LINENO: result: in_addr_t is not defined" >&5
+-echo "${ECHO_T}in_addr_t is not defined" >&6
+-fi
+-rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-fi
+-
+ case "$target_os" in
+ linux*)
+ 
+@@ -12695,58 +12607,9 @@
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+ 
+-    if test "$cross_compiling" = yes; then
+-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&5
+-echo "$as_me: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
+-else
+-  cat >conftest.$ac_ext <<_ACEOF
+-/* confdefs.h.  */
+-_ACEOF
+-cat confdefs.h >>conftest.$ac_ext
+-cat >>conftest.$ac_ext <<_ACEOF
+-/* end confdefs.h.  */
+-
+-#include <sys/types.h>
+-#include <sys/socket.h>
+-#include <sys/uio.h>
+-int main() {
+-#ifdef msg_accrights
+-exit(1);
+-#endif
+-struct msghdr m;
+-m.msg_accrights = 0;
+-exit(0);
+-}
+-
+-_ACEOF
+-rm -f conftest$ac_exeext
+-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+-  (eval $ac_link) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+-  (eval $ac_try) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); }; }; then
+-   ac_cv_have_accrights_in_msghdr="yes"
+-else
+-  echo "$as_me: program exited with status $ac_status" >&5
+-echo "$as_me: failed program was:" >&5
+-sed 's/^/| /' conftest.$ac_ext >&5
+-
+-( exit $ac_status )
+  ac_cv_have_accrights_in_msghdr="no"
+ 
+ fi
+-rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-fi
+-
+-fi
+ echo "$as_me:$LINENO: result: $ac_cv_have_accrights_in_msghdr" >&5
+ echo "${ECHO_T}$ac_cv_have_accrights_in_msghdr" >&6
+ if test "x$ac_cv_have_accrights_in_msghdr" = "xyes" ; then
+@@ -12763,58 +12626,9 @@
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+ 
+-    if test "$cross_compiling" = yes; then
+-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&5
+-echo "$as_me: error: cannot run test program while cross compiling
+-See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
+-else
+-  cat >conftest.$ac_ext <<_ACEOF
+-/* confdefs.h.  */
+-_ACEOF
+-cat confdefs.h >>conftest.$ac_ext
+-cat >>conftest.$ac_ext <<_ACEOF
+-/* end confdefs.h.  */
+-
+-#include <sys/types.h>
+-#include <sys/socket.h>
+-#include <sys/uio.h>
+-int main() {
+-#ifdef msg_control
+-exit(1);
+-#endif
+-struct msghdr m;
+-m.msg_control = 0;
+-exit(0);
+-}
+-
+-_ACEOF
+-rm -f conftest$ac_exeext
+-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+-  (eval $ac_link) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+-  (eval $ac_try) 2>&5
+-  ac_status=$?
+-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); }; }; then
+-   ac_cv_have_control_in_msghdr="yes"
+-else
+-  echo "$as_me: program exited with status $ac_status" >&5
+-echo "$as_me: failed program was:" >&5
+-sed 's/^/| /' conftest.$ac_ext >&5
+-
+-( exit $ac_status )
+  ac_cv_have_control_in_msghdr="no"
+ 
+ fi
+-rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+-fi
+-
+-fi
+ echo "$as_me:$LINENO: result: $ac_cv_have_control_in_msghdr" >&5
+ echo "${ECHO_T}$ac_cv_have_control_in_msghdr" >&6
+ if test "x$ac_cv_have_control_in_msghdr" = "xyes" ; then
