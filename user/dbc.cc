@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/gateparam.h>
+#include <inc/syscall.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -66,7 +67,13 @@ try
 	for (int i = 0; i < db_row_match_ents; i++)
 	    dbr->dbr_match_vector[i] = (i * 2 + 5) % 64;
 
-	gate_call gc(g, 0, 0, 0);
+	int64_t query_tainth;
+	error_check(query_tainth = sys_handle_create());
+
+	label query_taint(LB_LEVEL_STAR);
+	query_taint.set(query_tainth, 2);
+
+	gate_call gc(g, &query_taint, 0, 0);
 	gc.call(&gcd, 0);
 
 	dbr = 0;
