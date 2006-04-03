@@ -814,10 +814,11 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             break ;
     }
     
+    int sz = howmany(maxfd, NFDBITS) * sizeof(fd_mask);
     if (writeset)
-        memcpy(writeset, &rwriteset, sizeof(*writeset)) ;
+        memcpy(writeset, &rwriteset, sz) ;
     if (readset)
-        memcpy(readset, &rreadset, sizeof(*readset)) ;
+        memcpy(readset, &rreadset, sz) ;
     return ready ;
 }
 
