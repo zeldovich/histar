@@ -87,6 +87,9 @@ acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
 
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/$(TARGET)-%
+	cp $< $@
+
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
 	cp $< $@
 
