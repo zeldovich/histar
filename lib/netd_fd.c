@@ -79,8 +79,8 @@ sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
     struct sockaddr_in sin;
-    if (addrlen != sizeof(sin))
-	return -E_INVAL;
+    if (addrlen < sizeof(sin))
+	   return -E_INVAL;
 
     memcpy(&sin, addr, sizeof(sin));
 
@@ -95,8 +95,8 @@ sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
     struct sockaddr_in sin;
-    if (addrlen != sizeof(sin))
-	return -E_INVAL;
+    if (addrlen < sizeof(sin))
+	   return -E_INVAL;
 
     memcpy(&sin, addr, sizeof(sin));
 
@@ -121,8 +121,8 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct netd_op_args a;
     struct sockaddr_in sin;
-    if (*addrlen != sizeof(sin))
-	return -E_INVAL;
+    if (*addrlen < sizeof(sin))
+	   return -E_INVAL;
 
     struct Fd *nfd;
     int r = fd_alloc(&nfd, "socket fd -- accept");
@@ -227,8 +227,8 @@ sock_getsockname(struct Fd *fd, struct sockaddr *addr,
     struct netd_op_args a;
     struct sockaddr_in sin;
 
-    if (*addrlen != sizeof(sin))
-	return -E_INVAL;
+    if (*addrlen < sizeof(sin))
+	   return -E_INVAL;
 
     a.op_type = netd_op_getsockname;
     a.getsockname.fd = fd->fd_sock.s;
@@ -245,8 +245,8 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
     struct netd_op_args a;
     struct sockaddr_in sin;
 
-    if (*addrlen != sizeof(sin))
-	return -E_INVAL;
+    if (*addrlen < sizeof(sin))
+	   return -E_INVAL;
 
     a.op_type = netd_op_getsockname;
     a.getpeername.fd = fd->fd_sock.s;
