@@ -66,7 +66,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    return -1;
 	}
 
-	return tun_open(ino, tun_suffix, flags);
+	return jos_tun_open(ino, tun_suffix, flags);
     }
 
     if (!strcmp("/dev/random", pn)) {

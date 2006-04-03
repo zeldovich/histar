@@ -20,7 +20,7 @@ struct tun_seg {
 };
 
 int
-tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
+jos_tun_open(struct fs_inode tino, const char *pn_suffix, int flags)
 {
     int r = fs_resize(tino, sizeof(struct tun_seg));
     if (r < 0) {
