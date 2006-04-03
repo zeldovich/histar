@@ -123,6 +123,7 @@ $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 $(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
+acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
 	rm -f $@
@@ -149,12 +150,14 @@ acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
 acpkg/clamav-0.88/__build: acpkg/zlib-1.2.3/__build
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
-openssl: zlib $(ACPKG_WRAPS) acpkg/openssl-0.9.8a/__patch
+acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build
+acpkg/openssl-0.9.8a/__build: acpkg/openssl-0.9.8a/__patch
+acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS)
 	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake install_sw" )
-	 
+
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 ncurses.conf acpkg/ncurses-5.5/Makefile:
 	-( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake distclean" )
