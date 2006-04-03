@@ -5,6 +5,7 @@
 #include <inc/stdio.h>
 #include <inc/tun.h>
 #include <inc/rand.h>
+#include <inc/chardevs.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -69,9 +70,12 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	return jos_tun_open(ino, tun_suffix, flags);
     }
 
-    if (!strcmp("/dev/random", pn)) {
-        return rand_open(flags);
-    }
+    if (!strcmp("/dev/random", pn))
+	return rand_open(flags);
+    if (!strcmp("/dev/null", pn))
+	return jos_devnull_open(flags);
+    if (!strcmp("/dev/zero", pn))
+	return jos_devzero_open(flags);
 
     if (!strcmp(pn, "")) {
 	__set_errno(ENOENT);

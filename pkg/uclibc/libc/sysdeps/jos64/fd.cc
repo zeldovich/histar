@@ -419,6 +419,8 @@ static struct Dev *devtab[] =
 	&devtun,
 	&devbipipe,
     	&devrand,
+	&devzero,
+	&devnull,
 	0
 };
 
