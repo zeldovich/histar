@@ -19,6 +19,7 @@ struct one_pipe {
     char reader_waiting;
     char writer_waiting;
     pthread_mutex_t mu;
+    char open;
 };
 
 struct bipipe_seg {
@@ -57,6 +58,7 @@ bipipe(int fv[2])
     fda->fd_omode = O_RDWR;
     fda->fd_bipipe.bipipe_seg = seg;
     fda->fd_bipipe.bipipe_a = 1;
+    bs->p[1].open = 1;
     
     struct Fd *fdb;
     r = fd_alloc(&fdb, "bipipe");
@@ -69,6 +71,7 @@ bipipe(int fv[2])
     fdb->fd_omode = O_RDWR;
     fdb->fd_bipipe.bipipe_seg = seg;
     fdb->fd_bipipe.bipipe_a = 0;   
+    bs->p[0].open = 1;
     
     fv[0] = fd2num(fda);
     fv[1] = fd2num(fdb);
@@ -95,7 +98,11 @@ bipipe_read(struct Fd *fd, void *buf, size_t cout, off_t offset)
     while (op->bytes == 0) {
         int nonblock = (fd->fd_omode & O_NONBLOCK);
         op->reader_waiting = 1;
+        char opn = op->open;
         pthread_mutex_unlock(&op->mu);
+    
+        if (!opn)
+            return 0;
     
         if (nonblock) {
             errno = EAGAIN;
@@ -144,11 +151,19 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     uint32_t bufsize = sizeof(op->buf);
 
     pthread_mutex_lock(&op->mu);
+    if (!op->open) {
+        pthread_mutex_unlock(&op->mu);
+        raise(SIGPIPE);
+        errno = EPIPE;    
+        return -1;
+    }
+    
+    // XXX what about the other end being closed when blocked here?
     while (op->bytes > bufsize - PIPE_BUF) {
         uint64_t b = op->bytes;
         op->writer_waiting = 1;
         pthread_mutex_unlock(&op->mu);
-        sys_sync_wait(&op->bytes, b, sys_clock_msec() + 1000);
+        sys_sync_wait(&op->bytes, b, ~0UL);
         pthread_mutex_lock(&op->mu);
     }
 
@@ -206,8 +221,19 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
 static int
 bipipe_close(struct Fd *fd)
 {
-    // XXX reading or writing when one end is closed probably
-    // doesn't do the correct thing
+    struct bipipe_seg *bs = 0;
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+            (void **) &bs, 0);
+    if (r < 0) {
+        cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
+        errno = EIO;
+        return -1;
+    }
+    struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
+    pthread_mutex_lock(&op->mu);
+    op->open = 0;
+    pthread_mutex_unlock(&op->mu);
+    segment_unmap_delayed(bs, 1);
     return 0;
 }
            

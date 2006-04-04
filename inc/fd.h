@@ -92,10 +92,10 @@ struct Fd
 	    char buf[512];
 	} fd_pipe;
 
-    	struct {
-	    struct cobj_ref bipipe_seg;
-            int bipipe_a;
-    	} fd_bipipe;
+	struct {
+        struct cobj_ref bipipe_seg;
+        int bipipe_a;
+	} fd_bipipe;
 
 	struct {
 	    struct cobj_ref tun_seg;
