@@ -7,17 +7,22 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>
 
 enum { bipipe_bufsz = 2000 };
 
 struct one_pipe {
     char buf[bipipe_bufsz];
-    atomic64_t len;
+    
+    uint64_t bytes; /* # bytes in circular buffer */
+    uint32_t read_ptr;  /* read at this offset */
+    char reader_waiting;
+    char writer_waiting;
+    pthread_mutex_t mu;
 };
 
 struct bipipe_seg {
     struct one_pipe p[2];
-    int open[2];
 };
 
 int
@@ -52,7 +57,6 @@ bipipe(int fv[2])
     fda->fd_omode = O_RDWR;
     fda->fd_bipipe.bipipe_seg = seg;
     fda->fd_bipipe.bipipe_a = 1;
-    bs->open[1] = 1;
     
     struct Fd *fdb;
     r = fd_alloc(&fdb, "bipipe");
@@ -65,17 +69,18 @@ bipipe(int fv[2])
     fdb->fd_omode = O_RDWR;
     fdb->fd_bipipe.bipipe_seg = seg;
     fdb->fd_bipipe.bipipe_a = 0;   
-    bs->open[0] = 1;
     
     fv[0] = fd2num(fda);
     fv[1] = fd2num(fdb);
     return 0;
 }
 
+
 static ssize_t
-bipipe_read(struct Fd *fd, void *buf, size_t len, off_t offset)
+bipipe_read(struct Fd *fd, void *buf, size_t cout, off_t offset)
 {
     struct bipipe_seg *bs = 0;
+   
     int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
             (void **) &bs, 0);
     if (r < 0) {
@@ -83,71 +88,90 @@ bipipe_read(struct Fd *fd, void *buf, size_t len, off_t offset)
         errno = EIO;
         return -1;
     }
-
-    ssize_t cc = -1;
     struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
-    uint64_t plen;
 
-    for (;;) {
-        plen = atomic_read(&op->len);
-        if (plen)
-            break;
+    size_t cc = -1;
+    pthread_mutex_lock(&op->mu);
+    while (op->bytes == 0) {
+        int nonblock = (fd->fd_omode & O_NONBLOCK);
+        op->reader_waiting = 1;
+        pthread_mutex_unlock(&op->mu);
     
-        if ((fd->fd_omode & O_NONBLOCK)) {
+        if (nonblock) {
             errno = EAGAIN;
             goto out;
         }
-        sys_sync_wait(&atomic_read(&op->len), 0, ~0UL);
+        
+        sys_sync_wait(&op->bytes, 0, sys_clock_msec() + 1000);
+        pthread_mutex_lock(&op->mu);
     }
 
-    cc = MIN(len, plen);
-    memcpy(buf, &op->buf[0], cc);
-    atomic_set(&op->len, plen - cc);
-    sys_sync_wakeup(&atomic_read(&op->len));
+    uint32_t bufsize = sizeof(op->buf);
+    uint32_t idx = op->read_ptr;
+
+    cc = MIN(cout, op->bytes);
+    uint32_t cc1 = MIN(cc, bufsize-idx);        // idx to end-of-buffer
+    uint32_t cc2 = (cc1 == cc) ? 0 : (cc - cc1);    // wrap-around
+    memcpy(buf,       &op->buf[idx], cc1);
+    memcpy(buf + cc1, &op->buf[0],   cc2);
+
+    op->read_ptr = (idx + cc) % bufsize;
+    op->bytes -= cc;
+    if (op->writer_waiting) {
+        op->writer_waiting = 0;
+        sys_sync_wakeup(&op->bytes);
+    }
+
+    pthread_mutex_unlock(&op->mu);
 
 out:
     segment_unmap_delayed(bs, 1);
     return cc;
 }
 
-
 static ssize_t
-bipipe_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
+bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
     int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &bs, 0);
+            (void **) &bs, 0);
     if (r < 0) {
-    	cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
-    	errno = EIO;
-    	return -1;
+        cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
+        errno = EIO;
+        return -1;
     }
-
-    ssize_t cc = -1;
     struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-    
-    uint64_t plen;
-    for (;;) {
-    	plen = atomic_read(&op->len);
+    uint32_t bufsize = sizeof(op->buf);
 
-    	if (plen < bipipe_bufsz)
-    	    break;
-    
-    	if ((fd->fd_omode & O_NONBLOCK)) {
-    	    errno = EAGAIN;
-    	    goto out;
-    	}
-    
-    	sys_sync_wait(&atomic_read(&op->len), plen, ~0UL);
+    pthread_mutex_lock(&op->mu);
+    while (op->bytes > bufsize - PIPE_BUF) {
+        uint64_t b = op->bytes;
+        op->writer_waiting = 1;
+        pthread_mutex_unlock(&op->mu);
+        sys_sync_wait(&op->bytes, b, sys_clock_msec() + 1000);
+        pthread_mutex_lock(&op->mu);
     }
-    cc = MIN(bipipe_bufsz - plen, len); 
-    memcpy(&op->buf[plen], buf, cc);
-    atomic_set(&op->len, plen + cc);
-    sys_sync_wakeup(&atomic_read(&op->len));
 
-out:
+    uint32_t avail = bufsize - op->bytes;
+    size_t cc = MIN(count, avail);
+    uint32_t idx = (op->read_ptr + op->bytes) % bufsize;
+
+    uint32_t cc1 = MIN(cc, bufsize - idx);      // idx to end-of-buffer
+    uint32_t cc2 = (cc1 == cc) ? 0 : (cc - cc1);    // wrap-around
+
+    memcpy(&op->buf[idx], buf,       cc1);
+    memcpy(&op->buf[0],   buf + cc1, cc2);
+
+    op->bytes += cc;
+    if (op->reader_waiting) {
+        op->reader_waiting = 0;
+        sys_sync_wakeup(&op->bytes);
+    }
+
+    pthread_mutex_unlock(&op->mu);
     segment_unmap_delayed(bs, 1);
-    return cc;
+    
+    return cc;    
 }
 
 static int
@@ -165,10 +189,14 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
     int rv;
     if (probe == dev_probe_read) {
     	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
-    	rv = atomic_read(&op->len) ? 1 : 0;
+    	pthread_mutex_lock(&op->mu);
+        rv = op->bytes ? 1 : 0;
+        pthread_mutex_unlock(&op->mu);
     } else {
     	struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-    	rv = atomic_read(&op->len) ? 0 : 1;
+    	pthread_mutex_lock(&op->mu);
+        rv = (op->bytes > sizeof(op->buf) - PIPE_BUF) ? 0 : 1;
+        pthread_mutex_unlock(&op->mu);
     }
 
     segment_unmap_delayed(bs, 1);
@@ -178,6 +206,8 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
 static int
 bipipe_close(struct Fd *fd)
 {
+    // XXX reading or writing when one end is closed probably
+    // doesn't do the correct thing
     return 0;
 }
            
