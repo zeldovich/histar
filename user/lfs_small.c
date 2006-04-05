@@ -82,17 +82,35 @@ creat_test(int n, int size)
 		    printf("creat_test: write failed: %d\n", r);
 		    exit(1);
 		}
+
+		if (fsync(fd) < 0) {
+		    printf("creat_test: fsync failed: %s\n", strerror(errno));
+		    exit(1);
+		}
 	
 		if ((r = close(fd)) < 0) {
 		    printf("creat_test: close failed %d\n", r);
 		}
-	
+
+#ifdef LINUX	
+		sprintf(namebuf, "d%d", j);
+		if ((fd = open(namebuf, O_RDONLY)) < 0) {
+		    printf("creat_test: open dir failed: %s\n", strerror(errno));
+		    exit(1);
+		}
+
+		if (fsync(fd) < 0) {
+		    printf("creat_test: fsync dir failed: %s\n", strerror(errno));
+		    exit(1);
+		}
+
+		close(fd);
+#endif
+
 		if ((i+1) % 100 == 0) j++;
 		if (j % 100 == 0) j = 0;
 
     }
-
-    fsync(fd);
 
     f = time_msec();
     printf("%s: creat took %d msec\n",  prog_name,  f - s);
@@ -209,6 +227,7 @@ delete_test(int n)
 int 
 main(int argc, char *argv[])
 {
+    int i;
     int n;
     int size;
 
@@ -231,7 +250,7 @@ main(int argc, char *argv[])
 
     creat_dir();
 
-    for (int i = 0; i < lfs_iterations; i++) {
+    for (i = 0; i < lfs_iterations; i++) {
 	creat_test(n, size);
 	read_test(n, size);
 	delete_test(n);
