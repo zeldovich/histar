@@ -327,7 +327,8 @@ as_pmap_fill_segment(const struct Address_space *as,
     return 0;
 
 err:
-    cprintf("as_pmap_fill_segment: %s\n", e2s(r));
+    if (r != -E_RESTART)
+	cprintf("as_pmap_fill_segment: %s\n", e2s(r));
 
     cva = (char *) usm->va;
     uint64_t cleanup_end = i;
