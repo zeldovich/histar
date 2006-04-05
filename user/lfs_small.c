@@ -92,7 +92,7 @@ creat_test(int n, int size)
 		    printf("creat_test: close failed %d\n", r);
 		}
 
-#ifdef LINUX	
+#if LINUX
 		sprintf(namebuf, "d%d", j);
 		if ((fd = open(namebuf, O_RDONLY)) < 0) {
 		    printf("creat_test: open dir failed: %s\n", strerror(errno));
