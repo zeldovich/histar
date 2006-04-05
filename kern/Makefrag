@@ -88,6 +88,7 @@ KERN_BINFILES := \
 	user/dnstest \
 	user/pftest \
 	user/execbench \
+	user/spawnbench \
 	user/ipcbench \
 	user/true \
 	user/mount \
