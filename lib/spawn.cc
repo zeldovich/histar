@@ -112,7 +112,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     struct thread_entry e;
     memset(&e, 0, sizeof(e));
-    error_check(elf_load(c_proc, elf, &e, proc_object_label.to_ulabel()));
+    error_check(elf_load(c_proc, elf, &e, 0));
 
     int fdnum[3] = { fd0, fd1, fd2 };
     for (int i = 0; i < 3; i++) {
@@ -125,15 +125,12 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     }
 
     struct cobj_ref heap_obj;
-    error_check(segment_alloc(c_proc, 0, &heap_obj, 0,
-			      proc_object_label.to_ulabel(), "heap"));
+    error_check(segment_alloc(c_proc, 0, &heap_obj, 0, 0, "heap"));
 
     start_env_t *spawn_env = 0;
     struct cobj_ref spawn_env_obj;
     error_check(segment_alloc(c_proc, PGSIZE, &spawn_env_obj,
-			      (void**) &spawn_env,
-			      proc_object_label.to_ulabel(),
-			      "env"));
+			      (void**) &spawn_env, 0, "env"));
     scope_guard<int, void *> spawn_env_unmap(segment_unmap, spawn_env);
 
     void *spawn_env_va = 0;
@@ -143,8 +140,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     struct cobj_ref exit_status_seg;
     error_check(segment_alloc(c_top, sizeof(struct process_state),
-			      &exit_status_seg, 0,
-			      integrity_object_label.to_ulabel(),
+			      &exit_status_seg, 0, 0,
 			      "exit status"));
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
@@ -167,8 +163,6 @@ spawn(uint64_t container, struct fs_inode elf_ino,
         memcpy(p, envv[i], len);
         p += len + 1;
     }
-    
-    
 
     int64_t thread = sys_thread_create(c_proc, &name[0]);
     error_check(thread);
