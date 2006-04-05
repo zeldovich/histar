@@ -642,7 +642,8 @@ pstate_sync_user(uint64_t timestamp)
 int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko)
 {
-    if (handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
+    if (ko->hdr.ko_sync_ts &&
+	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
 
     thread_suspend(cur_thread, &sync_waiting);

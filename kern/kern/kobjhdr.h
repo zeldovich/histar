@@ -49,7 +49,7 @@ struct kobject_hdr {
     // For verifying the persistence layer
     uint64_t ko_cksum;
 
-    // When this object was written to disk
+    // When this object's data was written to disk
     uint64_t ko_sync_ts;
 
     // Ephemeral state (doesn't persist across swapout)
