@@ -424,6 +424,7 @@ btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
 
     uint64_t k[tree->s_key];
     uint64_t v[tree->s_value];
+    offset_t *insFilePos = v;
 
     btree_keycpy(k, key, tree->s_key);
     if (val)
@@ -438,10 +439,9 @@ btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
     split = 0;
 
     btree_lock(tree->id);
-    tree->_insFilePos = v;
 
     if (tree->root != 0) {
-	success = __insertKey(tree, tree->root, k, tree->_insFilePos, &split);
+	success = __insertKey(tree, tree->root, k, insFilePos, &split);
 
 	if (success == 0) {
 	    // duplicate
@@ -461,16 +461,15 @@ btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
 
 	if (tree->root == 0) {
 	    BTREE_SET_LEAF(node);
-	    //node->children[0] = tree->_insFilePos;
-	    btree_valcpy(btree_value(node, 0), tree->_insFilePos,
-			 tree->s_value);
+	    //node->children[0] = insFilePos;
+	    btree_valcpy(btree_value(node, 0), insFilePos, tree->s_value);
 
 	    btree_write_node(node);
 
 	    tree->left_leaf = node->block.offset;
 	} else {
 	    node->children[0] = tree->root;
-	    node->children[1] = *tree->_insFilePos;
+	    node->children[1] = *insFilePos;
 
 	    btree_write_node(node);
 	}

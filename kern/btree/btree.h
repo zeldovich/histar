@@ -32,21 +32,18 @@ struct btree {
     uint8_t order;
     uint8_t s_key;
     uint8_t s_value;
-
-    uint64_t size;
-    uint64_t height;
+    uint8_t id;
 
     uint8_t min_leaf;
     uint8_t min_intrn;
+
+    uint64_t size;
+    uint64_t height;
 
     offset_t root;
     offset_t left_leaf;
 
     uint64_t magic;
-    uint64_t id;
-
-    // current filePos on inserts...no touch
-    offset_t *_insFilePos;
 };
 
 struct btree_traversal {
