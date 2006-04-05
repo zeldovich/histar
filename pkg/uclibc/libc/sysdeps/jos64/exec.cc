@@ -49,7 +49,7 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     // Load ELF binary into container
     thread_entry e;
     memset(&e, 0, sizeof(e));
-    error_check(elf_load(proc_ct, bin.obj, &e, secret_label.to_ulabel()));
+    error_check(elf_load(proc_ct, bin.obj, &e, 0));
 
     // Move our file descriptors over to the new process
     for (uint32_t i = 0; i < MAXFD; i++) {
@@ -67,15 +67,13 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 
     // Create an initial properly-labeled heap
     struct cobj_ref heap_obj;
-    error_check(segment_alloc(proc_ct, 0, &heap_obj, 0,
-			      secret_label.to_ulabel(), "heap"));
+    error_check(segment_alloc(proc_ct, 0, &heap_obj, 0, 0, "heap"));
 
     // Create an environment
     start_env_t *new_env = 0;
     struct cobj_ref new_env_ref;
     error_check(segment_alloc(proc_ct, PGSIZE, &new_env_ref,
-			      (void**) &new_env,
-			      secret_label.to_ulabel(), "env"));
+			      (void**) &new_env, 0, "env"));
     scope_guard<int, void *> new_env_unmap(segment_unmap, new_env);
 
     memcpy(new_env, start_env, sizeof(*new_env));
