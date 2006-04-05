@@ -100,15 +100,15 @@ bipipe_read(struct Fd *fd, void *buf, size_t cout, off_t offset)
         op->reader_waiting = 1;
         char opn = op->open;
         pthread_mutex_unlock(&op->mu);
-    
+
         if (!opn)
             return 0;
-    
+
         if (nonblock) {
             errno = EAGAIN;
             goto out;
         }
-        
+
         sys_sync_wait(&op->bytes, 0, sys_clock_msec() + 1000);
         pthread_mutex_lock(&op->mu);
     }
@@ -151,20 +151,18 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     uint32_t bufsize = sizeof(op->buf);
 
     pthread_mutex_lock(&op->mu);
-    if (!op->open) {
-        pthread_mutex_unlock(&op->mu);
-        raise(SIGPIPE);
-        errno = EPIPE;    
-        return -1;
-    }
-    
-    // XXX what about the other end being closed when blocked here?
-    while (op->bytes > bufsize - PIPE_BUF) {
+    while (op->open && op->bytes > bufsize - PIPE_BUF) {
         uint64_t b = op->bytes;
         op->writer_waiting = 1;
         pthread_mutex_unlock(&op->mu);
-        sys_sync_wait(&op->bytes, b, ~0UL);
+        sys_sync_wait(&op->bytes, b, sys_clock_msec() + 1000);
         pthread_mutex_lock(&op->mu);
+    }
+
+    if (!op->open) {
+        pthread_mutex_unlock(&op->mu);
+        errno = EPIPE;
+        return -1;
     }
 
     uint32_t avail = bufsize - op->bytes;
@@ -225,14 +223,18 @@ bipipe_close(struct Fd *fd)
     int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
             (void **) &bs, 0);
     if (r < 0) {
-        cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
+        cprintf("bipipe_close: cannot segment_map: %s\n", e2s(r));
         errno = EIO;
         return -1;
     }
-    struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-    pthread_mutex_lock(&op->mu);
-    op->open = 0;
-    pthread_mutex_unlock(&op->mu);
+
+    for (int i = 0; i < 2; i++) {
+	struct one_pipe *op = &bs->p[i];
+	pthread_mutex_lock(&op->mu);
+	op->open = 0;
+	pthread_mutex_unlock(&op->mu);
+    }
+
     segment_unmap_delayed(bs, 1);
     return 0;
 }
