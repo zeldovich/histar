@@ -64,10 +64,7 @@ freelist_alloc(struct freelist * l, uint64_t nbytes)
 
     frm_service(l);
 
-    l->free -= nbytes;
-
     return offset;
-
 }
 
 int
@@ -78,9 +75,6 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
     offset_t g_base = base + 1;
 
     // XXX: could also be optimized...
-
-    l->free += nbytes;
-
     uint64_t l_nbytes;
     int rl = btree_ltet(BTREE_FOFFSET,
 			(uint64_t *) & l_base,
@@ -93,10 +87,8 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 			(uint64_t *) & g_base,
 			&g_nbytes);
 
-
     char l_merge = 0;
     char g_merge = 0;
-
 
     if (rl == 0)
 	if (l_base + l_nbytes == base)
@@ -201,8 +193,6 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
 
     if ((r = freelist_insert(l, base, nbytes)) < 0)
 	panic("freelist_init: insert failed: %s", e2s(r));
-
-    l->free = nbytes;
 
     // XXX
     dstack_init(&free_later);
