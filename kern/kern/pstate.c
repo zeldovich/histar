@@ -291,7 +291,7 @@ pstate_swapin(kobject_id_t id)
 // Persistent-store initialization
 /////////////////////////////////////
 
-static int pstate_sync_apply(struct pstate_header *hdr) ;
+static int pstate_sync_apply(struct pstate_header *hdr);
 
 static int
 pstate_load2(void)
@@ -525,25 +525,25 @@ pstate_sync_loop(struct pstate_header *hdr,
 {
     struct kobject *ko;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-        if (!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING))
-            continue;
-        
-        struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-        if (snap->hdr.ko_type == kobj_dead && (snap->hdr.ko_flags & KOBJ_ON_DISK)) {
-            pstate_kobj_free(&freelist, snap);
-            stats->dead_kobj++;
-            continue;
-        }
-        
-        int r = pstate_sync_kobj(stats, &ko->hdr);
-        if (r < 0)
-            return r;
+	if (!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING))
+	    continue;
+
+	struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+	if (snap->hdr.ko_type == kobj_dead && (snap->hdr.ko_flags & KOBJ_ON_DISK)) {
+	    pstate_kobj_free(&freelist, snap);
+	    stats->dead_kobj++;
+	    continue;
+	}
+
+	int r = pstate_sync_kobj(stats, &ko->hdr);
+	if (r < 0)
+	    return r;
     }
 
     int r = freelist_commit(&freelist);
     if (r < 0) {
-        cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
-        return r;
+	cprintf("pstate_sync_loop: cannot commit freelist: %s\n", e2s(r));
+	return r;
     }
 
     btree_lock_all();
