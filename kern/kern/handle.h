@@ -8,6 +8,7 @@ extern uint64_t handle_counter;
 extern uint8_t handle_key[HANDLE_KEY_SIZE];
 
 uint64_t handle_alloc(void);
+uint64_t handle_decrypt(uint64_t h);
 void     handle_key_generate(void);
 
 #endif
