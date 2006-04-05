@@ -94,3 +94,5 @@ gone.  for this, need either to copy all segments first, or to have a careful-re
 and careful-write wrapper that does setjmp() first, and the segfault handler will
 longjmp().
 
+split the pstate sync timestamp counter from the handle counter
+

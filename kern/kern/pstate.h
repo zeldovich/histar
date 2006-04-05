@@ -24,6 +24,7 @@ struct pstate_header {
 	    uint64_t ph_user_msec;
 	    uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
+	    uint64_t ph_sync_ts;
 	    uint64_t ph_log_blocks;
 
 	    uint8_t ph_free[sizeof(struct freelist)];
@@ -40,5 +41,6 @@ int  pstate_swapin(kobject_id_t id) __attribute__ ((warn_unused_result));
 
 // suspends cur_thread until a snapshot >= timestamp is taken
 int  pstate_sync_user(uint64_t timestamp);
+int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko);
 
 #endif

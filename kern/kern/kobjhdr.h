@@ -49,6 +49,9 @@ struct kobject_hdr {
     // For verifying the persistence layer
     uint64_t ko_cksum;
 
+    // When this object was written to disk
+    uint64_t ko_sync_ts;
+
     // Ephemeral state (doesn't persist across swapout)
     uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
     uint32_t ko_pin;	// header is pinned (linked lists)

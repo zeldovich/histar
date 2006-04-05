@@ -404,10 +404,12 @@ struct swapout_stats {
 };
 
 static int
-pstate_sync_kobj(struct swapout_stats *stats,
+pstate_sync_kobj(struct pstate_header *hdr,
+		 struct swapout_stats *stats,
 		 struct kobject_hdr *ko)
 {
     struct kobject *snap = kobject_get_snapshot(ko);
+    snap->hdr.ko_sync_ts = hdr->ph_sync_ts;
 
     int64_t off = pstate_kobj_alloc(&freelist, snap);
     if (off < 0) {
@@ -470,7 +472,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	    continue;
 	}
 
-	int r = pstate_sync_kobj(stats, &ko->hdr);
+	int r = pstate_sync_kobj(hdr, stats, &ko->hdr);
 	if (r < 0)
 	    return r;
     }
@@ -559,6 +561,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
+    hdr->ph_sync_ts = handle_alloc();
     hdr->ph_handle_counter = handle_counter;
     hdr->ph_user_root_handle = user_root_handle;
     hdr->ph_user_msec = timer_user_msec;
@@ -583,11 +586,13 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
 	ko_next = LIST_NEXT(ko, ko_link);
-    
+
 	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
 	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
 	    if (r < 0)
 		ko->hdr.ko_flags |= KOBJ_DIRTY;
+	    else
+		ko->hdr.ko_sync_ts = hdr->ph_sync_ts;
 	}
     
 	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
@@ -626,7 +631,18 @@ int
 pstate_sync_user(uint64_t timestamp)
 {
     if (stable_hdr.ph_magic == PSTATE_MAGIC &&
-	stable_hdr.ph_handle_counter >= handle_decrypt(timestamp))
+	handle_decrypt(stable_hdr.ph_sync_ts) > handle_decrypt(timestamp))
+	return 0;
+
+    thread_suspend(cur_thread, &sync_waiting);
+    pstate_sync();
+    return -E_RESTART;
+}
+
+int
+pstate_sync_object(uint64_t timestamp, const struct kobject *ko)
+{
+    if (handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
 
     thread_suspend(cur_thread, &sync_waiting);

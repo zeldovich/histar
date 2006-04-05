@@ -659,8 +659,7 @@ sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts)
 {
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_rw));
-
-    cprintf("sys_segment_sync: doing nothing\n");
+    check(pstate_sync_object(pstate_ts, ko));
 }
 
 static int64_t
