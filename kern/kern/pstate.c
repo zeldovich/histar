@@ -19,6 +19,7 @@ static int pstate_swapout_debug = 0;
 static int pstate_swapout_stats = 0;
 
 static int scrub_disk_pages = 0;
+static int commit_panic = 0;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
@@ -30,13 +31,6 @@ struct mobject {
     offset_t off;
     uint64_t nbytes;
 };
-
-// Scratch-space for a copy of the header used while reading/writing.
-#define PSTATE_BUF_SIZE		PGSIZE
-static union {
-    struct pstate_header hdr;
-    char buf[PSTATE_BUF_SIZE];
-} pstate_buf;
 
 //////////////////////////////////////////////////
 // Object map
@@ -291,18 +285,16 @@ pstate_swapin(kobject_id_t id)
 // Persistent-store initialization
 /////////////////////////////////////
 
-static int pstate_sync_apply(struct pstate_header *hdr);
-
 static int
 pstate_load2(void)
 {
-    disk_io_status s = stackwrap_disk_io(op_read, &pstate_buf.buf[0], PSTATE_BUF_SIZE, 0);
+    disk_io_status s = stackwrap_disk_io(op_read, &stable_hdr.ph_buf[0],
+					 PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_load2: cannot read header\n");
 	return -E_IO;
     }
 
-    memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
     if (stable_hdr.ph_magic != PSTATE_MAGIC ||
 	stable_hdr.ph_version != PSTATE_VERSION)
     {
@@ -311,18 +303,25 @@ pstate_load2(void)
     }
 
     log_init();
+    int r = log_apply_disk(stable_hdr.ph_log_blocks);
+    if (r < 0) {
+	cprintf("pstate_load2: cannot apply log: %s\n", e2s(r));
+	return r;
+    }
 
-    if (stable_hdr.ph_applying) {
-	cprintf("pstate_load2: applying log\n");
-	pstate_sync_apply(&pstate_buf.hdr);
-	memcpy(&stable_hdr, &pstate_buf.hdr, sizeof(stable_hdr));
+    stable_hdr.ph_log_blocks = 0;
+    s = stackwrap_disk_io(op_write, &stable_hdr.ph_buf[0],
+			  PSTATE_BUF_SIZE, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_load2: cannot write out header\n");
+	return -E_IO;
     }
 
     freelist_deserialize(&freelist, &stable_hdr.ph_free);
-    btree_manager_deserialize(&stable_hdr.ph_btrees) ;
+    btree_manager_deserialize(&stable_hdr.ph_btrees);
 
     struct btree_traversal trav;
-    int r = btree_init_traversal(BTREE_IOBJ, &trav);
+    r = btree_init_traversal(BTREE_IOBJ, &trav);
     if (r < 0)
 	return r;
 
@@ -456,70 +455,6 @@ pstate_sync_kobj(struct swapout_stats *stats,
 }
 
 static int
-pstate_sync_apply(struct pstate_header *hdr)
-{
-    // 1st, mark that applying
-    hdr->ph_applying = 1 ;
-    disk_io_status s = stackwrap_disk_io(op_write, hdr,PSTATE_BUF_SIZE, 
-                                         HEADER_OFFSET * PGSIZE);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-    	cprintf("pstate_sync_apply: unable to mark applying\n");
-    	return -E_IO ;	
-    }
-
-    // 2nd, read flushed header copy
-    s = stackwrap_disk_io(op_read, hdr, PSTATE_BUF_SIZE, 
-                          HEADER_OFFSET2 * PGSIZE);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-    	cprintf("pstate_sync_apply: unable to read header\n");
-    	return -E_IO;
-    }
-    
-    // 3rd, apply node log
-    int r = log_apply();
-    if (r < 0)
-	   return r;
-
-    // 4th, write out new header
-    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
-                          HEADER_OFFSET * PGSIZE);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-    	cprintf("pstate_sync_apply: unable to write header\n");
-    	return -E_IO;
-    }
-
-    // 5th, unmark applying
-    hdr->ph_applying = 0;
-    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
-                          HEADER_OFFSET * PGSIZE);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-	   cprintf("pstate_sync_apply: unable to unmark applying\n");
-	   return -E_IO;
-    }
-
-    return 0;
-}
-
-static int
-pstate_sync_flush(struct pstate_header *hdr)
-{
-    // 1st, write a copy of the header
-    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 
-                                         HEADER_OFFSET2 * PGSIZE);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-    	cprintf("pstate_sync_flush: unable to flush hdr\n");
-    	return -E_IO;
-    }
-
-    // 2nd, flush the node log
-    int r = log_flush();
-    if (r < 0)
-	   return r;
-
-    return 0;
-}
-
-static int
 pstate_sync_loop(struct pstate_header *hdr,
 		 struct swapout_stats *stats)
 {
@@ -551,20 +486,39 @@ pstate_sync_loop(struct pstate_header *hdr,
     freelist_serialize(&hdr->ph_free, &freelist);
     btree_manager_serialize(&hdr->ph_btrees);
 
-    r = pstate_sync_flush(hdr);
-    if (r < 0) {
-    	cprintf("pstate_sync_loop: unable to flush\n");
-    	return r;
+    int64_t flush_blocks = log_flush();
+    if (flush_blocks < 0) {
+	cprintf("pstate_sync_loop: unable to flush: %s\n", e2s(flush_blocks));
+	btree_unlock_all();
+	return flush_blocks;
     }
 
-    r = pstate_sync_apply(hdr);
-    if (r < 0) {
-    	cprintf("pstate_sync_loop: unable to apply\n");
-    	return r;
+    hdr->ph_log_blocks = flush_blocks;
+    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_sync_loop: unable to commit header\n");
+	btree_unlock_all();
+	return -E_IO;
     }
+
+    static int commit_count = 0;
+    if (commit_panic && ++commit_count == commit_panic)
+	panic("commit test");
+
+    do {
+	r = log_apply_mem();
+	if (r < 0)
+	    cprintf("pstate_sync_loop: unable to apply, retry: %s\n", e2s(r));
+    } while (r < 0);
+
+    hdr->ph_log_blocks = 0;
+    do {
+	s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+	if (!SAFE_EQUAL(s, disk_io_success))
+	    cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
+    } while (!SAFE_EQUAL(s, disk_io_success));
 
     btree_unlock_all();
-
     memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
     return 0;
 }
@@ -589,17 +543,20 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 	if (pstate_swapout_debug)
 	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
 
-	log_init();
 	btree_manager_init();
 	freelist_init(&freelist, reserved_pages * PGSIZE,
 		      (disk_pages - reserved_pages) * PGSIZE);
     }
 
-    static_assert(sizeof(pstate_buf.hdr) <= PSTATE_BUF_SIZE);
+    // Always reset the write-ahead log -- new transaction
+    log_init();
 
-    struct pstate_header *hdr = &pstate_buf.hdr;
+    static_assert(sizeof(struct pstate_header) == PSTATE_BUF_SIZE);
+
+    static struct pstate_header pstate_scratch_buf;
+    struct pstate_header *hdr = &pstate_scratch_buf;
     memcpy(hdr, &stable_hdr, sizeof(stable_hdr));
-    
+
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
     hdr->ph_handle_counter = handle_counter;

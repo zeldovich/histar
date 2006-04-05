@@ -9,21 +9,27 @@
 
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
 #define PSTATE_VERSION	3
+#define PSTATE_BUF_SIZE	4096
 
 struct pstate_header {
-    // needs to be in 1st sector of header
-    char ph_applying;
+    union {
+	char ph_buf[PSTATE_BUF_SIZE];
 
-    uint64_t ph_magic;
-    uint64_t ph_version;
+	struct {
+	    uint64_t ph_magic;
+	    uint64_t ph_version;
 
-    uint64_t ph_handle_counter;
-    uint64_t ph_user_root_handle;
-    uint64_t ph_user_msec;
-    uint8_t ph_handle_key[HANDLE_KEY_SIZE];
+	    uint64_t ph_handle_counter;
+	    uint64_t ph_user_root_handle;
+	    uint64_t ph_user_msec;
+	    uint8_t ph_handle_key[HANDLE_KEY_SIZE];
 
-    uint8_t ph_free[sizeof(struct freelist)];
-    uint8_t ph_btrees[BTREE_COUNT * sizeof(struct btree)] ;
+	    uint64_t ph_log_blocks;
+
+	    uint8_t ph_free[sizeof(struct freelist)];
+	    uint8_t ph_btrees[BTREE_COUNT * sizeof(struct btree)];
+	};
+    };
 };
 
 void pstate_init(void);
