@@ -205,13 +205,17 @@ int main(int argc, char *argv[])
     prog_name = argv[0];
 
     if (argc != 3) {
-		printf("%s: %s num size\n", prog_name, prog_name);
+		printf("%s: %s num_blocks size_block\n", prog_name, prog_name);
 		exit(1);
     }
 
     n = atoi(argv[1]);
     size = atoi(argv[2]);
-
+    if (size > SIZE) {
+	printf("%s: %s %d > %d\n", prog_name, prog_name, size, SIZE);
+	exit(1);
+    }
+    
     printf("%s %d %d\n", prog_name, n, size);
 
     srandom(getpid());
