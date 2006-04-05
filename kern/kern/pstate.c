@@ -575,8 +575,8 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     static int swapout_active;
 
     if (swapout_active) {
-    	cprintf("pstate_sync: another sync still active\n");
-    	return;
+	cprintf("pstate_sync: another sync still active\n");
+	return;
     }
     swapout_active = 1;
 
@@ -660,7 +660,7 @@ pstate_sync(void)
 {
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
-	   cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }
 
 void
