@@ -80,11 +80,10 @@ frm_service_one(struct frm *f, struct freelist *l)
     // may inc f->n_free, or dec f->n_use
     assert((base = freelist_alloc(l, nblocks * BTREE_BLOCK_SIZE)) > 0);
 
-    for (uint32_t i = 0; i < nblocks; i++) {
+    for (uint32_t i = 0; i < nblocks; i++)
 	f->to_use[f->n_use++] = base + i * BTREE_BLOCK_SIZE;
-    }
 
-    assert(f->n_use <= 10);
+    assert(f->n_use <= FRM_BUF_SIZE);
 }
 
 void

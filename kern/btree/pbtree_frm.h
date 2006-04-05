@@ -4,9 +4,10 @@
 #include <btree/btree_utils.h>
 #include <btree/pbtree.h>
 
+#define FRM_BUF_SIZE 10		// 2x the value of the freelist btree's max height
+
 // buffer for freelist node operations
 struct frm {
-#define FRM_BUF_SIZE 10		// 2x the value of the freelist btree's max height
     uint64_t to_use[FRM_BUF_SIZE];
     uint64_t to_free[FRM_BUF_SIZE];
 
@@ -19,8 +20,8 @@ struct frm {
 
 struct freelist;
 
-void frm_service_one(struct frm *f, struct freelist *l);
-void frm_service(struct freelist *l);
+void	frm_service_one(struct frm *f, struct freelist *l);
+void	frm_service(struct freelist *l);
 uint32_t frm_init(struct frm *f, uint64_t base)
     __attribute__ ((warn_unused_result));
 
