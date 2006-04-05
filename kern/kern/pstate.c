@@ -546,15 +546,15 @@ pstate_sync_loop(struct pstate_header *hdr,
         return r;
     }
 
-    btree_lock_all() ;
-    
+    btree_lock_all();
+
     freelist_serialize(&hdr->ph_free, &freelist);
     btree_manager_serialize(&hdr->ph_btrees);
 
     r = pstate_sync_flush(hdr);
     if (r < 0) {
-    	cprintf("pstate_sync_loop: unable to flush\n") ;
-    	return r ;
+    	cprintf("pstate_sync_loop: unable to flush\n");
+    	return r;
     }
 
     r = pstate_sync_apply(hdr);
@@ -563,7 +563,7 @@ pstate_sync_loop(struct pstate_header *hdr,
     	return r;
     }
 
-    btree_unlock_all() ;
+    btree_unlock_all();
 
     memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
     return 0;
@@ -582,16 +582,16 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-    	uint64_t disk_pages = disk_bytes / PGSIZE ;
-    	uint64_t reserved_pages = RESERVED_PAGES ;
-    	assert(disk_pages > reserved_pages);
-    
-    	if (pstate_swapout_debug)
-    	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
-    
-        log_init();
-        btree_manager_init();
-    	freelist_init(&freelist, reserved_pages * PGSIZE,
+	uint64_t disk_pages = disk_bytes / PGSIZE;
+	uint64_t reserved_pages = RESERVED_PAGES;
+	assert(disk_pages > reserved_pages);
+
+	if (pstate_swapout_debug)
+	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
+
+	log_init();
+	btree_manager_init();
+	freelist_init(&freelist, reserved_pages * PGSIZE,
 		      (disk_pages - reserved_pages) * PGSIZE);
     }
 
@@ -612,12 +612,12 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 
     struct kobject *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
-    	stats.total_kobj++;
-    	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
-    	    kobject_snapshot(&ko->hdr);
-    	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;
-    	    stats.snapshoted_kobj++;
-    	}
+	stats.total_kobj++;
+	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
+	    kobject_snapshot(&ko->hdr);
+	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;
+	    stats.snapshoted_kobj++;
+	}
     }
 
     int r = pstate_sync_loop(hdr, &stats);
@@ -625,30 +625,30 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
-    	ko_next = LIST_NEXT(ko, ko_link);
+	ko_next = LIST_NEXT(ko, ko_link);
     
-    	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
-    	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
-    	    if (r < 0)
-    		ko->hdr.ko_flags |= KOBJ_DIRTY;
-    	}
+	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOT_DIRTY)) {
+	    ko->hdr.ko_flags &= ~KOBJ_SNAPSHOT_DIRTY;
+	    if (r < 0)
+		ko->hdr.ko_flags |= KOBJ_DIRTY;
+	}
     
-    	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
-    	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-    	    kobject_snapshot_release(&ko->hdr);
+	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
+	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+	    kobject_snapshot_release(&ko->hdr);
     
 	    if (r == 0 && snap->hdr.ko_type == kobj_dead)
 		ko->hdr.ko_flags &= ~KOBJ_ON_DISK;
-    	}
+	}
     }
 
     if (pstate_swapout_stats) {
-    	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
-    		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
-    		stats.written_kobj, stats.written_pages);
-    	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
-    		page_stats.pages_used, page_stats.pages_avail,
-    		page_stats.allocations, page_stats.failures);
+	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
+		stats.written_kobj, stats.written_pages);
+	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+		page_stats.pages_used, page_stats.pages_avail,
+		page_stats.allocations, page_stats.failures);
     }
 
     swapout_active = 0;
