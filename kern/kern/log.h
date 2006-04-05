@@ -9,7 +9,7 @@
 
 int log_write(struct btree_node *node)
     __attribute__ ((warn_unused_result));
-int log_node(offset_t byteoff, void *page)
+int log_try_read(offset_t byteoff, void *page)
     __attribute__ ((warn_unused_result));
 int log_flush(void)
     __attribute__ ((warn_unused_result));
@@ -17,6 +17,5 @@ int log_apply(void)
     __attribute__ ((warn_unused_result));
 void log_init(void);
 void log_free(offset_t off);
-
 
 #endif /*LOG_H_*/

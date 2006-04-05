@@ -21,7 +21,7 @@ pbtree_open_node(uint64_t id, offset_t offset, uint8_t ** mem)
     if (page_alloc((void **) &buf) < 0)
 	return -E_NO_MEM;
 
-    r = log_node(offset, buf);
+    r = log_try_read(offset, buf);
     if (r < 0) {
 	// 'updated' node not in log, so read from disk
 	disk_io_status s = stackwrap_disk_io(op_read,

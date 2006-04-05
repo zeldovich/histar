@@ -127,9 +127,8 @@ log_read_map(struct hashtable *map, struct node_list *nodes)
 }
 
 int
-log_node(offset_t byteoff, void *page)
+log_try_read(offset_t byteoff, void *page)
 {
-
     struct btree_node *node;
     struct btree_node *store = (struct btree_node *) page;
     LIST_FOREACH(node, &log.nodes, node_link) {
@@ -138,6 +137,7 @@ log_node(offset_t byteoff, void *page)
 	    return 0;
 	}
     }
+
     // look in on-disk log
     offset_t log_off;
     if (hash_get(&log.disk_map, byteoff, &log_off) < 0)
@@ -294,9 +294,11 @@ log_apply(void)
 	uint64_t count;
 	if ((r = log_write_to_disk(&log.nodes, &count)) < 0)
 	    return r;
+
 	struct btree_node *node;
 	LIST_FOREACH(node, &log.nodes, node_link)
 	    hash_del(&log.disk_map, node->block.offset);
+
 	assert(count == log_free_list(&log.nodes));
 	log.in_mem -= count;
 	assert(log.in_mem == 0);
