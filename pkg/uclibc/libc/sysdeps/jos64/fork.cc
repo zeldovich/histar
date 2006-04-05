@@ -81,8 +81,7 @@ do_fork()
     // Create an exit status for it
     struct cobj_ref exit_status_seg;
     error_check(segment_alloc(top_ct, sizeof(struct process_state),
-			      &exit_status_seg, 0,
-			      integrity_label.to_ulabel(),
+			      &exit_status_seg, 0, 0,
 			      "exit status"));
 
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
