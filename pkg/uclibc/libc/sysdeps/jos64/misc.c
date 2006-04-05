@@ -1,3 +1,5 @@
+#include <inc/syscall.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,7 +28,15 @@ arc4random_stir(void)
 void
 sync(void)
 {
-    set_enosys();
+    int64_t ts = sys_pstate_timestamp();
+    if (ts < 0) {
+	cprintf("sync: sys_pstate_timestamp: %s\n", e2s(ts));
+	return;
+    }
+
+    int r = sys_pstate_sync(ts);
+    if (r < 0)
+	cprintf("sync: sys_pstate_sync: %s\n", e2s(r));
 }
 
 int 

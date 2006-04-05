@@ -98,7 +98,8 @@ KERN_BINFILES := \
 	user/tcpserv \
 	user/ftpd \
 	user/db \
-	user/dbc
+	user/dbc \
+	user/sync
 
 	#user/gzip \
 	#user/tar \

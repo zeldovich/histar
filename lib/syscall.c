@@ -255,6 +255,18 @@ sys_clock_msec(void)
 }
 
 int64_t
+sys_pstate_timestamp(void)
+{
+    return syscall(SYS_pstate_timestamp);
+}
+
+int
+sys_pstate_sync(uint64_t timestamp)
+{
+    return syscall(SYS_pstate_sync, timestamp);
+}
+
+int64_t
 sys_segment_create(uint64_t container, uint64_t num_bytes,
 		   struct ulabel *l, const char *name)
 {

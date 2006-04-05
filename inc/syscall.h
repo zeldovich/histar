@@ -72,6 +72,9 @@ int	sys_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_clock_msec(void);
 
+int64_t	sys_pstate_timestamp(void);
+int	sys_pstate_sync(uint64_t timestamp);
+
 int64_t	sys_segment_create(uint64_t container, uint64_t num_bytes,
 			   struct ulabel *l, const char *name);
 int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,

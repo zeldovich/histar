@@ -19,6 +19,7 @@
 #include <kern/mlt.h>
 #include <kern/sync.h>
 #include <kern/prof.h>
+#include <kern/pstate.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>
@@ -738,6 +739,18 @@ sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
     check(mlt_put(&ko->mt, l, buf));
 }
 
+static int64_t
+sys_pstate_timestamp(void)
+{
+    return handle_alloc();
+}
+
+static void
+sys_pstate_sync(uint64_t timestamp)
+{
+    check(pstate_sync_user(timestamp));
+}
+
 typedef void (*void_syscall) ();
 typedef int64_t (*s64_syscall) ();
 #define SYSCALL_DISPATCH(name) [SYS_##name] = &sys_##name
@@ -775,6 +788,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(as_set_slot),
     SYSCALL_DISPATCH(mlt_get),
     SYSCALL_DISPATCH(mlt_put),
+    SYSCALL_DISPATCH(pstate_sync),
 };
 
 static s64_syscall s64_syscalls[NSYSCALLS] = {
@@ -799,6 +813,7 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(gate_create),
     SYSCALL_DISPATCH(as_create),
     SYSCALL_DISPATCH(mlt_create),
+    SYSCALL_DISPATCH(pstate_timestamp),
 };
 
 uint64_t

@@ -38,4 +38,7 @@ int  pstate_load(void) __attribute__ ((warn_unused_result));
 // suspends cur_thread, and wakes it up when it should try again
 int  pstate_swapin(kobject_id_t id) __attribute__ ((warn_unused_result));
 
+// suspends cur_thread until a snapshot >= timestamp is taken
+int  pstate_sync_user(uint64_t timestamp);
+
 #endif

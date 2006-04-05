@@ -43,6 +43,8 @@
     SYSCALL_ENTRY(sync_wait)			\
     SYSCALL_ENTRY(sync_wakeup)			\
     SYSCALL_ENTRY(clock_msec)			\
+    SYSCALL_ENTRY(pstate_timestamp)		\
+    SYSCALL_ENTRY(pstate_sync)			\
     SYSCALL_ENTRY(segment_create)		\
     SYSCALL_ENTRY(segment_copy)			\
     SYSCALL_ENTRY(segment_addref)		\

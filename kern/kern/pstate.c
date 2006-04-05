@@ -260,10 +260,8 @@ pstate_swapin_stackwrap(void *arg)
 
     swapin_active = 0;
 
-    while (!LIST_EMPTY(&swapin_waiting)) {
-	struct Thread *t = LIST_FIRST(&swapin_waiting);
-	thread_set_runnable(t);
-    }
+    while (!LIST_EMPTY(&swapin_waiting))
+	thread_set_runnable(LIST_FIRST(&swapin_waiting));
 }
 
 int
@@ -394,6 +392,8 @@ pstate_load(void)
 //////////////////////////////////////////////////
 // Swap-out code
 //////////////////////////////////////////////////
+
+static struct Thread_list sync_waiting;
 
 struct swapout_stats {
     uint64_t written_kobj;
@@ -608,9 +608,11 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		page_stats.allocations, page_stats.failures);
     }
 
+    while (!LIST_EMPTY(&sync_waiting))
+	thread_set_runnable(LIST_FIRST(&sync_waiting));
+
     swapout_active = 0;
 }
-
 
 static void
 pstate_sync(void)
@@ -618,6 +620,18 @@ pstate_sync(void)
     int r = stackwrap_call(&pstate_sync_stackwrap, 0);
     if (r < 0)
 	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+}
+
+int
+pstate_sync_user(uint64_t timestamp)
+{
+    if (stable_hdr.ph_magic == PSTATE_MAGIC &&
+	stable_hdr.ph_handle_counter >= handle_decrypt(timestamp))
+	return 0;
+
+    thread_suspend(cur_thread, &sync_waiting);
+    pstate_sync();
+    return -E_RESTART;
 }
 
 void
