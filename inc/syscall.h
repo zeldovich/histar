@@ -82,6 +82,7 @@ int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
 int	sys_segment_addref(struct cobj_ref seg, uint64_t ct);
 int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes, uint32_t final);
 int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
+int	sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts);
 
 int64_t sys_as_create(uint64_t container, struct ulabel *l, const char *name);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);

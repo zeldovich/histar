@@ -654,6 +654,15 @@ sys_segment_get_nbytes(struct cobj_ref sg_cobj)
     return ko->sg.sg_ko.ko_nbytes;
 }
 
+static void
+sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts)
+{
+    const struct kobject *ko;
+    check(cobj_get(seg, kobj_segment, &ko, iflow_rw));
+
+    cprintf("sys_segment_sync: doing nothing\n");
+}
+
 static int64_t
 sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
 {
@@ -783,6 +792,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),
     SYSCALL_DISPATCH(segment_resize),
+    SYSCALL_DISPATCH(segment_sync),
     SYSCALL_DISPATCH(as_get),
     SYSCALL_DISPATCH(as_set),
     SYSCALL_DISPATCH(as_set_slot),

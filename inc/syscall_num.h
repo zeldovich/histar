@@ -50,6 +50,7 @@
     SYSCALL_ENTRY(segment_addref)		\
     SYSCALL_ENTRY(segment_resize)		\
     SYSCALL_ENTRY(segment_get_nbytes)		\
+    SYSCALL_ENTRY(segment_sync)			\
     SYSCALL_ENTRY(as_create)			\
     SYSCALL_ENTRY(as_get)			\
     SYSCALL_ENTRY(as_set)			\

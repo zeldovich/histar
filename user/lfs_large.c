@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
+
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -21,23 +25,11 @@
 #include <inc/fd.h>
 #include <inc/syscall.h>
 
-#define umask(a)
-#define fsync(fd) 
-#define sync()
-#define fstat(a, s) ((s)->st_uid = 0)
-#define fchown(a, b, c) 0
-#define srandom(a)
-#define getpid() 0
 #define time_msec() sys_clock_msec()
-#define creat(fd, mode) open(fd, O_CREAT|O_WRONLY|O_TRUNC, mode)
-
 #endif // JOS64
 
 #if LINUX
 #include <sys/timeb.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX

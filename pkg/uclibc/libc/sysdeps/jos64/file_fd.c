@@ -296,6 +296,19 @@ file_trunc(struct Fd *fd, off_t pos)
     return 0;
 }
 
+static int
+file_sync(struct Fd *fd)
+{
+    int r = sys_segment_sync(fd->fd_file.ino.obj, sys_pstate_timestamp());
+    if (r < 0) {
+	cprintf("file_sync: %s\n", e2s(r));
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return 0;
+}
+
 struct Dev devfile = {
     .dev_id = 'f',
     .dev_name = "file",
@@ -306,6 +319,7 @@ struct Dev devfile = {
     .dev_getdents = file_getdents,
     .dev_probe = file_probe,
     .dev_trunc = file_trunc,
+    .dev_sync = file_sync,
 };
 
 weak_alias(__libc_open, open);

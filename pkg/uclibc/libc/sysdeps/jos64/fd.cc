@@ -1043,9 +1043,6 @@ flock(int fd, int operation) __THROW
 int
 fchown(int fd, uid_t owner, gid_t group) __THROW
 {
-    // XXX, returns success for apps that would fail on 
-    // an error.
-    cprintf("fchown: not implemented\n") ;  
     return 0;
 }
 
@@ -1140,8 +1137,18 @@ ftruncate(int fdnum, off_t length) __THROW
 int
 fsync(int fdnum) __THROW
 {
-    set_enosys();
-    return -1;
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
+    return DEV_CALL(dev, sync, fd);
 }
 
 int

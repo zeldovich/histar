@@ -298,6 +298,12 @@ sys_segment_get_nbytes(struct cobj_ref seg)
     return syscall(SYS_segment_get_nbytes, seg);
 }
 
+int
+sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts)
+{
+    return syscall(SYS_segment_sync, seg, pstate_ts);
+}
+
 int64_t
 sys_as_create(uint64_t container, struct ulabel *l, const char *name)
 {

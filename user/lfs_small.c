@@ -15,25 +15,21 @@ enum { lfs_iterations = 1 };
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #if JOS64
-#include <inc/lib.h>
-#include <inc/fd.h>
 #include <inc/syscall.h>
 #include <inc/profiler.h>
 
-#define umask(a)
-#define fsync(fd) 
 #define time_msec() sys_clock_msec()
 #endif // JOS64
 
 #if LINUX
-#include "sys/types.h"
-#include "sys/stat.h"
 #include <sys/timeb.h>
-#include <errno.h>
 
 #define time_msec() ({ struct timeval tv; gettimeofday(&tv, 0); tv.tv_sec * 1000 + tv.tv_usec / 1000; })
 #endif // LINUX
@@ -67,7 +63,7 @@ creat_test(int n, int size)
 {
     int i;
     int r;
-    int fd;
+    int fd = 0;
     int j;
 
     unsigned s = 0 , f = 0 ;
