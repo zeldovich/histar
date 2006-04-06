@@ -47,7 +47,19 @@
 #define IDE_CMD_READ_DMA    0xc8
 #define IDE_CMD_WRITE	    0x30
 #define IDE_CMD_WRITE_DMA   0xca
+#define IDE_CMD_FLUSH_CACHE 0xe7
 #define IDE_CMD_IDENTIFY    0xec
+#define IDE_CMD_SETFEATURES 0xef
+
+// Feature bits
+#define IDE_FEATURE_WCACHE_ENA	0x02
+#define IDE_FEATURE_XFER_MODE	0x03
+#define IDE_FEATURE_WCACHE_DIS	0x82
+
+// Transfer mode values
+#define IDE_XFER_MODE_PIO	0x00
+#define IDE_XFER_MODE_WDMA	0x20
+#define IDE_XFER_MODE_UDMA	0x40
 
 // Identify device structure
 struct identify_device {
