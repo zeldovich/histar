@@ -144,7 +144,8 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
     if (SAFE_EQUAL(stat, disk_io_failure))
 	cprintf("ide_complete: %s error at byte offset %lu\n",
 		SAFE_EQUAL(idec->current_op.op, op_read) ? "read" :
-		SAFE_EQUAL(idec->current_op.op, op_write) ? "write" : "unknown",
+		SAFE_EQUAL(idec->current_op.op, op_write) ? "write" :
+		SAFE_EQUAL(idec->current_op.op, op_flush) ? "flush" : "unknown",
 		idec->current_op.byte_offset);
 
     idec->current_op.op = op_none;
@@ -279,25 +280,36 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
     if (r < 0)
 	return r;
 
-    uint32_t num_bytes = ide_dma_init(idec, idec->current_op.op,
-					    idec->current_op.iov_buf,
-					    idec->current_op.iov_cnt);
+    idec->irq_wait = 0;
+    idec->dma_wait = 0;
 
-    if (num_bytes > (1 << 16))
-	panic("ide_send: request too big for IDE DMA: %d\n", num_bytes);
+    if (SAFE_EQUAL(idec->current_op.op, op_read) ||
+	SAFE_EQUAL(idec->current_op.op, op_write))
+    {
+	uint32_t num_bytes = ide_dma_init(idec, idec->current_op.op,
+						idec->current_op.iov_buf,
+						idec->current_op.iov_cnt);
 
-    assert((idec->current_op.byte_offset % 512) == 0);
-    assert((num_bytes % 512) == 0);
+	if (num_bytes > (1 << 16))
+	    panic("ide_send: request too big for IDE DMA: %d\n", num_bytes);
 
-    ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
-				     num_bytes / 512);
-    outb(idec->cmd_addr + IDE_REG_CMD,
-	 SAFE_EQUAL(idec->current_op.op, op_read) ? IDE_CMD_READ_DMA
-						  : IDE_CMD_WRITE_DMA);
-    ide_dma_start(idec);
+	assert((idec->current_op.byte_offset % 512) == 0);
+	assert((num_bytes % 512) == 0);
+
+	ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
+					 num_bytes / 512);
+	outb(idec->cmd_addr + IDE_REG_CMD,
+	    SAFE_EQUAL(idec->current_op.op, op_read) ? IDE_CMD_READ_DMA
+						     : IDE_CMD_WRITE_DMA);
+	ide_dma_start(idec);
+	idec->dma_wait = 1;
+    } else if (SAFE_EQUAL(idec->current_op.op, op_flush)) {
+	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_FLUSH_CACHE);
+    } else {
+	panic("ide_send: unknown op %d", SAFE_UNWRAP(idec->current_op.op));
+    }
 
     idec->irq_wait = 1;
-    idec->dma_wait = 1;
     idec->ide_error = 0;
 
     return 0;

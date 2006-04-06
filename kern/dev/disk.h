@@ -23,6 +23,7 @@ typedef SAFE_TYPE(int) disk_op;
 #define op_none  SAFE_WRAP(disk_op, 0)
 #define op_read  SAFE_WRAP(disk_op, 1)
 #define op_write SAFE_WRAP(disk_op, 2)
+#define op_flush SAFE_WRAP(disk_op, 3)
 
 struct iovec {
     void *iov_base;
