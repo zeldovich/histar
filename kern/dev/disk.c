@@ -340,16 +340,35 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     ide_string_shuffle(identify_buf.id.firmware,
 		       sizeof(identify_buf.id.firmware));
 
-    cprintf("IDE device (%d sectors, UDMA %s%s): %1.40s\n",
-	    identify_buf.id.lba_sectors,
-	    ((identify_buf.id.udma_mode & (1 << 5)) ? "5" :
-	     (identify_buf.id.udma_mode & (1 << 4)) ? "4" :
-	     (identify_buf.id.udma_mode & (1 << 3)) ? "3" :
-	     (identify_buf.id.udma_mode & (1 << 2)) ? "2" :
-	     (identify_buf.id.udma_mode & (1 << 1)) ? "1" :
-	     (identify_buf.id.udma_mode & (1 << 0)) ? "0" : "none"),
+    int udma_mode = -1;
+    for (int i = 0; i < 5; i++)
+	if ((identify_buf.id.udma_mode & (1 << i)))
+	    udma_mode = i;
+
+    cprintf("IDE device (%d sectors, UDMA %d%s): %1.40s\n",
+	    identify_buf.id.lba_sectors, udma_mode,
 	    idec->bm_addr ? ", bus-master" : "",
 	    identify_buf.id.model);
+
+    if (udma_mode >= 0) {
+	outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+	outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_XFER_MODE);
+	outb(idec->cmd_addr + IDE_REG_SECTOR_COUNT, IDE_XFER_MODE_UDMA | udma_mode);
+	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
+
+	ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
+	if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	    cprintf("IDE: Unable to enable UDMA\n");
+    }
+
+    // Enable write-caching
+    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_WCACHE_ENA);
+    outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
+
+    ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
+    if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	cprintf("IDE: Unable to enable write-caching\n");
 
     disk_bytes = identify_buf.id.lba_sectors;
     disk_bytes *= 512;
