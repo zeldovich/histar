@@ -307,6 +307,12 @@ pstate_load2(void)
 	return r;
     }
 
+    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_load2: unable to flush applied log");
+	return -E_IO;
+    }
+
     stable_hdr.ph_log_blocks = 0;
     s = stackwrap_disk_io(op_write, &stable_hdr.ph_buf[0],
 			  PSTATE_BUF_SIZE, 0);
@@ -314,6 +320,10 @@ pstate_load2(void)
 	cprintf("pstate_load2: cannot write out header\n");
 	return -E_IO;
     }
+
+    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success))
+	panic("pstate_load2: cannot flush header");
 
     freelist_deserialize(&freelist, &stable_hdr.ph_free);
     btree_manager_deserialize(&stable_hdr.ph_btrees);
@@ -495,13 +505,24 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return flush_blocks;
     }
 
+    disk_io_status s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_sync_loop: unable to flush disk\n");
+	btree_unlock_all();
+	return -E_IO;
+    }
+
     hdr->ph_log_blocks = flush_blocks;
-    disk_io_status s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_loop: unable to commit header\n");
 	btree_unlock_all();
 	return -E_IO;
     }
+
+    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success))
+	panic("pstate_sync_loop: unable to flush commit record");
 
     static int commit_count = 0;
     if (commit_panic && ++commit_count == commit_panic)
@@ -519,6 +540,10 @@ pstate_sync_loop(struct pstate_header *hdr,
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
     } while (!SAFE_EQUAL(s, disk_io_success));
+
+    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success))
+	panic("pstate_sync_loop: unable to flush applied log");
 
     btree_unlock_all();
     memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
