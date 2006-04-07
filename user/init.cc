@@ -97,7 +97,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     const char *passwd_data =
 	"root:x:0:0:root:/:/bin/ksh\n"
 	"ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin\n"
-	"clamav:x:91:91:clamav user:/:/bin/ksh";
+	"clamav:x:91:91:clamav user:/:/bin/ksh\n";
     error_check(fs_pwrite(passwd, passwd_data, strlen(passwd_data), 0));
 
     // start out in the root directory
