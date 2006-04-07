@@ -196,7 +196,7 @@ file_stat(struct Fd *fd, struct stat *buf)
     }
 
     memset(buf, 0, sizeof(*buf));
-    buf->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+    buf->st_mode = S_IRWXU;
     if (type == kobj_container || type == kobj_mlt) {
 	buf->st_mode |= __S_IFDIR;
     } else {
