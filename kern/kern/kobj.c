@@ -79,8 +79,10 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     kobject_id_t ko_label_id = ko->ko_label[kolabel_contaminate];
 
     assert(th_label_id);
-    if (ko_label_id == 0)
+    if (ko_label_id == 0) {
+	cprintf("Missing label on object %ld (%s)\n", ko->ko_id, ko->ko_name);
 	return -E_LABEL;
+    }
 
     int r = 0;
     if (SAFE_EQUAL(iflow, iflow_read)) {
