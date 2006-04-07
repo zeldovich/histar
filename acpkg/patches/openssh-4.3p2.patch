@@ -1,14 +1,3 @@
---- openssh-4.3p2_bad/sshd.c	2005-12-23 19:59:12.000000000 -0800
-+++ openssh-4.3p2/sshd.c	2006-04-02 14:11:41.000000000 -0700
-@@ -879,7 +879,7 @@
- 	pid_t pid;
- 	socklen_t fromlen;
- 	fd_set *fdset;
--	struct sockaddr_storage from;
-+	struct sockaddr from;
- 	const char *remote_ip;
- 	int remote_port;
- 	FILE *f;
 --- openssh-4.3p2_bad/Makefile.in	2006-01-01 00:47:05.000000000 -0800
 +++ openssh-4.3p2/Makefile.in	2006-04-02 14:10:27.000000000 -0700
 @@ -230,7 +230,7 @@
@@ -19,25 +8,4 @@
 +install: $(CONFIGFILES) ssh_prng_cmds.out $(MANPAGES) $(TARGETS) install-files install-sysconf host-key
  install-nokeys: $(CONFIGFILES) ssh_prng_cmds.out $(MANPAGES) $(TARGETS) install-files install-sysconf
  install-nosysconf: $(CONFIGFILES) ssh_prng_cmds.out $(MANPAGES) $(TARGETS) install-files
- 
-@@ -320,17 +320,17 @@
- 		if [ -f "$(DESTDIR)$(sysconfdir)/ssh_host_key" ] ; then \
- 			echo "$(DESTDIR)$(sysconfdir)/ssh_host_key already exists, skipping." ; \
- 		else \
--			./ssh-keygen -t rsa1 -f $(DESTDIR)$(sysconfdir)/ssh_host_key -N "" ; \
-+			ssh-keygen -t rsa1 -f $(DESTDIR)$(sysconfdir)/ssh_host_key -N "" ; \
- 		fi ; \
- 		if [ -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key ] ; then \
- 			echo "$(DESTDIR)$(sysconfdir)/ssh_host_dsa_key already exists, skipping." ; \
- 		else \
--			./ssh-keygen -t dsa -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key -N "" ; \
-+			ssh-keygen -t dsa -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key -N "" ; \
- 		fi ; \
- 		if [ -f $(DESTDIR)$(sysconfdir)/ssh_host_rsa_key ] ; then \
- 			echo "$(DESTDIR)$(sysconfdir)/ssh_host_rsa_key already exists, skipping." ; \
- 		else \
--			./ssh-keygen -t rsa -f $(DESTDIR)$(sysconfdir)/ssh_host_rsa_key -N "" ; \
-+			ssh-keygen -t rsa -f $(DESTDIR)$(sysconfdir)/ssh_host_rsa_key -N "" ; \
- 		fi ; \
- 	fi ;
  

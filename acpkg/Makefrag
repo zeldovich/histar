@@ -30,7 +30,6 @@ AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
-AUTOCONF_dmalloc-5.4.2	    := --disable-cxx
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 
@@ -43,7 +42,6 @@ PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
-PATCHFILE_dmalloc-5.4.2    := dmalloc-5.4.2.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -120,18 +118,15 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
-## http://download.sourceforge.net/dmalloc/dmalloc-5.4.2.tgz
-$(OBJDIR)/acpkg/bin/dmalloc: acpkg/dmalloc-5.4.2/__build
-
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build
-acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile
+acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build 
+acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build acpkg/openssh-4.3p2/Makefile 
 	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/openssh-4.3p2 && sh -c "$(ACENV) gmake install-nokeys" )
 	touch $@
 
-$(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
-$(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
+$(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build $(OBJDIR)/user/sshd_tar 
+$(OBJDIR)/user/sshd_tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
@@ -139,9 +134,19 @@ $(OBJDIR)/user/sshd_tar: $(OBJDIR)/acpkg/sbin/sshd
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_dsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
+	rm -rf $(OBJDIR)/acpkg/.ssh
+	mkdir $(OBJDIR)/acpkg/.ssh
+	ssh-keygen -t rsa -f $(OBJDIR)/acpkg/.ssh/id_rsa -N ""
+	cat $(OBJDIR)/acpkg/.ssh/id_rsa.pub > $(OBJDIR)/acpkg/.ssh/authorized_keys
+	rm -f $(OBJDIR)/acpkg/etc/ssh_host_*
+	ssh-keygen -t dsa -f $(OBJDIR)/acpkg/etc/ssh_host_dsa_key -N ""
+	ssh-keygen -t rsa -f $(OBJDIR)/acpkg/etc/ssh_host_rsa_key -N ""
 	tar -cf $@ -C $(OBJDIR)/acpkg etc/sshd_config \
-				  etc/ssh_host_dsa_key \
-  				  etc/ssh_host_rsa_key
+					etc/ssh_host_dsa_key \
+					etc/ssh_host_dsa_key.pub \
+					etc/ssh_host_rsa_key \
+					etc/ssh_host_rsa_key.pub \
+					.ssh/authorized_keys
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
 acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
@@ -208,12 +213,4 @@ gcc3.4.5: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
-
-
-##
-## debug sshd
-##
-
-dmalloc:
-	( cd acpkg/dmalloc-5.4.2 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/dmalloc-5.4.2 && sh -c "$(ACENV) gmake install" )
+	
