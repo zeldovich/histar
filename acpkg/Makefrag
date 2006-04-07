@@ -158,7 +158,7 @@ acpkg/clamav-0.88/__build: acpkg/zlib-1.2.3/__build
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build
 acpkg/openssl-0.9.8a/__build: acpkg/openssl-0.9.8a/__patch
-acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS)
+acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS) $(LDEPS)
 	-( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/openssl-0.9.8a && sh -c "$(ACENV) gmake" )
