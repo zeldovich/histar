@@ -86,10 +86,11 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     struct fs_inode etc;
     error_check(fs_mkdir(start_env->fs_root, "etc", &etc, 0));
 
-    struct fs_inode hosts, resolv, passwd;
+    struct fs_inode hosts, resolv, passwd, groups;
     error_check(fs_create(etc, "hosts", &hosts, 0));
     error_check(fs_create(etc, "resolv.conf", &resolv, 0));
     error_check(fs_create(etc, "passwd", &passwd, 0));
+    error_check(fs_create(etc, "groups", &groups, 0));
 
     const char *resolv_conf = "nameserver 171.66.3.11\n";
     error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
