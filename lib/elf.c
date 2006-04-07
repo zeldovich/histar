@@ -73,7 +73,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return r;
     }
 
-    int stackpages = 4;
+    int stackpages = 6;
     struct cobj_ref stack;
     snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
     r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label, &objname[0]);
