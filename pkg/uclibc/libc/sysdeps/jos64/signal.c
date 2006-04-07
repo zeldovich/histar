@@ -69,6 +69,7 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	    if (sc)
 		cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
 			__progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
+	    segfault_helper(si->si_addr);
 
 	    sig_fatal();
 	    break;
