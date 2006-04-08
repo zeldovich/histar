@@ -77,7 +77,6 @@ struct Fd
 
 	struct {
 	    struct cobj_ref netd_gate;
-        int status;
 	    int s;
 	} fd_sock;
 

@@ -31,6 +31,7 @@ typedef enum {
     netd_op_send,
     netd_op_recv,
     netd_op_select,
+    netd_op_shutdown,
 } netd_op_t;
 
 struct netd_op_socket_args {
@@ -115,10 +116,14 @@ struct netd_op_getsockopt_args {
     uint32_t optlen;
 };
 
-
 struct netd_op_select_args {
-    int fd ;
-    char write ;
+    int fd;
+    char write;
+};
+
+struct netd_op_shutdown_args {
+    int fd;
+    int how;
 };
 
 struct netd_op_args {
@@ -141,6 +146,7 @@ struct netd_op_args {
 	struct netd_op_recv_args recv;
 	struct netd_op_send_args send;
 	struct netd_op_select_args select;
+	struct netd_op_shutdown_args shutdown;
     };
 };
 

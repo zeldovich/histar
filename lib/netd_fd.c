@@ -223,10 +223,11 @@ sock_close(struct Fd *fd)
 static int
 sock_shutdown(struct Fd *fd, int how)
 {
-    fd->fd_sock.status |= how;
-    if (fd->fd_sock.status == SHUT_RDWR && atomic_read(&fd->fd_ref) == 1)
-        return sock_close(fd);
-    return 0;    
+    struct netd_op_args a;
+    a.op_type = netd_op_shutdown;
+    a.shutdown.fd = fd->fd_sock.s;
+    a.shutdown.how = how;
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int

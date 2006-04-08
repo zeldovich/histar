@@ -120,21 +120,27 @@ netd_dispatch(struct netd_op_args *a)
                                   a->getsockopt.optname,
                                   &a->getsockopt.optval[0],
                                   &a->getsockopt.optlen);
-        break ;
+        break;
 
-    case netd_op_select: {
-        fd_set set ;
-        FD_ZERO(&set) ;
-        FD_SET(a->select.fd, &set) ;
-        struct timeval tv = {0, 0} ;
+    case netd_op_select:
+	{
+	    fd_set set;
+	    FD_ZERO(&set);
+	    FD_SET(a->select.fd, &set);
+	    struct timeval tv = {0, 0};
     
-        if (a->select.write)
-            a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv) ;
-        else
-            a->rval = lwip_select(a->select.fd + 1, &set, 0, 0, &tv) ;
+	    if (a->select.write)
+		a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv);
+	    else
+		a->rval = lwip_select(a->select.fd + 1, &set, 0, 0, &tv);
         
-        break ;
-    }
+	    break;
+	}
+
+    case netd_op_shutdown:
+	a->rval = lwip_shutdown(a->shutdown.fd, a->shutdown.how);
+	break;
+
     default:
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;
