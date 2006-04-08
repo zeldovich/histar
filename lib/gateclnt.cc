@@ -91,7 +91,7 @@ gate_call::gate_call(cobj_ref gate,
     // XXX should we actually be allocating a call_grant/call_taint handle pair?
     int64_t taint_ct = sys_container_alloc(start_env->shared_container,
 					   obj_label_->to_ulabel(),
-					   "gate call taint");
+					   "gate call taint", 0);
     if (taint_ct < 0)
 	throw error(taint_ct, "gate_call: creating tainted container");
 

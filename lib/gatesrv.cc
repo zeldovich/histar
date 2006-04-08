@@ -135,7 +135,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	gate_call_data *gcd = (gate_call_data *) tls_gate_args;
 	int64_t id = sys_container_alloc(gcd->taint_container,
 					 taint_ct_label.to_ulabel(),
-					 "gate return taint");
+					 "gate return taint", 0);
 	if (id < 0) {
 	    cprintf("gatesrv_return: allocating taint container in %ld: %s\n",
 		    gcd->taint_container, e2s(id));

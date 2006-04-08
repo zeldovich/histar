@@ -25,7 +25,8 @@ struct Container {
     // Must always be less than ko_quota_reserve.
     uint64_t ct_quota_used;
 
-    bool_t ct_avoid[kobj_ntypes];	// cannot store certain objects
+    // Cannot store certain types of objects
+    uint64_t ct_avoid_types;
 
     struct container_slot ct_slots[NUM_CT_SLOT_INLINE];
 };

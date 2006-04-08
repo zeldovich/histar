@@ -506,7 +506,7 @@ authd_init(uint64_t rg)
     u_ctm.set(start_env->process_taint, 3);
     u_ctm.set(root_grant, 0);
     int64_t ct = sys_container_alloc(start_env->shared_container,
-                     u_ctm.to_ulabel(), "users");
+                     u_ctm.to_ulabel(), "users", 0);
     error_check(ct);
     users_ct = ct;
     alloc_user((char*)"root", (char*)"", root_grant, root_taint);
@@ -516,7 +516,7 @@ authd_init(uint64_t rg)
     g_ctm.set(start_env->process_grant, 0);
     g_ctm.set(start_env->process_taint, 3);
     int64_t ct2 = sys_container_alloc(start_env->shared_container,
-                     g_ctm.to_ulabel(), "groups");
+                     g_ctm.to_ulabel(), "groups", 0);
     error_check(ct2);
     groups_ct = ct2;
 

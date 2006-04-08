@@ -24,7 +24,8 @@ int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,
 		    uint64_t offset, netbuf_type type);
 int	sys_net_macaddr(struct cobj_ref ndev, uint8_t *buf);
 
-int64_t	sys_container_alloc(uint64_t parent, struct ulabel *l, const char *name);
+int64_t	sys_container_alloc(uint64_t parent, struct ulabel *l, const char *name,
+			    uint64_t avoid_types);
 int64_t	sys_container_get_nslots(uint64_t container);
 int64_t sys_container_get_parent(uint64_t container);
 int64_t	sys_container_get_slot_id(uint64_t container, uint64_t slot);

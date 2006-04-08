@@ -99,7 +99,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     int64_t c_top = sys_container_alloc(container,
 					integrity_object_label.to_ulabel(),
-					&name[0]);
+					&name[0], 0);
     error_check(c_top);
 
     struct cobj_ref c_top_ref = COBJ(container, c_top);
@@ -107,7 +107,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     int64_t c_proc = sys_container_alloc(c_top,
 					 proc_object_label.to_ulabel(),
-					 "process");
+					 "process", 0);
     error_check(c_proc);
 
     struct thread_entry e;

@@ -40,7 +40,7 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 
     // Allocate new process container
     int64_t proc_ct = sys_container_alloc(start_env->shared_container,
-					  secret_label.to_ulabel(), &buf[0]);
+					  secret_label.to_ulabel(), &buf[0], 0);
     error_check(proc_ct);
 
     cobj_ref proc_ref = COBJ(start_env->shared_container, proc_ct);

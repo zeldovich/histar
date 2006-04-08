@@ -253,7 +253,11 @@ fs_namei(const char *pn, struct fs_inode *o)
 int
 fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l)
 {
-    int64_t id = sys_container_alloc(dir.obj.object, l, fn);
+    uint64_t avoid_types = ~0UL;
+    avoid_types &= ~(1 << kobj_segment);
+    avoid_types &= ~(1 << kobj_container);
+
+    int64_t id = sys_container_alloc(dir.obj.object, l, fn, avoid_types);
     if (id < 0)
 	return id;
 

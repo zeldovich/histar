@@ -155,7 +155,7 @@ int
 container_put(struct Container *c, const struct kobject_hdr *ko)
 {
     assert(ko->ko_type < kobj_ntypes);
-    if (c->ct_avoid[ko->ko_type])
+    if ((c->ct_avoid_types & (1 << ko->ko_type)))
 	return -E_INVAL;
 
     struct container_slot *cs;

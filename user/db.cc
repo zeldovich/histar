@@ -234,7 +234,7 @@ try
     error_check((db_table_ct =
 	sys_container_alloc(start_env->shared_container,
 			    db_table_label.to_ulabel(),
-			    "db table")));
+			    "db table", 0)));
 
     error_check(segment_alloc(db_table_ct, sizeof(db_table_info),
 			      &db_table_seg, 0, db_table_label.to_ulabel(),

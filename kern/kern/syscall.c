@@ -191,7 +191,8 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 }
 
 static int64_t
-sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
+sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
+		    const char *name, uint64_t avoid_types)
 {
     const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_rw));
@@ -202,6 +203,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul, const char *name)
     struct Container *c;
     check(container_alloc(l, &c));
     alloc_set_name(&c->ct_ko, name);
+    c->ct_avoid_types = parent->ct_avoid_types | avoid_types;
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
