@@ -1154,8 +1154,15 @@ fsync(int fdnum) __THROW
 int
 shutdown(int s, int how) __THROW
 {
-    set_enosys();
-    return -1;
+    int r;
+    struct Fd *fd;
+    struct Dev *dev;
+
+    if ((r = fd_lookup(s, &fd, 0, 0)) < 0
+    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+        return r;
+
+    return DEV_CALL(dev, shutdown, fd, how);       
 }
 
 weak_alias(__libc_fcntl, fcntl);

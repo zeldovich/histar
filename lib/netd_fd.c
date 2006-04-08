@@ -221,6 +221,15 @@ sock_close(struct Fd *fd)
 }
 
 static int
+sock_shutdown(struct Fd *fd, int how)
+{
+    fd->fd_sock.status |= how;
+    if (fd->fd_sock.status == SHUT_RDWR && atomic_read(&fd->fd_ref) == 1)
+        return sock_close(fd);
+    return 0;    
+}
+
+static int
 sock_getsockname(struct Fd *fd, struct sockaddr *addr, 
                  socklen_t *addrlen)
 {
@@ -334,6 +343,7 @@ struct Dev devsock =
     .dev_getpeername = sock_getpeername,
     .dev_setsockopt = sock_setsockopt,
     .dev_getsockopt = sock_getsockopt,
+    .dev_shutdown = sock_shutdown,
     .dev_stat = sock_stat,
     .dev_probe = sock_probe,
 };

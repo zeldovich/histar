@@ -53,6 +53,7 @@ struct Dev
 			  const void *optval, socklen_t optlen);
     int (*dev_getsockopt)(struct Fd *fd, int level, int optname,
 			  void *optval, socklen_t *optlen);
+    int (*dev_shutdown)(struct Fd *fd, int how);
 };
 
 struct Fd
@@ -76,6 +77,7 @@ struct Fd
 
 	struct {
 	    struct cobj_ref netd_gate;
+        int status;
 	    int s;
 	} fd_sock;
 
