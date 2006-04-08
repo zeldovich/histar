@@ -99,7 +99,8 @@ KERN_BINFILES := \
 	user/ftpd \
 	user/db \
 	user/dbc \
-	user/sync
+	user/sync \
+	user/adduser
 
 	#user/gzip \
 	#user/tar \

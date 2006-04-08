@@ -76,6 +76,10 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     fs_get_root(fs_bin_id, &bin_dir);
     error_check(fs_mount(start_env->fs_root, "bin", bin_dir));
 
+    // create a /home directory
+    struct fs_inode home;
+    error_check(fs_mkdir(start_env->fs_root, "home", &home, 0));
+
     // create a scratch container
     label lx(1);
 
