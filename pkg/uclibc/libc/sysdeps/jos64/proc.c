@@ -46,6 +46,5 @@ getpgrp(void)
 pid_t
 setsid(void)
 {
-    set_enosys();
-    return -1;
+    return 0;
 }
