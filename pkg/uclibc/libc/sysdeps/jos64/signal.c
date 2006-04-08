@@ -7,6 +7,7 @@
 #include <inc/setjmp.h>
 #include <inc/utrap.h>
 #include <inc/assert.h>
+#include <inc/memlayout.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -108,6 +109,41 @@ signal_dispatch(siginfo_t *si, struct sigcontext *sc)
     sys_sync_wakeup(&signal_counter);
 }
 
+static int
+stack_grow(void *faultaddr)
+{
+    void *stacktop = (void *) USTACKTOP;
+    void *stackbase = (void *) USTACKBASE;
+    if (faultaddr >= stacktop || faultaddr < stackbase)
+	return -1;
+
+    uint32_t cur_pages = 0;
+    while (stacktop - cur_pages * PGSIZE >= stackbase) {
+	uint32_t check_pages = cur_pages + 1;
+	int r = segment_lookup(stacktop - check_pages * PGSIZE, 0, 0, 0);
+	if (r < 0)
+	    return r;
+	if (r == 0)
+	    break;
+	cur_pages = check_pages;
+    }
+
+    // If we are faulting on allocated stack, something is wrong.
+    if (faultaddr >= stacktop - cur_pages * PGSIZE)
+	return -1;
+
+    // Double our stack size
+    struct cobj_ref new_stack_seg;
+    void *new_va = stacktop - cur_pages * PGSIZE * 2;
+    int r = segment_alloc(start_env->proc_container,
+			  cur_pages * PGSIZE, &new_stack_seg,
+			  &new_va, 0, "stack growth");
+    if (r < 0)
+	return r;
+
+    return 0;
+}
+
 static void
 signal_utrap(struct UTrapframe *utf)
 {
@@ -117,6 +153,9 @@ signal_utrap(struct UTrapframe *utf)
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) utf->utf_trap_arg;
 	if (utf->utf_trap_num == T_PGFLT) {
+	    if (stack_grow(si.si_addr) >= 0)
+		return;
+
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
 	} else if (utf->utf_trap_num == T_DEVICE) {
