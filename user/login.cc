@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/authd.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -9,6 +10,8 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/authclnt.hh>
 #include <inc/spawn.hh>
+
+enum { login_debug = 0 };
 
 static void
 login(char *u, char *p)
@@ -19,9 +22,9 @@ login(char *u, char *p)
         return;    
     }
 
-    printf("logging in as %s, pw %s\n", u, p);
-    printf("uid %ld taint %lu grant %lu\n", 
-	   reply.user_id, reply.user_taint, reply.user_grant);
+    if (login_debug)
+	printf("uid %ld taint %lu grant %lu\n", 
+	       reply.user_id, reply.user_taint, reply.user_grant);
     
     struct fs_inode fsshell;
     error_check(fs_namei("/bin/ksh", &fsshell));
@@ -61,9 +64,9 @@ int
 main(int ac, char **av)
 {
     try {
-	   prompt();
+	prompt();
     } catch (std::exception &e) {
-	   printf("%s\n", e.what());
+	printf("%s\n", e.what());
     }
 
     return 0;

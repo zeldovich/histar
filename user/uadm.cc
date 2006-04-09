@@ -12,7 +12,7 @@ extern "C" {
 static void __attribute__((noreturn))
 usage()
 {
-    printf("Usage: uadm (add|delete|chpass) username\n");
+    printf("Usage: uadm (add|delete|get) username\n");
     exit(-1);
 }
 
@@ -32,6 +32,8 @@ main(int ac, char **av)
 	op = authd_adduser;
     else if (!strcmp(opstr, "delete"))
 	op = authd_deluser;
+    else if (!strcmp(opstr, "get"))
+	op = authd_getuser;
     else if (!strcmp(opstr, "chpass"))
 	op = authd_chpass;
     else
