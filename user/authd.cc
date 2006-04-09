@@ -76,8 +76,13 @@ authd_user_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 
     	if (memcmp(pwhash, u->pwhash, sizeof(u->pwhash)))
     	    throw error(-E_INVAL, "bad password");
-    	if (req->op == authd_chpass)
-    	    memcpy(&u->pwhash[0], &pwhash[0], sizeof(u->pwhash));
+
+    	if (req->op == authd_chpass) {
+	    sha1_init(&sctx);
+	    sha1_update(&sctx, (unsigned char *) req->npass,
+			MIN(strlen(req->npass), sizeof(req->npass)));
+	    sha1_final((unsigned char *) &u->pwhash[0], &sctx);
+	}
 
     	label *ds = new label(3);
     	ds->set(u->grant, LB_LEVEL_STAR);
@@ -137,6 +142,7 @@ alloc_user(const char *uname, const char *pass,
     label gt_l(1);
     gt_l.set(g, LB_LEVEL_STAR);
     gt_l.set(t, LB_LEVEL_STAR);
+    gt_l.set(authd_grant, LB_LEVEL_STAR);
     gt_l.set(start_env->process_taint, LB_LEVEL_STAR);
 
     gatesrv_descriptor gd;

@@ -12,7 +12,7 @@ extern "C" {
 static void __attribute__((noreturn))
 usage()
 {
-    printf("Usage: uadm (add|delete|get) username\n");
+    printf("Usage: uadm (add|delete|get|chpass) username\n");
     exit(-1);
 }
 
