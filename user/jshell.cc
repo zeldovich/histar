@@ -58,8 +58,12 @@ print_cobj(uint64_t ct, uint64_t slot)
     case kobj_container:
 	printf("container");
 	r64 = sys_container_get_avail_quota(id);
-	if (r64 >= 0)
-	    printf(" (quota avail: %ld)", r64);
+	if (r64 >= 0) {
+	    if (r64 == CT_QUOTA_INF)
+		printf(" (quota avail: inf)");
+	    else
+		printf(" (quota avail: %ld)", r64);
+	}
 	break;
 
     case kobj_segment:
@@ -96,8 +100,12 @@ print_cobj(uint64_t ct, uint64_t slot)
     }
 
     int64_t size = sys_obj_get_reserve(cobj);
-    if (size >= 0)
-	printf(" (quota: %ld)", size);
+    if (size >= 0) {
+	if (size == CT_QUOTA_INF)
+	    printf(" (quota: inf)");
+	else
+	    printf(" (quota: %ld)", size);
+    }
 
     printf("\n");
 }
