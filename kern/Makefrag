@@ -99,7 +99,8 @@ KERN_BINFILES := \
 	user/dbc \
 	user/sync \
 	user/adduser \
-	user/vpn_start
+	user/vpn_start \
+	user/syscallbench
 
 	#user/gzip \
 	#user/tar \
