@@ -206,7 +206,7 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	
-$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS)
+$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) binutils
 	rm -f $@
 	tar -cf $@ -C $(OBJDIR)/acpkg bin/gcc \
 				      libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
