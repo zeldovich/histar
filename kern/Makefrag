@@ -53,79 +53,34 @@ KERN_BTREE := \
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES := \
-	user/idle \
-	user/netd \
-	user/netd_mom \
-	user/netd_vpn \
-	user/telnetd \
-	user/init \
-	user/httpd \
-	user/httpd_worker \
-	user/jshell \
-	user/ls \
-	user/asprint \
-	user/gl \
-	user/jcat \
-	user/cat \
-	user/fetch \
-	user/fsmerge \
-	user/admind \
-	user/admctl \
-	user/privtest \
-	user/mkdir \
-	user/mkmlt \
-	user/cpphello \
-	user/rm \
-	user/cp \
-	user/lfs_small \
-	user/lfs_large \
-	user/authd \
-	user/login \
-	user/uadm \
-	user/echo \
-	user/ksh \
-	user/dnstest \
-	user/pftest \
-	user/execbench \
-	user/spawnbench \
-	user/ipcbench \
-	user/true \
-	user/mount \
-	user/umount \
-	user/tcpserv \
-	user/ftpd \
-	user/db \
-	user/dbc \
-	user/sync \
-	user/adduser \
-	user/vpn_start \
-	user/syscallbench
+KERN_BINFILES := user/idle user/init user/jshell user/ksh
 
-	#user/gzip \
-	#user/tar \
-	#user/tcdemo \
-	#user/freelist_test \
-	#user/tcpsink
-	#user/spin \
-	#user/hello \
-	#user/chatter2 \
-	#user/chatter1 \
-	#user/tserv \
-	#user/tclnt \
-	#user/netwatch \
-	#user/thread_test \
-	#user/uregtest \
-	#user/jmptest \
-	#user/pftest \
-	#user/mlt \
+# Network stuff
+KERN_BINFILES += user/netd user/netd_mom user/telnetd user/httpd user/httpd_worker user/fetch user/dnstest user/tcpserv user/ftpd
 
-KERN_TARFILES := \
-	#tars/test_tar \
-	#tars/test_gz \
-	#tars/terminfo_tar
-	
-KERN_BINFILES += $(KERN_TARFILES)
+# Database
+KERN_BINFILES += #user/db user/dbc
+
+# Benchmarking
+KERN_BINFILES += #user/lfs_small user/lfs_large user/execbench user/spawnbench user/ipcbench user/true user/syscallbench
+
+# Useful command-line tools
+KERN_BINFILES += user/ls user/asprint user/gl user/jcat user/cat user/mkdir user/rm user/cp user/echo user/mount user/umount user/sync
+
+# Admin daemon stuff
+KERN_BINFILES += #user/admind user/admctl
+
+# User authentication
+KERN_BINFILES += user/authd user/login user/uadm user/adduser
+
+# Various test programs
+KERN_BINFILES += #user/privtest user/cpphello user/pftest
+
+# VPN
+KERN_BINFILES += #user/netd_vpn user/openvpn user/vpn_start
+
+# ClamAV
+KERN_BINFILES += #user/clamscan
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
