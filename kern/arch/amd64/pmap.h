@@ -11,8 +11,8 @@
 
 #define GD_UT	0x0b		/* User text */
 #define GD_KT	0x10		/* Kernel text */
+#define GD_UD	0x1b		/* User data segment for iretq */
 #define GD_TSS	0x20		/* Task segment selector */
-#define GD_UD	0x3b		/* User data segment for iretq */
 
 /* bootdata.c */
 #ifndef __ASSEMBLER__
