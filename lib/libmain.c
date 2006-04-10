@@ -13,7 +13,6 @@ extern int main(int argc, const char **argv);
 uint64_t start_arg0;
 uint64_t start_arg1;
 start_env_t *start_env;
-struct fs_mount_table *fs_mtab;
 
 uint64_t *tls_tidp;
 void *tls_gate_args;
@@ -78,11 +77,6 @@ setup_env(uint64_t envaddr)
     tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(struct gate_call_data);
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
-
-    fs_mtab = 0;
-    r = segment_map(start_env->fs_mtab_seg, SEGMAP_READ, (void **) &fs_mtab, 0);
-    if (r < 0)
-	panic("libmain: cannot map mount table: %s", e2s(r));
 
     r = utrap_init();
     if (r < 0)
