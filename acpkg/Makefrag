@@ -160,6 +160,9 @@ acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
 ## http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
 acpkg/clamav-0.88/__build: acpkg/zlib-1.2.3/__build
 $(OBJDIR)/acpkg/bin/$(TARGET)-clamscan: acpkg/clamav-0.88/__build
+$(OBJDIR)/acpkg/share/clamav/main.cvd: acpkg/clamav-0.88/__build
+$(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
+	cp $< $@
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build

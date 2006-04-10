@@ -80,7 +80,7 @@ KERN_BINFILES += #user/privtest user/cpphello user/pftest
 KERN_BINFILES += #user/netd_vpn user/openvpn user/vpn_start
 
 # ClamAV
-KERN_BINFILES += #user/clamscan user/clamwrap
+KERN_BINFILES += #user/clamscan user/clamwrap user/clamav_main.cvd user/clamav_daily.cvd
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
@@ -147,7 +147,7 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 $(OBJDIR)/kern/embedbin.c: kern/Makefrag
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sed 's/obj\/\([^\/]*\)\/\(.*\)/extern const uint8_t _binary_obj_\1_\2_start[], _binary_obj_\1_\2_size[];/' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
 	echo 'struct embed_bin embed_bins[] = {' >>$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | sed 's/obj\/\([^\/]*\)\/\(.*\)/{ "\2", _binary_obj_\1_\2_start, (uint64_t)_binary_obj_\1_\2_size },/' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uint64_t)_binary_$${_}_size },\n"; }' >>$@
 	echo "{ 0, 0, 0 } };" >>$@
