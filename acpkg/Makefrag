@@ -202,15 +202,16 @@ nvi: $(ACPKG_WRAPS)
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-gcc3.4.4: acpkg/gcc-3.4.4/Makefile
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake LANGUAGES=c" )
-	( cd acpkg/gcc-3.4.4 && sh -c "$(ACENV) gmake install" )
-
-gcc3.4.5: acpkg/gcc-3.4.5/Makefile
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
+acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	
+$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS)
+	rm -f $@
+	tar -cf $@ -C $(OBJDIR)/acpkg bin/gcc \
+				      libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
+				      libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
+				      bin/ld \
+				      bin/as
+				      #bin/ar
+	tar -rf $@ -C $(OBJDIR) lib/crt1.o lib/crti.o lib/crtn.o lib/libjos.a
