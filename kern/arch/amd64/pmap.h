@@ -11,10 +11,8 @@
 
 #define GD_UT	0x0b		/* User text */
 #define GD_KT	0x10		/* Kernel text */
-#define GD_D	0x18		/* Data (only needed for compatibility mode) */
 #define GD_TSS	0x20		/* Task segment selector */
-#define GD_UT32	0x30		/* user text for compatibility mode */
-#define GD_UD	0x3b		/* user data segment -- shouldn't need it, but iretq is unhappy? */
+#define GD_UD	0x3b		/* User data segment for iretq */
 
 /* bootdata.c */
 #ifndef __ASSEMBLER__
