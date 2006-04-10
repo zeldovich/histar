@@ -282,14 +282,14 @@ user_bootstrap(void)
     struct Container *root_parent;
     assert_check(label_alloc(&root_parent_label, 3));
     assert_check(container_alloc(root_parent_label, &root_parent));
-    root_parent->ct_ko.ko_quota_reserve += (1UL << 63);
+    root_parent->ct_ko.ko_quota_reserve = CT_QUOTA_INF;
     kobject_incref(&root_parent->ct_ko);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container
     struct Container *rc;
     assert_check(container_alloc(obj_label, &rc));
-    rc->ct_ko.ko_quota_reserve += (1UL << 62);
+    rc->ct_ko.ko_quota_reserve = CT_QUOTA_INF;
     assert_check(container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 

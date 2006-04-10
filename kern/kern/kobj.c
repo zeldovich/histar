@@ -290,21 +290,13 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	r = container_find(&resource_ct, kp->ko_parent, iflow_rw);
 	if (r < 0)
 	    return r;
-
-#if 0
-	cprintf("kobject_set_nbytes: parent reserve %lx used %lx cur %lx npages %lx\n",
-		resource_ct->ct_ko.ko_quota_reserve,
-		resource_ct->ct_quota_used,
-		curnpg, npages);
-#endif
     }
 
-#if 0
     if (resource_ct &&
+	resource_ct->ct_ko.ko_quota_reserve != CT_QUOTA_INF &&
 	resource_ct->ct_ko.ko_quota_reserve - resource_ct->ct_quota_used +
 	curnpg * PGSIZE < npages * PGSIZE)
 	return -E_RESOURCE;
-#endif
 
     for (uint64_t i = npages; i < curnpg; i++) {
 	r = pagetree_put_page(&ko->ko_pt, i, 0);

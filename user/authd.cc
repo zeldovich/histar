@@ -113,7 +113,7 @@ alloc_user(const char *uname, const char *pass,
 
     int64_t user_ct;
     error_check(user_ct = sys_container_alloc(users_ct, uct_l.to_ulabel(),
-					      "user ct", 0));
+					      "user ct", 0, CT_QUOTA_INF));
     scope_guard<int, cobj_ref> ct_drop(sys_obj_unref, COBJ(users_ct, user_ct));
 
     strncpy(&ue->name[0], uname, sizeof(ue->name));
@@ -306,7 +306,8 @@ authd_init(uint64_t rg)
     u_ctm.set(start_env->process_taint, 3);
     int64_t ct;
     error_check(ct = sys_container_alloc(start_env->shared_container,
-					 u_ctm.to_ulabel(), "users", 0));
+					 u_ctm.to_ulabel(), "users",
+					 0, CT_QUOTA_INF));
     users_ct = ct;
 
     user_list *ul = 0;

@@ -80,7 +80,7 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     taint_cow_compute_label(&cur_label, &obj_label);
 
     int64_t mlt_ct_id = sys_container_alloc(taint_container, &obj_label,
-					    "taint_cow container", 0);
+					    "taint_cow container", 0, CT_QUOTA_INF);
     ERRCHECK(mlt_ct_id);
 
     // To placate gcc which is obsessed with signedness

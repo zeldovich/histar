@@ -51,7 +51,7 @@ taint_self(label *taint)
 	process_report_taint();
 
     int64_t taint_ct = sys_container_alloc(start_env->shared_container,
-					   ol.to_ulabel(), "self-taint", 0);
+					   ol.to_ulabel(), "self-taint", 0, CT_QUOTA_INF);
     error_check(taint_ct);
 
     struct jos_jmp_buf back;

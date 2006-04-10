@@ -192,7 +192,7 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 
 static int64_t
 sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
-		    const char *name, uint64_t avoid_types)
+		    const char *name, uint64_t avoid_types, uint64_t quota)
 {
     const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_rw));
@@ -204,6 +204,11 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
     check(container_alloc(l, &c));
     alloc_set_name(&c->ct_ko, name);
     c->ct_avoid_types = parent->ct_avoid_types | avoid_types;
+
+    if (quota > CT_QUOTA_INF)
+	quota = CT_QUOTA_INF;
+    c->ct_ko.ko_quota_reserve =
+	MIN(c->ct_ko.ko_quota_reserve + quota, CT_QUOTA_INF);
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
@@ -306,6 +311,8 @@ sys_container_get_avail_quota(uint64_t container)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_read));
+    if (c->ct_ko.ko_quota_reserve == CT_QUOTA_INF)
+	return CT_QUOTA_INF;
     return c->ct_ko.ko_quota_reserve - c->ct_quota_used;
 }
 
@@ -320,11 +327,16 @@ sys_container_move_quota(uint64_t src_id, uint64_t dst_id, uint64_t nbytes)
     if (src->ct_ko.ko_parent != dst_id && dst->ct_ko.ko_parent != src_id)
 	syscall_error(-E_INVAL);
 
-    if (src->ct_ko.ko_quota_reserve - src->ct_quota_used > nbytes)
+    if (src->ct_ko.ko_quota_reserve != CT_QUOTA_INF &&
+	src->ct_ko.ko_quota_reserve - src->ct_quota_used > nbytes)
 	syscall_error(-E_RESOURCE);
 
+    uint64_t dst_resv = dst->ct_ko.ko_quota_reserve + nbytes;
+    if (dst_resv > CT_QUOTA_INF || nbytes > CT_QUOTA_INF)
+	dst_resv = CT_QUOTA_INF;
+
     kobject_dirty(&src->ct_ko)->ct.ct_quota_used += nbytes;
-    kobject_dirty(&dst->ct_ko)->hdr.ko_quota_reserve += nbytes;
+    kobject_dirty(&dst->ct_ko)->hdr.ko_quota_reserve = dst_resv;
 }
 
 static int64_t

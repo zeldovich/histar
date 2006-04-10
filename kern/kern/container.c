@@ -123,17 +123,9 @@ static int
 container_slot_addref(struct Container *c, struct container_slot *cs,
 		      const struct kobject_hdr *ko)
 {
-#if 0
-    cprintf("container_slot_addref: resv %lx used %lx obj %lx\n",
-	    c->ct_ko.ko_quota_reserve,
-	    c->ct_quota_used,
-	    ko->ko_quota_reserve);
-#endif
-
-#if 0
-    if (c->ct_ko.ko_quota_reserve - c->ct_quota_used < ko->ko_quota_reserve)
+    if (c->ct_ko.ko_quota_reserve != CT_QUOTA_INF &&
+	c->ct_ko.ko_quota_reserve - c->ct_quota_used < ko->ko_quota_reserve)
 	return -E_RESOURCE;
-#endif
 
     cs->cs_id = ko->ko_id;
     cs->cs_ref++;

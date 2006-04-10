@@ -22,7 +22,8 @@ struct Container {
     struct kobject_hdr ct_ko;
 
     // Number of bytes that this container and its sub-objects are taking up.
-    // Must always be less than ko_quota_reserve.
+    // Must always be less than ko_quota_reserve, except in cases when
+    // ko_quota_reserve == CT_QUOTA_INF.
     uint64_t ct_quota_used;
 
     // Cannot store certain types of objects

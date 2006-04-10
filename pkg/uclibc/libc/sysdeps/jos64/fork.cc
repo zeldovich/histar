@@ -68,14 +68,14 @@ do_fork()
     // Start creating the new process
     int64_t top_ct = sys_container_alloc(start_env->shared_container,
 					 integrity_label.to_ulabel(),
-					 "forked", 0);
+					 "forked", 0, CT_QUOTA_INF);
     error_check(top_ct);
 
     struct cobj_ref top_ref = COBJ(start_env->shared_container, top_ct);
     scope_guard<int, struct cobj_ref> top_drop(sys_obj_unref, top_ref);
 
     int64_t proc_ct = sys_container_alloc(top_ct, secret_label.to_ulabel(),
-					  "process", 0);
+					  "process", 0, CT_QUOTA_INF);
     error_check(proc_ct);
 
     // Create an exit status for it
