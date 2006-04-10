@@ -286,7 +286,7 @@ static int64_t
 sys_obj_get_reserve(struct cobj_ref o)
 {
     const struct kobject *ko;
-    check(cobj_get(o, kobj_any, &ko, iflow_read));
+    check(cobj_get(o, kobj_any, &ko, iflow_none));
     return ko->hdr.ko_quota_reserve;
 }
 
