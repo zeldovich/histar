@@ -354,6 +354,10 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 int
 thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t arg)
 {
+    if (!SAFE_EQUAL(const_t->th_status, thread_runnable) &&
+	!SAFE_EQUAL(const_t->th_status, thread_suspended))
+	return -E_INVAL;
+
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
     int r = thread_load_as(t);
     if (r < 0)
