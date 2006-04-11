@@ -10,7 +10,7 @@ start:	.code32
 	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable PAE
-	orl	$(CR4_PAE|CR4_PGE|CR4_OSFXSR),%eax
+	orl	$(CR4_PAE|CR4_PGE|CR4_OSFXSR|CR4_OSX),%eax
 	movl	%eax,%cr4
 
 	movl	$RELOC(bootpml4),%eax		// Load CR3
@@ -26,7 +26,7 @@ start:	.code32
 
 	movl	$(RELOC (farptr)),%ecx		// Far porter to inlong
 	movl	%cr0,%eax			// Enable paging
-	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS|CR0_MP),%eax
+	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS|CR0_MP|CR0_NE),%eax
 	movl	%eax,%cr0
 	ljmp	*(%ecx)
 
