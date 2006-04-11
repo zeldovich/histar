@@ -196,6 +196,15 @@ thread_enable_fp(const struct Thread *const_t)
     if (r < 0)
 	return r;
 
+    struct Fpregs *fpreg;
+    r = kobject_get_page(&t->th_ko, 0, (void **) &fpreg, page_rw);
+    if (r < 0)
+	return r;
+
+    // Linux says so.
+    fpreg->cwd = 0x37f;
+    fpreg->mxcsr = 0x1f80;
+
     t->th_fp_enabled = 1;
     return 0;
 }

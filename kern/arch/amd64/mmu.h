@@ -245,7 +245,17 @@ struct Trapframe {
 };
 
 struct Fpregs {
-    uint8_t fpr_pad[512];
+    uint16_t cwd;
+    uint16_t swd;
+    uint16_t twd;
+    uint16_t fop;
+    uint64_t rip;
+    uint64_t rdp;
+    uint32_t mxcsr;
+    uint32_t mxcsr_mask;
+    uint32_t st_space[32];   /* 8*16 bytes for each FP-reg = 128 bytes */
+    uint32_t xmm_space[64];  /* 16*16 bytes for each XMM-reg = 128 bytes */
+    uint32_t padding[24];
 };
 
 #endif /* !__ASSEMBLER__ */
