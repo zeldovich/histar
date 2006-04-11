@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/string.h>
 #include <inc/sha1.h>
+#include <inc/syscall.h>
 
 #include <string.h>
 }
