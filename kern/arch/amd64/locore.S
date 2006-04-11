@@ -18,7 +18,7 @@ start:	.code32
 
 	movl	$EFER,%ecx			// Set long-mode enable bit
 	rdmsr
-	orl	$(EFER_SCE|EFER_LME|EFER_NXE),%eax
+	orl	$(EFER_LME|EFER_NXE),%eax
 	wrmsr
 
 	movl	$RELOC(PD_SKIP + gdtdesc),%eax	// Load GDT
