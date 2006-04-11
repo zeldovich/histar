@@ -170,6 +170,20 @@ signal_utrap(struct UTrapframe *utf)
 	    si.si_code = ILL_ILLTRP;
 	} else {
 	    cprintf("signal_utrap: unknown hw trap %d\n", utf->utf_trap_num);
+
+	    cprintf("signal_utrap: rax %016lx  rbx %016lx  rcx %016lx\n",
+		    utf->utf_rax, utf->utf_rbx, utf->utf_rcx);
+	    cprintf("signal_utrap: rdx %016lx  rsi %016lx  rdi %016lx\n",
+		    utf->utf_rdx, utf->utf_rsi, utf->utf_rdi);
+	    cprintf("signal_utrap: r8  %016lx  r9  %016lx  r10 %016lx\n",
+		    utf->utf_r8, utf->utf_r9, utf->utf_r10);
+	    cprintf("signal_utrap: r11 %016lx  r12 %016lx  r13 %016lx\n",
+		    utf->utf_r11, utf->utf_r12, utf->utf_r13);
+	    cprintf("signal_utrap: r14 %016lx  r15 %016lx  rbp %016lx\n",
+		    utf->utf_r14, utf->utf_r15, utf->utf_rbp);
+	    cprintf("signal_utrap: rip %016lx  rsp %016lx  rflags %016lx\n",
+		    utf->utf_rip, utf->utf_rsp, utf->utf_rflags);
+
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
 	}
