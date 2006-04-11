@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+#include <inc/error.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -77,28 +78,42 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     error_check(segment_alloc(proc_ct, 0, &heap_obj, 0, 0, "heap"));
 
     // Create an environment
+    uint64_t env_size = PGSIZE;
     start_env_t *new_env = 0;
     struct cobj_ref new_env_ref;
-    error_check(segment_alloc(proc_ct, PGSIZE, &new_env_ref,
+    error_check(segment_alloc(proc_ct, env_size, &new_env_ref,
 			      (void**) &new_env, 0, "env"));
     scope_guard<int, void *> new_env_unmap(segment_unmap, new_env);
 
     memcpy(new_env, start_env, sizeof(*new_env));
     new_env->proc_container = proc_ct;
-
+    
+    int room = env_size - sizeof(start_env_t);
+    int ac = 0;
     char *p = &new_env->args[0];
     for (int i = 0; argv[i]; i++) {
     	size_t len = strlen(argv[i]);
+        room -= len;
+        if (room < 0)
+            throw error(-E_NO_SPACE, "args overflow env");
     	memcpy(p, argv[i], len);
     	p += len + 1;
+        ac++;
     }
-
+    new_env->argc = ac;
+    
     p++;
+    int ec = 0;
     for (int i = 0; envp[i]; i++) {
         size_t len = strlen(envp[i]);    
+        room -= len;
+        if (room < 0)
+            throw error(-E_NO_SPACE, "env vars overflow env");
         memcpy(p, envp[i], len);
         p += len + 1;
+        ec++;
     }
+    new_env->envc = ec;
 
     // Map environment in new address space
     void *new_env_va = 0;

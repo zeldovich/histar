@@ -63,6 +63,8 @@ typedef struct {
 
     uint64_t ppid;
 
+    int argc;
+    int envc;
     char args[0];
 } start_env_t;
 

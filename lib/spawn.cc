@@ -127,9 +127,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     struct cobj_ref heap_obj;
     error_check(segment_alloc(c_proc, 0, &heap_obj, 0, 0, "heap"));
 
+    uint64_t env_size = PGSIZE;
     start_env_t *spawn_env = 0;
     struct cobj_ref spawn_env_obj;
-    error_check(segment_alloc(c_proc, PGSIZE, &spawn_env_obj,
+    error_check(segment_alloc(c_proc, env_size, &spawn_env_obj,
 			      (void**) &spawn_env, 0, "env"));
     scope_guard<int, void *> spawn_env_unmap(segment_unmap, spawn_env);
 
@@ -149,20 +150,29 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
-
+    
+    int room = env_size - sizeof(start_env_t);
     char *p = &spawn_env->args[0];
     for (int i = 0; i < ac; i++) {
     	size_t len = strlen(av[i]);
-    	memcpy(p, av[i], len);
+    	room -= len;
+        if (room < 0)
+            throw error(-E_NO_SPACE, "args overflow env");
+        memcpy(p, av[i], len);
     	p += len + 1;
     }
+    spawn_env->argc = ac;
     
     p++;
     for (int i = 0; i < envc; i++) {
         size_t len = strlen(envv[i]);    
+        room -= len;
+        if (room < 0)
+            throw error(-E_NO_SPACE, "env vars overflow env");
         memcpy(p, envv[i], len);
         p += len + 1;
     }
+    spawn_env->envc = envc;
 
     int64_t thread = sys_thread_create(c_proc, &name[0]);
     error_check(thread);
