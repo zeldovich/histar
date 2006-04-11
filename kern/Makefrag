@@ -74,7 +74,7 @@ KERN_BINFILES += #user/admind user/admctl
 KERN_BINFILES += user/authd user/login user/uadm user/adduser
 
 # Various test programs
-KERN_BINFILES += #user/privtest user/cpphello user/pftest
+KERN_BINFILES += #user/fptest user/privtest user/cpphello user/pftest
 
 # VPN
 KERN_BINFILES += #user/netd_vpn user/openvpn user/vpn_start
