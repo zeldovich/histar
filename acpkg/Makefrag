@@ -191,7 +191,7 @@ $(OBJDIR)/user/tcdemo: ncurses
 $(OBJDIR)/user/tcdemo2: ncurses
 	cp acpkg/ncurses-5.5/test/firework $(OBJDIR)/user/tcdemo2
 
-binutils: acpkg/binutils-2.16.1/Makefile
+acpkg/binutils-2.16.1/__build: acpkg/binutils-2.16.1/Makefile
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
 
@@ -210,7 +210,7 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	
-$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) binutils
+$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
 	rm -f $@
 	tar -cf $@ -C $(OBJDIR)/acpkg bin/gcc \
 				      libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
