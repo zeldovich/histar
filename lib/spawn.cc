@@ -154,23 +154,22 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     int room = env_size - sizeof(start_env_t);
     char *p = &spawn_env->args[0];
     for (int i = 0; i < ac; i++) {
-    	size_t len = strlen(av[i]);
+    	size_t len = strlen(av[i]) + 1;
     	room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "args overflow env");
         memcpy(p, av[i], len);
-    	p += len + 1;
+    	p += len;
     }
     spawn_env->argc = ac;
-    
-    p++;
+
     for (int i = 0; i < envc; i++) {
-        size_t len = strlen(envv[i]);    
+        size_t len = strlen(envv[i]) + 1; 
         room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "env vars overflow env");
         memcpy(p, envv[i], len);
-        p += len + 1;
+        p += len;
     }
     spawn_env->envc = envc;
 

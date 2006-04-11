@@ -92,25 +92,24 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     int ac = 0;
     char *p = &new_env->args[0];
     for (int i = 0; argv[i]; i++) {
-    	size_t len = strlen(argv[i]);
+    	size_t len = strlen(argv[i]) + 1;
         room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "args overflow env");
     	memcpy(p, argv[i], len);
-    	p += len + 1;
+    	p += len;
         ac++;
     }
     new_env->argc = ac;
-    
-    p++;
+
     int ec = 0;
     for (int i = 0; envp[i]; i++) {
-        size_t len = strlen(envp[i]);    
+        size_t len = strlen(envp[i]) + 1; 
         room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "env vars overflow env");
         memcpy(p, envp[i], len);
-        p += len + 1;
+        p += len;
         ec++;
     }
     new_env->envc = ec;

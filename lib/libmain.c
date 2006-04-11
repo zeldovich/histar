@@ -32,19 +32,23 @@ setup_env(uint64_t envaddr)
     // unlike a bootstrap process.
     start_env = (start_env_t *) envaddr;
 
+    if (start_env->argc > MAXARGS) {
+	cprintf("setup_env: too many args: %d\n", start_env->argc);
+	start_env->argc = MAXARGS;
+    }
+
     const char *p = &start_env->args[0];
-    for (int i = 0; (i < MAXARGS) && (i < start_env->argc); i++) {
+    for (int i = 0; i < start_env->argc; i++) {
     	size_t len = strlen(p);
     	argv[argc] = p;
     	p += len + 1;
     	argc++;
     }
-    p++;
     for (int i = 0; i < start_env->envc; i++) {
         size_t len = strlen(p);
         char *value = strpbrk(p, "=");
         *value = 0;
-        value++;        
+        value++;
         setenv(p, value, 1);
         p += len + 1;
     }
