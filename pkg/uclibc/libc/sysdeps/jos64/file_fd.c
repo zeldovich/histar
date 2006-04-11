@@ -6,6 +6,7 @@
 #include <inc/tun.h>
 #include <inc/rand.h>
 #include <inc/chardevs.h>
+#include <inc/syscall.h>
 
 #include <errno.h>
 #include <fcntl.h>

@@ -3,6 +3,8 @@ extern "C" {
 #include <inc/fs.h>
 #include <inc/fd.h>
 #include <inc/memlayout.h>
+#include <inc/syscall.h>
+
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>

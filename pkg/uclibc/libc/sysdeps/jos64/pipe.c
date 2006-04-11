@@ -1,5 +1,6 @@
 #include <inc/fd.h>
 #include <inc/lib.h>
+#include <inc/syscall.h>
 
 #include <fcntl.h>
 #include <unistd.h>

@@ -3,6 +3,7 @@
 #include <inc/fd.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
+#include <inc/syscall.h>
 
 #include <errno.h>
 #include <fcntl.h>
