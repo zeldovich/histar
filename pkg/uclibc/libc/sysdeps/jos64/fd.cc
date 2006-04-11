@@ -1030,7 +1030,7 @@ lseek64(int fdnum, __off64_t offset, int whence) __THROW
 	return -1;
     }
 
-    return 0;
+    return fd->fd_offset;
 }
 
 int
