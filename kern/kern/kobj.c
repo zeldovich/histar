@@ -722,10 +722,13 @@ kobject_reclaim(void)
     }
 
     if (kobject_reclaim_check()) {
+	;
+	/*
 	cprintf("kobject_reclaim: unable to reclaim much memory\n");
 	cprintf("kobject_reclaim: used %ld avail %ld alloc %ld fail %ld\n",
 		page_stats.pages_used, page_stats.pages_avail,
 		page_stats.allocations, page_stats.failures);
+	*/
     }
 
     cur_thread = t;

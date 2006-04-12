@@ -682,6 +682,6 @@ pstate_init(void)
     pstate_reset();
 
     static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };
-    sync_pt.pt_interval_ticks = kclock_hz * 3600;
+    sync_pt.pt_interval_ticks = kclock_hz ;
     timer_add_periodic(&sync_pt);
 }

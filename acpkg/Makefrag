@@ -116,6 +116,8 @@ $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
+$(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
+
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build 
 acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build acpkg/openssh-4.3p2/Makefile 
