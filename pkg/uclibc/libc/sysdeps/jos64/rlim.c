@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <string.h>
 #include <sys/resource.h>
 
 #include <bits/unimpl.h>
@@ -6,15 +7,16 @@
 int
 getrlimit(__rlimit_resource_t resource, struct rlimit *rlim)
 {
-    set_enosys();
-    return -1;
+    rlim->rlim_cur = RLIM_INFINITY;
+    rlim->rlim_max = RLIM_INFINITY;
+    return 0;
 }
 
 int
 getrusage(int who, struct rusage *usage)
 {
-    __set_errno(ENOSYS);
-    return -1;
+    memset(usage, 0, sizeof(*usage));
+    return 0;
 }
 
 int
