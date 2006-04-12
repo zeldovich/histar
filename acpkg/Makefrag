@@ -217,5 +217,9 @@ $(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/_
 				      libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 				      bin/ld \
 				      bin/as
-				      #bin/ar
-	tar -rf $@ -C $(OBJDIR) lib/crt1.o lib/crti.o lib/crtn.o lib/libjos.a
+	tar -rf $@ -C $(OBJDIR) lib/crt1.o lib/crti.o lib/crtn.o lib/libjos.a \
+				lib/libc.a lib/libm.a lib/liblwip.a
+	tar -rf $@ -C $(OBJDIR)/acpkg lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
+				      lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
+				      lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
+				      lib/gcc/x86_64-jos-linux/3.4.5/specs
