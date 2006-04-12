@@ -28,7 +28,6 @@ ACENV += ac_cv_func_setpgrp_void=yes
 ##
 AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
-AUTOCONF_gcc-3.4.4	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
@@ -38,7 +37,6 @@ AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 ##
 PATCHFILE_coreutils-5.94    := coreutils-5.94.patch
 PATCHFILE_tar-1.15	    := tar-1.15.patch
-PATCHFILE_gcc-3.4.4	    := gcc34.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
@@ -194,6 +192,7 @@ $(OBJDIR)/user/tcdemo2: ncurses
 acpkg/binutils-2.16.1/__build: acpkg/binutils-2.16.1/Makefile
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
+	touch $@
 
 ## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
 nvi: $(ACPKG_WRAPS)
@@ -206,10 +205,12 @@ nvi: $(ACPKG_WRAPS)
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
+acpkg/gcc-3.4.5/__build: acpkg/binutils-2.16.1/__build
+acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile acpkg/binutils-2.16.1/__build
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
-	
+	touch $@
+
 $(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
 	rm -f $@
 	tar -cf $@ -C $(OBJDIR)/acpkg bin/gcc \
