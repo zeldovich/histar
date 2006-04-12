@@ -5,10 +5,12 @@
 #include <inc/fd.h>
 #include <inc/utrap.h>
 #include <inc/gateparam.h>
+
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-extern int main(int argc, const char **argv);
+extern int main(int argc, const char **argv, char **envp);
 
 uint64_t start_arg0;
 uint64_t start_arg1;
@@ -94,5 +96,5 @@ libmain(uint64_t arg0, uint64_t arg1)
     if (start_arg1 == 0)
 	setup_env(start_arg0);
 
-    exit(main(argc, &argv[0]));
+    exit(main(argc, &argv[0], environ));
 }
