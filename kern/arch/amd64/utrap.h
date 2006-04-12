@@ -3,8 +3,10 @@
 
 #include <inc/types.h>
 
-// The layout of this structure has to match the DWARF2 hints
-// in lib/amd64/trapstub.S
+/*
+ * The layout of this structure has to match the DWARF2 hints
+ * in lib/amd64/trapstub.S
+ */
 
 struct UTrapframe {
     uint64_t utf_rax;
