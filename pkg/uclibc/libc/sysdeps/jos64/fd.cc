@@ -902,7 +902,11 @@ fstat(int fdnum, struct stat *buf) __THROW
 	return -1;
     }
 
-    return DEV_CALL(dev, stat, fd, buf);
+    memset(buf, 0, sizeof(*buf));
+    buf->st_dev = 1;	// some apps want a non-zero value
+    buf->st_nlink = 1;
+
+    return dev->dev_stat ? DEV_CALL(dev, stat, fd, buf) : 0;
 }
 
 int 

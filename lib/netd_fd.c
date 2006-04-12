@@ -312,7 +312,6 @@ sock_getsockopt(struct Fd *fd, int level, int optname,
 static int
 sock_stat(struct Fd *fd, struct stat *buf)
 {
-    memset(buf, 0, sizeof(*buf));
     buf->st_mode |= __S_IFSOCK;
     return 0;
 }

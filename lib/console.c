@@ -79,13 +79,6 @@ cons_close(struct Fd *fd)
 }
 
 static int
-cons_stat(struct Fd *fd, struct stat *buf)
-{
-    memset(buf, 0, sizeof(*buf));
-    return 0;
-}
-
-static int
 cons_probe(struct Fd *fd, dev_probe_t probe)
 {
     if (probe == dev_probe_read)
@@ -100,6 +93,5 @@ struct Dev devcons =
     .dev_read = cons_read,
     .dev_write = cons_write,
     .dev_close = cons_close,
-    .dev_stat = cons_stat,
     .dev_probe = cons_probe,
 };

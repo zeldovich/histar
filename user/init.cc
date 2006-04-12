@@ -103,6 +103,10 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 	"clamav:x:91:91:clamav user:/:/bin/ksh\n";
     error_check(fs_pwrite(passwd, passwd_data, strlen(passwd_data), 0));
 
+    const char *group_data =
+	"root:x:0:\n";
+    error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
+
     // start out in the root directory
     start_env->fs_cwd = start_env->fs_root;
 }
