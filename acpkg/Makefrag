@@ -211,6 +211,7 @@ acpkg/gcc-3.4.5/__build: acpkg/binutils-2.16.1/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile acpkg/binutils-2.16.1/__build
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
+	cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
 	touch $@
 
 $(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
@@ -220,9 +221,12 @@ $(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/_
 				      libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 				      bin/ld \
 				      bin/as
-	tar -rf $@ -C $(OBJDIR) lib/crt1.o lib/crti.o lib/crtn.o lib/libjos.a \
-				lib/libc.a lib/libm.a lib/liblwip.a
+	tar -rf $@ -C $(OBJDIR) lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a
+	cp $(OBJDIR)/lib/crt*.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
 	tar -rf $@ -C $(OBJDIR)/acpkg lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
 				      lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
 				      lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
-				      lib/gcc/x86_64-jos-linux/3.4.5/specs
+				      lib/gcc/x86_64-jos-linux/3.4.5/specs \
+				      lib/gcc/x86_64-jos-linux/3.4.5/crt1.o \
+				      lib/gcc/x86_64-jos-linux/3.4.5/crti.o \
+				      lib/gcc/x86_64-jos-linux/3.4.5/crtn.o
