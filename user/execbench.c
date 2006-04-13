@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 int
 main(int ac, char **av)
@@ -22,9 +23,17 @@ main(int ac, char **av)
     gettimeofday(&start, 0);
 
     uint32_t i;
-    for (i = 0; i < count; i++)
-	if (system("/bin/true") < 0)
-	    perror("system");
+    for (i = 0; i < count; i++) {
+	pid_t pid = fork();
+	if (pid == 0) {
+	    execl("/bin/true", "true", 0);
+	    perror("exec");
+	    exit(-1);
+	}
+
+	int status;
+	waitpid(pid, &status, 0);
+    }
 
     struct timeval end;
     gettimeofday(&end, 0);
