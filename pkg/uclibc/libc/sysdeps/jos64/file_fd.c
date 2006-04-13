@@ -197,6 +197,7 @@ file_stat(struct Fd *fd, struct stat *buf)
     }
 
     buf->st_mode = S_IRWXU;
+    buf->st_ino = fd->fd_file.ino.obj.object;
     if (type == kobj_container || type == kobj_mlt) {
 	buf->st_mode |= __S_IFDIR;
     } else {
