@@ -76,9 +76,10 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 	return 0;
 
     kobject_id_t th_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
+    kobject_id_t th_clear_id = cur_thread->th_ko.ko_label[kolabel_clearance];
     kobject_id_t ko_label_id = ko->ko_label[kolabel_contaminate];
 
-    assert(th_label_id);
+    assert(th_label_id && th_clear_id);
     if (ko_label_id == 0) {
 	cprintf("Missing label on object %ld (%s)\n", ko->ko_id, ko->ko_name);
 	return -E_LABEL;
@@ -90,10 +91,12 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     } else if (SAFE_EQUAL(iflow, iflow_write)) {
 	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
     } else if (SAFE_EQUAL(iflow, iflow_rw)) {
-	r = label_compare_id(ko_label_id, th_label_id, label_leq_starhi) ? :
-	    label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
+	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
+	    label_compare_id(ko_label_id, th_label_id, label_leq_starhi);
     } else if (SAFE_EQUAL(iflow, iflow_alloc)) {
 	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo);
+	//r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
+	//    label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
     } else {
 	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
     }

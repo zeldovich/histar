@@ -401,8 +401,8 @@ sys_thread_create(uint64_t ct, const char *name)
 
 static void
 sys_gate_enter(struct cobj_ref gt,
-	       struct ulabel *ul,
-	       struct ulabel *uclearance)
+	       struct ulabel *ulabel,
+	       struct ulabel *uclear)
 {
     // Verify that the caller has supplied a valid verify label
     const struct Label *verify;
@@ -414,34 +414,28 @@ sys_gate_enter(struct cobj_ref gt,
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
     const struct Gate *g = &ko->gt;
 
-    const struct Label *gt_label, *gt_clearance;
+    const struct Label *gt_label, *gt_clear;
     check(kobject_get_label(&g->gt_ko, kolabel_contaminate, &gt_label));
-    check(kobject_get_label(&g->gt_ko, kolabel_clearance, &gt_clearance));
+    check(kobject_get_label(&g->gt_ko, kolabel_clearance,   &gt_clear));
 
-    check(label_compare(cur_th_label, gt_clearance, label_leq_starlo));
+    check(label_compare(cur_th_label, gt_clear, label_leq_starlo));
 
-    struct Label *label_bound;
+    struct Label *label_bound, *clear_bound;
     check(label_alloc(&label_bound, LB_LEVEL_UNDEF));
+    check(label_alloc(&clear_bound, LB_LEVEL_UNDEF));
     check(label_max(gt_label, cur_th_label, label_bound, label_leq_starhi));
+    check(label_max(gt_clear, cur_th_clearance, clear_bound, label_leq_starlo));
 
-    const struct Label *new_label;
-    alloc_ulabel(ul, &new_label, &label_bound->lb_ko);
+    const struct Label *new_label, *new_clear;
+    alloc_ulabel(ulabel, &new_label, 0);
+    alloc_ulabel(uclear, &new_clear, 0);
     check(label_compare(label_bound, new_label, label_leq_starlo));
-
-    // Same as the gate clearance except for caller's * handles
-    struct Label *clearance_bound;
-    check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
-    check(label_max(gt_clearance, cur_th_label,
-		    clearance_bound, label_leq_starhi_rhs_0_except_star));
-
-    const struct Label *new_clearance;
-    alloc_ulabel(uclearance, &new_clearance, &gt_clearance->lb_ko);
-    check(label_compare(new_clearance, clearance_bound, label_leq_starhi));
+    check(label_compare(new_clear, clear_bound, label_leq_starhi));
 
     // Check that we aren't exceeding the clearance in the end
-    check(label_compare(new_label, new_clearance, label_leq_starlo));
+    check(label_compare(new_label, new_clear, label_leq_starlo));
 
-    check(thread_jump(cur_thread, new_label, new_clearance, &g->gt_te));
+    check(thread_jump(cur_thread, new_label, new_clear, &g->gt_te));
 }
 
 static void

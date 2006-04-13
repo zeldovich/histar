@@ -37,34 +37,18 @@ label_leq_starhi_fn(level_t a, level_t b)
 }
 
 static int
-label_leq_starok_fn(level_t a, level_t b)
-{
-    if (a == LB_LEVEL_STAR || b == LB_LEVEL_STAR)
-	return 0;
-    return (a <= b) ? 0 : -E_LABEL;
-}
-
-static int
 label_eq_fn(level_t a, level_t b)
 {
     return (a == b) ? 0 : -E_LABEL;
-}
-
-static int
-label_leq_starhi_rhs_0_except_star_fn(level_t a, level_t b)
-{
-    return label_leq_starhi_fn(a, b == LB_LEVEL_STAR ? LB_LEVEL_STAR : 0);
 }
 
 #define LEVEL_COMPARATOR(x)						\
     static struct level_comparator_buf x##_buf = { .gen = &x##_fn };	\
     level_comparator x = &x##_buf
 
-LEVEL_COMPARATOR(label_leq_starok);
 LEVEL_COMPARATOR(label_leq_starlo);
 LEVEL_COMPARATOR(label_leq_starhi);
 LEVEL_COMPARATOR(label_eq);
-LEVEL_COMPARATOR(label_leq_starhi_rhs_0_except_star);
 
 static void
 level_comparator_init(level_comparator c)
