@@ -16,8 +16,9 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     if (r < 0)
 	return r;
 
+    uint64_t seglen = 0;
     char *segbuf = 0;
-    r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, 0);
+    r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &seglen);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
 	return r;
@@ -32,6 +33,15 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return -E_INVAL;
     }
 
+    int64_t copy_id = sys_segment_copy(seg, container, 0,
+				       "text/data segment copy");
+    if (copy_id < 0)
+	return copy_id;
+    struct cobj_ref copyseg = COBJ(container, copy_id);
+
+    // Finalize so it can be hard-linked by taint_cow
+    sys_segment_resize(copyseg, seglen, 1);
+
     e->te_entry = (void*) elf->e_entry;
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
@@ -39,32 +49,39 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    continue;
 
 	int va_off = ph->p_vaddr & 0xfff;
-	struct cobj_ref nseg;
-	char *sbuf = 0;
-	snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
-	r = segment_alloc(container, va_off + ph->p_memsz,
-			  &nseg, (void**) &sbuf, label, &objname[0]);
-	if (r < 0) {
-	    cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
-	    return r;
+
+	if (ph->p_memsz <= ph->p_filesz) {
+	    sm_ents[si].segment = copyseg;
+	    sm_ents[si].start_page = ph->p_offset / PGSIZE;
+	    sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	    sm_ents[si].flags = ph->p_flags;
+	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
+	    si++;
+	} else {
+	    struct cobj_ref nseg;
+	    char *sbuf = 0;
+	    snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
+	    r = segment_alloc(container, va_off + ph->p_memsz,
+			      &nseg, (void**) &sbuf, label, &objname[0]);
+	    if (r < 0) {
+		cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
+		return r;
+	    }
+
+	    memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
+	    r = segment_unmap(sbuf);
+	    if (r < 0) {
+		cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
+		return r;
+	    }
+
+	    sm_ents[si].segment = nseg;
+	    sm_ents[si].start_page = 0;
+	    sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	    sm_ents[si].flags = ph->p_flags;
+	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
+	    si++;
 	}
-
-	// Finalize the size of this section, so it can be hard-linked
-	sys_segment_resize(nseg, va_off + ph->p_memsz, 1);
-
-	memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
-	r = segment_unmap(sbuf);
-	if (r < 0) {
-	    cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
-	    return r;
-	}
-
-	sm_ents[si].segment = nseg;
-	sm_ents[si].start_page = 0;
-	sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
-	sm_ents[si].flags = ph->p_flags;
-	sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
-	si++;
     }
 
     r = segment_unmap(segbuf);

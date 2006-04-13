@@ -73,10 +73,6 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 	error_check(dup2_as(i, i, e.te_as, start_env->shared_container));
     }
 
-    // Create an initial properly-labeled heap
-    struct cobj_ref heap_obj;
-    error_check(segment_alloc(proc_ct, 0, &heap_obj, 0, 0, "heap"));
-
     // Create an environment
     uint64_t env_size = PGSIZE;
     start_env_t *new_env = 0;

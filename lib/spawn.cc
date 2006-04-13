@@ -124,9 +124,6 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
     }
 
-    struct cobj_ref heap_obj;
-    error_check(segment_alloc(c_proc, 0, &heap_obj, 0, 0, "heap"));
-
     uint64_t env_size = PGSIZE;
     start_env_t *spawn_env = 0;
     struct cobj_ref spawn_env_obj;
