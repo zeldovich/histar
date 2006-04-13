@@ -31,10 +31,10 @@ struct kobject_hdr {
     // ct_quota_used, and represents the space that is taken up (or could be
     // taken up, without information flow) by this object.
     //
-    // For container objects, the space represented by ko_quota_reserve is
+    // For container objects, the space represented by ko_quota_total is
     // used to provide space for objects in the container (by incrementing
     // the container's ct_quota_used).
-    uint64_t ko_quota_reserve;
+    uint64_t ko_quota_total;
 
     // Container that holds this object; only meaningful if KOBJ_MULTIHOMED
     // is not set.  Used to adjust container's quota when object changes

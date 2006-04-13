@@ -13,7 +13,7 @@ container_alloc(const struct Label *l, struct Container **cp)
 	return r;
 
     struct Container *c = &ko->ct;
-    c->ct_quota_used = c->ct_ko.ko_quota_reserve;
+    c->ct_quota_used = c->ct_ko.ko_quota_total;
     *cp = c;
     return 0;
 }
@@ -123,14 +123,14 @@ static int
 container_slot_addref(struct Container *c, struct container_slot *cs,
 		      const struct kobject_hdr *ko)
 {
-    if (c->ct_ko.ko_quota_reserve != CT_QUOTA_INF &&
-	c->ct_ko.ko_quota_reserve - c->ct_quota_used < ko->ko_quota_reserve)
+    if (c->ct_ko.ko_quota_total != CT_QUOTA_INF &&
+	c->ct_ko.ko_quota_total - c->ct_quota_used < ko->ko_quota_total)
 	return -E_RESOURCE;
 
     cs->cs_id = ko->ko_id;
     cs->cs_ref++;
     kobject_incref(ko);
-    c->ct_quota_used += ko->ko_quota_reserve;
+    c->ct_quota_used += ko->ko_quota_total;
     return 0;
 }
 
@@ -140,7 +140,7 @@ container_slot_decref(struct Container *c, struct container_slot *cs,
 {
     cs->cs_ref--;
     kobject_decref(ko);
-    c->ct_quota_used -= ko->ko_quota_reserve;
+    c->ct_quota_used -= ko->ko_quota_total;
 }
 
 int

@@ -224,7 +224,7 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
     kh->ko_flags = KOBJ_DIRTY;
-    kh->ko_quota_reserve = KOBJ_DISK_SIZE;
+    kh->ko_quota_total = KOBJ_DISK_SIZE;
     pagetree_init(&ko->ko_pt);
     kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
 
@@ -296,8 +296,8 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     }
 
     if (resource_ct &&
-	resource_ct->ct_ko.ko_quota_reserve != CT_QUOTA_INF &&
-	resource_ct->ct_ko.ko_quota_reserve - resource_ct->ct_quota_used +
+	resource_ct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
+	resource_ct->ct_ko.ko_quota_total - resource_ct->ct_quota_used +
 	curnpg * PGSIZE < npages * PGSIZE)
 	return -E_RESOURCE;
 
@@ -326,7 +326,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     int64_t quota_diff = (npages - curnpg) * PGSIZE;
     kp->ko_nbytes = nbytes;
     if (kp->ko_type != kobj_container)
-	kp->ko_quota_reserve += quota_diff;
+	kp->ko_quota_total += quota_diff;
     if (resource_ct)
 	kobject_dirty(&resource_ct->ct_ko)->ct.ct_quota_used += quota_diff;
     return 0;
@@ -350,7 +350,7 @@ kobject_copy_pages(const struct kobject_hdr *srch,
 
     pagetree_copy(&src->ko_pt, &dst->ko_pt);
     dsth->ko_nbytes = srch->ko_nbytes;
-    dsth->ko_quota_reserve += ROUNDUP(srch->ko_nbytes, PGSIZE);
+    dsth->ko_quota_total += ROUNDUP(srch->ko_nbytes, PGSIZE);
     return 0;
 }
 

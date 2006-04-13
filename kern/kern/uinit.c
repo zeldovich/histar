@@ -233,7 +233,7 @@ thread_create_embed(struct Container *c,
 
     struct Container *tc;
     assert_check(container_alloc(obj_label, &tc));
-    tc->ct_ko.ko_quota_reserve = (1UL << 32);
+    tc->ct_ko.ko_quota_total = (1UL << 32);
     tc->ct_ko.ko_flags = koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko) >= 0);
@@ -282,21 +282,21 @@ user_bootstrap(void)
     struct Container *root_parent;
     assert_check(label_alloc(&root_parent_label, 3));
     assert_check(container_alloc(root_parent_label, &root_parent));
-    root_parent->ct_ko.ko_quota_reserve = CT_QUOTA_INF;
+    root_parent->ct_ko.ko_quota_total = CT_QUOTA_INF;
     kobject_incref(&root_parent->ct_ko);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container
     struct Container *rc;
     assert_check(container_alloc(obj_label, &rc));
-    rc->ct_ko.ko_quota_reserve = CT_QUOTA_INF;
+    rc->ct_ko.ko_quota_total = CT_QUOTA_INF;
     assert_check(container_put(root_parent, &rc->ct_ko));
     strncpy(&rc->ct_ko.ko_name[0], "root container", KOBJ_NAME_LEN - 1);
 
     // filesystem
     struct Container *fsc;
     assert_check(container_alloc(obj_label, &fsc));
-    fsc->ct_ko.ko_quota_reserve = (1UL << 32);
+    fsc->ct_ko.ko_quota_total = (1UL << 32);
     assert_check(container_put(rc, &fsc->ct_ko));
     strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
 
