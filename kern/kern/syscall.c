@@ -317,26 +317,45 @@ sys_container_get_avail_quota(uint64_t container)
 }
 
 static void
-sys_container_move_quota(uint64_t src_id, uint64_t dst_id, uint64_t nbytes)
+sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 {
-    const struct Container *src, *dst;
-    check(container_find(&src, src_id, iflow_rw));
-    check(container_find(&dst, dst_id, iflow_write));
+    // Positive nbytes is parent -> child; negative is child -> parent.
+    uint64_t abs_nbytes = nbytes > 0 ? nbytes : -nbytes;
+    if (nbytes == 0)
+	return;
+
+    const struct Container *parent, *child;
+    check(container_find(&parent, parent_id, nbytes > 0 ? iflow_rw : iflow_write));
+    check(container_find(&child,  child_id,  nbytes < 0 ? iflow_rw : iflow_write));
 
     // Ensure that there is a parent-child relationship..
-    if (src->ct_ko.ko_parent != dst_id && dst->ct_ko.ko_parent != src_id)
+    if (child->ct_ko.ko_parent != parent_id)
 	syscall_error(-E_INVAL);
 
-    if (src->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-	src->ct_ko.ko_quota_total - src->ct_quota_used > nbytes)
-	syscall_error(-E_RESOURCE);
+    uint64_t new_child_total;
 
-    uint64_t dst_resv = dst->ct_ko.ko_quota_total + nbytes;
-    if (dst_resv > CT_QUOTA_INF || nbytes > CT_QUOTA_INF)
-	dst_resv = CT_QUOTA_INF;
+    if (nbytes > 0) {
+	if (parent->ct_ko.ko_quota_total != CT_QUOTA_INF &&
+	    parent->ct_ko.ko_quota_total - parent->ct_quota_used < abs_nbytes)
+	    syscall_error(-E_RESOURCE);
 
-    kobject_dirty(&src->ct_ko)->ct.ct_quota_used += nbytes;
-    kobject_dirty(&dst->ct_ko)->hdr.ko_quota_total = dst_resv;
+	if (child->ct_ko.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
+	    new_child_total = CT_QUOTA_INF;
+	else
+	    new_child_total = MIN(child->ct_ko.ko_quota_total + abs_nbytes, CT_QUOTA_INF - 1);
+    } else {
+	if (child->ct_ko.ko_quota_total == CT_QUOTA_INF) {
+	    cprintf("move_quota: cannot revoke child container infinity\n");
+	    syscall_error(-E_RESOURCE);
+	}
+
+	new_child_total = child->ct_ko.ko_quota_total - abs_nbytes;
+	if (new_child_total < child->ct_quota_used)
+	    syscall_error(-E_RESOURCE);
+    }
+
+    kobject_dirty(&parent->ct_ko)->ct.ct_quota_used += nbytes;
+    kobject_dirty(&child->ct_ko)->hdr.ko_quota_total = new_child_total;
 }
 
 static int64_t

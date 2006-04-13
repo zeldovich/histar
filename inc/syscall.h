@@ -30,7 +30,7 @@ int64_t	sys_container_get_nslots(uint64_t container);
 int64_t sys_container_get_parent(uint64_t container);
 int64_t	sys_container_get_slot_id(uint64_t container, uint64_t slot);
 int64_t sys_container_get_avail_quota(uint64_t container);
-int	sys_container_move_quota(uint64_t src, uint64_t dst, uint64_t nbytes);
+int	sys_container_move_quota(uint64_t parent, uint64_t child, int64_t nbytes);
 
 int	sys_obj_unref(struct cobj_ref o);
 kobject_type_t

@@ -83,9 +83,9 @@ sys_container_get_avail_quota(uint64_t container)
 }
 
 int
-sys_container_move_quota(uint64_t src, uint64_t dst, uint64_t nbytes)
+sys_container_move_quota(uint64_t parent, uint64_t child, int64_t nbytes)
 {
-    return syscall(SYS_container_move_quota, src, dst, nbytes);
+    return syscall(SYS_container_move_quota, parent, child, nbytes);
 }
 
 int64_t
