@@ -21,7 +21,7 @@ void *tls_gate_args;
 void *tls_stack_top;
 void *tls_base;
 
-#define MAXARGS	32
+#define MAXARGS	64
 
 static int argc;
 static const char *argv[MAXARGS];
