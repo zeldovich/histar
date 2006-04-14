@@ -21,10 +21,10 @@ void *tls_gate_args;
 void *tls_stack_top;
 void *tls_base;
 
-#define MAXARGS	64
+#define MAXARGS	128
 
 static int argc;
-static const char *argv[MAXARGS];
+static const char **argv;
 
 static void
 __attribute__((noinline))
@@ -34,29 +34,8 @@ setup_env(uint64_t envaddr)
     // unlike a bootstrap process.
     start_env = (start_env_t *) envaddr;
 
-    if (start_env->argc > MAXARGS)
-	cprintf("setup_env: too many args: %d\n", start_env->argc);
-
-    const char *p = &start_env->args[0];
-    for (int i = 0; i < start_env->argc; i++) {
-    	size_t len = strlen(p);
-    	if (i < MAXARGS) {
-	    argv[argc] = p;
-	    argc++;
-	}
-	p += len + 1;
-    }
-    for (int i = 0; i < start_env->envc; i++) {
-        size_t len = strlen(p);
-        char *value = strpbrk(p, "=");
-        *value = 0;
-        value++;
-        setenv(p, value, 1);
-        p += len + 1;
-    }
-    
     extern const char *__progname;
-    __progname = argv[0];
+    __progname = &start_env->args[0];
 
     struct cobj_ref start_env_seg;
     int r = segment_lookup(start_env, &start_env_seg, 0, 0);
@@ -85,6 +64,27 @@ setup_env(uint64_t envaddr)
 	panic("libmain: cannot setup utrap: %s", e2s(r));
 
     signal_init();
+
+    argv = malloc(sizeof(*argv) * (start_env->argc + 1));
+    if (!argv)
+	panic("libmain: out of memory for argv array");
+    argv[start_env->argc] = 0;
+
+    const char *p = &start_env->args[0];
+    for (int i = 0; i < start_env->argc; i++) {
+    	size_t len = strlen(p);
+	argv[argc] = p;
+	argc++;
+	p += len + 1;
+    }
+    for (int i = 0; i < start_env->envc; i++) {
+        size_t len = strlen(p);
+        char *value = strpbrk(p, "=");
+        *value = 0;
+        value++;
+        setenv(p, value, 1);
+        p += len + 1;
+    }
 }
 
 void
