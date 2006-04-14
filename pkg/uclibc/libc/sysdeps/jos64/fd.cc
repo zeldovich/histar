@@ -139,6 +139,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
 
     int i;
     struct Fd *fd;
+    static_assert(sizeof(*fd) <= PGSIZE);
 
     for (i = 0; i < MAXFD; i++) {
 	fd = INDEX2FD(i);

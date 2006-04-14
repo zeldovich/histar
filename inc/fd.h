@@ -91,7 +91,7 @@ struct Fd
 	    char reader_waiting;
 	    char writer_waiting;
 	    pthread_mutex_t mu;
-	    char buf[512];
+	    char buf[4000];
 	} fd_pipe;
 
 	struct {
