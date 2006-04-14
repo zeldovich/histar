@@ -57,23 +57,34 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
 	if (ph->p_memsz <= ph->p_filesz) {
 	    sm_ents[si].segment = copyseg;
-	    sm_ents[si].start_page = ph->p_offset / PGSIZE;
+	    sm_ents[si].start_page = (ph->p_offset - va_off) / PGSIZE;
 	    sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
 	    sm_ents[si].flags = ph->p_flags;
 	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
 	    si++;
 	} else {
+	    uint64_t shared_pages = (va_off + ph->p_filesz) / PGSIZE;
+
+	    sm_ents[si].segment = copyseg;
+            sm_ents[si].start_page = (ph->p_offset - va_off) / PGSIZE;
+            sm_ents[si].num_pages = shared_pages;
+            sm_ents[si].flags = ph->p_flags;
+            sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
+	    si++;
+
 	    struct cobj_ref nseg;
 	    char *sbuf = 0;
 	    snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
-	    r = segment_alloc(container, va_off + ph->p_memsz + (stackpages + 1) * PGSIZE,
+	    r = segment_alloc(container,
+			      va_off + ph->p_memsz + (stackpages + 1 - shared_pages) * PGSIZE,
 			      &nseg, (void**) &sbuf, label, &objname[0]);
 	    if (r < 0) {
 		cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
 		return r;
 	    }
 
-	    memcpy(sbuf + va_off, segbuf + ph->p_offset, ph->p_filesz);
+	    memcpy(sbuf, segbuf + ph->p_offset - va_off + shared_pages * PGSIZE,
+		   va_off + ph->p_filesz - shared_pages * PGSIZE);
 	    r = segment_unmap(sbuf);
 	    if (r < 0) {
 		cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
@@ -82,9 +93,9 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
 	    sm_ents[si].segment = nseg;
 	    sm_ents[si].start_page = 0;
-	    sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	    sm_ents[si].num_pages = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE - shared_pages;
 	    sm_ents[si].flags = ph->p_flags;
-	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
+	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off + shared_pages * PGSIZE);
 	    si++;
 
 	    stack = nseg;
