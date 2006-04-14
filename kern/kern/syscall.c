@@ -499,7 +499,7 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     struct Label *lmax;
     check(label_alloc(&lmax, LB_LEVEL_UNDEF));
     check(label_max(th_label, cur_th_label, lmax, label_leq_starhi));
-    check(label_compare(lmax, cur_th_label, label_leq_starhi));
+    check(label_compare(lmax, cur_th_label, label_leq_starlo));
 
     if (th->th.th_asref.object != asref.object)
 	syscall_error(-E_INVAL);
