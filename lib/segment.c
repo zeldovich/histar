@@ -485,7 +485,8 @@ retry:
     // Fall back to full sys_as_set() because sys_as_set_slot()
     // does not grow the address space (if we're out of free slots).
     if (r < 0) {
-	cprintf("segment_map: trying to grow address space\n");
+	if (segment_debug)
+	    cprintf("segment_map: trying to grow address space\n");
 	r = sys_as_set(as_ref, &cache_uas);
     }
 
