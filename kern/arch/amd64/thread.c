@@ -252,7 +252,7 @@ thread_change_label(const struct Thread *const_t,
 
     // make sure all label checks get re-evaluated
     if (t->th_as)
-	as_invalidate_label(t->th_as, 0);
+	as_invalidate_label(t->th_as, 1);
 
     return 0;
 }
