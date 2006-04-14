@@ -70,8 +70,6 @@ extern "C" int
 signal_gate_send(struct cobj_ref gate, siginfo_t *si)
 {
     struct gate_call_data gcd;
-    memset(&gcd, 0, sizeof(gcd));
-
     siginfo_t *sip = (siginfo_t *) &gcd.param_buf[0];
     memcpy(sip, si, sizeof(*sip));
 
