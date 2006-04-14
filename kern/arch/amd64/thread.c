@@ -251,7 +251,8 @@ thread_change_label(const struct Thread *const_t,
     kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate, cur_sg_label, new_label);
 
     // make sure all label checks get re-evaluated
-    thread_clear_as(t);
+    if (t->th_as)
+	as_invalidate_label(t->th_as, 0);
 
     return 0;
 }
@@ -330,8 +331,7 @@ thread_load_as(const struct Thread *t)
     kobject_ephemeral_dirty(&t->th_ko)->th.th_as = as;
     kobject_pin_hdr(&t->th_as->as_ko);
 
-    // Just to ensure all label checks are up-to-date.
-    as_invalidate(as);
+    as_invalidate_label(as, 0);
     return 0;
 }
 

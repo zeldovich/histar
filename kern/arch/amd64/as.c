@@ -401,8 +401,10 @@ void
 as_switch(const struct Address_space *as)
 {
     // In case we have thread-specific kobjects cached here..
-    if (as && cur_thread && as->as_pgmap_tid != cur_thread->th_ko.ko_id)
-	as_invalidate(as);
+    if (as && cur_thread && as->as_pgmap_tid != cur_thread->th_ko.ko_id) {
+	as_invalidate_label(as, 1);
+	kobject_dirty(&as->as_ko)->as.as_pgmap_tid = cur_thread->th_ko.ko_id;
+    }
 
     cur_as = as;
 
@@ -440,4 +442,39 @@ as_invalidate_sm(struct segment_mapping *sm)
 err:
     cprintf("as_invalidate_sm: fallback to full invalidation: %s\n", e2s(r));
     as_invalidate(sm->sm_as);
+}
+
+void
+as_invalidate_label(const struct Address_space *as, int invalidate_tls)
+{
+    int r;
+
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    goto err;
+
+	if (!sm->sm_sg)
+	    continue;
+
+	const struct u_segment_mapping *usm;
+	r = as_get_usegmap(as, &usm, i, page_ro);
+	if (r < 0)
+	    goto err;
+
+	const struct kobject *ko;
+	if (usm->segment.object != kobject_id_thread_sg &&
+	    cobj_get(usm->segment, kobj_segment, &ko,
+		     (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) == 0)
+	    continue;
+
+	as_invalidate_sm(sm);
+    }
+
+    return;
+
+err:
+    cprintf("as_invalidate_label: fallback to full invalidation: %s\n", e2s(r));
+    as_invalidate(as);
 }
