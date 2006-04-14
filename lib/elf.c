@@ -99,7 +99,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    si++;
 
 	    stack = nseg;
-	    stack_pgoff = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	    stack_pgoff = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE - shared_pages;
 	    shared_stack = 1;
 	}
     }
