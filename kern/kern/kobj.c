@@ -482,10 +482,6 @@ kobject_gc(struct kobject *ko)
 	r = as_gc(&ko->as);
 	break;
 
-    case kobj_mlt:
-	r = mlt_gc(&ko->mt);
-	break;
-
     case kobj_gate:
     case kobj_segment:
     case kobj_netdev:
@@ -752,12 +748,11 @@ kobject_init(void)
 		sizeof(struct kobject_hdr),
 		sizeof(struct Label),
 		sizeof(struct pagetree));
-	cprintf("ct %ld th %ld gt %ld as %ld sg %ld mlt %ld\n",
+	cprintf("ct %ld th %ld gt %ld as %ld sg %ld\n",
 		sizeof(struct Container),
 		sizeof(struct Thread),
 		sizeof(struct Gate),
 		sizeof(struct Address_space),
-		sizeof(struct Segment),
-		sizeof(struct Mlt));
+		sizeof(struct Segment));
     }
 }

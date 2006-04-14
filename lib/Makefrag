@@ -33,7 +33,6 @@ LIB_SRCFILES :=	\
 	lib/fs_dir.cc \
 	lib/fs_dir_ct.cc \
 	lib/fs_dir_dseg.cc \
-	lib/fs_dir_mlt.cc \
 	lib/fs_file.cc \
 	lib/fs_mount.c \
 	lib/fs_taint.cc \

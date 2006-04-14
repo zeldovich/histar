@@ -9,7 +9,6 @@
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/gate.h>
-#include <kern/mlt.h>
 #include <kern/label.h>
 #include <kern/pagetree.h>
 #include <kern/kocache.h>
@@ -27,7 +26,6 @@ struct kobject_persistent {
 	struct Gate gt;
 	struct Address_space as;
 	struct Segment sg;
-	struct Mlt mt;
 	struct Label lb;
     };
 };

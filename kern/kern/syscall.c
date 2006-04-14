@@ -16,7 +16,6 @@
 #include <kern/netdev.h>
 #include <kern/kobj.h>
 #include <kern/uinit.h>
-#include <kern/mlt.h>
 #include <kern/sync.h>
 #include <kern/prof.h>
 #include <kern/pstate.h>
@@ -745,50 +744,6 @@ sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
 }
 
 static int64_t
-sys_mlt_create(uint64_t container, const char *name)
-{
-    const struct Container *c;
-    check(container_find(&c, container, iflow_rw));
-
-    const struct Label *ct_label;
-    check(kobject_get_label(&c->ct_ko, kolabel_contaminate, &ct_label));
-
-    struct Mlt *mlt;
-    check(mlt_alloc(ct_label, &mlt));
-    alloc_set_name(&mlt->mt_ko, name);
-
-    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &mlt->mt_ko));
-    return mlt->mt_ko.ko_id;
-}
-
-static void
-sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *ul, uint8_t *buf)
-{
-    const struct kobject *ko;
-    check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));
-    check(check_user_access(buf, MLT_BUF_SIZE, SEGMAP_WRITE));
-
-    const struct Label *l;
-    check(mlt_get(&ko->mt, idx, &l, buf));
-    if (ul)
-	check(label_to_ulabel(l, ul));
-}
-
-static void
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *ul, uint8_t *buf)
-{
-    const struct kobject *ko;
-    check(cobj_get(mlt, kobj_mlt, &ko, iflow_read));	// MLT does label check
-
-    const struct Label *l;
-    alloc_ulabel(ul, &l, &cur_th_label->lb_ko);
-
-    check(label_compare(cur_th_label, l, label_leq_starlo));
-    check(check_user_access(buf, MLT_BUF_SIZE, 0));
-    check(mlt_put(&ko->mt, l, buf));
-}
-
-static int64_t
 sys_pstate_timestamp(void)
 {
     return handle_alloc();
@@ -836,8 +791,6 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(as_get),
     SYSCALL_DISPATCH(as_set),
     SYSCALL_DISPATCH(as_set_slot),
-    SYSCALL_DISPATCH(mlt_get),
-    SYSCALL_DISPATCH(mlt_put),
     SYSCALL_DISPATCH(pstate_sync),
 };
 
@@ -862,7 +815,6 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(segment_get_nbytes),
     SYSCALL_DISPATCH(gate_create),
     SYSCALL_DISPATCH(as_create),
-    SYSCALL_DISPATCH(mlt_create),
     SYSCALL_DISPATCH(pstate_timestamp),
 };
 

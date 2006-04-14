@@ -329,21 +329,3 @@ sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm)
 {
     return syscall(SYS_as_set_slot, as, usm);
 }
-
-int64_t
-sys_mlt_create(uint64_t container, const char *name)
-{
-    return syscall(SYS_mlt_create, container, name);
-}
-
-int
-sys_mlt_get(struct cobj_ref mlt, uint64_t idx, struct ulabel *l, uint8_t *buf)
-{
-    return syscall(SYS_mlt_get, mlt, idx, l, buf);
-}
-
-int
-sys_mlt_put(struct cobj_ref mlt, struct ulabel *l, uint8_t *buf)
-{
-    return syscall(SYS_mlt_put, mlt, l, buf);
-}

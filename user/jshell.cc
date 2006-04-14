@@ -79,10 +79,6 @@ print_cobj(uint64_t ct, uint64_t slot)
 	printf("address space");
 	break;
 
-    case kobj_mlt:
-	printf("mlt");
-	break;
-
     case kobj_netdev:
 	printf("netdev");
 	break;

@@ -4,7 +4,6 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
-#include <inc/mlt.h>
 #include <inc/pthread.h>
 #include <inc/declassify.h>
 #include <inc/gateparam.h>
@@ -51,8 +50,6 @@ fs_dir_open(fs_inode dir, bool writable)
 	} catch (missing_dir_segment &m) {
 	    return new fs_dir_ct(dir);
 	}
-    } else if (type == kobj_mlt) {
-	return new fs_dir_mlt(dir);
     } else {
 	throw basic_exception("unknown directory type %d", type);
     }
@@ -149,61 +146,6 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	segment_unmap_delayed(mtab, 1);
     }
 
-#if 0
-    // Simple MLT support
-    if (!strcmp(fn, "@mlt")) {
-	uint8_t blob[MLT_BUF_SIZE];
-	uint64_t ct;
-	int retry_count = 0;
-
-	struct ulabel *lcur = label_get_current();
-	if (lcur == 0)
-	    return -E_NO_MEM;
-	scope_guard<void, struct ulabel *> lf1(label_free, lcur);
-
-	struct ulabel *lslot = label_alloc();
-	if (lslot == 0)
-	    return -E_NO_MEM;
-	scope_guard<void, struct ulabel *> lf2(label_free, lslot);
-
-	int r = -1;
-
-	for (uint64_t slot = 0; r < 0; slot++) {
-	    r = sys_mlt_get(dir.obj, slot, lslot, &blob[0], &ct);
-	    if (r < 0) {
-		if (r == -E_NOT_FOUND)
-		    break;
-		return r;
-	    }
-
-	    r = label_compare(lcur, lslot, label_leq_starlo);
-	    if (r == 0)
-		r = label_compare(lslot, lcur, label_leq_starhi);
-	}
-
-	if (r < 0) {
-	    if (retry_count++ > 0)
-		return -E_INVAL;
-
-	    label_change_star(lcur, lcur->ul_default);
-
-	    if (fs_label_debug)
-		cprintf("Creating MLT branch with label %s\n",
-			label_to_string(lcur));
-
-	    r = sys_mlt_put(dir.obj, lcur, &blob[0], &ct);
-	    if (r < 0)
-		return r;
-
-	    o->obj = COBJ(ct, ct);
-	    fs_dir_dseg::init(*o);
-	}
-
-	o->obj = COBJ(ct, ct);
-	return 0;
-    }
-#endif
-
     try {
 	fs_dir *d = fs_dir_open(dir, 0);
 	scope_guard<void, fs_dir *> g(delete_obj, d);
@@ -277,27 +219,6 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 	cprintf("fs_mkdir: %s\n", e.what());
 	return e.err();
     }
-
-    try {
-	fs_dir *d = fs_dir_open(dir, 1);
-	scope_guard<void, fs_dir *> g(delete_obj, d);
-	d->insert(fn, *o);
-    } catch (error &e) {
-	sys_obj_unref(o->obj);
-	return e.err();
-    }
-
-    return 0;
-}
-
-int
-fs_mkmlt(struct fs_inode dir, const char *fn, struct fs_inode *o)
-{
-    int64_t id = sys_mlt_create(dir.obj.object, fn);
-    if (id < 0)
-	return id;
-
-    o->obj = COBJ(dir.obj.object, id);
 
     try {
 	fs_dir *d = fs_dir_open(dir, 1);

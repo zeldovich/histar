@@ -55,9 +55,6 @@
     SYSCALL_ENTRY(as_get)			\
     SYSCALL_ENTRY(as_set)			\
     SYSCALL_ENTRY(as_set_slot)			\
-    SYSCALL_ENTRY(mlt_create)			\
-    SYSCALL_ENTRY(mlt_put)			\
-    SYSCALL_ENTRY(mlt_get)			\
 
 #define SYSCALL_ENTRY(name)	SYS_##name,
 

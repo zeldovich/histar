@@ -11,7 +11,6 @@ typedef enum {
     kobj_gate,
     kobj_segment,
     kobj_address_space,
-    kobj_mlt,
     kobj_netdev,
     kobj_label,
     kobj_dead,

@@ -11,8 +11,6 @@ currently only one address space can have a page in a PTE while it's
 being written out to disk -- the second AS that tries to fault it in
 goes to sleep because we don't know if it's safe to COW!
 
-min/max labels on MLT to control contamination
-
 MT-safe c++ support (lib/cppsup/bits/gthr.h)
 thread-safe uclibc
 
@@ -27,8 +25,6 @@ better separation between kernel, user-space and shared header files
 how to expose thread-local segment?  is it safe?
 
 expose kobj_label's at the syscall API to get label sharing
-
-better MLT support in the filesystem: unification et al
 
 ===
 
@@ -93,6 +89,4 @@ and careful-write wrapper that does setjmp() first, and the segfault handler wil
 longjmp().
 
 split the pstate sync timestamp counter from the handle counter
-
-multiple threads with different labels sharing the same AS..  pgmap sharing issues?
 
