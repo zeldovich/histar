@@ -22,7 +22,7 @@ int
 main(int ac, char **av)
 try
 {
-    int64_t h = sys_handle_create();
+    int64_t h = handle_alloc();
     error_check(h);
     privilege_store ps(h);
 
@@ -30,7 +30,7 @@ try
     print_label();
 
     for (int i = 0; i < nhandles; i++) {
-	handles[i] = sys_handle_create();
+	handles[i] = handle_alloc();
 	error_check(handles[i]);
 	ps.store_priv(handles[i]);
 

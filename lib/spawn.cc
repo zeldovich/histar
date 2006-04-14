@@ -72,11 +72,11 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     label proc_object_label(integrity_object_label);
 
     // Generate some private handles for the new process
-    int64_t process_grant = sys_handle_create();
+    int64_t process_grant = handle_alloc();
     error_check(process_grant);
     scope_guard<void, uint64_t> pgrant_cleanup(thread_drop_star, process_grant);
 
-    int64_t process_taint = sys_handle_create();
+    int64_t process_taint = handle_alloc();
     error_check(process_taint);
     scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
 
@@ -147,6 +147,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
+    spawn_env->ppid = 0;
     
     int room = env_size - sizeof(start_env_t);
     char *p = &spawn_env->args[0];
@@ -285,7 +286,7 @@ process_report_exit(int64_t code)
     }
 
     int r = process_update_state(PROCESS_EXITED, code);
-    if (r >= 0)
+    if (r >= 0 && start_env->ppid)
 	kill(start_env->ppid, SIGCHLD);
     return r;
 }

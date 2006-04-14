@@ -23,9 +23,9 @@ static struct u_gate_entry ug;
 int
 main(int ac, char **av)
 {
-    int64_t srv_handle = sys_handle_create();
+    int64_t srv_handle = handle_alloc();
     if (srv_handle < 0)
-	panic("sys_handle_create: %s", e2s(srv_handle));
+	panic("handle_alloc: %s", e2s(srv_handle));
 
     printf("server process starting: server handle %ld\n", srv_handle);
 

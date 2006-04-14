@@ -50,7 +50,7 @@ auth_call(int op, const char *user, const char *pass, const char *npass,
 	uint64_t uid_save = reply->user_id;
 
 	int64_t taint_handle;
-	error_check(taint_handle = sys_handle_create());
+	error_check(taint_handle = handle_alloc());
 	scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint_handle);
 
 	label cs(LB_LEVEL_STAR);

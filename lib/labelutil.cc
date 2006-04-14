@@ -7,23 +7,72 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
+#include <inc/pthread.hh>
+
+static pthread_mutex_t label_ops_mu;
+static uint64_t cur_th_label_id, cur_th_clear_id;
+static label cur_th_label, cur_th_clear;
+
+int
+thread_set_label(label *l)
+{
+    scoped_pthread_lock x(&label_ops_mu);
+
+    int r = sys_self_set_label(l->to_ulabel());
+    if (r < 0)
+	return r;
+
+    cur_th_label.copy_from(l);
+    cur_th_label_id = thread_id();
+    return 0;
+}
+
+int
+thread_set_clear(label *l)
+{
+    scoped_pthread_lock x(&label_ops_mu);
+
+    int r = sys_self_set_clearance(l->to_ulabel());
+    if (r < 0)
+	return r;
+
+    cur_th_clear.copy_from(l);
+    cur_th_clear_id = thread_id();
+    return 0;
+}
 
 void
 thread_drop_star(uint64_t handle)
 {
-    label clear;
-    thread_cur_clearance(&clear);
-    if (clear.get(handle) != clear.get_default()) {
-	clear.set(handle, clear.get_default());
-	error_check(sys_self_set_clearance(clear.to_ulabel()));
-    }
+    try {
+	label clear;
+	thread_cur_clearance(&clear);
+	if (clear.get(handle) != clear.get_default()) {
+	    clear.set(handle, clear.get_default());
+	    error_check(thread_set_clear(&clear));
+	}
 
-    label self;
-    thread_cur_label(&self);
-    if (self.get(handle) != self.get_default()) {
-	self.set(handle, self.get_default());
-	error_check(sys_self_set_label(self.to_ulabel()));
+	label self;
+	thread_cur_label(&self);
+	if (self.get(handle) != self.get_default()) {
+	    self.set(handle, self.get_default());
+	    error_check(thread_set_label(&self));
+	}
+    } catch (...) {
+	thread_label_cache_invalidate();
+	throw;
     }
+}
+
+void
+thread_label_cache_invalidate(void)
+{
+    scoped_pthread_lock x(&label_ops_mu);
+
+    if (cur_th_clear_id == thread_id())
+	cur_th_clear_id = 0;
+    if (cur_th_label_id == thread_id())
+	cur_th_label_id = 0;
 }
 
 void
@@ -55,13 +104,29 @@ get_label_retry_obj(label *l, int (*fn) (struct cobj_ref, struct ulabel *), stru
 void
 thread_cur_label(label *l)
 {
-    get_label_retry(l, thread_get_label);
+    scoped_pthread_lock x(&label_ops_mu);
+
+    if (cur_th_label_id == thread_id()) {
+	l->copy_from(&cur_th_label);
+    } else {
+	get_label_retry(l, thread_get_label);
+	cur_th_label.copy_from(l);
+	cur_th_label_id = thread_id();
+    }
 }
 
 void
 thread_cur_clearance(label *l)
 {
-    get_label_retry(l, &sys_self_get_clearance);
+    scoped_pthread_lock x(&label_ops_mu);
+
+    if (cur_th_clear_id == thread_id()) {
+	l->copy_from(&cur_th_clear);
+    } else {
+	get_label_retry(l, &sys_self_get_clearance);
+	cur_th_clear.copy_from(l);
+	cur_th_clear_id = thread_id();
+    }
 }
 
 void
@@ -80,4 +145,23 @@ void
 gate_get_clearance(struct cobj_ref o, label *l)
 {
     get_label_retry_obj(l, &sys_gate_clearance, o);
+}
+
+int64_t
+handle_alloc(void)
+{
+    scoped_pthread_lock x(&label_ops_mu);
+
+    int64_t h = sys_handle_create();
+    if (h < 0)
+	return h;
+
+    if (cur_th_label_id == thread_id()) {
+	try {
+	    cur_th_label.set(h, LB_LEVEL_STAR);
+	} catch (...) {
+	    cur_th_label_id = 0;
+	}
+    }
+    return h;
 }

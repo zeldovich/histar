@@ -165,8 +165,8 @@ create_user(const char *uname, const char *pass,
 	    uint64_t *ug, uint64_t *ut, uint64_t uid, user_entry *ue)
 {
     int64_t g, t;
-    error_check(g = sys_handle_create());
-    error_check(t = sys_handle_create());
+    error_check(g = handle_alloc());
+    error_check(t = handle_alloc());
 
     alloc_user(uname, pass, g, t, uid, ue);
 
@@ -295,12 +295,12 @@ authd_init(uint64_t rg)
     error_check(sys_self_get_as(&base_as_ref));
 
     int64_t rt;
-    error_check(rt = sys_handle_create());
+    error_check(rt = handle_alloc());
  
     root_grant = rg;
     root_taint = rt;
 
-    error_check(authd_grant = sys_handle_create());
+    error_check(authd_grant = handle_alloc());
 
     label u_ctm(1);
     u_ctm.set(authd_grant, 0);

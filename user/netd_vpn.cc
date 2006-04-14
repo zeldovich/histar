@@ -35,8 +35,8 @@ main(int ac, char **av)
 	return -1;
     }
 
-    int64_t grant = sys_handle_create();
-    int64_t taint = sys_handle_create();
+    int64_t grant = handle_alloc();
+    int64_t taint = handle_alloc();
     assert(grant > 0 && taint > 0);
 
     if (netd_debug)

@@ -18,9 +18,9 @@ extern "C" {
 static int self_taint_debug = 0;
 
 static void __attribute__((noreturn))
-taint_self_tls(int *rp, struct ulabel *ul, uint64_t taint_ct, struct jos_jmp_buf *back)
+taint_self_tls(int *rp, label *l, uint64_t taint_ct, struct jos_jmp_buf *back)
 {
-    int r = sys_self_set_label(ul);
+    int r = thread_set_label(l);
     if (r >= 0)
 	taint_cow(taint_ct, COBJ(0, 0));
     *rp = r;
@@ -57,7 +57,7 @@ taint_self(label *taint)
     struct jos_jmp_buf back;
     int r;
     if (jos_setjmp(&back) == 0)
-	stack_switch((uint64_t) &r, (uint64_t) tl.to_ulabel(),
+	stack_switch((uint64_t) &r, (uint64_t) &tl,
 		     taint_ct, (uint64_t) &back,
 		     tls_stack_top, (void *) &taint_self_tls);
 

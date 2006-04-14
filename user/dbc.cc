@@ -68,7 +68,7 @@ try
 	    dbr->dbr_match_vector[i] = (i * 2 + 5) % 64;
 
 	int64_t query_tainth;
-	error_check(query_tainth = sys_handle_create());
+	error_check(query_tainth = handle_alloc());
 
 	label query_taint(LB_LEVEL_STAR);
 	query_taint.set(query_tainth, 2);

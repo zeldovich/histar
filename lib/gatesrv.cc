@@ -49,6 +49,8 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t keep_tls_stack)
 	if (tls_tidp)
 	    *tls_tidp = sys_self_id();
 
+	thread_label_cache_invalidate();
+
 	uint64_t entry_ct = start_env->proc_container;
 	error_check(sys_self_addref(entry_ct));
 	scope_guard<int, struct cobj_ref>

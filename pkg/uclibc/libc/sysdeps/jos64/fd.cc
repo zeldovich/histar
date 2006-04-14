@@ -207,12 +207,12 @@ fd_make_public(int fdnum)
     if (fd->fd_immutable)
 	return -E_LABEL;
 
-    int64_t fd_grant = sys_handle_create();
+    int64_t fd_grant = handle_alloc();
     if (fd_grant < 0)
 	return fd_grant;
     scope_guard<void, uint64_t> grant_drop(thread_drop_star, fd_grant);
 
-    int64_t fd_taint = sys_handle_create();
+    int64_t fd_taint = handle_alloc();
     if (fd_taint < 0)
 	return fd_taint;
     scope_guard<void, uint64_t> taint_drop(thread_drop_star, fd_taint);

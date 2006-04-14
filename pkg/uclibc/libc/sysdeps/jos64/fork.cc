@@ -50,11 +50,11 @@ do_fork()
     label secret_label(integrity_label);
 
     // Generate handles for new process
-    int64_t process_grant = sys_handle_create();
+    int64_t process_grant = handle_alloc();
     error_check(process_grant);
     scope_guard<void, uint64_t> pgrant_cleanup(thread_drop_star, process_grant);
 
-    int64_t process_taint = sys_handle_create();
+    int64_t process_taint = handle_alloc();
     error_check(process_taint);
     scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
 

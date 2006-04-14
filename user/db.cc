@@ -224,7 +224,7 @@ main(int ac, char **av)
 try
 {
     error_check(sys_self_get_as(&db_as));
-    error_check((db_table_grant = sys_handle_create()));
+    error_check((db_table_grant = handle_alloc()));
 
     label db_table_label(1);
     if (!db_debug_visible)

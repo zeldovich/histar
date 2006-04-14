@@ -3,6 +3,7 @@
 #include <inc/atomic.h>
 #include <inc/lib.h>
 #include <inc/bipipe.h>
+#include <inc/labelutil.h>
 
 #include <errno.h>
 #include <string.h>
@@ -34,8 +35,8 @@ bipipe(int fv[2])
     struct bipipe_seg *bs = 0;
     uint64_t ct = start_env->shared_container;
     
-    uint64_t taint = sys_handle_create();
-    uint64_t grant = sys_handle_create();
+    uint64_t taint = handle_alloc();
+    uint64_t grant = handle_alloc();
     struct ulabel *l = label_alloc();
     l->ul_default = 1;
     label_set_level(l, taint, 3, 1);

@@ -65,7 +65,7 @@ gate_call::gate_call(cobj_ref gate,
     : gate_(gate)
 {
     // Create a handle for the duration of this call
-    error_check(call_handle_ = sys_handle_create());
+    error_check(call_handle_ = handle_alloc());
     scope_guard<void, uint64_t> drop_star(thread_drop_star, call_handle_);
 
     // Compute the target labels
@@ -140,6 +140,8 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     // Restore cached thread ID, just to be safe
     if (tls_tidp)
 	*tls_tidp = sys_self_id();
+
+    thread_label_cache_invalidate();
 
     // Copy back the arguments
     if (gcd_param)

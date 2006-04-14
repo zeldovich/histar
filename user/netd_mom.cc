@@ -34,8 +34,8 @@ int
 main(int ac, char **av)
 try
 {
-    int64_t net_grant = sys_handle_create();
-    int64_t net_taint = sys_handle_create();
+    int64_t net_grant = handle_alloc();
+    int64_t net_taint = handle_alloc();
 
     error_check(net_grant);
     error_check(net_taint);

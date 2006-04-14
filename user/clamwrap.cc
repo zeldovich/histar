@@ -12,7 +12,7 @@ main(int ac, char **av)
 try
 {
     int64_t clam_taint;
-    error_check(clam_taint = sys_handle_create());
+    error_check(clam_taint = handle_alloc());
 
     
 } catch (std::exception &e) {
