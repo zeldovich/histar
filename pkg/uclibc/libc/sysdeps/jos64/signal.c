@@ -30,6 +30,7 @@ static struct sigaction sigactions[_NSIG];
 static siginfo_t siginfos[_NSIG];
 
 // Trap handler to invoke signals
+static uint64_t signal_thread_id;
 
 static void
 sig_fatal(void)
@@ -240,11 +241,8 @@ retry:
 void
 signal_process_remote(siginfo_t *si)
 {
-    int64_t id = container_find(start_env->proc_container, kobj_thread, 0);
-    if (id >= 0) {
-	struct cobj_ref tobj = COBJ(start_env->proc_container, id);
-	kill_thread_siginfo(tobj, si);
-    }
+    struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
+    kill_thread_siginfo(tobj, si);
 }
 
 static void
@@ -253,6 +251,7 @@ signal_utrap_init(void)
     static int signal_inited;
     if (signal_inited == 0) {
 	signal_inited = 1;
+	signal_thread_id = thread_id();
 	utrap_set_handler(&signal_utrap);
     }
 }
