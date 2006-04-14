@@ -37,6 +37,7 @@ enum { lfs_iterations = 1 };
 static char buf[40960];
 static char namebuf[32];
 static char *prog_name;
+static int syncopt;
 
 #define NDIR 100
 
@@ -83,7 +84,7 @@ creat_test(int n, int size)
 		    exit(1);
 		}
 
-		if (fsync(fd) < 0) {
+		if (syncopt == 1 && fsync(fd) < 0) {
 		    printf("creat_test: fsync failed: %s\n", strerror(errno));
 		    exit(1);
 		}
@@ -111,6 +112,9 @@ creat_test(int n, int size)
 		if (j % 100 == 0) j = 0;
 
     }
+
+    if (syncopt == 2)
+	sync();
 
     f = time_msec();
     printf("%s: creat took %d msec\n",  prog_name,  f - s);
@@ -233,8 +237,9 @@ main(int argc, char *argv[])
 
     prog_name = argv[0];
 
-    if (argc != 3) {
-	printf("%s: %s num size\n", prog_name, prog_name);
+    if (argc != 4) {
+	printf("%s: %s num size sync-opt\n", prog_name, prog_name);
+	printf(" sync-opt: 0 for no-sync, 1 for file-sync, 2 for group-sync\n");
 	exit(1);
     }
 
@@ -245,6 +250,7 @@ main(int argc, char *argv[])
 
     n = atoi(argv[1]);
     size = atoi(argv[2]);
+    syncopt = atoi(argv[3]);
 
     printf("%s %d %d\n", prog_name, n, size);
 

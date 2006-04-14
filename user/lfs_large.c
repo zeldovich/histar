@@ -56,8 +56,8 @@ write_test(int n, int size, int sequential)
     int r;
     int fd;
     long pos = 0 ;
-	struct stat statb;
-    
+    struct stat statb;
+
     unsigned s, fin;
     s = time_msec();
     
