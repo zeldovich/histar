@@ -94,3 +94,5 @@ longjmp().
 
 split the pstate sync timestamp counter from the handle counter
 
+multiple threads with different labels sharing the same AS..  pgmap sharing issues?
+
