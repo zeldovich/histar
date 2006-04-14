@@ -54,8 +54,8 @@ CXXWARNS := $(COMWARNS)
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 
-OPTFLAG := -O2
-#OPTFLAG := -O3 -march=opteron
+#OPTFLAG := -O2
+OPTFLAG := -O3 -march=athlon64
 COMFLAGS := -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing -Wall -MD
 CSTD	 := -std=c99
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
