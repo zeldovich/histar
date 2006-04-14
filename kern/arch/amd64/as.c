@@ -200,8 +200,19 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     if (r < 0)
 	return r;
 
-    // Invalidate any pre-existing mappings first..
-    as_invalidate_sm(sm);
+    if (usm->segment.object    == usm_copy.segment.object &&
+	usm->segment.container == usm_copy.segment.container &&
+	usm->start_page        == usm_copy.start_page &&
+	usm->kslot             == usm_copy.kslot &&
+	usm->flags             == usm_copy.flags &&
+	usm->va                == usm_copy.va &&
+	usm->num_pages         <= usm_copy.num_pages)
+    {
+	// Can skip invalidation -- simply growing the mapping.
+    } else {
+	// Invalidate any pre-existing mappings first..
+	as_invalidate_sm(sm);
+    }
 
     *usm = usm_copy;
 
