@@ -209,7 +209,7 @@ nvi: $(ACPKG_WRAPS)
 ## trying to build.
 
 acpkg/gcc-3.4.5/__build: acpkg/binutils-2.16.1/__build
-acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile acpkg/binutils-2.16.1/__build
+acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
