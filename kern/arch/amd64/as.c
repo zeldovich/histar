@@ -31,7 +31,7 @@ as_invalidate(const struct Address_space *as_const)
     struct Address_space *as = &kobject_dirty(&as_const->as_ko)->as;
 
     if (as_debug)
-	cprintf("as_invalidate\n");
+	cprintf("as_invalidate: %s\n", as->as_ko.ko_name);
 
     as_swapout(as);
     as_swapin(as);
@@ -394,6 +394,9 @@ as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
 	mas->as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
+    if (as_debug)
+	cprintf("as_pagefault: as %s va %p\n", as->as_ko.ko_name, va);
+
     return as_pmap_fill(as, va, reqflags);
 }
 
@@ -469,6 +472,8 @@ as_invalidate_label(const struct Address_space *as, int invalidate_tls)
 		     (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) == 0)
 	    continue;
 
+	if (as_debug)
+	    cprintf("as_invalidate_label: calling as_invalidate_sm\n");
 	as_invalidate_sm(sm);
     }
 
