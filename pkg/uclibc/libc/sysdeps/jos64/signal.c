@@ -217,18 +217,10 @@ kill_thread_siginfo(struct cobj_ref tid, siginfo_t *si)
 
     siginfos[signo] = *si;
 
-    int retry_count = 0;
-retry:
-    retry_count++;
-
-    int r = sys_thread_trap(tid, 0, signo);
+    struct cobj_ref cur_as;
+    sys_self_get_as(&cur_as);
+    int r = sys_thread_trap(tid, cur_as, 0, signo);
     if (r < 0) {
-	// XXX how ugly
-	if (r == -E_LABEL && retry_count < 20) {
-	    sys_self_yield();
-	    goto retry;
-	}
-
 	cprintf("kill_thread_siginfo: cannot trap: %s\n", e2s(r));
 
 	__set_errno(EPERM);

@@ -160,9 +160,10 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
 }
 
 int
-sys_thread_trap(struct cobj_ref thread, uint32_t trapno, uint64_t arg)
+sys_thread_trap(struct cobj_ref thread, struct cobj_ref as,
+		uint32_t trapno, uint64_t arg)
 {
-    return syscall(SYS_thread_trap, thread, trapno, arg);
+    return syscall(SYS_thread_trap, thread, as, trapno, arg);
 }
 
 void
