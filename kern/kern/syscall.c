@@ -628,28 +628,18 @@ static int64_t
 sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
 		   const char *name)
 {
-    uint64_t ts0 = read_tsc();
-
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
 
     const struct Label *l;
     alloc_ulabel(ul, &l, &c->ct_ko);
 
-    uint64_t ts1 = read_tsc();
-
     struct Segment *sg;
     check(segment_alloc(l, &sg));
     alloc_set_name(&sg->sg_ko, name);
 
-    uint64_t ts2 = read_tsc();
-
     check(segment_set_nbytes(sg, num_bytes, 0));
-    uint64_t ts3 = read_tsc();
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
-    uint64_t ts4 = read_tsc();
-
-    cprintf("segment_create: %ld bytes: %ld %ld %ld %ld\n", num_bytes, ts1-ts0, ts2-ts1, ts3-ts2, ts4-ts3);
     return sg->sg_ko.ko_id;
 }
 
