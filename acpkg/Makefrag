@@ -112,6 +112,7 @@ $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
+$(OBJDIR)/acpkg/bin/mkdir: acpkg/coreutils-5.94/__build
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
@@ -229,4 +230,5 @@ $(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/_
 				      lib/gcc/x86_64-jos-linux/3.4.5/specs \
 				      lib/gcc/x86_64-jos-linux/3.4.5/crt1.o \
 				      lib/gcc/x86_64-jos-linux/3.4.5/crti.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/crtn.o
+				      lib/gcc/x86_64-jos-linux/3.4.5/crtn.o \
+				      lib/gcc/x86_64-jos-linux/3.4.5/include
