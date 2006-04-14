@@ -519,18 +519,12 @@ segment_alloc(uint64_t container, uint64_t bytes,
     *cobj = COBJ(container, id);
 
     if (va_p) {
-	uint64_t mapped_bytes = 0;
+	uint64_t mapped_bytes = bytes;
 	int r = segment_map(*cobj, SEGMAP_READ | SEGMAP_WRITE,
 			    va_p, &mapped_bytes);
 	if (r < 0) {
 	    sys_obj_unref(*cobj);
 	    return r;
-	}
-
-	if (mapped_bytes != bytes) {
-	    segment_unmap(*va_p);
-	    sys_obj_unref(*cobj);
-	    return -E_AGAIN;	// race condition maybe..
 	}
     }
 
