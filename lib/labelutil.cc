@@ -13,13 +13,17 @@ thread_drop_star(uint64_t handle)
 {
     label clear;
     thread_cur_clearance(&clear);
-    clear.set(handle, clear.get_default());
-    error_check(sys_self_set_clearance(clear.to_ulabel()));
+    if (clear.get(handle) != clear.get_default()) {
+	clear.set(handle, clear.get_default());
+	error_check(sys_self_set_clearance(clear.to_ulabel()));
+    }
 
     label self;
     thread_cur_label(&self);
-    self.set(handle, self.get_default());
-    error_check(sys_self_set_label(self.to_ulabel()));
+    if (self.get(handle) != self.get_default()) {
+	self.set(handle, self.get_default());
+	error_check(sys_self_set_label(self.to_ulabel()));
+    }
 }
 
 void
