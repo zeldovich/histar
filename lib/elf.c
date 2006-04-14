@@ -42,6 +42,11 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     // Finalize so it can be hard-linked by taint_cow
     sys_segment_resize(copyseg, seglen, 1);
 
+    int stackpages = 2;
+    int shared_stack = 0;
+    struct cobj_ref stack;
+    uint64_t stack_pgoff = 0;
+
     e->te_entry = (void*) elf->e_entry;
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
@@ -61,7 +66,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    struct cobj_ref nseg;
 	    char *sbuf = 0;
 	    snprintf(&objname[0], KOBJ_NAME_LEN, "text/data for %s", elfname);
-	    r = segment_alloc(container, va_off + ph->p_memsz,
+	    r = segment_alloc(container, va_off + ph->p_memsz + (stackpages + 1) * PGSIZE,
 			      &nseg, (void**) &sbuf, label, &objname[0]);
 	    if (r < 0) {
 		cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
@@ -81,6 +86,10 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    sm_ents[si].flags = ph->p_flags;
 	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
 	    si++;
+
+	    stack = nseg;
+	    stack_pgoff = (va_off + ph->p_memsz + PGSIZE - 1) / PGSIZE;
+	    shared_stack = 1;
 	}
     }
 
@@ -90,20 +99,22 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return r;
     }
 
-    int stackpages = 2;
-    struct cobj_ref stack;
-    snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
-    r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label, &objname[0]);
-    if (r < 0) {
-	cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
-	return r;
+    if (!shared_stack) {
+	snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
+	r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label, &objname[0]);
+	if (r < 0) {
+	    cprintf("elf_load: cannot create stack segment: %s\n", e2s(r));
+	    return r;
+	}
+
+	stack_pgoff = 0;
     }
 
     char *stacktop = (char*) USTACKTOP;
     e->te_stack = stacktop;
 
     sm_ents[si].segment = stack;
-    sm_ents[si].start_page = 0;
+    sm_ents[si].start_page = stack_pgoff;
     sm_ents[si].num_pages = stackpages;
     sm_ents[si].flags = SEGMAP_READ | SEGMAP_WRITE;
     sm_ents[si].va = stacktop - stackpages * PGSIZE;
