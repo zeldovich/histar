@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 void thread_drop_star(uint64_t handle);
+void thread_drop_starpair(uint64_t h1, uint64_t h2);
 
 int  thread_set_label(label *l);
 int  thread_set_clearance(label *l);

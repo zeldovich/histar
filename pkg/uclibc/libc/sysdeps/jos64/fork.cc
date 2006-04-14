@@ -56,7 +56,8 @@ do_fork()
 
     int64_t process_taint = handle_alloc();
     error_check(process_taint);
-    scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
+    scope_guard2<void, uint64_t, uint64_t> ptaint_cleanup(thread_drop_starpair, process_taint, process_grant);
+    pgrant_cleanup.dismiss();
 
     // Grant process handles to the new process
     thread_contaminate.set(process_grant, LB_LEVEL_STAR);

@@ -78,7 +78,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     int64_t process_taint = handle_alloc();
     error_check(process_taint);
-    scope_guard<void, uint64_t> ptaint_cleanup(thread_drop_star, process_taint);
+    scope_guard2<void, uint64_t, uint64_t> ptaint_cleanup(thread_drop_starpair, process_taint, process_grant);
+    pgrant_cleanup.dismiss();
 
     thread_label.set(process_grant, LB_LEVEL_STAR);
     thread_label.set(process_taint, LB_LEVEL_STAR);

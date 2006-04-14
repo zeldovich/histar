@@ -65,6 +65,31 @@ thread_drop_star(uint64_t handle)
 }
 
 void
+thread_drop_starpair(uint64_t h1, uint64_t h2)
+{
+    try {
+	label clear;
+	thread_cur_clearance(&clear);
+	if (clear.get(h1) != clear.get_default() || clear.get(h2) != clear.get_default()) {
+	    clear.set(h1, clear.get_default());
+	    clear.set(h2, clear.get_default());
+	    error_check(thread_set_clear(&clear));
+	}
+
+	label self;
+	thread_cur_label(&self);
+	if (self.get(h1) != self.get_default() || self.get(h2) != self.get_default()) {
+	    self.set(h1, self.get_default());
+	    self.set(h2, self.get_default());
+	    error_check(thread_set_label(&self));
+	}
+    } catch (...) {
+	thread_label_cache_invalidate();
+	throw;
+    }
+}
+
+void
 thread_label_cache_invalidate(void)
 {
     scoped_pthread_lock x(&label_ops_mu);

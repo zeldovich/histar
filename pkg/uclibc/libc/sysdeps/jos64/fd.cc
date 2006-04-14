@@ -383,8 +383,8 @@ fd_close(struct Fd *fd)
 void
 fd_give_up_privilege(int fdnum)
 {
-    thread_drop_star(fd_handles[fdnum].fd_taint);
-    thread_drop_star(fd_handles[fdnum].fd_grant);
+    thread_drop_starpair(fd_handles[fdnum].fd_taint,
+			 fd_handles[fdnum].fd_grant);
 }
 
 int
