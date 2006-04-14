@@ -34,21 +34,22 @@ utrap_init(void)
     int xstack_pages = 2;
 
     void *utrap_stack = (void *) UTRAPSTACKTOP - xstack_pages * PGSIZE;
+    uint64_t nbytes = (xstack_pages + 1) * PGSIZE;
     struct cobj_ref o;
-    int r = segment_alloc(start_env->proc_container, (xstack_pages + 1) * PGSIZE,
+    int r = segment_alloc(start_env->proc_container, nbytes,
 			  &o, &utrap_stack, 0, "trap stack");
     if (r < 0)
 	return r;
 
     void *utrap_code = (void *) UTRAPHANDLER - xstack_pages * PGSIZE;
-    r = segment_map(o, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_EXEC, &utrap_code, 0);
+    r = segment_map(o, SEGMAP_READ | SEGMAP_EXEC, &utrap_code, &nbytes);
     if (r < 0)
 	return r;
 
-    utrap_code = (void *) UTRAPHANDLER;
     uint32_t utrap_stub_size = (uint32_t) ((void *) utrap_stub_end -
 					   (void *) utrap_stub);
-    memcpy(utrap_code, (void *) utrap_stub, utrap_stub_size);
+    memcpy(utrap_stack + xstack_pages * PGSIZE, (void *) utrap_stub,
+	   utrap_stub_size);
     return 0;
 }
 
