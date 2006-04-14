@@ -8,6 +8,7 @@
 #include <inc/utrap.h>
 #include <inc/assert.h>
 #include <inc/memlayout.h>
+#include <inc/wait.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -51,6 +52,9 @@ static void
 signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
     extern const char *__progname;
+
+    if (si->si_signo == SIGCHLD)
+	child_notify();
 
     if (sa->sa_handler == SIG_IGN)
 	return;

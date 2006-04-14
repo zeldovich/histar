@@ -20,6 +20,7 @@ struct wait_child {
 };
 
 static LIST_HEAD(wc_head, wait_child) children;
+static uint64_t child_counter;
 
 // Add a child.  Used by parent fork process.
 void
@@ -46,6 +47,13 @@ child_clear()
 	LIST_REMOVE(wc, wc_link);
 	free(wc);
     }
+}
+
+void
+child_notify()
+{
+    child_counter++;
+    sys_sync_wakeup(&child_counter);
 }
 
 // Returns 1 if child has exited, 0 if still running
@@ -82,7 +90,10 @@ pid_t
 wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 {
     struct wait_child *wc, *next;
+    uint64_t start_counter;
+
 again:
+    start_counter = child_counter;
     for (wc = LIST_FIRST(&children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
 
@@ -114,7 +125,7 @@ again:
     }
 
     if (!(options & WNOHANG)) {
-	thread_sleep(1000);
+	sys_sync_wait(&child_counter, start_counter, sys_clock_msec() + 1000);
 	goto again;
     }
 
