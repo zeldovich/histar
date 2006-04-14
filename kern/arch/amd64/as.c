@@ -264,22 +264,22 @@ as_pmap_fill_segment(const struct Address_space *as,
 {
     struct Pagemap *pgmap = as->as_pgmap;
 
-    char *cva = (char *) usm->va;
-    if (PGOFF(cva))
-	return -E_INVAL;
-
     uint64_t start_page = usm->start_page;
     uint64_t num_pages = usm->num_pages;
     uint64_t flags = usm->flags;
 
+    uint64_t mapped_already = (!invalidate && sm->sm_sg) ? sm->sm_mapped_pages : 0;
+    sm->sm_mapped_pages = 0;
+
     uint64_t i;
     int r = 0;
 
-    if (num_pages > as_invlpg_max)
+    if (num_pages - mapped_already > as_invlpg_max)
 	kobject_ephemeral_dirty(&as->as_ko)->as.as_dirty_tlb = 1;
 
-    for (i = start_page; i < start_page + num_pages; i++) {
-	if (((uint64_t) cva) >= ULIM) {
+    char *cva = (char *) usm->va + mapped_already * PGSIZE;
+    for (i = start_page + mapped_already; i < start_page + num_pages; i++) {
+	if (PGOFF(cva) || ((uint64_t) cva) >= ULIM) {
 	    r = -E_INVAL;
 	    goto err;
 	}
@@ -314,7 +314,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    *ptep = kva2pa(pp) | ptflags;
 	}
 
-	if (num_pages <= as_invlpg_max)
+	if (num_pages - mapped_already <= as_invlpg_max)
 	    tlb_invalidate(pgmap, cva);
 
 	cva += PGSIZE;
@@ -329,6 +329,7 @@ as_pmap_fill_segment(const struct Address_space *as,
     if (!invalidate) {
 	sm->sm_as = as;
 	sm->sm_sg = sg;
+	sm->sm_mapped_pages = num_pages;
 
 	struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
 	LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
