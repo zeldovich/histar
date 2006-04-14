@@ -34,7 +34,7 @@ typedef void (*gatesrv_entry_t)
 
 class gatesrv_descriptor {
 public:
-    gatesrv_descriptor() : as_(COBJ(0, 0)) {};
+    gatesrv_descriptor() : as_(COBJ(0, 0)), tls_stack_(0) {};
 
     uint64_t gate_container_;
     const char *name_;
@@ -45,6 +45,8 @@ public:
 
     gatesrv_entry_t func_;
     void *arg_;
+
+    uint64_t tls_stack_;
 };
 
 struct cobj_ref gate_create(gatesrv_descriptor *dsc);

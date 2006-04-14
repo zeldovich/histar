@@ -38,7 +38,7 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack)
 }
 
 static void __attribute__((noreturn))
-gatesrv_entry_tls(gatesrv_entry_t fn, void *arg)
+gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t keep_tls_stack)
 {
     try {
 	// Copy-on-write if we are tainted
@@ -54,15 +54,19 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg)
 	scope_guard<int, struct cobj_ref>
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
 
-	struct cobj_ref stackobj;
-	void *stack = 0;
-	error_check(segment_alloc(entry_ct, gate_stack_pages * PGSIZE,
-				  &stackobj, &stack, 0, "gate thread stack"));
-	g.dismiss();
+	if (keep_tls_stack) {
+	    gatesrv_entry(fn, arg, 0);
+	} else {
+	    struct cobj_ref stackobj;
+	    void *stack = 0;
+	    error_check(segment_alloc(entry_ct, gate_stack_pages * PGSIZE,
+				      &stackobj, &stack, 0, "gate thread stack"));
+	    g.dismiss();
 
-	stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stack, 0,
-		     (char *) stack + gate_stack_pages * PGSIZE,
-		     (void *) &gatesrv_entry);
+	    stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stack, 0,
+			 (char *) stack + gate_stack_pages * PGSIZE,
+			 (void *) &gatesrv_entry);
+	}
     } catch (std::exception &e) {
 	printf("gatesrv_entry_tls: %s\n", e.what());
 	thread_halt();
@@ -94,6 +98,7 @@ gate_create(gatesrv_descriptor *gd)
     te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg[0] = (uint64_t) gd->func_;
     te.te_arg[1] = (uint64_t) gd->arg_;
+    te.te_arg[2] = gd->tls_stack_;
     te.te_as = gd->as_;
 
     if (te.te_as.object == 0)
@@ -148,8 +153,11 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	sys_self_set_verify(verify.to_ulabel());
     }
 
-    stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
-		 tls_stack_top, (void *) &ret_tls_stub);
+    if (stack_)
+	stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
+		     tls_stack_top, (void *) &ret_tls_stub);
+    else
+	ret_tls(tgt_label, tgt_clear);
 }
 
 void
@@ -183,9 +191,11 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
     delete tgt_r;
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
-    struct cobj_ref stackseg;
-    error_check(segment_lookup(stack_, &stackseg, 0, 0));
-    error_check(segment_unmap(stack_));
-    error_check(sys_obj_unref(stackseg));
+    if (stack_) {
+	struct cobj_ref stackseg;
+	error_check(segment_lookup(stack_, &stackseg, 0, 0));
+	error_check(segment_unmap(stack_));
+	error_check(sys_obj_unref(stackseg));
+    }
     error_check(sys_obj_unref(thread_self));
 }

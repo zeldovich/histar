@@ -51,8 +51,16 @@ signal_gate_init(void)
 	label tl, tc;
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
-	gs = gate_create(start_env->shared_container, "signal", &tl, &tc,
-			 &signal_gate_entry, 0);
+
+	gatesrv_descriptor gd;
+	gd.gate_container_ = start_env->shared_container;
+	gd.name_ = "signal";
+	gd.label_ = &tl;
+	gd.clearance_ = &tc;
+	gd.func_ = &signal_gate_entry;
+	gd.arg_ = 0;
+	gd.tls_stack_ = 1;
+	gs = gate_create(&gd);
     } catch (std::exception &e) {
 	cprintf("signal_gate_create: %s\n", e.what());
     }
