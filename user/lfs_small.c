@@ -219,8 +219,8 @@ delete_test(int n)
 	    exit(1);
 	}
 
-#if LINUX
 	if (syncopt == 1) {
+#if LINUX
 		int fd;
 		sprintf(namebuf, "d%d", j);
 		if ((fd = open(namebuf, O_RDONLY)) < 0) {
@@ -234,8 +234,12 @@ delete_test(int n)
 		}
 
 		close(fd);
-	}
 #endif
+
+#if JOS64
+		sync();
+#endif
+	}
 
 	if ((i+1) % 100 == 0) j++;
 	if (j % 100 == 0) j = 0;
