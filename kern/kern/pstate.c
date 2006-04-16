@@ -242,8 +242,9 @@ pstate_swapin_id(kobject_id_t id)
 static void
 pstate_swapin_stackwrap(void *arg)
 {
+    kobject_id_t id = (kobject_id_t) arg;
     static struct Thread_list swapin_waiting;
-    static int swapin_active;
+    static struct lock swapin_lock;
 
     if (cur_thread)
 	thread_suspend(cur_thread, &swapin_waiting);
@@ -251,15 +252,12 @@ pstate_swapin_stackwrap(void *arg)
     // XXX
     // The reason for having only one swapin at a time is to avoid
     // swapping in the same object twice.
-    if (swapin_active)
+    if (lock_try_acquire(&swapin_lock) < 0)
 	return;
-    swapin_active = 1;
 
-    kobject_id_t id = (kobject_id_t) arg;
     pstate_swapin_id(id);
 
-    swapin_active = 0;
-
+    lock_release(&swapin_lock);
     while (!LIST_EMPTY(&swapin_waiting))
 	thread_set_runnable(LIST_FIRST(&swapin_waiting));
 }
@@ -553,13 +551,12 @@ pstate_sync_loop(struct pstate_header *hdr,
 static void
 pstate_sync_stackwrap(void *arg __attribute__((unused)))
 {
-    static int swapout_active;
+    static struct lock swapout_lock;
 
-    if (swapout_active) {
+    if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync: another sync still active\n");
 	return;
     }
-    swapout_active = 1;
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
@@ -641,7 +638,7 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
     while (!LIST_EMPTY(&sync_waiting))
 	thread_set_runnable(LIST_FIRST(&sync_waiting));
 
-    swapout_active = 0;
+    lock_release(&swapout_lock);
 }
 
 static void
