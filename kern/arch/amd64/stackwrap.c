@@ -8,7 +8,7 @@
 
 struct stackwrap_state {
     stackwrap_fn fn;
-    void *fn_arg;
+    void *fn_arg[3];
 
     void *stackbase;
     struct jos_jmp_buf entry_cb;
@@ -36,7 +36,7 @@ stackwrap_entry(void)
 {
     struct stackwrap_state *ss = stackwrap_cur();
 
-    ss->fn(ss->fn_arg);
+    ss->fn(ss->fn_arg[0], ss->fn_arg[1], ss->fn_arg[2]);
     ss->alive = 0;
     jos_longjmp(&ss->entry_cb, 1);
 }
@@ -59,7 +59,7 @@ stackwrap_sleep(struct stackwrap_state *ss)
 }
 
 int
-stackwrap_call(stackwrap_fn fn, void *fn_arg)
+stackwrap_call(stackwrap_fn fn, void *fn_arg0, void *fn_arg1, void *fn_arg2)
 {
     void *stackbase;
     int r = page_alloc(&stackbase);
@@ -68,7 +68,9 @@ stackwrap_call(stackwrap_fn fn, void *fn_arg)
 
     struct stackwrap_state *ss = (struct stackwrap_state *) stackbase;
     ss->fn = fn;
-    ss->fn_arg = fn_arg;
+    ss->fn_arg[0] = fn_arg0;
+    ss->fn_arg[1] = fn_arg1;
+    ss->fn_arg[2] = fn_arg2;
     ss->stackbase = stackbase;
     ss->alive = 1;
     ss->magic = STACKWRAP_MAGIC;

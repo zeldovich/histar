@@ -241,7 +241,7 @@ pstate_swapin_id(kobject_id_t id)
 }
 
 static void
-pstate_swapin_stackwrap(void *arg)
+pstate_swapin_stackwrap(void *arg, void *arg1, void *arg2)
 {
     kobject_id_t id = (kobject_id_t) arg;
     static struct Thread_list swapin_waiting;
@@ -269,7 +269,7 @@ pstate_swapin(kobject_id_t id)
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin: object %ld\n", id);
 
-    int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) id);
+    int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) id, 0, 0);
     if (r < 0) {
 	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
 	return r;
@@ -359,7 +359,7 @@ pstate_load2(void)
 }
 
 static void
-pstate_load_stackwrap(void *arg)
+pstate_load_stackwrap(void *arg, void *arg1, void *arg2)
 {
     int *donep = (int *) arg;
     *donep = pstate_load2();
@@ -375,7 +375,7 @@ int
 pstate_load(void)
 {
     int done = 0;
-    int r = stackwrap_call(&pstate_load_stackwrap, &done);
+    int r = stackwrap_call(&pstate_load_stackwrap, &done, 0, 0);
     if (r < 0) {
 	cprintf("pstate_load: cannot stackwrap: %s\n", e2s(r));
 	return r;
@@ -551,7 +551,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg)
+pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
 {
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync: another sync still active\n");
@@ -644,7 +644,7 @@ pstate_sync_stackwrap(void *arg)
 static void
 pstate_sync(void)
 {
-    int r = stackwrap_call(&pstate_sync_stackwrap, 0);
+    int r = stackwrap_call(&pstate_sync_stackwrap, 0, 0, 0);
     if (r < 0)
 	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }
@@ -654,7 +654,7 @@ pstate_sync(void)
 //////////////////////////////////////////////////
 
 static void
-pstate_sync_object_stackwrap(void *arg)
+pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
 {
     // Casting to non-const, but it's OK here.
     struct kobject *ko = arg;
@@ -737,7 +737,7 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko)
 	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
 
-    int r = stackwrap_call(&pstate_sync_object_stackwrap, (void *) ko);
+    int r = stackwrap_call(&pstate_sync_object_stackwrap, (void *) ko, 0, 0);
     if (r < 0) {
 	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
 	return r;
