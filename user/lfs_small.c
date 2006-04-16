@@ -67,6 +67,8 @@ creat_test(int n, int size)
     int fd = 0;
     int j;
 
+    memset(buf, 0xab, size);
+
     unsigned s = 0 , f = 0 ;
     s = time_msec();
 
@@ -264,9 +266,10 @@ main(int argc, char *argv[])
 
     prog_name = argv[0];
 
-    if (argc != 4) {
-	printf("%s: %s num size sync-opt\n", prog_name, prog_name);
-	printf(" sync-opt: 0 for no-sync, 1 for file-sync, 2 for group-sync\n");
+    if (argc != 5) {
+	printf("%s: %s num size sync-opt skip-phase\n", prog_name, prog_name);
+	printf("  sync-opt: 0 for no-sync, 1 for file-sync, 2 for group-sync\n");
+	printf("  skip-phase: 1 for creat, 2 for read, 4 for delete\n");
 	exit(1);
     }
 
@@ -278,15 +281,16 @@ main(int argc, char *argv[])
     n = atoi(argv[1]);
     size = atoi(argv[2]);
     syncopt = atoi(argv[3]);
+    int skip = atoi(argv[4]);
 
     printf("%s %d %d\n", prog_name, n, size);
 
     creat_dir();
 
     for (i = 0; i < lfs_iterations; i++) {
-	creat_test(n, size);
-	read_test(n, size);
-	delete_test(n);
+	if (!(skip & 1)) creat_test(n, size);
+	if (!(skip & 2)) read_test(n, size);
+	if (!(skip & 4)) delete_test(n);
     }
 
     unlink("t");
