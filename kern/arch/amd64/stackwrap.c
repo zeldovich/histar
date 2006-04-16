@@ -147,7 +147,7 @@ struct lock_waiter {
 void
 lock_init(struct lock *l)
 {
-	memset(l, 0, sizeof(*l)) ;	
+    memset(l, 0, sizeof(*l));
 }
 
 void
@@ -163,14 +163,23 @@ lock_acquire(struct lock *l)
     l->locked = 1;
 }
 
+int
+lock_try_acquire(struct lock *l)
+{
+    if (l->locked)
+	return -E_BUSY;
+
+    l->locked = 1;
+    return 0;
+}
+
 void
 lock_release(struct lock *l)
 {
     l->locked = 0;
     struct lock_waiter *w = LIST_FIRST(&l->waiters);
     if (w == 0)
-        return;
+	return;
     LIST_REMOVE(w, link);
     stackwrap_wakeup(w->ss);
 }
-

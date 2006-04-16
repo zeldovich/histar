@@ -23,6 +23,7 @@ struct lock {
 };
 
 void lock_acquire(struct lock *l);
+int  lock_try_acquire(struct lock *l);
 void lock_release(struct lock *l);
 void lock_init(struct lock *l);
 
