@@ -60,7 +60,7 @@ write_test(int n, int size, int sequential)
     unsigned s, fin;
     s = time_msec();
     
-    if ((fd = open(name, O_RDWR, 0)) < 0) {
+    if ((fd = open(name, O_RDWR | O_SYNC, 0)) < 0) {
 	printf("write_test: open %s failed: %d\n", name, fd);
 	exit(1);
     }
