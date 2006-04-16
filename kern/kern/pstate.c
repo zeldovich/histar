@@ -16,6 +16,7 @@
 static int pstate_load_debug = 0;
 static int pstate_swapin_debug = 0;
 static int pstate_swapout_debug = 0;
+static int pstate_swapout_object_debug = 0;
 static int pstate_swapout_stats = 0;
 
 static int scrub_disk_pages = 0;
@@ -401,7 +402,8 @@ pstate_load(void)
 // Swap-out code
 //////////////////////////////////////////////////
 
-static struct Thread_list sync_waiting;
+static struct Thread_list swapout_waiting;
+static struct lock swapout_lock;
 
 struct swapout_stats {
     uint64_t written_kobj;
@@ -549,10 +551,8 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg __attribute__((unused)))
+pstate_sync_stackwrap(void *arg)
 {
-    static struct lock swapout_lock;
-
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync: another sync still active\n");
 	return;
@@ -635,8 +635,8 @@ pstate_sync_stackwrap(void *arg __attribute__((unused)))
 		page_stats.allocations, page_stats.failures);
     }
 
-    while (!LIST_EMPTY(&sync_waiting))
-	thread_set_runnable(LIST_FIRST(&sync_waiting));
+    while (!LIST_EMPTY(&swapout_waiting))
+	thread_set_runnable(LIST_FIRST(&swapout_waiting));
 
     lock_release(&swapout_lock);
 }
@@ -649,16 +649,85 @@ pstate_sync(void)
 	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
 }
 
-int
-pstate_sync_user(uint64_t timestamp)
-{
-    if (stable_hdr.ph_magic == PSTATE_MAGIC &&
-	handle_decrypt(stable_hdr.ph_sync_ts) > handle_decrypt(timestamp))
-	return 0;
+//////////////////////////////////////////////////
+// User-initiated sync-to-disk
+//////////////////////////////////////////////////
 
-    thread_suspend(cur_thread, &sync_waiting);
+static void
+pstate_sync_object_stackwrap(void *arg)
+{
+    // Casting to non-const, but it's OK here.
+    struct kobject *ko = arg;
+
+    thread_suspend(cur_thread, &swapout_waiting);
+    if (lock_try_acquire(&swapout_lock) < 0) {
+	if (pstate_swapout_object_debug)
+	    cprintf("pstate_sync_object_stackwrap: waiting for swapout lock\n");
+	return;
+    }
+
+    // kobject_snapshot() clears KOBJ_DIRTY, but we don't want that here..
+    uint64_t dirty = (ko->hdr.ko_flags & KOBJ_DIRTY);
+    kobject_snapshot(&ko->hdr);
+    ko->hdr.ko_flags |= dirty;
+    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+
+    kobject_id_t id_found, id = snap->hdr.ko_id;
+    struct mobject mobj;
+    int r = btree_search(BTREE_OBJMAP, &id, &id_found, (uint64_t *) &mobj);
+    if (r < 0) {
+	if (r != -E_NOT_FOUND)
+	    cprintf("pstate_sync_object_stackwrap: lookup: %s\n", e2s(r));
+	goto fallback;
+    }
+
+    uint64_t req_disk_bytes = KOBJ_DISK_SIZE + ROUNDUP(snap->hdr.ko_nbytes, 512);
+    if (req_disk_bytes != mobj.nbytes) {
+	if (pstate_swapout_object_debug)
+	    cprintf("pstate_sync_object_stackwrap: object resized, fallback\n");
+	goto fallback;
+    }
+
+    uint64_t sync_ts = handle_alloc();
+    struct pstate_iov_collector x;
+    memset(&x, 0, sizeof(x));
+
+    x.flush_off = mobj.off + KOBJ_DISK_SIZE;
+    x.flush_op = op_write;
+    for (uint64_t page = 0; page < kobject_npages(&snap->hdr); page++) {
+	void *p;
+	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
+	if (r < 0)
+	    goto fallback;
+
+	uint32_t pagebytes = MIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
+					 512), (uint32_t) PGSIZE);
+	r = pstate_iov_append(&x, p, pagebytes);
+	if (r < 0)
+	    goto fallback;
+    }
+
+    r = pstate_iov_flush(&x);
+    if (r < 0)
+	goto fallback;
+
+    if (!SAFE_EQUAL(stackwrap_disk_io(op_flush, 0, 0, 0), disk_io_success))
+	goto fallback;
+
+    if (pstate_swapout_object_debug)
+	cprintf("pstate_sync_object_stackwrap: incremental sync OK\n");
+    ko->hdr.ko_sync_ts = sync_ts;
+
+    while (!LIST_EMPTY(&swapout_waiting))
+	thread_set_runnable(LIST_FIRST(&swapout_waiting));
+    kobject_snapshot_release(&ko->hdr);
+    lock_release(&swapout_lock);
+    return;
+
+fallback:
+    kobject_snapshot_release(&ko->hdr);
+    lock_release(&swapout_lock);
     pstate_sync();
-    return -E_RESTART;
 }
 
 int
@@ -668,7 +737,23 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko)
 	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
 
-    thread_suspend(cur_thread, &sync_waiting);
+    int r = stackwrap_call(&pstate_sync_object_stackwrap, (void *) ko);
+    if (r < 0) {
+	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
+	return r;
+    }
+
+    return -E_RESTART;
+}
+
+int
+pstate_sync_user(uint64_t timestamp)
+{
+    if (stable_hdr.ph_magic == PSTATE_MAGIC &&
+	handle_decrypt(stable_hdr.ph_sync_ts) > handle_decrypt(timestamp))
+	return 0;
+
+    thread_suspend(cur_thread, &swapout_waiting);
     pstate_sync();
     return -E_RESTART;
 }
