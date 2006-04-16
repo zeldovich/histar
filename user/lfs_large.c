@@ -56,14 +56,13 @@ write_test(int n, int size, int sequential)
     int r;
     int fd;
     long pos = 0 ;
-    struct stat statb;
 
     unsigned s, fin;
     s = time_msec();
     
-    if((fd = open(name, O_RDWR, 0)) < 0) {
-		printf("write_test: open %s failed: %d\n", name, fd);
-		exit(1);
+    if ((fd = open(name, O_RDWR, 0)) < 0) {
+	printf("write_test: open %s failed: %d\n", name, fd);
+	exit(1);
     }
 
     for (i = 0; i < n; i ++) {
@@ -84,16 +83,15 @@ write_test(int n, int size, int sequential)
 		    printf("write_test: write failed %s: %d\n", name, r) ;
 		    exit(1);
 		}
+
+		if (fsync(fd) < 0) {
+		    printf("write_test: fsync failed: %s\n", strerror(errno));
+		    exit(1);
+		}
     }
     
-    fsync(fd);
-    fstat(fd, &statb);
-    if (fchown(fd, statb.st_uid, -1) < 0) {
-		printf("write_test: fchown error\n");
-    }
-
     if ((r = close(fd)) < 0) {
-		printf("write_test: close failed %s: %d\n", name, r);
+	printf("write_test: close failed %s: %d\n", name, r);
     }
 
 #if LINUX
@@ -167,37 +165,6 @@ read_test(int n, int size, int sequential)
 	   prog_name,
 	   fin - s);
 }
-
-
-static void __attribute__((unused))
-flush_cache()
-{
-    int i = 0 ;
-    int r = 0 ;
-    int fd;
-
-    if((fd = open("t", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) < 0) {
-		printf("flush_cache: create t failed: %d\n", fd);
-		exit(1);
-    }
-
-    for (i = 0; i < 15000; i ++) {
-		if ((r = write(fd, buf, 4096)) < 0) {
-		    printf("flush_cache: write t failed: %d\n", r);
-		    exit(1);
-		}
-    }
-    
-    fsync(fd);
-
-    if ((r = close(fd)) < 0) {
-		printf("flush_cache: close t failed: %d\n", r);
-    }
-
-    unlink("t");
-}
-
-
 
 int main(int argc, char *argv[])
 {
