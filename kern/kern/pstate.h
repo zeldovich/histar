@@ -41,6 +41,7 @@ int  pstate_swapin(kobject_id_t id) __attribute__ ((warn_unused_result));
 
 // suspends cur_thread until a snapshot >= timestamp is taken
 int  pstate_sync_user(uint64_t timestamp);
-int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko);
+int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
+			uint64_t start, uint64_t nbytes);
 
 #endif

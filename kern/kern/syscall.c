@@ -695,11 +695,11 @@ sys_segment_get_nbytes(struct cobj_ref sg_cobj)
 }
 
 static void
-sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts)
+sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes, uint64_t pstate_ts)
 {
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_rw));
-    check(pstate_sync_object(pstate_ts, ko));
+    check(pstate_sync_object(pstate_ts, ko, start, nbytes));
 }
 
 static int64_t

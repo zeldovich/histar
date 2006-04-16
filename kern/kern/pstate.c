@@ -658,6 +658,8 @@ pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
 {
     // Casting to non-const, but it's OK here.
     struct kobject *ko = arg;
+    uint64_t start = (uint64_t) arg1;
+    uint64_t nbytes = (uint64_t) arg2;
 
     thread_suspend(cur_thread, &swapout_waiting);
     if (lock_try_acquire(&swapout_lock) < 0) {
@@ -671,6 +673,7 @@ pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
     kobject_snapshot(&ko->hdr);
     ko->hdr.ko_flags |= dirty;
     struct kobject *snap = kobject_get_snapshot(&ko->hdr);
+    uint64_t sync_ts = handle_alloc();
 
     kobject_id_t id_found, id = snap->hdr.ko_id;
     struct mobject mobj;
@@ -681,27 +684,26 @@ pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
 	goto fallback;
     }
 
-    uint64_t req_disk_bytes = KOBJ_DISK_SIZE + ROUNDUP(snap->hdr.ko_nbytes, 512);
-    if (req_disk_bytes != mobj.nbytes) {
+    uint64_t sync_end = MIN(start + nbytes, snap->hdr.ko_nbytes);
+    uint64_t req_disk_bytes = KOBJ_DISK_SIZE + ROUNDUP(sync_end, 512);
+    if (req_disk_bytes > mobj.nbytes) {
 	if (pstate_swapout_object_debug)
-	    cprintf("pstate_sync_object_stackwrap: object resized, fallback\n");
+	    cprintf("pstate_sync_object_stackwrap: object grew, fallback\n");
 	goto fallback;
     }
 
-    uint64_t sync_ts = handle_alloc();
     struct pstate_iov_collector x;
     memset(&x, 0, sizeof(x));
-
-    x.flush_off = mobj.off + KOBJ_DISK_SIZE;
+    x.flush_off = mobj.off + KOBJ_DISK_SIZE + ROUNDDOWN(start, PGSIZE);
     x.flush_op = op_write;
-    for (uint64_t page = 0; page < kobject_npages(&snap->hdr); page++) {
+
+    for (uint64_t page = start / PGSIZE; page < ROUNDUP(sync_end, PGSIZE) / PGSIZE; page++) {
 	void *p;
 	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
 	if (r < 0)
 	    goto fallback;
 
-	uint32_t pagebytes = MIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
-					 512), (uint32_t) PGSIZE);
+	uint32_t pagebytes = MIN(ROUNDUP(sync_end - page * PGSIZE, 512), (uint32_t) PGSIZE);
 	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
 	    goto fallback;
@@ -731,13 +733,15 @@ fallback:
 }
 
 int
-pstate_sync_object(uint64_t timestamp, const struct kobject *ko)
+pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
+		   uint64_t start, uint64_t nbytes)
 {
     if (ko->hdr.ko_sync_ts &&
 	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
 
-    int r = stackwrap_call(&pstate_sync_object_stackwrap, (void *) ko, 0, 0);
+    int r = stackwrap_call(&pstate_sync_object_stackwrap,
+			   (void *) ko, (void *) start, (void *) nbytes);
     if (r < 0) {
 	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
 	return r;

@@ -301,9 +301,9 @@ sys_segment_get_nbytes(struct cobj_ref seg)
 }
 
 int
-sys_segment_sync(struct cobj_ref seg, uint64_t pstate_ts)
+sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes, uint64_t pstate_ts)
 {
-    return syscall(SYS_segment_sync, seg, pstate_ts);
+    return syscall(SYS_segment_sync, seg, start, nbytes, pstate_ts);
 }
 
 int64_t
