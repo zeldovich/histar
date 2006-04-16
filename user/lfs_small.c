@@ -94,6 +94,7 @@ creat_test(int n, int size)
 		}
 
 #if LINUX
+	    if (syncopt == 1) {
 		sprintf(namebuf, "d%d", j);
 		if ((fd = open(namebuf, O_RDONLY)) < 0) {
 		    printf("creat_test: open dir failed: %s\n", strerror(errno));
@@ -106,6 +107,7 @@ creat_test(int n, int size)
 		}
 
 		close(fd);
+	    }
 #endif
 
 		if ((i+1) % 100 == 0) j++;
@@ -217,11 +219,32 @@ delete_test(int n)
 	    exit(1);
 	}
 
+#if LINUX
+	if (syncopt == 1) {
+		int fd;
+		sprintf(namebuf, "d%d", j);
+		if ((fd = open(namebuf, O_RDONLY)) < 0) {
+		    printf("creat_test: open dir failed: %s\n", strerror(errno));
+		    exit(1);
+		}
+
+		if (fsync(fd) < 0) {
+		    printf("creat_test: fsync dir failed: %s\n", strerror(errno));
+		    exit(1);
+		}
+
+		close(fd);
+	}
+#endif
+
 	if ((i+1) % 100 == 0) j++;
 	if (j % 100 == 0) j = 0;
     }
 
     //fsync(fd);
+
+    if (syncopt == 2)
+	sync();
 
     f = time_msec();
     printf("delete_test: unlink took %d msec\n", f - s);
