@@ -84,6 +84,7 @@ pagetree_cow(pagetree_entry *ent)
 	if (ptp->pi_indir)
 	    pagetree_indir_copy(ent->page, copy);
 
+	page_to_pageinfo(copy)->pi_dirty = ptp->pi_dirty;
 	pagetree_decref(ent->page);
 	ent->page = copy;
     }
