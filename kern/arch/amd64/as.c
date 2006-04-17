@@ -48,7 +48,7 @@ as_nents(const struct Address_space *as)
 static int
 as_get_usegmap(const struct Address_space *as,
 	       const struct u_segment_mapping ** smp,
-	       uint64_t smi, page_rw_mode rw)
+	       uint64_t smi, page_sharing_mode rw)
 {
     uint64_t npage = smi / N_USEGMAP_PER_PAGE;
     uint64_t pagei = smi % N_USEGMAP_PER_PAGE;
@@ -71,7 +71,7 @@ as_get_segmap(const struct Address_space *as,
 
     struct segment_mapping *p;
     int r = pagetree_get_page((struct pagetree *) &as->as_segmap_pt,
-			      npage, (void **) &p, page_rw);
+			      npage, (void **) &p, page_excl_dirty);
     if (r < 0)
 	return r;
 
@@ -115,7 +115,7 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
     uint64_t nent = 0;
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	const struct u_segment_mapping *usm;
-	r = as_get_usegmap(as, &usm, i, page_ro);
+	r = as_get_usegmap(as, &usm, i, page_shared_ro);
 	if (r < 0)
 	    return r;
 
@@ -156,7 +156,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct u_segment_mapping *usm;
 	r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm,
-			   i, page_rw);
+			   i, page_excl_dirty);
 	if (r < 0)
 	    return r;
 
@@ -193,7 +193,8 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     uint64_t slot = usm_copy.kslot;
 
     struct u_segment_mapping *usm;
-    r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm, slot, page_rw);
+    r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm,
+		       slot, page_excl_dirty);
     if (r < 0)
 	return r;
 
@@ -237,7 +238,25 @@ static void
 as_page_invalidate_cb(void *arg, uint64_t *ptep)
 {
     as_collect_dirty_bits(0, ptep);
-    *ptep = 0;
+
+    uint64_t pte = *ptep;
+    if ((pte & PTE_P)) {
+	if ((pte & PTE_W))
+	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep = 0;
+    }
+}
+
+static void
+as_page_map_ro_cb(void *arg, uint64_t *ptep)
+{
+    as_collect_dirty_bits(0, ptep);
+
+    uint64_t pte = *ptep;
+    if ((pte & PTE_P) && (pte & PTE_W)) {
+	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep &= ~PTE_W;
+    }
 }
 
 void
@@ -256,7 +275,7 @@ as_swapout(struct Address_space *as)
 
     if (as->as_pgmap && as->as_pgmap != &bootpml4) {
 	assert(0 == page_map_traverse(as->as_pgmap, 0, (void **) ULIM,
-				      0, &as_collect_dirty_bits, 0));
+				      0, &as_page_invalidate_cb, 0));
 	page_map_free(as->as_pgmap);
     }
 
@@ -311,7 +330,8 @@ as_pmap_fill_segment(const struct Address_space *as,
 
 	void *pp = 0;
 	r = kobject_get_page(&sg->sg_ko, i, &pp,
-			     (flags & SEGMAP_WRITE) ? page_rw : page_ro);
+			     (flags & SEGMAP_WRITE) ? page_excl_dirty_later
+						    : page_shared_ro);
 	if (r < 0)
 	    goto err;
 
@@ -326,8 +346,10 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if (r < 0)
 	    goto err;
 
-	as_collect_dirty_bits(0, ptep);
+	as_page_invalidate_cb(0, ptep);
 	*ptep = kva2pa(pp) | ptflags;
+	if ((ptflags & PTE_W))
+	    pagetree_incpin(pp);
 
 	if (as == cur_as && num_pages - mapped_already <= as_invlpg_max)
 	    invlpg(cva);
@@ -358,7 +380,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 {
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	const struct u_segment_mapping *usm;
-	int r = as_get_usegmap(as, &usm, i, page_ro);
+	int r = as_get_usegmap(as, &usm, i, page_shared_ro);
 	if (r < 0)
 	    return r;
 
@@ -437,11 +459,22 @@ void
 as_collect_dirty_sm(struct segment_mapping *sm)
 {
     const struct u_segment_mapping *usm;
-    assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_ro) == 0);
+    assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
     assert(page_map_traverse(sm->sm_as->as_pgmap,
 			     usm->va,
 			     usm->va + (sm->sm_mapped_pages - 1) * PGSIZE,
 			     0, &as_collect_dirty_bits, 0) == 0);
+}
+
+void
+as_map_ro_sm(struct segment_mapping *sm)
+{
+    const struct u_segment_mapping *usm;
+    assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
+    assert(page_map_traverse(sm->sm_as->as_pgmap,
+			     usm->va,
+			     usm->va + (sm->sm_mapped_pages - 1) * PGSIZE,
+			     0, &as_page_map_ro_cb, 0) == 0);
 }
 
 void
@@ -454,7 +487,7 @@ as_invalidate_sm(struct segment_mapping *sm)
 	cprintf("as_invalidate_sm\n");
 
     const struct u_segment_mapping *usm;
-    assert(0 == as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_ro));
+    assert(0 == as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro));
 
     void *map_first = usm->va;
     void *map_last = usm->va + (sm->sm_mapped_pages - 1) * PGSIZE;
@@ -490,7 +523,7 @@ as_invalidate_label(const struct Address_space *as, int invalidate_tls)
 	    continue;
 
 	const struct u_segment_mapping *usm;
-	r = as_get_usegmap(as, &usm, i, page_ro);
+	r = as_get_usegmap(as, &usm, i, page_shared_ro);
 	if (r < 0)
 	    goto err;
 

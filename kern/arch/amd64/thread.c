@@ -173,7 +173,7 @@ thread_run(const struct Thread *t)
 
     if (t->th_fp_enabled) {
 	void *p;
-	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_ro));
+	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_shared_ro));
 	lcr0(rcr0() & ~CR0_TS);
 	fxrstor((const struct Fpregs *) p);
     } else {
@@ -197,7 +197,7 @@ thread_enable_fp(const struct Thread *const_t)
 	return r;
 
     struct Fpregs *fpreg;
-    r = kobject_get_page(&t->th_ko, 0, (void **) &fpreg, page_rw);
+    r = kobject_get_page(&t->th_ko, 0, (void **) &fpreg, page_excl_dirty);
     if (r < 0)
 	return r;
 

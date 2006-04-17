@@ -50,7 +50,7 @@ elf_add_segmap(struct Address_space *as, uint32_t *smi, struct cobj_ref seg,
     assert_check(kobject_set_nbytes(&as->as_ko, PGSIZE));
 
     struct u_segment_mapping *usm;
-    assert_check(kobject_get_page(&as->as_ko, 0, (void **)&usm, page_rw));
+    assert_check(kobject_get_page(&as->as_ko, 0, (void **)&usm, page_excl_dirty));
 
     usm[*smi].segment = seg;
     usm[*smi].start_page = start_page;
@@ -93,7 +93,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 
 	if (buf) {
 	    void *p;
-	    assert_check(kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_rw));
+	    assert_check(kobject_get_page(&sg->sg_ko, i/PGSIZE, &p, page_excl_dirty));
 	    memcpy(p, &buf[i], bytes);
 	}
 	bufsize -= bytes;

@@ -13,13 +13,15 @@ enum {
     kolabel_max
 };
 
-#define KOBJ_PIN_IDLE		0x01	// Pinned for the idle process
-#define KOBJ_ON_DISK		0x02	// Might have some version on disk
-#define KOBJ_SNAPSHOTING	0x04	// Being written out to disk
-#define KOBJ_DIRTY		0x08	// Modified since last swapin/out
-#define KOBJ_SNAPSHOT_DIRTY	0x10	// Dirty if swapout fails
-#define KOBJ_LABEL_MUTABLE	0x20	// Label can change after creation
-#define KOBJ_MULTIHOMED		0x40	// Multiple hard links
+#define KOBJ_PIN_IDLE		0x0001	// Pinned for the idle process
+#define KOBJ_ON_DISK		0x0002	// Might have some version on disk
+#define KOBJ_SNAPSHOTING	0x0004	// Being written out to disk
+#define KOBJ_DIRTY		0x0008	// Modified since last swapin/out
+#define KOBJ_SNAPSHOT_DIRTY	0x0010	// Dirty if swapout fails
+#define KOBJ_LABEL_MUTABLE	0x0020	// Label can change after creation
+#define KOBJ_MULTIHOMED		0x0040	// Multiple hard links
+#define KOBJ_SHARED_MAPPINGS	0x0080	// Shared pages maybe mapped somewhere
+#define KOBJ_DIRTY_LATER	0x0100	// Need to collect dirty bits
 
 struct kobject_hdr {
     kobject_id_t ko_id;

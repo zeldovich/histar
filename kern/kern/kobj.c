@@ -9,6 +9,7 @@
 #include <kern/handle.h>
 #include <kern/timer.h>
 #include <kern/ht.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 
@@ -58,7 +59,7 @@ kobject_cksum(const struct kobject_hdr *ko)
 
     for (uint64_t i = 0; i < ko->ko_nbytes; i += PGSIZE) {
 	void *p;
-	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_ro));
+	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_shared_ro));
 	assert(p);
 	sum = cksum(sum, p, MIN((uint32_t) PGSIZE, ko->ko_nbytes - i * PGSIZE));
     }
@@ -246,24 +247,37 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
 }
 
 int
-kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_rw_mode rw)
+kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_sharing_mode rw)
 {
     if (npage >= kobject_npages(kp))
 	return -E_INVAL;
 
-    if ((kp->ko_flags & KOBJ_SNAPSHOTING) && SAFE_EQUAL(rw, page_rw) && kp->ko_pin_pg) {
-	thread_suspend(cur_thread, &kobj_snapshot_waiting);
-	return -E_RESTART;
+    // If this is a segment, and we have shared pages mapped somewhere,
+    // and rw is not shared, we need to invalidate all of the mappings
+    // to those shared pages.
+    struct kobject *eko = kobject_ephemeral_dirty(kp);
+    if (eko->hdr.ko_type == kobj_segment &&
+	(eko->hdr.ko_flags & KOBJ_SHARED_MAPPINGS) &&
+	!SAFE_EQUAL(rw, page_shared_ro))
+    {
+	eko->hdr.ko_flags &= ~KOBJ_SHARED_MAPPINGS;
+	segment_invalidate(&eko->sg);
     }
 
-    if (SAFE_EQUAL(rw, page_rw))
+    if (SAFE_EQUAL(rw, page_excl_dirty) || SAFE_EQUAL(rw, page_excl_dirty_later))
 	kobject_dirty(kp);
 
     int r = pagetree_get_page(&kobject_const_h2k(kp)->ko_pt,
 			      npage, pp, rw);
-    if (r == 0 && *pp == 0)
-	panic("kobject_get_page: id %ld (%s) type %d npage %ld null",
-	      kp->ko_id, kp->ko_name, kp->ko_type, npage);
+    if (r == 0) {
+	if (*pp == 0)
+	    panic("kobject_get_page: id %ld (%s) type %d npage %ld null",
+		  kp->ko_id, kp->ko_name, kp->ko_type, npage);
+
+	// Be conservative -- assume caller will map this page somewhere..
+	if (page_to_pageinfo(*pp)->pi_ref > 1)
+	    eko->hdr.ko_flags |= KOBJ_SHARED_MAPPINGS;
+    }
     return r;
 }
 
@@ -392,9 +406,8 @@ kobject_swapin(struct kobject *ko)
 
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
-    ko->hdr.ko_flags &= ~(KOBJ_SNAPSHOTING |
-			  KOBJ_DIRTY |
-			  KOBJ_SNAPSHOT_DIRTY);
+    ko->hdr.ko_flags &= ~(KOBJ_SNAPSHOTING | KOBJ_DIRTY |
+			  KOBJ_SHARED_MAPPINGS | KOBJ_SNAPSHOT_DIRTY);
 
     if (ko->hdr.ko_type == kobj_thread)
 	thread_swapin(&ko->th);
@@ -613,7 +626,7 @@ kobject_snapshot(struct kobject_hdr *ko)
     assert(!(ko->ko_flags & KOBJ_SNAPSHOTING));
 
     if (ko->ko_type == kobj_segment)
-	segment_snapshot(&kobject_h2k(ko)->sg);
+	segment_map_ro(&kobject_h2k(ko)->sg);
 
     ko->ko_flags &= ~KOBJ_DIRTY;
     ko->ko_cksum = kobject_cksum(ko);

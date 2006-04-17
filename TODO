@@ -1,15 +1,8 @@
-in-kernel segment COW: beware of DMA (watch for ko->ko_pin_pg)
-
 page reclamation, LRU
 deal with segment fragmentation on-disk
 
 lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c; need to
 have a callback of some sort for when threads enter/leave an AS.
-
-associate DMA/PTE pinning with physical pages rather than kobjects.
-currently only one address space can have a page in a PTE while it's
-being written out to disk -- the second AS that tries to fault it in
-goes to sleep because we don't know if it's safe to COW!
 
 MT-safe c++ support (lib/cppsup/bits/gthr.h)
 thread-safe uclibc
@@ -89,9 +82,4 @@ and careful-write wrapper that does setjmp() first, and the segfault handler wil
 longjmp().
 
 split the pstate sync timestamp counter from the handle counter
-
-VM bug: if we copy a segment and map it read-only, the shared read-only pages
-are used in the mapping.  however, when the same segment is then mapped read-write,
-pages are cloned and the shared mappings are now out of sync with the actual
-segment pages..
 

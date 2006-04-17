@@ -180,6 +180,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	if (c->tx[i].sg) {
 	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
+	    pagetree_decpin(c->tx[i].nb);
 	    kobject_dirty(&c->tx[i].sg->sg_ko);
 	}
 	c->tx[i].sg = 0;
@@ -188,6 +189,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
 	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
+	    pagetree_decpin(c->rx[i].nb);
 	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
@@ -339,6 +341,7 @@ fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
     c->tx[slot].nb = nb;
     c->tx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
+    pagetree_incpin(nb);
 
     c->tx[slot].tbd.tb_addr = kva2pa(c->tx[slot].nb + 1);
     c->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
@@ -375,6 +378,7 @@ fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
     c->rx[slot].nb = nb;
     c->rx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
+    pagetree_incpin(nb);
 
     c->rx[slot].rbd.rbd_buffer = kva2pa(c->rx[slot].nb + 1);
     c->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;
@@ -402,7 +406,7 @@ fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type
     uint32_t pageoff = PGOFF(offset);
 
     void *p;
-    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_rw);
+    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
     if (r < 0)
 	return r;
 

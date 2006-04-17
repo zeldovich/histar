@@ -42,21 +42,28 @@ pagetree_incref(void *p)
     ptp->pi_ref++;
 }
 
+static int pagetree_cow(pagetree_entry *ent);
+
 static void
 pagetree_indir_copy(void *src, void *dst)
 {
     struct pagetree_indirect_page *pdst = dst;
 
-    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
-	if (pdst->pt_entry[i].page)
-	    pagetree_incref(pdst->pt_entry[i].page);
+    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
+	if (pdst->pt_entry[i].page) {
+	    struct page_info *ptp = page_to_pageinfo(pdst->pt_entry[i].page);
+	    ptp->pi_ref++;
+	    if (ptp->pi_pin)
+		assert(0 == pagetree_cow(&pdst->pt_entry[i]));	// XXX out-of-memory
+	}
+    }
 
     assert(page_to_pageinfo(src)->pi_indir);
     page_to_pageinfo(dst)->pi_indir = 1;
 }
 
 static int
-pagetree_cow(pagetree_entry *ent, void (*copy_cb) (void *, void *))
+pagetree_cow(pagetree_entry *ent)
 {
     if (!ent->page)
 	return 0;
@@ -74,8 +81,8 @@ pagetree_cow(pagetree_entry *ent, void (*copy_cb) (void *, void *))
 	memcpy(copy, ent->page, PGSIZE);
 	pagetree_incref(copy);
 
-	if (copy_cb)
-	    copy_cb(ent->page, copy);
+	if (ptp->pi_indir)
+	    pagetree_indir_copy(ent->page, copy);
 
 	pagetree_decref(ent->page);
 	ent->page = copy;
@@ -95,15 +102,25 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst)
 {
     memcpy(dst, src, sizeof(*dst));
 
-    // XXX need to deal with pinned pages...
+    // XXX we can really run out of memory in pagetree_cow() here.
 
-    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
-	if (dst->pt_direct[i].page)
-	    pagetree_incref(dst->pt_direct[i].page);
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
+	if (dst->pt_direct[i].page) {
+	    struct page_info *ptp = page_to_pageinfo(dst->pt_direct[i].page);
+	    ptp->pi_ref++;
+	    if (ptp->pi_pin)
+		assert(0 == pagetree_cow(&dst->pt_direct[i]));
+	}
+    }
 
-    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
-	if (dst->pt_indirect[i].page)
-	    pagetree_incref(dst->pt_indirect[i].page);
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
+	if (dst->pt_indirect[i].page) {
+	    struct page_info *ptp = page_to_pageinfo(dst->pt_indirect[i].page);
+	    ptp->pi_ref++;
+	    if (ptp->pi_pin)
+		assert(0 == pagetree_cow(&dst->pt_indirect[i]));
+	}
+    }
 }
 
 static void
@@ -129,14 +146,14 @@ pagetree_free(struct pagetree *pt)
 
 static int
 pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
-			   pagetree_entry **outp, page_rw_mode rw,
-			   int level)
+			   pagetree_entry **outp, struct pagetree_indirect_page **out_parent,
+			   page_sharing_mode rw, int level, struct pagetree_indirect_page *parent)
 {
-    if (SAFE_EQUAL(rw, page_rw))
-	pagetree_cow(indir, &pagetree_indir_copy);
+    if (!SAFE_EQUAL(rw, page_shared_ro))
+	pagetree_cow(indir);
 
     if (indir->page == 0) {
-	if (SAFE_EQUAL(rw, page_ro)) {
+	if (SAFE_EQUAL(rw, page_shared_ro)) {
 	    *outp = 0;
 	    return 0;
 	}
@@ -151,8 +168,13 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
     }
 
     struct pagetree_indirect_page *pip = indir->page;
+    struct page_info *pip_pi = page_to_pageinfo(pip);
+    if (pip_pi->pi_parent != parent)
+	pip_pi->pi_parent = parent;
+
     if (level == 0) {
 	*outp = &pip->pt_entry[npage];
+	*out_parent = pip;
 	return 0;
     }
 
@@ -165,12 +187,13 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 
     assert(next_slot < PAGETREE_ENTRIES_PER_PAGE);
     return pagetree_get_entp_indirect(&pip->pt_entry[next_slot],
-				      next_page, outp, rw, level - 1);
+				      next_page, outp, out_parent, rw, level - 1, pip);
 }
 
 static int
 pagetree_get_entp(struct pagetree *pt, uint64_t npage,
-		  pagetree_entry **entp, page_rw_mode rw)
+		  pagetree_entry **entp, struct pagetree_indirect_page **out_parent,
+		  page_sharing_mode rw)
 {
     if (npage < PAGETREE_DIRECT_PAGES) {
 	*entp = &pt->pt_direct[npage];
@@ -183,7 +206,8 @@ pagetree_get_entp(struct pagetree *pt, uint64_t npage,
 	num_indirect_pages *= PAGETREE_ENTRIES_PER_PAGE;
 	if (npage < num_indirect_pages)
 	    return pagetree_get_entp_indirect(&pt->pt_indirect[i],
-					      npage, entp, rw, i);
+					      npage, entp, out_parent,
+					      rw, i, 0);
 	npage -= num_indirect_pages;
     }
 
@@ -193,20 +217,21 @@ pagetree_get_entp(struct pagetree *pt, uint64_t npage,
 
 int
 pagetree_get_page(struct pagetree *pt, uint64_t npage,
-		  void **pagep, page_rw_mode rw)
+		  void **pagep, page_sharing_mode rw)
 {
     pagetree_entry *ent;
-    int r = pagetree_get_entp(pt, npage, &ent, rw);
+    struct pagetree_indirect_page *parent = 0;
+    int r = pagetree_get_entp(pt, npage, &ent, &parent, rw);
     if (r < 0)
 	return r;
 
     void *page = ent ? ent->page : 0;
-    if (SAFE_EQUAL(rw, page_ro) || page == 0) {
+    if (SAFE_EQUAL(rw, page_shared_ro) || page == 0) {
 	*pagep = page;
 	return 0;
     }
 
-    pagetree_cow(ent, 0);
+    pagetree_cow(ent);
     *pagep = ent->page;
     return 0;
 }
@@ -215,15 +240,18 @@ int
 pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
 {
     pagetree_entry *ent;
-    int r = pagetree_get_entp(pt, npage, &ent, page_rw);
+    struct pagetree_indirect_page *parent = 0;
+    int r = pagetree_get_entp(pt, npage, &ent, &parent, page_excl_dirty);
     if (r < 0)
 	return r;
 
     assert(ent != 0);
     if (ent->page)
 	pagetree_decref(ent->page);
-    if (page)
+    if (page) {
 	pagetree_incref(page);
+	page_to_pageinfo(page)->pi_parent = parent;
+    }
     ent->page = page;
 
     return 0;
@@ -241,4 +269,24 @@ pagetree_maxpages()
     }
 
     return npages;
+}
+
+void
+pagetree_incpin(void *p)
+{
+    struct page_info *pi = page_to_pageinfo(p);
+    assert(pi->pi_ref == 1);
+    ++pi->pi_pin;
+    if (pi->pi_parent)
+	pagetree_incpin(pi->pi_parent);
+}
+
+void
+pagetree_decpin(void *p)
+{
+    struct page_info *pi = page_to_pageinfo(p);
+    assert(pi->pi_ref == 1);
+    --pi->pi_pin;
+    if (pi->pi_parent)
+	pagetree_decpin(pi->pi_parent);
 }

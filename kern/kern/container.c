@@ -20,10 +20,10 @@ container_alloc(const struct Label *l, struct Container **cp)
 
 static int
 container_slot_get(const struct Container *c, uint64_t slotn,
-		   struct container_slot **csp, page_rw_mode rw)
+		   struct container_slot **csp, page_sharing_mode rw)
 {
     if (slotn < NUM_CT_SLOT_INLINE) {
-	if (SAFE_EQUAL(rw, page_rw))
+	if (SAFE_EQUAL(rw, page_excl_dirty))
 	    kobject_dirty(&c->ct_ko);
 	*csp = (struct container_slot *) &c->ct_slots[slotn];
 	return 0;
@@ -44,14 +44,14 @@ container_slot_get(const struct Container *c, uint64_t slotn,
 
 static int
 container_slot_find(const struct Container *c, kobject_id_t ko_id,
-		    struct container_slot **csp, page_rw_mode rw)
+		    struct container_slot **csp, page_sharing_mode rw)
 {
     for (uint32_t i = 0; i < NUM_CT_SLOT_INLINE; i++) {
 	const struct container_slot *cs = &c->ct_slots[i];
 	if (cs->cs_id == ko_id && cs->cs_ref > 0) {
 	    if (csp)
 		*csp = (struct container_slot *) cs;
-	    if (SAFE_EQUAL(rw, page_rw))
+	    if (SAFE_EQUAL(rw, page_excl_dirty))
 		kobject_dirty(&c->ct_ko);
 	    return 0;
 	}
@@ -89,7 +89,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 
     for (uint64_t ko_page = 0; ko_page < kobject_npages(&c->ct_ko); ko_page++) {
 	struct container_page *cpg;
-	int r = kobject_get_page(&c->ct_ko, ko_page, (void**)&cpg, page_rw);
+	int r = kobject_get_page(&c->ct_ko, ko_page, (void**)&cpg, page_excl_dirty);
 	if (r < 0)
 	    return r;
 
@@ -108,7 +108,7 @@ container_slot_alloc(struct Container *c, struct container_slot **csp)
 	return r;
 
     struct container_page *cpg;
-    r = kobject_get_page(&c->ct_ko, newpage, (void**)&cpg, page_rw);
+    r = kobject_get_page(&c->ct_ko, newpage, (void**)&cpg, page_excl_dirty);
     if (r < 0)
 	panic("container_slot_alloc: cannot get newly-allocated page");
 
@@ -151,7 +151,7 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
 	return -E_INVAL;
 
     struct container_slot *cs;
-    int r = container_slot_find(c, ko->ko_id, &cs, page_rw);
+    int r = container_slot_find(c, ko->ko_id, &cs, page_excl_dirty);
     if (r == -E_NOT_FOUND)
 	r = container_slot_alloc(c, &cs);
     if (r < 0)
@@ -175,7 +175,7 @@ int
 container_get(const struct Container *c, kobject_id_t *idp, uint64_t slot)
 {
     struct container_slot *cs;
-    int r = container_slot_get(c, slot, &cs, page_ro);
+    int r = container_slot_get(c, slot, &cs, page_shared_ro);
     if (r < 0)
 	return r;
     if (cs->cs_ref == 0)
@@ -189,7 +189,7 @@ int
 container_unref(struct Container *c, const struct kobject_hdr *ko)
 {
     struct container_slot *cs;
-    int r = container_slot_find(c, ko->ko_id, &cs, page_rw);
+    int r = container_slot_find(c, ko->ko_id, &cs, page_excl_dirty);
     if (r < 0)
 	return r;
 
@@ -210,7 +210,7 @@ container_gc(struct Container *c)
     uint64_t nslots = container_nslots(c);
     for (uint64_t i = 0; i < nslots; i++) {
 	struct container_slot *cs;
-	int r = container_slot_get(c, i, &cs, page_rw);
+	int r = container_slot_get(c, i, &cs, page_excl_dirty);
 	if (r < 0)
 	    return r;
 
@@ -257,7 +257,7 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
 
 	// Every container "contains" itself
 	if (ref.object != c->ct_ko.ko_id) {
-	    r = container_slot_find(c, ref.object, 0, page_ro);
+	    r = container_slot_find(c, ref.object, 0, page_shared_ro);
 	    if (r < 0)
 		return r;
 	}

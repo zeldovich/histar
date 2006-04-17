@@ -149,7 +149,7 @@ trap_handler (struct Trapframe *tf)
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (tf->tf__trapentry_rip - trap0rip) / 16;
 
-    cyg_profile_free_stack(read_rsp()) ;
+    cyg_profile_free_stack(read_rsp());
 
     if (cur_thread == 0) {
 	trapframe_print(tf);
@@ -160,7 +160,7 @@ trap_handler (struct Trapframe *tf)
     t->th_tf = *tf;
     if (t->th_fp_enabled) {
 	void *p;
-	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_rw));
+	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
 	lcr0(rcr0() & ~CR0_TS);
 	fxsave((struct Fpregs *) p);
     }

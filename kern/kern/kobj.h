@@ -75,7 +75,7 @@ int  kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 uint64_t
      kobject_npages(const struct kobject_hdr *kp);
 int  kobject_get_page(const struct kobject_hdr *kp, uint64_t page_num,
-		      void **pp, page_rw_mode rw)
+		      void **pp, page_sharing_mode rw)
     __attribute__ ((warn_unused_result));
 
 int  kobject_get_label(const struct kobject_hdr *kp, int idx,

@@ -439,7 +439,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 
     for (uint64_t page = 0; page < kobject_npages(&snap->hdr); page++) {
 	void *p;
-	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
+	r = kobject_get_page(&snap->hdr, page, &p, page_shared_ro);
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
@@ -699,7 +699,7 @@ pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
 
     for (uint64_t page = start / PGSIZE; page < ROUNDUP(sync_end, PGSIZE) / PGSIZE; page++) {
 	void *p;
-	r = kobject_get_page(&snap->hdr, page, &p, page_ro);
+	r = kobject_get_page(&snap->hdr, page, &p, page_shared_ro);
 	if (r < 0)
 	    goto fallback;
 

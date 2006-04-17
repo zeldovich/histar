@@ -26,9 +26,10 @@ struct pagetree_indirect_page {
     pagetree_entry pt_entry[PAGETREE_ENTRIES_PER_PAGE];
 };
 
-typedef SAFE_TYPE(int) page_rw_mode;
-#define page_ro	    SAFE_WRAP(page_rw_mode, 1)
-#define page_rw	    SAFE_WRAP(page_rw_mode, 2)
+typedef SAFE_TYPE(int) page_sharing_mode;
+#define page_shared_ro		SAFE_WRAP(page_sharing_mode, 1)
+#define page_excl_dirty		SAFE_WRAP(page_sharing_mode, 2)
+#define page_excl_dirty_later	SAFE_WRAP(page_sharing_mode, 3)
 
 // Fancy API for zeroing out
 void pagetree_init(struct pagetree *pt);
@@ -41,7 +42,7 @@ void pagetree_free(struct pagetree *pt);
 
 // Get a page currently stored in the page tree
 int  pagetree_get_page(struct pagetree *pt, uint64_t npage, void **pagep,
-		       page_rw_mode rw)
+		       page_sharing_mode rw)
     __attribute__ ((warn_unused_result));
 
 // Put a page into the page tree
@@ -50,5 +51,9 @@ int  pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
 
 // Max number of pages in a pagetree
 uint64_t pagetree_maxpages(void);
+
+// Pin/unpin pages in a pagetree
+void pagetree_incpin(void *p);
+void pagetree_decpin(void *p);
 
 #endif
