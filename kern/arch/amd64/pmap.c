@@ -303,7 +303,7 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 //
 // Return 0 if there is no page mapped at va.
 //
-void *
+static void *
 page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 {
     if ((uintptr_t) va >= ULIM)
@@ -321,68 +321,6 @@ page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 	return 0;
 
     return pa2kva (PTE_ADDR (*ptep));
-}
-
-//
-// Invalidate a TLB entry, but only if the page tables being
-// edited are the ones currently in use by the processor.
-//
-void
-tlb_invalidate(struct Pagemap *pgmap, void *va)
-{
-    // Flush the entry only if we're modifying the current address space.
-    if (cur_as && cur_as->as_pgmap == pgmap)
-	invlpg(va);
-}
-
-//
-// Unmaps the physical page at virtual address 'va'.
-//
-// Details:
-//   - The pg table entry corresponding to 'va' should be set to 0.
-//     (if such a PTE exists)
-//   - The TLB must be invalidated if you remove an entry from
-//     the pg dir/pg table.
-//
-void *
-page_remove(struct Pagemap *pgmap, void *va)
-{
-    uint64_t *ptep;
-    void *p = page_lookup(pgmap, va, &ptep);
-    if (p) {
-	*ptep = 0;
-	tlb_invalidate(pgmap, va);
-    }
-    return p;
-}
-
-//
-// Map the physical page 'pp' at virtual address 'va'.
-// The permissions (the low 12 bits) of the page table
-//  entry should be set to 'perm|PTE_P'.
-//
-// Details
-//   - If there is already a page mapped at 'va', returns -E_BUSY.
-//   - If necesary, allocates a page table and inserts it into 'pgdir'.
-//
-// RETURNS: 
-//   0 on success
-//   -E_NO_MEM, if page table couldn't be allocated
-//   -E_BUSY, if another page is already mapped at va
-//
-int
-page_insert(struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
-{
-    uint64_t *ptep;
-    int r = pgdir_walk(pgmap, va, 1, &ptep);
-    if (r < 0)
-	return r;
-
-    if (*ptep & PTE_P)
-	return -E_BUSY;
-
-    *ptep = kva2pa(page) | perm | PTE_P;
-    return 0;
 }
 
 int

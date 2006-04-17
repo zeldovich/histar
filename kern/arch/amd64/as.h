@@ -31,7 +31,6 @@ struct Address_space {
     struct pagetree as_segmap_pt;
     struct Pagemap *as_pgmap;
     kobject_id_t as_pgmap_tid;
-    int as_dirty_tlb;
 };
 
 extern const struct Address_space *cur_as;

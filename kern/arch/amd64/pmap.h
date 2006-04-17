@@ -56,16 +56,9 @@ int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *las
 		       int create, page_map_traverse_cb cb, void *arg)
     __attribute__ ((warn_unused_result));
 
-int  page_insert(struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
-    __attribute__ ((warn_unused_result));
-void *page_remove(struct Pagemap *pgmap, void *va);
-void *page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store);
-
-int pgdir_walk(struct Pagemap *pgmap, const void *va,
+int  pgdir_walk(struct Pagemap *pgmap, const void *va,
 	       int create, uint64_t **pte_store)
     __attribute__ ((warn_unused_result));
-
-void tlb_invalidate(struct Pagemap *pgmap, void *va);
 
 static __inline void *
 pa2kva (physaddr_t pa)
