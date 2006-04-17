@@ -83,3 +83,5 @@ longjmp().
 
 split the pstate sync timestamp counter from the handle counter
 
+partial segment swapin
+
