@@ -1,27 +1,19 @@
 #include <machine/pmap.h>
 #include <kern/pagetree.h>
+#include <kern/pageinfo.h>
 #include <kern/lib.h>
 #include <inc/error.h>
-
-struct pagetree_page *pt_pages;
-
-static struct pagetree_page *
-page_to_ptp(void *p)
-{
-    ppn_t pn = pa2ppn(kva2pa(p));
-    return &pt_pages[pn];
-}
 
 static void pagetree_decref(void *p);
 
 static void
 pagetree_free_page(void *p)
 {
-    struct pagetree_page *ptp = page_to_ptp(p);
-    assert(ptp->pg_ref == 0);
-    assert(ptp->pg_pin == 0);
+    struct page_info *ptp = page_to_pageinfo(p);
+    assert(ptp->pi_ref == 0);
+    assert(ptp->pi_pin == 0);
 
-    if (ptp->pg_indir) {
+    if (ptp->pi_indir) {
 	struct pagetree_indirect_page *pip = p;
 	for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	    if (pip->pt_entry[i].page) {
@@ -38,16 +30,16 @@ pagetree_free_page(void *p)
 static void
 pagetree_decref(void *p)
 {
-    struct pagetree_page *ptp = page_to_ptp(p);
-    if (--ptp->pg_ref == 0)
+    struct page_info *ptp = page_to_pageinfo(p);
+    if (--ptp->pi_ref == 0)
 	pagetree_free_page(p);
 }
 
 static void
 pagetree_incref(void *p)
 {
-    struct pagetree_page *ptp = page_to_ptp(p);
-    ptp->pg_ref++;
+    struct page_info *ptp = page_to_pageinfo(p);
+    ptp->pi_ref++;
 }
 
 static void
@@ -59,8 +51,8 @@ pagetree_indir_copy(void *src, void *dst)
 	if (pdst->pt_entry[i].page)
 	    pagetree_incref(pdst->pt_entry[i].page);
 
-    assert(page_to_ptp(src)->pg_indir);
-    page_to_ptp(dst)->pg_indir = 1;
+    assert(page_to_pageinfo(src)->pi_indir);
+    page_to_pageinfo(dst)->pi_indir = 1;
 }
 
 static int
@@ -69,10 +61,10 @@ pagetree_cow(pagetree_entry *ent, void (*copy_cb) (void *, void *))
     if (!ent->page)
 	return 0;
 
-    struct pagetree_page *ptp = page_to_ptp(ent->page);
-    assert(ptp->pg_ref > 0);
+    struct page_info *ptp = page_to_pageinfo(ent->page);
+    assert(ptp->pi_ref > 0);
 
-    if (ptp->pg_ref > 1) {
+    if (ptp->pi_ref > 1) {
 	void *copy;
 
 	int r = page_alloc(&copy);
@@ -155,7 +147,7 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 
 	memset(indir->page, 0, PGSIZE);
 	pagetree_incref(indir->page);
-	page_to_ptp(indir->page)->pg_indir = 1;
+	page_to_pageinfo(indir->page)->pi_indir = 1;
     }
 
     struct pagetree_indirect_page *pip = indir->page;

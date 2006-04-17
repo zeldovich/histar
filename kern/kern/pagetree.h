@@ -5,14 +5,6 @@
 #include <machine/memlayout.h>
 #include <inc/safetype.h>
 
-struct pagetree_page {
-    uint32_t pg_ref;	// references to this page from pagetree's
-    uint32_t pg_pin;	// hardware refs (DMA, PTE) -- for later use
-    uint32_t pg_indir;	// data page or indirect page
-};
-
-extern struct pagetree_page *pt_pages;
-
 typedef struct {
     void *page;
 } pagetree_entry;

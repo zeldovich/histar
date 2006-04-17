@@ -7,7 +7,7 @@
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
-#include <kern/pagetree.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 
 static bool_t scrub_free_pages = 0;
@@ -29,6 +29,9 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 
 // Global page allocation stats
 struct page_stats page_stats;
+
+// Keep track of various page metadata
+struct page_info *page_infos;
 
 static int
 nvram_read (int r)
@@ -142,10 +145,10 @@ page_init (void)
     // Align boot_freemem to page boundary.
     boot_alloc(0, PGSIZE);
 
-    // Allocate page status info for pagetree.
-    uint64_t sz = global_npages * sizeof(*pt_pages);
-    pt_pages = boot_alloc(sz, PGSIZE);
-    memset(pt_pages, 0, sz);
+    // Allocate space for page status info.
+    uint64_t sz = global_npages * sizeof(*page_infos);
+    page_infos = boot_alloc(sz, PGSIZE);
+    memset(page_infos, 0, sz);
 
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
