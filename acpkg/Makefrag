@@ -126,8 +126,9 @@ acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build acpkg/openssh-4.3p2/Ma
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install-nokeys" )
 	touch $@
 
+$(OBJDIR)/acpkg/bin/scp: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
-$(OBJDIR)/user/sshd_tar: acpkg/openssh-4.3p2/__build
+$(OBJDIR)/user/ssh_tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
@@ -148,6 +149,7 @@ $(OBJDIR)/user/sshd_tar: acpkg/openssh-4.3p2/__build
 					etc/ssh_host_rsa_key \
 					etc/ssh_host_rsa_key.pub \
 					.ssh/authorized_keys
+	tar -rf $@ -C ~ .ssh
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
 acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
