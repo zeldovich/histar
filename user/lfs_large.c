@@ -43,10 +43,75 @@ static char *prog_name;
 
 extern int errno;
 
+struct arc4 {
+  u_char i;
+  u_char j;
+  u_char s[256];
+
+};
+typedef struct arc4 arc4;
+static arc4 as;
+
+static inline u_char
+arc4_getbyte (arc4 *a)
+{
+  u_char si, sj;
+  a->i = (a->i + 1) & 0xff;
+  si = a->s[a->i];
+  a->j = (a->j + si) & 0xff;
+  sj = a->s[a->j];
+  a->s[a->i] = sj;
+  a->s[a->j] = si;
+  return a->s[(si + sj) & 0xff];
+}
+
+static void
+arc4_reset (arc4 *a)
+{
+  int n;
+  a->i = 0xff;
+  a->j = 0;
+  for (n = 0; n < 0x100; n++)
+    a->s[n] = n;
+}
+
+static void
+_arc4_setkey (arc4 *a, const u_char *key, size_t keylen)
+{
+  u_int n, keypos;
+  u_char si;
+  for (n = 0, keypos = 0; n < 256; n++, keypos++) {
+    if (keypos >= keylen)
+      keypos = 0;
+    a->i = (a->i + 1) & 0xff;
+    si = a->s[a->i];
+    a->j = (a->j + si + key[keypos]) & 0xff;
+    a->s[a->i] = a->s[a->j];
+    a->s[a->j] = si;
+  }
+}
+
+static void
+arc4_setkey (arc4 *a, const void *_key, size_t len)
+{
+  const u_char *key = (const u_char *) _key;
+  arc4_reset (a);
+  while (len > 128) {
+    len -= 128;
+    key += 128;
+    _arc4_setkey (a, key, 128);
+  }
+  if (len > 0)
+    _arc4_setkey (a, key, len);
+  a->j = a->i;
+}
+
 static int
 f(int i, int n)
 {
-    return ((i * 11) % n);
+    unsigned int rnd = arc4_getbyte(&as) + (arc4_getbyte(&as) << 8);
+    return rnd % n;
+    // return ((i * 11) % n);
 }
 
 static void
@@ -181,6 +246,9 @@ int main(int argc, char *argv[])
 {
     int n;
     int size;
+
+    const char *rc4key = "hello world.";
+    arc4_setkey(&as, rc4key, sizeof(rc4key));
 
     prog_name = argv[0];
 
