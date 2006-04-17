@@ -65,6 +65,17 @@ write_test(int n, int size, int sequential)
 	exit(1);
     }
 
+#if LINUX
+    int dir;
+    if ((dir = open(".", O_RDONLY)) < 0) {
+	perror("cannot open .");
+	exit(1);
+    }
+
+    fsync(dir);
+    close(dir);
+#endif
+
     for (i = 0; i < n; i ++) {
 		if (!sequential) {
 	
@@ -93,16 +104,6 @@ write_test(int n, int size, int sequential)
     if ((r = close(fd)) < 0) {
 	printf("write_test: close failed %s: %d\n", name, r);
     }
-
-#if LINUX
-    if ((fd = open(".", O_RDONLY)) < 0) {
-	perror("cannot open .");
-	exit(1);
-    }
-
-    fsync(fd);
-    close(fd);
-#endif
 
     fin = time_msec();
     printf("write_test: write took %d msec\n", fin - s);
