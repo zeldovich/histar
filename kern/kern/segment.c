@@ -98,3 +98,11 @@ segment_invalidate(const struct Segment *sg)
 	as_invalidate_sm(sm);
     }
 }
+
+void
+segment_collect_dirty(const struct Segment *sg)
+{
+    struct segment_mapping *sm;
+    LIST_FOREACH(sm, &sg->sg_segmap_list, sm_link)
+	as_collect_dirty_sm(sm);
+}

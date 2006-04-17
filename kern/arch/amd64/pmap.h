@@ -53,7 +53,8 @@ void page_map_free(struct Pagemap *pgmap);
 
 typedef void (*page_map_traverse_cb)(void *arg, uint64_t *ptep);
 int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
-		       int create, page_map_traverse_cb cb, void *arg);
+		       int create, page_map_traverse_cb cb, void *arg)
+    __attribute__ ((warn_unused_result));
 
 int  page_insert(struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
     __attribute__ ((warn_unused_result));

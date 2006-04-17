@@ -3,6 +3,7 @@
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/kobj.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 
 const struct Address_space *cur_as;
@@ -219,6 +220,18 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
     return 0;
 }
 
+static void
+as_collect_dirty_bits(void *arg, uint64_t *ptep)
+{
+    uint64_t pte = *ptep;
+    if (!(pte & PTE_P) || !(pte & PTE_D))
+	return;
+
+    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
+    pi->pi_dirty = 1;
+    *ptep &= ~PTE_D;
+}
+
 void
 as_swapin(struct Address_space *as)
 {
@@ -233,8 +246,11 @@ as_swapout(struct Address_space *as)
     // to free isn't the one being used by the CPU.
     as_switch(0);
 
-    if (as->as_pgmap && as->as_pgmap != &bootpml4)
+    if (as->as_pgmap && as->as_pgmap != &bootpml4) {
+	assert(0 == page_map_traverse(as->as_pgmap, 0, (void **) ULIM,
+				      0, &as_collect_dirty_bits, 0));
 	page_map_free(as->as_pgmap);
+    }
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
@@ -432,6 +448,17 @@ as_switch(const struct Address_space *as)
     uint64_t cur_cr3 = rcr3();
     if (cur_cr3 != new_cr3 || dirty_tlb)
 	lcr3(new_cr3);
+}
+
+void
+as_collect_dirty_sm(struct segment_mapping *sm)
+{
+    const struct u_segment_mapping *usm;
+    assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_ro) == 0);
+    assert(page_map_traverse(sm->sm_as->as_pgmap,
+			     usm->va,
+			     usm->va + (sm->sm_mapped_pages - 1) * PGSIZE,
+			     0, &as_collect_dirty_bits, 0) == 0);
 }
 
 void
