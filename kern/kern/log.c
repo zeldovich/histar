@@ -123,10 +123,9 @@ int
 log_try_read(offset_t byteoff, void *page)
 {
     struct btree_node *node;
-    struct btree_node *store = (struct btree_node *) page;
     LIST_FOREACH(node, &log.nodes, node_link) {
 	if (byteoff == node->block.offset) {
-	    memcpy(store, node, PGSIZE);
+	    memcpy(page, node, PGSIZE);
 	    return 0;
 	}
     }
@@ -136,31 +135,10 @@ log_try_read(offset_t byteoff, void *page)
     if (hash_get(&log.disk_map, byteoff, &log_off) < 0)
 	return -E_NOT_FOUND;
     disk_io_status s =
-	stackwrap_disk_io(op_read, store, BTREE_BLOCK_SIZE, log_off);
+	stackwrap_disk_io(op_read, page, BTREE_BLOCK_SIZE, log_off);
     if (!SAFE_EQUAL(s, disk_io_success))
 	return -E_IO;
 
-    return 0;
-}
-
-static int
-log_compact(void)
-{
-    offset_t off = log.byteoff;
-    struct node_list nodes;
-    uint64_t count = 0;
-    int r;
-
-    LIST_INIT(&nodes);
-
-    // XXX: potentially a lot of nodes read from disk
-    log_read_map(&log.disk_map, &nodes);
-    r = log_write_to_log(&nodes, &count, off);
-    log_free_list(&nodes);
-    if (r < 0)
-	return r;
-
-    log.on_disk = count;
     return 0;
 }
 
@@ -220,17 +198,8 @@ log_flush(void)
     if (LIST_EMPTY(&log.nodes))
 	return 0;
 
-    if (log.npages <= log.in_mem + log.on_disk + 1) {
-	uint64_t d = log.on_disk;
-	if ((r = log_compact()) < 0) {
-	    cprintf("log_flush: unable to compact: %s\n", e2s(r));
-	    return r;
-	}
-
-	cprintf("log_flush: compacted from %ld to %ld\n", d, log.on_disk);
-	uint64_t needed = log.in_mem + log.on_disk + 1;
-	assert(log.npages >= needed);
-    }
+    if (log.npages <= log.in_mem + log.on_disk + 1)
+	panic("log_flush: out of log space");
 
     uint64_t count;
     uint64_t off = log.byteoff + log.on_disk * PGSIZE;
