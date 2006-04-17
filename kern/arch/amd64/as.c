@@ -308,15 +308,15 @@ as_pmap_fill_segment(const struct Address_space *as,
     uint64_t num_pages = usm->num_pages;
     uint64_t flags = usm->flags;
 
+    uint64_t mapped_already = sm->sm_sg ? sm->sm_mapped_pages_rw : 0;
+    uint64_t i;
+    int r = 0;
+
     if (sm->sm_sg) {
 	LIST_REMOVE(sm, sm_link);
 	kobject_unpin_page(&sm->sm_sg->sg_ko);
 	sm->sm_sg = 0;
     }
-
-    uint64_t mapped_already = sm->sm_sg ? sm->sm_mapped_pages_rw : 0;
-    uint64_t i;
-    int r = 0;
 
     if (as == cur_as && num_pages - mapped_already > as_invlpg_max)
 	cur_as_dirty_tlb = 1;
