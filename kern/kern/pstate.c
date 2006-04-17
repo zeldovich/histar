@@ -542,22 +542,26 @@ pstate_sync_loop(struct pstate_header *hdr,
     if (commit_panic && ++commit_count == commit_panic)
 	panic("commit test");
 
-    do {
-	r = log_apply_mem();
-	if (r < 0)
-	    cprintf("pstate_sync_loop: unable to apply, retry: %s\n", e2s(r));
-    } while (r < 0);
+    if (hdr->ph_log_blocks > LOG_PAGES / 2) {
+	cprintf("pstate_sync_loop: applying on-disk log\n");
 
-    hdr->ph_log_blocks = 0;
-    do {
-	s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+	do {
+	    r = log_apply_mem();
+	    if (r < 0)
+		cprintf("pstate_sync_loop: unable to apply, retry: %s\n", e2s(r));
+	} while (r < 0);
+
+	hdr->ph_log_blocks = 0;
+	do {
+	    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+	    if (!SAFE_EQUAL(s, disk_io_success))
+		cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
+	} while (!SAFE_EQUAL(s, disk_io_success));
+
+	s = stackwrap_disk_io(op_flush, 0, 0, 0);
 	if (!SAFE_EQUAL(s, disk_io_success))
-	    cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
-    } while (!SAFE_EQUAL(s, disk_io_success));
-
-    s = stackwrap_disk_io(op_flush, 0, 0, 0);
-    if (!SAFE_EQUAL(s, disk_io_success))
-	panic("pstate_sync_loop: unable to flush applied log");
+	    panic("pstate_sync_loop: unable to flush applied log");
+    }
 
     btree_unlock_all();
     memcpy(&stable_hdr, hdr, sizeof(stable_hdr));
