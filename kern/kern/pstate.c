@@ -283,6 +283,38 @@ pstate_swapin(kobject_id_t id)
 /////////////////////////////////////
 
 static int
+pstate_apply_disk_log(void)
+{
+    log_init();
+
+    int r = log_apply_disk(stable_hdr.ph_log_blocks);
+    if (r < 0) {
+	cprintf("pstate_apply_disk_log: cannot apply: %s\n", e2s(r));
+	return r;
+    }
+
+    disk_io_status s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_apply_disk_log: cannot flush\n");
+	return -E_IO;
+    }
+
+    stable_hdr.ph_log_blocks = 0;
+    s = stackwrap_disk_io(op_write, &stable_hdr.ph_buf[0],
+			  PSTATE_BUF_SIZE, 0);
+    if (!SAFE_EQUAL(s, disk_io_success)) {
+	cprintf("pstate_apply_disk_log: cannot write out header\n");
+	return -E_IO;
+    }
+
+    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    if (!SAFE_EQUAL(s, disk_io_success))
+	panic("pstate_apply_disk_log: cannot flush header");
+
+    return 0;
+}
+
+static int
 pstate_load2(void)
 {
     disk_io_status s = stackwrap_disk_io(op_read, &stable_hdr.ph_buf[0],
@@ -299,30 +331,11 @@ pstate_load2(void)
 	return -E_INVAL;
     }
 
-    log_init();
-    int r = log_apply_disk(stable_hdr.ph_log_blocks);
+    int r = pstate_apply_disk_log();
     if (r < 0) {
 	cprintf("pstate_load2: cannot apply log: %s\n", e2s(r));
 	return r;
     }
-
-    s = stackwrap_disk_io(op_flush, 0, 0, 0);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_load2: unable to flush applied log");
-	return -E_IO;
-    }
-
-    stable_hdr.ph_log_blocks = 0;
-    s = stackwrap_disk_io(op_write, &stable_hdr.ph_buf[0],
-			  PSTATE_BUF_SIZE, 0);
-    if (!SAFE_EQUAL(s, disk_io_success)) {
-	cprintf("pstate_load2: cannot write out header\n");
-	return -E_IO;
-    }
-
-    s = stackwrap_disk_io(op_flush, 0, 0, 0);
-    if (!SAFE_EQUAL(s, disk_io_success))
-	panic("pstate_load2: cannot flush header");
 
     freelist_deserialize(&freelist, &stable_hdr.ph_free);
     btree_manager_deserialize(&stable_hdr.ph_btrees);
@@ -369,6 +382,7 @@ static void
 pstate_reset(void)
 {
     memset(&stable_hdr, 0, sizeof(stable_hdr));
+    log_init();
 }
 
 int
@@ -572,9 +586,6 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
 		      (disk_pages - reserved_pages) * PGSIZE);
     }
 
-    // Always reset the write-ahead log -- new transaction
-    log_init();
-
     static_assert(sizeof(struct pstate_header) == PSTATE_BUF_SIZE);
 
     static struct pstate_header pstate_scratch_buf;
@@ -606,8 +617,14 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
     }
 
     int r = pstate_sync_loop(hdr, &stats);
-    if (r < 0)
+    if (r < 0) {
 	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
+
+	// XXX flush btree cache?
+
+	// Reset the un-committed log by applying the committed on-disk one.
+	assert(0 == pstate_apply_disk_log());
+    }
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
 	ko_next = LIST_NEXT(ko, ko_link);
