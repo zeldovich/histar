@@ -49,21 +49,21 @@ freelist_alloc(struct freelist * l, uint64_t nbytes)
     if (r < 0)
 	return r;
 
+    offset = k.offset;
     k.nbytes -= nbytes;
+    k.offset += nbytes;
+
     if (k.nbytes != 0) {
 	r = btree_insert(BTREE_FOFFSET, &k.offset, &k.nbytes);
 	if (r < 0)
 	    return r;
 
-	r = btree_insert(BTREE_FCHUNK, (uint64_t *) & k, &k.offset);
+	r = btree_insert(BTREE_FCHUNK, (uint64_t *) &k, &k.offset);
 	if (r < 0)
 	    return r;
     }
 
-    offset = k.offset + k.nbytes;
-
     frm_service(l);
-
     return offset;
 }
 
