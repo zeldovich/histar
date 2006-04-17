@@ -90,3 +90,8 @@ longjmp().
 
 split the pstate sync timestamp counter from the handle counter
 
+VM bug: if we copy a segment and map it read-only, the shared read-only pages
+are used in the mapping.  however, when the same segment is then mapped read-write,
+pages are cloned and the shared mappings are now out of sync with the actual
+segment pages..
+
