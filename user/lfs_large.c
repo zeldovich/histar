@@ -50,17 +50,19 @@ f(int i, int n)
 }
 
 static void
-write_test(int n, int size, int sequential)
+write_test(int n, int size, int sequential, int finesync)
 {
     int i = 0 ;
     int r;
     int fd;
     long pos = 0 ;
 
+    memset(buf, 0xab + sequential * 2 + finesync * 4, size);
+
     unsigned s, fin;
     s = time_msec();
     
-    if ((fd = open(name, O_RDWR | O_SYNC, 0)) < 0) {
+    if ((fd = open(name, O_RDWR | (finesync ? O_SYNC : 0), 0)) < 0) {
 	printf("write_test: open %s failed: %d\n", name, fd);
 	exit(1);
     }
@@ -95,12 +97,17 @@ write_test(int n, int size, int sequential)
 		    exit(1);
 		}
 
-		if (fsync(fd) < 0) {
+		if (finesync && fsync(fd) < 0) {
 		    printf("write_test: fsync failed: %s\n", strerror(errno));
 		    exit(1);
 		}
     }
     
+    if (fsync(fd) < 0) {
+	printf("write_test: fsync failed: %s\n", strerror(errno));
+	exit(1);
+    }
+
     if ((r = close(fd)) < 0) {
 	printf("write_test: close failed %s: %d\n", name, r);
     }
@@ -174,13 +181,15 @@ int main(int argc, char *argv[])
 
     prog_name = argv[0];
 
-    if (argc != 3) {
-		printf("%s: %s num_blocks size_block\n", prog_name, prog_name);
-		exit(1);
+    if (argc != 4) {
+	printf("%s: %s num_blocks size_block syncopt\n", prog_name, prog_name);
+	exit(1);
     }
 
     n = atoi(argv[1]);
     size = atoi(argv[2]);
+    int finesync = atoi(argv[3]);
+
     if (size > SIZE) {
 	printf("%s: %s %d > %d\n", prog_name, prog_name, size, SIZE);
 	exit(1);
@@ -192,15 +201,15 @@ int main(int argc, char *argv[])
 
     int fd;
     if((fd = creat(name, S_IRUSR | S_IWUSR)) < 0) {
-		printf("main: create %s failed: %d\n", name, fd);
-		exit(1);
+	printf("main: create %s failed: %d\n", name, fd);
+	exit(1);
     }
 
-    write_test(n, size, 1);
+    write_test(n, size, 1, 0);
     read_test(n, size, 1);
-    write_test(n , size, 0);
+    write_test(n, size, 0, finesync);
     read_test(n, size, 0);
-    read_test(n , size, 1);
+    read_test(n, size, 1);
 
     unlink(name);
 
