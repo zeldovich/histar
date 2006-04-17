@@ -77,6 +77,8 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	return jos_devnull_open(flags);
     if (!strcmp("/dev/zero", pn))
 	return jos_devzero_open(flags);
+    if (!strcmp("/dev/tty", pn))
+	return dup(0);
 
     if (!strcmp(pn, "")) {
 	__set_errno(ENOENT);
