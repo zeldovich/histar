@@ -28,7 +28,6 @@ extern struct Pseudodesc idtdesc;
 extern char boot_cmdline[];
 
 /* pmap.c */
-
 struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
@@ -42,26 +41,30 @@ extern struct page_stats {
     uint64_t failures;
 } page_stats;
 
-void pmap_init (struct multiboot_info *mbi);
+void pmap_init(struct multiboot_info *mbi);
 
-int  page_alloc (void **p)
+int  page_alloc(void **p)
     __attribute__ ((warn_unused_result));
 void page_free (void *p);
 
-int  page_map_alloc (struct Pagemap **pm_store)
+int  page_map_alloc(struct Pagemap **pm_store)
     __attribute__ ((warn_unused_result));
-void page_map_free (struct Pagemap *pgmap);
+void page_map_free(struct Pagemap *pgmap);
 
-int  page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
+typedef void (*page_map_traverse_cb)(void *arg, uint64_t *ptep);
+int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
+		       int create, page_map_traverse_cb cb, void *arg);
+
+int  page_insert(struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
     __attribute__ ((warn_unused_result));
-void *page_remove (struct Pagemap *pgmap, void *va);
-void *page_lookup (struct Pagemap *pgmap, void *va, uint64_t **pte_store);
+void *page_remove(struct Pagemap *pgmap, void *va);
+void *page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store);
 
 int pgdir_walk(struct Pagemap *pgmap, const void *va,
 	       int create, uint64_t **pte_store)
     __attribute__ ((warn_unused_result));
 
-void tlb_invalidate (struct Pagemap *pgmap, void *va);
+void tlb_invalidate(struct Pagemap *pgmap, void *va);
 
 static __inline void *
 pa2kva (physaddr_t pa)

@@ -34,13 +34,13 @@ struct page_stats page_stats;
 struct page_info *page_infos;
 
 static int
-nvram_read (int r)
+nvram_read(int r)
 {
   return mc146818_read (r) | (mc146818_read (r + 1) << 8);
 }
 
 static void
-i386_detect_memory (struct multiboot_info *mbi)
+i386_detect_memory(struct multiboot_info *mbi)
 {
     if (mbi && (mbi->flags & MULTIBOOT_INFO_MEMORY)) {
 	basemem = ROUNDDOWN(mbi->mem_lower * 1024, PGSIZE);
@@ -76,7 +76,7 @@ i386_detect_memory (struct multiboot_info *mbi)
 // before the page_free_list has been set up.
 // 
 static void *
-boot_alloc (uint32_t n, uint32_t align)
+boot_alloc(uint32_t n, uint32_t align)
 {
   extern char end[];
   void *v;
@@ -99,7 +99,7 @@ boot_alloc (uint32_t n, uint32_t align)
 }
 
 void
-page_free (void *v)
+page_free(void *v)
 {
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
@@ -114,7 +114,7 @@ page_free (void *v)
 }
 
 int
-page_alloc (void **vp)
+page_alloc(void **vp)
 {
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
     if (pl) {
@@ -136,7 +136,7 @@ page_alloc (void **vp)
 }
 
 static void
-page_init (void)
+page_init(void)
 {
     TAILQ_INIT(&page_free_list);
 
@@ -175,14 +175,14 @@ page_init (void)
 }
 
 void
-pmap_init (struct multiboot_info *mbi)
+pmap_init(struct multiboot_info *mbi)
 {
     i386_detect_memory (mbi);
     page_init ();
 }
 
 int
-page_map_alloc (struct Pagemap **pm_store)
+page_map_alloc(struct Pagemap **pm_store)
 {
     void *pmap;
     int r = page_alloc(&pmap);
@@ -195,7 +195,7 @@ page_map_alloc (struct Pagemap **pm_store)
 }
 
 static void
-page_map_free_level (struct Pagemap *pgmap, int pmlevel)
+page_map_free_level(struct Pagemap *pgmap, int pmlevel)
 {
     // Skip the kernel half of the address space
     int maxi = (pmlevel == 3 ? NPTENTRIES/2 : NPTENTRIES);
@@ -215,64 +215,84 @@ page_map_free_level (struct Pagemap *pgmap, int pmlevel)
 }
 
 void
-page_map_free (struct Pagemap *pgmap)
+page_map_free(struct Pagemap *pgmap)
 {
-    page_map_free_level (pgmap, 3);
+    page_map_free_level(pgmap, 3);
 }
 
-//
-// Stores address of page table entry in *ppte.
-// Stores 0 if there is no such entry or on error.
-// 
-// RETURNS: 
-//   0 on success
-//   -E_NO_MEM, if page table couldn't be allocated
-//
 static int
-pgdir_walk_internal (struct Pagemap *pgmap, int pmlevel,
-		     const void *va, int create, uint64_t **pte_store)
+page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
+			   const void *first, const void *last,
+			   int create,
+			   page_map_traverse_cb cb, void *arg)
 {
+    int r;
     assert(pmlevel >= 0 && pmlevel <= 3);
 
-    uint64_t *pm_entp = &pgmap->pm_ent[PDX(pmlevel, va)];
-    uint64_t pm_ent = *pm_entp;
+    uint32_t first_idx = PDX(pmlevel, first);
+    uint32_t last_idx  = PDX(pmlevel, last);
 
-    // If we made it all the way down, return the PTE
-    if (pmlevel == 0) {
-	*pte_store = pm_entp;
-	return 0;
-    }
+    for (uint32_t idx = first_idx; idx <= last_idx; idx++) {
+	uint64_t *pm_entp = &pgmap->pm_ent[idx];
+	uint64_t pm_ent = *pm_entp;
 
-    // We don't handle superpages (2MB) yet
-    if ((pm_ent & PTE_PS))
-	return -E_INVAL;
-
-    // If an intermediate page map is missing, allocate it (if asked for)
-    if (!(pm_ent & PTE_P)) {
-	if (!create) {
-	    *pte_store = 0;
-	    return 0;
+	if (pmlevel == 0) {
+	    cb(arg, pm_entp);
+	    continue;
 	}
 
-	void *p;
-	int r = page_alloc(&p);
+	if (pmlevel == 1 && (pm_ent & PTE_PS)) {
+	    cb(arg, pm_entp);
+	    continue;
+	}
+
+	if (!(pm_ent & PTE_P)) {
+	    if (!create)
+		continue;
+
+	    void *p;
+	    if ((r = page_alloc(&p)) < 0)
+		return r;
+
+	    memset(p, 0, PGSIZE);
+	    pm_ent = kva2pa(p) | PTE_P | PTE_U | PTE_W;
+	    *pm_entp = pm_ent;
+	}
+
+	struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(pm_ent));
+	const void *first_next = (idx == first_idx) ? first : 0;
+	const void *last_next  = (idx == last_idx)  ? last : (const void *) ~0UL;
+	r = page_map_traverse_internal(pm_next, pmlevel - 1, first_next, last_next,
+				       create, cb, arg);
 	if (r < 0)
 	    return r;
-
-	memset(p, 0, PGSIZE);
-	pm_ent = kva2pa(p) | PTE_P | PTE_U | PTE_W;
-	*pm_entp = pm_ent;
     }
 
-    struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(pm_ent));
-    return pgdir_walk_internal(pm_next, pmlevel-1, va, create, pte_store);
+    return 0;
+}
+
+int
+page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
+		  int create, page_map_traverse_cb cb, void *arg)
+{
+    if (last >= (const void *) ULIM)
+	last = (const void *) ULIM - PGSIZE;
+    return page_map_traverse_internal(pgmap, 3, first, last, create, cb, arg);
+}
+
+static void
+pgdir_walk_cb(void *arg, uint64_t *ptep)
+{
+    uint64_t **pte_store = arg;
+    *pte_store = ptep;
 }
 
 int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, uint64_t **pte_store)
 {
-    return pgdir_walk_internal(pgmap, 3, va, create, pte_store);
+    *pte_store = 0;
+    return page_map_traverse(pgmap, va, va, create, &pgdir_walk_cb, pte_store);
 }
 
 //
@@ -308,7 +328,7 @@ page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 // edited are the ones currently in use by the processor.
 //
 void
-tlb_invalidate (struct Pagemap *pgmap, void *va)
+tlb_invalidate(struct Pagemap *pgmap, void *va)
 {
     // Flush the entry only if we're modifying the current address space.
     if (cur_as && cur_as->as_pgmap == pgmap)
@@ -325,7 +345,7 @@ tlb_invalidate (struct Pagemap *pgmap, void *va)
 //     the pg dir/pg table.
 //
 void *
-page_remove (struct Pagemap *pgmap, void *va)
+page_remove(struct Pagemap *pgmap, void *va)
 {
     uint64_t *ptep;
     void *p = page_lookup(pgmap, va, &ptep);
@@ -351,7 +371,7 @@ page_remove (struct Pagemap *pgmap, void *va)
 //   -E_BUSY, if another page is already mapped at va
 //
 int
-page_insert (struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
+page_insert(struct Pagemap *pgmap, void *page, void *va, uint64_t perm)
 {
     uint64_t *ptep;
     int r = pgdir_walk(pgmap, va, 1, &ptep);
