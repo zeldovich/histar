@@ -96,6 +96,9 @@ struct kobject *
 struct kobject *
      kobject_ephemeral_dirty(const struct kobject_hdr *kh);
 
+// Evaluate KOBJ_DIRTY_LATER as KOBJ_DIRTY or not
+void kobject_dirty_eval(struct kobject *ko);
+
 // The object has been brought in from disk.
 void kobject_swapin(struct kobject *kp);
 

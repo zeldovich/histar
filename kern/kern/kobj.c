@@ -264,8 +264,12 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 	segment_invalidate(&eko->sg);
     }
 
-    if (SAFE_EQUAL(rw, page_excl_dirty) || SAFE_EQUAL(rw, page_excl_dirty_later))
+    if (SAFE_EQUAL(rw, page_excl_dirty))
 	kobject_dirty(kp);
+    if (SAFE_EQUAL(rw, page_excl_dirty_later)) {
+	assert(eko->hdr.ko_type == kobj_segment);
+	eko->hdr.ko_flags |= KOBJ_DIRTY_LATER;
+    }
 
     int r = pagetree_get_page(&kobject_const_h2k(kp)->ko_pt,
 			      npage, pp, rw);
@@ -279,6 +283,31 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 	    eko->hdr.ko_flags |= KOBJ_SHARED_MAPPINGS;
     }
     return r;
+}
+
+void
+kobject_dirty_eval(struct kobject *ko)
+{
+    if (!(ko->hdr.ko_flags & KOBJ_DIRTY_LATER))
+	return;
+    ko->hdr.ko_flags &= ~KOBJ_DIRTY_LATER;
+
+    assert(ko->hdr.ko_type == kobj_segment);
+    segment_collect_dirty(&ko->sg);
+
+    int dirty = 0;
+    uint64_t npg = kobject_npages(&ko->hdr);
+    for (uint64_t i = 0; i < npg; i++) {
+	void *p;
+	assert(0 == kobject_get_page(&ko->hdr, i, &p, page_shared_ro));
+
+	struct page_info *pi = page_to_pageinfo(p);
+	if (pi->pi_dirty)
+	    dirty = 1;
+    }
+
+    if (dirty)
+	ko->hdr.ko_flags |= KOBJ_DIRTY;
 }
 
 uint64_t
@@ -482,6 +511,9 @@ kobject_gc(struct kobject *ko)
 	    return r;
     }
 
+    if ((ko->hdr.ko_flags & KOBJ_DIRTY_LATER))
+	kobject_dirty_eval(ko);
+
     switch (ko->hdr.ko_type) {
     case kobj_thread:
 	r = thread_gc(&ko->th);
@@ -496,8 +528,8 @@ kobject_gc(struct kobject *ko)
 	break;
 
     case kobj_gate:
-    case kobj_segment:
     case kobj_netdev:
+    case kobj_segment:
     case kobj_label:
 	break;
 

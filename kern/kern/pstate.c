@@ -595,6 +595,9 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
     struct kobject *ko, *ko_next;
     LIST_FOREACH(ko, &ko_list, ko_link) {
 	stats.total_kobj++;
+	if ((ko->hdr.ko_flags & KOBJ_DIRTY_LATER))
+	    kobject_dirty_eval(ko);
+
 	if ((ko->hdr.ko_flags & KOBJ_DIRTY)) {
 	    kobject_snapshot(&ko->hdr);
 	    ko->hdr.ko_flags |= KOBJ_SNAPSHOT_DIRTY;

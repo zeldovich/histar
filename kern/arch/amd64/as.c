@@ -314,7 +314,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	sm->sm_sg = 0;
     }
 
-    uint64_t mapped_already = sm->sm_sg ? sm->sm_mapped_pages : 0;
+    uint64_t mapped_already = sm->sm_sg ? sm->sm_mapped_pages_rw : 0;
     uint64_t i;
     int r = 0;
 
@@ -359,7 +359,8 @@ as_pmap_fill_segment(const struct Address_space *as,
 
     sm->sm_as = as;
     sm->sm_sg = sg;
-    sm->sm_mapped_pages = num_pages;
+    sm->sm_mapped_pages_ro = num_pages;
+    sm->sm_mapped_pages_rw = num_pages;
 
     struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
     LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
@@ -462,7 +463,7 @@ as_collect_dirty_sm(struct segment_mapping *sm)
     assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
     assert(page_map_traverse(sm->sm_as->as_pgmap,
 			     usm->va,
-			     usm->va + (sm->sm_mapped_pages - 1) * PGSIZE,
+			     usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE,
 			     0, &as_collect_dirty_bits, 0) == 0);
 }
 
@@ -473,8 +474,9 @@ as_map_ro_sm(struct segment_mapping *sm)
     assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
     assert(page_map_traverse(sm->sm_as->as_pgmap,
 			     usm->va,
-			     usm->va + (sm->sm_mapped_pages - 1) * PGSIZE,
+			     usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE,
 			     0, &as_page_map_ro_cb, 0) == 0);
+    sm->sm_mapped_pages_rw = 0;
 }
 
 void
@@ -490,12 +492,12 @@ as_invalidate_sm(struct segment_mapping *sm)
     assert(0 == as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro));
 
     void *map_first = usm->va;
-    void *map_last = usm->va + (sm->sm_mapped_pages - 1) * PGSIZE;
+    void *map_last = usm->va + (sm->sm_mapped_pages_ro - 1) * PGSIZE;
     assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last, 0,
 			     &as_page_invalidate_cb, 0) == 0);
 
     if (sm->sm_as == cur_as) {
-	if (sm->sm_mapped_pages > as_invlpg_max)
+	if (sm->sm_mapped_pages_ro > as_invlpg_max)
 	    cur_as_dirty_tlb = 1;
 	else
 	    for (void *cva = map_first; cva <= map_last; cva += PGSIZE)
