@@ -272,10 +272,11 @@ log_apply_mem(void)
 void
 log_init(void)
 {
-    memset(&log, 0, sizeof(log));
-    // logging will overwrite anything in the disk log
-    LIST_INIT(&log.nodes);
+    log_free_list(&log.nodes);
+    memset(&log.map_back[0], 0, sizeof(log.map_back));
     hash_init(&log.disk_map, log.map_back, LOG_PAGES);
+    log.in_mem = 0;
+    log.on_disk = 0;
     log.byteoff = LOG_OFFSET * PGSIZE;
     log.npages = LOG_PAGES;
     log.max_mem = LOG_MEMORY;
