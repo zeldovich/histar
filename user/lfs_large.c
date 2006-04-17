@@ -59,10 +59,11 @@ write_test(int n, int size, int sequential, int finesync)
 
     memset(buf, 0xab + sequential * 2 + finesync * 4, size);
 
-    unsigned s, fin;
+    unsigned s, mid, fin;
     s = time_msec();
-    
-    if ((fd = open(name, O_RDWR | (finesync ? O_SYNC : 0), 0)) < 0) {
+   
+    int syncflag = finesync ? O_SYNC : 0;
+    if ((fd = open(name, O_RDWR | syncflag, 0)) < 0) {
 	printf("write_test: open %s failed: %d\n", name, fd);
 	exit(1);
     }
@@ -103,6 +104,8 @@ write_test(int n, int size, int sequential, int finesync)
 		}
     }
     
+    mid = time_msec();
+
     if (fsync(fd) < 0) {
 	printf("write_test: fsync failed: %s\n", strerror(errno));
 	exit(1);
@@ -113,7 +116,7 @@ write_test(int n, int size, int sequential, int finesync)
     }
 
     fin = time_msec();
-    printf("write_test: write took %d msec\n", fin - s);
+    printf("write_test: write took %d msec (%d msec write, %d msec sync)\n", fin - s, mid-s, fin-mid);
 
 }
 
