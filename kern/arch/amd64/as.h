@@ -14,8 +14,7 @@ struct Address_space;
 struct segment_mapping {
     const struct Address_space *sm_as;
     uint64_t sm_as_slot;
-    uint64_t sm_mapped_pages_ro;
-    uint64_t sm_mapped_pages_rw;
+    uint8_t sm_rw_mappings;	// any writable mappings?
 
     const struct Segment *sm_sg;
     LIST_ENTRY(segment_mapping) sm_link;

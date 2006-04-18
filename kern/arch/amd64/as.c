@@ -10,7 +10,8 @@ const struct Address_space *cur_as;
 static int cur_as_dirty_tlb;
 
 enum { as_debug = 0 };
-enum { as_invlpg_max = 1 };
+enum { as_invlpg_max = 2 };
+enum { as_courtesy_pages = 8 };
 
 int
 as_alloc(const struct Label *l, struct Address_space **asp)
@@ -302,15 +303,30 @@ static int
 as_pmap_fill_segment(const struct Address_space *as,
 		     const struct Segment *sg,
 		     struct segment_mapping *sm,
-		     const struct u_segment_mapping *usm)
+		     const struct u_segment_mapping *usm,
+		     uint64_t need_page)
 {
     uint64_t start_page = usm->start_page;
     uint64_t num_pages = usm->num_pages;
     uint64_t flags = usm->flags;
-
-    uint64_t mapped_already = sm->sm_sg ? sm->sm_mapped_pages_rw : 0;
-    uint64_t i;
     int r = 0;
+
+    // Argument is relative to mapping base, not segment base
+    need_page += start_page;
+
+    uint64_t map_start_page =
+	MAX(start_page,
+	    need_page > as_courtesy_pages
+		? need_page - as_courtesy_pages : 0);
+
+    uint64_t map_end_page =
+	MIN(start_page + num_pages - 1,
+	    need_page + as_courtesy_pages > need_page
+		? need_page + as_courtesy_pages : need_page);
+
+    if (as_debug)
+	cprintf("as_pmap_fill_segment: start %ld num %ld need %ld: mapping %ld--%ld\n",
+		start_page, num_pages, need_page, map_start_page, map_end_page);
 
     if (sm->sm_sg) {
 	LIST_REMOVE(sm, sm_link);
@@ -318,11 +334,11 @@ as_pmap_fill_segment(const struct Address_space *as,
 	sm->sm_sg = 0;
     }
 
-    if (as == cur_as && num_pages - mapped_already > as_invlpg_max)
+    if (as == cur_as && map_end_page - map_start_page + 1 > as_invlpg_max)
 	cur_as_dirty_tlb = 1;
 
-    char *cva = (char *) usm->va + mapped_already * PGSIZE;
-    for (i = start_page + mapped_already; i < start_page + num_pages; i++) {
+    char *cva = (char *) usm->va + (map_start_page - start_page) * PGSIZE;
+    for (uint64_t i = map_start_page; i <= map_end_page; i++) {
 	if (PGOFF(cva) || ((uint64_t) cva) >= ULIM) {
 	    r = -E_INVAL;
 	    goto err;
@@ -351,7 +367,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if ((ptflags & PTE_W))
 	    pagetree_incpin(pp);
 
-	if (as == cur_as && num_pages - mapped_already <= as_invlpg_max)
+	if (as == cur_as && map_end_page - map_start_page + 1 <= as_invlpg_max)
 	    invlpg(cva);
 
 	cva += PGSIZE;
@@ -359,8 +375,8 @@ as_pmap_fill_segment(const struct Address_space *as,
 
     sm->sm_as = as;
     sm->sm_sg = sg;
-    sm->sm_mapped_pages_ro = num_pages;
-    sm->sm_mapped_pages_rw = num_pages;
+    if ((flags & SEGMAP_WRITE))
+	sm->sm_rw_mappings = 1;
 
     struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
     LIST_INSERT_HEAD(&msg->sg_segmap_list, sm, sm_link);
@@ -371,7 +387,8 @@ err:
     if (r != -E_RESTART)
 	cprintf("as_pmap_fill_segment: %s\n", e2s(r));
 
-    assert(page_map_traverse(as->as_pgmap, usm->va, usm->va + (i - start_page) * PGSIZE,
+    assert(page_map_traverse(as->as_pgmap, usm->va,
+			     usm->va + (usm->num_pages - 1) * PGSIZE,
 			     0, &as_page_invalidate_cb, 0) == 0);
     if (as == cur_as)
 	cur_as_dirty_tlb = 1;
@@ -394,7 +411,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	    continue;
 
 	uint64_t npages = usm->num_pages;
-	void *va_start = usm->va;
+	void *va_start = ROUNDDOWN(usm->va, PGSIZE);
 	void *va_end = (char*) va_start + npages * PGSIZE;
 	if (va < va_start || va >= va_end)
 	    continue;
@@ -411,9 +428,11 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	if (r < 0)
 	    return r;
 
+	uint64_t fault_page = (ROUNDDOWN(va, PGSIZE) - va_start) / PGSIZE;
+
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
-	return as_pmap_fill_segment(as, sg, sm, usm);
+	return as_pmap_fill_segment(as, sg, sm, usm, fault_page);
     }
 
     return -E_NOT_FOUND;
@@ -461,36 +480,42 @@ as_switch(const struct Address_space *as)
 void
 as_collect_dirty_sm(struct segment_mapping *sm)
 {
+    if (!sm->sm_rw_mappings)
+	return;
+
     const struct u_segment_mapping *usm;
     assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
     assert(page_map_traverse(sm->sm_as->as_pgmap,
 			     usm->va,
-			     usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE,
+			     usm->va + (usm->num_pages - 1) * PGSIZE,
 			     0, &as_collect_dirty_bits, 0) == 0);
-    if (sm->sm_as == cur_as && sm->sm_mapped_pages_rw)
+    if (sm->sm_as == cur_as)
 	cur_as_dirty_tlb = 1;
 }
 
 void
 as_map_ro_sm(struct segment_mapping *sm)
 {
+    if (!sm->sm_rw_mappings)
+	return;
+
     const struct u_segment_mapping *usm;
     assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
 
     void *map_first = usm->va;
-    void *map_last = usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE;
+    void *map_last = usm->va + (usm->num_pages - 1) * PGSIZE;
     assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last,
 			     0, &as_page_map_ro_cb, 0) == 0);
 
     if (sm->sm_as == cur_as) {
-	if (sm->sm_mapped_pages_rw > as_invlpg_max)
+	if (usm->num_pages > as_invlpg_max)
 	    cur_as_dirty_tlb = 1;
 	else
 	    for (void *cva = map_first; cva <= map_last; cva += PGSIZE)
 		invlpg(cva);
     }
 
-    sm->sm_mapped_pages_rw = 0;
+    sm->sm_rw_mappings = 0;
 }
 
 void
@@ -506,12 +531,12 @@ as_invalidate_sm(struct segment_mapping *sm)
     assert(0 == as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro));
 
     void *map_first = usm->va;
-    void *map_last = usm->va + (sm->sm_mapped_pages_ro - 1) * PGSIZE;
+    void *map_last = usm->va + (usm->num_pages - 1) * PGSIZE;
     assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last, 0,
 			     &as_page_invalidate_cb, 0) == 0);
 
     if (sm->sm_as == cur_as) {
-	if (sm->sm_mapped_pages_ro > as_invlpg_max)
+	if (usm->num_pages > as_invlpg_max)
 	    cur_as_dirty_tlb = 1;
 	else
 	    for (void *cva = map_first; cva <= map_last; cva += PGSIZE)
@@ -521,6 +546,7 @@ as_invalidate_sm(struct segment_mapping *sm)
     LIST_REMOVE(sm, sm_link);
     kobject_unpin_page(&sm->sm_sg->sg_ko);
     sm->sm_sg = 0;
+    sm->sm_rw_mappings = 0;
     return;
 }
 
