@@ -251,7 +251,6 @@ log_apply_mem(void)
     TAILQ_FOREACH(node, &log.nodes, node_log_link)
 	hash_del(&log.disk_map, node->block.offset);
 
-    cprintf("log_apply_mem: applied %ld nodes from memory\n", count);
     assert(count == log_free_list(&log.nodes));
     log.in_mem -= count;
     assert(log.in_mem == 0);
