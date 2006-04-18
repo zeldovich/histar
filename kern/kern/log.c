@@ -16,6 +16,7 @@ static struct {
     uint64_t max_mem;
 
     uint64_t in_mem;
+    int tailq_inited;
     struct node_list nodes;
 
     uint64_t on_disk;
@@ -30,7 +31,7 @@ log_write_to_disk(struct node_list *nodes, uint64_t * count)
     uint64_t n = 0;
 
     struct btree_node *node;
-    LIST_FOREACH(node, nodes, node_link) {
+    TAILQ_FOREACH(node, nodes, node_log_link) {
 	s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE,
 			      node->block.offset);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
@@ -51,7 +52,7 @@ log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
     assert(log.byteoff <= off);
 
     struct btree_node *node;
-    LIST_FOREACH(node, nodes, node_link) {
+    TAILQ_FOREACH(node, nodes, node_log_link) {
 	assert(off + n * PGSIZE < log.npages * PGSIZE + log.byteoff);
 	s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE,
 			      off + n * PGSIZE);
@@ -72,9 +73,9 @@ log_free_list(struct node_list *nodes)
     uint64_t n = 0;
     struct btree_node *prev, *next;
 
-    for (prev = LIST_FIRST(nodes); prev; prev = next, n++) {
-	next = LIST_NEXT(prev, node_link);
-	LIST_REMOVE(prev, node_link);
+    for (prev = TAILQ_FIRST(nodes); prev; prev = next, n++) {
+	next = TAILQ_NEXT(prev, node_log_link);
+	TAILQ_REMOVE(nodes, prev, node_log_link);
 	page_free(prev);
     }
     return n;
@@ -93,7 +94,7 @@ log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
 	s = stackwrap_disk_io(op_read, node, BTREE_BLOCK_SIZE, off);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    return -E_IO;
-	LIST_INSERT_HEAD(nodes, node, node_link);
+	TAILQ_INSERT_TAIL(nodes, node, node_log_link);
     }
     return 0;
 }
@@ -114,7 +115,7 @@ log_read_map(struct hashtable *map, struct node_list *nodes)
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    return -E_IO;
 	assert(node->block.offset == iter.hi_key);
-	LIST_INSERT_HEAD(nodes, node, node_link);
+	TAILQ_INSERT_HEAD(nodes, node, node_log_link);
     }
     return 0;
 }
@@ -123,7 +124,7 @@ int
 log_try_read(offset_t byteoff, void *page)
 {
     struct btree_node *node;
-    LIST_FOREACH(node, &log.nodes, node_link) {
+    TAILQ_FOREACH(node, &log.nodes, node_log_link) {
 	if (byteoff == node->block.offset) {
 	    memcpy(page, node, PGSIZE);
 	    return 0;
@@ -149,9 +150,9 @@ log_write(struct btree_node *node)
     char found = 0;
     struct btree_node *store;
 
-    LIST_FOREACH(store, &log.nodes, node_link) {
+    TAILQ_FOREACH(store, &log.nodes, node_log_link) {
 	if (store->block.offset == node->block.offset) {
-	    LIST_REMOVE(store, node_link);
+	    TAILQ_REMOVE(&log.nodes, store, node_log_link);
 	    found = 1;
 	    break;
 	}
@@ -172,7 +173,7 @@ log_write(struct btree_node *node)
 
     memcpy(store, node,
 	   BTREE_NODE_SIZE(node->tree->order, node->tree->s_key));
-    LIST_INSERT_HEAD(&log.nodes, store, node_link);
+    TAILQ_INSERT_TAIL(&log.nodes, store, node_log_link);
     return 0;
 }
 
@@ -180,9 +181,9 @@ void
 log_free(offset_t byteoff)
 {
     struct btree_node *node;
-    LIST_FOREACH(node, &log.nodes, node_link) {
+    TAILQ_FOREACH(node, &log.nodes, node_log_link) {
 	if (byteoff == node->block.offset) {
-	    LIST_REMOVE(node, node_link);
+	    TAILQ_REMOVE(&log.nodes, node, node_log_link);
 	    log.in_mem--;
 	    break;
 	}
@@ -220,7 +221,7 @@ log_apply_disk(uint64_t n_nodes)
     while (n_nodes) {
 	n = MIN(n_nodes, log.max_mem);
 	n_nodes -= n;
-	LIST_INIT(&nodes);
+	TAILQ_INIT(&nodes);
 	if ((r = log_read_log(off, n, &nodes)) < 0) {
 	    log_free_list(&nodes);
 	    return r;
@@ -247,16 +248,17 @@ log_apply_mem(void)
 	return r;
 
     struct btree_node *node;
-    LIST_FOREACH(node, &log.nodes, node_link)
+    TAILQ_FOREACH(node, &log.nodes, node_log_link)
 	hash_del(&log.disk_map, node->block.offset);
 
+    cprintf("log_apply_mem: applied %ld nodes from memory\n", count);
     assert(count == log_free_list(&log.nodes));
     log.in_mem -= count;
     assert(log.in_mem == 0);
 
     if (log.disk_map.size) {
 	struct node_list in_log;
-	LIST_INIT(&in_log);
+	TAILQ_INIT(&in_log);
 	log_read_map(&log.disk_map, &in_log);
 	log_write_to_disk(&in_log, &count);
 	log_free_list(&in_log);
@@ -269,6 +271,11 @@ log_apply_mem(void)
 void
 log_init(void)
 {
+    if (!log.tailq_inited) {
+	TAILQ_INIT(&log.nodes);
+	log.tailq_inited = 1;
+    }
+
     log_free_list(&log.nodes);
     memset(&log.map_back[0], 0, sizeof(log.map_back));
     hash_init(&log.disk_map, log.map_back, LOG_PAGES);

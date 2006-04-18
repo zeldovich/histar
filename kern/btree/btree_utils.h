@@ -27,7 +27,7 @@
 
 struct btree_node;
 struct btree;
-LIST_HEAD(node_list, btree_node);
+TAILQ_HEAD(node_list, btree_node);
 
 #define BTREE_OP_ATTR	static __inline __attribute__((always_inline))
 

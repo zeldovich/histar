@@ -22,7 +22,7 @@ struct btree_node {
     offset_t *children;
     const uint64_t *keys;
 
-        LIST_ENTRY(btree_node) node_link;
+    TAILQ_ENTRY(btree_node) node_log_link;
     uint64_t bytesize;
 };
 
