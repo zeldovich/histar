@@ -382,6 +382,15 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
 	cprintf("IDE: Unable to enable write-caching\n");
 
+    // Enable read look-ahead
+    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_RLA_ENA);
+    outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
+
+    ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
+    if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
+	cprintf("IDE: Unable to enable read look-ahead\n");
+
     disk_bytes = identify_buf.id.lba_sectors;
     disk_bytes *= 512;
 

@@ -54,7 +54,9 @@
 // Feature bits
 #define IDE_FEATURE_WCACHE_ENA	0x02
 #define IDE_FEATURE_XFER_MODE	0x03
+#define IDE_FEATURE_RLA_DIS	0x55
 #define IDE_FEATURE_WCACHE_DIS	0x82
+#define IDE_FEATURE_RLA_ENA	0xAA
 
 // Transfer mode values
 #define IDE_XFER_MODE_PIO	0x00
