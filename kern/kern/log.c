@@ -195,9 +195,6 @@ log_flush(void)
 {
     int r;
 
-    if (LIST_EMPTY(&log.nodes))
-	return 0;
-
     if (log.npages <= log.in_mem + log.on_disk + 1)
 	panic("log_flush: out of log space");
 
