@@ -32,6 +32,7 @@ struct auth_user_reply {
     int err;
     uint64_t uauth_gate;
     uint64_t ugrant_gate;
+    uint64_t xh;
 };
 
 // Calls into auth gate

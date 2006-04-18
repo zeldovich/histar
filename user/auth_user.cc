@@ -67,8 +67,15 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 	char pwhash[20];
 	sha1_final((unsigned char *) &pwhash[0], &sctx);
 
-    	if (memcmp(pwhash, pw->pwhash, sizeof(pw->pwhash)))
-    	    throw error(-E_INVAL, "bad password");
+    	if (memcmp(pwhash, pw->pwhash, sizeof(pw->pwhash))) {
+	    label v;
+	    thread_cur_verify(&v);
+
+	    label v_root(3);
+	    v_root.set(root_grant, 0);
+	    if (v.compare(&v_root, label::leq_starlo) < 0)
+		throw error(-E_INVAL, "bad password");
+	}
 
     	if (req->change_pw) {
 	    struct user_password *pw2 = 0;
@@ -142,6 +149,7 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	reply.err = 0;
 	reply.uauth_gate = ga.object;
 	reply.ugrant_gate = gg.object;
+	reply.xh = xh;
     } catch (error &e) {
     	cprintf("auth_user_entry: %s\n", e.what());
     	reply.err = e.err();
