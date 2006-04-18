@@ -28,7 +28,7 @@ thread_set_label(label *l)
 }
 
 int
-thread_set_clear(label *l)
+thread_set_clearance(label *l)
 {
     scoped_pthread_lock x(&label_ops_mu);
 
@@ -49,7 +49,7 @@ thread_drop_star(uint64_t handle)
 	thread_cur_clearance(&clear);
 	if (clear.get(handle) != clear.get_default()) {
 	    clear.set(handle, clear.get_default());
-	    error_check(thread_set_clear(&clear));
+	    error_check(thread_set_clearance(&clear));
 	}
 
 	label self;
@@ -73,7 +73,7 @@ thread_drop_starpair(uint64_t h1, uint64_t h2)
 	if (clear.get(h1) != clear.get_default() || clear.get(h2) != clear.get_default()) {
 	    clear.set(h1, clear.get_default());
 	    clear.set(h2, clear.get_default());
-	    error_check(thread_set_clear(&clear));
+	    error_check(thread_set_clearance(&clear));
 	}
 
 	label self;
