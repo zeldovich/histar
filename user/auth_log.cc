@@ -1,19 +1,12 @@
 extern "C" {
-#include <inc/lib.h>
-#include <inc/error.h>
 #include <inc/gateparam.h>
-#include <inc/string.h>
 #include <inc/syscall.h>
 
 #include <stdio.h>
-#include <string.h>
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/gateclnt.hh>
-#include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
 #include <inc/error.hh>
 
 static void __attribute__((noreturn))

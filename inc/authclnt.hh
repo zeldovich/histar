@@ -4,4 +4,6 @@
 int auth_call(int op, const char *user, const char *pass, const char *npass,
 	      authd_reply *r);
 
+void auth_log(const char *msg);
+
 #endif

@@ -76,3 +76,17 @@ auth_call(int op, const char *user, const char *pass, const char *npass,
 
     return reply->err;
 }
+
+void
+auth_log(const char *msg)
+{
+    gate_call_data gcd;
+    uint32_t len = MIN(strlen(msg), sizeof(gcd.param_buf));
+    memcpy(&gcd.param_buf[0], msg, len);
+
+    int64_t log_ct, log_gt;
+    error_check(log_ct = container_find(start_env->root_container, kobj_container, "auth_log"));
+    error_check(log_gt = container_find(log_ct, kobj_gate, "authlog"));
+
+    gate_call(COBJ(log_ct, log_gt), 0, 0, 0).call(&gcd, 0);
+}
