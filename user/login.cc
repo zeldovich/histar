@@ -4,6 +4,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 }
 
@@ -45,16 +46,20 @@ login(char *u, char *p)
     process_wait(&shell, &e);
 }
 
-static void __attribute__((noreturn))
-prompt()
+static void
+prompt(void)
 {
     char user[32], pass[32];
     
     for (;;) {
         char *s = readline("login: ");
+	if (!s)
+	    return;
         strcpy(user, s);
     
         char *p = readline("password: ");
+	if (!p)
+	    return;
         strcpy(pass, p);
         
         login(&user[0], &pass[0]);
