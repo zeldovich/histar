@@ -58,6 +58,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     start_env->process_grant = h_root;
     start_env->process_taint = handle_alloc();
 
+    start_env->user_grant = h_root;
+    start_env->user_taint = 0;
+
     label mtab_label(1);
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
 			      &start_env->fs_mtab_seg, 0,
@@ -124,7 +127,9 @@ init_procs(int cons, uint64_t h_root)
 
     spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
     //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
-    spawn_fs(cons, "/bin/authd",    &h_root_buf[0], &ds_hroot);
+
+    spawn_fs(cons, "/bin/auth_log", &h_root_buf[0], &ds_none);
+    spawn_fs(cons, "/bin/auth_dir", &h_root_buf[0], &ds_none);
 
     //spawn_fs(cons, "/bin/login", 0, &ds_none);
     spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
