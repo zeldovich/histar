@@ -124,6 +124,11 @@ struct {								\
 #define TAILQ_LAST(head)        (*((head)->tqh_last))
 #endif
 
+#define	TAILQ_FOREACH(var, head, field)					\
+	for ((var) = TAILQ_FIRST((head));				\
+	    (var);							\
+	    (var) = TAILQ_NEXT((var), field))
+
 #define	TAILQ_EMPTY(head)	(TAILQ_FIRST(head) == NULL)
 
 #define	TAILQ_NEXT(elm, field)	((elm)->field.tqe_next)
