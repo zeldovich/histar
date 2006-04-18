@@ -252,14 +252,17 @@ int main(int argc, char *argv[])
 
     prog_name = argv[0];
 
-    if (argc != 4) {
-	printf("%s: %s num_blocks size_block syncopt\n", prog_name, prog_name);
+    if (argc != 5) {
+	printf("%s: %s num_blocks size_block syncopt skipopt\n", prog_name, prog_name);
+	printf("  syncopt: 1 for per-file sync, 0 for group-sync\n");
+	printf("  skipopt: 0 for full, 1 for write-only, 2 for read-only\n");
 	exit(1);
     }
 
     n = atoi(argv[1]);
     size = atoi(argv[2]);
     int finesync = atoi(argv[3]);
+    int skipopt = atoi(argv[4]);
 
     if (size > SIZE) {
 	printf("%s: %s %d > %d\n", prog_name, prog_name, size, SIZE);
@@ -270,19 +273,22 @@ int main(int argc, char *argv[])
 
     srandom(getpid());
 
-    int fd;
-    if((fd = creat(name, S_IRUSR | S_IWUSR)) < 0) {
-	printf("main: create %s failed: %d\n", name, fd);
-	exit(1);
+    if (skipopt != 2) {
+	int fd;
+	if((fd = creat(name, S_IRUSR | S_IWUSR)) < 0) {
+	    printf("main: create %s failed: %d\n", name, fd);
+	    exit(1);
+	}
     }
 
-    write_test(n, size, 1, 0);
-    read_test(n, size, 1);
-    write_test(n, size, 0, finesync);
-    read_test(n, size, 0);
-    read_test(n, size, 1);
+    if (skipopt != 2) write_test(n, size, 1, 0);
+    if (skipopt != 1) read_test(n, size, 1);
+    if (skipopt == 0) write_test(n, size, 0, finesync);
+    if (skipopt != 1) read_test(n, size, 0);
+    if (skipopt != 1) read_test(n, size, 1);
 
-    unlink(name);
+    if (!skipopt)
+	unlink(name);
 
     sync();
 }
