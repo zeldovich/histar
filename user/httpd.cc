@@ -76,31 +76,31 @@ http_client(void *arg)
 	    char *user = authdata;
 	    char *pass = colon + 1;
 
-	    authd_reply reply;
-	    if (auth_call(authd_login, user, pass, "", &reply) == 0) {
-		int64_t worker_ct, worker_gt;
-		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
-		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
+	    uint64_t ug, ut;
+	    auth_login(user, pass, &ug, &ut);
 
-		label cs(LB_LEVEL_STAR);
-		cs.set(reply.user_taint, 3);
+	    int64_t worker_ct, worker_gt;
+	    error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
+	    error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
 
-		label dr(0);
-		dr.set(reply.user_taint, 3);
+	    label cs(LB_LEVEL_STAR);
+	    cs.set(ut, 3);
 
-		gate_call_data gcd;
-		strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
-		gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
-		gc.call(&gcd, 0);
+	    label dr(0);
+	    dr.set(ut, 3);
 
-		void *va = 0;
-		uint64_t len;
-		error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
-		scope_guard<int, void *> unmap(segment_unmap, va);
+	    gate_call_data gcd;
+	    strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
+	    gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
+	    gc.call(&gcd, 0);
 
-		tc.write((const char *) va, len);
-		return;
-	    }
+	    void *va = 0;
+	    uint64_t len;
+	    error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
+	    scope_guard<int, void *> unmap(segment_unmap, va);
+
+	    tc.write((const char *) va, len);
+	    return;
 	}
 
 	snprintf(buf, sizeof(buf),

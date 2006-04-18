@@ -35,6 +35,7 @@ struct user_list {
 static void
 auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 {
+    char log_msg[256];
     if (req->op != auth_dir_lookup && req->op != auth_dir_add && req->op != auth_dir_remove)
 	throw error(-E_BAD_OP, "unknown op %d", req->op);
 
@@ -65,6 +66,10 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     if (req->op == auth_dir_remove) {
 	if (!ue_match)
 	    throw error(-E_NOT_FOUND, "no such user");
+
+	snprintf(&log_msg[0], sizeof(log_msg), "deleting user %s", req->user);
+	auth_log(log_msg);
+
 	ue_match->valid = 0;
     }
 
@@ -90,6 +95,9 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 	if (!ue_match)
 	    ue = (user_entry *) (((char *) ul2) + cur_len);
 
+	snprintf(&log_msg[0], sizeof(log_msg), "adding user %s", req->user);
+	auth_log(log_msg);
+
 	ue->valid = 1;
 	strncpy(&ue->name[0], req->user, sizeof(ue->name));
 	ue->name[sizeof(ue->name) - 1] = '\0';
@@ -99,6 +107,9 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     if (req->op == auth_dir_lookup) {
 	if (!ue_match)
 	    throw error(-E_NOT_FOUND, "no such user");
+
+	snprintf(&log_msg[0], sizeof(log_msg), "looking up user %s", req->user);
+	auth_log(log_msg);
 
 	reply->user_gate = ue_match->user_gate;
     }

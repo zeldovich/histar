@@ -16,21 +16,22 @@ enum { login_debug = 0 };
 static void
 login(char *u, char *p)
 {
-    authd_reply reply;
-    if (auth_call(authd_login, u, p, "", &reply) < 0) {
-        printf("login failed\n");
-        return;    
+    uint64_t ug, ut;
+    try {
+	auth_login(u, p, &ug, &ut);
+    } catch (std::exception &e) {
+	printf("login failed: %s\n", e.what());
+	return;
     }
 
     if (login_debug)
-	printf("uid %ld taint %lu grant %lu\n", 
-	       reply.user_id, reply.user_taint, reply.user_grant);
-    
+	printf("login: taint %lu grant %lu\n", ut, ug);
+
     struct fs_inode fsshell;
     error_check(fs_namei("/bin/ksh", &fsshell));
     
-    start_env->user_taint = reply.user_taint;
-    start_env->user_grant = reply.user_grant;
+    start_env->user_taint = ut;
+    start_env->user_grant = ug;
     
     const char *argv[1] = { "/bin/ksh" };
     const char *envv[2] = { "TERM=vt100", "TERMINFO=/x/share/terminfo" };

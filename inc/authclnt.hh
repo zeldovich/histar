@@ -1,8 +1,8 @@
 #ifndef JOS_INC_AUTHCLNT_HH
 #define JOS_INC_AUTHCLNT_HH
 
-int auth_call(int op, const char *user, const char *pass, const char *npass,
-	      authd_reply *r);
+void auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut);
+void auth_chpass(const char *user, const char *pass, const char *npass);
 
 void auth_log(const char *msg);
 

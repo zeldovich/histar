@@ -22,37 +22,33 @@ struct auth_dir_reply {
     struct cobj_ref user_gate;
 };
 
-
-
-
-
-
-enum {
-    // Calls into the main authd gate
-    authd_adduser,
-    authd_deluser,
-    authd_getuser,
-
-    // Calls into the user gate
-    authd_login,
-    authd_chpass,
+// Calls into user gate
+struct auth_user_req {
+    uint64_t pw_taint;
+    uint64_t session_ct;
 };
 
-struct authd_req {
-    int op;
-    char user[16];
+struct auth_user_reply {
+    int err;
+    uint64_t uauth_gate;
+    uint64_t ugrant_gate;
+};
+
+// Calls into auth gate
+struct auth_uauth_req {
     char pass[16];
     char npass[16];
+    uint8_t change_pw;
 };
 
-struct authd_reply {
+struct auth_uauth_reply {
     int err;
+};
 
-    uint64_t user_id;
-    uint64_t user_taint;
+// Calls into grant gate
+struct auth_ugrant_reply {
     uint64_t user_grant;
-
-    struct cobj_ref user_gate;
+    uint64_t user_taint;
 };
 
 #endif
