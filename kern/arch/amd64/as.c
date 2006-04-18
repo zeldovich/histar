@@ -373,6 +373,8 @@ err:
 
     assert(page_map_traverse(as->as_pgmap, usm->va, usm->va + (i - start_page) * PGSIZE,
 			     0, &as_page_invalidate_cb, 0) == 0);
+    if (as == cur_as)
+	cur_as_dirty_tlb = 1;
     return r;
 }
 
@@ -465,6 +467,8 @@ as_collect_dirty_sm(struct segment_mapping *sm)
 			     usm->va,
 			     usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE,
 			     0, &as_collect_dirty_bits, 0) == 0);
+    if (sm->sm_as == cur_as && sm->sm_mapped_pages_rw)
+	cur_as_dirty_tlb = 1;
 }
 
 void
@@ -472,10 +476,20 @@ as_map_ro_sm(struct segment_mapping *sm)
 {
     const struct u_segment_mapping *usm;
     assert(as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro) == 0);
-    assert(page_map_traverse(sm->sm_as->as_pgmap,
-			     usm->va,
-			     usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE,
+
+    void *map_first = usm->va;
+    void *map_last = usm->va + (sm->sm_mapped_pages_rw - 1) * PGSIZE;
+    assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last,
 			     0, &as_page_map_ro_cb, 0) == 0);
+
+    if (sm->sm_as == cur_as) {
+	if (sm->sm_mapped_pages_rw > as_invlpg_max)
+	    cur_as_dirty_tlb = 1;
+	else
+	    for (void *cva = map_first; cva <= map_last; cva += PGSIZE)
+		invlpg(cva);
+    }
+
     sm->sm_mapped_pages_rw = 0;
 }
 
