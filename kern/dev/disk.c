@@ -362,6 +362,11 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
 	    idec->bm_addr ? ", bus-master" : "",
 	    identify_buf.id.model);
 
+    if (!(identify_buf.id.hwreset & IDE_HWRESET_CBLID)) {
+	cprintf("IDE: 80-pin cable absent, not enabling UDMA\n");
+	udma_mode = -1;
+    }
+
     if (udma_mode >= 0) {
 	outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
 	outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_XFER_MODE);

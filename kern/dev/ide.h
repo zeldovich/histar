@@ -74,7 +74,11 @@ struct identify_device {
     uint32_t lba_sectors;   // Words 60-61, assuming little-endian
     uint16_t pad3[26];	    // Words 62-87
     uint16_t udma_mode;	    // Word 88
+    uint16_t pad4[4];	    // Words 89-92
+    uint16_t hwreset;	    // Word 93
 };
+
+#define IDE_HWRESET_CBLID	0x2000
 
 // Bus-master physical region descriptor
 struct ide_prd {	// PRD must be 4-byte-aligned and not cross 64K
