@@ -123,6 +123,12 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     ERRCHECK(sys_as_get(cur_as, &uas));
 
     for (uint32_t i = 0; i < uas.nent; i++) {
+	if (taint_debug) {
+	    cprintf("taint_cow: mapping of %ld.%ld at VA %p, flags %d\n",
+		    uas.ents[i].segment.container, uas.ents[i].segment.object,
+		    uas.ents[i].va, uas.ents[i].flags);
+	}
+
 	if (!(uas.ents[i].flags & SEGMAP_WRITE) ||
 	    uas.ents[i].segment.container != start_env_ro->proc_container)
 	    continue;
