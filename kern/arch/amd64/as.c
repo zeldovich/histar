@@ -430,6 +430,10 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 
 	uint64_t fault_page = (ROUNDDOWN(va, PGSIZE) - va_start) / PGSIZE;
 
+	if (as_debug)
+	    cprintf("as_pmap_fill: fault %p base %p page# %ld\n",
+		    va, va_start, fault_page);
+
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
 	return as_pmap_fill_segment(as, sg, sm, usm, fault_page);
