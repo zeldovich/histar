@@ -40,6 +40,13 @@ struct fs_readdir_state {
     void *fs_dir_iterator_obj;
 };
 
+// Metadata stored for filesystem objects.  Should be KOBJ_META_LEN in size.
+struct fs_object_meta {
+    uint64_t mtime_msec;
+    uint64_t ctime_msec;
+    uint64_t pad[6];
+};
+
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);
 void fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
 int  fs_namei(const char *pn, struct fs_inode *o);

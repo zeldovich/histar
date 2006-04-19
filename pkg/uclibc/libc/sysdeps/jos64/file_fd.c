@@ -150,6 +150,14 @@ __libc_open(const char *pn, int flags, ...) __THROW
     fd->fd_file.ino = ino;
     memset(&fd->fd_file.readdir_pos, 0, sizeof(fd->fd_file.readdir_pos));
 
+    if ((flags & O_ACCMODE) != O_RDONLY) {
+	struct fs_object_meta m;
+	if (sys_obj_get_meta(ino.obj, &m) >= 0) {
+	    m.mtime_msec = sys_clock_msec();
+	    sys_obj_set_meta(ino.obj, 0, &m);
+	}
+    }
+
     if ((flags & O_APPEND))
 	fs_getsize(ino, &fd->fd_offset);
 
@@ -205,6 +213,13 @@ file_stat(struct Fd *fd, struct stat *buf)
 	return -1;
     }
 
+    struct fs_object_meta meta;
+    int r = sys_obj_get_meta(fd->fd_file.ino.obj, &meta);
+    if (r >= 0) {
+	buf->st_mtime = meta.mtime_msec / 1000;
+	buf->st_ctime = meta.ctime_msec / 1000;
+    }
+
     buf->st_mode = S_IRWXU;
     buf->st_ino = fd->fd_file.ino.obj.object;
     if (type == kobj_container) {
@@ -213,7 +228,7 @@ file_stat(struct Fd *fd, struct stat *buf)
 	buf->st_mode |= __S_IFREG;
 
 	uint64_t len;
-	int r = fs_getsize(fd->fd_file.ino, &len);
+	r = fs_getsize(fd->fd_file.ino, &len);
 	if (r < 0) {
 	    cprintf("file_stat: getsize: %s\n", e2s(r));
 	    __set_errno(EIO);
