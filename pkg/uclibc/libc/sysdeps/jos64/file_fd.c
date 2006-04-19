@@ -217,7 +217,9 @@ file_stat(struct Fd *fd, struct stat *buf)
     int r = sys_obj_get_meta(fd->fd_file.ino.obj, &meta);
     if (r >= 0) {
 	buf->st_mtime = meta.mtime_msec / 1000;
+	buf->st_mtimensec = (meta.mtime_msec % 1000) * 1000 * 1000;
 	buf->st_ctime = meta.ctime_msec / 1000;
+	buf->st_ctimensec = (meta.ctime_msec % 1000) * 1000 * 1000;
     }
 
     buf->st_mode = S_IRWXU;
