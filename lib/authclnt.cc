@@ -133,7 +133,7 @@ void
 auth_log(const char *msg)
 {
     gate_call_data gcd;
-    uint32_t len = MIN(strlen(msg), sizeof(gcd.param_buf));
+    uint32_t len = MIN(strlen(msg) + 1, sizeof(gcd.param_buf));
     memcpy(&gcd.param_buf[0], msg, len);
 
     int64_t log_ct, log_gt;
