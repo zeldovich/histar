@@ -21,9 +21,10 @@ extern "C" {
 
 static int init_debug = 0;
 
-static void
+static struct child_process
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 {
+    struct child_process cp;
     try {
 	struct fs_inode ino;
 	int r = fs_namei(pn, &ino);
@@ -31,17 +32,18 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	    throw error(r, "cannot fs_lookup %s", pn);
 
 	const char *argv[] = { pn, arg };
-	spawn(start_env->root_container, ino,
-	      fd, fd, fd,
-	      arg ? 2 : 1, &argv[0],
-          0, 0,
-	      0, ds, 0, 0);
+	cp = spawn(start_env->root_container, ino,
+	           fd, fd, fd,
+	           arg ? 2 : 1, &argv[0],
+               0, 0,
+	           0, ds, 0, 0);
 
 	if (init_debug)
 	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
     } catch (std::exception &e) {
 	cprintf("spawn_fs(%s): %s\n", pn, e.what());
     }
+    return cp;
 }
 
 static void
@@ -135,13 +137,30 @@ init_procs(int cons, uint64_t h_root)
     spawn_fs(cons, "/bin/auth_dir", &h_root_buf[0], &ds_none);
 
     //spawn_fs(cons, "/bin/login", 0, &ds_none);
-    spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
+    //spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
     spawn_fs(cons, "/bin/httpd", 0, &ds_none);
     spawn_fs(cons, "/bin/httpd_worker", 0, &ds_none);
 
     spawn_fs(cons, "/bin/db", 0, &ds_none);
+}
+
+static void
+run_shell(int cons, uint64_t h_root)
+{
+    int r;
+    label ds_hroot(3);
+    ds_hroot.set(h_root, LB_LEVEL_STAR);
+    for (;;) {
+        struct child_process shell_proc = spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);    
+        int64_t exit_code = 0;
+        if ((r = process_wait(&shell_proc, &exit_code)) < 0)
+            cprintf("run_shell: process_wait error: %s\n", e2s(r));
+        else
+            cprintf("run_shell: shell exit value %ld\n", exit_code);
+	sys_obj_unref(COBJ(start_env->root_container, shell_proc.container));
+    }
 }
 
 int
@@ -167,9 +186,8 @@ try
     assert(2 == dup2(0, 2));
 
     init_procs(cons, h_root);
-
-    for (;;)
-	thread_sleep(100000);
+    // does not return
+    run_shell(cons, h_root);    
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
 }
