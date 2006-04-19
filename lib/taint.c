@@ -123,7 +123,7 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     ERRCHECK(sys_as_get(cur_as, &uas));
 
     for (uint32_t i = 0; i < uas.nent; i++) {
-	if (!(uas.ents[i].flags & SEGMAP_WRITE) &&
+	if (!(uas.ents[i].flags & SEGMAP_WRITE) ||
 	    uas.ents[i].segment.container != start_env_ro->proc_container)
 	    continue;
 	if (uas.ents[i].segment.container == mlt_ct)
@@ -148,16 +148,10 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 
 	ERRCHECK(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
-	int64_t id;
-	if ((uas.ents[i].flags & SEGMAP_WRITE)) {
-	    id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-				  &obj_label, &namebuf[0]);
-	    if (id < 0)
-		panic("taint_cow: cannot copy segment: %s", e2s(id));
-	} else {
-	    ERRCHECK(sys_segment_addref(uas.ents[i].segment, mlt_ct));
-	    id = uas.ents[i].segment.object;
-	}
+	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+				      &obj_label, &namebuf[0]);
+	if (id < 0)
+	    panic("taint_cow: cannot copy segment: %s", e2s(id));
 
 	uint64_t old_id = uas.ents[i].segment.object;
 	for (uint32_t j = 0; j < uas.nent; j++)
