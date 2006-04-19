@@ -66,9 +66,25 @@ netd_dispatch(struct netd_op_args *a)
 	break;
 
     case netd_op_read:
-	a->rval = lwip_read(a->read.fd,
-			    &a->read.buf[0],
-			    a->read.count);
+	{
+	    a->rval = 0;
+
+	    while (a->rval < (ssize_t) a->read.count) {
+		ssize_t cc = lwip_recvfrom(a->read.fd, &a->read.buf[a->rval],
+					   a->read.count - a->rval, MSG_DONTWAIT,
+					   0, 0);
+		if (cc <= 0)
+		    break;
+
+		a->rval += cc;
+	    }
+
+	    if (a->rval == 0) {
+		a->rval = lwip_read(a->read.fd,
+				    &a->read.buf[0],
+				    a->read.count);
+	    }
+	}
 	break;
 
     case netd_op_write:
