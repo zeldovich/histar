@@ -113,6 +113,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     // XXX how can information about the password leak here?
     // -- floating-point registers?
+    //    need to find out if the thread has FP state, and if so,
+    //    create a zeroed-out fxrstor buffer (512 bytes), set the
+    //    two magic words, and fxrstor it.
 
     error_check(uauth_err);
 
