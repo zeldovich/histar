@@ -15,6 +15,8 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
+enum { auth_debug = 0 };
+
 void
 auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 {
@@ -33,6 +35,10 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     strcpy(&dir_req->user[0], user);
     dir_req->op = auth_dir_lookup;
+
+    if (auth_debug)
+	cprintf("auth_login: calling directory gate\n");
+
     gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, 0);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
@@ -68,6 +74,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     user_req->pw_taint = pw_taint;
     user_req->session_ct = session_ct;
 
+    if (auth_debug)
+	cprintf("auth_login: calling user gate\n");
+
     gate_call(user_gate, 0, &user_auth_ds, &user_auth_dr).call(&gcd, 0);
     error_check(user_reply->err);
     cobj_ref uauth_gate  = COBJ(session_ct, user_reply->uauth_gate);
@@ -75,15 +84,22 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     uint64_t xh = user_reply->xh;
 
     // Call the user auth gate to check password
-    label uauth_taint(LB_LEVEL_STAR);
-    uauth_taint.set(pw_taint, 3);
+    label uauth_cs(LB_LEVEL_STAR);
+    uauth_cs.set(pw_taint, 3);
+
+    label uauth_dr(0);
+    uauth_dr.set(pw_taint, 3);
 
     label cur_label;
     thread_cur_label(&cur_label);
 
     strcpy(&uauth_req->pass[0], pass);
     uauth_req->change_pw = 0;
-    gate_call(uauth_gate, &uauth_taint, 0, 0).call(&gcd, &cur_label);
+
+    if (auth_debug)
+	cprintf("auth_login: calling authentication gate\n");
+
+    gate_call(uauth_gate, &uauth_cs, 0, &uauth_dr).call(&gcd, &cur_label);
     int uauth_err = uauth_reply->err;
     memset(&gcd, 0, sizeof(gcd));
 
@@ -98,7 +114,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     cur_label.set(xh, LB_LEVEL_STAR);
     error_check(cur_label2.compare(&cur_label, label::eq));
 
-    // Call the grant gate now..
+    if (auth_debug)
+	cprintf("auth_login: calling grant gate\n");
+
     gate_call(ugrant_gate, 0, 0, 0).call(&gcd, 0);
 
     *ug = ugrant_reply->user_grant;
