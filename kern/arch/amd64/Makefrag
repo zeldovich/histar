@@ -17,6 +17,7 @@ KERN_LIB :=					\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
+	lib/memcmp.c				\
 	lib/printfmt.c				\
 	lib/cksum.c				\
 	lib/bf60.c				\

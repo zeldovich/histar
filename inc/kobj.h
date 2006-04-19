@@ -4,6 +4,7 @@
 #include <inc/types.h>
 
 #define KOBJ_NAME_LEN	32	/* including the terminating NULL */
+#define KOBJ_META_LEN	64
 
 typedef enum {
     kobj_container,

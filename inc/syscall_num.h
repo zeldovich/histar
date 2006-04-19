@@ -21,6 +21,8 @@
     SYSCALL_ENTRY(obj_get_label)		\
     SYSCALL_ENTRY(obj_get_name)			\
     SYSCALL_ENTRY(obj_get_reserve)		\
+    SYSCALL_ENTRY(obj_get_meta)			\
+    SYSCALL_ENTRY(obj_set_meta)			\
     SYSCALL_ENTRY(handle_create)		\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\

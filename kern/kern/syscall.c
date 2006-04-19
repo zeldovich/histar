@@ -289,6 +289,29 @@ sys_obj_get_reserve(struct cobj_ref o)
     return ko->hdr.ko_quota_total;
 }
 
+static void
+sys_obj_get_meta(struct cobj_ref cobj, char *meta)
+{
+    const struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
+    check(check_user_access(meta, KOBJ_META_LEN, SEGMAP_WRITE));
+    memcpy(meta, &ko->hdr.ko_meta[0], KOBJ_META_LEN);
+}
+
+static void
+sys_obj_set_meta(struct cobj_ref cobj, const char *oldm, char *newm)
+{
+    const struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, oldm ? iflow_rw : iflow_write));
+    check(check_user_access(newm, KOBJ_META_LEN, 0));
+    if (oldm) {
+	check(check_user_access(oldm, KOBJ_META_LEN, 0));
+	if (memcmp(oldm, &ko->hdr.ko_meta[0], KOBJ_META_LEN))
+	    syscall_error(-E_AGAIN);
+    }
+    memcpy(&kobject_dirty(&ko->hdr)->hdr.ko_meta[0], newm, KOBJ_META_LEN);
+}
+
 static int64_t
 sys_container_get_nslots(uint64_t container)
 {
@@ -768,6 +791,8 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_unref),
     SYSCALL_DISPATCH(obj_get_label),
     SYSCALL_DISPATCH(obj_get_name),
+    SYSCALL_DISPATCH(obj_get_meta),
+    SYSCALL_DISPATCH(obj_set_meta),
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
     SYSCALL_DISPATCH(thread_start),

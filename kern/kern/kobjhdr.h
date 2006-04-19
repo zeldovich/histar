@@ -47,6 +47,7 @@ struct kobject_hdr {
     uint64_t ko_nbytes;
     uint64_t ko_label[kolabel_max];	// id of label object (holds refcount)
     char ko_name[KOBJ_NAME_LEN];
+    char ko_meta[KOBJ_META_LEN];
 
     // For verifying the persistence layer
     uint64_t ko_cksum;

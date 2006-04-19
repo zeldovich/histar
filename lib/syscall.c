@@ -118,6 +118,18 @@ sys_obj_get_reserve(struct cobj_ref o)
     return syscall(SYS_obj_get_reserve, o);
 }
 
+int
+sys_obj_get_meta(struct cobj_ref o, char *meta)
+{
+    return syscall(SYS_obj_get_meta, o, meta);
+}
+
+int
+sys_obj_set_meta(struct cobj_ref o, const char *oldm, char *newm)
+{
+    return syscall(SYS_obj_set_meta, o, oldm, newm);
+}
+
 int64_t
 sys_container_get_nslots(uint64_t container)
 {
