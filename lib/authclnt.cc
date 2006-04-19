@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/syscall.h>
+#include <inc/memlayout.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -104,10 +105,13 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     gate_call(uauth_gate, &uauth_cs, 0, &uauth_dr).call(&gcd, &cur_label);
     int uauth_err = uauth_reply->err;
+
+    // Try to be really paranoid here about not accidentally revealing
+    // any extra information from uauth_gate.
     memset(&gcd, 0, sizeof(gcd));
+    memset(tls_base, 0, PGSIZE - sizeof(uint64_t));
 
     // XXX how can information about the password leak here?
-    // -- memset the thread-local segment
     // -- floating-point registers?
 
     error_check(uauth_err);
