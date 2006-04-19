@@ -38,8 +38,8 @@ kobject_type_t
 int	sys_obj_get_label(struct cobj_ref o, struct ulabel *l);
 int	sys_obj_get_name(struct cobj_ref o, char *name);
 int64_t	sys_obj_get_reserve(struct cobj_ref o);
-int	sys_obj_get_meta(struct cobj_ref o, char *meta);
-int	sys_obj_set_meta(struct cobj_ref o, const char *oldm, char *newm);
+int	sys_obj_get_meta(struct cobj_ref o, void *meta);
+int	sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm);
 
 int64_t	sys_handle_create(void);
 

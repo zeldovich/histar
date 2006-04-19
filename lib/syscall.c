@@ -119,13 +119,13 @@ sys_obj_get_reserve(struct cobj_ref o)
 }
 
 int
-sys_obj_get_meta(struct cobj_ref o, char *meta)
+sys_obj_get_meta(struct cobj_ref o, void *meta)
 {
     return syscall(SYS_obj_get_meta, o, meta);
 }
 
 int
-sys_obj_set_meta(struct cobj_ref o, const char *oldm, char *newm)
+sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm)
 {
     return syscall(SYS_obj_set_meta, o, oldm, newm);
 }

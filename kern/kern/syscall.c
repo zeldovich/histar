@@ -290,7 +290,7 @@ sys_obj_get_reserve(struct cobj_ref o)
 }
 
 static void
-sys_obj_get_meta(struct cobj_ref cobj, char *meta)
+sys_obj_get_meta(struct cobj_ref cobj, void *meta)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
@@ -299,7 +299,7 @@ sys_obj_get_meta(struct cobj_ref cobj, char *meta)
 }
 
 static void
-sys_obj_set_meta(struct cobj_ref cobj, const char *oldm, char *newm)
+sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, oldm ? iflow_rw : iflow_write));
