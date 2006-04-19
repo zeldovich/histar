@@ -13,7 +13,7 @@ struct netd_sockaddr_in {
     uint32_t sin_addr;
 };
 
-enum { netd_buf_size = 2048 };
+enum { netd_buf_size = 3500 };
 
 typedef enum {
     netd_op_socket,

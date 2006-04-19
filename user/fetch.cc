@@ -82,7 +82,7 @@ try
 	off += cc;
 
 	static size_t reported;
-	if (off > reported + 16384) {
+	if (off > reported + 256 * 1024) {
 	    printf("Fetched %ld bytes\n", off);
 	    reported = off;
 	}
