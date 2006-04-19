@@ -21,8 +21,6 @@ typedef enum {
     netd_op_listen,
     netd_op_accept,
     netd_op_connect,
-    netd_op_write,
-    netd_op_read,
     netd_op_close,
     netd_op_getsockname,
     netd_op_getpeername,
@@ -58,18 +56,6 @@ struct netd_op_accept_args {
 struct netd_op_connect_args {
     int fd;
     struct netd_sockaddr_in sin;
-};
-
-struct netd_op_write_args {
-    int fd;
-    uint32_t count;
-    char buf[netd_buf_size];
-};
-
-struct netd_op_read_args {
-    int fd;
-    uint32_t count;
-    char buf[netd_buf_size];
 };
 
 struct netd_op_send_args {
@@ -136,8 +122,6 @@ struct netd_op_args {
 	struct netd_op_listen_args listen;
 	struct netd_op_accept_args accept;
 	struct netd_op_connect_args connect;
-	struct netd_op_write_args write;
-	struct netd_op_read_args read;
 	struct netd_op_close_args close;
 	struct netd_op_getsockname_args getsockname;
 	struct netd_op_getpeername_args getpeername;

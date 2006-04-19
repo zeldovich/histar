@@ -65,14 +65,14 @@ netd_dispatch(struct netd_op_args *a)
 	lwip_to_netd(&sin, &a->accept.sin);
 	break;
 
-    case netd_op_read:
+    case netd_op_recv:
 	{
 	    a->rval = 0;
 
-	    while (a->rval < (ssize_t) a->read.count) {
-		ssize_t cc = lwip_recvfrom(a->read.fd, &a->read.buf[a->rval],
-					   a->read.count - a->rval, MSG_DONTWAIT,
-					   0, 0);
+	    while (a->rval < (ssize_t) a->recv.count) {
+		ssize_t cc = lwip_recv(a->recv.fd, &a->recv.buf[a->rval],
+				       a->recv.count - a->rval,
+				       MSG_DONTWAIT | a->recv.flags);
 		if (cc <= 0)
 		    break;
 
@@ -80,23 +80,10 @@ netd_dispatch(struct netd_op_args *a)
 	    }
 
 	    if (a->rval == 0) {
-		a->rval = lwip_read(a->read.fd,
-				    &a->read.buf[0],
-				    a->read.count);
+		a->rval = lwip_recv(a->recv.fd, &a->recv.buf[0],
+				    a->recv.count, a->recv.flags);
 	    }
 	}
-	break;
-
-    case netd_op_write:
-	a->rval = lwip_write(a->write.fd,
-			     &a->write.buf[0],
-			     a->write.count);
-	break;
-
-    case netd_op_recv:
-	a->rval = lwip_recv(a->recv.fd,
-			    &a->recv.buf[0],
-			    a->recv.count, a->recv.flags);
 	break;
 
     case netd_op_send:

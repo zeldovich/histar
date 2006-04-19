@@ -150,36 +150,6 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 }
 
 static ssize_t
-sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
-{
-    if (count > netd_buf_size)
-	count = netd_buf_size;
-
-    struct netd_op_args a;
-    a.op_type = netd_op_write;
-    a.write.fd = fd->fd_sock.s;
-    a.write.count = count;
-    memcpy(&a.write.buf[0], buf, count);
-    return netd_call(fd->fd_sock.netd_gate, &a);
-}
-
-static ssize_t
-sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
-{
-    if (count > netd_buf_size)
-	count = netd_buf_size;
-
-    struct netd_op_args a;
-    a.op_type = netd_op_read;
-    a.read.fd = fd->fd_sock.s;
-    a.read.count = count;
-    int r = netd_call(fd->fd_sock.netd_gate, &a);
-    if (r > 0)
-	memcpy(buf, &a.read.buf[0], r);
-    return r;
-}
-
-static ssize_t
 sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
 {
     if (count > netd_buf_size)
@@ -209,6 +179,18 @@ sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
     if (r > 0)
 	memcpy(buf, &a.recv.buf[0], r);
     return r;
+}
+
+static ssize_t
+sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
+{
+    return sock_send(fd, buf, count, 0);
+}
+
+static ssize_t
+sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
+{
+    return sock_recv(fd, buf, count, 0);
 }
 
 static int
