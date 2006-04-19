@@ -27,6 +27,11 @@ struct user_password {
     char pwhash[20];
 };
 
+struct retry_seg {
+    uint64_t xh;
+    uint64_t attempts;
+};
+
 static void __attribute__((noreturn))
 auth_grant_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 {
@@ -49,15 +54,26 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 {
     auth_uauth_req *req = (auth_uauth_req *) &parm->param_buf[0];
     auth_uauth_reply *reply = (auth_uauth_reply *) &parm->param_buf[0];
-    uint64_t xh = (uint64_t) arg;
+    uint64_t retry_seg_id = (uint64_t) arg;
 
     req->pass[sizeof(req->pass) - 1] = '\0';
     req->npass[sizeof(req->npass) - 1] = '\0';
 
     try {
+	struct retry_seg *rs = 0;
+	uint64_t nbytes = sizeof(*rs);
+	error_check(segment_map(COBJ(req->session_ct, retry_seg_id),
+				SEGMAP_READ | SEGMAP_WRITE,
+				(void **) &rs, &nbytes));
+	uint64_t xh = rs->xh;
+	if (rs->attempts >= 1)
+	    throw basic_exception("too many authentication attempts");
+	rs->attempts++;
+
 	struct user_password *pw = 0;
-	uint64_t nbytes = sizeof(*pw);
-	error_check(segment_map(user_password_seg, SEGMAP_READ, (void **) &pw, &nbytes));
+	nbytes = sizeof(*pw);
+	error_check(segment_map(user_password_seg, SEGMAP_READ,
+				(void **) &pw, &nbytes));
     	scope_guard<int, void *> unmap(segment_unmap, pw);
 
 	sha1_ctx sctx;
@@ -114,17 +130,27 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	snprintf(&log_msg[0], sizeof(log_msg), "attempting login..");
 	auth_log(log_msg);
 
+	int64_t xh;
+	error_check(xh = handle_alloc());
+
 	label retry_l(1);
 	retry_l.set(user_grant, 0);
 	retry_l.set(user_taint, 3);
-	retry_l.set(req.pw_taint, 3);
 
 	cobj_ref retry_seg;
-	error_check(segment_alloc(req.session_ct, sizeof(uint64_t), &retry_seg,
-				  0, retry_l.to_ulabel(), "retry counter"));
+	struct retry_seg *rs = 0;
+	error_check(segment_alloc(req.session_ct, sizeof(*rs),
+				  &retry_seg, (void **) &rs,
+				  retry_l.to_ulabel(), "retry counter"));
+	rs->xh = xh;
+	rs->attempts = 0;
 
-	int64_t xh;
-	error_check(xh = handle_alloc());
+	retry_l.set(req.pw_taint, 3);
+	int64_t retry_seg_copy_id;
+	error_check(retry_seg_copy_id =
+	    sys_segment_copy(retry_seg, req.session_ct,
+			     retry_l.to_ulabel(), "retry counter"));
+	cobj_ref retry_seg_copy = COBJ(req.session_ct, retry_seg_copy_id);
 
 	label tl, tc(2);
 	thread_cur_label(&tl);
@@ -136,8 +162,7 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	gd.label_ = &tl;
 	gd.clearance_ = &tc;
 	gd.func_ = auth_uauth_entry;
-	gd.arg_ = (void *) xh;
-	// XXX pass retry_seg somehow
+	gd.arg_ = (void *) retry_seg_copy.object;
 	cobj_ref ga = gate_create(&gd);
 
 	tc.set(xh, 0);

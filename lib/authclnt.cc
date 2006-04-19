@@ -83,6 +83,8 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     cobj_ref ugrant_gate = COBJ(session_ct, user_reply->ugrant_gate);
     uint64_t xh = user_reply->xh;
 
+    scope_guard<void, uint64_t> xdrop(thread_drop_star, xh);
+
     // Call the user auth gate to check password
     label uauth_cs(LB_LEVEL_STAR);
     uauth_cs.set(pw_taint, 3);
@@ -95,6 +97,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     strcpy(&uauth_req->pass[0], pass);
     uauth_req->change_pw = 0;
+    uauth_req->session_ct = session_ct;
 
     if (auth_debug)
 	cprintf("auth_login: calling authentication gate\n");

@@ -37,6 +37,7 @@ struct auth_user_reply {
 
 // Calls into auth gate
 struct auth_uauth_req {
+    uint64_t session_ct;
     char pass[16];
     char npass[16];
     uint8_t change_pw;
