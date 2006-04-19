@@ -112,7 +112,7 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     // Set the verify label; prove we had the call handle at *
     label new_verify(verify ? *verify : label(3));
     new_verify.set(call_handle_, LB_LEVEL_STAR);
-    sys_self_set_verify(new_verify.to_ulabel());
+    error_check(sys_self_set_verify(new_verify.to_ulabel()));
 
     // Create a return gate in the taint container
     cobj_ref return_gate;
