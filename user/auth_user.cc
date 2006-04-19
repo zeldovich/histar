@@ -199,7 +199,8 @@ main(int ac, char **av)
 
 	error_check(strtou64(av[1], 0, 10, &root_grant));
     	auth_user_init();
-    	thread_halt();
+	process_report_exit(0);
+	sys_self_halt();
     } catch (std::exception &e) {
     	printf("auth_user: %s\n", e.what());
     	return -1;

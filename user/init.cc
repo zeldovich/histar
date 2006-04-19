@@ -78,6 +78,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     fs_get_root(fs_bin_id, &bin_dir);
     error_check(fs_mount(start_env->fs_root, "bin", bin_dir));
 
+    error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
+				    0, CT_QUOTA_INF));
+
     // create a /home directory
     struct fs_inode home;
     error_check(fs_mkdir(start_env->fs_root, "home", &home, 0));

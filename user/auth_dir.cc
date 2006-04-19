@@ -92,7 +92,9 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 				(void **) &ul2, 0));
 	scope_guard<int, void *> ul2_unmap(segment_unmap, ul2);
 
-	if (!ue_match)
+	if (ue_match)
+	    ue = ue_match;
+	else
 	    ue = (user_entry *) (((char *) ul2) + cur_len);
 
 	snprintf(&log_msg[0], sizeof(log_msg), "adding user %s", req->user);
@@ -127,10 +129,10 @@ auth_dir_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     try {
 	auth_dir_dispatch(&req, &reply);
     } catch (error &e) {
-    	cprintf("authd_entry: %s\n", e.what());
+    	cprintf("auth_dir_entry: %s\n", e.what());
     	reply.err = e.err();
     } catch (std::exception &e) {
-    	cprintf("authd_entry: %s\n", e.what());
+    	cprintf("auth_dir_entry: %s\n", e.what());
     	reply.err = -E_INVAL;
     }
 

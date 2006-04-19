@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/authd.h>
+#include <inc/gateparam.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -10,9 +11,12 @@ extern "C" {
 #include <sys/types.h>
 }
 
+#include <inc/gateclnt.hh>
 #include <inc/error.hh>
 #include <inc/authclnt.hh>
 #include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
+#include <inc/spawn.hh>
 
 static void __attribute__((noreturn))
 usage()
@@ -28,14 +32,55 @@ main(int ac, char **av)
 	usage();
 
     const char *uname = av[1];
-    const char *pass = readline("password: ");
-    if (!pass)
-	usage();
 
     try {
-	authd_reply r;
-	auth_call(authd_adduser, uname, pass, "", &r);
+	fs_inode uauth_dir;
+	error_check(fs_namei("/uauth", &uauth_dir));
 
+	fs_inode user_authd;
+	error_check(fs_namei("/bin/auth_user", &user_authd));
+
+	char root_grant[32];
+	sprintf(&root_grant[0], "%ld", start_env->user_grant);
+	const char *argv[] = { "auth_user", root_grant };
+
+	// Avoid giving our user privilege to this new process
+	uint64_t ug = start_env->user_grant;
+	uint64_t ut = start_env->user_taint;
+	start_env->user_grant = start_env->user_taint = 0;
+
+	struct child_process cp =
+	    spawn(uauth_dir.obj.object, user_authd, 0, 1, 2,
+		  2, argv, 0, 0,
+		  0, 0, 0, 0);
+
+	start_env->user_grant = ug;
+	start_env->user_taint = ut;
+
+	int64_t ec;
+	error_check(process_wait(&cp, &ec));
+
+	int64_t uauth_gate;
+	error_check(uauth_gate =
+	    container_find(cp.container, kobj_gate, "user login gate"));
+
+	int64_t dir_ct, dir_gt;
+	error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
+	error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+
+	gate_call_data gcd;
+	auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
+	auth_dir_reply *reply = (auth_dir_reply *) &gcd.param_buf[0];
+	req->op = auth_dir_add;
+	strcpy(&req->user[0], uname);
+	req->user_gate = COBJ(cp.container, uauth_gate);
+
+	label verify;
+	thread_cur_label(&verify);
+	gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
+	error_check(reply->err);
+
+/*
 	label l(1);
 	l.set(r.user_grant, 0);
 	l.set(r.user_taint, 3);
@@ -49,7 +94,7 @@ main(int ac, char **av)
 	struct passwd pwd;
 	pwd.pw_name = (char *) uname;
 	pwd.pw_passwd = (char *) "*";
-	pwd.pw_uid = r.user_id;
+	pwd.pw_uid = 0;
 	pwd.pw_gid = 0;
 	pwd.pw_gecos = (char *) "";
 	pwd.pw_shell = (char *) "/bin/ksh";
@@ -61,6 +106,7 @@ main(int ac, char **av)
 	FILE *f = fopen("/etc/passwd", "a");
 	putpwent(&pwd, f);
 	fclose(f);
+*/
     } catch (std::exception &e) {
 	printf("%s\n", e.what());
     }
