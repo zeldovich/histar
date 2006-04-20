@@ -65,8 +65,8 @@ void
 insb(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsb"			:
-			 "=D" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+D" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "memory", "cc");
 }
 
@@ -82,8 +82,8 @@ void
 insw(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsw"			:
-			 "=D" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+D" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "memory", "cc");
 }
 
@@ -99,8 +99,8 @@ void
 insl(int port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsl"			:
-			 "=D" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+D" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "memory", "cc");
 }
 
@@ -114,8 +114,8 @@ void
 outsb(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsb"		:
-			 "=S" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+S" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "cc");
 }
 
@@ -129,8 +129,8 @@ void
 outsw(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsw"		:
-			 "=S" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+S" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "cc");
 }
 
@@ -138,8 +138,8 @@ void
 outsl(int port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsl"		:
-			 "=S" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "+S" (addr), "+c" (cnt)		:
+			 "d" (port)				:
 			 "cc");
 }
 
@@ -324,11 +324,11 @@ fxrstor(const struct Fpregs *f)
 unsigned long
 __byte_swap_long (unsigned long in) 
 {
-  unsigned long out;
-  __asm volatile ("bswap %0" 
-		: "=r" (out) 
-		: "0" (in));
-  return out;
+    unsigned long out;
+    __asm volatile ("bswap %0" 
+		    : "=r" (out) 
+		    : "0" (in));
+    return out;
 }
 
 /* XXX!!!!  Linux no longer uses an explicit xchgb instruction; it says GCC
@@ -337,11 +337,11 @@ __byte_swap_long (unsigned long in)
 uint16_t
 __byte_swap_word(uint16_t in)
 {
-	uint16_t out;
-	__asm ("xchgb %h1, %b1" 
-	       : "=q" (out) 
-	       : "0" (in));
-	return out;
+    uint16_t out;
+    __asm ("xchgb %h1, %b1" 
+	   : "=q" (out) 
+	   : "0" (in));
+    return out;
 }
 
 #define ntohl	__byte_swap_long
