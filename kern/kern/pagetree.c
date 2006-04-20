@@ -78,6 +78,8 @@ pagetree_cow(pagetree_entry *ent)
 	if (r < 0)
 	    return r;
 
+	assert(page_to_pageinfo(copy)->pi_ref == 0);
+	assert(page_to_pageinfo(copy)->pi_pin == 0);
 	memcpy(copy, ent->page, PGSIZE);
 	pagetree_incref(copy);
 
@@ -234,6 +236,7 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
 
     pagetree_cow(ent);
     *pagep = ent->page;
+    assert(page_to_pageinfo(ent->page)->pi_ref > 0);
     return 0;
 }
 
