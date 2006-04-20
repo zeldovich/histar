@@ -53,7 +53,8 @@ static __inline__ void atomic_add(int i, atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "addl %1,%0"
 		:"=m" (v->counter)
-		:"ir" (i), "m" (v->counter));
+		:"ir" (i), "m" (v->counter)
+		:"cc");
 }
 
 /**
@@ -68,7 +69,8 @@ static __inline__ void atomic_sub(int i, atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "subl %1,%0"
 		:"=m" (v->counter)
-		:"ir" (i), "m" (v->counter));
+		:"ir" (i), "m" (v->counter)
+		:"cc");
 }
 
 /**
@@ -87,7 +89,8 @@ static __inline__ int atomic_sub_and_test(int i, atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "subl %2,%0; sete %1"
 		:"=m" (v->counter), "=qm" (c)
-		:"ir" (i), "m" (v->counter) : "memory");
+		:"ir" (i), "m" (v->counter)
+		:"cc");
 	return c;
 }
 
@@ -102,7 +105,8 @@ static __inline__ void atomic_inc(atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incl %0"
 		:"=m" (v->counter)
-		:"m" (v->counter));
+		:"m" (v->counter)
+		:"cc");
 }
 
 static __inline__ void atomic_inc64(atomic64_t *v)
@@ -110,7 +114,8 @@ static __inline__ void atomic_inc64(atomic64_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incq %0"
 		:"=m" (v->counter)
-		:"m" (v->counter));
+		:"m" (v->counter)
+		:"cc");
 }
 
 /**
@@ -124,7 +129,8 @@ static __inline__ void atomic_dec(atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "decl %0"
 		:"=m" (v->counter)
-		:"m" (v->counter));
+		:"m" (v->counter)
+		:"cc");
 }
 
 /**
@@ -142,7 +148,8 @@ static __inline__ int atomic_dec_and_test(atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "decl %0; sete %1"
 		:"=m" (v->counter), "=qm" (c)
-		:"m" (v->counter) : "memory");
+		:"m" (v->counter)
+		:"cc");
 	return c != 0;
 }
 
@@ -161,7 +168,8 @@ static __inline__ int atomic_inc_and_test(atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incl %0; sete %1"
 		:"=m" (v->counter), "=qm" (c)
-		:"m" (v->counter) : "memory");
+		:"m" (v->counter)
+		:"cc");
 	return c != 0;
 }
 
@@ -181,7 +189,8 @@ static __inline__ int atomic_add_negative(int i, atomic_t *v)
 	__asm__ __volatile__(
 		ATOMIC_LOCK "addl %2,%0; sets %1"
 		:"=m" (v->counter), "=qm" (c)
-		:"ir" (i), "m" (v->counter) : "memory");
+		:"ir" (i), "m" (v->counter)
+		:"cc");
 	return c;
 }
 
@@ -199,7 +208,7 @@ static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int newv)
 		ATOMIC_LOCK "cmpxchgl %1,%2"
 		: "=a" (out)
 		: "q" (newv), "m" (v->counter), "0" (old)
-		: "memory");
+		: "cc");
 	return out;
 }
 
@@ -210,25 +219,17 @@ static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old
 		ATOMIC_LOCK "cmpxchgq %1,%2"
 		: "=a" (out)
 		: "q" (newv), "m" (v->counter), "0" (old)
-		: "memory");
+		: "cc");
 	return out;
 }
 
 /* These are x86-specific, used by some header files */
 #define atomic_clear_mask(mask, addr) \
-__asm__ __volatile__(ATOMIC_LOCK "andl %0,%1" \
-: : "r" (~(mask)),"m" (*addr) : "memory")
+__asm__ __volatile__(ATOMIC_LOCK "andl %1,%0" \
+: "=m" (*(addr)) : "r" (~(mask)), "m" (*(addr)) : "cc")
 
 #define atomic_set_mask(mask, addr) \
-__asm__ __volatile__(ATOMIC_LOCK "orl %0,%1" \
-: : "r" (mask),"m" (*(addr)) : "memory")
-
-/* Atomic operations are already serializing on x86 */
-/*
-#define smp_mb__before_atomic_dec()	barrier()
-#define smp_mb__after_atomic_dec()	barrier()
-#define smp_mb__before_atomic_inc()	barrier()
-#define smp_mb__after_atomic_inc()	barrier()
-*/
+__asm__ __volatile__(ATOMIC_LOCK "orl %1,%0" \
+: "=m" (*(addr)) : "r" (mask), "m" (*(addr)) : "cc")
 
 #endif
