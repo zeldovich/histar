@@ -280,7 +280,7 @@ pagetree_incpin(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
     if (pi->pi_ref != 1)
-	panic("pagetree_incpin: shared page -- refcount %d\n", pi->pi_ref);
+	panic("pagetree_incpin: shared page -- refcount %d", pi->pi_ref);
     ++pi->pi_pin;
     if (pi->pi_parent)
 	pagetree_incpin(pi->pi_parent);
@@ -291,7 +291,7 @@ pagetree_decpin(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
     if (pi->pi_ref != 1)
-	panic("pagetree_decpin: shared page -- refcount %d\n", pi->pi_ref);
+	panic("pagetree_decpin: shared page -- refcount %d", pi->pi_ref);
     --pi->pi_pin;
     if (pi->pi_parent)
 	pagetree_decpin(pi->pi_parent);

@@ -291,7 +291,7 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
 						idec->current_op.iov_cnt);
 
 	if (num_bytes > (1 << 16))
-	    panic("ide_send: request too big for IDE DMA: %d\n", num_bytes);
+	    panic("ide_send: request too big for IDE DMA: %d", num_bytes);
 
 	assert((idec->current_op.byte_offset % 512) == 0);
 	assert((num_bytes % 512) == 0);

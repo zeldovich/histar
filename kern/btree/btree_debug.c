@@ -82,14 +82,14 @@ btree_sanity_check_impl(void *tree)
     uint64_t count2 = btree_leaf_count2(btree);
 
     if (count1 != count2)
-	panic("btree_sanity_check: count mismatch: %ld %ld\n", count1,
+	panic("btree_sanity_check: count mismatch: %ld %ld", count1,
 	      count2);
 
     uint64_t size1 = btree->size;
     uint64_t size2 = btree_size_calc(btree);
 
     if (size1 != size2)
-	panic("btree_sanity_check: size mismatch: %ld %ld\n", size1, size2);
+	panic("btree_sanity_check: size mismatch: %ld %ld", size1, size2);
 
     if (btree->root)
 	btree_integrity_check(btree, btree->root);

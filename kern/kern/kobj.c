@@ -99,7 +99,7 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 	//r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
 	//    label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
     } else {
-	panic("kobject_get: unknown iflow type %d\n", SAFE_UNWRAP(iflow));
+	panic("kobject_get: unknown iflow type %d", SAFE_UNWRAP(iflow));
     }
 
     return r;
