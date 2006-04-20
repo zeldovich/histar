@@ -3,7 +3,6 @@
 
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
-#include <machine/multiboot.h>
 #ifndef __ASSEMBLER__
 #include <inc/queue.h>
 #include <kern/lib.h>
@@ -41,7 +40,7 @@ extern struct page_stats {
     uint64_t failures;
 } page_stats;
 
-void pmap_init(struct multiboot_info *mbi);
+void pmap_init(uint64_t lower_kb, uint64_t upper_kb);
 
 int  page_alloc(void **p)
     __attribute__ ((warn_unused_result));

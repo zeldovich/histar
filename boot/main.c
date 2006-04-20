@@ -1,4 +1,5 @@
 #include <machine/x86.h>
+#include <machine/boot.h>
 #include <inc/elf64.h>
 
 /**********************************************************************
@@ -36,7 +37,7 @@ void readsect(void*, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
 
 void
-cmain(void)
+cmain(uint32_t extmem_kb)
 {
   Elf64_Phdr *ph;
   int i;
@@ -55,9 +56,12 @@ cmain(void)
     ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
   }
 
-  // call the entry point from the ELF header
+  // call the entry point from the ELF header, passing in extmem_kb
   // note: does not return!
-  ((void (*)(void)) ((uint32_t) ELFHDR->e_entry & 0xFFFFFF))();
+  uint32_t eax = DIRECT_BOOT_EAX_MAGIC;
+  uint32_t ebx = extmem_kb;
+  uint32_t ecx = ELFHDR->e_entry & 0xFFFFFF;
+  __asm__("jmp *%%ecx" : : "a" (eax), "b" (ebx), "c" (ecx));
 
  bad:
   outw(0x8A00, 0x8A00);

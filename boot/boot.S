@@ -50,6 +50,30 @@ seta20.2:	inb	$0x64,%al		# Get status
 		movb	$0xdf,%al		# Enable
 		outb	%al,$0x60		#  A20
 
+#### Before going to protected mode, query memory size
+#### Taken from Linux 2.6.6's arch/i386/boot/setup.S
+		stc			# Fix to work around buggy
+		xorw	%cx,%cx		# BIOSes which don't clear/set
+		xorw	%dx,%dx		# carry on pass/error of
+					# e801h memory size call
+					# or merely pass cx,dx though
+					# without changing them.
+		movw	$0xe801,%ax
+		int	$0x15
+		jc	nobiosmem
+
+		cmpw	$0x0,%cx	# Kludge to handle BIOSes
+		jne	memdetected	# which report their extended
+		cmpw	$0x0,%dx	# memory in AX/BX rather than
+		jne	memdetected	# CX/DX. The spec I have read
+		movw	%ax,%cx		# seems to indicate AX/BX
+		movw	%bx,%dx		# are more reasonable anyway...
+		jmp	memdetected
+
+nobiosmem:	xorw	%cx,%cx
+		xorw	%dx,%dx
+memdetected:
+
 #### Switch from real to protected mode	
 ####     The descriptors in our GDT allow all physical memory to be accessed.
 ####     Furthermore, the descriptors have base addresses of 0, so that the
@@ -80,10 +104,17 @@ protcseg:
 		movw	%ax, %fs		# -> FS
 		movw	%ax, %gs		# -> GS
 		movw	%ax, %ss		# -> SS: Stack Segment
-	
-		call cmain			# finish the boot load from C.
+
+		movl	$0xffff,%eax
+		andl	%eax,%edx		# clip to 16 bits
+		shll	$6,%edx			# go from 64K to 1K chunks
+		andl	%eax,%ecx		# clip to 16 bits
+		addl	%edx,%ecx		# add results
+		
+		pushl	%ecx			# Push the amount of extended memory
+		call	cmain			# finish the boot load from C.
 						# cmain() should not return
-spin:		jmp spin			# ..but in case it does, spin
+spin:		jmp	spin			# ..but in case it does, spin
 	
 .p2align 2					# force 4 byte alignment
 gdt:

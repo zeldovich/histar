@@ -1,0 +1,6 @@
+#ifndef JOS_MACHINE_BOOT_H
+#define JOS_MACHINE_BOOT_H
+
+#define DIRECT_BOOT_EAX_MAGIC	0x6A6F7362
+
+#endif

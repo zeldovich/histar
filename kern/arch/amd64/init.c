@@ -2,6 +2,8 @@
 #include <machine/x86.h>
 #include <machine/thread.h>
 #include <machine/trap.h>
+#include <machine/multiboot.h>
+#include <machine/boot.h>
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
@@ -109,21 +111,33 @@ init (uint32_t start_eax, uint32_t start_ebx)
     mmu_init();
     bss_init();
 
-    struct multiboot_info *mbi = 0;
-    if (start_eax == MULTIBOOT_EAX_MAGIC)
-	mbi = (struct multiboot_info *) pa2kva(start_ebx);
+    uint64_t lower_kb = 0;
+    uint64_t upper_kb = 0;
 
-    if (mbi && (mbi->flags & MULTIBOOT_INFO_CMDLINE)) {
-	char *cmdline = pa2kva(mbi->cmdline);
-	strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
+    if (start_eax == MULTIBOOT_EAX_MAGIC) {
+	struct multiboot_info *mbi = (struct multiboot_info *) pa2kva(start_ebx);
+
+	if ((mbi->flags & MULTIBOOT_INFO_CMDLINE)) {
+	    char *cmdline = pa2kva(mbi->cmdline);
+	    strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
+	}
+
+	if ((mbi->flags & MULTIBOOT_INFO_MEMORY)) {
+	    lower_kb = mbi->mem_lower;
+	    upper_kb = mbi->mem_upper;
+	}
     }
+
+    // Our boot sector passes in the upper memory size this way
+    if (start_eax == DIRECT_BOOT_EAX_MAGIC)
+	upper_kb = start_ebx;
 
     idt_init();
     cons_init();
     pic_init();
     kclock_init();
     timer_init();
-    pmap_init(mbi);
+    pmap_init(lower_kb, upper_kb);
     pci_init();
 
     kobject_init ();

@@ -3,7 +3,6 @@
 #include <machine/x86.h>
 #include <machine/pmap.h>
 #include <machine/thread.h>
-#include <machine/multiboot.h>
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
@@ -40,16 +39,16 @@ nvram_read(int r)
 }
 
 static void
-i386_detect_memory(struct multiboot_info *mbi)
+i386_detect_memory(uint64_t lower_kb, uint64_t upper_kb)
 {
-    if (mbi && (mbi->flags & MULTIBOOT_INFO_MEMORY)) {
-	basemem = ROUNDDOWN(mbi->mem_lower * 1024, PGSIZE);
-	extmem = ROUNDDOWN(mbi->mem_upper * 1024, PGSIZE);
-    } else {
-	// CMOS tells us how many kilobytes there are
-	basemem = ROUNDDOWN (nvram_read (NVRAM_BASELO) * 1024, PGSIZE);
-	extmem = ROUNDDOWN (nvram_read (NVRAM_EXTLO) * 1024, PGSIZE);
-    }
+    // Worse case, CMOS tells us how many kilobytes there are
+    if (!lower_kb)
+	lower_kb = nvram_read(NVRAM_BASELO);
+    if (!upper_kb)
+	upper_kb = nvram_read (NVRAM_EXTLO);
+
+    basemem = ROUNDDOWN(lower_kb * 1024, PGSIZE);
+    extmem  = ROUNDDOWN(upper_kb * 1024, PGSIZE);
 
     // Calculate the maxmium physical address based on whether
     // or not there is any extended memory.  See comment in ../inc/mmu.h.
@@ -175,9 +174,9 @@ page_init(void)
 }
 
 void
-pmap_init(struct multiboot_info *mbi)
+pmap_init(uint64_t lower_kb, uint64_t upper_kb)
 {
-    i386_detect_memory (mbi);
+    i386_detect_memory(lower_kb, upper_kb);
     page_init ();
 }
 
