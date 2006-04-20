@@ -226,10 +226,10 @@ static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old
 /* These are x86-specific, used by some header files */
 #define atomic_clear_mask(mask, addr) \
 __asm__ __volatile__(ATOMIC_LOCK "andl %1,%0" \
-: "=m" (*(addr)) : "r" (~(mask)), "m" (*(addr)) : "cc")
+: "+m" (*(addr)) : "r" (~(mask)) : "cc")
 
 #define atomic_set_mask(mask, addr) \
 __asm__ __volatile__(ATOMIC_LOCK "orl %1,%0" \
-: "=m" (*(addr)) : "r" (mask), "m" (*(addr)) : "cc")
+: "+m" (*(addr)) : "r" (mask) : "cc")
 
 #endif
