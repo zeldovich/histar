@@ -254,13 +254,13 @@ halt(void)
 void 
 sti(void) 
 {
-        __asm __volatile("sti");
+        __asm __volatile("sti" ::: "cc");
 }
 
 void 
 cli(void) 
 {
-        __asm __volatile("sti");
+        __asm __volatile("cli" ::: "cc");
 }
 
 uint64_t
