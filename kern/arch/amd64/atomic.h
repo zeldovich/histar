@@ -52,8 +52,8 @@ static __inline__ void atomic_add(int i, atomic_t *v)
 {
 	__asm__ __volatile__(
 		ATOMIC_LOCK "addl %1,%0"
-		:"=m" (v->counter)
-		:"ir" (i), "m" (v->counter)
+		:"+m" (v->counter)
+		:"ir" (i)
 		:"cc");
 }
 
@@ -68,8 +68,8 @@ static __inline__ void atomic_sub(int i, atomic_t *v)
 {
 	__asm__ __volatile__(
 		ATOMIC_LOCK "subl %1,%0"
-		:"=m" (v->counter)
-		:"ir" (i), "m" (v->counter)
+		:"+m" (v->counter)
+		:"ir" (i)
 		:"cc");
 }
 
@@ -88,8 +88,8 @@ static __inline__ int atomic_sub_and_test(int i, atomic_t *v)
 
 	__asm__ __volatile__(
 		ATOMIC_LOCK "subl %2,%0; sete %1"
-		:"=m" (v->counter), "=qm" (c)
-		:"ir" (i), "m" (v->counter)
+		:"+m" (v->counter), "=qm" (c)
+		:"ir" (i)
 		:"cc");
 	return c;
 }
@@ -104,8 +104,8 @@ static __inline__ void atomic_inc(atomic_t *v)
 {
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incl %0"
-		:"=m" (v->counter)
-		:"m" (v->counter)
+		:"+m" (v->counter)
+		:
 		:"cc");
 }
 
@@ -113,8 +113,8 @@ static __inline__ void atomic_inc64(atomic64_t *v)
 {
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incq %0"
-		:"=m" (v->counter)
-		:"m" (v->counter)
+		:"+m" (v->counter)
+		:
 		:"cc");
 }
 
@@ -128,8 +128,8 @@ static __inline__ void atomic_dec(atomic_t *v)
 {
 	__asm__ __volatile__(
 		ATOMIC_LOCK "decl %0"
-		:"=m" (v->counter)
-		:"m" (v->counter)
+		:"+m" (v->counter)
+		:
 		:"cc");
 }
 
@@ -147,8 +147,8 @@ static __inline__ int atomic_dec_and_test(atomic_t *v)
 
 	__asm__ __volatile__(
 		ATOMIC_LOCK "decl %0; sete %1"
-		:"=m" (v->counter), "=qm" (c)
-		:"m" (v->counter)
+		:"+m" (v->counter), "=qm" (c)
+		:
 		:"cc");
 	return c != 0;
 }
@@ -167,8 +167,8 @@ static __inline__ int atomic_inc_and_test(atomic_t *v)
 
 	__asm__ __volatile__(
 		ATOMIC_LOCK "incl %0; sete %1"
-		:"=m" (v->counter), "=qm" (c)
-		:"m" (v->counter)
+		:"+m" (v->counter), "=qm" (c)
+		:
 		:"cc");
 	return c != 0;
 }
@@ -188,8 +188,8 @@ static __inline__ int atomic_add_negative(int i, atomic_t *v)
 
 	__asm__ __volatile__(
 		ATOMIC_LOCK "addl %2,%0; sets %1"
-		:"=m" (v->counter), "=qm" (c)
-		:"ir" (i), "m" (v->counter)
+		:"+m" (v->counter), "=qm" (c)
+		:"ir" (i)
 		:"cc");
 	return c;
 }
@@ -205,9 +205,9 @@ static __inline__ int atomic_compare_exchange(atomic_t *v, int old, int newv)
 {
 	int out;
 	__asm__ __volatile__(
-		ATOMIC_LOCK "cmpxchgl %1,%2"
-		: "=a" (out)
-		: "q" (newv), "m" (v->counter), "0" (old)
+		ATOMIC_LOCK "cmpxchgl %2,%1"
+		: "=a" (out), "+m" (v->counter)
+		: "q" (newv), "0" (old)
 		: "cc");
 	return out;
 }
@@ -216,9 +216,9 @@ static __inline__ uint64_t atomic_compare_exchange64(atomic64_t *v, uint64_t old
 {
 	uint64_t out;
 	__asm__ __volatile__(
-		ATOMIC_LOCK "cmpxchgq %1,%2"
-		: "=a" (out)
-		: "q" (newv), "m" (v->counter), "0" (old)
+		ATOMIC_LOCK "cmpxchgq %2,%1"
+		: "=a" (out), "+m" (v->counter)
+		: "q" (newv), "0" (old)
 		: "cc");
 	return out;
 }
