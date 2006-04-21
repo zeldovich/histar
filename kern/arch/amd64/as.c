@@ -159,12 +159,12 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 	r = as_get_usegmap(as, (const struct u_segment_mapping **) &usm,
 			   i, page_excl_dirty);
 	if (r < 0)
-	    return r;
+	    goto out;
 
 	struct segment_mapping *sm;
 	r = as_get_segmap(as, &sm, i);
 	if (r < 0)
-	    return r;
+	    goto out;
 
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
@@ -179,8 +179,10 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 	}
     }
 
+    r = 0;
+out:
     as_invalidate(as);
-    return 0;
+    return r;
 }
 
 int
