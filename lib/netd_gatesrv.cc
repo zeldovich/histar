@@ -13,9 +13,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-static uint64_t netd_taint_handle;
 static int netd_server_enabled;
-enum { netd_do_taint = 0 };
+static struct cobj_ref declassify_gate;
 
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
@@ -42,38 +41,16 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     netd_dispatch(netd_op);
     segment_unmap(netd_op);
 
-    label args_label(1);
-
-    if (netd_do_taint)
-	args_label.set(netd_taint_handle, 2);
-
     uint64_t copy_back_ct = gcd->taint_container;
-    int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct,
-					    args_label.to_ulabel(),
+    int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct, 0,
 					    "netd_gate_entry reply");
     if (copy_back_id < 0)
-	panic("netd_gate_entry: cannot copy back with label %s: %s",
-	      args_label.to_string(), e2s(copy_back_id));
+	panic("netd_gate_entry: cannot copy back: %s", e2s(copy_back_id));
 
     sys_obj_unref(arg_copy);
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
-
-    // Contaminate the caller with { taint:2 }
-    label *cs = new label(LB_LEVEL_STAR);
-    if (netd_do_taint) {
-	label tl, tc;
-
-	thread_cur_label(&tl);
-	thread_cur_clearance(&tc);
-
-	gcd->declassify_gate =
-	    gate_create(gcd->taint_container, "declassifier", &tl, &tc,
-			&declassifier, (void *) netd_taint_handle);
-
-	cs->set(netd_taint_handle, 2);
-    }
-
-    rg->ret(cs, 0, 0);
+    gcd->declassify_gate = declassify_gate;
+    rg->ret(0, 0, 0);
 }
 
 struct cobj_ref
@@ -81,7 +58,14 @@ netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
 {
-    netd_taint_handle = taint_handle;
+    label cur_l, cur_c;
+    thread_cur_label(&cur_l);
+    thread_cur_clearance(&cur_c);
+
+    declassify_gate =
+	gate_create(start_env->shared_container, "declassifier",
+		    &cur_l, &cur_c,
+		    &declassifier, (void *) taint_handle);
 
     try {
 	uint64_t entry_ct = start_env->proc_container;

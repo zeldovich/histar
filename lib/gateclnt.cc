@@ -17,6 +17,8 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 
+enum { gate_client_debug = 0 };
+
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb)
 {
@@ -66,12 +68,16 @@ gate_call::gate_call(cobj_ref gate,
     : gate_(gate)
 {
     // Create a handle for the duration of this call
-    error_check(call_handle_ = handle_alloc());
-    scope_guard<void, uint64_t> drop_star(thread_drop_star, call_handle_);
+    error_check(call_taint_ = handle_alloc());
+    scope_guard<void, uint64_t> drop_star1(thread_drop_star, call_taint_);
+
+    error_check(call_grant_ = handle_alloc());
+    scope_guard<void, uint64_t> drop_star2(thread_drop_star, call_grant_);
 
     // Compute the target labels
     label new_ds(ds ? *ds : label(3));
-    new_ds.set(call_handle_, LB_LEVEL_STAR);
+    new_ds.set(call_taint_, LB_LEVEL_STAR);
+    new_ds.set(call_grant_, LB_LEVEL_STAR);
 
     tgt_label_ = new label();
     scope_guard<void, label*> del_tl(delete_obj, tgt_label_);
@@ -79,32 +85,46 @@ gate_call::gate_call(cobj_ref gate,
     scope_guard<void, label*> del_tc(delete_obj, tgt_clear_);
     gate_compute_labels(gate, cs, &new_ds, dr, tgt_label_, tgt_clear_);
 
+    // Create a container to hold data across the gate call
+    label call_obj_label_;
+    thread_cur_label(&call_obj_label_);
+    call_obj_label_.transform(label::star_to, call_obj_label_.get_default());
+    call_obj_label_.set(call_taint_, 3);
+    call_obj_label_.set(call_grant_, 0);
+
+    if (gate_client_debug)
+	cprintf("Gate call container label: %s\n", call_obj_label_.to_string());
+
+    int64_t call_ct = sys_container_alloc(start_env->shared_container,
+					  call_obj_label_.to_ulabel(),
+					  "gate call container", 0, CT_QUOTA_INF);
+    if (call_ct < 0)
+	throw error(call_ct, "gate_call: creating call container");
+
+    call_ct_obj_ = COBJ(start_env->shared_container, call_ct);
+    scope_guard<int, cobj_ref> call_ct_cleanup(sys_obj_unref, call_ct_obj_);
+
     // Create an MLT-like container for tainted data to live in
-    obj_label_ = new label();
-    scope_guard<void, label*> del_ol(delete_obj, obj_label_);
+    label taint_obj_label_;
+    call_obj_label_.merge(tgt_label_, &taint_obj_label_,
+			  label::max, label::leq_starlo);
 
-    label thread_label;
-    thread_cur_label(&thread_label);
-    thread_label.merge(tgt_label_, obj_label_, label::max, label::leq_starlo);
-    obj_label_->transform(label::star_to, obj_label_->get_default());
-    obj_label_->set(call_handle_, 0);
+    if (gate_client_debug)
+	cprintf("Gate taint container label: %s\n", taint_obj_label_.to_string());
 
-    // XXX should we actually be allocating a call_grant/call_taint handle pair?
-    int64_t taint_ct = sys_container_alloc(start_env->shared_container,
-					   obj_label_->to_ulabel(),
+    int64_t taint_ct = sys_container_alloc(call_ct, taint_obj_label_.to_ulabel(),
 					   "gate call taint", 0, CT_QUOTA_INF);
     if (taint_ct < 0)
 	throw error(taint_ct, "gate_call: creating tainted container");
 
-    taint_ct_obj_ = COBJ(start_env->shared_container, taint_ct);
-    scope_guard<int, cobj_ref> taint_ct_cleanup(sys_obj_unref, taint_ct_obj_);
+    taint_ct_obj_ = COBJ(call_ct, taint_ct);
 
     // Let the destructor clean up after this point
-    drop_star.dismiss();
+    drop_star1.dismiss();
+    drop_star2.dismiss();
     del_tl.dismiss();
     del_tc.dismiss();
-    del_ol.dismiss();
-    taint_ct_cleanup.dismiss();
+    call_ct_cleanup.dismiss();
 }
 
 void
@@ -112,13 +132,14 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
 {
     // Set the verify label; prove we had the call handle at *
     label new_verify(verify ? *verify : label(3));
-    new_verify.set(call_handle_, LB_LEVEL_STAR);
+    new_verify.set(call_grant_, LB_LEVEL_STAR);
+    new_verify.set(call_taint_, LB_LEVEL_STAR);
     error_check(sys_self_set_verify(new_verify.to_ulabel()));
 
     // Create a return gate in the taint container
     cobj_ref return_gate;
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate, &back_from_call, call_handle_, taint_ct_obj_.object);
+    return_setup(&return_gate, &back_from_call, call_grant_, call_ct_obj_.object);
     scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
 
     // Gate call parameters
@@ -152,16 +173,14 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
 gate_call::~gate_call()
 {
     try {
-	sys_obj_unref(taint_ct_obj_);
+	sys_obj_unref(call_ct_obj_);
 
 	if (tgt_label_)
 	    delete tgt_label_;
 	if (tgt_clear_)
 	    delete tgt_clear_;
-	if (obj_label_)
-	    delete obj_label_;
 
-	thread_drop_star(call_handle_);
+	thread_drop_starpair(call_taint_, call_grant_);
     } catch (std::exception &e) {
 	cprintf("gate_call::~gate_call: %s\n", e.what());
     }

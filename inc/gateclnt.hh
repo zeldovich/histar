@@ -15,16 +15,15 @@ public:
 	      label *decontaminate_clearance);	// { 0 } for none
     ~gate_call();
 
-    uint64_t call_handle() { return call_handle_; }
-    label *obj_label() { return obj_label_; }
-    uint64_t taint_ct() { return taint_ct_obj_.object; }
+    uint64_t call_ct() { return call_ct_obj_.object; }
 
     void call(gate_call_data *gcd,
 	      label *verify);			// { 3 } for none
 
 private:
-    int64_t call_handle_;
+    int64_t call_taint_, call_grant_;
     cobj_ref gate_;
+    cobj_ref call_ct_obj_;
     cobj_ref taint_ct_obj_;
 
     label *tgt_label_;

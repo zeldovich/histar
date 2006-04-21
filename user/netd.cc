@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 static int netd_debug = 0;
+enum { netd_do_taint = 0 };
 
 static void
 ready_cb(void *arg)
@@ -53,10 +54,19 @@ main(int ac, char **av)
 	label clear(2);
 
 	thread_cur_label(&cntm);
+	if (netd_do_taint)
+	    cntm.set(inet_taint, 2);
 
 	srv = netd_server_init(start_env->shared_container,
 			       inet_taint,
 			       &cntm, &clear);
+
+	// Disable signals -- the signal gate has { inet_taint:* }
+	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
+	error_check(sig_gt);
+	error_check(sys_obj_unref(COBJ(start_env->shared_container, sig_gt)));
+
+	thread_set_label(&cntm);
     } catch (std::exception &e) {
 	panic("%s", e.what());
     }
