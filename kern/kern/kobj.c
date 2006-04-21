@@ -495,6 +495,8 @@ void
 kobject_unpin_page(const struct kobject_hdr *ko)
 {
     struct kobject_hdr *m = &kobject_const_h2k(ko)->hdr;
+    if (m->ko_pin_pg == 0)
+	panic("kobject_unpin_page: not pinned");
     --m->ko_pin_pg;
 
     kobject_unpin_hdr(ko);
