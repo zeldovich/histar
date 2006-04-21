@@ -228,9 +228,6 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
     if (r < 0)
 	return r;
 
-    if (ent && ent->page)
-	page_to_pageinfo(ent->page)->pi_parent = parent;
-
     void *page = ent ? ent->page : 0;
     if (SAFE_EQUAL(rw, page_shared_ro) || page == 0) {
 	*pagep = page;
@@ -238,6 +235,11 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
     }
 
     pagetree_cow(ent);
+
+    struct page_info *pi = page_to_pageinfo(ent->page);
+    if (pi->pi_parent != parent)
+	pi->pi_parent = parent;
+
     *pagep = ent->page;
     return 0;
 }
