@@ -14,13 +14,13 @@ enum { bipipe_bufsz = 2000 };
 
 struct one_pipe {
     char buf[bipipe_bufsz];
-    
-    uint64_t bytes; /* # bytes in circular buffer */
-    uint32_t read_ptr;  /* read at this offset */
+
     char reader_waiting;
     char writer_waiting;
-    pthread_mutex_t mu;
     char open;
+    uint32_t read_ptr;  /* read at this offset */
+    uint64_t bytes; /* # bytes in circular buffer */
+    pthread_mutex_t mu;
 };
 
 struct bipipe_seg {
@@ -81,7 +81,7 @@ bipipe(int fv[2])
 
 
 static ssize_t
-bipipe_read(struct Fd *fd, void *buf, size_t cout, off_t offset)
+bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
    
@@ -117,7 +117,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t cout, off_t offset)
     uint32_t bufsize = sizeof(op->buf);
     uint32_t idx = op->read_ptr;
 
-    cc = MIN(cout, op->bytes);
+    cc = MIN(count, op->bytes);
     uint32_t cc1 = MIN(cc, bufsize-idx);        // idx to end-of-buffer
     uint32_t cc2 = (cc1 == cc) ? 0 : (cc - cc1);    // wrap-around
     memcpy(buf,       &op->buf[idx], cc1);
