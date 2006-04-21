@@ -302,7 +302,7 @@ static void
 sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
 {
     const struct kobject *ko;
-    check(cobj_get(cobj, kobj_any, &ko, oldm ? iflow_rw : iflow_write));
+    check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
     check(check_user_access(newm, KOBJ_META_LEN, 0));
     if (oldm) {
 	check(check_user_access(oldm, KOBJ_META_LEN, 0));
