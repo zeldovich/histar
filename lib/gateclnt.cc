@@ -36,7 +36,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     thread_cur_label(&cur_label);
 
     label max_clear(cur_label);
-    max_clear.transform(label::star_to, 3);
+    max_clear.transform(label::star_to, clear.get_default());
 
     label out;
     clear.merge(&max_clear, &out, label::max, label::leq_starlo);
@@ -55,7 +55,8 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
 				 cur_label.to_ulabel(),
 				 "return gate");
     if (id < 0)
-	throw error(id, "return_setup: creating return gate");
+	throw error(id, "return_setup: creating return gate: l %s, c %s",
+		    cur_label.to_string(), clear.to_string());
 
     *g = COBJ(ct, id);
 }
