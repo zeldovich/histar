@@ -224,6 +224,7 @@ ne2kpci_rintr(void)
       c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE ;
       
       kobject_unpin_page(&c->rx[i].sg->sg_ko);
+      pagetree_decpin(c->rx[i].nb);
       kobject_dirty(&c->rx[i].sg->sg_ko);
       c->rx[i].sg = 0;
       

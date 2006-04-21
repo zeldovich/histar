@@ -274,6 +274,7 @@ fxp_intr_rx(struct fxp_card *c)
 	    break;
 
 	kobject_unpin_page(&c->rx[i].sg->sg_ko);
+	pagetree_decpin(c->rx[i].nb);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
@@ -296,6 +297,7 @@ fxp_intr_tx(struct fxp_card *c)
 	    break;
 
 	kobject_unpin_page(&c->tx[i].sg->sg_ko);
+	pagetree_decpin(c->tx[i].nb);
 	kobject_dirty(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
