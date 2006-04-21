@@ -52,7 +52,7 @@ main(int ac, char **av)
 	struct child_process cp =
 	    spawn(uauth_dir.obj.object, user_authd, 0, 1, 2,
 		  2, argv, 0, 0,
-		  0, 0, 0, 0);
+		  0, 0, 0, 0, 0);
 
 	start_env->user_grant = ug;
 	start_env->user_taint = ut;

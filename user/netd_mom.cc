@@ -69,11 +69,14 @@ try
 	printf("netd_mom: current label %s\n", cur.to_string());
     }
 
+    label co(0);
+    co.set(inet_taint, 2);
+
     spawn(start_env->root_container, netd_ino,
 	  0, 1, 2,
 	  4, &argv[0],
 	  0, 0,
-	  0, &ds, 0, 0);
+	  0, &ds, 0, 0, &co);
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
 }

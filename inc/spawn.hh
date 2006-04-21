@@ -11,11 +11,12 @@ struct child_process
     spawn(uint64_t container, struct fs_inode elf,
 	  int fd0, int fd1, int fd2,
 	  int ac, const char **av,
-      int envc, const char **envv,
+	  int envc, const char **envv,
 	  label *cs,	// null is effectively { * }
 	  label *ds,	// null is effectively { 3 }
 	  label *cr,	// null is effectively { 3 }
-	  label *dr	// null is effectively { 0 }
+	  label *dr,	// null is effectively { 0 }
+	  label *co	// null is effectively { 0 } -- contaminate objects
 	);
 
 #endif

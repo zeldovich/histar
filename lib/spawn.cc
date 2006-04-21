@@ -27,7 +27,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
       int envc, const char **envv,
-      label *cs, label *ds, label *cr, label *dr)
+      label *cs, label *ds, label *cr, label *dr,
+      label *contaminate_object)
 {
     label tmp, out;
 
@@ -70,6 +71,11 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     integrity_object_label.transform(label::star_to,
 				     integrity_object_label.get_default());
     label proc_object_label(integrity_object_label);
+    if (contaminate_object) {
+	proc_object_label.merge(contaminate_object, &out,
+				label::max, label::leq_starlo);
+	proc_object_label.copy_from(&out);
+    }
 
     // Generate some private handles for the new process
     int64_t process_grant = handle_alloc();

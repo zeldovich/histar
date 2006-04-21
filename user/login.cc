@@ -41,7 +41,7 @@ login(char *u, char *p)
                                        0, 1, 2,
                                        1, &argv[0],
                                        2, &envv[0],
-                                       0, 0, 0, 0);
+                                       0, 0, 0, 0, 0);
     int64_t e;
     process_wait(&shell, &e);
 }
