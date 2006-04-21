@@ -25,12 +25,12 @@ ready_cb(void *arg)
 int
 main(int ac, char **av)
 {
-    if (ac != 3) {
-	printf("Usage: %s grant-handle taint-handle\n", av[0]);
+    if (ac != 4) {
+	printf("Usage: %s grant-handle taint-handle inet-taint\n", av[0]);
 	return -1;
     }
 
-    uint64_t grant, taint;
+    uint64_t grant, taint, inet_taint;
     int r = strtou64(av[1], 0, 10, &grant);
     if (r < 0)
 	panic("parsing grant handle %s: %s", av[1], e2s(r));
@@ -38,6 +38,10 @@ main(int ac, char **av)
     r = strtou64(av[2], 0, 10, &taint);
     if (r < 0)
 	panic("parsing taint handle %s: %s", av[2], e2s(r));
+
+    r = strtou64(av[3], 0, 10, &inet_taint);
+    if (r < 0)
+	panic("parsing inet taint handle %s: %s", av[3], e2s(r));
 
     if (netd_debug)
 	printf("netd: grant handle %ld, taint handle %ld\n",
@@ -51,7 +55,7 @@ main(int ac, char **av)
 	thread_cur_label(&cntm);
 
 	srv = netd_server_init(start_env->shared_container,
-			       taint,
+			       inet_taint,
 			       &cntm, &clear);
     } catch (std::exception &e) {
 	panic("%s", e.what());
