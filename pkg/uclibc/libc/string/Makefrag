@@ -13,10 +13,18 @@ STRING_MOBJ := \
         _string_syssigmsgs.o sys_siglist.o strsignal.o psignal.o \
          __xpg_basename.o strlcat.o strlcpy.o sys_errlist.o memmem.o
 
+W_MOBJ := \
+	wcsdup.o
+
 STRING_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(STRING_MOBJ))
-LIBC_OBJFILES += $(STRING_MOBJ)
+W_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(W_MOBJ))
+
+LIBC_OBJFILES += $(STRING_MOBJ) $(W_MOBJ)
 
 $(STRING_MOBJ): $(STRING_MSRC)
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/string/%.o,%,$@) $< -c -o $@
 
+$(W_MOBJ): $(STRING_MSRC)
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -DWANT_WIDE -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/string/%.o,%,$@) $< -c -o $@
