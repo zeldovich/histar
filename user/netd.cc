@@ -48,7 +48,6 @@ main(int ac, char **av)
 	printf("netd: grant handle %ld, taint handle %ld\n",
 	       grant, taint);
 
-    struct cobj_ref srv;
     try {
 	label cntm;
 	label clear(2);
@@ -57,9 +56,8 @@ main(int ac, char **av)
 	if (netd_do_taint)
 	    cntm.set(inet_taint, 2);
 
-	srv = netd_server_init(start_env->shared_container,
-			       inet_taint,
-			       &cntm, &clear);
+	netd_server_init(start_env->shared_container,
+			 inet_taint, &cntm, &clear);
 
 	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");

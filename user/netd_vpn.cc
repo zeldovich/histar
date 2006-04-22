@@ -50,16 +50,14 @@ main(int ac, char **av)
 	exit(-1);
     }
 
-    struct cobj_ref srv;
     try {
 	label cntm;
 	label clear(2);
 
 	thread_cur_label(&cntm);
 
-	srv = netd_server_init(start_env->shared_container,
-			       taint,
-			       &cntm, &clear);
+	netd_server_init(start_env->shared_container,
+			 taint, &cntm, &clear);
     } catch (std::exception &e) {
 	panic("%s", e.what());
     }

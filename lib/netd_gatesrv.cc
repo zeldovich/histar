@@ -53,7 +53,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     rg->ret(0, 0, 0);
 }
 
-struct cobj_ref
+void
 netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
@@ -69,8 +69,8 @@ netd_server_init(uint64_t gate_ct,
 
     try {
 	uint64_t entry_ct = start_env->proc_container;
-	return gate_create(gate_ct, "netd", l, clear,
-			   &netd_gate_entry, (void *) entry_ct);
+	gate_create(gate_ct, "netd", l, clear,
+		    &netd_gate_entry, (void *) entry_ct);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());
 	throw;
