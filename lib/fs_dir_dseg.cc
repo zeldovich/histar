@@ -14,7 +14,10 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/pthread.hh>
 
+#define DIR_GEN_BUSY	(~0UL)
+
 struct fs_dirslot {
+    uint64_t gen;
     uint64_t id;
     uint8_t inuse;
     char name[KOBJ_NAME_LEN];
@@ -67,9 +70,14 @@ fs_dir_dseg::remove(const char *name, fs_inode ino)
     check_writable();
     fs_dirslot *slot;
 
-    for (slot = &dir_->slots[0]; (slot + 1) <= (fs_dirslot *) dir_end_; slot++)
-	if (slot->inuse && slot->id == ino.obj.object && !strcmp(slot->name, name))
+    for (slot = &dir_->slots[0]; (slot + 1) <= (fs_dirslot *) dir_end_; slot++) {
+	if (slot->inuse && slot->id == ino.obj.object && !strcmp(slot->name, name)) {
+	    uint64_t ngen = slot->gen + 1;
+	    slot->gen = DIR_GEN_BUSY;
 	    slot->inuse = 0;
+	    slot->gen = ngen;
+	}
+    }
 }
 
 int
@@ -83,12 +91,20 @@ fs_dir_dseg::lookup(const char *name, fs_readdir_pos *i, fs_inode *ino)
     }
 
     for (;;) {
-	fs_dirslot *slot = &dir_->slots[i->a++];
+	volatile fs_dirslot *slot = &dir_->slots[i->a++];
 	if ((slot + 1) > (fs_dirslot *) dir_end_)
 	    return 0;
 
-	if (slot->inuse && !strcmp(slot->name, name)) {
-	    ino->obj = COBJ(ino_.obj.object, slot->id);
+	uint64_t start_gen, end_gen;
+	fs_dirslot copy;
+	do {
+	    start_gen = slot->gen;
+	    memcpy(&copy, (const void *) slot, sizeof(copy));
+	    end_gen = slot->gen;
+	} while (start_gen == DIR_GEN_BUSY || start_gen != end_gen);
+
+	if (copy.inuse && !strcmp(copy.name, name)) {
+	    ino->obj = COBJ(ino_.obj.object, copy.id);
 	    return 1;
 	}
     }
@@ -103,15 +119,18 @@ fs_dir_dseg::insert(const char *name, fs_inode ino)
 	throw basic_exception("fs_dir_dseg::insert: bad inode");
 
     for (;;) {
-	struct fs_dirslot *slot;
+	volatile fs_dirslot *slot;
 	for (slot = &dir_->slots[0];
 	    (slot + 1) <= (struct fs_dirslot *) dir_end_;
 	    slot++)
 	{
 	    if (!slot->inuse) {
-		strncpy(&slot->name[0], name, KOBJ_NAME_LEN - 1);
+		uint64_t ngen = slot->gen + 1;
+		slot->gen = DIR_GEN_BUSY;
+		strncpy((char *) &slot->name[0], name, KOBJ_NAME_LEN - 1);
 		slot->id = ino.obj.object;
 		slot->inuse = 1;
+		slot->gen = ngen;
 		return;
 	    }
 	}
@@ -139,14 +158,23 @@ fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
     }
 
 retry:
-    struct fs_dirslot *slot = &dir_->slots[i->a++];
+    volatile fs_dirslot *slot = &dir_->slots[i->a++];
     if (slot + 1 > (struct fs_dirslot *) dir_end_)
 	return 0;
-    if (slot->inuse == 0)
+
+    uint64_t start_gen, end_gen;
+    fs_dirslot copy;
+    do {
+	start_gen = slot->gen;
+	memcpy(&copy, (const void *) slot, sizeof(copy));
+	end_gen = slot->gen;
+    } while (start_gen == DIR_GEN_BUSY || start_gen != end_gen);
+
+    if (copy.inuse == 0)
 	goto retry;
 
-    memcpy(&de->de_name[0], &slot->name[0], KOBJ_NAME_LEN);
-    de->de_inode.obj = COBJ(ino_.obj.object, slot->id);
+    memcpy(&de->de_name[0], &copy.name[0], KOBJ_NAME_LEN);
+    de->de_inode.obj = COBJ(ino_.obj.object, copy.id);
     return 1;
 }
 
