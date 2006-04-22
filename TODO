@@ -86,6 +86,3 @@ split the pstate sync timestamp counter from the handle counter
 
 partial segment swapin
 
-BUG: pagetree.c:280: incpin: shared page -- refcount 0
-Why are we trying to pin a dead page?
-
