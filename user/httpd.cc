@@ -77,30 +77,38 @@ http_client(void *arg)
 	    char *pass = colon + 1;
 
 	    uint64_t ug, ut;
-	    auth_login(user, pass, &ug, &ut);
+	    int auth_ok = 0;
+	    try {
+		auth_login(user, pass, &ug, &ut);
+		auth_ok = 1;
+	    } catch (std::exception &e) {
+		cprintf("httpd: cannot login: %s\n", e.what());
+	    }
 
-	    int64_t worker_ct, worker_gt;
-	    error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
-	    error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
+	    if (auth_ok) {
+		int64_t worker_ct, worker_gt;
+		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
+		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
 
-	    label cs(LB_LEVEL_STAR);
-	    cs.set(ut, 3);
+		label cs(LB_LEVEL_STAR);
+		cs.set(ut, 3);
 
-	    label dr(0);
-	    dr.set(ut, 3);
+		label dr(0);
+		dr.set(ut, 3);
 
-	    gate_call_data gcd;
-	    strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
-	    gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
-	    gc.call(&gcd, 0);
+		gate_call_data gcd;
+		strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
+		gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
+		gc.call(&gcd, 0);
 
-	    void *va = 0;
-	    uint64_t len;
-	    error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
-	    scope_guard<int, void *> unmap(segment_unmap, va);
+		void *va = 0;
+		uint64_t len;
+		error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
+		scope_guard<int, void *> unmap(segment_unmap, va);
 
-	    tc.write((const char *) va, len);
-	    return;
+		tc.write((const char *) va, len);
+		return;
+	    }
 	}
 
 	snprintf(buf, sizeof(buf),

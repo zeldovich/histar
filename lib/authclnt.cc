@@ -65,6 +65,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	sys_container_alloc(start_env->shared_container,
 			    session_label.to_ulabel(),
 			    "login session container", 0, 65536));
+    scope_guard<int, cobj_ref>
+	session_drop(sys_obj_unref,
+		     COBJ(start_env->shared_container, session_ct));
 
     label user_auth_ds(3);
     user_auth_ds.set(session_grant, LB_LEVEL_STAR);
@@ -111,11 +114,16 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     memset(&gcd, 0, sizeof(gcd));
     memset(tls_base, 0, PGSIZE - sizeof(uint64_t));
 
+    char buf[KOBJ_META_LEN];
+    memset(&buf[0], 0, sizeof(buf));
+    error_check(sys_obj_set_meta(COBJ(0, thread_id()), 0, &buf[0]));
+
     // XXX how can information about the password leak here?
     // -- floating-point registers?
     //    need to find out if the thread has FP state, and if so,
     //    create a zeroed-out fxrstor buffer (512 bytes), set the
     //    two magic words, and fxrstor it.
+    // -- whether FP is enabled or not.
 
     error_check(uauth_err);
 
@@ -136,7 +144,89 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 void
 auth_chpass(const char *user, const char *pass, const char *npass)
 {
-    cprintf("auth_chpass not implemented yet\n");
+    gate_call_data gcd;
+    auth_dir_req      *dir_req      = (auth_dir_req *)      &gcd.param_buf[0];
+    auth_dir_reply    *dir_reply    = (auth_dir_reply *)    &gcd.param_buf[0];
+    auth_user_req     *user_req     = (auth_user_req *)     &gcd.param_buf[0];
+    auth_user_reply   *user_reply   = (auth_user_reply *)   &gcd.param_buf[0];
+    auth_uauth_req    *uauth_req    = (auth_uauth_req *)    &gcd.param_buf[0];
+    auth_uauth_reply  *uauth_reply  = (auth_uauth_reply *)  &gcd.param_buf[0];
+
+    int64_t dir_ct, dir_gt;
+    error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
+    error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+
+    strcpy(&dir_req->user[0], user);
+    dir_req->op = auth_dir_lookup;
+
+    if (auth_debug)
+	cprintf("auth_chpass: calling directory gate\n");
+
+    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, 0);
+    error_check(dir_reply->err);
+    cobj_ref user_gate = dir_reply->user_gate;
+
+    // Construct session container, etc.
+    int64_t pw_taint, session_grant;
+    error_check(pw_taint = handle_alloc());
+    scope_guard<void, uint64_t> drop1(thread_drop_star, pw_taint);
+
+    label cur_clear;
+    thread_cur_clearance(&cur_clear);
+    cur_clear.set(pw_taint, 3);
+    thread_set_clearance(&cur_clear);
+
+    error_check(session_grant = handle_alloc());
+    scope_guard<void, uint64_t> drop2(thread_drop_star, session_grant);
+
+    label session_label(1);
+    session_label.set(session_grant, 0);
+
+    int64_t session_ct;
+    error_check(session_ct =
+	sys_container_alloc(start_env->shared_container,
+			    session_label.to_ulabel(),
+			    "login session container", 0, 65536));
+    scope_guard<int, cobj_ref>
+	session_drop(sys_obj_unref,
+		     COBJ(start_env->shared_container, session_ct));
+
+    label user_auth_ds(3);
+    user_auth_ds.set(session_grant, LB_LEVEL_STAR);
+
+    label user_auth_dr(0);
+    user_auth_dr.set(pw_taint, 3);
+
+    user_req->pw_taint = pw_taint;
+    user_req->session_ct = session_ct;
+
+    if (auth_debug)
+	cprintf("auth_chpass: calling user gate\n");
+
+    gate_call(user_gate, 0, &user_auth_ds, &user_auth_dr).call(&gcd, 0);
+    error_check(user_reply->err);
+    cobj_ref uauth_gate = COBJ(session_ct, user_reply->uauth_gate);
+    uint64_t xh = user_reply->xh;
+
+    scope_guard<void, uint64_t> xdrop(thread_drop_star, xh);
+
+    // Call the user auth gate to check password
+    label uauth_ds(3);
+    uauth_ds.set(pw_taint, LB_LEVEL_STAR);
+
+    label cur_label;
+    thread_cur_label(&cur_label);
+
+    strcpy(&uauth_req->pass[0], pass);
+    strcpy(&uauth_req->npass[0], npass);
+    uauth_req->change_pw = 1;
+    uauth_req->session_ct = session_ct;
+
+    if (auth_debug)
+	cprintf("auth_chpass: calling authentication gate\n");
+
+    gate_call(uauth_gate, 0, &uauth_ds, 0).call(&gcd, &cur_label);
+    error_check(uauth_reply->err);
 }
 
 void
