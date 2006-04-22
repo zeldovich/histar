@@ -6,8 +6,9 @@
 
 class gatesrv_return {
 public:
-    gatesrv_return(struct cobj_ref rgate, uint64_t tct, void *stack)
-	: rgate_(rgate), thread_ct_(tct), stack_(stack) {}
+    gatesrv_return(struct cobj_ref rgate, uint64_t tct,
+		   void *stack, uint64_t flags)
+	: rgate_(rgate), thread_ct_(tct), stack_(stack), flags_(flags) {}
 
     // ret will delete the three labels passed to it
     void ret(label *contaminate_label,		// { * } for none
@@ -27,6 +28,7 @@ private:
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
     void *stack_;
+    uint64_t flags_;
 };
 
 typedef void (*gatesrv_entry_t)
@@ -34,7 +36,7 @@ typedef void (*gatesrv_entry_t)
 
 class gatesrv_descriptor {
 public:
-    gatesrv_descriptor() : as_(COBJ(0, 0)), tls_stack_(0) {};
+    gatesrv_descriptor() : as_(COBJ(0, 0)), flags_(0) {};
 
     uint64_t gate_container_;
     const char *name_;
@@ -46,8 +48,11 @@ public:
     gatesrv_entry_t func_;
     void *arg_;
 
-    uint64_t tls_stack_;
+    uint64_t flags_;
 };
+
+#define GATESRV_KEEP_TLS_STACK		0x01
+#define GATESRV_NO_THREAD_ADDREF	0x02
 
 struct cobj_ref gate_create(gatesrv_descriptor *dsc);
 struct cobj_ref gate_create(uint64_t gate_container, const char *name,

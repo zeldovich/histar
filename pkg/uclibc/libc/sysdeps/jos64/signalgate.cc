@@ -59,7 +59,7 @@ signal_gate_init(void)
 	gd.clearance_ = &tc;
 	gd.func_ = &signal_gate_entry;
 	gd.arg_ = 0;
-	gd.tls_stack_ = 1;
+	gd.flags_ = GATESRV_KEEP_TLS_STACK;
 	gs = gate_create(&gd);
     } catch (std::exception &e) {
 	cprintf("signal_gate_create: %s\n", e.what());
