@@ -14,7 +14,10 @@ STRING_MOBJ := \
          __xpg_basename.o strlcat.o strlcpy.o sys_errlist.o memmem.o
 
 W_MOBJ := \
-	wcsdup.o
+	wcscasecmp.o wcscat.o wcschrnul.o wcschr.o wcscmp.o wcscpy.o wcscspn.o \
+	wcsdup.o wcslen.o wcsncasecmp.o wcsncat.o wcsncmp.o wcsncpy.o \
+	wcsnlen.o wcspbrk.o wcsrchr.o wcsspn.o wcsstr.o wcstok.o wmemchr.o \
+	wmemcmp.o wmemcpy.o wmemmove.o wmempcpy.o wmemset.o wcpcpy.o wcpncpy.o
 
 STRING_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(STRING_MOBJ))
 W_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(W_MOBJ))
