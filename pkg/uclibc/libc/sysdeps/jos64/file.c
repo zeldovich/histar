@@ -298,3 +298,10 @@ chroot(const char *pathname)
     start_env->fs_root = dir;
     return 0;
 }
+
+int 
+mkfifo (const char *path, mode_t mode)
+{
+    set_enosys();
+    return -1;
+}
