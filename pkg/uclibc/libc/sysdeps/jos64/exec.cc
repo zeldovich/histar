@@ -19,6 +19,50 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
+static int
+script_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
+	    char *command, uint32_t n)
+{
+    uint64_t seglen = 0;
+    char *segbuf = 0;
+    int r = segment_map(seg, SEGMAP_READ, (void**)&segbuf, &seglen);
+    if (r < 0) {
+	cprintf("script_load: cannot map segment\n");
+	return r;
+    }
+    if (segbuf[0] != '#' || segbuf[1] !='!')
+	return -E_INVAL;
+    
+    // Read #! command
+    char *end = strchr(segbuf, '\n');
+    uint32_t s = end - segbuf - 1;
+    if (s > n) {
+	cprintf("script_load: script too long %d > %d\n", s, n);
+	return -E_INVAL;
+    }
+    strncpy(command, segbuf + 2, s - 1);
+    command[s - 1] = 0;
+    
+    r = segment_unmap(segbuf);
+    if (r < 0) {
+	cprintf("script_load: unable to unmap segment: %s\n", e2s(r));
+	return r;
+    }
+    
+    // Load ELF for #! command
+    fs_inode bin;
+    r = fs_namei(command, &bin);
+    if (r < 0) {
+	cprintf("script_load: unable to find %s\n", command);
+	return -E_INVAL;
+    }
+    r = elf_load(container, bin.obj, e, 0);
+    if (r < 0) 
+	return r;
+
+    return 0;
+}
+
 static void __attribute__((noreturn))
 do_execve(fs_inode bin, char *const *argv, char *const *envp)
 {
@@ -57,8 +101,16 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     // Load ELF binary into container
     thread_entry e;
     memset(&e, 0, sizeof(e));
-    error_check(elf_load(proc_ct, bin.obj, &e, 0));
-
+    char script = 0;
+    char script_com[16];
+    
+    int r = elf_load(proc_ct, bin.obj, &e, 0);
+    if (r < 0) {
+	error_check(script_load(proc_ct, bin.obj, &e, script_com, 
+				sizeof(script_com)));
+	script = 1;
+    }
+    
     // Move our file descriptors over to the new process
     for (uint32_t i = 0; i < MAXFD; i++) {
 	struct Fd *fd;
@@ -87,6 +139,18 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     int room = env_size - sizeof(start_env_t);
     int ac = 0;
     char *p = &new_env->args[0];
+
+    // Pass #! command as arg[0] if running a script
+    if (script) {
+	size_t len = strlen(script_com) + 1;
+        room -= len;
+        if (room < 0)
+            throw error(-E_NO_SPACE, "args overflow env");
+    	memcpy(p, script_com, len);
+    	p += len;
+        ac++;
+    }
+
     for (int i = 0; argv[i]; i++) {
     	size_t len = strlen(argv[i]) + 1;
         room -= len;
