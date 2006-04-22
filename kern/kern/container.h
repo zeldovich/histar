@@ -21,10 +21,6 @@ struct container_page {
 struct Container {
     struct kobject_hdr ct_ko;
 
-    // Number of bytes that this container and its sub-objects are taking up.
-    // Must be <= ko_quota_total, unless ko_quota_total == CT_QUOTA_INF.
-    uint64_t ct_quota_used;
-
     // Cannot store certain types of objects
     uint64_t ct_avoid_types;
 

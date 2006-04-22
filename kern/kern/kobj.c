@@ -340,7 +340,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 
     if (resource_ct &&
 	resource_ct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-	resource_ct->ct_ko.ko_quota_total - resource_ct->ct_quota_used +
+	resource_ct->ct_ko.ko_quota_total - resource_ct->ct_ko.ko_quota_used +
 	curnpg * PGSIZE < npages * PGSIZE)
 	return -E_RESOURCE;
 
@@ -371,7 +371,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     if (kp->ko_type != kobj_container)
 	kp->ko_quota_total += quota_diff;
     if (resource_ct)
-	kobject_dirty(&resource_ct->ct_ko)->ct.ct_quota_used += quota_diff;
+	kobject_dirty(&resource_ct->ct_ko)->hdr.ko_quota_used += quota_diff;
     return 0;
 }
 

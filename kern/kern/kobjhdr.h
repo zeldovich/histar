@@ -27,16 +27,16 @@ struct kobject_hdr {
     kobject_id_t ko_id;
     kobject_type_t ko_type;
 
-    uint64_t ko_ref;	// persistent references (containers)
+    uint64_t ko_ref;	// persistent references (via containers or TLS)
 
     // Bytes reserved for this object.  Counts towards the parent container's
-    // ct_quota_used, and represents the space that is taken up (or could be
+    // ko_quota_used, and represents the space that is taken up (or could be
     // taken up, without information flow) by this object.
-    //
-    // For container objects, the space represented by ko_quota_total is
-    // used to provide space for objects in the container (by incrementing
-    // the container's ct_quota_used).
     uint64_t ko_quota_total;
+
+    // Number of bytes that this object is actually taking up.
+    // Must be <= ko_quota_total, unless ko_quota_total == CT_QUOTA_INF.
+    uint64_t ko_quota_used;
 
     // Container that holds this object; only meaningful if KOBJ_MULTIHOMED
     // is not set.  Used to adjust container's quota when object changes

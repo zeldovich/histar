@@ -335,7 +335,7 @@ sys_container_get_avail_quota(uint64_t container)
     check(container_find(&c, container, iflow_read));
     if (c->ct_ko.ko_quota_total == CT_QUOTA_INF)
 	return CT_QUOTA_INF;
-    return c->ct_ko.ko_quota_total - c->ct_quota_used;
+    return c->ct_ko.ko_quota_total - c->ct_ko.ko_quota_used;
 }
 
 static void
@@ -358,7 +358,7 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 
     if (nbytes > 0) {
 	if (parent->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-	    parent->ct_ko.ko_quota_total - parent->ct_quota_used < abs_nbytes)
+	    parent->ct_ko.ko_quota_total - parent->ct_ko.ko_quota_used < abs_nbytes)
 	    syscall_error(-E_RESOURCE);
 
 	if (child->ct_ko.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
@@ -372,11 +372,11 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 	}
 
 	new_child_total = child->ct_ko.ko_quota_total - abs_nbytes;
-	if (new_child_total < child->ct_quota_used)
+	if (new_child_total < child->ct_ko.ko_quota_used)
 	    syscall_error(-E_RESOURCE);
     }
 
-    kobject_dirty(&parent->ct_ko)->ct.ct_quota_used += nbytes;
+    kobject_dirty(&parent->ct_ko)->hdr.ko_quota_used += nbytes;
     kobject_dirty(&child->ct_ko)->hdr.ko_quota_total = new_child_total;
 }
 
