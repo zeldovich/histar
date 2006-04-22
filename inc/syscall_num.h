@@ -14,13 +14,13 @@
     SYSCALL_ENTRY(container_get_nslots)		\
     SYSCALL_ENTRY(container_get_parent)		\
     SYSCALL_ENTRY(container_get_slot_id)	\
-    SYSCALL_ENTRY(container_get_avail_quota)	\
     SYSCALL_ENTRY(container_move_quota)		\
     SYSCALL_ENTRY(obj_unref)			\
     SYSCALL_ENTRY(obj_get_type)			\
     SYSCALL_ENTRY(obj_get_label)		\
     SYSCALL_ENTRY(obj_get_name)			\
-    SYSCALL_ENTRY(obj_get_reserve)		\
+    SYSCALL_ENTRY(obj_get_quota_total)		\
+    SYSCALL_ENTRY(obj_get_quota_avail)		\
     SYSCALL_ENTRY(obj_get_meta)			\
     SYSCALL_ENTRY(obj_set_meta)			\
     SYSCALL_ENTRY(handle_create)		\

@@ -282,11 +282,21 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
 }
 
 static int64_t
-sys_obj_get_reserve(struct cobj_ref o)
+sys_obj_get_quota_total(struct cobj_ref o)
 {
     const struct kobject *ko;
     check(cobj_get(o, kobj_any, &ko, iflow_none));
     return ko->hdr.ko_quota_total;
+}
+
+static int64_t
+sys_obj_get_quota_avail(struct cobj_ref o)
+{
+    const struct kobject *ko;
+    check(cobj_get(o, kobj_any, &ko, iflow_read));
+    if (ko->hdr.ko_quota_total == CT_QUOTA_INF)
+	return CT_QUOTA_INF;
+    return ko->hdr.ko_quota_total - ko->hdr.ko_quota_used;
 }
 
 static void
@@ -326,16 +336,6 @@ sys_container_get_parent(uint64_t container)
     const struct Container *c;
     check(container_find(&c, container, iflow_read));
     return c->ct_ko.ko_parent;
-}
-
-static int64_t
-sys_container_get_avail_quota(uint64_t container)
-{
-    const struct Container *c;
-    check(container_find(&c, container, iflow_read));
-    if (c->ct_ko.ko_quota_total == CT_QUOTA_INF)
-	return CT_QUOTA_INF;
-    return c->ct_ko.ko_quota_total - c->ct_ko.ko_quota_used;
 }
 
 static void
@@ -825,13 +825,13 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(net_create),
     SYSCALL_DISPATCH(net_wait),
     SYSCALL_DISPATCH(handle_create),
-    SYSCALL_DISPATCH(obj_get_reserve),
+    SYSCALL_DISPATCH(obj_get_quota_total),
+    SYSCALL_DISPATCH(obj_get_quota_avail),
     SYSCALL_DISPATCH(obj_get_type),
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
     SYSCALL_DISPATCH(container_get_nslots),
     SYSCALL_DISPATCH(container_get_parent),
-    SYSCALL_DISPATCH(container_get_avail_quota),
     SYSCALL_DISPATCH(thread_create),
     SYSCALL_DISPATCH(self_id),
     SYSCALL_DISPATCH(clock_msec),
