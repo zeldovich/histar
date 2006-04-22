@@ -134,6 +134,14 @@ struct netd_op_args {
     };
 };
 
+struct netd_ipc_segment {
+    uint64_t sync;
+    struct netd_op_args args;
+};
+
+#define NETD_IPC_SYNC_REQUEST	0x01
+#define NETD_IPC_SYNC_REPLY	0x02
+
 typedef enum {
     netd_if_jif,
     netd_if_tun,
