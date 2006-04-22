@@ -73,7 +73,8 @@ more aggressive labeling:
  - taint_ct in gate_call/gate_return should be labeled with gate-call handle.
 
 should be more careful in dealing with segments passed in via gates; namely,
-need to avoid page faults.  can arise for two reasons: first, we map the segment
+need to avoid page faults, and ensure that we access them only with caller's
+privileges (verify label).  can arise for two reasons: first, we map the segment
 into our AS but don't have the privilege to read or write to it.  this can be
 fixed by segment_map() checking the label.  second, the other side can drop the
 segment and the service (other side of gate) will fault because the segment is
