@@ -139,8 +139,8 @@ struct netd_ipc_segment {
     struct netd_op_args args;
 };
 
+#define NETD_IPC_SYNC_REPLY	0x00
 #define NETD_IPC_SYNC_REQUEST	0x01
-#define NETD_IPC_SYNC_REPLY	0x02
 
 typedef enum {
     netd_if_jif,

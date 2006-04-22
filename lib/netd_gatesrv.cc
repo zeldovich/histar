@@ -7,14 +7,18 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/gateparam.h>
 #include <inc/declassify.h>
+
+#include <stdlib.h>
 }
 
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
+#include <inc/scopeguard.hh>
 
 static int netd_server_enabled;
 static struct cobj_ref declassify_gate;
+static struct cobj_ref netd_asref;
 
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
@@ -22,7 +26,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     while (!netd_server_enabled)
 	sys_self_yield();
 
-    uint64_t netd_ct = (uint64_t) x;
+    uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref arg = gcd->param_obj;
 
     int64_t arg_copy_id = sys_segment_copy(arg, netd_ct, 0,
@@ -53,6 +57,87 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     rg->ret(0, 0, 0);
 }
 
+static void __attribute__((noreturn))
+netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
+{
+    uint64_t netd_ct = start_env->proc_container;
+    struct cobj_ref temp_as;
+    struct netd_ipc_segment *ipc = 0;
+    uint64_t map_bytes = 0;
+
+    while (!netd_server_enabled)
+	sys_self_yield();
+
+    // Scope to force object destructors
+    {
+	error_check(sys_self_addref(netd_ct));
+	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
+
+	// Create private container backed by user resources + AS clone
+	{
+	    label private_label;
+	    thread_cur_label(&private_label);
+	    private_label.transform(label::star_to, private_label.get_default());
+	    private_label.set(start_env->process_grant, 0);
+	    private_label.set(start_env->process_taint, 3);
+
+	    int64_t private_ct;
+	    error_check(private_ct =
+		sys_container_alloc(gcd->taint_container,
+				    private_label.to_ulabel(),
+				    "netd_fast private",
+				    0, CT_QUOTA_INF));
+
+	    struct u_address_space uas;
+	    uas.size = 64;
+	    uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
+	    if (!uas.ents)
+		throw error(-E_NO_MEM, "netd_fast_gate_entry: out of memory");
+
+	    int64_t asid;
+	    error_check(asid = sys_as_create(private_ct, 0, "netd_fast temp AS"));
+	    temp_as = COBJ(private_ct, asid);
+	    error_check(sys_as_get(netd_asref, &uas));
+	    error_check(sys_as_set(temp_as, &uas));
+	}
+
+	error_check(sys_self_set_as(temp_as));
+	segment_as_switched();
+
+	error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+				(void **) &ipc, &map_bytes));
+	if (map_bytes != sizeof(*ipc))
+	    throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
+				  map_bytes, sizeof(*ipc));
+    }
+
+    for (;;) {
+	while (ipc->sync == NETD_IPC_SYNC_REPLY)
+	    sys_sync_wait(&ipc->sync, NETD_IPC_SYNC_REPLY, ~0UL);
+
+	error_check(sys_self_addref(netd_ct));
+	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
+
+	error_check(sys_self_set_as(netd_asref));
+	segment_as_switched();
+
+	// Map shared memory segment & execute operation
+	{
+	    struct netd_ipc_segment *ipc2 = 0;
+	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+				    (void **) &ipc2, &map_bytes));
+	    scope_guard<int, void *> unmap(segment_unmap, ipc2);
+
+	    netd_dispatch(&ipc2->args);
+	    ipc2->sync = NETD_IPC_SYNC_REPLY;
+	    error_check(sys_sync_wakeup(&ipc2->sync));
+	}
+
+	error_check(sys_self_set_as(temp_as));
+	segment_as_switched();
+    }
+}
+
 void
 netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
@@ -62,15 +147,27 @@ netd_server_init(uint64_t gate_ct,
     thread_cur_label(&cur_l);
     thread_cur_clearance(&cur_c);
 
+    error_check(sys_self_get_as(&netd_asref));
+
     declassify_gate =
 	gate_create(start_env->shared_container, "declassifier",
 		    &cur_l, &cur_c,
 		    &declassifier, (void *) taint_handle);
 
     try {
-	uint64_t entry_ct = start_env->proc_container;
-	gate_create(gate_ct, "netd", l, clear,
-		    &netd_gate_entry, (void *) entry_ct);
+	gatesrv_descriptor gd;
+	gd.gate_container_ = gate_ct;
+	gd.label_ = l;
+	gd.clearance_ = clear;
+	gd.arg_ = 0;
+
+	gd.name_ = "netd";
+	gd.func_ = &netd_gate_entry;
+	gate_create(&gd);
+
+	gd.name_ = "netd-fast";
+	gd.func_ = &netd_fast_gate_entry;
+	gate_create(&gd);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());
 	throw;
