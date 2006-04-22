@@ -225,7 +225,8 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_type = type;
     kh->ko_id = handle_alloc();
     kh->ko_flags = KOBJ_DIRTY;
-    kh->ko_quota_total = KOBJ_DISK_SIZE;
+    kh->ko_quota_used = KOBJ_DISK_SIZE;
+    kh->ko_quota_total = kh->ko_quota_used;
     pagetree_init(&ko->ko_pt);
     kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
 
@@ -329,20 +330,31 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     if (npages > pagetree_maxpages())
 	return -E_RANGE;
 
-    const struct Container *resource_ct = 0;
-    if (kp->ko_type == kobj_container) {
-	resource_ct = &kobject_h2k(kp)->ct;
-    } else if (kp->ko_parent) {
-	r = container_find(&resource_ct, kp->ko_parent, iflow_rw);
-	if (r < 0)
-	    return r;
-    }
+    int64_t quota_diff = (npages - curnpg) * PGSIZE;
+    uint64_t abs_qdiff = (quota_diff > 0) ? quota_diff : -quota_diff;
+    if (quota_diff > 0 &&
+	kp->ko_quota_total != CT_QUOTA_INF &&
+	kp->ko_quota_total - kp->ko_quota_used < abs_qdiff)
+    {
+	// Try to borrow quota from parent container..
+	if (kp->ko_parent) {
+	    const struct Container *pct;
+	    r = container_find(&pct, kp->ko_parent, iflow_rw);
+	    if (r < 0)
+		return r;
 
-    if (resource_ct &&
-	resource_ct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-	resource_ct->ct_ko.ko_quota_total - resource_ct->ct_ko.ko_quota_used +
-	curnpg * PGSIZE < npages * PGSIZE)
-	return -E_RESOURCE;
+	    if (pct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
+		pct->ct_ko.ko_quota_total - pct->ct_ko.ko_quota_used < abs_qdiff)
+		return -E_RESOURCE;
+
+	    kobject_dirty(&pct->ct_ko)->hdr.ko_quota_used += quota_diff;
+	}
+
+	// If we have no parent, just increase our total quota -- when this
+	// object is put into a container, ko_quota_total will add to the
+	// container's ko_quota_used.
+	kp->ko_quota_total += quota_diff;
+    }
 
     for (uint64_t i = npages; i < curnpg; i++) {
 	r = pagetree_put_page(&ko->ko_pt, i, 0);
@@ -366,12 +378,8 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	memset(p, 0, PGSIZE);
     }
 
-    int64_t quota_diff = (npages - curnpg) * PGSIZE;
     kp->ko_nbytes = nbytes;
-    if (kp->ko_type != kobj_container)
-	kp->ko_quota_total += quota_diff;
-    if (resource_ct)
-	kobject_dirty(&resource_ct->ct_ko)->hdr.ko_quota_used += quota_diff;
+    kp->ko_quota_used += quota_diff;
     return 0;
 }
 

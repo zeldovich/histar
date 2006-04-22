@@ -13,7 +13,6 @@ container_alloc(const struct Label *l, struct Container **cp)
 	return r;
 
     struct Container *c = &ko->ct;
-    c->ct_ko.ko_quota_used = c->ct_ko.ko_quota_total;
     *cp = c;
     return 0;
 }

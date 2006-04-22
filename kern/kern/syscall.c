@@ -346,13 +346,11 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
     if (nbytes == 0)
 	return;
 
-    const struct Container *parent, *child;
-    check(container_find(&parent, parent_id, nbytes > 0 ? iflow_rw : iflow_write));
-    check(container_find(&child,  child_id,  nbytes < 0 ? iflow_rw : iflow_write));
-
-    // Ensure that there is a parent-child relationship..
-    if (child->ct_ko.ko_parent != parent_id)
-	syscall_error(-E_INVAL);
+    const struct Container *parent;
+    const struct kobject *child;
+    check(container_find(&parent, parent_id, iflow_rw));
+    check(cobj_get(COBJ(parent_id, child_id), kobj_any, &child,
+		   nbytes < 0 ? iflow_rw : iflow_write));
 
     uint64_t new_child_total;
 
@@ -361,23 +359,23 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 	    parent->ct_ko.ko_quota_total - parent->ct_ko.ko_quota_used < abs_nbytes)
 	    syscall_error(-E_RESOURCE);
 
-	if (child->ct_ko.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
+	if (child->hdr.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
 	    new_child_total = CT_QUOTA_INF;
 	else
-	    new_child_total = MIN(child->ct_ko.ko_quota_total + abs_nbytes, CT_QUOTA_INF - 1);
+	    new_child_total = MIN(child->hdr.ko_quota_total + abs_nbytes, CT_QUOTA_INF - 1);
     } else {
-	if (child->ct_ko.ko_quota_total == CT_QUOTA_INF) {
-	    cprintf("move_quota: cannot revoke child container infinity\n");
+	if (child->hdr.ko_quota_total == CT_QUOTA_INF) {
+	    cprintf("move_quota: cannot revoke child infinity\n");
 	    syscall_error(-E_RESOURCE);
 	}
 
-	new_child_total = child->ct_ko.ko_quota_total - abs_nbytes;
-	if (new_child_total < child->ct_ko.ko_quota_used)
+	new_child_total = child->hdr.ko_quota_total - abs_nbytes;
+	if (new_child_total < child->hdr.ko_quota_used)
 	    syscall_error(-E_RESOURCE);
     }
 
     kobject_dirty(&parent->ct_ko)->hdr.ko_quota_used += nbytes;
-    kobject_dirty(&child->ct_ko)->hdr.ko_quota_total = new_child_total;
+    kobject_dirty(&child->hdr)->hdr.ko_quota_total = new_child_total;
 }
 
 static int64_t
