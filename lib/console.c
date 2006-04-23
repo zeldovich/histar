@@ -36,7 +36,7 @@ opencons(void)
     r = fd_make_public(fd2num(fd));
     if (r < 0) {
 	cprintf("opencons: cannot make public: %s\n", e2s(r));
-	fd_close(fd);
+	jos_fd_close(fd);
 	return r;
     }
 

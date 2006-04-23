@@ -109,7 +109,7 @@ struct Fd
 char*	fd2data(struct Fd *fd);
 int	fd2num(struct Fd *fd);
 int	fd_alloc(struct Fd **fd_store, const char *name);
-int	fd_close(struct Fd *fd);
+int	jos_fd_close(struct Fd *fd);
 int	fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flagsp);
 int	fd_setflags(struct Fd *fd, struct cobj_ref obj, uint64_t newflags);
 void	fd_give_up_privilege(int fdnum);

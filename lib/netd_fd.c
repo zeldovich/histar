@@ -56,7 +56,7 @@ socket(int domain, int type, int protocol)
     int sock = netd_call(netd_gate, &a);
 
     if (sock < 0) {
-	fd_close(fd);
+	jos_fd_close(fd);
 	return sock;
     }
 
@@ -134,7 +134,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     int sock = netd_call(fd->fd_sock.netd_gate, &a);
 
     if (sock < 0) {
-	fd_close(nfd);
+	jos_fd_close(nfd);
 	return sock;
     }
 

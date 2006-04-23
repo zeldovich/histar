@@ -331,7 +331,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 // and unmapping the file descriptor page.
 // Returns 0 on success, < 0 on error.
 int
-fd_close(struct Fd *fd)
+jos_fd_close(struct Fd *fd)
 {
     fd_handles_init();
 
@@ -448,7 +448,7 @@ close(int fdnum) __THROW
 	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 		return r;
 	else
-		return fd_close(fd);
+		return jos_fd_close(fd);
 }
 
 void

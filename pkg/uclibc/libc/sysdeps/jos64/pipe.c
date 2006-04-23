@@ -32,7 +32,7 @@ pipe(int fds[2])
     int fdnum = fd2num(fd);
     int ofd = dup(fdnum);
     if (ofd < 0) {
-	fd_close(fd);
+	jos_fd_close(fd);
 	return -1;
     }
 

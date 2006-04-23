@@ -64,7 +64,7 @@ bipipe(int fv[2])
     struct Fd *fdb;
     r = fd_alloc(&fdb, "bipipe");
     if (r < 0) {
-        fd_close(fda);
+        jos_fd_close(fda);
         errno = ENOMEM;
         return -1;
     }
