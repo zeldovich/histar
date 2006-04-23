@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/gateparam.h>
 #include <inc/declassify.h>
+#include <inc/setjmp.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -125,7 +126,7 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	// Map shared memory segment & execute operation
 	{
 	    struct netd_ipc_segment *ipc_shared = 0;
-	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
 				    (void **) &ipc_shared, &map_bytes));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
 
@@ -136,23 +137,27 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	    scope_guard<int, void *> unmap2(segment_unmap, ipc_copy);
 	    scope_guard<int, cobj_ref> drop(sys_obj_unref, copy_seg);
 
-again:
-	    memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
-	    netd_dispatch(&ipc_copy->args);
-	    memcpy(&ipc_shared->args, &ipc_copy->args, ipc_copy->args.size);
+	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
+		struct jos_jmp_buf pgfault;
+		if (jos_setjmp(&pgfault) != 0)
+		    break;
+		*tls_pgfault = &pgfault;
 
-	    ipc_shared->sync = NETD_IPC_SYNC_REPLY;
-	    error_check(sys_sync_wakeup(&ipc_shared->sync));
+		memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
+		netd_dispatch(&ipc_copy->args);
+		memcpy(&ipc_shared->args, &ipc_copy->args, ipc_copy->args.size);
 
-	    int64_t msec_keepalive = sys_clock_msec() + 1000;
-	    while (ipc_shared->sync == NETD_IPC_SYNC_REPLY &&
-		   sys_clock_msec() < msec_keepalive)
-		sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, msec_keepalive);
+		ipc_shared->sync = NETD_IPC_SYNC_REPLY;
+		error_check(sys_sync_wakeup(&ipc_shared->sync));
 
-	    if (ipc_shared->sync == NETD_IPC_SYNC_REQUEST)
-		goto again;
+		int64_t msec_keepalive = sys_clock_msec() + 1000;
+		while (ipc_shared->sync == NETD_IPC_SYNC_REPLY &&
+		       sys_clock_msec() < msec_keepalive)
+		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, msec_keepalive);
+	    }
 	}
 
+	unref.force();
 	error_check(sys_self_set_as(temp_as));
 	segment_as_switched();
     }

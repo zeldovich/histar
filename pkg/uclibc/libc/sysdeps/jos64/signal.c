@@ -70,13 +70,7 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	    break;
 
 	case SIGSEGV: case SIGBUS:  case SIGILL:
-	    cprintf("%s: fatal signal %d, addr=%p\n",
-		    __progname, si->si_signo, si->si_addr);
-	    if (sc)
-		cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
-			__progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
-	    segfault_helper(si->si_addr);
-
+	    segfault_helper(si, sc);
 	    sig_fatal();
 	    break;
 

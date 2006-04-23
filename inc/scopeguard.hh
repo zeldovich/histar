@@ -17,9 +17,11 @@ class scope_guard {
 public:
     scope_guard(R (*cb)(T), T p) : cb_(cb), p_(p), active_(true) {}
     void dismiss() { active_ = false; }
+    ~scope_guard() { force(); }
 
-    ~scope_guard() {
+    void force() {
 	if (active_) {
+	    dismiss();
 	    try {
 		cb_(p_);
 	    } catch (std::exception &e) {
@@ -39,9 +41,11 @@ class scope_guard2 {
 public:
     scope_guard2(R (*cb)(T1, T2), T1 p1, T2 p2) : cb_(cb), p1_(p1), p2_(p2), active_(true) {}
     void dismiss() { active_ = false; }
+    ~scope_guard2() { force(); }
 
-    ~scope_guard2() {
+    void force() {
 	if (active_) {
+	    dismiss();
 	    try {
 		cb_(p1_, p2_);
 	    } catch (std::exception &e) {

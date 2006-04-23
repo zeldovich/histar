@@ -17,6 +17,7 @@ uint64_t start_arg1;
 start_env_t *start_env;
 
 uint64_t *tls_tidp;
+struct jos_jmp_buf **tls_pgfault;
 void *tls_gate_args;
 void *tls_stack_top;
 void *tls_base;
@@ -55,7 +56,8 @@ setup_env(uint64_t envaddr)
 
     tls_base = tls_va;
     tls_tidp = tls_base + PGSIZE - sizeof(uint64_t);
-    tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(struct gate_call_data);
+    tls_pgfault = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault);
+    tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(struct gate_call_data);
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
 
