@@ -115,6 +115,7 @@ struct linger {
 #define INADDR_BROADCAST 0xffffffff
 
 /* Flags we can use with send and recv. */
+#define MSG_PEEK	0x02
 #define MSG_DONTWAIT    0x40            /* Nonblocking i/o for this operation only */
 
 

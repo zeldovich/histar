@@ -69,7 +69,7 @@ netd_dispatch(struct netd_op_args *a)
 	{
 	    a->rval = 0;
 
-	    while (a->rval < (ssize_t) a->recv.count) {
+	    while (!a->recv.flags && a->rval < (ssize_t) a->recv.count) {
 		ssize_t cc = lwip_recv(a->recv.fd, &a->recv.buf[a->rval],
 				       a->recv.count - a->rval,
 				       MSG_DONTWAIT | a->recv.flags);

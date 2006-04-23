@@ -345,7 +345,7 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
 {
   struct lwip_socket *sock;
   struct netbuf *buf;
-  u16_t buflen, copylen;
+  u16_t buflen, copylen, acklen;
   struct ip_addr *addr;
   u16_t port;
 
@@ -392,6 +392,12 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
     copylen = len;
   }
 
+  if ((flags & MSG_PEEK)) {
+    acklen = 0;
+  } else {
+    acklen = copylen;
+  }
+
   /* copy the contents of the received buffer into
      the supplied memory pointer mem */
   netbuf_copy_partial(buf, mem, copylen, sock->lastoffset);
@@ -432,9 +438,9 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
   /* If this is a TCP socket, check if there is data left in the
      buffer. If so, it should be saved in the sock structure for next
      time around. */
-  if (netconn_type(sock->conn) == NETCONN_TCP && buflen - copylen > 0) {
+  if (netconn_type(sock->conn) == NETCONN_TCP && buflen - acklen > 0) {
     sock->lastdata = buf;
-    sock->lastoffset += copylen;
+    sock->lastoffset += acklen;
   } else {
     sock->lastdata = NULL;
     sock->lastoffset = 0;
