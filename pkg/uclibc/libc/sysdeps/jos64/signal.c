@@ -164,7 +164,7 @@ signal_utrap(struct UTrapframe *utf)
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
 	} else if (utf->utf_trap_num == T_DEVICE) {
-	    int r = sys_self_enable_fp();
+	    int r = sys_self_fp_enable();
 	    if (r >= 0) {
 		//cprintf("signal_utrap: enabled floating-point\n");
 		return;
