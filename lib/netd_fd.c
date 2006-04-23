@@ -7,6 +7,7 @@
 #include <inc/bipipe.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stddef.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 
@@ -49,6 +50,8 @@ socket(int domain, int type, int protocol)
 	return r;
 
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, socket) + sizeof(a.socket);
+
     a.op_type = netd_op_socket;
     a.socket.domain = domain;
     a.socket.type = type;
@@ -78,6 +81,8 @@ static int
 sock_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, bind) + sizeof(a.bind);
+
     struct sockaddr_in sin;
     if (addrlen < sizeof(sin))
 	   return -E_INVAL;
@@ -94,6 +99,8 @@ static int
 sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, connect) + sizeof(a.connect);
+
     struct sockaddr_in sin;
     if (addrlen < sizeof(sin))
 	   return -E_INVAL;
@@ -110,6 +117,8 @@ static int
 sock_listen(struct Fd *fd, int backlog)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, listen) + sizeof(a.listen);
+
     a.op_type = netd_op_listen;
     a.listen.fd = fd->fd_sock.s;
     a.listen.backlog = backlog;
@@ -120,6 +129,8 @@ static int
 sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, accept) + sizeof(a.accept);
+
     struct sockaddr_in sin;
     if (*addrlen < sizeof(sin))
 	   return -E_INVAL;
@@ -156,6 +167,9 @@ sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
 	count = netd_buf_size;
 
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, send) +
+	     offsetof(struct netd_op_send_args, buf) + count;
+
     a.op_type = netd_op_send;
     a.send.fd = fd->fd_sock.s;
     a.send.count = count;
@@ -171,6 +185,9 @@ sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
 	count = netd_buf_size;
 
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, recv) +
+	     offsetof(struct netd_op_recv_args, buf);
+
     a.op_type = netd_op_recv;
     a.recv.fd = fd->fd_sock.s;
     a.recv.count = count;
@@ -197,6 +214,8 @@ static int
 sock_close(struct Fd *fd)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, close) + sizeof(a.close);
+
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
     return netd_call(fd->fd_sock.netd_gate, &a);
@@ -206,6 +225,8 @@ static int
 sock_shutdown(struct Fd *fd, int how)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, shutdown) + sizeof(a.shutdown);
+
     a.op_type = netd_op_shutdown;
     a.shutdown.fd = fd->fd_sock.s;
     a.shutdown.how = how;
@@ -217,6 +238,8 @@ sock_getsockname(struct Fd *fd, struct sockaddr *addr,
                  socklen_t *addrlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, getsockname) + sizeof(a.getsockname);
+
     struct sockaddr_in sin;
 
     if (*addrlen < sizeof(sin))
@@ -235,6 +258,7 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
                  socklen_t *addrlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, getpeername) + sizeof(a.getpeername);
     struct sockaddr_in sin;
 
     if (*addrlen < sizeof(sin))
@@ -253,6 +277,7 @@ sock_setsockopt(struct Fd *fd, int level, int optname,
                 const void *optval, socklen_t optlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, setsockopt) + sizeof(a.setsockopt);
 
     if (optlen > sizeof(a.setsockopt.optval))
 	return -E_INVAL;
@@ -277,6 +302,7 @@ sock_getsockopt(struct Fd *fd, int level, int optname,
                 void *optval, socklen_t *optlen)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, getsockopt) + sizeof(a.getsockopt);
 
     a.op_type = netd_op_getsockopt;
     a.getsockopt.level = level;
@@ -302,6 +328,8 @@ static int
 sock_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, select) + sizeof(a.select);
+
     a.op_type = netd_op_select ;
     a.select.fd = fd->fd_sock.s ;
     a.select.write = probe == dev_probe_write ? 1 : 0 ;

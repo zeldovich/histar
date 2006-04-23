@@ -117,13 +117,13 @@ netd_fast_call(struct netd_op_args *a)
 	sys_sync_wait(&fast_ipc_inited, 1, ~0UL);
 
     scoped_pthread_lock l(&fast_ipc_mu);
-    memcpy(&fast_ipc->args, a, sizeof(*a));
+    memcpy(&fast_ipc->args, a, a->size);
     fast_ipc->sync = NETD_IPC_SYNC_REQUEST;
     sys_sync_wakeup(&fast_ipc->sync);
 
     while (fast_ipc->sync != NETD_IPC_SYNC_REPLY)
 	sys_sync_wait(&fast_ipc->sync, NETD_IPC_SYNC_REQUEST, ~0UL);
-    memcpy(a, &fast_ipc->args, sizeof(*a));
+    memcpy(a, &fast_ipc->args, fast_ipc->args.size);
 }
 
 int

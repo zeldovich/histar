@@ -10,6 +10,8 @@
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
 
+#include <stddef.h>
+
 static void
 netd_to_lwip(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
 {
@@ -83,6 +85,10 @@ netd_dispatch(struct netd_op_args *a)
 		a->rval = lwip_recv(a->recv.fd, &a->recv.buf[0],
 				    a->recv.count, a->recv.flags);
 	    }
+
+	    if (a->rval > 0)
+		a->size = offsetof(struct netd_op_args, recv) +
+			  offsetof(struct netd_op_recv_args, buf) + a->rval;
 	}
 	break;
 
@@ -90,6 +96,8 @@ netd_dispatch(struct netd_op_args *a)
 	a->rval = lwip_send(a->send.fd,
 			    &a->send.buf[0],
 			    a->send.count, a->send.flags);
+	a->size = offsetof(struct netd_op_args, recv) +
+		  offsetof(struct netd_op_send_args, buf);
 	break;
 
     case netd_op_close:

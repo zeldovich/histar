@@ -124,36 +124,32 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	// Map shared memory segment & execute operation
 	{
-again:
-	    int64_t copy_id;
-	    error_check(copy_id = sys_segment_copy(gcd->param_obj,
-						   start_env->proc_container,
-						   0, "fast ipc seg copy"));
-	    cobj_ref copy_seg = COBJ(start_env->proc_container, copy_id);
+	    struct netd_ipc_segment *ipc_shared = 0;
+	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+				    (void **) &ipc_shared, &map_bytes));
+	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
+
+	    cobj_ref copy_seg;
+	    struct netd_ipc_segment *ipc_copy = 0;
+	    error_check(segment_alloc(start_env->proc_container, sizeof(*ipc_copy),
+				      &copy_seg, (void **) &ipc_copy, 0, "ipc copy"));
+	    scope_guard<int, void *> unmap2(segment_unmap, ipc_copy);
 	    scope_guard<int, cobj_ref> drop(sys_obj_unref, copy_seg);
 
-	    struct netd_ipc_segment *ipc2 = 0;
-	    error_check(segment_map(copy_seg, SEGMAP_READ | SEGMAP_WRITE,
-				    (void **) &ipc2, &map_bytes));
-	    scope_guard<int, void *> unmap(segment_unmap, ipc2);
+again:
+	    memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
+	    netd_dispatch(&ipc_copy->args);
+	    memcpy(&ipc_shared->args, &ipc_copy->args, ipc_copy->args.size);
 
-	    netd_dispatch(&ipc2->args);
-
-	    struct netd_ipc_segment *ipc_copyback = 0;
-	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
-				    (void **) &ipc_copyback, &map_bytes));
-	    scope_guard<int, void *> unmap2(segment_unmap, ipc_copyback);
-
-	    memcpy(&ipc_copyback->args, &ipc2->args, sizeof(ipc_copyback->args));
-	    ipc_copyback->sync = NETD_IPC_SYNC_REPLY;
-	    error_check(sys_sync_wakeup(&ipc_copyback->sync));
+	    ipc_shared->sync = NETD_IPC_SYNC_REPLY;
+	    error_check(sys_sync_wakeup(&ipc_shared->sync));
 
 	    int64_t msec_keepalive = sys_clock_msec() + 1000;
-	    while (ipc_copyback->sync == NETD_IPC_SYNC_REPLY &&
+	    while (ipc_shared->sync == NETD_IPC_SYNC_REPLY &&
 		   sys_clock_msec() < msec_keepalive)
-		sys_sync_wait(&ipc_copyback->sync, NETD_IPC_SYNC_REPLY, msec_keepalive);
+		sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, msec_keepalive);
 
-	    if (ipc_copyback->sync == NETD_IPC_SYNC_REQUEST)
+	    if (ipc_shared->sync == NETD_IPC_SYNC_REQUEST)
 		goto again;
 	}
 
