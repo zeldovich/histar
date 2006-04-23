@@ -402,6 +402,7 @@ kobject_copy_pages(const struct kobject_hdr *srch,
     pagetree_copy(&src->ko_pt, &dst->ko_pt);
     dsth->ko_nbytes = srch->ko_nbytes;
     dsth->ko_quota_total += ROUNDUP(srch->ko_nbytes, PGSIZE);
+    dsth->ko_quota_used += ROUNDUP(srch->ko_nbytes, PGSIZE);
     return 0;
 }
 
