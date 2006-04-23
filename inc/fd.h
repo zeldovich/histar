@@ -6,6 +6,7 @@
 #include <inc/types.h>
 #include <inc/fs.h>
 #include <inc/pthread.h>
+#include <inc/label.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -117,7 +118,7 @@ int	fd_set_isatty(int fdnum, int isit);
 int	dev_lookup(int devid, struct Dev **dev_store);
 
 /* Allocates individual handles for this FD */
-int	fd_make_public(int fdnum);
+int	fd_make_public(int fdnum, struct ulabel *taint);
 
 extern struct Dev devcons;	/* type 'c' */
 extern struct Dev devsock;	/* type 's' */

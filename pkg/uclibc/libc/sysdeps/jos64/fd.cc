@@ -191,7 +191,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
 }
 
 int
-fd_make_public(int fdnum)
+fd_make_public(int fdnum, struct ulabel *ul_taint)
 {
     fd_handles_init();
 
@@ -223,6 +223,13 @@ fd_make_public(int fdnum)
     l.transform(label::star_to, 1);
     l.set(fd_grant, 0);
     l.set(fd_taint, 3);
+
+    if (ul_taint) {
+	label taint(ul_taint->ul_ent, ul_taint->ul_size);
+	label out;
+	l.merge(&taint, &out, label::max, label::leq_starlo);
+	l.copy_from(&out);
+    }
 
     char name[KOBJ_NAME_LEN];
     r = sys_obj_get_name(old_seg, &name[0]);
@@ -527,7 +534,7 @@ dup(int fdnum) __THROW
 int
 dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_ct)
 {
-    int r = fd_make_public(oldfdnum);
+    int r = fd_make_public(oldfdnum, 0);
     if (r < 0) {
 	cprintf("dup2_as: make_public: %s\n", e2s(r));
 	return r;

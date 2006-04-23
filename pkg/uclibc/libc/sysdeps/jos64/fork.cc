@@ -26,7 +26,7 @@ do_fork()
 
     // Make all FDs independent of the process taint/grant handles
     for (int i = 0; i < MAXFD; i++)
-	fd_make_public(i);
+	fd_make_public(i, 0);
 
     // New process gets the same label as this process,
     // except we take away our process taint&grant * and

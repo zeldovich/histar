@@ -68,7 +68,7 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 {
     // Make all file descriptors have their own taint and grant handles
     for (int i = 0; i < MAXFD; i++)
-	fd_make_public(i);
+	fd_make_public(i, 0);
 
     // Reuse the top-level container and process taint/grant labels,
     // but create a new "process" container in the top-level container.

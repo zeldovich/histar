@@ -33,7 +33,7 @@ opencons(void)
     fd->fd_omode = O_RDWR;
     fd->fd_isatty = 1;
 
-    r = fd_make_public(fd2num(fd));
+    r = fd_make_public(fd2num(fd), 0);
     if (r < 0) {
 	cprintf("opencons: cannot make public: %s\n", e2s(r));
 	jos_fd_close(fd);
