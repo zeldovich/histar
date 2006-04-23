@@ -30,6 +30,7 @@ public:
     struct ulabel *to_ulabel() { return &ul_; }
 
     void copy_from(const label *src);
+    void copy_from(const struct ulabel *src);
 
     int compare(label *b, label_comparator cmp);
     void merge(label *b, label *out, level_merger m, level_comparator cmp);

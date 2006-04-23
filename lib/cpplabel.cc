@@ -130,6 +130,14 @@ label::copy_from(const label *src)
     }
 }
 
+void
+label::copy_from(const struct ulabel *src)
+{
+    reset(src->ul_default);
+    for (uint64_t i = 0; i < src->ul_nent; i++)
+	set(LB_HANDLE(src->ul_ent[i]), LB_LEVEL(src->ul_ent[i]));
+}
+
 int
 label::compare(label *b, label_comparator cmp)
 {

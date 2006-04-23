@@ -225,7 +225,9 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
     l.set(fd_taint, 3);
 
     if (ul_taint) {
-	label taint(ul_taint->ul_ent, ul_taint->ul_size);
+	label taint;
+	taint.copy_from(ul_taint);
+
 	label out;
 	l.merge(&taint, &out, label::max, label::leq_starlo);
 	l.copy_from(&out);
