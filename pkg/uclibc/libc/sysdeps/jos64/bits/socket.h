@@ -172,8 +172,6 @@ enum
   {
     MSG_OOB		= 0x01,	/* Process out-of-band data.  */
 #define MSG_OOB		MSG_OOB
-    MSG_PEEK		= 0x02,	/* Peek at incoming messages.  */
-#define MSG_PEEK	MSG_PEEK
     MSG_DONTROUTE	= 0x04,	/* Don't use local routing.  */
 #define MSG_DONTROUTE	MSG_DONTROUTE
 #ifdef __USE_GNU
