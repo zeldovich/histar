@@ -106,6 +106,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     const char *resolv_conf = "nameserver 171.66.3.11\n";
     error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
 
+    const char *hosts_data = "171.66.3.9 www.scs.stanford.edu www\n";
+    error_check(fs_pwrite(hosts, hosts_data, strlen(hosts_data), 0));
+
     const char *passwd_data =
 	"root:x:0:0:root:/:/bin/ksh\n"
 	"ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin\n"
