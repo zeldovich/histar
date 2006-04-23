@@ -62,6 +62,7 @@ netd_set_gate(struct cobj_ref g)
 
 // Fast netd IPC support
 static struct netd_ipc_segment *fast_ipc;
+static gate_call *fast_ipc_gatecall;
 static cobj_ref fast_ipc_gate;
 static uint64_t fast_ipc_inited;
 static pthread_mutex_t fast_ipc_mu;
@@ -70,10 +71,9 @@ static void
 netd_fast_worker(void *arg)
 {
     try {
-	gate_call gc(fast_ipc_gate, 0, 0, 0);
-
 	cobj_ref shared_seg;
-	error_check(segment_alloc(gc.call_ct(), sizeof(*fast_ipc),
+	error_check(segment_alloc(fast_ipc_gatecall->call_ct(),
+				  sizeof(*fast_ipc),
 				  &shared_seg, (void **) &fast_ipc,
 				  0, "netd fast IPC segment"));
 
@@ -83,7 +83,7 @@ netd_fast_worker(void *arg)
 	fast_ipc_inited = 2;
 	sys_sync_wakeup(&fast_ipc_inited);
 
-	gc.call(&gcd, 0);
+	fast_ipc_gatecall->call(&gcd, 0);
     } catch (std::exception &e) {
 	cprintf("netd_fast_worker: %s\n", e.what());
     }
@@ -100,6 +100,7 @@ netd_fast_init(void)
 					      kobj_gate, "netd-fast");
 	error_check(fast_gate_id);
 	fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
+	fast_ipc_gatecall = new gate_call(fast_ipc_gate, 0, 0, 0);
 
 	fast_ipc_inited = 1;
 	cobj_ref fast_ipc_th;
@@ -172,10 +173,8 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	return -1;
     }
 
-#if 0	// broken still
     if (a->rval >= 0)
 	do_fast_calls = 1;
-#endif
 
     return a->rval;
 }

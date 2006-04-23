@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/declassify.h>
 
 #include <stdlib.h>
+#include <string.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -123,14 +124,28 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	// Map shared memory segment & execute operation
 	{
+	    int64_t copy_id;
+	    error_check(copy_id = sys_segment_copy(gcd->param_obj,
+						   start_env->proc_container,
+						   0, "fast ipc seg copy"));
+	    cobj_ref copy_seg = COBJ(start_env->proc_container, copy_id);
+	    scope_guard<int, cobj_ref> drop(sys_obj_unref, copy_seg);
+
 	    struct netd_ipc_segment *ipc2 = 0;
-	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+	    error_check(segment_map(copy_seg, SEGMAP_READ | SEGMAP_WRITE,
 				    (void **) &ipc2, &map_bytes));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc2);
 
 	    netd_dispatch(&ipc2->args);
-	    ipc2->sync = NETD_IPC_SYNC_REPLY;
-	    error_check(sys_sync_wakeup(&ipc2->sync));
+
+	    struct netd_ipc_segment *ipc_copyback = 0;
+	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+				    (void **) &ipc_copyback, &map_bytes));
+	    scope_guard<int, void *> unmap2(segment_unmap, ipc_copyback);
+
+	    memcpy(&ipc_copyback->args, &ipc2->args, sizeof(ipc_copyback->args));
+	    ipc_copyback->sync = NETD_IPC_SYNC_REPLY;
+	    error_check(sys_sync_wakeup(&ipc_copyback->sync));
 	}
 
 	error_check(sys_self_set_as(temp_as));
