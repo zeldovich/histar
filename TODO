@@ -86,3 +86,5 @@ split the pstate sync timestamp counter from the handle counter
 
 partial segment swapin
 
+call destructors in longjmp (see how linux/glibc does it?)
+
