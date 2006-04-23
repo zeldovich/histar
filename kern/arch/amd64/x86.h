@@ -44,9 +44,6 @@ X86_INST_ATTR uint64_t read_tsc(void);
 X86_INST_ATTR void fxsave(struct Fpregs *f);
 X86_INST_ATTR void fxrstor(const struct Fpregs *f);
 
-X86_INST_ATTR unsigned long __byte_swap_long(unsigned long in);
-X86_INST_ATTR uint16_t __byte_swap_word(uint16_t in);
-
 void
 breakpoint(void)
 {
@@ -316,37 +313,5 @@ fxrstor(const struct Fpregs *f)
 {
     __asm __volatile("fxrstor %0" : : "m" (*f));
 }
-
-
-
-// X86 byteswap operations
-
-unsigned long
-__byte_swap_long (unsigned long in) 
-{
-    unsigned long out;
-    __asm volatile ("bswap %0" 
-		    : "=r" (out) 
-		    : "0" (in));
-    return out;
-}
-
-/* XXX!!!!  Linux no longer uses an explicit xchgb instruction; it says GCC
-   can figure out how to do that itself.  Need to verify Linux's compilation
-   flags. */
-uint16_t
-__byte_swap_word(uint16_t in)
-{
-    uint16_t out;
-    __asm ("xchgb %h1, %b1" 
-	   : "=q" (out) 
-	   : "0" (in));
-    return out;
-}
-
-#define ntohl	__byte_swap_long
-#define ntohs	__byte_swap_word
-#define htonl	__byte_swap_long
-#define htons	__byte_swap_word
 
 #endif /* !JOS_INC_X86_H */
