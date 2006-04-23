@@ -4,6 +4,8 @@
 #include <inc/lib.h>
 #include <inc/stdio.h>
 
+#include <bits/unimpl.h>
+
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
@@ -64,4 +66,11 @@ alarm(unsigned int seconds)
     atomic_set(&alarm_at_msec, msec);
     sys_sync_wakeup(&atomic_read(&alarm_at_msec));
     return 0;
+}
+
+int
+setitimer(int which, const struct itimerval *value, struct itimerval *ovalue)
+{
+    set_enosys();
+    return -1;
 }
