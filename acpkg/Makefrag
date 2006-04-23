@@ -128,7 +128,7 @@ acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build acpkg/openssh-4.3p2/Ma
 
 $(OBJDIR)/acpkg/bin/scp: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
-$(OBJDIR)/user/ssh_tar: acpkg/openssh-4.3p2/__build
+$(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config

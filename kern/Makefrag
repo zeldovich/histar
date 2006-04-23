@@ -65,7 +65,7 @@ KERN_BINFILES += #user/clamscan user/clamwrap user/clamav_main.cvd user/clamav_d
 
 KERN_BINFILES += #user/tar user/gzip user/gunzip
 KERN_BINFILES += #user/gcc.tar.gz user/make user/kern.tar.gz user/setup.sh
-KERN_BINFILES += #user/sshd user/sshd_tar
+KERN_BINFILES += #user/sshd user/ssh.tar
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
