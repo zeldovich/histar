@@ -41,7 +41,8 @@
     SYSCALL_ENTRY(self_get_verify)		\
     SYSCALL_ENTRY(self_get_as)			\
     SYSCALL_ENTRY(self_set_as)			\
-    SYSCALL_ENTRY(self_enable_fp)		\
+    SYSCALL_ENTRY(self_fp_enable)		\
+    SYSCALL_ENTRY(self_fp_disable)		\
     SYSCALL_ENTRY(sync_wait)			\
     SYSCALL_ENTRY(sync_wakeup)			\
     SYSCALL_ENTRY(clock_msec)			\

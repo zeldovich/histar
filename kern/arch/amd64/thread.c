@@ -186,15 +186,21 @@ thread_run(const struct Thread *t)
 int
 thread_enable_fp(const struct Thread *const_t)
 {
-    if (const_t->th_fp_enabled)
-	return 0;
-    if ((const_t->th_ko.ko_flags & KOBJ_MULTIHOMED))
-	return -E_FIXEDSIZE;
-
+    int r;
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
-    int r = kobject_set_nbytes(&t->th_ko, sizeof(struct Fpregs));
-    if (r < 0)
-	return r;
+    if (t->th_fp_enabled)
+	return 0;
+
+    if (!t->th_fp_space) {
+	if ((t->th_ko.ko_flags & KOBJ_MULTIHOMED))
+	    return -E_FIXEDSIZE;
+
+	r = kobject_set_nbytes(&t->th_ko, sizeof(struct Fpregs));
+	if (r < 0)
+	    return r;
+
+	t->th_fp_space = 1;
+    }
 
     struct Fpregs *fpreg;
     r = kobject_get_page(&t->th_ko, 0, (void **) &fpreg, page_excl_dirty);
@@ -202,11 +208,19 @@ thread_enable_fp(const struct Thread *const_t)
 	return r;
 
     // Linux says so.
+    memset(fpreg, 0, sizeof(*fpreg));
     fpreg->cwd = 0x37f;
     fpreg->mxcsr = 0x1f80;
 
     t->th_fp_enabled = 1;
     return 0;
+}
+
+void
+thread_disable_fp(const struct Thread *const_t)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    t->th_fp_enabled = 0;
 }
 
 int

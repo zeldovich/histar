@@ -29,6 +29,7 @@ struct Thread {
     thread_status th_status;
     uint8_t th_pinned : 1;
     uint8_t th_fp_enabled : 1;
+    uint8_t th_fp_space : 1;
 
     uint64_t th_wakeup_msec;
     uint64_t th_wakeup_addr;
@@ -61,6 +62,7 @@ int  thread_change_label(const struct Thread *t, const struct Label *l)
 void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
 int  thread_enable_fp(const struct Thread *t);
+void thread_disable_fp(const struct Thread *t);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);

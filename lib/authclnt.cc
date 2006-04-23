@@ -117,13 +117,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     char buf[KOBJ_META_LEN];
     memset(&buf[0], 0, sizeof(buf));
     error_check(sys_obj_set_meta(COBJ(0, thread_id()), 0, &buf[0]));
-
-    // XXX how can information about the password leak here?
-    // -- floating-point registers?
-    //    need to find out if the thread has FP state, and if so,
-    //    create a zeroed-out fxrstor buffer (512 bytes), set the
-    //    two magic words, and fxrstor it.
-    // -- whether FP is enabled or not.
+    error_check(sys_self_fp_disable());
 
     error_check(uauth_err);
 

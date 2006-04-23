@@ -619,9 +619,15 @@ sys_self_get_verify(struct ulabel *uv)
 }
 
 static void
-sys_self_enable_fp(void)
+sys_self_fp_enable(void)
 {
     check(thread_enable_fp(cur_thread));
+}
+
+static void
+sys_self_fp_disable(void)
+{
+    thread_disable_fp(cur_thread);
 }
 
 static void
@@ -805,7 +811,8 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_get_clearance),
     SYSCALL_DISPATCH(self_set_verify),
     SYSCALL_DISPATCH(self_get_verify),
-    SYSCALL_DISPATCH(self_enable_fp),
+    SYSCALL_DISPATCH(self_fp_enable),
+    SYSCALL_DISPATCH(self_fp_disable),
     SYSCALL_DISPATCH(sync_wait),
     SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),

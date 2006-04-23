@@ -245,9 +245,15 @@ sys_self_get_verify(struct ulabel *l)
 }
 
 int
-sys_self_enable_fp(void)
+sys_self_fp_enable(void)
 {
-    return syscall(SYS_self_enable_fp);
+    return syscall(SYS_self_fp_enable);
+}
+
+int
+sys_self_fp_disable(void)
+{
+    return syscall(SYS_self_fp_disable);
 }
 
 int
