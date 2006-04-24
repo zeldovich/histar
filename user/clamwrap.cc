@@ -7,12 +7,21 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <stdlib.h>
 }
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
+
+static void __attribute__((noreturn))
+alarm_handler(int signo)
+{
+    printf("clamwrap: timeout\n");
+    exit(-1);
+}
 
 int
 main(int ac, const char **av)
@@ -82,6 +91,9 @@ try
 	      &taint_star, 0, 0, &taint_zero, 0);
     close(fds[1]);
     close(nullfd);
+
+    signal(SIGALRM, &alarm_handler);
+    alarm(30);
 
     char buf[512];
     for (;;) {
