@@ -223,7 +223,8 @@ static int
 page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
 			   const void *first, const void *last,
 			   int create,
-			   page_map_traverse_cb cb, void *arg)
+			   page_map_traverse_cb cb, const void *arg,
+			   void *va_base)
 {
     int r;
     assert(pmlevel >= 0 && pmlevel <= 3);
@@ -231,17 +232,19 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
     uint32_t first_idx = PDX(pmlevel, first);
     uint32_t last_idx  = PDX(pmlevel, last);
 
-    for (uint32_t idx = first_idx; idx <= last_idx; idx++) {
+    for (uint64_t idx = first_idx; idx <= last_idx; idx++) {
 	uint64_t *pm_entp = &pgmap->pm_ent[idx];
 	uint64_t pm_ent = *pm_entp;
 
+	void *ent_va = va_base + (idx << PDSHIFT(pmlevel));
+
 	if (pmlevel == 0) {
-	    cb(arg, pm_entp);
+	    cb(arg, pm_entp, ent_va);
 	    continue;
 	}
 
 	if (pmlevel == 1 && (pm_ent & PTE_PS)) {
-	    cb(arg, pm_entp);
+	    cb(arg, pm_entp, ent_va);
 	    continue;
 	}
 
@@ -262,7 +265,7 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
 	const void *first_next = (idx == first_idx) ? first : 0;
 	const void *last_next  = (idx == last_idx)  ? last : (const void *) ~0UL;
 	r = page_map_traverse_internal(pm_next, pmlevel - 1, first_next, last_next,
-				       create, cb, arg);
+				       create, cb, arg, ent_va);
 	if (r < 0)
 	    return r;
     }
@@ -272,17 +275,17 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
 
 int
 page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
-		  int create, page_map_traverse_cb cb, void *arg)
+		  int create, page_map_traverse_cb cb, const void *arg)
 {
     if (last >= (const void *) ULIM)
 	last = (const void *) ULIM - PGSIZE;
-    return page_map_traverse_internal(pgmap, 3, first, last, create, cb, arg);
+    return page_map_traverse_internal(pgmap, 3, first, last, create, cb, arg, 0);
 }
 
 static void
-pgdir_walk_cb(void *arg, uint64_t *ptep)
+pgdir_walk_cb(const void *arg, uint64_t *ptep, void *va)
 {
-    uint64_t **pte_store = arg;
+    uint64_t **pte_store = (uint64_t **) arg;
     *pte_store = ptep;
 }
 
