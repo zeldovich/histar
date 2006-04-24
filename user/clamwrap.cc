@@ -38,18 +38,38 @@ try
     clear.set(clam_taint, 3);
     thread_set_clearance(&clear);
 
-    label taint(0);
-    taint.set(start_env->user_taint, 3);
-    taint.set(clam_taint, 3);
+    label taint_zero(0);
+    taint_zero.set(start_env->user_taint, 3);
+    taint_zero.set(clam_taint, 3);
 
     label taint_star(LB_LEVEL_STAR);
     taint_star.set(start_env->user_taint, 3);
     taint_star.set(clam_taint, 3);
 
-    error_check(fd_make_public(fds[0], taint.to_ulabel()));
-    error_check(fd_make_public(fds[1], taint.to_ulabel()));
-    error_check(fd_make_public(nullfd, taint.to_ulabel()));
+    error_check(fd_make_public(fds[0], taint_zero.to_ulabel()));
+    error_check(fd_make_public(fds[1], taint_zero.to_ulabel()));
+    error_check(fd_make_public(nullfd, taint_zero.to_ulabel()));
 
+    // Make a private /tmp for clamscan to use
+    label tmp_label(1);
+    tmp_label.set(start_env->user_taint, 3);
+    tmp_label.set(clam_taint, 3);
+
+    fs_inode self_dir;
+    fs_get_root(start_env->shared_container, &self_dir);
+
+    fs_inode tmp_dir;
+    error_check(fs_mkdir(self_dir, "tmp", &tmp_dir, tmp_label.to_ulabel()));
+
+    // Copy the mount table and mount our /tmp there
+    int64_t new_mtab_id;
+    error_check(new_mtab_id =
+	sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
+			 0, "clamwrap mtab"));
+    start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+    fs_mount(start_env->fs_root, "tmp", tmp_dir);
+
+    // Run clamscan
     fs_inode clamscan;
     error_check(fs_namei("/bin/clamscan", &clamscan));
 
@@ -59,7 +79,7 @@ try
 	      nullfd, fds[1], fds[1],
 	      ac, &av[0],
 	      0, 0,
-	      &taint_star, 0, 0, &taint, 0);
+	      &taint_star, 0, 0, &taint_zero, 0);
     close(fds[1]);
     close(nullfd);
 
