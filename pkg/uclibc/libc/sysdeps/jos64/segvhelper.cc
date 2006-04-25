@@ -22,7 +22,7 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	uint64_t flags;
 	int r = segment_lookup(va, &seg, 0, &flags);
 
-	if (r >= 0 && (flags & SEGMAP_VECTOR_PF)) {
+	if (r > 0 && (flags & SEGMAP_VECTOR_PF)) {
 	    assert(*tls_pgfault);
 	    jos_longjmp(*tls_pgfault, 1);
 	}
