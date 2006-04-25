@@ -28,8 +28,18 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     int si = 0;
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
-    if (elf->e_magic != ELF_MAGIC || elf->e_ident[0] != 2) {
+    if (elf->e_magic != ELF_MAGIC) {
 	cprintf("elf_load: ELF magic mismatch\n");
+	return -E_INVAL;
+    }
+
+    if (elf->e_type != ELF_TYPE_EXEC) {
+	cprintf("elf_load: ELF file not an executable\n");
+	return -E_INVAL;
+    }
+
+    if (elf->e_ident[0] != 2) {
+	cprintf("elf_load: ELF file not 64-bit\n");
 	return -E_INVAL;
     }
 

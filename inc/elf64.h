@@ -69,4 +69,7 @@ typedef struct {
 #define ELF_PF_W	0x02
 #define ELF_PF_R	0x04
 
+#define ELF_TYPE_EXEC	2
+#define ELF_TYPE_CORE	4
+
 #endif /* !JOS_INC_ELF_H */
