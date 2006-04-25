@@ -469,8 +469,13 @@ kobject_decref(const struct kobject_hdr *kh)
 {
     struct kobject *ko = kobject_dirty(kh);
     ko->hdr.ko_ref--;
-    if (ko->hdr.ko_ref == 0)
+    if (ko->hdr.ko_ref == 0) {
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
+
+	// Inform threads so that they can halt, even if pinned
+	if (ko->hdr.ko_type == kobj_thread)
+	    thread_zero_refs(&ko->th);
+    }
 }
 
 void
@@ -583,10 +588,6 @@ kobject_gc_scan(void)
 		cprintf("kobject_gc_scan: referenced object on GC list!\n");
 		continue;
 	    }
-
-	    // Inform threads so that they can halt, even if pinned
-	    if (ko->hdr.ko_type == kobj_thread)
-		thread_zero_refs(&ko->th);
 
 	    if (ko->hdr.ko_pin)
 		continue;
