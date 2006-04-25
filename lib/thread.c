@@ -71,6 +71,21 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	return tid;
     }
 
+    uint32_t thread_quota_slush = 65536;
+    r = sys_container_move_quota(thread_ct, tid, thread_quota_slush);
+    if (r < 0) {
+	segment_unmap(stackbase);
+	sys_obj_unref(tct);
+	return r;
+    }
+
+    r = sys_obj_set_fixedquota(COBJ(thread_ct, tid));
+    if (r < 0) {
+	segment_unmap(stackbase);
+	sys_obj_unref(tct);
+	return r;
+    }
+
     *threadp = COBJ(thread_ct, tid);
     r = sys_thread_start(*threadp, &e, 0, 0);
     if (r < 0) {

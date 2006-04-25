@@ -169,9 +169,9 @@ fd_alloc(struct Fd **fd_store, const char *name)
 	r = segment_alloc(start_env->proc_container, PGSIZE, &seg,
 			  (void **) &fd, 0, &nbuf[0]);
 
-	// "Finalize" the size of the segment so it can be hard-linked
+	// Finalize the quota of the segment so it can be hard-linked
 	if (r >= 0)
-	    assert(0 == sys_segment_resize(seg, PGSIZE, 1));
+	    assert(0 == sys_obj_set_fixedquota(seg));
     }
 
     if (r < 0)
@@ -243,8 +243,9 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
     if (new_id < 0)
 	return new_id;
 
+    // finalize for hard-linking
     struct cobj_ref new_seg = COBJ(start_env->shared_container, new_id);
-    sys_segment_resize(new_seg, PGSIZE, 1);	// finalize for hard-linking
+    assert(0 == sys_obj_set_fixedquota(new_seg));
 
     for (int i = 0; i < MAXFD; i++) {
 	struct Fd *ifd;

@@ -19,7 +19,7 @@ enum {
 #define KOBJ_DIRTY		0x0008	// Modified since last swapin/out
 #define KOBJ_SNAPSHOT_DIRTY	0x0010	// Dirty if swapout fails
 #define KOBJ_LABEL_MUTABLE	0x0020	// Label can change after creation
-#define KOBJ_MULTIHOMED		0x0040	// Multiple hard links
+#define KOBJ_FIXED_QUOTA	0x0040	// Cannot modify quota (for hard links)
 #define KOBJ_SHARED_MAPPINGS	0x0080	// Shared pages maybe mapped somewhere
 #define KOBJ_DIRTY_LATER	0x0100	// Need to collect dirty bits
 

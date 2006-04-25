@@ -84,7 +84,7 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 	int64_t cur_len = 0;
 	if (!ue_match) {
 	    error_check(cur_len = sys_segment_get_nbytes(user_list_seg));
-	    error_check(sys_segment_resize(user_list_seg, cur_len + sizeof(*ue), 0));
+	    error_check(sys_segment_resize(user_list_seg, cur_len + sizeof(*ue)));
 	}
 
 	user_list *ul2 = 0;

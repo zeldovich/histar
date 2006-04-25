@@ -317,12 +317,30 @@ kobject_npages(const struct kobject_hdr *kp)
     return ROUNDUP(kp->ko_nbytes, PGSIZE) / PGSIZE;
 }
 
+static int
+kobject_borrow_parent_quota(struct kobject_hdr *ko, uint64_t nbytes)
+{
+    if ((ko->ko_flags & KOBJ_FIXED_QUOTA))
+	return -E_FIXED_QUOTA;
+
+    const struct Container *pct;
+    int r = container_find(&pct, ko->ko_parent, iflow_rw);
+    if (r < 0)
+	return r;
+
+    if (pct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
+	pct->ct_ko.ko_quota_total - pct->ct_ko.ko_quota_used < nbytes)
+	return -E_RESOURCE;
+
+    kobject_dirty(&pct->ct_ko)->hdr.ko_quota_used += nbytes;
+    ko->ko_quota_total += nbytes;
+    return 0;
+}
+
 int
 kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 {
     int r;
-    assert(!(kp->ko_flags & KOBJ_MULTIHOMED));
-
     struct kobject *ko = kobject_h2k(kp);
 
     uint64_t curnpg = kobject_npages(kp);
@@ -338,22 +356,17 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     {
 	// Try to borrow quota from parent container..
 	if (kp->ko_parent) {
-	    const struct Container *pct;
-	    r = container_find(&pct, kp->ko_parent, iflow_rw);
-	    if (r < 0)
-		return r;
-
-	    if (pct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-		pct->ct_ko.ko_quota_total - pct->ct_ko.ko_quota_used < abs_qdiff)
+	    r = kobject_borrow_parent_quota(kp, abs_qdiff);
+	    if (r < 0) {
+		cprintf("kobject_set_nbytes: borrow quota: %s\n", e2s(r));
 		return -E_RESOURCE;
-
-	    kobject_dirty(&pct->ct_ko)->hdr.ko_quota_used += quota_diff;
+	    }
+	} else {
+	    // If we have no parent, just increase our total quota -- when this
+	    // object is put into a container, ko_quota_total will add to the
+	    // container's ko_quota_used.
+	    kp->ko_quota_total += quota_diff;
 	}
-
-	// If we have no parent, just increase our total quota -- when this
-	// object is put into a container, ko_quota_total will add to the
-	// container's ko_quota_used.
-	kp->ko_quota_total += quota_diff;
     }
 
     for (uint64_t i = npages; i < curnpg; i++) {

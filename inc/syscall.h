@@ -40,6 +40,7 @@ int64_t	sys_obj_get_quota_total(struct cobj_ref o);
 int64_t sys_obj_get_quota_avail(struct cobj_ref o);
 int	sys_obj_get_meta(struct cobj_ref o, void *meta);
 int	sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm);
+int	sys_obj_set_fixedquota(struct cobj_ref o);
 
 int64_t	sys_handle_create(void);
 
@@ -85,7 +86,7 @@ int64_t	sys_segment_create(uint64_t container, uint64_t num_bytes,
 int64_t sys_segment_copy(struct cobj_ref seg, uint64_t container,
 			 struct ulabel *l, const char *name);
 int	sys_segment_addref(struct cobj_ref seg, uint64_t ct);
-int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes, uint32_t final);
+int	sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes);
 int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
 int	sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes,
 			 uint64_t pstate_ts);

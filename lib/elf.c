@@ -39,9 +39,6 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return copy_id;
     struct cobj_ref copyseg = COBJ(container, copy_id);
 
-    // Finalize so it can be hard-linked by taint_cow
-    sys_segment_resize(copyseg, seglen, 1);
-
     int stackpages = 2;
     int shared_stack = 0;
     struct cobj_ref stack;

@@ -130,6 +130,12 @@ sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm)
     return syscall(SYS_obj_set_meta, o, oldm, newm);
 }
 
+int
+sys_obj_set_fixedquota(struct cobj_ref o)
+{
+    return syscall(SYS_obj_set_fixedquota, o);
+}
+
 int64_t
 sys_container_get_nslots(uint64_t container)
 {
@@ -307,9 +313,9 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 }
 
 int
-sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes, uint32_t final)
+sys_segment_resize(struct cobj_ref seg, uint64_t num_bytes)
 {
-    return syscall(SYS_segment_resize, seg, num_bytes, final);
+    return syscall(SYS_segment_resize, seg, num_bytes);
 }
 
 int64_t

@@ -156,17 +156,14 @@ container_put(struct Container *c, const struct kobject_hdr *ko)
     if (r < 0)
 	return r;
 
+    if (ko->ko_ref > 0 && !(ko->ko_flags & KOBJ_FIXED_QUOTA))
+	return -E_VAR_QUOTA;
+
     r = container_slot_addref(c, cs, ko);
     if (r < 0)
 	return r;
 
-    if (!(ko->ko_flags & KOBJ_MULTIHOMED)) {
-	if (ko->ko_parent)
-	    kobject_dirty(ko)->hdr.ko_flags |= KOBJ_MULTIHOMED;
-	else
-	    kobject_dirty(ko)->hdr.ko_parent = c->ct_ko.ko_id;
-    }
-
+    kobject_dirty(ko)->hdr.ko_parent = c->ct_ko.ko_id;
     return 0;
 }
 

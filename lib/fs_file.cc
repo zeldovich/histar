@@ -79,7 +79,7 @@ fs_getsize(struct fs_inode f, uint64_t *len)
 int
 fs_resize(struct fs_inode f, uint64_t len)
 {
-    int r = sys_segment_resize(f.obj, len, 0);
+    int r = sys_segment_resize(f.obj, len);
     if (r == -E_LABEL && start_env->declassify_gate.object) {
 	try {
 	    struct gate_call_data gcd;

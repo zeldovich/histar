@@ -92,7 +92,7 @@ thread_alloc(const struct Label *contaminate,
     t->th_sg = sg->sg_ko.ko_id;
     kobject_incref(&sg->sg_ko);
 
-    r = segment_set_nbytes(sg, PGSIZE, 1);
+    r = segment_set_nbytes(sg, PGSIZE);
     if (r < 0)
 	return r;
 
@@ -192,9 +192,6 @@ thread_enable_fp(const struct Thread *const_t)
 	return 0;
 
     if (!t->th_fp_space) {
-	if ((t->th_ko.ko_flags & KOBJ_MULTIHOMED))
-	    return -E_FIXEDSIZE;
-
 	r = kobject_set_nbytes(&t->th_ko, sizeof(struct Fpregs));
 	if (r < 0)
 	    return r;
@@ -252,7 +249,7 @@ thread_change_label(const struct Thread *const_t,
 	return r;
 
     // Pin the size of the segment at PGSIZE
-    r = segment_set_nbytes(sg_new, PGSIZE, 1);
+    r = segment_set_nbytes(sg_new, PGSIZE);
     if (r < 0)
 	return r;
 

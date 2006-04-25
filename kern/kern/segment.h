@@ -17,7 +17,7 @@ int  segment_alloc(const struct Label *l, struct Segment **sgp)
 int  segment_copy(const struct Segment *src, const struct Label *newl,
 		  struct Segment **dstp)
     __attribute__ ((warn_unused_result));
-int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes, uint8_t final)
+int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
     __attribute__ ((warn_unused_result));
 void segment_map_ro(struct Segment *sg);
 void segment_invalidate(const struct Segment *sg);

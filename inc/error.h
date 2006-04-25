@@ -15,8 +15,8 @@ enum {
     E_NO_SPACE,		// not enough space in buffer
     E_AGAIN,		// try again
     E_IO,		// disk IO error
-    E_FIXEDSIZE,	// object is fixed-size
-    E_VARSIZE,		// object is variable-sized
+    E_FIXED_QUOTA,	// object has a fixed quota
+    E_VAR_QUOTA,	// object has a variable quota
     E_RESOURCE,		// container out of space
 
     // user-space errors

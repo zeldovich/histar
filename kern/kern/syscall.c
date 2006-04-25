@@ -322,6 +322,14 @@ sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
     memcpy(&kobject_dirty(&ko->hdr)->hdr.ko_meta[0], newm, KOBJ_META_LEN);
 }
 
+static void
+sys_obj_set_fixedquota(struct cobj_ref cobj)
+{
+    const struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
+    kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_FIXED_QUOTA;
+}
+
 static int64_t
 sys_container_get_nslots(uint64_t container)
 {
@@ -351,6 +359,8 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
     check(container_find(&parent, parent_id, iflow_rw));
     check(cobj_get(COBJ(parent_id, child_id), kobj_any, &child,
 		   nbytes < 0 ? iflow_rw : iflow_write));
+    if ((child->hdr.ko_flags & KOBJ_FIXED_QUOTA))
+	syscall_error(-E_FIXED_QUOTA);
 
     uint64_t new_child_total;
 
@@ -664,7 +674,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
     check(segment_alloc(l, &sg));
     alloc_set_name(&sg->sg_ko, name);
 
-    check(segment_set_nbytes(sg, num_bytes, 0));
+    check(segment_set_nbytes(sg, num_bytes));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
@@ -698,19 +708,15 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_read));
-
-    if (!ko->sg.sg_fixed_size)
-	syscall_error(-E_VARSIZE);
-
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
 }
 
 static void
-sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes, uint32_t final)
+sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_rw));
-    check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes, final ? 1 : 0));
+    check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes));
 }
 
 static int64_t
@@ -797,6 +803,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_get_name),
     SYSCALL_DISPATCH(obj_get_meta),
     SYSCALL_DISPATCH(obj_set_meta),
+    SYSCALL_DISPATCH(obj_set_fixedquota),
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
     SYSCALL_DISPATCH(thread_start),

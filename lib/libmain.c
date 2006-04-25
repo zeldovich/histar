@@ -61,6 +61,11 @@ setup_env(uint64_t envaddr)
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
 
+    uint32_t thread_quota_slush = 65536;
+    assert(0 == sys_container_move_quota(start_env->proc_container,
+					 thread_id(), thread_quota_slush));
+    assert(0 == sys_obj_set_fixedquota(COBJ(0, thread_id())));
+
     r = utrap_init();
     if (r < 0)
 	panic("libmain: cannot setup utrap: %s", e2s(r));
