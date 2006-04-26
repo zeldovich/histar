@@ -39,7 +39,7 @@ main(int ac, char **av)
 		      0, 1, 2,
 		      0, 0,
 		      0, 0,
-		      0, 0, 0, 0);
+		      0, 0, 0, 0, 0);
 
 	    int64_t ec;
 	    process_wait(&cp, &ec);

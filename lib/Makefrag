@@ -56,7 +56,8 @@ LIB_SRCFILES :=	\
 	lib/base64.c \
 	lib/rand.c \
 	lib/chardevs.c \
-	lib/pthread.c
+	lib/pthread.c \
+	lib/arc4.c
 
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
