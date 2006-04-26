@@ -67,7 +67,7 @@ freelist_alloc(struct freelist * l, uint64_t nbytes)
     return offset;
 }
 
-int
+static int
 freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
     int r;

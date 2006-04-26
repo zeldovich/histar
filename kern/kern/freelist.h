@@ -9,9 +9,7 @@ struct freelist {
     struct frm chunk_frm;
 };
 
-void freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes);
-int	freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
-    __attribute__ ((warn_unused_result));
+void	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes);
 void	freelist_setup(uint8_t *b);
 int64_t freelist_alloc(struct freelist *l, uint64_t nbytes);
 void	freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes);
