@@ -1,0 +1,37 @@
+OBJDIRS += test
+
+TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g
+
+DISK_TEST_SRCS := \
+	error.c printfmt.c \
+	log.c hashtable.c freelist.c dstack.c \
+	btree_delete.c btree_node.c btree_insert.c btree_manager.c cache.c \
+	pbtree.c pbtree_frm.c btree_search.c btree.c btree_traverse.c btree_debug.c \
+	disk.c mem.c misc.c lock.c \
+	disk-test.c
+
+DISK_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(DISK_TEST_SRCS))
+
+$(OBJDIR)/test/%.o: test/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/test/%.o: lib/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/test/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/test/%.o: kern/kern/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/test/%.o: kern/btree/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/test/disk-test: $(DISK_TEST_OBJS)
+	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
+
