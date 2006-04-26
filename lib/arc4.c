@@ -12,10 +12,10 @@ arc4_reset(arc4 *a)
 }
 
 static void
-_arc4_setkey(arc4 *a, const u_char *key, size_t keylen)
+_arc4_setkey(arc4 *a, const unsigned char *key, size_t keylen)
 {
-    u_int n, keypos;
-    u_char si;
+    unsigned int n, keypos;
+    unsigned char si;
     for (n = 0, keypos = 0; n < 256; n++, keypos++) {
 	if (keypos >= keylen)
 	    keypos = 0;
@@ -30,7 +30,7 @@ _arc4_setkey(arc4 *a, const u_char *key, size_t keylen)
 void
 arc4_setkey(arc4 *a, const void *_key, size_t len)
 {
-    const u_char *key = (const u_char *) _key;
+    const unsigned char *key = (const unsigned char *) _key;
     arc4_reset(a);
     while (len > 128) {
 	len -= 128;

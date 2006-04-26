@@ -3,11 +3,11 @@ OBJDIRS += test
 TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g
 
 DISK_TEST_SRCS := \
-	error.c printfmt.c \
+	error.c printfmt.c sha1.c arc4.c \
 	log.c hashtable.c freelist.c dstack.c \
 	btree_delete.c btree_node.c btree_insert.c btree_manager.c cache.c \
 	pbtree.c pbtree_frm.c btree_search.c btree.c btree_traverse.c btree_debug.c \
-	disk.c mem.c misc.c lock.c \
+	disk.c mem.c misc.c lock.c rand.c \
 	disk-test.c
 
 DISK_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(DISK_TEST_SRCS))

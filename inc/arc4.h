@@ -2,16 +2,16 @@
 #define JOS_INC_ARC4_H
 
 struct arc4 {
-    u_char i;
-    u_char j;
-    u_char s[256];
+    unsigned char i;
+    unsigned char j;
+    unsigned char s[256];
 };
 typedef struct arc4 arc4;
 
-static inline u_char
+static inline unsigned char
 arc4_getbyte(arc4 *a)
 {
-    u_char si, sj;
+    unsigned char si, sj;
     a->i = (a->i + 1) & 0xff;
     si = a->s[a->i];
     a->j = (a->j + si) & 0xff;

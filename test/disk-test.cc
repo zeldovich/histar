@@ -1,5 +1,6 @@
 #include <test/josenv.hh>
 #include <test/disk.hh>
+#include <test/rand.hh>
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -10,6 +11,7 @@
 #include <sys/stat.h>
 
 extern "C" {
+#include <inc/sha1.h>
 #include <inc/error.h>
 #include <btree/btree.h>
 #include <kern/freelist.h>
@@ -21,6 +23,7 @@ extern "C" {
 
 enum { iterations = 10000 };
 enum { num_keys = 1000 };
+enum { logging = 0 };
 
 #define errno_check(expr) \
     do {								\
@@ -50,9 +53,12 @@ static uint64_t log_size;
 static void
 do_insert(void)
 {
-    int rnd = (random() % num_keys);
-    uint64_t key = rnd ^ magic1;
-    uint64_t val[2] = { key * 3, magic2 + rnd };
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1);
+    uint64_t val[2] = { x_hash(key, magic1), x_hash(key, magic2) };
+
+    if (logging)
+	printf("insert key %lx val %lx %lx\n", key, val[0], val[1]);
 
     int r = btree_insert(BTREE_OBJMAP, &key, &val[0]);
     if (key_exists[rnd]) {
@@ -65,16 +71,19 @@ do_insert(void)
 static void
 do_search(void)
 {
-    int rnd = (random() % num_keys);
-    uint64_t key = rnd ^ magic1;
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1);
     uint64_t val[2];
+
+    if (logging)
+	printf("search key %lx\n", key);
 
     int r = btree_search(BTREE_OBJMAP, &key, &key, &val[0]);
     if (key_exists[rnd]) {
 	should_be(r, 0, "search existing key");
-	assert(key == rnd ^ magic1);
-	assert(val[0] == key * 3);
-	assert(val[1] == magic2 + rnd);
+	assert(key == x_hash(rnd, magic1));
+	assert(val[0] == x_hash(key, magic1));
+	assert(val[1] == x_hash(key, magic2));
     } else {
 	should_be(r, -E_NOT_FOUND, "search non-existent key");
     }
@@ -83,8 +92,12 @@ do_search(void)
 static void
 do_delete(void)
 {
-    int rnd = (random() % num_keys);
-    uint64_t key = rnd ^ magic1;
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1);
+
+    if (logging)
+	printf("delete key %lx\n", key);
+
     int r = btree_delete(BTREE_OBJMAP, &key);
     if (key_exists[rnd]) {
 	should_be(r, 0, "delete existing key");
@@ -127,7 +140,7 @@ do_something(void)
     for (uint32_t i = 0; i < sizeof(ops) / sizeof(*ops); i++)
 	total_weight += ops[i].weight;
 
-    int rv = random() % total_weight;
+    int rv = x_rand() % total_weight;
     for (uint32_t i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
 	if (rv < ops[i].weight) {
 	    ops[i].fn();
@@ -148,7 +161,7 @@ try
 	exit(-1);
     }
 
-    srandom(0xdeadbef0);
+    x_srand("Helloooo randomness!");
 
     int fd;
     errno_check(fd = open(av[1], O_RDWR));
