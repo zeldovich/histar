@@ -23,7 +23,7 @@ extern "C" {
 #include <inc/error.hh>
 
 enum { iterations = 100000 };
-enum { num_keys = 1000 };
+enum { num_keys = 10000 };
 enum { logging = 0 };
 
 #define errno_check(expr) \
@@ -271,17 +271,17 @@ static struct {
     void (*fn) (void);
     int weight;
 } ops[] = {
-    { &do_insert,	100	},
+    { &do_insert,	1000	},
     { &do_search,	50	},
     { &do_search_leq,	50	},
     { &do_search_leq_e,	50	},
     { &do_search_geq,	50	},
     { &do_search_geq_e,	50	},
-    { &do_delete,	20	},
-    { &do_traverse,	100	},
+    { &do_delete,	1000	},
+    { &do_traverse,	50	},
     { &do_flush,	50	},
     { &do_apply,	20	},
-    { &do_sanity_check,	100	},
+    { &do_sanity_check,	10	},
 };
 
 static void
