@@ -142,8 +142,7 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
     if (i < (BTREE_LEAF_ORDER(rootNode) - 1) && btree_keycmp(key, btree_key(rootNode, i), tree->s_key) == 0)	//cmp
     {
 	*split = 0;
-	btree_valcpy(btree_value(rootNode, i), filePos, tree->s_value);
-	return 1;
+	return 0;
     }
 
     *split = 1;
