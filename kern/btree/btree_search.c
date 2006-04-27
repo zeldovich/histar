@@ -58,7 +58,7 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 	    btree_keycpy(key_store, btree_key(rootNode, i), tree->s_key);
 	    btree_destroy_node(rootNode);
 	    return 1;
-	} else if (match & match_ltet) {
+	} else if (match == match_ltet) {
 	    if (i > 0) {
 		//*val_store = rootNode->children[i - 1] ;      
 		btree_valcpy(val_store, btree_value(rootNode, i - 1),
@@ -88,8 +88,7 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 		btree_destroy_node(rootNode);
 		return 1;
 	    }
-
-	} else if (match & match_gtet) {
+	} else if (match == match_gtet) {
 	    if (i < rootNode->keyCount) {
 		//*val_store = rootNode->children[i] ;  
 		btree_valcpy(val_store, btree_value(rootNode, i),
@@ -114,23 +113,20 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 	}
 
 	btree_destroy_node(rootNode);
-
 	return 0;
     }
+
     // accesses to children ok, since rootNode can't be a leaf
     assert(rootNode->children);
 
     if (i > 0)
-	result =
-	    __search(tree, rootNode->children[i], key, match, rootNode, i,
-		     key_store, val_store);
+	result = __search(tree, rootNode->children[i], key, match,
+			  rootNode, i, key_store, val_store);
     else
-	result =
-	    __search(tree, rootNode->children[i], key, match, last_right, div,
-		     key_store, val_store);
+	result = __search(tree, rootNode->children[i], key, match,
+			  last_right, div, key_store, val_store);
 
     btree_destroy_node(rootNode);
-
     return result;
 }
 
@@ -138,14 +134,10 @@ static int
 search(struct btree *tree, const uint64_t * key, char match,
        uint64_t * key_store, uint64_t * val_store)
 {
-    char found;
-
-    //uint64_t val_store ;
-
-    if (tree == NULL || key == 0)
-	return -E_NOT_FOUND;
-
-    found = 0;
+    if (tree == 0 || key == 0) {
+	cprintf("search: null tree (%p) or key (%p)\n", tree, key);
+	return -E_INVAL;
+    }
 
     if (tree->root == 0)
 	return -E_NOT_FOUND;
@@ -154,10 +146,9 @@ search(struct btree *tree, const uint64_t * key, char match,
 	return -E_NOT_FOUND;
 
     btree_lock(tree->id);
-    found =
+    char found =
 	__search(tree, tree->root, key, match, 0, 0, key_store, val_store);
     btree_unlock(tree->id);
-
 
     if (found != 0)
 	return 0;
