@@ -1,0 +1,73 @@
+* GOAL: share hardware resources b/t diff. machines.  Types of physical 
+  resources:
+	* CPU
+	* Memory
+	* Disk space
+	* IO devices (network interfaces, backup drive,...)
+
+* GOAL: the above plus efficient utilization of hardware resources across
+  a 'group' of machines (load balancing).
+  
+* JOS64 objects: threads, devices, segments, as, containers, gates
+ 	* Objects consume resources.
+ 	* A mechanism that facilitates using and creating objects on remote machines 
+ 	  and moving existing objects to remote machines would provide a means to 
+ 	  achieve the above goals...
+
+* Specificially, can a user-space 'framework' be designed and built that 
+  would facilitate creation, use, and transfer of objects across machines 
+  and enforces label policies?
+
+* Vague project goal: implement a framework that facilitates a 'distributed
+  object domain' and enforces label policies.  Use this to build something 
+  interesting.
+  
+=============
+
+* More concretely define project goal.
+
+* What is something interesting/fun?
+	* something to the tune of exportfs from plan 9?
+	* Want to be able to share CPU, disk/memory, and devices:
+		* cpu command - start a process on a remote machine.
+		* provide sharing of jos64 fs.  Also provide access to other types of 
+		  fs?
+		* Mount the netd from a remote machine and use it.  To make CPU command
+		  useful would also want to share console.
+
+* What would a 'framework' look like?  How would it enforce label policies?
+	* or can something be designed to build exportfs, but also potentially
+	  be used to implement other types of sharing and coordination (ie
+	  user-level process migration)?
+  	* trusted proxies to coordinate label policies...
+  	* export daemons...gates that can be invoked from a remote machine via a
+  	  trusted proxy?
+  	  
+* 'exportcpu'
+	* remote machine running exportcpu daemon
+	* local machine calls exec_remote or something
+	* request goes through proxies
+	* remote proxy invokes exportcpu daemon via gate call
+	* to make useful local machine should run exportcons and exportfs...mount
+	  /bin so remote machine can access local binaries...
+	* ...
+	
+=============
+
+* Label proxies
+	* Need to make sure label policies can be enforced...
+		* Handle H on A must map to a particular handle H' on B.
+		* when B talks to other machines about H it must use H, and not H'.
+	* How do label proxies determine handle mapping?
+		* Have a notion of 'native' and 'foreign' label.
+		* An object has one native label (w/ native handles) and possibly many
+		  foreign labels (w/ foreign handles).
+		* Object is created on a machine, and given its native label...foreign
+		  labels (w/ foreign hadles) can be assigned dynamically by remote 
+		  machines when they recieve an object w/ a labels containing unseen
+		  handles.
+		* When a object w/ reconized label/handles is recieved, the label is
+		  converted.
+		* Native labels always used when communicating across machines.
+	* When to garbage collect foreign handles maintained by proxies?  
+	* Must have a notion of users?
