@@ -56,6 +56,11 @@ log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
 
     struct btree_node *node;
     TAILQ_FOREACH(node, nodes, node_log_link) {
+#if 0
+	if (!node->block.is_dirty)
+	    continue;
+#endif
+
 	assert(off + n * PGSIZE < log.npages * PGSIZE + log.byteoff);
 	s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE,
 			      off + n * PGSIZE);
@@ -64,6 +69,7 @@ log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
 	    return -E_IO;
 	}
 	hash_put(&log.disk_map, node->block.offset, off + n * PGSIZE);
+	node->block.is_dirty = 0;
 	n++;
     }
     *count = n;
@@ -177,6 +183,7 @@ log_write(struct btree_node *node)
     memcpy(store, node,
 	   BTREE_NODE_SIZE(node->tree->order, node->tree->s_key));
     TAILQ_INSERT_TAIL(&log.nodes, store, node_log_link);
+    store->block.is_dirty = 1;
     return 0;
 }
 
@@ -207,7 +214,7 @@ log_flush(void)
     if ((r = log_write_to_log(&log.nodes, &count, off)) < 0)
 	return r;
 
-    assert(count == log.in_mem);
+    assert(count <= log.in_mem);
     log.on_disk += count;
 
     return log.on_disk;
