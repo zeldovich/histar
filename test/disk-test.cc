@@ -252,17 +252,26 @@ do_flush(void)
 }
 
 static void
-do_apply(void)
+do_apply_disk(void)
 {
     if (logging)
-	printf("applying log\n");
+	printf("applying log disk\n");
 
     int flushed = log_flush();
     assert(flushed >= 0);
     log_size += flushed;
 
-    printf("applying log %ld\n", log_size);
     assert(0 == log_apply_disk(log_size));
+    log_size = 0;
+}
+
+static void
+do_apply_mem(void)
+{
+    if (logging)
+	printf("appying log mem\n");
+
+    should_be(log_apply_mem(), 0, "applying log disk+mem");
     log_size = 0;
 }
 
@@ -288,7 +297,8 @@ static struct {
     { &do_delete,	1000	},
     { &do_traverse,	50	},
     { &do_flush,	50	},
-    { &do_apply,	20	},
+    { &do_apply_disk,	20	},
+    { &do_apply_mem,	0	},
     { &do_sanity_check,	10	},
 };
 
