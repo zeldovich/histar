@@ -55,7 +55,8 @@ btree_destroy_node(struct btree_node *node)
     struct btree *tree = node->tree;
 
     if ((r = btree_close_node(tree->id, node->block.offset)) < 0)
-	panic("btree_destroy_node: unable to close node: %s", e2s(r));
+	panic("btree_destroy_node: unable to close node(%lx): %s", 
+	      node->block.offset, e2s(r));
 }
 
 struct btree_node *
@@ -66,7 +67,7 @@ btree_read_node(struct btree *tree, offset_t offset)
     int r;
 
     if ((r = btree_open_node(tree->id, offset, &mem)) < 0)
-	panic("btree_read_node: unable to read node: %s", e2s(r));
+	panic("btree_read_node: unable to read node(%lx): %s", offset, e2s(r));
 
     n = (struct btree_node *) mem;
     n->children = CENT_CHILDREN(n);
@@ -84,7 +85,8 @@ btree_write_node(struct btree_node * node)
     struct btree *tree = node->tree;
 
     if ((r = btree_save_node(tree->id, node)) < 0)
-	panic("btree_write_node: unable to write node: %s", e2s(r));
+	panic("btree_write_node: unable to write node(%lx): %s", 
+	      node->block.offset, e2s(r));
 
     return node->block.offset;
 }
@@ -96,5 +98,6 @@ btree_erase_node(struct btree_node *node)
     struct btree *tree = node->tree;
 
     if ((r = btree_free_node(tree->id, node->block.offset)) < 0)
-	panic("btree_erase_node: unable to free node: %s", e2s(r));
+	panic("btree_erase_node: unable to free node(%lx): %s", 
+	      node->block.offset, e2s(r));
 }
