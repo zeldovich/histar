@@ -6,17 +6,19 @@ extern "C" {
 #include <kern/lib.h>
 }
 
+#include <inc/error.hh>
+
 void
 _panic(const char *file, int line, const char *fmt, ...)
 {
     va_list ap;
 
     va_start(ap, fmt);
-    printf("kernel panic: %s:%d: ", file, line);
-    vprintf(fmt, ap);
-    printf("\n");
+    char buf[4096];
+    vsprintf(&buf[0], fmt, ap);
     va_end(ap);
-    exit(-1);
+
+    throw basic_exception("kernel panic: %s:%d: %s", file, line, &buf[0]);
 }
 
 int

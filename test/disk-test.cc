@@ -23,7 +23,7 @@ extern "C" {
 
 enum { iterations = 100000 };
 enum { num_keys = 1000 };
-enum { logging = 0 };
+enum { logging = 1 };
 
 #define errno_check(expr) \
     do {								\
@@ -89,8 +89,103 @@ do_search(void)
     }
 }
 
-// XXX
-// add search_ltet, search_gtet
+static void
+do_search_leq(void)
+{
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1) + 1;
+    uint64_t val[2];
+
+    if (logging)
+	printf("search leq %lx\n", key);
+
+    int r = btree_ltet(BTREE_OBJMAP, &key, &key, &val[0]);
+    if (r == 0 && key == x_hash(rnd, magic1) + 1) {
+	printf("do_search_leq: coincidence?\n");
+	return;
+    }
+
+    if (key_exists[rnd]) {
+	should_be(r, 0, "search leq existing key");
+	assert(key == x_hash(rnd, magic1));
+	assert(val[0] == x_hash(key, magic1));
+	assert(val[1] == x_hash(key, magic2));
+    } else {
+	if (r == 0)
+	    assert(key != x_hash(rnd, magic1));
+    }
+}
+
+static void
+do_search_leq_e(void)
+{
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1);
+    uint64_t val[2];
+
+    if (logging)
+	printf("search leq-e %lx\n", key);
+
+    int r = btree_ltet(BTREE_OBJMAP, &key, &key, &val[0]);
+    if (key_exists[rnd]) {
+	should_be(r, 0, "search leq-e existing key");
+	assert(key == x_hash(rnd, magic1));
+	assert(val[0] == x_hash(key, magic1));
+	assert(val[1] == x_hash(key, magic2));
+    } else {
+	if (r == 0)
+	    assert(key != x_hash(rnd, magic1));
+    }
+}
+
+static void
+do_search_geq(void)
+{
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1) - 1;
+    uint64_t val[2];
+
+    if (logging)
+	printf("search geq %lx\n", key);
+
+    int r = btree_gtet(BTREE_OBJMAP, &key, &key, &val[0]);
+    if (r == 0 && key == x_hash(rnd, magic1) - 1) {
+	printf("do_search_geq: coincidence?\n");
+	return;
+    }
+
+    if (key_exists[rnd]) {
+	should_be(r, 0, "search geq existing key");
+	assert(key == x_hash(rnd, magic1));
+	assert(val[0] == x_hash(key, magic1));
+	assert(val[1] == x_hash(key, magic2));
+    } else {
+	if (r == 0)
+	    assert(key != x_hash(rnd, magic1));
+    }
+}
+
+static void
+do_search_geq_e(void)
+{
+    int rnd = (x_rand() % num_keys);
+    uint64_t key = x_hash(rnd, magic1);
+    uint64_t val[2];
+
+    if (logging)
+	printf("search geq-e %lx\n", key);
+
+    int r = btree_gtet(BTREE_OBJMAP, &key, &key, &val[0]);
+    if (key_exists[rnd]) {
+	should_be(r, 0, "search geq-e existing key");
+	assert(key == x_hash(rnd, magic1));
+	assert(val[0] == x_hash(key, magic1));
+	assert(val[1] == x_hash(key, magic2));
+    } else {
+	if (r == 0)
+	    assert(key != x_hash(rnd, magic1));
+    }
+}
 
 static void
 do_delete(void)
@@ -125,15 +220,24 @@ do_apply(void)
     log_size = 0;
 }
 
+static void
+do_sanity_check(void)
+{
+    btree_sanity_check(BTREE_OBJMAP);
+}
+
 static struct {
     void (*fn) (void);
     int weight;
 } ops[] = {
     { &do_insert,	10	},
     { &do_search,	500	},
+    { &do_search_leq,	100	},
+    { &do_search_geq,	100	},
     { &do_delete,	0	},
     { &do_flush,	0	},
     { &do_apply,	0	},
+    { &do_sanity_check,	100	},
 };
 
 static void
