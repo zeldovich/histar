@@ -246,9 +246,9 @@ do_flush(void)
     assert(flushed >= 0);
 
     if (logging)
-	printf("flushed log: %d pages\n", flushed);
+	printf("flushed log: %d pages (%d new pages)\n", flushed, flushed - log_size);
 
-    log_size += flushed;
+    log_size = flushed;
 }
 
 static void
@@ -259,9 +259,13 @@ do_apply_disk(void)
 
     int flushed = log_flush();
     assert(flushed >= 0);
-    log_size += flushed;
 
-    assert(0 == log_apply_disk(log_size));
+    if (logging)
+	printf("flushed log: %d pages (%d new pages) before apply\n",
+	       flushed, flushed - log_size);
+
+    log_size = flushed;
+    should_be(log_apply_disk(log_size), 0, "applying on-disk log");
     log_size = 0;
 }
 
