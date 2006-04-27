@@ -6,16 +6,8 @@
 #include <inc/queue.h>
 #include <btree/btree.h>
 
-#define BTREE_FLAG_LEAF     1
-
-#define BTB_SET_FLAG(block, flag)    (block).flags |= ((flag) << 4)
-#define BTB_GET_FLAG(block, flag)    (((block).flags >> 4) & (flag))
-
-#define BTREE_IS_LEAF(node) (BTB_GET_FLAG((node)->block, BTREE_FLAG_LEAF) == 1)
-#define BTREE_SET_LEAF(node) BTB_SET_FLAG((node)->block, BTREE_FLAG_LEAF)
-
-#define BTB_SET_FLAG(block, flag)    (block).flags |= ((flag) << 4)
-#define BTB_GET_FLAG(block, flag)    (((block).flags >> 4) & (flag))
+#define BTREE_IS_LEAF(node)	((node)->block.is_leaf)
+#define BTREE_SET_LEAF(node)	do { (node)->block.is_leaf = 1; } while (0)
 
 #define BTREE_NODE_SIZE(order, key_size) \
 		(sizeof(struct btree_node) + \

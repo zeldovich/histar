@@ -15,7 +15,9 @@ struct btree_node {
 
     struct {
 	offset_t offset;
-	uint16_t flags;
+
+	uint8_t is_leaf : 1;
+	uint8_t is_dirty : 1;	// used by the log
     } block;
 
     uint8_t keyCount;
