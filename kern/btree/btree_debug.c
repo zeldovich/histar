@@ -111,20 +111,15 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
     for (j = i; j > 0; j--)
 	cprintf("    ");
 
-    cprintf("[.");
+    cprintf("%s [.", BTREE_IS_LEAF(rootNode) ? "L" : "N");
 
     for (j = 0; j < rootNode->keyCount; j++) {
 	const offset_t *off = btree_key(rootNode, j);
-	//printf(" %ld .", *off);
-	cprintf(" %ld", off[0]);
-	int k = 1;
-	for (; k < tree->s_key; k++) {
-	    cprintf("|%ld", off[k]);
-	}
+	cprintf(" %016lx", off[0]);
+	for (int k = 1; k < tree->s_key; k++)
+	    cprintf("|%016lx", off[k]);
 	cprintf(" .");
-
     }
-    //printf(" %ld .", rootNode->keys[j]);
 
     if (BTREE_IS_LEAF(rootNode))
 	for (j = BTREE_LEAF_ORDER(rootNode) - rootNode->keyCount; j > 1; j--)
@@ -133,20 +128,17 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	for (j = tree->order - rootNode->keyCount; j > 1; j--)
 	    cprintf(" _____ .");
 
-    cprintf("] - %ld\n", rootOffset);
+    cprintf("] - %016lx\n", rootOffset);
 
     if (BTREE_IS_LEAF(rootNode)) {
 	btree_destroy_node(rootNode);
-	//btree_unpin_node(tree, rootNode);
 	return;
     }
 
     for (j = 0; j <= rootNode->keyCount; j++)
 	__btree_pretty_print(tree, rootNode->children[j], i + 1);
 
-
     btree_destroy_node(rootNode);
-    //btree_unpin_node(tree, rootNode);
 }
 
 void

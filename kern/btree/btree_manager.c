@@ -179,6 +179,12 @@ btree_pretty_print(uint64_t id)
 }
 
 void
+btree_sanity_check(uint64_t id)
+{
+    return btree_sanity_check_impl(btree[id].btree);
+}
+
+void
 btree_lock(uint64_t id)
 {
     lock_acquire(&btree[id].lock);

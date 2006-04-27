@@ -78,5 +78,6 @@ char btree_next_entry(struct btree_traversal *trav)
     __attribute__ ((warn_unused_result));
 
 void btree_pretty_print(uint64_t id);
+void btree_sanity_check(uint64_t id);
 
 #endif /* _BTREE_H_ */
