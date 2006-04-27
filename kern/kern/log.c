@@ -32,6 +32,9 @@ log_write_to_disk(struct node_list *nodes, uint64_t * count)
 
     struct btree_node *node;
     TAILQ_FOREACH(node, nodes, node_log_link) {
+	assert(node->block.offset < log.byteoff ||
+	       node->block.offset >= log.byteoff + log.npages * PGSIZE);
+
 	s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE,
 			      node->block.offset);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
