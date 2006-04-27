@@ -100,8 +100,11 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 	    } else {
 		const offset_t *temp1 =
 		    btree_value(rootNode, rootNode->keyCount);
-		if (*temp1 == 0)
-		    return 0;  // nothing is gte
+		if (*temp1 == 0) {
+		    // nothing is gte
+		    btree_destroy_node(rootNode);
+		    return 0;  
+		}
 
 		// ok, reading next pointer in node
 		struct btree_node *n = btree_read_node(tree, *temp1);

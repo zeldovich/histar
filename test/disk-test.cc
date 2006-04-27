@@ -21,7 +21,7 @@ extern "C" {
 
 #include <inc/error.hh>
 
-enum { iterations = 100000 };
+enum { iterations = 10000 };
 enum { num_keys = 1000 };
 enum { logging = 1 };
 
@@ -234,7 +234,7 @@ static struct {
     { &do_search,	500	},
     { &do_search_leq,	100	},
     { &do_search_geq,	100	},
-    { &do_delete,	0	},
+    { &do_delete,	20	},
     { &do_flush,	0	},
     { &do_apply,	0	},
     { &do_sanity_check,	100	},
@@ -289,8 +289,10 @@ try
     btree_manager_init();
     freelist_init(&freelist, RESERVED_PAGES * 4096, n_sectors * 512 - RESERVED_PAGES * 4096);
 
-    for (uint32_t i = 0; i < iterations; i++)
+    for (uint32_t i = 0; i < iterations; i++) {
+	printf("i %d\n", i);
 	do_something();
+    }
 
     printf("All done.\n");
 } catch (std::exception &e) {

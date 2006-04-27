@@ -104,7 +104,6 @@ cache_rem(struct cache *c, tag_t t)
     for (; i < c->n_ent; i++) {
 	if (c->meta[i].inuse && t == c->meta[i].tag) {
 	    memset(&c->buf[i * c->s_ent], 0, c->s_ent);
-	    //memset(&c->meta[i], 0 , sizeof(struct cmeta)) ;
 	    c->meta[i].inuse = 0;
 	    c->meta[i].ref--;
 
@@ -138,6 +137,16 @@ cache_dec_ref(struct cache *c, tag_t t)
     }
 
     return -E_NOT_FOUND;
+}
+
+int
+cache_refs(struct cache *c, tag_t t)
+{
+    int i = 0;
+    for (; i < c->n_ent; i++)
+	if (c->meta[i].inuse && t == c->meta[i].tag)
+	    return c->meta[i].ref;
+    panic("cache_refs: %lx not found", t);
 }
 
 int

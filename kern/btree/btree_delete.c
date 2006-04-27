@@ -554,29 +554,34 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
     merged = 0;
     success = 0;
 
+    cprintf("root refs %d\n", btree_refs_node(tree->id, tree->root));
+    
     /* Read in the root node. */
     rootNode = btree_read_node(tree, tree->root);
-
+    
     for (i = 0;
 	 i < rootNode->keyCount
 	 && btree_keycmp(btree_key(rootNode, i), key, tree->s_key) < 0; i++) ;
-
+    
+    cprintf("calling __delete...\n");
     success = __delete(tree, tree->root, NULL, key, i, filePos, &merged);
-
+    cprintf("__delete done!\n");
+    
     if (success == 0) {
 	btree_destroy_node(rootNode);
-	//cprintf("btree_delete stop\n") ;
 	btree_unlock(tree->id);
 	return -E_NOT_FOUND;
     }
 
     tree->size--;
 
-
     if (BTREE_IS_LEAF(rootNode) && rootNode->keyCount == 0) {
+	cprintf("here\n");
 	tree->root = 0;
 	tree->height = 0;
+	cprintf("btree_erase_node...\n");
 	btree_erase_node(rootNode);
+	cprintf("btree_erase_node done!\n");
 	btree_unlock(tree->id);
 	return 0;
     } else if (merged == 1 && rootNode->keyCount == 0) {

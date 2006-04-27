@@ -27,6 +27,8 @@ int  btree_save_node(uint64_t id, struct btree_node *n)
     __attribute__ ((warn_unused_result));
 int  btree_free_node(uint64_t id, uint64_t off)
     __attribute__ ((warn_unused_result));
+int btree_refs_node(uint64_t id, uint64_t off)
+    __attribute__ ((warn_unused_result));
 
 struct cache *btree_cache(uint64_t id);
 

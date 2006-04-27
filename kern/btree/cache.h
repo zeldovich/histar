@@ -21,7 +21,7 @@ struct cmeta {
     tag_t tag;
     uint16_t index;
 
-        TAILQ_ENTRY(cmeta) cm_link;
+    TAILQ_ENTRY(cmeta) cm_link;
 };
 
 TAILQ_HEAD(cmeta_list, cmeta);
@@ -48,6 +48,9 @@ int cache_rem(struct cache *c, tag_t t);
 
 int cache_num_ent(struct cache *c);
 int cache_num_pinned(struct cache *c);
+int cache_refs(struct cache *c, tag_t t);
+
+
 
 int cache_inc_ref(struct cache *c, tag_t t);
 int cache_dec_ref(struct cache *c, tag_t t);

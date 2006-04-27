@@ -128,6 +128,15 @@ btree_save_node(uint64_t id, struct btree_node *n)
     return btree[id].save(n);
 }
 
+int
+btree_refs_node(uint64_t id, uint64_t off)
+{
+    if (id >= BTREE_COUNT)
+	return -E_INVAL;
+    
+    return cache_refs(btree[id].cache, off);
+}
+
 ///////////////////////////////
 // client interface
 ///////////////////////////////
