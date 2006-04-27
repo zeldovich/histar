@@ -219,8 +219,9 @@ do_traverse(void)
     while (btree_next_entry(&trav)) {
 	uint64_t key = *trav.key;
 	int rnd = x_decrypt(key);
-	if (!key_exists[rnd])
-	    throw basic_exception("traversal: non-existant key");
+	if (rnd < 0 || rnd >= num_keys || !key_exists[rnd])
+	    throw basic_exception("traversal: non-existant key %lx [%d] (%lx %lx)",
+				  key, rnd, trav.val[0], trav.val[1]);
 	assert(trav.val[0] == x_hash(key, magic1));
 	assert(trav.val[1] == x_hash(key, magic2));
 	count_tree++;
