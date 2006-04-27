@@ -539,8 +539,13 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
     char merged, success;
     struct btree_node *rootNode;
 
-    if (tree == NULL || key == 0 || tree->root == 0)
+    if (tree == 0 || key == 0) {
+	cprintf("btree_delete_impl: null tree (%p) or key (%p)\n", tree, key);
 	return -E_INVAL;
+    }
+
+    if (tree->root == 0)
+	return -E_NOT_FOUND;
 
     btree_lock(tree->id);
 
