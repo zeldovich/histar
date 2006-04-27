@@ -574,6 +574,7 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
     if (BTREE_IS_LEAF(rootNode) && rootNode->keyCount == 0) {
 	tree->root = 0;
 	tree->height = 0;
+	tree->left_leaf = 0;
 	btree_erase_node(rootNode);
 	btree_unlock(tree->id);
 	return 0;
