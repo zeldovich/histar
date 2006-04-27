@@ -6,9 +6,11 @@
 extern "C" {
 #include <inc/sha1.h>
 #include <inc/arc4.h>
+#include <inc/bf60.h>
 }
 
 static arc4 a4;
+static bf_ctx bfc;
 
 uint64_t
 x_hash(uint64_t input1, uint64_t input2)
@@ -36,7 +38,20 @@ x_rand(void)
 }
 
 void
-x_srand(const char *s)
+x_init(const char *s)
 {
     arc4_setkey(&a4, s, strlen(s));
+    bf_setkey(&bfc, s, strlen(s));
+}
+
+uint64_t
+x_encrypt(uint64_t v)
+{
+    return bf64_encipher(&bfc, v);
+}
+
+uint64_t
+x_decrypt(uint64_t v)
+{
+    return bf64_decipher(&bfc, v);
 }

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/stat.h>
 
 extern "C" {
@@ -23,7 +24,7 @@ extern "C" {
 
 enum { iterations = 100000 };
 enum { num_keys = 1000 };
-enum { logging = 1 };
+enum { logging = 0 };
 
 #define errno_check(expr) \
     do {								\
@@ -54,7 +55,7 @@ static void
 do_insert(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1);
+    uint64_t key = x_encrypt(rnd);
     uint64_t val[2] = { x_hash(key, magic1), x_hash(key, magic2) };
 
     if (logging)
@@ -72,7 +73,7 @@ static void
 do_search(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1);
+    uint64_t key = x_encrypt(rnd);
     uint64_t val[2];
 
     if (logging)
@@ -81,7 +82,7 @@ do_search(void)
     int r = btree_search(BTREE_OBJMAP, &key, &key, &val[0]);
     if (key_exists[rnd]) {
 	should_be(r, 0, "search existing key");
-	assert(key == x_hash(rnd, magic1));
+	assert(key == x_encrypt(rnd));
 	assert(val[0] == x_hash(key, magic1));
 	assert(val[1] == x_hash(key, magic2));
     } else {
@@ -93,26 +94,26 @@ static void
 do_search_leq(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1) + 1;
+    uint64_t key = x_encrypt(rnd) + 1;
     uint64_t val[2];
 
     if (logging)
 	printf("search leq %lx\n", key);
 
     int r = btree_ltet(BTREE_OBJMAP, &key, &key, &val[0]);
-    if (r == 0 && key == x_hash(rnd, magic1) + 1) {
+    if (r == 0 && key == x_encrypt(rnd) + 1) {
 	printf("do_search_leq: coincidence?\n");
 	return;
     }
 
     if (key_exists[rnd]) {
 	should_be(r, 0, "search leq existing key");
-	assert(key == x_hash(rnd, magic1));
+	assert(key == x_encrypt(rnd));
 	assert(val[0] == x_hash(key, magic1));
 	assert(val[1] == x_hash(key, magic2));
     } else {
 	if (r == 0)
-	    assert(key != x_hash(rnd, magic1));
+	    assert(key != x_encrypt(rnd));
     }
 }
 
@@ -120,7 +121,7 @@ static void
 do_search_leq_e(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1);
+    uint64_t key = x_encrypt(rnd);
     uint64_t val[2];
 
     if (logging)
@@ -129,12 +130,12 @@ do_search_leq_e(void)
     int r = btree_ltet(BTREE_OBJMAP, &key, &key, &val[0]);
     if (key_exists[rnd]) {
 	should_be(r, 0, "search leq-e existing key");
-	assert(key == x_hash(rnd, magic1));
+	assert(key == x_encrypt(rnd));
 	assert(val[0] == x_hash(key, magic1));
 	assert(val[1] == x_hash(key, magic2));
     } else {
 	if (r == 0)
-	    assert(key != x_hash(rnd, magic1));
+	    assert(key != x_encrypt(rnd));
     }
 }
 
@@ -142,26 +143,26 @@ static void
 do_search_geq(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1) - 1;
+    uint64_t key = x_encrypt(rnd) - 1;
     uint64_t val[2];
 
     if (logging)
 	printf("search geq %lx\n", key);
 
     int r = btree_gtet(BTREE_OBJMAP, &key, &key, &val[0]);
-    if (r == 0 && key == x_hash(rnd, magic1) - 1) {
+    if (r == 0 && key == x_encrypt(rnd) - 1) {
 	printf("do_search_geq: coincidence?\n");
 	return;
     }
 
     if (key_exists[rnd]) {
 	should_be(r, 0, "search geq existing key");
-	assert(key == x_hash(rnd, magic1));
+	assert(key == x_encrypt(rnd));
 	assert(val[0] == x_hash(key, magic1));
 	assert(val[1] == x_hash(key, magic2));
     } else {
 	if (r == 0)
-	    assert(key != x_hash(rnd, magic1));
+	    assert(key != x_encrypt(rnd));
     }
 }
 
@@ -169,7 +170,7 @@ static void
 do_search_geq_e(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1);
+    uint64_t key = x_encrypt(rnd);
     uint64_t val[2];
 
     if (logging)
@@ -178,12 +179,12 @@ do_search_geq_e(void)
     int r = btree_gtet(BTREE_OBJMAP, &key, &key, &val[0]);
     if (key_exists[rnd]) {
 	should_be(r, 0, "search geq-e existing key");
-	assert(key == x_hash(rnd, magic1));
+	assert(key == x_encrypt(rnd));
 	assert(val[0] == x_hash(key, magic1));
 	assert(val[1] == x_hash(key, magic2));
     } else {
 	if (r == 0)
-	    assert(key != x_hash(rnd, magic1));
+	    assert(key != x_encrypt(rnd));
     }
 }
 
@@ -191,7 +192,7 @@ static void
 do_delete(void)
 {
     int rnd = (x_rand() % num_keys);
-    uint64_t key = x_hash(rnd, magic1);
+    uint64_t key = x_encrypt(rnd);
 
     if (logging)
 	printf("delete key %lx\n", key);
@@ -206,16 +207,53 @@ do_delete(void)
 }
 
 static void
+do_traverse(void)
+{
+    if (logging)
+	printf("traversal\n");
+
+    struct btree_traversal trav;
+    should_be(btree_init_traversal(BTREE_OBJMAP, &trav), 0, "init traversal");
+
+    int count_tree = 0;
+    while (btree_next_entry(&trav)) {
+	uint64_t key = *trav.key;
+	int rnd = x_decrypt(key);
+	if (!key_exists[rnd])
+	    throw basic_exception("traversal: non-existant key");
+	assert(trav.val[0] == x_hash(key, magic1));
+	assert(trav.val[1] == x_hash(key, magic2));
+	count_tree++;
+    }
+
+    int count_should_be = 0;
+    for (int i = 0; i < num_keys; i++)
+	if (key_exists[i])
+	    count_should_be++;
+
+    assert(count_tree == count_should_be);
+}
+
+static void
 do_flush(void)
 {
+    if (logging)
+	printf("flushing log\n");
+
     int flushed = log_flush();
-    printf("flushed log: %d pages\n", flushed);
+
+    if (logging)
+	printf("flushed log: %d pages\n", flushed);
+
     log_size += flushed;
 }
 
 static void
 do_apply(void)
 {
+    if (logging)
+	printf("applying log\n");
+
     assert(0 == log_apply_disk(log_size));
     log_size = 0;
 }
@@ -223,6 +261,9 @@ do_apply(void)
 static void
 do_sanity_check(void)
 {
+    if (logging)
+	printf("sanity check\n");
+
     btree_sanity_check(BTREE_OBJMAP);
 }
 
@@ -230,13 +271,16 @@ static struct {
     void (*fn) (void);
     int weight;
 } ops[] = {
-    { &do_insert,	10	},
-    { &do_search,	500	},
-    { &do_search_leq,	100	},
-    { &do_search_geq,	100	},
+    { &do_insert,	100	},
+    { &do_search,	50	},
+    { &do_search_leq,	50	},
+    { &do_search_leq_e,	50	},
+    { &do_search_geq,	50	},
+    { &do_search_geq_e,	50	},
     { &do_delete,	20	},
-    { &do_flush,	0	},
-    { &do_apply,	0	},
+    { &do_traverse,	100	},
+    { &do_flush,	50	},
+    { &do_apply,	20	},
     { &do_sanity_check,	100	},
 };
 
@@ -250,13 +294,22 @@ do_something(void)
     int rv = x_rand() % total_weight;
     for (uint32_t i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
 	if (rv < ops[i].weight) {
+	    alarm(5);
 	    ops[i].fn();
+	    alarm(0);
 	    return;
 	}
 	rv -= ops[i].weight;
     }
 
     printf("do_something: bad weight logic?\n");
+}
+
+static void
+timeout(int signo)
+{
+    printf("timed out\n");
+    exit(-1);
 }
 
 int
@@ -268,7 +321,9 @@ try
 	exit(-1);
     }
 
-    x_srand("Helloooo randomness!");
+    signal(SIGALRM, &timeout);
+
+    x_init("Helloooo randomness!");
 
     int fd;
     errno_check(fd = open(av[1], O_RDWR));
@@ -293,7 +348,7 @@ try
 	do_something();
     }
 
-    printf("All done.\n");
+    printf("All done: %ld rounds.\n", iterations);
 } catch (std::exception &e) {
     printf("exception: %s\n", e.what());
 
