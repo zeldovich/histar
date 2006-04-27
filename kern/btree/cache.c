@@ -109,7 +109,7 @@ cache_rem(struct cache *c, tag_t t)
 	    c->meta[i].ref--;
 
 	    if (c->meta[i].ref != 0)
-		panic("cache_rem: entry %ld still has refs: %d", t,
+		panic("cache_rem: entry %lx still has refs: %d", t,
 		      c->meta[i].ref);
 
 	    c->meta[i].tag = 0;
