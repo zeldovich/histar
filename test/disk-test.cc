@@ -21,7 +21,7 @@ extern "C" {
 
 #include <inc/error.hh>
 
-enum { iterations = 10000 };
+enum { iterations = 100000 };
 enum { num_keys = 1000 };
 enum { logging = 1 };
 
@@ -290,7 +290,6 @@ try
     freelist_init(&freelist, RESERVED_PAGES * 4096, n_sectors * 512 - RESERVED_PAGES * 4096);
 
     for (uint32_t i = 0; i < iterations; i++) {
-	printf("i %d\n", i);
 	do_something();
     }
 
