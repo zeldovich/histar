@@ -41,11 +41,14 @@ btree_key(struct btree_node *node, const int idx)
 BTREE_OP_ATTR int64_t
 btree_keycmp(const offset_t * key1, const offset_t * key2, int s_key)
 {
-    int i = 0;
-    int64_t r = 0;
-    for (; r == 0 && i < s_key; i++)
-	r = key1[i] - key2[i];
-    return r;
+    for (int i = 0; i < s_key; i++) {
+	if (key1[i] > key2[i])
+	    return 1;
+	if (key1[i] < key2[i])
+	    return -1;
+    }
+
+    return 0;
 }
 
 BTREE_OP_ATTR void
