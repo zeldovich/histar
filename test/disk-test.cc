@@ -22,7 +22,7 @@ extern "C" {
 
 #include <inc/error.hh>
 
-enum { iterations = 100000 };
+enum { iterations = 10000 };
 enum { num_keys = 10000 };
 enum { logging = 0 };
 
@@ -50,6 +50,7 @@ static uint64_t magic2 = 0xc0c0d0d0a0a0e0e0UL;
 
 static char key_exists[num_keys];
 static uint64_t log_size;
+static uint64_t cur_iter;
 
 static void
 do_insert(void)
@@ -242,6 +243,7 @@ do_flush(void)
 	printf("flushing log\n");
 
     int flushed = log_flush();
+    assert(flushed >= 0);
 
     if (logging)
 	printf("flushed log: %d pages\n", flushed);
@@ -255,6 +257,11 @@ do_apply(void)
     if (logging)
 	printf("applying log\n");
 
+    int flushed = log_flush();
+    assert(flushed >= 0);
+    log_size += flushed;
+
+    printf("applying log %ld\n", log_size);
     assert(0 == log_apply_disk(log_size));
     log_size = 0;
 }
@@ -345,13 +352,12 @@ try
     btree_manager_init();
     freelist_init(&freelist, RESERVED_PAGES * 4096, n_sectors * 512 - RESERVED_PAGES * 4096);
 
-    for (uint32_t i = 0; i < iterations; i++) {
+    for (cur_iter = 0; cur_iter < iterations; cur_iter++)
 	do_something();
-    }
 
     printf("All done: %ld rounds.\n", iterations);
 } catch (std::exception &e) {
-    printf("exception: %s\n", e.what());
+    printf("[iteration %ld] exception: %s\n", cur_iter, e.what());
 
     btree_sanity_check(BTREE_OBJMAP);
     btree_pretty_print(BTREE_OBJMAP);
