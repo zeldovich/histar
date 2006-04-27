@@ -21,9 +21,9 @@ extern "C" {
 
 #include <inc/error.hh>
 
-enum { iterations = 10000 };
+enum { iterations = 100000 };
 enum { num_keys = 1000 };
-enum { logging = 1 };
+enum { logging = 0 };
 
 #define errno_check(expr) \
     do {								\
