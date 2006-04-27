@@ -326,44 +326,33 @@ static char
 __addKeyToLeaf(struct btree *tree, struct btree_node *rootNode,
 	       uint64_t * key, offset_t * filePos, char *split)
 {
-    int i, j;
+    int i;
 
     assert(BTREE_IS_LEAF(rootNode));
-
     *split = 0;
 
-    for (i = 0; i < rootNode->keyCount && btree_keycmp(key, btree_key(rootNode, i), tree->s_key) > 0;	// cmp
-	 i++) ;
+    for (i = 0; i < rootNode->keyCount &&
+		btree_keycmp(key, btree_key(rootNode, i), tree->s_key) > 0;
+	 i++)
+	;
 
-
-    if (i < rootNode->keyCount && btree_keycmp(key, btree_key(rootNode, i), tree->s_key) == 0)	// cmp
+    if (i < rootNode->keyCount &&
+	btree_keycmp(key, btree_key(rootNode, i), tree->s_key) == 0)
     {
-	btree_valcpy(btree_value(rootNode, i), filePos, tree->s_value);
 	return 0;
     }
 
+    // Shift keys & values i through keyCount-1 into i+1 through keyCount
+    btree_keymove(btree_key(rootNode, i + 1), btree_key(rootNode, i),
+		  tree->s_key * (rootNode->keyCount - i));
+    btree_valmove(btree_value(rootNode, i + 1), btree_value(rootNode, i),
+		  tree->s_value * (rootNode->keyCount - i));
+
+    btree_keycpy(btree_key(rootNode, i), key, tree->s_key);
+    btree_valcpy(btree_value(rootNode, i), filePos, tree->s_value);
 
     rootNode->keyCount++;
-
-    // Shift keys i through keyCount-2 into i+1 through keyCount-1
-    btree_keymove(btree_key(rootNode, i + 1), btree_key(rootNode, i),
-    	      tree->s_key * (rootNode->keyCount - i - 1));
-    
-    //rootNode->keys[i]     = *key ;
-    btree_keycpy(btree_key(rootNode, i), key, tree->s_key);
-    
-    j = i;
-    
-    // Shift values j through keyCount-1 into j+1 through keyCount
-    // Why is this one more than the keys?
-    btree_valmove(btree_value(rootNode, j + 1), btree_value(rootNode, j),
-    	      tree->s_value * (rootNode->keyCount - j));
-    
-    //rootNode->children[j] = *filePos;
-    btree_valcpy(btree_value(rootNode, j), filePos, tree->s_value);
-
     btree_write_node(rootNode);
-
     return 1;
 }
 
@@ -381,13 +370,10 @@ __insertKey(struct btree *tree, offset_t rootOffset, uint64_t * key,
 
 	if (rootNode->keyCount < (BTREE_LEAF_ORDER(rootNode) - 1))
 	    success = __addKeyToLeaf(tree, rootNode, key, filePos, split);
-	//success = __addKey(tree, rootNode, key, filePos, split);
 	else
 	    success = __splitLeaf(tree, rootNode, key, filePos, split);
-	//success = __splitNode(tree, rootNode, key, filePos, split);
 
 	btree_destroy_node(rootNode);
-
 	return success;
     } else {
 	/* Internal node. */
@@ -432,8 +418,10 @@ btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
     else
 	btree_valset(v, 0, tree->s_value);
 
-    if (tree == NULL || key == 0)
+    if (tree == NULL || key == 0) {
+	cprintf("btree_insert_impl: null tree (%p) or key (%p)\n", tree, key);
 	return -E_INVAL;
+    }
 
     success = 0;
     split = 0;
