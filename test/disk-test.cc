@@ -23,7 +23,7 @@ extern "C" {
 
 enum { iterations = 10000 };
 enum { num_keys = 1000 };
-enum { logging = 0 };
+enum { logging = 1 };
 
 #define errno_check(expr) \
     do {								\
@@ -89,6 +89,9 @@ do_search(void)
     }
 }
 
+// XXX
+// add search_ltet, search_gtet
+
 static void
 do_delete(void)
 {
@@ -126,11 +129,11 @@ static struct {
     void (*fn) (void);
     int weight;
 } ops[] = {
-    { &do_insert,	100	},
+    { &do_insert,	10	},
     { &do_search,	500	},
-    { &do_delete,	100	},
-    { &do_flush,	30	},
-    { &do_apply,	10	},
+    { &do_delete,	0	},
+    { &do_flush,	0	},
+    { &do_apply,	0	},
 };
 
 static void
@@ -188,4 +191,7 @@ try
     printf("All done.\n");
 } catch (std::exception &e) {
     printf("exception: %s\n", e.what());
+
+    btree_sanity_check(BTREE_OBJMAP);
+    btree_pretty_print(BTREE_OBJMAP);
 }
