@@ -49,16 +49,13 @@ __removeKey(struct btree *tree, struct btree_node *rootNode,
 	btree_keymove(btree_key(rootNode, i), btree_key(rootNode, i + 1),
 		      tree->s_key * (rootNode->keyCount - i - 1));
 
-	// Move values i+1 through keyCount-1 into i through keyCount-2
+	// Move values i+1 through keyCount into i through keyCount-1
 	btree_valmove(btree_value(rootNode, i), btree_value(rootNode, i + 1),
-		      tree->s_value * (rootNode->keyCount - i - 1));
+		      tree->s_value * (rootNode->keyCount - i));
 
 	i = rootNode->keyCount - 1;
 	//rootNode->keys[i]         = 0;
 	btree_keyset(btree_key(rootNode, i), 0, tree->s_key);
-
-	//rootNode->children[i]     = rootNode->children[i + 1];
-	bt_valcpy(rootNode, i, rootNode, i + 1);
 
 	//rootNode->children[i + 1] = 0;
 	btree_valset(btree_value(rootNode, i + 1), 0, tree->s_value);
