@@ -346,7 +346,7 @@ __addKeyToLeaf(struct btree *tree, struct btree_node *rootNode,
     btree_keymove(btree_key(rootNode, i + 1), btree_key(rootNode, i),
 		  tree->s_key * (rootNode->keyCount - i));
     btree_valmove(btree_value(rootNode, i + 1), btree_value(rootNode, i),
-		  tree->s_value * (rootNode->keyCount - i));
+		  tree->s_value * (rootNode->keyCount - i + 1));
 
     btree_keycpy(btree_key(rootNode, i), key, tree->s_key);
     btree_valcpy(btree_value(rootNode, i), filePos, tree->s_value);
