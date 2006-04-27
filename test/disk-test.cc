@@ -126,11 +126,11 @@ static struct {
     void (*fn) (void);
     int weight;
 } ops[] = {
-    { &do_insert, 100 },
-    { &do_search, 500 },
-    { &do_delete, 100 },
-    { &do_flush,  50  },
-    { &do_apply,  10  },
+    { &do_insert,	100	},
+    { &do_search,	500	},
+    { &do_delete,	100	},
+    { &do_flush,	30	},
+    { &do_apply,	10	},
 };
 
 static void
