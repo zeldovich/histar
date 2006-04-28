@@ -15,6 +15,7 @@ extern "C" {
 #include <inc/sha1.h>
 #include <inc/error.h>
 #include <btree/btree.h>
+#include <btree/cache.h>
 #include <kern/freelist.h>
 #include <kern/log.h>
 #include <kern/disklayout.h>
@@ -280,6 +281,15 @@ do_apply_mem(void)
 }
 
 static void
+do_cache_flush(void)
+{
+    if (logging)
+	printf("cache flush\n");
+
+    cache_flush(btree_cache(BTREE_OBJMAP));
+}
+
+static void
 do_sanity_check(void)
 {
     if (logging)
@@ -302,7 +312,8 @@ static struct {
     { &do_traverse,	50	},
     { &do_flush,	50	},
     { &do_apply_disk,	20	},
-    { &do_apply_mem,	0	},
+    { &do_apply_mem,	30	},
+    { &do_cache_flush,	100	},
     { &do_sanity_check,	10	},
 };
 

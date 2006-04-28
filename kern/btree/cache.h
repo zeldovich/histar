@@ -50,9 +50,9 @@ int cache_num_ent(struct cache *c);
 int cache_num_pinned(struct cache *c);
 int cache_refs(struct cache *c, tag_t t);
 
-
-
 int cache_inc_ref(struct cache *c, tag_t t);
 int cache_dec_ref(struct cache *c, tag_t t);
+
+void cache_flush(struct cache *c);
 
 #endif /*CACHE_H_ */

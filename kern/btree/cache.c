@@ -203,3 +203,14 @@ cache_init(struct cache *c)
 
     return 0;
 }
+
+void
+cache_flush(struct cache *c)
+{
+    for (int i = 0; i < c->n_ent; i++) {
+	if (c->meta[i].ref != 0)
+	    panic("cache_clear: referenced cache entry");
+	c->meta[i].inuse = 0;
+	c->meta[i].tag = 0;
+    }
+}
