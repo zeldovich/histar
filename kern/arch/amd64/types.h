@@ -22,6 +22,8 @@ typedef unsigned int uint32_t;
 #ifndef CODE32
 typedef long int64_t;
 typedef unsigned long uint64_t;
+typedef __int128_t int128_t;
+typedef __uint128_t uint128_t;
 #else /* CODE32 */
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
