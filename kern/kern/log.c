@@ -56,10 +56,8 @@ log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
 
     struct btree_node *node;
     TAILQ_FOREACH(node, nodes, node_log_link) {
-#if 0
 	if (!node->block.is_dirty)
 	    continue;
-#endif
 
 	assert(off + n * PGSIZE < log.npages * PGSIZE + log.byteoff);
 	s = stackwrap_disk_io(op_write, node, BTREE_BLOCK_SIZE,
