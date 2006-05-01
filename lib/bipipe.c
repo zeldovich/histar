@@ -9,6 +9,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/socket.h>
 
 enum { bipipe_bufsz = 2000 };
 
@@ -234,6 +235,39 @@ bipipe_close(struct Fd *fd)
 	pthread_mutex_lock(&op->mu);
 	op->open = 0;
 	pthread_mutex_unlock(&op->mu);
+        sys_sync_wakeup(&op->bytes);
+    }
+
+    segment_unmap_delayed(bs, 1);
+    return 0;
+}
+
+static int
+bipipe_shutdown(struct Fd *fd, int how)
+{
+    struct bipipe_seg *bs = 0;
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+			(void **) &bs, 0);
+    if (r < 0) {
+	cprintf("bipipe_shutdown: cannot segment_map: %s\n", e2s(r));
+	errno = EIO;
+	return -1;
+    }
+
+    if (how == SHUT_RD || how == SHUT_RDWR) {
+	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
+	pthread_mutex_lock(&op->mu);
+	op->open = 0;
+	pthread_mutex_unlock(&op->mu);
+	sys_sync_wakeup(&op->bytes);
+    }
+
+    if (how == SHUT_WR || how == SHUT_RDWR) {
+	struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
+	pthread_mutex_lock(&op->mu);
+	op->open = 0;
+	pthread_mutex_unlock(&op->mu);
+	sys_sync_wakeup(&op->bytes);
     }
 
     segment_unmap_delayed(bs, 1);
@@ -247,4 +281,5 @@ struct Dev devbipipe = {
     .dev_write = &bipipe_write,
     .dev_probe = &bipipe_probe,
     .dev_close = &bipipe_close,
+    .dev_shutdown = &bipipe_shutdown,
 };
