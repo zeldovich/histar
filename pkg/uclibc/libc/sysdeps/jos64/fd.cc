@@ -32,11 +32,16 @@ extern "C" {
 // Return the 'struct Fd*' for file descriptor index i
 #define INDEX2FD(i)	((struct Fd*) (FDTABLE + (i)*PGSIZE))
 
+enum { fd_missing_debug = 1 };
+
 // Check for null function pointers before invoking a device method
 #define DEV_CALL(dev, fn, ...)					\
     ({								\
 	__typeof__(dev->dev_##fn (__VA_ARGS__)) __r;		\
 	if (!dev->dev_##fn) {					\
+	    if (fd_missing_debug)				\
+		cprintf("Missing op: %s for type %s\n",		\
+			#fn, dev->dev_name);			\
 	    __set_errno(EOPNOTSUPP);				\
 	    __r = -1;						\
 	} else {						\
