@@ -1,12 +1,15 @@
-#include <inc/syscall.h>
-#include <inc/stdio.h>
+#include <inc/lib.h>
+#include <stdio.h>
 
 int
 main(int ac, char **av)
 {
+    uint64_t a, b, c;
+
     for (;;) {
-	printf("foo and yielding.\n");
-	for (int i = 0; i < 10000; i++)
-	    sys_thread_yield();
+	for (int i = 0; i < 100000000; i++)
+	    a = b + c;
+
+	printf("foo %ld\n", thread_id());
     }
 }
