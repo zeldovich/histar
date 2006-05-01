@@ -32,6 +32,8 @@ netd_dispatch(struct netd_op_args *a)
 {
     lwip_core_lock();
 
+    int err_fd = -1;
+
     struct sockaddr_in sin;
     socklen_t sinlen = sizeof(sin);
 
@@ -45,6 +47,7 @@ netd_dispatch(struct netd_op_args *a)
     case netd_op_bind:
 	netd_to_lwip(&a->bind.sin, &sin);
 
+	err_fd = a->bind.fd;
 	a->rval = lwip_bind(a->bind.fd,
 			    (struct sockaddr *) &sin, sinlen);
 	break;
@@ -52,16 +55,19 @@ netd_dispatch(struct netd_op_args *a)
     case netd_op_connect:
 	netd_to_lwip(&a->connect.sin, &sin);
 
+	err_fd = a->connect.fd;
 	a->rval = lwip_connect(a->connect.fd,
 			       (struct sockaddr *) &sin, sinlen);
 	break;
 
     case netd_op_listen:
+	err_fd = a->listen.fd;
 	a->rval = lwip_listen(a->listen.fd,
 			      a->listen.backlog);
 	break;
 
     case netd_op_accept:
+	err_fd = a->accept.fd;
 	a->rval = lwip_accept(a->accept.fd,
 			      (struct sockaddr *) &sin, &sinlen);
 	lwip_to_netd(&sin, &a->accept.sin);
@@ -71,6 +77,7 @@ netd_dispatch(struct netd_op_args *a)
 	{
 	    a->rval = 0;
 
+	    err_fd = a->recv.fd;
 	    while (!a->recv.flags && a->rval < (ssize_t) a->recv.count) {
 		ssize_t cc = lwip_recv(a->recv.fd, &a->recv.buf[a->rval],
 				       a->recv.count - a->rval,
@@ -93,6 +100,7 @@ netd_dispatch(struct netd_op_args *a)
 	break;
 
     case netd_op_send:
+	err_fd = a->send.fd;
 	a->rval = lwip_send(a->send.fd,
 			    &a->send.buf[0],
 			    a->send.count, a->send.flags);
@@ -101,22 +109,26 @@ netd_dispatch(struct netd_op_args *a)
 	break;
 
     case netd_op_close:
+	err_fd = a->close.fd;
 	a->rval = lwip_close(a->close.fd);
 	break;
 
     case netd_op_getsockname:
+	err_fd = a->getsockname.fd;
         a->rval = lwip_getsockname(a->getsockname.fd, 
                                    (struct sockaddr *) &sin, &sinlen);
 	lwip_to_netd(&sin, &a->getsockname.sin);
         break ;
     
     case netd_op_getpeername:
+	err_fd = a->getpeername.fd;
         a->rval = lwip_getpeername(a->getpeername.fd, 
                                    (struct sockaddr *) &sin, &sinlen);
 	lwip_to_netd(&sin, &a->getpeername.sin);
         break ;
 
     case netd_op_setsockopt:
+	err_fd = a->setsockopt.fd;
         a->rval = lwip_setsockopt(a->setsockopt.fd,
                                   a->setsockopt.level,
                                   a->setsockopt.optname,
@@ -125,6 +137,7 @@ netd_dispatch(struct netd_op_args *a)
         break;
 
     case netd_op_getsockopt:
+	err_fd = a->getsockopt.fd;
 	a->getsockopt.optlen = sizeof(a->getsockopt.optval);
         a->rval = lwip_getsockopt(a->getsockopt.fd, 
                                   a->getsockopt.level,
@@ -140,6 +153,7 @@ netd_dispatch(struct netd_op_args *a)
 	    FD_SET(a->select.fd, &set);
 	    struct timeval tv = {0, 0};
     
+	    err_fd = a->select.fd;
 	    if (a->select.write)
 		a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv);
 	    else
@@ -149,12 +163,20 @@ netd_dispatch(struct netd_op_args *a)
 	}
 
     case netd_op_shutdown:
+	err_fd = a->shutdown.fd;
 	a->rval = lwip_shutdown(a->shutdown.fd, a->shutdown.how);
 	break;
 
     default:
 	cprintf("netd_dispatch: unknown netd op %d\n", a->op_type);
 	a->rval = -E_INVAL;
+    }
+
+    if (a->rval < 0 && err_fd >= 0) {
+	socklen_t len = sizeof(a->errno);
+	lwip_getsockopt(err_fd, SOL_SOCKET, SO_ERROR, &a->errno, &len);
+    } else {
+	a->errno = 0;
     }
 
     lwip_core_unlock();

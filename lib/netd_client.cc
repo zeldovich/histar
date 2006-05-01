@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/gateparam.h>
 
 #include <string.h>
+#include <errno.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -136,6 +137,9 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	try {
 	    netd_fast_init();
 	    netd_fast_call(a);
+
+	    if (a->rval < 0)
+		errno = a->errno;
 	    return a->rval;
 	} catch (std::exception &e) {
 	    cprintf("netd_call: cannot fast-call: %s\n", e.what());
@@ -176,5 +180,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
     if (a->rval >= 0)
 	do_fast_calls = 1;
 
+    if (a->rval < 0)
+	errno = a->errno;
     return a->rval;
 }

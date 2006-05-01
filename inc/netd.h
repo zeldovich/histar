@@ -116,6 +116,7 @@ struct netd_op_args {
     netd_op_t op_type;
     int size;
     int rval;
+    int errno;
 
     union {
 	struct netd_op_socket_args socket;
