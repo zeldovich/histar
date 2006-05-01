@@ -87,9 +87,13 @@ static int err_to_errno_table[11] = {
     EADDRINUSE    /* ERR_USE  -10     Address in use.          */
 };
 
-#define err_to_errno(err) \
-  ((err) < (sizeof(err_to_errno_table)/sizeof(int))) ? \
-    err_to_errno_table[-(err)] : EIO
+#define err_to_errno(err)					\
+  (								\
+    ( (-(err) >= 0) &&						\
+      (-(err) < (sizeof(err_to_errno_table)/sizeof(int))) )	\
+    ? err_to_errno_table[-(err)]				\
+    : EIO							\
+  )
 
 #ifdef ERRNO
 #define set_errno(err) errno = (err)
