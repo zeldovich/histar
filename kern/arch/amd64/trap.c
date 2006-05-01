@@ -157,6 +157,8 @@ trap_handler (struct Trapframe *tf)
     }
 
     struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
+    sched_stop(t);
+
     t->th_tf = *tf;
     if (t->th_fp_enabled) {
 	void *p;

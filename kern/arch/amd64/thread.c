@@ -7,6 +7,7 @@
 #include <machine/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
+#include <kern/sched.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -34,13 +35,30 @@ thread_unpin(struct Thread *t)
     }
 }
 
+static void
+thread_sched_adjust(struct Thread *t, int runnable)
+{
+    if (t->th_sched_joined && !runnable) {
+	sched_leave(t);
+	t->th_sched_joined = 0;
+    }
+
+    if (!t->th_sched_joined && runnable) {
+	sched_join(t);
+	t->th_sched_joined = 1;
+    }
+}
+
 void
 thread_set_runnable(const struct Thread *const_t)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
+    thread_sched_adjust(t, 0);
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
+    thread_sched_adjust(t, 1);
+
     t->th_status = thread_runnable;
     thread_pin(t);
 }
@@ -50,6 +68,7 @@ thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
+    thread_sched_adjust(t, 0);
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(waitq, t, th_link);
     t->th_status = thread_suspended;
@@ -61,6 +80,7 @@ thread_halt(const struct Thread *const_t)
 {
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
+    thread_sched_adjust(t, 0);
     LIST_REMOVE(t, th_link);
     LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
     t->th_status = thread_halted;
@@ -107,6 +127,7 @@ thread_swapin(struct Thread *t)
 {
     t->th_as = 0;
     t->th_pinned = 0;
+    t->th_sched_joined = 0;
 
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
@@ -117,8 +138,10 @@ thread_swapin(struct Thread *t)
     LIST_INSERT_HEAD(tq, t, th_link);
 
     // Runnable and suspended threads are pinned
-    if (SAFE_EQUAL(t->th_status, thread_runnable))
+    if (SAFE_EQUAL(t->th_status, thread_runnable)) {
+	thread_sched_adjust(t, 1);
 	thread_pin(t);
+    }
 }
 
 static void
@@ -134,6 +157,7 @@ void
 thread_swapout(struct Thread *t)
 {
     thread_unpin(t);
+    thread_sched_adjust(t, 0);
     LIST_REMOVE(t, th_link);
 
     thread_clear_as(t);
@@ -180,6 +204,7 @@ thread_run(const struct Thread *t)
 	lcr0(rcr0() | CR0_TS);
     }
 
+    sched_start(t);
     trapframe_pop(&t->th_tf);
 }
 

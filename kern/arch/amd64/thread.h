@@ -18,10 +18,10 @@ typedef SAFE_TYPE(uint8_t) thread_status;
 struct Thread {
     struct kobject_hdr th_ko;
 
+    struct Trapframe th_tf __attribute__ ((aligned (16)));
+
     struct cobj_ref th_asref;
     const struct Address_space *th_as;
-
-    struct Trapframe th_tf __attribute__ ((aligned (16)));
 
     // The thread-local segment
     kobject_id_t th_sg;
@@ -30,9 +30,15 @@ struct Thread {
     uint8_t th_pinned : 1;
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
+    uint8_t th_sched_joined : 1;
 
     uint64_t th_wakeup_msec;
     uint64_t th_wakeup_addr;
+
+    union {
+	uint128_t th_sched_pass;
+	int128_t th_sched_remain;
+    };
 
     LIST_ENTRY(Thread) th_link;
 };
