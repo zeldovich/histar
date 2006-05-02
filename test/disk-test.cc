@@ -23,8 +23,9 @@ extern "C" {
 
 #include <inc/error.hh>
 
-enum { iterations = 10000 };
+enum { iterations = 100000 };
 enum { num_keys = 10000 };
+enum { max_repeats = 100 };
 enum { logging = 0 };
 
 #define errno_check(expr) \
@@ -300,21 +301,22 @@ do_sanity_check(void)
 
 static struct {
     void (*fn) (void);
+    int randomized;
     int weight;
 } ops[] = {
-    { &do_insert,	1000	},
-    { &do_search,	50	},
-    { &do_search_leq,	50	},
-    { &do_search_leq_e,	50	},
-    { &do_search_geq,	50	},
-    { &do_search_geq_e,	50	},
-    { &do_delete,	1000	},
-    { &do_traverse,	50	},
-    { &do_flush,	50	},
-    { &do_apply_disk,	20	},
-    { &do_apply_mem,	30	},
-    { &do_cache_flush,	100	},
-    { &do_sanity_check,	10	},
+    { &do_insert,	1,	100	},
+    { &do_search,	1,	50	},
+    { &do_search_leq,	1,	50	},
+    { &do_search_leq_e,	1,	50	},
+    { &do_search_geq,	1,	50	},
+    { &do_search_geq_e,	1,	50	},
+    { &do_delete,	1,	100	},
+    { &do_traverse,	0,	50	},
+    { &do_flush,	0,	50	},
+    { &do_apply_disk,	0,	20	},
+    { &do_apply_mem,	0,	30	},
+    { &do_cache_flush,	0,	100	},
+    { &do_sanity_check,	0,	10	},
 };
 
 static void
@@ -327,9 +329,16 @@ do_something(void)
     int rv = x_rand() % total_weight;
     for (uint32_t i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
 	if (rv < ops[i].weight) {
-	    alarm(5);
-	    ops[i].fn();
-	    alarm(0);
+	    int repeat_count = x_rand() % max_repeats;
+	    if (!ops[i].randomized)
+		repeat_count = 1;
+
+	    for (int j = 0; j < repeat_count; j++) {
+		alarm(5);
+		ops[i].fn();
+		alarm(0);
+	    }
+
 	    return;
 	}
 	rv -= ops[i].weight;
