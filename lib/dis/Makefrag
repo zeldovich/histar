@@ -1,0 +1,9 @@
+OBJDIRS += lib/dis
+
+LIB_SRCFILES += lib/dis/proxy.cc \
+				lib/dis/proxydsrv.cc \
+				lib/dis/proxydclnt.cc
+
+$(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
