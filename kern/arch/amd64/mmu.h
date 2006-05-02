@@ -160,12 +160,12 @@
 		       | ((CAST64 (x) & 0xff000000) << 32))
 #define SEG_BASEHI(x) (CAST64 (x) >> 32)
 
-#define SEG32(type, base, lim, dpl)				\
-  ((type) | SEG_S | SEG_P | SEG_D | SEG_G | SEG_DPL (dpl)	\
+#define SEG32(type, base, lim, dpl)					\
+  ((type) | SEG_S | SEG_P | SEG_D | SEG_G | SEG_A | SEG_DPL (dpl)	\
    | SEG_BASELO (base) | SEG_LIM ((lim) >> 12))
 
-#define SEG64(type, dpl)					\
-  ((type) | SEG_S | SEG_P | SEG_G | SEG_L | SEG_DPL (dpl)	\
+#define SEG64(type, dpl)						\
+  ((type) | SEG_S | SEG_P | SEG_G | SEG_L | SEG_A | SEG_DPL (dpl)	\
    | SEG_LIM (0xffffffff))
 
 /* Target and segment selector for trap/interrupt gates */
