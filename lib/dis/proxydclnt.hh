@@ -5,6 +5,11 @@ extern "C" {
 #include <inc/types.h>
 }
 
-void proxyd_addmapping(char *ghandle, uint64_t handle);
+void proxyd_addmapping(char *global, uint64_t local, 
+                       uint64_t grant, uint8_t grant_level);
+
+int64_t proxyd_gethandle(char *global);
+
+
 
 #endif /*PROXYDCLNT_HH_*/

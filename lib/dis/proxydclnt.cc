@@ -1,21 +1,75 @@
 extern "C" {
 #include <inc/gateparam.h>
 #include <inc/lib.h>
+#include <inc/error.h>
+#include <string.h>
+#include <stdio.h>
 }
 
 #include <lib/dis/proxydclnt.hh>
+#include <lib/dis/proxydsrv.hh>
 
+#include <inc/labelutil.hh>
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
 
 
-void
-proxyd_addmapping(char *ghandle, uint64_t handle)
+static cobj_ref
+proxyd_server(void)
 {
-    gate_call_data gcd;
     int64_t dir_ct, dir_gt;
     error_check(dir_ct = container_find(start_env->root_container, kobj_container, "proxyd"));
     error_check(dir_gt = container_find(dir_ct, kobj_gate, "proxyd server"));
     
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, 0);
+    return COBJ(dir_ct, dir_gt);
+}
+
+void
+proxyd_addmapping(char *global, uint64_t local, 
+                  uint64_t grant, uint8_t grant_level)
+{
+    gate_call_data gcd;
+    proxyd_args *args = (proxyd_args *) gcd.param_buf;
+
+    cobj_ref server_gate = proxyd_server();
+    
+    uint64_t size = strlen(global) + 1;
+    if (size > sizeof(args->mapping.global))
+        throw error(-E_NO_SPACE,"%s too big (%ld > %ld)", global, 
+                    size, sizeof(args->mapping.global)); 
+        
+    strcpy(args->mapping.global, global);
+    args->mapping.local = local;
+    args->mapping.grant = grant;
+    args->mapping.grant_level = grant_level;
+    args->op = proxyd_add_mapping;
+
+    // XXX
+    label th_cl;
+    thread_cur_label(&th_cl);
+    gate_call(server_gate, 0, &th_cl, 0).call(&gcd, 0);
+}
+
+int64_t 
+proxyd_gethandle(char *global) 
+{
+    gate_call_data gcd;
+    proxyd_args *args = (proxyd_args *) gcd.param_buf;
+
+    cobj_ref server_gate = proxyd_server();
+
+    uint64_t size = strlen(global) + 1;    
+    if (size > sizeof(args->handle.global))
+        throw error(-E_NO_SPACE,"%s too big (%ld > %ld)", global, 
+                    size, sizeof(args->handle.global)); 
+    
+    strcpy(args->handle.global, global);
+    args->op = proxyd_get_handle;
+
+    // XXX        
+    label th_cl;
+    thread_cur_label(&th_cl);
+    gate_call(server_gate, 0, &th_cl, 0).call(&gcd, 0);
+    
+    return args->handle.local;
 }
