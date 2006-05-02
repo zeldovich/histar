@@ -52,11 +52,12 @@ ACPKG_BUILD_LIST := tar-1.15
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
 ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
 $(ACPKG_WRAPS):
 	@mkdir -p $(ACPKG_WRAPDIR)
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
-	echo "exec $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
 .PRECIOUS: acpkg/%/Makefile
@@ -121,7 +122,8 @@ $(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build 
-acpkg/openssh-4.3p2/__build: acpkg/openssl-0.9.8a/__build acpkg/openssh-4.3p2/Makefile 
+acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile $(LDEPS)
+	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install-nokeys" )
 	touch $@
