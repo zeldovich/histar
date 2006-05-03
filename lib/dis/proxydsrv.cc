@@ -1,4 +1,4 @@
-extern "C" {
+        extern "C" {
 #include <stdio.h>    
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
@@ -14,6 +14,8 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/error.hh>
 
+static const char server_taint = 0;
+
 static uint64_t mappings_ct = 0;
 
 struct global_handle {
@@ -28,10 +30,9 @@ static struct {
 } global_handle_map;
 
 static void __attribute__((noreturn))
-get_handle(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+get_local(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     proxyd_args *args = (proxyd_args *) parm->param_buf;
-    char *global = args->handle.global;
     uint64_t local = args->handle.local;
     
     label *ds = new label(3);
@@ -40,7 +41,7 @@ get_handle(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 }
 
 static uint64_t
-global_to_handle(char *global)
+global_to_local(char *global)
 {
     uint64_t mappings_gt;
     error_check(mappings_gt = container_find(mappings_ct, kobj_gate, global));
@@ -71,6 +72,17 @@ global_to_handle(char *global)
     return args->handle.local;    
 }
 
+static char*
+local_to_global(uint64_t local)
+{
+    scoped_pthread_lock(&global_handle_map.mu);    
+    global_handle *mapping = global_handle_map.mapping;
+    for (int i = 0; i < num_global_handle; i++)
+       if (mapping[i].handle == local)
+            return mapping[i].global;
+    return 0;
+}
+
 static void
 add_mapping(char *global, uint64_t local, 
                   uint64_t grant, uint8_t grant_level)
@@ -82,7 +94,7 @@ add_mapping(char *global, uint64_t local,
     c.set(start_env->process_grant, 0);
     
     cobj_ref r = gate_create(mappings_ct, global, &l, 
-                             &c, &get_handle, 0);
+                             &c, &get_local, 0);
     
     scoped_pthread_lock(&global_handle_map.mu);    
     global_handle *mapping = global_handle_map.mapping;                             
@@ -100,25 +112,33 @@ static void __attribute__((noreturn))
 proxyd_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     proxyd_args *args = (proxyd_args *) parm->param_buf;
+    label *cont = new label(LB_LEVEL_STAR);
+    if (server_taint)
+        cont->set(start_env->process_taint, 2);
     
     switch (args->op) {
-        case proxyd_add_mapping:
+        case proxyd_mapping:
             add_mapping(args->mapping.global, args->mapping.local, 
                         args->mapping.grant, args->mapping.grant_level);
             break;
-        case proxyd_get_handle: {
+        case proxyd_local: {
             label l, cl;
             thread_cur_label(&l);
             thread_cur_clearance(&cl);
-            uint64_t local = global_to_handle(args->handle.global);
+            uint64_t local = global_to_local(args->handle.global);
             args->handle.local = local;
             label *ds = new label(3);
             ds->set(local, LB_LEVEL_STAR);
-            gr->ret(0, ds, 0);        
-            break;
+            gr->ret(cont, ds, 0);        
         }
+        case proxyd_global: {
+            char *global = local_to_global(args->handle.local);
+            strcpy(args->handle.global, global);
+            break;    
+        }
+        
     }
-    gr->ret(0, 0, 0);    
+    gr->ret(cont, 0, 0);    
 }
 
 struct 

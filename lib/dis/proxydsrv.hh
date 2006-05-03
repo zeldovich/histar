@@ -8,8 +8,9 @@ struct cobj_ref proxydsrv_create(uint64_t container, const char *name,
 
 typedef enum
 {
-    proxyd_add_mapping,
-    proxyd_get_handle,
+    proxyd_mapping,
+    proxyd_local,
+    proxyd_global,
 } proxyd_op_t ;
 
 struct handle_mapping
