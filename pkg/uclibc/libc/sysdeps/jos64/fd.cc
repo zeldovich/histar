@@ -428,16 +428,17 @@ fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 
 static struct Dev *devtab[] =
 {
-	&devcons,
-	&devsock,
-	&devfile,
-	&devpipe,
-	&devtun,
-	&devbipipe,
-    	&devrand,
-	&devzero,
-	&devnull,
-	0
+    &devcons,
+    &devsock,
+    &devfile,
+    &devpipe,
+    &devtun,
+    &devbipipe,
+    &devrand,
+    &devzero,
+    &devnull,
+    &devremfile,
+    0
 };
 
 int

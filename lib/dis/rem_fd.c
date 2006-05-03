@@ -22,6 +22,9 @@ remfile_open(char *host, char *path)
         errno = ENOMEM;
         return -1;
     }
+    fd->fd_dev_id = devremfile.dev_id;
+    fd->fd_omode = O_RDWR;
+    
     return fd2num(fd);
 }
 
