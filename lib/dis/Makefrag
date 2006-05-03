@@ -1,9 +1,14 @@
 OBJDIRS += lib/dis
 
-LIB_SRCFILES += lib/dis/proxy.cc \
-				lib/dis/proxydsrv.cc \
-				lib/dis/proxydclnt.cc
+LIB_SRCFILES += lib/dis/proxydsrv.cc \
+				lib/dis/proxydclnt.cc \
+				lib/dis/rem_fd.c
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/dis/%.o: lib/dis/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+	
