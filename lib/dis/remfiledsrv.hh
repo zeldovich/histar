@@ -8,8 +8,9 @@ struct cobj_ref remfiledsrv_create(uint64_t container, label *label,
 
 typedef enum
 {
-    remfile_read,
-    remfile_write,
+    rf_read,
+    rf_write,
+    rf_open,
 } remfiled_op_t ;
 
 struct remfiled_args {
@@ -17,6 +18,10 @@ struct remfiled_args {
     rem_inode ino;
     uint64_t count;
     uint64_t off;
+    
+    char host[16];
+    char path[16];
+    int port;
     
     uint64_t grant; 
     uint64_t taint;   

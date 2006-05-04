@@ -5,7 +5,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 
-int remfile_open(char *host, char *path);
+int remfile_open(char *host, int port, char *path);
 }
 
 #include <inc/labelutil.hh>
@@ -17,7 +17,7 @@ main (int ac, char **av)
 {
     char buf[16];
     
-    int fd = remfile_open((char*)"1",(char*)"2");
+    int fd = remfile_open((char*)"127.0.0.1", 8080, (char*)"2");
     int count = read(fd, buf, 16);    
     printf("count %d\n", count);
     count = write(fd, buf, 16);    

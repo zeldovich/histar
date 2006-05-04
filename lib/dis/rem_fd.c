@@ -13,10 +13,10 @@
 
 #include <inc/remfile.h>
 
-int remfile_open(char *host, char *path);
+int remfile_open(char *host, int port, char *path);
 
 int
-remfile_open(char *host, char *path)
+remfile_open(char *host, int port, char *path)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "remfile");
@@ -26,6 +26,12 @@ remfile_open(char *host, char *path)
     }
     fd->fd_dev_id = devremfile.dev_id;
     fd->fd_omode = O_RDWR;
+
+    if ((r = remfiled_open(host, port, path, &fd->fd_remfile.ino)) < 0) {
+        jos_fd_close(fd);
+        errno = r;
+        return -1;    
+    }
     
     return fd2num(fd);
 }

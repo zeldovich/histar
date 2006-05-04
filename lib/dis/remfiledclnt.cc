@@ -2,6 +2,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
 #include <inc/remfile.h>
+#include <inc/error.h>
 #include <inc/lib.h>
 #include <string.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@ extern "C" {
 #include <inc/error.hh>
 
 #include <lib/dis/remfiledsrv.hh>
+#include <lib/dis/fileclient.hh>
 
 static cobj_ref
 remfiled_server(void)
@@ -30,7 +32,7 @@ remfiled_read(struct rem_inode f, void *buf, uint64_t count, uint64_t off)
     remfiled_args *args = (remfiled_args *) gcd.param_buf;
 
     cobj_ref server_gate = remfiled_server();
-    args->op = remfile_read;
+    args->op = rf_read;
     args->ino = f;
     args->count = count;
     args->off = off;
@@ -61,7 +63,7 @@ remfiled_write(struct rem_inode f, const void *buf, uint64_t count, uint64_t off
     remfiled_args *args = (remfiled_args *) gcd.param_buf;
 
     cobj_ref server_gate = remfiled_server();
-    args->op = remfile_write;
+    args->op = rf_write;
     args->ino = f;
     args->count = count;
     args->off = off;
@@ -85,4 +87,28 @@ remfiled_write(struct rem_inode f, const void *buf, uint64_t count, uint64_t off
     sys_obj_unref(seg);
     thread_drop_star(args->taint);
     return args->count;    
+}
+
+int 
+remfiled_open(char *host, int port, char *path, struct rem_inode *ino)
+{
+    gate_call_data gcd;
+    remfiled_args *args = (remfiled_args *) gcd.param_buf;
+    
+    cobj_ref server_gate = remfiled_server();
+    args->op = rf_open;
+    if (strlen(host) + 1 > sizeof(args->host)) {
+        printf("remfiled_open: host exceeds %ld\n", sizeof(args->host));
+        return -E_NO_SPACE;    
+    }
+    strcpy(args->host, host);
+    if (strlen(path) + 1 > sizeof(args->path)) {
+        printf("remfiled_open: path exceeds %ld\n", sizeof(args->path));    
+        return -E_NO_SPACE;    
+    }
+    strcpy(args->path, path);
+   
+    gate_call(server_gate, 0, 0, 0).call(&gcd, 0);
+    memcpy(ino, &args->ino, sizeof(args->ino));
+    return 0;    
 }
