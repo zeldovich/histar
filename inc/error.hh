@@ -33,7 +33,7 @@ private:
     do {					\
 	int64_t __r = (expr);			\
 	if (__r < 0)				\
-	    throw error(__r, "%s", #expr);	\
+	    throw error(__r, "%s:%u:%s", __FILE__, __LINE__, #expr);	\
     } while (0)
 
 #endif
