@@ -107,6 +107,7 @@ remfiled_open(char *host, int port, char *path, struct rem_inode *ino)
         return -E_NO_SPACE;    
     }
     strcpy(args->path, path);
+    args->port = port;
    
     gate_call(server_gate, 0, 0, 0).call(&gcd, 0);
     memcpy(ino, &args->ino, sizeof(args->ino));

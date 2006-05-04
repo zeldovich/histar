@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/remfile.h>
 #include <inc/error.h>
+#include <machine/x86.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>

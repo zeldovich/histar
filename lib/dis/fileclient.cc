@@ -1,11 +1,13 @@
 extern "C" {
+#include <inc/error.h>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
 #include <stdio.h>        
-extern int poople(int domain, int type, int protocol);
+#include <errno.h>
 }
 
 int
@@ -38,5 +40,9 @@ fileclient_socket(void)
 int
 fileclient_connect(int s, struct sockaddr_in *addr)
 {
-    return connect(s, (struct sockaddr *)addr, sizeof(*addr));
+    if (connect(s, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+        printf("fileclient_connect: unable to connect\n");
+        return -E_INVAL;    
+    }
+    return 0;
 }

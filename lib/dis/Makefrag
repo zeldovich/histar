@@ -5,7 +5,9 @@ LIB_SRCFILES += lib/dis/proxydsrv.cc \
 				lib/dis/rem_fd.c \
 				lib/dis/remfiledclnt.cc \
 				lib/dis/remfiledsrv.cc \
-				lib/dis/fileclient.cc
+				lib/dis/fileclient.cc \
+				lib/dis/fileserver.cc
+				
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)
