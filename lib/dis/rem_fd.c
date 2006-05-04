@@ -11,6 +11,8 @@
 #include <signal.h>
 #include <sys/socket.h>
 
+#include <inc/remfile.h>
+
 int remfile_open(char *host, char *path);
 
 int
@@ -32,13 +34,13 @@ remfile_open(char *host, char *path)
 static ssize_t
 remfile_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    return 0;
+    return remfiled_read(fd->fd_remfile.ino, buf, count, offset);
 }
 
 static ssize_t
 remfile_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    return 0;    
+    return remfiled_write(fd->fd_remfile.ino, buf, count, offset);
 }
 
 static int

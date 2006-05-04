@@ -1,4 +1,4 @@
-        extern "C" {
+extern "C" {
 #include <stdio.h>    
 #include <inc/gateparam.h>
 #include <inc/syscall.h>

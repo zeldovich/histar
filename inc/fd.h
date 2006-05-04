@@ -7,6 +7,7 @@
 #include <inc/fs.h>
 #include <inc/pthread.h>
 #include <inc/label.h>
+#include <inc/remfile.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -99,6 +100,10 @@ struct Fd
         struct cobj_ref bipipe_seg;
         int bipipe_a;
 	} fd_bipipe;
+
+    struct {
+        struct rem_inode ino;
+    } fd_remfile;
 
 	struct {
 	    struct cobj_ref tun_seg;
