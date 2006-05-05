@@ -73,7 +73,7 @@
 #include "lwip/sys.h"
 #include "arch/perf.h"
 
-static u8_t pbuf_pool_memory[(PBUF_POOL_SIZE * MEM_ALIGN_SIZE(PBUF_POOL_BUFSIZE + sizeof(struct pbuf)))];
+static u8_t pbuf_pool_memory[MEM_ALIGNMENT - 1 + PBUF_POOL_SIZE * MEM_ALIGN_SIZE(PBUF_POOL_BUFSIZE + sizeof(struct pbuf))];
 
 #if !SYS_LIGHTWEIGHT_PROT
 static volatile u8_t pbuf_pool_free_lock, pbuf_pool_alloc_lock;
@@ -100,8 +100,7 @@ pbuf_init(void)
   struct pbuf *p, *q = NULL;
   u16_t i;
 
-  pbuf_pool = (struct pbuf *)&pbuf_pool_memory[0];
-  LWIP_ASSERT("pbuf_init: pool aligned", (mem_ptr_t)pbuf_pool % MEM_ALIGNMENT == 0);
+  pbuf_pool = (struct pbuf *)MEM_ALIGN(pbuf_pool_memory);
 
 #if PBUF_STATS
   lwip_stats.pbuf.avail = PBUF_POOL_SIZE;
@@ -465,16 +464,18 @@ pbuf_realloc(struct pbuf *p, u16_t new_len)
 u8_t
 pbuf_header(struct pbuf *p, s16_t header_size_increment)
 {
+  u16_t flags;
   void *payload;
 
   LWIP_ASSERT("p != NULL", p != NULL);
   if ((header_size_increment == 0) || (p == NULL)) return 0;
  
+  flags = p->flags;
   /* remember current payload pointer */
   payload = p->payload;
 
   /* pbuf types containing payloads? */
-  if (p->flags == PBUF_FLAG_RAM || p->flags == PBUF_FLAG_POOL) {
+  if (flags == PBUF_FLAG_RAM || flags == PBUF_FLAG_POOL) {
     /* set new payload pointer */
     p->payload = (u8_t *)p->payload - header_size_increment;
     /* boundary check fails? */
@@ -488,7 +489,7 @@ pbuf_header(struct pbuf *p, s16_t header_size_increment)
       return 1;
     }
   /* pbuf types refering to external payloads? */
-  } else if (p->flags == PBUF_FLAG_REF || p->flags == PBUF_FLAG_ROM) {
+  } else if (flags == PBUF_FLAG_REF || flags == PBUF_FLAG_ROM) {
     /* hide a header in the payload? */
     if ((header_size_increment < 0) && (header_size_increment - p->len <= 0)) {
       /* increase payload pointer */
@@ -545,6 +546,7 @@ pbuf_header(struct pbuf *p, s16_t header_size_increment)
 u8_t
 pbuf_free(struct pbuf *p)
 {
+  u16_t flags;
   struct pbuf *q;
   u8_t count;
   SYS_ARCH_DECL_PROTECT(old_level);
@@ -580,15 +582,16 @@ pbuf_free(struct pbuf *p)
       /* remember next pbuf in chain for next iteration */
       q = p->next;
       LWIP_DEBUGF( PBUF_DEBUG | 2, ("pbuf_free: deallocating %p\n", (void *)p));
+      flags = p->flags;
       /* is this a pbuf from the pool? */
-      if (p->flags == PBUF_FLAG_POOL) {
+      if (flags == PBUF_FLAG_POOL) {
         p->len = p->tot_len = PBUF_POOL_BUFSIZE;
         p->payload = (void *)((u8_t *)p + sizeof(struct pbuf));
         PBUF_POOL_FREE(p);
       /* is this a ROM or RAM referencing pbuf? */
-      } else if (p->flags == PBUF_FLAG_ROM || p->flags == PBUF_FLAG_REF) {
+      } else if (flags == PBUF_FLAG_ROM || flags == PBUF_FLAG_REF) {
         memp_free(MEMP_PBUF, p);
-      /* p->flags == PBUF_FLAG_RAM */
+      /* flags == PBUF_FLAG_RAM */
       } else {
         mem_free(p);
       }
