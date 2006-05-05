@@ -1,5 +1,5 @@
-#ifndef PROXYD_HH_
-#define PROXYD_HH_
+#ifndef JOS_INC_PROXYD_HH_
+#define JOS_INC_PROXYD_HH_
 
 #include <inc/cpplabel.hh>
 
@@ -31,4 +31,4 @@ struct proxyd_args {
 };
 
 
-#endif /*PROXYD_HH_*/
+#endif /*JOS_INC_PROXYD_HH_*/

@@ -12,14 +12,35 @@ int remfile_open(char *host, int port, char *path);
 
 #include <lib/dis/proxydclnt.hh>
 
+static void
+usage(char *com)
+{
+    printf("usage: %s port [ip]\n", com);
+    exit(-1);    
+}
+
 int
 main (int ac, char **av)
 {
     char buf[16];
+    int fd;
     
-    int fd = remfile_open((char*)"127.0.0.1", 8080, (char*)"2");
+    if (ac < 2)
+        usage(av[0]);
+    
+    int port = atoi(av[1]);
+    
+    if (ac < 3)
+        fd = remfile_open((char*)"127.0.0.1", port, (char*)"test.txt");
+    else 
+        fd = remfile_open((char*)av[1], port, (char*)"test.txt");
     int count = read(fd, buf, 16);    
     printf("count %d\n", count);
+    printf("contents ");
+    for (int i = 0; i < count; i++)
+        printf("%c ", buf[i]);
+    printf("\n");
+    
     count = write(fd, buf, 16);    
     printf("w count %d\n", count);
     

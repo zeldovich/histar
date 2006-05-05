@@ -1,5 +1,5 @@
-#ifndef REMFILEDSRV_HH_
-#define REMFILEDSRV_HH_
+#ifndef JOS_INC_REMFILEDSRV_HH_
+#define JOS_INC_REMFILEDSRV_HH_
 
 #include <inc/cpplabel.hh>
 
@@ -28,4 +28,4 @@ struct remfiled_args {
     cobj_ref seg;
 };
 
-#endif /*REMFILEDSRV_HH_*/
+#endif /*JOS_INC_REMFILEDSRV_HH_*/

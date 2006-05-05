@@ -12,6 +12,11 @@ DISK_TEST_SRCS := \
 
 DISK_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(DISK_TEST_SRCS))
 
+FILESERVER_TEST_SRCS := \
+	fileserver-test.c fileserver.c
+
+FILESERVER_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILESERVER_TEST_SRCS))
+
 $(OBJDIR)/test/%.o: test/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
@@ -20,6 +25,11 @@ $(OBJDIR)/test/%.o: lib/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
 
+$(OBJDIR)/test/%.o: lib/dis/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+
+	
 $(OBJDIR)/test/%.o: lib/%.c
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
@@ -35,3 +45,5 @@ $(OBJDIR)/test/%.o: kern/btree/%.c
 $(OBJDIR)/test/disk-test: $(DISK_TEST_OBJS)
 	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
 
+$(OBJDIR)/test/fileserver-test: $(FILESERVER_TEST_OBJS)
+	$(NCC) -o $@ $(FILESERVER_TEST_OBJS) -lstdc++

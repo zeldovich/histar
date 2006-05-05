@@ -1,5 +1,5 @@
-#ifndef PROXYDCLNT_HH_
-#define PROXYDCLNT_HH_
+#ifndef JOS_INC_PROXYDCLNT_HH_
+#define JOS_INC_PROXYDCLNT_HH_
 
 extern "C" {
 #include <inc/types.h>
@@ -14,4 +14,4 @@ int proxyd_get_global(uint64_t local, char *ret);
 
 
 
-#endif /*PROXYDCLNT_HH_*/
+#endif /*JOS_INC_PROXYDCLNT_HH_*/
