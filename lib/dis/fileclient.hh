@@ -42,9 +42,12 @@ public:
     void init(char *path, char *host, int port);
     
     const file_frame *frame_at(uint64_t count, uint64_t off);
+    const file_frame *frame_at_is(void *va, uint64_t count, uint64_t off);
+    
+    const char *path(void) const { return path_; }
 
-private:
     sockaddr_in addr_;
+private:
     file_frame  frame_;
     char        path_[64];
     int         socket_;

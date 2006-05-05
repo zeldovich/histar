@@ -4,8 +4,6 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/remfile.h>
 #include <inc/error.h>
-#include <machine/x86.h>
-#include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
 #include <inc/debug.h>
@@ -52,16 +50,16 @@ remote_read(remfiled_args *args)
 static void
 remote_write(remfiled_args *args)
 {
-    void *va = 0;
-    error_check(segment_map(args->seg, SEGMAP_READ, &va, 0));
-    segment_unmap(va);
-    
     remfile_data *data = 0;
     error_check(segment_map(args->ino.seg, SEGMAP_READ|SEGMAP_WRITE, (void **)&data, 0));
-    segment_unmap(data);    
-
-    // XXX
-    args->count = args->count;
+    scope_guard<int, void *> unmap_data(segment_unmap, data);
+    void *va = 0;
+    error_check(segment_map(args->seg, SEGMAP_READ, &va, 0));
+    scope_guard<int, void *> unmap_va(segment_unmap, va);
+    
+    const file_frame *frame = data->fc.frame_at_is(va, args->count, args->off);
+    
+    args->count = frame->count_;
 }
 
 static void

@@ -66,3 +66,34 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
             
     return &frame_;    
 }
+
+const file_frame*
+fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
+{
+    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
+    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
+    scope_guard<int, int> close_socket(close, socket_);
+    
+    int cc = MIN(count, frame_.bytes_);
+    memcpy(frame_.byte_, va, cc);
+    
+    fileserver_msg msg;
+    msg.op = fileserver_write;
+    msg.count = cc;
+    msg.offset = offset;
+    strcpy(msg.path, path_);
+    debug_print(msg_debug, "count %d off %d path %s", 
+                msg.count, msg.offset, msg.path);
+    
+    // XXX
+    error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
+    error_check(write(socket_, &frame_.byte_, cc) - cc);
+
+    fileclient_msg res;
+    // XXX
+    error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+    frame_.offset_ = offset;
+    frame_.count_ = res.len;
+            
+    return &frame_;    
+}

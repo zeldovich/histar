@@ -20,6 +20,7 @@ struct fileserver_msg {
     uint32_t count;
     uint32_t offset;
     char path[64];        
+    char payload[0];
 } __attribute__((packed));
 
 #endif /*JOS_INC_FILESERVER_HH_*/

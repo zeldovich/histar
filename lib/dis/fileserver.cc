@@ -8,7 +8,7 @@ extern "C" {
 #include <unistd.h>   
 #include <fcntl.h>
 #include <inc/debug.h>
-
+#include <sys/param.h>
 }
 
 #include <lib/dis/fileserver.hh>
@@ -62,9 +62,41 @@ fileserver_handle_read(int s, fileserver_msg *msg)
 }
 
 static void
-fileserver_handle_msg(int s, void *buf, int len)
+fileserver_handle_write(int s, fileserver_msg *msg)
 {
-    fileserver_msg *msg = (fileserver_msg *) buf;
+    debug_print(msg_debug, "count %d off %d path %s", 
+                msg->count, msg->offset, msg->path);
+
+    int fd = open(msg->path, O_WRONLY);
+    if (fd < 0) {
+        debug_print(file_debug, "unable to open %s", msg->path);
+        fileclient_msg res;
+        res.op = fileclient_result;
+        res.status = -1;
+        write(s, &res, sizeof(res));
+        return ;
+    }
+    
+    int cc = MIN(msg->count, sizeof(buffer));
+    int r = read(s, buffer, cc);
+    if (r != cc)
+        printf("fileserver_handle_write: cheap-o size mismatch %d %d\n",
+                cc, r);
+    lseek(fd, msg->offset, SEEK_SET);
+    r = write(fd, buffer, r);
+    close(fd);
+
+    fileclient_msg res;
+    res.op = fileclient_result;
+    res.status = r;
+    res.len = r;
+    debug_print(file_debug, "wrote %d bytes from %s", 0, msg->path);
+    write(s, &res, sizeof(res));
+}
+
+static void
+fileserver_handle_msg(int s, fileserver_msg *msg, int len)
+{
     fileclient_msg res;
     
     switch(msg->op) {
@@ -72,7 +104,7 @@ fileserver_handle_msg(int s, void *buf, int len)
             fileserver_handle_read(s, msg);
             break;
         case fileserver_write:
-            debug_print(conn_debug, "write request");
+            fileserver_handle_write(s, msg);
         default:
             res.op = fileclient_result;
             res.status = -1;
@@ -121,11 +153,11 @@ fileserver_start(int port)
                ip[0], ip[1], ip[2], ip[3]);
 
         // one shot            
-        int len = fileserver_read_msg(ss, buffer, sizeof(buffer));
-        debug_print(conn_debug, "incoming msg len %d", len);
-            
+        fileserver_msg msg;
+        uint64_t len = fileserver_read_msg(ss, &msg, sizeof(msg));
+        debug_print(conn_debug, "incoming msg len %ld", len);
         if (len)
-            fileserver_handle_msg(ss, buffer, len);
+            fileserver_handle_msg(ss, &msg, len);
         close(ss);
     }
 }
