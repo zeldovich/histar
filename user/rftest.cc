@@ -5,6 +5,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
 
 int remfile_open(char *host, int port, char *path);
 }
@@ -45,6 +46,10 @@ main (int ac, char **av)
     
     count = write(fd, foo, strlen(foo));    
     printf("w count %d\n", count);
+    
+    struct stat st;
+    if (fstat(fd, &st) < 0)
+        printf("fstat error!\n");
     
     return 0;    
 }
