@@ -32,13 +32,16 @@ public:
     fileclient();
     void init(char *path, char *host, int port);
     
+    // read, write
     const file_frame *frame_at(uint64_t count, uint64_t off);
     const file_frame *frame_at_is(void *va, uint64_t count, uint64_t off);
     
+    int stat(struct stat *buf);             
+    
     const char *path(void) const { return path_; }
 
-    sockaddr_in addr_;
 private:
+    sockaddr_in addr_;
     file_frame  frame_;
     char        path_[64];
     int         socket_;

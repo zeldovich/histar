@@ -28,6 +28,7 @@ struct fileclient_msg {
 typedef enum {
     fileserver_read,
     fileserver_write,
+    fileserver_stat,
 } fileserver_op_t;
 
 struct fileserver_hdr {

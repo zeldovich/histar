@@ -69,12 +69,31 @@ remote_open(remfiled_args *args)
     remfile_data *data = 0;
     error_check(segment_alloc(start_env->proc_container, sizeof(*data),
                              &seg, (void **)&data, 0, "remfile data"));
+    scope_guard<int, void *> unmap_data(segment_unmap, data);
 
     data->fc.init(args->path, args->host, args->port);
-    
-    segment_unmap(data);
     args->ino.seg = seg;
 }
+
+static void
+remote_stat(remfiled_args *args)
+{
+    remfile_data *data = 0;
+    error_check(segment_map(args->ino.seg, SEGMAP_READ|SEGMAP_WRITE, (void **)&data, 0));
+    scope_guard<int, void *> unmap_data(segment_unmap, data);
+    
+    struct cobj_ref seg;
+    label l(1);
+    l.set(args->grant, 0);
+    l.set(args->taint, 3);
+    void *va = 0;
+    error_check(segment_alloc(start_env->shared_container, sizeof(struct stat),
+                &seg, &va, l.to_ulabel(), "remfiled stat buf"));
+    args->count = data->fc.stat((struct stat*)va);
+    scope_guard<int, void *> unmap_va(segment_unmap, va);
+    args->seg = seg;
+}
+
 
 static void __attribute__((noreturn))
 remfiled_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
@@ -89,6 +108,9 @@ try {
             break;
         case rf_open:            
             remote_open(args);
+            break;
+        case rf_stat:
+            remote_stat(args);
             break;
     }
     gr->ret(0, 0, 0);

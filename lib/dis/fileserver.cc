@@ -31,13 +31,13 @@ public:
         executed_ = 1;
     
         int fd = open(request_.path, O_RDONLY);
-        scope_guard<int, int> close_fd(close, fd);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
             response_.header_.op = fileclient_result;
             response_.header_.status = -1;
             return ;
         }
+        scope_guard<int, int> close_fd(close, fd);
         int r = lseek(fd, request_.offset, SEEK_SET);
         if (r != (int64_t)request_.offset) {
             debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
@@ -74,13 +74,13 @@ public:
             debug_print(file_debug, "truncated payload %d, %d", len, cc);
 
         int fd = open(request_.path, O_WRONLY);
-        scope_guard<int, int> close_fd(close, fd);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
             response_.header_.op = fileclient_result;
             response_.header_.status = -1;
             return ;
         }
+        scope_guard<int, int> close_fd(close, fd);
         int r = lseek(fd, request_.offset, SEEK_SET);
         if (r != (int64_t)request_.offset) {
             debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
@@ -100,6 +100,41 @@ private:
     int socket_;
 };
 
+class stat_req : public fileserver_req 
+{
+public:
+    stat_req(fileserver_hdr *header) : fileserver_req(header) {}
+    virtual void execute(void) {
+        debug_print(msg_debug, "path %s", request_.path);
+        executed_ = 1;
+    
+        int fd = open(request_.path, O_RDONLY);
+        if (fd < 0) {
+            debug_print(file_debug, "unable to open %s", request_.path);
+            response_.header_.op = fileclient_result;
+            response_.header_.status = -1;
+            return ;
+        }
+        scope_guard<int, int> close_fd(close, fd);
+        
+        struct stat st;
+        int r = fstat(fd, &st);
+        if (r < 0) {
+            debug_print(file_debug, "stat error");
+            response_.header_.op = fileclient_result;
+            response_.header_.status = r;
+            return ;
+        }
+        
+        int cc = MIN(sizeof(st), sizeof(response_.payload_));
+        memcpy(response_.payload_, &st, cc);
+        response_.header_.op = fileclient_result;
+        response_.header_.status = 0;
+        response_.header_.psize = cc;
+        debug_print(file_debug, "stat success");
+    }
+};
+
 fileserver_req *
 fileserver_conn::next_request(void) 
 {
@@ -111,6 +146,8 @@ fileserver_conn::next_request(void)
             return new read_req(&header);
         case fileserver_write:
             return new write_req(socket_, &header);
+        case fileserver_stat:
+            return new stat_req(&header);
         default:
             throw error(-E_INVAL, "unreconized op %d\n", header.op);
     }

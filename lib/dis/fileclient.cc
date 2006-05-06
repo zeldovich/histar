@@ -1,6 +1,8 @@
 extern "C" {
 #include <inc/error.h>
 
+#include <sys/stat.h>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -98,4 +100,31 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
     frame_.count_ = res.status;
             
     return &frame_;    
+}
+
+int 
+fileclient::stat(struct stat *buf)
+{
+    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
+    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
+    scope_guard<int, int> close_socket(close, socket_);
+    
+    fileserver_hdr msg;
+    msg.op = fileserver_stat;
+    strcpy(msg.path, path_);
+    debug_print(msg_debug, "path %s", msg.path);
+    
+    // XXX
+    error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
+
+    fileclient_hdr res;
+    // XXX
+    error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+    int cc = MIN(res.psize, sizeof(*buf));
+    if (res.psize != sizeof(*buf))
+        printf("unexpected stat len %d, %ld\n", res.psize, sizeof(*buf));
+    // XXX
+    error_check(read(socket_, buf, cc) - cc);    
+    
+    return res.status;    
 }

@@ -45,7 +45,7 @@ remfiled_read(struct rem_inode f, void *buf, uint64_t count, uint64_t off)
     
     gate_call(server_gate, 0, &dl, 0).call(&gcd, 0);
     
-    if (args->count) {
+    if (args->count > 0) {
         void *va = 0;
         error_check(segment_map(args->seg, SEGMAP_READ, &va, 0));
         memcpy(buf, va, args->count);
@@ -115,6 +115,31 @@ remfiled_open(char *host, int port, char *path, struct rem_inode *ino)
 }
 
 int
-remfiled_stat(struct rem_inode f, struct stat * buf) {
-    return -1;    
+remfiled_stat(struct rem_inode f, struct stat *buf) 
+{
+    gate_call_data gcd;
+    remfiled_args *args = (remfiled_args *) gcd.param_buf;
+
+    cobj_ref server_gate = remfiled_server();
+    args->op = rf_stat;
+    args->ino = f;
+    args->count = -1;
+    args->grant = start_env->process_grant;
+    args->taint = handle_alloc();
+    
+    label dl(1);
+    dl.set(args->grant, LB_LEVEL_STAR);
+    dl.set(args->taint, LB_LEVEL_STAR);
+ 
+    gate_call(server_gate, 0, &dl, 0).call(&gcd, 0);
+    if (!args->count) {
+        void *va = 0;
+        error_check(segment_map(args->seg, SEGMAP_READ, &va, 0));
+        memcpy(buf, va, sizeof(*buf));
+        segment_unmap(va);
+        sys_obj_unref(args->seg);
+    }
+    thread_drop_star(args->taint);
+    return args->count;  
+    
 }
