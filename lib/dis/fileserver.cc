@@ -26,6 +26,8 @@ class read_req : public fileserver_req
 public:
     read_req(fileserver_hdr *header) : fileserver_req(header) {}
     virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "count %d off %d path %s", 
                     request_.count, request_.offset, request_.path);
         executed_ = 1;
@@ -61,6 +63,8 @@ public:
     write_req(int socket, fileserver_hdr *header) : 
         fileserver_req(header), socket_(socket) {}
     virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "count %d off %d path %s", 
             request_.count, request_.offset, request_.path);
         executed_ = 1;
@@ -105,6 +109,8 @@ class stat_req : public fileserver_req
 public:
     stat_req(fileserver_hdr *header) : fileserver_req(header) {}
     virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "path %s", request_.path);
         executed_ = 1;
     
