@@ -4,6 +4,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 int remfile_open(char *host, int port, char *path);
 }
@@ -23,6 +24,7 @@ int
 main (int ac, char **av)
 {
     char buf[16];
+    char foo[] = "hellloooo";
     int fd;
     
     if (ac < 2)
@@ -35,13 +37,13 @@ main (int ac, char **av)
     else 
         fd = remfile_open((char*)av[1], port, (char*)"test.txt");
     int count = read(fd, buf, 16);    
-    printf("count %d\n", count);
+    printf("count %d ", count);
     printf("contents ");
     for (int i = 0; i < count; i++)
         printf("%c ", buf[i]);
     printf("\n");
     
-    count = write(fd, buf, 16);    
+    count = write(fd, foo, strlen(foo));    
     printf("w count %d\n", count);
     
     return 0;    

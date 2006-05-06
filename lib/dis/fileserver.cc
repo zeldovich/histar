@@ -5,111 +5,133 @@ extern "C" {
 
 #include <stdio.h>
 
-#include <unistd.h>   
 #include <fcntl.h>
 #include <inc/debug.h>
 #include <sys/param.h>
+
+#include <inc/error.h>
 }
 
+#include <inc/scopeguard.hh>
 #include <lib/dis/fileserver.hh>
 #include <lib/dis/fileclient.hh>
+#include <inc/error.hh>
 
 static const char conn_debug = 1;
 static const char msg_debug = 1;
 static const char file_debug = 1;
 
-char buffer[4096];
-
-static int
-fileserver_read_msg(int s, void *buf, uint64_t n)
+class read_req : public fileserver_req 
 {
-    if (n < sizeof(fileserver_msg)) {
-        printf("fileserver_read_msg: buf to small %ld\n", n);
-        return 0;
-    }
-    int r = read(s, buf, sizeof(fileserver_msg));
-    if (r != sizeof(fileserver_msg))
-        printf("fileserver_read_msg: cheap-o size mismatch, %d %ld\n", 
-                r, sizeof(fileserver_msg));
-    return r;    
-}
-
-static void
-fileserver_handle_read(int s, fileserver_msg *msg)
-{
-    debug_print(msg_debug, "count %d off %d path %s", 
-                msg->count, msg->offset, msg->path);
-
-    int fd = open(msg->path, O_RDONLY);
-    if (fd < 0) {
-        debug_print(file_debug, "unable to open %s", msg->path);
-        fileclient_msg res;
-        res.op = fileclient_result;
-        res.status = -1;
-        write(s, &res, sizeof(res));
-        return ;
-    }
+public:
+    read_req(fileserver_hdr *header) : fileserver_req(header) {}
+    virtual void execute(void) {
+        debug_print(msg_debug, "count %d off %d path %s", 
+                    request_.count, request_.offset, request_.path);
+        executed_ = 1;
     
-    char buf[128];
-    fileclient_msg *res;
-    res = (fileclient_msg *) &buf;
-    int len = read(fd, res->payload, 128 - sizeof(*res));
-    res->op = fileclient_result;
-    res->status = len;
-    res->len = len;
-    debug_print(file_debug, "read %d bytes from %s", len, msg->path);
-    write(s, res, sizeof(*res) + len);
-}
-
-static void
-fileserver_handle_write(int s, fileserver_msg *msg)
-{
-    debug_print(msg_debug, "count %d off %d path %s", 
-                msg->count, msg->offset, msg->path);
-
-    int fd = open(msg->path, O_WRONLY);
-    if (fd < 0) {
-        debug_print(file_debug, "unable to open %s", msg->path);
-        fileclient_msg res;
-        res.op = fileclient_result;
-        res.status = -1;
-        write(s, &res, sizeof(res));
-        return ;
+        int fd = open(request_.path, O_RDONLY);
+        scope_guard<int, int> close_fd(close, fd);
+        if (fd < 0) {
+            debug_print(file_debug, "unable to open %s", request_.path);
+            response_.header_.op = fileclient_result;
+            response_.header_.status = -1;
+            return ;
+        }
+        int r = lseek(fd, request_.offset, SEEK_SET);
+        if (r != (int64_t)request_.offset) {
+            debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
+            response_.header_.op = fileclient_result;
+            response_.header_.status = -1;
+            return ;
+        }
+        
+        int cc = MIN(request_.count, sizeof(response_.payload_));
+        int len = read(fd, response_.payload_, cc);
+        response_.header_.op = fileclient_result;
+        response_.header_.status = len;
+        response_.header_.psize = len;
+        debug_print(file_debug, "read %d bytes from %s", len, request_.path);
     }
-    
-    int cc = MIN(msg->count, sizeof(buffer));
-    int r = read(s, buffer, cc);
-    if (r != cc)
-        printf("fileserver_handle_write: cheap-o size mismatch %d %d\n",
-                cc, r);
-    lseek(fd, msg->offset, SEEK_SET);
-    r = write(fd, buffer, r);
-    close(fd);
+};
 
-    fileclient_msg res;
-    res.op = fileclient_result;
-    res.status = r;
-    res.len = r;
-    debug_print(file_debug, "wrote %d bytes from %s", 0, msg->path);
-    write(s, &res, sizeof(res));
-}
-
-static void
-fileserver_handle_msg(int s, fileserver_msg *msg, int len)
+class write_req : public fileserver_req 
 {
-    fileclient_msg res;
+public:
+    write_req(int socket, fileserver_hdr *header) : 
+        fileserver_req(header), socket_(socket) {}
+    virtual void execute(void) {
+        debug_print(msg_debug, "count %d off %d path %s", 
+            request_.count, request_.offset, request_.path);
+        executed_ = 1;
+
+        // use payload as temp buffer
+        char *buffer = response_.payload_;
+        int cc = MIN(request_.count, sizeof(response_.payload_));
+
+        int len = read(socket_, buffer, cc);
+        if (len != cc)
+            debug_print(file_debug, "truncated payload %d, %d", len, cc);
+
+        int fd = open(request_.path, O_WRONLY);
+        scope_guard<int, int> close_fd(close, fd);
+        if (fd < 0) {
+            debug_print(file_debug, "unable to open %s", request_.path);
+            response_.header_.op = fileclient_result;
+            response_.header_.status = -1;
+            return ;
+        }
+        int r = lseek(fd, request_.offset, SEEK_SET);
+        if (r != (int64_t)request_.offset) {
+            debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
+            response_.header_.op = fileclient_result;
+            response_.header_.status = -1;
+            return ;   
+        }
+
+        len = write(fd, buffer, len);
     
-    switch(msg->op) {
+        response_.header_.op = fileclient_result;
+        response_.header_.status = len;
+        response_.header_.psize = 0;
+        debug_print(file_debug, "wrote %d bytes to %s", len, request_.path);
+    }
+private:
+    int socket_;
+};
+
+fileserver_req *
+fileserver_conn::next_request(void) 
+{
+    fileserver_hdr header;
+    // XXX
+    error_check(read(socket_, &header, sizeof(header)) - sizeof(header));
+    switch (header.op) {
         case fileserver_read:
-            fileserver_handle_read(s, msg);
-            break;
+            return new read_req(&header);
         case fileserver_write:
-            fileserver_handle_write(s, msg);
+            return new write_req(socket_, &header);
         default:
-            res.op = fileclient_result;
-            res.status = -1;
-            write(s, &res, sizeof(res));
+            throw error(-E_INVAL, "unreconized op %d\n", header.op);
     }
+    return 0;    
+}
+
+void 
+fileserver_conn::next_response_is(const fileclient_msg *response) 
+{
+    // XXX
+    int cc = sizeof(response->header_);
+    int len = write(socket_, &response->header_, cc);     
+    if (len < cc) {
+        perror("error");
+        throw error(-E_UNSPEC, "write error %d, %d", len, cc);
+    }
+    
+    len = write(socket_, response->payload_, response->header_.psize);
+    if (len < (int64_t) response->header_.psize)
+        debug_print(conn_debug, "truncated write %d, %d", 
+                    len, response->header_.psize);
 }
 
 void
@@ -153,11 +175,12 @@ fileserver_start(int port)
                ip[0], ip[1], ip[2], ip[3]);
 
         // one shot            
-        fileserver_msg msg;
-        uint64_t len = fileserver_read_msg(ss, &msg, sizeof(msg));
-        debug_print(conn_debug, "incoming msg len %ld", len);
-        if (len)
-            fileserver_handle_msg(ss, &msg, len);
-        close(ss);
+        fileserver_conn *conn = new fileserver_conn(ss, sin);
+        scope_guard<void, fileserver_conn *> del_conn(delete_obj, conn);
+        fileserver_req *req = conn->next_request();
+        scope_guard<void, fileserver_req *> del_req(delete_obj, req);
+        req->execute();
+        const fileclient_msg *resp = req->response();
+        conn->next_response_is(resp);
     }
 }

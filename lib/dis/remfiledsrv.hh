@@ -16,7 +16,7 @@ typedef enum
 struct remfiled_args {
     remfiled_op_t op;
     rem_inode ino;
-    uint64_t count;
+    int64_t count;
     uint64_t off;
     
     char host[16];

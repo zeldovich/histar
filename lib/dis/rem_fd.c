@@ -50,6 +50,12 @@ remfile_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 }
 
 static int
+remfile_stat(struct Fd *fd, struct stat *buf)
+{
+    return remfiled_stat(fd->fd_remfile.ino, buf);    
+}
+
+static int
 remfile_probe(struct Fd *fd, dev_probe_t probe)
 {
     return 0;
@@ -69,4 +75,5 @@ struct Dev devremfile = {
     .dev_write = &remfile_write,
     .dev_probe = &remfile_probe,
     .dev_close = &remfile_close,
+    .dev_stat = &remfile_stat,
 };

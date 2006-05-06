@@ -13,7 +13,7 @@ DISK_TEST_SRCS := \
 DISK_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(DISK_TEST_SRCS))
 
 FILESERVER_TEST_SRCS := \
-	fileserver-test.c fileserver.c
+	fileserver-test.c fileserver.c error.c printfmt.c
 
 FILESERVER_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILESERVER_TEST_SRCS))
 

@@ -3,17 +3,8 @@
 
 #include <arpa/inet.h>
 #include <string.h>
+#include <lib/dis/filemessage.h>
 
-typedef enum {
-    fileclient_result,
-} fileclient_msg_t;
-
-struct fileclient_msg {
-    fileclient_msg_t op;
-    int status;
-    uint32_t len;
-    char payload[0];
-};
 
 class file_frame
 {
@@ -28,7 +19,7 @@ public:
     }
     
     uint64_t offset_;
-    uint64_t count_;
+    int64_t count_;
     
     static const uint64_t bytes_ = 2000;
     char byte_[bytes_];

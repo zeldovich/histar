@@ -113,3 +113,8 @@ remfiled_open(char *host, int port, char *path, struct rem_inode *ino)
     memcpy(ino, &args->ino, sizeof(args->ino));
     return 0;    
 }
+
+int
+remfiled_stat(struct rem_inode f, struct stat * buf) {
+    return -1;    
+}

@@ -17,11 +17,13 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 
-static const char msg_debug = 1;
+static const char msg_debug = 0;
 
 void
 fileclient::init(char *path, char *host, int port)
 {
+    if (strlen(path) + 1 > sizeof(path_))
+        throw error(-E_INVAL, "'%s' too long (> %ld)", path, sizeof(path_));
     strcpy(path_, path);
     frame_.init();
     memset(&addr_, 0, sizeof(addr_));
@@ -46,7 +48,7 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
     error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
     scope_guard<int, int> close_socket(close, socket_);
     
-    fileserver_msg msg;
+    fileserver_hdr msg;
     msg.op = fileserver_read;
     msg.count = MIN(count, frame_.bytes_);
     msg.offset = offset;
@@ -57,12 +59,12 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
     // XXX
     error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
 
-    fileclient_msg res;
+    fileclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
-    error_check(read(socket_, frame_.byte_, res.len) - res.len);
+    error_check(read(socket_, frame_.byte_, res.psize) - res.psize);
     frame_.offset_ = offset;
-    frame_.count_ = res.len;
+    frame_.count_ = res.status;
             
     return &frame_;    
 }
@@ -77,7 +79,7 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
     int cc = MIN(count, frame_.bytes_);
     memcpy(frame_.byte_, va, cc);
     
-    fileserver_msg msg;
+    fileserver_hdr msg;
     msg.op = fileserver_write;
     msg.count = cc;
     msg.offset = offset;
@@ -89,11 +91,11 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
     error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
     error_check(write(socket_, &frame_.byte_, cc) - cc);
 
-    fileclient_msg res;
+    fileclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
     frame_.offset_ = offset;
-    frame_.count_ = res.len;
+    frame_.count_ = res.status;
             
     return &frame_;    
 }

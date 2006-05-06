@@ -7,20 +7,44 @@
 #include <sys/types.h>
 #endif // JOS_USER
 
+#include <netinet/in.h>
+#include <lib/dis/filemessage.h>
+#include <string.h>
+#include <unistd.h>   
+
 void fileserver_start(int port);
 
-enum {
-    fileserver_read,
-    fileserver_write,
+class fileserver_req 
+{
+public:
+    virtual void                  execute(void) = 0;
+    const fileclient_msg *response(void) const {;
+        if (!executed_)
+            return 0;    
+        return &response_;    
+    }
+protected:
+    fileserver_req(fileserver_hdr *header) : 
+        executed_(0) { memcpy(&request_, header, sizeof(*header)); }
+    
+    fileserver_hdr request_;    
+    fileclient_msg response_;
+    bool           executed_;
 };
-typedef uint8_t fileserver_op_t;
 
-struct fileserver_msg {
-    fileserver_op_t op;
-    uint32_t count;
-    uint32_t offset;
-    char path[64];        
-    char payload[0];
-} __attribute__((packed));
+class fileserver_conn 
+{
+public:
+    fileserver_conn(int socket, sockaddr_in addr) : 
+        socket_(socket), addr_(addr) {}
+    ~fileserver_conn(void) { close(socket_); }
+    
+    fileserver_req *next_request(void);
+    void next_response_is(const fileclient_msg *response);
+
+private:    
+    int socket_;
+    sockaddr_in addr_;
+};
 
 #endif /*JOS_INC_FILESERVER_HH_*/
