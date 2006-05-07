@@ -116,7 +116,7 @@ try {
     gr->ret(0, 0, 0);
 }
 catch (std::exception &e) {
-    printf("proxyd: %s\n", e.what());
+    printf("remfiled_srv: %s\n", e.what());
     gr->ret(0, 0, 0);
 }
 
