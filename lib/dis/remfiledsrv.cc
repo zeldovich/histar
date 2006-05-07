@@ -58,7 +58,6 @@ remote_write(remfiled_args *args)
     scope_guard<int, void *> unmap_va(segment_unmap, va);
     
     const file_frame *frame = data->fc.frame_at_is(va, args->count, args->off);
-    
     args->count = frame->count_;
 }
 
@@ -94,6 +93,18 @@ remote_stat(remfiled_args *args)
     args->seg = seg;
 }
 
+static void
+remote_close(remfiled_args *args)
+{
+    remfile_data *data = 0;
+    error_check(segment_map(args->ino.seg, SEGMAP_READ|SEGMAP_WRITE, (void **)&data, 0));
+    scope_guard<int, void *> unmap_data(segment_unmap, data);
+    
+    data->fc.destroy();
+    sys_obj_unref(args->ino.seg);
+    args->count = 0;
+    return;    
+}
 
 static void __attribute__((noreturn))
 remfiled_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
@@ -112,6 +123,9 @@ try {
         case rf_stat:
             remote_stat(args);
             break;
+        case rf_close:
+            remote_close(args);
+            break;            
     }
     gr->ret(0, 0, 0);
 }

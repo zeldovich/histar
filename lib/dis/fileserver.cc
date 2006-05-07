@@ -10,6 +10,7 @@ extern "C" {
 #include <sys/param.h>
 
 #include <inc/error.h>
+#include <errno.h>
 }
 
 #include <inc/scopeguard.hh>
@@ -147,8 +148,12 @@ fileserver_req *
 fileserver_conn::next_request(void) 
 {
     fileserver_hdr header;
-    // XXX
-    error_check(read(socket_, &header, sizeof(header)) - sizeof(header));
+    int r = read(socket_, &header, sizeof(header));
+    if (r < 0)
+        throw error(-E_INVAL, "socket read errno %d\n", errno);
+    else if (r == 0)
+        return 0;  // other end closed
+    
     switch (header.op) {
         case fileserver_read:
             return new read_req(&header);
@@ -219,13 +224,15 @@ fileserver_start(int port)
         debug_print(conn_debug, "connection from %d.%d.%d.%d", 
                ip[0], ip[1], ip[2], ip[3]);
 
-        // one shot            
+        // one thread            
         fileserver_conn *conn = new fileserver_conn(ss, sin);
         scope_guard<void, fileserver_conn *> del_conn(delete_obj, conn);
-        fileserver_req *req = conn->next_request();
-        scope_guard<void, fileserver_req *> del_req(delete_obj, req);
-        req->execute();
-        const fileclient_msg *resp = req->response();
-        conn->next_response_is(resp);
+        fileserver_req *req;
+        while ((req = conn->next_request())) {
+            scope_guard<void, fileserver_req *> del_req(delete_obj, req);
+            req->execute();
+            const fileclient_msg *resp = req->response();
+            conn->next_response_is(resp);
+        }
     }
 }

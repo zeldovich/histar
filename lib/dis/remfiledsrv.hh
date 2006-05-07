@@ -12,6 +12,7 @@ typedef enum
     rf_write,
     rf_open,
     rf_stat,
+    rf_close,
 } remfiled_op_t ;
 
 struct remfiled_args {

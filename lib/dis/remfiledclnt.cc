@@ -143,3 +143,18 @@ remfiled_stat(struct rem_inode f, struct file_stat *buf)
     return args->count;  
     
 }
+
+int
+remfiled_close(struct rem_inode f)
+{
+    gate_call_data gcd;
+    remfiled_args *args = (remfiled_args *) gcd.param_buf;
+
+    cobj_ref server_gate = remfiled_server();
+    args->op = rf_close;
+    args->ino = f;
+    args->count = -1;
+    
+    gate_call(server_gate, 0, 0, 0).call(&gcd, 0);
+    return args->count;    
+}

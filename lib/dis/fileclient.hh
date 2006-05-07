@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <lib/dis/filemessage.h>
-
+#include <unistd.h>
 
 class file_frame
 {
@@ -29,8 +29,16 @@ public:
 class fileclient 
 {
 public:
-    fileclient();
+    fileclient(char *path, char *host, int port) { 
+        init(path, host, port);
+    }
+    ~fileclient(void) {
+        destroy();    
+    }
     void init(char *path, char *host, int port);
+    void destroy(void) {
+        close(socket_);    
+    }
     
     // read, write
     const file_frame *frame_at(uint64_t count, uint64_t off);

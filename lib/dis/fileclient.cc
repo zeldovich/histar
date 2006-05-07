@@ -41,15 +41,14 @@ fileclient::init(char *path, char *host, int port)
             throw error(-E_INVAL, "unable to resolve %s", host);
         memcpy(&addr_.sin_addr, hostent->h_addr, hostent->h_length) ;
     }
+    
+    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
+    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
 }
 
 const file_frame*
 fileclient::frame_at(uint64_t count, uint64_t offset)
 {
-    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
-    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
-    scope_guard<int, int> close_socket(close, socket_);
-    
     fileserver_hdr msg;
     msg.op = fileserver_read;
     msg.count = MIN(count, frame_.bytes_);
@@ -74,10 +73,6 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
 const file_frame*
 fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
 {
-    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
-    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
-    scope_guard<int, int> close_socket(close, socket_);
-    
     int cc = MIN(count, frame_.bytes_);
     memcpy(frame_.byte_, va, cc);
     
@@ -105,10 +100,6 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
 int 
 fileclient::stat(struct file_stat *buf)
 {
-    error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
-    error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
-    scope_guard<int, int> close_socket(close, socket_);
-    
     fileserver_hdr msg;
     msg.op = fileserver_stat;
     strcpy(msg.path, path_);

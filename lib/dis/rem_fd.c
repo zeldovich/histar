@@ -72,7 +72,7 @@ remfile_probe(struct Fd *fd, dev_probe_t probe)
 static int
 remfile_close(struct Fd *fd)
 {
-    return 0;
+    return remfiled_close(fd->fd_remfile.ino);
 }
 
            
