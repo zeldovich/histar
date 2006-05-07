@@ -13,6 +13,8 @@
 
 #include <inc/remfile.h>
 
+#include <lib/dis/filemessage.h>
+
 int remfile_open(char *host, int port, char *path);
 
 int
@@ -52,7 +54,13 @@ remfile_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static int
 remfile_stat(struct Fd *fd, struct stat *buf)
 {
-    return remfiled_stat(fd->fd_remfile.ino, buf);    
+    struct file_stat fs;
+    int r = remfiled_stat(fd->fd_remfile.ino, &fs);    
+    if (!r) {
+        memset(buf, 0, sizeof(*buf));
+        buf->st_size = fs.fs_size;    
+    }
+    return r;
 }
 
 static int

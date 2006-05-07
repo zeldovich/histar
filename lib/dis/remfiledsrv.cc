@@ -86,11 +86,11 @@ remote_stat(remfiled_args *args)
     label l(1);
     l.set(args->grant, 0);
     l.set(args->taint, 3);
-    void *va = 0;
-    error_check(segment_alloc(start_env->shared_container, sizeof(struct stat),
-                &seg, &va, l.to_ulabel(), "remfiled stat buf"));
-    args->count = data->fc.stat((struct stat*)va);
-    scope_guard<int, void *> unmap_va(segment_unmap, va);
+    file_stat *fs = 0;
+    error_check(segment_alloc(start_env->shared_container, sizeof(*fs),
+                &seg, (void **)&fs, l.to_ulabel(), "remfiled stat buf"));
+    args->count = data->fc.stat(fs);
+    scope_guard<int, void *> unmap_va(segment_unmap, fs);
     args->seg = seg;
 }
 

@@ -103,7 +103,7 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
 }
 
 int 
-fileclient::stat(struct stat *buf)
+fileclient::stat(struct file_stat *buf)
 {
     error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
     error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));

@@ -131,9 +131,11 @@ public:
             response_.header_.status = r;
             return ;
         }
-        
-        int cc = MIN(sizeof(st), sizeof(response_.payload_));
-        memcpy(response_.payload_, &st, cc);
+        struct file_stat fs;
+        fs.fs_size = st.st_size;
+       
+        int cc = MIN(sizeof(fs), sizeof(response_.payload_));
+        memcpy(response_.payload_, &fs, cc);
         response_.header_.op = fileclient_result;
         response_.header_.status = 0;
         response_.header_.psize = cc;

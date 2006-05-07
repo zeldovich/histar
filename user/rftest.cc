@@ -50,6 +50,7 @@ main (int ac, char **av)
     struct stat st;
     if (fstat(fd, &st) < 0)
         printf("fstat error!\n");
-    
+    else
+        printf("size %ld\n", st.st_size);
     return 0;    
 }

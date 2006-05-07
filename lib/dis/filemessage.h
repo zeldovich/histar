@@ -1,6 +1,10 @@
 #ifndef JOS_INC_FILEMESSAGE_H_
 #define JOS_INC_FILEMESSAGE_H_
 
+struct file_stat {
+    uint64_t fs_size;
+};
+
 ////////////////
 // fileclient
 ////////////////
@@ -17,7 +21,7 @@ struct fileclient_hdr {
 } __attribute__((packed));
 
 struct fileclient_msg {
-    fileclient_hdr header_;    
+    struct fileclient_hdr header_;    
     char payload_[2000];
 };
 
@@ -40,8 +44,8 @@ struct fileserver_hdr {
 } __attribute__((packed));
 
 struct fileserver_msg {
-   fileserver_hdr header;
-    char payload[2000];        
+   struct fileserver_hdr header;
+   char payload[2000];        
 };
 
 #endif /*JOS_INC_FILEMESSAGE_H_*/

@@ -115,7 +115,7 @@ remfiled_open(char *host, int port, char *path, struct rem_inode *ino)
 }
 
 int
-remfiled_stat(struct rem_inode f, struct stat *buf) 
+remfiled_stat(struct rem_inode f, struct file_stat *buf) 
 {
     gate_call_data gcd;
     remfiled_args *args = (remfiled_args *) gcd.param_buf;

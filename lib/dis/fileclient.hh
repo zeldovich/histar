@@ -36,7 +36,7 @@ public:
     const file_frame *frame_at(uint64_t count, uint64_t off);
     const file_frame *frame_at_is(void *va, uint64_t count, uint64_t off);
     
-    int stat(struct stat *buf);             
+    int stat(struct file_stat *buf);             
     
     const char *path(void) const { return path_; }
 
