@@ -12,12 +12,14 @@ int remfile_open(char *host, char *path);
 #include <inc/labelutil.hh>
 
 #include <lib/dis/proxydclnt.hh>
+#include <lib/dis/exportclnt.hh>
 
 
 
 int
 main (int ac, char **av)
 {
+#if 0
     uint64_t handle0 = handle_alloc();
     uint64_t handle1 = handle_alloc();
 
@@ -47,12 +49,29 @@ main (int ac, char **av)
         printf("h (%ld) != handle (%ld)\n", h, handle0);
         exit(-1);
     }
-    
     printf("global %s\n", buf);
+#endif
+
+    struct fs_inode tmp;
+    if (fs_namei("/tmp", &tmp) < 0) {
+        printf("couldn't open tmp\n");
+        exit(-1);
+    }
+
+    uint64_t taint0 = handle_alloc();
+    uint64_t grant0_fs = handle_alloc();
+    proxyd_add_mapping((char*)"test0 handle", taint0, grant0_fs, 0);
+    export_grant(grant0_fs, taint0);
+
+    struct fs_inode test0;
+    label l0(1);
+    l0.set(taint0, 3);
+    if (fs_create(tmp, "test0", &test0, l0.to_ulabel()) < 0) {
+        printf("couldn't create test0\n");
+        exit(-1);    
+    }
     
-    int fd = remfile_open((char*)"1",(char*)"2");
-    read(fd, buf, 16);    
-    
+    fs_pwrite(test0, "hello world", sizeof("hello world"), 0);
     return 0;    
 }
 
