@@ -234,9 +234,18 @@ fileserver_start(int port)
         fileserver_req *req;
         while ((req = conn->next_request())) {
             scope_guard<void, fileserver_req *> del_req(delete_obj, req);
-            req->execute();
-            const fileclient_msg *resp = req->response();
-            conn->next_response_is(resp);
+            try {
+                req->execute();
+                const fileclient_msg *resp = req->response();
+                conn->next_response_is(resp);
+            } catch (basic_exception e) {
+                printf("fileserver_start: unable to execute req: %s\n", e.what());
+                fileclient_hdr resp;
+                resp.op = fileclient_result;
+                resp.status = -1;
+                resp.psize = 0;
+                conn->next_response_is((fileclient_msg*)&resp);
+            }
         }
     }
 }
