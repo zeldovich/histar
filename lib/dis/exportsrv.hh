@@ -6,6 +6,8 @@
 void exportsrv_start(uint64_t container, label *la, 
                     label *clearance);
 
+void export_acquire(uint64_t taint);
+
 typedef enum {
     exp_grant,    
 } export_op_t;

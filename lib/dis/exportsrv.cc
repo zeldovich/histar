@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/error.hh>
 
 #include <lib/dis/fileserver.hh>
+#include <lib/dis/proxydclnt.hh>
 
 #include <lib/dis/exportsrv.hh>
 
@@ -24,8 +25,11 @@ static uint64_t handles_ct;
 static void __attribute__((noreturn))
 grant_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 try {
+    char buf[16];
+    uint64_t taint = (uint64_t)arg;
+    proxyd_get_global(taint, buf);
     label *dl = new label();;
-    thread_cur_label(dl);
+    dl->set(taint, LB_LEVEL_STAR);
     gr->ret(0, dl, 0);
 }
 catch (std::exception &e) {
@@ -45,7 +49,19 @@ add_grant_gate(uint64_t grant, uint64_t handle)
     char name[32];
     sprintf(name, "%ld", handle);
     gate_create(handles_ct, name, &th_ctm, 
-                    &th_clr, &grant_srv, 0);
+                    &th_clr, &grant_srv, (void *)handle);
+}
+
+void
+export_acquire(uint64_t taint)
+{
+    char name[32];
+    sprintf(name, "%ld", taint);
+    int taint_gt;
+    error_check(taint_gt = container_find(handles_ct, kobj_gate, name));
+    
+    gate_call_data gcd;
+    gate_call(COBJ(handles_ct, taint_gt), 0, 0, 0).call(&gcd, 0);
 }
 
 static void __attribute__((noreturn))

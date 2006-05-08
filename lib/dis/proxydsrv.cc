@@ -77,9 +77,22 @@ local_to_global(uint64_t local)
 {
     scoped_pthread_lock(&global_handle_map.mu);    
     global_handle *mapping = global_handle_map.mapping;
-    for (int i = 0; i < num_global_handle; i++)
-       if (mapping[i].handle == local)
+    for (int i = 0; i < num_global_handle; i++) {
+       if (mapping[i].handle == local) {
+            uint64_t mappings_gt;
+            error_check(mappings_gt = container_find(mappings_ct, kobj_gate, 
+                        mapping[i].global));
+            gate_call_data gcd;
+            proxyd_args *args = (proxyd_args *) gcd.param_buf;
+            args->handle.local = local;
+            
+            label th_cl;
+            thread_cur_label(&th_cl);
+            
+            gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(&gcd, 0);
             return mapping[i].global;
+       }
+    }
     return 0;
 }
 
@@ -134,6 +147,9 @@ proxyd_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
         case proxyd_global: {
             char *global = local_to_global(args->handle.local);
             strcpy(args->handle.global, global);
+            label *ds = new label(3);
+            ds->set(args->handle.local, LB_LEVEL_STAR);
+            gr->ret(cont, ds, 0);       
             break;    
         }
         
