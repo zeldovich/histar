@@ -7,7 +7,8 @@ LIB_SRCFILES += lib/dis/proxydsrv.cc \
 				lib/dis/remfiledsrv.cc \
 				lib/dis/fileclient.cc \
 				lib/dis/fileserver.cc \
-				lib/dis/exportsrv.cc
+				lib/dis/exportsrv.cc \
+				lib/dis/exportclnt.cc 
 				
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
