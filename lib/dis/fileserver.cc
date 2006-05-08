@@ -15,6 +15,7 @@ extern "C" {
 
 #include <inc/scopeguard.hh>
 #include <lib/dis/fileserver.hh>
+#include <lib/dis/fileserver_util.hh>
 #include <lib/dis/fileclient.hh>
 #include <inc/error.hh>
 
@@ -32,7 +33,8 @@ public:
         debug_print(msg_debug, "count %d off %d path %s", 
                     request_.count, request_.offset, request_.path);
         executed_ = 1;
-    
+
+        fileserver_acquire(request_.path, O_RDONLY);
         int fd = open(request_.path, O_RDONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
@@ -78,6 +80,7 @@ public:
         if (len != cc)
             debug_print(file_debug, "truncated payload %d, %d", len, cc);
 
+        fileserver_acquire(request_.path, O_WRONLY);
         int fd = open(request_.path, O_WRONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
@@ -115,6 +118,7 @@ public:
         debug_print(msg_debug, "path %s", request_.path);
         executed_ = 1;
     
+        fileserver_acquire(request_.path, O_RDONLY);
         int fd = open(request_.path, O_RDONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
@@ -224,7 +228,7 @@ fileserver_start(int port)
         debug_print(conn_debug, "connection from %d.%d.%d.%d", 
                ip[0], ip[1], ip[2], ip[3]);
 
-        // one thread            
+        // one thread, single connection            
         fileserver_conn *conn = new fileserver_conn(ss, sin);
         scope_guard<void, fileserver_conn *> del_conn(delete_obj, conn);
         fileserver_req *req;
