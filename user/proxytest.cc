@@ -3,11 +3,17 @@ extern "C" {
 #include <inc/syscall.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
+int remfile_open(char *host, char *path);
+
 }
 
 #include <inc/labelutil.hh>
 
 #include <lib/dis/proxydclnt.hh>
+
+
 
 int
 main (int ac, char **av)
@@ -44,5 +50,9 @@ main (int ac, char **av)
     
     printf("global %s\n", buf);
     
+    int fd = remfile_open((char*)"1",(char*)"2");
+    read(fd, buf, 16);    
+    
     return 0;    
 }
+
