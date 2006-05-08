@@ -147,6 +147,10 @@ init_procs(int cons, uint64_t h_root)
     spawn_fs(cons, "/bin/httpd_worker", 0, &ds_none);
 
     spawn_fs(cons, "/bin/db", 0, &ds_none);
+
+    //spawn_fs(cons, "/bin/proxyd", 0, &ds_none);
+    //spawn_fs(cons, "/bin/remfiled", 0, &ds_none);
+    //spawn_fs(cons, "/bin/exportd", 0, &ds_none);
 }
 
 static void
