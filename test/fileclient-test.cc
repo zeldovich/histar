@@ -24,7 +24,7 @@ main (int ac, char **av)
         usage(av[0]);
     int port = atoi(av[1]);
 
-    fileclient *fc = new fileclient("/x/test.txt", "127.0.0.1", port);
+    fileclient *fc = new fileclient("/tmp/test0", "127.0.0.1", port);
     const file_frame *frame = fc->frame_at(10, 0);
     printf("frame->count %ld frame->offset %ld\n", frame->count_, frame->offset_);
 
