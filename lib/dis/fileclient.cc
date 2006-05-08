@@ -12,6 +12,8 @@ extern "C" {
 #include <errno.h>
 #include <unistd.h>
 #include <inc/debug.h>
+
+#include <sys/param.h>
 }
 
 #include <lib/dis/fileserver.hh>

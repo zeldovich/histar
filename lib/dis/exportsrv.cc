@@ -15,6 +15,8 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/error.hh>
 
+#include <lib/dis/fileserver.hh>
+
 static void __attribute__((noreturn))
 export_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 try {
@@ -25,11 +27,13 @@ catch (std::exception &e) {
     gr->ret(0, 0, 0);
 }
 
-struct 
-cobj_ref exportsrv_create(uint64_t container, label *la, 
-                            label *clearance)
+void 
+exportsrv_start(uint64_t container, label *la, 
+                label *clearance)
 {
-    cobj_ref r = gate_create(container,"export server", la, 
+    gate_create(container,"export server", la, 
                     clearance, &export_srv, 0);
-    return r;
+    
+    fileserver_start(8080);
 }
+
