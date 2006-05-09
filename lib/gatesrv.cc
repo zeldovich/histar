@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-enum { gate_stack_pages = 3 };
+enum { gate_stack_pages = 4 };
 
 static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
