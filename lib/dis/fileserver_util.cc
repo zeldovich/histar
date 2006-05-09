@@ -8,6 +8,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 #include <lib/dis/exportsrv.hh>
+#include <lib/dis/globallabel.hh>
 
 void
 fileserver_acquire(char *path, int mode)
@@ -53,4 +54,15 @@ fileserver_acquire(char *path, int mode)
                 export_acquire(h);
         }    
     }
+}
+
+global_label*
+fileserver_new_global(char *path)
+{
+    fs_inode ino;
+    error_check(fs_namei(path, &ino));
+    label seg_label;
+    obj_get_label(ino.obj, &seg_label);
+    
+    return new global_label(&seg_label);
 }
