@@ -30,6 +30,7 @@ struct fileclient_msg {
 ////////////////
 
 typedef enum {
+    fileserver_open,
     fileserver_read,
     fileserver_write,
     fileserver_stat,
