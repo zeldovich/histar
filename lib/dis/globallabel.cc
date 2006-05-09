@@ -90,8 +90,7 @@ global_label::gen_serial(void)
     memcpy(&buf[off], entry_, entries_ * sizeof(global_entry));
     off += entries_ * sizeof(global_entry);
     
-    global_label *me = (global_label *)this;
-    me->serial_ = new char[off];
+    serial_ = new char[off];
     memcpy(serial_, buf, off);
 }
 
