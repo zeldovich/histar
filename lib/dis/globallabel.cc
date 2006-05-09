@@ -1,4 +1,5 @@
 extern "C" {
+#include <netinet/in.h>
 #include <stdio.h>    
 #include <string.h>
 #include <assert.h>
@@ -10,6 +11,17 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+
+static char
+level_to_char(level_t lv)
+{
+    char lbuf[4];
+    if (lv == LB_LEVEL_STAR)
+        snprintf(&lbuf[0], sizeof(lbuf), "*");
+    else
+        snprintf(&lbuf[0], sizeof(lbuf), "%d", lv);
+    return lbuf[0];
+}
 
 global_label::global_label(label *local) : serial_(0), string_(0)
 {
@@ -32,26 +44,15 @@ global_label::global_label(label *local) : serial_(0), string_(0)
     }
 }
 
-static char
-level_to_char(level_t lv)
-{
-    char lbuf[4];
-    if (lv == LB_LEVEL_STAR)
-    snprintf(&lbuf[0], sizeof(lbuf), "*");
-    else
-    snprintf(&lbuf[0], sizeof(lbuf), "%d", lv);
-    return lbuf[0];
-}
-
 global_label::global_label(const char *serial) : serial_(0), string_(0)
 {
-    entries_ = ((int *)serial)[0];
-    default_ = ((int *)serial)[1];
+    entries_ = ntohl(((uint32_t *)serial)[0]);
+    default_ = serial[4];
     
     entry_ = new global_entry[entries_];
     memset(entry_, 0, sizeof(global_entry) * entries_);
     
-    uint32_t off = 8;
+    uint32_t off = 5;
     memcpy(entry_, &serial[off], entries_ * sizeof(global_entry));
 }
 
@@ -83,15 +84,16 @@ global_label::gen_serial(void)
 
     assert(bufsize >= sizeof(global_entry) * entries_ + 8);
 
-    ((int*)buf)[0] = entries_;
-    ((int*)buf)[1] = default_;
+    ((uint32_t*)buf)[0] = htonl(entries_);
+    buf[4] = default_;
 
-    uint32_t off = 8;
+    uint32_t off = 5;
     memcpy(&buf[off], entry_, entries_ * sizeof(global_entry));
     off += entries_ * sizeof(global_entry);
     
     serial_ = new char[off];
     memcpy(serial_, buf, off);
+    serial_len_ = off;
 }
 
 const char *

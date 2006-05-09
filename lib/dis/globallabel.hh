@@ -3,6 +3,12 @@
 
 #include <lib/dis/proxydsrv.hh>
 
+#ifdef JOS_USER
+#include <inc/label.h>
+#else
+typedef unsigned char level_t;
+#endif // JOS_USER
+
 class label;
 
 struct global_entry 
@@ -32,7 +38,7 @@ private:
     void gen_serial(void);
 
     global_entry *entry_;
-    uint64_t entries_;
+    uint32_t entries_;
     level_t default_;
     char *serial_;
     char *string_;
