@@ -10,6 +10,8 @@ extern "C" {
 
 #include <lib/dis/fileserver.hh>
 
+void fileserver_acquire(char *a, int b) { }
+
 static void 
 usage(char *com)
 {
