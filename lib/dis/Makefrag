@@ -9,7 +9,8 @@ LIB_SRCFILES += lib/dis/proxydsrv.cc \
 				lib/dis/fileserver.cc \
 				lib/dis/fileserver_util.cc \
 				lib/dis/exportsrv.cc \
-				lib/dis/exportclnt.cc
+				lib/dis/exportclnt.cc \
+				lib/dis/globallabel.cc
 				
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
