@@ -70,8 +70,22 @@ main (int ac, char **av)
         printf("couldn't create test0\n");
         exit(-1);    
     }
-    
-    fs_pwrite(test0, "hello world", sizeof("hello world"), 0);
+    fs_pwrite(test0, "hello test0\n", sizeof("hello test0"), 0);
+
+    uint64_t taint1 = handle_alloc();
+    uint64_t grant1_fs = handle_alloc();
+    proxyd_add_mapping((char*)"test1 handle", taint1, grant1_fs, 0);
+    //export_grant(grant1_fs, taint1);
+    struct fs_inode test1;
+    label l1(1);
+    l1.set(taint1, 3);
+    if (fs_create(tmp, "test1", &test1, l1.to_ulabel()) < 0) {
+        printf("couldn't create test1\n");
+        exit(-1);    
+    }
+    fs_pwrite(test1, "hello test1\n", sizeof("hello test1"), 0);
+
+
     return 0;    
 }
 
