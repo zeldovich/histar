@@ -17,11 +17,32 @@ extern "C" {
 #include <lib/dis/fileserver.hh>
 #include <lib/dis/fileserver_util.hh>
 #include <lib/dis/fileclient.hh>
+#include <lib/dis/globallabel.hh>
 #include <inc/error.hh>
 
 static const char conn_debug = 1;
 static const char msg_debug = 1;
 static const char file_debug = 1;
+
+class open_req : public fileserver_req 
+{
+public:
+    open_req(fileserver_hdr *header) : fileserver_req(header) {}
+    virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
+        debug_print(msg_debug, "path %s",request_.path);
+        executed_ = 1;
+
+        global_label *gl = fileserver_new_global(request_.path);
+        const char *s = gl->serial();
+        int len = gl->serial_len();
+        memcpy(response_.payload_, s, len);
+        response_.header_.op = fileclient_result;
+        response_.header_.status = len;
+        response_.header_.psize = len;
+    }
+};
 
 class read_req : public fileserver_req 
 {
@@ -159,6 +180,8 @@ fileserver_conn::next_request(void)
         return 0;  // other end closed
     
     switch (header.op) {
+        case fileserver_open:
+            return new open_req(&header);
         case fileserver_read:
             return new read_req(&header);
         case fileserver_write:

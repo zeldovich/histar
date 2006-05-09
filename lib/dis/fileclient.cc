@@ -18,6 +18,8 @@ extern "C" {
 
 #include <lib/dis/fileserver.hh>
 #include <lib/dis/fileclient.hh>
+#include <lib/dis/globallabel.hh>
+
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 
@@ -46,6 +48,29 @@ fileclient::init(char *path, char *host, int port)
     
     error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
     error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
+    fileserver_hdr msg;
+    msg.op = fileserver_open;
+    strcpy(msg.path, path_);
+    // use frame as temp buffer
+    char *buffer = frame_.byte_;
+    try {
+        // XXX
+        error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
+        fileclient_hdr res;
+        error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+        error_check(read(socket_, buffer, res.psize) - res.psize);
+    } catch (basic_exception e) {
+        close(socket_);
+        throw e;    
+    }
+    label_ = new global_label(buffer);
+}
+
+void
+fileclient::destroy(void)
+{
+    close(socket_);    
+    delete label_;
 }
 
 const file_frame*

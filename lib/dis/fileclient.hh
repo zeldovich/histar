@@ -6,6 +6,8 @@
 #include <lib/dis/filemessage.h>
 #include <unistd.h>
 
+class global_label;
+
 class file_frame
 {
 public:
@@ -36,9 +38,7 @@ public:
         destroy();    
     }
     void init(char *path, char *host, int port);
-    void destroy(void) {
-        close(socket_);    
-    }
+    void destroy(void); 
     
     // read, write
     const file_frame *frame_at(uint64_t count, uint64_t off);
@@ -51,10 +51,11 @@ public:
     const char *path(void) const { return path_; }
 
 private:
-    sockaddr_in addr_;
-    file_frame  frame_;
-    char        path_[64];
-    int         socket_;
+    sockaddr_in     addr_;
+    file_frame      frame_;
+    global_label*   label_;
+    char            path_[64];
+    int             socket_;
 
 };
 
