@@ -1,7 +1,7 @@
 #ifndef JOS_INC_PROXYD_HH_
 #define JOS_INC_PROXYD_HH_
 
-#include <inc/cpplabel.hh>
+class label;
 
 struct cobj_ref proxydsrv_create(uint64_t container, const char *name,
                 label *label, label *clearance);

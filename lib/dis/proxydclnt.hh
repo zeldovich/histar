@@ -1,9 +1,12 @@
 #ifndef JOS_INC_PROXYDCLNT_HH_
 #define JOS_INC_PROXYDCLNT_HH_
 
-extern "C" {
+
+#ifdef JOS_USER
 #include <inc/types.h>
-}
+#else
+#include <sys/types.h>
+#endif // JOS_USER
 
 int proxyd_add_mapping(char *global, uint64_t local, 
                        uint64_t grant, uint8_t grant_level);
