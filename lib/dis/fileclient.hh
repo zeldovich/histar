@@ -43,6 +43,8 @@ public:
     // read, write
     const file_frame *frame_at(uint64_t count, uint64_t off);
     const file_frame *frame_at_is(void *va, uint64_t count, uint64_t off);
+
+    const file_frame *frame(void) { return &frame_; }
     
     int stat(struct file_stat *buf);             
     
