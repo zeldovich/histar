@@ -17,6 +17,7 @@ extern "C" {
 
 #include <lib/dis/fileserver.hh>
 #include <lib/dis/proxydclnt.hh>
+#include <lib/dis/proxydsrv.hh>
 
 #include <lib/dis/exportsrv.hh>
 
@@ -25,7 +26,7 @@ static uint64_t handles_ct;
 static void __attribute__((noreturn))
 grant_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 try {
-    char buf[16];
+    char buf[PROX_GLOBAL_LEN];
     uint64_t taint = (uint64_t)arg;
     proxyd_get_global(taint, buf);
     label *dl = new label();;

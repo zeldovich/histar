@@ -6,6 +6,8 @@
 struct cobj_ref proxydsrv_create(uint64_t container, const char *name,
                 label *label, label *clearance);
 
+#define PROX_GLOBAL_LEN 32
+
 typedef enum
 {
     proxyd_mapping,
@@ -15,7 +17,7 @@ typedef enum
 
 struct handle_mapping
 {
-    char global[16]; 
+    char global[PROX_GLOBAL_LEN]; 
     uint64_t local;
     uint64_t grant;
     uint8_t grant_level;        

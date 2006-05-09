@@ -20,7 +20,7 @@ static uint64_t mappings_ct = 0;
 
 struct global_handle {
     uint64_t handle;
-    char global[16];    
+    char global[PROX_GLOBAL_LEN];    
 };
 
 static const int num_global_handle = 16;
