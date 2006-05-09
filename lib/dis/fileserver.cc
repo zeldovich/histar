@@ -239,7 +239,7 @@ fileserver_start(int port)
                 const fileclient_msg *resp = req->response();
                 conn->next_response_is(resp);
             } catch (basic_exception e) {
-                printf("fileserver_start: unable to execute req: %s\n", e.what());
+                debug_print(conn_debug, "unable to execute req: %s", e.what());
                 fileclient_hdr resp;
                 resp.op = fileclient_result;
                 resp.status = -1;
