@@ -66,6 +66,7 @@ static struct netd_ipc_segment *fast_ipc;
 static gate_call *fast_ipc_gatecall;
 static cobj_ref fast_ipc_gate;
 static uint64_t fast_ipc_inited;
+static uint64_t fast_ipc_inited_shared_ct;
 static pthread_mutex_t fast_ipc_mu;
 
 static void
@@ -81,6 +82,7 @@ netd_fast_worker(void *arg)
 	gate_call_data gcd;
 	gcd.param_obj = shared_seg;
 
+	fast_ipc_inited_shared_ct = start_env->shared_container;
 	fast_ipc_inited = 2;
 	sys_sync_wakeup(&fast_ipc_inited);
 
@@ -96,26 +98,48 @@ netd_fast_worker(void *arg)
 static void
 netd_fast_init(void)
 {
-    if (fast_ipc_inited == 0) {
-	int64_t fast_gate_id = container_find(netd_gate.container,
-					      kobj_gate, "netd-fast");
-	error_check(fast_gate_id);
-	fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
-	fast_ipc_gatecall = new gate_call(fast_ipc_gate, 0, 0, 0);
+    for (;;) {
+	// Locking scope
+	{
+	    scoped_pthread_lock l(&fast_ipc_mu);
 
-	fast_ipc_inited = 1;
-	cobj_ref fast_ipc_th;
-	error_check(thread_create(start_env->proc_container,
-				  &netd_fast_worker, 0,
-				  &fast_ipc_th, "netd fast ipc"));
+	    if (fast_ipc_inited == 2 &&
+		fast_ipc_inited_shared_ct != start_env->shared_container)
+	    {
+		if (fast_ipc) {
+		    segment_unmap(fast_ipc);
+		    fast_ipc = 0;
+		}
+
+		fast_ipc_inited = 0;
+	    }
+
+	    if (fast_ipc_inited == 0) {
+		int64_t fast_gate_id = container_find(netd_gate.container,
+						      kobj_gate, "netd-fast");
+		error_check(fast_gate_id);
+		fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
+		fast_ipc_gatecall = new gate_call(fast_ipc_gate, 0, 0, 0);
+
+		fast_ipc_inited = 1;
+		cobj_ref fast_ipc_th;
+		error_check(thread_create(start_env->proc_container,
+					  &netd_fast_worker, 0,
+					  &fast_ipc_th, "netd fast ipc"));
+	    }
+
+	    if (fast_ipc_inited == 2)
+		return;
+	}
+
+	sys_sync_wait(&fast_ipc_inited, 1, ~0UL);
     }
 }
 
 static void
 netd_fast_call(struct netd_op_args *a)
 {
-    while (fast_ipc_inited != 2)
-	sys_sync_wait(&fast_ipc_inited, 1, ~0UL);
+    netd_fast_init();
 
     scoped_pthread_lock l(&fast_ipc_mu);
     memcpy(&fast_ipc->args, a, a->size);
@@ -135,7 +159,6 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
     // A bit of a hack because we need to get tainted first...
     if (do_fast_calls) {
 	try {
-	    netd_fast_init();
 	    netd_fast_call(a);
 
 	    if (a->rval < 0)
