@@ -24,7 +24,7 @@ proxyd_server(void)
     return COBJ(dir_ct, dir_gt);
 }
 
-void
+int
 proxyd_add_mapping(char *global, uint64_t local, 
                   uint64_t grant, uint8_t grant_level)
 {
@@ -48,10 +48,11 @@ proxyd_add_mapping(char *global, uint64_t local,
     label th_cl;
     thread_cur_label(&th_cl);
     gate_call(server_gate, 0, &th_cl, 0).call(&gcd, 0);
+    return args->ret;
 }
 
-int64_t 
-proxyd_get_local(char *global) 
+int 
+proxyd_get_local(char *global, uint64_t *local) 
 {
     gate_call_data gcd;
     proxyd_args *args = (proxyd_args *) gcd.param_buf;
@@ -70,8 +71,12 @@ proxyd_get_local(char *global)
     label th_cl;
     thread_cur_label(&th_cl);
     gate_call(server_gate, 0, &th_cl, 0).call(&gcd, 0);
-    
-    return args->handle.local;
+    if (args->ret < 0) {
+        *local = 0;
+        return args->ret;    
+    }
+    *local = args->handle.local;
+    return 0;
 }
 
 int 
@@ -90,6 +95,9 @@ proxyd_get_global(uint64_t local, char *ret)
     label th_cl;
     thread_cur_label(&th_cl);
     gate_call(server_gate, 0, &th_cl, 0).call(&gcd, 0);
+    
+    if (args->ret < 0)
+        return args->ret;
     
     if (strlen(args->handle.global))
         strcpy(ret, args->handle.global);

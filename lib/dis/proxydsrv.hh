@@ -25,7 +25,7 @@ struct handle_mapping
 
 struct proxyd_args {
     proxyd_op_t op;
-    
+    int ret;
     union {
         struct handle_mapping mapping;
         struct handle_mapping handle;    

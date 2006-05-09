@@ -129,32 +129,45 @@ proxyd_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     if (server_taint)
         cont->set(start_env->process_taint, 2);
     
-    switch (args->op) {
-        case proxyd_mapping:
-            add_mapping(args->mapping.global, args->mapping.local, 
-                        args->mapping.grant, args->mapping.grant_level);
-            break;
-        case proxyd_local: {
-            label l, cl;
-            thread_cur_label(&l);
-            thread_cur_clearance(&cl);
-            uint64_t local = global_to_local(args->handle.global);
-            args->handle.local = local;
-            label *ds = new label(3);
-            ds->set(local, LB_LEVEL_STAR);
-            gr->ret(cont, ds, 0);        
+    try {
+        switch (args->op) {
+            case proxyd_mapping:
+                add_mapping(args->mapping.global, args->mapping.local, 
+                            args->mapping.grant, args->mapping.grant_level);
+                break;
+            case proxyd_local: {
+                label l, cl;
+                thread_cur_label(&l);
+                thread_cur_clearance(&cl);
+                uint64_t local = global_to_local(args->handle.global);
+                args->handle.local = local;
+                label *ds = new label(3);
+                ds->set(local, LB_LEVEL_STAR);
+                args->ret = 0;
+                gr->ret(cont, ds, 0);        
+            }
+            case proxyd_global: {
+                char *global = local_to_global(args->handle.local);
+                if (!global) {
+                    args->ret = -1;
+                    gr->ret(cont, 0, 0);                           
+                }
+                strcpy(args->handle.global, global);
+                label *ds = new label(3);
+                ds->set(args->handle.local, LB_LEVEL_STAR);
+                args->ret = 0;
+                gr->ret(cont, ds, 0);       
+                break;    
+            }
+            
         }
-        case proxyd_global: {
-            char *global = local_to_global(args->handle.local);
-            strcpy(args->handle.global, global);
-            label *ds = new label(3);
-            ds->set(args->handle.local, LB_LEVEL_STAR);
-            gr->ret(cont, ds, 0);       
-            break;    
-        }
-        
+        args->ret = 0;
+        gr->ret(cont, 0, 0);    
+    } catch (basic_exception e) {
+        printf("proxyd_srv: %s", e.what());
+        args->ret = -1;
+        gr->ret(0, 0, 0);    
     }
-    gr->ret(cont, 0, 0);    
 }
 
 struct 
