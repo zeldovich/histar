@@ -9,7 +9,6 @@
 struct Segment {
     struct kobject_hdr sg_ko;
     struct segmap_list sg_segmap_list;
-    uint8_t sg_fixed_size;
 };
 
 int  segment_alloc(const struct Label *l, struct Segment **sgp)
