@@ -370,7 +370,7 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
   } else {
     /* If this is non-blocking call, then check first */
     if (((flags & MSG_DONTWAIT) || (sock->flags & O_NONBLOCK))
-  && !sock->rcvevent)
+	&& sock->conn->recvmbox != SYS_MBOX_NULL && !sock->rcvevent)
     {
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): returning EWOULDBLOCK\n", s));
       sock_set_errno(sock, EWOULDBLOCK);
@@ -635,9 +635,10 @@ lwip_selscan(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset)
     {
         if (FD_ISSET(i, readset))
         {
-            /* See if netconn of this socket is ready for read */
+            /* See if netconn of this socket is ready for read, or closed */
             p_sock = get_socket(i);
-            if (p_sock && (p_sock->lastdata || p_sock->rcvevent))
+            if (p_sock && (p_sock->lastdata || p_sock->conn->recvmbox == SYS_MBOX_NULL
+					    || p_sock->rcvevent))
             {
                 FD_SET(i, &lreadset);
 		LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for reading\n", i));
