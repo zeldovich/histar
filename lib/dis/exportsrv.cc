@@ -28,7 +28,7 @@ grant_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 try {
     char buf[PROX_GLOBAL_LEN];
     uint64_t taint = (uint64_t)arg;
-    proxyd_get_global(taint, buf);
+    proxyd_acquire_global(taint, buf);
     label *dl = new label();;
     dl->set(taint, LB_LEVEL_STAR);
     gr->ret(0, dl, 0);
