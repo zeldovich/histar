@@ -12,11 +12,17 @@ extern "C" {
 }
 
 #include <lib/dis/fileclient.hh>
+#include <lib/dis/globallabel.hh>
+
+global_label::global_label(const char *buf)
+{
+    ;    
+}
 
 static int
 read(fileclient *fc, char *buf, int n)
 {
-    const file_frame *frame = fc->frame_at(n, fc->frame().offset_);
+    const file_frame *frame = fc->frame_at(n, fc->frame()->offset_);
     int cc = MIN(n, frame->count_);
     memcpy(buf, frame->byte_, cc);
     return cc;        
