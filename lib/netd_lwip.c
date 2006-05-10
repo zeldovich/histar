@@ -152,13 +152,13 @@ netd_dispatch(struct netd_op_args *a)
 	    FD_ZERO(&set);
 	    FD_SET(a->select.fd, &set);
 	    struct timeval tv = {0, 0};
-    
+
 	    err_fd = a->select.fd;
 	    if (a->select.write)
 		a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv);
 	    else
 		a->rval = lwip_select(a->select.fd + 1, &set, 0, 0, &tv);
-        
+
 	    break;
 	}
 

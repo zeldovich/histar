@@ -330,9 +330,9 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, select) + sizeof(a.select);
 
-    a.op_type = netd_op_select ;
-    a.select.fd = fd->fd_sock.s ;
-    a.select.write = probe == dev_probe_write ? 1 : 0 ;
+    a.op_type = netd_op_select;
+    a.select.fd = fd->fd_sock.s;
+    a.select.write = probe == dev_probe_write ? 1 : 0;
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
