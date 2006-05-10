@@ -1,13 +1,14 @@
+extern "C" {
+#include <inc/types.h>
+#include <inc/lib.h>    
+#include <stdio.h>
+}
 #include <lib/dis/proxydsrv.hh>
 
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
 
-extern "C" {
-#include <inc/lib.h>    
-#include <stdio.h>
-}
 
 int
 main (int ac, char **av)
