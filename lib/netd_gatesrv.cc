@@ -192,6 +192,7 @@ netd_server_init(uint64_t gate_ct,
 
 	gd.name_ = "netd-fast";
 	gd.func_ = &netd_fast_gate_entry;
+	gd.flags_ |= GATESRV_NO_THREAD_ADDREF;
 	gate_create(&gd);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());
