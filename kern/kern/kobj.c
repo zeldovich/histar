@@ -123,6 +123,9 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     struct kobject *ko;
     LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
 	if (ko->hdr.ko_id == id) {
+	    if (ko->hdr.ko_ref == 0)
+		return -E_INVAL;
+
 	    int r = ko->hdr.ko_type == kobj_label ? 0 :
 		    kobject_iflow_check(&ko->hdr, iflow);
 	    if (r < 0)
