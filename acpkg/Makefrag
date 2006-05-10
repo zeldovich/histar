@@ -196,11 +196,6 @@ $(OBJDIR)/user/tcdemo: ncurses
 $(OBJDIR)/user/tcdemo2: ncurses
 	cp acpkg/ncurses-5.5/test/firework $(OBJDIR)/user/tcdemo2
 
-acpkg/binutils-2.16.1/__build: acpkg/binutils-2.16.1/Makefile
-	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake" )
-	( cd acpkg/binutils-2.16.1 && sh -c "$(ACENV) gmake install" )
-	touch $@
-
 ## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
 nvi: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
@@ -214,25 +209,27 @@ nvi: $(ACPKG_WRAPS)
 
 acpkg/gcc-3.4.5/__build: acpkg/binutils-2.16.1/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
+	-( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
 	touch $@
 
-$(OBJDIR)/user/gcc_tar: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
+$(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
 	rm -f $@
-	tar -cf $@ -C $(OBJDIR)/acpkg bin/gcc \
-				      libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
-				      libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
-				      bin/ld \
-				      bin/as
-	tar -rf $@ -C $(OBJDIR) lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a
 	cp $(OBJDIR)/lib/crt*.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
-	tar -rf $@ -C $(OBJDIR)/acpkg lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
-				      lib/gcc/x86_64-jos-linux/3.4.5/specs \
-				      lib/gcc/x86_64-jos-linux/3.4.5/crt1.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/crti.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/crtn.o \
-				      lib/gcc/x86_64-jos-linux/3.4.5/include
+	cp $(OBJDIR)/lib/lib*.a $(OBJDIR)/acpkg/lib/
+	tar -zcf $@ -C $(OBJDIR)/acpkg \
+		bin/gcc bin/ld bin/as \
+		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
+		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
+		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
+		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
+		lib/gcc/x86_64-jos-linux/3.4.5/specs \
+		lib/gcc/x86_64-jos-linux/3.4.5/crt1.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crti.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crtn.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/include
+
