@@ -51,9 +51,9 @@ proxyd_add_mapping(char *global, uint64_t local,
     return args->ret;
 }
 
-int 
-proxyd_get_local(char *global, uint64_t *local) 
-{
+static int
+local_handle(char *global, uint64_t *local, char acquire)
+{ 
     gate_call_data gcd;
     proxyd_args *args = (proxyd_args *) gcd.param_buf;
 
@@ -64,8 +64,10 @@ proxyd_get_local(char *global, uint64_t *local)
         throw error(-E_NO_SPACE,"%s too big (%ld > %ld)", global, 
                     size, sizeof(args->handle.global)); 
     
-    strcpy(args->handle.global, global);
     args->op = proxyd_local;
+    strcpy(args->handle.global, global);
+    args->handle.local = 0;
+    args->handle.acquire = acquire;
 
     // XXX        
     label th_cl;
@@ -76,11 +78,11 @@ proxyd_get_local(char *global, uint64_t *local)
         return args->ret;    
     }
     *local = args->handle.local;
-    return 0;
+    return 0; 
 }
 
-int 
-proxyd_get_global(uint64_t local, char *ret) 
+static int 
+global_handle(uint64_t local, char *ret, char acquire)
 {
     gate_call_data gcd;
     proxyd_args *args = (proxyd_args *) gcd.param_buf;
@@ -89,6 +91,7 @@ proxyd_get_global(uint64_t local, char *ret)
 
     args->handle.local = local;
     memset(args->handle.global, 0, sizeof(args->handle.global));
+    args->handle.acquire = acquire;
     args->op = proxyd_global;
 
     // XXX        
@@ -105,4 +108,28 @@ proxyd_get_global(uint64_t local, char *ret)
         return -E_INVAL;
         
     return 0;
+}
+
+int 
+proxyd_get_local(char *global, uint64_t *local) 
+{
+    return local_handle(global, local, 0);
+}
+
+int 
+proxyd_get_global(uint64_t local, char *ret) 
+{
+    return global_handle(local, ret, 0);    
+}
+
+int 
+proxyd_acquire_local(char *global, uint64_t *local) 
+{
+    return local_handle(global, local, 0);
+}
+
+int 
+proxyd_acquire_global(uint64_t local, char *ret)
+{
+    return global_handle(local, ret, 1);
 }

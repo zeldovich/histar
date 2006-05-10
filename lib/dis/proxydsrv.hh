@@ -28,7 +28,11 @@ struct proxyd_args {
     int ret;
     union {
         struct handle_mapping mapping;
-        struct handle_mapping handle;    
+        struct {
+            char acquire;
+            char global[PROX_GLOBAL_LEN]; 
+            uint64_t local;
+        } handle;
     };    
 };
 

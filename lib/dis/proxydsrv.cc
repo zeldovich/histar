@@ -32,12 +32,23 @@ static struct {
 static void __attribute__((noreturn))
 get_local(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
-    proxyd_args *args = (proxyd_args *) parm->param_buf;
-    uint64_t local = args->handle.local;
+    //proxyd_args *args = (proxyd_args *) parm->param_buf;
+    //uint64_t local = args->handle.local;
+    uint64_t local = (uint64_t)arg;
     
     label *ds = new label(3);
     ds->set(local, LB_LEVEL_STAR);
     gr->ret(0, ds, 0);
+}
+
+static void
+acquire_global(const char *global, gate_call_data *gcd)
+{
+    uint64_t mappings_gt;
+    error_check(mappings_gt = container_find(mappings_ct, kobj_gate, global)); 
+    label th_cl;
+    thread_cur_label(&th_cl);
+    gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(gcd, 0);
 }
 
 static uint64_t
@@ -65,9 +76,9 @@ global_to_local(char *global)
         throw error(-E_INVAL, "no mapping for %s", global);    
     
 
-    label th_cl;
-    thread_cur_label(&th_cl);
-    gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(&gcd, 0);
+    //label th_cl;
+    //thread_cur_label(&th_cl);
+    //gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(&gcd, 0);
 
     return args->handle.local;    
 }
@@ -86,14 +97,13 @@ local_to_global(uint64_t local)
             proxyd_args *args = (proxyd_args *) gcd.param_buf;
             args->handle.local = local;
             
-            label th_cl;
-            thread_cur_label(&th_cl);
-            
-            gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(&gcd, 0);
+            //label th_cl;
+            //thread_cur_label(&th_cl);
+            //gate_call(COBJ(mappings_ct, mappings_gt), 0, &th_cl, 0).call(&gcd, 0);
             return mapping[i].global;
        }
     }
-    return 0;
+    throw error(-E_INVAL, "no mapping for %ld", local);    
 }
 
 static void
@@ -107,7 +117,7 @@ add_mapping(char *global, uint64_t local,
     c.set(start_env->process_grant, 0);
     
     cobj_ref r = gate_create(mappings_ct, global, &l, 
-                             &c, &get_local, 0);
+                             &c, &get_local, (void*)local);
     
     scoped_pthread_lock(&global_handle_map.mu);    
     global_handle *mapping = global_handle_map.mapping;                             
@@ -134,40 +144,42 @@ proxyd_srv(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
             case proxyd_mapping:
                 add_mapping(args->mapping.global, args->mapping.local, 
                             args->mapping.grant, args->mapping.grant_level);
-                break;
-            case proxyd_local: {
-                label l, cl;
-                thread_cur_label(&l);
-                thread_cur_clearance(&cl);
-                uint64_t local = global_to_local(args->handle.global);
-                args->handle.local = local;
-                label *ds = new label(3);
-                ds->set(local, LB_LEVEL_STAR);
                 args->ret = 0;
-                gr->ret(cont, ds, 0);        
+                gr->ret(cont, 0, 0);        
+            case proxyd_local: {
+                uint64_t local = global_to_local(args->handle.global); 
+                args->handle.local = local;
+                if (args->handle.acquire) {
+                    acquire_global(args->handle.global, parm);
+                    label *ds = new label(3);
+                    ds->set(args->handle.local, LB_LEVEL_STAR);
+                    args->ret = 0;
+                    gr->ret(cont, ds, 0);      
+                }
+                args->ret = 0;
+                gr->ret(cont, 0, 0);
             }
             case proxyd_global: {
-                char *global = local_to_global(args->handle.local);
-                if (!global) {
-                    args->ret = -1;
-                    gr->ret(cont, 0, 0);                           
-                }
+                char *global = local_to_global(args->handle.local); 
                 strcpy(args->handle.global, global);
-                label *ds = new label(3);
-                ds->set(args->handle.local, LB_LEVEL_STAR);
+                if (args->handle.acquire) {
+                    acquire_global(args->handle.global, parm);
+                    label *ds = new label(3);
+                    ds->set(args->handle.local, LB_LEVEL_STAR);
+                    args->ret = 0;
+                    gr->ret(cont, ds, 0);      
+                }
                 args->ret = 0;
-                gr->ret(cont, ds, 0);       
-                break;    
+                gr->ret(cont, 0, 0);   
             }
-            
+            default:
+                throw basic_exception("unknown op %d", args->op);
         }
-        args->ret = 0;
-        gr->ret(cont, 0, 0);    
     } catch (basic_exception e) {
         printf("proxyd_srv: %s", e.what());
-        args->ret = -1;
-        gr->ret(0, 0, 0);    
     }
+    args->ret = -1;
+    gr->ret(0, 0, 0);    
 }
 
 struct 
