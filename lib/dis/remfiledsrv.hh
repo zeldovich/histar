@@ -2,6 +2,7 @@
 #define JOS_INC_REMFILEDSRV_HH_
 
 #include <inc/cpplabel.hh>
+#include <inc/remfile.h>
 
 struct cobj_ref remfiledsrv_create(uint64_t container, label *label, 
                                    label *clearance);
