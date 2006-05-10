@@ -205,12 +205,12 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
     if (probe == dev_probe_read) {
     	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
     	pthread_mutex_lock(&op->mu);
-        rv = op->bytes ? 1 : 0;
+        rv = !op->open || op->bytes ? 1 : 0;
         pthread_mutex_unlock(&op->mu);
     } else {
     	struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
     	pthread_mutex_lock(&op->mu);
-        rv = (op->bytes > sizeof(op->buf) - PIPE_BUF) ? 0 : 1;
+        rv = !op->open || (op->bytes > sizeof(op->buf) - PIPE_BUF) ? 0 : 1;
         pthread_mutex_unlock(&op->mu);
     }
 
