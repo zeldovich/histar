@@ -91,7 +91,6 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     label lx(1);
 
     struct fs_inode scratch;
-    error_check(fs_mkdir(start_env->fs_root, "x", &scratch, lx.to_ulabel()));
     error_check(fs_mkdir(start_env->fs_root, "tmp", &scratch, lx.to_ulabel()));
 
     struct fs_inode etc;
