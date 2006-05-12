@@ -50,6 +50,20 @@ enum { fd_missing_debug = 1 };
 	__r;							\
     })
 
+// Call a method on a file descriptor number
+#define FD_CALL(fdnum, fn, ...)					\
+    ({								\
+	struct Fd *__fd;					\
+	struct Dev *__dev;					\
+	if (fd_lookup(fdnum, &__fd, 0, 0) < 0 ||		\
+	    dev_lookup(__fd->fd_dev_id, &__dev) < 0)		\
+	{							\
+	    __set_errno(EBADF);					\
+	    return -1;						\
+	}							\
+	DEV_CALL(__dev, fn, __fd, ##__VA_ARGS__);		\
+    })
+
 // Multiple threads with different labels could be running in the same address
 // space, so it's useful to have a common place accessible by all threads to
 // store this information.
@@ -463,10 +477,12 @@ close(int fdnum) __THROW
     struct Fd *fd;
     int r;
 
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
-	return r;
-    else
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
+	__set_errno(EBADF);
+	return -1;
+    } else {
 	return jos_fd_close(fd);
+    }
 }
 
 void
@@ -608,11 +624,17 @@ read(int fdnum, void *buf, size_t n) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
     if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
 	cprintf("[%lx] read %d -- bad mode\n", thread_id(), fdnum); 
-	return -E_INVAL;
+	__set_errno(EINVAL);
+	return -1;
     }
+
     r = DEV_CALL(dev, read, fd, buf, n, fd->fd_offset);
     if (r >= 0 && !fd->fd_immutable)
 	fd->fd_offset += r;
@@ -628,14 +650,21 @@ write(int fdnum, const void *buf, size_t n) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
+    {
+	__set_errno(EBADF);
+	return -1;
+    }
+
     if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
 	cprintf("[%lx] write %d -- bad mode\n", thread_id(), fdnum);
-	return -E_INVAL;
+	__set_errno(EINVAL);
+	return -1;
     }
+
     if (debug)
 	cprintf("write %d %p %ld via dev %s\n",
 		fdnum, buf, n, dev->dev_name);
+
     r = DEV_CALL(dev, write, fd, buf, n, fd->fd_offset);
     if (r > 0 && !fd->fd_immutable)
 	fd->fd_offset += r;
@@ -645,85 +674,37 @@ write(int fdnum, const void *buf, size_t n) __THROW
 int
 bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
-
-    return DEV_CALL(dev, bind, fd, addr, addrlen);
+    return FD_CALL(fdnum, bind, addr, addrlen);
 }
 
 int
 connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
-
-    return DEV_CALL(dev, connect, fd, addr, addrlen);
+    return FD_CALL(fdnum, connect, addr, addrlen);
 }
 
 int
 listen(int fdnum, int backlog) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
-
-    return DEV_CALL(dev, listen, fd, backlog);
+    return FD_CALL(fdnum, listen, backlog);
 }
 
 int
 accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	return r;
-
-    return DEV_CALL(dev, accept, fd, addr, addrlen);
+    return FD_CALL(fdnum, accept, addr, addrlen);
 }
 
 int 
 getsockname(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-        return r;
-
-    return DEV_CALL(dev, getsockname, fd, addr, addrlen);
+    return FD_CALL(fdnum, getsockname, addr, addrlen);
 }
 
 int 
 getpeername(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-        return r;
-
-    return DEV_CALL(dev, getpeername, fd, addr, addrlen);   
+    return FD_CALL(fdnum, getpeername, addr, addrlen);
 }
 
 
@@ -731,30 +712,14 @@ int
 setsockopt(int fdnum, int level, int optname, const void *optval, 
            socklen_t optlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-        return r;
-
-    return DEV_CALL(dev, setsockopt, fd, level, optname, optval, optlen);       
+    return FD_CALL(fdnum, setsockopt, level, optname, optval, optlen);
 }
                
 int 
-getsockopt(int fdnum, int level, int optname,void *optval, 
+getsockopt(int fdnum, int level, int optname, void *optval,
            socklen_t *optlen) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-        return r;
-
-    return DEV_CALL(dev, getsockopt, fd, level, optname, optval, optlen);    
+    return FD_CALL(fdnum, getsockopt, level, optname, optval, optlen);
 }
 
 // XXX
@@ -789,7 +754,8 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         for (int i = 0 ; i < maxfd ; i++) {
             if (readset && FD_ISSET(i, readset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
-                || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+		    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+		{
                     __set_errno(EBADF);
                     return -1;
                 }
@@ -800,7 +766,8 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             }
             if (writeset && FD_ISSET(i, writeset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
-                || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+		    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+		{
                     __set_errno(EBADF);
                     return -1;
                 }
@@ -835,18 +802,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-    {
-	__set_errno(EBADF);
-	return -1;
-    }
-
-    return DEV_CALL(dev, send, fd, dataptr, size, flags);
+    return FD_CALL(fdnum, send, dataptr, size, flags);
 }
 
 ssize_t
@@ -860,18 +816,7 @@ sendto(int fdnum, const void *dataptr, size_t len, int flags,
 ssize_t
 recv(int fdnum, void *mem, size_t len, int flags) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-    {
-	__set_errno(EBADF);
-	return -1;
-    }
-
-    return DEV_CALL(dev, recv, fd, mem, len, flags);
+    return FD_CALL(fdnum, recv, mem, len, flags);
 }
 
 ssize_t
@@ -888,7 +833,6 @@ recvmsg(int fdnum, struct msghdr *msg, int flags) __THROW
     set_enosys();
     return -1;
 }
-
 
 int
 fstat(int fdnum, struct stat *buf) __THROW
@@ -1110,66 +1054,25 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 extern "C" ssize_t
 __getdents (int fdnum, struct dirent *buf, size_t nbytes)
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-    {
-	__set_errno(EBADF);
-	return -1;
-    }
-
-    return DEV_CALL(dev, getdents, fd, buf, nbytes);
+    return FD_CALL(fdnum, getdents, buf, nbytes);
 }
 
 int
 ftruncate(int fdnum, off_t length) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-    {
-	__set_errno(EBADF);
-	return -1;
-    }
-
-    return DEV_CALL(dev, trunc, fd, length);
+    return FD_CALL(fdnum, trunc, length);
 }
 
 int
 fsync(int fdnum) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-    {
-	__set_errno(EBADF);
-	return -1;
-    }
-
-    return DEV_CALL(dev, sync, fd);
+    return FD_CALL(fdnum, sync);
 }
 
 int
 shutdown(int s, int how) __THROW
 {
-    int r;
-    struct Fd *fd;
-    struct Dev *dev;
-
-    if ((r = fd_lookup(s, &fd, 0, 0)) < 0
-	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-        return r;
-
-    return DEV_CALL(dev, shutdown, fd, how);
+    return FD_CALL(s, shutdown, how);
 }
 
 weak_alias(__libc_fcntl, fcntl);
