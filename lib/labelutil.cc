@@ -13,6 +13,8 @@ static pthread_mutex_t label_ops_mu;
 static uint64_t cur_th_label_id, cur_th_clear_id;
 static label cur_th_label, cur_th_clear;
 
+enum { handle_debug = 0 };
+
 int
 thread_set_label(label *l)
 {
@@ -44,6 +46,9 @@ thread_set_clearance(label *l)
 void
 thread_drop_star(uint64_t handle)
 {
+    if (handle_debug)
+	cprintf("[%ld] handle: dropping %ld\n", thread_id(), handle);
+
     try {
 	label clear;
 	thread_cur_clearance(&clear);
@@ -67,6 +72,9 @@ thread_drop_star(uint64_t handle)
 void
 thread_drop_starpair(uint64_t h1, uint64_t h2)
 {
+    if (handle_debug)
+	cprintf("[%ld] handle: dropping %ld, %ld\n", thread_id(), h1, h2);
+
     try {
 	label clear;
 	thread_cur_clearance(&clear);
@@ -188,5 +196,9 @@ handle_alloc(void)
 	    cur_th_label_id = 0;
 	}
     }
+
+    if (handle_debug)
+	cprintf("[%ld] handle: allocated %ld\n", thread_id(), h);
+
     return h;
 }
