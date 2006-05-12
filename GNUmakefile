@@ -130,7 +130,7 @@ tags:
 
 # For deleting the build
 clean:
-	rm -rf $(OBJDIR)/.deps $(OBJDIR)/*
+	rm -rf $(OBJDIR)/.deps $(OBJDIR)/* acpkg/*/__build
 	rm -f bochs.log
 
 distclean: clean
