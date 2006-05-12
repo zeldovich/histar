@@ -83,22 +83,22 @@ getdtablesize(void) __THROW
 int
 fd2num(struct Fd *fd)
 {
-	return ((uintptr_t) fd - FDTABLE) / PGSIZE;
+    return ((uintptr_t) fd - FDTABLE) / PGSIZE;
 }
 
 static int
 fd_count_handles(uint64_t taint, uint64_t grant)
 {
-	int cnt = 0;
+    int cnt = 0;
 
-	for (int i = 0; i < MAXFD; i++) {
-		if (fd_handles[i].fd_taint == taint)
-			cnt++;
-		if (fd_handles[i].fd_grant == grant)
-			cnt++;
-	}
+    for (int i = 0; i < MAXFD; i++) {
+	if (fd_handles[i].fd_taint == taint)
+	    cnt++;
+	if (fd_handles[i].fd_grant == grant)
+	    cnt++;
+    }
 
-	return cnt;
+    return cnt;
 }
 
 static void
@@ -444,35 +444,37 @@ static struct Dev *devtab[] =
 int
 dev_lookup(int dev_id, struct Dev **dev)
 {
-	int i;
-	for (i = 0; devtab[i]; i++)
-		if (devtab[i]->dev_id == dev_id) {
-			*dev = devtab[i];
-			return 0;
-		}
-	cprintf("[%lx] unknown device type %d\n", thread_id(), dev_id);
-	*dev = 0;
-	return -E_INVAL;
+    int i;
+    for (i = 0; devtab[i]; i++) {
+	if (devtab[i]->dev_id == dev_id) {
+	    *dev = devtab[i];
+	    return 0;
+	}
+    }
+
+    cprintf("[%lx] unknown device type %d\n", thread_id(), dev_id);
+    *dev = 0;
+    return -E_INVAL;
 }
 
 int
 close(int fdnum) __THROW
 {
-	struct Fd *fd;
-	int r;
+    struct Fd *fd;
+    int r;
 
-	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
-		return r;
-	else
-		return jos_fd_close(fd);
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
+	return r;
+    else
+	return jos_fd_close(fd);
 }
 
 void
 close_all(void)
 {
-	int i;
-	for (i = 0; i < MAXFD; i++)
-		close(i);
+    int i;
+    for (i = 0; i < MAXFD; i++)
+	close(i);
 }
 
 // Make file descriptor 'newfdnum' a duplicate of file descriptor 'oldfdnum'.
@@ -600,60 +602,44 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 ssize_t
 read(int fdnum, void *buf, size_t n) __THROW
 {
-	int64_t r;
-	struct Dev *dev;
-	struct Fd *fd;
+    int64_t r;
+    struct Dev *dev;
+    struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-		return r;
-	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
-		cprintf("[%lx] read %d -- bad mode\n", thread_id(), fdnum); 
-		return -E_INVAL;
-	}
-	r = DEV_CALL(dev, read, fd, buf, n, fd->fd_offset);
-	if (r >= 0 && !fd->fd_immutable)
-		fd->fd_offset += r;
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	return r;
-}
-
-ssize_t
-readn(int fdnum, void *buf, size_t n)
-{
-	size_t tot;
-	int64_t m;
-
-	for (tot = 0; tot < n; tot += m) {
-		m = read(fdnum, (char*)buf + tot, n - tot);
-		if (m < 0)
-			return m;
-		if (m == 0)
-			break;
-	}
-	return tot;
+    if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
+	cprintf("[%lx] read %d -- bad mode\n", thread_id(), fdnum); 
+	return -E_INVAL;
+    }
+    r = DEV_CALL(dev, read, fd, buf, n, fd->fd_offset);
+    if (r >= 0 && !fd->fd_immutable)
+	fd->fd_offset += r;
+    return r;
 }
 
 ssize_t
 write(int fdnum, const void *buf, size_t n) __THROW
 {
-	int64_t r;
-	struct Dev *dev;
-	struct Fd *fd;
+    int64_t r;
+    struct Dev *dev;
+    struct Fd *fd;
 
-	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
-	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-		return r;
-	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
-		cprintf("[%lx] write %d -- bad mode\n", thread_id(), fdnum);
-		return -E_INVAL;
-	}
-	if (debug)
-		cprintf("write %d %p %ld via dev %s\n",
-			fdnum, buf, n, dev->dev_name);
-	r = DEV_CALL(dev, write, fd, buf, n, fd->fd_offset);
-	if (r > 0 && !fd->fd_immutable)
-		fd->fd_offset += r;
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 	return r;
+    if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
+	cprintf("[%lx] write %d -- bad mode\n", thread_id(), fdnum);
+	return -E_INVAL;
+    }
+    if (debug)
+	cprintf("write %d %p %ld via dev %s\n",
+		fdnum, buf, n, dev->dev_name);
+    r = DEV_CALL(dev, write, fd, buf, n, fd->fd_offset);
+    if (r > 0 && !fd->fd_immutable)
+	fd->fd_offset += r;
+    return r;
 }
 
 int
@@ -665,7 +651,7 @@ bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	    return r;
+	return r;
 
     return DEV_CALL(dev, bind, fd, addr, addrlen);
 }
@@ -679,7 +665,7 @@ connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	    return r;
+	return r;
 
     return DEV_CALL(dev, connect, fd, addr, addrlen);
 }
@@ -693,7 +679,7 @@ listen(int fdnum, int backlog) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	    return r;
+	return r;
 
     return DEV_CALL(dev, listen, fd, backlog);
 }
@@ -707,7 +693,7 @@ accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0
 	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-	    return r;
+	return r;
 
     return DEV_CALL(dev, accept, fd, addr, addrlen);
 }
@@ -783,67 +769,67 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     // XXX
     if (exceptset)
 	for (int i = 0 ; exceptset && i < maxfd ; i++)
-	    FD_CLR(i, exceptset) ;
+	    FD_CLR(i, exceptset);
     
-    fd_set rreadset ;
-    fd_set rwriteset ;
-    FD_ZERO(&rreadset) ;
-    FD_ZERO(&rwriteset) ;
+    fd_set rreadset;
+    fd_set rwriteset;
+    FD_ZERO(&rreadset);
+    FD_ZERO(&rwriteset);
     
-    int ready = 0 ;
+    int ready = 0;
     
     struct Fd *fd;
     struct Dev *dev;
-    int r ;
-    
-    struct timeval start ;
-    gettimeofday(&start, 0) ;
-    
+    int r;
+
+    struct timeval start;
+    gettimeofday(&start, 0);
+
     while (1) {
         for (int i = 0 ; i < maxfd ; i++) {
             if (readset && FD_ISSET(i, readset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
                 || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
                     __set_errno(EBADF);
-                    return -1 ;
+                    return -1;
                 }
                 if (DEV_CALL(dev, probe, fd, dev_probe_read)) {
-                    FD_SET(i, &rreadset) ;
-                    ready++ ;    
+                    FD_SET(i, &rreadset);
+                    ready++;
                 }
             }
             if (writeset && FD_ISSET(i, writeset)) {
                 if ((r = fd_lookup(i, &fd, 0, 0)) < 0
                 || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
                     __set_errno(EBADF);
-                    return -1 ;
+                    return -1;
                 }
                 if (DEV_CALL(dev, probe, fd, dev_probe_write)) {
-                    FD_SET(i, &rwriteset) ;
-                    ready++ ;    
+                    FD_SET(i, &rwriteset);
+                    ready++;
                 }
             }
         }
         // XXX can exceed timeout...
         if (timeout) {
-            struct timeval now, elapsed ;
-            gettimeofday(&now, 0) ;
-            timeradd(&start, &now, &elapsed) ;
+            struct timeval now, elapsed;
+            gettimeofday(&now, 0);
+            timeradd(&start, &now, &elapsed);
             if (timercmp(&elapsed, timeout, >))
-                break ;
+                break;
         }
         if (!ready)
-            usleep(100000) ;
+            usleep(100000);
         else
-            break ;
+            break;
     }
-    
+
     int sz = howmany(maxfd, NFDBITS) * sizeof(fd_mask);
     if (writeset)
-        memcpy(writeset, &rwriteset, sz) ;
+        memcpy(writeset, &rwriteset, sz);
     if (readset)
-        memcpy(readset, &rreadset, sz) ;
-    return ready ;
+        memcpy(readset, &rreadset, sz);
+    return ready;
 }
 
 ssize_t
@@ -1180,10 +1166,10 @@ shutdown(int s, int how) __THROW
     struct Dev *dev;
 
     if ((r = fd_lookup(s, &fd, 0, 0)) < 0
-    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	|| (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
         return r;
 
-    return DEV_CALL(dev, shutdown, fd, how);       
+    return DEV_CALL(dev, shutdown, fd, how);
 }
 
 weak_alias(__libc_fcntl, fcntl);
