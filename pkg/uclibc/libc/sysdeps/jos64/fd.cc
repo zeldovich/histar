@@ -68,9 +68,9 @@ enum { fd_missing_debug = 1 };
 // space, so it's useful to have a common place accessible by all threads to
 // store this information.
 static struct {
-    uint64_t fd_taint;
-    uint64_t fd_grant;
+    uint64_t h[fd_handle_max];
 } fd_handles[MAXFD];
+
 static int fd_handles_inited;
 
 static struct {
@@ -101,16 +101,14 @@ fd2num(struct Fd *fd)
 }
 
 static int
-fd_count_handles(uint64_t taint, uint64_t grant)
+fd_count_handles(uint64_t h)
 {
     int cnt = 0;
 
-    for (int i = 0; i < MAXFD; i++) {
-	if (fd_handles[i].fd_taint == taint)
-	    cnt++;
-	if (fd_handles[i].fd_grant == grant)
-	    cnt++;
-    }
+    for (int i = 0; i < MAXFD; i++)
+	for (int j = 0; j < fd_handle_max; j++)
+	    if (fd_handles[i].h[j] == h)
+		cnt++;
 
     return cnt;
 }
@@ -127,8 +125,8 @@ fd_handles_init(void)
 	if (r < 0)
 	    continue;
 
-	fd_handles[i].fd_grant = fd->fd_grant;
-	fd_handles[i].fd_taint = fd->fd_taint;
+	for (int j = 0; j < fd_handle_max; j++)
+	    fd_handles[i].h[j] = fd->fd_handle[j];
     }
     fd_handles_inited = 1;
 }
@@ -286,22 +284,33 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
 	    fd_map_cache[i].seg = new_seg;
 	    fd_map_cache[i].flags = iflags;
 
-	    fd_handles[i].fd_grant = fd_grant;
-	    fd_handles[i].fd_taint = fd_taint;
+	    fd_handles[i].h[fd_handle_grant] = fd_grant;
+	    fd_handles[i].h[fd_handle_taint] = fd_taint;
 	}
     }
 
     // Drop an extraneous reference
     assert(0 == sys_obj_unref(new_seg));
 
-    fd->fd_grant = fd_grant;
-    fd->fd_taint = fd_taint;
+    fd->fd_handle[fd_handle_grant] = fd_grant;
+    fd->fd_handle[fd_handle_taint] = fd_taint;
     fd->fd_private = 0;
 
     grant_drop.dismiss();
     taint_drop.dismiss();
 
     return 0;
+}
+
+void
+fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et)
+{
+    int fdnum = fd2num(fd);
+
+    fd->fd_handle[fd_handle_extra_grant] = eg;
+    fd->fd_handle[fd_handle_extra_taint] = et;
+    fd_handles[fdnum].h[fd_handle_extra_grant] = eg;
+    fd_handles[fdnum].h[fd_handle_extra_taint] = et;
 }
 
 // Check that fdnum is in range and mapped.
@@ -362,10 +371,13 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 int
 jos_fd_close(struct Fd *fd)
 {
+    int fdnum = fd2num(fd);
     fd_handles_init();
 
     int r = 0;
-    int handle_refs = fd_count_handles(fd->fd_taint, fd->fd_grant);
+    int handle_refs[fd_handle_max];
+    for (int i = 0; i < fd_handle_max; i++)
+	handle_refs[i] = fd_count_handles(fd->fd_handle[i]);
 
     struct cobj_ref fd_seg;
     r = segment_lookup(fd, &fd_seg, 0, 0);
@@ -395,17 +407,18 @@ jos_fd_close(struct Fd *fd)
     }
     segment_unmap_delayed(fd, 1);
 
-    fd_map_cache[fd2num(fd)].valid_proc_ct = start_env->proc_container;
-    fd_map_cache[fd2num(fd)].mapped = 0;
+    fd_map_cache[fdnum].valid_proc_ct = start_env->proc_container;
+    fd_map_cache[fdnum].mapped = 0;
 
-    if (handle_refs == 2) try {
-	fd_give_up_privilege(fd2num(fd));
-    } catch (std::exception &e) {
-	cprintf("fd_close: cannot drop handle: %s\n", e.what());
+    for (int i = 0; i < fd_handle_max; i++) {
+	if (handle_refs[i] == 1) try {
+	    thread_drop_star(fd_handles[fdnum].h[i]);
+	} catch (std::exception &e) {
+	    cprintf("fd_close: cannot drop handle: %s\n", e.what());
+	}
+
+	fd_handles[fdnum].h[i] = 0;
     }
-
-    fd_handles[fd2num(fd)].fd_taint = 0;
-    fd_handles[fd2num(fd)].fd_grant = 0;
 
     return r;
 }
@@ -413,8 +426,10 @@ jos_fd_close(struct Fd *fd)
 void
 fd_give_up_privilege(int fdnum)
 {
-    thread_drop_starpair(fd_handles[fdnum].fd_taint,
-			 fd_handles[fdnum].fd_grant);
+    thread_drop_starpair(fd_handles[fdnum].h[fd_handle_taint],
+			 fd_handles[fdnum].h[fd_handle_grant]);
+    thread_drop_starpair(fd_handles[fdnum].h[fd_handle_extra_taint],
+			 fd_handles[fdnum].h[fd_handle_extra_grant]);
 }
 
 int
@@ -437,7 +452,6 @@ fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 
 /******************
  * FILE FUNCTIONS *
- *                *
  ******************/
 
 static struct Dev *devtab[] =
@@ -539,8 +553,8 @@ dup2(int oldfdnum, int newfdnum) __THROW
     if (!immutable)
 	atomic_inc(&oldfd->fd_ref);
 
-    fd_handles[newfdnum].fd_taint = oldfd->fd_taint;
-    fd_handles[newfdnum].fd_grant = oldfd->fd_grant;
+    for (int i = 0; i < fd_handle_max; i++)
+	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
 
     return newfdnum;
 }

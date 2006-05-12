@@ -126,9 +126,14 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	struct Fd *fd;
 	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
 	error_check(dup2_as(fdnum[i], i, e.te_as, c_top));
-	thread_label.set(fd->fd_taint, LB_LEVEL_STAR);
+
+	thread_label.set(fd->fd_handle[fd_handle_taint], LB_LEVEL_STAR);
+	if (fd->fd_handle[fd_handle_extra_taint])
+	    thread_label.set(fd->fd_handle[fd_handle_extra_taint], LB_LEVEL_STAR);
 	if (!fd->fd_immutable)
-	    thread_label.set(fd->fd_grant, LB_LEVEL_STAR);
+	    thread_label.set(fd->fd_handle[fd_handle_grant], LB_LEVEL_STAR);
+	if (!fd->fd_immutable && fd->fd_handle[fd_handle_extra_grant])
+	    thread_label.set(fd->fd_handle[fd_handle_extra_grant], LB_LEVEL_STAR);
     }
 
     uint64_t env_size = PGSIZE;

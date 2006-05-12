@@ -25,7 +25,7 @@ typedef enum
 {
     dev_probe_read,
     dev_probe_write,    
-} dev_probe_t ;
+} dev_probe_t;
 
 struct Dev
 {
@@ -58,6 +58,14 @@ struct Dev
     int (*dev_shutdown)(struct Fd *fd, int how);
 };
 
+enum {
+    fd_handle_grant = 0,
+    fd_handle_taint,
+    fd_handle_extra_grant,
+    fd_handle_extra_taint,
+    fd_handle_max
+};
+
 struct Fd
 {
     int fd_dev_id;
@@ -68,8 +76,7 @@ struct Fd
     int fd_private;
 
     /* handles for this fd */
-    uint64_t fd_grant;
-    uint64_t fd_taint;
+    uint64_t fd_handle[fd_handle_max];
 
     atomic_t fd_ref;
 
@@ -121,6 +128,7 @@ int	fd_setflags(struct Fd *fd, struct cobj_ref obj, uint64_t newflags);
 void	fd_give_up_privilege(int fdnum);
 int	fd_set_isatty(int fdnum, int isit);
 int	dev_lookup(int devid, struct Dev **dev_store);
+void	fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et);
 
 /* Allocates individual handles for this FD */
 int	fd_make_public(int fdnum, struct ulabel *taint);
