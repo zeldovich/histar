@@ -583,14 +583,14 @@ as_invalidate_label(const struct Address_space *as, int invalidate_tls)
 	    goto err;
 
 	const struct kobject *ko;
-	if (usm->segment.object != kobject_id_thread_sg &&
+	if ((invalidate_tls && usm->segment.object == kobject_id_thread_sg) ||
 	    cobj_get(usm->segment, kobj_segment, &ko,
-		     (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) == 0)
-	    continue;
-
-	if (as_debug)
-	    cprintf("as_invalidate_label: calling as_invalidate_sm\n");
-	as_invalidate_sm(sm);
+		     (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) < 0)
+	{
+	    if (as_debug)
+		cprintf("as_invalidate_label: calling as_invalidate_sm\n");
+	    as_invalidate_sm(sm);
+	}
     }
 
     return;

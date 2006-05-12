@@ -81,7 +81,5 @@ int  thread_pagefault(const struct Thread *t, void *va, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
 int  thread_utrap(const struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
-int  thread_load_as(const struct Thread *t)
-    __attribute__ ((warn_unused_result));
 
 #endif
