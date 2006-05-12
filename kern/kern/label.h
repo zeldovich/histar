@@ -15,8 +15,6 @@ struct Label {
     uint64_t lb_ent[NUM_LB_ENT];
 };
 
-#define LB_ENT_EMPTY		(~(0UL))
-
 struct level_comparator_buf;
 typedef struct level_comparator_buf *level_comparator;
 extern level_comparator label_leq_starlo;

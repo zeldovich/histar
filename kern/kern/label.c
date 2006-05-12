@@ -73,7 +73,7 @@ static int
 label_find_slot(const struct Label *l, uint64_t handle)
 {
     for (int i = 0; i < NUM_LB_ENT; i++)
-	if (l->lb_ent[i] != LB_ENT_EMPTY && LB_HANDLE(l->lb_ent[i]) == handle)
+	if (l->lb_ent[i] && LB_HANDLE(l->lb_ent[i]) == handle)
 	    return i;
 
     return -E_NO_MEM;
@@ -99,7 +99,7 @@ label_alloc(struct Label **lp, level_t def)
     struct Label *l = &ko->lb;
     l->lb_def_level = def;
     for (int i = 0; i < NUM_LB_ENT; i++)
-	l->lb_ent[i] = LB_ENT_EMPTY;
+	l->lb_ent[i] = 0;
 
     *lp = l;
     return 0;
@@ -130,15 +130,14 @@ label_set(struct Label *l, uint64_t handle, level_t level)
 	    return 0;
 
 	for (i = 0; i < NUM_LB_ENT; i++)
-	    if (l->lb_ent[i] == LB_ENT_EMPTY)
+	    if (!l->lb_ent[i])
 		break;
 
 	if (i == NUM_LB_ENT)
 	    return -E_NO_MEM;
     }
 
-    l->lb_ent[i] = (level == l->lb_def_level) ? LB_ENT_EMPTY
-					      : LB_CODE(handle, level);
+    l->lb_ent[i] = (level == l->lb_def_level) ? 0 : LB_CODE(handle, level);
     return 0;
 }
 
@@ -161,7 +160,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
     uint32_t slot = 0;
     uint32_t overflow = 0;
     for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (l->lb_ent[i] == LB_ENT_EMPTY)
+	if (!l->lb_ent[i])
 	    continue;
 
 	if (slot < ul_size) {
@@ -261,7 +260,7 @@ label_compare(const struct Label *l1,
     level_comparator_init(cmp);
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (l1->lb_ent[i] == LB_ENT_EMPTY)
+	if (!l1->lb_ent[i])
 	    continue;
 
 	uint64_t h = LB_HANDLE(l1->lb_ent[i]);
@@ -272,7 +271,7 @@ label_compare(const struct Label *l1,
     }
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (l2->lb_ent[i] == LB_ENT_EMPTY)
+	if (!l2->lb_ent[i])
 	    continue;
 
 	uint64_t h = LB_HANDLE(l2->lb_ent[i]);
@@ -302,7 +301,7 @@ label_max(const struct Label *a, const struct Label *b,
     dst->lb_def_level = leq->max[a->lb_def_level][b->lb_def_level];
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (a->lb_ent[i] == LB_ENT_EMPTY)
+	if (!a->lb_ent[i])
 	    continue;
 
 	uint64_t h = LB_HANDLE(a->lb_ent[i]);
@@ -313,7 +312,7 @@ label_max(const struct Label *a, const struct Label *b,
     }
 
     for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (b->lb_ent[i] == LB_ENT_EMPTY)
+	if (!b->lb_ent[i])
 	    continue;
 
 	uint64_t h = LB_HANDLE(b->lb_ent[i]);
@@ -336,7 +335,7 @@ label_cprint(const struct Label *l)
     cprintf("Label %p: {", l);
     for (int i = 0; i < NUM_LB_ENT; i++) {
 	uint64_t ent = l->lb_ent[i];
-	if (ent != LB_ENT_EMPTY) {
+	if (ent) {
 	    level_t level = LB_LEVEL(ent);
 	    char lchar[2];
 	    if (level == LB_LEVEL_STAR)
