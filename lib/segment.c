@@ -108,16 +108,21 @@ segment_map_print(struct u_address_space *as)
 {
     cprintf("slot  kslot  segment  start  npages  fl  va\n");
     for (uint64_t i = 0; i < as->nent; i++) {
+	char name[KOBJ_NAME_LEN];
+	name[0] = '\0';
+	sys_obj_get_name(as->ents[i].segment, &name[0]);
+
 	if (as->ents[i].flags == 0)
 	    continue;
-	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %02x  %p\n",
+	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %02x  %p (%s)\n",
 		i, as->ents[i].kslot,
 		as->ents[i].segment.container,
 		as->ents[i].segment.object,
 		as->ents[i].start_page,
 		as->ents[i].num_pages,
 		as->ents[i].flags,
-		as->ents[i].va);
+		as->ents[i].va,
+		name);
     }
 }
 
