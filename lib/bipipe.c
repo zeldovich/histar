@@ -60,6 +60,7 @@ bipipe(int fv[2])
     fda->fd_omode = O_RDWR;
     fda->fd_bipipe.bipipe_seg = seg;
     fda->fd_bipipe.bipipe_a = 1;
+    fd_set_extra_handles(fda, grant, taint);
     bs->p[1].open = 1;
     
     struct Fd *fdb;
@@ -73,6 +74,7 @@ bipipe(int fv[2])
     fdb->fd_omode = O_RDWR;
     fdb->fd_bipipe.bipipe_seg = seg;
     fdb->fd_bipipe.bipipe_a = 0;   
+    fd_set_extra_handles(fdb, grant, taint);
     bs->p[0].open = 1;
     
     fv[0] = fd2num(fda);
