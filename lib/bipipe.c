@@ -66,6 +66,7 @@ bipipe(int fv[2])
     struct Fd *fdb;
     r = fd_alloc(&fdb, "bipipe");
     if (r < 0) {
+        segment_unmap_delayed(bs, 1);
         jos_fd_close(fda);
         errno = ENOMEM;
         return -1;
@@ -79,6 +80,7 @@ bipipe(int fv[2])
     
     fv[0] = fd2num(fda);
     fv[1] = fd2num(fdb);
+    segment_unmap_delayed(bs, 1);
     return 0;
 }
 
