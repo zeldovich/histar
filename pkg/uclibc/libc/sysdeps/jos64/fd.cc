@@ -33,6 +33,7 @@ extern "C" {
 #define INDEX2FD(i)	((struct Fd*) (FDTABLE + (i)*PGSIZE))
 
 enum { fd_missing_debug = 1 };
+enum { fd_handle_debug = 0 };
 
 // Check for null function pointers before invoking a device method
 #define DEV_CALL(dev, fn, ...)					\
@@ -296,6 +297,10 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
     fd->fd_handle[fd_handle_taint] = fd_taint;
     fd->fd_private = 0;
 
+    if (fd_handle_debug)
+	cprintf("[%ld] fd_make_public(%d): grant %ld, taint %ld\n",
+		thread_id(), fdnum, fd_grant, fd_taint);
+
     grant_drop.dismiss();
     taint_drop.dismiss();
 
@@ -311,6 +316,10 @@ fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et)
     fd->fd_handle[fd_handle_extra_taint] = et;
     fd_handles[fdnum].h[fd_handle_extra_grant] = eg;
     fd_handles[fdnum].h[fd_handle_extra_taint] = et;
+
+    if (fd_handle_debug)
+	cprintf("[%ld] fd_set_extra_handles(%d): extra grant %ld, extra taint %ld\n",
+		thread_id(), fdnum, eg, et);
 }
 
 // Check that fdnum is in range and mapped.
@@ -376,8 +385,14 @@ jos_fd_close(struct Fd *fd)
 
     int r = 0;
     int handle_refs[fd_handle_max];
-    for (int i = 0; i < fd_handle_max; i++)
+    for (int i = 0; i < fd_handle_max; i++) {
+	assert(fd->fd_handle[i] == fd_handles[fdnum].h[i]);
 	handle_refs[i] = fd_count_handles(fd->fd_handle[i]);
+
+	if (fd_handle_debug && fd->fd_handle[i] && handle_refs[i] > 1)
+	    cprintf("[%ld] jos_fd_close(%d): refcount on handle %ld is %d\n",
+		    thread_id(), fdnum, fd_handles[fdnum].h[i], handle_refs[i]);
+    }
 
     struct cobj_ref fd_seg;
     r = segment_lookup(fd, &fd_seg, 0, 0);
@@ -555,6 +570,9 @@ dup2(int oldfdnum, int newfdnum) __THROW
 
     for (int i = 0; i < fd_handle_max; i++)
 	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
+
+    if (fd_handle_debug)
+	cprintf("[%ld] dup2: %d -> %d\n", thread_id(), oldfdnum, newfdnum);
 
     return newfdnum;
 }
