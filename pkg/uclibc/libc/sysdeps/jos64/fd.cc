@@ -34,6 +34,7 @@ extern "C" {
 
 enum { fd_missing_debug = 1 };
 enum { fd_handle_debug = 0 };
+enum { fd_alloc_debug = 0 };
 
 // Check for null function pointers before invoking a device method
 #define DEV_CALL(dev, fn, ...)					\
@@ -205,6 +206,10 @@ fd_alloc(struct Fd **fd_store, const char *name)
     fd->fd_private = 1;
 
     *fd_store = fd;
+
+    if (fd_alloc_debug)
+	cprintf("[%ld] fd_alloc: fd %d (%s)\n", thread_id(), fd2num(fd), name);
+
     return 0;
 }
 
@@ -435,6 +440,9 @@ jos_fd_close(struct Fd *fd)
 	fd_handles[fdnum].h[i] = 0;
     }
 
+    if (fd_alloc_debug)
+	cprintf("[%ld] jos_fd_close(%d)\n", thread_id(), fdnum);
+
     return r;
 }
 
@@ -510,6 +518,9 @@ close(int fdnum) __THROW
 	__set_errno(EBADF);
 	return -1;
     } else {
+	if (fd_alloc_debug)
+	    cprintf("[%ld] close(%d)\n", thread_id(), fdnum);
+
 	return jos_fd_close(fd);
     }
 }
@@ -571,7 +582,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     for (int i = 0; i < fd_handle_max; i++)
 	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
 
-    if (fd_handle_debug)
+    if (fd_handle_debug || fd_alloc_debug)
 	cprintf("[%ld] dup2: %d -> %d\n", thread_id(), oldfdnum, newfdnum);
 
     return newfdnum;
