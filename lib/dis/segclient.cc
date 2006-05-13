@@ -149,3 +149,48 @@ seg_client::stat(struct seg_stat *buf)
     
     return res.status;    
 }
+
+static int
+response_for(const char *un, const char *challenge, int size, char *response)
+{
+    return 1;    
+}
+
+void 
+seg_client::auth_user_is(const char *un)
+{
+    int psize = strlen(un) + 1;
+    char challenge[128];
+
+    segserver_hdr msg;
+    msg.op = segserver_authu_req;
+    msg.count = psize;
+    debug_print(msg_debug, "auth user %s", un);
+    
+    // send request
+    error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
+    error_check(write(socket_, un, psize) - psize);
+    
+    // read response/challenge    
+    segclient_hdr res;
+    error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+    int cc = MIN(res.psize, sizeof(challenge));
+        printf("unexpected challenge len %d, %ld\n", res.psize, sizeof(challenge));
+    error_check(read(socket_, challenge, cc) - cc);    
+    
+    // send response
+    auth_msg payload;
+    int len = response_for(un, challenge, cc, payload.subject);
+    strcpy(payload.username, un);
+    payload.subject_len = len;
+
+    msg.op = segserver_authu_res;
+    msg.count = sizeof(payload);
+    debug_print(msg_debug, "sending response %s", un);
+    error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
+    error_check(write(socket_, &payload, sizeof(payload)) - sizeof(payload));
+    
+    error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+    if (res.status < 0)
+        throw basic_exception("unable to auth %s", un);
+}

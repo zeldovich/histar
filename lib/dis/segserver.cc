@@ -166,6 +166,76 @@ public:
     }
 };
 
+class auth_user_req : public segserver_req 
+{
+public:
+    auth_user_req(segserver_conn *conn, segserver_hdr *header)
+        : segserver_req(header), conn_(conn) {}
+    virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
+        debug_print(msg_debug, "auth req");
+        executed_ = 1;
+    
+        char username[16];
+        int cc = MIN(request_.count, sizeof(username));
+        int len = read(conn_->socket(), username, cc);
+        if (len != cc)
+            debug_print(file_debug, "truncated payload %d, %d", len, cc);
+    
+        char *buffer = response_.payload_;
+        int size = conn_->challenge_for(username, buffer);
+        response_.header_.op = segclient_result;
+        response_.header_.status = 0;
+        response_.header_.psize = size;
+        debug_print(file_debug, "auth req success");
+    }
+private:
+    segserver_conn *conn_;
+};
+
+class auth_user_res : public segserver_req 
+{
+public:
+    auth_user_res(segserver_conn *conn, segserver_hdr *header)
+        : segserver_req(header), conn_(conn) {}
+    virtual void execute(void) {
+        if (executed_)
+            throw error(-E_UNSPEC, "already executed");
+        debug_print(msg_debug, "auth res");
+        executed_ = 1;
+    
+        auth_msg payload;
+        int cc = MIN(request_.count, sizeof(payload));
+        int len = read(conn_->socket(), &payload, cc);
+        if (len != cc)
+            debug_print(file_debug, "truncated payload %d, %d", len, cc);
+    
+        conn_->response_for_is(payload.username, payload.subject, 
+                               payload.subject_len);
+        response_.header_.op = segclient_result;
+        response_.header_.status = 0;
+        response_.header_.psize = 0;
+        debug_print(file_debug, "auth res success");
+    }
+private:
+    segserver_conn *conn_;
+};
+
+int
+segserver_conn::challenge_for(char *un, void *buf)
+{ 
+    // XXX
+    return 1;    
+}
+
+void
+segserver_conn::response_for_is(char *un, void *response, int n)
+{ 
+    // XXX
+    return;    
+}
+
 segserver_req *
 segserver_conn::next_request(void) 
 {
@@ -185,6 +255,10 @@ segserver_conn::next_request(void)
             return new write_req(socket_, &header);
         case segserver_stat:
             return new stat_req(&header);
+        case segserver_authu_req:
+            return new auth_user_req(this, &header);
+        case segserver_authu_res:
+            return new auth_user_res(this, &header);
         default:
             throw error(-E_INVAL, "unreconized op %d\n", header.op);
     }
