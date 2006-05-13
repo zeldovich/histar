@@ -1,16 +1,23 @@
 extern "C" {
+#include <inc/fs.h>
 #include <netinet/in.h>
 #include <stdio.h>    
 #include <string.h>
 #include <assert.h>
 }
 
-#include <lib/dis/globallabel.hh>
-#include <lib/dis/proxydclnt.hh>
-#include <lib/dis/proxydsrv.hh>
+#include <inc/dis/globallabel.hh>
 
+#include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+
+static int
+proxyd_get_global(uint64_t h, char *g) 
+{
+    printf("proxyd_get_global: not implemented\n");
+    return -1;    
+}
 
 static char
 level_to_char(level_t lv)
@@ -28,6 +35,7 @@ global_label::global_label(label *local) : serial_(0), string_(0)
     ulabel *ul = local->to_ulabel();
     entries_ = ul->ul_nent;
     entry_ = new global_entry[entries_];
+    default_ = local->get_default();
     memset(entry_, 0, sizeof(global_entry) * entries_);
     try {
         for (uint64_t i = 0; i < ul->ul_nent; i++) {
@@ -122,3 +130,15 @@ global_label::string_rep(void) const
     strcpy(string_, buf);
     return string_;
 }
+
+global_label *
+global_label::global_for_obj(const char *path)
+{
+    fs_inode ino;
+    error_check(fs_namei(path, &ino));
+    label seg_label;
+    obj_get_label(ino.obj, &seg_label);
+    
+    return new global_label(&seg_label);  
+}
+

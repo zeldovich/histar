@@ -1,18 +1,11 @@
 OBJDIRS += lib/dis
 
-LIB_SRCFILES += lib/dis/proxydsrv.cc \
-				lib/dis/proxydclnt.cc \
-				lib/dis/rem_fd.c \
-				lib/dis/remfiledclnt.cc \
-				lib/dis/remfiledsrv.cc \
-				lib/dis/fileclient.cc \
-				lib/dis/fileserver.cc \
-				lib/dis/fileserver_util.cc \
-				lib/dis/exportsrv.cc \
-				lib/dis/exportclnt.cc \
-				lib/dis/globallabel.cc
+LIB_SRCFILES += lib/dis/rem_fd.c \
+				lib/dis/segclient.cc \
+				lib/dis/segserver.cc \
+				lib/dis/globallabel.cc \
+				lib/dis/exportc.cc
 				
-
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<

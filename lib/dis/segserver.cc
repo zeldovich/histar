@@ -1,53 +1,53 @@
 extern "C" {
+#include <inc/debug.h>
+#include <inc/container.h>
+#include <inc/error.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-
-#include <stdio.h>
-
-#include <fcntl.h>
-#include <inc/debug.h>
 #include <sys/param.h>
 
-#include <inc/error.h>
+#include <netinet/in.h>
+#include <stdio.h>
 #include <errno.h>
+#include <fcntl.h>
 }
 
 #include <inc/scopeguard.hh>
-#include <lib/dis/fileserver.hh>
-#include <lib/dis/fileserver_util.hh>
-#include <lib/dis/fileclient.hh>
-#include <lib/dis/globallabel.hh>
+#include <inc/dis/segserver.hh>
+#include <inc/dis/segclient.hh>
+#include <inc/dis/globallabel.hh>
+#include <inc/dis/exportd.hh>  // for seg_stat
 #include <inc/error.hh>
 
 static const char conn_debug = 1;
 static const char msg_debug = 1;
 static const char file_debug = 1;
 
-class open_req : public fileserver_req 
+class open_req : public segserver_req 
 {
 public:
-    open_req(fileserver_hdr *header) : fileserver_req(header) {}
+    open_req(segserver_hdr *header) : segserver_req(header) {}
     virtual void execute(void) {
         if (executed_)
             throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "path %s",request_.path);
         executed_ = 1;
 
-        global_label *gl = fileserver_new_global(request_.path);
+        global_label *gl = global_label::global_for_obj(request_.path);
         const char *s = gl->serial();
         int len = gl->serial_len();
         memcpy(response_.payload_, s, len);
-        response_.header_.op = fileclient_result;
+        response_.header_.op = segclient_result;
         response_.header_.status = len;
         response_.header_.psize = len;
     }
 };
 
-class read_req : public fileserver_req 
+class read_req : public segserver_req 
 {
 public:
-    read_req(fileserver_hdr *header) : fileserver_req(header) {}
+    read_req(segserver_hdr *header) : segserver_req(header) {}
     virtual void execute(void) {
         if (executed_)
             throw error(-E_UNSPEC, "already executed");
@@ -55,11 +55,10 @@ public:
                     request_.count, request_.offset, request_.path);
         executed_ = 1;
 
-        fileserver_acquire(request_.path, O_RDONLY);
         int fd = open(request_.path, O_RDONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = -1;
             return ;
         }
@@ -67,25 +66,25 @@ public:
         int r = lseek(fd, request_.offset, SEEK_SET);
         if (r != (int64_t)request_.offset) {
             debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = -1;
             return ;
         }
         
         int cc = MIN(request_.count, sizeof(response_.payload_));
         int len = read(fd, response_.payload_, cc);
-        response_.header_.op = fileclient_result;
+        response_.header_.op = segclient_result;
         response_.header_.status = len;
         response_.header_.psize = len;
         debug_print(file_debug, "read %d bytes from %s", len, request_.path);
     }
 };
 
-class write_req : public fileserver_req 
+class write_req : public segserver_req 
 {
 public:
-    write_req(int socket, fileserver_hdr *header) : 
-        fileserver_req(header), socket_(socket) {}
+    write_req(int socket, segserver_hdr *header) : 
+        segserver_req(header), socket_(socket) {}
     virtual void execute(void) {
         if (executed_)
             throw error(-E_UNSPEC, "already executed");
@@ -101,11 +100,10 @@ public:
         if (len != cc)
             debug_print(file_debug, "truncated payload %d, %d", len, cc);
 
-        fileserver_acquire(request_.path, O_WRONLY);
         int fd = open(request_.path, O_WRONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = -1;
             return ;
         }
@@ -113,14 +111,14 @@ public:
         int r = lseek(fd, request_.offset, SEEK_SET);
         if (r != (int64_t)request_.offset) {
             debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = -1;
             return ;   
         }
 
         len = write(fd, buffer, len);
     
-        response_.header_.op = fileclient_result;
+        response_.header_.op = segclient_result;
         response_.header_.status = len;
         response_.header_.psize = 0;
         debug_print(file_debug, "wrote %d bytes to %s", len, request_.path);
@@ -129,21 +127,20 @@ private:
     int socket_;
 };
 
-class stat_req : public fileserver_req 
+class stat_req : public segserver_req 
 {
 public:
-    stat_req(fileserver_hdr *header) : fileserver_req(header) {}
+    stat_req(segserver_hdr *header) : segserver_req(header) {}
     virtual void execute(void) {
         if (executed_)
             throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "path %s", request_.path);
         executed_ = 1;
     
-        fileserver_acquire(request_.path, O_RDONLY);
         int fd = open(request_.path, O_RDONLY);
         if (fd < 0) {
             debug_print(file_debug, "unable to open %s", request_.path);
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = -1;
             return ;
         }
@@ -153,26 +150,26 @@ public:
         int r = fstat(fd, &st);
         if (r < 0) {
             debug_print(file_debug, "stat error");
-            response_.header_.op = fileclient_result;
+            response_.header_.op = segclient_result;
             response_.header_.status = r;
             return ;
         }
-        struct file_stat fs;
-        fs.fs_size = st.st_size;
+        struct seg_stat ss;
+        ss.ss_size = st.st_size;
        
-        int cc = MIN(sizeof(fs), sizeof(response_.payload_));
-        memcpy(response_.payload_, &fs, cc);
-        response_.header_.op = fileclient_result;
+        int cc = MIN(sizeof(ss), sizeof(response_.payload_));
+        memcpy(response_.payload_, &ss, cc);
+        response_.header_.op = segclient_result;
         response_.header_.status = 0;
         response_.header_.psize = cc;
         debug_print(file_debug, "stat success");
     }
 };
 
-fileserver_req *
-fileserver_conn::next_request(void) 
+segserver_req *
+segserver_conn::next_request(void) 
 {
-    fileserver_hdr header;
+    segserver_hdr header;
     int r = read(socket_, &header, sizeof(header));
     if (r < 0)
         throw error(-E_INVAL, "socket read errno %d\n", errno);
@@ -180,13 +177,13 @@ fileserver_conn::next_request(void)
         return 0;  // other end closed
     
     switch (header.op) {
-        case fileserver_open:
+        case segserver_open:
             return new open_req(&header);
-        case fileserver_read:
+        case segserver_read:
             return new read_req(&header);
-        case fileserver_write:
+        case segserver_write:
             return new write_req(socket_, &header);
-        case fileserver_stat:
+        case segserver_stat:
             return new stat_req(&header);
         default:
             throw error(-E_INVAL, "unreconized op %d\n", header.op);
@@ -195,7 +192,7 @@ fileserver_conn::next_request(void)
 }
 
 void 
-fileserver_conn::next_response_is(const fileclient_msg *response) 
+segserver_conn::next_response_is(const segclient_msg *response) 
 {
     // XXX
     int cc = sizeof(response->header_);
@@ -209,66 +206,4 @@ fileserver_conn::next_response_is(const fileclient_msg *response)
     if (len < (int64_t) response->header_.psize)
         debug_print(conn_debug, "truncated write %d, %d", 
                     len, response->header_.psize);
-}
-
-void
-fileserver_start(int port)
-{
-    int s = socket(AF_INET, SOCK_STREAM, 0);
-    if (s < 0) {
-        printf("cannot create socket: %d\n", s);
-        return;
-    }
-
-    struct sockaddr_in sin;
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = htonl(INADDR_ANY);
-    sin.sin_port = htons(port);
-    int r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
-    if (r < 0) {
-        printf("cannot bind socket: %d\n", r);
-        return;
-    }
-
-    r = listen(s, 5);
-    if (r < 0) {
-        printf("cannot listen on socket: %d\n", r);
-        return;
-    }
-    
-    while (1) {
-        socklen_t socklen = sizeof(sin);
-        
-        debug_print(conn_debug, "waiting for connections");
-        
-        int ss = accept(s, (struct sockaddr *)&sin, &socklen);
-        if (ss < 0) {
-            printf("cannot accept client: %d\n", ss);
-            return;
-        }
-
-        char *ip = (char *)&sin.sin_addr.s_addr;
-        debug_print(conn_debug, "connection from %d.%d.%d.%d", 
-               ip[0], ip[1], ip[2], ip[3]);
-
-        // one thread, single connection            
-        fileserver_conn *conn = new fileserver_conn(ss, sin);
-        scope_guard<void, fileserver_conn *> del_conn(delete_obj, conn);
-        fileserver_req *req;
-        while ((req = conn->next_request())) {
-            scope_guard<void, fileserver_req *> del_req(delete_obj, req);
-            try {
-                req->execute();
-                const fileclient_msg *resp = req->response();
-                conn->next_response_is(resp);
-            } catch (basic_exception e) {
-                debug_print(conn_debug, "unable to execute req: %s", e.what());
-                fileclient_hdr resp;
-                resp.op = fileclient_result;
-                resp.status = -1;
-                resp.psize = 0;
-                conn->next_response_is((fileclient_msg*)&resp);
-            }
-        }
-    }
 }

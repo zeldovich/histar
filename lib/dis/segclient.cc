@@ -16,9 +16,11 @@ extern "C" {
 #include <sys/param.h>
 }
 
-#include <lib/dis/fileserver.hh>
-#include <lib/dis/fileclient.hh>
-#include <lib/dis/globallabel.hh>
+#include <inc/dis/segserver.hh>
+#include <inc/dis/segclient.hh>
+#include <inc/dis/globallabel.hh>
+#include <inc/dis/exportclient.hh>
+#include <inc/dis/exportd.hh>  // for seg_stat
 
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
@@ -26,7 +28,7 @@ extern "C" {
 static const char msg_debug = 0;
 
 void
-fileclient::init(char *path, char *host, int port)
+seg_client::init(char *path, char *host, int port)
 {
     if (strlen(path) + 1 > sizeof(path_))
         throw error(-E_INVAL, "'%s' too long (> %ld)", path, sizeof(path_));
@@ -48,16 +50,17 @@ fileclient::init(char *path, char *host, int port)
     
     error_check(socket_ = socket(AF_INET, SOCK_STREAM, 0));       
     error_check(connect(socket_, (struct sockaddr *)&addr_, sizeof(addr_)));
-    fileserver_hdr msg;
-    msg.op = fileserver_open;
+    segserver_hdr msg;
+    msg.op = segserver_open;
     strcpy(msg.path, path_);
     // use frame as temp buffer
     char *buffer = frame_.byte_;
     try {
         // XXX
         error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
-        fileclient_hdr res;
+        segclient_hdr res;
         error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+        error_check(res.status);
         error_check(read(socket_, buffer, res.psize) - res.psize);
     } catch (basic_exception e) {
         close(socket_);
@@ -67,17 +70,17 @@ fileclient::init(char *path, char *host, int port)
 }
 
 void
-fileclient::destroy(void)
+seg_client::destroy(void)
 {
     close(socket_);    
     delete label_;
 }
 
-const file_frame*
-fileclient::frame_at(uint64_t count, uint64_t offset)
+const seg_frame*
+seg_client::frame_at(uint64_t count, uint64_t offset)
 {
-    fileserver_hdr msg;
-    msg.op = fileserver_read;
+    segserver_hdr msg;
+    msg.op = segserver_read;
     msg.count = MIN(count, frame_.bytes_);
     msg.offset = offset;
     strcpy(msg.path, path_);
@@ -87,7 +90,7 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
     // XXX
     error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
 
-    fileclient_hdr res;
+    segclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
     error_check(read(socket_, frame_.byte_, res.psize) - res.psize);
@@ -97,14 +100,14 @@ fileclient::frame_at(uint64_t count, uint64_t offset)
     return &frame_;    
 }
 
-const file_frame*
-fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
+const seg_frame*
+seg_client::frame_at_is(void *va, uint64_t count, uint64_t offset)
 {
     int cc = MIN(count, frame_.bytes_);
     memcpy(frame_.byte_, va, cc);
     
-    fileserver_hdr msg;
-    msg.op = fileserver_write;
+    segserver_hdr msg;
+    msg.op = segserver_write;
     msg.count = cc;
     msg.offset = offset;
     strcpy(msg.path, path_);
@@ -115,7 +118,7 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
     error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
     error_check(write(socket_, &frame_.byte_, cc) - cc);
 
-    fileclient_hdr res;
+    segclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
     frame_.offset_ = offset;
@@ -125,17 +128,17 @@ fileclient::frame_at_is(void *va, uint64_t count, uint64_t offset)
 }
 
 int 
-fileclient::stat(struct file_stat *buf)
+seg_client::stat(struct seg_stat *buf)
 {
-    fileserver_hdr msg;
-    msg.op = fileserver_stat;
+    segserver_hdr msg;
+    msg.op = segserver_stat;
     strcpy(msg.path, path_);
     debug_print(msg_debug, "path %s", msg.path);
     
     // XXX
     error_check(write(socket_, &msg, sizeof(msg)) - sizeof(msg));
 
-    fileclient_hdr res;
+    segclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
     int cc = MIN(res.psize, sizeof(*buf));
