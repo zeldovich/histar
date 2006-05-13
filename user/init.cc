@@ -119,7 +119,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
 
     // start out in the root directory
-    start_env->fs_cwd = start_env->fs_root;
+    start_env->fs_cwd = start_env->fs_root;    
 }
 
 static void
@@ -142,14 +142,9 @@ init_procs(int cons, uint64_t h_root)
     //spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
-    spawn_fs(cons, "/bin/httpd", 0, &ds_none);
-    spawn_fs(cons, "/bin/httpd_worker", 0, &ds_none);
 
-    spawn_fs(cons, "/bin/db", 0, &ds_none);
-
-    //spawn_fs(cons, "/bin/proxyd", 0, &ds_none);
-    //spawn_fs(cons, "/bin/remfiled", 0, &ds_none);
     //spawn_fs(cons, "/bin/exportd", 0, &ds_none);
+    //spawn_fs(cons, "/bin/exportserver", 0, &ds_none);
 }
 
 static void
