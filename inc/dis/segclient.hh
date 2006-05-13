@@ -43,10 +43,10 @@ public:
     // read, write
     const seg_frame *frame_at(uint64_t count, uint64_t off);
     const seg_frame *frame_at_is(void *va, uint64_t count, uint64_t off);
-
     const seg_frame *frame(void) { return &frame_; }
-    
     int stat(struct seg_stat *buf);             
+
+    void auth_user_is(const char *un);
     
     const char *path(void) const { return path_; }
 

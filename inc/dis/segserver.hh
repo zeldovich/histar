@@ -36,6 +36,11 @@ public:
     segserver_req *next_request(void);
     void next_response_is(const segclient_msg *response);
 
+    int socket(void) const { return socket_; }
+    
+    int challenge_for(char *un, void *buf);
+    void response_for_is(char *un, void *response, int n);
+
 private:    
     int socket_;
     sockaddr_in addr_;

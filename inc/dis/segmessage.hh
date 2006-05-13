@@ -2,6 +2,18 @@
 #define JOS_INC_FILEMESSAGE_H_
 
 ////////////////
+// auth messages
+////////////////
+
+struct auth_msg 
+{
+    char username[16];    
+    char subject[32];
+    int  subject_len;
+} __attribute__((packed));
+
+
+////////////////
 // seg client
 ////////////////
 
@@ -30,6 +42,8 @@ typedef enum {
     segserver_read,
     segserver_write,
     segserver_stat,
+    segserver_authu_req,
+    segserver_authu_res,
 } segserver_op_t;
 
 struct segserver_hdr {
