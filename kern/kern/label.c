@@ -69,23 +69,62 @@ level_comparator_init(level_comparator c)
 // Label handling
 ////////////////////
 
-static int
-label_find_slot(const struct Label *l, uint64_t handle)
+static uint32_t
+label_nslots(const struct Label *l)
 {
-    for (int i = 0; i < NUM_LB_ENT; i++)
-	if (l->lb_ent[i] && LB_HANDLE(l->lb_ent[i]) == handle)
-	    return i;
+    return NUM_LB_ENT_INLINE + kobject_npages(&l->lb_ko) * NUM_LB_ENT_PER_PAGE;
+}
 
-    return -E_NO_MEM;
+static int
+label_get_slotp_read(const struct Label *l, uint32_t slotnum,
+		     const uint64_t **slotp)
+{
+    if (slotnum <= NUM_LB_ENT_INLINE) {
+	*slotp = &l->lb_ent[slotnum];
+	return 0;
+    }
+
+    slotnum -= NUM_LB_ENT_INLINE;
+    const struct Label_page *lpg;
+    int r = kobject_get_page(&l->lb_ko, slotnum / NUM_LB_ENT_PER_PAGE,
+			     (void **) &lpg, page_shared_ro);
+    if (r < 0)
+	return r;
+
+    *slotp = &lpg->lp_ent[slotnum % NUM_LB_ENT_PER_PAGE];
+    return 0;
+}
+
+static int
+label_get_slotp_write(struct Label *l, uint32_t slotnum, uint64_t **slotp)
+{
+    if (slotnum <= NUM_LB_ENT_INLINE) {
+	*slotp = &l->lb_ent[slotnum];
+	return 0;
+    }
+
+    slotnum -= NUM_LB_ENT_INLINE;
+    struct Label_page *lpg;
+    int r = kobject_get_page(&l->lb_ko, slotnum / NUM_LB_ENT_PER_PAGE,
+			     (void **) &lpg, page_excl_dirty);
+    if (r < 0)
+	return r;
+
+    *slotp = &lpg->lp_ent[slotnum % NUM_LB_ENT_PER_PAGE];
+    return 0;
 }
 
 static int
 label_get_level(const struct Label *l, uint64_t handle)
 {
-    int i = label_find_slot(l, handle);
-    if (i < 0)
-	return l->lb_def_level;
-    return LB_LEVEL(l->lb_ent[i]);
+    for (uint32_t i = 0; i < label_nslots(l); i++) {
+	const uint64_t *entp;
+	assert(0 == label_get_slotp_read(l, i, &entp));
+	if (*entp && LB_HANDLE(*entp) == handle)
+	    return LB_LEVEL(*entp);
+    }
+
+    return l->lb_def_level;
 }
 
 int
@@ -98,7 +137,7 @@ label_alloc(struct Label **lp, level_t def)
 
     struct Label *l = &ko->lb;
     l->lb_def_level = def;
-    for (int i = 0; i < NUM_LB_ENT; i++)
+    for (int i = 0; i < NUM_LB_ENT_INLINE; i++)
 	l->lb_ent[i] = 0;
 
     *lp = l;
@@ -113,9 +152,27 @@ label_copy(const struct Label *src, struct Label **dstp)
     if (r < 0)
 	return r;
 
+    r = kobject_set_nbytes(&dst->lb_ko, src->lb_ko.ko_nbytes);
+    if (r < 0)
+	return r;
+
     dst->lb_def_level = src->lb_def_level;
-    for (int i = 0; i < NUM_LB_ENT; i++)
-	dst->lb_ent[i] = src->lb_ent[i];
+    memcpy(&dst->lb_ent[0], &src->lb_ent[0],
+	   NUM_LB_ENT_INLINE * sizeof(dst->lb_ent[0]));
+
+    for (uint32_t i = 0; i < kobject_npages(&src->lb_ko); i++) {
+	void *src_pg, *dst_pg;
+
+	r = kobject_get_page(&src->lb_ko, i, &src_pg, page_shared_ro);
+	if (r < 0)
+	    return r;
+
+	r = kobject_get_page(&dst->lb_ko, i, &dst_pg, page_excl_dirty);
+	if (r < 0)
+	    return r;
+
+	memcpy(dst_pg, src_pg, PGSIZE);
+    }
 
     *dstp = dst;
     return 0;
@@ -124,20 +181,35 @@ label_copy(const struct Label *src, struct Label **dstp)
 int
 label_set(struct Label *l, uint64_t handle, level_t level)
 {
-    int i = label_find_slot(l, handle);
-    if (i < 0) {
-	if (level == l->lb_def_level)
-	    return 0;
+    int slot_idx = -1;
 
-	for (i = 0; i < NUM_LB_ENT; i++)
-	    if (!l->lb_ent[i])
-		break;
+    for (uint32_t i = 0; i < label_nslots(l); i++) {
+	const uint64_t *entp;
+	assert(0 == label_get_slotp_read(l, i, &entp));
+	if (!*entp && slot_idx < 0) {
+	    slot_idx = i;
+	    continue;
+	}
 
-	if (i == NUM_LB_ENT)
-	    return -E_NO_MEM;
+	if (*entp && LB_HANDLE(*entp) == handle) {
+	    slot_idx = i;
+	    break;
+	}
     }
 
-    l->lb_ent[i] = (level == l->lb_def_level) ? 0 : LB_CODE(handle, level);
+    if (slot_idx < 0) {
+	slot_idx = label_nslots(l);
+	int r = kobject_set_nbytes(&l->lb_ko, l->lb_ko.ko_nbytes + PGSIZE);
+	if (r < 0)
+	    return r;
+    }
+
+    uint64_t *entp;
+    int r = label_get_slotp_write(l, slot_idx, &entp);
+    if (r < 0)
+	return r;
+
+    *entp = (level == l->lb_def_level) ? 0 : LB_CODE(handle, level);
     return 0;
 }
 
@@ -159,12 +231,17 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 
     uint32_t slot = 0;
     uint32_t overflow = 0;
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (!l->lb_ent[i])
+    for (uint32_t i = 0; i < label_nslots(l); i++) {
+	const uint64_t *entp;
+	r = label_get_slotp_read(l, i, &entp);
+	if (r < 0)
+	    return r;
+
+	if (!*entp)
 	    continue;
 
 	if (slot < ul_size) {
-	    ul_ent[slot] = l->lb_ent[i];
+	    ul_ent[slot] = *entp;
 	    slot++;
 	} else {
 	    overflow++;
@@ -259,29 +336,40 @@ label_compare(const struct Label *l1,
 
     level_comparator_init(cmp);
 
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (!l1->lb_ent[i])
+    const uint64_t *entp;
+    int r;
+
+    for (uint32_t i = 0; i < label_nslots(l1); i++) {
+	r = label_get_slotp_read(l1, i, &entp);
+	if (r < 0)
+	    return r;
+
+	if (!*entp)
 	    continue;
 
-	uint64_t h = LB_HANDLE(l1->lb_ent[i]);
-	level_t lv1 = LB_LEVEL(l1->lb_ent[i]);
-	int r = cmp->cmp[lv1][label_get_level(l2, h)];
+	uint64_t h = LB_HANDLE(*entp);
+	level_t lv1 = LB_LEVEL(*entp);
+	r = cmp->cmp[lv1][label_get_level(l2, h)];
 	if (r < 0)
 	    return r;
     }
 
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (!l2->lb_ent[i])
+    for (uint32_t i = 0; i < label_nslots(l2); i++) {
+	r = label_get_slotp_read(l2, i, &entp);
+	if (r < 0)
+	    return r;
+
+	if (!*entp)
 	    continue;
 
-	uint64_t h = LB_HANDLE(l2->lb_ent[i]);
-	level_t lv2 = LB_LEVEL(l2->lb_ent[i]);
-	int r = cmp->cmp[label_get_level(l1, h)][lv2];
+	uint64_t h = LB_HANDLE(*entp);
+	level_t lv2 = LB_LEVEL(*entp);
+	r = cmp->cmp[label_get_level(l1, h)][lv2];
 	if (r < 0)
 	    return r;
     }
 
-    int r = cmp->cmp[l1->lb_def_level][l2->lb_def_level];
+    r = cmp->cmp[l1->lb_def_level][l2->lb_def_level];
     if (r < 0)
 	return r;
 
@@ -300,24 +388,35 @@ label_max(const struct Label *a, const struct Label *b,
     level_comparator_init(leq);
     dst->lb_def_level = leq->max[a->lb_def_level][b->lb_def_level];
 
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (!a->lb_ent[i])
+    const uint64_t *entp;
+    int r;
+
+    for (uint32_t i = 0; i < label_nslots(a); i++) {
+	r = label_get_slotp_read(a, i, &entp);
+	if (r < 0)
+	    return r;
+
+	if (!*entp)
 	    continue;
 
-	uint64_t h = LB_HANDLE(a->lb_ent[i]);
-	level_t alv = LB_LEVEL(a->lb_ent[i]);
-	int r = label_set(dst, h, leq->max[alv][label_get_level(b, h)]);
+	uint64_t h = LB_HANDLE(*entp);
+	level_t alv = LB_LEVEL(*entp);
+	r = label_set(dst, h, leq->max[alv][label_get_level(b, h)]);
 	if (r < 0)
 	    return r;
     }
 
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	if (!b->lb_ent[i])
+    for (uint32_t i = 0; i < label_nslots(b); i++) {
+	r = label_get_slotp_read(b, i, &entp);
+	if (r < 0)
+	    return r;
+
+	if (!*entp)
 	    continue;
 
-	uint64_t h = LB_HANDLE(b->lb_ent[i]);
-	level_t blv = LB_LEVEL(b->lb_ent[i]);
-	int r = label_set(dst, h, leq->max[label_get_level(a, h)][blv]);
+	uint64_t h = LB_HANDLE(*entp);
+	level_t blv = LB_LEVEL(*entp);
+	r = label_set(dst, h, leq->max[label_get_level(a, h)][blv]);
 	if (r < 0)
 	    return r;
     }
@@ -333,8 +432,11 @@ void
 label_cprint(const struct Label *l)
 {
     cprintf("Label %p: {", l);
-    for (int i = 0; i < NUM_LB_ENT; i++) {
-	uint64_t ent = l->lb_ent[i];
+    for (uint32_t i = 0; i < label_nslots(l); i++) {
+	const uint64_t *entp;
+	assert(0 == label_get_slotp_read(l, i, &entp));
+
+	uint64_t ent = *entp;
 	if (ent) {
 	    level_t level = LB_LEVEL(ent);
 	    char lchar[2];

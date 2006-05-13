@@ -6,13 +6,17 @@
 #include <kern/kobjhdr.h>
 #include <inc/label.h>
 
-#define NUM_LB_ENT	32
-
+#define NUM_LB_ENT_INLINE	32
 struct Label {
     struct kobject_hdr lb_ko;
 
     level_t lb_def_level;
-    uint64_t lb_ent[NUM_LB_ENT];
+    uint64_t lb_ent[NUM_LB_ENT_INLINE];
+};
+
+#define NUM_LB_ENT_PER_PAGE	(PGSIZE / sizeof(uint64_t))
+struct Label_page {
+    uint64_t lp_ent[NUM_LB_ENT_PER_PAGE];
 };
 
 struct level_comparator_buf;
