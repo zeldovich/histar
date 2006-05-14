@@ -157,7 +157,7 @@ response_for(const char *un, const char *challenge, int size, char *response)
 }
 
 void 
-seg_client::auth_user_is(const char *un)
+seg_client::auth_user(const char *un)
 {
     int psize = strlen(un) + 1;
     char challenge[128];

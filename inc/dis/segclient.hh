@@ -46,7 +46,7 @@ public:
     const seg_frame *frame(void) { return &frame_; }
     int stat(struct seg_stat *buf);             
 
-    void auth_user_is(const char *un);
+    void auth_user(const char *un);
     
     const char *path(void) const { return path_; }
 

@@ -1,6 +1,5 @@
 extern "C" {
 #include <inc/types.h>
-#include <inc/dis/ca.h>
 #include <inc/syscall.h>
 #include <inc/gateparam.h>   
 #include <inc/error.h>
@@ -12,6 +11,7 @@ extern "C" {
 
 #include <inc/dis/segclient.hh>
 #include <inc/dis/exportd.hh>
+#include <inc/dis/ca.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
@@ -23,6 +23,9 @@ static sign_key  secret;
 
 static const char client_ver = 1;
 
+
+// XXX
+// should live in a segment that is read-only to export clients.
 static class  
 {
 public:
@@ -79,6 +82,13 @@ seg_client_new(uint64_t container, export_client_arg *arg)
 
     sc->init(arg->segment_new.path, arg->segment_new.host, 
              arg->segment_new.port);
+    
+    // to access bob's data
+    sc->auth_user("bob");
+    // to trust server w/ data 
+    //sc->auth_server();
+    // so the server can trust us w/ tainted data
+    //sc->auth_client("client 5");
 
     arg->status = 0;
     arg->segment_new.remote_seg = seg.object;
@@ -222,10 +232,8 @@ export_manager_add_client(export_manager_arg *em_arg)
         client_collection.data_is(id, data_seg);
     
         // gate
-        label l(1);
-        l.set(start_env->process_grant, LB_LEVEL_STAR);
-        l.set(start_env->process_taint, LB_LEVEL_STAR);
-        l.set(taint, LB_LEVEL_STAR);
+        label l;
+        thread_cur_label(&l);
         label c(2);
         c.set(em_arg->user_grant, 0);
         

@@ -4,7 +4,8 @@ LIB_SRCFILES += lib/dis/rem_fd.c \
 				lib/dis/segclient.cc \
 				lib/dis/segserver.cc \
 				lib/dis/globallabel.cc \
-				lib/dis/exportc.cc
+				lib/dis/exportc.cc \
+				lib/dis/ca.cc
 				
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)

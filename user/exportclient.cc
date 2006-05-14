@@ -11,6 +11,7 @@ extern "C" {
 
 #include <inc/dis/exportclient.hh>
 #include <inc/dis/exportd.hh>  // for seg_stat
+#include <inc/dis/ca.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
@@ -30,10 +31,9 @@ main (int ac, char **av)
         error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
         
         uint64_t grant = handle_alloc();
-        uint64_t taint = handle_alloc();
-    
+        
         export_managerc manager(COBJ(export_ct, manager_gt));
-        export_clientc client = manager.client_new((char*)"bob", grant, taint);
+        export_clientc client = manager.client_new((char*)"bob", grant);
         export_segmentc seg = client.segment_new(host, port, path);
         int r = seg.read(buffer, sizeof(buffer), 0);
         printf("read r %d\n", r);
