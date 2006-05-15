@@ -46,6 +46,8 @@ Cleanup:
 Bugs:
 
 * netd bug (fetch'ing files hangs for some files but not others)
+* bugs in handling out-of-memory conditions
+* look for concurrency bugs using test harness (make disk ops async)
 
 Pie-in-the-sky:
 
