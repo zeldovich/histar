@@ -40,6 +40,7 @@ Cleanup:
   need a callback for when threads enter/leave an AS.
 * sys_reboot()
 * split the pstate sync timestamp counter from the handle counter
+* enforce clearance allocation bound
 
 Bugs:
 
