@@ -4,6 +4,7 @@ Compatibility issues:
 * thread-safe uclibc
 * call destructors in longjmp (see how linux/glibc does it?)
 * MT-safe c++ support (lib/cppsup/bits/gthr.h)
+* better mmap/munmap/mremap support
 
 Performance:
 
