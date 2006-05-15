@@ -19,10 +19,8 @@ extern "C" {
 #include <inc/pthread.hh>
 
 static uint64_t  clients_ct;
-static sign_key  secret;
 
 static const char client_ver = 1;
-
 
 // XXX
 // should live in a segment that is read-only to export clients.
@@ -283,8 +281,6 @@ export_manager_new(void)
     error_check(clients_ct = sys_container_alloc(start_env->shared_container,
                      ct_l.to_ulabel(), "clients",
                      0, CT_QUOTA_INF));
-    // XXX
-    secret.xxx = 0;
 }
 
 int 
