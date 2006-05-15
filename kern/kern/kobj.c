@@ -105,7 +105,7 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     return r;
 }
 
-kobject_id_t
+static kobject_id_t
 kobject_translate_id(kobject_id_t id)
 {
     if (id == kobject_id_thread_sg)
