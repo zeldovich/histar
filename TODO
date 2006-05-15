@@ -1,23 +1,57 @@
-page reclamation, LRU
-deal with segment fragmentation on-disk
+Compatibility issues:
 
-lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c; need to
-have a callback of some sort for when threads enter/leave an AS.
+* integrate authd, make "real" unix users
+* thread-safe uclibc
+* call destructors in longjmp (see how linux/glibc does it?)
+* MT-safe c++ support (lib/cppsup/bits/gthr.h)
 
-MT-safe c++ support (lib/cppsup/bits/gthr.h)
-thread-safe uclibc
+Performance:
 
-sys_thread_sync_wait() should invert page-addr into segment+offset
+* sys_thread_sync_wait() should invert page-addr into segment+offset
+* deal with fragmentation on-disk
+* partial segment swapin and swapout
+* page reclamation, LRU (unpin callbacks for reclaiming space?)
 
-netd_server doesn't do any checking on who's asking for what fd.
-socket() should grant a handle at * to the caller that will let
-them later do other socket operations.
+Security:
 
-better separation between kernel, user-space and shared header files
+* netd_server doesn't do any checking on who's asking for what fd.
+  socket() should grant a handle at * to the caller that will let
+  them later do other socket operations.
+* taint_ct in gate_call/gate_return should be labeled with gate-call handles.
+* library call to run with a subset of your privileges, for doing some
+  operation on behalf of the caller (e.g. in the declassifier gate).
+* should be more careful in dealing with segments passed in via gates; namely,
+  need to avoid page faults, and ensure that we access them only with caller's
+  privileges (verify label).  can arise for two reasons: first, we map the segment
+  into our AS but don't have the privilege to read or write to it.  this can be
+  fixed by segment_map() checking the label.  second, the other side can drop the
+  segment and the service (other side of gate) will fault because the segment is
+  gone.  for this, need either to copy all segments first, or to have a careful-read
+  and careful-write wrapper that does setjmp() first, and the segfault handler will
+  longjmp().
 
-how to expose thread-local segment?  is it safe?
+Cleanup:
 
-expose kobj_label's at the syscall API to get label sharing
+* better separation between kernel, user-space and shared header files
+* cleanup quota issues w.r.t. labels and thread-local segments
+* user-space resource allocators -- i.e. running without CT_QUOTA_INF
+* (?) expose kobj_label's at the syscall API to get label sharing
+* lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c;
+  need a callback for when threads enter/leave an AS.
+* sys_reboot()
+* split the pstate sync timestamp counter from the handle counter
+
+Bugs:
+
+* netd bug (fetch'ing files hangs for some files but not others)
+
+Pie-in-the-sky:
+
+* system management in a fully-persistent world:
+  - restarting services with handles and gates
+  - upgrades (signing binaries => integrity handles?)
+
+Miscellaneous:
 
 ===
 
@@ -32,59 +66,15 @@ for discretionary handles (at *) we could implement this at user-space,
 by using lib/privstore.cc to stash away/drop privilege.  for handles
 at non-* levels, this might be a non-issue?
 
+possible answer: store all stars in a privstore; stars in thread label
+are a cache.  how to catch -E_LABEL errors and how to fetch the right
+handle?
+
 ===
-
-store all * handles in a privstore; thread label *'s is a cache..
-
-===
-
-fix netd bug (fetch'ing files hangs for some files but not others)
 
 also need to figure out how to specify which capability-like *-handles to pass
 across fork/exec/spawn.  e.g. want to pass unix-user *-handles when spawning
 processes, but not your process taint/grant handles.
 
-thread halt-and-copy
-proper accounting for object label size
-user-space resource allocators
-
-fsync, sync, reboot
-
-unix users as handles -- integrate/extend the existing authd strawman?
-
-make jos64 a usable environment:
- * gcc/binutils
- * some sort of editor (nvi, nano, ..)
- * tetex
-
-system management in a fully-persistent world
- * restarting services (how does it interact with handles & gates?)
- * upgrades (signing binaries => integrity handles)
-
-console FD is not writable by most processes but they want to hard-link it.
-what of our rule that you cannot hard-link a segment without being able to write it?
-can workaround in this case by using the existing console FD from another container.
-
-we seem to have a potential confused deputy problem with our file access
-mechanism..  how do you access a file using only a subset of your credentials?
-
-more aggressive labeling:
- - netd args segment should be labeled with gate-call handle.
- - taint_ct in gate_call/gate_return should be labeled with gate-call handle.
-
-should be more careful in dealing with segments passed in via gates; namely,
-need to avoid page faults, and ensure that we access them only with caller's
-privileges (verify label).  can arise for two reasons: first, we map the segment
-into our AS but don't have the privilege to read or write to it.  this can be
-fixed by segment_map() checking the label.  second, the other side can drop the
-segment and the service (other side of gate) will fault because the segment is
-gone.  for this, need either to copy all segments first, or to have a careful-read
-and careful-write wrapper that does setjmp() first, and the segfault handler will
-longjmp().
-
-split the pstate sync timestamp counter from the handle counter
-
-partial segment swapin
-
-call destructors in longjmp (see how linux/glibc does it?)
+===
 
