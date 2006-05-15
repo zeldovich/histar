@@ -89,6 +89,8 @@ struct thread_args {
     void *arg;
 };
 
+enum { thread_quota_slush = 65536 };
+
 int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, const char *name);
 uint64_t thread_id(void);

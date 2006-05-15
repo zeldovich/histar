@@ -185,6 +185,9 @@ do_fork()
     error_check(id);
     struct cobj_ref new_th = COBJ(proc_ct, id);
 
+    error_check(sys_container_move_quota(proc_ct, id, thread_quota_slush));
+    error_check(sys_obj_set_fixedquota(new_th));
+
     // Create a new thread that jumps into the new AS
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
