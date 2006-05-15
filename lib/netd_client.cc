@@ -174,18 +174,13 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 
 	struct cobj_ref seg;
 	void *va = 0;
-	error_check(segment_alloc(start_env->proc_container, sizeof(*a), &seg, &va,
+	error_check(segment_alloc(c.call_ct(), sizeof(*a), &seg, &va,
 				  0, "netd_call() args"));
 	memcpy(va, a, sizeof(*a));
 	segment_unmap(va);
 
-	int64_t copy_ct = c.call_ct();
-	int64_t copy_id;
-	error_check(copy_id =
-	    sys_segment_copy(seg, copy_ct, 0, "netd_call() args copy1"));
-
 	struct gate_call_data gcd;
-	gcd.param_obj = COBJ(copy_ct, copy_id);
+	gcd.param_obj = seg;
 	c.call(&gcd, 0);
 
 	va = 0;
