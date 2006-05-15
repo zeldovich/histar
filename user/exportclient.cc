@@ -11,7 +11,7 @@ extern "C" {
 
 #include <inc/dis/exportclient.hh>
 #include <inc/dis/exportd.hh>  // for seg_stat
-#include <inc/dis/ca.hh>
+#include <inc/dis/caclient.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
@@ -31,6 +31,18 @@ main (int ac, char **av)
         error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
         
         uint64_t grant = handle_alloc();
+        
+        auth_agent aa = auth_agent("cad");
+        sign_agent sa = aa.sign_agent_new("bob signer", grant);
+        ver_agent va = aa.ver_agent_new("server ver", grant);
+        //sa.secret_is("bob", "some secret", strlen("some secret"));
+        
+        va.verify(0, 0, 0, 0);
+
+        struct cobj_ref test_seg;
+        error_check(segment_alloc(start_env->shared_container, 10,
+                         &test_seg, 0, 0, "test"));
+        va.taint(test_seg);
         
         export_managerc manager(COBJ(export_ct, manager_gt));
         export_clientc client = manager.client_new((char*)"bob", grant);

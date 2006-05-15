@@ -45,7 +45,7 @@ public:
     export_managerc(cobj_ref gate) : gate_(gate) {} 
     export_clientc client_new(char *name, uint64_t grant);
     void           client_del(char *name);
-    export_clientc client(void);
+    export_clientc client(char *name);
     
 private:
     cobj_ref gate_;
