@@ -138,17 +138,31 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_dsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
+	mkdir -p keys
+
+	if [ ! -f keys/id_rsa ]; then \
+	    ssh-keygen -t rsa -f keys/id_rsa -N ""; \
+	fi
+
+	if [ ! -f keys/ssh_host_dsa_key ]; then \
+	    ssh-keygen -t dsa -f keys/ssh_host_dsa_key -N ""; \
+	fi
+
+	if [ ! -f keys/ssh_host_rsa_key ]; then \
+	    ssh-keygen -t rsa -f keys/ssh_host_rsa_key -N ""; \
+	fi
+
 	rm -rf $(OBJDIR)/acpkg/.ssh
 	mkdir $(OBJDIR)/acpkg/.ssh
+	rm -f $(OBJDIR)/acpkg/etc/ssh_host_*
+
 	if [ -f $(HOME)/.ssh/authorized_keys ]; then \
 	    cp $(HOME)/.ssh/authorized_keys $(OBJDIR)/acpkg/.ssh; \
-	else \
-	    ssh-keygen -t rsa -f $(OBJDIR)/acpkg/.ssh/id_rsa -N ""; \
-	    cat $(OBJDIR)/acpkg/.ssh/id_rsa.pub > $(OBJDIR)/acpkg/.ssh/authorized_keys; \
 	fi
-	rm -f $(OBJDIR)/acpkg/etc/ssh_host_*
-	ssh-keygen -t dsa -f $(OBJDIR)/acpkg/etc/ssh_host_dsa_key -N ""
-	ssh-keygen -t rsa -f $(OBJDIR)/acpkg/etc/ssh_host_rsa_key -N ""
+
+	cat keys/id_rsa.pub >> $(OBJDIR)/acpkg/.ssh/authorized_keys
+	cp keys/ssh_host_* $(OBJDIR)/acpkg/etc
+
 	tar -cf $@ -C $(OBJDIR)/acpkg	etc/sshd_config \
 					etc/ssh_host_dsa_key \
 					etc/ssh_host_dsa_key.pub \
