@@ -133,7 +133,6 @@ $(OBJDIR)/acpkg/bin/scp: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
-	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
 	echo "Port 22" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
@@ -141,18 +140,21 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	echo "HostKey /etc/ssh_host_dsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
 	rm -rf $(OBJDIR)/acpkg/.ssh
 	mkdir $(OBJDIR)/acpkg/.ssh
-	ssh-keygen -t rsa -f $(OBJDIR)/acpkg/.ssh/id_rsa -N ""
-	cat $(OBJDIR)/acpkg/.ssh/id_rsa.pub > $(OBJDIR)/acpkg/.ssh/authorized_keys
+	if [ -f $(HOME)/.ssh/authorized_keys ]; then \
+	    cp $(HOME)/.ssh/authorized_keys $(OBJDIR)/acpkg/.ssh; \
+	else \
+	    ssh-keygen -t rsa -f $(OBJDIR)/acpkg/.ssh/id_rsa -N ""; \
+	    cat $(OBJDIR)/acpkg/.ssh/id_rsa.pub > $(OBJDIR)/acpkg/.ssh/authorized_keys; \
+	fi
 	rm -f $(OBJDIR)/acpkg/etc/ssh_host_*
 	ssh-keygen -t dsa -f $(OBJDIR)/acpkg/etc/ssh_host_dsa_key -N ""
 	ssh-keygen -t rsa -f $(OBJDIR)/acpkg/etc/ssh_host_rsa_key -N ""
-	tar -cf $@ -C $(OBJDIR)/acpkg etc/sshd_config \
+	tar -cf $@ -C $(OBJDIR)/acpkg	etc/sshd_config \
 					etc/ssh_host_dsa_key \
 					etc/ssh_host_dsa_key.pub \
 					etc/ssh_host_rsa_key \
 					etc/ssh_host_rsa_key.pub \
 					.ssh/authorized_keys
-	tar -rf $@ -C ~ .ssh
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
 acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
