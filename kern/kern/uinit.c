@@ -347,13 +347,16 @@ free_embed(void)
 void
 user_init(void)
 {
-    int discard = 0;
+    if (strstr(&boot_cmdline[0], "pstate=discard")) {
+	cprintf("Command-line option pstate=discard..\n");
+	goto discard;
+    }
+
     cprintf("Loading persistent state: hit 'x' to discard, 'z' to load.\n");
     for (int i = 0; i < 1000; i++) {
 	int c = cons_getc();
 	if (c == 'x') {
-	    discard = 1;
-	    break;
+	    goto discard;
 	} else if (c == 'z') {
 	    break;
 	}
@@ -361,20 +364,20 @@ user_init(void)
 	kclock_delay(1000);
     }
 
-    if (discard) {
-	cprintf("Discarding persistent state.\n");
-	user_bootstrap();
-	free_embed();
-	return;
-    }
-
     int r = pstate_load();
     if (r < 0) {
 	cprintf("Unable to load persistent state: %s\n", e2s(r));
-	user_bootstrap();
+	goto discard;
     } else {
 	cprintf("Persistent state loaded OK\n");
     }
 
     free_embed();
+    return;
+
+discard:
+    cprintf("Discarding persistent state.\n");
+    user_bootstrap();
+    free_embed();
+    return;
 }
