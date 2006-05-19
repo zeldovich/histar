@@ -11,11 +11,12 @@
 
 #include <string.h>
 
-#define NMAPPINGS 64
-static struct u_segment_mapping cache_ents[NMAPPINGS];
-static struct u_address_space cache_uas = { .size = NMAPPINGS,
+#define N_BASE_MAPPINGS 64
+static struct u_segment_mapping cache_ents[N_BASE_MAPPINGS];
+static struct u_address_space cache_uas = { .size = N_BASE_MAPPINGS,
 					    .ents = &cache_ents[0] };
 static struct cobj_ref cache_asref;
+static int64_t cache_ents_segid;
 
 static uint64_t	cache_thread_id;
 
@@ -58,12 +59,91 @@ cache_invalidate(void)
 }
 
 static int
+cache_uas_grow(void)
+{
+    cache_invalidate();
+
+    struct cobj_ref cur_as;
+    int r = sys_self_get_as(&cur_as);
+    if (r < 0)
+	return r;
+
+    r = sys_as_get(cur_as, &cache_uas);
+    if (r < 0)
+	return r;
+
+    uint64_t nsize = cache_uas.size * 2;
+    uint64_t nbytes = nsize * sizeof(cache_ents[0]);
+    struct cobj_ref cache_ents_seg;
+
+    if (cache_ents_segid) {
+	cache_ents_seg = COBJ(start_env->proc_container, cache_ents_segid);
+	r = sys_segment_resize(cache_ents_seg, nbytes);
+	if (r < 0)
+	    return r;
+    } else {
+	int64_t id = sys_segment_create(start_env->proc_container,
+					nbytes, 0, "segmap entries");
+	if (id < 0)
+	    return id;
+
+	cache_ents_segid = id;
+	cache_ents_seg = COBJ(start_env->proc_container, id);
+    }
+
+    struct u_segment_mapping *usme =
+	(struct u_segment_mapping *) USEGMAPENTS;
+
+    uint64_t i;
+    for (i = 0; i < cache_uas.nent; i++) {
+	if (cache_uas.ents[i].flags && cache_uas.ents[i].va == (void *) usme) {
+	    cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
+	    r = sys_as_set_slot(cur_as, &cache_uas.ents[i]);
+	    if (r < 0)
+		return r;
+
+	    break;
+	}
+    }
+
+    if (i == cache_uas.nent) {
+	if (i >= cache_uas.size)
+	    return -E_NO_SPACE;
+
+	cache_uas.nent++;
+	cache_uas.ents[i].segment = cache_ents_seg;
+	cache_uas.ents[i].start_page = 0;
+	cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
+	cache_uas.ents[i].flags = SEGMAP_READ | SEGMAP_WRITE;
+	cache_uas.ents[i].va = (void *) usme;
+
+	r = sys_as_set(cur_as, &cache_uas);
+	if (r < 0)
+	    return r;
+    }
+
+    cache_uas.ents = &usme[0];
+    cache_uas.size = nsize;
+    return 0;
+}
+
+static int
 cache_refresh(struct cobj_ref as)
 {
+    int r;
+
     if (as.object == cache_asref.object)
 	return 0;
 
-    int r = sys_as_get(as, &cache_uas);
+retry:
+    r = sys_as_get(as, &cache_uas);
+    if (r == -E_NO_SPACE) {
+	r = cache_uas_grow();
+	if (r < 0)
+	    return r;
+	goto retry;
+    }
+
     if (r < 0) {
 	cache_invalidate();
 	return r;
@@ -341,12 +421,23 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 
     uint64_t map_bytes = ROUNDUP(seg_bytes - start_byteoff, PGSIZE);
 
+    int r;
     as_mutex_lock();
-    int r = cache_refresh(as_ref);
+
+cache_grown:
+    r = cache_refresh(as_ref);
     if (r < 0) {
 	as_mutex_unlock();
 	cprintf("segment_map: cache_refresh: %s\n", e2s(r));
 	return r;
+    }
+
+    if (cache_uas.nent >= cache_uas.size - 2) {
+	r = cache_uas_grow();
+	if (r < 0)
+	    return r;
+
+	goto cache_grown;
     }
 
     char *map_start, *map_end;
@@ -486,7 +577,7 @@ retry:
 		delay_overlap, match_segslot);
 
     // Make sure we aren't out of slots
-    if (slot >= NMAPPINGS) {
+    if (slot >= cache_uas.size) {
 	cprintf("out of segment map slots\n");
 	segment_map_print(&cache_uas);
 	cache_invalidate();
