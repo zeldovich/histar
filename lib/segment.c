@@ -16,7 +16,6 @@ static struct u_segment_mapping cache_ents[N_BASE_MAPPINGS];
 static struct u_address_space cache_uas = { .size = N_BASE_MAPPINGS,
 					    .ents = &cache_ents[0] };
 static struct cobj_ref cache_asref;
-static int64_t cache_ents_segid;
 
 static uint64_t	cache_thread_id;
 
@@ -74,29 +73,16 @@ cache_uas_grow(void)
 
     uint64_t nsize = cache_uas.size * 2;
     uint64_t nbytes = nsize * sizeof(cache_ents[0]);
-    struct cobj_ref cache_ents_seg;
-
-    if (cache_ents_segid) {
-	cache_ents_seg = COBJ(start_env->proc_container, cache_ents_segid);
-	r = sys_segment_resize(cache_ents_seg, nbytes);
-	if (r < 0)
-	    return r;
-    } else {
-	int64_t id = sys_segment_create(start_env->proc_container,
-					nbytes, 0, "segmap entries");
-	if (id < 0)
-	    return id;
-
-	cache_ents_segid = id;
-	cache_ents_seg = COBJ(start_env->proc_container, id);
-    }
-
     struct u_segment_mapping *usme =
 	(struct u_segment_mapping *) USEGMAPENTS;
 
     uint64_t i;
     for (i = 0; i < cache_uas.nent; i++) {
 	if (cache_uas.ents[i].flags && cache_uas.ents[i].va == (void *) usme) {
+	    r = sys_segment_resize(cache_uas.ents[i].segment, nbytes);
+	    if (r < 0)
+		return r;
+
 	    cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
 	    r = sys_as_set_slot(cur_as, &cache_uas.ents[i]);
 	    if (r < 0)
@@ -110,16 +96,23 @@ cache_uas_grow(void)
 	if (i >= cache_uas.size)
 	    return -E_NO_SPACE;
 
+	int64_t id = sys_segment_create(start_env->proc_container,
+					nbytes, 0, "segmap entries");
+	if (id < 0)
+	    return id;
+
 	cache_uas.nent++;
-	cache_uas.ents[i].segment = cache_ents_seg;
+	cache_uas.ents[i].segment = COBJ(start_env->proc_container, id);
 	cache_uas.ents[i].start_page = 0;
 	cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
 	cache_uas.ents[i].flags = SEGMAP_READ | SEGMAP_WRITE;
 	cache_uas.ents[i].va = (void *) usme;
 
 	r = sys_as_set(cur_as, &cache_uas);
-	if (r < 0)
+	if (r < 0) {
+	    sys_obj_unref(cache_uas.ents[i].segment);
 	    return r;
+	}
     }
 
     cache_uas.ents = &usme[0];
