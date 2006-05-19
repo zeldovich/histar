@@ -296,7 +296,10 @@ kobject_dirty_eval(struct kobject *ko)
 	return;
     ko->hdr.ko_flags &= ~KOBJ_DIRTY_LATER;
 
-    assert(ko->hdr.ko_type == kobj_segment);
+    if (ko->hdr.ko_type != kobj_segment)
+	panic("kobject_dirty_eval: %ld (%s) is not a segment: type %d\n",
+	      ko->hdr.ko_id, ko->hdr.ko_name, ko->hdr.ko_type);
+
     segment_collect_dirty(&ko->sg);
 
     int dirty = 0;
@@ -439,6 +442,8 @@ kobject_ephemeral_dirty(const struct kobject_hdr *kh)
 void
 kobject_swapin(struct kobject *ko)
 {
+    assert(ko->hdr.ko_id);
+
     uint64_t sum1 = ko->hdr.ko_cksum;
     uint64_t sum2 = kobject_cksum(&ko->hdr);
 
