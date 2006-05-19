@@ -61,7 +61,7 @@ static int
 child_get_status(struct wait_child *wc, int *statusp)
 {
     struct process_state *ps = 0;
-    int r = segment_map(wc->wc_seg, SEGMAP_READ, (void **) &ps, 0);
+    int r = segment_map(wc->wc_seg, 0, SEGMAP_READ, (void **) &ps, 0);
     if (r < 0) {
 	__set_errno(ESRCH);
 	return -1;

@@ -51,7 +51,7 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
     if (darg->req == declassify_exit) {
 	struct process_state *ps = 0;
-	int r = segment_map(darg->exit.status_seg, SEGMAP_READ | SEGMAP_WRITE,
+	int r = segment_map(darg->exit.status_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			    (void **) &ps, 0);
 	if (r >= 0) {
 	    ps->status = PROCESS_TAINTED_EXIT;

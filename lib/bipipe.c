@@ -90,7 +90,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
    
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
             (void **) &bs, 0);
     if (r < 0) {
         cprintf("bipipe_read: cannot segment_map: %s\n", e2s(r));
@@ -146,7 +146,7 @@ static ssize_t
 bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
             (void **) &bs, 0);
     if (r < 0) {
         cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
@@ -197,7 +197,7 @@ static int
 bipipe_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			 (void **) &bs, 0);
     if (r < 0) {
     	cprintf("bipipe_probe: cannot segment_map: %s\n", e2s(r));
@@ -226,7 +226,7 @@ static int
 bipipe_close(struct Fd *fd)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
             (void **) &bs, 0);
     if (r < 0) {
         cprintf("bipipe_close: cannot segment_map: %s\n", e2s(r));
@@ -250,7 +250,7 @@ static int
 bipipe_shutdown(struct Fd *fd, int how)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &bs, 0);
     if (r < 0) {
 	cprintf("bipipe_shutdown: cannot segment_map: %s\n", e2s(r));

@@ -51,7 +51,7 @@ fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
 	perm |= SEGMAP_WRITE;
 
     uint64_t dirsize = 0;
-    error_check(segment_map(dseg_, perm, (void **) &dir_, &dirsize));
+    error_check(segment_map(dseg_, 0, perm, (void **) &dir_, &dirsize));
 
     dir_end_ = ((char *) dir_) + dirsize;
 
@@ -227,7 +227,7 @@ fs_dir_dseg::refresh()
 
 	dir_ = 0;
 	uint64_t dirsize = 0;
-	error_check(segment_map(dseg_, SEGMAP_READ | (writable_ ? SEGMAP_WRITE : 0),
+	error_check(segment_map(dseg_, 0, SEGMAP_READ | (writable_ ? SEGMAP_WRITE : 0),
 				(void **) &dir_, &dirsize));
 
 	dir_end_ = ((char *) dir_) + dirsize;

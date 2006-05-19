@@ -78,7 +78,7 @@ try
 
 	dbr = 0;
 	uint64_t reply_bytes = 0;
-	error_check(segment_map(dbq->obj, SEGMAP_READ, (void **) &dbr, &reply_bytes));
+	error_check(segment_map(dbq->obj, 0, SEGMAP_READ, (void **) &dbr, &reply_bytes));
 	for (uint32_t i = 0; i < reply_bytes / sizeof(*dbr); i++) {
 	    printf("ID: %ld, Zip: %d, Nick: %s, Dot-product: %d\n",
 		    dbr[i].dbr_id,

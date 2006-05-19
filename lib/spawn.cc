@@ -145,7 +145,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     void *spawn_env_va = 0;
     error_check(segment_map_as(e.te_as, spawn_env_obj,
-			       SEGMAP_READ | SEGMAP_WRITE,
+			       0, SEGMAP_READ | SEGMAP_WRITE,
 			       &spawn_env_va, 0));
 
     struct cobj_ref exit_status_seg;
@@ -218,7 +218,7 @@ process_wait(struct child_process *child, int64_t *exit_code)
 
     while (proc_status == PROCESS_RUNNING) {
 	struct process_state *ps = 0;
-	int r = segment_map(child->wait_seg, SEGMAP_READ, (void **) &ps, 0);
+	int r = segment_map(child->wait_seg, 0, SEGMAP_READ, (void **) &ps, 0);
 	if (r < 0)
 	    return r;
 
@@ -253,7 +253,7 @@ process_update_state(uint64_t state, int64_t exit_code)
 
     struct process_state *ps = 0;
     r = segment_map(start_env->process_status_seg,
-		    SEGMAP_READ | SEGMAP_WRITE,
+		    0, SEGMAP_READ | SEGMAP_WRITE,
 		    (void **) &ps, 0);
     if (r < 0)
 	return r;

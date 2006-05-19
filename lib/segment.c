@@ -248,7 +248,7 @@ segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 }
 
 int
-segment_map(struct cobj_ref seg, uint64_t flags,
+segment_map(struct cobj_ref seg, uint64_t start_byteoff, uint64_t flags,
 	    void **va_p, uint64_t *bytes_store)
 {
     struct cobj_ref as;
@@ -258,30 +258,35 @@ segment_map(struct cobj_ref seg, uint64_t flags,
     if (r < 0)
 	return r;
 
-    return segment_map_as(as, seg, flags, va_p, bytes_store);
+    return segment_map_as(as, seg, start_byteoff, flags, va_p, bytes_store);
 }
 
 int
 segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
-	       uint64_t flags, void **va_p, uint64_t *bytes_store)
+	       uint64_t start_byteoff, uint64_t flags,
+	       void **va_p, uint64_t *bytes_store)
 {
+    assert((start_byteoff % PGSIZE) == 0);
+
     if (!(flags & SEGMAP_READ)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
 	return -E_INVAL;
     }
 
-    int64_t nbytes;
+    uint64_t seg_bytes;
     if (bytes_store && *bytes_store) {
-	nbytes = *bytes_store;
+	seg_bytes = *bytes_store + start_byteoff;
     } else {
-	nbytes = sys_segment_get_nbytes(seg);
+	int64_t nbytes = sys_segment_get_nbytes(seg);
 	if (nbytes < 0) {
 	    cprintf("segment_map: cannot stat segment: %s\n", e2s(nbytes));
 	    return nbytes;
 	}
+
+	seg_bytes = nbytes;
     }
 
-    uint64_t map_bytes = ROUNDUP(nbytes, PGSIZE);
+    uint64_t map_bytes = ROUNDUP(seg_bytes - start_byteoff, PGSIZE);
 
     as_mutex_lock();
     int r = cache_refresh(as_ref);
@@ -296,6 +301,8 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
     if (va_p && *va_p) {
 	map_start = (char *) *va_p;
 	map_end = map_start + map_bytes;
+
+	assert((((uintptr_t) map_start) % PGSIZE) == 0);
     } else {
 	// If we don't have a fixed address, try to find a free one.
 	map_start = (char *) UMMAPBASE;
@@ -434,7 +441,7 @@ retry:
     // Construct the mapping entry
     struct u_segment_mapping usm;
     usm.segment = seg;
-    usm.start_page = 0;
+    usm.start_page = start_byteoff / PGSIZE;
     usm.num_pages = map_bytes / PGSIZE;
     usm.flags = flags;
     usm.va = map_start;
@@ -501,7 +508,7 @@ retry:
 
 out:
     if (bytes_store)
-	*bytes_store = nbytes;
+	*bytes_store = seg_bytes - start_byteoff;
     if (va_p)
 	*va_p = map_start;
     return 0;
@@ -520,7 +527,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
 
     if (va_p) {
 	uint64_t mapped_bytes = bytes;
-	int r = segment_map(*cobj, SEGMAP_READ | SEGMAP_WRITE,
+	int r = segment_map(*cobj, 0, SEGMAP_READ | SEGMAP_WRITE,
 			    va_p, &mapped_bytes);
 	if (r < 0) {
 	    sys_obj_unref(*cobj);

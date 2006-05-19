@@ -129,7 +129,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 
     struct fs_mount_table *mtab = 0;
     uint64_t mtlen = sizeof(*mtab);
-    int r = segment_map(start_env->fs_mtab_seg, SEGMAP_READ,
+    int r = segment_map(start_env->fs_mtab_seg, 0, SEGMAP_READ,
 			(void **) &mtab, &mtlen);
     if (r >= 0) {
 	for (int i = 0; i < FS_NMOUNT; i++) {

@@ -19,8 +19,10 @@ int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p,
 		      struct ulabel *label, const char *name);
 int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
-		       uint64_t flags, void **vap, uint64_t *bytesp);
-int	segment_map(struct cobj_ref seg, uint64_t flags,
+		       uint64_t start_byteoff, uint64_t flags,
+		       void **vap, uint64_t *bytesp);
+int	segment_map(struct cobj_ref seg,
+		    uint64_t start_byteoff, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
 int	segment_unmap_delayed(void *va, int can_delay);

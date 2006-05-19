@@ -98,7 +98,7 @@ seg_client_read(uint64_t container, export_client_arg *arg)
 {
     seg_client *sc = 0;
     error_check(segment_map(COBJ(container, arg->segment_read.remote_seg), 
-                SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
+                0, SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
     scope_guard<int, void *> unmap_data(segment_unmap, sc);
 
     int count = arg->segment_read.count;
@@ -127,12 +127,12 @@ seg_client_write(uint64_t container, export_client_arg *arg)
 {
     seg_client *sc = 0;
     error_check(segment_map(COBJ(container, arg->segment_write.remote_seg), 
-                SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
+                0, SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
     scope_guard<int, void *> unmap_data(segment_unmap, sc);
 
     cobj_ref seg = arg->segment_write.seg;
     void *va = 0;
-    error_check(segment_map(seg, SEGMAP_READ, &va, 0));
+    error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0));
     scope_guard<int, void *> unmap_va(segment_unmap, va);
     
     int count = arg->segment_write.count;
@@ -148,7 +148,7 @@ seg_client_stat(uint64_t container, export_client_arg *arg)
 
     seg_client *sc = 0;
     error_check(segment_map(COBJ(container, arg->segment_stat.remote_seg), 
-                SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
+                0, SEGMAP_READ|SEGMAP_WRITE, (void **)&sc, 0));
     scope_guard<int, void *> unmap_data(segment_unmap, sc);
 
     struct cobj_ref seg;
@@ -171,7 +171,7 @@ export_client(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     try {
         cobj_ref seg = client_collection.data(ec_arg->id);
         client_data *data;
-        error_check(segment_map(seg, SEGMAP_READ|SEGMAP_WRITE, 
+        error_check(segment_map(seg, 0, SEGMAP_READ|SEGMAP_WRITE, 
                                 (void **)&data, 0));
         scope_guard<int, void *> unmap_data(segment_unmap, data);
                                 

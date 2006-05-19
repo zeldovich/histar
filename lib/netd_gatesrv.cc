@@ -40,7 +40,7 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
     struct cobj_ref arg_copy = COBJ(netd_ct, arg_copy_id);
     struct netd_op_args *netd_op = 0;
-    int r = segment_map(arg_copy, SEGMAP_READ | SEGMAP_WRITE, (void**)&netd_op, 0);
+    int r = segment_map(arg_copy, 0, SEGMAP_READ | SEGMAP_WRITE, (void**)&netd_op, 0);
     if (r < 0)
 	panic("netd_gate_entry: cannot map args: %s\n", e2s(r));
 
@@ -106,7 +106,7 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	error_check(sys_self_set_as(temp_as));
 	segment_as_switched();
 
-	error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE,
+	error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ | SEGMAP_WRITE,
 				(void **) &ipc, &map_bytes));
 	if (map_bytes != sizeof(*ipc))
 	    throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
@@ -126,7 +126,7 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	// Map shared memory segment & execute operation
 	{
 	    struct netd_ipc_segment *ipc_shared = 0;
-	    error_check(segment_map(gcd->param_obj, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
+	    error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
 				    (void **) &ipc_shared, &map_bytes));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
 

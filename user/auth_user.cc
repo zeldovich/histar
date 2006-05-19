@@ -63,7 +63,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 	struct retry_seg *rs = 0;
 	uint64_t nbytes = sizeof(*rs);
 	error_check(segment_map(COBJ(req->session_ct, retry_seg_id),
-				SEGMAP_READ | SEGMAP_WRITE,
+				0, SEGMAP_READ | SEGMAP_WRITE,
 				(void **) &rs, &nbytes));
 	uint64_t xh = rs->xh;
 	if (rs->attempts >= 1)
@@ -72,7 +72,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 
 	struct user_password *pw = 0;
 	nbytes = sizeof(*pw);
-	error_check(segment_map(user_password_seg, SEGMAP_READ,
+	error_check(segment_map(user_password_seg, 0, SEGMAP_READ,
 				(void **) &pw, &nbytes));
     	scope_guard<int, void *> unmap(segment_unmap, pw);
 
@@ -95,7 +95,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 
     	if (req->change_pw) {
 	    struct user_password *pw2 = 0;
-	    error_check(segment_map(user_password_seg, SEGMAP_READ | SEGMAP_WRITE,
+	    error_check(segment_map(user_password_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 				    (void **) &pw2, &nbytes));
 	    scope_guard<int, void *> unmap2(segment_unmap, pw2);
 

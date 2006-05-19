@@ -62,7 +62,7 @@ sbrk(intptr_t x)
 	goto out;
     }
 
-    r = segment_map(heapobj, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
+    r = segment_map(heapobj, 0, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
     if (r < 0) {
 	cprintf("sbrk: mapping heap: %s\n", e2s(r));
 	goto out;
@@ -105,7 +105,7 @@ heap_relabel(struct ulabel *l)
 
 	sys_obj_unref(heapobj);
 	heapobj = COBJ(start_env->proc_container, nid);
-	r = segment_map(heapobj, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
+	r = segment_map(heapobj, 0, SEGMAP_READ | SEGMAP_WRITE, &heap_base, 0);
 	if (r < 0) {
 	    cprintf("heap_relabel: cannot remap: %s\n", e2s(r));
 	    goto out;

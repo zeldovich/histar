@@ -180,7 +180,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
 	fd_segment_cache.container = 0;
 
 	uint64_t pgsize = PGSIZE;
-	r = segment_map(seg, SEGMAP_READ | SEGMAP_WRITE,
+	r = segment_map(seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &fd, &pgsize);
     } else {
 	char nbuf[KOBJ_NAME_LEN];
@@ -282,7 +282,7 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
 	    uint64_t pgsize = PGSIZE;
 	    assert(0 == sys_segment_addref(new_seg, start_env->shared_container));
 	    assert(0 == segment_unmap(ifd));
-	    assert(0 == segment_map(new_seg, iflags, (void **) &ifd, &pgsize));
+	    assert(0 == segment_map(new_seg, 0, iflags, (void **) &ifd, &pgsize));
 	    sys_obj_unref(old_seg);
 
 	    fd_map_cache[i].mapped = 1;
@@ -465,7 +465,7 @@ int
 fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 {
     uint64_t pgsize = PGSIZE;
-    int r = segment_map(fd_seg, fd_flags, (void **) &fd, &pgsize);
+    int r = segment_map(fd_seg, 0, fd_flags, (void **) &fd, &pgsize);
     if (r < 0) {
 	fd_map_cache[fd2num(fd)].valid_proc_ct = 0;
 	return r;
@@ -568,7 +568,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     int immutable = oldfd->fd_immutable;
     uint64_t pgsize = PGSIZE;
     fd_flags &= ~SEGMAP_CLOEXEC;
-    r = segment_map(fd_seg, fd_flags,
+    r = segment_map(fd_seg, 0, fd_flags,
 		    (void**) &newfd, &pgsize);
     if (r < 0) {
 	fd_map_cache[newfdnum].valid_proc_ct = 0;
@@ -651,7 +651,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     if (immutable)
 	fd_flags &= ~SEGMAP_WRITE;
 
-    r = segment_map_as(target_as, new_seg, fd_flags,
+    r = segment_map_as(target_as, new_seg, 0, fd_flags,
 		       (void**) &newfd, 0);
     if (r < 0) {
 	cprintf("dup2_as: segment_map_as: %s\n", e2s(r));

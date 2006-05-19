@@ -109,7 +109,7 @@ http_client(void *arg)
 
 		void *va = 0;
 		uint64_t len;
-		error_check(segment_map(gcd.param_obj, SEGMAP_READ, &va, &len));
+		error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, &len));
 		scope_guard<int, void *> unmap(segment_unmap, va);
 
 		tc.write((const char *) va, len);
