@@ -47,11 +47,10 @@ void _panic (const char *file, int line, const char *fmt, ...)
 #define __FL__ __FILE__ ":" stringify (__LINE__)
 
 #define assert(x)				\
-do {						\
-  if (!(x))					\
-    panic("assertion failed at %s:%d:\n%s",	\
-	  __FILE__, __LINE__, #x);		\
-} while (0)
+    do {					\
+	if (!(x))				\
+	    panic("assertion failed:\n%s", #x);	\
+    } while (0)
 
 // static_assert(x) will generate a compile-time error if 'x' is false.
 #define static_assert(x)	switch (x) case 0: case (x):
