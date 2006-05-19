@@ -18,7 +18,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
-static int netd_server_enabled;
+static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
@@ -26,7 +26,7 @@ static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     while (!netd_server_enabled)
-	sys_self_yield();
+	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
 
     uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref arg = gcd->param_obj;
@@ -68,7 +68,7 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     uint64_t map_bytes = 0;
 
     while (!netd_server_enabled)
-	sys_self_yield();
+	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
 
     // Scope to force object destructors
     {
@@ -207,4 +207,5 @@ void
 netd_server_enable(void)
 {
     netd_server_enabled = 1;
+    sys_sync_wakeup(&netd_server_enabled);
 }

@@ -52,8 +52,7 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
     if (n == 0)
 	return 0;
 
-    while ((c = sys_cons_getc()) == 0)
-	sys_self_yield();
+    c = sys_cons_getc();
     if (c < 0)
 	return c;
     if (c == 0x04)	// ctl-d is eof

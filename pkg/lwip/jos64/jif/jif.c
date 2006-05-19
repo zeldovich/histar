@@ -133,21 +133,15 @@ low_level_output(struct netif *netif, struct pbuf *p)
 #endif
 
     int txslot;
-    int warned = 0;
-    do {
-	for (txslot = 0; txslot < JIF_BUFS; txslot++) {
-	    if ((jif->tx[txslot]->actual_count & NETHDR_COUNT_DONE))
-		break;
-	}
+    for (txslot = 0; txslot < JIF_BUFS; txslot++) {
+	if ((jif->tx[txslot]->actual_count & NETHDR_COUNT_DONE))
+	    break;
+    }
 
-	if (txslot == JIF_BUFS) {
-	    if (!warned++)
-		cprintf("jif: out of tx bufs\n");
-	    lwip_core_unlock();
-	    sys_self_yield();
-	    lwip_core_lock();
-	}
-    } while (txslot == JIF_BUFS);
+    if (txslot == JIF_BUFS) {
+	cprintf("jif: out of tx bufs\n");
+	return ERR_MEM;
+    }
 
     char *txbuf = (char *) (jif->tx[txslot] + 1);
     int txsize = 0;
@@ -167,19 +161,12 @@ low_level_output(struct netif *netif, struct pbuf *p)
     jif->tx[txslot]->size = txsize;
     jif->tx[txslot]->actual_count = 0;
 
-    warned = 0;
-    for (;;) {
-	int r = sys_net_buf(jif->ndev, jif->buf_seg,
-			    (uint64_t) (txbase - jif->buf_base),
-			    netbuf_tx);
-	if (r >= 0)
-	    break;
-
-	if (!warned++)
-	    cprintf("jif: can't setup tx slot: %s\n", e2s(r));
-	lwip_core_unlock();
-	sys_self_yield();
-	lwip_core_lock();
+    int r = sys_net_buf(jif->ndev, jif->buf_seg,
+			(uint64_t) (txbase - jif->buf_base),
+			netbuf_tx);
+    if (r < 0) {
+	cprintf("jif: can't setup tx slot: %s\n", e2s(r));
+	return ERR_MEM;
     }
 
 #if ETH_PAD_SIZE

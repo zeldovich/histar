@@ -26,6 +26,7 @@ profiler_sig(int signo, siginfo_t *si, void *arg)
 {
     struct sigcontext *sc = (struct sigcontext *) arg;
     prof_rip = sc->sc_utf.utf_rip;
+    sys_sync_wakeup(&prof_rip);
 }
 
 static void
@@ -44,7 +45,7 @@ profiler_thread(void *arg)
 	kill_thread_siginfo(prof_target, &si);
 
 	while (!prof_rip)
-	    sys_self_yield();
+	    sys_sync_wait(&prof_rip, 0, ~0UL);
 
 	prof_samples[prof_sample_next] = prof_rip;
 	prof_sample_next = (prof_sample_next + 1) % buffer_size;
