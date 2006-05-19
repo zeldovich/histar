@@ -198,8 +198,10 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     if (stack_) {
-	struct cobj_ref stackseg;
-	error_check(segment_lookup(stack_, &stackseg, 0, 0));
+	struct u_segment_mapping usm;
+	error_check(segment_lookup(stack_, &usm));
+
+	struct cobj_ref stackseg = usm.segment;
 	error_check(segment_unmap(stack_));
 	error_check(sys_obj_unref(stackseg));
     }

@@ -38,11 +38,13 @@ setup_env(uint64_t envaddr)
     extern const char *__progname;
     __progname = &start_env->args[0];
 
+    struct u_segment_mapping usm;
     struct cobj_ref start_env_seg;
-    int r = segment_lookup(start_env, &start_env_seg, 0, 0);
+    int r = segment_lookup(start_env, &usm);
     if (r < 0 || r == 0)
 	panic("libmain: cannot find start_env segment: %s", e2s(r));
 
+    start_env_seg = usm.segment;
     void *start_env_ro = (void *) USTARTENVRO;
     r = segment_map(start_env_seg, SEGMAP_READ, &start_env_ro, 0);
     if (r < 0)

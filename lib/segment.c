@@ -178,7 +178,7 @@ segment_unmap(void *va)
 }
 
 int
-segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp)
+segment_lookup(void *va, struct u_segment_mapping *usm)
 {
     as_mutex_lock();
 
@@ -202,13 +202,8 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
 	    va >= va_start && va < va_end)
 	{
-	    if (seg)
-		*seg = cache_uas.ents[i].segment;
-	    // XXX this doesn't actually say what the base offset is..
-	    if (npage)
-		*npage = cache_uas.ents[i].num_pages;
-	    if (flagsp)
-		*flagsp = cache_uas.ents[i].flags;
+	    if (usm)
+		*usm = cache_uas.ents[i];
 	    as_mutex_unlock();
 	    return 1;
 	}
@@ -219,7 +214,7 @@ segment_lookup(void *va, struct cobj_ref *seg, uint64_t *npage, uint64_t *flagsp
 }
 
 int
-segment_lookup_obj(uint64_t oid, void **vap)
+segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 {
     as_mutex_lock();
 
@@ -241,8 +236,8 @@ segment_lookup_obj(uint64_t oid, void **vap)
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
 	    cache_uas.ents[i].segment.object == oid)
 	{
-	    if (vap)
-		*vap = cache_uas.ents[i].va;
+	    if (usm)
+		*usm = cache_uas.ents[i];
 	    as_mutex_unlock();
 	    return 1;
 	}

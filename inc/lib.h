@@ -24,9 +24,8 @@ int	segment_map(struct cobj_ref seg, uint64_t flags,
 		    void **va_p, uint64_t *bytes_store);
 int	segment_unmap(void *va);
 int	segment_unmap_delayed(void *va, int can_delay);
-int	segment_lookup(void *va, struct cobj_ref *seg,
-		       uint64_t *npage, uint64_t *flagsp);
-int	segment_lookup_obj(uint64_t oid, void **vap);
+int	segment_lookup(void *va, struct u_segment_mapping *usm);
+int	segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm);
 
 /* Notify that the thread has changed AS objects */
 void	segment_as_switched(void);

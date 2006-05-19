@@ -351,9 +351,13 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 	flags = fd_map_cache[fdnum].flags;
 	r = fd_map_cache[fdnum].mapped;
     } else {
-	r = segment_lookup(fd, &seg, 0, &flags);
+	struct u_segment_mapping usm;
+	r = segment_lookup(fd, &usm);
 	if (r < 0)
 	    return r;
+
+	seg = usm.segment;
+	flags = usm.flags;
 
 	fd_map_cache[fdnum].mapped = r;
 	fd_map_cache[fdnum].valid_proc_ct = start_env->proc_container;
@@ -399,12 +403,14 @@ jos_fd_close(struct Fd *fd)
 		    thread_id(), fdnum, fd_handles[fdnum].h[i], handle_refs[i]);
     }
 
-    struct cobj_ref fd_seg;
-    r = segment_lookup(fd, &fd_seg, 0, 0);
+    struct u_segment_mapping usm;
+    r = segment_lookup(fd, &usm);
     if (r < 0)
 	return r;
     if (r == 0)
 	return -E_NOT_FOUND;
+
+    struct cobj_ref fd_seg = usm.segment;
 
     struct Dev *dev;
     r = dev_lookup(fd->fd_dev_id, &dev);

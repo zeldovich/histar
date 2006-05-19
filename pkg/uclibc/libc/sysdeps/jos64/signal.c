@@ -119,7 +119,7 @@ stack_grow(void *faultaddr)
     uint32_t cur_pages = 0;
     while (stacktop - cur_pages * PGSIZE >= stackbase) {
 	uint32_t check_pages = cur_pages + 1;
-	int r = segment_lookup(stacktop - check_pages * PGSIZE, 0, 0, 0);
+	int r = segment_lookup(stacktop - check_pages * PGSIZE, 0);
 	if (r < 0)
 	    return r;
 	if (r == 0)

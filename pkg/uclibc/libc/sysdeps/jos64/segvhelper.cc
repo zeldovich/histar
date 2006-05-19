@@ -18,10 +18,11 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
     void *va = si->si_addr;
 
     try {
-	cobj_ref seg;
-	uint64_t flags;
-	int r = segment_lookup(va, &seg, 0, &flags);
+	u_segment_mapping usm;
+	int r = segment_lookup(va, &usm);
 
+	cobj_ref seg = usm.segment;
+	uint64_t flags = usm.flags;
 	if (r > 0 && (flags & SEGMAP_VECTOR_PF)) {
 	    assert(*tls_pgfault);
 	    jos_longjmp(*tls_pgfault, 1);

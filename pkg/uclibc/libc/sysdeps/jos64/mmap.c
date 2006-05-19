@@ -49,14 +49,16 @@ mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 int
 munmap(void *start, size_t length)
 {
-    struct cobj_ref seg;
-    uint64_t npage;
-    uint64_t flags;
-    int r = segment_lookup(start, &seg, &npage, &flags);
+    struct u_segment_mapping usm;
+    int r = segment_lookup(start, &usm);
     if (r < 0) {
 	__set_errno(EINVAL);
 	return -1;
     }
+
+    struct cobj_ref seg = usm.segment;
+    uint64_t npage = usm.num_pages;
+    uint64_t flags = usm.flags;
 
     if (!(flags & SEGMAP_ANON_MMAP)) {
 	set_enosys();
