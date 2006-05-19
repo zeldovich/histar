@@ -426,7 +426,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	    return r;
 
 	uint64_t flags = usm->flags;
-	if (flags == 0)
+	if (!(flags & SEGMAP_READ))
 	    continue;
 	if ((flags & reqflags) != reqflags)
 	    continue;
