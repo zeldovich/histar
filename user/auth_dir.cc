@@ -42,7 +42,7 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     user_list *ul = 0;
     uint64_t ul_bytes = 0;
     error_check(segment_map(user_list_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			    (void **) &ul, &ul_bytes));
+			    (void **) &ul, &ul_bytes, 0));
     scope_guard<int, void *> ul_unmap(segment_unmap, ul);
     scoped_pthread_lock l(&ul->mu);
 
@@ -89,7 +89,7 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 
 	user_list *ul2 = 0;
 	error_check(segment_map(user_list_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &ul2, 0));
+				(void **) &ul2, 0, 0));
 	scope_guard<int, void *> ul2_unmap(segment_unmap, ul2);
 
 	if (ue_match)

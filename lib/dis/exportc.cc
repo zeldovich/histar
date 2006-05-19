@@ -83,7 +83,7 @@ export_segmentc::read(void *buf, int count, int offset)
     if (arg->status > 0) {
         void *va = 0;
         cobj_ref seg = arg->segment_read.seg;
-        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0));
+        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0, 0));
         memcpy(buf, va, arg->status);
         segment_unmap(va);
         sys_obj_unref(seg);
@@ -147,7 +147,7 @@ export_segmentc::stat(struct seg_stat *buf)
     if (!arg->status) {
         void *va = 0;
         cobj_ref seg = arg->segment_stat.seg;
-        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0));
+        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0, 0));
         memcpy(buf, va, sizeof(*buf));
         segment_unmap(va);
         sys_obj_unref(seg);

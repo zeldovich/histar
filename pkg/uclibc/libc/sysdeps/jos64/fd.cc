@@ -181,7 +181,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
 
 	uint64_t pgsize = PGSIZE;
 	r = segment_map(seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &fd, &pgsize);
+			(void **) &fd, &pgsize, 0);
     } else {
 	char nbuf[KOBJ_NAME_LEN];
 	snprintf(&nbuf[0], KOBJ_NAME_LEN, "fd_alloc: %s", name);
@@ -281,8 +281,7 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
 	if (iobj.object == old_seg.object) {
 	    uint64_t pgsize = PGSIZE;
 	    assert(0 == sys_segment_addref(new_seg, start_env->shared_container));
-	    assert(0 == segment_unmap(ifd));
-	    assert(0 == segment_map(new_seg, 0, iflags, (void **) &ifd, &pgsize));
+	    assert(0 == segment_map(new_seg, 0, iflags, (void **) &ifd, &pgsize, SEG_MAPOPT_REPLACE));
 	    sys_obj_unref(old_seg);
 
 	    fd_map_cache[i].mapped = 1;
@@ -465,7 +464,7 @@ int
 fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
 {
     uint64_t pgsize = PGSIZE;
-    int r = segment_map(fd_seg, 0, fd_flags, (void **) &fd, &pgsize);
+    int r = segment_map(fd_seg, 0, fd_flags, (void **) &fd, &pgsize, SEG_MAPOPT_REPLACE);
     if (r < 0) {
 	fd_map_cache[fd2num(fd)].valid_proc_ct = 0;
 	return r;
@@ -569,7 +568,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     uint64_t pgsize = PGSIZE;
     fd_flags &= ~SEGMAP_CLOEXEC;
     r = segment_map(fd_seg, 0, fd_flags,
-		    (void**) &newfd, &pgsize);
+		    (void**) &newfd, &pgsize, 0);
     if (r < 0) {
 	fd_map_cache[newfdnum].valid_proc_ct = 0;
 	sys_obj_unref(fd_seg);
@@ -652,7 +651,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 	fd_flags &= ~SEGMAP_WRITE;
 
     r = segment_map_as(target_as, new_seg, 0, fd_flags,
-		       (void**) &newfd, 0);
+		       (void**) &newfd, 0, 0);
     if (r < 0) {
 	cprintf("dup2_as: segment_map_as: %s\n", e2s(r));
 	sys_obj_unref(new_seg);

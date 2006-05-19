@@ -64,7 +64,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 	uint64_t nbytes = sizeof(*rs);
 	error_check(segment_map(COBJ(req->session_ct, retry_seg_id),
 				0, SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &rs, &nbytes));
+				(void **) &rs, &nbytes, 0));
 	uint64_t xh = rs->xh;
 	if (rs->attempts >= 1)
 	    throw basic_exception("too many authentication attempts");
@@ -73,7 +73,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 	struct user_password *pw = 0;
 	nbytes = sizeof(*pw);
 	error_check(segment_map(user_password_seg, 0, SEGMAP_READ,
-				(void **) &pw, &nbytes));
+				(void **) &pw, &nbytes, 0));
     	scope_guard<int, void *> unmap(segment_unmap, pw);
 
 	sha1_ctx sctx;
@@ -96,7 +96,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
     	if (req->change_pw) {
 	    struct user_password *pw2 = 0;
 	    error_check(segment_map(user_password_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-				    (void **) &pw2, &nbytes));
+				    (void **) &pw2, &nbytes, 0));
 	    scope_guard<int, void *> unmap2(segment_unmap, pw2);
 
 	    sha1_init(&sctx);

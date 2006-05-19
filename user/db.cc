@@ -35,12 +35,12 @@ db_row_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	cobj_ref row_seg = COBJ(db_table_ct, row_seg_id);
 
 	db_row *row = 0;
-	error_check(segment_map(row_seg, 0, SEGMAP_READ, (void **) &row, 0));
+	error_check(segment_map(row_seg, 0, SEGMAP_READ, (void **) &row, 0, 0));
 	scope_guard<int, void*> unmap(segment_unmap, row);
 
 	db_row *qry = 0;
 	uint64_t qbytes = 0;
-	error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ, (void **) &qry, &qbytes));
+	error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ, (void **) &qry, &qbytes, 0));
 	scope_guard<int, void*> unmap2(segment_unmap, qry);
 
 	if (qbytes != sizeof(*qry))
@@ -78,7 +78,7 @@ db_insert(label *v, db_query *dbq, db_reply *dbr)
     db_row *row = 0;
     uint64_t row_bytes = 0;
     error_check(segment_map(dbq->obj, 0, SEGMAP_READ | SEGMAP_WRITE,
-		(void **) &row, &row_bytes));
+		(void **) &row, &row_bytes, 0));
     scope_guard<int, void*> unmap(segment_unmap, row);
 
     if (row_bytes != sizeof(*row))
@@ -89,7 +89,7 @@ db_insert(label *v, db_query *dbq, db_reply *dbr)
     db_table_info *dbt = 0;
     uint64_t dbt_bytes = 0;
     error_check(segment_map(db_table_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			    (void **) &dbt, &dbt_bytes));
+			    (void **) &dbt, &dbt_bytes, 0));
     scope_guard<int, void*> unmap2(segment_unmap, dbt);
 
     row->dbr_id = dbt->dbt_next_id++;
@@ -157,7 +157,7 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 	gc.call(&gcd, 0);
 
 	db_row *row = 0;
-	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, (void **) &row, 0));
+	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, (void **) &row, 0, 0));
 	scope_guard<int, void *> unmap(segment_unmap, row);
 
 	out_rows++;
@@ -166,7 +166,7 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 
 	db_row *out = 0;
 	error_check(segment_map(reply_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &out, &out_bytes));
+				(void **) &out, &out_bytes, 0));
 	scope_guard<int, void *> unmap2(segment_unmap, out);
 
 	memcpy(&out[out_rows - 1], row, sizeof(*row));

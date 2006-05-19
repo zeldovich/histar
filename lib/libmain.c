@@ -46,13 +46,13 @@ setup_env(uint64_t envaddr)
 
     start_env_seg = usm.segment;
     void *start_env_ro = (void *) USTARTENVRO;
-    r = segment_map(start_env_seg, 0, SEGMAP_READ, &start_env_ro, 0);
+    r = segment_map(start_env_seg, 0, SEGMAP_READ, &start_env_ro, 0, 0);
     if (r < 0)
 	panic("libmain: cannot map start_env_ro: %s", e2s(r));
 
     struct cobj_ref tls = COBJ(0, kobject_id_thread_sg);
     void *tls_va = (void *) UTLS;
-    r = segment_map(tls, 0, SEGMAP_READ | SEGMAP_WRITE, &tls_va, 0);
+    r = segment_map(tls, 0, SEGMAP_READ | SEGMAP_WRITE, &tls_va, 0, 0);
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
 

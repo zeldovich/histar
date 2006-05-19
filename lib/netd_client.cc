@@ -184,7 +184,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	c.call(&gcd, 0);
 
 	va = 0;
-	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, 0));
+	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, 0, 0));
 	memcpy(a, va, sizeof(*a));
 	segment_unmap(va);
     } catch (error &e) {

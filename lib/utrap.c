@@ -42,7 +42,7 @@ utrap_init(void)
 	return r;
 
     void *utrap_code = (void *) UTRAPHANDLER - xstack_pages * PGSIZE;
-    r = segment_map(o, 0, SEGMAP_READ | SEGMAP_EXEC, &utrap_code, &nbytes);
+    r = segment_map(o, 0, SEGMAP_READ | SEGMAP_EXEC, &utrap_code, &nbytes, 0);
     if (r < 0)
 	return r;
 

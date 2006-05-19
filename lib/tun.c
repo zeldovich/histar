@@ -59,7 +59,7 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 {
     struct tun_seg *ts = 0;
     int r = segment_map(fd->fd_tun.tun_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &ts, 0);
+			(void **) &ts, 0, 0);
     if (r < 0) {
 	cprintf("tun_read: cannot segment_map: %s\n", e2s(r));
 	errno = EIO;
@@ -111,7 +111,7 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 
     struct tun_seg *ts = 0;
     int r = segment_map(fd->fd_tun.tun_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &ts, 0);
+			(void **) &ts, 0, 0);
     if (r < 0) {
 	cprintf("tun_write: cannot segment_map: %s\n", e2s(r));
 	errno = EIO;
@@ -149,7 +149,7 @@ tun_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct tun_seg *ts = 0;
     int r = segment_map(fd->fd_tun.tun_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &ts, 0);
+			(void **) &ts, 0, 0);
     if (r < 0) {
 	cprintf("tun_probe: cannot segment_map: %s\n", e2s(r));
 	errno = EIO;

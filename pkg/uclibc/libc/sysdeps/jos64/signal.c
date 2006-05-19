@@ -161,7 +161,7 @@ stack_grow(void *faultaddr)
     uint64_t map_bytes = new_pages * PGSIZE;
     r = segment_map(stack_seg, stack_seg_npages * PGSIZE,
 		    SEGMAP_READ | SEGMAP_WRITE,
-		    &new_va, &map_bytes);
+		    &new_va, &map_bytes, 0);
     if (r < 0) {
 	cprintf("stack_grow: dangling unmapped stack bytes\n");
 	return r;

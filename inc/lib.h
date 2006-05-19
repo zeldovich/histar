@@ -15,17 +15,22 @@ int	opencons(void);
 char*	readline(const char *prompt);
 
 /* segment.c */
+#define SEG_MAPOPT_REPLACE	0x01
+#define SEG_MAPOPT_OVERLAP	0x02
+
 int	segment_alloc(uint64_t container, uint64_t bytes,
 		      struct cobj_ref *cobj, void **va_p,
 		      struct ulabel *label, const char *name);
 int	segment_map_as(struct cobj_ref as, struct cobj_ref seg,
 		       uint64_t start_byteoff, uint64_t flags,
-		       void **vap, uint64_t *bytesp);
+		       void **vap, uint64_t *bytesp, uint64_t map_opts);
 int	segment_map(struct cobj_ref seg,
 		    uint64_t start_byteoff, uint64_t flags,
-		    void **va_p, uint64_t *bytes_store);
+		    void **va_p, uint64_t *bytes_store,
+		    uint64_t map_opts);
 int	segment_unmap(void *va);
 int	segment_unmap_delayed(void *va, int can_delay);
+int	segment_unmap_kslot(uint32_t kslot, int can_delay);
 int	segment_lookup(void *va, struct u_segment_mapping *usm);
 int	segment_lookup_skip(void *va, struct u_segment_mapping *usm,
 			    uint64_t skip_flags);

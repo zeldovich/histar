@@ -36,7 +36,7 @@ mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
     }
 
     void *va = 0;
-    r = segment_map(seg, 0, seg_flags, &va, 0);
+    r = segment_map(seg, 0, seg_flags, &va, 0, 0);
     if (r < 0) {
 	sys_obj_unref(seg);
 	__set_errno(ENOMEM);

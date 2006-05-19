@@ -16,7 +16,7 @@ main(int ac, char **av)
     if (ac == 1) {
 	struct fs_mount_table *fs_mtab = 0;
 	int r = segment_map(start_env->fs_mtab_seg, 0, SEGMAP_READ,
-			    (void **) &fs_mtab, 0);
+			    (void **) &fs_mtab, 0, 0);
 	if (r < 0)
 	    panic("cannot map mount table: %s", e2s(r));
 

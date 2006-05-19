@@ -25,7 +25,7 @@ script_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 {
     uint64_t seglen = 0;
     char *segbuf = 0;
-    int r = segment_map(seg, 0, SEGMAP_READ, (void**)&segbuf, &seglen);
+    int r = segment_map(seg, 0, SEGMAP_READ, (void**)&segbuf, &seglen, 0);
     if (r < 0) {
 	cprintf("script_load: cannot map segment\n");
 	return r;
@@ -178,7 +178,7 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     void *new_env_va = 0;
     error_check(segment_map_as(e.te_as, new_env_ref,
 			       0, SEGMAP_READ | SEGMAP_WRITE,
-			       &new_env_va, 0));
+			       &new_env_va, 0, 0));
     e.te_arg[0] = (uint64_t) new_env_va;
 
     // Create a thread

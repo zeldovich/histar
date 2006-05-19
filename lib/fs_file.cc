@@ -35,7 +35,7 @@ fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off)
     }
 
     char *map = 0;
-    r = segment_map(f.obj, 0, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, &cursize);
+    r = segment_map(f.obj, 0, SEGMAP_READ | SEGMAP_WRITE, (void **) &map, &cursize, 0);
     if (r < 0)
 	return r;
 
@@ -50,7 +50,7 @@ fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off)
 {
     char *map = 0;
     uint64_t cursize = 0;
-    int r = segment_map(f.obj, 0, SEGMAP_READ, (void **) &map, &cursize);
+    int r = segment_map(f.obj, 0, SEGMAP_READ, (void **) &map, &cursize, 0);
     if (r < 0)
 	return r;
 

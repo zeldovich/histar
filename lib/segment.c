@@ -127,6 +127,51 @@ segment_map_print(struct u_address_space *as)
 }
 
 int
+segment_unmap_kslot(uint32_t kslot, int can_delay)
+{
+    as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    r = cache_refresh(as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	if (cache_uas.ents[i].kslot == kslot &&
+	    cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP))
+	{
+	    if (can_delay) {
+		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
+		as_mutex_unlock();
+		return 0;
+	    }
+
+	    if (segment_debug)
+		cprintf("segment_unmap_kslot: kslot %d\n", kslot);
+
+	    cache_uas.ents[i].flags = 0;
+	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+	    if (r < 0)
+		cache_invalidate();
+	    as_mutex_unlock();
+	    return r;
+	}
+    }
+
+    as_mutex_unlock();
+    return -E_INVAL;
+}
+
+int
 segment_unmap_delayed(void *va, int can_delay)
 {
     as_mutex_lock();
@@ -256,7 +301,7 @@ segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 
 int
 segment_map(struct cobj_ref seg, uint64_t start_byteoff, uint64_t flags,
-	    void **va_p, uint64_t *bytes_store)
+	    void **va_p, uint64_t *bytes_store, uint64_t map_opts)
 {
     struct cobj_ref as;
     as_mutex_lock();
@@ -265,13 +310,14 @@ segment_map(struct cobj_ref seg, uint64_t start_byteoff, uint64_t flags,
     if (r < 0)
 	return r;
 
-    return segment_map_as(as, seg, start_byteoff, flags, va_p, bytes_store);
+    return segment_map_as(as, seg, start_byteoff, flags, va_p, bytes_store, map_opts);
 }
 
 int
 segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	       uint64_t start_byteoff, uint64_t flags,
-	       void **va_p, uint64_t *bytes_store)
+	       void **va_p, uint64_t *bytes_store,
+	       uint64_t map_opts)
 {
     assert((start_byteoff % PGSIZE) == 0);
 
@@ -358,14 +404,15 @@ retry:
 	// If this segment is live and overlaps with our
 	// non-reserved range, bail out.
 	if (cache_uas.ents[i].flags &&
+	    !(map_opts & SEG_MAPOPT_OVERLAP) &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
 	    !(cache_uas.ents[i].flags & SEGMAP_RESERVE) &&
 	    ent_start < map_end && ent_end > map_start)
 	{
-	    // Except that it's OK if it's the same exact segment.
-	    if (cache_uas.ents[i].segment.object == seg.object &&
+	    // Except that it's OK if the user asks for replacement
+	    if ((map_opts & SEG_MAPOPT_REPLACE) &&
 		cache_uas.ents[i].va == map_start &&
-		cache_uas.ents[i].start_page == 0 &&
+		cache_uas.ents[i].start_page == start_byteoff / PGSIZE &&
 		match_segslot == cache_uas.nent)
 	    {
 		match_segslot = i;
@@ -537,7 +584,7 @@ segment_alloc(uint64_t container, uint64_t bytes,
     if (va_p) {
 	uint64_t mapped_bytes = bytes;
 	int r = segment_map(*cobj, 0, SEGMAP_READ | SEGMAP_WRITE,
-			    va_p, &mapped_bytes);
+			    va_p, &mapped_bytes, 0);
 	if (r < 0) {
 	    sys_obj_unref(*cobj);
 	    return r;
