@@ -651,7 +651,7 @@ static void
 sys_sync_wakeup(uint64_t *addr)
 {
     check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE));
-    sync_wakeup_addr(addr);
+    check(sync_wakeup_addr(addr));
 }
 
 static int64_t

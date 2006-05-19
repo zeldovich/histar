@@ -33,7 +33,8 @@ struct Thread {
     uint8_t th_sched_joined : 1;
 
     uint64_t th_wakeup_msec;
-    uint64_t th_wakeup_addr;
+    uint64_t th_wakeup_seg_id;
+    uint64_t th_wakeup_offset;
 
     union {
 	uint128_t th_sched_pass;
