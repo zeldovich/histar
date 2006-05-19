@@ -8,7 +8,6 @@ Compatibility issues:
 Performance:
 
 * reasonable select() implementation
-* sys_thread_sync_wait() should invert page-addr into segment+offset
 * deal with fragmentation on-disk
 * partial segment swapin and swapout
 * page reclamation, LRU (unpin callbacks for reclaiming space?)

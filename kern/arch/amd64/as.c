@@ -599,3 +599,38 @@ err:
     cprintf("as_invalidate_label: fallback to full invalidation: %s\n", e2s(r));
     as_invalidate(as);
 }
+
+int
+as_invert_mapped(const struct Address_space *as, void *addr,
+		 kobject_id_t *seg_idp, uint64_t *offsetp)
+{
+    int r;
+
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    return r;
+
+	if (!sm->sm_sg)
+	    continue;
+
+	const struct u_segment_mapping *usm;
+	r = as_get_usegmap(as, &usm, i, page_shared_ro);
+	if (r < 0)
+	    return r;
+
+	uint64_t npages = usm->num_pages;
+	void *va_start = ROUNDDOWN(usm->va, PGSIZE);
+	void *va_end = (char*) va_start + npages * PGSIZE;
+	if (addr < va_start || addr >= va_end)
+	    continue;
+
+	*seg_idp = usm->segment.object;
+	*offsetp = usm->start_page * PGSIZE +
+		   ((uintptr_t) addr) - ((uintptr_t) va_start);
+	return 0;
+    }
+
+    return -E_NOT_FOUND;
+}

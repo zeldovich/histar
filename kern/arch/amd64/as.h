@@ -58,4 +58,8 @@ int  as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
 void as_switch(const struct Address_space *as);
 
+int  as_invert_mapped(const struct Address_space *as, void *addr,
+		      kobject_id_t *seg_idp, uint64_t *offsetp)
+    __attribute__ ((warn_unused_result));
+
 #endif

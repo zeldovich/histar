@@ -1,4 +1,5 @@
 #include <machine/thread.h>
+#include <machine/as.h>
 #include <kern/sync.h>
 #include <kern/timer.h>
 #include <kern/kobj.h>
@@ -6,14 +7,6 @@
 
 static struct Thread_list sync_waiting;
 static int sync_debug = 0;
-
-static int
-sync_invert(uint64_t *addr, uint64_t *seg_id, uint64_t *offset)
-{
-    *seg_id = 0;
-    *offset = PGOFF(addr);
-    return 0;
-}
 
 int
 sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
@@ -30,7 +23,9 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
     t->th_wakeup_msec = wakeup_msec;
 
-    int r = sync_invert(addr, &t->th_wakeup_seg_id, &t->th_wakeup_offset);
+    int r = as_invert_mapped(t->th_as, addr,
+			     &t->th_wakeup_seg_id,
+			     &t->th_wakeup_offset);
     if (r < 0)
 	return r;
 
@@ -45,7 +40,7 @@ sync_wakeup_addr(uint64_t *addr)
 	cprintf("sync_wakeup_addr: addr %p\n", addr);
 
     uint64_t seg_id, offset;
-    int r = sync_invert(addr, &seg_id, &offset);
+    int r = as_invert_mapped(cur_thread->th_as, addr, &seg_id, &offset);
     if (r < 0)
 	return r;
 
