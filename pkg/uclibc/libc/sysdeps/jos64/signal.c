@@ -111,34 +111,61 @@ signal_dispatch(siginfo_t *si, struct sigcontext *sc)
 static int
 stack_grow(void *faultaddr)
 {
-    void *stacktop = (void *) USTACKTOP;
-    void *stackbase = (void *) USTACKBASE;
-    if (faultaddr >= stacktop || faultaddr < stackbase)
+    struct u_segment_mapping usm;
+    int r = segment_lookup(faultaddr, &usm);
+    if (r < 0)
+	return r;
+    if (r == 0 || !(usm.flags & SEGMAP_STACK))
 	return -1;
 
-    uint32_t cur_pages = 0;
-    while (stacktop - cur_pages * PGSIZE >= stackbase) {
-	uint32_t check_pages = cur_pages + 1;
-	int r = segment_lookup(stacktop - check_pages * PGSIZE, 0);
+    uint64_t max_pages = usm.num_pages;
+    void *stacktop = usm.va + max_pages * PGSIZE;
+
+    struct cobj_ref stack_seg;
+    uint64_t stack_seg_npages = 0;
+    uint64_t mapped_pages = 0;
+
+    while (mapped_pages < max_pages) {
+	uint64_t check_pages = mapped_pages + 1;
+	r = segment_lookup_skip(stacktop - check_pages * PGSIZE,
+				&usm, SEGMAP_RESERVE);
 	if (r < 0)
 	    return r;
 	if (r == 0)
 	    break;
-	cur_pages = check_pages;
+
+	if (mapped_pages == 0)
+	    stack_seg = usm.segment;
+	if (usm.segment.object == stack_seg.object)
+	    stack_seg_npages = MAX(stack_seg_npages,
+				   usm.start_page + usm.num_pages);
+
+	mapped_pages = check_pages;
     }
 
     // If we are faulting on allocated stack, something is wrong.
-    if (faultaddr >= stacktop - cur_pages * PGSIZE)
+    if (faultaddr >= stacktop - mapped_pages * PGSIZE)
+	return -1;
+
+    // If we have no stack, something is wrong too.
+    if (mapped_pages == 0)
 	return -1;
 
     // Double our stack size
-    struct cobj_ref new_stack_seg;
-    void *new_va = stacktop - cur_pages * PGSIZE * 2;
-    int r = segment_alloc(start_env->proc_container,
-			  cur_pages * PGSIZE, &new_stack_seg,
-			  &new_va, 0, "stack growth");
+    uint64_t new_pages = MIN(max_pages - mapped_pages, mapped_pages);
+    r = sys_segment_resize(stack_seg, (stack_seg_npages + new_pages) * PGSIZE);
     if (r < 0)
 	return r;
+
+    void *new_va = stacktop - mapped_pages * PGSIZE - new_pages * PGSIZE;
+    uint64_t map_bytes = new_pages * PGSIZE;
+    r = segment_map(stack_seg, stack_seg_npages * PGSIZE,
+		    SEGMAP_READ | SEGMAP_WRITE,
+		    &new_va, &map_bytes);
+    if (r < 0) {
+	cprintf("stack_grow: dangling unmapped stack bytes\n");
+	return r;
+    }
 
     return 0;
 }

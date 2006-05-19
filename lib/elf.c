@@ -138,6 +138,12 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     sm_ents[si].va = stacktop - stackpages * PGSIZE;
     si++;
 
+    sm_ents[si].start_page = 0;
+    sm_ents[si].num_pages = thread_stack_pages;
+    sm_ents[si].flags = SEGMAP_STACK | SEGMAP_RESERVE;
+    sm_ents[si].va = stacktop - thread_stack_pages * PGSIZE;
+    si++;
+
     struct u_address_space uas = { .nent = si, .ents = &sm_ents[0] };
     int64_t as_id = sys_as_create(container, label, &elfname[0]);
     if (as_id < 0) {

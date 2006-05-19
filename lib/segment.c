@@ -180,6 +180,12 @@ segment_unmap(void *va)
 int
 segment_lookup(void *va, struct u_segment_mapping *usm)
 {
+    return segment_lookup_skip(va, usm, 0);
+}
+
+int
+segment_lookup_skip(void *va, struct u_segment_mapping *usm, uint64_t skip_flags)
+{
     as_mutex_lock();
 
     struct cobj_ref as_ref;
@@ -200,6 +206,7 @@ segment_lookup(void *va, struct u_segment_mapping *usm)
 	void *va_end = cache_uas.ents[i].va + cache_uas.ents[i].num_pages * PGSIZE;
 	if (cache_uas.ents[i].flags &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+	    !(cache_uas.ents[i].flags & skip_flags) &&
 	    va >= va_start && va < va_end)
 	{
 	    if (usm)
@@ -348,12 +355,14 @@ retry:
 	char *ent_start = cache_uas.ents[i].va;
 	char *ent_end = ent_start + cache_uas.ents[i].num_pages * PGSIZE;
 
-	// If this segment is live and overlaps with our range, bail out.
+	// If this segment is live and overlaps with our
+	// non-reserved range, bail out.
 	if (cache_uas.ents[i].flags &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
+	    !(cache_uas.ents[i].flags & SEGMAP_RESERVE) &&
 	    ent_start < map_end && ent_end > map_start)
 	{
-	    // Except that it's OK if it's the same exact segment?
+	    // Except that it's OK if it's the same exact segment.
 	    if (cache_uas.ents[i].segment.object == seg.object &&
 		cache_uas.ents[i].va == map_start &&
 		cache_uas.ents[i].start_page == 0 &&

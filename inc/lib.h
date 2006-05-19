@@ -27,6 +27,8 @@ int	segment_map(struct cobj_ref seg,
 int	segment_unmap(void *va);
 int	segment_unmap_delayed(void *va, int can_delay);
 int	segment_lookup(void *va, struct u_segment_mapping *usm);
+int	segment_lookup_skip(void *va, struct u_segment_mapping *usm,
+			    uint64_t skip_flags);
 int	segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm);
 
 /* Notify that the thread has changed AS objects */
@@ -91,6 +93,7 @@ struct thread_args {
 };
 
 enum { thread_quota_slush = 65536 };
+enum { thread_stack_pages = 256 * 1024 };
 
 int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, const char *name);
