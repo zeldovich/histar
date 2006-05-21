@@ -32,6 +32,9 @@ Security:
 
 Cleanup:
 
+* expose CPU resource allocation: track resources in container entries and
+  re-compute a thread's th_sched_tickets when it changes its label to only
+  include resources from containers it can read.
 * better separation between kernel, user-space and shared header files
 * cleanup quota issues w.r.t. labels and thread-local segments
 * user-space resource allocators -- i.e. running without CT_QUOTA_INF
