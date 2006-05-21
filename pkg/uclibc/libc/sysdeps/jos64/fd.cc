@@ -829,7 +829,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         if (timeout) {
             struct timeval now, elapsed;
             gettimeofday(&now, 0);
-            timeradd(&start, &now, &elapsed);
+            timersub(&now, &start, &elapsed);
             if (timercmp(&elapsed, timeout, >))
                 break;
         }
