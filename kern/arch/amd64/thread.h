@@ -36,6 +36,7 @@ struct Thread {
     uint64_t th_wakeup_seg_id;
     uint64_t th_wakeup_offset;
 
+    uint64_t th_sched_tickets;
     union {
 	uint128_t th_sched_pass;
 	int128_t th_sched_remain;

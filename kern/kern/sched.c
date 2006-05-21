@@ -9,12 +9,6 @@ static uint128_t global_pass;
 static uint64_t stride1;
 static uint64_t cur_start_tsc;
 
-static uint64_t
-sched_tickets(const struct Thread *t)
-{
-    return 1024;
-}
-
 static void
 global_pass_update(uint128_t new_global_pass)
 {
@@ -54,7 +48,7 @@ sched_join(struct Thread *t)
     global_pass_update(0);
 
     t->th_sched_pass = global_pass + t->th_sched_remain;
-    global_tickets += sched_tickets(t);
+    global_tickets += t->th_sched_tickets;
 }
 
 void
@@ -63,7 +57,7 @@ sched_leave(struct Thread *t)
     global_pass_update(0);
 
     t->th_sched_remain = t->th_sched_pass - global_pass;
-    global_tickets -= sched_tickets(t);
+    global_tickets -= t->th_sched_tickets;
 }
 
 void
@@ -76,7 +70,7 @@ void
 sched_stop(struct Thread *t)
 {
     uint64_t elapsed_tsc = read_tsc() - cur_start_tsc;
-    uint64_t tickets = sched_tickets(t) ? : 1;
+    uint64_t tickets = t->th_sched_tickets ? : 1;
     uint128_t th_stride = stride1 / tickets;
     t->th_sched_pass += th_stride * elapsed_tsc;
 }

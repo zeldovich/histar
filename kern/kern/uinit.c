@@ -248,6 +248,10 @@ thread_create_embed(struct Container *c,
 				 obj_label, th_label, th_clearance,
 				 prog->buf, prog->size, arg0, arg1));
 
+    /* XXX should go away when we have real CPU resource allocation */
+    if ((koflag & KOBJ_PIN_IDLE))
+	t->th_sched_tickets = 1;
+
     thread_set_runnable(t);
 }
 

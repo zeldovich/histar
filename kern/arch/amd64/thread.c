@@ -100,6 +100,7 @@ thread_alloc(const struct Label *contaminate,
 	return r;
 
     struct Thread *t = &ko->th;
+    t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance, 0, clearance);
