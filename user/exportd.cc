@@ -11,7 +11,6 @@ extern "C" {
 
 #include <inc/dis/segclient.hh>
 #include <inc/dis/exportd.hh>
-#include <inc/dis/ca.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
@@ -212,7 +211,8 @@ export_manager_add_client(export_manager_arg *em_arg)
         uint64_t taint = handle_alloc();
         // container
         label ct_l(1);
-        ct_l.set(taint, 3);
+        //ct_l.set(taint, 3);
+        ct_l.set(em_arg->user_grant, 0);
         uint64_t client_ct;    
         error_check(client_ct = sys_container_alloc(clients_ct,
                      ct_l.to_ulabel(), em_arg->user_name,
@@ -232,10 +232,11 @@ export_manager_add_client(export_manager_arg *em_arg)
         // gate
         label l;
         thread_cur_label(&l);
+        l.set(em_arg->user_grant, 0);
         label c(2);
         c.set(em_arg->user_grant, 0);
         
-        em_arg->client_gate = gate_create(clients_ct, "client", &l, 
+        em_arg->client_gate = gate_create(client_ct, "client", &l, 
                                             &c, &export_client, 0);    
         em_arg->client_id = id;
         em_arg->status = 0;
