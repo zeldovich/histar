@@ -42,7 +42,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 {
     uint64_t key;
     struct mobject mobj;
-    
+
     int r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &key, (uint64_t *)&mobj);
     if (r == 0) {
     	assert(key == ko->hdr.ko_id);
@@ -96,7 +96,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 	    return r;
 	}
     }
-    
+
     return offset;
 }
 
@@ -154,7 +154,7 @@ pstate_iov_append(struct pstate_iov_collector *x, void *buf, uint32_t size)
 //////////////////////////////////
 
 static int
-pstate_swapin_mobj(struct mobject mobj)
+pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 {
     void *p;
     int r = page_alloc(&p);
@@ -209,6 +209,19 @@ pstate_swapin_mobj(struct mobject mobj)
 	cprintf("pstate_swapin_obj: id %ld nbytes %ld\n",
 			ko->hdr.ko_id, ko->hdr.ko_nbytes);
 
+    if (ko->hdr.ko_id != id) {
+	cprintf("pstate_swapin_mobj: requested %ld (%ld @ %ld), got %ld\n",
+		id, mobj.nbytes, mobj.off, ko->hdr.ko_id);
+
+	kobject_id_t id_found;
+	r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &id_found, (uint64_t *) &mobj);
+	if (r >= 0)
+	    cprintf("pstate_swapin_mobj: %ld maps to %ld @ %ld\n",
+		    id_found, mobj.nbytes, mobj.off);
+
+	panic("pstate_swapin_mobj: disk state corrupted");
+    }
+
     kobject_swapin(ko);
     return 0;
 
@@ -232,7 +245,7 @@ pstate_swapin_id(kobject_id_t id)
     } else if (r < 0) {
 	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
     } else {
-	r = pstate_swapin_mobj(mobj);
+	r = pstate_swapin_mobj(mobj, id);
 	if (r < 0)
 	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
     }
