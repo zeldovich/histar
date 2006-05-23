@@ -192,6 +192,7 @@ log_free(offset_t byteoff)
     TAILQ_FOREACH(node, &log.nodes, node_log_link) {
 	if (byteoff == node->block.offset) {
 	    TAILQ_REMOVE(&log.nodes, node, node_log_link);
+	    page_free(node);
 	    log.in_mem--;
 	    break;
 	}
