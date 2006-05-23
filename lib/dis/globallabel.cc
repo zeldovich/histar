@@ -7,17 +7,22 @@ extern "C" {
 }
 
 #include <inc/dis/globallabel.hh>
+#include <inc/dis/globalcatc.hh>
 
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
+
+
+/*
 static int
 proxyd_get_global(uint64_t h, char *g) 
 {
     printf("proxyd_get_global: not implemented\n");
     return -1;    
 }
+*/
 
 static char
 level_to_char(level_t lv)
@@ -38,11 +43,14 @@ global_label::global_label(label *local) : serial_(0), string_(0)
     default_ = local->get_default();
     memset(entry_, 0, sizeof(global_entry) * entries_);
     try {
+        global_catc gcat = global_catc();
+        
         for (uint64_t i = 0; i < ul->ul_nent; i++) {
             uint64_t h = LB_HANDLE(ul->ul_ent[i]);
             level_t l = LB_LEVEL(ul->ul_ent[i]);
-            if (proxyd_get_global(h, entry_[i].global) < 0)
-                throw basic_exception("no global handle for %ld", h);
+            gcat.global(h, entry_[i].global, false);
+            //if (proxyd_get_global(h, entry_[i].global) < 0)
+            //    throw basic_exception("no global handle for %ld", h);
             entry_[i].level = l;
         }
     }
