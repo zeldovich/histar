@@ -245,6 +245,51 @@ segment_unmap_kslot(uint32_t kslot, int can_delay)
 }
 
 int
+segment_unmap_range(void *range_start, void *range_end, int can_delay)
+{
+    as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    r = cache_refresh(as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	void *ent_start = cache_uas.ents[i].va;
+	void *ent_end   = cache_uas.ents[i].va +
+			  cache_uas.ents[i].num_pages * PGSIZE;
+
+	if (ent_start >= range_start && ent_end <= range_end &&
+	    cache_uas.ents[i].flags &&
+	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP))
+	{
+	    if (can_delay) {
+		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
+	    } else {
+		cache_uas.ents[i].flags = 0;
+		r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
+		if (r < 0) {
+		    cache_invalidate();
+		    as_mutex_unlock();
+		    return r;
+		}
+	    }
+	}
+    }
+
+    as_mutex_unlock();
+    return 0;
+}
+
+int
 segment_unmap_delayed(void *va, int can_delay)
 {
     as_mutex_lock();
@@ -394,7 +439,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 {
     assert((start_byteoff % PGSIZE) == 0);
 
-    if (!(flags & SEGMAP_READ)) {
+    if (!(flags & SEGMAP_READ) && !(flags & SEGMAP_RESERVE)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
 	return -E_INVAL;
     }

@@ -31,6 +31,7 @@ int	segment_map(struct cobj_ref seg,
 int	segment_unmap(void *va);
 int	segment_unmap_delayed(void *va, int can_delay);
 int	segment_unmap_kslot(uint32_t kslot, int can_delay);
+int	segment_unmap_range(void *va_start, void *va_end, int can_delay);
 int	segment_lookup(void *va, struct u_segment_mapping *usm);
 int	segment_lookup_skip(void *va, struct u_segment_mapping *usm,
 			    uint64_t skip_flags);
