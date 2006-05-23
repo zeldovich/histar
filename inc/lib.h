@@ -90,7 +90,9 @@ void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
 
 /* thread.c */
 struct thread_args {
-    struct cobj_ref container;
+    uint64_t container;
+    uint64_t thread_id;
+    uint64_t stack_id;
     void *stackbase;
 
     void (*entry)(void *);

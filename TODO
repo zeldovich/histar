@@ -51,8 +51,9 @@ Bugs:
 * bugs in handling out-of-memory conditions
 * look for concurrency bugs using test harness (make disk ops async)
 
-Pie-in-the-sky:
+Larger issues:
 
+* backup/restore
 * system management in a fully-persistent world:
   - restarting services with handles and gates
   - upgrades (signing binaries => integrity handles?)
