@@ -555,8 +555,9 @@ pstate_sync_loop(struct pstate_header *hdr,
     if (commit_panic && ++commit_count == commit_panic)
 	panic("commit test");
 
-    if (hdr->ph_log_blocks > LOG_PAGES / 2) {
-	cprintf("pstate_sync_loop: applying on-disk log\n");
+    if (hdr->ph_log_blocks > LOG_PAGES / 2 || log_must_apply()) {
+	if (pstate_swapout_debug)
+	    cprintf("pstate_sync_loop: applying on-disk log\n");
 
 	do {
 	    r = log_apply_mem();

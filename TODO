@@ -47,8 +47,6 @@ Cleanup:
 
 Bugs:
 
-* if the log contains blocks that are subsequently freed, the newly-written
-  data is overwritten when the log is applied to disk.
 * netd bug (fetch'ing files hangs for some files but not others)
 * bugs in handling out-of-memory conditions
 * look for concurrency bugs using test harness (make disk ops async)

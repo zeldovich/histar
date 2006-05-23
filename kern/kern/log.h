@@ -21,5 +21,6 @@ int log_apply_disk(uint64_t flushed_pages)
 
 void log_init(void);
 void log_free(offset_t off);
+int  log_must_apply(void);
 
 #endif /*LOG_H_*/

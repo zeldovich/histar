@@ -16,7 +16,8 @@ static struct {
     uint64_t max_mem;
 
     uint64_t in_mem;
-    int tailq_inited;
+    uint8_t tailq_inited;
+    uint8_t must_apply;
     struct node_list nodes;
 
     uint64_t on_disk;
@@ -197,7 +198,16 @@ log_free(offset_t byteoff)
 	    break;
 	}
     }
-    hash_del(&log.disk_map, byteoff);
+
+    offset_t log_off;
+    if (hash_get(&log.disk_map, byteoff, &log_off) >= 0) {
+	// We freed some block that's present in our on-disk log..
+	// To avoid overwriting any new data that will be written to
+	// this soon-to-be-free space, the log must be flushed right
+	// after the free list is committed.
+	log.must_apply = 1;
+	hash_del(&log.disk_map, byteoff);
+    }
 }
 
 int64_t
@@ -276,6 +286,12 @@ log_apply_mem(void)
     return 0;
 }
 
+int
+log_must_apply()
+{
+    return log.must_apply;
+}
+
 void
 log_init(void)
 {
@@ -292,4 +308,5 @@ log_init(void)
     log.byteoff = LOG_OFFSET * PGSIZE;
     log.npages = LOG_PAGES;
     log.max_mem = LOG_MEMORY;
+    log.must_apply = 0;
 }
