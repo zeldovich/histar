@@ -33,6 +33,9 @@ global_catc::global_is(uint64_t h, const char *global)
     gate_call_data gcd;
     gcd_arg *arg = (gcd_arg *) gcd.param_buf;
 
+    if (!grant_)
+        throw basic_exception("global_catc::global_is: no grant");
+
     if (global) {
         arg->op = gcd_add;
         strncpy(arg->global, global, sizeof(arg->global) - 1);
