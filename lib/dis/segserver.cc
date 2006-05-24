@@ -74,7 +74,7 @@ public:
         int cc = MIN(request_.count, sizeof(response_.payload_));
         int len = read(fd, response_.payload_, cc);
         response_.header_.op = segclient_result;
-        response_.header_.status = len;
+        response_.header_.status = len >= 0 ? 0 : -1;
         response_.header_.psize = len;
         debug_print(file_debug, "read %d bytes from %s", len, request_.path);
     }
