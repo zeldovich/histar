@@ -1,7 +1,8 @@
 extern "C" {
 #include <inc/types.h>    
-#include <inc/debug.h>
 #include <inc/fs.h>
+#include <inc/debug.h>
+#include <inc/labelutil.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,6 +14,10 @@ extern "C" {
 
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
+#include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
+
+#include <inc/dis/globalcatc.hh>
 
 static const char conn_debug = 1;
 
@@ -100,12 +105,22 @@ main(int ac, char **av)
 {
     export_server server(8888);
     try {
+        // setup some global categories
+        uint64_t grant = handle_alloc();
+        uint64_t taint = handle_alloc();
+        global_catc gc(grant);
+        gc.global_is(taint, "test taint");
+
         // make a test file
+        label l(1);
+        l.set(taint, 2);
         fs_inode tmp, test_file;
         error_check(fs_namei("/tmp", &tmp));
-        error_check(fs_create(tmp, "test_file", &test_file, 0));
+        error_check(fs_create(tmp, "test_file", &test_file, l.to_ulabel()));
         const char *test_data = "some test data";
         error_check(fs_pwrite(test_file, test_data, strlen(test_data), 0));
+
+        thread_drop_star(taint);    
         
         server.running_is(true);
     } catch (basic_exception e) {
