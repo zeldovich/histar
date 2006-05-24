@@ -93,9 +93,11 @@ seg_client::frame_at(uint64_t count, uint64_t offset)
     segclient_hdr res;
     // XXX
     error_check(read(socket_, &res, sizeof(res)) - sizeof(res));
+    if (res.status < 0)
+        throw basic_exception("seg_client::frame_at: remote read failed");
     error_check(read(socket_, frame_.byte_, res.psize) - res.psize);
     frame_.offset_ = offset;
-    frame_.count_ = res.status;
+    frame_.count_ = res.psize;
             
     return &frame_;    
 }
