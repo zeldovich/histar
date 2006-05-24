@@ -26,11 +26,8 @@ main (int ac, char **av)
     static char buffer[128];
 
     try {
-        int64_t export_ct, manager_gt;
-        error_check(export_ct = container_find(start_env->root_container, kobj_container, "exportd"));
-        error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
+        /*
         
-        uint64_t grant = handle_alloc();
         
         auth_agent aa = auth_agent("cad");
         sign_agent sa = aa.sign_agent_new("bob signer", grant);
@@ -43,10 +40,17 @@ main (int ac, char **av)
         error_check(segment_alloc(start_env->shared_container, 10,
                          &test_seg, 0, 0, "test"));
         va.taint(test_seg);
+        */
         
+        int64_t export_ct, manager_gt;
+        error_check(export_ct = container_find(start_env->root_container, kobj_container, "exportd"));
+        error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
+        uint64_t grant = handle_alloc();
+                
         export_managerc manager(COBJ(export_ct, manager_gt));
         export_clientc client = manager.client_new((char*)"bob", grant);
         export_segmentc seg = client.segment_new(host, port, path);
+
         int r = seg.read(buffer, sizeof(buffer), 0);
         printf("read r %d\n", r);
         for (int i = 0; i < r; i++)
