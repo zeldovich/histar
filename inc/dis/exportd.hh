@@ -2,15 +2,19 @@
 #define EXPORTD_HH_
 
 typedef enum {
-    em_add_client,        
+    em_new_segment,      
+    em_del_segment,
 } export_manager_op;
 
 struct export_manager_arg 
 {
     export_manager_op op;                
     uint64_t user_grant;
-    uint64_t user_taint;
-    char     user_name[32];
+    
+    char     host[32];
+    uint16_t port;
+    char     path[32];    
+
     // return
     int      status;
     int      client_id;
@@ -22,6 +26,7 @@ typedef enum {
     ec_segment_read,
     ec_segment_write,   
     ec_segment_stat,
+    ec_segment_close,
 } export_client_op;
 
 struct export_client_arg 
@@ -35,8 +40,6 @@ struct export_client_arg
             char     host[32];
             uint16_t port;
             char     path[64];    
-            // return
-            uint64_t remote_seg;            
         } segment_new;
         struct {
             uint64_t remote_seg;

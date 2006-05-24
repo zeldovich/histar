@@ -48,9 +48,11 @@ main (int ac, char **av)
         uint64_t grant = handle_alloc();
                 
         export_managerc manager(COBJ(export_ct, manager_gt));
-        export_clientc client = manager.client_new((char*)"bob", grant);
-        export_segmentc seg = client.segment_new(host, port, path);
+        //export_clientc client = manager.client_new((char*)"bob", grant);
+        //export_segmentc seg = client.segment_new(host, port, path);
 
+        export_segmentc seg = manager.segment_new(host, port, path, grant);
+       
         int r = seg.read(buffer, sizeof(buffer), 0);
         printf("read r %d\n", r);
         for (int i = 0; i < r; i++)
@@ -67,6 +69,7 @@ main (int ac, char **av)
         printf("stat ss.ss_size %ld\n", ss.ss_size);
         
         printf("test done!\n");
+        manager.segment_del(&seg);
         return 0;
     } catch (basic_exception e) {
         printf("main: %s\n", e.what());

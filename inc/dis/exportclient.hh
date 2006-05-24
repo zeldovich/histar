@@ -7,17 +7,20 @@
 class export_segmentc
 {
 public:
-    export_segmentc(cobj_ref gate, uint64_t remote_seg, uint64_t grant) : 
-        gate_(gate), remote_seg_(remote_seg), grant_(grant) {} 
+    export_segmentc(cobj_ref gate, int id, uint64_t grant) : 
+        gate_(gate), id_(id), grant_(grant) {} 
     
     int  read(void *buf, int count, int offset);
     int  write(const void *buf, int count, int offset);
     void stat(struct seg_stat *buf);
     void close(void);
+    
+    cobj_ref gate(void) { return gate_; }
+    int      id(void) { return id_; }
 
 private:
     cobj_ref gate_;
-    uint64_t remote_seg_;
+    int      id_;
     uint64_t grant_;
 };
 
@@ -46,6 +49,10 @@ public:
     export_clientc client_new(char *name, uint64_t grant);
     void           client_del(char *name);
     export_clientc client(char *name);
+    
+    export_segmentc segment_new(const char *host, uint16_t port, 
+                                const char *path, uint64_t grant);
+    void            segment_del(export_segmentc *seg);
     
 private:
     cobj_ref gate_;

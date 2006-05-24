@@ -18,43 +18,43 @@ extern "C" {
 
 // Client
 
-export_clientc
-export_managerc::client_new(char *name, uint64_t grant)
+export_segmentc
+export_managerc::segment_new(const char *host, uint16_t port, 
+                             const char *path, uint64_t grant)
 {
     gate_call_data gcd;
     export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
 
-    arg->op = em_add_client;
-    strncpy(arg->user_name, name, sizeof(arg->user_name));
+    arg->op = em_new_segment;
+    strncpy(arg->host, host, sizeof(arg->host));
+    arg->port = port;
+    strncpy(arg->path, path, sizeof(arg->path));
     arg->user_grant = grant;
+
     label dl(3);
     dl.set(grant, LB_LEVEL_STAR);
-    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
-    if (arg->status < 0)
-        throw basic_exception("unable to alloc client %s", name);
 
-    return export_clientc(arg->client_gate, arg->client_id, grant);
+    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
+
+    if (arg->status < 0)
+        throw basic_exception("unable to alloc segment @ %s", host);
+
+    return export_segmentc(arg->client_gate, arg->client_id, grant);
 }
 
-export_segmentc 
-export_clientc::segment_new(const char *host, uint16_t port, const char *path)
+void
+export_managerc::segment_del(export_segmentc *seg)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
 
-    arg->op = ec_segment_new;
-    strncpy(arg->segment_new.host, host, sizeof(arg->segment_new.host));
-    arg->segment_new.port = port;
-    strncpy(arg->segment_new.path, path, sizeof(arg->segment_new.path));
-    
-    label dl(3);
-    dl.set(grant_, 0);
+    arg->op = em_del_segment;
+    arg->client_id = seg->id();
+    arg->client_gate = seg->gate();
+    gate_call(gate_, 0, 0, 0).call(&gcd, 0);
 
-    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
     if (arg->status < 0)
-        throw basic_exception("unable to alloc %s:%d:%s", host, port, path);
-
-    return export_segmentc(gate_, arg->segment_new.remote_seg, grant_);
+        throw basic_exception("unable to close segment");
 }
 
 int
@@ -67,10 +67,10 @@ export_segmentc::read(void *buf, int count, int offset)
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
     arg->op = ec_segment_read;
+    arg->id = id_;
     arg->segment_read.count = count;
     arg->segment_read.offset = offset;
     arg->segment_read.taint = taint;
-    arg->segment_read.remote_seg = remote_seg_;
     
     label dl(3);
     dl.set(grant_, 0);
@@ -102,15 +102,16 @@ export_segmentc::write(const void *buf, int count, int offset)
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
     arg->op = ec_segment_write;
+    arg->id = id_;
     arg->segment_write.count = count;
     arg->segment_write.offset = offset;
     arg->segment_write.taint = taint;
-    arg->segment_write.remote_seg = remote_seg_;
  
     struct cobj_ref seg;
     label l(1);
     l.set(start_env->process_grant, 0);
     l.set(taint, 3);
+    // XXX have cagent taint
     void *va = 0;
     error_check(segment_alloc(start_env->shared_container, count, &seg, &va,
                 l.to_ulabel(), "remfiled write buf"));
@@ -135,7 +136,7 @@ export_segmentc::stat(struct seg_stat *buf)
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
 
     arg->op = ec_segment_stat;
-    arg->segment_write.remote_seg = remote_seg_;
+    arg->id = id_;
     uint64_t taint = handle_alloc();
     arg->segment_stat.taint = taint;
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
@@ -155,3 +156,18 @@ export_segmentc::stat(struct seg_stat *buf)
         throw basic_exception("export_segmentc::stat unable\n");        
     }
 }
+
+void
+export_segmentc::close(void)
+{
+    gate_call_data gcd;
+    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+
+    arg->op = ec_segment_close;
+    arg->id = id_;
+ 
+    gate_call(gate_, 0, 0, 0).call(&gcd, 0);
+    if (arg->status < 0)
+        throw basic_exception("export_segmentc::close unable\n");        
+}
+
