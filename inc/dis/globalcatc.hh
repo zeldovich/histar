@@ -4,6 +4,7 @@
 class global_catc {
 public:    
     global_catc(void);
+    global_catc(uint64_t grant);
     global_catc(cobj_ref gate, uint64_t grant) : 
         gate_(gate), grant_(grant) {} 
         

@@ -27,6 +27,16 @@ global_catc::global_catc(void)
     gate_ = COBJ(gcd_ct, gcd_gt);
 }
 
+global_catc::global_catc(uint64_t grant)
+{
+    grant_ = grant;
+    int64_t gcd_ct, gcd_gt;
+    error_check(gcd_ct = container_find(start_env->root_container, kobj_container, "globalcatd"));
+    error_check(gcd_gt = container_find(gcd_ct, kobj_gate, "globalcat srv"));    
+    
+    gate_ = COBJ(gcd_ct, gcd_gt);
+}
+
 void
 global_catc::global_is(uint64_t h, const char *global)
 {
