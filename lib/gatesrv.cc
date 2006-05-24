@@ -17,8 +17,6 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-enum { gate_stack_pages = 4 };
-
 static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
@@ -60,15 +58,23 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	if ((flags & GATESRV_KEEP_TLS_STACK)) {
 	    gatesrv_entry(fn, arg, 0, flags);
 	} else {
-	    struct cobj_ref stackobj;
-	    void *stack = 0;
-	    error_check(segment_alloc(entry_ct, gate_stack_pages * PGSIZE,
-				      &stackobj, &stack, 0, "gate thread stack"));
-	    g.dismiss();
+	    void *stackbase = 0;
+	    uint64_t stackbytes = thread_stack_pages * PGSIZE;
+	    error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
+				    &stackbase, &stackbytes, 0));
+	    scope_guard<int, void *> unmap(segment_unmap, stackbase);
+	    char *stacktop = ((char *) stackbase) + stackbytes;
 
-	    stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stack, flags,
-			 (char *) stack + gate_stack_pages * PGSIZE,
-			 (void *) &gatesrv_entry);
+	    struct cobj_ref stackobj;
+	    void *allocbase = stacktop - PGSIZE;
+	    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
+				      &allocbase, 0, "gate thread stack"));
+
+	    g.dismiss();
+	    unmap.dismiss();
+
+	    stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stackbase, flags,
+			 stacktop, (void *) &gatesrv_entry);
 	}
     } catch (std::exception &e) {
 	printf("gatesrv_entry_tls: %s\n", e.what());
@@ -198,11 +204,13 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     if (stack_) {
+	char *stacktop = ((char *) stack_) + thread_stack_pages * PGSIZE;
+
 	struct u_segment_mapping usm;
-	error_check(segment_lookup(stack_, &usm));
+	error_check(segment_lookup_skip(stacktop - PGSIZE, &usm, SEGMAP_RESERVE));
 
 	struct cobj_ref stackseg = usm.segment;
-	error_check(segment_unmap(stack_));
+	error_check(segment_unmap_range(stack_, stacktop, 1));
 	error_check(sys_obj_unref(stackseg));
     }
     error_check(sys_obj_unref(thread_self));
