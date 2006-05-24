@@ -232,7 +232,6 @@ export_manager_add_client(export_manager_arg *em_arg)
         // gate
         label l;
         thread_cur_label(&l);
-        l.set(em_arg->user_grant, 0);
         label c(2);
         c.set(em_arg->user_grant, 0);
         
