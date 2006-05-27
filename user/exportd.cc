@@ -22,8 +22,8 @@ static uint64_t  clients_ct;
 
 static const char client_ver = 1;
 
-static const char man_dbg = 1;
-static const char clnt_dbg = 1;
+static const char man_dbg = 0;
+static const char clnt_dbg = 0;
 
 // XXX
 // should live in a segment that is read-only to export clients.

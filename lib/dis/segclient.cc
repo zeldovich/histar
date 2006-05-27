@@ -19,7 +19,6 @@ extern "C" {
 #include <inc/dis/segserver.hh>
 #include <inc/dis/segclient.hh>
 #include <inc/dis/globallabel.hh>
-#include <inc/dis/exportclient.hh>
 #include <inc/dis/exportd.hh>  // for seg_stat
 
 #include <inc/error.hh>

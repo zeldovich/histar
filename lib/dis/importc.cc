@@ -10,7 +10,7 @@ extern "C" {
 }
 
 #include <inc/dis/exportd.hh>
-#include <inc/dis/exportclient.hh>
+#include <inc/dis/importc.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
@@ -18,8 +18,8 @@ extern "C" {
 
 // Client
 
-export_segmentc
-export_managerc::segment_new(const char *host, uint16_t port, 
+import_segmentc
+import_managerc::segment_new(const char *host, uint16_t port, 
                              const char *path, uint64_t grant)
 {
     gate_call_data gcd;
@@ -39,11 +39,11 @@ export_managerc::segment_new(const char *host, uint16_t port,
     if (arg->status < 0)
         throw basic_exception("unable to alloc segment @ %s", host);
 
-    return export_segmentc(arg->client_gate, arg->client_id, grant);
+    return import_segmentc(arg->client_gate, arg->client_id, grant);
 }
 
 void
-export_managerc::segment_del(export_segmentc *seg)
+import_managerc::segment_del(import_segmentc *seg)
 {
     gate_call_data gcd;
     export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
@@ -58,7 +58,7 @@ export_managerc::segment_del(export_segmentc *seg)
 }
 
 int
-export_segmentc::read(void *buf, int count, int offset)
+import_segmentc::read(void *buf, int count, int offset)
 {
     gate_call_data gcd;
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
@@ -93,7 +93,7 @@ export_segmentc::read(void *buf, int count, int offset)
 }
 
 int
-export_segmentc::write(const void *buf, int count, int offset)
+import_segmentc::write(const void *buf, int count, int offset)
 {
     gate_call_data gcd;
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
@@ -130,7 +130,7 @@ export_segmentc::write(const void *buf, int count, int offset)
 }
     
 void
-export_segmentc::stat(struct seg_stat *buf)
+import_segmentc::stat(struct seg_stat *buf)
 {
     gate_call_data gcd;
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
@@ -158,7 +158,7 @@ export_segmentc::stat(struct seg_stat *buf)
 }
 
 void
-export_segmentc::close(void)
+import_segmentc::close(void)
 {
     gate_call_data gcd;
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
