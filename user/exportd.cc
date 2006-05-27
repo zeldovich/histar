@@ -22,6 +22,9 @@ static uint64_t  clients_ct;
 
 static const char client_ver = 1;
 
+static const char man_dbg = 1;
+static const char clnt_dbg = 1;
+
 // XXX
 // should live in a segment that is read-only to export clients.
 static class  
@@ -60,7 +63,7 @@ private:
     static const int max_clients = 16;
     struct {
         char     inuse;
-        uint64_t container;
+        uint64_t container; // for deletion
         cobj_ref data;       
     } client_[max_clients];
     pthread_mutex_t mu_;
@@ -170,6 +173,7 @@ export_client(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
         error_check(segment_map(seg, 0, SEGMAP_READ|SEGMAP_WRITE, 
                                 (void **)&data, 0, 0));
         scope_guard<int, void *> unmap_data(segment_unmap, data);
+        debug_print(clnt_dbg, "(%d) op %d", ec_arg->id, ec_arg->op);
                                 
         switch(ec_arg->op) {
             case ec_segment_new:
@@ -256,39 +260,43 @@ export_manager_new_segment(export_manager_arg *em_arg)
         client_collection.data_is(id, data_seg);
         client_collection.container_is(id, client_ct);
 
-        // need to install two gates
-        // - network gate
-        // - proxy to network, that is trusted w/ user's priv...
-
-        // gate
+        // gates
         label l;
         thread_cur_label(&l);
         label c(2);
         c.set(em_arg->user_grant, 0);
         c.set(start_env->process_grant, 0);
                 
-        data->net_gate = gate_create(client_ct, "net gate", &l, 
-                                     &c, &export_client, 0);    
+        cobj_ref net_gt, wrap_gt;
+                
+        net_gt = gate_create(client_ct, "net gate", &l, 
+                             &c, &export_client, 0);    
+        data->net_gate = net_gt;
         
         arg->op = ec_segment_new;
+        arg->id = id;
         strncpy(arg->segment_new.host, em_arg->host, sizeof(arg->segment_new.host) - 1);
         arg->segment_new.port = em_arg->port;
         strncpy(arg->segment_new.path, em_arg->path, sizeof(arg->segment_new.path) - 1);
 
         label dl(3);
         dl.set(em_arg->user_grant, LB_LEVEL_STAR);
-        gate_call(data->net_gate, 0, &dl, 0).call(&gcd, 0);
+        gate_call(net_gt, 0, &dl, 0).call(&gcd, 0);
 
         label l1;
         thread_cur_label(&l1);
         label c1(2);
         c1.set(em_arg->user_grant, 0);
         
-        em_arg->client_gate = gate_create(client_ct, "wrap gate", &l1, 
-                                          &c1, &wrap_gate, 0);    
+        wrap_gt = gate_create(client_ct, "wrap gate", &l1, 
+                              &c1, &wrap_gate, 0);    
+        em_arg->client_gate = wrap_gt;
 
         em_arg->client_id = id;
         em_arg->status = 0;
+        debug_print(man_dbg, "(%d) ct %ld, net %ld, wrap %ld", id, 
+                    client_ct, net_gt.object, wrap_gt.object);
+        
     } catch (basic_exception e) {                      
         client_collection.free(id);
         throw e;
@@ -313,6 +321,7 @@ export_manager_del_segment(export_manager_arg *em_arg)
         uint64_t ct = client_collection.container(em_arg->client_id);
         error_check(sys_obj_unref(COBJ(clients_ct, ct)));
         client_collection.free(em_arg->client_id);
+        debug_print(man_dbg, "(%d) container %ld", em_arg->client_id, ct);
     } catch (basic_exception e) {                      
         printf("export_manager_del_segment: %s", e.what());
         throw e;
