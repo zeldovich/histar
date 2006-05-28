@@ -2,6 +2,7 @@ extern "C" {
 #include <inc/debug.h>
 #include <inc/container.h>
 #include <inc/error.h>
+#include <inc/fs.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -55,28 +56,22 @@ public:
                     request_.count, request_.offset, request_.path);
         executed_ = 1;
 
-        int fd = open(request_.path, O_RDONLY);
-        if (fd < 0) {
-            debug_print(file_debug, "unable to open %s", request_.path);
+        try {
+            struct fs_inode ino;
+            error_check(fs_namei(request_.path, &ino));
+            int cc = MIN(request_.count, sizeof(response_.payload_));
+            int len;
+            error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
             response_.header_.op = segclient_result;
-            response_.header_.status = -1;
-            return ;
-        }
-        scope_guard<int, int> close_fd(close, fd);
-        int r = lseek(fd, request_.offset, SEEK_SET);
-        if (r != (int64_t)request_.offset) {
-            debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
+            response_.header_.status = 0;
+            response_.header_.psize = len;
+            debug_print(file_debug, "read %d bytes from %s", len, request_.path);
+        } catch (basic_exception e) {
             response_.header_.op = segclient_result;
-            response_.header_.status = -1;
-            return ;
+            response_.header_.status = -1;                
+            response_.header_.psize = 0;
+            printf("read_req failed: %s\n", e.what());
         }
-        
-        int cc = MIN(request_.count, sizeof(response_.payload_));
-        int len = read(fd, response_.payload_, cc);
-        response_.header_.op = segclient_result;
-        response_.header_.status = len >= 0 ? 0 : -1;
-        response_.header_.psize = len;
-        debug_print(file_debug, "read %d bytes from %s", len, request_.path);
     }
 };
 
@@ -92,36 +87,27 @@ public:
             request_.count, request_.offset, request_.path);
         executed_ = 1;
 
-        // use payload as temp buffer
+        // read write-data from socket
         char *buffer = response_.payload_;
         int cc = MIN(request_.count, sizeof(response_.payload_));
-
         int len = read(socket_, buffer, cc);
         if (len != cc)
             debug_print(file_debug, "truncated payload %d, %d", len, cc);
 
-        int fd = open(request_.path, O_WRONLY);
-        if (fd < 0) {
-            debug_print(file_debug, "unable to open %s", request_.path);
+        try {
+            struct fs_inode ino;
+            error_check(fs_namei(request_.path, &ino));    
+            error_check(len = fs_pwrite(ino, buffer, len, request_.offset));
             response_.header_.op = segclient_result;
-            response_.header_.status = -1;
-            return ;
-        }
-        scope_guard<int, int> close_fd(close, fd);
-        int r = lseek(fd, request_.offset, SEEK_SET);
-        if (r != (int64_t)request_.offset) {
-            debug_print(file_debug, "lseek error %d, %d", r, request_.offset);
+            response_.header_.status = len;
+            response_.header_.psize = 0;
+            debug_print(file_debug, "wrote %d bytes to %s", len, request_.path);
+        } catch (basic_exception e) {
             response_.header_.op = segclient_result;
+            response_.header_.psize = 0;
             response_.header_.status = -1;
-            return ;   
+            printf("write_req failed: %s", e.what());
         }
-
-        len = write(fd, buffer, len);
-    
-        response_.header_.op = segclient_result;
-        response_.header_.status = len;
-        response_.header_.psize = 0;
-        debug_print(file_debug, "wrote %d bytes to %s", len, request_.path);
     }
 private:
     int socket_;
@@ -136,33 +122,26 @@ public:
             throw error(-E_UNSPEC, "already executed");
         debug_print(msg_debug, "path %s", request_.path);
         executed_ = 1;
-    
-        int fd = open(request_.path, O_RDONLY);
-        if (fd < 0) {
-            debug_print(file_debug, "unable to open %s", request_.path);
+
+        try {
+            struct fs_inode ino;
+            error_check(fs_namei(request_.path, &ino));    
+            uint64_t size;
+            error_check(fs_getsize(ino, &size));
+            
+            seg_stat *ss = (seg_stat *)response_.payload_;
+            ss->ss_size = size;
+            
             response_.header_.op = segclient_result;
+            response_.header_.status = 0;
+            response_.header_.psize = sizeof(*ss);
+            debug_print(file_debug, "stat success");
+        } catch (basic_exception e) {
+            response_.header_.op = segclient_result;
+            response_.header_.psize = 0;
             response_.header_.status = -1;
-            return ;
+            printf("stat_req failed: %s", e.what());
         }
-        scope_guard<int, int> close_fd(close, fd);
-        
-        struct stat st;
-        int r = fstat(fd, &st);
-        if (r < 0) {
-            debug_print(file_debug, "stat error");
-            response_.header_.op = segclient_result;
-            response_.header_.status = r;
-            return ;
-        }
-        struct seg_stat ss;
-        ss.ss_size = st.st_size;
-       
-        int cc = MIN(sizeof(ss), sizeof(response_.payload_));
-        memcpy(response_.payload_, &ss, cc);
-        response_.header_.op = segclient_result;
-        response_.header_.status = 0;
-        response_.header_.psize = cc;
-        debug_print(file_debug, "stat success");
     }
 };
 
