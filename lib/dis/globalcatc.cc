@@ -99,5 +99,6 @@ global_catc::global(uint64_t local, char *global, bool grant)
         thread_cur_label(&th_l);
         gate_call(arg->grant_gt, 0, &th_l, 0).call(&gcd, 0);            
     }
-    strcpy(global, arg->global);
+    if (global)
+        strcpy(global, arg->global);
 }
