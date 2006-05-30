@@ -19,6 +19,7 @@ extern "C" {
 #include <inc/dis/segclient.hh>
 #include <inc/dis/globallabel.hh>
 #include <inc/dis/exportd.hh>  // for seg_stat
+#include <inc/dis/exportc.hh>
 #include <inc/error.hh>
 
 static const char conn_debug = 1;
@@ -35,6 +36,10 @@ public:
         debug_print(msg_debug, "path %s",request_.path);
         executed_ = 1;
 
+        export_managerc manager;
+        export_segmentc seg = manager.segment_new(request_.path);
+        conn_->export_seg_is(seg);
+        
         global_label *gl = global_label::global_for_obj(request_.path);
         const char *s = gl->serial();
         int len = gl->serial_len();

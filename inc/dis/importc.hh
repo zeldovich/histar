@@ -13,7 +13,6 @@ public:
     int  read(void *buf, int count, int offset);
     int  write(const void *buf, int count, int offset);
     void stat(struct seg_stat *buf);
-    void close(void);
     
     cobj_ref gate(void) { return gate_; }
     int      id(void) { return id_; }

@@ -5,6 +5,7 @@ LIB_SRCFILES += lib/dis/rem_fd.c \
 				lib/dis/segserver.cc \
 				lib/dis/globallabel.cc \
 				lib/dis/importc.cc \
+				lib/dis/exportc.cc \
 				lib/dis/globalcatc.cc \
 				lib/dis/cac.cc
 				

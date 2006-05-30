@@ -156,18 +156,3 @@ import_segmentc::stat(struct seg_stat *buf)
         throw basic_exception("export_segmentc::stat unable\n");        
     }
 }
-
-void
-import_segmentc::close(void)
-{
-    gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
-
-    arg->op = ec_segment_close;
-    arg->id = id_;
- 
-    gate_call(gate_, 0, 0, 0).call(&gcd, 0);
-    if (arg->status < 0)
-        throw basic_exception("export_segmentc::close unable\n");        
-}
-

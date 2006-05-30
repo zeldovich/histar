@@ -1,11 +1,15 @@
 #ifndef JOS_INC_FILESERVER_HH_
 #define JOS_INC_FILESERVER_HH_
 
+
 #include <inc/dis/segmessage.hh>
+#include <inc/dis/exportc.hh>
 #include <inc/types.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>   
+
+class segserver_conn;
 
 class segserver_req 
 {
@@ -22,7 +26,8 @@ protected:
     
     segserver_hdr request_;    
     segclient_msg response_;
-    bool           executed_;
+    bool          executed_;
+    segserver_conn *conn_;
 };
 
 class segserver_conn 
@@ -38,12 +43,16 @@ public:
 
     int socket(void) const { return socket_; }
     
+    void export_seg_is(export_segmentc seg) { export_seg_ = seg; }
+    export_segmentc export_seg(void) const { return export_seg_; }
+    
     int challenge_for(char *un, void *buf);
     void response_for_is(char *un, void *response, int n);
 
 private:    
     int socket_;
     sockaddr_in addr_;
+    export_segmentc export_seg_;
 };
 
 #endif /*JOS_INC_FILESERVER_HH_*/
