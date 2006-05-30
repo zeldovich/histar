@@ -27,7 +27,7 @@ extern "C" {
 static const char msg_debug = 0;
 
 void
-seg_client::init(char *path, char *host, int port)
+seg_client::init(const char *path, const char *host, int port)
 {
     if (strlen(path) + 1 > sizeof(path_))
         throw error(-E_INVAL, "'%s' too long (> %ld)", path, sizeof(path_));

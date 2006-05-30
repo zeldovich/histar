@@ -31,13 +31,13 @@ public:
 class seg_client 
 {
 public:
-    seg_client(char *path, char *host, int port) { 
+    seg_client(const char *path, const char *host, int port) { 
         init(path, host, port);
     }
     ~seg_client(void) {
         destroy();    
     }
-    void init(char *path, char *host, int port);
+    void init(const char *path, const char *host, int port);
     void destroy(void); 
     
     // read, write
