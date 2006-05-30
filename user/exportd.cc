@@ -163,9 +163,11 @@ seg_client_close(seg_client *sc, export_client_arg *arg)
 }
 
 static void __attribute__((noreturn))
-export_client(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+export_client(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
 {
-    export_client_arg *ec_arg = (export_client_arg*)parm->param_buf;
+    struct gate_call_data parm;
+    memcpy(&parm, vol, sizeof(parm));
+    export_client_arg *ec_arg = (export_client_arg*)parm.param_buf;
     
     try {
         cobj_ref seg = client_collection.data(ec_arg->id);
@@ -193,12 +195,11 @@ export_client(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
             default:
                 break;    
         }
-        gr->ret(0, 0, 0);    
     } catch (basic_exception e) {
         printf("export_client: %s\n", e.what());
         ec_arg->status = -1;
-        gr->ret(0, 0, 0);    
     }
+    memcpy(vol, &parm, sizeof(*vol));    
     gr->ret(0, 0, 0);    
 }
 
@@ -235,7 +236,7 @@ export_manager_new_segment(export_manager_arg *em_arg)
 {
     gate_call_data gcd;
     export_client_arg *arg = (export_client_arg *) gcd.param_buf;
-    
+
     int id = client_collection.alloc();
     try {
         uint64_t taint = handle_alloc();
@@ -282,6 +283,8 @@ export_manager_new_segment(export_manager_arg *em_arg)
         label dl(3);
         dl.set(em_arg->user_grant, LB_LEVEL_STAR);
         gate_call(net_gt, 0, &dl, 0).call(&gcd, 0);
+        if (arg->status < 0)
+            throw basic_exception("export_manager: cannot create net gate");            
 
         label l1;
         thread_cur_label(&l1);
@@ -329,9 +332,11 @@ export_manager_del_segment(export_manager_arg *em_arg)
 }
 
 static void __attribute__((noreturn))
-export_manager(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+export_manager(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
 {
-    export_manager_arg *em_arg = (export_manager_arg*)parm->param_buf;
+    struct gate_call_data parm;
+    memcpy(&parm, vol, sizeof(parm));
+    export_manager_arg *em_arg = (export_manager_arg*)parm.param_buf;
     try {
         switch(em_arg->op) {
             case em_new_segment:
@@ -343,12 +348,12 @@ export_manager(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
             default:
                 break;    
         }
-        gr->ret(0, 0, 0);    
     } catch (basic_exception e) {
         printf("export_manager: %s\n", e.what());
         em_arg->status = -1;
-        gr->ret(0, 0, 0);    
     }
+    memcpy(vol, &parm, sizeof(*vol));
+    gr->ret(0, 0, 0);    
 }
 
 void
