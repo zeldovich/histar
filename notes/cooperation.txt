@@ -1,0 +1,39 @@
+Where do we need agreement between distrustful compartments?
+
+ (1) authd: creating the retry counter.
+     Login process wants to grant high clearance, but in a very limited scope.
+
+ (2) fs: two users have a directory with dual-user integrity.
+     Files can only be created / deleted by consent of both users.
+
+ (3) quota: moving quota from parent to child.
+     Child wants to only grant privilege to add quota to the parent.
+
+Probably if two threads want to cooperate, the label rules should be the same
+as what you'd get if one of the threads created a gate for the other thread
+to invoke.  If threads T1 and T2 want to cooperate on a particular operation,
+they should be able to use a label of (LT1 U LT2) and a clearance of (CT1 U CT2).
+
+Can this be implemented largely in user-space?
+
+ * Need to observe where a gate vectors: address space & thread entry state.
+ * The target address space, and segments mapped by it, must be immutable to
+   both of the two parties, before the gate is invoked.
+
+Given this, agreement on some action, e.g. system call to move quota,
+can be achieved like this:
+
+ - T1 generates code that invokes the system call with the right arguments.
+ - T1 creates an address space that maps this code at some VA.
+ - T1 creates a gate that vectors to this new address space at the right place.
+
+ - T2 verifies that the gate vectors to the AS above, verifies that the correct
+   code is mapped at the entry point, that the AS and segments cannot be modified 
+   by T1, and calls the gate, granting its own privilege.
+
+Can probably add an epilogue to the generated code that moves the system call
+return value into memory location, wakes up other waiting threads, and halts.
+
+ * How to make this memory location writable to the thread once it enters the gate,
+   but ensure that it's not writable by either T1 or T2 before the gate is invoked?
+
