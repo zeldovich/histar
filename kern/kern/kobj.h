@@ -56,6 +56,11 @@ struct kobject_pair {
 LIST_HEAD(kobject_list, kobject);
 extern struct kobject_list ko_list;
 
+struct kobject_quota_resv {
+    struct kobject_hdr *qr_ko;
+    uint64_t qr_nbytes;
+};
+
 void kobject_init(void);
 
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
@@ -82,7 +87,8 @@ int  kobject_set_label(struct kobject_hdr *kp, int idx,
     __attribute__ ((warn_unused_result));
 void kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 				const struct Label *old_label,
-				const struct Label *new_label);
+				const struct Label *new_label,
+				struct kobject_quota_resv *qr);
 
 // Mark the kobject as dirty and return the same kobject
 struct kobject *
@@ -111,8 +117,10 @@ struct kobject *
 const struct kobject *
      kobject_ch2ck(const struct kobject_hdr *kh);
 
-void kobject_incref(const struct kobject_hdr *kp);
-void kobject_decref(const struct kobject_hdr *kp);
+int  kobject_incref(const struct kobject_hdr *kp, struct kobject_hdr *refholder)
+    __attribute__ ((warn_unused_result));
+void kobject_incref_resv(const struct kobject_hdr *kp, struct kobject_quota_resv *resv);
+void kobject_decref(const struct kobject_hdr *kp, struct kobject_hdr *refholder);
 
 void kobject_pin_hdr(const struct kobject_hdr *kp);
 void kobject_unpin_hdr(const struct kobject_hdr *kp);
@@ -130,5 +138,11 @@ bool_t kobject_initial(const struct kobject *ko);
 // copy pages from one kobject into another
 int  kobject_copy_pages(const struct kobject_hdr *src,
 			struct kobject_hdr *dst);
+
+// Quota reservation for allocating all quota upfront
+void kobject_qres_init(struct kobject_quota_resv *qr, struct kobject_hdr *ko);
+int  kobject_qres_reserve(struct kobject_quota_resv *qr, const struct kobject_hdr *ko);
+void kobject_qres_take(struct kobject_quota_resv *qr, const struct kobject_hdr *ko);
+void kobject_qres_release(struct kobject_quota_resv *qr);
 
 #endif

@@ -287,7 +287,7 @@ user_bootstrap(void)
     assert_check(label_alloc(&root_parent_label, 3));
     assert_check(container_alloc(root_parent_label, &root_parent));
     root_parent->ct_ko.ko_quota_total = CT_QUOTA_INF;
-    kobject_incref(&root_parent->ct_ko);
+    kobject_incref_resv(&root_parent->ct_ko, 0);
     strncpy(&root_parent->ct_ko.ko_name[0], "root parent", KOBJ_NAME_LEN - 1);
 
     // root container

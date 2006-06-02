@@ -183,24 +183,33 @@ kobject_set_label(struct kobject_hdr *kp, int idx,
     if (r < 0)
 	return r;
 
-    kobject_set_label_prepared(kp, idx, old_label, new_label);
+    struct kobject_quota_resv qr;
+    kobject_qres_init(&qr, kp);
+    if (new_label) {
+	r = kobject_qres_reserve(&qr, &new_label->lb_ko);
+	if (r < 0)
+	    return r;
+    }
+
+    kobject_set_label_prepared(kp, idx, old_label, new_label, &qr);
     return 0;
 }
 
 void
 kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 			   const struct Label *old_label,
-			   const struct Label *new_label)
+			   const struct Label *new_label,
+			   struct kobject_quota_resv *qr)
 {
     if (old_label) {
 	assert(kp->ko_label[idx] == old_label->lb_ko.ko_id);
-	kobject_decref(&old_label->lb_ko);
+	kobject_decref(&old_label->lb_ko, kp);
     } else {
 	assert(kp->ko_label[idx] == 0);
     }
 
     if (new_label)
-	kobject_incref(&new_label->lb_ko);
+	kobject_incref_resv(&new_label->lb_ko, qr);
 
     kp->ko_label[idx] = new_label ? new_label->lb_ko.ko_id : 0;
 }
@@ -231,12 +240,17 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     kh->ko_quota_used = KOBJ_DISK_SIZE;
     kh->ko_quota_total = kh->ko_quota_used;
     pagetree_init(&ko->ko_pt);
-    kobject_set_label_prepared(kh, kolabel_contaminate, 0, l);
+
+    r = kobject_set_label(kh, kolabel_contaminate, l);
+    if (r < 0) {
+	page_free(p);
+	return r;
+    }
 
     // Make sure that it's legal to allocate object at this label!
     r = l ? kobject_iflow_check(kh, iflow_alloc) : 0;
     if (r < 0) {
-	kobject_set_label_prepared(kh, kolabel_contaminate, l, 0);
+	kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
 	page_free(p);
 	return r;
     }
@@ -324,23 +338,52 @@ kobject_npages(const struct kobject_hdr *kp)
 }
 
 static int
-kobject_borrow_parent_quota(struct kobject_hdr *ko, uint64_t nbytes)
+kobject_borrow_parent_quota_one(struct kobject_hdr *ko, uint64_t nbytes)
 {
+    int success = 0;
+
+again:
     if ((ko->ko_flags & KOBJ_FIXED_QUOTA))
 	return -E_FIXED_QUOTA;
 
-    const struct Container *pct;
-    int r = container_find(&pct, ko->ko_parent, iflow_rw);
+    if (!ko->ko_parent) {
+	// If we have no parent, just increase our total quota -- when this
+	// object is put into a container, ko_quota_total will add to the
+	// container's ko_quota_used.
+	ko->ko_quota_total += nbytes;
+	return success;
+    }
+
+    const struct kobject *pconst;
+    int r = kobject_get(ko->ko_parent, &pconst, kobj_any, iflow_rw);
     if (r < 0)
 	return r;
 
-    if (pct->ct_ko.ko_quota_total != CT_QUOTA_INF &&
-	pct->ct_ko.ko_quota_total - pct->ct_ko.ko_quota_used < nbytes)
-	return -E_RESOURCE;
+    struct kobject_hdr *parent = &kobject_dirty(&pconst->hdr)->hdr;
+    if (parent->ko_quota_total != CT_QUOTA_INF &&
+	parent->ko_quota_total - parent->ko_quota_used < nbytes)
+    {
+	nbytes = nbytes - (parent->ko_quota_total - parent->ko_quota_used);
+	ko = parent;
+	success = -E_AGAIN;
+	goto again;
+    }
 
-    kobject_dirty(&pct->ct_ko)->hdr.ko_quota_used += nbytes;
+    parent->ko_quota_used += nbytes;
     ko->ko_quota_total += nbytes;
-    return 0;
+    return success;
+}
+
+static int
+kobject_borrow_parent_quota(struct kobject_hdr *ko, uint64_t nbytes)
+{
+    int r;
+
+    do {
+	r = kobject_borrow_parent_quota_one(ko, nbytes);
+    } while (r == -E_AGAIN);
+
+    return r;
 }
 
 int
@@ -361,17 +404,10 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	kp->ko_quota_total - kp->ko_quota_used < abs_qdiff)
     {
 	// Try to borrow quota from parent container..
-	if (kp->ko_parent) {
-	    r = kobject_borrow_parent_quota(kp, abs_qdiff);
-	    if (r < 0) {
-		cprintf("kobject_set_nbytes: borrow quota: %s\n", e2s(r));
-		return -E_RESOURCE;
-	    }
-	} else {
-	    // If we have no parent, just increase our total quota -- when this
-	    // object is put into a container, ko_quota_total will add to the
-	    // container's ko_quota_used.
-	    kp->ko_quota_total += quota_diff;
+	r = kobject_borrow_parent_quota(kp, abs_qdiff);
+	if (r < 0) {
+	    cprintf("kobject_set_nbytes: borrow quota: %s\n", e2s(r));
+	    return -E_RESOURCE;
 	}
     }
 
@@ -476,20 +512,42 @@ kobject_swapin(struct kobject *ko)
 	segment_swapin(&ko->sg);
 }
 
+int
+kobject_incref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
+{
+    struct kobject_quota_resv qr;
+
+    kobject_qres_init(&qr, refholder);
+    int r = kobject_qres_reserve(&qr, kh);
+    if (r < 0)
+	return r;
+
+    kobject_incref_resv(kh, &qr);
+    return 0;
+}
+
 void
-kobject_incref(const struct kobject_hdr *kh)
+kobject_incref_resv(const struct kobject_hdr *kh, struct kobject_quota_resv *qr)
 {
     struct kobject *ko = kobject_dirty(kh);
     if (ko->hdr.ko_ref == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     ko->hdr.ko_ref++;
+
+    if (qr) {
+	kobject_qres_take(qr, kh);
+	ko->hdr.ko_parent = qr->qr_ko->ko_id;
+    }
 }
 
 void
-kobject_decref(const struct kobject_hdr *kh)
+kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
 {
     struct kobject *ko = kobject_dirty(kh);
+    assert(ko->hdr.ko_ref);
     ko->hdr.ko_ref--;
+    refholder->ko_quota_used -= kh->ko_quota_total;
+
     if (ko->hdr.ko_ref == 0) {
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 
@@ -578,7 +636,7 @@ kobject_gc(struct kobject *ko)
 	return r;
 
     for (int i = 0; i < kolabel_max; i++)
-	kobject_set_label_prepared(&ko->hdr, i, l[i], 0);
+	kobject_set_label_prepared(&ko->hdr, i, l[i], 0, 0);
 
     pagetree_free(&ko->ko_pt);
     ko->hdr.ko_nbytes = 0;
@@ -833,4 +891,52 @@ kobject_init(void)
 		sizeof(struct Address_space),
 		sizeof(struct Segment));
     }
+}
+
+void
+kobject_qres_init(struct kobject_quota_resv *qr, struct kobject_hdr *ko)
+{
+    assert(ko);
+    qr->qr_ko = ko;
+    qr->qr_nbytes = 0;
+}
+
+int
+kobject_qres_reserve(struct kobject_quota_resv *qr, const struct kobject_hdr *ko)
+{
+    assert(ko);
+
+    if (qr->qr_ko->ko_quota_total != CT_QUOTA_INF) {
+	uint64_t quota_avail = qr->qr_ko->ko_quota_total - qr->qr_ko->ko_quota_used;
+	if (quota_avail < ko->ko_quota_total) {
+	    int r = kobject_borrow_parent_quota(qr->qr_ko,
+						ko->ko_quota_total - quota_avail);
+	    if (r < 0) {
+		cprintf("kobject_qres_reserve: borrow parent: %s\n", e2s(r));
+		return -E_RESOURCE;
+	    }
+	}
+
+	qr->qr_ko->ko_quota_used += ko->ko_quota_total;
+	qr->qr_nbytes += ko->ko_quota_total;
+    }
+
+    return 0;
+}
+
+void
+kobject_qres_take(struct kobject_quota_resv *qr, const struct kobject_hdr *ko)
+{
+    assert(ko);
+
+    if (qr->qr_ko->ko_quota_total != CT_QUOTA_INF) {
+	assert(qr->qr_nbytes >= ko->ko_quota_total);
+	qr->qr_nbytes -= ko->ko_quota_total;
+    }
+}
+
+void
+kobject_qres_release(struct kobject_quota_resv *qr)
+{
+    qr->qr_ko->ko_quota_used -= qr->qr_nbytes;
 }

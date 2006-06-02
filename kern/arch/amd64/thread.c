@@ -103,20 +103,24 @@ thread_alloc(const struct Label *contaminate,
     t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    kobject_set_label_prepared(&t->th_ko, kolabel_clearance, 0, clearance);
+    r = kobject_set_label(&t->th_ko, kolabel_clearance, clearance);
+    if (r < 0)
+	return r;
 
     struct Segment *sg;
     r = segment_alloc(contaminate, &sg);
     if (r < 0)
 	return r;
 
-    t->th_sg = sg->sg_ko.ko_id;
-    kobject_incref(&sg->sg_ko);
-
     r = segment_set_nbytes(sg, PGSIZE);
     if (r < 0)
 	return r;
 
+    r = kobject_incref(&sg->sg_ko, &t->th_ko);
+    if (r < 0)
+	return r;
+
+    t->th_sg = sg->sg_ko.ko_id;
     thread_swapin(t);
 
     *tp = t;
@@ -179,7 +183,7 @@ thread_gc(struct Thread *t)
 	if (r < 0)
 	    return r;
 
-	kobject_decref(&ko->hdr);
+	kobject_decref(&ko->hdr, &t->th_ko);
 	t->th_sg = 0;
     }
 
@@ -279,19 +283,43 @@ thread_change_label(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
+    // Reserve some quota..
+    struct kobject_quota_resv qr_th, qr_sg;
+    kobject_qres_init(&qr_th, &t->th_ko);
+    kobject_qres_init(&qr_sg, &sg_new->sg_ko);
+
+    r = kobject_qres_reserve(&qr_sg, &new_label->lb_ko);
+    if (r < 0)
+	goto qrelease;
+
+    r = kobject_qres_reserve(&qr_th, &sg_new->sg_ko);
+    if (r < 0)
+	goto qrelease;
+
+    r = kobject_qres_reserve(&qr_th, &new_label->lb_ko);
+    if (r < 0)
+	goto qrelease;
+
     // Commit point
     t->th_sg = sg_new->sg_ko.ko_id;
-    kobject_decref(&ko_sg->hdr);
-    kobject_incref(&sg_new->sg_ko);
+    kobject_decref(&ko_sg->hdr,	&t->th_ko);
+    kobject_incref_resv(&sg_new->sg_ko, &qr_th);
 
-    kobject_set_label_prepared(&t->th_ko,      kolabel_contaminate, cur_th_label, new_label);
-    kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate, cur_sg_label, new_label);
+    kobject_set_label_prepared(&t->th_ko, kolabel_contaminate,
+			       cur_th_label, new_label, &qr_th);
+    kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate,
+			       cur_sg_label, new_label, &qr_sg);
 
     // make sure all label checks get re-evaluated
     if (t->th_as)
 	as_invalidate_label(t->th_as, 1);
 
     return 0;
+
+qrelease:
+    kobject_qres_release(&qr_th);
+    kobject_qres_release(&qr_sg);
+    return r;
 }
 
 void
@@ -316,12 +344,21 @@ thread_jump(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
-    r = thread_change_label(t, label);
+    struct kobject_quota_resv qr_th;
+    kobject_qres_init(&qr_th, &t->th_ko);
+
+    r = kobject_qres_reserve(&qr_th, &clearance->lb_ko);
     if (r < 0)
 	return r;
 
+    r = thread_change_label(t, label);
+    if (r < 0) {
+	kobject_qres_release(&qr_th);
+	return r;
+    }
+
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
-			       cur_clearance, clearance);
+			       cur_clearance, clearance, &qr_th);
     thread_change_as(t, te->te_as);
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));

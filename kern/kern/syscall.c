@@ -599,8 +599,8 @@ sys_self_set_clearance(struct ulabel *uclear)
 		    clearance_bound, label_leq_starhi));
 
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
-    kobject_set_label_prepared(&kobject_dirty(&cur_thread->th_ko)->hdr,
-			       kolabel_clearance, cur_th_clearance, clearance);
+    check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
+			    kolabel_clearance, clearance));
 }
 
 static void

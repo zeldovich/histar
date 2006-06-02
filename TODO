@@ -36,7 +36,6 @@ Cleanup:
   re-compute a thread's th_sched_tickets when it changes its label to only
   include resources from containers it can read.
 * better separation between kernel, user-space and shared header files
-* cleanup quota issues w.r.t. labels and thread-local segments
 * user-space resource allocators -- i.e. running without CT_QUOTA_INF
 * (?) expose kobj_label's at the syscall API to get label sharing
 * lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c;

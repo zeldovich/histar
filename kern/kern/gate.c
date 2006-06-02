@@ -12,7 +12,10 @@ gate_alloc(const struct Label *l,
     if (r < 0)
 	return r;
 
-    kobject_set_label_prepared(&ko->hdr, kolabel_clearance, 0, clearance);
+    r = kobject_set_label(&ko->hdr, kolabel_clearance, clearance);
+    if (r < 0)
+	return r;
+
     *gp = &ko->gt;
     return 0;
 }

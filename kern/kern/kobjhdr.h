@@ -38,9 +38,9 @@ struct kobject_hdr {
     // Must be <= ko_quota_total, unless ko_quota_total == CT_QUOTA_INF.
     uint64_t ko_quota_used;
 
-    // Container that holds this object; only meaningful if KOBJ_MULTIHOMED
-    // is not set.  Used to adjust container's quota when object changes
-    // size (but only a single-homed object can change size).
+    // Parent object that holds a reference on this object.  Used to borrow
+    // quota when object grows (multi-homed objects cannot grow quota).  Also
+    // used for container ".." (parent directory) tracking.
     uint64_t ko_parent;
 
     uint64_t ko_flags;
