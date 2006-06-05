@@ -206,6 +206,8 @@ export_client(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
 static void __attribute__((noreturn))
 wrap_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
+    struct gate_call_data bck;
+    memcpy(&bck, parm, sizeof(bck));
     export_client_arg *ec_arg = (export_client_arg*)parm->param_buf;
    
     try { 
@@ -219,12 +221,12 @@ wrap_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
         thread_cur_label(&dl);
         //dl.set(data->user_grant, LB_LEVEL_STAR);
         gate_call(data->net_gate, 0, &dl, 0).call(parm, 0);
-        gr->ret(0, 0, 0);
     }
     catch (basic_exception e) {            
         ec_arg->status = -1;
-        gr->ret(0, 0, 0);    
     }
+    memcpy(parm, &bck, sizeof(*parm) - sizeof(parm->param_buf));
+    gr->ret(0, 0, 0);    
 }
 
 ////////////////////////
@@ -290,7 +292,7 @@ export_manager_new_segment(export_manager_arg *em_arg)
         thread_cur_label(&l1);
         label c1(2);
         c1.set(em_arg->user_grant, 0);
-        
+
         wrap_gt = gate_create(client_ct, "wrap gate", &l1, 
                               &c1, &wrap_gate, 0);    
         em_arg->client_gate = wrap_gt;
@@ -319,6 +321,7 @@ export_manager_del_segment(export_manager_arg *em_arg)
         
         arg->op = ec_segment_close;
         arg->id = em_arg->client_id;
+    
         gate_call(em_arg->client_gate, 0, &l, 0).call(&gcd, 0);
         // and get rid of objects...
         uint64_t ct = client_collection.container(em_arg->client_id);
