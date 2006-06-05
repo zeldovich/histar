@@ -39,7 +39,9 @@ struct export_client_arg
         struct {        
             char     host[32];
             uint16_t port;
-            char     path[64];    
+            char     path[32];    
+            // return
+            cobj_ref gl_seg;
         } segment_new;
         struct {
             uint64_t remote_seg;

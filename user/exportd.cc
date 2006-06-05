@@ -11,6 +11,7 @@ extern "C" {
 
 #include <inc/dis/segclient.hh>
 #include <inc/dis/exportd.hh>
+#include <inc/dis/globallabel.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
@@ -95,6 +96,16 @@ seg_client_new(seg_client *sc, export_client_arg *arg)
     // so the server can trust us w/ tainted data
     //sc->auth_client("client 5");
 
+    const global_label *gl = sc->label();
+    struct cobj_ref seg;
+    void *va = 0;
+
+    error_check(segment_alloc(start_env->shared_container, gl->serial_len(), &seg, &va,
+                0, "global label"));
+    scope_guard<int, void *> unmap_va(segment_unmap, va);
+    memcpy(va, gl->serial(), gl->serial_len());
+
+    arg->segment_new.gl_seg = seg;
     arg->status = 0;
     
     return;    
@@ -287,6 +298,13 @@ export_manager_new_segment(export_manager_arg *em_arg)
         gate_call(net_gt, 0, &dl, 0).call(&gcd, 0);
         if (arg->status < 0)
             throw basic_exception("export_manager: cannot create net gate");            
+
+        cobj_ref seg = arg->segment_new.gl_seg;
+        void *va = 0;
+        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0, 0));
+        global_label gl((const char *)va);
+        scope_guard<int, void *> unmap_va(segment_unmap, va);
+        scope_guard<int, cobj_ref> unref_seg(sys_obj_unref, seg);
 
         label l1;
         thread_cur_label(&l1);
