@@ -49,6 +49,7 @@ public:
     void auth_user(const char *un);
     
     const char *path(void) const { return path_; }
+    const global_label *label(void) const { return label_; }
 
 private:
     sockaddr_in     addr_;
