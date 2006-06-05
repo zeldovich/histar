@@ -50,7 +50,7 @@ main (int ac, char **av)
         printf("stat ss.ss_size %ld\n", ss.ss_size);
         
         printf("test done!\n");
-        manager.segment_del(&seg);
+        manager.segment_del(&seg, grant);
         return 0;
     } catch (basic_exception e) {
         printf("main: %s\n", e.what());

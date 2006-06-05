@@ -31,7 +31,7 @@ public:
     
     import_segmentc segment_new(const char *host, uint16_t port, 
                                 const char *path, uint64_t grant);
-    void            segment_del(import_segmentc *seg);
+    void            segment_del(import_segmentc *seg, uint64_t grant);
     
 private:
     cobj_ref gate_;

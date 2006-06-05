@@ -43,7 +43,7 @@ import_managerc::segment_new(const char *host, uint16_t port,
 }
 
 void
-import_managerc::segment_del(import_segmentc *seg)
+import_managerc::segment_del(import_segmentc *seg, uint64_t grant)
 {
     gate_call_data gcd;
     export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
@@ -51,7 +51,10 @@ import_managerc::segment_del(import_segmentc *seg)
     arg->op = em_del_segment;
     arg->client_id = seg->id();
     arg->client_gate = seg->gate();
-    gate_call(gate_, 0, 0, 0).call(&gcd, 0);
+
+    label dl(3);
+    dl.set(grant, LB_LEVEL_STAR);
+    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
 
     if (arg->status < 0)
         throw basic_exception("unable to close segment");
