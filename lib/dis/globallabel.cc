@@ -13,17 +13,6 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
-
-
-/*
-static int
-proxyd_get_global(uint64_t h, char *g) 
-{
-    printf("proxyd_get_global: not implemented\n");
-    return -1;    
-}
-*/
-
 static char
 level_to_char(level_t lv)
 {
@@ -49,8 +38,6 @@ global_label::global_label(label *local) : serial_(0), string_(0)
             uint64_t h = LB_HANDLE(ul->ul_ent[i]);
             level_t l = LB_LEVEL(ul->ul_ent[i]);
             gcat.global(h, entry_[i].global, false);
-            //if (proxyd_get_global(h, entry_[i].global) < 0)
-            //    throw basic_exception("no global handle for %ld", h);
             entry_[i].level = l;
         }
     }
