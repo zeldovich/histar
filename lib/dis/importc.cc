@@ -64,12 +64,12 @@ int
 import_segmentc::read(void *buf, int count, int offset)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
     uint64_t taint = handle_alloc();
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
-    arg->op = ec_segment_read;
+    arg->op = ic_segment_read;
     arg->id = id_;
     arg->segment_read.count = count;
     arg->segment_read.offset = offset;
@@ -99,12 +99,12 @@ int
 import_segmentc::write(const void *buf, int count, int offset)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
     uint64_t taint = handle_alloc();
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
-    arg->op = ec_segment_write;
+    arg->op = ic_segment_write;
     arg->id = id_;
     arg->segment_write.count = count;
     arg->segment_write.offset = offset;
@@ -136,9 +136,9 @@ void
 import_segmentc::stat(struct seg_stat *buf)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
-    arg->op = ec_segment_stat;
+    arg->op = ic_segment_stat;
     arg->id = id_;
     uint64_t taint = handle_alloc();
     arg->segment_stat.taint = taint;

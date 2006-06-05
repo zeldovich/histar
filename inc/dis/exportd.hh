@@ -22,16 +22,16 @@ struct export_manager_arg
 };
 
 typedef enum {
-    ec_segment_new,     
-    ec_segment_read,
-    ec_segment_write,   
-    ec_segment_stat,
-    ec_segment_close,
-} export_client_op;
+    ic_segment_new,     
+    ic_segment_read,
+    ic_segment_write,   
+    ic_segment_stat,
+    ic_segment_close,
+} import_client_op;
 
-struct export_client_arg 
+struct import_client_arg 
 {
-    export_client_op op;                
+    import_client_op op;                
     int id;
     int status;
 

@@ -84,7 +84,7 @@ struct client_data
 ////////////////////////
 
 static void
-seg_client_new(seg_client *sc, export_client_arg *arg)
+seg_client_new(seg_client *sc, import_client_arg *arg)
 {
     sc->init(arg->segment_new.path, arg->segment_new.host, 
              arg->segment_new.port);
@@ -112,7 +112,7 @@ seg_client_new(seg_client *sc, export_client_arg *arg)
 }
 
 static void
-seg_client_read(seg_client *sc, export_client_arg *arg)
+seg_client_read(seg_client *sc, import_client_arg *arg)
 {
     int count = arg->segment_read.count;
     int offset = arg->segment_read.offset;
@@ -136,7 +136,7 @@ seg_client_read(seg_client *sc, export_client_arg *arg)
 }
 
 static void
-seg_client_write(seg_client *sc, export_client_arg *arg)
+seg_client_write(seg_client *sc, import_client_arg *arg)
 {
     cobj_ref seg = arg->segment_write.seg;
     void *va = 0;
@@ -151,7 +151,7 @@ seg_client_write(seg_client *sc, export_client_arg *arg)
 }
 
 static void
-seg_client_stat(seg_client *sc, export_client_arg *arg)
+seg_client_stat(seg_client *sc, import_client_arg *arg)
 {
     struct cobj_ref seg;
     label l(1);
@@ -166,7 +166,7 @@ seg_client_stat(seg_client *sc, export_client_arg *arg)
 }
 
 static void
-seg_client_close(seg_client *sc, export_client_arg *arg)
+seg_client_close(seg_client *sc, import_client_arg *arg)
 {
     sc->destroy();
     arg->status = 0;
@@ -178,7 +178,7 @@ export_client(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
 {
     struct gate_call_data parm;
     memcpy(&parm, vol, sizeof(parm));
-    export_client_arg *ec_arg = (export_client_arg*)parm.param_buf;
+    import_client_arg *ec_arg = (import_client_arg*)parm.param_buf;
     
     try {
         cobj_ref seg = client_collection.data(ec_arg->id);
@@ -189,19 +189,19 @@ export_client(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
         debug_print(clnt_dbg, "(%d) op %d", ec_arg->id, ec_arg->op);
                                 
         switch(ec_arg->op) {
-            case ec_segment_new:
+            case ic_segment_new:
                 seg_client_new(&data->sc, ec_arg);
                 break;
-            case ec_segment_read:
+            case ic_segment_read:
                 seg_client_read(&data->sc, ec_arg);
                 break;
-            case ec_segment_write:
+            case ic_segment_write:
                 seg_client_write(&data->sc, ec_arg);
                 break;
-            case ec_segment_stat:
+            case ic_segment_stat:
                 seg_client_stat(&data->sc, ec_arg);
                 break;
-            case ec_segment_close:
+            case ic_segment_close:
                 seg_client_close(&data->sc, ec_arg);
             default:
                 break;    
@@ -219,7 +219,7 @@ wrap_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     struct gate_call_data bck;
     memcpy(&bck, parm, sizeof(bck));
-    export_client_arg *ec_arg = (export_client_arg*)parm->param_buf;
+    import_client_arg *ec_arg = (import_client_arg*)parm->param_buf;
    
     try { 
         cobj_ref seg = client_collection.data(ec_arg->id);
@@ -248,7 +248,7 @@ void
 export_manager_new_segment(export_manager_arg *em_arg)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
     int id = client_collection.alloc();
     try {
@@ -287,7 +287,7 @@ export_manager_new_segment(export_manager_arg *em_arg)
                              &c, &export_client, 0);    
         data->net_gate = net_gt;
         
-        arg->op = ec_segment_new;
+        arg->op = ic_segment_new;
         arg->id = id;
         strncpy(arg->segment_new.host, em_arg->host, sizeof(arg->segment_new.host) - 1);
         arg->segment_new.port = em_arg->port;
@@ -330,14 +330,14 @@ void
 export_manager_del_segment(export_manager_arg *em_arg)
 {
     gate_call_data gcd;
-    export_client_arg *arg = (export_client_arg *) gcd.param_buf;
+    import_client_arg *arg = (import_client_arg *) gcd.param_buf;
     
     try {
         // gate
         label l;
         thread_cur_label(&l);
         
-        arg->op = ec_segment_close;
+        arg->op = ic_segment_close;
         arg->id = em_arg->client_id;
     
         gate_call(em_arg->client_gate, 0, &l, 0).call(&gcd, 0);
