@@ -2,8 +2,9 @@
 #define EXPORTD_HH_
 
 typedef enum {
-    em_new_segment,      
-    em_del_segment,
+    em_new_iseg,      
+    em_del_iseg,
+    em_new_eseg,
 } export_manager_op;
 
 struct export_manager_arg 

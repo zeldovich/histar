@@ -352,6 +352,60 @@ export_manager_del_segment(export_manager_arg *em_arg)
     }
 }
 
+void
+export_manager_new_eseg(export_manager_arg *em_arg)
+{
+    int id = client_collection.alloc();
+    try {
+        uint64_t taint = handle_alloc();
+        // container
+        label ct_l(1);
+        //ct_l.set(taint, 3);
+        ct_l.set(em_arg->user_grant, 0);
+        uint64_t client_ct;    
+        error_check(client_ct = sys_container_alloc(clients_ct,
+                     ct_l.to_ulabel(), em_arg->host,
+                     0, CT_QUOTA_INF));
+        
+        // data segment
+        label da_l(1);
+        ct_l.set(taint, 3);
+        cobj_ref data_seg;
+        client_data *data;
+        error_check(segment_alloc(client_ct, sizeof(*data), &data_seg, 
+                                 (void**)&data, da_l.to_ulabel(), "data"));
+        scope_guard<int, void *> unmap_data(segment_unmap, data);
+        data->user_grant = em_arg->user_grant;
+        client_collection.data_is(id, data_seg);
+        client_collection.container_is(id, client_ct);
+
+        // gates
+        label l;
+        thread_cur_label(&l);
+        label c(2);
+        c.set(em_arg->user_grant, 0);
+        c.set(start_env->process_grant, 0);
+                
+        cobj_ref wrap_gt;
+        
+        // XXX set l to be needed cats                
+        label l1;
+        thread_cur_label(&l1);
+        label c1(2);
+        c1.set(em_arg->user_grant, 0);
+
+        wrap_gt = gate_create(client_ct, "wrap gate", &l1, 
+                              &c1, &wrap_gate, 0);    
+        em_arg->client_gate = wrap_gt;
+
+        em_arg->client_id = id;
+        em_arg->status = 0;
+    } catch (basic_exception e) {                      
+        client_collection.free(id);
+        throw e;
+    }
+}
+
 static void __attribute__((noreturn))
 export_manager(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
 {
@@ -360,11 +414,14 @@ export_manager(void *arg, struct gate_call_data *vol, gatesrv_return *gr)
     export_manager_arg *em_arg = (export_manager_arg*)parm.param_buf;
     try {
         switch(em_arg->op) {
-            case em_new_segment:
+            case em_new_iseg:
                 export_manager_new_segment(em_arg);
                 break;
-            case em_del_segment:
+            case em_del_iseg:
                 export_manager_del_segment(em_arg);
+                break;
+            case em_new_eseg:
+                export_manager_new_eseg(em_arg);
                 break;
             default:
                 break;    
