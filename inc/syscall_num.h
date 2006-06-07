@@ -72,6 +72,7 @@
     SYSCALL_ENTRY(as_set)			\
     SYSCALL_ENTRY(as_set_slot)			\
 
+#ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,
 
 typedef enum {
@@ -80,5 +81,6 @@ typedef enum {
 } syscall_num;
 
 #undef SYSCALL_ENTRY
+#endif
 
 #endif
