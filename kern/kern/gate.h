@@ -10,6 +10,7 @@ struct Gate {
     struct kobject_hdr gt_ko;
 
     struct thread_entry gt_te;
+    uint8_t gt_te_visible;
 };
 
 int  gate_alloc(const struct Label *l,

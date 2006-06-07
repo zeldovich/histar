@@ -33,6 +33,7 @@
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\
     SYSCALL_ENTRY(gate_clearance)		\
+    SYSCALL_ENTRY(gate_get_entry)		\
 						\
     SYSCALL_ENTRY(thread_create)		\
     SYSCALL_ENTRY(thread_start)			\

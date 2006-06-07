@@ -406,7 +406,7 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 static int64_t
 sys_gate_create(uint64_t container, struct thread_entry *ute,
 		struct ulabel *ul_recv, struct ulabel *ul_send,
-		const char *name)
+		const char *name, int entry_visible)
 {
     struct thread_entry te;
     check(check_user_access(ute, sizeof(te), 0));
@@ -433,6 +433,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     check(gate_alloc(l_send, clearance, &g));
     alloc_set_name(&g->gt_ko, name);
     g->gt_te = te;
+    g->gt_te_visible = entry_visible ? 1 : 0;
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko));
     return g->gt_ko.ko_id;
@@ -447,6 +448,19 @@ sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
     const struct Label *clear;
     check(kobject_get_label(&ko->hdr, kolabel_clearance, &clear));
     check(label_to_ulabel(clear, ul));
+}
+
+static void
+sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *te)
+{
+    const struct kobject *ko;
+    check(cobj_get(gate, kobj_gate, &ko, iflow_none));
+
+    if (!ko->gt.gt_te_visible)
+	syscall_error(-E_INVAL);
+
+    check(check_user_access(te, sizeof(*te), SEGMAP_WRITE));
+    memcpy(te, &ko->gt.gt_te, sizeof(*te));
 }
 
 static int64_t
@@ -822,6 +836,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_set_readonly),
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
+    SYSCALL_DISPATCH(gate_get_entry),
     SYSCALL_DISPATCH(thread_start),
     SYSCALL_DISPATCH(thread_trap),
     SYSCALL_DISPATCH(self_yield),

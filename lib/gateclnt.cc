@@ -55,7 +55,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     int64_t id = sys_gate_create(ct, &te,
 				 clear.to_ulabel(),
 				 cur_label.to_ulabel(),
-				 "return gate");
+				 "return gate", 0);
     if (id < 0)
 	throw error(id, "return_setup: creating return gate: l %s, c %s",
 		    cur_label.to_string(), clear.to_string());

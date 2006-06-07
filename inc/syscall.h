@@ -48,11 +48,12 @@ int64_t	sys_handle_create(void);
 
 int64_t	sys_gate_create(uint64_t container, struct thread_entry *s,
 			struct ulabel *entry, struct ulabel *target,
-			const char *name);
+			const char *name, int entry_visible);
 int	sys_gate_enter(struct cobj_ref gate,
 		       struct ulabel *label,
 		       struct ulabel *clearance);
 int	sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul);
+int	sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *s);
 
 int64_t	sys_thread_create(uint64_t container, const char *name);
 int	sys_thread_start(struct cobj_ref thread, struct thread_entry *s,

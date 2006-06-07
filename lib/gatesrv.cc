@@ -115,7 +115,7 @@ gate_create(gatesrv_descriptor *gd)
 
     int64_t gate_id = sys_gate_create(gd->gate_container_, &te,
 				      gd->clearance_->to_ulabel(),
-				      gd->label_->to_ulabel(), gd->name_);
+				      gd->label_->to_ulabel(), gd->name_, 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
