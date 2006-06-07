@@ -41,6 +41,8 @@ int64_t sys_obj_get_quota_avail(struct cobj_ref o);
 int	sys_obj_get_meta(struct cobj_ref o, void *meta);
 int	sys_obj_set_meta(struct cobj_ref o, const void *oldm, void *newm);
 int	sys_obj_set_fixedquota(struct cobj_ref o);
+int	sys_obj_set_readonly(struct cobj_ref o);
+int	sys_obj_get_readonly(struct cobj_ref o);
 
 int64_t	sys_handle_create(void);
 

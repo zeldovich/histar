@@ -27,6 +27,8 @@
     SYSCALL_ENTRY(obj_get_meta)			\
     SYSCALL_ENTRY(obj_set_meta)			\
     SYSCALL_ENTRY(obj_set_fixedquota)		\
+    SYSCALL_ENTRY(obj_set_readonly)		\
+    SYSCALL_ENTRY(obj_get_readonly)		\
 						\
     SYSCALL_ENTRY(gate_create)			\
     SYSCALL_ENTRY(gate_enter)			\

@@ -22,6 +22,7 @@ enum {
 #define KOBJ_FIXED_QUOTA	0x0040	// Cannot modify quota (for hard links)
 #define KOBJ_SHARED_MAPPINGS	0x0080	// Shared pages maybe mapped somewhere
 #define KOBJ_DIRTY_LATER	0x0100	// Need to collect dirty bits
+#define KOBJ_READONLY		0x0200	// Cannot be modified
 
 struct kobject_hdr {
     kobject_id_t ko_id;

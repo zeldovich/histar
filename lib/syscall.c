@@ -136,6 +136,18 @@ sys_obj_set_fixedquota(struct cobj_ref o)
     return syscall(SYS_obj_set_fixedquota, o);
 }
 
+int
+sys_obj_set_readonly(struct cobj_ref o)
+{
+    return syscall(SYS_obj_set_readonly, o);
+}
+
+int
+sys_obj_get_readonly(struct cobj_ref o)
+{
+    return syscall(SYS_obj_get_readonly, o);
+}
+
 int64_t
 sys_container_get_nslots(uint64_t container)
 {

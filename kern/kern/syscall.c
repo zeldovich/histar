@@ -330,6 +330,22 @@ sys_obj_set_fixedquota(struct cobj_ref cobj)
     kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_FIXED_QUOTA;
 }
 
+static void
+sys_obj_set_readonly(struct cobj_ref cobj)
+{
+    const struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
+    kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_READONLY;
+}
+
+static int64_t
+sys_obj_get_readonly(struct cobj_ref cobj)
+{
+    const struct kobject *ko;
+    check(cobj_get(cobj, kobj_any, &ko, iflow_read));
+    return (ko->hdr.ko_flags & KOBJ_READONLY) ? 1 : 0;
+}
+
 static int64_t
 sys_container_get_nslots(uint64_t container)
 {
@@ -803,6 +819,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_get_meta),
     SYSCALL_DISPATCH(obj_set_meta),
     SYSCALL_DISPATCH(obj_set_fixedquota),
+    SYSCALL_DISPATCH(obj_set_readonly),
     SYSCALL_DISPATCH(gate_enter),
     SYSCALL_DISPATCH(gate_clearance),
     SYSCALL_DISPATCH(thread_start),
@@ -839,6 +856,7 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(obj_get_quota_total),
     SYSCALL_DISPATCH(obj_get_quota_avail),
     SYSCALL_DISPATCH(obj_get_type),
+    SYSCALL_DISPATCH(obj_get_readonly),
     SYSCALL_DISPATCH(container_alloc),
     SYSCALL_DISPATCH(container_get_slot_id),
     SYSCALL_DISPATCH(container_get_nslots),
