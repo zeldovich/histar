@@ -42,7 +42,7 @@ coop_gate_create(uint64_t container,
 
     // Any labels we need to pass in.
     for (int i = 0; i < 8; i++) {
-	if (arg_values[i].is_label) {
+	if (arg_values[i].is_label && arg_values[i].u.l) {
 	    if (arg_freemask[i])
 		throw basic_exception("Unbound label args not supported");
 
@@ -83,7 +83,7 @@ coop_gate_create(uint64_t container,
 	    csa_ptr->args[i] = &csa_free->argval[i];
 	} else {
 	    csa_ptr->args[i] = (uint64_t *) (COOP_TEXT + coop_syscall_argval_offset + i * 8);
-	    if (!arg_values[i].is_label) {
+	    if (!(arg_values[i].is_label && arg_values[i].u.l)) {
 		csa_val->argval[i] = arg_values[i].u.i;
 	    } else {
 		ulabel *ul = arg_values[i].u.l->to_ulabel();

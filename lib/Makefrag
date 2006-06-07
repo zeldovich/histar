@@ -6,6 +6,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/stack.S \
 	lib/$(ARCH)/trapstub.S \
+	lib/$(ARCH)/coop_syscall.S \
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/printf.c \
