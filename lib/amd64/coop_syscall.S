@@ -4,7 +4,10 @@
 #include <inc/cooperate.h>
 
 ENTRY(cooperate_syscall)
-	movq	COOP_ARGS, %rax
+	/*
+	 * The address of (struct coop_syscall_args) is in %rdi.
+	 */
+	movq	%rdi, %rax
 
 	movq	0x00(%rax), %rsp
 	pop	%rdi
