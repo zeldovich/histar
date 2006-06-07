@@ -122,12 +122,13 @@ coop_gate_create(uint64_t container,
 		ulabel *ul_copy = (ulabel *) (text_va + coop_brk_offset);
 		coop_brk_offset += sizeof(*ul);
 
-		ul_copy->ul_ent = (uint64_t *) (text_va + coop_brk_offset);
+		ul_copy->ul_ent = (uint64_t *) (COOP_TEXT + coop_brk_offset);
+		uint64_t *copy_ents = (uint64_t *) (text_va + coop_brk_offset);
 		coop_brk_offset += ul->ul_nent * sizeof(uint64_t);
 
 		ul_copy->ul_nent = ul->ul_nent;
 		ul_copy->ul_default = ul->ul_default;
-		memcpy(ul_copy->ul_ent, ul->ul_ent, ul->ul_nent * sizeof(uint64_t));
+		memcpy(copy_ents, ul->ul_ent, ul->ul_nent * sizeof(uint64_t));
 
 		csa_val->argval[i] = (((char *) ul_copy) - text_va) + COOP_TEXT;
 	    }
@@ -240,7 +241,7 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8])
 	(struct coop_syscall_argval *) &tls_args->param_buf[0];
 
     uint64_t brk_offset = code_len + sizeof(*csa_ptr) + sizeof(*csa_val);
-    should_be(brk_offset >= dseg_len);
+    should_be(brk_offset <= dseg_len);
 
     for (int i = 0; i < 8; i++) {
 	uint64_t *aptr = csa_ptr->args[i];
@@ -263,13 +264,13 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8])
 	    should_be(aval == COOP_TEXT + brk_offset);
 	    ulabel *aul = (ulabel *) (text_va + brk_offset);
 	    brk_offset += sizeof(*ul);
-	    should_be(brk_offset >= dseg_len);
+	    should_be(brk_offset <= dseg_len);
 
 	    should_be(aul->ul_nent == ul->ul_nent);
 	    should_be(aul->ul_default == ul->ul_default);
 	    should_be(aul->ul_ent == (uint64_t *) (COOP_TEXT + brk_offset));
 	    brk_offset += ul->ul_nent * sizeof(uint64_t);
-	    should_be(brk_offset >= dseg_len);
+	    should_be(brk_offset <= dseg_len);
 
 	    should_be(!memcmp(aul->ul_ent, ul->ul_ent, ul->ul_nent * sizeof(uint64_t)));
 	}

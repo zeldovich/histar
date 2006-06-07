@@ -16,6 +16,8 @@ main(int ac, char **av)
 
     label clear(2);
 
+    label segl(1);
+
     coop_sysarg arg_values[8];
     char arg_freemask[8];
 
@@ -25,7 +27,10 @@ main(int ac, char **av)
     arg_values[0].u.i = SYS_segment_create;
     arg_values[1].u.i = start_env->shared_container;
     arg_values[2].u.i = 1234;
-    arg_values[3].u.i = 0;
+
+    arg_values[3].u.l = &segl;
+    arg_values[3].is_label = 1;
+
     arg_values[4].u.i = 0;
 
     cobj_ref g =
