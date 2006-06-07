@@ -17,6 +17,7 @@ extern "C" {
 #include <inc/pthread.hh>
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
+#include <inc/cooperate.hh>
 
 static uint64_t root_grant;
 static int64_t user_grant, user_taint;
@@ -126,12 +127,20 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     memset(&reply, 0, sizeof(reply));
 
     try {
+	reply.ug_cat = user_grant;
+	reply.ut_cat = user_taint;
+
+	if (req.req_cats)
+	    goto ret;
+
 	char log_msg[256];
 	snprintf(&log_msg[0], sizeof(log_msg), "attempting login..");
 	auth_log(log_msg);
 
 	int64_t xh;
 	error_check(xh = handle_alloc());
+
+	// OK, creating the retry counter.  First create an empty segment.
 
 	label retry_l(1);
 	retry_l.set(user_grant, 0);
@@ -145,12 +154,36 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	rs->xh = xh;
 	rs->attempts = 0;
 
+	// Now try to copy it with a label of { Pt 3 } using the coop mechanism.
+
 	retry_l.set(req.pw_taint, 3);
+
+	coop_sysarg coop_vals[8];
+	memset(&coop_vals[0], 0, sizeof(coop_vals));
+
+	coop_vals[0].u.i = SYS_segment_copy;
+	coop_vals[1].u.i = retry_seg.container;
+	coop_vals[2].u.i = retry_seg.object;
+	coop_vals[3].u.i = req.session_ct;
+	coop_vals[4].u.l = &retry_l;
+	coop_vals[4].is_label = 1;
+
+	label coop_ds(3);
+	coop_ds.set(user_grant, LB_LEVEL_STAR);
+	coop_ds.set(user_taint, LB_LEVEL_STAR);
+
 	int64_t retry_seg_copy_id;
 	error_check(retry_seg_copy_id =
-	    sys_segment_copy(retry_seg, req.session_ct,
-			     retry_l.to_ulabel(), "retry counter"));
+	    coop_gate_invoke(COBJ(req.session_ct, req.coop_gate),
+			     0, &coop_ds, 0, coop_vals));
+
 	cobj_ref retry_seg_copy = COBJ(req.session_ct, retry_seg_copy_id);
+
+	label retry_l2;
+	obj_get_label(retry_seg_copy, &retry_l2);
+	error_check(retry_l.compare(&retry_l2, label::eq));
+
+	// Whew, created that pesky retry segment..
 
 	label tl, tc(2);
 	thread_cur_label(&tl);
@@ -183,6 +216,7 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     	reply.err = -E_INVAL;
     }
 
+ret:
     memcpy(&parm->param_buf[0], &reply, sizeof(reply));
     gr->ret(0, 0, 0);
 }

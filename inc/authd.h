@@ -24,12 +24,19 @@ struct auth_dir_reply {
 
 // Calls into user gate
 struct auth_user_req {
+    uint64_t req_cats;		// non-zero if just want user categories
+
     uint64_t pw_taint;
     uint64_t session_ct;
+    uint64_t coop_gate;
 };
 
 struct auth_user_reply {
     int err;
+
+    uint64_t ug_cat;
+    uint64_t ut_cat;
+
     uint64_t uauth_gate;
     uint64_t ugrant_gate;
     uint64_t xh;

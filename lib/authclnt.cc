@@ -15,6 +15,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
+#include <inc/cooperate.hh>
 
 enum { auth_debug = 0 };
 
@@ -69,19 +70,57 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	session_drop(sys_obj_unref,
 		     COBJ(start_env->shared_container, session_ct));
 
+    // Invoke the user gate to get the user's taint and grant categories
+    user_req->req_cats = 1;
+    gate_call(user_gate, 0, 0, 0).call(&gcd, 0);
+    error_check(user_reply->err);
+
+    uint64_t user_grant = user_reply->ug_cat;
+    uint64_t user_taint = user_reply->ut_cat;
+
+    // Construct a cooperative gate for creating the retry count segment
+    label retry_seg_l(1);
+    retry_seg_l.set(user_grant, 0);
+    retry_seg_l.set(user_taint, 3);
+    retry_seg_l.set(pw_taint, 3);
+
+    label coop_gate_label(1);
+    coop_gate_label.set(session_grant, LB_LEVEL_STAR);
+
+    label coop_gate_clear(2);
+    coop_gate_clear.set(session_grant, 0);
+    coop_gate_clear.set(pw_taint, 3);
+
+    coop_sysarg coop_vals[8];
+    memset(&coop_vals[0], 0, sizeof(coop_vals));
+
+    char coop_freemask[8];
+    memset(&coop_freemask[0], 0, sizeof(coop_freemask));
+
+    coop_vals[0].u.i = SYS_segment_copy;
+    coop_vals[1].u.i = session_ct;
+    coop_freemask[2] = 1;
+    coop_vals[3].u.i = session_ct;
+    coop_vals[4].u.l = &retry_seg_l;
+    coop_vals[4].is_label = 1;
+
+    cobj_ref coop_gate =
+	coop_gate_create(session_ct, &coop_gate_label, &coop_gate_clear,
+			 coop_vals, coop_freemask);
+
+    // Invoke the user gate
     label user_auth_ds(3);
     user_auth_ds.set(session_grant, LB_LEVEL_STAR);
 
-    label user_auth_dr(0);
-    user_auth_dr.set(pw_taint, 3);
-
+    user_req->req_cats = 0;
     user_req->pw_taint = pw_taint;
     user_req->session_ct = session_ct;
+    user_req->coop_gate = coop_gate.object;
 
     if (auth_debug)
 	cprintf("auth_login: calling user gate\n");
 
-    gate_call(user_gate, 0, &user_auth_ds, &user_auth_dr).call(&gcd, 0);
+    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd, 0);
     error_check(user_reply->err);
     cobj_ref uauth_gate  = COBJ(session_ct, user_reply->uauth_gate);
     cobj_ref ugrant_gate = COBJ(session_ct, user_reply->ugrant_gate);
