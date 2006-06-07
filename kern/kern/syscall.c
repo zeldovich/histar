@@ -357,8 +357,7 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
     const struct Container *parent;
     const struct kobject *child;
     check(container_find(&parent, parent_id, iflow_rw));
-    check(cobj_get(COBJ(parent_id, child_id), kobj_any, &child,
-		   nbytes < 0 ? iflow_rw : iflow_write));
+    check(cobj_get(COBJ(parent_id, child_id), kobj_any, &child, iflow_rw));
     if ((child->hdr.ko_flags & KOBJ_FIXED_QUOTA))
 	syscall_error(-E_FIXED_QUOTA);
 
