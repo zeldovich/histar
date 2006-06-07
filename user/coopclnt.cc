@@ -16,13 +16,15 @@ main(int ac, char **av)
 	return -1;
     }
 
-    cobj_ref coop_gate = COBJ(atoi(av[1]), atoi(av[2]));
+    uint64_t container = atoi(av[1]);
+    uint64_t gate_id = atoi(av[2]);
+    cobj_ref coop_gate = COBJ(container, gate_id);
 
     coop_sysarg arg_values[8];
     memset(&arg_values[0], 0, sizeof(arg_values));
 
     arg_values[0].u.i = SYS_segment_create;
-    arg_values[1].u.i = start_env->shared_container;
+    arg_values[1].u.i = container;
     arg_values[2].u.i = 1234;
     arg_values[3].u.i = 0;
     arg_values[4].u.i = 0;
