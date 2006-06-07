@@ -54,7 +54,7 @@ coop_gate_create(uint64_t container,
 
     // Allocate the status and text/data segments.
     cobj_ref status_seg, text_seg;
-    char *text_va;
+    char *text_va = 0;
 
     error_check(segment_alloc(container, sizeof(struct coop_status),
 			      &status_seg, 0, 0, "coop status"));
@@ -69,9 +69,9 @@ coop_gate_create(uint64_t container,
     memcpy(text_va, cooperate_syscall, code_len);
 
     struct coop_syscall_args *csa_ptr =
-	(struct coop_syscall_args *) text_va + coop_syscall_args_offset;
+	(struct coop_syscall_args *) (text_va + coop_syscall_args_offset);
     struct coop_syscall_argval *csa_val =
-	(struct coop_syscall_argval *) text_va + coop_syscall_argval_offset;
+	(struct coop_syscall_argval *) (text_va + coop_syscall_argval_offset);
 
     struct gate_call_data *tls_args =
 	(struct gate_call_data *) TLS_GATE_ARGS;
@@ -88,10 +88,10 @@ coop_gate_create(uint64_t container,
 	    } else {
 		ulabel *ul = arg_values[i].u.l->to_ulabel();
 
-		ulabel *ul_copy = (ulabel *) text_va + coop_brk_offset;
+		ulabel *ul_copy = (ulabel *) (text_va + coop_brk_offset);
 		coop_brk_offset += sizeof(*ul);
 
-		ul_copy->ul_ent = (uint64_t *) text_va + coop_brk_offset;
+		ul_copy->ul_ent = (uint64_t *) (text_va + coop_brk_offset);
 		coop_brk_offset += ul->ul_nent * sizeof(uint64_t);
 
 		ul_copy->ul_nent = ul->ul_nent;
