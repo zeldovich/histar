@@ -269,10 +269,12 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
 	    should_be(aul->ul_nent == ul->ul_nent);
 	    should_be(aul->ul_default == ul->ul_default);
 	    should_be(aul->ul_ent == (uint64_t *) (COOP_TEXT + brk_offset));
+
+	    uint64_t *aent = (uint64_t *) (text_va + brk_offset);
 	    brk_offset += ul->ul_nent * sizeof(uint64_t);
 	    should_be(brk_offset <= dseg_len);
 
-	    should_be(!memcmp(aul->ul_ent, ul->ul_ent, ul->ul_nent * sizeof(uint64_t)));
+	    should_be(!memcmp(aent, ul->ul_ent, ul->ul_nent * sizeof(uint64_t)));
 	}
     }
 
