@@ -13,8 +13,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
-
-#include <inc/gateclnt.hh>
+#include <inc/gateinvoke.hh>
 
 extern char cooperate_syscall[], cooperate_syscall_end[];
 
@@ -176,7 +175,8 @@ coop_gate_create(uint64_t container,
 }
 
 static void
-coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8])
+coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
+	    cobj_ref *status_segp)
 {
     int64_t r;
     uint64_t code_len = (cooperate_syscall_end - cooperate_syscall);
@@ -279,6 +279,38 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8])
     should_be(brk_offset == dseg_len);
 
     // === Arguments verified OK -- should be all good..
+    *status_segp = status_seg;
+}
+
+static void
+coop_gate_invoke_cleanup(label *tgt_label, label *tgt_clear, void *arg)
+{
+    delete tgt_label;
+    delete tgt_clear;
+
+    int *donep = (int *) arg;
+    *donep = 1;
+}
+
+static void __attribute__((noreturn))
+coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
+			label *cs, label *ds, label *dr,
+			coop_sysarg arg_values[8])
+{
+    struct gate_call_data *gcd =
+	(struct gate_call_data *) TLS_GATE_ARGS;
+    struct coop_syscall_argval *csa_val =
+	(struct coop_syscall_argval *) &gcd->param_buf[0];
+
+    for (int i = 0; i < 8; i++)
+	if (!arg_values[i].is_label)
+	    csa_val->argval[i] = arg_values[i].u.i;
+
+    label *tgt_label = new label();
+    label *tgt_clear = new label();
+
+    gate_compute_labels(*gatep, cs, ds, dr, tgt_label, tgt_clear);
+    gate_invoke(*gatep, tgt_label, tgt_clear, &coop_gate_invoke_cleanup, invoke_donep);
 }
 
 int64_t
@@ -286,32 +318,45 @@ coop_gate_invoke(cobj_ref coop_gate,
 		 label *cs, label *ds, label *dr,
 		 coop_sysarg arg_values[8])
 {
-    coop_verify(coop_gate, arg_values);
+    cobj_ref status_seg;
+    coop_verify(coop_gate, arg_values, &status_seg);
 
+    label cur_label, cur_clear;
+    thread_cur_label(&cur_label);
+    thread_cur_clearance(&cur_clear);
 
+    int64_t tid;
+    error_check(tid = sys_thread_create(start_env->proc_container,
+					"coop gate invoker"));
 
+    cobj_ref tobj = COBJ(start_env->proc_container, tid);
+    scope_guard<int, cobj_ref> thread_unref(sys_obj_unref, tobj);
 
+    struct thread_entry te;
+    memset(&te, 0, sizeof(te));
 
+    int invoke_done = 0;
+    error_check(sys_self_get_as(&te.te_as));
+    te.te_entry = (void *) &coop_gate_invoke_thread;
+    te.te_stack = tls_stack_top;
+    te.te_arg[0] = (uint64_t) &invoke_done;
+    te.te_arg[1] = (uint64_t) &coop_gate;
+    te.te_arg[2] = (uint64_t) cs;
+    te.te_arg[3] = (uint64_t) ds;
+    te.te_arg[4] = (uint64_t) dr;
+    te.te_arg[5] = (uint64_t) &arg_values[0];
 
+    error_check(tid = sys_thread_start(tobj, &te,
+				       cur_label.to_ulabel(),
+				       cur_clear.to_ulabel()));
 
+    struct coop_status *stat = 0;
+    uint64_t stat_bytes = sizeof(*stat);
+    error_check(segment_map(status_seg, 0, SEGMAP_READ,
+			    (void **) &stat, &stat_bytes, 0));
+    scope_guard<int, void *> unmap(segment_unmap, stat);
 
-
-    struct gate_call_data gcd;
-    struct coop_syscall_argval *csa_val =
-	(struct coop_syscall_argval *) &gcd.param_buf[0];
-
-    for (int i = 0; i < 8; i++)
-	if (!arg_values[i].is_label)
-	    csa_val->argval[i] = arg_values[i].u.i;
-
-    gate_call(coop_gate, cs, ds, dr).call(&gcd, 0);
-    return 0;
-
-/*
-    struct gate_call_data *gcd_tls = (struct gate_call_data *) tls_gate_args;
-    struct coop_syscall_argval *csa_val =
-	(struct coop_syscall_argval *) &gcd_tls->param_buf[0];
-*/
-
-    throw basic_exception("hmm");
+    while (!invoke_done || !stat->done)
+	sys_sync_wait(&stat->done, 0, sys_clock_msec() + 1000);
+    return stat->rval;
 }

@@ -34,7 +34,7 @@ main(int ac, char **av)
 
     arg_values[4].u.i = 0;
 
-    coop_gate_invoke(coop_gate, 0, 0, 0, arg_values);
+    int64_t r = coop_gate_invoke(coop_gate, 0, 0, 0, arg_values);
 
-    printf("coop gate invoked.\n");
+    printf("coop gate invoked: %ld\n", r);
 }
