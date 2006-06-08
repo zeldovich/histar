@@ -92,7 +92,7 @@ mmu_init (void)
   flush_tlb_hard ();
 
   /* Load TSS */
-  gdt[(GD_TSS >> 3)] = (SEG_TSSA | SEG_P | SEG_BASELO (&tss)
+  gdt[(GD_TSS >> 3)] = (SEG_TSSA | SEG_P | SEG_A | SEG_BASELO (&tss)
 			| SEG_LIM (sizeof (tss) - 1));
   gdt[(GD_TSS >> 3) + 1] = SEG_BASEHI (&tss);
   __asm volatile ("ltr %w0"::"r" (GD_TSS));
