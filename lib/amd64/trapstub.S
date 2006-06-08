@@ -10,16 +10,10 @@ ENTRY(utrap_stub_end)
 ENTRY(utrap_entry_asm)
 	.cfi_startproc
 
-	// To be sure, this is what CFA always starts as, on function entry.
-	.cfi_def_cfa rsp, 8
+	// Our entire CPU state is saved in a UTrapframe right at %rsp
+	.cfi_def_cfa rsp, 0
 
-	// First of all, save the address of the UTrapframe
-	movq	%rsp, %rdi
-
-	// Now make up a fake call-frame from the faulting instruction
-	pushq	utf_rip(%rdi)
-
-	// Tell DWARF2 about our saved registers
+	// Tell DWARF2 about our saved registers; this is UTrapframe layout
 	.cfi_offset rax,  0*8
 	.cfi_offset rbx,  1*8
 	.cfi_offset rcx,  2*8
@@ -40,7 +34,13 @@ ENTRY(utrap_entry_asm)
 	.cfi_offset r14, 14*8
 	.cfi_offset r15, 15*8
 
-	// Off we go
+	.cfi_offset rip, 16*8
+
+	// Pass the address of the UTrapframe to utrap_entry()
+	movq	%rsp, %rdi
+
+	// Call instead of jmp, because we want the call stack to point back to
+	// this function, so that the unwinder sees our register remapping.
 	call	utrap_entry
 	.cfi_endproc
 
