@@ -67,6 +67,7 @@ New hardware support:
 * cpu virt: containerize SMM (do any desktops use SMM much?  usb kbd virt?)
 * cpu virt: move parts of the current CPL=0 kernel into a VMM ("ring -1")
   and make the CPL=0 code less trusted.
+* use ata "nv cache" (flash memory) feature set to speed up disk sync.
 
 Miscellaneous:
 
