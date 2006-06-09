@@ -57,6 +57,17 @@ Larger issues:
   - restarting services with handles and gates
   - upgrades (signing binaries => integrity handles?)
 
+New hardware support:
+
+* hyperthreading/multicore: use monitor/mwait or pause/spinwait for
+  fast sys-/vmm-calls.
+* debug registers: use call tracing for kernel debugging?
+  intel CPUs have 16-slot buffers it seems, while AMD traps on every jmp.
+* iommu: device drivers into user-mode.  some more thoughts on hardcopy paper.
+* cpu virt: containerize SMM (do any desktops use SMM much?  usb kbd virt?)
+* cpu virt: move parts of the current CPL=0 kernel into a VMM ("ring -1")
+  and make the CPL=0 code less trusted.
+
 Miscellaneous:
 
 ===
