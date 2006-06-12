@@ -25,7 +25,7 @@ import_managerc::segment_new(const char *host, uint16_t port,
     gate_call_data gcd;
     export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
 
-    arg->op = em_new_segment;
+    arg->op = em_new_iseg;
     strncpy(arg->host, host, sizeof(arg->host));
     arg->port = port;
     strncpy(arg->path, path, sizeof(arg->path));
@@ -48,7 +48,7 @@ import_managerc::segment_del(import_segmentc *seg, uint64_t grant)
     gate_call_data gcd;
     export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
 
-    arg->op = em_del_segment;
+    arg->op = em_del_iseg;
     arg->client_id = seg->id();
     arg->client_gate = seg->gate();
 
@@ -156,6 +156,6 @@ import_segmentc::stat(struct seg_stat *buf)
         segment_unmap(va);
         sys_obj_unref(seg);
     } else {
-        throw basic_exception("export_segmentc::stat unable\n");        
+        throw basic_exception("import_segmentc::stat unable\n");        
     }
 }
