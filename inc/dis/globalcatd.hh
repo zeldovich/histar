@@ -2,21 +2,22 @@
 #define GLOBALCATD_HH_
 
 typedef enum {
-    gcd_add,
-    gcd_rem,
-    gcd_to_global,    
-    gcd_to_local,
+    gcd_g2f,
 } gcd_op_t;
 
 struct gcd_arg 
 {
     gcd_op_t op;
-    char global[16];
-    uint64_t local;
-    uint64_t clear;
+    
+    union {
+        struct {
+            struct global_cat global;
+            // return
+            uint64_t foreign;    
+        } f2g;
+    };
     // return
     int status;
-    cobj_ref grant_gt;
 };
 
 #endif /*GLOBALCATD_HH_*/

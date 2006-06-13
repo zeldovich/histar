@@ -87,9 +87,9 @@ public:
         debug_print(msg_debug, "path %s",request_.path);
         executed_ = 1;
 
-        export_managerc manager;
-        export_segmentc seg = manager.segment_new(request_.path);
-        conn_->export_seg_is(seg);
+        //export_managerc manager;
+        //export_segmentc seg = manager.segment_new(request_.path);
+        //conn_->export_seg_is(seg);
         
         global_label *gl = global_label::global_for_obj(request_.path);
         const char *s = gl->serial();
@@ -113,14 +113,25 @@ public:
         executed_ = 1;
 
         try {
+            uint32_t size = sizeof(response_.payload_);
+            char *buffer = response_.payload_;
+            
+
+            global_label *gl = global_label::global_for_obj(request_.path);
+            response_.header_.glsize = gl->serial_len();
+            memcpy(buffer, gl->serial(), response_.header_.glsize);
+
+            size -= response_.header_.glsize;
+            buffer += response_.header_.glsize;
+
             struct fs_inode ino;
-            int cc = MIN(request_.count, sizeof(response_.payload_));
+            int cc = MIN(request_.count, size);
             int len;
            
             cobj_ref seg;
             int flag = catd_read(request_.path, &seg);
             ino.obj = seg;
-            error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+            error_check(len = fs_pread(ino, buffer, cc, request_.offset));
             
             // XXX might be a temp segment from package            
             if (flag)
@@ -128,7 +139,10 @@ public:
 
             response_.header_.op = segclient_result;
             response_.header_.status = 0;
-            response_.header_.psize = len;
+            response_.header_.psize = len + response_.header_.glsize;
+    
+            delete gl;
+    
             debug_print(file_debug, "read %d bytes from %s", len, request_.path);
         } catch (basic_exception e) {
             response_.header_.op = segclient_result;

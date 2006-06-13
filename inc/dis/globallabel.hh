@@ -8,9 +8,14 @@ class label;
 
 #define GLOBAL_LEN 32
 
+struct global_cat {
+    uint64_t k;
+    uint64_t original;        
+};
+
 struct global_entry 
 {
-    char global[GLOBAL_LEN];
+    struct global_cat global;
     level_t level;
 } __attribute__((packed));
 
@@ -31,6 +36,9 @@ public:
     const char *serial(void) const;
     int         serial_len(void) const;
     const char *string_rep(void) const;
+    
+    const global_entry *entries(void) const { return entry_; }
+    uint32_t            entries_count(void) const { return entries_; } 
             
 private:       
     void gen_serial(void);

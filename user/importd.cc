@@ -18,6 +18,9 @@ extern "C" {
 #include <inc/dis/segclient.hh>
 #include <inc/dis/exportd.hh>
 #include <inc/dis/globallabel.hh>
+
+#include <inc/dis/globalcatc.hh>
+
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
@@ -102,10 +105,30 @@ net_client_read(import_client_arg *ic_arg)
     error_check(read(server.s, &res, sizeof(res)) - sizeof(res));
     if (res.status < 0)
         throw basic_exception("seg_client::frame_at: remote read failed");
-    error_check(read(server.s, buffer, res.psize) - res.psize);
     
-    ic_arg->segment_read.seg = seg;
-    ic_arg->status = res.psize;
+    char gl_buf[128];
+    
+    error_check(read(server.s, gl_buf, res.glsize) - res.glsize);
+    error_check(read(server.s, buffer, res.psize - res.glsize) - 
+                (res.psize - res.glsize));
+
+    // apply local security policy
+    global_label *gl = new global_label(gl_buf);
+    global_catc gc;
+    label *fl = gc.foreign_label(gl);
+    debug_print(msg_dbg, "global label %s", gl->string_rep());
+    debug_print(msg_dbg, "foreign label %s", fl->to_string());
+
+    uint64_t tid;
+    error_check(tid = sys_segment_copy(seg, start_env->shared_container,
+                              fl->to_ulabel(), "tainted seg"));
+    delete fl;
+    delete gl;
+    
+    //ic_arg->segment_read.seg = seg;
+    ic_arg->segment_read.seg = COBJ(start_env->shared_container, tid);
+
+    ic_arg->status = res.psize - res.glsize;
 }
 
 static void

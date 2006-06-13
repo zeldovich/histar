@@ -9,8 +9,11 @@ extern "C" {
 #include <stdio.h>
 }
 
+#include <inc/dis/globallabel.hh>
 #include <inc/dis/globalcatc.hh>
 #include <inc/dis/globalcatd.hh>
+
+#include <inc/cpplabel.hh>
 
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
@@ -37,6 +40,41 @@ global_catc::global_catc(uint64_t grant)
     gate_ = COBJ(gcd_ct, gcd_gt);
 }
 
+uint64_t
+global_catc::foreign(struct global_cat global)
+{
+    gate_call_data gcd;
+    gcd_arg *arg = (gcd_arg *) gcd.param_buf;
+
+    arg->op = gcd_g2f;
+    arg->f2g.global.k = global.k;
+    arg->f2g.global.original = global.original;
+    label dl(3);
+    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
+    
+    if (arg->status < 0)
+        throw basic_exception("unable to get foreign");
+    
+    return arg->f2g.foreign;
+}
+
+label*
+global_catc::foreign_label(global_label *gl)
+{
+    const global_entry *ge= gl->entries();
+    uint32_t n = gl->entries_count();
+    
+    label *ret = new label(1);
+    
+    for (uint32_t i = 0; i < n; i++) {
+        uint64_t f = foreign(ge[i].global);
+        ret->set(f, ge[i].level);
+    }
+
+    return ret;
+}
+
+/*
 void
 global_catc::global_is(uint64_t h, const char *global)
 {
@@ -102,3 +140,4 @@ global_catc::global(uint64_t local, char *global, bool grant)
     if (global)
         strcpy(global, arg->global);
 }
+*/

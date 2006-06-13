@@ -15,10 +15,12 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 
+uint64_t pub_key;
+uint64_t pri_key;
 
 #define NUM_MAPPINGS 16
 struct {
-    uint64_t local;
+    uint64_t foreign;
     cobj_ref grant_gt;    
 } mapping[NUM_MAPPINGS];
 
@@ -36,8 +38,8 @@ add_mapping(cd_arg *arg)
 {
     char buffer[32];
     for (int i = 0; i < NUM_MAPPINGS; i++) {
-        if (!mapping[i].local) {
-            mapping[i].local = arg->add.local;
+        if (!mapping[i].foreign) {
+            mapping[i].foreign = arg->add.local;
             // make a gate
             label th_l, th_cl;
             thread_cur_label(&th_l);
@@ -66,7 +68,7 @@ static void
 acquire(uint64_t local)
 {
     for (int i = 0; i < NUM_MAPPINGS; i++) {
-        if (mapping[i].local == local) {
+        if (mapping[i].foreign == local) {
             gate_call_data gcd;
             gate_call(mapping[i].grant_gt, 0, 0, 0).call(&gcd, 0);
             return;                
@@ -120,6 +122,21 @@ write(cd_arg *arg)
     return;    
 }
 
+static void
+owns(cd_arg *arg)
+{
+    uint64_t local = arg->owns.cat;
+
+    for (int i = 0; i < NUM_MAPPINGS; i++) {
+        if (mapping[i].foreign == local) {
+            arg->status = 1;
+            arg->owns.k = pub_key;
+            return;                
+        }
+    }    
+    arg->status = 0;
+    arg->owns.k = 0;
+}
 
 static void __attribute__((noreturn))
 catd(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
@@ -140,6 +157,9 @@ catd(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
                 break;
             case cd_write:
                 write(args);
+                break;
+            case cd_owns:
+                owns(args);
                 break;
         }
     } catch (basic_exception e) {
@@ -162,7 +182,10 @@ main (int ac, char **av)
                 &th_cl, &catd, 0);
     memset(mapping, 0, sizeof(mapping));
 
-    printf("catd: inited with K %ld\n", 0L);
+    pub_key = 0;
+    pri_key = 0;
+
+    printf("catd: inited with K %ld\n", pub_key);
 
     thread_halt();
     return 0;    

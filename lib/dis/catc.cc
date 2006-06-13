@@ -98,6 +98,24 @@ catc::write(const char *path, void *buffer, int len, int off)
     return arg->status; 
 }
 
+int
+catc::owns(uint64_t h, uint64_t *k)
+{
+    gate_call_data gcd;
+    cd_arg *arg = (cd_arg *) gcd.param_buf;
+
+    arg->op = cd_owns;
+    arg->owns.cat = h;
+    label dl(3);
+    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
+    if (arg->status < 0)
+        throw basic_exception("error asking ownership of %ld", h);
+    
+    if (arg->status)
+        *k = arg->owns.k;
+    return arg->status; 
+}
+
 /*
 uint64_t
 catc::local(const char *global, bool grant)

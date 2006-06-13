@@ -7,11 +7,25 @@ extern "C" {
 }
 
 #include <inc/dis/globallabel.hh>
-#include <inc/dis/globalcatc.hh>
+//#include <inc/dis/globalcatc.hh>
+#include <inc/dis/catc.hh>
 
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
+
+static void 
+get_global(uint64_t h, global_cat *global)
+{
+    uint64_t k;
+    catc cc;
+    if (cc.owns(h, &k)) {
+        global->k = k;
+        global->original = h;    
+    }
+    else
+        throw basic_exception("cannot convert %ld", h);
+}
 
 static char
 level_to_char(level_t lv)
@@ -32,12 +46,10 @@ global_label::global_label(label *local) : serial_(0), string_(0)
     default_ = local->get_default();
     memset(entry_, 0, sizeof(global_entry) * entries_);
     try {
-        global_catc gcat = global_catc();
-        
         for (uint64_t i = 0; i < ul->ul_nent; i++) {
             uint64_t h = LB_HANDLE(ul->ul_ent[i]);
             level_t l = LB_LEVEL(ul->ul_ent[i]);
-            gcat.global(h, entry_[i].global, false);
+            get_global(h, &entry_[i].global);
             entry_[i].level = l;
         }
     }
@@ -114,8 +126,8 @@ global_label::string_rep(void) const
         level_t lv = entry_[i].level;
         if (lv == default_)
             continue;
-        off += snprintf(&buf[off], bufsize - off, "%s:%c ",
-                entry_[i].global, level_to_char(lv));
+        off += snprintf(&buf[off], bufsize - off, "(%ld, %ld):%c ",
+                entry_[i].global.k, entry_[i].global.original, level_to_char(lv));
     }
     off += snprintf(&buf[off], bufsize - off, "%c }",
             level_to_char(default_));

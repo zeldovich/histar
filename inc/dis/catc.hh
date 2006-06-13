@@ -11,6 +11,9 @@ public:
     void     grant_cat(uint64_t local);
     cobj_ref package(const char *path);
     int      write(const char *path, void *buffer, int len, int off);
+
+    int      owns(uint64_t h, uint64_t *k);
+
     //uint64_t local(const char *global, bool grant);
     //void     global(uint64_t local, char *global, bool grant);
 

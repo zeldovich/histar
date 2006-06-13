@@ -24,8 +24,8 @@ typedef enum {
 struct segclient_hdr {
     segclient_msg_t op;
     int64_t status;
+    uint32_t glsize;
     uint32_t psize;
-    char payload[0];
 } __attribute__((packed));
 
 struct segclient_msg {

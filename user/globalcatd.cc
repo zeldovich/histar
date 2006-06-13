@@ -7,6 +7,7 @@ extern "C" {
 #include <stdio.h>
 }
 
+#include <inc/dis/globallabel.hh>
 #include <inc/dis/globalcatd.hh>
 
 #include <inc/labelutil.hh>
@@ -16,8 +17,8 @@ extern "C" {
 
 #define NUM_MAPPINGS 16
 struct {
-    char global[16];
-    uint64_t local;
+    struct global_cat global;
+    uint64_t foreign;
     cobj_ref grant_gt;    
 } mapping[NUM_MAPPINGS];
 
@@ -30,13 +31,16 @@ grantcat(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     gr->ret(0, dl, 0);        
 }
 
+/*
 static void
 add_mapping(gcd_arg *arg)
 {
     for (int i = 0; i < NUM_MAPPINGS; i++) {
-        if (!mapping[i].local) {
-            mapping[i].local = arg->local;
-            strncpy(mapping[i].global, arg->global, sizeof(mapping[i].global) - 1);
+        if (!mapping[i].foreign) {
+            mapping[i].global.k = arg->global.k;
+            mapping[i].global.orignal = arg->global.original;
+            mapping[i].foreign = arg->local;
+
             // make a gate
             label th_l, th_cl;
             thread_cur_label(&th_l);
@@ -63,7 +67,7 @@ to_global(gcd_arg *arg)
 {
     uint64_t local = arg->local;
     for (int i = 0; i < NUM_MAPPINGS; i++) {
-        if (mapping[i].local == local) {
+        if (mapping[i].foreign == local) {
             strncpy(arg->global, mapping[i].global, sizeof(arg->global) - 1);
             arg->grant_gt = mapping[i].grant_gt;
             arg->status = 0;
@@ -78,31 +82,85 @@ to_local(gcd_arg *arg)
     const char *global = arg->global;
     for (int i = 0; i < NUM_MAPPINGS; i++) {
         if (!strcmp(global, mapping[i].global)) {
-            arg->local = mapping[i].local;
+            arg->local = mapping[i].foreign;
             arg->grant_gt = mapping[i].grant_gt;
             arg->status = 0;
         }
     }
     arg->status = -1;    
 }
+*/
+
+static uint64_t
+add_mapping(global_cat *global)
+{
+
+    for (int i = 0; i < NUM_MAPPINGS; i++) {
+        if (!mapping[i].foreign) {
+            char buffer[32];
+
+            mapping[i].global.k = global->k;
+            mapping[i].global.original = global->original;
+            
+            uint64_t h = handle_alloc();
+            mapping[i].foreign = h;
+
+            // make a gate
+            label th_l, th_cl;
+            thread_cur_label(&th_l);
+            thread_cur_clearance(&th_cl);
+            th_l.set(h, LB_LEVEL_STAR);
+            th_cl.set(start_env->process_grant, 0);
+
+            sprintf(buffer, "%ld", h);
+
+            cobj_ref gt = gate_create(start_env->shared_container, buffer, &th_l, 
+                             &th_cl, &grantcat, (void *)h);
+            mapping[i].grant_gt = gt;
+            return h;                
+        }
+    }
+}
+
+static uint64_t
+g2f(gcd_arg *arg)
+{
+    for (int i = 0; i < NUM_MAPPINGS; i++) {
+        if (mapping[i].global.k == arg->f2g.global.k &&
+            mapping[i].global.original == arg->f2g.global.original) {
+            
+            gate_call_data gcd;
+            gate_call(mapping[i].grant_gt, 0, 0, 0).call(&gcd, 0);
+                        
+            return mapping[i].foreign;
+        }
+    }        
+    return add_mapping(&arg->f2g.global);
+}
 
 static void __attribute__((noreturn))
 globalcatd(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
+    gate_call_data bck;
+    memcpy(&bck, parm, sizeof(bck));
+
     gcd_arg *args = (gcd_arg *) parm->param_buf;
     switch (args->op) {
-        case gcd_add:
-            add_mapping(args);
+        case gcd_g2f: {
+            uint64_t f = g2f(args);
+            label *dl = new label(3);
+            dl->set(f, LB_LEVEL_STAR);
+
+            label th_l;
+            thread_cur_label(&th_l);
+
+            memcpy(parm, &bck, sizeof(*parm));
+            args->status = 0;
+            args->f2g.foreign = f;            
+            
+            gr->ret(0, dl, 0);        
             break;    
-        case gcd_rem:
-            rem_mapping(args);
-            break;
-        case gcd_to_global:
-            to_global(args);
-            break;
-        case gcd_to_local:
-            to_local(args);
-            break;
+        }
     }
     gr->ret(0, 0, 0);    
 }

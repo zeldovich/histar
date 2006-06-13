@@ -32,7 +32,7 @@ main (int ac, char **av)
     printf("h0 %ld\n", h0);
     gc.global_is(h0, "handle 0");
 
-    uint64_t h0_l = gc.local("handle 0", true);
+    uint64_t h0_l = gc.foreign("handle 0", true);
     printf("h0_l %ld\n", h0_l);
 
     label l(1);
