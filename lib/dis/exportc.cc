@@ -14,8 +14,8 @@ extern "C" {
 export_managerc::export_managerc(void)
 {
     int64_t export_ct, manager_gt;
-    error_check(export_ct = container_find(start_env->root_container, kobj_container, "exportd"));
-    error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
+    //error_check(export_ct = container_find(start_env->root_container, kobj_container, "exportd"));
+    //error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
     gate_ = COBJ(export_ct, manager_gt);
 }
 

@@ -20,21 +20,21 @@ extern "C" {
 int 
 main (int ac, char **av)
 {
-    static const char host[] = "127.0.0.1";
-    static const uint16_t port = 9999;
     static const char path[] = "/tmp/test_file";
     static char buffer[128];
 
     try {
-        int64_t export_ct, manager_gt;
-        error_check(export_ct = container_find(start_env->root_container, kobj_container, "exportd"));
+        int64_t export_ct, manager_gt, wrap_ct, wrap_gt;
+        error_check(export_ct = container_find(start_env->root_container, kobj_container, "importd"));
         error_check(manager_gt = container_find(export_ct, kobj_gate, "manager"));
-        uint64_t grant = handle_alloc();
+        error_check(wrap_ct = container_find(export_ct, kobj_container, "default_wrap"));
+        error_check(wrap_gt = container_find(wrap_ct, kobj_gate, "gate"));
+
                 
-        import_managerc manager(COBJ(export_ct, manager_gt));
-        import_segmentc seg = manager.segment_new(host, port, path, grant);
-       
-        int r = seg.read(buffer, sizeof(buffer), 0);
+        import_managerc manager(COBJ(export_ct, manager_gt), COBJ(wrap_ct, wrap_gt));
+        import_segmentc *seg = manager.segment_new(path);
+        
+        int r = seg->read(buffer, sizeof(buffer), 0);
         printf("read r %d\n", r);
         for (int i = 0; i < r; i++)
             printf("%c", buffer[i]);        
@@ -42,15 +42,15 @@ main (int ac, char **av)
         
         static const char test_reply[] = "remote write?!?";
         strcpy(buffer, test_reply);
-        r = seg.write(buffer, strlen(test_reply), 10);
+        r = seg->write(buffer, strlen(test_reply), 10);
         printf("write r %d\n", r);
         
         struct seg_stat ss;
-        seg.stat(&ss);
+        seg->stat(&ss);
         printf("stat ss.ss_size %ld\n", ss.ss_size);
         
         printf("test done!\n");
-        manager.segment_del(&seg, grant);
+        manager.segment_del(seg);
         return 0;
     } catch (basic_exception e) {
         printf("main: %s\n", e.what());

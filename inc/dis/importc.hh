@@ -7,34 +7,32 @@
 class import_segmentc
 {
 public:
-    import_segmentc(cobj_ref gate, int id, uint64_t grant) : 
-        gate_(gate), id_(id), grant_(grant) {} 
+    import_segmentc(cobj_ref gate, const char *path); 
     
     int  read(void *buf, int count, int offset);
     int  write(const void *buf, int count, int offset);
     void stat(struct seg_stat *buf);
     
     cobj_ref gate(void) { return gate_; }
-    int      id(void) { return id_; }
 
 private:
+    char *   path_;
     cobj_ref gate_;
-    int      id_;
-    uint64_t grant_;
 };
 
 //////
 class import_managerc
 {
 public:
-    import_managerc(cobj_ref gate) : gate_(gate) {} 
+    import_managerc(cobj_ref manager_gt, cobj_ref wrap_gt) 
+        : manager_gt_(manager_gt), wrap_gt_(wrap_gt) {} 
     
-    import_segmentc segment_new(const char *host, uint16_t port, 
-                                const char *path, uint64_t grant);
-    void            segment_del(import_segmentc *seg, uint64_t grant);
+    import_segmentc *segment_new(const char *path);
+    void             segment_del(import_segmentc *seg);
     
 private:
-    cobj_ref gate_;
+    cobj_ref manager_gt_;
+    cobj_ref wrap_gt_;
 };
 
 #endif /*EXPORTCLIENT_HH_*/

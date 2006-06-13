@@ -18,46 +18,27 @@ extern "C" {
 
 // Client
 
-import_segmentc
-import_managerc::segment_new(const char *host, uint16_t port, 
-                             const char *path, uint64_t grant)
+import_segmentc*
+import_managerc::segment_new(const char *path)
 {
-    gate_call_data gcd;
-    export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
+    import_segmentc* ret = new import_segmentc(wrap_gt_, path);
 
-    arg->op = em_new_iseg;
-    strncpy(arg->host, host, sizeof(arg->host));
-    arg->port = port;
-    strncpy(arg->path, path, sizeof(arg->path));
-    arg->user_grant = grant;
+    if (!ret)
+        throw basic_exception("unable to alloc segment");
 
-    label dl(3);
-    dl.set(grant, LB_LEVEL_STAR);
-
-    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
-
-    if (arg->status < 0)
-        throw basic_exception("unable to alloc segment @ %s", host);
-
-    return import_segmentc(arg->client_gate, arg->client_id, grant);
+    return ret;
 }
 
 void
-import_managerc::segment_del(import_segmentc *seg, uint64_t grant)
+import_managerc::segment_del(import_segmentc *seg)
 {
-    gate_call_data gcd;
-    export_manager_arg *arg = (export_manager_arg *) gcd.param_buf;
+    delete seg;
+}
 
-    arg->op = em_del_iseg;
-    arg->client_id = seg->id();
-    arg->client_gate = seg->gate();
-
-    label dl(3);
-    dl.set(grant, LB_LEVEL_STAR);
-    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
-
-    if (arg->status < 0)
-        throw basic_exception("unable to close segment");
+import_segmentc::import_segmentc(cobj_ref gate, const char *path) 
+ : gate_(gate)
+{
+    path_ = strdup(path);    
 }
 
 int
@@ -70,14 +51,11 @@ import_segmentc::read(void *buf, int count, int offset)
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
     arg->op = ic_segment_read;
-    arg->id = id_;
+    strcpy(arg->path, path_);
     arg->segment_read.count = count;
     arg->segment_read.offset = offset;
-    arg->segment_read.taint = taint;
     
     label dl(3);
-    dl.set(grant_, 0);
-    dl.set(taint, LB_LEVEL_STAR);
     
     gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
     if (arg->status < 0)
@@ -105,16 +83,13 @@ import_segmentc::write(const void *buf, int count, int offset)
     scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
 
     arg->op = ic_segment_write;
-    arg->id = id_;
+    strcpy(arg->path, path_);
     arg->segment_write.count = count;
     arg->segment_write.offset = offset;
-    arg->segment_write.taint = taint;
  
     struct cobj_ref seg;
     label l(1);
-    l.set(start_env->process_grant, 0);
-    l.set(taint, 3);
-    // XXX have cagent taint
+    // XXX taint
     void *va = 0;
     error_check(segment_alloc(start_env->shared_container, count, &seg, &va,
                 l.to_ulabel(), "remfiled write buf"));
@@ -123,8 +98,6 @@ import_segmentc::write(const void *buf, int count, int offset)
     arg->segment_write.seg = seg;
 
     label dl(3);
-    dl.set(grant_, 0);
-    dl.set(taint, LB_LEVEL_STAR);
     
     gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
     
@@ -139,22 +112,12 @@ import_segmentc::stat(struct seg_stat *buf)
     import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
     arg->op = ic_segment_stat;
-    arg->id = id_;
-    uint64_t taint = handle_alloc();
-    arg->segment_stat.taint = taint;
-    scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
+    strcpy(arg->path, path_);
+
     label dl(1);
-    thread_cur_label(&dl);
-    dl.set(taint, LB_LEVEL_STAR);
- 
     gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
     if (!arg->status) {
-        void *va = 0;
-        cobj_ref seg = arg->segment_stat.seg;
-        error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0, 0));
-        memcpy(buf, va, sizeof(*buf));
-        segment_unmap(va);
-        sys_obj_unref(seg);
+        memcpy(buf, &arg->segment_stat.stat, sizeof(*buf));
     } else {
         throw basic_exception("import_segmentc::stat unable\n");        
     }
