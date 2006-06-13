@@ -45,9 +45,15 @@ main (int ac, char **av)
         r = seg->write(buffer, strlen(test_reply), 10);
         printf("write r %d\n", r);
         
-        struct seg_stat ss;
-        seg->stat(&ss);
-        printf("stat ss.ss_size %ld\n", ss.ss_size);
+        r = seg->read(buffer, sizeof(buffer), 0);
+        printf("read r %d\n", r);
+        for (int i = 0; i < r; i++)
+            printf("%c", buffer[i]);        
+        printf("\n");
+        
+        //struct seg_stat ss;
+        //seg->stat(&ss);
+        //printf("stat ss.ss_size %ld\n", ss.ss_size);
         
         printf("test done!\n");
         manager.segment_del(seg);
