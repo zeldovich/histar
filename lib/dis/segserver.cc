@@ -7,6 +7,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/param.h>
+#include <inc/syscall.h>
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -20,11 +21,37 @@ extern "C" {
 #include <inc/dis/globallabel.hh>
 #include <inc/dis/exportd.hh>  // for seg_stat
 #include <inc/dis/exportc.hh>
+#include <inc/dis/catc.hh>
+
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 static const char conn_debug = 1;
 static const char msg_debug = 1;
 static const char file_debug = 1;
+
+static int
+package(const char *path, cobj_ref *ret)
+{
+    label th_l;
+    thread_cur_label(&th_l);
+    struct fs_inode ino;
+    error_check(fs_namei(path, &ino));
+    
+    label f_l;
+    obj_get_label(ino.obj, &f_l);
+    
+    if (f_l.compare(&th_l, label_leq_starhi) < 0) {
+        catc cc;
+        cobj_ref seg = cc.package(path);
+        *ret = seg;
+        return 1;
+    }
+    else {
+        *ret = ino.obj;
+        return 0;
+    }
+}
 
 class open_req : public segserver_req 
 {
@@ -63,10 +90,19 @@ public:
 
         try {
             struct fs_inode ino;
-            error_check(fs_namei(request_.path, &ino));
             int cc = MIN(request_.count, sizeof(response_.payload_));
             int len;
-            error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+           
+            cobj_ref seg;
+            if (package(request_.path, &seg)) {
+                ino.obj = seg;
+                error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+                sys_obj_unref(seg);
+            }
+            else {
+                ino.obj = seg;
+                error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+            }
             response_.header_.op = segclient_result;
             response_.header_.status = 0;
             response_.header_.psize = len;

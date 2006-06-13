@@ -7,7 +7,8 @@ LIB_SRCFILES += lib/dis/rem_fd.c \
 				lib/dis/importc.cc \
 				lib/dis/exportc.cc \
 				lib/dis/globalcatc.cc \
-				lib/dis/cac.cc
+				lib/dis/cac.cc \
+				lib/dis/catc.cc
 				
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)

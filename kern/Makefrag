@@ -67,7 +67,8 @@ KERN_BINFILES += #user/tar user/gzip user/gunzip
 KERN_BINFILES += #user/gcc.tar.gz user/make user/kern.tar.gz user/setup.sh
 KERN_BINFILES += #user/sshd user/ssh.tar
 
-KERN_BINFILES += user/globalcatd user/foo user/exportserver user/exportproxy user/importclient user/importd
+KERN_BINFILES += user/exportserver user/exportproxy user/catd user/foo
+KERN_BINFILES += user/globalcatd user/importclient user/importd 
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
