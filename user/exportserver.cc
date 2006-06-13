@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
-#include <inc/dis/globalcatc.hh>
+#include <inc/dis/catc.hh>
 
 static const char conn_debug = 1;
 
@@ -106,10 +106,9 @@ main(int ac, char **av)
     export_server server(8888);
     try {
         // setup some global categories
-        uint64_t grant = handle_alloc();
         uint64_t taint = handle_alloc();
-        global_catc gc(grant);
-        gc.global_is(taint, "test taint");
+        catc cc;
+        cc.grant_cat(taint);
 
         // make a test file
         label l(1);
