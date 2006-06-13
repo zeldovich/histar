@@ -68,6 +68,36 @@ catc::package(const char *path)
     return arg->package.seg; 
 }
 
+int
+catc::write(const char *path, void *buffer, int len, int off)
+{
+    gate_call_data gcd;
+    cd_arg *arg = (cd_arg *) gcd.param_buf;
+
+    arg->op = cd_write;
+    strcpy(arg->write.path, path);
+    arg->write.len = len;
+    arg->write.off = off;
+
+    cobj_ref seg;
+    label l(1);
+    void *va = 0;
+    error_check(segment_alloc(start_env->shared_container, len, &seg, &va,
+                l.to_ulabel(), "catc write buf"));
+    memcpy(va, buffer, len);
+    segment_unmap(va);
+    arg->write.seg = seg;
+    
+    label dl(3);
+    dl.set(start_env->process_grant, LB_LEVEL_STAR);
+    gate_call(gate_, 0, &dl, 0).call(&gcd, 0);
+    if (arg->status < 0)
+        throw basic_exception("unable to package %s", path);
+
+    sys_obj_unref(seg);    
+    return arg->status; 
+}
+
 /*
 uint64_t
 catc::local(const char *global, bool grant)

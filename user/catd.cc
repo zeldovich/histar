@@ -13,6 +13,8 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/gatesrv.hh>
 #include <inc/error.hh>
+#include <inc/scopeguard.hh>
+
 
 #define NUM_MAPPINGS 16
 struct {
@@ -95,6 +97,30 @@ package(cd_arg *arg)
     return;    
 }
 
+static void
+write(cd_arg *arg)
+{
+    cobj_ref seg = arg->write.seg;
+    int count = arg->write.len;
+    int offset = arg->write.off;
+    void *va = 0;
+    error_check(segment_map(seg, 0, SEGMAP_READ, &va, 0, 0));
+    scope_guard<int, void *> unmap_va(segment_unmap, va);
+    
+    fs_inode file;
+    error_check(fs_namei(arg->write.path, &file));
+
+    label fl;
+    obj_get_label(file.obj, &fl);
+    ulabel *ufl = fl.to_ulabel();
+    for (uint32_t i = 0; i < ufl->ul_nent; i++)
+        acquire(LB_HANDLE(ufl->ul_ent[i]));   
+    
+    arg->status = fs_pwrite(file, va, count, offset);
+    return;    
+}
+
+
 static void __attribute__((noreturn))
 catd(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
@@ -111,6 +137,9 @@ catd(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
                 break;
             case cd_package:
                 package(args);
+                break;
+            case cd_write:
+                write(args);
                 break;
         }
     } catch (basic_exception e) {

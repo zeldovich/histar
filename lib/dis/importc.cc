@@ -79,9 +79,6 @@ import_segmentc::write(const void *buf, int count, int offset)
     gate_call_data gcd;
     import_client_arg *arg = (import_client_arg *) gcd.param_buf;
 
-    uint64_t taint = handle_alloc();
-    scope_guard<void, uint64_t> drop_taint(thread_drop_star, taint);
-
     arg->op = ic_segment_write;
     strcpy(arg->path, path_);
     arg->segment_write.count = count;

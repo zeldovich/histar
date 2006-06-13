@@ -5,6 +5,7 @@ typedef enum {
     cd_add,
     cd_rem,
     cd_package,
+    cd_write,
 } cd_op_t;
 
 struct cd_arg 
@@ -20,6 +21,12 @@ struct cd_arg
             // return
             cobj_ref seg;
         } package;
+        struct {
+            char     path[32];
+            int      len;
+            int      off;
+            cobj_ref seg;
+        } write;
     };
     // return
     int status;

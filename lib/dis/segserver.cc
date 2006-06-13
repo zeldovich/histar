@@ -31,7 +31,7 @@ static const char msg_debug = 1;
 static const char file_debug = 1;
 
 static int
-package(const char *path, cobj_ref *ret)
+catd_read(const char *path, cobj_ref *ret)
 {
     label th_l;
     thread_cur_label(&th_l);
@@ -51,6 +51,30 @@ package(const char *path, cobj_ref *ret)
         *ret = ino.obj;
         return 0;
     }
+}
+
+static int
+catd_write(const char *path, void *buffer, int len, int off)
+{
+ label th_l;
+    thread_cur_label(&th_l);
+    struct fs_inode ino;
+    error_check(fs_namei(path, &ino));
+    
+    label f_l;
+    obj_get_label(ino.obj, &f_l);
+    
+    if (f_l.compare(&th_l, label_leq_starhi) < 0) {
+        catc cc;
+        return cc.write(path, buffer, len, off);
+    }
+    else if (th_l.compare(&f_l, label_leq_starlo) < 0) {
+        catc cc;
+        return cc.write(path, buffer, len, off);
+    }
+    else {
+        return fs_pwrite(ino, buffer, len, off);
+    } 
 }
 
 class open_req : public segserver_req 
@@ -94,15 +118,14 @@ public:
             int len;
            
             cobj_ref seg;
-            if (package(request_.path, &seg)) {
-                ino.obj = seg;
-                error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+            int flag = catd_read(request_.path, &seg);
+            ino.obj = seg;
+            error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
+            
+            // XXX might be a temp segment from package            
+            if (flag)
                 sys_obj_unref(seg);
-            }
-            else {
-                ino.obj = seg;
-                error_check(len = fs_pread(ino, response_.payload_, cc, request_.offset));
-            }
+
             response_.header_.op = segclient_result;
             response_.header_.status = 0;
             response_.header_.psize = len;
@@ -136,9 +159,13 @@ public:
             debug_print(file_debug, "truncated payload %d, %d", len, cc);
 
         try {
-            struct fs_inode ino;
-            error_check(fs_namei(request_.path, &ino));    
-            error_check(len = fs_pwrite(ino, buffer, len, request_.offset));
+           
+            //struct fs_inode ino;
+            //error_check(fs_namei(request_.path, &ino));    
+            //error_check(len = fs_pwrite(ino, buffer, len, request_.offset));
+           
+            len = catd_write(request_.path, buffer, len, request_.offset);
+           
             response_.header_.op = segclient_result;
             response_.header_.status = len;
             response_.header_.psize = 0;
