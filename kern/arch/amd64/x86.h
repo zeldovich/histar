@@ -43,6 +43,8 @@ X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 X86_INST_ATTR uint64_t read_tsc(void);
 X86_INST_ATTR void fxsave(struct Fpregs *f);
 X86_INST_ATTR void fxrstor(const struct Fpregs *f);
+X86_INST_ATTR uint64_t read_msr(uint32_t msr);
+X86_INST_ATTR void write_msr(uint32_t msr, uint64_t val);
 
 void
 breakpoint(void)
@@ -312,6 +314,20 @@ void
 fxrstor(const struct Fpregs *f)
 {
     __asm __volatile("fxrstor %0" : : "m" (*f));
+}
+
+uint64_t
+read_msr(uint32_t msr)
+{
+    uint32_t hi, lo;
+    __asm __volatile("rdmsr" : "=d" (hi), "=a" (lo) : "c" (msr));
+    return ((uint64_t) lo) | (((uint64_t) hi) << 32);
+}
+
+void
+write_msr(uint32_t msr, uint64_t val)
+{
+    __asm __volatile("wrmsr" : : "c" (msr), "a" (val & 0xffffffff), "d" (val << 32));
 }
 
 #endif /* !JOS_INC_X86_H */
