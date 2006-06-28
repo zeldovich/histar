@@ -4,5 +4,6 @@
 #define APIC_SPURIOUS	0xff
 
 void apic_init(void);
+void apic_send_ipi(uint32_t target, uint32_t vector);
 
 #endif
