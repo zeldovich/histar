@@ -9,6 +9,7 @@
 #include <dev/pci.h>
 #include <dev/picirq.h>
 #include <dev/kclock.h>
+#include <dev/apic.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/timer.h>
@@ -135,6 +136,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     idt_init();
     cons_init();
     pic_init();
+    //apic_init();
     kclock_init();
     timer_init();
     pmap_init(lower_kb, upper_kb);

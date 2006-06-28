@@ -9,7 +9,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/thread.c			\
 	$(ARCHDIR)/as.c				\
-	$(ARCHDIR)/stackwrap.c
+	$(ARCHDIR)/stackwrap.c			\
+	$(ARCHDIR)/mtrr.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
@@ -31,5 +32,6 @@ KERN_DEV :=					\
 	kern/dev/pci.c				\
 	kern/dev/ne2kpci.c			\
 	kern/dev/fxp.c				\
-	kern/dev/pnic.c
+	kern/dev/pnic.c				\
+	kern/dev/apic.c
 

@@ -89,6 +89,21 @@
 #define CR4_OSFXSR 0x200	/* FXSAVE/FXRSTOR support */
 #define CR4_OSX 0x400		/* OS unmasked exception support */
 
+/* MTRR registers */
+#define MTRR_CAP 0xfe		/* MTRR capabilities */
+#define MTRR_CAP_VCNT_MASK 0xff	/* Variable-size register count */
+#define MTRR_CAP_FIX 0x100	/* Fixed-size register support */
+#define MTRR_CAP_WC 0x400	/* Write-combining support */
+#define MTRR_BASE(i) (0x200 + 2*(i))	/* Physical address base */
+#define MTRR_BASE_UC 0x00	/* Uncacheable */
+#define MTRR_BASE_WC 0x01	/* Write-Combining */
+#define MTRR_BASE_WT 0x04	/* Writethrough */
+#define MTRR_BASE_WP 0x05	/* Write-Protect */
+#define MTRR_BASE_WB 0x06	/* Writeback */
+#define MTRR_MASK(i) (0x201 + 2*(i))	/* Physical address mask */
+#define MTRR_MASK_FULL PGADDR((1UL << 52) - 1)
+#define MTRR_MASK_VALID 0x800
+
 /* EFER Register */
 #define EFER 0xc0000080		/* MSR number */
 #define EFER_SCE 0x1		/* System-call extension */

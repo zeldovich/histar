@@ -26,6 +26,9 @@ extern struct Pseudodesc idtdesc;
 /* init.c */
 extern char boot_cmdline[];
 
+/* mtrr.c */
+void mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type);
+
 /* pmap.c */
 struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
