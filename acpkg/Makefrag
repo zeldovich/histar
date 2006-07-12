@@ -31,6 +31,7 @@ AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared
 AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
+AUTOCONF_ncurses-5.5	    := --without-cxx-binding
 
 ##
 ## Patches to apply to various packages
@@ -40,7 +41,9 @@ PATCHFILE_tar-1.15	    := tar-1.15.patch
 PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
+PATCHFILE_gdb-6.5	    := gdb-6.5.patch
 PATCHFILE_default	    := empty.patch
+
 
 ##
 ## Packages we want to include
@@ -111,9 +114,21 @@ $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 
+acpkg/gdb-6.5/gdb/config/i386/__gl:
+	ln -fs $(TOP)/pkg/gdb-gl/jos64.mh $(@D)/jos64.mh 
+	ln -fs $(TOP)/pkg/gdb-gl/jos64.mt $(@D)/jos64.mt
+	ln -fs $(TOP)/pkg/gdb-gl/nm-jos64.h $(@D)/nm-jos64.h
+	ln -fs $(TOP)/pkg/gdb-gl/jos64-nat.c 	\
+	       $(TOP)/acpkg/gdb-6.5/gdb/jos64-nat.c
+	touch $@
+
+$(OBJDIR)/acpkg/bin/gdb: acpkg/gdb-6.5/gdb/config/i386/__gl   \
+			 $(OBJDIR)/lib/libncurses.a	      \
+			 acpkg/gdb-6.5/__build		
+
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
-$(OBJDIR)/acpkg/bin/mkdir: acpkg/coreutils-5.94/__build
+## $(OBJDIR)/acpkg/bin/mkdir: acpkg/coreutils-5.94/__build
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
@@ -197,21 +212,15 @@ acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS) $(LDEPS)
 	touch $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
-ncurses.conf acpkg/ncurses-5.5/Makefile:
-	-( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) --without-cxx-binding" )
-ncurses: $(ACPKG_WRAPS) acpkg/ncurses-5.5/Makefile
-	@mkdir -p $(ACPKG_PREFIX)
+acpkg/ncurses-5.5/__build: $(ACPKG_WRAPS) $(LDEPS) acpkg/ncurses-5.5/Makefile
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
-	cp $(OBJDIR)/acpkg/lib/libncurses.a   $(OBJDIR)/lib/libncurses.a
-	ln -fs $(OBJDIR)/acpkg/include/ncurses/curses.h $(OBJDIR)/acpkg/include/curses.h
-$(OBJDIR)/user/tcdemo: ncurses
-	cp acpkg/ncurses-5.5/test/demo_termcap $(OBJDIR)/user/tcdemo 
-$(OBJDIR)/user/tcdemo2: ncurses
-	cp acpkg/ncurses-5.5/test/firework $(OBJDIR)/user/tcdemo2
+	ln -fs $(OBJDIR)/acpkg/lib/libncurses.a  $(OBJDIR)/lib/libncurses.a
+	touch $@
+
+$(OBJDIR)/lib/libncurses.a: acpkg/ncurses-5.5/__build
 
 ## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
 nvi: $(ACPKG_WRAPS)
