@@ -10,12 +10,14 @@
  			gdb_host=fbsd64 ;;
 
 --- gdb-6.5_bad/gdb/configure.tgt	2006-04-20 16:18:48.000000000 -0700
-+++ gdb-6.5/gdb/configure.tgt	2006-07-11 17:28:36.000000000 -0700
-@@ -209,6 +209,7 @@
++++ gdb-6.5/gdb/configure.tgt	2006-07-12 13:07:04.000000000 -0700
+@@ -209,6 +209,9 @@
  vax-*-openbsd*)		gdb_target=obsd ;;
  vax-*-*)		gdb_target=vax ;;
  
-+x86_64-jos-linux*)	gdb_target=jos64 ;;
++x86_64-jos-linux*)	gdb_target=jos64
++			build_gdbserver=yes
++			;;
  x86_64-*-linux*)	gdb_target=linux64
  			build_gdbserver=yes
  			;;
