@@ -1,0 +1,7 @@
+* need to implement functionality for native debugging
+  - gdb/config/i386/nm-linux64.h
+
+http://sources.redhat.com/gdb/current/onlinedocs/gdbint_toc.html
+Sections "Porting GDB" and "Native Debugging"...
+
+

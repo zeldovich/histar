@@ -1,0 +1,4 @@
+# Host: jos64 x86-64
+NATDEPFILES= jos64-nat.o
+NAT_FILE= nm-jos64.h
+LOADLIBES =
