@@ -143,8 +143,7 @@ init_procs(int cons, uint64_t h_root)
 
     //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
 
-    //spawn_fs(cons, "/bin/exportd", 0, &ds_none);
-    //spawn_fs(cons, "/bin/exportserver", 0, &ds_none);
+    //spawn_fs(cons, "/bin/omd", 0, &ds_none);
 }
 
 static void
