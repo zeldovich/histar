@@ -9,8 +9,6 @@ extern "C" {
 #include <stdio.h>
 }
 
-#include <inc/dis/catd.hh>
-
 #include <inc/labelutil.hh>
 #include <inc/gateclnt.hh>
 #include <inc/gatesrv.hh>
