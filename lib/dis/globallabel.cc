@@ -7,8 +7,6 @@ extern "C" {
 }
 
 #include <inc/dis/globallabel.hh>
-//#include <inc/dis/globalcatc.hh>
-#include <inc/dis/catc.hh>
 
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
@@ -17,6 +15,7 @@ extern "C" {
 static void 
 get_global(uint64_t h, global_cat *global)
 {
+    /*
     uint64_t k;
     catc cc;
     if (cc.owns(h, &k)) {
@@ -24,7 +23,8 @@ get_global(uint64_t h, global_cat *global)
         global->original = h;    
     }
     else
-        throw basic_exception("cannot convert %ld", h);
+    */
+    throw basic_exception("cannot convert %ld", h);
 }
 
 static char
