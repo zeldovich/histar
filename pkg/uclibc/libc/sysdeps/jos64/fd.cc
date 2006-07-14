@@ -493,7 +493,6 @@ static struct Dev *devtab[] =
     &devrand,
     &devzero,
     &devnull,
-    &devremfile,
     0
 };
 
