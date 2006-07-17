@@ -31,11 +31,18 @@ om_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	break;
     }
     
-
     gate_call_data_copy(parm, &bck);
     gr->ret(0, 0, 0);    
 }
 
+// need a table mapping local cats -> grant gates
+// need a table mapping foriegn cats -> grant gates
+
+static void __attribute__((noreturn))
+admin_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+{
+    gr->ret(0, 0, 0);
+}
 
 int
 main (int ac, char **av)
@@ -46,6 +53,10 @@ main (int ac, char **av)
 
     gate_create(start_env->shared_container,"om gate", &th_l, 
                 &th_cl, &om_gate, 0);
+    
+    gate_create(start_env->shared_container,"admin gate", &th_l, 
+		&th_cl, &admin_gate, 0);
+    
     printf("omd: init\n");
 
     thread_halt();
