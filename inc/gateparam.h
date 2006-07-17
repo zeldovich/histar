@@ -20,4 +20,14 @@ struct gate_call_data {
     };
 };
 
+#define gate_call_data_copy(A, B)                  \
+    do {                                           \
+        (A)->return_gate = (B)->return_gate;		\
+        (A)->taint_container = (B)->taint_container;	\
+        (A)->declassify_gate = (B)->declassify_gate;	\
+    } while(0)
+
+#define gate_call_data_copy_all(A, B)                  \
+	memcpy(A, B, sizeof(struct gate_call_data))
+
 #endif
