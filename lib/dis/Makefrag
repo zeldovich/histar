@@ -2,7 +2,8 @@ OBJDIRS += lib/dis
 
 LIB_SRCFILES += lib/dis/globallabel.cc	\
 		lib/dis/globalcatc.cc \
-		lib/dis/omclient.cc
+		lib/dis/omclient.cc \
+		lib/dis/adminclient.cc
 				
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc
 	@mkdir -p $(@D)

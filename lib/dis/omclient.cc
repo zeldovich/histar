@@ -18,6 +18,11 @@ om_client::om_client(const char *name)
     name_ = strdup(name);
 }
 
+om_client::~om_client(void)
+{
+    delete name_;
+}
+
 bool
 om_client::observable(om_res *res, palid k) 
 {

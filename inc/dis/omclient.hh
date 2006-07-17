@@ -8,6 +8,8 @@ class om_client
 {
 public:
     om_client(const char *name);
+    ~om_client(void);
+
     bool observable(om_res *res, palid k);
     bool modifiable(om_res *res, palid k);
     
