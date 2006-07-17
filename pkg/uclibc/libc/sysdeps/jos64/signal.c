@@ -9,6 +9,7 @@
 #include <inc/assert.h>
 #include <inc/memlayout.h>
 #include <inc/wait.h>
+#include <inc/ptrace.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -100,7 +101,10 @@ signal_dispatch(siginfo_t *si, struct sigcontext *sc)
 
     // XXX save current sigmask; mask the signal and sa->sa_mask
 
-    signal_dispatch_sa(sa, si, sc);
+    if (ptrace_traceme)
+	ptrace_on_signal(sa, si, sc);
+    else
+	signal_dispatch_sa(sa, si, sc);
 
     // XXX restore saved sigmask
 

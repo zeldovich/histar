@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <inc/ptrace.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -202,6 +203,9 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 int
 execve(const char *filename, char *const *argv, char *const *envp) __THROW
 {
+    if (ptrace_traceme)
+	kill(getpid(), SIGTRAP);
+    
     try {
         fs_inode bin;
         int r = fs_namei(filename, &bin);

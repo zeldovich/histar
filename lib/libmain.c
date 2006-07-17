@@ -5,6 +5,7 @@
 #include <inc/fd.h>
 #include <inc/utrap.h>
 #include <inc/gateparam.h>
+#include <inc/debug_gate.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -72,6 +73,7 @@ setup_env(uint64_t envaddr)
 	panic("libmain: cannot setup utrap: %s", e2s(r));
 
     signal_init();
+    debug_gate_init();
 
     argv = malloc(sizeof(*argv) * (start_env->argc + 1));
     if (!argv)
