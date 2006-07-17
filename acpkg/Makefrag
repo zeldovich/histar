@@ -122,6 +122,7 @@ acpkg/gdb-6.5/gdb/config/i386/__gl:
 	       $(TOP)/acpkg/gdb-6.5/gdb/jos64-nat.c
 	touch $@
 
+$(OBJDIR)/acpkg/bin/gdbserver:
 $(OBJDIR)/acpkg/bin/gdb: acpkg/gdb-6.5/gdb/config/i386/__gl   \
 			 $(OBJDIR)/lib/libncurses.a	      \
 			 acpkg/gdb-6.5/__build		
