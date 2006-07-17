@@ -101,7 +101,7 @@ signal_dispatch(siginfo_t *si, struct sigcontext *sc)
 
     // XXX save current sigmask; mask the signal and sa->sa_mask
 
-    if (ptrace_traceme)
+    if (ptrace_traceme && si->si_signo != SIGKILL)
 	ptrace_on_signal(sa, si, sc);
     else
 	signal_dispatch_sa(sa, si, sc);
