@@ -3,6 +3,7 @@
 #include <inc/signal.h>
 #include <inc/wait.h>
 #include <inc/queue.h>
+#include <inc/debug_gate.h>
 
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -85,6 +86,31 @@ child_get_status(struct wait_child *wc, int *statusp)
     return 1;
 }
 
+static int
+child_get_siginfo(struct wait_child *wc, int *statusp)
+{
+    uint64_t ct = wc->wc_pid;
+    int64_t gate_id = container_find(ct, kobj_gate, "debug");
+    if (gate_id < 0)
+	return 0;
+
+    struct debug_args args;
+    args.op = da_wait;
+    debug_gate_send(COBJ(ct, gate_id), &args);
+    if (args.ret) {
+	union wait wstat;
+	memset(&wstat, 0, sizeof(wstat));
+	wstat.w_status = W_STOPCODE(args.ret);
+	if (statusp)
+	    *statusp = wstat.w_status;
+		
+	return 1;
+    }
+    
+    return 0;
+}
+
+
 // Actual system call emulated on jos64
 pid_t
 wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
@@ -108,8 +134,12 @@ again:
 	    continue;
 	}
 
-	if (r == 0)
+	if (r == 0) {
+	    r = child_get_siginfo(wc, statusp);
+	    if (r == 1)
+		return wc->wc_pid;
 	    continue;
+	}
 
 	if (r == 1) {
 	    // Child exited

@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/setjmp.h>
 #include <inc/memlayout.h>
 #include <inc/wait.h>
+#include <inc/debug_gate.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -106,6 +107,7 @@ do_fork()
 	top_drop.dismiss();
 
 	signal_init();
+	debug_gate_init();
 	child_clear();
 
 	return 0;

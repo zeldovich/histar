@@ -23,7 +23,20 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
+static char debug_gate_enable = 0;
+
 static struct cobj_ref gs;
+static struct
+{
+    uint64_t wait;
+    char     signo;
+} ptrace_info;
+
+static void
+debug_gate_wait(struct debug_args *da)
+{
+    da->ret = ptrace_info.signo;
+}
 
 static void __attribute__ ((noreturn))
 debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
@@ -31,7 +44,13 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
     
-    printf("hello from debug_gate_entry\n");
+    switch(da->op) {
+        case da_wait:
+	    debug_gate_wait(da);
+	    break;
+        default:
+	    break;
+    }
     
     gr->ret(0, 0, 0);
 }
@@ -39,6 +58,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 void
 debug_gate_close(void)
 {
+    memset(&ptrace_info, 0, sizeof(ptrace_info));
     if (gs.object) {
 	sys_obj_unref(gs);
 	gs.object = 0;
@@ -49,6 +69,8 @@ void
 debug_gate_init(void)
 {
     debug_gate_close();
+    if (!debug_gate_enable)
+	return;
 
     try {
 	label tl, tc;
@@ -69,13 +91,19 @@ debug_gate_init(void)
     }
 }
 
-extern "C" int
+void
+debug_gate_signal_stop(char signo)
+{
+    ptrace_info.signo = signo;
+    sys_sync_wait(&ptrace_info.wait, 0, ~0L);
+}
+
+extern "C" int64_t
 debug_gate_send(struct cobj_ref gate, struct debug_args *da)
 {
     struct gate_call_data gcd;
     struct debug_args *dag = (struct debug_args *) &gcd.param_buf[0];
     memcpy(dag, da, sizeof(*dag));
-
     try {
 	gate_call(gate, 0, 0, 0).call(&gcd, 0);
     } catch (std::exception &e) {
@@ -83,6 +111,6 @@ debug_gate_send(struct cobj_ref gate, struct debug_args *da)
 	errno = EPERM;
 	return -1;
     }
-
-    return 0;
+    memcpy(da, dag, sizeof(*da));
+    return da->ret;
 }
