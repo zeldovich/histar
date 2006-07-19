@@ -53,21 +53,32 @@ ptrace(enum __ptrace_request request, ...) __THROW
     }
     
     struct debug_args args;
+    
+    debug_print(ptrace_dbg, "request %d", request);
 
     switch (request) {
-        case PTRACE_GETREGS: {
-	    args.op = da_getregs;
+        case PTRACE_GETREGS:
+	case PTRACE_GETFPREGS: {
+	    args.op = request == PTRACE_GETREGS ? da_getregs : da_getfpregs;
 	    debug_gate_send(COBJ(ct, gate_id), &args);
 	    if (args.ret < 0)
 		return args.ret;
-
+	    else if (args.ret == 0)
+		return 0;
+	    
 	    struct user_regs_struct *regs = 0;
 	    error_check(segment_map(args.ret_cobj, 0, SEGMAP_READ, 
 				    (void **)&regs, 0, 0));
 	    scope_guard<int, void*> seg_unmap(segment_unmap, regs);
 	    scope_guard<int, cobj_ref> seg_unref(sys_obj_unref, args.ret_cobj);
-	    memcpy(data, regs, sizeof(*regs));
+	    memcpy(data, regs, args.ret);
 	    return 0;
+	}
+	case PTRACE_PEEKTEXT: {
+	    args.op = da_peektext;
+	    args.addr = (uint64_t)addr;
+	    debug_gate_send(COBJ(ct, gate_id), &args);
+	    return args.ret;
 	}
         default:
 	    cprintf("ptrace: unknown request %d\n", request);

@@ -107,6 +107,7 @@ do_fork()
 	top_drop.dismiss();
 
 	signal_init();
+	// XXX gets called twice if exec is called
 	debug_gate_init();
 	child_clear();
 

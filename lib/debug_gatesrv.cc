@@ -54,13 +54,24 @@ debug_gate_getregs(struct debug_args *da)
 
     struct cobj_ref ret_seg;
     void *va = 0;
-    error_check(segment_alloc(start_env->shared_container,
-			      sizeof(ptrace_info.regs),
-			      &ret_seg, &va,
-			      0, "regs segment"));
+    if (da->op == da_getregs) {
+	error_check(segment_alloc(start_env->shared_container,
+				  sizeof(ptrace_info.regs),
+				  &ret_seg, &va,
+				  0, "regs segment"));
+	memcpy(va, &ptrace_info.regs, sizeof(ptrace_info.regs));
+	da->ret_cobj = ret_seg;
+	da->ret = sizeof(ptrace_info.regs);
+    } else {
+	// XXX fp support
+	da->ret = 0;
+    }
     scope_guard<int, void*> seg_unmap(segment_unmap, va);
-    memcpy(va, &ptrace_info.regs, sizeof(ptrace_info.regs));
-    da->ret_cobj = ret_seg;
+}
+
+static void
+debug_gate_peektext(struct debug_args *da)
+{
     da->ret = 0;
 }
 
@@ -75,7 +86,11 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    debug_gate_wait(da);
 	    break;
         case da_getregs:
+        case da_getfpregs:
 	    debug_gate_getregs(da);
+	    break;
+        case da_peektext:
+	    debug_gate_peektext(da);
 	    break;
         default:
 	    break;

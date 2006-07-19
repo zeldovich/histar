@@ -6,14 +6,16 @@ struct sigcontext;
 typedef enum {
     da_wait = 1,
     da_getregs,
+    da_getfpregs,
+    da_peektext,
 } debug_args_op_t;
 
 struct debug_args 
 {
     debug_args_op_t op;
-    struct cobj_ref arg_obj;
+    uint64_t addr;
     // return
-    char ret;
+    int64_t ret;
     struct cobj_ref ret_cobj;
 };
 
