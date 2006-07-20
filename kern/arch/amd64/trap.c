@@ -37,9 +37,10 @@ idt_init (void)
 	SET_TRAP_GATE(i, 0);
     }
 
-    // Allow syscalls from ring 3
+    // Allow syscalls and breakpoints from ring 3
     SET_TRAP_GATE(T_SYSCALL, 3);
-
+    SET_TRAP_GATE(T_BRKPT, 3);
+    
     // Error-code-generating traps
     SET_TRAP_CODE(T_DBLFLT, ec);
     SET_TRAP_CODE(T_TSS,    ec);
