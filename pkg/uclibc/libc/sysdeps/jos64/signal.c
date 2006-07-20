@@ -269,12 +269,8 @@ signal_process_remote(siginfo_t *si)
 static void
 signal_utrap_init(void)
 {
-    static int signal_inited;
-    if (signal_inited == 0) {
-	signal_inited = 1;
-	signal_thread_id = thread_id();
-	utrap_set_handler(&signal_utrap);
-    }
+    signal_thread_id = thread_id();
+    utrap_set_handler(&signal_utrap);
 }
 
 void
