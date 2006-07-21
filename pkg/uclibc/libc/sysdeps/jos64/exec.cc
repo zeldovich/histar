@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/error.h>
 #include <inc/ptrace.h>
+#include <inc/debug_gate.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -196,6 +197,7 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     proc_drop.dismiss();
     close_all();
     signal_gate_close();
+    debug_gate_close();
     sys_obj_unref(COBJ(start_env->shared_container, start_env->proc_container));
     thread_halt();
 }
