@@ -126,6 +126,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
 		return -1;
 	    }
 	    args.op = da_cont;
+	    debug_gate_send(COBJ(ct, gate_id), &args);
 	    return args.ret;
         case PTRACE_KILL:
 	    return kill(pid, SIGKILL);
