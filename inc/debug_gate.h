@@ -22,6 +22,7 @@ struct debug_args
     struct cobj_ref arg_cobj;
     // return
     int64_t ret;
+    uint64_t ret_gen;
     uint64_t ret_word;
     struct cobj_ref ret_cobj;
 };

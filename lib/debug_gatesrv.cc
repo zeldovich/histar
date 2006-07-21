@@ -26,8 +26,10 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
-static const char debug_gate_enable = 1;
+static const char debug_gate_enable = 0;
 static const char debug_dbg = 1;
+
+static char debug_gate_inited = 0;
 
 static struct cobj_ref gs;
 static struct
@@ -35,12 +37,14 @@ static struct
     uint64_t wait;
     char     signo;
     struct user_regs_struct regs;
+    uint64_t gen;
 } ptrace_info;
 
 static void
 debug_gate_wait(struct debug_args *da)
 {
     da->ret = ptrace_info.signo;
+    da->ret_gen = ptrace_info.gen;
 }
 
 static void
@@ -80,7 +84,6 @@ static void
 debug_gate_peektext(struct debug_args *da)
 {
     uint64_t *word = (uint64_t *)da->addr;
-    cprintf("word %lx\n", da->addr);
     da->ret_word = *word;
     da->ret = 0;
 }
@@ -122,7 +125,6 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    debug_gate_setregs(da);
 	    break;
         case da_peektext:
-	    debug_print(debug_dbg, "peektext");
 	    debug_gate_peektext(da);
 	    break;
         case da_poketext:
@@ -149,16 +151,23 @@ debug_gate_close(void)
 void
 debug_gate_init(void)
 {
-    debug_print(debug_dbg, "debug_gate_init");
-    debug_gate_close();
+    if (debug_gate_inited) {
+	debug_print(debug_dbg, "attempt to init twice");
+	return;
+    }
     if (!debug_gate_enable)
 	return;
+    
+    debug_gate_close();
 
     try {
 	label tl, tc;
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
-
+	
+	// XXX prevents segment map wierdness?!?
+	printf("\n");
+	
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "debug";
@@ -177,6 +186,7 @@ void
 debug_gate_signal_stop(char signo, struct sigcontext *sc)
 {
     ptrace_info.signo = signo;
+    ptrace_info.gen++;
     if (!sc) 
 	debug_print(debug_dbg, "null struct sigcontext");
     else {

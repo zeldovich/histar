@@ -81,7 +81,7 @@ child_get_status(struct wait_child *wc, int *statusp)
     wstat.w_retcode = exit_code;
 
     if (statusp)
-	*statusp = wstat.w_status;
+	*statusp = wstat.w_status;    
 
     return 1;
 }
@@ -89,6 +89,7 @@ child_get_status(struct wait_child *wc, int *statusp)
 static int
 child_get_siginfo(struct wait_child *wc, int *statusp)
 {
+    static uint64_t gen = 0;
     uint64_t ct = wc->wc_pid;
     int64_t gate_id = container_find(ct, kobj_gate, "debug");
     if (gate_id < 0)
@@ -97,13 +98,14 @@ child_get_siginfo(struct wait_child *wc, int *statusp)
     struct debug_args args;
     args.op = da_wait;
     debug_gate_send(COBJ(ct, gate_id), &args);
-    if (args.ret) {
+    if (args.ret && gen != args.ret_gen) {
 	union wait wstat;
+	gen = args.ret_gen;
 	memset(&wstat, 0, sizeof(wstat));
 	wstat.w_status = W_STOPCODE(args.ret);
 	if (statusp)
 	    *statusp = wstat.w_status;
-		
+
 	return 1;
     }
     
