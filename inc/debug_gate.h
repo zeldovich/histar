@@ -32,10 +32,12 @@ typedef struct user_regs_struct debug_regs;
 typedef struct user_fpregs_struct debug_fpregs;
 
 int64_t debug_gate_send(struct cobj_ref gate, struct debug_args *da);
-void debug_gate_init(void);
-void debug_gate_close(void);
 
 // to be used locally
+void debug_gate_init(void);
+void debug_gate_reset(void);
+void debug_gate_close(void);
 void debug_gate_signal_stop(char signo, struct sigcontext *sc);
+
 
 #endif

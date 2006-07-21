@@ -50,6 +50,7 @@ debug_gate_wait(struct debug_args *da)
 static void
 debug_gate_cont(struct debug_args *da)
 {
+    error_check(sys_sync_wakeup(&ptrace_info.wait));
     da->ret = 0;
 }
 
@@ -108,8 +109,9 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
-    
-    switch(da->op) {
+
+    try {
+	switch(da->op) {
         case da_wait:
 	    debug_gate_wait(da);
 	    break;
@@ -134,6 +136,11 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    da->ret = -1;
 	    cprintf("debug_gate_entry: unkown op %d", da->op);
 	    break;
+	}
+    } catch (basic_exception e) {
+	cprintf("debug_gate_entry: error on op %d: %s", da->op, e.what());
+	// XXX proper error message
+	da->ret = -1;
     }
     gr->ret(0, 0, 0);
 }
@@ -149,17 +156,25 @@ debug_gate_close(void)
 }
 
 void
+debug_gate_reset(void)
+{
+    gs.object = 0;
+    debug_gate_inited = 0;
+    memset(&ptrace_info, 0, sizeof(ptrace_info));
+}
+
+void
 debug_gate_init(void)
 {
-    if (debug_gate_inited) {
-	debug_print(debug_dbg, "attempt to init twice");
-	return;
-    }
     if (!debug_gate_enable)
 	return;
     
-    debug_gate_close();
-
+    if (debug_gate_inited) {
+	cprintf("debug_gate_init: trying to init twice\n");
+	return ;
+    }
+    debug_gate_inited = 1;
+    
     try {
 	label tl, tc;
 	thread_cur_label(&tl);
