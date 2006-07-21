@@ -5,6 +5,8 @@
 
 extern char ptrace_traceme;
 
-void ptrace_on_signal(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc);
+void ptrace_on_signal(struct sigaction *sa, siginfo_t *si, 
+		      struct sigcontext *sc);
+void ptrace_on_exec(void);
 
 #endif

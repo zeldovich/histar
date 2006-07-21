@@ -44,6 +44,12 @@ debug_gate_wait(struct debug_args *da)
 }
 
 static void
+debug_gate_cont(struct debug_args *da)
+{
+    da->ret = 0;
+}
+
+static void
 debug_gate_getregs(struct debug_args *da)
 {
     if (!ptrace_info.signo) {
@@ -64,6 +70,7 @@ debug_gate_getregs(struct debug_args *da)
 	da->ret = sizeof(ptrace_info.regs);
     } else {
 	// XXX fp support
+	// XXX proper error message
 	da->ret = 0;
     }
     scope_guard<int, void*> seg_unmap(segment_unmap, va);
@@ -72,6 +79,24 @@ debug_gate_getregs(struct debug_args *da)
 static void
 debug_gate_peektext(struct debug_args *da)
 {
+    uint64_t *word = (uint64_t *)da->addr;
+    cprintf("word %lx\n", da->addr);
+    da->ret_word = *word;
+    da->ret = 0;
+}
+
+static void
+debug_gate_poketext(struct debug_args *da)
+{
+    // XXX proper error message
+    da->ret = 0;
+}
+
+static void
+debug_gate_setregs(struct debug_args *da)
+{
+    // XXX proper error message
+    scope_guard<int, cobj_ref> seg_unref(sys_obj_unref, da->arg_cobj);
     da->ret = 0;
 }
 
@@ -85,17 +110,29 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
         case da_wait:
 	    debug_gate_wait(da);
 	    break;
+        case da_cont:
+	    debug_gate_cont(da);
+	    break;
         case da_getregs:
         case da_getfpregs:
 	    debug_gate_getregs(da);
 	    break;
+        case da_setregs:
+        case da_setfpregs:
+	    debug_gate_setregs(da);
+	    break;
         case da_peektext:
+	    debug_print(debug_dbg, "peektext");
 	    debug_gate_peektext(da);
 	    break;
+        case da_poketext:
+	    debug_gate_poketext(da);
+	    break;
         default:
+	    da->ret = -1;
+	    cprintf("debug_gate_entry: unkown op %d", da->op);
 	    break;
     }
-    
     gr->ret(0, 0, 0);
 }
 

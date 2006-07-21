@@ -198,6 +198,10 @@ signal_utrap(struct UTrapframe *utf)
 	    cprintf("signal_utrap: cannot enable fp: %s\n", e2s(r));
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
+	} else if (utf->utf_trap_num == T_BRKPT) {
+	    si.si_signo = SIGTRAP;
+	    // XXX can't tell if TRAP_BRKPT or TRAP_TRACE
+	    si.si_code = TRAP_BRKPT;
 	} else {
 	    cprintf("signal_utrap: unknown hw trap %d\n", utf->utf_trap_num);
 

@@ -204,7 +204,7 @@ int
 execve(const char *filename, char *const *argv, char *const *envp) __THROW
 {
     if (ptrace_traceme)
-	kill(getpid(), SIGTRAP);
+	ptrace_on_exec();
     
     try {
         fs_inode bin;

@@ -7,6 +7,10 @@ extern "C" {
 #include <inc/debug_gate.h>
 #include <inc/debug.h>
 
+#include <machine/x86.h>
+
+#include <unistd.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,6 +29,12 @@ ptrace_on_signal(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
     debug_gate_signal_stop(si->si_signo, sc);
     return;
+}
+
+extern "C" void
+ptrace_on_exec(void)
+{
+    breakpoint();
 }
 
 long int
@@ -74,12 +84,51 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	    memcpy(data, regs, args.ret);
 	    return 0;
 	}
+        case PTRACE_SETREGS:
+        case PTRACE_SETFPREGS: {
+	    int size = 0;
+	    if (request == PTRACE_SETREGS) {
+		args.op =  da_setregs;
+		size = sizeof(debug_regs);
+	    } else {
+		args.op = da_setfpregs;
+		size = sizeof(debug_fpregs);
+	    }
+	    struct cobj_ref arg_seg;
+	    void *va = 0;
+	    error_check(segment_alloc(start_env->shared_container,
+				      size, &arg_seg, &va,
+				      0, "regs segment"));
+	    memcpy(va, data, size);
+	    args.arg_cobj = arg_seg;
+	    debug_gate_send(COBJ(ct, gate_id), &args);
+	    return args.ret;
+	}
 	case PTRACE_PEEKTEXT: {
 	    args.op = da_peektext;
 	    args.addr = (uint64_t)addr;
 	    debug_gate_send(COBJ(ct, gate_id), &args);
+	    if (args.ret < 0) 
+		cprintf("ptrace: peektext failure: %ld\n", args.ret);
+	    return args.ret_word;
+	}
+        case PTRACE_POKETEXT: {
+	    args.op = da_poketext;
+	    args.addr = (uint64_t)addr;
+	    args.word = (uint64_t)data;
+	    
+	    debug_gate_send(COBJ(ct, gate_id), &args);
 	    return args.ret;
 	}
+        case PTRACE_CONT:
+	    if (data) {
+		cprintf("ptrace: signal delivery not implemented\n");
+		return -1;
+	    }
+	    args.op = da_cont;
+	    return args.ret;
+        case PTRACE_KILL:
+	    return kill(pid, SIGKILL);
         default:
 	    cprintf("ptrace: unknown request %d\n", request);
 	    print_backtrace();
