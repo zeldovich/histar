@@ -99,6 +99,9 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	    error_check(segment_alloc(start_env->shared_container,
 				      size, &arg_seg, &va,
 				      0, "regs segment"));
+	    scope_guard<int, void*> seg_unmap(segment_unmap, va);
+	    scope_guard<int, cobj_ref> seg_unref(sys_obj_unref, arg_seg);
+
 	    memcpy(va, data, size);
 	    args.arg_cobj = arg_seg;
 	    debug_gate_send(COBJ(ct, gate_id), &args);
