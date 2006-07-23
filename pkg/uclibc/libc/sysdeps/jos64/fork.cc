@@ -107,10 +107,10 @@ do_fork()
 	top_drop.dismiss();
 
 	signal_init();
+	child_clear();
 	debug_gate_reset();
 	debug_gate_init();
-	child_clear();
-
+	
 	return 0;
     }
 
