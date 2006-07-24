@@ -250,6 +250,13 @@ thread_disable_fp(const struct Thread *const_t)
     t->th_fp_enabled = 0;
 }
 
+void
+thread_enable_ss(const struct Thread *const_t)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    t->th_tf.tf_rflags |= FL_TF;
+}
+
 int
 thread_change_label(const struct Thread *const_t,
 		    const struct Label *new_label)
@@ -471,6 +478,9 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
     if (r < 0)
 	goto out;
+
+    if (num == T_DEBUG)
+	t->th_tf.tf_rflags &= ~FL_TF;
 
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_rsp = (uint64_t) utf;

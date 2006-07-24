@@ -670,6 +670,12 @@ sys_self_fp_disable(void)
 }
 
 static void
+sys_self_ss_enable(void)
+{
+    thread_enable_ss(cur_thread);
+}
+
+static void
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(check_user_access(addr, sizeof(*addr), 0));
@@ -851,6 +857,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_get_verify),
     SYSCALL_DISPATCH(self_fp_enable),
     SYSCALL_DISPATCH(self_fp_disable),
+    SYSCALL_DISPATCH(self_ss_enable),
     SYSCALL_DISPATCH(sync_wait),
     SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),
