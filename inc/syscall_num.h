@@ -52,7 +52,6 @@
     SYSCALL_ENTRY(self_set_as)			\
     SYSCALL_ENTRY(self_fp_enable)		\
     SYSCALL_ENTRY(self_fp_disable)		\
-    SYSCALL_ENTRY(self_ss_enable)		\
 						\
     SYSCALL_ENTRY(sync_wait)			\
     SYSCALL_ENTRY(sync_wakeup)			\

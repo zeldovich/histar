@@ -281,12 +281,6 @@ sys_self_fp_disable(void)
 }
 
 int
-sys_self_ss_enable(void)
-{
-    return syscall(SYS_self_ss_enable);
-}
-
-int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_sync_wait, addr, val, msec);
