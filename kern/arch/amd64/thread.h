@@ -71,7 +71,6 @@ void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
 int  thread_enable_fp(const struct Thread *t);
 void thread_disable_fp(const struct Thread *t);
-void thread_enable_ss(const struct Thread *t);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);

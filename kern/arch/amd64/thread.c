@@ -250,13 +250,6 @@ thread_disable_fp(const struct Thread *const_t)
     t->th_fp_enabled = 0;
 }
 
-void
-thread_enable_ss(const struct Thread *const_t)
-{
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
-    t->th_tf.tf_rflags |= FL_TF;
-}
-
 int
 thread_change_label(const struct Thread *const_t,
 		    const struct Label *new_label)
