@@ -71,6 +71,8 @@ typedef struct {
     struct fs_inode fs_cwd;
 
     uint64_t ppid;
+    
+    char trace_on;
 
     int argc;
     int envc;

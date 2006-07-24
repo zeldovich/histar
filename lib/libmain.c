@@ -103,8 +103,13 @@ libmain(uint64_t arg0, uint64_t arg1)
     start_arg0 = arg0;
     start_arg1 = arg1;
 
-    if (start_arg1 == 0)
+    if (start_arg1 == 0) {
 	setup_env(start_arg0);
-
+	if (start_env->trace_on) {
+	    debug_gate_trace_is(1);
+	    debug_gate_breakpoint();
+	}
+    }
+    
     exit(main(argc, &argv[0], environ));
 }
