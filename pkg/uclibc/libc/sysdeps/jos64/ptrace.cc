@@ -22,21 +22,6 @@ extern "C" {
 
 static const char ptrace_dbg = 1;
 
-char ptrace_traceme = 0;
-
-extern "C" void
-ptrace_on_signal(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
-{
-    debug_gate_signal_stop(si->si_signo, sc);
-    return;
-}
-
-extern "C" void
-ptrace_on_exec(void)
-{
-    breakpoint();
-}
-
 long int
 ptrace(enum __ptrace_request request, ...) __THROW
 {
@@ -51,7 +36,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
     va_end(ap);
     
     if (request == PTRACE_TRACEME) {
-	ptrace_traceme = 1;
+	debug_gate_trace_is(1);
 	return 0;
     }
     
@@ -119,7 +104,6 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	    args.op = da_poketext;
 	    args.addr = (uint64_t)addr;
 	    args.word = (uint64_t)data;
-	    
 	    debug_gate_send(COBJ(ct, gate_id), &args);
 	    return args.ret;
 	}

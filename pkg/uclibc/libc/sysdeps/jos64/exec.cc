@@ -5,7 +5,6 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
-#include <inc/ptrace.h>
 #include <inc/debug_gate.h>
 
 #include <unistd.h>
@@ -187,7 +186,10 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     int64_t tid = sys_thread_create(proc_ct, &name[0]);
     error_check(tid);
     struct cobj_ref th_ref = COBJ(proc_ct, tid);
-
+    
+    // want to carry trace over
+    new_env->trace_on = debug_gate_trace();
+    
     // Start it!
     error_check(sys_thread_start(th_ref, &e,
 				 thread_contaminate.to_ulabel(),
@@ -205,9 +207,6 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 int
 execve(const char *filename, char *const *argv, char *const *envp) __THROW
 {
-    if (ptrace_traceme)
-	ptrace_on_exec();
-    
     try {
         fs_inode bin;
         int r = fs_namei(filename, &bin);

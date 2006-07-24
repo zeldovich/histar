@@ -37,7 +37,9 @@ int64_t debug_gate_send(struct cobj_ref gate, struct debug_args *da);
 void debug_gate_init(void);
 void debug_gate_reset(void);
 void debug_gate_close(void);
-void debug_gate_signal_stop(char signo, struct sigcontext *sc);
-
+void debug_gate_trace_is(char b);
+char debug_gate_trace(void);
+void debug_gate_breakpoint(void);
+void debug_gate_on_signal(char signo, struct sigcontext *sc);
 
 #endif

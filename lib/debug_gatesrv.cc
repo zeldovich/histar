@@ -36,6 +36,7 @@ static const char debug_gate_enable = 1;
 static const char debug_dbg = 1;
 
 static char debug_gate_inited = 0;
+static char debug_trace = 0;
 
 static struct cobj_ref debug_gate_as = COBJ(0,0);
 static struct cobj_ref gs = COBJ(0,0);
@@ -222,6 +223,24 @@ debug_gate_as_is(struct cobj_ref as)
     debug_gate_as = as;
 }
 
+extern "C" void 
+debug_gate_trace_is(char b)
+{
+    debug_trace = b;
+}
+
+extern "C" char
+debug_gate_trace(void)
+{
+    return debug_trace;
+}
+
+extern "C" void
+debug_gate_breakpoint(void)
+{
+    breakpoint();
+}
+
 void 
 debug_gate_init(void)
 {
@@ -251,7 +270,7 @@ debug_gate_init(void)
 }
 
 void
-debug_gate_signal_stop(char signo, struct sigcontext *sc)
+debug_gate_on_signal(char signo, struct sigcontext *sc)
 {
     // XXX if another process' thread gets a signal, we end up here.
     // In the case of gdb, we stall forever since the signaled thread 
@@ -308,8 +327,8 @@ debug_gate_signal_stop(char signo, struct sigcontext *sc)
     ptrace_info.gen++;
     debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
     
-    cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx, rip %lx\n", 
-	    thread_id(), getpid(), read_rsp(), (uint64_t)&debug_gate_signal_stop);
+    //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
+    //thread_id(), getpid(), read_rsp());
 
     sys_sync_wait(&ptrace_info.wait, 0, ~0L);
 }
