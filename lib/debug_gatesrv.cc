@@ -183,7 +183,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
 
-    if (!ptrace_info.signo) {
+    if (!ptrace_info.signo && da->op != da_wait) {
 	cprintf("debug_gate_entry: thread not trapped?!?\n");
 	da->ret = -1;
 	gr->ret(0, 0, 0);
