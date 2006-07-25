@@ -91,6 +91,14 @@ debug_gate_cont(struct debug_args *da)
 }
 
 static void
+debug_gate_singlestep(struct debug_args *da)
+{
+    ptrace_info.utf->utf_rflags |= FL_TF;
+    error_check(sys_sync_wakeup(&ptrace_info.wait));
+    da->ret = 0;
+}
+
+static void
 debug_gate_getregs(struct debug_args *da)
 {
     struct cobj_ref ret_seg;
@@ -127,7 +135,7 @@ debug_gate_setregs(struct debug_args *da)
     error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
 			    (void **)&utf, 0, 0));
     scope_guard<int, void*> seg_unmap(segment_unmap, utf);
-    memcpy(ptrace_info.utf, utf, sizeof(*utf));
+    memcpy(ptrace_info.utf, utf, sizeof(ptrace_info.utf));
     da->ret = 0;
 }
 
@@ -138,7 +146,7 @@ debug_gate_setfpregs(struct debug_args *da)
     error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
 			    (void **)&fpregs, 0, 0));
     scope_guard<int, void*> seg_unmap(segment_unmap, fpregs);
-    memcpy(&ptrace_info.fpregs, fpregs, sizeof(*fpregs));
+    memcpy(&ptrace_info.fpregs, fpregs, sizeof(ptrace_info.fpregs));
     da->ret = 0;
 }
 
@@ -174,7 +182,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
-    
+
     if (!ptrace_info.signo) {
 	cprintf("debug_gate_entry: thread not trapped?!?\n");
 	da->ret = -1;
@@ -188,6 +196,9 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    break;
         case da_cont:
 	    debug_gate_cont(da);
+	    break;
+	case da_singlestep:
+	    debug_gate_singlestep(da);
 	    break;
         case da_getregs:
 	    debug_gate_getregs(da);
@@ -316,11 +327,12 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
 	debug_print(debug_dbg, "null struct sigcontext");
     
     ptrace_info.utf = &sc->sc_utf;
+    ptrace_info.utf->utf_rflags &= ~FL_TF;
     fxsave(&ptrace_info.fpregs);
     ptrace_info.signo = signo;
     ptrace_info.gen++;
     debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
-   
+
     //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
     //thread_id(), getpid(), read_rsp());
 

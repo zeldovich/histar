@@ -6,6 +6,7 @@ struct sigcontext;
 typedef enum {
     da_wait = 1,
     da_cont,
+    da_singlestep,
     da_getregs,
     da_getfpregs,
     da_peektext,
