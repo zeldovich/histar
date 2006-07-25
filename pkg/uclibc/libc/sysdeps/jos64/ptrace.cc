@@ -170,6 +170,10 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	args.op = da_cont;
 	debug_gate_send(COBJ(ct, gate_id), &args);
 	return args.ret;
+    case PTRACE_SINGLESTEP:
+	args.op = da_singlestep;
+	debug_gate_send(COBJ(ct, gate_id), &args);
+	return args.ret;
     case PTRACE_KILL:
 	return kill(pid, SIGKILL);
     default:
