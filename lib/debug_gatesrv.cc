@@ -175,6 +175,12 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
     
+    if (!ptrace_info.signo) {
+	cprintf("debug_gate_entry: thread not trapped?!?\n");
+	da->ret = -1;
+	gr->ret(0, 0, 0);
+    }
+
     try {
 	switch(da->op) {
         case da_wait:
@@ -319,6 +325,7 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
     //thread_id(), getpid(), read_rsp());
 
     sys_sync_wait(&ptrace_info.wait, 0, ~0L);
+    ptrace_info.signo = 0;
     fxrstor(&ptrace_info.fpregs);
 }
 
