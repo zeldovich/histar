@@ -21,9 +21,6 @@ extern "C" {
 
 #include <bits/signalgate.h>
 #include <sys/user.h>
-
-
-
 }
 
 #include <inc/gateclnt.hh>
@@ -45,8 +42,9 @@ static struct
 {
     uint64_t wait;
     char     signo;
-    struct user_regs_struct regs;
     uint64_t gen;
+    struct UTrapframe *utf;
+    struct Fpregs fpregs;
 } ptrace_info;
 
 static void
@@ -95,28 +93,53 @@ debug_gate_cont(struct debug_args *da)
 static void
 debug_gate_getregs(struct debug_args *da)
 {
-    if (!ptrace_info.signo) {
-	debug_print(debug_dbg, "process not stopped!?");
-	da->ret = -1;
-	return;
-    }
-
     struct cobj_ref ret_seg;
-    void *va = 0;
-    if (da->op == da_getregs) {
-	error_check(segment_alloc(start_env->shared_container,
-				  sizeof(ptrace_info.regs),
-				  &ret_seg, &va,
-				  0, "regs segment"));
-	memcpy(va, &ptrace_info.regs, sizeof(ptrace_info.regs));
-	da->ret_cobj = ret_seg;
-	da->ret = sizeof(ptrace_info.regs);
-    } else {
-	// XXX fp support
-	// XXX proper error message
-	da->ret = 0;
-    }
-    scope_guard<int, void*> seg_unmap(segment_unmap, va);
+    struct UTrapframe *utf = 0;
+    error_check(segment_alloc(start_env->shared_container,
+			      sizeof(*utf),
+			      &ret_seg, (void **)&utf,
+			      0, "regs segment"));
+    scope_guard<int, void*> seg_unmap(segment_unmap, utf);
+    memcpy(utf, ptrace_info.utf, sizeof(struct UTrapframe));
+    da->ret_cobj = ret_seg;
+    da->ret = 0;
+}
+
+static void
+debug_gate_getfpregs(struct debug_args *da)
+{
+    struct cobj_ref ret_seg;
+    struct Fpregs *fpregs = 0;
+    error_check(segment_alloc(start_env->shared_container,
+			      sizeof(*fpregs),
+			      &ret_seg, (void **)&fpregs,
+			      0, "fpregs segment"));
+    scope_guard<int, void*> seg_unmap(segment_unmap, fpregs);
+    memcpy(fpregs, &ptrace_info.fpregs, sizeof(*fpregs));
+    da->ret_cobj = ret_seg;
+    da->ret = 0;
+}
+
+static void
+debug_gate_setregs(struct debug_args *da)
+{
+    struct UTrapframe *utf;
+    error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
+			    (void **)&utf, 0, 0));
+    scope_guard<int, void*> seg_unmap(segment_unmap, utf);
+    memcpy(ptrace_info.utf, utf, sizeof(*utf));
+    da->ret = 0;
+}
+
+static void
+debug_gate_setfpregs(struct debug_args *da)
+{
+    struct Fpregs *fpregs;
+    error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
+			    (void **)&fpregs, 0, 0));
+    scope_guard<int, void*> seg_unmap(segment_unmap, fpregs);
+    memcpy(&ptrace_info.fpregs, fpregs, sizeof(*fpregs));
+    da->ret = 0;
 }
 
 static void
@@ -144,18 +167,6 @@ debug_gate_poketext(struct debug_args *da)
 	cprintf("debug_gate_poketext: unable to write word: %s\n", e.what());
 	da->ret = -1;
     }
-
-    //debug_print(debug_dbg, "word %lx to addr %lx\n", da->word, da->addr);
-    //uint64_t *addr = (uint64_t *)da->addr;
-    //*addr = da->word;
-    //da->ret = 0;
-}
-
-static void
-debug_gate_setregs(struct debug_args *da)
-{
-    // XXX proper error message
-    da->ret = 0;
 }
 
 static void __attribute__ ((noreturn))
@@ -173,12 +184,16 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    debug_gate_cont(da);
 	    break;
         case da_getregs:
-        case da_getfpregs:
 	    debug_gate_getregs(da);
 	    break;
+        case da_getfpregs:
+	    debug_gate_getfpregs(da);
+	    break;
         case da_setregs:
-        case da_setfpregs:
 	    debug_gate_setregs(da);
+	    break;
+        case da_setfpregs:
+	    debug_gate_setfpregs(da);
 	    break;
         case da_peektext:
 	    debug_gate_peektext(da);
@@ -213,6 +228,9 @@ void
 debug_gate_reset(void)
 {
     gs.object = 0;
+    debug_gate_as.object = 0;
+    // keep for now...
+    //debug_trace = 0;
     debug_gate_inited = 0;
     memset(&ptrace_info, 0, sizeof(ptrace_info));
 }
@@ -290,47 +308,18 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
 
     if (!sc) 
 	debug_print(debug_dbg, "null struct sigcontext");
-    else {
-        struct UTrapframe *u = &sc->sc_utf;
-	struct user_regs_struct *r = &ptrace_info.regs;
-	
-	r->r15 = u->utf_r15;
-	r->r14 = u->utf_r14;
-	r->r13 = u->utf_r13;
-	r->r12 = u->utf_r12;
-	r->rbp = u->utf_rbp;
-	r->rbx = u->utf_rbx;
-	r->r11 = u->utf_r11;
-	r->r10 = u->utf_r10;
-	r->r9 = u->utf_r9;
-	r->r8 = u->utf_r8;
-	r->rax = u->utf_rax;
-	r->rcx = u->utf_rcx;
-	r->rdx = u->utf_rdx;
-	r->rsi = u->utf_rsi;
-	r->rdi = u->utf_rdi;
-	//r->orig_rax = 
-	r->rip = u->utf_rip;
-	//r->cs = 
-	r->eflags = u->utf_rflags;
-	r->rsp = u->utf_rsp;
-	//r->ss = 
-	//r->fs_base = 
-	//r->gs_base =
-	//r->ds = 
-	//r->es = 
-	//r->fs =
-	//r->gs = 
-    }
     
+    ptrace_info.utf = &sc->sc_utf;
+    fxsave(&ptrace_info.fpregs);
     ptrace_info.signo = signo;
     ptrace_info.gen++;
     debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
-    
+   
     //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
     //thread_id(), getpid(), read_rsp());
 
     sys_sync_wait(&ptrace_info.wait, 0, ~0L);
+    fxrstor(&ptrace_info.fpregs);
 }
 
 extern "C" int64_t
