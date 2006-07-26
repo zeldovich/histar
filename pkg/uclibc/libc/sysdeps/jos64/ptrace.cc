@@ -20,7 +20,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
 
-static const char ptrace_dbg = 1;
+static const char ptrace_dbg = 0;
 
 static void 
 copy_to_utf(struct UTrapframe *u, struct user_regs_struct *r)
