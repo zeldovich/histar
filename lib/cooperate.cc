@@ -144,7 +144,7 @@ coop_gate_create(uint64_t container,
     scope_guard<int, cobj_ref> as_unref(sys_obj_unref, as);
 
     struct u_segment_mapping usm[coop_as_slots];
-    struct u_address_space uas = { coop_as_slots, coop_as_slots, &usm[0] };
+    struct u_address_space uas = { 0, 0, 0, coop_as_slots, coop_as_slots, &usm[0] };
     coop_gen_as(status_seg, text_seg, data_seg_len, &uas);
     error_check(sys_as_set(as, &uas));
 
@@ -191,13 +191,16 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
     should_be(r == 1);
 
     struct u_segment_mapping usm_actual[coop_as_slots];
-    struct u_address_space uas_actual = { coop_as_slots, coop_as_slots, &usm_actual[0] };
+    struct u_address_space uas_actual = { 0, 0, 0, coop_as_slots, coop_as_slots, &usm_actual[0] };
 
     struct u_segment_mapping usm_ideal[coop_as_slots];
-    struct u_address_space uas_ideal = { coop_as_slots, coop_as_slots, &usm_ideal[0] };
+    struct u_address_space uas_ideal = { 0, 0, 0, coop_as_slots, coop_as_slots, &usm_ideal[0] };
 
     error_check(sys_as_get(te.te_as, &uas_actual));
     should_be(uas_actual.nent == coop_as_slots);
+    should_be(uas_actual.trap_handler == 0);
+    should_be(uas_actual.trap_stack_base == 0);
+    should_be(uas_actual.trap_stack_top == 0);
 
     cobj_ref status_seg = uas_actual.ents[0].segment;
     cobj_ref data_seg = uas_actual.ents[1].segment;

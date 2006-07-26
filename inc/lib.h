@@ -36,6 +36,7 @@ int	segment_lookup(void *va, struct u_segment_mapping *usm);
 int	segment_lookup_skip(void *va, struct u_segment_mapping *usm,
 			    uint64_t skip_flags);
 int	segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm);
+int	segment_set_utrap(void *entry, void *stack_base, void *stack_top);
 
 /* Notify that the thread has changed AS objects */
 void	segment_as_switched(void);

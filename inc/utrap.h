@@ -4,8 +4,7 @@
 #include <machine/utrap.h>
 
 /* Assembly stubs */
-void utrap_stub(void);
-void utrap_stub_end(void);
+void utrap_entry_asm(void);
 void utrap_ret(struct UTrapframe *utf) __attribute__((noreturn));
 
 /* C fault handler */

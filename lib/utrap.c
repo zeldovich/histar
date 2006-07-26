@@ -31,25 +31,12 @@ utrap_entry(struct UTrapframe *utf)
 int
 utrap_init(void)
 {
-    int xstack_pages = 2;
-
-    void *utrap_stack = (void *) UTRAPSTACKTOP - xstack_pages * PGSIZE;
-    uint64_t nbytes = (xstack_pages + 1) * PGSIZE;
-    struct cobj_ref o;
-    int r = segment_alloc(start_env->proc_container, nbytes,
-			  &o, &utrap_stack, 0, "trap stack");
-    if (r < 0)
+    int r = segment_set_utrap(&utrap_entry_asm, tls_base, tls_stack_top);
+    if (r < 0) {
+	cprintf("utrap_init: cannot set trap entry: %s\n", e2s(r));
 	return r;
+    }
 
-    void *utrap_code = (void *) UTRAPHANDLER - xstack_pages * PGSIZE;
-    r = segment_map(o, 0, SEGMAP_READ | SEGMAP_EXEC, &utrap_code, &nbytes, 0);
-    if (r < 0)
-	return r;
-
-    uint32_t utrap_stub_size = (uint32_t) ((void *) utrap_stub_end -
-					   (void *) utrap_stub);
-    memcpy(utrap_stack + xstack_pages * PGSIZE, (void *) utrap_stub,
-	   utrap_stub_size);
     return 0;
 }
 

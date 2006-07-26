@@ -1,12 +1,5 @@
 #include <machine/asm.h>
 
-ENTRY(utrap_stub)
-	// This piece has to be position-independent.
-	movq	$utrap_entry_asm, %rax
-	jmp	*%rax
-ENTRY(utrap_stub_end)
-	nop
-
 ENTRY(utrap_entry_asm)
 	.cfi_startproc
 

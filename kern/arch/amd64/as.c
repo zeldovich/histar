@@ -133,6 +133,9 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
     }
 
     uas->nent = nent;
+    uas->trap_handler = (void *) as->as_utrap_entry;
+    uas->trap_stack_base = (void *) as->as_utrap_stack_base;
+    uas->trap_stack_top = (void *) as->as_utrap_stack_top;
     return 0;
 }
 
@@ -182,6 +185,9 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     }
 
     r = 0;
+    as->as_utrap_entry = (uintptr_t) uas->trap_handler;
+    as->as_utrap_stack_base = (uintptr_t) uas->trap_stack_base;
+    as->as_utrap_stack_top = (uintptr_t) uas->trap_stack_top;
 out:
     as_invalidate(as);
     return r;

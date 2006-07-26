@@ -28,6 +28,10 @@ LIST_HEAD(segmap_list, segment_mapping);
 struct Address_space {
     struct kobject_hdr as_ko;
 
+    uintptr_t as_utrap_entry;
+    uintptr_t as_utrap_stack_base;
+    uintptr_t as_utrap_stack_top;
+
     struct pagetree as_segmap_pt;
     struct Pagemap *as_pgmap;
     kobject_id_t as_pgmap_tid;

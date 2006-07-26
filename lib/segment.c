@@ -341,6 +341,38 @@ segment_unmap(void *va)
 }
 
 int
+segment_set_utrap(void *entry, void *stack_base, void *stack_top)
+{
+    as_mutex_lock();
+
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    r = cache_refresh(as_ref);
+    if (r < 0) {
+	as_mutex_unlock();
+	return r;
+    }
+
+    cache_uas.trap_handler = entry;
+    cache_uas.trap_stack_base = stack_base;
+    cache_uas.trap_stack_top = stack_top;
+    r = sys_as_set(as_ref, &cache_uas);
+    if (r < 0) {
+	cache_invalidate();
+	as_mutex_unlock();
+	return r;
+    }
+
+    as_mutex_unlock();
+    return 0;
+}
+
+int
 segment_lookup(void *va, struct u_segment_mapping *usm)
 {
     return segment_lookup_skip(va, usm, 0);

@@ -446,14 +446,21 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     if (r < 0)
 	return r;
 
+    // Switch the current thread to the trap target thread, temporarily,
+    // to ensure its privileges & thread-local segment are used.
+    const struct Thread *saved_cur = cur_thread;
+    cur_thread = t;
+
+    // Switch to trap target thread's address space.
     as_switch(t->th_as);
 
     void *stacktop;
     uint64_t rsp = t->th_tf.tf_rsp;
-    if (rsp > UTRAPSTACK && rsp < UTRAPSTACKTOP)
+    if (rsp > t->th_as->as_utrap_stack_base &&
+	rsp <= t->th_as->as_utrap_stack_top)
 	stacktop = (void *) rsp - 128;	// Skip red zone (see ABI spec)
     else
-	stacktop = (void *) UTRAPSTACKTOP;
+	stacktop = (void *) t->th_as->as_utrap_stack_top;
 
     struct UTrapframe t_utf;
     t_utf.utf_trap_src = src;
@@ -474,11 +481,12 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
 
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_rsp = (uint64_t) utf;
-    t->th_tf.tf_rip = UTRAPHANDLER;
+    t->th_tf.tf_rip = t->th_as->as_utrap_entry;
     t->th_tf.tf_rflags &= ~FL_TF;
     thread_set_runnable(t);
 
 out:
     as_switch(cur_thread->th_as);
+    cur_thread = saved_cur;
     return r;
 }

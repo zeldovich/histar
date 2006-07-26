@@ -144,7 +144,10 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     sm_ents[si].va = stacktop - thread_stack_pages * PGSIZE;
     si++;
 
-    struct u_address_space uas = { .nent = si, .ents = &sm_ents[0] };
+    struct u_address_space uas = { .trap_handler = 0,
+				   .trap_stack_base = 0,
+				   .trap_stack_top = 0,
+				   .nent = si, .ents = &sm_ents[0] };
     int64_t as_id = sys_as_create(container, label, &elfname[0]);
     if (as_id < 0) {
 	cprintf("elf_load: cannot create address space: %s\n", e2s(as_id));
