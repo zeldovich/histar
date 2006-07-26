@@ -30,7 +30,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static const char debug_gate_enable = 1;
-static const char debug_dbg = 1;
+static const char debug_dbg = 0;
 
 static char debug_gate_inited = 0;
 static char debug_trace = 0;
@@ -43,7 +43,7 @@ static struct
     uint64_t wait;
     char     signo;
     uint64_t gen;
-    struct UTrapframe *utf;
+    struct UTrapframe utf;
     struct Fpregs fpregs;
 } ptrace_info;
 
@@ -60,7 +60,7 @@ debug_gate_map_code(struct cobj_ref as, void **code_start, uint64_t *code_off)
     
     for (uint64_t i = 0; i < uas.nent; i++) {
 	if (uas.ents[i].flags & SEGMAP_EXEC && 
-	    (uint64_t)uas.ents[i].va == 0x400000) {
+	    (uint64_t)uas.ents[i].va == 0x400000) {  // XXX
 	    uint64_t start = uas.ents[i].start_page * PGSIZE;
 	    uint64_t nbytes = uas.ents[i].num_pages * PGSIZE;
 	    cobj_ref seg = uas.ents[i].segment;
@@ -93,7 +93,7 @@ debug_gate_cont(struct debug_args *da)
 static void
 debug_gate_singlestep(struct debug_args *da)
 {
-    ptrace_info.utf->utf_rflags |= FL_TF;
+    ptrace_info.utf.utf_rflags |= FL_TF;
     error_check(sys_sync_wakeup(&ptrace_info.wait));
     da->ret = 0;
 }
@@ -108,7 +108,8 @@ debug_gate_getregs(struct debug_args *da)
 			      &ret_seg, (void **)&utf,
 			      0, "regs segment"));
     scope_guard<int, void*> seg_unmap(segment_unmap, utf);
-    memcpy(utf, ptrace_info.utf, sizeof(struct UTrapframe));
+    memcpy(utf, &ptrace_info.utf, sizeof(struct UTrapframe));
+    
     da->ret_cobj = ret_seg;
     da->ret = 0;
 }
@@ -135,7 +136,8 @@ debug_gate_setregs(struct debug_args *da)
     error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
 			    (void **)&utf, 0, 0));
     scope_guard<int, void*> seg_unmap(segment_unmap, utf);
-    memcpy(ptrace_info.utf, utf, sizeof(ptrace_info.utf));
+    memcpy(&ptrace_info.utf, utf, sizeof(ptrace_info.utf));
+
     da->ret = 0;
 }
 
@@ -325,12 +327,14 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
 
     if (!sc) 
 	debug_print(debug_dbg, "null struct sigcontext");
-    
-    ptrace_info.utf = &sc->sc_utf;
-    ptrace_info.utf->utf_rflags &= ~FL_TF;
+
+    struct UTrapframe *utf = &sc->sc_utf;
+    memcpy(&ptrace_info.utf, utf, sizeof(ptrace_info.utf));
+    ptrace_info.utf.utf_rflags &= ~FL_TF;
     fxsave(&ptrace_info.fpregs);
     ptrace_info.signo = signo;
     ptrace_info.gen++;
+    
     debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
 
     //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
@@ -338,6 +342,7 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
 
     sys_sync_wait(&ptrace_info.wait, 0, ~0L);
     ptrace_info.signo = 0;
+    memcpy(utf, &ptrace_info.utf, sizeof(*utf));
     fxrstor(&ptrace_info.fpregs);
 }
 
