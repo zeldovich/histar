@@ -102,16 +102,15 @@ struct Fd
 	    pthread_mutex_t mu;
 	    char buf[4000];
 	} fd_pipe;
-
 	struct {
-        struct cobj_ref bipipe_seg;
-        int bipipe_a;
+	    struct cobj_ref bipipe_seg;
+	    int bipipe_a;
 	} fd_bipipe;
-
-    struct {
-        struct rem_inode ino;
-    } fd_remfile;
-
+	struct {
+	    struct cobj_ref gate;
+	    uint32_t bytes;
+	    char buf[200];
+	} fd_gate;
 	struct {
 	    struct cobj_ref tun_seg;
 	    int tun_a;
@@ -142,6 +141,7 @@ extern struct Dev devbipipe;	/* type 'b' */
 extern struct Dev devrand;  	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
+extern struct Dev devgate;      /* type 'g' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

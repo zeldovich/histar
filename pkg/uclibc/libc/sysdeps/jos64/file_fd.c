@@ -6,6 +6,7 @@
 #include <inc/tun.h>
 #include <inc/rand.h>
 #include <inc/chardevs.h>
+#include <inc/gate_fd.h>
 #include <inc/syscall.h>
 
 #include <errno.h>
@@ -92,6 +93,9 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL)) {
 	    __set_errno(EEXIST);
 	    return -1;
+	}
+	if (sys_obj_get_type(ino.obj) == kobj_gate) {
+	    return gatefd(ino.obj, flags);
 	}
     } else if (r == -E_NOT_FOUND) {
 	if (!(flags & O_CREAT)) {
