@@ -19,10 +19,12 @@ struct global_entry
     level_t level;
 } __attribute__((packed));
 
+typedef void (global_converter)(uint64_t cat, global_cat *gcat);
+
 class global_label 
 {
 public:
-    global_label(label *local);
+    global_label(label *local, global_converter *get_global);
     global_label(const char *serial);
     ~global_label(void) {
         delete entry_;

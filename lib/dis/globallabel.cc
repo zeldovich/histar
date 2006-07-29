@@ -12,21 +12,6 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
-static void 
-get_global(uint64_t h, global_cat *global)
-{
-    /*
-    uint64_t k;
-    catc cc;
-    if (cc.owns(h, &k)) {
-        global->k = k;
-        global->original = h;    
-    }
-    else
-    */
-    throw basic_exception("cannot convert %ld", h);
-}
-
 static char
 level_to_char(level_t lv)
 {
@@ -38,7 +23,8 @@ level_to_char(level_t lv)
     return lbuf[0];
 }
 
-global_label::global_label(label *local) : serial_(0), string_(0)
+global_label::global_label(label *local, global_converter *get_global) 
+    : serial_(0), string_(0)
 {
     ulabel *ul = local->to_ulabel();
     entries_ = ul->ul_nent;
@@ -49,7 +35,7 @@ global_label::global_label(label *local) : serial_(0), string_(0)
         for (uint64_t i = 0; i < ul->ul_nent; i++) {
             uint64_t h = LB_HANDLE(ul->ul_ent[i]);
             level_t l = LB_LEVEL(ul->ul_ent[i]);
-            get_global(h, &entry_[i].global);
+            (*get_global)(h, &entry_[i].global);
             entry_[i].level = l;
         }
     }
@@ -137,15 +123,3 @@ global_label::string_rep(void) const
     strcpy(string_, buf);
     return string_;
 }
-
-global_label *
-global_label::global_for_obj(const char *path)
-{
-    fs_inode ino;
-    error_check(fs_namei(path, &ino));
-    label seg_label;
-    obj_get_label(ino.obj, &seg_label);
-    
-    return new global_label(&seg_label);  
-}
-
