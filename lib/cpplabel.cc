@@ -138,6 +138,56 @@ label::copy_from(const struct ulabel *src)
 	set(LB_HANDLE(src->ul_ent[i]), LB_LEVEL(src->ul_ent[i]));
 }
 
+level_t
+label::string_to_level(const char *str)
+{
+    if (*str == '*')
+	return LB_LEVEL_STAR;
+    return atoi(str);
+}
+
+void
+label::copy_from(const char *src)
+{
+    static const uint32_t bufsize = 32;
+    char buf[bufsize];
+    const char *str = src;
+    int len = strlen(str);
+    if (!len)
+	return;
+    
+    int i;
+    // get default
+    for (i = len - 1; 
+	 i >= 0 && (str[i] < '0' || str[i] > '9') && str[i] != '*'; i--);
+    for (; i >= 0 && str[i] != ' '; i--);
+    if (i < 0)
+	throw error(-E_INVAL, "bad label string: %s", src);
+
+    const char *def = &str[i + 1];
+    reset(string_to_level(def));
+    
+    // do the non-default
+    if (*str == '{')
+	str++;
+    while (*str == ' ')
+	str++;
+
+    char *str2 = 0;
+    while ((str2 = strchr(str, ' '))) {
+	int n = str2 - str;
+	memcpy(buf, str, n);
+	buf[n] = 0;
+	char *lev = strchr(buf, ':');
+	if (!lev)
+	    return;
+	*lev = 0;
+	lev++;
+	set(atol(buf), string_to_level(lev));
+	str = str2 + 1;
+    }
+}
+
 int
 label::compare(label *b, label_comparator cmp)
 {

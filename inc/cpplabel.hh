@@ -31,6 +31,7 @@ public:
 
     void copy_from(const label *src);
     void copy_from(const struct ulabel *src);
+    void copy_from(const char *src);
 
     int compare(label *b, label_comparator cmp);
     void merge(label *b, label *out, level_merger m, level_comparator cmp);
@@ -51,6 +52,8 @@ private:
     uint64_t *slot_grow(uint64_t handle);
     uint64_t *slot_find(uint64_t handle) const;
     uint64_t *slot_alloc(uint64_t handle);
+
+    static level_t string_to_level(const char *str);
 
     bool dynamic_;
     struct ulabel ul_;
