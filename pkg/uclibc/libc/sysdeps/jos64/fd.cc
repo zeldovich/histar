@@ -882,6 +882,34 @@ recvmsg(int fdnum, struct msghdr *msg, int flags) __THROW
     return -1;
 }
 
+int 
+fchdir(int fdnum) __THROW
+{
+    struct Fd *fd;
+    int r;
+    
+    if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
+	cprintf("fchdir(%d): %s\n", fdnum, e2s(r));
+	__set_errno(EBADF);
+	return -1;
+    }
+    
+    if (fd->fd_dev_id != 'f') {
+	cprintf("fchdir(%d): not a dir\n", fdnum);
+	__set_errno(ENOTDIR);
+	return -1;
+    }
+    start_env->fs_cwd = fd->fd_file.ino;
+    return 0;
+}
+
+int
+fstat64 (int __fd, struct stat64 *__buf) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
 int
 fstat(int fdnum, struct stat *buf) __THROW
 {
@@ -1105,8 +1133,19 @@ __getdents (int fdnum, struct dirent *buf, size_t nbytes)
     return FD_CALL(fdnum, getdents, buf, nbytes);
 }
 
+extern "C" ssize_t
+__getdents64(int fdnum, struct dirent *buf, uint64_t nbytes)
+{
+    return FD_CALL(fdnum, getdents, buf, nbytes);
+}
+
 int
 ftruncate(int fdnum, off_t length) __THROW
+{
+    return FD_CALL(fdnum, trunc, length);
+}
+
+int ftruncate64 (int fdnum, off64_t length) __THROW
 {
     return FD_CALL(fdnum, trunc, length);
 }
@@ -1115,6 +1154,12 @@ int
 fsync(int fdnum) __THROW
 {
     return FD_CALL(fdnum, sync);
+}
+
+int 
+fdatasync(int fdnum) __THROW
+{
+    return fsync(fdnum);
 }
 
 int

@@ -164,9 +164,28 @@ stat(const char *file_name, struct stat *buf)
 }
 
 int
+stat64(const char *file_name, struct stat64 *buf) __THROW
+{
+    int fd = open(file_name, O_RDONLY);
+    if (fd < 0)
+	return fd;
+    
+    int r = fstat64(fd, buf);
+    close(fd);
+    
+    return r;
+}
+
+int
 lstat(const char *file_name, struct stat *buf)
 {
     return stat(file_name, buf);
+}
+
+int 
+lstat64 (const char *file_name, struct stat64 *buf) __THROW
+{
+    return stat64(file_name, buf);
 }
 
 int
