@@ -121,11 +121,12 @@ acpkg/gdb-6.5/gdb/config/i386/__gl:
 	ln -fs $(TOP)/pkg/gdb-gl/jos64-nat.c 	\
 	       $(TOP)/acpkg/gdb-6.5/gdb/jos64-nat.c
 	touch $@
-
-$(OBJDIR)/acpkg/bin/gdbserver:
-$(OBJDIR)/acpkg/bin/gdb: acpkg/gdb-6.5/gdb/config/i386/__gl   \
-			 $(OBJDIR)/lib/libncurses.a	      \
-			 acpkg/gdb-6.5/__build		
+			
+$(OBJDIR)/acpkg/bin/gdbserver 		     \
+$(OBJDIR)/acpkg/bin/gdb: 		     \
+	acpkg/gdb-6.5/gdb/config/i386/__gl   \
+	$(OBJDIR)/lib/libncurses.a	     \
+	acpkg/gdb-6.5/__build		
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
@@ -203,10 +204,7 @@ $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
-acpkg/openssl-0.9.8a/Makefile: acpkg/zlib-1.2.3/__build
-acpkg/openssl-0.9.8a/Makefile: acpkg/openssl-0.9.8a/__patch
-acpkg/openssl-0.9.8a/__build: $(ACPKG_WRAPS) $(LDEPS)
-	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
+acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch $(ACPKG_WRAPS) $(LDEPS)
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" )
