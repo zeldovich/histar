@@ -12,3 +12,4 @@ UCLIBC_CXXFLAGS = $(USER_CXXFLAGS) -D_LIBC
 include pkg/uclibc/libc/Makefrag
 include pkg/uclibc/libm/Makefrag
 include pkg/uclibc/libcrypt/Makefrag
+include pkg/uclibc/libutil/Makefrag

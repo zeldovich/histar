@@ -1,0 +1,16 @@
+OBJDIRS += pkg/uclibc/libutil
+
+LIBUTIL_CSRC := openpty.c
+LIBUTIL_CSRC := $(patsubst %.c, pkg/uclibc/libutil/%.c, $(LIBUTIL_CSRC))
+LIBUTIL_COBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIBUTIL_CSRC))
+
+LIBUTIL_CFLAGS := -D_IEEE_LIBM -D_ISOC99_SOURCE -D_SVID_SOURCE
+
+$(LIBUTIL_COBJFILES): $(OBJDIR)/pkg/uclibc/libutil/%.o : pkg/uclibc/libutil/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) $(LIBUTIL_CFLAGS) $< -c -o $@
+
+$(OBJDIR)/lib/libutil.a: $(LIBUTIL_COBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBUTIL_COBJFILES)
