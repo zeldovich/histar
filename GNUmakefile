@@ -70,7 +70,8 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libm.a \
-	   $(OBJDIR)/lib/libcrypt.a
+	   $(OBJDIR)/lib/libcrypt.a \
+	   $(OBJDIR)/lib/libutil.a	
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 	   -specs=$(TOP)/conf/gcc.specs
 
