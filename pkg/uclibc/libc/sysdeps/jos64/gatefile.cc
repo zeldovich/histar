@@ -16,17 +16,17 @@ extern "C" {
 #include <inc/gateclnt.hh>
 
 static int64_t
-gatefile_send(struct cobj_ref gate, struct gatefd_args *args, label *ds)
+gatefile_send(struct cobj_ref gate, struct gatefd_args *args)
 {
     struct gate_call_data gcd;
     struct gatefd_args *args2 = (struct gatefd_args *) &gcd.param_buf[0];
     memcpy(args2, args, sizeof(*args2));
     try {
-	label ver(3);
-	ver.set(start_env->process_grant, LB_LEVEL_STAR);
-	gate_call(gate, 0, ds, 0).call(&gcd, &ver);
+	label ds(3);
+	ds.set(start_env->process_grant, LB_LEVEL_STAR);
+	gate_call(gate, 0, &ds, 0).call(&gcd, &ds);
     } catch (std::exception &e) {
-	cprintf("gatefd_send:: %s\n", e.what());
+	cprintf("gatefile_send:: %s\n", e.what());
 	errno = EPERM;
 	return -1;
     }
@@ -40,7 +40,7 @@ gatefile_open(struct cobj_ref gate, int flags)
     struct gatefd_args args;
     args.call.op = gf_call_open;
     args.call.arg = start_env->process_grant;
-    if (gatefile_send(gate, &args, 0) < 0)
+    if (gatefile_send(gate, &args) < 0)
 	return -1;
     
     switch (args.ret.op) {

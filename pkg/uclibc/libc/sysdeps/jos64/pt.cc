@@ -20,17 +20,17 @@ extern "C" {
 #include <inc/error.hh>
 
 static int64_t
-pt_send(struct cobj_ref gate, void *args, uint64_t n, label *ds)
+pt_send(struct cobj_ref gate, void *args, uint64_t n)
 {
     struct gate_call_data gcd;
     void *args2 = (void *) &gcd.param_buf[0];
     memcpy(args2, args, n);
     try {
-	label ver(3);
-	ver.set(start_env->process_grant, LB_LEVEL_STAR);
-	gate_call(gate, 0, ds, 0).call(&gcd, &ver);
+	label ds(3);
+	ds.set(start_env->process_grant, LB_LEVEL_STAR);
+	gate_call(gate, 0, &ds, 0).call(&gcd, &ds);
     } catch (std::exception &e) {
-	cprintf("gatefd_send:: %s\n", e.what());
+	cprintf("pt_send:: %s\n", e.what());
 	errno = EPERM;
 	return -1;
     }
@@ -121,12 +121,12 @@ ptm_open(struct cobj_ref master_gt, struct cobj_ref slave_gt, int flags)
     struct pts_gate_args args;
     args.pts_args.op = pts_op_seg;
     args.pts_args.arg = seg;
-    if ((pt_send(slave_gt, &args, sizeof(args), 0) < 0) ||
+    if ((pt_send(slave_gt, &args, sizeof(args)) < 0) ||
 	(args.pts_args.ret < 0)) {
 	jos_fd_close(fdm);
 	struct pts_gate_args args2;
 	args2.pts_args.op = pts_op_close;
-	pt_send(master_gt, &args2, sizeof(args2), 0);
+	pt_send(master_gt, &args2, sizeof(args2));
 	return -1;
     }
     
@@ -160,7 +160,7 @@ pt_close(struct Fd *fd)
     try {
 	struct pts_gate_args args;
 	args.pts_args.op = pts_op_close;
-	error_check(pt_send(fd->fd_pt.gate, &args, sizeof(args), 0));
+	error_check(pt_send(fd->fd_pt.gate, &args, sizeof(args)));
 	error_check((*devbipipe.dev_close)(fd));
     } catch (basic_exception e) {
 	cprintf("pt_close: %s\n", e.what());
