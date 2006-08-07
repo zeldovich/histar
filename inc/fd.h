@@ -114,13 +114,6 @@ struct Fd
 	    char is_master;
 	} fd_pt;
 	struct {
-	    struct cobj_ref gate;
-	    uint64_t id;
-	    
-	    uint32_t bytes;
-	    char buf[200];
-	} fd_gate;
-	struct {
 	    struct cobj_ref tun_seg;
 	    int tun_a;
 	} fd_tun;
@@ -150,7 +143,6 @@ extern struct Dev devbipipe;	/* type 'b' */
 extern struct Dev devrand;  	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
-extern struct Dev devgate;      /* type 'g' */
 extern struct Dev devpt;        /* type 'y' */
 
 int	dup2_as(int oldfd, int newfd,
