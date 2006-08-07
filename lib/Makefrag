@@ -60,8 +60,7 @@ LIB_SRCFILES :=	\
 	lib/pthread.c \
 	lib/arc4.c \
 	lib/cooperate.cc \
-	lib/debug_gatesrv.cc \
-	lib/gate_fd.cc
+	lib/debug_gatesrv.cc
 	
 include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag

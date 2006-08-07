@@ -11,23 +11,6 @@
 #include <signal.h>
 #include <sys/socket.h>
 
-enum { bipipe_bufsz = 2000 };
-
-struct one_pipe {
-    char buf[bipipe_bufsz];
-
-    char reader_waiting;
-    char writer_waiting;
-    char open;
-    uint32_t read_ptr;  /* read at this offset */
-    uint64_t bytes; /* # bytes in circular buffer */
-    pthread_mutex_t mu;
-};
-
-struct bipipe_seg {
-    struct one_pipe p[2];
-};
-
 int
 bipipe(int fv[2])
 {
@@ -83,7 +66,6 @@ bipipe(int fv[2])
     segment_unmap_delayed(bs, 1);
     return 0;
 }
-
 
 static ssize_t
 bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)

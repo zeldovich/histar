@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
+#include <inc/pt.h>
 
 #include <termios/kernel_termios.h>
 #include <bits/unimpl.h>
@@ -493,7 +494,7 @@ static struct Dev *devtab[] =
     &devrand,
     &devzero,
     &devnull,
-    &devgate,
+    &devpt,
     0
 };
 
@@ -935,15 +936,45 @@ fstat(int fdnum, struct stat *buf) __THROW
 int 
 fstatfs(int fdnum, struct statfs *buf) __THROW
 {
-    set_enosys();
-    return -1;
+    
+    struct Fd *fd;
+    struct cobj_ref fd_obj;
+    uint64_t fd_flags;
+    int r;
+    
+    if ((r = fd_lookup(fdnum, &fd, &fd_obj, &fd_flags)) < 0) {
+	__set_errno(EBADF);
+	return -1;
+    }
+    
+    if (fd->fd_dev_id != 'f') {
+	cprintf("fstatfs(%d): not a file\n", fdnum);
+	__set_errno(ENOTSUP);
+	return -1;
+    }
+    
+    struct fs_object_meta m;
+    if (sys_obj_get_meta(fd->fd_file.ino.obj, &m) < 0) {
+	__set_errno(EACCES);
+	return -1;
+    }
+    
+    memset(buf, 0, sizeof(*buf));
+    buf->f_type = m.f_type;
+    return 0;
 }
 
 int
 statfs(const char *path, struct statfs *buf) __THROW
 {
-    set_enosys();
-    return -1;
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+	return fd;
+
+    int r = fstatfs(fd, buf);
+    close(fd);
+
+    return r;
 }
 
 extern "C" int
@@ -1092,7 +1123,8 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     int r;
     va_list ap;
     struct Fd *fd;
-    struct __kernel_termios *k_termios;
+    struct __kernel_termios *k_termios = 0;
+    int *ptyno = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
     	__set_errno(EBADF);
@@ -1102,6 +1134,8 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     va_start(ap, req);
     if (req == TCGETS)
 	k_termios = va_arg(ap, struct __kernel_termios *);
+    if (req == TIOCGPTN)
+	ptyno = va_arg(ap, int *);
     va_end(ap);
 
     if (req == TCGETS) {
@@ -1113,14 +1147,11 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 	if (k_termios)
 	    memset(k_termios, 0, sizeof(*k_termios));
 
+	// XXX 
+	k_termios->c_lflag |= ECHO;
 	return 0;
-    }
-
-    if (req == TCSETS) {
-        if (!fd->fd_isatty) {
-	    __set_errno(ENOTTY);
-            return -1;
-        }
+    } else if (req == TIOCGPTN) {
+	return pt_pts_no(fd, ptyno);
     }
 
     __set_errno(EINVAL);

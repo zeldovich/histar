@@ -107,7 +107,16 @@ struct Fd
 	    int bipipe_a;
 	} fd_bipipe;
 	struct {
+	    struct cobj_ref bipipe_seg;
+	    int bipipe_a;
+	    
 	    struct cobj_ref gate;
+	    char is_master;
+	} fd_pt;
+	struct {
+	    struct cobj_ref gate;
+	    uint64_t id;
+	    
 	    uint32_t bytes;
 	    char buf[200];
 	} fd_gate;
@@ -142,6 +151,7 @@ extern struct Dev devrand;  	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
 extern struct Dev devgate;      /* type 'g' */
+extern struct Dev devpt;        /* type 'y' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

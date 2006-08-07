@@ -148,6 +148,8 @@ do_fork()
 		atomic_inc(&fd->fd_ref);
             if (fd->fd_dev_id == devbipipe.dev_id)
                 sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
+	    if (fd->fd_dev_id == devpt.dev_id)
+                sys_segment_addref(fd->fd_pt.bipipe_seg, top_ct);
 	}
 
 	// What gets copied across fork() and what stays shared?
