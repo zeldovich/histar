@@ -85,8 +85,8 @@ ptm_handle_open(struct gatefd_args *args)
 	    
 	    label th_l, th_cl(2);
 	    thread_cur_label(&th_l);
-	    uint64_t h_grant = args->call.arg;
-	    th_cl.set(h_grant, 0);
+	    //uint64_t h_grant = args->call.arg;
+	    //th_cl.set(h_grant, 0);
 	    
 	    struct cobj_ref pts_gt = gate_create(pts_ct, buf, &th_l, &th_cl, 
 						    &pts_gate, (void *) i);
