@@ -12,6 +12,7 @@ extern "C" {
 #include <stdio.h>
 }
 
+#include <inc/scopeguard.hh>
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/pthread.hh>
@@ -25,6 +26,7 @@ static const uint64_t pts_table_entries = 16;
 
 static struct {
     char inuse;
+    uint64_t h_master;
     struct cobj_ref seg;
     struct cobj_ref gate;
 } pts_table[pts_table_entries];
@@ -52,6 +54,14 @@ pts_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	    args->pts_args.ret = 0;
 	    break;
 	case pts_op_close: {
+	    struct ulabel *l = label_alloc();
+	    scope_guard<void, struct ulabel *> free_l(label_free, l);
+	    sys_self_get_verify(l);
+	    if (label_get_level(l, pts_table[id].h_master) != LB_LEVEL_STAR) {
+		cprintf("pts_gate: invalid verify to close\n");
+		args->pts_args.ret = -1;
+		break;
+	    }
 	    struct cobj_ref gt = pts_table[id].gate;
 	    memset(&pts_table[id], 0, sizeof(pts_table[id]));
 	    error_check(sys_obj_unref(gt));
@@ -85,12 +95,11 @@ ptm_handle_open(struct gatefd_args *args)
 	    
 	    label th_l, th_cl(2);
 	    thread_cur_label(&th_l);
-	    //uint64_t h_grant = args->call.arg;
-	    //th_cl.set(h_grant, 0);
 	    
 	    struct cobj_ref pts_gt = gate_create(pts_ct, buf, &th_l, &th_cl, 
 						    &pts_gate, (void *) i);
 	    pts_table[i].gate = pts_gt;
+	    pts_table[i].h_master = args->call.arg;
 		    
 	    args->ret.obj0 = devptm_gt;
 	    args->ret.obj1 = pts_gt;
