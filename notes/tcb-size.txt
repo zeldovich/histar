@@ -1,0 +1,46 @@
+Question: how can we reduce the amount of highly-privileged code (to reduce the
+number of vulnerabilities and/or their effect)?
+
+Why does any code run with kernel privilege in HiStar?
+
+[ only counting .c files, some debugging code not included ]
+
+(1) Device drivers: requires access to raw hardware, so fully trusted, but
+    can move some of them (e.g. network, console?) into user-space when
+    IOMMU hardware comes out and we can give them scoped hardware access.
+
+    ~1900 lines of .c files for things we can move to user-space.
+
+(2) Persistent storage (btree, write-ahead logging, disk block allocation):
+    needs to be trusted to return the latest version of the right objects;
+    could use signing and hash-trees to ensure correctness but not liveness.
+
+    2432 lines of .c files for btree
+     575 lines of .c files for write-ahead logging and disk allocation
+     461 lines of .c files for disk driver
+
+    Total: 3468 lines
+
+(3) Hardware multiplexing: PCI bridges, page tables, preemption interrupts,
+    physical memory allocation: fundamentally fully-trusted?
+
+     350 lines of .c files for PCI, IRQ, clock
+    874+ lines of .c files for page tables, trap handling, memory alloc
+
+    Total: 1224+ lines
+
+(4) Kernel object management, labels: fundamentally trusted to multiplex
+    labeled objects, correctly snapshot them, etc.
+
+    2229 lines of .c files
+
+(5) Kernel object semantics / system call interface: provides a MAC-safe
+    interface to persistent objects.
+
+    936 lines for everything (syscall.c -- dispatch)
+    642- lines for address spaces
+    499- lines for threads
+    88 lines for segments
+    260 lines for containers
+
+    Total: 2425-- lines
