@@ -90,6 +90,7 @@ cons_probe(struct Fd *fd, dev_probe_t probe)
 static int
 cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
+    assert(fd->fd_isatty);
     if (req == TCGETS) {
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);

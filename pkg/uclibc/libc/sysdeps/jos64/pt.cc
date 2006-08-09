@@ -257,6 +257,7 @@ pt_print_termios(const struct __kernel_termios *t)
 static int
 pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
+    assert(fd->fd_isatty);
     if (req == TCGETS) {
     	if (!fd->fd_isatty) {
 	    __set_errno(ENOTTY);
