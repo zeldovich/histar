@@ -1123,8 +1123,6 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     int r;
     va_list ap;
     struct Fd *fd;
-    struct __kernel_termios *k_termios = 0;
-    int *ptyno = 0;
 
     if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0) {
     	__set_errno(EBADF);
@@ -1132,30 +1130,11 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     }
 
     va_start(ap, req);
-    if (req == TCGETS)
-	k_termios = va_arg(ap, struct __kernel_termios *);
-    if (req == TIOCGPTN)
-	ptyno = va_arg(ap, int *);
+    r = FD_CALL(fdnum, ioctl, req, ap);
     va_end(ap);
-
-    if (req == TCGETS) {
-    	if (!fd->fd_isatty) {
-	    __set_errno(ENOTTY);
-	    return -1;
-    	}
-
-	if (k_termios)
-	    memset(k_termios, 0, sizeof(*k_termios));
-
-	// XXX 
-	k_termios->c_lflag |= ECHO;
-	return 0;
-    } else if (req == TIOCGPTN) {
-	return pt_pts_no(fd, ptyno);
-    }
-
-    __set_errno(EINVAL);
-    return -1;
+    if (r < 0)
+	__set_errno(EINVAL);
+    return r;    
 }
 
 extern "C" ssize_t

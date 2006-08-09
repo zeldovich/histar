@@ -8,6 +8,8 @@ extern "C" {
 #include <inc/devpt.h>
 
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <termios/kernel_termios.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,6 +202,87 @@ pt_shutdown(struct Fd *fd, int how)
     return (*devbipipe.dev_shutdown)(fd, how);
 }
 
+static void
+pt_print_termios(const struct __kernel_termios *t)
+{
+#define PRINT_MODE(_tcflag, _bit)  \
+    cprintf("%s:%s %d\n", #_tcflag, #_bit, (t->c_##_tcflag & _bit) ? 1 : 0) 
+    cprintf("--start-\n");
+    PRINT_MODE(iflag, IGNBRK); PRINT_MODE(iflag, BRKINT);
+    PRINT_MODE(iflag, IGNPAR); PRINT_MODE(iflag, PARMRK);
+    PRINT_MODE(iflag, INPCK); PRINT_MODE(iflag, ISTRIP);
+    PRINT_MODE(iflag, INLCR); PRINT_MODE(iflag, IGNCR);
+    PRINT_MODE(iflag, ICRNL); PRINT_MODE(iflag, IUCLC);
+    PRINT_MODE(iflag, IXON); PRINT_MODE(iflag, IXANY);
+    PRINT_MODE(iflag, IXOFF); PRINT_MODE(iflag, IMAXBEL);
+    cprintf("--------\n");
+    PRINT_MODE(oflag, OPOST); PRINT_MODE(oflag, OLCUC);
+    PRINT_MODE(oflag, ONLCR); PRINT_MODE(oflag, OCRNL);
+    PRINT_MODE(oflag, ONOCR); PRINT_MODE(oflag, ONLRET);
+    PRINT_MODE(oflag, OFILL); PRINT_MODE(oflag, OFDEL);
+    PRINT_MODE(oflag, NLDLY); PRINT_MODE(oflag, CRDLY);
+    PRINT_MODE(oflag, TABDLY); PRINT_MODE(oflag, BSDLY);
+    PRINT_MODE(oflag, VTDLY); PRINT_MODE(oflag, FFDLY);
+    cprintf("--------\n");
+    PRINT_MODE(cflag, CBAUD); PRINT_MODE(cflag, CBAUDEX);
+    PRINT_MODE(cflag, CSIZE); PRINT_MODE(cflag, CSTOPB);
+    PRINT_MODE(cflag, CREAD); PRINT_MODE(cflag, PARENB);
+    PRINT_MODE(cflag, PARODD); PRINT_MODE(cflag, HUPCL);
+    PRINT_MODE(cflag, CLOCAL); //PRINT_MODE(cflag, LOBLK);
+    PRINT_MODE(cflag, CIBAUD); PRINT_MODE(cflag, CRTSCTS);
+    cprintf("--------\n");
+    PRINT_MODE(lflag, ISIG); PRINT_MODE(lflag, ICANON);
+    PRINT_MODE(lflag, XCASE); PRINT_MODE(lflag, ECHO);
+    PRINT_MODE(lflag, ECHOE); PRINT_MODE(lflag, ECHOK);
+    PRINT_MODE(lflag, ECHONL); PRINT_MODE(lflag, ECHOCTL);
+    PRINT_MODE(lflag, ECHOPRT); PRINT_MODE(lflag, ECHOKE);
+    //PRINT_MODE(lflag, DEFECHO); 
+    PRINT_MODE(lflag, FLUSHO);
+    PRINT_MODE(lflag, NOFLSH); PRINT_MODE(lflag, TOSTOP);
+    PRINT_MODE(lflag, PENDIN); PRINT_MODE(lflag, IEXTEN);
+    cprintf("--------\n");
+#undef PRINT_MODE    
+#define PRINT_CCHAR(_index)  \
+    cprintf("c_cc:%s 0x%02x\n", #_index, t->c_cc[_index]) 
+    PRINT_CCHAR(VINTR); PRINT_CCHAR(VQUIT); PRINT_CCHAR(VERASE); 
+    PRINT_CCHAR(VKILL); PRINT_CCHAR(VEOF); PRINT_CCHAR(VTIME); 
+    PRINT_CCHAR(VMIN); PRINT_CCHAR(VSWTC); PRINT_CCHAR(VSTART); 
+    PRINT_CCHAR(VSTOP); PRINT_CCHAR(VSUSP); PRINT_CCHAR(VEOL); 
+    PRINT_CCHAR(VREPRINT); PRINT_CCHAR(VDISCARD); PRINT_CCHAR(VWERASE); 
+    PRINT_CCHAR(VLNEXT); PRINT_CCHAR(VEOL2);
+    cprintf("--end---\n");
+#undef PRINT_CCHAR
+}
+
+static int
+pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
+{
+    if (req == TCGETS) {
+    	if (!fd->fd_isatty) {
+	    __set_errno(ENOTTY);
+	    return -1;
+    	}
+	
+	struct __kernel_termios *k_termios;
+	k_termios = va_arg(ap, struct __kernel_termios *);
+	if (k_termios)
+	    memset(k_termios, 0, sizeof(*k_termios));
+
+	// XXX 
+	k_termios->c_lflag |= ECHO;
+	return 0;
+    } else if (req == TCSETS || req == TCSETSW || req == TCSETSF) {
+	const struct __kernel_termios *k_termios;
+	k_termios = va_arg(ap, struct __kernel_termios *);
+	pt_print_termios(k_termios);
+    } else if (req == TIOCGPTN) {
+	int *ptyno = va_arg(ap, int *);
+	return pt_pts_no(fd, ptyno);
+    }
+    
+    return -1;
+}
+
 struct Dev devpt = {
     'y',
     "pt",
@@ -223,4 +306,5 @@ struct Dev devpt = {
     0,
     0,
     &pt_shutdown,
+    &pt_ioctl,
 };

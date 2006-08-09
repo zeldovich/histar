@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <termios/kernel_termios.h>
+#include <sys/ioctl.h>
 #include <lib/vt/vt.h>
 
 static int enable_vt = 0 ;
@@ -85,6 +87,22 @@ cons_probe(struct Fd *fd, dev_probe_t probe)
     return 1 ;
 }
 
+static int
+cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
+{
+    if (req == TCGETS) {
+	struct __kernel_termios *k_termios;
+	k_termios = va_arg(ap, struct __kernel_termios *);
+	if (k_termios)
+	    memset(k_termios, 0, sizeof(*k_termios));
+	
+	// XXX 
+	k_termios->c_lflag |= ECHO;
+	return 0;
+    }
+    return -1;
+}
+
 struct Dev devcons =
 {
     .dev_id = 'c',
@@ -93,4 +111,5 @@ struct Dev devcons =
     .dev_write = cons_write,
     .dev_close = cons_close,
     .dev_probe = cons_probe,
+    .dev_ioctl = cons_ioctl,
 };

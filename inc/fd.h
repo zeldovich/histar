@@ -56,6 +56,7 @@ struct Dev
     int (*dev_getsockopt)(struct Fd *fd, int level, int optname,
 			  void *optval, socklen_t *optlen);
     int (*dev_shutdown)(struct Fd *fd, int how);
+    int (*dev_ioctl)(struct Fd *fd, uint64_t cmd, va_list ap);
 };
 
 enum {
