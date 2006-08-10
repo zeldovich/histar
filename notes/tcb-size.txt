@@ -44,3 +44,67 @@ Why does any code run with kernel privilege in HiStar?
     260 lines for containers
 
     Total: 2425-- lines
+
+===
+
+How can we make things smaller?
+(1) 1900 LOC, move to user-space, introduce protected HW access code into kernel
+(2) 3468 LOC, ???
+(3) 1224+ LOC, fully trusted
+(4) 2229 LOC, fully trusted
+(5) 2425- LOC, can potentially split up?
+
+So (1) drivers, (2) btrees and (5) syscall API are code that might not need to
+be fully trusted.
+
+(1) is almost obvious, given the hardware support.
+
+(2) is a lot of code, but no real ideas for what to do with it yet.
+
+(5) we can potentially partially move into an intermediate ring.
+
+===
+
+Moving device-drivers (1) into user-space:
+
+ - Add a device kernel object, logically associated with a PCI device.
+
+ - Each device object has an IOMMU page table.  The kernel object points
+   to an address space object that should be used to fill out the page
+   table.  Because IOMMU doesn't generate page faults, the page table
+   needs to be always fully-populated, something that our current code
+   doesn't implement.  Page table filled out as if on behalf of a thread
+   running with the label of the device object.
+
+ - Each device object has an interrupt; can issue a syscall to wait for
+   the next interrupt on a device, with some generation number ala netdev
+   to avoid lost wakeups (must be able to read/write device object).
+
+ - Each device object has some IO space associated with it.  System calls
+   to read/write IO ports associated with a device -- simpler than doing
+   IOPB (must be able to read/write device object).  Potential problem if
+   we have timing-sensitive devices (then would need direct IOPB, and some
+   scheduling support), but that seems unlikely.
+
+ - Interrupts: can mask individual interrupts on old PIC.  APIC allows
+   masking contiguous groups of 16 interrupts, so using an APIC we can
+   only have one un-ACKed interrupt at a time.
+
+This will allow us to get rid of the kernel network-device API, along
+with network drivers.  Could move console driver into user-space, but
+makes things difficult to debug..
+
+One problem: how does this interact with persistence?  Presumably all
+device objects are invalidated on bootup, and a monitoring process of
+some sort is needed to create some sort of base PCI object, find all
+newly-present devices, create device objects for them, kill old drivers
+and start new drivers.
+
+Resource exhaustion issue with IO device page tables (cannot be GCed).
+
+===
+
+Splitting up (5) system call API / object semantics:
+
+ - See mac-on-dac.txt
+
