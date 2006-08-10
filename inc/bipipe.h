@@ -17,10 +17,13 @@ struct one_pipe {
     uint32_t read_ptr;  /* read at this offset */
     uint64_t bytes; /* # bytes in circular buffer */
     pthread_mutex_t mu;
+    // XXX for pt
+    uint64_t ref;
 };
 
 struct bipipe_seg {
     struct one_pipe p[2];
+    // XXX for pt
     uint64_t taint;
     uint64_t grant;
 };

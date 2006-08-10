@@ -17,6 +17,7 @@ extern "C" {
 #include <string.h>
 }
 
+#include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
@@ -69,6 +70,8 @@ pts_open(struct cobj_ref slave_gt, struct cobj_ref seg, int flags)
     fds->fd_pt.bipipe_a = 0;
     fd_set_extra_handles(fds, grant, taint);
     bs->p[0].open = 1;
+    // Can have multiple Fds referencing the same pts
+    bs->p[0].ref++;
     
     fds->fd_dev_id = devpt.dev_id;
     fds->fd_isatty = 1;
@@ -112,6 +115,7 @@ ptm_open(struct cobj_ref master_gt, struct cobj_ref slave_gt, int flags)
     fdm->fd_pt.bipipe_a = 1;
     fd_set_extra_handles(fdm, grant, taint);
     bs->p[1].open = 1;
+    bs->p[1].ref = 1;
     bs->taint = taint;
     bs->grant = grant;
     
@@ -157,13 +161,24 @@ pt_pts_no(struct Fd *fd, int *ptyno)
 static int
 pt_close(struct Fd *fd)
 {
-    if (!fd->fd_pt.is_master)
-	return 0;
     try {
-	struct pts_gate_args args;
-	args.pts_args.op = pts_op_close;
-	error_check(pt_send(fd->fd_pt.gate, &args, sizeof(args)));
-	error_check((*devbipipe.dev_close)(fd));
+	if (fd->fd_pt.is_master) {
+	    struct pts_gate_args args;
+	    args.pts_args.op = pts_op_close;
+	    error_check(pt_send(fd->fd_pt.gate, &args, sizeof(args)));
+	}
+	
+	struct bipipe_seg *bs = 0;
+	int r;
+	error_check(r = segment_map(fd->fd_bipipe.bipipe_seg, 0, 
+				    SEGMAP_READ | SEGMAP_WRITE,
+				    (void **) &bs, 0, 0));
+	scope_guard<int, void*> seg_unmap(segment_unmap, bs);
+	
+	bs->p[fd->fd_pt.bipipe_a].ref--;
+	if (bs->p[fd->fd_pt.bipipe_a].ref == 0)
+	    return (*devbipipe.dev_close)(fd);
+	return 0;
     } catch (basic_exception e) {
 	cprintf("pt_close: %s\n", e.what());
 	return -1;
