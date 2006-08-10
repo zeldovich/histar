@@ -210,7 +210,9 @@ pt_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     
     static_assert(PIPE_BUF > 2);
     // guaranteed to write PIPE_BUF bytes...
-    (*devbipipe.dev_write)(fd, bf, cc, 0); 
+    int r = (*devbipipe.dev_write)(fd, bf, cc, 0); 
+    if (r < 0)
+	return r;
     return 1;
 }
 
