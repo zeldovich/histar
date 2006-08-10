@@ -7,7 +7,7 @@
 #include <inc/fs.h>
 #include <inc/pthread.h>
 #include <inc/label.h>
-#include <inc/remfile.h>
+#include <inc/pt.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -111,6 +111,7 @@ struct Fd
 	    struct cobj_ref bipipe_seg;
 	    int bipipe_a;
 	    
+	    pt_termios ios;
 	    struct cobj_ref gate;
 	    char is_master;
 	} fd_pt;

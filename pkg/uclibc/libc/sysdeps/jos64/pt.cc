@@ -177,10 +177,39 @@ pt_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     return (*devbipipe.dev_read)(fd, buf, count, offset);
 }
 
+static uint32_t
+pt_handle_nl(struct Fd *fd, char *buf)
+{
+    tcflag_t flags = fd->fd_pt.ios.c_oflag;
+    if (flags & ONLCR) {
+	buf[0] = '\r';
+	buf[1] = '\n';
+	return 2;
+    } else {
+	buf[0] = '\n';
+	return 1;
+    }
+}
+
 static ssize_t
 pt_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    return (*devbipipe.dev_write)(fd, buf, count, offset);
+    char bf[2];
+    char ch = ((const char *)buf)[0];
+    uint32_t cc = 0;
+    
+    switch (ch) {
+    case '\n':
+	cc = pt_handle_nl(fd, bf);
+	break;
+    default:
+	bf[0] = ch;
+	cc = 1;
+	break;
+    }
+    // guaranteed to write PIPE_BUF bytes...
+    (*devbipipe.dev_write)(fd, bf, cc, 0); 
+    return 1;
 }
 
 static int
@@ -202,7 +231,7 @@ pt_shutdown(struct Fd *fd, int how)
     return (*devbipipe.dev_shutdown)(fd, how);
 }
 
-static void
+static void __attribute__((unused))
 pt_print_termios(const struct __kernel_termios *t)
 {
 #define PRINT_MODE(_tcflag, _bit)  \
@@ -266,16 +295,13 @@ pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	if (k_termios)
-	    memset(k_termios, 0, sizeof(*k_termios));
-
-	// XXX 
-	k_termios->c_lflag |= ECHO;
+	memcpy(k_termios, &fd->fd_pt.ios, sizeof(*k_termios));
 	return 0;
     } else if (req == TCSETS || req == TCSETSW || req == TCSETSF) {
 	const struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	pt_print_termios(k_termios);
+	memcpy(&fd->fd_pt.ios, k_termios, sizeof(fd->fd_pt.ios));
+	return 0;
     } else if (req == TIOCGPTN) {
 	int *ptyno = va_arg(ap, int *);
 	return pt_pts_no(fd, ptyno);
