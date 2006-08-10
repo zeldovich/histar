@@ -24,6 +24,13 @@ are above its clearance, or write files that are below its label.  Thus, some
 privacy for highly-sensitive files, and integrity for other users data, can be
 maintained.
 
+In reality, most MAC systems have covert channels that allow MAC security to
+be subverted to some degree already.  In this sense, even "pure MAC" systems
+already provide stronger DAC-like guarantees (confidentiality of files above
+the clearance of malicious threads and integrity of files below malicious
+threads), so providing stronger guarantees for those properties makes some
+sense.
+
 The proposed structure looks something like this:
 
   User-space  (x86 CPL=3)
