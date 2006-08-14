@@ -151,7 +151,7 @@ $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
-	#echo "UseDNS no" >> $(OBJDIR)/acpkg/etc/sshd_config
+	echo "UseDNS no" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "Port 22" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
