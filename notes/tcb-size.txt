@@ -127,5 +127,12 @@ untrusted mapping needs to look up values.  A bad way of implementing
 the trusted index, which would reduce complexity, would be a bloom filter.
 However, the trusted mapping should be precise..
 
-
+Possible solution: fully-trusted btree reader (reasonably simple, going
+along the btree chain to the leaf node), untrusted btree mutation ops
+("nilpotent" rebalancing, plus insert, change and delete) and the btree
+mutations would be checked by the btree reader.  The reader would need
+to be more complicated, in order to declare two btrees identical based
+on observing just the modified intermediate nodes (for "nilpotent" ops),
+and that only one value was added / modified / deleted (for actual change
+ops)..
 
