@@ -108,3 +108,24 @@ Splitting up (5) system call API / object semantics:
 
  - See mac-on-dac.txt
 
+===
+
+Btrees (2): it seems like even if we don't trust the btree code, we need
+a way to determine whether an object given to us by the untrusted btree
+code is consistent and fresh.  Consistency can be solved by signatures,
+but freshness, for practical purposes, requires a trusted mapping from
+object ID and its signature to one of { fresh, stale }.  ("Practical"
+here excludes schemes which would modify the signature of every object
+every time a snapshot is taken.)  Such a mapping would be about as large
+as the mapping maintained by the untrusted btree (object ID space mapping
+to disk offset + length), and as a result doesn't reduce the complexity
+by much.
+
+One possible difference is that the trusted mapping only needs to be a
+set, with the ability to query, add and remove members, whereas the
+untrusted mapping needs to look up values.  A bad way of implementing
+the trusted index, which would reduce complexity, would be a bloom filter.
+However, the trusted mapping should be precise..
+
+
+
