@@ -1132,8 +1132,6 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     va_start(ap, req);
     r = FD_CALL(fdnum, ioctl, req, ap);
     va_end(ap);
-    if (r < 0)
-	__set_errno(EINVAL);
     return r;    
 }
 

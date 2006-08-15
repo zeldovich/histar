@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 
 #include <bits/unimpl.h>
 
@@ -350,6 +351,20 @@ file_sync(struct Fd *fd)
     return 0;
 }
 
+static int
+file_ioctl(struct Fd *fd, uint64_t req, va_list ap)
+{
+    if (req == TCGETS) {
+	__set_errno(ENOTTY);
+	return -1;
+    } else if (req == TCSETS || req == TCSETSW || req == TCSETSF) {
+	__set_errno(ENOTTY);
+	return -1;
+    } 
+    __set_errno(EINVAL);
+    return -1;
+}
+
 struct Dev devfile = {
     .dev_id = 'f',
     .dev_name = "file",
@@ -361,6 +376,7 @@ struct Dev devfile = {
     .dev_probe = file_probe,
     .dev_trunc = file_trunc,
     .dev_sync = file_sync,
+    .dev_ioctl = file_ioctl,
 };
 
 weak_alias(__libc_open, open);

@@ -325,7 +325,11 @@ pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	int *ptyno = va_arg(ap, int *);
 	return pt_pts_no(fd, ptyno);
     }
-    
+    else if (req == TIOCSPTLCK) {
+	// the pts associated with fd is always unlocked
+	return 0;
+    }
+    __set_errno(EINVAL);
     return -1;
 }
 
