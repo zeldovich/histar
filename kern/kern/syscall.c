@@ -538,6 +538,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko);
 
     check(label_compare(cur_th_label, new_label, label_leq_starlo));
+    check(label_compare(new_label, new_clearance, label_leq_starlo));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi));
 
     check(thread_jump(t, new_label, new_clearance, &te));
@@ -627,6 +628,7 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(label_max(cur_th_clearance, cur_th_label,
 		    clearance_bound, label_leq_starhi));
 
+    check(label_compare(cur_th_label, clearance, label_leq_starlo));
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_clearance, clearance));
