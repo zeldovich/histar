@@ -32,6 +32,7 @@ AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disabl
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
+AUTOCONF_vim70		    := --with-tlib=ncurses
 
 ##
 ## Patches to apply to various packages
@@ -42,8 +43,8 @@ PATCHFILE_gcc-3.4.5	    := gcc34.patch
 PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
 PATCHFILE_gdb-6.5	    := gdb-6.5.patch
+PATCHFILE_vim70		    := vim70.patch
 PATCHFILE_default	    := empty.patch
-
 
 ##
 ## Packages we want to include
@@ -114,6 +115,14 @@ $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 
+## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
+## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
+$(OBJDIR)/acpkg/bin/vim: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses.a 
+	( cd acpkg/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
+	( cd acpkg/vim70 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/vim70 && sh -c "$(ACENV) gmake install" )
+
+## http://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 acpkg/gdb-6.5/gdb/config/i386/__gl:
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mh $(@D)/jos64.mh 
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mt $(@D)/jos64.mt
@@ -130,11 +139,11 @@ $(OBJDIR)/acpkg/bin/gdb: 		     \
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
-## $(OBJDIR)/acpkg/bin/mkdir: acpkg/coreutils-5.94/__build
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 
+## http://ftp.gnu.org/pub/gnu/make/make-3.81.tar.gz
 $(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
@@ -211,23 +220,17 @@ acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__pa
 	touch $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
-acpkg/ncurses-5.5/__build: $(ACPKG_WRAPS) $(LDEPS) acpkg/ncurses-5.5/Makefile
+acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
-	ln -fs $(OBJDIR)/acpkg/lib/libncurses.a  $(OBJDIR)/lib/libncurses.a
 	touch $@
 
-$(OBJDIR)/lib/libncurses.a: acpkg/ncurses-5.5/__build
-
-## ftp://ftp.sleepycat.com/pub/nvi-1.79.tar.gz
-nvi: $(ACPKG_WRAPS)
-	@mkdir -p $(ACPKG_PREFIX)
-	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) vi_cv_sprintf_count=yes ./configure $(AUTOCONF_ARGS) --disable-curses" )
-	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake" )
-	( cd acpkg/nvi-1.79/build && sh -c "$(ACENV) gmake install" )
+$(OBJDIR)/acpkg/lib/libncurses.a: acpkg/ncurses-5.5/__build
+$(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
+	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libncurses.a \
+	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
