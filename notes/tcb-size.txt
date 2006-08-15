@@ -88,7 +88,8 @@ Moving device-drivers (1) into user-space:
 
  - Interrupts: can mask individual interrupts on old PIC.  APIC allows
    masking contiguous groups of 16 interrupts, so using an APIC we can
-   only have one un-ACKed interrupt at a time.
+   only have one un-ACKed interrupt at a time.  Minix3 does individual
+   interrupt masking using the i8259 old PIC.
 
 This will allow us to get rid of the kernel network-device API, along
 with network drivers.  Could move console driver into user-space, but
