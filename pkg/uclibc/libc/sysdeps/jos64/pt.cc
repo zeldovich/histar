@@ -209,26 +209,27 @@ pt_handle_nl(struct Fd *fd, char *buf)
 static ssize_t
 pt_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    char bf[2];
-    char ch = ((const char *)buf)[0];
+    char bf[count * 2];
+    const char *ch = ((const char *)buf);
     uint32_t cc = 0;
-    
-    switch (ch) {
-    case '\n':
-	cc = pt_handle_nl(fd, bf);
-	break;
-    default:
-	bf[0] = ch;
-	cc = 1;
-	break;
+
+    for (uint32_t i = 0; i < count; i++) {
+        switch (ch[i]) {
+	case '\n':
+	    cc += pt_handle_nl(fd, &bf[cc]);
+	    break;
+	default:
+	    bf[cc] = ch[i];
+	    cc++;
+	    break;
+	}
     }
     
-    static_assert(PIPE_BUF > 2);
-    // guaranteed to write PIPE_BUF bytes...
     int r = (*devbipipe.dev_write)(fd, bf, cc, 0); 
     if (r < 0)
 	return r;
-    return 1;
+    assert((uint32_t)r == cc);
+    return count;
 }
 
 static int
