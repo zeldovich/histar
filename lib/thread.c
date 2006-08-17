@@ -67,6 +67,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     ta->stack_id = stack.object;
     ta->entry = entry;
     ta->arg = arg;
+    ta->stackbase = stackbase;
 
     struct thread_entry e;
     r = sys_self_get_as(&e.te_as);
