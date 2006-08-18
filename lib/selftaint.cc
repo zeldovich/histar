@@ -8,6 +8,9 @@ extern "C" {
 #include <inc/taint.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
+
+#include <unistd.h>
+#include <stdlib.h>
 }
 
 #include <inc/selftaint.hh>
@@ -20,9 +23,12 @@ static int self_taint_debug = 0;
 static void __attribute__((noreturn))
 taint_self_tls(int *rp, label *l, uint64_t taint_ct, struct jos_jmp_buf *back)
 {
-    int r = thread_set_label(l);
-    if (r >= 0)
+    int r;
+    r = sys_self_set_label(l->to_ulabel());
+    if (r >= 0) {
 	taint_cow(taint_ct, COBJ(0, 0));
+	thread_label_cache_invalidate();
+    }
     *rp = r;
     jos_longjmp(back, 1);
 }
