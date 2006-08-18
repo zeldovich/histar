@@ -476,8 +476,11 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
-    if (r < 0)
+    if (r < 0) {
+	if ((uint64_t)utf <= t->th_as->as_utrap_stack_base)
+	    cprintf("thread_utrap: utrap stack overflow\n");
 	goto out;
+    }
 
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_rsp = (uint64_t) utf;
