@@ -96,7 +96,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    return -1;
 	}
 	if (sys_obj_get_type(ino.obj) == kobj_gate) {
-	    return gatefile_open(ino.obj, flags);
+	    return gatefile_open(pn, flags);
 	}
     } else if (r == -E_NOT_FOUND) {
 	if (!(flags & O_CREAT)) {
