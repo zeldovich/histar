@@ -281,9 +281,22 @@ sys_self_fp_disable(void)
 }
 
 int
+sys_self_set_waitslots(uint64_t nslots)
+{
+    return syscall(SYS_self_set_waitslots, nslots);
+}
+
+int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_sync_wait, addr, val, msec);
+}
+
+int 
+sys_sync_wait_multi(volatile uint64_t **addrs, uint64_t *vals,
+		    uint64_t num, uint64_t msec)
+{
+    return syscall(SYS_sync_wait_multi, addrs, vals, num, msec);
 }
 
 int

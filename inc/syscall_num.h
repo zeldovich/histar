@@ -52,8 +52,10 @@
     SYSCALL_ENTRY(self_set_as)			\
     SYSCALL_ENTRY(self_fp_enable)		\
     SYSCALL_ENTRY(self_fp_disable)		\
+    SYSCALL_ENTRY(self_set_waitslots)           \
 						\
     SYSCALL_ENTRY(sync_wait)			\
+    SYSCALL_ENTRY(sync_wait_multi)		\
     SYSCALL_ENTRY(sync_wakeup)			\
     SYSCALL_ENTRY(clock_msec)			\
     SYSCALL_ENTRY(handle_create)		\

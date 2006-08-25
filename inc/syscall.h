@@ -74,9 +74,12 @@ int	sys_self_set_verify(struct ulabel *l);
 int	sys_self_get_verify(struct ulabel *l);
 int	sys_self_fp_enable(void);
 int	sys_self_fp_disable(void);
+int	sys_self_set_waitslots(uint64_t nslots);
 
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
 		      uint64_t wakeup_at_msec);
+int	sys_sync_wait_multi(volatile uint64_t **addrs, uint64_t *vals,
+			    uint64_t num, uint64_t msec);
 int	sys_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_clock_msec(void);

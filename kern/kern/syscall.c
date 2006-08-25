@@ -671,12 +671,31 @@ sys_self_fp_disable(void)
     thread_disable_fp(cur_thread);
 }
 
+static void 
+sys_self_set_waitslots(uint64_t nslots)
+{
+    check(thread_set_waitslots(cur_thread, nslots));
+}
+
 static void
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(check_user_access(addr, sizeof(*addr), 0));
     check(sync_wait(addr, val, wakeup_at_msec));
 }
+
+static void
+sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
+		    uint64_t msec)
+{
+    for (uint64_t i = 0; i < num; i++) {
+	check(check_user_access(&vals[i], sizeof(*vals), 0));
+	check(check_user_access(&addrs[i], sizeof(*addrs), 0));
+	check(check_user_access(addrs[i], sizeof(**addrs), 0));
+    }
+    check(sync_wait_multi(addrs, vals, num, msec));
+}
+
 
 static void
 sys_sync_wakeup(uint64_t *addr)
@@ -853,7 +872,9 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_get_verify),
     SYSCALL_DISPATCH(self_fp_enable),
     SYSCALL_DISPATCH(self_fp_disable),
+    SYSCALL_DISPATCH(self_set_waitslots),
     SYSCALL_DISPATCH(sync_wait),
+    SYSCALL_DISPATCH(sync_wait_multi),
     SYSCALL_DISPATCH(sync_wakeup),
     SYSCALL_DISPATCH(segment_addref),
     SYSCALL_DISPATCH(segment_resize),

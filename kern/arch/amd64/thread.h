@@ -36,6 +36,9 @@ struct Thread {
     uint64_t th_wakeup_seg_id;
     uint64_t th_wakeup_offset;
 
+    uint64_t th_multi_slots;
+    uint64_t th_multi_slots_used;
+    
     uint64_t th_sched_tickets;
     union {
 	uint128_t th_sched_pass;
@@ -71,6 +74,7 @@ void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
 int  thread_enable_fp(const struct Thread *t);
 void thread_disable_fp(const struct Thread *t);
+int  thread_set_waitslots(const struct Thread *t, uint64_t nslots);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);
