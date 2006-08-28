@@ -90,7 +90,10 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
     if (sync_debug)
 	cprintf("sync_wait_multi: num %ld wakeup %lx now %lx\n",
 		 num, wakeup_msec, timer_user_msec);
-    
+
+    if (num == 0)
+	return 0;
+
     if (num > cur_thread->th_multi_slots)
 	return -E_NO_SPACE;
 
