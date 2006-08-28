@@ -155,7 +155,8 @@ pipe_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
-pipe_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+pipe_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
+		  void **arg1)
 {
     struct Fd *fd = (struct Fd *) arg0;
     
@@ -169,13 +170,10 @@ pipe_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
 static int
 pipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    wstat->ws_isobj = 0;
-    wstat->ws_addr = &fd->fd_pipe.bytes;
-    wstat->ws_val = fd->fd_pipe.bytes;
-
-    wstat->ws_cbarg = fd;
-    wstat->ws_cb0 = &pipe_statsync_cb0;
-
+    WS_SETADDR(wstat, &fd->fd_pipe.bytes);
+    WS_SETVAL(wstat, fd->fd_pipe.bytes);
+    WS_SETCBARG(wstat, fd);
+    WS_SETCB0(wstat, &pipe_statsync_cb0);
     return 0;
 }
 

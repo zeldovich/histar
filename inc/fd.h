@@ -82,10 +82,6 @@ struct Fd
 	} fd_dev_state;
 
 	struct {
-	    atomic64_t read_gen;
-	} fd_cons;
-
-	struct {
 	    struct cobj_ref netd_gate;
 	    int s;
 	    atomic64_t read_gen;

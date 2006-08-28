@@ -248,7 +248,8 @@ bipipe_shutdown(struct Fd *fd, int how)
 }
 
 static int
-bipipe_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+bipipe_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
+		    void **arg1)
 {
     struct Fd *fd = (struct Fd *) arg0;
     struct bipipe_seg *bs = 0;
@@ -270,19 +271,17 @@ bipipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     struct bipipe_seg *bs = 0;
     BIPIPE_SEG_MAP(fd, &bs);
     
-    wstat->ws_isobj = 1;
-    wstat->ws_seg = fd->fd_bipipe.bipipe_seg;
-    
     if (probe == dev_probe_write) {
-	wstat->ws_off = offsetof(struct bipipe_seg, p[!fd->fd_bipipe.bipipe_a].bytes);
-	wstat->ws_val = bs->p[!fd->fd_bipipe.bipipe_a].bytes;
+	uint64_t off = offsetof(struct bipipe_seg, p[!fd->fd_bipipe.bipipe_a].bytes);
+	WS_SETOBJ(wstat, fd->fd_bipipe.bipipe_seg, off);
+	WS_SETVAL(wstat, bs->p[!fd->fd_bipipe.bipipe_a].bytes); 
     } else {
-	wstat->ws_off = offsetof(struct bipipe_seg, p[fd->fd_bipipe.bipipe_a].bytes);
-	wstat->ws_val = bs->p[fd->fd_bipipe.bipipe_a].bytes;
+	uint64_t off = offsetof(struct bipipe_seg, p[fd->fd_bipipe.bipipe_a].bytes);
+	WS_SETOBJ(wstat, fd->fd_bipipe.bipipe_seg, off);
+	WS_SETVAL(wstat, bs->p[fd->fd_bipipe.bipipe_a].bytes);
     }
-    
-    wstat->ws_cbarg = fd;
-    wstat->ws_cb0 = &bipipe_statsync_cb0;
+    WS_SETCBARG(wstat, fd);
+    WS_SETCB0(wstat, &bipipe_statsync_cb0); 
 
     BIPIPE_SEG_UNMAP(bs);
     return 0;

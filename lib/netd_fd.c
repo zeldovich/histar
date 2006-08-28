@@ -368,7 +368,7 @@ sock_statsync_thread(void *arg)
 	    break;
 	}
 	// XXX should just select/wait on the other side of the gate
-	usleep(50000);
+	usleep(25000);
     }
 
     if (atomic_dec_and_test((atomic_t *)&args->ref))
@@ -376,7 +376,8 @@ sock_statsync_thread(void *arg)
 }
 
 static int
-sock_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
+		  void **arg1)
 {
     struct Fd *fd = (struct Fd *) arg0;
     
@@ -415,18 +416,16 @@ sock_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    wstat->ws_isobj = 0;
     if (probe == dev_probe_write) {
-	wstat->ws_addr = &atomic_read(&fd->fd_sock.write_gen);
-	wstat->ws_val = atomic_read(&fd->fd_sock.write_gen);
+	WS_SETADDR(wstat, &atomic_read(&fd->fd_sock.write_gen)); 
+	WS_SETVAL(wstat, atomic_read(&fd->fd_sock.write_gen));
     } else {
-	wstat->ws_addr = &atomic_read(&fd->fd_sock.read_gen);
-	wstat->ws_val = atomic_read(&fd->fd_sock.read_gen);
+	WS_SETADDR(wstat, &atomic_read(&fd->fd_sock.read_gen)); 
+	WS_SETVAL(wstat, atomic_read(&fd->fd_sock.read_gen)); 
     }
-    
-    wstat->ws_cbarg = fd;
-    wstat->ws_cb0 = &sock_statsync_cb0;
-    wstat->ws_cb1 = &sock_statsync_cb1;
+    WS_SETCBARG(wstat, fd);
+    WS_SETCB0(wstat, &sock_statsync_cb0);
+    WS_SETCB1(wstat, &sock_statsync_cb1);
 
     return 0;
 }

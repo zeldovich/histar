@@ -110,15 +110,14 @@ cons_statsync_thread(void *arg)
 {
     struct {
 	volatile atomic64_t ref;
-	volatile struct Fd *fd;
+	volatile uint64_t *addr;
     } *args = arg;
-    volatile struct Fd *fd = args->fd;
     
     while (atomic_read(&args->ref) > 1) {
 	int r = sys_cons_probe();
 	if (r) {
-	    atomic_inc64((atomic64_t *)&fd->fd_cons.read_gen);
-	    sys_sync_wakeup(&atomic_read(&fd->fd_cons.read_gen));
+	    atomic_inc64((atomic64_t *)args->addr);
+	    sys_sync_wakeup(args->addr);
 	    break;
 	}
 	usleep(50000);
@@ -129,17 +128,17 @@ cons_statsync_thread(void *arg)
 }
 
 static int
-cons_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
+		  void **arg1)
 {
-    struct Fd *fd = (struct Fd *) arg0;
     struct {
 	atomic64_t ref;
-	struct Fd *fd;
+	volatile uint64_t *addr;
     } *thread_arg;
 
     thread_arg = malloc(sizeof(*thread_arg));
-    thread_arg->fd = fd;
     atomic_set(&thread_arg->ref, 2);
+    thread_arg->addr = addr;
 
     struct cobj_ref tobj;
     thread_create(start_env->proc_container, cons_statsync_thread, 
@@ -168,12 +167,10 @@ cons_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     if (probe == dev_probe_write)
 	return -1;
 
-    wstat->ws_isobj = 0;
-    wstat->ws_addr = &atomic_read(&fd->fd_cons.read_gen);
-    wstat->ws_val = atomic_read(&fd->fd_cons.read_gen);
-    wstat->ws_cbarg = fd;
-    wstat->ws_cb0 = &cons_statsync_cb0;
-    wstat->ws_cb1 = &cons_statsync_cb1;
+    WS_SETASS(wstat);
+    WS_SETCBARG(wstat, fd);
+    WS_SETCB0(wstat, &cons_statsync_cb0);
+    WS_SETCB1(wstat, &cons_statsync_cb1); 
 
     return 0;
 }
