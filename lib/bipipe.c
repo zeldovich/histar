@@ -9,7 +9,24 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stddef.h>
 #include <sys/socket.h>
+
+#define BIPIPE_SEG_MAP(__fd, __va)				\
+    do {							\
+	int __r;						\
+	__r = segment_map((__fd)->fd_bipipe.bipipe_seg, 0,	\
+			  SEGMAP_READ | SEGMAP_WRITE,		\
+			  (void **)(__va), 0, 0);		\
+	if (__r < 0) {						\
+	    cprintf("%s: cannot segment_map: %s\n",		\
+		    __FUNCTION__, e2s(__r));			\
+	    errno = EIO;					\
+	    return -1;						\
+	}							\
+    } while(0)
+
+#define BIPIPE_SEG_UNMAP(__va) segment_unmap_delayed((__va), 1)
 
 int
 bipipe(int fv[2])
@@ -71,14 +88,8 @@ static ssize_t
 bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
-   
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &bs, 0, 0);
-    if (r < 0) {
-        cprintf("bipipe_read: cannot segment_map: %s\n", e2s(r));
-        errno = EIO;
-        return -1;
-    }
+    BIPIPE_SEG_MAP(fd, &bs);
+
     struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
 
     size_t cc = -1;
@@ -120,7 +131,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     pthread_mutex_unlock(&op->mu);
 
 out:
-    segment_unmap_delayed(bs, 1);
+    BIPIPE_SEG_UNMAP(bs);
     return cc;
 }
 
@@ -128,13 +139,8 @@ static ssize_t
 bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &bs, 0, 0);
-    if (r < 0) {
-        cprintf("bipipe_write: cannot segment_map: %s\n", e2s(r));
-        errno = EIO;
-        return -1;
-    }
+    BIPIPE_SEG_MAP(fd, &bs);
+    
     struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
     uint32_t bufsize = sizeof(op->buf);
 
@@ -170,8 +176,7 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     }
 
     pthread_mutex_unlock(&op->mu);
-    segment_unmap_delayed(bs, 1);
-    
+    BIPIPE_SEG_UNMAP(bs);
     return cc;    
 }
 
@@ -179,13 +184,7 @@ static int
 bipipe_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			 (void **) &bs, 0, 0);
-    if (r < 0) {
-    	cprintf("bipipe_probe: cannot segment_map: %s\n", e2s(r));
-    	errno = EIO;
-    	return -1;
-    }
+    BIPIPE_SEG_MAP(fd, &bs);
 
     int rv;
     if (probe == dev_probe_read) {
@@ -200,7 +199,7 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
         pthread_mutex_unlock(&op->mu);
     }
 
-    segment_unmap_delayed(bs, 1);
+    BIPIPE_SEG_UNMAP(bs);
     return rv;
 }
 
@@ -208,13 +207,7 @@ static int
 bipipe_close(struct Fd *fd)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &bs, 0, 0);
-    if (r < 0) {
-        cprintf("bipipe_close: cannot segment_map: %s\n", e2s(r));
-        errno = EIO;
-        return -1;
-    }
+    BIPIPE_SEG_MAP(fd, &bs);
 
     for (int i = 0; i < 2; i++) {
 	struct one_pipe *op = &bs->p[i];
@@ -224,7 +217,7 @@ bipipe_close(struct Fd *fd)
         sys_sync_wakeup(&op->bytes);
     }
 
-    segment_unmap_delayed(bs, 1);
+    BIPIPE_SEG_UNMAP(bs);
     return 0;
 }
 
@@ -232,13 +225,7 @@ static int
 bipipe_shutdown(struct Fd *fd, int how)
 {
     struct bipipe_seg *bs = 0;
-    int r = segment_map(fd->fd_bipipe.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **) &bs, 0, 0);
-    if (r < 0) {
-	cprintf("bipipe_shutdown: cannot segment_map: %s\n", e2s(r));
-	errno = EIO;
-	return -1;
-    }
+    BIPIPE_SEG_MAP(fd, &bs);
 
     if (how == SHUT_RD || how == SHUT_RDWR) {
 	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
@@ -256,7 +243,48 @@ bipipe_shutdown(struct Fd *fd, int how)
 	sys_sync_wakeup(&op->bytes);
     }
 
-    segment_unmap_delayed(bs, 1);
+    BIPIPE_SEG_UNMAP(bs);
+    return 0;
+}
+
+static int
+bipipe_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+{
+    struct Fd *fd = (struct Fd *) arg0;
+    struct bipipe_seg *bs = 0;
+    BIPIPE_SEG_MAP(fd, &bs);
+    
+    if (probe == dev_probe_write)
+	bs->p[!fd->fd_bipipe.bipipe_a].writer_waiting = 1;
+    else
+	bs->p[fd->fd_bipipe.bipipe_a].reader_waiting = 1;
+
+    BIPIPE_SEG_UNMAP(bs);
+    return 0;
+}
+
+
+static int
+bipipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+{
+    struct bipipe_seg *bs = 0;
+    BIPIPE_SEG_MAP(fd, &bs);
+    
+    wstat->ws_isobj = 1;
+    wstat->ws_seg = fd->fd_bipipe.bipipe_seg;
+    
+    if (probe == dev_probe_write) {
+	wstat->ws_off = offsetof(struct bipipe_seg, p[!fd->fd_bipipe.bipipe_a].bytes);
+	wstat->ws_val = bs->p[!fd->fd_bipipe.bipipe_a].bytes;
+    } else {
+	wstat->ws_off = offsetof(struct bipipe_seg, p[fd->fd_bipipe.bipipe_a].bytes);
+	wstat->ws_val = bs->p[fd->fd_bipipe.bipipe_a].bytes;
+    }
+    
+    wstat->ws_cbarg = fd;
+    wstat->ws_cb0 = &bipipe_statsync_cb0;
+
+    BIPIPE_SEG_UNMAP(bs);
     return 0;
 }
            
@@ -268,4 +296,5 @@ struct Dev devbipipe = {
     .dev_probe = &bipipe_probe,
     .dev_close = &bipipe_close,
     .dev_shutdown = &bipipe_shutdown,
+    .dev_statsync = &bipipe_statsync,
 };

@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 
@@ -336,6 +338,99 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
+static void
+sock_statsync_thread(void *arg)
+{
+    struct {
+	volatile atomic64_t ref;
+	volatile struct Fd *fd;
+	volatile dev_probe_t probe;
+    } *args = arg;
+    
+    volatile struct Fd *fd = args->fd;
+
+    while (atomic_read(&args->ref) > 1) {
+	struct netd_op_args a;
+	a.size = offsetof(struct netd_op_args, select) + sizeof(a.select);
+	
+	a.op_type = netd_op_select;
+	a.select.fd = fd->fd_sock.s;
+	a.select.write = args->probe == dev_probe_write ? 1 : 0;
+	int r = netd_call(fd->fd_sock.netd_gate, &a);
+	if (r) {
+	    if (args->probe == dev_probe_write) {
+		atomic_inc64((atomic64_t *)&fd->fd_sock.write_gen);
+		sys_sync_wakeup(&atomic_read(&fd->fd_sock.write_gen));
+	    } else {
+		atomic_inc64((atomic64_t *)&fd->fd_sock.read_gen);
+		sys_sync_wakeup(&atomic_read(&fd->fd_sock.read_gen));
+	    }
+	    break;
+	}
+	// XXX should just select/wait on the other side of the gate
+	usleep(50000);
+    }
+
+    if (atomic_dec_and_test((atomic_t *)&args->ref))
+	free((void *)args);
+}
+
+static int
+sock_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+{
+    struct Fd *fd = (struct Fd *) arg0;
+    
+    struct {
+	atomic64_t ref;
+	struct Fd *fd;
+	dev_probe_t probe;
+    } *thread_arg;
+
+    thread_arg = malloc(sizeof(*thread_arg));
+    thread_arg->fd = fd;
+    atomic_set(&thread_arg->ref, 2);
+    thread_arg->probe = probe;
+
+    struct cobj_ref tobj;
+    thread_create(start_env->proc_container, sock_statsync_thread, 
+		  thread_arg, &tobj, "select thread");
+
+    *arg1 = thread_arg;
+    return 0;
+}
+
+static int
+sock_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
+{
+    struct {
+	atomic64_t ref;
+    } *args = arg1;
+
+    if (atomic_dec_and_test((atomic_t *)&args->ref))
+	free(args);
+    
+    return 0;
+}
+
+static int
+sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+{
+    wstat->ws_isobj = 0;
+    if (probe == dev_probe_write) {
+	wstat->ws_addr = &atomic_read(&fd->fd_sock.write_gen);
+	wstat->ws_val = atomic_read(&fd->fd_sock.write_gen);
+    } else {
+	wstat->ws_addr = &atomic_read(&fd->fd_sock.read_gen);
+	wstat->ws_val = atomic_read(&fd->fd_sock.read_gen);
+    }
+    
+    wstat->ws_cbarg = fd;
+    wstat->ws_cb0 = &sock_statsync_cb0;
+    wstat->ws_cb1 = &sock_statsync_cb1;
+
+    return 0;
+}
+
 struct Dev devsock = 
 {
     .dev_id = 's',
@@ -356,4 +451,5 @@ struct Dev devsock =
     .dev_shutdown = sock_shutdown,
     .dev_stat = sock_stat,
     .dev_probe = sock_probe,
+    .dev_statsync = sock_statsync,
 };

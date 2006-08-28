@@ -239,6 +239,12 @@ pt_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
+pt_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+{
+    return  (*devbipipe.dev_statsync)(fd, probe, wstat);
+}
+
+static int
 pt_stat(struct Fd *fd, struct stat *buf)
 {
     buf->st_mode |= S_IFCHR;
@@ -347,6 +353,7 @@ struct Dev devpt = {
     &pt_stat,
     &pt_probe,
     0,
+    &pt_statsync,
     0,
     0,
     0,

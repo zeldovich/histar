@@ -8,6 +8,7 @@
 #include <inc/pthread.h>
 #include <inc/label.h>
 #include <inc/pt.h>
+#include <inc/multisync.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -20,12 +21,6 @@ struct stat;
 /* pre-declare for forward references */
 struct Fd;
 struct Dev;
-
-typedef enum
-{
-    dev_probe_read,
-    dev_probe_write,    
-} dev_probe_t;
 
 struct Dev
 {
@@ -42,6 +37,7 @@ struct Dev
     int (*dev_stat)(struct Fd *fd, struct stat *buf);
     int (*dev_probe)(struct Fd *fd, dev_probe_t probe);
     int (*dev_sync)(struct Fd *fd);
+    int (*dev_statsync)(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat);
 
     ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
 
@@ -88,6 +84,8 @@ struct Fd
 	struct {
 	    struct cobj_ref netd_gate;
 	    int s;
+	    atomic64_t read_gen;
+	    atomic64_t write_gen;
 	} fd_sock;
 
 	struct {

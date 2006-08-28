@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include <sys/stat.h>
 
@@ -153,6 +154,31 @@ pipe_probe(struct Fd *fd, dev_probe_t probe)
     return 0;
 }
 
+static int
+pipe_statsync_cb0(void *arg0, dev_probe_t probe, void **arg1)
+{
+    struct Fd *fd = (struct Fd *) arg0;
+    
+    if (probe == dev_probe_write)
+	fd->fd_pipe.writer_waiting = 1;
+    else
+	fd->fd_pipe.reader_waiting = 1;
+    return 0;
+}
+
+static int
+pipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+{
+    wstat->ws_isobj = 0;
+    wstat->ws_addr = &fd->fd_pipe.bytes;
+    wstat->ws_val = fd->fd_pipe.bytes;
+
+    wstat->ws_cbarg = fd;
+    wstat->ws_cb0 = &pipe_statsync_cb0;
+
+    return 0;
+}
+
 struct Dev devpipe = {
     .dev_id = 'p',
     .dev_name = "pipe",
@@ -160,4 +186,5 @@ struct Dev devpipe = {
     .dev_write = pipe_write,
     .dev_close = pipe_close,
     .dev_probe = pipe_probe,
+    .dev_statsync = pipe_statsync,
 };
