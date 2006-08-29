@@ -84,8 +84,6 @@ struct Fd
 	struct {
 	    struct cobj_ref netd_gate;
 	    int s;
-	    atomic64_t read_gen;
-	    atomic64_t write_gen;
 	} fd_sock;
 
 	struct {

@@ -343,6 +343,7 @@ sock_statsync_thread(void *arg)
 {
     struct {
 	volatile atomic64_t ref;
+	volatile uint64_t *addr;
 	volatile struct Fd *fd;
 	volatile dev_probe_t probe;
     } *args = arg;
@@ -358,13 +359,8 @@ sock_statsync_thread(void *arg)
 	a.select.write = args->probe == dev_probe_write ? 1 : 0;
 	int r = netd_call(fd->fd_sock.netd_gate, &a);
 	if (r) {
-	    if (args->probe == dev_probe_write) {
-		atomic_inc64((atomic64_t *)&fd->fd_sock.write_gen);
-		sys_sync_wakeup(&atomic_read(&fd->fd_sock.write_gen));
-	    } else {
-		atomic_inc64((atomic64_t *)&fd->fd_sock.read_gen);
-		sys_sync_wakeup(&atomic_read(&fd->fd_sock.read_gen));
-	    }
+	    atomic_inc64((atomic64_t *)args->addr);
+	    sys_sync_wakeup(args->addr);
 	    break;
 	}
 	// XXX should just select/wait on the other side of the gate
@@ -383,13 +379,15 @@ sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     
     struct {
 	atomic64_t ref;
+	volatile uint64_t *addr;
 	struct Fd *fd;
 	dev_probe_t probe;
     } *thread_arg;
 
     thread_arg = malloc(sizeof(*thread_arg));
-    thread_arg->fd = fd;
     atomic_set(&thread_arg->ref, 2);
+    thread_arg->addr = addr;
+    thread_arg->fd = fd;
     thread_arg->probe = probe;
 
     struct cobj_ref tobj;
@@ -416,13 +414,7 @@ sock_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    if (probe == dev_probe_write) {
-	WS_SETADDR(wstat, &atomic_read(&fd->fd_sock.write_gen)); 
-	WS_SETVAL(wstat, atomic_read(&fd->fd_sock.write_gen));
-    } else {
-	WS_SETADDR(wstat, &atomic_read(&fd->fd_sock.read_gen)); 
-	WS_SETVAL(wstat, atomic_read(&fd->fd_sock.read_gen)); 
-    }
+    WS_SETASS(wstat);
     WS_SETCBARG(wstat, fd);
     WS_SETCB0(wstat, &sock_statsync_cb0);
     WS_SETCB1(wstat, &sock_statsync_cb1);
