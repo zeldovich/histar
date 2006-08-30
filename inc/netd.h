@@ -144,6 +144,19 @@ struct netd_ipc_segment {
 #define NETD_IPC_SYNC_REPLY	0x00
 #define NETD_IPC_SYNC_REQUEST	0x01
 
+struct netd_sel_segment {
+    struct {
+	uint64_t init;
+	uint64_t sync;
+	uint64_t gen;
+    } sel_op[2];
+    int sock;
+};
+
+// match dev_probe_t
+#define NETD_SEL_OP_READ        0x00
+#define NETD_SEL_OP_WRITE       0x01
+
 typedef enum {
     netd_if_jif,
     netd_if_tun,
@@ -155,8 +168,10 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
     __attribute__((noreturn));
 
 void netd_dispatch(struct netd_op_args *a);
+int  netd_select(int fd, char op, struct timeval *tv);
 
 int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
+int  netd_select_init(struct cobj_ref seg, char op);
 struct cobj_ref netd_get_gate(void);
 void netd_set_gate(struct cobj_ref g);
 

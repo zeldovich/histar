@@ -152,6 +152,40 @@ netd_fast_call(struct netd_op_args *a)
 }
 
 int
+netd_select_init(struct cobj_ref seg, char op)
+{
+    struct gate_call_data gcd;
+    gcd.param_obj = seg;
+    
+    struct netd_select_args {
+	char op;
+	struct cobj_ref seg;
+    } *args = (netd_select_args *)gcd.param_buf;
+
+    args->op = op;
+    args->seg = seg;
+
+    try {
+	struct ulabel *ul = label_alloc();
+	sys_obj_get_label(seg, ul);
+	label ds(3);
+	for (uint64_t i = 0; i < ul->ul_nent; i++)
+	    ds.set(LB_HANDLE(ul->ul_ent[i]), LB_LEVEL_STAR);
+	label_free(ul);
+
+	int64_t select_gate_id = container_find(netd_gate.container,
+						kobj_gate, "netd-select");
+	error_check(select_gate_id);
+	struct cobj_ref select_gate = COBJ(netd_gate.container, select_gate_id);
+	gate_call(select_gate, 0, &ds, 0).call(&gcd, &ds);
+    } catch (std::exception &e) {
+	cprintf("netd_select_init: error: %s\n", e.what());
+	return -1;
+    }
+    return 0;
+}
+
+int
 netd_call(struct cobj_ref gate, struct netd_op_args *a)
 {
     static int do_fast_calls;

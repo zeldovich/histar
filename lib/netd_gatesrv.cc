@@ -11,6 +11,7 @@ extern "C" {
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -59,6 +60,48 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     rg->ret(0, 0, 0);
 }
 
+static void
+netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, void **va, 
+	       uint64_t *bytes, struct cobj_ref *temp_as)
+{
+    uint64_t netd_ct = start_env->proc_container;
+
+    error_check(sys_self_addref(netd_ct));
+    scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
+    
+    // Create private container backed by user resources + AS clone
+    {
+	label private_label;
+	thread_cur_label(&private_label);
+	private_label.transform(label::star_to, private_label.get_default());
+	private_label.set(start_env->process_grant, 0);
+	private_label.set(start_env->process_taint, 3);
+	
+	int64_t private_ct;
+	error_check(private_ct =
+		    sys_container_alloc(taint_ct, private_label.to_ulabel(),
+					"netd_fast private", 0, CT_QUOTA_INF));
+	
+	struct u_address_space uas;
+	uas.size = 64;
+	uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
+	if (!uas.ents)
+	    throw error(-E_NO_MEM, "netd_fast_gate_entry: out of memory");
+	
+	int64_t asid;
+	error_check(asid = sys_as_create(private_ct, 0, "netd_fast temp AS"));
+	*temp_as = COBJ(private_ct, asid);
+	error_check(sys_as_get(netd_asref, &uas));
+	error_check(sys_as_set(*temp_as, &uas));
+    }
+    
+    error_check(sys_self_set_as(*temp_as));
+    segment_as_switched();
+    
+    error_check(segment_map(ipc_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+			    va, bytes, 0));
+}
+
 static void __attribute__((noreturn))
 netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
@@ -67,51 +110,17 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     struct netd_ipc_segment *ipc = 0;
     uint64_t map_bytes = 0;
 
+
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
 
-    // Scope to force object destructors
-    {
-	error_check(sys_self_addref(netd_ct));
-	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
+    netd_ipc_setup(gcd->taint_container, gcd->param_obj, (void **) &ipc, 
+		   &map_bytes, &temp_as);
+    
+    if (map_bytes != sizeof(*ipc))
+	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
+			      map_bytes, sizeof(*ipc));
 
-	// Create private container backed by user resources + AS clone
-	{
-	    label private_label;
-	    thread_cur_label(&private_label);
-	    private_label.transform(label::star_to, private_label.get_default());
-	    private_label.set(start_env->process_grant, 0);
-	    private_label.set(start_env->process_taint, 3);
-
-	    int64_t private_ct;
-	    error_check(private_ct =
-		sys_container_alloc(gcd->taint_container,
-				    private_label.to_ulabel(),
-				    "netd_fast private",
-				    0, CT_QUOTA_INF));
-
-	    struct u_address_space uas;
-	    uas.size = 64;
-	    uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
-	    if (!uas.ents)
-		throw error(-E_NO_MEM, "netd_fast_gate_entry: out of memory");
-
-	    int64_t asid;
-	    error_check(asid = sys_as_create(private_ct, 0, "netd_fast temp AS"));
-	    temp_as = COBJ(private_ct, asid);
-	    error_check(sys_as_get(netd_asref, &uas));
-	    error_check(sys_as_set(temp_as, &uas));
-	}
-
-	error_check(sys_self_set_as(temp_as));
-	segment_as_switched();
-
-	error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ | SEGMAP_WRITE,
-				(void **) &ipc, &map_bytes, 0));
-	if (map_bytes != sizeof(*ipc))
-	    throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
-				  map_bytes, sizeof(*ipc));
-    }
 
     for (;;) {
 	while (ipc->sync == NETD_IPC_SYNC_REPLY)
@@ -163,6 +172,75 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     }
 }
 
+static void __attribute__((noreturn))
+netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
+{
+    uint64_t netd_ct = start_env->proc_container;
+    struct cobj_ref temp_as;
+    struct netd_sel_segment *ipc = 0;
+    uint64_t map_bytes = 0;
+    struct netd_select_args {
+	char op;
+	struct cobj_ref seg;
+    } *args = (netd_select_args *)gcd->param_buf;
+    int op = args->op;
+
+    while (!netd_server_enabled)
+	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
+    
+    netd_ipc_setup(gcd->taint_container, args->seg, 
+		   (void **)&ipc, &map_bytes, &temp_as);
+
+    if (map_bytes != sizeof(*ipc))
+	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
+			      map_bytes, sizeof(*ipc));
+
+    for (;;) {
+	while (ipc->sel_op[op].sync == 0)
+	    sys_sync_wait(&ipc->sel_op[op].sync, 0, ~0UL);
+	
+	error_check(sys_self_addref(netd_ct));
+	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
+
+	error_check(sys_self_set_as(netd_asref));
+	segment_as_switched();
+
+	// Map shared memory segment & execute operation
+	{
+	    struct netd_sel_segment *ipc_shared = 0;
+	    error_check(segment_map(args->seg, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
+				    (void **) &ipc_shared, &map_bytes, 0));
+	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
+
+	    while (ipc_shared->sel_op[op].sync) {
+		struct jos_jmp_buf pgfault;
+		if (jos_setjmp(&pgfault) != 0)
+		    break;
+		*tls_pgfault = &pgfault;
+		
+		struct timeval tv = {0, 0};
+		while (ipc_shared->sel_op[op].sync) {
+		    if (netd_select(ipc_shared->sock, op, &tv)) {
+			ipc_shared->sel_op[op].gen++;
+			error_check(sys_sync_wakeup(&ipc_shared->sel_op[op].gen));
+			ipc_shared->sel_op[op].sync = 0;
+		    } 
+		    usleep(10000);
+		}
+
+		int64_t msec_keepalive = sys_clock_msec() + 1000;
+		while (ipc_shared->sel_op[op].sync == 0 &&
+		       sys_clock_msec() < msec_keepalive)
+		    sys_sync_wait(&ipc_shared->sel_op[op].sync, 0, msec_keepalive);
+	    }
+	}
+
+	unref.force();
+	error_check(sys_self_set_as(temp_as));
+	segment_as_switched();
+    }    
+}
+
 void
 netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
@@ -192,6 +270,11 @@ netd_server_init(uint64_t gate_ct,
 
 	gd.name_ = "netd-fast";
 	gd.func_ = &netd_fast_gate_entry;
+	gd.flags_ = GATESRV_NO_THREAD_ADDREF | GATESRV_KEEP_TLS_STACK;
+	gate_create(&gd);
+
+	gd.name_ = "netd-select";
+	gd.func_ = &netd_select_gate_entry;
 	gd.flags_ = GATESRV_NO_THREAD_ADDREF | GATESRV_KEEP_TLS_STACK;
 	gate_create(&gd);
     } catch (error &e) {

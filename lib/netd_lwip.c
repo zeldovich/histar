@@ -27,6 +27,27 @@ lwip_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
     nsin->sin_addr = sin->sin_addr.s_addr;
 }
 
+int
+netd_select(int fd, char op, struct timeval *tv)
+{
+    fd_set set;
+    FD_ZERO(&set);
+    FD_SET(fd, &set);
+    lwip_core_lock();
+    int r;
+    if (op == NETD_SEL_OP_READ)
+	r = lwip_select(fd + 1, &set, 0, 0, tv);  
+    else if (op == NETD_SEL_OP_WRITE)
+	r = lwip_select(fd + 1, 0, &set, 0, tv);  
+    else {
+	cprintf("netd_select: unknown op %d\n", op);
+	r = -1;
+    }
+    
+    lwip_core_unlock();
+    return r;
+}
+
 void
 netd_dispatch(struct netd_op_args *a)
 {

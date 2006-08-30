@@ -5,7 +5,7 @@
 
 typedef enum
 {
-    dev_probe_read,
+    dev_probe_read = 0,
     dev_probe_write,    
 } dev_probe_t;
 

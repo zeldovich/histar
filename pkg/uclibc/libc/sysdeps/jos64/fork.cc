@@ -150,6 +150,8 @@ do_fork()
                 sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
 	    if (fd->fd_dev_id == devpt.dev_id)
                 sys_segment_addref(fd->fd_pt.bipipe_seg, top_ct);
+	    if (fd->fd_dev_id == devsock.dev_id)
+                sys_segment_addref(fd->fd_sock.sel_seg, top_ct);
 	}
 
 	// What gets copied across fork() and what stays shared?
