@@ -218,14 +218,13 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 		    break;
 		*tls_pgfault = &pgfault;
 		
-		struct timeval tv = {0, 0};
+		struct timeval tv = {1, 0};
 		while (ipc_shared->sel_op[op].sync) {
 		    if (netd_select(ipc_shared->sock, op, &tv)) {
 			ipc_shared->sel_op[op].gen++;
 			error_check(sys_sync_wakeup(&ipc_shared->sel_op[op].gen));
 			ipc_shared->sel_op[op].sync = 0;
 		    } 
-		    usleep(10000);
 		}
 
 		int64_t msec_keepalive = sys_clock_msec() + 1000;
@@ -275,7 +274,7 @@ netd_server_init(uint64_t gate_ct,
 
 	gd.name_ = "netd-select";
 	gd.func_ = &netd_select_gate_entry;
-	gd.flags_ = GATESRV_NO_THREAD_ADDREF | GATESRV_KEEP_TLS_STACK;
+	gd.flags_ = GATESRV_NO_THREAD_ADDREF;
 	gate_create(&gd);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());

@@ -172,6 +172,7 @@ netd_dispatch(struct netd_op_args *a)
 	    fd_set set;
 	    FD_ZERO(&set);
 	    FD_SET(a->select.fd, &set);
+	    // max value for tv if using netd_fast_gate
 	    struct timeval tv = {0, 0};
 
 	    err_fd = a->select.fd;
