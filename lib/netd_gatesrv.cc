@@ -86,10 +86,10 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, void **va,
 	uas.size = 64;
 	uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
 	if (!uas.ents)
-	    throw error(-E_NO_MEM, "netd_fast_gate_entry: out of memory");
+	    throw error(-E_NO_MEM, "netd_ipc_setup: out of memory");
 	
 	int64_t asid;
-	error_check(asid = sys_as_create(private_ct, 0, "netd_fast temp AS"));
+	error_check(asid = sys_as_create(private_ct, 0, "netd_ipc temp AS"));
 	*temp_as = COBJ(private_ct, asid);
 	error_check(sys_as_get(netd_asref, &uas));
 	error_check(sys_as_set(*temp_as, &uas));

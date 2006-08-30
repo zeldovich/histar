@@ -427,17 +427,23 @@ sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     SOCK_SEL_MAP(fd, &ss);
 
     if (!atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].init, 0, 1)) {
-	// XXX failure not handled
 	struct {
 	    struct Fd *fd;
 	    char op;
 	} *args = malloc(sizeof(*args));
+	if (!args)
+	    return -E_NO_MEM;
+	    
 	args->fd = fd;
 	args->op = probe;
 	
 	struct cobj_ref tobj;
-	thread_create(start_env->proc_container, sock_statsync_worker, 
-		      args, &tobj, "select thread");
+	int r = thread_create(start_env->proc_container, sock_statsync_worker, 
+			      args, &tobj, "select thread");
+	if (r < 0) {
+	    free(args);
+	    return r;
+	}
     }
 
     atomic_set((atomic64_t *)&ss->sel_op[probe].sync, 1);
