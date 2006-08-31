@@ -12,6 +12,8 @@
     SYSCALL_ENTRY(net_buf)			\
     SYSCALL_ENTRY(net_macaddr)			\
 						\
+    SYSCALL_ENTRY(machine_reboot)		\
+						\
     SYSCALL_ENTRY(container_alloc)		\
     SYSCALL_ENTRY(container_get_nslots)		\
     SYSCALL_ENTRY(container_get_parent)		\

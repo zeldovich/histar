@@ -51,6 +51,12 @@ sys_net_macaddr(struct cobj_ref nd, uint8_t *addrbuf)
     return syscall(SYS_net_macaddr, nd, addrbuf);
 }
 
+int
+sys_machine_reboot(void)
+{
+    return syscall(SYS_machine_reboot);
+}
+
 int64_t
 sys_container_alloc(uint64_t parent, struct ulabel *ul, const char *name,
 		    uint64_t avoid_types, uint64_t quota)

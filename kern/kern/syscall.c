@@ -3,6 +3,7 @@
 #include <machine/thread.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
+#include <machine/pchw.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
@@ -187,6 +188,17 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 
     check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
     netdev_macaddr(ndev, addrbuf);
+}
+
+static void
+sys_machine_reboot(void)
+{
+    struct Label *l;
+    check(label_alloc(&l, 1));
+    check(label_set(l, user_root_handle, 0));
+    check(label_compare(cur_th_label, l, label_leq_starlo));
+
+    machine_reboot();
 }
 
 static int64_t
@@ -847,6 +859,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(cons_cursor),
     SYSCALL_DISPATCH(net_macaddr),
     SYSCALL_DISPATCH(net_buf),
+    SYSCALL_DISPATCH(machine_reboot),
     SYSCALL_DISPATCH(container_move_quota),
     SYSCALL_DISPATCH(obj_unref),
     SYSCALL_DISPATCH(obj_get_label),
