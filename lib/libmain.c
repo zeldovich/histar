@@ -87,6 +87,9 @@ setup_env(uint64_t envaddr)
 	argc++;
 	p += len + 1;
     }
+
+    // make sure to initialize environ
+    setenv(" ", " ", 0);
     for (int i = 0; i < start_env->envc; i++) {
         size_t len = strlen(p);
         char *value = strpbrk(p, "=");
