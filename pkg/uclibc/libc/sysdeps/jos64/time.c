@@ -6,6 +6,7 @@
 
 #include <sys/time.h>
 #include <sys/times.h>
+#include <time.h>
 
 #include <bits/unimpl.h>
 
@@ -38,4 +39,47 @@ times(struct tms *buf)
 {
     memset(buf, 0, sizeof(*buf));
     return sys_clock_msec();
+}
+
+int
+clock_gettime(clockid_t clock_id, struct timespec *tp)
+{
+    struct timeval tv;
+    int retval = -1;
+
+    switch (clock_id) {
+    case CLOCK_REALTIME:
+	retval = gettimeofday(&tv, NULL);
+	if (retval == 0) {
+	    tp->tv_sec = tv.tv_sec;
+	    tp->tv_nsec = tv.tv_usec * 1000;
+	}
+	break;
+	
+    default:
+	errno = EINVAL;
+	break;
+    }
+    
+    return retval;
+}
+
+int 
+clock_getres (clockid_t clock_id, struct timespec *res)
+{
+    int retval = -1;
+
+    switch (clock_id) {
+    case CLOCK_REALTIME:
+	res->tv_sec = 0;
+	res->tv_nsec = 1000000;
+	retval = 0;
+	break;
+	
+    default:
+	errno = EINVAL;
+	break;
+    }
+    
+    return retval;
 }
