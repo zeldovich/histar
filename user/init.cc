@@ -20,6 +20,7 @@ extern "C" {
 #include <inc/spawn.hh>
 
 static int init_debug = 0;
+static int sshd_mode = 1;
 
 static struct child_process
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
@@ -133,17 +134,13 @@ init_procs(int cons, uint64_t h_root)
     snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
 
     spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
-    //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
-
     spawn_fs(cons, "/bin/auth_log", &h_root_buf[0], &ds_none);
     spawn_fs(cons, "/bin/auth_dir", &h_root_buf[0], &ds_none);
+    spawn_fs(cons, "/bin/devinit", &h_root_buf[0], &ds_hroot);
 
+    //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
+    //spawn_fs(cons, "/bin/rbac_init", &h_root_buf[0], &ds_hroot);
     //spawn_fs(cons, "/bin/login", 0, &ds_none);
-    //spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);
-
-    //spawn_fs(cons, "/bin/telnetd", 0, &ds_none);
-
-    //spawn_fs(cons, "/bin/omd", 0, &ds_none);
 }
 
 static void
@@ -160,6 +157,30 @@ run_shell(int cons, uint64_t h_root)
         else
             cprintf("run_shell: shell exit value %ld\n", exit_code);
 	sys_obj_unref(COBJ(start_env->root_container, shell_proc.container));
+    }
+}
+
+static void
+run_sshd(int cons, uint64_t h_root)
+{
+    int r;
+    label ds_hroot(3);
+    ds_hroot.set(h_root, LB_LEVEL_STAR);
+    
+    char h_root_buf[32];
+    snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
+
+    spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);    
+    
+    for (;;) {
+        struct child_process sshdi_proc = 
+	    spawn_fs(cons, "/bin/sshdi", &h_root_buf[0], &ds_hroot);
+        int64_t exit_code = 0;
+        if ((r = process_wait(&sshdi_proc, &exit_code)) < 0)
+            cprintf("run_sshd: process_wait error: %s\n", e2s(r));
+        else
+            cprintf("run_sshd: sshdi exit value %ld\n", exit_code);
+	sys_obj_unref(COBJ(start_env->root_container, sshdi_proc.container));
     }
 }
 
@@ -187,7 +208,10 @@ try
 
     init_procs(cons, h_root);
     // does not return
-    run_shell(cons, h_root);    
+    if (sshd_mode)
+	run_sshd(cons, h_root);    
+    else
+	run_shell(cons, h_root);    
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
 }
