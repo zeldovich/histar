@@ -20,7 +20,7 @@ extern "C" {
 #include <inc/spawn.hh>
 
 static int init_debug = 0;
-static int sshd_mode = 1;
+static int sshd_mode = 0;
 
 static struct child_process
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
