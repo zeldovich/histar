@@ -28,6 +28,8 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
+extern uint64_t signal_counter;
+
 // Bottom of file descriptor area
 #define FDTABLE		(UFDBASE)
 // Return the 'struct Fd*' for file descriptor index i
@@ -858,9 +860,14 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
-    struct wait_stat wstat[2 * maxfd];
+    struct wait_stat wstat[(2 * maxfd) + 1];
     uint64_t wstat_count = 0;
     memset(wstat, 0, sizeof(wstat));
+    
+    uint64_t start_signal_counter = signal_counter;
+    WS_SETADDR(&wstat[wstat_count], &signal_counter);
+    WS_SETVAL(&wstat[wstat_count], signal_counter);
+    wstat_count++;
     
     // XXX
     if (exceptset)
@@ -940,10 +947,16 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 	    	uint64_t time = sys_clock_msec();
 	    	msec = time + (remaining.tv_sec * 1000) + (remaining.tv_usec / 1000);
 	    }
+
 	    multisync_wait(wstat, wstat_count, msec);
+	    if (start_signal_counter != signal_counter) {
+		__set_errno(EINTR);
+		return -1;
+	    }
 	} else
             break;
-	wstat_count = 0;
+	// save signal_counter
+	wstat_count = 1;
     }
     
     int sz = howmany(maxfd, NFDBITS) * sizeof(fd_mask);

@@ -22,7 +22,7 @@
 #include <bits/signalgate.h>
 
 static int signal_debug = 0;
-static uint64_t signal_counter;
+uint64_t signal_counter;
 
 // BSD compat
 const char *sys_signame[_NSIG];
