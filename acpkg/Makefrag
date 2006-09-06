@@ -21,7 +21,8 @@ ACENV += LIBS=\"\"
 
 ACENV += CC=\"$(CC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
-ACENV += ac_cv_func_setpgrp_void=yes
+ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
+	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no
 
 ##
 ## ./configure arguments for different packages
@@ -105,6 +106,10 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
 	tar -cf $@ -C $(OBJDIR)/acpkg .
+
+##
+## Application rules
+##
    	
 ## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
@@ -115,12 +120,20 @@ $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 
+## http://ftp.gnu.org/pub/gnu/bash/bash-3.1.tar.gz
+$(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
+
 ## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
-$(OBJDIR)/acpkg/bin/vim: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses.a 
+acpkg/vim70/__build: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses.a
 	( cd acpkg/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
 	( cd acpkg/vim70 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/vim70 && sh -c "$(ACENV) gmake install" )
+	touch $@	
+$(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
+
+## http://ftp.gnu.org/pub/gnu/wget/wget-1.10.2.tar.gz
+$(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.10.2/__build
 
 ## http://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 acpkg/gdb-6.5/gdb/config/i386/__gl:
@@ -160,6 +173,7 @@ $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
 $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
+	echo "UseDNS no" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "Port 22" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "ListenAddress 0.0.0.0" >> $(OBJDIR)/acpkg/etc/sshd_config
 	echo "HostKey /etc/ssh_host_rsa_key" >> $(OBJDIR)/acpkg/etc/sshd_config
