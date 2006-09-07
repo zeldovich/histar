@@ -284,7 +284,7 @@ sock_close(struct Fd *fd)
 
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
-    return netd_call(fd->fd_sock.netd_gate, &a);
+    return netd_slow_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int

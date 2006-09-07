@@ -185,6 +185,40 @@ netd_select_init(struct cobj_ref seg, char op)
     return 0;
 }
 
+int 
+netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
+{
+    try {
+	gate_call c(gate, 0, 0, 0);
+	
+	struct cobj_ref seg;
+	void *va = 0;
+	error_check(segment_alloc(c.call_ct(), sizeof(*a), &seg, &va,
+				  0, "netd_call() args"));
+	memcpy(va, a, sizeof(*a));
+	segment_unmap(va);
+	
+	struct gate_call_data gcd;
+	gcd.param_obj = seg;
+	c.call(&gcd, 0);
+	
+	va = 0;
+	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, 0, 0));
+	memcpy(a, va, sizeof(*a));
+	segment_unmap(va);
+    } catch (error &e) {
+	cprintf("netd_slow_call: %s\n", e.what());
+	return e.err();
+    } catch (std::exception &e) {
+	cprintf("netd_slow_call: %s\n", e.what());
+	return -1;
+    }
+
+    if (a->rval < 0)
+	errno = a->errno;
+    return a->rval;
+}
+
 int
 netd_call(struct cobj_ref gate, struct netd_op_args *a)
 {
@@ -204,35 +238,15 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
     }
 
     try {
-	gate_call c(gate, 0, 0, 0);
+	int r;
+	error_check(r = netd_slow_call(gate, a));
 
-	struct cobj_ref seg;
-	void *va = 0;
-	error_check(segment_alloc(c.call_ct(), sizeof(*a), &seg, &va,
-				  0, "netd_call() args"));
-	memcpy(va, a, sizeof(*a));
-	segment_unmap(va);
-
-	struct gate_call_data gcd;
-	gcd.param_obj = seg;
-	c.call(&gcd, 0);
-
-	va = 0;
-	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, 0, 0));
-	memcpy(a, va, sizeof(*a));
-	segment_unmap(va);
+	if (a->rval >= 0)
+	    do_fast_calls = 1;
+	
+	return r;
     } catch (error &e) {
 	cprintf("netd_call: %s\n", e.what());
 	return e.err();
-    } catch (std::exception &e) {
-	cprintf("netd_call: %s\n", e.what());
-	return -1;
     }
-
-    if (a->rval >= 0)
-	do_fast_calls = 1;
-
-    if (a->rval < 0)
-	errno = a->errno;
-    return a->rval;
 }
