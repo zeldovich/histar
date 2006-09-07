@@ -171,6 +171,7 @@ void netd_dispatch(struct netd_op_args *a);
 int  netd_select(int fd, char op, struct timeval *tv);
 
 int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
+int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 int  netd_select_init(struct cobj_ref seg, char op);
 struct cobj_ref netd_get_gate(void);
 void netd_set_gate(struct cobj_ref g);
