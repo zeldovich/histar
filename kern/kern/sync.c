@@ -71,6 +71,7 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
 
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
     t->th_wakeup_msec = wakeup_msec;
+    t->th_multi_slots_used = 0;
 
     int r = as_invert_mapped(t->th_as, addr,
 			     &t->th_wakeup_seg_id,
