@@ -239,7 +239,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 
     try {
 	int r;
-	error_check(r = netd_slow_call(gate, a));
+	r = netd_slow_call(gate, a);
 
 	if (a->rval >= 0)
 	    do_fast_calls = 1;
