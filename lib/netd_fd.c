@@ -281,10 +281,20 @@ sock_close(struct Fd *fd)
 {
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, close) + sizeof(a.close);
-
+    
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
-    return netd_slow_call(fd->fd_sock.netd_gate, &a);
+    int r = netd_slow_call(fd->fd_sock.netd_gate, &a);
+    
+    struct netd_sel_segment *ss = 0;
+    SOCK_SEL_MAP(fd, &ss);
+    for (int i = 0; i < netd_sel_op_count; i++) {
+	ss->sel_op[i].sync = NETD_SEL_SYNC_CLOSE;
+	sys_sync_wakeup(&ss->sel_op[i].sync);
+    }
+    SOCK_SEL_UNMAP(ss);
+    sys_obj_unref(fd->fd_sock.sel_seg);
+    return r;
 }
 
 static int
@@ -439,14 +449,17 @@ sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 	
 	struct cobj_ref tobj;
 	int r = thread_create(start_env->proc_container, sock_statsync_worker, 
-			      args, &tobj, "select thread");
+			      args, &tobj, "select thread");	
 	if (r < 0) {
 	    free(args);
 	    return r;
 	}
     }
 
-    atomic_set((atomic64_t *)&ss->sel_op[probe].sync, 1);
+    
+    atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].sync,
+			    NETD_SEL_SYNC_DONE,
+			    NETD_SEL_SYNC_REQUEST);
     sys_sync_wakeup(&ss->sel_op[probe].sync);
     
     SOCK_SEL_UNMAP(ss);
@@ -461,7 +474,11 @@ sock_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
     struct netd_sel_segment *ss = 0;
     SOCK_SEL_MAP(fd, &ss);
 
-    atomic_set((atomic64_t *)&ss->sel_op[probe].sync, 0);
+
+    atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].sync,
+			    NETD_SEL_SYNC_REQUEST,
+			    NETD_SEL_SYNC_DONE);
+    sys_sync_wakeup(&ss->sel_op[probe].sync);
     
     SOCK_SEL_UNMAP(ss);
     return 0;
