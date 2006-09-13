@@ -144,18 +144,26 @@ struct netd_ipc_segment {
 #define NETD_IPC_SYNC_REPLY	0x00
 #define NETD_IPC_SYNC_REQUEST	0x01
 
+#define NETD_SEL_SYNC_DONE      0x00
+#define NETD_SEL_SYNC_REQUEST   0x01
+#define NETD_SEL_SYNC_CLOSE     0x02
+
+
+// match dev_probe_t
+typedef enum {
+    netd_sel_op_read = 0,
+    netd_sel_op_write,
+    netd_sel_op_count,
+} netd_sel_op_t;
+
 struct netd_sel_segment {
     struct {
 	uint64_t init;
 	uint64_t sync;
 	uint64_t gen;
-    } sel_op[2];
+    } sel_op[netd_sel_op_count];
     int sock;
 };
-
-// match dev_probe_t
-#define NETD_SEL_OP_READ        0x00
-#define NETD_SEL_OP_WRITE       0x01
 
 typedef enum {
     netd_if_jif,

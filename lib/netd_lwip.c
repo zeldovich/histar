@@ -35,9 +35,9 @@ netd_select(int fd, char op, struct timeval *tv)
     FD_SET(fd, &set);
     lwip_core_lock();
     int r;
-    if (op == NETD_SEL_OP_READ)
+    if (op == netd_sel_op_read)
 	r = lwip_select(fd + 1, &set, 0, 0, tv);  
-    else if (op == NETD_SEL_OP_WRITE)
+    else if (op == netd_sel_op_write)
 	r = lwip_select(fd + 1, 0, &set, 0, tv);  
     else {
 	cprintf("netd_select: unknown op %d\n", op);
