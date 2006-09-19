@@ -62,8 +62,8 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 }
 
 static void
-netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, void **va, 
-	       uint64_t *bytes, struct cobj_ref *temp_as)
+netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags, 
+	       void **va, uint64_t *bytes, struct cobj_ref *temp_as)
 {
     uint64_t netd_ct = start_env->proc_container;
 
@@ -100,8 +100,7 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, void **va,
     
     error_check(sys_self_set_as(*temp_as));
     segment_as_switched();
-    error_check(segment_map(ipc_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			    va, bytes, 0));
+    error_check(segment_map(ipc_seg, 0, flags, va, bytes, 0));
 }
 
 static void
@@ -121,9 +120,10 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
-    
-    netd_ipc_setup(gcd->taint_container, gcd->param_obj, (void **) &ipc, 
-		   &map_bytes, &temp_as);
+
+    netd_ipc_setup(gcd->taint_container, gcd->param_obj, 
+		   SEGMAP_READ | SEGMAP_WRITE,
+		   (void **) &ipc, &map_bytes, &temp_as);
     
     if (map_bytes != sizeof(*ipc))
 	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
@@ -179,7 +179,6 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     }
 }
 
-// XXX bug - doesn't appear to always ret() when socket is closed...
 static void __attribute__((noreturn))
 netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
 {
@@ -195,18 +194,24 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
 
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
-    
-    netd_ipc_setup(gcd->taint_container, args->seg, (void **)&ipc, 
-		   &map_bytes, &temp_as);
+
+    netd_ipc_setup(gcd->taint_container, args->seg, 
+		   SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF, 
+		   (void **)&ipc, &map_bytes, &temp_as);
 
     if (map_bytes != sizeof(*ipc))
 	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
 			      map_bytes, sizeof(*ipc));
 
     for (;;) {
+	struct jos_jmp_buf pgfault;
+	if (jos_setjmp(&pgfault) != 0)
+	    break;
+	*tls_pgfault = &pgfault;
+
 	while (ipc->sel_op[op].sync == 0)
 	    sys_sync_wait(&ipc->sel_op[op].sync, 0, ~0UL);
-
+	
 	if (ipc->sel_op[op].sync == NETD_SEL_SYNC_CLOSE)
 	    break;
 
@@ -222,13 +227,12 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
 	    error_check(segment_map(args->seg, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
 				    (void **) &ipc_shared, &map_bytes, 0));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
+	    
+	    if (jos_setjmp(&pgfault) != 0)
+		break;
+	    *tls_pgfault = &pgfault;
 
 	    while (ipc_shared->sel_op[op].sync == NETD_SEL_SYNC_REQUEST) {
-		struct jos_jmp_buf pgfault;
-		if (jos_setjmp(&pgfault) != 0)
-		    break;
-		*tls_pgfault = &pgfault;
-		
 		struct timeval tv = {1, 0};
 		while (ipc_shared->sel_op[op].sync == NETD_SEL_SYNC_REQUEST) {
 		    if (netd_select(ipc_shared->sock, op, &tv)) {
