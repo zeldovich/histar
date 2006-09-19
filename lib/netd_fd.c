@@ -166,7 +166,7 @@ sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
     libc_to_netd(&sin, &a.connect.sin);
-    return netd_call(fd->fd_sock.netd_gate, &a);
+    return netd_slow_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -435,7 +435,8 @@ sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     
     struct netd_sel_segment *ss = 0;
     SOCK_SEL_MAP(fd, &ss);
-
+    assert(ss->sel_op[probe].sync != NETD_SEL_SYNC_CLOSE);
+    
     if (!atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].init, 0, 1)) {
 	struct {
 	    struct Fd *fd;
