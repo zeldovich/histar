@@ -228,6 +228,32 @@ pt_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     int r = (*devbipipe.dev_write)(fd, bf, cc, 0); 
     if (r < 0)
 	return r;
+
+    while ((uint32_t) r < cc) {
+	int fdnum = fd2num(fd);
+
+	struct timeval tv = {1, 0};
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	
+	fd_set writeset;
+	FD_ZERO(&writeset);
+	FD_SET(fdnum, &writeset);
+	
+	int n = select(fdnum + 1, 0, &writeset, 0, &tv);
+	if (n == 0) {
+	    printf("pt_write: only able to write %d out of %ld\n", r, count);
+	    __set_errno(EIO);
+	    return -1;
+	}
+	int rr = (*devbipipe.dev_write)(fd, bf, cc - r, r); 
+	if (rr < 0) {
+	    printf("pt_write: error on bipipe write: %s\n", e2s(rr));
+	    __set_errno(EIO);
+	    return -1;
+	}
+	r += rr;
+    }
     assert((uint32_t)r == cc);
     return count;
 }

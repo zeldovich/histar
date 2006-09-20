@@ -6,7 +6,7 @@
 int bipipe(int fv[2]);
 
 // Defined in bipipe.h so pt can reuse structure and code.
-enum { bipipe_bufsz = 2000 };
+enum { bipipe_bufsz = 4000 };
 
 struct one_pipe {
     char buf[bipipe_bufsz];
