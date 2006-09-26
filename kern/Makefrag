@@ -67,6 +67,12 @@ KERN_BINFILES += #user/tar user/gzip user/gunzip
 KERN_BINFILES += #user/gcc.tar.gz user/make user/kern.tar.gz user/setup.sh
 KERN_BINFILES += #user/sshd user/ssh.tar
 
+ifdef CONF_EMBEDBINS
+include $(CONF_EMBEDBINS)
+else
+include conf/embedbin/default.mk
+endif
+
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
 
@@ -129,7 +135,7 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 	etags -o $@ $^
 
 # How to build the embedded bin structures
-$(OBJDIR)/kern/embedbin.c: kern/Makefrag
+$(OBJDIR)/kern/embedbin.c: kern/Makefrag $(EMBEDBINS_DEPS)
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
