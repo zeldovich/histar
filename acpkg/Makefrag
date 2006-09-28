@@ -111,7 +111,7 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 ## Application rules
 ##
    	
-## ftp://wuarchive.wustl.edu/mirrors/gnu/gzip/gzip-1.2.4.tar.gz
+## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
@@ -132,8 +132,8 @@ acpkg/vim70/__build: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses
 	touch $@	
 $(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
 
-## http://ftp.gnu.org/pub/gnu/wget/wget-1.10.2.tar.gz
-$(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.10.2/__build
+## http://ftp.gnu.org/pub/gnu/wget/wget-1.9.1.tar.gz
+$(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.9.1/__build
 
 ## http://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 acpkg/gdb-6.5/gdb/config/i386/__gl:
@@ -249,6 +249,7 @@ $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
+## ftp://ftp.gnu.org/pub/gnu/gcc/gcc-3.4.5/gcc-core-3.4.5.tar.gz
 acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.16.1/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	-( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
@@ -260,12 +261,16 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
 	rm -f $@
 	cp $(OBJDIR)/lib/crt*.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
-	cp $(OBJDIR)/lib/lib*.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libc.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
 		bin/gcc bin/ld bin/as \
 		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
-		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
+		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a lib/libutil.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
