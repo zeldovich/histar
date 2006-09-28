@@ -135,7 +135,6 @@ init_procs(int cons, uint64_t h_root)
     spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
     spawn_fs(cons, "/bin/auth_log", &h_root_buf[0], &ds_none);
     spawn_fs(cons, "/bin/auth_dir", &h_root_buf[0], &ds_none);
-    spawn_fs(cons, "/bin/devinit", &h_root_buf[0], &ds_hroot);
 
     //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
     //spawn_fs(cons, "/bin/rbac_init", &h_root_buf[0], &ds_hroot);
