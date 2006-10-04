@@ -20,6 +20,7 @@
 
 #include <bits/unimpl.h>
 #include <bits/signalgate.h>
+#include <bits/kernel_sigaction.h>
 
 static int signal_debug = 0;
 uint64_t signal_counter;
@@ -354,22 +355,29 @@ sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
     return 0;
 }
 
-// Fake prototype to make GCC happy.
-int __syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
-
-int
-__syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+int 
+__syscall_sigaction (int signum, const struct old_kernel_sigaction *act,
+		     struct old_kernel_sigaction *oldact)
 {
     if (signum < 0 || signum >= _NSIG) {
 	__set_errno(EINVAL);
 	return -1;
     }
 
-    // XXX the memcpy below somehow crashes ksh..  huh?
-    if (oldact && 0)
-	memcpy(oldact, &sigactions[signum], sizeof(*oldact));
-    if (act)
-	memcpy(&sigactions[signum], act, sizeof(*act));
+    if (oldact) {
+	oldact->k_sa_handler = sigactions[signum].sa_handler;
+	oldact->sa_mask = sigactions[signum].sa_mask.__val[0];
+	oldact->sa_flags = sigactions[signum].sa_flags;
+	oldact->sa_restorer = sigactions[signum].sa_restorer;
+    }
+
+    if (act) {
+	sigactions[signum].sa_handler = act->k_sa_handler;
+	sigactions[signum].sa_mask.__val[0] = act->sa_mask;
+	sigactions[signum].sa_flags = act->sa_flags;
+	sigactions[signum].sa_restorer = act->sa_restorer;
+    }
+
     return 0;
 }
 
