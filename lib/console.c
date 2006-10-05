@@ -35,7 +35,8 @@ opencons(void)
     fd->fd_dev_id = devcons.dev_id;
     fd->fd_omode = O_RDWR;
     fd->fd_isatty = 1;
-
+    fd->fd_cons.pgid = getpid();
+    
     r = fd_make_public(fd2num(fd), 0);
     if (r < 0) {
 	cprintf("opencons: cannot make public: %s\n", e2s(r));
@@ -43,7 +44,7 @@ opencons(void)
 	return r;
     }
 
-    fd->fd_immutable = 1;
+    fd->fd_immutable = 0;
     return fd2num(fd);
 }
 
@@ -100,6 +101,15 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	
 	// XXX 
 	k_termios->c_lflag |= ECHO;
+	return 0;
+    }
+    else if (req == TIOCGPGRP) {
+	int *pgrp = va_arg(ap, int *);
+	*pgrp = fd->fd_cons.pgid;
+	return 0;
+    } else if (req == TIOCSPGRP) {
+	int *pgrp = va_arg(ap, int *);
+	fd->fd_cons.pgid = *pgrp;
 	return 0;
     }
     return -1;

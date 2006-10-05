@@ -18,7 +18,7 @@ struct one_pipe {
     uint64_t bytes; /* # bytes in circular buffer */
     pthread_mutex_t mu;
     // XXX for pt
-    uint64_t ref;
+    struct cobj_ref obj;
 };
 
 struct bipipe_seg {

@@ -86,6 +86,18 @@ do_fork()
 			      &exit_status_seg, 0, 0,
 			      "exit status"));
 
+    // Create a process gid for it
+    struct cobj_ref process_gid_seg;
+    uint64_t *child_pgid = 0;
+    label pgid_label(1);
+    pgid_label.set(start_env->user_grant, 0);
+    error_check(segment_alloc(top_ct, sizeof(uint64_t),
+			      &process_gid_seg, (void **) &child_pgid, 
+			      pgid_label.to_ulabel(), "process gid"));
+    scope_guard<int, void *> pgid_unmap(segment_unmap, child_pgid);
+    
+    *child_pgid = getpgrp();
+
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
     struct jos_jmp_buf jb;
     if (jos_setjmp(&jb) != 0) {
@@ -98,6 +110,7 @@ do_fork()
 	start_env->proc_container = proc_ct;
 
 	start_env->process_status_seg = exit_status_seg;
+	start_env->process_gid_seg = process_gid_seg;
 
 	start_env->process_grant = process_grant;
 	start_env->process_taint = process_taint;

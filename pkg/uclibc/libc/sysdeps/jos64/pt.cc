@@ -15,12 +15,38 @@ extern "C" {
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
 }
 
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
+
+struct pt_ios
+{
+    uint64_t ref;
+    pt_termios ios;
+    pid_t pgrp;
+};
+
+#define PT_SEG_MAP(__fd, __va, __seg)				\
+    do {							\
+	int __r;						\
+	__r = segment_map((__fd)->fd_pt.__seg, 0,		\
+			  SEGMAP_READ | SEGMAP_WRITE,		\
+			  (void **)(__va), 0, 0);		\
+	if (__r < 0) {						\
+	    cprintf("%s: cannot segment_map: %s\n",		\
+		    __FUNCTION__, e2s(__r));			\
+	    errno = EIO;					\
+	    return -1;						\
+	}							\
+    } while(0)
+
+#define PT_MY_SEG_MAP(__fd, __va) PT_SEG_MAP(__fd, __va, my_ios)
+#define PT_SLAVE_SEG_MAP(__fd, __va) PT_SEG_MAP(__fd, __va, slave_ios)
 
 static int64_t
 pt_send(struct cobj_ref gate, void *args, uint64_t n)
@@ -55,30 +81,39 @@ pts_open(struct cobj_ref slave_gt, struct cobj_ref seg, int flags)
     struct bipipe_seg *bs = 0;
     r = segment_map(seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **) &bs, 0, 0);
+    scope_guard<int, void*> seg_unmap(segment_unmap, bs);
+
     if (r < 0) {
 	cprintf("pts_open: cannot segment_map: %s\n", e2s(r));
 	jos_fd_close(fds);
 	errno = EIO;
 	return -1;
     }
+    fds->fd_pt.my_ios = bs->p[0].obj;
+    fds->fd_pt.slave_ios = bs->p[0].obj;
     
     uint64_t taint = bs->taint;;
     uint64_t grant = bs->grant;
 
     fds->fd_pt.bipipe_seg = seg;
+    
     fds->fd_omode = flags;
     fds->fd_pt.bipipe_a = 0;
     fd_set_extra_handles(fds, grant, taint);
     bs->p[0].open = 1;
+
+    struct pt_ios *ios = 0;
+    PT_MY_SEG_MAP(fds, &ios);
+    scope_guard<int, void*> seg_unmap2(segment_unmap, ios);
     // Can have multiple Fds referencing the same pts
-    bs->p[0].ref++;
-    
+    ios->ref++;
+
     fds->fd_dev_id = devpt.dev_id;
     fds->fd_isatty = 1;
     fds->fd_pt.gate = slave_gt;
     fds->fd_pt.is_master = 0;
     
-    return fd2num(fds);;
+    return fd2num(fds);
 }
 
 extern "C" int
@@ -91,17 +126,36 @@ ptm_open(struct cobj_ref master_gt, struct cobj_ref slave_gt, int flags)
     
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
-    struct ulabel *l = label_alloc();
-    l->ul_default = 1;
-    label_set_level(l, taint, 3, 1);
-    label_set_level(l, grant, 0, 1);
-    if ((r = segment_alloc(ct, sizeof(*bs), &seg, (void **)&bs, l, "bipipe")) < 0) {
+    label l0(1);
+    l0.set(taint, 3);
+    l0.set(grant, 0);
+    label l1(1);
+    l1.set(start_env->process_taint, 3);
+    l1.set(start_env->process_grant, 0);
+    
+    if ((r = segment_alloc(ct, sizeof(*bs), &seg, (void **)&bs, l0.to_ulabel(), "bipipe")) < 0) {
         errno = ENOMEM;
         return -1;        
     }
-
+    scope_guard<int, void*> seg_unmap(segment_unmap, bs);
     memset(bs, 0, sizeof(*bs));
-
+    
+    struct cobj_ref ios_seg;
+    struct pt_ios *ios = 0;
+    if ((r = segment_alloc(ct, sizeof(*ios), &ios_seg, (void **)&ios, l1.to_ulabel(), "master ios")) < 0) {
+        errno = ENOMEM;
+        return -1;        
+    }
+    scope_guard<int, void*> seg_unmap2(segment_unmap, ios);
+    memset(ios, 0, sizeof(*ios));
+    
+    // allocate now so master ptm has a reference to slave ios
+    struct cobj_ref slave_ios_seg;
+    if ((r = segment_alloc(ct, sizeof(struct pt_ios), &slave_ios_seg, 0, l0.to_ulabel(), "slave ios")) < 0) {
+        errno = ENOMEM;
+        return -1;        
+    }
+    
     struct Fd *fdm;
     r = fd_alloc(&fdm, "ptm fd");
     if (r < 0) {
@@ -113,11 +167,17 @@ ptm_open(struct cobj_ref master_gt, struct cobj_ref slave_gt, int flags)
     fdm->fd_pt.bipipe_seg = seg;
     fdm->fd_omode = flags;
     fdm->fd_pt.bipipe_a = 1;
+    fdm->fd_pt.my_ios = ios_seg;
+    fdm->fd_pt.slave_ios = slave_ios_seg;
     fd_set_extra_handles(fdm, grant, taint);
+    
+    // store in bipipe seg so slave_ios can be retrieved in pts_open
+    bs->p[0].obj = slave_ios_seg;
     bs->p[1].open = 1;
-    bs->p[1].ref = 1;
     bs->taint = taint;
     bs->grant = grant;
+
+    ios->ref = 1;
     
     fdm->fd_dev_id = devpt.dev_id;
     fdm->fd_isatty = 1;
@@ -167,16 +227,13 @@ pt_close(struct Fd *fd)
 	    args.pts_args.op = pts_op_close;
 	    error_check(pt_send(fd->fd_pt.gate, &args, sizeof(args)));
 	}
-	
-	struct bipipe_seg *bs = 0;
-	int r;
-	error_check(r = segment_map(fd->fd_bipipe.bipipe_seg, 0, 
-				    SEGMAP_READ | SEGMAP_WRITE,
-				    (void **) &bs, 0, 0));
-	scope_guard<int, void*> seg_unmap(segment_unmap, bs);
-	
-	bs->p[fd->fd_pt.bipipe_a].ref--;
-	if (bs->p[fd->fd_pt.bipipe_a].ref == 0)
+		
+	struct pt_ios *ios = 0;
+	PT_MY_SEG_MAP(fd, &ios);
+	scope_guard<int, void*> seg_unmap(segment_unmap, ios);
+		
+	ios->ref--;
+	if (ios->ref == 0)
 	    return (*devbipipe.dev_close)(fd);
 	return 0;
     } catch (basic_exception e) {
@@ -193,9 +250,8 @@ pt_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 }
 
 static uint32_t
-pt_handle_nl(struct Fd *fd, char *buf)
+pt_handle_nl(struct Fd *fd, char *buf, tcflag_t flags)
 {
-    tcflag_t flags = fd->fd_pt.ios.c_oflag;
     if (flags & ONLCR) {
 	buf[0] = '\r';
 	buf[1] = '\n';
@@ -212,19 +268,38 @@ pt_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     char bf[count * 2];
     const char *ch = ((const char *)buf);
     uint32_t cc = 0;
+	
+    struct pt_ios *ios = 0;
+    PT_MY_SEG_MAP(fd, &ios);
+    scope_guard<int, void*> seg_unmap2(segment_unmap, ios);
+    pt_termios *termios = &ios->ios;
+    
+    struct pt_ios *oios = 0;
+    pt_termios *otermios = 0;
+    if (fd->fd_pt.is_master) {
+	PT_SLAVE_SEG_MAP(fd, &oios);
+	otermios = &oios->ios;
+    }
 
     for (uint32_t i = 0; i < count; i++) {
         switch (ch[i]) {
 	case '\n':
-	    cc += pt_handle_nl(fd, &bf[cc]);
+	    cc += pt_handle_nl(fd, &bf[cc], termios->c_oflag);
 	    break;
 	default:
-	    bf[cc] = ch[i];
-	    cc++;
+	    if (fd->fd_pt.is_master && otermios->c_cc[VINTR] == ch[i]) {
+		kill(oios->pgrp, SIGINT);
+	    } else {
+		bf[cc] = ch[i];
+		cc++;
+	    }
 	    break;
 	}
     }
     
+    if (fd->fd_pt.is_master)
+	segment_unmap_delayed(oios, 1);
+
     int r = (*devbipipe.dev_write)(fd, bf, cc, 0); 
     if (r < 0)
 	return r;
@@ -339,6 +414,12 @@ static int
 pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
     assert(fd->fd_isatty);
+
+    struct pt_ios *ios = 0;
+    PT_MY_SEG_MAP(fd, &ios);
+    scope_guard<int, void*> seg_unmap2(segment_unmap, ios);
+    pt_termios *termios = &ios->ios;
+
     if (req == TCGETS) {
     	if (!fd->fd_isatty) {
 	    __set_errno(ENOTTY);
@@ -347,21 +428,32 @@ pt_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	memcpy(k_termios, &fd->fd_pt.ios, sizeof(*k_termios));
+	memcpy(k_termios, termios, sizeof(*k_termios));
 	return 0;
     } else if (req == TCSETS || req == TCSETSW || req == TCSETSF) {
 	const struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
-	memcpy(&fd->fd_pt.ios, k_termios, sizeof(fd->fd_pt.ios));
+	memcpy(termios, k_termios, sizeof(*termios));
 	return 0;
     } else if (req == TIOCGPTN) {
 	int *ptyno = va_arg(ap, int *);
 	return pt_pts_no(fd, ptyno);
-    }
-    else if (req == TIOCSPTLCK) {
+    } else if (req == TIOCSPTLCK) {
 	// the pts associated with fd is always unlocked
 	return 0;
+    } else if (req == TIOCGPGRP) {
+	int *pgrp = va_arg(ap, int *);
+	*pgrp = ios->pgrp;
+	return 0;
+    } else if (req == TIOCSPGRP) {
+	int *pgrp = va_arg(ap, int *);
+	ios->pgrp = *pgrp;
+	return 0;
+    } else if (req == TIOCSCTTY) {
+	ios->pgrp = getpgrp();
+	return 0;
     }
+
     __set_errno(EINVAL);
     return -1;
 }

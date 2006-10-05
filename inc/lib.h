@@ -58,6 +58,7 @@ typedef struct {
     uint64_t root_container;
 
     struct cobj_ref process_status_seg;
+    struct cobj_ref process_gid_seg;
     struct cobj_ref declassify_gate;
 
     /* Handles that ensure process integrity */

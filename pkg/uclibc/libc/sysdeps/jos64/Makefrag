@@ -4,7 +4,7 @@ OBJDIRS += \
 
 UCLIBC_JOS64_CSRC := \
 	sbrk.c errno.c signal.c exit.c uidgid.c mmap.c memlayout.c fd.cc \
-	file.c file_fd.c gatefile.cc getdnnm.c proc.c time.c rlim.c host.c \
+	file.c file_fd.c gatefile.cc getdnnm.c proc.cc time.c rlim.c host.c \
 	pipe.c pt.cc ptrace.cc misc.c fork.cc exec.cc signalgate.cc sysinfo.c \
 	wait.c alarm.c segvhelper.cc daemon.c
 

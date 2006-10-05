@@ -10,6 +10,8 @@ extern "C" {
 #include <inc/declassify.h>
 
 #include <string.h>
+#include <unistd.h>
+#include <signal.h>
 }
 
 #include <inc/scopeguard.hh>
@@ -17,8 +19,6 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
-
-#include <signal.h>
 
 static int label_debug = 0;
 
@@ -153,12 +153,33 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 			      &exit_status_seg, 0, 0,
 			      "exit status"));
 
+    struct cobj_ref process_gid_seg;
+    uint64_t *child_pgid = 0;
+    label pgid_label(1); 
+    pgid_label.set(start_env->user_grant, 0);
+    try {
+	error_check(segment_alloc(c_top, sizeof(uint64_t),
+				  &process_gid_seg, (void **) &child_pgid, 
+				  pgid_label.to_ulabel(), "process gid"));
+    } catch (error e) {
+	if (e.err() != -E_LABEL)
+	    throw e;
+	pgid_label.set(start_env->user_grant, 1);
+	pgid_label.set(process_grant, 0);
+	error_check(segment_alloc(c_top, sizeof(uint64_t),
+				  &process_gid_seg, (void **) &child_pgid, 
+				  pgid_label.to_ulabel(), "process gid"));
+    }
+    scope_guard<int, void *> pgid_unmap(segment_unmap, child_pgid);
+    *child_pgid = getpgrp();
+    
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->proc_container = c_proc;
     spawn_env->shared_container = c_top;
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
+    spawn_env->process_gid_seg = process_gid_seg;
     spawn_env->ppid = 0;
     
     int room = env_size - sizeof(start_env_t);

@@ -82,6 +82,10 @@ struct Fd
 	} fd_dev_state;
 
 	struct {
+	    uint64_t pgid;
+	} fd_cons;
+
+	struct {
 	    struct cobj_ref netd_gate;
 	    struct cobj_ref sel_seg;
 	    int s;
@@ -107,8 +111,9 @@ struct Fd
 	struct {
 	    struct cobj_ref bipipe_seg;
 	    int bipipe_a;
-	    
-	    pt_termios ios;
+
+	    struct cobj_ref my_ios;
+	    struct cobj_ref slave_ios;
 	    struct cobj_ref gate;
 	    char is_master;
 	} fd_pt;
