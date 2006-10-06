@@ -773,89 +773,11 @@ getsockopt(int fdnum, int level, int optname, void *optval,
     return FD_CALL(fdnum, getsockopt, level, optname, optval, optlen);
 }
 
-#if 1
-int
-select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
-       struct timeval *timeout) __THROW
-{
-    // XXX
-    if (exceptset)
-	for (int i = 0 ; exceptset && i < maxfd ; i++)
-	    FD_CLR(i, exceptset);
-    
-    fd_set rreadset;
-    fd_set rwriteset;
-    FD_ZERO(&rreadset);
-    FD_ZERO(&rwriteset);
-    
-    int ready = 0;
-    
-    struct Fd *fd;
-    struct Dev *dev;
-    int r;
-
-    struct timeval start;
-    gettimeofday(&start, 0);
-
-    while (1) {
-        for (int i = 0 ; i < maxfd ; i++) {
-            if (readset && FD_ISSET(i, readset)) {
-                if ((r = fd_lookup(i, &fd, 0, 0)) < 0
-		    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-		{
-                    __set_errno(EBADF);
-                    return -1;
-                }
-		
-		if (DEV_CALL(dev, probe, fd, dev_probe_read)) {
-                    FD_SET(i, &rreadset);
-                    ready++;
-		}
-            }
-            if (writeset && FD_ISSET(i, writeset)) {
-                if ((r = fd_lookup(i, &fd, 0, 0)) < 0
-		    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-		{
-                    __set_errno(EBADF);
-                    return -1;
-                }
-		    
-		if (DEV_CALL(dev, probe, fd, dev_probe_write)) {
-                    FD_SET(i, &rwriteset);
-                    ready++;
-		}
-            }
-        }
-        // XXX can exceed timeout...
-        if (timeout) {
-            struct timeval now, elapsed;
-            gettimeofday(&now, 0);
-            timersub(&now, &start, &elapsed);
-            if (timercmp(&elapsed, timeout, >))
-                break;
-        }
-
-        if (!ready) 
-	    usleep(100000);
-        else
-            break;
-    }
-
-    int sz = howmany(maxfd, NFDBITS) * sizeof(fd_mask);
-    if (writeset)
-        memcpy(writeset, &rwriteset, sz);
-    if (readset)
-        memcpy(readset, &rreadset, sz);
-
-    return ready;
-}
-
 // XXX
 // one issue is selecting on fd_set with size < sizeof(fd_set)...
 // this can happen with fd_set *set = malloc(x).  Use FD_* macros
 // carefully on arguments, and shouldn't use FD_ZERO on readset, 
 // writeset or execept set.
-#else
 int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
@@ -967,7 +889,6 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 
     return ready;
 }
-#endif
 
 ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
