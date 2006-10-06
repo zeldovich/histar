@@ -84,7 +84,8 @@ pts_open(struct cobj_ref slave_gt, struct cobj_ref seg, int flags)
     scope_guard<int, void*> seg_unmap(segment_unmap, bs);
 
     if (r < 0) {
-	cprintf("pts_open: cannot segment_map: %s\n", e2s(r));
+	cprintf("pts_open: cannot segment_map %ld: %s\n", seg.object, e2s(r));
+	fds->fd_dev_id = devnull.dev_id;
 	jos_fd_close(fds);
 	errno = EIO;
 	return -1;

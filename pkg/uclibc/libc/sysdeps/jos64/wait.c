@@ -137,6 +137,8 @@ again:
 	}
 
 	if (r == 0) {
+	    if (options & WNOHANG)
+		continue;
 	    r = child_get_siginfo(wc, statusp);
 	    if (r == 1)
 		return wc->wc_pid;
