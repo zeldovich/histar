@@ -583,10 +583,16 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
+pstate_sync_stackwrap(void *arg0, void *arg1, void *arg2)
 {
+    int *rvalp = 0;
+    if (arg0)
+	rvalp = (int *) arg0;
+
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync: another sync still active\n");
+	if (rvalp && !*rvalp)
+	    *rvalp = -E_BUSY;
 	return;
     }
 
@@ -642,6 +648,9 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
 
 	// Reset the un-committed log by applying the committed on-disk one.
 	assert(0 == pstate_apply_disk_log());
+
+	if (rvalp && !*rvalp)
+	    *rvalp = r;
     }
 
     for (ko = LIST_FIRST(&ko_list); ko; ko = ko_next) {
@@ -654,7 +663,7 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
 	    else
 		ko->hdr.ko_sync_ts = hdr->ph_sync_ts;
 	}
-    
+
 	if ((ko->hdr.ko_flags & KOBJ_SNAPSHOTING)) {
 	    struct kobject *snap = kobject_get_snapshot(&ko->hdr);
 	    kobject_snapshot_release(&ko->hdr);
@@ -677,6 +686,8 @@ pstate_sync_stackwrap(void *arg, void *arg1, void *arg2)
 	thread_set_runnable(LIST_FIRST(&swapout_waiting));
 
     lock_release(&swapout_lock);
+    if (rvalp && !*rvalp)
+	*rvalp = 1;
 }
 
 static void
@@ -685,6 +696,20 @@ pstate_sync(void)
     int r = stackwrap_call(&pstate_sync_stackwrap, 0, 0, 0);
     if (r < 0)
 	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+}
+
+int
+pstate_sync_now(void)
+{
+    int rval = 0;
+    int r = stackwrap_call(&pstate_sync_stackwrap, &rval, 0, 0);
+    if (r < 0)
+	return r;
+
+    while (rval == 0)
+	ide_intr();
+
+    return rval < 0 ? rval : 0;
 }
 
 //////////////////////////////////////////////////

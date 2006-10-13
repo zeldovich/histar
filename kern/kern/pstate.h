@@ -44,4 +44,7 @@ int  pstate_sync_user(uint64_t timestamp);
 int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 			uint64_t start, uint64_t nbytes);
 
+// waits in the kernel until a snapshot is written to disk
+int  pstate_sync_now(void);
+
 #endif

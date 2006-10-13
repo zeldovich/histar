@@ -198,6 +198,7 @@ sys_machine_reboot(void)
     check(label_set(l, user_root_handle, 0));
     check(label_compare(cur_th_label, l, label_leq_starlo));
 
+    check(pstate_sync_now());
     machine_reboot();
 }
 
