@@ -25,6 +25,7 @@ utrap_entry(struct UTrapframe *utf)
 	sys_self_halt();
     }
 
+    sys_self_utrap_mask(0);
     utrap_ret(utf);
 }
 

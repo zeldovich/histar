@@ -31,6 +31,7 @@ struct Thread {
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
+    uint8_t th_utrap_masked : 1;
 
     uint64_t th_wakeup_msec;
     uint64_t th_wakeup_seg_id;

@@ -77,6 +77,7 @@ int	sys_self_get_verify(struct ulabel *l);
 int	sys_self_fp_enable(void);
 int	sys_self_fp_disable(void);
 int	sys_self_set_waitslots(uint64_t nslots);
+int	sys_self_utrap_mask(int mask);
 
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
 		      uint64_t wakeup_at_msec);

@@ -380,6 +380,7 @@ thread_jump(const struct Thread *const_t,
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
 			       cur_clearance, clearance, &qr_th);
     thread_change_as(t, te->te_as);
+    t->th_utrap_masked = 0;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
@@ -461,6 +462,9 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
 	return -E_INVAL;
 
+    if (const_t->th_utrap_masked)
+	return -E_BUSY;
+
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
     int r = thread_load_as(t);
     if (r < 0)
@@ -509,6 +513,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     thread_set_runnable(t);
 
 out:
+    t->th_utrap_masked = 1;
     as_switch(cur_thread->th_as);
     cur_thread = saved_cur;
     return r;

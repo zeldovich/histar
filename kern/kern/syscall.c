@@ -690,6 +690,12 @@ sys_self_set_waitslots(uint64_t nslots)
 }
 
 static void
+sys_self_utrap_mask(int mask)
+{
+    kobject_dirty(&cur_thread->th_ko)->th.th_utrap_masked = mask;
+}
+
+static void
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(check_user_access(addr, sizeof(*addr), 0));
@@ -886,6 +892,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_fp_enable),
     SYSCALL_DISPATCH(self_fp_disable),
     SYSCALL_DISPATCH(self_set_waitslots),
+    SYSCALL_DISPATCH(self_utrap_mask),
     SYSCALL_DISPATCH(sync_wait),
     SYSCALL_DISPATCH(sync_wait_multi),
     SYSCALL_DISPATCH(sync_wakeup),
