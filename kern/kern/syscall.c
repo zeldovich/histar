@@ -692,7 +692,7 @@ sys_self_set_waitslots(uint64_t nslots)
 static void
 sys_self_utrap_mask(int mask)
 {
-    kobject_dirty(&cur_thread->th_ko)->th.th_utrap_masked = mask;
+    kobject_dirty(&cur_thread->th_ko)->th.th_utrap_masked = mask ? 1 : 0;
 }
 
 static void

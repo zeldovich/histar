@@ -510,10 +510,10 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     t->th_tf.tf_rsp = (uint64_t) utf;
     t->th_tf.tf_rip = t->th_as->as_utrap_entry;
     t->th_tf.tf_rflags &= ~FL_TF;
+    t->th_utrap_masked = 1;
     thread_set_runnable(t);
 
 out:
-    t->th_utrap_masked = 1;
     as_switch(cur_thread->th_as);
     cur_thread = saved_cur;
     return r;
