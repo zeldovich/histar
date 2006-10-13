@@ -312,12 +312,26 @@ kill_thread_siginfo(struct cobj_ref tid, siginfo_t *si)
 
     struct cobj_ref cur_as;
     sys_self_get_as(&cur_as);
-    int r = sys_thread_trap(tid, cur_as, 0, signo);
-    if (r < 0) {
-	cprintf("kill_thread_siginfo: cannot trap: %s\n", e2s(r));
 
-	__set_errno(EPERM);
-	return -1;
+    /* XXX implement real signal queuing */
+    for (;;) {
+	int r = sys_thread_trap(tid, cur_as, 0, signo);
+
+	if (r == 0)
+	    break;
+
+	if (r == -E_BUSY) {
+	    cprintf("kill_thread_siginfo: cannot trap %ld.%ld, retrying\n",
+		    tid.container, tid.object);
+	    thread_sleep(10);
+	    continue;
+	}
+
+	if (r < 0) {
+	    cprintf("kill_thread_siginfo: cannot trap: %s\n", e2s(r));
+	    __set_errno(EPERM);
+	    return -1;
+	}
     }
 
     return 0;
