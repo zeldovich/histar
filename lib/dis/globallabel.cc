@@ -23,18 +23,25 @@ level_to_char(level_t lv)
     return lbuf[0];
 }
 
-global_label::global_label(label *local, global_converter *get_global) 
-    : serial_(0), string_(0)
+global_label::global_label(struct ulabel *ul, global_converter *get_global) 
+    : serial_(0), string_(0), local_label_(0)
 {
-    ulabel *ul = local->to_ulabel();
-    entries_ = ul->ul_nent;
+    // compact, ignore entries at def. level
+    entries_ = 0;
+    for (uint32_t i = 0 ; i < ul->ul_nent; i++)
+	if (LB_LEVEL(ul->ul_ent[i]) != ul->ul_default)
+	    entries_++;
+
     entry_ = new global_entry[entries_];
-    default_ = local->get_default();
+    default_ = ul->ul_default;
     memset(entry_, 0, sizeof(global_entry) * entries_);
     try {
         for (uint64_t i = 0; i < ul->ul_nent; i++) {
             uint64_t h = LB_HANDLE(ul->ul_ent[i]);
             level_t l = LB_LEVEL(ul->ul_ent[i]);
+	    if (l == default_) {
+		continue;
+	    }
             (*get_global)(h, &entry_[i].global);
             entry_[i].level = l;
         }
@@ -45,7 +52,25 @@ global_label::global_label(label *local, global_converter *get_global)
     }
 }
 
-global_label::global_label(const char *serial) : serial_(0), string_(0)
+global_label::global_label(const char *serial) 
+    : serial_(0), string_(0), local_label_(0)
+{
+    copy_from(serial);
+}
+
+void
+global_label::cleanup(void)
+{
+    if (entry_)
+	delete entry_;
+    if (serial_)
+	delete serial_;    
+    if (string_)
+	delete string_;    
+}
+
+void
+global_label::copy_from(const char *serial)
 {
     entries_ = ntohl(((uint32_t *)serial)[0]);
     default_ = serial[4];
@@ -57,6 +82,16 @@ global_label::global_label(const char *serial) : serial_(0), string_(0)
     memcpy(entry_, &serial[off], entries_ * sizeof(global_entry));
 }
 
+const label *
+global_label::local_label(global_to_local *g2l, void *arg)
+{
+    if (!local_label_) {
+	global_label *me = (global_label *)this;
+        me->gen_local_label(g2l, arg);
+    }
+    return local_label_;
+}
+
 const char *
 global_label::serial(void) const 
 {
@@ -66,8 +101,16 @@ global_label::serial(void) const
     }
     return serial_;
 }
+
+void
+global_label::serial_is(const char *serial)
+{
+    cleanup();
+    copy_from(serial);
+    return;
+}
     
-int         
+uint32_t         
 global_label::serial_len(void) const
 {
     if (!serial_) {
@@ -75,6 +118,23 @@ global_label::serial_len(void) const
         me->gen_serial();
     }
     return serial_len_;    
+}
+
+void 
+global_label::gen_local_label(global_to_local *g2l, void *arg)
+{
+    local_label_ = new label(default_);
+    try {
+	for (uint32_t i = 0; i < entries_; i++) {
+	    int64_t local;
+	    error_check(local = g2l(&entry_[i].global, arg));
+	    local_label_->set(local, entry_[i].level);
+	}
+    } catch (error &e) {
+	delete local_label_;
+	local_label_ = 0;
+	throw e;
+    }
 }
 
 void
