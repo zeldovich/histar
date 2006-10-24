@@ -466,6 +466,7 @@ struct Dev devpt = {
     &pt_write,    
     0,
     0,
+    0,
     &pt_close,
     0,
     0,

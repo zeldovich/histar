@@ -15,6 +15,7 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/statfs.h>
+#include <sys/poll.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -890,6 +891,64 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     return ready;
 }
 
+int 
+poll(struct pollfd *ufds, nfds_t nfds, int timeout) __THROW
+{
+    fd_set readset, writeset;
+    struct timeval tv;
+
+    FD_ZERO(&readset);
+    FD_ZERO(&writeset);
+    
+    int max = -1;
+
+    for (uint32_t i = 0; i < nfds; i++) {
+	short e = ufds[i].events;
+	int fd = ufds[i].fd;
+	if ((e & POLLIN) || (e & POLLPRI))
+	    FD_SET(fd, &readset);
+
+	if (e & POLLOUT)
+	    FD_SET(fd, &writeset);
+	
+	max = MAX(max, fd);
+    }
+    max = max + 1;
+
+    struct timeval *tv2;
+    if (timeout < 0)
+	tv2 = 0;
+    else {
+	tv2 = &tv;
+	memset(tv2, 0, sizeof(*tv2));
+	tv2->tv_sec = timeout / 1000;
+	tv2->tv_usec = (timeout % 1000) * 1000;
+    }
+    
+    int r = select(max, &readset, &writeset, 0, tv2);
+    if (r <= 0)
+	return r;
+    
+    int r2 = 0;
+    for (uint32_t i = 0; i < nfds; i++) {
+	int fd = ufds[i].fd;
+	char flag = 0;
+	if (FD_ISSET(fd, &readset)) {
+	    ufds[i].revents |= POLLIN;
+	    flag = 1;
+	}
+	if (FD_ISSET(fd, &writeset)) {
+	    ufds[i].revents |= POLLOUT;
+	    flag = 1;
+	}
+	
+	if (flag)
+	    r2++;
+    }
+    
+    return r2;
+}
+
 ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 {
@@ -900,8 +959,14 @@ ssize_t
 sendto(int fdnum, const void *dataptr, size_t len, int flags, 
        const struct sockaddr *to, socklen_t tolen) __THROW
 {
+    return FD_CALL(fdnum, sendto, dataptr, len, flags, to, tolen);
+}
+
+ssize_t 
+sendmsg(int s, const struct msghdr *msg, int flags) __THROW
+{
     set_enosys();
-    return -1;        
+    return -1;
 }
 
 ssize_t

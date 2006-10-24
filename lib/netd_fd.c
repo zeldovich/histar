@@ -245,6 +245,33 @@ sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
 }
 
 static ssize_t
+sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
+	    const struct sockaddr *to, socklen_t tolen)
+{
+    if (count > netd_buf_size)
+	count = netd_buf_size;
+
+    struct sockaddr_in sin;
+    if (tolen < sizeof(sin))
+	return -E_INVAL;
+    
+    memcpy(&sin, to, sizeof(sin));
+
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, sendto) +
+	     offsetof(struct netd_op_sendto_args, buf) + count;
+
+    a.op_type = netd_op_sendto;
+    a.sendto.fd = fd->fd_sock.s;
+    a.sendto.count = count;
+    a.sendto.flags = flags;
+    libc_to_netd(&sin, &a.sendto.sin);
+    memcpy(&a.sendto.buf[0], buf, count);
+    
+    return netd_call(fd->fd_sock.netd_gate, &a);
+}
+
+static ssize_t
 sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
 {
     if (count > netd_buf_size)
@@ -510,6 +537,7 @@ struct Dev devsock =
     .dev_write = sock_write,
     .dev_recv = sock_recv,
     .dev_send = sock_send,
+    .dev_sendto = sock_sendto,
     .dev_close = sock_close,
     .dev_bind = sock_bind,
     .dev_connect = sock_connect,

@@ -129,6 +129,17 @@ netd_dispatch(struct netd_op_args *a)
 		  offsetof(struct netd_op_send_args, buf);
 	break;
 
+    case netd_op_sendto:
+	netd_to_lwip(&a->sendto.sin, &sin);
+	err_fd = a->sendto.fd;
+	a->rval = lwip_sendto(a->sendto.fd,
+			      &a->sendto.buf[0],
+			      a->sendto.count, a->sendto.flags,
+			      (struct sockaddr *)&sin, sinlen);
+	a->size = offsetof(struct netd_op_args, recv) +
+		  offsetof(struct netd_op_sendto_args, buf);
+	break;
+	
     case netd_op_close:
 	err_fd = a->close.fd;
 	a->rval = lwip_close(a->close.fd);
