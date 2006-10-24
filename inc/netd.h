@@ -70,8 +70,8 @@ struct netd_op_sendto_args {
     int fd;
     uint32_t count;
     int flags;
-    char buf[netd_buf_size];
     struct netd_sockaddr_in sin;
+    char buf[netd_buf_size];
 };
 
 struct netd_op_recv_args {
