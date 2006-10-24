@@ -9,7 +9,7 @@ RPC_CSRC := auth_none.c auth_unix.c authunix_prot.c bindresvport.c \
 	svc_tcp.c svc_udp.c xdr.c xdr_array.c xdr_float.c xdr_mem.c \
 	xdr_rec.c xdr_reference.c xdr_stdio.c \
 	rtime.c clnt_unix.c svc_unix.c create_xid.c xdr_intXX_t.c rcmd.c \
-	rexec.c sa_len.c ruserpass.c 
+	rexec.c sa_len.c ruserpass.c rpc_thread.c
 RPC_OBJ := $(patsubst %.c, $(OBJDIR)/pkg/uclibc/libc/inet/rpc/%.o, $(RPC_CSRC))
 
 #RPC_CSRC := $(patsubst %.c, pkg/uclibc/libc/inet/rpc/%.c, $(RPC_CSRC)) 
