@@ -723,6 +723,44 @@ write(int fdnum, const void *buf, size_t n) __THROW
     return r;
 }
 
+ssize_t 
+readv(int fd, const struct iovec *vector, int count) __THROW
+{
+    int ret = 0;
+    for (int i = 0; i < count; i++) {
+	int r = read(fd, vector[i].iov_base, vector[i].iov_len);
+	if (r < 0) {
+	    if (i == 0)
+		return r;
+	    printf("readv: read error: %s\n", e2s(r));
+	    return ret;
+	}
+	ret += r;
+	if ((uint32_t)r < vector[i].iov_len)
+	    return ret;
+    }
+    return ret;
+}
+
+ssize_t 
+writev(int fd, const struct iovec *vector, int count) __THROW
+{
+    int ret = 0;
+    for (int i = 0; i < count; i++) {
+	int r = write(fd, vector[i].iov_base, vector[i].iov_len);
+	if (r < 0) {
+	    if (i == 0)
+		return r;
+	    printf("writev: write error: %s\n", e2s(r));
+	    return ret;
+	}
+	ret += r;
+	if ((uint32_t)r < vector[i].iov_len)
+	    return ret;
+    }
+    return ret;
+}
+
 int
 bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 {
@@ -905,6 +943,7 @@ poll(struct pollfd *ufds, nfds_t nfds, int timeout) __THROW
     for (uint32_t i = 0; i < nfds; i++) {
 	short e = ufds[i].events;
 	int fd = ufds[i].fd;
+	ufds[i].revents = 0;
 	if ((e & POLLIN) || (e & POLLPRI))
 	    FD_SET(fd, &readset);
 
