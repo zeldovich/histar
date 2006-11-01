@@ -75,6 +75,8 @@ __libc_open(const char *pn, int flags, ...) __THROW
 
     if (!strcmp("/dev/random", pn))
 	return rand_open(flags);
+    if (!strcmp("/dev/urandom", pn))
+	return rand_open(flags);
     if (!strcmp("/dev/null", pn))
 	return jos_devnull_open(flags);
     if (!strcmp("/dev/zero", pn))
