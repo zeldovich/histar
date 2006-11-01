@@ -12,6 +12,9 @@ namespace std {
     using ::stdin;
     using ::stdout;
     using ::stderr;
+    using ::sprintf;
+    using ::snprintf;
+    using ::FILE;
 }
 
 #endif

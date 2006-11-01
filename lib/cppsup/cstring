@@ -9,6 +9,8 @@ extern "C" {
 
 namespace std {
     using ::memset;
+    using ::strlen;
+    using ::strcpy;
 }
 
 #endif
