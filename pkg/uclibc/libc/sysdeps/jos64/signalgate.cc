@@ -49,8 +49,9 @@ signal_gate_init(void)
 
     try {
 	label tl, tc;
-	thread_cur_label(&tl);
-	thread_cur_clearance(&tc);
+	// avoid calling functions that manipulate label cache
+	get_label_retry(&tl, thread_get_label);
+	get_label_retry(&tc, sys_self_get_clearance);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;

@@ -292,8 +292,9 @@ debug_gate_init(void)
     
     try {
 	label tl, tc;
-	thread_cur_label(&tl);
-	thread_cur_clearance(&tc);
+	// avoid calling functions that manipulate label cache
+	get_label_retry(&tl, thread_get_label);
+	get_label_retry(&tc, sys_self_get_clearance);
 
 	struct cobj_ref cur_as;
 	error_check(sys_self_get_as(&cur_as));
