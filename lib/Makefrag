@@ -24,6 +24,7 @@ LIB_SRCFILES :=	\
 	lib/taint.c \
 	lib/netd_client.cc \
 	lib/netd_gatesrv.cc \
+	lib/netd_if.c \
 	lib/netd_fd.c \
 	lib/netd_lwip.c \
 	lib/netd_lwipinit.c \

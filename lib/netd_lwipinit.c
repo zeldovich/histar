@@ -6,6 +6,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
+#include <inc/assert.h>
 #include <string.h>
 
 #include <lwip/sockets.h>
@@ -124,15 +125,21 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
     lwip_core_lock();
 
     dev_type = type;
-
-    struct netif nif;
-    lwip_init(&nif, if_state, ipaddr, netmask, gw);
+    
+    struct netif *nif = 0;
+    struct cobj_ref o;
+    int r = segment_alloc(start_env->shared_container, sizeof(*nif), &o,
+			  (void **)&nif, 0, "netif");
+    if (r < 0)
+	panic("cannot alloc netif: %s\n", e2s(r));
+	
+    lwip_init(nif, if_state, ipaddr, netmask, gw);
 
     if (ipaddr == 0)
-	dhcp_start(&nif);
+	dhcp_start(nif);
 
     struct cobj_ref receive_thread;
-    int r = thread_create(start_env->proc_container, &net_receive, &nif,
+    r = thread_create(start_env->proc_container, &net_receive, nif,
 			  &receive_thread, "rx thread");
     if (r < 0)
 	panic("cannot create receiver thread: %s", e2s(r));
@@ -166,8 +173,8 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
     };
 
     for (;;) {
-	if (ipaddr == 0 && dhcp_state != nif.dhcp->state) {
-	    dhcp_state = nif.dhcp->state;
+	if (ipaddr == 0 && dhcp_state != nif->dhcp->state) {
+	    dhcp_state = nif->dhcp->state;
 	    cprintf("netd: DHCP state %d (%s)\n", dhcp_state,
 		    dhcp_states[dhcp_state] ? : "unknown");
 	}

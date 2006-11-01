@@ -13,6 +13,9 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <errno.h>
 
 const struct host_entry host_table[] = {
     { "market", "market.scs.stanford.edu" },
@@ -353,6 +356,7 @@ sock_getsockname(struct Fd *fd, struct sockaddr *addr,
     int r = netd_call(fd->fd_sock.netd_gate, &a);
     netd_to_libc(&a.getsockname.sin, &sin);
     memcpy(addr, &sin, sizeof(sin));
+    *addrlen = sizeof(sin);
     return r;
 }
 
@@ -529,6 +533,42 @@ sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     return 0;
 }
 
+static int
+sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
+{
+    switch (req) {
+    case SIOCGIFCONF: {
+	struct ifconf *ifc = va_arg(ap, struct ifconf *);
+	if ((uint32_t)ifc->ifc_len < sizeof(struct ifreq)) {
+	    errno = ENOBUFS;
+	    return -1;
+	}
+	struct ifreq *r = (struct ifreq *)ifc->ifc_buf;
+	netd_name(r->ifr_name);
+	r->ifr_name[2] = 0;
+	
+	struct netd_sockaddr_in nsin;
+	netd_ip(&nsin);
+	netd_to_libc(&nsin, (struct sockaddr_in *)&r->ifr_addr);
+	ifc->ifc_len = sizeof(struct ifreq);
+
+	return 0;
+    }
+    case SIOCGIFFLAGS: {
+	struct ifreq *r = va_arg(ap, struct ifreq *);
+	netd_name(r->ifr_name);
+	r->ifr_name[2] = 0;
+	
+	r->ifr_flags = 0;
+	netd_flags(&r->ifr_flags);
+	return 0;
+    }
+    default:
+	break;
+    }
+    return -1;
+}
+
 struct Dev devsock = 
 {
     .dev_id = 's',
@@ -551,4 +591,5 @@ struct Dev devsock =
     .dev_stat = sock_stat,
     .dev_probe = sock_probe,
     .dev_statsync = sock_statsync,
+    .dev_ioctl = sock_ioctl,
 };
