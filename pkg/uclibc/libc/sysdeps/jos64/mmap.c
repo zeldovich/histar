@@ -124,3 +124,9 @@ mremap(void *old_address, size_t old_size, size_t new_size, int may_move)
     __set_errno(ENOMEM);
     return MAP_FAILED;
 }
+
+int msync(void *start, size_t length, int flags)
+{
+    set_enosys();
+    return -1;
+}
