@@ -92,6 +92,7 @@ extern void *tls_stack_top;	/* same as tls_gate_args, grows down */
 extern void *tls_base;		/* base */
 
 void	libmain(uint64_t arg0, uint64_t arg1) __attribute__((__noreturn__));
+void    setup_env(uint64_t envaddr, uint64_t aaaaa);
 
 /* thread.c */
 struct thread_args {
