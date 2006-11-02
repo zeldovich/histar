@@ -38,6 +38,9 @@
 
 #pragma GCC system_header
 
+// don't have locale supoort
+#if 0  
+
 #include <cstring>              // get std::strlen
 #include <cstdio>               // get std::snprintf or std::sprintf
 #include <clocale>
@@ -99,3 +102,5 @@ namespace std
 }
 
 #endif
+
+#endif // #if 0
