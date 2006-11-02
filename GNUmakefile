@@ -39,6 +39,8 @@ NM	:= $(GCCPREFIX)nm
 STRIP	:= $(GCCPREFIX)strip
 LEX	:= flex
 YACC	:= bison
+RPCC	:= rpcc
+TAME 	:= tame
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -71,7 +73,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
-	   $(OBJDIR)/lib/libutil.a	
+	   $(OBJDIR)/lib/libutil.a
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 	   -specs=$(TOP)/conf/gcc.specs
 
@@ -118,9 +120,10 @@ conf/gcc.mk:
 include boot/Makefrag
 include kern/Makefrag
 include lib/Makefrag
-include user/Makefrag
 include pkg/Makefrag
 include acpkg/Makefrag
+include user/Makefrag
+include extra/Makefrag
 include test/Makefrag
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
