@@ -2,7 +2,8 @@ ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
 ACPKG_LDFLAGS	:= $(LDFLAGS) -L$(TOP)/$(ACPKG_PREFIX)/lib
-ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include
+ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include \
+		   -I$(TOP)/lib/cppsup
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
@@ -19,10 +20,11 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) 
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 ACENV += LIBS=\"\"
 
-ACENV += CC=\"$(CC)\"
+ACENV += CC=\"$(CC)\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\" TAME=\"$(TAME)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
-	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no
+	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no ac_cv_func_psignal=yes \
+	bash_cv_job_control_missing=no
 
 ##
 ## ./configure arguments for different packages
@@ -34,6 +36,8 @@ AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
 AUTOCONF_vim70		    := --with-tlib=ncurses
+AUTOCONF_gmp-4.2.1	    := --enable-shared=no
+AUTOCONF_sfslite-0.8.9pre3  := --enable-shared=no
 
 ##
 ## Patches to apply to various packages
@@ -45,6 +49,7 @@ PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
 PATCHFILE_gdb-6.5	    := gdb-6.5.patch
 PATCHFILE_vim70		    := vim70.patch
+PATCHFILE_sfslite-0.8.9pre3 := sfslite-0.8.9pre3.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -56,7 +61,9 @@ ACPKG_BUILD_LIST := tar-1.15
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+REAL_TARGET_CXX	:= $(shell which $(TARGET)-c++)
+ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc  \
+                   $(ACPKG_WRAPDIR)/$(TARGET)-c++
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
 $(ACPKG_WRAPS):
@@ -64,6 +71,9 @@ $(ACPKG_WRAPS):
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-c++
+	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-c++
+	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-c++
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
@@ -80,6 +90,12 @@ acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
 acpkg/%/__patch: PATCHFILE=$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
 acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
 	patch -d acpkg/$(PKGNAME) -p1 < acpkg/patches/$(PATCHFILE)
+	touch $@
+
+.PRECIOUS: acpkg/%/__reconf
+acpkg/%/__reconf: PKGNAME=$(patsubst acpkg/%/__reconf,%,$@)
+acpkg/%/__reconf: $(ACPKG_WRAPS) acpkg/%/__patch
+	( cd acpkg/$(PKGNAME) && sh -c "autoreconf -fis" )
 	touch $@
 
 .PRECIOUS: acpkg/%/__build
@@ -246,6 +262,15 @@ $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libncurses.a \
 	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
+$(OBJDIR)/acpkg/lib/libgmp.a: acpkg/gmp-4.2.1/__build
+
+SFSDEPS := $(OBJDIR)/acpkg/lib/libgmp.a acpkg/sfslite-0.8.9pre3/__reconf \
+	   acpkg/sfslite-0.8.9pre3/__build
+
+$(OBJDIR)/acpkg/include/sfslite: $(SFSDEPS)
+$(OBJDIR)/acpkg/lib/sfslite/libasync.a: $(SFSDEPS)
+$(OBJDIR)/acpkg/lib/sfslite/libarpc.a: $(SFSDEPS)
+
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
@@ -253,7 +278,7 @@ $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.16.1/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	-( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=c" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c c++\"" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
 	touch $@
@@ -267,8 +292,9 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.
 	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
-		bin/gcc bin/ld bin/as \
+		bin/gcc bin/ld bin/as bin/g++ \
 		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
+		libexec/gcc/x86_64-jos-linux/3.4.5/cc1plus \
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a lib/libutil.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
