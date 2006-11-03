@@ -14,10 +14,12 @@ extern "C" {
 
 #include <inc/spawn.hh>
 #include <inc/error.hh>
+#include <inc/labelutil.hh>
 
 #define MAXARGS	256
 static char *cmd_argv[MAXARGS];
 static int cmd_argc;
+static int cmd_with_privs;
 
 static char separators[] = " \t\n\r";
 
@@ -156,13 +158,16 @@ do_spawn(int ac, char **av, struct child_process *childp)
 	return r;
     }
 
+    label my_label;
+    thread_cur_label(&my_label);
+
     try {
 	struct child_process child;
         child = spawn(start_env->shared_container, ino,
 		      0, 1, 2,
 		      ac, (const char **) av,
 		      0, 0,
-		      0, 0, 0, 0, 0);
+		      0, cmd_with_privs ? &my_label : 0, 0, 0, 0);
 	*childp = child;
 	return child.container;
     } catch (std::exception &e) {
@@ -290,6 +295,14 @@ parse_cmd(char *cmd)
 {
     char *arg_base = cmd;
     char *c = cmd;
+
+    if (*c == '@') {
+	cmd_with_privs = 1;
+	arg_base++;
+	c++;
+    } else {
+	cmd_with_privs = 0;
+    }
 
     cmd_argc = 0;
     for (;;) {
