@@ -278,7 +278,7 @@ $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: $(SFSDEPS)
 acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.16.1/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	-( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c c++\"" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
 	touch $@
@@ -292,9 +292,8 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.
 	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
-		bin/gcc bin/ld bin/as bin/g++ \
+		bin/gcc bin/ld bin/as \
 		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
-		libexec/gcc/x86_64-jos-linux/3.4.5/cc1plus \
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a lib/libutil.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
