@@ -123,11 +123,12 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 }
 
 static void
-init_procs(int cons, uint64_t h_root)
+init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
 {
     label ds_none(3);
     label ds_hroot(3);
     ds_hroot.set(h_root, LB_LEVEL_STAR);
+    ds_hroot.set(h_root_t, LB_LEVEL_STAR);
 
     char h_root_buf[32];
     snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
@@ -161,11 +162,13 @@ init_procs(int cons, uint64_t h_root)
 }
 
 static void
-run_shell(int cons, uint64_t h_root)
+run_shell(int cons, uint64_t h_root, uint64_t h_root_t)
 {
     int r;
     label ds_hroot(3);
     ds_hroot.set(h_root, LB_LEVEL_STAR);
+    ds_hroot.set(h_root_t, LB_LEVEL_STAR);
+
     for (;;) {
         struct child_process shell_proc = spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);    
         int64_t exit_code = 0;
@@ -199,9 +202,14 @@ try
     assert(1 == dup2(0, 1));
     assert(2 == dup2(0, 2));
 
-    init_procs(cons, h_root);
+    int64_t h_root_t = handle_alloc();
+    if (h_root_t < 0)
+	throw error(h_root_t, "cannot allocate root taint handle");
+    start_env->user_taint = h_root_t;
+
+    init_procs(cons, h_root, h_root_t);
     // does not return
-    run_shell(cons, h_root);    
+    run_shell(cons, h_root, h_root_t);
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
 }
