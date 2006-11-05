@@ -13,6 +13,7 @@ endif
 
 ifdef EMBEDBIN_INIT
 obj/user/init.init: $(EMBEDBIN_INIT)
+	@mkdir -p $(@D)
 	cp $(EMBEDBIN_INIT) $@
 
 ifdef FORCE_EMBEDBIN
