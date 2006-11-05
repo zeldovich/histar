@@ -42,7 +42,6 @@ main (int ac, char **av)
 	exit(-1);
     }
     
-    uint64_t h_root = atol(av[1]);
     try {
 	uint64_t h_grant = handle_alloc();
 	scope_guard<void, uint64_t> drop_grant(thread_drop_star, h_grant);
@@ -51,8 +50,6 @@ main (int ac, char **av)
 	label ldev(1);
 	ldev.set(h_grant, 0);
 	error_check(dev_ct = sys_container_alloc(start_env->root_container, ldev.to_ulabel(), "dev", 0, CT_QUOTA_INF));
-	
-	thread_drop_star(h_root);
 	
 	// start devs
 	char shared_buf[32];
