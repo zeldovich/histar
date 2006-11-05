@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/stdio.h>
 
 #include <stdlib.h>
+#include <fcntl.h>
 }
 
 #include <inc/error.hh>
@@ -17,14 +18,11 @@ main (int ac, char **av)
 	    cprintf("usage: %s grant-category\n", av[0]);
 	    exit(-1);
 	}
-	uint64_t grant_root = atol(av[1]);
 	
 	int r;
 	int64_t exit_code;
 	struct fs_inode ino;
 	
-	label ds(3);
-	ds.set(grant_root, LB_LEVEL_STAR);
 	start_env->fs_cwd = start_env->fs_root;
 	
 	r = fs_namei("/bin/tar", &ino);
@@ -36,7 +34,7 @@ main (int ac, char **av)
 				 0, 0, 0,
 				 3, &argv0[0],
 				 0, 0,
-				 0, &ds, 0, 0, 0);
+				 0, 0, 0, 0, 0);
 	error_check(process_wait(&cp, &exit_code));
 	error_check(exit_code);
 	
@@ -44,15 +42,12 @@ main (int ac, char **av)
 	if (r < 0)
 	    throw error(r, "cannot fs_lookup /bin/sshd");
 	
-	// XXX need login stuff to work with sshd
-	//ds.set(grant_root, 1);
-
 	const char *argv1[] = { "/bin/sshd", "-f", "/etc/sshd_config", "-r" };
 	cp = spawn(start_env->shared_container, ino,
 		   0, 0, 0,
 		   4, &argv1[0],
 		   0, 0,
-		   0, &ds, 0, 0, 0);
+		   0, 0, 0, 0, 0);
 	error_check(process_wait(&cp, &exit_code));
 	error_check(exit_code);
 	
