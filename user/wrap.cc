@@ -92,7 +92,7 @@ try
     close(nullfd);
 
     signal(SIGALRM, &alarm_handler);
-    alarm(30);
+    alarm(15);
 
     char buf[512];
     for (;;) {
