@@ -9,13 +9,13 @@
 static void
 as_print_ents(struct u_address_space *uas)
 {
-    cprintf("              va off npg rwx segment\n");
+    printf("              va off npg rwx segment\n");
     for (uint32_t i = 0; i < uas->nent; i++) {
 	if (uas->ents[i].flags == 0)
 	    continue;
 
 	uint64_t flags = uas->ents[i].flags;
-	cprintf("%16lx %3ld %3ld %c%c%c %ld.%ld\n",
+	printf("%16lx %3ld %3ld %c%c%c %ld.%ld\n",
 		(uint64_t) uas->ents[i].va,
 		uas->ents[i].start_page,
 		uas->ents[i].num_pages,
