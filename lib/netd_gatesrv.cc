@@ -155,8 +155,10 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		struct jos_jmp_buf pgfault;
-		if (jos_setjmp(&pgfault) != 0)
+		if (jos_setjmp(&pgfault) != 0) {
+		    sys_self_utrap_mask(0);
 		    break;
+		}
 		*tls_pgfault = &pgfault;
 
 		memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
@@ -205,8 +207,10 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
 
     for (;;) {
 	struct jos_jmp_buf pgfault;
-	if (jos_setjmp(&pgfault) != 0)
+	if (jos_setjmp(&pgfault) != 0) {
+	    sys_self_utrap_mask(0);
 	    break;
+	}
 	*tls_pgfault = &pgfault;
 
 	while (ipc->sel_op[op].sync == 0)
@@ -228,8 +232,10 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
 				    (void **) &ipc_shared, &map_bytes, 0));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
 	    
-	    if (jos_setjmp(&pgfault) != 0)
+	    if (jos_setjmp(&pgfault) != 0) {
+		sys_self_utrap_mask(0);
 		break;
+	    }
 	    *tls_pgfault = &pgfault;
 
 	    while (ipc_shared->sel_op[op].sync == NETD_SEL_SYNC_REQUEST) {
