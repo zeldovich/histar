@@ -1,5 +1,4 @@
 CPPSUP_INCLUDES = -I$(TOP)/lib/cppsup
-USER_CXXFLAGS += $(CPPSUP_INCLUDES)
 
 OBJDIRS += lib/cppsup
 
@@ -15,23 +14,14 @@ LIB_SRCFILES += \
 	lib/cppsup/eh_exception.cc \
 	lib/cppsup/eh_aux_runtime.cc \
 	lib/cppsup/eh_type.cc \
-	lib/cppsup/del_op.cc \
-	lib/cppsup/del_opnt.cc \
-	lib/cppsup/del_opv.cc \
-	lib/cppsup/del_opvnt.cc \
-	lib/cppsup/new_handler.cc \
-	lib/cppsup/new_op.cc \
-	lib/cppsup/new_opnt.cc \
-	lib/cppsup/new_opv.cc \
-	lib/cppsup/new_opvnt.cc \
 	lib/cppsup/tinfo.cc \
 	lib/cppsup/tinfo2.cc \
 	lib/cppsup/vterminate.cc \
-	lib/cppsup/pure.cc
+	lib/cppsup/new_op.cc
 
 CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
 
 $(OBJDIR)/lib/cppsup/%.o: lib/cppsup/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror $(CPPSUP_FLAGS) -Werror -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) $(CPPSUP_INCLUDES) -Werror $(CPPSUP_FLAGS) -c -o $@ $<
 

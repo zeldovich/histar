@@ -159,7 +159,7 @@
  * uClibc development/debugging options
  */
 #define __CROSS_COMPILER_PREFIX__ "x86_64-jos-linux-"
-#define __DODEBUG__ 1
+#undef __DODEBUG__
 #undef __DOASSERTS__
 #define __WARNINGS__ "-Wall"
 #undef __UCLIBC_MJN3_ONLY__

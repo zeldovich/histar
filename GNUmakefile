@@ -73,7 +73,9 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
-	   $(OBJDIR)/lib/libutil.a
+	   $(OBJDIR)/lib/libutil.a \
+	   $(OBJDIR)/lib/libstdc++.a
+
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 	   -specs=$(TOP)/conf/gcc.specs
 
@@ -92,7 +94,8 @@ all:
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
-	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo
+	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo $(OBJDIR)/extra/%.o \
+	$(OBJDIR)/extra/%.debuginfo
 
 KFLAGS      := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
