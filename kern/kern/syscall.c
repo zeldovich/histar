@@ -340,10 +340,6 @@ sys_obj_set_fixedquota(struct cobj_ref cobj)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
-
-    if (ko->hdr.ko_type == kobj_thread)
-	syscall_error(-E_INVAL);
-
     kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_FIXED_QUOTA;
 }
 
@@ -352,6 +348,10 @@ sys_obj_set_readonly(struct cobj_ref cobj)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
+
+    if (ko->hdr.ko_type == kobj_thread)
+	syscall_error(-E_INVAL);
+
     kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_READONLY;
 }
 
