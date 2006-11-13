@@ -43,6 +43,8 @@ Cleanup:
 * sys_reboot()
 * split the pstate sync timestamp counter from the handle counter
 * enforce clearance allocation bound
+* netd_select gate asks for a non-tls stack but doesn't addref the thread,
+  which means its non-tls stack will not get cleaned up if the thread dies
 
 Bugs:
 
