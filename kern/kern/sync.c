@@ -8,19 +8,11 @@
 static struct Thread_list sync_waiting;
 static int sync_debug = 0;
 
-#define RET_ERR(__r) \
-    if (__r < 0)     \
-	return r;
-
-struct waitslots_iter 
-{
+struct waitslots_iter {
     const struct Thread *t;
-    uint8_t *slots;
-    uint32_t pg_off;
+    struct thread_sync_wait_slot *slots;
     uint64_t slot_page;
-
-    uint64_t *seg_id;
-    uint64_t *offset;
+    uint64_t slot_num;
 };
 
 static void
@@ -33,26 +25,27 @@ sync_waitslots_iter(struct waitslots_iter *it, const struct Thread *t)
 static int 
 sync_waitslots_next(struct waitslots_iter *it)
 {
-    int r = 0;
     if (!it->slots) {
-	it->pg_off = sizeof(struct Fpregs);
+	int r = kobject_get_page(&it->t->th_ko, 0, (void **) &it->slots,
+				 page_excl_dirty);
+	if (r < 0)
+	    return r;
+
+	/* XXX this should really live somewhere under arch/amd64... */
 	it->slot_page = 0;
-	r = kobject_get_page(&it->t->th_ko, 0, (void **)&it->slots, 
-			     page_excl_dirty);
-	RET_ERR(r);
+	it->slot_num = sizeof(struct Fpregs) / sizeof(it->slots[0]);
     } else {
-	it->pg_off += sizeof(uint128_t);
-	if ((it->pg_off + sizeof(uint128_t)) > PGSIZE) {
+	it->slot_num++;
+	if (it->slot_num * sizeof(it->slots[0]) >= PGSIZE) {
 	    it->slot_page++;
-	    r = kobject_get_page(&it->t->th_ko, it->slot_page, 
-				 (void **)&it->slots, page_excl_dirty);
-	    RET_ERR(r);
-	    it->pg_off = 0;
+	    it->slot_num = 0;
+
+	    int r = kobject_get_page(&it->t->th_ko, it->slot_page, 
+				     (void **) &it->slots, page_excl_dirty);
+	    if (r < 0)
+		return r;
 	}
     }
-    
-    it->seg_id = (uint64_t *)&it->slots[it->pg_off];
-    it->offset = (uint64_t *)&it->slots[it->pg_off + sizeof(uint64_t)];
 
     return 0;
 }
@@ -87,7 +80,6 @@ int
 sync_wait_multi(uint64_t **addrs, uint64_t *vals, 
 		uint64_t num, uint64_t wakeup_msec)
 {
-    int r;
     if (sync_debug)
 	cprintf("sync_wait_multi: num %ld wakeup %lx now %lx\n",
 		 num, wakeup_msec, timer_user_msec);
@@ -98,8 +90,11 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
     if (num > cur_thread->th_multi_slots)
 	return -E_NO_SPACE;
 
+    if (wakeup_msec <= timer_user_msec)
+	return 0;
+
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
-    
+
     struct waitslots_iter it;
     sync_waitslots_iter(&it, t);
     for (uint64_t i = 0; i < num; i++) {
@@ -108,23 +103,21 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
 
 	if (*addrs[i] != vals[i])
 	    return 0;
-	
-	r = sync_waitslots_next(&it);
-	RET_ERR(r);
+
+	int r = sync_waitslots_next(&it);
+	if (r < 0)
+	    return r;
+
 	r = as_invert_mapped(t->th_as, addrs[i],
-			     it.seg_id,
-			     it.offset);
-	RET_ERR(r);
+			     &it.slots[it.slot_num].seg_id,
+			     &it.slots[it.slot_num].offset);
+	if (r < 0)
+	    return r;
     }
-    
-    if (wakeup_msec <= timer_user_msec)
-	return 0;
-    
+
+    thread_suspend(cur_thread, &sync_waiting);
     t->th_wakeup_msec = wakeup_msec;
     t->th_multi_slots_used = num;
-    
-    thread_suspend(cur_thread, &sync_waiting);
-    
     return 0;
 }
 
@@ -146,19 +139,24 @@ sync_wakeup_addr(uint64_t *addr)
 	if (t->th_multi_slots_used) {
 	    struct waitslots_iter it;
 	    sync_waitslots_iter(&it, t);
-	    
+
 	    for (uint64_t i = 0; i < t->th_multi_slots_used; i++) {
 		r = sync_waitslots_next(&it);
-		RET_ERR(r);
-		if (*it.seg_id == seg_id && *it.offset == offset) {
+		if (r < 0)
+		    return r;
+
+		if (it.slots[it.slot_num].seg_id == seg_id &&
+		    it.slots[it.slot_num].offset == offset)
+		{
 		    t->th_multi_slots_used = 0;
 		    thread_set_runnable(t);
 		    break;
 		}
 	    }
-	}
-	else if (t->th_wakeup_seg_id == seg_id && t->th_wakeup_offset == offset)
+	} else if (t->th_wakeup_seg_id == seg_id &&
+		   t->th_wakeup_offset == offset) {
 	    thread_set_runnable(t);
+	}
 
 	t = next;
     }

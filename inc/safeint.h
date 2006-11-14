@@ -1,24 +1,22 @@
 #ifndef JOS_INC_SAFEINT_H
 #define JOS_INC_SAFEINT_H
 
-#define SAFE_ADD(a, b)				\
-    {						\
-	__typeof__(a) __a = (a);		\
-	__typeof__(b) __b = (b);		\
-	__typeof__(a) __r = __a + __b;		\
-	if (__r < __a || __r < __b)		\
-	    __safeint_overflow = 1;		\
-	__r;					\
-    }
+static __inline __attribute__((always_inline)) uint64_t
+safe_add(int *of, uint64_t a, uint64_t b)
+{
+    uint64_t r = a + b;
+    if (r < a || r < b)
+	*of = 1;
+    return r;
+}
 
-#define SAFE_MUL(a, b)				\
-    {						\
-	__typeof__(a) __a = (a);		\
-	__typeof__(b) __b = (b);		\
-	__typeof__(a) __r = __a * __b;		\
-	if (__r / __a != __b)			\
-	    __safeint_overflow = 1;		\
-	__r;					\
-    }
+static __inline __attribute__((always_inline)) uint64_t
+safe_mul(int *of, uint64_t a, uint64_t b)
+{
+    uint64_t r = a * b;
+    if (r / a != b)
+	*of = 1;
+    return r;
+}
 
 #endif
