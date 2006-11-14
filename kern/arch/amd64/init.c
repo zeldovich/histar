@@ -17,10 +17,8 @@
 #include <kern/kobj.h>
 #include <kern/pstate.h>
 #include <kern/prof.h>
-#include <inc/safeint.h>
 
 char boot_cmdline[256];
-int safeint_overflow;
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag

@@ -253,10 +253,14 @@ thread_disable_fp(const struct Thread *const_t)
 int
 thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
 {
-    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
-    // simpler thread_enable_fp(), sync_waitslots_next()
-    uint64_t nbytes = (nslots * sizeof(uint128_t)) + sizeof(struct Fpregs);
+    int __safeint_overflow = 0;
+    uint64_t nbytes = SAFE_ADD(sizeof(struct Fpregs),
+			       SAFE_MUL(sizeof(struct thread_sync_wait_slot),
+					nslots));
+    if (__safeint_overflow)
+	return -E_INVAL;
 
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
     int r = kobject_set_nbytes(&t->th_ko, nbytes); 
     if (r < 0)
 	return r;

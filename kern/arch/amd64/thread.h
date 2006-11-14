@@ -49,6 +49,11 @@ struct Thread {
     LIST_ENTRY(Thread) th_link;
 };
 
+struct thread_sync_wait_slot {
+    uint64_t seg_id;
+    uint64_t offset;
+};
+
 LIST_HEAD(Thread_list, Thread);
 
 extern struct Thread_list thread_list_runnable;
