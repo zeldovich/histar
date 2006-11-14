@@ -41,9 +41,13 @@ extern const struct Address_space *cur_as;
 
 int  as_alloc(const struct Label *l, struct Address_space **asp)
     __attribute__ ((warn_unused_result));
+int  as_copy(const struct Address_space *as, const struct Label *l, struct Address_space **asp)
+    __attribute__ ((warn_unused_result));
 int  as_to_user(const struct Address_space *as, struct u_address_space *uas)
     __attribute__ ((warn_unused_result));
 int  as_from_user(struct Address_space *as, struct u_address_space *uas)
+    __attribute__ ((warn_unused_result));
+int  as_get_uslot(struct Address_space *as, struct u_segment_mapping *usm)
     __attribute__ ((warn_unused_result));
 int  as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm)
     __attribute__ ((warn_unused_result));

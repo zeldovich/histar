@@ -379,6 +379,13 @@ sys_as_create(uint64_t container, struct ulabel *l, const char *name)
     return syscall(SYS_as_create, container, l, name);
 }
 
+int64_t
+sys_as_copy(struct cobj_ref as, uint64_t container,
+	    struct ulabel *l, const char *name)
+{
+    return syscall(SYS_as_copy, as, container, l, name);
+}
+
 int
 sys_as_get(struct cobj_ref as, struct u_address_space *uas)
 {
@@ -389,6 +396,12 @@ int
 sys_as_set(struct cobj_ref as, struct u_address_space *uas)
 {
     return syscall(SYS_as_set, as, uas);
+}
+
+int
+sys_as_get_slot(struct cobj_ref as, struct u_segment_mapping *usm)
+{
+    return syscall(SYS_as_get_slot, as, usm);
 }
 
 int

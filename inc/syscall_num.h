@@ -73,8 +73,10 @@
     SYSCALL_ENTRY(segment_sync)			\
 						\
     SYSCALL_ENTRY(as_create)			\
+    SYSCALL_ENTRY(as_copy)			\
     SYSCALL_ENTRY(as_get)			\
     SYSCALL_ENTRY(as_set)			\
+    SYSCALL_ENTRY(as_get_slot)			\
     SYSCALL_ENTRY(as_set_slot)			\
 
 #ifndef __ASSEMBLER__

@@ -101,8 +101,11 @@ int	sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes,
 			 uint64_t pstate_ts);
 
 int64_t sys_as_create(uint64_t container, struct ulabel *l, const char *name);
+int64_t sys_as_copy(struct cobj_ref as, uint64_t container,
+		    struct ulabel *l, const char *name);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
 int	sys_as_set(struct cobj_ref as, struct u_address_space *uas);
+int	sys_as_get_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 int	sys_as_set_slot(struct cobj_ref as, struct u_segment_mapping *usm);
 
 #endif

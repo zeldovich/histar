@@ -825,6 +825,26 @@ sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
     return as->as_ko.ko_id;
 }
 
+static int64_t
+sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const char *name)
+{
+    const struct Container *c;
+    check(container_find(&c, container, iflow_rw));
+
+    const struct kobject *src;
+    check(cobj_get(as, kobj_address_space, &src, iflow_read));
+
+    const struct Label *l;
+    alloc_ulabel(ul, &l, &c->ct_ko);
+
+    struct Address_space *nas;
+    check(as_copy(&src->as, l, &nas));
+    alloc_set_name(&nas->as_ko, name);
+
+    check(container_put(&kobject_dirty(&c->ct_ko)->ct, &nas->as_ko));
+    return nas->as_ko.ko_id;
+}
+
 static void
 sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
 {
@@ -839,6 +859,14 @@ sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
     check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas));
+}
+
+static void
+sys_as_get_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
+{
+    const struct kobject *ko;
+    check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
+    check(as_get_uslot(&kobject_dirty(&ko->hdr)->as, usm));
 }
 
 static void
@@ -906,6 +934,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(segment_sync),
     SYSCALL_DISPATCH(as_get),
     SYSCALL_DISPATCH(as_set),
+    SYSCALL_DISPATCH(as_get_slot),
     SYSCALL_DISPATCH(as_set_slot),
     SYSCALL_DISPATCH(pstate_sync),
 };
@@ -932,6 +961,7 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(segment_get_nbytes),
     SYSCALL_DISPATCH(gate_create),
     SYSCALL_DISPATCH(as_create),
+    SYSCALL_DISPATCH(as_copy),
     SYSCALL_DISPATCH(pstate_timestamp),
 };
 

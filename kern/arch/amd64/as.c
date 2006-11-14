@@ -30,6 +30,22 @@ as_alloc(const struct Label *l, struct Address_space **asp)
     return 0;
 }
 
+int
+as_copy(const struct Address_space *as, const struct Label *l, struct Address_space **asp)
+{
+    struct Address_space *nas;
+    int r = as_alloc(l, &nas);
+    if (r < 0)
+	return r;
+
+    r = kobject_copy_pages(&as->as_ko, &nas->as_ko);
+    if (r < 0)
+	return r;
+
+    *asp = nas;
+    return 0;
+}
+
 void
 as_invalidate(const struct Address_space *as_const)
 {
@@ -191,6 +207,22 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
 out:
     as_invalidate(as);
     return r;
+}
+
+int
+as_get_uslot(struct Address_space *as, struct u_segment_mapping *usm)
+{
+    int r = check_user_access(usm, sizeof(*usm), SEGMAP_WRITE);
+    if (r < 0)
+	return r;
+
+    const struct u_segment_mapping *cur;
+    r = as_get_usegmap(as, &cur, usm->kslot, page_shared_ro);
+    if (r < 0)
+	return r;
+
+    memcpy(usm, cur, sizeof(*usm));
+    return 0;
 }
 
 int
