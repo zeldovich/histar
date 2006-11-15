@@ -309,7 +309,7 @@ __borrowLeftLeaf(struct btree *tree, struct btree_node *rootNode,
 
 static char
 __mergeNode(struct btree *tree, struct btree_node *rootNode,
-	    struct btree_node *prevNode, int div)
+	    struct btree_node *prevNode, int div, char *rootNodeErased)
 {
     int i, j;
     struct btree_node *node;
@@ -341,6 +341,7 @@ __mergeNode(struct btree *tree, struct btree_node *rootNode,
 	prevNode->children[div] = node->block.offset;
 
 	btree_erase_node(rootNode);
+	*rootNodeErased = 1;
 	__removeKey2(tree, prevNode, div - 1);
 
 	btree_write_node(node);
@@ -514,7 +515,7 @@ __delete(struct btree *tree, offset_t rootOffset, struct btree_node *prevNode,
 		btree_write_node(prevNode);
 	    } else {
 		*merged = 1;
-		__mergeNode(tree, rootNode, prevNode, index);
+		__mergeNode(tree, rootNode, prevNode, index, &rootNodeErased);
 	    }
 	}
 	
