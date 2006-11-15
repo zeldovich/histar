@@ -48,9 +48,9 @@ btree_destroy_node(struct btree_node *node)
 {
     int r;
 
-    // XXX: in btree_delete.c a node can be erased, then destroyed.
     if (node->tree == 0 && node->block.offset == 0)
-	return;
+	panic("btree_destroy_node: invalid node 0x%lx",
+	      (uint64_t)node);
 
     struct btree *tree = node->tree;
 

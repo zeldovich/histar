@@ -387,7 +387,7 @@ __mergeNode(struct btree *tree, struct btree_node *rootNode,
 
 static char
 __mergeLeaf(struct btree *tree, struct btree_node *rootNode,
-	    struct btree_node *prevNode, int div)
+	    struct btree_node *prevNode, int div, char *rootNodeErased)
 {
     int i, j;
     struct btree_node *node;
@@ -418,6 +418,7 @@ __mergeLeaf(struct btree *tree, struct btree_node *rootNode,
 	prevNode->children[div] = node->block.offset;
 
 	btree_erase_node(rootNode);
+	*rootNodeErased = 1;
 	__removeKey2(tree, prevNode, div - 1);
 
 	btree_write_node(node);
@@ -494,6 +495,7 @@ __delete(struct btree *tree, offset_t rootOffset, struct btree_node *prevNode,
 
 	return 1;
     } else {
+	char rootNodeErased = 0;
 	if (BTREE_IS_LEAF(rootNode)) {
 	    if (__borrowRightLeaf(tree, rootNode, prevNode, index)
 		|| __borrowLeftLeaf(tree, rootNode, prevNode, index)) {
@@ -502,7 +504,7 @@ __delete(struct btree *tree, offset_t rootOffset, struct btree_node *prevNode,
 		btree_write_node(prevNode);
 	    } else {
 		*merged = 1;
-		__mergeLeaf(tree, rootNode, prevNode, index);
+		__mergeLeaf(tree, rootNode, prevNode, index, &rootNodeErased);
 	    }
 	} else {
 	    if (__borrowRight(tree, rootNode, prevNode, index)
@@ -515,15 +517,11 @@ __delete(struct btree *tree, offset_t rootOffset, struct btree_node *prevNode,
 		__mergeNode(tree, rootNode, prevNode, index);
 	    }
 	}
-
-	//btree_write_node(rootNode);
-	//btree_write_node(prevNode);
-
+	
+	if (!rootNodeErased)
+	    btree_destroy_node(rootNode);
+	return 1;
     }
-
-    btree_destroy_node(rootNode);
-
-    return 1;
 }
 
 char
