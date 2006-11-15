@@ -3,6 +3,7 @@
 #include <kern/label.h>
 #include <kern/kobj.h>
 #include <inc/error.h>
+#include <inc/safeint.h>
 
 ////////////////////////////////
 // Level comparison functions
@@ -225,9 +226,15 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
     uint32_t ul_size = ul->ul_size;
     uint64_t *ul_ent = ul->ul_ent;
 
-    r = check_user_access(ul_ent, ul_size * sizeof(*ul_ent), SEGMAP_WRITE);
+    int mul_of = 0;
+    r = check_user_access(ul_ent,
+			  safe_mul(&mul_of, ul_size, sizeof(*ul_ent)),
+			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
+
+    if (mul_of)
+	return -E_INVAL;
 
     uint32_t slot = 0;
     uint32_t overflow = 0;
@@ -265,9 +272,14 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 
-    r = check_user_access(ul_ent, ul_nent * sizeof(*ul_ent), 0);
+    int mul_of = 0;
+    r = check_user_access(ul_ent,
+			  safe_mul(&mul_of, ul_nent, sizeof(*ul_ent)), 0);
     if (r < 0)
 	return r;
+
+    if (mul_of)
+	return -E_INVAL;
 
     // XXX minor annoyance if ul_nent is huge
     for (uint32_t i = 0; i < ul_nent; i++) {

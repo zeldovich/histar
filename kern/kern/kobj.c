@@ -61,7 +61,7 @@ kobject_cksum(const struct kobject_hdr *ko)
 	void *p;
 	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_shared_ro));
 	assert(p);
-	sum = cksum(sum, p, MIN((uint32_t) PGSIZE, ko->ko_nbytes - i * PGSIZE));
+	sum = cksum(sum, p, MIN((uint32_t) PGSIZE, ko->ko_nbytes - i));
     }
 
     return sum;
