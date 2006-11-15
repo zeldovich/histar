@@ -661,11 +661,11 @@ int
 as_invert_mapped(const struct Address_space *as, void *addr,
 		 kobject_id_t *seg_idp, uint64_t *offsetp)
 {
-    int r;
+    int found = 0;
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	r = as_get_segmap(as, &sm, i);
+	int r = as_get_segmap(as, &sm, i);
 	if (r < 0)
 	    return r;
 
@@ -686,8 +686,8 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	*seg_idp = usm->segment.object;
 	*offsetp = usm->start_page * PGSIZE +
 		   ((uintptr_t) addr) - ((uintptr_t) va_start);
-	return 0;
+	found++;
     }
 
-    return -E_NOT_FOUND;
+    return found == 1 ? 0 : -E_NOT_FOUND;
 }
