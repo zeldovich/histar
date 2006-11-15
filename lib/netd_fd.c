@@ -79,6 +79,8 @@ alloc_select_seg(struct Fd *fd, int sock)
 	label_free(l);
 	return r;
     }
+    label_free(l);
+
     memset(ss, 0, sizeof(*ss));
     ss->sock = sock;
     segment_unmap_delayed(ss, 1);

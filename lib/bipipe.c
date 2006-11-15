@@ -43,9 +43,11 @@ bipipe(int fv[2])
     label_set_level(l, taint, 3, 1);
     label_set_level(l, grant, 0, 1);
     if ((r = segment_alloc(ct, sizeof(*bs), &seg, (void *)&bs, l, "bipipe")) < 0) {
+	label_free(l);
         errno = ENOMEM;
-        return -1;        
+        return -1;
     }
+    label_free(l);
 
     memset(bs, 0, sizeof(*bs));
 
