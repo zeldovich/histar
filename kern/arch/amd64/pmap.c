@@ -277,6 +277,8 @@ int
 page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 		  int create, page_map_traverse_cb cb, const void *arg)
 {
+    if (first >= (const void *) ULIM)
+	first = (const void *) ULIM - PGSIZE;
     if (last >= (const void *) ULIM)
 	last = (const void *) ULIM - PGSIZE;
     return page_map_traverse_internal(pgmap, 3, first, last, create, cb, arg, 0);
