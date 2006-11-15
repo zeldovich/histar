@@ -182,11 +182,13 @@ cga_scroll (int delta)
 static void
 cga_cursor (int line, int col)
 {
-    crt_pos = CRT_COLS * line + col ;     
-    outb (addr_6845, 14);
-    outb (addr_6845 + 1, crt_pos >> 8);
-    outb (addr_6845, 15);
-    outb (addr_6845 + 1, crt_pos);
+    if (line < CRT_ROWS && col < CRT_COLS) {
+	crt_pos = CRT_COLS * line + col;
+	outb (addr_6845, 14);
+	outb (addr_6845 + 1, crt_pos >> 8);
+	outb (addr_6845, 15); 
+	outb (addr_6845 + 1, crt_pos);
+    }
 }
 
 // Stupid I/O delay routine necessitated by historical PC design flaws

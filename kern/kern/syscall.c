@@ -114,7 +114,7 @@ sys_cons_getc(void)
 static void
 sys_cons_cursor(int line, int col)
 {
-    cons_cursor(line, col) ;
+    cons_cursor(line, col);
 }
 
 static int64_t
