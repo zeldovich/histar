@@ -12,6 +12,10 @@ Performance:
 * partial segment swapin and swapout
 * page reclamation, LRU (unpin callbacks for reclaiming space?)
 
+Kernel bugs:
+
+* btree_destroy_node() called after btree_erase_node() in btree_delete.c
+
 Security:
 
 * netd_server doesn't do any checking on who's asking for what fd.
