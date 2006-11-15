@@ -4,6 +4,7 @@
 #include <btree/btree.h>
 #include <kern/freelist.h>
 #include <machine/pmap.h>
+#include <machine/stackwrap.h>
 #include <inc/error.h>
 #include <kern/log.h>
 

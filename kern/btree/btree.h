@@ -3,7 +3,6 @@
 
 #include <inc/types.h>
 #include <inc/queue.h>
-#include <machine/stackwrap.h>
 
 // maximum size of a btree node -- currently cannot exceed PGSIZE
 #define BTREE_BLOCK_SIZE PGSIZE

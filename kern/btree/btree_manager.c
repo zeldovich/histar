@@ -8,6 +8,7 @@
 #include <kern/disklayout.h>
 #include <kern/lib.h>
 #include <machine/pmap.h>
+#include <machine/stackwrap.h>
 #include <inc/error.h>
 
 // max order for key size of 1
