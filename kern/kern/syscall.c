@@ -24,6 +24,7 @@
 #include <inc/setjmp.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
+#include <inc/safeint.h>
 
 // Helper functions
 static const struct Label *cur_th_label;
@@ -711,11 +712,14 @@ static void
 sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
 		    uint64_t msec)
 {
-    for (uint64_t i = 0; i < num; i++) {
-	check(check_user_access(&vals[i], sizeof(*vals), 0));
-	check(check_user_access(&addrs[i], sizeof(*addrs), 0));
-	check(check_user_access(addrs[i], sizeof(**addrs), 0));
-    }
+    int overflow = 0;
+    check(check_user_access(vals,
+			    safe_mul(&overflow, sizeof(vals[0]), num), 0));
+    check(check_user_access(addrs,
+			    safe_mul(&overflow, sizeof(addrs[0]), num), 0));
+    if (overflow)
+	syscall_error(-E_INVAL);
+
     check(sync_wait_multi(addrs, vals, num, msec));
 }
 

@@ -101,14 +101,19 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
 	if (sync_debug)
 	    cprintf("sync_wait_multi: addr %p val %lx\n", addrs[i], vals[i]);
 
-	if (*addrs[i] != vals[i])
-	    return 0;
-
-	int r = sync_waitslots_next(&it);
+	uint64_t *addr = addrs[i];
+	int r = check_user_access(addr, sizeof(*addr), 0);
 	if (r < 0)
 	    return r;
 
-	r = as_invert_mapped(t->th_as, addrs[i],
+	if (*addr != vals[i])
+	    return 0;
+
+	r = sync_waitslots_next(&it);
+	if (r < 0)
+	    return r;
+
+	r = as_invert_mapped(t->th_as, addr,
 			     &it.slots[it.slot_num].seg_id,
 			     &it.slots[it.slot_num].offset);
 	if (r < 0)
