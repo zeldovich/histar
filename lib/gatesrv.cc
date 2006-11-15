@@ -17,6 +17,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
+static uint32_t ugatesync_as_slot_inited, ugatesync_as_slot;
+
 static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
@@ -101,6 +103,18 @@ gate_create(uint64_t gate_ct, const char *name,
 struct cobj_ref
 gate_create(gatesrv_descriptor *gd)
 {
+    if (!ugatesync_as_slot_inited) {
+	void *va = (void *) UGATESYNC;
+	uint64_t nb = PGSIZE;
+	error_check(segment_map(COBJ(0, 0), 0, SEGMAP_RESERVE, &va, &nb, 0));
+
+	struct u_segment_mapping usm;
+	error_check(segment_lookup(va, &usm));
+
+	ugatesync_as_slot = usm.kslot;
+	ugatesync_as_slot_inited = 1;
+    }
+
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &gatesrv_entry_tls;
