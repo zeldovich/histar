@@ -14,7 +14,7 @@ static __inline __attribute__((always_inline)) uint64_t
 safe_mul(int *of, uint64_t a, uint64_t b)
 {
     uint64_t r = a * b;
-    if (r / a != b)
+    if (a && r / a != b)
 	*of = 1;
     return r;
 }
