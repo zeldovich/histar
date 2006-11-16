@@ -195,8 +195,9 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 	// Whew, created that pesky retry segment..
 
-	label tl, tc(2);
+	label tl, tc;
 	thread_cur_label(&tl);
+	thread_cur_clearance(&tc);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = req.session_ct;
