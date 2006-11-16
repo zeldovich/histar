@@ -3,10 +3,10 @@
 #include <btree/cache.h>
 #include <btree/btree.h>
 #include <kern/freelist.h>
-#include <machine/pmap.h>
 #include <kern/stackwrap.h>
-#include <inc/error.h>
 #include <kern/log.h>
+#include <kern/arch.h>
+#include <inc/error.h>
 
 extern struct freelist freelist;
 

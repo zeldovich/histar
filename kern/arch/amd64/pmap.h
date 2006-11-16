@@ -4,8 +4,9 @@
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
-#include <inc/queue.h>
 #include <kern/lib.h>
+#include <kern/arch.h>
+#include <inc/queue.h>
 #endif /* !__ASSEMBLER__ */
 
 #define GD_UT	0x0b		/* User text */
@@ -34,20 +35,7 @@ struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
 
-extern size_t global_npages;
-
-extern struct page_stats {
-    uint64_t pages_used;
-    uint64_t pages_avail;
-    uint64_t allocations;
-    uint64_t failures;
-} page_stats;
-
 void pmap_init(uint64_t lower_kb, uint64_t upper_kb);
-
-int  page_alloc(void **p)
-    __attribute__ ((warn_unused_result));
-void page_free (void *p);
 
 int  page_map_alloc(struct Pagemap **pm_store)
     __attribute__ ((warn_unused_result));

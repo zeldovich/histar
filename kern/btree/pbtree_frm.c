@@ -4,9 +4,9 @@
 #include <btree/cache.h>
 #include <btree/btree.h>
 #include <kern/freelist.h>
-#include <machine/pmap.h>
-#include <inc/error.h>
 #include <kern/log.h>
+#include <kern/arch.h>
+#include <inc/error.h>
 
 int
 frm_free(uint64_t id, offset_t offset, void *arg)
