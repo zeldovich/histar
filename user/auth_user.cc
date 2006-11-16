@@ -47,7 +47,12 @@ auth_grant_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
     label *ds = new label(3);
     ds->set(user_grant, LB_LEVEL_STAR);
     ds->set(user_taint, LB_LEVEL_STAR);
-    gr->ret(0, ds, 0);
+
+    label *dr = new label(0);
+    dr->set(user_grant, 3);
+    dr->set(user_taint, 3);
+
+    gr->ret(0, ds, dr);
 }
 
 static void __attribute__((noreturn))
@@ -172,10 +177,14 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	coop_ds.set(user_grant, LB_LEVEL_STAR);
 	coop_ds.set(user_taint, LB_LEVEL_STAR);
 
+	label coop_dr(0);
+	coop_dr.set(user_grant, 3);
+	coop_dr.set(user_taint, 3);
+
 	int64_t retry_seg_copy_id;
 	error_check(retry_seg_copy_id =
 	    coop_gate_invoke(COBJ(req.session_ct, req.coop_gate),
-			     0, &coop_ds, 0, coop_vals));
+			     0, &coop_ds, &coop_dr, coop_vals));
 
 	cobj_ref retry_seg_copy = COBJ(req.session_ct, retry_seg_copy_id);
 
