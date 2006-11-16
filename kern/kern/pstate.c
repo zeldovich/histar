@@ -1,7 +1,6 @@
 #include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
-#include <machine/stackwrap.h>
 #include <dev/disk.h>
 #include <kern/disklayout.h>
 #include <kern/pstate.h>
@@ -10,6 +9,7 @@
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/log.h>
+#include <kern/stackwrap.h>
 #include <inc/error.h>
 
 // verbose flags

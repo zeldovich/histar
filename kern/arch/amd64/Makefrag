@@ -9,7 +9,6 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/thread.c			\
 	$(ARCHDIR)/as.c				\
-	$(ARCHDIR)/stackwrap.c			\
 	$(ARCHDIR)/mtrr.c			\
 	$(ARCHDIR)/reboot.c
 

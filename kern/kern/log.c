@@ -1,12 +1,12 @@
 #include <machine/pmap.h>
 #include <machine/mmu.h>
 #include <machine/x86.h>
-#include <machine/stackwrap.h>
 #include <kern/log.h>
 #include <kern/disklayout.h>
 #include <kern/freelist.h>
 #include <kern/hashtable.h>
 #include <kern/disklayout.h>
+#include <kern/stackwrap.h>
 #include <inc/queue.h>
 #include <inc/error.h>
 

@@ -1,6 +1,6 @@
-#include <machine/stackwrap.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <kern/stackwrap.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
 
