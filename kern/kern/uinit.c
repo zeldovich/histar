@@ -242,6 +242,7 @@ thread_create_embed(struct Container *c,
     assert_check(thread_alloc(th_label, th_clearance, &t));
     t->th_ko.ko_flags = tc->ct_ko.ko_flags;
     strncpy(&t->th_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
+    thread_set_sched_parents(t, tc->ct_ko.ko_id, 0);
 
     assert_check(container_put(tc, &t->th_ko));
     assert_check(thread_load_elf(tc, t,

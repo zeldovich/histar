@@ -149,6 +149,10 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     d->return_gate = return_gate;
     d->taint_container = taint_ct_obj_.object;
 
+    error_check(sys_self_addref(d->taint_container));
+    error_check(sys_self_set_sched_parents(start_env->proc_container,
+					   d->taint_container));
+
     // Flush delayed unmap segment mappings; if we come back tainted,
     // we won't be able to look at our in-memory delayed unmap cache.
     // Perhaps this should be fixed by allowing a RW-mapping to be
@@ -168,6 +172,7 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     if (tls_tidp)
 	*tls_tidp = sys_self_id();
 
+    error_check(sys_self_set_sched_parents(start_env->proc_container, 0));
     thread_label_cache_invalidate();
 
     // Copy back the arguments

@@ -560,6 +560,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi));
 
     check(thread_jump(t, new_label, new_clearance, &te));
+    thread_set_sched_parents(t, thread.container, 0);
     thread_set_runnable(t);
 }
 
@@ -699,6 +700,12 @@ static void
 sys_self_utrap_mask(int mask)
 {
     kobject_dirty(&cur_thread->th_ko)->th.th_utrap_masked = mask ? 1 : 0;
+}
+
+static void
+sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
+{
+    thread_set_sched_parents(cur_thread, p0, p1);
 }
 
 static void
@@ -930,6 +937,7 @@ static void_syscall void_syscalls[NSYSCALLS] = {
     SYSCALL_DISPATCH(self_fp_disable),
     SYSCALL_DISPATCH(self_set_waitslots),
     SYSCALL_DISPATCH(self_utrap_mask),
+    SYSCALL_DISPATCH(self_set_sched_parents),
     SYSCALL_DISPATCH(sync_wait),
     SYSCALL_DISPATCH(sync_wait_multi),
     SYSCALL_DISPATCH(sync_wakeup),

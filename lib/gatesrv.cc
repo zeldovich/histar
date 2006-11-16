@@ -24,7 +24,8 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 	// Arguments for gate call passed on the top of the TLS stack.
 	gate_call_data *d = (gate_call_data *) tls_gate_args;
 
-	gatesrv_return ret(d->return_gate, start_env->proc_container, stack, flags);
+	gatesrv_return ret(d->return_gate, start_env->proc_container,
+			   d->taint_container, stack, flags);
 	fn(arg, d, &ret);
 
 	throw basic_exception("gatesrv_entry: function returned\n");
@@ -50,6 +51,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	thread_label_cache_invalidate();
 
 	uint64_t entry_ct = start_env->proc_container;
+	error_check(sys_self_set_sched_parents(gcd->taint_container, entry_ct));
 	if (!(flags & GATESRV_NO_THREAD_ADDREF))
 	    error_check(sys_self_addref(entry_ct));
 	scope_guard<int, struct cobj_ref>
@@ -125,6 +127,7 @@ gate_create(gatesrv_descriptor *gd)
 void
 gatesrv_return::ret(label *cs, label *ds, label *dr)
 {
+    error_check(sys_self_set_sched_parents(thread_ct_, gatecall_ct_));
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))
 	error_check(sys_self_addref(thread_ct_));
 

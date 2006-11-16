@@ -33,6 +33,7 @@ struct Thread {
     uint8_t th_sched_joined : 1;
     uint8_t th_utrap_masked : 1;
     uint8_t th_waiting_multi : 1;
+    uint32_t th_sched_tickets;		// 32-bit to fit Thread in 512 bytes
 
     uint64_t th_wakeup_msec;
     uint64_t th_multi_slots;
@@ -48,7 +49,7 @@ struct Thread {
 	};
     };
 
-    uint64_t th_sched_tickets;
+    kobject_id_t th_sched_parents[2];
     union {
 	uint128_t th_sched_pass;
 	int128_t th_sched_remain;
@@ -92,6 +93,7 @@ int  thread_enable_fp(const struct Thread *t)
 void thread_disable_fp(const struct Thread *t);
 int  thread_set_waitslots(const struct Thread *t, uint64_t nslots)
     __attribute__ ((warn_unused_result));
+void thread_set_sched_parents(const struct Thread *t, uint64_t p1, uint64_t p2);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);

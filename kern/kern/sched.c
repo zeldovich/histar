@@ -3,6 +3,7 @@
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/timer.h>
+#include <kern/container.h>
 
 static uint128_t global_tickets;
 static uint128_t global_pass;
@@ -28,18 +29,34 @@ global_pass_update(uint128_t new_global_pass)
 void
 schedule(void)
 {
-    const struct Thread *t, *min_pass_th = 0;
-    LIST_FOREACH(t, &thread_list_runnable, th_link)
-	if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
-	    min_pass_th = t;
+    do {
+	const struct Thread *t, *min_pass_th = 0;
+	LIST_FOREACH(t, &thread_list_runnable, th_link)
+	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
+		min_pass_th = t;
 
-    if (!min_pass_th)
-	panic("no runnable threads");
+	if (!min_pass_th)
+	    panic("no runnable threads");
+
+	cur_thread = min_pass_th;
+
+	// Make sure the thread can know of its existence..
+	const struct Container *c;
+	int readable_parent = 0;
+	for (int i = 0; !readable_parent && i < 2; i++)
+	    if (container_find(&c, cur_thread->th_sched_parents[i], iflow_read) == 0 &&
+		container_has(c, cur_thread->th_ko.ko_id) == 0)
+		readable_parent = 1;
+
+	if (!readable_parent) {
+	    cprintf("schedule(): thread %ld (%s) not self-aware, halting\n",
+		    cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
+	    thread_halt(cur_thread);
+	}
+    } while (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable));
 
     // Make sure we don't miss a TSC rollover, and reset it just in case
-    global_pass_update(min_pass_th->th_sched_pass);
-
-    cur_thread = min_pass_th;
+    global_pass_update(cur_thread->th_sched_pass);
 }
 
 void

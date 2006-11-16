@@ -299,6 +299,12 @@ sys_self_set_waitslots(uint64_t nslots)
 }
 
 int
+sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
+{
+    return syscall(SYS_self_set_sched_parents, p0, p1);
+}
+
+int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
 {
     return syscall(SYS_sync_wait, addr, val, msec);

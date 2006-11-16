@@ -184,6 +184,9 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 	cprintf("\n");
     }
 
+    ERRCHECK(sys_self_addref(mlt_ct));
+    ERRCHECK(sys_self_set_sched_parents(start_env->proc_container, mlt_ct));
+
     start_env->proc_container = mlt_ct;
     start_env->shared_container = taint_container;
     start_env->declassify_gate = declassify_gate;

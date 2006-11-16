@@ -257,3 +257,9 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
 
     return kobject_get(ref.object, storep, type, iflow);
 }
+
+int
+container_has(const struct Container *c, kobject_id_t id)
+{
+    return container_slot_find(c, id, 0, page_shared_ro);
+}

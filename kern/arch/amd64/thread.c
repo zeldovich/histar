@@ -273,6 +273,14 @@ thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
     return 0;
 }
 
+void
+thread_set_sched_parents(const struct Thread *const_t, uint64_t p0, uint64_t p1)
+{
+    struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
+    t->th_sched_parents[0] = p0;
+    t->th_sched_parents[1] = p1;
+}
+
 int
 thread_change_label(const struct Thread *const_t,
 		    const struct Label *new_label)

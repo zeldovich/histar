@@ -55,4 +55,8 @@ int	cobj_get(struct cobj_ref ref, kobject_type_t type,
 		 const struct kobject **storep, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 
+// Check whether container has a member object
+int	container_has(const struct Container *c, kobject_id_t id)
+    __attribute__ ((warn_unused_result));
+
 #endif

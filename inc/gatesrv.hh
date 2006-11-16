@@ -6,9 +6,9 @@
 
 class gatesrv_return {
 public:
-    gatesrv_return(struct cobj_ref rgate, uint64_t tct,
+    gatesrv_return(struct cobj_ref rgate, uint64_t tct, uint64_t gct,
 		   void *stack, uint64_t flags)
-	: rgate_(rgate), thread_ct_(tct), stack_(stack), flags_(flags) {}
+	: rgate_(rgate), thread_ct_(tct), gatecall_ct_(gct), stack_(stack), flags_(flags) {}
 
     // ret will delete the three labels passed to it
     void ret(label *contaminate_label,		// { * } for none
@@ -27,6 +27,7 @@ private:
 
     struct cobj_ref rgate_;
     uint64_t thread_ct_;
+    uint64_t gatecall_ct_;
     void *stack_;
     uint64_t flags_;
 };
