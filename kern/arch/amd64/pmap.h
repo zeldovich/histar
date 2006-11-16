@@ -24,9 +24,6 @@ extern struct Pseudodesc gdtdesc;
 extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
-/* init.c */
-extern char boot_cmdline[];
-
 /* mtrr.c */
 void mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type);
 

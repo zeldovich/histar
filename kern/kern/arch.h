@@ -23,6 +23,7 @@ void page_free (void *p);
 /*
  * Miscellaneous
  */
+extern char boot_cmdline[];
 void machine_reboot(void);
 
 #endif
