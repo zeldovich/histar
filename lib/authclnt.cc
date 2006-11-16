@@ -115,6 +115,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     user_req->req_cats = 0;
     user_req->pw_taint = pw_taint;
     user_req->session_ct = session_ct;
+    user_req->session_grant = session_grant;
     user_req->coop_gate = coop_gate.object;
 
     if (auth_debug)
@@ -166,10 +167,13 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     cur_label.set(xh, LB_LEVEL_STAR);
     error_check(cur_label2.compare(&cur_label, label::eq));
 
+    label grant_dr(0);
+    grant_dr.set(xh, 2);
+
     if (auth_debug)
 	cprintf("auth_login: calling grant gate\n");
 
-    gate_call(ugrant_gate, 0, 0, 0).call(&gcd, 0);
+    gate_call(ugrant_gate, 0, 0, &grant_dr).call(&gcd, 0);
 
     *ug = ugrant_reply->user_grant;
     *ut = ugrant_reply->user_taint;
@@ -270,6 +274,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     user_req->req_cats = 0;
     user_req->pw_taint = pw_taint;
     user_req->session_ct = session_ct;
+    user_req->session_grant = session_grant;
     user_req->coop_gate = coop_gate.object;
 
     if (auth_debug)

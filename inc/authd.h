@@ -28,6 +28,7 @@ struct auth_user_req {
 
     uint64_t pw_taint;
     uint64_t session_ct;
+    uint64_t session_grant;
     uint64_t coop_gate;
 };
 

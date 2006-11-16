@@ -180,6 +180,7 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	label coop_dr(0);
 	coop_dr.set(user_grant, 3);
 	coop_dr.set(user_taint, 3);
+	coop_dr.set(req.session_grant, 2);
 
 	int64_t retry_seg_copy_id;
 	error_check(retry_seg_copy_id =
