@@ -10,7 +10,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/thread.c			\
 	$(ARCHDIR)/as.c				\
 	$(ARCHDIR)/stackwrap.c			\
-	$(ARCHDIR)/mtrr.c
+	$(ARCHDIR)/mtrr.c			\
+	$(ARCHDIR)/reboot.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\

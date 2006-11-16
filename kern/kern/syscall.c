@@ -3,7 +3,6 @@
 #include <machine/thread.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
-#include <machine/pchw.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/sched.h>
@@ -20,6 +19,7 @@
 #include <kern/sync.h>
 #include <kern/prof.h>
 #include <kern/pstate.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>

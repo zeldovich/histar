@@ -2,13 +2,11 @@
 
 #include <machine/x86.h>
 #include <machine/pmap.h>
-#include <machine/pchw.h>
-#include <inc/kbdreg.h>
-
-#include <dev/console.h>
-
+#include <kern/arch.h>
 #include <kern/intr.h>
 #include <kern/lib.h>
+#include <dev/console.h>
+#include <inc/kbdreg.h>
 
 void cons_intr (int (*proc) (void));
 
