@@ -51,66 +51,6 @@ sig_fatal(void)
 }
 
 static void
-segfault_worker(void *arg)
-{
-    struct {
-	siginfo_t si;
-	struct sigcontext sc;
-    } *args = arg;
-
-    segfault_helper(&args->si, &args->sc);
-    sig_fatal();
-    free(args);
-}
-
-static void __attribute__((__noreturn__))
-on_segfault(siginfo_t *si, struct sigcontext *sc)
-{
-    // *tls_pgfault might be on the TLS
-    struct u_segment_mapping usm;
-    int r = segment_lookup(si->si_addr, &usm);
-    uint64_t flags = usm.flags;
-    if (r > 0 && (flags & SEGMAP_VECTOR_PF)) {
-	assert(*tls_pgfault);
-	jos_longjmp(*tls_pgfault, 1);
-    }
-    
-    struct {
-	siginfo_t si;
-	struct sigcontext sc;
-    } *args = malloc(sizeof(*args));
-
-    memcpy(&args->si, si, sizeof(args->si));
-    memcpy(&args->sc, sc, sizeof(args->sc));
-    
-    // handlers might overflow the TLS, so use worker
-    struct cobj_ref tobj;
-    thread_create(start_env->shared_container, segfault_worker,
-		  args, &tobj, "segfault_worker");
-    thread_halt();
-}
-
-static void
-fatal_worker(void *arg)
-{
-    int64_t signo = (int64_t) arg;
-    extern const char *__progname;
-    cprintf("%s: fatal signal %ld\n", __progname, signo);
-    sig_fatal();
-}
-
-static void __attribute__((__noreturn__))
-on_fatal(siginfo_t *si)
-{
-    struct cobj_ref tobj;
-    int64_t signo = si->si_signo;
-    // handlers might overflow the TLS, so use worker
-    thread_create(start_env->shared_container, fatal_worker,
-		  (void *)signo, &tobj, "fatal_worker");
-    thread_halt();
-}
-
-static void
 signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 {
     extern const char *__progname;
@@ -127,11 +67,13 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
 	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
-	    on_fatal(si);
+	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
+	    sig_fatal();
 	    break;
 
 	case SIGSEGV: case SIGBUS:  case SIGILL:
-	    on_segfault(si, sc);
+	    segfault_helper(si, sc);
+	    sig_fatal();
 	    break;
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
