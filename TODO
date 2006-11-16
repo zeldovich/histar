@@ -47,6 +47,7 @@ Cleanup:
 * enforce clearance allocation bound
 * netd_select gate asks for a non-tls stack but doesn't addref the thread,
   which means its non-tls stack will not get cleaned up if the thread dies
+* sys_container_get_parent(): check thread can read parent (for later chown)
 
 Bugs:
 
