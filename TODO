@@ -31,6 +31,8 @@ Security:
   gone.  for this, need either to copy all segments first, or to have a careful-read
   and careful-write wrapper that does setjmp() first, and the segfault handler will
   longjmp().
+* init spawns everything with root privilege because spawn grants LB_LEVEL_STAR
+  for start_env->user_grant/user_taint
 
 Cleanup:
 
@@ -44,7 +46,6 @@ Cleanup:
   need a callback for when threads enter/leave an AS.
 * sys_reboot()
 * split the pstate sync timestamp counter from the handle counter
-* enforce clearance allocation bound
 * netd_select gate asks for a non-tls stack but doesn't addref the thread,
   which means its non-tls stack will not get cleaned up if the thread dies
 * sys_container_get_parent(): check thread can read parent (for later chown)
