@@ -1,4 +1,4 @@
-#include <machine/pmap.h>
+#include <kern/arch.h>
 #include <kern/label.h>
 #include <kern/container.h>
 #include <kern/segment.h>

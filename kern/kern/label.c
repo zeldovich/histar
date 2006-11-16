@@ -1,7 +1,6 @@
-#include <machine/pmap.h>
-#include <machine/trap.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 

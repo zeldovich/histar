@@ -1,6 +1,7 @@
-#include <machine/pmap.h>
 #include <machine/x86.h>
 #include <kern/stackwrap.h>
+#include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
 

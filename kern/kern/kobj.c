@@ -1,5 +1,4 @@
 #include <machine/thread.h>
-#include <machine/pmap.h>
 #include <machine/as.h>
 #include <kern/container.h>
 #include <kern/segment.h>
@@ -10,6 +9,7 @@
 #include <kern/timer.h>
 #include <kern/ht.h>
 #include <kern/pageinfo.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 

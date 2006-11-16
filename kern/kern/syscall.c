@@ -1,10 +1,10 @@
 #include <machine/trap.h>
-#include <machine/pmap.h>
 #include <machine/thread.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
+#include <kern/arch.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>
 #include <kern/lib.h>

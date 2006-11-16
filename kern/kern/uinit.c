@@ -1,6 +1,4 @@
-#include <machine/types.h>
 #include <machine/thread.h>
-#include <machine/pmap.h>
 #include <machine/x86.h>
 #include <machine/as.h>
 #include <dev/console.h>
@@ -13,6 +11,7 @@
 #include <kern/handle.h>
 #include <kern/pstate.h>
 #include <kern/embedbin.h>
+#include <kern/arch.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
