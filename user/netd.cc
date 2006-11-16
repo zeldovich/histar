@@ -50,9 +50,10 @@ main(int ac, char **av)
 
     try {
 	label cntm;
-	label clear(2);
+	label clear;
 
 	thread_cur_label(&cntm);
+	thread_cur_clearance(&clear);
 	if (netd_do_taint)
 	    cntm.set(inet_taint, 2);
 
