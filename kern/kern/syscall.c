@@ -1,7 +1,6 @@
 #include <machine/trap.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
-#include <machine/pmap.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
 #include <kern/arch.h>

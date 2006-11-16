@@ -1,10 +1,10 @@
-#include <machine/pmap.h>
 #include <kern/thread.h>
 #include <kern/as.h>
 #include <kern/sync.h>
 #include <kern/timer.h>
 #include <kern/kobj.h>
 #include <kern/lib.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 
 static struct Thread_list sync_waiting;

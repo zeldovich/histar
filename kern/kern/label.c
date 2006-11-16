@@ -1,4 +1,3 @@
-#include <machine/pmap.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
 #include <kern/arch.h>

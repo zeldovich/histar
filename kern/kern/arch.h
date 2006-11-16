@@ -33,4 +33,12 @@ struct Pagemap;
 void pmap_tlb_invlpg(const void *va);
 void pmap_set_current(struct Pagemap *pm, int flush_tlb);
 
+/*
+ * Checks that [ptr .. ptr + nbytes) is valid user memory,
+ * and makes sure the address is paged in (might return -E_RESTART).
+ * Checks for writability if (reqflags & SEGMAP_WRITE).
+ */
+int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
+    __attribute__ ((warn_unused_result));
+
 #endif

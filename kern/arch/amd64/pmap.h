@@ -81,13 +81,6 @@ ppn2pa (ppn_t pn)
     return (pn << PGSHIFT);
 }
 
-/*
- * Checks that [ptr .. ptr + nbytes) is valid user memory,
- * and makes sure the address is paged in (might return -E_RESTART).
- */
-int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
-    __attribute__ ((warn_unused_result));
-
 #endif /* !__ASSEMBLER__ */
 
 #endif /* !JOS_INC_PMAP_H */
