@@ -246,7 +246,7 @@ cyg_profile_print(void)
 }
 
 void __attribute__ ((no_instrument_function))
-__cyg_profile_func_enter(void *this_fn, void *call_site)
+__cyg_profile_func_enter(void *this_fn, void *call_site __attribute__((unused)))
 {
     if (!cyg_data.enable)
 	return;
@@ -277,7 +277,7 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
 }
 
 void __attribute__ ((no_instrument_function))
-__cyg_profile_func_exit(void *this_fn, void *call_site)
+__cyg_profile_func_exit(void *this_fn, void *call_site __attribute__((unused)))
 {
     if (!cyg_data.enable)
 	return;

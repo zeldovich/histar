@@ -96,18 +96,6 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
     } else if (SAFE_EQUAL(iflow, iflow_alloc)) {
 	r = label_compare_id(th_label_id, ko_label_id, label_leq_starlo) ? :
 	    label_compare_id(ko_label_id, th_clear_id, label_leq_starlo);
-
-	if (r == -E_LABEL) {
-	    cprintf("iflow_alloc check failure: th_label, target, th_clear\n");
-	    const struct kobject *l1, *l2, *l3;
-	    if (kobject_get(th_label_id, &l1, kobj_label, iflow_none) == 0 &&
-		kobject_get(ko_label_id, &l2, kobj_label, iflow_none) == 0 &&
-		kobject_get(th_clear_id, &l3, kobj_label, iflow_none) == 0) {
-		label_cprint(&l1->lb);
-		label_cprint(&l2->lb);
-		label_cprint(&l3->lb);
-	    }
-	}
     } else {
 	panic("kobject_get: unknown iflow type %d", SAFE_UNWRAP(iflow));
     }
@@ -364,7 +352,7 @@ again:
 	return success;
     }
 
-    const struct kobject *pconst;
+    const struct kobject *pconst = 0;
     int r = kobject_get(ko->ko_parent, &pconst, kobj_any, iflow_rw);
     if (r < 0)
 	return r;

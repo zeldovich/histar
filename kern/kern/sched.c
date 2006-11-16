@@ -88,7 +88,7 @@ sched_leave(struct Thread *t)
 }
 
 void
-sched_start(const struct Thread *t)
+sched_start(const struct Thread *t __attribute__((unused)))
 {
     cur_start_tsc = read_tsc();
 }

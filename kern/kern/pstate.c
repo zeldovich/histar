@@ -254,7 +254,7 @@ pstate_swapin_id(kobject_id_t id)
 }
 
 static void
-pstate_swapin_stackwrap(void *arg, void *arg1, void *arg2)
+pstate_swapin_stackwrap(void *arg, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
 {
     kobject_id_t id = (kobject_id_t) arg;
     static struct Thread_list swapin_waiting;
@@ -385,7 +385,7 @@ pstate_load2(void)
 }
 
 static void
-pstate_load_stackwrap(void *arg, void *arg1, void *arg2)
+pstate_load_stackwrap(void *arg, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
 {
     int *donep = (int *) arg;
     *donep = pstate_load2();
@@ -583,7 +583,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg0, void *arg1, void *arg2)
+pstate_sync_stackwrap(void *arg0, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
 {
     int *rvalp = 0;
     if (arg0)
