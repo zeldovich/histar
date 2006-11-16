@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
 #include <inc/taint.h>
+#include <inc/error.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -157,8 +158,10 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint", 0, CT_QUOTA_INF);
 	if (id < 0) {
-	    cprintf("gatesrv_return: allocating taint container in %ld: %s\n",
-		    gcd->taint_container, e2s(id));
+	    // Usually -E_INVAL means the caller has died, so it doesn't matter..
+	    if (id != -E_INVAL)
+		cprintf("gatesrv_return: allocating taint container in %ld: %s\n",
+			gcd->taint_container, e2s(id));
 	    gcd->taint_container = 0;
 	} else {
 	    gcd->taint_container = id;
