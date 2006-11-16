@@ -35,6 +35,8 @@ struct Thread {
     uint8_t th_waiting_multi : 1;
 
     uint64_t th_wakeup_msec;
+    uint64_t th_multi_slots;
+
     union {
 	struct {
 	    uint64_t th_wakeup_seg_id;
@@ -42,7 +44,6 @@ struct Thread {
 	};
 
 	struct {
-	    uint64_t th_multi_slots;
 	    uint64_t th_multi_slots_used;
 	};
     };
