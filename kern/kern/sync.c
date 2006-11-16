@@ -64,7 +64,7 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
 
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
     t->th_wakeup_msec = wakeup_msec;
-    t->th_multi_slots_used = 0;
+    t->th_waiting_multi = 0;
 
     int r = as_invert_mapped(t->th_as, addr,
 			     &t->th_wakeup_seg_id,
@@ -123,6 +123,7 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
     thread_suspend(cur_thread, &sync_waiting);
     t->th_wakeup_msec = wakeup_msec;
     t->th_multi_slots_used = num;
+    t->th_waiting_multi = 1;
     return 0;
 }
 
@@ -141,7 +142,7 @@ sync_wakeup_addr(uint64_t *addr)
     while (t != 0) {
 	struct Thread *next = LIST_NEXT(t, th_link);
 
-	if (t->th_multi_slots_used) {
+	if (t->th_waiting_multi) {
 	    struct waitslots_iter it;
 	    sync_waitslots_iter(&it, t);
 
@@ -153,7 +154,6 @@ sync_wakeup_addr(uint64_t *addr)
 		if (it.slots[it.slot_num].seg_id == seg_id &&
 		    it.slots[it.slot_num].offset == offset)
 		{
-		    t->th_multi_slots_used = 0;
 		    thread_set_runnable(t);
 		    break;
 		}
@@ -181,7 +181,6 @@ sync_wakeup_timer(void)
 		cprintf("sync_wakeup_timer: waking up %lx now %lx\n",
 			t->th_wakeup_msec, timer_user_msec);
 
-	    t->th_multi_slots_used = 0;
 	    thread_set_runnable(t);
 	}
 

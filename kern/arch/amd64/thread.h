@@ -32,14 +32,21 @@ struct Thread {
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
     uint8_t th_utrap_masked : 1;
+    uint8_t th_waiting_multi : 1;
 
     uint64_t th_wakeup_msec;
-    uint64_t th_wakeup_seg_id;
-    uint64_t th_wakeup_offset;
+    union {
+	struct {
+	    uint64_t th_wakeup_seg_id;
+	    uint64_t th_wakeup_offset;
+	};
 
-    uint64_t th_multi_slots;
-    uint64_t th_multi_slots_used;
-    
+	struct {
+	    uint64_t th_multi_slots;
+	    uint64_t th_multi_slots_used;
+	};
+    };
+
     uint64_t th_sched_tickets;
     union {
 	uint128_t th_sched_pass;
@@ -62,7 +69,8 @@ extern const struct Thread *cur_thread;
 
 int  thread_alloc(const struct Label *contaminate,
 		  const struct Label *clearance,
-		  struct Thread **tp);
+		  struct Thread **tp)
+    __attribute__ ((warn_unused_result));
 void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t)
@@ -78,9 +86,11 @@ int  thread_change_label(const struct Thread *t, const struct Label *l)
     __attribute__ ((warn_unused_result));
 void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
-int  thread_enable_fp(const struct Thread *t);
+int  thread_enable_fp(const struct Thread *t)
+    __attribute__ ((warn_unused_result));
 void thread_disable_fp(const struct Thread *t);
-int  thread_set_waitslots(const struct Thread *t, uint64_t nslots);
+int  thread_set_waitslots(const struct Thread *t, uint64_t nslots)
+    __attribute__ ((warn_unused_result));
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);
