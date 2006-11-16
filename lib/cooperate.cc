@@ -330,6 +330,11 @@ coop_gate_invoke(cobj_ref coop_gate,
     thread_cur_label(&cur_label);
     thread_cur_clearance(&cur_clear);
 
+    // We need to grant proc_taint:* so the thread can observe
+    // its refcount in start_env->proc_container..
+    label new_ds(ds ? *ds : label(3));
+    new_ds.set(start_env->process_taint, LB_LEVEL_STAR);
+
     int64_t tid;
     error_check(tid = sys_thread_create(start_env->proc_container,
 					"coop gate invoker"));
@@ -347,7 +352,7 @@ coop_gate_invoke(cobj_ref coop_gate,
     te.te_arg[0] = (uint64_t) &invoke_done;
     te.te_arg[1] = (uint64_t) &coop_gate;
     te.te_arg[2] = (uint64_t) cs;
-    te.te_arg[3] = (uint64_t) ds;
+    te.te_arg[3] = (uint64_t) &new_ds;
     te.te_arg[4] = (uint64_t) dr;
     te.te_arg[5] = (uint64_t) &arg_values[0];
 
