@@ -139,7 +139,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     //apic_init();
     kclock_init();
     timer_init();
-    pmap_init(lower_kb, upper_kb);
+    page_init(lower_kb, upper_kb);
     pci_init();
 
     kobject_init ();

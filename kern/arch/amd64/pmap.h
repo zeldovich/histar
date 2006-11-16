@@ -32,7 +32,7 @@ struct Pagemap {
     uint64_t pm_ent[NPTENTRIES];
 };
 
-void pmap_init(uint64_t lower_kb, uint64_t upper_kb);
+void page_init(uint64_t lower_kb, uint64_t upper_kb);
 
 int  page_map_alloc(struct Pagemap **pm_store)
     __attribute__ ((warn_unused_result));

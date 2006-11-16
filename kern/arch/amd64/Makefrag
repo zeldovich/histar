@@ -6,6 +6,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/mtrr.c			\
 	$(ARCHDIR)/reboot.c
