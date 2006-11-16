@@ -14,6 +14,8 @@ Performance:
 
 Kernel bugs:
 
+* bugs in handling out-of-memory conditions
+
 Security:
 
 * netd_server doesn't do any checking on who's asking for what fd.
@@ -53,7 +55,6 @@ Cleanup:
 Bugs:
 
 * netd bug (fetch'ing files hangs for some files but not others)
-* bugs in handling out-of-memory conditions
 * look for concurrency bugs using test harness (make disk ops async)
 * utrap TLS bug (easy to walk over stack...gate calls, switch stack
   then a trap...)
