@@ -63,6 +63,8 @@ do_fork()
     // Grant process handles to the new process
     thread_contaminate.set(process_grant, LB_LEVEL_STAR);
     thread_contaminate.set(process_taint, LB_LEVEL_STAR);
+    thread_clearance.set(process_grant, 3);
+    thread_clearance.set(process_taint, 3);
     secret_label.set(process_grant, 0);
     secret_label.set(process_taint, 3);
     integrity_label.set(process_grant, 0);

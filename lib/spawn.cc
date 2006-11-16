@@ -89,9 +89,13 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     thread_label.set(process_grant, LB_LEVEL_STAR);
     thread_label.set(process_taint, LB_LEVEL_STAR);
+    thread_clear.set(process_grant, 3);
+    thread_clear.set(process_taint, 3);
     if (start_env->user_grant && start_env->user_taint) {
 	thread_label.set(start_env->user_grant, LB_LEVEL_STAR);
 	thread_label.set(start_env->user_taint, LB_LEVEL_STAR);
+	thread_clear.set(start_env->user_grant, 3);
+	thread_clear.set(start_env->user_taint, 3);
     }
     proc_object_label.set(process_grant, 0);
     proc_object_label.set(process_taint, 3);
@@ -128,12 +132,19 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	error_check(dup2_as(fdnum[i], i, e.te_as, c_top));
 
 	thread_label.set(fd->fd_handle[fd_handle_taint], LB_LEVEL_STAR);
-	if (fd->fd_handle[fd_handle_extra_taint])
+	thread_clear.set(fd->fd_handle[fd_handle_taint], 3);
+	if (fd->fd_handle[fd_handle_extra_taint]) {
 	    thread_label.set(fd->fd_handle[fd_handle_extra_taint], LB_LEVEL_STAR);
-	if (!fd->fd_immutable)
+	    thread_clear.set(fd->fd_handle[fd_handle_extra_taint], 3);
+	}
+	if (!fd->fd_immutable) {
 	    thread_label.set(fd->fd_handle[fd_handle_grant], LB_LEVEL_STAR);
-	if (!fd->fd_immutable && fd->fd_handle[fd_handle_extra_grant])
+	    thread_clear.set(fd->fd_handle[fd_handle_grant], 3);
+	}
+	if (!fd->fd_immutable && fd->fd_handle[fd_handle_extra_grant]) {
 	    thread_label.set(fd->fd_handle[fd_handle_extra_grant], LB_LEVEL_STAR);
+	    thread_clear.set(fd->fd_handle[fd_handle_extra_grant], 3);
+	}
     }
 
     uint64_t env_size = PGSIZE;

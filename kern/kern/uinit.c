@@ -307,32 +307,34 @@ user_bootstrap(void)
 
     fs_init(fsc, obj_label);
 
-    // every thread gets a clearance of { 2 } by default
-    struct Label *th_clearance;
-    assert_check(label_alloc(&th_clearance, 2));
-
-    // idle: thread { idle:* 1 }, objects { idle:0 1 }, clearance { 2 }
+    // idle: thread { idle:* 1 }, objects { idle:0 1 }, clearance { idle:3 2 }
     struct Label *idle_th_label;
     struct Label *idle_obj_label;
+    struct Label *idle_th_clear;
     assert_check(label_alloc(&idle_th_label, 1));
     assert_check(label_alloc(&idle_obj_label, 1));
+    assert_check(label_alloc(&idle_th_clear, 2));
 
     uint64_t idle_handle = handle_alloc();
     assert_check(label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
     assert_check(label_set(idle_obj_label, idle_handle, 0));
-    thread_create_embed(rc, idle_obj_label, idle_th_label, th_clearance,
+    assert_check(label_set(idle_th_clear, idle_handle, 3));
+    thread_create_embed(rc, idle_obj_label, idle_th_label, idle_th_clear,
 			"idle", 1, 1, KOBJ_PIN_IDLE);
 
-    // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { 2 }
+    // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { uroot:3 2 }
     struct Label *init_th_label;
     struct Label *init_obj_label;
+    struct Label *init_th_clear;
     assert_check(label_alloc(&init_th_label, 1));
     assert_check(label_alloc(&init_obj_label, 1));
+    assert_check(label_alloc(&init_th_clear, 2));
 
     assert_check(label_set(init_th_label, user_root_handle, LB_LEVEL_STAR));
     assert_check(label_set(init_obj_label, user_root_handle, 0));
+    assert_check(label_set(init_th_clear, user_root_handle, 3));
 
-    thread_create_embed(rc, init_obj_label, init_th_label, th_clearance,
+    thread_create_embed(rc, init_obj_label, init_th_label, init_th_clear,
 			"init", rc->ct_ko.ko_id, user_root_handle, 0);
 }
 
