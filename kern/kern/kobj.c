@@ -1,5 +1,5 @@
-#include <machine/thread.h>
-#include <machine/as.h>
+#include <kern/thread.h>
+#include <kern/as.h>
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/gate.h>

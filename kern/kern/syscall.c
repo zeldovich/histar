@@ -1,5 +1,4 @@
 #include <machine/trap.h>
-#include <machine/thread.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
 #include <dev/console.h>
@@ -20,6 +19,7 @@
 #include <kern/prof.h>
 #include <kern/pstate.h>
 #include <kern/arch.h>
+#include <kern/thread.h>
 #include <inc/error.h>
 #include <inc/setjmp.h>
 #include <inc/thread.h>

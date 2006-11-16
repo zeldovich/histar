@@ -7,7 +7,7 @@
 #endif
 
 #include <inc/types.h>
-#include <machine/thread.h>
+#include <kern/thread.h>
 
 void cons_init(void);
 void cons_putc (int c) ;

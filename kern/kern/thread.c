@@ -1,13 +1,13 @@
-#include <machine/thread.h>
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
 #include <machine/trap.h>
-#include <machine/as.h>
 #include <machine/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>
+#include <kern/thread.h>
+#include <kern/as.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>

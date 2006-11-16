@@ -2,8 +2,8 @@
 #define JOS_KERN_TIMER_H
 
 #include <machine/types.h>
-#include <machine/thread.h>
 #include <dev/kclock.h>
+#include <kern/thread.h>
 #include <inc/queue.h>
 
 extern uint64_t timer_user_msec;

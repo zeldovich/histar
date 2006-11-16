@@ -1,5 +1,5 @@
-#include <machine/thread.h>
-#include <machine/as.h>
+#include <kern/thread.h>
+#include <kern/as.h>
 #include <kern/sync.h>
 #include <kern/timer.h>
 #include <kern/kobj.h>

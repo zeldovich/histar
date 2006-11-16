@@ -2,9 +2,9 @@
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <machine/x86.h>
-#include <machine/thread.h>
 #include <machine/utrap.h>
 #include <dev/picirq.h>
+#include <kern/thread.h>
 #include <kern/syscall.h>
 #include <kern/lib.h>
 #include <kern/intr.h>

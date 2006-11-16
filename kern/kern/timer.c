@@ -1,5 +1,4 @@
 #include <machine/types.h>
-#include <machine/thread.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/intr.h>

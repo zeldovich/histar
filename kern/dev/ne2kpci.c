@@ -1,5 +1,4 @@
 #include <machine/types.h>
-#include <machine/thread.h>
 #include <machine/x86.h>
 #include <dev/ne2kpci.h>
 #include <dev/dp8390reg.h>

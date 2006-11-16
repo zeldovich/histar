@@ -35,6 +35,8 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/dstack.c \
 	    kern/kern/kocache.c \
 	    kern/kern/stackwrap.c \
+	    kern/kern/thread.c \
+	    kern/kern/as.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_BTREE := \

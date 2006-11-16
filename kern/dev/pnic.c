@@ -1,4 +1,3 @@
-#include <machine/thread.h>
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>

@@ -1,5 +1,5 @@
-#include <machine/thread.h>
 #include <machine/x86.h>
+#include <kern/thread.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/timer.h>

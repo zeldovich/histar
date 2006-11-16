@@ -1,6 +1,6 @@
-#include <machine/thread.h>
 #include <machine/x86.h>
 #include <dev/disk.h>
+#include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/disklayout.h>
 #include <kern/pstate.h>

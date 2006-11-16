@@ -2,7 +2,7 @@
 #define JOS_KERN_THREAD_H
 
 #include <machine/mmu.h>
-#include <machine/as.h>
+#include <kern/as.h>
 #include <kern/label.h>
 #include <kern/kobjhdr.h>
 #include <kern/container.h>

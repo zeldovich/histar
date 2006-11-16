@@ -1,9 +1,9 @@
 #include <machine/x86.h>
-#include <machine/as.h>
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/kobj.h>
 #include <kern/pageinfo.h>
+#include <kern/as.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 

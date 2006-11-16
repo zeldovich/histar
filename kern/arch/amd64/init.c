@@ -1,6 +1,5 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
-#include <machine/thread.h>
 #include <machine/trap.h>
 #include <machine/multiboot.h>
 #include <machine/boot.h>
@@ -17,6 +16,7 @@
 #include <kern/kobj.h>
 #include <kern/pstate.h>
 #include <kern/prof.h>
+#include <kern/thread.h>
 
 char boot_cmdline[256];
 

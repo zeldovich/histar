@@ -2,7 +2,7 @@
 #define JOS_KERN_NETDEV_H
 
 #include <machine/types.h>
-#include <machine/thread.h>
+#include <kern/thread.h>
 #include <kern/segment.h>
 #include <inc/netdev.h>
 

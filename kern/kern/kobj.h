@@ -3,8 +3,6 @@
 
 #include <kern/kobjhdr.h>
 
-#include <machine/thread.h>
-#include <machine/as.h>
 #include <machine/memlayout.h>
 #include <kern/container.h>
 #include <kern/segment.h>
@@ -12,6 +10,8 @@
 #include <kern/label.h>
 #include <kern/pagetree.h>
 #include <kern/kocache.h>
+#include <kern/thread.h>
+#include <kern/as.h>
 
 #define KOBJ_DISK_SIZE	512
 #define KOBJ_MEM_SIZE	1024

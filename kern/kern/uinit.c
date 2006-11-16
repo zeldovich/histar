@@ -1,8 +1,8 @@
-#include <machine/thread.h>
 #include <machine/x86.h>
-#include <machine/as.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
+#include <kern/thread.h>
+#include <kern/as.h>
 #include <kern/label.h>
 #include <kern/uinit.h>
 #include <kern/segment.h>

@@ -2,7 +2,6 @@
 
 #include <machine/x86.h>
 #include <machine/pmap.h>
-#include <machine/thread.h>
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>

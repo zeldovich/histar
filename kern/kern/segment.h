@@ -2,7 +2,7 @@
 #define JOS_KERN_SEGMENT_H
 
 #include <machine/types.h>
-#include <machine/as.h>
+#include <kern/as.h>
 #include <kern/kobjhdr.h>
 #include <inc/segment.h>
 
