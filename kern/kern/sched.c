@@ -4,6 +4,7 @@
 #include <kern/lib.h>
 #include <kern/timer.h>
 #include <kern/container.h>
+#include <inc/error.h>
 
 static uint128_t global_tickets;
 static uint128_t global_pass;
@@ -41,12 +42,21 @@ schedule(void)
 	cur_thread = min_pass_th;
 
 	// Make sure the thread can know of its existence..
+	// If -E_RESTART is returned, the thread will go to sleep.
 	const struct Container *c;
 	int readable_parent = 0;
-	for (int i = 0; !readable_parent && i < 2; i++)
-	    if (container_find(&c, cur_thread->th_sched_parents[i], iflow_read) == 0 &&
-		container_has(c, cur_thread->th_ko.ko_id) == 0)
+	for (int i = 0; !readable_parent && i < 2; i++) {
+	    int r = container_find(&c, cur_thread->th_sched_parents[i], iflow_read);
+	    if (r == -E_RESTART) {
 		readable_parent = 1;
+	    } else {
+		if (r == 0) {
+		    r = container_has(c, cur_thread->th_ko.ko_id);
+		    if (r == 0 || r == -E_RESTART)
+			readable_parent = 1;
+		}
+	    }
+	}
 
 	if (!readable_parent) {
 	    cprintf("schedule(): thread %ld (%s) not self-aware, halting\n",
