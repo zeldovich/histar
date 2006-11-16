@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <kern/segment.h>
 #include <kern/container.h>
 #include <kern/kobj.h>
@@ -348,7 +347,7 @@ as_page_map_ro_cb(const void *arg, uint64_t *ptep, void *va)
 void
 as_swapin(struct Address_space *as)
 {
-    as->as_pgmap = &bootpml4;
+    as->as_pgmap = 0;
     pagetree_init(&as->as_segmap_pt);
 }
 
@@ -359,7 +358,7 @@ as_swapout(struct Address_space *as)
     // to free isn't the one being used by the CPU.
     as_switch(0);
 
-    if (as->as_pgmap && as->as_pgmap != &bootpml4) {
+    if (as->as_pgmap) {
 	assert(0 == page_map_traverse(as->as_pgmap, 0, (void **) ULIM,
 				      0, &as_page_invalidate_cb, as));
 	page_map_free(as->as_pgmap);
@@ -524,7 +523,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 int
 as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
 {
-    if (as->as_pgmap == &bootpml4) {
+    if (!as->as_pgmap) {
 	struct Address_space *mas = &kobject_dirty(&as->as_ko)->as;
 
 	int r = page_map_alloc(&mas->as_pgmap);
@@ -554,17 +553,12 @@ as_switch(const struct Address_space *as)
 	flush_tlb = 1;
     } else {
 	for (uint32_t i = 0; i < cur_as_invlpg_count; i++)
-	    invlpg(cur_as_invlpg_addrs[i]);
+	    pmap_tlb_invlpg(cur_as_invlpg_addrs[i]);
     }
 
     cur_as = as;
     cur_as_invlpg_count = 0;
-
-    struct Pagemap *pgmap = as ? as->as_pgmap : &bootpml4;
-    uint64_t new_cr3 = kva2pa(pgmap);
-    uint64_t cur_cr3 = rcr3();
-    if (cur_cr3 != new_cr3 || flush_tlb)
-	lcr3(new_cr3);
+    pmap_set_current(as ? as->as_pgmap : 0, flush_tlb);
 }
 
 void

@@ -18,12 +18,19 @@ extern struct page_stats {
 
 int  page_alloc(void **p)
     __attribute__ ((warn_unused_result));
-void page_free (void *p);
+void page_free(void *p);
 
 /*
  * Miscellaneous
  */
 extern char boot_cmdline[];
 void machine_reboot(void);
+
+/*
+ * Page map manipulation
+ */
+struct Pagemap;
+void pmap_tlb_invlpg(const void *va);
+void pmap_set_current(struct Pagemap *pm, int flush_tlb);
 
 #endif
