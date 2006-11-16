@@ -79,11 +79,15 @@ gate_call::gate_call(cobj_ref gate,
     new_ds.set(call_taint_, LB_LEVEL_STAR);
     new_ds.set(call_grant_, LB_LEVEL_STAR);
 
+    label new_dr(dr ? *dr : label(0));
+    new_dr.set(call_taint_, 3);
+    new_dr.set(call_grant_, 3);
+
     tgt_label_ = new label();
     scope_guard<void, label*> del_tl(delete_obj, tgt_label_);
     tgt_clear_ = new label();
     scope_guard<void, label*> del_tc(delete_obj, tgt_clear_);
-    gate_compute_labels(gate, cs, &new_ds, dr, tgt_label_, tgt_clear_);
+    gate_compute_labels(gate, cs, &new_ds, &new_dr, tgt_label_, tgt_clear_);
 
     // Create a container to hold data across the gate call
     label call_obj_label_;
