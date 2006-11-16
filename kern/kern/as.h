@@ -1,7 +1,6 @@
 #ifndef JOS_KERN_AS_H
 #define JOS_KERN_AS_H
 
-#include <machine/pmap.h>
 #include <machine/types.h>
 #include <kern/kobjhdr.h>
 #include <kern/pagetree.h>

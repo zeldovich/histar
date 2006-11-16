@@ -1,6 +1,8 @@
+#include <machine/pmap.h>
 #include <kern/label.h>
 #include <kern/kobj.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 

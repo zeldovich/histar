@@ -2,6 +2,7 @@
 #define JOS_KERN_PAGEINFO_H
 
 #include <machine/types.h>
+#include <machine/pmap.h>
 #include <kern/pagetree.h>
 
 struct page_info {

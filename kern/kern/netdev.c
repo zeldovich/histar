@@ -1,4 +1,5 @@
 #include <kern/netdev.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 
 struct net_device *the_net_device;

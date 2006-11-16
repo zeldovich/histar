@@ -4,6 +4,7 @@
 #include <kern/kobj.h>
 #include <kern/pageinfo.h>
 #include <kern/as.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
