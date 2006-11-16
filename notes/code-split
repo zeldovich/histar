@@ -1,0 +1,137 @@
+Device drivers
+
+    59 ./dev/pnicreg.h
+   250 ./dev/pnic.c
+     8 ./dev/pnic.h
+   380 ./dev/ne2kpci.c
+     8 ./dev/ne2kpci.h
+   527 ./dev/fxp.c
+     8 ./dev/fxp.h
+   645 ./dev/console.c
+    37 ./dev/console.h
+    48 ./kern/netdev.c
+    48 ./kern/netdev.h
+
+Persistent storage
+
+   324 ./btree/btree_manager.c
+    58 ./btree/cache.h
+   121 ./btree/btree_utils.h
+   135 ./btree/btree_traverse.c
+   598 ./btree/btree_delete.c
+   216 ./btree/cache.c
+   149 ./btree/btree_debug.c
+     9 ./btree/btree_debug.h
+    19 ./btree/btree_node.h
+   186 ./btree/btree_search.c
+   470 ./btree/btree_insert.c
+    90 ./btree/pbtree.c
+    22 ./btree/pbtree.h
+   103 ./btree/btree_node.c
+    85 ./btree/btree.h
+    43 ./btree/btree.c
+   118 ./btree/pbtree_frm.c
+    43 ./btree/btree_manager.h
+    14 ./btree/btree_traverse.h
+    32 ./btree/btree_impl.h
+    28 ./btree/pbtree_frm.h
+   199 ./kern/freelist.c
+    26 ./kern/freelist.h
+     3 ./kern/btree.h
+    26 ./kern/log.h
+   312 ./kern/log.c
+   211 ./kern/hashtable.c
+    39 ./kern/hashtable.h
+    64 ./kern/dstack.c
+    20 ./kern/dstack.h
+    13 ./kern/disklayout.h
+    39 ./dev/disk.h
+   109 ./dev/ide.h
+   461 ./dev/disk.c
+
+Hardware multiplexing and bootstrap
+
+    53 ./dev/apic.c
+    31 ./dev/picirq.h
+    95 ./dev/picirq.c
+   151 ./dev/apicreg.h
+    39 ./dev/kclock.h
+   174 ./dev/pci.c
+    23 ./dev/pci.h
+    80 ./dev/kclock.c
+     9 ./dev/apic.h
+    30 ./dev/pcirq.h
+    14 ./kern/intr.h
+    33 ./kern/intr.c
+    25 ./kern/timer.h
+    48 ./kern/timer.c
+    13 ./kern/sched.h
+    88 ./kern/sched.c
+    31 ./kern/pageinfo.h
+    29 ./arch/amd64/mtrr.c
+    12 ./arch/amd64/pchw.h
+   363 ./arch/amd64/pmap.c
+    59 ./arch/amd64/memlayout.h
+    81 ./arch/amd64/multiboot.h
+    28 ./arch/amd64/multiboot.S
+   121 ./arch/amd64/locore.S
+   207 ./arch/amd64/trap.c
+    17 ./arch/amd64/setjmp.h
+   187 ./arch/amd64/stackwrap.c
+    36 ./arch/amd64/stackwrap.h
+    43 ./arch/amd64/utrap.h
+   278 ./arch/amd64/mmu.h
+     6 ./arch/amd64/boot.h
+   107 ./arch/amd64/bootdata.c
+   156 ./arch/amd64/init.c
+    30 ./arch/amd64/trapcodes.h
+   108 ./arch/amd64/pmap.h
+    21 ./arch/amd64/trap.h
+
+Kernel object management
+
+    49 ./kern/handle.c
+    14 ./kern/handle.h
+   451 ./kern/label.c
+    58 ./kern/label.h
+    26 ./kern/kocache.c
+    18 ./kern/kocache.h
+   811 ./kern/pstate.c
+    47 ./kern/pstate.h
+   941 ./kern/kobj.c
+   148 ./kern/kobj.h
+    19 ./kern/ht.h
+    72 ./kern/kobjhdr.h
+   304 ./kern/pagetree.c
+    59 ./kern/pagetree.h
+
+Kernel object semantics
+
+    14 ./kern/embedbin.h
+    88 ./kern/segment.c
+    26 ./kern/segment.h
+   259 ./kern/container.c
+    58 ./kern/container.h
+   387 ./kern/uinit.c
+     8 ./kern/uinit.h
+   938 ./kern/syscall.c
+    11 ./kern/syscall.h
+    21 ./kern/gate.c
+    21 ./kern/gate.h
+    77 ./kern/sync.c
+    12 ./kern/sync.h
+   502 ./arch/amd64/thread.c
+    88 ./arch/amd64/thread.h
+    69 ./arch/amd64/as.h
+   642 ./arch/amd64/as.c
+
+Library/support code
+
+    58 ./kern/lib.h
+   309 ./kern/prof.c
+    18 ./kern/prof.h
+    35 ./kern/printf.c
+     7 ./arch/amd64/asm.h
+    83 ./arch/amd64/types.h
+   235 ./arch/amd64/atomic.h
+   333 ./arch/amd64/x86.h
