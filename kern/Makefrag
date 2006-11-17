@@ -118,9 +118,6 @@ $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
 		conv=notrunc 2>/dev/null
 	mv $(OBJDIR)/kern/bochs.img~ $(OBJDIR)/kern/bochs.img
 
-all: $(OBJDIR)/kern/bochs.img
-#all: $(OBJDIR)/kern/kernel
-
 tags: $(OBJDIR)/kern/TAGS
 
 KERN_HDRFILES = $(shell find kern/kern kern/arch/${K_ARCH} -name '*.h' -print) \
