@@ -1,7 +1,9 @@
 #ifndef JOS_MACHINE_TYPES_H
 #define JOS_MACHINE_TYPES_H
 
+#ifdef JOS_KERNEL
 #include <sys/types.h>
+#endif
 
 #ifndef NULL
 #define NULL (0)
