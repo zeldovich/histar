@@ -80,6 +80,7 @@ KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
 
 KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
+KERN_OBJFILES += $(patsubst %,$(OBJDIR)/kern/embed_%.o,$(subst /,_,$(KERN_BINFILES)))
 
 # How to build kernel object files
 $(OBJDIR)/kern/%.o: kern/arch/$(ARCH)/%.S
@@ -109,8 +110,7 @@ $(OBJDIR)/kern/%.o: lib/%.c
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
-	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) \
-		-b binary $(KERN_BINFILES)
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB)
 	$(OBJDUMP) -S $@ > $@.asm
 	$(NM) -n $@ > $@.sym
 
@@ -145,3 +145,8 @@ $(OBJDIR)/kern/embedbin.c: kern/Makefrag $(EMBEDBINS_DEPS)
 	echo 'struct embed_bin embed_bins[] = {' >>$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uint64_t)_binary_$${_}_size },\n"; }' >>$@
 	echo "{ 0, 0, 0 } };" >>$@
+
+$(OBJDIR)/kern/embed_obj_user_%.o: $(OBJDIR)/user/%
+	@mkdir -p $(@D)
+	$(OBJCOPY) -I binary -O $(OBJTYPE) -B i386 $< $@
+
