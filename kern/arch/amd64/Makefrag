@@ -36,3 +36,6 @@ KERN_DEV :=					\
 	kern/dev/pnic.c				\
 	kern/dev/apic.c
 
+$(OBJDIR)/kern/kernel:
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB)
+

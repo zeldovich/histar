@@ -106,9 +106,8 @@ $(OBJDIR)/kern/%.o: lib/%.c
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 
-# How to build the kernel itself
+# Dependencies for building the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES)
-	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB)
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
