@@ -171,7 +171,7 @@ $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 GNUmakefile: obj/machine
 obj/machine:
 	@mkdir -p $(@D)
-	ln -s $(TOP)/kern/arch/$(ARCH) $@
+	ln -s $(TOP)/kern/arch/$(K_ARCH) $@
 
 always:
 	@:
