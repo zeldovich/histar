@@ -1,0 +1,19 @@
+# -*-Makefile-*-
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/panic.c			\
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/lnxdisk.c			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/devstub.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/longjmp.S			\
+	lib/printfmt.c				\
+	lib/cksum.c				\
+	lib/bf60.c
+
+KERN_DEV :=
+
