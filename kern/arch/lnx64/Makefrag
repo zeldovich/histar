@@ -1,5 +1,7 @@
 # -*-Makefile-*-
 
+KERN_CFLAGS += -mno-red-zone
+
 KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/panic.c			\

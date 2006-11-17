@@ -98,8 +98,7 @@ all:
 	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo $(OBJDIR)/extra/%.o \
 	$(OBJDIR)/extra/%.debuginfo
 
-KFLAGS      := -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
-KERN_CFLAGS := $(KFLAGS) $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
+KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 USER_INC    := $(INCLUDES)
 USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
 USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
