@@ -24,6 +24,7 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 # using a different name, set GCCPREFIX explicitly by doing
 
 ARCH	:= amd64
+K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
 
