@@ -172,7 +172,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	error_check(segment_alloc(c_top, sizeof(uint64_t),
 				  &process_gid_seg, (void **) &child_pgid, 
 				  pgid_label.to_ulabel(), "process gid"));
-    } catch (error e) {
+    } catch (error &e) {
 	if (e.err() != -E_LABEL)
 	    throw e;
 	pgid_label.set(start_env->user_grant, 1);

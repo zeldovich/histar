@@ -173,7 +173,7 @@ debug_gate_poketext(struct debug_args *da)
 	*addr = da->word;
 	da->ret = 0;
     }
-    catch (basic_exception e) {
+    catch (basic_exception &e) {
 	cprintf("debug_gate_poketext: unable to write word: %s\n", e.what());
 	da->ret = -1;
     }
@@ -225,7 +225,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    cprintf("debug_gate_entry: unkown op %d", da->op);
 	    break;
 	}
-    } catch (basic_exception e) {
+    } catch (basic_exception &e) {
 	cprintf("debug_gate_entry: error on op %d: %s", da->op, e.what());
 	// XXX proper error message
 	da->ret = -1;
