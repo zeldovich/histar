@@ -1,6 +1,6 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
-#include <machine/trap.h>
+#include <machine/trapcodes.h>
 #include <machine/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>

@@ -1,4 +1,3 @@
-#include <machine/trap.h>
 #include <machine/x86.h>
 #include <machine/utrap.h>
 #include <dev/console.h>
