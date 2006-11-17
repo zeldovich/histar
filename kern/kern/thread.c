@@ -1,6 +1,5 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
-#include <machine/x86.h>
 #include <machine/trap.h>
 #include <machine/utrap.h>
 #include <kern/segment.h>
@@ -199,19 +198,7 @@ thread_run(const struct Thread *t)
 	panic("trying to run a non-runnable thread %p", t);
 
     thread_switch(t);
-    trap_user_iret_tsc = read_tsc();
-
-    if (t->th_fp_enabled) {
-	void *p;
-	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_shared_ro));
-	lcr0(rcr0() & ~CR0_TS);
-	fxrstor((const struct Fpregs *) p);
-    } else {
-	lcr0(rcr0() | CR0_TS);
-    }
-
-    sched_start(t);
-    trapframe_pop(&t->th_tf);
+    thread_arch_run(t);
 }
 
 int

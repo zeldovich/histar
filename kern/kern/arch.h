@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/memlayout.h>
+#include <kern/thread.h>
 
 /*
  * Page allocation
@@ -40,5 +41,11 @@ void pmap_set_current(struct Pagemap *pm, int flush_tlb);
  */
 int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     __attribute__ ((warn_unused_result));
+
+/*
+ * Threads and traps
+ */
+void thread_arch_run(const struct Thread *t)
+     __attribute__((__noreturn__));
 
 #endif

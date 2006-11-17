@@ -13,7 +13,7 @@
 #include <kern/prof.h>
 #include <inc/error.h>
 
-uint64_t trap_user_iret_tsc;
+static uint64_t trap_user_iret_tsc;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -173,6 +173,25 @@ trap_handler (struct Trapframe *tf)
     if (cur_thread == 0 || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();
     thread_run(cur_thread);
+}
+
+
+void
+thread_arch_run(const struct Thread *t)
+{
+    trap_user_iret_tsc = read_tsc();
+
+    if (t->th_fp_enabled) {
+	void *p;
+	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_shared_ro));
+	lcr0(rcr0() & ~CR0_TS);
+	fxrstor((const struct Fpregs *) p);
+    } else {
+	lcr0(rcr0() | CR0_TS);
+    }
+
+    sched_start(t);
+    trapframe_pop(&t->th_tf);
 }
 
 static void __attribute__((used))
