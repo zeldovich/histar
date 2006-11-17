@@ -10,14 +10,10 @@
 #include <kern/thread.h>
 
 void cons_init(void);
-void cons_putc (int c) ;
-int cons_getc (void) ;
-int cons_probe (void) ;
-void cons_cursor (int row, int col) ;
-
-void putchar (int c);
-int  getchar (void);
-int  iscons (int fd);
+void cons_putc(int c);
+int cons_getc(void);
+int cons_probe(void);
+void cons_cursor(int row, int col);
 
 extern struct Thread_list console_waiting;
 

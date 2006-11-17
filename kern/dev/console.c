@@ -618,28 +618,3 @@ cons_init (void)
   if (!serial_exists)
     cprintf ("Serial port does not exist!\n");
 }
-
-// `High'-level console I/O.  Used by readline and cprintf.
-
-void
-putchar (int c)
-{
-  cons_putc(c) ;
-}
-
-int
-getchar (void)
-{
-  int c;
-
-  while ((c = cons_getc ()) == 0)
-    /* do nothing */ ;
-  return c;
-}
-
-int
-iscons (int fdnum __attribute__((unused)))
-{
-  // used by readline
-  return 1;
-}

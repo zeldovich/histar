@@ -8,7 +8,7 @@
 static void
 putch (int ch, void *cnt)
 {
-  putchar (ch);
+  cons_putc(ch);
   (*((int *) cnt))++;
 }
 
