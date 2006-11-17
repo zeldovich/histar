@@ -109,10 +109,8 @@ $(OBJDIR)/kern/%.o: lib/%.c
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 
 # How to build the kernel itself
-$(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
+$(OBJDIR)/kern/kernel: $(KERN_OBJFILES)
 	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB)
-	$(OBJDUMP) -S $@ > $@.asm
-	$(NM) -n $@ > $@.sym
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
