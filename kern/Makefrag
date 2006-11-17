@@ -7,8 +7,6 @@
 
 OBJDIRS += kern
 
-KERN_LDFLAGS = -N -Ttext 0xffffffff801001e0 -e start -nostdlib
-
 ARCHDIR	:= kern/arch/$(K_ARCH)
 include $(ARCHDIR)/Makefrag
 
