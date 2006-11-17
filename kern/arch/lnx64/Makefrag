@@ -17,3 +17,5 @@ KERN_LIB :=					\
 
 KERN_DEV :=
 
+all: $(OBJDIR)/kern/kernel
+
