@@ -64,7 +64,6 @@ LIB_SRCFILES :=	\
 	lib/debug_gatesrv.cc \
 	lib/multisync.cc
 
-include lib/$(ARCH)/Makefrag
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag
 include lib/dis/Makefrag
