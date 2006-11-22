@@ -75,7 +75,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     fs_get_root(c_root, &start_env->fs_root);
 
     // mount binaries on /bin
-    int64_t fs_bin_id = container_find(c_root, kobj_container, "fs root");
+    int64_t fs_bin_id = container_find(c_root, kobj_container, "embed_bins");
     if (fs_bin_id < 0)
 	throw error(fs_bin_id, "cannot find /bin");
 

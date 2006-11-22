@@ -301,8 +301,10 @@ user_bootstrap(void)
     struct Container *fsc;
     assert_check(container_alloc(obj_label, &fsc));
     fsc->ct_ko.ko_quota_total = (1UL << 32);
+    fsc->ct_avoid_types = (1 << kobj_address_space) | (1 << kobj_netdev) |
+			  (1 << kobj_gate) | (1 << kobj_thread);
     assert_check(container_put(rc, &fsc->ct_ko));
-    strncpy(&fsc->ct_ko.ko_name[0], "fs root", KOBJ_NAME_LEN - 1);
+    strncpy(&fsc->ct_ko.ko_name[0], "embed_bins", KOBJ_NAME_LEN - 1);
 
     fs_init(fsc, obj_label);
 
