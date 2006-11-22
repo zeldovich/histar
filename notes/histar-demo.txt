@@ -31,6 +31,7 @@ clamscan/clamwrap
 
 authd: adduser, login, ...
     show /uauth, structure of user auth daemon?
+    show /uauth/username/auth_user/config/respect-root
 
 gcc
     tar -xf /bin/gcc.tar.gz
