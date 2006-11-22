@@ -153,27 +153,13 @@ label_copy(const struct Label *src, struct Label **dstp)
     if (r < 0)
 	return r;
 
-    r = kobject_set_nbytes(&dst->lb_ko, src->lb_ko.ko_nbytes);
-    if (r < 0)
-	return r;
-
     dst->lb_def_level = src->lb_def_level;
     memcpy(&dst->lb_ent[0], &src->lb_ent[0],
 	   NUM_LB_ENT_INLINE * sizeof(dst->lb_ent[0]));
 
-    for (uint32_t i = 0; i < kobject_npages(&src->lb_ko); i++) {
-	void *src_pg, *dst_pg;
-
-	r = kobject_get_page(&src->lb_ko, i, &src_pg, page_shared_ro);
-	if (r < 0)
-	    return r;
-
-	r = kobject_get_page(&dst->lb_ko, i, &dst_pg, page_excl_dirty);
-	if (r < 0)
-	    return r;
-
-	memcpy(dst_pg, src_pg, PGSIZE);
-    }
+    r = kobject_copy_pages(&src->lb_ko, &dst->lb_ko);
+    if (r < 0)
+	return r;
 
     *dstp = dst;
     return 0;
