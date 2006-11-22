@@ -53,6 +53,10 @@ signal_gate_init(void)
 	get_label_retry(&tl, thread_get_label);
 	get_label_retry(&tc, sys_self_get_clearance);
 
+	// require user privileges for sending a signal
+	if (start_env->user_grant)
+	    tc.set(start_env->user_grant, 0);
+
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "signal";

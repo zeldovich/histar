@@ -289,12 +289,16 @@ debug_gate_init(void)
 	return ;
     }
     debug_gate_inited = 1;
-    
+
     try {
 	label tl, tc;
 	// avoid calling functions that manipulate label cache
 	get_label_retry(&tl, thread_get_label);
 	get_label_retry(&tc, sys_self_get_clearance);
+
+	// require user privileges for debug
+	if (start_env->user_grant)
+	    tc.set(start_env->user_grant, 0);
 
 	struct cobj_ref cur_as;
 	error_check(sys_self_get_as(&cur_as));
