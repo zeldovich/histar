@@ -290,3 +290,11 @@ label::star_to(level_t l, int arg)
 	return arg;
     return l;
 }
+
+level_t
+label::nonstar_to(level_t l, int arg)
+{
+    if (l != LB_LEVEL_STAR)
+	return arg;
+    return l;
+}

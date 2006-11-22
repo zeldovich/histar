@@ -45,6 +45,7 @@ public:
     static level_t min(level_t a, level_t b, level_comparator cmp);
 
     static level_t star_to(level_t l, int arg);
+    static level_t nonstar_to(level_t l, int arg);
 
 private:
     void set_default(level_t l) { ul_.ul_default = l; }

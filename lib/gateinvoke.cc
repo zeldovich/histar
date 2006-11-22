@@ -42,6 +42,19 @@ gate_compute_labels(struct cobj_ref gate,
 	tgt_clear->copy_from(&tmp);
     }
 
+    // For any star levels in tgt_label & thread_label, grant a 3 in tgt_clear
+    {
+	thread_cur_label(&thread_label);
+	label common_star3;
+
+	tgt_label->merge(&thread_label, &common_star3, label::max, label::leq_starlo);
+	common_star3.transform(label::nonstar_to, 0);
+	common_star3.transform(label::star_to, 3);
+
+	tgt_clear->merge(&common_star3, &tmp, label::max, label::leq_starlo);
+	tgt_clear->copy_from(&tmp);
+    }
+
     if (label_debug) {
 	cprintf("gate_compute_labels: cs %s ds %s dr %s\n",
 		cs ? cs->to_string() : "null",
