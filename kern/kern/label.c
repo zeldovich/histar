@@ -80,7 +80,7 @@ static int
 label_get_slotp_read(const struct Label *l, uint32_t slotnum,
 		     const uint64_t **slotp)
 {
-    if (slotnum <= NUM_LB_ENT_INLINE) {
+    if (slotnum < NUM_LB_ENT_INLINE) {
 	*slotp = &l->lb_ent[slotnum];
 	return 0;
     }
@@ -99,7 +99,7 @@ label_get_slotp_read(const struct Label *l, uint32_t slotnum,
 static int
 label_get_slotp_write(struct Label *l, uint32_t slotnum, uint64_t **slotp)
 {
-    if (slotnum <= NUM_LB_ENT_INLINE) {
+    if (slotnum < NUM_LB_ENT_INLINE) {
 	*slotp = &l->lb_ent[slotnum];
 	return 0;
     }
@@ -168,7 +168,7 @@ label_copy(const struct Label *src, struct Label **dstp)
 int
 label_set(struct Label *l, uint64_t handle, level_t level)
 {
-    int slot_idx = -1;
+    int32_t slot_idx = -1;
 
     for (uint32_t i = 0; i < label_nslots(l); i++) {
 	const uint64_t *entp;
@@ -196,6 +196,7 @@ label_set(struct Label *l, uint64_t handle, level_t level)
     if (r < 0)
 	return r;
 
+    assert(*entp == 0 || LB_HANDLE(*entp) == handle);
     *entp = (level == l->lb_def_level) ? 0 : LB_CODE(handle, level);
     return 0;
 }
