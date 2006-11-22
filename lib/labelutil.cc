@@ -197,6 +197,14 @@ handle_alloc(void)
 	}
     }
 
+    if (cur_th_clear_id == thread_id()) {
+	try {
+	    cur_th_clear.set(h, 3);
+	} catch (...) {
+	    cur_th_clear_id = 0;
+	}
+    }
+
     if (handle_debug)
 	cprintf("[%ld] handle: allocated %ld\n", thread_id(), h);
 
