@@ -1,6 +1,5 @@
 Compatibility issues:
 
-* integrate authd, make "real" unix users
 * thread-safe uclibc
 * call destructors in longjmp (see how linux/glibc does it?)
 * MT-safe c++ support (lib/cppsup/bits/gthr.h)

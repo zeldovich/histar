@@ -180,6 +180,7 @@ main(int ac, char **av)
 
 	error_check(strtou64(av[1], 0, 10, &root_grant));
     	auth_dir_init();
+	process_report_exit(0);
     	thread_halt();
     } catch (std::exception &e) {
     	printf("auth_dir: %s\n", e.what());

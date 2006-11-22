@@ -8,6 +8,8 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <inc/gateparam.h>
+#include <inc/authd.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -16,6 +18,8 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
+#include <inc/gateclnt.hh>
+#include <inc/authclnt.hh>
 #include <inc/error.hh>
 #include <inc/spawn.hh>
 
@@ -124,6 +128,61 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 }
 
 static void
+init_auth(int cons, const char *shroot)
+{
+    struct child_process cp;
+    int64_t ec;
+
+    cp = spawn_fs(cons, "/bin/auth_log", 0, 0);
+    error_check(process_wait(&cp, &ec));
+
+    cp = spawn_fs(cons, "/bin/auth_dir", shroot, 0);
+    error_check(process_wait(&cp, &ec));
+
+    // spawn user-auth agent for root
+    fs_inode uauth_dir;
+    error_check(fs_namei("/uauth", &uauth_dir));
+
+    int64_t root_user_ct = sys_container_alloc(uauth_dir.obj.object, 0,
+					       "root", 0, CT_QUOTA_INF);
+    error_check(root_user_ct);
+
+    fs_inode user_authd;
+    error_check(fs_namei("/bin/auth_user", &user_authd));
+
+    char root_grant[32], root_taint[32];
+    sprintf(&root_grant[0], "%ld", start_env->user_grant);
+    sprintf(&root_taint[0], "%ld", start_env->user_taint);
+    const char *argv[] = { "auth_user", root_grant, root_grant, root_taint };
+
+    cp = spawn(root_user_ct, user_authd, cons, cons, cons,
+               sizeof(argv)/sizeof(argv[0]), argv, 0, 0,
+               0, 0, 0, 0, 0);
+    error_check(process_wait(&cp, &ec));
+
+    // register this user-agent with the auth directory
+    int64_t uauth_gate;
+    error_check(uauth_gate =
+	container_find(cp.container, kobj_gate, "user login gate"));
+
+    int64_t dir_ct, dir_gt;
+    error_check(dir_ct = container_find(start_env->root_container, kobj_container, "auth_dir"));
+    error_check(dir_gt = container_find(dir_ct, kobj_gate, "authdir"));
+
+    gate_call_data gcd;
+    auth_dir_req   *req   = (auth_dir_req *)   &gcd.param_buf[0];
+    auth_dir_reply *reply = (auth_dir_reply *) &gcd.param_buf[0];
+    req->op = auth_dir_add;
+    strcpy(&req->user[0], "root");
+    req->user_gate = COBJ(cp.container, uauth_gate);
+
+    label verify(3);
+    verify.set(start_env->user_grant, 0);
+    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
+    error_check(reply->err);
+}
+
+static void
 init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
 {
     label ds_none(3);
@@ -134,9 +193,13 @@ init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
     char h_root_buf[32];
     snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
 
+    try {
+	init_auth(cons, &h_root_buf[0]);
+    } catch (std::exception &e) {
+	printf("init_procs: cannot init auth system: %s\n", e.what());
+    }
+
     spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
-    spawn_fs(cons, "/bin/auth_log", &h_root_buf[0], &ds_none);
-    spawn_fs(cons, "/bin/auth_dir", &h_root_buf[0], &ds_none);
 
     spawn_fs(cons, "/bin/httpd", &h_root_buf[0], &ds_hroot);
     spawn_fs(cons, "/bin/httpd_worker", &h_root_buf[0], &ds_hroot);
@@ -211,6 +274,7 @@ try
 	throw error(h_root_t, "cannot allocate root taint handle");
     start_env->user_taint = h_root_t;
 
+    setup_env((uint64_t) start_env, 0);
     init_procs(cons, h_root, h_root_t);
     // does not return
     run_shell(cons, h_root, h_root_t);
