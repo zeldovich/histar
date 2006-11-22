@@ -1,0 +1,19 @@
+#ifndef JOS_INC_NETDCLNT_HH
+#define JOS_INC_NETDCLNT_HH
+
+#include <inc/gateclnt.hh>
+
+extern "C" {
+#include <inc/netd.h>
+}
+
+struct netd_fast_ipc_state {
+    struct netd_ipc_segment *fast_ipc;
+    gate_call *fast_ipc_gatecall;
+    cobj_ref fast_ipc_gate;
+    uint64_t fast_ipc_inited;
+    uint64_t fast_ipc_inited_shared_ct;
+    pthread_mutex_t fast_ipc_mu;
+};
+
+#endif

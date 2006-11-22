@@ -17,6 +17,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/pthread.hh>
+#include <inc/netdclnt.hh>
 
 static struct cobj_ref netd_gate;
 
@@ -62,93 +63,102 @@ netd_set_gate(struct cobj_ref g)
 }
 
 // Fast netd IPC support
-static struct netd_ipc_segment *fast_ipc;
-static gate_call *fast_ipc_gatecall;
-static cobj_ref fast_ipc_gate;
-static uint64_t fast_ipc_inited;
-static uint64_t fast_ipc_inited_shared_ct;
-static pthread_mutex_t fast_ipc_mu;
+enum { max_fipc = 256 };
+static struct netd_fast_ipc_state fipc[max_fipc];
 
 static void
 netd_fast_worker(void *arg)
 {
+    struct netd_fast_ipc_state *s = (struct netd_fast_ipc_state *) arg;
+
     try {
 	cobj_ref shared_seg;
-	error_check(segment_alloc(fast_ipc_gatecall->call_ct(),
-				  sizeof(*fast_ipc),
-				  &shared_seg, (void **) &fast_ipc,
+	error_check(segment_alloc(s->fast_ipc_gatecall->call_ct(),
+				  sizeof(*(s->fast_ipc)),
+				  &shared_seg, (void **) &s->fast_ipc,
 				  0, "netd fast IPC segment"));
 
 	gate_call_data gcd;
 	gcd.param_obj = shared_seg;
 
-	fast_ipc_inited_shared_ct = start_env->shared_container;
-	fast_ipc_inited = 2;
-	sys_sync_wakeup(&fast_ipc_inited);
+	s->fast_ipc_inited_shared_ct = start_env->shared_container;
+	s->fast_ipc_inited = 2;
+	sys_sync_wakeup(&s->fast_ipc_inited);
 
-	fast_ipc_gatecall->call(&gcd, 0);
+	s->fast_ipc_gatecall->call(&gcd, 0);
     } catch (std::exception &e) {
 	cprintf("netd_fast_worker: %s\n", e.what());
     }
 
     cprintf("netd_fast_worker: returning\n");
-    fast_ipc_inited = 0;
+    s->fast_ipc_inited = 0;
 }
 
 static void
-netd_fast_init(void)
+netd_fast_init(struct netd_fast_ipc_state *s)
 {
     for (;;) {
-	// Locking scope
+	if (s->fast_ipc_inited == 2 &&
+	    s->fast_ipc_inited_shared_ct != start_env->shared_container)
 	{
-	    scoped_pthread_lock l(&fast_ipc_mu);
-
-	    if (fast_ipc_inited == 2 &&
-		fast_ipc_inited_shared_ct != start_env->shared_container)
-	    {
-		if (fast_ipc) {
-		    segment_unmap(fast_ipc);
-		    fast_ipc = 0;
-		}
-
-		fast_ipc_inited = 0;
+	    if (s->fast_ipc) {
+		segment_unmap(s->fast_ipc);
+		s->fast_ipc = 0;
 	    }
 
-	    if (fast_ipc_inited == 0) {
-		int64_t fast_gate_id = container_find(netd_gate.container,
-						      kobj_gate, "netd-fast");
-		error_check(fast_gate_id);
-		fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
-		fast_ipc_gatecall = new gate_call(fast_ipc_gate, 0, 0, 0);
-
-		fast_ipc_inited = 1;
-		cobj_ref fast_ipc_th;
-		error_check(thread_create(start_env->proc_container,
-					  &netd_fast_worker, 0,
-					  &fast_ipc_th, "netd fast ipc"));
-	    }
-
-	    if (fast_ipc_inited == 2)
-		return;
+	    s->fast_ipc_inited = 0;
 	}
 
-	sys_sync_wait(&fast_ipc_inited, 1, ~0UL);
+	if (s->fast_ipc_inited == 0) {
+	    int64_t fast_gate_id = container_find(netd_gate.container,
+						  kobj_gate, "netd-fast");
+	    error_check(fast_gate_id);
+	    s->fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
+	    s->fast_ipc_gatecall = new gate_call(s->fast_ipc_gate, 0, 0, 0);
+
+	    s->fast_ipc_inited = 1;
+	    cobj_ref fast_ipc_th;
+	    error_check(thread_create(start_env->proc_container,
+				      &netd_fast_worker, s,
+				      &fast_ipc_th, "netd fast ipc"));
+	}
+
+	if (s->fast_ipc_inited == 2)
+	    return;
+
+	sys_sync_wait(&s->fast_ipc_inited, 1, ~0UL);
     }
+}
+
+static void
+netd_fast_call(struct netd_fast_ipc_state *s, struct netd_op_args *a)
+{
+    memcpy(&s->fast_ipc->args, a, a->size);
+    s->fast_ipc->sync = NETD_IPC_SYNC_REQUEST;
+    sys_sync_wakeup(&s->fast_ipc->sync);
+
+    while (s->fast_ipc->sync != NETD_IPC_SYNC_REPLY)
+	sys_sync_wait(&s->fast_ipc->sync, NETD_IPC_SYNC_REQUEST, ~0UL);
+    memcpy(a, &s->fast_ipc->args, s->fast_ipc->args.size);
+
 }
 
 static void
 netd_fast_call(struct netd_op_args *a)
 {
-    netd_fast_init();
+    for (;;) {
+	for (int i = 0; i < max_fipc; i++) {
+	    struct netd_fast_ipc_state *s = &fipc[i];
+	    scoped_pthread_trylock l(&s->fast_ipc_mu);
+	    if (l.acquired()) {
+		netd_fast_init(s);
+		netd_fast_call(s, a);
+		return;
+	    }
+	}
 
-    scoped_pthread_lock l(&fast_ipc_mu);
-    memcpy(&fast_ipc->args, a, a->size);
-    fast_ipc->sync = NETD_IPC_SYNC_REQUEST;
-    sys_sync_wakeup(&fast_ipc->sync);
-
-    while (fast_ipc->sync != NETD_IPC_SYNC_REPLY)
-	sys_sync_wait(&fast_ipc->sync, NETD_IPC_SYNC_REQUEST, ~0UL);
-    memcpy(a, &fast_ipc->args, fast_ipc->args.size);
+	cprintf("netd_fast_call: out of fipc slots?!\n");
+    }
 }
 
 int
