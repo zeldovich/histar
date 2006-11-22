@@ -60,4 +60,22 @@ retry:
 	printf("label for <%ld.%ld>: %s\n",
 	       o.container, o.object, label_to_string(l));
     }
+
+    int type = sys_obj_get_type(o);
+    if (type >= 0 && type == kobj_gate) {
+retry2:
+	r = sys_gate_clearance(o, l);
+	if (r == -E_NO_SPACE) {
+	    r = label_grow(l);
+	    if (r == 0)
+		goto retry2;
+	}
+
+	if (r < 0) {
+	    printf("cannot get clearance: %s\n", e2s(r));
+	} else {
+	    printf("clearance for <%ld.%ld>: %s\n",
+		   o.container, o.object, label_to_string(l));
+	}
+    }
 }
