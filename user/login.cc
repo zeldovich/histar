@@ -49,6 +49,8 @@ login(char *u, char *p)
     sprintf(&env_user[0], "USER=%s", u);
     sprintf(&env_home[0], "HOME=%s", user_home);
 
+    chdir(user_home);
+
     const char *argv[] = { user_shell };
     const char *envv[] = { "TERM=vt100", "TERMINFO=/x/share/terminfo",
 			   &env_user[0], &env_home[0] };
