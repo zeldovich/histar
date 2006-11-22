@@ -237,8 +237,6 @@ static void
 auth_user_init(void)
 {
     error_check(sys_self_get_as(&base_as_ref));
-    error_check(user_grant = handle_alloc());
-    error_check(user_taint = handle_alloc());
 
     int64_t config_ct = 0;
     error_check(config_ct = sys_container_alloc(start_env->shared_container,
@@ -296,12 +294,21 @@ int
 main(int ac, char **av)
 {
     try {
-	if (ac != 2) {
-	    cprintf("Usage: %s root-grant-handle\n", av[0]);
+	if (ac != 2 && ac != 4) {
+	    cprintf("Usage: %s root-grant-handle [user-grant user-taint]\n", av[0]);
 	    return -1;
 	}
 
 	error_check(strtou64(av[1], 0, 10, &root_grant));
+
+	if (ac == 4) {
+	    error_check(strtou64(av[2], 0, 10, (uint64_t *) &user_grant));
+	    error_check(strtou64(av[3], 0, 10, (uint64_t *) &user_taint));
+	} else {
+	    error_check(user_grant = handle_alloc());
+	    error_check(user_taint = handle_alloc());
+	}
+
     	auth_user_init();
 	process_report_exit(0);
 	sys_self_halt();
