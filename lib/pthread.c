@@ -22,6 +22,16 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 }
 
 int
+pthread_mutex_trylock(pthread_mutex_t *mu)
+{
+    uint64_t cur = atomic_compare_exchange64(mu, 0, 1);
+    if (cur == 0)
+	return 0;
+
+    return -1;
+}
+
+int
 pthread_mutex_unlock(pthread_mutex_t *mu)
 {
     uint64_t was = atomic_compare_exchange64(mu, 1, 0);
