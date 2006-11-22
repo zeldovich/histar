@@ -38,4 +38,8 @@ and will be halted if none of the containers are readable by it.
 
 ***
 
+Typical off-by-1 bug in kern/kern/label.c (label_get_slotp_read/write, which
+was comparing (slotnum <= NUM_LB_ENT_INLINE) rather than (<).  Probably can
+be exploited: label_max() uses label_set(), so just need to set things up so
+that the important taint label component is lost at the right time..
 
