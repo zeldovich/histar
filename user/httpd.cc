@@ -87,11 +87,6 @@ http_client(void *arg)
 	    }
 
 	    if (auth_ok) {
-		label cur_clear;
-		thread_cur_clearance(&cur_clear);
-		cur_clear.set(ut, 3);
-		thread_set_clearance(&cur_clear);
-
 		int64_t worker_ct, worker_gt;
 		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
 		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
