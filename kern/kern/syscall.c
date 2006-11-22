@@ -264,9 +264,6 @@ sys_handle_create(void)
     check(label_set(c, handle, 3));
 
     // Prepare for changing the thread's clearance
-    const struct Label *old_clear;
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance, &old_clear));
-
     struct kobject_quota_resv qr;
     kobject_qres_init(&qr, &kobject_dirty(&cur_thread->th_ko)->hdr);
     check(kobject_qres_reserve(&qr, &c->lb_ko));
@@ -274,7 +271,7 @@ sys_handle_create(void)
     // Change label, and changing clearance is now guaranteed to succeed
     check(thread_change_label(cur_thread, l));
     kobject_set_label_prepared(&kobject_dirty(&cur_thread->th_ko)->hdr,
-			       kolabel_clearance, old_clear, c, &qr);
+			       kolabel_clearance, cur_th_clearance, c, &qr);
 
     return handle;
 }
