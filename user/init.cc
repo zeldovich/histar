@@ -68,10 +68,8 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     start_env->user_grant = h_root;
     start_env->user_taint = 0;
 
-    label mtab_label(1);
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
-			      &start_env->fs_mtab_seg, 0,
-			      mtab_label.to_ulabel(), "mount table"));
+			      &start_env->fs_mtab_seg, 0, 0, "mount table"));
 
     // set the filesystem root to be the same as the container root
     fs_get_root(c_root, &start_env->fs_root);
