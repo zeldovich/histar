@@ -20,6 +20,7 @@ extern "C" {
 #include <inc/spawn.hh>
 
 static int init_debug = 0;
+static const char *env[] = { "USER=root", "HOME=/" };
 
 static struct child_process
 spawn_fs(int fd, const char *pn, const char *arg, label *ds)
@@ -35,7 +36,7 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	cp = spawn(start_env->root_container, ino,
 	           fd, fd, fd,
 	           arg ? 2 : 1, &argv[0],
-		   0, 0,
+		   sizeof(env)/sizeof(env[0]), &env[0],
 	           0, ds, 0, 0, 0);
 
 	if (init_debug)
@@ -119,7 +120,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
 
     // start out in the root directory
-    start_env->fs_cwd = start_env->fs_root;    
+    start_env->fs_cwd = start_env->fs_root;
 }
 
 static void
