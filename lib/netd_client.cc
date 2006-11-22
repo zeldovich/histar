@@ -64,6 +64,8 @@ netd_set_gate(struct cobj_ref g)
 
 // Fast netd IPC support
 enum { max_fipc = 256 };
+static pthread_mutex_t fipc_handle_mu;
+static int64_t fipc_taint, fipc_grant;
 static struct netd_fast_ipc_state fipc[max_fipc];
 
 static void
@@ -72,11 +74,21 @@ netd_fast_worker(void *arg)
     struct netd_fast_ipc_state *s = (struct netd_fast_ipc_state *) arg;
 
     try {
+	label shared_l(1);
+	shared_l.set(fipc_grant, 0);
+	shared_l.set(fipc_taint, 3);
+
 	cobj_ref shared_seg;
 	error_check(segment_alloc(s->fast_ipc_gatecall->call_ct(),
 				  sizeof(*(s->fast_ipc)),
-				  &shared_seg, (void **) &s->fast_ipc,
-				  0, "netd fast IPC segment"));
+				  &shared_seg, 0,
+				  shared_l.to_ulabel(), "netd fast IPC segment"));
+
+	error_check(sys_obj_set_fixedquota(shared_seg));
+	error_check(sys_segment_addref(shared_seg, start_env->proc_container));
+	error_check(segment_map(COBJ(start_env->proc_container, shared_seg.object),
+				0, SEGMAP_READ | SEGMAP_WRITE,
+				(void **) &s->fast_ipc, 0, 0));
 
 	gate_call_data gcd;
 	gcd.param_obj = shared_seg;
@@ -95,6 +107,18 @@ netd_fast_worker(void *arg)
 }
 
 static void
+netd_fast_init_global(void)
+{
+    if (fipc_taint <= 0 || fipc_grant <= 0) {
+	scoped_pthread_lock l(&fipc_handle_mu);
+	if (fipc_taint <= 0)
+	    error_check(fipc_taint = handle_alloc());
+	if (fipc_grant <= 0)
+	    error_check(fipc_grant = handle_alloc());
+    }
+}
+
+static void
 netd_fast_init(struct netd_fast_ipc_state *s)
 {
     for (;;) {
@@ -110,11 +134,18 @@ netd_fast_init(struct netd_fast_ipc_state *s)
 	}
 
 	if (s->fast_ipc_inited == 0) {
+	    label ds(3);
+	    ds.set(fipc_grant, LB_LEVEL_STAR);
+	    ds.set(fipc_taint, LB_LEVEL_STAR);
+
+	    label dr(0);
+	    dr.set(fipc_taint, 3);
+
 	    int64_t fast_gate_id = container_find(netd_gate.container,
 						  kobj_gate, "netd-fast");
 	    error_check(fast_gate_id);
 	    s->fast_ipc_gate = COBJ(netd_gate.container, fast_gate_id);
-	    s->fast_ipc_gatecall = new gate_call(s->fast_ipc_gate, 0, 0, 0);
+	    s->fast_ipc_gatecall = new gate_call(s->fast_ipc_gate, 0, &ds, &dr);
 
 	    s->fast_ipc_inited = 1;
 	    cobj_ref fast_ipc_th;
@@ -146,6 +177,8 @@ netd_fast_call(struct netd_fast_ipc_state *s, struct netd_op_args *a)
 static void
 netd_fast_call(struct netd_op_args *a)
 {
+    netd_fast_init_global();
+
     for (;;) {
 	for (int i = 0; i < max_fipc; i++) {
 	    struct netd_fast_ipc_state *s = &fipc[i];
