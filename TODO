@@ -47,7 +47,6 @@ Cleanup:
 * (?) expose kobj_label's at the syscall API to get label sharing
 * lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c;
   need a callback for when threads enter/leave an AS.
-* sys_reboot()
 * split the pstate sync timestamp counter from the handle counter
 * netd_select gate asks for a non-tls stack but doesn't addref the thread,
   which means its non-tls stack will not get cleaned up if the thread dies
