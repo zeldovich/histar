@@ -740,14 +740,15 @@ segment_alloc(uint64_t container, uint64_t bytes,
     if (id < 0)
 	return id;
 
-    *cobj = COBJ(container, id);
+    if (cobj)
+	*cobj = COBJ(container, id);
 
     if (va_p) {
 	uint64_t mapped_bytes = bytes;
-	int r = segment_map(*cobj, 0, SEGMAP_READ | SEGMAP_WRITE,
+	int r = segment_map(COBJ(container, id), 0, SEGMAP_READ | SEGMAP_WRITE,
 			    va_p, &mapped_bytes, 0);
 	if (r < 0) {
-	    sys_obj_unref(*cobj);
+	    sys_obj_unref(COBJ(container, id));
 	    return r;
 	}
     }

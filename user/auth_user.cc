@@ -240,22 +240,39 @@ auth_user_init(void)
     error_check(user_grant = handle_alloc());
     error_check(user_taint = handle_alloc());
 
-    label user_write_protect(1);
-    user_write_protect.set(user_grant, 0);
     int64_t config_ct = 0;
     error_check(config_ct = sys_container_alloc(start_env->shared_container,
-						user_write_protect.to_ulabel(),
-						"config", 0, 65536));
+						0, "config", 0, 65536));
+
+    // file which controls whether to respect root authority (val: "0" or "1")
+    label user_write_protect(1);
+    user_write_protect.set(user_grant, 0);
 
     cobj_ref respect_root_seg;
     error_check(segment_alloc(config_ct, 2, &respect_root_seg,
-			      (void **) &respect_root, 0, "respect-root"));
+			      (void **) &respect_root,
+			      user_write_protect.to_ulabel(),
+			      "respect-root"));
     respect_root[0] = '1';
     respect_root[1] = '\n';
     error_check(segment_unmap(respect_root));
     error_check(segment_map(respect_root_seg, 0, SEGMAP_READ,
 			    (void **) &respect_root, 0, 0));
 
+    // files which export the user's grant and taint categories
+    char *s = 0;
+    error_check(segment_alloc(config_ct, 128, 0, (void **) &s,
+			      0, "user-grant"));
+    snprintf(s, 128, "%ld\n", user_grant);
+    error_check(segment_unmap(s));
+
+    s = 0;
+    error_check(segment_alloc(config_ct, 128, 0, (void **) &s,
+			      0, "user-taint"));
+    snprintf(s, 128, "%ld\n", user_taint);
+    error_check(segment_unmap(s));
+
+    // password segment
     label pw_ctm(1);
     pw_ctm.set(user_grant, 0);
     pw_ctm.set(user_taint, 3);
