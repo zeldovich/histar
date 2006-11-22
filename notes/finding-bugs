@@ -1,0 +1,41 @@
+Some interesting bugs that existed or might have been introduced,
+to keep in mind when designing methods to find such bugs..
+
+***
+
+Suppose sys_sync_wakeup took another argument to indicate how many
+waiters should be woken up.  This would be useful to implement
+pthread_cond_signal() vs.  pthread_cond_broadcast().
+
+However, a tainted thread could leak bits by waiting, or not waiting,
+on some untainted segment.  Then, another untainted thread will observe
+this bit by observing whether it was or was not woken up.
+
+Solution: we never had this feature, but I was just thinking of adding
+it and realized it would be a potentially tricky covert channel.  The
+"correct" way of doing it might be for waiters to explicitly specify if
+they want to only read the segment, or both read+write it.  Then, when
+waking up, the caller can explicitly say how many read+write waiters to
+wake up, and whether to wake up any (and all) read-only waiters.
+
+***
+
+Moving quota into a child container used to only do an iflow_write check
+on the child container.  This is insufficient because the caller learns
+information about the child container's FIXED_QUOTA flag.
+
+Solution: iflow_rw checks for child container.
+
+***
+
+Thread scheduling had a covert channel ("pre-authorization"), whereby an
+untainted thread, cleansed by some declassification agent, could be kept
+alive by a reference from a tainted container, and the tainted compartment
+could leak a bit by deallocating or not deallocating the thread.
+
+Solution: a thread must explicitly declare the container(s) referencing it,
+and will be halted if none of the containers are readable by it.
+
+***
+
+
