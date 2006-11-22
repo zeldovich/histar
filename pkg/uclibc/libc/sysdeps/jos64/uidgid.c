@@ -1,11 +1,13 @@
+#include <errno.h>
 #include <unistd.h>
 #include <grp.h>
 #include <sys/types.h>
+#include <inc/lib.h>
 
 uid_t
 getuid()
 {
-    return 0;
+    return start_env->ruid;
 }
 
 gid_t
@@ -17,7 +19,7 @@ getgid()
 uid_t
 geteuid()
 {
-    return 0;
+    return start_env->euid;
 }
 
 gid_t
@@ -29,12 +31,17 @@ getegid()
 int
 setuid(uid_t uid)
 {
+    if (start_env->euid == 0)
+	start_env->ruid = uid;
+
+    start_env->euid = uid;
     return 0;
 }
 
 int
 seteuid(uid_t uid)
 {
+    start_env->euid = uid;
     return 0;
 }
 
@@ -53,6 +60,8 @@ setegid(gid_t gid)
 int
 setreuid(uid_t ruid, uid_t euid)
 {
+    start_env->ruid = ruid;
+    start_env->euid = euid;
     return 0;
 }
 
