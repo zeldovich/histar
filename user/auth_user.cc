@@ -23,6 +23,7 @@ static uint64_t root_grant;
 static int64_t user_grant, user_taint;
 static cobj_ref user_password_seg;
 static cobj_ref base_as_ref;
+static char *respect_root;
 
 struct user_password {
     char pwhash[20];
@@ -95,7 +96,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 
 	    label v_root(3);
 	    v_root.set(root_grant, 0);
-	    if (v.compare(&v_root, label::leq_starlo) < 0)
+	    if (respect_root[0] != '1' || v.compare(&v_root, label::leq_starlo) < 0)
 		throw error(-E_INVAL, "bad password");
 	}
 
@@ -238,6 +239,22 @@ auth_user_init(void)
     error_check(sys_self_get_as(&base_as_ref));
     error_check(user_grant = handle_alloc());
     error_check(user_taint = handle_alloc());
+
+    label user_write_protect(1);
+    user_write_protect.set(user_grant, 0);
+    int64_t config_ct = 0;
+    error_check(config_ct = sys_container_alloc(start_env->shared_container,
+						user_write_protect.to_ulabel(),
+						"config", 0, 65536));
+
+    cobj_ref respect_root_seg;
+    error_check(segment_alloc(config_ct, 2, &respect_root_seg,
+			      (void **) &respect_root, 0, "respect-root"));
+    respect_root[0] = '1';
+    respect_root[1] = '\n';
+    error_check(segment_unmap(respect_root));
+    error_check(segment_map(respect_root_seg, 0, SEGMAP_READ,
+			    (void **) &respect_root, 0, 0));
 
     label pw_ctm(1);
     pw_ctm.set(user_grant, 0);
