@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/authd.h>
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
+#include <inc/string.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -86,10 +87,12 @@ main(int ac, char **av)
 	gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
 	error_check(reply->err);
 
-/*
+	uint64_t user_grant, user_taint;
+	auth_login(uname, "", &user_grant, &user_taint);
+
 	label l(1);
-	l.set(r.user_grant, 0);
-	l.set(r.user_taint, 3);
+	l.set(user_grant, 0);
+	l.set(user_taint, 3);
 
 	fs_inode home;
 	error_check(fs_namei("/home", &home));
@@ -97,10 +100,14 @@ main(int ac, char **av)
 	fs_inode uhome;
 	error_check(fs_mkdir(home, uname, &uhome, l.to_ulabel()));
 
+	uid_t new_uid = 1000;
+	while (getpwuid(new_uid))
+	    new_uid++;
+
 	struct passwd pwd;
 	pwd.pw_name = (char *) uname;
 	pwd.pw_passwd = (char *) "*";
-	pwd.pw_uid = 0;
+	pwd.pw_uid = new_uid;
 	pwd.pw_gid = 0;
 	pwd.pw_gecos = (char *) "";
 	pwd.pw_shell = (char *) "/bin/ksh";
@@ -112,7 +119,6 @@ main(int ac, char **av)
 	FILE *f = fopen("/etc/passwd", "a");
 	putpwent(&pwd, f);
 	fclose(f);
-*/
     } catch (std::exception &e) {
 	printf("%s\n", e.what());
     }
