@@ -35,6 +35,8 @@ Security:
   longjmp().
 * init spawns everything with root privilege because spawn grants LB_LEVEL_STAR
   for start_env->user_grant/user_taint
+* force checkpoint every N handle allocations, and roll forward handle counter by
+  N after restore, for some large value N.
 
 Cleanup:
 
