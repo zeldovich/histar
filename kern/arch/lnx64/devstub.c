@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -67,10 +69,15 @@ cons_putc(int c)
 int
 cons_getc(void)
 {
-    char c;
-    int r = recv(0, &c, 1, MSG_DONTWAIT);
-    if (r < 0)
-	return 0;
+    int flags = fcntl(0, F_GETFL);
+    fcntl(0, F_SETFL, flags | O_NONBLOCK);
+
+    char c = 0;
+    int r = read(0, &c, 1);
+    if (r < 0 && errno != EAGAIN)
+	perror("cons_getc/read");
+
+    fcntl(0, F_SETFL, flags);
     return c;
 }
 
