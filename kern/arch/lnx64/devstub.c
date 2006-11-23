@@ -1,3 +1,5 @@
+#define _GNU_SOURCE 1
+
 #include <dev/disk.h>
 #include <dev/kclock.h>
 #include <dev/picirq.h>
@@ -7,12 +9,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 int kclock_hz = 100;
 
 void
-kclock_delay(int usec __attribute__((unused)))
+kclock_delay(int usec)
 {
+    struct timespec d;
+    d.tv_sec = usec / 1000000;
+    d.tv_nsec = (usec % 1000000) * 1000;
+    nanosleep(&d, 0);
 }
 
 uint64_t
@@ -58,7 +67,11 @@ cons_putc(int c)
 int
 cons_getc(void)
 {
-    return getc(stdin);
+    char c;
+    int r = recv(0, &c, 1, MSG_DONTWAIT);
+    if (r < 0)
+	return 0;
+    return c;
 }
 
 int

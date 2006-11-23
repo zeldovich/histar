@@ -32,7 +32,7 @@ lnxdisk_init(const char *disk_pn)
 
 int
 disk_io(disk_op op __attribute__((unused)),
-	struct iovec *iov_buf __attribute__((unused)),
+	struct kiovec *iov_buf __attribute__((unused)),
 	int iov_cnt __attribute__((unused)),
         uint64_t offset __attribute__((unused)),
 	disk_callback cb __attribute__((unused)),
