@@ -20,7 +20,7 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
 
-static int label_debug = 1;
+static int label_debug = 0;
 
 struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
