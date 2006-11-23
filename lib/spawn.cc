@@ -20,7 +20,7 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
 
-static int label_debug = 0;
+static int label_debug = 1;
 
 struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
@@ -28,9 +28,12 @@ spawn(uint64_t container, struct fs_inode elf_ino,
       int ac, const char **av,
       int envc, const char **envv,
       label *cs, label *ds, label *cr, label *dr,
-      label *contaminate_object)
+      label *contaminate_object,
+      int spawn_flags)
 {
     label tmp, out;
+    bool autogrant = !(spawn_flags & SPAWN_NO_AUTOGRANT);
+    bool uinit_style = (spawn_flags & SPAWN_UINIT_STYLE);
 
     // Compute receive label for new process
     label thread_clear(2);
@@ -87,19 +90,28 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     scope_guard2<void, uint64_t, uint64_t> ptaint_cleanup(thread_drop_starpair, process_taint, process_grant);
     pgrant_cleanup.dismiss();
 
-    thread_label.set(process_grant, LB_LEVEL_STAR);
-    thread_label.set(process_taint, LB_LEVEL_STAR);
-    thread_clear.set(process_grant, 3);
-    thread_clear.set(process_taint, 3);
-    if (start_env->user_grant && start_env->user_taint) {
+    if (!uinit_style) {
+	thread_label.set(process_grant, LB_LEVEL_STAR);
+	thread_label.set(process_taint, LB_LEVEL_STAR);
+	thread_clear.set(process_grant, 3);
+	thread_clear.set(process_taint, 3);
+    }
+
+    if (autogrant && start_env->user_grant && start_env->user_taint) {
 	thread_label.set(start_env->user_grant, LB_LEVEL_STAR);
 	thread_label.set(start_env->user_taint, LB_LEVEL_STAR);
 	thread_clear.set(start_env->user_grant, 3);
 	thread_clear.set(start_env->user_taint, 3);
     }
-    proc_object_label.set(process_grant, 0);
-    proc_object_label.set(process_taint, 3);
-    integrity_object_label.set(process_grant, 0);
+
+    if (!uinit_style) {
+	proc_object_label.set(process_grant, 0);
+	proc_object_label.set(process_taint, 3);
+	integrity_object_label.set(process_grant, 0);
+    } else {
+	proc_object_label.set(start_env->user_grant, 0);
+	integrity_object_label.set(start_env->user_grant, 0);
+    }
 
     // Now spawn with computed labels
     struct cobj_ref elf;
@@ -126,7 +138,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     error_check(elf_load(c_proc, elf, &e, 0));
 
     int fdnum[3] = { fd0, fd1, fd2 };
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; !uinit_style && i < 3; i++) {
 	struct Fd *fd;
 	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
 	error_check(dup2_as(fdnum[i], i, e.te_as, c_top));
@@ -230,7 +242,12 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	       thread_label.to_string(), thread_clear.to_string());
     }
 
-    e.te_arg[0] = (uint64_t) spawn_env_va;
+    if (uinit_style) {
+	e.te_arg[0] = container;
+	e.te_arg[1] = start_env->user_grant;
+    } else {
+	e.te_arg[0] = (uint64_t) spawn_env_va;
+    }
     error_check(sys_thread_start(tobj, &e,
 				 thread_label.to_ulabel(),
 				 thread_clear.to_ulabel()));

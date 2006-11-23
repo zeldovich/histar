@@ -7,6 +7,9 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 
+#define SPAWN_NO_AUTOGRANT	0x01
+#define SPAWN_UINIT_STYLE	0x02
+
 struct child_process
     spawn(uint64_t container, struct fs_inode elf,
 	  int fd0, int fd1, int fd2,
@@ -16,7 +19,8 @@ struct child_process
 	  label *ds,	// null is effectively { 3 }
 	  label *cr,	// null is effectively { 3 }
 	  label *dr,	// null is effectively { 0 }
-	  label *co	// null is effectively { 0 } -- contaminate objects
+	  label *co,	// null is effectively { 0 } -- contaminate objects
+	  int spawn_flags = 0
 	);
 
 #endif
