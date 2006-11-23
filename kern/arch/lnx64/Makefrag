@@ -3,7 +3,6 @@
 KERN_CFLAGS += -mno-red-zone
 
 KERN_ARCH :=					\
-	$(ARCHDIR)/driver.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/panic.c			\
 	$(ARCHDIR)/page.c			\

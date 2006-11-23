@@ -16,7 +16,8 @@ $(OBJDIR)/kern/__k2_%: $(OBJDIR)/kern/% $(OBJDIR)/kern/redefine_k2.syms
 
 KERN_K1_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k1_%,$(KERN_OBJFILES))
 KERN_K2_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k2_%,$(KERN_OBJFILES))
+KERN_LINK_FILES := $(KERN_K1_OBJFILES) $(KERN_K2_OBJFILES) $(OBJDIR)/kern/driver.o
 
-$(OBJDIR)/kern/kernel: $(KERN_K1_OBJFILES)
-	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_K1_OBJFILES)
+$(OBJDIR)/kern/kernel: $(KERN_LINK_FILES)
+	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_LINK_FILES)
 
