@@ -370,6 +370,11 @@ kill(pid_t pid, int sig) __THROW
 int
 kill_siginfo(pid_t pid, siginfo_t *si)
 {
+    if (pid == 0) {
+	set_enosys();
+	return -1;
+    }
+
     pid_t self = getpid();
 
     if (pid == self) {

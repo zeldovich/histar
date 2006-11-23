@@ -83,9 +83,9 @@ __getpgid(pid_t pid) __THROW
 	pid = getpid();
 
     int64_t seg_id = container_find(pid, kobj_segment, "process gid");
-    if (seg_id == -E_NOT_FOUND) 
+    if (seg_id == -E_NOT_FOUND) {
 	return pid;
-    else if (seg_id < 0) {
+    } else if (seg_id < 0) {
 	if (proc_debug)
 	    cprintf("__getpgid: cannot find process gid segment in %ld: %s\n",
 		    pid, e2s(seg_id));
