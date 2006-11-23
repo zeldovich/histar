@@ -142,3 +142,4 @@ $(OBJDIR)/kern/embed_obj_user_%.o: $(OBJDIR)/user/%
 	@mkdir -p $(@D)
 	$(OBJCOPY) -I binary -O $(OBJTYPE) -B i386 $< $@
 
+-include $(ARCHDIR)/Makefrag.final

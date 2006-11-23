@@ -20,8 +20,8 @@ KERN_LIB :=					\
 
 KERN_DEV :=
 
-$(OBJDIR)/kern/kernel:
-	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES)
+#$(OBJDIR)/kern/kernel:
+#	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES)
 
 all: $(OBJDIR)/kern/kernel
 
