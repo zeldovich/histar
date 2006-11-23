@@ -32,9 +32,9 @@ void *physmem_base;
 int physmem_file_fd;
 
 void
-lnxpage_init(void)
+lnxpage_init(uint64_t membytes)
 {
-    global_npages = (64 * 1024 * 1024) / PGSIZE;
+    global_npages = membytes / PGSIZE;
 
     char pn[256];
     sprintf(&pn[0], "/tmp/lnxpage.%d", getpid());
