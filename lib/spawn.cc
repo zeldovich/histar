@@ -227,9 +227,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     }
     spawn_env->envc = envc;
 
-    int64_t thread = sys_thread_create(c_proc, &name[0]);
+    uint64_t thread_ct = uinit_style ? c_top : c_proc;
+    int64_t thread = sys_thread_create(thread_ct, &name[0]);
     error_check(thread);
-    struct cobj_ref tobj = COBJ(c_proc, thread);
+    struct cobj_ref tobj = COBJ(thread_ct, thread);
 
     if (label_debug) {
 	thread_cur_label(&tmp);
