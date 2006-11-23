@@ -8,7 +8,7 @@
 
 struct ide_op {
     disk_op op;
-    struct iovec *iov_buf;
+    struct kiovec *iov_buf;
     int iov_cnt;
     uint64_t byte_offset;
     disk_callback cb;
@@ -154,7 +154,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 
 static uint32_t
 ide_dma_init(struct ide_channel *idec, disk_op op,
-	     struct iovec *iov_buf, int iov_cnt)
+	     struct kiovec *iov_buf, int iov_cnt)
 {
     int prd_slot = 0;
     int iov_slot = 0;
@@ -438,7 +438,7 @@ disk_init(struct pci_func *pcif)
 }
 
 int
-disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
+disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	uint64_t byte_offset, disk_callback cb, void *cbarg)
 {
     struct ide_channel *idec = &the_ide_channel;

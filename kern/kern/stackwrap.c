@@ -99,7 +99,7 @@ disk_io_cb(disk_io_status status, void *arg)
 }
 
 disk_io_status
-stackwrap_disk_iov(disk_op op, struct iovec *iov_buf, int iov_cnt, uint64_t offset)
+stackwrap_disk_iov(disk_op op, struct kiovec *iov_buf, int iov_cnt, uint64_t offset)
 {
     struct stackwrap_state *ss = stackwrap_cur();
     struct disk_io_request ds = { .ss = ss };
@@ -136,7 +136,7 @@ stackwrap_disk_iov(disk_op op, struct iovec *iov_buf, int iov_cnt, uint64_t offs
 disk_io_status
 stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
 {
-    struct iovec iov = { buf, count };
+    struct kiovec iov = { buf, count };
     return stackwrap_disk_iov(op, &iov, 1, offset);
 }
 

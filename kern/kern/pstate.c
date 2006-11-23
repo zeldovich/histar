@@ -105,7 +105,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
 //////////////////////////////////////////////////
 
 struct pstate_iov_collector {
-    struct iovec iov_buf[DISK_REQMAX / PGSIZE];
+    struct kiovec iov_buf[DISK_REQMAX / PGSIZE];
     uint32_t iov_cnt;
     uint32_t iov_bytes;
 

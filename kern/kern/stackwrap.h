@@ -14,7 +14,7 @@ int  stackwrap_call(stackwrap_fn fn,
 disk_io_status stackwrap_disk_io(disk_op op, void *buf,
 				 uint32_t count, uint64_t offset)
     __attribute__ ((warn_unused_result));
-disk_io_status stackwrap_disk_iov(disk_op op, struct iovec *iov_buf,
+disk_io_status stackwrap_disk_iov(disk_op op, struct kiovec *iov_buf,
 				  int iov_len, uint64_t offset)
     __attribute__ ((warn_unused_result));
 

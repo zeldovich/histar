@@ -25,12 +25,12 @@ typedef SAFE_TYPE(int) disk_op;
 #define op_write SAFE_WRAP(disk_op, 2)
 #define op_flush SAFE_WRAP(disk_op, 3)
 
-struct iovec {
+struct kiovec {
     void *iov_base;
     uint32_t iov_len;
 };
 
-int disk_io(disk_op op, struct iovec *iov_buf, int iov_cnt,
+int disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	    uint64_t offset, disk_callback cb, void *cbarg)
 	__attribute__ ((warn_unused_result));
 
