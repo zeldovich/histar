@@ -97,7 +97,9 @@ child_get_siginfo(struct wait_child *wc, int *statusp)
 
     struct debug_args args;
     args.op = da_wait;
-    debug_gate_send(COBJ(ct, gate_id), &args);
+    if (debug_gate_send(COBJ(ct, gate_id), &args) < 0)
+	return 0;
+
     if (args.ret && gen != args.ret_gen) {
 	union wait wstat;
 	gen = args.ret_gen;
@@ -137,8 +139,6 @@ again:
 	}
 
 	if (r == 0) {
-	    if (options & WNOHANG)
-		continue;
 	    r = child_get_siginfo(wc, statusp);
 	    if (r == 1)
 		return wc->wc_pid;
