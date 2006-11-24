@@ -95,7 +95,9 @@ ptm_handle_open(struct gatefd_args *args)
 	    
 	    label th_l, th_cl(2);
 	    thread_cur_label(&th_l);
-	    
+	    thread_cur_clearance(&th_cl);
+	    th_cl.set(start_env->user_grant, 0);
+
 	    struct cobj_ref pts_gt = gate_create(pts_ct, buf, &th_l, &th_cl, 
 						    &pts_gate, (void *) i);
 	    pts_table[i].gate = pts_gt;
