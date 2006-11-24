@@ -48,7 +48,8 @@ static struct
 } ptrace_info;
 
 static void
-debug_gate_map_code(struct cobj_ref as, void **code_start, uint64_t *code_off)
+debug_gate_map_code(struct cobj_ref as, uint64_t addr, 
+		    void **code_start, uint64_t *code_off)
 {
     enum { uas_size = 64 };
     struct u_segment_mapping uas_ents[uas_size];
@@ -59,8 +60,10 @@ debug_gate_map_code(struct cobj_ref as, void **code_start, uint64_t *code_off)
     error_check(sys_as_get(as, &uas));
     
     for (uint64_t i = 0; i < uas.nent; i++) {
-	if (uas.ents[i].flags & SEGMAP_EXEC && 
-	    (uint64_t)uas.ents[i].va == 0x400000) {  // XXX
+	uint64_t a = (uint64_t)uas.ents[i].va;
+	uint64_t z = (uint64_t)uas.ents[i].va + 
+	    (uas.ents[i].num_pages * PGSIZE );
+	if (a <= addr && addr < z) {
 	    uint64_t start = uas.ents[i].start_page * PGSIZE;
 	    uint64_t nbytes = uas.ents[i].num_pages * PGSIZE;
 	    cobj_ref seg = uas.ents[i].segment;
@@ -166,8 +169,10 @@ debug_gate_poketext(struct debug_args *da)
     try {
 	char *code_start;
 	uint64_t code_offset;
-	debug_gate_map_code(debug_gate_as, (void **)&code_start, &code_offset);
-	scope_guard<int, void*> seg_unmap(segment_unmap, code_start);
+	debug_gate_map_code(debug_gate_as, da->addr, 
+			    (void **)&code_start, &code_offset);
+	scope_guard2<int, void*, int> 
+	    seg_unmap(segment_unmap_delayed, code_start, 1);
 	uint64_t offset = da->addr - code_offset;
 	uint64_t *addr = (uint64_t *) (code_start + offset);
 	*addr = da->word;
