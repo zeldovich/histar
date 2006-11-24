@@ -30,7 +30,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static const char debug_gate_enable = 1;
-static const char debug_dbg = 0;
+static const char debug_dbg = 1;
 
 static char debug_gate_inited = 0;
 static char debug_trace = 0;
@@ -339,7 +339,7 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
     fxsave(&ptrace_info.fpregs);
     ptrace_info.signo = signo;
     ptrace_info.gen++;
-    
+
     debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
 
     //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
@@ -360,8 +360,6 @@ debug_gate_send(struct cobj_ref gate, struct debug_args *da)
     try {
 	gate_call(gate, 0, 0, 0).call(&gcd, 0);
     } catch (std::exception &e) {
-	cprintf("kill: gate_call: %s\n", e.what());
-	errno = EPERM;
 	return -1;
     }
     memcpy(da, dag, sizeof(*da));
