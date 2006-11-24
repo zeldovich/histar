@@ -69,6 +69,8 @@ ptrace(enum __ptrace_request request, ...) __THROW
     addr = va_arg(ap, void*);
     data = va_arg(ap, void*);
     va_end(ap);
+
+    debug_print(ptrace_dbg, "request %d", request);
     
     if (request == PTRACE_TRACEME) {
 	debug_gate_trace_is(1);
@@ -84,8 +86,6 @@ ptrace(enum __ptrace_request request, ...) __THROW
     
     struct debug_args args;
     
-    debug_print(ptrace_dbg, "request %d", request);
-
     switch (request) {
     case PTRACE_GETREGS: {
 	args.op = da_getregs;
