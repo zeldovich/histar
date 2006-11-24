@@ -30,7 +30,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static const char debug_gate_enable = 1;
-static const char debug_dbg = 1;
+static const char debug_dbg = 0;
 
 static char debug_gate_inited = 0;
 static char debug_trace = 0;
