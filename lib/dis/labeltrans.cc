@@ -11,7 +11,7 @@ extern "C" {
 #include <inc/error.hh>
 
 #include <inc/dis/labeltrans.hh>
-#include <inc/dis/shareutils.hh>
+#include <inc/dis/sharedutil.hh>
 
 label_trans::label_trans(struct cobj_ref catdir_sg)
     : catdir_sg_(catdir_sg), catdir_(0)

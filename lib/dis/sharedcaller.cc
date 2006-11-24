@@ -20,8 +20,8 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/selftaint.hh>
 
-#include <inc/dis/shareutils.hh>
 #include <inc/dis/sharedcaller.hh>
+#include <inc/dis/sharedutil.hh>
 
 shared_caller::shared_caller(uint64_t shared_ct) 
     : verify_label_(1), shared_ct_(shared_ct), scratch_taint_(0)
@@ -156,17 +156,6 @@ shared_caller::new_user_gate(global_label *gl)
     error_check(gate_send(user_gate(), &args, sizeof(args), &dl));
     error_check(args.ret);
     user_gt_ = args.user_gate.gt;
-}
-
-void 
-shared_caller::grant_cat(uint64_t cat)
-{
-    struct share_args args;
-    args.op = share_add_local_cat;
-    args.add_local_cat.cat = cat;
-    label dl(1);
-    dl.set(cat, LB_LEVEL_STAR);
-    error_check(gate_send(user_gate(), &args, sizeof(args), &dl));
 }
 
 struct cobj_ref

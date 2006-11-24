@@ -17,7 +17,7 @@ public:
     void local_for(global_label *gl, label *l);
     void local_for(global_label *gl, label *l, 
 		   global_to_local fn, void *arg);
-    
+
     static int64_t get_local(global_cat *gcat, void *arg);
     void localize(const global_label *gl);
     

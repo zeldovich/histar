@@ -18,8 +18,6 @@ public:
 
     void new_user_gate(global_label *gl);
     
-    void grant_cat(uint64_t cat);
-
     void set_verify(label *v);
     
 private:

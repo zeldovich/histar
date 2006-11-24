@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
-#include <inc/types.h>
+#include <inc/dis/share.h>
+
 #include <inc/gateparam.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
@@ -28,4 +29,18 @@ gate_send(struct cobj_ref gate, void *args, int n, label *ds)
     }
     memcpy(args, args2, n);
     return 0;
+}
+
+void 
+shared_grant_cat(uint64_t shared_id, uint64_t cat)
+{
+    int64_t gt;
+    error_check(gt = container_find(shared_id, kobj_gate, "user gate"));
+
+    struct share_args args;
+    args.op = share_add_local_cat;
+    args.add_local_cat.cat = cat;
+    label dl(1);
+    dl.set(cat, LB_LEVEL_STAR);
+    error_check(gate_send(COBJ(shared_id, gt), &args, sizeof(args), &dl));
 }
