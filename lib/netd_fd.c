@@ -1,6 +1,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/netd.h>
+#include <inc/netdmsync.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
@@ -30,22 +31,6 @@ const struct host_entry host_table[] = {
     { 0, 0 }
 };
 
-#define SOCK_SEL_MAP(__fd, __va)				\
-    do {							\
-	int __r;						\
-	__r = segment_map((__fd)->fd_sock.sel_seg, 0,		\
-			  SEGMAP_READ | SEGMAP_WRITE,		\
-			  (void **)(__va), 0, 0);		\
-	if (__r < 0) {						\
-	    cprintf("%s: cannot segment_map: %s\n",		\
-		    __FUNCTION__, e2s(__r));			\
-	    return __r;						\
-	}							\
-    } while(0)
-
-#define SOCK_SEL_UNMAP(__va) segment_unmap_delayed((__va), 1)
-
-
 static void
 libc_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
 {
@@ -65,28 +50,21 @@ static int
 alloc_select_seg(struct Fd *fd, int sock)
 {
     int r;
-    struct cobj_ref sel_seg;
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
     struct ulabel *l = label_alloc();
     l->ul_default = 1;
     label_set_level(l, taint, 3, 1);
     label_set_level(l, grant, 0, 1);
-    struct netd_sel_segment *ss = 0;
-    if ((r = segment_alloc(start_env->shared_container, 
-			   sizeof(struct netd_sel_segment), 
-			   &sel_seg, (void **)&ss, l, "select seg")) < 0) {
+
+    if ((r = netd_new_sel_seg(start_env->shared_container, sock, l, 
+			      &fd->fd_sock.sel_seg)) < 0) {
 	label_free(l);
 	return r;
     }
     label_free(l);
-
-    memset(ss, 0, sizeof(*ss));
-    ss->sock = sock;
-    segment_unmap_delayed(ss, 1);
-    
+        
     fd_set_extra_handles(fd, grant, taint);
-    fd->fd_sock.sel_seg = sel_seg;;
     return 0;
 }
 
@@ -317,15 +295,9 @@ sock_close(struct Fd *fd)
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
     int r = netd_slow_call(fd->fd_sock.netd_gate, &a);
-    
-    struct netd_sel_segment *ss = 0;
-    SOCK_SEL_MAP(fd, &ss);
-    for (int i = 0; i < netd_sel_op_count; i++) {
-	ss->sel_op[i].sync = NETD_SEL_SYNC_CLOSE;
-	sys_sync_wakeup(&ss->sel_op[i].sync);
-    }
-    SOCK_SEL_UNMAP(ss);
-    sys_obj_unref(fd->fd_sock.sel_seg);
+
+    netd_free_sel_seg(&fd->fd_sock.sel_seg);
+
     return r;
 }
 
@@ -445,94 +417,10 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
-static void
-sock_statsync_worker(void *arg)
-{
-    struct {
-	struct Fd *fd;
-	char op;
-    } *args = arg;
-
-    struct Fd *fd = args->fd;
-    char op = args->op;
-    free(args);
-
-    netd_select_init(fd->fd_sock.sel_seg, op);
-}
-
-static int
-sock_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
-		  void **arg1)
-{
-    struct Fd *fd = (struct Fd *) arg0;
-    
-    struct netd_sel_segment *ss = 0;
-    SOCK_SEL_MAP(fd, &ss);
-    assert(ss->sel_op[probe].sync != NETD_SEL_SYNC_CLOSE);
-    
-    if (!atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].init, 0, 1)) {
-	struct {
-	    struct Fd *fd;
-	    char op;
-	} *args = malloc(sizeof(*args));
-	if (!args)
-	    return -E_NO_MEM;
-	    
-	args->fd = fd;
-	args->op = probe;
-	
-	struct cobj_ref tobj;
-	int r = thread_create(start_env->proc_container, sock_statsync_worker, 
-			      args, &tobj, "select thread");	
-	if (r < 0) {
-	    free(args);
-	    return r;
-	}
-    }
-
-    
-    atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].sync,
-			    NETD_SEL_SYNC_DONE,
-			    NETD_SEL_SYNC_REQUEST);
-    sys_sync_wakeup(&ss->sel_op[probe].sync);
-    
-    SOCK_SEL_UNMAP(ss);
-    return 0;
-}
-
-static int
-sock_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
-{
-    struct Fd *fd = (struct Fd *) arg0;
-    
-    struct netd_sel_segment *ss = 0;
-    SOCK_SEL_MAP(fd, &ss);
-
-
-    atomic_compare_exchange((atomic_t *)&ss->sel_op[probe].sync,
-			    NETD_SEL_SYNC_REQUEST,
-			    NETD_SEL_SYNC_DONE);
-    sys_sync_wakeup(&ss->sel_op[probe].sync);
-    
-    SOCK_SEL_UNMAP(ss);
-    return 0;
-}
-
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {    
-    struct netd_sel_segment *ss = 0;
-    SOCK_SEL_MAP(fd, &ss);
-
-    WS_SETOBJ(wstat, fd->fd_sock.sel_seg, 
-	      offsetof(struct netd_sel_segment, sel_op[probe].gen));
-    WS_SETVAL(wstat, ss->sel_op[probe].gen);
-    WS_SETCBARG(wstat, fd);
-    WS_SETCB0(wstat, &sock_statsync_cb0);
-    WS_SETCB1(wstat, &sock_statsync_cb1);
-
-    SOCK_SEL_UNMAP(ss);
-    return 0;
+    return netd_wstat(&fd->fd_sock.sel_seg, probe, wstat);
 }
 
 static int
