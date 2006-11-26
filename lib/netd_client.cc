@@ -74,15 +74,20 @@ netd_fast_worker(void *arg)
     struct netd_fast_ipc_state *s = (struct netd_fast_ipc_state *) arg;
 
     try {
-	label shared_l(1);
-	shared_l.set(fipc_grant, 0);
-	shared_l.set(fipc_taint, 3);
+	label taint_l(1);
+	taint_l.set(fipc_grant, 0);
+	taint_l.set(fipc_taint, 3);
+
+	label th_l, shared_l;
+	thread_cur_label(&th_l);
+	th_l.transform(label::star_to, 1);
+	taint_l.merge(&th_l, &shared_l, label::max, label::leq_starlo);
 
 	cobj_ref shared_seg;
 	error_check(segment_alloc(s->fast_ipc_gatecall->call_ct(),
 				  sizeof(*(s->fast_ipc)),
-				  &shared_seg, 0,
-				  shared_l.to_ulabel(), "netd fast IPC segment"));
+				  &shared_seg, 0, shared_l.to_ulabel(), 
+				  "netd fast IPC segment"));
 
 	error_check(sys_obj_set_fixedquota(shared_seg));
 	error_check(sys_segment_addref(shared_seg, start_env->proc_container));
