@@ -1,15 +1,21 @@
 # -*-Makefile-*-
 
 $(OBJDIR)/kern/redefine_k1.syms: $(ARCHDIR)/keep.syms
+	@mkdir -p $(@D)
 	awk '{print "__k1_"$$1, $$1;}' $< > $@
+
 $(OBJDIR)/kern/redefine_k2.syms: $(ARCHDIR)/keep.syms
+	@mkdir -p $(@D)
 	awk '{print "__k2_"$$1, $$1;}' $< > $@
 
-$(OBJDIR)/kern/__k1_%: $(OBJDIR)/kern/% $(OBJDIR)/kern/redefine_k1.syms
+$(OBJDIR)/kern/__k1_%.o: $(OBJDIR)/kern/%.o $(OBJDIR)/kern/redefine_k1.syms
+	@mkdir -p $(@D)
 	$(OBJCOPY) $< $@.tmp --prefix-symbols=__k1_
 	$(OBJCOPY) $@.tmp $@ --redefine-syms $(OBJDIR)/kern/redefine_k1.syms
 	rm -f $@.tmp
-$(OBJDIR)/kern/__k2_%: $(OBJDIR)/kern/% $(OBJDIR)/kern/redefine_k2.syms
+
+$(OBJDIR)/kern/__k2_%.o: $(OBJDIR)/kern/%.o $(OBJDIR)/kern/redefine_k2.syms
+	@mkdir -p $(@D)
 	$(OBJCOPY) $< $@.tmp --prefix-symbols=__k2_
 	$(OBJCOPY) $@.tmp $@ --redefine-syms $(OBJDIR)/kern/redefine_k2.syms
 	rm -f $@.tmp
