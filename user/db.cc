@@ -162,7 +162,7 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 
 	out_rows++;
 	uint64_t out_bytes = out_rows * sizeof(*row);
-	error_check(sys_segment_resize(reply_seg, out_bytes, 0));
+	error_check(sys_segment_resize(reply_seg, out_bytes));
 
 	db_row *out = 0;
 	error_check(segment_map(reply_seg, 0, SEGMAP_READ | SEGMAP_WRITE,

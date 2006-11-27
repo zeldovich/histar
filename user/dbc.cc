@@ -11,6 +11,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/gateclnt.hh>
 #include <inc/db_schema.hh>
+#include <inc/labelutil.hh>
 
 static void __attribute__((noreturn))
 usage()
