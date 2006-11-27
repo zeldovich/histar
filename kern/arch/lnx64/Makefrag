@@ -4,6 +4,7 @@ KERN_CFLAGS += -mno-red-zone
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/actor.c			\
 	$(ARCHDIR)/panic.c			\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/pmap.c			\

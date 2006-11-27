@@ -1,6 +1,7 @@
 #include <machine/lnxdisk.h>
 #include <machine/lnxpage.h>
 #include <machine/lnxinit.h>
+#include <machine/actor.h>
 #include <kern/timer.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>
@@ -30,4 +31,6 @@ lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes)
     sched_init();
     pstate_init();
     prof_init();
+
+    actor_init();
 }
