@@ -16,8 +16,8 @@ extern void __k2_lnx64_init();
 extern void __k1_actor_create(struct actor *ar, int tainted);
 extern void __k2_actor_create(struct actor *ar, int tainted);
 
-extern void __k1_action_run(struct actor *ar, struct action *an, struct action_result *r);
-extern void __k2_action_run(struct actor *ar, struct action *an, struct action_result *r);
+extern void __k1_action_run(struct actor *ar, struct actor_context *ac, struct action *an, struct action_result *r);
+extern void __k2_action_run(struct actor *ar, struct actor_context *ac, struct action *an, struct action_result *r);
 
 static uint64_t
 rnd(struct arc4 *a4)
@@ -36,9 +36,9 @@ choose_action(struct arc4 *a4, struct action *an)
 }
 
 int
-main(int ac, char **av)
+main(int argc, char **av)
 {
-    if (ac != 2) {
+    if (argc != 2) {
 	printf("Usage: %s disk-file\n", av[0]);
 	exit(-1);
     }
@@ -64,18 +64,22 @@ main(int ac, char **av)
     const char *seed = "hello world.";
     arc4_setkey(&a4, seed, strlen(seed));
 
+    struct actor_context ac[2][2];
+    memset(ac, 0, sizeof(ac));
+    ac[0][1].handle_counter = (1UL << 32);
+
     for (uint64_t round = 0; ; round++) {
 	struct action_result r[2][2];
 	struct action an0, an1;
 	choose_action(&a4, &an0);
 	choose_action(&a4, &an1);
 
-	// Kernel #1 runs tainted actor and untainted actor
-	__k1_action_run(&ar[0][1], &an1, &r[0][1]);
-	__k1_action_run(&ar[0][0], &an0, &r[0][0]);
+	// Kernel #1 runs untainted actor and tainted actor
+	__k1_action_run(&ar[0][0], &ac[0][0], &an0, &r[0][0]);
+	__k1_action_run(&ar[0][1], &ac[0][1], &an1, &r[0][1]);
 
 	// Kernel #2 runs only the untainted actor
-	__k2_action_run(&ar[1][0], &an0, &r[1][0]);
+	__k2_action_run(&ar[1][0], &ac[1][0], &an0, &r[1][0]);
 
 	// Ideally, kernel #1 prevents tainted actor from influencing
 	// the untainted actor, so the untainted actors should behave

@@ -63,9 +63,24 @@ actor_create(struct actor *ar, int tainted)
     ar->thread_id = t->th_ko.ko_id;
 }
 
-void
-action_run(struct actor *ar, struct action *an, struct action_result *r)
+static void
+context_restore(struct actor_context *ac)
 {
+    if (ac->handle_counter)
+	handle_counter = ac->handle_counter;
+}
+
+static void
+context_save(struct actor_context *ac)
+{
+    ac->handle_counter = handle_counter;
+}
+
+void
+action_run(struct actor *ar, struct actor_context *ac, struct action *an, struct action_result *r)
+{
+    context_restore(ac);
+
     const struct kobject *th_ko;
     assert(0 == kobject_get(ar->thread_id, &th_ko, kobj_thread, iflow_none));
     cur_thread = &th_ko->th;
@@ -85,4 +100,6 @@ action_run(struct actor *ar, struct action *an, struct action_result *r)
     default:
 	printf("action_run: unknown action %d\n", an->type);
     }
+
+    context_save(ac);
 }

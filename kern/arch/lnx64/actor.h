@@ -6,6 +6,10 @@ struct actor {
     uint64_t scratch_ct;
 };
 
+struct actor_context {
+    uint64_t handle_counter;
+};
+
 struct action {
     int type;
 };
@@ -16,7 +20,7 @@ struct action_result {
 
 void actor_init(void);
 void actor_create(struct actor *ar, int tainted);
-void action_run(struct actor *ar, struct action *an, struct action_result *r);
+void action_run(struct actor *ar, struct actor_context *ac, struct action *an, struct action_result *r);
 
 enum {
     actor_action_noop,
