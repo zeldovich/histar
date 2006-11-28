@@ -43,7 +43,7 @@ ssld_server_init(uint64_t taint, const char *server_pem, const char *password,
 	io = 0;
     }
     
-    const char *argv[] = { "ssld", server_pem, password, calist_pem, dh_pem };
+    const char *argv[] = { "ssld", server_pem, password, dh_pem, calist_pem };
     struct child_process cp = spawn(start_env->shared_container, ssl_ino,
 				    io, io, io,
 				    5, &argv[0],

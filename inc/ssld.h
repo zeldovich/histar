@@ -4,13 +4,13 @@
 enum { ssld_buf_size = 8192 };
 
 typedef enum {
-    ssld_op_socket,
+    ssld_op_accept,
     ssld_op_send,
     ssld_op_recv,
     ssld_op_close,
 } ssld_op_t;
 
-struct ssld_op_socket_args {
+struct ssld_op_accept_args {
     int s;
     struct cobj_ref netd_gate;
 };
@@ -38,14 +38,14 @@ struct ssld_op_args {
     int rval;
     
     union {
-	struct ssld_op_socket_args socket;
+	struct ssld_op_accept_args accept;
 	struct ssld_op_send_args send;
 	struct ssld_op_recv_args recv;
 	struct ssld_op_close_args close;
     };
 };
 
-int ssl_socket(int s);
+int ssl_accept(int s);
 
 // ssld_client.cc
 int ssld_call(struct cobj_ref gate, struct ssld_op_args *a);

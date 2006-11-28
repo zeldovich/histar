@@ -61,7 +61,7 @@ error_to_jos64(int ret)
 
 
 void
-init_ssl(const char *server_pem, const char *calist_pem, const char *dh_pem)
+init_ssl(const char *server_pem, const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
 	SSL_CTX_free(ctx);
@@ -84,28 +84,31 @@ init_ssl(const char *server_pem, const char *calist_pem, const char *dh_pem)
 	throw basic_exception("Can't read key file");
 
     // Load the CAs we trust
-    if(!(SSL_CTX_load_verify_locations(ctx, calist_pem, 0)))
-	throw basic_exception("Can't read CA list");
+    if (calist_pem)
+	if(!(SSL_CTX_load_verify_locations(ctx, calist_pem, 0)))
+	    throw basic_exception("Can't read CA list");
     
     // From an example
     if (OPENSSL_VERSION_NUMBER < 0x00905100L)
 	SSL_CTX_set_verify_depth(ctx, 1);
 
     // Load the dh params to use
-    DH *ret = 0;
-    BIO *bio;
-    
-    if (!(bio = BIO_new_file(dh_pem,"r")))
+    if (dh_pem) {
+	DH *ret = 0;
+	BIO *bio;
+	
+	if (!(bio = BIO_new_file(dh_pem,"r")))
 	throw basic_exception("Couldn't open DH file");
-    
-    ret = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
-    BIO_free(bio);
-    if(SSL_CTX_set_tmp_dh(ctx, ret) < 0 )
-	throw basic_exception("Couldn't set DH parameters");
+	
+	ret = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
+	BIO_free(bio);
+	if(SSL_CTX_set_tmp_dh(ctx, ret) < 0 )
+	    throw basic_exception("Couldn't set DH parameters");
+    }
 }
 
 static int
-ssld_socket(int lwip_sock, struct cobj_ref netd_gate)
+ssld_accept(int lwip_sock, struct cobj_ref netd_gate)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "socket fd");
@@ -177,8 +180,8 @@ void
 ssld_dispatch(struct ssld_op_args *a)
 {
     switch(a->op_type) {
-    case ssld_op_socket:
-	a->rval = ssld_socket(a->socket.s, a->socket.netd_gate);
+    case ssld_op_accept:
+	a->rval = ssld_accept(a->accept.s, a->accept.netd_gate);
 	break;
     case ssld_op_send:
 	a->rval = ssld_send(data[a->send.s].io, 
@@ -233,18 +236,26 @@ ssld_gate(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
     gr->ret(0, 0, 0);
 }
 
+//
+// XXX MAKE DH-PEM and CALIST-PEM optional
+//
+
+
 int
 main (int ac, char **av)
 {
-    if (ac != 5) {
-	cprintf("Usage: %s server-pem password calist-pem dh-pem", av[0]);
+    if (ac < 4) {
+	cprintf("Usage: %s server-pem password dh-pem [calist-pem]", av[0]);
 	return -1;
     }
 
+    const char *server_pem = av[1];
     pass = av[2];
+    const char *dh_pem = av[3];
+    const char *calist_pem = ac > 4 ? av[4] : 0;
 
     netd_init_client();
-    init_ssl(av[1], av[3], av[4]);
+    init_ssl(server_pem, dh_pem, calist_pem);
 
     label th_l, th_c;
     thread_cur_label(&th_l);
