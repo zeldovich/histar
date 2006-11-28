@@ -250,9 +250,9 @@ acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__pa
 	touch $@
 
 $(OBJDIR)/lib/libssl.a: acpkg/openssl-0.9.8a/__build
-	ln -s $(TOP)/$(OBJDIR)/acpkg/lib/libssl.a $@
+	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libssl.a $@
 $(OBJDIR)/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
-	ln -s $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
+	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
