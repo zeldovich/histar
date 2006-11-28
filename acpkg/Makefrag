@@ -3,7 +3,7 @@ ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
 ACPKG_LDFLAGS	:= $(LDFLAGS) -L$(TOP)/$(ACPKG_PREFIX)/lib
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include \
-		   -I$(TOP)/lib/cppsup
+		   -I$(TOP)/pkg/uclibc++/include
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
@@ -248,6 +248,11 @@ acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__pa
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" )
 	touch $@
+
+$(OBJDIR)/lib/libssl.a: acpkg/openssl-0.9.8a/__build
+	ln -s $(TOP)/$(OBJDIR)/acpkg/lib/libssl.a $@
+$(OBJDIR)/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
+	ln -s $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
