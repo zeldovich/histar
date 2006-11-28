@@ -119,6 +119,7 @@ ssld_socket(int lwip_sock, struct cobj_ref netd_gate)
 
     int s = fd2num(fd);
     
+    // XXX what needs to be dealloced on close?
     BIO *sbio = BIO_new_socket(s, BIO_NOCLOSE);
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, sbio, sbio);
@@ -163,8 +164,10 @@ ssld_recv(SSL *ssl, BIO *io, void *buf, size_t count, int flags)
 static int
 ssld_close(int lwip_sock)
 {
+    BIO_free(data[lwip_sock].io);
     SSL_shutdown(data[lwip_sock].ssl);
     SSL_free(data[lwip_sock].ssl);
+    
     data.erase(lwip_sock);
 
     return 0;
