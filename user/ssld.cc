@@ -236,11 +236,6 @@ ssld_gate(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
     gr->ret(0, 0, 0);
 }
 
-//
-// XXX MAKE DH-PEM and CALIST-PEM optional
-//
-
-
 int
 main (int ac, char **av)
 {
