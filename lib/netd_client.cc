@@ -199,6 +199,12 @@ netd_fast_call(struct netd_op_args *a)
     }
 }
 
+void
+netd_init_client(void)
+{
+    netd_fast_init_global();
+}
+
 int
 netd_select_init(struct cobj_ref seg, char op)
 {

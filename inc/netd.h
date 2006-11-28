@@ -184,6 +184,7 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
 		    netd_dev_type type, void *if_state,
 		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
     __attribute__((noreturn));
+void netd_init_client(void);
 
 void netd_dispatch(struct netd_op_args *a);
 int  netd_select(int fd, char op, struct timeval *tv);

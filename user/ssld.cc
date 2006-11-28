@@ -239,7 +239,8 @@ main (int ac, char **av)
     }
 
     pass = av[2];
-    
+
+    netd_init_client();
     init_ssl(av[1], av[3], av[4]);
 
     label th_l, th_c;
