@@ -11,6 +11,7 @@ extern "C" {
 #include <inc/base64.h>
 #include <inc/authd.h>
 #include <inc/gateparam.h>
+#include <inc/ssld.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -27,11 +28,18 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
 
+static const char ssl_mode = 1;
+
 static void
 http_client(void *arg)
 {
     char buf[512];
     int s = (int64_t) arg;
+    if (ssl_mode) {
+	s = ssl_socket(s);
+	if (s < 0)
+	    throw basic_exception("unable to alloc ssl_socket: %s", e2s(s));
+    }
 
     try {
 	tcpconn tc(s);
@@ -167,5 +175,12 @@ http_server(void)
 int
 main(int ac, char **av)
 {
+    if (ssl_mode) {
+	int r = ssld_server_init(0, "/bin/server.pem", "password", 
+				 "/bin/root.pem", "/bin/dh.pem");
+	if (r < 0)
+	    panic("cannot init ssld: %s\n", e2s(r));
+    }
+
     http_server();
 }
