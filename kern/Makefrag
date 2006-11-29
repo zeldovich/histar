@@ -53,26 +53,8 @@ KERN_BTREE := \
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES := user/idle user/init user/jshell user/ksh
-KERN_BINFILES += user/netd user/netd_mom user/telnetd user/httpd user/httpd_worker user/fetch user/dnstest user/tcpserv user/ftpd
-KERN_BINFILES += #user/db user/dbc
-KERN_BINFILES += #user/lfs_small user/lfs_large user/execbench user/spawnbench user/ipcbench user/true user/syscallbench
-KERN_BINFILES += user/ls user/asprint user/gl user/jcat user/cat user/rm user/cp user/echo user/mount user/umount user/sync user/mkdir
-KERN_BINFILES += #user/admind user/admctl
-KERN_BINFILES += user/auth_log user/auth_dir user/auth_user user/login user/adduser user/passwd
-KERN_BINFILES += #user/hello user/readtest user/fptest user/privtest user/cpphello user/pftest
-KERN_BINFILES += #user/netd_vpn user/openvpn user/vpn_start
-KERN_BINFILES += #user/clamscan user/clamwrap user/clamav_main.cvd user/clamav_daily.cvd
-
-KERN_BINFILES += #user/tar user/gzip user/gunzip
-KERN_BINFILES += #user/gcc.tar.gz user/make user/kern.tar.gz user/setup.sh
-KERN_BINFILES += #user/sshd user/ssh.tar
-
-ifdef CONF_EMBEDBINS
-include $(CONF_EMBEDBINS)
-else
-include conf/embedbin/default.mk
-endif
+KERN_BINFILES :=
+include conf/embedbin/Makefrag
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
@@ -130,7 +112,7 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 	etags -o $@ $^
 
 # How to build the embedded bin structures
-$(OBJDIR)/kern/embedbin.c: kern/Makefrag $(EMBEDBINS_DEPS)
+$(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@

@@ -155,9 +155,6 @@ distclean: clean
 prof:
 	make 'KERN_PROF=-finstrument-functions'
 
-devel:
-	make 'CONF_EMBEDBINS=conf/embedbin/devel.mk'
-
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
 # and keeps those dependencies up-to-date every time we recompile.

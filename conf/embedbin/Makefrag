@@ -1,0 +1,17 @@
+# To generate a different set of embedded binaries, it's probably
+# easiest to copy default.mk into local.mk and make any changes
+# there, also changing the line below to include local.mk instead.
+# This will avoid any merge conflicts when default.mk is updated.
+#
+# To add custom entries to inittab, use inittab.local or append
+# to INITTAB_ENTRIES in the local.mk file.
+
+EMBEDBIN_SET	:= default.mk
+INITTAB_ENTRIES	:= 
+
+include conf/embedbin/$(EMBEDBIN_SET)
+
+$(OBJDIR)/user/inittab: conf/embedbin/*.mk conf/embedbin/inittab.local
+	( for A in $(INITTAB_ENTRIES); do echo $$A; done; \
+	  cat conf/embedbin/inittab.local ) > $@
+

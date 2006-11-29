@@ -206,10 +206,10 @@ init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
     //spawn_fs(cons, "/bin/rbac_init", &h_root_buf[0], &ds_hroot);
     //spawn_fs(cons, "/bin/login", 0, &ds_none);
 
-    FILE *init_init = fopen("/bin/init.init", "r");
-    if (init_init) {
+    FILE *inittab = fopen("/bin/inittab", "r");
+    if (inittab) {
 	char buf[256];
-	while (fgets(buf, sizeof(buf), init_init)) {
+	while (fgets(buf, sizeof(buf), inittab)) {
 	    char *fn = &buf[0];
 	    char *priv = fn;
 	    strsep(&priv, ":");
