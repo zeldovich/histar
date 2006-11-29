@@ -76,17 +76,17 @@ init_ssl(const char *server_pem, const char *dh_pem, const char *calist_pem)
 
     // Load our keys and certificates
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
-	throw basic_exception("Can't read certificate file");
+	throw basic_exception("Can't read certificate file %s", server_pem);
     
     SSL_CTX_set_default_passwd_cb(ctx, password_cb);
     
     if(!(SSL_CTX_use_PrivateKey_file(ctx, server_pem, SSL_FILETYPE_PEM)))
-	throw basic_exception("Can't read key file");
+	throw basic_exception("Can't read key file %s", server_pem);
 
     // Load the CAs we trust
     if (calist_pem)
 	if(!(SSL_CTX_load_verify_locations(ctx, calist_pem, 0)))
-	    throw basic_exception("Can't read CA list");
+	    throw basic_exception("Can't read CA list %s", calist_pem);
     
     // From an example
     if (OPENSSL_VERSION_NUMBER < 0x00905100L)
@@ -98,12 +98,12 @@ init_ssl(const char *server_pem, const char *dh_pem, const char *calist_pem)
 	BIO *bio;
 	
 	if (!(bio = BIO_new_file(dh_pem,"r")))
-	throw basic_exception("Couldn't open DH file");
+	    throw basic_exception("Couldn't open DH file %s", dh_pem);
 	
 	ret = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
 	BIO_free(bio);
 	if(SSL_CTX_set_tmp_dh(ctx, ret) < 0 )
-	    throw basic_exception("Couldn't set DH parameters");
+	    throw basic_exception("Couldn't set DH parameters using %s", dh_pem);
     }
 }
 
