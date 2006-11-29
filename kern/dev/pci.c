@@ -5,6 +5,7 @@
 #include <dev/ne2kpci.h>
 #include <dev/fxp.h>
 #include <dev/pnic.h>
+#include <dev/e1000.h>
 #include <kern/lib.h>
 
 // Flag to do "lspci" at bootup
@@ -79,6 +80,11 @@ pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
 
     if (PCI_VENDOR(dev_id) == 0xfefe && PCI_PRODUCT(dev_id) == 0xefef) {
 	pnic_attach(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(dev_id) == 0x8086 && PCI_PRODUCT(dev_id) == 0x107c) {
+	e1000_attach(pcif);
 	return;
     }
 }
