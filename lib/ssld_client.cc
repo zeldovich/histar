@@ -4,50 +4,76 @@ extern "C" {
 #include <inc/ssld.h>
 #include <inc/assert.h>
 #include <inc/gateparam.h>
+#include <inc/fd.h>
+#include <inc/netd.h>
 
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 }
 
 #include <inc/error.hh>
 #include <inc/gateclnt.hh>
+#include <inc/spawn.hh>
 
-static uint64_t base_ct;
-static struct cobj_ref ssld_gate;
+const char *default_server_pem = "/bin/server.pem";
+const char *default_password = "password";
+const char *default_calist_pem = "/bin/root.pem";
+const char *default_dh_pem = "/bin/dh.pem";
 
-static int
-ssld_client_init(void)
+static uint64_t shared_ct;
+static struct cobj_ref ssld_shared_gate;
+
+static const char nullio = 0;
+
+struct cobj_ref
+ssld_new_server(uint64_t ct, const char *server_pem, const char *password, 
+		const char *calist_pem, const char *dh_pem,
+		label *cs, label *ds, label *cr, label *dr, label *co)
 {
-    uint64_t ct = start_env->shared_container;
-    int64_t ssld_ct = container_find(ct, kobj_container, "ssld");
-    if (ssld_ct < 0)
-	return ssld_ct;
-    int64_t ssld_gt = container_find(ssld_ct, kobj_gate, "ssld");
-    if (ssld_gt < 0)
-	return ssld_gt;
+    struct fs_inode ssl_ino;
+    error_check(fs_namei("/bin/ssld", &ssl_ino));
+
+    int io;
+    if (nullio) {
+	int nullfd = open("/dev/null", O_RDONLY);
+	if (nullfd < 0)
+	    throw basic_exception("cannot open /dev/null: %s\n", strerror(errno));
+	io = nullfd;
+    } else
+	io = 0;
     
-    ssld_gate = COBJ(ssld_ct, ssld_gt);
-    base_ct = ct;
-    return 0;
+    const char *argv[] = { "ssld", server_pem, password, dh_pem, calist_pem };
+    struct child_process cp = spawn(ct, ssl_ino,
+				    io, io, io,
+				    5, &argv[0],
+				    0, 0,
+				    cs, ds, cr, dr, co);
+    int64_t exit_code = 0;
+    process_wait(&cp, &exit_code);
+    if (exit_code)
+	throw error(exit_code, "error starting ssld");
+
+    int64_t ssld_gt;
+    error_check(ssld_gt = container_find(cp.container, kobj_gate, "ssld"));
+    
+    return COBJ(cp.container, ssld_gt);
 }
 
 struct cobj_ref
-ssld_get_gate(void)
+ssld_shared_server(void)
 {
-    if (base_ct != start_env->shared_container) {
-	base_ct = 0;
-	ssld_gate.object = 0;
+    if (shared_ct != start_env->shared_container ||
+	ssld_shared_gate.object == 0) {
+	
+	ssld_shared_gate = ssld_new_server(start_env->shared_container,
+					   default_server_pem, default_password, 
+					   default_calist_pem, default_dh_pem,
+					   0, 0, 0, 0, 0);
+	shared_ct = start_env->shared_container;
     }
-
-    for (int i = 0; i < 10 && ssld_gate.object == 0; i++) {
-	int r = ssld_client_init();
-	if (r < 0)
-	    thread_sleep(100);
-    }
-
-    if (ssld_gate.object == 0)
-	panic("ssld_get_gate: cannot inialize client -- server inited?");
-
-    return ssld_gate;
+    return ssld_shared_gate;
 }
 
 int

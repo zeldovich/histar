@@ -65,8 +65,7 @@ LIB_SRCFILES :=	\
 	lib/debug_gatesrv.cc \
 	lib/multisync.cc \
 	lib/ssld_fd.c \
-	lib/ssld_client.cc \
-	lib/ssld_gatesrv.cc
+	lib/ssld_client.cc
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag

@@ -8,10 +8,8 @@
 #include <string.h>
 
 int
-ssl_accept(int s)
+ssl_accept(int s, struct cobj_ref ssld_gate)
 {
-    struct cobj_ref ssld_gate = ssld_get_gate();
-
     struct Fd *fd;
     int r = fd_alloc(&fd, "ssl fd");
     if (r < 0)

@@ -45,14 +45,10 @@ struct ssld_op_args {
     };
 };
 
-int ssl_accept(int s);
+// ssld_fd.c
+int ssl_accept(int s, struct cobj_ref ssld_gate);
 
 // ssld_client.cc
 int ssld_call(struct cobj_ref gate, struct ssld_op_args *a);
-struct cobj_ref ssld_get_gate(void);
-
-// ssld_gatesrv.cc
-int ssld_server_init(uint64_t taint, const char *server_pem, const char *password, 
-		     const char *calist_pem, const char *dh_pem);
 
 #endif
