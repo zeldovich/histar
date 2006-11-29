@@ -4,9 +4,8 @@
 /* The run time clock is hard-wired to IRQ8. */
 
 #include <machine/x86.h>
-#include <inc/isareg.h>
-#include <inc/timerreg.h>
-
+#include <dev/isareg.h>
+#include <dev/timerreg.h>
 #include <dev/kclock.h>
 #include <dev/picirq.h>
 #include <kern/lib.h>
