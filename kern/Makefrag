@@ -53,7 +53,6 @@ KERN_BTREE := \
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES :=
 include conf/embedbin/Makefrag
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
@@ -112,7 +111,7 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 	etags -o $@ $^
 
 # How to build the embedded bin structures
-$(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk
+$(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk conf/embedbin
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
 	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
