@@ -7,18 +7,18 @@
 #define X86_INST_ATTR	static __inline __attribute__((always_inline, no_instrument_function))
 
 X86_INST_ATTR void breakpoint(void);
-X86_INST_ATTR uint8_t inb(int port);
-X86_INST_ATTR void insb(int port, void *addr, int cnt);
-X86_INST_ATTR uint16_t inw(int port);
-X86_INST_ATTR void insw(int port, void *addr, int cnt);
-X86_INST_ATTR uint32_t inl(int port);
-X86_INST_ATTR void insl(int port, void *addr, int cnt);
-X86_INST_ATTR void outb(int port, uint8_t data);
-X86_INST_ATTR void outsb(int port, const void *addr, int cnt);
-X86_INST_ATTR void outw(int port, uint16_t data);
-X86_INST_ATTR void outsw(int port, const void *addr, int cnt);
-X86_INST_ATTR void outsl(int port, const void *addr, int cnt);
-X86_INST_ATTR void outl(int port, uint32_t data);
+X86_INST_ATTR uint8_t inb(uint16_t port);
+X86_INST_ATTR void insb(uint16_t port, void *addr, int cnt);
+X86_INST_ATTR uint16_t inw(uint16_t port);
+X86_INST_ATTR void insw(uint16_t port, void *addr, int cnt);
+X86_INST_ATTR uint32_t inl(uint16_t port);
+X86_INST_ATTR void insl(uint16_t port, void *addr, int cnt);
+X86_INST_ATTR void outb(uint16_t port, uint8_t data);
+X86_INST_ATTR void outsb(uint16_t port, const void *addr, int cnt);
+X86_INST_ATTR void outw(uint16_t port, uint16_t data);
+X86_INST_ATTR void outsw(uint16_t port, const void *addr, int cnt);
+X86_INST_ATTR void outsl(uint16_t port, const void *addr, int cnt);
+X86_INST_ATTR void outl(uint16_t port, uint32_t data);
 X86_INST_ATTR void invlpg(const void *addr);
 X86_INST_ATTR void lidt(void *p);
 X86_INST_ATTR void lldt(uint16_t sel);
@@ -53,7 +53,7 @@ breakpoint(void)
 }
 
 uint8_t
-inb(int port)
+inb(uint16_t port)
 {
 	uint8_t data;
 	__asm __volatile("inb %w1,%0" : "=a" (data) : "d" (port));
@@ -61,7 +61,7 @@ inb(int port)
 }
 
 void
-insb(int port, void *addr, int cnt)
+insb(uint16_t port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsb"			:
 			 "+D" (addr), "+c" (cnt)		:
@@ -70,7 +70,7 @@ insb(int port, void *addr, int cnt)
 }
 
 uint16_t
-inw(int port)
+inw(uint16_t port)
 {
 	uint16_t data;
 	__asm __volatile("inw %w1,%0" : "=a" (data) : "d" (port));
@@ -78,7 +78,7 @@ inw(int port)
 }
 
 void
-insw(int port, void *addr, int cnt)
+insw(uint16_t port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsw"			:
 			 "+D" (addr), "+c" (cnt)		:
@@ -87,7 +87,7 @@ insw(int port, void *addr, int cnt)
 }
 
 uint32_t
-inl(int port)
+inl(uint16_t port)
 {
 	uint32_t data;
 	__asm __volatile("inl %w1,%0" : "=a" (data) : "d" (port));
@@ -95,7 +95,7 @@ inl(int port)
 }
 
 void
-insl(int port, void *addr, int cnt)
+insl(uint16_t port, void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\tinsl"			:
 			 "+D" (addr), "+c" (cnt)		:
@@ -104,13 +104,13 @@ insl(int port, void *addr, int cnt)
 }
 
 void
-outb(int port, uint8_t data)
+outb(uint16_t port, uint8_t data)
 {
 	__asm __volatile("outb %0,%w1" : : "a" (data), "d" (port));
 }
 
 void
-outsb(int port, const void *addr, int cnt)
+outsb(uint16_t port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsb"		:
 			 "+S" (addr), "+c" (cnt)		:
@@ -119,13 +119,13 @@ outsb(int port, const void *addr, int cnt)
 }
 
 void
-outw(int port, uint16_t data)
+outw(uint16_t port, uint16_t data)
 {
 	__asm __volatile("outw %0,%w1" : : "a" (data), "d" (port));
 }
 
 void
-outsw(int port, const void *addr, int cnt)
+outsw(uint16_t port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsw"		:
 			 "+S" (addr), "+c" (cnt)		:
@@ -134,7 +134,7 @@ outsw(int port, const void *addr, int cnt)
 }
 
 void
-outsl(int port, const void *addr, int cnt)
+outsl(uint16_t port, const void *addr, int cnt)
 {
 	__asm __volatile("cld\n\trepne\n\toutsl"		:
 			 "+S" (addr), "+c" (cnt)		:
@@ -143,7 +143,7 @@ outsl(int port, const void *addr, int cnt)
 }
 
 void
-outl(int port, uint32_t data)
+outl(uint16_t port, uint32_t data)
 {
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));
 }

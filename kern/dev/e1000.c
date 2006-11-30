@@ -17,12 +17,7 @@
 #define E1000_RX_SLOTS	64
 #define E1000_TX_SLOTS	64
 
-struct e1000_tx_slot {
-    struct netbuf_hdr *nb;
-    const struct Segment *sg;
-};
-
-struct e1000_rx_slot {
+struct e1000_buffer_slot {
     struct netbuf_hdr *nb;
     const struct Segment *sg;
 };
@@ -35,10 +30,10 @@ struct e1000_card {
     struct interrupt_handler ih;
 
     struct wiseman_txdesc txd[E1000_TX_SLOTS] __attribute__((aligned (16)));
-    struct e1000_tx_slot tx[E1000_TX_SLOTS];
-
     struct wiseman_rxdesc rxd[E1000_RX_SLOTS] __attribute__((aligned (16)));
-    struct e1000_rx_slot rx[E1000_RX_SLOTS];
+
+    struct e1000_buffer_slot tx[E1000_TX_SLOTS];
+    struct e1000_buffer_slot rx[E1000_RX_SLOTS];
 
     int rx_head;	// card receiving into rx_head, -1 if none
     int rx_nextq;	// next slot for rx buffer
