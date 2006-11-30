@@ -252,7 +252,7 @@ fxp_tx_start(struct fxp_card *c)
 static void __attribute__((unused))
 fxp_print_packet(struct netbuf_hdr *nb)
 {
-    cprintf("nb(%d/%d)", nb->actual_count & FXP_SIZE_MASK, nb->size);
+    cprintf("nb(%d/%d)", nb->actual_count & NETHDR_COUNT_MASK, nb->size);
     if ((nb->actual_count & NETHDR_COUNT_DONE))
 	cprintf(" done");
     if ((nb->actual_count & NETHDR_COUNT_ERR))
