@@ -122,6 +122,35 @@ e1000_reset(struct e1000_card *c)
     e1000_io_write(c, WMREG_TIDV, 0);
     e1000_io_write(c, WMREG_TADV, 0);
 
+    // Disable VLAN
+    e1000_io_write(c, WMREG_VET, 0);
+
+    // Flow control junk?
+    e1000_io_write(c, WMREG_FCAL, FCAL_CONST);
+    e1000_io_write(c, WMREG_FCAH, FCAH_CONST);
+    e1000_io_write(c, WMREG_FCT, 0x8808);
+    e1000_io_write(c, WMREG_FCRTH, FCRTH_DFLT);
+    e1000_io_write(c, WMREG_FCRTL, FCRTL_DFLT);
+    e1000_io_write(c, WMREG_FCTTV, FCTTV_DFLT);
+
+    // Interrupts
+    e1000_io_write(c, WMREG_IMC, ~0);
+    e1000_io_write(c, WMREG_IMS, ICR_TXDW | ICR_RXO | ICR_RXT0);
+
+    // MAC address filters
+    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 0, (c->netdev.mac_addr[0]) |
+						  (c->netdev.mac_addr[1] << 8) |
+						  (c->netdev.mac_addr[2] << 16) |
+						  (c->netdev.mac_addr[3] << 24));
+    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 4, (c->netdev.mac_addr[4]) |
+						  (c->netdev.mac_addr[5] << 8) |
+						  RAL_AV);
+    for (int i = 2; i < WM_RAL_TABSIZE * 2; i++)
+	e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + i * 4, 0);
+    for (int i = 0; i < WM_MC_TABSIZE; i++)
+	e1000_io_write(c, WMREG_CORDOVA_MTA + i * 4, 0);
+
+    // Enable RX, TX
     e1000_io_write(c, WMREG_RCTL, RCTL_EN | RCTL_RDMTS_1_2 | RCTL_DPF | RCTL_BAM);
     e1000_io_write(c, WMREG_TCTL,
 		   TCTL_EN | TCTL_PSP | TCTL_CT(TX_COLLISION_THRESHOLD) |
@@ -324,8 +353,6 @@ e1000_attach(struct pci_func *pcif)
     c->iobase = pcif->reg_base[2];
     c->ih.ih_func = &e1000_intr;
 
-    e1000_reset(c);
-
     // Get the MAC address
     uint16_t myaddr[3];
     e1000_eeprom_read(c, &myaddr[0], EEPROM_OFF_MACADDR, 3);
@@ -334,27 +361,7 @@ e1000_attach(struct pci_func *pcif)
 	c->netdev.mac_addr[2*i + 1] = myaddr[i] >> 8;
     }
 
-    // Disable VLAN
-    e1000_io_write(c, WMREG_VET, 0);
-
-    // Flow control junk?
-    e1000_io_write(c, WMREG_FCAL, FCAL_CONST);
-    e1000_io_write(c, WMREG_FCAH, FCAH_CONST);
-    e1000_io_write(c, WMREG_FCT, 0x8808);
-    e1000_io_write(c, WMREG_FCRTH, FCRTH_DFLT);
-    e1000_io_write(c, WMREG_FCRTL, FCRTL_DFLT);
-    e1000_io_write(c, WMREG_FCTTV, FCTTV_DFLT);
-
-    // Configure the card
-    e1000_io_write(c, WMREG_CTRL, 0);
-    e1000_io_write(c, WMREG_IMC, ~0);
-    e1000_io_write(c, WMREG_IMS, ICR_TXDW | ICR_RXO | ICR_RXT0);
-    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 0, (c->netdev.mac_addr[0]) |
-						  (c->netdev.mac_addr[1] << 8) |
-						  (c->netdev.mac_addr[2] << 16) |
-						  (c->netdev.mac_addr[3] << 24));
-    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 4, (c->netdev.mac_addr[4]) |
-						  (c->netdev.mac_addr[5] << 8));
+    e1000_reset(c);
 
     // Register card with kernel
     irq_register(c->irq_line, &c->ih);
