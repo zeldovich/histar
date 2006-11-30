@@ -66,7 +66,7 @@ main(int argc, char **av)
 
     struct actor_context ac[2][2];
     memset(ac, 0, sizeof(ac));
-    ac[0][1].handle_counter = (1UL << 32);
+    ac[0][1].handle_counter = (((uint64_t) 1) << 32);
 
     for (uint64_t round = 0; ; round++) {
 	struct action_result r[2][2];
@@ -85,11 +85,11 @@ main(int argc, char **av)
 	// the untainted actor, so the untainted actors should behave
 	// exactly the same on both kernels.
 	int mismatch = memcmp(&r[0][0], &r[1][0], sizeof(r[0][0]));
-	printf("round=%ld, action=%d, mismatch=%d\n", round, an0.type, mismatch);
+	printf("round=%"PRIu64", action=%d, mismatch=%d\n", round, an0.type, mismatch);
 
 	if (mismatch) {
-	    printf("Kernel 1 (mixed): rval=%ld\n", r[0][0].rval);
-	    printf("Kernel 2 (clean): rval=%ld\n", r[1][0].rval);
+	    printf("Kernel 1 (mixed): rval=%"PRIu64"\n", r[0][0].rval);
+	    printf("Kernel 2 (clean): rval=%"PRIu64"\n", r[1][0].rval);
 	}
     }
 }

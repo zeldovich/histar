@@ -58,12 +58,12 @@ btree_integrity_check(struct btree *tree, offset_t root)
     struct btree_node *root_node = btree_read_node(tree, root);
 
     if (root_node->keyCount == 0)
-	panic("node %ld: keyCount is 0", root);
+	panic("node %"PRIu64": keyCount is 0", root);
 
     if (!BTREE_IS_LEAF(root_node)) {
 	for (int i = 0; i <= root_node->keyCount; i++) {
 	    if (root_node->children[i] == 0)
-		panic("node %ld: child is 0 when it shouldn't be", root);
+		panic("node %"PRIu64": child is 0 when it shouldn't be", root);
 	}
     }
 
@@ -82,14 +82,14 @@ btree_sanity_check_impl(void *tree)
     uint64_t count2 = btree_leaf_count2(btree);
 
     if (count1 != count2)
-	panic("btree_sanity_check: count mismatch: %ld %ld", count1,
+	panic("btree_sanity_check: count mismatch: %"PRIu64" %"PRIu64"", count1,
 	      count2);
 
     uint64_t size1 = btree->size;
     uint64_t size2 = btree_size_calc(btree);
 
     if (size1 != size2)
-	panic("btree_sanity_check: size mismatch: %ld %ld", size1, size2);
+	panic("btree_sanity_check: size mismatch: %"PRIu64" %"PRIu64"", size1, size2);
 
     if (btree->root)
 	btree_integrity_check(btree, btree->root);
@@ -115,9 +115,9 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 
     for (j = 0; j < rootNode->keyCount; j++) {
 	const offset_t *off = btree_key(rootNode, j);
-	cprintf(" %016lx", off[0]);
+	cprintf(" %016"PRIx64, off[0]);
 	for (int k = 1; k < tree->s_key; k++)
-	    cprintf("|%016lx", off[k]);
+	    cprintf("|%016"PRIx64, off[k]);
 	cprintf(" .");
     }
 
@@ -128,7 +128,7 @@ __btree_pretty_print(struct btree *tree, offset_t rootOffset, int i)
 	for (j = tree->order - rootNode->keyCount; j > 1; j--)
 	    cprintf(" _____ .");
 
-    cprintf("] - %016lx\n", rootOffset);
+    cprintf("] - %016"PRIx64"\n", rootOffset);
 
     if (BTREE_IS_LEAF(rootNode)) {
 	btree_destroy_node(rootNode);

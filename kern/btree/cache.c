@@ -44,11 +44,6 @@ cache_alloc(struct cache *c, tag_t tag, uint8_t ** store)
     cm->ref = 1;
     cm->tag = tag;
     *store = &c->buf[cm->index * c->s_ent];
-
-    if ((uint64_t) * store == 0xffffffff80df1a40)
-	cprintf("cm->index %d\n", cm->index);
-
-
     return 0;
 }
 
@@ -108,7 +103,7 @@ cache_rem(struct cache *c, tag_t t)
 	    c->meta[i].ref--;
 
 	    if (c->meta[i].ref != 0)
-		panic("cache_rem: entry %lx still has refs: %d", t,
+		panic("cache_rem: entry %"PRIx64" still has refs: %d", t,
 		      c->meta[i].ref);
 
 	    c->meta[i].tag = 0;
@@ -130,7 +125,7 @@ cache_dec_ref(struct cache *c, tag_t t)
     for (; i < c->n_ent; i++) {
 	if (c->meta[i].inuse && t == c->meta[i].tag) {
 	    if (c->meta[i].ref == 0)
-		panic("cache_dec_ref: ref count is already 0 for %ld", t);
+		panic("cache_dec_ref: ref count is already 0 for %"PRIu64, t);
 	    c->meta[i].ref--;
 	    return 0;
 	}
@@ -146,7 +141,7 @@ cache_refs(struct cache *c, tag_t t)
     for (; i < c->n_ent; i++)
 	if (c->meta[i].inuse && t == c->meta[i].tag)
 	    return c->meta[i].ref;
-    panic("cache_refs: %lx not found", t);
+    panic("cache_refs: %"PRIx64" not found", t);
 }
 
 int
@@ -167,7 +162,7 @@ cache_print(struct cache *c)
 {
     for (int i = 0; i < c->n_ent; i++)
 	if (c->meta[i].inuse)
-	    cprintf("c->meta[i].tag %ld\n", c->meta[i].tag);
+	    cprintf("c->meta[i].tag %"PRIu64"\n", c->meta[i].tag);
 }
 
 static char __attribute__ ((unused))
