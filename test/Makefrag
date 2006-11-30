@@ -52,3 +52,7 @@ $(OBJDIR)/test/fileserver-test: $(FILESERVER_TEST_OBJS)
 	
 $(OBJDIR)/test/fileclient-test: $(FILECLIENT_TEST_OBJS)
 	$(NCC) -o $@ $(FILECLIENT_TEST_OBJS) -lstdc++
+
+$(OBJDIR)/test/httpd-test: test/httpd-test.cc
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $< -lstdc++ -lssl -lcrypto
