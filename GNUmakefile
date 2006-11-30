@@ -23,7 +23,6 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 # be detected as well.  If you have the right compiler toolchain installed
 # using a different name, set GCCPREFIX explicitly by doing
 
-ARCH	:= amd64
 K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
@@ -38,6 +37,7 @@ OBJTYPE	:= elf64-x86-64
 CC	:= $(GCCPREFIX)gcc -pipe
 CXX	:= $(GCCPREFIX)g++ -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
+ARCH	:= $(shell $(TOP)/conf/gcc-get-arch.sh $(CC))
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
