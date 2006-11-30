@@ -179,7 +179,7 @@ hash_print(struct hashtable *table)
 {
         int i ;
         for (i = 0 ; i < table->capacity ; i++)
-                cprintf("i %d key %ld val %ld\n", i, table->entry[i].key, table->entry[i].val) ;
+                cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i, table->entry[i].key, table->entry[i].val) ;
 }
 
 

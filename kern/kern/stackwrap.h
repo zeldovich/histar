@@ -5,10 +5,10 @@
 #include <dev/disk.h>
 #include <inc/queue.h>
 
-typedef void (*stackwrap_fn) (void *, void *, void *);
+typedef void (*stackwrap_fn) (uint64_t, uint64_t, uint64_t);
 
 int  stackwrap_call(stackwrap_fn fn,
-		    void *fn_arg0, void *fn_arg1, void *fn_arg2)
+		    uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
     __attribute__ ((warn_unused_result));
 
 disk_io_status stackwrap_disk_io(disk_op op, void *buf,

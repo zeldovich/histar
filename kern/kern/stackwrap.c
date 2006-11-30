@@ -9,7 +9,7 @@
 
 struct stackwrap_state {
     stackwrap_fn fn;
-    void *fn_arg[3];
+    uint64_t fn_arg[3];
 
     void *stackbase;
     struct jos_jmp_buf entry_cb;
@@ -22,7 +22,7 @@ struct stackwrap_state {
 struct stackwrap_state *
 stackwrap_cur(void)
 {
-    void *rsp = (void *) read_rsp();
+    void *rsp = (void *) (uintptr_t) read_rsp();
     void *base = ROUNDDOWN(rsp, PGSIZE);
     struct stackwrap_state *ss = (struct stackwrap_state *) base;
 
@@ -60,7 +60,7 @@ stackwrap_sleep(struct stackwrap_state *ss)
 }
 
 int
-stackwrap_call(stackwrap_fn fn, void *fn_arg0, void *fn_arg1, void *fn_arg2)
+stackwrap_call(stackwrap_fn fn, uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
 {
     void *stackbase;
     int r = page_alloc(&stackbase);
@@ -76,7 +76,7 @@ stackwrap_call(stackwrap_fn fn, void *fn_arg0, void *fn_arg1, void *fn_arg2)
     ss->alive = 1;
     ss->magic = STACKWRAP_MAGIC;
     ss->task_state.jb_rip = (uint64_t) &stackwrap_entry;
-    ss->task_state.jb_rsp = (uint64_t) stackbase + PGSIZE;
+    ss->task_state.jb_rsp = (uintptr_t) stackbase + PGSIZE;
 
     stackwrap_wakeup(ss);
     return 0;

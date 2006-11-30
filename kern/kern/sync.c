@@ -56,7 +56,7 @@ int
 sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
 {
     if (sync_debug)
-	cprintf("sync_wait: addr %p val %lx wakeup %lx now %lx\n",
+	cprintf("sync_wait: addr %p val %"PRIx64" wakeup %"PRIx64" now %"PRIx64"\n",
 		addr, val, wakeup_msec, timer_user_msec);
 
     if (*addr != val)
@@ -83,7 +83,7 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
 		uint64_t num, uint64_t wakeup_msec)
 {
     if (sync_debug)
-	cprintf("sync_wait_multi: num %ld wakeup %lx now %lx\n",
+	cprintf("sync_wait_multi: num %"PRIu64" wakeup %"PRIx64" now %"PRIx64"\n",
 		 num, wakeup_msec, timer_user_msec);
 
     if (num == 0)
@@ -101,7 +101,7 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
     sync_waitslots_iter(&it, t);
     for (uint64_t i = 0; i < num; i++) {
 	if (sync_debug)
-	    cprintf("sync_wait_multi: addr %p val %lx\n", addrs[i], vals[i]);
+	    cprintf("sync_wait_multi: addr %p val %"PRIx64"\n", addrs[i], vals[i]);
 
 	uint64_t *addr = addrs[i];
 	int r = check_user_access(addr, sizeof(*addr), 0);
@@ -180,7 +180,7 @@ sync_wakeup_timer(void)
 
 	if (t->th_wakeup_msec <= timer_user_msec) {
 	    if (sync_debug)
-		cprintf("sync_wakeup_timer: waking up %lx now %lx\n",
+		cprintf("sync_wakeup_timer: waking up %"PRIx64" now %"PRIx64"\n",
 			t->th_wakeup_msec, timer_user_msec);
 
 	    thread_set_runnable(t);

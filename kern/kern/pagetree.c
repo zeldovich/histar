@@ -214,7 +214,7 @@ pagetree_get_entp(struct pagetree *pt, uint64_t npage,
 	npage -= num_indirect_pages;
     }
 
-    cprintf("pagetree_get_entp: %ld leftover!\n", npage);
+    cprintf("pagetree_get_entp: %"PRIu64" leftover!\n", npage);
     return -E_NO_SPACE;
 }
 

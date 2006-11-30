@@ -274,7 +274,11 @@ uint64_t
 read_rsp(void)
 {
         uint64_t rsp;
+#if __WORDSIZE == 64
         __asm __volatile("movq %%rsp,%0" : "=r" (rsp));
+#else
+	__asm __volatile("movl %%esp,%0" : "=r" (rsp));
+#endif
         return rsp;
 }
 

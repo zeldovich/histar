@@ -20,7 +20,7 @@ lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes)
 {
     snprintf(&boot_cmdline[0], sizeof(boot_cmdline), "%s", cmdline);
 
-    printf("HiStar/lnx64: disk=%s, membytes=%ld, cmdline=%s\n",
+    printf("HiStar/lnx64: disk=%s, membytes=%"PRIu64", cmdline=%s\n",
 	   disk_pn, membytes, cmdline);
 
     lnxdisk_init(disk_pn);

@@ -7,6 +7,6 @@
 void
 thread_arch_run(const struct Thread *t)
 {
-    printf("thread_arch_run(%ld): bummer\n", t->th_ko.ko_id);
+    printf("thread_arch_run(%"PRIu64"): bummer\n", t->th_ko.ko_id);
     exit(-1);
 }

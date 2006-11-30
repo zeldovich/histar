@@ -384,8 +384,8 @@ thread_jump(const struct Thread *const_t,
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT | 3;
     t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rip = (uint64_t) te->te_entry;
-    t->th_tf.tf_rsp = (uint64_t) te->te_stack;
+    t->th_tf.tf_rip = (uintptr_t) te->te_entry;
+    t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
     t->th_tf.tf_rdi = te->te_arg[0];
     t->th_tf.tf_rsi = te->te_arg[1];
     t->th_tf.tf_rdx = te->te_arg[2];
@@ -440,12 +440,12 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 	return r;
 
     if (thread_pf_debug)
-	cprintf("thread_pagefault(th %ld %s, as %ld %s, va %p): %s\n",
+	cprintf("thread_pagefault(th %"PRIu64" %s, as %"PRIu64" %s, va %p): %s\n",
 		t->th_ko.ko_id, &t->th_ko.ko_name[0],
 		t->th_as->as_ko.ko_id, &t->th_as->as_ko.ko_name[0],
 		fault_va, e2s(r));
 
-    r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uint64_t) fault_va);
+    r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uintptr_t) fault_va);
     if (r >= 0 || r == -E_RESTART)
 	return r;
 
@@ -480,7 +480,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     uint64_t rsp = t->th_tf.tf_rsp;
     if (rsp > t->th_as->as_utrap_stack_base &&
 	rsp <= t->th_as->as_utrap_stack_top)
-	stacktop = (void *) rsp - 128;	// Skip red zone (see ABI spec)
+	stacktop = (void *) (uintptr_t) rsp - 128;	// Skip red zone (see ABI spec)
     else
 	stacktop = (void *) t->th_as->as_utrap_stack_top;
 
@@ -499,13 +499,13 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
     if (r < 0) {
-	if ((uint64_t)utf <= t->th_as->as_utrap_stack_base)
+	if ((uintptr_t) utf <= t->th_as->as_utrap_stack_base)
 	    cprintf("thread_utrap: utrap stack overflow\n");
 	goto out;
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));
-    t->th_tf.tf_rsp = (uint64_t) utf;
+    t->th_tf.tf_rsp = (uintptr_t) utf;
     t->th_tf.tf_rip = t->th_as->as_utrap_entry;
     t->th_tf.tf_rflags &= ~FL_TF;
     t->th_utrap_masked = 1;

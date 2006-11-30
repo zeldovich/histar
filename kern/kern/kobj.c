@@ -82,7 +82,7 @@ kobject_iflow_check(const struct kobject_hdr *ko, info_flow_type iflow)
 
     assert(th_label_id && th_clear_id);
     if (ko_label_id == 0) {
-	cprintf("Missing label on object %ld (%s)\n", ko->ko_id, ko->ko_name);
+	cprintf("Missing label on object %"PRIu64" (%s)\n", ko->ko_id, ko->ko_name);
 	return -E_LABEL;
     }
 
@@ -291,7 +291,7 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 			      npage, pp, rw);
     if (r == 0) {
 	if (*pp == 0)
-	    panic("kobject_get_page: id %ld (%s) type %d npage %ld null",
+	    panic("kobject_get_page: id %"PRIu64" (%s) type %d npage %"PRIu64" null",
 		  kp->ko_id, kp->ko_name, kp->ko_type, npage);
 
 	// Be conservative -- assume caller will map this page somewhere..
@@ -309,7 +309,7 @@ kobject_dirty_eval(struct kobject *ko)
     ko->hdr.ko_flags &= ~KOBJ_DIRTY_LATER;
 
     if (ko->hdr.ko_type != kobj_segment)
-	panic("kobject_dirty_eval: %ld (%s) is not a segment: type %d\n",
+	panic("kobject_dirty_eval: %"PRIu64" (%s) is not a segment: type %d\n",
 	      ko->hdr.ko_id, ko->hdr.ko_name, ko->hdr.ko_type);
 
     segment_collect_dirty(&ko->sg);
@@ -482,13 +482,13 @@ kobject_swapin(struct kobject *ko)
     uint64_t sum2 = kobject_cksum(&ko->hdr);
 
     if (sum1 != sum2)
-	cprintf("kobject_swapin: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
+	cprintf("kobject_swapin: %"PRIu64" (%s) checksum mismatch: 0x%"PRIx64" != 0x%"PRIx64"\n",
 		ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
 
     struct kobject *kx;
     LIST_FOREACH(kx, &ko_list, ko_link)
 	if (ko->hdr.ko_id == kx->hdr.ko_id)
-	    panic("kobject_swapin: duplicate %ld (%s)",
+	    panic("kobject_swapin: duplicate %"PRIu64" (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
 
     kobject_negative_remove(ko->hdr.ko_id);
@@ -569,7 +569,7 @@ kobject_unpin_hdr(const struct kobject_hdr *ko)
     --m->ko_pin;
 
     if (m->ko_pin == (uint32_t) -1)
-	panic("kobject_unpin_hdr: underflow for object %ld (%s)",
+	panic("kobject_unpin_hdr: underflow for object %"PRIu64" (%s)",
 	      m->ko_id, m->ko_name);
 }
 
@@ -677,7 +677,7 @@ kobject_gc_scan(void)
 		if (r >= 0)
 		    progress = 1;
 		if (r < 0 && r != -E_RESTART)
-		    cprintf("kobject_gc_scan: %ld type %d: %s\n",
+		    cprintf("kobject_gc_scan: %"PRIu64" type %d: %s\n",
 			    ko->hdr.ko_id, ko->hdr.ko_type, e2s(r));
 	    }
 	}
@@ -694,7 +694,7 @@ kobject_swapout(struct kobject *ko)
 	uint64_t sum2 = kobject_cksum(&ko->hdr);
 
 	if (sum1 != sum2)
-	    cprintf("kobject_swapout: %ld (%s) checksum mismatch: 0x%lx != 0x%lx\n",
+	    cprintf("kobject_swapout: %"PRIu64" (%s) checksum mismatch: 0x%"PRIx64" != 0x%"PRIx64"\n",
 		    ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
     }
 
@@ -734,7 +734,7 @@ kobject_get_snapshot(struct kobject_hdr *ko)
     if (kobject_checksum_pedantic) {
 	uint64_t sum = kobject_cksum(&snap->hdr);
 	if (sum != ko->ko_cksum)
-	    cprintf("kobject_get_snapshot(%ld, %s): cksum changed 0x%lx -> 0x%lx\n",
+	    cprintf("kobject_get_snapshot(%"PRIu64", %s): cksum changed 0x%"PRIx64" -> 0x%"PRIx64"\n",
 		    ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
     }
 
@@ -848,7 +848,7 @@ kobject_reclaim(void)
 	    continue;
 
 	if (kobject_reclaim_debug)
-	    cprintf("kobject_reclaim: swapping out %ld (%s)\n",
+	    cprintf("kobject_reclaim: swapping out %"PRIu64" (%s)\n",
 		    ko->hdr.ko_id, ko->hdr.ko_name);
 
 	kobject_swapout(ko);
@@ -856,7 +856,7 @@ kobject_reclaim(void)
 
     if (kobject_reclaim_check()) {
 	cprintf("kobject_reclaim: unable to reclaim much memory\n");
-	cprintf("kobject_reclaim: used %ld avail %ld alloc %ld fail %ld\n",
+	cprintf("kobject_reclaim: used %"PRIu64" avail %"PRIu64" alloc %"PRIu64" fail %"PRIu64"\n",
 		page_stats.pages_used, page_stats.pages_avail,
 		page_stats.allocations, page_stats.failures);
     }
@@ -878,11 +878,11 @@ kobject_init(void)
 
     if (kobject_print_sizes) {
 	cprintf("kobject sizes:\n");
-	cprintf("hdr %ld label %ld pagetree %ld\n",
+	cprintf("hdr %tu label %tu pagetree %tu\n",
 		sizeof(struct kobject_hdr),
 		sizeof(struct Label),
 		sizeof(struct pagetree));
-	cprintf("ct %ld th %ld gt %ld as %ld sg %ld\n",
+	cprintf("ct %tu th %tu gt %tu as %tu sg %tu\n",
 		sizeof(struct Container),
 		sizeof(struct Thread),
 		sizeof(struct Gate),

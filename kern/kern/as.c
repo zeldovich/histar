@@ -406,15 +406,15 @@ as_pmap_fill_segment(const struct Address_space *as,
 	MIN(usm->start_page + usm->num_pages - 1,
 	    safe_add(&of, need_page_in_seg, as_courtesy_pages));
 
-    void *usm_last_va =
-	(void *) safe_add(&of, (uint64_t) usm->va,
-			  safe_mul(&of, usm->num_pages - 1, PGSIZE));
+    void *usm_last_va = (void *) (uintptr_t)
+	safe_add(&of, (uintptr_t) usm->va,
+		 safe_mul(&of, usm->num_pages - 1, PGSIZE));
     if (of || PGOFF(usm->va) ||
 	usm->va >= (void *) ULIM || usm_last_va >= (void *) ULIM)
 	return -E_INVAL;
 
     if (as_debug)
-	cprintf("as_pmap_fill_segment: start %ld num %ld need %ld: mapping %ld--%ld\n",
+	cprintf("as_pmap_fill_segment: start %"PRIu64" num %"PRIu64" need %"PRIu64": mapping %"PRIu64"--%"PRIu64"\n",
 		usm->start_page, usm->num_pages, need_page_in_seg, map_start_page, map_end_page);
 
     if (sm->sm_sg) {
@@ -489,8 +489,9 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	int of = 0;
 	uint64_t npages = usm->num_pages;
 	void *va_start = ROUNDDOWN(usm->va, PGSIZE);
-	void *va_end = (void *) safe_add(&of, (uint64_t) va_start,
-					 safe_mul(&of, npages, PGSIZE));
+	void *va_end = (void *) (uintptr_t)
+	    safe_add(&of, (uintptr_t) va_start,
+		     safe_mul(&of, npages, PGSIZE));
 	if (of || va < va_start || va >= va_end)
 	    continue;
 
@@ -509,7 +510,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	uint64_t fault_page = (ROUNDDOWN(va, PGSIZE) - va_start) / PGSIZE;
 
 	if (as_debug)
-	    cprintf("as_pmap_fill: fault %p base %p page# %ld\n",
+	    cprintf("as_pmap_fill: fault %p base %p page# %"PRIu64"\n",
 		    va, va_start, fault_page);
 
 	const struct Segment *sg = &ko->sg;

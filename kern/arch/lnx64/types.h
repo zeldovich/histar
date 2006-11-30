@@ -3,6 +3,7 @@
 
 #ifdef JOS_KERNEL
 #include <sys/types.h>
+#include <inttypes.h>
 #endif
 
 #ifndef NULL
@@ -26,16 +27,9 @@ typedef u_int64_t uint64_t;
 typedef   int64_t  int128_t;
 typedef u_int64_t uint128_t;
 
-// Pointers and addresses are 64 bits long.
-// We use pointer types to represent virtual addresses,
-// uintptr_t to represent the numerical values of virtual addresses,
-// and physaddr_t to represent physical addresses.
-typedef int64_t intptr_t;
-typedef uint64_t uintptr_t;
-typedef uint64_t physaddr_t;
-
-// Page numbers are 32 bits long.
+// Page numbers are 64 bits long.
 typedef uint64_t ppn_t;
+typedef uint64_t physaddr_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\

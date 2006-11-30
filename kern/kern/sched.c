@@ -59,7 +59,7 @@ schedule(void)
 	}
 
 	if (!readable_parent) {
-	    cprintf("schedule(): thread %ld (%s) not self-aware, halting\n",
+	    cprintf("schedule(): thread %"PRIu64" (%s) not self-aware, halting\n",
 		    cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
 	    thread_halt(cur_thread);
 	}

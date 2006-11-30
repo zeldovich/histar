@@ -67,7 +67,7 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
 		     struct Segment **sg_store)
 {
     if (bufsize > segsize) {
-	cprintf("segment_create_embed: bufsize %ld > segsize %ld\n",
+	cprintf("segment_create_embed: bufsize %"PRIu64" > segsize %"PRIu64"\n",
 		bufsize, segsize);
 	return -E_INVAL;
     }
@@ -155,7 +155,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	    return -E_INVAL;
 	}
 
-	char *va = (char *) ROUNDDOWN(ph.p_vaddr, PGSIZE);
+	char *va = (char *) (uintptr_t) ROUNDDOWN(ph.p_vaddr, PGSIZE);
 	uint64_t page_offset = PGOFF(ph.p_offset);
 	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
 
@@ -189,7 +189,8 @@ thread_load_elf(struct Container *c, struct Thread *t,
 
     r = elf_add_segmap(as, &segmap_i,
 		       COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-		       0, stackpages, (void*) (USTACKTOP - stackpages * PGSIZE),
+		       0, stackpages,
+		       (void *) (uintptr_t) (USTACKTOP - stackpages * PGSIZE),
 		       SEGMAP_READ | SEGMAP_WRITE);
     if (r < 0) {
 	cprintf("ELF: cannot map stack segment: %s\n", e2s(r));
@@ -199,7 +200,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_as = COBJ(c->ct_ko.ko_id, as->as_ko.ko_id);
-    te.te_entry = (void *) elf.e_entry;
+    te.te_entry = (void *) (uintptr_t) elf.e_entry;
     te.te_stack = (void *) USTACKTOP;
     te.te_arg[0] = arg0;
     te.te_arg[1] = arg1;
@@ -232,7 +233,7 @@ thread_create_embed(struct Container *c,
 
     struct Container *tc;
     assert_check(container_alloc(obj_label, &tc));
-    tc->ct_ko.ko_quota_total = (1UL << 32);
+    tc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
     tc->ct_ko.ko_flags |= koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko) >= 0);
@@ -300,7 +301,7 @@ user_bootstrap(void)
     // filesystem
     struct Container *fsc;
     assert_check(container_alloc(obj_label, &fsc));
-    fsc->ct_ko.ko_quota_total = (1UL << 32);
+    fsc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
     fsc->ct_avoid_types = (1 << kobj_address_space) | (1 << kobj_netdev) |
 			  (1 << kobj_gate) | (1 << kobj_thread);
     assert_check(container_put(rc, &fsc->ct_ko));

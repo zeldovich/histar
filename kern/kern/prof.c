@@ -121,7 +121,7 @@ print_entry(struct entry *tab, int i, const char *name)
 {
     if (tab[i].count > prof_print_count_threshold ||
 	tab[i].time > prof_print_cycles_threshold)
-	cprintf("%3d cnt%12ld tot%12ld avg%12ld %s\n",
+	cprintf("%3d cnt%12"PRIu64" tot%12"PRIu64" avg%12"PRIu64" %s\n",
 		i,
 		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
 }
@@ -178,7 +178,7 @@ cyg_profile_reset(void)
 static void __attribute__ ((no_instrument_function))
 cyg_profile_data(void *func_addr, uint64_t time, int count)
 {
-    uint64_t func = (uint64_t) func_addr;
+    uint64_t func = (uintptr_t) func_addr;
     uint64_t val;
 
     if (hash_get(&cyg_data.stats_lookup, func, &val) < 0) {
@@ -222,9 +222,9 @@ cyg_profile_print(void)
 	uint64_t val;
 	char buf[32];
 	if (hash_get
-	    (&cyg_data.stats_lookup, (uint64_t) cyg_profs_printed[i],
+	    (&cyg_data.stats_lookup, (uintptr_t) cyg_profs_printed[i],
 	     &val) == 0) {
-	    sprintf(buf, "%lx", (uint64_t) cyg_profs_printed[i]);
+	    sprintf(buf, "%"PRIx64, (uint64_t) (uintptr_t) cyg_profs_printed[i]);
 	    print_entry(cyg_data.stat, val, buf);
 	}
     }
@@ -236,7 +236,7 @@ cyg_profile_print(void)
 	uint64_t val = cyg_data.stats_lookup_back[i].val;
 	if (!key)
 	    continue;
-	sprintf(buf, "%lx", key);
+	sprintf(buf, "%"PRIx64, key);
 	if (cyg_data.stat[val].time > cyg_profs_threshold)
 	    print_entry(cyg_data.stat, val, buf);
     }
@@ -262,11 +262,11 @@ __cyg_profile_func_enter(void *this_fn, void *call_site __attribute__((unused)))
     uint64_t f = read_tsc();
     if (s->size > 0) {
 	uint64_t caller = s->func_stamp[s->size - 1].func_addr;
-	cyg_profile_data((void *) caller, f - cyg_data.last_tsc, 0);
+	cyg_profile_data((void *) (uintptr_t) caller, f - cyg_data.last_tsc, 0);
     }
     cyg_data.last_tsc = f;
 
-    s->func_stamp[s->size].func_addr = (uint64_t) this_fn;
+    s->func_stamp[s->size].func_addr = (uintptr_t) this_fn;
     s->func_stamp[s->size].entry_tsc = read_tsc();
     s->size++;
 
@@ -291,7 +291,7 @@ __cyg_profile_func_exit(void *this_fn, void *call_site __attribute__((unused)))
 
     while (1) {
 	s->size--;
-	if (s->func_stamp[s->size].func_addr == (uint64_t) this_fn)
+	if (s->func_stamp[s->size].func_addr == (uintptr_t) this_fn)
 	    break;
 	// bottom out func addr stack
 	assert(s->size != 0);

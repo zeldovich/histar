@@ -80,4 +80,7 @@ typedef uint32_t time_t;
 
 #include <stddef.h>	// gcc header file
 
+#define PRIu64 "ld"
+#define PRIx64 "lx"
+
 #endif /* !JOS_INC_TYPES_H */

@@ -443,7 +443,7 @@ label_cprint(const struct Label *l)
 		lchar[0] = '*';
 	    else
 		snprintf(&lchar[0], 2, "%d", level);
-	    cprintf(" %lu:%c,", LB_HANDLE(ent), lchar[0]);
+	    cprintf(" %"PRIu64":%c,", LB_HANDLE(ent), lchar[0]);
 	}
     }
     cprintf(" %d }\n", l->lb_def_level);

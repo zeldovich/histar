@@ -77,7 +77,7 @@ pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
     int64_t offset = freelist_alloc(f, nbytes);
 
     if (offset < 0) {
-	cprintf("pstate_kobj_alloc: no room for %ld bytes\n", nbytes);
+	cprintf("pstate_kobj_alloc: no room for %"PRIu64" bytes\n", nbytes);
 	return offset;
     }
 
@@ -206,17 +206,17 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 	goto err;
 
     if (pstate_swapin_debug)
-	cprintf("pstate_swapin_obj: id %ld nbytes %ld\n",
+	cprintf("pstate_swapin_obj: id %"PRIu64" nbytes %"PRIu64"\n",
 			ko->hdr.ko_id, ko->hdr.ko_nbytes);
 
     if (ko->hdr.ko_id != id) {
-	cprintf("pstate_swapin_mobj: requested %ld (%ld @ %ld), got %ld\n",
+	cprintf("pstate_swapin_mobj: requested %"PRIu64" (%"PRIu64" @ %"PRIu64"), got %"PRIu64"\n",
 		id, mobj.nbytes, mobj.off, ko->hdr.ko_id);
 
 	kobject_id_t id_found;
 	r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &id_found, (uint64_t *) &mobj);
 	if (r >= 0)
-	    cprintf("pstate_swapin_mobj: %ld maps to %ld @ %ld\n",
+	    cprintf("pstate_swapin_mobj: %"PRIu64" maps to %"PRIu64" @ %"PRIu64"\n",
 		    id_found, mobj.nbytes, mobj.off);
 
 	panic("pstate_swapin_mobj: disk state corrupted");
@@ -240,7 +240,7 @@ pstate_swapin_id(kobject_id_t id)
     int r = btree_search(BTREE_OBJMAP, &id, &id_found, (uint64_t *) &mobj);
     if (r == -E_NOT_FOUND) {
 	if (pstate_swapin_debug)
-	    cprintf("pstate_swapin_stackwrap: id %ld not found\n", id);
+	    cprintf("pstate_swapin_stackwrap: id %"PRIu64" not found\n", id);
 	kobject_negative_insert(id);
     } else if (r < 0) {
 	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
@@ -254,7 +254,7 @@ pstate_swapin_id(kobject_id_t id)
 }
 
 static void
-pstate_swapin_stackwrap(void *arg, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
+pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1 __attribute__((unused)), uint64_t arg2 __attribute__((unused)))
 {
     kobject_id_t id = (kobject_id_t) arg;
     static struct Thread_list swapin_waiting;
@@ -280,9 +280,9 @@ int
 pstate_swapin(kobject_id_t id)
 {
     if (pstate_swapin_debug)
-	cprintf("pstate_swapin: object %ld\n", id);
+	cprintf("pstate_swapin: object %"PRIu64"\n", id);
 
-    int r = stackwrap_call(&pstate_swapin_stackwrap, (void *) id, 0, 0);
+    int r = stackwrap_call(&pstate_swapin_stackwrap, id, 0, 0);
     if (r < 0) {
 	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
 	return r;
@@ -361,11 +361,11 @@ pstate_load2(void)
     while (btree_next_entry(&trav)) {
 	uint64_t id = *trav.key;
 	if (pstate_load_debug)
-	    cprintf("pstate_load2: paging in kobj %ld\n", id);
+	    cprintf("pstate_load2: paging in kobj %"PRIu64"\n", id);
 
 	r = pstate_swapin_id(id);
 	if (r < 0) {
-	    cprintf("pstate_load2: cannot swapin %ld: %s\n", id, e2s(r));
+	    cprintf("pstate_load2: cannot swapin %"PRIu64": %s\n", id, e2s(r));
 	    return r;
 	}
     }
@@ -378,16 +378,16 @@ pstate_load2(void)
 	timer_user_msec_offset = stable_hdr.ph_user_msec - timer_user_msec;
 
     if (pstate_load_debug)
-	cprintf("pstate_load2: handle_ctr %ld root_handle %ld msec %ld\n",
+	cprintf("pstate_load2: handle_ctr %"PRIu64" root_handle %"PRIu64" msec %"PRIu64"\n",
 		handle_counter, user_root_handle, timer_user_msec);
 
     return 1;
 }
 
 static void
-pstate_load_stackwrap(void *arg, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
+pstate_load_stackwrap(uint64_t arg, uint64_t arg1 __attribute__((unused)), uint64_t arg2 __attribute__((unused)))
 {
-    int *donep = (int *) arg;
+    int *donep = (int *) (uintptr_t) arg;
     *donep = pstate_load2();
 }
 
@@ -402,7 +402,7 @@ int
 pstate_load(void)
 {
     int done = 0;
-    int r = stackwrap_call(&pstate_load_stackwrap, &done, 0, 0);
+    int r = stackwrap_call(&pstate_load_stackwrap, (uintptr_t) &done, 0, 0);
     if (r < 0) {
 	cprintf("pstate_load: cannot stackwrap: %s\n", e2s(r));
 	return r;
@@ -413,7 +413,7 @@ pstate_load(void)
     while (!done) {
 	uint64_t ts_now = read_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
-	    cprintf("pstate_load: wedged for %ld\n", ts_now - ts_start);
+	    cprintf("pstate_load: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
 	}
 	ide_intr();
@@ -484,7 +484,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 	return r;
 
     if (pstate_swapout_debug)
-	cprintf("pstate_sync_kobj: id %ld nbytes %ld\n",
+	cprintf("pstate_sync_kobj: id %"PRIu64" nbytes %"PRIu64"\n",
 		snap->hdr.ko_id, snap->hdr.ko_nbytes);
 
     ko->ko_flags |= KOBJ_ON_DISK;
@@ -583,11 +583,11 @@ pstate_sync_loop(struct pstate_header *hdr,
 }
 
 static void
-pstate_sync_stackwrap(void *arg0, void *arg1 __attribute__((unused)), void *arg2 __attribute__((unused)))
+pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1 __attribute__((unused)), uint64_t arg2 __attribute__((unused)))
 {
     int *rvalp = 0;
     if (arg0)
-	rvalp = (int *) arg0;
+	rvalp = (int *) (uintptr_t) arg0;
 
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync: another sync still active\n");
@@ -603,7 +603,7 @@ pstate_sync_stackwrap(void *arg0, void *arg1 __attribute__((unused)), void *arg2
 	assert(disk_pages > reserved_pages);
 
 	if (pstate_swapout_debug)
-	    cprintf("pstate_sync: %ld disk pages\n", disk_pages);
+	    cprintf("pstate_sync: %"PRIu64" disk pages\n", disk_pages);
 
 	btree_manager_init();
 	freelist_init(&freelist, reserved_pages * PGSIZE,
@@ -674,10 +674,10 @@ pstate_sync_stackwrap(void *arg0, void *arg1 __attribute__((unused)), void *arg2
     }
 
     if (pstate_swapout_stats) {
-	cprintf("pstate_sync: total %ld snap %ld dead %ld wrote %ld pages %ld\n",
+	cprintf("pstate_sync: total %"PRIu64" snap %"PRIu64" dead %"PRIu64" wrote %"PRIu64" pages %"PRIu64"\n",
 		stats.total_kobj, stats.snapshoted_kobj, stats.dead_kobj,
 		stats.written_kobj, stats.written_pages);
-	cprintf("pstate_sync: pages used %ld avail %ld allocs %ld fail %ld\n",
+	cprintf("pstate_sync: pages used %"PRIu64" avail %"PRIu64" allocs %"PRIu64" fail %"PRIu64"\n",
 		page_stats.pages_used, page_stats.pages_avail,
 		page_stats.allocations, page_stats.failures);
     }
@@ -702,7 +702,7 @@ int
 pstate_sync_now(void)
 {
     int rval = 0;
-    int r = stackwrap_call(&pstate_sync_stackwrap, &rval, 0, 0);
+    int r = stackwrap_call(&pstate_sync_stackwrap, (uintptr_t) &rval, 0, 0);
     if (r < 0)
 	return r;
 
@@ -717,12 +717,10 @@ pstate_sync_now(void)
 //////////////////////////////////////////////////
 
 static void
-pstate_sync_object_stackwrap(void *arg, void *arg1, void *arg2)
+pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 {
     // Casting to non-const, but it's OK here.
-    struct kobject *ko = arg;
-    uint64_t start = (uint64_t) arg1;
-    uint64_t nbytes = (uint64_t) arg2;
+    struct kobject *ko = (struct kobject *) (uintptr_t) arg;
 
     thread_suspend(cur_thread, &swapout_waiting);
     if (lock_try_acquire(&swapout_lock) < 0) {
@@ -804,7 +802,7 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	return 0;
 
     int r = stackwrap_call(&pstate_sync_object_stackwrap,
-			   (void *) ko, (void *) start, (void *) nbytes);
+			   (uintptr_t) ko, start, nbytes);
     if (r < 0) {
 	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
 	return r;
