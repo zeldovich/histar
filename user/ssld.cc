@@ -20,12 +20,17 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 
+#include <inc/memlayout.h>
+#include <inc/taint.h>
+#include <inc/stack.h>
+
 #include <openssl/ssl.h>
 }
 
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
+#include <inc/scopeguard.hh>
 
 #include <map>
 
@@ -33,6 +38,8 @@ struct sock_data {
     BIO *io;
     SSL *ssl;
 } ;
+
+static struct cobj_ref ssld_gate_create(uint64_t ct);
 
 std::map<int, struct sock_data> data;
 
@@ -59,9 +66,207 @@ error_to_jos64(int ret)
     return 0;
 }
 
+static int
+ssld_accept(int lwip_sock, uint64_t netd_ct)
+{
+    int64_t gate_id = container_find(netd_ct, kobj_gate, "netd");
+    if (gate_id < 0)
+	return gate_id;
+    struct cobj_ref netd_gate = COBJ(netd_ct, gate_id);
+    netd_set_gate(netd_gate);
+
+    struct Fd *fd;
+    int r = fd_alloc(&fd, "socket fd");
+    if (r < 0)
+	return r;
+
+    fd->fd_dev_id = devsock.dev_id;
+    fd->fd_omode = O_RDWR;
+    fd->fd_sock.s = lwip_sock;
+    fd->fd_sock.netd_gate = netd_gate;
+
+    int s = fd2num(fd);
+    
+    BIO *sbio = BIO_new_socket(s, BIO_NOCLOSE);
+    SSL *ssl = SSL_new(ctx);
+    SSL_set_bio(ssl, sbio, sbio);
+    
+    if((r = SSL_accept(ssl)) <= 0)
+	return -1;
+    
+    BIO *io = BIO_new(BIO_f_buffer());
+    BIO *ssl_bio = BIO_new(BIO_f_ssl());
+    BIO_set_ssl(ssl_bio, ssl, BIO_CLOSE);
+    BIO_push(io, ssl_bio);
+    
+    data[lwip_sock].ssl = ssl;
+    data[lwip_sock].io = io;
+
+    return 0;
+}
+
+static int
+ssld_send(BIO *io, void *buf, size_t count, int flags)
+{
+    int ret;
+    if((ret = BIO_write(io, buf, count)) <= 0)
+	return error_to_jos64(ret);
+    
+    int r;
+    if((r = BIO_flush(io)) <= 0)
+	return error_to_jos64(r);
+
+    return ret;
+}
+
+static int
+ssld_recv(SSL *ssl, BIO *io, void *buf, size_t count, int flags)
+{
+    int r = BIO_gets(io, (char *)buf, count);
+    if (r <= 0)
+	return error_to_jos64(r);
+    return r;
+}
+
+static int
+ssld_close(int lwip_sock)
+{
+    BIO_free(data[lwip_sock].io);
+    SSL_shutdown(data[lwip_sock].ssl);
+    SSL_free(data[lwip_sock].ssl);
+    data.erase(lwip_sock);
+    return 0;
+}
 
 void
-init_ssl(const char *server_pem, const char *dh_pem, const char *calist_pem)
+ssld_dispatch(struct ssld_op_args *a)
+{
+    switch(a->op_type) {
+    case ssld_op_accept:
+	a->rval = ssld_accept(a->accept.s, a->accept.netd_ct);
+	break;
+    case ssld_op_send:
+	a->rval = ssld_send(data[a->send.s].io, 
+			    a->send.buf, a->send.count, a->send.flags);
+	break;
+    case ssld_op_recv:
+	a->rval = ssld_recv(data[a->recv.s].ssl, data[a->recv.s].io, 
+			    a->recv.buf, a->recv.count, a->recv.flags);
+	break;
+    case ssld_op_close:
+	a->rval = ssld_close(a->close.s);
+	break;
+    }
+}
+
+static void __attribute__((noreturn))
+ssld_gate(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
+{
+    struct gate_call_data bck;
+    gate_call_data_copy(&bck, gcd);
+
+    uint64_t ssld_ct = start_env->proc_container;
+    struct cobj_ref arg = gcd->param_obj;
+    
+    int64_t arg_copy_id = sys_segment_copy(arg, ssld_ct, 0,
+					   "ssld_gate args");
+    if (arg_copy_id < 0)
+	panic("ssld_gate: cannot copy <%ld.%ld> args: %s",
+	      arg.container, arg.object, e2s(arg_copy_id));
+    sys_obj_unref(arg);
+    
+    struct cobj_ref arg_copy = COBJ(ssld_ct, arg_copy_id);
+    struct ssld_op_args *a = 0;
+    int r = segment_map(arg_copy, 0, SEGMAP_READ | SEGMAP_WRITE, (void**)&a, 0, 0);
+    if (r < 0)
+	panic("ssld_gate: cannot map args: %s\n", e2s(r));
+
+    ssld_dispatch(a);
+    gate_call_data_copy(gcd, &bck);
+
+    segment_unmap(a);
+    
+    uint64_t copy_back_ct = gcd->taint_container;
+    int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct, 0,
+					    "ssld_gate reply");
+    if (copy_back_id < 0)
+	panic("ssld_gate: cannot copy back: %s", e2s(copy_back_id));
+    
+    sys_obj_unref(arg_copy);
+    gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
+    gr->ret(0, 0, 0);
+}
+
+static void __attribute__((noreturn))
+ssld_cow_entry(void)
+{
+    try {
+	// Copy-on-write if we are tainted
+	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
+	uint64_t *cow_ct = (uint64_t *)gcd->param_buf;
+	taint_cow(*cow_ct, gcd->declassify_gate);
+
+	// Reset our cached thread ID, stored in TLS
+	if (tls_tidp)
+	    *tls_tidp = sys_self_id();
+	
+	thread_label_cache_invalidate();
+	
+	int64_t *ret_id = (int64_t *)cow_ct;
+	struct cobj_ref gate = ssld_gate_create(*cow_ct);
+	*ret_id = gate.object;
+	
+	/*
+	uint64_t entry_ct = start_env->proc_container;
+	error_check(sys_self_set_sched_parents(gcd->taint_container, entry_ct));
+	if (!(flags & GATESRV_NO_THREAD_ADDREF))
+	    error_check(sys_self_addref(entry_ct));
+	scope_guard<int, struct cobj_ref>
+	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
+	*/
+	
+	gatesrv_return ret(gcd->return_gate, start_env->proc_container,
+			   gcd->taint_container, 0, GATESRV_KEEP_TLS_STACK);	
+	ret.ret(0, 0, 0);
+    } catch (std::exception &e) {
+	printf("ssld_cow_entry: %s\n", e.what());
+	thread_halt();
+    }
+}
+
+static struct cobj_ref
+ssld_cow_gate_create(uint64_t ct)
+{
+    label th_l, th_c;
+    thread_cur_label(&th_l);
+    thread_cur_clearance(&th_c);
+    
+    struct thread_entry te;
+    memset(&te, 0, sizeof(te));
+    te.te_entry = (void *) &ssld_cow_entry;
+    te.te_stack = (char *) tls_stack_top - 8;
+    error_check(sys_self_get_as(&te.te_as));
+
+    int64_t gate_id = sys_gate_create(ct, &te,
+				      th_c.to_ulabel(),
+				      th_l.to_ulabel(), "ssld-cow", 0);
+    if (gate_id < 0)
+	throw error(gate_id, "sys_gate_create");
+
+    return COBJ(ct, gate_id);
+}
+
+static struct cobj_ref
+ssld_gate_create(uint64_t ct)
+{
+    label th_l, th_c;
+    thread_cur_label(&th_l);
+    thread_cur_clearance(&th_c);
+    return gate_create(ct, "ssld", &th_l, &th_c, &ssld_gate, 0);
+}
+
+void
+ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
 	SSL_CTX_free(ctx);
@@ -107,137 +312,12 @@ init_ssl(const char *server_pem, const char *dh_pem, const char *calist_pem)
     }
 }
 
-static int
-ssld_accept(int lwip_sock, struct cobj_ref netd_gate)
-{
-    struct Fd *fd;
-    int r = fd_alloc(&fd, "socket fd");
-    if (r < 0)
-	return r;
-
-    fd->fd_dev_id = devsock.dev_id;
-    fd->fd_omode = O_RDWR;
-    fd->fd_sock.s = lwip_sock;
-    fd->fd_sock.netd_gate = netd_get_gate();
-
-    int s = fd2num(fd);
-    
-    BIO *sbio = BIO_new_socket(s, BIO_NOCLOSE);
-    SSL *ssl = SSL_new(ctx);
-    SSL_set_bio(ssl, sbio, sbio);
-    
-    if((r = SSL_accept(ssl)) <= 0)
-	return -1;
-    
-    BIO *io = BIO_new(BIO_f_buffer());
-    BIO *ssl_bio = BIO_new(BIO_f_ssl());
-    BIO_set_ssl(ssl_bio, ssl, BIO_CLOSE);
-    BIO_push(io, ssl_bio);
-    
-    data[lwip_sock].ssl = ssl;
-    data[lwip_sock].io = io;
-    
-    return 0;
-}
-
-static int
-ssld_send(BIO *io, void *buf, size_t count, int flags)
-{
-    int ret;
-    if((ret = BIO_write(io, buf, count)) <= 0)
-	return error_to_jos64(ret);
-    
-    int r;
-    if((r = BIO_flush(io)) <= 0)
-	return error_to_jos64(r);
-
-    return ret;
-}
-
-static int
-ssld_recv(SSL *ssl, BIO *io, void *buf, size_t count, int flags)
-{
-    int r = BIO_gets(io, (char *)buf, count);
-    if (r <= 0)
-	return error_to_jos64(r);
-    return r;
-}
-
-static int
-ssld_close(int lwip_sock)
-{
-    BIO_free(data[lwip_sock].io);
-    SSL_shutdown(data[lwip_sock].ssl);
-    SSL_free(data[lwip_sock].ssl);
-    data.erase(lwip_sock);
-    return 0;
-}
-
-void
-ssld_dispatch(struct ssld_op_args *a)
-{
-    switch(a->op_type) {
-    case ssld_op_accept:
-	a->rval = ssld_accept(a->accept.s, a->accept.netd_gate);
-	break;
-    case ssld_op_send:
-	a->rval = ssld_send(data[a->send.s].io, 
-			    a->send.buf, a->send.count, a->send.flags);
-	break;
-    case ssld_op_recv:
-	a->rval = ssld_recv(data[a->recv.s].ssl, data[a->recv.s].io, 
-			    a->recv.buf, a->recv.count, a->recv.flags);
-	break;
-    case ssld_op_close:
-	a->rval = ssld_close(a->close.s);
-	break;
-    }
-}
-
-
-static void __attribute__((noreturn))
-ssld_gate(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
-{
-    struct gate_call_data bck;
-    gate_call_data_copy(&bck, gcd);
-
-    uint64_t ssld_ct = start_env->proc_container;
-    struct cobj_ref arg = gcd->param_obj;
-    
-    int64_t arg_copy_id = sys_segment_copy(arg, ssld_ct, 0,
-					   "ssld_gate args");
-    if (arg_copy_id < 0)
-	panic("ssld_gate: cannot copy <%ld.%ld> args: %s",
-	      arg.container, arg.object, e2s(arg_copy_id));
-    sys_obj_unref(arg);
-    
-    struct cobj_ref arg_copy = COBJ(ssld_ct, arg_copy_id);
-    struct ssld_op_args *a = 0;
-    int r = segment_map(arg_copy, 0, SEGMAP_READ | SEGMAP_WRITE, (void**)&a, 0, 0);
-    if (r < 0)
-	panic("netd_gate_entry: cannot map args: %s\n", e2s(r));
-
-    ssld_dispatch(a);
-    gate_call_data_copy(gcd, &bck);
-
-    segment_unmap(a);
-    
-    uint64_t copy_back_ct = gcd->taint_container;
-    int64_t copy_back_id = sys_segment_copy(arg_copy, copy_back_ct, 0,
-					    "ssld_gate reply");
-    if (copy_back_id < 0)
-	panic("ssld_gate: cannot copy back: %s", e2s(copy_back_id));
-    
-    sys_obj_unref(arg_copy);
-    gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
-    gr->ret(0, 0, 0);
-}
-
 int
 main (int ac, char **av)
 {
     if (ac < 4) {
-	cprintf("Usage: %s server-pem password dh-pem [calist-pem]", av[0]);
+	cprintf("Usage: %s netd-path server-pem password dh-pem [calist-pem]", 
+		av[0]);
 	return -1;
     }
 
@@ -247,14 +327,11 @@ main (int ac, char **av)
     const char *calist_pem = ac > 4 ? av[4] : 0;
 
     netd_init_client();
-    init_ssl(server_pem, dh_pem, calist_pem);
-
-    label th_l, th_c;
-    thread_cur_label(&th_l);
-    thread_cur_clearance(&th_c);
+    ssl_init(server_pem, dh_pem, calist_pem);
     
-    gate_create(start_env->shared_container, "ssld",
-		&th_l, &th_c, &ssld_gate, 0);
+    ssld_cow_gate_create(start_env->shared_container);
+    ssld_gate_create(start_env->shared_container);
+
     
     return 0;
 }

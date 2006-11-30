@@ -27,16 +27,51 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
+#include <inc/ssldclnt.hh>
+#include <inc/netdclnt.hh>
 
 static const char ssl_mode = 1;
+
+static struct cobj_ref
+get_netd_util(void)
+{
+    struct fs_inode netd_ct_ino;
+    error_check(fs_namei("/netd", &netd_ct_ino));
+    uint64_t netd_ct = netd_ct_ino.obj.object;
+
+    int64_t gate_id;
+    error_check(gate_id = container_find(netd_ct, kobj_gate, "netd-util"));
+    return COBJ(netd_ct, gate_id);
+}
 
 static void
 http_client(void *arg)
 {
     char buf[512];
     int s = (int64_t) arg;
+    
+    // XXX
     if (ssl_mode) {
-	s = ssl_socket(s);
+	uint64_t ssl_taint = handle_alloc();
+	label ssl_root_label(1);
+	ssl_root_label.set(ssl_taint, 2);
+	int64_t ssl_root = sys_container_alloc(start_env->shared_container,
+					       ssl_root_label.to_ulabel(),
+					       "ssl-root", 0, CT_QUOTA_INF);
+	error_check(ssl_root);
+	label netd_ds(3);
+	netd_ds.set(ssl_taint, LB_LEVEL_STAR);
+	netd_create_gates(get_netd_util(), ssl_root, 0, &netd_ds, 0);
+	
+	label ssld_cs(LB_LEVEL_STAR);
+	ssld_cs.set(ssl_taint, 2);
+	struct cobj_ref ssld = ssld_shared_server();
+	struct cobj_ref ssld_cow = ssld_shared_cow();
+
+	struct cobj_ref ssld_tainted = 
+	    ssld_cow_call(ssld_cow, ssl_root, &ssld_cs, 0, 0);
+	
+	s = ssl_accept(s, ssl_root, ssld_tainted);
 	if (s < 0)
 	    throw basic_exception("unable to alloc ssl_socket: %s", e2s(s));
     }
@@ -175,12 +210,5 @@ http_server(void)
 int
 main(int ac, char **av)
 {
-    if (ssl_mode) {
-	int r = ssld_server_init(0, "/bin/server.pem", "password", 
-				 "/bin/root.pem", "/bin/dh.pem");
-	if (r < 0)
-	    panic("cannot init ssld: %s\n", e2s(r));
-    }
-
     http_server();
 }

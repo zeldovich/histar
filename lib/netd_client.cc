@@ -273,6 +273,22 @@ netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
     return a->rval;
 }
 
+struct cobj_ref
+netd_create_gates(struct cobj_ref util_gate, uint64_t ct, 
+		  label *cs, label *ds, label *dr)
+{
+    gate_call c(util_gate, cs, ds, dr);
+    struct gate_call_data gcd;
+    int64_t *arg = (int64_t *)gcd.param_buf;
+    *arg = ct;
+    c.call(&gcd, 0);
+    
+    if(*arg < 0)
+	throw error(*arg, "netd_create_gates: unable to create gates");
+    
+    return COBJ(ct, *arg);
+}
+
 int
 netd_call(struct cobj_ref gate, struct netd_op_args *a)
 {

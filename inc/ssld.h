@@ -12,7 +12,7 @@ typedef enum {
 
 struct ssld_op_accept_args {
     int s;
-    struct cobj_ref netd_gate;
+    uint64_t netd_ct;
 };
 
 struct ssld_op_send_args {
@@ -46,7 +46,7 @@ struct ssld_op_args {
 };
 
 // ssld_fd.c
-int ssl_accept(int s, struct cobj_ref ssld_gate);
+int ssl_accept(int s, uint64_t netd_ct, struct cobj_ref ssld_gate);
 
 // ssld_client.cc
 int ssld_call(struct cobj_ref gate, struct ssld_op_args *a);

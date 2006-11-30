@@ -8,7 +8,7 @@
 #include <string.h>
 
 int
-ssl_accept(int s, struct cobj_ref ssld_gate)
+ssl_accept(int s, uint64_t netd_ct, struct cobj_ref ssld_gate)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "ssl fd");
@@ -22,7 +22,7 @@ ssl_accept(int s, struct cobj_ref ssld_gate)
     struct ssld_op_args a;
     a.op_type = ssld_op_accept;
     a.accept.s = lwip_sock;
-    a.accept.netd_gate = netd_get_gate();
+    a.accept.netd_ct = netd_ct;
     
     ssld_call(ssld_gate, &a);
 

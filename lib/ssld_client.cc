@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/gateclnt.hh>
 #include <inc/spawn.hh>
+#include <inc/ssldclnt.hh>
 
 const char *default_server_pem = "/bin/server.pem";
 const char *default_password = "password";
@@ -76,7 +77,34 @@ ssld_shared_server(void)
     return ssld_shared_gate;
 }
 
-int
+// XXX requires that ssld_shared_server be called
+struct cobj_ref
+ssld_shared_cow(void)
+{
+    assert(shared_ct == start_env->shared_container);
+    
+    int64_t cow_gt;
+    error_check(cow_gt = container_find(ssld_shared_gate.container, kobj_gate, "ssld-cow"));
+    return COBJ(ssld_shared_gate.container, cow_gt);
+}
+
+struct cobj_ref
+ssld_cow_call(struct cobj_ref gate, uint64_t root_ct, 
+	      label *cs, label *ds, label *dr)
+{
+    gate_call c(gate, cs, ds, dr);
+    
+    struct gate_call_data gcd;
+    int64_t *arg = (int64_t *)gcd.param_buf;
+    *arg = root_ct;
+    
+    c.call(&gcd, 0);
+    error_check(*arg);
+    
+    return COBJ(root_ct, *arg);
+}
+
+extern "C" int
 ssld_call(struct cobj_ref gate, struct ssld_op_args *a)
 {
     try {

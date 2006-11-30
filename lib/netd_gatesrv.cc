@@ -24,6 +24,8 @@ static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
+static void netd_gate_init(uint64_t gate_ct, label *l, label *clear);
+
 static void __attribute__((noreturn))
 netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
@@ -59,6 +61,29 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     gcd->param_obj = COBJ(copy_back_ct, copy_back_id);
     gcd->declassify_gate = declassify_gate;
     rg->ret(0, 0, 0);
+}
+
+static void __attribute__((noreturn))
+netd_util_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
+{
+    uint64_t *ct = (uint64_t*)gcd->param_buf;
+    label l, c;
+    thread_cur_label(&l);
+    thread_cur_clearance(&c);
+    
+    int64_t *ret = (int64_t*)ct;
+    try {
+	netd_gate_init(*ct, &l, &c);
+	*ret = 0;
+    } catch (error &e) {
+	cprintf("netd_util_gate_entry: %s\n", e.what());
+	*ret = e.err();
+    } catch (std::exception &e) {
+	cprintf("netd_util_gate_entry: %s\n", e.what());
+	*ret = -1;
+    }
+
+    gr->ret(0, 0, 0);
 }
 
 static void
@@ -266,31 +291,22 @@ netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
     gr->ret(0, 0, 0);
 }
 
-void
-netd_server_init(uint64_t gate_ct,
-		 uint64_t taint_handle,
-		 label *l, label *clear)
+static void
+netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 {
-    label cur_l, cur_c;
-    thread_cur_label(&cur_l);
-    thread_cur_clearance(&cur_c);
-
-    error_check(sys_self_get_as(&netd_asref));
-
-    declassify_gate =
-	gate_create(start_env->shared_container, "declassifier",
-		    &cur_l, &cur_c,
-		    &declassifier, (void *) taint_handle);
-
     try {
 	gatesrv_descriptor gd;
 	gd.gate_container_ = gate_ct;
 	gd.label_ = l;
 	gd.clearance_ = clear;
 	gd.arg_ = 0;
-
+	
 	gd.name_ = "netd";
 	gd.func_ = &netd_gate_entry;
+	gate_create(&gd);
+
+	gd.name_ = "netd-util";
+	gd.func_ = &netd_util_gate_entry;
 	gate_create(&gd);
 
 	gd.name_ = "netd-fast";
@@ -308,7 +324,27 @@ netd_server_init(uint64_t gate_ct,
     } catch (std::exception &e) {
 	cprintf("netd_server_init: %s\n", e.what());
 	throw;
-    }
+    }    
+    return;
+}
+
+void
+netd_server_init(uint64_t gate_ct,
+		 uint64_t taint_handle,
+		 label *l, label *clear)
+{
+    label cur_l, cur_c;
+    thread_cur_label(&cur_l);
+    thread_cur_clearance(&cur_c);
+
+    error_check(sys_self_get_as(&netd_asref));
+
+    declassify_gate =
+	gate_create(start_env->shared_container, "declassifier",
+		    &cur_l, &cur_c,
+		    &declassifier, (void *) taint_handle);
+
+    netd_gate_init(gate_ct, l, clear);
 }
 
 void
