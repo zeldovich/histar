@@ -117,10 +117,11 @@ e1000_reset(struct e1000_card *c)
     uint64_t tptr = kva2pa(&c->txd[0]);
     e1000_io_write(c, WMREG_TBDAH, tptr >> 32);
     e1000_io_write(c, WMREG_TBDAL, tptr & ((1UL << 32) - 1));
+    e1000_io_write(c, WMREG_TDLEN, sizeof(c->txd));
     e1000_io_write(c, WMREG_TDH, 0);
     e1000_io_write(c, WMREG_TDT, 0);
-    e1000_io_write(c, WMREG_TIDV, 0);
-    e1000_io_write(c, WMREG_TADV, 0);
+    e1000_io_write(c, WMREG_TIDV, 1);
+    e1000_io_write(c, WMREG_TADV, 1);
 
     // Disable VLAN
     e1000_io_write(c, WMREG_VET, 0);
@@ -277,7 +278,7 @@ e1000_add_txbuf(struct e1000_card *c, const struct Segment *sg,
     if (c->tx_head == -1)
 	c->tx_head = slot;
 
-    e1000_io_write(c, WMREG_TDT, slot);
+    e1000_io_write(c, WMREG_TDT, c->tx_nextq);
     return 0;
 }
 
@@ -351,7 +352,6 @@ e1000_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->membase = pcif->reg_base[0];
     c->iobase = pcif->reg_base[2];
-    c->ih.ih_func = &e1000_intr;
 
     // Get the MAC address
     uint16_t myaddr[3];
@@ -364,6 +364,7 @@ e1000_attach(struct pci_func *pcif)
     e1000_reset(c);
 
     // Register card with kernel
+    c->ih.ih_func = &e1000_intr;
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
