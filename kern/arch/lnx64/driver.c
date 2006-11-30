@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <string.h>
 
-extern void __k1_lnx64_init();
-extern void __k2_lnx64_init();
+extern void __k1_lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes);
+extern void __k2_lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes);
 
 extern void __k1_actor_create(struct actor *ar, int tainted);
 extern void __k2_actor_create(struct actor *ar, int tainted);
@@ -38,12 +38,7 @@ choose_action(struct arc4 *a4, struct action *an)
 int
 main(int argc, char **av)
 {
-    if (argc != 2) {
-	printf("Usage: %s disk-file\n", av[0]);
-	exit(-1);
-    }
-
-    const char *disk_pn = av[1];
+    const char *disk_pn = "/dev/null";
     const char *cmdline = "pstate=discard";
 
     // Technically this is pretty bad, because they're sharing the disk.
