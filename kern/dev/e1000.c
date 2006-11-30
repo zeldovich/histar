@@ -32,7 +32,6 @@ struct e1000_card {
     uint32_t membase;
     uint32_t iobase;
     uint8_t irq_line;
-    uint16_t eeprom_width;
     struct interrupt_handler ih;
 
     struct wiseman_txdesc txd[E1000_TX_SLOTS] __attribute__((aligned (16)));
@@ -67,117 +66,22 @@ e1000_io_write(struct e1000_card *c, uint32_t reg, uint32_t val)
 }
 
 static void
-e1000_eeprom_acquire(struct e1000_card *c)
-{
-    uint32_t reg = e1000_io_read(c, WMREG_EECD);
-
-    reg |= EECD_EE_REQ;
-    e1000_io_write(c, WMREG_EECD, reg);
-
-    for (int x = 0; x < 100; x++) {
-	reg = e1000_io_read(c, WMREG_EECD);
-	if (reg & EECD_EE_GNT)
-	    return;
-	kclock_delay(5);
-    }
-
-    panic("e1000_eeprom_acquire: could not acquire EEPROM GNT\n");
-}
-
-static void
-e1000_eeprom_release(struct e1000_card *c)
-{
-    e1000_io_write(c, WMREG_EECD,
-		   e1000_io_read(c, WMREG_EECD) & ~EECD_EE_REQ);
-}
-
-static void
-e1000_eeprom_sendbits(struct e1000_card *c, uint32_t bits, int nbits)
-{
-    uint32_t reg = e1000_io_read(c, WMREG_EECD);
-
-    for (int i = nbits; i > 0; i--) {
-	if (bits & (1U << (i - 1)))
-	    reg |= EECD_DI;
-	else
-	    reg &= ~EECD_DI;
-	e1000_io_write(c, WMREG_EECD, reg);
-	kclock_delay(2);
-	e1000_io_write(c, WMREG_EECD, reg | EECD_SK);
-	kclock_delay(2);
-	e1000_io_write(c, WMREG_EECD, reg);
-	kclock_delay(2);
-    }
-}
-
-static void
-e1000_eeprom_recvbits(struct e1000_card *c, uint32_t *valp, int nbits)
-{
-    uint32_t reg = e1000_io_read(c, WMREG_EECD) & ~EECD_DI;
-    *valp = 0;
-
-    for (int i = nbits; i > 0; i--) {
-	e1000_io_write(c, WMREG_EECD, reg | EECD_SK);
-	kclock_delay(2);
-	if (e1000_io_read(c, WMREG_EECD) & EECD_DO)
-	    *valp |= (1U << (i - 1));
-	e1000_io_write(c, WMREG_EECD, reg);
-	kclock_delay(2);
-    }
-}
-
-static int
-e1000_eeprom_spi_ready(struct e1000_card *c)
-{
-    for (int usec = 0; usec < SPI_MAX_RETRIES; kclock_delay(5), usec += 5) {
-	uint32_t val;
-	e1000_eeprom_sendbits(c, SPI_OPC_RDSR, 8);
-	e1000_eeprom_recvbits(c, &val, 8);
-	if ((val & SPI_SR_RDY) == 0)
-	    return 0;
-    }
-
-    cprintf("e1000_eeprom_spi_ready: failed to become ready\n");
-    return -E_BUSY;
-}
-
-static void
-e1000_eeprom_spi_read(struct e1000_card *c, uint16_t *buf, int off, int count)
-{
-    uint32_t reg = e1000_io_read(c, WMREG_EECD);
-    e1000_io_write(c, WMREG_EECD, reg & ~(EECD_SK | EECD_CS));
-    kclock_delay(2);
-
-    assert(0 == e1000_eeprom_spi_ready(c));
-
-    e1000_io_write(c, WMREG_EECD, reg | EECD_CS);
-    kclock_delay(2);
-    e1000_io_write(c, WMREG_EECD, reg);
-    kclock_delay(2);
-
-    uint8_t opc = SPI_OPC_READ;
-    if (c->eeprom_width == 8 && off >= 128)
-	opc |= SPI_OPC_A8;
-    e1000_eeprom_sendbits(c, opc, 8);
-    e1000_eeprom_sendbits(c, off << 1, c->eeprom_width);
-
-    for (int i = 0; i < count; i++) {
-	uint32_t val;
-	e1000_eeprom_recvbits(c, &val, 16);
-	buf[i] = ((val >> 8) & 0xff) | ((val & 0xff) << 8);
-    }
-
-    reg = (e1000_io_read(c, WMREG_EECD) & ~EECD_SK) | EECD_CS;
-    e1000_io_write(c, WMREG_EECD, reg);
-    kclock_delay(2);
-}
-
-static void
 e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
 {
-    e1000_eeprom_acquire(c);
-    e1000_eeprom_spi_read(c, buf, off, count);
-    e1000_eeprom_release(c);
+    for (int i = 0; i < count; i++) {
+	e1000_io_write(c, WMREG_EERD, ((off + i) << EERD_ADDR_SHIFT) | EERD_START);
+
+	uint32_t reg;
+	for (int x = 0; x < 100; x++) {
+	    reg = e1000_io_read(c, WMREG_EERD);
+	    if (!(reg & EERD_DONE))
+		kclock_delay(5);
+	}
+
+	if (!(reg & EERD_DONE))
+	    panic("e1000_eeprom_eerd_read: timeout");
+	buf[i] = (reg & EERD_DATA_MASK) >> EERD_DATA_SHIFT;
+    }
 }
 
 static void
@@ -198,6 +102,8 @@ e1000_reset(struct e1000_card *c)
 
     if (e1000_io_read(c, WMREG_CTRL) & CTRL_RST)
 	cprintf("e1000_reset: card still resetting, odd..\n");
+
+    e1000_io_write(c, WMREG_CTRL, CTRL_SLU | CTRL_ASDE);
 
     uint64_t rptr = kva2pa(&c->rxd[0]);
     e1000_io_write(c, WMREG_RDBAH, rptr >> 32);
@@ -411,7 +317,7 @@ void
 e1000_attach(struct pci_func *pcif)
 {
     struct e1000_card *c = &the_card;
-    memset(&c, 0, sizeof(c));
+    memset(c, 0, sizeof(*c));
 
     c->irq_line = pcif->irq_line;
     c->membase = pcif->reg_base[0];
@@ -420,15 +326,7 @@ e1000_attach(struct pci_func *pcif)
 
     e1000_reset(c);
 
-    // EEPROM
-    uint32_t reg = e1000_io_read(c, WMREG_EECD);
-    if (reg & EECD_EE_TYPE) {
-	c->eeprom_width = (reg & EECD_EE_ABITS) ? 16 : 8;
-    } else {
-	cprintf("e1000_attach: microwire EEPROM not supported\n");
-	c->eeprom_width = (reg & EECD_EE_ABITS) ? 8 : 6;
-    }
-
+    // Get the MAC address
     uint16_t myaddr[3];
     e1000_eeprom_read(c, &myaddr[0], EEPROM_OFF_MACADDR, 3);
     for (int i = 0; i < 3; i++) {

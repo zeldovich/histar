@@ -290,6 +290,14 @@ struct livengood_tcpip_ctxdesc {
 #define	EEPROM_SWDPIN_SWDPIN_SHIFT 0
 #define	EEPROM_SWDPIN_SWDPIO_SHIFT 8
 
+#define WMREG_EERD	0x0014	/* EEPROM read register */
+#define EERD_START	0x00000001
+#define EERD_DONE	0x00000002
+#define EERD_ADDR_SHIFT 2
+#define EERD_ADDR_MASK	0x0000fffc
+#define EERD_DATA_SHIFT	16
+#define EERD_DATA_MASK	0xffff0000
+
 #define	WMREG_CTRL_EXT	0x0018	/* Extended Device Control Register */
 #define	CTRL_EXT_GPI_EN(x)	(1U << (x)) /* gpin interrupt enable */
 #define	CTRL_EXT_SWDPINS_SHIFT	4
