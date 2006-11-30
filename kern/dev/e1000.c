@@ -271,7 +271,7 @@ e1000_add_txbuf(struct e1000_card *c, const struct Segment *sg,
     pagetree_incpin(nb);
 
     c->txd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
-    c->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP;
+    c->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
     memset(&c->txd[slot].wtx_fields, 0, sizeof(&c->txd[slot].wtx_fields));
 
     c->tx_nextq = (slot + 1) % E1000_TX_SLOTS;
