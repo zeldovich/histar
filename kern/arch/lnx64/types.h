@@ -17,22 +17,14 @@
 typedef int bool_t;
 
 // Explicitly-sized versions of integer types
-typedef __signed char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef int int32_t;
-typedef unsigned int uint32_t;
-#ifndef CODE32
-typedef long int64_t;
-typedef unsigned long uint64_t;
-typedef __int128_t int128_t;
-typedef __uint128_t uint128_t;
-#else /* CODE32 */
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
-#endif /* CODE32 */
-typedef uint64_t __uint64_t;
+typedef u_int8_t  uint8_t;
+typedef u_int16_t uint16_t;
+typedef u_int32_t uint32_t;
+typedef u_int64_t uint64_t;
+
+// Fake 128-bit values, used only for the scheduler anyway...
+typedef   int64_t  int128_t;
+typedef u_int64_t uint128_t;
 
 // Pointers and addresses are 64 bits long.
 // We use pointer types to represent virtual addresses,
@@ -44,10 +36,6 @@ typedef uint64_t physaddr_t;
 
 // Page numbers are 32 bits long.
 typedef uint64_t ppn_t;
-
-// ssize_t is a signed version of ssize_t, used in case there might be an
-// error return.
-typedef long ssize_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
