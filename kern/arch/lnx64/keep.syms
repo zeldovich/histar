@@ -22,4 +22,6 @@ stdout
 __errno_location
 _IO_putc
 __udivti3
+__udivdi3
+__umoddi3
 __fxstat
