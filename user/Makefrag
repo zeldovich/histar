@@ -19,3 +19,21 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@
 
+#######
+
+$(OBJDIR)/user/server.pem:
+	openssl req -new -x509 -keyout $@ -out $@ -days 3650
+
+$(OBJDIR)/user/root.pem:
+	openssl req -new -x509 -keyout $(OBJDIR)/user/foo.pem -out $@ -days 3650
+
+$(OBJDIR)/user/dh.pem:
+	openssl dhparam -out $@ 1024
+
+$(OBJDIR)/user/ssld.o: user/ssld.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -I$(OBJDIR)/acpkg/include/ -Werror -c -o $@ $<
+
+$(OBJDIR)/user/ssld.debuginfo: $(OBJDIR)/user/ssld.o $(LDEPS) \
+				$(OBJDIR)/lib/libssl.a $(OBJDIR)/lib/libcrypto.a
+	$(CC) -o $@ $(LDFLAGS) $< -lssl -lcrypto

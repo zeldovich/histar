@@ -14,8 +14,8 @@ extern "C" {
 }
 
 #include <inc/dis/globallabel.hh>
-#include <inc/dis/shareutils.hh>
 #include <inc/dis/labeltrans.hh>
+#include <inc/dis/sharedutil.hh>
 
 #include <inc/labelutil.hh>
 #include <inc/gateclnt.hh>

@@ -45,23 +45,37 @@ get_netd_util(void)
 }
 
 static void
+free_ssl_root(struct cobj_ref *ssl_root_obj)
+{
+    if (ssl_mode && ssl_root_obj->object)
+	sys_obj_unref(*ssl_root_obj);
+}
+
+static void
 http_client(void *arg)
 {
     char buf[512];
     int s = (int64_t) arg;
-    
+
+    struct cobj_ref ssl_root_obj = COBJ(0, 0);
+    scope_guard<void, struct cobj_ref*> cleanup(free_ssl_root, &ssl_root_obj);
     // XXX
     if (ssl_mode) {
+	uint64_t base_ct = start_env->shared_container;
+
 	uint64_t ssl_taint = handle_alloc();
 	label ssl_root_label(1);
 	ssl_root_label.set(ssl_taint, 2);
-	int64_t ssl_root = sys_container_alloc(start_env->shared_container,
+
+	int64_t ssl_root_ct = sys_container_alloc(base_ct,
 					       ssl_root_label.to_ulabel(),
 					       "ssl-root", 0, CT_QUOTA_INF);
-	error_check(ssl_root);
+	error_check(ssl_root_ct);
+	ssl_root_obj = COBJ(base_ct, ssl_root_ct);
+
 	label netd_ds(3);
 	netd_ds.set(ssl_taint, LB_LEVEL_STAR);
-	netd_create_gates(get_netd_util(), ssl_root, 0, &netd_ds, 0);
+	netd_create_gates(get_netd_util(), ssl_root_ct, 0, &netd_ds, 0);
 	
 	label ssld_cs(LB_LEVEL_STAR);
 	ssld_cs.set(ssl_taint, 2);
@@ -69,9 +83,9 @@ http_client(void *arg)
 	struct cobj_ref ssld_cow = ssld_shared_cow();
 
 	struct cobj_ref ssld_tainted = 
-	    ssld_cow_call(ssld_cow, ssl_root, &ssld_cs, 0, 0);
+	    ssld_cow_call(ssld_cow, ssl_root_ct, &ssld_cs, 0, 0);
 	
-	s = ssl_accept(s, ssl_root, ssld_tainted);
+	s = ssl_accept(s, ssl_root_ct, ssld_tainted);
 	if (s < 0)
 	    throw basic_exception("unable to alloc ssl_socket: %s", e2s(s));
     }
