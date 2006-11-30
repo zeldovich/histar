@@ -124,6 +124,19 @@ pci_config_bus(uint32_t busno, struct pci_bus *bus)
 			PCI_CLASS(dev_class), PCI_SUBCLASS(dev_class),
 			pcif.irq_line);
 
+	    pci_conf_write(busno, dev, func, PCI_COMMAND_STATUS_REG,
+			   PCI_COMMAND_IO_ENABLE |
+			   PCI_COMMAND_MEM_ENABLE |
+			   PCI_COMMAND_MASTER_ENABLE);
+
+	    bhlc = pci_conf_read(busno, dev, func, PCI_BHLC_REG);
+	    if (PCI_LATTIMER(bhlc) < 16)
+		bhlc = (bhlc & ~(PCI_LATTIMER_MASK << PCI_LATTIMER_SHIFT)) |
+		       (64 << PCI_LATTIMER_SHIFT);
+	    //cprintf("PCI: %02x:%02x.%d: latency timer %d\n",
+	    //        busno, dev, func, PCI_LATTIMER(bhlc));
+	    pci_conf_write(busno, dev, func, PCI_BHLC_REG, bhlc);
+
 	    uint32_t bar_width;
 	    for (bar = PCI_MAPREG_START; bar < PCI_MAPREG_END;
 		 bar += bar_width)
