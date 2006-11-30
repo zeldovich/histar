@@ -1,6 +1,7 @@
 # -*-Makefile-*-
 
 KERN_CFLAGS += -mno-red-zone
+EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\

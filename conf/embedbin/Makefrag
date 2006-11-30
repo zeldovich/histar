@@ -4,7 +4,7 @@
 #
 # To add custom entries to inittab, set INITTAB_ENTRIES in local.mk.
 
-EMBEDBIN_SET	:= conf/embedbin/default.mk conf/embedbin/local.mk
+EMBEDBIN_SET	:= conf/embedbin/$(EMBEDBINS_DEFAULT).mk conf/embedbin/local.mk
 
 -include $(EMBEDBIN_SET)
 

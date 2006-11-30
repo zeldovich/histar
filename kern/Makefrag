@@ -8,6 +8,7 @@
 OBJDIRS += kern
 
 ARCHDIR	:= kern/arch/$(K_ARCH)
+EMBEDBINS_DEFAULT := default
 include $(ARCHDIR)/Makefrag
 
 KERN_GEN := kern/kern/printf.c \
