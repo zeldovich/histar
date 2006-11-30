@@ -23,16 +23,19 @@ int
 main(int ac, char **av)
 {
     int64_t ndev_id = container_find(start_env->root_container, kobj_netdev, 0);
-    if (ndev_id < 0)
-	panic("finding netdev obj: %s", e2s(ndev_id));
+    if (ndev_id < 0) {
+	ndev_id = sys_net_create(start_env->root_container, 0, "netdev");
+	if (ndev_id < 0)
+	    panic("creating netdev obj: %s", e2s(ndev_id));
+    }
 
-    struct cobj_ref ndev = COBJ(start_env->root_container, ndev_id);
+    ndev = COBJ(start_env->root_container, ndev_id);
 
-    uint64_t ctemp = start_env->container;
+    uint64_t ctemp = start_env->proc_container;
 
     struct cobj_ref seg;
     void *va = 0;
-    int r = segment_alloc(ctemp, 8 * PGSIZE, &seg, &va);
+    int r = segment_alloc(ctemp, 8 * PGSIZE, &seg, &va, 0, "netbufs");
     if (r < 0)
 	panic("cannot allocate buffer segment: %s", e2s(r));
 
