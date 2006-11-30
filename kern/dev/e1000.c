@@ -56,7 +56,7 @@ static uint32_t
 e1000_io_read(struct e1000_card *c, uint32_t reg)
 {
     outl(c->iobase, reg);
-    return inl(c->iobase);
+    return inl(c->iobase + 4);
 }
 
 static void
