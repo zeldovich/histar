@@ -27,8 +27,9 @@ K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
 
-## Enable for user-space kernel stuff.  Comment out CC&CXX lines below too.
-## On Fedora Core you need a full path to avoid /usr/lib/ccache!
+## Enable for user-space kernel stuff.
+## On Fedora Core you may need a full path to avoid /usr/lib/ccache!
+#OBJTYPE := elf32-i386
 #K_ARCH	:= lnx64
 #GCCPREFIX := /usr/bin/
 
