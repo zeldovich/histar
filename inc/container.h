@@ -12,6 +12,6 @@ struct cobj_ref {
 	((struct cobj_ref) { (container), (object) } )
 
 // Should be such that CT_QUOTA_INF + CT_QUOTA_INF > CT_QUOTA_INF.
-#define CT_QUOTA_INF	(1UL << 62)
+#define CT_QUOTA_INF	(((uint64_t) 1) << 62)
 
 #endif
