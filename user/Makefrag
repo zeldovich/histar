@@ -1,12 +1,20 @@
 OBJDIRS += user
 
+## Programs that require additional libraries
+
+$(OBJDIR)/user/ssld.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/user/ssld.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
+$(OBJDIR)/user/ssld.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+
+## Generic build rules
+
 $(OBJDIR)/user/%.o: user/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
 
 $(OBJDIR)/user/%.o: user/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
 
 $(OBJDIR)/user/%: user/%.S
 	@mkdir -p $(@D)
@@ -14,7 +22,7 @@ $(OBJDIR)/user/%: user/%.S
 	$(LD) -o $@ -nostdlib $@.o
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $<
+	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@
