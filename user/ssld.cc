@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/netd.h>
 #include <inc/error.h>
+#include <inc/string.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -43,18 +44,26 @@ static struct cobj_ref ssld_gate_create(uint64_t ct);
 
 std::map<int, struct sock_data> data;
 
-SSL_CTX *ctx;
+static SSL_CTX *ctx;
+static uint64_t access_grant;
 
-// XXX
-static const char *pass;
-
-static int password_cb(char *buf, int num, int rwflag, void *userdata)
+static int 
+password_cb(char *buf, int num, int rwflag, void *userdata)
 {
-    if(num < (int) strlen(pass) + 1)
+    struct fs_inode ino;
+    const char *pn = (const char *)userdata;
+    error_check(fs_namei(pn, &ino));
+    void *va = 0;
+    uint64_t bytes = 0;
+    error_check(segment_map(ino.obj, 0, SEGMAP_READ, &va, &bytes, 0));
+    scope_guard<int, void *> unmap(segment_unmap, va);
+
+    if(num < (int) (bytes + 1))
 	return 0;
     
-    strcpy(buf, pass);
-    return strlen(pass);
+    memcpy(buf, va, bytes);
+    buf[bytes] = 0;
+    return strlen(buf);
 }
 
 static int
@@ -240,6 +249,8 @@ ssld_cow_gate_create(uint64_t ct)
     label th_l, th_c;
     thread_cur_label(&th_l);
     thread_cur_clearance(&th_c);
+    if (access_grant)
+	th_c.set(access_grant, 0);
     
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
@@ -262,11 +273,14 @@ ssld_gate_create(uint64_t ct)
     label th_l, th_c;
     thread_cur_label(&th_l);
     thread_cur_clearance(&th_c);
+    if (access_grant)
+	th_c.set(access_grant, 0);
     return gate_create(ct, "ssld", &th_l, &th_c, &ssld_gate, 0);
 }
 
 void
-ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
+ssl_init(const char *server_pem, const char *password, 
+	 const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
 	SSL_CTX_free(ctx);
@@ -283,6 +297,10 @@ ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
 	throw basic_exception("Can't read certificate file %s", server_pem);
     
+    char *pass = strdup(password);
+    scope_guard<void, char *> g(delete_obj, pass);
+    
+    SSL_CTX_set_default_passwd_cb_userdata(ctx, pass);
     SSL_CTX_set_default_passwd_cb(ctx, password_cb);
     
     if(!(SSL_CTX_use_PrivateKey_file(ctx, server_pem, SSL_FILETYPE_PEM)))
@@ -315,23 +333,23 @@ ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
 int
 main (int ac, char **av)
 {
-    if (ac < 4) {
-	cprintf("Usage: %s netd-path server-pem password dh-pem [calist-pem]", 
+    if (ac < 5) {
+	cprintf("Usage: %s server-pem password dh-pem access-grant", 
 		av[0]);
 	return -1;
     }
 
     const char *server_pem = av[1];
-    pass = av[2];
+    const char *password = av[2];
     const char *dh_pem = av[3];
-    const char *calist_pem = ac > 4 ? av[4] : 0;
+    uint64_t access_grant;
+    error_check(strtou64(av[4], 0, 10, &access_grant));
 
     netd_init_client();
-    ssl_init(server_pem, dh_pem, calist_pem);
-    
-    ssld_cow_gate_create(start_env->shared_container);
-    ssld_gate_create(start_env->shared_container);
+    ssl_init(server_pem, password, dh_pem, 0);
 
-    
+    // only create a cow gate initially
+    ssld_cow_gate_create(start_env->shared_container);
+        
     return 0;
 }

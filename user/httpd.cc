@@ -30,7 +30,8 @@ extern "C" {
 #include <inc/ssldclnt.hh>
 #include <inc/netdclnt.hh>
 
-static const char ssl_mode = 1;
+static const char ssl_mode = 0;
+static uint64_t ssld_access_grant;
 
 static struct cobj_ref
 get_netd_util(void)
@@ -44,12 +45,26 @@ get_netd_util(void)
     return COBJ(netd_ct, gate_id);
 }
 
+static struct cobj_ref
+get_ssld_cow(void)
+{
+    struct fs_inode ct_ino;
+    error_check(fs_namei("/httpd/ssld/", &ct_ino));
+    uint64_t ssld_ct = ct_ino.obj.object;
+    
+    int64_t gate_id;
+    error_check(gate_id = container_find(ssld_ct, kobj_gate, "ssld-cow"));
+    return COBJ(ssld_ct, gate_id);
+}
+
 static void
 free_ssl_root(struct cobj_ref *ssl_root_obj)
 {
     if (ssl_mode && ssl_root_obj->object)
 	sys_obj_unref(*ssl_root_obj);
 }
+
+
 
 static void
 http_client(void *arg)
@@ -65,7 +80,7 @@ http_client(void *arg)
 
 	uint64_t ssl_taint = handle_alloc();
 	label ssl_root_label(1);
-	ssl_root_label.set(ssl_taint, 2);
+	ssl_root_label.set(ssl_taint, 3);
 
 	int64_t ssl_root_ct = sys_container_alloc(base_ct,
 					       ssl_root_label.to_ulabel(),
@@ -78,12 +93,13 @@ http_client(void *arg)
 	netd_create_gates(get_netd_util(), ssl_root_ct, 0, &netd_ds, 0);
 	
 	label ssld_cs(LB_LEVEL_STAR);
-	ssld_cs.set(ssl_taint, 2);
-	struct cobj_ref ssld = ssld_shared_server();
-	struct cobj_ref ssld_cow = ssld_shared_cow();
+	ssld_cs.set(ssl_taint, 3);
+	label ssld_dr(0);
+	ssld_dr.set(ssl_taint, 3);
 
+	struct cobj_ref ssld_cow = get_ssld_cow();
 	struct cobj_ref ssld_tainted = 
-	    ssld_cow_call(ssld_cow, ssl_root_ct, &ssld_cs, 0, 0);
+	    ssld_cow_call(ssld_cow, ssl_root_ct, &ssld_cs, 0, &ssld_dr);
 	
 	s = ssl_accept(s, ssl_root_ct, ssld_tainted);
 	if (s < 0)
@@ -224,5 +240,12 @@ http_server(void)
 int
 main(int ac, char **av)
 {
+    if (ssl_mode) {
+	if (ac < 2) {
+	    printf("httpd: error: access grant required in ssl mode\n");
+	    return -1;
+	}
+	error_check(strtou64(av[1], 0, 10, &ssld_access_grant));
+    }
     http_server();
 }
