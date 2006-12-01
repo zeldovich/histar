@@ -6,7 +6,7 @@ EXTRA_LDEPS 	:= $(LDEPS) \
 EXTRA_LDFLAGS 	:= $(LDFLAGS) \
 		   -L$(TOP)/$(OBJDIR)/acpkg/lib \
 		   -L$(TOP)/$(OBJDIR)/acpkg/lib/sfslite
-EXTRA_LIBS 	:= -lasync -larpc -lasync
+EXTRA_LIBS 	:= -larpc -lasync
 
 EXTRA_COMPDEPS  := $(OBJDIR)/acpkg/include/sfslite
 EXTRA_COMWARNS	:= -Wformat=2 -Wcast-align   \
@@ -24,6 +24,15 @@ EXTRA_CFLAGS 	:= $(USER_CFLAGS) $(EXTRA_INCLUDES)
 EXTRA_CXXFLAGS 	:= $(USER_COMFLAGS) $(EXTRA_CXXWARNS) $(EXTRA_INCLUDES)
 
 include extra/fa/Makefrag
+
+$(OBJDIR)/user/server.password:
+	echo -n "password" > $@
+
+$(OBJDIR)/user/server.pem:
+	openssl req -new -x509 -keyout $@ -out $@ -days 3650
+
+$(OBJDIR)/user/dh.pem:
+	openssl dhparam -out $@ 1024
 
 $(OBJDIR)/extra/%.o: extra/%.c
 	@mkdir -p $(@D)
