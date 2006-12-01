@@ -23,7 +23,7 @@ static const int default_requests = 100;
 static char *request_template = 
     "GET / HTTP/1.0\r\nUser-Agent:"
     "TestClient\r\nHost: %s:%d\r\n\r\n";
-static const char logging = 1;
+static const char logging = 0;
 static const int bufsize = 4096;
 
 static int 
