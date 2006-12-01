@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -24,6 +25,7 @@ static char *request_template =
     "GET / HTTP/1.0\r\nUser-Agent:"
     "TestClient\r\nHost: %s:%d\r\n\r\n";
 static const char logging = 0;
+static const char session_reuse = 0;
 static const int bufsize = 4096;
 
 static int 
@@ -62,7 +64,7 @@ tcp_connect(struct sockaddr_in *addr)
     int sock;
 
     if((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-      err_exit("Couldn't create socket");
+	err_exit("Couldn't create socket");
     if(connect(sock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
 	err_exit("Couldn't connect socket");
     
@@ -93,12 +95,13 @@ http_request(SSL *ssl, const char *host, int port)
     default:
 	err_exit("SSL write problem");
     }
-    
+
     if (logging)
 	printf("--server response start--\n");
     
     while (1) {
 	r = SSL_read(ssl, buf, sizeof(buf));
+
 	switch(SSL_get_error(ssl, r)){
         case SSL_ERROR_NONE:
 	    len = r;
@@ -158,7 +161,11 @@ main(int ac, char **av)
     addr.sin_port = htons(port);
 
     SSL_CTX *ctx = init_ctx();
-    
+    SSL_SESSION *ses = 0;
+
+    if (session_reuse)
+	SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
+
     for (int i = 0; i < requests; i++) {
 	SSL *ssl;
 	BIO *sbio;
@@ -168,10 +175,20 @@ main(int ac, char **av)
     	ssl = SSL_new(ctx);
 	sbio = BIO_new_socket(sock, BIO_NOCLOSE);
 	SSL_set_bio(ssl, sbio, sbio);
-        // init handshake w/ server
+	
+	if (session_reuse && ses)
+	    assert(SSL_set_session(ssl, ses));
+
+	// init handshake w/ server
 	if(SSL_connect(ssl) <= 0)
 	    err_exit("SSL connect error");
- 
+	
+	if (session_reuse && !SSL_session_reused(ssl))
+	    printf("session not reused\n");
+	
+	if (session_reuse && !ses)
+	    assert(ses = SSL_get_session(ssl));
+	
 	http_request(ssl, host, port);
 	SSL_free(ssl);
         close(sock);
