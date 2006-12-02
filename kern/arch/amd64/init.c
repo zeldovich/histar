@@ -47,17 +47,8 @@ _panic (const char *file, int line, const char *fmt, ...)
   cprintf ("\n");
   va_end (ap);
 
-#if 0
-  mon_backtrace (0, 0, 0);
-
-dead:
-  /* break into the kernel monitor */
-  while (1)
-    monitor (NULL);
-#else
  dead:
   abort ();
-#endif
 }
 
 void
