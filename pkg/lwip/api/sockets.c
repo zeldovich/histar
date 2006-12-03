@@ -34,6 +34,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <api/jos64api.h>
 
 #include "lwip/opt.h"
 #include "lwip/api.h"
@@ -41,18 +42,6 @@
 #include "lwip/sys.h"
 
 #include "lwip/sockets.h"
-
-#define NUM_SOCKETS MEMP_NUM_NETCONN
-
-struct lwip_socket {
-  struct netconn *conn;
-  struct netbuf *lastdata;
-  u16_t lastoffset;
-  u16_t rcvevent;
-  u16_t sendevent;
-  u16_t  flags;
-  int err;
-};
 
 struct lwip_select_cb
 {
@@ -64,7 +53,7 @@ struct lwip_select_cb
     sys_sem_t sem;
 };
 
-static struct lwip_socket sockets[NUM_SOCKETS];
+struct lwip_socket *sockets;
 static struct lwip_select_cb *select_cb_list = 0;
 
 static sys_sem_t socksem = 0;
@@ -898,6 +887,10 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
         }
     }
 
+    if (evt == NETCONN_EVT_RCVPLUS || evt == NETCONN_EVT_RCVMINUS)
+	jos64_event_helper(s, evt, sock->rcvevent);
+    else
+	jos64_event_helper(s, evt, sock->sendevent);
 }
 
 

@@ -22,6 +22,7 @@
 
 #include <jif/jif.h>
 #include <jif/tun.h>
+#include <api/jos64api.h>
 
 // various netd initialization and threads
 static int netd_stats = 0;
@@ -123,6 +124,7 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 	       uint32_t ipaddr, uint32_t netmask, uint32_t gw)
 {
     lwip_core_lock();
+    jos64_init_api();
 
     dev_type = type;
     
