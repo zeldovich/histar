@@ -199,12 +199,6 @@ netd_fast_call(struct netd_op_args *a)
     }
 }
 
-void
-netd_init_client(void)
-{
-    netd_fast_init_global();
-}
-
 int 
 netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
 {

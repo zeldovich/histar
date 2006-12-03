@@ -335,9 +335,7 @@ main (int ac, char **av)
     uint64_t access_grant;
     error_check(strtou64(av[4], 0, 10, &access_grant));
 
-    netd_init_client();
     ssl_init(server_pem, password, dh_pem, 0);
-
     ssld_cow_gate_create(start_env->shared_container);
         
     return 0;
