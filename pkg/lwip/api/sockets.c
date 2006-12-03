@@ -886,11 +886,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
             break;
         }
     }
-
-    if (evt == NETCONN_EVT_RCVPLUS || evt == NETCONN_EVT_RCVMINUS)
-	jos64_event_helper(s, evt, sock->rcvevent);
-    else
-	jos64_event_helper(s, evt, sock->sendevent);
+    jos64_event_helper(s, evt);
 }
 
 

@@ -27,7 +27,7 @@ jos64_sync_helper(int s, char write)
 }
 
 void
-jos64_event_helper(int s, enum netconn_evt evt, u16_t evt_status)
+jos64_event_helper(int s, enum netconn_evt evt)
 {
     if (evt == NETCONN_EVT_RCVPLUS || evt == NETCONN_EVT_RCVMINUS) {
 	if (sockets[s].rcvevent && read_notify[s]) {
