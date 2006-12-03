@@ -89,7 +89,6 @@ struct Fd
 
 	struct {
 	    struct cobj_ref netd_gate;
-	    struct cobj_ref sel_seg;
 	    int s;
 	} fd_sock;
 

@@ -9,6 +9,7 @@
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
+#include <api/jos64api.h>
 
 #include <stddef.h>
 
@@ -178,22 +179,9 @@ netd_dispatch(struct netd_op_args *a)
                                   &a->getsockopt.optlen);
         break;
 
-    case netd_op_select:
-	{
-	    fd_set set;
-	    FD_ZERO(&set);
-	    FD_SET(a->select.fd, &set);
-	    // max value for tv if using netd_fast_gate
-	    struct timeval tv = {0, 0};
-
-	    err_fd = a->select.fd;
-	    if (a->select.write)
-		a->rval = lwip_select(a->select.fd + 1, 0, &set, 0, &tv);
-	    else
-		a->rval = lwip_select(a->select.fd + 1, &set, 0, 0, &tv);
-
+    case netd_op_notify:
+	    a->rval = jos64_sync_helper(a->notify.fd, a->notify.write);
 	    break;
-	}
 
     case netd_op_shutdown:
 	err_fd = a->shutdown.fd;

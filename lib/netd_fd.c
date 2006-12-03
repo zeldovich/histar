@@ -1,7 +1,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/netd.h>
-#include <inc/netdmsync.h>
+#include <inc/netdevent.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
@@ -46,28 +46,6 @@ netd_to_libc(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
     sin->sin_port = nsin->sin_port;
 }
 
-static int
-alloc_select_seg(struct Fd *fd, int sock)
-{
-    int r;
-    uint64_t taint = handle_alloc();
-    uint64_t grant = handle_alloc();
-    struct ulabel *l = label_alloc();
-    l->ul_default = 1;
-    label_set_level(l, taint, 3, 1);
-    label_set_level(l, grant, 0, 1);
-
-    if ((r = netd_new_sel_seg(start_env->shared_container, sock, l, 
-			      &fd->fd_sock.sel_seg)) < 0) {
-	label_free(l);
-	return r;
-    }
-    label_free(l);
-        
-    fd_set_extra_handles(fd, grant, taint);
-    return 0;
-}
-
 int
 socket(int domain, int type, int protocol)
 {
@@ -90,16 +68,6 @@ socket(int domain, int type, int protocol)
     if (sock < 0) {
 	jos_fd_close(fd);
 	return sock;
-    }
-
-    r = alloc_select_seg(fd, sock);
-    if (r < 0) {
-	a.size = offsetof(struct netd_op_args, close) + sizeof(a.close);
-	a.op_type = netd_op_close;
-	a.close.fd = sock;
-	netd_call(fd->fd_sock.netd_gate, &a);
-	jos_fd_close(fd);
-	return r;
     }
 
     fd->fd_dev_id = devsock.dev_id;
@@ -186,16 +154,6 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     if (sock < 0) {
 	jos_fd_close(nfd);
 	return sock;
-    }
-
-    r = alloc_select_seg(nfd, sock);
-    if (r < 0) {
-	a.size = offsetof(struct netd_op_args, close) + sizeof(a.close);
-	a.op_type = netd_op_close;
-	a.close.fd = sock;
-	netd_call(fd->fd_sock.netd_gate, &a);
-	jos_fd_close(nfd);
-	return r;
     }
 
     nfd->fd_dev_id = devsock.dev_id;
@@ -295,8 +253,6 @@ sock_close(struct Fd *fd)
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
     int r = netd_slow_call(fd->fd_sock.netd_gate, &a);
-
-    netd_free_sel_seg(&fd->fd_sock.sel_seg);
 
     return r;
 }
@@ -408,19 +364,13 @@ sock_stat(struct Fd *fd, struct stat *buf)
 static int
 sock_probe(struct Fd *fd, dev_probe_t probe)
 {
-    struct netd_op_args a;
-    a.size = offsetof(struct netd_op_args, select) + sizeof(a.select);
-
-    a.op_type = netd_op_select;
-    a.select.fd = fd->fd_sock.s;
-    a.select.write = probe == dev_probe_write ? 1 : 0;
-    return netd_call(fd->fd_sock.netd_gate, &a);
+    return netd_probe(fd, probe);
 }
 
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {    
-    return netd_wstat(&fd->fd_sock.sel_seg, probe, wstat);
+    return netd_wstat(fd, probe, wstat);
 }
 
 static int

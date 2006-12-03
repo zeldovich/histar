@@ -28,7 +28,7 @@ LIB_SRCFILES :=	\
 	lib/netd_fd.c \
 	lib/netd_lwip.c \
 	lib/netd_lwipinit.c \
-	lib/netd_msync.cc \
+	lib/netd_event.cc \
 	lib/console.c \
 	lib/spawn.cc \
 	lib/container.c \
