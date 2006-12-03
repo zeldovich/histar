@@ -5,7 +5,6 @@
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
 #include <inc/gateparam.h>
-#include <inc/declassify.h>
 
 #include <errno.h>
 #include <string.h>
@@ -31,7 +30,7 @@
 #define BIPIPE_SEG_UNMAP(__va) segment_unmap_delayed((__va), 1)
 
 int
-bipipe_fd(struct cobj_ref seg, int a)
+bipipe_fd(struct cobj_ref seg, int a, int mode)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "bipipe");
@@ -40,7 +39,7 @@ bipipe_fd(struct cobj_ref seg, int a)
         return -1;
     }
     fd->fd_dev_id = devbipipe.dev_id;
-    fd->fd_omode = O_RDWR;
+    fd->fd_omode = O_RDWR | mode;
     fd->fd_bipipe.bipipe_seg = seg;
     fd->fd_bipipe.bipipe_a = a;
     return fd2num(fd);
@@ -116,7 +115,8 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     pthread_mutex_lock(&op->mu);
     while (op->bytes == 0) {
         int nonblock = (fd->fd_omode & O_NONBLOCK);
-        op->reader_waiting = 1;
+	if (!nonblock)
+	    op->reader_waiting = 1;
         char opn = op->open;
         pthread_mutex_unlock(&op->mu);
 
@@ -164,11 +164,20 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
     uint32_t bufsize = sizeof(op->buf);
 
+    size_t cc = -1;
     pthread_mutex_lock(&op->mu);
     while (op->open && op->bytes > bufsize - PIPE_BUF) {
         uint64_t b = op->bytes;
-        op->writer_waiting = 1;
+	int nonblock = (fd->fd_omode & O_NONBLOCK);
+	if (!nonblock)
+	    op->writer_waiting = 1;
         pthread_mutex_unlock(&op->mu);
+
+	if (nonblock) {
+            errno = EAGAIN;
+            goto out;
+        }
+	
         sys_sync_wait(&op->bytes, b, sys_clock_msec() + 1000);
         pthread_mutex_lock(&op->mu);
     }
@@ -180,7 +189,7 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     }
 
     uint32_t avail = bufsize - op->bytes;
-    size_t cc = MIN(count, avail);
+    cc = MIN(count, avail);
     uint32_t idx = (op->read_ptr + op->bytes) % bufsize;
 
     uint32_t cc1 = MIN(cc, bufsize - idx);      // idx to end-of-buffer
@@ -196,6 +205,7 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     }
 
     pthread_mutex_unlock(&op->mu);
+ out:
     BIPIPE_SEG_UNMAP(bs);
     return cc;    
 }

@@ -4,7 +4,7 @@
 #include <inc/fd.h>
 
 int bipipe(int fv[2]);
-int bipipe_fd(struct cobj_ref seg, int a);
+int bipipe_fd(struct cobj_ref seg, int mode, int a);
 
 
 // Defined in bipipe.h so pt can reuse structure and code.
