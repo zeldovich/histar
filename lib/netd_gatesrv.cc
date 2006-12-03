@@ -63,29 +63,6 @@ netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     rg->ret(0, 0, 0);
 }
 
-static void __attribute__((noreturn))
-netd_util_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
-{
-    uint64_t *ct = (uint64_t*)gcd->param_buf;
-    label l, c;
-    thread_cur_label(&l);
-    thread_cur_clearance(&c);
-    
-    int64_t *ret = (int64_t*)ct;
-    try {
-	netd_gate_init(*ct, &l, &c);
-	*ret = 0;
-    } catch (error &e) {
-	cprintf("netd_util_gate_entry: %s\n", e.what());
-	*ret = e.err();
-    } catch (std::exception &e) {
-	cprintf("netd_util_gate_entry: %s\n", e.what());
-	*ret = -1;
-    }
-
-    gr->ret(0, 0, 0);
-}
-
 static void
 netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags, 
 	       void **va, uint64_t *bytes, struct cobj_ref *temp_as)
@@ -211,10 +188,6 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 	
 	gd.name_ = "netd";
 	gd.func_ = &netd_gate_entry;
-	gate_create(&gd);
-
-	gd.name_ = "netd-util";
-	gd.func_ = &netd_util_gate_entry;
 	gate_create(&gd);
 
 	gd.name_ = "netd-fast";
