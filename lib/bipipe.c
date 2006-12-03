@@ -4,6 +4,8 @@
 #include <inc/lib.h>
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
+#include <inc/gateparam.h>
+#include <inc/declassify.h>
 
 #include <errno.h>
 #include <string.h>
@@ -27,6 +29,22 @@
     } while(0)
 
 #define BIPIPE_SEG_UNMAP(__va) segment_unmap_delayed((__va), 1)
+
+int
+bipipe_fd(struct cobj_ref seg, int a)
+{
+    struct Fd *fd;
+    int r = fd_alloc(&fd, "bipipe");
+    if (r < 0) {
+        errno = ENOMEM;
+        return -1;
+    }
+    fd->fd_dev_id = devbipipe.dev_id;
+    fd->fd_omode = O_RDWR;
+    fd->fd_bipipe.bipipe_seg = seg;
+    fd->fd_bipipe.bipipe_a = a;
+    return fd2num(fd);
+}
 
 int
 bipipe(int fv[2])
@@ -210,16 +228,34 @@ bipipe_close(struct Fd *fd)
 {
     struct bipipe_seg *bs = 0;
     BIPIPE_SEG_MAP(fd, &bs);
+    struct one_pipe *p0 = &bs->p[0];
+    struct one_pipe *p1 = &bs->p[1];
+    pthread_mutex_lock(&p0->mu);
+    pthread_mutex_lock(&p1->mu);
+    
+    char flag = 0;
+    if (!p0->open && !p1->open)
+	flag = 1;
 
-    for (int i = 0; i < 2; i++) {
-	struct one_pipe *op = &bs->p[i];
-	pthread_mutex_lock(&op->mu);
-	op->open = 0;
-	pthread_mutex_unlock(&op->mu);
-        sys_sync_wakeup(&op->bytes);
-    }
+    p0->open = 0;
+    p1->open = 0;
+
+    sys_sync_wakeup(&p0->bytes);
+    sys_sync_wakeup(&p1->bytes);
+ 
+    pthread_mutex_unlock(&p1->mu);
+    pthread_mutex_unlock(&p0->mu);
 
     BIPIPE_SEG_UNMAP(bs);
+
+    if (flag) {
+	struct cobj_ref seg = fd->fd_bipipe.bipipe_seg;
+	if (seg.container == start_env->shared_container) {
+	    sys_obj_unref(seg);
+	} else {
+	    // XXX 
+	}
+    }
     return 0;
 }
 

@@ -4,6 +4,8 @@
 #include <inc/fd.h>
 
 int bipipe(int fv[2]);
+int bipipe_fd(struct cobj_ref seg, int a);
+
 
 // Defined in bipipe.h so pt can reuse structure and code.
 enum { bipipe_bufsz = 4000 };
