@@ -63,7 +63,7 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
 	    panic("%s: %s", #e, e2s(__r));	\
     } while (0)
 
-void
+int
 taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 {
     char namebuf[KOBJ_NAME_LEN];
@@ -96,7 +96,7 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     if (r == 0) {
 	if (taint_debug)
 	    cprintf("taint_cow: no need to cow\n");
-	return;
+	return 0;
     }
 
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
@@ -190,4 +190,5 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     start_env->proc_container = mlt_ct;
     start_env->shared_container = taint_container;
     start_env->declassify_gate = declassify_gate;
+    return 1;
 }
