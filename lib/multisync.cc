@@ -34,7 +34,7 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t msec)
 		// segments when wait returns.
 		uint8_t *addr = 0;		
 		error_check(segment_map(wstat[i].ws_seg, 0,
-					SEGMAP_READ | SEGMAP_WRITE,
+					SEGMAP_READ,
 					(void **) &addr, 0, 0));
 		addr += wstat[i].ws_off;
 		mapped[mapped_count] = (uint64_t *)addr;
