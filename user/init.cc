@@ -199,8 +199,8 @@ init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
 
     spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
 
-    spawn_fs(cons, "/bin/httpd", &h_root_buf[0], &ds_hroot);
-    spawn_fs(cons, "/bin/httpd_worker", &h_root_buf[0], &ds_hroot);
+    //spawn_fs(cons, "/bin/httpd_mom", &h_root_buf[0], &ds_none);
+    //spawn_fs(cons, "/bin/httpd_worker", &h_root_buf[0], &ds_hroot);
 
     //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
     //spawn_fs(cons, "/bin/rbac_init", &h_root_buf[0], &ds_hroot);

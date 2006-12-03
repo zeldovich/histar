@@ -498,7 +498,6 @@ static struct Dev *devtab[] =
     &devzero,
     &devnull,
     &devpt,
-    &devssl,
     0
 };
 

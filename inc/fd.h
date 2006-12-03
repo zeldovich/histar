@@ -123,11 +123,6 @@ struct Fd
 	    struct cobj_ref tun_seg;
 	    int tun_a;
 	} fd_tun;
-	struct {
-	    struct cobj_ref ssld_gate;
-	    int lwip_sock;
-	    int netd_sock;
-	} fd_ssl;
     };
 };
 
@@ -155,7 +150,6 @@ extern struct Dev devrand;  	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
 extern struct Dev devpt;        /* type 'y' */
-extern struct Dev devssl;       /* type 'l' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

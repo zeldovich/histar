@@ -11,10 +11,14 @@ extern "C" {
 #include <inc/base64.h>
 #include <inc/authd.h>
 #include <inc/gateparam.h>
-#include <inc/ssld.h>
+#include <inc/bipipe.h>
+#include <inc/debug.h>
 
 #include <string.h>
 #include <unistd.h>
+#include <malloc.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 }
@@ -30,20 +34,16 @@ extern "C" {
 #include <inc/ssldclnt.hh>
 #include <inc/netdclnt.hh>
 
+struct proxy_args {
+    int cipher_fd;
+    int sock_fd;
+    struct cobj_ref ssl_root_obj;
+};
+
 static const char ssl_mode = 0;
+static const char proxy_dbg = 1;
+
 static uint64_t ssld_access_grant;
-
-static struct cobj_ref
-get_netd_util(void)
-{
-    struct fs_inode netd_ct_ino;
-    error_check(fs_namei("/netd", &netd_ct_ino));
-    uint64_t netd_ct = netd_ct_ino.obj.object;
-
-    int64_t gate_id;
-    error_check(gate_id = container_find(netd_ct, kobj_gate, "netd-util"));
-    return COBJ(netd_ct, gate_id);
-}
 
 static struct cobj_ref
 get_ssld_cow(void)
@@ -57,54 +57,151 @@ get_ssld_cow(void)
     return COBJ(ssld_ct, gate_id);
 }
 
-static void
-free_ssl_root(struct cobj_ref *ssl_root_obj)
+static  void
+http_ssl_proxy(void *a)
 {
-    if (ssl_mode && ssl_root_obj->object)
-	sys_obj_unref(*ssl_root_obj);
+    struct proxy_args *pa = (struct proxy_args *) a;
+    int cipher_fd = pa->cipher_fd;
+    int sock_fd = pa->sock_fd;
+    struct cobj_ref ssl_root_obj = pa->ssl_root_obj;
+    free(a);
+
+    fd_set readset, writeset, exceptset;
+    int maxfd = MAX(cipher_fd, sock_fd) + 1;
+    char buf[4096];
+    for (;;) {
+	FD_ZERO(&readset);
+	FD_ZERO(&writeset);
+	FD_ZERO(&exceptset);
+	FD_SET(sock_fd, &readset);	
+	FD_SET(cipher_fd, &readset);	
+	
+	int r = select(maxfd, &readset, &writeset, &exceptset, 0);
+	if (r < 0) {
+	    cprintf("unknown select error: %s\n", strerror(errno));
+	    continue;
+	}
+	
+	if (FD_ISSET(sock_fd, &readset)) {
+	    int r1 = read(sock_fd, buf, sizeof(buf));
+	    if (r1 < 0) {
+		cprintf("unknown read error: %d\n", r1);
+	    } else {
+		int r2 = write(cipher_fd, buf, r1);
+		if (r2 < 0) {
+		    if (errno == EPIPE) {
+			// other end of cipher_fd closed
+			close(cipher_fd);
+			close(sock_fd);
+			debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+			break;
+		    } else {
+			cprintf("unknown write error: %d\n", r2);
+		    }
+		}
+		// XXX
+		assert(r1 == r2);
+	    }
+	}
+	if (FD_ISSET(cipher_fd, &readset)) {
+	    int r1 = read(cipher_fd, buf, sizeof(buf));
+	    if (!r1) {
+		// other end of cipher_fd closed
+		close(cipher_fd);
+		close(sock_fd);
+		debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+		break;
+	    } else if (r1 < 0) {
+		cprintf("http_ssl_proxy: unknown read error: %d\n", r1);
+	    } else {
+		int r2 = write(sock_fd, buf, r1);
+		// XXX
+		assert(r1 == r2);
+	    }
+	}
+    }    
+    sys_obj_unref(ssl_root_obj);
 }
 
+static uint64_t
+http_init_client(uint64_t base_ct, int sock, int fd[2])
+{
+    uint64_t ssl_taint = handle_alloc();
+    label ssl_root_label(1);
+    ssl_root_label.set(ssl_taint, 3);
+    
+    int64_t ssl_root_ct = sys_container_alloc(base_ct,
+					      ssl_root_label.to_ulabel(),
+					      "ssl-root", 0, CT_QUOTA_INF);
+    error_check(ssl_root_ct);
+    
+    // manually setup bipipe segments
+    struct cobj_ref cipher_seg;
+    struct bipipe_seg *cipher_bs = 0;
+    label cipher_label(1);
+    cipher_label.set(ssl_taint, 3);
+    error_check(segment_alloc(ssl_root_ct, //start_env->shared_container,
+			      sizeof(*cipher_bs), &cipher_seg, 
+			      (void **)&cipher_bs, cipher_label.to_ulabel(), 
+			      "cipher-bipipe"));
+    scope_guard<int, void*> umap(segment_unmap, cipher_bs);
+    memset(cipher_bs, 0, sizeof(*cipher_bs));
+    cipher_bs->p[0].open = 1;
+    cipher_bs->p[1].open = 1;
+    
+    struct cobj_ref plain_seg;
+    struct bipipe_seg *plain_bs = 0;
+    label plain_label(1);
+    plain_label.set(ssl_taint, 3);
+    error_check(segment_alloc(ssl_root_ct, //start_env->shared_container, 
+			      sizeof(*plain_bs), &plain_seg, 
+			      (void **)&plain_bs, plain_label.to_ulabel(), 
+			      "plain-bipipe"));
+    scope_guard<int, void*> umap2(segment_unmap, plain_bs);
+    memset(plain_bs, 0, sizeof(*plain_bs));
+    plain_bs->p[0].open = 1;
+    plain_bs->p[1].open = 1;
 
+    // taint cow ssld and pass both bipipes
+    ssld_taint_cow(get_ssld_cow(), cipher_seg, plain_seg, 
+		   ssl_root_ct, ssl_taint);
+
+    // NONBLOCK to avoid potential deadlock with ssld
+    int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
+    int plain_fd = bipipe_fd(plain_seg, 0, 0);
+    error_check(cipher_fd);
+    error_check(plain_fd);
+
+    fd[0] = cipher_fd;
+    fd[1] = plain_fd;
+    
+    return ssl_root_ct;
+}
 
 static void
 http_client(void *arg)
 {
     char buf[512];
+    int r;
     int s = (int64_t) arg;
 
-    struct cobj_ref ssl_root_obj = COBJ(0, 0);
-    scope_guard<void, struct cobj_ref*> cleanup(free_ssl_root, &ssl_root_obj);
-    // XXX
-    if (ssl_mode) {
-	uint64_t base_ct = start_env->shared_container;
+    int fd[2];
+    uint64_t ssl_ct = http_init_client(start_env->shared_container, s, fd);
+    struct cobj_ref ssl_root_obj = COBJ(start_env->shared_container, ssl_ct);
+    
+    struct proxy_args *pa = 
+	(struct proxy_args*) malloc(sizeof(struct proxy_args));
 
-	uint64_t ssl_taint = handle_alloc();
-	label ssl_root_label(1);
-	ssl_root_label.set(ssl_taint, 3);
+    pa->cipher_fd = fd[0];
+    pa->sock_fd = s;
+    pa->ssl_root_obj = ssl_root_obj;
+    
+    struct cobj_ref t;
+    r = thread_create(start_env->proc_container, &http_ssl_proxy,
+		      (void*) pa, &t, "http-ssl-proxy");
+    error_check(r);
 
-	int64_t ssl_root_ct = sys_container_alloc(base_ct,
-					       ssl_root_label.to_ulabel(),
-					       "ssl-root", 0, CT_QUOTA_INF);
-	error_check(ssl_root_ct);
-	ssl_root_obj = COBJ(base_ct, ssl_root_ct);
-
-	label netd_ds(3);
-	netd_ds.set(ssl_taint, LB_LEVEL_STAR);
-	netd_create_gates(get_netd_util(), ssl_root_ct, 0, &netd_ds, 0);
-	
-	label ssld_cs(LB_LEVEL_STAR);
-	ssld_cs.set(ssl_taint, 3);
-	label ssld_dr(0);
-	ssld_dr.set(ssl_taint, 3);
-
-	struct cobj_ref ssld_cow = get_ssld_cow();
-	struct cobj_ref ssld_tainted = 
-	    ssld_cow_call(ssld_cow, ssl_root_ct, &ssld_cs, 0, &ssld_dr);
-	
-	s = ssl_accept(s, ssl_root_ct, ssld_tainted);
-	if (s < 0)
-	    throw basic_exception("unable to alloc ssl_socket: %s", e2s(s));
-    }
+    s = fd[1];
 
     try {
 	tcpconn tc(s);
@@ -125,6 +222,7 @@ http_client(void *arg)
 
 	char auth[64];
 	auth[0] = '\0';
+
 	while (req[0] != '\0') {
 	    req = lp.read_line();
 	    if (req == 0)
@@ -191,6 +289,7 @@ http_client(void *arg)
 		"Content-Type: text/html\r\n"
 		"\r\n"
 		"<h1>Please log in.</h1>\r\n");
+
 	tc.write(buf, strlen(buf));
     } catch (std::exception &e) {
 	printf("http_client: %s\n", e.what());
@@ -228,6 +327,7 @@ http_server(void)
 	struct cobj_ref t;
 	r = thread_create(start_env->proc_container, &http_client,
 			  (void*) (int64_t) ss, &t, "http client");
+	
 	if (r < 0) {
 	    printf("cannot spawn client thread: %s\n", e2s(r));
 	    close(ss);
