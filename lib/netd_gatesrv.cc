@@ -128,13 +128,6 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
     error_check(segment_map(ipc_seg, 0, flags, va, bytes, 0));
 }
 
-static void
-netd_ipc_cleanup(void)
-{
-    error_check(sys_self_set_as(netd_asref));
-    segment_as_switched();
-}
-
 static void __attribute__((noreturn))
 netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
@@ -206,91 +199,6 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     }
 }
 
-static void __attribute__((noreturn))
-netd_select_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *gr)
-{
-    uint64_t netd_ct = start_env->proc_container;
-    struct cobj_ref temp_as;
-    struct netd_sel_segment *ipc = 0;
-    uint64_t map_bytes = 0;
-    struct netd_select_args {
-	char op;
-	struct cobj_ref seg;
-    } *args = (netd_select_args *)gcd->param_buf;
-    int op = args->op;
-
-    while (!netd_server_enabled)
-	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
-
-    netd_ipc_setup(gcd->taint_container, args->seg, 
-		   SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF, 
-		   (void **)&ipc, &map_bytes, &temp_as);
-
-    if (map_bytes != sizeof(*ipc))
-	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
-			      map_bytes, sizeof(*ipc));
-
-    for (;;) {
-	struct jos_jmp_buf pgfault;
-	if (jos_setjmp(&pgfault) != 0) {
-	    sys_self_utrap_mask(0);
-	    break;
-	}
-	*tls_pgfault = &pgfault;
-
-	while (ipc->sel_op[op].sync == 0)
-	    sys_sync_wait(&ipc->sel_op[op].sync, 0, ~0UL);
-	
-	if (ipc->sel_op[op].sync == NETD_SEL_SYNC_CLOSE)
-	    break;
-
-	error_check(sys_self_addref(netd_ct));
-	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
-
-	error_check(sys_self_set_as(netd_asref));
-	segment_as_switched();
-
-	// Map shared memory segment & execute operation
-	{
-	    struct netd_sel_segment *ipc_shared = 0;
-	    error_check(segment_map(args->seg, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
-				    (void **) &ipc_shared, &map_bytes, 0));
-	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
-	    
-	    if (jos_setjmp(&pgfault) != 0) {
-		sys_self_utrap_mask(0);
-		break;
-	    }
-	    *tls_pgfault = &pgfault;
-
-	    while (ipc_shared->sel_op[op].sync == NETD_SEL_SYNC_REQUEST) {
-		struct timeval tv = {1, 0};
-		while (ipc_shared->sel_op[op].sync == NETD_SEL_SYNC_REQUEST) {
-		    if (netd_select(ipc_shared->sock, op, &tv)) {
-			ipc_shared->sel_op[op].gen++;
-			error_check(sys_sync_wakeup(&ipc_shared->sel_op[op].gen));
-			atomic_compare_exchange((atomic_t *)&ipc_shared->sel_op[op].sync,
-						NETD_SEL_SYNC_REQUEST, 
-						NETD_SEL_SYNC_DONE);
-		    }
-		}
-
-		int64_t msec_keepalive = sys_clock_msec() + 1000;
-		while (ipc_shared->sel_op[op].sync == 0 &&
-		       sys_clock_msec() < msec_keepalive)
-		    sys_sync_wait(&ipc_shared->sel_op[op].sync, 0, msec_keepalive);
-	    }
-	}
-
-	unref.force();
-	error_check(sys_self_set_as(temp_as));
-	segment_as_switched();
-    }    
-
-    netd_ipc_cleanup();
-    gr->ret(0, 0, 0);
-}
-
 static void
 netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 {
@@ -312,11 +220,6 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 	gd.name_ = "netd-fast";
 	gd.func_ = &netd_fast_gate_entry;
 	gd.flags_ = GATESRV_NO_THREAD_ADDREF | GATESRV_KEEP_TLS_STACK;
-	gate_create(&gd);
-
-	gd.name_ = "netd-select";
-	gd.func_ = &netd_select_gate_entry;
-	gd.flags_ = GATESRV_NO_THREAD_ADDREF;
 	gate_create(&gd);
     } catch (error &e) {
 	cprintf("netd_server_init: %s\n", e.what());
