@@ -41,7 +41,7 @@ struct proxy_args {
 };
 
 static const char ssl_mode = 0;
-static const char proxy_dbg = 1;
+static const char proxy_dbg = 0;
 
 static uint64_t ssld_access_grant;
 
@@ -140,7 +140,7 @@ http_init_client(uint64_t base_ct, int sock, int fd[2])
     struct bipipe_seg *cipher_bs = 0;
     label cipher_label(1);
     cipher_label.set(ssl_taint, 3);
-    error_check(segment_alloc(ssl_root_ct, //start_env->shared_container,
+    error_check(segment_alloc(ssl_root_ct,
 			      sizeof(*cipher_bs), &cipher_seg, 
 			      (void **)&cipher_bs, cipher_label.to_ulabel(), 
 			      "cipher-bipipe"));
@@ -153,7 +153,7 @@ http_init_client(uint64_t base_ct, int sock, int fd[2])
     struct bipipe_seg *plain_bs = 0;
     label plain_label(1);
     plain_label.set(ssl_taint, 3);
-    error_check(segment_alloc(ssl_root_ct, //start_env->shared_container, 
+    error_check(segment_alloc(ssl_root_ct,
 			      sizeof(*plain_bs), &plain_seg, 
 			      (void **)&plain_bs, plain_label.to_ulabel(), 
 			      "plain-bipipe"));
