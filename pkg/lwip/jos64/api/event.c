@@ -43,7 +43,7 @@ jos64_event_helper(int s, enum netconn_evt evt)
 }
 
 void
-jos64_init_api(void)
+jos64_init_api(char public_sockets)
 {
     memset(read_notify, 0, sizeof(read_notify));
     memset(write_notify, 0, sizeof(write_notify));
@@ -58,7 +58,12 @@ jos64_init_api(void)
 	{ .ul_size = nents, .ul_ent = ents };
     label.ul_default = 1;
     
-    int64_t r = label_set_level(&label, start_env->process_grant, 0, 0);
+    int64_t r;
+    if (public_sockets)
+	r = label_set_level(&label, start_env->process_grant, 0, 0);
+    else
+	r = label_set_level(&label, start_env->process_taint, 3, 0);
+
     if (r < 0)
 	panic("unable to set label level: %s\n", e2s(r));
     

@@ -40,6 +40,7 @@ static void
 lwip_init(struct netif *nif, void *if_state,
 	  uint32_t init_addr, uint32_t init_mask, uint32_t init_gw)
 {
+    jos64_init_api(1);
     // lwIP initialization sequence, as suggested by lwip/doc/rawapi.txt
     stats_init();
     sys_init();
@@ -124,7 +125,6 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 	       uint32_t ipaddr, uint32_t netmask, uint32_t gw)
 {
     lwip_core_lock();
-    jos64_init_api();
 
     dev_type = type;
     
