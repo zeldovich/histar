@@ -52,21 +52,16 @@ jos64_init_api(char public_sockets)
     sockets = 0;
     struct cobj_ref seg;
     
-    static const uint64_t nents = 1;
+    static const uint64_t nents = 2;
     uint64_t ents[nents];
     struct ulabel label =
-	{ .ul_size = nents, .ul_ent = ents };
-    label.ul_default = 1;
-    
-    int64_t r;
-    if (public_sockets)
-	r = label_set_level(&label, start_env->process_grant, 0, 0);
-    else
-	r = label_set_level(&label, start_env->process_taint, 3, 0);
+	{ .ul_size = nents, .ul_ent = ents, .ul_nent = 0, .ul_default = 1 };
 
-    if (r < 0)
-	panic("unable to set label level: %s\n", e2s(r));
-    
+    int64_t r;
+    assert(0 == label_set_level(&label, start_env->process_grant, 0, 0));
+    if (!public_sockets)
+	assert(0 == label_set_level(&label, start_env->process_taint, 3, 0));
+
     if ((r = segment_alloc(start_env->shared_container, bytes, &seg, 
 			   (void *)&sockets, &label, "sockets")) < 0)
 	panic("unable to alloc status seg: %s\n", e2s(r));
