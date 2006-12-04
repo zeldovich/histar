@@ -124,7 +124,7 @@ http_ssl_proxy(void *a)
 }
 
 static uint64_t
-http_init_client(uint64_t base_ct, int sock, int fd[2])
+http_init_client(uint64_t base_ct, int fd[2])
 {
     uint64_t ssl_taint = handle_alloc();
     label ssl_root_label(1);
@@ -186,7 +186,7 @@ http_client(void *arg)
     int s = (int64_t) arg;
 
     int fd[2];
-    uint64_t ssl_ct = http_init_client(start_env->shared_container, s, fd);
+    uint64_t ssl_ct = http_init_client(start_env->shared_container, fd);
     struct cobj_ref ssl_root_obj = COBJ(start_env->shared_container, ssl_ct);
     
     struct proxy_args *pa = 
