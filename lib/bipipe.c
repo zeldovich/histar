@@ -120,8 +120,10 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
         char opn = op->open;
         pthread_mutex_unlock(&op->mu);
 
-        if (!opn)
-            return 0;
+        if (!opn) {
+	    BIPIPE_SEG_UNMAP(bs);	    
+	    return 0;
+	}
 
         if (nonblock) {
             errno = EAGAIN;
@@ -184,8 +186,9 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 
     if (!op->open) {
         pthread_mutex_unlock(&op->mu);
-        errno = EPIPE;
-        return -1;
+	BIPIPE_SEG_UNMAP(bs);
+	errno = EPIPE;
+	return -1;
     }
 
     uint32_t avail = bufsize - op->bytes;
