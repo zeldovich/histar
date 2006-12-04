@@ -6,7 +6,6 @@ Compatibility issues:
 
 Performance:
 
-* reasonable select() implementation
 * deal with fragmentation on-disk
 * partial segment swapin and swapout
 * page reclamation, LRU (unpin callbacks for reclaiming space?)
@@ -48,8 +47,6 @@ Cleanup:
 * lwip: fix sys_arch_timeouts() in lib/lwip/jos64/arch/sys_arch.c;
   need a callback for when threads enter/leave an AS.
 * split the pstate sync timestamp counter from the handle counter
-* netd_select gate asks for a non-tls stack but doesn't addref the thread,
-  which means its non-tls stack will not get cleaned up if the thread dies
 * sys_container_get_parent(): check thread can read parent (for later chown)
 
 Bugs:
