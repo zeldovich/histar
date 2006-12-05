@@ -17,52 +17,64 @@
 struct sys_sem_entry {
     atomic64_t inuse;
     atomic64_t counter;
+    LIST_ENTRY(sys_sem_entry) link;
 };
 static struct sys_sem_entry sems[NSEM];
+static LIST_HEAD(sem_list, sys_sem_entry) sem_free;
+static pthread_mutex_t sem_free_mutex;
 
 struct sys_mbox_entry {
-    atomic_t inuse;
     int head, nextq;
     void *msg[MBOXSLOTS];
     pthread_mutex_t mutex;
     sys_sem_t queued_msg;
     sys_sem_t free_msg;
+    LIST_ENTRY(sys_mbox_entry) link;
 };
 static struct sys_mbox_entry mboxes[NMBOX];
+static LIST_HEAD(mbox_list, sys_mbox_entry) mbox_free;
+static pthread_mutex_t mbox_free_mutex;
 
 struct sys_thread {
     uint64_t tid;
     struct sys_timeouts tmo;
     LIST_ENTRY(sys_thread) link;
 };
-static LIST_HEAD(thread_list, sys_thread) threads;
+enum { thread_hash_size = 257 };
+static LIST_HEAD(thread_list, sys_thread) threads[thread_hash_size];
+static pthread_mutex_t threads_mutex;
 
 void
 sys_init()
 {
+    for (int i = 0; i < NSEM; i++)
+	LIST_INSERT_HEAD(&sem_free, &sems[i], link);
+    for (int i = 0; i < NMBOX; i++)
+	LIST_INSERT_HEAD(&mbox_free, &mboxes[i], link);
 }
 
 sys_mbox_t
 sys_mbox_new()
 {
-    int i;
-    for (i = 0; i < NMBOX; i++) {
-	if (atomic_compare_exchange(&mboxes[i].inuse, 0, 1) == 0)
-	    break;
-    }
-
-    if (i == NMBOX) {
+    pthread_mutex_lock(&mbox_free_mutex);
+    struct sys_mbox_entry *mbe = LIST_FIRST(&mbox_free);
+    if (!mbe) {
 	cprintf("lwip: sys_mbox_new: out of mailboxes\n");
+	pthread_mutex_unlock(&mbox_free_mutex);
 	return SYS_MBOX_NULL;
     }
 
-    mboxes[i].head = -1;
-    mboxes[i].nextq = 0;
-    mboxes[i].queued_msg = sys_sem_new(0);
-    mboxes[i].free_msg = sys_sem_new(MBOXSLOTS);
+    LIST_REMOVE(mbe, link);
+    pthread_mutex_unlock(&mbox_free_mutex);
 
-    if (mboxes[i].queued_msg == SYS_SEM_NULL ||
-	mboxes[i].free_msg == SYS_SEM_NULL)
+    int i = mbe - &mboxes[0];
+    mbe->head = -1;
+    mbe->nextq = 0;
+    mbe->queued_msg = sys_sem_new(0);
+    mbe->free_msg = sys_sem_new(MBOXSLOTS);
+
+    if (mbe->queued_msg == SYS_SEM_NULL ||
+	mbe->free_msg == SYS_SEM_NULL)
     {
 	sys_mbox_free(i);
 	cprintf("lwip: sys_mbox_new: can't get semaphore\n");
@@ -77,7 +89,10 @@ sys_mbox_free(sys_mbox_t mbox)
 {
     sys_sem_free(mboxes[mbox].queued_msg);
     sys_sem_free(mboxes[mbox].free_msg);
-    atomic_set(&mboxes[mbox].inuse, 0);
+
+    pthread_mutex_lock(&mbox_free_mutex);
+    LIST_INSERT_HEAD(&mbox_free, &mboxes[mbox], link);
+    pthread_mutex_unlock(&mbox_free_mutex);
 }
 
 void
@@ -103,25 +118,27 @@ sys_mbox_post(sys_mbox_t mbox, void *msg)
 sys_sem_t
 sys_sem_new(u8_t count)
 {
-    int i;
-    for (i = 0; i < NSEM; i++) {
-	if (atomic_compare_exchange64(&sems[i].inuse, 0, 1) == 0)
-	    break;
-    }
-
-    if (i == NSEM) {
+    pthread_mutex_lock(&sem_free_mutex);
+    struct sys_sem_entry *se = LIST_FIRST(&sem_free);
+    if (!se) {
+	pthread_mutex_unlock(&sem_free_mutex);
 	cprintf("lwip: sys_sem_new: out of semaphores\n");
 	return SYS_SEM_NULL;
     }
 
-    atomic_set(&sems[i].counter, count);
-    return i;
+    LIST_REMOVE(se, link);
+    pthread_mutex_unlock(&sem_free_mutex);
+
+    atomic_set(&se->counter, count);
+    return se - &sems[0];
 }
 
 void
 sys_sem_free(sys_sem_t sem)
 {
-    atomic_set(&sems[sem].inuse, 0);
+    pthread_mutex_lock(&sem_free_mutex);
+    LIST_INSERT_HEAD(&sem_free, &sems[sem], link);
+    pthread_mutex_unlock(&sem_free_mutex);
 }
 
 void
@@ -219,8 +236,9 @@ sys_arch_timeouts(void)
 {
     uint64_t tid = thread_id();
 
+    pthread_mutex_lock(&threads_mutex);
     struct sys_thread *t;
-    LIST_FOREACH(t, &threads, link)
+    LIST_FOREACH(t, &threads[tid % thread_hash_size], link)
 	if (t->tid == tid)
 	    goto out;
 
@@ -230,12 +248,13 @@ sys_arch_timeouts(void)
 
     t->tid = tid;
     memset(&t->tmo, 0, sizeof(t->tmo));
-    LIST_INSERT_HEAD(&threads, t, link);
+    LIST_INSERT_HEAD(&threads[tid % thread_hash_size], t, link);
 
     // XXX need a callback when threads exit this address space,
     // so that we can GC these thread-specific structs.
 
 out:
+    pthread_mutex_unlock(&threads_mutex);
     return &t->tmo;
 }
 
