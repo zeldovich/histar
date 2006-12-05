@@ -60,6 +60,10 @@ struct jif {
     struct netbuf_hdr *rx[JIF_BUFS];
     struct netbuf_hdr *tx[JIF_BUFS];
 
+    int rx_head;	// kernel will place next packet here
+    int rx_tail;	// last buffer we gave to the kernel
+    int tx_next;	// next slot to use for TX
+
     struct cobj_ref buf_seg;
     void *buf_base;
 };
@@ -112,6 +116,10 @@ low_level_init(struct netif *netif)
 	jif->tx[i] = jif->buf_base + i * PGSIZE + 2048;
 	jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
     }
+
+    jif->tx_next = 0;
+    jif->rx_head = -1;
+    jif->rx_tail = -1;
 }
 
 /*
@@ -132,17 +140,13 @@ low_level_output(struct netif *netif, struct pbuf *p)
     pbuf_header(p, -ETH_PAD_SIZE);			/* drop the padding word */
 #endif
 
-    int txslot;
-    for (txslot = 0; txslot < JIF_BUFS; txslot++) {
-	if ((jif->tx[txslot]->actual_count & NETHDR_COUNT_DONE))
-	    break;
-    }
-
-    if (txslot == JIF_BUFS) {
+    int txslot = jif->tx_next;
+    if (!(jif->tx[txslot]->actual_count & NETHDR_COUNT_DONE)) {
 	cprintf("jif: out of tx bufs\n");
 	return ERR_MEM;
     }
 
+    jif->tx_next = (jif->tx_next + 1) % JIF_BUFS;
     char *txbuf = (char *) (jif->tx[txslot] + 1);
     int txsize = 0;
 
@@ -188,49 +192,57 @@ low_level_output(struct netif *netif, struct pbuf *p)
  *
  */
 
+static void
+jif_rxbuf_feed(struct jif *jif)
+{
+    int ss = (jif->rx_tail >= 0 ? (jif->rx_tail + 1) % JIF_BUFS : 0);
+    for (int i = ss; i != jif->rx_head; i = (i + 1) % JIF_BUFS) {
+	void *bufaddr = jif->rx[i];
+	jif->rx[i]->actual_count = 0;
+	int r = sys_net_buf(jif->ndev, jif->buf_seg,
+			    (uint64_t) (bufaddr - jif->buf_base), netbuf_rx);
+	if (r < 0) {
+	    cprintf("jif: cannot feed rx packet: %s\n", e2s(r));
+	    break;
+	}
+
+	jif->rx_tail = i;
+	if (jif->rx_head == -1)
+	    jif->rx_head = i;
+    }
+}
+
 static struct pbuf *
 low_level_input(struct netif *netif)
 {
     struct jif *jif = netif->state;
 
-    int rxslot;
-    do {
-	for (rxslot = 0; rxslot < JIF_BUFS; rxslot++) {
-	    if (jif->rx[rxslot]->actual_count == (uint16_t) -1) {
-		void *bufaddr = jif->rx[rxslot];
+    while (jif->rx_head < 0 || !(jif->rx[jif->rx_head]->actual_count & NETHDR_COUNT_DONE)) {
+	jif_rxbuf_feed(jif);
 
-		jif->rx[rxslot]->actual_count = 0;
-		int r = sys_net_buf(jif->ndev, jif->buf_seg,
-				    (uint64_t) (bufaddr - jif->buf_base),
-				    netbuf_rx);
-		if (r < 0) {
-		    cprintf("jif: cannot feed rx packet: %s\n", e2s(r));
-		    jif->rx[rxslot]->actual_count = -1;
-		}
-	    } else if ((jif->rx[rxslot]->actual_count & NETHDR_COUNT_DONE)) {
-		break;
+	lwip_core_unlock();
+	jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, jif->waitgen);
+	lwip_core_lock();
+	if (jif->waitgen == -E_AGAIN) {
+	    // All buffers have been cleared
+	    for (int i = 0; i < JIF_BUFS; i++) {
+		jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
+		jif->rx_head = -1;
+		jif->rx_tail = -1;
 	    }
 	}
+    }
 
-	if (rxslot == JIF_BUFS) {
-	    lwip_core_unlock();
-	    jif->waitgen = sys_net_wait(jif->ndev, jif->waiter_id, jif->waitgen);
-	    lwip_core_lock();
-	    if (jif->waitgen == -E_AGAIN) {
-		// All buffers have been cleared
-		for (int i = 0; i < JIF_BUFS; i++) {
-		    jif->rx[i]->actual_count = (uint16_t) -1;
-		    jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
-		}
-	    }
-	}
-    } while (rxslot == JIF_BUFS);
+    int slot = jif->rx_head;
+    if (jif->rx_head == jif->rx_tail)
+	jif->rx_head = -1;
+    else
+	jif->rx_head = (jif->rx_head + 1) % JIF_BUFS;
 
-    uint16_t count = jif->rx[rxslot]->actual_count;
-    jif->rx[rxslot]->actual_count = -1;
-
+    uint16_t count = jif->rx[slot]->actual_count;
     if ((count & NETHDR_COUNT_ERR)) {
 	cprintf("jif: rx packet error\n");
+	jif_rxbuf_feed(jif);
 	return 0;
     }
 
@@ -258,7 +270,7 @@ low_level_input(struct netif *netif)
 
     /* We iterate over the pbuf chain until we have read the entire
      * packet into the pbuf. */
-    void *rxbuf = (void *) (jif->rx[rxslot] + 1);
+    void *rxbuf = (void *) (jif->rx[slot] + 1);
     int copied = 0;
     for (struct pbuf *q = p; q != NULL; q = q->next) {
 	/* Read enough bytes to fill this pbuf in the chain. The
@@ -280,7 +292,8 @@ low_level_input(struct netif *netif)
     lwip_stats.link.recv++;
 #endif /* LINK_STATS */
 
-    return p;  
+    jif_rxbuf_feed(jif);
+    return p;
 }
 
 /*
