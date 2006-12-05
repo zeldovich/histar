@@ -181,8 +181,9 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 		    dhcp_states[dhcp_state] ? : "unknown");
 	}
 
-	if (netd_stats)
+	if (netd_stats) {
 	    stats_display();
+	}
 
 	lwip_core_unlock();
 	thread_sleep(1000);
