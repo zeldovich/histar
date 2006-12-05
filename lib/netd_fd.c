@@ -117,7 +117,7 @@ sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
     libc_to_netd(&sin, &a.connect.sin);
-    return netd_slow_call(fd->fd_sock.netd_gate, &a);
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
@@ -252,9 +252,7 @@ sock_close(struct Fd *fd)
     
     a.op_type = netd_op_close;
     a.close.fd = fd->fd_sock.s;
-    int r = netd_slow_call(fd->fd_sock.netd_gate, &a);
-
-    return r;
+    return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
 static int
