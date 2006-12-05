@@ -15,7 +15,6 @@
 #define MBOXSLOTS	32
 
 struct sys_sem_entry {
-    atomic64_t inuse;
     atomic64_t counter;
     LIST_ENTRY(sys_sem_entry) link;
 };
