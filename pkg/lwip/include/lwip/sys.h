@@ -65,6 +65,7 @@ struct sys_timeout {u8_t dummy;};
 
 /** Return code for timeouts from sys_arch_mbox_fetch and sys_arch_sem_wait */
 #define SYS_ARCH_TIMEOUT 0xffffffff
+#define SYS_ARCH_NOWAIT  0xfffffffe
 
 typedef void (* sys_timeout_handler)(void *arg);
 

@@ -157,6 +157,8 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	if (v > 0) {
 	    if (v == atomic_compare_exchange64(&sems[sem].counter, v, v-1))
 		return waited;
+	} else if (tm_msec == SYS_ARCH_NOWAIT) {
+	    waited = SYS_ARCH_TIMEOUT;
 	} else {
 	    uint64_t a = sys_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;

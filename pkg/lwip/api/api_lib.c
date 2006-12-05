@@ -278,7 +278,7 @@ netconn_delete(struct netconn *conn)
 
   /* Drain the recvmbox. */
   if (conn->recvmbox != SYS_MBOX_NULL) {
-    while (sys_arch_mbox_fetch(conn->recvmbox, &mem, 1) != SYS_ARCH_TIMEOUT) {
+    while (sys_arch_mbox_fetch(conn->recvmbox, &mem, SYS_ARCH_NOWAIT) != SYS_ARCH_TIMEOUT) {
       if (conn->type == NETCONN_TCP) {
         if(mem != NULL)
           pbuf_free((struct pbuf *)mem);
@@ -293,7 +293,7 @@ netconn_delete(struct netconn *conn)
 
   /* Drain the acceptmbox. */
   if (conn->acceptmbox != SYS_MBOX_NULL) {
-    while (sys_arch_mbox_fetch(conn->acceptmbox, &mem, 1) != SYS_ARCH_TIMEOUT) {
+    while (sys_arch_mbox_fetch(conn->acceptmbox, &mem, SYS_ARCH_NOWAIT) != SYS_ARCH_TIMEOUT) {
       netconn_delete((struct netconn *)mem);
     }
     
