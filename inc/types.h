@@ -6,8 +6,8 @@
 #endif
 
 #ifdef JOS_USER
-#include <sys/types.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include <sys/param.h>
 
 /*
