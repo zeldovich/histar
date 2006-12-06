@@ -7,6 +7,7 @@
 #define LWIP_DHCP		1
 #define LWIP_COMPAT_SOCKETS	0
 #define LWIP_STATS_DISPLAY	1
+#define SYS_LIGHTWEIGHT_PROT	1
 
 // Various tuning knobs, partly from jos32's lwipopts.h
 #define MEM_ALIGNMENT		4
