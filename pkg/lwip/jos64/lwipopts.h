@@ -1,6 +1,9 @@
 #ifndef JOS_LWIP_LWIPOPTS_H
 #define JOS_LWIP_LWIPOPTS_H
 
+/* MEMP_NUM_NETCONN: the number of struct netconns. */
+#define MEMP_NUM_NETCONN        8
+
 #define LWIP_DHCP		1
 #define LWIP_COMPAT_SOCKETS	0
 #define LWIP_STATS_DISPLAY	1
