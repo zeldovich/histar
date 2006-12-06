@@ -7,7 +7,6 @@
 #include <inc/fs.h>
 #include <inc/jthread.h>
 #include <inc/label.h>
-#include <inc/pt.h>
 #include <inc/multisync.h>
 
 #include <dirent.h>
