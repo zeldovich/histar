@@ -211,6 +211,11 @@ main(int ac, char **av)
 	    
 	    http_request(ssl, host, port);
 	    SSL_free(ssl);
+	    struct linger l;
+	    l.l_onoff = 1;
+	    l.l_linger = 0;
+	    setsockopt(sock, SOL_SOCKET, SO_LINGER, &l, sizeof(l));
+
 	    close(sock);
 	}
     	destroy_ctx(ctx);
