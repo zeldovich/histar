@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
@@ -21,6 +22,7 @@
 
 // some knobs
 static const int default_requests = 100;
+static const int default_clients = 1;
 static char *request_template = 
     "GET / HTTP/1.0\r\nUser-Agent:"
     "TestClient\r\nHost: %s:%d\r\n\r\n";
@@ -31,7 +33,7 @@ static const int bufsize = 4096;
 static int 
 err_exit(char *string)
 {
-    fprintf(stderr,"%s\n",string);
+    fprintf(stderr,"%d: %s\n", getpid(), string);
     exit(-1);
 }
 
@@ -139,16 +141,27 @@ main(int ac, char **av)
     int port;
     const char *host;
     int requests = default_requests;
+    int clients = default_clients;
 
     if (ac < 3) {
-	fprintf(stderr, "Usage: %s host port [requests]\n", av[0]);
+	fprintf(stderr, "Usage: %s host port [-r requests | -c clients]\n", av[0]);
 	exit(-1);
     }
 
     host = av[1];
     port = atoi(av[2]);
-    if (ac >= 4)
-	requests = atoi(av[3]);
+
+    int c;
+    while ((c = getopt(ac, av, "r:c:")) != -1) {
+	switch(c) {
+	case 'r':
+	    requests = atoi(optarg);
+	    break;
+	case 'c':
+	    clients = atoi(optarg);
+	    break;
+	}
+    }
     
     struct hostent *hp;
     struct sockaddr_in addr;
@@ -160,41 +173,55 @@ main(int ac, char **av)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
-    SSL_CTX *ctx = init_ctx();
-    SSL_SESSION *ses = 0;
+    for (int i = 0; i < clients; i++) {
+	pid_t p;
+	if (p = fork()) {
+	    fprintf(stderr, "%d started...\n", p);
+	    continue;
+	}
 
-    if (session_reuse)
-	SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
-
-    for (int i = 0; i < requests; i++) {
-	SSL *ssl;
-	BIO *sbio;
-	int sock;
-
-	sock = tcp_connect(&addr);
-    	ssl = SSL_new(ctx);
-	sbio = BIO_new_socket(sock, BIO_NOCLOSE);
-	SSL_set_bio(ssl, sbio, sbio);
+	SSL_CTX *ctx = init_ctx();
+	SSL_SESSION *ses = 0;
 	
-	if (session_reuse && ses)
-	    assert(SSL_set_session(ssl, ses));
-
-	// init handshake w/ server
-	if(SSL_connect(ssl) <= 0)
-	    err_exit("SSL connect error");
+	if (session_reuse)
+	    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
 	
-	if (session_reuse && !SSL_session_reused(ssl))
-	    printf("session not reused\n");
-	
-	if (session_reuse && !ses)
-	    assert(ses = SSL_get_session(ssl));
-	
-	http_request(ssl, host, port);
-	SSL_free(ssl);
-        close(sock);
+	for (int i = 0; i < requests; i++) {
+	    SSL *ssl;
+	    BIO *sbio;
+	    int sock;
+	    
+	    sock = tcp_connect(&addr);
+	    ssl = SSL_new(ctx);
+	    sbio = BIO_new_socket(sock, BIO_NOCLOSE);
+	    SSL_set_bio(ssl, sbio, sbio);
+	    
+	    if (session_reuse && ses)
+		assert(SSL_set_session(ssl, ses));
+	    
+	    // init handshake w/ server
+	    if(SSL_connect(ssl) <= 0)
+		err_exit("SSL connect error");
+	    
+	    if (session_reuse && !SSL_session_reused(ssl))
+		fprintf(stderr, "session not reused!\n");
+	    
+	    if (session_reuse && !ses)
+		assert(ses = SSL_get_session(ssl));
+	    
+	    http_request(ssl, host, port);
+	    SSL_free(ssl);
+	    close(sock);
+	}
+    	destroy_ctx(ctx);
+	return 0;
     }
     
-    destroy_ctx(ctx);
-
+    for (int i = 0; i < clients; i++) {
+	pid_t p;
+	if ((p = wait(0)) < 0)
+	    err_exit("wait error");
+	fprintf(stderr, "%d terminated!\n", p);
+    }
     return 0;
 }
