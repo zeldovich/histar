@@ -173,10 +173,10 @@ netd_dispatch(struct netd_op_args *a)
     }
 
     if (a->rval < 0 && err_fd >= 0) {
-	socklen_t len = sizeof(a->errno);
-	lwip_getsockopt(err_fd, SOL_SOCKET, SO_ERROR, &a->errno, &len);
+	socklen_t len = sizeof(a->rerrno);
+	lwip_getsockopt(err_fd, SOL_SOCKET, SO_ERROR, &a->rerrno, &len);
     } else {
-	a->errno = 0;
+	a->rerrno = 0;
     }
 
     lwip_core_unlock();

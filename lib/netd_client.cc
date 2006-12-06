@@ -229,7 +229,7 @@ netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
     }
 
     if (a->rval < 0)
-	errno = a->errno;
+	errno = a->rerrno;
     return a->rval;
 }
 
@@ -260,7 +260,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	    netd_fast_call(a);
 
 	    if (a->rval < 0)
-		errno = a->errno;
+		errno = a->rerrno;
 	    return a->rval;
 	} catch (std::exception &e) {
 	    cprintf("netd_call: cannot fast-call: %s\n", e.what());
