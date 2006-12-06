@@ -308,7 +308,8 @@ init_syntax_once ()
 
 /* Integer type for pointers.  */
 # if !defined _LIBC
-typedef unsigned long int uintptr_t;
+/* XXX jos64 */
+/* typedef unsigned long int uintptr_t; */
 # endif
 
 /* Should we use malloc or alloca?  If REGEX_MALLOC is not defined, we
