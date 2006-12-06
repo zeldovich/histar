@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/string.h>
 #include <inc/sha1.h>
 #include <inc/syscall.h>
+#include <inc/stdio.h>
 
 #include <string.h>
 }

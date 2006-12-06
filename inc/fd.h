@@ -1,7 +1,7 @@
 #ifndef JOS_INC_FD_H
 #define JOS_INC_FD_H
 
-#include <machine/atomic.h>
+#include <inc/atomic.h>
 #include <inc/container.h>
 #include <inc/types.h>
 #include <inc/fs.h>
@@ -12,6 +12,7 @@
 
 #include <dirent.h>
 #include <arpa/inet.h>
+#include <stdarg.h>
 
 struct stat;
 

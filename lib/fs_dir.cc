@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/pthread.h>
 #include <inc/declassify.h>
 #include <inc/gateparam.h>
+#include <inc/stdio.h>
 
 #include <string.h>
 }

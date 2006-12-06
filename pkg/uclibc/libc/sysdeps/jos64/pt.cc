@@ -6,6 +6,8 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
 #include <inc/devpt.h>
+#include <inc/stdio.h>
+#include <inc/assert.h>
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>

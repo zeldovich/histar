@@ -2,6 +2,7 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/syscall.h>
+#include <inc/stdio.h>
 }
 
 #include <inc/labelutil.hh>

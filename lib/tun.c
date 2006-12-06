@@ -3,6 +3,7 @@
 #include <inc/syscall.h>
 #include <inc/atomic.h>
 #include <inc/lib.h>
+#include <inc/stdio.h>
 
 #include <errno.h>
 #include <string.h>

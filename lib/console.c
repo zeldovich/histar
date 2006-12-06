@@ -2,6 +2,8 @@
 #include <inc/error.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
+#include <inc/stdio.h>
+#include <inc/assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <malloc.h>

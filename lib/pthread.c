@@ -1,5 +1,6 @@
 #include <inc/pthread.h>
 #include <inc/syscall.h>
+#include <inc/assert.h>
 
 void
 pthread_mutex_init(pthread_mutex_t *mu, void *attr)

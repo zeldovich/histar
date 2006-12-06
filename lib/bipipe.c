@@ -5,6 +5,7 @@
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
 #include <inc/gateparam.h>
+#include <inc/stdio.h>
 
 #include <errno.h>
 #include <string.h>

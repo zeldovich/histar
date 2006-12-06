@@ -2,7 +2,6 @@
 #define JOS_INC_PTHREAD_H
 
 #include <inc/atomic.h>
-#include <inc/assert.h>
 
 typedef atomic64_t pthread_mutex_t;
 

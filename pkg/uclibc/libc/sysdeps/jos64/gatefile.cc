@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/chardevs.h>
 #include <inc/pt.h>
 #include <inc/error.h>
+#include <inc/stdio.h>
 
 #include <errno.h>
 #include <string.h>

@@ -1,8 +1,6 @@
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
-#include <inc/types.h>
-
 /*
  * Atomic operations that C can't guarantee us.  Useful for
  * resource counting etc..
