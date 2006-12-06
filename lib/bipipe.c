@@ -6,6 +6,7 @@
 #include <inc/labelutil.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
+#include <inc/syscall.h>
 
 #include <errno.h>
 #include <string.h>
@@ -72,8 +73,9 @@ bipipe(int fv[2])
     struct Fd *fda;
     r = fd_alloc(&fda, "bipipe");
     if (r < 0) {
-        segment_unmap_delayed(bs, 1);
-        errno = ENOMEM;
+	segment_unmap_delayed(bs, 1);
+	sys_obj_unref(seg);
+	errno = ENOMEM;
         return -1;
     }
     fda->fd_dev_id = devbipipe.dev_id;
@@ -87,6 +89,7 @@ bipipe(int fv[2])
     r = fd_alloc(&fdb, "bipipe");
     if (r < 0) {
         segment_unmap_delayed(bs, 1);
+	sys_obj_unref(seg);
         jos_fd_close(fda);
         errno = ENOMEM;
         return -1;
