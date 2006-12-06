@@ -8,7 +8,7 @@ jthread_mutex_init(jthread_mutex_t *mu)
     atomic_set(mu, 0);
 }
 
-int
+void
 jthread_mutex_lock(jthread_mutex_t *mu)
 {
     for (;;) {
@@ -19,7 +19,6 @@ jthread_mutex_lock(jthread_mutex_t *mu)
 	atomic_compare_exchange64(mu, 1, 2);
 	sys_sync_wait(&mu->counter, 2, ~0UL);
     }
-    return 0;
 }
 
 int
@@ -32,7 +31,7 @@ jthread_mutex_trylock(jthread_mutex_t *mu)
     return -1;
 }
 
-int
+void
 jthread_mutex_unlock(jthread_mutex_t *mu)
 {
     uint64_t was = atomic_compare_exchange64(mu, 1, 0);
@@ -43,6 +42,4 @@ jthread_mutex_unlock(jthread_mutex_t *mu)
 	atomic_set(mu, 0);
 	sys_sync_wakeup(&mu->counter);
     }
-
-    return 0;
 }
