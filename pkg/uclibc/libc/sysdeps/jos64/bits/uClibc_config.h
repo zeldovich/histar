@@ -73,7 +73,7 @@
 #undef __ARCH_HAS_NO_LDSO__
 #undef __DL_FINI_CRT_COMPAT__
 #define __UCLIBC_CTOR_DTOR__ 1
-/* #define __UCLIBC_HAS_THREADS__ 1 */
+#define __UCLIBC_HAS_THREADS__ 1
 #define __UCLIBC_HAS_LFS__ 1
 #define __UCLIBC_STATIC_LDCONFIG__ 1
 #undef __MALLOC__

@@ -1,7 +1,6 @@
 Compatibility issues:
 
-* thread-safe uclibc
-* call destructors in longjmp (see how linux/glibc does it?)
+* implement libc-tsd for correct multi-threaded libc-rpc
 * MT-safe c++ support (lib/cppsup/bits/gthr.h)
 
 Performance:

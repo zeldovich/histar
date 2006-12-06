@@ -6,7 +6,10 @@
 // Simple pthread-lookalike wrapper around a jthread_mutex_t
 typedef uint64_t pthread_t;
 typedef struct {
-    char junk0, junk1, junk2, junk3;
+    int reserved;
+    int count;
+    uint64_t owner;
+    int kind;
     jthread_mutex_t jmu;
 } pthread_mutex_t;
 
