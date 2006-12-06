@@ -1,9 +1,6 @@
 #ifndef JOS_LWIP_LWIPOPTS_H
 #define JOS_LWIP_LWIPOPTS_H
 
-/* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        8
-
 #define LWIP_DHCP		1
 #define LWIP_COMPAT_SOCKETS	0
 #define LWIP_STATS_DISPLAY	1
@@ -18,6 +15,8 @@
 #define MEMP_NUM_TCP_PCB	18
 #define MEMP_NUM_TCP_PCB_LISTEN	16
 #define MEMP_NUM_TCP_SEG	36
+#define MEMP_NUM_NETBUF		128
+#define MEMP_NUM_NETCONN	32
 
 #define PER_TCP_PCB_BUFFER	(16 * 4096)
 #define MEM_SIZE		(PER_TCP_PCB_BUFFER*MEMP_NUM_TCP_SEG + 4096*MEMP_NUM_TCP_SEG)
@@ -30,11 +29,10 @@
 #define TCP_SND_QUEUELEN	(3 * TCP_SND_BUF/TCP_MSS)
 #define TCP_WND			(32 * TCP_MSS)
 
-#if 0
+// Print error messages when we run out of memory
 #define LWIP_DEBUG	1
-#define IP_DEBUG	(0x80)
-#define DBG_TYPES_ON	(0x80)
-#define DBG_MIN_LEVEL	0
-#endif
+#define MEMP_DEBUG	DBG_ON
+#define DBG_TYPES_ON	DBG_ON
+#define DBG_MIN_LEVEL	DBG_LEVEL_SERIOUS
 
 #endif
