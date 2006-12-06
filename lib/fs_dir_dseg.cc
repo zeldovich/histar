@@ -15,7 +15,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
+#include <inc/jthread.hh>
 
 #define DIR_GEN_BUSY	(~0UL)
 
@@ -27,7 +27,7 @@ struct fs_dirslot {
 };
 
 struct fs_directory {
-    pthread_mutex_t lock;
+    jthread_mutex_t lock;
     uint64_t extra_pages;
     struct fs_dirslot slots[0];
 };
@@ -207,7 +207,7 @@ fs_dir_dseg::lock()
 	if (locked_)
 	    panic("fs_dir_dseg::lock: already locked\n");
 
-	pthread_mutex_lock(&dir_->lock);
+	jthread_mutex_lock(&dir_->lock);
 	locked_ = true;
     }
 }
@@ -216,7 +216,7 @@ void
 fs_dir_dseg::unlock()
 {
     if (writable_ && locked_) {
-	pthread_mutex_unlock(&dir_->lock);
+	jthread_mutex_unlock(&dir_->lock);
 	locked_ = false;
     }
 }
@@ -259,11 +259,11 @@ static struct dseg_cache_entry {
 } dseg_cache[dseg_cache_size];
 
 static int dseg_cache_next;
-static pthread_mutex_t dseg_cache_mu;
+static jthread_mutex_t dseg_cache_mu;
 
 fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
 {
-    scoped_pthread_lock l(&dseg_cache_mu);
+    scoped_jthread_lock l(&dseg_cache_mu);
 
     for (int i = 0; i < dseg_cache_size; i++) {
 	if (dir.obj.object == dseg_cache[i].dir.obj.object &&

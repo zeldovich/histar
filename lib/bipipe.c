@@ -113,13 +113,13 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
 
     size_t cc = -1;
-    pthread_mutex_lock(&op->mu);
+    jthread_mutex_lock(&op->mu);
     while (op->bytes == 0) {
         int nonblock = (fd->fd_omode & O_NONBLOCK);
 	if (!nonblock)
 	    op->reader_waiting = 1;
         char opn = op->open;
-        pthread_mutex_unlock(&op->mu);
+        jthread_mutex_unlock(&op->mu);
 
         if (!opn) {
 	    BIPIPE_SEG_UNMAP(bs);	    
@@ -132,7 +132,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
         }
 
         sys_sync_wait(&op->bytes, 0, sys_clock_msec() + 1000);
-        pthread_mutex_lock(&op->mu);
+        jthread_mutex_lock(&op->mu);
     }
 
     uint32_t bufsize = sizeof(op->buf);
@@ -151,7 +151,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
         sys_sync_wakeup(&op->bytes);
     }
 
-    pthread_mutex_unlock(&op->mu);
+    jthread_mutex_unlock(&op->mu);
 
 out:
     BIPIPE_SEG_UNMAP(bs);
@@ -168,13 +168,13 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     uint32_t bufsize = sizeof(op->buf);
 
     size_t cc = -1;
-    pthread_mutex_lock(&op->mu);
+    jthread_mutex_lock(&op->mu);
     while (op->open && op->bytes > bufsize - PIPE_BUF) {
         uint64_t b = op->bytes;
 	int nonblock = (fd->fd_omode & O_NONBLOCK);
 	if (!nonblock)
 	    op->writer_waiting = 1;
-        pthread_mutex_unlock(&op->mu);
+        jthread_mutex_unlock(&op->mu);
 
 	if (nonblock) {
             errno = EAGAIN;
@@ -182,11 +182,11 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
         }
 	
         sys_sync_wait(&op->bytes, b, sys_clock_msec() + 1000);
-        pthread_mutex_lock(&op->mu);
+        jthread_mutex_lock(&op->mu);
     }
 
     if (!op->open) {
-        pthread_mutex_unlock(&op->mu);
+        jthread_mutex_unlock(&op->mu);
 	BIPIPE_SEG_UNMAP(bs);
 	errno = EPIPE;
 	return -1;
@@ -208,7 +208,7 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
         sys_sync_wakeup(&op->bytes);
     }
 
-    pthread_mutex_unlock(&op->mu);
+    jthread_mutex_unlock(&op->mu);
  out:
     BIPIPE_SEG_UNMAP(bs);
     return cc;    
@@ -223,14 +223,14 @@ bipipe_probe(struct Fd *fd, dev_probe_t probe)
     int rv;
     if (probe == dev_probe_read) {
     	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
-    	pthread_mutex_lock(&op->mu);
+    	jthread_mutex_lock(&op->mu);
         rv = !op->open || op->bytes ? 1 : 0;
-        pthread_mutex_unlock(&op->mu);
+        jthread_mutex_unlock(&op->mu);
     } else {
     	struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-    	pthread_mutex_lock(&op->mu);
+    	jthread_mutex_lock(&op->mu);
         rv = !op->open || (op->bytes > sizeof(op->buf) - PIPE_BUF) ? 0 : 1;
-        pthread_mutex_unlock(&op->mu);
+        jthread_mutex_unlock(&op->mu);
     }
 
     BIPIPE_SEG_UNMAP(bs);
@@ -244,8 +244,8 @@ bipipe_close(struct Fd *fd)
     BIPIPE_SEG_MAP(fd, &bs);
     struct one_pipe *p0 = &bs->p[0];
     struct one_pipe *p1 = &bs->p[1];
-    pthread_mutex_lock(&p0->mu);
-    pthread_mutex_lock(&p1->mu);
+    jthread_mutex_lock(&p0->mu);
+    jthread_mutex_lock(&p1->mu);
     
     char flag = 0;
     if (!p0->open && !p1->open)
@@ -257,8 +257,8 @@ bipipe_close(struct Fd *fd)
     sys_sync_wakeup(&p0->bytes);
     sys_sync_wakeup(&p1->bytes);
  
-    pthread_mutex_unlock(&p1->mu);
-    pthread_mutex_unlock(&p0->mu);
+    jthread_mutex_unlock(&p1->mu);
+    jthread_mutex_unlock(&p0->mu);
 
     BIPIPE_SEG_UNMAP(bs);
 
@@ -281,17 +281,17 @@ bipipe_shutdown(struct Fd *fd, int how)
 
     if (how == SHUT_RD || how == SHUT_RDWR) {
 	struct one_pipe *op = &bs->p[fd->fd_bipipe.bipipe_a];
-	pthread_mutex_lock(&op->mu);
+	jthread_mutex_lock(&op->mu);
 	op->open = 0;
-	pthread_mutex_unlock(&op->mu);
+	jthread_mutex_unlock(&op->mu);
 	sys_sync_wakeup(&op->bytes);
     }
 
     if (how == SHUT_WR || how == SHUT_RDWR) {
 	struct one_pipe *op = &bs->p[!fd->fd_bipipe.bipipe_a];
-	pthread_mutex_lock(&op->mu);
+	jthread_mutex_lock(&op->mu);
 	op->open = 0;
-	pthread_mutex_unlock(&op->mu);
+	jthread_mutex_unlock(&op->mu);
 	sys_sync_wakeup(&op->bytes);
     }
 

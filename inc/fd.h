@@ -5,7 +5,7 @@
 #include <inc/container.h>
 #include <inc/types.h>
 #include <inc/fs.h>
-#include <inc/pthread.h>
+#include <inc/jthread.h>
 #include <inc/label.h>
 #include <inc/pt.h>
 #include <inc/multisync.h>
@@ -103,13 +103,15 @@ struct Fd
 	    uint32_t read_ptr;	/* read at this offset */
 	    char reader_waiting;
 	    char writer_waiting;
-	    pthread_mutex_t mu;
+	    jthread_mutex_t mu;
 	    char buf[4000];
 	} fd_pipe;
+
 	struct {
 	    struct cobj_ref bipipe_seg;
 	    int bipipe_a;
 	} fd_bipipe;
+
 	struct {
 	    struct cobj_ref bipipe_seg;
 	    int bipipe_a;
@@ -119,6 +121,7 @@ struct Fd
 	    struct cobj_ref gate;
 	    char is_master;
 	} fd_pt;
+
 	struct {
 	    struct cobj_ref tun_seg;
 	    int tun_a;

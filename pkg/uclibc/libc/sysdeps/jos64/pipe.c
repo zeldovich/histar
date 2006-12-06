@@ -53,13 +53,13 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
 
-    pthread_mutex_lock(&fd->fd_pipe.mu);
+    jthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes > bufsize - PIPE_BUF) {
 	uint64_t b = fd->fd_pipe.bytes;
 	fd->fd_pipe.writer_waiting = 1;
-	pthread_mutex_unlock(&fd->fd_pipe.mu);
+	jthread_mutex_unlock(&fd->fd_pipe.mu);
 	sys_sync_wait(&fd->fd_pipe.bytes, b, ~0UL);
-	pthread_mutex_lock(&fd->fd_pipe.mu);
+	jthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
     uint32_t avail = bufsize - fd->fd_pipe.bytes;
@@ -78,19 +78,19 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	sys_sync_wakeup(&fd->fd_pipe.bytes);
     }
 
-    pthread_mutex_unlock(&fd->fd_pipe.mu);
+    jthread_mutex_unlock(&fd->fd_pipe.mu);
     return cc;
 }
 
 static ssize_t
 pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    pthread_mutex_lock(&fd->fd_pipe.mu);
+    jthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes == 0) {
 	uint32_t ref = atomic_read(&fd->fd_ref);
 	int nonblock = (fd->fd_omode & O_NONBLOCK);
 	fd->fd_pipe.reader_waiting = 1;
-	pthread_mutex_unlock(&fd->fd_pipe.mu);
+	jthread_mutex_unlock(&fd->fd_pipe.mu);
 
     	// EOF when the other end has been closed
     	if (ref == 1)
@@ -103,7 +103,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     	// Need to periodically wake up and check for EOF
 	sys_sync_wait(&fd->fd_pipe.bytes, 0, sys_clock_msec() + 1000);
-    	pthread_mutex_lock(&fd->fd_pipe.mu);
+    	jthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
     uint32_t bufsize = sizeof(fd->fd_pipe.buf);
@@ -122,7 +122,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	sys_sync_wakeup(&fd->fd_pipe.bytes);
     }
 
-    pthread_mutex_unlock(&fd->fd_pipe.mu);
+    jthread_mutex_unlock(&fd->fd_pipe.mu);
     return cc;
 }
 

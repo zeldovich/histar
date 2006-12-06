@@ -8,9 +8,9 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
-#include <inc/pthread.hh>
+#include <inc/jthread.hh>
 
-static pthread_mutex_t label_ops_mu;
+static jthread_mutex_t label_ops_mu;
 static uint64_t cur_th_label_id, cur_th_clear_id;
 static label cur_th_label, cur_th_clear;
 
@@ -19,7 +19,7 @@ enum { handle_debug = 0 };
 int
 thread_set_label(label *l)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     int r = sys_self_set_label(l->to_ulabel());
     if (r < 0)
@@ -33,7 +33,7 @@ thread_set_label(label *l)
 int
 thread_set_clearance(label *l)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     int r = sys_self_set_clearance(l->to_ulabel());
     if (r < 0)
@@ -101,7 +101,7 @@ thread_drop_starpair(uint64_t h1, uint64_t h2)
 void
 thread_label_cache_invalidate(void)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_clear_id == thread_id())
 	cur_th_clear_id = 0;
@@ -138,7 +138,7 @@ get_label_retry_obj(label *l, int (*fn) (struct cobj_ref, struct ulabel *), stru
 void
 thread_cur_label(label *l)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_label_id == thread_id()) {
 	l->copy_from(&cur_th_label);
@@ -152,7 +152,7 @@ thread_cur_label(label *l)
 void
 thread_cur_clearance(label *l)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_clear_id == thread_id()) {
 	l->copy_from(&cur_th_clear);
@@ -184,7 +184,7 @@ gate_get_clearance(struct cobj_ref o, label *l)
 int64_t
 handle_alloc(void)
 {
-    scoped_pthread_lock x(&label_ops_mu);
+    scoped_jthread_lock x(&label_ops_mu);
 
     int64_t h = sys_handle_create();
     if (h < 0)

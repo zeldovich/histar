@@ -13,7 +13,7 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
+#include <inc/jthread.hh>
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
 #include <inc/authclnt.hh>
@@ -29,7 +29,7 @@ struct user_entry {
 };
 
 struct user_list {
-    pthread_mutex_t mu;
+    jthread_mutex_t mu;
     user_entry users[1];
 };
 
@@ -45,7 +45,7 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     error_check(segment_map(user_list_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			    (void **) &ul, &ul_bytes, 0));
     scope_guard<int, void *> ul_unmap(segment_unmap, ul);
-    scoped_pthread_lock l(&ul->mu);
+    scoped_jthread_lock l(&ul->mu);
 
     user_entry *ue, *ue_match = 0;
     for (ue = &ul->users[0]; ue < (user_entry *) (((char *) ul) + ul_bytes); ue++) {

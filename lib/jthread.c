@@ -1,15 +1,15 @@
-#include <inc/pthread.h>
+#include <inc/jthread.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
 
 void
-pthread_mutex_init(pthread_mutex_t *mu, void *attr)
+jthread_mutex_init(jthread_mutex_t *mu)
 {
     atomic_set(mu, 0);
 }
 
 int
-pthread_mutex_lock(pthread_mutex_t *mu)
+jthread_mutex_lock(jthread_mutex_t *mu)
 {
     for (;;) {
 	uint64_t cur = atomic_compare_exchange64(mu, 0, 1);
@@ -23,7 +23,7 @@ pthread_mutex_lock(pthread_mutex_t *mu)
 }
 
 int
-pthread_mutex_trylock(pthread_mutex_t *mu)
+jthread_mutex_trylock(jthread_mutex_t *mu)
 {
     uint64_t cur = atomic_compare_exchange64(mu, 0, 1);
     if (cur == 0)
@@ -33,11 +33,11 @@ pthread_mutex_trylock(pthread_mutex_t *mu)
 }
 
 int
-pthread_mutex_unlock(pthread_mutex_t *mu)
+jthread_mutex_unlock(jthread_mutex_t *mu)
 {
     uint64_t was = atomic_compare_exchange64(mu, 1, 0);
     if (was == 0)
-	panic("pthread_mutex_unlock: %p not locked", mu);
+	panic("jthread_mutex_unlock: %p not locked", mu);
 
     if (was == 2) {
 	atomic_set(mu, 0);

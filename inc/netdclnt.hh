@@ -13,7 +13,7 @@ struct netd_fast_ipc_state {
     cobj_ref fast_ipc_gate;
     uint64_t fast_ipc_inited;
     uint64_t fast_ipc_inited_shared_ct;
-    pthread_mutex_t fast_ipc_mu;
+    jthread_mutex_t fast_ipc_mu;
 };
 
 struct cobj_ref netd_create_gates(struct cobj_ref util_gate, uint64_t ct, 

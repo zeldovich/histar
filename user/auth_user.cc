@@ -15,7 +15,6 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
 #include <inc/scopeguard.hh>
 #include <inc/error.hh>
 #include <inc/cooperate.hh>

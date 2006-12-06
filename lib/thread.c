@@ -2,7 +2,6 @@
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
-#include <inc/pthread.h>
 #include <inc/stack.h>
 
 static void __attribute__((noreturn))

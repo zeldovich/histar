@@ -18,7 +18,7 @@ struct one_pipe {
     char open;
     uint32_t read_ptr;  /* read at this offset */
     uint64_t bytes; /* # bytes in circular buffer */
-    pthread_mutex_t mu;
+    jthread_mutex_t mu;
     // XXX for pt
     struct cobj_ref obj;
 };

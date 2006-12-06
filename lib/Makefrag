@@ -59,14 +59,12 @@ LIB_SRCFILES :=	\
 	lib/base64.c \
 	lib/rand.c \
 	lib/chardevs.c \
-	lib/pthread.c \
+	lib/jthread.c \
 	lib/arc4.c \
 	lib/cooperate.cc \
 	lib/debug_gatesrv.cc \
 	lib/multisync.cc \
 	lib/ssld_client.cc
-
-		#	lib/ssld_fd.c \
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag

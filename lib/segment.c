@@ -7,7 +7,7 @@
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/string.h>
-#include <inc/pthread.h>
+#include <inc/jthread.h>
 
 #include <string.h>
 
@@ -19,18 +19,18 @@ static struct cobj_ref cache_asref;
 
 static uint64_t	cache_thread_id;
 
-static pthread_mutex_t as_mutex;
+static jthread_mutex_t as_mutex;
 
 enum { segment_debug = 0 };
 
 static void
 as_mutex_lock(void) {
-    pthread_mutex_lock(&as_mutex);
+    jthread_mutex_lock(&as_mutex);
 }
 
 static void
 as_mutex_unlock(void) {
-    pthread_mutex_unlock(&as_mutex);
+    jthread_mutex_unlock(&as_mutex);
 }
 
 static void

@@ -16,7 +16,7 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
+#include <inc/jthread.hh>
 #include <inc/netdclnt.hh>
 
 static struct cobj_ref netd_gate;
@@ -64,7 +64,7 @@ netd_set_gate(struct cobj_ref g)
 
 // Fast netd IPC support
 enum { max_fipc = 256 };
-static pthread_mutex_t fipc_handle_mu;
+static jthread_mutex_t fipc_handle_mu;
 static int64_t fipc_taint, fipc_grant;
 static struct netd_fast_ipc_state fipc[max_fipc];
 
@@ -115,7 +115,7 @@ static void
 netd_fast_init_global(void)
 {
     if (fipc_taint <= 0 || fipc_grant <= 0) {
-	scoped_pthread_lock l(&fipc_handle_mu);
+	scoped_jthread_lock l(&fipc_handle_mu);
 	if (fipc_taint <= 0)
 	    error_check(fipc_taint = handle_alloc());
 	if (fipc_grant <= 0)
@@ -187,7 +187,7 @@ netd_fast_call(struct netd_op_args *a)
     for (;;) {
 	for (int i = 0; i < max_fipc; i++) {
 	    struct netd_fast_ipc_state *s = &fipc[i];
-	    scoped_pthread_trylock l(&s->fast_ipc_mu);
+	    scoped_jthread_trylock l(&s->fast_ipc_mu);
 	    if (l.acquired()) {
 		netd_fast_init(s);
 		netd_fast_call(s, a);

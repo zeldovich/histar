@@ -15,7 +15,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
-#include <inc/pthread.hh>
+#include <inc/jthread.hh>
 
 # define DEVPTS_SUPER_MAGIC	0x1cd1
 
@@ -31,7 +31,7 @@ static struct {
     struct cobj_ref gate;
 } pts_table[pts_table_entries];
 
-pthread_mutex_t pts_table_mu;
+static jthread_mutex_t pts_table_mu;
 
 static void __attribute__((noreturn))
 pts_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
@@ -40,7 +40,7 @@ pts_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
     uint64_t id = (uint64_t)arg;
     
     try {
-	scoped_pthread_lock lock(&pts_table_mu);
+	scoped_jthread_lock lock(&pts_table_mu);
 	switch(args->pts_args.op) {
 	case gf_call_open: {
 	    struct gatefd_args *args2 = (struct gatefd_args *)parm->param_buf;
@@ -85,7 +85,7 @@ ptm_handle_open(struct gatefd_args *args)
     label ver(1);
     thread_cur_verify(&ver);
     
-    scoped_pthread_lock lock(&pts_table_mu);
+    scoped_jthread_lock lock(&pts_table_mu);
     for (uint64_t i = 0; i < pts_table_entries; i++) {
 	if (!pts_table[i].inuse) {
 	    pts_table[i].inuse = 1;
@@ -138,7 +138,6 @@ main (int ac, char **av)
     }
     uint64_t ct = atol(av[1]);
     memset(pts_table, 0, sizeof(pts_table));
-    pthread_mutex_init(&pts_table_mu, 0);
     
     try {
 	label th_l, th_cl;

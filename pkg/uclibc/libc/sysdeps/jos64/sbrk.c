@@ -1,14 +1,14 @@
 #include <machine/memlayout.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
-#include <inc/pthread.h>
+#include <inc/jthread.h>
 #include <inc/stdio.h>
 
 #include <unistd.h>
 
 static struct {
     int inited;
-    pthread_mutex_t mu;
+    jthread_mutex_t mu;
     size_t brk;
 } heap;
 
@@ -33,7 +33,7 @@ sbrk(intptr_t x)
     int r;
     void *p = 0;
 
-    pthread_mutex_lock(&heap.mu);
+    jthread_mutex_lock(&heap.mu);
 
     struct cobj_ref heapobj;
     if (!heap.inited) {
@@ -72,7 +72,7 @@ sbrk(intptr_t x)
     heap.brk = nbrk;
 
 out:
-    pthread_mutex_unlock(&heap.mu);
+    jthread_mutex_unlock(&heap.mu);
     return p;
 }
 
@@ -80,7 +80,7 @@ int
 heap_relabel(struct ulabel *l)
 {
     int64_t r = 0;
-    pthread_mutex_lock(&heap.mu);
+    jthread_mutex_lock(&heap.mu);
 
     if (heap.inited) {
 	struct cobj_ref heapobj;
@@ -110,6 +110,6 @@ heap_relabel(struct ulabel *l)
     }
 
 out:
-    pthread_mutex_unlock(&heap.mu);
+    jthread_mutex_unlock(&heap.mu);
     return r;
 }

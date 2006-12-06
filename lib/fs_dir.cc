@@ -4,7 +4,6 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
 #include <inc/memlayout.h>
-#include <inc/pthread.h>
 #include <inc/declassify.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>

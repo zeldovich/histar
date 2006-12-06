@@ -1,5 +1,5 @@
 #include <inc/lib.h>
-#include <inc/pthread.h>
+#include <inc/jthread.h>
 #include <inc/syscall.h>
 #include <inc/queue.h>
 
@@ -245,16 +245,16 @@ out:
 }
 
 // A lock that serializes all LWIP code, including the above
-static pthread_mutex_t lwip_core_mu;
+static jthread_mutex_t lwip_core_mu;
 
 void
 lwip_core_lock(void)
 {
-    pthread_mutex_lock(&lwip_core_mu);
+    jthread_mutex_lock(&lwip_core_mu);
 }
 
 void
 lwip_core_unlock(void)
 {
-    pthread_mutex_unlock(&lwip_core_mu);
+    jthread_mutex_unlock(&lwip_core_mu);
 }
