@@ -35,7 +35,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/ssldclnt.hh>
 
-static const char dbg = 1;
+static const char dbg = 0;
 
 static SSL_CTX *ctx;
 static uint64_t access_grant;
@@ -132,7 +132,7 @@ ssld_worker(void *arg)
 	    cprintf("ssld_worker: unable to accept SSL connection\n");
 	    close(cipher_fd);
 	    close(plain_fd);
-	    thread_halt();
+	    return;
 	}
 
 	debug_cprint(dbg, "SSL connection established");
