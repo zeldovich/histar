@@ -29,7 +29,8 @@ $(OBJDIR)/user/server.password:
 	echo -n "password" > $@
 
 $(OBJDIR)/user/server.pem:
-	openssl req -new -x509 -keyout $@ -out $@ -days 3650
+	openssl req -new -x509 -keyout $@ -out $@ -days 3650 \
+		-passout pass:password -subj /CN=histar-httpd
 
 $(OBJDIR)/user/dh.pem:
 	openssl dhparam -out $@ 1024
