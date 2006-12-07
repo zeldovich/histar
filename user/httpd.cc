@@ -3,8 +3,6 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/string.h>
-#include <inc/netd.h>
-#include <inc/fs.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
 #include <inc/fd.h>
@@ -32,7 +30,6 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
-#include <inc/netdclnt.hh>
 
 struct proxy_args {
     int cipher_fd;
@@ -162,10 +159,6 @@ http_init_client(uint64_t base_ct, int fd[2])
     plain_bs->p[0].open = 1;
     plain_bs->p[1].open = 1;
 
-    // taint cow ssld and pass both bipipes
-    ssld_taint_cow(get_ssld_cow(), cipher_seg, plain_seg, 
-		   ssl_root_ct, ssl_taint);
-
     // NONBLOCK to avoid potential deadlock with ssld
     int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
     int plain_fd = bipipe_fd(plain_seg, 0, 0);
@@ -174,6 +167,10 @@ http_init_client(uint64_t base_ct, int fd[2])
 
     fd[0] = cipher_fd;
     fd[1] = plain_fd;
+
+    // taint cow ssld and pass both bipipes
+    ssld_taint_cow(get_ssld_cow(), cipher_seg, plain_seg, 
+		   ssl_root_ct, ssl_taint);
     
     return ssl_root_ct;
 }
