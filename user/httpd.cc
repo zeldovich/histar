@@ -37,7 +37,8 @@ struct proxy_args {
     struct cobj_ref ssl_root_obj;
 };
 
-static const char ssl_mode = 0;
+static const char ssl_mode = 1;
+static const char ask_for_auth = 1;
 static const char proxy_dbg = 0;
 
 static uint64_t ssld_access_grant;
@@ -182,23 +183,25 @@ http_client(void *arg)
     int r;
     int s = (int64_t) arg;
 
-    int fd[2];
-    uint64_t ssl_ct = http_init_client(start_env->shared_container, fd);
-    struct cobj_ref ssl_root_obj = COBJ(start_env->shared_container, ssl_ct);
-    
-    struct proxy_args *pa = 
-	(struct proxy_args*) malloc(sizeof(struct proxy_args));
+    if (ssl_mode) {
+	int fd[2];
+	uint64_t ssl_ct = http_init_client(start_env->shared_container, fd);
+	struct cobj_ref ssl_root_obj = COBJ(start_env->shared_container, ssl_ct);
 
-    pa->cipher_fd = fd[0];
-    pa->sock_fd = s;
-    pa->ssl_root_obj = ssl_root_obj;
-    
-    struct cobj_ref t;
-    r = thread_create(start_env->proc_container, &http_ssl_proxy,
-		      (void*) pa, &t, "http-ssl-proxy");
-    error_check(r);
+	struct proxy_args *pa = 
+	    (struct proxy_args*) malloc(sizeof(struct proxy_args));
 
-    s = fd[1];
+	pa->cipher_fd = fd[0];
+	pa->sock_fd = s;
+	pa->ssl_root_obj = ssl_root_obj;
+    
+	struct cobj_ref t;
+	r = thread_create(start_env->proc_container, &http_ssl_proxy,
+			  (void*) pa, &t, "http-ssl-proxy");
+	error_check(r);
+
+	s = fd[1];
+    }
 
     try {
 	tcpconn tc(s);
@@ -280,12 +283,20 @@ http_client(void *arg)
 	    }
 	}
 
-	snprintf(buf, sizeof(buf),
-		"HTTP/1.0 401 Forbidden\r\n"
-		"WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
-		"Content-Type: text/html\r\n"
-		"\r\n"
-		"<h1>Please log in.</h1>\r\n");
+	if (ask_for_auth) {
+	    snprintf(buf, sizeof(buf),
+		    "HTTP/1.0 401 Forbidden\r\n"
+		    "WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
+		    "Content-Type: text/html\r\n"
+		    "\r\n"
+		    "<h1>Please log in.</h1>\r\n");
+	} else {
+	    snprintf(buf, sizeof(buf),
+		    "HTTP/1.0 200 OK\r\n"
+		    "Content-Type: text/html\r\n"
+		    "\r\n"
+		    "<h1>Hello world.</h1>\r\n");
+	}
 
 	tc.write(buf, strlen(buf));
     } catch (std::exception &e) {
