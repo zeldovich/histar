@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -134,25 +135,40 @@ http_request(SSL *ssl, const char *host, int port)
     free(request);
     return 0;
 }
-    
+
+uint32_t completed = 0;
+
+static void
+timeout(int signo)
+{
+    fprintf(stderr, "time limit up, completed %d!\n", completed);
+    fprintf(stdout, "%d\n", completed);
+    fflush(0);
+    kill(0, SIGQUIT);
+}
+
+  
 int 
 main(int ac, char **av)
 {
     int port;
     const char *host;
-    int requests = default_requests;
+    uint32_t requests = default_requests;
     int clients = default_clients;
+    int timelimit = 0;
 
     if (ac < 3) {
-	fprintf(stderr, "Usage: %s host port [-r requests | -c clients]\n", av[0]);
+	fprintf(stderr, "Usage: %s host port [-r requests | -c clients | -l time-limit]\n", av[0]);
 	exit(-1);
     }
+
+    setpgrp();
 
     host = av[1];
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -160,6 +176,8 @@ main(int ac, char **av)
 	case 'c':
 	    clients = atoi(optarg);
 	    break;
+	case 'l':
+	    timelimit = atoi(optarg);
 	}
     }
     
@@ -173,12 +191,25 @@ main(int ac, char **av)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
+    int fd[2];
+    if (pipe(fd) < 0)
+	err_exit("unable to create pipe");
+
+    if (timelimit)
+	requests = ~0;
+    
     for (int i = 0; i < clients; i++) {
 	pid_t p;
 	if (p = fork()) {
-	    fprintf(stderr, "%d started...\n", p);
+	    fprintf(stderr, "%d (%d) started...\n", i, p);
 	    continue;
 	}
+	
+	int log = fd[1];
+	close(fd[0]);
+
+	// wait so all processes can be forked
+	kill(getpid(), SIGSTOP);
 
 	SSL_CTX *ctx = init_ctx();
 	SSL_SESSION *ses = 0;
@@ -186,11 +217,11 @@ main(int ac, char **av)
 	if (session_reuse)
 	    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
 	
-	for (int i = 0; i < requests; i++) {
+	for (uint32_t i = 0; i < requests; i++) {
 	    SSL *ssl;
 	    BIO *sbio;
 	    int sock;
-	    
+	
 	    sock = tcp_connect(&addr);
 	    ssl = SSL_new(ctx);
 	    sbio = BIO_new_socket(sock, BIO_NOCLOSE);
@@ -210,23 +241,41 @@ main(int ac, char **av)
 		assert(ses = SSL_get_session(ssl));
 	    
 	    http_request(ssl, host, port);
+	    if (timelimit)
+		write(log, "*", 1);
 	    SSL_free(ssl);
-	    struct linger l;
-	    l.l_onoff = 1;
-	    l.l_linger = 0;
-	    setsockopt(sock, SOL_SOCKET, SO_LINGER, &l, sizeof(l));
-
 	    close(sock);
 	}
     	destroy_ctx(ctx);
 	return 0;
     }
+    close(fd[1]);
     
+    // make sure all processes have SIGSTOP
+    usleep(1000000);
+    fprintf(stderr, "starting clients...\n");
+
+    if (timelimit) {
+	signal(SIGALRM, &timeout);
+	alarm(timelimit);
+    }
+
+    kill(0, SIGCONT);
+
+    if (timelimit) {
+	for (;;) {
+	    char a;
+	    int r = read(fd[0], &a, 1);
+	    if (r)
+		completed++;
+	}
+    }
+
     for (int i = 0; i < clients; i++) {
 	pid_t p;
 	if ((p = wait(0)) < 0)
 	    err_exit("wait error");
-	fprintf(stderr, "%d terminated!\n", p);
+	fprintf(stderr, "%d (%d) terminated!\n", i, p);
     }
     return 0;
 }
