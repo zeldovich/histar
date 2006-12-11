@@ -120,13 +120,13 @@ ssld_close(SSL *ssl)
 static void
 ssld_worker(void *arg)
 {
+    SSL *ssl = 0;
+    int cipher_fd = bipipe_fd(cipher_biseg, 1, 0);
+    int plain_fd = bipipe_fd(plain_biseg, 1, 0);
+    error_check(cipher_fd);
+    error_check(plain_fd);
+    
     try {
-	int cipher_fd = bipipe_fd(cipher_biseg, 1, 0);
-	int plain_fd = bipipe_fd(plain_biseg, 1, 0);
-	error_check(cipher_fd);
-	error_check(plain_fd);
-	
-	SSL *ssl = 0;
 	int r = ssld_accept(cipher_fd, &ssl);
 	if (r < 0) {
 	    cprintf("ssld_worker: unable to accept SSL connection\n");
@@ -158,46 +158,49 @@ ssld_worker(void *arg)
 		if (!r1) {
 		    // other end of plan_fd closed
 		    debug_cprint(dbg, "stopping -- plain fd closed");
-		    close(plain_fd);
-		    ssld_close(ssl);
-		    close(cipher_fd);
-		    return;
+		    break;
 		} else if (r1 < 0) {
-		    cprintf("unknown read error: %d\n", r1);
+		    throw basic_exception("plain_fd read error %s", 
+					  strerror(errno));
 		} else {
 		    int r2 = ssld_send(ssl, buf, r1, 0);
-		    // XXX
-		    assert(r1 == r2);
+		    if (r2 != r1)
+			throw basic_exception("ssld_send error %d, %d", r1, r2);
 		}
 	    }
 	    if (FD_ISSET(cipher_fd, &readset)) {
 		int r1 = ssld_recv(ssl, buf, sizeof(buf), 0);
 		if (r1 < 0) {
-		    cprintf("unknown recv error: %d\n", r1);
+		    throw basic_exception("ssld_recv error %d", r1); 
+		} else if (!r1) {
+		    debug_cprint(dbg, "stopping -- cipher fd closed");
+		    break;
 		} else {
 		    int r2 = write(plain_fd, buf, r1);
 		    if (r2 < 0) {
 			if (errno == EPIPE) {
 			    // other end of plan_fd closed
 			    debug_cprint(dbg, "stopping -- plain fd closed");
-			    close(plain_fd);
-			    ssld_close(ssl);
-			    close(cipher_fd);
-			    return;
+			    break;
 			}
 			else {
-			    cprintf("unknown write error: %d\n", r2);
+			    throw basic_exception("plain_fd write error %s",
+						  strerror(errno));
 			}
 		    }    
-		    // XXX
-		    assert(r1 == r2);
+		    if (r1 != r2)
+			throw basic_exception("plain_fd write error %d, %d", 
+					      r1, r2);
 		}
 	    }
 	}    
     } catch (std::exception &e) {
 	cprintf("ssld_worker: %s\n", e.what());
-	thread_halt();
     }
+
+    close(plain_fd);
+    ssld_close(ssl);
+    close(cipher_fd);
 }
 
 static void __attribute__((noreturn))
