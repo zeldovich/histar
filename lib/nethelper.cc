@@ -77,20 +77,22 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
     fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_ < 0)
 	throw error(fd_, "socket");
+    close_fd_ = 1;
 
     int r = connect(fd_, (struct sockaddr *) &sin, sizeof(sin));
     if (r < 0)
 	throw error(r, "connect");
 }
 
-tcpconn::tcpconn(int fd)
+tcpconn::tcpconn(int fd, char close_fd)
 {
     fd_ = fd;
+    close_fd_ = close_fd;
 }
 
 tcpconn::~tcpconn()
 {
-    if (fd_ >= 0)
+    if (fd_ >= 0 && close_fd_)
 	close(fd_);
 }
 

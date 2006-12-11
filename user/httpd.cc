@@ -31,15 +31,279 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
 
-struct proxy_args {
-    int cipher_fd;
-    int sock_fd;
-    struct cobj_ref ssl_root_obj;
+static const char proxy_dbg = 1;
+
+class ssl_proxy
+{
+public:
+    ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd);
+    ~ssl_proxy(void);
+
+    void start(void);
+    int plain_fd(void);
+
+private:
+    struct info {
+	int cipher_fd_;
+	int sock_fd_;
+	uint64_t base_ct_;
+	uint64_t ssl_ct_;
+	atomic64_t ref_count_;
+    } *nfo_;
+    struct cobj_ref ssld_gate_;
+    uint64_t plain_fd_;
+    char started_;
+    
+    static void proxy_thread(void *a);
+    static void cleanup(struct info *nfo);
+    static int select(int sock_fd, int cipher_fd, uint64_t msec);
+
+    static const uint32_t SELECT_SOCK =   0x0001;
+    static const uint32_t SELECT_CIPHER = 0x0002;
 };
+
+ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd)
+{
+    started_ = 0;
+    ssld_gate_ = ssld_gate;
+    nfo_ = (struct info*)malloc(sizeof(*nfo_));
+    if (nfo_ < 0)
+	throw error(-E_NO_MEM, "cannot malloc");
+    memset(nfo_, 0, sizeof(*nfo_));
+    nfo_->base_ct_ = base_ct;
+    nfo_->sock_fd_ = sock_fd;
+    atomic_inc64(&nfo_->ref_count_);
+}
+
+ssl_proxy::~ssl_proxy(void)
+{
+    // if started_, proxy thread is responsible for closing sock_fd 
+    // and cipher_fd
+    if (started_)
+	close(plain_fd_);
+    else
+	close(nfo_->sock_fd_);
+    cleanup(nfo_);
+}
+
+void
+ssl_proxy::cleanup(struct info *nfo)
+{
+    if (atomic_dec_and_test((atomic_t *)&nfo->ref_count_)) {
+	sys_obj_unref(COBJ(nfo->base_ct_, nfo->ssl_ct_));
+	free(nfo);
+    }
+}
+
+int
+ssl_proxy::plain_fd(void)
+{
+    if (!started_)
+	throw basic_exception("proxy isn't running");
+    return plain_fd_;
+}
+
+int
+ssl_proxy::select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
+{
+    struct Fd *sock_fd;
+    error_check(fd_lookup(sock_fdnum, &sock_fd, 0, 0));
+    struct Fd *cipher_fd;
+    error_check(fd_lookup(cipher_fdnum, &cipher_fd, 0, 0));
+
+    struct Dev *sock_dev;
+    struct Dev *cipher_dev;
+    error_check(dev_lookup(sock_fd->fd_dev_id, &sock_dev));
+    error_check(dev_lookup(cipher_fd->fd_dev_id, &cipher_dev));
+
+    static const int wstat_num = 2;
+    struct wait_stat wstat[wstat_num];
+    struct wait_stat *sock_ws = &wstat[0];
+    struct wait_stat *cipher_ws = &wstat[1];
+    
+    int r = 0;
+    memset(wstat, 0, sizeof(wstat));
+    
+    error_check(sock_dev->dev_statsync(sock_fd, dev_probe_read, sock_ws));
+    error_check(cipher_dev->dev_statsync(cipher_fd, dev_probe_read, cipher_ws));
+    
+    int r0 = sock_dev->dev_probe(sock_fd, dev_probe_read);
+    int r1 = cipher_dev->dev_probe(cipher_fd, dev_probe_read);
+    error_check(r0);
+    error_check(r1);
+    
+    if (r0)
+	r |= SELECT_SOCK;
+    if (r1)
+	r |= SELECT_CIPHER;
+    
+    if (r)
+	return r;
+
+    int64_t t;
+    error_check(t = sys_clock_msec());
+    error_check(multisync_wait(wstat, wstat_num, t + msec));
+    
+    r0 = sock_dev->dev_probe(sock_fd, dev_probe_read);
+    r1 = cipher_dev->dev_probe(cipher_fd, dev_probe_read);
+    error_check(r0);
+    error_check(r1);
+    
+    if (r0)
+	r |= SELECT_SOCK;
+    if (r1)
+	r |= SELECT_CIPHER;
+    
+    return r;
+}
+ 
+
+void 
+ssl_proxy::proxy_thread(void *a)
+{
+    struct info *nfo = (struct info*)a;
+    int cipher_fd = nfo->cipher_fd_;
+    int sock_fd = nfo->sock_fd_;
+    char buf[4096];
+    
+    scope_guard<void, struct info *> cu2(cleanup, nfo);
+    scope_guard<int, int> cu1(close, cipher_fd);
+    scope_guard<int, int> cu0(close, sock_fd);
+    
+    for (;;) {
+	int r = select(sock_fd, cipher_fd, 10000);
+	error_check(r);
+	if (!r) {
+	    cprintf("ssl_proxy::select timeout!\n");
+	    break;
+	}
+	
+	if (r & SELECT_SOCK) {
+	    int r1 = read(sock_fd, buf, sizeof(buf));
+	    if (r1 < 0) {
+		cprintf("unknown read error: %d\n", r1);
+		break;
+	    } else if (!r1) {
+		debug_cprint(proxy_dbg, "stopping -- socket fd closed");
+		break;
+	    } else {
+		int r2 = write(cipher_fd, buf, r1);
+		if (r2 < 0) {
+		    if (errno == EPIPE) {
+			debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+			break;
+		    } else {
+			cprintf("unknown write error: %d\n", r2);
+			break;
+		    }
+		}
+		// XXX
+		assert(r1 == r2);
+	    }
+	}
+	
+	if (r & SELECT_CIPHER) {
+	    int r1 = read(cipher_fd, buf, sizeof(buf));
+	    if (!r1) {
+		debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+		break;
+	    } else if (r1 < 0) {
+		cprintf("http_ssl_proxy: unknown read error: %d\n", r1);
+		break;
+	    } else {
+		int r2 = write(sock_fd, buf, r1);
+		if (r2 < 0) {
+		    if (errno == ENOTCONN) {
+			debug_cprint(proxy_dbg, "stopping -- sock fd closed");
+			break;
+		    }
+		    cprintf("unknown write error: %d\n", r2);
+		    break;
+		}
+		// XXX
+		assert(r1 == r2);
+	    }
+	}
+    }
+    return;
+}
+
+void
+ssl_proxy::start(void)
+{
+    uint64_t ssl_taint = handle_alloc();
+    label ssl_root_label(1);
+    ssl_root_label.set(ssl_taint, 3);
+    
+    int64_t ssl_root_ct = sys_container_alloc(nfo_->base_ct_,
+					      ssl_root_label.to_ulabel(),
+					      "ssl-root", 0, CT_QUOTA_INF);
+    error_check(ssl_root_ct);
+    nfo_->ssl_ct_ = ssl_root_ct;
+
+    try {
+	// manually setup bipipe segments
+	struct cobj_ref cipher_seg;
+	struct bipipe_seg *cipher_bs = 0;
+	label cipher_label(1);
+	cipher_label.set(ssl_taint, 3);
+	error_check(segment_alloc(ssl_root_ct,
+				  sizeof(*cipher_bs), &cipher_seg, 
+				  (void **)&cipher_bs, cipher_label.to_ulabel(), 
+			      "cipher-bipipe"));
+	scope_guard<int, void*> umap(segment_unmap, cipher_bs);
+	memset(cipher_bs, 0, sizeof(*cipher_bs));
+	cipher_bs->p[0].open = 1;
+	cipher_bs->p[1].open = 1;
+	
+	struct cobj_ref plain_seg;
+	struct bipipe_seg *plain_bs = 0;
+	label plain_label(1);
+	plain_label.set(ssl_taint, 3);
+	error_check(segment_alloc(ssl_root_ct,
+				  sizeof(*plain_bs), &plain_seg, 
+				  (void **)&plain_bs, plain_label.to_ulabel(), 
+				  "plain-bipipe"));
+	scope_guard<int, void*> umap2(segment_unmap, plain_bs);
+	memset(plain_bs, 0, sizeof(*plain_bs));
+	plain_bs->p[0].open = 1;
+	plain_bs->p[1].open = 1;
+	
+	// NONBLOCK to avoid potential deadlock with ssld
+	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
+	int plain_fd = bipipe_fd(plain_seg, 0, 0);
+	error_check(cipher_fd);
+	error_check(plain_fd);
+	
+	nfo_->cipher_fd_ = cipher_fd;
+	plain_fd_ = plain_fd;
+
+	// taint cow ssld and pass both bipipes
+	ssld_taint_cow(ssld_gate_, cipher_seg, plain_seg, 
+		       ssl_root_ct, ssl_taint);
+    } catch (std::exception &e) {
+	sys_obj_unref(COBJ(nfo_->base_ct_, nfo_->ssl_ct_));
+	throw e;
+    }
+
+    atomic_inc64(&nfo_->ref_count_);
+
+    struct cobj_ref t;
+    int r = thread_create(start_env->proc_container, &proxy_thread,
+			  nfo_, &t, "ssl-proxy");
+    if (r < 0) {
+	atomic_dec((atomic_t *)&nfo_->ref_count_);
+	throw error(r, "can't start proxy thread");
+    }
+    started_ = 1;
+}
+
+/////
+// httpd code
+/////
 
 static const char ssl_mode = 1;
 static const char ask_for_auth = 1;
-static const char proxy_dbg = 0;
 
 static uint64_t ssld_access_grant;
 
@@ -55,156 +319,21 @@ get_ssld_cow(void)
     return COBJ(ssld_ct, gate_id);
 }
 
-static  void
-http_ssl_proxy(void *a)
-{
-    struct proxy_args *pa = (struct proxy_args *) a;
-    int cipher_fd = pa->cipher_fd;
-    int sock_fd = pa->sock_fd;
-    struct cobj_ref ssl_root_obj = pa->ssl_root_obj;
-    free(a);
-
-    fd_set readset, writeset, exceptset;
-    int maxfd = MAX(cipher_fd, sock_fd) + 1;
-    char buf[4096];
-    for (;;) {
-	FD_ZERO(&readset);
-	FD_ZERO(&writeset);
-	FD_ZERO(&exceptset);
-	FD_SET(sock_fd, &readset);	
-	FD_SET(cipher_fd, &readset);	
-	
-	int r = select(maxfd, &readset, &writeset, &exceptset, 0);
-	if (r < 0) {
-	    cprintf("unknown select error: %s\n", strerror(errno));
-	    continue;
-	}
-	
-	if (FD_ISSET(sock_fd, &readset)) {
-	    int r1 = read(sock_fd, buf, sizeof(buf));
-	    if (r1 < 0) {
-		cprintf("unknown read error: %d\n", r1);
-	    } else {
-		int r2 = write(cipher_fd, buf, r1);
-		if (r2 < 0) {
-		    if (errno == EPIPE) {
-			// other end of cipher_fd closed
-			close(cipher_fd);
-			close(sock_fd);
-			debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
-			break;
-		    } else {
-			cprintf("unknown write error: %d\n", r2);
-		    }
-		}
-		// XXX
-		assert(r1 == r2);
-	    }
-	}
-	if (FD_ISSET(cipher_fd, &readset)) {
-	    int r1 = read(cipher_fd, buf, sizeof(buf));
-	    if (!r1) {
-		// other end of cipher_fd closed
-		close(cipher_fd);
-		close(sock_fd);
-		debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
-		break;
-	    } else if (r1 < 0) {
-		cprintf("http_ssl_proxy: unknown read error: %d\n", r1);
-	    } else {
-		int r2 = write(sock_fd, buf, r1);
-		// XXX
-		assert(r1 == r2);
-	    }
-	}
-    }    
-    sys_obj_unref(ssl_root_obj);
-}
-
-static uint64_t
-http_init_client(uint64_t base_ct, int fd[2])
-{
-    uint64_t ssl_taint = handle_alloc();
-    label ssl_root_label(1);
-    ssl_root_label.set(ssl_taint, 3);
-    
-    int64_t ssl_root_ct = sys_container_alloc(base_ct,
-					      ssl_root_label.to_ulabel(),
-					      "ssl-root", 0, CT_QUOTA_INF);
-    error_check(ssl_root_ct);
-    
-    // manually setup bipipe segments
-    struct cobj_ref cipher_seg;
-    struct bipipe_seg *cipher_bs = 0;
-    label cipher_label(1);
-    cipher_label.set(ssl_taint, 3);
-    error_check(segment_alloc(ssl_root_ct,
-			      sizeof(*cipher_bs), &cipher_seg, 
-			      (void **)&cipher_bs, cipher_label.to_ulabel(), 
-			      "cipher-bipipe"));
-    scope_guard<int, void*> umap(segment_unmap, cipher_bs);
-    memset(cipher_bs, 0, sizeof(*cipher_bs));
-    cipher_bs->p[0].open = 1;
-    cipher_bs->p[1].open = 1;
-    
-    struct cobj_ref plain_seg;
-    struct bipipe_seg *plain_bs = 0;
-    label plain_label(1);
-    plain_label.set(ssl_taint, 3);
-    error_check(segment_alloc(ssl_root_ct,
-			      sizeof(*plain_bs), &plain_seg, 
-			      (void **)&plain_bs, plain_label.to_ulabel(), 
-			      "plain-bipipe"));
-    scope_guard<int, void*> umap2(segment_unmap, plain_bs);
-    memset(plain_bs, 0, sizeof(*plain_bs));
-    plain_bs->p[0].open = 1;
-    plain_bs->p[1].open = 1;
-
-    // NONBLOCK to avoid potential deadlock with ssld
-    int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
-    int plain_fd = bipipe_fd(plain_seg, 0, 0);
-    error_check(cipher_fd);
-    error_check(plain_fd);
-
-    fd[0] = cipher_fd;
-    fd[1] = plain_fd;
-
-    // taint cow ssld and pass both bipipes
-    ssld_taint_cow(get_ssld_cow(), cipher_seg, plain_seg, 
-		   ssl_root_ct, ssl_taint);
-    
-    return ssl_root_ct;
-}
-
 static void
 http_client(void *arg)
 {
     char buf[512];
-    int r;
-    int s = (int64_t) arg;
-
-    if (ssl_mode) {
-	int fd[2];
-	uint64_t ssl_ct = http_init_client(start_env->shared_container, fd);
-	struct cobj_ref ssl_root_obj = COBJ(start_env->shared_container, ssl_ct);
-
-	struct proxy_args *pa = 
-	    (struct proxy_args*) malloc(sizeof(struct proxy_args));
-
-	pa->cipher_fd = fd[0];
-	pa->sock_fd = s;
-	pa->ssl_root_obj = ssl_root_obj;
-    
-	struct cobj_ref t;
-	r = thread_create(start_env->proc_container, &http_ssl_proxy,
-			  (void*) pa, &t, "http-ssl-proxy");
-	error_check(r);
-
-	s = fd[1];
-    }
+    int sock_fd = (int64_t) arg;
 
     try {
-	tcpconn tc(s);
+	ssl_proxy proxy(get_ssld_cow(), start_env->shared_container, sock_fd);
+	int s = sock_fd;
+	if (ssl_mode) {
+	    proxy.start();
+	    s = proxy.plain_fd();
+	}
+	
+	tcpconn tc(s, ssl_mode ? 0 : 1);
 	lineparser lp(&tc);
 
 	const char *req = lp.read_line();
@@ -302,6 +431,7 @@ http_client(void *arg)
     } catch (std::exception &e) {
 	printf("http_client: %s\n", e.what());
     }
+    
 }
 
 static void __attribute__((noreturn))

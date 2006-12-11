@@ -21,7 +21,7 @@ private:
 class tcpconn {
 public:
     tcpconn(const char *hostname, uint16_t port);
-    tcpconn(int fd);
+    tcpconn(int fd, char close_fd);
     ~tcpconn();
 
     void write(const char *buf, size_t count);
@@ -29,6 +29,7 @@ public:
 
 private:
     int fd_;
+    char close_fd_;
 };
 
 class lineparser {
