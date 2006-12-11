@@ -16,7 +16,7 @@
 struct stat;
 
 /* Maximum number of file descriptors a program may hold open concurrently */
-#define MAXFD		32
+#define MAXFD		64
 
 /* pre-declare for forward references */
 struct Fd;
