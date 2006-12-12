@@ -17,10 +17,10 @@ static const char string_start = 0xAA;
 static const char string_end = 0x00;
 
 // AMD Athlon(tm) 64 Processor 3400+
-static const uint64_t period = 2000;
-static const uint64_t iters = 100000;
-static const uint64_t tolerance = 10;
-static const uint64_t lo_thresh = 1500000000;
+static const uint64_t period = 50;
+static const uint64_t iters = 10000;
+static const uint64_t tolerance = 3;
+static const uint64_t lo_thresh = period * 800000;
 
 // moscow+qemu settings
 //static const uint64_t period = 1000;
@@ -60,7 +60,7 @@ wallbang_sendbit(char bit)
     debug_print(send_dbg, "actually stopped at %ld", stopped);
 }
 
-void
+static void __attribute__((unused))
 wallbang_printbyte(char byte)
 {
     for (uint64_t i = 0; i < sizeof(byte) * 8; i++)
@@ -188,7 +188,7 @@ main(int ac, char **av)
 	if (ac > 2)
 	    secret = av[1];
 	else
-	    secret = "test";
+	    secret = "test 0123456789";
 	cprintf("wallbang: trying to send \"%s\"\n", secret);
 	wallbang_sendstr(secret);
     }
