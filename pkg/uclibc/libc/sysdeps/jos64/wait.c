@@ -20,22 +20,28 @@ struct wait_child {
     LIST_ENTRY(wait_child) wc_link;
 };
 
-static LIST_HEAD(wc_head, wait_child) children;
+static LIST_HEAD(, wait_child) live_children;
+static LIST_HEAD(, wait_child) free_children;
 static uint64_t child_counter;
 
 // Add a child.  Used by parent fork process.
 void
 child_add(pid_t pid, struct cobj_ref status_seg)
 {
-    struct wait_child *wc = malloc(sizeof(*wc));
-    if (wc == 0) {
-	cprintf("child_add: out of memory\n");
-	return;
+    struct wait_child *wc = LIST_FIRST(&free_children);
+    if (wc) {
+	LIST_REMOVE(wc, wc_link);
+    } else {
+	wc = malloc(sizeof(*wc));
+	if (wc == 0) {
+	    cprintf("child_add: out of memory\n");
+	    return;
+	}
     }
 
     wc->wc_pid = pid;
     wc->wc_seg = status_seg;
-    LIST_INSERT_HEAD(&children, wc, wc_link);
+    LIST_INSERT_HEAD(&live_children, wc, wc_link);
 }
 
 // Remove all children.  Used by child fork process.
@@ -43,7 +49,13 @@ void
 child_clear()
 {
     struct wait_child *wc, *next;
-    for (wc = LIST_FIRST(&children); wc; wc = next) {
+    for (wc = LIST_FIRST(&live_children); wc; wc = next) {
+	next = LIST_NEXT(wc, wc_link);
+	LIST_REMOVE(wc, wc_link);
+	free(wc);
+    }
+
+    for (wc = LIST_FIRST(&free_children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
 	LIST_REMOVE(wc, wc_link);
 	free(wc);
@@ -124,7 +136,7 @@ wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 
 again:
     start_counter = child_counter;
-    for (wc = LIST_FIRST(&children); wc; wc = next) {
+    for (wc = LIST_FIRST(&live_children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
 
 	if (pid >= 0 && pid != wc->wc_pid)
@@ -134,11 +146,13 @@ again:
 	if (r < 0) {
 	    // Bad child?
 	    LIST_REMOVE(wc, wc_link);
-	    free(wc);
+	    LIST_INSERT_HEAD(&free_children, wc, wc_link);
 	    continue;
 	}
 
 	if (r == 0) {
+	    if (options & WNOHANG)
+		continue;
 	    r = child_get_siginfo(wc, statusp);
 	    if (r == 1)
 		return wc->wc_pid;
@@ -147,9 +161,9 @@ again:
 
 	if (r == 1) {
 	    // Child exited
-	    LIST_REMOVE(wc, wc_link);
 	    pid = wc->wc_pid;
-	    free(wc);
+	    LIST_REMOVE(wc, wc_link);
+	    LIST_INSERT_HEAD(&free_children, wc, wc_link);
 
 	    // Clean up the child process's container
 	    sys_obj_unref(COBJ(start_env->shared_container, pid));
