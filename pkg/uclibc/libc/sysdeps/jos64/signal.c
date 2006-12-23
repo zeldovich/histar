@@ -35,10 +35,10 @@ static siginfo_t siginfos[_NSIG];
 // Trap handler to invoke signals
 static uint64_t signal_thread_id;
 
-static void
+static void __attribute__((noreturn))
 sig_fatal(void)
 {
-    static int recursive;
+    static int recursive = 1;
 
     if (recursive) {
 	sys_self_halt();
@@ -48,6 +48,12 @@ sig_fatal(void)
 	print_backtrace();
 	exit(-1);
     }
+
+    cprintf("sig_fatal: still alive, tid=%ld, recursive=%d\n",
+	    thread_id(), recursive);
+
+    for (;;)
+	;
 }
 
 static void
@@ -69,12 +75,10 @@ signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
 	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
 	    sig_fatal();
-	    break;
 
 	case SIGSEGV: case SIGBUS:  case SIGILL:
 	    segfault_helper(si, sc);
 	    sig_fatal();
-	    break;
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
 	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
