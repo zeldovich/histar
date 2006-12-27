@@ -237,17 +237,23 @@ pstate_swapin_id(kobject_id_t id)
     kobject_id_t id_found;
     struct mobject mobj;
 
+    if (stable_hdr.ph_magic != PSTATE_MAGIC) {
+	cprintf("pstate_swapin_id: disk not initialized\n");
+	kobject_negative_insert(id);
+	return -E_NOT_FOUND;
+    }
+
     int r = btree_search(BTREE_OBJMAP, &id, &id_found, (uint64_t *) &mobj);
     if (r == -E_NOT_FOUND) {
 	if (pstate_swapin_debug)
-	    cprintf("pstate_swapin_stackwrap: id %"PRIu64" not found\n", id);
+	    cprintf("pstate_swapin_id: id %"PRIu64" not found\n", id);
 	kobject_negative_insert(id);
     } else if (r < 0) {
 	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
     } else {
 	r = pstate_swapin_mobj(mobj, id);
 	if (r < 0)
-	    cprintf("pstate_swapin_stackwrap: swapping in: %s\n", e2s(r));
+	    cprintf("pstate_swapin_id: swapping in: %s\n", e2s(r));
     }
 
     return r;
@@ -797,6 +803,12 @@ int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 		   uint64_t start, uint64_t nbytes)
 {
+    if (stable_hdr.ph_magic != PSTATE_MAGIC) {
+	thread_suspend(cur_thread, &swapout_waiting);
+	pstate_sync();
+	return -E_RESTART;
+    }
+
     if (ko->hdr.ko_sync_ts &&
 	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
 	return 0;
