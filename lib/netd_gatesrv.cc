@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/declassify.h>
 #include <inc/setjmp.h>
 #include <inc/atomic.h>
+#include <inc/utrap.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -151,7 +152,7 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		struct jos_jmp_buf pgfault;
 		if (jos_setjmp(&pgfault) != 0) {
-		    sys_self_utrap_mask(0);
+		    utrap_set_mask(0);
 		    break;
 		}
 		*tls_pgfault = &pgfault;

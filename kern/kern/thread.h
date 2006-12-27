@@ -31,7 +31,6 @@ struct Thread {
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
-    uint8_t th_utrap_masked : 1;
     uint8_t th_waiting_multi : 1;
     uint32_t th_sched_tickets;		// 32-bit to fit Thread in 512 bytes
 

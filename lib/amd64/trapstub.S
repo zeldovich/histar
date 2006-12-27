@@ -1,4 +1,5 @@
 #include <machine/asm.h>
+#include <machine/pmap.h>
 
 ENTRY(utrap_entry_asm)
 	.cfi_startproc
@@ -55,7 +56,7 @@ ENTRY(utrap_ret)
 	movq	%rax, -24(%rsp)
 
 	movq	$0, -32(%rsp)
-	movw	%cs, -32(%rsp)
+	movw	$GD_UT_NMASK, -32(%rsp)
 
 	movq	utf_rip(%rsp), %rax
 	movq	%rax, -40(%rsp)
@@ -83,4 +84,25 @@ ENTRY(utrap_ret)
 	// Restore rip, rsp and rflags using the iret frame.
 	subq	$40, %rsp
 	iretq
+
+ENTRY(utrap_set_mask)
+	ret
+
+// XXX
+	xor	%rax, %rax
+	cmp	%rdi, %rax
+	jnz	1f
+	movw	$GD_UT_NMASK, %ax
+	jmp	2f
+1:
+	movw	$GD_UT_MASK, %ax
+2:
+	pushw	%ax
+	pushq	$utrap_set_mask_target
+	ljmp	*(%rsp)
+
+utrap_set_mask_target:
+	popq	%rax
+	popw	%ax
+	ret
 

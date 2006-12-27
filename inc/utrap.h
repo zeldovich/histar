@@ -12,4 +12,7 @@ void utrap_entry(struct UTrapframe *utf) __attribute__((noreturn));
 int  utrap_init(void);
 void utrap_set_handler(void (*fn)(struct UTrapframe *));
 
+/* Mask / unmask traps */
+void utrap_set_mask(int masked);
+
 #endif

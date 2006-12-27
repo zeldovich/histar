@@ -55,7 +55,6 @@
     SYSCALL_ENTRY(self_fp_enable)		\
     SYSCALL_ENTRY(self_fp_disable)		\
     SYSCALL_ENTRY(self_set_waitslots)		\
-    SYSCALL_ENTRY(self_utrap_mask)		\
     SYSCALL_ENTRY(self_set_sched_parents)	\
 						\
     SYSCALL_ENTRY(sync_wait)			\

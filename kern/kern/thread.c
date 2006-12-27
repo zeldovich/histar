@@ -378,11 +378,10 @@ thread_jump(const struct Thread *const_t,
     kobject_set_label_prepared(&t->th_ko, kolabel_clearance,
 			       cur_clearance, clearance, &qr_th);
     thread_change_as(t, te->te_as);
-    t->th_utrap_masked = 0;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
-    t->th_tf.tf_cs = GD_UT | 3;
+    t->th_tf.tf_cs = GD_UT_NMASK | 3;
     t->th_tf.tf_ss = GD_UD | 3;
     t->th_tf.tf_rip = (uintptr_t) te->te_entry;
     t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
@@ -460,7 +459,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
 	return -E_INVAL;
 
-    if (const_t->th_utrap_masked)
+    if (const_t->th_tf.tf_cs == GD_UT_MASK)
 	return -E_BUSY;
 
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
@@ -508,7 +507,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     t->th_tf.tf_rsp = (uintptr_t) utf;
     t->th_tf.tf_rip = t->th_as->as_utrap_entry;
     t->th_tf.tf_rflags &= ~FL_TF;
-    t->th_utrap_masked = 1;
+    t->th_tf.tf_cs = GD_UT_MASK;
     thread_set_runnable(t);
 
 out:

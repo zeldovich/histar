@@ -287,12 +287,6 @@ sys_self_fp_disable(void)
 }
 
 int
-sys_self_utrap_mask(int mask)
-{
-    return syscall(SYS_self_utrap_mask, mask);
-}
-
-int
 sys_self_set_waitslots(uint64_t nslots)
 {
     return syscall(SYS_self_set_waitslots, nslots);
