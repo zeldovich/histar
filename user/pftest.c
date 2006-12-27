@@ -18,6 +18,8 @@ trap_handler(struct UTrapframe *utf)
             utf, sizeof(*utf),
             utf->utf_trap_src, utf->utf_trap_num,
             utf->utf_trap_arg);
+
+    cprintf("rip 0x%lx\n", utf->utf_rip);
     jos_longjmp(&jb, 1);
 }
 
@@ -54,6 +56,12 @@ main(int ac, char **av)
 
     printf("Trying to write into RO page\n");
     //memcpy(va2, "hello world", 10);
+
+    printf("utrap_set_mask 1\n");
+    utrap_set_mask(1);
+
+    printf("utrap_set_mask 0\n");
+    utrap_set_mask(0);
 
     printf("Trying to execute funny instruction\n");
     __asm__("swapgs");

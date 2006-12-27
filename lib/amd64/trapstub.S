@@ -56,7 +56,7 @@ ENTRY(utrap_ret)
 	movq	%rax, -24(%rsp)
 
 	movq	$0, -32(%rsp)
-	movw	$GD_UT_NMASK, -32(%rsp)
+	movw	$GD_UT_NMASK, -32(%rsp)		// %cs
 
 	movq	utf_rip(%rsp), %rax
 	movq	%rax, -40(%rsp)
@@ -86,23 +86,16 @@ ENTRY(utrap_ret)
 	iretq
 
 ENTRY(utrap_set_mask)
-	ret
+	popq	%rcx		// return target
 
-// XXX
-	xor	%rax, %rax
+	movq	$GD_UT_MASK, %r15
+	xor	%rax, %rax	// compute the right %cs value..
 	cmp	%rdi, %rax
 	jnz	1f
-	movw	$GD_UT_NMASK, %ax
-	jmp	2f
-1:
-	movw	$GD_UT_MASK, %ax
-2:
-	pushw	%ax
-	pushq	$utrap_set_mask_target
-	ljmp	*(%rsp)
+	movq	$GD_UT_NMASK, %r15
 
-utrap_set_mask_target:
-	popq	%rax
-	popw	%ax
-	ret
+1:
+	pushq	%r15	// new %cs
+	pushq	%rcx	// new %rip
+	lretq
 
