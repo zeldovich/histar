@@ -48,3 +48,10 @@ that the important taint label component is lost at the right time..
 We were forgetting to save and restore %ds, %es, %fs, %gs registers across
 context switches...
 
+***
+
+Couple of kernel-panic bugs:
+- Panic if disk state accessed before it's initialized (can happen only
+  very early during first bootstrap).
+- Panic when invoking a large system call number (assert in profiling code)
+
