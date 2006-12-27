@@ -88,7 +88,11 @@ prof_init(void)
 void
 prof_syscall(syscall_num num, uint64_t time)
 {
-    assert(num < NSYSCALLS);
+    if (num >= NSYSCALLS) {
+	cprintf("prof_syscall: num %d not below %d\n", num, NSYSCALLS);
+	return;
+    }
+
     sysc_table[num].count++;
     sysc_table[num].time += time;
 }
@@ -96,7 +100,11 @@ prof_syscall(syscall_num num, uint64_t time)
 void
 prof_trap(int num, uint64_t time)
 {
-    assert(num < NTRAPS);
+    if (num >= NTRAPS) {
+	cprintf("prof_trap: num %d not below %d\n", num, NTRAPS);
+	return;
+    }
+
     trap_table[num].count++;
     trap_table[num].time += time;
 }
