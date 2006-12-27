@@ -225,8 +225,7 @@ struct Gatedesc {
 
 #ifndef __ASSEMBLER__
 struct Trapframe {
-  /* callee-saved registers */
-  uint64_t tf_rax;
+  /* callee-saved registers except %rax */
   uint64_t tf_rcx;
   uint64_t tf_rdx;
   uint64_t tf_rsi;
@@ -244,19 +243,23 @@ struct Trapframe {
   uint64_t tf_r14;
   uint64_t tf_r15;
 
+  /* for use by trap_{ec,noec}_entry_stub */
   uint64_t tf__trapentry_rip;
-  uint64_t tf__trapentry_rax;
+  uint64_t tf_rax;
 
   /* hardware-saved registers */
   uint32_t tf_err;
   uint32_t tf__pad1;
   uint64_t tf_rip;
-  uint8_t tf_cs;
-  uint8_t tf__pad2[7];
+  uint16_t tf_cs;
+  uint16_t tf_ds;	// not saved/restored by hardware
+  uint16_t tf_es;	// not saved/restored by hardware
+  uint16_t tf_fs;	// not saved/restored by hardware
   uint64_t tf_rflags;
   uint64_t tf_rsp;
-  uint8_t tf_ss;
-  uint8_t tf__pad3[7];
+  uint16_t tf_ss;
+  uint16_t tf_gs;	// not saved/restored by hardware
+  uint16_t tf__pad3[2];
 };
 
 struct Fpregs {

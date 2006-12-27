@@ -46,6 +46,11 @@ X86_INST_ATTR void fxrstor(const struct Fpregs *f);
 X86_INST_ATTR uint64_t read_msr(uint32_t msr);
 X86_INST_ATTR void write_msr(uint32_t msr, uint64_t val);
 
+X86_INST_ATTR uint16_t read_es(void);
+X86_INST_ATTR uint16_t read_fs(void);
+X86_INST_ATTR void write_es(uint16_t v);
+X86_INST_ATTR void write_fs(uint16_t v);
+
 void
 breakpoint(void)
 {
@@ -328,6 +333,30 @@ void
 write_msr(uint32_t msr, uint64_t val)
 {
     __asm __volatile("wrmsr" : : "c" (msr), "a" (val & 0xffffffff), "d" (val << 32));
+}
+
+uint16_t read_es(void)
+{
+	uint16_t val;
+	__asm __volatile("movw %%es,%0" : "=r" (val));
+	return val;
+}
+
+uint16_t read_fs(void)
+{
+	uint16_t val;
+	__asm __volatile("movw %%fs,%0" : "=r" (val));
+	return val;
+}
+
+void write_es(uint16_t v)
+{
+	__asm __volatile("movw %0,%%es" : : "r" (v));
+}
+
+void write_fs(uint16_t v)
+{
+	__asm __volatile("movw %0,%%fs" : : "r" (v));
 }
 
 #endif /* !JOS_INC_X86_H */

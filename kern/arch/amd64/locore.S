@@ -46,45 +46,7 @@ farptr: .long	RELOC(inlong)
 /*
  * Trap handlers
  */
-	.macro	callersave
-	movq	%rax,tf_rax(%rsp)
-	movq	%rcx,tf_rcx(%rsp)
-	movq	%rdx,tf_rdx(%rsp)
-	movq	%rsi,tf_rsi(%rsp)
-	movq	%rdi,tf_rdi(%rsp)
-	movq	%r8,tf_r8(%rsp)
-	movq	%r9,tf_r9(%rsp)
-	movq	%r10,tf_r10(%rsp)
-	movq	%r11,tf_r11(%rsp)
-	.endm
-	.macro	calleesave
-	movq	%rbx,tf_rbx(%rsp)
-	movq	%rbp,tf_rbp(%rsp)
-	movq	%r12,tf_r12(%rsp)
-	movq	%r13,tf_r13(%rsp)
-	movq	%r14,tf_r14(%rsp)
-	movq	%r15,tf_r15(%rsp)
-	.endm
 
-	.macro	callerrestore
-	movq	tf_rax(%rsp),%rax
-	movq	tf_rcx(%rsp),%rcx
-	movq	tf_rdx(%rsp),%rdx
-	movq	tf_rsi(%rsp),%rsi
-	movq	tf_rdi(%rsp),%rdi
-	movq	tf_r8(%rsp),%r8
-	movq	tf_r9(%rsp),%r9
-	movq	tf_r10(%rsp),%r10
-	movq	tf_r11(%rsp),%r11
-	.endm
-	.macro	calleerestore
-	movq	tf_rbx(%rsp),%rbx
-	movq	tf_rbp(%rsp),%rbp
-	movq	tf_r12(%rsp),%r12
-	movq	tf_r13(%rsp),%r13
-	movq	tf_r14(%rsp),%r14
-	movq	tf_r15(%rsp),%r15
-	.endm
 
 // These trap entry stubs must fit within 16 bytes of code
 .globl	trap_noec_entry_stub
@@ -94,24 +56,63 @@ trap_noec_entry_stub:
 .globl	trap_ec_entry_stub
 trap_ec_entry_stub:
 	// %rsp is pointing at tf_err
-	pushq	%rax		// rax into tf__trapentry_rax
+	pushq	%rax		// rax into tf_rax
 	movq	$trap_entry, %rax
 	call	*%rax		// rip into tf__trapentry_rip
 
 .globl	trap_entry
 trap_entry:
 	subq	$tf__trapentry_rip,%rsp
-	movq	tf__trapentry_rax(%rsp),%rax
-	callersave
-	calleesave
+
+	// %rax was already saved
+	movq	%rbx,tf_rbx(%rsp)
+	movq	%rcx,tf_rcx(%rsp)
+	movq	%rdx,tf_rdx(%rsp)
+	movq	%rsi,tf_rsi(%rsp)
+	movq	%rdi,tf_rdi(%rsp)
+	movq	%rbp,tf_rbp(%rsp)
+	movq	%r8,tf_r8(%rsp)
+	movq	%r9,tf_r9(%rsp)
+	movq	%r10,tf_r10(%rsp)
+	movq	%r11,tf_r11(%rsp)
+	movq	%r12,tf_r12(%rsp)
+	movq	%r13,tf_r13(%rsp)
+	movq	%r14,tf_r14(%rsp)
+	movq	%r15,tf_r15(%rsp)
+
+	movw	%ds,tf_ds(%rsp)
+	movw	%es,tf_es(%rsp)
+	movw	%fs,tf_fs(%rsp)
+	movw	%gs,tf_gs(%rsp)
+
 	movq	%rsp,%rdi
 	jmp	trap_handler
 
 .globl	trapframe_pop
 trapframe_pop:
 	movq	%rdi,%rsp
-	callerrestore
-	calleerestore
+
+	movq	tf_rax(%rsp),%rax
+	movq	tf_rbx(%rsp),%rbx
+	movq	tf_rcx(%rsp),%rcx
+	movq	tf_rdx(%rsp),%rdx
+	movq	tf_rsi(%rsp),%rsi
+	movq	tf_rdi(%rsp),%rdi
+	movq	tf_rbp(%rsp),%rbp
+	movq	tf_r8(%rsp),%r8
+	movq	tf_r9(%rsp),%r9
+	movq	tf_r10(%rsp),%r10
+	movq	tf_r11(%rsp),%r11
+	movq	tf_r12(%rsp),%r12
+	movq	tf_r13(%rsp),%r13
+	movq	tf_r14(%rsp),%r14
+	movq	tf_r15(%rsp),%r15
+
+	movw	tf_ds(%rsp),%ds
+	movw	tf_es(%rsp),%es
+	movw	tf_fs(%rsp),%fs
+	movw	tf_gs(%rsp),%gs
+
 	addq	$tf_rip,%rsp
 	iretq
 

@@ -218,9 +218,12 @@ trap_field_symbols(void)
   TF_DEF (tf_err);
   TF_DEF (tf_rip);
   TF_DEF (tf_cs);
+  TF_DEF (tf_ds);
+  TF_DEF (tf_es);
+  TF_DEF (tf_fs);
   TF_DEF (tf_rflags);
   TF_DEF (tf_rsp);
   TF_DEF (tf_ss);
-  TF_DEF (tf__trapentry_rax);
+  TF_DEF (tf_gs);
   TF_DEF (tf__trapentry_rip);
 }
