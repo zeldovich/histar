@@ -43,3 +43,8 @@ was comparing (slotnum <= NUM_LB_ENT_INLINE) rather than (<).  Probably can
 be exploited: label_max() uses label_set(), so just need to set things up so
 that the important taint label component is lost at the right time..
 
+***
+
+We were forgetting to save and restore %ds, %es, %fs, %gs registers across
+context switches...
+
