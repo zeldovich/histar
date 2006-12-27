@@ -47,6 +47,7 @@ Cleanup:
   need a callback for when threads enter/leave an AS.
 * split the pstate sync timestamp counter from the handle counter
 * sys_container_get_parent(): check thread can read parent (for later chown)
+* unify longjmp, utrap_set_mask, utrap_ret into %cs-aware jos_setjmp/longjmp?
 
 Bugs:
 
