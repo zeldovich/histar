@@ -50,11 +50,6 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     error_check(pw_taint = handle_alloc());
     scope_guard<void, uint64_t> drop1(thread_drop_star, pw_taint);
 
-    label cur_clear;
-    thread_cur_clearance(&cur_clear);
-    cur_clear.set(pw_taint, 3);
-    thread_set_clearance(&cur_clear);
-
     error_check(session_grant = handle_alloc());
     scope_guard<void, uint64_t> drop2(thread_drop_star, session_grant);
 
@@ -136,8 +131,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     label uauth_dr(0);
     uauth_dr.set(pw_taint, 3);
 
-    label cur_label;
+    label cur_label, cur_clear;
     thread_cur_label(&cur_label);
+    thread_cur_clearance(&cur_clear);
 
     strcpy(&uauth_req->pass[0], pass);
     uauth_req->change_pw = 0;
@@ -147,7 +143,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	cprintf("auth_login: calling authentication gate\n");
 
     gate_call(uauth_gate, &uauth_cs, 0, &uauth_dr).call(&gcd, &cur_label);
-    int uauth_err = uauth_reply->err;
+    error_check(uauth_reply->err);
 
     // Try to be really paranoid here about not accidentally revealing
     // any extra information from uauth_gate.
@@ -160,12 +156,15 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     error_check(sys_obj_set_meta(COBJ(0, thread_id()), 0, &buf[0]));
     error_check(sys_self_fp_disable());
 
-    error_check(uauth_err);
-
-    label cur_label2;
+    label cur_label2, cur_clear2;
     thread_cur_label(&cur_label2);
+    thread_cur_clearance(&cur_clear2);
     cur_label.set(xh, LB_LEVEL_STAR);
+    cur_clear.set(xh, 3);
     error_check(cur_label2.compare(&cur_label, label::eq));
+    error_check(cur_clear2.compare(&cur_clear, label::eq));
+
+    // Done scrubbing the thread state.
 
     label grant_dr(0);
     grant_dr.set(xh, 2);
