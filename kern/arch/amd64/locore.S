@@ -64,11 +64,11 @@ trap_ec_entry_stub:
 trap_entry:
 	subq	$tf__trapentry_rip,%rsp
 
-	// %rax was already saved
+	// %rax was already saved by the trampoline stub
 	movq	%rbx,tf_rbx(%rsp)
 	movq	%rcx,tf_rcx(%rsp)
 	movq	%rdx,tf_rdx(%rsp)
-	movq	%rsi,tf_rsi(%rsp)
+	xchgq	%rsi,tf_rsi(%rsp) // %rsi and _trapentry_rip are union'd
 	movq	%rdi,tf_rdi(%rsp)
 	movq	%rbp,tf_rbp(%rsp)
 	movq	%r8,tf_r8(%rsp)
@@ -86,6 +86,7 @@ trap_entry:
 	movw	%gs,tf_gs(%rsp)
 
 	movq	%rsp,%rdi
+	// %rsi was exchanged earlier with the trampoline's %rip
 	jmp	trap_handler
 
 .globl	trapframe_pop
