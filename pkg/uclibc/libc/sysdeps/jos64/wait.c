@@ -17,6 +17,7 @@
 struct wait_child {
     pid_t wc_pid;
     struct cobj_ref wc_seg;
+    uint64_t wc_sig_gen;
     LIST_ENTRY(wait_child) wc_link;
 };
 
@@ -41,6 +42,7 @@ child_add(pid_t pid, struct cobj_ref status_seg)
 
     wc->wc_pid = pid;
     wc->wc_seg = status_seg;
+    wc->wc_sig_gen = 0;
     LIST_INSERT_HEAD(&live_children, wc, wc_link);
 }
 
@@ -101,31 +103,35 @@ child_get_status(struct wait_child *wc, int *statusp)
 static int
 child_get_siginfo(struct wait_child *wc, int *statusp)
 {
-    static uint64_t gen = 0;
     uint64_t ct = wc->wc_pid;
-    int64_t gate_id = container_find(ct, kobj_gate, "debug");
-    if (gate_id < 0)
+    int64_t seg_id = container_find(ct, kobj_segment, "debug info");
+    if (seg_id < 0)
 	return 0;
-
-    struct debug_args args;
-    args.op = da_wait;
-    if (debug_gate_send(COBJ(ct, gate_id), &args) < 0)
+    
+    struct debug_info *dinfo = 0;
+    int r = segment_map(COBJ(ct, seg_id), 0, SEGMAP_READ, 
+			(void **) &dinfo, 0, 0);
+    if (r < 0) {
+	cprintf("child_get_siginfo: unable to map debug info: %s\n", e2s(r));
 	return 0;
+    }
 
-    if (args.ret && gen != args.ret_gen) {
+    char signo = dinfo->signo;
+    uint64_t gen = dinfo->gen;
+    
+    int ret = 0;
+    if (signo && gen != wc->wc_sig_gen) {
 	union wait wstat;
-	gen = args.ret_gen;
+	wc->wc_sig_gen = gen;
 	memset(&wstat, 0, sizeof(wstat));
-	wstat.w_status = W_STOPCODE(args.ret);
+	wstat.w_status = W_STOPCODE(signo);
 	if (statusp)
 	    *statusp = wstat.w_status;
-
-	return 1;
+	ret = 1;
     }
-    
-    return 0;
+    segment_unmap_delayed(dinfo, 1);
+    return ret;
 }
-
 
 // Actual system call emulated on jos64
 pid_t
@@ -151,8 +157,6 @@ again:
 	}
 
 	if (r == 0) {
-	    if (options & WNOHANG)
-		continue;
 	    r = child_get_siginfo(wc, statusp);
 	    if (r == 1)
 		return wc->wc_pid;
