@@ -38,14 +38,7 @@ static char debug_trace = 0;
 static struct cobj_ref debug_gate_as = COBJ(0,0);
 static struct cobj_ref gs = COBJ(0,0);
 
-static struct
-{
-    uint64_t wait;
-    char     signo;
-    uint64_t gen;
-    struct UTrapframe utf;
-    struct Fpregs fpregs;
-} ptrace_info;
+static struct debug_info *dinfo = 0;
 
 static void
 debug_gate_map_code(struct cobj_ref as, uint64_t addr, 
@@ -81,23 +74,23 @@ debug_gate_map_code(struct cobj_ref as, uint64_t addr,
 static void
 debug_gate_wait(struct debug_args *da)
 {
-    da->ret = ptrace_info.signo;
-    da->ret_gen = ptrace_info.gen;
+    da->ret = dinfo->signo;
+    da->ret_gen = dinfo->gen;
 }
 
 static void
 debug_gate_cont(struct debug_args *da)
 {
-    ptrace_info.signo = 0;
-    error_check(sys_sync_wakeup(&ptrace_info.wait));
+    dinfo->signo = 0;
+    error_check(sys_sync_wakeup(&dinfo->wait));
     da->ret = 0;
 }
 
 static void
 debug_gate_singlestep(struct debug_args *da)
 {
-    ptrace_info.utf.utf_rflags |= FL_TF;
-    error_check(sys_sync_wakeup(&ptrace_info.wait));
+    dinfo->utf.utf_rflags |= FL_TF;
+    error_check(sys_sync_wakeup(&dinfo->wait));
     da->ret = 0;
 }
 
@@ -111,7 +104,7 @@ debug_gate_getregs(struct debug_args *da)
 			      &ret_seg, (void **)&utf,
 			      0, "regs segment"));
     scope_guard<int, void*> seg_unmap(segment_unmap, utf);
-    memcpy(utf, &ptrace_info.utf, sizeof(struct UTrapframe));
+    memcpy(utf, &dinfo->utf, sizeof(struct UTrapframe));
     
     da->ret_cobj = ret_seg;
     da->ret = 0;
@@ -127,7 +120,7 @@ debug_gate_getfpregs(struct debug_args *da)
 			      &ret_seg, (void **)&fpregs,
 			      0, "fpregs segment"));
     scope_guard<int, void*> seg_unmap(segment_unmap, fpregs);
-    memcpy(fpregs, &ptrace_info.fpregs, sizeof(*fpregs));
+    memcpy(fpregs, &dinfo->fpregs, sizeof(*fpregs));
     da->ret_cobj = ret_seg;
     da->ret = 0;
 }
@@ -139,7 +132,7 @@ debug_gate_setregs(struct debug_args *da)
     error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
 			    (void **)&utf, 0, 0));
     scope_guard<int, void*> seg_unmap(segment_unmap, utf);
-    memcpy(&ptrace_info.utf, utf, sizeof(ptrace_info.utf));
+    memcpy(&dinfo->utf, utf, sizeof(dinfo->utf));
 
     da->ret = 0;
 }
@@ -151,7 +144,7 @@ debug_gate_setfpregs(struct debug_args *da)
     error_check(segment_map(da->arg_cobj, 0, SEGMAP_READ, 
 			    (void **)&fpregs, 0, 0));
     scope_guard<int, void*> seg_unmap(segment_unmap, fpregs);
-    memcpy(&ptrace_info.fpregs, fpregs, sizeof(ptrace_info.fpregs));
+    memcpy(&dinfo->fpregs, fpregs, sizeof(dinfo->fpregs));
     da->ret = 0;
 }
 
@@ -190,7 +183,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));
 
-    if (!ptrace_info.signo && da->op != da_wait) {
+    if (!dinfo->signo && da->op != da_wait) {
 	cprintf("debug_gate_entry: thread not trapped?!?\n");
 	da->ret = -1;
 	gr->ret(0, 0, 0);
@@ -241,7 +234,7 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 void
 debug_gate_close(void)
 {
-    memset(&ptrace_info, 0, sizeof(ptrace_info));
+    memset(&dinfo, 0, sizeof(dinfo));
     if (gs.object) {
 	sys_obj_unref(gs);
 	gs.object = 0;
@@ -256,7 +249,7 @@ debug_gate_reset(void)
     // keep for now...
     //debug_trace = 0;
     debug_gate_inited = 0;
-    memset(&ptrace_info, 0, sizeof(ptrace_info));
+    memset(&dinfo, 0, sizeof(dinfo));
 }
 
 void
@@ -291,7 +284,7 @@ debug_gate_init(void)
     
     if (debug_gate_inited) {
 	cprintf("debug_gate_init: trying to init twice\n");
-	return ;
+	return;
     }
     debug_gate_inited = 1;
 
@@ -309,6 +302,14 @@ debug_gate_init(void)
 	error_check(sys_self_get_as(&cur_as));
 	debug_gate_as_is(cur_as);
 	
+	struct cobj_ref to;
+	int r = segment_alloc(start_env->shared_container, sizeof(*dinfo), &to,
+			      (void **)&dinfo, 0, "debug info");
+	if (r < 0) {
+	    cprintf("debug_gate_init: unable to alloc segment: %s\n", e2s(r));
+	    return;
+	}
+
 	gs = gate_create(start_env->shared_container,"debug", &tl, 
 			 &tc, &debug_gate_entry, 0);
     } catch (std::exception &e) {
@@ -339,21 +340,21 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
 	debug_print(debug_dbg, "null struct sigcontext");
 
     struct UTrapframe *utf = &sc->sc_utf;
-    memcpy(&ptrace_info.utf, utf, sizeof(ptrace_info.utf));
-    ptrace_info.utf.utf_rflags &= ~FL_TF;
-    fxsave(&ptrace_info.fpregs);
-    ptrace_info.signo = signo;
-    ptrace_info.gen++;
+    memcpy(&dinfo->utf, utf, sizeof(dinfo->utf));
+    dinfo->utf.utf_rflags &= ~FL_TF;
+    fxsave(&dinfo->fpregs);
+    dinfo->signo = signo;
+    dinfo->gen++;
 
-    debug_print(debug_dbg, "signo %d, gen %ld", signo, ptrace_info.gen);
+    debug_print(debug_dbg, "signo %d, gen %ld", signo, dinfo->gen);
 
     //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
     //thread_id(), getpid(), read_rsp());
 
-    sys_sync_wait(&ptrace_info.wait, 0, ~0L);
-    ptrace_info.signo = 0;
-    memcpy(utf, &ptrace_info.utf, sizeof(*utf));
-    fxrstor(&ptrace_info.fpregs);
+    sys_sync_wait(&dinfo->wait, 0, ~0L);
+    dinfo->signo = 0;
+    memcpy(utf, &dinfo->utf, sizeof(*utf));
+    fxrstor(&dinfo->fpregs);
 }
 
 extern "C" int64_t

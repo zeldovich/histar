@@ -1,6 +1,9 @@
 #ifndef _JOS_INC_DEBUG_GATE_H
 #define _JOS_INC_DEBUG_GATE_H
 
+#include <machine/mmu.h>
+#include <machine/utrap.h>
+
 struct sigcontext;
 
 typedef enum {
@@ -26,6 +29,15 @@ struct debug_args
     uint64_t ret_gen;
     uint64_t ret_word;
     struct cobj_ref ret_cobj;
+};
+
+struct debug_info
+{
+    uint64_t wait;
+    char     signo;
+    uint64_t gen;
+    struct UTrapframe utf;
+    struct Fpregs fpregs;
 };
 
 // from <sys/user.h>
