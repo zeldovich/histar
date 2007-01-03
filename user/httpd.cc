@@ -65,6 +65,7 @@ private:
 ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd)
 {
     started_ = 0;
+    plain_fd_ = 0;
     ssld_gate_ = ssld_gate;
     nfo_ = (struct info*)malloc(sizeof(*nfo_));
     if (nfo_ < 0)
@@ -81,8 +82,13 @@ ssl_proxy::~ssl_proxy(void)
     // and cipher_fd
     if (started_)
 	close(plain_fd_);
-    else
+    else {
 	close(nfo_->sock_fd_);
+	if (nfo_->cipher_fd_)
+	    close(nfo_->cipher_fd_);
+	if (plain_fd_)
+	    close(plain_fd_);
+    }
     cleanup(nfo_);
 }
 
@@ -251,6 +257,8 @@ ssl_proxy::start(void)
 				  sizeof(*cipher_bs), &cipher_seg, 
 				  (void **)&cipher_bs, cipher_label.to_ulabel(), 
 			      "cipher-bipipe"));
+	scope_guard<int, struct cobj_ref> 
+	    unref_cipher(sys_obj_unref, cipher_seg);
 	scope_guard<int, void*> umap(segment_unmap, cipher_bs);
 	memset(cipher_bs, 0, sizeof(*cipher_bs));
 	cipher_bs->p[0].open = 1;
@@ -264,6 +272,7 @@ ssl_proxy::start(void)
 				  sizeof(*plain_bs), &plain_seg, 
 				  (void **)&plain_bs, plain_label.to_ulabel(), 
 				  "plain-bipipe"));
+	scope_guard<int, struct cobj_ref> unref_plain(sys_obj_unref, plain_seg);
 	scope_guard<int, void*> umap2(segment_unmap, plain_bs);
 	memset(plain_bs, 0, sizeof(*plain_bs));
 	plain_bs->p[0].open = 1;
@@ -273,8 +282,10 @@ ssl_proxy::start(void)
 	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
 	int plain_fd = bipipe_fd(plain_seg, 0, 0);
 	error_check(cipher_fd);
+	unref_cipher.dismiss();
 	error_check(plain_fd);
-	
+	unref_plain.dismiss();
+
 	nfo_->cipher_fd_ = cipher_fd;
 	plain_fd_ = plain_fd;
 
