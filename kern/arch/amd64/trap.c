@@ -150,6 +150,11 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (trampoline_rip - trap0rip) / 16;
 
+    tf->tf_ds = read_ds();
+    tf->tf_es = read_es();
+    tf->tf_fs = read_fs();
+    tf->tf_gs = read_gs();
+
     cyg_profile_free_stack(read_rsp());
 
     if (cur_thread == 0) {
@@ -189,6 +194,15 @@ thread_arch_run(const struct Thread *t)
     } else {
 	lcr0(rcr0() | CR0_TS);
     }
+
+#define LOAD_SEGMENT_REG(t, rs) \
+    if (t->th_tf.tf_##rs != read_##rs()) { write_##rs(t->th_tf.tf_##rs); }
+
+    LOAD_SEGMENT_REG(t, ds);
+    LOAD_SEGMENT_REG(t, es);
+    LOAD_SEGMENT_REG(t, fs);
+    LOAD_SEGMENT_REG(t, gs);
+#undef LOAD_SEGMENT_REG
 
     sched_start(t);
     trapframe_pop(&t->th_tf);

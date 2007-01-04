@@ -80,11 +80,6 @@ trap_entry:
 	movq	%r14,tf_r14(%rsp)
 	movq	%r15,tf_r15(%rsp)
 
-	movw	%ds,tf_ds(%rsp)
-	movw	%es,tf_es(%rsp)
-	movw	%fs,tf_fs(%rsp)
-	movw	%gs,tf_gs(%rsp)
-
 	movq	%rsp,%rdi
 	// %rsi was exchanged earlier with the trampoline's %rip
 	jmp	trap_handler
@@ -108,11 +103,6 @@ trapframe_pop:
 	movq	tf_r13(%rsp),%r13
 	movq	tf_r14(%rsp),%r14
 	movq	tf_r15(%rsp),%r15
-
-	movw	tf_ds(%rsp),%ds
-	movw	tf_es(%rsp),%es
-	movw	tf_fs(%rsp),%fs
-	movw	tf_gs(%rsp),%gs
 
 	addq	$tf_rip,%rsp
 	iretq
