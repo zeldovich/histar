@@ -75,8 +75,8 @@ static void
 mmu_init (void)
 {
   /* Move gdt to kernel memory and reload */
-  gdtdesc.pd_base = (uintptr_t) & gdt;
-  __asm volatile ("lgdt (%0)"::"r" (&gdtdesc.pd_lim));
+  gdtdesc.pd_base = (uintptr_t) &gdt;
+  lgdt(&gdtdesc.pd_lim);
 
   /* Nuke identically mapped physical memory */
   bootpml4.pm_ent[0] = 0;

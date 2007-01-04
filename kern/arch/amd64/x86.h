@@ -21,6 +21,7 @@ X86_INST_ATTR void outsl(uint16_t port, const void *addr, int cnt);
 X86_INST_ATTR void outl(uint16_t port, uint32_t data);
 X86_INST_ATTR void invlpg(const void *addr);
 X86_INST_ATTR void lidt(void *p);
+X86_INST_ATTR void lgdt(void *p);
 X86_INST_ATTR void lldt(uint16_t sel);
 X86_INST_ATTR void ltr(uint16_t sel);
 X86_INST_ATTR void lcr0(uint64_t val);
@@ -157,6 +158,12 @@ void
 lidt(void *p)
 {
 	__asm __volatile("lidt (%0)" : : "r" (p));
+}
+
+void
+lgdt(void *p)
+{
+	__asm __volatile("lgdt (%0)" : : "r" (p));
 }
 
 void
