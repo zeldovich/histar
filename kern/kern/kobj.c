@@ -878,10 +878,11 @@ kobject_init(void)
 
     if (kobject_print_sizes) {
 	cprintf("kobject sizes:\n");
-	cprintf("hdr %lu label %lu pagetree %lu\n",
+	cprintf("hdr %lu label %lu pagetree %lu trapframe %lu\n",
 		(long) sizeof(struct kobject_hdr),
 		(long) sizeof(struct Label),
-		(long) sizeof(struct pagetree));
+		(long) sizeof(struct pagetree),
+		(long) sizeof(struct Trapframe));
 	cprintf("ct %lu th %lu gt %lu as %lu sg %lu\n",
 		(long) sizeof(struct Container),
 		(long) sizeof(struct Thread),
