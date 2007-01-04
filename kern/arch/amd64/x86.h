@@ -28,9 +28,8 @@ X86_INST_ATTR uint64_t rcr0(void);
 X86_INST_ATTR uint64_t rcr2(void);
 X86_INST_ATTR void lcr3(uint64_t val);
 X86_INST_ATTR uint64_t rcr3(void);
-X86_INST_ATTR void lcr4(uint32_t val);
-X86_INST_ATTR uint32_t rcr4(void);
-X86_INST_ATTR void tlbflush(void);
+X86_INST_ATTR void lcr4(uint64_t val);
+X86_INST_ATTR uint64_t rcr4(void);
 X86_INST_ATTR uint32_t read_eflags(void);
 X86_INST_ATTR void write_eflags(uint32_t eflags);
 X86_INST_ATTR void halt(void);
@@ -209,25 +208,17 @@ rcr3(void)
 }
 
 void
-lcr4(uint32_t val)
+lcr4(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr4" : : "r" (val));
+	__asm __volatile("movq %0,%%cr4" : : "r" (val));
 }
 
-uint32_t
+uint64_t
 rcr4(void)
 {
-	uint32_t cr4;
-	__asm __volatile("movl %%cr4,%0" : "=r" (cr4));
+	uint64_t cr4;
+	__asm __volatile("movq %%cr4,%0" : "=r" (cr4));
 	return cr4;
-}
-
-void
-tlbflush(void)
-{
-	uint32_t cr3;
-	__asm __volatile("movl %%cr3,%0" : "=r" (cr3));
-	__asm __volatile("movl %0,%%cr3" : : "r" (cr3));
 }
 
 uint32_t

@@ -63,13 +63,12 @@ abort (void)
 static void
 flush_tlb_hard (void)
 {
-  uint64_t cr3;
-  uint64_t cr4;
-  __asm volatile ("movq %%cr3,%0":"=a" (cr3));
-  __asm volatile ("movq %%cr4,%0":"=a" (cr4));
-  __asm volatile ("movq %0,%%cr4"::"a" (cr4 & ~CAST64 (CR4_PGE)));
-  __asm volatile ("movq %0,%%cr3"::"a" (cr3));
-  __asm volatile ("movq %0,%%cr4"::"a" (cr4));
+  uint64_t cr3 = rcr3();
+  uint64_t cr4 = rcr4();
+
+  lcr4(cr4 & ~CAST64 (CR4_PGE));
+  lcr3(cr3);
+  lcr4(cr4);
 }
 
 static void
@@ -87,7 +86,7 @@ mmu_init (void)
   gdt[(GD_TSS >> 3)] = (SEG_TSSA | SEG_P | SEG_A | SEG_BASELO (&tss)
 			| SEG_LIM (sizeof (tss) - 1));
   gdt[(GD_TSS >> 3) + 1] = SEG_BASEHI (&tss);
-  __asm volatile ("ltr %w0"::"r" (GD_TSS));
+  ltr(GD_TSS);
 }
 
 static void
