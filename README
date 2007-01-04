@@ -3,12 +3,11 @@
 
 ./configure --enable-disasm \
         --enable-iodebug --enable-new-pit \
-        --disable-reset-on-triple-fault \
         --enable-4meg-pages --enable-pae --enable-global-pages \
         --enable-x86-64 \
         --enable-all-optimizations \
         --enable-x86-debugger \
-        --with-x11 \
+        --with-x11 --with-nogui \
         --enable-instrumentation \
         --enable-pci \
         --enable-pnic \
@@ -19,12 +18,11 @@ replace --enable-gdb-stub with --enable-debugger:
 
 ./configure --enable-disasm \
         --enable-iodebug --enable-new-pit \
-        --disable-reset-on-triple-fault \
         --enable-4meg-pages --enable-pae --enable-global-pages \
         --enable-x86-64 \
         --enable-all-optimizations \
         --enable-x86-debugger \
-        --with-x11 \
+        --with-x11 --with-nogui \
         --enable-instrumentation \
         --enable-pci \
         --enable-pnic \
