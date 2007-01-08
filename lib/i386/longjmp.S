@@ -5,7 +5,10 @@ ENTRY(jos_setjmp)
 
 	movl	0(%esp), %edx	// %eip as pushed by call
 	movl	%edx,  0(%ecx)
-	movl	%ecx,  4(%ecx)	// %ecx is where %esp will point when we return
+
+	leal	4(%esp), %edx	// where %esp will point when we return
+	movl	%edx,  4(%ecx)
+
 	movl	%ebp,  8(%ecx)
 	movl	%ebx, 12(%ecx)
 	movl	%esi, 16(%ecx)
