@@ -1,5 +1,6 @@
 unlink
 memcpy
+memcmp
 memset
 memmove
 strlen
@@ -25,3 +26,4 @@ __udivti3
 __udivdi3
 __umoddi3
 __fxstat
+fstat
