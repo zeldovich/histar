@@ -18,9 +18,10 @@
 #define BIPIPE_SEG_MAP(__fd, __va)				\
     do {							\
 	int __r;						\
+	uint64_t __bytes = sizeof(struct bipipe_seg);		\
 	__r = segment_map((__fd)->fd_bipipe.bipipe_seg, 0,	\
 			  SEGMAP_READ | SEGMAP_WRITE,		\
-			  (void **)(__va), 0, 0);		\
+			  (void **)(__va), &__bytes, 0);	\
 	if (__r < 0) {						\
 	    cprintf("%s: cannot segment_map: %s\n",		\
 		    __FUNCTION__, e2s(__r));			\
