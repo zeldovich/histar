@@ -2,7 +2,6 @@
 #define HASHTABLE_H_
 
 // simple hashtable, uses open addressing with linear probing
-// cannot delete or resize
 
 #include <inc/types.h>
 
