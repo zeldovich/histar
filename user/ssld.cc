@@ -43,25 +43,6 @@ static uint64_t access_grant;
 static struct cobj_ref cipher_biseg;
 static struct cobj_ref plain_biseg;
 
-static int 
-password_cb(char *buf, int num, int rwflag, void *userdata)
-{
-    struct fs_inode ino;
-    const char *pn = (const char *)userdata;
-    error_check(fs_namei(pn, &ino));
-    void *va = 0;
-    uint64_t bytes = 0;
-    error_check(segment_map(ino.obj, 0, SEGMAP_READ, &va, &bytes, 0));
-    scope_guard<int, void *> unmap(segment_unmap, va);
-
-    if(num < (int) (bytes + 1))
-	return 0;
-    
-    memcpy(buf, va, bytes);
-    buf[bytes] = 0;
-    return strlen(buf);
-}
-
 static int
 error_to_jos64(int ret)
 {
@@ -272,7 +253,7 @@ ssld_cow_gate_create(uint64_t ct)
 }
 
 void
-ssl_init(const char *server_pem, const char *password, 
+ssl_init(const char *server_pem,
 	 const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
@@ -289,12 +270,6 @@ ssl_init(const char *server_pem, const char *password,
     // Load our keys and certificates
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
 	throw basic_exception("Can't read certificate file %s", server_pem);
-    
-    char *pass = strdup(password);
-    scope_guard<void, char *> g(delete_obj, pass);
-    
-    SSL_CTX_set_default_passwd_cb_userdata(ctx, pass);
-    SSL_CTX_set_default_passwd_cb(ctx, password_cb);
     
     if(!(SSL_CTX_use_PrivateKey_file(ctx, server_pem, SSL_FILETYPE_PEM)))
 	throw basic_exception("Can't read key file %s", server_pem);
@@ -326,19 +301,18 @@ ssl_init(const char *server_pem, const char *password,
 int
 main (int ac, char **av)
 {
-    if (ac < 5) {
-	cprintf("Usage: %s server-pem password dh-pem access-grant", 
+    if (ac < 4) {
+	cprintf("Usage: %s server-pem dh-pem access-grant", 
 		av[0]);
 	return -1;
     }
 
     const char *server_pem = av[1];
-    const char *password = av[2];
-    const char *dh_pem = av[3];
+    const char *dh_pem = av[2];
     uint64_t access_grant;
-    error_check(strtou64(av[4], 0, 10, &access_grant));
+    error_check(strtou64(av[3], 0, 10, &access_grant));
 
-    ssl_init(server_pem, password, dh_pem, 0);
+    ssl_init(server_pem, dh_pem, 0);
     ssld_cow_gate_create(start_env->shared_container);
         
     return 0;
