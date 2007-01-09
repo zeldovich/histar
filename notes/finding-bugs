@@ -55,3 +55,16 @@ Couple of kernel-panic bugs:
   very early during first bootstrap).
 - Panic when invoking a large system call number (assert in profiling code)
 
+***
+
+Corner cases where a thread would continue executing if it had a non-zero
+refcount but no readable refcounts (i.e. it was not "self-aware").  We were
+forgetting to check for self-awareness when thread changed labels, when it
+lost hard links, and when its parent-list was changed (we were only checking
+in the scheduler at time-slice boundaries).
+
+Potentially this would allow a thread to learn whether it still has any
+unreadable refcounts (and thus receive information from that unreadable
+compartment), by observing whether it continues executing after dropping
+its readable refcounts.
+
