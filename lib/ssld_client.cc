@@ -11,32 +11,71 @@ extern "C" {
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <malloc.h>
 }
 
 #include <inc/error.hh>
 #include <inc/gateclnt.hh>
 #include <inc/spawn.hh>
 #include <inc/ssldclnt.hh>
+#include <inc/labelutil.hh>
+#include <inc/gateinvoke.hh>
+
+static void __attribute__((noreturn))
+ssld_worker_setup(void *b)
+{
+    // XXX
+    struct args {
+	struct cobj_ref cipher_biseg;
+	struct cobj_ref plain_biseg;
+	struct cobj_ref cow_gate;
+	uint64_t root_ct;
+	uint64_t taint;
+    } *a = (struct args *)b;
+    
+    struct cobj_ref cow_gate = a->cow_gate;
+    uint64_t taint = a->taint;
+
+    struct ssld_cow_args *d = (struct ssld_cow_args *)tls_gate_args;
+    d->cipher_biseg = a->cipher_biseg;
+    d->plain_biseg = a->plain_biseg;
+    d->root_ct = a->root_ct;
+
+    free(a);    
+    
+    label tgt_label, tgt_clear;
+    obj_get_label(cow_gate, &tgt_label);
+    gate_get_clearance(cow_gate, &tgt_clear);
+    tgt_label.set(taint, 3);
+    tgt_clear.set(taint, 3);
+
+    gate_invoke(cow_gate, &tgt_label, &tgt_clear, 0, 0);
+    
+}
 
 void
 ssld_taint_cow(struct cobj_ref cow_gate,
 	       struct cobj_ref cipher_biseg, struct cobj_ref plain_biseg,
 	       uint64_t root_ct, uint64_t taint)
 {
-    label cs(LB_LEVEL_STAR);
-    cs.set(taint, 3);
-    label dr(0);
-    dr.set(taint, 3);
-    
-    gate_call c(cow_gate, &cs, 0, &dr);
-    
-    struct gate_call_data gcd;
-    gcd.declassify_gate = COBJ(0, 0);
-    struct ssld_cow_op *op = (struct ssld_cow_op *)gcd.param_buf;
-    op->cipher_biseg = cipher_biseg;
-    op->plain_biseg = plain_biseg;
-    op->root_ct = root_ct;
-    
-    c.call(&gcd, 0);
-    error_check(op->rval);
+    // XXX
+    struct args {
+	struct cobj_ref cipher_biseg;
+	struct cobj_ref plain_biseg;
+	struct cobj_ref cow_gate;
+	uint64_t root_ct;
+	uint64_t taint;
+    } *a = (struct args *)malloc(sizeof(*a));
+    a->cipher_biseg = cipher_biseg;
+    a->plain_biseg = plain_biseg;
+    a->cow_gate = cow_gate;
+    a->root_ct = root_ct;
+    a->taint = taint;
+
+    struct cobj_ref t;
+    // XXX
+    int r = thread_create(root_ct, &ssld_worker_setup,
+			  a, &t, "ssld-worker");
+
+    error_check(r);
 }

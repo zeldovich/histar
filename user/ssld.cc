@@ -182,46 +182,48 @@ ssld_worker(void *arg)
     close(plain_fd);
     ssld_close(ssl);
     close(cipher_fd);
+    thread_halt();
 }
 
 static void __attribute__((noreturn))
 ssld_cow_entry(void)
 {
     try {
-	// Copy-on-write if we are tainted
-	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
-	struct ssld_cow_op *op = (struct ssld_cow_op *)gcd->param_buf;
+	struct ssld_cow_args *d = (ssld_cow_args *) TLS_GATE_ARGS;
 
-	uint64_t cow_ct = op->root_ct;
-	if (!taint_cow(cow_ct, gcd->declassify_gate))
+	if (!taint_cow(d->root_ct, COBJ(0, 0)))
 	    throw error(-E_UNSPEC, "cow didn't happen?");
 
 	if (tls_tidp)
 	    *tls_tidp = sys_self_id();
 	
 	thread_label_cache_invalidate();
-		
-	cipher_biseg = op->cipher_biseg;
-	plain_biseg = op->plain_biseg;
 
-	struct cobj_ref t;
-	int r = thread_create(start_env->proc_container, &ssld_worker,
-			      0, &t, "ssld-worker");
-	if (r < 0)
-	    throw error(r, "unable to spawn worker: %s\n", e2s(r));
+	cipher_biseg = d->cipher_biseg;
+	plain_biseg = d->plain_biseg;
 
-	/*
+	// allocating new stack
 	uint64_t entry_ct = start_env->proc_container;
-	error_check(sys_self_set_sched_parents(gcd->taint_container, entry_ct));
-	if (!(flags & GATESRV_NO_THREAD_ADDREF))
-	    error_check(sys_self_addref(entry_ct));
-	scope_guard<int, struct cobj_ref>
-	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
-	*/
+	void *stackbase = 0;
+	uint64_t stackbytes = thread_stack_pages * PGSIZE;
+	error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
+				&stackbase, &stackbytes, 0));
+	scope_guard<int, void *> unmap(segment_unmap, stackbase);
+	char *stacktop = ((char *) stackbase) + stackbytes;
 	
-	gatesrv_return ret(gcd->return_gate, start_env->proc_container,
-			   gcd->taint_container, 0, GATESRV_KEEP_TLS_STACK);	
-	ret.ret(0, 0, 0);
+	struct cobj_ref stackobj;
+	void *allocbase = stacktop - PGSIZE;
+	error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
+				  &allocbase, 0, "gate thread stack"));
+	
+	unmap.dismiss();
+
+	stack_switch((uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0,
+		     stacktop, (void *) &ssld_worker);
+	    
+	cprintf("ssld_cow_entry: still running?!?\n");
+	thread_halt();
+	
     } catch (std::exception &e) {
 	cprintf("ssld_cow_entry: %s\n", e.what());
 	thread_halt();

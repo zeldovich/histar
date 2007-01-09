@@ -5,7 +5,7 @@ void ssld_taint_cow(struct cobj_ref cow_gate,
 		    struct cobj_ref cipher_biseg, struct cobj_ref plain_biseg,
 		    uint64_t root_ct, uint64_t taint);
 
-struct ssld_cow_op {
+struct ssld_cow_args {
     struct cobj_ref cipher_biseg;
     struct cobj_ref plain_biseg;
     uint64_t root_ct;
