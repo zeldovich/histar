@@ -31,7 +31,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
 
-static const char proxy_dbg = 1;
+static const char proxy_dbg = 0;
 
 class ssl_proxy
 {
@@ -52,7 +52,9 @@ private:
     } *nfo_;
     struct cobj_ref ssld_gate_;
     uint64_t plain_fd_;
-    char started_;
+    char proxy_started_;
+    char ssld_started_;
+    struct thread_args ssld_worker_args_;
     
     static void proxy_thread(void *a);
     static void cleanup(struct info *nfo);
@@ -64,7 +66,8 @@ private:
 
 ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd)
 {
-    started_ = 0;
+    proxy_started_ = 0;
+    ssld_started_ = 0;
     plain_fd_ = 0;
     ssld_gate_ = ssld_gate;
     nfo_ = (struct info*)malloc(sizeof(*nfo_));
@@ -80,7 +83,7 @@ ssl_proxy::~ssl_proxy(void)
 {
     // if started_, proxy thread is responsible for closing sock_fd 
     // and cipher_fd
-    if (started_)
+    if (proxy_started_)
 	close(plain_fd_);
     else {
 	close(nfo_->sock_fd_);
@@ -89,6 +92,14 @@ ssl_proxy::~ssl_proxy(void)
 	if (plain_fd_)
 	    close(plain_fd_);
     }
+
+    if (ssld_started_) {
+	int r = thread_unmap_stack(ssld_worker_args_.stackbase);
+	if (r < 0)
+	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+    }
+	
+
     cleanup(nfo_);
 }
 
@@ -104,7 +115,7 @@ ssl_proxy::cleanup(struct info *nfo)
 int
 ssl_proxy::plain_fd(void)
 {
-    if (!started_)
+    if (!proxy_started_)
 	throw basic_exception("proxy isn't running");
     return plain_fd_;
 }
@@ -240,7 +251,7 @@ ssl_proxy::start(void)
     uint64_t ssl_taint = handle_alloc();
     label ssl_root_label(1);
     ssl_root_label.set(ssl_taint, 3);
-    
+
     int64_t ssl_root_ct = sys_container_alloc(nfo_->base_ct_,
 					      ssl_root_label.to_ulabel(),
 					      "ssl-root", 0, CT_QUOTA_INF);
@@ -291,7 +302,8 @@ ssl_proxy::start(void)
 
 	// taint cow ssld and pass both bipipes
 	ssld_taint_cow(ssld_gate_, cipher_seg, plain_seg, 
-		       ssl_root_ct, ssl_taint);
+		       ssl_root_ct, ssl_taint, &ssld_worker_args_);
+	ssld_started_ = 1;
     } catch (std::exception &e) {
 	sys_obj_unref(COBJ(nfo_->base_ct_, nfo_->ssl_ct_));
 	throw e;
@@ -306,7 +318,7 @@ ssl_proxy::start(void)
 	atomic_dec((atomic_t *)&nfo_->ref_count_);
 	throw error(r, "can't start proxy thread");
     }
-    started_ = 1;
+    proxy_started_ = 1;
 }
 
 /////
@@ -442,7 +454,6 @@ http_client(void *arg)
     } catch (std::exception &e) {
 	printf("http_client: %s\n", e.what());
     }
-    
 }
 
 static void __attribute__((noreturn))

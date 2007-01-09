@@ -56,7 +56,8 @@ ssld_worker_setup(void *b)
 void
 ssld_taint_cow(struct cobj_ref cow_gate,
 	       struct cobj_ref cipher_biseg, struct cobj_ref plain_biseg,
-	       uint64_t root_ct, uint64_t taint)
+	       uint64_t root_ct, uint64_t taint,
+	       thread_args *ta)
 {
     // XXX
     struct args {
@@ -73,9 +74,10 @@ ssld_taint_cow(struct cobj_ref cow_gate,
     a->taint = taint;
 
     struct cobj_ref t;
-    // XXX
-    int r = thread_create(root_ct, &ssld_worker_setup,
-			  a, &t, "ssld-worker");
-
+    int r = thread_create_option(root_ct, &ssld_worker_setup,
+				 a, &t, "ssld-worker", ta, 0);
     error_check(r);
+
+    
+    
 }
