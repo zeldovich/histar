@@ -103,17 +103,24 @@ struct thread_args {
 
     void (*entry)(void *);
     void *arg;
+    int options;
 };
 
 enum { thread_quota_slush = 65536 };
 enum { thread_stack_pages = 256 * 1024 };
 
+#define THREAD_OPT_CLEANUP 0x01
+
 int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, const char *name);
+int     thread_create_option(uint64_t container, void (*entry)(void*), void *arg,
+			     struct cobj_ref *threadp, const char *name, 
+			     struct thread_args *thargs, int options);
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);
 void	thread_sleep(uint64_t msec);
+int     thread_unmap_stack(void *stackbase);
 
 /* spawn.cc */
 #define	PROCESS_RUNNING		0

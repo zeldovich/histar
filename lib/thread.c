@@ -7,8 +7,7 @@
 static void __attribute__((noreturn))
 thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
 {
-    void *stacktop = stackbase + thread_stack_pages * PGSIZE;
-    int r = segment_unmap_range(stackbase, stacktop, 1);
+    int r = thread_unmap_stack(stackbase);
     if (r < 0)
 	cprintf("thread_exit: cannot unmap stack range: %s\n", e2s(r));
 
@@ -24,14 +23,26 @@ thread_entry(void *arg)
 
     ta->entry(ta->arg);
 
-    stack_switch(ta->container, ta->thread_id, ta->stack_id,
-		 (uint64_t) ta->stackbase,
-		 tls_stack_top, &thread_exit);
+    if (ta->options & THREAD_OPT_CLEANUP)
+	stack_switch(ta->container, ta->thread_id, ta->stack_id,
+		     (uint64_t) ta->stackbase,
+		     tls_stack_top, &thread_exit);
+    else
+	thread_halt();
 }
 
 int
 thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, const char *name)
+{
+    return thread_create_option(container, entry, arg, threadp, 
+				name, 0, THREAD_OPT_CLEANUP);
+}
+
+int
+thread_create_option(uint64_t container, void (*entry)(void*), void *arg,
+		     struct cobj_ref *threadp, const char *name, 
+		     struct thread_args *thargs, int options)
 {
     int r = 0;
 
@@ -67,7 +78,8 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
     ta->entry = entry;
     ta->arg = arg;
     ta->stackbase = stackbase;
-
+    ta->options = options;
+    
     struct thread_entry e;
     r = sys_self_get_as(&e.te_as);
     if (r < 0) {
@@ -112,6 +124,9 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	sys_obj_unref(tobj);
 	return r;
     }
+    
+    if (thargs)
+	*thargs = *ta;
 
     *threadp = tobj;
     return 0;
@@ -159,4 +174,11 @@ thread_sleep(uint64_t msec)
 
     uint64_t v = 0xc0de;
     sys_sync_wait(&v, v, cur + msec);
+}
+
+int
+thread_unmap_stack(void *stackbase)
+{
+    void *stacktop = stackbase + thread_stack_pages * PGSIZE;
+    return segment_unmap_range(stackbase, stacktop, 1);
 }
