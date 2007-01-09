@@ -119,6 +119,7 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     id = kobject_translate_id(id);
 
     struct kobject *ko;
+retry:
     LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
 	if (ko->hdr.ko_id == id) {
 	    if (ko->hdr.ko_ref == 0)
@@ -142,7 +143,11 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     if (kobject_negative_contains(id))
 	return -E_INVAL;
 
-    return pstate_swapin(id);
+    int r = pstate_swapin(id);
+    if (r == 0)
+	goto retry;
+
+    return r;
 }
 
 int

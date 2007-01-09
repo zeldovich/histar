@@ -294,6 +294,9 @@ pstate_swapin(kobject_id_t id)
 	return r;
     }
 
+    // If the thread is still runnable, don't claim -E_RESTART.
+    if (cur_thread && SAFE_EQUAL(cur_thread->th_status, thread_runnable))
+	return 0;
     return -E_RESTART;
 }
 
