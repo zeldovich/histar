@@ -169,9 +169,12 @@ thread_swapout(struct Thread *t)
 }
 
 void
-thread_zero_refs(const struct Thread *t)
+thread_on_decref(const struct Thread *t)
 {
-    thread_halt(t);
+    if (t->th_ko.ko_ref == 0)
+	thread_halt(t);
+    else
+	thread_check_sched_parents(t);
 }
 
 int
@@ -268,6 +271,41 @@ thread_set_sched_parents(const struct Thread *const_t, uint64_t p0, uint64_t p1)
     t->th_sched_parents[1] = p1;
 }
 
+void
+thread_check_sched_parents(const struct Thread *t)
+{
+    // Three reasons this does not affect non-current threads:
+    // - scheduler will run this function before scheduling t
+    // - need to use cur_thread's label for iflow checks
+    // - don't want to put other threads to sleep for t's swapin
+    if (!cur_thread || t->th_ko.ko_id != cur_thread->th_ko.ko_id)
+	return;
+
+    for (int i = 0; i < 2; i++) {
+	const struct Container *c;
+	int r = container_find(&c, t->th_sched_parents[i], iflow_read);
+	if (r < 0) {
+	    if (r == -E_RESTART)
+		return;
+	    continue;
+	}
+
+	r = container_has(c, t->th_ko.ko_id);
+	if (r < 0) {
+	    if (r == -E_RESTART)
+		return;
+	    continue;
+	}
+
+	// Success: no need to halt this thread.
+	return;
+    }
+
+    cprintf("thread %"PRIu64" (%s) not self-aware, halting\n",
+	    t->th_ko.ko_id, t->th_ko.ko_name);
+    thread_halt(t);
+}
+
 int
 thread_change_label(const struct Thread *const_t,
 		    const struct Label *new_label)
@@ -331,6 +369,7 @@ thread_change_label(const struct Thread *const_t,
     // make sure all label checks get re-evaluated
     if (t->th_as)
 	as_invalidate_label(t->th_as, 1);
+    thread_check_sched_parents(t);
 
     return 0;
 

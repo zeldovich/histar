@@ -76,7 +76,7 @@ void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t)
     __attribute__ ((warn_unused_result));
-void thread_zero_refs(const struct Thread *t);
+void thread_on_decref(const struct Thread *t);
 
 int  thread_jump(const struct Thread *t,
 		 const struct Label *contaminate,
@@ -93,6 +93,7 @@ void thread_disable_fp(const struct Thread *t);
 int  thread_set_waitslots(const struct Thread *t, uint64_t nslots)
     __attribute__ ((warn_unused_result));
 void thread_set_sched_parents(const struct Thread *t, uint64_t p1, uint64_t p2);
+void thread_check_sched_parents(const struct Thread *t);
 
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);

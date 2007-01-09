@@ -41,28 +41,8 @@ schedule(void)
 
 	cur_thread = min_pass_th;
 
-	// Make sure the thread can know of its existence..
-	// If -E_RESTART is returned, the thread will go to sleep.
-	const struct Container *c;
-	int readable_parent = 0;
-	for (int i = 0; !readable_parent && i < 2; i++) {
-	    int r = container_find(&c, cur_thread->th_sched_parents[i], iflow_read);
-	    if (r == -E_RESTART) {
-		readable_parent = 1;
-	    } else {
-		if (r == 0) {
-		    r = container_has(c, cur_thread->th_ko.ko_id);
-		    if (r == 0 || r == -E_RESTART)
-			readable_parent = 1;
-		}
-	    }
-	}
-
-	if (!readable_parent) {
-	    cprintf("schedule(): thread %"PRIu64" (%s) not self-aware, halting\n",
-		    cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
-	    thread_halt(cur_thread);
-	}
+	// Halt thread if it can't know of its existence..
+	thread_check_sched_parents(cur_thread);
     } while (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable));
 
     // Make sure we don't miss a TSC rollover, and reset it just in case
