@@ -13,7 +13,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/wctype \
 	pkg/uclibc/libc/misc/regex \
 	pkg/uclibc/libc/misc/glob \
-	pkg/uclibc/libc/misc/syslog
+	pkg/uclibc/libc/misc/syslog \
+	pkg/uclibc/libc/misc/pthread
 
 ##
 ## Source files that can be built directly
@@ -39,6 +40,7 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/mntent/mntent.c \
 	pkg/uclibc/libc/misc/syslog/syslog.c \
 	pkg/uclibc/libc/misc/regex/regex.c \
+	pkg/uclibc/libc/misc/pthread/no-tsd.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/glob/%.c, $(MISC_GLOB_CSRC)) \
