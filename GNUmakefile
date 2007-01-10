@@ -99,10 +99,8 @@ all:
 .DELETE_ON_ERROR:
 
 # make it so that no intermediate .o files are ever deleted
-.PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
-	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/asfs/%.o \
-	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo $(OBJDIR)/extra/%.o \
-	$(OBJDIR)/extra/%.debuginfo
+.PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o $(OBJDIR)/lib/%.o \
+	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo
 
 KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 USER_INC    := $(INCLUDES)
@@ -132,7 +130,6 @@ include lib/Makefrag
 include pkg/Makefrag
 include acpkg/Makefrag
 include user/Makefrag
-include extra/Makefrag
 include test/Makefrag
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
