@@ -142,3 +142,23 @@
  #define MSB64 INT64(0x8000000000000000)
                      
  u_int64_t
+--- /home/nickolai/distsrc/sfslite-1.0.0/async/refcnt.h	2006-11-10 08:43:31.000000000 -0800
++++ sfslite-1.0.0/async/refcnt.h	2007-01-09 23:56:09.000000000 -0800
+@@ -428,7 +428,7 @@
+   /* At least with gcc, the copy constructor must be explicitly
+    * defined (though it would appear to be redundant given the
+    * template constructor bellow). */
+-  ref (const ref<T> &r) : refpriv (r.c) { p = r.p; inc (); }
++  ref (const ref<T> &r) : refpriv (r.c), refops<T> () { p = r.p; inc (); }
+   template<class U>
+   ref (const ref<U> &r)
+     : refpriv (rc (r)) { p = refpriv::rp (r); inc (); }
+@@ -489,7 +489,7 @@
+   ptr (privtype *) : refpriv (NULL) { p = NULL; }
+   template<class U, reftype v>
+   ptr (refcounted<U, v> *pp) { set (pp, false); }
+-  ptr (const ptr<T> &r) : refpriv (r.c) { p = r.p; inc (); }
++  ptr (const ptr<T> &r) : refpriv (r.c), refops<T> () { p = r.p; inc (); }
+   template<class U>
+   ptr (const ptr<U> &r)
+     : refpriv (rc (r)) { p = refpriv::rp (r); inc (); }
