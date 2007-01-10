@@ -6,6 +6,14 @@ $(OBJDIR)/user/ssld.o: acpkg/openssl-0.9.8a/__build
 $(OBJDIR)/user/ssld.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
 $(OBJDIR)/user/ssld.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
 
+$(OBJDIR)/user/asynct0.o: $(OBJDIR)/acpkg/include/sfslite
+$(OBJDIR)/user/asynct0.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+$(OBJDIR)/user/asynct0.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
+
+$(OBJDIR)/user/asynct1.o: $(OBJDIR)/acpkg/include/sfslite
+$(OBJDIR)/user/asynct1.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+$(OBJDIR)/user/asynct1.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
+
 ## Generic build rules
 
 $(OBJDIR)/user/%.o: user/%.c
