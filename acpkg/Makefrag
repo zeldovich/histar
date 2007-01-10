@@ -1,3 +1,13 @@
+##
+## Magic files:
+##
+##    acpkg/pkgname/__patch: has been patched
+##    acpkg/pkgname/__reconf: has run autoreconf (sfslite)
+##    acpkg/pkgname/Makefile: has run ./configure
+##    acpkg/pkgname/__build: has run make && make install
+##    acpkg/pkgname/__keep: prevent reconfiguration/rebuild due to deps
+##
+
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
 ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
@@ -86,11 +96,13 @@ $(ACPKG_WRAPS):
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
 acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	@mkdir -p $(ACPKG_PREFIX)
-	-find acpkg/$(PKGNAME) -name config.cache | xargs rm -f
-	-find acpkg/$(PKGNAME) -name config.status | xargs rm -f
-	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
-		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
+	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
+	    find acpkg/$(PKGNAME) -name config.cache | xargs rm -f; \
+	    find acpkg/$(PKGNAME) -name config.status | xargs rm -f; \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" ); \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" ); \
+	fi
 
 .PRECIOUS: acpkg/%/__patch
 acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
@@ -108,9 +120,11 @@ acpkg/%/__reconf: $(ACPKG_WRAPS) acpkg/%/__patch
 .PRECIOUS: acpkg/%/__build
 acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
 acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
+	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" ) && \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" ); \
+	fi
 	touch $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/$(TARGET)-%
