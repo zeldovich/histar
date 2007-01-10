@@ -162,3 +162,14 @@
    template<class U>
    ptr (const ptr<U> &r)
      : refpriv (rc (r)) { p = refpriv::rp (r); inc (); }
+--- /home/nickolai/distsrc/sfslite-1.0.0/arpc/axprt.h	2006-11-10 08:42:50.000000000 -0800
++++ sfslite-1.0.0/arpc/axprt.h	2007-01-10 00:19:51.000000000 -0800
+@@ -48,7 +48,7 @@
+   virtual void setrcb (recvcb_t) = 0;
+   virtual bool ateof () { return false; }
+   virtual u_int64_t get_raw_bytes_sent () const { return 0; }
+-  virtual int sndbufsize () const { panic ("unimplemented"); return 0; }
++  virtual int sndbufsize () const __attribute__((noreturn)) { panic ("unimplemented"); }
+   virtual void poll () = 0;
+   virtual int getfd () = 0;
+ 
