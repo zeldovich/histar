@@ -29,7 +29,7 @@ on_option(const char *str)
 	long_mode = 1;
 	return 0;
     } 
-    cprintf("unknown option: %s\n", str);
+    printf("unknown option: %s\n", str);
     return -E_INVAL;
 }
 
