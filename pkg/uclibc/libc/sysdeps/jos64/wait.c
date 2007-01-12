@@ -25,6 +25,8 @@ static LIST_HEAD(, wait_child) live_children;
 static LIST_HEAD(, wait_child) free_children;
 static uint64_t child_counter;
 
+enum { child_debug = 0 };
+
 // Add a child.  Used by parent fork process.
 void
 child_add(pid_t pid, struct cobj_ref status_seg)
@@ -142,6 +144,9 @@ wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 
 again:
     start_counter = child_counter;
+    if (child_debug)
+	cprintf("[%ld] wait4: counter %ld\n", thread_id(), start_counter);
+
     for (wc = LIST_FIRST(&live_children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
 
@@ -149,6 +154,9 @@ again:
 	    continue;
 
 	int r = child_get_status(wc, statusp);
+	if (child_debug)
+	    cprintf("[%ld] wait4: child %ld status %d\n",
+		    thread_id(), wc->wc_pid, r);
 	if (r < 0) {
 	    // Bad child?
 	    LIST_REMOVE(wc, wc_link);
@@ -158,6 +166,9 @@ again:
 
 	if (r == 0) {
 	    r = child_get_siginfo(wc, statusp);
+	    if (child_debug)
+		cprintf("[%ld] wait4: child %ld siginfo %d\n",
+			thread_id(), wc->wc_pid, r);
 	    if (r == 1)
 		return wc->wc_pid;
 	    continue;
@@ -172,14 +183,23 @@ again:
 	    // Clean up the child process's container
 	    sys_obj_unref(COBJ(start_env->shared_container, pid));
 
+	    if (child_debug)
+		cprintf("[%ld] wait4: returning child %ld\n",
+			thread_id(), pid);
 	    return pid;
 	}
     }
 
     if (!(options & WNOHANG)) {
+	if (child_debug)
+	    cprintf("[%ld] wait4: waiting..\n", thread_id());
+
 	sys_sync_wait(&child_counter, start_counter, sys_clock_msec() + 1000);
 	goto again;
     }
+
+    if (child_debug)
+	cprintf("[%ld] wait4: returning ECHILD\n", thread_id());
 
     __set_errno(ECHILD);
     return -1;
