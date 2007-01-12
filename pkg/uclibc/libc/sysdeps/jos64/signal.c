@@ -1,4 +1,6 @@
 #include <machine/trapcodes.h>
+#include <machine/x86.h>
+#include <machine/pmap.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
@@ -10,6 +12,7 @@
 #include <inc/memlayout.h>
 #include <inc/wait.h>
 #include <inc/debug_gate.h>
+#include <inc/jthread.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -22,100 +25,24 @@
 #include <bits/signalgate.h>
 #include <bits/kernel_sigaction.h>
 
-static int signal_debug = 0;
+enum { signal_debug = 0 };
 uint64_t signal_counter;
 
 // BSD compat
 const char *sys_signame[_NSIG];
 
-// Signal handlers
-static struct sigaction sigactions[_NSIG];
-static siginfo_t siginfos[_NSIG];
-
-// Trap handler to invoke signals
+// Thread which will receive traps to handle signals
 static uint64_t signal_thread_id;
 
-static void __attribute__((noreturn))
-sig_fatal(void)
-{
-    static int recursive = 1;
+// Signal handlers
+static jthread_mutex_t sigactions_mu;	// don't mask utraps
+static struct sigaction sigactions[_NSIG];
 
-    if (recursive) {
-	sys_self_halt();
-    } else {
-	recursive = 1;
-
-	print_backtrace();
-	exit(-1);
-    }
-
-    cprintf("sig_fatal: still alive, tid=%ld, recursive=%d\n",
-	    thread_id(), recursive);
-
-    for (;;)
-	;
-}
-
-static void
-signal_dispatch_sa(struct sigaction *sa, siginfo_t *si, struct sigcontext *sc)
-{
-    extern const char *__progname;
-
-    if (si->si_signo == SIGCHLD)
-	child_notify();
-
-    if (sa->sa_handler == SIG_IGN)
-	return;
-
-    if (sa->sa_handler == SIG_DFL) {
-	switch (si->si_signo) {
-	case SIGHUP:  case SIGINT:  case SIGQUIT: case SIGSTKFLT:
-	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
-	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
-	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
-	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
-	    sig_fatal();
-
-	case SIGSEGV: case SIGBUS:  case SIGILL:
-	    segfault_helper(si, sc);
-	    sig_fatal();
-
-	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
-	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
-	    return;
-
-	case SIGURG:  case SIGCONT: case SIGCHLD: case SIGWINCH:
-	case SIGINFO:
-	    return;
-
-	default:
-	    cprintf("%s: unhandled default signal %d\n", __progname, si->si_signo);
-	    exit(-1);
-	}
-    }
-
-    sa->sa_sigaction(si->si_signo, si, sc);
-}
-
-static void
-signal_dispatch(siginfo_t *si, struct sigcontext *sc)
-{
-    struct sigaction *sa = &sigactions[si->si_signo];
-
-    // XXX check if the signal is masked right now; return if so.
-
-    // XXX save current sigmask; mask the signal and sa->sa_mask
-
-    if (debug_gate_trace() && si->si_signo != SIGKILL)
-	debug_gate_on_signal(si->si_signo, sc);
-    else
-	signal_dispatch_sa(sa, si, sc);
-
-    // XXX restore saved sigmask
-
-    signal_counter++;
-    sys_sync_wakeup(&signal_counter);
-}
+// Masked and queued signals
+static jthread_mutex_t sigmask_mu;	// mask utraps!
+static sigset_t signal_masked;
+static sigset_t signal_queued;
+static siginfo_t signal_queued_si[_NSIG];
 
 static int
 stack_grow(void *faultaddr)
@@ -179,11 +106,247 @@ stack_grow(void *faultaddr)
     return 0;
 }
 
+static void __attribute__((noreturn))
+sig_fatal(void)
+{
+    static int recursive = 1;
+
+    if (recursive) {
+	sys_self_halt();
+    } else {
+	recursive = 1;
+
+	print_backtrace();
+	exit(-1);
+    }
+
+    cprintf("sig_fatal: still alive, tid=%ld, recursive=%d\n",
+	    thread_id(), recursive);
+
+    for (;;)
+	;
+}
+
+static int
+signal_trap_thread(struct cobj_ref tobj)
+{
+    struct cobj_ref cur_as;
+    sys_self_get_as(&cur_as);
+
+    for (;;) {
+	if (signal_debug)
+	    cprintf("[%ld] signal_trap_thread: trying to trap %ld.%ld\n",
+		    thread_id(), tobj.container, tobj.object);
+	int r = sys_thread_trap(tobj, cur_as, 0, 0);
+
+	if (r == 0) {
+	    if (signal_debug)
+		cprintf("[%ld] signal_trap_thread: trapped %ld.%ld\n",
+			thread_id(), tobj.container, tobj.object);
+
+	    return 0;
+	}
+
+	if (r == -E_BUSY) {
+	    cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld, retrying\n",
+		    thread_id(), tobj.container, tobj.object);
+	    thread_sleep(10);
+	    continue;
+	}
+
+	cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld: %s\n",
+		thread_id(), tobj.container, tobj.object, e2s(r));
+	__set_errno(EPERM);
+	return -1;
+    }
+}
+
+static void
+signal_trap_if_pending(void)
+{
+    int pending = 0;
+    uint32_t i;
+
+    assert(0 == utrap_set_mask(1));
+    jthread_mutex_lock(&sigmask_mu);
+
+    for (i = 0; i < _NSIG; i++) {
+	if (sigismember(&signal_queued, i) &&
+	    !sigismember(&signal_masked, i))
+	{
+	    if (signal_debug)
+		cprintf("[%ld] signal_trap_if_pending: signal %d\n",
+			thread_id(), i);
+	    pending++;
+	}
+    }
+
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(0);
+
+    if (pending)
+	signal_trap_thread(COBJ(0, thread_id()));
+}
+
+// Called by signal_utrap_onstack() to execute the appropriate signal
+// handler for the specified signal.  Already running on the right
+// stack for executing the signal handler.
+static void
+signal_execute(siginfo_t *si, struct sigcontext *sc)
+{
+    extern const char *__progname;
+
+    jthread_mutex_lock(&sigactions_mu);
+    struct sigaction sa = sigactions[si->si_signo];
+    jthread_mutex_unlock(&sigactions_mu);
+
+    if (si->si_signo == SIGCHLD) {
+	if (signal_debug)
+	    cprintf("[%ld] signal_execute: calling child_notify()\n",
+		    thread_id());
+	child_notify();
+    }
+
+    if (sa.sa_handler == SIG_IGN)
+	return;
+
+    if (sa.sa_handler == SIG_DFL) {
+	switch (si->si_signo) {
+	case SIGHUP:  case SIGINT:  case SIGQUIT: case SIGSTKFLT:
+	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
+	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
+	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
+	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
+	    sig_fatal();
+
+	case SIGSEGV: case SIGBUS:  case SIGILL:
+	    segfault_helper(si, sc);
+	    sig_fatal();
+
+	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
+	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
+	    return;
+
+	case SIGURG:  case SIGCONT: case SIGCHLD: case SIGWINCH:
+	case SIGINFO:
+	    return;
+
+	default:
+	    cprintf("%s: unhandled default signal %d\n", __progname, si->si_signo);
+	    exit(-1);
+	}
+    }
+
+    if (signal_debug)
+	cprintf("[%ld] signal_execute: running sigaction\n", thread_id());
+    sa.sa_sigaction(si->si_signo, si, sc);
+}
+
+// Execute signal handler for si.
+// Called with utrap unmasked and no locks held.
+// Signal is masked.
+// Jumps back to sc to return.
+static void __attribute__((noreturn))
+signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
+{
+    int signo = si->si_signo;
+    if (signal_debug)
+	cprintf("[%ld] signal_utrap_onstack: signal %d\n",
+		thread_id(), signo);
+
+    signal_execute(si, sc);
+
+    utrap_set_mask(1);
+    jthread_mutex_lock(&sigmask_mu);
+    sigdelset(&signal_masked, signo);
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(0);
+
+    signal_trap_if_pending();
+
+    // resume where we got interrupted; clears utrap
+    if (signal_debug)
+	cprintf("[%ld] signal_utrap_onstack: returning\n",
+		thread_id());
+
+    utrap_ret(&sc->sc_utf);
+}
+
+static void
+signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
+{
+    if (signal_debug)
+	cprintf("[%ld] signal_utrap_si: signal %d\n",
+		thread_id(), si->si_signo);
+
+    if (debug_gate_trace() && si->si_signo != SIGKILL) {
+	// XXX this is probably not quite right...
+	jthread_mutex_lock(&sigmask_mu);
+	sigdelset(&signal_masked, si->si_signo);
+	jthread_mutex_unlock(&sigmask_mu);
+	debug_gate_on_signal(si->si_signo, sc);
+	return;
+    }
+
+    // Make sure sigsuspend() wakes up
+    signal_counter++;
+    sys_sync_wakeup(&signal_counter);
+
+    // Run signal_utrap_onstack(), which will figure out the right
+    // signal handler and execute it.
+    if (sc->sc_utf.utf_rsp <= (uint64_t) tls_stack_top &&
+	sc->sc_utf.utf_rsp > (uint64_t) tls_base)
+    {
+	// If the trapped stack was the TLS, just call the function
+	// to deliver signals, as we're already on the TLS.
+	if (signal_debug)
+	    cprintf("[%ld] signal_utrap_si: staying on tls stack\n",
+		    thread_id());
+
+	utrap_set_mask(0);
+	signal_utrap_onstack(si, sc);
+    } else {
+	// Push a copy of si, sc onto the trapped stack, plus the red zone.
+	struct {
+	    siginfo_t si;
+	    struct sigcontext sc;
+	    uint8_t redzone[128];
+	} *s;
+
+	s = (void *) sc->sc_utf.utf_rsp;
+	s--;
+
+	// Ensure there's space, because we're masking traps right now..
+	stack_grow(s);
+
+	memcpy(&s->si, si, sizeof(*si));
+	memcpy(&s->sc, sc, sizeof(*sc));
+
+	if (signal_debug)
+	    cprintf("[%ld] signal_utrap_si: jumping to real stack at %p\n",
+		    thread_id(), s);
+
+	// jump over there and unmask utrap atomically
+	struct UTrapframe utf_jump;
+	utf_jump.utf_rflags = read_rflags();
+	utf_jump.utf_rip = (uint64_t) &signal_utrap_onstack;
+	utf_jump.utf_rsp = (uint64_t) s;
+	utf_jump.utf_rdi = (uint64_t) &s->si;
+	utf_jump.utf_rsi = (uint64_t) &s->sc;
+	utrap_ret(&utf_jump);
+    }
+}
+
 static void
 signal_utrap(struct UTrapframe *utf)
 {
+    if (signal_debug)
+	cprintf("[%ld] signal_utrap: rsp=0x%lx rip=0x%lx\n",
+		thread_id(), utf->utf_rsp, utf->utf_rip);
+
     siginfo_t si;
     memset(&si, 0, sizeof(si));
+    int sigmu_taken = 0;
 
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) utf->utf_trap_arg;
@@ -195,10 +358,8 @@ signal_utrap(struct UTrapframe *utf)
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
 	} else if (utf->utf_trap_num == T_DEVICE) {
 	    int r = sys_self_fp_enable();
-	    if (r >= 0) {
-		//cprintf("signal_utrap: enabled floating-point\n");
+	    if (r >= 0)
 		return;
-	    }
 
 	    cprintf("signal_utrap: cannot enable fp: %s\n", e2s(r));
 	    si.si_signo = SIGILL;
@@ -228,13 +389,25 @@ signal_utrap(struct UTrapframe *utf)
 	    si.si_code = ILL_ILLTRP;
 	}
     } else if (utf->utf_trap_src == UTRAP_SRC_USER) {
-	uint64_t signo = utf->utf_trap_arg;
-	if (signo >= _NSIG) {
-	    cprintf("signal_utrap: bad user signal %lu\n", signo);
-	    si.si_signo = SIGILL;
-	    si.si_code = ILL_ILLTRP;
-	} else {
-	    si = siginfos[signo];
+	jthread_mutex_lock(&sigmask_mu);
+	sigmu_taken = 1;
+
+	uint32_t i;
+	for (i = 0; i < _NSIG; i++) {
+	    if (sigismember(&signal_queued, i) &&
+		!sigismember(&signal_masked, i))
+	    {
+		sigdelset(&signal_queued, i);
+		si = signal_queued_si[i];
+		assert(si.si_signo == (int) i);
+		break;
+	    }
+	}
+
+	if (i == _NSIG) {
+	    // No available signal, just return..
+	    jthread_mutex_unlock(&sigmask_mu);
+	    return;
 	}
     } else {
 	cprintf("signal_utrap: unknown trap src %d\n", utf->utf_trap_src);
@@ -242,50 +415,44 @@ signal_utrap(struct UTrapframe *utf)
 	si.si_code = ILL_ILLTRP;
     }
 
-    signal_dispatch(&si, (struct sigcontext *) utf);
+    if (!sigmu_taken)
+	jthread_mutex_lock(&sigmask_mu);
+    sigaddset(&signal_masked, si.si_signo);
+    jthread_mutex_unlock(&sigmask_mu);
+
+    signal_utrap_si(&si, (struct sigcontext *) utf);
 }
 
 int
-kill_thread_siginfo(struct cobj_ref tid, siginfo_t *si)
+kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
 {
-    uint32_t signo = si->si_signo;
-    if (signo >= _NSIG) {
+    if (si->si_signo < 0 || si->si_signo >= _NSIG) {
 	__set_errno(EINVAL);
 	return -1;
     }
 
-    siginfos[signo] = *si;
+    int oumask = utrap_set_mask(1);
+    jthread_mutex_lock(&sigmask_mu);
 
-    struct cobj_ref cur_as;
-    sys_self_get_as(&cur_as);
-
-    /* XXX implement real signal queuing */
-    for (;;) {
-	int r = sys_thread_trap(tid, cur_as, 0, signo);
-
-	if (r == 0)
-	    break;
-
-	if (r == -E_BUSY) {
-	    cprintf("kill_thread_siginfo: cannot trap %ld.%ld, retrying\n",
-		    tid.container, tid.object);
-	    thread_sleep(10);
-	    continue;
-	}
-
-	if (r < 0) {
-	    cprintf("kill_thread_siginfo: cannot trap: %s\n", e2s(r));
-	    __set_errno(EPERM);
-	    return -1;
-	}
+    if (!sigismember(&signal_queued, si->si_signo)) {
+	sigaddset(&signal_queued, si->si_signo);
+	memcpy(&signal_queued_si[si->si_signo], si, sizeof(*si));
     }
 
-    return 0;
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(oumask);
+
+    // Trap the signal-processing thread so it runs the signal handler
+    return signal_trap_thread(tobj);
 }
 
 void
-signal_process_remote(siginfo_t *si)
+signal_gate_incoming(siginfo_t *si)
 {
+    if (signal_debug)
+	cprintf("[%ld] signal_gate_incoming: signal %d\n",
+		thread_id(), si->si_signo);
+
     struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
     kill_thread_siginfo(tobj, si);
 }
@@ -308,10 +475,34 @@ signal_init(void)
 int
 sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
 {
-    // Fake it; sleep in particular refuses to sleep if we return error
-    if (oldset)
-	__sigemptyset(oldset);
+    uint32_t i;
+    int oumask = utrap_set_mask(1);
+    jthread_mutex_lock(&sigmask_mu);
 
+    if (oldset)
+	memcpy(oldset, &signal_masked, sizeof(signal_masked));
+
+    if (set) {
+	for (i = 0; i < _SIGSET_NWORDS; i++) {
+	    if (how == SIG_SETMASK)
+		signal_masked.__val[i] = set->__val[i];
+	    else if (how == SIG_BLOCK)
+		signal_masked.__val[i] |= set->__val[i];
+	    else if (how == SIG_UNBLOCK)
+		signal_masked.__val[i] &= ~set->__val[i];
+	    else {
+		jthread_mutex_unlock(&sigmask_mu);
+		utrap_set_mask(oumask);
+		__set_errno(EINVAL);
+		return -1;
+	    }
+	}
+    }
+
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(oumask);
+
+    signal_trap_if_pending();
     return 0;
 }
 
@@ -323,6 +514,8 @@ __syscall_sigaction (int signum, const struct old_kernel_sigaction *act,
 	__set_errno(EINVAL);
 	return -1;
     }
+
+    jthread_mutex_lock(&sigactions_mu);
 
     if (oldact) {
 	oldact->k_sa_handler = sigactions[signum].sa_handler;
@@ -338,24 +531,42 @@ __syscall_sigaction (int signum, const struct old_kernel_sigaction *act,
 	sigactions[signum].sa_restorer = act->sa_restorer;
     }
 
+    jthread_mutex_unlock(&sigactions_mu);
     return 0;
 }
 
 int
 sigsuspend(const sigset_t *mask) __THROW
 {
-    uint64_t ctr = signal_counter;
+    int oumask = utrap_set_mask(1);
+    jthread_mutex_lock(&sigmask_mu);
 
-    int i;
-    for (i = 1; i < _NSIG; i++) {
-	if (sigismember(mask, i)) {
-	    set_enosys();
-	    return -1;
-	}
+    uint64_t ctr = signal_counter;
+    if (signal_debug)
+	cprintf("[%ld] sigsuspend: starting, ctr=%ld\n",
+		thread_id(), ctr);
+
+    sigset_t osigmask;
+    memcpy(&osigmask, &signal_masked, sizeof(signal_masked));
+    memcpy(&signal_masked, mask, sizeof(signal_masked));
+
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(oumask);
+
+    signal_trap_if_pending();
+    while (signal_counter == ctr) {
+	if (signal_debug)
+	    cprintf("[%ld] sigsuspend: waiting..\n", thread_id());
+	sys_sync_wait(&signal_counter, ctr, ~0ULL);
     }
 
-    // Since our signal masking is nonexistant, we fudge with a timeout
-    sys_sync_wait(&signal_counter, ctr, sys_clock_msec() + 1000);
+    oumask = utrap_set_mask(1);
+    jthread_mutex_lock(&sigmask_mu);
+    memcpy(&signal_masked, &osigmask, sizeof(signal_masked));
+    jthread_mutex_unlock(&sigmask_mu);
+    utrap_set_mask(oumask);
+
+    signal_trap_if_pending();
 
     __set_errno(EINTR);
     return -1;
@@ -379,13 +590,12 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 	return -1;
     }
 
-    pid_t self = getpid();
-
-    if (pid == self) {
-	signal_dispatch(si, 0);
-	return 0;
+    if (pid == getpid()) {
+	struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
+	return kill_thread_siginfo(tobj, si);
     }
 
+    // Send the signal to another process
     uint64_t ct = pid;
     int64_t gate_id = container_find(ct, kobj_gate, "signal");
     if (gate_id < 0) {
@@ -400,25 +610,47 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 }
 
 int
-__sigsetjmp(jmp_buf env, int savemask) __THROW
+__sigsetjmp(sigjmp_buf env, int savemask) __THROW
 {
-    return jos_setjmp((struct jos_jmp_buf *) env);
+    if (savemask) {
+	env->__mask_was_saved = 1;
+	int oumask = utrap_set_mask(1);
+	jthread_mutex_lock(&sigmask_mu);
+	memcpy(&env->__saved_mask, &signal_masked, sizeof(signal_masked));
+	jthread_mutex_unlock(&sigmask_mu);
+	utrap_set_mask(oumask);
+    } else {
+	env->__mask_was_saved = 0;
+    }
+
+    return jos_setjmp(&env->__jmpbuf);
 }
 
 void
 siglongjmp(sigjmp_buf env, int val) __THROW
 {
-    jos_longjmp((struct jos_jmp_buf *) env, val);
+    if (env->__mask_was_saved) {
+	assert(0 == utrap_set_mask(1));
+	jthread_mutex_lock(&sigmask_mu);
+	memcpy(&signal_masked, &env->__saved_mask, sizeof(signal_masked));
+	jthread_mutex_unlock(&sigmask_mu);
+	utrap_set_mask(0);
+
+	signal_trap_if_pending();
+    }
+
+    jos_longjmp(&env->__jmpbuf, val);
 }
 
 int
 _setjmp(jmp_buf env)
 {
-    return jos_setjmp((struct jos_jmp_buf *) env);
+    env->__mask_was_saved = 0;
+    return jos_setjmp(&env->__jmpbuf);
 }
 
 void
 longjmp(jmp_buf env, int val)
 {
-    jos_longjmp((struct jos_jmp_buf *) env, val);
+    jos_longjmp(&env->__jmpbuf, val);
 }

@@ -29,7 +29,7 @@ signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     siginfo_t *si = (siginfo_t *) &gcd->param_buf[0];
     static_assert(sizeof(*si) <= sizeof(gcd->param_buf));
 
-    signal_process_remote(si);
+    signal_gate_incoming(si);
     gr->ret(0, 0, 0);
 }
 
