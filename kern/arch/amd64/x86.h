@@ -329,29 +329,34 @@ write_msr(uint32_t msr, uint64_t val)
 }
 
 /* Read/write the extra segment registers */
-#define RW_SEGMENT_REGS(rs)					\
+#define READ_SEGMENT_REG(rs)					\
 X86_INST_ATTR uint16_t read_##rs(void);				\
-X86_INST_ATTR void write_##rs(uint16_t v);			\
-								\
 uint16_t							\
 read_##rs(void)							\
 {								\
 	uint16_t val;						\
 	__asm __volatile("movw %%" #rs ",%0" : "=r" (val));	\
 	return val;						\
-}								\
-								\
+}
+
+#define WRITE_SEGMENT_REG(rs)					\
+X86_INST_ATTR void write_##rs(uint16_t v);			\
 void								\
 write_##rs(uint16_t v)						\
 {								\
 	__asm __volatile("movw %0,%%" #rs : : "r" (v));		\
-}								\
+}
 
-RW_SEGMENT_REGS(ds)
-RW_SEGMENT_REGS(es)
-RW_SEGMENT_REGS(fs)
-RW_SEGMENT_REGS(gs)
+#define RW_SEGMENT_REG(rs) READ_SEGMENT_REG(rs) WRITE_SEGMENT_REG(rs)
 
-#undef RW_SEGMENT_REGS
+READ_SEGMENT_REG(cs)
+RW_SEGMENT_REG(ds)
+RW_SEGMENT_REG(es)
+RW_SEGMENT_REG(fs)
+RW_SEGMENT_REG(gs)
+
+#undef RW_SEGMENT_REG
+#undef READ_SEGMENT_REG
+#undef WRITE_SEGMENT_REG
 
 #endif /* !JOS_INC_X86_H */
