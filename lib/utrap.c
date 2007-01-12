@@ -49,7 +49,8 @@ utrap_set_mask(int masked)
 {
     uint16_t old_cs = read_cs();
     uint16_t new_cs = masked ? GD_UT_MASK : GD_UT_NMASK;
-    utrap_set_cs(new_cs);
+    if (old_cs != new_cs)
+	utrap_set_cs(new_cs);
     return old_cs == GD_UT_MASK;
 }
 
