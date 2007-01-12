@@ -85,17 +85,9 @@ ENTRY(utrap_ret)
 	subq	$40, %rsp
 	iretq
 
-ENTRY(utrap_set_mask)
-	popq	%rcx		// return target
-
-	movq	$GD_UT_MASK, %r15
-	xor	%rax, %rax	// compute the right %cs value..
-	cmp	%rdi, %rax
-	jnz	1f
-	movq	$GD_UT_NMASK, %r15
-
-1:
-	pushq	%r15	// new %cs
-	pushq	%rcx	// new %rip
+ENTRY(utrap_set_cs)
+	popq	%rcx		// return %eip
+	pushq	%rdi		// new %cs
+	pushq	%rcx		// return %eip
 	lretq
 

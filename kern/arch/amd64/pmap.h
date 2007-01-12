@@ -1,6 +1,7 @@
 #ifndef JOS_INC_PMAP_H
 #define JOS_INC_PMAP_H
 
+#ifdef JOS_KERNEL
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
@@ -8,6 +9,7 @@
 #include <kern/arch.h>
 #include <inc/queue.h>
 #endif /* !__ASSEMBLER__ */
+#endif /* JOS_KERNEL */
 
 #define GD_KT	    (0x08 | 0x00)	/* Kernel text */
 #define GD_TSS	    (0x10 | 0x00)	/* Task segment selector */
@@ -17,7 +19,7 @@
 #define GD_UT_MASK  (0x30 | 0x03)	/* User text, traps masked */
 
 /* bootdata.c */
-#ifndef __ASSEMBLER__
+#if !defined(__ASSEMBLER__) && defined(JOS_KERNEL)
 extern struct Pagemap bootpml4;
 
 extern struct Tss tss;
@@ -83,6 +85,6 @@ ppn2pa (ppn_t pn)
     return (pn << PGSHIFT);
 }
 
-#endif /* !__ASSEMBLER__ */
+#endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
 #endif /* !JOS_INC_PMAP_H */

@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <string.h>
 
+/* x86 %cs-based masking */
+#include <machine/pmap.h>
+#include <machine/x86.h>
+
 static void (*handler) (struct UTrapframe *);
 
 void
@@ -38,6 +42,15 @@ utrap_init(void)
     }
 
     return 0;
+}
+
+int
+utrap_set_mask(int masked)
+{
+    uint16_t old_cs = read_cs();
+    uint16_t new_cs = masked ? GD_UT_MASK : GD_UT_NMASK;
+    utrap_set_cs(new_cs);
+    return old_cs == GD_UT_MASK;
 }
 
 static void __attribute__((used))

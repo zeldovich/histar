@@ -12,7 +12,8 @@ void utrap_entry(struct UTrapframe *utf) __attribute__((noreturn));
 int  utrap_init(void);
 void utrap_set_handler(void (*fn)(struct UTrapframe *));
 
-/* Mask / unmask traps */
-void utrap_set_mask(int masked);
+/* Mask / unmask traps, returns old value */
+int  utrap_set_mask(int masked);	
+void utrap_set_cs(uint16_t nval);	/* x86 asm stub */
 
 #endif
