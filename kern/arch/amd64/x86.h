@@ -31,8 +31,8 @@ X86_INST_ATTR void lcr3(uint64_t val);
 X86_INST_ATTR uint64_t rcr3(void);
 X86_INST_ATTR void lcr4(uint64_t val);
 X86_INST_ATTR uint64_t rcr4(void);
-X86_INST_ATTR uint32_t read_eflags(void);
-X86_INST_ATTR void write_eflags(uint32_t eflags);
+X86_INST_ATTR uint64_t read_rflags(void);
+X86_INST_ATTR void write_rflags(uint64_t eflags);
 X86_INST_ATTR void halt(void);
 X86_INST_ATTR void sti(void);
 X86_INST_ATTR void cli(void);
@@ -228,18 +228,18 @@ rcr4(void)
 	return cr4;
 }
 
-uint32_t
-read_eflags(void)
+uint64_t
+read_rflags(void)
 {
-        uint32_t eflags;
-        __asm __volatile("pushfl; popl %0" : "=r" (eflags));
-        return eflags;
+        uint64_t rflags;
+        __asm __volatile("pushfq; popq %0" : "=r" (rflags));
+        return rflags;
 }
 
 void
-write_eflags(uint32_t eflags)
+write_rflags(uint64_t rflags)
 {
-        __asm __volatile("pushl %0; popfl" : : "r" (eflags));
+        __asm __volatile("pushq %0; popfq" : : "r" (rflags));
 }
 
 void 
@@ -350,6 +350,7 @@ write_##rs(uint16_t v)						\
 #define RW_SEGMENT_REG(rs) READ_SEGMENT_REG(rs) WRITE_SEGMENT_REG(rs)
 
 READ_SEGMENT_REG(cs)
+READ_SEGMENT_REG(ss)
 RW_SEGMENT_REG(ds)
 RW_SEGMENT_REG(es)
 RW_SEGMENT_REG(fs)
