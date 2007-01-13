@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
+#include <inc/profiler.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -20,6 +21,7 @@ extern "C" {
 
 static SSL_CTX *ctx;
 
+static const char threaded = 1;
 static const char *server_pem = "/bin/server.pem";
 static const char *dh_pem = "/bin/dh.pem";
 static jthread_mutex_t mutex[128];
@@ -83,6 +85,7 @@ http_client(void *arg)
 	error_check(ssld_accept(s, &ssl));
     } catch (std::exception &e) {
 	cprintf("http_client: unable to accept ssl: %s\n", e.what());
+	close(s);
 	return;
     }
     
@@ -179,6 +182,7 @@ main (int ac, char **av)
         panic("cannot listen on socket: %d\n", r);
     
     printf("ssl_httpd: server on port 80\n");
+    //profiler_init();
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -187,15 +191,18 @@ main (int ac, char **av)
             continue;
         }
 
-	struct cobj_ref t;
-	r = thread_create(start_env->proc_container, &http_client,
-			  (void*) (int64_t) ss, &t, "http client");
-	
-	if (r < 0) {
-	    printf("cannot spawn client thread: %s\n", e2s(r));
-	    close(ss);
+	if (threaded) {
+	    struct cobj_ref t;
+	    r = thread_create(start_env->proc_container, &http_client,
+			      (void*) (int64_t) ss, &t, "http client");
+	    if (r < 0) {
+		printf("cannot spawn client thread: %s\n", e2s(r));
+		close(ss);
+	    } else {
+		fd_give_up_privilege(ss);
+	    }
 	} else {
-	    fd_give_up_privilege(ss);
+	    http_client((void *) (int64_t)ss);
 	}
     }
 
