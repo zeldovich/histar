@@ -87,6 +87,7 @@ http_client(void *arg)
 	error_check(ssld_accept(s, &ssl));
     } catch (std::exception &e) {
 	printf("http_client: unable to accept ssl: %s\n", e.what());
+	close(s);
 	return 0;
     }
     
