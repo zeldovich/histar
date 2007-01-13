@@ -272,7 +272,7 @@ $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch $(ACPKG_WRAPS) $(LDEPS)
 	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX)" ) && \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX) threads" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" ); \
 	fi
