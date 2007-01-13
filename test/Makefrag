@@ -20,6 +20,10 @@ FILECLIENT_TEST_SRCS := \
 	fileclient-test.c fileclient.c error.c printfmt.c
 FILECLIENT_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILECLIENT_TEST_SRCS))
 
+SSL_BENCH_SRCS := \
+	ssl-bench.c error.c printfmt.c
+SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
+
 $(OBJDIR)/test/%.o: test/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
@@ -56,3 +60,7 @@ $(OBJDIR)/test/fileclient-test: $(FILECLIENT_TEST_OBJS)
 $(OBJDIR)/test/httpd-test: test/httpd-test.cc
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $< -lstdc++ -lssl -lcrypto
+
+$(OBJDIR)/test/ssl_bench: $(SSL_BENCH_OBJS)
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(SSL_BENCH_OBJS) -lstdc++ -lssl -lpthread
