@@ -10,6 +10,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/times.h>
 #include <netinet/in.h>
 
 #include <openssl/ssl.h>
@@ -20,6 +21,8 @@ extern "C" {
 static SSL_CTX *ctx;
 
 static const char threaded = 1;
+static uint64_t conns_limit = 0;
+
 static const char *server_pem = "server.pem";
 static const char *dh_pem = "dh.pem";
 
@@ -188,7 +191,9 @@ main (int ac, char **av)
 	throw basic_exception("cannot listen on socket: %s", strerror(r));
     
     printf("ssl_bench: server on port 8080\n");
-    for (uint32_t i = 0; i < 100; i++) {
+    struct tms start, end;
+    uint64_t conns = 0;
+    for (;;) {
         socklen_t socklen = sizeof(sin);
 	
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -196,13 +201,23 @@ main (int ac, char **av)
 	    printf("cannot accept client: %d\n", ss);
             continue;
         }
+	if (conns == 0)
+	    times(&start);
 	
 	if (threaded) {
 	    pthread_t t;
 	    r = pthread_create(&t, 0, http_client, (void *)(int64_t)ss);
 	} else
 	    http_client((void *) (int64_t)ss);
+	
+	conns++;
+	if (conns_limit && conns_limit == conns)
+	    break;
     }
+
+    times(&end);
+    printf("user time %ld\n", end.tms_utime - start.tms_utime);
+    printf("system time %ld\n", end.tms_stime - start.tms_stime);
 
     return 0;
 }

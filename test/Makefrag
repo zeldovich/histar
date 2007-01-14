@@ -61,6 +61,6 @@ $(OBJDIR)/test/httpd-test: test/httpd-test.cc
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $< -lstdc++ -lssl -lcrypto
 
-$(OBJDIR)/test/ssl_bench: $(SSL_BENCH_OBJS)
+$(OBJDIR)/test/ssl-bench: $(SSL_BENCH_OBJS)
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $(SSL_BENCH_OBJS) -lstdc++ -lssl -lpthread
