@@ -7,6 +7,8 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 
+enum { elf_debug = 0 };
+
 int
 elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	 struct ulabel *label)
@@ -29,7 +31,8 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
     Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
     if (elf->e_magic != ELF_MAGIC) {
-	cprintf("elf_load: ELF magic mismatch\n");
+	if (elf_debug)
+	    cprintf("elf_load: ELF magic mismatch\n");
 	return -E_INVAL;
     }
 
