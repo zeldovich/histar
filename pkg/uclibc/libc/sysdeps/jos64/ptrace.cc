@@ -83,13 +83,14 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	debug_print(ptrace_dbg, "couldn't find debug gate for %ld\n", pid);
 	return 0;
     }
-    
+
+    cobj_ref gate_obj = COBJ(ct, gate_id);
     struct debug_args args;
-    
+
     switch (request) {
     case PTRACE_GETREGS: {
 	args.op = da_getregs;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	if (args.ret < 0)
 	    return args.ret;
 	
@@ -101,9 +102,10 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	copy_to_user_regs((struct user_regs_struct*)data, utf);
 	return 0;
     }
+
     case PTRACE_GETFPREGS: {
 	args.op = da_getfpregs;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	if (args.ret < 0)
 	    return args.ret;
 	
@@ -115,6 +117,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	memcpy(data, fpregs, sizeof(fpregs));
 	return 0;
     }
+
     case PTRACE_SETREGS: {
 	struct cobj_ref arg_seg;
 	struct UTrapframe *utf = 0;
@@ -128,9 +131,10 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	copy_to_utf(utf, (struct user_regs_struct *)data);
 	args.op =  da_setregs;
 	args.arg_cobj = arg_seg;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	return args.ret;
     }
+
     case PTRACE_SETFPREGS: {
 	struct cobj_ref arg_seg;
 	struct Fpregs *fpregs = 0;
@@ -144,38 +148,55 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	memcpy(fpregs, data, sizeof(*fpregs));
 	args.op =  da_setfpregs;
 	args.arg_cobj = arg_seg;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	return args.ret;
     }
+
     case PTRACE_PEEKTEXT: {
 	args.op = da_peektext;
 	args.addr = (uint64_t)addr;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	if (args.ret < 0) 
 	    cprintf("ptrace: peektext failure: %ld\n", args.ret);
 	return args.ret_word;
     }
+
     case PTRACE_POKETEXT: {
 	args.op = da_poketext;
 	args.addr = (uint64_t)addr;
 	args.word = (uint64_t)data;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	return args.ret;
     }
+
     case PTRACE_CONT:
 	if (data) {
 	    cprintf("ptrace: signal delivery not implemented\n");
+	    set_enosys();
 	    return -1;
 	}
 	args.op = da_cont;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	return args.ret;
+
     case PTRACE_SINGLESTEP:
 	args.op = da_singlestep;
-	debug_gate_send(COBJ(ct, gate_id), &args);
+	debug_gate_send(gate_obj, &args);
 	return args.ret;
+
     case PTRACE_KILL:
 	return kill(pid, SIGKILL);
+
+    case PTRACE_ATTACH:
+	args.op = da_attach;
+	debug_gate_send(gate_obj, &args);
+	return args.ret;
+
+    case PTRACE_DETACH:
+	args.op = da_detach;
+	debug_gate_send(gate_obj, &args);
+	return args.ret;
+
     default:
 	cprintf("ptrace: unknown request %d\n", request);
 	print_backtrace();

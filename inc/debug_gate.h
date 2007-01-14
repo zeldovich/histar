@@ -16,6 +16,8 @@ typedef enum {
     da_poketext,
     da_setregs,
     da_setfpregs,
+    da_attach,
+    da_detach,
 } debug_args_op_t;
 
 struct debug_args 

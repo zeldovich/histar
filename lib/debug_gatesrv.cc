@@ -177,6 +177,13 @@ debug_gate_poketext(struct debug_args *da)
     }
 }
 
+static void
+debug_gate_attach_detach(struct debug_args *da)
+{
+    debug_gate_trace_is(da->op == da_attach ? 1 : 0);
+    da->ret = 0;
+}
+
 static void __attribute__ ((noreturn))
 debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 {
@@ -217,6 +224,10 @@ debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    break;
         case da_poketext:
 	    debug_gate_poketext(da);
+	    break;
+	case da_attach:
+	case da_detach:
+	    debug_gate_attach_detach(da);
 	    break;
         default:
 	    da->ret = -1;
