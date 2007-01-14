@@ -387,29 +387,35 @@ http_client(void *arg)
 	    }
 	}
 
-	if (auth[0]) {
-	    char *authdata = base64_decode(&auth[0]);
-	    if (authdata == 0)
-		throw error(-E_NO_MEM, "base64_decode");
+	try {
+	    if (auth[0]) {
+		char *authdata = base64_decode(&auth[0]);
+		if (authdata == 0)
+		    throw error(-E_NO_MEM, "base64_decode");
 
-	    char *colon = strchr(authdata, ':');
-	    if (colon == 0)
-		throw basic_exception("badly formatted authorization data");
+		char *colon = strchr(authdata, ':');
+		if (colon == 0)
+		    throw basic_exception("badly formatted authorization data");
 
-	    *colon = 0;
-	    char *user = authdata;
-	    char *pass = colon + 1;
+		*colon = 0;
+		char *user = authdata;
+		char *pass = colon + 1;
 
-	    uint64_t ug, ut;
-	    int auth_ok = 0;
-	    try {
-		auth_login(user, pass, &ug, &ut);
-		auth_ok = 1;
-	    } catch (std::exception &e) {
-		cprintf("httpd: cannot login: %s\n", e.what());
-	    }
+		uint64_t ug, ut;
+		try {
+		    auth_login(user, pass, &ug, &ut);
+		} catch (std::exception &e) {
+		    snprintf(buf, sizeof(buf),
+			    "HTTP/1.0 401 Forbidden\r\n"
+			    "WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
+			    "Content-Type: text/html\r\n"
+			    "\r\n"
+			    "<h1>Could not log in</h1>\r\n"
+			    "%s\r\n", e.what());
+		    tc.write(buf, strlen(buf));
+		    return;
+		}
 
-	    if (auth_ok) {
 		int64_t worker_ct, worker_gt;
 		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
 		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
@@ -421,7 +427,12 @@ http_client(void *arg)
 		dr.set(ut, 3);
 
 		gate_call_data gcd;
-		strncpy(&gcd.param_buf[0], &pnbuf[0], sizeof(gcd.param_buf));
+		uint32_t ulen = strlen(user);
+		if (ulen >= sizeof(gcd.param_buf))
+		    throw basic_exception("username too long");
+
+		strncpy(&gcd.param_buf[0], user, sizeof(gcd.param_buf));
+		strncpy(&gcd.param_buf[0] + ulen + 1, &pnbuf[0], sizeof(gcd.param_buf) - ulen - 1);
 		gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
 		gc.call(&gcd, 0);
 
@@ -433,24 +444,31 @@ http_client(void *arg)
 		tc.write((const char *) va, len);
 		return;
 	    }
-	}
 
-	if (ask_for_auth) {
+	    if (ask_for_auth) {
+		snprintf(buf, sizeof(buf),
+			"HTTP/1.0 401 Forbidden\r\n"
+			"WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
+			"Content-Type: text/html\r\n"
+			"\r\n"
+			"<h1>Please log in.</h1>\r\n");
+	    } else {
+		snprintf(buf, sizeof(buf),
+			"HTTP/1.0 200 OK\r\n"
+			"Content-Type: text/html\r\n"
+			"\r\n"
+			"<h1>Hello world.</h1>\r\n");
+	    }
+	    tc.write(buf, strlen(buf));
+	} catch (std::exception &e) {
 	    snprintf(buf, sizeof(buf),
-		    "HTTP/1.0 401 Forbidden\r\n"
-		    "WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
+		    "HTTP/1.0 500 Server error\r\n"
 		    "Content-Type: text/html\r\n"
 		    "\r\n"
-		    "<h1>Please log in.</h1>\r\n");
-	} else {
-	    snprintf(buf, sizeof(buf),
-		    "HTTP/1.0 200 OK\r\n"
-		    "Content-Type: text/html\r\n"
-		    "\r\n"
-		    "<h1>Hello world.</h1>\r\n");
+		    "<h1>Server error.</h1>\r\n"
+		    "%s", e.what());
+	    tc.write(buf, strlen(buf));
 	}
-
-	tc.write(buf, strlen(buf));
     } catch (std::exception &e) {
 	printf("http_client: %s\n", e.what());
     }
