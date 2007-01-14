@@ -266,7 +266,7 @@ ssl_init(const char *server_pem,
     SSL_library_init();
     SSL_load_error_strings();
 
-    SSL_METHOD *meth = SSLv23_method();
+    SSL_METHOD *meth = SSLv3_method();
     ctx = SSL_CTX_new(meth);
 
     // Load our keys and certificates

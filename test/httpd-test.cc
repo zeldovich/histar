@@ -49,7 +49,7 @@ init_ctx(void)
     // nice error messages
     SSL_load_error_strings();
     
-    meth = SSLv23_method();
+    meth = SSLv3_method();
     ctx = SSL_CTX_new(meth);
 
     return ctx;
