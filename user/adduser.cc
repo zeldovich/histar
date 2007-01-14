@@ -23,14 +23,14 @@ extern "C" {
 static void __attribute__((noreturn))
 usage()
 {
-    printf("Usage: adduser username\n");
+    printf("Usage: adduser username [password]\n");
     exit(-1);
 }
 
 int
 main(int ac, char **av)
 {
-    if (ac != 2)
+    if (ac != 2 && ac != 3)
 	usage();
 
     const char *uname = av[1];
@@ -120,7 +120,16 @@ main(int ac, char **av)
 	putpwent(&pwd, f);
 	fclose(f);
     } catch (std::exception &e) {
-	printf("%s\n", e.what());
+	printf("adding user: %s\n", e.what());
+	return -1;
+    }
+
+    if (ac == 3) try {
+	const char *pass = av[2];
+	auth_chpass(uname, "", pass);
+    } catch (std::exception &e) {
+	printf("setting password: %s\n", e.what());
+	return -1;
     }
 
     return 0;
