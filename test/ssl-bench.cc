@@ -7,6 +7,7 @@ extern "C" {
 #include <stdint.h>
 #include <pthread.h>
 #include <assert.h>
+#include <sys/wait.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -21,7 +22,8 @@ extern "C" {
 
 static SSL_CTX *ctx;
 
-static const char threaded = 0;
+static char threaded = 0;
+static char forked = 0;
 static uint64_t conns_limit = 0;
 
 static const char *server_pem = "server.pem";
@@ -81,7 +83,7 @@ ssl_send(SSL *ssl, void *buf, size_t count, int flags)
 }
 
 static void*
-http_client(void *arg)
+http_server(void *arg)
 {
     int s = (int64_t) arg;
     SSL *ssl;
@@ -90,7 +92,7 @@ http_client(void *arg)
     try {
 	error_check(ssld_accept(s, &ssl));
     } catch (std::exception &e) {
-	printf("http_client: unable to accept ssl: %s\n", e.what());
+	printf("http_server: unable to accept ssl: %s\n", e.what());
 	close(s);
 	return 0;
     }
@@ -107,7 +109,7 @@ http_client(void *arg)
 	
 	error_check(ssl_send(ssl, buf, strlen(buf), 0));
     } catch (std::exception &e) {
-	printf("http_client: connection error: %s\n", e.what());
+	printf("http_server: connection error: %s\n", e.what());
     }
 
     SSL_shutdown(ssl);
@@ -175,9 +177,39 @@ ssl_init(const char *server_pem,
     SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
 }
 
+static void
+sigchld_handler(int sig)
+{
+    int save_errno = errno;
+    pid_t pid;
+    int status;
+    
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0 ||
+	   (pid < 0 && errno == EINTR))
+	;
+    
+    signal(SIGCHLD, sigchld_handler);
+    errno = save_errno;
+}
+
 int
 main (int ac, char **av)
 {
+    int c;
+    while ((c = getopt(ac, av, "tfc:")) != -1) {
+	switch(c) {
+	case 't':
+	    threaded = 1;
+	    break;
+	case 'f':
+	    forked = 1;
+	    break;
+	case 'c':
+	    conns_limit = atoi(optarg);
+	    break;
+	}
+    }
+    
     ssl_init(server_pem, dh_pem, 0);
 
     int s = socket(AF_INET, SOCK_STREAM, 0);
@@ -196,6 +228,8 @@ main (int ac, char **av)
     if (r < 0)
 	throw basic_exception("cannot listen on socket: %s", strerror(r));
     
+    signal(SIGCHLD, sigchld_handler);
+    
     printf("ssl_bench: server on port 8080\n");
     struct tms start, end;
     uint64_t conns = 0;
@@ -212,9 +246,16 @@ main (int ac, char **av)
 	
 	if (threaded) {
 	    pthread_t t;
-	    r = pthread_create(&t, 0, http_client, (void *)(int64_t)ss);
+	    r = pthread_create(&t, 0, http_server, (void *)(int64_t)ss);
+	} else if (forked) {
+	    if (!fork()) {
+		http_server((void *)(int64_t)ss);
+		exit(0);
+	    } else {
+		close(ss);
+	    }
 	} else
-	    http_client((void *) (int64_t)ss);
+	    http_server((void *) (int64_t)ss);
 	
 	conns++;
 	if (conns_limit && conns_limit == conns)
