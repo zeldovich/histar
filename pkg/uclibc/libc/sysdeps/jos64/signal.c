@@ -155,8 +155,9 @@ signal_trap_thread(struct cobj_ref tobj)
 	    continue;
 	}
 
-	cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld: %s\n",
-		thread_id(), tobj.container, tobj.object, e2s(r));
+	extern const char *__progname;
+	cprintf("[%ld] (%s) signal_trap_thread: cannot trap %ld.%ld: %s\n",
+		thread_id(), __progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
 	return -1;
     }
