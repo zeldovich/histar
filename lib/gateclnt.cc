@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
+#include <inc/signal.h>
 
 #include <string.h>
 }
@@ -182,6 +183,9 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     // Copy back the arguments
     if (gcd_param)
 	memcpy(gcd_param, d, sizeof(*d));
+
+    // Check for pending signals while we were in another address space..
+    signal_trap_if_pending();
 }
 
 gate_call::~gate_call()

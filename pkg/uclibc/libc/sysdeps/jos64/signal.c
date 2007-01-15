@@ -43,6 +43,7 @@ static jthread_mutex_t sigmask_mu;	// mask utraps!
 static sigset_t signal_masked;
 static sigset_t signal_queued;
 static siginfo_t signal_queued_si[_NSIG];
+static int signal_queued_any;
 
 static int
 stack_grow(void *faultaddr)
@@ -161,9 +162,12 @@ signal_trap_thread(struct cobj_ref tobj)
     }
 }
 
-static void
+void
 signal_trap_if_pending(void)
 {
+    if (!signal_queued_any)
+	return;
+
     int pending = 0;
     uint32_t i;
 
@@ -180,6 +184,9 @@ signal_trap_if_pending(void)
 	    pending++;
 	}
     }
+
+    if (pending == 0)
+	signal_queued_any = 0;
 
     jthread_mutex_unlock(&sigmask_mu);
     utrap_set_mask(0);
@@ -438,6 +445,7 @@ kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
     if (!sigismember(&signal_queued, si->si_signo)) {
 	sigaddset(&signal_queued, si->si_signo);
 	memcpy(&signal_queued_si[si->si_signo], si, sizeof(*si));
+	signal_queued_any = 1;
     }
 
     jthread_mutex_unlock(&sigmask_mu);
