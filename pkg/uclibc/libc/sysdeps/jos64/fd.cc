@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/pt.h>
+#include <inc/sigio.h>
 
 #include <termios/kernel_termios.h>
 #include <bits/unimpl.h>
@@ -67,6 +68,8 @@ enum { fd_alloc_debug = 0 };
 	    __set_errno(EBADF);					\
 	    return -1;						\
 	}							\
+	if (__fd->fd_omode & O_ASYNC)				\
+	    jos_sigio_activate(fdnum);				\
 	DEV_CALL(__dev, fn, __fd, ##__VA_ARGS__);		\
     })
 
@@ -420,6 +423,9 @@ jos_fd_close(struct Fd *fd)
     if (r < 0)
 	return r;
 
+    if (fd->fd_omode & O_ASYNC)
+	jos_sigio_disable(fdnum);
+
     int lastref = 0;
     if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref)) {
 	lastref = 1;
@@ -690,6 +696,8 @@ read(int fdnum, void *buf, size_t n) __THROW
     r = DEV_CALL(dev, read, fd, buf, n, fd->fd_offset);
     if (r >= 0 && !fd->fd_immutable)
 	fd->fd_offset += r;
+    if (fd->fd_omode & O_ASYNC)
+	jos_sigio_activate(fdnum);
     return r;
 }
 
@@ -1181,10 +1189,14 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
     if (cmd == F_SETFL) {
 	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 	    return r;
-        
+
 	int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK);
-	fd->fd_omode &= ~mask;
-	fd->fd_omode |= (arg & mask);
+	int newmode = (fd->fd_omode & ~mask) | (arg & mask);
+	if (!(fd->fd_omode & O_ASYNC) && (newmode & O_ASYNC))
+	    jos_sigio_enable(fdnum);
+	if ((fd->fd_omode & O_ASYNC) && !(newmode & O_ASYNC))
+	    jos_sigio_disable(fdnum);
+	fd->fd_omode = newmode;
 	return 0;
     }
 

@@ -64,6 +64,7 @@ LIB_SRCFILES :=	\
 	lib/cooperate.cc \
 	lib/debug_gatesrv.cc \
 	lib/multisync.cc \
+	lib/sigio.c \
 	lib/ssld_client.cc
 
 include lib/cppsup/Makefrag
