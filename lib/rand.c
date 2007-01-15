@@ -4,6 +4,7 @@
 #include <inc/atomic.h>
 #include <inc/lib.h>
 #include <inc/memlayout.h>
+#include <inc/arc4.h>
 
 #include <errno.h>
 #include <string.h>
@@ -11,6 +12,8 @@
 
 #include <stdio.h>
 
+static struct arc4 a4;
+static int a4_inited;
 
 int
 rand_open(int flags)
@@ -28,18 +31,31 @@ rand_open(int flags)
     return fd2num(fd);
 }
 
+static void
+rand_init(void)
+{
+    uint64_t keybuf[4];
+    keybuf[0] = thread_id();
+    keybuf[1] = sys_clock_msec();
+    keybuf[2] = sys_pstate_timestamp();
+    keybuf[3] = sys_pstate_timestamp();
+
+    arc4_reset(&a4);
+    arc4_setkey(&a4, &keybuf[0], sizeof(keybuf));
+}
+
 static ssize_t
 rand_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 {
-    uint64_t rsp;
-    __asm __volatile("movq %%rsp,%0" : "=r" (rsp));
-    char *sp = (char *)(ROUNDUP(rsp, PGSIZE) - 1);
-    
-    uint64_t count = 0;
-    for (; count < (PGSIZE - 1) && count < len; count++, sp--)
-        ((char *)buf)[count] = (*sp + count) * count;    
-            
-    return count;    
+    if (!a4_inited) {
+	rand_init();
+	a4_inited = 1;
+    }
+
+    char *cbuf = (char *) buf;
+    for (uint64_t i = 0; i < len; i++)
+	cbuf[i] = arc4_getbyte(&a4);
+    return len;
 }
 
 static ssize_t
