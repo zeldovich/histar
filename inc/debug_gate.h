@@ -35,8 +35,7 @@ struct debug_args
 
 struct debug_info
 {
-    uint64_t wait;
-    char     signo;
+    uint64_t signo;
     uint64_t gen;
     struct UTrapframe utf;
     struct Fpregs fpregs;
@@ -55,6 +54,6 @@ void debug_gate_close(void);
 void debug_gate_trace_is(char b);
 char debug_gate_trace(void);
 void debug_gate_breakpoint(void);
-void debug_gate_on_signal(char signo, struct sigcontext *sc);
+void debug_gate_on_signal(unsigned char signo, struct sigcontext *sc);
 
 #endif

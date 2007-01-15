@@ -82,7 +82,7 @@ static void
 debug_gate_cont(struct debug_args *da)
 {
     dinfo->signo = 0;
-    error_check(sys_sync_wakeup(&dinfo->wait));
+    error_check(sys_sync_wakeup(&dinfo->signo));
     da->ret = 0;
 }
 
@@ -90,7 +90,8 @@ static void
 debug_gate_singlestep(struct debug_args *da)
 {
     dinfo->utf.utf_rflags |= FL_TF;
-    error_check(sys_sync_wakeup(&dinfo->wait));
+    dinfo->signo = 0;
+    error_check(sys_sync_wakeup(&dinfo->signo));
     da->ret = 0;
 }
 
@@ -329,7 +330,7 @@ debug_gate_init(void)
 }
 
 void
-debug_gate_on_signal(char signo, struct sigcontext *sc)
+debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
 {
     // XXX if another process' thread gets a signal, we end up here.
     // In the case of gdb, we stall forever since the signaled thread 
@@ -358,11 +359,12 @@ debug_gate_on_signal(char signo, struct sigcontext *sc)
     dinfo->gen++;
 
     debug_print(debug_dbg, "signo %d, gen %ld", signo, dinfo->gen);
+    debug_print(debug_dbg, "stop: tid %ld, pid %ld, rsp %lx", 
+		thread_id(), getpid(), read_rsp());
 
-    //cprintf("debug_gate_signal_stop: tid %ld, pid %ld, rsp %lx\n", 
-    //thread_id(), getpid(), read_rsp());
+    while (dinfo->signo == signo)
+	sys_sync_wait(&dinfo->signo, signo, ~0L);
 
-    sys_sync_wait(&dinfo->wait, 0, ~0L);
     dinfo->signo = 0;
     memcpy(utf, &dinfo->utf, sizeof(*utf));
     fxrstor(&dinfo->fpregs);
