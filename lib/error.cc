@@ -6,6 +6,8 @@ extern "C" {
 #include <stdio.h>
 }
 
+static int exception_enable_backtrace = 0;
+
 basic_exception::basic_exception(const char *fmt, ...)
 {
     va_list ap;
@@ -13,6 +15,10 @@ basic_exception::basic_exception(const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(&msg_[0], sizeof(msg_), fmt, ap);
     va_end(ap);
+
+    bt_ = 0;
+    if (exception_enable_backtrace)
+	get_backtrace();
 }
 
 void
@@ -24,13 +30,23 @@ basic_exception::set_msg(const char *msg)
 void
 basic_exception::print_where() const
 {
-    int depth = backtracer_depth();
-    fprintf(stderr, "Backtrace for error %s:\n", what());
-    for (int i = 0; i < depth; i++) {
-	void *addr = backtracer_addr(i);
-	fprintf(stderr, "  %p\n", addr);
+    if (bt_) {
+	int depth = bt_->backtracer_depth();
+	fprintf(stderr, "Backtrace for error %s:\n", what());
+	for (int i = 0; i < depth; i++) {
+	    void *addr = bt_->backtracer_addr(i);
+	    fprintf(stderr, "  %p\n", addr);
+	}
+	fprintf(stderr, "End of backtrace\n");
+    } else {
+	fprintf(stderr, "basic_exception::print_where(): backtraces disabled\n");
     }
-    fprintf(stderr, "End of backtrace\n");
+}
+
+void
+basic_exception::get_backtrace(void)
+{
+    bt_ = new backtracer();
 }
 
 error::error(int r, const char *fmt, ...) : err_(r)

@@ -4,9 +4,9 @@
 #include <exception>
 #include <inc/backtracer.hh>
 
-class basic_exception : public std::exception, public backtracer {
+class basic_exception : public std::exception {
 public:
-    basic_exception() {}
+    basic_exception() { get_backtrace(); }
     basic_exception(const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
 
@@ -15,7 +15,10 @@ public:
     void print_where() const;
 
 private:
+    void get_backtrace();
+
     char msg_[256];
+    backtracer *bt_;
 };
 
 class error : public basic_exception {
