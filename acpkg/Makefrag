@@ -34,7 +34,7 @@ ACENV += CC=\"$(CC)\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\" TAME=\"$(TAME)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no ac_cv_func_psignal=yes \
-	bash_cv_job_control_missing=no
+	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes
 
 ##
 ## ./configure arguments for different packages
@@ -50,6 +50,7 @@ AUTOCONF_gmp-4.2.1	    := --enable-shared=no
 AUTOCONF_sfslite-0.8.9pre3  := --enable-shared=no
 AUTOCONF_sfslite-1.0.0	    := --enable-shared=no --without-x
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
+AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
 
 ##
 ## Patches to apply to various packages
@@ -64,6 +65,7 @@ PATCHFILE_vim70		    := vim70.patch
 PATCHFILE_sfslite-0.8.9pre3 := sfslite-0.8.9pre3.patch
 PATCHFILE_sfslite-1.0.0	    := sfslite-1.0.0.patch
 PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
+PATCHFILE_a2ps-4.13	    := a2ps-4.13.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -149,6 +151,9 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 ##
 ## Application rules
 ##
+
+## ftp://ftp.gnu.org/gnu/a2ps/a2ps-4.13b.tar.gz
+$(OBJDIR)/acpkg/bin/a2ps: acpkg/a2ps-4.13/__build
 
 ## http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 ## [ cross-build instructions for ghostscript from:
