@@ -46,7 +46,7 @@ opencons(void)
 	return r;
     }
 
-    fd->fd_immutable = 0;
+    fd->fd_immutable = 1;
     return fd2num(fd);
 }
 
@@ -111,7 +111,8 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     } else if (req == TIOCSPGRP) {
 	int *pgrp = va_arg(ap, int *);
-	fd->fd_cons.pgid = *pgrp;
+	if (!fd->fd_immutable)
+	    fd->fd_cons.pgid = *pgrp;
 	return 0;
     }
     return -1;
