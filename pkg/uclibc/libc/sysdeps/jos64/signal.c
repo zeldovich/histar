@@ -254,13 +254,23 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 	cprintf("[%ld] signal_utrap_onstack: signal %d\n",
 		thread_id(), signo);
 
-    signal_execute(si, sc);
+    if (debug_gate_trace() && si->si_signo != SIGKILL) {
+	utrap_set_mask(1);
+	jthread_mutex_lock(&sigmask_mu);
+	sigdelset(&signal_masked, signo);
+	jthread_mutex_unlock(&sigmask_mu);
+	utrap_set_mask(0);
 
-    utrap_set_mask(1);
-    jthread_mutex_lock(&sigmask_mu);
-    sigdelset(&signal_masked, signo);
-    jthread_mutex_unlock(&sigmask_mu);
-    utrap_set_mask(0);
+	debug_gate_on_signal(si->si_signo, sc);
+    } else {
+	signal_execute(si, sc);
+
+	utrap_set_mask(1);
+	jthread_mutex_lock(&sigmask_mu);
+	sigdelset(&signal_masked, signo);
+	jthread_mutex_unlock(&sigmask_mu);
+	utrap_set_mask(0);
+    }
 
     signal_trap_if_pending();
 
@@ -278,15 +288,6 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     if (signal_debug)
 	cprintf("[%ld] signal_utrap_si: signal %d\n",
 		thread_id(), si->si_signo);
-
-    if (debug_gate_trace() && si->si_signo != SIGKILL) {
-	// XXX this is probably not quite right...
-	jthread_mutex_lock(&sigmask_mu);
-	sigdelset(&signal_masked, si->si_signo);
-	jthread_mutex_unlock(&sigmask_mu);
-	debug_gate_on_signal(si->si_signo, sc);
-	return;
-    }
 
     // Make sure sigsuspend() wakes up
     signal_counter++;
@@ -585,6 +586,10 @@ kill(pid_t pid, int sig) __THROW
 int
 kill_siginfo(pid_t pid, siginfo_t *si)
 {
+    if (signal_debug)
+	cprintf("[%ld] kill_siginfo: pid %ld signal %d\n",
+		thread_id(), pid, si->si_signo);
+
     if (pid == 0) {
 	set_enosys();
 	return -1;
@@ -600,8 +605,8 @@ kill_siginfo(pid_t pid, siginfo_t *si)
     int64_t gate_id = container_find(ct, kobj_gate, "signal");
     if (gate_id < 0) {
 	if (signal_debug)
-	    cprintf("kill: cannot find signal gate in %ld: %s\n",
-		    ct, e2s(gate_id));
+	    cprintf("[%ld] kill_siginfo: cannot find signal gate in %ld: %s\n",
+		    thread_id(), ct, e2s(gate_id));
 	__set_errno(ESRCH);
 	return -1;
     }
