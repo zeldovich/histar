@@ -330,7 +330,7 @@ $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
 ## ftp://ftp.gnu.org/gnu/gmp/gmp-4.2.1.tar.gz
-$(OBJDIR)/acpkg/lib/libgmp.a: acpkg/gmp-4.2.1/__build
+$(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: acpkg/gmp-4.2.1/__build
 
 ## http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 acpkg/sfslite-1.0.0/Makefile: acpkg/sfslite-1.0.0/__reconf
