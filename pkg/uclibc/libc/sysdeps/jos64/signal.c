@@ -262,6 +262,21 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 	cprintf("[%ld] signal_utrap_onstack: signal %d\n",
 		thread_id(), signo);
 
+    if (signo == SIGSEGV && tls_pgfault_all && *tls_pgfault_all) {
+	if (signal_debug)
+	    cprintf("[%ld] signal_utrap_onstack: longjmp to tls_pgfault_all\n",
+		    thread_id());
+
+	utrap_set_mask(1);
+	jthread_mutex_lock(&sigmask_mu);
+	sigdelset(&signal_masked, signo);
+	jthread_mutex_unlock(&sigmask_mu);
+	utrap_set_mask(0);
+
+	jos_longjmp(*tls_pgfault_all, 1);
+    }
+
+
     if (debug_gate_trace() && si->si_signo != SIGKILL) {
 	utrap_set_mask(1);
 	jthread_mutex_lock(&sigmask_mu);

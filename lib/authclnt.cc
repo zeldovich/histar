@@ -149,7 +149,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     // any extra information from uauth_gate.
     memset(&gcd, 0, sizeof(gcd));
     memset(tls_base, 0, PGSIZE);
-    *tls_tidp = sys_self_id();
+    tls_revalidate();
 
     char buf[KOBJ_META_LEN];
     memset(&buf[0], 0, sizeof(buf));

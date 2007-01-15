@@ -19,6 +19,7 @@ start_env_t *start_env;
 
 uint64_t *tls_tidp;
 struct jos_jmp_buf **tls_pgfault;
+struct jos_jmp_buf **tls_pgfault_all;
 void *tls_gate_args;
 void *tls_stack_top;
 void *tls_base;
@@ -61,7 +62,8 @@ setup_env(uint64_t envaddr, uint64_t arg1)
     tls_base = tls_va;
     tls_tidp = tls_base + PGSIZE - sizeof(uint64_t);
     tls_pgfault = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault);
-    tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(struct gate_call_data);
+    tls_pgfault_all = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all);
+    tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data);
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
 
@@ -115,4 +117,15 @@ libmain(uint64_t arg0, uint64_t arg1)
     }
 
     exit(main(argc, &argv[0], environ));
+}
+
+void
+tls_revalidate(void)
+{
+    if (tls_tidp)
+	*tls_tidp = sys_self_id();
+    if (tls_pgfault)
+	*tls_pgfault = 0;
+    if (tls_pgfault_all)
+	*tls_pgfault_all = 0;
 }

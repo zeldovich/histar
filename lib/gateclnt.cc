@@ -174,8 +174,7 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     }
 
     // Restore cached thread ID, just to be safe
-    if (tls_tidp)
-	*tls_tidp = sys_self_id();
+    tls_revalidate();
 
     error_check(sys_self_set_sched_parents(start_env->proc_container, 0));
     thread_label_cache_invalidate();

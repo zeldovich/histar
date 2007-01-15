@@ -153,8 +153,16 @@ static void
 debug_gate_peektext(struct debug_args *da)
 {
     uint64_t *word = (uint64_t *)da->addr;
-    da->ret_word = *word;
-    da->ret = 0;
+
+    struct jos_jmp_buf jb;
+    if (jos_setjmp(&jb) == 0) {
+	*tls_pgfault_all = &jb;
+	da->ret_word = *word;
+	da->ret = 0;
+    } else {
+	da->ret = -1;
+    }
+    *tls_pgfault_all = 0;
 }
 
 static void

@@ -46,8 +46,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	taint_cow(gcd->taint_container, gcd->declassify_gate);
 
 	// Reset our cached thread ID, stored in TLS
-	if (tls_tidp)
-	    *tls_tidp = sys_self_id();
+	tls_revalidate();
 
 	thread_label_cache_invalidate();
 

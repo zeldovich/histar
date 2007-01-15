@@ -156,9 +156,13 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	args.op = da_peektext;
 	args.addr = (uint64_t)addr;
 	debug_gate_send(gate_obj, &args);
-	if (args.ret < 0) 
-	    cprintf("ptrace: peektext failure: %ld\n", args.ret);
-	return args.ret_word;
+	if (args.ret < 0) {
+	    __set_errno(EFAULT);
+	    return -1;
+	} else {
+	    __set_errno(0);
+	    return args.ret_word;
+	}
     }
 
     case PTRACE_POKETEXT: {

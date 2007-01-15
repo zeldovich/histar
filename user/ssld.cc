@@ -194,9 +194,7 @@ ssld_cow_entry(void)
 	if (!taint_cow(d->root_ct, COBJ(0, 0)))
 	    throw error(-E_UNSPEC, "cow didn't happen?");
 
-	if (tls_tidp)
-	    *tls_tidp = sys_self_id();
-	
+	tls_revalidate();
 	thread_label_cache_invalidate();
 
 	cipher_biseg = d->cipher_biseg;
