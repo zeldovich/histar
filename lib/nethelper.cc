@@ -12,6 +12,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <errno.h>
 }
 
 url::url(const char *s) : host_(0), path_(0)
@@ -76,12 +77,12 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
 
     fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_ < 0)
-	throw error(fd_, "socket");
+	throw basic_exception("socket: %s", strerror(errno));
     close_fd_ = 1;
 
     int r = connect(fd_, (struct sockaddr *) &sin, sizeof(sin));
     if (r < 0)
-	throw error(r, "connect");
+	throw basic_exception("connect: %s", strerror(errno));
 }
 
 tcpconn::tcpconn(int fd, char close_fd)
@@ -104,7 +105,7 @@ tcpconn::write(const char *buf, size_t count)
     while (done < count) {
 	ssize_t r = ::write(fd_, buf + done, count - done);
 	if (r <= 0)
-	    throw error(r, "cannot write");
+	    throw basic_exception("cannot write: %s", strerror(errno));
 	done += r;
     }
 }
@@ -114,7 +115,7 @@ tcpconn::read(char *buf, size_t len)
 {
     ssize_t r = ::read(fd_, buf, len);
     if (r < 0)
-	throw error(r, "cannot read");
+	throw basic_exception("cannot read: %s", strerror(errno));
 
     return r;
 }
