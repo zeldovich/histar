@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/fd.h>
+#include <inc/segment.h>
 #include <inc/syscall.h>
 #include <inc/profiler.h>
 
@@ -15,11 +16,15 @@ extern "C" {
 #include <sys/socket.h>
 
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 }
 
 #include <inc/error.hh>
 
 static SSL_CTX *ctx;
+
+static const char debug = 0;
+static const uint64_t debug_print_period = 10;
 
 static const char threaded = 1;
 static const char *server_pem = "/bin/server.pem";
@@ -107,6 +112,10 @@ http_client(void *arg)
     SSL_shutdown(ssl);
     SSL_free(ssl);
     close(s);
+
+    if (threaded)
+	ERR_remove_state(0);
+    
 }
 
 void
@@ -126,7 +135,7 @@ ssl_init(const char *server_pem,
     CRYPTO_set_id_callback(id_function);
 
 
-    SSL_METHOD *meth = SSLv23_method();
+    SSL_METHOD *meth = SSLv3_method();
     ctx = SSL_CTX_new(meth);
 
     // Load our keys and certificates
@@ -158,11 +167,26 @@ ssl_init(const char *server_pem,
 	if(SSL_CTX_set_tmp_dh(ctx, ret) < 0 )
 	    throw basic_exception("Couldn't set DH parameters using %s", dh_pem);
     }
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
 }
 
 int
 main (int ac, char **av)
 {
+    uint64_t conns;
+    struct cobj_ref as_obj;
+    struct u_address_space uas;
+
+    if (debug) {
+	error_check(sys_self_get_as(&as_obj));
+	
+	uas.size = 64;
+	uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
+
+	error_check(sys_as_get(as_obj, &uas));
+	segment_map_print(&uas);
+    }
+    
     ssl_init(server_pem, dh_pem, 0);
     
     int s = socket(AF_INET, SOCK_STREAM, 0);
@@ -183,6 +207,7 @@ main (int ac, char **av)
     
     printf("ssl_httpd: server on port 80\n");
     //profiler_init();
+    conns = 0;
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -204,7 +229,15 @@ main (int ac, char **av)
 	} else {
 	    http_client((void *) (int64_t)ss);
 	}
+	conns++;
+	if (debug) {
+	    if (!(conns % debug_print_period)) {
+		error_check(sys_as_get(as_obj, &uas));
+		segment_map_print(&uas);
+	    }
+	}
     }
 
+    free(uas.ents);
     return 0;
 }
