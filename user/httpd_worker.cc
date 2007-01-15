@@ -46,6 +46,27 @@ httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     out << "<h1>Hello " << user << "</h1>\r\n";
     out << "<p>\r\n";
     out << "Request path = " << req << "\r\n";
+    out << "<p>\r\n";
+
+    if (strcmp(req, "/")) {
+	std::string pn = std::string("/home/") + user + req;
+	int fd = open(pn.c_str(), O_RDONLY);
+	if (fd < 0) {
+	    out << "Cannot open " << pn << ": " << strerror(errno);
+	} else {
+	    char buf[4096];
+	    for (;;) {
+		int cc = read(fd, buf, sizeof(buf));
+		if (cc < 0) {
+		    out << "Cannot read " << pn << ": " << strerror(errno);
+		    break;
+		}
+		if (cc == 0)
+		    break;
+		out.write(&buf[0], cc);
+	    }
+	}
+    }
 
     std::string reply = out.str();
     struct cobj_ref reply_seg;
