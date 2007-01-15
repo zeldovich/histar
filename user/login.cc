@@ -66,15 +66,20 @@ login(char *u, char *p)
 }
 
 static void
-prompt(void)
+prompt(const char *initial_user)
 {
     char user[32], pass[32];
     
     for (;;) {
-        char *s = readline("login: ");
-	if (!s)
-	    return;
-        strcpy(user, s);
+	if (initial_user) {
+	    strcpy(user, initial_user);
+	    initial_user = 0;
+	} else {
+	    char *s = readline("login: ");
+	    if (!s)
+		return;
+	    strcpy(user, s);
+	}
     
         char *p = readline("password: ");
 	if (!p)
@@ -89,7 +94,7 @@ int
 main(int ac, char **av)
 {
     try {
-	prompt();
+	prompt(ac >= 2 ? av[1] : 0);
     } catch (std::exception &e) {
 	printf("%s\n", e.what());
     }
