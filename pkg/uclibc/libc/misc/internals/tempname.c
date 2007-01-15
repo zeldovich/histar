@@ -192,18 +192,18 @@ int __gen_tempname (char *tmpl, int kind)
     /* This is where the Xs start.  */
     XXXXXX = &tmpl[len - 6];
 
-    /* Get some random data.  */
+    for (count = 0; count < TMP_MAX; ++count)
+    {
+	/* Get some random data.  */
 	if (fillrand(randomness, sizeof(randomness)) != sizeof(randomness)) {
 		/* if random device nodes failed us, lets use the braindamaged ver */
 		brain_damaged_fillrand(randomness, sizeof(randomness));
-    }
-    for (i = 0 ; i < sizeof(randomness) ; i++) {
-	k = ((randomness[i]) % 62);
-	XXXXXX[i] = letters[k];
-    }
+	}
+	for (i = 0 ; i < sizeof(randomness) ; i++) {
+		k = ((randomness[i]) % 62);
+		XXXXXX[i] = letters[k];
+	}
 
-    for (count = 0; count < TMP_MAX; ++count)
-    {
 	switch(kind) {
 	    case __GT_NOCREATE:
 		{
