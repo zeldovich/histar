@@ -24,7 +24,15 @@ SSL_BENCH_SRCS := \
 	ssl-bench.c error.c printfmt.c
 SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 
+SOCK_BENCH_SRCS := \
+	sock_bench.cc
+SOCK_BENCH_OBJS := $(patsubst %.cc, obj/test/%.o, $(SOCK_BENCH_SRCS))
+
 $(OBJDIR)/test/%.o: test/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/test/%.o: user/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
 
@@ -60,6 +68,10 @@ $(OBJDIR)/test/fileclient-test: $(FILECLIENT_TEST_OBJS)
 $(OBJDIR)/test/httpd-test: test/httpd-test.cc
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $< -lstdc++ -lssl -lcrypto
+
+$(OBJDIR)/test/sock_bench: $(SOCK_BENCH_OBJS)
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(SOCK_BENCH_OBJS) -lstdc++ -lssl -lpthread
 
 $(OBJDIR)/test/ssl-bench: $(SSL_BENCH_OBJS)
 	@mkdir -p $(@D)
