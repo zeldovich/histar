@@ -208,8 +208,10 @@ main(int ac, char **av)
 	int log = fd[1];
 	close(fd[0]);
 
-	// wait so all processes can be forked
-	kill(getpid(), SIGSTOP);
+	if (timelimit) {
+	    // wait so all processes can be forked
+	    kill(getpid(), SIGSTOP);
+	}
 
 	SSL_CTX *ctx = init_ctx();
 	SSL_SESSION *ses = 0;
@@ -251,18 +253,16 @@ main(int ac, char **av)
     }
     close(fd[1]);
     
-    // make sure all processes have SIGSTOP
-    usleep(1000000);
-    fprintf(stderr, "starting clients...\n");
-
     if (timelimit) {
+	// make sure all processes have SIGSTOP
+	usleep(1000000);
+	fprintf(stderr, "starting clients...\n");
+	
 	signal(SIGALRM, &timeout);
 	alarm(timelimit);
-    }
+	kill(0, SIGCONT);
 
-    kill(0, SIGCONT);
-
-    if (timelimit) {
+	// count connections for timelimit seconds
 	for (;;) {
 	    char a;
 	    int r = read(fd[0], &a, 1);
