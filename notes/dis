@@ -40,9 +40,6 @@ the two gate calls down to 1 by simply longjmp'ing back to where we
 were before the first gate call, and returning from there, with a new
 label -- we're still in the same address space..
 
-can server send the response back to the client?  depends on the label
-of the response.  actually, one step back:
-
 how do we know the label of the response?  gate mechanism doesn't tell
 us the prior label of the thread..  A: force return gate to marshall
 return data into an explicit segment, whose label is then immutable
@@ -56,4 +53,10 @@ owns every category in which the response is tainted.  similar to the
 first condition at the top of this file, and potentially client should
 provide server with the necessary delegation certificates to make things
 work out..  similarly, client should check data received from server.
+
+what does the back-end fileserver look like?  what does it associate
+the local categories with, if anything?  maybe it doesn't need to do
+any discretionary access control based on them, in which case it's all
+good.  otherwise, it needs access to global category names to coordinate
+with other fileservers too..
 
