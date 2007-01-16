@@ -24,6 +24,7 @@ struct dj_address {
  * Fully self-describing statements ensure that one statement
  * cannot be mistaken for another in a different context.
  */
+
 enum dj_stmt_type {
     STMT_DELEGATION = 1
 };
@@ -59,4 +60,56 @@ struct dj_stmt_signed {
     dj_stmt stmt;
     bigint sign;
 };
+
+/*
+ * Labels, and labeled data (used to pass gate call arguments/responses,
+ * which themselves are expected to be marshalled XDR structures).
+ */
+
+struct dj_label_entry {
+    dj_gcat cat;
+    int level;		/* LB_LEVEL_STAR from <inc/label.h> */
+};
+
+struct dj_label {
+    dj_label_entry ents<1024>;
+};
+
+struct dj_gate_buf {
+    opaque buf<>;
+    dj_label label;	/* label of associated data */
+    dj_label grant;	/* grant on gate invocation */
+    dj_label verify;	/* verify label for gate invocation */
+};
+
+/*
+ * Argument and result data structures for RPCs.
+ */
+
+struct dj_gatecall_arg {
+    hyper gate_ct;
+    hyper gate_id;
+    dj_gate_buf data;
+};
+
+union dj_gatecall_res switch (int err) {
+ case 0:
+    dj_gate_buf data;
+ default:
+    void;
+};
+
+/*
+ * Program definitions.
+ */
+
+program DJ_EXPORT_PROG {
+    version DJ_EXPORT_V1 {
+	void
+	DJ_EXPORT_NULL(void) = 0;
+
+	dj_gatecall_res
+	DJ_EXPORT_GATECALL(dj_gatecall_arg) = 1;
+    } = 1;
+} = 955550;
 

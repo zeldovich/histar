@@ -1,11 +1,16 @@
 client talking to server:
   server must be "stronger" in each category where the label of client's
-  data is not 1 (must "speak for" every such category)
+  data is greater than 1 (must "speak for" every such category).
+
+server accepting client input:
+  client must be "stronger" in each category where the label of client's
+  data is less than 1.  quite symmetric to the above condition, and the
+  {1} is then just the network label which we can then in theory adjust.
 
 how do we know we can talk to server?
   server must sign certificate saying "you can reach me at this address
   for this period of time".  then, must also have a chain of certificates:
-  server -> ... -> category, for each non-1 cat..
+  server -> ... -> category, for each over-1 cat..
 
   name servers by their public keys.
 
@@ -34,4 +39,21 @@ away star privileges in a gate, ala lib/privstore.cc.  we can optimize
 the two gate calls down to 1 by simply longjmp'ing back to where we 
 were before the first gate call, and returning from there, with a new
 label -- we're still in the same address space..
+
+can server send the response back to the client?  depends on the label
+of the response.  actually, one step back:
+
+how do we know the label of the response?  gate mechanism doesn't tell
+us the prior label of the thread..  A: force return gate to marshall
+return data into an explicit segment, whose label is then immutable
+and must have been readable to the returning thread before the gate
+call.  must use verify label to ensure that the caller's label was
+enough to read/write this segment, otherwise could be trying to send
+out a pre-existing read-only segment.
+
+can server send response back to client?  need to check whether client
+owns every category in which the response is tainted.  similar to the
+first condition at the top of this file, and potentially client should
+provide server with the necessary delegation certificates to make things
+work out..  similarly, client should check data received from server.
 
