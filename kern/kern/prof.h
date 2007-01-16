@@ -8,6 +8,7 @@ void prof_init(void) ;
 void prof_syscall(syscall_num num, uint64_t time) ;
 void prof_trap(int num, uint64_t time) ;
 void prof_user(uint64_t time) ;
+void prof_thread(uint64_t tid, uint64_t time);
 void prof_print(void) ;
 
 void __cyg_profile_func_enter(void *this_fn, void *call_site) ;

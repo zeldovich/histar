@@ -4,22 +4,34 @@
 #include <kern/prof.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
+#include <kern/kobj.h>
+#include <inc/error.h>
 
 struct entry {
     uint64_t count;
     uint64_t time;
 };
 
+struct tentry {
+    struct entry entry;
+    uint64_t tid;
+    uint64_t last;
+};
+
 #define NTRAPS (T_SYSCALL + 1)
+#define NTHREADS 32
 
 struct entry sysc_table[NSYSCALLS];
 struct entry trap_table[NTRAPS];
 struct entry user_table[1];
+struct tentry thread_table[NTHREADS];
 
 static struct periodic_task timer;
 static int prof_print_enable = 0;
+static int prof_thread_enable = 0;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = 10000000UL };
+enum { prof_thread_msec_threshold = 1000 };
 
 static struct periodic_task timer2;
 
@@ -68,6 +80,7 @@ prof_init(void)
 {
     memset(sysc_table, 0, sizeof(sysc_table));
     memset(trap_table, 0, sizeof(trap_table));
+    memset(thread_table, 0, sizeof(thread_table));
 
     memset(&cyg_data, 0, sizeof(cyg_data));
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
@@ -116,12 +129,48 @@ prof_user(uint64_t time)
     user_table[0].time += time;
 }
 
+void
+prof_thread(uint64_t tid, uint64_t time)
+{
+    if (!prof_thread_enable)
+	return;
+    
+    int64_t entry = -1;
+    for (uint64_t i = 0; i < NTHREADS; i++) {
+	if (thread_table[i].tid == tid) {
+	    entry = i;
+	    break;
+	} else if (entry == -1) {
+	    if (!thread_table[i].tid)
+		entry = i;
+	    else if ((timer_user_msec - thread_table[i].last) >  
+		     prof_thread_msec_threshold)
+		entry = i;
+	}
+    }
+
+    if (entry == -1) {
+	cprintf("prof_thread: profile table full\n");
+	return; 
+    }
+
+    if (thread_table[entry].tid != tid) {
+	memset(&thread_table[entry], 0, sizeof(thread_table[entry]));
+	thread_table[entry].tid = tid;
+    }
+
+    thread_table[entry].last = timer_user_msec;
+    thread_table[entry].entry.count++;
+    thread_table[entry].entry.time += time;
+}
+
 static void
 prof_reset(void)
 {
     memset(sysc_table, 0, sizeof(sysc_table));
     memset(trap_table, 0, sizeof(trap_table));
     memset(user_table, 0, sizeof(user_table));
+    memset(thread_table, 0, sizeof(thread_table));
 }
 
 static void
@@ -134,9 +183,37 @@ print_entry(struct entry *tab, int i, const char *name)
 		tab[i].count, tab[i].time, tab[i].time / tab[i].count, name);
 }
 
+static void
+print_tentry(struct tentry *tab, int i)
+{
+    const char *name = 0;
+    if (tab[i].tid && 
+	(timer_user_msec - tab[i].last) < prof_thread_msec_threshold) {
+	const struct kobject *ko;
+	int r = kobject_get(thread_table[i].tid, &ko, kobj_thread, iflow_none);
+	if (r == 0)
+	    name = ko->hdr.ko_name;
+	else if (r == -E_INVAL)
+	    name = "----";
+	else {
+	    cprintf("print_tentry: kobject_get error: %s\n", e2s(r));
+	    return;
+	}
+    } else
+	return;
+
+    cprintf("%3d cnt%12"PRIu64" tot%12"PRIu64" avg%12"PRIu64" %s\n",
+	    i,
+	    tab[i].entry.count, tab[i].entry.time, 
+	    tab[i].entry.time / tab[i].entry.count, name);
+}
+
 void
 prof_print(void)
 {
+    if (!prof_print_enable)
+	return;
+
     cprintf("prof_print: syscalls\n");
     for (int i = 0; i < NSYSCALLS; i++)
 	print_entry(&sysc_table[0], i, syscall2s(i));
@@ -147,6 +224,12 @@ prof_print(void)
 
     cprintf("prof_print: user\n");
     print_entry(&user_table[0], 0, "user");
+
+    if (prof_thread_enable) {
+	cprintf("prof_print: threads\n");
+	for (int i = 0; i < NTHREADS; i++)
+	    print_tentry(thread_table, i);
+    }
 
     prof_reset();
 }
