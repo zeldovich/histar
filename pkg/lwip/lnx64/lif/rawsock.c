@@ -69,7 +69,7 @@ raw_enable_permisc(int s, const char *iface_alias)
 }
 
 static int
-raw_enable_filter(int s, char *mac_addr)
+raw_enable_filter(int s, const char *mac_addr)
 {
     uint32_t mac0 = 0;
     uint32_t mac1 = 0;
@@ -109,7 +109,7 @@ raw_enable_filter(int s, char *mac_addr)
 }
 
 int
-raw_socket(const char *iface_alias, char *mac_addr)
+raw_socket(const char *iface_alias, const char *mac_addr)
 {
     int s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (s < 0)

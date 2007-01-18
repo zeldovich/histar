@@ -159,8 +159,16 @@ lwip_init(void (*cb)(void *), void *cbarg,
 
 	if (dhcp_state != the_nif.dhcp->state) {
 	    dhcp_state = the_nif.dhcp->state;
-	    printf("netd: DHCP state %d (%s)\n", dhcp_state,
+	    printf("lwip: DHCP state %d (%s)\n", dhcp_state,
 		   dhcp_states[dhcp_state] ? : "unknown");
+	    if (dhcp_state == DHCP_BOUND) {
+		uint32_t ip = the_nif.ip_addr.addr;
+		printf("lwip: ip %u.%u.%u.%u\n", 
+		       ip & 0x000000FF, 
+		       (ip & 0x0000FF00) >> 8,
+		       (ip & 0x00FF0000) >> 16, 
+		       (ip & 0xFF000000) >> 24);
+	    }
 	}
 
 	if (netd_stats) {

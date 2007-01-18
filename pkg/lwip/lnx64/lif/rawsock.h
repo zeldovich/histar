@@ -1,1 +1,1 @@
-int raw_socket(const char *iface_alias, char *mac_addr);
+int raw_socket(const char *iface_alias, const char *mac_addr);
