@@ -9,6 +9,7 @@ extern "C" {
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
 #include <lif/init.h>
+#include <arch/sys_arch.h>
 
 #include <pthread.h>
 }
@@ -78,6 +79,8 @@ main (int ac, char **av)
 	}
     }
     
+    lwip_core_lock();
+
     int s = lwip_socket(AF_INET, SOCK_STREAM, 0);
     err_exit(s < 0, "cannot create socket: %s", strerror(errno));
     
