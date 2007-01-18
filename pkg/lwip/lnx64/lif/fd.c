@@ -47,7 +47,7 @@
 
 enum { fd_mtu = 1500 };
 
-char mac_addr[6] = { 0x00, 0x50, 0x56, 0xC0, 0x00, 0x01 };
+char mac_addr[6] = { 0x00, 0x50, 0x56, 0xC0, 0x00, 0x10 };
 
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
@@ -110,6 +110,7 @@ fd_input(struct netif *netif)
 {
     static char packet[fd_mtu];
     int the_fd = (int) (int64_t) netif->state;
+    struct eth_hdr *ethhdr;
     
     lwip_core_unlock();
     ssize_t cc = read(the_fd, packet, fd_mtu);
@@ -135,7 +136,29 @@ fd_input(struct netif *netif)
 	copied += bytes;
     }
 
-    netif->input(p, netif);
+    ethhdr = p->payload;
+
+    switch (htons(ethhdr->type)) {
+    case ETHTYPE_IP:
+	/* update ARP table */
+	etharp_ip_input(netif, p);
+	/* skip Ethernet header */
+	pbuf_header(p, -(int)sizeof(struct eth_hdr));
+	/* pass to network layer */
+	netif->input(p, netif);
+	break;
+      
+    case ETHTYPE_ARP:
+	/* pass p to ARP module  */
+	etharp_arp_input(netif, (struct eth_addr *)mac_addr, p);
+	break;
+
+    default:
+	pbuf_free(p);
+    }
+
+
+    //netif->input(p, netif);
     return;
 }
 

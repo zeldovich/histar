@@ -5,7 +5,6 @@
 #include <arpa/inet.h>
 
 #include <linux/if_packet.h>
-#include <net/if.h>
 #include <linux/if.h>
 #include <sys/ioctl.h>
 

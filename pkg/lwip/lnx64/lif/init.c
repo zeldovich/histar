@@ -87,8 +87,6 @@ lwip_init(void (*cb)(void *), void *cbarg, const char* iface_alias)
     if ((the_sock = raw_socket(iface_alias)) < 0)
 	lwip_panic("couldn't open raw socket: %s\n", strerror(errno));
 
-    printf("lwip_init: the_sock %d\n", the_sock);
-    
     lwip_core_lock();
     
     lwipext_init(0);
