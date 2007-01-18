@@ -70,6 +70,43 @@ net_timer(void *arg)
     }
 }
 
+static void *__attribute__((noreturn))
+dhcp_status(void *arg)
+{
+    int dhcp_state = 0;
+    const char *dhcp_states[] = {
+	[DHCP_RENEWING] "renewing",
+	[DHCP_SELECTING] "selecting",
+	[DHCP_CHECKING] "checking",
+	[DHCP_BOUND] "bound",
+    };
+
+    for (;;) {
+
+	if (dhcp_state != the_nif.dhcp->state) {
+	    dhcp_state = the_nif.dhcp->state;
+	    printf("lwip: DHCP state %d (%s)\n", dhcp_state,
+		   dhcp_states[dhcp_state] ? : "unknown");
+	    if (dhcp_state == DHCP_BOUND) {
+		uint32_t ip = the_nif.ip_addr.addr;
+		printf("lwip: ip %u.%u.%u.%u\n", 
+		       ip & 0x000000FF, 
+		       (ip & 0x0000FF00) >> 8,
+		       (ip & 0x00FF0000) >> 16, 
+		       (ip & 0xFF000000) >> 24);
+	    }
+	}
+
+	if (netd_stats) {
+	    stats_display();
+	}
+
+	lwip_core_unlock();
+	usleep(1000000);
+	lwip_core_lock();
+    }
+}
+
 static void
 start_timer(struct timer_thread *t, void (*func)(void), const char *name, int msec)
 {
@@ -88,7 +125,7 @@ lwip_mac_addr(void)
     return the_mac;
 }
 
-int __attribute__((noreturn))
+int
 lwip_init(void (*cb)(void *), void *cbarg, 
 	  const char* iface_alias, const char* mac_addr)
 {
@@ -147,38 +184,10 @@ lwip_init(void (*cb)(void *), void *cbarg,
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    int dhcp_state = 0;
-    const char *dhcp_states[] = {
-	[DHCP_RENEWING] "renewing",
-	[DHCP_SELECTING] "selecting",
-	[DHCP_CHECKING] "checking",
-	[DHCP_BOUND] "bound",
-    };
-
-    for (;;) {
-
-	if (dhcp_state != the_nif.dhcp->state) {
-	    dhcp_state = the_nif.dhcp->state;
-	    printf("lwip: DHCP state %d (%s)\n", dhcp_state,
-		   dhcp_states[dhcp_state] ? : "unknown");
-	    if (dhcp_state == DHCP_BOUND) {
-		uint32_t ip = the_nif.ip_addr.addr;
-		printf("lwip: ip %u.%u.%u.%u\n", 
-		       ip & 0x000000FF, 
-		       (ip & 0x0000FF00) >> 8,
-		       (ip & 0x00FF0000) >> 16, 
-		       (ip & 0xFF000000) >> 24);
-	    }
-	}
-
-	if (netd_stats) {
-	    stats_display();
-	}
-
-	lwip_core_unlock();
-	usleep(1000000);
-	lwip_core_lock();
-    }
+    pthread_t dhcpstatus_thread;
+    r = pthread_create(&dhcpstatus_thread, 0, &dhcp_status, &the_nif);
+    if (r < 0)
+	lwip_panic("cannot create dhcp status thread: %s\n", strerror(errno));
     
-    //return 0;
+    return 0;
 }
