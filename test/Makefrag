@@ -1,6 +1,9 @@
 OBJDIRS += test
 
-TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g
+TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g \
+		-I$(TOP)/pkg/lwip/include \
+		-I$(TOP)/pkg/lwip/include/ipv4 \
+		-I$(TOP)/pkg/lwip/lnx64
 
 DISK_TEST_SRCS := \
 	error.c printfmt.c sha1.c arc4.c bf60.c \
@@ -27,6 +30,11 @@ SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 SOCK_BENCH_SRCS := \
 	sock_bench.cc
 SOCK_BENCH_OBJS := $(patsubst %.cc, obj/test/%.o, $(SOCK_BENCH_SRCS))
+
+LWIP_BENCH_SRCS := \
+	lwip_bench.cc
+LWIP_BENCH_OBJS := $(patsubst %.cc, obj/test/%.o, $(LWIP_BENCH_SRCS))
+LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
 $(OBJDIR)/test/%.o: test/%.cc
 	@mkdir -p $(@D)
@@ -71,7 +79,11 @@ $(OBJDIR)/test/httpd-test: test/httpd-test.cc
 
 $(OBJDIR)/test/sock_bench: $(SOCK_BENCH_OBJS)
 	@mkdir -p $(@D)
-	$(NCC) -o $@ $(SOCK_BENCH_OBJS) -lstdc++ -lssl -lpthread
+	$(NCC) -o $@ $(SOCK_BENCH_OBJS) -lstdc++ -lpthread
+
+$(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB) -lstdc++ -lpthread
 
 $(OBJDIR)/test/ssl-bench: $(SSL_BENCH_OBJS)
 	@mkdir -p $(@D)
