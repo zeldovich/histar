@@ -78,7 +78,7 @@ raw_enable_filter(int s, char *mac_addr)
     mac1 = htonl(mac1);
     mac0 = htons(mac0);
     
-    // -s 1500 ether host AA:BB:CC:DD:EE:FF or ether broadcast
+    // -s 0 ether host AA:BB:CC:DD:EE:FF or ether broadcast
     struct sock_filter BPF_code[] = {
 	{ 0x20, 0, 0, 0x00000008 },
 	{ 0x15, 0, 2, mac1 },
@@ -91,7 +91,7 @@ raw_enable_filter(int s, char *mac_addr)
 	{ 0x15, 0, 3, 0xffffffff },
 	{ 0x28, 0, 0, 0x00000000 },
 	{ 0x15, 0, 1, 0x0000ffff },
-	{ 0x6, 0, 0, 0x000005dc },
+	{ 0x6, 0, 0, 0x0000ffff },
 	{ 0x6, 0, 0, 0x00000000 },
     };
 	
