@@ -1,0 +1,67 @@
+LWIP_LNX64_INCLUDES := \
+	-I$(TOP)/ \
+	-I$(TOP)/pkg/lwip/include \
+	-I$(TOP)/pkg/lwip/include/ipv4 \
+	-I$(TOP)/pkg/lwip/lnx64/ \
+	-I$(TOP)/pkg/lwip/ext/
+	
+LWIP_LNX64_WARNS := \
+	-Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
+	-Wwrite-strings -Wmissing-format-attribute -Wmissing-prototypes \
+	-Wmissing-declarations -Wshadow
+
+LWIP_LNX64_FLAGS := $(LWIP_LNX64_INCLUDES) $(LWIP_LNX64_WARNS) -fms-extensions
+
+OBJDIRS += \
+	pkg/lwip/lnx64/api \
+	pkg/lwip/lnx64/core \
+	pkg/lwip/lnx64/core/ipv4 \
+	pkg/lwip/lnx64/netif \
+	pkg/lwip/lnx64/lnx64/arch \
+	pkg/lwip/lnx64/lnx64/lif \
+	pkg/lwip/lnx64/lnx64/api
+
+LWIP_LNX64_SRCFILES += \
+	pkg/lwip/api/api_lib.c \
+	pkg/lwip/api/api_msg.c \
+	pkg/lwip/api/err.c \
+	pkg/lwip/api/sockets.c \
+	pkg/lwip/api/tcpip.c \
+	pkg/lwip/core/tcp_in.c \
+	pkg/lwip/core/dhcp.c \
+	pkg/lwip/core/inet.c \
+	pkg/lwip/core/mem.c \
+	pkg/lwip/core/memp.c \
+	pkg/lwip/core/netif.c \
+	pkg/lwip/core/pbuf.c \
+	pkg/lwip/core/raw.c \
+	pkg/lwip/core/stats.c \
+	pkg/lwip/core/sys.c \
+	pkg/lwip/core/tcp.c \
+	pkg/lwip/core/ipv4/ip_addr.c \
+	pkg/lwip/core/ipv4/icmp.c \
+	pkg/lwip/core/ipv4/ip.c \
+	pkg/lwip/core/ipv4/ip_frag.c \
+	pkg/lwip/core/tcp_out.c \
+	pkg/lwip/core/udp.c \
+	pkg/lwip/netif/etharp.c \
+	pkg/lwip/netif/loopif.c \
+	pkg/lwip/lnx64/arch/sys_arch.c \
+	pkg/lwip/lnx64/lif/init.c \
+	pkg/lwip/lnx64/lif/fd.c \
+	pkg/lwip/lnx64/lif/rawsock.c \
+	pkg/lwip/lnx64/api/event.c
+
+LWIP_LNX64_OBJFILES := $(patsubst pkg/lwip/%.c, $(OBJDIR)/pkg/lwip/lnx64/%.o, $(LWIP_LNX64_SRCFILES))
+
+$(OBJDIR)/pkg/lwip/lnx64/%.o: pkg/lwip/lnx64/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(LWIP_LNX64_FLAGS) $(CSTD) $(MKTARGET_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/pkg/lwip/lnx64/%.o: pkg/lwip/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(LWIP_LNX64_FLAGS) $(CSTD) $(MKTARGET_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lnx64/lib/liblwip.a: $(LWIP_LNX64_OBJFILES)
+	@mkdir -p $(@D)
+	$(AR) r $@ $(LWIP_LNX64_OBJFILES)
