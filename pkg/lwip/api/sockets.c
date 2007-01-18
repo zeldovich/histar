@@ -34,7 +34,7 @@
 
 #include <string.h>
 #include <errno.h>
-#include <api/jos64api.h>
+#include <api/ext.h>
 
 #include "lwip/opt.h"
 #include "lwip/api.h"
@@ -886,7 +886,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
             break;
         }
     }
-    jos64_event_helper(s, evt);
+    lwipext_sync_notify(s, evt);
 }
 
 

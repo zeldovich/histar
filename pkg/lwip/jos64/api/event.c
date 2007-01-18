@@ -3,7 +3,7 @@
 #include <inc/error.h>
 #include <lwip/sockets.h>
 #include <lwip/opt.h>
-#include <api/jos64api.h>
+#include <api/ext.h>
 
 #include <string.h>
 
@@ -13,12 +13,12 @@ static char read_notify[NUM_SOCKETS];
 static char write_notify[NUM_SOCKETS];
 
 int
-jos64_sync_helper(int s, char write)
+lwipext_sync_waiting(int s, char w)
 {
     if (s < 0 || s > NUM_SOCKETS)
 	return -E_INVAL;
     
-    if (write)
+    if (w)
 	write_notify[s] = 1;
     else
 	read_notify[s] = 1;
@@ -27,7 +27,7 @@ jos64_sync_helper(int s, char write)
 }
 
 void
-jos64_event_helper(int s, enum netconn_evt evt)
+lwipext_sync_notify(int s, enum netconn_evt evt)
 {
     if (evt == NETCONN_EVT_RCVPLUS || evt == NETCONN_EVT_RCVMINUS) {
 	if (sockets[s].rcvevent && read_notify[s]) {
@@ -43,7 +43,7 @@ jos64_event_helper(int s, enum netconn_evt evt)
 }
 
 void
-jos64_init_api(char public_sockets)
+lwipext_init(char public_sockets)
 {
     memset(read_notify, 0, sizeof(read_notify));
     memset(write_notify, 0, sizeof(write_notify));

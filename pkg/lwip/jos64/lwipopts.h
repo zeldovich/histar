@@ -36,4 +36,6 @@
 #define DBG_TYPES_ON	DBG_ON
 #define DBG_MIN_LEVEL	DBG_LEVEL_SERIOUS
 
+#define LWIPEXT_SYNC_ON
+
 #endif

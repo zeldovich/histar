@@ -9,7 +9,7 @@
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
-#include <api/jos64api.h>
+#include <api/ext.h>
 
 #include <stddef.h>
 
@@ -159,8 +159,8 @@ netd_dispatch(struct netd_op_args *a)
         break;
 
     case netd_op_notify:
-	    a->rval = jos64_sync_helper(a->notify.fd, a->notify.write);
-	    break;
+	a->rval = lwipext_sync_waiting(a->notify.fd, a->notify.write);
+	break;
 
     case netd_op_shutdown:
 	err_fd = a->shutdown.fd;

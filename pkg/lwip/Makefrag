@@ -1,6 +1,7 @@
 LWIP_INCLUDES := \
 	-I$(TOP)/pkg/lwip/include \
 	-I$(TOP)/pkg/lwip/include/ipv4 \
+	-I$(TOP)/pkg/lwip/ext \
 	-I$(TOP)/pkg/lwip/jos64
 
 OBJDIRS += \
@@ -9,7 +10,8 @@ OBJDIRS += \
 	pkg/lwip/core/ipv4 \
 	pkg/lwip/netif \
 	pkg/lwip/jos64/arch \
-	pkg/lwip/jos64/jif
+	pkg/lwip/jos64/jif \
+	pkg/lwip/jos64/api
 
 USER_INC += $(LWIP_INCLUDES)
 
@@ -44,6 +46,8 @@ LWIP_SRCFILES += \
 	pkg/lwip/jos64/api/event.c
 
 LWIP_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LWIP_SRCFILES))
+
+include pkg/lwip/lnx64/Makefrag
 
 $(OBJDIR)/pkg/lwip/jos64/%.o: MKTARGET_CFLAGS=-Werror
 

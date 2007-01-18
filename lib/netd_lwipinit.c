@@ -22,7 +22,7 @@
 
 #include <jif/jif.h>
 #include <jif/tun.h>
-#include <api/jos64api.h>
+#include <api/ext.h>
 
 // various netd initialization and threads
 static int netd_stats = 0;
@@ -40,7 +40,7 @@ static void
 lwip_init(struct netif *nif, void *if_state,
 	  uint32_t init_addr, uint32_t init_mask, uint32_t init_gw)
 {
-    jos64_init_api(1);
+    lwipext_init(1);
     // lwIP initialization sequence, as suggested by lwip/doc/rawapi.txt
     stats_init();
     sys_init();
