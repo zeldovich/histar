@@ -126,16 +126,17 @@ lwip_mac_addr(void)
 }
 
 int
-lwip_init(void (*cb)(void *), void *cbarg, 
-	  const char* iface_alias, const char* mac_addr)
+lwip_init(const char* iface_alias, const char* mac_addr)
 {
     if ((the_sock = raw_socket(iface_alias, mac_addr)) < 0)
 	lwip_panic("couldn't open raw socket: %s\n", strerror(errno));
     memcpy(the_mac, mac_addr, 6);
 
+    lwip_core_init();
     lwip_core_lock();
     
     lwipext_init(0);
+    
     // lwIP initialization sequence, as suggested by lwip/doc/rawapi.txt
     stats_init();
     sys_init();

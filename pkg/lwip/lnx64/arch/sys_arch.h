@@ -12,6 +12,7 @@ typedef uint64_t sys_thread_t;
 
 void lwip_core_lock(void);
 void lwip_core_unlock(void);
+void lwip_core_init(void);
 
 // All LWIP code is non-preemptive (protected by lwip_core_lock)
 #define SYS_ARCH_DECL_PROTECT(lev)

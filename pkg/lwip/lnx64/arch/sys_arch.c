@@ -95,7 +95,6 @@ sys_init()
 	LIST_INSERT_HEAD(&sem_free, &sems[i], link);
     for (int i = 0; i < NMBOX; i++)
 	LIST_INSERT_HEAD(&mbox_free, &mboxes[i], link);
-    pthread_mutex_init(&lwip_core_mu, 0);
 }
 
 sys_mbox_t
@@ -299,4 +298,10 @@ void
 lwip_core_unlock(void)
 {
     pthread_mutex_unlock(&lwip_core_mu);
+}
+
+void
+lwip_core_init(void)
+{
+    pthread_mutex_init(&lwip_core_mu, 0);
 }
