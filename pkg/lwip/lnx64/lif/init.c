@@ -20,6 +20,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+// various netd initialization and threads
+static int netd_stats = 0;
+
 // XXX
 void usleep(unsigned long usec);
 
@@ -78,11 +81,13 @@ start_timer(struct timer_thread *t, void (*func)(void), const char *name, int ms
 	lwip_panic("cannot create timer thread: %s", strerror(errno));
 }
 
-int
+int __attribute__((noreturn))
 lwip_init(void (*cb)(void *), void *cbarg, const char* iface_alias)
 {
-    if ((the_sock = raw_socket()) < 0)
+    if ((the_sock = raw_socket(iface_alias)) < 0)
 	lwip_panic("couldn't open raw socket: %s\n", strerror(errno));
+
+    printf("lwip_init: the_sock %d\n", the_sock);
     
     lwip_core_lock();
     
@@ -115,13 +120,19 @@ lwip_init(void (*cb)(void *), void *cbarg, const char* iface_alias)
     netif_set_default(&the_nif);
     netif_set_up(&the_nif);
 
+    dhcp_start(&the_nif);
+
     pthread_t receive_thread;
     int r = pthread_create(&receive_thread, 0, &net_receive, &the_nif);
     if (r < 0)
 	lwip_panic("cannot create reciever thread: %s\n", strerror(errno));
     
+    start_timer(&t_arp, &etharp_tmr, "arp timer", ARP_TMR_INTERVAL);
     start_timer(&t_tcpf, &tcp_fasttmr, "tcp f timer", TCP_FAST_INTERVAL);
     start_timer(&t_tcps, &tcp_slowtmr, "tcp s timer", TCP_SLOW_INTERVAL);
+
+    start_timer(&t_dhcpf, &dhcp_fine_tmr,	"dhcp f timer",	DHCP_FINE_TIMER_MSECS);
+    start_timer(&t_dhcpc, &dhcp_coarse_tmr,	"dhcp c timer",	DHCP_COARSE_TIMER_SECS * 1000);
     
     sys_sem_t tcpip_init_sem = sys_sem_new(0);
     tcpip_init(&tcpip_init_done, &tcpip_init_sem);
@@ -129,5 +140,30 @@ lwip_init(void (*cb)(void *), void *cbarg, const char* iface_alias)
     sys_sem_wait(tcpip_init_sem);
     sys_sem_free(tcpip_init_sem);
 
-    return 0;
+    int dhcp_state = 0;
+    const char *dhcp_states[] = {
+	[DHCP_RENEWING] "renewing",
+	[DHCP_SELECTING] "selecting",
+	[DHCP_CHECKING] "checking",
+	[DHCP_BOUND] "bound",
+    };
+
+    for (;;) {
+
+	if (dhcp_state != the_nif.dhcp->state) {
+	    dhcp_state = the_nif.dhcp->state;
+	    printf("netd: DHCP state %d (%s)\n", dhcp_state,
+		   dhcp_states[dhcp_state] ? : "unknown");
+	}
+
+	if (netd_stats) {
+	    stats_display();
+	}
+
+	lwip_core_unlock();
+	usleep(1000000);
+	lwip_core_lock();
+    }
+    
+    //return 0;
 }

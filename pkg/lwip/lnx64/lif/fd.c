@@ -40,14 +40,17 @@
 #include <lwip/mem.h>
 #include <lwip/pbuf.h>
 #include <lwip/tcpip.h>
+#include <netif/etharp.h>
 
 #include <lif/init.h>
 #include <lif/fd.h>
 
 enum { fd_mtu = 1500 };
 
+char mac_addr[6] = { 0x00, 0x50, 0x56, 0xC0, 0x00, 0x01 };
+
 static err_t
-fd_output(struct netif *netif, struct pbuf *p, struct ip_addr *ipaddr)
+low_level_output(struct netif *netif, struct pbuf *p)
 {
     int the_fd = (int) (int64_t) netif->state;
 
@@ -61,21 +64,44 @@ fd_output(struct netif *netif, struct pbuf *p, struct ip_addr *ipaddr)
 	txsize += q->len;
     }
 
-    struct tun_if *tun = netif->state;
     lwip_core_unlock();
-    write(the_fd, packet, txsize);
+    int r = write(the_fd, packet, txsize);
     lwip_core_lock();
-
+    if (r < 0)
+	lwip_panic("write error: %s\n", strerror(errno));
+    else if (r != txsize)
+	lwip_panic("write trucated: %d -> %d\n", txsize, r); 
+    
     return ERR_OK;
+}
+
+static err_t
+fd_output(struct netif *netif, struct pbuf *p,
+      struct ip_addr *ipaddr)
+{
+    /* resolve hardware address, then send (or queue) packet */
+    return etharp_output(netif, ipaddr, p);
+}
+
+static void
+low_level_init(struct netif *netif)
+{
+    netif->hwaddr_len = 6;
+    netif->mtu = fd_mtu;
+    netif->flags = NETIF_FLAG_BROADCAST;
+    memcpy(&netif->hwaddr[0], mac_addr, 6);
 }
 
 err_t
 fd_init(struct netif *netif)
 {
-    memcpy(&netif->name[0], "ns", 2);
     netif->output = fd_output;
-    netif->mtu = fd_mtu;
-    //netif->flags = NETIF_FLAG_POINTTOPOINT;
+    netif->linkoutput = low_level_output;
+    memcpy(&netif->name[0], "ns", 2);
+
+    low_level_init(netif);
+    etharp_init();
+    
     return ERR_OK;
 }
 
