@@ -43,7 +43,7 @@ server(void *arg)
 		err_exit(1, "read error: %s\n", strerror(errno));
 	}
     }
-    close(s);
+    lwip_close(s);
 }
 
 void
@@ -64,7 +64,7 @@ main (int ac, char **av)
     }
 
     char *iface = av[1];
-    int r = lwip_init(server_cb, 0, iface, mac_addr);
+    int r = lwip_init(iface, mac_addr);
     err_exit(r < 0, "lwip_init failed");
     
     uint16_t port = 9999;
