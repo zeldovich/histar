@@ -19,7 +19,7 @@
 
 
 int
-raw_socket(const char *iface_alias)
+raw_socket(const char *iface_alias, char *mac_addr)
 {
     int s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (s < 0)

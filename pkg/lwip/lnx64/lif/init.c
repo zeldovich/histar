@@ -28,6 +28,7 @@ void usleep(unsigned long usec);
 
 static struct netif the_nif;
 static int64_t the_sock;
+static char the_mac[6];
 
 struct timer_thread t_arp, t_tcpf, t_tcps, t_dhcpf, t_dhcpc;
 struct ip_addr ipaddr, netmask, gateway;
@@ -81,11 +82,19 @@ start_timer(struct timer_thread *t, void (*func)(void), const char *name, int ms
 	lwip_panic("cannot create timer thread: %s", strerror(errno));
 }
 
-int __attribute__((noreturn))
-lwip_init(void (*cb)(void *), void *cbarg, const char* iface_alias)
+const char *
+lwip_mac_addr(void)
 {
-    if ((the_sock = raw_socket(iface_alias)) < 0)
+    return the_mac;
+}
+
+int __attribute__((noreturn))
+lwip_init(void (*cb)(void *), void *cbarg, 
+	  const char* iface_alias, const char* mac_addr)
+{
+    if ((the_sock = raw_socket(iface_alias, mac_addr)) < 0)
 	lwip_panic("couldn't open raw socket: %s\n", strerror(errno));
+    memcpy(the_mac, mac_addr, 6);
 
     lwip_core_lock();
     

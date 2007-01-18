@@ -47,8 +47,6 @@
 
 enum { fd_mtu = 1500 };
 
-char mac_addr[6] = { 0x00, 0x50, 0x56, 0xC0, 0x00, 0x10 };
-
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
@@ -89,7 +87,7 @@ low_level_init(struct netif *netif)
     netif->hwaddr_len = 6;
     netif->mtu = fd_mtu;
     netif->flags = NETIF_FLAG_BROADCAST;
-    memcpy(&netif->hwaddr[0], mac_addr, 6);
+    memcpy(&netif->hwaddr[0], lwip_mac_addr(), 6);
 }
 
 err_t
@@ -150,7 +148,7 @@ fd_input(struct netif *netif)
       
     case ETHTYPE_ARP:
 	/* pass p to ARP module  */
-	etharp_arp_input(netif, (struct eth_addr *)mac_addr, p);
+	etharp_arp_input(netif, (struct eth_addr *)lwip_mac_addr(), p);
 	break;
 
     default:
