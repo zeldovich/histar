@@ -51,10 +51,6 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
     uint32_t ip = 0;
     const char *p = hostname;
 
-    for (int i = 0; host_table[i].alias; i++)
-	if (!strcmp(p, host_table[i].alias))
-	    p = host_table[i].name;
-
     for (int i = 0; i < 4; i++) {
 	if (p == 0)
 	    throw basic_exception("bad ip address: %s", hostname);

@@ -18,19 +18,6 @@
 #include <net/if.h>
 #include <errno.h>
 
-const struct host_entry host_table[] = {
-    { "market", "market.scs.stanford.edu" },
-    { "market.scs.stanford.edu", "171.66.3.9" },
-
-    { "suif", "suif.stanford.edu" },
-    { "suif.stanford.edu", "171.64.73.155" },
-
-    { "moscow", "moscow.scs.stanford.edu" },
-    { "moscow.scs.stanford.edu", "171.66.3.151" },
-
-    { 0, 0 }
-};
-
 static void
 libc_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
 {
