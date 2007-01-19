@@ -2,7 +2,7 @@
 
 #define LWIP_PROTECTED_CALL(suffix, ...)	\
     ({						\
-	int __r = 0				\
+	int __r;				\
 	lwip_core_lock();			\
 	__r = lwip_ ## suffix(__VA_ARGS__);	\
 	lwip_core_unlock();			\
