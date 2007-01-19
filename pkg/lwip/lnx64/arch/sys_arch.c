@@ -23,18 +23,13 @@
 #define MBOXSLOTS	32
 
 // XXX
-int syscall(int number, ...);
-#define FUTEX_WAIT      0
-#define FUTEX_WAKE      1
+int clock_gettime(int clk_id, struct timespec *tp);
+#define CLOCK_REALTIME                  0
 
 struct sys_sem_entry {
-    union {
-	uint32_t v;
-	struct {
-	    uint16_t counter;
-	    uint16_t waiters;
-	};
-    };
+    pthread_cond_t cond;
+    uint32_t counter;
+    uint32_t waiters;
     LIST_ENTRY(sys_sem_entry) link;
 };
 static struct sys_sem_entry sems[NSEM];
@@ -61,19 +56,27 @@ static LIST_HEAD(thread_list, sys_thread) threads[thread_hash_size];
 // A lock that serializes all LWIP code, including the above
 static pthread_mutex_t lwip_core_mu;
 
-static int
-lwip_futex_wait(uint32_t *addr, uint32_t val, uint64_t msec)
+static int 
+cond_signal(pthread_cond_t *cond)
 {
-    struct timespec ts;
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
-    return syscall(__NR_futex, addr, FUTEX_WAIT, val, &ts); 
+    pthread_cond_broadcast(cond);
 }
 
-static int
-lwip_futex_signal(uint32_t *addr, int n)
+static void
+cond_timedwait(pthread_cond_t *restrict cond,
+	       pthread_mutex_t *restrict mutex,
+	       uint64_t msec)
 {
-    return syscall(__NR_futex, addr, FUTEX_WAKE, n);
+    uint64_t sec_max = 0xffffffff;
+    if (msec / 1000 > sec_max)
+	msec = sec_max * 1000;
+
+    struct timespec ts;
+    ts.tv_sec += msec / 1000;
+    ts.tv_nsec += (msec % 1000) * 1000000;
+
+    if ((pthread_cond_timedwait(cond, mutex, &ts) < 0) && errno != ETIMEDOUT)
+	lwip_panic("cond_timedwait: pthread_cond_wait: %s\n", strerror(errno));
 }
 
 static uint64_t
@@ -91,8 +94,10 @@ lwip_clock_msec(void)
 void
 sys_init()
 {
-    for (int i = 0; i < NSEM; i++)
+    for (int i = 0; i < NSEM; i++) {
+	pthread_cond_init(&sems[i].cond, 0);
 	LIST_INSERT_HEAD(&sem_free, &sems[i], link);
+    }
     for (int i = 0; i < NMBOX; i++)
 	LIST_INSERT_HEAD(&mbox_free, &mboxes[i], link);
 }
@@ -176,9 +181,7 @@ sys_sem_signal(sys_sem_t sem)
     sems[sem].counter++;
     if (sems[sem].waiters) {
 	sems[sem].waiters = 0;
-	int r = lwip_futex_signal(&sems[sem].v, ~0);
-	if (r < 0)
-	    lwip_panic("sys_sem_signal: futex: %s\n", strerror(errno));
+	cond_signal(&sems[sem].cond);
     }
 }
 
@@ -197,10 +200,9 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	    uint64_t a = lwip_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
 	    sems[sem].waiters = 1;
-	    uint32_t cur_v = sems[sem].v;
-	    lwip_core_unlock();
-	    lwip_futex_wait(&sems[sem].v, cur_v, sleep_until);
-	    lwip_core_lock();
+
+	    cond_timedwait(&sems[sem].cond, &lwip_core_mu, sleep_until);
+
 	    uint64_t b = lwip_clock_msec();
 	    waited += (b - a);
 	}
