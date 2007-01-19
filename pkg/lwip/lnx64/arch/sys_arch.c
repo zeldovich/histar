@@ -29,10 +29,10 @@ int syscall(int number, ...);
 
 struct sys_sem_entry {
     union {
-	uint64_t v;
+	uint32_t v;
 	struct {
-	    uint32_t counter;
-	    uint32_t waiters;
+	    uint16_t counter;
+	    uint16_t waiters;
 	};
     };
     LIST_ENTRY(sys_sem_entry) link;
@@ -62,7 +62,7 @@ static LIST_HEAD(thread_list, sys_thread) threads[thread_hash_size];
 static pthread_mutex_t lwip_core_mu;
 
 static int
-lwip_futex_wait(uint64_t *addr, uint64_t val, uint64_t msec)
+lwip_futex_wait(uint32_t *addr, uint32_t val, uint64_t msec)
 {
     struct timespec ts;
     ts.tv_sec = msec / 1000;
@@ -71,7 +71,7 @@ lwip_futex_wait(uint64_t *addr, uint64_t val, uint64_t msec)
 }
 
 static int
-lwip_futex_signal(uint64_t *addr, int n)
+lwip_futex_signal(uint32_t *addr, int n)
 {
     return syscall(__NR_futex, addr, FUTEX_WAKE, n);
 }
@@ -197,7 +197,7 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	    uint64_t a = lwip_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
 	    sems[sem].waiters = 1;
-	    uint64_t cur_v = sems[sem].v;
+	    uint32_t cur_v = sems[sem].v;
 	    lwip_core_unlock();
 	    lwip_futex_wait(&sems[sem].v, cur_v, sleep_until);
 	    lwip_core_lock();
