@@ -47,12 +47,6 @@ server(void *arg)
     lwip_close(s);
 }
 
-void
-server_cb(void *a)
-{
-    ;
-}
-
 // VMWare MAC
 static char mac_addr[6] = { 0x00, 0x50, 0x56, 0xC0, 0x00, 0x10 };
 
