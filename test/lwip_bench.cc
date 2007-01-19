@@ -6,7 +6,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 
-#include <lwip/sockets.h>
+#include <lif/socket.h>
 #include <lwip/inet.h>
 #include <lif/init.h>
 #include <arch/sys_arch.h>
@@ -18,7 +18,7 @@ extern "C" {
 static char buf[4096];
 static uint64_t byte_count = 0;
 
-static const char threaded = 1;
+static const char threaded = 0;
 
 #define err_exit(__exp, __frmt, __args...)				\
     do {								\
@@ -35,16 +35,16 @@ server(void *arg)
 
     if (byte_count) {
 	for (int i = 0; i < 5; i++) {
-	    int r = lwip_write(s, buf, byte_count);
+	    int r = write(s, buf, byte_count);
 	    if (r < 0 || (uint32_t) r < byte_count)
 		err_exit(1, "write error: %s\n", strerror(errno));
 	    
-	    r = lwip_read(s, buf, byte_count);
+	    r = read(s, buf, byte_count);
 	    if (r < 0 || (uint32_t) r < byte_count)
 		err_exit(1, "read error: %s\n", strerror(errno));
 	}
     }
-    lwip_close(s);
+    close(s);
 }
 
 // VMWare MAC
@@ -73,26 +73,24 @@ main (int ac, char **av)
 	}
     }
     
-    lwip_core_lock();
-
-    int s = lwip_socket(AF_INET, SOCK_STREAM, 0);
+    int s = socket(AF_INET, SOCK_STREAM, 0);
     err_exit(s < 0, "cannot create socket: %s", strerror(errno));
     
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
     sin.sin_port = htons(port);
-    r = lwip_bind(s, (struct sockaddr *)&sin, sizeof(sin));
+    r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     err_exit(r < 0, "cannot bind socket: %s", strerror(errno));
     
-    r = lwip_listen(s, 5);
+    r = listen(s, 5);
     err_exit(r < 0, "cannot listen on socket: %s", strerror(r));
     
     printf("sock_bench: server on port %d\n", port);
     for (;;) {
         socklen_t socklen = sizeof(sin);
 	
-        int ss = lwip_accept(s, (struct sockaddr *)&sin, &socklen);
+        int ss = accept(s, (struct sockaddr *)&sin, &socklen);
         if (ss < 0) {
 	    printf("cannot accept client: %d\n", ss);
             continue;
