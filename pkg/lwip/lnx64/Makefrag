@@ -10,7 +10,7 @@ LWIP_LNX64_WARNS := \
 	-Wwrite-strings -Wmissing-format-attribute -Wmissing-prototypes \
 	-Wmissing-declarations -Wshadow
 
-LWIP_LNX64_FLAGS := $(LWIP_LNX64_INCLUDES) $(LWIP_LNX64_WARNS) -fms-extensions
+LWIP_LNX64_FLAGS := $(LWIP_LNX64_INCLUDES) $(LWIP_LNX64_WARNS) -fms-extensions -g
 
 OBJDIRS += \
 	pkg/lwip/lnx64/api \
