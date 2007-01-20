@@ -1,4 +1,4 @@
-OBJDIRS += test
+OBJDIRS += test test/lwip
 
 TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g \
 		-I$(TOP)/pkg/lwip/include \
@@ -28,12 +28,16 @@ SSL_BENCH_SRCS := \
 SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 
 SOCK_BENCH_SRCS := \
-	sock_bench.cc
-SOCK_BENCH_OBJS := $(patsubst %.cc, obj/test/%.o, $(SOCK_BENCH_SRCS))
+	sock_bench.c netbench.c error.c printfmt.c
+SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
+
+SOCK_CLIENT_SRCS := \
+	sock_client.c netbench.c error.c printfmt.c
+SOCK_CLIENT_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_CLIENT_SRCS))
 
 LWIP_BENCH_SRCS := \
-	lwip_bench.cc
-LWIP_BENCH_OBJS := $(patsubst %.cc, obj/test/%.o, $(LWIP_BENCH_SRCS))
+	sock_bench.c netbench.c error.c printfmt.c
+LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
 $(OBJDIR)/test/%.o: test/%.cc
@@ -77,14 +81,32 @@ $(OBJDIR)/test/httpd-test: test/httpd-test.cc
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $< -lstdc++ -lssl -lcrypto
 
+$(OBJDIR)/test/ssl-bench: $(SSL_BENCH_OBJS)
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(SSL_BENCH_OBJS) -lstdc++ -lssl -lpthread
+
 $(OBJDIR)/test/sock_bench: $(SOCK_BENCH_OBJS)
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $(SOCK_BENCH_OBJS) -lstdc++ -lpthread
 
+$(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(SOCK_CLIENT_OBJS) -lstdc++ -lpthread
+
+## lwip bench rules
+
+$(OBJDIR)/test/lwip/%.o: user/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $<
+
+$(OBJDIR)/test/lwip/%.o: lib/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $<
+
+$(OBJDIR)/test/lwip/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $< -std=c99
+
 $(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
 	@mkdir -p $(@D)
-	$(NCC) -o $@ $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB) -lstdc++ -lpthread
-
-$(OBJDIR)/test/ssl-bench: $(SSL_BENCH_OBJS)
-	@mkdir -p $(@D)
-	$(NCC) -o $@ $(SSL_BENCH_OBJS) -lstdc++ -lssl -lpthread
+	$(NCC) -o $@ $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB) -lstdc++ -lpthread -lrt
