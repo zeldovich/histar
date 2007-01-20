@@ -7,7 +7,7 @@ $(OBJDIR)/user/ssld.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-temp
 $(OBJDIR)/user/ssld.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
 
 $(OBJDIR)/user/ssl_bench.o: acpkg/openssl-0.9.8a/__build
-$(OBJDIR)/user/ssl_bencb.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
+$(OBJDIR)/user/ssl_bench.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
 $(OBJDIR)/user/ssl_bench.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
 
 $(OBJDIR)/user/asynct0.o: $(OBJDIR)/acpkg/include/sfslite
