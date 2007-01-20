@@ -72,8 +72,8 @@ cond_timedwait(pthread_cond_t *restrict cond,
 	msec = sec_max * 1000;
 
     struct timespec ts;
-    ts.tv_sec += msec / 1000;
-    ts.tv_nsec += (msec % 1000) * 1000000;
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
 
     if ((pthread_cond_timedwait(cond, mutex, &ts) < 0) && errno != ETIMEDOUT)
 	lwip_panic("cond_timedwait: pthread_cond_wait: %s\n", strerror(errno));
