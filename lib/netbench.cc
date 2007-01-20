@@ -9,7 +9,7 @@ extern "C" {
 #include <inc/netbench.hh>
 
 void
-nb_read(int s, void *b, int count)
+nb_read(int s, char *b, int count)
 {
     while (count) {
 	int r = read(s, b, count);
@@ -18,11 +18,12 @@ nb_read(int s, void *b, int count)
 	if (r == 0)
 	    throw basic_exception("read: EOF");
 	count -= r;
+	b += r;
     }
 }
 
 void
-nb_write(int s, void *b, int count)
+nb_write(int s, char *b, int count)
 {
     while (count) {
 	int r = write(s, b, count);
@@ -31,5 +32,6 @@ nb_write(int s, void *b, int count)
 	if (r == 0)
 	    throw basic_exception("write: unable to write");
 	count -= r;
+	b += r;
     }
 }
