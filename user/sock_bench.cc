@@ -42,12 +42,40 @@ extern "C" {
 #endif
 }
 
-#include <inc/netbench.hh>
 #include <inc/errno.hh>
 
 static char threaded = 1;
 static int byte_count = 100;
 static int iter_count = 5;
+
+// for lif/socket.h macros
+static void
+nb_read(int s, char *b, int count)
+{
+    while (count) {
+	int r = read(s, b, count);
+	if (r < 0)
+	    throw basic_exception("read: %s", strerror(errno));
+	if (r == 0)
+	    throw basic_exception("read: EOF");
+	count -= r;
+	b += r;
+    }
+}
+
+static void
+nb_write(int s, char *b, int count)
+{
+    while (count) {
+	int r = write(s, b, count);
+	if (r < 0)
+	    throw basic_exception("write: %s", strerror(errno));
+	if (r == 0)
+	    throw basic_exception("write: unable to write");
+	count -= r;
+	b += r;
+    }
+}
 
 #if JOS64
 static void
