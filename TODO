@@ -53,8 +53,7 @@ Bugs:
 
 * netd bug (fetch'ing files hangs for some files but not others)
 * look for concurrency bugs using test harness (make disk ops async)
-* utrap TLS bug (easy to walk over stack...gate calls, switch stack
-  then a trap...)
+* netd connect() does not honor O_NONBLOCK
 
 Larger issues:
 
