@@ -17,18 +17,43 @@ static uint64_t root_container_id;
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
 {
-    char *buf = (char *) 0x90000000;
-    sprintf(buf, "Hello world.\n");
-
-    kern_syscall(SYS_cons_puts, (uintptr_t)buf, strlen(buf), 0, 0, 0, 0, 0);
-    kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
-    return;
-
     printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
 
-    if (++t->th_tf.tf_rip > 10)
-	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
+    char *goodbuf = (char *) 0x90000000;
+    char *badbuf  = (char *) 0x90001000;
+
+    switch (t->th_tf.tf_rip) {
+    case 0:
+	sprintf(goodbuf, "Hello world.\n");
+	break;
+
+    case 1:
+	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
+	break;
+
+    case 2:
+	sprintf(badbuf, "Hello world again.\n");
+	break;
+
+    case 3:
+	kern_syscall(SYS_cons_puts, (uintptr_t)badbuf, strlen(badbuf), 0, 0, 0, 0, 0);
+	break;
+
+    case 0xdeadbeef:
+	sprintf(goodbuf, "Faulted..\n");
+	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
+	break;
+
+    case 0xdeadbef0:
+	kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
+	break;
+
+    default:
+	printf("huh.. odd rip value\n");
+    }
+
+    t->th_tf.tf_rip++;
     schedule();
 }
 
@@ -56,6 +81,9 @@ bootstrap_stuff(void)
     assert(0 == as_alloc(rcl, &as));
     assert(0 == container_put(rc, &as->as_ko));
     assert(0 == kobject_set_nbytes(&as->as_ko, PGSIZE));
+    as->as_utrap_entry = 0xdeadbeef;
+    as->as_utrap_stack_base = UBASE;
+    as->as_utrap_stack_top = UBASE + PGSIZE;
 
     struct u_segment_mapping *usm;
     assert(0 == kobject_get_page(&as->as_ko, 0, (void **)&usm, page_excl_dirty));
@@ -64,7 +92,7 @@ bootstrap_stuff(void)
     usm[0].num_pages = 1;
     usm[0].flags = SEGMAP_READ | SEGMAP_WRITE;
     usm[0].kslot = 0;
-    usm[0].va = (void *) 0x90000000;
+    usm[0].va = (void *) UBASE;
 
     struct Thread *t;
     assert(0 == thread_alloc(rcl, tc, &t));
