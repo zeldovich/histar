@@ -98,30 +98,43 @@ printnum (void (*putch) (int, void *), void *putdat,
 
 // Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
-static unsigned long long
-getuint (va_list *ap, int lflag)
-{
-  if (lflag >= 2)
-    return va_arg (*ap, unsigned long long);
-  else if (lflag)
-    return va_arg (*ap, unsigned long);
-  else
-    return va_arg (*ap, unsigned int);
-}
+//
+// These cannot be functions without autoconf-like glue, unfortunately.
+// gcc-3.4.5 on x86_64 passes va_list by reference, and doesn't like the
+// type (va_list*), and gcc-3.4.6 on i386 passes va_list by value, and
+// does handle the type (va_list*).
+//
+// [http://www.opengroup.org/onlinepubs/009695399/basedefs/stdarg.h.html]
+// The object ap may be passed as an argument to another function;
+// if that function invokes the va_arg() macro with parameter ap,
+// the value of ap in the calling function is unspecified and shall
+// be passed to the va_end() macro prior to any further reference to ap.
+
+#define getuint(ap, lflag)			\
+  ({						\
+    long long __v;				\
+    if (lflag >= 2)				\
+      __v = va_arg (ap, unsigned long long);	\
+    else if (lflag)				\
+      __v = va_arg (ap, unsigned long);		\
+    else					\
+      __v = va_arg (ap, unsigned int);		\
+    __v;					\
+  })
 
 // Same as getuint but signed - can't use getuint
 // because of sign extension
-static long long
-getint (va_list *ap, int lflag)
-{
-  if (lflag >= 2)
-    return va_arg (*ap, long long);
-  else if (lflag)
-    return va_arg (*ap, long);
-  else
-    return va_arg (*ap, int);
-}
-
+#define getint(ap, lflag)			\
+  ({						\
+    long long __v;				\
+    if (lflag >= 2)				\
+      __v = va_arg (ap, long long);		\
+    else if (lflag)				\
+      __v = va_arg (ap, long);			\
+    else					\
+      __v = va_arg (ap, int);			\
+    __v;					\
+  })
 
 void
 vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
@@ -224,13 +237,13 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 
       // binary
     case 'b':
-      num = getint (&ap, lflag);
+      num = getint (ap, lflag);
       base = 2;
       goto number;
 
       // (signed) decimal
     case 'd':
-      num = getint (&ap, lflag);
+      num = getint (ap, lflag);
       if ((long long) num < 0) {
 	putch ('-', putdat);
 	num = -(long long) num;
@@ -240,13 +253,13 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 
       // unsigned decimal
     case 'u':
-      num = getuint (&ap, lflag);
+      num = getuint (ap, lflag);
       base = 10;
       goto number;
 
       // (unsigned) octal
     case 'o':
-      num = getuint (&ap, lflag);
+      num = getuint (ap, lflag);
       base = 8;
       goto number;
 
@@ -261,7 +274,7 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
 
       // (unsigned) hexadecimal
     case 'x':
-      num = getuint (&ap, lflag);
+      num = getuint (ap, lflag);
       base = 16;
     number:
       printnum (putch, putdat, num, base, MAX (width, 0), padc);
