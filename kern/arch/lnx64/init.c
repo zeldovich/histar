@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 char boot_cmdline[1024];
 
@@ -25,12 +26,11 @@ lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes)
 
     lnxdisk_init(disk_pn);
     lnxpage_init(membytes);
+    lnxpmap_init();
     timer_init();
 
     kobject_init();
     sched_init();
     pstate_init();
     prof_init();
-
-    actor_init();
 }

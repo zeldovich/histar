@@ -13,6 +13,9 @@
 extern void __k1_lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes);
 extern void __k2_lnx64_init(const char *disk_pn, const char *cmdline, uint64_t membytes);
 
+extern void __k1_actor_init(void);
+extern void __k2_actor_init(void);
+
 extern void __k1_actor_create(struct actor *ar, int tainted);
 extern void __k2_actor_create(struct actor *ar, int tainted);
 
@@ -47,6 +50,8 @@ main(int argc, char **av)
     __k2_lnx64_init(disk_pn, cmdline, 64 * 1024 * 1024);
 
     printf("HiStar/lnx64: twice the number of kernels!\n");
+    __k1_actor_init();
+    __k2_actor_init();
 
     struct actor ar[2][2];
     __k1_actor_create(&ar[0][0], 0);

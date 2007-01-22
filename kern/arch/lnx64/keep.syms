@@ -7,6 +7,7 @@ strlen
 strncpy
 strcmp
 strstr
+strerror
 printf
 fcntl
 read
@@ -16,6 +17,8 @@ getpid
 open
 ftruncate
 mmap
+munmap
+mprotect
 malloc
 free
 perror
@@ -30,3 +33,5 @@ __fxstat
 fstat
 __sigsetjmp
 siglongjmp
+sigemptyset
+sigaction

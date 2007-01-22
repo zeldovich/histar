@@ -18,20 +18,19 @@
 
 /* bootdata.c */
 #ifndef __ASSEMBLER__
-extern struct Pagemap bootpml4;
-
-extern struct Tss tss;
-extern uint64_t gdt[];
-extern struct Pseudodesc gdtdesc;
-extern struct Gatedesc idt[0x100];
-extern struct Pseudodesc idtdesc;
-
-/* mtrr.c */
-void mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type);
 
 /* pmap.c */
+#define LNX64_USER_BASE	0x90000000
+#define LNX64_USER_LIM	0x91000000
+
+struct Pagemapent {
+    void *va;
+    uint64_t pte;
+};
+
+#define NPME 32
 struct Pagemap {
-    uint64_t pm_ent[NPTENTRIES];
+    struct Pagemapent pme[NPME];
 };
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
