@@ -20,9 +20,6 @@
 #ifndef __ASSEMBLER__
 
 /* pmap.c */
-#define LNX64_USER_BASE	0x90000000
-#define LNX64_USER_LIM	0x91000000
-
 struct Pagemapent {
     void *va;
     uint64_t pte;

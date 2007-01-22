@@ -12,6 +12,7 @@
 #include <sys/mman.h>
 
 static struct Pagemap *cur_pm;
+enum { lnxpmap_debug = 0 };
 
 static void
 lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
@@ -22,7 +23,8 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
     void *va = si->si_addr;
     int code = si->si_code;
     uint32_t reqflags = 0;
-    printf("lnx64_sigsegv: faulting address %p, code %d\n", va, code);
+    if (lnxpmap_debug)
+	printf("lnx64_sigsegv: faulting address %p, code %d\n", va, code);
 
     /*
      * simulate hardware handling of this page fault..
@@ -59,7 +61,8 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 	exit(-1);
     }
 
-    printf("lnx64_sigsegv: no match in pagemap for va=%p\n", va);
+    if (lnxpmap_debug)
+	printf("lnx64_sigsegv: no match in pagemap for va=%p\n", va);
 
     int r = thread_pagefault(cur_thread, va, reqflags);
     if (r != 0 && r != -E_RESTART) {
@@ -70,8 +73,9 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 
     if (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();
-    printf("lnx64_sigsegv: returning back to %"PRIu64" (%s)\n",
-	   cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
+    if (lnxpmap_debug)
+	printf("lnx64_sigsegv: returning back to %"PRIu64" (%s)\n",
+		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name);
     recursive--;
     thread_run(cur_thread);
 }
@@ -79,9 +83,7 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 void
 lnxpmap_init(void)
 {
-    for (void *va = (void *) LNX64_USER_BASE;
-	 va < (void *) LNX64_USER_LIM; va += PGSIZE)
-    {
+    for (void *va = (void *) UBASE; va < (void *) ULIM; va += PGSIZE) {
 	int r = mprotect(va, PGSIZE, PROT_NONE);
 	if (r == 0 || errno != ENOMEM) {
 	    printf("lnxpmap_init(): %p: %d, %s\n", va, r, strerror(errno));
@@ -102,7 +104,7 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 {
     assert(cur_thread && cur_as);
 
-    if (base < (void *) LNX64_USER_BASE || base >= (void *) LNX64_USER_LIM)
+    if (base < (void *) UBASE || base >= (void *) ULIM)
 	return -E_INVAL;
 
     uint64_t pte_flags = PTE_P | PTE_U;
@@ -113,7 +115,7 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	for (void *va = (void *) ROUNDDOWN(base, PGSIZE);
 	     va < ROUNDUP(base + nbytes, PGSIZE); va += PGSIZE)
 	{
-	    if (va >= (void *) LNX64_USER_LIM)
+	    if (va >= (void *) ULIM)
 		return -E_INVAL;
 
 	    int va_ok = 0;
@@ -191,8 +193,8 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 void
 pmap_tlb_invlpg(const void *va)
 {
-    assert(va >= (void *) LNX64_USER_BASE);
-    assert(va < (void *) LNX64_USER_LIM);
+    assert(va >= (void *) UBASE);
+    assert(va < (void *) ULIM);
     munmap(ROUNDDOWN((void *) va, PGSIZE), PGSIZE);
 }
 
@@ -201,5 +203,5 @@ pmap_set_current(struct Pagemap *pm, int flush_tlb)
 {
     cur_pm = pm;
     if (flush_tlb)
-	munmap((void *) LNX64_USER_BASE, LNX64_USER_LIM - LNX64_USER_BASE);
+	munmap((void *) UBASE, ULIM - UBASE);
 }

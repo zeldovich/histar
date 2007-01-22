@@ -39,7 +39,8 @@
 #define PHYSBASE	UINT64 (0xffff800000000000)
 #define KSTACKTOP	(KERNBASE - PGSIZE)
 
-#define ULIM		UINT64 (0x0000800000000000)
+#define ULIM		0x91000000
+#define UBASE		0x90000000
 
 // At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
 // IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
