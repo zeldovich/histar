@@ -60,3 +60,16 @@ any discretionary access control based on them, in which case it's all
 good.  otherwise, it needs access to global category names to coordinate
 with other fileservers too..
 
+===
+
+can use TCPA-like stuff to trust histar without trusting node owners
+(probably just a mention in the paper)
+
+category garbage-collecton?  even if it's explicitly by category owner,
+the owner doesn't necessarily know what nodes its untrusted code has
+talked to...
+
+our RPC library should support pre-specified timeouts for gate calls
+and/or explicit call cancellaton which would unlink the container to
+ensure all tainted data is deleted from the remote end.
+
