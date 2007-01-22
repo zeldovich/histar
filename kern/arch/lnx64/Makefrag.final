@@ -24,8 +24,8 @@ KERN_K1_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k1_%,$(KERN_OBJ
 KERN_K2_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k2_%,$(KERN_OBJFILES))
 KERN_LINK_FILES := \
 	$(KERN_K1_OBJFILES) $(KERN_K2_OBJFILES) \
-	$(OBJDIR)/kern/driver.o $(OBJDIR)/kern/arc4.o
+	$(OBJDIR)/kern/driver-2cmp.o $(OBJDIR)/kern/arc4.o
 
-$(OBJDIR)/kern/kernel: $(KERN_LINK_FILES)
+$(OBJDIR)/kern/kernel-2cmp: $(KERN_LINK_FILES)
 	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_LINK_FILES)
 

@@ -21,8 +21,5 @@ KERN_LIB :=					\
 
 KERN_DEV :=
 
-#$(OBJDIR)/kern/kernel:
-#	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES)
-
-all: $(OBJDIR)/kern/kernel
+all: $(OBJDIR)/kern/kernel-2cmp
 
