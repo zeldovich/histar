@@ -1196,7 +1196,15 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
 	    jos_sigio_enable(fdnum);
 	if ((fd->fd_omode & O_ASYNC) && !(newmode & O_ASYNC))
 	    jos_sigio_disable(fdnum);
-	fd->fd_omode = newmode;
+
+	if (newmode != fd->fd_omode) {
+	    if (fd->fd_immutable) {
+		__set_errno(EPERM);
+		return -1;
+	    }
+
+	    fd->fd_omode = newmode;
+	}
 	return 0;
     }
 
