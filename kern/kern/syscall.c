@@ -25,6 +25,12 @@
 #include <inc/netdev.h>
 #include <inc/safeint.h>
 
+// The pad(T) macro generates a union type consisting of a T and a 64-bit
+// dummy value.  This is useful to pad a 32-bit pointer argument to 64-bit
+// width for syscall handlers which get called with 64-bit arguments from
+// kern_syscall().
+#define pad(T) union { T v; uint64_t dummy; }
+
 // Helper functions
 static const struct Label *cur_th_label;
 static const struct Label *cur_th_clearance;
@@ -89,14 +95,14 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 
 // Syscall handlers
 static void
-sys_cons_puts(const char *s, uint64_t size)
+sys_cons_puts(pad(const char *) s, uint64_t size)
 {
     int sz = size;
     if (sz < 0)
 	syscall_error(-E_INVAL);
 
-    check(check_user_access(s, sz, 0));
-    cprintf("%.*s", sz, s);
+    check(check_user_access(s.v, sz, 0));
+    cprintf("%.*s", sz, s.v);
 }
 
 static int64_t
@@ -123,7 +129,7 @@ sys_cons_probe(void)
 }
 
 static int64_t
-sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
+sys_net_create(uint64_t container, pad(struct ulabel *) ul, pad(const char *) name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
     struct Label *cl;
@@ -132,11 +138,11 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     check(label_compare(cur_th_label, cl, label_leq_starlo));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, 0);
+    alloc_ulabel(ul.v, &l, 0);
 
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, &ko));
-    alloc_set_name(&ko->hdr, name);
+    alloc_set_name(&ko->hdr, name.v);
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
@@ -177,7 +183,7 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
 }
 
 static void
-sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
+sys_net_macaddr(struct cobj_ref ndref, pad(uint8_t *) addrbuf)
 {
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
@@ -186,8 +192,8 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     if (ndev == 0)
 	syscall_error(-E_INVAL);
 
-    check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
-    netdev_macaddr(ndev, addrbuf);
+    check(check_user_access(addrbuf.v, 6, SEGMAP_WRITE));
+    netdev_macaddr(ndev, addrbuf.v);
 }
 
 static void
@@ -203,18 +209,18 @@ sys_machine_reboot(void)
 }
 
 static int64_t
-sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
-		    const char *name, uint64_t avoid_types, uint64_t quota)
+sys_container_alloc(uint64_t parent_ct, pad(struct ulabel *) ul,
+		    pad(const char *) name, uint64_t avoid_types, uint64_t quota)
 {
     const struct Container *parent;
     check(container_find(&parent, parent_ct, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &parent->ct_ko);
+    alloc_ulabel(ul.v, &l, &parent->ct_ko);
 
     struct Container *c;
     check(container_alloc(l, &c));
-    alloc_set_name(&c->ct_ko, name);
+    alloc_set_name(&c->ct_ko, name.v);
     c->ct_avoid_types = parent->ct_avoid_types | avoid_types;
 
     if (quota > CT_QUOTA_INF)
@@ -286,7 +292,7 @@ sys_obj_get_type(struct cobj_ref cobj)
 }
 
 static void
-sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
+sys_obj_get_label(struct cobj_ref cobj, pad(struct ulabel *) ul)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
@@ -295,16 +301,16 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 
     const struct Label *l;
     check(kobject_get_label(&ko->hdr, kolabel_contaminate, &l));
-    check(label_to_ulabel(l, ul));
+    check(label_to_ulabel(l, ul.v));
 }
 
 static void
-sys_obj_get_name(struct cobj_ref cobj, char *name)
+sys_obj_get_name(struct cobj_ref cobj, pad(char *) name)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(check_user_access(name, KOBJ_NAME_LEN, SEGMAP_WRITE));
-    strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
+    check(check_user_access(name.v, KOBJ_NAME_LEN, SEGMAP_WRITE));
+    strncpy(name.v, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
 }
 
 static int64_t
@@ -326,26 +332,26 @@ sys_obj_get_quota_avail(struct cobj_ref o)
 }
 
 static void
-sys_obj_get_meta(struct cobj_ref cobj, void *meta)
+sys_obj_get_meta(struct cobj_ref cobj, pad(void *) meta)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
-    check(check_user_access(meta, KOBJ_META_LEN, SEGMAP_WRITE));
-    memcpy(meta, &ko->hdr.ko_meta[0], KOBJ_META_LEN);
+    check(check_user_access(meta.v, KOBJ_META_LEN, SEGMAP_WRITE));
+    memcpy(meta.v, &ko->hdr.ko_meta[0], KOBJ_META_LEN);
 }
 
 static void
-sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
+sys_obj_set_meta(struct cobj_ref cobj, pad(const void *) oldm, pad(void *) newm)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
-    check(check_user_access(newm, KOBJ_META_LEN, 0));
-    if (oldm) {
-	check(check_user_access(oldm, KOBJ_META_LEN, 0));
-	if (memcmp(oldm, &ko->hdr.ko_meta[0], KOBJ_META_LEN))
+    check(check_user_access(newm.v, KOBJ_META_LEN, 0));
+    if (oldm.v) {
+	check(check_user_access(oldm.v, KOBJ_META_LEN, 0));
+	if (memcmp(oldm.v, &ko->hdr.ko_meta[0], KOBJ_META_LEN))
 	    syscall_error(-E_AGAIN);
     }
-    memcpy(&kobject_dirty(&ko->hdr)->hdr.ko_meta[0], newm, KOBJ_META_LEN);
+    memcpy(&kobject_dirty(&ko->hdr)->hdr.ko_meta[0], newm.v, KOBJ_META_LEN);
 }
 
 static void
@@ -434,19 +440,19 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 }
 
 static int64_t
-sys_gate_create(uint64_t container, struct thread_entry *ute,
-		struct ulabel *ul_recv, struct ulabel *ul_send,
-		const char *name, int entry_visible)
+sys_gate_create(uint64_t container, pad(struct thread_entry *) ute,
+		pad(struct ulabel *) ul_recv, pad(struct ulabel *) ul_send,
+		pad(const char *) name, int entry_visible)
 {
     struct thread_entry te;
-    check(check_user_access(ute, sizeof(te), 0));
-    memcpy(&te, ute, sizeof(te));
+    check(check_user_access(ute.v, sizeof(te), 0));
+    memcpy(&te, ute.v, sizeof(te));
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
 
     const struct Label *l_send;
-    alloc_ulabel(ul_send, &l_send, 0);
+    alloc_ulabel(ul_send.v, &l_send, 0);
     check(label_compare(cur_th_label, l_send, label_leq_starlo));
     check(label_compare(l_send, cur_th_clearance, label_leq_starlo));
 
@@ -456,12 +462,12 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
 		    clearance_bound, label_leq_starhi));
 
     const struct Label *clearance;
-    alloc_ulabel(ul_recv, &clearance, 0);
+    alloc_ulabel(ul_recv.v, &clearance, 0);
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
 
     struct Gate *g;
     check(gate_alloc(l_send, clearance, &g));
-    alloc_set_name(&g->gt_ko, name);
+    alloc_set_name(&g->gt_ko, name.v);
     g->gt_te = te;
     g->gt_te_visible = entry_visible ? 1 : 0;
 
@@ -470,18 +476,18 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
 }
 
 static void
-sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
+sys_gate_clearance(struct cobj_ref gate, pad(struct ulabel *) ul)
 {
     const struct kobject *ko;
     check(cobj_get(gate, kobj_gate, &ko, iflow_none));
 
     const struct Label *clear;
     check(kobject_get_label(&ko->hdr, kolabel_clearance, &clear));
-    check(label_to_ulabel(clear, ul));
+    check(label_to_ulabel(clear, ul.v));
 }
 
 static void
-sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *te)
+sys_gate_get_entry(struct cobj_ref gate, pad(struct thread_entry *) te)
 {
     const struct kobject *ko;
     check(cobj_get(gate, kobj_gate, &ko, iflow_none));
@@ -489,19 +495,19 @@ sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *te)
     if (!ko->gt.gt_te_visible)
 	syscall_error(-E_INVAL);
 
-    check(check_user_access(te, sizeof(*te), SEGMAP_WRITE));
-    memcpy(te, &ko->gt.gt_te, sizeof(*te));
+    check(check_user_access(te.v, sizeof(*te.v), SEGMAP_WRITE));
+    memcpy(te.v, &ko->gt.gt_te, sizeof(*te.v));
 }
 
 static int64_t
-sys_thread_create(uint64_t ct, const char *name)
+sys_thread_create(uint64_t ct, pad(const char *) name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
 
     struct Thread *t;
     check(thread_alloc(cur_th_label, cur_th_clearance, &t));
-    alloc_set_name(&t->th_ko, name);
+    alloc_set_name(&t->th_ko, name.v);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
     return t->th_ko.ko_id;
@@ -509,8 +515,8 @@ sys_thread_create(uint64_t ct, const char *name)
 
 static void
 sys_gate_enter(struct cobj_ref gt,
-	       struct ulabel *ulabel,
-	       struct ulabel *uclear)
+	       pad(struct ulabel *) ulabel,
+	       pad(struct ulabel *) uclear)
 {
     // Verify that the caller has supplied a valid verify label
     const struct Label *verify;
@@ -535,8 +541,8 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_max(gt_clear, cur_th_clearance, clear_bound, label_leq_starlo));
 
     const struct Label *new_label, *new_clear;
-    alloc_ulabel(ulabel, &new_label, 0);
-    alloc_ulabel(uclear, &new_clear, 0);
+    alloc_ulabel(ulabel.v, &new_label, 0);
+    alloc_ulabel(uclear.v, &new_clear, 0);
     check(label_compare(label_bound, new_label, label_leq_starlo));
     check(label_compare(new_clear, clear_bound, label_leq_starhi));
 
@@ -547,12 +553,12 @@ sys_gate_enter(struct cobj_ref gt,
 }
 
 static void
-sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
-		 struct ulabel *ul, struct ulabel *uclear)
+sys_thread_start(struct cobj_ref thread, pad(struct thread_entry *) ute,
+		 pad(struct ulabel *) ul, pad(struct ulabel *) uclear)
 {
     struct thread_entry te;
-    check(check_user_access(ute, sizeof(te), 0));
-    memcpy(&te, ute, sizeof(te));
+    check(check_user_access(ute.v, sizeof(te), 0));
+    memcpy(&te, ute.v, sizeof(te));
 
     const struct kobject *ko;
     check(cobj_get(thread, kobj_thread, &ko, iflow_rw));
@@ -562,10 +568,10 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 	check(-E_INVAL);
 
     const struct Label *new_label;
-    alloc_ulabel(ul, &new_label, &cur_th_label->lb_ko);
+    alloc_ulabel(ul.v, &new_label, &cur_th_label->lb_ko);
 
     const struct Label *new_clearance;
-    alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko);
+    alloc_ulabel(uclear.v, &new_clearance, &cur_th_clearance->lb_ko);
 
     check(label_compare(cur_th_label, new_label, label_leq_starlo));
     check(label_compare(new_label, new_clearance, label_leq_starlo));
@@ -625,10 +631,10 @@ sys_self_addref(uint64_t ct)
 }
 
 static void
-sys_self_get_as(struct cobj_ref *as_ref)
+sys_self_get_as(pad(struct cobj_ref *) as_ref)
 {
-    check(check_user_access(as_ref, sizeof(*as_ref), SEGMAP_WRITE));
-    *as_ref = cur_thread->th_asref;
+    check(check_user_access(as_ref.v, sizeof(*as_ref.v), SEGMAP_WRITE));
+    *as_ref.v = cur_thread->th_asref;
 }
 
 static void
@@ -638,10 +644,10 @@ sys_self_set_as(struct cobj_ref as_ref)
 }
 
 static void
-sys_self_set_label(struct ulabel *ul)
+sys_self_set_label(pad(struct ulabel *) ul)
 {
     const struct Label *l;
-    alloc_ulabel(ul, &l, 0);
+    alloc_ulabel(ul.v, &l, 0);
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(label_compare(l, cur_th_clearance, label_leq_starlo));
@@ -649,10 +655,10 @@ sys_self_set_label(struct ulabel *ul)
 }
 
 static void
-sys_self_set_clearance(struct ulabel *uclear)
+sys_self_set_clearance(pad(struct ulabel *) uclear)
 {
     const struct Label *clearance;
-    alloc_ulabel(uclear, &clearance, 0);
+    alloc_ulabel(uclear.v, &clearance, 0);
 
     struct Label *clearance_bound;
     check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
@@ -666,28 +672,28 @@ sys_self_set_clearance(struct ulabel *uclear)
 }
 
 static void
-sys_self_get_clearance(struct ulabel *uclear)
+sys_self_get_clearance(pad(struct ulabel *) uclear)
 {
-    check(label_to_ulabel(cur_th_clearance, uclear));
+    check(label_to_ulabel(cur_th_clearance, uclear.v));
 }
 
 static void
-sys_self_set_verify(struct ulabel *uv)
+sys_self_set_verify(pad(struct ulabel *) uv)
 {
     const struct Label *v;
-    alloc_ulabel(uv, &v, 0);
+    alloc_ulabel(uv.v, &v, 0);
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_verify, v));
 }
 
 static void
-sys_self_get_verify(struct ulabel *uv)
+sys_self_get_verify(pad(struct ulabel *) uv)
 {
     const struct Label *v;
     check(kobject_get_label(&cur_thread->th_ko, kolabel_verify, &v));
     if (!v)
 	check(label_alloc((struct Label **) &v, 3));
-    check(label_to_ulabel(v, uv));
+    check(label_to_ulabel(v, uv.v));
 }
 
 static void
@@ -715,33 +721,33 @@ sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 }
 
 static void
-sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
+sys_sync_wait(pad(uint64_t *) addr, uint64_t val, uint64_t wakeup_at_msec)
 {
-    check(check_user_access(addr, sizeof(*addr), 0));
-    check(sync_wait(addr, val, wakeup_at_msec));
+    check(check_user_access(addr.v, sizeof(*addr.v), 0));
+    check(sync_wait(addr.v, val, wakeup_at_msec));
 }
 
 static void
-sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
+sys_sync_wait_multi(pad(uint64_t **) addrs, pad(uint64_t *) vals, uint64_t num,
 		    uint64_t msec)
 {
     int overflow = 0;
-    check(check_user_access(vals,
-			    safe_mul(&overflow, sizeof(vals[0]), num), 0));
-    check(check_user_access(addrs,
-			    safe_mul(&overflow, sizeof(addrs[0]), num), 0));
+    check(check_user_access(vals.v,
+			    safe_mul(&overflow, sizeof(vals.v[0]), num), 0));
+    check(check_user_access(addrs.v,
+			    safe_mul(&overflow, sizeof(addrs.v[0]), num), 0));
     if (overflow)
 	syscall_error(-E_INVAL);
 
-    check(sync_wait_multi(addrs, vals, num, msec));
+    check(sync_wait_multi(addrs.v, vals.v, num, msec));
 }
 
 
 static void
-sys_sync_wakeup(uint64_t *addr)
+sys_sync_wakeup(pad(uint64_t *) addr)
 {
-    check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE));
-    check(sync_wakeup_addr(addr));
+    check(check_user_access(addr.v, sizeof(*addr.v), SEGMAP_WRITE));
+    check(sync_wakeup_addr(addr.v));
 }
 
 static int64_t
@@ -751,18 +757,18 @@ sys_clock_msec(void)
 }
 
 static int64_t
-sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
-		   const char *name)
+sys_segment_create(uint64_t ct, uint64_t num_bytes, pad(struct ulabel *) ul,
+		   pad(const char *) name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    alloc_ulabel(ul.v, &l, &c->ct_ko);
 
     struct Segment *sg;
     check(segment_alloc(l, &sg));
-    alloc_set_name(&sg->sg_ko, name);
+    alloc_set_name(&sg->sg_ko, name.v);
 
     check(segment_set_nbytes(sg, num_bytes));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
@@ -771,7 +777,7 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
 
 static int64_t
 sys_segment_copy(struct cobj_ref seg, uint64_t ct,
-		 struct ulabel *ul, const char *name)
+		 pad(struct ulabel *) ul, pad(const char *) name)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
@@ -780,11 +786,11 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
     check(cobj_get(seg, kobj_segment, &src, iflow_read));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    alloc_ulabel(ul.v, &l, &c->ct_ko);
 
     struct Segment *sg;
     check(segment_copy(&src->sg, l, &sg));
-    alloc_set_name(&sg->sg_ko, name);
+    alloc_set_name(&sg->sg_ko, name.v);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
@@ -826,24 +832,25 @@ sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes, uint64_t 
 }
 
 static int64_t
-sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
+sys_as_create(uint64_t container, pad(struct ulabel *) ul, pad(const char *) name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    alloc_ulabel(ul.v, &l, &c->ct_ko);
 
     struct Address_space *as;
     check(as_alloc(l, &as));
-    alloc_set_name(&as->as_ko, name);
+    alloc_set_name(&as->as_ko, name.v);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
 
 static int64_t
-sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const char *name)
+sys_as_copy(struct cobj_ref as, uint64_t container, pad(struct ulabel *) ul,
+	    pad(const char *) name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
@@ -852,46 +859,46 @@ sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const cha
     check(cobj_get(as, kobj_address_space, &src, iflow_read));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    alloc_ulabel(ul.v, &l, &c->ct_ko);
 
     struct Address_space *nas;
     check(as_copy(&src->as, l, &nas));
-    alloc_set_name(&nas->as_ko, name);
+    alloc_set_name(&nas->as_ko, name.v);
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &nas->as_ko));
     return nas->as_ko.ko_id;
 }
 
 static void
-sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
+sys_as_get(struct cobj_ref asref, pad(struct u_address_space *) uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
-    check(as_to_user(&ko->as, uas));
+    check(as_to_user(&ko->as, uas.v));
 }
 
 static void
-sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
+sys_as_set(struct cobj_ref asref, pad(struct u_address_space *) uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
-    check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas));
+    check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas.v));
 }
 
 static void
-sys_as_get_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
+sys_as_get_slot(struct cobj_ref asref, pad(struct u_segment_mapping *) usm)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
-    check(as_get_uslot(&kobject_dirty(&ko->hdr)->as, usm));
+    check(as_get_uslot(&kobject_dirty(&ko->hdr)->as, usm.v));
 }
 
 static void
-sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
+sys_as_set_slot(struct cobj_ref asref, pad(struct u_segment_mapping *) usm)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
-    check(as_set_uslot(&kobject_dirty(&ko->hdr)->as, usm));
+    check(as_set_uslot(&kobject_dirty(&ko->hdr)->as, usm.v));
 }
 
 static int64_t
