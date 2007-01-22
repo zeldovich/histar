@@ -21,6 +21,8 @@ bootstrap_tcb(void *arg, struct Thread *t)
     sprintf(buf, "Hello world.\n");
 
     kern_syscall(SYS_cons_puts, (uintptr_t)buf, strlen(buf), 0, 0, 0, 0, 0);
+    kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
+    return;
 
     printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);

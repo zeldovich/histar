@@ -69,11 +69,11 @@ lnx64_schedule_loop(void)
 {
     in_schedule_loop = 1;
 
-    if (sigsetjmp(env, 1) == 0)
-	schedule();
-    else
+    if (sigsetjmp(env, 1) != 0)
 	lnx64_thread_cb(arch_run_t);
 
+    if (!cur_thread)
+	schedule();
     thread_run(cur_thread);
     printf("lnx64_schedule: thread_run returned!\n");
     exit(-1);
