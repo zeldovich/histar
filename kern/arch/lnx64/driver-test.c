@@ -20,8 +20,8 @@ bootstrap_tcb(void *arg, struct Thread *t)
     printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
 
-    char *goodbuf = (char *) 0x90000000;
-    char *badbuf  = (char *) 0x90001000;
+    char *goodbuf = (char *) UBASE;
+    char *badbuf  = (char *) UBASE + PGSIZE;
 
     switch (t->th_tf.tf_rip) {
     case 0:
