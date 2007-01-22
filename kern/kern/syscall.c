@@ -117,9 +117,9 @@ sys_cons_getc(void)
 }
 
 static void
-sys_cons_cursor(int line, int col)
+sys_cons_cursor(pad(int) line, pad(int) col)
 {
-    cons_cursor(line, col);
+    cons_cursor(line.v, col.v);
 }
 
 static int64_t
@@ -166,7 +166,7 @@ sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
 
 static void
 sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
-	    netbuf_type type)
+	    pad(netbuf_type) type)
 {
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
@@ -179,7 +179,7 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
     check(cobj_get(seg, kobj_segment, &ks, iflow_rw));
 
     const struct Segment *sg = &ks->sg;
-    check(netdev_add_buf(ndev, sg, offset, type));
+    check(netdev_add_buf(ndev, sg, offset, type.v));
 }
 
 static void
@@ -442,7 +442,7 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 static int64_t
 sys_gate_create(uint64_t container, pad(struct thread_entry *) ute,
 		pad(struct ulabel *) ul_recv, pad(struct ulabel *) ul_send,
-		pad(const char *) name, int entry_visible)
+		pad(const char *) name, pad(int) entry_visible)
 {
     struct thread_entry te;
     check(check_user_access(ute.v, sizeof(te), 0));
@@ -469,7 +469,7 @@ sys_gate_create(uint64_t container, pad(struct thread_entry *) ute,
     check(gate_alloc(l_send, clearance, &g));
     alloc_set_name(&g->gt_ko, name.v);
     g->gt_te = te;
-    g->gt_te_visible = entry_visible ? 1 : 0;
+    g->gt_te_visible = entry_visible.v ? 1 : 0;
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko));
     return g->gt_ko.ko_id;
@@ -584,7 +584,7 @@ sys_thread_start(struct cobj_ref thread, pad(struct thread_entry *) ute,
 
 static void
 sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
-		uint32_t trapno, uint64_t arg)
+		pad(uint32_t) trapno, uint64_t arg)
 {
     const struct kobject *th, *as;
     check(cobj_get(thread, kobj_thread, &th, iflow_none));
@@ -601,7 +601,7 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     if (th->th.th_asref.object != asref.object)
 	syscall_error(-E_INVAL);
 
-    check(thread_utrap(&th->th, UTRAP_SRC_USER, trapno, arg));
+    check(thread_utrap(&th->th, UTRAP_SRC_USER, trapno.v, arg));
 }
 
 static void
