@@ -73,3 +73,6 @@ our RPC library should support pre-specified timeouts for gate calls
 and/or explicit call cancellaton which would unlink the container to
 ensure all tainted data is deleted from the remote end.
 
+front-end histar proxy to a linux box which labels any data handled
+by linux.  similar to what we could do with sane port labeling.
+
