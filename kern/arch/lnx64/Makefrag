@@ -1,6 +1,6 @@
 # -*-Makefile-*-
 
-KERN_CFLAGS += -mno-red-zone
+KERN_CFLAGS += -mno-red-zone -D_GNU_SOURCE=1
 EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\
@@ -21,5 +21,5 @@ KERN_LIB :=					\
 
 KERN_DEV :=
 
-all: $(OBJDIR)/kern/kernel-2cmp
+all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
 

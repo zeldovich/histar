@@ -983,9 +983,9 @@ static s64_syscall s64_syscalls[NSYSCALLS] = {
 };
 
 uint64_t
-syscall(syscall_num num, uint64_t a1,
-	uint64_t a2, uint64_t a3, uint64_t a4,
-	uint64_t a5, uint64_t a6, uint64_t a7)
+kern_syscall(syscall_num num, uint64_t a1,
+	     uint64_t a2, uint64_t a3, uint64_t a4,
+	     uint64_t a5, uint64_t a6, uint64_t a7)
 {
     syscall_ret = 0;
 

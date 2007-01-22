@@ -60,6 +60,8 @@ actor_create(struct actor *ar, int tainted)
     struct Thread *t;
     assert(0 == thread_alloc(tl, tc, &t));
     assert(0 == container_put(&kobject_dirty(&rc_ko->hdr)->ct, &t->th_ko));
+    thread_set_runnable(t);
+    thread_set_sched_parents(t, root_container_id, 0);
     ar->thread_id = t->th_ko.ko_id;
 }
 
@@ -91,10 +93,10 @@ action_run(struct actor *ar, struct actor_context *ac, struct action *an, struct
 	break;
 
     case actor_action_create_segment:
-	r->rval = syscall(SYS_segment_create,
-			  ar->scratch_ct,
-			  0, 0, 0,
-			  0, 0, 0);
+	r->rval = kern_syscall(SYS_segment_create,
+			       ar->scratch_ct,
+			       0, 0, 0,
+			       0, 0, 0);
 	break;
 
     default:

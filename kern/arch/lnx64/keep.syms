@@ -17,6 +17,7 @@ open
 ftruncate
 mmap
 malloc
+free
 perror
 nanosleep
 stdout
@@ -27,3 +28,5 @@ __udivdi3
 __umoddi3
 __fxstat
 fstat
+__sigsetjmp
+siglongjmp

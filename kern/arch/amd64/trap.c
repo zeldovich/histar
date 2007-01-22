@@ -115,9 +115,9 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
-	r = syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
-		    tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
-		    tf->tf_r9,  tf->tf_r10, tf->tf_r11);
+	r = kern_syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
+			 tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
+			 tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 	if (r != -E_RESTART)
 	    tf->tf_rax = r;
 	break;
@@ -164,7 +164,7 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
     }
 
     struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
-    sched_stop(t);
+    sched_stop(t, read_tsc());
 
     t->th_tf = *tf;
     if (t->th_fp_enabled) {
@@ -205,7 +205,7 @@ thread_arch_run(const struct Thread *t)
     LOAD_SEGMENT_REG(t, gs);
 #undef LOAD_SEGMENT_REG
 
-    sched_start(t);
+    sched_start(t, read_tsc());
     trapframe_pop(&t->th_tf);
 }
 

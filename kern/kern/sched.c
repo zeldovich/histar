@@ -68,15 +68,15 @@ sched_leave(struct Thread *t)
 }
 
 void
-sched_start(const struct Thread *t __attribute__((unused)))
+sched_start(const struct Thread *t __attribute__((unused)), uint64_t tsc)
 {
-    cur_start_tsc = read_tsc();
+    cur_start_tsc = tsc;
 }
 
 void
-sched_stop(struct Thread *t)
+sched_stop(struct Thread *t, uint64_t tsc)
 {
-    uint64_t elapsed_tsc = read_tsc() - cur_start_tsc;
+    uint64_t elapsed_tsc = tsc - cur_start_tsc;
     uint64_t tickets = t->th_sched_tickets ? : 1;
     uint128_t th_stride = stride1 / tickets;
     t->th_sched_pass += th_stride * elapsed_tsc;
