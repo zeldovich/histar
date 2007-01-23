@@ -111,7 +111,7 @@ main(int argc, char **av)
     const char *disk_pn = "/dev/null";
     const char *cmdline = "pstate=discard";
 
-    lnx64_init(disk_pn, cmdline, 8 * 1024 * 1024);
+    lnx64_init(disk_pn, cmdline, 256 * 1024);
     printf("HiStar/lnx64..\n");
 
     bootstrap_stuff();

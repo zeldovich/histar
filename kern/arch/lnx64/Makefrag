@@ -15,11 +15,12 @@ KERN_ARCH :=					\
 
 KERN_LIB :=					\
 	lib/$(ARCH)/longjmp.S			\
-	lib/printfmt.c				\
+	lib/sysstring.c				\
 	lib/cksum.c				\
 	lib/bf60.c
 
 KERN_DEV :=
 
-all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
+#all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
+all: $(OBJDIR)/kern/kernel-test
 
