@@ -19,9 +19,7 @@ public:
     void acquire();
 
 private:
-    static void entry_stub(void *arg, struct gate_call_data *gcd, gatesrv_return *r)
-	__attribute__((noreturn));
-    void entry(gatesrv_return *r) __attribute__((noreturn));
+    static void entry(void) __attribute__((noreturn));
 
     uint64_t handle_;
     struct cobj_ref gate_;
