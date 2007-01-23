@@ -28,44 +28,26 @@
 // Helper functions
 static const struct Label *cur_th_label;
 static const struct Label *cur_th_clearance;
-static uint64_t syscall_ret;
-static struct jos_jmp_buf syscall_retjmp;
 
-static void __attribute__((__noreturn__))
-syscall_error(int64_t r)
-{
-    if (r == -E_RESTART)
-	thread_syscall_restart(cur_thread);
+#define check(expr)					\
+    ({							\
+	int64_t __c = (expr);				\
+	if (__c < 0)					\
+	    return __c;					\
+	__c;						\
+    })
 
-    syscall_ret = r;
-    jos_longjmp(&syscall_retjmp, 1);
-}
-
-static int syscall_debug = 0;
-#define check(x) _check(x, #x, __LINE__)
-static int64_t
-_check(int64_t r, const char *what, int line)
-{
-    if (r < 0) {
-	if (syscall_debug)
-	    cprintf("syscall check failed (line %d): %s: %s\n",
-		    line, what, e2s(r));
-	syscall_error(r);
-    }
-
-    return r;
-}
-
-static void
+static int64_t __attribute__ ((warn_unused_result))
 alloc_set_name(struct kobject_hdr *ko, const char *name)
 {
     if (name) {
 	check(check_user_access(name, KOBJ_NAME_LEN, 0));
 	strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 	     const struct kobject_hdr *inherit_from)
 {
@@ -81,25 +63,27 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 	    check(kobject_get_label(inherit_from, kolabel_contaminate, lp));
 
 	if (!*lp)
-	    syscall_error(-E_INVAL);
+	    return -E_INVAL;
     } else {
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
     }
+    return 0;
 }
 
 // Syscall handlers
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_cons_puts(const char *s, uint64_t size)
 {
     int sz = size;
     if (sz < 0)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     check(check_user_access(s, sz, 0));
     cprintf("%.*s", sz, s);
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_cons_getc(void)
 {
     int c = cons_getc();
@@ -107,22 +91,23 @@ sys_cons_getc(void)
 	return c;
 
     thread_suspend(cur_thread, &console_waiting);
-    syscall_error(-E_RESTART);
+    return -E_RESTART;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_cons_cursor(int line, int col)
 {
     cons_cursor(line, col);
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_cons_probe(void)
 {
-    return cons_probe() ;
+    return cons_probe();
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
@@ -132,11 +117,11 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     check(label_compare(cur_th_label, cl, label_leq_starlo));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, 0);
+    check(alloc_ulabel(ul, &l, 0));
 
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, &ko));
-    alloc_set_name(&ko->hdr, name);
+    check(alloc_set_name(&ko->hdr, name));
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
@@ -145,7 +130,7 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     return ko->hdr.ko_id;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
 {
     const struct kobject *ko;
@@ -153,12 +138,12 @@ sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
 
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
-    return check(netdev_thread_wait(ndev, cur_thread, waiter_id, waitgen));
+    return netdev_thread_wait(ndev, cur_thread, waiter_id, waitgen);
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
 	    netbuf_type type)
 {
@@ -167,16 +152,17 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
 
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     const struct kobject *ks;
     check(cobj_get(seg, kobj_segment, &ks, iflow_rw));
 
     const struct Segment *sg = &ks->sg;
     check(netdev_add_buf(ndev, sg, offset, type));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 {
     const struct kobject *ko;
@@ -184,13 +170,14 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
 
     struct net_device *ndev = the_net_device;
     if (ndev == 0)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
     netdev_macaddr(ndev, addrbuf);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_machine_reboot(void)
 {
     struct Label *l;
@@ -200,9 +187,10 @@ sys_machine_reboot(void)
 
     check(pstate_sync_now());
     machine_reboot();
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
 		    const char *name, uint64_t avoid_types, uint64_t quota)
 {
@@ -210,11 +198,11 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
     check(container_find(&parent, parent_ct, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &parent->ct_ko);
+    check(alloc_ulabel(ul, &l, &parent->ct_ko));
 
     struct Container *c;
     check(container_alloc(l, &c));
-    alloc_set_name(&c->ct_ko, name);
+    check(alloc_set_name(&c->ct_ko, name));
     c->ct_avoid_types = parent->ct_avoid_types | avoid_types;
 
     if (quota > CT_QUOTA_INF)
@@ -226,7 +214,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
     return c->ct_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_unref(struct cobj_ref cobj)
 {
     // iflow_rw because return code from container_unref
@@ -237,9 +225,10 @@ sys_obj_unref(struct cobj_ref cobj)
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     check(container_unref(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 {
     const struct Container *c;
@@ -250,7 +239,7 @@ sys_container_get_slot_id(uint64_t ct, uint64_t slot)
     return id;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_handle_create(void)
 {
     uint64_t handle = handle_alloc();
@@ -276,7 +265,7 @@ sys_handle_create(void)
     return handle;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_type(struct cobj_ref cobj)
 {
     const struct kobject *ko;
@@ -285,7 +274,7 @@ sys_obj_get_type(struct cobj_ref cobj)
     return ko->hdr.ko_type;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
 {
     const struct kobject *ko;
@@ -296,18 +285,20 @@ sys_obj_get_label(struct cobj_ref cobj, struct ulabel *ul)
     const struct Label *l;
     check(kobject_get_label(&ko->hdr, kolabel_contaminate, &l));
     check(label_to_ulabel(l, ul));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_name(struct cobj_ref cobj, char *name)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     check(check_user_access(name, KOBJ_NAME_LEN, SEGMAP_WRITE));
     strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_quota_total(struct cobj_ref o)
 {
     const struct kobject *ko;
@@ -315,7 +306,7 @@ sys_obj_get_quota_total(struct cobj_ref o)
     return ko->hdr.ko_quota_total;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_quota_avail(struct cobj_ref o)
 {
     const struct kobject *ko;
@@ -325,16 +316,17 @@ sys_obj_get_quota_avail(struct cobj_ref o)
     return ko->hdr.ko_quota_total - ko->hdr.ko_quota_used;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_meta(struct cobj_ref cobj, void *meta)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
     check(check_user_access(meta, KOBJ_META_LEN, SEGMAP_WRITE));
     memcpy(meta, &ko->hdr.ko_meta[0], KOBJ_META_LEN);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
 {
     const struct kobject *ko;
@@ -343,32 +335,35 @@ sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
     if (oldm) {
 	check(check_user_access(oldm, KOBJ_META_LEN, 0));
 	if (memcmp(oldm, &ko->hdr.ko_meta[0], KOBJ_META_LEN))
-	    syscall_error(-E_AGAIN);
+	    return -E_AGAIN;
     }
     memcpy(&kobject_dirty(&ko->hdr)->hdr.ko_meta[0], newm, KOBJ_META_LEN);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_set_fixedquota(struct cobj_ref cobj)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
     kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_FIXED_QUOTA;
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_set_readonly(struct cobj_ref cobj)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
 
     if (ko->hdr.ko_type == kobj_thread)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     kobject_dirty(&ko->hdr)->hdr.ko_flags |= KOBJ_READONLY;
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_obj_get_readonly(struct cobj_ref cobj)
 {
     const struct kobject *ko;
@@ -376,7 +371,7 @@ sys_obj_get_readonly(struct cobj_ref cobj)
     return (ko->hdr.ko_flags & KOBJ_READONLY) ? 1 : 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_container_get_nslots(uint64_t container)
 {
     const struct Container *c;
@@ -384,7 +379,7 @@ sys_container_get_nslots(uint64_t container)
     return container_nslots(c);
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_container_get_parent(uint64_t container)
 {
     const struct Container *c;
@@ -392,27 +387,27 @@ sys_container_get_parent(uint64_t container)
     return c->ct_ko.ko_parent;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 {
     // Positive nbytes is parent -> child; negative is child -> parent.
     uint64_t abs_nbytes = nbytes > 0 ? nbytes : -nbytes;
     if (nbytes == 0)
-	return;
+	return 0;
 
     const struct Container *parent;
     const struct kobject *child;
     check(container_find(&parent, parent_id, iflow_rw));
     check(cobj_get(COBJ(parent_id, child_id), kobj_any, &child, iflow_rw));
     if ((child->hdr.ko_flags & KOBJ_FIXED_QUOTA))
-	syscall_error(-E_FIXED_QUOTA);
+	return -E_FIXED_QUOTA;
 
     uint64_t new_child_total;
 
     if (nbytes > 0) {
 	if (parent->ct_ko.ko_quota_total != CT_QUOTA_INF &&
 	    parent->ct_ko.ko_quota_total - parent->ct_ko.ko_quota_used < abs_nbytes)
-	    syscall_error(-E_RESOURCE);
+	    return -E_RESOURCE;
 
 	if (child->hdr.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
 	    new_child_total = CT_QUOTA_INF;
@@ -421,19 +416,20 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
     } else {
 	if (child->hdr.ko_quota_total == CT_QUOTA_INF) {
 	    cprintf("move_quota: cannot revoke child infinity\n");
-	    syscall_error(-E_RESOURCE);
+	    return -E_RESOURCE;
 	}
 
 	new_child_total = child->hdr.ko_quota_total - abs_nbytes;
 	if (new_child_total < child->hdr.ko_quota_used)
-	    syscall_error(-E_RESOURCE);
+	    return -E_RESOURCE;
     }
 
     kobject_dirty(&parent->ct_ko)->hdr.ko_quota_used += nbytes;
     kobject_dirty(&child->hdr)->hdr.ko_quota_total = new_child_total;
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_gate_create(uint64_t container, struct thread_entry *ute,
 		struct ulabel *ul_recv, struct ulabel *ul_send,
 		const char *name, int entry_visible)
@@ -446,7 +442,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     check(container_find(&c, container, iflow_rw));
 
     const struct Label *l_send;
-    alloc_ulabel(ul_send, &l_send, 0);
+    check(alloc_ulabel(ul_send, &l_send, 0));
     check(label_compare(cur_th_label, l_send, label_leq_starlo));
     check(label_compare(l_send, cur_th_clearance, label_leq_starlo));
 
@@ -456,12 +452,12 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
 		    clearance_bound, label_leq_starhi));
 
     const struct Label *clearance;
-    alloc_ulabel(ul_recv, &clearance, 0);
+    check(alloc_ulabel(ul_recv, &clearance, 0));
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
 
     struct Gate *g;
     check(gate_alloc(l_send, clearance, &g));
-    alloc_set_name(&g->gt_ko, name);
+    check(alloc_set_name(&g->gt_ko, name));
     g->gt_te = te;
     g->gt_te_visible = entry_visible ? 1 : 0;
 
@@ -469,7 +465,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     return g->gt_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
 {
     const struct kobject *ko;
@@ -478,22 +474,24 @@ sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul)
     const struct Label *clear;
     check(kobject_get_label(&ko->hdr, kolabel_clearance, &clear));
     check(label_to_ulabel(clear, ul));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *te)
 {
     const struct kobject *ko;
     check(cobj_get(gate, kobj_gate, &ko, iflow_none));
 
     if (!ko->gt.gt_te_visible)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     check(check_user_access(te, sizeof(*te), SEGMAP_WRITE));
     memcpy(te, &ko->gt.gt_te, sizeof(*te));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_thread_create(uint64_t ct, const char *name)
 {
     const struct Container *c;
@@ -501,13 +499,13 @@ sys_thread_create(uint64_t ct, const char *name)
 
     struct Thread *t;
     check(thread_alloc(cur_th_label, cur_th_clearance, &t));
-    alloc_set_name(&t->th_ko, name);
+    check(alloc_set_name(&t->th_ko, name));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &t->th_ko));
     return t->th_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_gate_enter(struct cobj_ref gt,
 	       struct ulabel *ulabel,
 	       struct ulabel *uclear)
@@ -535,8 +533,8 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_max(gt_clear, cur_th_clearance, clear_bound, label_leq_starlo));
 
     const struct Label *new_label, *new_clear;
-    alloc_ulabel(ulabel, &new_label, 0);
-    alloc_ulabel(uclear, &new_clear, 0);
+    check(alloc_ulabel(ulabel, &new_label, 0));
+    check(alloc_ulabel(uclear, &new_clear, 0));
     check(label_compare(label_bound, new_label, label_leq_starlo));
     check(label_compare(new_clear, clear_bound, label_leq_starhi));
 
@@ -544,9 +542,10 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_compare(new_label, new_clear, label_leq_starlo));
 
     check(thread_jump(cur_thread, new_label, new_clear, &g->gt_te));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 		 struct ulabel *ul, struct ulabel *uclear)
 {
@@ -562,10 +561,10 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 	check(-E_INVAL);
 
     const struct Label *new_label;
-    alloc_ulabel(ul, &new_label, &cur_th_label->lb_ko);
+    check(alloc_ulabel(ul, &new_label, &cur_th_label->lb_ko));
 
     const struct Label *new_clearance;
-    alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko);
+    check(alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko));
 
     check(label_compare(cur_th_label, new_label, label_leq_starlo));
     check(label_compare(new_label, new_clearance, label_leq_starlo));
@@ -574,9 +573,10 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(thread_jump(t, new_label, new_clearance, &te));
     thread_set_sched_parents(t, thread.container, 0);
     thread_set_runnable(t);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
 		uint32_t trapno, uint64_t arg)
 {
@@ -593,66 +593,73 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     check(label_compare(lmax, cur_th_label, label_leq_starlo));
 
     if (th->th.th_asref.object != asref.object)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     check(thread_utrap(&th->th, UTRAP_SRC_USER, trapno, arg));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_yield(void)
 {
     schedule();
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_halt(void)
 {
     thread_halt(cur_thread);
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_id(void)
 {
     return cur_thread->th_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_addref(uint64_t ct)
 {
     const struct Container *c;
     check(container_find(&c, ct, iflow_rw));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &cur_thread->th_ko));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_as(struct cobj_ref *as_ref)
 {
     check(check_user_access(as_ref, sizeof(*as_ref), SEGMAP_WRITE));
     *as_ref = cur_thread->th_asref;
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_as(struct cobj_ref as_ref)
 {
     thread_change_as(cur_thread, as_ref);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_label(struct ulabel *ul)
 {
     const struct Label *l;
-    alloc_ulabel(ul, &l, 0);
+    check(alloc_ulabel(ul, &l, 0));
 
     check(label_compare(cur_th_label, l, label_leq_starlo));
     check(label_compare(l, cur_th_clearance, label_leq_starlo));
     check(thread_change_label(cur_thread, l));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_clearance(struct ulabel *uclear)
 {
     const struct Label *clearance;
-    alloc_ulabel(uclear, &clearance, 0);
+    check(alloc_ulabel(uclear, &clearance, 0));
 
     struct Label *clearance_bound;
     check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
@@ -663,24 +670,27 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(label_compare(clearance, clearance_bound, label_leq_starhi));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_clearance, clearance));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_clearance(struct ulabel *uclear)
 {
     check(label_to_ulabel(cur_th_clearance, uclear));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_verify(struct ulabel *uv)
 {
     const struct Label *v;
-    alloc_ulabel(uv, &v, 0);
+    check(alloc_ulabel(uv, &v, 0));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_verify, v));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_verify(struct ulabel *uv)
 {
     const struct Label *v;
@@ -688,40 +698,46 @@ sys_self_get_verify(struct ulabel *uv)
     if (!v)
 	check(label_alloc((struct Label **) &v, 3));
     check(label_to_ulabel(v, uv));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_fp_enable(void)
 {
     check(thread_enable_fp(cur_thread));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_fp_disable(void)
 {
     thread_disable_fp(cur_thread);
+    return 0;
 }
 
-static void 
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_waitslots(uint64_t nslots)
 {
     check(thread_set_waitslots(cur_thread, nslots));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 {
     thread_set_sched_parents(cur_thread, p0, p1);
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
     check(check_user_access(addr, sizeof(*addr), 0));
     check(sync_wait(addr, val, wakeup_at_msec));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
 		    uint64_t msec)
 {
@@ -731,26 +747,28 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
     check(check_user_access(addrs,
 			    safe_mul(&overflow, sizeof(addrs[0]), num), 0));
     if (overflow)
-	syscall_error(-E_INVAL);
+	return -E_INVAL;
 
     check(sync_wait_multi(addrs, vals, num, msec));
+    return 0;
 }
 
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wakeup(uint64_t *addr)
 {
     check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE));
     check(sync_wakeup_addr(addr));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_clock_msec(void)
 {
     return timer_user_msec;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
 		   const char *name)
 {
@@ -758,18 +776,18 @@ sys_segment_create(uint64_t ct, uint64_t num_bytes, struct ulabel *ul,
     check(container_find(&c, ct, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    check(alloc_ulabel(ul, &l, &c->ct_ko));
 
     struct Segment *sg;
     check(segment_alloc(l, &sg));
-    alloc_set_name(&sg->sg_ko, name);
+    check(alloc_set_name(&sg->sg_ko, name));
 
     check(segment_set_nbytes(sg, num_bytes));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_copy(struct cobj_ref seg, uint64_t ct,
 		 struct ulabel *ul, const char *name)
 {
@@ -780,17 +798,17 @@ sys_segment_copy(struct cobj_ref seg, uint64_t ct,
     check(cobj_get(seg, kobj_segment, &src, iflow_read));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    check(alloc_ulabel(ul, &l, &c->ct_ko));
 
     struct Segment *sg;
     check(segment_copy(&src->sg, l, &sg));
-    alloc_set_name(&sg->sg_ko, name);
+    check(alloc_set_name(&sg->sg_ko, name));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &sg->sg_ko));
     return sg->sg_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_addref(struct cobj_ref seg, uint64_t ct)
 {
     const struct Container *c;
@@ -799,17 +817,19 @@ sys_segment_addref(struct cobj_ref seg, uint64_t ct)
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_read));
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_resize(struct cobj_ref sg_cobj, uint64_t num_bytes)
 {
     const struct kobject *ko;
     check(cobj_get(sg_cobj, kobj_segment, &ko, iflow_rw));
     check(segment_set_nbytes(&kobject_dirty(&ko->hdr)->sg, num_bytes));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_get_nbytes(struct cobj_ref sg_cobj)
 {
     const struct kobject *ko;
@@ -817,32 +837,33 @@ sys_segment_get_nbytes(struct cobj_ref sg_cobj)
     return ko->sg.sg_ko.ko_nbytes;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes, uint64_t pstate_ts)
 {
     const struct kobject *ko;
     check(cobj_get(seg, kobj_segment, &ko, iflow_rw));
     check(pstate_sync_object(pstate_ts, ko, start, nbytes));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_create(uint64_t container, struct ulabel *ul, const char *name)
 {
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    check(alloc_ulabel(ul, &l, &c->ct_ko));
 
     struct Address_space *as;
     check(as_alloc(l, &as));
-    alloc_set_name(&as->as_ko, name);
+    check(alloc_set_name(&as->as_ko, name));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &as->as_ko));
     return as->as_ko.ko_id;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const char *name)
 {
     const struct Container *c;
@@ -852,84 +873,74 @@ sys_as_copy(struct cobj_ref as, uint64_t container, struct ulabel *ul, const cha
     check(cobj_get(as, kobj_address_space, &src, iflow_read));
 
     const struct Label *l;
-    alloc_ulabel(ul, &l, &c->ct_ko);
+    check(alloc_ulabel(ul, &l, &c->ct_ko));
 
     struct Address_space *nas;
     check(as_copy(&src->as, l, &nas));
-    alloc_set_name(&nas->as_ko, name);
+    check(alloc_set_name(&nas->as_ko, name));
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &nas->as_ko));
     return nas->as_ko.ko_id;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_get(struct cobj_ref asref, struct u_address_space *uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
     check(as_to_user(&ko->as, uas));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_set(struct cobj_ref asref, struct u_address_space *uas)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
     check(as_from_user(&kobject_dirty(&ko->hdr)->as, uas));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_get_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_read));
     check(as_get_uslot(&kobject_dirty(&ko->hdr)->as, usm));
+    return 0;
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
 {
     const struct kobject *ko;
     check(cobj_get(asref, kobj_address_space, &ko, iflow_rw));
     check(as_set_uslot(&kobject_dirty(&ko->hdr)->as, usm));
+    return 0;
 }
 
-static int64_t
+static int64_t __attribute__ ((warn_unused_result))
 sys_pstate_timestamp(void)
 {
     return handle_alloc();
 }
 
-static void
+static int64_t __attribute__ ((warn_unused_result))
 sys_pstate_sync(uint64_t timestamp)
 {
     check(pstate_sync_user(timestamp));
+    return 0;
 }
 
-#define SYSCALL_VOID(name, ...)						\
-    case SYS_##name: {							\
-	__attribute__((unused)) void (*__checktype)() = sys_##name;	\
-	sys_##name(__VA_ARGS__);					\
-	break;								\
-    }
+#define SYSCALL(name, ...)						\
+    case SYS_##name:							\
+	return sys_##name(__VA_ARGS__);
 
-#define SYSCALL_S64(name, ...)						\
-    case SYS_##name: {							\
-	 __attribute__((unused)) int64_t (*__checktype)() = sys_##name;	\
-	syscall_ret = sys_##name(__VA_ARGS__);				\
-	break;								\
-    }
-
-uint64_t
-kern_syscall(syscall_num num, uint64_t a1,
+static int64_t __attribute__ ((warn_unused_result))
+syscall_exec(syscall_num num, uint64_t a1,
 	     uint64_t a2, uint64_t a3, uint64_t a4,
 	     uint64_t a5, uint64_t a6, uint64_t a7)
 {
-    syscall_ret = 0;
-
-    uint64_t s, f;
-    s = read_tsc();
-
     void __attribute__((unused)) *p1 = (void *) (uintptr_t) a1;
     void __attribute__((unused)) *p2 = (void *) (uintptr_t) a2;
     void __attribute__((unused)) *p3 = (void *) (uintptr_t) a3;
@@ -938,89 +949,95 @@ kern_syscall(syscall_num num, uint64_t a1,
     void __attribute__((unused)) *p6 = (void *) (uintptr_t) a6;
     void __attribute__((unused)) *p7 = (void *) (uintptr_t) a7;
 
-    if (jos_setjmp(&syscall_retjmp) == 0) {
-	check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
-				&cur_th_label));
-	check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance,
-				&cur_th_clearance));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
+			    &cur_th_label));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_clearance,
+			    &cur_th_clearance));
 
-	switch (num) {
-	SYSCALL_VOID(cons_puts, p1, a2);
-	SYSCALL_VOID(cons_cursor, a1, a2);
-	SYSCALL_VOID(net_macaddr, COBJ(a1, a2), p3);
-	SYSCALL_VOID(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
-	SYSCALL_VOID(machine_reboot);
-	SYSCALL_VOID(container_move_quota, a1, a2, a3);
-	SYSCALL_VOID(obj_unref, COBJ(a1, a2));
-	SYSCALL_VOID(obj_get_label, COBJ(a1, a2), p3);
-	SYSCALL_VOID(obj_get_name, COBJ(a1, a2), p3);
-	SYSCALL_VOID(obj_get_meta, COBJ(a1, a2), p3);
-	SYSCALL_VOID(obj_set_meta, COBJ(a1, a2), p3, p4);
-	SYSCALL_VOID(obj_set_fixedquota, COBJ(a1, a2));
-	SYSCALL_VOID(obj_set_readonly, COBJ(a1, a2));
-	SYSCALL_VOID(gate_enter, COBJ(a1, a2), p3, p4);
-	SYSCALL_VOID(gate_clearance, COBJ(a1, a2), p3);
-	SYSCALL_VOID(gate_get_entry, COBJ(a1, a2), p3);
-	SYSCALL_VOID(thread_start, COBJ(a1, a2), p3, p4, p5);
-	SYSCALL_VOID(thread_trap, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
-	SYSCALL_VOID(self_yield);
-	SYSCALL_VOID(self_halt);
-	SYSCALL_VOID(self_addref, a1);
-	SYSCALL_VOID(self_get_as, p1);
-	SYSCALL_VOID(self_set_as, COBJ(a1, a2));
-	SYSCALL_VOID(self_set_label, p1);
-	SYSCALL_VOID(self_set_clearance, p1);
-	SYSCALL_VOID(self_get_clearance, p1);
-	SYSCALL_VOID(self_set_verify, p1);
-	SYSCALL_VOID(self_get_verify, p1);
-	SYSCALL_VOID(self_fp_enable);
-	SYSCALL_VOID(self_fp_disable);
-	SYSCALL_VOID(self_set_waitslots, a1);
-	SYSCALL_VOID(self_set_sched_parents, a1, a2);
-	SYSCALL_VOID(sync_wait, p1, a2, a3);
-	SYSCALL_VOID(sync_wait_multi, p1, p2, a3, a4);
-	SYSCALL_VOID(sync_wakeup, p1);
-	SYSCALL_VOID(segment_addref, COBJ(a1, a2), a3);
-	SYSCALL_VOID(segment_resize, COBJ(a1, a2), a3);
-	SYSCALL_VOID(segment_sync, COBJ(a1, a2), a3, a4, a5);
-	SYSCALL_VOID(as_get, COBJ(a1, a2), p3);
-	SYSCALL_VOID(as_set, COBJ(a1, a2), p3);
-	SYSCALL_VOID(as_get_slot, COBJ(a1, a2), p3);
-	SYSCALL_VOID(as_set_slot, COBJ(a1, a2), p3);
-	SYSCALL_VOID(pstate_sync, a1);
+    switch (num) {
+	SYSCALL(cons_puts, p1, a2);
+	SYSCALL(cons_cursor, a1, a2);
+	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
+	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
+	SYSCALL(machine_reboot);
+	SYSCALL(container_move_quota, a1, a2, a3);
+	SYSCALL(obj_unref, COBJ(a1, a2));
+	SYSCALL(obj_get_label, COBJ(a1, a2), p3);
+	SYSCALL(obj_get_name, COBJ(a1, a2), p3);
+	SYSCALL(obj_get_meta, COBJ(a1, a2), p3);
+	SYSCALL(obj_set_meta, COBJ(a1, a2), p3, p4);
+	SYSCALL(obj_set_fixedquota, COBJ(a1, a2));
+	SYSCALL(obj_set_readonly, COBJ(a1, a2));
+	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4);
+	SYSCALL(gate_clearance, COBJ(a1, a2), p3);
+	SYSCALL(gate_get_entry, COBJ(a1, a2), p3);
+	SYSCALL(thread_start, COBJ(a1, a2), p3, p4, p5);
+	SYSCALL(thread_trap, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
+	SYSCALL(self_yield);
+	SYSCALL(self_halt);
+	SYSCALL(self_addref, a1);
+	SYSCALL(self_get_as, p1);
+	SYSCALL(self_set_as, COBJ(a1, a2));
+	SYSCALL(self_set_label, p1);
+	SYSCALL(self_set_clearance, p1);
+	SYSCALL(self_get_clearance, p1);
+	SYSCALL(self_set_verify, p1);
+	SYSCALL(self_get_verify, p1);
+	SYSCALL(self_fp_enable);
+	SYSCALL(self_fp_disable);
+	SYSCALL(self_set_waitslots, a1);
+	SYSCALL(self_set_sched_parents, a1, a2);
+	SYSCALL(sync_wait, p1, a2, a3);
+	SYSCALL(sync_wait_multi, p1, p2, a3, a4);
+	SYSCALL(sync_wakeup, p1);
+	SYSCALL(segment_addref, COBJ(a1, a2), a3);
+	SYSCALL(segment_resize, COBJ(a1, a2), a3);
+	SYSCALL(segment_sync, COBJ(a1, a2), a3, a4, a5);
+	SYSCALL(as_get, COBJ(a1, a2), p3);
+	SYSCALL(as_set, COBJ(a1, a2), p3);
+	SYSCALL(as_get_slot, COBJ(a1, a2), p3);
+	SYSCALL(as_set_slot, COBJ(a1, a2), p3);
+	SYSCALL(pstate_sync, a1);
 
-	SYSCALL_S64(cons_getc);
-	SYSCALL_S64(cons_probe);
-	SYSCALL_S64(net_create, a1, p2, p3);
-	SYSCALL_S64(net_wait, COBJ(a1, a2), a3, a4);
-	SYSCALL_S64(handle_create);
-	SYSCALL_S64(obj_get_quota_total, COBJ(a1, a2));
-	SYSCALL_S64(obj_get_quota_avail, COBJ(a1, a2));
-	SYSCALL_S64(obj_get_type, COBJ(a1, a2));
-	SYSCALL_S64(obj_get_readonly, COBJ(a1, a2));
-	SYSCALL_S64(container_alloc, a1, p2, p3, a4, a5);
-	SYSCALL_S64(container_get_slot_id, a1, a2);
-	SYSCALL_S64(container_get_nslots, a1);
-	SYSCALL_S64(container_get_parent, a1);
-	SYSCALL_S64(thread_create, a1, p2);
-	SYSCALL_S64(self_id);
-	SYSCALL_S64(clock_msec);
-	SYSCALL_S64(segment_create, a1, a2, p3, p4);
-	SYSCALL_S64(segment_copy, COBJ(a1, a2), a3, p4, p5);
-	SYSCALL_S64(segment_get_nbytes, COBJ(a1, a2));
-	SYSCALL_S64(gate_create, a1, p2, p3, p4, p5, a6);
-	SYSCALL_S64(as_create, a1, p2, p3);
-	SYSCALL_S64(as_copy, COBJ(a1, a2), a3, p4, p5);
-	SYSCALL_S64(pstate_timestamp);
+	SYSCALL(cons_getc);
+	SYSCALL(cons_probe);
+	SYSCALL(net_create, a1, p2, p3);
+	SYSCALL(net_wait, COBJ(a1, a2), a3, a4);
+	SYSCALL(handle_create);
+	SYSCALL(obj_get_quota_total, COBJ(a1, a2));
+	SYSCALL(obj_get_quota_avail, COBJ(a1, a2));
+	SYSCALL(obj_get_type, COBJ(a1, a2));
+	SYSCALL(obj_get_readonly, COBJ(a1, a2));
+	SYSCALL(container_alloc, a1, p2, p3, a4, a5);
+	SYSCALL(container_get_slot_id, a1, a2);
+	SYSCALL(container_get_nslots, a1);
+	SYSCALL(container_get_parent, a1);
+	SYSCALL(thread_create, a1, p2);
+	SYSCALL(self_id);
+	SYSCALL(clock_msec);
+	SYSCALL(segment_create, a1, a2, p3, p4);
+	SYSCALL(segment_copy, COBJ(a1, a2), a3, p4, p5);
+	SYSCALL(segment_get_nbytes, COBJ(a1, a2));
+	SYSCALL(gate_create, a1, p2, p3, p4, p5, a6);
+	SYSCALL(as_create, a1, p2, p3);
+	SYSCALL(as_copy, COBJ(a1, a2), a3, p4, p5);
+	SYSCALL(pstate_timestamp);
 
-	default:
-	    cprintf("Unknown syscall %d\n", num);
-	    syscall_error(-E_INVAL);
-	}
+    default:
+	cprintf("Unknown syscall %d\n", num);
+	return -E_INVAL;
     }
+}
 
-    f = read_tsc();
-    prof_syscall(num, f - s);
-
-    return syscall_ret;
+uint64_t
+kern_syscall(syscall_num num, uint64_t a1,
+	     uint64_t a2, uint64_t a3, uint64_t a4,
+	     uint64_t a5, uint64_t a6, uint64_t a7)
+{
+    uint64_t s = read_tsc();
+    int64_t r = syscall_exec(num, a1, a2, a3, a4, a5, a6, a7);
+    if (r == -E_RESTART)
+	thread_syscall_restart(cur_thread);
+    prof_syscall(num, read_tsc() - s);
+    return r;
 }
