@@ -3,6 +3,8 @@
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/stack.h>
+#include <inc/error.h>
+#include <string.h>
 
 static void __attribute__((noreturn))
 thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
@@ -35,12 +37,13 @@ int
 thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, const char *name)
 {
-    return thread_create_option(container, entry, arg, threadp, 
+    return thread_create_option(container, entry, arg, 0, threadp, 
 				name, 0, THREAD_OPT_CLEANUP);
 }
 
 int
-thread_create_option(uint64_t container, void (*entry)(void*), void *arg,
+thread_create_option(uint64_t container, void (*entry)(void*), 
+		     void *arg, uint32_t size_arg,
 		     struct cobj_ref *threadp, const char *name, 
 		     struct thread_args *thargs, int options)
 {
@@ -72,11 +75,22 @@ thread_create_option(uint64_t container, void (*entry)(void*), void *arg,
 	return r;
     }
 
-    struct thread_args *ta = stacktop - sizeof(*ta);
+    struct thread_args *ta;
+    if (options & THREAD_OPT_ARGS) {
+	if (size_arg > (stack_alloc_bytes - sizeof(*ta)))
+	    return -E_NO_SPACE;
+	
+	ta = stacktop - sizeof(*ta) - size_arg;
+	memcpy(ta->entry_args, arg, size_arg);
+	ta->arg = ta->entry_args;
+    } else {
+	ta = stacktop - sizeof(*ta);
+	ta->arg = arg;
+    }
+
     ta->container = container;
     ta->stack_id = stack.object;
     ta->entry = entry;
-    ta->arg = arg;
     ta->stackbase = stackbase;
     ta->options = options;
     

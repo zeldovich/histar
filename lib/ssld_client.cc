@@ -75,7 +75,7 @@ ssld_taint_cow(struct cobj_ref cow_gate,
 
     struct cobj_ref t;
     int r = thread_create_option(root_ct, &ssld_worker_setup,
-				 a, &t, "ssld-worker", ta, 0);
+				 a, 0, &t, "ssld-worker", ta, 0);
     error_check(r);
 
     

@@ -106,16 +106,19 @@ struct thread_args {
     void (*entry)(void *);
     void *arg;
     int options;
+    char entry_args[0];
 };
 
 enum { thread_quota_slush = 65536 };
 enum { thread_stack_pages = 256 * 1024 };
 
-#define THREAD_OPT_CLEANUP 0x01
+#define THREAD_OPT_CLEANUP      0x01
+#define THREAD_OPT_ARGS         0x02
 
 int	thread_create(uint64_t container, void (*entry)(void*),
 		      void *arg, struct cobj_ref *threadp, const char *name);
-int     thread_create_option(uint64_t container, void (*entry)(void*), void *arg,
+int     thread_create_option(uint64_t container, void (*entry)(void*),
+			     void *arg, uint32_t size_arg,
 			     struct cobj_ref *threadp, const char *name, 
 			     struct thread_args *thargs, int options);
 uint64_t thread_id(void);
