@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <kern/arch.h>
 #include <kern/lib.h>

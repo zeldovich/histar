@@ -1,4 +1,5 @@
 #include <kern/lib.h>
+#include <stdio.h>
 
 int
 cprintf (const char *fmt, ...)

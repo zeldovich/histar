@@ -930,13 +930,13 @@ kern_syscall(syscall_num num, uint64_t a1,
     uint64_t s, f;
     s = read_tsc();
 
-    void __attribute__((unused)) *p1 = (void *) a1;
-    void __attribute__((unused)) *p2 = (void *) a2;
-    void __attribute__((unused)) *p3 = (void *) a3;
-    void __attribute__((unused)) *p4 = (void *) a4;
-    void __attribute__((unused)) *p5 = (void *) a5;
-    void __attribute__((unused)) *p6 = (void *) a6;
-    void __attribute__((unused)) *p7 = (void *) a7;
+    void __attribute__((unused)) *p1 = (void *) (uintptr_t) a1;
+    void __attribute__((unused)) *p2 = (void *) (uintptr_t) a2;
+    void __attribute__((unused)) *p3 = (void *) (uintptr_t) a3;
+    void __attribute__((unused)) *p4 = (void *) (uintptr_t) a4;
+    void __attribute__((unused)) *p5 = (void *) (uintptr_t) a5;
+    void __attribute__((unused)) *p6 = (void *) (uintptr_t) a6;
+    void __attribute__((unused)) *p7 = (void *) (uintptr_t) a7;
 
     if (jos_setjmp(&syscall_retjmp) == 0) {
 	check(kobject_get_label(&cur_thread->th_ko, kolabel_contaminate,
