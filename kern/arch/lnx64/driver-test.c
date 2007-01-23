@@ -32,13 +32,20 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
 	break;
 
-    case 2:
-	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
-	// sprintf(badbuf, "Hello world again.\n");
+    case 2: {
+#ifdef FT_TRANSFORMED
+	printf("Dude, about to do something SYMBOLIC!!!\n");
+	uint64_t ct_id;
+	ft_make_symbolic_name(&ct_id, "ct_id");
+	kern_syscall(SYS_container_get_nslots, ct_id, 0, 0, 0, 0, 0, 0);
+#else
+	kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
+#endif
 	break;
+    }
 
     case 3:
-	kern_syscall(SYS_cons_puts, (uintptr_t)badbuf, strlen(badbuf), 0, 0, 0, 0, 0);
+	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
 	break;
 
     case 0xdeadbeef:

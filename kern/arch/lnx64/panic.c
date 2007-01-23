@@ -3,6 +3,7 @@
 
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <assert.h>
 
 static const char *panicstr;
 
@@ -10,7 +11,7 @@ void
 _panic(const char *file, int line, const char *fmt, ...)
 {
     if (panicstr)
-	exit(-1);
+	assert(0);
     panicstr = fmt;
 
     va_list ap;
@@ -22,5 +23,5 @@ _panic(const char *file, int line, const char *fmt, ...)
     printf("\n");
     va_end(ap);
 
-    exit(-1);
+    assert(0);
 }
