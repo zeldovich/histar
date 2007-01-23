@@ -32,21 +32,54 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
 	break;
 
-    case 2: {
 #ifdef FT_TRANSFORMED
-	printf("Dude, about to do something SYMBOLIC!!!\n");
+    case 2: {
 	uint64_t ct_id;
-	ft_make_symbolic_name(&ct_id, "ct_id");
+	ft_make_symbolic_name(&ct_id, "ct_id1");
 	kern_syscall(SYS_container_get_nslots, ct_id, 0, 0, 0, 0, 0, 0);
-#else
-	kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
-#endif
 	break;
     }
 
-    case 3:
+    case 3: {
+	uint64_t ct_id;
+	ft_make_symbolic_name(&ct_id, "ct_id2");
+	kern_syscall(SYS_container_get_parent, ct_id, 0, 0, 0, 0, 0, 0);
+	break;
+    }
+
+    case 4: {
+	uint64_t ct_id;
+	uint64_t slot;
+	ft_make_symbolic_name(&ct_id, "ct_id3");
+	ft_make_symbolic_name(&slot, "ct_slot3");
+	kern_syscall(SYS_container_get_slot_id, ct_id, slot, 0, 0, 0, 0, 0);
+	break;
+    }
+
+    case 5: {
+	uint64_t ct_id;
+	ft_make_symbolic_name(&ct_id, "ct_id4");
+	kern_syscall(SYS_self_addref, ct_id, 0, 0, 0, 0, 0, 0);
+	break;
+    }
+
+    case 6: {
+	uint64_t ct1, ct2;
+	ft_make_symbolic_name(&ct1, "ct_id5-1");
+	ft_make_symbolic_name(&ct2, "ct_id5-2");
+	kern_syscall(SYS_self_set_sched_parents, ct1, ct2, 0, 0, 0, 0, 0);
+	break;
+    }
+
+    case 7:
+	exit(0);
+	//kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
+	break;
+#else
+    case 2:
 	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
 	break;
+#endif
 
     case 0xdeadbeef:
 	sprintf(goodbuf, "Faulted..\n");
