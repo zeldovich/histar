@@ -40,8 +40,7 @@ static const char dbg = 0;
 static SSL_CTX *ctx;
 static uint64_t access_grant;
 
-static struct cobj_ref cipher_biseg;
-static struct cobj_ref plain_biseg;
+static char *cow_stacktop;
 
 static int
 error_to_jos64(int ret)
@@ -99,11 +98,12 @@ ssld_close(SSL *ssl)
 }
 
 static void
-ssld_worker(void *arg)
+ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 {
     SSL *ssl = 0;
-    int cipher_fd = bipipe_fd(cipher_biseg, 1, 0);
-    int plain_fd = bipipe_fd(plain_biseg, 1, 0);
+
+    int cipher_fd = bipipe_fd(COBJ(cc, co), 1, 0);
+    int plain_fd = bipipe_fd(COBJ(pc, po), 1, 0);
     error_check(cipher_fd);
     error_check(plain_fd);
     
@@ -197,29 +197,11 @@ ssld_cow_entry(void)
 	tls_revalidate();
 	thread_label_cache_invalidate();
 
-	cipher_biseg = d->cipher_biseg;
-	plain_biseg = d->plain_biseg;
-
-	// allocating new stack
-	uint64_t entry_ct = start_env->proc_container;
-	void *stackbase = 0;
-	uint64_t stackbytes = thread_stack_pages * PGSIZE;
-	error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
-				&stackbase, &stackbytes, 0));
-	scope_guard<int, void *> unmap(segment_unmap, stackbase);
-	char *stacktop = ((char *) stackbase) + stackbytes;
-	
-	struct cobj_ref stackobj;
-	void *allocbase = stacktop - PGSIZE;
-	error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
-				  &allocbase, 0, "gate thread stack"));
-	
-	unmap.dismiss();
-
-	stack_switch((uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0,
-		     stacktop, (void *) &ssld_worker);
-	    
-	cprintf("ssld_cow_entry: still running?!?\n");
+	stack_switch(d->cipher_biseg.container, d->cipher_biseg.object,
+		     d->plain_biseg.container, d->plain_biseg.object,
+		     cow_stacktop, (void *) &ssld_worker);
+    
+	cprintf("ssld_cow_entry: still running\n");
 	thread_halt();
 	
     } catch (std::exception &e) {
@@ -249,6 +231,23 @@ ssld_cow_gate_create(uint64_t ct)
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
+    // COW'ed gate call copies mapping and segment
+    uint64_t entry_ct = start_env->proc_container;
+    void *stackbase = 0;
+    uint64_t stackbytes = thread_stack_pages * PGSIZE;
+    error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
+			    &stackbase, &stackbytes, 0));
+    scope_guard<int, void *> unmap(segment_unmap, stackbase);
+    char *stacktop = ((char *) stackbase) + stackbytes;
+	
+    struct cobj_ref stackobj;
+    void *allocbase = stacktop - (2 * PGSIZE);
+    error_check(segment_alloc(entry_ct, (2 * PGSIZE), &stackobj,
+			      &allocbase, 0, "COW'ed thread stack"));
+    unmap.dismiss();
+
+    cow_stacktop = stacktop;
+    
     return COBJ(ct, gate_id);
 }
 
