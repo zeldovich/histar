@@ -22,6 +22,7 @@ KERN_LIB :=					\
 	lib/memset.c				\
 	lib/memcmp.c				\
 	lib/printfmt.c				\
+	lib/sysstring.c				\
 	lib/cksum.c				\
 	lib/bf60.c				\
 	lib/string.c

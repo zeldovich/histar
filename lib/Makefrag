@@ -9,6 +9,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/coop_syscall.S \
 	lib/syscall.c \
 	lib/printfmt.c \
+	lib/sysstring.c \
 	lib/printf.c \
 	lib/string.c \
 	lib/libmain.c \
