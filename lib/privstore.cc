@@ -3,10 +3,15 @@
 #include <inc/gatesrv.hh>
 #include <inc/cpplabel.hh>
 #include <inc/gateclnt.hh>
+#include <inc/gateinvoke.hh>
 #include <new>
 
 extern "C" {
+#include <inc/assert.h>
+#include <inc/setjmp.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 }
 
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
@@ -20,33 +25,55 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
     thread_cur_clearance(&clear);
     clear.set(guard, 0);
 
-    gate_ = gate_create(start_env->proc_container, "saved privilege",
-			&l, &clear,
-			&entry_stub, this);
+    struct thread_entry te;
+    memset(&te, 0, sizeof(te));
+    te.te_entry = (void *) &entry;
+    te.te_stack = (char *) tls_stack_top - 8;
+    error_check(sys_self_get_as(&te.te_as));
+    
+    int64_t gate_id = sys_gate_create(start_env->proc_container, &te,
+				      clear.to_ulabel(),
+				      l.to_ulabel(), "saved privilege", 0);
+    if (gate_id < 0)
+	throw error(gate_id, "sys_gate_create failed");
+    
+    gate_ =  COBJ(start_env->proc_container, gate_id);
 }
 
 void
 saved_privilege::acquire()
 {
-    gate_call(gate_, 0, 0, 0).call(0, 0);
+    static_assert(sizeof(struct jos_jmp_buf) <= sizeof(struct gate_call_data));
+
+    struct jos_jmp_buf *jb = (struct jos_jmp_buf *)tls_gate_args;
+    if (!jos_setjmp(jb)) {
+	label thread_label, thread_clear;
+	label gate_label, gate_clear;
+	label tgt_label, tgt_clear;
+
+	thread_cur_label(&thread_label);
+	thread_cur_clearance(&thread_clear);
+
+	obj_get_label(gate_, &gate_label);
+	gate_get_clearance(gate_, &gate_clear);
+
+	thread_label.merge(&gate_label, &tgt_label, label::min, label::leq_starlo);
+	thread_clear.merge(&gate_clear, &tgt_clear, label::max, label::leq_starlo);
+		
+	gate_invoke(gate_, &tgt_label, &tgt_clear, 0, 0);
+    }
 }
 
-void
-saved_privilege::entry_stub(void *arg,
-			    struct gate_call_data *gcd,
-			    gatesrv_return *r)
+void __attribute__((noreturn))
+saved_privilege::entry(void)
 {
-    saved_privilege *sp = (saved_privilege *) arg;
-    sp->entry(r);
-}
+    thread_label_cache_invalidate();
 
-void
-saved_privilege::entry(gatesrv_return *r)
-{
-    label *ds = new label(3);
-    ds->set(handle_, LB_LEVEL_STAR);
-
-    r->ret(0, ds, 0);
+    struct jos_jmp_buf *jb = (struct jos_jmp_buf *)tls_gate_args;
+    jos_longjmp(jb, 0);
+    
+    printf("saved_privilege::entry: jos_longjmp returned");
+    thread_halt();
 }
 
 privilege_store::privilege_store(uint64_t h)
@@ -104,7 +131,7 @@ privilege_store::store_priv(uint64_t h)
     privs_[slot] = new saved_privilege(root_handle_, h);
 }
 
-void
+void 
 privilege_store::fetch_priv(uint64_t h)
 {
     int slot = slot_find(h);
