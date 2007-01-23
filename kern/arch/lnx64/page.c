@@ -31,6 +31,12 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 void *physmem_base;
 int physmem_file_fd;
 
+#ifdef FT_TRANSFORMED
+#include <ft_types.h>
+void *ft_create_data_obj(const void* addr, int size,
+			 char* name, ft_scope scope, ft_location loc);
+#endif
+
 void
 lnxpage_init(uint64_t membytes)
 {
@@ -61,6 +67,15 @@ lnxpage_init(uint64_t membytes)
 	perror("cannot map physmem file");
 	exit(-1);
     }
+
+#ifdef FT_TRANSFORMED
+    ft_location myloc;
+    myloc.file = __FILE__;
+    myloc.line = __LINE__;
+    myloc.loc_type = FT_EXACT;
+    ft_create_data_obj(physmem_base, global_npages * PGSIZE,
+		       "physmem", FT_HEAP, myloc);
+#endif
 
     // Allocate space for page status info.
     uint64_t sz = global_npages * sizeof(*page_infos);

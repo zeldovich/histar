@@ -12,6 +12,12 @@
 #include <signal.h>
 #include <sys/mman.h>
 
+#ifdef FT_TRANSFORMED
+#include <ft_types.h>
+void *ft_create_data_obj(const void* addr, int size,
+                         char* name, ft_scope scope, ft_location loc);
+#endif
+
 static struct Pagemap *cur_pm;
 enum { lnxpmap_debug = 0 };
 
@@ -88,6 +94,14 @@ void
 lnxpmap_init(void)
 {
     for (void *va = (void *) UBASE; va < (void *) ULIM; va += PGSIZE) {
+#ifdef FT_TRANSFORMED
+	ft_location myloc;
+	myloc.file = __FILE__;
+	myloc.line = __LINE__;
+	myloc.loc_type = FT_EXACT;
+	ft_create_data_obj(va, PGSIZE, "user vmem page", FT_HEAP, myloc);
+#endif
+
 	int r = mprotect(va, PGSIZE, PROT_NONE);
 	if (r == 0 || errno != ENOMEM) {
 	    printf("lnxpmap_init(): %p: %d, %s\n", va, r, strerror(errno));
