@@ -1,5 +1,6 @@
 #include <machine/pmap.h>
 #include <machine/lnxpage.h>
+#include <machine/lnxopts.h>
 #include <kern/arch.h>
 #include <kern/sched.h>
 #include <inc/error.h>
@@ -17,6 +18,9 @@ enum { lnxpmap_debug = 0 };
 static void
 lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 {
+    if (lnx64_pmap_prefill)
+	printf("lnx64_sigsegv: prefilling didn't work?\n");
+
     static int recursive;
     recursive++;
 
@@ -167,6 +171,7 @@ int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, uint64_t **pte_store)
 {
+    assert(!PGOFF(va));
     int freeslot = -1;
 
     for (int i = 0; i < NPME; i++) {
@@ -204,4 +209,40 @@ pmap_set_current(struct Pagemap *pm, int flush_tlb)
     cur_pm = pm;
     if (flush_tlb)
 	munmap((void *) UBASE, ULIM - UBASE);
+}
+
+void
+lnxpmap_prefill(void)
+{
+    if (!cur_pm) {
+	/*
+	 * XXX
+	 * prefill support requires a valid mapping at UBASE at all times.
+	 */
+	void *va = (void *) UBASE;
+	int r = thread_pagefault(cur_thread, va, 0);
+	if (r != 0 && r != -E_RESTART)
+	    printf("lnxpmap_prefill: thread_pagefault: %s\n", e2s(r));
+
+	if (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
+	    schedule();
+	thread_run(cur_thread);
+    }
+
+    for (int i = 0; i < NPME; i++) {
+	struct Pagemapent *pme = &cur_pm->pme[i];
+	if (pme->va >= (void *) UBASE &&
+	    pme->va < (void *) ULIM &&
+	    (pme->pte & PTE_U) &&
+	    (pme->pte & PTE_P))
+	{
+	    int prot = PROT_READ;
+	    if (pme->pte & PTE_W)
+		prot |= PROT_WRITE;
+	    munmap(pme->va, PGSIZE);
+	    if (mmap(pme->va, PGSIZE, prot, MAP_FIXED | MAP_SHARED,
+		     physmem_file_fd, PTE_ADDR(pme->pte)) < 0)
+		printf("pmap_set_current: mmap: %s\n", strerror(errno));
+	}
+    }
 }

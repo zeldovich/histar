@@ -33,7 +33,8 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	break;
 
     case 2:
-	sprintf(badbuf, "Hello world again.\n");
+	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
+	// sprintf(badbuf, "Hello world again.\n");
 	break;
 
     case 3:

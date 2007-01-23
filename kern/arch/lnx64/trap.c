@@ -3,6 +3,8 @@
 #include <kern/sched.h>
 #include <inc/queue.h>
 #include <machine/lnxthread.h>
+#include <machine/lnxopts.h>
+#include <machine/lnxpage.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +63,9 @@ lnx64_thread_cb(struct Thread *t)
 	exit(-1);
     }
 
+    if (lnx64_pmap_prefill)
+	lnxpmap_prefill();
+
     e->cb(e->arg, t);
 }
 
@@ -69,7 +74,7 @@ lnx64_schedule_loop(void)
 {
     in_schedule_loop = 1;
 
-    if (sigsetjmp(env, 1) != 0)
+    if (lnx64_stack_gc && sigsetjmp(env, 1) != 0)
 	lnx64_thread_cb(arch_run_t);
 
     if (!cur_thread)
@@ -94,6 +99,11 @@ thread_arch_run(const struct Thread *ct)
     sched_tsc++;
     sched_stop(t, sched_tsc);
 
-    arch_run_t = t;
-    siglongjmp(env, 1);
+    if (lnx64_stack_gc) {
+	arch_run_t = t;
+	siglongjmp(env, 1);
+    } else {
+	lnx64_thread_cb(t);
+	lnx64_schedule_loop();
+    }
 }
