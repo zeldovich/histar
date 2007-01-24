@@ -19,15 +19,10 @@ typedef short int16_t;
 typedef unsigned short uint16_t;
 typedef int int32_t;
 typedef unsigned int uint32_t;
-#ifndef CODE32
 typedef long int64_t;
 typedef unsigned long uint64_t;
 typedef __int128_t int128_t;
 typedef __uint128_t uint128_t;
-#else /* CODE32 */
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
-#endif /* CODE32 */
 typedef uint64_t __uint64_t;
 
 // Pointers and addresses are 64 bits long.
@@ -47,6 +42,17 @@ typedef long ssize_t;
 
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
+
+// 64-bit constants
+#if __LONG_MAX__==9223372036854775807L
+# define UINT64(x) x##UL
+# define CAST64(x) ((unsigned long) (x))
+#elif __LONG_LONG_MAX__==9223372036854775807LL
+# define UINT64(x) x##ULL
+# define CAST64(x) ((unsigned long long) (x))
+#else
+# error Missing 64-bit type
+#endif
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
