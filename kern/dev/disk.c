@@ -330,7 +330,7 @@ static union {
     char buf[512];
 } identify_buf;
 
-static void
+static int
 ide_init(struct ide_channel *idec, uint32_t diskno)
 {
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
@@ -339,10 +339,10 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_IDENTIFY);
 
-    cprintf("Trying to identify IDE disk\n");
+    cprintf("Trying to identify IDE disk %d\n", diskno);
     if (ide_pio_in(idec, &identify_buf, 1) < 0) {
 	cprintf("Unable to identify disk device\n");
-	return;
+	return -E_INVAL;
     }
 
     ide_string_shuffle(identify_buf.id.serial,
@@ -408,6 +408,7 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
 
     idec->ih.ih_func = &ide_intr;
     irq_register(idec->irq, &idec->ih);
+    return 0;
 }
 
 // Disk interface, from disk.h
@@ -433,8 +434,12 @@ disk_init(struct pci_func *pcif)
     // Use the second IDE drive on the channel
     the_ide_drive = 1;
 
-    // Now initialize the chosen drive/channel
-    ide_init(idec, the_ide_drive);
+    // Try to initialize the chosen drive/channel
+    if (ide_init(idec, the_ide_drive) < 0) {
+	// Try the other drive
+	the_ide_drive = the_ide_drive ? 0 : 1;
+	ide_init(idec, the_ide_drive);
+    }
 }
 
 int
