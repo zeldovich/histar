@@ -6,15 +6,32 @@
 #include <inc/error.h>
 #include <string.h>
 
-static void __attribute__((noreturn))
-thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
+static int
+thread_cleanup_internal(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
 {
-    int r = thread_unmap_stack(stackbase);
+    void *stacktop = stackbase + thread_stack_pages * PGSIZE;
+    int r = segment_unmap_range(stackbase, stacktop, 1);
     if (r < 0)
-	cprintf("thread_exit: cannot unmap stack range: %s\n", e2s(r));
+	return r;
 
     sys_obj_unref(COBJ(ct, stack_id));
     sys_obj_unref(COBJ(ct, thr_id));
+}
+
+int
+thread_cleanup(struct thread_args *ta)
+{
+    return thread_cleanup_internal(ta->container, ta->thread_id,
+				   ta->stack_id, ta->stackbase);
+}
+
+static void __attribute__((noreturn))
+thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
+{
+    int r = thread_cleanup_internal(ct, thr_id, stack_id, stackbase);
+    if (r < 0)
+	cprintf("thread_exit: cannot cleanup: %s\n", e2s(r));
+
     thread_halt();
 }
 
@@ -195,11 +212,4 @@ thread_sleep(uint64_t msec)
 
     uint64_t v = 0xc0de;
     sys_sync_wait(&v, v, cur + msec);
-}
-
-int
-thread_unmap_stack(void *stackbase)
-{
-    void *stacktop = stackbase + thread_stack_pages * PGSIZE;
-    return segment_unmap_range(stackbase, stacktop, 1);
 }

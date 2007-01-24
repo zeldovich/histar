@@ -94,7 +94,7 @@ ssl_proxy::~ssl_proxy(void)
     }
 
     if (ssld_started_) {
-	int r = thread_unmap_stack(ssld_worker_args_.stackbase);
+	int r = thread_cleanup(&ssld_worker_args_);
 	if (r < 0)
 	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
     }

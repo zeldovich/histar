@@ -124,7 +124,7 @@ uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);
 void	thread_sleep(uint64_t msec);
-int     thread_unmap_stack(void *stackbase);
+int     thread_cleanup(struct thread_args *ta);
 
 /* spawn.cc */
 #define	PROCESS_RUNNING		0
