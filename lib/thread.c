@@ -25,12 +25,9 @@ thread_entry(void *arg)
 
     ta->entry(ta->arg);
 
-    if (ta->options & THREAD_OPT_CLEANUP)
-	stack_switch(ta->container, ta->thread_id, ta->stack_id,
-		     (uint64_t) ta->stackbase,
-		     tls_stack_top, &thread_exit);
-    else
-	thread_halt();
+    stack_switch(ta->container, ta->thread_id, ta->stack_id,
+		 (uint64_t) ta->stackbase,
+		 tls_stack_top, &thread_exit);
 }
 
 int
@@ -38,7 +35,7 @@ thread_create(uint64_t container, void (*entry)(void*), void *arg,
 	      struct cobj_ref *threadp, const char *name)
 {
     return thread_create_option(container, entry, arg, 0, threadp, 
-				name, 0, THREAD_OPT_CLEANUP);
+				name, 0, 0);
 }
 
 int
@@ -76,12 +73,11 @@ thread_create_option(uint64_t container, void (*entry)(void*),
     }
 
     struct thread_args *ta;
-    if (options & THREAD_OPT_ARGS) {
+    if (options & THREAD_OPT_ARGCOPY) {
 	if (size_arg > (stack_alloc_bytes - sizeof(*ta)))
 	    return -E_NO_SPACE;
-	
+
 	ta = stacktop - sizeof(*ta) - size_arg;
-	memcpy(ta->entry_args, arg, size_arg);
 	ta->arg = ta->entry_args;
     } else {
 	ta = stacktop - sizeof(*ta);
@@ -131,6 +127,21 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 	return r;
     }
 
+    /*
+     * Should happen before the thread starts, in case the thread
+     * wants to access these variables when it starts running..
+     */
+    *threadp = tobj;
+    if (thargs)
+	*thargs = *ta;
+
+    /*
+     * Do this last, in case either threadp or thargs points to
+     * the arg buffer we're about to copy onto the new thread stack.
+     */
+    if (options & THREAD_OPT_ARGCOPY)
+	memcpy(ta->entry_args, arg, size_arg);
+
     r = sys_thread_start(tobj, &e, 0, 0);
     if (r < 0) {
 	segment_unmap_range(stackbase, stacktop, 1);
@@ -138,11 +149,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 	sys_obj_unref(tobj);
 	return r;
     }
-    
-    if (thargs)
-	*thargs = *ta;
 
-    *threadp = tobj;
     return 0;
 }
 

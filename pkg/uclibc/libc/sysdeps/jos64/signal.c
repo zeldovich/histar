@@ -47,7 +47,7 @@ static int signal_queued_any;
 
 static int
 stack_grow(void *faultaddr)
-{    
+{
     struct u_segment_mapping usm;
     int r = segment_lookup(faultaddr, &usm);
     if (r < 0)
