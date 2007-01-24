@@ -31,6 +31,17 @@ typedef u_int64_t uint128_t;
 typedef uint64_t ppn_t;
 typedef uint64_t physaddr_t;
 
+// 64-bit constants
+#if __LONG_MAX__==9223372036854775807L
+# define UINT64(x) x##UL
+# define CAST64(x) ((unsigned long) (x))
+#elif __LONG_LONG_MAX__==9223372036854775807LL
+# define UINT64(x) x##ULL
+# define CAST64(x) ((unsigned long long) (x))
+#else
+# error Missing 64-bit type
+#endif
+
 // Efficient min and max operations
 #define MIN(_a, _b)						\
 ({								\

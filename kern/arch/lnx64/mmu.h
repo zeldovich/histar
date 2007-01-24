@@ -3,13 +3,6 @@
 
 #ifndef __ASSEMBLER__
 # include <inc/types.h>
-# ifndef CODE32
-#  define UINT64(x) x##UL
-#  define CAST64(x) ((unsigned long) (x))
-# else /* CODE32 */
-#  define UINT64(x) x##ULL
-#  define CAST64(x) ((unsigned long long) (x))
-#endif /* CODE32 */
 #else /* __ASSEMBLER__ */
 # define UINT64(x) x
 # define CAST64(x) (x)
@@ -55,11 +48,11 @@
 #define PTE_PS	0x080		/* Page size */
 #define PTE_G	0x100		/* Global */
 #define PTE_PAT 0x1000		/* Page Attribute Table */
-#define PTE_NX 0x8000000000000000UL /* No execute */
+#define PTE_NX	UINT64(0x8000000000000000) /* No execute */
 
 /* address in page table entry */
-#define PTE_ADDR(pte) ((physaddr_t) (pte) & 0xffffffffff000UL)
-#define PTE_FLAGS(pte) ((physaddr_t) (pte) & 0xfff0000000000fffUL)
+#define PTE_ADDR(pte) ((physaddr_t) (pte) & UINT64(0xffffffffff000))
+#define PTE_FLAGS(pte) ((physaddr_t) (pte) & UINT64(0xfff0000000000fff))
 
 /* Control Register flags */
 #define CR0_PE 0x1		/* Protected mode enable */
@@ -101,7 +94,7 @@
 #define MTRR_BASE_WP 0x05	/* Write-Protect */
 #define MTRR_BASE_WB 0x06	/* Writeback */
 #define MTRR_MASK(i) (0x201 + 2*(i))	/* Physical address mask */
-#define MTRR_MASK_FULL PGADDR((1UL << 52) - 1)
+#define MTRR_MASK_FULL PGADDR((ONE << 52) - 1)
 #define MTRR_MASK_VALID 0x800
 
 /* EFER Register */
