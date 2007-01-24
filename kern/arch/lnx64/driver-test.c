@@ -72,8 +72,7 @@ bootstrap_tcb(void *arg, struct Thread *t)
     }
 
     case 7:
-	exit(0);
-	//kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
+	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
 	break;
 #else
     case 2:

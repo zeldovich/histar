@@ -11,6 +11,7 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <assert.h>
 
 #ifdef FT_TRANSFORMED
 #include <ft_types.h>
@@ -35,6 +36,8 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
     uint32_t reqflags = 0;
     if (lnxpmap_debug)
 	printf("lnx64_sigsegv: faulting address %p, code %d\n", va, code);
+    assert(va >= (void *) UBASE);
+    assert(va < (void *) ULIM);
 
     /*
      * simulate hardware handling of this page fault..
