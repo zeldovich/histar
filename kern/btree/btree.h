@@ -27,7 +27,7 @@ struct btree_node {
     uint64_t bytesize;
 };
 
-#define BTREE_MAGIC 0xcdef9425feed7980
+#define BTREE_MAGIC UINT64(0xcdef9425feed7980)
 
 struct btree {
     uint8_t order;
