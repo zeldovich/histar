@@ -7,6 +7,7 @@ LIBDIS_SRCFILES +=			\
 	lib/dis/sharedcaller.cc 	\
 	lib/dis/sgateclnt.cc		\
 	lib/dis/sharedutil.cc		\
+	lib/dis/djserv.cc		\
 	lib/dis/dj.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
@@ -15,10 +16,10 @@ LIBDIS_OBJFILES := $(patsubst lib/dis/%.cc, $(OBJDIR)/lib/dis/%.o, $(LIBDIS_OBJF
 LIBDIS_OBJFILES := $(patsubst lib/dis/%.x, $(OBJDIR)/lib/dis/%.o, $(LIBDIS_OBJFILES))
 
 DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(OBJDIR)/lib/dis/dj.h
-DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite -I$(OBJDIR)/lib/dis
+DIS_CFLAGS	:= -Iinc/dis -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite -I$(OBJDIR)/lib/dis
 
-DIS_LDDEPS	:= $(OBJDIR)/lib/libdis.a
-DIS_LDFLAGS	:= -ldis
+DIS_LDDEPS	:= $(OBJDIR)/lib/libdis.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a
+DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldis -lsfscrypt -larpc -lasync
 
 $(OBJDIR)/lib/dis/%.C: lib/dis/%.x
 	@mkdir -p $(@D)

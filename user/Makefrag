@@ -18,6 +18,11 @@ $(OBJDIR)/user/asynct1.o: $(OBJDIR)/acpkg/include/sfslite
 $(OBJDIR)/user/asynct1.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
 $(OBJDIR)/user/asynct1.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
 
+$(OBJDIR)/user/djd.o: $(DIS_CCDEPS)
+$(OBJDIR)/user/djd.o: PER_TARGET_CFLAGS=$(DIS_CFLAGS)
+$(OBJDIR)/user/djd.debuginfo: $(DIS_LDDEPS)
+$(OBJDIR)/user/djd.debuginfo: PER_TARGET_LDFLAGS=$(DIS_LDFLAGS)
+
 $(OBJDIR)/user/fa.o: $(OBJDIR)/acpkg/include/sfslite
 $(OBJDIR)/user/fa.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include/sfslite
 

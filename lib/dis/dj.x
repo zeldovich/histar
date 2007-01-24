@@ -100,16 +100,20 @@ union dj_gatecall_res switch (int err) {
 };
 
 /*
- * Program definitions.
+ * Wire message format.
  */
 
-program DJ_EXPORT_PROG {
-    version DJ_EXPORT_V1 {
-	void
-	DJ_EXPORT_NULL(void) = 0;
+enum dj_wire_msg_type {
+    DJ_NULL
+};
 
-	dj_gatecall_res
-	DJ_EXPORT_GATECALL(dj_gatecall_arg) = 1;
-    } = 1;
-} = 955550;
+union dj_wire_typed switch (dj_wire_msg_type type) {
+ case DJ_NULL:
+    void;
+};
+
+struct dj_wire_msg {
+    hyper xid;
+    dj_wire_typed t;
+};
 
