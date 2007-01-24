@@ -48,8 +48,11 @@ ssld_worker_setup(void *b)
     tgt_label.set(taint, 3);
     tgt_clear.set(taint, 3);
 
-    int r = gate_invoke(cow_gate, &tgt_label, &tgt_clear, 0, 0);
-    panic("ssld_worker_setup: could not invoke cow_gate: %s", e2s(r));
+    try {
+	gate_invoke(cow_gate, &tgt_label, &tgt_clear, 0, 0);
+    } catch (std::exception &e) {
+	panic("ssld_worker_setup: could not invoke cow_gate: %s", e.what());
+    }
 }
 
 void
