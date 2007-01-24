@@ -45,12 +45,12 @@ saved_privilege::acquire()
 {
     static_assert(sizeof(struct jos_jmp_buf) <= sizeof(struct gate_call_data));
 
+    label thread_label, thread_clear;
+    label gate_label, gate_clear;
+    label tgt_label, tgt_clear;
+
     struct jos_jmp_buf *jb = (struct jos_jmp_buf *)tls_gate_args;
     if (!jos_setjmp(jb)) {
-	label thread_label, thread_clear;
-	label gate_label, gate_clear;
-	label tgt_label, tgt_clear;
-
 	thread_cur_label(&thread_label);
 	thread_cur_clearance(&thread_clear);
 
@@ -59,7 +59,7 @@ saved_privilege::acquire()
 
 	thread_label.merge(&gate_label, &tgt_label, label::min, label::leq_starlo);
 	thread_clear.merge(&gate_clear, &tgt_clear, label::max, label::leq_starlo);
-		
+
 	gate_invoke(gate_, &tgt_label, &tgt_clear, 0, 0);
     }
 }
@@ -70,7 +70,7 @@ saved_privilege::entry(void)
     thread_label_cache_invalidate();
 
     struct jos_jmp_buf *jb = (struct jos_jmp_buf *)tls_gate_args;
-    jos_longjmp(jb, 0);
+    jos_longjmp(jb, 1);
     
     printf("saved_privilege::entry: jos_longjmp returned");
     thread_halt();
