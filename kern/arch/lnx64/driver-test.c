@@ -92,6 +92,7 @@ bootstrap_tcb(void *arg, struct Thread *t)
 
     default:
 	printf("huh.. odd rip value\n");
+	assert(0);
     }
 
     t->th_tf.tf_rip++;
