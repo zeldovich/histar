@@ -76,3 +76,15 @@ ensure all tainted data is deleted from the remote end.
 front-end histar proxy to a linux box which labels any data handled
 by linux.  similar to what we could do with sane port labeling.
 
+===
+
+timestamps (valid-after and valid-before) on each delegation; export
+server should revoke all tainted gate call containers when delegations
+leading to a particular category expire (and no newer delegations are
+available).
+
+when granting categories across gate calls, automatically create a
+matching global category if none already exists, and automatically
+create delegations if the target exporter/importer doesn't have the
+category delegated to it.
+
