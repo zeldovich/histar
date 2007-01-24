@@ -286,7 +286,7 @@ sock_getpeername(struct Fd *fd, struct sockaddr *addr,
     if (*addrlen < sizeof(sin))
 	   return -E_INVAL;
 
-    a.op_type = netd_op_getsockname;
+    a.op_type = netd_op_getpeername;
     a.getpeername.fd = fd->fd_sock.s;
     int r = netd_call(fd->fd_sock.netd_gate, &a);
     netd_to_libc(&a.getpeername.sin, &sin);
