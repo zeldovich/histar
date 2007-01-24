@@ -903,6 +903,7 @@ int lwip_getpeername (int s, struct sockaddr *name, socklen_t *namelen)
   struct lwip_socket *sock;
   struct sockaddr_in sin;
   struct ip_addr naddr;
+  err_t err;
 
   sock = get_socket(s);
   if (!sock) {
@@ -915,7 +916,11 @@ int lwip_getpeername (int s, struct sockaddr *name, socklen_t *namelen)
   sin.sin_family = AF_INET;
 
   /* get the IP address and port of the remote host */
-  netconn_peer(sock->conn, &naddr, &sin.sin_port);
+  err = netconn_peer(sock->conn, &naddr, &sin.sin_port);
+  if (err) {
+    sock_set_errno(sock, err_to_errno(err));
+    return -1;
+  }
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getpeername(%d, addr=", s));
   ip_addr_debug_print(SOCKETS_DEBUG, &naddr);
