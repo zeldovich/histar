@@ -16,5 +16,5 @@ KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user user/login user/addu
 #KERN_BINFILES	+= user/devinit user/devpt user/sshd user/ssh.tar user/scp user/sshdi
 #KERN_BINFILES	+= user/vim user/bash
 
-INITTAB_ENTRIES	:= /bin/devinit:root /bin/sshdi:root
+INITTAB_ENTRIES	:= /bin/netd_mom:root /bin/devinit:root /bin/sshdi:root /bin/httpd_mom:
 

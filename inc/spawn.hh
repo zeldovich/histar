@@ -7,7 +7,7 @@ extern "C" {
 
 #include <inc/cpplabel.hh>
 
-#define SPAWN_NO_AUTOGRANT	0x01
+#define SPAWN_NO_AUTOGRANT	0x01	/* user_grant & user_taint */
 #define SPAWN_UINIT_STYLE	0x02
 
 struct child_process

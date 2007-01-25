@@ -28,7 +28,7 @@ static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
 
 static struct child_process
-spawn_fs(int fd, const char *pn, const char *arg, label *ds)
+spawn_fs(int fd, const char *pn, const char *arg, label *ds, label *dr)
 {
     struct child_process cp;
     try {
@@ -42,7 +42,7 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds)
 	           fd, fd, fd,
 	           arg ? 2 : 1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
-	           0, ds, 0, 0, 0);
+	           0, ds, 0, dr, 0, SPAWN_NO_AUTOGRANT);
 
 	if (init_debug)
 	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
@@ -138,10 +138,10 @@ init_auth(int cons, const char *shroot)
     struct child_process cp;
     int64_t ec;
 
-    cp = spawn_fs(cons, "/bin/auth_log", 0, 0);
+    cp = spawn_fs(cons, "/bin/auth_log", 0, 0, 0);
     error_check(process_wait(&cp, &ec));
 
-    cp = spawn_fs(cons, "/bin/auth_dir", shroot, 0);
+    cp = spawn_fs(cons, "/bin/auth_dir", shroot, 0, 0);
     error_check(process_wait(&cp, &ec));
 
     // spawn user-auth agent for root
@@ -188,30 +188,25 @@ init_auth(int cons, const char *shroot)
 }
 
 static void
-init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
+init_procs(int cons)
 {
-    label ds_none(3);
-    label ds_hroot(3);
-    ds_hroot.set(h_root, LB_LEVEL_STAR);
-    ds_hroot.set(h_root_t, LB_LEVEL_STAR);
+    label root_ds(3);
+    root_ds.set(start_env->user_grant, LB_LEVEL_STAR);
+    root_ds.set(start_env->user_taint, LB_LEVEL_STAR);
 
-    char h_root_buf[32];
-    snprintf(&h_root_buf[0], sizeof(h_root_buf), "%lu", h_root);
+    label root_dr(0);
+    root_dr.set(start_env->user_grant, 3);
+    root_dr.set(start_env->user_taint, 3);
+
+    char root_grant_buf[32];
+    snprintf(&root_grant_buf[0], sizeof(root_grant_buf), "%lu",
+	     start_env->user_grant);
 
     try {
-	init_auth(cons, &h_root_buf[0]);
+	init_auth(cons, &root_grant_buf[0]);
     } catch (std::exception &e) {
 	printf("init_procs: cannot init auth system: %s\n", e.what());
     }
-
-    spawn_fs(cons, "/bin/netd_mom", &h_root_buf[0], &ds_hroot);
-
-    //spawn_fs(cons, "/bin/httpd_mom", &h_root_buf[0], &ds_none);
-    //spawn_fs(cons, "/bin/httpd_worker", &h_root_buf[0], &ds_hroot);
-
-    //spawn_fs(cons, "/bin/admind", &h_root_buf[0], &ds_hroot);
-    //spawn_fs(cons, "/bin/rbac_init", &h_root_buf[0], &ds_hroot);
-    //spawn_fs(cons, "/bin/login", 0, &ds_none);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
@@ -226,23 +221,27 @@ init_procs(int cons, uint64_t h_root, uint64_t h_root_t)
 	    }
 	    
 	    if (priv[0] == 'r')
-		spawn_fs(cons, fn, &h_root_buf[0], &ds_hroot);
+		spawn_fs(cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
 	    else 
-		spawn_fs(cons, fn, &h_root_buf[0], &ds_none);
+		spawn_fs(cons, fn, &root_grant_buf[0], 0, 0);
 	}
     }
 }
 
 static void
-run_shell(int cons, uint64_t h_root, uint64_t h_root_t)
+run_shell(int cons)
 {
     int r;
-    label ds_hroot(3);
-    ds_hroot.set(h_root, LB_LEVEL_STAR);
-    ds_hroot.set(h_root_t, LB_LEVEL_STAR);
+    label ds(3);
+    ds.set(start_env->user_grant, LB_LEVEL_STAR);
+    ds.set(start_env->user_taint, LB_LEVEL_STAR);
+
+    label dr(0);
+    dr.set(start_env->user_grant, 3);
+    dr.set(start_env->user_taint, 3);
 
     for (;;) {
-        struct child_process shell_proc = spawn_fs(cons, "/bin/ksh", 0, &ds_hroot);    
+        struct child_process shell_proc = spawn_fs(cons, "/bin/ksh", 0, &ds, &dr);
         int64_t exit_code = 0;
         if ((r = process_wait(&shell_proc, &exit_code)) < 0)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));
@@ -280,9 +279,8 @@ try
     start_env->user_taint = h_root_t;
 
     setup_env((uint64_t) start_env, 0);
-    init_procs(cons, h_root, h_root_t);
-    // does not return
-    run_shell(cons, h_root, h_root_t);
+    init_procs(cons);
+    run_shell(cons);	// does not return
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
 }

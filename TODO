@@ -30,8 +30,6 @@ Security:
   gone.  for this, need either to copy all segments first, or to have a careful-read
   and careful-write wrapper that does setjmp() first, and the segfault handler will
   longjmp().
-* init spawns everything with root privilege because spawn grants LB_LEVEL_STAR
-  for start_env->user_grant/user_taint
 * force checkpoint every N handle allocations, and roll forward handle counter by
   N after restore, for some large value N.
 * real randomness...
