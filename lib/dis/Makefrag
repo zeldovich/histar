@@ -18,8 +18,8 @@ LIBDIS_OBJFILES := $(patsubst lib/dis/%.x, $(OBJDIR)/lib/dis/%.o, $(LIBDIS_OBJFI
 DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(OBJDIR)/lib/dis/dj.h
 DIS_CFLAGS	:= -Iinc/dis -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite -I$(OBJDIR)/lib/dis
 
-DIS_LDDEPS	:= $(OBJDIR)/lib/libdis.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a
-DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldis -lsfscrypt -larpc -lasync
+DIS_LDDEPS	:= $(OBJDIR)/lib/libdis.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a $(OBJDIR)/acpkg/lib/libgmp.a
+DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldis -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
 
 $(OBJDIR)/lib/dis/%.C: lib/dis/%.x
 	@mkdir -p $(@D)
