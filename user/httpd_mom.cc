@@ -80,9 +80,11 @@ main (int ac, char **av)
     static char ssld_access_grant[32];
     snprintf(ssld_access_grant, sizeof(ssld_access_grant), "%lu", access_grant);
 
-    label ssld_ds(3);
+    label ssld_ds(3), ssld_dr(0);
     ssld_ds.set(access_grant, LB_LEVEL_STAR);
     ssld_ds.set(secret_taint, LB_LEVEL_STAR);
+    ssld_dr.set(access_grant, 3);
+    ssld_dr.set(secret_taint, 3);
     
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
@@ -93,7 +95,8 @@ main (int ac, char **av)
 				    0, 0, 0,
 				    5, &ssld_argv[0],
 				    0, 0,
-				    0, &ssld_ds, 0, 0, 0);
+				    0, &ssld_ds, 0, &ssld_dr, 0,
+				    SPAWN_NO_AUTOGRANT);
     int64_t exit_code = 0;
     process_wait(&cp, &exit_code);
     if (exit_code)
@@ -111,7 +114,7 @@ main (int ac, char **av)
 	  0, 0, 0,
 	  2, &httpd_argv[0],
 	  0, 0,
-	  0, &httpd_ds, 0, &httpd_dr, 0);
+	  0, &httpd_ds, 0, &httpd_dr, 0, SPAWN_NO_AUTOGRANT);
 
     return 0;
 }

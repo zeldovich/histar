@@ -53,6 +53,11 @@ try
     ds.set(netdev_taint, LB_LEVEL_STAR);
     ds.set(inet_taint, LB_LEVEL_STAR);
 
+    label dr(0);
+    dr.set(netdev_grant, 3);
+    dr.set(netdev_taint, 3);
+    dr.set(inet_taint, 3);
+
     char grant_arg[32], taint_arg[32], inet_arg[32];
     sprintf(grant_arg, "%lu", netdev_grant);
     sprintf(taint_arg, "%lu", netdev_taint);
@@ -76,7 +81,7 @@ try
 	  0, 1, 2,
 	  4, &argv[0],
 	  0, 0,
-	  0, &ds, 0, 0, &co);
+	  0, &ds, 0, &dr, &co, SPAWN_NO_AUTOGRANT);
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
 }

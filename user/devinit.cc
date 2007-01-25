@@ -28,7 +28,7 @@ spawn_dev(const char *pn, const char *ct, const char *h_grant, label *ds)
 	           fileno(stdin), fileno(stdout), fileno(stderr),
 	           3, &argv[0],
 		   0, 0,
-	           0, ds, 0, 0, 0);
+	           0, ds, 0, 0, 0, SPAWN_NO_AUTOGRANT);
     } catch (std::exception &e) {
 	cprintf("spawn_dev(%s): %s\n", pn, e.what());
     }
