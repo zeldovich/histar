@@ -16,6 +16,7 @@ thread_cleanup_internal(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *s
 
     sys_obj_unref(COBJ(ct, stack_id));
     sys_obj_unref(COBJ(ct, thr_id));
+    return 0;
 }
 
 int
