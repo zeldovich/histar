@@ -155,20 +155,58 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 }
 
 static ssize_t
-sock_send(struct Fd *fd, const void *buf, size_t count, int flags)
+sock_sendmsg(struct Fd *fd, const struct msghdr *msg, int flags)
 {
-    if (count > netd_buf_size)
-	count = netd_buf_size;
+    if (msg->msg_control) {
+	errno = EOPNOTSUPP;
+	return -1;
+    }
+
+    uint32_t iovbytes = 0;
+    for (int i = 0; i < msg->msg_iovlen; i++)
+	iovbytes += msg->msg_iov[i].iov_len;
+
+    if (iovbytes > netd_buf_size) {
+	errno = EMSGSIZE;
+	return -1;
+    }
 
     struct netd_op_args a;
-    a.size = offsetof(struct netd_op_args, send) +
-	     offsetof(struct netd_op_send_args, buf) + count;
+    struct sockaddr_in sin;
+    uint32_t cc = 0;
+    if (msg->msg_name) {
+	if (msg->msg_namelen != sizeof(sin)) {
+	    errno = EINVAL;
+	    return -1;
+	}
 
-    a.op_type = netd_op_send;
-    a.send.fd = fd->fd_sock.s;
-    a.send.count = count;
-    a.send.flags = flags;
-    memcpy(&a.send.buf[0], buf, count);
+	a.size = offsetof(struct netd_op_args, sendto) +
+		 offsetof(struct netd_op_sendto_args, buf) + iovbytes;
+	a.op_type = netd_op_sendto;
+	a.sendto.fd = fd->fd_sock.s;
+	a.sendto.count = iovbytes;
+	a.sendto.flags = flags;
+	memcpy(&sin, msg->msg_name, msg->msg_namelen);
+	libc_to_netd(&sin, &a.sendto.sin);
+
+	for (int i = 0; i < msg->msg_iovlen; i++) {
+	    memcpy(&a.sendto.buf[cc], msg->msg_iov[i].iov_base, msg->msg_iov[i].iov_len);
+	    cc += msg->msg_iov[i].iov_len;
+	}
+    } else {
+	a.size = offsetof(struct netd_op_args, send) +
+		 offsetof(struct netd_op_send_args, buf) + iovbytes;
+	a.op_type = netd_op_send;
+	a.send.fd = fd->fd_sock.s;
+	a.send.count = iovbytes;
+	a.send.flags = flags;
+
+	for (int i = 0; i < msg->msg_iovlen; i++) {
+	    memcpy(&a.send.buf[cc], msg->msg_iov[i].iov_base, msg->msg_iov[i].iov_len);
+	    cc += msg->msg_iov[i].iov_len;
+	}
+    }
+
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
@@ -176,26 +214,39 @@ static ssize_t
 sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
 	    const struct sockaddr *to, socklen_t tolen)
 {
-    if (count > netd_buf_size)
-	count = netd_buf_size;
-
-    struct sockaddr_in sin;
-    if (tolen < sizeof(sin))
-	return -E_INVAL;
-    
-    memcpy(&sin, to, sizeof(sin));
+    if (count > netd_buf_size) {
+	errno = EMSGSIZE;
+	return -1;
+    }
 
     struct netd_op_args a;
-    a.size = offsetof(struct netd_op_args, sendto) +
-	     offsetof(struct netd_op_sendto_args, buf) + count;
+    struct sockaddr_in sin;
+    if (to) {
+	if (tolen < sizeof(sin)) {
+	    errno = EINVAL;
+	    return -1;
+	}
 
-    a.op_type = netd_op_sendto;
-    a.sendto.fd = fd->fd_sock.s;
-    a.sendto.count = count;
-    a.sendto.flags = flags;
-    libc_to_netd(&sin, &a.sendto.sin);
-    memcpy(&a.sendto.buf[0], buf, count);
-    
+	memcpy(&sin, to, sizeof(sin));
+
+	a.size = offsetof(struct netd_op_args, sendto) +
+		 offsetof(struct netd_op_sendto_args, buf) + count;
+	a.op_type = netd_op_sendto;
+	a.sendto.fd = fd->fd_sock.s;
+	a.sendto.count = count;
+	a.sendto.flags = flags;
+	libc_to_netd(&sin, &a.sendto.sin);
+	memcpy(&a.sendto.buf[0], buf, count);
+    } else {
+	a.size = offsetof(struct netd_op_args, send) +
+		 offsetof(struct netd_op_send_args, buf) + count;
+	a.op_type = netd_op_send;
+	a.send.fd = fd->fd_sock.s;
+	a.send.count = count;
+	a.send.flags = flags;
+	memcpy(&a.send.buf[0], buf, count);
+    }
+
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
@@ -222,7 +273,7 @@ sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
 static ssize_t
 sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    return sock_send(fd, buf, count, 0);
+    return sock_sendto(fd, buf, count, 0, 0, 0);
 }
 
 static ssize_t
@@ -401,8 +452,8 @@ struct Dev devsock =
     .dev_read = sock_read,
     .dev_write = sock_write,
     .dev_recv = sock_recv,
-    .dev_send = sock_send,
     .dev_sendto = sock_sendto,
+    .dev_sendmsg = sock_sendmsg,
     .dev_close = sock_close,
     .dev_bind = sock_bind,
     .dev_connect = sock_connect,

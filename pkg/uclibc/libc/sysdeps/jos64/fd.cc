@@ -999,7 +999,7 @@ poll(struct pollfd *ufds, nfds_t nfds, int timeout) __THROW
 ssize_t
 send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
 {
-    return FD_CALL(fdnum, send, dataptr, size, flags);
+    return sendto(fdnum, dataptr, size, flags, 0, 0);
 }
 
 ssize_t
@@ -1009,11 +1009,10 @@ sendto(int fdnum, const void *dataptr, size_t len, int flags,
     return FD_CALL(fdnum, sendto, dataptr, len, flags, to, tolen);
 }
 
-ssize_t 
-sendmsg(int s, const struct msghdr *msg, int flags) __THROW
+ssize_t
+sendmsg(int fdnum, const struct msghdr *msg, int flags) __THROW
 {
-    set_enosys();
-    return -1;
+    return FD_CALL(fdnum, sendmsg, msg, flags);
 }
 
 ssize_t

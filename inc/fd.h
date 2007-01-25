@@ -30,9 +30,9 @@ struct Dev
     ssize_t (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
     ssize_t (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
     ssize_t (*dev_recv)(struct Fd *fd, void *buf, size_t len, int flags);
-    ssize_t (*dev_send)(struct Fd *fd, const void *buf, size_t len, int flags);
     ssize_t (*dev_sendto)(struct Fd *fd, const void *buf, size_t len, int flags, 
 			  const struct sockaddr *to, socklen_t tolen);
+    ssize_t (*dev_sendmsg)(struct Fd *fd, const struct msghdr *msg, int flags);
     int (*dev_close)(struct Fd *fd);
     int (*dev_seek)(struct Fd *fd, off_t pos);
     int (*dev_trunc)(struct Fd *fd, off_t length);
