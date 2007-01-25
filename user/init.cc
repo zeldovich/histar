@@ -26,6 +26,7 @@ extern "C" {
 
 static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
+static uint64_t time_grant;
 
 static struct child_process
 spawn_fs(int fd, const char *pn, const char *arg, label *ds, label *dr)
@@ -72,10 +73,14 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
 			      &start_env->fs_mtab_seg, 0, 0, "mount table"));
 
+    time_grant = handle_alloc();
+    label time_label(1);
+    time_label.set(time_grant, 0);
+
     struct time_of_day_seg *tods = 0;
     error_check(segment_alloc(c_self, sizeof(struct time_of_day_seg),
 			      &start_env->time_seg, (void **) &tods,
-			      0, "time-of-day"));
+			      time_label.to_ulabel(), "time-of-day"));
     tods->unix_msec_offset = 1000000000UL * 1000;
 
     // set the filesystem root to be the same as the container root
@@ -207,6 +212,11 @@ init_procs(int cons)
     } catch (std::exception &e) {
 	printf("init_procs: cannot init auth system: %s\n", e.what());
     }
+
+    label time_ds(3), time_dr(0);
+    time_ds.set(time_grant, LB_LEVEL_STAR);
+    time_dr.set(time_grant, 3);
+    spawn_fs(cons, "/bin/jntpd", "ntp.stanford.edu", &time_ds, &time_dr);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
