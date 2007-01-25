@@ -10,6 +10,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/gateparam.h>
 #include <inc/authd.h>
+#include <inc/time.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -70,6 +71,12 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 
     error_check(segment_alloc(c_self, sizeof(struct fs_mount_table),
 			      &start_env->fs_mtab_seg, 0, 0, "mount table"));
+
+    struct time_of_day_seg *tods = 0;
+    error_check(segment_alloc(c_self, sizeof(struct time_of_day_seg),
+			      &start_env->time_seg, (void **) &tods,
+			      0, "time-of-day"));
+    tods->unix_msec_offset = 1000000000UL * 1000;
 
     // set the filesystem root to be the same as the container root
     fs_get_root(c_root, &start_env->fs_root);

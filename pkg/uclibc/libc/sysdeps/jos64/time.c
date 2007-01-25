@@ -1,4 +1,7 @@
 #include <inc/syscall.h>
+#include <inc/time.h>
+#include <inc/lib.h>
+#include <inc/jthread.h>
 
 #include <errno.h>
 #include <time.h>
@@ -13,7 +16,29 @@
 int
 gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-    uint64_t msec = sys_clock_msec();
+    static struct time_of_day_seg *tods;
+    if (!tods) {
+	static jthread_mutex_t mu;
+	jthread_mutex_lock(&mu);
+	if (!tods) {
+	    uint64_t bytes = 0;
+	    int r = segment_map(start_env->time_seg, 0,
+				SEGMAP_READ, (void **) &tods,
+				&bytes, 0);
+	    if (r < 0)
+		cprintf("gettimeofday: cannot map time segment %ld.%ld: %s\n",
+			start_env->time_seg.container,
+			start_env->time_seg.object, e2s(r));
+
+	    if (r >= 0 && bytes == 0) {
+		segment_unmap(tods);
+		tods = 0;
+	    }
+	}
+	jthread_mutex_unlock(&mu);
+    }
+
+    uint64_t msec = sys_clock_msec() + (tods ? tods->unix_msec_offset : 0);
     tv->tv_sec = msec / 1000;
     tv->tv_usec = (msec % 1000) * 1000;
     return 0;
