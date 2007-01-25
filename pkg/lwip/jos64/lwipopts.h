@@ -32,9 +32,11 @@
 
 // Print error messages when we run out of memory
 #define LWIP_DEBUG	1
-#define MEMP_DEBUG	DBG_ON
+//#define MEMP_DEBUG	DBG_ON
+//#define SOCKETS_DEBUG	DBG_ON
 #define DBG_TYPES_ON	DBG_ON
 #define DBG_MIN_LEVEL	DBG_LEVEL_SERIOUS
+//#define DBG_MIN_LEVEL	0
 
 #define LWIPEXT_SYNC_ON
 
