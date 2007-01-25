@@ -59,9 +59,10 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 
 ## Special targets
 
-$(OBJDIR)/user/server.pem:
+$(OBJDIR)/user/server.pem $(OBJDIR)/user/servkey.pem:
 	@mkdir -p $(@D)
-	openssl req -new -x509 -keyout $@ -out $@ -days 3650 \
+	openssl req -new -x509 -keyout $(OBJDIR)/user/servkey.pem \
+		-out $(OBJDIR)/user/server.pem -days 3650 \
 		-nodes -subj /CN=histar-httpd
 
 $(OBJDIR)/user/dh.pem:

@@ -40,9 +40,11 @@ int
 main (int ac, char **av)
 {
     static const char *default_server_pem = "/bin/server.pem";
+    static const char *default_servkey_pem = "/bin/servkey.pem";
     static const char *default_dh_pem = "/bin/dh.pem";
 
     static const char *ssld_server_pem = "/httpd/ssld-priv/server.pem";
+    static const char *ssld_servkey_pem = "/httpd/ssld-priv/servkey.pem";
     static const char *ssld_dh_pem = "/httpd/ssld-priv/dh.pem";
 
     int64_t secret_taint = handle_alloc();
@@ -64,10 +66,13 @@ main (int ac, char **av)
 			 secret_label.to_ulabel()));
         
     struct fs_inode server_pem_ino = fs_inode_for(default_server_pem);
+    struct fs_inode servkey_pem_ino = fs_inode_for(default_servkey_pem);
     struct fs_inode dh_pem_ino = fs_inode_for(default_dh_pem);
 
 
     segment_copy_to_file(server_pem_ino.obj, priv_dir_ino, "server.pem", 
+			 &secret_label);
+    segment_copy_to_file(servkey_pem_ino.obj, priv_dir_ino, "servkey.pem", 
 			 &secret_label);
     segment_copy_to_file(dh_pem_ino.obj, priv_dir_ino, "dh.pem", 
 			 &secret_label);
@@ -81,12 +86,12 @@ main (int ac, char **av)
     
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
-    const char *ssld_argv[] = { ssld_pn, ssld_server_pem, 
+    const char *ssld_argv[] = { ssld_pn, ssld_server_pem, ssld_servkey_pem,
 				ssld_dh_pem, 
 				ssld_access_grant };
     struct child_process cp = spawn(httpd_ct, ssld_ino,
 				    0, 0, 0,
-				    4, &ssld_argv[0],
+				    5, &ssld_argv[0],
 				    0, 0,
 				    0, &ssld_ds, 0, 0, 0);
     int64_t exit_code = 0;

@@ -28,6 +28,7 @@ static const uint64_t debug_print_period = 10;
 
 static const char threaded = 1;
 static const char *server_pem = "/bin/server.pem";
+static const char *servkey_pem = "/bin/servkey.pem";
 static const char *dh_pem = "/bin/dh.pem";
 static jthread_mutex_t mutex[128];
 
@@ -119,7 +120,7 @@ http_client(void *arg)
 }
 
 void
-ssl_init(const char *server_pem,
+ssl_init(const char *server_pem, const char *servkey_pem,
 	 const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
@@ -142,8 +143,8 @@ ssl_init(const char *server_pem,
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
 	throw basic_exception("Can't read certificate file %s", server_pem);
     
-    if(!(SSL_CTX_use_PrivateKey_file(ctx, server_pem, SSL_FILETYPE_PEM)))
-	throw basic_exception("Can't read key file %s", server_pem);
+    if(!(SSL_CTX_use_PrivateKey_file(ctx, servkey_pem, SSL_FILETYPE_PEM)))
+	throw basic_exception("Can't read key file %s", servkey_pem);
 
     // Load the CAs we trust
     if (calist_pem)
@@ -187,7 +188,7 @@ main (int ac, char **av)
 	segment_map_print(&uas);
     }
     
-    ssl_init(server_pem, dh_pem, 0);
+    ssl_init(server_pem, servkey_pem, dh_pem, 0);
     
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0)

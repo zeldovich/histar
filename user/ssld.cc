@@ -252,7 +252,7 @@ ssld_cow_gate_create(uint64_t ct)
 }
 
 void
-ssl_init(const char *server_pem,
+ssl_init(const char *server_pem, const char *servkey_pem,
 	 const char *dh_pem, const char *calist_pem)
 {
     if (ctx) {
@@ -270,8 +270,8 @@ ssl_init(const char *server_pem,
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
 	throw basic_exception("Can't read certificate file %s", server_pem);
     
-    if(!(SSL_CTX_use_PrivateKey_file(ctx, server_pem, SSL_FILETYPE_PEM)))
-	throw basic_exception("Can't read key file %s", server_pem);
+    if(!(SSL_CTX_use_PrivateKey_file(ctx, servkey_pem, SSL_FILETYPE_PEM)))
+	throw basic_exception("Can't read key file %s", servkey_pem);
 
     // Load the CAs we trust
     if (calist_pem)
@@ -300,18 +300,19 @@ ssl_init(const char *server_pem,
 int
 main (int ac, char **av)
 {
-    if (ac < 4) {
-	cprintf("Usage: %s server-pem dh-pem access-grant", 
+    if (ac < 5) {
+	cprintf("Usage: %s server-pem servkey-pem dh-pem access-grant", 
 		av[0]);
 	return -1;
     }
 
     const char *server_pem = av[1];
-    const char *dh_pem = av[2];
+    const char *servkey_pem = av[2];
+    const char *dh_pem = av[3];
     uint64_t access_grant;
-    error_check(strtou64(av[3], 0, 10, &access_grant));
+    error_check(strtou64(av[4], 0, 10, &access_grant));
 
-    ssl_init(server_pem, dh_pem, 0);
+    ssl_init(server_pem, servkey_pem, dh_pem, 0);
     ssld_cow_gate_create(start_env->shared_container);
         
     return 0;
