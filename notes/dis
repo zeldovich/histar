@@ -88,3 +88,22 @@ matching global category if none already exists, and automatically
 create delegations if the target exporter/importer doesn't have the
 category delegated to it.
 
+===
+
+label rules:
+
+Node_L(c) = { *, if Node speaks for c (i.e., Node -> ... -> c); 0 otherwise }
+N_L = network label ({1} as an example)
+N_C = network clearance ({1} for internet, {2} for internal trusted network)
+
+Message M with label M_L being sent to a receiver node R.  The sender should
+check that (R_net_addr -> R), i.e. that we have the right network address
+certificate, and that:
+
+    M_L \leq (R_L^\histar \cup N_C)
+
+When a receiver node receives a message M with label M_L from a sender node S,
+it needs to check that:
+
+    (S_L^\histar \cup N_L^\histar)^\star \leq M_L \leq (S_L^\histar \cup N_C)
+
