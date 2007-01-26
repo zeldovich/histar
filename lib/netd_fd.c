@@ -17,6 +17,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <errno.h>
+#include <stdio.h>
 
 static void
 libc_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
@@ -99,11 +100,9 @@ sock_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     if (addrlen < sizeof(sin))
 	   return -E_INVAL;
 
-    memcpy(&sin, addr, sizeof(sin));
-
     a.op_type = netd_op_connect;
     a.connect.fd = fd->fd_sock.s;
-    libc_to_netd(&sin, &a.connect.sin);
+    libc_to_netd((struct sockaddr_in *) addr, &a.connect.sin);
     return netd_call(fd->fd_sock.netd_gate, &a);
 }
 
