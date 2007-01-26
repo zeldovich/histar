@@ -110,7 +110,7 @@ stack_grow(void *faultaddr)
 static void __attribute__((noreturn))
 sig_fatal(void)
 {
-    static int recursive = 1;
+    static int recursive = 0;
 
     if (recursive) {
 	sys_self_halt();
