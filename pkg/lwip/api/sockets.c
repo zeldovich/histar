@@ -376,7 +376,7 @@ get_more_data:
       /* We should really do some error checking here. */
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): buf == NULL!\n", s));
       sock_set_errno(sock, 0);
-      return 0;
+      return totallen;
     }
   }
 
