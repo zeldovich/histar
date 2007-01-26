@@ -52,10 +52,6 @@ $(OBJDIR)/test/%.o: lib/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/test/%.o: lib/dis/%.cc
-	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
-
 $(OBJDIR)/test/%.o: lib/%.c
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
@@ -92,6 +88,23 @@ $(OBJDIR)/test/sock_bench: $(SOCK_BENCH_OBJS)
 $(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $(SOCK_CLIENT_OBJS) -lstdc++ -lpthread
+
+## Distributed stuff
+$(OBJDIR)/test/%.o: lib/dis/%.cc $(OBJDIR)/lib/dis/dj.h
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+
+$(OBJDIR)/test/%.o: $(OBJDIR)/lib/dis/%.C $(OBJDIR)/lib/dis/dj.h
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+
+$(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/lib/dis/dj.h
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+
+$(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djserv.o
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $^ -L/usr/local/lib/sfs -lsfscrypt -larpc -lasync -lgmp -lstdc++
 
 ## lwip bench rules
 
