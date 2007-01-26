@@ -11,6 +11,8 @@
 #include <netdb.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 enum { poll_time = 300 };
 static int cur_delay;
@@ -97,6 +99,7 @@ main(int ac, char **av)
     for (;;) {
 	struct hostent *he = gethostbyname(av[1]);
 	if (!he) {
+	    printf("jntpd: cannot lookup %s, retrying\n", av[1]);
 	    sleep(dns_delay);
 	    dns_delay *= 2;
 	    if (dns_delay > poll_time)
@@ -108,6 +111,9 @@ main(int ac, char **av)
 	sin.sin_family = AF_INET;
 	memcpy(&sin.sin_addr, he->h_addr, sizeof(sin.sin_addr));
 	sin.sin_port = htons(123);
+
+	printf("jntpd: server %s, address %s\n",
+	       av[1], inet_ntoa(sin.sin_addr));
 	break;
     }
 
