@@ -266,6 +266,9 @@ sock_recvfrom(struct Fd *fd, void *buf, size_t count, int flags,
     a.recvfrom.count = count;
     a.recvfrom.flags = flags;
 
+    if (fd->fd_omode & O_NONBLOCK)
+	a.recvfrom.flags |= MSG_DONTWAIT;
+
     int r = netd_call(fd->fd_sock.netd_gate, &a);
     if (r > 0) {
 	memcpy(buf, &a.recvfrom.buf[0], r);
