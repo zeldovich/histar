@@ -251,22 +251,46 @@ sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
 }
 
 static ssize_t
-sock_recv(struct Fd *fd, void *buf, size_t count, int flags)
+sock_recvfrom(struct Fd *fd, void *buf, size_t count, int flags, 
+	      struct sockaddr *addr, socklen_t *addrlen)
 {
     if (count > netd_buf_size)
 	count = netd_buf_size;
 
-    struct netd_op_args a;
-    a.size = offsetof(struct netd_op_args, recv) +
-	     offsetof(struct netd_op_recv_args, buf);
+    int r;
 
-    a.op_type = netd_op_recv;
-    a.recv.fd = fd->fd_sock.s;
-    a.recv.count = count;
-    a.recv.flags = flags;
-    int r = netd_call(fd->fd_sock.netd_gate, &a);
-    if (r > 0)
-	memcpy(buf, &a.recv.buf[0], r);
+    if (addr) {
+	struct netd_op_args a;
+	a.size = offsetof(struct netd_op_args, recvfrom) +
+	    offsetof(struct netd_op_recvfrom_args, buf);
+	
+	a.op_type = netd_op_recvfrom;
+	a.recvfrom.fd = fd->fd_sock.s;
+	a.recvfrom.count = count;
+	a.recvfrom.flags = flags;
+	r = netd_call(fd->fd_sock.netd_gate, &a);
+	if (r > 0) {
+	    memcpy(buf, &a.recvfrom.buf[0], r);
+	    if (addr) {
+		struct sockaddr_in sin;
+		netd_to_libc(&a.recvfrom.sin, &sin);
+		memcpy(addr, &sin, sizeof(sin));
+		*addrlen = sizeof(sin);
+	    }
+	}
+    } else {
+	struct netd_op_args a;
+	a.size = offsetof(struct netd_op_args, recv) +
+	    offsetof(struct netd_op_recv_args, buf);
+	
+	a.op_type = netd_op_recv;
+	a.recv.fd = fd->fd_sock.s;
+	a.recv.count = count;
+	a.recv.flags = flags;
+	r = netd_call(fd->fd_sock.netd_gate, &a);
+	if (r > 0)
+	    memcpy(buf, &a.recv.buf[0], r);
+    }
     return r;
 }
 
@@ -279,7 +303,7 @@ sock_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static ssize_t
 sock_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    return sock_recv(fd, buf, count, 0);
+    return sock_recvfrom(fd, buf, count, 0, 0, 0);
 }
 
 static int
@@ -451,7 +475,7 @@ struct Dev devsock =
     .dev_name = "sock",
     .dev_read = sock_read,
     .dev_write = sock_write,
-    .dev_recv = sock_recv,
+    .dev_recvfrom = sock_recvfrom,
     .dev_sendto = sock_sendto,
     .dev_sendmsg = sock_sendmsg,
     .dev_close = sock_close,

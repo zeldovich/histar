@@ -1018,15 +1018,14 @@ sendmsg(int fdnum, const struct msghdr *msg, int flags) __THROW
 ssize_t
 recv(int fdnum, void *mem, size_t len, int flags) __THROW
 {
-    return FD_CALL(fdnum, recv, mem, len, flags);
+    return FD_CALL(fdnum, recvfrom, mem, len, flags, 0, 0);
 }
 
 ssize_t
 recvfrom(int fdnum, void *mem, size_t len, int flags, 
          struct sockaddr *from, socklen_t *fromlen) __THROW
 {
-    set_enosys();
-    return -1;
+    return FD_CALL(fdnum, recvfrom, mem, len, flags, from, fromlen);
 }
 
 ssize_t 

@@ -29,6 +29,7 @@ typedef enum {
     netd_op_send,
     netd_op_sendto,
     netd_op_recv,
+    netd_op_recvfrom,
     netd_op_notify,
     netd_op_shutdown,
 } netd_op_t;
@@ -80,6 +81,15 @@ struct netd_op_recv_args {
     int flags;
     char buf[netd_buf_size];
 };
+
+struct netd_op_recvfrom_args {
+    int fd;
+    uint32_t count;
+    int flags;
+    struct netd_sockaddr_in sin;
+    char buf[netd_buf_size];
+};
+
 
 struct netd_op_close_args {
     int fd;
@@ -139,6 +149,7 @@ struct netd_op_args {
 	struct netd_op_setsockopt_args setsockopt;
 	struct netd_op_getsockopt_args getsockopt;
 	struct netd_op_recv_args recv;
+	struct netd_op_recvfrom_args recvfrom;
 	struct netd_op_send_args send;
 	struct netd_op_sendto_args sendto;
 	struct netd_op_notify_args notify;
