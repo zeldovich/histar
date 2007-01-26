@@ -102,7 +102,7 @@ $(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/lib/dis/dj.h
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
 
-$(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djserv.o
+$(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djserv.o $(OBJDIR)/test/bcast.o
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $^ -L/usr/local/lib/sfs -lsfscrypt -larpc -lasync -lgmp -lstdc++
 

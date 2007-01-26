@@ -8,6 +8,7 @@ LIBDIS_SRCFILES +=			\
 	lib/dis/sgateclnt.cc		\
 	lib/dis/sharedutil.cc		\
 	lib/dis/djserv.cc		\
+	lib/dis/bcast.cc		\
 	lib/dis/dj.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)

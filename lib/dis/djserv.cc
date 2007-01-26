@@ -3,6 +3,7 @@
 #include <arpc.h>
 #include <esign.h>
 #include <dis.hh>
+#include <bcast.hh>
 #include "dj.h"
 
 enum {
@@ -12,16 +13,27 @@ enum {
     time_skew = 5,
 };
 
+static in_addr
+myipaddr(void)
+{
+    vec<in_addr> addrs;
+    if (!myipaddrs(&addrs))
+	fatal << "myipaddr: cannot get list of addresses\n";
+    for (uint32_t i = 0; i < addrs.size(); i++)
+	if (addrs[i].s_addr != htonl(INADDR_LOOPBACK))
+	    return addrs[i];
+    fatal << "myipaddr: no usable addresses\n";
+}
+
 class djserv_impl : public djserv {
  public:
     djserv_impl(uint16_t port) : k_(esign_keygen(keybits)) {
-	int fd = inetsocket(SOCK_DGRAM, port, 0);
-	if (fd < 0)
-	    fatal << "inetsocket: " << strerror(errno) << "\n";
+	myport_ = htons(port);
+	myipaddr_ = myipaddr();
 
-	socklen_t len = sizeof(myaddr_);
-	if (getsockname(fd, (sockaddr *) &myaddr_, &len) < 0)
-	    fatal << "getsockname: " << strerror(errno) << "\n";
+	int fd = bcast_info.bind_bcast_sock(myport_, true);
+	warn << "djserv: listening on " << inet_ntoa(myipaddr_)
+	     << ":" << ntohs(myport_) << "\n";
 
 	make_async(fd);
 	x_ = axprt_dgram::alloc(fd);
@@ -52,8 +64,8 @@ class djserv_impl : public djserv {
 	dj_stmt_signed s;
 	s.stmt.set_type(STMT_DELEGATION);
 	s.stmt.delegation->a.set_type(ENT_ADDRESS);
-	s.stmt.delegation->a.addr->ip = ntohl(myaddr_.sin_addr.s_addr);
-	s.stmt.delegation->a.addr->port = ntohs(myaddr_.sin_port);
+	s.stmt.delegation->a.addr->ip = myipaddr_.s_addr;
+	s.stmt.delegation->a.addr->port = myport_;
 
 	s.stmt.delegation->b.set_type(ENT_PUBKEY);
 	s.stmt.delegation->b.key->n = k_.n;
@@ -72,18 +84,24 @@ class djserv_impl : public djserv {
 	if (!msg)
 	    fatal << "send_bcast: !xdr2str(s)\n";
 
-	sockaddr_in bcast;
-	bcast.sin_family = AF_INET;
-	bcast.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-	bcast.sin_port = myaddr_.sin_port;
-	x_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
-	warn << "Sent out broadcast address delegation\n";
+	bcast_info.init();
+	for (const in_addr *ap = bcast_info.bcast_addrs.base();
+	     ap < bcast_info.bcast_addrs.lim(); ap++) {
+	    sockaddr_in bcast;
+	    bcast.sin_family = AF_INET;
+	    bcast.sin_addr = *ap;
+	    bcast.sin_port = myport_;
+	    x_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
+	    warn << "Sent out broadcast address delegation to "
+		 << inet_ntoa(*ap) << "\n";
+	}
 
 	delaycb(broadcast_period,
 		wrap(mkref(this), &djserv_impl::send_bcast));
     }
 
-    sockaddr_in myaddr_;
+    in_addr myipaddr_;	/* network byte order */
+    uint16_t myport_;	/* network byte order */
     ptr<axprt> x_;
     esign_priv k_;
 };
