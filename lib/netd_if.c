@@ -4,6 +4,7 @@
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <lwip/netif.h>
+#include <net/if.h>
 #include <errno.h>
 
 #define NETIF_SEG_MAP(__seg, __va)				\
@@ -31,12 +32,12 @@
     })
 
 static void
-flags_lwip_to_netd(uint8_t *lwip, uint16_t *netd)
+flags_lwip_to_libc(uint8_t *lwip, uint16_t *netd)
 {
     *netd = 0;
-    *netd |= *lwip & NETIF_FLAG_UP ? NETD_FLAG_UP : 0;
-    *netd |= *lwip & NETIF_FLAG_BROADCAST ? NETD_FLAG_BROADCAST : 0;
-    *netd |= *lwip & NETIF_FLAG_POINTTOPOINT ? NETD_FLAG_POINTTOPOINT : 0;
+    *netd |= *lwip & NETIF_FLAG_UP ? (IFF_UP|IFF_RUNNING) : 0;
+    *netd |= *lwip & NETIF_FLAG_BROADCAST ? (IFF_BROADCAST) : 0;
+    *netd |= *lwip & NETIF_FLAG_POINTTOPOINT ? (IFF_POINTOPOINT) : 0;
 }
 
 static int
@@ -76,6 +77,23 @@ netd_ip(struct netd_sockaddr_in *nsin)
 }
 
 static int
+netd_ifmask(struct cobj_ref r, struct netd_sockaddr_in *nsin)
+{
+    struct netif *nif = 0;
+    NETIF_SEG_MAP(r, &nif);
+    nsin->sin_addr = nif->netmask.addr;
+    nsin->sin_port = 0;
+    NETIF_SEG_UNMAP(nif);
+    return 0;
+}
+
+int 
+netd_netmask(struct netd_sockaddr_in *nsin)
+{
+    return NETIF_CALL(ifmask, nsin);
+}
+
+static int
 netd_ifname(struct cobj_ref r, char *buf)
 {
     struct netif *nif = 0;
@@ -97,7 +115,7 @@ netd_ifflags(struct cobj_ref r, uint16_t *flags)
 {
     struct netif *nif = 0;
     NETIF_SEG_MAP(r, &nif);
-    flags_lwip_to_netd(&nif->flags, flags);
+    flags_lwip_to_libc(&nif->flags, flags);
     NETIF_SEG_UNMAP(nif);
     return 0;
 }

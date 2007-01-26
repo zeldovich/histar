@@ -415,7 +415,7 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
 
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
-{    
+{
     return netd_wstat(fd, probe, wstat);
 }
 
@@ -440,15 +440,30 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 
 	return 0;
     }
-    case SIOCGIFFLAGS: {
+
+    case SIOCGIFFLAGS:
+    case SIOCGIFBRDADDR: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
-	netd_name(r->ifr_name);
-	r->ifr_name[2] = 0;
-	
-	r->ifr_flags = 0;
-	netd_flags(&r->ifr_flags);
+	char reqname[2];
+	netd_name(reqname);
+	if (r->ifr_name[0] != reqname[0] || r->ifr_name[1] != reqname[1] || r->ifr_name[2]) {
+	    errno = ENXIO;
+	    return -1;
+	}
+
+	if (req == SIOCGIFFLAGS)
+	    netd_flags(&r->ifr_flags);
+	if (req == SIOCGIFBRDADDR) {
+	    struct netd_sockaddr_in s1, s2;
+	    netd_ip(&s1);
+	    netd_netmask(&s2);
+	    s1.sin_addr |= ~s2.sin_addr;
+	    netd_to_libc(&s1, (struct sockaddr_in *) &r->ifr_broadaddr);
+	}
+
 	return 0;
     }
+
     default:
 	break;
     }
