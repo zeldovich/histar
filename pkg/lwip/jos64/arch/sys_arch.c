@@ -15,6 +15,8 @@
 #define MBOXSLOTS	32
 
 struct sys_sem_entry {
+    int freed;
+    int gen;
     union {
 	uint64_t v;
 	struct {
@@ -28,6 +30,7 @@ static struct sys_sem_entry sems[NSEM];
 static LIST_HEAD(sem_list, sys_sem_entry) sem_free;
 
 struct sys_mbox_entry {
+    int freed;
     int head, nextq;
     void *msg[MBOXSLOTS];
     sys_sem_t queued_msg;
@@ -48,10 +51,15 @@ static LIST_HEAD(thread_list, sys_thread) threads[thread_hash_size];
 void
 sys_init()
 {
-    for (int i = 0; i < NSEM; i++)
+    for (int i = 0; i < NSEM; i++) {
+	sems[i].freed = 1;
 	LIST_INSERT_HEAD(&sem_free, &sems[i], link);
-    for (int i = 0; i < NMBOX; i++)
+    }
+
+    for (int i = 0; i < NMBOX; i++) {
+	mboxes[i].freed = 1;
 	LIST_INSERT_HEAD(&mbox_free, &mboxes[i], link);
+    }
 }
 
 sys_mbox_t
@@ -63,6 +71,8 @@ sys_mbox_new()
 	return SYS_MBOX_NULL;
     }
     LIST_REMOVE(mbe, link);
+    assert(mbe->freed);
+    mbe->freed = 0;
 
     int i = mbe - &mboxes[0];
     mbe->head = -1;
@@ -77,21 +87,24 @@ sys_mbox_new()
 	cprintf("lwip: sys_mbox_new: can't get semaphore\n");
 	return SYS_MBOX_NULL;
     }
-
     return i;
 }
 
 void
 sys_mbox_free(sys_mbox_t mbox)
 {
+    assert(!mboxes[mbox].freed);
     sys_sem_free(mboxes[mbox].queued_msg);
     sys_sem_free(mboxes[mbox].free_msg);
     LIST_INSERT_HEAD(&mbox_free, &mboxes[mbox], link);
+    mboxes[mbox].freed = 1;
 }
 
 void
 sys_mbox_post(sys_mbox_t mbox, void *msg)
 {
+    assert(!mboxes[mbox].freed);
+
     sys_arch_sem_wait(mboxes[mbox].free_msg, 0);
     if (mboxes[mbox].nextq == mboxes[mbox].head)
 	panic("lwip: sys_mbox_post: no space for message");
@@ -115,20 +128,27 @@ sys_sem_new(u8_t count)
 	return SYS_SEM_NULL;
     }
     LIST_REMOVE(se, link);
+    assert(se->freed);
+    se->freed = 0;
 
     se->counter = count;
+    se->gen++;
     return se - &sems[0];
 }
 
 void
 sys_sem_free(sys_sem_t sem)
 {
+    assert(!sems[sem].freed);
+    sems[sem].freed = 1;
+    sems[sem].gen++;
     LIST_INSERT_HEAD(&sem_free, &sems[sem], link);
 }
 
 void
 sys_sem_signal(sys_sem_t sem)
 {
+    assert(!sems[sem].freed);
     sems[sem].counter++;
     if (sems[sem].waiters) {
 	sems[sem].waiters = 0;
@@ -139,14 +159,16 @@ sys_sem_signal(sys_sem_t sem)
 u32_t
 sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 {
+    assert(!sems[sem].freed);
     u32_t waited = 0;
+    int gen = sems[sem].gen;
 
     while (tm_msec == 0 || waited < tm_msec) {
 	if (sems[sem].counter > 0) {
 	    sems[sem].counter--;
 	    return waited;
 	} else if (tm_msec == SYS_ARCH_NOWAIT) {
-	    waited = SYS_ARCH_TIMEOUT;
+	    return SYS_ARCH_TIMEOUT;
 	} else {
 	    uint64_t a = sys_clock_msec();
 	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
@@ -155,6 +177,10 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	    lwip_core_unlock();
 	    sys_sync_wait(&sems[sem].v, cur_v, sleep_until);
 	    lwip_core_lock();
+	    if (gen != sems[sem].gen) {
+		cprintf("sys_arch_sem_wait: sem freed under waiter!\n");
+		return SYS_ARCH_TIMEOUT;
+	    }
 	    uint64_t b = sys_clock_msec();
 	    waited += (b - a);
 	}
@@ -166,6 +192,8 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 u32_t
 sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t tm_msec)
 {
+    assert(!mboxes[mbox].freed);
+
     u32_t waited = sys_arch_sem_wait(mboxes[mbox].queued_msg, tm_msec);
     if (waited == SYS_ARCH_TIMEOUT)
 	return waited;
