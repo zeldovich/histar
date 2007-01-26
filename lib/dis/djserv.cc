@@ -31,7 +31,7 @@ class djserv_impl : public djserv {
 	myport_ = htons(port);
 	myipaddr_ = myipaddr();
 
-	int fd = bcast_info.bind_bcast_sock(myport_, true);
+	int fd = bcast_info.bind_bcast_sock(ntohs(myport_), true);
 	warn << "djserv: listening on " << inet_ntoa(myipaddr_)
 	     << ":" << ntohs(myport_) << "\n";
 
