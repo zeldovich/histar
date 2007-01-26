@@ -90,7 +90,6 @@ struct netd_op_recvfrom_args {
     char buf[netd_buf_size];
 };
 
-
 struct netd_op_close_args {
     int fd;
 };
