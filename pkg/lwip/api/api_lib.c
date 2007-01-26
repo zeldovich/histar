@@ -389,7 +389,7 @@ netconn_bind(struct netconn *conn, struct ip_addr *addr,
   }
   msg->type = API_MSG_BIND;
   msg->msg.conn = conn;
-  msg->msg.msg.bc.ipaddr = addr;
+  msg->msg.msg.bc.ipaddr = *addr;
   msg->msg.msg.bc.port = port;
   api_msg_post(msg);
   sys_mbox_fetch(conn->mbox, NULL);
@@ -420,7 +420,7 @@ netconn_connect(struct netconn *conn, struct ip_addr *addr,
   }
   msg->type = API_MSG_CONNECT;
   msg->msg.conn = conn;  
-  msg->msg.msg.bc.ipaddr = addr;
+  msg->msg.msg.bc.ipaddr = *addr;
   msg->msg.msg.bc.port = port;
   api_msg_post(msg);
   sys_mbox_fetch(conn->mbox, NULL);

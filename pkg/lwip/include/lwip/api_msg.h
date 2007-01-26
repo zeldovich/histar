@@ -69,7 +69,7 @@ struct api_msg_msg {
   union {
     struct pbuf *p;   
     struct  {
-      struct ip_addr *ipaddr;
+      struct ip_addr ipaddr;
       u16_t port;
     } bc;
     struct {

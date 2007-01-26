@@ -424,7 +424,7 @@ do_bind(struct api_msg_msg *msg)
   switch (msg->conn->type) {
 #if LWIP_RAW
   case NETCONN_RAW:
-    msg->conn->err = raw_bind(msg->conn->pcb.raw,msg->msg.bc.ipaddr);
+    msg->conn->err = raw_bind(msg->conn->pcb.raw,&msg->msg.bc.ipaddr);
     break;
 #endif
 #if LWIP_UDP
@@ -433,13 +433,13 @@ do_bind(struct api_msg_msg *msg)
   case NETCONN_UDPNOCHKSUM:
     /* FALLTHROUGH */
   case NETCONN_UDP:
-    msg->conn->err = udp_bind(msg->conn->pcb.udp, msg->msg.bc.ipaddr, msg->msg.bc.port);
+    msg->conn->err = udp_bind(msg->conn->pcb.udp, &msg->msg.bc.ipaddr, msg->msg.bc.port);
     break;
 #endif /* LWIP_UDP */
 #if LWIP_TCP
   case NETCONN_TCP:
     msg->conn->err = tcp_bind(msg->conn->pcb.tcp,
-            msg->msg.bc.ipaddr, msg->msg.bc.port);
+            &msg->msg.bc.ipaddr, msg->msg.bc.port);
 #endif /* LWIP_TCP */
   default:
     break;
@@ -526,7 +526,7 @@ do_connect(struct api_msg_msg *msg)
   switch (msg->conn->type) {
 #if LWIP_RAW
   case NETCONN_RAW:
-    raw_connect(msg->conn->pcb.raw, msg->msg.bc.ipaddr);
+    raw_connect(msg->conn->pcb.raw, &msg->msg.bc.ipaddr);
     sys_mbox_post(msg->conn->mbox, NULL);
     break;
 #endif
@@ -536,7 +536,7 @@ do_connect(struct api_msg_msg *msg)
   case NETCONN_UDPNOCHKSUM:
     /* FALLTHROUGH */
   case NETCONN_UDP:
-    udp_connect(msg->conn->pcb.udp, msg->msg.bc.ipaddr, msg->msg.bc.port);
+    udp_connect(msg->conn->pcb.udp, &msg->msg.bc.ipaddr, msg->msg.bc.port);
     sys_mbox_post(msg->conn->mbox, NULL);
     break;
 #endif 
@@ -544,7 +544,7 @@ do_connect(struct api_msg_msg *msg)
   case NETCONN_TCP:
     /*    tcp_arg(msg->conn->pcb.tcp, msg->conn);*/
     setup_tcp(msg->conn);
-    tcp_connect(msg->conn->pcb.tcp, msg->msg.bc.ipaddr, msg->msg.bc.port,
+    tcp_connect(msg->conn->pcb.tcp, &msg->msg.bc.ipaddr, msg->msg.bc.port,
     do_connected);
     /*tcp_output(msg->conn->pcb.tcp);*/
 #endif
