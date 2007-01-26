@@ -168,6 +168,10 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
   }
 
   newconn = netconn_accept(sock->conn);
+  if (!newconn) {
+    set_errno(EBADF);
+    return -1;
+  }
 
   /* get the IP address and port of the remote host */
   netconn_peer(newconn, &naddr, &port);

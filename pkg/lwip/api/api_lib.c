@@ -220,6 +220,9 @@ netconn *netconn_new_with_proto_and_callback(enum netconn_type t, u16_t proto,
   conn->socket = 0;
   conn->callback = callback;
   conn->recv_avail = 0;
+  conn->radone_sem = SYS_SEM_NULL;
+  conn->recvmbox_waiters = 0;
+  conn->acceptmbox_waiters = 0;
 
   if((msg = memp_malloc(MEMP_API_MSG)) == NULL) {
     memp_free(MEMP_NETCONN, conn);
@@ -484,8 +487,12 @@ netconn_accept(struct netconn *conn)
   if (conn == NULL) {
     return NULL;
   }
-  
+ 
+  conn->acceptmbox_waiters++;
   sys_mbox_fetch(conn->acceptmbox, (void **)&newconn);
+  conn->acceptmbox_waiters--;
+  if (conn->radone_sem != SYS_SEM_NULL)
+    sys_sem_signal(conn->radone_sem);
   /* Register event with callback */
   if (conn->callback)
       (*conn->callback)(conn, NETCONN_EVT_RCVMINUS, 0);
@@ -527,8 +534,12 @@ netconn_recv(struct netconn *conn)
       conn->err = ERR_MEM;
       return NULL;
     }
-    
+   
+    conn->recvmbox_waiters++; 
     sys_mbox_fetch(conn->recvmbox, (void **)&p);
+    conn->recvmbox_waiters--;
+    if (conn->radone_sem != SYS_SEM_NULL)
+      sys_sem_signal(conn->radone_sem);
 
     if (p != NULL)
     {
@@ -573,11 +584,17 @@ netconn_recv(struct netconn *conn)
     sys_mbox_fetch(conn->mbox, NULL);
     memp_free(MEMP_API_MSG, msg);
   } else {
+    conn->recvmbox_waiters++;
     sys_mbox_fetch(conn->recvmbox, (void **)&buf);
-  conn->recv_avail -= buf->p->tot_len;
-    /* Register event with callback */
-    if (conn->callback)
-        (*conn->callback)(conn, NETCONN_EVT_RCVMINUS, buf->p->tot_len);
+    conn->recvmbox_waiters--;
+    if (conn->radone_sem != SYS_SEM_NULL)
+      sys_sem_signal(conn->radone_sem);
+    if (buf) {
+      conn->recv_avail -= buf->p->tot_len;
+      /* Register event with callback */
+      if (conn->callback)
+	(*conn->callback)(conn, NETCONN_EVT_RCVMINUS, buf->p->tot_len);
+    }
   }
 
   

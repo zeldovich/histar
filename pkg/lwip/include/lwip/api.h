@@ -94,6 +94,10 @@ struct netconn {
   int socket;
   u16_t recv_avail;
   void (* callback)(struct netconn *, enum netconn_evt, u16_t len);
+
+  int recvmbox_waiters;
+  int acceptmbox_waiters;
+  sys_sem_t radone_sem;
 };
 
 /* Network buffer functions: */

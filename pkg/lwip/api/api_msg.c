@@ -251,6 +251,9 @@ accept_function(void *arg, struct tcp_pcb *newpcb, err_t err)
   }
   newconn->acceptmbox = SYS_MBOX_NULL;
   newconn->err = err;
+  newconn->recvmbox_waiters = 0;
+  newconn->acceptmbox_waiters = 0;
+  newconn->radone_sem = SYS_SEM_NULL;
   /* Register event with callback */
   if (conn->callback)
   {
@@ -335,6 +338,19 @@ do_newconn(struct api_msg_msg *msg)
 static void
 do_delconn(struct api_msg_msg *msg)
 {
+  while (msg->conn->recvmbox_waiters || msg->conn->acceptmbox_waiters) {
+    if (msg->conn->radone_sem == SYS_SEM_NULL)
+      msg->conn->radone_sem = sys_sem_new(0);
+    for (int i = 0; i < msg->conn->recvmbox_waiters; i++)
+      sys_mbox_post(msg->conn->recvmbox, 0);
+    for (int i = 0; i < msg->conn->acceptmbox_waiters; i++)
+      sys_mbox_post(msg->conn->acceptmbox, 0);
+    sys_sem_wait(msg->conn->radone_sem);
+  }
+
+  if (msg->conn->radone_sem != SYS_SEM_NULL)
+    sys_sem_free(msg->conn->radone_sem);
+
   if (msg->conn->pcb.tcp != NULL) {
     switch (msg->conn->type) {
 #if LWIP_RAW
