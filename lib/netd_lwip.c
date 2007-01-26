@@ -74,70 +74,25 @@ netd_dispatch(struct netd_op_args *a)
 	lwip_to_netd(&sin, &a->accept.sin);
 	break;
 
-    case netd_op_recv:
-	{
-	    a->rval = 0;
-
-	    err_fd = a->recv.fd;
-	    while (!a->recv.flags && a->rval < (ssize_t) a->recv.count) {
-		ssize_t cc = lwip_recv(a->recv.fd, &a->recv.buf[a->rval],
-				       a->recv.count - a->rval,
-				       MSG_DONTWAIT | a->recv.flags);
-		if (cc <= 0)
-		    break;
-
-		a->rval += cc;
-	    }
-
-	    if (a->rval == 0) {
-		a->rval = lwip_recv(a->recv.fd, &a->recv.buf[0],
-				    a->recv.count, a->recv.flags);
-	    }
-
-	    if (a->rval > 0)
-		a->size = offsetof(struct netd_op_args, recv) +
-			  offsetof(struct netd_op_recv_args, buf) + a->rval;
-	}
-	break;
-
     case netd_op_recvfrom:
-	{
-	    a->rval = 0;
-
-	    err_fd = a->recvfrom.fd;
-	    while (!a->recvfrom.flags && a->rval < (ssize_t) a->recvfrom.count) {
-		ssize_t cc = lwip_recvfrom(a->recvfrom.fd, &a->recvfrom.buf[a->rval],
-				       a->recvfrom.count - a->rval,
-					   MSG_DONTWAIT | a->recvfrom.flags,
-					   (struct sockaddr *) &sin, &sinlen);
-		if (cc <= 0)
-		    break;
-		else if (!a->rval)
-		    lwip_to_netd(&sin, &a->recvfrom.sin);
-
-		a->rval += cc;
-	    }
-
-	    if (a->rval == 0) {
-		a->rval = lwip_recvfrom(a->recvfrom.fd, &a->recvfrom.buf[0],
-					a->recvfrom.count, a->recvfrom.flags,
-					(struct sockaddr *) &sin, &sinlen);
-		lwip_to_netd(&sin, &a->recvfrom.sin);
-	    }
-
-	    if (a->rval > 0) {
-		a->size = offsetof(struct netd_op_args, recv) +
-			  offsetof(struct netd_op_recvfrom_args, buf) + a->rval;
-	    }
-	}
+	err_fd = a->recvfrom.fd;
+	a->rval = lwip_recvfrom(a->recvfrom.fd, &a->recvfrom.buf[0],
+				a->recvfrom.count, a->recvfrom.flags,
+				a->recvfrom.wantfrom ? ((struct sockaddr *) &sin) : 0,
+				&sinlen);
+	if (a->recvfrom.wantfrom)
+	    lwip_to_netd(&sin, &a->recvfrom.sin);
+	if (a->rval > 0)
+	    a->size = offsetof(struct netd_op_args, recvfrom) +
+		      offsetof(struct netd_op_recvfrom_args, buf) + a->rval;
 	break;
-	
+
     case netd_op_send:
 	err_fd = a->send.fd;
 	a->rval = lwip_send(a->send.fd,
 			    &a->send.buf[0],
 			    a->send.count, a->send.flags);
-	a->size = offsetof(struct netd_op_args, recv) +
+	a->size = offsetof(struct netd_op_args, send) +
 		  offsetof(struct netd_op_send_args, buf);
 	break;
 
@@ -148,7 +103,7 @@ netd_dispatch(struct netd_op_args *a)
 			      &a->sendto.buf[0],
 			      a->sendto.count, a->sendto.flags,
 			      (struct sockaddr *)&sin, sinlen);
-	a->size = offsetof(struct netd_op_args, recv) +
+	a->size = offsetof(struct netd_op_args, sendto) +
 		  offsetof(struct netd_op_sendto_args, buf);
 	break;
 	

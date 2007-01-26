@@ -341,11 +341,12 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
 {
   struct lwip_socket *sock;
   struct netbuf *buf;
-  u16_t buflen, copylen, acklen;
+  u16_t buflen, copylen, acklen, totallen;
   struct ip_addr *addr;
   u16_t port;
 
 
+  totallen = 0;
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d, %p, %d, 0x%x, ..)\n", s, mem, len, flags));
   sock = get_socket(s);
   if (!sock) {
@@ -353,6 +354,7 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
     return -1;
   }
 
+get_more_data:
   /* Check if there is data left from the last recv operation. */
   if (sock->lastdata) {
     buf = sock->lastdata;
@@ -443,9 +445,25 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
     netbuf_delete(buf);
   }
 
+  /*
+   * For TCP connections, try to get more data, if possible
+   */
+  totallen += copylen;
+  if (netconn_type(sock->conn) == NETCONN_TCP && copylen > 0) {
+    mem += copylen;
+    len -= copylen;
+
+    if (len > 0) {
+      /* Still more room in the buffer.. */
+      if (sock->lastdata || (sock->conn->recvmbox && sock->rcvevent)) {
+	/* And there's something more waiting for us.. */
+	goto get_more_data;
+      }
+    }
+  }
 
   sock_set_errno(sock, 0);
-  return copylen;
+  return totallen;
 }
 
 int

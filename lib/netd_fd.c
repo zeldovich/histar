@@ -257,39 +257,23 @@ sock_recvfrom(struct Fd *fd, void *buf, size_t count, int flags,
     if (count > netd_buf_size)
 	count = netd_buf_size;
 
-    int r;
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, recvfrom) +
+	     offsetof(struct netd_op_recvfrom_args, buf);
 
-    if (addr) {
-	struct netd_op_args a;
-	a.size = offsetof(struct netd_op_args, recvfrom) +
-	    offsetof(struct netd_op_recvfrom_args, buf);
-	
-	a.op_type = netd_op_recvfrom;
-	a.recvfrom.fd = fd->fd_sock.s;
-	a.recvfrom.count = count;
-	a.recvfrom.flags = flags;
-	r = netd_call(fd->fd_sock.netd_gate, &a);
-	if (r > 0) {
-	    memcpy(buf, &a.recvfrom.buf[0], r);
-	    if (addr) {
-		struct sockaddr_in sin;
-		netd_to_libc(&a.recvfrom.sin, &sin);
-		memcpy(addr, &sin, sizeof(sin));
-		*addrlen = sizeof(sin);
-	    }
+    a.op_type = netd_op_recvfrom;
+    a.recvfrom.fd = fd->fd_sock.s;
+    a.recvfrom.wantfrom = (addr ? 1 : 0);
+    a.recvfrom.count = count;
+    a.recvfrom.flags = flags;
+
+    int r = netd_call(fd->fd_sock.netd_gate, &a);
+    if (r > 0) {
+	memcpy(buf, &a.recvfrom.buf[0], r);
+	if (addr) {
+	    netd_to_libc(&a.recvfrom.sin, (struct sockaddr_in *) addr);
+	    *addrlen = sizeof(struct sockaddr_in);
 	}
-    } else {
-	struct netd_op_args a;
-	a.size = offsetof(struct netd_op_args, recv) +
-	    offsetof(struct netd_op_recv_args, buf);
-	
-	a.op_type = netd_op_recv;
-	a.recv.fd = fd->fd_sock.s;
-	a.recv.count = count;
-	a.recv.flags = flags;
-	r = netd_call(fd->fd_sock.netd_gate, &a);
-	if (r > 0)
-	    memcpy(buf, &a.recv.buf[0], r);
     }
     return r;
 }
