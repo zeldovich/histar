@@ -171,7 +171,8 @@ class djprot_impl : public djprot {
 
 		if (m.t.s->stmt.delegation->a.type == ENT_ADDRESS)
 		    update_netaddr(*m.t.s->stmt.delegation);
-		update_speaksfor(*m.t.s->stmt.delegation);
+		if (m.t.s->stmt.delegation->a.type == ENT_PUBKEY)
+		    update_speaksfor(*m.t.s->stmt.delegation);
 		break;
 
 	    default:
