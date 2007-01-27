@@ -5,7 +5,7 @@
 
 class djprot : virtual public refcount {
  public:
-    static ptr<djserv> alloc(uint16_t port);
+    static ptr<djprot> alloc(uint16_t port);
 };
 
 #endif
