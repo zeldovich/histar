@@ -25,23 +25,23 @@ myipaddr(void)
     fatal << "myipaddr: no usable addresses\n";
 }
 
-class djserv_impl : public djserv {
+class djprot_impl : public djprot {
  public:
-    djserv_impl(uint16_t port) : k_(esign_keygen(keybits)) {
+    djprot_impl(uint16_t port) : k_(esign_keygen(keybits)) {
 	myport_ = htons(port);
 	myipaddr_ = myipaddr();
 
 	int fd = bcast_info.bind_bcast_sock(ntohs(myport_), true);
-	warn << "djserv: listening on " << inet_ntoa(myipaddr_)
+	warn << "djprot: listening on " << inet_ntoa(myipaddr_)
 	     << ":" << ntohs(myport_) << "\n";
 
 	make_async(fd);
 	x_ = axprt_dgram::alloc(fd);
-	x_->setrcb(wrap(mkref(this), &djserv_impl::rcv));
+	x_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
 
 	send_bcast();
     }
-    ~djserv_impl() { warn << "djserv_impl dead\n"; }
+    ~djprot_impl() { warn << "djprot_impl dead\n"; }
 
  private:
     void rcv(const char *pkt, ssize_t len, const sockaddr *addr) {
@@ -97,7 +97,7 @@ class djserv_impl : public djserv {
 	}
 
 	delaycb(broadcast_period,
-		wrap(mkref(this), &djserv_impl::send_bcast));
+		wrap(mkref(this), &djprot_impl::send_bcast));
     }
 
     in_addr myipaddr_;	/* network byte order */
@@ -106,9 +106,9 @@ class djserv_impl : public djserv {
     esign_priv k_;
 };
 
-ptr<djserv>
-djserv::alloc(uint16_t port)
+ptr<djprot>
+djprot::alloc(uint16_t port)
 {
-    ptr<djserv_impl> i = New refcounted<djserv_impl>(port);
+    ptr<djprot_impl> i = New refcounted<djprot_impl>(port);
     return i;
 }

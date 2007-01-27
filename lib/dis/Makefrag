@@ -7,7 +7,7 @@ LIBDIS_SRCFILES +=			\
 	lib/dis/sharedcaller.cc 	\
 	lib/dis/sgateclnt.cc		\
 	lib/dis/sharedutil.cc		\
-	lib/dis/djserv.cc		\
+	lib/dis/djprot.cc		\
 	lib/dis/bcast.cc		\
 	lib/dis/dj.x
 

@@ -3,7 +3,7 @@
 
 #include <async.h>
 
-class djserv : virtual public refcount {
+class djprot : virtual public refcount {
  public:
     static ptr<djserv> alloc(uint16_t port);
 };
