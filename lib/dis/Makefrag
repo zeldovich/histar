@@ -32,11 +32,11 @@ $(OBJDIR)/lib/dis/%.h: lib/dis/%.x
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.cc $(DIS_CCDEPS)
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(DIS_CFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/dis/%.o: $(OBJDIR)/lib/dis/%.C $(DIS_CCDEPS)
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(DIS_CFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/dis/%.o: lib/dis/%.c $(DIS_CCDEPS)
 	@mkdir -p $(@D)

@@ -1,16 +1,21 @@
 #include <async.h>
+#include <crypt.h>
 #include <wmstr.h>
 #include <arpc.h>
 #include <esign.h>
+#include <itree.h>
+
 #include <dis.hh>
 #include <bcast.hh>
-#include "dj.h"
+#include <dj.h>
+#include <djops.hh>
 
 enum {
     keybits = 1024,
     broadcast_period = 5,
     addr_cert_valid = 60,
     time_skew = 5,
+    cache_cleanup_period = 10,
 };
 
 static in_addr
@@ -25,6 +30,54 @@ myipaddr(void)
     fatal << "myipaddr: no usable addresses\n";
 }
 
+template<class T>
+static bool
+verify_sign(const T &xdrblob, const dj_esign_pubkey &pk, const bigint &sig)
+{
+    str msg = xdr2str(xdrblob);
+    if (!msg)
+	return false;
+
+    return esign_pub(pk.n, pk.k).verify(msg, sig);  
+}
+
+static bool
+verify_stmt(const dj_stmt_signed &ss)
+{
+    switch (ss.stmt.type) {
+    case STMT_DELEGATION:
+	switch (ss.stmt.delegation->b.type) {
+	case ENT_PUBKEY:
+	    return verify_sign(ss.stmt, *ss.stmt.delegation->b.key, ss.sign);
+
+	case ENT_GCAT:
+	    return verify_sign(ss.stmt, ss.stmt.delegation->b.gcat->key, ss.sign);
+
+	case ENT_ADDRESS:
+	    printf("verify_stmt: cannot speak for a network address\n");
+	    return false;
+
+	default:
+	    return false;
+	}
+
+    default:
+	return false;
+    }
+}
+
+struct pk_addr {	/* d.a.addr speaks-for pk */
+    itree_entry<pk_addr> link;
+    dj_esign_pubkey pk;
+    dj_delegation d;
+};
+
+struct pk_spk4 {	/* pk speaks for d.b */
+    itree_entry<pk_spk4> link;
+    dj_esign_pubkey pk;
+    dj_delegation d;
+};
+
 class djprot_impl : public djprot {
  public:
     djprot_impl(uint16_t port) : k_(esign_keygen(keybits)) {
@@ -34,16 +87,59 @@ class djprot_impl : public djprot {
 	int fd = bcast_info.bind_bcast_sock(ntohs(myport_), true);
 	warn << "djprot: listening on " << inet_ntoa(myipaddr_)
 	     << ":" << ntohs(myport_) << "\n";
+	warn << "djprot: my public key is {" << k_.n << "," << k_.k << "}\n";
 
 	make_async(fd);
 	x_ = axprt_dgram::alloc(fd);
 	x_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
 
+	cache_cleanup();
 	send_bcast();
     }
     ~djprot_impl() { warn << "djprot_impl dead\n"; }
 
  private:
+    void cache_cleanup(void) {
+	time_t now = time(0);
+
+	pk_addr *na;
+	for (pk_addr *a = addr_cache_.first(); a; a = na) {
+	    na = addr_cache_.next(a);
+	    if (a->d.until_sec < now) {
+		warn << "Purging pk_addr cache entry\n";
+		addr_cache_.remove(a);
+		delete a;
+	    }
+	}
+
+	pk_spk4 *ns;
+	for (pk_spk4 *s = spk4_cache_.first(); s; s = ns) {
+	    ns = spk4_cache_.next(s);
+	    if (s->d.until_sec < now) {
+		warn << "Purging pk_spk4 cache entry\n";
+		spk4_cache_.remove(s);
+		delete s;
+	    }
+	}
+
+	delaycb(cache_cleanup_period,
+		wrap(mkref(this), &djprot_impl::cache_cleanup));
+    }
+
+    void update_netaddr(const dj_delegation &d) {
+	pk_addr *pka = New pk_addr();
+	pka->pk = *d.b.key;
+	pka->d = d;
+	addr_cache_.insert(pka);
+    }
+
+    void update_speaksfor(const dj_delegation &d) {
+	pk_spk4 *pks = New pk_spk4();
+	pks->pk = *d.a.key;
+	pks->d = d;
+	spk4_cache_.insert(pks);
+    }
+
     void rcv(const char *pkt, ssize_t len, const sockaddr *addr) {
 	if (!pkt) {
 	    warn << "receive error -- but it's UDP?\n";
@@ -57,7 +153,35 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	warn << "got a packet, type " << m.t.type << "..\n";
+	warn << "got a packet, type " << m.t.type << "\n";
+	switch (m.t.type) {
+	case DJ_NULL:
+	    break;
+
+	case DJ_STMT:
+	    if (!verify_stmt(*m.t.s)) {
+		warn << "Bad signature on statement\n";
+		return;
+	    }
+
+	    switch (m.t.s->stmt.type) {
+	    case STMT_DELEGATION:
+		warn << "delegation: " << m.t.s->stmt.delegation->a
+		     << " speaks-for " << m.t.s->stmt.delegation->b << "\n";
+
+		if (m.t.s->stmt.delegation->a.type == ENT_ADDRESS)
+		    update_netaddr(*m.t.s->stmt.delegation);
+		update_speaksfor(*m.t.s->stmt.delegation);
+		break;
+
+	    default:
+		warn << "Unhandled statement type " << m.t.s->stmt.type << "\n";
+	    }
+	    break;
+
+	default:
+	    warn << "Unhandled packet type " << m.t.type << "\n";
+	}
     }
 
     void send_bcast(void) {
@@ -78,11 +202,15 @@ class djprot_impl : public djprot {
 	str buf = xdr2str(s.stmt);
 	if (!buf)
 	    fatal << "send_bcast: !xdr2str(s.stmt)\n";
-
 	s.sign = k_.sign(buf);
-	str msg = xdr2str(s);
+
+	dj_wire_msg m;
+	m.t.set_type(DJ_STMT);
+	*m.t.s = s;
+
+	str msg = xdr2str(m);
 	if (!msg)
-	    fatal << "send_bcast: !xdr2str(s)\n";
+	    fatal << "send_bcast: !xdr2str(m)\n";
 
 	bcast_info.init();
 	for (const in_addr *ap = bcast_info.bcast_addrs.base();
@@ -104,11 +232,15 @@ class djprot_impl : public djprot {
     uint16_t myport_;	/* network byte order */
     ptr<axprt> x_;
     esign_priv k_;
+
+    itree<dj_esign_pubkey, pk_addr, &pk_addr::pk, &pk_addr::link> addr_cache_;
+    itree<dj_esign_pubkey, pk_spk4, &pk_spk4::pk, &pk_spk4::link> spk4_cache_;
 };
 
 ptr<djprot>
 djprot::alloc(uint16_t port)
 {
+    random_init();
     ptr<djprot_impl> i = New refcounted<djprot_impl>(port);
     return i;
 }

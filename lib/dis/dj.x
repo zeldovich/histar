@@ -15,8 +15,8 @@ struct dj_gcat {		/* Global category name */
 };
 
 struct dj_address {
-    unsigned ip;
-    unsigned port;
+    unsigned ip;	/* network byte order */
+    unsigned port;	/* network byte order */
 };
 
 /*
@@ -83,37 +83,22 @@ struct dj_gate_buf {
 };
 
 /*
- * Argument and result data structures for RPCs.
- */
-
-struct dj_gatecall_arg {
-    hyper gate_ct;
-    hyper gate_id;
-    dj_gate_buf data;
-};
-
-union dj_gatecall_res switch (int err) {
- case 0:
-    dj_gate_buf data;
- default:
-    void;
-};
-
-/*
  * Wire message format.
  */
 
 enum dj_wire_msg_type {
-    DJ_NULL
+    DJ_NULL,
+    DJ_STMT
 };
 
 union dj_wire_typed switch (dj_wire_msg_type type) {
  case DJ_NULL:
     void;
+ case DJ_STMT:
+    dj_stmt_signed s;
 };
 
 struct dj_wire_msg {
-    hyper xid;
     dj_wire_typed t;
 };
 
