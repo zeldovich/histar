@@ -7,7 +7,7 @@
 #ifndef __ASSEMBLER__
 #include <kern/lib.h>
 #include <kern/arch.h>
-#include <inc/queue.h>
+#include <inc/intmacro.h>
 #endif /* !__ASSEMBLER__ */
 #endif /* JOS_KERNEL */
 

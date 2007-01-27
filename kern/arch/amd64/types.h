@@ -43,16 +43,8 @@ typedef long ssize_t;
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
 
-// 64-bit constants
-#if __LONG_MAX__==9223372036854775807L
-# define UINT64(x) x##UL
-# define CAST64(x) ((unsigned long) (x))
-#elif __LONG_LONG_MAX__==9223372036854775807LL
-# define UINT64(x) x##ULL
-# define CAST64(x) ((unsigned long long) (x))
-#else
-# error Missing 64-bit type
-#endif
+// is this needed?
+typedef uint32_t time_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
@@ -67,22 +59,6 @@ typedef int32_t off_t;
 	__typeof__(_b) __b = (_b);				\
 	__a >= __b ? __a : __b;					\
 })
-
-// Rounding operations (efficient when n is a power of 2)
-// Round down to the nearest multiple of n
-#define ROUNDDOWN(a, n)				\
-({						\
-	uintptr_t __ra = (uintptr_t) (a);	\
-	(__typeof__(a)) (__ra - __ra % (n));	\
-})
-// Round up to the nearest multiple of n
-#define ROUNDUP(a, n)							\
-({									\
-	uintptr_t __n = (uintptr_t) (n);				\
-	(__typeof__(a)) (ROUNDDOWN((uintptr_t) (a) + __n - 1, __n));	\
-})
-
-typedef uint32_t time_t;
 
 #include <stddef.h>	// gcc header file
 

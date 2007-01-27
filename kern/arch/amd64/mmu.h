@@ -3,6 +3,7 @@
 
 #ifndef __ASSEMBLER__
 # include <inc/types.h>
+# include <inc/intmacro.h>
 #else /* __ASSEMBLER__ */
 # define UINT64(x) x
 # define CAST64(x) (x)

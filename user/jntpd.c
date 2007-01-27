@@ -4,6 +4,7 @@
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
+#include <inc/intmacro.h>
 
 #include <stdio.h>
 #include <unistd.h>
