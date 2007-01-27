@@ -1,71 +1,82 @@
 OBJDIRS += test test/lwip
 
-TEST_CFLAGS := -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj -DJOS_KERNEL -g \
-		-I$(TOP)/pkg/lwip/include \
-		-I$(TOP)/pkg/lwip/include/ipv4 \
-		-I$(TOP)/pkg/lwip/lnx64
+TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj
+TEST_USER_CFLAGS := \
+	-g -DJOS_USER -I$(TOP) -I$(TOP)/obj \
+	-I$(TOP)/pkg/lwip/include \
+	-I$(TOP)/pkg/lwip/include/ipv4 \
+	-I$(TOP)/pkg/lwip/lnx64
 
 DISK_TEST_SRCS := \
-	error.c printfmt.c sha1.c arc4.c bf60.c \
+	error.c printfmt.c sha1.c arc4.c bf60.c sysstring.c \
 	log.c hashtable.c freelist.c dstack.c \
 	btree_delete.c btree_node.c btree_insert.c btree_manager.c cache.c \
 	pbtree.c pbtree_frm.c btree_search.c btree.c btree_traverse.c btree_debug.c \
 	disk.c mem.c misc.c lock.c rand.c \
 	disk-test.c
+DISK_TEST_OBJS := $(patsubst %.c, obj/ktest/%.o, $(DISK_TEST_SRCS))
 
-DISK_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(DISK_TEST_SRCS))
-
-FILESERVER_TEST_SRCS := \
-	fileserver-test.c fileserver.c error.c printfmt.c
+FILESERVER_TEST_SRCS := fileserver-test.c fileserver.c error.c printfmt.c
 FILESERVER_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILESERVER_TEST_SRCS))
 
-FILECLIENT_TEST_SRCS := \
-	fileclient-test.c fileclient.c error.c printfmt.c
+FILECLIENT_TEST_SRCS := fileclient-test.c fileclient.c error.c printfmt.c
 FILECLIENT_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILECLIENT_TEST_SRCS))
 
-SSL_BENCH_SRCS := \
-	ssl-bench.c error.c printfmt.c
+SSL_BENCH_SRCS := ssl-bench.c error.c printfmt.c
 SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 
-SOCK_BENCH_SRCS := \
-	sock_bench.c netbench.c error.c printfmt.c
+SOCK_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
 
-SOCK_CLIENT_SRCS := \
-	sock_client.c netbench.c error.c printfmt.c
+SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c
 SOCK_CLIENT_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_CLIENT_SRCS))
 
-LWIP_BENCH_SRCS := \
-	sock_bench.c netbench.c error.c printfmt.c
+LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
+## Kernel-code build rules
+
+$(OBJDIR)/ktest/%.o: test/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/ktest/%.o: lib/%.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/ktest/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/ktest/%.o: kern/kern/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/ktest/%.o: kern/btree/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+
+$(OBJDIR)/ktest/disk-test: $(DISK_TEST_OBJS)
+	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
+
+## User-code build rules
+
 $(OBJDIR)/test/%.o: test/%.cc
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/%.o: user/%.cc
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $<
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
-
-$(OBJDIR)/test/%.o: kern/kern/%.c
-	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
-
-$(OBJDIR)/test/%.o: kern/btree/%.c
-	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -std=c99
-
-$(OBJDIR)/test/disk-test: $(DISK_TEST_OBJS)
-	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -std=c99
 
 $(OBJDIR)/test/fileserver-test: $(FILESERVER_TEST_OBJS)
 	$(NCC) -o $@ $(FILESERVER_TEST_OBJS) -lstdc++
@@ -92,15 +103,15 @@ $(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
 ## Distributed stuff
 $(OBJDIR)/test/%.o: dj/%.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
 
 $(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
 
 $(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
 
 $(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djprot.o $(OBJDIR)/test/bcast.o
 	@mkdir -p $(@D)
@@ -110,15 +121,15 @@ $(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djpr
 
 $(OBJDIR)/test/lwip/%.o: user/%.cc
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $<
+	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $<
 
 $(OBJDIR)/test/lwip/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $<
+	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $<
 
 $(OBJDIR)/test/lwip/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -DLWIP_LIB -c -o $@ $< -std=c99
+	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $< -std=c99
 
 $(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
 	@mkdir -p $(@D)

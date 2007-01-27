@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 extern "C" {
-#include <machine/stackwrap.h>
+#include <kern/stackwrap.h>
 }
 
 static int disk_fd = -1;

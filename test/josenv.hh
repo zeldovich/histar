@@ -9,5 +9,7 @@
 #define inline __inline__
 typedef uint64_t physaddr_t;
 typedef uint64_t ppn_t;
+typedef __int128_t int128_t;
+typedef __uint128_t uint128_t;
 
 #endif

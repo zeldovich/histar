@@ -1,7 +1,7 @@
 #include <test/josenv.hh>
 
 extern "C" {
-#include <machine/stackwrap.h>
+#include <kern/stackwrap.h>
 }
 
 void
