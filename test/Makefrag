@@ -35,6 +35,9 @@ LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
+DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o
+DJD_OBJS := $(patsubst %.o, obj/test/%.o, $(DJD_OBJS))
+
 ## Kernel-code build rules
 
 $(OBJDIR)/ktest/%.o: test/%.cc
@@ -113,7 +116,7 @@ $(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
 
-$(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djprot.o $(OBJDIR)/test/bcast.o
+$(OBJDIR)/test/djd: $(DJD_OBJS)
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $^ -L/usr/local/lib/sfs -lsfscrypt -larpc -lasync -lgmp -lstdc++
 
