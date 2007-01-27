@@ -80,7 +80,9 @@ struct pk_spk4 {	/* pk speaks for d.b */
 
 class djprot_impl : public djprot {
  public:
-    djprot_impl(uint16_t port) : k_(esign_keygen(keybits)) {
+    djprot_impl(uint16_t port)
+	: k_(esign_keygen(keybits)), net_label_(1), net_clear_(1)
+    {
 	myport_ = htons(port);
 	myipaddr_ = myipaddr();
 
@@ -96,7 +98,10 @@ class djprot_impl : public djprot {
 	cache_cleanup();
 	send_bcast();
     }
-    ~djprot_impl() { warn << "djprot_impl dead\n"; }
+    virtual ~djprot_impl() { warn << "djprot_impl dead\n"; }
+
+    virtual void set_label(const label &l) { net_label_ = l; }
+    virtual void set_clear(const label &l) { net_clear_ = l; }
 
  private:
     void cache_cleanup(void) {
@@ -236,6 +241,8 @@ class djprot_impl : public djprot {
 
     itree<dj_esign_pubkey, pk_addr, &pk_addr::pk, &pk_addr::link> addr_cache_;
     itree<dj_esign_pubkey, pk_spk4, &pk_spk4::pk, &pk_spk4::link> spk4_cache_;
+
+    label net_label_, net_clear_;
 };
 
 ptr<djprot>
