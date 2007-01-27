@@ -21,7 +21,7 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
 
     char *goodbuf = (char *) UBASE;
-    char *badbuf  = (char *) UBASE + PGSIZE;
+    //char *badbuf  = (char *) UBASE + PGSIZE;
 
     switch (t->th_tf.tf_rip) {
     case 0:
