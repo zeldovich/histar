@@ -87,18 +87,11 @@ struct dj_gate_buf {
  */
 
 enum dj_wire_msg_type {
-    DJ_NULL,
-    DJ_STMT
+    DJ_BCAST_STMT
 };
 
-union dj_wire_typed switch (dj_wire_msg_type type) {
- case DJ_NULL:
-    void;
- case DJ_STMT:
+union dj_wire_msg switch (dj_wire_msg_type type) {
+ case DJ_BCAST_STMT:
     dj_stmt_signed s;
-};
-
-struct dj_wire_msg {
-    dj_wire_typed t;
 };
 

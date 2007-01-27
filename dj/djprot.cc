@@ -158,36 +158,39 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	warn << "got a packet, type " << m.t.type << "\n";
-	switch (m.t.type) {
-	case DJ_NULL:
-	    break;
-
-	case DJ_STMT:
-	    if (!verify_stmt(*m.t.s)) {
+	switch (m.type) {
+	case DJ_BCAST_STMT:
+	    if (!verify_stmt(*m.s)) {
 		warn << "Bad signature on statement\n";
 		return;
 	    }
 
-	    switch (m.t.s->stmt.type) {
+	    switch (m.s->stmt.type) {
 	    case STMT_DELEGATION:
-		warn << "delegation: " << m.t.s->stmt.delegation->a
-		     << " speaks-for " << m.t.s->stmt.delegation->b << "\n";
+		warn << "delegation: " << m.s->stmt.delegation->a
+		     << " speaks-for " << m.s->stmt.delegation->b << "\n";
 
-		if (m.t.s->stmt.delegation->a.type == ENT_ADDRESS)
-		    update_netaddr(*m.t.s->stmt.delegation);
-		if (m.t.s->stmt.delegation->a.type == ENT_PUBKEY)
-		    update_speaksfor(*m.t.s->stmt.delegation);
+		if (m.s->stmt.delegation->a.type == ENT_ADDRESS)
+		    update_netaddr(*m.s->stmt.delegation);
+		if (m.s->stmt.delegation->a.type == ENT_PUBKEY)
+		    update_speaksfor(*m.s->stmt.delegation);
 		break;
 
 	    default:
-		warn << "Unhandled statement type " << m.t.s->stmt.type << "\n";
+		warn << "Unhandled statement type " << m.s->stmt.type << "\n";
 	    }
 	    break;
 
 	default:
-	    warn << "Unhandled packet type " << m.t.type << "\n";
+	    warn << "Unhandled packet type " << m.type << "\n";
 	}
+    }
+
+    void sign_statement(dj_stmt_signed *s) {
+	str buf = xdr2str(s->stmt);
+	if (!buf)
+	    fatal << "sign_statement: cannot encode\n";
+	s->sign = k_.sign(buf);
     }
 
     void send_bcast(void) {
@@ -204,15 +207,11 @@ class djprot_impl : public djprot {
 	time_t now = time(0);
 	s.stmt.delegation->from_sec = now - time_skew;
 	s.stmt.delegation->until_sec = now + addr_cert_valid + time_skew;
-
-	str buf = xdr2str(s.stmt);
-	if (!buf)
-	    fatal << "send_bcast: !xdr2str(s.stmt)\n";
-	s.sign = k_.sign(buf);
+	sign_statement(&s);
 
 	dj_wire_msg m;
-	m.t.set_type(DJ_STMT);
-	*m.t.s = s;
+	m.set_type(DJ_BCAST_STMT);
+	*m.s = s;
 
 	str msg = xdr2str(m);
 	if (!msg)
