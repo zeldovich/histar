@@ -61,6 +61,9 @@ verify_stmt(const dj_stmt_signed &ss)
 	    return false;
 	}
 
+    case STMT_CALL:
+	return verify_sign(ss.stmt, ss.stmt.call->from, ss.sign);
+
     default:
 	return false;
     }
@@ -83,6 +86,7 @@ class djprot_impl : public djprot {
     djprot_impl(uint16_t port)
 	: k_(esign_keygen(keybits)), net_label_(1), net_clear_(1)
     {
+	xid_ = 0;
 	myport_ = htons(port);
 	myipaddr_ = myipaddr();
 
@@ -110,7 +114,7 @@ class djprot_impl : public djprot {
 	pk_addr *na;
 	for (pk_addr *a = addr_cache_.first(); a; a = na) {
 	    na = addr_cache_.next(a);
-	    if (a->d.until_sec < now) {
+	    if (a->d.until_ts < now) {
 		warn << "Purging pk_addr cache entry\n";
 		addr_cache_.remove(a);
 		delete a;
@@ -120,7 +124,7 @@ class djprot_impl : public djprot {
 	pk_spk4 *ns;
 	for (pk_spk4 *s = spk4_cache_.first(); s; s = ns) {
 	    ns = spk4_cache_.next(s);
-	    if (s->d.until_sec < now) {
+	    if (s->d.until_ts < now) {
 		warn << "Purging pk_spk4 cache entry\n";
 		spk4_cache_.remove(s);
 		delete s;
@@ -145,6 +149,15 @@ class djprot_impl : public djprot {
 	spk4_cache_.insert(pks);
     }
 
+    void process_delegation(const dj_delegation &d) {
+	warn << "delegation: " << d.a << " speaks-for " << d.b << "\n";
+
+	if (d.a.type == ENT_ADDRESS)
+	    update_netaddr(d);
+	if (d.a.type == ENT_PUBKEY)
+	    update_speaksfor(d);
+    }
+
     void rcv(const char *pkt, ssize_t len, const sockaddr *addr) {
 	if (!pkt) {
 	    warn << "receive error -- but it's UDP?\n";
@@ -152,37 +165,33 @@ class djprot_impl : public djprot {
 	}
 
 	str p(pkt, len);
-	dj_wire_msg m;
+	dj_stmt_signed m;
 	if (!str2xdr(m, p)) {
 	    warn << "cannot decode incoming message\n";
 	    return;
 	}
 
-	switch (m.type) {
-	case DJ_BCAST_STMT:
-	    if (!verify_stmt(*m.s)) {
-		warn << "Bad signature on statement\n";
+	if (!verify_stmt(m)) {
+	    warn << "Bad signature on statement\n";
+	    return;
+	}
+
+	switch (m.stmt.type) {
+	case STMT_DELEGATION:
+	    process_delegation(*m.stmt.delegation);
+	    break;
+
+	case STMT_CALL:
+	    if (m.stmt.call->to.n != k_.n || m.stmt.call->to.k != k_.k) {
+		warn << "misrouted call to " << m.stmt.call->to << "\n";
 		return;
 	    }
 
-	    switch (m.s->stmt.type) {
-	    case STMT_DELEGATION:
-		warn << "delegation: " << m.s->stmt.delegation->a
-		     << " speaks-for " << m.s->stmt.delegation->b << "\n";
-
-		if (m.s->stmt.delegation->a.type == ENT_ADDRESS)
-		    update_netaddr(*m.s->stmt.delegation);
-		if (m.s->stmt.delegation->a.type == ENT_PUBKEY)
-		    update_speaksfor(*m.s->stmt.delegation);
-		break;
-
-	    default:
-		warn << "Unhandled statement type " << m.s->stmt.type << "\n";
-	    }
+	    warn << "proper call, hmm...\n";
 	    break;
 
 	default:
-	    warn << "Unhandled packet type " << m.type << "\n";
+	    warn << "Unhandled statement type " << m.stmt.type << "\n";
 	}
     }
 
@@ -205,17 +214,13 @@ class djprot_impl : public djprot {
 	s.stmt.delegation->b.key->k = k_.k;
 
 	time_t now = time(0);
-	s.stmt.delegation->from_sec = now - time_skew;
-	s.stmt.delegation->until_sec = now + addr_cert_valid + time_skew;
+	s.stmt.delegation->from_ts = now - time_skew;
+	s.stmt.delegation->until_ts = now + addr_cert_valid + time_skew;
 	sign_statement(&s);
 
-	dj_wire_msg m;
-	m.set_type(DJ_BCAST_STMT);
-	*m.s = s;
-
-	str msg = xdr2str(m);
+	str msg = xdr2str(s);
 	if (!msg)
-	    fatal << "send_bcast: !xdr2str(m)\n";
+	    fatal << "send_bcast: cannot encode message\n";
 
 	bcast_info.init();
 	for (const in_addr *ap = bcast_info.bcast_addrs.base();
@@ -237,6 +242,7 @@ class djprot_impl : public djprot {
     uint16_t myport_;	/* network byte order */
     ptr<axprt> x_;
     esign_priv k_;
+    uint64_t xid_;
 
     itree<dj_esign_pubkey, pk_addr, &pk_addr::pk, &pk_addr::link> addr_cache_;
     itree<dj_esign_pubkey, pk_spk4, &pk_spk4::pk, &pk_spk4::link> spk4_cache_;

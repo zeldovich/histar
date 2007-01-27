@@ -4,6 +4,8 @@
 
 %#include <bigint.h>
 
+typedef unsigned dj_timestamp;	/* UNIX seconds */
+
 struct dj_esign_pubkey {
     bigint n;
     unsigned k;
@@ -20,14 +22,32 @@ struct dj_address {
 };
 
 /*
- * Statements that can be made by entities (typically signed).
+ * Labels, and labeled data (used to pass gate call arguments/responses,
+ * which themselves are expected to be marshalled XDR structures).
+ */
+
+struct dj_label_entry {
+    dj_gcat cat;
+    int level;		/* LB_LEVEL_STAR from <inc/label.h> */
+};
+
+struct dj_label {
+    dj_label_entry ents<1024>;
+};
+
+struct dj_gate_arg {
+    opaque buf<>;
+    dj_label label;	/* label of associated data */
+    dj_label grant;	/* grant on gate invocation */
+};
+
+/*
+ * Signed statements that can be made by entities.  Every network
+ * message is a statement.
+ *
  * Fully self-describing statements ensure that one statement
  * cannot be mistaken for another in a different context.
  */
-
-enum dj_stmt_type {
-    STMT_DELEGATION = 1
-};
 
 enum dj_entity_type {
     ENT_PUBKEY = 1,
@@ -47,51 +67,74 @@ union dj_entity switch (dj_entity_type type) {
 struct dj_delegation {		/* a speaks-for b, within time window */
     dj_entity a;
     dj_entity b;
-    unsigned from_sec;
-    unsigned until_sec;
+    dj_timestamp from_ts;
+    dj_timestamp until_ts;
+};
+
+struct dj_call_request {
+    hyper gate_ct;
+    hyper gate_id;
+    unsigned timeout_sec;
+    dj_gate_arg arg;
+};
+
+enum dj_reply_status {
+    REPLY_OK = 1,
+    REPLY_GATE_CALL_ERROR,
+    REPLY_DELEGATION_EXPIRED,
+    REPLY_TIMEOUT
+};
+
+union dj_call_reply switch (dj_reply_status stat) {
+ case REPLY_OK:
+    dj_gate_arg arg;
+ case REPLY_GATE_CALL_ERROR:
+    int err;
+ default:
+    void;
+};
+
+enum dj_call_op {
+    CALL_REQUEST = 1,
+    CALL_REPLY,
+    CALL_INPROGRESS,
+    CALL_ABORT
+};
+
+union dj_call_u switch (dj_call_op op) {
+ case CALL_REQUEST:
+    dj_call_request req;
+ case CALL_REPLY:
+    dj_call_reply reply;
+ case CALL_INPROGRESS:
+    void;
+ case CALL_ABORT:
+    void;
+};
+
+struct dj_call {		/* call-related message */
+    hyper xid;			/* identifies the call object */
+    hyper seq;			/* monotonically increasing for an xid */
+    dj_timestamp ts;		/* to bound size of replay cache */
+    dj_esign_pubkey from;
+    dj_esign_pubkey to;
+    dj_call_u u;
+};
+
+enum dj_stmt_type {
+    STMT_DELEGATION = 1,
+    STMT_CALL
 };
 
 union dj_stmt switch (dj_stmt_type type) {
  case STMT_DELEGATION:
     dj_delegation delegation;
+ case STMT_CALL:
+    dj_call call;
 };
 
 struct dj_stmt_signed {
     dj_stmt stmt;
     bigint sign;
-};
-
-/*
- * Labels, and labeled data (used to pass gate call arguments/responses,
- * which themselves are expected to be marshalled XDR structures).
- */
-
-struct dj_label_entry {
-    dj_gcat cat;
-    int level;		/* LB_LEVEL_STAR from <inc/label.h> */
-};
-
-struct dj_label {
-    dj_label_entry ents<1024>;
-};
-
-struct dj_gate_buf {
-    opaque buf<>;
-    dj_label label;	/* label of associated data */
-    dj_label grant;	/* grant on gate invocation */
-    dj_label verify;	/* verify label for gate invocation */
-};
-
-/*
- * Wire message format.
- */
-
-enum dj_wire_msg_type {
-    DJ_BCAST_STMT
-};
-
-union dj_wire_msg switch (dj_wire_msg_type type) {
- case DJ_BCAST_STMT:
-    dj_stmt_signed s;
 };
 
