@@ -127,6 +127,7 @@ conf/gcc.mk:
 include boot/Makefrag
 include kern/Makefrag
 include lib/Makefrag
+include dj/Makefrag
 include pkg/Makefrag
 include acpkg/Makefrag
 include user/Makefrag

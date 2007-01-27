@@ -90,17 +90,17 @@ $(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
 	$(NCC) -o $@ $(SOCK_CLIENT_OBJS) -lstdc++ -lpthread
 
 ## Distributed stuff
-$(OBJDIR)/test/%.o: lib/dis/%.cc $(OBJDIR)/lib/dis/dj.h
+$(OBJDIR)/test/%.o: dj/%.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
 
-$(OBJDIR)/test/%.o: $(OBJDIR)/lib/dis/%.C $(OBJDIR)/lib/dis/dj.h
+$(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
 
-$(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/lib/dis/dj.h
+$(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -Iinc/dis -I$(OBJDIR)/lib/dis
+	$(NCC) $(TEST_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs
 
 $(OBJDIR)/test/djd: $(OBJDIR)/test/djd.o $(OBJDIR)/test/dj.o $(OBJDIR)/test/djprot.o $(OBJDIR)/test/bcast.o
 	@mkdir -p $(@D)

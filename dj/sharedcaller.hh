@@ -1,7 +1,7 @@
 #ifndef JOS_INC_DIS_SHAREDCALLER_HH
 #define JOS_INC_DIS_SHAREDCALLER_HH
 
-#include <inc/dis/globallabel.hh>
+#include <dj/globallabel.hh>
 
 class shared_caller
 {

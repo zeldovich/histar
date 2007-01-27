@@ -4,7 +4,7 @@
 #include <inc/label.h>
 #include <inc/fs.h>
 
-#include <inc/dis/globalcat.h>
+#include <dj/globalcat.h>
 
 class label;
 class global_label;

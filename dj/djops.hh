@@ -1,4 +1,4 @@
-#include <dj.h>
+#include <dj/dj.h>
 
 inline bool
 operator<(const dj_esign_pubkey &a, const dj_esign_pubkey &b)

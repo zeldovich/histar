@@ -71,9 +71,6 @@ LIB_SRCFILES :=	\
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag
-include lib/dis/Makefrag
-#include lib/sqlite/Makefrag
-#include lib/pcre/Makefrag
 
 LIB_OBJFILES := $(LIB_SRCFILES)
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))

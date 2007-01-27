@@ -1,5 +1,5 @@
 #include <async.h>
-#include <dis.hh>
+#include <dj/dis.hh>
 
 int
 main(int ac, char **av)

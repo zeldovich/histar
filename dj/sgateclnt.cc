@@ -4,7 +4,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/syscall.h>
 
-#include <inc/dis/share.h>
+#include <dj/share.h>
 
 #include <string.h>
 }
@@ -15,7 +15,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
 
-#include <inc/dis/sgateclnt.hh>
+#include <dj/sgateclnt.hh>
 
 struct cobj_ref
 sgate_call::user_gate(void)

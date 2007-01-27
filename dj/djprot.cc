@@ -5,10 +5,10 @@
 #include <esign.h>
 #include <itree.h>
 
-#include <dis.hh>
-#include <bcast.hh>
-#include <dj.h>
-#include <djops.hh>
+#include <dj/dis.hh>
+#include <dj/bcast.hh>
+#include <dj/dj.h>
+#include <dj/djops.hh>
 
 enum {
     keybits = 1024,

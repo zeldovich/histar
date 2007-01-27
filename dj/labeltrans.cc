@@ -1,8 +1,8 @@
 extern "C" {
 #include <inc/gateparam.h>
 #include <inc/assert.h>
-#include <inc/dis/catdir.h>
-#include <inc/dis/share.h>
+#include <dj/catdir.h>
+#include <dj/share.h>
 
 #include <string.h>
 }
@@ -10,8 +10,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
-#include <inc/dis/labeltrans.hh>
-#include <inc/dis/sharedutil.hh>
+#include <dj/labeltrans.hh>
+#include <dj/sharedutil.hh>
 
 label_trans::label_trans(struct cobj_ref catdir_sg)
     : catdir_sg_(catdir_sg), catdir_(0)

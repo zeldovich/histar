@@ -6,7 +6,7 @@ extern "C" {
 #include <assert.h>
 }
 
-#include <inc/dis/globallabel.hh>
+#include <dj/globallabel.hh>
 
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>

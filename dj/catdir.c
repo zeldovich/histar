@@ -2,9 +2,7 @@
 #include <inc/error.h>
 
 #include <string.h>
-
-
-#include <inc/dis/catdir.h>
+#include <dj/catdir.h>
 
 
 int 

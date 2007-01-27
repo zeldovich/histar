@@ -1,0 +1,48 @@
+OBJDIRS += dj
+
+LIBDIS_SRCFILES +=		\
+	dj/labeltrans.cc	\
+	dj/globallabel.cc	\
+	dj/catdir.c 		\
+	dj/sharedcaller.cc 	\
+	dj/sgateclnt.cc		\
+	dj/sharedutil.cc	\
+	dj/djprot.cc		\
+	dj/bcast.cc		\
+	dj/dj.x
+
+LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
+LIBDIS_OBJFILES := $(patsubst dj/%.c, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+LIBDIS_OBJFILES := $(patsubst dj/%.cc, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+LIBDIS_OBJFILES := $(patsubst dj/%.x, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+
+DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(OBJDIR)/dj/dj.h
+DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite
+
+DIS_LDDEPS	:= $(OBJDIR)/lib/libdj.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a $(OBJDIR)/acpkg/lib/libgmp.a
+DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldj -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
+
+$(OBJDIR)/dj/%.C: dj/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -c -o $@ $<
+
+$(OBJDIR)/dj/%.h: dj/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -h -o $@ $<
+
+$(OBJDIR)/dj/%.o: dj/%.cc $(DIS_CCDEPS)
+	@mkdir -p $(@D)
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/dj/%.o: $(OBJDIR)/dj/%.C $(DIS_CCDEPS)
+	@mkdir -p $(@D)
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $< -I$(OBJDIR)/dj
+
+$(OBJDIR)/dj/%.o: dj/%.c $(DIS_CCDEPS)
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/libdj.a: $(LIBDIS_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $^
+

@@ -1,7 +1,7 @@
 #ifndef JOS_INC_DIS_SGATECLNT_HH
 #define JOS_INC_DIS_SGATECLNT_HH
 
-#include <inc/dis/sgateparam.h>
+#include <dj/sgateparam.h>
 
 class sgate_call
 {

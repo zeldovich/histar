@@ -3,14 +3,14 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/gateparam.h>
 #include <inc/fs.h>
-#include <inc/dis/share.h>
 #include <inc/stdio.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
-#include <inc/dis/catdir.h>
+#include <dj/share.h>
+#include <dj/catdir.h>
 }
 
 #include <inc/error.hh>
@@ -20,8 +20,8 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/selftaint.hh>
 
-#include <inc/dis/sharedcaller.hh>
-#include <inc/dis/sharedutil.hh>
+#include <dj/sharedcaller.hh>
+#include <dj/sharedutil.hh>
 
 shared_caller::shared_caller(uint64_t shared_ct) 
     : verify_label_(1), shared_ct_(shared_ct), scratch_taint_(0)

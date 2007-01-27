@@ -1,7 +1,7 @@
 #ifndef JOS_INC_DIS_LABELTRANS_HH
 #define JOS_INC_DIS_LABELTRANS_HH
 
-#include <inc/dis/globallabel.hh>
+#include <dj/globallabel.hh>
 
 
 class label_trans

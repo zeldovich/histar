@@ -1,6 +1,6 @@
 extern "C" {
 #include <inc/lib.h>
-#include <inc/dis/share.h>
+#include <dj/share.h>
 
 #include <inc/gateparam.h>
 #include <inc/error.h>

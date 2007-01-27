@@ -1,7 +1,7 @@
 #ifndef JOS_INC_DIS_CATDIR_H
 #define JOS_INC_DIS_CATDIR_H
 
-#include <inc/dis/globalcat.h>
+#include <dj/globalcat.h>
 
 struct catdir 
 {
