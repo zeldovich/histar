@@ -5,18 +5,21 @@
 #include <dj/djops.hh>
 
 static void
-stuffcb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djprot::gatecall_args &args)
+stuffcb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args &args)
 {
     warn << "stuffcb: status " << stat << "\n";
+    if (stat == REPLY_OK)
+	warn << "stuffcb: data " << args.data << "\n";
 }
 
 static void
 dostuff(ptr<djprot> p, str node_pk)
 {
     dj_gatename gate;
-    djprot::gatecall_args args;
+    djcall_args args;
+    args.data = "Hello world";
 
-    p->gatecall(node_pk, gate, args, wrap(&stuffcb, p, node_pk));
+    p->call(node_pk, gate, args, wrap(&stuffcb, p, node_pk));
 
     delaycb(5, wrap(&dostuff, p, node_pk));
 }

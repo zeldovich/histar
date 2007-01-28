@@ -124,15 +124,15 @@ class djprot_impl : public djprot {
     virtual void set_label(const label &l) { net_label_ = l; }
     virtual void set_clear(const label &l) { net_clear_ = l; }
 
-    virtual void gatecall(str node_pk, const dj_gatename &gate,
-			  const gatecall_args &args, gatecall_cb_t cb) {
-	gatecall_args reparg;
+    virtual void call(str node_pk, const dj_gatename &gate,
+		      const djcall_args &args, call_reply_cb cb) {
+	djcall_args reparg;
 	reparg.taint = net_label_;
 	reparg.grant = label(3);
 
 	dj_esign_pubkey target;
 	if (!str2xdr(target, node_pk)) {
-	    warn << "gatecall: cannot unmarshal node_pk\n";
+	    warn << "call: cannot unmarshal node_pk\n";
 	    cb(REPLY_SYSERR, reparg);
 	    return;
 	}
@@ -144,7 +144,7 @@ class djprot_impl : public djprot {
 
 	pk_addr *a = addr_cache_[target];
 	if (!a || a->pk != target) {
-	    warn << "gatecall: can't find address for pubkey\n";
+	    warn << "call: can't find address for pubkey\n";
 	    cb(REPLY_ADDRESS_MISSING, reparg);
 	    return;
 	}
@@ -160,14 +160,16 @@ class djprot_impl : public djprot {
 	s.stmt.call->u.set_op(CALL_REQUEST);
 	s.stmt.call->u.req->gate = gate;
 	s.stmt.call->u.req->timeout_sec = 0xffffffff;
-	//s.stmt.call->u.req->arg.buf = XXX memcpy(args);
+	s.stmt.call->u.req->arg.buf.setsize(args.data.len());
+	memcpy(s.stmt.call->u.req->arg.buf.base(),
+	       args.data.cstr(), args.data.len());
 	//s.stmt.call->u.req->arg.label = XXX;
 	//s.stmt.call->u.req->arg.grant = XXX;
 	sign_statement(&s);
 
 	str msg = xdr2str(s);
 	if (!msg) {
-	    warn << "gatecall: cannot encode call statement\n";
+	    warn << "call: cannot encode call statement\n";
 	    cb(REPLY_SYSERR, reparg);
 	}
 
@@ -183,6 +185,10 @@ class djprot_impl : public djprot {
 	 */
 
 	cb(REPLY_TIMEOUT, reparg);
+    }
+
+    virtual void set_callexec(callexec_factory cb) {
+	execcb_ = cb;
     }
 
  private:
@@ -236,6 +242,35 @@ class djprot_impl : public djprot {
 	    update_speaksfor(d);
     }
 
+    void process_call(const dj_call &c) {
+	if (c.to != esignpub2dj(k_)) {
+	    warn << "misrouted call to " << c.to << "\n";
+	    return;
+	}
+
+	switch (c.u.op) {
+	case CALL_REQUEST:
+	    warn << "call req: " << str(c.u.req->arg.buf.base(),
+					c.u.req->arg.buf.size()) << "\n";
+	    break;
+
+	case CALL_REPLY:
+	    warn << "call reply: " << c.u.reply->stat << "\n";
+	    break;
+
+	case CALL_INPROGRESS:
+	    warn << "call in progress reply\n";
+	    break;
+
+	case CALL_ABORT:
+	    warn << "call abort\n";
+	    break;
+
+	default:
+	    warn << "process_call: unhandled op " << c.u.op << "\n";
+	}
+    }
+
     void rcv(const char *pkt, ssize_t len, const sockaddr *addr) {
 	if (!pkt) {
 	    warn << "receive error -- but it's UDP?\n";
@@ -260,12 +295,7 @@ class djprot_impl : public djprot {
 	    break;
 
 	case STMT_CALL:
-	    if (m.stmt.call->to.n != k_.n || m.stmt.call->to.k != k_.k) {
-		warn << "misrouted call to " << m.stmt.call->to << "\n";
-		return;
-	    }
-
-	    warn << "proper call, hmm...\n";
+	    process_call(*m.stmt.call);
 	    break;
 
 	default:
@@ -326,6 +356,7 @@ class djprot_impl : public djprot {
     itree<dj_esign_pubkey, pk_spk4, &pk_spk4::pk, &pk_spk4::link> spk4_cache_;
 
     label net_label_, net_clear_;
+    callexec_factory execcb_;
 };
 
 ptr<djprot>
