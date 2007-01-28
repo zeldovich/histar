@@ -12,9 +12,11 @@
 
 enum {
     keybits = 1024,
-    broadcast_period = 5,
     addr_cert_valid = 60,
-    time_skew = 5,
+    delegation_time_skew = 5,
+    call_timestamp_skew = 60,
+
+    broadcast_period = 5,
     cache_cleanup_period = 10,
 };
 
@@ -42,16 +44,16 @@ verify_sign(const T &xdrblob, const dj_esign_pubkey &pk, const bigint &sig)
 }
 
 static bool
-verify_stmt(const dj_stmt_signed &ss)
+verify_stmt(const dj_stmt_signed &s)
 {
-    switch (ss.stmt.type) {
+    switch (s.stmt.type) {
     case STMT_DELEGATION:
-	switch (ss.stmt.delegation->b.type) {
+	switch (s.stmt.delegation->b.type) {
 	case ENT_PUBKEY:
-	    return verify_sign(ss.stmt, *ss.stmt.delegation->b.key, ss.sign);
+	    return verify_sign(s.stmt, *s.stmt.delegation->b.key, s.sign);
 
 	case ENT_GCAT:
-	    return verify_sign(ss.stmt, ss.stmt.delegation->b.gcat->key, ss.sign);
+	    return verify_sign(s.stmt, s.stmt.delegation->b.gcat->key, s.sign);
 
 	case ENT_ADDRESS:
 	    printf("verify_stmt: cannot speak for a network address\n");
@@ -62,7 +64,7 @@ verify_stmt(const dj_stmt_signed &ss)
 	}
 
     case STMT_CALL:
-	return verify_sign(ss.stmt, ss.stmt.call->from, ss.sign);
+	return verify_sign(s.stmt, s.stmt.call->from, s.sign);
 
     default:
 	return false;
@@ -104,8 +106,67 @@ class djprot_impl : public djprot {
     }
     virtual ~djprot_impl() { warn << "djprot_impl dead\n"; }
 
+    virtual str pubkey() { return xdr2str(esignpub2dj(k_)); }
     virtual void set_label(const label &l) { net_label_ = l; }
     virtual void set_clear(const label &l) { net_clear_ = l; }
+
+    virtual void gatecall(str node_pk, dj_gatename gate,
+			  str args, label l, label g,
+			  gatecall_cb_t cb) {
+	dj_esign_pubkey target;
+	if (!str2xdr(target, node_pk)) {
+	    warn << "gatecall: cannot unmarshal node_pk\n";
+	    cb(REPLY_SYSERR, 0, net_label_, label(3));
+	    return;
+	}
+
+	/* Check if a taint of (l) can be sent to nodepk.  */
+
+	/* Check if any categories in (g) are non-globalized, and if so,
+	 * create new global categories for them. */
+
+	pk_addr *a = addr_cache_[node_pk];
+	if (!a || a->pk != node_pk) {
+	    warn << "gatecall: can't find address for pubkey\n";
+	    cb(REPLY_ADDRESS_MISSING, 0, net_label_, label(3));
+	    return;
+	}
+	dj_address addr = *a->d.a.addr;
+
+	dj_stmt_signed s;
+	s.stmt.set_type(STMT_CALL);
+	s.stmt.call->xid = ++xid_;
+	s.stmt.call->seq = 0;
+	s.stmt.call->ts = time(0);
+	s.stmt.call->from = esignpk2dj(k_);
+	s.stmt.call->to = target;
+	s.stmt.call->u.set_op(CALL_REQUEST);
+	s.stmt.call->u.req->gate = gate;
+	s.stmt.call->u.req->timeout_sec = 0xffffffff;
+	//s.stmt.call->u.req->arg.buf = XXX memcpy(args);
+	//s.stmt.call->u.req->arg.label = XXX;
+	//s.stmt.call->u.req->arg.grant = XXX;
+	sign_statement(&s);
+
+	str msg = xdr2str(s);
+	if (!msg) {
+	    warn << "gatecall: cannot encode call statement\n";
+	    cb(REPLY_SYSERR, 0, net_label_, label(3));
+	}
+
+	sockaddr_in sin;
+	sin.sin_family = AF_INET;
+	sin.sin_addr = addr.ip;
+	sin.sin_port = addr.port;
+	x_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
+
+	/* XXX stick this message on a retransmit queue somewhere;
+	 * remember we need to increment seq, adjust ts, and re-sign
+	 * whenever retransmitting.
+	 */
+
+	cb(REPLY_TIMEOUT, 0, net_label_, label(3));
+    }
 
  private:
     void cache_cleanup(void) {
@@ -210,8 +271,7 @@ class djprot_impl : public djprot {
 	s.stmt.delegation->a.addr->port = myport_;
 
 	s.stmt.delegation->b.set_type(ENT_PUBKEY);
-	s.stmt.delegation->b.key->n = k_.n;
-	s.stmt.delegation->b.key->k = k_.k;
+	*s.stmt.delegation->b.key = esignpub2dj(k_);
 
 	time_t now = time(0);
 	s.stmt.delegation->from_ts = now - time_skew;

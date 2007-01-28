@@ -49,3 +49,12 @@ strbuf_cat(const strbuf &sb, const dj_entity &dje)
     return sb;
 }
 
+inline dj_esign_pubkey
+esignpub2dj(const esign_pub &ep)
+{
+    dj_esign_pubkey pk;
+    pk.n = ep.n;
+    pk.k = ep.k;
+    return pk;
+}
+

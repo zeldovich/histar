@@ -107,3 +107,15 @@ it needs to check that:
 
     (S_L^\histar \cup N_L^\histar)^\star \leq M_L \leq (S_L^\histar \cup N_C)
 
+===
+
+if on the exporter side, a gate call reply comes in that's tainted such that
+we cannot send the reply to the original caller, we need to pretend like the
+gate reply never happened, i.e. CALL_INPROGRESS.
+
+is it safe to tell the importer-side gate caller that a delegation is missing
+for some of their categories, for the node they are contacting?  what if the
+network label is { x3, 1 } and a caller with label { 1 } tries to call some
+node with an unknown pk?  cannot tell him whether we have seen this node's PK
+on the network broadcast or not!
+

@@ -71,9 +71,13 @@ struct dj_delegation {		/* a speaks-for b, within time window */
     dj_timestamp until_ts;
 };
 
-struct dj_call_request {
+struct dj_gatename {
     hyper gate_ct;
     hyper gate_id;
+};
+
+struct dj_call_request {
+    dj_gatename gate;
     unsigned timeout_sec;
     dj_gate_arg arg;
 };
@@ -81,8 +85,10 @@ struct dj_call_request {
 enum dj_reply_status {
     REPLY_OK = 1,
     REPLY_GATE_CALL_ERROR,
-    REPLY_DELEGATION_EXPIRED,
-    REPLY_TIMEOUT
+    REPLY_ADDRESS_MISSING,
+    REPLY_DELEGATION_MISSING,
+    REPLY_TIMEOUT,
+    REPLY_SYSERR
 };
 
 union dj_call_reply switch (dj_reply_status stat) {
