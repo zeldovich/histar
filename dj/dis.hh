@@ -3,8 +3,15 @@
 
 #include <inc/cpplabel.hh>
 #include <async.h>
+#include <dj/dj.h>
 
-typedef callback<void, dj_reply_status, str, label, label>::T gatecall_cb_t;
+struct gatecall_args {
+    str data;
+    label taint;
+    label grant;
+};
+
+typedef callback<void, dj_reply_status, const gatecall_args&>::ptr gatecall_cb_t;
 
 class djprot : virtual public refcount {
  public:
@@ -14,8 +21,7 @@ class djprot : virtual public refcount {
     virtual void set_clear(const label &c) = 0;
 
     virtual void gatecall(str nodepk, const dj_gatename &gate,
-			  str args, label l, label grant,
-			  gatecall_cb_t cb) = 0;
+			  const gatecall_args &args, gatecall_cb_t cb) = 0;
 
     static ptr<djprot> alloc(uint16_t port);
 };

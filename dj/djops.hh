@@ -6,6 +6,18 @@ operator<(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
     return a.n < b.n || (a.n == b.n && a.k < b.k);
 }
 
+inline bool
+operator==(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
+{
+    return a.n == b.n && a.k == b.k;
+}
+
+inline bool
+operator!=(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
+{
+    return !(a == b);
+}
+
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_esign_pubkey &pk)
 {

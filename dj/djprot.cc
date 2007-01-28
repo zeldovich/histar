@@ -106,17 +106,20 @@ class djprot_impl : public djprot {
     }
     virtual ~djprot_impl() { warn << "djprot_impl dead\n"; }
 
-    virtual str pubkey() { return xdr2str(esignpub2dj(k_)); }
+    virtual str pubkey() const { return xdr2str(esignpub2dj(k_)); }
     virtual void set_label(const label &l) { net_label_ = l; }
     virtual void set_clear(const label &l) { net_clear_ = l; }
 
-    virtual void gatecall(str node_pk, dj_gatename gate,
-			  str args, label l, label g,
-			  gatecall_cb_t cb) {
+    virtual void gatecall(str node_pk, const dj_gatename &gate,
+			  const gatecall_args &args, gatecall_cb_t cb) {
+	gatecall_args reparg;
+	reparg.taint = net_label_;
+	reparg.grant = label(3);
+
 	dj_esign_pubkey target;
 	if (!str2xdr(target, node_pk)) {
 	    warn << "gatecall: cannot unmarshal node_pk\n";
-	    cb(REPLY_SYSERR, 0, net_label_, label(3));
+	    cb(REPLY_SYSERR, reparg);
 	    return;
 	}
 
@@ -125,10 +128,10 @@ class djprot_impl : public djprot {
 	/* Check if any categories in (g) are non-globalized, and if so,
 	 * create new global categories for them. */
 
-	pk_addr *a = addr_cache_[node_pk];
-	if (!a || a->pk != node_pk) {
+	pk_addr *a = addr_cache_[target];
+	if (!a || a->pk != target) {
 	    warn << "gatecall: can't find address for pubkey\n";
-	    cb(REPLY_ADDRESS_MISSING, 0, net_label_, label(3));
+	    cb(REPLY_ADDRESS_MISSING, reparg);
 	    return;
 	}
 	dj_address addr = *a->d.a.addr;
@@ -138,7 +141,7 @@ class djprot_impl : public djprot {
 	s.stmt.call->xid = ++xid_;
 	s.stmt.call->seq = 0;
 	s.stmt.call->ts = time(0);
-	s.stmt.call->from = esignpk2dj(k_);
+	s.stmt.call->from = esignpub2dj(k_);
 	s.stmt.call->to = target;
 	s.stmt.call->u.set_op(CALL_REQUEST);
 	s.stmt.call->u.req->gate = gate;
@@ -151,12 +154,12 @@ class djprot_impl : public djprot {
 	str msg = xdr2str(s);
 	if (!msg) {
 	    warn << "gatecall: cannot encode call statement\n";
-	    cb(REPLY_SYSERR, 0, net_label_, label(3));
+	    cb(REPLY_SYSERR, reparg);
 	}
 
 	sockaddr_in sin;
 	sin.sin_family = AF_INET;
-	sin.sin_addr = addr.ip;
+	sin.sin_addr.s_addr = addr.ip;
 	sin.sin_port = addr.port;
 	x_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
 
@@ -165,7 +168,7 @@ class djprot_impl : public djprot {
 	 * whenever retransmitting.
 	 */
 
-	cb(REPLY_TIMEOUT, 0, net_label_, label(3));
+	cb(REPLY_TIMEOUT, reparg);
     }
 
  private:
@@ -274,8 +277,8 @@ class djprot_impl : public djprot {
 	*s.stmt.delegation->b.key = esignpub2dj(k_);
 
 	time_t now = time(0);
-	s.stmt.delegation->from_ts = now - time_skew;
-	s.stmt.delegation->until_ts = now + addr_cert_valid + time_skew;
+	s.stmt.delegation->from_ts = now;
+	s.stmt.delegation->until_ts = now + addr_cert_valid;
 	sign_statement(&s);
 
 	str msg = xdr2str(s);
