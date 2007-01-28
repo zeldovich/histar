@@ -2,7 +2,6 @@
 #include <crypt.h>
 #include <wmstr.h>
 #include <arpc.h>
-#include <esign.h>
 #include <itree.h>
 
 #include <dj/dis.hh>
@@ -89,17 +88,32 @@ class djprot_impl : public djprot {
 	: k_(esign_keygen(keybits)), net_label_(1), net_clear_(1)
     {
 	xid_ = 0;
-	myport_ = htons(port);
+	bc_port_ = htons(port);
 	myipaddr_ = myipaddr();
 
-	int fd = bcast_info.bind_bcast_sock(ntohs(myport_), true);
+	int ufd = inetsocket(SOCK_DGRAM);
+	if (ufd < 0)
+	    fatal << "djprot_impl: inetsocket\n";
+
+	sockaddr_in sin;
+	socklen_t slen = sizeof(sin);
+	if (getsockname(ufd, (sockaddr *) &sin, &slen) < 0)
+	    fatal << "djprot_impl: getsockname\n";
+	my_port_ = sin.sin_port;
+
+	int bfd = bcast_info.bind_bcast_sock(ntohs(bc_port_), true);
 	warn << "djprot: listening on " << inet_ntoa(myipaddr_)
-	     << ":" << ntohs(myport_) << "\n";
+	     << ":" << ntohs(my_port_) << ", broadcast port "
+	     << ntohs(bc_port_) << "\n";
 	warn << "djprot: my public key is {" << k_.n << "," << k_.k << "}\n";
 
-	make_async(fd);
-	x_ = axprt_dgram::alloc(fd);
-	x_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
+	make_async(ufd);
+	ux_ = axprt_dgram::alloc(ufd);
+	ux_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
+
+	make_async(bfd);
+	bx_ = axprt_dgram::alloc(bfd);
+	bx_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
 
 	cache_cleanup();
 	send_bcast();
@@ -161,7 +175,7 @@ class djprot_impl : public djprot {
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = addr.ip;
 	sin.sin_port = addr.port;
-	x_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
+	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
 
 	/* XXX stick this message on a retransmit queue somewhere;
 	 * remember we need to increment seq, adjust ts, and re-sign
@@ -271,7 +285,7 @@ class djprot_impl : public djprot {
 	s.stmt.set_type(STMT_DELEGATION);
 	s.stmt.delegation->a.set_type(ENT_ADDRESS);
 	s.stmt.delegation->a.addr->ip = myipaddr_.s_addr;
-	s.stmt.delegation->a.addr->port = myport_;
+	s.stmt.delegation->a.addr->port = my_port_;
 
 	s.stmt.delegation->b.set_type(ENT_PUBKEY);
 	*s.stmt.delegation->b.key = esignpub2dj(k_);
@@ -291,10 +305,9 @@ class djprot_impl : public djprot {
 	    sockaddr_in bcast;
 	    bcast.sin_family = AF_INET;
 	    bcast.sin_addr = *ap;
-	    bcast.sin_port = myport_;
-	    x_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
-	    warn << "Sent out broadcast address delegation to "
-		 << inet_ntoa(*ap) << "\n";
+	    bcast.sin_port = bc_port_;
+	    bx_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
+	    //warn << "Sent broadcast delegation to " << inet_ntoa(*ap) << "\n";
 	}
 
 	delaycb(broadcast_period,
@@ -302,8 +315,10 @@ class djprot_impl : public djprot {
     }
 
     in_addr myipaddr_;	/* network byte order */
-    uint16_t myport_;	/* network byte order */
-    ptr<axprt> x_;
+    uint16_t bc_port_;	/* network byte order */
+    uint16_t my_port_;	/* network byte order */
+    ptr<axprt> ux_;
+    ptr<axprt> bx_;
     esign_priv k_;
     uint64_t xid_;
 

@@ -5,16 +5,16 @@
 #include <async.h>
 #include <dj/dj.h>
 
-struct gatecall_args {
-    str data;
-    label taint;
-    label grant;
-};
-
-typedef callback<void, dj_reply_status, const gatecall_args&>::ptr gatecall_cb_t;
-
 class djprot : virtual public refcount {
  public:
+    struct gatecall_args {
+	str data;
+	label taint;
+	label grant;
+    };
+
+    typedef callback<void, dj_reply_status, const gatecall_args&>::ptr gatecall_cb_t;
+
     virtual ~djprot() {}
     virtual str pubkey() const = 0;
     virtual void set_label(const label &l) = 0;

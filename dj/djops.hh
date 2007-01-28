@@ -1,3 +1,8 @@
+#ifndef JOS_DJ_DJOPS_HH
+#define JOS_DJ_DJOPS_HH
+
+#include <crypt.h>
+#include <esign.h>
 #include <dj/dj.h>
 
 inline bool
@@ -70,3 +75,4 @@ esignpub2dj(const esign_pub &ep)
     return pk;
 }
 
+#endif
