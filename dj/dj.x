@@ -33,6 +33,7 @@ struct dj_label_entry {
 
 struct dj_label {
     dj_label_entry ents<1024>;
+    int deflevel;
 };
 
 struct dj_gate_arg {
