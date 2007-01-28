@@ -1,5 +1,6 @@
 #include <async.h>
 #include <crypt.h>
+#include <wmstr.h>
 #include <dj/dis.hh>
 #include <dj/djops.hh>
 
