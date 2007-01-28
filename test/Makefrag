@@ -35,7 +35,7 @@ LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
-DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o
+DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o dummyexec.o
 DJD_OBJS := $(patsubst %.o, obj/test/%.o, $(DJD_OBJS))
 
 ## Kernel-code build rules

@@ -9,6 +9,7 @@ LIBDIS_SRCFILES +=		\
 	dj/sharedutil.cc	\
 	dj/djprot.cc		\
 	dj/bcast.cc		\
+	dj/dummyexec.cc		\
 	dj/dj.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)

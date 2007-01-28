@@ -142,6 +142,15 @@ class djprot_impl : public djprot {
 	/* Check if any categories in (g) are non-globalized, and if so,
 	 * create new global categories for them. */
 
+	/* Check the expiration of the address delegation?
+	 * Check expiration of other delegations?
+	 * Do we set call timeout value here, or is the server responsible
+	 * for expiring the call when the delegations expire?  The latter
+	 * would allow a call to be prolonged by additional delegations,
+	 * but would require the server to repeat this delegation search
+	 * process.
+	 */
+
 	pk_addr *a = addr_cache_[target];
 	if (!a || a->pk != target) {
 	    warn << "call: can't find address for pubkey\n";
@@ -242,6 +251,10 @@ class djprot_impl : public djprot {
 	    update_speaksfor(d);
     }
 
+    void execcb(dj_reply_status stat, const djcall_args &a) {
+	warn << "execcb: call completed, status " << stat << "\n";
+    }
+
     void process_call(const dj_call &c) {
 	if (c.to != esignpub2dj(k_)) {
 	    warn << "misrouted call to " << c.to << "\n";
@@ -250,8 +263,18 @@ class djprot_impl : public djprot {
 
 	switch (c.u.op) {
 	case CALL_REQUEST:
-	    warn << "call req: " << str(c.u.req->arg.buf.base(),
-					c.u.req->arg.buf.size()) << "\n";
+	    if (execcb_) {
+		djcall_args a;
+		a.data = str(c.u.req->arg.buf.base(), c.u.req->arg.buf.size());
+
+		/* Translate c.u.req->label, c.u.req->grant */
+
+		ptr<djcallexec> e =
+		    execcb_(wrap(mkref(this), &djprot_impl::execcb));
+		e->start(c.u.req->gate, a);
+	    } else {
+		/* XXX reply with an error? */
+	    }
 	    break;
 
 	case CALL_REPLY:

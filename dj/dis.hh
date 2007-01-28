@@ -35,4 +35,6 @@ class djprot : virtual public refcount {
     static ptr<djprot> alloc(uint16_t port);
 };
 
+ptr<djcallexec> dj_dummy_exec(djprot::call_reply_cb);
+
 #endif
