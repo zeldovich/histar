@@ -2,6 +2,7 @@
 #define JOS_INC_KOBJ_H
 
 #include <inc/types.h>
+#include <inc/intmacro.h>
 
 #define KOBJ_NAME_LEN	32	/* including the terminating NULL */
 #define KOBJ_META_LEN	64
@@ -21,6 +22,6 @@ typedef enum {
 } kobject_type_t;
 
 typedef uint64_t kobject_id_t;
-#define kobject_id_thread_sg	((kobject_id_t) 0x4000000000000002UL)
+#define kobject_id_thread_sg	((kobject_id_t) UINT64(0x4000000000000002))
 
 #endif

@@ -35,7 +35,7 @@ LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
-DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o dummyexec.o
+DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o dummyexec.o backtrace.o
 DJD_OBJS := $(patsubst %.o, obj/test/%.o, $(DJD_OBJS))
 
 ## Kernel-code build rules
@@ -104,21 +104,24 @@ $(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
 	$(NCC) -o $@ $(SOCK_CLIENT_OBJS) -lstdc++ -lpthread
 
 ## Distributed stuff
+DJD_NCC_CFLAGS  := -I/usr/local/include/sfs -I/usr/local/include
+DJD_NCC_LDFLAGS := -L/usr/local/lib/sfs -L/usr/local/lib
+
 $(OBJDIR)/test/%.o: dj/%.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
 $(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
 $(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -I/usr/local/include/sfs -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
 $(OBJDIR)/test/djd: $(DJD_OBJS)
 	@mkdir -p $(@D)
-	$(NCC) -o $@ $^ -L/usr/local/lib/sfs -lsfscrypt -larpc -lasync -lgmp -lstdc++
+	$(NCC) $(DJD_NCC_LDFLAGS) -o $@ $^ -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm
 
 ## lwip bench rules
 

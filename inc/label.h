@@ -2,6 +2,7 @@
 #define JOS_INC_LABEL_H
 
 #include <inc/types.h>
+#include <inc/intmacro.h>
 
 typedef unsigned char level_t;
 
@@ -15,7 +16,7 @@ struct ulabel {
     uint64_t *ul_ent;
 };
 
-#define LB_HANDLE(ent)		((ent) & 0x1fffffffffffffffUL)
+#define LB_HANDLE(ent)		((ent) & UINT64(0x1fffffffffffffff))
 #define LB_LEVEL(ent)		((level_t) ((ent) >> 61))
 
 #define LB_LEVEL_STAR		4

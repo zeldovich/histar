@@ -19,6 +19,8 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <net/if.h>
 #ifdef HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h>
