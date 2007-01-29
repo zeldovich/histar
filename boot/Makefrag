@@ -8,13 +8,14 @@
 OBJDIRS += boot
 
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
+BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror
 
 $(OBJDIR)/boot/%.o: boot/%.S
 	@mkdir -p $(@D)
-	$(CC) -m32 -DCODE32 -g -Os -MD $(INCLUDES) -c -o $@ $<
+	$(CC) $(BOOT_CFLAGS) $(INCLUDES) -c -o $@ $<
 
 $(OBJDIR)/boot/main.o: boot/main.c
-	$(CC) -m32 -DCODE32 -g -Os -MD $(INCLUDES) $(CSTD) -c -o $@ $<
+	$(CC) $(BOOT_CFLAGS) $(INCLUDES) $(CSTD) -c -o $@ $<
 
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	$(LD) -melf_i386 -N -e start -Ttext 0x7C00 -o $@.out $^

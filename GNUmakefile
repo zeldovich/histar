@@ -65,8 +65,8 @@ CXXWARNS := $(COMWARNS)
 
 #OPTFLAG := -O2
 OPTFLAG := -O3 -march=athlon64
-COMFLAGS := -g -fms-extensions $(OPTFLAG) -fno-strict-aliasing -Wall -MD
-CSTD	 := -std=c99
+COMFLAGS := -g $(OPTFLAG) -fno-strict-aliasing -Wall -MD
+CSTD	 := -std=c99 -fms-extensions
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
 # Linker flags for user programs
