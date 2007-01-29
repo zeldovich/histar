@@ -115,7 +115,7 @@ bcast_info_t::get_bcast_addrs (vec<in_addr> *resp)
 
     ifrp = (struct ifreq *) p;
     ifr = *ifrp;
-#if HAVE_SA_LEN
+#if HAVE_SA_LEN || defined(SA_LEN)
     if (ifrp->ifr_addr.sa_len > sizeof (ifrp->ifr_addr))
       p += sizeof (ifrp->ifr_name) + ifrp->ifr_addr.sa_len;
     else
