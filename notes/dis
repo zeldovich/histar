@@ -119,3 +119,8 @@ network label is { x3, 1 } and a caller with label { 1 } tries to call some
 node with an unknown pk?  cannot tell him whether we have seen this node's PK
 on the network broadcast or not!
 
+===
+
+charging declassifier; declassify only one taint category, and refuse multiple
+taints.  e.g. monster.com, charges per record, but custom matching code..
+
