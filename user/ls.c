@@ -91,6 +91,15 @@ main(int ac, char **av)
 	    struct ulabel *l = label_alloc();
 	    const char *label = 0;
 	    r = sys_obj_get_label(de.de_inode.obj, l);
+	    for (int i = 0; i < 3 && r < 0; i++) {
+		r = label_grow(l);
+		if (r < 0) {
+		    printf("label_grow: %s\n", e2s(r));
+		    return -1;
+		}
+		r = sys_obj_get_label(de.de_inode.obj, l);
+	    }
+	    
 	    if (r < 0)
 		label = "?";
 	    else
