@@ -351,8 +351,6 @@ ssl_proxy::start(void)
 static const char ssl_mode = 1;
 static const char ask_for_auth = 1;
 
-static uint64_t ssld_access_grant;
-
 static struct cobj_ref the_ssld_cow;
 static struct cobj_ref the_eprocd_cow;
 
@@ -557,13 +555,7 @@ http_server(void)
 int
 main(int ac, char **av)
 {
-    if (ssl_mode) {
-	if (ac < 2) {
-	    printf("httpd: error: access grant required in ssl mode\n");
-	    return -1;
-	}
-	error_check(strtou64(av[1], 0, 10, &ssld_access_grant));
-	
+    if (ssl_mode) {	
 	the_ssld_cow = get_ssld_cow();
 	try {
 	    the_eprocd_cow = get_eprocd_cow();

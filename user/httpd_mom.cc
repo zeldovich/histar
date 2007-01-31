@@ -91,9 +91,6 @@ main (int ac, char **av)
     segment_copy_to_file(servkey_pem_ino.obj, eprocd_dir_ino, "servkey.pem", 
 			 &eprocd_label);
 
-    static char ssld_access_grant[32];
-    snprintf(ssld_access_grant, sizeof(ssld_access_grant), "%lu", access_grant);
-
     label ssld_ds(3), ssld_dr(0);
     ssld_ds.set(ssld_taint, LB_LEVEL_STAR);
     ssld_dr.set(ssld_taint, 3);
@@ -140,10 +137,10 @@ main (int ac, char **av)
 
     const char *httpd_pn = "/bin/httpd";
     struct fs_inode httpd_ino = fs_inode_for(httpd_pn);
-    const char *httpd_argv[] = { httpd_pn, ssld_access_grant };
+    const char *httpd_argv[] = { httpd_pn };
     spawn(httpd_ct, httpd_ino,
 	  0, 0, 0,
-	  2, &httpd_argv[0],
+	  1, &httpd_argv[0],
 	  0, 0,
 	  0, &httpd_ds, 0, &httpd_dr, 0, SPAWN_NO_AUTOGRANT);
 
