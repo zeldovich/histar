@@ -68,7 +68,7 @@ __splitNode(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    btree_keycpy(temp1, temp2, tree->s_key);
 	}
 
-    j++;
+	j++;
 
 	offset1 = rootNode->children[j];
 	rootNode->children[j] = *filePos;
@@ -83,7 +83,7 @@ __splitNode(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	btree_keycpy(temp1, key, tree->s_key);
 
 
-        offset1 = *filePos;
+	offset1 = *filePos;
     }
 
     div = (int) (tree->order / 2);
@@ -182,21 +182,21 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    btree_valcpy(offset1, offset2, tree->s_value);
 	}
     } else {
-        //temp1     = *key;
-        btree_keycpy(temp1, key, tree->s_key);
+	//temp1     = *key;
+	btree_keycpy(temp1, key, tree->s_key);
 
-        //offset1 = rootNode->children[btree_leaf_order(rootNode) - 1];
-        btree_valcpy(offset1,
-        	 btree_value(rootNode,
-        		     BTREE_LEAF_ORDER(rootNode) - 1),
-        	 tree->s_value);
-        //rootNode->children[btree_leaf_order(rootNode) - 1] = *filePos;
-        btree_valcpy(btree_value
-        	 (rootNode, BTREE_LEAF_ORDER(rootNode) - 1), filePos,
-        	 tree->s_value);
+	//offset1 = rootNode->children[btree_leaf_order(rootNode) - 1];
+	btree_valcpy(offset1,
+		     btree_value(rootNode,
+				 BTREE_LEAF_ORDER(rootNode) - 1),
+		     tree->s_value);
+	//rootNode->children[btree_leaf_order(rootNode) - 1] = *filePos;
+	btree_valcpy(btree_value
+		     (rootNode, BTREE_LEAF_ORDER(rootNode) - 1), filePos,
+		     tree->s_value);
 
-	
-        //offset1 = *filePos;
+
+	//offset1 = *filePos;
     }
 
     div = (int) ((BTREE_LEAF_ORDER(rootNode) + 1) / 2) - 1;
@@ -243,10 +243,10 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
     btree_valset(filePos, 0, tree->s_value);
     *filePos = btree_write_node(tempNode);
 
-	rootNode->keyCount = div + 1;
-	//rootNode->children[rootNode->keyCount] = *filePos;
-	btree_valcpy(btree_value(rootNode, rootNode->keyCount), filePos,
-		     tree->s_value);
+    rootNode->keyCount = div + 1;
+    //rootNode->children[rootNode->keyCount] = *filePos;
+    btree_valcpy(btree_value(rootNode, rootNode->keyCount), filePos,
+		 tree->s_value);
 
     btree_write_node(rootNode);
     btree_destroy_node(tempNode);
@@ -298,7 +298,7 @@ __addKey(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    btree_keycpy(temp1, temp2, tree->s_key);
 	}
 
-    j++;
+	j++;
 
 	offset1 = rootNode->children[j];
 	rootNode->children[j] = *filePos;
@@ -309,11 +309,11 @@ __addKey(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    offset1 = offset2;
 	}
     } else {
-        //rootNode->keys[i]     = *key ;
-        btree_keycpy(btree_key(rootNode, i), key, tree->s_key);
+	//rootNode->keys[i]     = *key ;
+	btree_keycpy(btree_key(rootNode, i), key, tree->s_key);
 
 
-        rootNode->children[i + 1] = *filePos;
+	rootNode->children[i + 1] = *filePos;
     }
 
     btree_write_node(rootNode);
@@ -331,16 +331,12 @@ __addKeyToLeaf(struct btree *tree, struct btree_node *rootNode,
     *split = 0;
 
     for (i = 0; i < rootNode->keyCount &&
-		btree_keycmp(key, btree_key(rootNode, i), tree->s_key) > 0;
-	 i++)
-	;
+	 btree_keycmp(key, btree_key(rootNode, i), tree->s_key) > 0; i++) ;
 
     if (i < rootNode->keyCount &&
-	btree_keycmp(key, btree_key(rootNode, i), tree->s_key) == 0)
-    {
+	btree_keycmp(key, btree_key(rootNode, i), tree->s_key) == 0) {
 	return 0;
     }
-
     // Shift keys & values i through keyCount-1 into i+1 through keyCount
     btree_keymove(btree_key(rootNode, i + 1), btree_key(rootNode, i),
 		  tree->s_key * (rootNode->keyCount - i));

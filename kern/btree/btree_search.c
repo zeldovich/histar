@@ -103,9 +103,8 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 		if (*temp1 == 0) {
 		    // nothing is gte
 		    btree_destroy_node(rootNode);
-		    return 0;  
+		    return 0;
 		}
-
 		// ok, reading next pointer in node
 		struct btree_node *n = btree_read_node(tree, *temp1);
 		//*val_store = n->children[0] ;
@@ -120,7 +119,6 @@ __search(struct btree *tree, offset_t rootOffset, const uint64_t * key,
 	btree_destroy_node(rootNode);
 	return 0;
     }
-
     // accesses to children ok, since rootNode can't be a leaf
     assert(rootNode->children);
 

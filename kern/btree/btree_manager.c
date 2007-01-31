@@ -17,8 +17,8 @@
 #define BTREE_MAX_ORDER2 168
 
 // use to declare a cache for a btree
-#define STRUCT_BTREE_CACHE(name, num_ent, order, key_size)  \
-    STRUCT_CACHE(name, num_ent, BTREE_NODE_SIZE(order, key_size)) ;
+#define STRUCT_BTREE_CACHE(name, num_ent, order, key_size) \
+    STRUCT_CACHE(name, num_ent, BTREE_NODE_SIZE(order, key_size));
 #define BTREE_NAME_SIZE 32
 
 struct btree_obj {
@@ -134,7 +134,7 @@ btree_refs_node(uint64_t id, uint64_t off)
 {
     if (id >= BTREE_COUNT)
 	return -E_INVAL;
-    
+
     return cache_refs(btree[id].cache, off);
 }
 
