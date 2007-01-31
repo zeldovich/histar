@@ -18,6 +18,10 @@ size_t global_npages;
 struct page_stats page_stats;
 struct page_info *page_infos;
 
+#ifdef FT_TRANSFORMED
+int enable_page_alloc_failure;
+#endif
+
 // debug flags
 static int scrub_free_pages = 0;
 
@@ -95,6 +99,11 @@ lnxpage_init(uint64_t membytes)
 int
 page_alloc(void **vp)
 {
+#ifdef FT_TRANSFORMED
+    if (enable_page_alloc_failure && FT_CHOOSE(2))
+	return -E_NO_MEM;
+#endif
+
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
     if (pl) {
         TAILQ_REMOVE(&page_free_list, pl, pp_link);

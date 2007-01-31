@@ -10,4 +10,8 @@ void lnxpage_init(uint64_t membytes);
 void lnxpmap_init(void);
 void lnxpmap_prefill(void);
 
+#ifdef FT_TRANSFORMED
+extern int enable_page_alloc_failure;
+#endif
+
 #endif

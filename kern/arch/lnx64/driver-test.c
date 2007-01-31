@@ -1,5 +1,6 @@
 #include <machine/lnxinit.h>
 #include <machine/lnxthread.h>
+#include <machine/lnxpage.h>
 #include <kern/syscall.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>
@@ -155,5 +156,6 @@ main(int argc, char **av)
     printf("HiStar/lnx64..\n");
 
     bootstrap_stuff();
+    enable_page_alloc_failure = 1;
     lnx64_schedule_loop();
 }
