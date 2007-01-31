@@ -85,6 +85,8 @@ int  thread_jump(const struct Thread *t,
     __attribute__ ((warn_unused_result));
 int  thread_change_label(const struct Thread *t, const struct Label *l)
     __attribute__ ((warn_unused_result));
+int  thread_load_as(const struct Thread *t)
+    __attribute__ ((warn_unused_result));
 void thread_change_as(const struct Thread *t, struct cobj_ref as);
 void thread_syscall_restart(const struct Thread *t);
 int  thread_enable_fp(const struct Thread *t)

@@ -68,9 +68,12 @@ sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_msec)
     t->th_wakeup_msec = wakeup_msec;
     t->th_waiting_multi = 0;
 
-    int r = as_invert_mapped(t->th_as, addr,
-			     &t->th_wakeup_seg_id,
-			     &t->th_wakeup_offset);
+    int r = thread_load_as(t);
+    if (r < 0)
+	return r;
+
+    r = as_invert_mapped(t->th_as, addr,
+			 &t->th_wakeup_seg_id, &t->th_wakeup_offset);
     if (r < 0)
 	return r;
 
@@ -96,6 +99,9 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
 	return 0;
 
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
+    int r = thread_load_as(t);
+    if (r < 0)
+	return r;
 
     struct waitslots_iter it;
     sync_waitslots_iter(&it, t);
@@ -104,7 +110,7 @@ sync_wait_multi(uint64_t **addrs, uint64_t *vals,
 	    cprintf("sync_wait_multi: addr %p val %"PRIx64"\n", addrs[i], vals[i]);
 
 	uint64_t *addr = addrs[i];
-	int r = check_user_access(addr, sizeof(*addr), 0);
+	r = check_user_access(addr, sizeof(*addr), 0);
 	if (r < 0)
 	    return r;
 
@@ -135,8 +141,12 @@ sync_wakeup_addr(uint64_t *addr)
     if (sync_debug)
 	cprintf("sync_wakeup_addr: addr %p\n", addr);
 
+    int r = thread_load_as(cur_thread);
+    if (r < 0)
+	return r;
+
     uint64_t seg_id, offset;
-    int r = as_invert_mapped(cur_thread->th_as, addr, &seg_id, &offset);
+    r = as_invert_mapped(cur_thread->th_as, addr, &seg_id, &offset);
     if (r < 0)
 	return r;
 

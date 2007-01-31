@@ -448,7 +448,7 @@ thread_switch(const struct Thread *t)
     as_switch(t->th_as);
 }
 
-static int
+int
 thread_load_as(const struct Thread *t)
 {
     if (t->th_as)
