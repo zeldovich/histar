@@ -564,7 +564,7 @@ cons_getc (void)
 void
 cons_cursor (int line, int col)
 {
-    cga_cursor(line, col) ;
+    cga_cursor(line, col);
 }
 
 int
@@ -572,8 +572,8 @@ cons_probe (void)
 {
     serial_intr ();
     kbd_intr ();
-    
-    return (cons.rpos != cons.wpos) ;
+
+    return (cons.rpos != cons.wpos);
 }
 
 // output a character to the console
