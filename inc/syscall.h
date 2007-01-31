@@ -10,7 +10,7 @@
 #include <inc/label.h>
 #include <inc/netdev.h>
 
-uint64_t syscall(syscall_num num, ...);
+uint64_t syscall(uint64_t num, ...);
 
 int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);

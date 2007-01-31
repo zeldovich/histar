@@ -115,9 +115,8 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
-	r = kern_syscall((syscall_num) tf->tf_rdi, tf->tf_rsi,
-			 tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
-			 tf->tf_r9,  tf->tf_r10, tf->tf_r11);
+	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
+			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 	if (r != -E_RESTART)
 	    tf->tf_rax = r;
 	break;

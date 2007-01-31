@@ -82,10 +82,10 @@
 #ifndef __ASSEMBLER__
 #define SYSCALL_ENTRY(name)	SYS_##name,
 
-typedef enum {
+enum {
     ALL_SYSCALLS
     NSYSCALLS
-} syscall_num;
+};
 
 #undef SYSCALL_ENTRY
 #endif

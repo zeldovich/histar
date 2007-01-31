@@ -937,9 +937,8 @@ sys_pstate_sync(uint64_t timestamp)
 	return sys_##name(__VA_ARGS__);
 
 static int64_t __attribute__ ((warn_unused_result))
-syscall_exec(syscall_num num, uint64_t a1,
-	     uint64_t a2, uint64_t a3, uint64_t a4,
-	     uint64_t a5, uint64_t a6, uint64_t a7)
+syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
+	     uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7)
 {
     void __attribute__((unused)) *p1 = (void *) (uintptr_t) a1;
     void __attribute__((unused)) *p2 = (void *) (uintptr_t) a2;
@@ -1024,15 +1023,14 @@ syscall_exec(syscall_num num, uint64_t a1,
 	SYSCALL(pstate_timestamp);
 
     default:
-	cprintf("Unknown syscall %d\n", num);
+	cprintf("Unknown syscall %"PRIu64"\n", num);
 	return -E_INVAL;
     }
 }
 
 uint64_t
-kern_syscall(syscall_num num, uint64_t a1,
-	     uint64_t a2, uint64_t a3, uint64_t a4,
-	     uint64_t a5, uint64_t a6, uint64_t a7)
+kern_syscall(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
+	     uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7)
 {
     uint64_t s = read_tsc();
     int64_t r = syscall_exec(num, a1, a2, a3, a4, a5, a6, a7);

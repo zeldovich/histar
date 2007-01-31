@@ -99,10 +99,10 @@ prof_init(void)
 }
 
 void
-prof_syscall(syscall_num num, uint64_t time)
+prof_syscall(uint64_t num, uint64_t time)
 {
     if (num >= NSYSCALLS) {
-	cprintf("prof_syscall: num %d not below %d\n", num, NSYSCALLS);
+	cprintf("prof_syscall: num %"PRIu64" not below %d\n", num, NSYSCALLS);
 	return;
     }
 
