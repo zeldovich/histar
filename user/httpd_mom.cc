@@ -12,6 +12,8 @@ extern "C" {
 #include <inc/fs_dir.hh>
 #include <inc/scopeguard.hh>
 
+static char eproc_enable = 1;
+
 static struct fs_inode
 fs_inode_for(const char *pn)
 {
@@ -46,10 +48,10 @@ main (int ac, char **av)
     static const char *ssld_server_pem = "/httpd/ssld-priv/server.pem";
     static const char *ssld_dh_pem = "/httpd/ssld-priv/dh.pem";
 
-    static const char *ssld_servkey_pem = "/httpd/eprocd-priv/servkey.pem";
+    static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
 
     int64_t ssld_taint = handle_alloc();
-    int64_t eprocd_taint = handle_alloc();
+    int64_t eprocd_taint = eproc_enable ? handle_alloc() : ssld_taint;
     int64_t access_grant = handle_alloc();
     error_check(ssld_taint);
     error_check(eprocd_taint);
@@ -73,7 +75,7 @@ main (int ac, char **av)
 			 ssld_label.to_ulabel()));
 
     struct fs_inode eprocd_dir_ino;
-    error_check(fs_mkdir(httpd_dir_ino, "eprocd-priv", &eprocd_dir_ino, 
+    error_check(fs_mkdir(httpd_dir_ino, "servkey-priv", &eprocd_dir_ino, 
 			 eprocd_label.to_ulabel()));
         
     struct fs_inode server_pem_ino = fs_inode_for(default_server_pem);
@@ -99,10 +101,10 @@ main (int ac, char **av)
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
     const char *ssld_argv[] = { ssld_pn, ssld_server_pem,
-				ssld_dh_pem };
+				ssld_dh_pem, ssld_servkey_pem };
     struct child_process cp = spawn(httpd_ct, ssld_ino,
 				    0, 0, 0,
-				    3, &ssld_argv[0],
+				    eproc_enable ? 3 : 4, &ssld_argv[0],
 				    0, 0,
 				    0, &ssld_ds, 0, &ssld_dr, 0,
 				    SPAWN_NO_AUTOGRANT);
@@ -111,24 +113,26 @@ main (int ac, char **av)
     if (exit_code)
 	throw error(exit_code, "error starting ssld");
     
-    label eprocd_ds(3), eprocd_dr(0);
-    eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
-    eprocd_dr.set(eprocd_taint, 3);
-    
-    const char *eprocd_pn = "/bin/ssl_eprocd";
-    struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
-    const char *eprocd_argv[] = { eprocd_pn, ssld_servkey_pem };
-    cp = spawn(httpd_ct, eprocd_ino,
-	       0, 0, 0,
-	       2, &eprocd_argv[0],
-	       0, 0,
-	       0, &eprocd_ds, 0, &eprocd_dr, 0,
-	       SPAWN_NO_AUTOGRANT);
-    exit_code = 0;
-    process_wait(&cp, &exit_code);
-    if (exit_code)
-	throw error(exit_code, "error starting ssl_eprocd");
-    
+    if (eproc_enable) {
+	label eprocd_ds(3), eprocd_dr(0);
+	eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
+	eprocd_dr.set(eprocd_taint, 3);
+	
+	const char *eprocd_pn = "/bin/ssl_eprocd";
+	struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
+	const char *eprocd_argv[] = { eprocd_pn, ssld_servkey_pem };
+	cp = spawn(httpd_ct, eprocd_ino,
+		   0, 0, 0,
+		   2, &eprocd_argv[0],
+		   0, 0,
+		   0, &eprocd_ds, 0, &eprocd_dr, 0,
+		   SPAWN_NO_AUTOGRANT);
+	exit_code = 0;
+	process_wait(&cp, &exit_code);
+	if (exit_code)
+	    throw error(exit_code, "error starting ssl_eprocd");
+    }
+	
     label httpd_ds(3);
     httpd_ds.set(access_grant, LB_LEVEL_STAR);
     label httpd_dr(0);

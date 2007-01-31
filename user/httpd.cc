@@ -293,18 +293,21 @@ ssl_proxy::start(void)
 	plain_bs->p[0].open = 1;
 	plain_bs->p[1].open = 1;
 
-	struct cobj_ref eproc_seg;
-	struct bipipe_seg *eproc_bs = 0;
-	label eproc_label(1);
-	eproc_label.set(ssl_taint, 3);
-	error_check(segment_alloc(ssl_root_ct,
-				  sizeof(*eproc_bs), &eproc_seg, 
-				  (void **)&eproc_bs, eproc_label.to_ulabel(), 
-			      "eproc-bipipe"));
-	scope_guard<int, void*> umap3(segment_unmap, eproc_bs);
-	memset(eproc_bs, 0, sizeof(*eproc_bs));
-	eproc_bs->p[0].open = 1;
-	eproc_bs->p[1].open = 1;
+	
+	struct cobj_ref eproc_seg = COBJ(0, 0);
+	if (eproc_gate_.object) {
+	    struct bipipe_seg *eproc_bs = 0;
+	    label eproc_label(1);
+	    eproc_label.set(ssl_taint, 3);
+	    error_check(segment_alloc(ssl_root_ct,
+				      sizeof(*eproc_bs), &eproc_seg, 
+				      (void **)&eproc_bs, eproc_label.to_ulabel(), 
+				      "eproc-bipipe"));
+	    scope_guard<int, void*> umap3(segment_unmap, eproc_bs);
+	    memset(eproc_bs, 0, sizeof(*eproc_bs));
+	    eproc_bs->p[0].open = 1;
+	    eproc_bs->p[1].open = 1;
+	}
 
 	// NONBLOCK to avoid potential deadlock with ssld
 	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
@@ -317,7 +320,8 @@ ssl_proxy::start(void)
 	nfo_->cipher_fd_ = cipher_fd;
 	plain_fd_ = plain_fd;
 
-	ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint);
+	if (eproc_gate_.object)
+	    ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint);
 
 	// taint cow ssld and pass both bipipes
 	ssld_taint_cow(ssld_gate_, eproc_seg, cipher_seg, plain_seg, 
@@ -349,6 +353,9 @@ static const char ask_for_auth = 1;
 
 static uint64_t ssld_access_grant;
 
+static struct cobj_ref the_ssld_cow;
+static struct cobj_ref the_eprocd_cow;
+
 static struct cobj_ref
 get_ssld_cow(void)
 {
@@ -362,7 +369,7 @@ get_ssld_cow(void)
 }
 
 static struct cobj_ref
-get_eproc_cow(void)
+get_eprocd_cow(void)
 {
     struct fs_inode ct_ino;
     error_check(fs_namei("/httpd/ssl_eprocd/", &ct_ino));
@@ -380,7 +387,7 @@ http_client(void *arg)
     int sock_fd = (int64_t) arg;
 
     try {
-	ssl_proxy proxy(get_ssld_cow(), get_eproc_cow(), 
+	ssl_proxy proxy(the_ssld_cow, the_eprocd_cow, 
 			start_env->shared_container, sock_fd);
 	int s = sock_fd;
 	if (ssl_mode) {
@@ -556,6 +563,20 @@ main(int ac, char **av)
 	    return -1;
 	}
 	error_check(strtou64(av[1], 0, 10, &ssld_access_grant));
+	
+	the_ssld_cow = get_ssld_cow();
+	try {
+	    the_eprocd_cow = get_eprocd_cow();
+	} catch (error &e) {
+	    if (e.err() == -E_NOT_FOUND) {
+		printf("httpd: unable to find eprocd\n");
+		the_eprocd_cow = COBJ(0, 0);
+	    }
+	    else {
+		printf("httpd: %s\n", e.what());
+		return -1;
+	    }
+	}
     }
     http_server();
 }
