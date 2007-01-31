@@ -53,159 +53,157 @@ This implies that a hash using mix64 has no funnels.  There may be
  -- that the length be the number of uint64_t's in the key
 --------------------------------------------------------------------
 */
-static uint64_t 
-hash2(register uint64_t *k, register uint64_t length, register uint64_t level)
+static uint64_t
+hash2(register uint64_t * k, register uint64_t length,
+      register uint64_t level)
 {
-        register uint64_t a,b,c,len;
+    register uint64_t a, b, c, len;
 
-        /* Set up the internal state */
-        len = length;
-        a = b = level;                         /* the previous hash value */
-        c = 0x9e3779b97f4a7c13LL; /* the golden ratio; an arbitrary value */
+    /* Set up the internal state */
+    len = length;
+    a = b = level;		/* the previous hash value */
+    c = 0x9e3779b97f4a7c13LL;	/* the golden ratio; an arbitrary value */
 
 
-        /*---------------------------------------- handle most of the key */
-        while (len >= 3)
-        {
-                a += k[0];
-                b += k[1];
-                c += k[2];
-                mix64(a,b,c);
-                k += 3; len -= 3;
-        }
+    /*---------------------------------------- handle most of the key */
+    while (len >= 3) {
+	a += k[0];
+	b += k[1];
+	c += k[2];
+	mix64(a, b, c);
+	k += 3;
+	len -= 3;
+    }
 
-        /*-------------------------------------- handle the last 2 uint64_t's */
-        c += length;
-        switch(len)              /* all the case statements fall through */
-        {
-        /* c is reserved for the length */
-                case  2: b+=k[1];
-                case  1: a+=k[0];
-        /* case 0: nothing left to add */
-        }
+    /*-------------------------------------- handle the last 2 uint64_t's */
+    c += length;
+    switch (len) {		/* all the case statements fall through */
+    /* c is reserved for the length */
+    case 2:
+	b += k[1];
+    case 1:
+	a += k[0];
+    /* case 0: nothing left to add */
+    }
 
-        mix64(a,b,c);
-        /*-------------------------------------------- report the result */
-        return c;
+    mix64(a, b, c);
+    /*-------------------------------------------- report the result */
+    return c;
 }
 
 
 int
 hash_put(struct hashtable *table, uint64_t key, uint64_t val)
 {
-        uint64_t len = 1 ;
-        uint64_t lev = 0xDEADBEEF ;
-        uint64_t probe = 0 ;
-   
-        if (key == 0 || key == TOMB)
-                return -E_INVAL ;
+    uint64_t len = 1;
+    uint64_t lev = 0xDEADBEEF;
+    uint64_t probe = 0;
 
-        if (table->size == table->capacity)
-                return -E_NO_SPACE ;
+    if (key == 0 || key == TOMB)
+	return -E_INVAL;
 
-        int i ;
-        for (i = 0 ; i < table->capacity ; i++) {
-                probe = (hash2(&key, len, lev) + i) % table->capacity ;
-                if (table->entry[probe].key == 0 
-                || table->entry[probe].key == key)
-                        break ;               
-        }              
+    if (table->size == table->capacity)
+	return -E_NO_SPACE;
 
-        table->entry[probe].key = key ;
-        table->entry[probe].val = val ;
-        table->size++ ;
-        return 0 ;
+    int i;
+    for (i = 0; i < table->capacity; i++) {
+	probe = (hash2(&key, len, lev) + i) % table->capacity;
+	if (table->entry[probe].key == 0 || table->entry[probe].key == key)
+	    break;
+    }
+
+    table->entry[probe].key = key;
+    table->entry[probe].val = val;
+    table->size++;
+    return 0;
 }
 
 int
-hash_get(struct hashtable *table, uint64_t key, uint64_t *val)
+hash_get(struct hashtable *table, uint64_t key, uint64_t * val)
 {
-        uint64_t len = 1 ;
-        uint64_t lev = 0xDEADBEEF ;
-        uint64_t probe ;
-   
-        if (key == 0 || key == TOMB)
-                return -E_INVAL ;
-   
-        for (int i = 0 ; i < table->capacity ; i++) {
-                probe = (hash2(&key, len, lev) + i) % table->capacity ;
-                if (table->entry[probe].key == key) {
-                        *val = table->entry[probe].val ;
-                        return 0 ;
-                }
-                else if (table->entry[probe].key == 0)
-                        break ;
-        }
-        return -E_NOT_FOUND ;
+    uint64_t len = 1;
+    uint64_t lev = 0xDEADBEEF;
+    uint64_t probe;
+
+    if (key == 0 || key == TOMB)
+	return -E_INVAL;
+
+    for (int i = 0; i < table->capacity; i++) {
+	probe = (hash2(&key, len, lev) + i) % table->capacity;
+	if (table->entry[probe].key == key) {
+	    *val = table->entry[probe].val;
+	    return 0;
+	} else if (table->entry[probe].key == 0)
+	    break;
+    }
+    return -E_NOT_FOUND;
 }
 
 int
 hash_del(struct hashtable *table, uint64_t key)
 {
-    uint64_t len = 1 ;
-    uint64_t lev = 0xDEADBEEF ;
-    uint64_t probe ;
-   
-   
+    uint64_t len = 1;
+    uint64_t lev = 0xDEADBEEF;
+    uint64_t probe;
+
+
     if (key == 0 || key == TOMB)
-        return -E_INVAL ;
-        
-    for (int i = 0 ; i < table->capacity ; i++) {
-            probe = (hash2(&key, len, lev) + i) % table->capacity ;
-            if (table->entry[probe].key == key) {
-                    table->entry[probe].key = TOMB ;
-                    table->entry[probe].val = 0 ;
-                    table->size-- ;
-                    return 0 ;
-            }
-            else if (table->entry[probe].key == 0)
-                    break ;
+	return -E_INVAL;
+
+    for (int i = 0; i < table->capacity; i++) {
+	probe = (hash2(&key, len, lev) + i) % table->capacity;
+	if (table->entry[probe].key == key) {
+	    table->entry[probe].key = TOMB;
+	    table->entry[probe].val = 0;
+	    table->size--;
+	    return 0;
+	} else if (table->entry[probe].key == 0)
+	    break;
     }
 
-    return -E_NOT_FOUND ;   
+    return -E_NOT_FOUND;
 }
 
 void
 hash_init(struct hashtable *table, struct hashentry *back, int n)
 {
-        memset(back, 0, sizeof(struct hashentry) * n) ;
-        table->entry = back ;
-        table->capacity = n ;      
-        table->size = 0 ; 
+    memset(back, 0, sizeof(struct hashentry) * n);
+    table->entry = back;
+    table->capacity = n;
+    table->size = 0;
 }
 
 void
 hash_print(struct hashtable *table)
 {
-        int i ;
-        for (i = 0 ; i < table->capacity ; i++)
-                cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i, table->entry[i].key, table->entry[i].val) ;
+    int i;
+    for (i = 0; i < table->capacity; i++)
+	cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i,
+		table->entry[i].key, table->entry[i].val);
 }
 
 
-void 
+void
 hashiter_init(struct hashtable *table, struct hashiter *iter)
 {
-    memset(iter, 0, sizeof(*iter)) ;
-    iter->hi_table = table ;
-    return ;   
+    memset(iter, 0, sizeof(*iter));
+    iter->hi_table = table;
+    return;
 }
 
-int 
+int
 hashiter_next(struct hashiter *iter)
 {
-    struct hashtable *t = iter->hi_table ;
-    
-    int i = iter->hi_index ;
-    for (; i < t->capacity ; i++) {
-        if (t->entry[i].key != 0 &&
-            t->entry[i].key != TOMB)
-        {
-            iter->hi_index = i + 1 ;
-            iter->hi_val = t->entry[i].val ;
-            iter->hi_key = t->entry[i].key ; 
-            return 1 ;
-        }
+    struct hashtable *t = iter->hi_table;
+
+    int i = iter->hi_index;
+    for (; i < t->capacity; i++) {
+	if (t->entry[i].key != 0 && t->entry[i].key != TOMB) {
+	    iter->hi_index = i + 1;
+	    iter->hi_val = t->entry[i].val;
+	    iter->hi_key = t->entry[i].key;
+	    return 1;
+	}
     }
-    return 0 ;
+    return 0;
 }
