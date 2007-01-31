@@ -182,7 +182,7 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 	r = page_alloc(&p);
 	if (r < 0) {
 	    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
-	    return r;
+	    goto err;
 	}
 
 	r = pagetree_put_page(&ko->ko_pt, page, p);
@@ -227,7 +227,7 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 
 err:
     pagetree_free(&ko->ko_pt);
-    page_free(p);
+    page_free(ko);
     return r;
 }
 
