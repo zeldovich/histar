@@ -806,11 +806,8 @@ int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 		   uint64_t start, uint64_t nbytes)
 {
-    if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	thread_suspend(cur_thread, &swapout_waiting);
-	pstate_sync();
-	return -E_RESTART;
-    }
+    if (stable_hdr.ph_magic != PSTATE_MAGIC)
+	goto fallback;
 
     if (ko->hdr.ko_sync_ts &&
 	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
@@ -820,9 +817,14 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 			   (uintptr_t) ko, start, nbytes);
     if (r < 0) {
 	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
-	return r;
+	goto fallback;
     }
 
+    return -E_RESTART;
+
+fallback:
+    thread_suspend(cur_thread, &swapout_waiting);
+    pstate_sync();
     return -E_RESTART;
 }
 
