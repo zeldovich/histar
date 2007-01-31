@@ -1,12 +1,6 @@
 OBJDIRS += dj
 
 LIBDIS_SRCFILES +=		\
-	dj/labeltrans.cc	\
-	dj/globallabel.cc	\
-	dj/catdir.c 		\
-	dj/sharedcaller.cc 	\
-	dj/sgateclnt.cc		\
-	dj/sharedutil.cc	\
 	dj/djprot.cc		\
 	dj/bcast.cc		\
 	dj/dummyexec.cc		\
