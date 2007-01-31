@@ -349,14 +349,20 @@ class djprot_impl : public djprot {
 	cid.xid = c.xid;
 
 	switch (c.u.op) {
-	case CALL_REQUEST:
+	case CALL_REQUEST: {
+	    call_server *cs = srvr_[cid];
+	    if (cs && cs->id == cid) {
+		srvr_send_reply(cs);
+		return;
+	    }
+
 	    if (execcb_) {
 		djcall_args a;
 		a.data = str(c.u.req->arg.buf.base(), c.u.req->arg.buf.size());
 
 		/* XXX translate c.u.req->label, c.u.req->grant */
 
-		call_server *cs = New call_server();
+		cs = New call_server();
 		cs->id = cid;
 		cs->stat = REPLY_INPROGRESS;
 		cs->reply.taint = net_label_;
@@ -371,6 +377,21 @@ class djprot_impl : public djprot {
 		warn << "process_call: missing execution backend\n";
 	    }
 	    break;
+	}
+
+	case CALL_ABORT: {
+	    call_server *cs = srvr_[cid];
+	    if (!cs || cs->id != cid) {
+		warn << "unexpected call abort\n";
+		return;
+	    }
+
+	    if (cs->exec)
+		cs->exec->abort();
+	    else
+		srvr_send_reply(cs);
+	    break;
+	}
 
 	case CALL_REPLY: {
 	    call_client *cc = clnt_[cid];
@@ -396,20 +417,6 @@ class djprot_impl : public djprot {
 
 	    cc->cb(c.u.reply->stat, reparg);
 	    clnt_done(cc);
-	    break;
-	}
-
-	case CALL_ABORT: {
-	    call_server *cs = srvr_[cid];
-	    if (!cs || cs->id != cid) {
-		warn << "unexpected call abort\n";
-		return;
-	    }
-
-	    if (cs->exec)
-		cs->exec->abort();
-	    else
-		srvr_send_reply(cs);
 	    break;
 	}
 
