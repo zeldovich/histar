@@ -18,11 +18,39 @@ static uint64_t root_container_id;
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
 {
+    char *ubase = (char *) UBASE;
+
+#ifdef FT_TRANSFORMED
+    uint64_t rip = t->th_tf.tf_rip;
+    static uint64_t ncalls = 1;
+
+    if (rip == 0) {
+	/* Set things up.. */
+	ft_make_symbolic_array(ubase, PGSIZE, "ubase");
+    } else if (rip <= ncalls) {
+	uint64_t a0, a1, a2, a3, a4, a5, a6, a7;
+	ft_make_symbolic_name(&a0, "syscall_a0");
+	ft_make_symbolic_name(&a1, "syscall_a1");
+	ft_make_symbolic_name(&a2, "syscall_a2");
+	ft_make_symbolic_name(&a3, "syscall_a3");
+	ft_make_symbolic_name(&a4, "syscall_a4");
+	ft_make_symbolic_name(&a5, "syscall_a5");
+	ft_make_symbolic_name(&a6, "syscall_a6");
+	ft_make_symbolic_name(&a7, "syscall_a7");
+
+	kern_syscall(a0, a1, a2, a3, a4, a5, a6, a7);
+    } else if (rip == ncalls + 1) {
+	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
+    } else {
+	printf("Strange rip value: %"PRIu64"\n", rip);
+	assert(0);
+    }
+#else
     printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
 
-    char *goodbuf = (char *) UBASE;
-    //char *badbuf  = (char *) UBASE + PGSIZE;
+    char *goodbuf = ubase;
+    //char *badbuf = ubase + PGSIZE;
 
     switch (t->th_tf.tf_rip) {
     case 0:
@@ -33,53 +61,9 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
 	break;
 
-#ifdef FT_TRANSFORMED
-    case 2: {
-	uint64_t ct_id;
-	ft_make_symbolic_name(&ct_id, "ct_id1");
-	kern_syscall(SYS_container_get_nslots, ct_id, 0, 0, 0, 0, 0, 0);
-	break;
-    }
-
-    case 3: {
-	uint64_t ct_id;
-	ft_make_symbolic_name(&ct_id, "ct_id2");
-	kern_syscall(SYS_container_get_parent, ct_id, 0, 0, 0, 0, 0, 0);
-	break;
-    }
-
-    case 4: {
-	uint64_t ct_id;
-	uint64_t slot;
-	ft_make_symbolic_name(&ct_id, "ct_id3");
-	ft_make_symbolic_name(&slot, "ct_slot3");
-	kern_syscall(SYS_container_get_slot_id, ct_id, slot, 0, 0, 0, 0, 0);
-	break;
-    }
-
-    case 5: {
-	uint64_t ct_id;
-	ft_make_symbolic_name(&ct_id, "ct_id4");
-	kern_syscall(SYS_self_addref, ct_id, 0, 0, 0, 0, 0, 0);
-	break;
-    }
-
-    case 6: {
-	uint64_t ct1, ct2;
-	ft_make_symbolic_name(&ct1, "ct_id5-1");
-	ft_make_symbolic_name(&ct2, "ct_id5-2");
-	kern_syscall(SYS_self_set_sched_parents, ct1, ct2, 0, 0, 0, 0, 0);
-	break;
-    }
-
-    case 7:
-	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
-	break;
-#else
     case 2:
 	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
 	break;
-#endif
 
     case 0xdeadbeef:
 	sprintf(goodbuf, "Faulted..\n");
@@ -94,6 +78,7 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	printf("huh.. odd rip value\n");
 	assert(0);
     }
+#endif
 
     t->th_tf.tf_rip++;
     schedule();
