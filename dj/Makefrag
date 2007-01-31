@@ -4,6 +4,7 @@ LIBDIS_SRCFILES +=		\
 	dj/djprot.cc		\
 	dj/bcast.cc		\
 	dj/dummyexec.cc		\
+	dj/dummycatmgr.cc	\
 	dj/dj.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)

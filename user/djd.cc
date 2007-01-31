@@ -31,6 +31,7 @@ main(int ac, char **av)
     warn << "instantiating a djprot, port " << port << "...\n";
     ptr<djprot> djs = djprot::alloc(port);
     djs->set_callexec(wrap(dj_dummy_exec));
+    djs->set_catmgr(dj_dummy_catmgr());
 
     if (ac == 2) {
 	str n(av[1]);

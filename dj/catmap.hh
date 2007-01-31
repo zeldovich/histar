@@ -13,7 +13,8 @@ class catmap {
     bool g2l(dj_gcat gcat, uint64_t *lcatp) {
 	entry *e = g2l_[gcat];
 	if (e && e->global == gcat) {
-	    *lcatp = e->local;
+	    if (lcatp)
+		*lcatp = e->local;
 	    return true;
 	}
 
@@ -23,7 +24,8 @@ class catmap {
     bool l2g(uint64_t lcat, dj_gcat *gcatp) {
 	entry *e = l2g_[lcat];
 	if (e && e->local == lcat) {
-	    *gcatp = e->global;
+	    if (gcatp)
+		*gcatp = e->global;
 	    return true;
 	}
 

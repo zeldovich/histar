@@ -211,6 +211,10 @@ class djprot_impl : public djprot {
 	execcb_ = cb;
     }
 
+    virtual void set_catmgr(ptr<catmgr> cmgr) {
+	cmgr_ = cmgr;
+    }
+
  private:
     bool send_message(str msg, dj_esign_pubkey nodekey) {
 	pk_addr *a = addr_cache_[nodekey];
@@ -528,6 +532,8 @@ class djprot_impl : public djprot {
 
     label net_label_, net_clear_;
     callexec_factory execcb_;
+    ptr<catmgr> cmgr_;
+    catmap cmap_;
 };
 
 ptr<djprot>
