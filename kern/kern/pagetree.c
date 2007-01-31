@@ -44,7 +44,7 @@ pagetree_incref(void *p)
 
 static int pagetree_cow(pagetree_entry *ent);
 
-static int
+static int __attribute__ ((warn_unused_result))
 pagetree_indir_copy(void *src, void *dst)
 {
     struct pagetree_indirect_page *pdst = dst;
@@ -66,7 +66,7 @@ pagetree_indir_copy(void *src, void *dst)
     page_to_pageinfo(dst)->pi_indir = 1;
 }
 
-static int
+static int __attribute__ ((warn_unused_result))
 pagetree_cow(pagetree_entry *ent)
 {
     if (!ent->page)
@@ -171,13 +171,16 @@ pagetree_free(struct pagetree *pt)
     pagetree_init(pt);
 }
 
-static int
+static int __attribute__ ((warn_unused_result))
 pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 			   pagetree_entry **outp, struct pagetree_indirect_page **out_parent,
 			   page_sharing_mode rw, int level, struct pagetree_indirect_page *parent)
 {
-    if (!SAFE_EQUAL(rw, page_shared_ro))
-	pagetree_cow(indir);
+    if (!SAFE_EQUAL(rw, page_shared_ro)) {
+	int r = pagetree_cow(indir);
+	if (r < 0)
+	    return r;
+    }
 
     if (indir->page == 0) {
 	if (SAFE_EQUAL(rw, page_shared_ro)) {
@@ -217,7 +220,7 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 				      next_page, outp, out_parent, rw, level - 1, pip);
 }
 
-static int
+static int __attribute__ ((warn_unused_result))
 pagetree_get_entp(struct pagetree *pt, uint64_t npage,
 		  pagetree_entry **entp, struct pagetree_indirect_page **out_parent,
 		  page_sharing_mode rw)
@@ -258,7 +261,9 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
 	return 0;
     }
 
-    pagetree_cow(ent);
+    r = pagetree_cow(ent);
+    if (r < 0)
+	return r;
 
     struct page_info *pi = page_to_pageinfo(ent->page);
     if (pi->pi_parent != parent)
