@@ -457,7 +457,10 @@ kobject_copy_pages(const struct kobject_hdr *srch,
 	return -E_INVAL;
     }
 
-    pagetree_copy(&src->ko_pt, &dst->ko_pt);
+    r = pagetree_copy(&src->ko_pt, &dst->ko_pt, 0);
+    if (r < 0)
+	return r;
+
     dsth->ko_nbytes = srch->ko_nbytes;
     dsth->ko_quota_total += ROUNDUP(srch->ko_nbytes, PGSIZE);
     dsth->ko_quota_used += ROUNDUP(srch->ko_nbytes, PGSIZE);
@@ -760,7 +763,7 @@ kobject_snapshot(struct kobject_hdr *ko)
 
     struct kobject *snap = kobject_get_snapshot_internal(ko);
     memcpy(snap, ko, KOBJ_DISK_SIZE);
-    pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt);
+    assert(0 == pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt, 1));
 
     ko->ko_flags |= KOBJ_SNAPSHOTING;
 }

@@ -100,30 +100,45 @@ pagetree_init(struct pagetree *pt)
     memset(pt, 0, sizeof(*pt));
 }
 
-void
-pagetree_copy(const struct pagetree *src, struct pagetree *dst)
+int
+pagetree_copy(const struct pagetree *src, struct pagetree *dst,
+	      int share_pinned)
 {
     memcpy(dst, src, sizeof(*dst));
 
-    // XXX we can really run out of memory in pagetree_cow() here.
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
+	if (dst->pt_direct[i].page)
+	    page_to_pageinfo(dst->pt_direct[i].page)->pi_ref++;
 
-    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
-	if (dst->pt_direct[i].page) {
-	    struct page_info *ptp = page_to_pageinfo(dst->pt_direct[i].page);
-	    ptp->pi_ref++;
-	    if (ptp->pi_pin)
-		assert(0 == pagetree_cow(&dst->pt_direct[i]));
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
+	if (dst->pt_indirect[i].page)
+	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_ref++;
+
+    if (!share_pinned) {
+	for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
+	    if (dst->pt_direct[i].page &&
+		page_to_pageinfo(dst->pt_direct[i].page)->pi_pin) {
+		int r = pagetree_cow(&dst->pt_direct[i]);
+		if (r < 0) {
+		    pagetree_free(dst);
+		    return r;
+		}
+	    }
+	}
+
+	for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
+	    if (dst->pt_indirect[i].page &&
+		page_to_pageinfo(dst->pt_indirect[i].page)->pi_pin) {
+		int r = pagetree_cow(&dst->pt_indirect[i]);
+		if (r < 0) {
+		    pagetree_free(dst);
+		    return r;
+		}
+	    }
 	}
     }
 
-    for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
-	if (dst->pt_indirect[i].page) {
-	    struct page_info *ptp = page_to_pageinfo(dst->pt_indirect[i].page);
-	    ptp->pi_ref++;
-	    if (ptp->pi_pin)
-		assert(0 == pagetree_cow(&dst->pt_indirect[i]));
-	}
-    }
+    return 0;
 }
 
 static void

@@ -35,7 +35,8 @@ typedef SAFE_TYPE(int) page_sharing_mode;
 void pagetree_init(struct pagetree *pt);
 
 // Copy (with COW) src into dst
-void pagetree_copy(const struct pagetree *src, struct pagetree *dst);
+int  pagetree_copy(const struct pagetree *src, struct pagetree *dst,
+		   int share_pinned);
 
 // Free the pagetree, including all of the pages (that aren't shared)
 void pagetree_free(struct pagetree *pt);
