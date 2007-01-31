@@ -44,16 +44,23 @@ main (int ac, char **av)
     static const char *default_dh_pem = "/bin/dh.pem";
 
     static const char *ssld_server_pem = "/httpd/ssld-priv/server.pem";
-    static const char *ssld_servkey_pem = "/httpd/ssld-priv/servkey.pem";
     static const char *ssld_dh_pem = "/httpd/ssld-priv/dh.pem";
 
-    int64_t secret_taint = handle_alloc();
-    int64_t access_grant = handle_alloc();
-    error_check(secret_taint);
-    error_check(access_grant);
-    label secret_label(1);
-    secret_label.set(secret_taint, 3);
+    static const char *ssld_servkey_pem = "/httpd/eprocd-priv/servkey.pem";
 
+    int64_t ssld_taint = handle_alloc();
+    int64_t eprocd_taint = handle_alloc();
+    int64_t access_grant = handle_alloc();
+    error_check(ssld_taint);
+    error_check(eprocd_taint);
+    error_check(access_grant);
+    label ssld_label(1);
+    ssld_label.set(ssld_taint, 3);
+    ssld_label.set(access_grant, 0);
+    label eprocd_label(1);
+    eprocd_label.set(eprocd_taint, 3);
+    eprocd_label.set(access_grant, 0);
+    
     int64_t httpd_ct = sys_container_alloc(start_env->root_container, 0,
 					   "httpd", 0, CT_QUOTA_INF);
     error_check(httpd_ct);
@@ -61,30 +68,33 @@ main (int ac, char **av)
     struct fs_inode httpd_dir_ino;
     httpd_dir_ino.obj = COBJ(start_env->root_container, httpd_ct);
 
-    struct fs_inode priv_dir_ino;
-    error_check(fs_mkdir(httpd_dir_ino, "ssld-priv", &priv_dir_ino, 
-			 secret_label.to_ulabel()));
+    struct fs_inode ssld_dir_ino;
+    error_check(fs_mkdir(httpd_dir_ino, "ssld-priv", &ssld_dir_ino, 
+			 ssld_label.to_ulabel()));
+
+    struct fs_inode eprocd_dir_ino;
+    error_check(fs_mkdir(httpd_dir_ino, "eprocd-priv", &eprocd_dir_ino, 
+			 eprocd_label.to_ulabel()));
         
     struct fs_inode server_pem_ino = fs_inode_for(default_server_pem);
-    struct fs_inode servkey_pem_ino = fs_inode_for(default_servkey_pem);
     struct fs_inode dh_pem_ino = fs_inode_for(default_dh_pem);
 
+    struct fs_inode servkey_pem_ino = fs_inode_for(default_servkey_pem);
 
-    segment_copy_to_file(server_pem_ino.obj, priv_dir_ino, "server.pem", 
-			 &secret_label);
-    segment_copy_to_file(servkey_pem_ino.obj, priv_dir_ino, "servkey.pem", 
-			 &secret_label);
-    segment_copy_to_file(dh_pem_ino.obj, priv_dir_ino, "dh.pem", 
-			 &secret_label);
+    segment_copy_to_file(server_pem_ino.obj, ssld_dir_ino, "server.pem", 
+			 &ssld_label);
+    segment_copy_to_file(dh_pem_ino.obj, ssld_dir_ino, "dh.pem", 
+			 &ssld_label);
+
+    segment_copy_to_file(servkey_pem_ino.obj, eprocd_dir_ino, "servkey.pem", 
+			 &eprocd_label);
 
     static char ssld_access_grant[32];
     snprintf(ssld_access_grant, sizeof(ssld_access_grant), "%lu", access_grant);
 
     label ssld_ds(3), ssld_dr(0);
-    ssld_ds.set(access_grant, LB_LEVEL_STAR);
-    ssld_ds.set(secret_taint, LB_LEVEL_STAR);
-    ssld_dr.set(access_grant, 3);
-    ssld_dr.set(secret_taint, 3);
+    ssld_ds.set(ssld_taint, LB_LEVEL_STAR);
+    ssld_dr.set(ssld_taint, 3);
     
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
@@ -100,7 +110,11 @@ main (int ac, char **av)
     process_wait(&cp, &exit_code);
     if (exit_code)
 	throw error(exit_code, "error starting ssld");
-
+    
+    label eprocd_ds(3), eprocd_dr(0);
+    eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
+    eprocd_dr.set(eprocd_taint, 3);
+    
     const char *eprocd_pn = "/bin/ssl_eprocd";
     struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
     const char *eprocd_argv[] = { eprocd_pn, ssld_servkey_pem };
@@ -108,14 +122,12 @@ main (int ac, char **av)
 	       0, 0, 0,
 	       2, &eprocd_argv[0],
 	       0, 0,
-	       0, &ssld_ds, 0, &ssld_dr, 0,
+	       0, &eprocd_ds, 0, &eprocd_dr, 0,
 	       SPAWN_NO_AUTOGRANT);
     exit_code = 0;
     process_wait(&cp, &exit_code);
     if (exit_code)
 	throw error(exit_code, "error starting ssl_eprocd");
-
-
     
     label httpd_ds(3);
     httpd_ds.set(access_grant, LB_LEVEL_STAR);
