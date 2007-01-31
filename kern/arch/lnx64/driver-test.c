@@ -157,7 +157,13 @@ main(int argc, char **av)
 
     bootstrap_stuff();
 #ifdef FT_TRANSFORMED
-    enable_page_alloc_failure = 1;
+    /*
+     * XXX the kernel has some unresolved issues with handling out-of-memory
+     * conditions.  also, since we currently don't support disk IO with FT,
+     * there's nothing we can do to handle an out-of-memory condition with
+     * no disk to swap out to..
+     */
+    //enable_page_alloc_failure = 1;
 #endif
     lnx64_schedule_loop();
 }
