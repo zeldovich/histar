@@ -156,6 +156,8 @@ main(int argc, char **av)
     printf("HiStar/lnx64..\n");
 
     bootstrap_stuff();
+#ifdef FT_TRANSFORMED
     enable_page_alloc_failure = 1;
+#endif
     lnx64_schedule_loop();
 }
