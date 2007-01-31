@@ -101,22 +101,18 @@ prof_init(void)
 void
 prof_syscall(uint64_t num, uint64_t time)
 {
-    if (num >= NSYSCALLS) {
-	cprintf("prof_syscall: num %"PRIu64" not below %d\n", num, NSYSCALLS);
+    if (num >= NSYSCALLS)
 	return;
-    }
 
     sysc_table[num].count++;
     sysc_table[num].time += time;
 }
 
 void
-prof_trap(int num, uint64_t time)
+prof_trap(uint64_t num, uint64_t time)
 {
-    if (num >= NTRAPS) {
-	cprintf("prof_trap: num %d not below %d\n", num, NTRAPS);
+    if (num >= NTRAPS)
 	return;
-    }
 
     trap_table[num].count++;
     trap_table[num].time += time;
