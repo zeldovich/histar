@@ -8,6 +8,7 @@
 #include <dj/bcast.hh>
 #include <dj/dj.h>
 #include <dj/djops.hh>
+#include <dj/catmap.hh>
 
 enum {
     keybits = 1024,
@@ -136,7 +137,20 @@ class djprot_impl : public djprot {
 	cache_cleanup();
 	send_bcast();
     }
-    virtual ~djprot_impl() { warn << "djprot_impl dead\n"; }
+
+    virtual ~djprot_impl() {
+	addr_cache_.deleteall();
+	spk4_cache_.deleteall();
+	srvr_.deleteall();
+
+	call_client *ncc;
+	for (call_client *cc = clnt_.first(); cc; cc = ncc) {
+	    ncc = clnt_.next(cc);
+	    clnt_done(cc);
+	}
+
+	warn << "djprot_impl dead\n";
+    }
 
     virtual str pubkey() const { return xdr2str(esignpub2dj(k_)); }
     virtual void set_label(const label &l) { net_label_ = l; }

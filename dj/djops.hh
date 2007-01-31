@@ -46,6 +46,24 @@ operator!=(const djcall_id &a, const djcall_id &b)
     return !(a == b);
 }
 
+inline bool
+operator<(const dj_gcat &a, const dj_gcat &b)
+{
+    return a.key < b.key || (a.key == b.key && a.id < b.id);
+}
+
+inline bool
+operator==(const dj_gcat &a, const dj_gcat &b)
+{
+    return a.key == b.key && a.id == b.id;
+}
+
+inline bool
+operator!=(const dj_gcat &a, const dj_gcat &b)
+{
+    return !(a == b);
+}
+
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_esign_pubkey &pk)
 {
