@@ -16,6 +16,7 @@ Kernel bugs:
   - btree/cache: check cache size is enough, use static disk read buffer page
   - pre-allocate a page for stackwrap_call(pstate_sync_stackwrap)
   - log.c: pre-allocate max_mem pages and keep them in-core
+  - page_alloc: if cur_thread, suspend, pstate_sync(), and return -E_RESTART
 
 Security:
 
