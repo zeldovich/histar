@@ -84,7 +84,8 @@ struct dj_call_request {
 };
 
 enum dj_reply_status {
-    REPLY_OK = 1,
+    REPLY_DONE = 1,
+    REPLY_INPROGRESS,
     REPLY_GATE_CALL_ERROR,
     REPLY_ADDRESS_MISSING,	/* not returned by server */
     REPLY_DELEGATION_MISSING,
@@ -93,10 +94,8 @@ enum dj_reply_status {
 };
 
 union dj_call_reply switch (dj_reply_status stat) {
- case REPLY_OK:
+ case REPLY_DONE:
     dj_gate_arg arg;
- case REPLY_GATE_CALL_ERROR:
-    int err;
  default:
     void;
 };
@@ -104,7 +103,6 @@ union dj_call_reply switch (dj_reply_status stat) {
 enum dj_call_op {
     CALL_REQUEST = 1,
     CALL_REPLY,
-    CALL_INPROGRESS,
     CALL_ABORT
 };
 
@@ -113,8 +111,6 @@ union dj_call_u switch (dj_call_op op) {
     dj_call_request req;
  case CALL_REPLY:
     dj_call_reply reply;
- case CALL_INPROGRESS:
-    void;
  case CALL_ABORT:
     void;
 };

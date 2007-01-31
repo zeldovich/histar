@@ -94,8 +94,10 @@ struct call_client {
 struct call_server {
     itree_entry<call_server> link;
     djcall_id id;
+    ptr<djcallexec> exec;
     dj_reply_status stat;
     djcall_args reply;
+    uint64_t replyseq;
 };
 
 class djprot_impl : public djprot {
@@ -153,12 +155,12 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	/* Check if a taint of (l) can be sent to nodepk.  */
+	/* XXX Check if a taint of (l) can be sent to nodepk.  */
 
-	/* Check if any categories in (g) are non-globalized, and if so,
+	/* XXX Check if any categories in (g) are non-globalized, and if so,
 	 * create new global categories for them. */
 
-	/* Check the expiration of the address delegation?
+	/* XXX Check the expiration of the address delegation?
 	 * Check expiration of other delegations?
 	 * Do we set call timeout value here, or is the server responsible
 	 * for expiring the call when the delegations expire?  The latter
@@ -196,6 +198,22 @@ class djprot_impl : public djprot {
     }
 
  private:
+    bool send_message(str msg, dj_esign_pubkey nodekey) {
+	pk_addr *a = addr_cache_[nodekey];
+	if (!a || a->pk != nodekey) {
+	    warn << "send_message: can't find address for pubkey\n";
+	    return false;
+	}
+	dj_address addr = *a->d.a.addr;
+
+	sockaddr_in sin;
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = addr.ip;
+	sin.sin_port = addr.port;
+	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
+	return true;
+    }
+
     void clnt_done(call_client *cc) {
 	if (cc->timecb)
 	    timecb_remove(cc->timecb);
@@ -222,20 +240,11 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	pk_addr *a = addr_cache_[cc->ss.stmt.call->to];
-	if (!a || a->pk != cc->ss.stmt.call->to) {
-	    warn << "call: can't find address for pubkey\n";
+	if (!send_message(msg, cc->ss.stmt.call->to)) {
 	    clnt_done(cc);
 	    cb(REPLY_ADDRESS_MISSING, reparg);
 	    return;
 	}
-	dj_address addr = *a->d.a.addr;
-
-	sockaddr_in sin;
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = addr.ip;
-	sin.sin_port = addr.port;
-	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
 
 	cc->tmo *= 2;
 	cc->timecb =
@@ -293,8 +302,38 @@ class djprot_impl : public djprot {
 	    update_speaksfor(d);
     }
 
-    void execcb(dj_reply_status stat, const djcall_args &a) {
-	warn << "execcb: call completed, status " << stat << "\n";
+    void srvr_send_reply(call_server *cs) {
+	dj_stmt_signed ss;
+	ss.stmt.set_type(STMT_CALL);
+	ss.stmt.call->xid = cs->id.xid;
+	ss.stmt.call->seq = ++cs->replyseq;
+	ss.stmt.call->ts = time(0);
+	ss.stmt.call->from = esignpub2dj(k_);
+	ss.stmt.call->to = cs->id.key;
+	ss.stmt.call->u.set_op(CALL_REPLY);
+	ss.stmt.call->u.reply->set_stat(cs->stat);
+	if (cs->stat == REPLY_DONE) {
+	    /* XXX translate cs->reply.label, cs->reply.grant */
+	    ss.stmt.call->u.reply->arg->buf.setsize(cs->reply.data.len());
+	    memcpy(ss.stmt.call->u.reply->arg->buf.base(),
+		   cs->reply.data.cstr(), cs->reply.data.len());
+	}
+	sign_statement(&ss);
+
+	str msg = xdr2str(ss);
+	if (!msg) {
+	    warn << "srvr_send_reply: cannot encode reply\n";
+	    return;
+	}
+
+	send_message(msg, cs->id.key);
+    }
+
+    void execcb(call_server *cs, dj_reply_status stat, const djcall_args &a) {
+	cs->stat = stat;
+	cs->reply = a;
+	cs->exec = 0;
+	srvr_send_reply(cs);
     }
 
     void process_call(const dj_call &c) {
@@ -303,33 +342,76 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
+	/* XXX check c.ts */
+
+	djcall_id cid;
+	cid.key = c.from;
+	cid.xid = c.xid;
+
 	switch (c.u.op) {
 	case CALL_REQUEST:
 	    if (execcb_) {
 		djcall_args a;
 		a.data = str(c.u.req->arg.buf.base(), c.u.req->arg.buf.size());
 
-		/* Translate c.u.req->label, c.u.req->grant */
+		/* XXX translate c.u.req->label, c.u.req->grant */
 
-		ptr<djcallexec> e =
-		    execcb_(wrap(mkref(this), &djprot_impl::execcb));
-		e->start(c.u.req->gate, a);
+		call_server *cs = New call_server();
+		cs->id = cid;
+		cs->stat = REPLY_INPROGRESS;
+		cs->reply.taint = net_label_;
+		cs->reply.grant = label(3);
+		cs->replyseq = 0;
+		cs->exec = 
+		    execcb_(wrap(mkref(this), &djprot_impl::execcb, cs));
+		srvr_.insert(cs);
+
+		cs->exec->start(c.u.req->gate, a);
 	    } else {
-		/* XXX reply with an error? */
+		warn << "process_call: missing execution backend\n";
 	    }
 	    break;
 
-	case CALL_REPLY:
-	    warn << "call reply: " << c.u.reply->stat << "\n";
-	    break;
+	case CALL_REPLY: {
+	    call_client *cc = clnt_[cid];
+	    if (!cc || cc->id != cid) {
+		warn << "unexpected call reply\n";
+		return;
+	    }
 
-	case CALL_INPROGRESS:
-	    warn << "call in progress reply\n";
-	    break;
+	    if (c.u.reply->stat == REPLY_INPROGRESS) {
+		warn << "call reply: in progress..\n";
+		return;
+	    }
 
-	case CALL_ABORT:
-	    warn << "call abort\n";
+	    djcall_args reparg;
+	    reparg.taint = net_label_;
+	    reparg.grant = label(3);
+
+	    if (c.u.reply->stat == REPLY_DONE) {
+		/* XXX unmarshal c.u.reply->arg->label, grant */
+		reparg.data = str(c.u.reply->arg->buf.base(),
+				  c.u.reply->arg->buf.size());
+	    }
+
+	    cc->cb(c.u.reply->stat, reparg);
+	    clnt_done(cc);
 	    break;
+	}
+
+	case CALL_ABORT: {
+	    call_server *cs = srvr_[cid];
+	    if (!cs || cs->id != cid) {
+		warn << "unexpected call abort\n";
+		return;
+	    }
+
+	    if (cs->exec)
+		cs->exec->abort();
+	    else
+		srvr_send_reply(cs);
+	    break;
+	}
 
 	default:
 	    warn << "process_call: unhandled op " << c.u.op << "\n";

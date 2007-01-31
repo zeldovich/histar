@@ -34,6 +34,18 @@ operator<(const djcall_id &a, const djcall_id &b)
     return a.key < b.key || (a.key == b.key && a.xid < b.xid);
 }
 
+inline bool
+operator==(const djcall_id &a, const djcall_id &b)
+{
+    return a.key == b.key && a.xid == b.xid;
+}
+
+inline bool
+operator!=(const djcall_id &a, const djcall_id &b)
+{
+    return !(a == b);
+}
+
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_esign_pubkey &pk)
 {

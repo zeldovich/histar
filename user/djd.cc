@@ -8,7 +8,7 @@ static void
 stuffcb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args &args)
 {
     warn << "stuffcb: status " << stat << "\n";
-    if (stat == REPLY_OK)
+    if (stat == REPLY_DONE)
 	warn << "stuffcb: data " << args.data << "\n";
 }
 
