@@ -47,7 +47,6 @@ AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
 AUTOCONF_vim70		    := --with-tlib=ncurses
 AUTOCONF_gmp-4.2.1	    := --enable-shared=no
-AUTOCONF_sfslite-0.8.9pre3  := --enable-shared=no
 AUTOCONF_sfslite-1.0.0	    := --enable-shared=no --without-x
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
 AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
@@ -62,7 +61,6 @@ PATCHFILE_openssl-0.9.8a    := openssl-0.9.8a.patch
 PATCHFILE_openssh-4.3p2     := openssh-4.3p2.patch
 PATCHFILE_gdb-6.5	    := gdb-6.5.patch
 PATCHFILE_vim70		    := vim70.patch
-PATCHFILE_sfslite-0.8.9pre3 := sfslite-0.8.9pre3.patch
 PATCHFILE_sfslite-1.0.0	    := sfslite-1.0.0.patch
 PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
 PATCHFILE_a2ps-4.13	    := a2ps-4.13.patch
