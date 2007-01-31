@@ -39,7 +39,6 @@ extern "C" {
 static const char dbg = 0;
 
 static SSL_CTX *the_ctx;
-static uint64_t access_grant;
 
 static char *cow_stacktop;
 
@@ -251,8 +250,6 @@ ssld_cow_gate_create(uint64_t ct)
     label th_l, th_c;
     thread_cur_label(&th_l);
     thread_cur_clearance(&th_c);
-    if (access_grant)
-	th_c.set(access_grant, 0);
     
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
@@ -329,22 +326,18 @@ ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
 int
 main (int ac, char **av)
 {
-    if (ac < 4) {
-	cprintf("Usage: %s server-pem dh-pem access-grant [servkey-pem]", 
+    if (ac < 3) {
+	cprintf("Usage: %s server-pem dh-pem [servkey-pem]", 
 		av[0]);
 	return -1;
     }
 
-    
-
     const char *server_pem = av[1];
     const char *dh_pem = av[2];
-    uint64_t access_grant;
-    error_check(strtou64(av[3], 0, 10, &access_grant));
     
     the_ctx = ssl_init(server_pem, dh_pem, 0);
-    if (ac >= 5) {
-	const char *servkey_pem = av[4];
+    if (ac >= 4) {
+	const char *servkey_pem = av[3];
 	ssl_load_file_privkey(the_ctx, servkey_pem);
 
     }
