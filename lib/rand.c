@@ -71,6 +71,12 @@ rand_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
+rand_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+{
+    return -1;
+}
+
+static int
 rand_close(struct Fd *fd)
 {
     return 0;
@@ -82,5 +88,6 @@ struct Dev devrand = {
     .dev_read = &rand_read,
     .dev_write = &rand_write,
     .dev_probe = &rand_probe,
+    .dev_statsync = &rand_statsync,
     .dev_close = &rand_close,
 };
