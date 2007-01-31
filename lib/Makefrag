@@ -67,7 +67,8 @@ LIB_SRCFILES :=	\
 	lib/multisync.cc \
 	lib/sigio.c \
 	lib/ssld_client.cc \
-	lib/netbench.cc
+	lib/netbench.cc \
+	lib/ssl_eproc.cc
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag

@@ -25,6 +25,7 @@ struct worker_args {
     struct cobj_ref cipher_biseg;
     struct cobj_ref plain_biseg;
     struct cobj_ref cow_gate;
+    struct cobj_ref eproc_biseg;
     uint64_t root_ct;
     uint64_t taint;
 };
@@ -38,9 +39,11 @@ ssld_worker_setup(void *b)
     uint64_t taint = a->taint;
 
     struct ssld_cow_args *d = (struct ssld_cow_args *)tls_gate_args;
+    memset(d, 0, sizeof(*d));
     d->cipher_biseg = a->cipher_biseg;
     d->plain_biseg = a->plain_biseg;
     d->root_ct = a->root_ct;
+    d->privkey_biseg = a->eproc_biseg;
 
     label tgt_label, tgt_clear;
     obj_get_label(cow_gate, &tgt_label);
@@ -56,7 +59,7 @@ ssld_worker_setup(void *b)
 }
 
 void
-ssld_taint_cow(struct cobj_ref cow_gate,
+ssld_taint_cow(struct cobj_ref cow_gate, struct cobj_ref eproc_biseg,
 	       struct cobj_ref cipher_biseg, struct cobj_ref plain_biseg,
 	       uint64_t root_ct, uint64_t taint,
 	       thread_args *ta)
@@ -65,6 +68,7 @@ ssld_taint_cow(struct cobj_ref cow_gate,
     a.cipher_biseg = cipher_biseg;
     a.plain_biseg = plain_biseg;
     a.cow_gate = cow_gate;
+    a.eproc_biseg = eproc_biseg;
     a.root_ct = root_ct;
     a.taint = taint;
 

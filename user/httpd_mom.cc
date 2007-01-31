@@ -88,12 +88,12 @@ main (int ac, char **av)
     
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
-    const char *ssld_argv[] = { ssld_pn, ssld_server_pem, ssld_servkey_pem,
+    const char *ssld_argv[] = { ssld_pn, ssld_server_pem,
 				ssld_dh_pem, 
-				ssld_access_grant };
+				ssld_access_grant};
     struct child_process cp = spawn(httpd_ct, ssld_ino,
 				    0, 0, 0,
-				    5, &ssld_argv[0],
+				    4, &ssld_argv[0],
 				    0, 0,
 				    0, &ssld_ds, 0, &ssld_dr, 0,
 				    SPAWN_NO_AUTOGRANT);
@@ -101,6 +101,22 @@ main (int ac, char **av)
     process_wait(&cp, &exit_code);
     if (exit_code)
 	throw error(exit_code, "error starting ssld");
+
+    const char *eprocd_pn = "/bin/ssl_eprocd";
+    struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
+    const char *eprocd_argv[] = { eprocd_pn, ssld_servkey_pem};
+    cp = spawn(httpd_ct, eprocd_ino,
+	       0, 0, 0,
+	       2, &eprocd_argv[0],
+	       0, 0,
+	       0, &ssld_ds, 0, &ssld_dr, 0,
+	       SPAWN_NO_AUTOGRANT);
+    exit_code = 0;
+    process_wait(&cp, &exit_code);
+    if (exit_code)
+	throw error(exit_code, "error starting ssl_eprocd");
+
+
     
     label httpd_ds(3);
     httpd_ds.set(access_grant, LB_LEVEL_STAR);

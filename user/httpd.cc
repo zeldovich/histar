@@ -36,7 +36,8 @@ static const char proxy_dbg = 0;
 class ssl_proxy
 {
 public:
-    ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd);
+    ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
+	      uint64_t base_ct, int sock_fd);
     ~ssl_proxy(void);
 
     void start(void);
@@ -51,6 +52,7 @@ private:
 	atomic64_t ref_count_;
     } *nfo_;
     struct cobj_ref ssld_gate_;
+    struct cobj_ref eproc_gate_;
     uint64_t plain_fd_;
     char proxy_started_;
     char ssld_started_;
@@ -64,12 +66,14 @@ private:
     static const uint32_t SELECT_CIPHER = 0x0002;
 };
 
-ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, uint64_t base_ct, int sock_fd)
+ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate, 
+		     uint64_t base_ct, int sock_fd)
 {
     proxy_started_ = 0;
     ssld_started_ = 0;
     plain_fd_ = 0;
     ssld_gate_ = ssld_gate;
+    eproc_gate_ = eproc_gate;
     nfo_ = (struct info*)malloc(sizeof(*nfo_));
     if (nfo_ < 0)
 	throw error(-E_NO_MEM, "cannot malloc");
@@ -288,7 +292,20 @@ ssl_proxy::start(void)
 	memset(plain_bs, 0, sizeof(*plain_bs));
 	plain_bs->p[0].open = 1;
 	plain_bs->p[1].open = 1;
-	
+
+	struct cobj_ref eproc_seg;
+	struct bipipe_seg *eproc_bs = 0;
+	label eproc_label(1);
+	eproc_label.set(ssl_taint, 3);
+	error_check(segment_alloc(ssl_root_ct,
+				  sizeof(*eproc_bs), &eproc_seg, 
+				  (void **)&eproc_bs, eproc_label.to_ulabel(), 
+			      "eproc-bipipe"));
+	scope_guard<int, void*> umap3(segment_unmap, eproc_bs);
+	memset(eproc_bs, 0, sizeof(*eproc_bs));
+	eproc_bs->p[0].open = 1;
+	eproc_bs->p[1].open = 1;
+
 	// NONBLOCK to avoid potential deadlock with ssld
 	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
 	int plain_fd = bipipe_fd(plain_seg, 0, 0);
@@ -300,8 +317,10 @@ ssl_proxy::start(void)
 	nfo_->cipher_fd_ = cipher_fd;
 	plain_fd_ = plain_fd;
 
+	ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint);
+
 	// taint cow ssld and pass both bipipes
-	ssld_taint_cow(ssld_gate_, cipher_seg, plain_seg, 
+	ssld_taint_cow(ssld_gate_, eproc_seg, cipher_seg, plain_seg, 
 		       ssl_root_ct, ssl_taint, &ssld_worker_args_);
 	ssld_started_ = 1;
     } catch (std::exception &e) {
@@ -342,6 +361,18 @@ get_ssld_cow(void)
     return COBJ(ssld_ct, gate_id);
 }
 
+static struct cobj_ref
+get_eproc_cow(void)
+{
+    struct fs_inode ct_ino;
+    error_check(fs_namei("/httpd/ssl_eprocd/", &ct_ino));
+    uint64_t eproc_ct = ct_ino.obj.object;
+    
+    int64_t gate_id;
+    error_check(gate_id = container_find(eproc_ct, kobj_gate, "eproc-cow"));
+    return COBJ(eproc_ct, gate_id);
+}
+
 static void
 http_client(void *arg)
 {
@@ -349,7 +380,8 @@ http_client(void *arg)
     int sock_fd = (int64_t) arg;
 
     try {
-	ssl_proxy proxy(get_ssld_cow(), start_env->shared_container, sock_fd);
+	ssl_proxy proxy(get_ssld_cow(), get_eproc_cow(), 
+			start_env->shared_container, sock_fd);
 	int s = sock_fd;
 	if (ssl_mode) {
 	    proxy.start();

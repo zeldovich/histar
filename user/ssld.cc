@@ -27,6 +27,7 @@ extern "C" {
 #include <inc/stack.h>
 
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -37,7 +38,7 @@ extern "C" {
 
 static const char dbg = 0;
 
-static SSL_CTX *ctx;
+static SSL_CTX *the_ctx;
 static uint64_t access_grant;
 
 static char *cow_stacktop;
@@ -57,7 +58,7 @@ ssld_accept(int cipher_sock, SSL **ret)
     int s = cipher_sock;
     
     BIO *sbio = BIO_new_socket(s, BIO_NOCLOSE);
-    SSL *ssl = SSL_new(ctx);
+    SSL *ssl = SSL_new(the_ctx);
     SSL_set_bio(ssl, sbio, sbio);
     
     int r;
@@ -185,6 +186,37 @@ ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
     thread_halt();
 }
 
+static void
+ssl_load_file_privkey(SSL_CTX *ctx, const char *servkey_pem)
+{
+    if(!(SSL_CTX_use_PrivateKey_file(ctx, servkey_pem, SSL_FILETYPE_PEM)))
+	throw basic_exception("Can't read key file %s", servkey_pem);    
+}
+
+static void
+ssl_load_rmt_privkey(SSL_CTX *ctx, struct cobj_ref privkey_biseg)
+{
+    ENGINE *e;
+    const char *engine_id = "proc-engine";
+    ENGINE_load_builtin_engines();
+    e = ENGINE_by_id(engine_id);
+    if(!e)
+	throw basic_exception("Can't get engine %s", engine_id);    
+    if(!ENGINE_init(e)) {
+	/* the engine couldn't initialise, release 'e' */
+	ENGINE_free(e);
+	throw basic_exception("Couldn't init engine %s", engine_id);
+    }
+    
+    if(!ENGINE_set_default_RSA(e))
+	throw basic_exception("Couldn't sef default RSA engine %s", engine_id);
+
+    EVP_PKEY *pk = ENGINE_load_private_key(e, (char *)&privkey_biseg, 0, 0);
+
+    if (!SSL_CTX_use_PrivateKey(ctx, pk))
+	throw basic_exception("Couldn't use remote private key");
+}
+
 static void __attribute__((noreturn))
 ssld_cow_entry(void)
 {
@@ -196,6 +228,9 @@ ssld_cow_entry(void)
 
 	tls_revalidate();
 	thread_label_cache_invalidate();
+
+	if (d->privkey_biseg.object)
+	    ssl_load_rmt_privkey(the_ctx, d->privkey_biseg);
 
 	stack_switch(d->cipher_biseg.container, d->cipher_biseg.object,
 		     d->plain_biseg.container, d->plain_biseg.object,
@@ -251,15 +286,10 @@ ssld_cow_gate_create(uint64_t ct)
     return COBJ(ct, gate_id);
 }
 
-void
-ssl_init(const char *server_pem, const char *servkey_pem,
-	 const char *dh_pem, const char *calist_pem)
+static SSL_CTX *
+ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
 {
-    if (ctx) {
-	SSL_CTX_free(ctx);
-	ctx = 0;
-    }
-
+    SSL_CTX *ctx;
     SSL_library_init();
     SSL_load_error_strings();
 
@@ -269,9 +299,6 @@ ssl_init(const char *server_pem, const char *servkey_pem,
     // Load our keys and certificates
     if(!(SSL_CTX_use_certificate_chain_file(ctx, server_pem)))
 	throw basic_exception("Can't read certificate file %s", server_pem);
-    
-    if(!(SSL_CTX_use_PrivateKey_file(ctx, servkey_pem, SSL_FILETYPE_PEM)))
-	throw basic_exception("Can't read key file %s", servkey_pem);
 
     // Load the CAs we trust
     if (calist_pem)
@@ -295,24 +322,32 @@ ssl_init(const char *server_pem, const char *servkey_pem,
 	if(SSL_CTX_set_tmp_dh(ctx, ret) < 0 )
 	    throw basic_exception("Couldn't set DH parameters using %s", dh_pem);
     }
+
+    return ctx;
 }
 
 int
 main (int ac, char **av)
 {
-    if (ac < 5) {
-	cprintf("Usage: %s server-pem servkey-pem dh-pem access-grant", 
+    if (ac < 4) {
+	cprintf("Usage: %s server-pem dh-pem access-grant [servkey-pem]", 
 		av[0]);
 	return -1;
     }
 
-    const char *server_pem = av[1];
-    const char *servkey_pem = av[2];
-    const char *dh_pem = av[3];
-    uint64_t access_grant;
-    error_check(strtou64(av[4], 0, 10, &access_grant));
+    
 
-    ssl_init(server_pem, servkey_pem, dh_pem, 0);
+    const char *server_pem = av[1];
+    const char *dh_pem = av[2];
+    uint64_t access_grant;
+    error_check(strtou64(av[3], 0, 10, &access_grant));
+    
+    the_ctx = ssl_init(server_pem, dh_pem, 0);
+    if (ac >= 5) {
+	const char *servkey_pem = av[4];
+	ssl_load_file_privkey(the_ctx, servkey_pem);
+
+    }
     ssld_cow_gate_create(start_env->shared_container);
         
     return 0;
