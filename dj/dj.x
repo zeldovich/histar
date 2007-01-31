@@ -86,7 +86,7 @@ struct dj_call_request {
 enum dj_reply_status {
     REPLY_OK = 1,
     REPLY_GATE_CALL_ERROR,
-    REPLY_ADDRESS_MISSING,
+    REPLY_ADDRESS_MISSING,	/* not returned by server */
     REPLY_DELEGATION_MISSING,
     REPLY_TIMEOUT,
     REPLY_SYSERR

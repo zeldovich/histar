@@ -121,7 +121,7 @@ $(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
 
 $(OBJDIR)/test/djd: $(DJD_OBJS)
 	@mkdir -p $(@D)
-	$(NCC) $(DJD_NCC_LDFLAGS) -o $@ $^ -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm
+	$(NCC) $(DJD_NCC_LDFLAGS) -o $@ $^ -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm -ldmalloc
 
 ## lwip bench rules
 

@@ -5,6 +5,11 @@
 #include <esign.h>
 #include <dj/dj.h>
 
+struct djcall_id {
+    dj_esign_pubkey key;
+    uint64_t xid;
+};
+
 inline bool
 operator<(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
 {
@@ -21,6 +26,12 @@ inline bool
 operator!=(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
 {
     return !(a == b);
+}
+
+inline bool
+operator<(const djcall_id &a, const djcall_id &b)
+{
+    return a.key < b.key || (a.key == b.key && a.xid < b.xid);
 }
 
 inline const strbuf &

@@ -82,6 +82,22 @@ struct pk_spk4 {	/* pk speaks for d.b */
     dj_delegation d;
 };
 
+struct call_client {
+    itree_entry<call_client> link;
+    djcall_id id;
+    dj_stmt_signed ss;
+    djprot::call_reply_cb cb;
+    uint32_t tmo;
+    timecb_t *timecb;
+};
+
+struct call_server {
+    itree_entry<call_server> link;
+    djcall_id id;
+    dj_reply_status stat;
+    djcall_args reply;
+};
+
 class djprot_impl : public djprot {
  public:
     djprot_impl(uint16_t port)
@@ -151,49 +167,28 @@ class djprot_impl : public djprot {
 	 * process.
 	 */
 
-	pk_addr *a = addr_cache_[target];
-	if (!a || a->pk != target) {
-	    warn << "call: can't find address for pubkey\n";
-	    cb(REPLY_ADDRESS_MISSING, reparg);
-	    return;
-	}
-	dj_address addr = *a->d.a.addr;
+	call_client *cc = New call_client();
+	cc->id.xid = ++xid_;
+	cc->id.key = target;
+	cc->cb = cb;
+	cc->tmo = 1;
 
-	dj_stmt_signed s;
-	s.stmt.set_type(STMT_CALL);
-	s.stmt.call->xid = ++xid_;
-	s.stmt.call->seq = 0;
-	s.stmt.call->ts = time(0);
-	s.stmt.call->from = esignpub2dj(k_);
-	s.stmt.call->to = target;
-	s.stmt.call->u.set_op(CALL_REQUEST);
-	s.stmt.call->u.req->gate = gate;
-	s.stmt.call->u.req->timeout_sec = 0xffffffff;
-	s.stmt.call->u.req->arg.buf.setsize(args.data.len());
-	memcpy(s.stmt.call->u.req->arg.buf.base(),
+	cc->ss.stmt.set_type(STMT_CALL);
+	cc->ss.stmt.call->xid = cc->id.xid;
+	cc->ss.stmt.call->seq = 0;
+	cc->ss.stmt.call->from = esignpub2dj(k_);
+	cc->ss.stmt.call->to = target;
+	cc->ss.stmt.call->u.set_op(CALL_REQUEST);
+	cc->ss.stmt.call->u.req->gate = gate;
+	cc->ss.stmt.call->u.req->timeout_sec = 0xffffffff;
+	cc->ss.stmt.call->u.req->arg.buf.setsize(args.data.len());
+	memcpy(cc->ss.stmt.call->u.req->arg.buf.base(),
 	       args.data.cstr(), args.data.len());
-	//s.stmt.call->u.req->arg.label = XXX;
-	//s.stmt.call->u.req->arg.grant = XXX;
-	sign_statement(&s);
+	//cc->ss.stmt.call->u.req->arg.label = XXX;
+	//cc->ss.stmt.call->u.req->arg.grant = XXX;
 
-	str msg = xdr2str(s);
-	if (!msg) {
-	    warn << "call: cannot encode call statement\n";
-	    cb(REPLY_SYSERR, reparg);
-	}
-
-	sockaddr_in sin;
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = addr.ip;
-	sin.sin_port = addr.port;
-	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
-
-	/* XXX stick this message on a retransmit queue somewhere;
-	 * remember we need to increment seq, adjust ts, and re-sign
-	 * whenever retransmitting.
-	 */
-
-	cb(REPLY_TIMEOUT, reparg);
+	clnt_.insert(cc);
+	clnt_transmit(cc);
     }
 
     virtual void set_callexec(callexec_factory cb) {
@@ -201,6 +196,53 @@ class djprot_impl : public djprot {
     }
 
  private:
+    void clnt_done(call_client *cc) {
+	if (cc->timecb)
+	    timecb_remove(cc->timecb);
+	clnt_.remove(cc);
+	delete cc;
+    }
+
+    void clnt_transmit(call_client *cc) {
+	djprot::call_reply_cb cb = cc->cb;
+	djcall_args reparg;
+	reparg.taint = net_label_;
+	reparg.grant = label(3);
+
+	cc->timecb = 0;
+	cc->ss.stmt.call->seq++;
+	cc->ss.stmt.call->ts = time(0);
+	sign_statement(&cc->ss);
+
+	str msg = xdr2str(cc->ss);
+	if (!msg) {
+	    warn << "call: cannot encode call statement\n";
+	    clnt_done(cc);
+	    cb(REPLY_SYSERR, reparg);
+	    return;
+	}
+
+	pk_addr *a = addr_cache_[cc->ss.stmt.call->to];
+	if (!a || a->pk != cc->ss.stmt.call->to) {
+	    warn << "call: can't find address for pubkey\n";
+	    clnt_done(cc);
+	    cb(REPLY_ADDRESS_MISSING, reparg);
+	    return;
+	}
+	dj_address addr = *a->d.a.addr;
+
+	sockaddr_in sin;
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = addr.ip;
+	sin.sin_port = addr.port;
+	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
+
+	cc->tmo *= 2;
+	cc->timecb =
+	    delaycb(cc->tmo, wrap(mkref(this),
+				  &djprot_impl::clnt_transmit, cc));
+    }
+
     void cache_cleanup(void) {
 	time_t now = time(0);
 
@@ -208,7 +250,7 @@ class djprot_impl : public djprot {
 	for (pk_addr *a = addr_cache_.first(); a; a = na) {
 	    na = addr_cache_.next(a);
 	    if (a->d.until_ts < now) {
-		warn << "Purging pk_addr cache entry\n";
+		//warn << "Purging pk_addr cache entry\n";
 		addr_cache_.remove(a);
 		delete a;
 	    }
@@ -218,7 +260,7 @@ class djprot_impl : public djprot {
 	for (pk_spk4 *s = spk4_cache_.first(); s; s = ns) {
 	    ns = spk4_cache_.next(s);
 	    if (s->d.until_ts < now) {
-		warn << "Purging pk_spk4 cache entry\n";
+		//warn << "Purging pk_spk4 cache entry\n";
 		spk4_cache_.remove(s);
 		delete s;
 	    }
@@ -243,7 +285,7 @@ class djprot_impl : public djprot {
     }
 
     void process_delegation(const dj_delegation &d) {
-	warn << "delegation: " << d.a << " speaks-for " << d.b << "\n";
+	//warn << "delegation: " << d.a << " speaks-for " << d.b << "\n";
 
 	if (d.a.type == ENT_ADDRESS)
 	    update_netaddr(d);
@@ -377,6 +419,9 @@ class djprot_impl : public djprot {
 
     itree<dj_esign_pubkey, pk_addr, &pk_addr::pk, &pk_addr::link> addr_cache_;
     itree<dj_esign_pubkey, pk_spk4, &pk_spk4::pk, &pk_spk4::link> spk4_cache_;
+
+    itree<djcall_id, call_client, &call_client::id, &call_client::link> clnt_;
+    itree<djcall_id, call_server, &call_server::id, &call_server::link> srvr_;
 
     label net_label_, net_clear_;
     callexec_factory execcb_;
