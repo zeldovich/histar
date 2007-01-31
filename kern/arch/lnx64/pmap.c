@@ -161,6 +161,11 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
+#ifdef FT_TRANSFORMED
+    if (enable_page_alloc_failure && FT_CHOOSE(2))
+	return -E_NO_MEM;
+#endif
+
     struct Pagemap *pm = malloc(sizeof(*pm));
     memset(pm, 0, sizeof(pm));
     *pm_store = pm;
@@ -188,6 +193,11 @@ int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, uint64_t **pte_store)
 {
+#ifdef FT_TRANSFORMED
+    if (enable_page_alloc_failure && create && FT_CHOOSE(2))
+	return -E_NO_MEM;
+#endif
+
     assert(!PGOFF(va));
     int freeslot = -1;
 
