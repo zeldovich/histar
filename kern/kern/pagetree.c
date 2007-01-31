@@ -44,17 +44,21 @@ pagetree_incref(void *p)
 
 static int pagetree_cow(pagetree_entry *ent);
 
-static void
+static int
 pagetree_indir_copy(void *src, void *dst)
 {
     struct pagetree_indirect_page *pdst = dst;
 
+    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
+	if (pdst->pt_entry[i].page)
+	    page_to_pageinfo(pdst->pt_entry[i].page)->pi_ref++;
+
     for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
-	if (pdst->pt_entry[i].page) {
-	    struct page_info *ptp = page_to_pageinfo(pdst->pt_entry[i].page);
-	    ptp->pi_ref++;
-	    if (ptp->pi_pin)
-		assert(0 == pagetree_cow(&pdst->pt_entry[i]));	// XXX out-of-memory
+	if (pdst->pt_entry[i].page &&
+	    page_to_pageinfo(pdst->pt_entry[i].page)->pi_pin) {
+	    int r = pagetree_cow(&pdst->pt_entry[i]);
+	    if (r < 0)
+		return r;
 	}
     }
 
@@ -83,8 +87,13 @@ pagetree_cow(pagetree_entry *ent)
 	memcpy(copy, ent->page, PGSIZE);
 	pagetree_incref(copy);
 
-	if (ptp->pi_indir)
-	    pagetree_indir_copy(ent->page, copy);
+	if (ptp->pi_indir) {
+	    r = pagetree_indir_copy(ent->page, copy);
+	    if (r < 0) {
+		pagetree_decref(copy);
+		return r;
+	    }
+	}
 
 	page_to_pageinfo(copy)->pi_dirty = ptp->pi_dirty;
 	pagetree_decref(ent->page);
