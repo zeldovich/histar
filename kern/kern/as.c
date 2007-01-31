@@ -366,7 +366,10 @@ as_swapout(struct Address_space *as)
 
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
-	assert(0 == as_get_segmap(as, &sm, i));
+	int r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    continue;
+
 	if (sm->sm_sg) {
 	    LIST_REMOVE(sm, sm_link);
 	    kobject_unpin_page(&sm->sm_sg->sg_ko);
