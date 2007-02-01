@@ -63,7 +63,7 @@ PATCHFILE_gdb-6.5	    := gdb-6.5.patch
 PATCHFILE_vim70		    := vim70.patch
 PATCHFILE_sfslite-1.0.0	    := sfslite-1.0.0.patch
 PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
-PATCHFILE_a2ps-4.13	    := a2ps-4.13.patch
+PATCHFILE_a2ps-4.13	    := a2ps-4.13b.patch
 PATCHFILE_default	    := empty.patch
 
 ##
