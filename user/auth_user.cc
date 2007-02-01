@@ -275,10 +275,16 @@ auth_user_init(void)
     pw_ctm.set(user_grant, 0);
     pw_ctm.set(user_taint, 3);
 
+    struct user_password *pw = 0;
     error_check(segment_alloc(start_env->shared_container,
 			      sizeof(struct user_password),
 			      &user_password_seg,
-			      0, pw_ctm.to_ulabel(), "password"));
+			      (void **)&pw, pw_ctm.to_ulabel(), "password"));
+    scope_guard<int, void *> unmap(segment_unmap, pw);
+    
+    sha1_ctx sctx;
+    sha1_init(&sctx);
+    sha1_final((unsigned char *) pw->pwhash, &sctx);
 
     label th_ctm, th_clr;
     thread_cur_label(&th_ctm);
