@@ -24,7 +24,7 @@ enum {
     call_timestamp_skew = 60,
 
     broadcast_period = 5,
-    cache_cleanup_period = 10,
+    cache_cleanup_period = 15,
 };
 
 static in_addr
@@ -255,6 +255,10 @@ class djprot_impl : public djprot {
 	for (uint64_t i = 0; i < ul->ul_nent; i++) {
 	    n->taint.ents[i].cat = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
 	    n->taint.ents[i].level = LB_LEVEL(ul->ul_ent[i]);
+	    if (n->taint.ents[i].level == LB_LEVEL_STAR) {
+		warn << "call: star level in message taint\n";
+		return false;
+	    }
 	}
 
 	return true;
@@ -263,7 +267,7 @@ class djprot_impl : public djprot {
     bool callarg_ntoh(const dj_gate_arg &n, djcall_args *h) {
 	h->data = str(n.buf.base(), n.buf.size());
 
-	if (n.taint.deflevel > LB_LEVEL_STAR) {
+	if (n.taint.deflevel >= LB_LEVEL_STAR) {
 	    warn << "callarg_ntoh: bad default level\n";
 	    return false;
 	}
@@ -271,7 +275,7 @@ class djprot_impl : public djprot {
 	h->grant.reset(3);
 
 	for (uint64_t i = 0; i < n.taint.ents.size(); i++) {
-	    if (n.taint.ents[i].level > LB_LEVEL_STAR) {
+	    if (n.taint.ents[i].level >= LB_LEVEL_STAR) {
 		warn << "callarg_ntoh: bad level\n";
 		return false;
 	    }
@@ -284,13 +288,80 @@ class djprot_impl : public djprot {
 	return true;
     }
 
+    bool key_speaks_for(const dj_esign_pubkey &k, const dj_gcat &gcat) {
+	pk_spk4 *s = spk4_cache_[k];
+	while (s && s->pk == k) {
+	    if (s->d.b.type == ENT_GCAT && *s->d.b.gcat == gcat)
+		return true;
+	    if (s->d.b.type == ENT_PUBKEY)
+		warn << "key_speaks_for: no recursion yet..\n";
+	    s = spk4_cache_.next(s);
+	}
+	return false;
+    }
+
+    /*
+     * Node_L(c) = { *, if Node speaks for c; 0 otherwise }
+     * N_L = net_label_; N_C = net_clear_
+     * M_L = a.taint; M_G = a.grant
+     */
+
     bool labelcheck_send(const dj_gate_arg &a, const dj_esign_pubkey &k) {
-	/* XXX */
+	/* M_L \leq (Node_L^\histar \cup N_C) */
+	if (a.taint.deflevel > net_clear_.get_default())
+	    return false;
+
+	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
+	    dj_gcat gcat = a.taint.ents[i].cat;
+	    uint64_t lcat = gcat2cat(gcat);
+	    uint32_t level = a.taint.ents[i].level;
+	    if (level >= LB_LEVEL_STAR)
+		return false;
+
+	    if (level <= net_clear_.get(lcat))
+		continue;
+
+	    if (!key_speaks_for(k, gcat))
+		return false;
+	}
+
 	return true;
     }
 
     bool labelcheck_recv(const dj_gate_arg &a, const dj_esign_pubkey &k) {
-	/* XXX */
+	/*
+	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_L
+	 * M_L \leq (Node_L^\histar \cup N_C)
+	 *
+	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_G [approximately]
+	 */
+	if (a.taint.deflevel < net_label_.get_default() ||
+	    a.taint.deflevel > net_clear_.get_default())
+	    return false;
+
+	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
+	    dj_gcat gcat = a.taint.ents[i].cat;
+	    uint64_t lcat = gcat2cat(gcat);
+	    uint32_t level = a.taint.ents[i].level;
+	    if (level >= LB_LEVEL_STAR)
+		return false;
+
+	    if (net_label_.get(lcat) <= level && net_clear_.get(lcat) >= level)
+		continue;
+
+	    if (!key_speaks_for(k, gcat))
+		return false;
+	}
+
+	for (uint64_t i = 0; i < a.grant.size(); i++) {
+	    dj_gcat gcat = a.grant[i];
+	    uint64_t lcat = gcat2cat(gcat);
+	    if (net_label_.get(lcat) == LB_LEVEL_STAR)
+		continue;
+	    if (!key_speaks_for(k, gcat))
+		return false;
+	}
+
 	return true;
     }
 
