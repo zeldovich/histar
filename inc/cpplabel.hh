@@ -27,10 +27,11 @@ public:
     void reset(level_t def);
 
     const char *to_string() const { return label_to_string(&ul_); }
-    struct ulabel *to_ulabel() { return &ul_; }
+    ulabel *to_ulabel() { return &ul_; }
+    const ulabel *to_ulabel_const() const { return &ul_; }
 
     void copy_from(const label *src);
-    void copy_from(const struct ulabel *src);
+    void copy_from(const ulabel *src);
     void copy_from(const char *src);
 
     int compare(label *b, label_comparator cmp);
@@ -57,7 +58,7 @@ private:
     static level_t string_to_level(const char *str);
 
     bool dynamic_;
-    struct ulabel ul_;
+    ulabel ul_;
 };
 
 #endif

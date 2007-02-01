@@ -10,6 +10,13 @@
 #include <dj/djops.hh>
 #include <dj/catmap.hh>
 
+/*
+ * XXX
+ *
+ * Expirations of non-address delegations are not used for
+ * category garbage-collection or call timeouts.
+ */
+
 enum {
     keybits = 1024,
     addr_cert_valid = 60,
@@ -169,20 +176,6 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	/* XXX Check if a taint of (l) can be sent to nodepk.  */
-
-	/* XXX Check if any categories in (g) are non-globalized, and if so,
-	 * create new global categories for them. */
-
-	/* XXX Check the expiration of the address delegation?
-	 * Check expiration of other delegations?
-	 * Do we set call timeout value here, or is the server responsible
-	 * for expiring the call when the delegations expire?  The latter
-	 * would allow a call to be prolonged by additional delegations,
-	 * but would require the server to repeat this delegation search
-	 * process.
-	 */
-
 	call_client *cc = New call_client();
 	cc->id.xid = ++xid_;
 	cc->id.key = target;
@@ -197,11 +190,10 @@ class djprot_impl : public djprot {
 	cc->ss.stmt.call->u.set_op(CALL_REQUEST);
 	cc->ss.stmt.call->u.req->gate = gate;
 	cc->ss.stmt.call->u.req->timeout_sec = 0xffffffff;
-	cc->ss.stmt.call->u.req->arg.buf.setsize(args.data.len());
-	memcpy(cc->ss.stmt.call->u.req->arg.buf.base(),
-	       args.data.cstr(), args.data.len());
-	//cc->ss.stmt.call->u.req->arg.label = XXX;
-	//cc->ss.stmt.call->u.req->arg.grant = XXX;
+	if (!callarg_hton(args, &cc->ss.stmt.call->u.req->arg)) {
+	    cb(REPLY_SYSERR, reparg);
+	    return;
+	}
 
 	clnt_.insert(cc);
 	clnt_transmit(cc);
@@ -216,6 +208,92 @@ class djprot_impl : public djprot {
     }
 
  private:
+    dj_gcat cat2gcat(uint64_t cat) {
+	dj_gcat gcat;
+	if (!cmap_.l2g(cat, &gcat)) {
+	    gcat.key = esignpub2dj(k_);
+	    gcat.id = cat;
+	    cmap_.insert(cat, gcat);
+	}
+
+	return gcat;
+    }
+
+    uint64_t gcat2cat(dj_gcat gcat) {
+	uint64_t cat;
+	if (!cmap_.g2l(gcat, &cat)) {
+	    cat = cmgr_->alloc();
+	    cmap_.insert(cat, gcat);
+	}
+
+	return cat;
+    }
+
+    bool callarg_hton(const djcall_args &h, dj_gate_arg *n) {
+	n->buf.setsize(h.data.len());
+	memcpy(n->buf.base(), h.data.cstr(), h.data.len());
+
+	if (h.grant.get_default() != 3) {
+	    warn << "call: non-conforming grant label (bad default)\n";
+	    return false;
+	}
+
+	const ulabel *ul = h.grant.to_ulabel_const();
+	n->grant.setsize(ul->ul_nent);
+	for (uint64_t i = 0; i < ul->ul_nent; i++) {
+	    if (LB_LEVEL(ul->ul_ent[i]) != LB_LEVEL_STAR) {
+		warn << "call: non-conforming grant label (bad level)\n";
+		return false;
+	    }
+
+	    n->grant[i] = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
+	}
+
+	ul = h.taint.to_ulabel_const();
+	n->taint.deflevel = ul->ul_default;
+	n->taint.ents.setsize(ul->ul_nent);
+	for (uint64_t i = 0; i < ul->ul_nent; i++) {
+	    n->taint.ents[i].cat = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
+	    n->taint.ents[i].level = LB_LEVEL(ul->ul_ent[i]);
+	}
+
+	return true;
+    }
+
+    bool callarg_ntoh(const dj_gate_arg &n, djcall_args *h) {
+	h->data = str(n.buf.base(), n.buf.size());
+
+	if (n.taint.deflevel > LB_LEVEL_STAR) {
+	    warn << "callarg_ntoh: bad default level\n";
+	    return false;
+	}
+	h->taint.reset(n.taint.deflevel);
+	h->grant.reset(3);
+
+	for (uint64_t i = 0; i < n.taint.ents.size(); i++) {
+	    if (n.taint.ents[i].level > LB_LEVEL_STAR) {
+		warn << "callarg_ntoh: bad level\n";
+		return false;
+	    }
+	    h->taint.set(gcat2cat(n.taint.ents[i].cat), n.taint.ents[i].level);
+	}
+
+	for (uint64_t i = 0; i < n.grant.size(); i++)
+	    h->grant.set(gcat2cat(n.grant[i]), LB_LEVEL_STAR);
+
+	return true;
+    }
+
+    bool labelcheck_send(const dj_gate_arg &a, const dj_esign_pubkey &k) {
+	/* XXX */
+	return true;
+    }
+
+    bool labelcheck_recv(const dj_gate_arg &a, const dj_esign_pubkey &k) {
+	/* XXX */
+	return true;
+    }
+
     bool send_message(str msg, dj_esign_pubkey nodekey) {
 	pk_addr *a = addr_cache_[nodekey];
 	if (!a || a->pk != nodekey) {
@@ -223,6 +301,13 @@ class djprot_impl : public djprot {
 	    return false;
 	}
 	dj_address addr = *a->d.a.addr;
+
+	time_t now = time(0);
+	if (now < a->d.from_ts - delegation_time_skew ||
+	    now > a->d.until_ts + delegation_time_skew) {
+	    warn << "send_message: expired address delegation\n";
+	    return false;
+	}
 
 	sockaddr_in sin;
 	sin.sin_family = AF_INET;
@@ -249,6 +334,13 @@ class djprot_impl : public djprot {
 	cc->ss.stmt.call->seq++;
 	cc->ss.stmt.call->ts = time(0);
 	sign_statement(&cc->ss);
+
+	if (!labelcheck_send(cc->ss.stmt.call->u.req->arg,
+			     cc->ss.stmt.call->to)) {
+	    clnt_done(cc);
+	    cb(REPLY_DELEGATION_MISSING, reparg);
+	    return;
+	}
 
 	str msg = xdr2str(cc->ss);
 	if (!msg) {
@@ -331,10 +423,10 @@ class djprot_impl : public djprot {
 	ss.stmt.call->u.set_op(CALL_REPLY);
 	ss.stmt.call->u.reply->set_stat(cs->stat);
 	if (cs->stat == REPLY_DONE) {
-	    /* XXX translate cs->reply.label, cs->reply.grant */
-	    ss.stmt.call->u.reply->arg->buf.setsize(cs->reply.data.len());
-	    memcpy(ss.stmt.call->u.reply->arg->buf.base(),
-		   cs->reply.data.cstr(), cs->reply.data.len());
+	    if (!callarg_hton(cs->reply, &*ss.stmt.call->u.reply->arg))
+		return;
+	    if (!labelcheck_send(*ss.stmt.call->u.reply->arg, cs->id.key))
+		return;
 	}
 	sign_statement(&ss);
 
@@ -375,11 +467,6 @@ class djprot_impl : public djprot {
 	    }
 
 	    if (execcb_) {
-		djcall_args a;
-		a.data = str(c.u.req->arg.buf.base(), c.u.req->arg.buf.size());
-
-		/* XXX translate c.u.req->label, c.u.req->grant */
-
 		cs = New call_server();
 		cs->id = cid;
 		cs->stat = REPLY_INPROGRESS;
@@ -390,6 +477,14 @@ class djprot_impl : public djprot {
 		    execcb_(wrap(mkref(this), &djprot_impl::execcb, cs));
 		srvr_.insert(cs);
 
+		if (!labelcheck_recv(c.u.req->arg, c.from)) {
+		    cs->stat = REPLY_DELEGATION_MISSING;
+		    srvr_send_reply(cs);
+		    return;
+		}
+
+		djcall_args a;
+		callarg_ntoh(c.u.req->arg, &a);
 		cs->exec->start(c.u.req->gate, a);
 	    } else {
 		warn << "process_call: missing execution backend\n";
@@ -428,9 +523,10 @@ class djprot_impl : public djprot {
 	    reparg.grant = label(3);
 
 	    if (c.u.reply->stat == REPLY_DONE) {
-		/* XXX unmarshal c.u.reply->arg->label, grant */
-		reparg.data = str(c.u.reply->arg->buf.base(),
-				  c.u.reply->arg->buf.size());
+		if (!labelcheck_recv(*c.u.reply->arg, c.from))
+		    return;
+		if (!callarg_ntoh(*c.u.reply->arg, &reparg))
+		    return;
 	    }
 
 	    cc->cb(c.u.reply->stat, reparg);

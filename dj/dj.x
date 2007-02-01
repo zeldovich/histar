@@ -28,18 +28,18 @@ struct dj_address {
 
 struct dj_label_entry {
     dj_gcat cat;
-    int level;		/* LB_LEVEL_STAR from <inc/label.h> */
+    unsigned level;	/* LB_LEVEL_STAR from <inc/label.h> */
 };
 
 struct dj_label {
     dj_label_entry ents<1024>;
-    int deflevel;
+    unsigned deflevel;
 };
 
 struct dj_gate_arg {
     opaque buf<>;
-    dj_label label;	/* label of associated data */
-    dj_label grant;	/* grant on gate invocation */
+    dj_label taint;	/* taint of associated data */
+    dj_gcat grant<>;	/* grant on gate invocation */
 };
 
 /*

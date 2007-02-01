@@ -18,6 +18,8 @@ dostuff(ptr<djprot> p, str node_pk)
     dj_gatename gate;
     djcall_args args;
     args.data = "Hello world";
+    args.taint = label(1);
+    args.grant = label(3);
 
     p->call(node_pk, gate, args, wrap(&stuffcb, p, node_pk));
 
