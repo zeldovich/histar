@@ -77,8 +77,9 @@ lnxpage_init(uint64_t membytes)
     myloc.file = __FILE__;
     myloc.line = __LINE__;
     myloc.loc_type = FT_EXACT;
-    ft_create_data_obj(physmem_base, global_npages * PGSIZE,
-		       "physmem", FT_HEAP, myloc);
+    for (uint32_t i = 0; i < global_npages; i++)
+	ft_create_data_obj(physmem_base + i * PGSIZE, PGSIZE,
+			   "physmem-page", FT_HEAP, myloc);
 #endif
 
     // Allocate space for page status info.
