@@ -177,6 +177,13 @@ acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile
 
 $(OBJDIR)/acpkg/bin/gs: acpkg/ghostscript-8.54-gpl/__build
 
+$(OBJDIR)/user/a2psgs.tar: acpkg/ghostscript-8.54-gpl/__build \
+			  acpkg/a2ps-4.13/__build
+	rm -f $@
+	tar -cf $@ -C $(OBJDIR)/acpkg/ share/ghostscript/8.54/lib \
+				       share/a2ps \
+				       etc
+
 ## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
