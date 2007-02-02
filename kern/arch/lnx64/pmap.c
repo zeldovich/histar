@@ -96,15 +96,17 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 void
 lnxpmap_init(void)
 {
-    for (void *va = (void *) UBASE; va < (void *) ULIM; va += PGSIZE) {
 #ifdef FT_TRANSFORMED
-	ft_location myloc;
-	myloc.file = __FILE__;
-	myloc.line = __LINE__;
-	myloc.loc_type = FT_EXACT;
-	ft_create_data_obj(va, PGSIZE, "user vmem page", FT_HEAP, myloc);
+    ft_location myloc;
+    myloc.file = __FILE__;
+    myloc.line = __LINE__;
+    myloc.loc_type = FT_EXACT;
+    void *ubase = (void *) UBASE;
+    for (uint32_t i = 0; i < (ULIM - UBASE); i += PGSIZE)
+	ft_create_data_obj(ubase + i, PGSIZE, "user vmem page", FT_HEAP, myloc);
 #endif
 
+    for (void *va = (void *) UBASE; va < (void *) ULIM; va += PGSIZE) {
 	int r = mprotect(va, PGSIZE, PROT_NONE);
 	if (r == 0 || errno != ENOMEM) {
 	    printf("lnxpmap_init(): %p: %d, %s\n", va, r, strerror(errno));
