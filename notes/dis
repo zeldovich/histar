@@ -124,3 +124,16 @@ on the network broadcast or not!
 charging declassifier; declassify only one taint category, and refuse multiple
 taints.  e.g. monster.com, charges per record, but custom matching code..
 
+===
+
+use dj to interface HiStar with non-HiStar (call them Linux) nodes.
+1) Linux machine can use a HiStar box to run untrusted code in a
+   strictly-controlled environment
+2) HiStar boxes can use a trusted Linux machine to store or process data.
+   e.g. trusted database, file server, whatever non-portable code.
+3) using a "gatekeeper" HiStar machine, can label an entire Linux machine.
+   e.g. can now keep sensitive data on a Linux machine, and HiStar ensures
+   that this data will not be leaked, and unauthorized users cannot even
+   send any inputs to this sensitive Linux machine.  Can give linux machine
+   stars in some categories but taint in others (ala clamwrap).
+
