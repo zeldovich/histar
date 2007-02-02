@@ -90,7 +90,8 @@ lnxpage_init(uint64_t membytes)
     // chain the pages
     TAILQ_INIT(&page_free_list);
     for (uint64_t i = 0; i < global_npages; i++) {
-	void *pg = physmem_base + i * PGSIZE;
+	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
+	void *pg = (void *) fool_ft;
 	page_free(pg);
     }
 
@@ -143,7 +144,8 @@ void *
 pa2kva(physaddr_t pa)
 {
     assert(pa < (global_npages << PGSHIFT));
-    return physmem_base + pa;
+    uintptr_t fool_ft = ((uintptr_t)physmem_base) + pa;
+    return (void *) fool_ft;
 }
 
 physaddr_t
