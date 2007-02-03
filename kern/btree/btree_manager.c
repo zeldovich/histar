@@ -185,13 +185,13 @@ btree_init_traversal(uint64_t id, struct btree_traversal *trav)
 void
 btree_pretty_print(uint64_t id)
 {
-    return btree_pretty_print_impl(btree[id].btree);
+    btree_pretty_print_impl(btree[id].btree);
 }
 
 void
 btree_sanity_check(uint64_t id)
 {
-    return btree_sanity_check_impl(btree[id].btree);
+    tree_sanity_check_impl(btree[id].btree);
 }
 
 void
