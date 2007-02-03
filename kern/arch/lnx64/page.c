@@ -20,6 +20,7 @@ struct page_info *page_infos;
 
 #ifdef FT_TRANSFORMED
 int enable_page_alloc_failure;
+#include <ft_runtest.h>
 #endif
 
 // debug flags
@@ -34,12 +35,6 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 // base of our simulated physical memory range
 void *physmem_base;
 int physmem_file_fd;
-
-#ifdef FT_TRANSFORMED
-#include <ft_types.h>
-void *ft_create_data_obj(const void* addr, int size,
-			 char* name, ft_scope scope, ft_location loc);
-#endif
 
 void
 lnxpage_init(uint64_t membytes)
@@ -73,16 +68,6 @@ lnxpage_init(uint64_t membytes)
 	exit(-1);
     }
 
-#ifdef FT_TRANSFORMED
-    ft_location myloc;
-    myloc.file = __FILE__;
-    myloc.line = __LINE__;
-    myloc.loc_type = FT_EXACT;
-    for (uint32_t i = 0; i < global_npages; i++)
-	ft_create_data_obj(physmem_base + i * PGSIZE, PGSIZE,
-			   "physmem-page", FT_HEAP, myloc);
-#endif
-
     // Allocate space for page status info.
     uint64_t sz = global_npages * sizeof(*page_infos);
     page_infos = malloc(sz);
@@ -93,6 +78,9 @@ lnxpage_init(uint64_t membytes)
     for (uint64_t i = 0; i < global_npages; i++) {
 	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
 	void *pg = (void *) fool_ft;
+#ifdef FT_TRANSFORMED
+	ft_register_memory(pg, PGSIZE, "physmem-page");
+#endif
 	page_free(pg);
     }
 

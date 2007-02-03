@@ -14,9 +14,7 @@
 #include <assert.h>
 
 #ifdef FT_TRANSFORMED
-#include <ft_types.h>
-void *ft_create_data_obj(const void* addr, int size,
-                         char* name, ft_scope scope, ft_location loc);
+#include <ft_runtest.h>
 #endif
 
 static struct Pagemap *cur_pm;
@@ -97,17 +95,10 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 void
 lnxpmap_init(void)
 {
+    for (uintptr_t va = UBASE; va < ULIM; va += PGSIZE) {
 #ifdef FT_TRANSFORMED
-    ft_location myloc;
-    myloc.file = __FILE__;
-    myloc.line = __LINE__;
-    myloc.loc_type = FT_EXACT;
-    void *ubase = (void *) UBASE;
-    for (uint32_t i = 0; i < (ULIM - UBASE); i += PGSIZE)
-	ft_create_data_obj(ubase + i, PGSIZE, "user vmem page", FT_HEAP, myloc);
+	ft_register_memory(va, PGSIZE, "user vmem page");
 #endif
-
-    for (void *va = (void *) UBASE; va < (void *) ULIM; va += PGSIZE) {
 	int r = mprotect(va, PGSIZE, PROT_NONE);
 	if (r == 0 || errno != ENOMEM) {
 	    printf("lnxpmap_init(): %p: %d, %s\n", va, r, strerror(errno));
