@@ -64,6 +64,7 @@ pagetree_indir_copy(void *src, void *dst)
 
     assert(page_to_pageinfo(src)->pi_indir);
     page_to_pageinfo(dst)->pi_indir = 1;
+    return 0;
 }
 
 static int __attribute__ ((warn_unused_result))
