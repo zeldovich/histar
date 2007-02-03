@@ -191,7 +191,7 @@ btree_pretty_print(uint64_t id)
 void
 btree_sanity_check(uint64_t id)
 {
-    tree_sanity_check_impl(btree[id].btree);
+    btree_sanity_check_impl(btree[id].btree);
 }
 
 void
