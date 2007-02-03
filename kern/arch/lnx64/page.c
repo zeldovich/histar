@@ -77,10 +77,10 @@ lnxpage_init(uint64_t membytes)
     TAILQ_INIT(&page_free_list);
     for (uint64_t i = 0; i < global_npages; i++) {
 	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
-	void *pg = (void *) fool_ft;
 #ifdef FT_TRANSFORMED
-	ft_register_memory(pg, PGSIZE, "physmem-page");
+	ft_register_memory(fool_ft, PGSIZE, "physmem-page");
 #endif
+	void *pg = (void *) fool_ft;
 	page_free(pg);
     }
 
