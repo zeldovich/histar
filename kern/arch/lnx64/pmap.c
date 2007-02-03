@@ -52,7 +52,8 @@ lnx64_sigsegv(int signo, siginfo_t *si, void *ctx)
 	    int prot = PROT_READ;
 	    if (cur_pm->pme[i].pte & PTE_W)
 		prot |= PROT_WRITE;
-	    if (mmap(va, PGSIZE, prot, MAP_FIXED | MAP_SHARED,
+	    /* XXX MAP_PRIVATE yields inconsistencies between kernel pages & user pages */
+	    if (mmap(va, PGSIZE, prot, MAP_FIXED | MAP_PRIVATE,
 		     physmem_file_fd, PTE_ADDR(cur_pm->pme[i].pte)) < 0) {
 		printf("lnx64_sigsegv: mmap: %s\n", strerror(errno));
 	    } else {
@@ -269,7 +270,8 @@ lnxpmap_prefill(void)
 	    if (pme->pte & PTE_W)
 		prot |= PROT_WRITE;
 	    munmap(pme->va, PGSIZE);
-	    if (mmap(pme->va, PGSIZE, prot, MAP_FIXED | MAP_SHARED,
+	    /* XXX MAP_PRIVATE yields inconsistencies between kernel pages & user pages */
+	    if (mmap(pme->va, PGSIZE, prot, MAP_FIXED | MAP_PRIVATE,
 		     physmem_file_fd, PTE_ADDR(pme->pte)) < 0)
 		printf("pmap_set_current: mmap: %s\n", strerror(errno));
 	}
