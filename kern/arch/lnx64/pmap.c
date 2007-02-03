@@ -161,7 +161,7 @@ page_map_alloc(struct Pagemap **pm_store)
 #endif
 
     struct Pagemap *pm = malloc(sizeof(*pm));
-    memset(pm, 0, sizeof(pm));
+    memset(pm, 0, sizeof(*pm));
     *pm_store = pm;
     return 0;
 }
