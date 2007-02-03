@@ -4,8 +4,9 @@
 #include <kern/lib.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
+#include <inc/intmacro.h>
 
-#define STACKWRAP_MAGIC	0xabcd9262deed1713
+#define STACKWRAP_MAGIC	UINT64(0xabcd9262deed1713)
 
 struct stackwrap_state {
     stackwrap_fn fn;
