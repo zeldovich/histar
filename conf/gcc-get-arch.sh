@@ -4,7 +4,7 @@ case "$GCCMACH" in
     x86_64)
 	echo amd64
 	;;
-    i386)
+    i?86)
 	echo i386
 	;;
     *)
