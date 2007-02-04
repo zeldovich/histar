@@ -195,8 +195,11 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	} catch (error &e) {
 	    if (e.err() != -E_LABEL)
 		throw e;
+	    thread_cur_label(&tmp);
 	    pgid_label.set(start_env->user_grant, 1);
 	    pgid_label.set(process_grant, 0);
+	    pgid_label.merge(&tmp, &out, label::max, label::leq_starlo);
+	    pgid_label.copy_from(&out);
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
 				      &spawn_env->process_gid_seg, (void **) &child_pgid, 
 				      pgid_label.to_ulabel(), "process gid"));

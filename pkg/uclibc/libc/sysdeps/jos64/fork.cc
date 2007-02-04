@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/wait.h>
 #include <inc/debug_gate.h>
+#include <inc/error.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -93,9 +94,24 @@ do_fork()
     uint64_t *child_pgid = 0;
     label pgid_label(1);
     pgid_label.set(start_env->user_grant, 0);
-    error_check(segment_alloc(top_ct, sizeof(uint64_t),
-			      &process_gid_seg, (void **) &child_pgid, 
-			      pgid_label.to_ulabel(), "process gid"));
+    try {
+	error_check(segment_alloc(top_ct, sizeof(uint64_t),
+				  &process_gid_seg, (void **) &child_pgid, 
+				  pgid_label.to_ulabel(), "process gid"));
+    } catch (error &e) {
+	if (e.err() != -E_LABEL)
+	    throw e;
+
+	label tmp, out;
+	thread_cur_label(&tmp);
+	pgid_label.set(start_env->user_grant, 1);
+	pgid_label.set(process_grant, 0);
+	pgid_label.merge(&tmp, &out, label::max, label::leq_starlo);
+	pgid_label.copy_from(&out);
+	error_check(segment_alloc(top_ct, sizeof(uint64_t),
+				  &process_gid_seg, (void **) &child_pgid, 
+				  pgid_label.to_ulabel(), "process gid"));
+    }
     scope_guard<int, void *> pgid_unmap(segment_unmap, child_pgid);
     
     *child_pgid = getpgrp();
