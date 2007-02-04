@@ -25,7 +25,7 @@ struct Pagemapent {
     uint64_t pte;
 };
 
-#define NPME 32
+#define NPME 2
 struct Pagemap {
     struct Pagemapent pme[NPME];
 };
