@@ -115,9 +115,9 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 $(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk conf/embedbin
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
 	echo 'struct embed_bin embed_bins[] = {' >>$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uint64_t)_binary_$${_}_size },\n"; }' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uint64_t)_binary_$${_}_size },\n"; }' >>$@
 	echo "{ 0, 0, 0 } };" >>$@
 
 $(OBJDIR)/kern/embed_obj_user_%.o: $(OBJDIR)/user/%
