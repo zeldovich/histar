@@ -158,3 +158,16 @@ that privstore will work efficiently in a COWed address space.  Specify a null
 thread_entry to sys_gate_create() to make such a gate, and add a thread_entry
 arg to sys_gate_enter() that will allow caller to use such a gate.
 
+If the exporter daemon gate doesn't contain all of the stars that it can handle
+(and probably it shouldn't, because of performance considerations) then we will
+be COWing the exporter's address space.  That's kind-of tricky because we could
+have arbitrary mutex locks grabbed at the time of the copy, and the itree<>s
+could be inconsistent, so we will deadlock/crash when we try to run in this
+half-baked address space.  One solution would be for the exporter daemon to
+explicitly checkpoint its address space whenever any COW-relevant data is
+updated.  When a new category, along with a privstore, is created, we need to
+make sure that any COWed address space will be able to find this privstore.
+Either create a new address space checkpoint, or if this is expensive, then
+we can manually adjust the existing checkpoint, e.g. by appending the new
+privstore's category and gate-ID to some segment object.
+
