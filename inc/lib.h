@@ -84,6 +84,7 @@ typedef struct {
 
 extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
+extern int setup_env_done;
 
 extern uint64_t *tls_tidp;	/* 8 bytes for cached thread ID */
 extern struct jos_jmp_buf **tls_pgfault;

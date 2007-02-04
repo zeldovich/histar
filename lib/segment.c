@@ -1,3 +1,4 @@
+#include <machine/x86.h>
 #include <inc/memlayout.h>
 #include <inc/lib.h>
 #include <inc/setjmp.h>
@@ -8,6 +9,7 @@
 #include <inc/error.h>
 #include <inc/string.h>
 #include <inc/jthread.h>
+#include <inc/utrap.h>
 
 #include <string.h>
 
@@ -23,14 +25,33 @@ static jthread_mutex_t as_mutex;
 
 enum { segment_debug = 0 };
 
-static void
-as_mutex_lock(void) {
+static void __attribute__((noinline))
+reserve_stack_page(void)
+{
+    volatile char page[PGSIZE];
+    page[0] = '\0';
+}
+
+static int __attribute__((warn_unused_result))
+as_mutex_lock(void)
+{
+    void *rsp = (void *) read_rsp();
+    if (setup_env_done && !utrap_is_masked() &&
+	(rsp > tls_stack_top || rsp <= tls_base))
+    {
+	reserve_stack_page();
+    }
+
+    int old = utrap_set_mask(1);
     jthread_mutex_lock(&as_mutex);
+    return old;
 }
 
 static void
-as_mutex_unlock(void) {
+as_mutex_unlock(int old)
+{
     jthread_mutex_unlock(&as_mutex);
+    utrap_set_mask(old);
 }
 
 static void
@@ -202,18 +223,18 @@ segment_map_print(struct u_address_space *as)
 int
 segment_unmap_kslot(uint32_t kslot, int can_delay)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -224,7 +245,7 @@ segment_unmap_kslot(uint32_t kslot, int can_delay)
 	{
 	    if (can_delay) {
 		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
-		as_mutex_unlock();
+		as_mutex_unlock(lockold);
 		return 0;
 	    }
 
@@ -235,30 +256,30 @@ segment_unmap_kslot(uint32_t kslot, int can_delay)
 	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
 	    if (r < 0)
 		cache_invalidate();
-	    as_mutex_unlock();
+	    as_mutex_unlock(lockold);
 	    return r;
 	}
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return -E_INVAL;
 }
 
 int
 segment_unmap_range(void *range_start, void *range_end, int can_delay)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -278,32 +299,32 @@ segment_unmap_range(void *range_start, void *range_end, int can_delay)
 		r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
 		if (r < 0) {
 		    cache_invalidate();
-		    as_mutex_unlock();
+		    as_mutex_unlock(lockold);
 		    return r;
 		}
 	    }
 	}
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return 0;
 }
 
 int
 segment_unmap_delayed(void *va, int can_delay)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -314,7 +335,7 @@ segment_unmap_delayed(void *va, int can_delay)
 	{
 	    if (can_delay) {
 		cache_uas.ents[i].flags |= SEGMAP_DELAYED_UNMAP;
-		as_mutex_unlock();
+		as_mutex_unlock(lockold);
 		return 0;
 	    }
 
@@ -325,12 +346,12 @@ segment_unmap_delayed(void *va, int can_delay)
 	    r = sys_as_set_slot(as_ref, &cache_uas.ents[i]);
 	    if (r < 0)
 		cache_invalidate();
-	    as_mutex_unlock();
+	    as_mutex_unlock(lockold);
 	    return r;
 	}
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return -E_INVAL;
 }
 
@@ -343,18 +364,18 @@ segment_unmap(void *va)
 int
 segment_set_utrap(void *entry, void *stack_base, void *stack_top)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -364,11 +385,11 @@ segment_set_utrap(void *entry, void *stack_base, void *stack_top)
     r = sys_as_set(as_ref, &cache_uas);
     if (r < 0) {
 	cache_invalidate();
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return 0;
 }
 
@@ -381,18 +402,18 @@ segment_lookup(void *va, struct u_segment_mapping *usm)
 int
 segment_lookup_skip(void *va, struct u_segment_mapping *usm, uint64_t skip_flags)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -406,30 +427,30 @@ segment_lookup_skip(void *va, struct u_segment_mapping *usm, uint64_t skip_flags
 	{
 	    if (usm)
 		*usm = cache_uas.ents[i];
-	    as_mutex_unlock();
+	    as_mutex_unlock(lockold);
 	    return 1;
 	}
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return 0;
 }
 
 int
 segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 {
-    as_mutex_lock();
+    int lockold = as_mutex_lock();
 
     struct cobj_ref as_ref;
     int r = self_get_as(&as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return r;
     }
 
@@ -440,39 +461,26 @@ segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 	{
 	    if (usm)
 		*usm = cache_uas.ents[i];
-	    as_mutex_unlock();
+	    as_mutex_unlock(lockold);
 	    return 1;
 	}
     }
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     return 0;
 }
 
-int
-segment_map(struct cobj_ref seg, uint64_t start_byteoff, uint64_t flags,
-	    void **va_p, uint64_t *bytes_store, uint64_t map_opts)
-{
-    struct cobj_ref as;
-    as_mutex_lock();
-    int r = self_get_as(&as);
-    as_mutex_unlock();
-    if (r < 0)
-	return r;
-
-    return segment_map_as(as, seg, start_byteoff, flags, va_p, bytes_store, map_opts);
-}
-
-int
-segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
-	       uint64_t start_byteoff, uint64_t flags,
-	       void **va_p, uint64_t *bytes_store,
-	       uint64_t map_opts)
+static int
+segment_map_as_locked(struct cobj_ref as_ref, struct cobj_ref seg,
+		      uint64_t start_byteoff, uint64_t flags,
+		      void **va_p, uint64_t *bytes_store,
+		      uint64_t map_opts, int lockold)
 {
     assert((start_byteoff % PGSIZE) == 0);
 
     if (!(flags & SEGMAP_READ) && !(flags & SEGMAP_RESERVE)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
+	as_mutex_unlock(lockold);
 	return -E_INVAL;
     }
 
@@ -483,29 +491,30 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 	int64_t nbytes = sys_segment_get_nbytes(seg);
 	if (nbytes < 0) {
 	    cprintf("segment_map: cannot stat segment: %s\n", e2s(nbytes));
+	    as_mutex_unlock(lockold);
 	    return nbytes;
 	}
 
 	seg_bytes = nbytes;
     }
 
-    uint64_t map_bytes = ROUNDUP(seg_bytes - start_byteoff, PGSIZE);
-
     int r;
-    as_mutex_lock();
+    uint64_t map_bytes = ROUNDUP(seg_bytes - start_byteoff, PGSIZE);
 
 cache_grown:
     r = cache_refresh(as_ref);
     if (r < 0) {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	cprintf("segment_map: cache_refresh: %s\n", e2s(r));
 	return r;
     }
 
     if (cache_uas.nent >= cache_uas.size - 2) {
 	r = cache_uas_grow();
-	if (r < 0)
+	if (r < 0) {
+	    as_mutex_unlock(lockold);
 	    return r;
+	}
 
 	goto cache_grown;
     }
@@ -580,7 +589,7 @@ retry:
 	    } else {
 		cprintf("segment_map: VA %p busy\n", map_start);
 		cache_invalidate();
-		as_mutex_unlock();
+		as_mutex_unlock(lockold);
 		return -E_BUSY;
 	    }
 	}
@@ -606,7 +615,7 @@ retry:
 		    if (r < 0) {
 			cprintf("segment_map: flush unmap: %s\n", e2s(r));
 			cache_invalidate();
-			as_mutex_unlock();
+			as_mutex_unlock(lockold);
 			return r;
 		    }
 		}
@@ -627,7 +636,7 @@ retry:
 	if (r < 0) {
 	    cprintf("segment_map: flush unmap 2: %s\n", e2s(r));
 	    cache_invalidate();
-	    as_mutex_unlock();
+	    as_mutex_unlock(lockold);
 	    return r;
 	}
     }
@@ -651,7 +660,7 @@ retry:
 	cprintf("out of segment map slots\n");
 	segment_map_print(&cache_uas);
 	cache_invalidate();
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	return -E_NO_MEM;
     }
 
@@ -689,7 +698,7 @@ retry:
     if (slot < cache_uas.nent &&
 	!memcmp(&cache_uas.ents[slot], &usm, sizeof(usm)))
     {
-	as_mutex_unlock();
+	as_mutex_unlock(lockold);
 	goto out;
     }
 
@@ -717,7 +726,7 @@ retry:
     if (r < 0)
 	cache_invalidate();
 
-    as_mutex_unlock();
+    as_mutex_unlock(lockold);
     if (r < 0) {
 	cprintf("segment_map: kslot %d, %s\n", usm.kslot, e2s(r));
 	return r;
@@ -729,6 +738,33 @@ out:
     if (va_p)
 	*va_p = map_start;
     return 0;
+}
+
+int
+segment_map(struct cobj_ref seg, uint64_t start_byteoff, uint64_t flags,
+	    void **va_p, uint64_t *bytes_store, uint64_t map_opts)
+{
+    struct cobj_ref as;
+    int lockold = as_mutex_lock();
+    int r = self_get_as(&as);
+    if (r < 0) {
+	as_mutex_unlock(lockold);
+	return r;
+    }
+
+    return segment_map_as_locked(as, seg, start_byteoff, flags,
+				 va_p, bytes_store, map_opts, lockold);
+}
+
+int
+segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
+	       uint64_t start_byteoff, uint64_t flags,
+	       void **va_p, uint64_t *bytes_store,
+	       uint64_t map_opts)
+{
+    int lockold = as_mutex_lock();
+    return segment_map_as_locked(as_ref, seg, start_byteoff, flags,
+				 va_p, bytes_store, map_opts, lockold);
 }
 
 int

@@ -45,6 +45,12 @@ utrap_init(void)
 }
 
 int
+utrap_is_masked(void)
+{
+    return (read_cs() == GD_UT_MASK);
+}
+
+int
 utrap_set_mask(int masked)
 {
     uint16_t old_cs = read_cs();

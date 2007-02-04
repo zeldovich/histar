@@ -24,14 +24,14 @@ void *tls_gate_args;
 void *tls_stack_top;
 void *tls_base;
 
+int setup_env_done;
+
 #define MAXARGS	128
 
 static int argc;
 static const char **argv;
 
-
-void
-__attribute__((noinline))
+void __attribute__((noinline))
 setup_env(uint64_t envaddr, uint64_t arg1)
 {
     // This process has enough of an environment,
@@ -101,6 +101,8 @@ setup_env(uint64_t envaddr, uint64_t arg1)
         setenv(p, value, 1);
         p += len + 1;
     }
+
+    setup_env_done = 1;
 }
 
 void
