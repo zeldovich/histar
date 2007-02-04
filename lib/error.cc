@@ -17,7 +17,7 @@ basic_exception::basic_exception(const char *fmt, ...)
     va_end(ap);
 
     bt_ = 0;
-    get_backtrace();
+    get_backtrace(false);
 }
 
 void
@@ -43,10 +43,12 @@ basic_exception::print_where() const
 }
 
 void
-basic_exception::get_backtrace(void)
+basic_exception::get_backtrace(bool force)
 {
-    if (exception_enable_backtrace)
-	bt_ = new backtracer();
+    if (exception_enable_backtrace || force) {
+	if (!bt_)
+	    bt_ = new backtracer();
+    }
 }
 
 error::error(int r, const char *fmt, ...) : err_(r)

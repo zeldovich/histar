@@ -6,16 +6,17 @@
 
 class basic_exception : public std::exception {
 public:
-    basic_exception() { get_backtrace(); }
+    basic_exception() { get_backtrace(false); }
     basic_exception(const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
 
     void set_msg(const char *msg);
     virtual const char *what() const throw () { return &msg_[0]; }
     void print_where() const;
+    void force_backtrace() { get_backtrace(true); }
 
 private:
-    void get_backtrace();
+    void get_backtrace(bool force);
 
     char msg_[256];
     backtracer *bt_;
