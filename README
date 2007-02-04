@@ -71,3 +71,8 @@ a cross-glibc).
 * AMD64 assembly intro:
 
         http://www.x86-64.org/documentation/assembly
+
+* Qemu
+
+Apply ./conf/qemu-movd.patch to avoid 32-bit truncation for some MMX operations.
+
