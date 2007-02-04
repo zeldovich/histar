@@ -99,9 +99,9 @@ lnxpmap_init(void)
 #ifdef FT_TRANSFORMED
 	ft_register_memory(va, PGSIZE, "user vmem page");
 #endif
-	int r = mprotect(va, PGSIZE, PROT_NONE);
+	int r = mprotect((void *) va, PGSIZE, PROT_NONE);
 	if (r == 0 || errno != ENOMEM) {
-	    printf("lnxpmap_init(): %p: %d, %s\n", va, r, strerror(errno));
+	    printf("lnxpmap_init(): %p: %d, %s\n", (void *) va, r, strerror(errno));
 	    exit(-1);
 	}
     }
