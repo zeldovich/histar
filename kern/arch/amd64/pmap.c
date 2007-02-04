@@ -120,7 +120,10 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, uint64_t **pte_store)
 {
     *pte_store = 0;
-    return page_map_traverse(pgmap, va, va, create, &pgdir_walk_cb, pte_store);
+    int r = page_map_traverse(pgmap, va, va, create, &pgdir_walk_cb, pte_store);
+    if (create && !*pte_store)
+	return -E_INVAL;
+    return r;
 }
 
 //

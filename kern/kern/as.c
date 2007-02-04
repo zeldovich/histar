@@ -445,10 +445,6 @@ as_pmap_fill_segment(const struct Address_space *as,
 	r = pgdir_walk(as->as_pgmap, cva, 1, &ptep);
 	if (r < 0)
 	    goto err;
-	if (!ptep) {
-	    r = -E_INVAL;
-	    goto err;
-	}
 
 	as_page_invalidate_cb(as, ptep, cva);
 	*ptep = kva2pa(pp) | ptflags;
