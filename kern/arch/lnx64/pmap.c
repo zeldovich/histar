@@ -43,9 +43,13 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
     if (reqflags & SEGMAP_WRITE)
 	pte_flags |= PTE_W;
 
+    void *end = base + nbytes;
+    if (end < base)
+	return -E_INVAL;
+
     if (nbytes > 0) {
 	for (void *va = (void *) ROUNDDOWN(base, PGSIZE);
-	     va < ROUNDUP(base + nbytes, PGSIZE); va += PGSIZE)
+	     va < ROUNDUP(end, PGSIZE); va += PGSIZE)
 	{
 	    int va_ok = 0;
 	    for (int i = 0; cur_as->as_pgmap && i < NPME; i++) {
