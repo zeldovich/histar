@@ -358,6 +358,10 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	s--;
 
 	// Ensure there's space, because we're masking traps right now..
+	if (signal_debug)
+	    cprintf("[%ld] signal_utrap_si: pre-allocating stack at %p\n",
+		    thread_id(), s);
+
 	stack_grow(s);
 
 	memcpy(&s->si, si, sizeof(*si));
