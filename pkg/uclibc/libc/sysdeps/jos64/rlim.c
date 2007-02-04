@@ -22,6 +22,5 @@ getrusage(int who, struct rusage *usage)
 int
 setrlimit(__rlimit_resource_t resource, const struct rlimit *rlim)
 {
-    set_enosys();
-    return -1;
+    return 0;
 }
