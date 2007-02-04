@@ -134,7 +134,7 @@ a2pdf(int fd, std::ostringstream &pdf_out)
 		    &cs, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 	close(ps[0]);
 	close(pdf[1]);
-
+	close(errout);
     } catch (std::exception &e) {
 	cprintf("a2pdf_help: %s\n", e.what());
 	throw e;
