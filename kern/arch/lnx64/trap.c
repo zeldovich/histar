@@ -63,9 +63,6 @@ lnx64_thread_cb(struct Thread *t)
 	exit(-1);
     }
 
-    if (lnx64_pmap_prefill)
-	lnxpmap_prefill();
-
     e->cb(e->arg, t);
 }
 

@@ -18,15 +18,22 @@ static uint64_t root_container_id;
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
 {
-    char *ubase = (char *) UBASE;
+    char *upage = (char *) (uintptr_t) t->th_tf.tf_r15;
 
 #ifdef FT_TRANSFORMED
     uint64_t rip = t->th_tf.tf_rip;
     static uint64_t ncalls = 1;
 
+    /*
+     * Other operations we could do:
+     *  memory reads/writes [no real page mapping, so only access valid things]
+     *  trigger page faults: thread_pagefault(cur_thread, va, SEGMAP_WRITE|SEGMAP_EXEC);
+     *  trap self: thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, traparg);
+     */
+
     if (rip == 0) {
 	/* Set things up.. */
-	ft_make_symbolic_array(ubase, PGSIZE, "ubase");
+	ft_make_symbolic_array(upage, PGSIZE, "upage");
     } else if (rip <= ncalls) {
 	uint64_t a0, a1, a2, a3, a4, a5, a6, a7;
 	ft_make_symbolic_name(&a0, "syscall_a0");
@@ -49,11 +56,11 @@ bootstrap_tcb(void *arg, struct Thread *t)
     printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
 	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
 
-    char *goodbuf = ubase;
-    //char *badbuf = ubase + PGSIZE;
+    char *goodbuf = upage;
 
     switch (t->th_tf.tf_rip) {
     case 0:
+	assert(0 == thread_pagefault(cur_thread, goodbuf, SEGMAP_WRITE));
 	sprintf(goodbuf, "Hello world.\n");
 	break;
 
@@ -104,13 +111,18 @@ bootstrap_stuff(void)
     assert(0 == container_put(rc, &s->sg_ko));
     assert(0 == segment_set_nbytes(s, 4096));
 
+    // Figure out where to map this guy..
+    void *upage = 0;
+    assert(0 == kobject_get_page(&s->sg_ko, 0, &upage, page_shared_ro));
+    assert(upage);
+
     struct Address_space *as;
     assert(0 == as_alloc(rcl, &as));
     assert(0 == container_put(rc, &as->as_ko));
     assert(0 == kobject_set_nbytes(&as->as_ko, PGSIZE));
     as->as_utrap_entry = 0xdeadbeef;
-    as->as_utrap_stack_base = UBASE;
-    as->as_utrap_stack_top = UBASE + PGSIZE;
+    as->as_utrap_stack_base = (uintptr_t) upage;
+    as->as_utrap_stack_top = (uintptr_t) upage + PGSIZE;
 
     struct u_segment_mapping *usm;
     assert(0 == kobject_get_page(&as->as_ko, 0, (void **)&usm, page_excl_dirty));
@@ -119,7 +131,7 @@ bootstrap_stuff(void)
     usm[0].num_pages = 1;
     usm[0].flags = SEGMAP_READ | SEGMAP_WRITE;
     usm[0].kslot = 0;
-    usm[0].va = (void *) UBASE;
+    usm[0].va = upage;
 
     struct Thread *t;
     assert(0 == thread_alloc(rcl, tc, &t));
@@ -129,6 +141,9 @@ bootstrap_stuff(void)
     thread_set_sched_parents(t, rc->ct_ko.ko_id, 0);
     thread_set_runnable(t);
     lnx64_set_thread_cb(t->th_ko.ko_id, &bootstrap_tcb, 0);
+
+    t->th_tf.tf_rip = 0;
+    t->th_tf.tf_r15 = (uintptr_t) upage;
 }
 
 int

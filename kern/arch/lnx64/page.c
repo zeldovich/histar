@@ -59,7 +59,6 @@ lnxpage_init(uint64_t membytes)
 	exit(-1);
     }
 
-    /* XXX MAP_PRIVATE yields inconsistencies between kernel pages & user pages */
     physmem_base = mmap(0, global_npages * PGSIZE,
 			PROT_READ | PROT_WRITE,
 			MAP_PRIVATE, physmem_file_fd, 0);
