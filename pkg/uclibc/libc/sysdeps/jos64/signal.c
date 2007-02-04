@@ -375,17 +375,24 @@ signal_utrap(struct UTrapframe *utf)
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) utf->utf_trap_arg;
 	if (utf->utf_trap_num == T_PGFLT) {
-	    if (stack_grow(si.si_addr) >= 0)
+	    if (stack_grow(si.si_addr) >= 0) {
+		if (signal_debug)
+		    cprintf("[%ld] signal_utrap: grew stack\n", thread_id());
 		return;
+	    }
 
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
 	} else if (utf->utf_trap_num == T_DEVICE) {
 	    int r = sys_self_fp_enable();
-	    if (r >= 0)
+	    if (r >= 0) {
+		if (signal_debug)
+		    cprintf("[%ld] signal_utrap: enabled FP\n", thread_id());
 		return;
+	    }
 
-	    cprintf("signal_utrap: cannot enable fp: %s\n", e2s(r));
+	    cprintf("[%ld] signal_utrap: cannot enable fp: %s\n",
+		    thread_id(), e2s(r));
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
 	} else if (utf->utf_trap_num == T_BRKPT ||
@@ -394,7 +401,8 @@ signal_utrap(struct UTrapframe *utf)
 	    // XXX TRAP_BRKPT or TRAP_TRACE?
 	    si.si_code = TRAP_BRKPT;
 	} else {
-	    cprintf("signal_utrap: unknown hw trap %d\n", utf->utf_trap_num);
+	    cprintf("[%ld] signal_utrap: unknown hw trap %d\n", thread_id(),
+		    utf->utf_trap_num);
 
 	    cprintf("signal_utrap: rax %016lx  rbx %016lx  rcx %016lx\n",
 		    utf->utf_rax, utf->utf_rbx, utf->utf_rcx);
@@ -431,10 +439,14 @@ signal_utrap(struct UTrapframe *utf)
 	if (i == _NSIG) {
 	    // No available signal, just return..
 	    jthread_mutex_unlock(&sigmask_mu);
+	    if (signal_debug)
+		cprintf("[%ld] signal_utrap: no pending signals\n",
+			thread_id());
 	    return;
 	}
     } else {
-	cprintf("signal_utrap: unknown trap src %d\n", utf->utf_trap_src);
+	cprintf("[%ld] signal_utrap: unknown trap src %d\n",
+		thread_id(), utf->utf_trap_src);
 	si.si_signo = SIGILL;
 	si.si_code = ILL_ILLTRP;
     }
