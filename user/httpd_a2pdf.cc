@@ -71,27 +71,27 @@ a2pdf(int fd, std::ostringstream &pdf_out)
     taint_label.merge(&tmp, &out, label::max, label::leq_starlo);
     taint_label.copy_from(&out);
     
+    // create a tainted /tmp for a2ps and gs
     label mtab_label(1);
     mtab_label.copy_from(&taint_label);
 
-    int64_t ct;
-    error_check(ct = sys_container_alloc(start_env->proc_container, 
-					 mtab_label.to_ulabel(), "mtab ct",
-					 0, CT_QUOTA_INF));
-    int64_t s;
-    error_check(s = sys_segment_copy(start_env->fs_mtab_seg, 
-				     ct,
-				     mtab_label.to_ulabel(), "mtab"));
-    start_env->fs_mtab_seg = COBJ(ct, s);
+    int64_t base_ct;
+    error_check(base_ct = sys_container_alloc(start_env->proc_container, 
+					      mtab_label.to_ulabel(), "scratch",
+					      0, CT_QUOTA_INF));
+    scope_guard<int, struct cobj_ref> 
+	unref_base(sys_obj_unref, COBJ(start_env->proc_container, base_ct));
 
-    fs_inode root;
-    error_check(fs_namei("/", &root));
+    int64_t mtab_id;
+    error_check(mtab_id = sys_segment_copy(start_env->fs_mtab_seg, 
+				     base_ct, mtab_label.to_ulabel(), "mtab"));
+    start_env->fs_mtab_seg = COBJ(base_ct, mtab_id);
 
-    fs_inode tmp_dir, scratch_dir;
-    fs_get_root(ct, &scratch_dir);
-    error_check(fs_mkdir(scratch_dir, "tmp", &tmp_dir, mtab_label.to_ulabel()));
-
-    error_check(fs_mount(root, "tmp", tmp_dir));
+    fs_inode root_ino, tmp_ino, scratch_ino;
+    error_check(fs_namei("/", &root_ino));
+    fs_get_root(base_ct, &scratch_ino);
+    error_check(fs_mkdir(scratch_ino, "tmp", &tmp_ino, mtab_label.to_ulabel()));
+    error_check(fs_mount(root_ino, "tmp", tmp_ino));
 
     try {
 	label cs(LB_LEVEL_STAR);
