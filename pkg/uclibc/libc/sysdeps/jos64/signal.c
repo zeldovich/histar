@@ -131,9 +131,20 @@ sig_fatal(void)
 static int
 signal_trap_thread(struct cobj_ref tobj)
 {
+    static jthread_mutex_t trap_mu;
+    int trap_mu_locked = 0;
+
+    if (thread_id() != signal_thread_id && tobj.object == signal_thread_id) {
+	if (jthread_mutex_trylock(&trap_mu) < 0)
+	    return 0;
+	else
+	    trap_mu_locked = 1;
+    }
+
     struct cobj_ref cur_as;
     sys_self_get_as(&cur_as);
 
+    int retry_count = 0;
     for (;;) {
 	if (signal_debug)
 	    cprintf("[%ld] signal_trap_thread: trying to trap %ld.%ld\n",
@@ -145,12 +156,16 @@ signal_trap_thread(struct cobj_ref tobj)
 		cprintf("[%ld] signal_trap_thread: trapped %ld.%ld\n",
 			thread_id(), tobj.container, tobj.object);
 
+	    if (trap_mu_locked)
+		jthread_mutex_unlock(&trap_mu);
 	    return 0;
 	}
 
 	if (r == -E_BUSY) {
-	    cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld, retrying\n",
-		    thread_id(), tobj.container, tobj.object);
+	    retry_count++;
+	    if (signal_debug || !(retry_count % 10))
+		cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld, retrying\n",
+			thread_id(), tobj.container, tobj.object);
 	    thread_sleep(10);
 	    continue;
 	}
@@ -159,6 +174,8 @@ signal_trap_thread(struct cobj_ref tobj)
 	cprintf("[%ld] (%s) signal_trap_thread: cannot trap %ld.%ld: %s\n",
 		thread_id(), __progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
+	if (trap_mu_locked)
+	    jthread_mutex_unlock(&trap_mu);
 	return -1;
     }
 }
