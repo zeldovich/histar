@@ -137,3 +137,24 @@ use dj to interface HiStar with non-HiStar (call them Linux) nodes.
    send any inputs to this sensitive Linux machine.  Can give linux machine
    stars in some categories but taint in others (ala clamwrap).
 
+===
+
+Gates conflate clearance with a "verify guard" label.  In particular, consider
+signal gates which have a clearance of { ug 0 } to ensure that only the same
+user can invoke them.  This could be done at user-level by checking the verify
+label in gate entry code.  But this seems simple enough to push into the kernel
+for better security.  Now, this has nothing to do with clearance.  Infact it
+should be perfectly legal to invoke a gate whose clearance is below your own;
+you can "grant" your high clearance to the gate, because clearance is combined
+using \cup rather than \cap.  Nothing should leak as a result, either, because
+you'll have to provide all resources for this "clearance-boosted" gate call.
+So, maybe we should have a third "guard" label on gates that's separate from
+clearance.  This will allow a gate creator to say that he's happy to accept
+calls from threads more tainted than his current clearance, as long as those
+threads are going to provide the resources for it.
+
+Target-less gates (maybe address-space-less or even current-address-space) so
+that privstore will work efficiently in a COWed address space.  Specify a null
+thread_entry to sys_gate_create() to make such a gate, and add a thread_entry
+arg to sys_gate_enter() that will allow caller to use such a gate.
+
