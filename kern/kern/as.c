@@ -412,8 +412,7 @@ as_pmap_fill_segment(const struct Address_space *as,
     void *usm_last_va = (void *) (uintptr_t)
 	safe_add(&of, (uintptr_t) usm->va,
 		 safe_mul(&of, usm->num_pages - 1, PGSIZE));
-    if (of || PGOFF(usm->va) ||
-	usm->va >= (void *) ULIM || usm_last_va >= (void *) ULIM)
+    if (of || PGOFF(usm->va))
 	return -E_INVAL;
 
     if (as_debug)
@@ -446,6 +445,10 @@ as_pmap_fill_segment(const struct Address_space *as,
 	r = pgdir_walk(as->as_pgmap, cva, 1, &ptep);
 	if (r < 0)
 	    goto err;
+	if (!ptep) {
+	    r = -E_INVAL;
+	    goto err;
+	}
 
 	as_page_invalidate_cb(as, ptep, cva);
 	*ptep = kva2pa(pp) | ptflags;
