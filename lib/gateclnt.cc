@@ -167,11 +167,14 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
     // Off into the gate!
     if (jos_setjmp(&back_from_call) == 0) {
 	if (gate_client_debug)
-	    cprintf("gate_call: invoking with label %s, clear %s\n",
-		    tgt_label_->to_string(), tgt_clear_->to_string());
+	    cprintf("[%ld] gate_call: invoking with label %s, clear %s\n",
+		    thread_id(), tgt_label_->to_string(), tgt_clear_->to_string());
 
 	gate_invoke(gate_, tgt_label_, tgt_clear_, 0, 0);
     }
+
+    if (gate_client_debug)
+	cprintf("[%ld] gate_call: returned\n", thread_id());
 
     // Restore cached thread ID, just to be safe
     tls_revalidate();
