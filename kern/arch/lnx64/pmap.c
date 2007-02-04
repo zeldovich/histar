@@ -29,7 +29,15 @@ lnxpmap_init(void)
 int
 check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 {
-    assert(cur_thread && cur_as);
+    assert(cur_thread);
+    if (!cur_as) {
+	int r = thread_load_as(cur_thread);
+	if (r < 0)
+	    return r;
+
+	as_switch(cur_thread->th_as);
+	assert(cur_as);
+    }
 
     uint64_t pte_flags = PTE_P | PTE_U;
     if (reqflags & SEGMAP_WRITE)
@@ -40,7 +48,7 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	     va < ROUNDUP(base + nbytes, PGSIZE); va += PGSIZE)
 	{
 	    int va_ok = 0;
-	    for (int i = 0; i < NPME; i++) {
+	    for (int i = 0; cur_as->as_pgmap && i < NPME; i++) {
 		struct Pagemapent *pme = &cur_as->as_pgmap->pme[i];
 		if (pme->va == va && pa2kva(PTE_ADDR(pme->pte)) == va && (pme->pte & pte_flags) == pte_flags) {
 		    va_ok = 1;
