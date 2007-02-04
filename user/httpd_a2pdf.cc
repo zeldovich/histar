@@ -11,6 +11,7 @@ extern "C" {
 #include <inc/base64.h>
 #include <inc/authd.h>
 #include <inc/gateparam.h>
+#include <inc/debug.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -31,6 +32,8 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
+static char debug = 0;
+
 static struct fs_inode
 fs_inode_for(const char *pn)
 {
@@ -42,7 +45,7 @@ fs_inode_for(const char *pn)
 }
 
 uint64_t
-a2pdf(int fd, std::ostringstream &out)
+a2pdf(int fd, std::ostringstream &pdf_out)
 {
     const char *pn0 = "/bin/a2ps";
     const char *pn1 = "/bin/gs";
@@ -51,20 +54,65 @@ a2pdf(int fd, std::ostringstream &out)
     int64_t exit_code0, exit_code1;
 
     int txt_in = fd;
+    int errout;
+    if (debug)
+	error_check(errout = opencons());
+    else
+	errno_check(errout = open("/dev/null", O_RDWR));
     
     int ps[2];
     errno_check(pipe(ps));
     int pdf[2];
     errno_check(pipe(pdf));
 
+    label taint_label(1);
+    label tmp(1), out;
+    thread_cur_label(&taint_label);
+    taint_label.merge(&tmp, &out, label::max, label::leq_starlo);
+    taint_label.copy_from(&out);
+    
+    label mtab_label(1);
+    mtab_label.copy_from(&taint_label);
+
+    int64_t ct;
+    error_check(ct = sys_container_alloc(start_env->proc_container, 
+					 mtab_label.to_ulabel(), "mtab ct",
+					 0, CT_QUOTA_INF));
+    int64_t s;
+    error_check(s = sys_segment_copy(start_env->fs_mtab_seg, 
+				     ct,
+				     mtab_label.to_ulabel(), "mtab"));
+    start_env->fs_mtab_seg = COBJ(ct, s);
+
+    fs_inode root;
+    error_check(fs_namei("/", &root));
+
+    fs_inode tmp_dir, scratch_dir;
+    fs_get_root(ct, &scratch_dir);
+    error_check(fs_mkdir(scratch_dir, "tmp", &tmp_dir, mtab_label.to_ulabel()));
+
+    error_check(fs_mount(root, "tmp", tmp_dir));
+
     try {
+	label cs(LB_LEVEL_STAR);
+	cs.merge(&taint_label, &out, label::max, label::leq_starlo);
+	cs.copy_from(&out);
+
+	label ds(3);
+	ds.set(start_env->user_grant, LB_LEVEL_STAR);
+
+	label dr(1);
+	dr.merge(&taint_label, &out, label::max, label::leq_starlo);
+	dr.copy_from(&out);
+	dr.set(start_env->user_grant, 3);
+
 	struct fs_inode ino = fs_inode_for(pn0);
 	const char *argv0[] = { pn0, "--output=-" };
-	cp0 = spawn(start_env->root_container, ino,
-		    txt_in, ps[1], 2,
+	cp0 = spawn(start_env->proc_container, ino,
+		    txt_in, ps[1], errout,
 		    2, &argv0[0],
 		    0, 0,
-		    0, 0, 0, 0, 0);
+		    &cs, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 	close(ps[1]);
 
 	ino = fs_inode_for(pn1);
@@ -79,16 +127,16 @@ a2pdf(int fd, std::ostringstream &out)
 			       "-f",
 			       "-" };
 	
-	cp1 = spawn(start_env->root_container, ino,
-		    ps[0], pdf[1], 2,
+	cp1 = spawn(start_env->proc_container, ino,
+		    ps[0], pdf[1], errout,
 		    10, &argv1[0],
 		    0, 0,
-		    0, 0, 0, 0, 0);
+		    &cs, &ds, 0, &dr, 0, SPAWN_NO_AUTOGRANT);
 	close(ps[0]);
 	close(pdf[1]);
 
     } catch (std::exception &e) {
-	fprintf(stderr, "a2pdf_help: %s\n", e.what());
+	cprintf("a2pdf_help: %s\n", e.what());
 	throw e;
     }
 
@@ -99,7 +147,7 @@ a2pdf(int fd, std::ostringstream &out)
 	errno_check(r = read(pdf[0], buf, sizeof(buf)));
 	if (r == 0)
 	    break;
-	out.write(buf, r);
+	pdf_out.write(buf, r);
 	ret += r;
     }
     close(pdf[0]);
@@ -152,7 +200,7 @@ httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
     struct cobj_ref reply_seg;
     void *va = 0;
 
-    cprintf("reply size %ld\n", reply.size());
+    debug_print(debug, "reply size %ld\n", reply.size());
 
     int r = segment_alloc(gcd->taint_container, reply.size(),
 			  &reply_seg, &va, 0, "worker reply");
