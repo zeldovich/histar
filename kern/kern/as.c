@@ -356,7 +356,8 @@ as_swapout(struct Address_space *as)
 {
     // In case we're the current AS, make sure the page table we're about
     // to free isn't the one being used by the CPU.
-    as_switch(0);
+    if (cur_as && cur_as->as_ko.ko_id == as->as_ko.ko_id)
+	as_switch(0);
 
     if (as->as_pgmap) {
 	assert(0 == page_map_traverse(as->as_pgmap, 0, (void **) ULIM,

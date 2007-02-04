@@ -157,7 +157,15 @@ page_lookup(struct Pagemap *pgmap, void *va, uint64_t **pte_store)
 int
 check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 {
-    assert(cur_thread && cur_as);
+    assert(cur_thread);
+    if (!cur_as) {
+	int r = thread_load_as(cur_thread);
+	if (r < 0)
+	    return r;
+
+	as_switch(cur_thread->th_as);
+	assert(cur_as);
+    }
 
     uintptr_t iptr = (uintptr_t) ptr;
     int overflow = 0;
@@ -168,6 +176,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     if ((reqflags & SEGMAP_WRITE))
 	pte_flags |= PTE_W;
 
+    int aspf = 0;
     if (nbytes > 0) {
 	uintptr_t start = (uintptr_t) ROUNDDOWN(ptr, PGSIZE);
 	uintptr_t end = (uintptr_t) ROUNDUP(ptr + nbytes, PGSIZE);
@@ -176,10 +185,12 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 		return -E_INVAL;
 
 	    uint64_t *ptep;
-	    if (page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
+	    if (cur_as->as_pgmap &&
+		page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
 		(*ptep & pte_flags) == pte_flags)
 		continue;
 
+	    aspf = 1;
 	    int r = as_pagefault(cur_as, (void *) va, reqflags);
 	    if (r < 0)
 		return r;
@@ -187,7 +198,8 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     }
 
     // Flush any stale TLB entries that might have arisen from as_pagefault()
-    as_switch(cur_as);
+    if (aspf)
+	as_switch(cur_as);
 
     return 0;
 }
