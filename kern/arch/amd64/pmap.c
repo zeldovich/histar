@@ -3,6 +3,8 @@
 #include <kern/lib.h>
 #include <kern/thread.h>
 #include <inc/error.h>
+#include <inc/safeint.h>
+#include <inc/intmacro.h>
 
 int
 page_map_alloc(struct Pagemap **pm_store)
@@ -87,7 +89,7 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
 
 	struct Pagemap *pm_next = (struct Pagemap *) pa2kva(PTE_ADDR(pm_ent));
 	const void *first_next = (idx == first_idx) ? first : 0;
-	const void *last_next  = (idx == last_idx)  ? last : (const void *) ~0UL;
+	const void *last_next  = (idx == last_idx)  ? last : (const void *) UINT64(~0);
 	r = page_map_traverse_internal(pm_next, pmlevel - 1, first_next, last_next,
 				       create, cb, arg, ent_va);
 	if (r < 0)
@@ -157,7 +159,8 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     assert(cur_thread && cur_as);
 
     uintptr_t iptr = (uintptr_t) ptr;
-    if (iptr >= ULIM || iptr + nbytes > ULIM)
+    int overflow = 0;
+    if (iptr > ULIM || safe_add(&overflow, iptr, nbytes) > ULIM || overflow)
 	return -E_INVAL;
 
     uint64_t pte_flags = PTE_P | PTE_U;

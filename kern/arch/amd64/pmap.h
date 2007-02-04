@@ -42,7 +42,7 @@ int  page_map_alloc(struct Pagemap **pm_store)
     __attribute__ ((warn_unused_result));
 void page_map_free(struct Pagemap *pgmap);
 
-/* Traverse [first .. last) */
+/* Traverse [first .. last] */
 typedef void (*page_map_traverse_cb)(const void *arg, uint64_t *ptep, void *va);
 int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 		       int create, page_map_traverse_cb cb, const void *arg)
