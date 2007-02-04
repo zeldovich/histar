@@ -177,6 +177,14 @@ pipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     return 0;
 }
 
+static int
+pipe_getsockopt(struct Fd *fd, int level, int optname,
+		void *optval, socklen_t *optlen)
+{
+    errno = ENOTSOCK;
+    return -1;
+}
+
 struct Dev devpipe = {
     .dev_id = 'p',
     .dev_name = "pipe",
@@ -185,4 +193,5 @@ struct Dev devpipe = {
     .dev_close = pipe_close,
     .dev_probe = pipe_probe,
     .dev_statsync = pipe_statsync,
+    .dev_getsockopt = pipe_getsockopt,
 };
