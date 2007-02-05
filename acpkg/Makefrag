@@ -64,6 +64,7 @@ PATCHFILE_vim70		    := vim70.patch
 PATCHFILE_sfslite-1.0.0	    := sfslite-1.0.0.patch
 PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
 PATCHFILE_a2ps-4.13	    := a2ps-4.13b.patch
+PATCHFILE_perl-5.8.8	    := perl-5.8.8.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -196,6 +197,16 @@ $(OBJDIR)/user/a2psgs.tar: acpkg/ghostscript-8.54-gpl/__build \
 			$(TOP)/$(OBJDIR)/acpkg/share/a2ps \
 			$(TOP)/$(OBJDIR)/acpkg/etc \
 		   	$(TOP)/$(OBJDIR)/acpkg/share/fonts
+
+## http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
+## [ description of microperl:
+##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
+acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" )	
+	cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl
+	touch $@
+
+$(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
 
 ## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
