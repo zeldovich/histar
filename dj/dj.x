@@ -90,6 +90,7 @@ enum dj_reply_status {
     REPLY_ADDRESS_MISSING,	/* not returned by server */
     REPLY_DELEGATION_MISSING,
     REPLY_TIMEOUT,
+    REPLY_ABORTED,
     REPLY_SYSERR
 };
 

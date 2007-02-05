@@ -36,8 +36,9 @@ LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
 DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
-	    dummyexec.o backtrace.o dummycatmgr.o
+	    dummyexec.o backtrace.o dummycatmgr.o djfs.o djfs_posix.o
 DJD_OBJS := $(patsubst %.o, obj/test/%.o, $(DJD_OBJS))
+DJD_HEADERS := $(OBJDIR)/dj/dj.h $(OBJDIR)/dj/djfs.h
 
 ## Kernel-code build rules
 
@@ -108,15 +109,15 @@ $(OBJDIR)/test/sock_client: $(SOCK_CLIENT_OBJS)
 DJD_NCC_CFLAGS  := -I/usr/local/include/sfs -I/usr/local/include
 DJD_NCC_LDFLAGS := -L/usr/local/lib/sfs -L/usr/local/lib
 
-$(OBJDIR)/test/%.o: dj/%.cc $(OBJDIR)/dj/dj.h
+$(OBJDIR)/test/%.o: dj/%.cc $(DJD_HEADERS)
 	@mkdir -p $(@D)
 	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
-$(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/dj.h
+$(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(DJD_HEADERS)
 	@mkdir -p $(@D)
 	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
-$(OBJDIR)/test/djd.o: user/djd.cc $(OBJDIR)/dj/dj.h
+$(OBJDIR)/test/djd.o: user/djd.cc $(DJD_HEADERS)
 	@mkdir -p $(@D)
 	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
 
