@@ -81,6 +81,15 @@ stack_grow(void *faultaddr)
     if (segbytes < 0)
 	return segbytes;
 
+    // Check if we need to grow anything at all...
+    void *stacktop = usm.va + usm.num_pages * PGSIZE;
+    uint64_t stackbytes = segbytes - usm.start_page * PGSIZE;
+    void *allocbase = stacktop - stackbytes;
+    if (faultaddr > stacktop)
+	return -1;
+    if (faultaddr >= allocbase)
+	return 0;
+
     // Double the stack size, up to the mapping size.
     int64_t newbytes = usm.start_page * PGSIZE +
 	(segbytes - usm.start_page * PGSIZE) * 2;
