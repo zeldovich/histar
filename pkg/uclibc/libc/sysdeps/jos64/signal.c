@@ -69,8 +69,10 @@ stack_grow(void *faultaddr)
     int r = segment_lookup(faultaddr, &usm);
     if (r < 0)
 	return r;
-    if (r == 0 || !(usm.flags & SEGMAP_STACK))
+    if (r == 0)
 	return -1;
+    if (!(usm.flags & SEGMAP_STACK))	// Already allocated.
+	return 0;
 
     uint64_t max_pages = usm.num_pages;
     void *stacktop = usm.va + max_pages * PGSIZE;
@@ -121,7 +123,7 @@ stack_grow(void *faultaddr)
 	return r;
     }
 
-    return 0;
+    return 1;
 }
 
 static void __attribute__((noreturn))
@@ -381,7 +383,8 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 
 	int r = stack_grow(s);
 	if (r < 0) {
-	    cprintf("[%ld] signal_utrap_si: stack overflow\n", thread_id());
+	    cprintf("[%ld] signal_utrap_si: stack overflow @ %p\n",
+		    thread_id(), s);
 	    utf_dump(&sc->sc_utf);
 	    sig_fatal();
 	}
@@ -418,10 +421,17 @@ signal_utrap(struct UTrapframe *utf)
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) utf->utf_trap_arg;
 	if (utf->utf_trap_num == T_PGFLT) {
-	    if (stack_grow(si.si_addr) >= 0) {
+	    int r = stack_grow(si.si_addr);
+	    if (r > 0) {
 		if (signal_debug)
 		    cprintf("[%ld] signal_utrap: grew stack\n", thread_id());
 		return;
+	    }
+
+	    if (r == 0) {
+		if (signal_debug)
+		    cprintf("[%ld] signal_utrap: stack_grow returns 0\n",
+			    thread_id());
 	    }
 
 	    si.si_signo = SIGSEGV;
