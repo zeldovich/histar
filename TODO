@@ -38,6 +38,11 @@ Security:
 * force checkpoint every N handle allocations, and roll forward handle counter by
   N after restore, for some large value N.
 * real randomness...
+* system calls should be atomic (all-or-nothing), otherwise we have a covert
+  storage channel when you can tell a system call executed partway and suspended
+  when it hit something.  the culprits are variable-length data structures -- AS
+  and labels -- sys_as_get, sys_as_set, and anything that calls label_to_ulabel:
+  sys_obj_get_label, sys_self_get_{clearance,verify}, sys_gate_clearance.
 
 Cleanup:
 
