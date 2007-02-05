@@ -17,6 +17,7 @@ uint64_t start_arg0;
 uint64_t start_arg1;
 start_env_t *start_env;
 
+void *tls_top;
 uint64_t *tls_tidp;
 struct jos_jmp_buf **tls_pgfault;
 struct jos_jmp_buf **tls_pgfault_all;
@@ -54,16 +55,18 @@ setup_env(uint64_t envaddr, uint64_t arg1)
 	panic("libmain: cannot map start_env_ro: %s", e2s(r));
 
     struct cobj_ref tls = COBJ(0, kobject_id_thread_sg);
-    void *tls_va = (void *) UTLS;
-    r = segment_map(tls, 0, SEGMAP_READ | SEGMAP_WRITE, &tls_va, 0, 0);
+    tls_base = (void *) UTLSBASE;
+    tls_top = (void *) UTLSTOP;
+    uint64_t tls_mapbytes = tls_top - tls_base;
+    r = segment_map(tls, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_REVERSE_PAGES,
+		    &tls_base, &tls_mapbytes, 0);
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
 
-    tls_base = tls_va;
-    tls_tidp = tls_base + PGSIZE - sizeof(uint64_t);
-    tls_pgfault = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault);
-    tls_pgfault_all = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all);
-    tls_gate_args = tls_base + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data);
+    tls_tidp = tls_top - sizeof(uint64_t);
+    tls_pgfault = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault);
+    tls_pgfault_all = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all);
+    tls_gate_args = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data);
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
     tls_stack_top = tls_gate_args;
 

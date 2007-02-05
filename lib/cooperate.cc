@@ -37,7 +37,7 @@ coop_gen_as(cobj_ref status_seg, cobj_ref text_seg, uint64_t dseg_len,
 	{ text_seg,   0, ROUNDUP(dseg_len, PGSIZE) / PGSIZE, 1,
 	  SEGMAP_READ | SEGMAP_EXEC,  (void *) COOP_TEXT },
 	{ COBJ(0, kobject_id_thread_sg), 0, 1, 2,
-	  SEGMAP_READ | SEGMAP_WRITE, (void *) UTLS },
+	  SEGMAP_READ | SEGMAP_WRITE, (void *) (UTLSTOP - PGSIZE) },
 	};
 
     if (uas->size < coop_as_slots)

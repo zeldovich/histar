@@ -86,11 +86,12 @@ extern uint64_t start_arg0, start_arg1;
 extern start_env_t *start_env;
 extern int setup_env_done;
 
+extern void *tls_top;
 extern uint64_t *tls_tidp;	/* 8 bytes for cached thread ID */
 extern struct jos_jmp_buf **tls_pgfault;
 extern struct jos_jmp_buf **tls_pgfault_all;
 extern void *tls_gate_args;	/* struct gate_call_args */
-#define TLS_GATE_ARGS	(UTLS + PGSIZE - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data))
+#define TLS_GATE_ARGS	(UTLSTOP - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data))
 extern void *tls_stack_top;	/* same as tls_gate_args, grows down */
 extern void *tls_base;		/* base */
 

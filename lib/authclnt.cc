@@ -150,7 +150,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     // Try to be really paranoid here about not accidentally revealing
     // any extra information from uauth_gate.
     memset(&gcd, 0, sizeof(gcd));
-    memset(tls_base, 0, PGSIZE);
+    memset(((char *) tls_top) - PGSIZE, 0, PGSIZE);
     tls_revalidate();
 
     char buf[KOBJ_META_LEN];
