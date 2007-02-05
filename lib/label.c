@@ -124,7 +124,7 @@ label_to_string(const struct ulabel *l)
 {
     enum {
 	nbufs = 4,
-	bufsize = 256
+	bufsize = 1024
     };
 
     static char bufs[nbufs][bufsize];
