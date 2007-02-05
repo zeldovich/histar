@@ -99,9 +99,9 @@ stack_grow(void *faultaddr)
 	mapped_pages = check_pages;
     }
 
-    // If we are faulting on allocated stack, something is wrong.
+    // If we are faulting on allocated stack, return no progress.
     if (faultaddr >= stacktop - mapped_pages * PGSIZE)
-	return -1;
+	return 0;
 
     // If we have no stack, something is wrong too.
     if (mapped_pages == 0)
