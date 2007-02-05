@@ -45,6 +45,23 @@ static sigset_t signal_queued;
 static siginfo_t signal_queued_si[_NSIG];
 static int signal_queued_any;
 
+static void
+utf_dump(struct UTrapframe *utf)
+{
+    cprintf("rax %016lx  rbx %016lx  rcx %016lx\n",
+	    utf->utf_rax, utf->utf_rbx, utf->utf_rcx);
+    cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n",
+	    utf->utf_rdx, utf->utf_rsi, utf->utf_rdi);
+    cprintf("r8  %016lx  r9  %016lx  r10 %016lx\n",
+	    utf->utf_r8, utf->utf_r9, utf->utf_r10);
+    cprintf("r11 %016lx  r12 %016lx  r13 %016lx\n",
+	    utf->utf_r11, utf->utf_r12, utf->utf_r13);
+    cprintf("r14 %016lx  r15 %016lx  rbp %016lx\n",
+	    utf->utf_r14, utf->utf_r15, utf->utf_rbp);
+    cprintf("rip %016lx  rsp %016lx  rflags %016lx\n",
+	    utf->utf_rip, utf->utf_rsp, utf->utf_rflags);
+}
+
 static int
 stack_grow(void *faultaddr)
 {
@@ -362,7 +379,12 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	    cprintf("[%ld] signal_utrap_si: pre-allocating stack at %p\n",
 		    thread_id(), s);
 
-	stack_grow(s);
+	int r = stack_grow(s);
+	if (r < 0) {
+	    cprintf("[%ld] signal_utrap_si: stack overflow\n", thread_id());
+	    utf_dump(&sc->sc_utf);
+	    sig_fatal();
+	}
 
 	memcpy(&s->si, si, sizeof(*si));
 	memcpy(&s->sc, sc, sizeof(*sc));
@@ -424,19 +446,7 @@ signal_utrap(struct UTrapframe *utf)
 	} else {
 	    cprintf("[%ld] signal_utrap: unknown hw trap %d\n", thread_id(),
 		    utf->utf_trap_num);
-
-	    cprintf("signal_utrap: rax %016lx  rbx %016lx  rcx %016lx\n",
-		    utf->utf_rax, utf->utf_rbx, utf->utf_rcx);
-	    cprintf("signal_utrap: rdx %016lx  rsi %016lx  rdi %016lx\n",
-		    utf->utf_rdx, utf->utf_rsi, utf->utf_rdi);
-	    cprintf("signal_utrap: r8  %016lx  r9  %016lx  r10 %016lx\n",
-		    utf->utf_r8, utf->utf_r9, utf->utf_r10);
-	    cprintf("signal_utrap: r11 %016lx  r12 %016lx  r13 %016lx\n",
-		    utf->utf_r11, utf->utf_r12, utf->utf_r13);
-	    cprintf("signal_utrap: r14 %016lx  r15 %016lx  rbp %016lx\n",
-		    utf->utf_r14, utf->utf_r15, utf->utf_rbp);
-	    cprintf("signal_utrap: rip %016lx  rsp %016lx  rflags %016lx\n",
-		    utf->utf_rip, utf->utf_rsp, utf->utf_rflags);
+	    utf_dump(utf);
 
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
