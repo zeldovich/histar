@@ -482,7 +482,7 @@ as_pmap_fill_segment(const struct Address_space *as,
     return 0;
 
 err:
-    if (r != -E_RESTART)
+    if (r != -E_RESTART && as_debug)
 	cprintf("as_pmap_fill_segment: %s\n", e2s(r));
 
     assert(page_map_traverse(as->as_pgmap, usm_first, usm_last,

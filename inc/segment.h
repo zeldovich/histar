@@ -25,7 +25,6 @@
 #define SEGMAP_ANON_MMAP	0x0400
 #define SEGMAP_VECTOR_PF	0x0800
 #define SEGMAP_STACK		0x1000
-#define SEGMAP_RESERVE		0x2000
 
 struct u_segment_mapping {
     struct cobj_ref segment;

@@ -478,7 +478,7 @@ segment_map_as_locked(struct cobj_ref as_ref, struct cobj_ref seg,
 {
     assert((start_byteoff % PGSIZE) == 0);
 
-    if (!(flags & SEGMAP_READ) && !(flags & SEGMAP_RESERVE)) {
+    if (!(flags & SEGMAP_READ)) {
 	cprintf("segment_map: unreadable mappings not supported\n");
 	as_mutex_unlock(lockold);
 	return -E_INVAL;
@@ -576,7 +576,6 @@ retry:
 	if (cache_uas.ents[i].flags &&
 	    !(map_opts & SEG_MAPOPT_OVERLAP) &&
 	    !(cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
-	    !(cache_uas.ents[i].flags & SEGMAP_RESERVE) &&
 	    ent_start < map_end && ent_end > map_start)
 	{
 	    // Except that it's OK if the user asks for replacement

@@ -54,26 +54,26 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	error_check(sys_self_set_sched_parents(gcd->taint_container, entry_ct));
 	if (!(flags & GATESRV_NO_THREAD_ADDREF))
 	    error_check(sys_self_addref(entry_ct));
-	scope_guard<int, struct cobj_ref>
+	scope_guard<int, cobj_ref>
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
 
 	if ((flags & GATESRV_KEEP_TLS_STACK)) {
 	    gatesrv_entry(fn, arg, 0, flags);
 	} else {
+	    struct cobj_ref stackobj;
+	    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
+				      0, 0, "gate thread stack"));
+	    scope_guard<int, cobj_ref> s(sys_obj_unref, stackobj);
+
 	    void *stackbase = 0;
 	    uint64_t stackbytes = thread_stack_pages * PGSIZE;
-	    error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
+	    error_check(segment_map(stackobj, 0, SEGMAP_READ | SEGMAP_WRITE |
+				    SEGMAP_STACK | SEGMAP_REVERSE_PAGES,
 				    &stackbase, &stackbytes, 0));
-	    scope_guard<int, void *> unmap(segment_unmap, stackbase);
 	    char *stacktop = ((char *) stackbase) + stackbytes;
 
-	    struct cobj_ref stackobj;
-	    void *allocbase = stacktop - PGSIZE;
-	    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
-				      &allocbase, 0, "gate thread stack"));
-
 	    g.dismiss();
-	    unmap.dismiss();
+	    s.dismiss();
 
 	    stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stackbase, flags,
 			 stacktop, (void *) &gatesrv_entry);
@@ -212,13 +212,11 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
 
     struct cobj_ref thread_self = COBJ(thread_ct_, thread_id());
     if (stack_) {
-	char *stacktop = ((char *) stack_) + thread_stack_pages * PGSIZE;
-
 	struct u_segment_mapping usm;
-	error_check(segment_lookup_skip(stacktop - PGSIZE, &usm, SEGMAP_RESERVE));
+	error_check(segment_lookup(stack_, &usm));
 
 	struct cobj_ref stackseg = usm.segment;
-	error_check(segment_unmap_range(stack_, stacktop, 1));
+	error_check(segment_unmap_delayed(stack_, 1));
 	error_check(sys_obj_unref(stackseg));
     }
     error_check(sys_obj_unref(thread_self));

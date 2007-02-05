@@ -9,8 +9,7 @@
 static int
 thread_cleanup_internal(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
 {
-    void *stacktop = stackbase + thread_stack_pages * PGSIZE;
-    int r = segment_unmap_range(stackbase, stacktop, 1);
+    int r = segment_unmap_delayed(stackbase, 1);
     if (r < 0)
 	return r;
 
@@ -62,33 +61,23 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 		     struct cobj_ref *threadp, const char *name, 
 		     struct thread_args *thargs, int options)
 {
-    int r = 0;
+    uint64_t stack_alloc_bytes = PGSIZE +
+	ROUNDUP((options & THREAD_OPT_ARGCOPY) ? size_arg : 0, PGSIZE);
+    struct cobj_ref stack;
+    int r = segment_alloc(container, stack_alloc_bytes, &stack, 0, 0, "thread stack");
+    if (r < 0)
+	return r;
 
     void *stackbase = 0;
     uint64_t stack_reserve_bytes = thread_stack_pages * PGSIZE;
-    r = segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
+    r = segment_map(stack, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_STACK |
+			      SEGMAP_REVERSE_PAGES,
 		    &stackbase, &stack_reserve_bytes, 0);
-    if (r < 0)
-	return r;
-    void *stacktop = stackbase + stack_reserve_bytes;
-
-    uint64_t stack_alloc_bytes = PGSIZE;
-    struct cobj_ref stack;
-    r = segment_alloc(container, stack_alloc_bytes, &stack, 0, 0, "thread stack");
     if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
-	return r;
-    }
-
-    void *stack_alloc_base = stacktop - stack_alloc_bytes;
-    r = segment_map(stack, 0, SEGMAP_READ | SEGMAP_WRITE,
-		    &stack_alloc_base, &stack_alloc_bytes,
-		    SEG_MAPOPT_OVERLAP);
-    if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
 	sys_obj_unref(stack);
 	return r;
     }
+    void *stacktop = stackbase + stack_reserve_bytes;
 
     struct thread_args *ta;
     if (options & THREAD_OPT_ARGCOPY) {
@@ -111,7 +100,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
     struct thread_entry e;
     r = sys_self_get_as(&e.te_as);
     if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
+	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
 	return r;
     }
@@ -122,7 +111,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 
     int64_t tid = sys_thread_create(container, name);
     if (tid < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
+	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
 	return tid;
     }
@@ -131,7 +120,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
     ta->thread_id = tid;
     r = sys_container_move_quota(container, tid, thread_quota_slush);
     if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
+	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
 	sys_obj_unref(tobj);
 	return r;
@@ -139,7 +128,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 
     r = sys_obj_set_fixedquota(tobj);
     if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
+	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
 	sys_obj_unref(tobj);
 	return r;
@@ -162,7 +151,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 
     r = sys_thread_start(tobj, &e, 0, 0);
     if (r < 0) {
-	segment_unmap_range(stackbase, stacktop, 1);
+	segment_unmap_delayed(stackbase, 1);
 	sys_obj_unref(stack);
 	sys_obj_unref(tobj);
 	return r;

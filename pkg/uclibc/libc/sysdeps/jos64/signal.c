@@ -71,57 +71,28 @@ stack_grow(void *faultaddr)
 	return r;
     if (r == 0)
 	return -1;
-    if (!(usm.flags & SEGMAP_STACK))	// Already allocated.
-	return 0;
 
-    uint64_t max_pages = usm.num_pages;
-    void *stacktop = usm.va + max_pages * PGSIZE;
-
-    struct cobj_ref stack_seg;
-    uint64_t stack_seg_npages = 0;
-    uint64_t mapped_pages = 0;
-
-    while (mapped_pages < max_pages) {
-	uint64_t check_pages = mapped_pages + 1;
-	r = segment_lookup_skip(stacktop - check_pages * PGSIZE,
-				&usm, SEGMAP_RESERVE);
-	if (r < 0)
-	    return r;
-	if (r == 0)
-	    break;
-
-	if (mapped_pages == 0)
-	    stack_seg = usm.segment;
-	if (usm.segment.object == stack_seg.object)
-	    stack_seg_npages = MAX(stack_seg_npages,
-				   usm.start_page + usm.num_pages);
-
-	mapped_pages = check_pages;
+    if (!(usm.flags & SEGMAP_STACK) || !(usm.flags & SEGMAP_REVERSE_PAGES)) {
+	// Not a stack?!
+	return -1;
     }
 
-    // If we are faulting on allocated stack, return no progress.
-    if (faultaddr >= stacktop - mapped_pages * PGSIZE)
+    int64_t segbytes = sys_segment_get_nbytes(usm.segment);
+    if (segbytes < 0)
+	return segbytes;
+
+    // Double the stack size, up to the mapping size.
+    int64_t newbytes = usm.start_page * PGSIZE +
+	(segbytes - usm.start_page * PGSIZE) * 2;
+    newbytes = MIN(newbytes, (int64_t) (usm.start_page + usm.num_pages) * PGSIZE);
+
+    // Report no progress if we're already at mapping size.
+    if (newbytes < 0 || segbytes == newbytes)
 	return 0;
 
-    // If we have no stack, something is wrong too.
-    if (mapped_pages == 0)
-	return -1;
-
-    // Double our stack size
-    uint64_t new_pages = MIN(max_pages - mapped_pages, mapped_pages);
-    r = sys_segment_resize(stack_seg, (stack_seg_npages + new_pages) * PGSIZE);
+    r = sys_segment_resize(usm.segment, newbytes);
     if (r < 0)
 	return r;
-
-    void *new_va = stacktop - mapped_pages * PGSIZE - new_pages * PGSIZE;
-    uint64_t map_bytes = new_pages * PGSIZE;
-    r = segment_map(stack_seg, stack_seg_npages * PGSIZE,
-		    SEGMAP_READ | SEGMAP_WRITE,
-		    &new_va, &map_bytes, 0);
-    if (r < 0) {
-	cprintf("stack_grow: dangling unmapped stack bytes\n");
-	return r;
-    }
 
     return 1;
 }
