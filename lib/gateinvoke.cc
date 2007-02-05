@@ -77,8 +77,14 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
     label tgt_label_stack(&tgt_label_ent[0], label_buf_size);
     label tgt_clear_stack(&tgt_clear_ent[0], label_buf_size);
 
-    tgt_label_stack.copy_from(tgt_label);
-    tgt_clear_stack.copy_from(tgt_clear);
+    try {
+	tgt_label_stack.copy_from(tgt_label);
+	tgt_clear_stack.copy_from(tgt_clear);
+    } catch (std::exception &e) {
+	cprintf("gate_invoke: cannot copy return labels: label %s, clear %s\n",
+		tgt_label->to_string(), tgt_clear->to_string());
+	throw;
+    }
 
     if (cb)
 	cb(tgt_label, tgt_clear, arg);
