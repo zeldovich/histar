@@ -5,17 +5,38 @@
 typedef string djfs_pathname<>;
 
 enum djfs_op {
-    DJFS_READDIR = 1
+    DJFS_READDIR = 1,
+    DJFS_READ
+};
+
+struct djfs_readdir_arg {
+    djfs_pathname pn;
+};
+
+struct djfs_readdir_res {
+    djfs_pathname ents<>;
+};
+
+struct djfs_read_arg {
+    djfs_pathname pn;
+};
+
+struct djfs_read_res {
+    opaque data<>;
 };
 
 union djfs_request switch (djfs_op op) {
  case DJFS_READDIR:
-    djfs_pathname pn;
+    djfs_readdir_arg readdir;
+ case DJFS_READ:
+    djfs_read_arg read;
 };
 
 union djfs_reply_data switch (djfs_op op) {
  case DJFS_READDIR:
-    djfs_pathname ents<>;
+    djfs_readdir_res readdir;
+ case DJFS_READ:
+    djfs_read_res read;
 };
 
 union djfs_reply switch (int err) {

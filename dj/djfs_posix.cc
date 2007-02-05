@@ -1,6 +1,28 @@
+extern "C" {
+#include <dirent.h>
+#include <sys/types.h>
+}
+
+#include <inc/scopeguard.hh>
+#include <exception>
 #include <crypt.h>
 #include <dj/dis.hh>
 #include <dj/djfs.h>
+
+class errno_exception {
+ public:
+    errno_exception(int e) : err_(e) {}
+    int err() { return err_; }
+ private:
+    int err_;
+};
+
+static void
+errcheck(bool expr)
+{
+    if (expr)
+	throw errno_exception(errno ? errno : ENOTTY);
+}
 
 class posixfs : public djcallexec {
  public:
@@ -12,6 +34,7 @@ class posixfs : public djcallexec {
 	djfs_request req;
 	djfs_reply res;
 	if (!str2xdr(req, args.data)) {
+	    warn << "posixfs: cannot unmarshal input args\n";
 	    cb_(REPLY_SYSERR, ra);
 	    return;
 	}
@@ -19,17 +42,49 @@ class posixfs : public djcallexec {
 	res.set_err(0);
 	res.d->set_op(req.op);
 
-	switch (req.op) {
-	case DJFS_READDIR:
-	    warn << "readdir for " << *req.pn << "\n";
-	    res.d->ents->setsize(2);
-	    (*res.d->ents)[0] = "Hello";
-	    (*res.d->ents)[1] = "world";
-	    break;
+	try {
+	    switch (req.op) {
+	    case DJFS_READDIR: {
+		DIR *d = opendir(req.readdir->pn.cstr());
+		errcheck(!d);
+		scope_guard<int, DIR*> cleanup(closedir, d);
 
-	default:
-	    cb_(REPLY_SYSERR, ra);
-	    return;
+		vec<str> ents;
+		for (;;) {
+		    struct dirent *de = readdir(d);
+		    if (!de)
+			break;
+
+		    ents.push_back(str(de->d_name));
+		}
+
+		res.d->readdir->ents.setsize(ents.size());
+		uint32_t i;
+		for (i = 0; i < ents.size(); i++)
+		    res.d->readdir->ents[i] = ents[i];
+		break;
+	    }
+
+	    case DJFS_READ: {
+		int fd = open(req.read->pn.cstr(), O_RDONLY);
+		errcheck(fd < 0);
+		scope_guard<int, int> cleanup(close, fd);
+
+		struct stat st;
+		errcheck(fstat(fd, &st));
+
+		res.d->read->data.setsize(st.st_size);
+		errcheck(read(fd, res.d->read->data.base(), st.st_size) != st.st_size);
+		break;
+	    }
+
+	    default:
+		warn << "posixfs: unknown op " << req.op << "\n";
+		cb_(REPLY_SYSERR, ra);
+		return;
+	    }
+	} catch (errno_exception &e) {
+	    res.set_err(e.err());
 	}
 
 	ra.taint = args.taint;

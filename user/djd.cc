@@ -7,27 +7,51 @@
 #include <dj/djfs.h>
 
 static void
-stuffcb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args &args)
+readcb(dj_reply_status stat, const djcall_args &args)
 {
-    warn << "stuffcb: status " << stat << "\n";
+    if (stat != REPLY_DONE) {
+	warn << "readcb: stat " << stat << "\n";
+	return;
+    }
+
+    djfs_reply reply;
+    if (!str2xdr(reply, args.data)) {
+	warn << "readcb: cannot decode\n";
+	return;
+    }
+
+    if (reply.d->op != DJFS_READ) {
+	warn << "readcb: wrong reply op\n";
+	return;
+    }
+
+    str d(reply.d->read->data.base(), reply.d->read->data.size());
+    warn << "read: " << d << "\n";
+}
+
+static void
+readdircb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args &args)
+{
     if (stat == REPLY_DONE) {
 	djfs_reply reply;
 	if (!str2xdr(reply, args.data)) {
-	    warn << "Stuffcb: cannot decode\n";
+	    warn << "readdircb: cannot decode\n";
 	} else {
 	    if (reply.err) {
-		warn << "stuffcb: err " << reply.err << "\n";
+		warn << "readdircb: err " << reply.err << "\n";
 		return;
 	    }
 
 	    if (reply.d->op != DJFS_READDIR) {
-		warn << "stuffcb: wrong reply op " << reply.d->op << "\n";
+		warn << "readdircb: wrong reply op " << reply.d->op << "\n";
 		return;
 	    }
 
-	    for (uint32_t i = 0; i < reply.d->ents->size(); i++)
-		warn << "readdir: " << (*reply.d->ents)[i] << "\n";
+	    for (uint32_t i = 0; i < reply.d->readdir->ents.size(); i++)
+		warn << "readdir: " << reply.d->readdir->ents[i] << "\n";
 	}
+    } else {
+	warn << "readdircb: status " << stat << "\n";
     }
 }
 
@@ -36,7 +60,7 @@ dostuff(ptr<djprot> p, str node_pk)
 {
     djfs_request req;
     req.set_op(DJFS_READDIR);
-    *req.pn = str("/bin");
+    req.readdir->pn = str("/bin");
 
     dj_gatename gate;
     djcall_args args;
@@ -44,7 +68,12 @@ dostuff(ptr<djprot> p, str node_pk)
     args.taint = label(1);
     args.grant = label(3);
 
-    p->call(node_pk, gate, args, wrap(&stuffcb, p, node_pk));
+    p->call(node_pk, gate, args, wrap(&readdircb, p, node_pk));
+
+    req.set_op(DJFS_READ);
+    req.read->pn = str("/etc/passwd");
+    args.data = xdr2str(req);
+    p->call(node_pk, gate, args, wrap(&readcb));
 
     delaycb(5, wrap(&dostuff, p, node_pk));
 }
