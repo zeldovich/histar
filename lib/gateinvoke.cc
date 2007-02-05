@@ -89,6 +89,6 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
 
     error_check(sys_gate_enter(gate,
 			       tgt_label_stack.to_ulabel(),
-			       tgt_clear_stack.to_ulabel()));
+			       tgt_clear_stack.to_ulabel(), 0));
     throw basic_exception("gate_invoke: still alive");
 }

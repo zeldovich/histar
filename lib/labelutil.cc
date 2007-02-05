@@ -164,6 +164,17 @@ thread_cur_clearance(label *l)
 }
 
 void
+thread_label_cache_update(label *l, label *c)
+{
+    scoped_jthread_lock x(&label_ops_mu);
+
+    if (cur_th_label_id == thread_id())
+	cur_th_label.copy_from(l);
+    if (cur_th_clear_id == thread_id())
+	cur_th_clear.copy_from(c);
+}
+
+void
 thread_cur_verify(label *l)
 {
     get_label_retry(l, &sys_self_get_verify);

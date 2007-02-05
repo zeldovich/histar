@@ -11,10 +11,12 @@ struct Gate {
 
     struct thread_entry gt_te;
     uint8_t gt_te_visible;
+    uint8_t gt_te_unspec;
 };
 
 int  gate_alloc(const struct Label *l,
 		const struct Label *clearance,
+		const struct Label *verify,
 		struct Gate **gp)
     __attribute__ ((warn_unused_result));
 

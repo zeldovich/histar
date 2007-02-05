@@ -48,20 +48,17 @@ signal_gate_init(void)
     signal_gate_close();
 
     try {
-	label tl, tc;
-	// avoid calling functions that manipulate label cache
-	get_label_retry(&tl, thread_get_label);
-	get_label_retry(&tc, sys_self_get_clearance);
-
 	// require user privileges for sending a signal
+	label verify(3);
 	if (start_env->user_grant)
-	    tc.set(start_env->user_grant, 0);
+	    verify.set(start_env->user_grant, 0);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "signal";
-	gd.label_ = &tl;
-	gd.clearance_ = &tc;
+	gd.label_ = 0;
+	gd.clearance_ = 0;
+	gd.verify_ = &verify;
 	gd.func_ = &signal_gate_entry;
 	gd.arg_ = 0;
 	gd.flags_ = GATESRV_KEEP_TLS_STACK;

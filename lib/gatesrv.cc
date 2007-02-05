@@ -86,7 +86,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 
 struct cobj_ref
 gate_create(uint64_t gate_ct, const char *name,
-	    label *label, label *clearance,
+	    label *label, label *clearance, label *verify,
 	    gatesrv_entry_t func, void *arg)
 {
     gatesrv_descriptor gd;
@@ -94,6 +94,7 @@ gate_create(uint64_t gate_ct, const char *name,
     gd.name_ = name;
     gd.label_ = label;
     gd.clearance_ = clearance;
+    gd.verify_ = verify;
     gd.func_ = func;
     gd.arg_ = arg;
 
@@ -116,8 +117,10 @@ gate_create(gatesrv_descriptor *gd)
 	error_check(sys_self_get_as(&te.te_as));
 
     int64_t gate_id = sys_gate_create(gd->gate_container_, &te,
-				      gd->clearance_->to_ulabel(),
-				      gd->label_->to_ulabel(), gd->name_, 0);
+				      gd->label_ ? gd->label_->to_ulabel() : 0,
+				      gd->clearance_ ? gd->clearance_->to_ulabel() : 0,
+				      gd->verify_ ? gd->verify_->to_ulabel() : 0,
+				      gd->name_, 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 

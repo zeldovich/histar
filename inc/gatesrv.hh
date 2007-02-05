@@ -45,6 +45,7 @@ public:
     cobj_ref as_;
     label *label_;
     label *clearance_;
+    label *verify_;
 
     gatesrv_entry_t func_;
     void *arg_;
@@ -57,7 +58,7 @@ public:
 
 struct cobj_ref gate_create(gatesrv_descriptor *dsc);
 struct cobj_ref gate_create(uint64_t gate_container, const char *name,
-			    label *label, label *clearance,
+			    label *label, label *clearance, label *verify,
 			    gatesrv_entry_t func, void *arg);
 
 #endif

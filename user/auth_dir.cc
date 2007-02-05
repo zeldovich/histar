@@ -166,7 +166,7 @@ auth_dir_init(void)
     th_ctm.set(start_env->process_grant, 1);
 
     gate_create(start_env->shared_container,
-		"authdir", &th_ctm, &th_clr,
+		"authdir", &th_ctm, &th_clr, 0,
 		&auth_dir_entry, 0);
 }
 

@@ -93,13 +93,11 @@ ptm_handle_open(struct gatefd_args *args)
 	    char buf[32];
 	    snprintf(&buf[0], sizeof(buf), "%ld", i);
 	    
-	    label th_l, th_cl(2);
-	    thread_cur_label(&th_l);
-	    thread_cur_clearance(&th_cl);
-	    th_cl.set(start_env->user_grant, 0);
+	    label verify(3);
+	    verify.set(start_env->user_grant, 0);
 
-	    struct cobj_ref pts_gt = gate_create(pts_ct, buf, &th_l, &th_cl, 
-						    &pts_gate, (void *) i);
+	    struct cobj_ref pts_gt = gate_create(pts_ct, buf, 0, 0, &verify,
+						 &pts_gate, (void *) i);
 	    pts_table[i].gate = pts_gt;
 	    pts_table[i].h_master = args->call.arg;
 		    
@@ -140,11 +138,8 @@ main (int ac, char **av)
     memset(pts_table, 0, sizeof(pts_table));
     
     try {
-	label th_l, th_cl;
-	thread_cur_label(&th_l);
-	thread_cur_clearance(&th_cl);
-	devptm_gt = gate_create(ct, "ptmx", &th_l, &th_cl, &ptmx_gate, 0);
-	
+	devptm_gt = gate_create(ct, "ptmx", 0, 0, 0, &ptmx_gate, 0);
+
 	label l(1);
 	uint64_t ct2 = 0;
 	error_check(ct2 = sys_container_alloc(ct, l.to_ulabel(), "pts", 0, CT_QUOTA_INF));

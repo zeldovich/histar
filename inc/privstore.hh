@@ -19,8 +19,6 @@ public:
     void acquire();
 
 private:
-    static void entry(void) __attribute__((noreturn));
-
     uint64_t handle_;
     struct cobj_ref gate_;
 };

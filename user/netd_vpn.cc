@@ -51,10 +51,10 @@ main(int ac, char **av)
     }
 
     try {
-	label cntm;
-	label clear(2);
+	label cntm, clear;
 
 	thread_cur_label(&cntm);
+	thread_cur_clearance(&clear);
 
 	netd_server_init(start_env->shared_container,
 			 taint, &cntm, &clear);

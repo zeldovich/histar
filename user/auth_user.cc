@@ -196,21 +196,21 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 	// Whew, created that pesky retry segment..
 
-	label tl, tc;
-	thread_cur_label(&tl);
-	thread_cur_clearance(&tc);
+	label verify(3);
+	verify.set(req.session_grant, 0);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = req.session_ct;
 	gd.name_ = "user auth gate";
 	gd.as_ = base_as_ref;
-	gd.label_ = &tl;
-	gd.clearance_ = &tc;
+	gd.label_ = 0;
+	gd.clearance_ = 0;
+	gd.verify_ = &verify;
 	gd.func_ = auth_uauth_entry;
 	gd.arg_ = (void *) retry_seg_copy.object;
 	cobj_ref ga = gate_create(&gd);
 
-	tc.set(xh, 0);
+	verify.set(xh, 0);
 	gd.name_ = "user grant gate";
 	gd.func_ = auth_grant_entry;
 	gd.arg_ = 0;
@@ -292,7 +292,7 @@ auth_user_init(void)
     th_ctm.set(start_env->process_grant, 1);
 
     gate_create(start_env->shared_container,
-		"user login gate", &th_ctm, &th_clr,
+		"user login gate", &th_ctm, &th_clr, 0,
 		&auth_user_entry, 0);
 }
 

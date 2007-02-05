@@ -48,7 +48,7 @@ main(int ac, char **av)
 	gt_label.set(start_env->process_grant, 1);
 
 	gate_create(start_env->shared_container, "authlog",
-		    &gt_label, &gt_clear,
+		    &gt_label, &gt_clear, 0,
 		    &authlog_entry, 0);
 	process_report_exit(0);
     	thread_halt();

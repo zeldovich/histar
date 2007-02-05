@@ -83,8 +83,10 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     coop_gate_label.set(session_grant, LB_LEVEL_STAR);
 
     label coop_gate_clear(2);
-    coop_gate_clear.set(session_grant, 0);
     coop_gate_clear.set(pw_taint, 3);
+
+    label coop_gate_verify(3);
+    coop_gate_verify.set(session_grant, 0);
 
     coop_sysarg coop_vals[8];
     memset(&coop_vals[0], 0, sizeof(coop_vals));
@@ -101,7 +103,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     cobj_ref coop_gate =
 	coop_gate_create(session_ct, &coop_gate_label, &coop_gate_clear,
-			 coop_vals, coop_freemask);
+			 &coop_gate_verify, coop_vals, coop_freemask);
 
     // Invoke the user gate
     label user_auth_ds(3);
@@ -246,8 +248,10 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     coop_gate_label.set(session_grant, LB_LEVEL_STAR);
 
     label coop_gate_clear(2);
-    coop_gate_clear.set(session_grant, 0);
     coop_gate_clear.set(pw_taint, 3);
+
+    label coop_gate_verify(3);
+    coop_gate_verify.set(session_grant, 0);
 
     coop_sysarg coop_vals[8];
     memset(&coop_vals[0], 0, sizeof(coop_vals));
@@ -264,7 +268,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
 
     cobj_ref coop_gate =
 	coop_gate_create(session_ct, &coop_gate_label, &coop_gate_clear,
-			 coop_vals, coop_freemask);
+			 &coop_gate_verify, coop_vals, coop_freemask);
 
     // Invoke user gate
     label user_auth_ds(3);

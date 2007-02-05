@@ -237,7 +237,6 @@ ssld_cow_entry(void)
     
 	cprintf("ssld_cow_entry: still running\n");
 	thread_halt();
-	
     } catch (std::exception &e) {
 	cprintf("ssld_cow_entry: %s\n", e.what());
 	thread_halt();
@@ -247,19 +246,14 @@ ssld_cow_entry(void)
 static struct cobj_ref
 ssld_cow_gate_create(uint64_t ct)
 {
-    label th_l, th_c;
-    thread_cur_label(&th_l);
-    thread_cur_clearance(&th_c);
-    
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &ssld_cow_entry;
     te.te_stack = (char *) tls_stack_top - 8;
     error_check(sys_self_get_as(&te.te_as));
 
-    int64_t gate_id = sys_gate_create(ct, &te,
-				      th_c.to_ulabel(),
-				      th_l.to_ulabel(), "ssld-cow", 0);
+    // XXX should we set a verify label on this gate?
+    int64_t gate_id = sys_gate_create(ct, &te, 0, 0, 0, "ssld-cow", 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
@@ -271,7 +265,7 @@ ssld_cow_gate_create(uint64_t ct)
 			    &stackbase, &stackbytes, 0));
     scope_guard<int, void *> unmap(segment_unmap, stackbase);
     char *stacktop = ((char *) stackbase) + stackbytes;
-	
+
     struct cobj_ref stackobj;
     void *allocbase = stacktop - (2 * PGSIZE);
     error_check(segment_alloc(entry_ct, (2 * PGSIZE), &stackobj,

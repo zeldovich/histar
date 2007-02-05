@@ -32,19 +32,8 @@ return_stub(jos_jmp_buf *jb)
 static void
 return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
 {
-    label clear;
-    thread_cur_clearance(&clear);
-
-    label cur_label;
-    thread_cur_label(&cur_label);
-
-    label max_clear(cur_label);
-    max_clear.transform(label::star_to, clear.get_default());
-
-    label out;
-    clear.merge(&max_clear, &out, label::max, label::leq_starlo);
-    clear.copy_from(&out);
-    clear.set(return_handle, 0);
+    label verify(3);
+    verify.set(return_handle, 0);
 
     thread_entry te;
     memset(&te, 0, sizeof(te));
@@ -53,13 +42,10 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     te.te_arg[0] = (uint64_t) jb;
     error_check(sys_self_get_as(&te.te_as));
 
-    int64_t id = sys_gate_create(ct, &te,
-				 clear.to_ulabel(),
-				 cur_label.to_ulabel(),
+    int64_t id = sys_gate_create(ct, &te, 0, 0, verify.to_ulabel(),
 				 "return gate", 0);
     if (id < 0)
-	throw error(id, "return_setup: creating return gate: l %s, c %s",
-		    cur_label.to_string(), clear.to_string());
+	throw error(id, "return_setup: creating return gate");
 
     *g = COBJ(ct, id);
 }

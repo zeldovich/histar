@@ -87,12 +87,7 @@ httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 int
 main(int ac, char **av)
 {
-    label th_ctm, th_clr;
-    thread_cur_label(&th_ctm);
-    thread_cur_clearance(&th_clr);
-
     gate_create(start_env->shared_container, "worker",
-		&th_ctm, &th_clr,
-		&httpd_worker, 0);
+		0, 0, 0, &httpd_worker, 0);
     thread_halt();
 }

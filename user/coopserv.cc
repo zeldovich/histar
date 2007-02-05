@@ -15,6 +15,7 @@ main(int ac, char **av)
     l.set(start_env->process_taint, LB_LEVEL_STAR);
 
     label clear(2);
+    label verify(3);
 
     label segl(1);
 
@@ -35,7 +36,7 @@ main(int ac, char **av)
 
     cobj_ref g =
 	coop_gate_create(start_env->shared_container,
-			 &l, &clear,
+			 &l, &clear, &verify,
 			 arg_values, arg_freemask);
 
     printf("coop gate created: %ld %ld\n", g.container, g.object);

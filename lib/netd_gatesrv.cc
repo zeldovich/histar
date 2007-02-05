@@ -181,12 +181,15 @@ static void
 netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 {
     try {
+	label verify(3);
+
 	gatesrv_descriptor gd;
 	gd.gate_container_ = gate_ct;
 	gd.label_ = l;
 	gd.clearance_ = clear;
+	gd.verify_ = &verify;
 	gd.arg_ = 0;
-	
+
 	gd.name_ = "netd";
 	gd.func_ = &netd_gate_entry;
 	gate_create(&gd);
@@ -210,16 +213,11 @@ netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
 		 label *l, label *clear)
 {
-    label cur_l, cur_c;
-    thread_cur_label(&cur_l);
-    thread_cur_clearance(&cur_c);
-
     error_check(sys_self_get_as(&netd_asref));
 
     declassify_gate =
 	gate_create(start_env->shared_container, "declassifier",
-		    &cur_l, &cur_c,
-		    &declassifier, (void *) taint_handle);
+		    0, 0, 0, &declassifier, (void *) taint_handle);
 
     netd_gate_init(gate_ct, l, clear);
 }

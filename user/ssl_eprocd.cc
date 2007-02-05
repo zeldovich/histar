@@ -129,19 +129,14 @@ eprocd_cow_entry(void)
 static struct cobj_ref
 cow_gate_create(uint64_t ct)
 {
-    label th_l, th_c;
-    thread_cur_label(&th_l);
-    thread_cur_clearance(&th_c);
-    
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &eprocd_cow_entry;
     te.te_stack = (char *) tls_stack_top - 8;
     error_check(sys_self_get_as(&te.te_as));
 
-    int64_t gate_id = sys_gate_create(ct, &te,
-				      th_c.to_ulabel(),
-				      th_l.to_ulabel(), "eproc-cow", 0);
+    // XXX should we set a verify label on this gate?
+    int64_t gate_id = sys_gate_create(ct, &te, 0, 0, 0, "eproc-cow", 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 

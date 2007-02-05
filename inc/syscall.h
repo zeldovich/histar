@@ -49,11 +49,13 @@ int	sys_obj_get_readonly(struct cobj_ref o);
 int64_t	sys_handle_create(void);
 
 int64_t	sys_gate_create(uint64_t container, struct thread_entry *s,
-			struct ulabel *entry, struct ulabel *target,
-			const char *name, int entry_visible);
+			struct ulabel *label, struct ulabel *clear,
+			struct ulabel *verify, const char *name,
+			int entry_visible);
 int	sys_gate_enter(struct cobj_ref gate,
 		       struct ulabel *label,
-		       struct ulabel *clearance);
+		       struct ulabel *clearance,
+		       struct thread_entry *s);
 int	sys_gate_clearance(struct cobj_ref gate, struct ulabel *ul);
 int	sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *s);
 

@@ -162,18 +162,21 @@ sys_container_get_nslots(uint64_t container)
 
 int64_t
 sys_gate_create(uint64_t container, struct thread_entry *te,
-		struct ulabel *el, struct ulabel *tl,
-		const char *name, int entry_visible)
+		struct ulabel *label, struct ulabel *clear,
+		struct ulabel *verify, const char *name,
+		int entry_visible)
 {
-    return syscall(SYS_gate_create, container, te, el, tl, name, entry_visible);
+    return syscall(SYS_gate_create, container, te, label, clear, verify,
+		   name, entry_visible);
 }
 
 int
 sys_gate_enter(struct cobj_ref gate,
 	       struct ulabel *l,
-	       struct ulabel *clearance)
+	       struct ulabel *clearance,
+	       struct thread_entry *te)
 {
-    return syscall(SYS_gate_enter, gate, l, clearance);
+    return syscall(SYS_gate_enter, gate, l, clearance, te);
 }
 
 int

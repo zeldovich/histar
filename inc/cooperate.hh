@@ -23,6 +23,7 @@ cobj_ref
     coop_gate_create(uint64_t container,
 		     label *l,
 		     label *clearance,
+		     label *verify,
 		     coop_sysarg arg_values[8],
 		     char arg_freemask[8]);
 

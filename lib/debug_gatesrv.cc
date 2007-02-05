@@ -309,19 +309,15 @@ debug_gate_init(void)
     debug_gate_inited = 1;
 
     try {
-	label tl, tc;
-	// avoid calling functions that manipulate label cache
-	get_label_retry(&tl, thread_get_label);
-	get_label_retry(&tc, sys_self_get_clearance);
-
 	// require user privileges for debug
+	label verify(3);
 	if (start_env->user_grant)
-	    tc.set(start_env->user_grant, 0);
+	    verify.set(start_env->user_grant, 0);
 
 	struct cobj_ref cur_as;
 	error_check(sys_self_get_as(&cur_as));
 	debug_gate_as_is(cur_as);
-	
+
 	struct cobj_ref to;
 	int r = segment_alloc(start_env->shared_container, sizeof(*dinfo), &to,
 			      (void **)&dinfo, 0, "debug info");
@@ -330,8 +326,8 @@ debug_gate_init(void)
 	    return;
 	}
 
-	gs = gate_create(start_env->shared_container,"debug", &tl, 
-			 &tc, &debug_gate_entry, 0);
+	gs = gate_create(start_env->shared_container, "debug",
+			 0, 0, &verify, &debug_gate_entry, 0);
     } catch (std::exception &e) {
 	cprintf("signal_gate_create: %s\n", e.what());
     }

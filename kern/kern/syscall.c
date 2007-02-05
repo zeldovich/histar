@@ -431,35 +431,38 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 
 static int64_t __attribute__ ((warn_unused_result))
 sys_gate_create(uint64_t container, struct thread_entry *ute,
-		struct ulabel *ul_recv, struct ulabel *ul_send,
-		const char *name, int entry_visible)
+		struct ulabel *u_label, struct ulabel *u_clear,
+		struct ulabel *u_guard, const char *name,
+		int entry_visible)
 {
-    struct thread_entry te;
-    check(check_user_access(ute, sizeof(te), 0));
-    memcpy(&te, ute, sizeof(te));
-
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
 
-    const struct Label *l_send;
-    check(alloc_ulabel(ul_send, &l_send, 0));
-    check(label_compare(cur_th_label, l_send, label_leq_starlo));
-    check(label_compare(l_send, cur_th_clearance, label_leq_starlo));
+    const struct Label *g_label, *g_clear;
+    check(alloc_ulabel(u_label, &g_label, &cur_th_label->lb_ko));
+    check(alloc_ulabel(u_clear, &g_clear, &cur_th_clearance->lb_ko));
+    check(label_compare(cur_th_label, g_label, label_leq_starlo));
+    check(label_compare(g_label, g_clear, label_leq_starlo));
+    check(label_compare(g_clear, cur_th_clearance, label_leq_starlo));
 
-    struct Label *clearance_bound;
-    check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
-    check(label_max(cur_th_label, cur_th_clearance,
-		    clearance_bound, label_leq_starhi));
-
-    const struct Label *clearance;
-    check(alloc_ulabel(ul_recv, &clearance, 0));
-    check(label_compare(clearance, clearance_bound, label_leq_starhi));
+    const struct Label *g_guard = 0;
+    if (u_guard)
+	check(alloc_ulabel(u_guard, &g_guard, 0));
 
     struct Gate *g;
-    check(gate_alloc(l_send, clearance, &g));
+    check(gate_alloc(g_label, g_clear, g_guard, &g));
     check(alloc_set_name(&g->gt_ko, name));
-    g->gt_te = te;
+
+    g->gt_te_unspec = ute ? 0 : 1;
     g->gt_te_visible = entry_visible ? 1 : 0;
+    if (ute) {
+	check(check_user_access(ute, sizeof(*ute), 0));
+	memcpy(&g->gt_te, ute, sizeof(*ute));
+	g->gt_te_unspec = 0;
+    } else {
+	if (entry_visible)
+	    return -E_INVAL;
+    }
 
     check(container_put(&kobject_dirty(&c->ct_ko)->ct, &g->gt_ko));
     return g->gt_ko.ko_id;
@@ -508,7 +511,8 @@ sys_thread_create(uint64_t ct, const char *name)
 static int64_t __attribute__ ((warn_unused_result))
 sys_gate_enter(struct cobj_ref gt,
 	       struct ulabel *ulabel,
-	       struct ulabel *uclear)
+	       struct ulabel *uclear,
+	       struct thread_entry *ute)
 {
     // Verify that the caller has supplied a valid verify label
     const struct Label *verify;
@@ -520,28 +524,36 @@ sys_gate_enter(struct cobj_ref gt,
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
     const struct Gate *g = &ko->gt;
 
-    const struct Label *gt_label, *gt_clear;
+    const struct Label *gt_label, *gt_clear, *gt_verify;
     check(kobject_get_label(&g->gt_ko, kolabel_contaminate, &gt_label));
     check(kobject_get_label(&g->gt_ko, kolabel_clearance,   &gt_clear));
+    check(kobject_get_label(&g->gt_ko, kolabel_verify,	    &gt_verify));
 
-    check(label_compare(cur_th_label, gt_clear, label_leq_starlo));
+    if (gt_verify)
+	check(label_compare(cur_th_label, gt_verify, label_leq_starlo));
 
     struct Label *label_bound, *clear_bound;
     check(label_alloc(&label_bound, LB_LEVEL_UNDEF));
     check(label_alloc(&clear_bound, LB_LEVEL_UNDEF));
-    check(label_max(gt_label, cur_th_label, label_bound, label_leq_starhi));
+    check(label_max(gt_label, cur_th_label,	label_bound, label_leq_starhi));
     check(label_max(gt_clear, cur_th_clearance, clear_bound, label_leq_starlo));
 
     const struct Label *new_label, *new_clear;
     check(alloc_ulabel(ulabel, &new_label, 0));
     check(alloc_ulabel(uclear, &new_clear, 0));
-    check(label_compare(label_bound, new_label, label_leq_starlo));
-    check(label_compare(new_clear, clear_bound, label_leq_starhi));
+    check(label_compare(label_bound, new_label,   label_leq_starlo));
+    check(label_compare(new_label,   new_clear,	  label_leq_starlo));
+    check(label_compare(new_clear,   clear_bound, label_leq_starhi));
 
-    // Check that we aren't exceeding the clearance in the end
-    check(label_compare(new_label, new_clear, label_leq_starlo));
+    const struct thread_entry *te = &g->gt_te;
+    if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
+	return -E_INVAL;
+    if (ute) {
+	check(check_user_access(ute, sizeof(*ute), 0));
+	te = ute;
+    }
 
-    check(thread_jump(cur_thread, new_label, new_clear, &g->gt_te));
+    check(thread_jump(cur_thread, new_label, new_clear, te));
     return 0;
 }
 
@@ -967,7 +979,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(obj_set_meta, COBJ(a1, a2), p3, p4);
 	SYSCALL(obj_set_fixedquota, COBJ(a1, a2));
 	SYSCALL(obj_set_readonly, COBJ(a1, a2));
-	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4);
+	SYSCALL(gate_enter, COBJ(a1, a2), p3, p4, p5);
 	SYSCALL(gate_clearance, COBJ(a1, a2), p3);
 	SYSCALL(gate_get_entry, COBJ(a1, a2), p3);
 	SYSCALL(thread_start, COBJ(a1, a2), p3, p4, p5);
@@ -1017,7 +1029,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(segment_create, a1, a2, p3, p4);
 	SYSCALL(segment_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(segment_get_nbytes, COBJ(a1, a2));
-	SYSCALL(gate_create, a1, p2, p3, p4, p5, a6);
+	SYSCALL(gate_create, a1, p2, p3, p4, p5, p6, a7);
 	SYSCALL(as_create, a1, p2, p3);
 	SYSCALL(as_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(pstate_timestamp);

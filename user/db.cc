@@ -106,19 +106,16 @@ db_insert(label *v, db_query *dbq, db_reply *dbr)
 					   row_label.to_ulabel(), name));
     scope_guard<int, cobj_ref> row_drop(sys_obj_unref, COBJ(db_table_ct, copy_id));
 
-    label gate_clear(2);
-    gate_clear.set(db_table_grant, 0);
-
-    // Gate label: { P_T:*, DB_G:*, Row_T:*, ..., 1 }
-    label gate_label;
-    thread_cur_label(&gate_label);
+    label verify(3);
+    verify.set(db_table_grant, 0);
 
     gatesrv_descriptor gd;
     gd.gate_container_ = db_table_ct;
     gd.name_ = name;
     gd.as_ = db_as;
-    gd.label_ = &gate_label;
-    gd.clearance_ = &gate_clear;
+    gd.label_ = 0;
+    gd.clearance_ = 0;
+    gd.verify_ = &verify;
     gd.func_ = &db_row_entry;
     gd.arg_ = (void *) copy_id;
 
@@ -250,7 +247,7 @@ try
 
     struct cobj_ref g =
 	gate_create(start_env->shared_container, "db gate",
-		    &th_label, &th_clear,
+		    &th_label, &th_clear, 0,
 		    &db_entry, 0);
 
     thread_halt();

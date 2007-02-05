@@ -51,6 +51,7 @@ cobj_ref
 coop_gate_create(uint64_t container,
 		 label *l,
 		 label *clearance,
+		 label *verify,
 		 coop_sysarg arg_values[8],
 		 char arg_freemask[8])
 {
@@ -162,8 +163,8 @@ coop_gate_create(uint64_t container,
 
     int64_t gate_id =
 	sys_gate_create(container, &te,
-			clearance->to_ulabel(), l->to_ulabel(),
-			"coop gate", 1);
+			l->to_ulabel(), clearance->to_ulabel(),
+			verify->to_ulabel(), "coop gate", 1);
     error_check(gate_id);
 
     // We're done!

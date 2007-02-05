@@ -5,6 +5,7 @@
 int
 gate_alloc(const struct Label *l,
 	   const struct Label *clearance,
+	   const struct Label *verify,
 	   struct Gate **gp)
 {
     struct kobject *ko;
@@ -13,6 +14,10 @@ gate_alloc(const struct Label *l,
 	return r;
 
     r = kobject_set_label(&ko->hdr, kolabel_clearance, clearance);
+    if (r < 0)
+	return r;
+
+    r = kobject_set_label(&ko->hdr, kolabel_verify, verify);
     if (r < 0)
 	return r;
 
