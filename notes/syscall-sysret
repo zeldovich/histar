@@ -1,0 +1,10 @@
+The SYSCALL/SYSRET instructions aren't quite suitable for our use.  The problem
+is that they make it impossible for system calls to be atomic, by destroying
+the contents of %rcx on kernel entry.  As a result, if we decide to suspend the
+thread, it will observe an intermediate state where %rcx was clobbered but the
+system call hasn't returned.
+
+It would be nice if there was a way to allow SYSCALL only if %rcx already had
+the right value.  This shouldn't place that much burden on the calling code.
+But, this hardware feature doesn't exist at the moment.
+
