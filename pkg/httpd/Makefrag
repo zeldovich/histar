@@ -1,0 +1,58 @@
+OBJDIRS += pkg/httpd/user \
+	   pkg/httpd/lib
+
+## Programs that require additional libraries
+
+$(OBJDIR)/pkg/httpd/user/ssld.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/user/ssld.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
+$(OBJDIR)/user/ssld.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+
+$(OBJDIR)/pkg/httpd/user/ssl_bench.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/user/ssl_bench.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
+$(OBJDIR)/user/ssl_bench.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+
+$(OBJDIR)/pkg/httpd/user/ssl_eprocd.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/user/ssl_eprocd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
+$(OBJDIR)/user/ssl_eprocd.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+
+HTTPD_INCLUDES := 		\
+	-Ipkg/httpd/
+
+HTTPD_CFLAGS := $(HTTPD_INCLUDES)
+
+HTTPD_SRCFILES :=			\
+	pkg/httpd/lib/ssld_client.cc 	\
+	pkg/httpd/lib/ssl_eproc.cc   	\
+	pkg/httpd/lib/ssl_proxy.cc   	\
+	pkg/httpd/user/httpd.cc
+
+HTTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_SRCFILES))
+HTTPD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(HTTPD_OBJFILES))
+
+## Generic build rules
+
+$(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(HTTPD_CFLAGS) $(PER_TARGET_CFLAGS)
+
+$(OBJDIR)/pkg/httpd/user/%.o: pkg/httpd/user/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(HTTPD_CFLAGS) $(PER_TARGET_CFLAGS)
+
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/pkg/httpd/user/%.o $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
+
+## Special targets
+
+$(OBJDIR)/user/httpd.debuginfo: $(HTTPD_OBJFILES) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $(HTTPD_OBJFILES)
+
+$(OBJDIR)/user/server.pem $(OBJDIR)/user/servkey.pem:
+	@mkdir -p $(@D)
+	openssl req -new -x509 -keyout $(OBJDIR)/user/servkey.pem \
+		-out $(OBJDIR)/user/server.pem -days 3650 \
+		-nodes -subj /CN=histar-httpd
+
+$(OBJDIR)/user/dh.pem:
+	@mkdir -p $(@D)
+	openssl dhparam -out $@ 1024

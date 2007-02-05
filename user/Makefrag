@@ -2,18 +2,6 @@ OBJDIRS += user
 
 ## Programs that require additional libraries
 
-$(OBJDIR)/user/ssld.o: acpkg/openssl-0.9.8a/__build
-$(OBJDIR)/user/ssld.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
-$(OBJDIR)/user/ssld.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
-
-$(OBJDIR)/user/ssl_bench.o: acpkg/openssl-0.9.8a/__build
-$(OBJDIR)/user/ssl_bench.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
-$(OBJDIR)/user/ssl_bench.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
-
-$(OBJDIR)/user/ssl_eprocd.o: acpkg/openssl-0.9.8a/__build
-$(OBJDIR)/user/ssl_eprocd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include -Wno-non-template-friend
-$(OBJDIR)/user/ssl_eprocd.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
-
 $(OBJDIR)/user/asynct0.o: $(OBJDIR)/acpkg/include/sfslite
 $(OBJDIR)/user/asynct0.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
 $(OBJDIR)/user/asynct0.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
@@ -62,16 +50,6 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@
 
 ## Special targets
-
-$(OBJDIR)/user/server.pem $(OBJDIR)/user/servkey.pem:
-	@mkdir -p $(@D)
-	openssl req -new -x509 -keyout $(OBJDIR)/user/servkey.pem \
-		-out $(OBJDIR)/user/server.pem -days 3650 \
-		-nodes -subj /CN=histar-httpd
-
-$(OBJDIR)/user/dh.pem:
-	@mkdir -p $(@D)
-	openssl dhparam -out $@ 1024
 
 $(OBJDIR)/user/%.C: user/%.x
 	@mkdir -p $(@D)
