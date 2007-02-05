@@ -156,7 +156,9 @@ gate_call::call(gate_call_data *gcd_param, label *verify)
 	    cprintf("[%ld] gate_call: invoking with label %s, clear %s\n",
 		    thread_id(), tgt_label_->to_string(), tgt_clear_->to_string());
 
-	gate_invoke(gate_, tgt_label_, tgt_clear_, 0, 0);
+	error_check(sys_gate_enter(gate_, tgt_label_->to_ulabel(),
+					  tgt_clear_->to_ulabel(), 0));
+	throw basic_exception("gate_call: sys_gate_enter returned 0");
     }
 
     if (gate_client_debug)
