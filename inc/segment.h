@@ -13,14 +13,19 @@
 #define SEGMAP_READ		0x04
 
 /*
+ * Kernel-interpreted flags.
+ */
+#define SEGMAP_REVERSE_PAGES	0x08
+
+/*
  * User-interpreted flags
  */
-#define SEGMAP_CLOEXEC		0x0008
-#define SEGMAP_DELAYED_UNMAP	0x0010
-#define SEGMAP_ANON_MMAP	0x0020
-#define SEGMAP_VECTOR_PF	0x0040
-#define SEGMAP_STACK		0x0080
-#define SEGMAP_RESERVE		0x0100
+#define SEGMAP_CLOEXEC		0x0100
+#define SEGMAP_DELAYED_UNMAP	0x0200
+#define SEGMAP_ANON_MMAP	0x0400
+#define SEGMAP_VECTOR_PF	0x0800
+#define SEGMAP_STACK		0x1000
+#define SEGMAP_RESERVE		0x2000
 
 struct u_segment_mapping {
     struct cobj_ref segment;
