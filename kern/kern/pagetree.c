@@ -324,11 +324,12 @@ void
 pagetree_decpin(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
-    if (pi->pi_ref != 1)
-	panic("pagetree_decpin: shared page -- refcount %d", pi->pi_ref);
     if (pi->pi_pin == 0)
 	panic("pagetree_decpin: not pinned");
     --pi->pi_pin;
-    if (pi->pi_parent)
+    if (pi->pi_parent) {
+	if (pi->pi_ref != 1)
+	    panic("pagetree_decpin: shared subpage, refcount %d", pi->pi_ref);
 	pagetree_decpin(pi->pi_parent);
+    }
 }
