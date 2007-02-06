@@ -56,11 +56,13 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     }
 }
 
-#define ERRCHECK(e) \
-    do {					\
-	int64_t __r = e;			\
-	if (__r < 0)				\
-	    panic("%s: %s", #e, e2s(__r));	\
+#define ERRCHECK(e)						\
+    do {							\
+	int64_t __r = e;					\
+	if (__r < 0) {						\
+	    cprintf("taint_cow: %s: %s\n", #e, e2s(__r));	\
+	    sys_self_halt();					\
+	}							\
     } while (0)
 
 int
