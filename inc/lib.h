@@ -153,9 +153,6 @@ int	process_report_exit(int64_t code);
 int64_t container_find(uint64_t container, kobject_type_t type,
 		       const char *name);
 
-/* sbrk.c */
-int  heap_relabel(struct ulabel *l);
-
 /* label.c */
 typedef int (label_comparator)(level_t, level_t);
 label_comparator label_leq_starlo;
