@@ -414,6 +414,9 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	}
     }
 
+    if (npages < curnpg)
+	assert(!kp->ko_pin_pg);
+
     for (uint64_t i = npages; i < curnpg; i++) {
 	r = pagetree_put_page(&ko->ko_pt, i, 0);
 	if (r < 0)
@@ -644,7 +647,7 @@ kobject_gc(struct kobject *ko)
     for (int i = 0; i < kolabel_max; i++)
 	kobject_set_label_prepared(&ko->hdr, i, l[i], 0, 0);
 
-    pagetree_free(&ko->ko_pt);
+    pagetree_free(&ko->ko_pt, 0);
     ko->hdr.ko_nbytes = 0;
     ko->hdr.ko_type = kobj_dead;
     return 0;
@@ -722,7 +725,7 @@ kobject_swapout(struct kobject *ko)
     if (ko->hdr.ko_ref == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
-    pagetree_free(&ko->ko_pt);
+    pagetree_free(&ko->ko_pt, 0);
     page_free(ko);
 }
 
@@ -775,7 +778,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_unpin_hdr(ko);
-    pagetree_free(&snap->ko_pt);
+    pagetree_free(&snap->ko_pt, 1);
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);

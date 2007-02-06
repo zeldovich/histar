@@ -40,7 +40,7 @@ int  pagetree_copy(const struct pagetree *src, struct pagetree *dst,
     __attribute__ ((warn_unused_result));
 
 // Free the pagetree, including all of the pages (that aren't shared)
-void pagetree_free(struct pagetree *pt);
+void pagetree_free(struct pagetree *pt, int was_share_pinned);
 
 // Get a page currently stored in the page tree
 int  pagetree_get_page(struct pagetree *pt, uint64_t npage, void **pagep,

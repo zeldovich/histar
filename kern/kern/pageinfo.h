@@ -9,6 +9,9 @@ struct page_info {
     // references to this page from pagetree's
     uint32_t pi_ref;
 
+    // write-shared references, i.e. pagetree_copy(share_pinned=1)
+    uint32_t pi_write_shared_ref;
+
     // writable hardware refs (DMA, PTE) to this page (if pi_indir == 0)
     // or to child pages of this indir page (if pi_indir == 1)
     uint32_t pi_pin;

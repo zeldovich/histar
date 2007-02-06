@@ -226,7 +226,7 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
     return 0;
 
 err:
-    pagetree_free(&ko->ko_pt);
+    pagetree_free(&ko->ko_pt, 0);
     page_free(ko);
     return r;
 }

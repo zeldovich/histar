@@ -378,7 +378,7 @@ as_swapout(struct Address_space *as)
 	}
     }
 
-    pagetree_free(&as->as_segmap_pt);
+    pagetree_free(&as->as_segmap_pt, 0);
 }
 
 int
