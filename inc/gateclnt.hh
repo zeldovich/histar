@@ -10,7 +10,7 @@ extern "C" {
 class gate_call {
 public:
     gate_call(cobj_ref gate,
-	      label *contaminate_label,		// { * } for none
+	      label *contaminate_label,		// { 0 } for none
 	      label *decontaminate_label,	// { 3 } for none
 	      label *decontaminate_clearance);	// { 0 } for none
     ~gate_call();

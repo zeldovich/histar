@@ -32,7 +32,7 @@ gate_compute_labels(struct cobj_ref gate,
     tgt_label->copy_from(&tmp);
 
     if (cs) {
-	tgt_label->merge(cs, &tmp, label::max, label::leq_starlo);
+	tgt_label->merge(cs, &tmp, label::max, label::leq_starhi);
 	tgt_label->copy_from(&tmp);
     }
 

@@ -127,7 +127,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     scope_guard<void, uint64_t> xdrop(thread_drop_star, xh);
 
     // Call the user auth gate to check password
-    label uauth_cs(LB_LEVEL_STAR);
+    label uauth_cs(0);
     uauth_cs.set(pw_taint, 3);
 
     label uauth_dr(0);

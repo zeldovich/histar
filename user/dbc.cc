@@ -71,7 +71,7 @@ try
 	int64_t query_tainth;
 	error_check(query_tainth = handle_alloc());
 
-	label query_taint(LB_LEVEL_STAR);
+	label query_taint(0);
 	query_taint.set(query_tainth, 2);
 
 	gate_call gc(g, &query_taint, 0, 0);

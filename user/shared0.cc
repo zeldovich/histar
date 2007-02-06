@@ -352,7 +352,7 @@ user_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
     debug_print(debug_user, "%s: op %d", __progname, args->op);
 
-    label *cs = new label(LB_LEVEL_STAR);
+    label *cs = new label(0);
     label *ds = new label(3);
     label *dr = new label(0);
 
