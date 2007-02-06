@@ -24,6 +24,7 @@ HTTPD_SRCFILES :=			\
 	pkg/httpd/lib/ssld_client.cc 	\
 	pkg/httpd/lib/ssl_eproc.cc   	\
 	pkg/httpd/lib/ssl_proxy.cc   	\
+	pkg/httpd/lib/a2pdf.cc		\
 	pkg/httpd/user/httpd.cc
 
 HTTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_SRCFILES))

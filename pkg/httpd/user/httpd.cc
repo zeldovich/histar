@@ -31,6 +31,10 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
 #include <inc/sslproxy.hh>
+#include <inc/a2pdf.hh>
+
+#include <iostream>
+#include <sstream>
 
 static const char ssl_mode = 1;
 static const char ask_for_auth = 1;
@@ -60,6 +64,39 @@ get_eprocd_cow(void)
     int64_t gate_id;
     error_check(gate_id = container_find(eproc_ct, kobj_gate, "eproc-cow"));
     return COBJ(eproc_ct, gate_id);
+}
+
+static void
+http_on_request(tcpconn *tc, const char *req, const char *user, uint64_t ut, uint64_t ug)
+{
+    std::ostringstream header;
+    std::ostringstream pdf;
+    
+    if (strcmp(req, "/")) {
+	std::string pn = std::string("/home/") + user + req;
+	
+	int fd = open(pn.c_str(), O_RDONLY);
+
+	if (fd < 0) {
+	    header << "Cannot open " << pn << ": " << strerror(errno);
+	} else {
+
+	    uint64_t sz = a2pdf(fd, pdf, ut);
+	    char size[32];
+	    sprintf(size, "%ld", sz);
+	    std::string content_length = std::string("Content-Length: ") + size + "\r\n";
+
+	    header << "HTTP/2.0 200 OK\r\n";
+	    header << "Content-Type: application/pdf\r\n";
+	    header << content_length;
+	    header << "\r\n";
+	}
+    }
+
+    header << pdf.str();
+
+    std::string reply = header.str();
+    tc->write(reply.data(), reply.size());
 }
 
 static void
@@ -137,33 +174,7 @@ http_client(void *arg)
 		    return;
 		}
 
-		int64_t worker_ct, worker_gt;
-		//error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_worker"));
-		error_check(worker_ct = container_find(start_env->root_container, kobj_container, "httpd_a2pdf"));
-		error_check(worker_gt = container_find(worker_ct, kobj_gate, "worker"));
-
-		label cs(LB_LEVEL_STAR);
-		cs.set(ut, 3);
-
-		label dr(0);
-		dr.set(ut, 3);
-
-		gate_call_data gcd;
-		uint32_t ulen = strlen(user);
-		if (ulen >= sizeof(gcd.param_buf))
-		    throw basic_exception("username too long");
-
-		strncpy(&gcd.param_buf[0], user, sizeof(gcd.param_buf));
-		strncpy(&gcd.param_buf[0] + ulen + 1, &pnbuf[0], sizeof(gcd.param_buf) - ulen - 1);
-		gate_call gc(COBJ(worker_ct, worker_gt), &cs, 0, &dr);
-		gc.call(&gcd, 0);
-
-		void *va = 0;
-		uint64_t len;
-		error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, &len, 0));
-		scope_guard<int, void *> unmap(segment_unmap, va);
-
-		tc.write((const char *) va, len);
+		http_on_request(&tc, pnbuf, user, ut, ug);
 		return;
 	    }
 
