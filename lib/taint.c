@@ -65,8 +65,28 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
 	}							\
     } while (0)
 
-int
-taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
+static int __attribute__((noinline))
+taint_cow_fastcheck(struct cobj_ref cur_as)
+{
+    struct u_segment_mapping usm;
+    usm.kslot = ~0U;
+
+    /*
+     * If we can write to the current address space, that's good enough.
+     */
+    int r = sys_as_set_slot(cur_as, &usm);
+    if (r == -E_LABEL)
+	return -1;
+    if (r == -E_INVAL)		/* kslot out of range */
+	return 0;
+
+    cprintf("taint_cow_fastcheck: odd return value %s\n", e2s(r));
+    return -1;
+}
+
+static int __attribute__((noinline))
+taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
+	       struct cobj_ref declassify_gate)
 {
     char namebuf[KOBJ_NAME_LEN];
     uint64_t cur_ents[taint_cow_label_ents];
@@ -78,8 +98,6 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 	{ .ul_size = taint_cow_label_ents, .ul_ent = &obj_ents[0] };
 
     struct cobj_ref cur_th = COBJ(0, sys_self_id());
-    struct cobj_ref cur_as;
-    ERRCHECK(sys_self_get_as(&cur_as));
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
     ERRCHECK(sys_obj_get_label(cur_th, &cur_label));
 
@@ -193,4 +211,16 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     start_env->shared_container = taint_container;
     start_env->declassify_gate = declassify_gate;
     return 1;
+}
+
+int
+taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
+{
+    struct cobj_ref cur_as;
+    ERRCHECK(sys_self_get_as(&cur_as));
+
+    if (taint_cow_fastcheck(cur_as) == 0)
+	return 0;
+
+    return taint_cow_slow(cur_as, taint_container, declassify_gate);
 }
