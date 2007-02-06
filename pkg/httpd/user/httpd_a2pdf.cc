@@ -91,7 +91,7 @@ a2pdf(int fd, std::ostringstream &pdf_out)
     error_check(fs_namei("/", &root_ino));
     fs_get_root(base_ct, &scratch_ino);
     error_check(fs_mkdir(scratch_ino, "tmp", &tmp_ino, mtab_label.to_ulabel()));
-    error_check(fs_mount(root_ino, "tmp", tmp_ino));
+    error_check(fs_mount(start_env->fs_mtab_seg, root_ino, "tmp", tmp_ino));
 
     try {
 	label cs(LB_LEVEL_STAR);
