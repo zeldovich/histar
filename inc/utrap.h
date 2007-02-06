@@ -17,4 +17,8 @@ int  utrap_is_masked(void);
 int  utrap_set_mask(int masked);
 void utrap_set_cs(uint16_t nval);	/* x86 asm stub */
 
+/* User-mode trap types */
+#define UTRAP_USER_NOP		0x01
+#define UTRAP_USER_SIGNAL	0x02
+
 #endif

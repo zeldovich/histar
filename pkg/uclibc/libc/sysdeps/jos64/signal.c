@@ -148,7 +148,7 @@ signal_trap_thread(struct cobj_ref tobj)
 	if (signal_debug)
 	    cprintf("[%ld] signal_trap_thread: trying to trap %ld.%ld\n",
 		    thread_id(), tobj.container, tobj.object);
-	int r = sys_thread_trap(tobj, cur_as, 0, 0);
+	int r = sys_thread_trap(tobj, cur_as, UTRAP_USER_SIGNAL, 0);
 
 	if (r == 0) {
 	    if (signal_debug)
@@ -442,6 +442,15 @@ signal_utrap(struct UTrapframe *utf)
 	    si.si_code = ILL_ILLTRP;
 	}
     } else if (utf->utf_trap_src == UTRAP_SRC_USER) {
+	if (utf->utf_trap_num == UTRAP_USER_NOP)
+	    return;
+
+	if (utf->utf_trap_num != UTRAP_USER_SIGNAL) {
+	    cprintf("[%ld] signal_utrap: unknown user trap# %d\n",
+		    thread_id(), utf->utf_trap_num);
+	    return;
+	}
+
 	jthread_mutex_lock(&sigmask_mu);
 	sigmu_taken = 1;
 
