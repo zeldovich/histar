@@ -109,10 +109,12 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
     if (lbytes > 512) {
 	uint64_t tlsbytes = PGSIZE + lbytes;
 	if (label_debug)
-	    cprintf("gate_invoke: growing TLS to %ld bytes\n", tlsbytes);
+	    cprintf("[%ld] gate_invoke: growing TLS to %ld bytes\n",
+		    thread_id(), tlsbytes);
 	error_check(sys_segment_resize(COBJ(0, kobject_id_thread_sg), tlsbytes));
 	if (label_debug)
-	    cprintf("gate_invoke: growing TLS to %ld bytes OK\n", tlsbytes);
+	    cprintf("[%ld] gate_invoke: growing TLS to %ld bytes OK\n",
+		    thread_id(), tlsbytes);
     }
 
     gate_invoke2(gate, tgt_label, tgt_clear, cb, arg, lents, cents);
