@@ -111,15 +111,15 @@ DJD_NCC_LDFLAGS := -L/usr/local/lib/sfs -L/usr/local/lib
 
 $(OBJDIR)/test/%.o: dj/%.cc $(DJD_HEADERS)
 	@mkdir -p $(@D)
-	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(DJD_HEADERS)
 	@mkdir -p $(@D)
-	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/djd.o: user/djd.cc $(DJD_HEADERS)
 	@mkdir -p $(@D)
-	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $< -DJOS_USER
+	$(NCC) $(DJD_NCC_CFLAGS) $(TEST_USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/test/djd: $(DJD_OBJS)
 	@mkdir -p $(@D)
