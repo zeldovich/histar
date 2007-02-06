@@ -33,7 +33,7 @@ try
 
     fs_inode shared_ct;
     fs_get_root(start_env->shared_container, &shared_ct);
-    fs_mount(start_env->fs_root, "vpnstart", shared_ct);
+    fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "vpnstart", shared_ct);
 
     label tun_label(1);
     fs_inode tun_ct;
@@ -62,7 +62,7 @@ try
 	fs_get_root(start_env->shared_container, &netd_vpn_ct);
 
 	start_env->fs_mtab_seg = old_mtab;
-	fs_mount(start_env->fs_root, "netd-vpn", netd_vpn_ct);
+	fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "netd-vpn", netd_vpn_ct);
 	start_env->fs_mtab_seg = new_mtab;
 
 	// Start netd_vpn

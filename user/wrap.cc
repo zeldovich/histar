@@ -76,7 +76,7 @@ try
 	sys_segment_copy(start_env->fs_mtab_seg, start_env->shared_container,
 			 0, "wrap mtab"));
     start_env->fs_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
-    fs_mount(start_env->fs_root, "tmp", tmp_dir);
+    fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "tmp", tmp_dir);
 
     // Run clamscan
     fs_inode wrapped;
