@@ -21,13 +21,16 @@ extern "C" {
 enum { gate_client_debug = 0 };
 
 static void __attribute__((noreturn))
-return_stub(jos_jmp_buf *jb, uint64_t tid)
+return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
 {
     uint64_t mytid = sys_self_id();
     if (mytid != tid) {
 	cprintf("return_stub: wrong thread id %ld vs %ld\n", mytid, tid);
 	sys_self_halt();
     }
+
+    if (returncb)
+	returncb(cbarg);
 
     // Note: cannot use tls_gate_args variable since it's in RW-mapped space
     gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
@@ -40,7 +43,8 @@ return_stub(jos_jmp_buf *jb, uint64_t tid)
 }
 
 static void
-return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
+return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct,
+	     void (*returncb)(void*), void *cbarg)
 {
     label verify(3);
     verify.set(return_handle, 0);
@@ -51,6 +55,8 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg[0] = (uint64_t) jb;
     te.te_arg[1] = thread_id();
+    te.te_arg[2] = (uint64_t) returncb;
+    te.te_arg[3] = (uint64_t) cbarg;
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t id = sys_gate_create(ct, &te, 0, 0, verify.to_ulabel(),
@@ -140,13 +146,15 @@ gate_call::set_verify(label *verify)
 }
 
 void
-gate_call::call(gate_call_data *gcd_param, label *verify)
+gate_call::call(gate_call_data *gcd_param, label *verify,
+		void (*returncb)(void*), void *cbarg)
 {
     set_verify(verify);
 
     // Create a return gate in the taint container
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate_, &back_from_call, call_grant_, call_ct_obj_.object);
+    return_setup(&return_gate_, &back_from_call, call_grant_, call_ct_obj_.object,
+		 returncb, cbarg);
 
     // Gate call parameters
     gate_call_data *d = (gate_call_data *) tls_gate_args;

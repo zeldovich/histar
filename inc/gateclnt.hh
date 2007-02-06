@@ -18,7 +18,8 @@ public:
     uint64_t call_ct() { return call_ct_obj_.object; }
 
     void call(gate_call_data *gcd,
-	      label *verify);			// { 3 } for none
+	      label *verify,			// { 3 } for none
+	      void (*return_cb)(void*) = 0, void *cbarg = 0);
 
 private:
     void set_verify(label *verify);
