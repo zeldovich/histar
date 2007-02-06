@@ -21,10 +21,13 @@ public:
 	      label *verify);			// { 3 } for none
 
 private:
+    void set_verify(label *verify);
+
     int64_t call_taint_, call_grant_;
     cobj_ref gate_;
     cobj_ref call_ct_obj_;
     cobj_ref taint_ct_obj_;
+    cobj_ref return_gate_;
 
     label *tgt_label_;
     label *tgt_clear_;

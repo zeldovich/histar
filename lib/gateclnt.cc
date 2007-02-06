@@ -21,8 +21,14 @@ extern "C" {
 enum { gate_client_debug = 0 };
 
 static void __attribute__((noreturn))
-return_stub(jos_jmp_buf *jb)
+return_stub(jos_jmp_buf *jb, uint64_t tid)
 {
+    uint64_t mytid = sys_self_id();
+    if (mytid != tid) {
+	cprintf("return_stub: wrong thread id %ld vs %ld\n", mytid, tid);
+	sys_self_halt();
+    }
+
     // Note: cannot use tls_gate_args variable since it's in RW-mapped space
     gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
     taint_cow(gcd->taint_container, gcd->declassify_gate);
@@ -44,6 +50,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
     te.te_entry = (void *) &return_stub;
     te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg[0] = (uint64_t) jb;
+    te.te_arg[1] = thread_id();
     error_check(sys_self_get_as(&te.te_as));
 
     int64_t id = sys_gate_create(ct, &te, 0, 0, verify.to_ulabel(),
@@ -56,7 +63,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct)
 
 gate_call::gate_call(cobj_ref gate,
 		     label *cs, label *ds, label *dr)
-    : gate_(gate)
+    : gate_(gate), return_gate_(COBJ(0, 0))
 {
     // Create a handle for the duration of this call
     error_check(call_taint_ = handle_alloc());
@@ -122,26 +129,30 @@ gate_call::gate_call(cobj_ref gate,
     call_ct_cleanup.dismiss();
 }
 
-void
-gate_call::call(gate_call_data *gcd_param, label *verify)
+void __attribute__((noinline))
+gate_call::set_verify(label *verify)
 {
     // Set the verify label; prove we had the call handle at *
     label new_verify(verify ? *verify : label(3));
     new_verify.set(call_grant_, LB_LEVEL_STAR);
     new_verify.set(call_taint_, LB_LEVEL_STAR);
     error_check(sys_self_set_verify(new_verify.to_ulabel()));
+}
+
+void
+gate_call::call(gate_call_data *gcd_param, label *verify)
+{
+    set_verify(verify);
 
     // Create a return gate in the taint container
-    cobj_ref return_gate;
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate, &back_from_call, call_grant_, call_ct_obj_.object);
-    scope_guard<int, cobj_ref> g2(sys_obj_unref, return_gate);
+    return_setup(&return_gate_, &back_from_call, call_grant_, call_ct_obj_.object);
 
     // Gate call parameters
     gate_call_data *d = (gate_call_data *) tls_gate_args;
     if (gcd_param)
 	memcpy(d, gcd_param, sizeof(*d));
-    d->return_gate = return_gate;
+    d->return_gate = return_gate_;
     d->taint_container = taint_ct_obj_.object;
 
     error_check(sys_self_addref(d->taint_container));
@@ -186,6 +197,8 @@ gate_call::~gate_call()
 {
     try {
 	sys_obj_unref(call_ct_obj_);
+	if (return_gate_.object)
+	    sys_obj_unref(return_gate_);
 
 	if (tgt_label_)
 	    delete tgt_label_;
