@@ -58,7 +58,7 @@ main(int ac, char **av)
 	    return -1;
 	}
 
-	r = fs_mount(dir, fname, root);
+	r = fs_mount(start_env->fs_mtab_seg, dir, fname, root);
 	if (r < 0)
 	    printf("fs_mount: %s\n", e2s(r));
     } else {

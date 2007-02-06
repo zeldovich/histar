@@ -348,8 +348,8 @@ main(int ac, char **av)
     struct fs_inode selfdir;
     fs_get_root(start_env->shared_container, &selfdir);
 
-    fs_unmount(start_env->fs_root, "self");
-    int r = fs_mount(start_env->fs_root, "self", selfdir);
+    fs_unmount(start_env->fs_mtab_seg, start_env->fs_root, "self");
+    int r = fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "self", selfdir);
     if (r < 0)
 	printf("shell: cannot mount /self: %s\n", e2s(r));
 

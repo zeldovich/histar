@@ -31,6 +31,6 @@ main(int ac, char **av)
 	return -1;
     }
 
-    fs_unmount(dir, fname);
+    fs_unmount(start_env->fs_mtab_seg, dir, fname);
     return 0;
 }

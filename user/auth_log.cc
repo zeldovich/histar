@@ -31,7 +31,7 @@ main(int ac, char **av)
 
 	fs_inode shared_ct;
 	fs_get_root(start_env->shared_container, &shared_ct);
-	fs_mount(start_env->fs_root, "authlog_self", shared_ct);
+	fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "authlog_self", shared_ct);
 
 	int64_t log_h;
 	error_check(log_h = handle_alloc());
