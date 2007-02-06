@@ -18,6 +18,8 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 
+enum { gatesrv_debug = 0 };
+
 static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
@@ -47,6 +49,9 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 
 	// Reset our cached thread ID, stored in TLS
 	tls_revalidate();
+
+	if (gatesrv_debug)
+	    cprintf("[%ld] gatesrv_entry_tls\n", thread_id());
 
 	thread_label_cache_invalidate();
 
@@ -184,6 +189,8 @@ void
 gatesrv_return::ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
 {
     try {
+	if (gatesrv_debug)
+	    cprintf("[%ld] gatesrv_return::ret_tls_stub\n", thread_id());
 	r->ret_tls(tgt_label, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
@@ -200,8 +207,14 @@ gatesrv_return::ret_tls(label *tgt_label, label *tgt_clear)
 void
 gatesrv_return::cleanup_stub(label *tgt_s, label *tgt_r, void *arg)
 {
+    if (gatesrv_debug)
+	cprintf("[%ld] gatesrv_return::cleanup_stub\n", thread_id());
+
     gatesrv_return *r = (gatesrv_return *) arg;
     r->cleanup(tgt_s, tgt_r);
+
+    if (gatesrv_debug)
+	cprintf("[%ld] gatesrv_return::cleanup_stub done\n", thread_id());
 }
 
 void
