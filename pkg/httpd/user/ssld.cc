@@ -244,7 +244,7 @@ ssld_cow_entry(void)
 }
 
 static struct cobj_ref
-ssld_cow_gate_create(uint64_t ct)
+ssld_cow_gate_create(uint64_t ct, uint64_t verify)
 {
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
@@ -252,26 +252,31 @@ ssld_cow_gate_create(uint64_t ct)
     te.te_stack = (char *) tls_stack_top - 8;
     error_check(sys_self_get_as(&te.te_as));
 
-    // XXX should we set a verify label on this gate?
-    int64_t gate_id = sys_gate_create(ct, &te, 0, 0, 0, "ssld-cow", 0);
+    label verify_label(2);
+    verify_label.set(verify, 0);
+    
+    int64_t gate_id = sys_gate_create(ct, &te, 0, 0, 
+				      verify_label.to_ulabel(), "ssld-cow", 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create");
 
     // COW'ed gate call copies mapping and segment
     uint64_t entry_ct = start_env->proc_container;
-    void *stackbase = 0;
-    uint64_t stackbytes = thread_stack_pages * PGSIZE;
-    error_check(segment_map(COBJ(0, 0), 0, SEGMAP_STACK | SEGMAP_RESERVE,
-			    &stackbase, &stackbytes, 0));
-    scope_guard<int, void *> unmap(segment_unmap, stackbase);
-    char *stacktop = ((char *) stackbase) + stackbytes;
 
     struct cobj_ref stackobj;
-    void *allocbase = stacktop - (2 * PGSIZE);
-    error_check(segment_alloc(entry_ct, (2 * PGSIZE), &stackobj,
-			      &allocbase, 0, "COW'ed thread stack"));
-    unmap.dismiss();
-
+    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
+			      0, 0, "gate thread stack"));
+    scope_guard<int, cobj_ref> s(sys_obj_unref, stackobj);
+    
+    void *stackbase = 0;
+    uint64_t stackbytes = thread_stack_pages * PGSIZE;
+    error_check(segment_map(stackobj, 0, SEGMAP_READ | SEGMAP_WRITE |
+			    SEGMAP_STACK | SEGMAP_REVERSE_PAGES,
+			    &stackbase, &stackbytes, 0));
+    char *stacktop = ((char *) stackbase) + stackbytes;
+    
+    s.dismiss();
+    
     cow_stacktop = stacktop;
     
     return COBJ(ct, gate_id);
@@ -284,7 +289,7 @@ ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
     SSL_library_init();
     SSL_load_error_strings();
 
-    SSL_METHOD *meth = SSLv3_method();
+    SSL_METHOD *meth = SSLv23_method();
     ctx = SSL_CTX_new(meth);
 
     // Load our keys and certificates
@@ -320,22 +325,25 @@ ssl_init(const char *server_pem, const char *dh_pem, const char *calist_pem)
 int
 main (int ac, char **av)
 {
-    if (ac < 3) {
-	cprintf("Usage: %s server-pem dh-pem [servkey-pem]", 
+    if (ac < 4) {
+	cprintf("Usage: %s verify-handle server-pem dh-pem [servkey-pem]", 
 		av[0]);
 	return -1;
     }
-
-    const char *server_pem = av[1];
-    const char *dh_pem = av[2];
+    
+    uint64_t verify;
+    error_check(strtou64(av[1], 0, 10, &verify));
+        
+    const char *server_pem = av[2];
+    const char *dh_pem = av[3];
     
     the_ctx = ssl_init(server_pem, dh_pem, 0);
-    if (ac >= 4) {
-	const char *servkey_pem = av[3];
+    if (ac >= 5) {
+	const char *servkey_pem = av[4];
 	ssl_load_file_privkey(the_ctx, servkey_pem);
 
     }
-    ssld_cow_gate_create(start_env->shared_container);
+    ssld_cow_gate_create(start_env->shared_container, verify);
         
     return 0;
 }

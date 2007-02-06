@@ -94,14 +94,17 @@ main (int ac, char **av)
     label ssld_ds(3), ssld_dr(0);
     ssld_ds.set(ssld_taint, LB_LEVEL_STAR);
     ssld_dr.set(ssld_taint, 3);
+
+    char verify_arg[32];
+    snprintf(verify_arg, sizeof(verify_arg), "%lu", start_env->user_grant);
     
     const char *ssld_pn = "/bin/ssld";
     struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
-    const char *ssld_argv[] = { ssld_pn, ssld_server_pem,
+    const char *ssld_argv[] = { ssld_pn, verify_arg, ssld_server_pem,
 				ssld_dh_pem, ssld_servkey_pem };
     struct child_process cp = spawn(httpd_ct, ssld_ino,
 				    0, 0, 0,
-				    eproc_enable ? 3 : 4, &ssld_argv[0],
+				    eproc_enable ? 4 : 5, &ssld_argv[0],
 				    0, 0,
 				    0, &ssld_ds, 0, &ssld_dr, 0,
 				    SPAWN_NO_AUTOGRANT);
@@ -117,10 +120,10 @@ main (int ac, char **av)
 	
 	const char *eprocd_pn = "/bin/ssl_eprocd";
 	struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
-	const char *eprocd_argv[] = { eprocd_pn, ssld_servkey_pem };
+	const char *eprocd_argv[] = { eprocd_pn, verify_arg, ssld_servkey_pem };
 	cp = spawn(httpd_ct, eprocd_ino,
 		   0, 0, 0,
-		   2, &eprocd_argv[0],
+		   3, &eprocd_argv[0],
 		   0, 0,
 		   0, &eprocd_ds, 0, &eprocd_dr, 0,
 		   SPAWN_NO_AUTOGRANT);
@@ -142,7 +145,7 @@ main (int ac, char **av)
 	  0, 0, 0,
 	  1, &httpd_argv[0],
 	  0, 0,
-	  0, &httpd_ds, 0, &httpd_dr, 0, SPAWN_NO_AUTOGRANT);
+	  0, &httpd_ds, 0, &httpd_dr, 0);
 
     return 0;
 }
