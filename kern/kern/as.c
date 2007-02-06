@@ -413,8 +413,9 @@ as_pmap_fill_segment(const struct Address_space *as,
     need_va = ROUNDDOWN(need_va, PGSIZE);
 
     void *usm_first = ROUNDDOWN(usm->va, PGSIZE);
-    void *usm_last = (void *) safe_add(&of, (uintptr_t) usm_first,
-				       safe_mul(&of, usm->num_pages - 1, PGSIZE));
+    void *usm_last = (void *) (uintptr_t)
+	safe_add(&of, (uintptr_t) usm_first,
+		 safe_mul(&of, usm->num_pages - 1, PGSIZE));
     if (of || PGOFF(usm->va))
 	return -E_INVAL;
     assert(need_va >= usm_first && need_va <= usm_last);
