@@ -23,13 +23,24 @@ extern "C" {
 static int label_debug = 0;
 
 struct child_process
+spawn(spawn_descriptor *sd)
+{
+    return spawn(sd->ct_, sd->elf_ino_, 
+		 sd->fd0_, sd->fd1_, sd->fd2_,
+		 sd->ac_, sd->av_, sd->envc_, sd->envv_,
+		 sd->cs_, sd->ds_, sd->cr_, sd->dr_, sd->co_,
+		 sd->spawn_flags_, sd->fs_mtab_seg_);
+}
+
+struct child_process
 spawn(uint64_t container, struct fs_inode elf_ino,
       int fd0, int fd1, int fd2,
       int ac, const char **av,
       int envc, const char **envv,
       label *cs, label *ds, label *cr, label *dr,
       label *contaminate_object,
-      int spawn_flags)
+      int spawn_flags, 
+      struct cobj_ref fs_mtab_seg)
 {
     label tmp, out;
     bool autogrant = !(spawn_flags & SPAWN_NO_AUTOGRANT);
@@ -183,6 +194,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
     spawn_env->ppid = 0;
+    if (fs_mtab_seg.object)
+	spawn_env->fs_mtab_seg = fs_mtab_seg;
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;
