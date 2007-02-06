@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/stdio.h>
+#include <inc/memlayout.h>
 }
 
 #include <inc/gateinvoke.hh>
@@ -65,17 +66,15 @@ gate_compute_labels(struct cobj_ref gate,
     }
 }
 
-
-void
-gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
-	    gate_invoke_cb cb, void *arg)
+static void __attribute__((noinline)) __attribute__((noreturn))
+gate_invoke2(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
+	     gate_invoke_cb cb, void *arg, uint64_t lsize, uint64_t csize)
 {
-    enum { label_buf_size = 48 };
-    uint64_t tgt_label_ent[label_buf_size];
-    uint64_t tgt_clear_ent[label_buf_size];
+    uint64_t tgt_label_ent[lsize];
+    uint64_t tgt_clear_ent[csize];
 
-    label tgt_label_stack(&tgt_label_ent[0], label_buf_size);
-    label tgt_clear_stack(&tgt_clear_ent[0], label_buf_size);
+    label tgt_label_stack(&tgt_label_ent[0], lsize);
+    label tgt_clear_stack(&tgt_clear_ent[0], csize);
 
     try {
 	tgt_label_stack.copy_from(tgt_label);
@@ -97,4 +96,24 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
 			       tgt_label_stack.to_ulabel(),
 			       tgt_clear_stack.to_ulabel(), 0));
     throw basic_exception("gate_invoke: still alive");
+}
+
+void
+gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
+	    gate_invoke_cb cb, void *arg)
+{
+    uint64_t lents = tgt_label->to_ulabel()->ul_nent;
+    uint64_t cents = tgt_clear->to_ulabel()->ul_nent;
+
+    uint64_t lbytes = (lents + cents) * 8;
+    if (lbytes > 512) {
+	uint64_t tlsbytes = PGSIZE + lbytes;
+	if (label_debug)
+	    cprintf("gate_invoke: growing TLS to %ld bytes\n", tlsbytes);
+	error_check(sys_segment_resize(COBJ(0, kobject_id_thread_sg), tlsbytes));
+	if (label_debug)
+	    cprintf("gate_invoke: growing TLS to %ld bytes OK\n", tlsbytes);
+    }
+
+    gate_invoke2(gate, tgt_label, tgt_clear, cb, arg, lents, cents);
 }
