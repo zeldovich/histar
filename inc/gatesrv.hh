@@ -39,7 +39,10 @@ typedef void (*gatesrv_entry_t)
 
 class gatesrv_descriptor {
 public:
-    gatesrv_descriptor() : as_(COBJ(0, 0)), flags_(0) {};
+    gatesrv_descriptor()
+	: gate_container_(0), name_(0), as_(COBJ(0, 0)),
+	  label_(0), clearance_(0), verify_(0),
+	  func_(0), arg_(0), flags_(0) {};
 
     uint64_t gate_container_;
     const char *name_;
