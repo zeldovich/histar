@@ -2,7 +2,7 @@ OBJDIRS += test test/lwip
 
 TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj
 TEST_USER_CFLAGS := \
-	-g -DJOS_USER -I$(TOP) -I$(TOP)/obj \
+	-g -DJOS_USER -DJOS_TEST -I$(TOP) -I$(TOP)/obj \
 	-I$(TOP)/pkg/lwip/include \
 	-I$(TOP)/pkg/lwip/include/ipv4 \
 	-I$(TOP)/pkg/lwip/lnx64

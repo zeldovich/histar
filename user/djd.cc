@@ -88,12 +88,17 @@ main(int ac, char **av)
     warn << "instantiating a djprot, port " << port << "...\n";
     ptr<djprot> djs = djprot::alloc(port);
 
+#ifdef JOS_TEST
     dj_direct_gatemap gm;
     djs->set_callexec(wrap(&gm, &dj_direct_gatemap::newexec));
     djs->set_catmgr(dj_dummy_catmgr());
 
     gm.gatemap_.insert(COBJ(1, 2), wrap(dj_posixfs_service));
     gm.gatemap_.insert(COBJ(1, 3), wrap(dj_echo_service));
+#else
+    djs->set_callexec(wrap(dj_gate_exec));
+    djs->set_catmgr(dj_dummy_catmgr());
+#endif
 
     if (ac == 2) {
 	str n(av[1]);
