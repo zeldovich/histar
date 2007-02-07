@@ -1,5 +1,5 @@
 --- perl-5.8.8_bad/uconfig.h	2005-10-12 05:03:14.000000000 -0700
-+++ perl-5.8.8/uconfig.h	2007-02-04 15:26:02.000000000 -0800
++++ perl-5.8.8/uconfig.h	2007-02-06 23:03:15.000000000 -0800
 @@ -110,7 +110,7 @@
   *	This symbol, if defined, indicates that the dup2 routine is
   *	available to duplicate file descriptors.
@@ -9,3 +9,21 @@
  
  /* HAS_FCHMOD:
   *	This symbol, if defined, indicates that the fchmod routine is available
+@@ -982,7 +982,7 @@
+  *	This symbol is the filename expanded version of the BIN symbol, for
+  *	programs that do not want to deal with that at run-time.
+  */
+-#define BIN "/usr/local/bin"	/**/
++#define BIN "/bin"	/**/
+ #define BIN_EXP ""	/**/
+ 
+ /* INTSIZE:
+@@ -3811,7 +3811,7 @@
+  *	/bin/pdksh, /bin/ash, /bin/bash, or even something such as
+  *	D:/bin/sh.exe.
+  */
+-#define SH_PATH ""  /**/
++#define SH_PATH "/bin/ksh"  /**/
+ 
+ /* HAS_AINTL:
+  *	This symbol, if defined, indicates that the aintl routine is
