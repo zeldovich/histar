@@ -68,7 +68,7 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct,
 }
 
 gate_call::gate_call(cobj_ref gate,
-		     label *cs, label *ds, label *dr)
+		     const label *cs, const label *ds, const label *dr)
     : gate_(gate), return_gate_(COBJ(0, 0))
 {
     // Create a handle for the duration of this call

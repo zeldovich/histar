@@ -7,7 +7,7 @@ typedef void (*gate_invoke_cb) (label *tgt_s, label *tgt_r,
 				void *arg);
 
 void gate_compute_labels(struct cobj_ref gate,
-			 label *cs, label *ds, label *dr,
+			 const label *cs, const label *ds, const label *dr,
 			 label *tgt_s, label *tgt_r);
 
 void gate_invoke(struct cobj_ref gate, label *tgt_s, label *tgt_r,

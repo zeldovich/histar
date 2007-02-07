@@ -27,7 +27,7 @@ sys_cons_cursor(int line, int col)
 }
 
 int64_t
-sys_net_create(uint64_t container, struct ulabel *l, const char *name)
+sys_net_create(uint64_t container, const struct ulabel *l, const char *name)
 {
     return syscall(SYS_net_create, container, l, name);
 }
@@ -58,7 +58,7 @@ sys_machine_reboot(void)
 }
 
 int64_t
-sys_container_alloc(uint64_t parent, struct ulabel *ul, const char *name,
+sys_container_alloc(uint64_t parent, const struct ulabel *ul, const char *name,
 		    uint64_t avoid_types, uint64_t quota)
 {
     return syscall(SYS_container_alloc, parent, ul, name, avoid_types, quota);
@@ -161,9 +161,9 @@ sys_container_get_nslots(uint64_t container)
 }
 
 int64_t
-sys_gate_create(uint64_t container, struct thread_entry *te,
-		struct ulabel *label, struct ulabel *clear,
-		struct ulabel *verify, const char *name,
+sys_gate_create(uint64_t container, const struct thread_entry *te,
+		const struct ulabel *label, const struct ulabel *clear,
+		const struct ulabel *verify, const char *name,
 		int entry_visible)
 {
     return syscall(SYS_gate_create, container, te, label, clear, verify,
@@ -172,9 +172,9 @@ sys_gate_create(uint64_t container, struct thread_entry *te,
 
 int
 sys_gate_enter(struct cobj_ref gate,
-	       struct ulabel *l,
-	       struct ulabel *clearance,
-	       struct thread_entry *te)
+	       const struct ulabel *l,
+	       const struct ulabel *clearance,
+	       const struct thread_entry *te)
 {
     return syscall(SYS_gate_enter, gate, l, clearance, te);
 }
@@ -198,8 +198,8 @@ sys_thread_create(uint64_t container, const char *name)
 }
 
 int
-sys_thread_start(struct cobj_ref thread, struct thread_entry *entry,
-		 struct ulabel *ul, struct ulabel *clearance)
+sys_thread_start(struct cobj_ref thread, const struct thread_entry *entry,
+		 const struct ulabel *ul, const struct ulabel *clearance)
 {
     return syscall(SYS_thread_start, thread, entry, ul, clearance);
 }
@@ -248,13 +248,13 @@ sys_self_set_as(struct cobj_ref as_obj)
 }
 
 int
-sys_self_set_label(struct ulabel *l)
+sys_self_set_label(const struct ulabel *l)
 {
     return syscall(SYS_self_set_label, l);
 }
 
 int
-sys_self_set_clearance(struct ulabel *l)
+sys_self_set_clearance(const struct ulabel *l)
 {
     return syscall(SYS_self_set_clearance, l);
 }
@@ -266,7 +266,7 @@ sys_self_get_clearance(struct ulabel *l)
 }
 
 int
-sys_self_set_verify(struct ulabel *l)
+sys_self_set_verify(const struct ulabel *l)
 {
     return syscall(SYS_self_set_verify, l);
 }
@@ -340,14 +340,14 @@ sys_pstate_sync(uint64_t timestamp)
 
 int64_t
 sys_segment_create(uint64_t container, uint64_t num_bytes,
-		   struct ulabel *l, const char *name)
+		   const struct ulabel *l, const char *name)
 {
     return syscall(SYS_segment_create, container, num_bytes, l, name);
 }
 
 int64_t
 sys_segment_copy(struct cobj_ref seg, uint64_t container,
-		 struct ulabel *l, const char *name)
+		 const struct ulabel *l, const char *name)
 {
     return syscall(SYS_segment_copy, seg, container, l, name);
 }
@@ -377,14 +377,14 @@ sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes, uint64_t 
 }
 
 int64_t
-sys_as_create(uint64_t container, struct ulabel *l, const char *name)
+sys_as_create(uint64_t container, const struct ulabel *l, const char *name)
 {
     return syscall(SYS_as_create, container, l, name);
 }
 
 int64_t
 sys_as_copy(struct cobj_ref as, uint64_t container,
-	    struct ulabel *l, const char *name)
+	    const struct ulabel *l, const char *name)
 {
     return syscall(SYS_as_copy, as, container, l, name);
 }

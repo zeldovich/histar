@@ -13,7 +13,7 @@ static int label_debug = 0;
 
 void
 gate_compute_labels(struct cobj_ref gate,
-		    label *cs, label *ds, label *dr,
+		    const label *cs, const label *ds, const label *dr,
 		    label *tgt_label, label *tgt_clear)
 {
     label tmp;

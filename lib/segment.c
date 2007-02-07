@@ -769,7 +769,7 @@ segment_map_as(struct cobj_ref as_ref, struct cobj_ref seg,
 int
 segment_alloc(uint64_t container, uint64_t bytes,
 	      struct cobj_ref *cobj, void **va_p,
-	      struct ulabel *label, const char *name)
+	      const struct ulabel *label, const char *name)
 {
     int64_t id = sys_segment_create(container, bytes, label, name);
     if (id < 0)
