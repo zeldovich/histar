@@ -215,7 +215,7 @@ label::compare(label *b, label_comparator cmp)
 }
 
 void
-label::merge(const label *b, label *out, level_merger m, level_comparator cmp)
+label::merge(const label *b, label *out, level_merger m, level_comparator cmp) const
 {
     out->reset(m(get_default(), b->get_default(), cmp));
     for (uint64_t i = 0; i < ul_.ul_nent; i++) {

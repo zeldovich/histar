@@ -35,7 +35,7 @@ public:
     void copy_from(const char *src);
 
     int compare(label *b, label_comparator cmp);
-    void merge(const label *b, label *out, level_merger m, level_comparator cmp);
+    void merge(const label *b, label *out, level_merger m, level_comparator cmp) const;
     void transform(level_changer t, int arg);
 
     static int leq_starlo(level_t a, level_t b);
