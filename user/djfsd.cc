@@ -22,4 +22,7 @@ main(int ac, char **av)
 
     cobj_ref g = dgs.gate();
     printf("djfsd: gate %lu.%lu\n", g.container, g.object);
+
+    for (;;)
+	sleep(60);
 }

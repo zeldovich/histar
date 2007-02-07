@@ -23,7 +23,7 @@ extern "C" {
 
 class gate_exec : public djcallexec {
  public:
-    gate_exec(djprot::call_reply_cb cb) : cb_(cb) {
+    gate_exec(djprot::call_reply_cb cb) : gc_(0), cb_(cb) {
 	pipes_[0] = pipes_[1] = -1;
     }
 
