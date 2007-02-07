@@ -202,7 +202,9 @@ $(OBJDIR)/user/a2psgs.tar: acpkg/ghostscript-8.54-gpl/__build \
 ## [ description of microperl:
 ##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
 acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro clean" )	
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" )	
+	mkdir -p $(OBJDIR)/acpkg/bin/
 	cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl
 	touch $@
 
