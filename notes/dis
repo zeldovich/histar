@@ -178,3 +178,8 @@ Potentially useful system call:
 Would replace sys_as_set_slot() in taint_cow's fastcheck, and speed up dj
 gate crossings.
 
+How do higher-level applications name categories?  The dj stuff automatically
+translates your message label and grant categories, but what if you want to
+tell the other end "use this category for my user taint, and this other one
+for my user grant"?
+
