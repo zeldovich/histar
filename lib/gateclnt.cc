@@ -165,6 +165,8 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate_;
     d->taint_container = taint_ct_obj_.object;
+    d->call_taint = call_taint_;
+    d->call_grant = call_grant_;
 
     error_check(sys_self_addref(d->taint_container));
     error_check(sys_self_set_sched_parents(start_env->proc_container,

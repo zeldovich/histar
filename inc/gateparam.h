@@ -8,6 +8,8 @@ struct gate_call_data {
     struct cobj_ref return_gate;
 
     uint64_t taint_container;
+    uint64_t call_taint;
+    uint64_t call_grant;
     struct cobj_ref declassify_gate;
 
     /*
