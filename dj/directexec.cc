@@ -6,24 +6,23 @@ class direct_exec : public djcallexec {
 	: m_(m), cb_(cb) {}
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
-	djcall_args out;
 	djgate_service_cb *srv = m_->gatemap_[COBJ(gate.gate_ct, gate.gate_id)];
 	if (!srv) {
-	    cb_(REPLY_GATE_CALL_ERROR, out);
+	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
 	    return;
 	}
 
+	djcall_args out;
 	if (!((*srv)(args, &out))) {
-	    cb_(REPLY_GATE_CALL_ERROR, out);
+	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
 	    return;
 	}
 
-	cb_(REPLY_DONE, out);
+	cb_(REPLY_DONE, &out);
     }
 
     virtual void abort() {
-	djcall_args out;
-	cb_(REPLY_ABORTED, out);
+	cb_(REPLY_ABORTED, (const djcall_args *) 0);
     }
 
  private:

@@ -8,7 +8,7 @@
 #include <dj/directexec.hh>
 
 static void
-readcb(dj_reply_status stat, const djcall_args &args)
+readcb(dj_reply_status stat, const djcall_args *args)
 {
     if (stat != REPLY_DONE) {
 	warn << "readcb: stat " << stat << "\n";
@@ -16,7 +16,7 @@ readcb(dj_reply_status stat, const djcall_args &args)
     }
 
     djfs_reply reply;
-    if (!str2xdr(reply, args.data)) {
+    if (!str2xdr(reply, args->data)) {
 	warn << "readcb: cannot decode\n";
 	return;
     }
@@ -31,11 +31,11 @@ readcb(dj_reply_status stat, const djcall_args &args)
 }
 
 static void
-readdircb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args &args)
+readdircb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args *args)
 {
     if (stat == REPLY_DONE) {
 	djfs_reply reply;
-	if (!str2xdr(reply, args.data)) {
+	if (!str2xdr(reply, args->data)) {
 	    warn << "readdircb: cannot decode\n";
 	} else {
 	    if (reply.err) {

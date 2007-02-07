@@ -29,7 +29,7 @@ class catmgr : virtual public refcount {
 
 class djprot : virtual public refcount {
  public:
-    typedef callback<void, dj_reply_status, const djcall_args&>::ptr call_reply_cb;
+    typedef callback<void, dj_reply_status, const djcall_args*>::ptr call_reply_cb;
     typedef callback<ptr<djcallexec>, call_reply_cb>::ptr callexec_factory;
 
     virtual ~djprot() {}

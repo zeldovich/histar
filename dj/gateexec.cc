@@ -69,9 +69,7 @@ class gate_exec : public djcallexec {
 	    fdcb(pipes_[0], selread, wrap(mkref(this), &gate_exec::pipecb));
 	} catch (std::exception &e) {
 	    cprintf("gate_exec::start: %s\n", e.what());
-
-	    djcall_args ra;
-	    cb_(REPLY_GATE_CALL_ERROR, ra);
+	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
 	}
     }
 
@@ -99,8 +97,7 @@ class gate_exec : public djcallexec {
 	    atomic_set(&state_, GATE_EXEC_ABORT);
 	}
 
-	djcall_args ra;
-	cb_(REPLY_ABORTED, ra);
+	cb_(REPLY_ABORTED, (const djcall_args *) 0);
     }
 
  private:
@@ -162,12 +159,10 @@ class gate_exec : public djcallexec {
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
 	    ra.data = str((const char *) data_map, data_len);
 
-	    cb_(REPLY_DONE, ra);
+	    cb_(REPLY_DONE, &ra);
 	} catch (std::exception &e) {
 	    cprintf("gate_exec::pipecb: %s\n", e.what());
-
-	    djcall_args ra;
-	    cb_(REPLY_GATE_CALL_ERROR, ra);
+	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
 	}
     }
 

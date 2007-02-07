@@ -165,14 +165,10 @@ class djprot_impl : public djprot {
 
     virtual void call(str node_pk, const dj_gatename &gate,
 		      const djcall_args &args, call_reply_cb cb) {
-	djcall_args reparg;
-	reparg.taint = net_label_;
-	reparg.grant = label(3);
-
 	dj_esign_pubkey target;
 	if (!str2xdr(target, node_pk)) {
 	    warn << "call: cannot unmarshal node_pk\n";
-	    cb(REPLY_SYSERR, reparg);
+	    cb(REPLY_SYSERR, (const djcall_args *) 0);
 	    return;
 	}
 
@@ -191,7 +187,7 @@ class djprot_impl : public djprot {
 	cc->ss.stmt.call->u.req->gate = gate;
 	cc->ss.stmt.call->u.req->timeout_sec = 0xffffffff;
 	if (!callarg_hton(args, &cc->ss.stmt.call->u.req->arg)) {
-	    cb(REPLY_SYSERR, reparg);
+	    cb(REPLY_SYSERR, (const djcall_args *) 0);
 	    return;
 	}
 
@@ -397,9 +393,6 @@ class djprot_impl : public djprot {
 
     void clnt_transmit(call_client *cc) {
 	djprot::call_reply_cb cb = cc->cb;
-	djcall_args reparg;
-	reparg.taint = net_label_;
-	reparg.grant = label(3);
 
 	cc->timecb = 0;
 	cc->ss.stmt.call->seq++;
@@ -409,7 +402,7 @@ class djprot_impl : public djprot {
 	if (!labelcheck_send(cc->ss.stmt.call->u.req->arg,
 			     cc->ss.stmt.call->to)) {
 	    clnt_done(cc);
-	    cb(REPLY_DELEGATION_MISSING, reparg);
+	    cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
 	    return;
 	}
 
@@ -417,13 +410,13 @@ class djprot_impl : public djprot {
 	if (!msg) {
 	    warn << "call: cannot encode call statement\n";
 	    clnt_done(cc);
-	    cb(REPLY_SYSERR, reparg);
+	    cb(REPLY_SYSERR, (const djcall_args *) 0);
 	    return;
 	}
 
 	if (!send_message(msg, cc->ss.stmt.call->to)) {
 	    clnt_done(cc);
-	    cb(REPLY_ADDRESS_MISSING, reparg);
+	    cb(REPLY_ADDRESS_MISSING, (const djcall_args *) 0);
 	    return;
 	}
 
@@ -510,9 +503,10 @@ class djprot_impl : public djprot {
 	send_message(msg, cs->id.key);
     }
 
-    void execcb(call_server *cs, dj_reply_status stat, const djcall_args &a) {
+    void execcb(call_server *cs, dj_reply_status stat, const djcall_args *a) {
 	cs->stat = stat;
-	cs->reply = a;
+	if (stat == REPLY_DONE)
+	    cs->reply = *a;
 	cs->exec = 0;
 	srvr_send_reply(cs);
     }
@@ -589,18 +583,19 @@ class djprot_impl : public djprot {
 		return;
 	    }
 
-	    djcall_args reparg;
-	    reparg.taint = net_label_;
-	    reparg.grant = label(3);
-
 	    if (c.u.reply->stat == REPLY_DONE) {
+		djcall_args reparg;
+		reparg.taint = net_label_;
+		reparg.grant = label(3);
+
 		if (!labelcheck_recv(*c.u.reply->arg, c.from))
 		    return;
 		if (!callarg_ntoh(*c.u.reply->arg, &reparg))
 		    return;
+		cc->cb(c.u.reply->stat, &reparg);
+	    } else {
+		cc->cb(c.u.reply->stat, (const djcall_args *) 0);
 	    }
-
-	    cc->cb(c.u.reply->stat, reparg);
 	    clnt_done(cc);
 	    break;
 	}
