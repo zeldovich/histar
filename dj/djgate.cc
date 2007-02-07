@@ -1,9 +1,20 @@
 extern "C" {
 #include <inc/atomic.h>
 #include <inc/utrap.h>
+#include <inc/gateparam.h>
+#include <inc/lib.h>
+#include <inc/stdio.h>
+#include <inc/syscall.h>
+#include <inc/error.h>
+#include <inc/memlayout.h>
 }
 
 #include <dj/dis.hh>
+#include <inc/gateclnt.hh>
+#include <inc/error.hh>
+#include <inc/errno.hh>
+#include <inc/scopeguard.hh>
+#include <inc/labelutil.hh>
 
 #define GATE_EXEC_CALL		0
 #define GATE_EXEC_RETURN	1
@@ -29,18 +40,27 @@ class gate_exec : public djcallexec {
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
 	try {
-	    grant_ = args.grant;
+	    call_grant_ = args.grant;
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
 	    cobj_ref data_seg;
 	    void *data_map = 0;
-	    error_check(segment_alloc(gc_->call_ct(), args.data.size(),
+	    error_check(segment_alloc(gc_->call_ct(), args.data.len(),
 				      &data_seg, &data_map,
-				      args.taint.to_ulabel(), "gate_exec args"));
+				      args.taint.to_ulabel_const(),
+				      "gate_exec args"));
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    memcpy(data_map, args.data.base(), args.data.size());
-	    gcd_.param_obj = args_seg;
+	    memcpy(data_map, args.data.cstr(), args.data.len());
+	    gcd_.param_obj = data_seg;
+
+	    /*
+	     * XXX
+	     * How does the guy trust we are passing him a properly-labeled
+	     * segment?  Need to use a verify label to prove that we can write
+	     * to that segment (i.e. L_T \leq V_T \leq L_seg).  How to prove
+	     * we can read the segment too?
+	     */
 
 	    errno_check(pipe(pipes_));
 	    _make_async(pipes_[0]);
@@ -48,14 +68,16 @@ class gate_exec : public djcallexec {
 
 	    atomic_set(&state_, GATE_EXEC_CALL);
 	    error_check(thread_create_option(start_env->proc_container,
-					     &gate_exec::gate_call_thread, this,
-					     &callthread_tid_ "gate_exec call thread",
-					     &callthread_args_, 0);
+					     &gate_exec::gate_call_thread, this, 0,
+					     &callthread_tid_, "gate_exec call thread",
+					     &callthread_args_, 0));
 
 	    fdcb(pipes_[0], selread, wrap(mkref(this), &gate_exec::pipecb));
 	} catch (std::exception &e) {
 	    cprintf("gate_exec::start: %s\n", e.what());
-	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
+
+	    djcall_args ra;
+	    cb_(REPLY_GATE_CALL_ERROR, ra);
 	}
     }
 
@@ -83,26 +105,28 @@ class gate_exec : public djcallexec {
 	    atomic_set(&state_, GATE_EXEC_ABORT);
 	}
 
-	cb_(REPLY_ABORTED, (const djcall_args *) 0);
+	djcall_args ra;
+	cb_(REPLY_ABORTED, ra);
     }
 
  private:
     static void gate_call_thread(void *arg) {
 	gate_exec *ge = (gate_exec *) arg;
-	ge->gc_->call(&gcd_, &grant_, &gate_exec::gate_return_cb, ge);
+	ge->gc_->call(&ge->gcd_, &ge->call_grant_, &gate_exec::gate_return_cb, ge);
 
 	/*
 	 * XXX
 	 * might need to declassify ourselves at this point..
 	 */
 
+	thread_cur_verify(&ge->reply_grant_);
 	atomic_compare_exchange(&ge->state_, GATE_EXEC_RETURN, GATE_EXEC_DONE);
-	write(pipes_[1], "", 1);
+	write(ge->pipes_[1], "", 1);
     }
 
     static void gate_return_cb(void *arg) {
 	gate_exec *ge = (gate_exec *) arg;
-	start_env_t *start_env_ro = (start_env_t *) START_ENV_RO;
+	start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
 
 	sys_self_set_sched_parents(start_env_ro->proc_container, 0);
 	if (atomic_compare_exchange(&ge->state_, GATE_EXEC_CALL, GATE_EXEC_RETURN) != GATE_EXEC_CALL) {
@@ -123,7 +147,7 @@ class gate_exec : public djcallexec {
 	    cobj_ref data_seg = gcd_.param_obj;
 
 	    djcall_args ra;
-	    thread_cur_verify(&ra.grant);
+	    ra.grant = reply_grant_;
 	    obj_get_label(data_seg, &ra.taint);
 
 	    void *data_map = 0;
@@ -131,12 +155,21 @@ class gate_exec : public djcallexec {
 	    error_check(segment_map(data_seg, 0, SEGMAP_READ,
 				    &data_map, &data_len, 0));
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    ra.data = str(data_map, data_len);
+	    ra.data = str((const char *) data_map, data_len);
 
-	    cb_(REPLY_DONE, &ra);
+	    /*
+	     * XXX
+	     * How do we know this segment's label was readable and writable
+	     * to the party on the other side of this gate?  Need to use the
+	     * verify label as well here...
+	     */
+
+	    cb_(REPLY_DONE, ra);
 	} catch (std::exception &e) {
 	    cprintf("gate_exec::pipecb: %s\n", e.what());
-	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
+
+	    djcall_args ra;
+	    cb_(REPLY_GATE_CALL_ERROR, ra);
 	}
     }
 
