@@ -33,7 +33,7 @@ a2pdf(int fd, std::ostringstream &pdf_out, uint64_t utaint)
     if (debug)
 	error_check(errout = opencons());
     else
-	errno_check(errout = open("/dev/null", O_RDONLY));
+	errno_check(errout = open("/dev/null", O_RDWR));
     
     int ps[2];
     errno_check(pipe(ps));
