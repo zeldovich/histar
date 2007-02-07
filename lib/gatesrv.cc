@@ -133,7 +133,7 @@ gate_create(gatesrv_descriptor *gd)
 }
 
 void
-gatesrv_return::ret(label *cs, label *ds, label *dr)
+gatesrv_return::ret(label *cs, label *ds, label *dr, label *verify)
 {
     error_check(sys_self_set_sched_parents(thread_ct_, gatecall_ct_));
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))
@@ -150,6 +150,13 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	delete ds;
     if (dr)
 	delete dr;
+
+    if (verify) {
+	sys_self_set_verify(verify->to_ulabel());
+	delete verify;
+    } else {
+	sys_self_set_verify(label(3).to_ulabel());
+    }
 
     // Create an MLT-like container for tainted data.
     // New scope to free thread_label and taint_ct_label.
@@ -173,9 +180,6 @@ gatesrv_return::ret(label *cs, label *ds, label *dr)
 	} else {
 	    gcd->taint_container = id;
 	}
-
-	label verify(3);
-	sys_self_set_verify(verify.to_ulabel());
     }
 
     if (!(flags_ & GATESRV_KEEP_TLS_STACK))

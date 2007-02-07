@@ -13,7 +13,8 @@ public:
     // ret will delete the three labels passed to it
     void ret(label *contaminate_label,		// { 0 } for none
 	     label *decontaminate_label,	// { 3 } for none
-	     label *decontaminate_clearance)	// { 0 } for none
+	     label *decontaminate_clearance,	// { 0 } for none
+	     label *verify = 0)			// { 3 } for none
 	__attribute__((noreturn));
 
 private:
