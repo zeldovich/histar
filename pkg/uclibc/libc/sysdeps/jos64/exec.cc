@@ -20,52 +20,83 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
+struct serial_vec {
+    serial_vec(char *p, uint32_t n) : p_(p), n_(n), c_(0)  {}
+
+    void add(const char *s) {
+	size_t len = strlen(s) + 1;
+	if (len > n_)
+            throw error(-E_NO_SPACE, "serial_vec out of space");
+        n_ -= len;
+    	memcpy(p_, s, len);
+    	p_ += len;
+	c_++;
+    }
+
+    void add_all(char *const *v) {
+	for (uint32_t i = 0; v[i]; i++)
+	    add(v[i]);
+    }
+
+    char *p_;
+    uint32_t n_;
+    uint32_t c_;
+};
+
 static int
 script_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
-	    char *command, uint32_t n)
+	    serial_vec *avec)
 {
     uint64_t seglen = 0;
     char *segbuf = 0;
+    
     int r = segment_map(seg, 0, SEGMAP_READ, (void**)&segbuf, &seglen, 0);
     if (r < 0) {
-	cprintf("script_load: cannot map segment\n");
+	cprintf("script_load: unable to map segment\n");
 	return r;
     }
+    scope_guard<int, void *> unmap(segment_unmap, segbuf);
+
     if (segbuf[0] != '#' || segbuf[1] !='!')
 	return -E_INVAL;
     
     // Read #! command
     char *end = strchr(segbuf, '\n');
     uint32_t s = end - segbuf - 1;
-    if (s > n) {
-	cprintf("script_load: script too long %d > %d\n", s, n);
+    char cmd[64];
+    if (s > sizeof(cmd)) {
+	cprintf("script_load: command too long\n");
 	return -E_INVAL;
     }
-    strncpy(command, segbuf + 2, s - 1);
-    command[s - 1] = 0;
+    strncpy(cmd, segbuf + 2, s - 1);
+    cmd[s - 1] = 0;
     
-    r = segment_unmap(segbuf);
-    if (r < 0) {
-	cprintf("script_load: unable to unmap segment: %s\n", e2s(r));
-	return r;
+    char *arg = cmd;
+    for (uint32_t i = 0; i <= s - 1; i++) {
+	if (cmd[i] == ' ') {
+	    cmd[i] = 0;
+	    if (strlen(arg))
+		avec->add(arg);
+	    arg = (&cmd[i]) + 1;
+	} else if (!cmd[i]) {
+	    if (strlen(arg))
+		avec->add(arg);
+	}
     }
-    
+        
     // Load ELF for #! command
     fs_inode bin;
-    r = fs_namei(command, &bin);
+    r = fs_namei(cmd, &bin);
     if (r < 0) {
-	cprintf("script_load: unable to find %s\n", command);
-	return -E_INVAL;
-    }
-    r = elf_load(container, bin.obj, e, 0);
-    if (r < 0) 
+	cprintf("script_load: unknown command %s\n", cmd);
 	return r;
-
-    return 0;
+    }
+    
+    return elf_load(container, bin.obj, e, 0);
 }
 
 static void __attribute__((noreturn))
-do_execve(fs_inode bin, char *const *argv, char *const *envp)
+do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
 {
     // Make all file descriptors have their own taint and grant handles
     for (int i = 0; i < MAXFD; i++)
@@ -99,17 +130,33 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
     cobj_ref proc_ref = COBJ(start_env->shared_container, proc_ct);
     scope_guard<int, cobj_ref> proc_drop(sys_obj_unref, proc_ref);
 
+    // Create an environment
+    uint64_t env_size = PGSIZE;
+    start_env_t *new_env = 0;
+    struct cobj_ref new_env_ref;
+    error_check(segment_alloc(proc_ct, env_size, &new_env_ref,
+			      (void**) &new_env, 0, "env"));
+    scope_guard<int, void *> new_env_unmap(segment_unmap, new_env);
+
+    memcpy(new_env, start_env, sizeof(*new_env));
+    new_env->proc_container = proc_ct;
+
+    int room = env_size - sizeof(start_env_t);
+    char *p = &new_env->args[0];
+    serial_vec sv(p, room);
+    
     // Load ELF binary into container
     thread_entry e;
     memset(&e, 0, sizeof(e));
-    char script = 0;
-    char script_com[16];
-    
+
     int r = elf_load(proc_ct, bin.obj, &e, 0);
     if (r < 0) {
-	error_check(script_load(proc_ct, bin.obj, &e, script_com, 
-				sizeof(script_com)));
-	script = 1;
+	error_check(script_load(proc_ct, bin.obj, &e, &sv));
+	
+	// replace argv[0] with guaranteed full pathname
+	sv.add(fn);
+	if (argv[0])
+	    argv++;
     }
     
     // Move our file descriptors over to the new process
@@ -126,54 +173,12 @@ do_execve(fs_inode bin, char *const *argv, char *const *envp)
 	error_check(dup2_as(i, i, e.te_as, start_env->shared_container));
     }
 
-    // Create an environment
-    uint64_t env_size = PGSIZE;
-    start_env_t *new_env = 0;
-    struct cobj_ref new_env_ref;
-    error_check(segment_alloc(proc_ct, env_size, &new_env_ref,
-			      (void**) &new_env, 0, "env"));
-    scope_guard<int, void *> new_env_unmap(segment_unmap, new_env);
+    sv.add_all(argv);
+    new_env->argc = sv.c_;
 
-    memcpy(new_env, start_env, sizeof(*new_env));
-    new_env->proc_container = proc_ct;
-    
-    int room = env_size - sizeof(start_env_t);
-    int ac = 0;
-    char *p = &new_env->args[0];
-
-    // Pass #! command as arg[0] if running a script
-    if (script) {
-	size_t len = strlen(script_com) + 1;
-        room -= len;
-        if (room < 0)
-            throw error(-E_NO_SPACE, "args overflow env");
-    	memcpy(p, script_com, len);
-    	p += len;
-        ac++;
-    }
-
-    for (int i = 0; argv[i]; i++) {
-    	size_t len = strlen(argv[i]) + 1;
-        room -= len;
-        if (room < 0)
-            throw error(-E_NO_SPACE, "args overflow env");
-    	memcpy(p, argv[i], len);
-    	p += len;
-        ac++;
-    }
-    new_env->argc = ac;
-
-    int ec = 0;
-    for (int i = 0; envp[i]; i++) {
-        size_t len = strlen(envp[i]) + 1; 
-        room -= len;
-        if (room < 0)
-            throw error(-E_NO_SPACE, "env vars overflow env");
-        memcpy(p, envp[i], len);
-        p += len;
-        ec++;
-    }
-    new_env->envc = ec;
+    sv.c_ = 0;
+    sv.add_all(envp);
+    new_env->envc = sv.c_;
 
     // Map environment in new address space
     void *new_env_va = 0;
@@ -214,7 +219,7 @@ execve(const char *filename, char *const *argv, char *const *envp) __THROW
             __set_errno(ENOENT);
             return -1;
         }
-        do_execve(bin, argv, envp);
+        do_execve(bin, filename, argv, envp);
     } catch (std::exception &e) {
         cprintf("execve: %s\n", e.what());
         __set_errno(EINVAL);
