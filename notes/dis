@@ -183,3 +183,8 @@ translates your message label and grant categories, but what if you want to
 tell the other end "use this category for my user taint, and this other one
 for my user grant"?
 
+Potential covert channels in the error responses when we fail to invoke a
+gate (or indicate the existence of a gate in the first place), etc...  Need
+to be careful to make sure caller can read the container for the gate before
+returning any error back to the user as to whether the gate exists or not.
+
