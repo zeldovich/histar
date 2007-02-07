@@ -515,10 +515,13 @@ sys_gate_enter(struct cobj_ref gt,
 	       struct thread_entry *ute)
 {
     // Verify that the caller has supplied a valid verify label
-    const struct Label *verify;
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify, &verify));
-    if (verify)
-	check(label_compare(cur_th_label, verify, label_leq_starlo));
+    const struct Label *vl, *vc;
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_contaminate, &vl));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_clearance,   &vc));
+    if (vl)
+	check(label_compare(cur_th_label, vl, label_leq_starlo));
+    if (vc)
+	check(label_compare(vc, cur_th_clearance, label_leq_starhi));
 
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
@@ -526,8 +529,8 @@ sys_gate_enter(struct cobj_ref gt,
 
     const struct Label *gt_label, *gt_clear, *gt_verify;
     check(kobject_get_label(&g->gt_ko, kolabel_contaminate, &gt_label));
-    check(kobject_get_label(&g->gt_ko, kolabel_clearance,   &gt_clear));
-    check(kobject_get_label(&g->gt_ko, kolabel_verify,	    &gt_verify));
+    check(kobject_get_label(&g->gt_ko, kolabel_clearance, &gt_clear));
+    check(kobject_get_label(&g->gt_ko, kolabel_verify_contaminate, &gt_verify));
 
     if (gt_verify)
 	check(label_compare(cur_th_label, gt_verify, label_leq_starlo));
@@ -693,23 +696,39 @@ sys_self_get_clearance(struct ulabel *uclear)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_self_set_verify(struct ulabel *uv)
+sys_self_set_verify(struct ulabel *uvl, struct ulabel *uvc)
 {
-    const struct Label *v;
-    check(alloc_ulabel(uv, &v, 0));
-    check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
-			    kolabel_verify, v));
+    const struct Label *vl, *vc;
+    check(alloc_ulabel(uvl, &vl, 0));
+    check(alloc_ulabel(uvc, &vc, 0));
+
+    const struct Label *ovl, *ovc;
+    struct kobject_hdr *tko = &kobject_dirty(&cur_thread->th_ko)->hdr;
+    check(kobject_get_label(tko, kolabel_verify_contaminate, &ovl));
+    check(kobject_get_label(tko, kolabel_verify_clearance,   &ovc));
+
+    struct kobject_quota_resv qr;
+    kobject_qres_init(&qr, tko);
+    check(kobject_qres_reserve(&qr, &vl->lb_ko));
+    check(kobject_qres_reserve(&qr, &vc->lb_ko));
+
+    kobject_set_label_prepared(tko, kolabel_verify_contaminate, ovl, vl, &qr);
+    kobject_set_label_prepared(tko, kolabel_verify_clearance,   ovc, vc, &qr);
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_self_get_verify(struct ulabel *uv)
+sys_self_get_verify(struct ulabel *uvl, struct ulabel *uvc)
 {
-    const struct Label *v;
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify, &v));
-    if (!v)
-	check(label_alloc((struct Label **) &v, 3));
-    check(label_to_ulabel(v, uv));
+    const struct Label *vl, *vc;
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_contaminate, &vl));
+    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_clearance,   &vc));
+    if (!vl)
+	check(label_alloc((struct Label **) &vl, 3));
+    if (!vc)
+	check(label_alloc((struct Label **) &vc, 0));
+    check(label_to_ulabel(vl, uvl));
+    check(label_to_ulabel(vc, uvc));
     return 0;
 }
 
@@ -992,8 +1011,8 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(self_set_label, p1);
 	SYSCALL(self_set_clearance, p1);
 	SYSCALL(self_get_clearance, p1);
-	SYSCALL(self_set_verify, p1);
-	SYSCALL(self_get_verify, p1);
+	SYSCALL(self_set_verify, p1, p2);
+	SYSCALL(self_get_verify, p1, p2);
 	SYSCALL(self_fp_enable);
 	SYSCALL(self_fp_disable);
 	SYSCALL(self_set_waitslots, a1);

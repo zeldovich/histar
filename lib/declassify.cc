@@ -21,12 +21,12 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
     uint64_t declassify_handle = (uint64_t) arg;
 
-    label verify;
-    thread_cur_verify(&verify);
+    label vl, vc;
+    thread_cur_verify(&vl, &vc);
     if (declass_debug)
-	cprintf("declassify: verify label %s\n", verify.to_string());
+	cprintf("declassify: verify label %s clear %s\n", vl.to_string(), vc.to_string());
 
-    label declassified(verify);
+    label declassified(vl);
     declassified.set(declassify_handle, declassified.get_default());
 
     if (start_env->declassify_gate.object) {
@@ -60,7 +60,7 @@ declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
 
 	kill(darg->exit.parent_pid, SIGCHLD);
     } else if (darg->req == declassify_fs_create) {
-	label file_label(verify);
+	label file_label(vl);
 	file_label.transform(label::star_to, file_label.get_default());
 
 	if (declass_debug)

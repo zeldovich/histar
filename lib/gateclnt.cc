@@ -136,20 +136,23 @@ gate_call::gate_call(cobj_ref gate,
 }
 
 void __attribute__((noinline))
-gate_call::set_verify(label *verify)
+gate_call::set_verify(const label *vl, const label *vc)
 {
-    // Set the verify label; prove we had the call handle at *
-    label new_verify(verify ? *verify : label(3));
-    new_verify.set(call_grant_, LB_LEVEL_STAR);
-    new_verify.set(call_taint_, LB_LEVEL_STAR);
-    error_check(sys_self_set_verify(new_verify.to_ulabel()));
+    // Set the verify label; prove ownership of call handles
+    label new_vl(vl ? *vl : label(3));
+    label new_vc(vc ? *vc : label(0));
+    new_vl.set(call_grant_, LB_LEVEL_STAR);
+    new_vl.set(call_taint_, LB_LEVEL_STAR);
+    new_vc.set(call_grant_, 3);
+    new_vc.set(call_taint_, 3);
+    error_check(sys_self_set_verify(new_vl.to_ulabel(), new_vc.to_ulabel()));
 }
 
 void
-gate_call::call(gate_call_data *gcd_param, label *verify,
+gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
 		void (*returncb)(void*), void *cbarg)
 {
-    set_verify(verify);
+    set_verify(vl, vc);
 
     // Create a return gate in the taint container
     jos_jmp_buf back_from_call;

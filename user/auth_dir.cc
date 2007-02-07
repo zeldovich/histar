@@ -56,12 +56,12 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     }
 
     if (req->op == auth_dir_add || req->op == auth_dir_remove) {
-	label v;
-	thread_cur_verify(&v);
+	label vl, vc;
+	thread_cur_verify(&vl, &vc);
 
 	label root_v(3);
 	root_v.set(root_grant, 0);
-	error_check(v.compare(&root_v, label::leq_starlo));
+	error_check(vl.compare(&root_v, label::leq_starlo));
     }
 
     if (req->op == auth_dir_remove) {

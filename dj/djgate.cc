@@ -40,7 +40,9 @@ class gate_exec : public djcallexec {
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
 	try {
-	    call_grant_ = args.grant;
+	    args.grant.merge(&args.taint, &call_vl_, label::min, label::leq_starlo);
+	    call_vc_ = args.taint;
+
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
@@ -53,14 +55,6 @@ class gate_exec : public djcallexec {
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
 	    memcpy(data_map, args.data.cstr(), args.data.len());
 	    gcd_.param_obj = data_seg;
-
-	    /*
-	     * XXX
-	     * How does the guy trust we are passing him a properly-labeled
-	     * segment?  Need to use a verify label to prove that we can write
-	     * to that segment (i.e. L_T \leq V_T \leq L_seg).  How to prove
-	     * we can read the segment too?
-	     */
 
 	    errno_check(pipe(pipes_));
 	    _make_async(pipes_[0]);
@@ -112,14 +106,14 @@ class gate_exec : public djcallexec {
  private:
     static void gate_call_thread(void *arg) {
 	gate_exec *ge = (gate_exec *) arg;
-	ge->gc_->call(&ge->gcd_, &ge->call_grant_, &gate_exec::gate_return_cb, ge);
+	ge->gc_->call(&ge->gcd_, &ge->call_vl_, &ge->call_vc_, &gate_exec::gate_return_cb, ge);
 
 	/*
 	 * XXX
 	 * might need to declassify ourselves at this point..
 	 */
 
-	thread_cur_verify(&ge->reply_grant_);
+	thread_cur_verify(&ge->reply_vl_, &ge->reply_vc_);
 	atomic_compare_exchange(&ge->state_, GATE_EXEC_RETURN, GATE_EXEC_DONE);
 	write(ge->pipes_[1], "", 1);
     }
@@ -146,9 +140,20 @@ class gate_exec : public djcallexec {
 	try {
 	    cobj_ref data_seg = gcd_.param_obj;
 
+	    label l;
+	    obj_get_label(COBJ(data_seg.container, data_seg.container), &l);
+	    error_check(reply_vl_.compare(&l, label::leq_starlo));
+	    error_check(l.compare(&reply_vc_, label::leq_starhi));
+	    obj_get_label(data_seg, &l);
+	    error_check(reply_vl_.compare(&l, label::leq_starlo));
+	    error_check(l.compare(&reply_vc_, label::leq_starhi));
+
 	    djcall_args ra;
-	    ra.grant = reply_grant_;
-	    obj_get_label(data_seg, &ra.taint);
+	    ra.taint = l;
+	    ra.grant = reply_vl_;
+	    ra.grant.set(gc_->call_taint(), 3);
+	    ra.grant.set(gc_->call_grant(), 3);
+	    ra.grant.transform(label::nonstar_to, 3);
 
 	    void *data_map = 0;
 	    uint64_t data_len = 0;
@@ -156,13 +161,6 @@ class gate_exec : public djcallexec {
 				    &data_map, &data_len, 0));
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
 	    ra.data = str((const char *) data_map, data_len);
-
-	    /*
-	     * XXX
-	     * How do we know this segment's label was readable and writable
-	     * to the party on the other side of this gate?  Need to use the
-	     * verify label as well here...
-	     */
 
 	    cb_(REPLY_DONE, ra);
 	} catch (std::exception &e) {
@@ -178,8 +176,8 @@ class gate_exec : public djcallexec {
     gate_call_data gcd_;
     cobj_ref callthread_tid_;
     thread_args callthread_args_;
-    label call_grant_;
-    label reply_grant_;
+    label call_vl_, call_vc_;
+    label reply_vl_, reply_vc_;
     atomic_t state_;
     int pipes_[2];
 };

@@ -381,7 +381,7 @@ debug_gate_send(struct cobj_ref gate, struct debug_args *da)
     struct debug_args *dag = (struct debug_args *) &gcd.param_buf[0];
     memcpy(dag, da, sizeof(*dag));
     try {
-	gate_call(gate, 0, 0, 0).call(&gcd, 0);
+	gate_call(gate, 0, 0, 0).call(&gcd);
     } catch (std::exception &e) {
 	return -1;
     }

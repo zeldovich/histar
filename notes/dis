@@ -171,3 +171,10 @@ Either create a new address space checkpoint, or if this is expensive, then
 we can manually adjust the existing checkpoint, e.g. by appending the new
 privstore's category and gate-ID to some segment object.
 
+===
+
+Potentially useful system call:
+    sys_obj_probe_label(cobj_ref o, ulabel *l, bool write)
+Would replace sys_as_set_slot() in taint_cow's fastcheck, and speed up dj
+gate crossings.
+

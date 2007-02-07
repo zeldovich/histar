@@ -41,7 +41,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling directory gate\n");
 
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, 0);
+    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
@@ -67,7 +67,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
     // Invoke the user gate to get the user's taint and grant categories
     user_req->req_cats = 1;
-    gate_call(user_gate, 0, 0, 0).call(&gcd, 0);
+    gate_call(user_gate, 0, 0, 0).call(&gcd);
     error_check(user_reply->err);
 
     uint64_t user_grant = user_reply->ug_cat;
@@ -118,7 +118,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling user gate\n");
 
-    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd, 0);
+    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd);
     error_check(user_reply->err);
     cobj_ref uauth_gate  = COBJ(session_ct, user_reply->uauth_gate);
     cobj_ref ugrant_gate = COBJ(session_ct, user_reply->ugrant_gate);
@@ -158,6 +158,9 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     error_check(sys_obj_set_meta(COBJ(0, thread_id()), 0, &buf[0]));
     error_check(sys_self_fp_disable());
 
+    label vl(3), vc(0);
+    sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel());
+
     label cur_label2, cur_clear2;
     thread_cur_label(&cur_label2);
     thread_cur_clearance(&cur_clear2);
@@ -174,7 +177,7 @@ auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (auth_debug)
 	cprintf("auth_login: calling grant gate\n");
 
-    gate_call(ugrant_gate, 0, 0, &grant_dr).call(&gcd, 0);
+    gate_call(ugrant_gate, 0, 0, &grant_dr).call(&gcd);
 
     *ug = ugrant_reply->user_grant;
     *ut = ugrant_reply->user_taint;
@@ -201,7 +204,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling directory gate\n");
 
-    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, 0);
+    gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd);
     error_check(dir_reply->err);
     cobj_ref user_gate = dir_reply->user_gate;
 
@@ -232,7 +235,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
 
     // Invoke the user gate to get the user's taint and grant categories
     user_req->req_cats = 1;
-    gate_call(user_gate, 0, 0, 0).call(&gcd, 0);
+    gate_call(user_gate, 0, 0, 0).call(&gcd);
     error_check(user_reply->err);
 
     uint64_t user_grant = user_reply->ug_cat;
@@ -283,7 +286,7 @@ auth_chpass(const char *user, const char *pass, const char *npass)
     if (auth_debug)
 	cprintf("auth_chpass: calling user gate\n");
 
-    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd, 0);
+    gate_call(user_gate, 0, &user_auth_ds, 0).call(&gcd);
     error_check(user_reply->err);
     cobj_ref uauth_gate = COBJ(session_ct, user_reply->uauth_gate);
     uint64_t xh = user_reply->xh;
@@ -320,5 +323,5 @@ auth_log(const char *msg)
     error_check(log_ct = container_find(start_env->root_container, kobj_container, "auth_log"));
     error_check(log_gt = container_find(log_ct, kobj_gate, "authlog"));
 
-    gate_call(COBJ(log_ct, log_gt), 0, 0, 0).call(&gcd, 0);
+    gate_call(COBJ(log_ct, log_gt), 0, 0, 0).call(&gcd);
 }

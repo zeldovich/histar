@@ -76,7 +76,7 @@ signal_gate_send(struct cobj_ref gate, siginfo_t *si)
     memcpy(sip, si, sizeof(*sip));
 
     try {
-	gate_call(gate, 0, 0, 0).call(&gcd, 0);
+	gate_call(gate, 0, 0, 0).call(&gcd);
     } catch (std::exception &e) {
 	cprintf("kill: gate_call: %s\n", e.what());
 	__set_errno(EPERM);

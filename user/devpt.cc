@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
+#include <inc/cpplabel.hh>
 
 # define DEVPTS_SUPER_MAGIC	0x1cd1
 
@@ -54,10 +55,9 @@ pts_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	    args->pts_args.ret = 0;
 	    break;
 	case pts_op_close: {
-	    struct ulabel *l = label_alloc();
-	    scope_guard<void, struct ulabel *> free_l(label_free, l);
-	    sys_self_get_verify(l);
-	    if (label_get_level(l, pts_table[id].h_master) != LB_LEVEL_STAR) {
+	    label vl, vc;
+	    thread_cur_verify(&vl, &vc);
+	    if (vl.get(pts_table[id].h_master) != LB_LEVEL_STAR) {
 		cprintf("pts_gate: invalid verify to close\n");
 		args->pts_args.ret = -1;
 		break;
@@ -82,9 +82,6 @@ pts_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 static void
 ptm_handle_open(struct gatefd_args *args)
 {
-    label ver(1);
-    thread_cur_verify(&ver);
-    
     scoped_jthread_lock lock(&pts_table_mu);
     for (uint64_t i = 0; i < pts_table_entries; i++) {
 	if (!pts_table[i].inuse) {

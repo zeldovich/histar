@@ -42,7 +42,7 @@ try
     const char *op = av[1];
     if (!strcmp(op, "list")) {
 	req->op = admind_op_get_top;
-	gate_call(admgate, 0, 0, 0).call(&gcd, 0);
+	gate_call(admgate, 0, 0, 0).call(&gcd);
 	error_check(reply->err);
     } else if (!strcmp(op, "drop")) {
 	uint64_t ct, id;
@@ -54,7 +54,7 @@ try
 
 	req->op = admind_op_drop;
 	req->obj = COBJ(ct, id);
-	gate_call(admgate, 0, 0, 0).call(&gcd, 0);
+	gate_call(admgate, 0, 0, 0).call(&gcd);
 	error_check(reply->err);
     } else {
 	usage(av[0]);

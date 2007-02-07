@@ -266,15 +266,15 @@ sys_self_get_clearance(struct ulabel *l)
 }
 
 int
-sys_self_set_verify(const struct ulabel *l)
+sys_self_set_verify(const struct ulabel *l, const struct ulabel *c)
 {
-    return syscall(SYS_self_set_verify, l);
+    return syscall(SYS_self_set_verify, l, c);
 }
 
 int
-sys_self_get_verify(struct ulabel *l)
+sys_self_get_verify(struct ulabel *l, struct ulabel *c)
 {
-    return syscall(SYS_self_get_verify, l);
+    return syscall(SYS_self_get_verify, l, c);
 }
 
 int

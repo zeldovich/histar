@@ -91,12 +91,12 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 	sha1_final((unsigned char *) &pwhash[0], &sctx);
 
     	if (memcmp(pwhash, pw->pwhash, sizeof(pw->pwhash))) {
-	    label v;
-	    thread_cur_verify(&v);
+	    label vl, vc;
+	    thread_cur_verify(&vl, &vc);
 
 	    label v_root(3);
 	    v_root.set(root_grant, 0);
-	    if (respect_root[0] != '1' || v.compare(&v_root, label::leq_starlo) < 0)
+	    if (respect_root[0] != '1' || vl.compare(&v_root, label::leq_starlo) < 0)
 		throw error(-E_INVAL, "bad password");
 	}
 

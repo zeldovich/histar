@@ -175,9 +175,17 @@ thread_label_cache_update(label *l, label *c)
 }
 
 void
-thread_cur_verify(label *l)
+thread_cur_verify(label *l, label *c)
 {
-    get_label_retry(l, &sys_self_get_verify);
+    int r;
+    do {
+	r = sys_self_get_verify(l->to_ulabel(), c->to_ulabel());
+	if (r == -E_NO_SPACE) {
+	    l->grow();
+	    c->grow();
+	} else if (r < 0)
+	    throw error(r, "getting label");
+    } while (r == -E_NO_SPACE);
 }
 
 void

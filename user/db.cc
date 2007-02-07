@@ -151,7 +151,7 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 	gcd.param_obj = dbq->obj;
 
 	gate_call gc(COBJ(db_table_ct, id), 0, 0, 0);
-	gc.call(&gcd, 0);
+	gc.call(&gcd);
 
 	db_row *row = 0;
 	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, (void **) &row, 0, 0));
@@ -175,16 +175,16 @@ db_lookup(label *v, db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 static void
 db_handle_query(db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 {
-    label verify;
-    thread_cur_verify(&verify);
+    label vl, vc;
+    thread_cur_verify(&vl, &vc);
 
     switch (dbq->reqtype) {
     case db_req_insert:
-	db_insert(&verify, dbq, dbr);
+	db_insert(&vl, dbq, dbr);
 	break;
 
     case db_req_lookup_all:
-	db_lookup(&verify, dbq, dbr, reply_ct);
+	db_lookup(&vl, dbq, dbr, reply_ct);
 	break;
 
     default:

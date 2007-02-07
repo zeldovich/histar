@@ -36,7 +36,7 @@ auth_groupcall(int op, int type, const char *group, uint64_t t, uint64_t g, auth
     thread_cur_label(&ds);
  
     // XXX grant all handles?
-    gate_call(COBJ(authd_ct, authd_gt), 0, &ds, 0).call(&gcd, 0);
+    gate_call(COBJ(authd_ct, authd_gt), 0, &ds, 0).call(&gcd);
  
     if (r)
         memcpy(r, reply, sizeof(*r));

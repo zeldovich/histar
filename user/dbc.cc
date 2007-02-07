@@ -75,7 +75,7 @@ try
 	query_taint.set(query_tainth, 2);
 
 	gate_call gc(g, &query_taint, 0, 0);
-	gc.call(&gcd, 0);
+	gc.call(&gcd);
 
 	dbr = 0;
 	uint64_t reply_bytes = 0;

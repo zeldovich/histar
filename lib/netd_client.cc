@@ -102,7 +102,7 @@ netd_fast_worker(void *arg)
 	s->fast_ipc_inited = 2;
 	sys_sync_wakeup(&s->fast_ipc_inited);
 
-	s->fast_ipc_gatecall->call(&gcd, 0);
+	s->fast_ipc_gatecall->call(&gcd);
     } catch (std::exception &e) {
 	cprintf("netd_fast_worker: %s\n", e.what());
     }
@@ -214,7 +214,7 @@ netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
 	
 	struct gate_call_data gcd;
 	gcd.param_obj = seg;
-	c.call(&gcd, 0);
+	c.call(&gcd);
 	
 	va = 0;
 	error_check(segment_map(gcd.param_obj, 0, SEGMAP_READ, &va, 0, 0));
@@ -241,7 +241,7 @@ netd_create_gates(struct cobj_ref util_gate, uint64_t ct,
     struct gate_call_data gcd;
     int64_t *arg = (int64_t *)gcd.param_buf;
     *arg = ct;
-    c.call(&gcd, 0);
+    c.call(&gcd);
     
     if(*arg < 0)
 	throw error(*arg, "netd_create_gates: unable to create gates");
