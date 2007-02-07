@@ -1,6 +1,29 @@
 #include <machine/asm.h>
 #include <machine/pmap.h>
 
+#define CFI_UTF_OFFSETS		\
+	.cfi_offset rax,  0*8;	\
+	.cfi_offset rbx,  1*8;	\
+	.cfi_offset rcx,  2*8;	\
+	.cfi_offset rdx,  3*8;	\
+				\
+	.cfi_offset rsi,  4*8;	\
+	.cfi_offset rdi,  5*8;	\
+	.cfi_offset rbp,  6*8;	\
+	.cfi_offset rsp,  7*8;	\
+				\
+	.cfi_offset r8,   8*8;	\
+	.cfi_offset r9,   9*8;	\
+	.cfi_offset r10, 10*8;	\
+	.cfi_offset r11, 11*8;	\
+				\
+	.cfi_offset r12, 12*8;	\
+	.cfi_offset r13, 13*8;	\
+	.cfi_offset r14, 14*8;	\
+	.cfi_offset r15, 15*8;	\
+				\
+	.cfi_offset rip, 16*8;
+
 ENTRY(utrap_entry_asm)
 	.cfi_startproc
 
@@ -8,27 +31,7 @@ ENTRY(utrap_entry_asm)
 	.cfi_def_cfa rsp, 0
 
 	// Tell DWARF2 about our saved registers; this is UTrapframe layout
-	.cfi_offset rax,  0*8
-	.cfi_offset rbx,  1*8
-	.cfi_offset rcx,  2*8
-	.cfi_offset rdx,  3*8
-
-	.cfi_offset rsi,  4*8
-	.cfi_offset rdi,  5*8
-	.cfi_offset rbp,  6*8
-	.cfi_offset rsp,  7*8
-
-	.cfi_offset r8,   8*8
-	.cfi_offset r9,   9*8
-	.cfi_offset r10, 10*8
-	.cfi_offset r11, 11*8
-
-	.cfi_offset r12, 12*8
-	.cfi_offset r13, 13*8
-	.cfi_offset r14, 14*8
-	.cfi_offset r15, 15*8
-
-	.cfi_offset rip, 16*8
+	CFI_UTF_OFFSETS
 
 	// Pass the address of the UTrapframe to utrap_entry()
 	movq	%rsp, %rdi
@@ -36,6 +39,13 @@ ENTRY(utrap_entry_asm)
 	// Call instead of jmp, because we want the call stack to point back to
 	// this function, so that the unwinder sees our register remapping.
 	call	utrap_entry
+	.cfi_endproc
+
+ENTRY(utrap_chain_dwarf2)
+	.cfi_startproc
+	.cfi_def_cfa rsp, 0
+	CFI_UTF_OFFSETS
+	call	*%r15
 	.cfi_endproc
 
 ENTRY(utrap_ret)

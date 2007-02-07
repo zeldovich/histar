@@ -346,10 +346,10 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	utrap_set_mask(0);
 	signal_utrap_onstack(si, sc);
     } else {
-	// Push a copy of si, sc onto the trapped stack, plus the red zone.
+	// Push a copy of sc, si onto the trapped stack, plus the red zone.
 	struct {
-	    siginfo_t si;
 	    struct sigcontext sc;
+	    siginfo_t si;
 	    uint8_t redzone[128];
 	} *s;
 
@@ -379,10 +379,12 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	// jump over there and unmask utrap atomically
 	struct UTrapframe utf_jump;
 	utf_jump.utf_rflags = read_rflags();
-	utf_jump.utf_rip = (uint64_t) &signal_utrap_onstack;
+	utf_jump.utf_rip = (uint64_t) &utrap_chain_dwarf2;
 	utf_jump.utf_rsp = (uint64_t) s;
 	utf_jump.utf_rdi = (uint64_t) &s->si;
 	utf_jump.utf_rsi = (uint64_t) &s->sc;
+
+	utf_jump.utf_r15 = (uint64_t) &signal_utrap_onstack;
 	utrap_ret(&utf_jump);
     }
 }
