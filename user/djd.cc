@@ -5,6 +5,7 @@
 #include <dj/dis.hh>
 #include <dj/djops.hh>
 #include <dj/djfs.h>
+#include <dj/directexec.hh>
 
 static void
 readcb(dj_reply_status stat, const djcall_args &args)
@@ -63,6 +64,8 @@ dostuff(ptr<djprot> p, str node_pk)
     req.readdir->pn = str("/bin");
 
     dj_gatename gate;
+    gate.gate_ct = 1;
+    gate.gate_id = 2;
     djcall_args args;
     args.data = xdr2str(req);
     args.taint = label(1);
@@ -84,9 +87,13 @@ main(int ac, char **av)
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
     ptr<djprot> djs = djprot::alloc(port);
-    //djs->set_callexec(wrap(dj_dummy_exec));
-    djs->set_callexec(wrap(dj_posixfs_exec));
+
+    dj_direct_gatemap gm;
+    djs->set_callexec(wrap(&gm, &dj_direct_gatemap::newexec));
     djs->set_catmgr(dj_dummy_catmgr());
+
+    gm.gatemap_.insert(COBJ(1, 2), wrap(dj_posixfs_service));
+    gm.gatemap_.insert(COBJ(1, 3), wrap(dj_echo_service));
 
     if (ac == 2) {
 	str n(av[1]);

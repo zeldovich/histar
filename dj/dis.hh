@@ -11,6 +11,8 @@ struct djcall_args {
     label grant;
 };
 
+typedef callback<bool, const djcall_args&, djcall_args*>::ptr djgate_service_cb;
+
 class djcallexec : virtual public refcount {
  public:
     virtual ~djcallexec() {}
@@ -43,9 +45,9 @@ class djprot : virtual public refcount {
     static ptr<djprot> alloc(uint16_t port);
 };
 
-ptr<djcallexec> dj_dummy_exec(djprot::call_reply_cb);
-ptr<djcallexec> dj_posixfs_exec(djprot::call_reply_cb);
 ptr<djcallexec> dj_gate_exec(djprot::call_reply_cb);
+bool dj_echo_service(const djcall_args &in, djcall_args *out);
+bool dj_posixfs_service(const djcall_args &in, djcall_args *out);
 
 ptr<catmgr> dj_dummy_catmgr();
 

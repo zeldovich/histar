@@ -64,6 +64,12 @@ operator!=(const dj_gcat &a, const dj_gcat &b)
     return !(a == b);
 }
 
+inline bool
+operator==(const cobj_ref &a, const cobj_ref &b)
+{
+    return a.container == b.container && a.object == b.object;
+}
+
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_esign_pubkey &pk)
 {
@@ -115,5 +121,11 @@ esignpub2dj(const esign_pub &ep)
     pk.k = ep.k;
     return pk;
 }
+
+template<> struct hashfn<cobj_ref> {
+    hashfn () {}
+    hash_t operator() (const cobj_ref &a) const
+	{ return a.container ^ a.object; }
+};
 
 #endif

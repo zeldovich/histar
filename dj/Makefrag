@@ -3,10 +3,10 @@ OBJDIRS += dj
 LIBDIS_SRCFILES +=		\
 	dj/djprot.cc		\
 	dj/bcast.cc		\
-	dj/dummyexec.cc		\
+	dj/directexec.cc	\
 	dj/dummycatmgr.cc	\
 	dj/djfs_posix.cc	\
-	dj/djgate.cc		\
+	dj/gateexec.cc		\
 	dj/dj.x			\
 	dj/djfs.x
 
