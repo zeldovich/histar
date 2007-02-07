@@ -45,6 +45,7 @@ class djprot : virtual public refcount {
 
 ptr<djcallexec> dj_dummy_exec(djprot::call_reply_cb);
 ptr<djcallexec> dj_posixfs_exec(djprot::call_reply_cb);
+ptr<djcallexec> dj_gate_exec(djprot::call_reply_cb);
 
 ptr<catmgr> dj_dummy_catmgr();
 
