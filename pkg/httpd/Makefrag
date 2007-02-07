@@ -25,6 +25,7 @@ HTTPD_SRCFILES :=			\
 	pkg/httpd/lib/ssl_eproc.cc   	\
 	pkg/httpd/lib/ssl_proxy.cc   	\
 	pkg/httpd/lib/a2pdf.cc		\
+	pkg/httpd/lib/perl.cc		\
 	pkg/httpd/user/httpd.cc
 
 HTTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_SRCFILES))
@@ -44,6 +45,10 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/pkg/httpd/user/%.o $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
 
 ## Special targets
+
+$(OBJDIR)/user/%.pl: pkg/httpd/script/%.pl
+	@mkdir -p $(@D)
+	cp $< $@
 
 $(OBJDIR)/user/httpd.debuginfo: $(HTTPD_OBJFILES) $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $(HTTPD_OBJFILES)

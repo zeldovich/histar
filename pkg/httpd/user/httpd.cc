@@ -31,7 +31,9 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
 #include <inc/sslproxy.hh>
+
 #include <inc/a2pdf.hh>
+#include <inc/perl.hh>
 
 #include <iostream>
 #include <sstream>
@@ -70,18 +72,23 @@ static void
 http_on_request(tcpconn *tc, const char *req, const char *user, uint64_t ut, uint64_t ug)
 {
     std::ostringstream header;
-    std::ostringstream pdf;
-    
-    if (strcmp(req, "/")) {
-	std::string pn = std::string("/home/") + user + req;
-	
-	int fd = open(pn.c_str(), O_RDONLY);
+    std::ostringstream rest;
 
+    if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
+	std::string pn = std::string("/home/") + user + req;
+	perl(pn.c_str(), rest, ut);
+    } else if (strcmp(req, "/")) {
+	std::string pn = std::string("/home/") + user + req;
+	int fd = open(pn.c_str(), O_RDONLY);
+	
 	if (fd < 0) {
-	    header << "Cannot open " << pn << ": " << strerror(errno);
+	    header << "HTTP/1.0 404 Not Found\r\n";
+	    header << "Content-Type: text/html\r\n";
+	    header << "\r\n";
+	    header << "Cannot open " << pn << ": " << strerror(errno) << "\r\n";
 	} else {
 
-	    uint64_t sz = a2pdf(fd, pdf, ut);
+	    uint64_t sz = a2pdf(fd, rest, ut);
 	    char size[32];
 	    sprintf(size, "%ld", sz);
 	    std::string content_length = std::string("Content-Length: ") + size + "\r\n";
@@ -91,9 +98,14 @@ http_on_request(tcpconn *tc, const char *req, const char *user, uint64_t ut, uin
 	    header << content_length;
 	    header << "\r\n";
 	}
+    } else {
+	header << "HTTP/1.0 500 Server error\r\n";
+	header << "Content-Type: text/html\r\n";
+	header << "\r\n";
+	header << "<h1>unknown request</h1>\r\n";
     }
 
-    header << pdf.str();
+    header << rest.str();
 
     std::string reply = header.str();
     tc->write(reply.data(), reply.size());
