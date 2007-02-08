@@ -3,6 +3,6 @@
 
 #include <iostream>
 
-uint64_t a2pdf(int fd, std::ostringstream &pdf_out, uint64_t taint);
+void a2pdf(const char *fn, uint64_t utaint, std::ostringstream &out); 
 
 #endif
