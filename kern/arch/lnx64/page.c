@@ -18,10 +18,9 @@ size_t global_npages;
 struct page_stats page_stats;
 struct page_info *page_infos;
 
-#ifdef FT_TRANSFORMED
-int enable_page_alloc_failure;
+#include <ft_public.h>
 #include <ft_runtest.h>
-#endif
+int enable_page_alloc_failure;
 
 // debug flags
 static int scrub_free_pages = 0;
@@ -77,9 +76,7 @@ lnxpage_init(uint64_t membytes)
     TAILQ_INIT(&page_free_list);
     for (uint64_t i = 0; i < global_npages; i++) {
 	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
-#ifdef FT_TRANSFORMED
 	ft_register_memory(fool_ft, PGSIZE, "physmem-page");
-#endif
 	void *pg = (void *) fool_ft;
 	page_free(pg);
     }
@@ -90,10 +87,8 @@ lnxpage_init(uint64_t membytes)
 int
 page_alloc(void **vp)
 {
-#ifdef FT_TRANSFORMED
     if (enable_page_alloc_failure && FT_CHOOSE(2))
 	return -E_NO_MEM;
-#endif
 
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
     if (pl) {

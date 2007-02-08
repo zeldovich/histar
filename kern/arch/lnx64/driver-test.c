@@ -15,12 +15,16 @@
 
 static uint64_t root_container_id;
 
+#include <ft_public.h>
+#include <ft_runtest.h>
+
+#define make_symbolic(x, name) ft_make_symbolic_array(&(x), sizeof(x), (name))
+
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
 {
-    char *upage = (char *) (uintptr_t) t->th_tf.tf_r15;
+    unsigned char *upage = (unsigned char *) (uintptr_t) t->th_tf.tf_r15;
 
-#ifdef FT_TRANSFORMED
     uint64_t rip = t->th_tf.tf_rip;
     static uint64_t ncalls = 1;
 
@@ -36,14 +40,14 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	ft_make_symbolic_array(upage, PGSIZE, "upage");
     } else if (rip <= ncalls) {
 	uint64_t a0, a1, a2, a3, a4, a5, a6, a7;
-	ft_make_symbolic_name(&a0, "syscall_a0");
-	ft_make_symbolic_name(&a1, "syscall_a1");
-	ft_make_symbolic_name(&a2, "syscall_a2");
-	ft_make_symbolic_name(&a3, "syscall_a3");
-	ft_make_symbolic_name(&a4, "syscall_a4");
-	ft_make_symbolic_name(&a5, "syscall_a5");
-	ft_make_symbolic_name(&a6, "syscall_a6");
-	ft_make_symbolic_name(&a7, "syscall_a7");
+	make_symbolic(a0, "syscall_a0");
+	make_symbolic(a1, "syscall_a1");
+	make_symbolic(a2, "syscall_a2");
+	make_symbolic(a3, "syscall_a3");
+	make_symbolic(a4, "syscall_a4");
+	make_symbolic(a5, "syscall_a5");
+	make_symbolic(a6, "syscall_a6");
+	make_symbolic(a7, "syscall_a7");
 
 	kern_syscall(a0, a1, a2, a3, a4, a5, a6, a7);
     } else if (rip == ncalls + 1) {
@@ -52,40 +56,6 @@ bootstrap_tcb(void *arg, struct Thread *t)
 	printf("Strange rip value: %"PRIu64"\n", rip);
 	assert(0);
     }
-#else
-    printf("tcb[%s]: tid %"PRIu64", t->rip = %"PRIx64"\n",
-	   t->th_ko.ko_name, t->th_ko.ko_id, t->th_tf.tf_rip);
-
-    char *goodbuf = upage;
-
-    switch (t->th_tf.tf_rip) {
-    case 0:
-	assert(0 == thread_pagefault(cur_thread, goodbuf, SEGMAP_WRITE));
-	sprintf(goodbuf, "Hello world.\n");
-	break;
-
-    case 1:
-	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
-	break;
-
-    case 2:
-	kern_syscall(SYS_self_halt, 0, 0, 0, 0, 0, 0, 0);
-	break;
-
-    case 0xdeadbeef:
-	sprintf(goodbuf, "Faulted..\n");
-	kern_syscall(SYS_cons_puts, (uintptr_t)goodbuf, strlen(goodbuf), 0, 0, 0, 0, 0);
-	break;
-
-    case 0xdeadbef0:
-	kern_syscall(SYS_obj_unref, root_container_id, t->th_ko.ko_id, 0, 0, 0, 0, 0);
-	break;
-
-    default:
-	printf("huh.. odd rip value\n");
-	assert(0);
-    }
-#endif
 
     t->th_tf.tf_rip++;
     schedule();
@@ -156,7 +126,7 @@ main(int argc, char **av)
     printf("HiStar/lnx64..\n");
 
     bootstrap_stuff();
-#ifdef FT_TRANSFORMED
+
     /*
      * XXX the kernel has some unresolved issues with handling out-of-memory
      * conditions.  also, since we currently don't support disk IO with FT,
@@ -164,6 +134,6 @@ main(int argc, char **av)
      * no disk to swap out to..
      */
     //enable_page_alloc_failure = 1;
-#endif
+
     lnx64_schedule_loop();
 }

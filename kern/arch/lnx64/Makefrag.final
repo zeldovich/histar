@@ -31,4 +31,5 @@ $(OBJDIR)/kern/kernel-2cmp: $(KERN_2CMP_LINK_FILES)
 
 $(OBJDIR)/kern/kernel-test: $(KERN_OBJFILES) $(OBJDIR)/kern/driver-test.o
 	$(CC) -o $@ $(KERN_LDFLAGS) $^
+	#$(CC) -o $@ $(KERN_LDFLAGS) $(FT_ROOT)/lib/ft-runtest.c $^
 

@@ -13,12 +13,11 @@
 #include <sys/mman.h>
 #include <assert.h>
 
-#ifdef FT_TRANSFORMED
-#include <ft_runtest.h>
-#endif
-
 static struct Pagemap *cur_pm;
 enum { lnxpmap_debug = 0 };
+
+#include <ft_public.h>
+#include <ft_runtest.h>
 
 void
 lnxpmap_init(void)
@@ -75,10 +74,8 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
-#ifdef FT_TRANSFORMED
     if (enable_page_alloc_failure && FT_CHOOSE(2))
 	return -E_NO_MEM;
-#endif
 
     struct Pagemap *pm = malloc(sizeof(*pm));
     memset(pm, 0, sizeof(*pm));
@@ -110,10 +107,8 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
     assert(create);
     assert(!PGOFF(va));
 
-#ifdef FT_TRANSFORMED
     if (enable_page_alloc_failure && FT_CHOOSE(2))
 	return -E_NO_MEM;
-#endif
 
     int freeslot = -1;
 
