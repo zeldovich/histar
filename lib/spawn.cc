@@ -278,7 +278,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 }
 
 int
-process_wait(struct child_process *child, int64_t *exit_code)
+process_wait(const struct child_process *child, int64_t *exit_code)
 {
     uint64_t proc_status = PROCESS_RUNNING;
 
