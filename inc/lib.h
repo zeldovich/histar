@@ -173,7 +173,7 @@ int  label_compare(struct ulabel *a, struct ulabel *b, label_comparator cmp);
 void label_change_star(struct ulabel *l, level_t new_level);
 
 /* debug.cc */
-void print_backtrace(void);
+void print_backtrace(int use_cprintf);
 
 /* signal.c */
 void signal_init(void);

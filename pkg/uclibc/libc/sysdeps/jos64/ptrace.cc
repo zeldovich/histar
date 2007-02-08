@@ -203,7 +203,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
 
     default:
 	cprintf("ptrace: unknown request %d\n", request);
-	print_backtrace();
+	print_backtrace(1);
 	set_enosys();
 	return -1;
     }

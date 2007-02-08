@@ -1,14 +1,20 @@
 extern "C" {
 #include <inc/lib.h>
+#include <inc/stdio.h>
+#include <stdio.h>
 }
 
-#include <inc/error.hh>
+#include <inc/backtracer.hh>
 
 void
-print_backtrace()
+print_backtrace(int use_cprintf)
 {
-    basic_exception e("backtrace tid=%ld ct=%ld",
-		      thread_id(), start_env->shared_container);
-    e.force_backtrace();
-    e.print_where();
+    backtracer bt;
+    for (int i = 0; i < bt.backtracer_depth(); i++) {
+	void *addr = bt.backtracer_addr(i);
+	if (use_cprintf)
+	    cprintf("  %p\n", addr);
+	else
+	    fprintf(stderr, "  %p\n", addr);
+    }
 }

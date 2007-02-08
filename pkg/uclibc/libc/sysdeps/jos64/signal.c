@@ -115,6 +115,8 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 
     if (recursive) {
 	cprintf("[%ld] sig_fatal: recursive\n", sys_self_id());
+	print_backtrace(1);
+
 	sys_self_halt();
 	cprintf("[%ld] sig_fatal: halt returned\n", sys_self_id());
 	for (;;)
@@ -124,13 +126,13 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     recursive = 1;
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
-	print_backtrace();
+	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
 
     case SIGABRT:
 	fprintf(stderr, "%s: abort\n", __progname);
-	print_backtrace();
+	print_backtrace(0);
 	break;
     }
 
