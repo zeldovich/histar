@@ -1,6 +1,8 @@
 #include <machine/asm.h>
 
 ENTRY(_start)
+	.cfi_startproc
+
 	// Terminate stack unwinding
 	pushq	$0
 
@@ -16,7 +18,7 @@ ENTRY(_start)
 	jnz	after_setup
 	call	setup_env
 
-after_setup:		
+after_setup:
 	// crtbegin, crtend, and whatever else
 	call	_init
 
@@ -24,4 +26,5 @@ after_setup:
 	movq	%r12, %rdi
 	movq	%r13, %rsi
 	call	libmain
+	.cfi_endproc
 

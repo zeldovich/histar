@@ -7,6 +7,7 @@
 #include <machine/asm.h>
 
 ENTRY(strlen)
+	.cfi_startproc
 	cld				/* set search forward */
 	xorl	%eax,%eax		/* set search for null terminator */
 	movq	$-1,%rcx		/* set search for lots of characters */
@@ -15,3 +16,5 @@ ENTRY(strlen)
 	notq	%rcx			/* get length by taking	complement */
 	leaq	-1(%rcx),%rax		/* and subtracting one */
 	ret
+	.cfi_endproc
+

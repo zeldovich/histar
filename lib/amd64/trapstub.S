@@ -25,7 +25,7 @@
 	.cfi_offset rip, 16*8;
 
 ENTRY(utrap_entry_asm)
-	.cfi_startproc
+	.cfi_startproc simple
 
 	// Our entire CPU state is saved in a UTrapframe right at %rsp
 	.cfi_def_cfa rsp, 0
@@ -42,7 +42,7 @@ ENTRY(utrap_entry_asm)
 	.cfi_endproc
 
 ENTRY(utrap_chain_dwarf2)
-	.cfi_startproc
+	.cfi_startproc simple
 	.cfi_def_cfa rsp, 0
 	CFI_UTF_OFFSETS
 	call	*%r15
