@@ -138,6 +138,7 @@ int     thread_cleanup(struct thread_args *ta);
 struct process_state {
     uint64_t status;
     int64_t exit_code;
+    int64_t exit_signal;
 };
 
 struct child_process {
@@ -147,7 +148,8 @@ struct child_process {
 
 int	process_wait(struct child_process *child, int64_t *exit_code);
 int	process_report_taint(void);
-int	process_report_exit(int64_t code);
+int	process_report_exit(int64_t code, int64_t signo);
+void	process_exit(int64_t rval, int64_t signo) __attribute__((noreturn));
 
 /* container.c */
 int64_t container_find(uint64_t container, kobject_type_t type,

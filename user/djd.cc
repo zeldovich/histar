@@ -57,15 +57,15 @@ readdircb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args *a
 }
 
 static void
-dostuff(ptr<djprot> p, str node_pk)
+dostuff(ptr<djprot> p, str node_pk, uint64_t ct, uint64_t id)
 {
     djfs_request req;
     req.set_op(DJFS_READDIR);
     req.readdir->pn = str("/bin");
 
     dj_gatename gate;
-    gate.gate_ct = 1;
-    gate.gate_id = 2;
+    gate.gate_ct = ct;
+    gate.gate_id = id;
     djcall_args args;
     args.data = xdr2str(req);
     args.taint = label(1);
@@ -78,7 +78,7 @@ dostuff(ptr<djprot> p, str node_pk)
     args.data = xdr2str(req);
     p->call(node_pk, gate, args, wrap(&readcb));
 
-    delaycb(5, wrap(&dostuff, p, node_pk));
+    delaycb(5, wrap(&dostuff, p, node_pk, ct, id));
 }
 
 int
@@ -100,12 +100,13 @@ main(int ac, char **av)
     djs->set_catmgr(dj_dummy_catmgr());
 #endif
 
-    if (ac == 2) {
+    if (ac == 4) {
 	str n(av[1]);
 	dj_esign_pubkey k;
 	k.n = bigint(n, 16);
 	k.k = 8;
-	dostuff(djs, xdr2str(k));
+
+	dostuff(djs, xdr2str(k), atoi(av[2]), atoi(av[3]));
     }
 
     amain();

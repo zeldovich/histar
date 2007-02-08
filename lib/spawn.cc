@@ -299,7 +299,7 @@ process_wait(struct child_process *child, int64_t *exit_code)
 }
 
 static int
-process_update_state(uint64_t state, int64_t exit_code)
+process_update_state(uint64_t state, int64_t exit_code, int64_t signo)
 {
     label lseg, lcur;
     try {
@@ -325,6 +325,7 @@ process_update_state(uint64_t state, int64_t exit_code)
 	return r;
 
     ps->exit_code = exit_code;
+    ps->exit_signal = signo;
     ps->status = state;
     sys_sync_wakeup(&ps->status);
     segment_unmap(ps);
@@ -334,11 +335,11 @@ process_update_state(uint64_t state, int64_t exit_code)
 int
 process_report_taint(void)
 {
-    return process_update_state(PROCESS_TAINTED, 0);
+    return process_update_state(PROCESS_TAINTED, 0, 0);
 }
 
 int
-process_report_exit(int64_t code)
+process_report_exit(int64_t code, int64_t signo)
 {
     if (start_env->declassify_gate.object) {
 	try {
@@ -363,7 +364,7 @@ process_report_exit(int64_t code)
 	return 0;
     }
 
-    int r = process_update_state(PROCESS_EXITED, code);
+    int r = process_update_state(PROCESS_EXITED, code, signo);
     if (r >= 0 && start_env->ppid)
 	kill(start_env->ppid, SIGCHLD);
     return r;

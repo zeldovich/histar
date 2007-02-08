@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <setjmp.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <bits/unimpl.h>
 #include <bits/signalgate.h>
@@ -107,22 +108,34 @@ stack_grow(void *faultaddr)
 }
 
 static void __attribute__((noreturn))
-sig_fatal(void)
+sig_fatal(siginfo_t *si, struct sigcontext *sc)
 {
+    extern const char *__progname;
     static int recursive = 0;
 
     if (recursive) {
+	cprintf("[%ld] sig_fatal: recursive\n", sys_self_id());
 	sys_self_halt();
-    } else {
-	recursive = 1;
-
-	print_backtrace();
-	exit(-1);
+	cprintf("[%ld] sig_fatal: halt returned\n", sys_self_id());
+	for (;;)
+	    ;
     }
 
-    cprintf("sig_fatal: still alive, tid=%ld, recursive=%d\n",
-	    thread_id(), recursive);
+    recursive = 1;
+    switch (si->si_signo) {
+    case SIGSEGV: case SIGBUS:  case SIGILL:
+	print_backtrace();
+	segfault_helper(si, sc);
+	break;
 
+    case SIGABRT:
+	fprintf(stderr, "%s: abort\n", __progname);
+	print_backtrace();
+	break;
+    }
+
+    process_exit(0, si->si_signo);
+    cprintf("[%ld] sig_fatal: process_exit returned\n", sys_self_id());
     for (;;)
 	;
 }
@@ -240,12 +253,8 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	case SIGTRAP: case SIGABRT: case SIGFPE:  case SIGSYS:
 	case SIGKILL: case SIGPIPE: case SIGXCPU: case SIGXFSZ:
 	case SIGALRM: case SIGTERM: case SIGUSR1: case SIGUSR2:
-	    cprintf("%s: fatal signal %d\n", __progname, si->si_signo);
-	    sig_fatal();
-
 	case SIGSEGV: case SIGBUS:  case SIGILL:
-	    segfault_helper(si, sc);
-	    sig_fatal();
+	    sig_fatal(si, sc);
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
 	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
@@ -366,7 +375,11 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	    cprintf("[%ld] signal_utrap_si: stack overflow @ %p\n",
 		    thread_id(), s);
 	    utf_dump(&sc->sc_utf);
-	    sig_fatal();
+
+	    si->si_signo = SIGSEGV;
+	    si->si_code = SEGV_MAPERR;
+	    si->si_addr = s;
+	    sig_fatal(si, sc);
 	}
 
 	memcpy(&s->si, si, sizeof(*si));

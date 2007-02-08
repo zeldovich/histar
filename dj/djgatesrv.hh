@@ -78,6 +78,10 @@ class djgatesrv {
 	memcpy(data_map, out->data.cstr(), out->data.len());
 	unmap2.force();
 
+	label *cs = New label(out->taint);
+	label *ds = New label(out->grant);
+	label *dr = New label(out->taint);
+
 	label *nvl = New label();
 	out->grant.merge(&out->taint, nvl, label::min, label::leq_starlo);
 	label *nvc = New label(out->taint);
@@ -85,10 +89,7 @@ class djgatesrv {
 	delin.force();
 	delout.force();
 	gcd->param_obj = data_seg;
-	ret->ret(New label(out->taint),
-		 New label(out->grant),
-		 New label(out->taint),
-		 nvl, nvc);
+	ret->ret(cs, ds, dr, nvl, nvc);
     }
 
     djgate_service_cb srv_;

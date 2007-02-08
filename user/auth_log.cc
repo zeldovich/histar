@@ -50,7 +50,7 @@ main(int ac, char **av)
 	gate_create(start_env->shared_container, "authlog",
 		    &gt_label, &gt_clear, 0,
 		    &authlog_entry, 0);
-	process_report_exit(0);
+	process_report_exit(0, 0);
     	thread_halt();
     } catch (std::exception &e) {
     	printf("authd: %s\n", e.what());

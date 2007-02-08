@@ -86,6 +86,7 @@ child_get_status(struct wait_child *wc, int *statusp)
 
     uint64_t status = ps->status;
     int64_t exit_code = ps->exit_code;
+    int64_t exit_signal = ps->exit_signal;
     segment_unmap(ps);
 
     if (status == PROCESS_RUNNING)
@@ -93,11 +94,12 @@ child_get_status(struct wait_child *wc, int *statusp)
 
     union wait wstat;
     memset(&wstat, 0, sizeof(wstat));
-    wstat.w_termsig = 0;
+    wstat.w_termsig = exit_signal;
+    wstat.w_coredump = 0;
     wstat.w_retcode = exit_code;
 
     if (statusp)
-	*statusp = wstat.w_status;    
+	*statusp = wstat.w_status;
 
     return 1;
 }

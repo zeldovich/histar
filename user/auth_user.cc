@@ -316,7 +316,7 @@ main(int ac, char **av)
 	}
 
     	auth_user_init();
-	process_report_exit(0);
+	process_report_exit(0, 0);
 	sys_self_halt();
     } catch (std::exception &e) {
     	printf("auth_user: %s\n", e.what());
