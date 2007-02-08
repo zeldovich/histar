@@ -59,9 +59,10 @@ lnxpage_init(uint64_t membytes)
 	exit(-1);
     }
 
-    physmem_base = mmap(0, global_npages * PGSIZE,
+    uintptr_t baseptr = 0x90000000;
+    physmem_base = mmap(baseptr, global_npages * PGSIZE,
 			PROT_READ | PROT_WRITE,
-			MAP_PRIVATE, physmem_file_fd, 0);
+			MAP_FIXED | MAP_PRIVATE, physmem_file_fd, 0);
     if (physmem_base == MAP_FAILED) {
 	perror("cannot map physmem file");
 	exit(-1);
