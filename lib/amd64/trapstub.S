@@ -1,6 +1,11 @@
 #include <machine/asm.h>
 #include <machine/pmap.h>
 
+/*
+ * When we upgrade to binutils 2.17, we should start using .cfi_signal_frame:
+ * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=26208
+ */
+
 #define CFI_UTF_OFFSETS		\
 	.cfi_offset rax,  0*8;	\
 	.cfi_offset rbx,  1*8;	\
