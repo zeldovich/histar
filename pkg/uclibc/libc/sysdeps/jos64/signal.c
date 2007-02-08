@@ -676,6 +676,11 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 	return -1;
     }
 
+    if (pid < 0) {
+	set_enosys();
+	return -1;
+    }
+
     if (pid == getpid()) {
 	struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
 	return kill_thread_siginfo(tobj, si);
