@@ -1,6 +1,7 @@
 #include <inc/fd.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
+#include <inc/ioctl.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -194,4 +195,5 @@ struct Dev devpipe = {
     .dev_probe = pipe_probe,
     .dev_statsync = pipe_statsync,
     .dev_getsockopt = pipe_getsockopt,
+    .dev_ioctl = jos_ioctl,
 };
