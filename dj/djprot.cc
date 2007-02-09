@@ -235,8 +235,13 @@ class djprot_impl : public djprot {
 	}
 
 	const ulabel *ul = h.grant.to_ulabel_const();
-	n->grant.setsize(ul->ul_nent);
-	for (uint64_t i = 0; i < ul->ul_nent; i++) {
+	int grantsize = ul->ul_nent;
+	for (uint64_t i = 0; i < ul->ul_nent; i++)
+	    if (LB_LEVEL(ul->ul_ent[i]) == 3)
+		grantsize--;
+
+	n->grant.cats.setsize(grantsize);
+	for (uint64_t i = 0, j = 0; i < ul->ul_nent; i++) {
 	    if (LB_LEVEL(ul->ul_ent[i]) == 3)
 		continue;
 
@@ -245,7 +250,7 @@ class djprot_impl : public djprot {
 		return false;
 	    }
 
-	    n->grant[i] = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
+	    n->grant.cats[j++] = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
 	}
 
 	ul = h.taint.to_ulabel_const();
@@ -281,8 +286,8 @@ class djprot_impl : public djprot {
 	    h->taint.set(gcat2cat(n.taint.ents[i].cat), n.taint.ents[i].level);
 	}
 
-	for (uint64_t i = 0; i < n.grant.size(); i++)
-	    h->grant.set(gcat2cat(n.grant[i]), LB_LEVEL_STAR);
+	for (uint64_t i = 0; i < n.grant.cats.size(); i++)
+	    h->grant.set(gcat2cat(n.grant.cats[i]), LB_LEVEL_STAR);
 
 	return true;
     }
@@ -352,8 +357,8 @@ class djprot_impl : public djprot {
 		return false;
 	}
 
-	for (uint64_t i = 0; i < a.grant.size(); i++) {
-	    dj_gcat gcat = a.grant[i];
+	for (uint64_t i = 0; i < a.grant.cats.size(); i++) {
+	    dj_gcat gcat = a.grant.cats[i];
 	    uint64_t lcat = gcat2cat(gcat);
 	    if (net_label_.get(lcat) == LB_LEVEL_STAR)
 		continue;
@@ -593,6 +598,8 @@ class djprot_impl : public djprot {
 
 		if (!labelcheck_recv(*c.u.reply->arg, c.from)) {
 		    warn << "call reply: labelcheck failed\n";
+		    warn << "reply taint " << c.u.reply->arg->taint << "\n";
+		    warn << "reply grant " << c.u.reply->arg->grant << "\n";
 		    cc->cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
 		} else if (!callarg_ntoh(*c.u.reply->arg, &reparg)) {
 		    warn << "call reply: callarg_ntoh failed\n";

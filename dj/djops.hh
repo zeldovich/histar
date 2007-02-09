@@ -113,6 +113,41 @@ strbuf_cat(const strbuf &sb, const dj_entity &dje)
     return sb;
 }
 
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_label_entry &e)
+{
+    sb << e.cat << ":";
+    if (e.level == LB_LEVEL_STAR)
+	sb << "*";
+    else
+	sb << e.level;
+    return sb;
+}
+
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_label &l)
+{
+    sb << "{";
+    for (uint64_t i = 0; i < l.ents.size(); i++)
+	sb << " " << l.ents[i] << ",";
+    if (l.deflevel == LB_LEVEL_STAR)
+	sb << " *";
+    else
+	sb << " " << l.deflevel;
+    sb << " }";
+    return sb;
+}
+
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_grantlist &g)
+{
+    sb << "{";
+    for (uint64_t i = 0; i < g.cats.size(); i++)
+	sb << " " << g.cats[i];
+    sb << " }";
+    return sb;
+}
+
 inline dj_esign_pubkey
 esignpub2dj(const esign_pub &ep)
 {
