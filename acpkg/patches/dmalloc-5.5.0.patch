@@ -42,3 +42,231 @@
  if test $ac_cv_page_size = 0; then
     AC_RUN_IFELSE([main() { if (getpagesize()<=2048) exit(0); else exit(1); }],
  	[ ac_cv_page_size=11 ] )
+--- /home/nickolai/tmp/dmalloc-5.5.0/dmalloc.h.3	2007-02-07 22:45:00.000000000 -0800
++++ dmalloc-5.5.0/dmalloc.h.3	2007-02-09 11:25:17.000000000 -0800
+@@ -1035,64 +1035,90 @@
+  * other problems depending on your architecture.
+  */
+ #undef bcmp
+-#define bcmp(b1, b2, len)		_dmalloc_bcmp((b1), (b2), (len))
++#define bcmp(b1, b2, len) \
++  _dmalloc_bcmp(__FILE__, __LINE__, (b1), (b2), (len))
+ #undef bcopy
+-#define bcopy(from, to, len)		_dmalloc_bcopy((from), (to), (len))
++#define bcopy(from, to, len) \
++  _dmalloc_bcopy(__FILE__, __LINE__, (from), (to), (len))
+ 
+ #undef memcmp
+-#define memcmp(b1, b2, len)		_dmalloc_memcmp((b1), (b2), (len))
++#define memcmp(b1, b2, len) \
++  _dmalloc_memcmp(__FILE__, __LINE__, (b1), (b2), (len))
+ #undef memcpy
+-#define memcpy(to, from, len)		_dmalloc_memcpy((to), (from), (len))
++#define memcpy(to, from, len) \
++  _dmalloc_memcpy(__FILE__, __LINE__, (to), (from), (len))
+ #undef memset
+-#define memset(buf, ch, len)		_dmalloc_memset((buf), (ch), (len))
++#define memset(buf, ch, len) \
++  _dmalloc_memset(__FILE__, __LINE__, (buf), (ch), (len))
+ 
+ #undef index
+-#define index(str, ch)			_dmalloc_index((str), (ch))
++#define index(str, ch) \
++  _dmalloc_index(__FILE__, __LINE__, (str), (ch))
+ #undef rindex
+-#define rindex(str, ch)			_dmalloc_rindex((str), (ch))
++#define rindex(str, ch) \
++  _dmalloc_rindex(__FILE__, __LINE__, (str), (ch))
+ 
+ #undef strcat
+-#define strcat(to, from)		_dmalloc_strcat((to), (from))
++#define strcat(to, from) \
++  _dmalloc_strcat(__FILE__, __LINE__, (to), (from))
+ #undef strcmp
+-#define strcmp(s1, s2)			_dmalloc_strcmp((s1), (s2))
++#define strcmp(s1, s2) \
++  _dmalloc_strcmp(__FILE__, __LINE__, (s1), (s2))
+ #undef strlen
+-#define strlen(str)			_dmalloc_strlen((str))
++#define strlen(str) \
++  _dmalloc_strlen(__FILE__, __LINE__, (str))
+ #undef strtok
+-#define strtok(str, sep)		_dmalloc_strtok((str), (sep))
++#define strtok(str, sep) \
++  _dmalloc_strtok(__FILE__, __LINE__, (str), (sep))
+ 
+ #undef bzero
+-#define bzero(buf, len)			_dmalloc_bzero((buf), (len))
++#define bzero(buf, len) \
++  _dmalloc_bzero(__FILE__, __LINE__, (buf), (len))
+ 
+ #undef memccpy
+-#define memccpy(s1, s2, ch, len)	_dmalloc_memccpy((s1), (s2),(ch),(len))
++#define memccpy(s1, s2, ch, len) \
++  _dmalloc_memccpy(__FILE__, __LINE__, (s1), (s2),(ch),(len))
+ #undef memchr
+-#define memchr(s1, ch, len)		_dmalloc_memchr((s1), (ch), (len))
++#define memchr(s1, ch, len) \
++  _dmalloc_memchr(__FILE__, __LINE__, (s1), (ch), (len))
+ 
+ #undef strchr
+-#define strchr(str, ch)			_dmalloc_strchr((str), (ch))
++#define strchr(str, ch)	 \
++  _dmalloc_strchr(__FILE__, __LINE__, (str), (ch))
+ #undef strrchr
+-#define strrchr(str, ch)		_dmalloc_strrchr((str), (ch))
++#define strrchr(str, ch) \
++  _dmalloc_strrchr(__FILE__, __LINE__, (str), (ch))
+ 
+ #undef strcpy
+-#define strcpy(to, from)		_dmalloc_strcpy((to), (from))
++#define strcpy(to, from) \
++  _dmalloc_strcpy(__FILE__, __LINE__, (to), (from))
+ #undef strncpy
+-#define strncpy(to, from, len)		_dmalloc_strncpy((to), (from), (len))
++#define strncpy(to, from, len) \
++  _dmalloc_strncpy(__FILE__, __LINE__, (to), (from), (len))
+ #undef strcasecmp
+-#define strcasecmp(s1, s2)		_dmalloc_strcasecmp((s1), (s2))
++#define strcasecmp(s1, s2) \
++  _dmalloc_strcasecmp(__FILE__, __LINE__, (s1), (s2))
+ #undef strncasecmp
+-#define strncasecmp(s1, s2, len)	_dmalloc_strncasecmp((s1), (s2), (len))
++#define strncasecmp(s1, s2, len) \
++  _dmalloc_strncasecmp(__FILE__, __LINE__, (s1), (s2), (len))
+ #undef strspn
+-#define strspn(str, list)		_dmalloc_strspn((str), (list))
++#define strspn(str, list) \
++  _dmalloc_strspn(__FILE__, __LINE__, (str), (list))
+ #undef strcspn
+-#define strcspn(str, list)		_dmalloc_strcspn((str), (list))
++#define strcspn(str, list) \
++  _dmalloc_strcspn(__FILE__, __LINE__, (str), (list))
+ #undef strncat
+-#define strncat(to, from, len)		_dmalloc_strncat((to), (from), (len))
++#define strncat(to, from, len) \
++  _dmalloc_strncat(__FILE__, __LINE__, (to), (from), (len))
+ #undef strncmp
+-#define strncmp(s1, s2, len)		_dmalloc_strncmp((s1), (s2), (len))
++#define strncmp(s1, s2, len) \
++  _dmalloc_strncmp(__FILE__, __LINE__, (s1), (s2), (len))
+ #undef strpbrk
+-#define strpbrk(str, list)		_dmalloc_strpbrk((str), (list))
++#define strpbrk(str, list) \
++  _dmalloc_strpbrk(__FILE__, __LINE__, (str), (list))
+ #undef strstr
+-#define strstr(str, pat)		_dmalloc_strstr((str), (pat))
++#define strstr(str, pat) \
++  _dmalloc_strstr(__FILE__, __LINE__, (str), (pat))
+ 
+ #endif /* DMALLOC_FUNC_CHECK */
+ #endif /* ! DMALLOC_DISABLE */
+--- /home/nickolai/jos64/acpkg/dmalloc-5.5.0/dmalloc.h.3	2007-02-09 11:36:32.000000000 -0800
++++ dmalloc-5.5.0/dmalloc.h.3	2007-02-09 11:36:07.000000000 -0800
+@@ -55,6 +55,16 @@
+ extern "C" {
+ #endif
+ 
++#ifdef __GNUC__
++# if defined __cplusplus && (__GNUC__ >= 3 || __GNUC_MINOR__ >= 8)
++#  define __THROW       throw ()
++# else
++#  define __THROW
++# endif
++#else   /* Not GCC.  */
++# define __THROW
++#endif
++
+ typedef void  (*dmalloc_track_t)(const char *file, const unsigned int line,
+ 				 const int func_id,
+ 				 const DMALLOC_SIZE byte_size,
+@@ -265,7 +275,7 @@
+  * size -> Number of bytes requested.
+  */
+ extern
+-DMALLOC_PNT	malloc(DMALLOC_SIZE size);
++DMALLOC_PNT	malloc(DMALLOC_SIZE size) __THROW;
+ 
+ /*
+  * DMALLOC_PNT calloc
+@@ -287,7 +297,7 @@
+  * size -> The number of bytes in each element.
+  */
+ extern
+-DMALLOC_PNT	calloc(DMALLOC_SIZE num_elements, DMALLOC_SIZE size);
++DMALLOC_PNT	calloc(DMALLOC_SIZE num_elements, DMALLOC_SIZE size) __THROW;
+ 
+ /*
+  * DMALLOC_PNT realloc
+@@ -311,7 +321,7 @@
+  * new_size -> New number of bytes requested for the old pointer.
+  */
+ extern
+-DMALLOC_PNT	realloc(DMALLOC_PNT old_pnt, DMALLOC_SIZE new_size);
++DMALLOC_PNT	realloc(DMALLOC_PNT old_pnt, DMALLOC_SIZE new_size) __THROW;
+ 
+ /*
+  * DMALLOC_PNT recalloc
+@@ -336,7 +346,7 @@
+  * new_size -> New number of bytes requested for the old pointer.
+  */
+ extern
+-DMALLOC_PNT	recalloc(DMALLOC_PNT old_pnt, DMALLOC_SIZE new_size);
++DMALLOC_PNT	recalloc(DMALLOC_PNT old_pnt, DMALLOC_SIZE new_size) __THROW;
+ 
+ /*
+  * DMALLOC_PNT memalign
+@@ -362,7 +372,7 @@
+  * size -> Number of bytes requested.
+  */
+ extern
+-DMALLOC_PNT	memalign(DMALLOC_SIZE alignment, DMALLOC_SIZE size);
++DMALLOC_PNT	memalign(DMALLOC_SIZE alignment, DMALLOC_SIZE size) __THROW;
+ 
+ /*
+  * DMALLOC_PNT valloc
+@@ -384,7 +394,7 @@
+  * size -> Number of bytes requested.
+  */
+ extern
+-DMALLOC_PNT	valloc(DMALLOC_SIZE size);
++DMALLOC_PNT	valloc(DMALLOC_SIZE size) __THROW;
+ 
+ #ifndef DMALLOC_STRDUP_MACRO
+ /*
+@@ -406,7 +416,7 @@
+  * string -> String we are duplicating.
+  */
+ extern
+-char	*strdup(const char *string);
++char	*strdup(const char *string) __THROW;
+ #endif /* ifndef DMALLOC_STRDUP_MACRO */
+ 
+ /*
+@@ -430,7 +440,7 @@
+  * len -> Length of the string to duplicate.
+  */
+ extern
+-char	*strndup(const char *string, const DMALLOC_SIZE len);
++char	*strndup(const char *string, const DMALLOC_SIZE len) __THROW;
+ 
+ /*
+  * DMALLOC_FREE_RET free
+@@ -449,7 +459,7 @@
+  * pnt -> Existing pointer we are freeing.
+  */
+ extern
+-DMALLOC_FREE_RET	free(DMALLOC_PNT pnt);
++DMALLOC_FREE_RET	free(DMALLOC_PNT pnt) __THROW;
+ 
+ /*
+  * DMALLOC_FREE_RET cfree
+@@ -468,7 +478,7 @@
+  * pnt -> Existing pointer we are freeing.
+  */
+ extern
+-DMALLOC_FREE_RET	cfree(DMALLOC_PNT pnt);
++DMALLOC_FREE_RET	cfree(DMALLOC_PNT pnt) __THROW;
+ 
+ /*
+  * int dmalloc_verify
