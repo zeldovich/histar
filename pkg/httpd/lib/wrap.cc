@@ -138,7 +138,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     struct fs_inode ino;
     error_check(fs_namei(pn_, &ino));
     
-    cp_ = spawn(start_env->proc_container, ino,
+    cp_ = spawn(call_ct_.object, ino,
 		sin_, sout_, eout_,
 		ac, av,
 		ec, ev,
