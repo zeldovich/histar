@@ -160,6 +160,6 @@
  */
 #define __CROSS_COMPILER_PREFIX__ "x86_64-jos-linux-"
 #undef __DODEBUG__
-#undef __DOASSERTS__
+#define __DOASSERTS__ 1
 #define __WARNINGS__ "-Wall"
 #undef __UCLIBC_MJN3_ONLY__
