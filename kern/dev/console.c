@@ -468,6 +468,14 @@ kbd_proc_data (void)
     machine_reboot();
   }
 
+  // Ctrl-Alt-Home: pause/resume profiling
+  if (!(~shift & (CTL | ALT)) && c == KEY_HOME) {
+    extern int prof_print_enable;
+    prof_print_enable = !prof_print_enable;
+    cprintf ("prof_print_enable %d\n", prof_print_enable);
+    return 0;
+  }
+
 #if 0
   // Ctrl-Alt-INS: restart
   if (!(~shift & (CTL | ALT)) && c == KEY_INS) {
