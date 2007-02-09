@@ -105,8 +105,17 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 	return r;
     }
 
+    // Initial %rsp for the new thread
+    void *entry_top = (void *) ta;
+
+    // AMD64 ABI requires 16-byte alignment before "call" instruction
+    entry_top = ROUNDDOWN(entry_top, 16) - 8;
+
+    // Terminate stack unwinding
+    memset(entry_top, 0, 8);
+
     e.te_entry = &thread_entry;
-    e.te_stack = ta;
+    e.te_stack = entry_top;
     e.te_arg[0] = (uint64_t) ta;
 
     int64_t tid = sys_thread_create(container, name);

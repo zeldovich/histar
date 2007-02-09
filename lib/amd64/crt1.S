@@ -6,7 +6,7 @@ ENTRY(_start)
 	// Terminate stack unwinding
 	pushq	$0
 
-	// AMD64 requires 16-byte stack alignment
+	// AMD64 requires 16-byte stack alignment before the call
 	pushq	$0
 
 	// Save our two arguments
@@ -15,10 +15,10 @@ ENTRY(_start)
 
 	// Call setup_env with our args
 	test	%rsi, %rsi
-	jnz	after_setup
+	jnz	1f
 	call	setup_env
 
-after_setup:
+1:
 	// crtbegin, crtend, and whatever else
 	call	_init
 

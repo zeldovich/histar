@@ -68,7 +68,9 @@ setup_env(uint64_t envaddr, uint64_t arg1)
     tls_pgfault_all = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all);
     tls_gate_args = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data);
     assert(tls_gate_args == (void *) TLS_GATE_ARGS);
-    tls_stack_top = tls_gate_args;
+
+    // AMD64 ABI requires 16-byte stack frame alignment
+    tls_stack_top = ROUNDDOWN(tls_gate_args, 16);
 
     assert(0 == sys_container_move_quota(start_env->proc_container,
 					 thread_id(), thread_quota_slush));
