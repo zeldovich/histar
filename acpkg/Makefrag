@@ -164,7 +164,12 @@ GSENV = DEVICE_DEVS=\"./obj/pdfwrite.dev ./obj/page.dev\" \
 	DEVICE_DEVS14= DEVICE_DEVS15= DEVICE_DEVS16= DEVICE_DEVS17= \
 	DEVICE_DEVS18= DEVICE_DEVS19= DEVICE_DEVS20= DEVICE_DEVS21=
 
-NFONTDIR = /usr/share/fonts/default/Type1
+## Where to copy ACPKG_GS_FONTS from:
+## Ubuntu
+NFONTDIR = /usr/share/fonts/type1/gsfonts
+## Fedora
+#NFONTDIR = /usr/share/fonts/default/Type1
+
 FONTDIR = $(OBJDIR)/acpkg/share/fonts
 $(FONTDIR)/%.pfb: $(NFONTDIR)/%.pfb
 	mkdir -p $(@D)
