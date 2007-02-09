@@ -116,30 +116,35 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     fatalities++;
     if (fatalities > 1) {
 	if (fatalities == 2) {
-	    cprintf("[%ld] sig_fatal: recursive\n", sys_self_id());
+	    cprintf("[%ld] %s: sig_fatal: recursive\n",
+		    sys_self_id(), __progname);
 	    print_backtrace(1);
 	}
 
 	sys_self_halt();
-	cprintf("[%ld] sig_fatal: halt returned\n", sys_self_id());
+	cprintf("[%ld] %s: sig_fatal: halt returned\n",
+		sys_self_id(), __progname);
 	for (;;)
 	    ;
     }
 
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
+	fprintf(stderr, "[%ld] %s: fatal signal %d, backtrace follows.\n",
+		sys_self_id(), __progname, si->si_signo);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
 
     case SIGABRT:
-	fprintf(stderr, "%s: abort\n", __progname);
+	fprintf(stderr, "[%ld] %s: abort\n", sys_self_id(), __progname);
 	print_backtrace(0);
 	break;
     }
 
     process_exit(0, si->si_signo);
-    cprintf("[%ld] sig_fatal: process_exit returned\n", sys_self_id());
+    cprintf("[%ld] %s: sig_fatal: process_exit returned\n",
+	    sys_self_id(), __progname);
     for (;;)
 	;
 }
