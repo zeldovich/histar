@@ -237,6 +237,9 @@ class djprot_impl : public djprot {
 	const ulabel *ul = h.grant.to_ulabel_const();
 	n->grant.setsize(ul->ul_nent);
 	for (uint64_t i = 0; i < ul->ul_nent; i++) {
+	    if (LB_LEVEL(ul->ul_ent[i]) == 3)
+		continue;
+
 	    if (LB_LEVEL(ul->ul_ent[i]) != LB_LEVEL_STAR) {
 		warn << "call: non-conforming grant label (bad level)\n";
 		return false;
