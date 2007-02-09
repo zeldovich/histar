@@ -4,7 +4,8 @@
 #include <inc/assert.h>
 
 int
-__pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
+__pthread_mutex_init(pthread_mutex_t * mutex,
+		     const pthread_mutexattr_t *attr)
 {
     jthread_mutex_init(&mutex->jmu);
     return 0;
@@ -75,3 +76,9 @@ __pthread_mutex_unlock(pthread_mutex_t *mutex)
 
     return 0;
 }
+
+weak_alias (__pthread_mutex_init, pthread_mutex_init)
+weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
+weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
+weak_alias (__pthread_mutex_unlock, pthread_mutex_unlock)
+

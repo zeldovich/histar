@@ -29,9 +29,9 @@ typedef int pthread_key_t;
 typedef int pthread_once_t;
 
 // Prototypes for the basic lock operations
-int __pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr);
-int __pthread_mutex_lock(pthread_mutex_t *mutex);
-int __pthread_mutex_trylock(pthread_mutex_t *mutex);
-int __pthread_mutex_unlock(pthread_mutex_t *mutex);
+int __pthread_mutex_init(pthread_mutex_t *mutex, __const pthread_mutexattr_t *attr) __THROW;
+int __pthread_mutex_lock(pthread_mutex_t *mutex) __THROW;
+int __pthread_mutex_trylock(pthread_mutex_t *mutex) __THROW;
+int __pthread_mutex_unlock(pthread_mutex_t *mutex) __THROW;
 
 #endif
