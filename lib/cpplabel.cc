@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/error.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -13,6 +14,7 @@ label::label() : dynamic_(true)
 {
     ul_.ul_size = 0;
     ul_.ul_ent = 0;
+    ul_.ul_needed = 0;
     reset(LB_LEVEL_UNDEF);
 }
 
@@ -20,6 +22,7 @@ label::label(level_t def) : dynamic_(true)
 {
     ul_.ul_size = 0;
     ul_.ul_ent = 0;
+    ul_.ul_needed = 0;
     reset(def);
 }
 
@@ -27,6 +30,7 @@ label::label(uint64_t *ents, size_t size) : dynamic_(false)
 {
     ul_.ul_size = size;
     ul_.ul_ent = ents;
+    ul_.ul_needed = 0;
     reset(LB_LEVEL_UNDEF);
 }
 
@@ -36,8 +40,10 @@ label::label(const label &o) : dynamic_(true)
     if (o.ul_.ul_ent) {
 	size_t sz = ul_.ul_size * sizeof(ul_.ul_ent[0]);
 	ul_.ul_ent = (uint64_t *) malloc(sz);
-	if (ul_.ul_ent == 0)
+	if (ul_.ul_ent == 0) {
+	    fprintf(stderr, "label::label: cannot allocate %ld\n", sz);
 	    throw std::bad_alloc();
+	}
 	memcpy(ul_.ul_ent, o.ul_.ul_ent, sz);
     }
 }
@@ -91,8 +97,10 @@ label::grow()
 	uint64_t newsize = ul_.ul_size + ul_.ul_needed;
 	uint64_t newbytes = newsize * sizeof(ul_.ul_ent[0]);
 	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newbytes);
-	if (newent == 0)
+	if (newent == 0) {
+	    fprintf(stderr, "label::grow: could not realloc %ld bytes\n", newbytes);
 	    throw std::bad_alloc();
+	}
 
 	ul_.ul_ent = newent;
 	ul_.ul_size = newsize;
