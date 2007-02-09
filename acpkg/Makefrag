@@ -50,6 +50,7 @@ AUTOCONF_gmp-4.2.1	    := --enable-shared=no
 AUTOCONF_sfslite-1.0.0	    := --enable-shared=no --without-x
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
 AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
+AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
 
 ##
 ## Patches to apply to various packages
@@ -65,6 +66,7 @@ PATCHFILE_sfslite-1.0.0	    := sfslite-1.0.0.patch
 PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
 PATCHFILE_a2ps-4.13	    := a2ps-4.13b.patch
 PATCHFILE_perl-5.8.8	    := perl-5.8.8.patch
+PATCHFILE_dmalloc-5.5.0	    := dmalloc-5.5.0.patch
 PATCHFILE_default	    := empty.patch
 
 ##
