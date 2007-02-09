@@ -87,6 +87,11 @@ class djgatesrv {
 	out->grant.merge(&out->taint, nvl, label::min, label::leq_starlo);
 	label *nvc = New label(out->taint);
 
+	nvl->set(gcd->call_taint, LB_LEVEL_STAR);
+	nvl->set(gcd->call_grant, LB_LEVEL_STAR);
+	nvc->set(gcd->call_taint, 3);
+	nvc->set(gcd->call_grant, 3);
+
 	delin.force();
 	delout.force();
 	gcd->param_obj = data_seg;
