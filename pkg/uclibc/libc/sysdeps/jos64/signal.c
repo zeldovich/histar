@@ -691,7 +691,7 @@ kill_siginfo(pid_t pid, siginfo_t *si)
     }
 
     if (pid == getpid()) {
-	struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
+	struct cobj_ref tobj = COBJ(start_env->proc_container, thread_id());
 	return kill_thread_siginfo(tobj, si);
     }
 
