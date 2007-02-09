@@ -31,7 +31,7 @@ readcb(dj_reply_status stat, const djcall_args *args)
 }
 
 static void
-readdircb(ptr<djprot> p, str node_pk, dj_reply_status stat, const djcall_args *args)
+readdircb(dj_reply_status stat, const djcall_args *args)
 {
     if (stat == REPLY_DONE) {
 	djfs_reply reply;
@@ -71,7 +71,7 @@ dostuff(ptr<djprot> p, str node_pk, uint64_t ct, uint64_t id)
     args.taint = label(1);
     args.grant = label(3);
 
-    p->call(node_pk, gate, args, wrap(&readdircb, p, node_pk));
+    p->call(node_pk, gate, args, wrap(&readdircb));
 
     req.set_op(DJFS_READ);
     req.read->pn = str("/etc/passwd");
@@ -81,9 +81,33 @@ dostuff(ptr<djprot> p, str node_pk, uint64_t ct, uint64_t id)
     delaycb(5, wrap(&dostuff, p, node_pk, ct, id));
 }
 
+static void
+dolocal(ptr<djcallexec> e, uint64_t ct, uint64_t id)
+{
+    djfs_request req;
+    req.set_op(DJFS_READDIR);
+    req.readdir->pn = str("/bin");
+
+    djcall_args args;
+    args.data = xdr2str(req);
+    args.taint = label(1);
+    args.grant = label(3);
+
+    dj_gatename gate;
+    gate.gate_ct = ct;
+    gate.gate_id = id;
+    e->start(gate, args);
+}
+
 int
 main(int ac, char **av)
 {
+    if (0 && ac == 3) {
+	ptr<djcallexec> e = dj_gate_exec(wrap(&readdircb));
+	dolocal(e, atoi(av[1]), atoi(av[2]));
+	amain();
+    }
+
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
     ptr<djprot> djs = djprot::alloc(port);
