@@ -21,11 +21,6 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	u_segment_mapping usm;
 	int r = segment_lookup(va, &usm);
 
-	if (r > 0 && (usm.flags & SEGMAP_VECTOR_PF)) {
-	    assert(*tls_pgfault);
-	    jos_longjmp(*tls_pgfault, 1);
-	}
-
 	cprintf("%s: fatal signal %d, addr=%p\n",
 		__progname, si->si_signo, si->si_addr);
 	if (sc)

@@ -74,7 +74,14 @@ stack_grow(void *faultaddr)
 	return -1;
 
     if (!(usm.flags & SEGMAP_STACK) || !(usm.flags & SEGMAP_REVERSE_PAGES)) {
-	// Not a stack?!
+	// Not a stack.
+
+	if (usm.flags & SEGMAP_VECTOR_PF) {
+	    assert(*tls_pgfault);
+	    utrap_set_mask(0);
+	    jos_longjmp(*tls_pgfault, 1);
+	}
+
 	return -1;
     }
 

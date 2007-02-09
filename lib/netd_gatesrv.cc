@@ -114,6 +114,8 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
     struct netd_ipc_segment *ipc = 0;
     uint64_t map_bytes = 0;
 
+    error_check(sys_segment_resize(COBJ(0, kobject_id_thread_sg), 2 * PGSIZE));
+
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
 
@@ -151,10 +153,8 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		struct jos_jmp_buf pgfault;
-		if (jos_setjmp(&pgfault) != 0) {
-		    utrap_set_mask(0);
+		if (jos_setjmp(&pgfault) != 0)
 		    break;
-		}
 		*tls_pgfault = &pgfault;
 
 		memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
