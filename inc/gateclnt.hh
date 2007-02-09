@@ -35,7 +35,6 @@ private:
 
     label *tgt_label_;
     label *tgt_clear_;
-    label *obj_label_;
 };
 
 #endif
