@@ -4,6 +4,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/gateparam.h>
+#include <inc/stdio.h>
 }
 
 #include <inc/gatesrv.hh>

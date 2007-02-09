@@ -22,25 +22,25 @@ gate_compute_labels(struct cobj_ref gate,
     obj_get_label(gate, tgt_label);
     if (ds) {
 	tgt_label->merge(ds, &tmp, label::min, label::leq_starlo);
-	tgt_label->copy_from(&tmp);
+	*tgt_label = tmp;
     }
 
     label thread_label;
     thread_cur_label(&thread_label);
     thread_label.transform(label::star_to, 0);
     tgt_label->merge(&thread_label, &tmp, label::max, label::leq_starhi);
-    tgt_label->copy_from(&tmp);
+    *tgt_label = tmp;
 
     if (cs) {
 	tgt_label->merge(cs, &tmp, label::max, label::leq_starhi);
-	tgt_label->copy_from(&tmp);
+	*tgt_label = tmp;
     }
 
     // Compute the target clearance
     gate_get_clearance(gate, tgt_clear);
     if (dr) {
 	tgt_clear->merge(dr, &tmp, label::max, label::leq_starlo);
-	tgt_clear->copy_from(&tmp);
+	*tgt_clear = tmp;
     }
 
     // For any star levels in tgt_label & thread_label, grant a 3 in tgt_clear
@@ -53,7 +53,7 @@ gate_compute_labels(struct cobj_ref gate,
 	common_star3.transform(label::star_to, 3);
 
 	tgt_clear->merge(&common_star3, &tmp, label::max, label::leq_starlo);
-	tgt_clear->copy_from(&tmp);
+	*tgt_clear = tmp;
     }
 
     if (label_debug) {
@@ -77,8 +77,8 @@ gate_invoke2(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
     label tgt_clear_stack(&tgt_clear_ent[0], csize);
 
     try {
-	tgt_label_stack.copy_from(tgt_label);
-	tgt_clear_stack.copy_from(tgt_clear);
+	tgt_label_stack = *tgt_label;
+	tgt_clear_stack = *tgt_clear;
     } catch (std::exception &e) {
 	cprintf("gate_invoke: cannot copy return labels: label %s, clear %s\n",
 		tgt_label->to_string(), tgt_clear->to_string());

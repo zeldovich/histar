@@ -256,11 +256,11 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
 
     if (ul_taint) {
 	label taint;
-	taint.copy_from(ul_taint);
+	taint.from_ulabel(ul_taint);
 
 	label out;
 	l.merge(&taint, &out, label::max, label::leq_starlo);
-	l.copy_from(&out);
+	l = out;
     }
 
     char name[KOBJ_NAME_LEN];

@@ -25,7 +25,7 @@ thread_set_label(label *l)
     if (r < 0)
 	return r;
 
-    cur_th_label.copy_from(l);
+    cur_th_label = *l;
     cur_th_label_id = thread_id();
     return 0;
 }
@@ -39,7 +39,7 @@ thread_set_clearance(label *l)
     if (r < 0)
 	return r;
 
-    cur_th_clear.copy_from(l);
+    cur_th_clear = *l;
     cur_th_clear_id = thread_id();
     return 0;
 }
@@ -141,10 +141,10 @@ thread_cur_label(label *l)
     scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_label_id == thread_id()) {
-	l->copy_from(&cur_th_label);
+	*l = cur_th_label;
     } else {
 	get_label_retry(l, thread_get_label);
-	cur_th_label.copy_from(l);
+	cur_th_label = *l;
 	cur_th_label_id = thread_id();
     }
 }
@@ -155,10 +155,10 @@ thread_cur_clearance(label *l)
     scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_clear_id == thread_id()) {
-	l->copy_from(&cur_th_clear);
+	*l = cur_th_clear;
     } else {
 	get_label_retry(l, &sys_self_get_clearance);
-	cur_th_clear.copy_from(l);
+	cur_th_clear = *l;
 	cur_th_clear_id = thread_id();
     }
 }
@@ -169,9 +169,9 @@ thread_label_cache_update(label *l, label *c)
     scoped_jthread_lock x(&label_ops_mu);
 
     if (cur_th_label_id == thread_id())
-	cur_th_label.copy_from(l);
+	cur_th_label = *l;
     if (cur_th_clear_id == thread_id())
-	cur_th_clear.copy_from(c);
+	cur_th_clear = *c;
 }
 
 void

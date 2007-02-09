@@ -12,11 +12,15 @@ typedef level_t (*level_changer) (level_t, int);
 
 class label {
 public:
-    label();
-    label(level_t def);
-    label(uint64_t *ents, size_t size);
-    label(const label &l);
+    label();				// dynamic
+    label(level_t def);			// dynamic
+    label(uint64_t *ents, size_t size);	// non-dynamic
+    label(const label &l);		// dynamic
     ~label();
+
+    label &operator=(const label &l);
+    void from_ulabel(const ulabel *ul);
+    void from_string(const char *src);
 
     void grow();
 
@@ -29,10 +33,6 @@ public:
     const char *to_string() const { return label_to_string(&ul_); }
     ulabel *to_ulabel() { return &ul_; }
     const ulabel *to_ulabel_const() const { return &ul_; }
-
-    void copy_from(const label *src);
-    void copy_from(const ulabel *src);
-    void copy_from(const char *src);
 
     int compare(label *b, label_comparator cmp);
     void merge(const label *b, label *out, level_merger m, level_comparator cmp) const;

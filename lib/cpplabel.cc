@@ -120,18 +120,19 @@ label::set(uint64_t handle, level_t level)
     *s = LB_CODE(handle, level);
 }
 
-void
-label::copy_from(const label *src)
+label &
+label::operator=(const label &src)
 {
-    reset(src->ul_.ul_default);
-    for (uint64_t i = 0; i < src->ul_.ul_nent; i++) {
-	uint64_t h = LB_HANDLE(src->ul_.ul_ent[i]);
-	set(h, src->get(h));
+    reset(src.ul_.ul_default);
+    for (uint64_t i = 0; i < src.ul_.ul_nent; i++) {
+	uint64_t h = LB_HANDLE(src.ul_.ul_ent[i]);
+	set(h, src.get(h));
     }
+    return *this;
 }
 
 void
-label::copy_from(const struct ulabel *src)
+label::from_ulabel(const ulabel *src)
 {
     reset(src->ul_default);
     for (uint64_t i = 0; i < src->ul_nent; i++)
@@ -147,15 +148,15 @@ label::string_to_level(const char *str)
 }
 
 void
-label::copy_from(const char *src)
+label::from_string(const char *src)
 {
     static const uint32_t bufsize = 32;
     char buf[bufsize];
     const char *str = src;
     int len = strlen(str);
     if (!len)
-	return;
-    
+	throw error(-E_INVAL, "empty label string");
+
     int i;
     // get default
     for (i = len - 1; 
@@ -180,7 +181,7 @@ label::copy_from(const char *src)
 	buf[n] = 0;
 	char *lev = strchr(buf, ':');
 	if (!lev)
-	    return;
+	    throw error(-E_INVAL, "bad label string: %s", src);
 	*lev = 0;
 	lev++;
 	set(atol(buf), string_to_level(lev));

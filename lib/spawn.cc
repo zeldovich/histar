@@ -51,15 +51,15 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     thread_cur_clearance(&tmp);
     thread_clear.merge(&tmp, &out, label::min, label::leq_starhi);
-    thread_clear.copy_from(&out);
+    thread_clear = out;
 
     if (cr) {
 	thread_clear.merge(cr, &out, label::min, label::leq_starhi);
-	thread_clear.copy_from(&out);
+	thread_clear = out;
     }
     if (dr) {
 	thread_clear.merge(dr, &out, label::max, label::leq_starhi);
-	thread_clear.copy_from(&out);
+	thread_clear = out;
     }
 
     // Compute send label for new process
@@ -68,15 +68,15 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     thread_cur_label(&tmp);
     tmp.transform(label::star_to, 0);
     thread_label.merge(&tmp, &out, label::max, label::leq_starlo);
-    thread_label.copy_from(&out);
+    thread_label = out;
 
     if (cs) {
 	thread_label.merge(cs, &out, label::max, label::leq_starlo);
-	thread_label.copy_from(&out);
+	thread_label = out;
     }
     if (ds) {
 	thread_label.merge(ds, &out, label::min, label::leq_starlo);
-	thread_label.copy_from(&out);
+	thread_label = out;
     }
 
     // Objects for new process are effectively the same label, except
@@ -88,7 +88,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     if (contaminate_object) {
 	proc_object_label.merge(contaminate_object, &out,
 				label::max, label::leq_starlo);
-	proc_object_label.copy_from(&out);
+	proc_object_label = out;
     }
 
     // Generate some private handles for the new process
@@ -212,7 +212,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 	    pgid_label.set(start_env->user_grant, 1);
 	    pgid_label.set(process_grant, 0);
 	    pgid_label.merge(&tmp, &out, label::max, label::leq_starlo);
-	    pgid_label.copy_from(&out);
+	    pgid_label = out;
 	    error_check(segment_alloc(c_top, sizeof(uint64_t),
 				      &spawn_env->process_gid_seg, (void **) &child_pgid, 
 				      pgid_label.to_ulabel(), "process gid"));
