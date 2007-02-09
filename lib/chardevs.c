@@ -1,6 +1,7 @@
 #include <inc/chardevs.h>
 #include <inc/fd.h>
 #include <inc/lib.h>
+#include <inc/ioctl.h>
 
 #include <errno.h>
 #include <string.h>
@@ -74,6 +75,7 @@ struct Dev devnull = {
     .dev_write = &null_write,
     .dev_probe = &null_probe,
     .dev_close = &null_close,
+    .dev_ioctl = &jos_ioctl,
 };
 
 struct Dev devzero = {
@@ -83,4 +85,5 @@ struct Dev devzero = {
     .dev_write = &null_write,
     .dev_probe = &null_probe,
     .dev_close = &null_close,
+    .dev_ioctl = &jos_ioctl,
 };
