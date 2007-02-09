@@ -591,11 +591,15 @@ class djprot_impl : public djprot {
 		reparg.taint = net_label_;
 		reparg.grant = label(3);
 
-		if (!labelcheck_recv(*c.u.reply->arg, c.from))
-		    return;
-		if (!callarg_ntoh(*c.u.reply->arg, &reparg))
-		    return;
-		cc->cb(c.u.reply->stat, &reparg);
+		if (!labelcheck_recv(*c.u.reply->arg, c.from)) {
+		    warn << "call reply: labelcheck failed\n";
+		    cc->cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
+		} else if (!callarg_ntoh(*c.u.reply->arg, &reparg)) {
+		    warn << "call reply: callarg_ntoh failed\n";
+		    cc->cb(REPLY_SYSERR, (const djcall_args *) 0);
+		} else {
+		    cc->cb(c.u.reply->stat, &reparg);
+		}
 	    } else {
 		cc->cb(c.u.reply->stat, (const djcall_args *) 0);
 	    }
