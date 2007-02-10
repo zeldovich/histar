@@ -7,6 +7,7 @@ LIBDIS_SRCFILES +=		\
 	dj/dummycatmgr.cc	\
 	dj/djfs_posix.cc	\
 	dj/gateexec.cc		\
+	dj/gateincoming.cc	\
 	dj/dj.x			\
 	dj/djfs.x
 

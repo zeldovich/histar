@@ -122,6 +122,8 @@ main(int ac, char **av)
 #else
     djs->set_callexec(wrap(dj_gate_exec));
     djs->set_catmgr(dj_dummy_catmgr());
+
+    ptr<djgate_incoming> incoming = dj_gate_incoming(djs);
 #endif
 
     if (ac == 4) {
