@@ -30,6 +30,9 @@ class djgatesrv {
  private:
     static void __attribute__((noreturn))
     gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
+	uint64_t call_taint = gcd->call_taint;
+	uint64_t call_grant = gcd->call_grant;
+
 	djcall_args *in = New djcall_args();
 	scope_guard<void, djcall_args*> delin(delete_obj, in);
 
@@ -48,9 +51,11 @@ class djgatesrv {
 	    error_check(l.compare(&vc, label::leq_starhi));
 
 	    in->taint = l;
+	    in->taint.set(call_taint, in->taint.get_default());
+	    in->taint.set(call_grant, in->taint.get_default());
 	    in->grant = vl;
-	    in->grant.set(gcd->call_taint, 3);
-	    in->grant.set(gcd->call_grant, 3);
+	    in->grant.set(call_taint, 3);
+	    in->grant.set(call_grant, 3);
 	    in->grant.transform(label::nonstar_to, 3);
 
 	    void *data_map = 0;
@@ -71,6 +76,8 @@ class djgatesrv {
 	/* Marshal response back into a segment */
 	cobj_ref data_seg;
 	void *data_map = 0;
+	out->taint.set(call_taint, 3);
+	out->taint.set(call_grant, 0);
 	error_check(segment_alloc(gcd->taint_container, out->data.len(),
 				  &data_seg, &data_map,
 				  out->taint.to_ulabel_const(),

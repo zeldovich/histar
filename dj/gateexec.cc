@@ -46,11 +46,15 @@ class gate_exec : public djcallexec {
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
+	    label seglabel(args.taint);
+	    seglabel.set(gc_->call_grant(), 0);
+	    seglabel.set(gc_->call_taint(), 3);
+
 	    cobj_ref data_seg;
 	    void *data_map = 0;
 	    error_check(segment_alloc(gc_->call_ct(), args.data.len(),
 				      &data_seg, &data_map,
-				      args.taint.to_ulabel_const(),
+				      seglabel.to_ulabel_const(),
 				      "gate_exec args"));
 	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
 	    memcpy(data_map, args.data.cstr(), args.data.len());
@@ -147,6 +151,8 @@ class gate_exec : public djcallexec {
 
 	    djcall_args ra;
 	    ra.taint = l;
+	    ra.taint.set(gc_->call_taint(), ra.taint.get_default());
+	    ra.taint.set(gc_->call_grant(), ra.taint.get_default());
 	    ra.grant = reply_vl_;
 	    ra.grant.set(gc_->call_taint(), 3);
 	    ra.grant.set(gc_->call_grant(), 3);
