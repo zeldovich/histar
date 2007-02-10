@@ -188,3 +188,15 @@ gate (or indicate the existence of a gate in the first place), etc...  Need
 to be careful to make sure caller can read the container for the gate before
 returning any error back to the user as to whether the gate exists or not.
 
+===
+
+What happens when a server on the other side of a remote gate call is slow,
+vs. replies with a tainted response?  In the first case, resending the RPC
+will generate a CALL_INPROGRESS reply; in the second case, resending the
+RPC will cause the server to retransmit the tainted response.  What if the
+client has specified a timeout for the call?  He should not be able to tell
+that the call returned tainted data, vs. call timed out..
+
+Same-thread-return checks (gateclnt's return_stub) mean that we can't return
+twice to the caller, once with a TIMEOUT status and once with tainted data.
+
