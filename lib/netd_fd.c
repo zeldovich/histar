@@ -126,7 +126,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 
     struct sockaddr_in sin;
     if (*addrlen < sizeof(sin))
-	   return -E_INVAL;
+	return -E_INVAL;
 
     struct Fd *nfd;
     int r = fd_alloc(&nfd, "socket fd -- accept");
