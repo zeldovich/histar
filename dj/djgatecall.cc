@@ -1,4 +1,17 @@
+extern "C" {
+#include <inc/gateparam.h>
+}
+
+#include <async.h>
+#include <crypt.h>
+
+#include <inc/gateclnt.hh>
+#include <inc/cpplabel.hh>
+#include <inc/labelutil.hh>
+#include <inc/error.hh>
+#include <inc/scopeguard.hh>
 #include <dj/djgatecall.hh>
+#include <dj/djgate.h>
 
 dj_reply_status
 djgate_caller::call(str nodepk, dj_gatename gate,
@@ -49,4 +62,6 @@ djgate_caller::call(str nodepk, dj_gatename gate,
     data_seg = gcd.param_obj;
 
     // XXX
+
+    return ig_res.stat;
 }

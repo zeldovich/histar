@@ -1,7 +1,7 @@
 #ifndef JOS_DJ_DJGATECALL_HH
 #define JOS_DJ_DJCATECALL_HH
 
-#include <dj/dj.h>
+#include <dj/dis.hh>
 
 class djgate_caller {
  public:
