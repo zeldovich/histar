@@ -61,7 +61,37 @@ djgate_caller::call(str nodepk, dj_gatename gate,
     dj_incoming_gate_res ig_res;
     data_seg = gcd.param_obj;
 
-    // XXX
+    label l;
+    obj_get_label(COBJ(data_seg.container, data_seg.container), &l);
+    error_check(vl.compare(&l, label::leq_starlo));
+    error_check(l.compare(&vc, label::leq_starhi));
+    obj_get_label(data_seg, &l);
+    error_check(vl.compare(&l, label::leq_starlo));
+    error_check(l.compare(&vc, label::leq_starhi));
+
+    resp->taint = l;
+    resp->taint.set(gc.call_taint(), resp->taint.get_default());
+    resp->taint.set(gc.call_grant(), resp->taint.get_default());
+    resp->grant = vl;
+    resp->grant.set(gc.call_taint(), 3);
+    resp->grant.set(gc.call_grant(), 3);
+    resp->grant.transform(label::nonstar_to, 3);
+
+    data_map = 0;
+    uint64_t data_len = 0;
+    error_check(segment_map(data_seg, 0, SEGMAP_READ,
+			    &data_map, &data_len, 0));
+    scope_guard2<int, void*, int> unmap2(segment_unmap_delayed, data_map, 1);
+    str ig_resstr((const char *) data_map, data_len);
+    unmap2.force();
+
+    if (!str2xdr(ig_res, ig_resstr))
+	throw basic_exception("djgate_caller: cannot unmarshal dj_incoming_gate_res");
+
+    if (ig_res.stat == REPLY_DONE)
+	resp->data = str(ig_res.data->base(), ig_res.data->size());
+    else
+	resp->data = str();
 
     return ig_res.stat;
 }
