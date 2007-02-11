@@ -72,29 +72,25 @@ dostuff(djgate_caller *dc, str node_pk, uint64_t ct, uint64_t id)
     dj_reply_status stat;
     djcall_args res;
 
-    for (;;) {
-	req.set_op(DJFS_READDIR);
-	req.readdir->pn = str("/bin");
-	args.data = xdr2str(req);
+    req.set_op(DJFS_READDIR);
+    req.readdir->pn = str("/bin");
+    args.data = xdr2str(req);
 
-	stat = dc->call(node_pk, gate, args, &res);
-	readdircb(stat, &res);
+    stat = dc->call(node_pk, gate, args, &res);
+    readdircb(stat, &res);
 
-	req.set_op(DJFS_READ);
-	req.read->pn = str("/etc/passwd");
-	args.data = xdr2str(req);
+    req.set_op(DJFS_READ);
+    req.read->pn = str("/etc/passwd");
+    args.data = xdr2str(req);
 
-	stat = dc->call(node_pk, gate, args, &res);
-	readcb(stat, &res);
-
-	sleep(5);
-    }
+    stat = dc->call(node_pk, gate, args, &res);
+    readcb(stat, &res);
 }
 
 int
 main(int ac, char **av)
 {
-    if (ac != 5) {
+    if (ac != 6) {
 	printf("Usage: %s djd-gate-ct djd-gate-id host-pk gate-ct gate-id\n", av[0]);
 	exit(-1);
     }

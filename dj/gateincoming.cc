@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
+#include <inc/fd.h>
 }
 
 #include <async.h>
@@ -28,6 +29,11 @@ struct incoming_req {
 class incoming_impl : public djgate_incoming {
  public:
     incoming_impl(ptr<djprot> p) : p_(p) {
+	errno_check(pipe(fds_));
+	_make_async(fds_[0]);
+	fdcb(fds_[0], selread, wrap(this, &incoming_impl::readcb));
+	fd_make_public(fds_[0], 0);
+
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "djd-incoming";
@@ -35,10 +41,6 @@ class incoming_impl : public djgate_incoming {
 	gd.arg_ = (void *) this;
 
 	gate_ = gate_create(&gd);
-
-	errno_check(pipe(fds_));
-	_make_async(fds_[0]);
-	fdcb(fds_[0], selread, wrap(this, &incoming_impl::readcb));
     }
 
     ~incoming_impl() {
