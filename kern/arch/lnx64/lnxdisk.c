@@ -40,3 +40,9 @@ disk_io(disk_op op __attribute__((unused)),
 {
     return -E_IO;
 }
+
+void
+disk_init(struct pci_func *pcif)
+{
+    // Just to get the PCI code to link clean.
+}

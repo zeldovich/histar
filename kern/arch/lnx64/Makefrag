@@ -19,7 +19,12 @@ KERN_LIB :=					\
 	lib/cksum.c				\
 	lib/bf60.c
 
-KERN_DEV :=
+KERN_DEV :=					\
+	kern/dev/pci.c				\
+	kern/dev/ne2kpci.c			\
+	kern/dev/fxp.c				\
+	kern/dev/e1000.c			\
+	kern/dev/pnic.c
 
 #all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
 all: $(OBJDIR)/kern/kernel-test
