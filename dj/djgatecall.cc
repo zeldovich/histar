@@ -33,28 +33,14 @@ djgate_caller::call(str nodepk, dj_gatename gate,
 
     // Marshal request into segment
     gate_call gc(djd_, &args.taint, &args.grant, &args.taint);
+    gate_call_data gcd;
+    label vl, vc;
 
-    label seglabel(args.taint);
-    seglabel.set(gc.call_grant(), 0);
-    seglabel.set(gc.call_taint(), 3);
-
-    cobj_ref data_seg;
-    void *data_map = 0;
-    error_check(segment_alloc(gc.call_ct(), ig_reqstr.len(),
-			      &data_seg, &data_map,
-			      seglabel.to_ulabel_const(),
-			      "djgate_caller args"));
-    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-    memcpy(data_map, ig_reqstr.cstr(), ig_reqstr.len());
+    dj_gate_call_outgoing(gc.call_ct(), gc.call_grant(), gc.call_taint(),
+			  args.taint, args.grant, ig_reqstr,
+			  &gcd.param_obj, &vl, &vc);
 
     // Off into the djd gate
-    gate_call_data gcd;
-    gcd.param_obj = data_seg;
-
-    label vl, vc;
-    args.grant.merge(&args.taint, &vl, label::min, label::leq_starlo);
-    vc = args.taint;
-
     gc.call(&gcd, &vl, &vc);
     thread_cur_verify(&vl, &vc);
 

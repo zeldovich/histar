@@ -112,27 +112,16 @@ class incoming_impl : public djgate_incoming {
 	    if (!resstr)
 		throw basic_exception("cannot encode dj_incoming_gate_res\n");
 
-	    cobj_ref data_seg;
-	    void *data_map = 0;
-	    ir.res.taint.set(call_taint, 3);
-	    ir.res.taint.set(call_grant, 0);
-	    error_check(segment_alloc(tct, resstr.len(),
-				      &data_seg, &data_map,
-				      ir.res.taint.to_ulabel_const(),
-				      "dj_incoming reply args"));
-	    scope_guard2<int, void*, int> unmap2(segment_unmap_delayed, data_map, 1);
-	    memcpy(data_map, resstr.cstr(), resstr.len());
-	    unmap2.force();
-
 	    // Labels for return gate call
 	    cs = New label(ir.res.taint);
 	    ds = New label(ir.res.grant);
 	    dr = New label(ir.res.taint);
-
 	    nvl = New label();
-	    ir.res.grant.merge(&ir.res.taint, nvl, label::min, label::leq_starlo);
-	    nvc = New label(ir.res.taint);
-	    gcd->param_obj = data_seg;
+	    nvc = New label();
+
+	    dj_gate_call_outgoing(tct, call_grant, call_taint,
+				  ir.res.taint, ir.res.grant, resstr,
+				  &gcd->param_obj, nvl, nvc);
 	}
 
 	ret->ret(cs, ds, dr, nvl, nvc);

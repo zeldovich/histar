@@ -52,34 +52,18 @@ class djgatesrv {
 	    throw basic_exception("djgatesrv: service unhappy\n");
 
 	/* Marshal response back into a segment */
-	cobj_ref data_seg;
-	void *data_map = 0;
-	out->taint.set(call_taint, 3);
-	out->taint.set(call_grant, 0);
-	error_check(segment_alloc(gcd->taint_container, out->data.len(),
-				  &data_seg, &data_map,
-				  out->taint.to_ulabel_const(),
-				  "djgatesrv reply args"));
-	scope_guard2<int, void*, int> unmap2(segment_unmap_delayed, data_map, 1);
-	memcpy(data_map, out->data.cstr(), out->data.len());
-	unmap2.force();
-
 	label *cs = New label(out->taint);
 	label *ds = New label(out->grant);
 	label *dr = New label(out->taint);
-
 	label *nvl = New label();
-	out->grant.merge(&out->taint, nvl, label::min, label::leq_starlo);
-	label *nvc = New label(out->taint);
+	label *nvc = New label();
 
-	nvl->set(gcd->call_taint, LB_LEVEL_STAR);
-	nvl->set(gcd->call_grant, LB_LEVEL_STAR);
-	nvc->set(gcd->call_taint, 3);
-	nvc->set(gcd->call_grant, 3);
+	dj_gate_call_outgoing(gcd->taint_container, call_grant, call_taint,
+			      out->taint, out->grant, out->data,
+			      &gcd->param_obj, nvl, nvc);
 
 	delin.force();
 	delout.force();
-	gcd->param_obj = data_seg;
 	ret->ret(cs, ds, dr, nvl, nvc);
     }
 

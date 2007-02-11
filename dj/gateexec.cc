@@ -41,25 +41,13 @@ class gate_exec : public djcallexec {
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
 	try {
-	    args.grant.merge(&args.taint, &call_vl_, label::min, label::leq_starlo);
-	    call_vc_ = args.taint;
-
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
-	    label seglabel(args.taint);
-	    seglabel.set(gc_->call_grant(), 0);
-	    seglabel.set(gc_->call_taint(), 3);
-
-	    cobj_ref data_seg;
-	    void *data_map = 0;
-	    error_check(segment_alloc(gc_->call_ct(), args.data.len(),
-				      &data_seg, &data_map,
-				      seglabel.to_ulabel_const(),
-				      "gate_exec args"));
-	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    memcpy(data_map, args.data.cstr(), args.data.len());
-	    gcd_.param_obj = data_seg;
+	    dj_gate_call_outgoing(gc_->call_ct(),
+				  gc_->call_grant(), gc_->call_taint(),
+				  args.taint, args.grant, args.data,
+				  &gcd_.param_obj, &call_vl_, &call_vc_);
 
 	    errno_check(pipe(pipes_));
 	    _make_async(pipes_[0]);
