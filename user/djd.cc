@@ -126,6 +126,8 @@ main(int ac, char **av)
     ptr<djgate_incoming> incoming = dj_gate_incoming(djs);
 #endif
 
+    //dostuff(djs, djs->pubkey(), 1, 2);
+
     if (ac == 4) {
 	str n(av[1]);
 	dj_esign_pubkey k;
