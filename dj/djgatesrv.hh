@@ -12,6 +12,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <dj/dis.hh>
+#include <dj/gateutil.hh>
 
 class djgatesrv {
  public:
@@ -39,32 +40,9 @@ class djgatesrv {
 	{ // GC scope
 	    label vl, vc;
 	    thread_cur_verify(&vl, &vc);
-	    cobj_ref seg = gcd->param_obj;
-
-	    /* Read request and labels */
-	    label l;
-	    obj_get_label(COBJ(seg.container, seg.container), &l);
-	    error_check(vl.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&vc, label::leq_starhi));
-	    obj_get_label(seg, &l);
-	    error_check(vl.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&vc, label::leq_starhi));
-
-	    in->taint = l;
-	    in->taint.set(call_taint, in->taint.get_default());
-	    in->taint.set(call_grant, in->taint.get_default());
-	    in->grant = vl;
-	    in->grant.set(call_taint, 3);
-	    in->grant.set(call_grant, 3);
-	    in->grant.transform(label::nonstar_to, 3);
-
-	    void *data_map = 0;
-	    uint64_t data_len = 0;
-	    error_check(segment_map(seg, 0, SEGMAP_READ,
-				    &data_map, &data_len, 0));
-	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    in->data = str((const char *) data_map, data_len);
-	    unmap.force();
+	    dj_gate_call_incoming(gcd->param_obj, vl, vc,
+				  call_grant, call_taint,
+				  &in->taint, &in->grant, &in->data);
 	}
 
 	djgatesrv *dgs = (djgatesrv *) arg;

@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include <dj/dis.hh>
+#include <dj/gateutil.hh>
 #include <inc/gateclnt.hh>
 #include <inc/error.hh>
 #include <inc/errno.hh>
@@ -139,32 +140,10 @@ class gate_exec : public djcallexec {
 	fdcb(pipes_[0], selread, 0);
 
 	try {
-	    cobj_ref data_seg = gcd_.param_obj;
-
-	    label l;
-	    obj_get_label(COBJ(data_seg.container, data_seg.container), &l);
-	    error_check(reply_vl_.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&reply_vc_, label::leq_starhi));
-	    obj_get_label(data_seg, &l);
-	    error_check(reply_vl_.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&reply_vc_, label::leq_starhi));
-
 	    djcall_args ra;
-	    ra.taint = l;
-	    ra.taint.set(gc_->call_taint(), ra.taint.get_default());
-	    ra.taint.set(gc_->call_grant(), ra.taint.get_default());
-	    ra.grant = reply_vl_;
-	    ra.grant.set(gc_->call_taint(), 3);
-	    ra.grant.set(gc_->call_grant(), 3);
-	    ra.grant.transform(label::nonstar_to, 3);
-
-	    void *data_map = 0;
-	    uint64_t data_len = 0;
-	    error_check(segment_map(data_seg, 0, SEGMAP_READ,
-				    &data_map, &data_len, 0));
-	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    ra.data = str((const char *) data_map, data_len);
-
+	    dj_gate_call_incoming(gcd_.param_obj, reply_vl_, reply_vc_,
+				  gc_->call_grant(), gc_->call_taint(),
+				  &ra.taint, &ra.grant, &ra.data);
 	    cb_(REPLY_DONE, &ra);
 	} catch (std::exception &e) {
 	    cprintf("gate_exec::pipecb: %s\n", e.what());

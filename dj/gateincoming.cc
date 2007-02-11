@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <dj/dis.hh>
 #include <dj/djgate.h>
+#include <dj/gateutil.hh>
 
 struct incoming_req {
     str nodepk;
@@ -75,31 +76,13 @@ class incoming_impl : public djgate_incoming {
 	    // Get the request and its label
 	    label vl, vc;
 	    thread_cur_verify(&vl, &vc);
-	    cobj_ref seg = gcd->param_obj;
 
-	    label l;
-	    obj_get_label(COBJ(seg.container, seg.container), &l);
-	    error_check(vl.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&vc, label::leq_starhi));
-	    obj_get_label(seg, &l);
-	    error_check(vl.compare(&l, label::leq_starlo));
-	    error_check(l.compare(&vc, label::leq_starhi));
-
-	    ir.args.taint = l;
-	    ir.args.taint.set(call_taint, ir.args.taint.get_default());
-	    ir.args.taint.set(call_grant, ir.args.taint.get_default());
-	    ir.args.grant = vl;
-	    ir.args.grant.set(call_taint, 3);
-	    ir.args.grant.set(call_grant, 3);
-	    ir.args.grant.transform(label::nonstar_to, 3);
-
-	    void *data_map = 0;
-	    uint64_t data_len = 0;
-	    error_check(segment_map(seg, 0, SEGMAP_READ,
-				    &data_map, &data_len, 0));
-	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
-	    str req((const char *) data_map, data_len);
-	    unmap.force();
+	    str req;
+	    dj_gate_call_incoming(gcd->param_obj, vl, vc,
+				  call_grant, call_taint,
+				  &ir.args.taint,
+				  &ir.args.grant,
+				  &req);
 
 	    // Unmarshal incoming call request
 	    dj_incoming_gate_req igr;
@@ -130,7 +113,7 @@ class incoming_impl : public djgate_incoming {
 		throw basic_exception("cannot encode dj_incoming_gate_res\n");
 
 	    cobj_ref data_seg;
-	    data_map = 0;
+	    void *data_map = 0;
 	    ir.res.taint.set(call_taint, 3);
 	    ir.res.taint.set(call_grant, 0);
 	    error_check(segment_alloc(tct, resstr.len(),
