@@ -42,6 +42,12 @@ disk_io(disk_op op __attribute__((unused)),
 }
 
 void
+ide_intr(void)
+{
+    printf("Hmm, ide_intr()...\n");
+}
+
+void
 disk_init(struct pci_func *pcif)
 {
     // Just to get the PCI code to link clean.

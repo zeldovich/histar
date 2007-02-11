@@ -9,8 +9,9 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/panic.c			\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/pmap.c			\
-	$(ARCHDIR)/lnxdisk.c			\
 	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/lnxdisk.c			\
+	$(ARCHDIR)/lnxcons.c			\
 	$(ARCHDIR)/devstub.c
 
 KERN_LIB :=					\
@@ -25,6 +26,10 @@ KERN_DEV :=					\
 	kern/dev/fxp.c				\
 	kern/dev/e1000.c			\
 	kern/dev/pnic.c
+
+## The following drivers conflict with the user-space-specific drivers:
+	#kern/dev/console.c			\
+	#kern/dev/disk.c			\
 
 #all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
 all: $(OBJDIR)/kern/kernel-test
