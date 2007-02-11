@@ -89,11 +89,10 @@ struct dj_call_request {
 
 enum dj_reply_status {
     REPLY_DONE = 1,
-    REPLY_INPROGRESS,
+    REPLY_INPROGRESS,		/* should not propagate to caller */
     REPLY_GATE_CALL_ERROR,
     REPLY_ADDRESS_MISSING,	/* not returned by server */
     REPLY_DELEGATION_MISSING,
-    REPLY_TIMEOUT,
     REPLY_ABORTED,
     REPLY_SYSERR
 };
