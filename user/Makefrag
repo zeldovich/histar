@@ -15,6 +15,11 @@ $(OBJDIR)/user/djd.o: PER_TARGET_CFLAGS=$(DIS_CFLAGS)
 $(OBJDIR)/user/djd.debuginfo: $(DIS_LDDEPS)
 $(OBJDIR)/user/djd.debuginfo: PER_TARGET_LDFLAGS=$(DIS_LDFLAGS)
 
+$(OBJDIR)/user/djc.o: $(DIS_CCDEPS)
+$(OBJDIR)/user/djc.o: PER_TARGET_CFLAGS=$(DIS_CFLAGS)
+$(OBJDIR)/user/djc.debuginfo: $(DIS_LDDEPS)
+$(OBJDIR)/user/djc.debuginfo: PER_TARGET_LDFLAGS=$(DIS_LDFLAGS)
+
 $(OBJDIR)/user/djfsd.o: $(DIS_CCDEPS)
 $(OBJDIR)/user/djfsd.o: PER_TARGET_CFLAGS=$(DIS_CFLAGS)
 $(OBJDIR)/user/djfsd.debuginfo: $(DIS_LDDEPS)

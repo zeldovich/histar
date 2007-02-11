@@ -124,6 +124,8 @@ main(int ac, char **av)
     djs->set_catmgr(dj_dummy_catmgr());
 
     ptr<djgate_incoming> incoming = dj_gate_incoming(djs);
+    cobj_ref ingate = incoming->gate();
+    warn << "djd incoming gate: " << ingate << "\n";
 #endif
 
     //dostuff(djs, djs->pubkey(), 1, 2);

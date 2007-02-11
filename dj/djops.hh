@@ -148,6 +148,13 @@ strbuf_cat(const strbuf &sb, const dj_grantlist &g)
     return sb;
 }
 
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const cobj_ref &c)
+{
+    sb << c.container << "." << c.object << "\n";
+    return sb;
+}
+
 inline dj_esign_pubkey
 esignpub2dj(const esign_pub &ep)
 {
