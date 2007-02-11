@@ -45,6 +45,14 @@ Security:
   when it hit something.  the culprits are variable-length data structures -- AS
   and labels -- sys_as_get, sys_as_set, and anything that calls label_to_ulabel:
   sys_obj_get_label, sys_self_get_{clearance,verify}, sys_gate_clearance.
+* probably should scrub state more often across gate calls: gate_call_data
+  passed to gate_call::call() and gatesrv_return::ret(), and TLS stack (mask
+  utraps before doing this, to avoid race conditions).  look at lib/authclnt.cc.
+* what happens when gate caller doesn't grant all of the gate's own privileges?
+  maybe change sys_gate_enter: caller has to grant all stars that the gate has?
+  a lot of code already assumes this, and would have to check whether we lost
+  any stars on every gate entry in user-space..  is it expensive to do this in
+  user-space?
 
 Cleanup:
 
