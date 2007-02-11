@@ -401,11 +401,18 @@ class djprot_impl : public djprot {
 
     void clnt_transmit(call_client *cc) {
 	djprot::call_reply_cb cb = cc->cb;
-
 	cc->timecb = 0;
 	cc->ss.stmt.call->seq++;
 	cc->ss.stmt.call->ts = time(0);
-	sign_statement(&cc->ss);
+
+	if (cc->ss.stmt.call->to == esignpub2dj(k_)) {
+	    djcall_id cid;
+	    cid.key = cc->ss.stmt.call->from;
+	    cid.xid = cc->ss.stmt.call->xid;
+
+	    process_call_request(*cc->ss.stmt.call, cid);
+	    return;
+	}
 
 	if (!labelcheck_send(cc->ss.stmt.call->u.req->arg,
 			     cc->ss.stmt.call->to)) {
@@ -414,6 +421,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
+	sign_statement(&cc->ss);
 	str msg = xdr2str(cc->ss);
 	if (!msg) {
 	    warn << "call: cannot encode call statement\n";
@@ -500,8 +508,17 @@ class djprot_impl : public djprot {
 	    if (!labelcheck_send(*ss.stmt.call->u.reply->arg, cs->id.key))
 		return;
 	}
-	sign_statement(&ss);
 
+	if (ss.stmt.call->to == esignpub2dj(k_)) {
+	    djcall_id cid;
+	    cid.key = ss.stmt.call->from;
+	    cid.xid = ss.stmt.call->xid;
+
+	    process_call_reply(*ss.stmt.call, cid);
+	    return;
+	}
+
+	sign_statement(&ss);
 	str msg = xdr2str(ss);
 	if (!msg) {
 	    warn << "srvr_send_reply: cannot encode reply\n";
@@ -519,6 +536,71 @@ class djprot_impl : public djprot {
 	srvr_send_reply(cs);
     }
 
+    void process_call_request(const dj_call &c, const djcall_id &cid) {
+	call_server *cs = srvr_[cid];
+	if (cs && cs->id == cid) {
+	    srvr_send_reply(cs);
+	    return;
+	}
+
+	if (execcb_) {
+	    cs = New call_server();
+	    cs->id = cid;
+	    cs->stat = REPLY_INPROGRESS;
+	    cs->reply.taint = net_label_;
+	    cs->reply.grant = label(3);
+	    cs->replyseq = 0;
+	    cs->exec = 
+		execcb_(wrap(mkref(this), &djprot_impl::execcb, cs));
+	    srvr_.insert(cs);
+
+	    if (!labelcheck_recv(c.u.req->arg, c.from)) {
+		cs->stat = REPLY_DELEGATION_MISSING;
+		srvr_send_reply(cs);
+	    } else {
+		djcall_args a;
+		callarg_ntoh(c.u.req->arg, &a);
+		cs->exec->start(c.u.req->gate, a);
+	    }
+	} else {
+	    warn << "process_call: missing execution backend\n";
+	}
+    }
+
+    void process_call_reply(const dj_call &c, const djcall_id &cid) {
+	call_client *cc = clnt_[cid];
+	if (!cc || cc->id != cid) {
+	    warn << "unexpected call reply\n";
+	    return;
+	}
+
+	if (c.u.reply->stat == REPLY_INPROGRESS) {
+	    warn << "call reply: in progress..\n";
+	    return;
+	}
+
+	if (c.u.reply->stat == REPLY_DONE) {
+	    djcall_args reparg;
+	    reparg.taint = net_label_;
+	    reparg.grant = label(3);
+
+	    if (!labelcheck_recv(*c.u.reply->arg, c.from)) {
+		warn << "call reply: labelcheck failed\n";
+		warn << "reply taint " << c.u.reply->arg->taint << "\n";
+		warn << "reply grant " << c.u.reply->arg->grant << "\n";
+		cc->cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
+	    } else if (!callarg_ntoh(*c.u.reply->arg, &reparg)) {
+		warn << "call reply: callarg_ntoh failed\n";
+		cc->cb(REPLY_SYSERR, (const djcall_args *) 0);
+	    } else {
+		cc->cb(c.u.reply->stat, &reparg);
+	    }
+	} else {
+	    cc->cb(c.u.reply->stat, (const djcall_args *) 0);
+	}
+	clnt_done(cc);
+    }
+
     void process_call(const dj_call &c) {
 	if (c.to != esignpub2dj(k_)) {
 	    warn << "misrouted call to " << c.to << "\n";
@@ -532,38 +614,9 @@ class djprot_impl : public djprot {
 	cid.xid = c.xid;
 
 	switch (c.u.op) {
-	case CALL_REQUEST: {
-	    call_server *cs = srvr_[cid];
-	    if (cs && cs->id == cid) {
-		srvr_send_reply(cs);
-		return;
-	    }
-
-	    if (execcb_) {
-		cs = New call_server();
-		cs->id = cid;
-		cs->stat = REPLY_INPROGRESS;
-		cs->reply.taint = net_label_;
-		cs->reply.grant = label(3);
-		cs->replyseq = 0;
-		cs->exec = 
-		    execcb_(wrap(mkref(this), &djprot_impl::execcb, cs));
-		srvr_.insert(cs);
-
-		if (!labelcheck_recv(c.u.req->arg, c.from)) {
-		    cs->stat = REPLY_DELEGATION_MISSING;
-		    srvr_send_reply(cs);
-		    return;
-		}
-
-		djcall_args a;
-		callarg_ntoh(c.u.req->arg, &a);
-		cs->exec->start(c.u.req->gate, a);
-	    } else {
-		warn << "process_call: missing execution backend\n";
-	    }
+	case CALL_REQUEST:
+	    process_call_request(c, cid);
 	    break;
-	}
 
 	case CALL_ABORT: {
 	    call_server *cs = srvr_[cid];
@@ -579,40 +632,9 @@ class djprot_impl : public djprot {
 	    break;
 	}
 
-	case CALL_REPLY: {
-	    call_client *cc = clnt_[cid];
-	    if (!cc || cc->id != cid) {
-		warn << "unexpected call reply\n";
-		return;
-	    }
-
-	    if (c.u.reply->stat == REPLY_INPROGRESS) {
-		warn << "call reply: in progress..\n";
-		return;
-	    }
-
-	    if (c.u.reply->stat == REPLY_DONE) {
-		djcall_args reparg;
-		reparg.taint = net_label_;
-		reparg.grant = label(3);
-
-		if (!labelcheck_recv(*c.u.reply->arg, c.from)) {
-		    warn << "call reply: labelcheck failed\n";
-		    warn << "reply taint " << c.u.reply->arg->taint << "\n";
-		    warn << "reply grant " << c.u.reply->arg->grant << "\n";
-		    cc->cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
-		} else if (!callarg_ntoh(*c.u.reply->arg, &reparg)) {
-		    warn << "call reply: callarg_ntoh failed\n";
-		    cc->cb(REPLY_SYSERR, (const djcall_args *) 0);
-		} else {
-		    cc->cb(c.u.reply->stat, &reparg);
-		}
-	    } else {
-		cc->cb(c.u.reply->stat, (const djcall_args *) 0);
-	    }
-	    clnt_done(cc);
+	case CALL_REPLY:
+	    process_call_reply(c, cid);
 	    break;
-	}
 
 	default:
 	    warn << "process_call: unhandled op " << c.u.op << "\n";
