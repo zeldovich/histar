@@ -198,7 +198,7 @@ label::from_string(const char *src)
 }
 
 int
-label::compare(label *b, label_comparator cmp)
+label::compare(const label *b, label_comparator cmp) const
 {
     int r;
 

@@ -34,7 +34,7 @@ public:
     ulabel *to_ulabel() { return &ul_; }
     const ulabel *to_ulabel_const() const { return &ul_; }
 
-    int compare(label *b, label_comparator cmp);
+    int compare(const label *b, label_comparator cmp) const;
     void merge(const label *b, label *out, level_merger m, level_comparator cmp) const;
     void transform(level_changer t, int arg);
 
