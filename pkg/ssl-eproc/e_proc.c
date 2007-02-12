@@ -5,11 +5,12 @@
 
 #include <inc/container.h>
 #include <inc/stdio.h>
-#include <inc/ssleproc.h>
+#include "ssleproc.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <openssl/engine.h>
@@ -20,8 +21,6 @@ static EVP_PKEY *
 eproc_load_privkey(ENGINE *e, const char *key_id,
 		   UI_METHOD *ui_method, void *callback_data)
 {
-    const char *sockpath = key_id;
-    
     struct cobj_ref eproc_biseg = *(struct cobj_ref *)key_id;
     int fd = bipipe_fd(eproc_biseg, 0, 0);
     if (fd < 0) {
@@ -35,7 +34,7 @@ eproc_load_privkey(ENGINE *e, const char *key_id,
     for (i = 0; i < 2; i++) {
 	int cc = read(fd, &pub_len[i], sizeof(pub_len[i]));
 	if (cc != sizeof(pub_len[i]) || pub_len[i] > sizeof(pub_val[i])) {
-	    cprintf("eproc_load_privkey: size mismatch %d %d %d\n",
+	    cprintf("eproc_load_privkey: size mismatch %d %ld %ld\n",
 		    cc, sizeof(pub_len[i]), pub_len[i]);
 	    close(fd);
 	    return 0;

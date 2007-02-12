@@ -342,6 +342,7 @@ $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch $(ACPKG_WRAPS) $(LDEPS)
 	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
 	    (ln -fs $(TOP)/pkg/ssl-eproc/e_proc.c $(TOP)/acpkg/openssl-0.9.8a/engines/e_proc.c) && \
+	    (ln -fs $(TOP)/pkg/httpd/inc/ssleproc.h $(TOP)/acpkg/openssl-0.9.8a/engines/ssleproc.h) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX) threads" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" ); \
@@ -401,11 +402,13 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.
 	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libstdc++.a $(OBJDIR)/acpkg/lib/
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
 		bin/gcc bin/ld bin/as \
 		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
-		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a lib/libutil.a \
+		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
+		lib/libutil.a lib/libstdc++.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
