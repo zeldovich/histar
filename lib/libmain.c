@@ -38,6 +38,7 @@ setup_env(uint64_t envaddr, uint64_t arg1)
     // This process has enough of an environment,
     // unlike a bootstrap process.
     start_env = (start_env_t *) envaddr;
+    start_env->taint_cow_as = COBJ(0, 0);
 
     extern const char *__progname;
     __progname = &start_env->args[0];
