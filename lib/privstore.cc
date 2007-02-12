@@ -49,6 +49,14 @@ saved_privilege::acquire()
     thread_cur_label(&tl);
     thread_cur_clearance(&tc);
 
+    if (tl.get(handle_) == LB_LEVEL_STAR) {
+	if (tc.get(handle_) != 3) {
+	    tc.set(handle_, 3);
+	    error_check(sys_self_set_clearance(tc.to_ulabel()));
+	}
+	return;
+    }
+
     tl.set(handle_, LB_LEVEL_STAR);
     tc.set(handle_, 3);
 

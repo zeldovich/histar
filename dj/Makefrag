@@ -10,6 +10,7 @@ LIBDIS_SRCFILES +=		\
 	dj/gateincoming.cc	\
 	dj/djgatecall.cc	\
 	dj/gateutil.cc		\
+	dj/catmgr.cc		\
 	dj/dj.x			\
 	dj/djgate.x		\
 	dj/djfs.x		\
