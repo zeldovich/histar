@@ -62,7 +62,7 @@ PERL	:= perl
 COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
 	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
-CXXWARNS := $(COMWARNS)
+CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 

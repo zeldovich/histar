@@ -68,66 +68,45 @@ saved_privilege::acquire()
     thread_label_cache_update(&tl, &tc);
 }
 
-privilege_store::privilege_store(uint64_t h)
-    : root_handle_(h), privsize_(0), privs_(0)
+privilege_store::privilege_store(uint64_t h) : root_handle_(h)
 {
 }
 
 privilege_store::~privilege_store()
 {
-    for (uint32_t i = 0; i < privsize_; i++)
-	if (privs_[i])
-	    delete privs_[i];
-}
-
-int
-privilege_store::slot_find(uint64_t h)
-{
-    for (uint32_t i = 0; i < privsize_; i++)
-	if (privs_[i] && privs_[i]->handle() == h)
-	    return i;
-    return -1;
-}
-
-int
-privilege_store::slot_alloc()
-{
-    for (uint32_t i = 0; i < privsize_; i++)
-	if (!privs_[i])
-	    return i;
-
-    int slot = privsize_;
-
-    uint32_t nsize = MAX(privsize_, 8UL) * 2;
-    uint32_t nbytes = nsize * sizeof(privs_[0]);
-    saved_privilege **nprivs = (saved_privilege **) realloc(privs_, nbytes);
-    if (nprivs == 0)
-	throw std::bad_alloc();
-
-    for (uint32_t i = privsize_; i < nsize; i++)
-	nprivs[i] = 0;
-    privsize_ = nsize;
-    privs_ = nprivs;
-
-    return slot;
+    for (std::map<uint64_t, saved_privilege*>::iterator i = m_.begin();
+	 i != m_.end(); i++)
+    {
+	delete i->second;
+    }
 }
 
 void
 privilege_store::store_priv(uint64_t h)
 {
-    int slot = slot_find(h);
-    if (slot >= 0)
-	throw basic_exception("store_priv: %ld already present", h);
-
-    slot = slot_alloc();
-    privs_[slot] = new saved_privilege(root_handle_, h);
+    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
+    if (i != m_.end()) {
+	delete i->second;
+	m_.erase(i);
+    }
+    m_[h] = new saved_privilege(root_handle_, h);
 }
 
 void 
 privilege_store::fetch_priv(uint64_t h)
 {
-    int slot = slot_find(h);
-    if (slot < 0)
+    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
+    if (i == m_.end())
 	throw basic_exception("fetch_priv: cannot find %ld", h);
-    privs_[slot]->acquire();
+    i->second->acquire();
+}
+
+void
+privilege_store::drop_priv(uint64_t h)
+{
+    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
+    if (i == m_.end())
+	throw basic_exception("fetch_priv: cannot find %ld", h);
+    delete i->second;
+    m_.erase(i);
 }

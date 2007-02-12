@@ -9,6 +9,7 @@ extern "C" {
 }
 
 #include <inc/gatesrv.hh>
+#include <map>
 
 class saved_privilege {
 public:
@@ -34,12 +35,8 @@ public:
     void drop_priv(uint64_t h);
 
 private:
-    int slot_find(uint64_t h);
-    int slot_alloc();
-
     uint64_t root_handle_;
-    uint32_t privsize_;
-    saved_privilege **privs_;
+    std::map<uint64_t, saved_privilege*> m_;
 };
 
 #endif

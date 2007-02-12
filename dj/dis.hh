@@ -62,6 +62,7 @@ bool dj_echo_service(const djcall_args &in, djcall_args *out);
 bool dj_posixfs_service(const djcall_args &in, djcall_args *out);
 
 ptr<catmgr> dj_dummy_catmgr();
+ptr<catmgr> dj_catmgr();
 ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
 
 #endif
