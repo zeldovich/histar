@@ -6,7 +6,7 @@
 #include <kern/container.h>
 #include <inc/error.h>
 
-static uint128_t global_tickets;
+static uint64_t global_tickets;
 static uint128_t global_pass;
 static uint64_t stride1;
 static uint64_t cur_start_tsc;
@@ -22,8 +22,7 @@ global_pass_update(uint128_t new_global_pass)
     if (new_global_pass) {
 	global_pass = new_global_pass;
     } else if (global_tickets) {
-	uint128_t s1 = stride1;
-	global_pass += s1 * elapsed / global_tickets;
+	global_pass += ((uint128_t) (stride1 / global_tickets)) * elapsed;
     }
 }
 
