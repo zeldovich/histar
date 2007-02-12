@@ -31,6 +31,13 @@ SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
 SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c
 SOCK_CLIENT_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_CLIENT_SRCS))
 
+BTREE2_TEST_SRCS := btree2-test.c btree2-sys.c \
+	biter.c btree.c bxutil.c bnode.c desc.c  \
+	insert.c search.c delete.c verify.c \
+	error.c printfmt.c sha1.c arc4.c bf60.c rand.c sysstring.c
+
+BTREE2_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(BTREE2_TEST_SRCS))
+		    
 LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
@@ -122,7 +129,6 @@ $(OBJDIR)/test/djd: $(DJD_OBJS)
 	$(NCC) $(DJD_NCC_LDFLAGS) -o $@ $^ -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm -ldmalloc
 
 ## lwip bench rules
-
 $(OBJDIR)/test/lwip/%.o: user/%.cc
 	@mkdir -p $(@D)
 	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $<
@@ -138,3 +144,22 @@ $(OBJDIR)/test/lwip/%.o: lib/%.c
 $(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
 	@mkdir -p $(@D)
 	$(NCC) -o $@ $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB) -lstdc++ -lpthread -lrt
+
+## btree2
+BTREE2_INC := -I$(TOP)/kern/
+
+$(OBJDIR)/test/%.o: kern/btree/%.c
+	@mkdir -p $(@D)
+	$(NCC) $(BTREE2_INC) -DBTREE_PRIV -c -o $@ $< -std=c99
+
+$(OBJDIR)/test/btree2-test.o: test/btree2-test.cc
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_USER_CFLAGS) $(BTREE2_INC) -c -o $@ $<
+
+$(OBJDIR)/test/btree2-sys.o: test/btree2-sys.c
+	@mkdir -p $(@D)
+	$(NCC) $(TEST_USER_CFLAGS) $(BTREE2_INC) -c -o $@ $< -std=c99
+
+$(OBJDIR)/test/btree2-test: $(BTREE2_TEST_OBJS) 
+	@mkdir -p $(@D)
+	$(NCC) -o $@ $(BTREE2_TEST_OBJS) -lstdc++ -ldmalloc

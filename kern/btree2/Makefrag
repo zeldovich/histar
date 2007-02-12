@@ -1,0 +1,24 @@
+OBJDIRS += btree
+
+BTREE_SRCFILES := btree.c	\
+		  bnode.c	\
+		  biter.c	\
+		  bxutil.c	\
+		  insert.c	\
+		  delete.c	\
+		  search.c	\
+		  verify.c	\
+		  desc.c
+
+BTREE_OBJFILES := $(patsubst %.c,$(OBJDIR)/btree/%.o, $(BTREE_SRCFILES)) 
+
+BTREE_COMFLAGS := -I. $(COMFLAGS) $(COMWARNS) $(CSTD) -DBTREE_PRIV
+
+$(OBJDIR)/btree/%.o: btree/%.c
+	@mkdir -p $(@D)
+	$(CC) $(BTREE_COMFLAGS) -c -o $@ $<
+
+$(BTREE_LIB): $(BTREE_OBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(BTREE_OBJFILES)
