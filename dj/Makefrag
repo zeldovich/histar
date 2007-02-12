@@ -12,14 +12,15 @@ LIBDIS_SRCFILES +=		\
 	dj/gateutil.cc		\
 	dj/dj.x			\
 	dj/djgate.x		\
-	dj/djfs.x
+	dj/djfs.x		\
+	dj/djauth.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
 LIBDIS_OBJFILES := $(patsubst dj/%.c, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
 LIBDIS_OBJFILES := $(patsubst dj/%.cc, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
 LIBDIS_OBJFILES := $(patsubst dj/%.x, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
 
-DIS_HEADERS	:= $(OBJDIR)/dj/dj.h $(OBJDIR)/dj/djfs.h $(OBJDIR)/dj/djgate.h
+DIS_HEADERS	:= $(patsubst dj/%.x, $(OBJDIR)/dj/%.h, $(filter %.x, $(LIBDIS_SRCFILES)))
 DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(DIS_HEADERS)
 DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite
 
