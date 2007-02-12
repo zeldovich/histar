@@ -441,7 +441,8 @@ as_pmap_fill_segment(const struct Address_space *as,
     int r = 0;
     for (void *va = map_first; va <= map_last; va += PGSIZE) {
 	void *pp = 0;
-	r = kobject_get_page(&sg->sg_ko, as_va_to_segment_page(usm, va), &pp,
+	uint64_t segpage = as_va_to_segment_page(usm, va);
+	r = kobject_get_page(&sg->sg_ko, segpage, &pp,
 			     (usm->flags & SEGMAP_WRITE) ? page_excl_dirty_later
 							 : page_shared_ro);
 	if (r < 0) {
@@ -468,6 +469,10 @@ as_pmap_fill_segment(const struct Address_space *as,
 	*ptep = kva2pa(pp) | ptflags;
 	if ((ptflags & PTE_W))
 	    pagetree_incpin(pp);
+
+	struct page_info *pi = page_to_pageinfo(pp);
+	pi->pi_segid = sg->sg_ko.ko_id;
+	pi->pi_segpg = segpage;
 
 	as_queue_invlpg(as, va);
     }
@@ -674,8 +679,20 @@ int
 as_invert_mapped(const struct Address_space *as, void *addr,
 		 kobject_id_t *seg_idp, uint64_t *offsetp)
 {
-    int found = 0;
+    if (as->as_pgmap) {
+	uint64_t *pte;
+	int r = pgdir_walk(as->as_pgmap, addr, 0, &pte);
+	if (r >= 0 && *pte) {
+	    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*pte)));
+	    if (pi->pi_pin) {	/* page not shared by multiple segments */
+		*seg_idp = pi->pi_segid;
+		*offsetp = (pi->pi_segpg * PGSIZE) + PGOFF(addr);
+		return 0;
+	    }
+	}
+    }
 
+    int found = 0;
     for (uint64_t i = 0; i < as_nents(as); i++) {
 	struct segment_mapping *sm;
 	int r = as_get_segmap(as, &sm, i);
