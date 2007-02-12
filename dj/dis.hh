@@ -49,6 +49,7 @@ class djprot : virtual public refcount {
 		      const djcall_args &args, call_reply_cb cb) = 0;
     virtual void set_callexec(callexec_factory cb) = 0;
     virtual void set_catmgr(ptr<catmgr> cmgr) = 0;
+    virtual ptr<catmgr> get_catmgr() = 0;
 
     static ptr<djprot> alloc(uint16_t port);
 };
@@ -59,7 +60,7 @@ class djgate_incoming : virtual public refcount {
     virtual cobj_ref gate() = 0;
 };
 
-ptr<djcallexec> dj_gate_exec(djprot::call_reply_cb);
+ptr<djcallexec> dj_gate_exec(ptr<catmgr> cmgr, djprot::call_reply_cb);
 bool dj_echo_service(const djcall_args &in, djcall_args *out);
 bool dj_posixfs_service(const djcall_args &in, djcall_args *out);
 

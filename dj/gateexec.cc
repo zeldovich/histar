@@ -24,7 +24,9 @@ extern "C" {
 
 class gate_exec : public djcallexec {
  public:
-    gate_exec(djprot::call_reply_cb cb) : gc_(0), cb_(cb) {
+    gate_exec(ptr<catmgr> cmgr, djprot::call_reply_cb cb)
+	: gc_(0), cb_(cb), cm_(cmgr)
+    {
 	pipes_[0] = pipes_[1] = -1;
     }
 
@@ -148,10 +150,11 @@ class gate_exec : public djcallexec {
     label reply_vl_, reply_vc_;
     atomic_t state_;
     int pipes_[2];
+    ptr<catmgr> cm_;
 };
 
 ptr<djcallexec>
-dj_gate_exec(djprot::call_reply_cb cb)
+dj_gate_exec(ptr<catmgr> cmgr, djprot::call_reply_cb cb)
 {
-    return New refcounted<gate_exec>(cb);
+    return New refcounted<gate_exec>(cmgr, cb);
 }

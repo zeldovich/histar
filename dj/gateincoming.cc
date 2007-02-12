@@ -29,7 +29,7 @@ struct incoming_req {
 
 class incoming_impl : public djgate_incoming {
  public:
-    incoming_impl(ptr<djprot> p) : p_(p) {
+    incoming_impl(ptr<djprot> p) : p_(p), cm_(p->get_catmgr()) {
 	errno_check(pipe(fds_));
 	_make_async(fds_[0]);
 	fdcb(fds_[0], selread, wrap(this, &incoming_impl::readcb));
@@ -155,6 +155,7 @@ class incoming_impl : public djgate_incoming {
     }
 
     ptr<djprot> p_;
+    ptr<catmgr> cm_;
     cobj_ref gate_;
     int fds_[2];
 };

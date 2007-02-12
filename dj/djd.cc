@@ -99,7 +99,7 @@ main(int ac, char **av)
     dj_gatename gate;
 
     if (0 && ac == 2) {
-	ptr<djcallexec> e = dj_gate_exec(wrap(&readdircb));
+	ptr<djcallexec> e = dj_gate_exec(dj_dummy_catmgr(), wrap(&readdircb));
 	gate <<= av[1];
 	dolocal(e, gate);
 	amain();
@@ -117,8 +117,10 @@ main(int ac, char **av)
     gm.gatemap_.insert(COBJ(1, 2), wrap(dj_posixfs_service));
     gm.gatemap_.insert(COBJ(1, 3), wrap(dj_echo_service));
 #else
-    djs->set_callexec(wrap(dj_gate_exec));
-    djs->set_catmgr(dj_dummy_catmgr());
+    ptr<catmgr> cmgr = dj_catmgr();
+
+    djs->set_callexec(wrap(dj_gate_exec, cmgr));
+    djs->set_catmgr(cmgr);
 
     ptr<djgate_incoming> incoming = dj_gate_incoming(djs);
     cobj_ref ingate = incoming->gate();

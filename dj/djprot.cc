@@ -205,6 +205,10 @@ class djprot_impl : public djprot {
 	cmgr_ = cmgr;
     }
 
+    virtual ptr<catmgr> get_catmgr() {
+	return cmgr_;
+    }
+
  private:
     dj_gcat cat2gcat(uint64_t cat) {
 	dj_gcat gcat;
