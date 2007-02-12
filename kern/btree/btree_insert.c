@@ -32,7 +32,7 @@ __splitNode(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    offset_t * filePos, char *split)
 {
     struct btree_node *tempNode;
-    uint64_t temp1[tree->s_key], temp2[tree->s_key];
+    uint64_t temp1[MAX_KEY_SIZE], temp2[MAX_KEY_SIZE];
     offset_t offset1 = 0, offset2;
     int i, j, div;
 
@@ -130,8 +130,8 @@ __splitLeaf(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	    offset_t * filePos, char *split)
 {
     struct btree_node *tempNode;
-    uint64_t temp1[tree->s_key], temp2[tree->s_key];
-    offset_t offset1[tree->s_value], offset2[tree->s_value];
+    uint64_t temp1[MAX_KEY_SIZE], temp2[MAX_KEY_SIZE];
+    offset_t offset1[MAX_VALUE_SIZE], offset2[MAX_KEY_SIZE];
     int i, j, div;
 
     assert(BTREE_IS_LEAF(rootNode));
@@ -258,7 +258,7 @@ static char
 __addKey(struct btree *tree, struct btree_node *rootNode, uint64_t * key,
 	 offset_t * filePos, char *split)
 {
-    uint64_t temp1[tree->s_key], temp2[tree->s_key];
+    uint64_t temp1[MAX_KEY_SIZE], temp2[MAX_KEY_SIZE];
     offset_t offset1, offset2;
     int i, j;
 
@@ -403,8 +403,8 @@ btree_insert_impl(struct btree *tree, const uint64_t * key, offset_t * val)
     char success, split;
     assert(tree->magic == BTREE_MAGIC);
 
-    uint64_t k[tree->s_key];
-    uint64_t v[tree->s_value];
+    uint64_t k[MAX_KEY_SIZE];
+    uint64_t v[MAX_VALUE_SIZE];
     offset_t *insFilePos = v;
 
     btree_keycpy(k, key, tree->s_key);

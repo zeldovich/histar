@@ -531,7 +531,7 @@ btree_delete_impl(struct btree *tree, const uint64_t * key)
     assert(tree->magic == BTREE_MAGIC);
 
     int i;
-    offset_t filePos[tree->s_value];
+    offset_t filePos[MAX_VALUE_SIZE];
     char merged, success;
     struct btree_node *rootNode;
 

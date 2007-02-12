@@ -28,7 +28,9 @@ struct btree_node {
     uint64_t bytesize;
 };
 
-#define BTREE_MAGIC UINT64(0xcdef9425feed7980)
+#define BTREE_MAGIC	UINT64(0xcdef9425feed7980)
+#define MAX_KEY_SIZE	2
+#define MAX_VALUE_SIZE	2
 
 struct btree {
     uint8_t order;

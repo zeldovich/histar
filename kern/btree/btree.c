@@ -7,6 +7,9 @@ void
 btree_init_impl(struct btree *t, uint64_t id, char order, char key_size,
 		char value_size)
 {
+    assert(key_size <= MAX_KEY_SIZE);
+    assert(value_size <= MAX_VALUE_SIZE);
+
     memset(t, 0, sizeof(struct btree));
 
     t->order = order;
