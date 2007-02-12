@@ -238,8 +238,9 @@ cobj_get(struct cobj_ref ref, kobject_type_t type,
     // Some objects can be named without a container -- the current
     // thread and the thread-local segment.
     bool_t global_object =
-	(ref.object == kobject_id_thread_sg) ||
-	(cur_thread && ref.object == cur_thread->th_ko.ko_id);
+	(ref.container == 0) &&
+	((ref.object == kobject_id_thread_sg) ||
+	 (cur_thread && ref.object == cur_thread->th_ko.ko_id));
 
     if (!global_object) {
 	const struct Container *c;
