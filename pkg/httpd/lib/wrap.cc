@@ -97,7 +97,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
            
     label taint_label(0);
     if (taint)
-	taint_label.copy_from(taint);
+	taint_label = *taint;
 
     error_check(fd_make_public(sin_, taint_label.to_ulabel()));
     error_check(fd_make_public(sout_, taint_label.to_ulabel()));
@@ -109,7 +109,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     // Make a private /tmp
     label tmp_label(1);
     tmp_label.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    tmp_label.copy_from(&tmp);
+    tmp_label = tmp;
 
     fs_inode self_dir;
     fs_get_root(call_ct_.object, &self_dir);
@@ -127,11 +127,11 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
 
     label cs(LB_LEVEL_STAR);
     cs.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    cs.copy_from(&tmp);
+    cs = tmp;
     
     label dr(1);
     dr.merge(&taint_label, &tmp, label::max, label::leq_starlo);
-    dr.copy_from(&tmp);
+    dr = tmp;
     
     dr.set(start_env->user_grant, 3);
     
