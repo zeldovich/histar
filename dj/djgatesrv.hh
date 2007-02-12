@@ -33,6 +33,7 @@ class djgatesrv {
     gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
 	uint64_t call_taint = gcd->call_taint;
 	uint64_t call_grant = gcd->call_grant;
+	uint64_t tct = gcd->taint_container;
 
 	djcall_args *in = New djcall_args();
 	scope_guard<void, djcall_args*> delin(delete_obj, in);
@@ -58,7 +59,7 @@ class djgatesrv {
 	label *nvl = New label();
 	label *nvc = New label();
 
-	dj_gate_call_outgoing(gcd->taint_container, call_grant, call_taint,
+	dj_gate_call_outgoing(tct, call_grant, call_taint,
 			      out->taint, out->grant, out->data,
 			      &gcd->param_obj, nvl, nvc);
 
