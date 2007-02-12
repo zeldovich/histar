@@ -305,6 +305,9 @@ class djprot_impl : public djprot {
     }
 
     bool key_speaks_for(const dj_esign_pubkey &k, const dj_gcat &gcat) {
+	if (gcat.key == k)
+	    return true;
+
 	pk_spk4 *s = spk4_cache_[k];
 	while (s && s->pk == k) {
 	    if (s->d.b.type == ENT_GCAT && *s->d.b.gcat == gcat)
