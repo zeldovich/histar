@@ -57,15 +57,12 @@ readdircb(dj_reply_status stat, const djcall_args *args)
 }
 
 static void
-dostuff(ptr<djprot> p, str node_pk, uint64_t ct, uint64_t id)
+dostuff(ptr<djprot> p, str node_pk, const dj_gatename gate)
 {
     djfs_request req;
     req.set_op(DJFS_READDIR);
     req.readdir->pn = str("/bin");
 
-    dj_gatename gate;
-    gate.gate_ct = ct;
-    gate.gate_id = id;
     djcall_args args;
     args.data = xdr2str(req);
     args.taint = label(1);
@@ -78,11 +75,11 @@ dostuff(ptr<djprot> p, str node_pk, uint64_t ct, uint64_t id)
     args.data = xdr2str(req);
     p->call(node_pk, gate, args, wrap(&readcb));
 
-    delaycb(5, wrap(&dostuff, p, node_pk, ct, id));
+    delaycb(5, wrap(&dostuff, p, node_pk, gate));
 }
 
 static void
-dolocal(ptr<djcallexec> e, uint64_t ct, uint64_t id)
+dolocal(ptr<djcallexec> e, const dj_gatename gate)
 {
     djfs_request req;
     req.set_op(DJFS_READDIR);
@@ -93,18 +90,18 @@ dolocal(ptr<djcallexec> e, uint64_t ct, uint64_t id)
     args.taint = label(1);
     args.grant = label(3);
 
-    dj_gatename gate;
-    gate.gate_ct = ct;
-    gate.gate_id = id;
     e->start(gate, args);
 }
 
 int
 main(int ac, char **av)
 {
-    if (0 && ac == 3) {
+    dj_gatename gate;
+
+    if (0 && ac == 2) {
 	ptr<djcallexec> e = dj_gate_exec(wrap(&readdircb));
-	dolocal(e, atoi(av[1]), atoi(av[2]));
+	gate <<= av[1];
+	dolocal(e, gate);
 	amain();
     }
 
@@ -128,15 +125,18 @@ main(int ac, char **av)
     warn << "djd incoming gate: " << ingate << "\n";
 #endif
 
-    //dostuff(djs, djs->pubkey(), 1, 2);
+    //gate <<= "1.2";
+    //dostuff(djs, djs->pubkey(), gate);
 
-    if (ac == 4) {
+    if (ac == 3) {
 	str n(av[1]);
 	dj_esign_pubkey k;
 	k.n = bigint(n, 16);
 	k.k = 8;
 
-	dostuff(djs, xdr2str(k), atoi(av[2]), atoi(av[3]));
+	gate <<= av[2];
+
+	dostuff(djs, xdr2str(k), gate);
     }
 
     amain();

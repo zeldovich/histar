@@ -57,13 +57,9 @@ readdircb(dj_reply_status stat, const djcall_args *args)
 }
 
 static void
-dostuff(djgate_caller *dc, str node_pk, uint64_t ct, uint64_t id)
+dostuff(djgate_caller *dc, str node_pk, const dj_gatename &gate)
 {
     djfs_request req;
-
-    dj_gatename gate;
-    gate.gate_ct = ct;
-    gate.gate_id = id;
 
     djcall_args args;
     args.taint = label(1);
@@ -90,18 +86,17 @@ dostuff(djgate_caller *dc, str node_pk, uint64_t ct, uint64_t id)
 int
 main(int ac, char **av)
 {
-    if (ac != 6) {
-	printf("Usage: %s djd-gate-ct djd-gate-id host-pk gate-ct gate-id\n", av[0]);
+    if (ac != 4) {
+	printf("Usage: %s djd-gate-ct.id host-pk gate-ct.id\n", av[0]);
 	exit(-1);
     }
 
     cobj_ref djd_gate;
-    djd_gate.container = atoi(av[1]);
-    djd_gate.object = atoi(av[2]);
-    const char *pk16 = av[3];
+    djd_gate <<= av[1];
+    const char *pk16 = av[2];
 
-    uint64_t gct = atoi(av[4]);
-    uint64_t gid = atoi(av[5]);
+    dj_gatename djgate;
+    djgate <<= av[3];
 
     dj_esign_pubkey k;
     k.n = bigint(pk16, 16);
@@ -109,5 +104,5 @@ main(int ac, char **av)
     str nodepk = xdr2str(k);
 
     djgate_caller dc(djd_gate);
-    dostuff(&dc, xdr2str(k), gct, gid);
+    dostuff(&dc, xdr2str(k), djgate);
 }

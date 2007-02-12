@@ -13,7 +13,7 @@ struct dj_esign_pubkey {
 
 struct dj_gcat {		/* Global category name */
     dj_esign_pubkey key;
-    hyper id;
+    unsigned hyper id;
 };
 
 struct dj_address {
@@ -77,8 +77,8 @@ struct dj_delegation {		/* a speaks-for b, within time window */
 };
 
 struct dj_gatename {
-    hyper gate_ct;
-    hyper gate_id;
+    unsigned hyper gate_ct;
+    unsigned hyper gate_id;
 };
 
 struct dj_call_request {
@@ -120,8 +120,8 @@ union dj_call_u switch (dj_call_op op) {
 };
 
 struct dj_call {		/* call-related message */
-    hyper xid;			/* identifies the call object */
-    hyper seq;			/* monotonically increasing for an xid */
+    unsigned hyper xid;		/* identifies the call object */
+    unsigned hyper seq;		/* monotonically increasing for an xid */
     dj_timestamp ts;		/* to bound size of replay cache */
     dj_esign_pubkey from;
     dj_esign_pubkey to;

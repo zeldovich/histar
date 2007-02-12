@@ -1,6 +1,10 @@
 #ifndef JOS_DJ_DJOPS_HH
 #define JOS_DJ_DJOPS_HH
 
+extern "C" {
+#include <inc/string.h>
+}
+
 #include <crypt.h>
 #include <esign.h>
 #include <dj/dj.h>
@@ -169,5 +173,27 @@ template<> struct hashfn<cobj_ref> {
     hash_t operator() (const cobj_ref &a) const
 	{ return a.container ^ a.object; }
 };
+
+inline void
+operator<<=(cobj_ref &c, str s)
+{
+    char *dot = strchr(s.cstr(), '.');
+    if (dot) {
+	*dot = '\0';
+	strtou64(dot + 1, 0, 10, &c.object);
+    }
+    strtou64(s.cstr(), 0, 10, &c.container);
+}
+
+inline void
+operator<<=(dj_gatename &c, str s)
+{
+    char *dot = strchr(s.cstr(), '.');
+    if (dot) {
+	*dot = '\0';
+	strtou64(dot + 1, 0, 10, &c.gate_id);
+    }
+    strtou64(s.cstr(), 0, 10, &c.gate_ct);
+}
 
 #endif
