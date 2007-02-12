@@ -10,7 +10,7 @@
 struct Label {
     struct kobject_hdr lb_ko;
 
-    level_t lb_def_level;
+    uint8_t lb_def_level;
     uint64_t lb_ent[NUM_LB_ENT_INLINE];
 };
 
@@ -25,12 +25,12 @@ extern level_comparator label_leq_starlo;
 extern level_comparator label_leq_starhi;
 extern level_comparator label_eq;
 
-int  label_alloc(struct Label **l, level_t def)
+int  label_alloc(struct Label **l, uint8_t def)
     __attribute__ ((warn_unused_result));
 int  label_copy(const struct Label *src, struct Label **dst)
     __attribute__ ((warn_unused_result));
 
-int  label_set(struct Label *l, uint64_t handle, level_t level)
+int  label_set(struct Label *l, uint64_t handle, uint8_t level)
     __attribute__ ((warn_unused_result));
 
 // user label handling

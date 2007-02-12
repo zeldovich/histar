@@ -9,7 +9,7 @@
 // Level comparison functions
 ////////////////////////////////
 
-typedef int (level_comparator_fn) (level_t, level_t);
+typedef int (level_comparator_fn) (uint8_t, uint8_t);
 struct level_comparator_buf {
     level_comparator_fn *gen;
     int inited;
@@ -18,7 +18,7 @@ struct level_comparator_buf {
 };
 
 static int
-label_leq_starlo_fn(level_t a, level_t b)
+label_leq_starlo_fn(uint8_t a, uint8_t b)
 {
     if (a == LB_LEVEL_STAR)
 	return 0;
@@ -28,7 +28,7 @@ label_leq_starlo_fn(level_t a, level_t b)
 }
 
 static int
-label_leq_starhi_fn(level_t a, level_t b)
+label_leq_starhi_fn(uint8_t a, uint8_t b)
 {
     if (b == LB_LEVEL_STAR)
 	return 0;
@@ -38,7 +38,7 @@ label_leq_starhi_fn(level_t a, level_t b)
 }
 
 static int
-label_eq_fn(level_t a, level_t b)
+label_eq_fn(uint8_t a, uint8_t b)
 {
     return (a == b) ? 0 : -E_LABEL;
 }
@@ -129,7 +129,7 @@ label_get_level(const struct Label *l, uint64_t handle)
 }
 
 int
-label_alloc(struct Label **lp, level_t def)
+label_alloc(struct Label **lp, uint8_t def)
 {
     struct kobject *ko;
     int r = kobject_alloc(kobj_label, 0, &ko);
@@ -166,7 +166,7 @@ label_copy(const struct Label *src, struct Label **dstp)
 }
 
 int
-label_set(struct Label *l, uint64_t handle, level_t level)
+label_set(struct Label *l, uint64_t handle, uint8_t level)
 {
     int32_t slot_idx = -1;
 
@@ -256,6 +256,9 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 	return r;
 
     l->lb_def_level = ul->ul_default;
+    if (l->lb_def_level > LB_LEVEL_STAR)
+	return -E_INVAL;
+
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 
@@ -272,8 +275,8 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
     for (uint32_t i = 0; i < ul_nent; i++) {
 	uint64_t ul_val = ul_ent[i];
 
-	int level = LB_LEVEL(ul_val);
-	if (level < 0 && level > LB_LEVEL_STAR)
+	uint8_t level = LB_LEVEL(ul_val);
+	if (level > LB_LEVEL_STAR)
 	    return -E_INVAL;
 
 	r = label_set(l, LB_HANDLE(ul_val), level);
@@ -347,7 +350,7 @@ label_compare(const struct Label *l1,
 	    continue;
 
 	uint64_t h = LB_HANDLE(*entp);
-	level_t lv1 = LB_LEVEL(*entp);
+	uint8_t lv1 = LB_LEVEL(*entp);
 	r = cmp->cmp[lv1][label_get_level(l2, h)];
 	if (r < 0)
 	    return r;
@@ -362,7 +365,7 @@ label_compare(const struct Label *l1,
 	    continue;
 
 	uint64_t h = LB_HANDLE(*entp);
-	level_t lv2 = LB_LEVEL(*entp);
+	uint8_t lv2 = LB_LEVEL(*entp);
 	r = cmp->cmp[label_get_level(l1, h)][lv2];
 	if (r < 0)
 	    return r;
@@ -399,7 +402,7 @@ label_max(const struct Label *a, const struct Label *b,
 	    continue;
 
 	uint64_t h = LB_HANDLE(*entp);
-	level_t alv = LB_LEVEL(*entp);
+	uint8_t alv = LB_LEVEL(*entp);
 	r = label_set(dst, h, leq->max[alv][label_get_level(b, h)]);
 	if (r < 0)
 	    return r;
@@ -414,7 +417,7 @@ label_max(const struct Label *a, const struct Label *b,
 	    continue;
 
 	uint64_t h = LB_HANDLE(*entp);
-	level_t blv = LB_LEVEL(*entp);
+	uint8_t blv = LB_LEVEL(*entp);
 	r = label_set(dst, h, leq->max[label_get_level(a, h)][blv]);
 	if (r < 0)
 	    return r;
@@ -437,7 +440,7 @@ label_cprint(const struct Label *l)
 
 	uint64_t ent = *entp;
 	if (ent) {
-	    level_t level = LB_LEVEL(ent);
+	    uint8_t level = LB_LEVEL(ent);
 	    char lchar[2];
 	    if (level == LB_LEVEL_STAR)
 		lchar[0] = '*';
