@@ -69,6 +69,7 @@ typedef struct {
     uint64_t user_grant;
 
     struct cobj_ref time_seg;
+    struct cobj_ref taint_cow_as;
     struct cobj_ref fs_mtab_seg;
     struct fs_inode fs_root;
     struct fs_inode fs_cwd;
