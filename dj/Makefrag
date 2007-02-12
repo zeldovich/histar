@@ -43,11 +43,10 @@ $(OBJDIR)/dj/%.o: $(OBJDIR)/dj/%.C $(DIS_CCDEPS)
 	@mkdir -p $(@D)
 	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $< -I$(OBJDIR)/dj
 
-$(OBJDIR)/dj/%.o: dj/%.c $(DIS_CCDEPS)
-	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
-
 $(OBJDIR)/lib/libdj.a: $(LIBDIS_OBJFILES)
 	rm -f $@
 	$(AR) r $@ $^
+
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/dj/%.o $(DIS_LDDEPS) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $< $(DIS_LDFLAGS)
 
