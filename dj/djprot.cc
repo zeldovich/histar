@@ -25,6 +25,8 @@ enum {
 
     broadcast_period = 5,
     cache_cleanup_period = 15,
+
+    nocheck_local_calls = 0,
 };
 
 static in_addr
@@ -311,6 +313,9 @@ class djprot_impl : public djprot {
      */
 
     bool labelcheck_send(const dj_gate_arg &a, const dj_esign_pubkey &k) {
+	if (nocheck_local_calls && k == esignpub2dj(k_))
+	    return true;
+
 	/* M_L \leq (Node_L^\histar \cup N_C) */
 	if (a.taint.deflevel > net_clear_.get_default())
 	    return false;
@@ -333,6 +338,9 @@ class djprot_impl : public djprot {
     }
 
     bool labelcheck_recv(const dj_gate_arg &a, const dj_esign_pubkey &k) {
+	if (nocheck_local_calls && k == esignpub2dj(k_))
+	    return true;
+
 	/*
 	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_L
 	 * M_L \leq (Node_L^\histar \cup N_C)
@@ -405,19 +413,19 @@ class djprot_impl : public djprot {
 	cc->ss.stmt.call->seq++;
 	cc->ss.stmt.call->ts = time(0);
 
+	if (!labelcheck_send(cc->ss.stmt.call->u.req->arg,
+			     cc->ss.stmt.call->to)) {
+	    clnt_done(cc);
+	    cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
+	    return;
+	}
+
 	if (cc->ss.stmt.call->to == esignpub2dj(k_)) {
 	    djcall_id cid;
 	    cid.key = cc->ss.stmt.call->from;
 	    cid.xid = cc->ss.stmt.call->xid;
 
 	    process_call_request(*cc->ss.stmt.call, cid);
-	    return;
-	}
-
-	if (!labelcheck_send(cc->ss.stmt.call->u.req->arg,
-			     cc->ss.stmt.call->to)) {
-	    clnt_done(cc);
-	    cb(REPLY_DELEGATION_MISSING, (const djcall_args *) 0);
 	    return;
 	}
 
