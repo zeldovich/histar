@@ -237,7 +237,7 @@ class djprot_impl : public djprot {
 	}
 
 	const ulabel *ul = h.grant.to_ulabel_const();
-	int grantsize = ul->ul_nent;
+	uint32_t grantsize = ul->ul_nent;
 	for (uint64_t i = 0; i < ul->ul_nent; i++)
 	    if (LB_LEVEL(ul->ul_ent[i]) == 3)
 		grantsize--;
@@ -257,14 +257,24 @@ class djprot_impl : public djprot {
 
 	ul = h.taint.to_ulabel_const();
 	n->taint.deflevel = ul->ul_default;
-	n->taint.ents.setsize(ul->ul_nent);
-	for (uint64_t i = 0; i < ul->ul_nent; i++) {
-	    n->taint.ents[i].cat = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
-	    n->taint.ents[i].level = LB_LEVEL(ul->ul_ent[i]);
-	    if (n->taint.ents[i].level == LB_LEVEL_STAR) {
+	uint32_t taintsize = ul->ul_nent;
+	for (uint64_t i = 0; i < ul->ul_nent; i++)
+	    if (LB_LEVEL(ul->ul_ent[i]) == ul->ul_default)
+		taintsize--;
+
+	n->taint.ents.setsize(taintsize);
+	for (uint64_t i = 0, j = 0; i < ul->ul_nent; i++) {
+	    level_t level = LB_LEVEL(ul->ul_ent[i]);
+	    if (level == ul->ul_default)
+		continue;
+
+	    n->taint.ents[j].cat = cat2gcat(LB_HANDLE(ul->ul_ent[i]));
+	    n->taint.ents[j].level = level;
+	    if (level == LB_LEVEL_STAR) {
 		warn << "call: star level in message taint\n";
 		return false;
 	    }
+	    j++;
 	}
 
 	return true;
