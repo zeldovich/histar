@@ -2,15 +2,38 @@ extern "C" {
 #include <stdio.h>
 }
 
+#include <async.h>
+#include <crypt.h>
+#include <inc/authclnt.hh>
+
 #include <dj/dis.hh>
 #include <dj/djgatesrv.hh>
-#include <inc/authclnt.hh>
+#include <dj/djauth.h>
 
 bool
 dj_auth_proxy(const djcall_args &in, djcall_args *out)
 {
-    //djauth_request 
-    return false;
+    djauth_request req;
+    djauth_reply res;
+
+    if (!str2xdr(req, in.data)) {
+	warn << "dj_auth_proxy: cannot unmarshal\n";
+	return false;
+    }
+
+    try {
+	uint64_t ug, ut;
+	auth_login(req.username, req.password, &ug, &ut);
+	out->grant.set(ug, LB_LEVEL_STAR);
+	out->grant.set(ut, LB_LEVEL_STAR);
+	res.ok = true;
+    } catch (std::exception &e) {
+	warn << "dj_auth_proxy: " << e.what() << "\n";
+	res.ok = false;
+    }
+
+    out->data = xdr2str(res);
+    return true;
 }
 
 int

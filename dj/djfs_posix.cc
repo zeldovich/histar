@@ -82,7 +82,6 @@ dj_posixfs_service(const djcall_args &in, djcall_args *out)
     }
 
     out->taint = in.taint;
-    out->grant = in.grant;
     out->data = xdr2str(res);
     return true;
 }
