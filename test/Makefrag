@@ -36,7 +36,8 @@ LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
 DJD_OBJS := djd.o dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
-	    directexec.o backtrace.o dummycatmgr.o djfs.o djfs_posix.o
+	    directexec.o backtrace.o dummycatmgr.o djfs.o djfs_posix.o \
+	    string.o
 DJD_OBJS := $(patsubst %.o, obj/test/%.o, $(DJD_OBJS))
 
 ## Kernel-code build rules
