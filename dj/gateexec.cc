@@ -46,6 +46,9 @@ class gate_exec : public djcallexec {
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
+	    cm_->acquire(args.grant, true);
+	    cm_->acquire(args.taint, true);
+
 	    dj_gate_call_outgoing(gc_->call_ct(),
 				  gc_->call_grant(), gc_->call_taint(),
 				  args.taint, args.grant, args.data,
@@ -106,6 +109,7 @@ class gate_exec : public djcallexec {
 	 */
 
 	thread_cur_verify(&ge->reply_vl_, &ge->reply_vc_);
+	ge->cm_->import(ge->reply_vl_, ge->gc_->call_grant(), ge->gc_->call_taint());
 	atomic_compare_exchange(&ge->state_, GATE_EXEC_RETURN, GATE_EXEC_DONE);
 	write(ge->pipes_[1], "", 1);
     }
@@ -130,6 +134,8 @@ class gate_exec : public djcallexec {
 	fdcb(pipes_[0], selread, 0);
 
 	try {
+	    cm_->acquire(reply_vl_, true, gc_->call_grant(), gc_->call_taint());
+
 	    djcall_args ra;
 	    dj_gate_call_incoming(gcd_.param_obj, reply_vl_, reply_vc_,
 				  gc_->call_grant(), gc_->call_taint(),

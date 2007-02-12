@@ -84,6 +84,9 @@ class incoming_impl : public djgate_incoming {
 				  &ir.args.grant,
 				  &req);
 
+	    // Store any privileges we just got
+	    cm_->import(ir.args.grant);
+
 	    // Unmarshal incoming call request
 	    dj_incoming_gate_req igr;
 	    if (!str2xdr(igr, req))
@@ -119,6 +122,8 @@ class incoming_impl : public djgate_incoming {
 	    nvl = New label();
 	    nvc = New label();
 
+	    cm_->acquire(ir.res.grant);
+	    cm_->acquire(ir.res.taint);
 	    dj_gate_call_outgoing(tct, call_grant, call_taint,
 				  ir.res.taint, ir.res.grant, resstr,
 				  &gcd->param_obj, nvl, nvc);
