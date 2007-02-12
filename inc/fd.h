@@ -24,7 +24,7 @@ struct Dev;
 
 struct Dev
 {
-    int dev_id;
+    uint8_t dev_id;
     const char *dev_name;
 
     ssize_t (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
@@ -68,12 +68,12 @@ enum {
 
 struct Fd
 {
-    int fd_dev_id;
+    uint8_t fd_dev_id;
+    uint8_t fd_immutable;
+    uint8_t fd_isatty;
+    uint8_t fd_private;
+    uint32_t fd_omode;
     off_t fd_offset;
-    int fd_omode;
-    int fd_immutable;
-    int fd_isatty;
-    int fd_private;
 
     /* handles for this fd */
     uint64_t fd_handle[fd_handle_max];
@@ -137,7 +137,8 @@ int	fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *
 int	fd_setflags(struct Fd *fd, struct cobj_ref obj, uint64_t newflags);
 void	fd_give_up_privilege(int fdnum);
 int	fd_set_isatty(int fdnum, int isit);
-int	dev_lookup(int devid, struct Dev **dev_store);
+void	dev_register(struct Dev *d);
+int	dev_lookup(uint8_t devid, struct Dev **dev_store);
 void	fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et);
 
 /* Allocates individual handles for this FD */

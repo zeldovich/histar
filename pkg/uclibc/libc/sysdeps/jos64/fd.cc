@@ -492,8 +492,7 @@ fd_setflags(struct Fd *fd, struct cobj_ref fd_seg, uint64_t fd_flags)
  * FILE FUNCTIONS *
  ******************/
 
-static struct Dev *devtab[] =
-{
+static struct Dev *devlist[] = {
     &devcons,
     &devsock,
     &devfile,
@@ -507,19 +506,35 @@ static struct Dev *devtab[] =
     0
 };
 
-int
-dev_lookup(int dev_id, struct Dev **dev)
+static struct Dev *devtab[256];
+
+void
+dev_register(struct Dev *dev)
 {
-    int i;
-    for (i = 0; devtab[i]; i++) {
-	if (devtab[i]->dev_id == dev_id) {
-	    *dev = devtab[i];
-	    return 0;
+    devtab[dev->dev_id] = dev;
+}
+
+int
+dev_lookup(uint8_t dev_id, struct Dev **dev)
+{
+    static atomic64_t devtab_init;
+    while (atomic_read(&devtab_init) != 2) {
+	if (atomic_compare_exchange64(&devtab_init, 0, 1) == 0) {
+	    for (int i = 0; devlist[i]; i++)
+		dev_register(devlist[i]);
+
+	    atomic_set(&devtab_init, 2);
+	    sys_sync_wakeup(&devtab_init.counter);
+	} else {
+	    sys_sync_wait(&devtab_init.counter, 1, ~0UL);
 	}
     }
 
+    *dev = devtab[dev_id];
+    if (*dev)
+	return 0;
+
     cprintf("[%lx] unknown device type %d\n", thread_id(), dev_id);
-    *dev = 0;
     return -E_INVAL;
 }
 
@@ -1188,8 +1203,8 @@ __libc_fcntl(int fdnum, int cmd, ...) __THROW
 	if ((r = fd_lookup(fdnum, &fd, 0, 0)) < 0)
 	    return r;
 
-	int mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK);
-	int newmode = (fd->fd_omode & ~mask) | (arg & mask);
+	uint32_t mask = (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK);
+	uint32_t newmode = (fd->fd_omode & ~mask) | (arg & mask);
 	if (!(fd->fd_omode & O_ASYNC) && (newmode & O_ASYNC))
 	    jos_sigio_enable(fdnum);
 	if ((fd->fd_omode & O_ASYNC) && !(newmode & O_ASYNC))
