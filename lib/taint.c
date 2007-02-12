@@ -8,6 +8,9 @@
 
 enum { taint_debug = 0 };
 
+// Optional application-provided checkpoint address space to COW from
+static struct cobj_ref checkpoint_as;
+
 // Copy the writable pieces of the address space
 enum {
     taint_cow_label_ents = 32,
@@ -222,5 +225,12 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     if (taint_cow_fastcheck(cur_as) == 0)
 	return 0;
 
-    return taint_cow_slow(cur_as, taint_container, declassify_gate);
+    return taint_cow_slow(checkpoint_as.object ? checkpoint_as : cur_as,
+			  taint_container, declassify_gate);
+}
+
+void
+taint_set_checkpoint(struct cobj_ref ckpt_as)
+{
+    checkpoint_as = ckpt_as;
 }
