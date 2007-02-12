@@ -118,3 +118,12 @@ privilege_store::drop_priv(uint64_t h)
     delete i->second;
     m_.erase(i);
 }
+
+bool
+privilege_store::has_priv(uint64_t h)
+{
+    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
+    if (i == m_.end())
+	return false;
+    return true;
+}

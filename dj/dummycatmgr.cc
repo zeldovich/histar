@@ -8,6 +8,7 @@ class dummy_catmgr : public catmgr {
 
     virtual void release(uint64_t c) {}
     virtual void acquire(const label &l) {}
+    virtual void import(const label &l) {}
 
  private:
     uint64_t c_;

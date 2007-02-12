@@ -32,6 +32,7 @@ class catmgr : virtual public refcount {
     virtual uint64_t alloc() = 0;
     virtual void release(uint64_t c) = 0;
     virtual void acquire(const label &l) = 0;
+    virtual void import(const label &l) = 0;
 };
 
 class djprot : virtual public refcount {

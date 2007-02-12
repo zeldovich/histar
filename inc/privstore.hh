@@ -33,6 +33,7 @@ public:
     void store_priv(uint64_t h);
     void fetch_priv(uint64_t h);
     void drop_priv(uint64_t h);
+    bool has_priv(uint64_t h);
 
 private:
     uint64_t root_handle_;
