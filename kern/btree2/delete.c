@@ -255,12 +255,16 @@ btree_delete(btree_desc_t *td, bkey_t *key)
     return_error(_delete(td, &rd, 0, 0, key));
 
     if (rd.bn_key_cnt == 0) {
-	bnode_desc_t cd;
-	return_error(bnode_child_read(td, &rd, 0, &cd));
-	td->bt_root = cd.bn_off;
-	return_error(sys_free(rd.bn_off));
+	if (!rd.bn_isleaf) {
+	    bnode_desc_t cd;
+	    return_error(bnode_child_read(td, &rd, 0, &cd));
+	    td->bt_root = cd.bn_off;
+	    return_error(sys_free(rd.bn_off));
+	} else {
+	    td->bt_root = null_offset;
+	    return_error(sys_free(rd.bn_off));
+	}
     }
-
 
     btree_write(td);
     return sys_flush();
