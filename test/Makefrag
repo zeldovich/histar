@@ -1,4 +1,4 @@
-OBJDIRS += test test/lwip
+OBJDIRS += test test/lwip test/btree
 
 TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj
 TEST_USER_CFLAGS := \
@@ -146,9 +146,9 @@ $(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
 	$(NCC) -o $@ $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB) -lstdc++ -lpthread -lrt
 
 ## btree2
-BTREE2_INC := -I$(TOP)/kern/
+BTREE2_INC := -I$(TOP)/test/
 
-$(OBJDIR)/test/%.o: kern/btree/%.c
+$(OBJDIR)/test/%.o: test/btree/%.c
 	@mkdir -p $(@D)
 	$(NCC) $(BTREE2_INC) -DBTREE_PRIV -c -o $@ $< -std=c99
 

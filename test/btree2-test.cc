@@ -11,7 +11,6 @@ extern "C" {
 
 #include <btree/btree.h>
 #include <btree/error.h>
-
 }
 
 #include <test/rand.hh>
@@ -20,7 +19,7 @@ extern "C" {
 #define RESERVED_PAGES 2000
 
 enum { iterations = 10000 };
-enum { num_keys = 5000 };
+enum { num_keys = 500 };
 enum { max_repeats = 100 };
 enum { logging = 0 };
 
@@ -199,7 +198,7 @@ main(int ac, char **av)
 
     x_init("Helloooo randomness!");
     
-    assert_error(btree_alloc(100, 1, 2, &bd));
+    assert_error(btree_alloc(50, 1, 2, &bd));
 
     //btree_desc_print(&bd);
     //return 0;
