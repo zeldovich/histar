@@ -35,16 +35,45 @@ class incoming_impl : public djgate_incoming {
 	_make_async(fds_[0]);
 	fdcb(fds_[0], selread, wrap(this, &incoming_impl::readcb));
 	fd_make_public(fds_[0], 0);
+	fd_make_public(fds_[1], 0);
 
 	proc_ct_ = start_env->proc_container;
 	label vproc(3);
 	vproc.set(start_env->process_grant, 0);
+
+	label tl;
+	thread_cur_label(&tl);
+
+	label l(1);
+	l.set(start_env->process_grant, LB_LEVEL_STAR);
+	l.set(start_env->process_taint, LB_LEVEL_STAR);
+
+	struct Fd *fd;
+	error_check(fd_lookup(fds_[1], &fd, 0, 0));
+	for (int j = 0; j < fd_handle_max; j++)
+	    if (fd->fd_handle[j] && tl.get(fd->fd_handle[j]) == LB_LEVEL_STAR)
+		l.set(fd->fd_handle[j], LB_LEVEL_STAR);
+
+	for (int i = 0; i <= 2; i++) {
+	    struct Fd *fd;
+	    fd_make_public(i, 0);
+	    if (fd_lookup(i, &fd, 0, 0) == 0)
+		for (int j = 0; j < fd_handle_max; j++)
+		    if (fd->fd_handle[j] && tl.get(fd->fd_handle[j]) == LB_LEVEL_STAR)
+			l.set(fd->fd_handle[j], LB_LEVEL_STAR);
+	}
+
+	label c(l);
+	c.transform(label::nonstar_to, 2);
+	c.transform(label::star_to, 3);
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->proc_container;
 	gd.name_ = "djd-incoming-untaint";
 	gd.func_ = &call_untaint_stub;
 	gd.arg_ = (void *) this;
+	gd.label_ = &l;
+	gd.clearance_ = &c;
 	gd.verify_ = &vproc;
 	untaint_gate_ = gate_create(&gd);
 
@@ -52,6 +81,8 @@ class incoming_impl : public djgate_incoming {
 	gd.name_ = "djd-incoming";
 	gd.func_ = &call_stub;
 	gd.arg_ = (void *) this;
+	gd.label_ = &l;
+	gd.clearance_ = &c;
 	gd.verify_ = 0;
 	gate_ = gate_create(&gd);
     }
