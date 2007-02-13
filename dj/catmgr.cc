@@ -12,7 +12,8 @@ extern "C" {
 class histar_catmgr : public catmgr {
  public:
     histar_catmgr() : ps_(start_env->process_grant) {
-	jthread_mutex_init(&mu_);
+	jthread_mutex_init(&rd_mu_);
+	jthread_mutex_init(&wr_mu_);
 	droptmo_ = 0;
     }
 
@@ -28,23 +29,27 @@ class histar_catmgr : public catmgr {
 	    throw basic_exception("histar_catmgr::alloc: %s", e2s(cat));
 	}
 
-	scoped_jthread_lock l(&mu_);
+	scoped_jthread_lock wl(&wr_mu_);
+	scoped_jthread_lock rl(&rd_mu_);
 	ps_.store_priv(cat);
 	thread_drop_star(cat);
 
+	rl.release();
 	checkpoint_update();
 	return cat;
     }
 
     virtual void release(uint64_t c) {
-	scoped_jthread_lock l(&mu_);
+	scoped_jthread_lock wl(&wr_mu_);
+	scoped_jthread_lock rl(&rd_mu_);
 	ps_.drop_priv(c);
 
+	rl.release();
 	checkpoint_update();
     }
 
     virtual void acquire(const label &l, bool droplater, uint64_t e0, uint64_t e1) {
-	scoped_jthread_lock lk(&mu_);
+	scoped_jthread_lock rl(&rd_mu_);
 
 	const struct ulabel *ul = l.to_ulabel_const();
 	uint64_t nent = ul->ul_nent;
@@ -68,7 +73,8 @@ class histar_catmgr : public catmgr {
     }
 
     virtual void import(const label &l, uint64_t e0, uint64_t e1) {
-	scoped_jthread_lock lk(&mu_);
+	scoped_jthread_lock wl(&wr_mu_);
+	scoped_jthread_lock rl(&rd_mu_);
 
 	int storecount = 0;
 	const struct ulabel *ul = l.to_ulabel_const();
@@ -85,6 +91,7 @@ class histar_catmgr : public catmgr {
 	    }
 	}
 
+	rl.release();
 	if (storecount)
 	    checkpoint_update();
     }
@@ -110,7 +117,8 @@ class histar_catmgr : public catmgr {
 	thread_set_label(&l);
     }
 
-    jthread_mutex_t mu_;
+    jthread_mutex_t wr_mu_;
+    jthread_mutex_t rd_mu_;
     privilege_store ps_;
     vec<uint64_t> dropq_;
     timecb_t *droptmo_;
