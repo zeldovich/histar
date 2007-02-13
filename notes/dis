@@ -210,3 +210,5 @@ djd doesn't know when the GC old AS'es (or it could leave them around forever,
 but that's lame).  In practice this might not matter, and perhaps it can keep
 retrying until it succeeds, but it might never succeed.
 
+Label for some error replies: L_N \cup L_M (network & message label)
+
