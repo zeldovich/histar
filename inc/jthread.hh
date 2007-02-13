@@ -9,14 +9,23 @@ class scoped_jthread_lock {
 public:
     scoped_jthread_lock(jthread_mutex_t *mu) : mu_(mu) {
 	jthread_mutex_lock(mu_);
+	held_ = true;
     }
 
     ~scoped_jthread_lock() {
-	jthread_mutex_unlock(mu_);
+	release();
+    }
+
+    void release() {
+	if (held_) {
+	    jthread_mutex_unlock(mu_);
+	    held_ = false;
+	}
     }
 
 private:
     jthread_mutex_t *mu_;
+    bool held_;
 };
 
 class scoped_jthread_trylock {
