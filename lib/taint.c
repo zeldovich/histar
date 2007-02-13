@@ -61,7 +61,8 @@ taint_cow_compute_label(struct ulabel *cur_label, struct ulabel *obj_label)
     do {							\
 	int64_t __r = e;					\
 	if (__r < 0) {						\
-	    cprintf("taint_cow: %s: %s\n", #e, e2s(__r));	\
+	    cprintf("taint_cow[%s:%d]: %s: %s\n",		\
+		    __FILE__, __LINE__, #e, e2s(__r));		\
 	    sys_self_halt();					\
 	}							\
     } while (0)
@@ -145,7 +146,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (taint_debug) {
-	    cprintf("taint_cow: mapping of %ld.%ld at VA %p, flags %d\n",
+	    cprintf("taint_cow: mapping of %ld.%ld at VA %p, flags 0x%x\n",
 		    uas.ents[i].segment.container, uas.ents[i].segment.object,
 		    uas.ents[i].va, uas.ents[i].flags);
 	}
@@ -156,7 +157,10 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 	if (uas.ents[i].segment.container == mlt_ct)
 	    continue;
 
-	ERRCHECK(sys_obj_get_label(uas.ents[i].segment, &obj_label));
+	r = sys_obj_get_label(uas.ents[i].segment, &obj_label);
+	if (r == -E_NOT_FOUND)
+	    continue;
+	ERRCHECK(r);
 
 	r = label_compare(&cur_label, &obj_label, label_leq_starlo);
 	if (r == 0)
@@ -225,8 +229,14 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 
     int maskold = utrap_set_mask(1);
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
-    if (start_env_ro->taint_cow_as.object)
+    if (taint_debug)
+	cprintf("taint_cow: trying to COW; shared/proc CT %ld/%ld\n",
+		start_env_ro->shared_container, start_env_ro->proc_container);
+    if (start_env_ro->taint_cow_as.object) {
 	cur_as = start_env_ro->taint_cow_as;
+	cprintf("taint_cow: using checkpointed AS %ld.%ld\n",
+		cur_as.container, cur_as.object);
+    }
     int r = taint_cow_slow(cur_as, taint_container, declassify_gate);
     utrap_set_mask(maskold);
     return r;
