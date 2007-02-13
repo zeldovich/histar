@@ -43,11 +43,11 @@ class gate_exec : public djcallexec {
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
 	try {
-	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
-				&args.taint, &args.grant, &args.taint);
-
 	    cm_->acquire(args.grant, true);
 	    cm_->acquire(args.taint, true);
+
+	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
+				&args.taint, &args.grant, &args.taint);
 
 	    dj_gate_call_outgoing(gc_->call_ct(),
 				  gc_->call_grant(), gc_->call_taint(),
