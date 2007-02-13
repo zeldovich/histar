@@ -13,8 +13,8 @@ void dj_gate_call_outgoing(uint64_t ct, uint64_t call_grant, uint64_t call_taint
 			   const label &taint, const label &grant, const str &data,
 			   cobj_ref *segp, label *vl, label *vc);
 
-void dj_gate_call_save_tainted(uint64_t ct, gate_call_data *gcd,
-			       cobj_ref *segp);
+void dj_gate_call_save_taint(uint64_t ct, gate_call_data *gcd,
+			     cobj_ref *segp);
 
 void dj_gate_call_load_taint(cobj_ref taintseg, gate_call_data *gcd,
 			     label *vl, label *vc);
