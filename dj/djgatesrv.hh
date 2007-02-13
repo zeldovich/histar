@@ -48,6 +48,8 @@ class djgatesrv {
 
 	djgatesrv *dgs = (djgatesrv *) arg;
 	djcall_args *out = New djcall_args();
+	out->grant = label(3);
+	out->taint = in->taint;
 	scope_guard<void, djcall_args*> delout(delete_obj, out);
 	if (!dgs->srv_(*in, out))
 	    throw basic_exception("djgatesrv: service unhappy\n");
