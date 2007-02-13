@@ -201,3 +201,5 @@ Same-thread-return checks (gateclnt's return_stub) mean that we can't return
 twice to the caller, once with a TIMEOUT status and once with tainted data.
 How to resolve this with inherently unreliable distributed system semantics?
 
+Reply label should never be less than the request label!
+
