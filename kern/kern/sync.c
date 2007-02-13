@@ -5,11 +5,19 @@
 #include <kern/kobj.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
+#include <kern/ht.h>
 #include <inc/error.h>
 
 static struct Thread_list sync_time_waiting;
-static struct sync_wait_list sync_addr_waiting;
+static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
 static int sync_debug = 0;
+
+static struct sync_wait_list *
+sync_addr_head(uint64_t seg_id, uint64_t offset)
+{
+    uint64_t hash_idx = seg_id ^ (offset >> 3);
+    return HASH_SLOT(&sync_addr_waiting, hash_idx);
+}
 
 static int __attribute__((warn_unused_result))
 sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
@@ -87,7 +95,8 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_msec)
     }
 
     LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link)
-	LIST_INSERT_HEAD(&sync_addr_waiting, sw, sw_addr_link);
+	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg_id, sw->sw_offset),
+			 sw, sw_addr_link);
 
     te->te_wakeup_msec = wakeup_msec;
     thread_suspend(cur_thread, &sync_time_waiting);
@@ -114,12 +123,13 @@ sync_wakeup_addr(uint64_t *addr)
 	cprintf("sync_wakeup_addr: %p -> %"PRIu64", offset %"PRIu64"\n",
 		addr, seg_id, offset);
 
-    struct sync_wait_slot *sw = LIST_FIRST(&sync_addr_waiting);
+    struct sync_wait_list *waithead = sync_addr_head(seg_id, offset);
+    struct sync_wait_slot *sw = LIST_FIRST(waithead);
     struct sync_wait_slot *prev = 0;
     while (sw != 0) {
 	if (sw->sw_seg_id == seg_id && sw->sw_offset == offset) {
 	    thread_set_runnable(sw->sw_t);
-	    sw = prev ? LIST_NEXT(prev, sw_addr_link) : LIST_FIRST(&sync_addr_waiting);
+	    sw = prev ? LIST_NEXT(prev, sw_addr_link) : LIST_FIRST(waithead);
 	} else {
 	    prev = sw;
 	    sw = LIST_NEXT(sw, sw_addr_link);
