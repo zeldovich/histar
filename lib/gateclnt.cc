@@ -97,6 +97,11 @@ gate_call::gate_call(cobj_ref gate,
     label call_obj_label_;
     thread_cur_label(&call_obj_label_);
     call_obj_label_.transform(label::star_to, call_obj_label_.get_default());
+    if (cs) {
+	label tmp;
+	call_obj_label_.merge(cs, &tmp, label::max, label::leq_starlo);
+	call_obj_label_ = tmp;
+    }
     call_obj_label_.set(call_taint_, 3);
     call_obj_label_.set(call_grant_, 0);
 
