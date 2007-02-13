@@ -238,7 +238,7 @@ init_procs(int cons)
     }
 }
 
-static void
+static void __attribute__((noreturn))
 run_shell(int cons)
 {
     int r;
