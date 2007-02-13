@@ -6,7 +6,6 @@ class dummy_catmgr : public catmgr {
 	return ++c_;
     }
 
-    virtual uint64_t keycat() { return 0; }
     virtual void release(uint64_t c) {}
     virtual void acquire(const label &l, bool droplater, uint64_t e0, uint64_t e1) {}
     virtual void import(const label &l, uint64_t e0, uint64_t e1) {}

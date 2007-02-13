@@ -10,7 +10,7 @@ extern "C" {
 
 class histar_catmgr : public catmgr {
  public:
-    histar_catmgr() : ps_key_(handle_alloc()), ps_(ps_key_) {
+    histar_catmgr() : ps_(start_env->process_grant) {
 	jthread_mutex_init(&mu_);
 	droptmo_ = 0;
     }
@@ -18,10 +18,6 @@ class histar_catmgr : public catmgr {
     virtual ~histar_catmgr() {
 	if (droptmo_)
 	    timecb_remove(droptmo_);
-    }
-
-    virtual uint64_t keycat() {
-	return ps_key_;
     }
 
     virtual uint64_t alloc() {
@@ -105,7 +101,6 @@ class histar_catmgr : public catmgr {
     }
 
     jthread_mutex_t mu_;
-    uint64_t ps_key_;
     privilege_store ps_;
     vec<uint64_t> dropq_;
     timecb_t *droptmo_;

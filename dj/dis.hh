@@ -29,7 +29,6 @@ class djcallexec : virtual public refcount {
 class catmgr : virtual public refcount {
  public:
     virtual ~catmgr() {}
-    virtual uint64_t keycat() = 0;
     virtual uint64_t alloc() = 0;
     virtual void release(uint64_t c) = 0;
     virtual void acquire(const label &l, bool droplater = false,
