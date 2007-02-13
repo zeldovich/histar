@@ -45,7 +45,7 @@ _borrow_left_leaf(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd,
     if (sd.bn_key_cnt == td->bt_val_min)
 	return 0;
 
-    return_error(bnode_left_leaf_borrow(td, rd, &sd, pd, rndx - 1));
+    return_error(bnode_left_leaf_borrow(td, rd, &sd, pd, rndx));
     return 1;
 }
 
@@ -83,7 +83,7 @@ _merge_left_leaf(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd,
     
     assert(sd.bn_key_cnt == td->bt_val_min);
     
-    return_error(bnode_left_leaf_merge(td, &sd, rd, pd, rndx - 1));
+    return_error(bnode_left_leaf_merge(td, &sd, rd, pd, rndx));
     return 1;
 }
 
@@ -118,86 +118,88 @@ _delete_from_leaf(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd,
 }
 
 static int
-_borrow_right_int(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd, 
-		  uint16_t rndx)
+_borrow_right_int(btree_desc_t *td, bnode_desc_t *leftd, bnode_desc_t *pd, 
+		  bchild_ndx_t left_ndx)
 {
-    assert(rndx <= td->bt_key_max);
+    assert(left_ndx <= td->bt_key_max);
     
     // far right sib?
-    if (rndx == pd->bn_key_cnt)
+    if (left_ndx == pd->bn_key_cnt)
 	return 0;
     
-    bnode_desc_t sd;
-    return_error(bnode_child_read(td, pd, rndx + 1, &sd));
+    bnode_desc_t rightd;
+    return_error(bnode_child_read(td, pd, left_ndx + 1, &rightd));
     
-    assert(sd.bn_key_cnt >= td->bt_key_min);
+    assert(rightd.bn_key_cnt >= td->bt_key_min);
 
     // nothing to borrow
-    if (sd.bn_key_cnt == td->bt_key_min)
+    if (rightd.bn_key_cnt == td->bt_key_min)
 	return 0;
     
-    return_error(bnode_right_int_borrow(td, rd, &sd, pd, rndx));
+    return_error(bnode_right_int_borrow(td, leftd, &rightd, pd, left_ndx + 1));
     return 1;
 }
 
 static int
-_borrow_left_int(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd, 
-		 uint16_t rndx)
+_borrow_left_int(btree_desc_t *td, bnode_desc_t *rightd, bnode_desc_t *pd, 
+		 bchild_ndx_t right_ndx)
 {
-    assert(rndx <= td->bt_key_max);
+    assert(right_ndx <= td->bt_key_max);
 
     // far left sib?
-    if (rndx == 0)
+    if (right_ndx == 0)
 	return 0;
 
-    bnode_desc_t sd;
-    return_error(bnode_child_read(td, pd, rndx - 1, &sd));
+    bnode_desc_t leftd;
+    return_error(bnode_child_read(td, pd, right_ndx - 1, &leftd));
 
-    assert(sd.bn_key_cnt >= td->bt_key_min);
+    assert(leftd.bn_key_cnt >= td->bt_key_min);
     
     // nothing to borrow
-    if (sd.bn_key_cnt == td->bt_key_min)
+    if (leftd.bn_key_cnt == td->bt_key_min)
 	return 0;
 
-    return_error(bnode_left_int_borrow(td, rd, &sd, pd, rndx - 1));
+    return_error(bnode_left_int_borrow(td, &leftd, rightd, pd, right_ndx));
     return 1;
 }
 
 static int
-_merge_right_int(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd, 
-		 uint16_t rndx)
+_merge_right_int(btree_desc_t *td, bnode_desc_t *leftd, bnode_desc_t *pd, 
+		 bchild_ndx_t left_ndx)
 {
-    assert(rndx <= td->bt_key_max);
+    assert(left_ndx <= td->bt_key_max);
 
     // far right sib?
-    if (rndx == pd->bn_key_cnt)
+    if (left_ndx == pd->bn_key_cnt)
 	return 0;
     
-    bnode_desc_t sd;
-    return_error(bnode_child_read(td, pd, rndx + 1, &sd));
+    bnode_desc_t rightd;
+    return_error(bnode_child_read(td, pd, left_ndx + 1, &rightd));
     
-    assert(sd.bn_key_cnt == td->bt_key_min);
+    assert(rightd.bn_key_cnt == td->bt_key_min);
+    assert(leftd->bn_key_cnt + 1 == td->bt_key_min);
     
-    return_error(bnode_right_int_merge(td, rd, &sd, pd, rndx));
+    return_error(bnode_int_merge(td, leftd, &rightd, pd, left_ndx + 1));
     return 1;
 }
 
 static int
-_merge_left_int(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *pd, 
-		uint16_t rndx)
+_merge_left_int(btree_desc_t *td, bnode_desc_t *rightd, bnode_desc_t *pd, 
+		bchild_ndx_t right_ndx)
 {
-    assert(rndx <= td->bt_key_max);
+    assert(right_ndx <= td->bt_key_max);
     
     // far left sib?
-    if (rndx == 0)
+    if (right_ndx == 0)
 	return 0;
 
-    bnode_desc_t sd;
-    return_error(bnode_child_read(td, pd, rndx - 1, &sd));
+    bnode_desc_t leftd;
+    return_error(bnode_child_read(td, pd, right_ndx - 1, &leftd));
     
-    assert(sd.bn_key_cnt == td->bt_key_min);
+    assert(leftd.bn_key_cnt == td->bt_key_min);
+    assert(rightd->bn_key_cnt + 1 == td->bt_key_min);
     
-    return_error(bnode_left_int_merge(td, &sd, rd, pd, rndx - 1));
+    return_error(bnode_int_merge(td, &leftd, rightd, pd, right_ndx));
     return 1;
 }
 

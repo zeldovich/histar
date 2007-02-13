@@ -14,6 +14,7 @@
 typedef uint64_t bkey_t;
 typedef uint64_t bval_t;
 typedef uint64_t offset_t;
+typedef uint16_t bchild_ndx_t;
 
 /* system emulation */
 int sys_alloc(size_t n, offset_t *off);

@@ -576,6 +576,8 @@ bnode_int_split(btree_desc_t *td, bnode_desc_t *rd, bnode_desc_t *nd,
     return 0;
 }
 
+
+// XXX get rid of me!!!!
 static int
 bnode_int_del(btree_desc_t *td, bnode_desc_t *nd, 
 	      uint16_t key_ndx, uint16_t ptr_ndx)
@@ -588,6 +590,7 @@ bnode_int_del(btree_desc_t *td, bnode_desc_t *nd,
     bkeys_read(td, nd, keys);
     bptrs_read(td, nd, ptrs);
     
+    // XXX create sys_array_rem(start, nbytes, i, iwidth_bytes)
     bkey_del(td, key_ndx, keys, nd->bn_key_cnt);
     bptr_del(ptr_ndx, ptrs, nd->bn_key_cnt + 1);
     
@@ -599,120 +602,100 @@ bnode_int_del(btree_desc_t *td, bnode_desc_t *nd,
     return 0;
 }
 
-static int
+int
 bnode_int_merge(btree_desc_t *td, 
-		bnode_desc_t *dstd, bnode_desc_t *srcd, 
-		bnode_desc_t *pard, uint16_t key_ndx)
+		bnode_desc_t *leftd, bnode_desc_t *rightd, 
+		bnode_desc_t *pard, bchild_ndx_t right_ndx)
 {
-    assert(!dstd->bn_isleaf);
-    assert(!srcd->bn_isleaf);
+    assert(!leftd->bn_isleaf);
+    assert(!rightd->bn_isleaf);
+    assert(right_ndx != 0);
     // assumes dstd is left and srcd is right
 
     char keys0[td->bt_key_tot], keys1[td->bt_key_tot];
     offset_t ptrs0[td->bt_ptr_max], ptrs1[td->bt_ptr_max];
 
-    bkeys_read(td, dstd, keys0);
-    bkeys_read(td, srcd, keys1);
-    bptrs_read(td, dstd, ptrs0);
-    bptrs_read(td, srcd, ptrs1);
+    bkeys_read(td, leftd, keys0);
+    bkeys_read(td, rightd, keys1);
+    bptrs_read(td, leftd, ptrs0);
+    bptrs_read(td, rightd, ptrs1);
 
     // move key down from parent to end of keys0
     BKEY_T(td, k);
-    bkey_read_one(td, pard, key_ndx, k);
-    bkey_copy(td, bkeyi(td, keys0, dstd->bn_key_cnt), k);
+    bkey_read_one(td, pard, right_ndx - 1, k);
+    bkey_copy(td, bkeyi(td, keys0, leftd->bn_key_cnt), k);
 
-    bkeys_merge(td, keys0, dstd->bn_key_cnt + 1, keys1, srcd->bn_key_cnt + 1);
-    bptrs_merge(ptrs0, dstd->bn_key_cnt + 1, ptrs1, srcd->bn_key_cnt + 1);
+    bkeys_merge(td, keys0, leftd->bn_key_cnt + 1, 
+		keys1, rightd->bn_key_cnt + 1);
+    bptrs_merge(ptrs0, leftd->bn_key_cnt + 1, 
+		ptrs1, rightd->bn_key_cnt + 1);
 
-    bkeys_write(td, dstd, keys0);
-    bptrs_write(td, dstd, ptrs0);
+    bkeys_write(td, leftd, keys0);
+    bptrs_write(td, leftd, ptrs0);
     
-    dstd->bn_key_cnt += (srcd->bn_key_cnt + 1);
-    bnode_write(dstd);
+    leftd->bn_key_cnt += (rightd->bn_key_cnt + 1);
+    bnode_write(leftd);
     
     // kill right node
-    return_error(bnode_int_del(td, pard, key_ndx, key_ndx + 1));
-    return_error(sys_free(srcd->bn_off));
+    return_error(bnode_int_del(td, pard, right_ndx - 1, right_ndx));
+    return_error(sys_free(rightd->bn_off));
 
     return 0;
 }
 
 int
-bnode_right_int_merge(btree_desc_t *td, 
-		      bnode_desc_t *dstd, bnode_desc_t *srcd, 
-		      bnode_desc_t *pard, uint16_t key_ndx)
-{
-    assert(dstd->bn_key_cnt + 1 == td->bt_key_min);
-    assert(srcd->bn_key_cnt == td->bt_key_min);
-
-    return bnode_int_merge(td, dstd, srcd, pard, key_ndx);
-}
-
-int
-bnode_left_int_merge(btree_desc_t *td, 
-		     bnode_desc_t *dstd, bnode_desc_t *srcd, 
-		     bnode_desc_t *pard, uint16_t key_ndx)
-{
-    assert(srcd->bn_key_cnt + 1 == td->bt_key_min); 
-    assert(dstd->bn_key_cnt == td->bt_key_min);
- 
-
-    return bnode_int_merge(td, dstd, srcd, pard, key_ndx);
-}
-
-int
 bnode_left_int_borrow(btree_desc_t *td, 
-		      bnode_desc_t *dstd, bnode_desc_t *srcd, 
-		      bnode_desc_t *pard, uint16_t key_ndx)
+		      bnode_desc_t *leftd, bnode_desc_t *rightd,
+		      bnode_desc_t *pard, bchild_ndx_t right_ndx)
 {
     BKEY_T(td, k); BKEY_T(td, k1);
     offset_t off;
-    bkey_read_one(td, srcd, srcd->bn_key_cnt - 1, k);
-    bkey_read_one(td, pard, key_ndx, k1);
+    bkey_read_one(td, leftd, leftd->bn_key_cnt - 1, k);
+    bkey_read_one(td, pard, right_ndx - 1, k1);
 
-    bptr_read_one(td, srcd, srcd->bn_key_cnt, &off);
+    bptr_read_one(td, leftd, leftd->bn_key_cnt, &off);
     
-    return_error(bnode_int_del(td, srcd, 
-			       srcd->bn_key_cnt - 1, srcd->bn_key_cnt));
+    return_error(bnode_int_del(td, leftd, 
+			       leftd->bn_key_cnt - 1, leftd->bn_key_cnt));
 
     // XXX want to insert in 0
     char keys[td->bt_key_tot];
     offset_t ptrs[td->bt_ptr_max];
     
-    bkeys_read(td, dstd, keys);
-    bptrs_read(td, dstd, ptrs);
+    bkeys_read(td, rightd, keys);
+    bptrs_read(td, rightd, ptrs);
 
-    bkey_ins(td, k1, 0, keys, dstd->bn_key_cnt);
-    bptr_ins(off, 0, ptrs, dstd->bn_key_cnt + 1);
+    bkey_ins(td, k1, 0, keys, rightd->bn_key_cnt);
+    bptr_ins(off, 0, ptrs, rightd->bn_key_cnt + 1);
     
-    bkeys_write(td, dstd, keys);
-    bptrs_write(td, dstd, ptrs);
-    dstd->bn_key_cnt++;
+    bkeys_write(td, rightd, keys);
+    bptrs_write(td, rightd, ptrs);
+    rightd->bn_key_cnt++;
 
-    bkey_write_one(td, pard, key_ndx, k);
+    bkey_write_one(td, pard, right_ndx - 1, k);
 
-    bnode_write(dstd);
-    bnode_write(pard);
+    bnode_write(rightd);
+    bnode_write(rightd);
         
     return 0;
 }
 
 int
 bnode_right_int_borrow(btree_desc_t *td, 
-		       bnode_desc_t *dstd, bnode_desc_t *srcd, 
-		       bnode_desc_t *pard, uint16_t key_ndx)
+		       bnode_desc_t *leftd, bnode_desc_t *rightd, 
+		       bnode_desc_t *pard, bchild_ndx_t right_ndx)
 {
     BKEY_T(td, k); BKEY_T(td, k1);
     offset_t off;
-    bkey_read_one(td, srcd, 0, k);
-    bkey_read_one(td, pard, key_ndx, k1);
+    bkey_read_one(td, rightd, 0, k);
+    bkey_read_one(td, pard, right_ndx - 1, k1);
 
-    bptr_read_one(td, srcd, 0, &off);
+    bptr_read_one(td, rightd, 0, &off);
     
-    return_error(bnode_int_del(td, srcd, 0, 0));
+    return_error(bnode_int_del(td, rightd, 0, 0));
     // XXX want to insert in key_cnt - 1
-    return_error(bnode_int_ins(td, dstd, k1, off));
-    bkey_write_one(td, pard, key_ndx, k);
+    return_error(bnode_int_ins(td, leftd, k1, off));
+    bkey_write_one(td, pard, right_ndx - 1, k);
     
     bnode_write(pard);
     // bnode_int_ins calls bnode_write(dstd)
@@ -800,7 +783,7 @@ bnode_left_leaf_merge(btree_desc_t *td,
     assert(dstd->bn_isleaf);
     assert(srcd->bn_isleaf);
 
-    return bnode_leaf_merge(td, dstd, srcd, pard, key_ndx);
+    return bnode_leaf_merge(td, dstd, srcd, pard, key_ndx - 1);
 }
 
 int
@@ -818,7 +801,7 @@ bnode_left_leaf_borrow(btree_desc_t *td,
     return_error(bnode_leaf_ins(td, dstd, 0, k, v));
 
     // raise new least key from dst
-    bkey_write_one(td, pard, key_ndx, k);
+    bkey_write_one(td, pard, key_ndx - 1, k);
     return 0;
 }
 

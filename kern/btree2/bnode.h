@@ -7,6 +7,8 @@
 
 #include <btree/desc.h>
 
+
+
 /*
  * Alloc/free 
  */
@@ -46,12 +48,10 @@ int bnode_right_int_borrow(btree_desc_t *td,
 int bnode_left_int_borrow(btree_desc_t *td, 
 			  bnode_desc_t *dstd, bnode_desc_t *srcd, 
 			  bnode_desc_t *pard, uint16_t key_ndx);
-int bnode_right_int_merge(btree_desc_t *td, 
-			  bnode_desc_t *dstd, bnode_desc_t *srcd, 
-			  bnode_desc_t *pard, uint16_t key_ndx);
-int bnode_left_int_merge(btree_desc_t *td, 
-			 bnode_desc_t *dstd, bnode_desc_t *srcd, 
-			 bnode_desc_t *pard, uint16_t key_ndx);
+int bnode_int_merge(btree_desc_t *td, 
+		    bnode_desc_t *leftd, bnode_desc_t *rightd, 
+		    bnode_desc_t *pard, bchild_ndx_t right_ndx);
+
 
 /*
  * Leaf
