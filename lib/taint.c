@@ -151,7 +151,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 	}
 
 	if (!(uas.ents[i].flags & SEGMAP_WRITE) ||
-	    uas.ents[i].segment.container != start_env_ro->proc_container)
+	    uas.ents[i].segment.container != cur_as.container)
 	    continue;
 	if (uas.ents[i].segment.container == mlt_ct)
 	    continue;
