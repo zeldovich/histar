@@ -1,12 +1,16 @@
 #ifndef JOS_INC_GATESRV_HH
 #define JOS_INC_GATESRV_HH
 
+extern "C" {
+#include <inc/gateparam.h>
+}
+
 #include <inc/error.hh>
 #include <inc/cpplabel.hh>
 
 class gatesrv_return {
 public:
-    gatesrv_return(struct cobj_ref rgate, uint64_t tct, uint64_t gct,
+    gatesrv_return(cobj_ref rgate, uint64_t tct, uint64_t gct,
 		   void *stack, uint64_t flags)
 	: rgate_(rgate), thread_ct_(tct), gatecall_ct_(gct), stack_(stack), flags_(flags) {}
 
@@ -18,6 +22,8 @@ public:
 	     label *verify_clear = 0)		// { 0 } for none
 	__attribute__((noreturn));
 
+    void change_gate(cobj_ref newgate) { rgate_ = newgate; }
+
 private:
     static void ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
@@ -27,15 +33,14 @@ private:
     static void cleanup_stub(label *tgt_s, label *tgt_r, void *arg);
     void cleanup(label *tgt_s, label *tgt_r);
 
-    struct cobj_ref rgate_;
+    cobj_ref rgate_;
     uint64_t thread_ct_;
     uint64_t gatecall_ct_;
     void *stack_;
     uint64_t flags_;
 };
 
-typedef void (*gatesrv_entry_t)
-	(void *, struct gate_call_data *, gatesrv_return *);
+typedef void (*gatesrv_entry_t) (void *, gate_call_data *, gatesrv_return *);
 
 class gatesrv_descriptor {
 public:
@@ -61,9 +66,9 @@ public:
 #define GATESRV_KEEP_TLS_STACK		0x01
 #define GATESRV_NO_THREAD_ADDREF	0x02
 
-struct cobj_ref gate_create(gatesrv_descriptor *dsc);
-struct cobj_ref gate_create(uint64_t gate_container, const char *name,
-			    label *label, label *clearance, label *verify,
-			    gatesrv_entry_t func, void *arg);
+cobj_ref gate_create(gatesrv_descriptor *dsc);
+cobj_ref gate_create(uint64_t gate_container, const char *name,
+		     label *label, label *clearance, label *verify,
+		     gatesrv_entry_t func, void *arg);
 
 #endif
