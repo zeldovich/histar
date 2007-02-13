@@ -5,6 +5,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
+#include <inc/utrap.h>
 
 enum { taint_debug = 0 };
 
@@ -222,8 +223,11 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     if (taint_cow_fastcheck(cur_as) == 0)
 	return 0;
 
+    int maskold = utrap_set_mask(1);
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
     if (start_env_ro->taint_cow_as.object)
 	cur_as = start_env_ro->taint_cow_as;
-    return taint_cow_slow(cur_as, taint_container, declassify_gate);
+    int r = taint_cow_slow(cur_as, taint_container, declassify_gate);
+    utrap_set_mask(maskold);
+    return r;
 }
