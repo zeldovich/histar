@@ -1,5 +1,6 @@
 /*
  * XXX:
+ * - use SAFE_TYPE-like variables for indexing keys, vals, ptrs
  * - might want to push a lot of the bx operations into sys.h -- esp
      anything that uses an array off the stack
  * - add less-than-equal and greater-than-equal search
