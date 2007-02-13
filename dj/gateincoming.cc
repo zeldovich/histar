@@ -16,6 +16,7 @@ extern "C" {
 #include <dj/dis.hh>
 #include <dj/djgate.h>
 #include <dj/gateutil.hh>
+#include <dj/checkpoint.hh>
 
 struct incoming_req {
     str nodepk;
@@ -76,6 +77,8 @@ class incoming_impl : public djgate_incoming {
 	gd.clearance_ = &c;
 	gd.verify_ = &vproc;
 	untaint_gate_ = gate_create(&gd);
+
+	checkpoint_update();
 
 	gd.gate_container_ = start_env->shared_container;
 	gd.name_ = "djd-incoming";

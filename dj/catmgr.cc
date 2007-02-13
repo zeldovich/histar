@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
 #include <dj/dis.hh>
+#include <dj/checkpoint.hh>
 
 class histar_catmgr : public catmgr {
  public:
@@ -31,12 +32,15 @@ class histar_catmgr : public catmgr {
 	ps_.store_priv(cat);
 	thread_drop_star(cat);
 
+	checkpoint_update();
 	return cat;
     }
 
     virtual void release(uint64_t c) {
 	scoped_jthread_lock l(&mu_);
 	ps_.drop_priv(c);
+
+	checkpoint_update();
     }
 
     virtual void acquire(const label &l, bool droplater, uint64_t e0, uint64_t e1) {
@@ -66,6 +70,7 @@ class histar_catmgr : public catmgr {
     virtual void import(const label &l, uint64_t e0, uint64_t e1) {
 	scoped_jthread_lock lk(&mu_);
 
+	int storecount = 0;
 	const struct ulabel *ul = l.to_ulabel_const();
 	uint64_t nent = ul->ul_nent;
 	for (uint64_t i = 0; i < nent; i++) {
@@ -73,10 +78,15 @@ class histar_catmgr : public catmgr {
 	    level_t l = LB_LEVEL(ent);
 	    if (l == LB_LEVEL_STAR) {
 		uint64_t c = LB_HANDLE(ent);
-		if (c != e0 && c != e1 && !ps_.has_priv(c))
+		if (c != e0 && c != e1 && !ps_.has_priv(c)) {
 		    ps_.store_priv(c);
+		    storecount++;
+		}
 	    }
 	}
+
+	if (storecount)
+	    checkpoint_update();
     }
 
  private:
