@@ -7,6 +7,7 @@
 #include <kern/sched.h>
 #include <kern/thread.h>
 #include <kern/as.h>
+#include <kern/sync.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
@@ -36,6 +37,14 @@ thread_unpin(struct Thread *t)
 }
 
 static void
+thread_unlink(struct Thread *t)
+{
+    LIST_REMOVE(t, th_link);
+    if (t->th_sync_waiting)
+	sync_remove_thread(t);
+}
+
+static void
 thread_sched_adjust(struct Thread *t, int runnable)
 {
     if (t->th_sched_joined && !runnable) {
@@ -55,7 +64,7 @@ thread_set_runnable(const struct Thread *const_t)
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
-    LIST_REMOVE(t, th_link);
+    thread_unlink(t);
     LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
     thread_sched_adjust(t, 1);
 
@@ -69,7 +78,7 @@ thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
-    LIST_REMOVE(t, th_link);
+    thread_unlink(t);
     LIST_INSERT_HEAD(waitq, t, th_link);
     t->th_status = thread_suspended;
     thread_pin(t);
@@ -81,7 +90,7 @@ thread_halt(const struct Thread *const_t)
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
 
     thread_sched_adjust(t, 0);
-    LIST_REMOVE(t, th_link);
+    thread_unlink(t);
     LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
     t->th_status = thread_halted;
     thread_unpin(t);
@@ -133,6 +142,7 @@ thread_swapin(struct Thread *t)
     t->th_as = 0;
     t->th_pinned = 0;
     t->th_sched_joined = 0;
+    t->th_sync_waiting = 0;
 
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
@@ -163,7 +173,7 @@ thread_swapout(struct Thread *t)
 {
     thread_unpin(t);
     thread_sched_adjust(t, 0);
-    LIST_REMOVE(t, th_link);
+    thread_unlink(t);
 
     thread_clear_as(t);
 }
@@ -245,10 +255,10 @@ int
 thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
 {
     int overflow = 0;
-    uint64_t nbytes = safe_add(&overflow,
-			       sizeof(struct Fpregs),
+    static_assert(sizeof(struct Fpregs) <= PGSIZE);
+    uint64_t nbytes = safe_add(&overflow, PGSIZE,
 			       safe_mul(&overflow,
-					sizeof(struct thread_sync_wait_slot),
+					sizeof(struct sync_wait_slot),
 					nslots));
     if (overflow)
 	return -E_INVAL;

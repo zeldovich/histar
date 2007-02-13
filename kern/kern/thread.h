@@ -31,22 +31,9 @@ struct Thread {
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
-    uint8_t th_waiting_multi : 1;
-    uint32_t th_sched_tickets;		// 32-bit to fit Thread in 512 bytes
-
-    uint64_t th_wakeup_msec;
+    uint8_t th_sync_waiting : 1;
+    uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
-
-    union {
-	struct {
-	    uint64_t th_wakeup_seg_id;
-	    uint64_t th_wakeup_offset;
-	};
-
-	struct {
-	    uint64_t th_multi_slots_used;
-	};
-    };
 
     kobject_id_t th_sched_parents[2];
     union {
@@ -57,12 +44,23 @@ struct Thread {
     LIST_ENTRY(Thread) th_link;
 };
 
-struct thread_sync_wait_slot {
-    uint64_t seg_id;
-    uint64_t offset;
+LIST_HEAD(Thread_list, Thread);
+
+struct sync_wait_slot {
+    uint64_t sw_seg_id;
+    uint64_t sw_offset;
+    const struct Thread *sw_t;
+    LIST_ENTRY(sync_wait_slot) sw_addr_link;
+    LIST_ENTRY(sync_wait_slot) sw_thread_link;
 };
 
-LIST_HEAD(Thread_list, Thread);
+LIST_HEAD(sync_wait_list, sync_wait_slot);
+
+struct Thread_ephemeral {
+    uint64_t te_wakeup_msec;
+    struct sync_wait_list te_wait_slots;
+    struct sync_wait_slot te_sync;
+};
 
 extern struct Thread_list thread_list_runnable;
 extern struct Thread_list thread_list_limbo;

@@ -763,8 +763,7 @@ sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
 {
-    check(check_user_access(addr, sizeof(*addr), 0));
-    check(sync_wait(addr, val, wakeup_at_msec));
+    check(sync_wait(&addr, &val, 1, wakeup_at_msec));
     return 0;
 }
 
@@ -780,7 +779,7 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
     if (overflow)
 	return -E_INVAL;
 
-    check(sync_wait_multi(addrs, vals, num, msec));
+    check(sync_wait(addrs, vals, num, msec));
     return 0;
 }
 

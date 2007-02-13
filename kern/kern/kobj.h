@@ -44,6 +44,9 @@ struct kobject {
 
 	    struct kobj_weak_ptr ko_label_cache[kolabel_max];
 	    struct kobj_weak_refs ko_weak_refs;
+	    union {
+		struct Thread_ephemeral ko_th_e;
+	    };
 	};
     };
 };
