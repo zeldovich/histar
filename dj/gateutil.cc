@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/container.h>
+#include <inc/syscall.h>
 }
 
 #include <async.h>
@@ -48,9 +49,12 @@ dj_gate_call_outgoing(uint64_t ct, uint64_t call_grant, uint64_t call_taint,
     seglabel.set(call_grant, 0);
     seglabel.set(call_taint, 3);
 
+    uint64_t nct = sys_container_alloc(ct, seglabel.to_ulabel_const(),
+				       "dj_gate_call_outgoing ct", 0, CT_QUOTA_INF);
+    error_check(nct);
+
     void *data_map = 0;
-    error_check(segment_alloc(ct, data.len(), segp, &data_map,
-			      seglabel.to_ulabel_const(),
+    error_check(segment_alloc(nct, data.len(), segp, &data_map, 0,
 			      "dj_gate_call_outgoing args"));
     scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
     memcpy(data_map, data.cstr(), data.len());
