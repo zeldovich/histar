@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/errno.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
+#include <inc/gateinvoke.hh>
 
 #define GATE_EXEC_CALL		0
 #define GATE_EXEC_RETURN	1
@@ -46,6 +47,7 @@ class gate_exec : public djcallexec {
 	    cm_->acquire(args.grant, true);
 	    cm_->acquire(args.taint, true);
 
+	    proc_ct_ = start_env->proc_container;
 	    gc_ = New gate_call(COBJ(gate.gate_ct, gate.gate_id),
 				&args.taint, &args.grant, &args.taint);
 
@@ -103,10 +105,32 @@ class gate_exec : public djcallexec {
 	gate_exec *ge = (gate_exec *) arg;
 	ge->gc_->call(&ge->gcd_, &ge->call_vl_, &ge->call_vc_, &gate_exec::gate_return_cb, ge);
 
-	/*
-	 * XXX
-	 * might need to declassify ourselves at this point..
-	 */
+	if (ge->proc_ct_ != start_env->proc_container) {
+	    cobj_ref save_taint_seg;
+	    dj_gate_call_save_taint(ge->gcd_.taint_container,
+				    &ge->gcd_, &save_taint_seg);
+
+	    label tl, tc;
+	    thread_cur_label(&tl);
+	    tl.transform(label::star_to, tl.get_default());
+	    ge->cm_->acquire(tl);
+
+	    thread_cur_label(&tl);
+	    thread_cur_clearance(&tc);
+
+	    label gl, gc;
+	    gate_compute_labels(ge->gc_->return_gate(), 0, &tl, &tc, &gl, &gc);
+
+	    label vl(3), vc(0);
+	    vl.set(start_env->process_grant, 0);
+	    error_check(sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel()));
+
+	    gate_call_data *d = (gate_call_data *) tls_gate_args;
+	    d->param_obj = save_taint_seg;
+	    d->call_grant = start_env->process_grant;
+	    gate_invoke(ge->gc_->return_gate(), &gl, &gc, 0, 0);
+	    fatal << "gate_exec::gate_call_thread: untainted return call returned\n";
+	}
 
 	thread_cur_verify(&ge->reply_vl_, &ge->reply_vc_);
 	ge->cm_->import(ge->reply_vl_, ge->gc_->call_grant(), ge->gc_->call_taint());
@@ -134,6 +158,10 @@ class gate_exec : public djcallexec {
 	fdcb(pipes_[0], selread, 0);
 
 	try {
+	    // If we did untainting, restore the saved state.
+	    if (reply_vl_.get(start_env->process_grant) == 0)
+		dj_gate_call_load_taint(gcd_.param_obj, &gcd_, &reply_vl_, &reply_vc_);
+
 	    cm_->acquire(reply_vl_, true, gc_->call_grant(), gc_->call_taint());
 
 	    djcall_args ra;
@@ -157,6 +185,7 @@ class gate_exec : public djcallexec {
     atomic_t state_;
     int pipes_[2];
     ptr<catmgr> cm_;
+    uint64_t proc_ct_;
 };
 
 ptr<djcallexec>
