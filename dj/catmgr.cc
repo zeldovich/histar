@@ -20,6 +20,10 @@ class histar_catmgr : public catmgr {
 	    timecb_remove(droptmo_);
     }
 
+    virtual uint64_t keycat() {
+	return ps_key_;
+    }
+
     virtual uint64_t alloc() {
 	int64_t cat = handle_alloc();
 	if (cat < 0) {
