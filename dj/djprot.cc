@@ -14,7 +14,7 @@
  * XXX
  *
  * Expirations of non-address delegations are not used for
- * category garbage-collection or call timeouts.
+ * category garbage-collection..
  */
 
 enum {
@@ -632,7 +632,16 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	/* XXX check c.ts */
+	time_t now = time(0);
+	if (c.ts > now + call_timestamp_skew || c.ts < now - call_timestamp_skew) {
+	    warn << "expired or future call, ts " << c.ts << "\n";
+	    return;
+	}
+
+	/*
+	 * XXX
+	 * check sequence number for call, expire when ts expires?
+	 */
 
 	djcall_id cid;
 	cid.key = c.from;
