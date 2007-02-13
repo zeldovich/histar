@@ -18,6 +18,7 @@ public:
     uint64_t call_ct() { return call_ct_obj_.object; }
     uint64_t call_taint() { return call_taint_; }
     uint64_t call_grant() { return call_grant_; }
+    cobj_ref return_gate() { return return_gate_; }
 
     void call(gate_call_data *gcd,
 	      const label *verify_label = 0,		// { 3 } for none
