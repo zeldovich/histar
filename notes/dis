@@ -204,3 +204,9 @@ How to resolve this with inherently unreliable distributed system semantics?
 Reply label should never be less than the request label, without explicit
 declassification (e.g. error codes should never be less tainted than request).
 
+Tainted thread enters djd gate.  It's almost impossible for it to be guaranteed
+a consistent AS checkpoint for long enough to copy it, because the untainted
+djd doesn't know when the GC old AS'es (or it could leave them around forever,
+but that's lame).  In practice this might not matter, and perhaps it can keep
+retrying until it succeeds, but it might never succeed.
+
