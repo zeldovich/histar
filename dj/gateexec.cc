@@ -44,6 +44,16 @@ class gate_exec : public djcallexec {
 
     virtual void start(const dj_gatename &gate, const djcall_args &args) {
 	try {
+	    if (dj_label_debug) {
+		label tl, tc;
+		thread_cur_label(&tl);
+		thread_cur_clearance(&tc);
+		warn << "gate_exec::start: tl " << tl.to_string()
+		     << ", tc " << tc.to_string() << "\n";
+		warn << "gate_exec::start: grant " << args.grant.to_string()
+		     << ", taint " << args.taint.to_string() << "\n";
+	    }
+
 	    cm_->acquire(args.grant, true);
 	    cm_->acquire(args.taint, true);
 

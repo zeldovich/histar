@@ -9,6 +9,8 @@ extern "C" {
 #include <async.h>
 #include <dj/dj.h>
 
+enum { dj_label_debug = 0 };
+
 struct djcall_args {
     str data;
     label taint;

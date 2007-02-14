@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/container.h>
 #include <inc/syscall.h>
+#include <inc/stdio.h>
 }
 
 #include <async.h>
@@ -15,12 +16,20 @@ dj_gate_call_incoming(const cobj_ref &seg, const label &vl, const label &vc,
 		      uint64_t call_grant, uint64_t call_taint,
 		      label *argtaint, label *arggrant, str *data)
 {
+    if (dj_label_debug)
+	warn << "dj_gate_call_incoming: vl " << vl.to_string()
+	     << ", vc " << vc.to_string() << "\n";
+
     label l;
     obj_get_label(COBJ(seg.container, seg.container), &l);
+    if (dj_label_debug)
+	warn << "dj_gate_call_incoming: ct label " << l.to_string() << "\n";
     error_check(vl.compare(&l, label::leq_starlo));
     error_check(l.compare(&vc, label::leq_starhi));
 
     obj_get_label(seg, &l);
+    if (dj_label_debug)
+	warn << "dj_gate_call_incoming: seg label " << l.to_string() << "\n";
     error_check(vl.compare(&l, label::leq_starlo));
     error_check(l.compare(&vc, label::leq_starhi));
 
@@ -49,9 +58,22 @@ dj_gate_call_outgoing(uint64_t ct, uint64_t call_grant, uint64_t call_taint,
     seglabel.set(call_grant, 0);
     seglabel.set(call_taint, 3);
 
-    uint64_t nct = sys_container_alloc(ct, seglabel.to_ulabel_const(),
-				       "dj_gate_call_outgoing ct", 0, CT_QUOTA_INF);
-    error_check(nct);
+    int64_t nct = sys_container_alloc(ct, seglabel.to_ulabel_const(),
+				      "dj_gate_call_outgoing ct", 0, CT_QUOTA_INF);
+    if (nct < 0) {
+	if (dj_label_debug) {
+	    label tl, ctl;
+	    thread_cur_label(&tl);
+	    obj_get_label(COBJ(ct, ct), &ctl);
+
+	    warn << "dj_gate_call_outgoing: ct alloc: " << e2s(nct) << "\n";
+	    warn << "parent ct label: " << ctl.to_string() << "\n";
+	    warn << "thread label: " << tl.to_string() << "\n";
+	    warn << "new ct label: " << seglabel.to_string() << "\n";
+	}
+
+	error_check(nct);
+    }
 
     void *data_map = 0;
     error_check(segment_alloc(nct, data.len(), segp, &data_map, 0,
