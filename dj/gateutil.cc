@@ -10,6 +10,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <dj/gateutil.hh>
+#include <dj/dis.hh>
 
 void
 dj_gate_call_incoming(const cobj_ref &seg, const label &vl, const label &vc,
