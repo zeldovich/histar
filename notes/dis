@@ -212,3 +212,14 @@ retrying until it succeeds, but it might never succeed.
 
 Label for some error replies: L_N \cup L_M (network & message label)
 
+Local gate calls (i.e. gateexec) are reliable, and moreover, djd should have
+ownership of any category with which the reply is tainted.  As a result of
+the latter, it's easy to distinguish between timeout and tainted reply, and
+there's no need to time out..  Remote gate calls are unreliable: the request
+or the reply could get lost, or the remote node could be down.  Can timeout
+if the taint level of the reply is the same as the caller's taint level.
+Otherwise, no idea whether reply arrived or not.  So, dynamic tainting is
+not a good fit for RPC?  Requiring reply to have the same taint level as
+the request simplifies a number of issues with error code labels as well.
+Can still grant category ownership both ways.
+
