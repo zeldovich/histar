@@ -108,6 +108,7 @@ acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" ); \
 	fi
+	touch $@
 
 .PRECIOUS: acpkg/%/__patch
 acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
