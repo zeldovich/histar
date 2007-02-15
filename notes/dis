@@ -223,3 +223,28 @@ not a good fit for RPC?  Requiring reply to have the same taint level as
 the request simplifies a number of issues with error code labels as well.
 Can still grant category ownership both ways.
 
+===
+
+Should be able to grant higher clearance over the network.
+
+For gate calls, need to explicitly specify the container in which to make the
+gate call.  Pushes resource revocation problems to a higher level.  Resource
+allocation daemon (completely up to the user) will revoke after timeout.
+
+Resource allocation for exporter's privstore still unclear..
+
+Possible solution to return-value problems: separate the call/message delivery
+status (timed out, bad delegation, no address, gate call error, delivered) from
+the actual reply.  This maybe suggests we should have a uni-directional message
+delivery mechanism, and replay caching outside of the exporter daemon.
+
+Message could be delivered without retransmit (in which case no delivery status
+is given to the sender), or with retransmit and timeout (in which case either a
+remote status or timeout is returned to the sender).  Standard RPC: caller sets
+retransmit&timeout, responder does reply caching and sends without retransmit.
+To get responses with a higher taint level than the sender had, both caller and
+responder have to retransmit, with responder having an infinite timeout(!).
+
+Now we just need a naming scheme for endpoints.  Should be able to name bipipes
+(fixed label) and gates (flexible label, and can grant label & clearance).
+
