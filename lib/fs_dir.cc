@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
+#include <inc/scopedprof.hh>
 
 static int fs_debug = 0;
 
@@ -116,7 +117,8 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
 }
 
 static int
-fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
+fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o, 
+	      struct fs_mount_table *mtab)
 {
     if (fs_debug)
 	cprintf("fs_lookup_one: dir %ld fn %s\n",
@@ -127,23 +129,16 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o)
 	return 0;
     }
 
-    struct fs_mount_table *mtab = 0;
-    uint64_t mtlen = sizeof(*mtab);
-    int r = segment_map(start_env->fs_mtab_seg, 0, SEGMAP_READ,
-			(void **) &mtab, &mtlen, 0);
-    if (r >= 0) {
+    if (mtab) {
 	for (int i = 0; i < FS_NMOUNT; i++) {
 	    struct fs_mtab_ent *mnt = &mtab->mtab_ent[i];
 	    if (mnt->mnt_dir.obj.object == dir.obj.object &&
 		!strcmp(&mnt->mnt_name[0], fn))
 	    {
 		*o = mnt->mnt_root;
-		segment_unmap_delayed(mtab, 1);
 		return 0;
 	    }
 	}
-
-	segment_unmap_delayed(mtab, 1);
     }
 
     try {
@@ -170,6 +165,16 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 {
     *o = dir;
 
+    struct fs_mount_table *mtab = 0;
+    uint64_t mtlen = sizeof(*mtab);
+    int r = segment_map(start_env->fs_mtab_seg, 0, SEGMAP_READ,
+			(void **) &mtab, &mtlen, 0);
+    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, mtab, 1);
+    if (r < 0) {
+	unmap.dismiss();
+	mtab = 0;
+    }
+        
     while (pn[0] != '\0') {
 	const char *name_end = strchr(pn, '/');
 	const char *next_pn = name_end ? name_end + 1 : "";
@@ -183,7 +188,7 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 	fn[namelen] = '\0';
 
 	if (fn[0] != '\0') {
-	    int r = fs_lookup_one(*o, &fn[0], o);
+	    r = fs_lookup_one(*o, &fn[0], o, mtab);
 	    if (r < 0)
 		return r;
 	}
@@ -197,6 +202,7 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 int
 fs_namei(const char *pn, struct fs_inode *o)
 {
+    scoped_prof _d;
     struct fs_inode d = pn[0] == '/' ? start_env->fs_root : start_env->fs_cwd;
     return fs_lookup_path(d, pn, o);
 }
