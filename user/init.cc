@@ -98,6 +98,10 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
 				    0, CT_QUOTA_INF));
 
+    // create a /fs directory
+    struct fs_inode fs_root;
+    error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
+
     // create a /home directory
     struct fs_inode home;
     error_check(fs_mkdir(start_env->fs_root, "home", &home, 0));
