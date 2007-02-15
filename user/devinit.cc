@@ -13,7 +13,7 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/scopeguard.hh>
 
-void 
+static void 
 spawn_dev(const char *pn, const char *ct, const char *h_grant, label *ds)
 {
     struct child_process cp;
@@ -32,6 +32,14 @@ spawn_dev(const char *pn, const char *ct, const char *h_grant, label *ds)
     } catch (std::exception &e) {
 	cprintf("spawn_dev(%s): %s\n", pn, e.what());
     }
+}
+
+static void
+create_chardevs(uint64_t dev_ct)
+{
+    label l(1);
+    error_check(sys_segment_create(dev_ct, 0, l.to_ulabel(), "null"));
+    error_check(sys_segment_create(dev_ct, 0, l.to_ulabel(), "zero"));
 }
 	  
 int
@@ -61,6 +69,7 @@ main (int ac, char **av)
 	snprintf(&grant_buf[0], sizeof(grant_buf), "%lu", h_grant);
 
 	spawn_dev("/bin/devpt", shared_buf, grant_buf, &ds_hgrant);
+	create_chardevs(dev_ct);
     } catch (basic_exception e) {
 	cprintf("dev fatal: %s\n", e.what());
 	exit(-1);
