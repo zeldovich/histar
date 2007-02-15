@@ -6,6 +6,7 @@
 #include <inc/utrap.h>
 #include <inc/gateparam.h>
 #include <inc/debug_gate.h>
+#include <inc/prof.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -39,6 +40,7 @@ setup_env(uint64_t envaddr, uint64_t arg1)
     // unlike a bootstrap process.
     start_env = (start_env_t *) envaddr;
     start_env->taint_cow_as = COBJ(0, 0);
+    prof_init(0);
 
     extern const char *__progname;
     __progname = &start_env->args[0];
