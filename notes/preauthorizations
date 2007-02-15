@@ -1,0 +1,30 @@
+container hierarchy, deallocate preauthorization
+    fundamental if you want to have a root container at { 1 } but
+    sub-containers at level 0.  fate-sharing ensures there's only
+    one violation of "non-interference" -- full deallocation.
+
+gate label: can lower the thread label
+    anyone who can invoke a gate (below gate verify & above container label)
+    can lower their thread's label in any category mapped to a star in the
+    gate label (and at the same time possibly required to jump to some other
+    address space & program counter).
+
+gate clearance: resource-allocation preauthorization
+    anyone who can invoke a gate (i.e. below gate's verify label and
+    above the label of container in which the gate is created) is
+    preauthorized to allocate a thread and associated thread-local
+    segment using the clearance of the gate.  (otherwise they might
+    not have been able to allocate anything so tainted.)
+
+DMA
+    preauthorizing a device to write to a page of memory at a later time,
+    even if the thread that scheduled the DMA exits.  may be made explicit
+    with user-level device drivers -- the device's IOMMU page table will
+    make it explicit..
+
+    still, not a very big deal due to static device labels..
+
+    also, DMA requires either expensive memory copies at every snapshot,
+    or that the device driver can learn when the system restarts.
+    probably not a big deal because the device itself will restart too.
+
