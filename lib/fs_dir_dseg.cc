@@ -35,18 +35,13 @@ struct fs_directory {
 fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
     : writable_(writable), locked_(false), ino_(dir)
 {
-    int64_t r = sys_container_get_slot_id(ino_.obj.object, 0);
-    if (r < 0)
-	throw missing_dir_segment(r, "sys_container_get_slot_id");
+    struct fs_object_meta meta;
+    error_check(sys_obj_get_meta(ino_.obj, &meta));
+    
+    if (!meta.dseg_id)
+	throw missing_dir_segment(-E_NOT_FOUND, "segment id not in meta data");
 
-    dseg_ = COBJ(ino_.obj.object, r);
-
-    char name[KOBJ_NAME_LEN];
-    r = sys_obj_get_name(dseg_, &name[0]);
-    if (r < 0)
-	throw missing_dir_segment(r, "sys_obj_get_name");
-    if (strcmp(&name[0], "directory segment"))
-	throw missing_dir_segment(-E_NOT_FOUND, &name[0]);
+    dseg_ = COBJ(ino_.obj.object, meta.dseg_id);
 
     dir_ = 0;
     uint64_t perm = SEGMAP_READ;
@@ -237,7 +232,7 @@ fs_dir_dseg::refresh()
     }
 }
 
-void
+uint64_t
 fs_dir_dseg::init(fs_inode dir)
 {
     label l;
@@ -246,6 +241,7 @@ fs_dir_dseg::init(fs_inode dir)
     struct cobj_ref dseg;
     error_check(segment_alloc(dir.obj.object, PGSIZE, &dseg,
 			      0, l.to_ulabel(), "directory segment"));
+    return dseg.object;
 }
 
 // Directory segment caching

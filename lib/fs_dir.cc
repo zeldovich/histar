@@ -219,8 +219,13 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 	return id;
 
     o->obj = COBJ(dir.obj.object, id);
+    scope_guard<int, cobj_ref> unref(sys_obj_unref, o->obj);
     try {
-	fs_dir_dseg::init(*o);
+	uint64_t dseg_id = fs_dir_dseg::init(*o);
+	struct fs_object_meta meta;
+	error_check(sys_obj_get_meta(o->obj, &meta));
+	meta.dseg_id = dseg_id;
+	error_check(sys_obj_set_meta(o->obj, 0, &meta));
     } catch (error &e) {
 	cprintf("fs_mkdir: %s\n", e.what());
 	return e.err();
@@ -231,10 +236,10 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 	scope_guard<void, fs_dir *> g(delete_obj, d);
 	d->insert(fn, *o);
     } catch (error &e) {
-	sys_obj_unref(o->obj);
 	return e.err();
     }
-
+    
+    unref.dismiss();
     return 0;
 }
 

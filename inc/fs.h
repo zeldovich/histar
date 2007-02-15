@@ -45,7 +45,8 @@ struct fs_object_meta {
     uint64_t mtime_msec;
     uint64_t ctime_msec;
     uint64_t f_type;
-    uint64_t pad[5];
+    uint64_t dseg_id;
+    uint64_t pad[4];
 };
 
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);

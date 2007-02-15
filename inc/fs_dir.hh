@@ -63,7 +63,7 @@ public:
     void unlock();
     void refresh();
 
-    static void init(fs_inode dir);
+    static uint64_t init(fs_inode dir);
 
 private:
     void check_writable();
