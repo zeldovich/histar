@@ -157,6 +157,25 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 ## ftp://ftp.gnu.org/gnu/a2ps/a2ps-4.13b.tar.gz
 $(OBJDIR)/acpkg/bin/a2ps: acpkg/a2ps-4.13/__build
 
+$(OBJDIR)/user/a2ps.tar: OLD_SHARE = $(TOP)/$(OBJDIR)/acpkg/share/a2ps
+$(OBJDIR)/user/a2ps.tar: FLAT_SHARE = $(TOP)/$(OBJDIR)/acpkg/flat_share/share/a2ps
+$(OBJDIR)/user/a2ps.tar:  acpkg/a2ps-4.13/__build
+	rm -f $@
+	rm -rf $(FLAT_SHARE)
+	@mkdir -p $(FLAT_SHARE)
+	cp $(OLD_SHARE)/afm/* $(FLAT_SHARE)
+	cp $(OLD_SHARE)/encoding/* $(FLAT_SHARE)
+	cp $(OLD_SHARE)/fonts/* $(FLAT_SHARE)
+	cp $(OLD_SHARE)/ppd/* $(FLAT_SHARE)
+	cp $(OLD_SHARE)/ps/* $(FLAT_SHARE)
+	cp $(OLD_SHARE)/sheets/* $(FLAT_SHARE)
+
+	echo "LibraryPath: /share/a2ps" >> $(TOP)/$(OBJDIR)/acpkg/etc/a2ps-site.cfg
+
+	tar -cf $@ -C $(TOP)/$(OBJDIR)/acpkg/flat_share share/a2ps
+	tar -rf $@ -C / $(TOP)/$(OBJDIR)/acpkg/etc/a2ps.cfg \
+		        $(TOP)/$(OBJDIR)/acpkg/etc/a2ps-site.cfg
+
 ## http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 ## [ cross-build instructions for ghostscript from:
 ##   http://www.cs.wisc.edu/~ghost/doc/cvs/Make.htm ]
@@ -197,13 +216,9 @@ acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile $(ACPKG_
 
 $(OBJDIR)/acpkg/bin/gs: acpkg/ghostscript-8.54-gpl/__build
 
-$(OBJDIR)/user/a2psgs.tar: acpkg/ghostscript-8.54-gpl/__build \
-			   acpkg/a2ps-4.13/__build \
-			   $(ACPKG_GS_FONTS)
+$(OBJDIR)/user/gs.tar: acpkg/ghostscript-8.54-gpl/__build $(ACPKG_GS_FONTS)
 	rm -f $@
 	tar -cf $@ -C / $(TOP)/$(OBJDIR)/acpkg/share/ghostscript/8.54/lib \
-			$(TOP)/$(OBJDIR)/acpkg/share/a2ps \
-			$(TOP)/$(OBJDIR)/acpkg/etc \
 		   	$(TOP)/$(OBJDIR)/acpkg/share/fonts
 
 ## http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
