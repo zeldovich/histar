@@ -25,26 +25,9 @@ static int label_debug = 0;
 struct child_process
 spawn(spawn_descriptor *sd)
 {
-    return spawn(sd->ct_, sd->elf_ino_, 
-		 sd->fd0_, sd->fd1_, sd->fd2_,
-		 sd->ac_, sd->av_, sd->envc_, sd->envv_,
-		 sd->cs_, sd->ds_, sd->cr_, sd->dr_, sd->co_,
-		 sd->spawn_flags_, sd->fs_mtab_seg_);
-}
-
-struct child_process
-spawn(uint64_t container, struct fs_inode elf_ino,
-      int fd0, int fd1, int fd2,
-      int ac, const char **av,
-      int envc, const char **envv,
-      label *cs, label *ds, label *cr, label *dr,
-      label *contaminate_object,
-      int spawn_flags, 
-      struct cobj_ref fs_mtab_seg)
-{
     label tmp, out;
-    bool autogrant = !(spawn_flags & SPAWN_NO_AUTOGRANT);
-    bool uinit_style = (spawn_flags & SPAWN_UINIT_STYLE);
+    bool autogrant = !(sd->spawn_flags_ & SPAWN_NO_AUTOGRANT);
+    bool uinit_style = (sd->spawn_flags_ & SPAWN_UINIT_STYLE);
 
     // Compute receive label for new process
     label thread_clear(2);
@@ -53,12 +36,12 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     thread_clear.merge(&tmp, &out, label::min, label::leq_starhi);
     thread_clear = out;
 
-    if (cr) {
-	thread_clear.merge(cr, &out, label::min, label::leq_starhi);
+    if (sd->cr_) {
+	thread_clear.merge(sd->cr_, &out, label::min, label::leq_starhi);
 	thread_clear = out;
     }
-    if (dr) {
-	thread_clear.merge(dr, &out, label::max, label::leq_starhi);
+    if (sd->dr_) {
+	thread_clear.merge(sd->dr_, &out, label::max, label::leq_starhi);
 	thread_clear = out;
     }
 
@@ -70,12 +53,12 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     thread_label.merge(&tmp, &out, label::max, label::leq_starlo);
     thread_label = out;
 
-    if (cs) {
-	thread_label.merge(cs, &out, label::max, label::leq_starlo);
+    if (sd->cs_) {
+	thread_label.merge(sd->cs_, &out, label::max, label::leq_starlo);
 	thread_label = out;
     }
-    if (ds) {
-	thread_label.merge(ds, &out, label::min, label::leq_starlo);
+    if (sd->ds_) {
+	thread_label.merge(sd->ds_, &out, label::min, label::leq_starlo);
 	thread_label = out;
     }
 
@@ -85,9 +68,8 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     integrity_object_label.transform(label::star_to,
 				     integrity_object_label.get_default());
     label proc_object_label(integrity_object_label);
-    if (contaminate_object) {
-	proc_object_label.merge(contaminate_object, &out,
-				label::max, label::leq_starlo);
+    if (sd->co_) {
+	proc_object_label.merge(sd->co_, &out, label::max, label::leq_starlo);
 	proc_object_label = out;
     }
 
@@ -126,17 +108,17 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     // Now spawn with computed labels
     struct cobj_ref elf;
-    fs_get_obj(elf_ino, &elf);
+    fs_get_obj(sd->elf_ino_, &elf);
 
     char name[KOBJ_NAME_LEN];
     error_check(sys_obj_get_name(elf, &name[0]));
 
-    int64_t c_top = sys_container_alloc(container,
+    int64_t c_top = sys_container_alloc(sd->ct_,
 					integrity_object_label.to_ulabel(),
 					&name[0], 0, CT_QUOTA_INF);
     error_check(c_top);
 
-    struct cobj_ref c_top_ref = COBJ(container, c_top);
+    struct cobj_ref c_top_ref = COBJ(sd->ct_, c_top);
     scope_guard<int, struct cobj_ref> c_top_drop(sys_obj_unref, c_top_ref);
 
     int64_t c_proc = sys_container_alloc(c_top,
@@ -148,7 +130,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     memset(&e, 0, sizeof(e));
     error_check(elf_load(c_proc, elf, &e, 0));
 
-    int fdnum[3] = { fd0, fd1, fd2 };
+    int fdnum[3] = { sd->fd0_, sd->fd1_, sd->fd2_ };
     for (int i = 0; !uinit_style && i < 3; i++) {
 	struct Fd *fd;
 	error_check(fd_lookup(fdnum[i], &fd, 0, 0));
@@ -194,8 +176,10 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     spawn_env->process_taint = process_taint;
     spawn_env->process_status_seg = exit_status_seg;
     spawn_env->ppid = 0;
-    if (fs_mtab_seg.object)
-	spawn_env->fs_mtab_seg = fs_mtab_seg;
+    if (sd->fs_mtab_seg_.object)
+	spawn_env->fs_mtab_seg = sd->fs_mtab_seg_;
+    if (sd->fs_root_.obj.object)
+	spawn_env->fs_root = sd->fs_root_;
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;
@@ -223,25 +207,25 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     int room = env_size - sizeof(start_env_t);
     char *p = &spawn_env->args[0];
-    for (int i = 0; i < ac; i++) {
-    	size_t len = strlen(av[i]) + 1;
+    for (int i = 0; i < sd->ac_; i++) {
+    	size_t len = strlen(sd->av_[i]) + 1;
     	room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "args overflow env");
-        memcpy(p, av[i], len);
+        memcpy(p, sd->av_[i], len);
     	p += len;
     }
-    spawn_env->argc = ac;
+    spawn_env->argc = sd->ac_;
 
-    for (int i = 0; i < envc; i++) {
-        size_t len = strlen(envv[i]) + 1; 
+    for (int i = 0; i < sd->envc_; i++) {
+        size_t len = strlen(sd->envv_[i]) + 1; 
         room -= len;
         if (room < 0)
             throw error(-E_NO_SPACE, "env vars overflow env");
-        memcpy(p, envv[i], len);
+        memcpy(p, sd->envv_[i], len);
         p += len;
     }
-    spawn_env->envc = envc;
+    spawn_env->envc = sd->envc_;
 
     uint64_t thread_ct = uinit_style ? c_top : c_proc;
     int64_t thread = sys_thread_create(thread_ct, &name[0]);
@@ -260,7 +244,7 @@ spawn(uint64_t container, struct fs_inode elf_ino,
     }
 
     if (uinit_style) {
-	e.te_arg[0] = container;
+	e.te_arg[0] = sd->ct_;
 	e.te_arg[1] = start_env->user_grant;
     } else {
 	e.te_arg[0] = (uint64_t) spawn_env_va;
@@ -275,6 +259,36 @@ spawn(uint64_t container, struct fs_inode elf_ino,
 
     c_top_drop.dismiss();
     return child;
+}
+
+struct child_process
+spawn(uint64_t container, struct fs_inode elf_ino,
+      int fd0, int fd1, int fd2,
+      int ac, const char **av,
+      int envc, const char **envv,
+      label *cs, label *ds, label *cr, label *dr,
+      label *contaminate_object,
+      int spawn_flags, 
+      struct cobj_ref fs_mtab_seg)
+{
+    spawn_descriptor sd;
+    sd.ct_ = container;
+    sd.elf_ino_ = elf_ino;
+    sd.fd0_ = fd0;
+    sd.fd1_ = fd1;
+    sd.fd2_ = fd2;
+    sd.ac_ = ac;
+    sd.av_ = av;
+    sd.envc_ = envc;
+    sd.envv_ = envv;
+    sd.cs_ = cs;
+    sd.ds_ = ds;
+    sd.cr_ = cr;
+    sd.dr_ = dr;
+    sd.co_ = contaminate_object;
+    sd.spawn_flags_ = spawn_flags;
+    sd.fs_mtab_seg_ = fs_mtab_seg;
+    return spawn(&sd);
 }
 
 int

@@ -16,7 +16,10 @@ struct spawn_descriptor {
 	ac_(0), av_(0), envc_(0), envv_(0),
 	cs_(0), ds_(0), cr_(0), dr_(0), co_(0),
 	spawn_flags_(0), 
-	fs_mtab_seg_(COBJ(0,0)) {};
+	fs_mtab_seg_(COBJ(0,0))
+    {
+	fs_root_.obj = COBJ(0, 0);
+    }
     
     uint64_t ct_;
     struct fs_inode elf_ino_;
@@ -38,6 +41,7 @@ struct spawn_descriptor {
 
     int spawn_flags_;
     struct cobj_ref fs_mtab_seg_;
+    struct fs_inode fs_root_;
 };
 
 struct child_process
