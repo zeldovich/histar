@@ -24,7 +24,7 @@ struct fs_mtab_ent {
     struct fs_inode mnt_root;
 };
 
-#define FS_NMOUNT	16
+#define FS_NMOUNT	8
 struct fs_mount_table {
     struct fs_mtab_ent mtab_ent[FS_NMOUNT];
 };
@@ -46,7 +46,8 @@ struct fs_object_meta {
     uint64_t ctime_msec;
     uint64_t f_type;
     uint64_t dseg_id;
-    uint64_t pad[4];
+    uint64_t dev_id;
+    uint64_t pad[3];
 };
 
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);
@@ -67,6 +68,7 @@ void fs_unmount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, const char *mn
 int  fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel *l);
 int  fs_remove(struct fs_inode dir, const char *fn, struct fs_inode f);
 int  fs_link(struct fs_inode dir, const char *fn, struct fs_inode f);
+int  fs_mknod(struct fs_inode dir, const char *fn, uint64_t dev_id, struct fs_inode *ino, struct ulabel *l);
 
 ssize_t fs_pwrite(struct fs_inode f, const void *buf, uint64_t count, uint64_t off);
 ssize_t fs_pread(struct fs_inode f, void *buf, uint64_t count, uint64_t off);

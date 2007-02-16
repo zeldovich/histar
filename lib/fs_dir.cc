@@ -341,3 +341,30 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 	    *dirname = "/";
     }
 }
+
+int  
+fs_mknod(struct fs_inode dir, const char *fn, uint64_t dev_id, 
+	 struct fs_inode *ino, struct ulabel *l)
+{
+    int r;
+
+    r = fs_create(dir, fn, ino, l);
+    if (r < 0)
+	return r;
+    
+    struct fs_object_meta m;
+    r = sys_obj_get_meta(ino->obj, &m);
+    if (r < 0) {
+	fs_remove(dir, fn, *ino);
+	return r;
+    }
+    
+    m.dev_id = dev_id;
+    r = sys_obj_set_meta(ino->obj, 0, &m);
+    if (r < 0) {
+	fs_remove(dir, fn, *ino);
+	return r;
+    }
+    
+    return 0;
+}
