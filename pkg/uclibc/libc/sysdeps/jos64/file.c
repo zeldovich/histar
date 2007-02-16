@@ -122,7 +122,7 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
     if (!(mode & S_IWOTH))
 	label_set_level(&ul, start_env->user_grant, 0, 0);
 
-    uint64_t dev_id;
+    uint32_t dev_id;
 
     if (mode | S_IFREG)
 	dev_id = 'f';
@@ -135,7 +135,7 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
     }
 
     struct fs_inode ino;
-    r = fs_mknod(dir_ino, basename, dev_id, &ino, &ul);
+    r = fs_mknod(dir_ino, basename, dev_id, 0, &ino, &ul);
     free(pn);
     return err_jos2libc(r);
 }
