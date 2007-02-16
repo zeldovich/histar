@@ -101,6 +101,17 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     // create a /fs directory
     struct fs_inode fs_root;
     error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
+    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "bin", bin_dir));
+    
+    // create a /dev directory
+    label ldev(1);
+    
+    struct fs_inode dev;
+    error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
+    struct fs_inode null_ino, zero_ino, tty_ino;
+    fs_mknod(dev, "null", 'n', &null_ino, ldev.to_ulabel());
+    fs_mknod(dev, "zero", 'z', &zero_ino, ldev.to_ulabel());
+    fs_mknod(dev, "tty", 'c', &tty_ino, ldev.to_ulabel());
 
     // create a /home directory
     struct fs_inode home;
