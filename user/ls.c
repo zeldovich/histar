@@ -88,6 +88,12 @@ main(int ac, char **av)
 	    else
 	    type = kobj_str[kobj];
 	    
+	    char dev_id = '-';
+	    struct fs_object_meta m;
+	    r = sys_obj_get_meta(de.de_inode.obj, &m);
+	    if ((r >= 0) && (m.dev_id < 123) && (m.dev_id > 47))
+		dev_id = m.dev_id;
+
 	    struct ulabel *l = label_alloc();
 	    const char *label = 0;
 	    r = sys_obj_get_label(de.de_inode.obj, l);
@@ -108,7 +114,7 @@ main(int ac, char **av)
 
 	    char id[16];
 	    snprintf(id, 32, "%ld", de.de_inode.obj.object);
-	    printf("%-20.20s %-1.1s %-8.8s %s\n", de.de_name, type, id, label);
+	    printf("%-20.20s %-1.1s %c %-8.8s %s\n", de.de_name, type, dev_id, id, label);
 	} else {
 	    printf("%s\n", de.de_name);
 	}
