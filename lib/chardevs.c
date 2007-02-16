@@ -22,6 +22,12 @@ jos_devnull_open(int flags)
     return fd2num(fd);
 }
 
+static int
+null_open(struct fs_inode ino, int flags, uint32_t dev_opt)
+{
+    return jos_devnull_open(flags);
+}
+
 int
 jos_devzero_open(int flags)
 {
@@ -35,6 +41,12 @@ jos_devzero_open(int flags)
     fd->fd_dev_id = devzero.dev_id;
     fd->fd_omode = flags;
     return fd2num(fd);
+}
+
+static int
+zero_open(struct fs_inode ino, int flags, uint32_t dev_opt)
+{
+    return jos_devzero_open(flags);
 }
 
 static ssize_t
@@ -74,6 +86,7 @@ struct Dev devnull = {
     .dev_read = &null_read,
     .dev_write = &null_write,
     .dev_probe = &null_probe,
+    .dev_open = &null_open,
     .dev_close = &null_close,
     .dev_ioctl = &jos_ioctl,
 };
@@ -84,6 +97,7 @@ struct Dev devzero = {
     .dev_read = &zero_read,
     .dev_write = &null_write,
     .dev_probe = &null_probe,
+    .dev_open = &zero_open,
     .dev_close = &null_close,
     .dev_ioctl = &jos_ioctl,
 };

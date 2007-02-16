@@ -4,7 +4,6 @@
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/tun.h>
-#include <inc/rand.h>
 #include <inc/chardevs.h>
 #include <inc/gatefile.h>
 #include <inc/syscall.h>
@@ -74,17 +73,6 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	return jos_tun_open(ino, tun_suffix, flags);
     }
 
-    if (!strcmp("/dev/random", pn))
-	return rand_open(flags);
-    if (!strcmp("/dev/urandom", pn))
-	return rand_open(flags);
-    if (!strcmp("/dev/null", pn))
-	return jos_devnull_open(flags);
-    if (!strcmp("/dev/zero", pn))
-	return jos_devzero_open(flags);
-    if (!strcmp("/dev/tty", pn))
-	return dup(0);
-
     if (!strcmp(pn, "")) {
 	__set_errno(ENOENT);
 	return -1;
@@ -98,6 +86,16 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	    __set_errno(EEXIST);
 	    return -1;
 	}
+
+	struct fs_object_meta m;
+	r = sys_obj_get_meta(ino.obj, &m);
+	struct Dev *dev;
+	// hack,  check if an ascii char between 0 and z
+	if (r >= 0 && (m.dev_id < 123) && (m.dev_id > 47))
+	    if ((dev_lookup((uint8_t)m.dev_id, &dev) >= 0) && dev->dev_open)
+		return dev->dev_open(ino, flags, m.dev_opt);
+	
+	// XXX will go away w/ pty fixup
 	if (sys_obj_get_type(ino.obj) == kobj_gate) {
 	    return gatefile_open(pn, flags);
 	}

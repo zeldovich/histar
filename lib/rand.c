@@ -1,4 +1,3 @@
-#include <inc/rand.h>
 #include <inc/fd.h>
 #include <inc/syscall.h>
 #include <inc/atomic.h>
@@ -15,8 +14,8 @@
 static struct arc4 a4;
 static int a4_inited;
 
-int
-rand_open(int flags)
+static int
+rand_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "rand");
@@ -61,7 +60,7 @@ rand_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 static ssize_t
 rand_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
-    return 0;
+    return len;
 }
 
 static int
@@ -89,5 +88,6 @@ struct Dev devrand = {
     .dev_write = &rand_write,
     .dev_probe = &rand_probe,
     .dev_statsync = &rand_statsync,
+    .dev_open = &rand_open,
     .dev_close = &rand_close,
 };

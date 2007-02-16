@@ -108,10 +108,12 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     
     struct fs_inode dev;
     error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
-    struct fs_inode null_ino, zero_ino, tty_ino;
-    fs_mknod(dev, "null", 'n', &null_ino, ldev.to_ulabel());
-    fs_mknod(dev, "zero", 'z', &zero_ino, ldev.to_ulabel());
-    fs_mknod(dev, "tty", 'c', &tty_ino, ldev.to_ulabel());
+    struct fs_inode null_ino, zero_ino, tty_ino, rand_ino, urand_ino;
+    fs_mknod(dev, "null", 'n', 0, &null_ino, ldev.to_ulabel());
+    fs_mknod(dev, "zero", 'z', 0, &zero_ino, ldev.to_ulabel());
+    fs_mknod(dev, "tty", 'c', 0, &tty_ino, ldev.to_ulabel());
+    fs_mknod(dev, "random", 'r', 0, &rand_ino, ldev.to_ulabel());
+    fs_mknod(dev, "urandom", 'r', 0, &urand_ino, ldev.to_ulabel());
 
     // create a /home directory
     struct fs_inode home;

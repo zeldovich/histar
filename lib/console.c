@@ -37,7 +37,7 @@ opencons(void)
     fd->fd_dev_id = devcons.dev_id;
     fd->fd_omode = O_RDWR;
     fd->fd_isatty = 1;
-    fd->fd_cons.pgid = getpid();
+    fd->fd_cons.pgid = getpgrp();
     
     r = fd_make_public(fd2num(fd), 0);
     if (r < 0) {
@@ -48,6 +48,12 @@ opencons(void)
 
     fd->fd_immutable = 1;
     return fd2num(fd);
+}
+
+static int
+cons_open(struct fs_inode ino, int flags, uint32_t dev_opt)
+{
+    return opencons();
 }
 
 static ssize_t
@@ -194,6 +200,7 @@ struct Dev devcons =
     .dev_name = "cons",
     .dev_read = cons_read,
     .dev_write = cons_write,
+    .dev_open = cons_open,
     .dev_close = cons_close,
     .dev_probe = cons_probe,
     .dev_ioctl = cons_ioctl,
