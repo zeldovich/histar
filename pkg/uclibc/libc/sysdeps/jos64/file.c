@@ -4,6 +4,7 @@
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/syscall.h>
+#include <inc/stat.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -17,6 +18,22 @@
 #include <sys/types.h>
 
 #include <bits/unimpl.h>
+
+static int
+err_jos2libc(int r)
+{
+    if (!r)
+	return 0;
+
+    if (r == -E_LABEL)
+	__set_errno(EACCES);
+    else if (r == -E_NOT_FOUND)
+	__set_errno(ENOENT);
+    else if (r == -E_NO_MEM)
+	__set_errno(ENOMEM);
+    
+    return -1;
+}
 
 int
 mkdir(const char *pn, mode_t mode)
@@ -79,8 +96,48 @@ symlink(const char *oldpath, const char *newpath)
 int 
 mknod(const char *pathname, mode_t mode, dev_t dev)
 {
-    set_enosys();
-    return -1;
+    int r;
+    
+    char *pn = strdup(pathname);
+    const char *dirname;
+    const char *basename;    
+    fs_dirbase(pn, &dirname, &basename);
+
+    struct fs_inode dir_ino;
+    r = fs_namei(dirname, &dir_ino);
+    if (r < 0) {
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    // approximate the mode 
+    uint64_t ent[8];
+    struct ulabel ul =
+	{ .ul_size = sizeof(ent) / sizeof(uint64_t), 
+	  .ul_ent = ent,
+	  .ul_default = 1 };
+
+    if (!(mode & S_IROTH))
+	label_set_level(&ul, start_env->user_taint, 3, 0);
+    if (!(mode & S_IWOTH))
+	label_set_level(&ul, start_env->user_grant, 0, 0);
+
+    uint64_t dev_id;
+
+    if (mode | S_IFREG)
+	dev_id = 'f';
+    else if ((mode | S_IFCHR))
+	dev_id = dev;
+    else {
+	free(pn);
+	set_enosys();
+	return -1;
+    }
+
+    struct fs_inode ino;
+    r = fs_mknod(dir_ino, basename, dev_id, &ino, &ul);
+    free(pn);
+    return err_jos2libc(r);
 }
 
 int
@@ -153,13 +210,25 @@ utime (const char *file, const struct utimbuf *file_times) __THROW
 int
 stat(const char *file_name, struct stat *buf)
 {
+    struct fs_inode ino;
+    int r = fs_namei(file_name, &ino);
+    if (r < 0)
+	return err_jos2libc(r);
+
+    int type = sys_obj_get_type(ino.obj);
+    if (type == kobj_container || type == kobj_segment) {
+	memset(buf, 0, sizeof(*buf));
+	buf->st_dev = 1;	// some apps want a non-zero value
+	buf->st_nlink = 1;
+	return jos_stat(ino, buf);
+    }
+
     int fd = open(file_name, O_RDONLY);
     if (fd < 0)
 	return fd;
 
-    int r = fstat(fd, buf);
+    r = fstat(fd, buf);
     close(fd);
-
     return r;
 }
 
