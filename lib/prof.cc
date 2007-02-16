@@ -92,10 +92,15 @@ prof_print(char use_cprintf)
     if (!enable || !table[0].func_addr)
 	return;
 
+    extern const char *__progname;
+    const char *progn = "(unknown)";
+    if (__progname)
+	progn = __progname;
+
     if (use_cprintf)
-	cprintf("prof_print: results\n");
+	cprintf("prof_print: results for %s\n", progn);
     else
-	printf("prof_print: results\n");
+	printf("prof_print: results for %s\n", progn);
 	
     for (uint64_t i = 0; i < sizeof(table) / sizeof(struct entry); i++) {
 	if (table[i].func_addr) {
