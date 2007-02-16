@@ -343,7 +343,7 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 }
 
 int  
-fs_mknod(struct fs_inode dir, const char *fn, uint64_t dev_id, 
+fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt,
 	 struct fs_inode *ino, struct ulabel *l)
 {
     int r;
@@ -360,6 +360,7 @@ fs_mknod(struct fs_inode dir, const char *fn, uint64_t dev_id,
     }
     
     m.dev_id = dev_id;
+    m.dev_opt = dev_opt;
     r = sys_obj_set_meta(ino->obj, 0, &m);
     if (r < 0) {
 	fs_remove(dir, fn, *ino);
