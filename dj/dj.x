@@ -86,7 +86,7 @@ union dj_message_endpoint switch (dj_endpoint_type type) {
 struct dj_message {
     dj_message_endpoint target;	/* gate or segment to call on delivery */
     unsigned hyper msg_ct;	/* container ID for message segment */
-    unsigned hyper halted;	/* thread halted after sending (0=none) */
+    unsigned hyper token;	/* token returned on sending (0=none) */
     dj_catlist namedcats;	/* globally-translated category names */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */
@@ -105,7 +105,7 @@ enum dj_delivery_code {
 
 union dj_message_status switch (dj_delivery_code code) {
  case DELIVERY_DONE:
-    unsigned hyper thread;	/* 0=none, if not a gate call */
+    unsigned hyper token;	/* 0=none, token issued on delivery */
  default:
     void;
 };

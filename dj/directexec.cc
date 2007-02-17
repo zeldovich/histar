@@ -1,45 +1,22 @@
 #include <dj/directexec.hh>
 
-class direct_exec : public djcallexec {
- public:
-    direct_exec(dj_direct_gatemap *m, djprot::call_reply_cb cb)
-	: m_(m), cb_(cb) {}
-
-    virtual void start(const dj_gatename &gate, const djcall_args &args) {
-	djgate_service_cb *srv = m_->gatemap_[COBJ(gate.gate_ct, gate.gate_id)];
-	if (!srv) {
-	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
-	    return;
-	}
-
-	djcall_args out;
-	if (!((*srv)(args, &out))) {
-	    cb_(REPLY_GATE_CALL_ERROR, (const djcall_args *) 0);
-	    return;
-	}
-
-	cb_(REPLY_DONE, &out);
+void
+dj_direct_gatemap::deliver(const dj_message_endpoint &ep,
+			   const dj_message_args &a,
+			   djprot::delivery_status_cb cb)
+{
+    if (ep.type != ENDPT_GATE) {
+	cb(DELIVERY_REMOTE_ERR, 0);
+	return;
     }
 
-    virtual void abort() {
-	cb_(REPLY_ABORTED, (const djcall_args *) 0);
+    dj_msg_sink *s = gatemap_[COBJ(ep.gate->gate_ct, ep.gate->gate_id)];
+    if (!s) {
+	cb(DELIVERY_REMOTE_ERR, 0);
+	return;
     }
 
- private:
-    dj_direct_gatemap *m_;
-    djprot::call_reply_cb cb_;
-};
-
-ptr<djcallexec>
-dj_direct_gatemap::newexec(djprot::call_reply_cb cb)
-{
-    return New refcounted<direct_exec>(this, cb);
-}
-
-bool
-dj_echo_service(const djcall_args &in, djcall_args *out)
-{
-    warn << "dj_echo_service: data " << in.data << "\n";
-    *out = in;
-    return true;
+    uint64_t token = ++token_;
+    cb(DELIVERY_DONE, token);
+    (*s)(a, token);
 }

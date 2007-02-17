@@ -15,7 +15,7 @@ struct dj_message_args {
     uint32_t send_timeout;	/* seconds */
 
     uint64_t msg_ct;
-    uint64_t halted;
+    uint64_t token;
     vec<uint64_t> namedcats;
     label taint;
     label glabel;
@@ -25,7 +25,7 @@ struct dj_message_args {
     dj_message_args() : send_timeout(0), taint(1), glabel(3), gclear(0) {}
 };
 
-typedef callback<void, const dj_message_args&>::ptr djgate_service_cb;
+typedef callback<void, const dj_message_args&, uint64_t>::ptr dj_msg_sink;
 
 class catmgr : virtual public refcount {
  public:
@@ -72,5 +72,7 @@ void dj_debug_delivery(const dj_message_endpoint&, const dj_message_args&,
 ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();
 ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
+
+void dj_echo_sink(const dj_message_args &a, uint64_t selftoken);
 
 #endif

@@ -7,13 +7,16 @@
 
 class dj_direct_gatemap {
  public:
-    dj_direct_gatemap() : gatemap_() {}
-    ptr<djcallexec> newexec(djprot::call_reply_cb);
-    qhash<cobj_ref, djgate_service_cb> gatemap_;
+    dj_direct_gatemap() : gatemap_(), token_(1) {}
+    void deliver(const dj_message_endpoint&, const dj_message_args&,
+		 djprot::delivery_status_cb);
+    qhash<cobj_ref, dj_msg_sink> gatemap_;
 
  private:
     dj_direct_gatemap(const dj_direct_gatemap&);
     dj_direct_gatemap &operator=(const dj_direct_gatemap&);
+
+    uint64_t token_;
 };
 
 #endif

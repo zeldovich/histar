@@ -252,7 +252,7 @@ class djprot_impl : public djprot {
     void msgarg_hton(const dj_message_args &h, dj_message *n) {
 	n->msg = h.msg;
 	n->msg_ct = h.msg_ct;
-	n->halted = h.halted;
+	n->token = h.token;
 
 	n->namedcats.cats.setsize(h.namedcats.size());
 	for (uint64_t i = 0; i < h.namedcats.size(); i++)
@@ -266,7 +266,7 @@ class djprot_impl : public djprot {
     bool msgarg_ntoh(const dj_message &n, dj_message_args *h) {
 	h->msg = str(n.msg.base(), n.msg.size());
 	h->msg_ct = n.msg_ct;
-	h->halted = n.halted;
+	h->token = n.token;
 
 	h->namedcats.setsize(n.namedcats.cats.size());
 	for (uint64_t i = 0; i < n.namedcats.cats.size(); i++)
@@ -483,7 +483,7 @@ class djprot_impl : public djprot {
 	}
     }
 
-    void srvr_send_status(dj_msg_id cid, dj_delivery_code code, uint64_t halted) {
+    void srvr_send_status(dj_msg_id cid, dj_delivery_code code, uint64_t token) {
 	dj_stmt_signed ss;
 	ss.stmt.set_type(STMT_MSG_XFER);
 	ss.stmt.msgx->from = esignpub2dj(k_);
@@ -492,7 +492,7 @@ class djprot_impl : public djprot {
 	ss.stmt.msgx->u.set_op(MSG_STATUS);
 	ss.stmt.msgx->u.stat->set_code(code);
 	if (code == DELIVERY_DONE)
-	    *ss.stmt.msgx->u.stat->thread = halted;
+	    *ss.stmt.msgx->u.stat->token = token;
 
 	if (ss.stmt.msgx->to == esignpub2dj(k_)) {
 	    dj_msg_id cid(ss.stmt.msgx->from, ss.stmt.msgx->xid);
@@ -541,8 +541,8 @@ class djprot_impl : public djprot {
 	}
 
 	dj_delivery_code code = c.u.stat->code;
-	uint64_t halted = (code == DELIVERY_DONE) ? *c.u.stat->thread : 0;
-	cc->cb(code, halted);
+	uint64_t token = (code == DELIVERY_DONE) ? *c.u.stat->token : 0;
+	cc->cb(code, token);
 	clnt_done(cc);
     }
 
