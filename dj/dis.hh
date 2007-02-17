@@ -16,7 +16,7 @@ struct djcall_args {
     label taint;
     label grant;
 
-    djcall_args() : taint(1), grant(3) {}
+    djcall_args() : data(), taint(1), grant(3) {}
 };
 
 typedef callback<bool, const djcall_args&, djcall_args*>::ptr djgate_service_cb;

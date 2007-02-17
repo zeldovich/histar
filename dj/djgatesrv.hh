@@ -29,6 +29,9 @@ class djgatesrv {
     cobj_ref gate() { return gs_; }
 
  private:
+    djgatesrv(const djgatesrv&);
+    djgatesrv &operator=(const djgatesrv&);
+
     static void __attribute__((noreturn))
     gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
 	uint64_t call_taint = gcd->call_taint;

@@ -11,6 +11,9 @@ class djgate_caller {
 			 djcall_args *resp);
 
  private:
+    djgate_caller(const djgate_caller&);
+    djgate_caller &operator=(const djgate_caller&);
+
     cobj_ref djd_;
 };
 

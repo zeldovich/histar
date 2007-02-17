@@ -50,6 +50,9 @@ class catmap {
 
     itree<uint64_t, entry, &entry::local, &entry::llink> l2g_;
     itree<dj_gcat, entry, &entry::global, &entry::glink> g2l_;
+
+    catmap(const catmap&);
+    catmap &operator=(const catmap&);
 };
 
 #endif

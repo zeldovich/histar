@@ -28,7 +28,7 @@ class bcast_info_t {
   ifchgcb_t *ifccb;
   void ifinit ();
 
-public:
+ public:
   vec<in_addr> bcast_addrs;
 
   bcast_info_t () : ifccb (NULL) {}
@@ -37,6 +37,10 @@ public:
 
   static int bind_bcast_sock (u_int16_t udpport = 0, bool reuseaddr = false);
   static bool get_bcast_addrs (vec<in_addr> *resp);
+
+ private:
+  bcast_info_t(const bcast_info_t&);
+  bcast_info_t &operator=(const bcast_info_t&);
 };
 
 extern bcast_info_t bcast_info;
@@ -45,7 +49,7 @@ class rpccb_bcast : public rpccb {
   bool checksrc (const sockaddr *) const { return true; }
   void finish (clnt_stat stat);
 
-public:
+ public:
   rpccb_bcast (ref<aclnt> c, xdrsuio &x, aclnt_cb cb,
 	       void *out, xdrproc_t outproc, sockaddr *dest)
     : rpccb (c, x, cb, out, outproc, dest) {}
