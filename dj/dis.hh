@@ -74,6 +74,32 @@ class dj_gate_factory {
  public:
     virtual ~dj_gate_factory() {}
     virtual dj_message_endpoint create_gate(uint64_t ct, dj_msg_sink) = 0;
+    virtual void destroy(const dj_message_endpoint&) = 0;
+};
+
+class dj_rpc_call {
+ public:
+    typedef callback<void, dj_delivery_code, const dj_message_args*>::ptr call_reply_cb;
+
+    dj_rpc_call(message_sender *s, dj_gate_factory *f, uint64_t rct)
+	: s_(s), f_(f), rct_(rct), rep_created_(false), reply_token_(0),
+	  a_(*(dj_message_args*)0) {}
+    ~dj_rpc_call();
+    void call(const dj_esign_pubkey &node, const dj_message_endpoint &ep,
+	      dj_message_args&, const str&, call_reply_cb cb);
+    void delivery_cb(dj_delivery_code, uint64_t token);
+    void reply_sink(const dj_message_args&, uint64_t token);
+
+ private:
+    message_sender *s_;
+    dj_gate_factory *f_;
+    uint64_t rct_;
+    call_reply_cb cb_;
+    bool rep_created_;
+    dj_esign_pubkey dst_;
+    uint64_t reply_token_;
+    dj_message_endpoint rep_;
+    dj_message_args &a_;
 };
 
 void dj_gate_delivery(ptr<catmgr> cmgr, const dj_message_endpoint&,
@@ -88,6 +114,6 @@ ptr<catmgr> dj_catmgr();
 typedef callback<void, const dj_message_args&, const str&, dj_message_args*>::ptr dj_call_service;
 
 void dj_debug_sink(const dj_message_args&, uint64_t selftoken);
-void dj_call_sink(message_sender*, dj_call_service, const dj_message_args&, uint64_t selftoken);
+void dj_rpc_call_sink(message_sender*, dj_call_service, const dj_message_args&, uint64_t selftoken);
 
 #endif

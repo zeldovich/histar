@@ -31,3 +31,15 @@ dj_direct_gatemap::create_gate(uint64_t ct, dj_msg_sink cb)
     gatemap_.insert(COBJ(ep.gate->gate_ct, ep.gate->gate_id), cb);
     return ep;
 }
+
+void
+dj_direct_gatemap::destroy(const dj_message_endpoint &ep)
+{
+    if (ep.type != EP_GATE) {
+	warn << "dj_direct_gatemap::destroy: not a gate\n";
+	return;
+    }
+
+    cobj_ref cid = COBJ(ep.gate->gate_ct, ep.gate->gate_id);
+    gatemap_.remove(cid);
+}

@@ -10,6 +10,7 @@ class dj_direct_gatemap : public dj_gate_factory {
     dj_direct_gatemap() : gatemap_(), counter_(1) {}
     void deliver(const dj_message_endpoint&, const dj_message_args&, delivery_status_cb);
     virtual dj_message_endpoint create_gate(uint64_t container, dj_msg_sink);
+    virtual void destroy(const dj_message_endpoint &ep);
 
  private:
     dj_direct_gatemap(const dj_direct_gatemap&);
