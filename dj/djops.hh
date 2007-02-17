@@ -9,9 +9,12 @@ extern "C" {
 #include <esign.h>
 #include <dj/dj.h>
 
-struct djcall_id {
+struct dj_msg_id {
     dj_esign_pubkey key;
     uint64_t xid;
+
+    dj_msg_id(const dj_esign_pubkey &k, uint64_t x) : key(k), xid(x) {}
+    operator hash_t() const { return xid; }
 };
 
 inline bool
@@ -33,19 +36,19 @@ operator!=(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
 }
 
 inline bool
-operator<(const djcall_id &a, const djcall_id &b)
+operator<(const dj_msg_id &a, const dj_msg_id &b)
 {
     return a.key < b.key || (a.key == b.key && a.xid < b.xid);
 }
 
 inline bool
-operator==(const djcall_id &a, const djcall_id &b)
+operator==(const dj_msg_id &a, const dj_msg_id &b)
 {
     return a.key == b.key && a.xid == b.xid;
 }
 
 inline bool
-operator!=(const djcall_id &a, const djcall_id &b)
+operator!=(const dj_msg_id &a, const dj_msg_id &b)
 {
     return !(a == b);
 }
@@ -169,9 +172,21 @@ esignpub2dj(const esign_pub &ep)
 }
 
 template<> struct hashfn<cobj_ref> {
-    hashfn () {}
+    hashfn() {}
     hash_t operator() (const cobj_ref &a) const
 	{ return a.container ^ a.object; }
+};
+
+template<> struct hashfn<dj_gcat> {
+    hashfn() {}
+    hash_t operator() (const dj_gcat &a) const
+	{ return a.id; }
+};
+
+template<> struct hashfn<dj_esign_pubkey> {
+    hashfn() {}
+    hash_t operator() (const dj_esign_pubkey &a) const
+	{ str r = a.n.getraw(); return hash_bytes(r.cstr(), r.len()) ^ a.k; }
 };
 
 inline void
