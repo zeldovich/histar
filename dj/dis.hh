@@ -14,6 +14,7 @@ enum { dj_label_debug = 0 };
 struct dj_message_args {
     uint32_t send_timeout;	/* seconds */
 
+    dj_esign_pubkey sender;
     uint64_t msg_ct;
     uint64_t token;
     vec<uint64_t> namedcats;
@@ -79,6 +80,6 @@ ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();
 //ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
 
-void dj_echo_sink(const dj_message_args&, uint64_t selftoken);
+void dj_debug_sink(const dj_message_args&, uint64_t selftoken);
 
 #endif

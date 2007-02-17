@@ -22,9 +22,9 @@ dj_debug_delivery(const dj_message_endpoint &endpt,
 }
 
 void
-dj_echo_sink(const dj_message_args &a, uint64_t token)
+dj_debug_sink(const dj_message_args &a, uint64_t token)
 {
-    warn << "dj_echo_sink: running with token " << token << "\n";
+    warn << "dj_debug_sink: running with token " << token << "\n";
     warn << "container: " << a.msg_ct << "\n";
     warn << "sent token: " << a.token << "\n";
     warn << "named categories:";
@@ -36,3 +36,12 @@ dj_echo_sink(const dj_message_args &a, uint64_t token)
     warn << "grant clear: " << a.gclear << "\n";
     warn << "payload: " << a.msg << "\n";
 }
+
+/*
+void
+dj_echo_sink(const dj_message_args &a, uint64_t token)
+{
+    a.msg_ct = ???;
+
+}
+*/

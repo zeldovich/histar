@@ -523,6 +523,7 @@ class djprot_impl : public djprot {
 	}
 
 	dj_message_args a;
+	a.sender = c.from;
 	if (!msgarg_ntoh(*c.u.req, &a)) {
 	    warn << "process_msg_request: cannot unmarshal message\n";
 	    srvr_send_status(cid, DELIVERY_REMOTE_ERR, 0);

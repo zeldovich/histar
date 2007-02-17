@@ -42,7 +42,8 @@ main(int ac, char **av)
 #ifdef JOS_TEST
     dj_direct_gatemap gm;
 
-    ep = gm.create_gate(1, wrap(&dj_echo_sink));
+    //ep = gm.create_gate(1, wrap(&dj_echo_sink));
+    ep = gm.create_gate(1, wrap(&dj_debug_sink));
     warn << "echo_sink on endpoint " << ep << "\n";
 
     djs->set_catmgr(dj_dummy_catmgr());
