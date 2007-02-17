@@ -154,6 +154,9 @@ fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
 	error_check((parent_id = sys_container_get_parent(ino_.obj.object)));
 	de->de_inode.obj = COBJ(parent_id, parent_id);
 	return 1;
+
+    default:
+	break;
     }
 
 retry:

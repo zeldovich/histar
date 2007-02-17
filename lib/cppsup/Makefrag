@@ -23,5 +23,5 @@ CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
 
 $(OBJDIR)/lib/cppsup/%.o: lib/cppsup/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) $(CPPSUP_INCLUDES) -Werror $(CPPSUP_FLAGS) -c -o $@ $<
+	$(CXX) $(USER_CXXFLAGS) $(CPPSUP_INCLUDES) $(CPPSUP_FLAGS) -c -o $@ $<
 

@@ -93,6 +93,7 @@ gatefile_open(const char *pn, int flags)
     case gf_ret_pts:
 	return pts_open(args.ret.obj0, args.ret.obj1, flags);
     default:
+    case gf_ret_count:
 	cprintf("gatefile_open: unknown return op %d\n", args.ret.op);
 	break;
     }

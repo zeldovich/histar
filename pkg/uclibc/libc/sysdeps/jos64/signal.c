@@ -147,6 +147,9 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 	fprintf(stderr, "[%ld] %s: abort\n", sys_self_id(), __progname);
 	print_backtrace(0);
 	break;
+
+    default:
+	break;
     }
 
     process_exit(0, si->si_signo);

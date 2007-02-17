@@ -84,6 +84,8 @@ hash2(register uint64_t * k, register uint64_t length,
     case 1:
 	a += k[0];
     /* case 0: nothing left to add */
+    default:
+	;
     }
 
     mix64(a, b, c);

@@ -53,6 +53,6 @@ void _panic (const char *file, int line, const char *fmt, ...)
     } while (0)
 
 // static_assert(x) will generate a compile-time error if 'x' is false.
-#define static_assert(x)	switch (x) case 0: case (x):
+#define static_assert(x)	switch (x) default: case 0: case (x):
 
 #endif /* !JOS_KERN_LIB_H */

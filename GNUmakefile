@@ -60,9 +60,10 @@ PERL	:= perl
 # Compiler flags.
 
 COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
-	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute
+	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute \
+	    -Wswitch-default -Wswitch-enum
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
-CXXWARNS := $(COMWARNS) -Wno-non-template-friend
+CXXWARNS := $(COMWARNS) -Wno-non-template-friend -Woverloaded-virtual
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline -Weffc++
 

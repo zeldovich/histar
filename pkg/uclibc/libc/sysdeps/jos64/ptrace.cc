@@ -202,6 +202,14 @@ ptrace(enum __ptrace_request request, ...) __THROW
 	return args.ret;
 
     default:
+    case PTRACE_TRACEME:
+    case PTRACE_PEEKDATA:
+    case PTRACE_PEEKUSER:
+    case PTRACE_POKEDATA:
+    case PTRACE_POKEUSER:
+    case PTRACE_GETFPXREGS:
+    case PTRACE_SETFPXREGS:
+    case PTRACE_SYSCALL:
 	cprintf("ptrace: unknown request %d\n", request);
 	print_backtrace(1);
 	set_enosys();

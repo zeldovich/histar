@@ -119,8 +119,9 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     id = kobject_translate_id(id);
 
     struct kobject *ko;
+    struct kobject_list *head = HASH_SLOT(&ko_hash, id);
 retry:
-    LIST_FOREACH(ko, HASH_SLOT(&ko_hash, id), ko_hash) {
+    LIST_FOREACH(ko, head, ko_hash) {
 	if (ko->hdr.ko_id == id) {
 	    if (ko->hdr.ko_ref == 0)
 		return -E_INVAL;
@@ -259,9 +260,10 @@ kobject_alloc(kobject_type_t type, const struct Label *l,
     }
 
     kobject_negative_remove(kh->ko_id);
+    struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
-    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, kh->ko_id), ko, ko_hash);
+    LIST_INSERT_HEAD(hash_head, ko, ko_hash);
 
     *kp = ko;
     return 0;
@@ -506,7 +508,8 @@ kobject_swapin(struct kobject *ko)
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     if (ko->hdr.ko_ref == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
-    LIST_INSERT_HEAD(HASH_SLOT(&ko_hash, ko->hdr.ko_id), ko, ko_hash);
+    struct kobject_list *hash_head = HASH_SLOT(&ko_hash, ko->hdr.ko_id);
+    LIST_INSERT_HEAD(hash_head, ko, ko_hash);
 
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
@@ -638,6 +641,9 @@ kobject_gc(struct kobject *ko)
 	break;
 
     default:
+    case kobj_dead:
+    case kobj_any:
+    case kobj_ntypes:
 	panic("kobject_gc: unknown kobject type %d", ko->hdr.ko_type);
     }
 
