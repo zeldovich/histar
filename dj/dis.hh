@@ -58,10 +58,16 @@ class djprot : virtual public refcount {
     static ptr<djprot> alloc(uint16_t port);
 };
 
-class djgate_incoming : virtual public refcount {
+class dj_incoming_gate {
  public:
-    virtual ~djgate_incoming() {}
+    virtual ~dj_incoming_gate() {}
     virtual cobj_ref gate() = 0;
+};
+
+class dj_gate_factory {
+ public:
+    virtual ~dj_gate_factory() {}
+    virtual dj_message_endpoint create_gate(uint64_t ct, dj_msg_sink) = 0;
 };
 
 void dj_gate_delivery(ptr<catmgr> cmgr, const dj_message_endpoint&,
@@ -71,8 +77,8 @@ void dj_debug_delivery(const dj_message_endpoint&, const dj_message_args&,
 
 ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();
-ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
+//ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
 
-void dj_echo_sink(const dj_message_args &a, uint64_t selftoken);
+void dj_echo_sink(const dj_message_args&, uint64_t selftoken);
 
 #endif

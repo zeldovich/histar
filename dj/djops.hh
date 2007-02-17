@@ -169,6 +169,20 @@ strbuf_cat(const strbuf &sb, const label &l)
     return sb;
 }
 
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
+{
+    switch (ep.type) {
+    case EP_GATE:
+	sb << "G:" << ep.gate->gate_ct << "." << ep.gate->gate_id;
+	break;
+
+    default:
+	sb << "{unknown EP type " << ep.type << "}";
+    }
+    return sb;
+}
+
 inline dj_esign_pubkey
 esignpub2dj(const esign_pub &ep)
 {

@@ -70,7 +70,7 @@ struct dj_delegation {		/* a speaks-for b, within time window */
  */
 
 enum dj_endpoint_type {
-    ENDPT_GATE = 1
+    EP_GATE = 1
 };
 
 struct dj_gatename {
@@ -79,7 +79,7 @@ struct dj_gatename {
 };
 
 union dj_message_endpoint switch (dj_endpoint_type type) {
- case ENDPT_GATE:
+ case EP_GATE:
     dj_gatename gate;
 };
 

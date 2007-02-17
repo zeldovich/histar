@@ -33,7 +33,7 @@ sndmsg(ptr<djprot> p, str node_pk, dj_message_endpoint endpt)
 int
 main(int ac, char **av)
 {
-    dj_gatename gate;
+    dj_message_endpoint ep;
 
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
@@ -42,10 +42,12 @@ main(int ac, char **av)
 #ifdef JOS_TEST
     dj_direct_gatemap gm;
 
-    gm.gatemap_.insert(COBJ(1, 2), wrap(&dj_echo_sink));
+    ep = gm.create_gate(1, wrap(&dj_echo_sink));
+    warn << "echo_sink on endpoint " << ep << "\n";
 
     djs->set_catmgr(dj_dummy_catmgr());
     djs->set_delivery_cb(wrap(&gm, &dj_direct_gatemap::deliver));
+    sndmsg(djs, djs->pubkey(), ep);
 #else
     ptr<catmgr> cmgr = dj_catmgr();
     //djs->set_callexec(wrap(dj_gate_exec, cmgr));
@@ -56,18 +58,13 @@ main(int ac, char **av)
     //warn << "djd incoming gate: " << ingate << "\n";
 #endif
 
-    dj_message_endpoint ep;
-    ep.set_type(ENDPT_GATE);
-    *ep.gate <<= "1.2";
-    sndmsg(djs, djs->pubkey(), ep);
-
-    if (ac == 2) {
+    if (ac == 3) {
 	str n(av[1]);
 	dj_esign_pubkey k;
 	k.n = bigint(n, 16);
 	k.k = 8;
 
-	//*ep.gate <<= av[2];
+	*ep.gate <<= av[2];
 
 	sndmsg(djs, xdr2str(k), ep);
     }
