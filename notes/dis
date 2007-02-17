@@ -248,3 +248,13 @@ responder have to retransmit, with responder having an infinite timeout(!).
 Now we just need a naming scheme for endpoints.  Should be able to name bipipes
 (fixed label) and gates (flexible label, and can grant label & clearance).
 
+===
+
+Should we have a timestamp on our messages, to ensure that they cannot be
+duplicated by a network attacker forever, consuming resources on the server?
+
+Exporter retransmit should only be allowed when we have a thread triggering
+the send (as opposed to a message via shared memory segment), and retransmit
+should stop when the thread is unreferenced by the caller.  This gives us
+resource accountability.
+
