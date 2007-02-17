@@ -12,20 +12,23 @@ extern "C" {
 #include <map>
 
 class saved_privilege {
-public:
+ public:
     saved_privilege(uint64_t guard, uint64_t h);
     ~saved_privilege() { sys_obj_unref(gate_); }
 
     uint64_t handle() { return handle_; }
     void acquire();
 
-private:
+ private:
+    saved_privilege(const saved_privilege&);
+    saved_privilege &operator=(const saved_privilege&);
+
     uint64_t handle_;
     struct cobj_ref gate_;
 };
 
 class privilege_store {
-public:
+ public:
     privilege_store(uint64_t root_handle);
     ~privilege_store();
 
@@ -35,7 +38,10 @@ public:
     void drop_priv(uint64_t h);
     bool has_priv(uint64_t h);
 
-private:
+ private:
+    privilege_store(const privilege_store&);
+    privilege_store &operator=(const privilege_store&);
+
     uint64_t root_handle_;
     std::map<uint64_t, saved_privilege*> m_;
 };

@@ -21,6 +21,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 struct serial_vec {
+ public:
     serial_vec(char *p, uint32_t n) : p_(p), n_(n), c_(0)  {}
 
     void add(const char *s) {
@@ -41,6 +42,10 @@ struct serial_vec {
     char *p_;
     uint32_t n_;
     uint32_t c_;
+
+ private:
+    serial_vec(const serial_vec&);
+    serial_vec &operator=(const serial_vec&);
 };
 
 static int

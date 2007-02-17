@@ -6,10 +6,9 @@ extern "C" {
 }
 
 class scoped_jthread_lock {
-public:
-    scoped_jthread_lock(jthread_mutex_t *mu) : mu_(mu) {
+ public:
+    scoped_jthread_lock(jthread_mutex_t *mu) : mu_(mu), held_(true) {
 	jthread_mutex_lock(mu_);
-	held_ = true;
     }
 
     ~scoped_jthread_lock() {
@@ -23,16 +22,18 @@ public:
 	}
     }
 
-private:
+ private:
+    scoped_jthread_lock(const scoped_jthread_lock&);
+    scoped_jthread_lock &operator=(const scoped_jthread_lock&);
+
     jthread_mutex_t *mu_;
     bool held_;
 };
 
 class scoped_jthread_trylock {
-public:
-    scoped_jthread_trylock(jthread_mutex_t *mu) : mu_(mu) {
-	acquired_ = jthread_mutex_trylock(mu_);
-    }
+ public:
+    scoped_jthread_trylock(jthread_mutex_t *mu)
+	: mu_(mu), acquired_(jthread_mutex_trylock(mu_)) {}
 
     bool acquired() {
 	return (acquired_ == 0) ? true : false;
@@ -43,7 +44,10 @@ public:
 	    jthread_mutex_unlock(mu_);
     }
 
-private:
+ private:
+    scoped_jthread_trylock(const scoped_jthread_trylock&);
+    scoped_jthread_trylock &operator=(const scoped_jthread_trylock&);
+
     jthread_mutex_t *mu_;
     int acquired_;
 };

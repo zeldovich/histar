@@ -46,7 +46,7 @@ url::~url()
 	free(path_);
 }
 
-tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
+tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1), close_fd_(0)
 {
     uint32_t ip = 0;
     const char *p = hostname;
@@ -81,10 +81,8 @@ tcpconn::tcpconn(const char *hostname, uint16_t port) : fd_(-1)
 	throw basic_exception("connect: %s", strerror(errno));
 }
 
-tcpconn::tcpconn(int fd, char close_fd)
+tcpconn::tcpconn(int fd, char close_fd) : fd_(fd), close_fd_(close_fd)
 {
-    fd_ = fd;
-    close_fd_ = close_fd;
 }
 
 tcpconn::~tcpconn()
@@ -116,12 +114,9 @@ tcpconn::read(char *buf, size_t len)
     return r;
 }
 
-lineparser::lineparser(tcpconn *tc) : tc_(tc)
+lineparser::lineparser(tcpconn *tc)
+    : tc_(tc), size_(4096), buf_((char *) malloc(size_)), pos_(0), valid_(0)
 {
-    pos_ = 0;
-    size_ = 4096;
-    valid_ = 0;
-    buf_ = (char *) malloc(size_);
     if (buf_ == 0)
 	throw std::bad_alloc();
 }

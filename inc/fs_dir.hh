@@ -8,14 +8,14 @@ extern "C" {
 #include <inc/error.hh>
 
 class fs_dir_iterator : public fs_readdir_pos {
-public:
+ public:
     fs_dir_iterator() { a = 0; b = 0; }
 };
 
 // A directory is simply a mapping of names to inodes.
 // Provides a basic lookup() interface based on list().
 class fs_dir {
-public:
+ public:
     virtual ~fs_dir() {}
 
     virtual void insert(const char *name, fs_inode ino) = 0;
@@ -32,25 +32,28 @@ public:
 // - list() enumerates container
 // - insert() and remove() check that this is the right container
 class fs_dir_ct : public fs_dir {
-public:
+ public:
     fs_dir_ct(fs_inode dir) : ino_(dir) {}
 
     virtual void insert(const char *name, fs_inode ino);
     virtual void remove(const char *name, fs_inode ino);
     virtual int list(fs_readdir_pos *i, fs_dent *de);
 
-private:
+ private:
+    fs_dir_ct(const fs_dir_ct&);
+    fs_dir_ct &operator=(const fs_dir_ct&);
+
     fs_inode ino_;
 };
 
 // Segment-based directory
 class missing_dir_segment : public error {
-public:
+ public:
     missing_dir_segment(int r, const char *m) : error(r, "%s", m) {}
 };
 
 class fs_dir_dseg : public fs_dir {
-public:
+ public:
     fs_dir_dseg(fs_inode dir, bool writable);
     virtual ~fs_dir_dseg();
 
@@ -65,7 +68,10 @@ public:
 
     static uint64_t init(fs_inode dir);
 
-private:
+ private:
+    fs_dir_dseg(const fs_dir_dseg&);
+    fs_dir_dseg &operator=(const fs_dir_dseg&);
+
     void check_writable();
     void grow();
 
@@ -79,7 +85,7 @@ private:
 
 // Cached segment-based directory
 class fs_dir_dseg_cached : public fs_dir {
-public:
+ public:
     fs_dir_dseg_cached(fs_inode dir, bool writable);
     virtual ~fs_dir_dseg_cached();
 
@@ -92,28 +98,12 @@ public:
     virtual int list(fs_readdir_pos *i, fs_dent *de)
 	{ return backer_->list(i, de); }
 
-private:
+ private:
+    fs_dir_dseg_cached(const fs_dir_dseg_cached&);
+    fs_dir_dseg_cached &operator=(const fs_dir_dseg_cached&);
+
     fs_dir_dseg *backer_;
     int slot_;
-};
-
-// Non-unionizing MLT support
-class fs_dir_mlt : public fs_dir {
-public:
-    fs_dir_mlt(fs_inode dir) : ino_(dir) {}
-
-    virtual void __attribute__((noreturn)) insert(const char *name, fs_inode ino) {
-	throw error(-E_BAD_OP, "fs_dir_mlt::insert");
-    }
-
-    virtual void __attribute__((noreturn)) remove(const char *name, fs_inode ino) {
-	throw error(-E_BAD_OP, "fs_dir_mlt::remove");
-    }
-
-    virtual int list(fs_readdir_pos *i, fs_dent *de);
-
-private:
-    fs_inode ino_;
 };
 
 #endif

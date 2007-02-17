@@ -9,7 +9,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 class gatesrv_return {
-public:
+ public:
     gatesrv_return(cobj_ref rgate, uint64_t tct, uint64_t gct,
 		   void *stack, uint64_t flags)
 	: rgate_(rgate), thread_ct_(tct), gatecall_ct_(gct), stack_(stack), flags_(flags) {}
@@ -24,7 +24,10 @@ public:
 
     void change_gate(cobj_ref newgate) { rgate_ = newgate; }
 
-private:
+ private:
+    gatesrv_return(const gatesrv_return&);
+    gatesrv_return &operator=(const gatesrv_return&);
+
     static void ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
     void ret_tls(label *tgt_label, label *tgt_clear)
@@ -43,7 +46,7 @@ private:
 typedef void (*gatesrv_entry_t) (void *, gate_call_data *, gatesrv_return *);
 
 class gatesrv_descriptor {
-public:
+ public:
     gatesrv_descriptor()
 	: gate_container_(0), name_(0), as_(COBJ(0, 0)),
 	  label_(0), clearance_(0), verify_(0),
@@ -61,6 +64,10 @@ public:
     void *arg_;
 
     uint64_t flags_;
+
+ private:
+    gatesrv_descriptor(const gatesrv_descriptor&);
+    gatesrv_descriptor &operator=(const gatesrv_descriptor&);
 };
 
 #define GATESRV_KEEP_TLS_STACK		0x01

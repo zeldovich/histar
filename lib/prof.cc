@@ -35,12 +35,10 @@ backtrace_cb(struct _Unwind_Context *ctx, void *arg)
     }
 }
 
-scoped_prof::scoped_prof(void)
+scoped_prof::scoped_prof(void) : func_addr_(0), start_(read_tsc())
 {
-    func_addr_ = 0;
     // watch out for inline
     _Unwind_Backtrace(&backtrace_cb, &func_addr_);
-    start_ = read_tsc();
 }
 
 scoped_prof::~scoped_prof(void)

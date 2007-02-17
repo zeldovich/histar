@@ -15,7 +15,7 @@ extern "C" {
 }
 
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
-    : handle_(h)
+    : handle_(h), gate_()
 {
     // XXX
     // This assumes our default label and clearance levels are
@@ -76,7 +76,7 @@ saved_privilege::acquire()
     thread_label_cache_update(&tl, &tc);
 }
 
-privilege_store::privilege_store(uint64_t h) : root_handle_(h)
+privilege_store::privilege_store(uint64_t h) : root_handle_(h), m_()
 {
 }
 

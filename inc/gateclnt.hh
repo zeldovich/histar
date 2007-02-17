@@ -8,7 +8,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 class gate_call {
-public:
+ public:
     gate_call(cobj_ref gate,
 	      const label *contaminate_label,		// { 0 } for none
 	      const label *decontaminate_label,		// { 3 } for none
@@ -25,7 +25,10 @@ public:
 	      const label *verify_clear = 0,		// { 0 } for none
 	      void (*return_cb)(void*) = 0, void *cbarg = 0);
 
-private:
+ private:
+    gate_call(const gate_call&);
+    gate_call &operator=(const gate_call&);
+
     void set_verify(const label *vl, const label *vc);
 
     int64_t call_taint_, call_grant_;

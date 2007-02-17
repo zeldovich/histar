@@ -69,7 +69,10 @@ return_setup(cobj_ref *g, jos_jmp_buf *jb, uint64_t return_handle, uint64_t ct,
 
 gate_call::gate_call(cobj_ref gate,
 		     const label *cs, const label *ds, const label *dr)
-    : gate_(gate), return_gate_(COBJ(0, 0))
+    : call_taint_(0), call_grant_(0),
+      gate_(gate), call_ct_obj_(COBJ(0, 0)),
+      taint_ct_obj_(COBJ(0, 0)), return_gate_(COBJ(0, 0)),
+      tgt_label_(0), tgt_clear_(0)
 {
     // Create a handle for the duration of this call
     error_check(call_taint_ = handle_alloc());

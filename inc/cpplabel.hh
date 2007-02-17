@@ -11,7 +11,7 @@ typedef level_t (*level_merger) (level_t, level_t, level_comparator);
 typedef level_t (*level_changer) (level_t, int);
 
 class label {
-public:
+ public:
     label();				// dynamic
     label(level_t def);			// dynamic
     label(uint64_t *ents, size_t size);	// non-dynamic
@@ -48,7 +48,7 @@ public:
     static level_t star_to(level_t l, int arg);
     static level_t nonstar_to(level_t l, int arg);
 
-private:
+ private:
     void set_default(level_t l) { ul_.ul_default = l; }
 
     uint64_t *slot_grow(uint64_t handle);

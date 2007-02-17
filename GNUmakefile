@@ -64,7 +64,7 @@ COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
 CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # Too many false positives:
-# -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
+# -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline -Weffc++
 
 #OPTFLAG := -O2
 OPTFLAG := -O3 -march=athlon64

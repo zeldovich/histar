@@ -33,7 +33,8 @@ struct fs_directory {
 };
 
 fs_dir_dseg::fs_dir_dseg(fs_inode dir, bool writable)
-    : writable_(writable), locked_(false), ino_(dir)
+    : writable_(writable), locked_(false), ino_(dir),
+      dseg_(COBJ(0, 0)), dir_(0), dir_end_(0)
 {
     struct fs_object_meta meta;
     error_check(sys_obj_get_meta(ino_.obj, &meta));
@@ -258,6 +259,7 @@ static int dseg_cache_next;
 static jthread_mutex_t dseg_cache_mu;
 
 fs_dir_dseg_cached::fs_dir_dseg_cached(fs_inode dir, bool writable)
+    : backer_(0), slot_(0)
 {
     scoped_jthread_lock l(&dseg_cache_mu);
 

@@ -14,7 +14,7 @@ void delete_obj(T *o) {
 
 template <class R, class T>
 class scope_guard {
-public:
+ public:
     scope_guard(R (*cb)(T), T p) : cb_(cb), p_(p), active_(true) {}
     void dismiss() { active_ = false; }
     ~scope_guard() { force(); }
@@ -30,7 +30,10 @@ public:
 	}
     }
 
-private:
+ private:
+    scope_guard(const scope_guard&);
+    scope_guard &operator=(const scope_guard&);
+
     R (*cb_) (T);
     T p_;
     bool active_;
@@ -38,7 +41,7 @@ private:
 
 template <class R, class T1, class T2>
 class scope_guard2 {
-public:
+ public:
     scope_guard2(R (*cb)(T1, T2), T1 p1, T2 p2) : cb_(cb), p1_(p1), p2_(p2), active_(true) {}
     void dismiss() { active_ = false; }
     ~scope_guard2() { force(); }
@@ -54,7 +57,10 @@ public:
 	}
     }
 
-private:
+ private:
+    scope_guard2(const scope_guard2&);
+    scope_guard2 &operator=(const scope_guard2&);
+
     R (*cb_) (T1, T2);
     T1 p1_;
     T2 p2_;

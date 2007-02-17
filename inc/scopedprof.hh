@@ -6,11 +6,14 @@ extern "C" {
 }
 
 class scoped_prof {
-public:
+ public:
     scoped_prof(void);
     ~scoped_prof(void);
 
-private:
+ private:
+    scoped_prof(const scoped_prof&);
+    scoped_prof &operator=(const scoped_prof&);
+
     void *func_addr_;
     uint64_t start_;
 };

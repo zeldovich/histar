@@ -10,33 +10,29 @@ extern "C" {
 #include <inc/error.hh>
 #include <new>
 
-label::label() : dynamic_(true)
+label::label() : dynamic_(true), ul_()
 {
     ul_.ul_size = 0;
     ul_.ul_ent = 0;
-    ul_.ul_needed = 0;
     reset(LB_LEVEL_UNDEF);
 }
 
-label::label(level_t def) : dynamic_(true)
+label::label(level_t def) : dynamic_(true), ul_()
 {
     ul_.ul_size = 0;
     ul_.ul_ent = 0;
-    ul_.ul_needed = 0;
     reset(def);
 }
 
-label::label(uint64_t *ents, size_t size) : dynamic_(false)
+label::label(uint64_t *ents, size_t size) : dynamic_(false), ul_()
 {
     ul_.ul_size = size;
     ul_.ul_ent = ents;
-    ul_.ul_needed = 0;
     reset(LB_LEVEL_UNDEF);
 }
 
-label::label(const label &o) : dynamic_(true)
+label::label(const label &o) : dynamic_(true), ul_(o.ul_)
 {
-    ul_ = o.ul_;
     if (o.ul_.ul_ent) {
 	size_t sz = ul_.ul_size * sizeof(ul_.ul_ent[0]);
 	ul_.ul_ent = (uint64_t *) malloc(sz);
@@ -112,6 +108,7 @@ label::reset(level_t def)
 {
     ul_.ul_nent = 0;
     ul_.ul_default = def;
+    ul_.ul_needed = 0;
 }
 
 level_t

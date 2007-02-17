@@ -5,17 +5,21 @@
 #include <inc/backtracer.hh>
 
 class basic_exception : public std::exception {
-public:
-    basic_exception() { get_backtrace(false); }
+ public:
+    basic_exception() : bt_(0) { get_backtrace(false); }
     basic_exception(const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
+    basic_exception(const basic_exception&);
+    virtual ~basic_exception() throw ();
 
     void set_msg(const char *msg);
     virtual const char *what() const throw () { return &msg_[0]; }
     void print_where() const;
     void force_backtrace() { get_backtrace(true); }
 
-private:
+ private:
+    basic_exception &operator=(const basic_exception&);
+
     void get_backtrace(bool force);
 
     char msg_[256];
@@ -23,13 +27,13 @@ private:
 };
 
 class error : public basic_exception {
-public:
+ public:
     error(int r, const char *fmt, ...)
 	__attribute__ ((__format__ (__printf__, 3, 4)));
 
     int err() const { return err_; }
 
-private:
+ private:
     int err_;
 };
 

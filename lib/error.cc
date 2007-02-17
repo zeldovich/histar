@@ -4,11 +4,13 @@ extern "C" {
 #include <inc/stdio.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 }
 
 static int exception_enable_backtrace = 0;
 
 basic_exception::basic_exception(const char *fmt, ...)
+    : bt_(0)
 {
     va_list ap;
 
@@ -16,8 +18,21 @@ basic_exception::basic_exception(const char *fmt, ...)
     vsnprintf(&msg_[0], sizeof(msg_), fmt, ap);
     va_end(ap);
 
-    bt_ = 0;
     get_backtrace(false);
+}
+
+basic_exception::basic_exception(const basic_exception &o)
+    : std::exception(o), bt_(0)
+{
+    memcpy(&msg_[0], &o.msg_[0], sizeof(msg_));
+    if (o.bt_)
+	bt_ = new backtracer(*o.bt_);
+}
+
+basic_exception::~basic_exception() throw ()
+{
+    if (bt_)
+	delete bt_;
 }
 
 void
