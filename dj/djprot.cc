@@ -85,7 +85,7 @@ struct msg_client {
     ihash_entry<msg_client> link;
     dj_msg_id id;
     dj_stmt_signed ss;
-    djprot::delivery_status_cb cb;
+    delivery_status_cb cb;
 
     uint32_t tmo;
     uint32_t until;
@@ -122,11 +122,11 @@ class djprot_impl : public djprot {
 
 	make_async(ufd);
 	ux_ = axprt_dgram::alloc(ufd);
-	ux_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
+	ux_->setrcb(wrap(this, &djprot_impl::rcv));
 
 	make_async(bfd);
 	bx_ = axprt_dgram::alloc(bfd);
-	bx_->setrcb(wrap(mkref(this), &djprot_impl::rcv));
+	bx_->setrcb(wrap(this, &djprot_impl::rcv));
 
 	cache_cleanup();
 	send_bcast();
@@ -138,26 +138,19 @@ class djprot_impl : public djprot {
 	msg_client *ncc;
 	for (msg_client *cc = clnt_.first(); cc; cc = ncc) {
 	    ncc = clnt_.next(cc);
-	    clnt_done(cc);
+	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
 	}
 
 	warn << "djprot_impl dead\n";
     }
 
-    virtual str pubkey() const { return xdr2str(esignpub2dj(k_)); }
+    virtual dj_esign_pubkey pubkey() const { return esignpub2dj(k_); }
     virtual void set_label(const label &l) { net_label_ = l; }
     virtual void set_clear(const label &l) { net_clear_ = l; }
 
-    virtual void send(str node_pk, const dj_message_endpoint &endpt,
+    virtual void send(const dj_esign_pubkey &target, const dj_message_endpoint &endpt,
 		      const dj_message_args &args, delivery_status_cb cb)
     {
-	dj_esign_pubkey target;
-	if (!str2xdr(target, node_pk)) {
-	    warn << "call: cannot unmarshal node_pk\n";
-	    cb(DELIVERY_LOCAL_ERR, 0);
-	    return;
-	}
-
 	msg_client *cc = New msg_client(target, ++xid_);
 	cc->cb = cb;
 	cc->until = time(0) + args.send_timeout;
@@ -393,7 +386,9 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    void clnt_done(msg_client *cc) {
+    void clnt_done(msg_client *cc, dj_delivery_code code, uint64_t token) {
+	if (cc->cb)
+	    cc->cb(code, token);
 	if (cc->timecb)
 	    timecb_remove(cc->timecb);
 	clnt_.remove(cc);
@@ -401,13 +396,12 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
-	djprot::delivery_status_cb cb = cc->cb;
+	delivery_status_cb cb = cc->cb;
 	cc->timecb = 0;
 
 	if (!labelcheck_send(*cc->ss.stmt.msgx->u.req,
 			     cc->ss.stmt.msgx->to)) {
-	    clnt_done(cc);
-	    cb(DELIVERY_NO_DELEGATION, 0);
+	    clnt_done(cc, DELIVERY_NO_DELEGATION, 0);
 	    return;
 	}
 
@@ -421,28 +415,23 @@ class djprot_impl : public djprot {
 	str msg = xdr2str(cc->ss);
 	if (!msg) {
 	    warn << "clnt_transmit: cannot encode msg xfer statement\n";
-	    clnt_done(cc);
-	    cb(DELIVERY_LOCAL_ERR, 0);
+	    clnt_done(cc, DELIVERY_LOCAL_ERR, 0);
 	    return;
 	}
 
 	if (!send_message(msg, cc->ss.stmt.msgx->to)) {
-	    clnt_done(cc);
-	    cb(DELIVERY_NO_ADDRESS, 0);
+	    clnt_done(cc, DELIVERY_NO_ADDRESS, 0);
 	    return;
 	}
 
 	time_t now = time(0);
 	if (now >= cc->until) {
-	    clnt_done(cc);
-	    cb(DELIVERY_TIMEOUT, 0);
+	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
 	    return;
 	}
 
 	cc->tmo *= 2;
-	cc->timecb =
-	    delaycb(cc->tmo, wrap(mkref(this),
-				  &djprot_impl::clnt_transmit, cc));
+	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
     }
 
     void addr_remove(pk_addr *a) {
@@ -461,8 +450,7 @@ class djprot_impl : public djprot {
 	    addr_remove(xa);
 	}
 
-	delaycb(cache_cleanup_period,
-		wrap(mkref(this), &djprot_impl::cache_cleanup));
+	delaycb(cache_cleanup_period, wrap(this, &djprot_impl::cache_cleanup));
     }
 
     void process_delegation(const dj_delegation &d) {
@@ -530,8 +518,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	local_delivery_(c.u.req->target, a,
-			wrap(mkref(this), &djprot_impl::srvr_send_status, cid));
+	local_delivery_(c.u.req->target, a, wrap(this, &djprot_impl::srvr_send_status, cid));
     }
 
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
@@ -543,8 +530,7 @@ class djprot_impl : public djprot {
 
 	dj_delivery_code code = c.u.stat->code;
 	uint64_t token = (code == DELIVERY_DONE) ? *c.u.stat->token : 0;
-	cc->cb(code, token);
-	clnt_done(cc);
+	clnt_done(cc, code, token);
     }
 
     void process_msg(const dj_msg_xfer &c) {
@@ -638,8 +624,7 @@ class djprot_impl : public djprot {
 	    //warn << "Sent broadcast delegation to " << inet_ntoa(*ap) << "\n";
 	}
 
-	delaycb(broadcast_period,
-		wrap(mkref(this), &djprot_impl::send_bcast));
+	delaycb(broadcast_period, wrap(this, &djprot_impl::send_bcast));
     }
 
     in_addr myipaddr_;	/* network byte order */
@@ -660,10 +645,9 @@ class djprot_impl : public djprot {
     catmap cmap_;
 };
 
-ptr<djprot>
+djprot *
 djprot::alloc(uint16_t port)
 {
     random_init();
-    ptr<djprot_impl> i = New refcounted<djprot_impl>(port);
-    return i;
+    return New djprot_impl(port);
 }

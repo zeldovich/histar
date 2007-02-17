@@ -27,6 +27,14 @@ struct dj_message_args {
 };
 
 typedef callback<void, const dj_message_args&, uint64_t>::ptr dj_msg_sink;
+typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
+
+class message_sender {
+ public:
+    virtual ~message_sender() {}
+    virtual void send(const dj_esign_pubkey &node, const dj_message_endpoint &ep,
+		      const dj_message_args &msg, delivery_status_cb cb) = 0;
+};
 
 class catmgr : virtual public refcount {
  public:
@@ -39,24 +47,21 @@ class catmgr : virtual public refcount {
 					uint64_t except1 = 0) = 0;
 };
 
-class djprot : virtual public refcount {
+class djprot : public message_sender {
  public:
-    typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
     typedef callback<void, const dj_message_endpoint&, const dj_message_args&,
 			   delivery_status_cb>::ptr local_delivery_cb;
 
     virtual ~djprot() {}
-    virtual str pubkey() const = 0;
+    virtual dj_esign_pubkey pubkey() const = 0;
     virtual void set_label(const label &l) = 0;
     virtual void set_clear(const label &c) = 0;
 
-    virtual void send(str nodepk, const dj_message_endpoint &endpt,
-		      const dj_message_args &msg, delivery_status_cb cb) = 0;
     virtual void set_delivery_cb(local_delivery_cb cb) = 0;
     virtual void set_catmgr(ptr<catmgr> cmgr) = 0;
     virtual ptr<catmgr> get_catmgr() = 0;
 
-    static ptr<djprot> alloc(uint16_t port);
+    static djprot *alloc(uint16_t port);
 };
 
 class dj_incoming_gate {
@@ -72,14 +77,17 @@ class dj_gate_factory {
 };
 
 void dj_gate_delivery(ptr<catmgr> cmgr, const dj_message_endpoint&,
-		      const dj_message_args&, djprot::delivery_status_cb);
+		      const dj_message_args&, delivery_status_cb);
 void dj_debug_delivery(const dj_message_endpoint&, const dj_message_args&,
-		       djprot::delivery_status_cb);
+		       delivery_status_cb);
 
 ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();
-//ptr<djgate_incoming> dj_gate_incoming(ptr<djprot> p);
+//ptr<djgate_incoming> dj_gate_incoming(djprot *p);
+
+typedef callback<void, const dj_message_args&, const str&, dj_message_args*>::ptr dj_call_service;
 
 void dj_debug_sink(const dj_message_args&, uint64_t selftoken);
+void dj_call_sink(message_sender*, dj_call_service, const dj_message_args&, uint64_t selftoken);
 
 #endif

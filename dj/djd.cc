@@ -13,7 +13,7 @@ sendcb(dj_delivery_code c, uint64_t token)
 }
 
 static void
-sndmsg(ptr<djprot> p, str node_pk, dj_message_endpoint endpt)
+sndmsg(message_sender *s, dj_esign_pubkey node_pk, dj_message_endpoint endpt)
 {
     warn << "sending a message..\n";
 
@@ -26,8 +26,8 @@ sndmsg(ptr<djprot> p, str node_pk, dj_message_endpoint endpt)
     a.namedcats[1] = 456;
     a.msg = "Hello world!";
 
-    p->send(node_pk, endpt, a, wrap(&sendcb));
-    delaycb(5, wrap(&sndmsg, p, node_pk, endpt));
+    s->send(node_pk, endpt, a, wrap(&sendcb));
+    delaycb(5, wrap(&sndmsg, s, node_pk, endpt));
 }
 
 int
@@ -37,7 +37,7 @@ main(int ac, char **av)
 
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
-    ptr<djprot> djs = djprot::alloc(port);
+    djprot *djs = djprot::alloc(port);
 
 #ifdef JOS_TEST
     dj_direct_gatemap gm;
@@ -67,7 +67,7 @@ main(int ac, char **av)
 
 	*ep.gate <<= av[2];
 
-	sndmsg(djs, xdr2str(k), ep);
+	sndmsg(djs, k, ep);
     }
 
     amain();

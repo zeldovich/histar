@@ -3,7 +3,7 @@
 void
 dj_direct_gatemap::deliver(const dj_message_endpoint &ep,
 			   const dj_message_args &a,
-			   djprot::delivery_status_cb cb)
+			   delivery_status_cb cb)
 {
     if (ep.type != EP_GATE) {
 	cb(DELIVERY_REMOTE_ERR, 0);

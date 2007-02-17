@@ -4,7 +4,7 @@
 void
 dj_debug_delivery(const dj_message_endpoint &endpt,
 		  const dj_message_args &a,
-		  djprot::delivery_status_cb cb)
+		  delivery_status_cb cb)
 {
     warn << "dj_debug_delivery: got a message\n";
     warn << "container: " << a.msg_ct << "\n";
@@ -36,12 +36,3 @@ dj_debug_sink(const dj_message_args &a, uint64_t token)
     warn << "grant clear: " << a.gclear << "\n";
     warn << "payload: " << a.msg << "\n";
 }
-
-/*
-void
-dj_echo_sink(const dj_message_args &a, uint64_t token)
-{
-    a.msg_ct = ???;
-
-}
-*/

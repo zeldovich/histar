@@ -8,8 +8,7 @@
 class dj_direct_gatemap : public dj_gate_factory {
  public:
     dj_direct_gatemap() : gatemap_(), counter_(1) {}
-    void deliver(const dj_message_endpoint&, const dj_message_args&,
-		 djprot::delivery_status_cb);
+    void deliver(const dj_message_endpoint&, const dj_message_args&, delivery_status_cb);
     virtual dj_message_endpoint create_gate(uint64_t container, dj_msg_sink);
 
  private:
