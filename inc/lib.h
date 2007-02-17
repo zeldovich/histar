@@ -163,7 +163,6 @@ label_comparator label_leq_starhi;
 
 struct ulabel *label_alloc(void);
 void label_free(struct ulabel *l);
-struct ulabel *label_get_current(void);
 int  label_set_level(struct ulabel *l, uint64_t handle, level_t level,
 		     int grow);
 level_t label_get_level(struct ulabel *l, uint64_t handle);

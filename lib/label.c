@@ -46,30 +46,6 @@ label_free(struct ulabel *l)
     free(l);
 }
 
-struct ulabel *
-label_get_current()
-{
-    struct ulabel *l = label_alloc();
-    int r;
-
-retry:
-    r = thread_get_label(l);
-
-    if (r == -E_NO_SPACE) {
-	r = label_grow(l);
-	if (r == 0)
-	    goto retry;
-    }
-
-    if (r < 0) {
-	printf("label_get_current: %s\n", e2s(r));
-	label_free(l);
-	return 0;
-    }
-
-    return l;
-}
-
 static int
 label_find_slot(struct ulabel *l, uint64_t handle)
 {
