@@ -183,6 +183,24 @@ strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
     return sb;
 }
 
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_message_args &a)
+{
+    sb << "sender:       " << a.sender << "\n";
+    sb << "send timeout: " << a.send_timeout << "\n";
+    sb << "msg ct:       " << a.msg_ct << "\n";
+    sb << "sent token:   " << a.token << "\n";
+    sb << "named cats:  ";
+    for (uint32_t i = 0; i < a.namedcats.size(); i++)
+	sb << " " << a.namedcats[i];
+    sb << "\n";
+    sb << "taint:        " << a.taint << "\n";
+    sb << "grant label:  " << a.glabel << "\n";
+    sb << "grant clear:  " << a.gclear << "\n";
+    sb << "payload:      " << a.msg << "\n";
+    return sb;
+}
+
 inline dj_esign_pubkey
 esignpub2dj(const esign_pub &ep)
 {

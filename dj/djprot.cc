@@ -524,7 +524,7 @@ class djprot_impl : public djprot {
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
 	msg_client *cc = clnt_[cid];
 	if (!cc) {
-	    warn << "process_msg_status: unexpected call reply\n";
+	    warn << "process_msg_status: unexpected delivery status\n";
 	    return;
 	}
 
@@ -535,7 +535,7 @@ class djprot_impl : public djprot {
 
     void process_msg(const dj_msg_xfer &c) {
 	if (c.to != esignpub2dj(k_)) {
-	    warn << "misrouted call to " << c.to << "\n";
+	    warn << "misrouted message to " << c.to << "\n";
 	    return;
 	}
 
@@ -551,7 +551,7 @@ class djprot_impl : public djprot {
 	    break;
 
 	default:
-	    warn << "process_call: unhandled op " << c.u.op << "\n";
+	    warn << "process_msg: unhandled op " << c.u.op << "\n";
 	}
     }
 
