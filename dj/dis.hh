@@ -11,22 +11,21 @@ extern "C" {
 
 enum { dj_label_debug = 0 };
 
-struct djcall_args {
-    str data;
+struct dj_message_args {
+    uint32_t send_timeout;	/* seconds */
+
+    uint64_t msg_ct;
+    uint64_t halted;
+    vec<uint64_t> namedcats;
     label taint;
-    label grant;
+    label glabel;
+    label gclear;
+    str msg;
 
-    djcall_args() : data(), taint(1), grant(3) {}
+    dj_message_args() : send_timeout(0), taint(1), glabel(3), gclear(0) {}
 };
 
-typedef callback<bool, const djcall_args&, djcall_args*>::ptr djgate_service_cb;
-
-class djcallexec : virtual public refcount {
- public:
-    virtual ~djcallexec() {}
-    virtual void start(const dj_gatename &gate, const djcall_args &args) = 0;
-    virtual void abort() = 0;
-};
+typedef callback<void, const dj_message_args&>::ptr djgate_service_cb;
 
 class catmgr : virtual public refcount {
  public:
@@ -41,17 +40,18 @@ class catmgr : virtual public refcount {
 
 class djprot : virtual public refcount {
  public:
-    typedef callback<void, dj_reply_status, const djcall_args*>::ptr call_reply_cb;
-    typedef callback<ptr<djcallexec>, call_reply_cb>::ptr callexec_factory;
+    typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
+    typedef callback<void, const dj_message_endpoint&, const dj_message_args&,
+			   delivery_status_cb>::ptr local_delivery_cb;
 
     virtual ~djprot() {}
     virtual str pubkey() const = 0;
     virtual void set_label(const label &l) = 0;
     virtual void set_clear(const label &c) = 0;
 
-    virtual void call(str nodepk, const dj_gatename &gate,
-		      const djcall_args &args, call_reply_cb cb) = 0;
-    virtual void set_callexec(callexec_factory cb) = 0;
+    virtual void send(str nodepk, const dj_message_endpoint &endpt,
+		      const dj_message_args &msg, delivery_status_cb cb) = 0;
+    virtual void set_delivery_cb(local_delivery_cb cb) = 0;
     virtual void set_catmgr(ptr<catmgr> cmgr) = 0;
     virtual ptr<catmgr> get_catmgr() = 0;
 
@@ -64,9 +64,8 @@ class djgate_incoming : virtual public refcount {
     virtual cobj_ref gate() = 0;
 };
 
-ptr<djcallexec> dj_gate_exec(ptr<catmgr> cmgr, djprot::call_reply_cb);
-bool dj_echo_service(const djcall_args &in, djcall_args *out);
-bool dj_posixfs_service(const djcall_args &in, djcall_args *out);
+void dj_gate_delivery(ptr<catmgr> cmgr, const dj_message_endpoint&,
+		      const dj_message_args&, djprot::delivery_status_cb);
 
 ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();

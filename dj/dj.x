@@ -22,8 +22,7 @@ struct dj_address {
 };
 
 /*
- * Labels, and labeled data (used to pass gate call arguments/responses,
- * which themselves are expected to be marshalled XDR structures).
+ * Labels.
  */
 
 struct dj_label_entry {
@@ -40,20 +39,8 @@ struct dj_catlist {
     dj_gcat cats<>;
 };
 
-struct dj_gate_arg {
-    opaque buf<>;
-    dj_catlist namedcats;
-    dj_label taint;	/* taint of associated data */
-    dj_catlist grant;	/* grant on gate invocation */
-    dj_label gclear;	/* grant higher clearance */
-};
-
 /*
- * Signed statements that can be made by entities.  Every network
- * message is a statement.
- *
- * Fully self-describing statements ensure that one statement
- * cannot be mistaken for another in a different context.
+ * Delegations.
  */
 
 enum dj_entity_type {
@@ -78,68 +65,88 @@ struct dj_delegation {		/* a speaks-for b, within time window */
     dj_timestamp until_ts;
 };
 
+/*
+ * Message transfer.
+ */
+
+enum dj_endpoint_type {
+    ENDPT_GATE = 1
+};
+
 struct dj_gatename {
     unsigned hyper gate_ct;
     unsigned hyper gate_id;
 };
 
-struct dj_call_request {
+union dj_message_endpoint switch (dj_endpoint_type type) {
+ case ENDPT_GATE:
     dj_gatename gate;
-    unsigned timeout_sec;
-    dj_gate_arg arg;
 };
 
-enum dj_reply_status {
-    REPLY_DONE = 1,
-    REPLY_INPROGRESS,		/* should not propagate to caller */
-    REPLY_GATE_CALL_ERROR,
-    REPLY_ADDRESS_MISSING,	/* not returned by server */
-    REPLY_DELEGATION_MISSING,
-    REPLY_ABORTED,
-    REPLY_SYSERR
+struct dj_message {
+    dj_message_endpoint target;	/* gate or segment to call on delivery */
+    unsigned hyper msg_ct;	/* container ID for message segment */
+    unsigned hyper halted;	/* thread halted after sending (0=none) */
+    dj_catlist namedcats;	/* globally-translated category names */
+    dj_label taint;		/* taint of message */
+    dj_label glabel;		/* grant label on gate invocation */
+    dj_label gclear;		/* grant clearance on gate invocation */
+    opaque msg<>;
 };
 
-union dj_call_reply switch (dj_reply_status stat) {
- case REPLY_DONE:
-    dj_gate_arg arg;
+enum dj_delivery_code {
+    DELIVERY_DONE = 1,
+    DELIVERY_TIMEOUT,
+    DELIVERY_NO_ADDRESS,
+    DELIVERY_NO_DELEGATION,
+    DELIVERY_REMOTE_ERR,
+    DELIVERY_LOCAL_ERR
+};
+
+union dj_message_status switch (dj_delivery_code code) {
+ case DELIVERY_DONE:
+    unsigned hyper thread;	/* 0=none, if not a gate call */
  default:
     void;
 };
 
-enum dj_call_op {
-    CALL_REQUEST = 1,
-    CALL_REPLY,
-    CALL_ABORT
+enum dj_msg_op {
+    MSG_REQUEST = 1,
+    MSG_STATUS
 };
 
-union dj_call_u switch (dj_call_op op) {
- case CALL_REQUEST:
-    dj_call_request req;
- case CALL_REPLY:
-    dj_call_reply reply;
- case CALL_ABORT:
-    void;
+union dj_msg_u switch (dj_msg_op op) {
+ case MSG_REQUEST:
+    dj_message req;
+ case MSG_STATUS:
+    dj_message_status stat;
 };
 
-struct dj_call {		/* call-related message */
-    unsigned hyper xid;		/* identifies the call object */
-    unsigned hyper seq;		/* monotonically increasing for an xid */
-    dj_timestamp ts;		/* to bound size of replay cache */
+struct dj_msg_xfer {
     dj_esign_pubkey from;
     dj_esign_pubkey to;
-    dj_call_u u;
+    unsigned hyper xid;
+    dj_msg_u u;
 };
+
+/*
+ * Signed statements that can be made by entities.  Every network
+ * message is a statement.
+ *
+ * Fully self-describing statements ensure that one statement
+ * cannot be mistaken for another in a different context.
+ */
 
 enum dj_stmt_type {
     STMT_DELEGATION = 1,
-    STMT_CALL
+    STMT_MSG_XFER
 };
 
 union dj_stmt switch (dj_stmt_type type) {
  case STMT_DELEGATION:
     dj_delegation delegation;
- case STMT_CALL:
-    dj_call call;
+ case STMT_MSG_XFER:
+    dj_msg_xfer msgx;
 };
 
 struct dj_stmt_signed {
