@@ -66,6 +66,8 @@ class djgate_incoming : virtual public refcount {
 
 void dj_gate_delivery(ptr<catmgr> cmgr, const dj_message_endpoint&,
 		      const dj_message_args&, djprot::delivery_status_cb);
+void dj_debug_delivery(const dj_message_endpoint&, const dj_message_args&,
+		       djprot::delivery_status_cb);
 
 ptr<catmgr> dj_dummy_catmgr();
 ptr<catmgr> dj_catmgr();

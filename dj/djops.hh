@@ -158,7 +158,14 @@ strbuf_cat(const strbuf &sb, const dj_catlist &g)
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const cobj_ref &c)
 {
-    sb << c.container << "." << c.object << "\n";
+    sb << c.container << "." << c.object;
+    return sb;
+}
+
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const label &l)
+{
+    sb << l.to_string();
     return sb;
 }
 
