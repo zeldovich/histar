@@ -36,14 +36,16 @@ struct dj_label {
     unsigned deflevel;
 };
 
-struct dj_grantlist {
+struct dj_catlist {
     dj_gcat cats<>;
 };
 
 struct dj_gate_arg {
     opaque buf<>;
+    dj_catlist namedcats;
     dj_label taint;	/* taint of associated data */
-    dj_grantlist grant;	/* grant on gate invocation */
+    dj_catlist grant;	/* grant on gate invocation */
+    dj_label gclear;	/* grant higher clearance */
 };
 
 /*

@@ -143,7 +143,7 @@ strbuf_cat(const strbuf &sb, const dj_label &l)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_grantlist &g)
+strbuf_cat(const strbuf &sb, const dj_catlist &g)
 {
     sb << "{";
     for (uint64_t i = 0; i < g.cats.size(); i++)
