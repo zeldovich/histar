@@ -258,3 +258,32 @@ the send (as opposed to a message via shared memory segment), and retransmit
 should stop when the thread is unreferenced by the caller.  This gives us
 resource accountability.
 
+===
+
+Global categories are just names, not resources.  On the other hand, local
+categories are potentially resources: there's a secure binding between the
+global category name and local category name, and the ownership privilege
+in the local category granted to the exporter.  With this breakdown, let's
+push all resources out of the exporter itself, as far as category mapping
+is concerned.  The secure binding can be represented by a signed statement
+by the exporter that a given global category name corresponds to a given
+local category name.  The ownership privilege is an unbound gate that can
+be invoked by the exporter.
+
+When talking to an exporter about a global category, you must provide the
+above resources (mapping & privilege) explicitly.  Local category allocation
+would be done by a small trusted service -- send a message to this service,
+telling it where to allocate the privilege gate, and it will allocate a
+fresh local category, grant it to the exporter daemon, associate it with
+a global category (i.e. get a signed certificate from the exporter), and
+send the gate ID & certificate back to you.
+
+What checks are necessary to associate a local category with a global
+category?  Need to prove ownership of both.  Could move this local category
+allocation service into the exporter, at which point it would know that the
+caller owned the global category.
+
+Eliminates the need for the "named categories" field, because the user-level
+application has to keep track of what local category resources it's got on
+what nodes..
+
