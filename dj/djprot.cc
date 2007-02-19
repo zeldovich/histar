@@ -5,11 +5,9 @@
 #include <ihash.h>
 #include <itree.h>
 
-#include <dj/dis.hh>
 #include <dj/bcast.hh>
-#include <dj/dj.h>
+#include <dj/djprot.hh>
 #include <dj/djops.hh>
-#include <dj/catmap.hh>
 
 enum {
     keybits = 1024,
@@ -17,9 +15,7 @@ enum {
     delegation_time_skew = 5,
 
     broadcast_period = 5,
-    cache_cleanup_period = 15,
-
-    nocheck_local_msgs = 0,
+    check_local_msgs = 1,
 };
 
 static in_addr
@@ -98,8 +94,11 @@ struct msg_client {
 class djprot_impl : public djprot {
  public:
     djprot_impl(uint16_t port)
-	: k_(esign_keygen(keybits)), net_label_(1), net_clear_(1)
+	: k_(esign_keygen(keybits)), exp_cb_(0)
     {
+	net_label_.deflevel = 1;
+	net_clear_.deflevel = 1;
+
 	xid_ = 0;
 	bc_port_ = htons(port);
 	myipaddr_ = myipaddr();
@@ -128,12 +127,13 @@ class djprot_impl : public djprot {
 	bx_ = axprt_dgram::alloc(bfd);
 	bx_->setrcb(wrap(this, &djprot_impl::rcv));
 
-	cache_cleanup();
 	send_bcast();
     }
 
     virtual ~djprot_impl() {
 	addr_exp_.deleteall();
+	if (exp_cb_)
+	    timecb_remove(exp_cb_);
 
 	msg_client *ncc;
 	for (msg_client *cc = clnt_.first(); cc; cc = ncc) {
@@ -145,25 +145,30 @@ class djprot_impl : public djprot {
     }
 
     virtual dj_esign_pubkey pubkey() const { return esignpub2dj(k_); }
-    virtual void set_label(const label &l) { net_label_ = l; }
-    virtual void set_clear(const label &l) { net_clear_ = l; }
+    virtual void set_label(const dj_label &l) { net_label_ = l; }
+    virtual void set_clear(const dj_label &l) { net_clear_ = l; }
 
-    virtual void send(const dj_esign_pubkey &target, const dj_message_endpoint &endpt,
-		      const dj_message_args &args, delivery_status_cb cb)
+    virtual void send(const dj_esign_pubkey &target, time_t timeout,
+		      const dj_delegation_set &dels,
+		      const dj_message &msg, delivery_status_cb cb)
     {
 	msg_client *cc = New msg_client(target, ++xid_);
+	clnt_.insert(cc);
 	cc->cb = cb;
-	cc->until = time(0) + args.send_timeout;
+	cc->until = time(0) + timeout;
+
+	if (!labelcheck_send(msg, target, dels)) {
+	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
+	    return;
+	}
 
 	cc->ss.stmt.set_type(STMT_MSG_XFER);
 	cc->ss.stmt.msgx->from = esignpub2dj(k_);
 	cc->ss.stmt.msgx->to = target;
 	cc->ss.stmt.msgx->xid = cc->id.xid;
 	cc->ss.stmt.msgx->u.set_op(MSG_REQUEST);
-	cc->ss.stmt.msgx->u.req->target = endpt;
-	msgarg_hton(args, &*cc->ss.stmt.msgx->u.req);
+	*cc->ss.stmt.msgx->u.req = msg;
 
-	clnt_.insert(cc);
 	clnt_transmit(cc);
     }
 
@@ -171,104 +176,14 @@ class djprot_impl : public djprot {
 	local_delivery_ = cb;
     }
 
-    virtual void set_catmgr(ptr<catmgr> cmgr) {
-	cmgr_ = cmgr;
-    }
-
-    virtual ptr<catmgr> get_catmgr() {
-	return cmgr_;
-    }
-
  private:
-    dj_gcat cat2gcat(uint64_t cat) {
-	dj_gcat gcat;
-	if (!cmap_.l2g(cat, &gcat)) {
-	    gcat.key = esignpub2dj(k_);
-	    gcat.id = cat;
-	    cmap_.insert(cat, gcat);
-	}
-
-	return gcat;
-    }
-
-    uint64_t gcat2cat(dj_gcat gcat) {
-	uint64_t cat;
-	if (!cmap_.g2l(gcat, &cat)) {
-	    cat = cmgr_->alloc();
-	    cmap_.insert(cat, gcat);
-	}
-
-	return cat;
-    }
-
-    void label_hton(const label &hl, dj_label *nl) {
-	const struct ulabel *ul = hl.to_ulabel_const();
-	nl->deflevel = ul->ul_default;
-	uint32_t hlsize = ul->ul_nent;
-	for (uint64_t i = 0; i < ul->ul_nent; i++)
-	    if (LB_LEVEL(ul->ul_ent[i]) == ul->ul_default)
-		hlsize--;
-
-	nl->ents.setsize(hlsize);
-	for (uint64_t i = 0, j = 0; i < ul->ul_nent; i++) {
-	    uint64_t ent = ul->ul_ent[i];
-	    uint32_t lv = LB_LEVEL(ent);
-	    if (lv == ul->ul_default)
-		continue;
-
-	    nl->ents[j].cat = cat2gcat(LB_HANDLE(ent));
-	    nl->ents[j].level = lv;
-	    j++;
-	}
-    }
-
-    bool label_ntoh(const dj_label &nl, label *hl) {
-	uint32_t lv = nl.deflevel;
-	if (lv > LB_LEVEL_STAR) {
-	    warn << "label_ntoh: bad level\n";
-	    return false;
-	}
-
-	hl->reset(lv);
-	for (uint64_t i = 0; i < nl.ents.size(); i++) {
-	    lv = nl.ents[i].level;
-	    if (lv > LB_LEVEL_STAR) {
-		warn << "label_ntoh: bad level\n";
-		return false;
-	    }
-	    hl->set(gcat2cat(nl.ents[i].cat), lv);
-	}
-
-	return true;
-    }
-
-    void msgarg_hton(const dj_message_args &h, dj_message *n) {
-	n->msg = h.msg;
-	n->msg_ct = h.msg_ct;
-	n->token = h.token;
-
-	label_hton(h.taint,  &n->taint);
-	label_hton(h.glabel, &n->glabel);
-	label_hton(h.gclear, &n->gclear);
-    }
-
-    bool msgarg_ntoh(const dj_message &n, dj_message_args *h) {
-	h->msg = str(n.msg.base(), n.msg.size());
-	h->msg_ct = n.msg_ct;
-	h->token = n.token;
-
-	return label_ntoh(n.taint,  &h->taint)  &&
-	       label_ntoh(n.glabel, &h->glabel) &&
-	       label_ntoh(n.gclear, &h->gclear);
-    }
-
     bool key_speaks_for(const dj_esign_pubkey &k, const dj_gcat &gcat) {
 	if (gcat.key == k)
 	    return true;
 
 	/*
 	 * XXX
-	 * Check user-provided delegation chains.
+	 * feed dj_message.dj_delegation_set in here and check using that.
 	 */
 	return false;
     }
@@ -279,30 +194,33 @@ class djprot_impl : public djprot {
      * M_L = a.taint; M_G = a.grant
      */
 
-    bool labelcheck_send(const dj_message &a, const dj_esign_pubkey &dst) {
-	if (nocheck_local_msgs && dst == esignpub2dj(k_))
+    bool labelcheck_send(const dj_message &a, const dj_esign_pubkey &dst,
+			 const dj_delegation_set &dels)
+    {
+	if (!check_local_msgs && dst == esignpub2dj(k_))
 	    return true;
 
 	/* M_L \leq (Node_L^\histar \cup N_C) */
-	if (a.taint.deflevel > net_clear_.get_default())
+	if (a.taint.deflevel > net_clear_.deflevel)
 	    return false;
 
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
-	    dj_gcat gcat = a.taint.ents[i].cat;
-	    uint64_t lcat = gcat2cat(gcat);
+	    dj_gcat c = a.taint.ents[i].cat;
 	    uint32_t lv = a.taint.ents[i].level;
-	    if (lv <= net_clear_.get(lcat))
+	    if (lv <= net_clear_ % c)
 		continue;
 
-	    if (!key_speaks_for(dst, gcat))
+	    if (!key_speaks_for(dst, c))
 		return false;
 	}
 
 	return true;
     }
 
-    bool labelcheck_recv(const dj_message &a, const dj_esign_pubkey &src) {
-	if (nocheck_local_msgs && src == esignpub2dj(k_))
+    bool labelcheck_recv(const dj_message &a, const dj_esign_pubkey &src,
+			 const dj_delegation_set &dels)
+    {
+	if (!check_local_msgs && src == esignpub2dj(k_))
 	    return true;
 
 	/*
@@ -311,44 +229,41 @@ class djprot_impl : public djprot {
 	 *
 	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_G [approximately]
 	 */
-	if (a.taint.deflevel < net_label_.get_default() ||
-	    a.taint.deflevel > net_clear_.get_default() ||
+	if (a.taint.deflevel < net_label_.deflevel ||
+	    a.taint.deflevel > net_clear_.deflevel ||
 	    a.glabel.deflevel != 3 || a.gclear.deflevel != 0)
 	    return false;
 
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
-	    dj_gcat gcat = a.taint.ents[i].cat;
-	    uint64_t lcat = gcat2cat(gcat);
+	    dj_gcat c = a.taint.ents[i].cat;
 	    uint32_t lv = a.taint.ents[i].level;
 	    if (lv >= LB_LEVEL_STAR)
 		return false;
-	    if (net_label_.get(lcat) <= lv && net_clear_.get(lcat) >= lv)
+	    if (net_label_ % c <= lv && lv <= net_clear_ % c)
 		continue;
-	    if (!key_speaks_for(src, gcat))
+	    if (!key_speaks_for(src, c))
 		return false;
 	}
 
 	for (uint64_t i = 0; i < a.glabel.ents.size(); i++) {
-	    dj_gcat gcat = a.glabel.ents[i].cat;
-	    uint64_t lcat = gcat2cat(gcat);
+	    dj_gcat c = a.glabel.ents[i].cat;
 	    uint32_t lv = a.glabel.ents[i].level;
 	    if (lv != LB_LEVEL_STAR)
 		return false;
-	    if (net_label_.get(lcat) == LB_LEVEL_STAR)
+	    if (net_label_ % c == LB_LEVEL_STAR)
 		continue;
-	    if (!key_speaks_for(src, gcat))
+	    if (!key_speaks_for(src, c))
 		return false;
 	}
 
 	for (uint64_t i = 0; i < a.gclear.ents.size(); i++) {
-	    dj_gcat gcat = a.gclear.ents[i].cat;
-	    uint64_t lcat = gcat2cat(gcat);
+	    dj_gcat c = a.gclear.ents[i].cat;
 	    uint32_t lv = a.gclear.ents[i].level;
 	    if (lv >= LB_LEVEL_STAR)
 		return false;
-	    if (net_clear_.get(lcat) >= lv)
+	    if (lv <= net_clear_ % c)
 		continue;
-	    if (!key_speaks_for(src, gcat))
+	    if (!key_speaks_for(src, c))
 		return false;
 	}
 
@@ -388,32 +303,24 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
-	delivery_status_cb cb = cc->cb;
 	cc->timecb = 0;
-
-	if (!labelcheck_send(*cc->ss.stmt.msgx->u.req,
-			     cc->ss.stmt.msgx->to)) {
-	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
-	    return;
-	}
 
 	if (cc->ss.stmt.msgx->to == esignpub2dj(k_)) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
 	    process_msg_request(*cc->ss.stmt.msgx, cid);
-	    return;
-	}
+	} else {
+	    sign_statement(&cc->ss);
+	    str msg = xdr2str(cc->ss);
+	    if (!msg) {
+		warn << "clnt_transmit: cannot encode msg xfer statement\n";
+		clnt_done(cc, DELIVERY_LOCAL_ERR, 0);
+		return;
+	    }
 
-	sign_statement(&cc->ss);
-	str msg = xdr2str(cc->ss);
-	if (!msg) {
-	    warn << "clnt_transmit: cannot encode msg xfer statement\n";
-	    clnt_done(cc, DELIVERY_LOCAL_ERR, 0);
-	    return;
-	}
-
-	if (!send_message(msg, cc->ss.stmt.msgx->to)) {
-	    clnt_done(cc, DELIVERY_NO_ADDRESS, 0);
-	    return;
+	    if (!send_message(msg, cc->ss.stmt.msgx->to)) {
+		clnt_done(cc, DELIVERY_NO_ADDRESS, 0);
+		return;
+	    }
 	}
 
 	time_t now = time(0);
@@ -433,16 +340,21 @@ class djprot_impl : public djprot {
     }
 
     void cache_cleanup(void) {
+	exp_cb_ = 0;
 	time_t now = time(0);
 
 	pk_addr *a = addr_exp_.first();
-	while (a && a->expires < (now - delegation_time_skew)) {
+	while (a && a->expires <= (now - delegation_time_skew)) {
 	    pk_addr *xa = a;
 	    a = addr_exp_.next(a);
 	    addr_remove(xa);
 	}
 
-	delaycb(cache_cleanup_period, wrap(this, &djprot_impl::cache_cleanup));
+	if (a) {
+	    exp_first_ = a->expires;
+	    exp_cb_ = timecb(a->expires + delegation_time_skew,
+			     wrap(this, &djprot_impl::cache_cleanup));
+	}
     }
 
     void process_delegation(const dj_delegation &d) {
@@ -460,6 +372,13 @@ class djprot_impl : public djprot {
 
 	    addr_key_.insert(pka);
 	    addr_exp_.insert(pka);
+
+	    if (!exp_cb_ || pka->expires < exp_first_) {
+		if (exp_cb_)
+		    timecb_remove(exp_cb_);
+		exp_cb_ = timecb(pka->expires + delegation_time_skew,
+				 wrap(this, &djprot_impl::cache_cleanup));
+	    }
 	}
     }
 
@@ -497,20 +416,12 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	if (!labelcheck_recv(*c.u.req, c.from)) {
+	if (!labelcheck_recv(*c.u.req, c.from, c.u.req->dels)) {
 	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION, 0);
 	    return;
 	}
 
-	dj_message_args a;
-	a.sender = c.from;
-	if (!msgarg_ntoh(*c.u.req, &a)) {
-	    warn << "process_msg_request: cannot unmarshal message\n";
-	    srvr_send_status(cid, DELIVERY_REMOTE_ERR, 0);
-	    return;
-	}
-
-	local_delivery_(c.u.req->target, a, wrap(this, &djprot_impl::srvr_send_status, cid));
+	local_delivery_(*c.u.req, wrap(this, &djprot_impl::srvr_send_status, cid));
     }
 
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
@@ -631,10 +542,10 @@ class djprot_impl : public djprot {
     itree<dj_timestamp, pk_addr, &pk_addr::expires, &pk_addr::exp_link> addr_exp_;
     ihash<dj_msg_id, msg_client, &msg_client::id, &msg_client::link> clnt_;
 
-    label net_label_, net_clear_;
+    time_t exp_first_;
+    timecb_t *exp_cb_;
+    dj_label net_label_, net_clear_;
     local_delivery_cb local_delivery_;
-    ptr<catmgr> cmgr_;
-    catmap cmap_;
 };
 
 djprot *

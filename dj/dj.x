@@ -3,6 +3,7 @@
  */
 
 %#include <bigint.h>
+%#include <inc/label.h>		/* for LB_LEVEL_STAR */
 
 typedef unsigned dj_timestamp;	/* UNIX seconds */
 
@@ -17,8 +18,8 @@ struct dj_gcat {		/* Global category name */
 };
 
 struct dj_address {
-    unsigned ip;	/* network byte order */
-    unsigned port;	/* network byte order */
+    unsigned ip;		/* network byte order */
+    unsigned port;		/* network byte order */
 };
 
 /*
@@ -27,7 +28,7 @@ struct dj_address {
 
 struct dj_label_entry {
     dj_gcat cat;
-    unsigned level;	/* LB_LEVEL_STAR from <inc/label.h> */
+    unsigned level;		/* LB_LEVEL_STAR from <inc/label.h> */
 };
 
 struct dj_label {

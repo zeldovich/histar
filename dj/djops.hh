@@ -2,12 +2,14 @@
 #define JOS_DJ_DJOPS_HH
 
 extern "C" {
+#include <inc/container.h>
 #include <inc/string.h>
 }
 
 #include <crypt.h>
 #include <esign.h>
 #include <dj/dj.h>
+#include <inc/cpplabel.hh>
 
 struct dj_msg_id {
     dj_esign_pubkey key;
@@ -174,16 +176,16 @@ strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_message_args &a)
+strbuf_cat(const strbuf &sb, const dj_message &a)
 {
-    sb << "sender:       " << a.sender << "\n";
-    sb << "send timeout: " << a.send_timeout << "\n";
+    sb << "target ep:    " << a.target << "\n";
     sb << "msg ct:       " << a.msg_ct << "\n";
     sb << "sent token:   " << a.token << "\n";
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";
     sb << "grant clear:  " << a.gclear << "\n";
-    sb << "payload:      " << a.msg << "\n";
+    sb << "catmap, dels: not printed\n";
+    sb << "payload:      " << str(a.msg.base(), a.msg.size()) << "\n";
     return sb;
 }
 
@@ -234,6 +236,15 @@ operator<<=(dj_gatename &c, str s)
 	strtou64(dot + 1, 0, 10, &c.gate_id);
     }
     strtou64(s.cstr(), 0, 10, &c.gate_ct);
+}
+
+inline level_t
+operator%(const dj_label &l, const dj_gcat &c)
+{
+    for (uint32_t i = 0; i < l.ents.size(); i++)
+	if (l.ents[i].cat == c)
+	    return l.ents[i].level;
+    return l.deflevel;
 }
 
 #endif
