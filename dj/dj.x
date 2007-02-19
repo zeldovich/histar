@@ -31,12 +31,20 @@ struct dj_label_entry {
 };
 
 struct dj_label {
-    dj_label_entry ents<1024>;
+    dj_label_entry ents<>;
     unsigned deflevel;
 };
 
-struct dj_catlist {
-    dj_gcat cats<>;
+struct dj_cat_mapping {
+    dj_gcat gcat;
+    unsigned hyper lcat;
+    unsigned hyper map_ct;	/* container storing the mapping resources */
+    unsigned hyper map_gt;	/* unbound gate granting lcat */
+    unsigned hyper map_sg;	/* proof of mapping between lcat & gcat */
+};
+
+struct dj_catmap {
+    dj_cat_mapping ents<>;
 };
 
 /*
@@ -65,6 +73,10 @@ struct dj_delegation {		/* a speaks-for b, within time window */
     dj_timestamp until_ts;
 };
 
+struct dj_delegation_set {
+    opaque ents<>;		/* really XDR-encoded dj_signed_stmt */
+};
+
 /*
  * Message transfer.
  */
@@ -87,10 +99,11 @@ struct dj_message {
     dj_message_endpoint target;	/* gate or segment to call on delivery */
     unsigned hyper msg_ct;	/* container ID for message segment */
     unsigned hyper token;	/* token returned on sending (0=none) */
-    dj_catlist namedcats;	/* globally-translated category names */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */
     dj_label gclear;		/* grant clearance on gate invocation */
+    dj_catmap catmap;		/* target node category mappings */
+    dj_delegation_set dels;	/* supporting delegations */
     opaque msg<>;
 };
 
@@ -98,9 +111,12 @@ enum dj_delivery_code {
     DELIVERY_DONE = 1,
     DELIVERY_TIMEOUT,
     DELIVERY_NO_ADDRESS,
-    DELIVERY_NO_DELEGATION,
-    DELIVERY_REMOTE_ERR,
-    DELIVERY_LOCAL_ERR
+    DELIVERY_LOCAL_DELEGATION,
+    DELIVERY_REMOTE_DELEGATION,
+    DELIVERY_LOCAL_MAPPING,
+    DELIVERY_REMOTE_MAPPING,
+    DELIVERY_LOCAL_ERR,
+    DELIVERY_REMOTE_ERR
 };
 
 union dj_message_status switch (dj_delivery_code code) {

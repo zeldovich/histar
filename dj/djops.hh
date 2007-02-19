@@ -146,16 +146,6 @@ strbuf_cat(const strbuf &sb, const dj_label &l)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_catlist &g)
-{
-    sb << "{";
-    for (uint64_t i = 0; i < g.cats.size(); i++)
-	sb << " " << g.cats[i];
-    sb << " }";
-    return sb;
-}
-
-inline const strbuf &
 strbuf_cat(const strbuf &sb, const cobj_ref &c)
 {
     sb << c.container << "." << c.object;
@@ -190,10 +180,6 @@ strbuf_cat(const strbuf &sb, const dj_message_args &a)
     sb << "send timeout: " << a.send_timeout << "\n";
     sb << "msg ct:       " << a.msg_ct << "\n";
     sb << "sent token:   " << a.token << "\n";
-    sb << "named cats:  ";
-    for (uint32_t i = 0; i < a.namedcats.size(); i++)
-	sb << " " << a.namedcats[i];
-    sb << "\n";
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";
     sb << "grant clear:  " << a.gclear << "\n";

@@ -247,10 +247,6 @@ class djprot_impl : public djprot {
 	n->msg_ct = h.msg_ct;
 	n->token = h.token;
 
-	n->namedcats.cats.setsize(h.namedcats.size());
-	for (uint64_t i = 0; i < h.namedcats.size(); i++)
-	    n->namedcats.cats[i] = cat2gcat(h.namedcats[i]);
-
 	label_hton(h.taint,  &n->taint);
 	label_hton(h.glabel, &n->glabel);
 	label_hton(h.gclear, &n->gclear);
@@ -260,10 +256,6 @@ class djprot_impl : public djprot {
 	h->msg = str(n.msg.base(), n.msg.size());
 	h->msg_ct = n.msg_ct;
 	h->token = n.token;
-
-	h->namedcats.setsize(n.namedcats.cats.size());
-	for (uint64_t i = 0; i < n.namedcats.cats.size(); i++)
-	    h->namedcats[i] = gcat2cat(n.namedcats.cats[i]);
 
 	return label_ntoh(n.taint,  &h->taint)  &&
 	       label_ntoh(n.glabel, &h->glabel) &&
@@ -401,7 +393,7 @@ class djprot_impl : public djprot {
 
 	if (!labelcheck_send(*cc->ss.stmt.msgx->u.req,
 			     cc->ss.stmt.msgx->to)) {
-	    clnt_done(cc, DELIVERY_NO_DELEGATION, 0);
+	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
 	    return;
 	}
 
@@ -506,7 +498,7 @@ class djprot_impl : public djprot {
 	}
 
 	if (!labelcheck_recv(*c.u.req, c.from)) {
-	    srvr_send_status(cid, DELIVERY_NO_DELEGATION, 0);
+	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION, 0);
 	    return;
 	}
 

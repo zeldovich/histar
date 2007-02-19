@@ -17,7 +17,6 @@ struct dj_message_args {
     dj_esign_pubkey sender;
     uint64_t msg_ct;
     uint64_t token;
-    vec<uint64_t> namedcats;
     label taint;
     label glabel;
     label gclear;

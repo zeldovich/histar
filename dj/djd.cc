@@ -21,9 +21,6 @@ sndmsg(message_sender *s, dj_esign_pubkey node_pk, dj_message_endpoint ep)
     a.send_timeout = 1;
     a.msg_ct = time(0);
     a.token = 1234;
-    a.namedcats.setsize(2);
-    a.namedcats[0] = 123;
-    a.namedcats[1] = 456;
     a.msg = "Hello world!";
 
     s->send(node_pk, ep, a, wrap(&msgcb));
