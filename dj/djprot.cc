@@ -303,7 +303,8 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
-	cc->timecb = 0;
+	cc->tmo *= 2;
+	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
 
 	if (cc->ss.stmt.msgx->to == esignpub2dj(k_)) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
@@ -323,14 +324,8 @@ class djprot_impl : public djprot {
 	    }
 	}
 
-	time_t now = time(0);
-	if (now >= cc->until) {
+	if (time(0) >= cc->until)
 	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
-	    return;
-	}
-
-	cc->tmo *= 2;
-	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
     }
 
     void addr_remove(pk_addr *a) {
