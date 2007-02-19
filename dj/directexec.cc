@@ -1,24 +1,25 @@
 #include <dj/directexec.hh>
 
 void
-dj_direct_gatemap::deliver(const dj_message_endpoint &ep,
-			   const dj_message_args &a,
+dj_direct_gatemap::deliver(const dj_pubkey &sender,
+			   const dj_message &a,
 			   delivery_status_cb cb)
 {
-    if (ep.type != EP_GATE) {
+    if (a.target.type != EP_GATE) {
 	cb(DELIVERY_REMOTE_ERR, 0);
 	return;
     }
 
-    dj_msg_sink *s = gatemap_[COBJ(ep.gate->gate_ct, ep.gate->gate_id)];
+    dj_msg_sink *s = gatemap_[COBJ(a.target.gate->gate_ct,
+				   a.target.gate->gate_id)];
     if (!s) {
 	cb(DELIVERY_REMOTE_ERR, 0);
 	return;
     }
 
     uint64_t token = ++counter_;
+    (*s)(sender, a, token);
     cb(DELIVERY_DONE, token);
-    (*s)(a, token);
 }
 
 dj_message_endpoint

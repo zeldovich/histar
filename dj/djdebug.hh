@@ -5,4 +5,8 @@ void dj_debug_delivery(const dj_pubkey &sender,
 		       const dj_message &a,
 		       delivery_status_cb cb);
 
+void dj_debug_sink(const dj_pubkey &sender,
+		   const dj_message &a,
+		   uint64_t selftoken);
+
 #endif
