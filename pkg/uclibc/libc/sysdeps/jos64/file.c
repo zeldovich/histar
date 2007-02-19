@@ -217,12 +217,21 @@ stat(const char *file_name, struct stat *buf)
 
     int type = sys_obj_get_type(ino.obj);
     if (type == kobj_container || type == kobj_segment) {
-	memset(buf, 0, sizeof(*buf));
-	buf->st_dev = 1;	// some apps want a non-zero value
-	buf->st_nlink = 1;
-	return jos_stat(ino, buf);
+	struct fs_object_meta m;
+	struct Dev *dev;
+	r = sys_obj_get_meta(ino.obj, &m);
+	if ((m.dev_id < 123) && (m.dev_id > 47) && (m.dev_id != 'f') &&
+	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat) {
+	    // call dev_stat via fstat below if have a custom stat
+	    ;
+	} else {
+	    memset(buf, 0, sizeof(*buf));
+	    buf->st_dev = 1;	// some apps want a non-zero value
+	    buf->st_nlink = 1;
+	    return jos_stat(ino, buf);
+	}
     }
-
+    
     int fd = open(file_name, O_RDONLY);
     if (fd < 0)
 	return fd;
