@@ -79,9 +79,6 @@ pty_alloc(struct pts_descriptor *pd)
 int
 pty_lookup(int ptyno, struct pts_descriptor *pd)
 {
-    
-    cprintf("pty_lookup: %d\n", ptyno);
-
     try {
 	struct pts_descriptor *pts_table = 0;
 	cobj_ref seg = get_pts_seg();
