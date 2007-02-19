@@ -421,7 +421,8 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	local_delivery_(*c.u.req, wrap(this, &djprot_impl::srvr_send_status, cid));
+	local_delivery_(c.from, *c.u.req,
+			wrap(this, &djprot_impl::srvr_send_status, cid));
     }
 
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
