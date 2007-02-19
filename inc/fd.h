@@ -8,6 +8,7 @@
 #include <inc/jthread.h>
 #include <inc/label.h>
 #include <inc/multisync.h>
+#include <inc/pty.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -117,11 +118,17 @@ struct Fd
 	    struct cobj_ref bipipe_seg;
 	    int bipipe_a;
 
-	    struct cobj_ref my_ios;
-	    struct cobj_ref slave_ios;
-	    struct cobj_ref gate;
-	    char is_master;
-	} fd_pt;
+	    struct pty_seg ps;
+	    int ptyno;
+	    struct cobj_ref slave_pty_seg;
+	} fd_ptm;
+	struct {
+	    struct cobj_ref bipipe_seg;
+	    int bipipe_a;
+	    
+	    int ptyno;
+	    struct cobj_ref pty_seg;
+	} fd_pts;
 
 	struct {
 	    struct cobj_ref tun_seg;
@@ -154,7 +161,8 @@ extern struct Dev devbipipe;	/* type 'b' */
 extern struct Dev devrand;  	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
-extern struct Dev devpt;        /* type 'y' */
+extern struct Dev devptm;       /* type 'x' */
+extern struct Dev devpts;       /* type 'y' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

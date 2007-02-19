@@ -5,7 +5,6 @@
 #include <inc/stdio.h>
 #include <inc/tun.h>
 #include <inc/chardevs.h>
-#include <inc/gatefile.h>
 #include <inc/syscall.h>
 #include <inc/stat.h>
 
@@ -93,12 +92,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	// hack,  check if an ascii char between 0 and z
 	if (r >= 0 && (m.dev_id < 123) && (m.dev_id > 47))
 	    if ((dev_lookup((uint8_t)m.dev_id, &dev) >= 0) && dev->dev_open)
-		return dev->dev_open(ino, flags, m.dev_opt);
-	
-	// XXX will go away w/ pty fixup
-	if (sys_obj_get_type(ino.obj) == kobj_gate) {
-	    return gatefile_open(pn, flags);
-	}
+		return dev->dev_open(ino, flags, m.dev_opt);	
     } else if (r == -E_NOT_FOUND) {
 	if (!(flags & O_CREAT)) {
 	    __set_errno(ENOENT);

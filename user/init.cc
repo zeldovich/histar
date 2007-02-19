@@ -11,6 +11,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/authd.h>
 #include <inc/time.h>
+#include <inc/pty.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -109,11 +110,14 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     struct fs_inode dev;
     error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
     struct fs_inode null_ino, zero_ino, tty_ino, rand_ino, urand_ino;
-    fs_mknod(dev, "null", 'n', 0, &null_ino, ldev.to_ulabel());
-    fs_mknod(dev, "zero", 'z', 0, &zero_ino, ldev.to_ulabel());
-    fs_mknod(dev, "tty", 'c', 0, &tty_ino, ldev.to_ulabel());
-    fs_mknod(dev, "random", 'r', 0, &rand_ino, ldev.to_ulabel());
-    fs_mknod(dev, "urandom", 'r', 0, &urand_ino, ldev.to_ulabel());
+    error_check(fs_mknod(dev, "null", 'n', 0, &null_ino, ldev.to_ulabel()));
+    error_check(fs_mknod(dev, "zero", 'z', 0, &zero_ino, ldev.to_ulabel()));
+    error_check(fs_mknod(dev, "tty", 'c', 0, &tty_ino, ldev.to_ulabel()));
+    error_check(fs_mknod(dev, "random", 'r', 0, &rand_ino, ldev.to_ulabel()));
+    error_check(fs_mknod(dev, "urandom", 'r', 0, &urand_ino, ldev.to_ulabel()));
+    error_check(fs_mknod(dev, "ptmx", 'x', 0, &rand_ino, ldev.to_ulabel()));
+    struct fs_inode pts;
+    error_check(fs_mkdir(dev, "pts", &pts, 0));
 
     // create a /home directory
     struct fs_inode home;

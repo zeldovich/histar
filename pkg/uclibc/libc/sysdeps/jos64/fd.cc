@@ -6,7 +6,6 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
-#include <inc/pt.h>
 #include <inc/sigio.h>
 
 #include <termios/kernel_termios.h>
@@ -502,7 +501,8 @@ static struct Dev *devlist[] = {
     &devrand,
     &devzero,
     &devnull,
-    &devpt,
+    &devptm,
+    &devpts,
     0
 };
 

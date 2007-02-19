@@ -6,8 +6,7 @@
 int bipipe(int fv[2]);
 int bipipe_fd(struct cobj_ref seg, int mode, int a);
 
-
-// Defined in bipipe.h so pt can reuse structure and code.
+// Defined in bipipe.h so pty can reuse structure and code.
 enum { bipipe_bufsz = 4000 };
 
 struct one_pipe {
@@ -19,15 +18,10 @@ struct one_pipe {
     uint32_t read_ptr;  /* read at this offset */
     uint64_t bytes; /* # bytes in circular buffer */
     jthread_mutex_t mu;
-    // XXX for pt
-    struct cobj_ref obj;
 };
 
 struct bipipe_seg {
     struct one_pipe p[2];
-    // XXX for pt
-    uint64_t taint;
-    uint64_t grant;
 };
 
 #endif
