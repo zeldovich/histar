@@ -8,7 +8,7 @@ extern "C" {
 
 #include <crypt.h>
 #include <esign.h>
-#include <dj/dj.h>
+#include <dj/djprotx.h>
 #include <inc/cpplabel.hh>
 
 struct dj_msg_id {

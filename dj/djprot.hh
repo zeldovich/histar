@@ -2,7 +2,7 @@
 #define JOS_INC_DJPROT_HH
 
 #include <async.h>
-#include <dj/dj.h>
+#include <dj/djprotx.h>
 
 typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
 

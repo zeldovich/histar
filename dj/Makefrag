@@ -1,8 +1,9 @@
 OBJDIRS += dj
 
 LIBDIS_SRCFILES +=		\
-	dj/djprot.cc		\
 	dj/bcast.cc		\
+	dj/djprotx.x		\
+	dj/djprot.cc		\
 	dj/directexec.cc	\
 	dj/dummycatmgr.cc	\
 	dj/djfs_posix.cc	\
@@ -12,7 +13,6 @@ LIBDIS_SRCFILES +=		\
 	dj/gateutil.cc		\
 	dj/catmgr.cc		\
 	dj/checkpoint.cc	\
-	dj/dj.x			\
 	dj/djgate.x		\
 	dj/djfs.x		\
 	dj/djauth.x

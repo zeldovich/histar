@@ -42,7 +42,7 @@ LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
-DIS_OBJS := dj.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
+DIS_OBJS := djprotx.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
 	    backtrace.o string.o label.o djdebug.o
 DIS_OBJS := $(patsubst %.o, obj/test/%.o, $(DIS_OBJS))
 
