@@ -57,6 +57,10 @@ Security:
   gatesrv does no checks to make sure the caller could have really invoked it
   in the first place.  should fetch the return gate's verify label VL_RG and
   check that VL_T \leq VL_RG.
+* need both an upper and lower bound on gate caller's thread label, to perform
+  any action on their behalf.  verify clearance is not sufficient because it
+  doesn't prove caller is actually that tainted right now, and returning any
+  data back to him would leak information in that category..
 
 Cleanup:
 
