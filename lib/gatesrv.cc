@@ -151,21 +151,19 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
     if (dr)
 	delete dr;
 
-    label blank_vl(3), blank_vc(0);
-    if (!vl)
-	vl = &blank_vl;
-    if (!vc)
-	vc = &blank_vc;
+    { // GC scope
+	label blank_vl(3), blank_vc(0);
+	if (!vl)
+	    vl = &blank_vl;
+	if (!vc)
+	    vc = &blank_vc;
 
-    error_check(sys_self_set_verify(vl->to_ulabel(), vc->to_ulabel()));
-    if (vl != &blank_vl)
-	delete vl;
-    if (vc != &blank_vc)
-	delete vc;
+	error_check(sys_self_set_verify(vl->to_ulabel(), vc->to_ulabel()));
+	if (vl != &blank_vl)
+	    delete vl;
+	if (vc != &blank_vc)
+	    delete vc;
 
-    // Create an MLT-like container for tainted data.
-    // New scope to free thread_label and taint_ct_label.
-    {
 	label taint_ct_label, thread_label;
 	thread_cur_label(&thread_label);
 
