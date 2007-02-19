@@ -303,6 +303,13 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
+	if (cc->timecb && time(0) >= cc->until) {
+	    /* Have to transmit at least once for a timeout.. */
+	    cc->timecb = 0;
+	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
+	    return;
+	}
+
 	cc->tmo *= 2;
 	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
 
@@ -323,9 +330,6 @@ class djprot_impl : public djprot {
 		return;
 	    }
 	}
-
-	if (time(0) >= cc->until)
-	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
     }
 
     void addr_remove(pk_addr *a) {

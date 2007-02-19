@@ -1,0 +1,57 @@
+#ifndef JOS_DJ_DJRPC_HH
+#define JOS_DJ_DJRPC_HH
+
+#include <dj/djprot.hh>
+#include <dj/stuff.hh>
+
+class dj_rpc_call : virtual public refcount {
+ public:
+    typedef callback<void, dj_delivery_code, const dj_message*>::ptr call_reply_cb;
+
+    dj_rpc_call(message_sender *s, dj_gate_factory *f, uint64_t rct)
+	: s_(s), f_(f), rct_(rct), rep_created_(false), reply_token_(0), done_(false) {}
+    ~dj_rpc_call();
+    void call(const dj_pubkey&, time_t tmo, const dj_delegation_set&,
+	      const dj_message&, const str&, call_reply_cb cb);
+
+ private:
+    void retransmit();
+    void delivery_cb(dj_delivery_code, uint64_t token);
+    void reply_sink(const dj_pubkey&, const dj_message&, uint64_t);
+    void reply_sink2(dj_pubkey, dj_message);
+
+    message_sender *s_;
+    dj_gate_factory *f_;
+
+    uint64_t rct_;
+    bool rep_created_;
+    dj_message_endpoint rep_;
+
+    dj_pubkey dst_;
+    uint64_t reply_token_;
+    vec<cbv> delivery_waiters_;
+
+    dj_delegation_set dset_;
+    dj_message a_;
+    call_reply_cb cb_;
+
+    bool done_;
+    time_t until_;
+};
+
+struct dj_rpc_reply {
+    dj_pubkey sender;
+    time_t tmo;
+    dj_delegation_set dset;
+    dj_message msg;
+};
+
+typedef callback<bool, const dj_message&, const str&,
+		       dj_rpc_reply*>::ptr dj_rpc_service;
+void dj_rpc_srv_sink(message_sender*, dj_rpc_service,
+		     const dj_pubkey&, const dj_message&, uint64_t selftoken);
+
+// For debugging purposes.
+bool dj_echo_service(const dj_message&, const str&, dj_rpc_reply*);
+
+#endif

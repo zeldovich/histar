@@ -5,6 +5,10 @@ LIBDIS_SRCFILES +=		\
 	dj/djprotx.x		\
 	dj/djprot.cc		\
 	dj/directexec.cc	\
+	dj/djrpcx.x		\
+	dj/djrpc.cc
+
+OTHERS := \
 	dj/dummycatmgr.cc	\
 	dj/djfs_posix.cc	\
 	dj/gateexec.cc		\
