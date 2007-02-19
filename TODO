@@ -53,6 +53,10 @@ Security:
   a lot of code already assumes this, and would have to check whether we lost
   any stars on every gate entry in user-space..  is it expensive to do this in
   user-space?
+* you can provide an arbitrary gate for a gate-based service to return to, and
+  gatesrv does no checks to make sure the caller could have really invoked it
+  in the first place.  should fetch the return gate's verify label VL_RG and
+  check that VL_T \leq VL_RG.
 
 Cleanup:
 
