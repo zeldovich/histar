@@ -267,12 +267,9 @@ bipipe_close(struct Fd *fd)
     BIPIPE_SEG_UNMAP(bs);
 
     if (flag) {
-	struct cobj_ref seg = fd->fd_bipipe.bipipe_seg;
-	if (seg.container == start_env->shared_container) {
-	    sys_obj_unref(seg);
-	} else {
-	    // XXX 
-	}
+	int r = sys_obj_unref(fd->fd_bipipe.bipipe_seg);
+	if (r < 0)
+	    cprintf("bipipe_close: can't unref bipipe_seg: %s\n", e2s(r));
     }
     return 0;
 }
