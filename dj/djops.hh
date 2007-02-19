@@ -12,27 +12,27 @@ extern "C" {
 #include <inc/cpplabel.hh>
 
 struct dj_msg_id {
-    dj_esign_pubkey key;
+    dj_pubkey key;
     uint64_t xid;
 
-    dj_msg_id(const dj_esign_pubkey &k, uint64_t x) : key(k), xid(x) {}
+    dj_msg_id(const dj_pubkey &k, uint64_t x) : key(k), xid(x) {}
     operator hash_t() const { return xid; }
 };
 
 inline bool
-operator<(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
+operator<(const dj_pubkey &a, const dj_pubkey &b)
 {
     return a.n < b.n || (a.n == b.n && a.k < b.k);
 }
 
 inline bool
-operator==(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
+operator==(const dj_pubkey &a, const dj_pubkey &b)
 {
     return a.n == b.n && a.k == b.k;
 }
 
 inline bool
-operator!=(const dj_esign_pubkey &a, const dj_esign_pubkey &b)
+operator!=(const dj_pubkey &a, const dj_pubkey &b)
 {
     return !(a == b);
 }
@@ -80,7 +80,7 @@ operator==(const cobj_ref &a, const cobj_ref &b)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_esign_pubkey &pk)
+strbuf_cat(const strbuf &sb, const dj_pubkey &pk)
 {
     sb << "{" << pk.n << "," << pk.k << "}";
     return sb;
@@ -189,10 +189,10 @@ strbuf_cat(const strbuf &sb, const dj_message &a)
     return sb;
 }
 
-inline dj_esign_pubkey
+inline dj_pubkey
 esignpub2dj(const esign_pub &ep)
 {
-    dj_esign_pubkey pk;
+    dj_pubkey pk;
     pk.n = ep.n;
     pk.k = ep.k;
     return pk;
@@ -210,9 +210,9 @@ template<> struct hashfn<dj_gcat> {
 	{ return a.id; }
 };
 
-template<> struct hashfn<dj_esign_pubkey> {
+template<> struct hashfn<dj_pubkey> {
     hashfn() {}
-    hash_t operator() (const dj_esign_pubkey &a) const
+    hash_t operator() (const dj_pubkey &a) const
 	{ str r = a.n.getraw(); return hash_bytes(r.cstr(), r.len()) ^ a.k; }
 };
 

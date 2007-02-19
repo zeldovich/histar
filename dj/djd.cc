@@ -13,7 +13,7 @@ msgcb(dj_delivery_code c, uint64_t token)
 }
 
 static void
-sndmsg(message_sender *s, dj_esign_pubkey node_pk, dj_message_endpoint ep)
+sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
 {
     warn << "sending a message..\n";
 
@@ -47,7 +47,7 @@ main(int ac, char **av)
 
     if (ac == 3) {
 	str n(av[1]);
-	dj_esign_pubkey k;
+	dj_pubkey k;
 	k.n = bigint(n, 16);
 	k.k = 8;
 

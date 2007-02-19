@@ -32,7 +32,7 @@ myipaddr(void)
 
 template<class T>
 static bool
-verify_sign(const T &xdrblob, const dj_esign_pubkey &pk, const bigint &sig)
+verify_sign(const T &xdrblob, const dj_pubkey &pk, const bigint &sig)
 {
     str msg = xdr2str(xdrblob);
     if (!msg)
@@ -73,7 +73,7 @@ struct pk_addr {	/* d.a.addr speaks-for pk */
     ihash_entry<pk_addr> pk_link;
     itree_entry<pk_addr> exp_link;
     dj_timestamp expires;
-    dj_esign_pubkey pk;
+    dj_pubkey pk;
     dj_delegation d;
 };
 
@@ -87,7 +87,7 @@ struct msg_client {
     uint32_t until;
     timecb_t *timecb;
 
-    msg_client(const dj_esign_pubkey &k, uint64_t xid)
+    msg_client(const dj_pubkey &k, uint64_t xid)
 	: id(k, xid), timecb(0), tmo(1) {}
 };
 
@@ -144,11 +144,11 @@ class djprot_impl : public djprot {
 	warn << "djprot_impl dead\n";
     }
 
-    virtual dj_esign_pubkey pubkey() const { return esignpub2dj(k_); }
+    virtual dj_pubkey pubkey() const { return esignpub2dj(k_); }
     virtual void set_label(const dj_label &l) { net_label_ = l; }
     virtual void set_clear(const dj_label &l) { net_clear_ = l; }
 
-    virtual void send(const dj_esign_pubkey &target, time_t timeout,
+    virtual void send(const dj_pubkey &target, time_t timeout,
 		      const dj_delegation_set &dels,
 		      const dj_message &msg, delivery_status_cb cb)
     {
@@ -177,7 +177,7 @@ class djprot_impl : public djprot {
     }
 
  private:
-    bool key_speaks_for(const dj_esign_pubkey &k, const dj_gcat &gcat) {
+    bool key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat) {
 	if (gcat.key == k)
 	    return true;
 
@@ -194,7 +194,7 @@ class djprot_impl : public djprot {
      * M_L = a.taint; M_G = a.grant
      */
 
-    bool labelcheck_send(const dj_message &a, const dj_esign_pubkey &dst,
+    bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
 			 const dj_delegation_set &dels)
     {
 	if (!check_local_msgs && dst == esignpub2dj(k_))
@@ -217,7 +217,7 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool labelcheck_recv(const dj_message &a, const dj_esign_pubkey &src,
+    bool labelcheck_recv(const dj_message &a, const dj_pubkey &src,
 			 const dj_delegation_set &dels)
     {
 	if (!check_local_msgs && src == esignpub2dj(k_))
@@ -270,7 +270,7 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool send_message(str msg, dj_esign_pubkey nodekey) {
+    bool send_message(str msg, dj_pubkey nodekey) {
 	pk_addr *a = addr_key_[nodekey];
 	if (!a) {
 	    warn << "send_message: can't find address for pubkey\n";
@@ -534,7 +534,7 @@ class djprot_impl : public djprot {
     esign_priv k_;
     uint64_t xid_;
 
-    ihash<dj_esign_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
+    ihash<dj_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
     itree<dj_timestamp, pk_addr, &pk_addr::expires, &pk_addr::exp_link> addr_exp_;
     ihash<dj_msg_id, msg_client, &msg_client::id, &msg_client::link> clnt_;
 

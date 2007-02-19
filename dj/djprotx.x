@@ -7,13 +7,13 @@
 
 typedef unsigned dj_timestamp;	/* UNIX seconds */
 
-struct dj_esign_pubkey {
+struct dj_pubkey {
     bigint n;
     unsigned k;
 };
 
 struct dj_gcat {		/* Global category name */
-    dj_esign_pubkey key;
+    dj_pubkey key;
     unsigned hyper id;
 };
 
@@ -59,7 +59,7 @@ enum dj_entity_type {
 
 union dj_entity switch (dj_entity_type type) {
  case ENT_PUBKEY:
-    dj_esign_pubkey key;
+    dj_pubkey key;
  case ENT_GCAT:
     dj_gcat gcat;
  case ENT_ADDRESS:
@@ -139,8 +139,8 @@ union dj_msg_u switch (dj_msg_op op) {
 };
 
 struct dj_msg_xfer {
-    dj_esign_pubkey from;
-    dj_esign_pubkey to;
+    dj_pubkey from;
+    dj_pubkey to;
     unsigned hyper xid;
     dj_msg_u u;
 };

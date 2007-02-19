@@ -2,7 +2,7 @@
 #include <dj/djops.hh>
 
 void
-dj_debug_delivery(const dj_esign_pubkey &sender,
+dj_debug_delivery(const dj_pubkey &sender,
 		  const dj_message &a,
 		  delivery_status_cb cb)
 {
