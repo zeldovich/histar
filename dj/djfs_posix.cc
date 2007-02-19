@@ -6,7 +6,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <exception>
 #include <crypt.h>
-#include <dj/dis.hh>
+#include <dj/djrpc.hh>
 #include <dj/djfs.h>
 
 class errno_exception {
@@ -25,11 +25,11 @@ errcheck(bool expr)
 }
 
 bool
-dj_posixfs_service(const djcall_args &in, djcall_args *out)
+dj_posixfs_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 {
     djfs_request req;
     djfs_reply res;
-    if (!str2xdr(req, in.data)) {
+    if (!str2xdr(req, s)) {
 	warn << "posixfs: cannot unmarshal input args\n";
 	return false;
     }
@@ -81,7 +81,6 @@ dj_posixfs_service(const djcall_args &in, djcall_args *out)
 	res.set_err(e.err());
     }
 
-    out->taint = in.taint;
-    out->data = xdr2str(res);
+    r->msg.msg = xdr2str(res);
     return true;
 }
