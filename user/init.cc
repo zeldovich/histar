@@ -99,35 +99,31 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
 				    0, CT_QUOTA_INF));
 
+    // create a /dev directory
+    struct fs_inode dev;
+    error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
+
+    struct fs_inode dummy_ino;
+    error_check(fs_mknod(dev, "null", 'n', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "zero", 'z', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "tty", 'c', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "random", 'r', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "urandom", 'r', 0, &dummy_ino, 0));
+    error_check(fs_mknod(dev, "ptmx", 'x', 0, &dummy_ino, 0));
+    error_check(fs_mkdir(dev, "pts", &dummy_ino, 0));
+
     // create a /fs directory
     struct fs_inode fs_root;
     error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "bin", bin_dir));
-    
-    // create a /dev directory
-    label ldev(1);
-    
-    struct fs_inode dev;
-    error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
-    struct fs_inode null_ino, zero_ino, tty_ino, rand_ino, urand_ino;
-    error_check(fs_mknod(dev, "null", 'n', 0, &null_ino, ldev.to_ulabel()));
-    error_check(fs_mknod(dev, "zero", 'z', 0, &zero_ino, ldev.to_ulabel()));
-    error_check(fs_mknod(dev, "tty", 'c', 0, &tty_ino, ldev.to_ulabel()));
-    error_check(fs_mknod(dev, "random", 'r', 0, &rand_ino, ldev.to_ulabel()));
-    error_check(fs_mknod(dev, "urandom", 'r', 0, &urand_ino, ldev.to_ulabel()));
-    error_check(fs_mknod(dev, "ptmx", 'x', 0, &rand_ino, ldev.to_ulabel()));
-    struct fs_inode pts;
-    error_check(fs_mkdir(dev, "pts", &pts, 0));
+    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "dev", dev));
 
     // create a /home directory
-    struct fs_inode home;
-    error_check(fs_mkdir(start_env->fs_root, "home", &home, 0));
+    error_check(fs_mkdir(start_env->fs_root, "home", &dummy_ino, 0));
 
     // create a scratch container
-    label lx(1);
-
-    struct fs_inode scratch;
-    error_check(fs_mkdir(start_env->fs_root, "tmp", &scratch, lx.to_ulabel()));
+    label ltmp(1);
+    error_check(fs_mkdir(start_env->fs_root, "tmp", &dummy_ino, ltmp.to_ulabel()));
 
     struct fs_inode etc;
     error_check(fs_mkdir(start_env->fs_root, "etc", &etc, 0));

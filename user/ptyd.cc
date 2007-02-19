@@ -26,8 +26,6 @@ alloc_pts(struct pty_args *args)
 
     for (uint32_t i = 0; i < num_pts; i++) {
 	if (!pts_table[i].slave_pty_seg.object) {
-	    label l(1);
-	    
 	    pts_table[i].slave_pty_seg = args->alloc.slave_pty_seg;
 	    pts_table[i].slave_bipipe_seg = args->alloc.slave_bipipe_seg;
 	    pts_table[i].taint = args->alloc.taint;
@@ -35,8 +33,7 @@ alloc_pts(struct pty_args *args)
 
 	    char num_buf[32];
 	    sprintf(num_buf, "%d", i);
-	    error_check(fs_mknod(pts_ino, num_buf, 'z', i, 
-				 &num_ino, l.to_ulabel()));
+	    error_check(fs_mknod(pts_ino, num_buf, 'z', i, &num_ino, 0));
 	    return i;
 	}
     }
