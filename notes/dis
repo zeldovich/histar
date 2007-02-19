@@ -287,3 +287,33 @@ Eliminates the need for the "named categories" field, because the user-level
 application has to keep track of what local category resources it's got on
 what nodes..
 
+===
+
+After some thought, it seems we cannot make the exporter really stateless.
+It must cache the privileges for each local category of interest, and only
+drop its cache entry when all resources for that local category are dead.
+Otherwise, we have a chicken-and-egg problem: there's a global category g,
+and a corresponding local category c, backed by resources tainted { c3 }.
+Remote entity labeled g3 should be able to use this local category resource,
+but the exporter can't access it, unless it caches c*..
+
+So we really do need to keep state in the exporter, and resource providers
+just provide empty "punitive" resources, effectively just to prove that
+they still care.  A resource will then be a container-ID pair for a segment
+of some sufficient length (but no interesting contents).
+
+Proposed cache structure:
+
+    [A] refcounted privstore
+    [B] mapping from resource to:
+	{ local category, global category }
+	label of resource container
+
+When we receive a request, check that all global categories have some mapping
+specified in the associated dj_catmap.  Then process the dj_catmap:
+
+    (1) Using [B], check that resource IDs match local/global category names
+    (2) Acquire all local categories specified in the catmap
+    (2) Poke each resource specified in the catmap, to make sure that caller
+	can access it (msg.taint \cup msg.glabel^\histar) and it's still alive
+

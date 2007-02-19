@@ -39,9 +39,8 @@ struct dj_label {
 struct dj_cat_mapping {
     dj_gcat gcat;
     unsigned hyper lcat;
-    unsigned hyper map_ct;	/* container storing the mapping resources */
-    unsigned hyper map_gt;	/* unbound gate granting lcat */
-    unsigned hyper map_sg;	/* proof of mapping between lcat & gcat */
+    unsigned hyper res_ct;	/* container storing the mapping resources */
+    unsigned hyper res_id;	/* resource object ID in that container */
 };
 
 struct dj_catmap {
