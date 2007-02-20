@@ -11,6 +11,7 @@
 #include <dj/djfs_posix.hh>
 #include <dj/catmgr.hh>
 #include <dj/gateincoming.hh>
+#include <dj/gateexec.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -150,6 +151,9 @@ main(int ac, char **av)
     catmgr *cm = catmgr::alloc();
     dj_incoming_gate *in = dj_incoming_gate::alloc(djs, cm, start_env->shared_container);
     warn << "dj_incoming_gate at " << in->gate() << "\n";
+
+    djs->set_delivery_cb(wrap(&gate_exec, cm));
+    warn << "delivering messages via gate_exec\n";
 #endif
 
     amain();
