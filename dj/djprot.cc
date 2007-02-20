@@ -149,7 +149,7 @@ class djprot_impl : public djprot {
     virtual void set_clear(const dj_label &l) { net_clear_ = l; }
 
     virtual void send(const dj_pubkey &target, time_t timeout,
-		      const dj_delegation_set &dels,
+		      const dj_delegation_set &dset,
 		      const dj_message &msg, delivery_status_cb cb)
     {
 	msg_client *cc = New msg_client(target, ++xid_);
@@ -157,7 +157,7 @@ class djprot_impl : public djprot {
 	cc->cb = cb;
 	cc->until = time(0) + timeout;
 
-	if (!labelcheck_send(msg, target, dels)) {
+	if (!labelcheck_send(msg, target, dset)) {
 	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
 	    return;
 	}
@@ -195,7 +195,7 @@ class djprot_impl : public djprot {
      */
 
     bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
-			 const dj_delegation_set &dels)
+			 const dj_delegation_set &dset)
     {
 	if (!check_local_msgs && dst == esignpub2dj(k_))
 	    return true;
@@ -218,7 +218,7 @@ class djprot_impl : public djprot {
     }
 
     bool labelcheck_recv(const dj_message &a, const dj_pubkey &src,
-			 const dj_delegation_set &dels)
+			 const dj_delegation_set &dset)
     {
 	if (!check_local_msgs && src == esignpub2dj(k_))
 	    return true;
@@ -415,7 +415,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	if (!labelcheck_recv(*c.u.req, c.from, c.u.req->dels)) {
+	if (!labelcheck_recv(*c.u.req, c.from, c.u.req->dset)) {
 	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION, 0);
 	    return;
 	}

@@ -15,7 +15,7 @@ dj_rpc_srv_sink(message_sender *s, dj_rpc_service srv,
     dj_rpc_reply r;
     r.sender = sender;
     r.tmo = 0;
-    r.dset = m.dels;
+    r.dset = m.dset;
     r.msg.target = cm.return_ep;
     r.msg.msg_ct = cm.return_ct;
     r.msg.token = selftoken;

@@ -103,7 +103,7 @@ struct dj_message {
     dj_label glabel;		/* grant label on gate invocation */
     dj_label gclear;		/* grant clearance on gate invocation */
     dj_catmap catmap;		/* target node category mappings */
-    dj_delegation_set dels;	/* supporting delegations */
+    dj_delegation_set dset;	/* supporting delegations */
     opaque msg<>;
 };
 

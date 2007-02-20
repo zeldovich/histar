@@ -10,7 +10,7 @@ class message_sender {
  public:
     virtual ~message_sender() {}
     virtual void send(const dj_pubkey &node, time_t timeout,
-		      const dj_delegation_set &dels,
+		      const dj_delegation_set &dset,
 		      const dj_message &msg, delivery_status_cb cb) = 0;
 };
 

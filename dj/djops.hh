@@ -184,7 +184,7 @@ strbuf_cat(const strbuf &sb, const dj_message &a)
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";
     sb << "grant clear:  " << a.gclear << "\n";
-    sb << "catmap, dels: not printed\n";
+    sb << "catmap, dset: not printed\n";
     sb << "payload:      " << str(a.msg.base(), a.msg.size()) << "\n";
     return sb;
 }

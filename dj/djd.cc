@@ -121,8 +121,8 @@ main(int ac, char **av)
     dj_direct_gatemap gm;
     djs->set_delivery_cb(wrap(&gm, &dj_direct_gatemap::deliver));
 
-    //ep = gm.create_gate(1, wrap(&dj_debug_sink));
-    //warn << "dj_debug_sink on " << ep << "\n";
+    ep = gm.create_gate(1, wrap(&dj_debug_sink));
+    warn << "dj_debug_sink on " << ep << "\n";
     //sndmsg(djs, djs->pubkey(), ep);
 
     ep = gm.create_gate(1, wrap(&dj_rpc_srv_sink, djs, wrap(&dj_echo_service)));
