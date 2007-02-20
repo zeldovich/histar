@@ -10,7 +10,8 @@
 #include <dj/djops.hh>
 
 enum {
-    keybits = 1024,
+    keybits = 128,
+    //keybits = 1024,
     addr_cert_valid = 60,
     delegation_time_skew = 5,
 
