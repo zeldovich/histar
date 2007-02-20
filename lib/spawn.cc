@@ -180,6 +180,8 @@ spawn(spawn_descriptor *sd)
 	spawn_env->fs_mtab_seg = sd->fs_mtab_seg_;
     if (sd->fs_root_.obj.object)
 	spawn_env->fs_root = sd->fs_root_;
+    if (sd->fs_cwd_.obj.object)
+	spawn_env->fs_cwd = sd->fs_cwd_;
 
     if (!uinit_style) {
 	uint64_t *child_pgid = 0;

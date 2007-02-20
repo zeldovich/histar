@@ -19,10 +19,11 @@ struct spawn_descriptor {
 	cs_(0), ds_(0), cr_(0), dr_(0), co_(0),
 	spawn_flags_(0), 
 	fs_mtab_seg_(COBJ(0,0)),
-	fs_root_()
+	fs_root_(), fs_cwd_()
     {
 	elf_ino_.obj = COBJ(0, 0);
 	fs_root_.obj = COBJ(0, 0);
+	fs_cwd_.obj = COBJ(0, 0);
     }
 
     uint64_t ct_;
@@ -46,6 +47,7 @@ struct spawn_descriptor {
     int spawn_flags_;
     struct cobj_ref fs_mtab_seg_;
     struct fs_inode fs_root_;
+    struct fs_inode fs_cwd_;
 
  private:
     spawn_descriptor(const spawn_descriptor&);
