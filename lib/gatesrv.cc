@@ -21,6 +21,26 @@ extern "C" {
 enum { gatesrv_debug = 0 };
 
 static void __attribute__((noreturn))
+gatesrv_cleanup_tls(void *stack)
+{
+    struct cobj_ref thread_self = COBJ(start_env->proc_container,
+				       sys_self_id());
+    if (stack) {
+	struct u_segment_mapping usm;
+	int r = segment_lookup(stack, &usm);
+	if (r < 0) {
+	    printf("gatesrv_cleanup_tls: cannot lookup stack: %s\n", e2s(r));
+	} else {
+	    segment_unmap_delayed(stack, 1);
+	    sys_obj_unref(usm.segment);
+	}
+    }
+
+    error_check(sys_obj_unref(thread_self));
+    thread_halt();
+}
+
+static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
     try {
@@ -33,9 +53,12 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 
 	throw basic_exception("gatesrv_entry: function returned\n");
     } catch (std::exception &e) {
-	// XXX need to clean up thread stack & refcount
 	printf("gatesrv_entry: %s\n", e.what());
-	thread_halt();
+	if (flags & GATESRV_NO_THREAD_ADDREF)
+	    thread_halt();
+
+	stack_switch((uint64_t) stack, 0, 0, 0,
+		     tls_stack_top, (void *) &gatesrv_cleanup_tls);
     }
 }
 
@@ -109,6 +132,13 @@ gate_create(uint64_t gate_ct, const char *name,
 struct cobj_ref
 gate_create(gatesrv_descriptor *gd)
 {
+    if ((gd->flags_ & GATESRV_NO_THREAD_ADDREF) &&
+	!(gd->flags_ & GATESRV_KEEP_TLS_STACK))
+    {
+	fprintf(stderr, "gate_create: must KEEP_TLS_STACK if NO_THREAD_ADDREF\n");
+	throw basic_exception("gate_create: bad flags");
+    }
+
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &gatesrv_entry_tls;
