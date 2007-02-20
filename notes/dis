@@ -317,3 +317,10 @@ specified in the associated dj_catmap.  Then process the dj_catmap:
     (2) Poke each resource specified in the catmap, to make sure that caller
 	can access it (msg.taint \cup msg.glabel^\histar) and it's still alive
 
+David points out we can "cheat" by using container preauthorization: user
+provides some container to store the mapping, and the exporter in turn creates
+another container there with a label of { Mg0, Mt3, 1 }, which will then hold
+the unbound gate and some way of making the mapping secure -- either the whole
+mapping object in a segment, or the hash of the mapping stored in the metadata
+of the container..
+
