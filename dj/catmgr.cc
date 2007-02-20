@@ -6,8 +6,12 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
-#include <dj/dis.hh>
+#include <dj/catmgr.hh>
 #include <dj/checkpoint.hh>
+#include <dj/djops.hh>
+#include <qhash.h>
+
+enum { gc_period = 60 };
 
 class histar_catmgr : public catmgr {
  public:
@@ -15,13 +19,51 @@ class histar_catmgr : public catmgr {
 	jthread_mutex_init(&rd_mu_);
 	jthread_mutex_init(&wr_mu_);
 	droptmo_ = 0;
+
+	gc_ = delaycb(gc_period, wrap(this, &histar_catmgr::resource_gc));
     }
 
     virtual ~histar_catmgr() {
 	if (droptmo_)
 	    timecb_remove(droptmo_);
+	timecb_remove(gc_);
     }
 
+    virtual void acquire(const dj_catmap &m, bool droplater) {
+	scoped_jthread_lock rl(&rd_mu_);
+
+	for (uint32_t i = 0; i < m.ents.size(); i++) {
+	    const dj_cat_mapping &e = m.ents[i];
+	    cobj_ref o = COBJ(e.res_ct, e.res_id);
+	    dj_cat_mapping *e2 = resmap_[o];
+	    if (!e2 || e.lcat != e2->lcat || e.gcat != e2->gcat)
+		throw basic_exception("dj_catmap mismatch");
+
+	    ps_.fetch_priv(e.lcat);
+	    if (droplater)
+		dropq_.push_back(e.lcat);
+	}
+
+	if (droplater && !droptmo_)
+	    droptmo_ = delaycb(1, wrap(this, &histar_catmgr::drop));
+    }
+
+    virtual void resource_check(request_context *ctx, const dj_catmap &m) {
+	scoped_jthread_lock rl(&rd_mu_);
+
+	for (uint32_t i = 0; i < m.ents.size(); i++) {
+	    const dj_cat_mapping &e = m.ents[i];
+	    cobj_ref o = COBJ(e.res_ct, e.res_id);
+	    if (!ctx->can_read(o))
+		throw basic_exception("dj_catmap dead resource");
+	}
+    }
+
+    /*
+     * XXX
+     *
+     * This needs to be figured out...
+     */
     virtual uint64_t alloc() {
 	int64_t cat = handle_alloc();
 	if (cat < 0) {
@@ -39,65 +81,20 @@ class histar_catmgr : public catmgr {
 	return cat;
     }
 
-    virtual void release(uint64_t c) {
-	scoped_jthread_lock wl(&wr_mu_);
-	scoped_jthread_lock rl(&rd_mu_);
-	ps_.drop_priv(c);
-
-	rl.release();
-	checkpoint_update();
-    }
-
-    virtual void acquire(const label &l, bool droplater, uint64_t e0, uint64_t e1) {
-	scoped_jthread_lock rl(&rd_mu_);
-
-	const struct ulabel *ul = l.to_ulabel_const();
-	uint64_t nent = ul->ul_nent;
-	level_t def = ul->ul_default;
-	for (uint64_t i = 0; i < nent; i++) {
-	    uint64_t ent = ul->ul_ent[i];
-	    level_t l = LB_LEVEL(ent);
-	    if (l != def) {
-		uint64_t c = LB_HANDLE(ent);
-		if (c == e0 || c == e1)
-		    continue;
-
-		ps_.fetch_priv(c);
-		if (droplater)
-		    dropq_.push_back(c);
-	    }
-	}
-
-	if (droplater && !droptmo_)
-	    droptmo_ = delaycb(1, wrap(this, &histar_catmgr::drop));
-    }
-
-    virtual void import(const label &l, uint64_t e0, uint64_t e1) {
-	scoped_jthread_lock wl(&wr_mu_);
-	scoped_jthread_lock rl(&rd_mu_);
-
-	int storecount = 0;
-	const struct ulabel *ul = l.to_ulabel_const();
-	uint64_t nent = ul->ul_nent;
-	for (uint64_t i = 0; i < nent; i++) {
-	    uint64_t ent = ul->ul_ent[i];
-	    level_t l = LB_LEVEL(ent);
-	    if (l == LB_LEVEL_STAR) {
-		uint64_t c = LB_HANDLE(ent);
-		if (c != e0 && c != e1 && !ps_.has_priv(c)) {
-		    ps_.store_priv(c);
-		    storecount++;
-		}
-	    }
-	}
-
-	rl.release();
-	if (storecount)
-	    checkpoint_update();
-    }
-
  private:
-    void drop(void) {
+    void resource_gc() {
+	gc_ = delaycb(gc_period, wrap(this, &histar_catmgr::resource_gc));
+
+	/*
+	 * XXX not implemented yet
+	 *
+	 * Iterate over reslabel_, acquiring the appropriate privilege
+	 * for each resource, checking that it still exists, and if not,
+	 * dropping it from reslabel_, resmap_, and ps_.
+	 */
+    }
+
+    void drop() {
 	droptmo_ = 0;
 
 	if (!dropq_.size())
@@ -121,11 +118,14 @@ class histar_catmgr : public catmgr {
     jthread_mutex_t rd_mu_;
     privilege_store ps_;
     vec<uint64_t> dropq_;
+    qhash<cobj_ref, dj_cat_mapping> resmap_;
+    qhash<cobj_ref, label> reslabel_;
     timecb_t *droptmo_;
+    timecb_t *gc_;
 };
 
-ptr<catmgr>
-dj_catmgr()
+catmgr*
+catmgr::alloc()
 {
-    return New refcounted<histar_catmgr>();
+    return New histar_catmgr();
 }
