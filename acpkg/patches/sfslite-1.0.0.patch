@@ -173,3 +173,14 @@
    virtual void poll () = 0;
    virtual int getfd () = 0;
  
+--- sfslite-1.0.0/arpc/rpctypes.h.0	2007-02-19 18:11:37.000000000 -0800
++++ sfslite-1.0.0/arpc/rpctypes.h	2007-02-19 18:13:16.000000000 -0800
+@@ -138,7 +138,7 @@
+ 
+ public:
+   rpc_vec () { init (); }
+-  rpc_vec (const rpc_vec &v) { init (); copy (v); }
++  rpc_vec (const rpc_vec &v) : vec<T> () { init (); copy (v); }
+   template<size_t m> rpc_vec (const rpc_vec<T, m> &v) { init (); copy (v); }
+   ~rpc_vec () { if (nofree) super::init (); }
+   void clear () { del (); init (); }
