@@ -6,12 +6,14 @@
 #include <dj/djops.hh>
 #include <dj/djdebug.hh>
 #include <dj/directexec.hh>
-#include <dj/djrpc.hh>
+#include <dj/djarpc.hh>
 #include <dj/djfs.h>
 #include <dj/djfs_posix.hh>
+#include <dj/catmgr.hh>
+#include <dj/gateincoming.hh>
 
 static void
-fsrpccb(ptr<dj_rpc_call>, dj_delivery_code c, const dj_message *m)
+fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
 {
     warn << "fsrpccb: code " << c << "\n";
     if (c == DELIVERY_DONE) {
@@ -53,13 +55,13 @@ sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_en
     req.readdir->pn = "/bin";
 
     dj_delegation_set dset;
-    ptr<dj_rpc_call> rc = New refcounted<dj_rpc_call>(s, f, 9876);
+    ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
     rc->call(node_pk, 1, dset, m, xdr2str(req), wrap(&fsrpccb, rc));
     delaycb(5, wrap(&sndfsrpc, s, f, node_pk, ep));
 }
 
 static void
-rpccb(ptr<dj_rpc_call>, dj_delivery_code c, const dj_message *m)
+rpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
 {
     warn << "rpccb: code " << c << "\n";
     if (c == DELIVERY_DONE)
@@ -77,7 +79,7 @@ sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endp
     m.gclear.deflevel = 0;
 
     dj_delegation_set dset;
-    ptr<dj_rpc_call> rc = New refcounted<dj_rpc_call>(s, f, 9876);
+    ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
     rc->call(node_pk, 1, dset, m, "Hello world.", wrap(&rpccb, rc));
     delaycb(5, wrap(&sndrpc, s, f, node_pk, ep));
 }
@@ -125,11 +127,11 @@ main(int ac, char **av)
     warn << "dj_debug_sink on " << ep << "\n";
     //sndmsg(djs, djs->pubkey(), ep);
 
-    ep = gm.create_gate(1, wrap(&dj_rpc_srv_sink, djs, wrap(&dj_echo_service)));
+    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_echo_service)));
     warn << "dj_echo_service on " << ep << "\n";
     //sndrpc(djs, &gm, djs->pubkey(), ep);
 
-    ep = gm.create_gate(1, wrap(&dj_rpc_srv_sink, djs, wrap(&dj_posixfs_service)));
+    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_posixfs_service)));
     warn << "dj_posixfs_service on " << ep << "\n";
     //sndfsrpc(djs, &gm, djs->pubkey(), ep);
 
@@ -143,6 +145,12 @@ main(int ac, char **av)
 
 	sndfsrpc(djs, &gm, k, ep);
     }
+
+#ifndef JOS_TEST
+    catmgr *cm = catmgr::alloc();
+    dj_incoming_gate *in = dj_incoming_gate::alloc(djs, cm, start_env->shared_container);
+    warn << "dj_incoming_gate at " << in->gate() << "\n";
+#endif
 
     amain();
 }

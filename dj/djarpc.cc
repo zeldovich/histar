@@ -1,10 +1,10 @@
-#include <dj/djrpc.hh>
+#include <dj/djarpc.hh>
 #include <dj/djrpcx.h>
 
 void
-dj_rpc_srv_sink(message_sender *s, dj_rpc_service srv,
-		const dj_pubkey &sender, const dj_message &m,
-		uint64_t selftoken)
+dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
+		 const dj_pubkey &sender, const dj_message &m,
+		 uint64_t selftoken)
 {
     dj_call_msg cm;
     if (!str2xdr(cm, str(m.msg.base(), m.msg.size()))) {
@@ -12,7 +12,7 @@ dj_rpc_srv_sink(message_sender *s, dj_rpc_service srv,
 	return;
     }
 
-    dj_rpc_reply r;
+    dj_arpc_reply r;
     r.sender = sender;
     r.tmo = 0;
     r.dset = m.dset;
@@ -29,14 +29,14 @@ dj_rpc_srv_sink(message_sender *s, dj_rpc_service srv,
 }
 
 void
-dj_rpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &dset,
-		  const dj_message &a, const str &buf, call_reply_cb cb)
+dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &dset,
+		   const dj_message &a, const str &buf, call_reply_cb cb)
 {
     dset_ = dset;
     a_ = a;
     dst_ = node;
     cb_ = cb;
-    rep_ = f_->create_gate(rct_, wrap(mkref(this), &dj_rpc_call::reply_sink));
+    rep_ = f_->create_gate(rct_, wrap(mkref(this), &dj_arpc_call::reply_sink));
     rep_created_ = true;
 
     dj_call_msg cm;
@@ -51,7 +51,7 @@ dj_rpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &ds
 }
 
 void
-dj_rpc_call::retransmit()
+dj_arpc_call::retransmit()
 {
     if (done_)
 	return;
@@ -60,7 +60,7 @@ dj_rpc_call::retransmit()
     if (now > until_)
 	now = until_;
 
-    s_->send(dst_, until_ - now, dset_, a_, wrap(mkref(this), &dj_rpc_call::delivery_cb));
+    s_->send(dst_, until_ - now, dset_, a_, wrap(mkref(this), &dj_arpc_call::delivery_cb));
 
     if (now >= until_ && !done_) {
 	done_ = true;
@@ -70,7 +70,7 @@ dj_rpc_call::retransmit()
 }
 
 void
-dj_rpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
+dj_arpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
 {
     if (done_)
 	return;
@@ -81,7 +81,7 @@ dj_rpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
 	return;
     }
 
-    delaycb(1, wrap(mkref(this), &dj_rpc_call::retransmit));
+    delaycb(1, wrap(mkref(this), &dj_arpc_call::retransmit));
 
     reply_token_ = token;
     while (delivery_waiters_.size())
@@ -89,13 +89,13 @@ dj_rpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
 }
 
 void
-dj_rpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a, uint64_t)
+dj_arpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a, uint64_t)
 {
     if (done_)
 	return;
 
     if (reply_token_ == 0) {
-	delivery_waiters_.push_back(wrap(mkref(this), &dj_rpc_call::reply_sink2, sender, a));
+	delivery_waiters_.push_back(wrap(mkref(this), &dj_arpc_call::reply_sink2, sender, a));
 	return;
     }
 
@@ -103,15 +103,15 @@ dj_rpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a, uint64_t)
 }
 
 void
-dj_rpc_call::reply_sink2(dj_pubkey sender, dj_message a)
+dj_arpc_call::reply_sink2(dj_pubkey sender, dj_message a)
 {
     if (sender != dst_) {
-	warn << "dj_rpc_call::reply_sink2: reply from wrong node\n";
+	warn << "dj_arpc_call::reply_sink2: reply from wrong node\n";
 	return;
     }
 
     if (reply_token_ != a.token) {
-	warn << "dj_rpc_call::reply_sink: wrong reply token\n";
+	warn << "dj_arpc_call::reply_sink: wrong reply token\n";
 	return;
     }
 
@@ -119,14 +119,14 @@ dj_rpc_call::reply_sink2(dj_pubkey sender, dj_message a)
     cb_(DELIVERY_DONE, &a);
 }
 
-dj_rpc_call::~dj_rpc_call()
+dj_arpc_call::~dj_arpc_call()
 {
     if (rep_created_)
 	f_->destroy(rep_);
 }
 
 bool
-dj_echo_service(const dj_message &m, const str &s, dj_rpc_reply *r)
+dj_echo_service(const dj_message &m, const str &s, dj_arpc_reply *r)
 {
     r->msg.msg = s;
     return true;

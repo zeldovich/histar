@@ -6,7 +6,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <exception>
 #include <crypt.h>
-#include <dj/djrpc.hh>
+#include <dj/djfs_posix.hh>
 #include <dj/djfs.h>
 
 class errno_exception {
@@ -25,7 +25,7 @@ errcheck(bool expr)
 }
 
 bool
-dj_posixfs_service(const dj_message &m, const str &s, dj_rpc_reply *r)
+dj_posixfs_service(const dj_message &m, const str &s, dj_arpc_reply *r)
 {
     djfs_request req;
     djfs_reply res;

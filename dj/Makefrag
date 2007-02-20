@@ -6,11 +6,12 @@ LIBDIS_SRCFILES +=		\
 	dj/djprot.cc		\
 	dj/directexec.cc	\
 	dj/djrpcx.x		\
-	dj/djrpc.cc		\
+	dj/djarpc.cc		\
 	dj/djfs.x		\
 	dj/djfs_posix.cc	\
 	dj/djlabel.cc		\
 	dj/djdebug.cc		\
+	dj/reqcontext.cc	\
 	dj/checkpoint.cc	\
 	dj/catmgr.cc		\
 	dj/djgate.x		\

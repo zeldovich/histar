@@ -4,13 +4,13 @@
 #include <dj/djprot.hh>
 #include <dj/stuff.hh>
 
-class dj_rpc_call : virtual public refcount {
+class dj_arpc_call : virtual public refcount {
  public:
     typedef callback<void, dj_delivery_code, const dj_message*>::ptr call_reply_cb;
 
-    dj_rpc_call(message_sender *s, dj_gate_factory *f, uint64_t rct)
+    dj_arpc_call(message_sender *s, dj_gate_factory *f, uint64_t rct)
 	: s_(s), f_(f), rct_(rct), rep_created_(false), reply_token_(0), done_(false) {}
-    ~dj_rpc_call();
+    ~dj_arpc_call();
     void call(const dj_pubkey&, time_t tmo, const dj_delegation_set&,
 	      const dj_message&, const str&, call_reply_cb cb);
 
@@ -39,7 +39,7 @@ class dj_rpc_call : virtual public refcount {
     time_t until_;
 };
 
-struct dj_rpc_reply {
+struct dj_arpc_reply {
     dj_pubkey sender;
     time_t tmo;
     dj_delegation_set dset;
@@ -47,11 +47,11 @@ struct dj_rpc_reply {
 };
 
 typedef callback<bool, const dj_message&, const str&,
-		       dj_rpc_reply*>::ptr dj_rpc_service;
-void dj_rpc_srv_sink(message_sender*, dj_rpc_service,
+		       dj_arpc_reply*>::ptr dj_arpc_service;
+void dj_arpc_srv_sink(message_sender*, dj_arpc_service,
 		     const dj_pubkey&, const dj_message&, uint64_t selftoken);
 
 // For debugging purposes.
-bool dj_echo_service(const dj_message&, const str&, dj_rpc_reply*);
+bool dj_echo_service(const dj_message&, const str&, dj_arpc_reply*);
 
 #endif
