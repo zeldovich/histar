@@ -2,17 +2,19 @@
  * Message format for incoming requests into djd's local gate.
  */
 
-%#include <dj/dj.h>
+%#include <dj/djprotx.h>
 
 struct dj_incoming_gate_req {
-    opaque nodepk<>;
-    dj_gatename gate;
-    opaque data<>;
+    dj_pubkey node;
+    time_t timeout;
+    dj_delegation_set dset;
+    dj_catmap catmap;
+    dj_message m;
 };
 
-union dj_incoming_gate_res switch (dj_reply_status stat) {
- case REPLY_DONE:
-    opaque data<>;
+union dj_incoming_gate_res switch (dj_delivery_status stat) {
+ case DELIVERY_DONE:
+    unsigned hyper token;
  default:
     void;
 };

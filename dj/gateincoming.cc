@@ -13,34 +13,29 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 #include <inc/gateclnt.hh>
-#include <dj/dis.hh>
 #include <dj/djgate.h>
+#include <dj/gateincoming.hh>
 #include <dj/gateutil.hh>
 #include <dj/checkpoint.hh>
+#include <dj/reqcontext.hh>
 
 struct incoming_req {
-    str nodepk;
-    dj_gatename gate;
-    djcall_args args;
-
-    dj_reply_status stat;
-    djcall_args res;
-
+    dj_incoming_gate_req *req;
+    dj_incoming_gate_res res;
     uint64_t done;
 };
 
 class incoming_impl : public djgate_incoming {
  public:
-    incoming_impl(ptr<djprot> p) : p_(p), cm_(p->get_catmgr()) {
+    incoming_impl(djprot *p, catmgr *cm, uint64_t ct)
+	: p_(p), cm_(cm), proc_ct_(start_env->proc_container),
+	  gate_(COBJ(0, 0))
+    {
 	errno_check(pipe(fds_));
 	_make_async(fds_[0]);
 	fdcb(fds_[0], selread, wrap(this, &incoming_impl::readcb));
 	fd_make_public(fds_[0], 0);
 	fd_make_public(fds_[1], 0);
-
-	proc_ct_ = start_env->proc_container;
-	label vproc(3);
-	vproc.set(start_env->process_grant, 0);
 
 	label tl;
 	thread_cur_label(&tl);
@@ -68,32 +63,36 @@ class incoming_impl : public djgate_incoming {
 	c.transform(label::nonstar_to, 2);
 	c.transform(label::star_to, 3);
 
-	gatesrv_descriptor gd;
-	gd.gate_container_ = start_env->proc_container;
-	gd.name_ = "djd-incoming-untaint";
-	gd.func_ = &call_untaint_stub;
-	gd.arg_ = (void *) this;
-	gd.label_ = &l;
-	gd.clearance_ = &c;
-	gd.verify_ = &vproc;
-	untaint_gate_ = gate_create(&gd);
+	label v(3);
+	v.set(start_env->process_grant, 0);
+
+	gatesrv_descriptor gdi;
+	gdi.gate_container_ = ct;
+	gdi.name_ = "djd-untainted";
+	gdi.func_ = &call_untaint_stub;
+	gdi.arg_ = (void *) this;
+	gdi.label_ = &l;
+	gdi.clearance_ = &c;
+	gdi.verify_ = &v;
+	untaint_gate_ = gate_create(&gdi);
 
 	checkpoint_update();
 
-	gd.gate_container_ = start_env->shared_container;
-	gd.name_ = "djd-incoming";
-	gd.func_ = &call_stub;
-	gd.arg_ = (void *) this;
-	gd.label_ = &l;
-	gd.clearance_ = &c;
-	gd.verify_ = 0;
-	gate_ = gate_create(&gd);
+	gatesrv_descriptor gde;
+	gde.gate_container_ = ct;
+	gde.name_ = "djd-incoming";
+	gde.func_ = &call_stub;
+	gde.arg_ = (void *) this;
+	gde.label_ = &l;
+	gde.clearance_ = &c;
+	gate_ = gate_create(&gde);
     }
 
-    ~incoming_impl() {
+    virtual ~incoming_impl() {
 	fdcb(fds_[0], selread, 0);
 	close(fds_[0]);
 	close(fds_[1]);
+	sys_obj_unref(untaint_gate_);
 	sys_obj_unref(gate_);
     }
 
@@ -104,120 +103,113 @@ class incoming_impl : public djgate_incoming {
 	__attribute__((noreturn))
     {
 	incoming_impl *i = (incoming_impl *) arg;
-	i->call(gcd, ret);
+	i->call(gcd, ret, false);
     }
 
     static void call_untaint_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret)
 	__attribute__((noreturn))
     {
 	incoming_impl *i = (incoming_impl *) arg;
-	i->call_untaint(gcd, ret);
+	i->call(gcd, ret, true);
     }
 
-    void call_untaint(gate_call_data *gcd, gatesrv_return *ret) __attribute__((noreturn)) {
-	label *cs, *ds, *dr, *nvl, *nvc;
-
-	{ // GC scope
-	    label vl, vc;
-	    gate_call_data gcdorig;
-	    dj_gate_call_load_taint(gcd->param_obj, &gcdorig, &vl, &vc);
-	    ret->change_gate(gcdorig.return_gate);
-	    process_call(&gcdorig, vl, vc, &cs, &ds, &dr, &nvl, &nvc);
-	}
-
-	ret->ret(cs, ds, dr, nvl, nvc);
-    }
-
-    void call(gate_call_data *gcd, gatesrv_return *ret) __attribute__((noreturn)) {
-	if (start_env->proc_container != proc_ct_) {
-	    gate_call_data callgcd;
-	    dj_gate_call_save_taint(gcd->taint_container, gcd, &callgcd.param_obj);
-
-	    label tl, tc;
-	    thread_cur_label(&tl);
-	    tl.transform(label::star_to, tl.get_default());
-	    cm_->acquire(tl);
-
-	    thread_cur_label(&tl);
-	    thread_cur_clearance(&tc);
-
-	    gate_call gc(untaint_gate_, 0, &tl, &tc);
-	    gc.call(&callgcd);
-	    fatal << "incoming_impl::call: untainting gate call returned\n";
-	}
-
-	label *cs, *ds, *dr, *nvl, *nvc;
-
-	{ // GC scope
-	    label vl, vc;
-	    thread_cur_verify(&vl, &vc);
-	    process_call(gcd, vl, vc, &cs, &ds, &dr, &nvl, &nvc);
-	}
-
-	ret->ret(cs, ds, dr, nvl, nvc);
-    }
-
-    void process_call(gate_call_data *gcd, const label &vl, const label &vc,
-		      label **cs, label **ds, label **dr, label **nvl, label **nvc)
+    void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted)
+	__attribute__((noreturn))
     {
-	uint64_t call_taint = gcd->call_taint;
-	uint64_t call_grant = gcd->call_grant;
-	uint64_t tct = gcd->taint_container;
+	label *cs = 0;
+	process_call1(gcd, &cs, untainted);
+	ret->ret(cs, 0, 0);
+    }
 
+    void process_call1(gate_call_data *gcd, label **csp, bool untainted) {
+	dj_incoming_gate_res res;
+
+	try {
+	    process_call2(gcd, csp, untainted, &res);
+	} catch (std::exception &e) {
+	    warn << "incoming_impl::process_call1: " << e.what() << "\n";
+	    res.set_stat(DELIVERY_LOCAL_ERR);
+	}
+
+	str s = xdr2str(res);
+	if (s.len() > sizeof(gcd.param_buf)) {
+	    warn << "incoming_impl::process_call1: encoded response size too large!\n";
+	} else {
+	    memcpy(&gcd.param_buf[0], s.cstr(), s.len());
+	}
+    }
+
+    void process_call2(gate_call_data *gcd, label **csp, bool untainted,
+		       dj_incoming_gate_res *res)
+    {
+	cobj_ref rseg = gcd->param_obj;
+	error_check(sys_obj_set_readonly(rseg));
+
+	label vl, vc;
+	thread_cur_verify(&vl, &vc);
+	if (vl.compare(&vc, label::leq_starlo) < 0)
+	    throw basic_exception("bad verify labels %s, %s",
+				  vl.to_string(), vc.to_string());
+
+	*csp = New label(vl);
+	verify_label_reqctx ctx(vl, vc);
+
+	str reqstr;
+	ctx.read_seg(rseg, &reqstr);
+
+	dj_incoming_gate_req req;
+	if (!str2xdr(req, reqstr))
+	    throw basic_exception("cannot decode dj_incoming_gate_req");
+
+	if (!untainted) {
+	    try {
+		// Verify & acquire the mapping resources provided by caller
+		cm_->acquire(req.catmap);
+		cm_->resource_check(&ctx, req.catmap);
+
+		// Make sure global labels are within the caller's authority
+		dj_catmap_indexed mi(req.catmap);
+		label mt, mg, mc;
+		djlabel_to_label(mi, req.m.taint, &mt);
+		djlabel_to_label(mi, req.m.glabel, &mg);
+		djlabel_to_label(mi, req.m.gclear, &mc);
+
+		error_check(vl.compare(&mg, label::leq_starlo));
+		error_check(vl.compare(&mt, label::leq_starlo));
+		error_check(mt.compare(&vc, label::leq_starhi));
+		error_check(mc.compare(&vc, label::leq_starhi));
+	    } catch (std::exception &e) {
+		warn << "process_call2: local mapping: " << e.what() << "\n";
+		res.set_stat(DELIVERY_LOCAL_MAPPING);
+		return;
+	    }
+
+	    if (start_env->proc_container != proc_ct_) {
+		label tl, tc;
+		thread_cur_label(&tl);
+		thread_cur_clearance(&tc);
+
+		label tgtl, tgtc;
+		gate_compute_labels(untaint_gate_, 0, &tl, &tc, &tgtl, &tgtc);
+		sys_gate_enter(untaint_gate_, tgtl.to_ulabel(), tgtc.to_ulabel(), 0);
+		fatal << "incoming_impl::call: untainting gate call returned\n";
+	    }
+	}
+
+	process_call3(req, res);
+    }
+
+    void process_call3(const dj_incoming_gate_req &req, dj_incoming_gate_res *res) {
 	incoming_req ir;
+	ir.req = &req;
 	ir.done = 0;
-
-	// Get the request and its label
-	str req;
-	dj_gate_call_incoming(gcd->param_obj, vl, vc,
-			      call_grant, call_taint,
-			      &ir.args.taint,
-			      &ir.args.grant,
-			      &req);
-
-	// Store any privileges we just got
-	cm_->import(ir.args.grant);
-
-	// Unmarshal incoming call request
-	dj_incoming_gate_req igr;
-	if (!str2xdr(igr, req))
-	    throw basic_exception("cannot unmarshal dj_incoming_gate_req\n");
-
-	ir.nodepk = str(igr.nodepk.base(), igr.nodepk.size());
-	ir.gate = igr.gate;
-	ir.args.data = str(igr.data.base(), igr.data.size());
-
-	// XXX what should be the response label if we get an error back?
-	ir.res.taint = label(1);
-	ir.res.grant = label(3);
 
 	incoming_req *irp = &ir;
 	assert(sizeof(irp) == write(fds_[1], (void *) &irp, sizeof(irp)));
 	while (!ir.done)
 	    sys_sync_wait(&ir.done, 0, ~0UL);
 
-	// Construct reply segment
-	dj_incoming_gate_res res;
-	res.set_stat(ir.stat);
-	if (ir.stat == REPLY_DONE)
-	    *res.data = ir.res.data;
-
-	str resstr = xdr2str(res);
-	if (!resstr)
-	    throw basic_exception("cannot encode dj_incoming_gate_res\n");
-
-	// Labels for return gate call
-	*cs = New label(ir.res.taint);
-	*ds = New label(ir.res.grant);
-	*dr = New label(ir.res.taint);
-	*nvl = New label();
-	*nvc = New label();
-
-	cm_->acquire(ir.res.grant);
-	cm_->acquire(ir.res.taint);
-	dj_gate_call_outgoing(tct, call_grant, call_taint,
-			      ir.res.taint, ir.res.grant, resstr,
-			      &gcd->param_obj, *nvl, *nvc);
+	*res = ir.res;
     }
 
     void readcb() {
@@ -235,28 +227,29 @@ class incoming_impl : public djgate_incoming {
 	}
 
 	assert(cc == sizeof(ir));
-	p_->call(ir->nodepk, ir->gate, ir->args,
+	p_->call(ir->req->node, ir->req->timeout, ir->req->dset, ir->req->m,
 		 wrap(this, &incoming_impl::callcb, ir));
     }
 
-    void callcb(incoming_req *ir, dj_reply_status stat, const djcall_args *res) {
-	ir->stat = stat;
-	if (res)
-	    ir->res = *res;
+    void callcb(incoming_req *ir, dj_delivery_code stat, uint64_t token) {
+	ir->res.set_stat(stat);
+	if (stat == DELIVERY_DONE)
+	    *ir->res.token = token;
+
 	ir->done = 1;
 	sys_sync_wakeup(&ir->done);
     }
 
-    ptr<djprot> p_;
-    ptr<catmgr> cm_;
-    cobj_ref gate_;
+    djprot *p_;
+    catmgr *cm_;
     cobj_ref untaint_gate_;
+    cobj_ref gate_;
     uint64_t proc_ct_;
     int fds_[2];
 };
 
-ptr<djgate_incoming>
-dj_gate_incoming(ptr<djprot> p)
+dj_incoming_gate*
+dj_incoming_gate::alloc(djprot *p, catmgr *cm, uint64_t ct)
 {
-    return New refcounted<incoming_impl>(p);
+    return New incoming_impl(p, cm, ct);
 }
