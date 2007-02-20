@@ -41,6 +41,7 @@ main(int ac, char **av)
     sd.av_ = (const char **)av + 2;
     
     sd.fs_root_ = root_ino;
+    sd.fs_cwd_ = root_ino;
     
     struct child_process cp = spawn(&sd);
     scope_guard<int, struct cobj_ref> 
@@ -48,10 +49,10 @@ main(int ac, char **av)
     int64_t exit_code;
     try {
 	error_check(process_wait(&cp, &exit_code));
-	error_check(exit_code);
+	printf("chroot: exit code %ld\n", exit_code);
     } catch (basic_exception &e) {
 	printf("chroot: %s\n", e.what());
     }
- 
+
     return 0;
 }
