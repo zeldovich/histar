@@ -15,7 +15,8 @@ LIBDIS_SRCFILES +=		\
 	dj/checkpoint.cc	\
 	dj/catmgr.cc		\
 	dj/djgate.x		\
-	dj/gateincoming.cc
+	dj/gateincoming.cc	\
+	dj/gatesender.cc
 
 OTHERS := \
 	dj/gateexec.cc		\
