@@ -115,6 +115,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     // create a /fs directory
     struct fs_inode fs_root;
     error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
+    error_check(fs_mkdir(fs_root, "tmp", &dummy_ino, 0));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "bin", bin_dir));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "dev", dev));
 
