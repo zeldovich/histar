@@ -1,3 +1,4 @@
+#include <inc/fd.h>
 #include <inc/fs.h>
 #include <inc/lib.h>
 #include <inc/error.h>
@@ -19,6 +20,8 @@ jos_stat(struct fs_inode ino, struct stat *buf)
 	__set_errno(EIO);
 	return -1;
     }
+
+    mode_t mode_mask = ~0;
     
     struct fs_object_meta meta;
     int r = sys_obj_get_meta(ino.obj, &meta);
@@ -27,6 +30,10 @@ jos_stat(struct fs_inode ino, struct stat *buf)
 	buf->st_mtimensec = (meta.mtime_msec % 1000) * 1000 * 1000;
 	buf->st_ctime = meta.ctime_msec / 1000;
 	buf->st_ctimensec = (meta.ctime_msec % 1000) * 1000 * 1000;
+
+	// XXX __S_IFCHR?
+	if (meta.dev_id && meta.dev_id != devfile.dev_id)
+	    mode_mask &= ~__S_IFREG;
     }
 
     buf->st_mode = S_IRWXU;
@@ -46,5 +53,6 @@ jos_stat(struct fs_inode ino, struct stat *buf)
 	buf->st_size = len;
     }
 
+    buf->st_mode &= mode_mask;
     return 0;
 }
