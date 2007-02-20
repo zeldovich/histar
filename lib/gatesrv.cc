@@ -50,16 +50,15 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 	gatesrv_return ret(d->return_gate, start_env->proc_container,
 			   d->taint_container, stack, flags);
 	fn(arg, d, &ret);
-
-	throw basic_exception("gatesrv_entry: function returned\n");
     } catch (std::exception &e) {
 	printf("gatesrv_entry: %s\n", e.what());
-	if (flags & GATESRV_NO_THREAD_ADDREF)
-	    thread_halt();
-
-	stack_switch((uint64_t) stack, 0, 0, 0,
-		     tls_stack_top, (void *) &gatesrv_cleanup_tls);
     }
+
+    if (flags & GATESRV_NO_THREAD_ADDREF)
+	thread_halt();
+
+    stack_switch((uint64_t) stack, 0, 0, 0,
+		 tls_stack_top, (void *) &gatesrv_cleanup_tls);
 }
 
 static void __attribute__((noreturn))

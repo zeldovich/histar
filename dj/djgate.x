@@ -18,3 +18,8 @@ union dj_incoming_gate_res switch (dj_delivery_code stat) {
  default:
     void;
 };
+
+struct dj_outgoing_gate_msg {
+    dj_pubkey sender;
+    dj_message m;
+};

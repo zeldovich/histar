@@ -100,33 +100,29 @@ class incoming_impl : public dj_incoming_gate {
     virtual cobj_ref gate() { return gate_; }
 
  private:
-    static void call_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) 
-	__attribute__((noreturn))
-    {
+    static void call_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
 	incoming_impl *i = (incoming_impl *) arg;
 	i->call(gcd, ret, false);
     }
 
-    static void call_untaint_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret)
-	__attribute__((noreturn))
-    {
+    static void call_untaint_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
 	incoming_impl *i = (incoming_impl *) arg;
 	i->call(gcd, ret, true);
     }
 
-    void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted)
-	__attribute__((noreturn))
-    {
+    void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted) {
+	bool halt = false;
 	label *cs = 0;
-	process_call1(gcd, &cs, untainted);
-	ret->ret(cs, 0, 0);
+	process_call1(gcd, &cs, &halt, untainted);
+	if (!halt)
+	    ret->ret(cs, 0, 0);
     }
 
-    void process_call1(gate_call_data *gcd, label **csp, bool untainted) {
+    void process_call1(gate_call_data *gcd, label **csp, bool *haltp, bool untainted) {
 	dj_incoming_gate_res res;
 
 	try {
-	    process_call2(gcd, csp, untainted, &res);
+	    process_call2(gcd, csp, haltp, untainted, &res);
 	} catch (std::exception &e) {
 	    warn << "incoming_impl::process_call1: " << e.what() << "\n";
 	    res.set_stat(DELIVERY_LOCAL_ERR);
@@ -140,8 +136,8 @@ class incoming_impl : public dj_incoming_gate {
 	}
     }
 
-    void process_call2(gate_call_data *gcd, label **csp, bool untainted,
-		       dj_incoming_gate_res *res)
+    void process_call2(gate_call_data *gcd, label **csp, bool *haltp,
+		       bool untainted, dj_incoming_gate_res *res)
     {
 	cobj_ref rseg = gcd->param_obj;
 	error_check(sys_obj_set_readonly(rseg));
@@ -195,6 +191,14 @@ class incoming_impl : public dj_incoming_gate {
 		sys_gate_enter(untaint_gate_, tgtl.to_ulabel(), tgtc.to_ulabel(), 0);
 		fatal << "incoming_impl::call: untainting gate call returned\n";
 	    }
+	}
+
+	if (req.m.token) {
+	    int64_t tid = sys_self_id();
+	    if (tid >= 0 && req.m.token == (uint64_t) tid)
+		*haltp = true;
+	    else
+		throw basic_exception("refusing bad token");
 	}
 
 	process_call3(req, res);
