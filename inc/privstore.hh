@@ -13,10 +13,13 @@ extern "C" {
 
 class saved_privilege {
  public:
-    saved_privilege(uint64_t guard, uint64_t h);
-    ~saved_privilege() { sys_obj_unref(gate_); }
+    saved_privilege(uint64_t guard, uint64_t h, uint64_t ct);
+    saved_privilege(uint64_t h, cobj_ref g) : handle_(h), gate_(g), gc_(false) {}
+    ~saved_privilege() { if (gc_) sys_obj_unref(gate_); }
 
     uint64_t handle() { return handle_; }
+    cobj_ref gate() { return gate_; }
+    void set_gc(bool b) { gc_ = b; }
     void acquire();
 
  private:
@@ -24,7 +27,8 @@ class saved_privilege {
     saved_privilege &operator=(const saved_privilege&);
 
     uint64_t handle_;
-    struct cobj_ref gate_;
+    cobj_ref gate_;
+    bool gc_;
 };
 
 class privilege_store {

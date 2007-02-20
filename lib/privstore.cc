@@ -14,8 +14,8 @@ extern "C" {
 #include <string.h>
 }
 
-saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
-    : handle_(h), gate_()
+saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
+    : handle_(h), gate_(), gc_(true)
 {
     // XXX
     // This assumes our default label and clearance levels are
@@ -33,13 +33,13 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h)
     label gv(3);
     gv.set(guard, 0);
 
-    int64_t gate_id = sys_gate_create(start_env->proc_container, 0,
+    int64_t gate_id = sys_gate_create(ct, 0,
 				      gl.to_ulabel(), gc.to_ulabel(), gv.to_ulabel(),
 				      "saved privilege", 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create failed");
     
-    gate_ =  COBJ(start_env->proc_container, gate_id);
+    gate_ = COBJ(ct, gate_id);
 }
 
 void
@@ -101,7 +101,7 @@ privilege_store::store_priv(uint64_t h)
     }
 
     assert(m_.find(h) == m_.end());
-    m_[h] = new saved_privilege(root_handle_, h);
+    m_[h] = new saved_privilege(root_handle_, h, start_env->proc_container);
     refcount_[h] = 1;
 }
 
