@@ -167,19 +167,20 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	assert(cur_as);
     }
 
-    uintptr_t iptr = (uintptr_t) ptr;
-    int overflow = 0;
-    if (iptr > ULIM || safe_add(&overflow, iptr, nbytes) > ULIM || overflow)
-	return -E_INVAL;
-
     uint64_t pte_flags = PTE_P | PTE_U;
     if ((reqflags & SEGMAP_WRITE))
 	pte_flags |= PTE_W;
 
     int aspf = 0;
     if (nbytes > 0) {
-	uintptr_t start = (uintptr_t) ROUNDDOWN(ptr, PGSIZE);
-	uintptr_t end = (uintptr_t) ROUNDUP(ptr + nbytes, PGSIZE);
+	int overflow = 0;
+	uintptr_t iptr = (uintptr_t) ptr;
+	uintptr_t start = ROUNDDOWN(iptr, PGSIZE);
+	uintptr_t end = ROUNDUP(safe_add(&overflow, iptr, nbytes), PGSIZE);
+
+	if (end <= start || overflow)
+	    return -E_INVAL;
+
 	for (uintptr_t va = start; va < end; va += PGSIZE) {
 	    if (va >= ULIM)
 		return -E_INVAL;
