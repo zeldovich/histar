@@ -16,11 +16,10 @@ LIBDIS_SRCFILES +=		\
 	dj/catmgr.cc		\
 	dj/djgate.x		\
 	dj/gateincoming.cc	\
-	dj/gatesender.cc
+	dj/gatesender.cc	\
+	dj/gateexec.cc
 
 OTHERS := \
-	dj/gateexec.cc		\
-	dj/djgatecall.cc	\
 	dj/gateutil.cc		\
 	dj/djauth.x
 
