@@ -43,6 +43,7 @@ class privilege_store {
     privilege_store &operator=(const privilege_store&);
 
     uint64_t root_handle_;
+    std::map<uint64_t, uint64_t> refcount_;
     std::map<uint64_t, saved_privilege*> m_;
 };
 

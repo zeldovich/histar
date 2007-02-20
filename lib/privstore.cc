@@ -92,12 +92,17 @@ privilege_store::~privilege_store()
 void
 privilege_store::store_priv(uint64_t h)
 {
-    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
-    if (i != m_.end()) {
-	delete i->second;
-	m_.erase(i);
+    std::map<uint64_t, uint64_t>::iterator ri = refcount_.find(h);
+    if (ri != refcount_.end()) {
+	uint64_t newref = ri->second + 1;
+	refcount_.erase(ri);
+	refcount_[h] = newref;
+	return;
     }
+
+    assert(m_.find(h) == m_.end());
     m_[h] = new saved_privilege(root_handle_, h);
+    refcount_[h] = 1;
 }
 
 void 
@@ -112,11 +117,20 @@ privilege_store::fetch_priv(uint64_t h)
 void
 privilege_store::drop_priv(uint64_t h)
 {
-    std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
-    if (i == m_.end())
+    std::map<uint64_t, uint64_t>::iterator ri = refcount_.find(h);
+    if (ri == refcount_.end())
 	throw basic_exception("fetch_priv: cannot find %ld", h);
-    delete i->second;
-    m_.erase(i);
+
+    uint64_t newref = ri->second - 1;
+    refcount_.erase(ri);
+    if (newref > 0) {
+	refcount_[h] = newref;
+    } else {
+	std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
+	assert(i != m_.end());
+	delete i->second;
+	m_.erase(i);
+    }
 }
 
 bool
