@@ -16,7 +16,7 @@ class request_context {
     virtual void read_seg(cobj_ref o, str *buf) = 0;
 };
 
-class verify_label_reqctx {
+class verify_label_reqctx : public request_context {
  public:
     verify_label_reqctx(const label &vl, const label &vc)
 	: vl_(vl), vc_(vc) {}

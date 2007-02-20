@@ -6,19 +6,20 @@ LIBDIS_SRCFILES +=		\
 	dj/djprot.cc		\
 	dj/directexec.cc	\
 	dj/djrpcx.x		\
-	dj/djrpc.cc
+	dj/djrpc.cc		\
+	dj/djfs.x		\
+	dj/djfs_posix.cc	\
+	dj/djlabel.cc		\
+	dj/djdebug.cc		\
+	dj/checkpoint.cc	\
+	dj/catmgr.cc		\
+	dj/djgate.x		\
+	dj/gateincoming.cc
 
 OTHERS := \
-	dj/dummycatmgr.cc	\
-	dj/djfs_posix.cc	\
 	dj/gateexec.cc		\
-	dj/gateincoming.cc	\
 	dj/djgatecall.cc	\
 	dj/gateutil.cc		\
-	dj/catmgr.cc		\
-	dj/checkpoint.cc	\
-	dj/djgate.x		\
-	dj/djfs.x		\
 	dj/djauth.x
 
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
@@ -37,7 +38,7 @@ $(OBJDIR)/dj/%.C: dj/%.x
 	@mkdir -p $(@D)
 	$(RPCC) -c -o $@ $<
 
-$(TOP)/$(OBJDIR)/dj/%.h: dj/%.x
+$(OBJDIR)/dj/%.h $(TOP)/$(OBJDIR)/dj/%.h: dj/%.x
 	@mkdir -p $(@D)
 	$(RPCC) -h -o $@ $<
 

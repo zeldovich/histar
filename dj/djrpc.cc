@@ -129,4 +129,5 @@ bool
 dj_echo_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 {
     r->msg.msg = s;
+    return true;
 }

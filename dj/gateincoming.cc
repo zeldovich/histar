@@ -12,24 +12,25 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
-#include <inc/gateclnt.hh>
+#include <inc/gateinvoke.hh>
 #include <dj/djgate.h>
 #include <dj/gateincoming.hh>
 #include <dj/gateutil.hh>
 #include <dj/checkpoint.hh>
 #include <dj/reqcontext.hh>
+#include <dj/djlabel.hh>
 
 struct incoming_req {
-    dj_incoming_gate_req *req;
+    const dj_incoming_gate_req *req;
     dj_incoming_gate_res res;
     uint64_t done;
 };
 
-class incoming_impl : public djgate_incoming {
+class incoming_impl : public dj_incoming_gate {
  public:
     incoming_impl(djprot *p, catmgr *cm, uint64_t ct)
-	: p_(p), cm_(cm), proc_ct_(start_env->proc_container),
-	  gate_(COBJ(0, 0))
+	: p_(p), cm_(cm), gate_(COBJ(0, 0)),
+	  proc_ct_(start_env->proc_container)
     {
 	errno_check(pipe(fds_));
 	_make_async(fds_[0]);
@@ -132,10 +133,10 @@ class incoming_impl : public djgate_incoming {
 	}
 
 	str s = xdr2str(res);
-	if (s.len() > sizeof(gcd.param_buf)) {
+	if (s.len() > sizeof(gcd->param_buf)) {
 	    warn << "incoming_impl::process_call1: encoded response size too large!\n";
 	} else {
-	    memcpy(&gcd.param_buf[0], s.cstr(), s.len());
+	    memcpy(&gcd->param_buf[0], s.cstr(), s.len());
 	}
     }
 
@@ -180,7 +181,7 @@ class incoming_impl : public djgate_incoming {
 		error_check(mc.compare(&vc, label::leq_starhi));
 	    } catch (std::exception &e) {
 		warn << "process_call2: local mapping: " << e.what() << "\n";
-		res.set_stat(DELIVERY_LOCAL_MAPPING);
+		res->set_stat(DELIVERY_LOCAL_MAPPING);
 		return;
 	    }
 
@@ -227,7 +228,7 @@ class incoming_impl : public djgate_incoming {
 	}
 
 	assert(cc == sizeof(ir));
-	p_->call(ir->req->node, ir->req->timeout, ir->req->dset, ir->req->m,
+	p_->send(ir->req->node, ir->req->timeout, ir->req->dset, ir->req->m,
 		 wrap(this, &incoming_impl::callcb, ir));
     }
 

@@ -3,6 +3,7 @@
 
 #include <ihash.h>
 #include <dj/djprotx.h>
+#include <dj/djops.hh>
 #include <inc/cpplabel.hh>
 
 class dj_catmap_indexed {

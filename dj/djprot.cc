@@ -83,9 +83,9 @@ struct msg_client {
     dj_stmt_signed ss;
     delivery_status_cb cb;
 
-    uint32_t tmo;
     uint32_t until;
     timecb_t *timecb;
+    uint32_t tmo;
 
     msg_client(const dj_pubkey &k, uint64_t xid)
 	: id(k, xid), timecb(0), tmo(1) {}
