@@ -127,11 +127,11 @@ main(int ac, char **av)
     warn << "dj_debug_sink on " << ep << "\n";
     //sndmsg(djs, djs->pubkey(), ep);
 
-    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_echo_service)));
+    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_rpc_to_arpc, wrap(&dj_echo_service))));
     warn << "dj_echo_service on " << ep << "\n";
     //sndrpc(djs, &gm, djs->pubkey(), ep);
 
-    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_posixfs_service)));
+    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_rpc_to_arpc, wrap(&dj_posixfs_service))));
     warn << "dj_posixfs_service on " << ep << "\n";
     //sndfsrpc(djs, &gm, djs->pubkey(), ep);
 

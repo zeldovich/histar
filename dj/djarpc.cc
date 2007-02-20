@@ -1,6 +1,13 @@
 #include <dj/djarpc.hh>
 #include <dj/djrpcx.h>
 
+static void
+dj_arpc_srv_cb(message_sender *s, bool ok, const dj_rpc_reply &r)
+{
+    if (ok)
+	s->send(r.sender, r.tmo, r.dset, r.msg, 0);
+}
+
 void
 dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
 		 const dj_pubkey &sender, const dj_message &m,
@@ -13,19 +20,28 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     }
 
     dj_arpc_reply r;
-    r.sender = sender;
-    r.tmo = 0;
-    r.dset = m.dset;
-    r.msg.target = cm.return_ep;
-    r.msg.msg_ct = cm.return_ct;
-    r.msg.token = selftoken;
+    r.r.sender = sender;
+    r.r.tmo = 0;
+    r.r.dset = m.dset;
+    r.r.msg.target = cm.return_ep;
+    r.r.msg.msg_ct = cm.return_ct;
+    r.r.msg.token = selftoken;
 
-    r.msg.taint = m.taint;
-    r.msg.glabel.deflevel = 3;
-    r.msg.gclear.deflevel = 0;
+    r.r.msg.taint = m.taint;
+    r.r.msg.glabel.deflevel = 3;
+    r.r.msg.gclear.deflevel = 0;
+    r.cb = wrap(&dj_arpc_srv_cb, s);
 
-    if (srv(m, str(cm.buf.base(), cm.buf.size()), &r))
-	s->send(r.sender, r.tmo, r.dset, r.msg, 0);
+    srv(m, str(cm.buf.base(), cm.buf.size()), r);
+}
+
+void
+dj_rpc_to_arpc(dj_rpc_service srv, const dj_message &m, const str &s,
+	       const dj_arpc_reply &r)
+{
+    dj_rpc_reply rr = r.r;
+    bool ok = srv(m, s, &rr);
+    r.cb(ok, rr);
 }
 
 void
@@ -123,11 +139,4 @@ dj_arpc_call::~dj_arpc_call()
 {
     if (rep_created_)
 	f_->destroy(rep_);
-}
-
-bool
-dj_echo_service(const dj_message &m, const str &s, dj_arpc_reply *r)
-{
-    r->msg.msg = s;
-    return true;
 }

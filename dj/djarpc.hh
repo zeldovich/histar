@@ -1,8 +1,9 @@
-#ifndef JOS_DJ_DJRPC_HH
-#define JOS_DJ_DJRPC_HH
+#ifndef JOS_DJ_DJARPC_HH
+#define JOS_DJ_DJARPC_HH
 
 #include <dj/djprot.hh>
 #include <dj/stuff.hh>
+#include <dj/djrpc.hh>
 
 class dj_arpc_call : virtual public refcount {
  public:
@@ -39,19 +40,20 @@ class dj_arpc_call : virtual public refcount {
     time_t until_;
 };
 
+typedef callback<void, bool, const dj_rpc_reply&>::ptr dj_arpc_cb;
+
 struct dj_arpc_reply {
-    dj_pubkey sender;
-    time_t tmo;
-    dj_delegation_set dset;
-    dj_message msg;
+    dj_rpc_reply r;
+    dj_arpc_cb cb;
 };
 
-typedef callback<bool, const dj_message&, const str&,
-		       dj_arpc_reply*>::ptr dj_arpc_service;
-void dj_arpc_srv_sink(message_sender*, dj_arpc_service,
-		     const dj_pubkey&, const dj_message&, uint64_t selftoken);
+typedef callback<void, const dj_message&, const str&,
+		       const dj_arpc_reply&>::ptr dj_arpc_service;
 
-// For debugging purposes.
-bool dj_echo_service(const dj_message&, const str&, dj_arpc_reply*);
+void dj_arpc_srv_sink(message_sender*, dj_arpc_service,
+		      const dj_pubkey&, const dj_message&, uint64_t selftoken);
+
+// Convert a threaded RPC service to a crude asynchronous RPC service.
+void dj_rpc_to_arpc(dj_rpc_service, const dj_message&, const str&, const dj_arpc_reply&);
 
 #endif
