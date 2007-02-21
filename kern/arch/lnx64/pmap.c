@@ -4,6 +4,7 @@
 #include <kern/arch.h>
 #include <kern/sched.h>
 #include <inc/error.h>
+#include <inc/safeint.h>
 
 #include <stdio.h>
 #include <errno.h>
