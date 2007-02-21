@@ -1,3 +1,7 @@
+extern "C" {
+#include <inc/syscall.h>
+}
+
 #include <dj/djgatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
@@ -34,4 +38,5 @@ djgate_incoming(gate_call_data *gcd,
     scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
 
     buf2xdr(*m, data_map, len);
+    sys_obj_unref(sg);
 }

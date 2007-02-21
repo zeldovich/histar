@@ -5,8 +5,8 @@
 int
 main(int ac, char **av)
 {
-    if (ac != 4) {
-	printf("Usage: %s djd-gate-ct.id host-pk gate-ct.id\n", av[0]);
+    if (ac != 5) {
+	printf("Usage: %s djd-gate-ct.id host-pk call-ct gate-ct.id\n", av[0]);
 	exit(-1);
     }
 
@@ -18,9 +18,11 @@ main(int ac, char **av)
     k.n = bigint(pk16, 16);
     k.k = 8;
 
+    uint64_t call_ct = atoi(av[3]);
+
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
-    *ep.gate <<= av[3];
+    *ep.gate <<= av[4];
 
     gate_sender gs(djd_gate);
 
@@ -29,7 +31,7 @@ main(int ac, char **av)
     dj_message m;
 
     m.target = ep;
-    m.msg_ct = 1;
+    m.msg_ct = call_ct;
     m.token = 0;
     m.taint.deflevel = 1;
     m.glabel.deflevel = 3;

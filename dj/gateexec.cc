@@ -151,6 +151,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     te.te_entry = (void *) &gate_exec_thread;
     te.te_stack = tls_stack_top;
     te.te_arg[0] = (uintptr_t) &s;
+    error_check(sys_self_get_as(&te.te_as));
 
     uint64_t pct = start_env->proc_container;
     int64_t tid = sys_thread_create(pct, "gate_exec");
