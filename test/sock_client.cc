@@ -23,7 +23,7 @@ extern "C" {
 static const int default_requests = 100;
 static const int default_clients = 1;
 
-static int byte_count = 100;
+static int byte_count = 150;
 static int iter_count = 5;
 
 static int 
