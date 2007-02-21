@@ -14,7 +14,7 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
 		 uint64_t selftoken)
 {
     dj_call_msg cm;
-    if (!str2xdr(cm, str(m.msg.base(), m.msg.size()))) {
+    if (!bytes2xdr(cm, m.msg)) {
 	warn << "cannot unmarshal dj_call_msg\n";
 	return;
     }

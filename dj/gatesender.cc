@@ -42,8 +42,7 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
     gc.call(&gcd, &vl, &vc);
 
     dj_incoming_gate_res res;
-    str inline_buf(&gcd.param_buf[0], sizeof(gcd.param_buf));
-    if (!str2xdr(res, inline_buf))
+    if (!buf2xdr(res, &gcd.param_buf[0], sizeof(gcd.param_buf)))
 	throw basic_exception("cannot unmarshal response");
 
     if (res.stat == DELIVERY_DONE)

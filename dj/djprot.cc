@@ -465,9 +465,8 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	str p(pkt, len);
 	dj_stmt_signed m;
-	if (!str2xdr(m, p)) {
+	if (!buf2xdr(m, pkt, len)) {
 	    warn << "cannot decode incoming message\n";
 	    return;
 	}

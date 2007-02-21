@@ -19,7 +19,7 @@ fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
     warn << "fsrpccb: code " << c << "\n";
     if (c == DELIVERY_DONE) {
 	djfs_reply rep;
-	if (!str2xdr(rep, str(m->msg.base(), m->msg.size()))) {
+	if (!bytes2xdr(rep, m->msg)) {
 	    warn << "fsrpccb: cannot unmarshal\n";
 	    return;
 	}

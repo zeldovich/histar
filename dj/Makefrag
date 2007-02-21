@@ -17,7 +17,8 @@ LIBDIS_SRCFILES +=		\
 	dj/djgate.x		\
 	dj/gateincoming.cc	\
 	dj/gatesender.cc	\
-	dj/gateexec.cc
+	dj/gateexec.cc		\
+	dj/djgatesrv.cc
 
 OTHERS := \
 	dj/gateutil.cc		\
