@@ -21,10 +21,8 @@ extern "C" {
 enum { gatesrv_debug = 0 };
 
 static void __attribute__((noreturn))
-gatesrv_cleanup_tls(void *stack)
+gatesrv_cleanup_tls(void *stack, uint64_t taint_ct)
 {
-    struct cobj_ref thread_self = COBJ(start_env->proc_container,
-				       sys_self_id());
     if (stack) {
 	struct u_segment_mapping usm;
 	int r = segment_lookup(stack, &usm);
@@ -36,17 +34,22 @@ gatesrv_cleanup_tls(void *stack)
 	}
     }
 
-    error_check(sys_obj_unref(thread_self));
+    uint64_t tid = sys_self_id();
+
+    sys_self_set_sched_parents(start_env->proc_container, taint_ct);
+    sys_obj_unref(COBJ(start_env->proc_container, tid));
+    sys_obj_unref(COBJ(taint_ct, tid));
     thread_halt();
 }
 
 static void __attribute__((noreturn))
 gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
-    try {
-	// Arguments for gate call passed on the top of the TLS stack.
-	gate_call_data *d = (gate_call_data *) tls_gate_args;
+    // Arguments for gate call passed on the top of the TLS stack.
+    gate_call_data *d = (gate_call_data *) tls_gate_args;
+    uint64_t taint_ct = d->taint_container;
 
+    try {
 	gatesrv_return ret(d->return_gate, start_env->proc_container,
 			   d->taint_container, stack, flags);
 	fn(arg, d, &ret);
@@ -57,7 +60,7 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
     if (flags & GATESRV_NO_THREAD_ADDREF)
 	thread_halt();
 
-    stack_switch((uint64_t) stack, 0, 0, 0,
+    stack_switch((uint64_t) stack, taint_ct, 0, 0,
 		 tls_stack_top, (void *) &gatesrv_cleanup_tls);
 }
 
