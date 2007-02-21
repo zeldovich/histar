@@ -107,17 +107,12 @@ int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, uint64_t **pte_store)
 {
-    assert(create);
-    assert(!PGOFF(va));
-
-    if (enable_page_alloc_failure && FT_CHOOSE(2))
-	return -E_NO_MEM;
-
+    const void *base = ROUNDDOWN(va, PGSIZE);
     int freeslot = -1;
 
     for (int i = 0; i < NPME; i++) {
 	if (pgmap->pme[i].pte & PTE_P) {
-	    if (pgmap->pme[i].va == va) {
+	    if (pgmap->pme[i].va == base) {
 		*pte_store = &pgmap->pme[i].pte;
 		return 0;
 	    }
@@ -127,10 +122,18 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 	}
     }
 
+    if (!create) {
+	*pte_store = 0;
+	return 0;
+    }
+
+    if (enable_page_alloc_failure && FT_CHOOSE(2))
+	return -E_NO_MEM;
+
     if (freeslot == -1)
 	return -E_NO_MEM;
 
-    pgmap->pme[freeslot].va = (void *) va;
+    pgmap->pme[freeslot].va = (void *) base;
     pgmap->pme[freeslot].pte = 0;
     *pte_store = &pgmap->pme[freeslot].pte;
     return 0;
