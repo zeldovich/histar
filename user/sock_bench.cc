@@ -1,4 +1,4 @@
-#ifdef JOS_USER
+#ifndef JOS_TEST
 #define JOS64 1
 #define LINUX 0
 #else
@@ -45,7 +45,7 @@ extern "C" {
 #include <inc/errno.hh>
 
 static char threaded = 1;
-static int byte_count = 100;
+static int byte_count = 150;
 static int iter_count = 5;
 
 // for lif/socket.h macros
