@@ -6,17 +6,9 @@
 #include <dj/gatesender.hh>
 
 // Client-side RPC interface
-class dj_rpc_call {
- public:
-    dj_rpc_call(gate_sender *gs)
-	: gs_(gs) {}
-    dj_delivery_code call(const dj_pubkey&, time_t timeout,
-			  const dj_delegation_set&, const dj_catmap&,
-			  const dj_message&, dj_message *reply);
-
- private:
-    gate_sender *gs_;
-};
+dj_delivery_code dj_rpc_call(gate_sender*, const dj_pubkey&, time_t timeout,
+			     const dj_delegation_set&, const dj_catmap&,
+			     const dj_message&, dj_message *reply);
 
 // Server-side RPC handling
 void dj_rpc_srv(dj_rpc_service_fn*, cobj_ref djd_gate,

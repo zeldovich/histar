@@ -10,14 +10,6 @@ extern "C" {
 #include <dj/djlabel.hh>
 #include <dj/djrpcx.h>
 
-dj_delivery_code
-dj_rpc_call::call(const dj_pubkey &node, time_t timeout,
-		  const dj_delegation_set &dset, const dj_catmap &cm,
-		  const dj_message &m, dj_message *reply)
-{
-    return DELIVERY_TIMEOUT;    
-}
-
 static void __attribute__((noreturn))
 dj_rpc_srv_return(cobj_ref *gp, label *tgtl, label *tgtc, gatesrv_return *r)
 {
