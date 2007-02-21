@@ -10,6 +10,8 @@ extern "C" {
 #include <dj/gateexec.hh>
 #include <dj/djgate.h>
 #include <dj/reqcontext.hh>
+#include <dj/catmgr.hh>
+#include <dj/djlabel.hh>
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
@@ -59,13 +61,20 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	throw basic_exception("gate_exec only does gates");
 
     /*
-     * XXX
-     *
-     * Do something intelligent with all those labels: taint, glabel, gclear
+     * Translate the global labels into local ones.
      */
-    label msg_taint(1);
-    label msg_glabel(3);
-    label msg_gclear(0);
+    label msg_taint, msg_glabel, msg_gclear;
+
+    try {
+	dj_catmap_indexed cmi(m.catmap);
+	djlabel_to_label(cmi, m.taint,  &msg_taint);
+	djlabel_to_label(cmi, m.glabel, &msg_glabel);
+	djlabel_to_label(cmi, m.gclear, &msg_gclear);
+    } catch (std::exception &e) {
+	warn << "gate_exec2: " << e.what() << "\n";
+	cb(DELIVERY_REMOTE_MAPPING, 0);
+	return;
+    }
 
     /*
      * Allocate a pair of categories for protecting message in transit
@@ -91,6 +100,23 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     s.vc.set(mg, 3);
     s.vc.set(mt, 3);
 
+    verify_label_reqctx ctx(s.vl, s.vc);
+
+    /*
+     * Acquire whatever resources the caller wants..
+     */
+    try {
+	cm->acquire(m.catmap);
+	cm->resource_check(&ctx, m.catmap);
+    } catch (std::exception &e) {
+	warn << "gate_exec2: acquiring: " << e.what() << "\n";
+	cb(DELIVERY_REMOTE_MAPPING, 0);
+	return;
+    }
+
+    /*
+     * Compute target gate labels
+     */
     gate_compute_labels(s.gate, &msg_taint, &s.vl, &s.vc, &s.tgt_l, &s.tgt_c);
 
     /*
@@ -105,7 +131,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     gmsg.m = m;
     str gmstr = xdr2str(gmsg);
 
-    verify_label_reqctx ctx(s.vl, s.vc);
     if (!ctx.can_rw(COBJ(m.msg_ct, m.msg_ct)))
 	throw basic_exception("caller cannot write container %ld", m.msg_ct);
 
