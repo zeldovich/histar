@@ -28,6 +28,7 @@ ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
 {
     proxy_started_ = 0;
     ssld_started_ = 0;
+    eproc_started_ = 0;
     plain_fd_ = 0;
     ssld_gate_ = ssld_gate;
     eproc_gate_ = eproc_gate;
@@ -59,7 +60,12 @@ ssl_proxy::~ssl_proxy(void)
 	if (r < 0)
 	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
     }
-	
+
+    if (eproc_started_) {
+	int r = thread_cleanup(&eproc_worker_args_);
+	if (r < 0)
+	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+    }
 
     cleanup(nfo_);
 }
@@ -277,8 +283,10 @@ ssl_proxy::start(void)
 	nfo_->cipher_fd_ = cipher_fd;
 	plain_fd_ = plain_fd;
 
-	if (eproc_gate_.object)
-	    ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint);
+	if (eproc_gate_.object) {
+	    ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint, &eproc_worker_args_);
+	    eproc_started_ = 1;
+	}
 
 	// taint cow ssld and pass both bipipes
 	ssld_taint_cow(ssld_gate_, eproc_seg, cipher_seg, plain_seg, 

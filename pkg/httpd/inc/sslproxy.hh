@@ -24,7 +24,9 @@ private:
     uint64_t plain_fd_;
     char proxy_started_;
     char ssld_started_;
+    char eproc_started_;
     struct thread_args ssld_worker_args_;
+    struct thread_args eproc_worker_args_;
     
     static void proxy_thread(void *a);
     static void cleanup(struct info *nfo);

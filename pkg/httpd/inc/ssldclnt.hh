@@ -14,7 +14,7 @@ struct ssld_cow_args {
 };
 
 void ssl_eproc_taint_cow(struct cobj_ref gate, struct cobj_ref eproc_seg, 
-			 uint64_t root_ct, uint64_t taint);
+			 uint64_t root_ct, uint64_t taint, struct thread_args *ta);
     
 struct ssl_eproc_cow_args {
     struct cobj_ref privkey_biseg;

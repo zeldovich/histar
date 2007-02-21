@@ -29,7 +29,12 @@ eproc_worker_setup(void *b)
     d->privkey_biseg = a->eproc_biseg;
     d->root_ct = a->root_ct;
 
-    label tgt_label, tgt_clear;
+    uint64_t tgt_label_ent[16];
+    uint64_t tgt_clear_ent[16];
+
+    label tgt_label(&tgt_label_ent[0], 16);
+    label tgt_clear(&tgt_clear_ent[0], 16);
+
     obj_get_label(cow_gate, &tgt_label);
     gate_get_clearance(cow_gate, &tgt_clear);
     tgt_label.set(taint, 3);
@@ -44,7 +49,7 @@ eproc_worker_setup(void *b)
 
 void
 ssl_eproc_taint_cow(struct cobj_ref gate, struct cobj_ref eproc_seg, 
-		    uint64_t root_ct, uint64_t taint)
+		    uint64_t root_ct, uint64_t taint, thread_args *ta)
 {
     struct worker_args a;
     a.cow_gate = gate;
@@ -55,6 +60,6 @@ ssl_eproc_taint_cow(struct cobj_ref gate, struct cobj_ref eproc_seg,
     struct cobj_ref t;
     int r = thread_create_option(root_ct, &eproc_worker_setup,
 				 &a, sizeof(a), 
-				 &t, "eproc-worker", 0, THREAD_OPT_ARGCOPY);
+				 &t, "eproc-worker", ta, THREAD_OPT_ARGCOPY);
     error_check(r);    
 }
