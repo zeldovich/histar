@@ -3,6 +3,7 @@ extern "C" {
 }
 
 #include <dj/djgatesrv.hh>
+#include <dj/djlabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 
@@ -25,12 +26,16 @@ djgate_incoming(gate_call_data *gcd,
      * Verify that we aren't being tricked into reading something..
      */
     label sl;
+    obj_get_label(COBJ(sg.container, sg.container), &sl);
+    error_check(vl.compare(&sl, label::leq_starlo));
+    error_check(sl.compare(&vc, label::leq_starlo));
+ 
     obj_get_label(sg, &sl);
     error_check(vl.compare(&sl, label::leq_starlo));
     error_check(sl.compare(&vc, label::leq_starlo));
 
     /*
-     * Read it in and return..
+     * Read it in
      */
     void *data_map = 0;
     uint64_t len = 0;
@@ -39,4 +44,18 @@ djgate_incoming(gate_call_data *gcd,
 
     buf2xdr(*m, data_map, len);
     sys_obj_unref(sg);
+
+    /*
+     * Verify that the labels make sense
+     */
+    dj_catmap_indexed mi(m->m.catmap);
+    label mt, mg, mc;
+    djlabel_to_label(mi, m->m.taint, &mt);
+    djlabel_to_label(mi, m->m.glabel, &mg);
+    djlabel_to_label(mi, m->m.gclear, &mc);
+
+    error_check(vl.compare(&mg, label::leq_starlo));
+    error_check(vl.compare(&mt, label::leq_starlo));
+    error_check(mt.compare(&vc, label::leq_starhi));
+    error_check(mc.compare(&vc, label::leq_starhi));
 }

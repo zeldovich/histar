@@ -7,8 +7,6 @@ LIBDIS_SRCFILES +=		\
 	dj/directexec.cc	\
 	dj/djrpcx.x		\
 	dj/djarpc.cc		\
-	dj/djfs.x		\
-	dj/djfs_posix.cc	\
 	dj/djlabel.cc		\
 	dj/djdebug.cc		\
 	dj/reqcontext.cc	\
@@ -18,7 +16,13 @@ LIBDIS_SRCFILES +=		\
 	dj/gateincoming.cc	\
 	dj/gatesender.cc	\
 	dj/gateexec.cc		\
-	dj/djgatesrv.cc
+	dj/djgatesrv.cc		\
+	dj/djsrpc.cc
+
+# Application-specific stuff
+LIBDIS_SRCFILES +=		\
+	dj/djfs.x		\
+	dj/djfs_posix.cc
 
 OTHERS := \
 	dj/gateutil.cc		\

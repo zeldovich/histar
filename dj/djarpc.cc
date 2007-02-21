@@ -23,6 +23,7 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.sender = sender;
     r.r.tmo = 0;
     r.r.dset = m.dset;
+    r.r.catmap = m.catmap;
     r.r.msg.target = cm.return_ep;
     r.r.msg.msg_ct = cm.return_ct;
     r.r.msg.token = selftoken;
@@ -30,6 +31,9 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.msg.taint = m.taint;
     r.r.msg.glabel.deflevel = 3;
     r.r.msg.gclear.deflevel = 0;
+    r.r.msg.catmap = cm.return_cm;
+    r.r.msg.dset = cm.return_ds;
+
     r.cb = wrap(&dj_arpc_srv_cb, s);
 
     srv(m, str(cm.buf.base(), cm.buf.size()), r);

@@ -19,6 +19,7 @@ class dj_rpc_call {
 };
 
 // Server-side RPC handling
-void dj_rpc_srv(dj_rpc_service_fn*, gate_call_data*, gatesrv_return*);
+void dj_rpc_srv(dj_rpc_service_fn*, cobj_ref djd_gate,
+		gate_call_data*, gatesrv_return*);
 
 #endif

@@ -7,6 +7,8 @@
 struct dj_call_msg {
     unsigned hyper return_ct;
     dj_message_endpoint return_ep;
+    dj_catmap return_cm;
+    dj_delegation_set return_ds;
     opaque buf<>;
 };
 

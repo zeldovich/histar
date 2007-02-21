@@ -8,10 +8,11 @@ struct dj_rpc_reply {
     dj_pubkey sender;
     time_t tmo;
     dj_delegation_set dset;
+    dj_catmap catmap;
     dj_message msg;
 };
 
-typedef bool (*dj_rpc_service_fn)(const dj_message&, const str&, dj_rpc_reply*);
+typedef bool (dj_rpc_service_fn)(const dj_message&, const str&, dj_rpc_reply*);
 typedef callback<bool, const dj_message&, const str&,
 		       dj_rpc_reply*>::ptr dj_rpc_service_cb;
 
