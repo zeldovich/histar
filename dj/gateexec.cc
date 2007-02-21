@@ -33,14 +33,23 @@ gate_exec_invoke_cb(label *tgt_l, label *tgt_c, void *arg)
 {
     gate_exec_thread_state *s = (gate_exec_thread_state *) arg;
 
-    uint64_t tid = sys_self_id(); 
-    sys_self_addref(s->msg_ct);
-    sys_self_set_sched_parents(start_env->proc_container, s->msg_ct);
+    uint64_t tid = sys_self_id();
+    int r = sys_self_addref(s->msg_ct);
+    if (r < 0)
+	cprintf("gate_exec_invoke_cb: sys_self_addref: %s\n", e2s(r));
+
+    r = sys_self_set_sched_parents(start_env->proc_container, s->msg_ct);
+    if (r < 0)
+	cprintf("gate_exec_invoke_cb: set_sched_parents: %s\n", e2s(r));
 
     s->done = 1;
-    sys_sync_wakeup(&s->done);
+    r = sys_sync_wakeup(&s->done);
+    if (r < 0)
+	cprintf("gate_exec_invoke_cb: sys_sync_wakeup: %s\n", e2s(r));
 
-    sys_obj_unref(COBJ(start_env->proc_container, tid));
+    r = sys_obj_unref(COBJ(start_env->proc_container, tid));
+    if (r < 0)
+	cprintf("gate_exec_invoke_cb: sys_obj_unref: %s\n", e2s(r));
 }
 
 static void __attribute__((noreturn))

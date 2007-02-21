@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/syscall.h>
+#include <inc/stdio.h>
 }
 
 #include <async.h>
@@ -28,7 +29,7 @@ main(int ac, char **av)
     int64_t call_ct;
     error_check(call_ct = sys_container_alloc(start_env->shared_container,
 					      lpub.to_ulabel(), "public call",
-					      0, 65536));
+					      0, 10 * 1024 * 1024));
 
     warn << "public call container: " << call_ct << "\n";
 
