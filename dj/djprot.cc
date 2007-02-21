@@ -70,6 +70,47 @@ verify_stmt(const dj_stmt_signed &s)
     }
 }
 
+class dj_delegation_map {
+ public:
+    struct dm_ent {
+	itree_entry<dm_ent> link;
+	dj_pubkey pk;
+	dj_entity b;
+    };
+
+    dj_delegation_map(const dj_delegation_set &dset) : size_(0) {
+	for (uint32_t i = 0; i < dset.ents.size(); i++) {
+	    dj_stmt_signed ss;
+	    if (!bytes2xdr(ss, dset.ents[i]))
+		continue;
+	    if (!verify_stmt(ss))
+		continue;
+	    if (ss.stmt.type != STMT_DELEGATION)
+		continue;
+	    if (ss.stmt.delegation->a.type != ENT_PUBKEY)
+		continue;
+	    dm_ent *e = New dm_ent();
+	    e->pk = *ss.stmt.delegation->a.key;
+	    e->b = ss.stmt.delegation->b;
+	    t_.insert(e);
+	    size_++;
+	}
+    }
+
+    ~dj_delegation_map() {
+	t_.deleteall();
+    }
+
+    uint32_t size() { return size_; }
+
+    itree<dj_pubkey, dm_ent, &dm_ent::pk, &dm_ent::link> t_;
+
+ private:
+    uint32_t size_;
+    dj_delegation_map(const dj_delegation_map&);
+    dj_delegation_map &operator=(const dj_delegation_map&);
+};
+
 struct pk_addr {	/* d.a.addr speaks-for pk */
     ihash_entry<pk_addr> pk_link;
     itree_entry<pk_addr> exp_link;
@@ -178,14 +219,30 @@ class djprot_impl : public djprot {
     }
 
  private:
-    bool key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat) {
+    bool key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
+			dj_delegation_map &dm, uint32_t depth)
+    {
 	if (gcat.key == k)
 	    return true;
 
-	/*
-	 * XXX
-	 * feed dj_message.dj_delegation_set in here and check using that.
-	 */
+	if (depth == 0)
+	    return false;
+
+	dj_delegation_map::dm_ent *e = dm.t_[k];
+	while (e && e->pk == k) {
+	    if (e->b.type == ENT_GCAT) {
+		if (*e->b.gcat == gcat)
+		    return true;
+	    }
+
+	    if (e->b.type == ENT_PUBKEY) {
+		if (key_speaks_for(*e->b.key, gcat, dm, depth - 1))
+		    return true;
+	    }
+
+	    e = dm.t_.next(e);
+	}
+
 	return false;
     }
 
@@ -201,6 +258,8 @@ class djprot_impl : public djprot {
 	if (!check_local_msgs && dst == esignpub2dj(k_))
 	    return true;
 
+	dj_delegation_map dm(dset);
+
 	/* M_L \leq (Node_L^\histar \cup N_C) */
 	if (a.taint.deflevel > net_clear_.deflevel)
 	    return false;
@@ -211,7 +270,7 @@ class djprot_impl : public djprot {
 	    if (lv <= net_clear_ % c)
 		continue;
 
-	    if (!key_speaks_for(dst, c))
+	    if (!key_speaks_for(dst, c, dm, dm.size()))
 		return false;
 	}
 
@@ -223,6 +282,8 @@ class djprot_impl : public djprot {
     {
 	if (!check_local_msgs && src == esignpub2dj(k_))
 	    return true;
+
+	dj_delegation_map dm(dset);
 
 	/*
 	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_L
@@ -242,7 +303,7 @@ class djprot_impl : public djprot {
 		return false;
 	    if (net_label_ % c <= lv && lv <= net_clear_ % c)
 		continue;
-	    if (!key_speaks_for(src, c))
+	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
 
@@ -253,7 +314,7 @@ class djprot_impl : public djprot {
 		return false;
 	    if (net_label_ % c == LB_LEVEL_STAR)
 		continue;
-	    if (!key_speaks_for(src, c))
+	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
 
@@ -264,7 +325,7 @@ class djprot_impl : public djprot {
 		return false;
 	    if (lv <= net_clear_ % c)
 		continue;
-	    if (!key_speaks_for(src, c))
+	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
 

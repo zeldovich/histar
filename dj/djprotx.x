@@ -6,6 +6,7 @@
 %#include <inc/label.h>		/* for LB_LEVEL_STAR */
 
 typedef unsigned dj_timestamp;	/* UNIX seconds */
+typedef opaque dj_stmt_blob<>;	/* No recursive definitions in XDR */
 
 struct dj_pubkey {
     bigint n;
@@ -76,7 +77,7 @@ struct dj_delegation {		/* a speaks-for b, within time window */
 };
 
 struct dj_delegation_set {
-    opaque ents<>;		/* really XDR-encoded dj_signed_stmt */
+    dj_stmt_blob ents<>;	/* really XDR-encoded dj_signed_stmt */
 };
 
 /*
