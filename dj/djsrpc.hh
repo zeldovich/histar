@@ -8,7 +8,8 @@
 // Client-side RPC interface
 dj_delivery_code dj_rpc_call(gate_sender*, const dj_pubkey&, time_t timeout,
 			     const dj_delegation_set&, const dj_catmap&,
-			     const dj_message&, dj_message *reply);
+			     const dj_message&, const str&,
+			     dj_message *reply);
 
 // Server-side RPC handling
 void dj_rpc_srv(dj_rpc_service_fn*, cobj_ref djd_gate,

@@ -1,6 +1,7 @@
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
 #include <dj/gatesender.hh>
+#include <dj/djsrpc.hh>
 
 int
 main(int ac, char **av)
@@ -36,9 +37,11 @@ main(int ac, char **av)
     m.taint.deflevel = 1;
     m.glabel.deflevel = 3;
     m.gclear.deflevel = 0;
-    m.msg = "Hello world!";
 
-    uint64_t token = 0;
-    dj_delivery_code c = gs.send(k, 1, dset, cm, m, &token);
-    printf("code = %d, token = %ld\n", c, token);
+    dj_message replym;
+    dj_delivery_code c = dj_rpc_call(&gs, k, 1, dset, cm, m,
+				     "Hello world", &replym);
+    warn << "code = " << c << "\n";
+    if (c == DELIVERY_DONE)
+	warn << replym;
 }
