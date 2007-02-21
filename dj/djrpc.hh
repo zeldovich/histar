@@ -11,8 +11,9 @@ struct dj_rpc_reply {
     dj_message msg;
 };
 
+typedef bool (*dj_rpc_service_fn)(const dj_message&, const str&, dj_rpc_reply*);
 typedef callback<bool, const dj_message&, const str&,
-		       dj_rpc_reply*>::ptr dj_rpc_service;
+		       dj_rpc_reply*>::ptr dj_rpc_service_cb;
 
 // For debugging purposes.
 bool dj_echo_service(const dj_message&, const str&, dj_rpc_reply*);

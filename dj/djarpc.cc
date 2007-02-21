@@ -36,7 +36,7 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
 }
 
 void
-dj_rpc_to_arpc(dj_rpc_service srv, const dj_message &m, const str &s,
+dj_rpc_to_arpc(dj_rpc_service_cb srv, const dj_message &m, const str &s,
 	       const dj_arpc_reply &r)
 {
     dj_rpc_reply rr = r.r;

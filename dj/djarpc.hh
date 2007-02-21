@@ -54,6 +54,7 @@ void dj_arpc_srv_sink(message_sender*, dj_arpc_service,
 		      const dj_pubkey&, const dj_message&, uint64_t selftoken);
 
 // Convert a threaded RPC service to a crude asynchronous RPC service.
-void dj_rpc_to_arpc(dj_rpc_service, const dj_message&, const str&, const dj_arpc_reply&);
+void dj_rpc_to_arpc(dj_rpc_service_cb, const dj_message&,
+		    const str&, const dj_arpc_reply&);
 
 #endif
