@@ -87,15 +87,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     }
 
     /*
-     * Allocate a pair of categories for protecting message in transit
-     */
-    int64_t mg, mt;
-    error_check(mg = handle_alloc());
-    error_check(mt = handle_alloc());
-    scope_guard2<void, uint64_t, uint64_t> cdrop(thread_drop_starpair, mg, mt);
-
-    /*
-     * Figure out the labels for invoking the target gate...
+     * Compute the verify/grant label and clearance.
      */
     gate_exec_thread_state s;
     s.done = 0;
@@ -104,11 +96,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     msg_taint.merge(&msg_glabel, &s.vl, label::min, label::leq_starlo);
     msg_taint.merge(&msg_gclear, &s.vc, label::max, label::leq_starlo);
-
-    s.vl.set(mg, LB_LEVEL_STAR);
-    s.vl.set(mt, LB_LEVEL_STAR);
-    s.vc.set(mg, 3);
-    s.vc.set(mt, 3);
 
     verify_label_reqctx ctx(s.vl, s.vc);
 
@@ -132,10 +119,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     /*
      * Write message to segment
      */
-    label ml(1);
-    ml.set(mg, 0);
-    ml.set(mt, 3);
-
     dj_outgoing_gate_msg gmsg;
     gmsg.sender = sender;
     gmsg.m = m;
@@ -147,7 +130,8 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     cobj_ref mseg;
     void *data_map = 0;
     error_check(segment_alloc(m.msg_ct, gmstr.len(), &mseg,
-			      &data_map, ml.to_ulabel(), "gate_exec message"));
+			      &data_map, msg_taint.to_ulabel(),
+			      "gate_exec message"));
     scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
     scope_guard<int, cobj_ref> unref1(sys_obj_unref, mseg);
     memcpy(data_map, gmstr.cstr(), gmstr.len());
