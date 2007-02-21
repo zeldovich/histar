@@ -25,7 +25,7 @@ FILECLIENT_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(FILECLIENT_TEST_SRCS))
 SSL_BENCH_SRCS := ssl-bench.c error.c printfmt.c
 SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 
-SOCK_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
+SOCK_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c sysstring.c
 SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
 
 SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c sysstring.c
