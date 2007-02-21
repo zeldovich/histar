@@ -28,7 +28,7 @@ SSL_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SSL_BENCH_SRCS))
 SOCK_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
 SOCK_BENCH_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_BENCH_SRCS))
 
-SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c
+SOCK_CLIENT_SRCS := sock_client.c netbench.c error.c printfmt.c sysstring.c
 SOCK_CLIENT_OBJS := $(patsubst %.c, obj/test/%.o, $(SOCK_CLIENT_SRCS))
 
 BTREE2_TEST_SRCS := btree2-test.c btree2-sys.c \
@@ -38,7 +38,7 @@ BTREE2_TEST_SRCS := btree2-test.c btree2-sys.c \
 
 BTREE2_TEST_OBJS := $(patsubst %.c, obj/test/%.o, $(BTREE2_TEST_SRCS))
 		    
-LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c
+LWIP_BENCH_SRCS := sock_bench.c netbench.c error.c printfmt.c sysstring.c
 LWIP_BENCH_OBJS := $(patsubst %.c, obj/test/lwip/%.o, $(LWIP_BENCH_SRCS))
 LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
