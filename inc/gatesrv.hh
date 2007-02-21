@@ -23,6 +23,7 @@ class gatesrv_return {
 	__attribute__((noreturn));
 
     void change_gate(cobj_ref newgate) { rgate_ = newgate; }
+    static void cleanup_stub(label *tgt_s, label *tgt_r, void *arg);
 
  private:
     gatesrv_return(const gatesrv_return&);
@@ -33,7 +34,6 @@ class gatesrv_return {
     void ret_tls(label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
 
-    static void cleanup_stub(label *tgt_s, label *tgt_r, void *arg);
     void cleanup(label *tgt_s, label *tgt_r);
 
     cobj_ref rgate_;
