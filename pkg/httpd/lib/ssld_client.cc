@@ -45,7 +45,12 @@ ssld_worker_setup(void *b)
     d->root_ct = a->root_ct;
     d->privkey_biseg = a->eproc_biseg;
 
-    label tgt_label, tgt_clear;
+    uint64_t tgt_label_ent[16];
+    uint64_t tgt_clear_ent[16];
+
+    label tgt_label(&tgt_label_ent[0], 16);
+    label tgt_clear(&tgt_clear_ent[0], 16);
+
     obj_get_label(cow_gate, &tgt_label);
     gate_get_clearance(cow_gate, &tgt_clear);
     tgt_label.set(taint, 3);
