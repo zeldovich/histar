@@ -117,7 +117,7 @@ as_resize(struct Address_space *as, uint64_t nent)
 {
     int of = 0;
     uint64_t npages = (nent + N_USEGMAP_PER_PAGE - 1) / N_USEGMAP_PER_PAGE;
-    uint64_t nbytes = safe_mul(&of, npages, PGSIZE);
+    uint64_t nbytes = safe_mul64(&of, npages, PGSIZE);
     if (of)
 	return -E_INVAL;
 
@@ -135,7 +135,7 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
     struct u_segment_mapping *ents = uas->ents;
     int overflow = 0;
     r = check_user_access(ents,
-			  safe_mul(&overflow, sizeof(*ents), size),
+			  safe_mul64(&overflow, sizeof(*ents), size),
 			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
@@ -178,7 +178,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     struct u_segment_mapping *ents = uas->ents;
     int overflow = 0;
     r = check_user_access(ents,
-			  safe_mul(&overflow, sizeof(*ents), nent),
+			  safe_mul64(&overflow, sizeof(*ents), nent),
 			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
@@ -413,9 +413,9 @@ as_pmap_fill_segment(const struct Address_space *as,
     need_va = ROUNDDOWN(need_va, PGSIZE);
 
     void *usm_first = ROUNDDOWN(usm->va, PGSIZE);
-    void *usm_last = (void *) (uintptr_t)
-	safe_add(&of, (uintptr_t) usm_first,
-		 safe_mul(&of, usm->num_pages - 1, PGSIZE));
+    void *usm_last = (void *)
+	safe_addptr(&of, (uintptr_t) usm_first,
+		    safe_mulptr(&of, usm->num_pages - 1, PGSIZE));
     if (of || PGOFF(usm->va))
 	return -E_INVAL;
     assert(need_va >= usm_first && need_va <= usm_last);
@@ -510,13 +510,13 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	    continue;
 	if ((flags & reqflags) != reqflags)
 	    continue;
-
+ 
 	int of = 0;
 	uint64_t npages = usm->num_pages;
 	void *va_start = ROUNDDOWN(usm->va, PGSIZE);
 	void *va_end = (void *) (uintptr_t)
-	    safe_add(&of, (uintptr_t) va_start,
-		     safe_mul(&of, npages, PGSIZE));
+	    safe_addptr(&of, (uintptr_t) va_start,
+			safe_mulptr(&of, npages, PGSIZE));
 	if (of || va < va_start || va >= va_end)
 	    continue;
 

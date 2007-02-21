@@ -256,10 +256,10 @@ thread_set_waitslots(const struct Thread *const_t, uint64_t nslots)
 {
     int overflow = 0;
     static_assert(sizeof(struct Fpregs) <= PGSIZE);
-    uint64_t nbytes = safe_add(&overflow, PGSIZE,
-			       safe_mul(&overflow,
-					sizeof(struct sync_wait_slot),
-					nslots));
+    uint64_t nbytes = safe_add64(&overflow, PGSIZE,
+			         safe_mul64(&overflow,
+					    sizeof(struct sync_wait_slot),
+					    nslots));
     if (overflow)
 	return -E_INVAL;
 

@@ -176,7 +176,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	int overflow = 0;
 	uintptr_t iptr = (uintptr_t) ptr;
 	uintptr_t start = ROUNDDOWN(iptr, PGSIZE);
-	uintptr_t end = ROUNDUP(safe_add(&overflow, iptr, nbytes), PGSIZE);
+	uintptr_t end = ROUNDUP(safe_addptr(&overflow, iptr, nbytes), PGSIZE);
 
 	if (end <= start || overflow)
 	    return -E_INVAL;

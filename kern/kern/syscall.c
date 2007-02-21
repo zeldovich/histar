@@ -773,9 +773,9 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
 {
     int overflow = 0;
     check(check_user_access(vals,
-			    safe_mul(&overflow, sizeof(vals[0]), num), 0));
+			    safe_mul64(&overflow, sizeof(vals[0]), num), 0));
     check(check_user_access(addrs,
-			    safe_mul(&overflow, sizeof(addrs[0]), num), 0));
+			    safe_mul64(&overflow, sizeof(addrs[0]), num), 0));
     if (overflow)
 	return -E_INVAL;
 

@@ -215,7 +215,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 
     int mul_of = 0;
     r = check_user_access(ul_ent,
-			  safe_mul(&mul_of, ul_size, sizeof(*ul_ent)),
+			  safe_mul64(&mul_of, ul_size, sizeof(*ul_ent)),
 			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
@@ -264,7 +264,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 
     int mul_of = 0;
     r = check_user_access(ul_ent,
-			  safe_mul(&mul_of, ul_nent, sizeof(*ul_ent)), 0);
+			  safe_mul64(&mul_of, ul_nent, sizeof(*ul_ent)), 0);
     if (r < 0)
 	return r;
 
