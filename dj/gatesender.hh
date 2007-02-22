@@ -13,7 +13,8 @@ class gate_sender {
 
     dj_delivery_code send(const dj_pubkey &node, time_t timeout,
 			  const dj_delegation_set &dset, const dj_catmap &cm,
-			  const dj_message &msg, uint64_t *tokenp);
+			  const dj_message &msg, uint64_t *tokenp,
+			  label *grantlabel = 0);
 
  private:
     cobj_ref g_;

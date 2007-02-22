@@ -13,7 +13,8 @@ extern "C" {
 dj_delivery_code
 gate_sender::send(const dj_pubkey &node, time_t timeout,
 		  const dj_delegation_set &dset, const dj_catmap &cm,
-		  const dj_message &msg, uint64_t *tokenp)
+		  const dj_message &msg, uint64_t *tokenp,
+		  label *grantlabel)
 {
     dj_incoming_gate_req req;
     req.node = node;
@@ -27,6 +28,12 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
     djlabel_to_label(cmi, msg.taint, &tlabel);
     djlabel_to_label(cmi, msg.glabel, &glabel);
     djlabel_to_label(cmi, msg.gclear, &gclear);
+
+    if (grantlabel) {
+	label tmp;
+	glabel.merge(grantlabel, &tmp, label::min, label::leq_starlo);
+	glabel = tmp;
+    }
 
     gate_call gc(g_, &tlabel, &glabel, &gclear);
 

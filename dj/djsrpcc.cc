@@ -84,7 +84,8 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 dj_delivery_code
 dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    const dj_delegation_set &dset, const dj_catmap &cm,
-	    const dj_message &m, const str &calldata, dj_message *reply)
+	    const dj_message &m, const str &calldata, dj_message *reply,
+	    label *grantlabel)
 {
     label lcallct(1);
 
@@ -131,7 +132,7 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
 	dj_delivery_code code = gs->send(node,
 					 (timeout_at_msec - now_msec) / 1000,
-					 dset, cm, m2, &token);
+					 dset, cm, m2, &token, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 

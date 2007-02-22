@@ -1,7 +1,9 @@
+#include <inc/labelutil.hh>
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
 #include <dj/gatesender.hh>
 #include <dj/djsrpc.hh>
+#include <dj/mapcreatex.h>
 
 int
 main(int ac, char **av)
@@ -31,6 +33,42 @@ main(int ac, char **av)
     dj_catmap cm;
     dj_message m;
 
+    /* Allocate a new category to taint with.. */
+    uint64_t tcat = handle_alloc();
+    warn << "allocated category " << tcat << " for tainting\n";
+
+    /* XXX abuse of call_ct -- assumes same node */
+    dj_mapreq mapreq;
+    mapreq.ct = call_ct;
+    mapreq.lcat = tcat;
+
+    m.target.set_type(EP_MAPCREATE);
+    m.token = 0;
+    m.taint.deflevel = 1;
+    m.glabel.deflevel = 3;
+    m.gclear.deflevel = 0;
+
+    label xgrant(3);
+    xgrant.set(tcat, LB_LEVEL_STAR);
+
+    dj_message replym;
+    dj_delivery_code c = dj_rpc_call(&gs, k, 1, dset, cm, m,
+				     xdr2str(mapreq), &replym, &xgrant);
+    if (c != DELIVERY_DONE)
+	fatal << "error talking to mapcreate: code " << c << "\n";
+
+    dj_cat_mapping tcatmap;
+    if (!bytes2xdr(tcatmap, replym.msg))
+	fatal << "unmarshaling dj_cat_mapping\n";
+
+    warn << "Got a dj_cat_mapping: "
+	 << tcatmap.gcat << ", "
+	 << tcatmap.lcat << ", "
+	 << tcatmap.user_ct << ", "
+	 << tcatmap.res_ct << ", "
+	 << tcatmap.res_gt << "\n";
+
+    /* Send a real echo request now.. */
     m.target = ep;
     m.msg_ct = call_ct;
     m.token = 0;
@@ -38,9 +76,7 @@ main(int ac, char **av)
     m.glabel.deflevel = 3;
     m.gclear.deflevel = 0;
 
-    dj_message replym;
-    dj_delivery_code c = dj_rpc_call(&gs, k, 1, dset, cm, m,
-				     "Hello world", &replym);
+    c = dj_rpc_call(&gs, k, 1, dset, cm, m, "Hello world", &replym);
     warn << "code = " << c << "\n";
     if (c == DELIVERY_DONE)
 	warn << replym;

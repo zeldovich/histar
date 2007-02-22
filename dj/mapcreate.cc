@@ -125,6 +125,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.gclear.ents[0].level = 3;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
+    replym.msg = xdr2str(mapent);
 
     if (sender == p_->pubkey())
 	replym.catmap.ents.push_back(mapent);
