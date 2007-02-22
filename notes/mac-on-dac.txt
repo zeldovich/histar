@@ -69,3 +69,16 @@ Potential questions:
    some kernel support to implement a good select() -- this seems like it
    can probably go into the MAC kernel, and the DAC kernel stays the same.
 
+===
+
+MAC-on-DAC isn't quite the right way of thinking about this, maybe.
+The bottom level (hypervisor) should provide a labeled page abstraction
+and track a current "PC-label" for the currently executing code.  It will
+also need to provide moderated access to special hardware state like %crX.
+Things that should be fully trusted will be layered microkernel-style on
+top of this hypervisor, with a { * } PC-label.
+
+Need a lightweight label-switching mechanism to implement things like
+trusted hash tables, etc.  No need for special hardware, at least for
+a prototype of this..
+
