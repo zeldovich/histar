@@ -7,6 +7,8 @@ extern "C" {
 
 class scoped_prof {
  public:
+    scoped_prof(void *func_addr) :
+	func_addr_(func_addr), start_(read_tsc()) {}
     scoped_prof(void);
     ~scoped_prof(void);
 
