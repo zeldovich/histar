@@ -15,7 +15,6 @@ extern "C" {
 #include <inc/gateinvoke.hh>
 #include <dj/djgate.h>
 #include <dj/gateincoming.hh>
-#include <dj/gateutil.hh>
 #include <dj/checkpoint.hh>
 #include <dj/reqcontext.hh>
 #include <dj/djlabel.hh>

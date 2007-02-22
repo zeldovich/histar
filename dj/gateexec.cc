@@ -65,7 +65,8 @@ gate_exec_thread(gate_exec_thread_state *s)
 
 static void
 gate_exec2(catmgr *cm, const dj_pubkey &sender,
-	   const dj_message &m, const delivery_args &da)
+	   const dj_message &m, const delivery_args &da,
+	   const cobj_ref &djd_gate)
 {
     if (m.target.type != EP_GATE)
 	throw basic_exception("gate_exec only does gates");
@@ -121,6 +122,8 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      */
     dj_outgoing_gate_msg gmsg;
     gmsg.sender = sender;
+    gmsg.djd_gate.gate_ct = djd_gate.container;
+    gmsg.djd_gate.gate_id = djd_gate.object;
     gmsg.m = m;
     str gmstr = xdr2str(gmsg);
 
@@ -164,11 +167,11 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 }
 
 void
-gate_exec(catmgr *cm, const dj_pubkey &node,
+gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
 	  const dj_message &m, const delivery_args &da)
 {
     try {
-	gate_exec2(cm, node, m, da);
+	gate_exec2(cm, node, m, da, djd_gate);
     } catch (std::exception &e) {
 	warn << "gate_exec: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_ERR, 0);

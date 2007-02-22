@@ -17,9 +17,10 @@ dj_rpc_srv_return(cobj_ref *gp, label *tgtl, label *tgtc, gatesrv_return *r)
 }
 
 void
-dj_rpc_srv(dj_rpc_service_fn *fn, cobj_ref djd_gate,
+dj_rpc_srv(dj_rpc_service_fn *fn,
 	   gate_call_data *gcd, gatesrv_return *ret)
 {
+    cobj_ref djd_gate;
     uint64_t djcall_ct = gcd->param_obj.container;
 
     label *tgtl = New label();
@@ -34,6 +35,9 @@ dj_rpc_srv(dj_rpc_service_fn *fn, cobj_ref djd_gate,
 
 	dj_outgoing_gate_msg reqmsg;
 	djgate_incoming(gcd, vl, vc, &reqmsg, ret);
+
+	djd_gate.container = reqmsg.djd_gate.gate_ct;
+	djd_gate.object = reqmsg.djd_gate.gate_id;
 
 	dj_call_msg cm;
 	if (!bytes2xdr(cm, reqmsg.m.msg)) {

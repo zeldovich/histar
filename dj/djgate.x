@@ -21,5 +21,6 @@ union dj_incoming_gate_res switch (dj_delivery_code stat) {
 
 struct dj_outgoing_gate_msg {
     dj_pubkey sender;
+    dj_gatename djd_gate;
     dj_message m;
 };

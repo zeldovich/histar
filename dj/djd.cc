@@ -157,7 +157,7 @@ main(int ac, char **av)
     dj_incoming_gate *in = dj_incoming_gate::alloc(djs, cm, start_env->shared_container);
     warn << "dj_incoming_gate at " << in->gate() << "\n";
 
-    emux.set(EP_GATE, wrap(&gate_exec, cm));
+    emux.set(EP_GATE, wrap(&gate_exec, cm, in->gate()));
     warn << "delivering gate messages via gate_exec\n";
 
     histar_mapcreate hmc(djs, cm);
