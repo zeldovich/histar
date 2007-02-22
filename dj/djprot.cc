@@ -144,7 +144,6 @@ class djprot_impl : public djprot {
 
 	xid_ = 0;
 	bc_port_ = htons(port);
-	myipaddr_ = myipaddr();
 
 	int ufd = inetsocket(SOCK_DGRAM);
 	if (ufd < 0)
@@ -157,7 +156,8 @@ class djprot_impl : public djprot {
 	my_port_ = sin.sin_port;
 
 	int bfd = bcast_info.bind_bcast_sock(ntohs(bc_port_), true);
-	warn << "djprot: listening on " << inet_ntoa(myipaddr_)
+	in_addr curipaddr = myipaddr();
+	warn << "djprot: listening on " << inet_ntoa(curipaddr)
 	     << ":" << ntohs(my_port_) << ", broadcast port "
 	     << ntohs(bc_port_) << "\n";
 	warn << "djprot: my public key is {" << k_.n << "," << k_.k << "}\n";
@@ -566,10 +566,12 @@ class djprot_impl : public djprot {
     }
 
     void send_bcast(void) {
+	in_addr curipaddr = myipaddr();
+
 	dj_stmt_signed s;
 	s.stmt.set_type(STMT_DELEGATION);
 	s.stmt.delegation->a.set_type(ENT_ADDRESS);
-	s.stmt.delegation->a.addr->ip = myipaddr_.s_addr;
+	s.stmt.delegation->a.addr->ip = curipaddr.s_addr;
 	s.stmt.delegation->a.addr->port = my_port_;
 
 	s.stmt.delegation->b.set_type(ENT_PUBKEY);
@@ -598,7 +600,6 @@ class djprot_impl : public djprot {
 	delaycb(broadcast_period, wrap(this, &djprot_impl::send_bcast));
     }
 
-    in_addr myipaddr_;	/* network byte order */
     uint16_t bc_port_;	/* network byte order */
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> ux_;
