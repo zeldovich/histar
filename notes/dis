@@ -347,3 +347,10 @@ return -- it's hard to create per-call taint and grant category mappings on
 the remote machine that wouldn't be removable by everyone else.  Possibly
 solvable by combining MAPCREATE with container creation?
 
+===
+
+Exporter should not store things into a container without special dispensation
+from the container's owner.  This solves the bootstrapping problem by making
+sure that these incoming containers aren't publicly-writable (but instead only
+accessible to the exporter, which does not unref anything)..
+
