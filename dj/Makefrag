@@ -27,10 +27,6 @@ LIBDIS_SRCFILES +=		\
 	dj/djfs.x		\
 	dj/djfs_posix.cc
 
-OTHERS := \
-	dj/gateutil.cc		\
-	dj/djauth.x
-
 LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
 LIBDIS_OBJFILES := $(patsubst dj/%.c, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
 LIBDIS_OBJFILES := $(patsubst dj/%.cc, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
