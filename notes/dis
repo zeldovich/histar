@@ -324,3 +324,11 @@ the unbound gate and some way of making the mapping secure -- either the whole
 mapping object in a segment, or the hash of the mapping stored in the metadata
 of the container..
 
+===
+
+Creation of a mapping requires the privileges of both the global and the local
+category being mapped.  Thus, the service that creates these mappings must
+trust the exporter daemon that it's really speaking for the global category.
+Furthermore, the exporter's catmgr will trust these mappings, so this mapping
+creation service is really part of the exporter itself.
+
