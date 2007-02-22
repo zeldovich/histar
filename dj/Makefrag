@@ -18,7 +18,9 @@ LIBDIS_SRCFILES +=		\
 	dj/gateexec.cc		\
 	dj/djgatesrv.cc		\
 	dj/djsrpcs.cc		\
-	dj/djsrpcc.cc
+	dj/djsrpcc.cc		\
+	dj/mapcreatex.x		\
+	dj/mapcreate.cc
 
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\

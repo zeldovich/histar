@@ -5,15 +5,9 @@
 
 %#include <dj/djprotx.h>
 
-enum dj_mapreq_type {
-    MAPREQ_CREATE_LOCAL = 1,
-    MAPREQ_CREATE_GLOBAL
-};
-
-union dj_mapreq switch (dj_mapreq_type type) (
- case MAPREQ_CREATE_LOCAL:
+struct dj_mapreq {
     dj_gcat gcat;
- case MAPREQ_CREATE_GLOBAL:
     unsigned hyper lcat;
+    unsigned hyper ct;
 };
 

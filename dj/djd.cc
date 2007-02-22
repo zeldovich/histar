@@ -13,6 +13,7 @@
 #include <dj/gateincoming.hh>
 #include <dj/gateexec.hh>
 #include <dj/execmux.hh>
+#include <dj/mapcreate.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -158,6 +159,9 @@ main(int ac, char **av)
 
     emux.set(EP_GATE, wrap(&gate_exec, cm));
     warn << "delivering gate messages via gate_exec\n";
+
+    histar_mapcreate hmc(djs, cm);
+    emux.set(EP_MAPCREATE, wrap(&hmc, &histar_mapcreate::exec));
 #endif
 
     amain();
