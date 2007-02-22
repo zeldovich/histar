@@ -21,6 +21,7 @@ struct entry {
 static struct entry table[32];
 
 static char enable = 0;
+static uint64_t start_prof = 0;
 
 static _Unwind_Reason_Code
 backtrace_cb(struct _Unwind_Context *ctx, void *arg)
@@ -53,8 +54,10 @@ scoped_prof::~scoped_prof(void)
 void
 prof_init(char on)
 {
-    if (on || getenv("JOS_PROF"))
+    if (on || getenv("JOS_PROF")) {
 	enable = 1;
+	start_prof = read_tsc();
+    }
 }
 
 void
@@ -112,4 +115,16 @@ prof_print(char use_cprintf)
 		       table[i].cnt, table[i].time);
 	}
     }
+
+    uint64_t e = read_tsc();
+    uint64_t tot = 0;
+    if (e < start_prof)
+	tot = e + (~0UL - start_prof);
+    else
+	tot = e - start_prof;
+
+    if (use_cprintf) 
+	cprintf("%42s%12ld\n", "tot", tot);
+    else 
+	printf("%42s%12ld\n", "tot", tot);
 }
