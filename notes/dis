@@ -332,3 +332,18 @@ trust the exporter daemon that it's really speaking for the global category.
 Furthermore, the exporter's catmgr will trust these mappings, so this mapping
 creation service is really part of the exporter itself.
 
+Bootstrapping issue: how to login securely onto a remote machine, having only
+a password to start with?  In the current design, you're not guaranteed to
+make progress, it seems.  To keep your password secure, you must taint it
+when passing it to a remote login service (granting that category to the login
+service at the same time).  If you allocate such a category, you must also
+create a mapping to a local category on the server, and you can only write to
+public containers to start with -- so anyone can delete your resources before
+you have a chance to securely authenticate.  A similar problem arises if you
+have the server allocate resources for you -- it needs to create a mapping
+of its category on your local machine, where it can only write to similarly
+public containers..  Furthermore, an analogous problem exists in RPC call and
+return -- it's hard to create per-call taint and grant category mappings on
+the remote machine that wouldn't be removable by everyone else.  Possibly
+solvable by combining MAPCREATE with container creation?
+
