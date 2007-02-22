@@ -150,6 +150,8 @@ main (int ac, char **av)
 	case 't':
 	    threaded = atoi(optarg);
 	    break;
+	default:
+	    printf("unreconized option: %c\n", c);
 	}
     }
     
