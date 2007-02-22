@@ -65,7 +65,7 @@ gate_exec_thread(gate_exec_thread_state *s)
 
 static void
 gate_exec2(catmgr *cm, const dj_pubkey &sender,
-	   const dj_message &m, delivery_status_cb cb)
+	   const dj_message &m, const delivery_args &da)
 {
     if (m.target.type != EP_GATE)
 	throw basic_exception("gate_exec only does gates");
@@ -82,7 +82,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	djlabel_to_label(cmi, m.gclear, &msg_gclear);
     } catch (std::exception &e) {
 	warn << "gate_exec2: " << e.what() << "\n";
-	cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING, 0);
 	return;
     }
 
@@ -107,7 +107,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	cm->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "gate_exec2: acquiring: " << e.what() << "\n";
-	cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING, 0);
 	return;
     }
 
@@ -157,7 +157,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     while (s.done == 0)
 	sys_sync_wait(&s.done, 0, ~0UL);
-    cb(DELIVERY_DONE, tid);
+    da.cb(DELIVERY_DONE, tid);
 
     unref1.dismiss();
     unref2.dismiss();
@@ -165,12 +165,12 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
 void
 gate_exec(catmgr *cm, const dj_pubkey &node,
-	  const dj_message &m, delivery_status_cb cb)
+	  const dj_message &m, const delivery_args &da)
 {
     try {
-	gate_exec2(cm, node, m, cb);
+	gate_exec2(cm, node, m, da);
     } catch (std::exception &e) {
 	warn << "gate_exec: " << e.what() << "\n";
-	cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR, 0);
     }
 }

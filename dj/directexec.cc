@@ -3,23 +3,23 @@
 void
 dj_direct_gatemap::deliver(const dj_pubkey &sender,
 			   const dj_message &a,
-			   delivery_status_cb cb)
+			   const delivery_args &da)
 {
     if (a.target.type != EP_GATE) {
-	cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR, 0);
 	return;
     }
 
     dj_msg_sink *s = gatemap_[COBJ(a.target.gate->gate_ct,
 				   a.target.gate->gate_id)];
     if (!s) {
-	cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR, 0);
 	return;
     }
 
     uint64_t token = ++counter_;
     (*s)(sender, a, token);
-    cb(DELIVERY_DONE, token);
+    da.cb(DELIVERY_DONE, token);
 }
 
 dj_message_endpoint

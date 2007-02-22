@@ -107,7 +107,7 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
     a.msg = "Hello world!";
 
     dj_delegation_set dset;
-    s->send(node_pk, 1, dset, a, wrap(&msgcb));
+    s->send(node_pk, 1, dset, a, wrap(&msgcb), 0);
     delaycb(5, wrap(&sndmsg, s, node_pk, ep));
 }
 

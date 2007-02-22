@@ -128,6 +128,7 @@ struct msg_client {
     uint32_t until;
     timecb_t *timecb;
     uint32_t tmo;
+    uint64_t local_deliver_arg;
 
     msg_client(const dj_pubkey &k, uint64_t xid)
 	: id(k, xid), timecb(0), tmo(1) {}
@@ -192,12 +193,14 @@ class djprot_impl : public djprot {
 
     virtual void send(const dj_pubkey &target, time_t timeout,
 		      const dj_delegation_set &dset,
-		      const dj_message &msg, delivery_status_cb cb)
+		      const dj_message &msg, delivery_status_cb cb,
+		      uint64_t local_deliver_arg)
     {
 	msg_client *cc = New msg_client(target, ++xid_);
 	clnt_.insert(cc);
 	cc->cb = cb;
 	cc->until = time(0) + timeout;
+	cc->local_deliver_arg = local_deliver_arg;
 
 	if (!labelcheck_send(msg, target, dset)) {
 	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
@@ -377,7 +380,7 @@ class djprot_impl : public djprot {
 
 	if (cc->ss.stmt.msgx->to == esignpub2dj(k_)) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
-	    process_msg_request(*cc->ss.stmt.msgx, cid);
+	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
 	} else {
 	    sign_statement(&cc->ss);
 	    str msg = xdr2str(cc->ss);
@@ -470,7 +473,9 @@ class djprot_impl : public djprot {
 	send_message(msg, cid.key);
     }
 
-    void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid) {
+    void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
+			     uint64_t local_deliver_arg)
+    {
 	if (!local_delivery_) {
 	    warn << "process_msg_request: missing delivery backend\n";
 	    srvr_send_status(cid, DELIVERY_REMOTE_ERR, 0);
@@ -482,8 +487,10 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	local_delivery_(c.from, *c.u.req,
-			wrap(this, &djprot_impl::srvr_send_status, cid));
+	delivery_args da;
+	da.cb = wrap(this, &djprot_impl::srvr_send_status, cid);
+	da.local_delivery_arg = local_deliver_arg;
+	local_delivery_(c.from, *c.u.req, da);
     }
 
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
@@ -508,7 +515,7 @@ class djprot_impl : public djprot {
 
 	switch (c.u.op) {
 	case MSG_REQUEST:
-	    process_msg_request(c, cid);
+	    process_msg_request(c, cid, 0);
 	    break;
 
 	case MSG_STATUS:

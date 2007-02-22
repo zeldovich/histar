@@ -5,7 +5,7 @@ static void
 dj_arpc_srv_cb(message_sender *s, bool ok, const dj_rpc_reply &r)
 {
     if (ok)
-	s->send(r.sender, r.tmo, r.dset, r.msg, 0);
+	s->send(r.sender, r.tmo, r.dset, r.msg, 0, 0);
 }
 
 void
@@ -80,7 +80,8 @@ dj_arpc_call::retransmit()
     if (now > until_)
 	now = until_;
 
-    s_->send(dst_, until_ - now, dset_, a_, wrap(mkref(this), &dj_arpc_call::delivery_cb));
+    s_->send(dst_, until_ - now, dset_, a_,
+	     wrap(mkref(this), &dj_arpc_call::delivery_cb), 0);
 
     if (now >= until_ && !done_) {
 	done_ = true;

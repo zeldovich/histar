@@ -85,7 +85,8 @@ struct dj_delegation_set {
  */
 
 enum dj_endpoint_type {
-    EP_GATE = 1
+    EP_GATE = 1,
+    EP_MAPCREATE
 };
 
 struct dj_gatename {
@@ -96,6 +97,8 @@ struct dj_gatename {
 union dj_message_endpoint switch (dj_endpoint_type type) {
  case EP_GATE:
     dj_gatename gate;
+ case EP_MAPCREATE:
+    void;
 };
 
 struct dj_message {

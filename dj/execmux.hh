@@ -13,16 +13,16 @@ class exec_mux {
 	m_[t] = cb;
     }
 
-    void exec(const dj_pubkey &pk, const dj_message &m, delivery_status_cb scb) {
+    void exec(const dj_pubkey &pk, const dj_message &m, const delivery_args &a) {
 	std::map<dj_endpoint_type, djprot::local_delivery_cb>::iterator i =
 	    m_.find(m.target.type);
 	if (i == m_.end()) {
 	    warn << "exec_mux: no delivery for type " << m.target.type << "\n";
-	    scb(DELIVERY_REMOTE_ERR, 0);
+	    a.cb(DELIVERY_REMOTE_ERR, 0);
 	    return;
 	}
 
-	i->second(pk, m, scb);
+	i->second(pk, m, a);
     }
 
  private:

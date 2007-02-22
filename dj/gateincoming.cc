@@ -23,6 +23,7 @@ extern "C" {
 struct incoming_req {
     const dj_incoming_gate_req *req;
     dj_incoming_gate_res res;
+    uint64_t local_deliver_arg;
     uint64_t done;
 };
 
@@ -201,12 +202,38 @@ class incoming_impl : public dj_incoming_gate {
 		throw basic_exception("refusing bad token");
 	}
 
-	process_call3(req, res);
+	cobj_ref stored_gate = COBJ(0, 0);
+	if (req.m.target.type == EP_MAPCREATE && req.node == p_->pubkey()) {
+	    label tl, tc;
+	    thread_cur_label(&tl);
+	    thread_cur_clearance(&tc);
+
+	    label gl, gc;
+	    tl.merge(&vl, &gl, label::max, label::leq_starlo);
+	    tc.merge(&vc, &gc, label::min, label::leq_starlo);
+
+	    label gv(3);
+	    gv.set(start_env->process_grant, 0);
+
+	    int64_t gid = sys_gate_create(start_env->proc_container,
+					  0, gl.to_ulabel(), gc.to_ulabel(),
+					  gv.to_ulabel(), "gateincoming", 0);
+	    if (gid > 0)
+		stored_gate = COBJ(start_env->proc_container, gid);
+	}
+
+	process_call3(req, res, stored_gate.object);
+
+	if (stored_gate.object)
+	    sys_obj_unref(stored_gate);
     }
 
-    void process_call3(const dj_incoming_gate_req &req, dj_incoming_gate_res *res) {
+    void process_call3(const dj_incoming_gate_req &req, dj_incoming_gate_res *res,
+		       uint64_t local_deliver_arg)
+    {
 	incoming_req ir;
 	ir.req = &req;
+	ir.local_deliver_arg = local_deliver_arg;
 	ir.done = 0;
 
 	incoming_req *irp = &ir;
@@ -233,7 +260,7 @@ class incoming_impl : public dj_incoming_gate {
 
 	assert(cc == sizeof(ir));
 	p_->send(ir->req->node, ir->req->timeout, ir->req->dset, ir->req->m,
-		 wrap(this, &incoming_impl::callcb, ir));
+		 wrap(this, &incoming_impl::callcb, ir), ir->local_deliver_arg);
     }
 
     void callcb(incoming_req *ir, dj_delivery_code stat, uint64_t token) {
