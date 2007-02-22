@@ -1,0 +1,87 @@
+httpd
+-----
+latency: obj/test/httpd host port -r requests
+throughput: obj/test/httpd host port -c clients -l time-limit
+
+tainted ssld, tainted rsa service, no auth
+ httpd_mom.cc -> eproc_enable = 1
+ httpd.cc -> ssl_mode = 1, ask_for_auth = 0
+
+tainted ssld, openssl rsa service, no auth
+ httpd_mom.cc -> eproc_enable = 0
+ httpd.cc -> ssl_mode = 1, ask_for_auth = 0
+
+net stack
+---------
+lwip server: obj/test/lwip_bench iface -p port -b byte-count -i iter-count
+linux server: obj/test/sock_bench -p port -b byte-count -i iter-count
+histar server: sock_bench -p port -b byte-count -i iter-count
+
+latency: 
+  obj/test/sock_client host port -r requests -b byte-count -i iter-count
+throughput: 
+  obj/test/sock_client host port -c clients -l time -b byte-count -i iter-count
+
+For one iteration byte-count bytes are read and written by the client
+and server.
+
+as2ps
+-----
+a2psbench msec
+
+untar a2ps.tar in /fs, and optionally create test.txt in /fs
+
+gs
+--
+gsbench msec
+
+untar gs.tar in /fs, and optionally create test.ps in /fs
+
+
+02/21/07 results:
+
+httpd
+-----
+tainted ssld, tainted rsa service, no auth
+ latency: 0.0155 sec
+ throughput: 76.2 conns/sec (4 clients)
+ 
+tainted ssld, openssl rsa service, no auth
+ latency: 0.0131 sec
+ throughput: 99.4 conns/sec (4 clients)
+
+linux apache, openssl
+ latency: 0.0106 sec
+ throughput: 181.8 conns/sec (200 clients)
+
+net stack
+---------
+lwip server (byte-count = 150, iter-count = 5)
+ latency: 0.0053 sec
+ throughput: 217 conns/sec (17 clients)
+
+histar server (byte-count = 150, iter-count = 5)
+ latency: 0.0038 sec
+ throughput: 267.4 conns/sec (3 clients)
+
+linux server (byte-count = 150, iter-count = 5)
+ latency: 0.0014 sec
+ throughput: >= 5595.4 conns/sec (200 clients)
+
+a2ps
+----
+histar (0 char): 0.016 sec
+histar (1024 char): 0.017 sec
+histar (8192 char): 0.023 sec
+linux (0 char): 0.020 sec
+linux (1024 char): 0.021 sec
+linux (8192 char): 0.022 sec
+
+gs
+--
+histar (0 char): 0.167 sec
+histar (1024 char): 0.185 sec
+histar (8192 char): 0.200 sec
+linux (0 char): 0.106 sec
+linux (1024 char): 0.123 sec
+linux (8192 char): 0.134 sec
