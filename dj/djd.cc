@@ -12,6 +12,7 @@
 #include <dj/catmgr.hh>
 #include <dj/gateincoming.hh>
 #include <dj/gateexec.hh>
+#include <dj/execmux.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -121,8 +122,11 @@ main(int ac, char **av)
     warn << "instantiating a djprot, port " << port << "...\n";
     djprot *djs = djprot::alloc(port);
 
+    exec_mux emux;
+    djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));
+
     dj_direct_gatemap gm;
-    djs->set_delivery_cb(wrap(&gm, &dj_direct_gatemap::deliver));
+    emux.set(EP_GATE, wrap(&gm, &dj_direct_gatemap::deliver));
 
     ep = gm.create_gate(1, wrap(&dj_debug_sink));
     warn << "dj_debug_sink on " << ep << "\n";
@@ -152,8 +156,8 @@ main(int ac, char **av)
     dj_incoming_gate *in = dj_incoming_gate::alloc(djs, cm, start_env->shared_container);
     warn << "dj_incoming_gate at " << in->gate() << "\n";
 
-    djs->set_delivery_cb(wrap(&gate_exec, cm));
-    warn << "delivering messages via gate_exec\n";
+    emux.set(EP_GATE, wrap(&gate_exec, cm));
+    warn << "delivering gate messages via gate_exec\n";
 #endif
 
     amain();
