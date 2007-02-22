@@ -19,3 +19,26 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l)
 	l->set(lcat, e.level);
     }
 }
+
+void
+label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl)
+{
+    dl->deflevel = l.get_default();
+    dl->ents.setsize(0);
+
+    const ulabel *ul = l.to_ulabel_const();
+    for (uint32_t i = 0; i < ul->ul_nent; i++) {
+	uint64_t ent = ul->ul_ent[i];
+	level_t lv = LB_LEVEL(ent);
+	if (lv == dl->deflevel)
+	    continue;
+
+	uint64_t lcat = LB_HANDLE(ent);
+	dj_label_entry dje;
+	if (!m.l2g(lcat, &dje.cat))
+	    throw basic_exception("label_to_djlabel: missing mapping");
+
+	dje.level = lv;
+	dl->ents.push_back(dje);
+    }
+}

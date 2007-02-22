@@ -128,7 +128,7 @@ struct msg_client {
     uint32_t until;
     timecb_t *timecb;
     uint32_t tmo;
-    uint64_t local_deliver_arg;
+    void *local_deliver_arg;
 
     msg_client(const dj_pubkey &k, uint64_t xid)
 	: id(k, xid), timecb(0), tmo(1) {}
@@ -194,7 +194,7 @@ class djprot_impl : public djprot {
     virtual void send(const dj_pubkey &target, time_t timeout,
 		      const dj_delegation_set &dset,
 		      const dj_message &msg, delivery_status_cb cb,
-		      uint64_t local_deliver_arg)
+		      void *local_deliver_arg)
     {
 	msg_client *cc = New msg_client(target, ++xid_);
 	clnt_.insert(cc);
@@ -474,7 +474,7 @@ class djprot_impl : public djprot {
     }
 
     void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
-			     uint64_t local_deliver_arg)
+			     void *local_deliver_arg)
     {
 	if (!local_delivery_) {
 	    warn << "process_msg_request: missing delivery backend\n";

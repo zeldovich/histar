@@ -19,11 +19,12 @@ extern "C" {
 #include <dj/checkpoint.hh>
 #include <dj/reqcontext.hh>
 #include <dj/djlabel.hh>
+#include <dj/mapcreate.hh>
 
 struct incoming_req {
     const dj_incoming_gate_req *req;
     dj_incoming_gate_res res;
-    uint64_t local_deliver_arg;
+    void *local_deliver_arg;
     uint64_t done;
 };
 
@@ -202,7 +203,8 @@ class incoming_impl : public dj_incoming_gate {
 		throw basic_exception("refusing bad token");
 	}
 
-	cobj_ref stored_gate = COBJ(0, 0);
+	bool lms_init = false;
+	local_mapcreate_state lms;
 	if (req.m.target.type == EP_MAPCREATE && req.node == p_->pubkey()) {
 	    label tl, tc;
 	    thread_cur_label(&tl);
@@ -218,18 +220,22 @@ class incoming_impl : public dj_incoming_gate {
 	    int64_t gid = sys_gate_create(start_env->proc_container,
 					  0, gl.to_ulabel(), gc.to_ulabel(),
 					  gv.to_ulabel(), "gateincoming", 0);
-	    if (gid > 0)
-		stored_gate = COBJ(start_env->proc_container, gid);
+	    if (gid > 0) {
+		lms.vl = &vl;
+		lms.vc = &vc;
+		lms.privgate = COBJ(start_env->proc_container, gid);
+		lms_init = true;
+	    }
 	}
 
-	process_call3(req, res, stored_gate.object);
+	process_call3(req, res, lms_init ? (void *) &lms : 0);
 
-	if (stored_gate.object)
-	    sys_obj_unref(stored_gate);
+	if (lms_init)
+	    sys_obj_unref(lms.privgate);
     }
 
     void process_call3(const dj_incoming_gate_req &req, dj_incoming_gate_res *res,
-		       uint64_t local_deliver_arg)
+		       void *local_deliver_arg)
     {
 	incoming_req ir;
 	ir.req = &req;

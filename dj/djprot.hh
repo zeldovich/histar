@@ -8,7 +8,7 @@ typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
 
 struct delivery_args {
     delivery_status_cb cb;
-    uint64_t local_delivery_arg;
+    void *local_delivery_arg;
 };
 
 class message_sender {
@@ -17,7 +17,7 @@ class message_sender {
     virtual void send(const dj_pubkey &node, time_t timeout,
 		      const dj_delegation_set &dset,
 		      const dj_message &msg, delivery_status_cb cb,
-		      uint64_t delivery_arg) = 0;
+		      void *delivery_arg) = 0;
 };
 
 class djprot : public message_sender {

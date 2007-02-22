@@ -4,6 +4,12 @@
 #include <dj/djprot.hh>
 #include <dj/catmgr.hh>
 
+struct local_mapcreate_state {
+    label *vl;
+    label *vc;
+    cobj_ref privgate;
+};
+
 // Processes the caller's RPC request to an EP_MAPCREATE
 class histar_mapcreate {
  public:

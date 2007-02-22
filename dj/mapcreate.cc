@@ -17,17 +17,33 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	return;
     }
 
-    label msg_taint;
+    local_mapcreate_state *lms = (local_mapcreate_state *) da.local_delivery_arg;
+
+    label vl, vc;
+    dj_label reply_taint;
+
     try {
 	dj_catmap_indexed cmi(m.catmap);
-	djlabel_to_label(cmi, m.taint, &msg_taint);
+
+	if (lms) {
+	    vl = *lms->vl;
+	    vc = *lms->vc;
+
+	    label taint = vl;
+	    taint.transform(label::star_to, taint.get_default());
+	    label_to_djlabel(cmi, taint, &reply_taint);
+	} else {
+	    djlabel_to_label(cmi, m.taint, &vl);
+	    vc = vl;
+	    reply_taint = m.taint;
+	}
     } catch (std::exception &e) {
 	warn << "histar_mapcreate: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING, 0);
 	return;
     }
 
-    verify_label_reqctx ctx(msg_taint, msg_taint);
+    verify_label_reqctx ctx(vl, vc);
     try {
 	cm_->acquire(m.catmap, true);
 	cm_->resource_check(&ctx, m.catmap);
@@ -59,23 +75,21 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
     dj_cat_mapping mapent;
     if (mapreq.lcat) {		/* Create a global category */
-	if (!da.local_delivery_arg) {
+	if (!lms) {
 	    warn << "histar_mapcreate: missing local_delivery_arg\n";
 	    da.cb(DELIVERY_REMOTE_ERR, 0);
 	    return;
 	}
 
 	label gl;
-	cobj_ref privgate = COBJ(start_env->proc_container,
-				 da.local_delivery_arg);
-	obj_get_label(privgate, &gl);
+	obj_get_label(lms->privgate, &gl);
 	if (gl.get(mapreq.lcat) != LB_LEVEL_STAR) {
 	    warn << "histar_mapcreate: trying to map unpriv cat\n";
 	    da.cb(DELIVERY_REMOTE_ERR, 0);
 	    return;
 	}
 
-	saved_privilege sp(mapreq.lcat, privgate);
+	saved_privilege sp(mapreq.lcat, lms->privgate);
 	sp.acquire();
 	scope_guard<void, uint64_t> drop(thread_drop_star, mapreq.lcat);
 
@@ -100,7 +114,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.target = callmsg.return_ep;
     replym.msg_ct = callmsg.return_ct;
     replym.token = mapent.res_ct;
-    replym.taint = m.taint;
+    replym.taint = reply_taint;
     replym.glabel.deflevel = 3;
     replym.glabel.ents.setsize(1);
     replym.glabel.ents[0].cat = mapent.gcat;
