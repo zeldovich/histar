@@ -103,7 +103,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      * Acquire whatever resources the caller wants..
      */
     try {
-	cm->acquire(m.catmap);
+	cm->acquire(m.catmap, true);
 	cm->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "gate_exec2: acquiring: " << e.what() << "\n";
