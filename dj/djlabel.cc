@@ -3,13 +3,16 @@
 #include <dj/djlabel.hh>
 
 void
-djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l)
+djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
+		 dj_catmap_indexed *out)
 {
     l->reset(dl.deflevel);
     for (uint32_t i = 0; i < dl.ents.size(); i++) {
 	const dj_label_entry &e = dl.ents[i];
 	uint64_t lcat;
-	if (!m.g2l(e.cat, &lcat))
+	if (e.level == dl.deflevel)
+	    continue;
+	if (!m.g2l(e.cat, &lcat, out))
 	    throw basic_exception("djlabel_to_label: missing mapping");
 	if (l->get(lcat) != dl.deflevel)
 	    throw basic_exception("djlabel_to_label: duplicate label entry?");
@@ -21,7 +24,8 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l)
 }
 
 void
-label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl)
+label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
+		 dj_catmap_indexed *out)
 {
     dl->deflevel = l.get_default();
     dl->ents.setsize(0);
@@ -35,7 +39,7 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl)
 
 	uint64_t lcat = LB_HANDLE(ent);
 	dj_label_entry dje;
-	if (!m.l2g(lcat, &dje.cat))
+	if (!m.l2g(lcat, &dje.cat, out))
 	    throw basic_exception("label_to_djlabel: missing mapping");
 
 	dje.level = lv;

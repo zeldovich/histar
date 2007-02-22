@@ -21,7 +21,8 @@ LIBDIS_SRCFILES +=		\
 	dj/djsrpcc.cc		\
 	dj/mapcreatex.x		\
 	dj/mapcreate.cc		\
-	dj/miscx.x
+	dj/miscx.x		\
+	dj/djcache.cc
 
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\
