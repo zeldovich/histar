@@ -5,13 +5,7 @@
  * on a special endpoint.  Replies with dj_cat_mapping.
  */
 
-struct dj_mapreq_proof {
-    dj_privkey privkey;
-    dj_delegation_set dset;
-};
-
 struct dj_mapreq {
-    dj_mapreq_proof *proof;
     dj_gcat gcat;
     unsigned hyper lcat;
     unsigned hyper ct;

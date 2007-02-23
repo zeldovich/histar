@@ -6,7 +6,6 @@
 #include <dj/djlabel.hh>
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>
-#include <dj/djkey.hh>
 
 void
 histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
@@ -23,9 +22,8 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     label vl, vc;
     dj_label reply_taint;
 
+    dj_catmap_indexed cmi(m.catmap);
     try {
-	dj_catmap_indexed cmi(m.catmap);
-
 	if (lms) {
 	    vl = *lms->vl;
 	    vc = *lms->vc;
@@ -76,63 +74,37 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
     dj_cat_mapping mapent;
     if (mapreq.lcat) {		/* Create a global category */
-	if (!lms) {
-	    warn << "histar_mapcreate: missing local_delivery_arg\n";
-	    da.cb(DELIVERY_REMOTE_ERR, 0);
-	    return;
-	}
-
-	label gl;
-	obj_get_label(lms->privgate, &gl);
-	if (gl.get(mapreq.lcat) != LB_LEVEL_STAR) {
-	    warn << "histar_mapcreate: trying to map unpriv cat\n";
-	    da.cb(DELIVERY_REMOTE_ERR, 0);
-	    return;
-	}
-
-	saved_privilege sp(mapreq.lcat, lms->privgate);
-	sp.acquire();
-	scope_guard<void, uint64_t> drop(thread_drop_star, mapreq.lcat);
-
 	dj_gcat gcat;
 	gcat.key = p_->pubkey();
 	gcat.id = ++counter_;
 
-	mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
-    } else {
-	const dj_gcat &gcat = mapreq.gcat;
-
-	if (mapreq.proof) {
-	    if (mapreq.proof->privkey.p <= mapreq.proof->privkey.q) {
-		warn << "histar_mapcreate: bad private key\n";
-		da.cb(DELIVERY_REMOTE_ERR, 0);
-		return;
-	    }
-
-	    esign_priv epriv(mapreq.proof->privkey.p,
-			     mapreq.proof->privkey.q,
-			     mapreq.proof->privkey.k);
-
-	    dj_delegation_map dm(mapreq.proof->dset);
-	    if (!key_speaks_for(esignpub2dj(epriv), gcat, dm, dm.size())) {
-		warn << "histar_mapcreate: bad ownership proof\n";
-		da.cb(DELIVERY_REMOTE_ERR, 0);
-		return;
-	    }
+	if (cmi.l2g(mapreq.lcat, 0)) {
+	    // Caller already provided an existing mapping for lcat,
+	    // so just create a new mapping.
+	    mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
 	} else {
-	    bool owner = false;
-	    for (uint32_t i = 0; i < m.glabel.ents.size(); i++)
-		if (m.glabel.ents[i].cat == gcat &&
-		    m.glabel.ents[i].level == LB_LEVEL_STAR)
-		    owner = true;
-
-	    if (!owner) {
-		warn << "histar_mapcreate: not owner creating lcat\n";
+	    // Caller better have granted us the star on gate invocation,
+	    // because this is the first mapping for this category.
+	    if (!lms) {
+		warn << "histar_mapcreate: missing local_delivery_arg\n";
 		da.cb(DELIVERY_REMOTE_ERR, 0);
 		return;
 	    }
-	}
 
+	    label gl;
+	    obj_get_label(lms->privgate, &gl);
+	    if (gl.get(mapreq.lcat) != LB_LEVEL_STAR) {
+		warn << "histar_mapcreate: trying to map unknown lcat\n";
+		da.cb(DELIVERY_REMOTE_ERR, 0);
+		return;
+	    }
+
+	    saved_privilege sp(mapreq.lcat, lms->privgate);
+	    sp.acquire();
+	    scope_guard<void, uint64_t> drop(thread_drop_star, mapreq.lcat);
+	    mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
+	}
+    } else {
 	int64_t lcat = handle_alloc();
 	if (lcat < 0) {
 	    warn << "histar_mapcreate: cannot allocate handle\n";
@@ -141,7 +113,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	}
 
 	scope_guard<void, uint64_t> drop(thread_drop_star, lcat);
-	mapent = cm_->store(gcat, lcat, mapreq.ct);
+	mapent = cm_->store(mapreq.gcat, lcat, mapreq.ct);
     }
 
     dj_message replym;
@@ -150,19 +122,10 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.token = mapent.res_ct;
     replym.taint = reply_taint;
     replym.glabel.deflevel = 3;
-    replym.glabel.ents.setsize(1);
-    replym.glabel.ents[0].cat = mapent.gcat;
-    replym.glabel.ents[0].level = LB_LEVEL_STAR;
     replym.gclear.deflevel = 0;
-    replym.gclear.ents.setsize(1);
-    replym.gclear.ents[0].cat = mapent.gcat;
-    replym.gclear.ents[0].level = 3;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(mapent);
-
-    if (sender == p_->pubkey())
-	replym.catmap.ents.push_back(mapent);
 
     p_->send(sender, 0, m.dset, replym, 0, 0);
     da.cb(DELIVERY_DONE, replym.token);

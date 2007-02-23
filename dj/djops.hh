@@ -6,8 +6,7 @@ extern "C" {
 #include <inc/string.h>
 }
 
-#include <crypt.h>
-#include <esign.h>
+#include <sfscrypt.h>
 #include <dj/djprotx.h>
 #include <inc/cpplabel.hh>
 
@@ -19,16 +18,32 @@ struct dj_msg_id {
     operator hash_t() const { return xid; }
 };
 
+inline dj_pubkey
+sfspub2dj(ptr<sfspub> sfspub)
+{
+    dj_pubkey dpk;
+    assert(sfspub->export_pubkey(&dpk));
+    return dpk;
+}
+
 inline bool
 operator<(const dj_pubkey &a, const dj_pubkey &b)
 {
-    return a.n < b.n || (a.n == b.n && a.k < b.k);
+    str as = xdr2str(a);
+    str bs = xdr2str(b);
+    uint32_t al = as.len();
+    uint32_t bl = bs.len();
+    if (al < bl) return true;
+    if (al > bl) return false;
+    return memcmp(as.cstr(), bs.cstr(), al);
 }
 
 inline bool
 operator==(const dj_pubkey &a, const dj_pubkey &b)
 {
-    return a.n == b.n && a.k == b.k;
+    str as = xdr2str(a);
+    str bs = xdr2str(b);
+    return as.len() == bs.len() && !memcmp(as.cstr(), bs.cstr(), as.len());
 }
 
 inline bool
@@ -82,7 +97,12 @@ operator==(const cobj_ref &a, const cobj_ref &b)
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_pubkey &pk)
 {
-    sb << "{" << pk.n << "," << pk.k << "}";
+    ptr<sfspub> p = sfscrypt.alloc(pk, 0);
+    strbuf tsb;
+    if (p && p->export_pubkey(tsb))
+	sb << tsb;
+    else
+	sb << "--cannot-convert--";
     return sb;
 }
 
@@ -189,15 +209,6 @@ strbuf_cat(const strbuf &sb, const dj_message &a)
     return sb;
 }
 
-inline dj_pubkey
-esignpub2dj(const esign_pub &ep)
-{
-    dj_pubkey pk;
-    pk.n = ep.n;
-    pk.k = ep.k;
-    return pk;
-}
-
 template<> struct hashfn<cobj_ref> {
     hashfn() {}
     hash_t operator() (const cobj_ref &a) const
@@ -212,8 +223,9 @@ template<> struct hashfn<dj_gcat> {
 
 template<> struct hashfn<dj_pubkey> {
     hashfn() {}
-    hash_t operator() (const dj_pubkey &a) const
-	{ str r = a.n.getraw(); return hash_bytes(r.cstr(), r.len()) ^ a.k; }
+    hash_t operator() (const dj_pubkey &pk) const
+	{ char d[20]; assert(sha1_hashxdr(&d[0], pk));
+	  return hash_bytes(&d[0], sizeof(d)); }
 };
 
 inline void

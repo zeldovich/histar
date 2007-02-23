@@ -2,22 +2,13 @@
  * Distributed HiStar protocol
  */
 
-%#include <bigint.h>
+%#include <sfs_prot.h>
 %#include <inc/label.h>		/* for LB_LEVEL_STAR */
 
 typedef unsigned dj_timestamp;	/* UNIX seconds */
 typedef opaque dj_stmt_blob<>;	/* No recursive definitions in XDR */
-
-struct dj_pubkey {
-    bigint n;
-    unsigned k;
-};
-
-struct dj_privkey {
-    bigint p;
-    bigint q;
-    unsigned k;
-};
+typedef sfs_pubkey2 dj_pubkey;
+typedef sfs_sig2 dj_sign;
 
 struct dj_gcat {		/* Global category name */
     dj_pubkey key;
@@ -181,6 +172,6 @@ union dj_stmt switch (dj_stmt_type type) {
 
 struct dj_stmt_signed {
     dj_stmt stmt;
-    bigint sign;
+    dj_sign sign;
 };
 

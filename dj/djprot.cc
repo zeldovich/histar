@@ -1,9 +1,8 @@
 #include <async.h>
-#include <crypt.h>
-#include <wmstr.h>
 #include <arpc.h>
 #include <ihash.h>
 #include <itree.h>
+#include <sfscrypt.h>
 
 #include <dj/bcast.hh>
 #include <dj/djprot.hh>
@@ -11,8 +10,6 @@
 #include <dj/djkey.hh>
 
 enum {
-    keybits = 128,
-    //keybits = 1024,
     addr_cert_valid = 60,
     delegation_time_skew = 5,
 
@@ -58,7 +55,9 @@ struct msg_client {
 class djprot_impl : public djprot {
  public:
     djprot_impl(uint16_t port)
-	: k_(esign_keygen(keybits)), exp_cb_(0)
+	: k_(sfscrypt.gen(SFS_RABIN, 0, SFS_SIGN | SFS_VERIFY |
+					SFS_ENCRYPT | SFS_DECRYPT)),
+	  exp_cb_(0)
     {
 	net_label_.deflevel = 1;
 	net_clear_.deflevel = 1;
@@ -81,7 +80,7 @@ class djprot_impl : public djprot {
 	warn << "djprot: listening on " << inet_ntoa(curipaddr)
 	     << ":" << ntohs(my_port_) << ", broadcast port "
 	     << ntohs(bc_port_) << "\n";
-	warn << "djprot: my public key is {" << k_.n << "," << k_.k << "}\n";
+	warn << "djprot: my public key is " << pubkey() << "\n";
 
 	make_async(ufd);
 	ux_ = axprt_dgram::alloc(ufd);
@@ -108,7 +107,12 @@ class djprot_impl : public djprot {
 	warn << "djprot_impl dead\n";
     }
 
-    virtual dj_pubkey pubkey() const { return esignpub2dj(k_); }
+    virtual dj_pubkey pubkey() const {
+	dj_pubkey dpk;
+	assert(k_->export_pubkey(&dpk));
+	return dpk;
+    }
+
     virtual void set_label(const dj_label &l) { net_label_ = l; }
     virtual void set_clear(const dj_label &l) { net_clear_ = l; }
 
@@ -129,7 +133,7 @@ class djprot_impl : public djprot {
 	}
 
 	cc->ss.stmt.set_type(STMT_MSG_XFER);
-	cc->ss.stmt.msgx->from = esignpub2dj(k_);
+	cc->ss.stmt.msgx->from = pubkey();
 	cc->ss.stmt.msgx->to = target;
 	cc->ss.stmt.msgx->xid = cc->id.xid;
 	cc->ss.stmt.msgx->u.set_op(MSG_REQUEST);
@@ -146,7 +150,8 @@ class djprot_impl : public djprot {
 	str buf = xdr2str(s->stmt);
 	if (!buf)
 	    fatal << "sign_statement: cannot encode\n";
-	s->sign = k_.sign(buf);
+	if (!k_->sign(&s->sign, buf))
+	    fatal << "sign_statement: cannot sign\n";
     }
 
  private:
@@ -159,7 +164,7 @@ class djprot_impl : public djprot {
     bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
 			 const dj_delegation_set &dset)
     {
-	if (!check_local_msgs && dst == esignpub2dj(k_))
+	if (!check_local_msgs && dst == pubkey())
 	    return true;
 
 	dj_delegation_map dm(dset);
@@ -184,7 +189,7 @@ class djprot_impl : public djprot {
     bool labelcheck_recv(const dj_message &a, const dj_pubkey &src,
 			 const dj_delegation_set &dset)
     {
-	if (!check_local_msgs && src == esignpub2dj(k_))
+	if (!check_local_msgs && src == pubkey())
 	    return true;
 
 	dj_delegation_map dm(dset);
@@ -279,7 +284,7 @@ class djprot_impl : public djprot {
 	cc->tmo *= 2;
 	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
 
-	if (cc->ss.stmt.msgx->to == esignpub2dj(k_)) {
+	if (cc->ss.stmt.msgx->to == pubkey()) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
 	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
 	} else {
@@ -350,7 +355,7 @@ class djprot_impl : public djprot {
     void srvr_send_status(dj_msg_id cid, dj_delivery_code code, uint64_t token) {
 	dj_stmt_signed ss;
 	ss.stmt.set_type(STMT_MSG_XFER);
-	ss.stmt.msgx->from = esignpub2dj(k_);
+	ss.stmt.msgx->from = pubkey();
 	ss.stmt.msgx->to = cid.key;
 	ss.stmt.msgx->xid = cid.xid;
 	ss.stmt.msgx->u.set_op(MSG_STATUS);
@@ -358,7 +363,7 @@ class djprot_impl : public djprot {
 	if (code == DELIVERY_DONE)
 	    *ss.stmt.msgx->u.stat->token = token;
 
-	if (ss.stmt.msgx->to == esignpub2dj(k_)) {
+	if (ss.stmt.msgx->to == pubkey()) {
 	    dj_msg_id cid(ss.stmt.msgx->from, ss.stmt.msgx->xid);
 	    process_msg_status(*ss.stmt.msgx, cid);
 	    return;
@@ -407,7 +412,7 @@ class djprot_impl : public djprot {
     }
 
     void process_msg(const dj_msg_xfer &c) {
-	if (c.to != esignpub2dj(k_)) {
+	if (c.to != pubkey()) {
 	    warn << "misrouted message to " << c.to << "\n";
 	    return;
 	}
@@ -469,7 +474,7 @@ class djprot_impl : public djprot {
 	s.stmt.delegation->a.addr->port = my_port_;
 
 	s.stmt.delegation->b.set_type(ENT_PUBKEY);
-	*s.stmt.delegation->b.key = esignpub2dj(k_);
+	*s.stmt.delegation->b.key = pubkey();
 
 	time_t now = time(0);
 	s.stmt.delegation->from_ts = now;
@@ -498,7 +503,7 @@ class djprot_impl : public djprot {
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> ux_;
     ptr<axprt> bx_;
-    esign_priv k_;
+    ptr<sfspriv> k_;
     uint64_t xid_;
 
     ihash<dj_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
@@ -514,6 +519,9 @@ class djprot_impl : public djprot {
 djprot *
 djprot::alloc(uint16_t port)
 {
+    /* XXX just for testing */
+    sfs_rsasize = 768;
+
     random_init();
     return New djprot_impl(port);
 }

@@ -42,7 +42,7 @@ DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(DI
 DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite
 
 DIS_LDDEPS	:= $(OBJDIR)/lib/libdj.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a $(OBJDIR)/acpkg/lib/libgmp.a
-DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldj -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
+DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldj -lsfsmisc -lsvc -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
 
 $(OBJDIR)/dj/%.C: dj/%.x
 	@mkdir -p $(@D)

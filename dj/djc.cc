@@ -16,10 +16,10 @@ main(int ac, char **av)
 	exit(-1);
     }
 
-    const char *pk16 = av[1];
-    dj_pubkey k;
-    k.n = bigint(pk16, 16);
-    k.k = 8;
+    str pkstr(av[1]);
+    ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
+    assert(sfspub);
+    dj_pubkey k = sfspub2dj(sfspub);
 
     uint64_t call_ct = atoi(av[2]);
 

@@ -152,10 +152,10 @@ main(int ac, char **av)
     //sndfsrpc(djs, &gm, djs->pubkey(), ep);
 
     if (ac == 3) {
-	str n(av[1]);
-	dj_pubkey k;
-	k.n = bigint(n, 16);
-	k.k = 8;
+	str pubstr(av[1]);
+	ptr<sfspub> sfspub = sfscrypt.alloc(pubstr, SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	dj_pubkey k = sfspub2dj(sfspub);
 
 	*ep.gate <<= av[2];
 
