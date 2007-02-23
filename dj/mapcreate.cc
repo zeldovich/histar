@@ -99,6 +99,39 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
 	mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
     } else {
+	const dj_gcat &gcat = mapreq.gcat;
+
+	if (mapreq.proof) {
+	    if (mapreq.proof->privkey.p <= mapreq.proof->privkey.q) {
+		warn << "histar_mapcreate: bad private key\n";
+		da.cb(DELIVERY_REMOTE_ERR, 0);
+		return;
+	    }
+
+	    esign_priv epriv(mapreq.proof->privkey.p,
+			     mapreq.proof->privkey.q,
+			     mapreq.proof->privkey.k);
+
+	    dj_delegation_map dm(mapreq.proof->dset);
+	    if (!key_speaks_for(esignpub2dj(epriv), gcat, dm, dm.size())) {
+		warn << "histar_mapcreate: bad ownership proof\n";
+		da.cb(DELIVERY_REMOTE_ERR, 0);
+		return;
+	    }
+	} else {
+	    bool owner = false;
+	    for (uint32_t i = 0; i < m.glabel.ents.size(); i++)
+		if (m.glabel.ents[i].gcat == gcat &&
+		    m.glabel.ents[i].level == LB_LEVEL_STAR)
+		    owner = true;
+
+	    if (!owner) {
+		warn << "histar_mapcreate: not owner creating lcat\n";
+		da.cb(DELIVERY_REMOTE_ERR, 0);
+		return;
+	    }
+	}
+
 	int64_t lcat = handle_alloc();
 	if (lcat < 0) {
 	    warn << "histar_mapcreate: cannot allocate handle\n";
@@ -107,7 +140,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	}
 
 	scope_guard<void, uint64_t> drop(thread_drop_star, lcat);
-	mapent = cm_->store(mapreq.gcat, lcat, mapreq.ct);
+	mapent = cm_->store(gcat, lcat, mapreq.ct);
     }
 
     dj_message replym;

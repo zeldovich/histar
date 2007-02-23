@@ -13,6 +13,12 @@ struct dj_pubkey {
     unsigned k;
 };
 
+struct dj_privkey {
+    bigint p;
+    bigint q;
+    unsigned k;
+};
+
 struct dj_gcat {		/* Global category name */
     dj_pubkey key;
     unsigned hyper id;
