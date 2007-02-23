@@ -18,7 +18,8 @@ KERN_LIB :=					\
 	lib/$(ARCH)/longjmp.S			\
 	lib/sysstring.c				\
 	lib/cksum.c				\
-	lib/bf60.c
+	lib/bf60.c				\
+	lib/hashtable.c
 
 KERN_DEV :=					\
 	kern/dev/pci.c				\

@@ -1,10 +1,10 @@
 #include <kern/log.h>
 #include <kern/disklayout.h>
 #include <kern/freelist.h>
-#include <kern/hashtable.h>
 #include <kern/disklayout.h>
 #include <kern/stackwrap.h>
 #include <kern/arch.h>
+#include <inc/hashtable.h>
 #include <inc/queue.h>
 #include <inc/error.h>
 

@@ -3,7 +3,7 @@
 
 // simple hashtable, uses open addressing with linear probing
 
-#include <inc/types.h>
+//#include <inc/types.h>
 
 struct hashentry {
     uint64_t key;

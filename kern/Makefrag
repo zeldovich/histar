@@ -30,7 +30,6 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/pagetree.c \
 	    kern/kern/sync.c \
 	    kern/kern/prof.c \
-	    kern/kern/hashtable.c \
 	    kern/kern/dstack.c \
 	    kern/kern/kocache.c \
 	    kern/kern/stackwrap.c \

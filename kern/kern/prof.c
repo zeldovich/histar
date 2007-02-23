@@ -1,10 +1,10 @@
 #include <machine/trapcodes.h>
 #include <machine/x86.h>
-#include <kern/hashtable.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
+#include <inc/hashtable.h>
 #include <inc/error.h>
 
 struct entry {

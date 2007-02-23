@@ -25,7 +25,8 @@ KERN_LIB :=					\
 	lib/sysstring.c				\
 	lib/cksum.c				\
 	lib/bf60.c				\
-	lib/string.c
+	lib/string.c				\
+	lib/hashtable.c
 
 KERN_DEV :=					\
 	kern/dev/console.c			\
