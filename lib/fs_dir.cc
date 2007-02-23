@@ -202,7 +202,6 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 int
 fs_namei(const char *pn, struct fs_inode *o)
 {
-    scoped_prof _d;
     struct fs_inode d = pn[0] == '/' ? start_env->fs_root : start_env->fs_cwd;
     return fs_lookup_path(d, pn, o);
 }
