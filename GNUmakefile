@@ -63,7 +63,8 @@ COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
 	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute \
 	    -Wswitch-default
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
-CXXWARNS := $(COMWARNS) -Wno-non-template-friend -Woverloaded-virtual
+CXXWARNS := $(COMWARNS) -Wno-non-template-friend
+# SFS seems to be violating -Woverloaded-virtual
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline -Weffc++
 # -Wswitch-enum
