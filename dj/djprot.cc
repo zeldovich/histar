@@ -8,6 +8,7 @@
 #include <dj/bcast.hh>
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
+#include <dj/djkey.hh>
 
 enum {
     keybits = 128,
@@ -30,89 +31,6 @@ myipaddr(void)
 	    return addrs[i];
     fatal << "myipaddr: no usable addresses\n";
 }
-
-template<class T>
-static bool
-verify_sign(const T &xdrblob, const dj_pubkey &pk, const bigint &sig)
-{
-    str msg = xdr2str(xdrblob);
-    if (!msg)
-	return false;
-
-    return esign_pub(pk.n, pk.k).verify(msg, sig);  
-}
-
-static bool
-verify_stmt(const dj_stmt_signed &s)
-{
-    switch (s.stmt.type) {
-    case STMT_DELEGATION:
-	if (s.stmt.delegation->via)
-	    return verify_sign(s.stmt, *s.stmt.delegation->via, s.sign);
-
-	switch (s.stmt.delegation->b.type) {
-	case ENT_PUBKEY:
-	    return verify_sign(s.stmt, *s.stmt.delegation->b.key, s.sign);
-
-	case ENT_GCAT:
-	    return verify_sign(s.stmt, s.stmt.delegation->b.gcat->key, s.sign);
-
-	case ENT_ADDRESS:
-	    printf("verify_stmt: cannot speak for a network address\n");
-	    return false;
-
-	default:
-	    return false;
-	}
-
-    case STMT_MSG_XFER:
-	return verify_sign(s.stmt, s.stmt.msgx->from, s.sign);
-
-    default:
-	return false;
-    }
-}
-
-class dj_delegation_map {
- public:
-    struct dm_ent {
-	itree_entry<dm_ent> link;
-	dj_pubkey pk;
-	dj_delegation d;
-
-	dm_ent(const dj_delegation &de) : pk(*de.a.key), d(de) {}
-    };
-
-    dj_delegation_map(const dj_delegation_set &dset) : size_(0) {
-	for (uint32_t i = 0; i < dset.ents.size(); i++) {
-	    dj_stmt_signed ss;
-	    if (!bytes2xdr(ss, dset.ents[i]))
-		continue;
-	    if (!verify_stmt(ss))
-		continue;
-	    if (ss.stmt.type != STMT_DELEGATION)
-		continue;
-	    if (ss.stmt.delegation->a.type != ENT_PUBKEY)
-		continue;
-	    dm_ent *e = New dm_ent(*ss.stmt.delegation);
-	    t_.insert(e);
-	    size_++;
-	}
-    }
-
-    ~dj_delegation_map() {
-	t_.deleteall();
-    }
-
-    uint32_t size() { return size_; }
-
-    itree<dj_pubkey, dm_ent, &dm_ent::pk, &dm_ent::link> t_;
-
- private:
-    uint32_t size_;
-    dj_delegation_map(const dj_delegation_map&);
-    dj_delegation_map &operator=(const dj_delegation_map&);
-};
 
 struct pk_addr {	/* d.a.addr speaks-for pk */
     ihash_entry<pk_addr> pk_link;
@@ -224,37 +142,14 @@ class djprot_impl : public djprot {
 	local_delivery_ = cb;
     }
 
- private:
-    bool key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
-			dj_delegation_map &dm, uint32_t depth)
-    {
-	if (gcat.key == k)
-	    return true;
-
-	if (depth == 0)
-	    return false;
-
-	dj_delegation_map::dm_ent *e = dm.t_[k];
-	while (e && e->pk == k) {
-	    if (e->d.via && !key_speaks_for(*e->d.via, gcat, dm, depth - 1))
-		continue;
-
-	    if (e->d.b.type == ENT_GCAT) {
-		if (*e->d.b.gcat == gcat)
-		    return true;
-	    }
-
-	    if (e->d.b.type == ENT_PUBKEY) {
-		if (key_speaks_for(*e->d.b.key, gcat, dm, depth - 1))
-		    return true;
-	    }
-
-	    e = dm.t_.next(e);
-	}
-
-	return false;
+    virtual void sign_statement(dj_stmt_signed *s) {
+	str buf = xdr2str(s->stmt);
+	if (!buf)
+	    fatal << "sign_statement: cannot encode\n";
+	s->sign = k_.sign(buf);
     }
 
+ private:
     /*
      * Node_L(c) = { *, if Node speaks for c; 0 otherwise }
      * N_L = net_label_; N_C = net_clear_
@@ -562,13 +457,6 @@ class djprot_impl : public djprot {
 	default:
 	    warn << "Unhandled statement type " << m.stmt.type << "\n";
 	}
-    }
-
-    void sign_statement(dj_stmt_signed *s) {
-	str buf = xdr2str(s->stmt);
-	if (!buf)
-	    fatal << "sign_statement: cannot encode\n";
-	s->sign = k_.sign(buf);
     }
 
     void send_bcast(void) {
