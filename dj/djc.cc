@@ -55,11 +55,11 @@ main(int ac, char **av)
     dj_delivery_code c = dj_rpc_call(&gs, k, 1, dset, cm, m,
 				     xdr2str(mapreq), &replym, &xgrant);
     if (c != DELIVERY_DONE)
-	fatal << "error talking to mapcreate: code " << c << "\n";
+	warn << "error talking to mapcreate: code " << c << "\n";
 
     dj_cat_mapping tcatmap;
     if (!bytes2xdr(tcatmap, replym.msg))
-	fatal << "unmarshaling dj_cat_mapping\n";
+	warn << "unmarshaling dj_cat_mapping\n";
 
     warn << "Got a dj_cat_mapping: "
 	 << tcatmap.gcat << ", "
