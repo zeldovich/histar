@@ -69,9 +69,10 @@ union dj_entity switch (dj_entity_type type) {
     dj_address addr;
 };
 
-struct dj_delegation {		/* a speaks-for b, within time window */
+struct dj_delegation {		/* via says a speaks-for b, within time window */
     dj_entity a;
     dj_entity b;
+    dj_pubkey *via;
     dj_timestamp from_ts;
     dj_timestamp until_ts;
 };

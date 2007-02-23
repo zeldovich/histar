@@ -47,6 +47,9 @@ verify_stmt(const dj_stmt_signed &s)
 {
     switch (s.stmt.type) {
     case STMT_DELEGATION:
+	if (s.stmt.delegation->via)
+	    return verify_sign(s.stmt, *s.stmt.delegation->via, s.sign);
+
 	switch (s.stmt.delegation->b.type) {
 	case ENT_PUBKEY:
 	    return verify_sign(s.stmt, *s.stmt.delegation->b.key, s.sign);
@@ -75,7 +78,9 @@ class dj_delegation_map {
     struct dm_ent {
 	itree_entry<dm_ent> link;
 	dj_pubkey pk;
-	dj_entity b;
+	dj_delegation d;
+
+	dm_ent(const dj_delegation &de) : pk(*de.a.key), d(de) {}
     };
 
     dj_delegation_map(const dj_delegation_set &dset) : size_(0) {
@@ -89,9 +94,7 @@ class dj_delegation_map {
 		continue;
 	    if (ss.stmt.delegation->a.type != ENT_PUBKEY)
 		continue;
-	    dm_ent *e = New dm_ent();
-	    e->pk = *ss.stmt.delegation->a.key;
-	    e->b = ss.stmt.delegation->b;
+	    dm_ent *e = New dm_ent(*ss.stmt.delegation);
 	    t_.insert(e);
 	    size_++;
 	}
@@ -233,13 +236,16 @@ class djprot_impl : public djprot {
 
 	dj_delegation_map::dm_ent *e = dm.t_[k];
 	while (e && e->pk == k) {
-	    if (e->b.type == ENT_GCAT) {
-		if (*e->b.gcat == gcat)
+	    if (e->d.via && !key_speaks_for(*e->d.via, gcat, dm, depth - 1))
+		continue;
+
+	    if (e->d.b.type == ENT_GCAT) {
+		if (*e->d.b.gcat == gcat)
 		    return true;
 	    }
 
-	    if (e->b.type == ENT_PUBKEY) {
-		if (key_speaks_for(*e->b.key, gcat, dm, depth - 1))
+	    if (e->d.b.type == ENT_PUBKEY) {
+		if (key_speaks_for(*e->d.b.key, gcat, dm, depth - 1))
 		    return true;
 	    }
 
