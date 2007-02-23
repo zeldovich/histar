@@ -67,7 +67,9 @@ LIB_SRCFILES :=	\
 	lib/multisync.cc \
 	lib/sigio.c \
 	lib/netbench.cc \
-	lib/prof.cc
+	lib/prof.cc \
+	lib/cyg_prof.c \
+	lib/hashtable.c
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag
