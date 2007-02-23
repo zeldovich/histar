@@ -30,6 +30,8 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) 
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 ACENV += LIBS=\"\"
 
+## uncomment the below line to use libcprof with acpkgs
+#ACENV += CC=\"x86_64-jos-linux-gcc-prof\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\"
 ACENV += CC=\"$(CC)\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
@@ -80,6 +82,7 @@ ACPKG_BUILD_LIST := tar-1.15
 REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
 REAL_TARGET_CXX	:= $(shell which $(TARGET)-c++)
 ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc \
+		   $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof \
 		   $(ACPKG_WRAPDIR)/$(TARGET)-c++ \
 		   $(ACPKG_WRAPDIR)/$(TARGET)-g++
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
@@ -90,6 +93,10 @@ $(ACPKG_WRAPS):
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
+	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
+	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
 
 	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-c++
 	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-c++
@@ -202,7 +209,7 @@ ACPKG_GS_FONTS = $(FONTDIR)/n022003l.pfb \
 	      	 $(FONTDIR)/n019003l.pfb \
 	      	 $(FONTDIR)/n019004l.pfb
 
-acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile $(ACPKG_GS_FONTS)
+acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile $(ACPKG_GS_FONTS) $(LDEPS)
 	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
 	    ( cd acpkg/$(PKGNAME) && sh -c "gmake clean" ); \
 	    mkdir -p acpkg/$(PKGNAME)/obj && \
