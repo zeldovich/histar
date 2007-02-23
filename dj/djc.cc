@@ -3,7 +3,7 @@
 #include <dj/djops.hh>
 #include <dj/gatesender.hh>
 #include <dj/djsrpc.hh>
-#include <dj/mapcreatex.h>
+#include <dj/internalx.h>
 #include <dj/djautorpc.hh>
 
 int

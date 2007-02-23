@@ -14,6 +14,8 @@
 #include <dj/gateexec.hh>
 #include <dj/execmux.hh>
 #include <dj/mapcreate.hh>
+#include <dj/djhistar.hh>
+#include <dj/delegator.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -115,6 +117,13 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
 int
 main(int ac, char **av)
 {
+    token_factory *tf;
+#ifdef JOS_TEST
+    tf = New simple_token_factory();
+#else
+    tf = New histar_token_factory();
+#endif
+
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     *ep.gate <<= "5.7";
@@ -128,6 +137,7 @@ main(int ac, char **av)
 
     dj_direct_gatemap gm;
     emux.set(EP_GATE, wrap(&gm, &dj_direct_gatemap::deliver));
+    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs, tf));
 
     ep = gm.create_gate(1, wrap(&dj_debug_sink));
     warn << "dj_debug_sink on " << ep << "\n";

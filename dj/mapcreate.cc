@@ -2,7 +2,7 @@
 #include <inc/privstore.hh>
 #include <inc/scopeguard.hh>
 #include <dj/mapcreate.hh>
-#include <dj/mapcreatex.h>
+#include <dj/internalx.h>
 #include <dj/djlabel.hh>
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>

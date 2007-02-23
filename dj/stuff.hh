@@ -13,4 +13,10 @@ class dj_gate_factory {
     virtual void destroy(const dj_message_endpoint&) = 0;
 };
 
+class token_factory {
+ public:
+    virtual ~token_factory() {}
+    virtual uint64_t token() = 0;
+};
+
 #endif

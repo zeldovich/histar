@@ -19,11 +19,13 @@ LIBDIS_SRCFILES +=		\
 	dj/djgatesrv.cc		\
 	dj/djsrpcs.cc		\
 	dj/djsrpcc.cc		\
-	dj/mapcreatex.x		\
+	dj/internalx.x		\
 	dj/mapcreate.cc		\
 	dj/miscx.x		\
 	dj/djcache.cc		\
-	dj/djkey.cc
+	dj/djkey.cc		\
+	dj/djhistar.cc		\
+	dj/delegator.cc
 
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\

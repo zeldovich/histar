@@ -93,7 +93,8 @@ struct dj_delegation_set {
 
 enum dj_endpoint_type {
     EP_GATE = 1,
-    EP_MAPCREATE
+    EP_MAPCREATE,
+    EP_DELEGATOR
 };
 
 struct dj_gatename {

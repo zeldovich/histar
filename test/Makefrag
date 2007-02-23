@@ -44,7 +44,7 @@ LWIP_LNX64_LIB := obj/lnx64/lib/liblwip.a
 
 DIS_OBJS := djprotx.o djprot.o bcast.o cpplabel.o error.o sysstring.o \
 	    backtrace.o string.o label.o djdebug.o directexec.o djarpc.o \
-	    djfs_posix.o
+	    djfs_posix.o djkey.o delegator.o
 DIS_OBJS := $(patsubst %.o, obj/test/%.o, $(DIS_OBJS))
 
 ## Kernel-code build rules
