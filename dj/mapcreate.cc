@@ -6,6 +6,7 @@
 #include <dj/djlabel.hh>
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>
+#include <dj/djkey.hh>
 
 void
 histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
@@ -121,7 +122,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	} else {
 	    bool owner = false;
 	    for (uint32_t i = 0; i < m.glabel.ents.size(); i++)
-		if (m.glabel.ents[i].gcat == gcat &&
+		if (m.glabel.ents[i].cat == gcat &&
 		    m.glabel.ents[i].level == LB_LEVEL_STAR)
 		    owner = true;
 
