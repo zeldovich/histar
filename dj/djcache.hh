@@ -8,10 +8,8 @@
 class dj_node_cache {
  public:
     dj_node_cache() {}
-    dj_label label_convert(const label &l, dj_catmap_indexed *cm);
     void insert(const dj_catmap &m);
 
- private:
     dj_catmap_indexed cmi_;
 };
 
@@ -19,6 +17,10 @@ class dj_global_cache {
  public:
     dj_global_cache() {}
     ~dj_global_cache() { m_.traverse(wrap(&dj_global_cache::delete_nc)); }
+
+    dj_node_cache *home() {
+	return &home_;
+    }
 
     dj_node_cache *get(const dj_pubkey &pk) {
 	if (!m_[pk])
@@ -35,6 +37,7 @@ class dj_global_cache {
 	delete *nc;
     }
 
+    dj_node_cache home_;
     qhash<dj_pubkey, dj_node_cache*> m_;
 };
 

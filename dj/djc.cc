@@ -4,10 +4,13 @@
 #include <dj/gatesender.hh>
 #include <dj/djsrpc.hh>
 #include <dj/mapcreatex.h>
+#include <dj/djautorpc.hh>
 
 int
 main(int ac, char **av)
 {
+    dj_global_cache djcache;
+
     if (ac != 4) {
 	printf("Usage: %s host-pk call-ct gate-ct.id\n", av[0]);
 	exit(-1);
@@ -66,15 +69,15 @@ main(int ac, char **av)
 	 << tcatmap.res_gt << "\n";
 
     /* Send a real echo request now.. */
-    m.target = ep;
-    m.msg_ct = call_ct;
-    m.token = 0;
-    m.taint.deflevel = 1;
-    m.glabel.deflevel = 3;
-    m.gclear.deflevel = 0;
-
-    c = dj_rpc_call(&gs, k, 1, dset, cm, m, "Hello world", &replym);
-    warn << "code = " << c << "\n";
+    dj_autorpc ar(&gs, 1, k, call_ct, djcache);
+    dj_gatename arg;
+    dj_gatename res;
+    arg.gate_ct = 123456;
+    arg.gate_id = 654321;
+    res.gate_ct = 101;
+    res.gate_id = 102;
+    c = ar.call(ep, arg, res);
+    warn << "autorpc code = " << c << "\n";
     if (c == DELIVERY_DONE)
-	warn << replym;
+	warn << "autorpc echo: " << res.gate_ct << "." << res.gate_id << "\n";
 }
