@@ -113,6 +113,10 @@ class djprot_impl : public djprot {
 	return dpk;
     }
 
+    virtual ptr<sfspriv> privkey() {
+	return k_;
+    }
+
     virtual void set_label(const dj_label &l) { net_label_ = l; }
     virtual void set_clear(const dj_label &l) { net_clear_ = l; }
 
