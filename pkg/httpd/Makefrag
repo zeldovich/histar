@@ -51,6 +51,10 @@ $(OBJDIR)/user/%.pl: pkg/httpd/script/%.pl
 	@mkdir -p $(@D)
 	cp $< $@
 
+$(OBJDIR)/user/%.sh: pkg/httpd/script/%.sh
+	@mkdir -p $(@D)
+	cp $< $@
+
 $(OBJDIR)/user/httpd.debuginfo: $(HTTPD_OBJFILES) $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $(HTTPD_OBJFILES)
 
