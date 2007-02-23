@@ -184,3 +184,18 @@
    template<size_t m> rpc_vec (const rpc_vec<T, m> &v) { init (); copy (v); }
    ~rpc_vec () { if (nofree) super::init (); }
    void clear () { del (); init (); }
+--- sfslite-1.0.0/sfsmisc/validshell.C.0	2007-02-23 10:24:30.000000000 -0800
++++ sfslite-1.0.0/sfsmisc/validshell.C	2007-02-23 10:24:35.000000000 -0800
+@@ -24,9 +24,9 @@
+ #include "sfsmisc.h"
+ 
+ extern "C" {
+-  char *getusershell(void);
+-  void setusershell(void);
+-  void endusershell(void);
++  char *getusershell(void) throw ();
++  void setusershell(void) throw ();
++  void endusershell(void) throw ();
+ }
+ 
+ bool
