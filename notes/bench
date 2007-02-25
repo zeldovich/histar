@@ -73,15 +73,26 @@ a2ps
 histar (0 char): 0.016 sec
 histar (1024 char): 0.017 sec
 histar (8192 char): 0.023 sec
+
 linux (0 char): 0.020 sec
 linux (1024 char): 0.021 sec
 linux (8192 char): 0.022 sec
 
+02/24/07 results:
+
 gs
 --
-histar (0 char): 0.167 sec
-histar (1024 char): 0.185 sec
-histar (8192 char): 0.200 sec
-linux (0 char): 0.106 sec
-linux (1024 char): 0.123 sec
-linux (8192 char): 0.134 sec
+histar
+(0 char): 0.131 sec
+(1024 char): 0.152 sec
+(8192 char): 0.163 sec
+
+linux
+(0 char): 0.106 sec
+(1024 char): 0.123 sec
+(8192 char): 0.134 sec
+
+linux + uclibc
+(0 char): 0.109 sec
+(1024 char): 0.130 sec
+(8192 char): 0.141 sec
