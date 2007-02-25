@@ -20,7 +20,7 @@ extern "C" {
 
 static int fs_debug = 0;
 
-enum { type_cache_size = 16 };
+enum { type_cache_size = 32 };
 static int type_cache_next;
 static struct {
     uint64_t obj;

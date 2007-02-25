@@ -249,7 +249,7 @@ fs_dir_dseg::init(fs_inode dir)
 }
 
 // Directory segment caching
-enum { dseg_cache_size = 8 };
+enum { dseg_cache_size = 32 };
 
 static struct dseg_cache_entry {
     fs_inode dir;
