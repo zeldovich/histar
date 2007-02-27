@@ -27,7 +27,7 @@ openssl_print_error(SSL *ssl, int r, int use_cprintf)
 
     int (*print)(const char *fmt, ...) = &printf;
     if (use_cprintf)
-	print = *cprintf;
+	print = &cprintf;
 
     switch ((e = SSL_get_error(ssl, r))) {
     case SSL_ERROR_NONE:
