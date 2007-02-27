@@ -134,6 +134,10 @@ struct Fd
 	    struct cobj_ref tun_seg;
 	    int tun_a;
 	} fd_tun;
+
+	struct {
+	    char buf[4000];
+	} fd_cust;
     };
 };
 
