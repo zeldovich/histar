@@ -45,6 +45,7 @@ static char ssl_enable;
 static char ssl_privsep_enable;
 static char ssl_eproc_enable;
 static char http_auth_enable;
+static fs_inode httpd_root_ino;
 
 arg_desc cmdarg[] = {
     { "ssl_enable", "1" },
@@ -56,6 +57,7 @@ arg_desc cmdarg[] = {
     { "ssl_servkey_pem", "/bin/servkey.pem" },
 
     { "http_auth_enable", "0" },
+    { "httpd_root_path", "/www" },
         
     { 0, 0 }
 };
@@ -90,23 +92,22 @@ get_eprocd_cow(void)
 }
 
 static void
-http_on_request(tcpconn *tc, const char *req, const char *user, uint64_t ut, uint64_t ug)
+http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 {
     std::ostringstream header;
 
     // XXX wrap stuff has no timeout
     if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
-	std::string pn = std::string("/home/") + user + req;
-	perl(pn.c_str(), ut, header);
+	std::string pn = req;
+	perl(httpd_root_ino, pn.c_str(), ut, header);
     } else if (strcmp(req, "/")) {
-	std::string pn = std::string("/home/") + user + req;
-	a2pdf(pn.c_str(), ut, header);
+	std::string pn = req;
+	a2pdf(httpd_root_ino, pn.c_str(), ut, header);
     } else {
 	header << "HTTP/1.0 500 Server error\r\n";
 	header << "Content-Type: text/html\r\n";
 	header << "\r\n";
 	header << "<h1>unknown request</h1>\r\n";
-	
     }
 
     std::string reply = header.str();
@@ -190,7 +191,7 @@ http_client(void *arg)
 		    return;
 		}
 
-		http_on_request(&tc, pnbuf, user, ut, ug);
+		http_on_request(&tc, pnbuf, ut, ug);
 		return;
 	    }
 
@@ -201,14 +202,10 @@ http_client(void *arg)
 			"Content-Type: text/html\r\n"
 			"\r\n"
 			"<h1>Please log in.</h1>\r\n");
+		tc.write(buf, strlen(buf));
 	    } else {
-		snprintf(buf, sizeof(buf),
-			"HTTP/1.0 200 OK\r\n"
-			"Content-Type: text/html\r\n"
-			"\r\n"
-			"<h1>Hello world.</h1>\r\n");
+		http_on_request(&tc, pnbuf, 0, 0);
 	    }
-	    tc.write(buf, strlen(buf));
 	} catch (std::exception &e) {
 	    snprintf(buf, sizeof(buf),
 		    "HTTP/1.0 500 Server error\r\n"
@@ -274,11 +271,15 @@ main(int ac, const char **av)
     ssl_eproc_enable = atoi(arg_val(cmdarg, "ssl_eproc_enable"));
     http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
 
+    const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
+    error_check(fs_namei(httpd_root_path, &httpd_root_ino));
+
     printf("httpd: config:\n");
     printf(" %-20s %d\n", "ssl_enable", ssl_enable);
     printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
     printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
     printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+    printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
 
     if (ssl_enable && ssl_privsep_enable) {
 	the_ssld_cow = get_ssld_cow();

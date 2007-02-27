@@ -3,6 +3,7 @@
 
 #include <iostream>
 
-void a2pdf(const char *fn, uint64_t utaint, std::ostringstream &out); 
+void a2pdf(fs_inode root_ino, const char *fn, 
+	   uint64_t utaint, std::ostringstream &out); 
 
 #endif

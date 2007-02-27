@@ -4,6 +4,7 @@
 #include <iostream>
 #include <inc/wrap.hh>
 
-void perl(const char *fn, uint64_t utaint, std::ostringstream &out);
+void perl(fs_inode root_ino, const char *fn, 
+	  uint64_t utaint, std::ostringstream &out);
 
 #endif

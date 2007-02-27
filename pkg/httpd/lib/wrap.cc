@@ -19,8 +19,8 @@ extern "C" {
 
 static const char debug = 1;
 
-wrap_call::wrap_call(const char *pn) :
-    sin_(-1), eout_(-1), called_(0)
+wrap_call::wrap_call(const char *pn, fs_inode root_ino) :
+    sin_(-1), eout_(-1), root_ino_(root_ino), called_(0)
 {
     pn_ = strdup(pn);
     
@@ -123,7 +123,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
 	sys_segment_copy(start_env->fs_mtab_seg, call_ct_.object,
 			 0, "wrap mtab"));
     cobj_ref fs_mtab_seg = COBJ(call_ct_.object, new_mtab_id);
-    fs_mount(fs_mtab_seg, start_env->fs_root, "tmp", tmp_dir);
+    fs_mount(fs_mtab_seg, root_ino_, "tmp", tmp_dir);
 
     label cs(LB_LEVEL_STAR);
     cs.merge(&taint_label, &tmp, label::max, label::leq_starlo);
@@ -137,14 +137,30 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     
     struct fs_inode ino;
     error_check(fs_namei(pn_, &ino));
+
+    spawn_descriptor sd;
+    sd.ct_ = call_ct_.object;
+    sd.elf_ino_ = ino;
     
-    cp_ = spawn(call_ct_.object, ino,
-		sin_, sout_, eout_,
-		ac, av,
-		ec, ev,
-		&cs, 0, 0, &dr, &taint_label,
-		0, fs_mtab_seg);
+    sd.fd0_ = sin_;
+    sd.fd1_ = sout_;
+    sd.fd2_ = eout_;
+
+    sd.ac_ = ac;
+    sd.av_ = av;
+    sd.envc_ = ec;
+    sd.envv_ = ev;
     
+    sd.cs_ = &cs;
+    sd.dr_ = &dr;
+    sd.co_ = &taint_label;
+    
+    sd.fs_mtab_seg_ = fs_mtab_seg;
+    sd.fs_root_ = root_ino_;
+    sd.fs_cwd_ = root_ino_;
+
+    cp_ = spawn(&sd);
+
     close(sout_);
     sout_ = -1;
 }

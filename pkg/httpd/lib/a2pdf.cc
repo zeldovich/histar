@@ -18,9 +18,9 @@ extern "C" {
 #include <inc/wrap.hh>
 
 void 
-a2pdf(const char *fn, uint64_t utaint, std::ostringstream &out)
+a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
 {
-    const char *av0[] = { "/bin/a2ps", "--output=-" };
+    const char *av0[] = { "/bin/a2ps", "--output=-", fn };
     const char *av1[] = { "/bin/gs", 
 			  "-q",     
 			  "-dNOPAUSE", 
@@ -32,32 +32,20 @@ a2pdf(const char *fn, uint64_t utaint, std::ostringstream &out)
 			  "-f",
 			  "-" };
 
-    int fd = open(fn, O_RDONLY);
-    if (fd < 0) {
-	out << "HTTP/1.0 404 Not Found\r\n";
-	out << "Content-Type: text/html\r\n";
-	out << "\r\n";
-	out << "Cannot open " << fn << ": " << strerror(errno) << "\r\n";
-	return;
-    }
-    scope_guard<int, int> close_fd(close, fd);
-
     int64_t ctaint;
     error_check(ctaint = handle_alloc());
     scope_guard<void, uint64_t> drop(thread_drop_star, ctaint);
     
     label taint(0);
-    taint.set(utaint, 3);
+    if (utaint)
+	taint.set(utaint, 3);
     taint.set(ctaint, 3);
 
     std::ostringstream pdf_out;
 
-    wrap_call wc0("/bin/a2ps");
-    wrap_call wc1("/bin/gs");
-    wc0.sin_ = fd;
-    wc0.call(2, av0, 0, 0, &taint);
-    close(fd);
-    close_fd.dismiss();
+    wrap_call wc0("/bin/a2ps", root_ino);
+    wrap_call wc1("/bin/gs", root_ino);
+    wc0.call(3, av0, 0, 0, &taint);
     wc0.pipe(&wc1, 10, av1, 0, 0, &taint, pdf_out);
 
     int64_t exit_code0, exit_code1;

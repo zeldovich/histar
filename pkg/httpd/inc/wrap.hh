@@ -7,7 +7,7 @@
 
 class wrap_call {
 public:
-    wrap_call(const char *pn);
+    wrap_call(const char *pn, fs_inode root_ino);
     ~wrap_call(void);
 
     void call(int ac, const char **av, int ec, const char **ev, 
@@ -30,6 +30,8 @@ private:
 
     int sout_;  // pipe[1]
     int wout_;  // pipe[0]
+
+    fs_inode root_ino_;
 
     char *pn_;
    

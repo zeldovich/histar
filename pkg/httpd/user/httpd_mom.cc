@@ -4,19 +4,23 @@ extern "C" {
 #include <inc/labelutil.h>
 #include <inc/error.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <stdio.h>
 }
 
 #include <inc/error.hh>
+#include <inc/errno.hh>
 #include <inc/spawn.hh>
 #include <inc/fs_dir.hh>
 #include <inc/scopeguard.hh>
-
 
 static char ssl_enable = 1;
 static char ssl_privsep_enable = 0;
 static char ssl_eproc_enable = 0;
 static char http_auth_enable = 0;
+static const char* httpd_root_path = "/www";
 
 static struct fs_inode
 fs_inode_for(const char *pn)
@@ -142,6 +146,7 @@ main (int ac, char **av)
     label httpd_dr(0);
     httpd_dr.set(access_grant, 3);
 
+    errno_check(mkdir(httpd_root_path, 0));
     
     char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4];
     snprintf(ssle_buf, sizeof(verify_arg), "%d", ssl_enable );
@@ -155,7 +160,9 @@ main (int ac, char **av)
 				 "--ssl_enable", ssle_buf,
 				 "--ssl_privsep_enable", sslp_buf,
 				 "--ssl_eproc_enable", ssle2_buf,
-				 "--http_auth_enable", httpa_buf };
+				 "--http_auth_enable", httpa_buf,
+				 "--httpd_root_path", "/www" };
+
     spawn(httpd_ct, httpd_ino,
 	  0, 0, 0,
 	  9, &httpd_argv[0],

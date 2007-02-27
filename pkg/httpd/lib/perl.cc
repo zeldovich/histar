@@ -20,7 +20,7 @@ extern "C" {
 static const char debug = 1;
 
 void
-perl(const char *fn, uint64_t utaint, std::ostringstream &out)
+perl(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
 {
     const char *av[] = { "/bin/perl", fn };
 
@@ -44,7 +44,7 @@ perl(const char *fn, uint64_t utaint, std::ostringstream &out)
     taint.set(utaint, 3);
     taint.set(ctaint, 3);
     
-    wrap_call wc("/bin/perl");
+    wrap_call wc("/bin/perl", root_ino);
     wc.call(2, av, 0, 0, &taint, out);
     
     int64_t exit_code;
