@@ -16,7 +16,7 @@
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
 
-static HASH_TABLE(kobject_hash, struct kobject_list, 8192) ko_hash;
+static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
 static struct kobject_list ko_gc_list;
 
 static int kobject_reclaim_debug = 0;
@@ -793,23 +793,22 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 }
 
 // Negative kobject id cache (objects that don't exist)
-enum { kobject_neg_nent = 16 };
 static struct {
     int next;
-    kobject_id_t ents[kobject_neg_nent];
+    kobject_id_t ents[kobj_neg_size];
 } kobject_neg;
 
 void
 kobject_negative_insert(kobject_id_t id)
 {
     kobject_neg.ents[kobject_neg.next] = id;
-    kobject_neg.next = (kobject_neg.next + 1) % kobject_neg_nent;
+    kobject_neg.next = (kobject_neg.next + 1) % kobj_neg_size;
 }
 
 void
 kobject_negative_remove(kobject_id_t id)
 {
-    for (int i = 0; i < kobject_neg_nent; i++)
+    for (int i = 0; i < kobj_neg_size; i++)
 	if (kobject_neg.ents[i] == id)
 	    kobject_neg.ents[i] = 0;
 }
@@ -817,7 +816,7 @@ kobject_negative_remove(kobject_id_t id)
 bool_t
 kobject_negative_contains(kobject_id_t id)
 {
-    for (int i = 0; i < kobject_neg_nent; i++)
+    for (int i = 0; i < kobj_neg_size; i++)
 	if (kobject_neg.ents[i] == id)
 	    return 1;
     return 0;

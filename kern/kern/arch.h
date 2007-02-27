@@ -1,6 +1,7 @@
 #ifndef JOS_KERN_ARCH_H
 #define JOS_KERN_ARCH_H
 
+#include <machine/param.h>
 #include <machine/types.h>
 #include <machine/memlayout.h>
 #include <kern/thread.h>
