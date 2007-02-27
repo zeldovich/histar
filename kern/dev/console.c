@@ -5,6 +5,7 @@
 #include <kern/arch.h>
 #include <kern/intr.h>
 #include <kern/lib.h>
+#include <kern/prof.h>
 #include <dev/console.h>
 #include <inc/kbdreg.h>
 
@@ -470,9 +471,7 @@ kbd_proc_data (void)
 
   // Ctrl-Alt-Home: pause/resume profiling
   if (!(~shift & (CTL | ALT)) && c == KEY_HOME) {
-    extern int prof_print_enable;
-    prof_print_enable = !prof_print_enable;
-    cprintf ("prof_print_enable %d\n", prof_print_enable);
+    prof_toggle();
     return 0;
   }
 

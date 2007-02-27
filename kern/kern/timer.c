@@ -36,6 +36,12 @@ timer_add_periodic(struct periodic_task *pt)
 }
 
 void
+timer_remove_periodic(struct periodic_task *pt)
+{
+    LIST_REMOVE(pt, pt_link);
+}
+
+void
 timer_init(void)
 {
     static struct interrupt_handler timer_ih = { .ih_func = &timer_intr };

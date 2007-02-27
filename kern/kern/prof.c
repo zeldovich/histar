@@ -26,8 +26,8 @@ struct entry trap_table[NTRAPS];
 struct entry user_table[1];
 struct tentry thread_table[NTHREADS];
 
-static struct periodic_task timer;
-int prof_print_enable = 0;
+static struct periodic_task prof_timer;
+static int prof_enable = 0;
 static int prof_thread_enable = 0;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = 10000000UL };
@@ -85,10 +85,10 @@ prof_init(void)
     memset(&cyg_data, 0, sizeof(cyg_data));
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
 
-    timer.pt_fn = &prof_print;
-    timer.pt_interval_ticks = kclock_hz * 10;
-    if (prof_print_enable)
-	timer_add_periodic(&timer);
+    prof_timer.pt_fn = &prof_print;
+    prof_timer.pt_interval_ticks = kclock_hz * 10;
+    if (prof_enable)
+	timer_add_periodic(&prof_timer);
 
     timer2.pt_fn = &cyg_profile_print;
     timer2.pt_interval_ticks = kclock_hz * 10;
@@ -101,6 +101,9 @@ prof_init(void)
 void
 prof_syscall(uint64_t num, uint64_t time)
 {
+    if (!prof_enable)
+	return;
+
     if (num >= NSYSCALLS)
 	return;
 
@@ -111,6 +114,9 @@ prof_syscall(uint64_t num, uint64_t time)
 void
 prof_trap(uint64_t num, uint64_t time)
 {
+    if (!prof_enable)
+	return;
+
     if (num >= NTRAPS)
 	return;
 
@@ -121,6 +127,9 @@ prof_trap(uint64_t num, uint64_t time)
 void
 prof_user(uint64_t time)
 {
+    if (!prof_enable)
+	return;
+
     user_table[0].count++;
     user_table[0].time += time;
 }
@@ -207,9 +216,6 @@ print_tentry(struct tentry *tab, int i)
 void
 prof_print(void)
 {
-    if (!prof_print_enable)
-	return;
-
     cprintf("prof_print: syscalls\n");
     for (int i = 0; i < NSYSCALLS; i++)
 	print_entry(&sysc_table[0], i, syscall2s(i));
@@ -228,6 +234,19 @@ prof_print(void)
     }
 
     prof_reset();
+}
+
+void
+prof_toggle(void)
+{
+    if (prof_enable)
+	timer_remove_periodic(&prof_timer);
+
+    prof_enable = !prof_enable;
+    cprintf("Profiling %s\n", prof_enable ? "enabled" : "disabled");
+
+    if (prof_enable)
+	timer_add_periodic(&prof_timer);
 }
 
 //////////////////

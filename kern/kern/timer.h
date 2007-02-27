@@ -21,5 +21,6 @@ struct periodic_task {
 
 void timer_init(void);
 void timer_add_periodic(struct periodic_task *pt);
+void timer_remove_periodic(struct periodic_task *pt);
 
 #endif
