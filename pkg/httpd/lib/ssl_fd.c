@@ -1,6 +1,9 @@
+#include <inc/lib.h>
+#include <inc/assert.h>
 #include <inc/ssl_fd.h>
 #include <inc/stdio.h>
 #include <inc/fd.h>
+#include <inc/jthread.h>
 
 #include <fcntl.h>
 
@@ -22,7 +25,6 @@ ssl_accept(void *ctx, int s)
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, sbio, sbio);
 
-    
     if((r = SSL_accept(ssl)) <= 0)
 	return -1;
     
@@ -80,6 +82,23 @@ struct Dev devssl =
     .dev_close = ssl_close,
 };
 
+jthread_mutex_t mutex[128];
+
+static void 
+locking_function(int mode, int n, const char *file, int line)
+{
+    if (mode & CRYPTO_LOCK)
+        jthread_mutex_lock(&mutex[n]);
+    else
+        jthread_mutex_unlock(&mutex[n]);
+}
+
+static unsigned long 
+id_function(void)
+{
+    return thread_id();
+}
+
 int 
 ssl_init(const char *server_pem, const char *dh_pem, 
 	 const char *servkey_pem, void **ctx_store)
@@ -89,7 +108,14 @@ ssl_init(const char *server_pem, const char *dh_pem,
     SSL_CTX *ctx;
     SSL_library_init();
     SSL_load_error_strings();
-
+    
+    // Init threaded data and callbacks
+    assert((sizeof(mutex) / sizeof(mutex[0])) > (uint32_t)CRYPTO_num_locks());
+    CRYPTO_set_locking_callback(locking_function);
+    CRYPTO_set_id_callback(id_function);
+    for (uint32_t i = 0; i < sizeof(mutex) / sizeof(mutex[0]); i++)
+	jthread_mutex_init(&mutex[i]);
+    
     SSL_METHOD *meth = SSLv23_method();
     ctx = SSL_CTX_new(meth);
 
