@@ -82,11 +82,13 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	    assert(orig_base >= the_user_page);
 	    assert(orig_base <= the_user_page + PGSIZE - nbytes);
 
-	    static int next_offset;
+	    static uint64_t next_offset;
 	    if (next_offset + nbytes > PGSIZE)
-		panic("overflowed symbolic user page");
+		panic("check_user_access: overflowed symbolic user page with %"PRIu64" bytes", nbytes);
 
 	    ft_assume(orig_base == (the_user_page + next_offset));
+	    cprintf("check_user_access: concretizing %"PRIu64" bytes at offset %"PRIu64"\n",
+		    nbytes, next_offset);
 	    next_offset += nbytes;
 	}
     }
