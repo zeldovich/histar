@@ -80,7 +80,7 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	     * Concretize the pointer for FT
 	     */
 	    assert(orig_base >= the_user_page);
-	    assert(orig_base < the_user_page + PGSIZE - nbytes);
+	    assert(orig_base <= the_user_page + PGSIZE - nbytes);
 
 	    static int next_offset;
 	    if (next_offset + nbytes > PGSIZE)
