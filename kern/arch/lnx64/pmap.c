@@ -55,7 +55,7 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	uintptr_t end = safe_addptr(&overflow, base, nbytes);
 	base = ROUNDDOWN(base, PGSIZE);
 	end = ROUNDUP(end, PGSIZE);
-	if (end <= ibase)
+	if (end <= ibase || overflow)
 	    return -E_INVAL;
 
 	for (void *va = (void *) base; va < (void *) end; va += PGSIZE) {
