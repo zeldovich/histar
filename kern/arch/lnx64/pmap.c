@@ -17,8 +17,12 @@
 static struct Pagemap *cur_pm;
 enum { lnxpmap_debug = 0 };
 
-#include <ft_public.h>
-#include <ft_runtest.h>
+static void *the_user_page;
+void
+lnxpmap_set_user_concr_page(void *base)
+{
+    the_user_page = base;
+}
 
 void
 lnxpmap_init(void)
@@ -44,12 +48,14 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 	pte_flags |= PTE_W;
 
     if (nbytes > 0) {
+	void *orig_base = base;
+
 	int overflow = 0;
 	uintptr_t ibase = (uintptr_t) base;
 	uintptr_t end = safe_addptr(&overflow, base, nbytes);
 	base = ROUNDDOWN(base, PGSIZE);
 	end = ROUNDUP(end, PGSIZE);
-	if (end <= base)
+	if (end <= ibase)
 	    return -E_INVAL;
 
 	for (void *va = (void *) base; va < (void *) end; va += PGSIZE) {
@@ -67,6 +73,21 @@ check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
 		if (r < 0)
 		    return r;
 	    }
+	}
+
+	if (the_user_page) {
+	    /*
+	     * Concretize the pointer for FT
+	     */
+	    assert(orig_base >= the_user_page);
+	    assert(orig_base < the_user_page + PGSIZE - nbytes);
+
+	    static int next_offset;
+	    if (next_offset + nbytes > PGSIZE)
+		panic("overflowed symbolic user page");
+
+	    ft_assume(orig_base == (the_user_page + next_offset));
+	    next_offset += nbytes;
 	}
     }
 

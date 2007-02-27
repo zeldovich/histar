@@ -15,9 +15,6 @@
 
 static uint64_t root_container_id;
 
-#include <ft_public.h>
-#include <ft_runtest.h>
-
 #define make_symbolic(x, name) ft_make_symbolic_array(&(x), sizeof(x), (name))
 
 static void
@@ -114,6 +111,8 @@ bootstrap_stuff(void)
 
     t->th_tf.tf_rip = 0;
     t->th_tf.tf_r15 = (uintptr_t) upage;
+
+    lnxpmap_set_user_concr_page(upage);
 }
 
 int
