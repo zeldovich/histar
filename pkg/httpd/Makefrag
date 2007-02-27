@@ -15,6 +15,12 @@ $(OBJDIR)/pkg/httpd/user/ssl_eprocd.o: acpkg/openssl-0.9.8a/__build
 $(OBJDIR)/pkg/httpd/user/ssl_eprocd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
 $(OBJDIR)/user/ssl_eprocd.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
 
+$(OBJDIR)/pkg/httpd/user/httpd.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/user/httpd.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+
+$(OBJDIR)/pkg/httpd/lib/ssl_fd.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/lib/ssl_fd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+
 HTTPD_INCLUDES := 		\
 	-Ipkg/httpd/
 
@@ -27,12 +33,18 @@ HTTPD_SRCFILES :=			\
 	pkg/httpd/lib/a2pdf.cc		\
 	pkg/httpd/lib/perl.cc		\
 	pkg/httpd/lib/wrap.cc		\
+	pkg/httpd/lib/ssl_fd.c		\
+	pkg/httpd/lib/argv.c		\
 	pkg/httpd/user/httpd.cc
 
 HTTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_SRCFILES))
 HTTPD_OBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(HTTPD_OBJFILES))
 
 ## Generic build rules
+
+$(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $< $(HTTPD_CFLAGS) $(PER_TARGET_CFLAGS)
 
 $(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.cc
 	@mkdir -p $(@D)
@@ -56,7 +68,7 @@ $(OBJDIR)/user/%.sh: pkg/httpd/script/%.sh
 	cp $< $@
 
 $(OBJDIR)/user/httpd.debuginfo: $(HTTPD_OBJFILES) $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS) $(HTTPD_OBJFILES)
+	$(CC) -o $@ $(LDFLAGS) $(HTTPD_OBJFILES) $(PER_TARGET_LDFLAGS)
 
 $(OBJDIR)/user/server.pem $(OBJDIR)/user/servkey.pem:
 	@mkdir -p $(@D)

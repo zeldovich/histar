@@ -11,6 +11,8 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/bipipe.h>
 #include <inc/debug.h>
+#include <inc/ssl_fd.h>
+#include <inc/argv.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -39,11 +41,29 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-static const char ssl_mode = 1;
-static const char ask_for_auth = 1;
+static char ssl_enable;
+static char ssl_privsep_enable;
+static char ssl_eproc_enable;
+static char http_auth_enable;
+
+arg_desc cmdarg[] = {
+    { "ssl_enable", "1" },
+    { "ssl_privsep_enable", "1" },
+    { "ssl_eproc_enable", "1" },
+    
+    { "ssl_server_pem", "/bin/server.pem" },
+    { "ssl_dh_pem", "/bin/dh.pem" },
+    { "ssl_servkey_pem", "/bin/servkey.pem" },
+
+    { "http_auth_enable", "0" },
+        
+    { 0, 0 }
+};
 
 static struct cobj_ref the_ssld_cow;
 static struct cobj_ref the_eprocd_cow;
+
+static void *the_ctx;
 
 static struct cobj_ref
 get_ssld_cow(void)
@@ -103,12 +123,14 @@ http_client(void *arg)
 	ssl_proxy proxy(the_ssld_cow, the_eprocd_cow, 
 			start_env->shared_container, sock_fd);
 	int s = sock_fd;
-	if (ssl_mode) {
+	if (ssl_enable && ssl_privsep_enable) {
 	    proxy.start();
 	    s = proxy.plain_fd();
+	} else if (ssl_enable) {
+	    error_check(s = ssl_accept(the_ctx, s));
 	}
 	
-	tcpconn tc(s, ssl_mode ? 0 : 1);
+	tcpconn tc(s, !(ssl_enable && ssl_privsep_enable));
 	lineparser lp(&tc);
 
 	const char *req = lp.read_line();
@@ -172,7 +194,7 @@ http_client(void *arg)
 		return;
 	    }
 
-	    if (ask_for_auth) {
+	    if (http_auth_enable) {
 		snprintf(buf, sizeof(buf),
 			"HTTP/1.0 401 Forbidden\r\n"
 			"WWW-Authenticate: Basic realm=\"jos-httpd\"\r\n"
@@ -243,9 +265,22 @@ http_server(void)
 }
 
 int
-main(int ac, char **av)
+main(int ac, const char **av)
 {
-    if (ssl_mode) {	
+    error_check(argv_parse(ac, av, cmdarg));
+
+    ssl_enable = atoi(arg_val(cmdarg, "ssl_enable"));
+    ssl_privsep_enable = atoi(arg_val(cmdarg, "ssl_privsep_enable"));
+    ssl_eproc_enable = atoi(arg_val(cmdarg, "ssl_eproc_enable"));
+    http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
+
+    printf("httpd: config:\n");
+    printf(" %-20s %d\n", "ssl_enable", ssl_enable);
+    printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
+    printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
+    printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+
+    if (ssl_enable && ssl_privsep_enable) {
 	the_ssld_cow = get_ssld_cow();
 	try {
 	    the_eprocd_cow = get_eprocd_cow();
@@ -259,6 +294,17 @@ main(int ac, char **av)
 		return -1;
 	    }
 	}
+    } else if (ssl_enable) {
+	const char *server_pem = arg_val(cmdarg, "ssl_server_pem");
+	const char *servkey_pem = arg_val(cmdarg, "ssl_servkey_pem");
+	const char *dh_pem = arg_val(cmdarg, "ssl_dh_pem");
+	
+	printf("httpd: ssl files:\n");
+	printf(" %-20s %s\n", "server_pem", server_pem);
+	printf(" %-20s %s\n", "servkey_pem", servkey_pem);
+	printf(" %-20s %s\n", "dh_pem", dh_pem);
+	
+	error_check(ssl_init(server_pem, dh_pem, servkey_pem, &the_ctx));
     }
     http_server();
 }

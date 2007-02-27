@@ -12,7 +12,11 @@ extern "C" {
 #include <inc/fs_dir.hh>
 #include <inc/scopeguard.hh>
 
-static char eproc_enable = 1;
+
+static char ssl_enable = 1;
+static char ssl_privsep_enable = 0;
+static char ssl_eproc_enable = 0;
+static char http_auth_enable = 0;
 
 static struct fs_inode
 fs_inode_for(const char *pn)
@@ -51,7 +55,7 @@ main (int ac, char **av)
     static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
 
     int64_t ssld_taint = handle_alloc();
-    int64_t eprocd_taint = eproc_enable ? handle_alloc() : ssld_taint;
+    int64_t eprocd_taint = ssl_eproc_enable ? handle_alloc() : ssld_taint;
     int64_t access_grant = handle_alloc();
     error_check(ssld_taint);
     error_check(eprocd_taint);
@@ -104,7 +108,7 @@ main (int ac, char **av)
 				ssld_dh_pem, ssld_servkey_pem };
     struct child_process cp = spawn(httpd_ct, ssld_ino,
 				    0, 0, 0,
-				    eproc_enable ? 4 : 5, &ssld_argv[0],
+				    ssl_eproc_enable ? 4 : 5, &ssld_argv[0],
 				    0, 0,
 				    0, &ssld_ds, 0, &ssld_dr, 0,
 				    SPAWN_NO_AUTOGRANT);
@@ -113,7 +117,7 @@ main (int ac, char **av)
     if (exit_code)
 	throw error(exit_code, "error starting ssld");
     
-    if (eproc_enable) {
+    if (ssl_eproc_enable) {
 	label eprocd_ds(3), eprocd_dr(0);
 	eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
 	eprocd_dr.set(eprocd_taint, 3);
@@ -138,12 +142,23 @@ main (int ac, char **av)
     label httpd_dr(0);
     httpd_dr.set(access_grant, 3);
 
+    
+    char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4];
+    snprintf(ssle_buf, sizeof(verify_arg), "%d", ssl_enable );
+    snprintf(sslp_buf, sizeof(verify_arg), "%d", ssl_privsep_enable );
+    snprintf(ssle2_buf, sizeof(verify_arg), "%d", ssl_eproc_enable );
+    snprintf(httpa_buf, sizeof(verify_arg), "%d", http_auth_enable );
+    
     const char *httpd_pn = "/bin/httpd";
     struct fs_inode httpd_ino = fs_inode_for(httpd_pn);
-    const char *httpd_argv[] = { httpd_pn };
+    const char *httpd_argv[] = { httpd_pn, 
+				 "--ssl_enable", ssle_buf,
+				 "--ssl_privsep_enable", sslp_buf,
+				 "--ssl_eproc_enable", ssle2_buf,
+				 "--http_auth_enable", httpa_buf };
     spawn(httpd_ct, httpd_ino,
 	  0, 0, 0,
-	  1, &httpd_argv[0],
+	  9, &httpd_argv[0],
 	  0, 0,
 	  0, &httpd_ds, 0, &httpd_dr, 0);
 
