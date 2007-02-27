@@ -4,6 +4,7 @@
 #include <inc/stdio.h>
 #include <inc/fd.h>
 #include <inc/jthread.h>
+#include <inc/openssl.h>
 
 #include <fcntl.h>
 
@@ -25,9 +26,11 @@ ssl_accept(void *ctx, int s)
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, sbio, sbio);
 
-    if((r = SSL_accept(ssl)) <= 0)
+    if((r = SSL_accept(ssl)) <= 0) {
+	openssl_print_error(ssl, r, 1);
 	return -1;
-    
+    }
+	    
     fd->fd_dev_id = 'S';
     fd->fd_omode = O_RDWR;
 

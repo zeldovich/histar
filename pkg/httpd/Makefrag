@@ -21,6 +21,9 @@ $(OBJDIR)/user/httpd.debuginfo: PER_TARGET_LDFLAGS=$(OBJDIR)/acpkg/lib/lib{ssl,c
 $(OBJDIR)/pkg/httpd/lib/ssl_fd.o: acpkg/openssl-0.9.8a/__build
 $(OBJDIR)/pkg/httpd/lib/ssl_fd.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
 
+$(OBJDIR)/pkg/httpd/lib/openssl.o: acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/lib/openssl.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+
 HTTPD_INCLUDES := 		\
 	-Ipkg/httpd/
 
@@ -35,6 +38,7 @@ HTTPD_SRCFILES :=			\
 	pkg/httpd/lib/wrap.cc		\
 	pkg/httpd/lib/ssl_fd.c		\
 	pkg/httpd/lib/argv.c		\
+	pkg/httpd/lib/openssl.c		\
 	pkg/httpd/user/httpd.cc
 
 HTTPD_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_SRCFILES))
