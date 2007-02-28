@@ -16,6 +16,7 @@
 #include <dj/mapcreate.hh>
 #include <dj/djhistar.hh>
 #include <dj/delegator.hh>
+#include <dj/hsutil.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -163,6 +164,9 @@ main(int ac, char **av)
 
     histar_mapcreate hmc(djs, cm);
     emux.set(EP_MAPCREATE, wrap(&hmc, &histar_mapcreate::exec));
+
+    str_to_segment(start_env->shared_container,
+		   xdr2str(djs->pubkey()), "selfkey");
 #endif
 
     amain();

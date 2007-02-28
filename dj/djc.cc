@@ -13,6 +13,10 @@ main(int ac, char **av)
 
     if (ac != 4) {
 	printf("Usage: %s host-pk call-ct gate-ct.id\n", av[0]);
+
+	gate_sender gs;
+	warn << "local key " << gs.hostkey() << "\n";
+
 	exit(-1);
     }
 

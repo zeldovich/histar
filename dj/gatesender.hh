@@ -8,6 +8,7 @@ extern "C" {
 
 #include <inc/error.hh>
 #include <dj/djprotx.h>
+#include <dj/hsutil.hh>
 
 class gate_sender {
  public:
@@ -18,6 +19,11 @@ class gate_sender {
 	error_check(gate_id = container_find(gate_ct,
 					     kobj_gate, "djd-incoming"));
 	g_ = COBJ(gate_ct, gate_id);
+
+	int64_t key_sg;
+	error_check(key_sg = container_find(gate_ct, kobj_segment, "selfkey"));
+	str keystr = segment_to_str(COBJ(gate_ct, key_sg));
+	assert(str2xdr(hostkey_, keystr));
     }
 
     gate_sender(cobj_ref djd_gate) : g_(djd_gate) {}
@@ -26,9 +32,11 @@ class gate_sender {
 			  const dj_delegation_set &dset, const dj_catmap &cm,
 			  const dj_message &msg, uint64_t *tokenp,
 			  label *grantlabel = 0);
+    dj_pubkey hostkey() { return hostkey_; }
 
  private:
     cobj_ref g_;
+    dj_pubkey hostkey_;
 };
 
 #endif

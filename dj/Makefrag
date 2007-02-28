@@ -25,7 +25,8 @@ LIBDIS_SRCFILES +=		\
 	dj/djcache.cc		\
 	dj/djkey.cc		\
 	dj/djhistar.cc		\
-	dj/delegator.cc
+	dj/delegator.cc		\
+	dj/hsutil.cc
 
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\
