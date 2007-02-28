@@ -23,7 +23,7 @@ main(int ac, char **av)
     int64_t call_ct;
     error_check(call_ct = sys_container_alloc(start_env->shared_container,
 					      lpub.to_ulabel(), "public call",
-					      0, 10 * 1024 * 1024));
+					      0, CT_QUOTA_INF));
 
     warn << "djechod public container: " << call_ct << "\n";
 

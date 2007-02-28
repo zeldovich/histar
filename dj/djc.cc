@@ -109,7 +109,7 @@ main(int ac, char **av)
     container_alloc_res ctres;
 
     ctreq.parent = call_ct;
-    ctreq.quota = 2 * 1024 * 1024;
+    ctreq.quota = CT_QUOTA_INF;
     ctreq.timeout_msec = 5000;
     ctreq.label.ents.push_back(gcat);
 
