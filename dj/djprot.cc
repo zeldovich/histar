@@ -16,6 +16,7 @@ enum {
 
     broadcast_period = 5,
     check_local_msgs = 1,
+    direct_local_msgs = 1,
 };
 
 static in_addr
@@ -254,7 +255,7 @@ class djprot_impl : public djprot {
 	cc->tmo *= 2;
 	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
 
-	if (cc->ss.stmt.msgx->to == pubkey()) {
+	if (cc->ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
 	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
 	} else {
@@ -325,7 +326,7 @@ class djprot_impl : public djprot {
 	if (code == DELIVERY_DONE)
 	    *ss.stmt.msgx->u.stat->token = token;
 
-	if (ss.stmt.msgx->to == pubkey()) {
+	if (ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
 	    dj_msg_id cid(ss.stmt.msgx->from, ss.stmt.msgx->xid);
 	    process_msg_status(*ss.stmt.msgx, cid);
 	    return;
@@ -446,6 +447,9 @@ class djprot_impl : public djprot {
 	    bx_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
 	    //warn << "Sent broadcast delegation to " << inet_ntoa(*ap) << "\n";
 	}
+
+	// Chew on our own delegation, for good measure..
+	process_delegation(*s.stmt.delegation);
 
 	delaycb(broadcast_period, wrap(this, &djprot_impl::send_bcast));
     }
