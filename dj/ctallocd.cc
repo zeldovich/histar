@@ -124,22 +124,11 @@ main(int ac, char **av)
 {
     error_check(sys_self_get_as(&base_as));
 
-    label lpub(1);
-
-    int64_t call_ct;
-    error_check(call_ct = sys_container_alloc(start_env->shared_container,
-					      lpub.to_ulabel(), "public call",
-					      0, 10 * 1024 * 1024));
-
-    warn << "ctallocd public container: " << call_ct << "\n";
-
     gatesrv_descriptor gd;
     gd.gate_container_ = start_env->shared_container;
     gd.name_ = "ctallocd";
     gd.func_ = &gate_entry;
 
     cobj_ref g = gate_create(&gd);
-    warn << "ctallocd gate: " << g << "\n";
-
     thread_halt();
 }
