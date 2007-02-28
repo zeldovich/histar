@@ -26,7 +26,8 @@ LIBDIS_SRCFILES +=		\
 	dj/djkey.cc		\
 	dj/djhistar.cc		\
 	dj/delegator.cc		\
-	dj/hsutil.cc
+	dj/hsutil.cc		\
+	dj/cryptconn.cc
 
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\

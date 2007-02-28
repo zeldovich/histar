@@ -146,6 +146,16 @@ struct dj_msg_xfer {
 };
 
 /*
+ * Session key establishment.
+ */
+
+struct dj_key_setup {
+    dj_pubkey host;
+    opaque keypart_send[16];
+    opaque keypart_recv[16];
+};
+
+/*
  * Signed statements that can be made by entities.  Every network
  * message is a statement.
  *
@@ -155,7 +165,8 @@ struct dj_msg_xfer {
 
 enum dj_stmt_type {
     STMT_DELEGATION = 1,
-    STMT_MSG_XFER
+    STMT_MSG_XFER,
+    STMT_KEY_SETUP
 };
 
 union dj_stmt switch (dj_stmt_type type) {
@@ -163,6 +174,8 @@ union dj_stmt switch (dj_stmt_type type) {
     dj_delegation delegation;
  case STMT_MSG_XFER:
     dj_msg_xfer msgx;
+ case STMT_KEY_SETUP:
+    dj_key_setup keysetup;
 };
 
 struct dj_stmt_signed {
