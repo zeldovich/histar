@@ -25,8 +25,9 @@
 static const int default_requests = 100;
 static const int default_clients = 1;
 static char *request_template = 
-    "GET / HTTP/1.0\r\nUser-Agent:"
+    "GET %s HTTP/1.0\r\nUser-Agent: "
     "TestClient\r\nHost: %s:%d\r\n\r\n";
+static const char* path = "/";
 static const char logging = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
@@ -49,7 +50,7 @@ init_ctx(void)
     // nice error messages
     SSL_load_error_strings();
     
-    meth = SSLv3_method();
+    meth = SSLv23_method();
     ctx = SSL_CTX_new(meth);
 
     return ctx;
@@ -82,10 +83,10 @@ http_request(SSL *ssl, const char *host, int port)
     int r;
     int len, request_len;
     
-    request_len = strlen(request_template) + strlen(host) + 6;
+    request_len = strlen(request_template) + strlen(path) + strlen(host) + 6;
     if(!(request = (char *) malloc(request_len)))
 	err_exit("Couldn't allocate request");
-    snprintf(request, request_len, request_template, host, port);
+    snprintf(request, request_len, request_template, path, host, port);
 
     request_len = strlen(request);
     r = SSL_write(ssl, request, request_len);
@@ -158,7 +159,8 @@ main(int ac, char **av)
     int timelimit = 0;
 
     if (ac < 3) {
-	fprintf(stderr, "Usage: %s host port [-r requests | -c clients | -l time-limit]\n", av[0]);
+	fprintf(stderr, "Usage: %s host port "
+		"[-r requests | -c clients | -l time-limit | -p path]\n", av[0]);
 	exit(-1);
     }
 
@@ -168,7 +170,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -178,6 +180,10 @@ main(int ac, char **av)
 	    break;
 	case 'l':
 	    timelimit = atoi(optarg);
+	    break;
+	case 'p':
+	    path = strdup(optarg);
+	    break;
 	}
     }
     
