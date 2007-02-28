@@ -81,6 +81,9 @@ main(int ac, char **av)
     mapreq.gcat = gcat;
     mapreq.lcat = 0;
 
+    xgrant.reset(3);
+    xgrant.set(tcat, LB_LEVEL_STAR);
+
     dj_autorpc remote_ar(&gs, 1, k, djcache);
     dj_cat_mapping remote_cme;
     c = remote_ar.call(map_ep, mapreq, remote_cme, 0, &xgrant);
@@ -110,7 +113,13 @@ main(int ac, char **av)
     ctreq.timeout_msec = 5000;
     ctreq.label.ents.push_back(gcat);
 
-    c = remote_ar.call(ctalloc_ep, ctreq, ctres, 0, &xgrant);
+    xgrant.reset(3);
+    xgrant.set(tcat, LB_LEVEL_STAR);
+
+    label xclear(0);
+    xclear.set(tcat, 3);
+
+    c = remote_ar.call(ctalloc_ep, ctreq, ctres, 0, &xgrant, &xclear);
     if (c != DELIVERY_DONE)
 	warn << "error from ctalloc: code " << c << "\n";
     warn << "New remote container: " << ctres.ct_id << "\n";
@@ -128,7 +137,7 @@ main(int ac, char **av)
     res.gate_ct = 101;
     res.gate_id = 102;
 
-    label taint;
+    label taint(1);
     taint.set(tcat, 3);
 
     c = remote_ar.call(ep, arg, res, &taint);
