@@ -34,7 +34,7 @@ crypt_conn::crypt_conn(int fd, djprot *p,
 
 crypt_conn::crypt_conn(int fd, dj_pubkey remote, djprot *p,
 		       rcb_t cb, readycb_t ready_cb)
-    : initiate_(true), remote_(remote), p_(p), cb_(cb), ready_cb_(ready_cb)
+    : remote_(remote), initiate_(true), p_(p), cb_(cb), ready_cb_(ready_cb)
 {
     x_ = axprt_crypt::alloc(fd);
     x_->setrcb(wrap(this, &crypt_conn::key_recv));
