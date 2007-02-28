@@ -3,6 +3,8 @@
 #include <dj/reqcontext.hh>
 #include <dj/djops.hh>
 
+enum { reqctx_debug = 0 };
+
 bool
 verify_label_reqctx::can_read(cobj_ref o)
 {
@@ -12,6 +14,8 @@ verify_label_reqctx::can_read(cobj_ref o)
 
 	label l;
 	obj_get_label(o, &l);
+	if (reqctx_debug)
+	    warn << "can_read(" << o << "): label " << l.to_string() << "\n";
 	error_check(l.compare(&vl_, label::leq_starhi));
 	return true;
     } catch (std::exception &e) {
@@ -30,6 +34,8 @@ verify_label_reqctx::can_rw(cobj_ref o)
 
 	label l;
 	obj_get_label(o, &l);
+	if (reqctx_debug)
+	    warn << "can_rw(" << o << "): label " << l.to_string() << ", vl " << vl_.to_string() << "\n";
 	error_check(vl_.compare(&l, label::leq_starlo));
 	error_check(l.compare(&vl_, label::leq_starhi));
 	return true;
