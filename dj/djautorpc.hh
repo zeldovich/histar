@@ -94,7 +94,8 @@ class dj_autorpc {
 	dj_message resm;
 	dj_delivery_code code = dj_rpc_call(gs_, pk_, tmo_,
 					    loc_dset, loc_cm.to_catmap(),
-					    reqm, reqstr, &resm, xgrant);
+					    reqm, reqstr, &resm, xgrant,
+					    taint);
 	if (code != DELIVERY_DONE)
 	    return code;
 

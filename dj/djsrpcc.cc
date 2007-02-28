@@ -85,9 +85,12 @@ dj_delivery_code
 dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    const dj_delegation_set &dset, const dj_catmap &cm,
 	    const dj_message &m, const str &calldata, dj_message *reply,
-	    label *grantlabel)
+	    label *grantlabel, label *return_ct_taint)
 {
     label lcallct(1);
+
+    if (return_ct_taint)
+	lcallct = *return_ct_taint;
 
     int64_t call_ct = sys_container_alloc(start_env->proc_container,
 					  lcallct.to_ulabel(),
