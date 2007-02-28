@@ -3,22 +3,22 @@
 #include <dj/djkey.hh>
 
 static void
-keygen(dj_key_setup *ks)
+keygen(sfs_kmsg *kmsg)
 {
-    rnd.getbytes(ks->keypart_send.base(), ks->keypart_send.size());
-    rnd.getbytes(ks->keypart_recv.base(), ks->keypart_recv.size());
+    rnd.getbytes(kmsg->kcs_share.base(), kmsg->kcs_share.size());
+    rnd.getbytes(kmsg->ksc_share.base(), kmsg->ksc_share.size());
 }
 
 static void
-keyset(ptr<axprt_crypt> x, const dj_key_setup &local, const dj_key_setup &remote)
+keyset(ptr<axprt_crypt> x, const sfs_kmsg &local, const sfs_kmsg &remote)
 {
     strbuf sendkey;
-    sendkey << str(local.keypart_send.base(), local.keypart_send.size());
-    sendkey << str(remote.keypart_recv.base(), remote.keypart_recv.size());
+    sendkey << str(local.kcs_share.base(), local.kcs_share.size());
+    sendkey << str(remote.ksc_share.base(), remote.ksc_share.size());
 
     strbuf recvkey;
-    recvkey << str(remote.keypart_send.base(), remote.keypart_send.size());
-    recvkey << str(local.keypart_recv.base(), local.keypart_recv.size());
+    recvkey << str(remote.kcs_share.base(), remote.kcs_share.size());
+    recvkey << str(local.ksc_share.base(), local.ksc_share.size());
 
     x->encrypt(sendkey, recvkey);
 }
@@ -45,10 +45,12 @@ crypt_conn::crypt_conn(int fd, dj_pubkey remote, djprot *p,
 void
 crypt_conn::key_send()
 {
-    local_ss_.stmt.set_type(STMT_KEY_SETUP);
-    keygen(&*local_ss_.stmt.keysetup);
-    local_ss_.stmt.keysetup->host = p_->pubkey();
-    p_->sign_statement(&local_ss_);
+    keygen(&local_kmsg_);
+
+    dj_stmt_signed local_ss;
+    local_ss.stmt.set_type(STMT_KEY_SETUP);
+    local_ss.stmt.keysetup->sender = p_->pubkey();
+    local_ss.stmt.keysetup->to = remote_;
 
     ptr<sfspub> remotekey = sfscrypt.alloc(remote_, SFS_ENCRYPT);
     if (!remotekey) {
@@ -57,14 +59,14 @@ crypt_conn::key_send()
 	return;
     }
 
-    sfs_ctext local_ctext;
-    if (!remotekey->encrypt(&local_ctext, xdr2str(local_ss_))) {
+    if (!remotekey->encrypt(&local_ss.stmt.keysetup->kmsg, xdr2str(local_kmsg_))) {
 	warn << "crypt_conn: cannot encrypt\n";
 	die(crypt_cannot_connect);
 	return;
     }
 
-    str s = xdr2str(local_ctext);
+    p_->sign_statement(&local_ss);
+    str s = xdr2str(local_ss);
     x_->send(s.cstr(), s.len(), 0);
 }
 
@@ -76,45 +78,49 @@ crypt_conn::key_recv(const char *buf, ssize_t len, const sockaddr*)
 	return;
     }
 
-    sfs_ctext remote_ctext;
-    if (!buf2xdr(remote_ctext, buf, len)) {
-	warn << "crypt_conn: cannot unmarshal ctext\n";
-	die(crypt_cannot_connect);
-	return;
-    }
-
-    str remote_ptext;
-    if (!p_->privkey()->decrypt(remote_ctext, &remote_ptext)) {
-	warn << "crypt_conn: cannot decrypt\n";
-	die(crypt_cannot_connect);
-	return;
-    }
-
     dj_stmt_signed remote_ss;
-    if (!str2xdr(remote_ss, remote_ptext)) {
-	warn << "crypt_conn: cannot unmarshal\n";
+    if (!buf2xdr(remote_ss, buf, len)) {
+	warn << "crypt_conn: cannot unmarshal statement\n";
 	die(crypt_cannot_connect);
 	return;
     }
 
-    if (!verify_stmt(remote_ss) || remote_ss.stmt.type != STMT_KEY_SETUP) {
+    if (!verify_stmt(remote_ss) ||
+	remote_ss.stmt.type != STMT_KEY_SETUP ||
+	remote_ss.stmt.keysetup->to != p_->pubkey())
+    {
 	warn << "crypt_conn: bad remote_ss\n";
 	die(crypt_cannot_connect);
 	return;
     }
 
+    str remote_kmsg_ptext;
+    if (!p_->privkey()->decrypt(remote_ss.stmt.keysetup->kmsg,
+				&remote_kmsg_ptext, sizeof(sfs_kmsg))) {
+	warn << "crypt_conn: cannot decrypt\n";
+	die(crypt_cannot_connect);
+	return;
+    }
+
+    sfs_kmsg remote_kmsg;
+    if (!str2xdr(remote_kmsg, remote_kmsg_ptext)) {
+	warn << "crypt_conn: cannot unmarshal kmsg\n";
+	die(crypt_cannot_connect);
+	return;
+    }
+
     if (initiate_) {
-	if (remote_ss.stmt.keysetup->host != remote_) {
+	if (remote_ss.stmt.keysetup->sender != remote_) {
 	    warn << "crypt_conn: remote key mismatch\n";
 	    die(crypt_cannot_connect);
 	    return;
 	}
     } else {
-	remote_ = remote_ss.stmt.keysetup->host;
+	remote_ = remote_ss.stmt.keysetup->sender;
 	key_send();
     }
 
-    keyset(x_, *local_ss_.stmt.keysetup, *remote_ss.stmt.keysetup);
+    keyset(x_, local_kmsg_, remote_kmsg);
     x_->setrcb(wrap(this, &crypt_conn::data_recv));
     ready_cb_(this, crypt_connected);
 }

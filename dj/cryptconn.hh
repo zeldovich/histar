@@ -33,7 +33,7 @@ class crypt_conn {
     void data_recv(const char *buf, ssize_t len, const sockaddr*);
 
     bool initiate_;
-    dj_stmt_signed local_ss_;
+    sfs_kmsg local_kmsg_;
     djprot *p_;
     rcb_t cb_;
     readycb_t ready_cb_;

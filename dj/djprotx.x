@@ -150,9 +150,9 @@ struct dj_msg_xfer {
  */
 
 struct dj_key_setup {
-    dj_pubkey host;
-    opaque keypart_send[16];
-    opaque keypart_recv[16];
+    dj_pubkey sender;
+    dj_pubkey to;
+    sfs_ctext2 kmsg;
 };
 
 /*

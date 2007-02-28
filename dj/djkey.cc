@@ -27,7 +27,7 @@ verify_stmt(const dj_stmt_signed &s)
 	return verify_sign(s.stmt, s.stmt.msgx->from, s.sign);
 
     case STMT_KEY_SETUP:
-	return verify_sign(s.stmt, s.stmt.keysetup->host, s.sign);
+	return verify_sign(s.stmt, s.stmt.keysetup->sender, s.sign);
 
     default:
 	return false;
