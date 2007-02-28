@@ -12,7 +12,7 @@ enum { taint_debug = 0 };
 // Copy the writable pieces of the address space
 enum {
     taint_cow_label_ents = 32,
-    taint_cow_as_ents = 32,
+    taint_as_maxsize = 128,
 };
 
 static void
@@ -139,35 +139,58 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
     // To placate gcc which is obsessed with signedness
     uint64_t mlt_ct = mlt_ct_id;
 
+    // Compute label of new address space
     ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
     taint_cow_compute_label(&cur_label, &obj_label);
 
     ERRCHECK(sys_obj_get_name(cur_as, &namebuf[0]));
     int64_t id = sys_as_copy(cur_as, mlt_ct, &obj_label, &namebuf[0]);
     if (id < 0)
-	panic("taint_cow: cannot create new as: %s", e2s(id));
+	panic("taint_cow: cannot copy as: %s", e2s(id));
 
     struct cobj_ref new_as = COBJ(mlt_ct, id);
+    if (taint_debug) {
+	cprintf("taint_cow: new as: %lu.%lu, label: ", new_as.container, new_as.object);
+	taint_cow_cprint_label(&obj_label);
+	cprintf("\n");
+    }
 
-    struct u_segment_mapping uas_ents[taint_cow_as_ents];
-    struct u_address_space uas =
-	{ .size = taint_cow_as_ents, .ents = &uas_ents[0] };
-    ERRCHECK(sys_as_get(new_as, &uas));
+    /*
+     * Structure to map original segment IDs to copied segment IDs.
+     */
+    uint64_t segment_copies[taint_as_maxsize][2];
+    for (uint32_t i = 0; i < taint_as_maxsize; i++)
+	segment_copies[i][0] = segment_copies[i][1] = 0;
+    uint32_t next_copyidx = 0;
 
-    for (uint32_t i = 0; i < uas.nent; i++) {
+    for (uint32_t i = 0; ; i++) {
+	struct u_segment_mapping usm;
+	usm.kslot = i;
+
+	r = sys_as_get_slot(cur_as, &usm);
+	if (r == -E_INVAL)
+	    break;
+	if (r < 0)
+	    panic("taint_cow: cannot get AS slot: %s", e2s(r));
+
 	if (taint_debug) {
-	    cprintf("taint_cow: mapping of %ld.%ld at VA %p, flags 0x%x\n",
-		    uas.ents[i].segment.container, uas.ents[i].segment.object,
-		    uas.ents[i].va, uas.ents[i].flags);
+	    cprintf("taint_cow: mapping of %ld.%ld at VA %p--%p, flags 0x%x\n",
+		    usm.segment.container, usm.segment.object,
+		    usm.va, usm.va + usm.num_pages * PGSIZE, usm.flags);
 	}
 
-	if (!(uas.ents[i].flags & SEGMAP_WRITE) ||
-	    uas.ents[i].segment.container != cur_as.container)
-	    continue;
-	if (uas.ents[i].segment.container == mlt_ct)
+	if (!(usm.flags & SEGMAP_WRITE) || usm.segment.container != cur_as.container)
 	    continue;
 
-	r = sys_obj_get_label(uas.ents[i].segment, &obj_label);
+	int already_copied = 0;
+	for (uint32_t j = 0; j < next_copyidx; j++)
+	    if (usm.segment.object == segment_copies[j][0])
+		already_copied = 1;
+
+	if (already_copied)
+	    continue;
+
+	r = sys_obj_get_label(usm.segment, &obj_label);
 	if (r == -E_NOT_FOUND)
 	    continue;
 	ERRCHECK(r);
@@ -180,35 +203,57 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
 	if (taint_debug) {
 	    cprintf("taint_cow: trying to copy segment %ld.%ld, VA %p, label ",
-		    uas.ents[i].segment.container,
-		    uas.ents[i].segment.object,
-		    uas.ents[i].va);
+		    usm.segment.container,
+		    usm.segment.object,
+		    usm.va);
 	    taint_cow_cprint_label(&obj_label);
 	    cprintf("\n");
 	}
 
-	ERRCHECK(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
-
-	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+	ERRCHECK(sys_obj_get_name(usm.segment, &namebuf[0]));
+	id = sys_segment_copy(usm.segment, mlt_ct,
 			      &obj_label, &namebuf[0]);
 	if (id < 0)
 	    panic("taint_cow: cannot copy segment: %s", e2s(id));
 
-	uint64_t old_id = uas.ents[i].segment.object;
-	for (uint32_t j = 0; j < uas.nent; j++)
-	    if (uas.ents[j].segment.object == old_id)
-		uas.ents[j].segment = COBJ(mlt_ct, id);
+	if (next_copyidx >= taint_as_maxsize)
+	    panic("taint_cow: too many AS entries");
+
+	segment_copies[next_copyidx][0] = usm.segment.object;
+	segment_copies[next_copyidx][1] = id;
+	next_copyidx++;
     }
 
-    ERRCHECK(sys_as_set(new_as, &uas));
+    /*
+     * Second pass to re-map all of the segments we copied above.
+     */
+    for (uint32_t i = 0; ; i++) {
+	struct u_segment_mapping usm;
+	usm.kslot = i;
+
+	r = sys_as_get_slot(cur_as, &usm);
+	if (r == -E_INVAL)
+	    break;
+	if (r < 0)
+	    panic("taint_cow: cannot get AS slot: %s", e2s(r));
+
+	if (!(usm.flags & SEGMAP_READ) || usm.segment.container == mlt_ct)
+	    continue;
+
+	for (uint32_t j = 0; j < next_copyidx; j++) {
+	    if (usm.segment.object == segment_copies[j][0]) {
+		usm.segment.container = mlt_ct;
+		usm.segment.object = segment_copies[j][1];
+		break;
+	    }
+	}
+
+	if (usm.segment.container == mlt_ct)
+	    ERRCHECK(sys_as_set_slot(new_as, &usm));
+    }
+
     ERRCHECK(sys_self_set_as(new_as));
     segment_as_switched();
-
-    if (taint_debug) {
-	cprintf("taint_cow: new as: %lu.%lu, label: ", new_as.container, new_as.object);
-	taint_cow_cprint_label(&obj_label);
-	cprintf("\n");
-    }
 
     ERRCHECK(sys_self_addref(mlt_ct));
     ERRCHECK(sys_self_set_sched_parents(start_env->proc_container, mlt_ct));
