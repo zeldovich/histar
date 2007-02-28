@@ -139,10 +139,20 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
     // To placate gcc which is obsessed with signedness
     uint64_t mlt_ct = mlt_ct_id;
 
+    ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
+    taint_cow_compute_label(&cur_label, &obj_label);
+
+    ERRCHECK(sys_obj_get_name(cur_as, &namebuf[0]));
+    int64_t id = sys_as_copy(cur_as, mlt_ct, &obj_label, &namebuf[0]);
+    if (id < 0)
+	panic("taint_cow: cannot create new as: %s", e2s(id));
+
+    struct cobj_ref new_as = COBJ(mlt_ct, id);
+
     struct u_segment_mapping uas_ents[taint_cow_as_ents];
     struct u_address_space uas =
 	{ .size = taint_cow_as_ents, .ents = &uas_ents[0] };
-    ERRCHECK(sys_as_get(cur_as, &uas));
+    ERRCHECK(sys_as_get(new_as, &uas));
 
     for (uint32_t i = 0; i < uas.nent; i++) {
 	if (taint_debug) {
@@ -179,8 +189,8 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
 	ERRCHECK(sys_obj_get_name(uas.ents[i].segment, &namebuf[0]));
 
-	int64_t id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
-				      &obj_label, &namebuf[0]);
+	id = sys_segment_copy(uas.ents[i].segment, mlt_ct,
+			      &obj_label, &namebuf[0]);
 	if (id < 0)
 	    panic("taint_cow: cannot copy segment: %s", e2s(id));
 
@@ -190,15 +200,6 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 		uas.ents[j].segment = COBJ(mlt_ct, id);
     }
 
-    ERRCHECK(sys_obj_get_label(cur_as, &obj_label));
-    taint_cow_compute_label(&cur_label, &obj_label);
-
-    ERRCHECK(sys_obj_get_name(cur_as, &namebuf[0]));
-    int64_t id = sys_as_create(mlt_ct, &obj_label, &namebuf[0]);
-    if (id < 0)
-	panic("taint_cow: cannot create new as: %s", e2s(id));
-
-    struct cobj_ref new_as = COBJ(mlt_ct, id);
     ERRCHECK(sys_as_set(new_as, &uas));
     ERRCHECK(sys_self_set_as(new_as));
     segment_as_switched();
