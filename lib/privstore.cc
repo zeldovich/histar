@@ -53,6 +53,7 @@ saved_privilege::acquire()
 	if (tc.get(handle_) != 3) {
 	    tc.set(handle_, 3);
 	    error_check(sys_self_set_clearance(tc.to_ulabel()));
+	    thread_label_cache_update(&tl, &tc);
 	}
 	return;
     }
