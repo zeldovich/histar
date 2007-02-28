@@ -25,6 +25,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/taint.h>
 #include <inc/stack.h>
+#include <inc/openssl.h>
 
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
@@ -41,15 +42,6 @@ static const char dbg = 0;
 static SSL_CTX *the_ctx;
 
 static char *cow_stacktop;
-
-static int
-error_to_jos64(int ret)
-{
-    // XXX can SSL_get_error be used w/ BIO's failures?
-    if (ret < 0)
-	return -E_UNSPEC;
-    return 0;
-}
 
 static int
 ssld_accept(int cipher_sock, SSL **ret)
@@ -72,8 +64,10 @@ static int
 ssld_send(SSL *ssl, void *buf, size_t count, int flags)
 {
     int r = SSL_write(ssl, (char *)buf, count);
-    if (r <= 0)
-	return error_to_jos64(r);
+    if (r <= 0) {
+	openssl_print_error(ssl, r, 1);
+	return -1;
+    }
     return r;
     
 }
@@ -82,8 +76,10 @@ static int
 ssld_recv(SSL *ssl, void *buf, size_t count, int flags)
 {
     int r = SSL_read(ssl, (char *)buf, count);
-    if (r <= 0)
-	return error_to_jos64(r);
+    if (r <= 0) {
+	openssl_print_error(ssl, r, 1);
+	return -1;
+    }
     return r;
 }
 
