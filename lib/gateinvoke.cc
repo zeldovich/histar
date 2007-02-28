@@ -40,7 +40,7 @@ gate_compute_labels(struct cobj_ref gate,
     gate_get_clearance(gate, tgt_clear);
     if (dr) {
 	tgt_clear->merge(dr, &tmp, label::max, label::leq_starlo);
-	*tgt_clear = tmp;
+	tmp.merge(tgt_label, tgt_clear, label::max, label::leq_starlo);
     }
 
     // For any star levels in tgt_label & thread_label, grant a 3 in tgt_clear
