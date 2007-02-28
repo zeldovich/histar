@@ -161,6 +161,10 @@ class incoming_impl : public dj_incoming_gate {
 
 	if (!untainted) {
 	    try {
+		label temp_vl(3);
+		label temp_vc(0);
+		sys_self_set_verify(temp_vl.to_ulabel(), temp_vc.to_ulabel());
+
 		// Verify & acquire the mapping resources provided by caller
 		cm_->acquire(req.catmap);
 		cm_->resource_check(&ctx, req.catmap);
@@ -186,6 +190,11 @@ class incoming_impl : public dj_incoming_gate {
 		label tl, tc;
 		thread_cur_label(&tl);
 		thread_cur_clearance(&tc);
+
+		label nvl, nvc;
+		vl.merge(&tl, &nvl, label::max, label::leq_starlo);
+		vc.merge(&tc, &nvc, label::min, label::leq_starhi);
+		sys_self_set_verify(nvl.to_ulabel(), nvc.to_ulabel());
 
 		label tgtl, tgtc;
 		gate_compute_labels(untaint_gate_, 0, &tl, &tc, &tgtl, &tgtc);
