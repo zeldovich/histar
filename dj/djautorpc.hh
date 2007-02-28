@@ -6,6 +6,8 @@
 #include <dj/djcache.hh>
 #include <dj/djlabel.hh>
 
+enum { autorpc_debug = 0 };
+
 class dj_autorpc {
  public:
     dj_autorpc(gate_sender *gs, time_t tmo, const dj_pubkey &pk,
@@ -36,15 +38,36 @@ class dj_autorpc {
 	    tl.transform(label::star_to, tl.get_default());
 	}
 
+	if (autorpc_debug) {
+	    if (taint)
+		warn << "autorpc: taint " << taint->to_string() << "\n";
+	    if (grant)
+		warn << "autorpc: grant " << grant->to_string() << "\n";
+	    if (gclear)
+		warn << "autorpc: gclear " << gclear->to_string() << "\n";
+
+	    warn << "autorpc: starting label conversions...\n";
+	}
+
 	/* Convert labels into global equivalents; fill catmap for local node */
 	label_to_djlabel(home_->cmi_, taint  ? *taint  : tl,       &reqm.taint,  label_taint, &loc_cm);
 	label_to_djlabel(home_->cmi_, grant  ? *grant  : label(3), &reqm.glabel, label_owner, &loc_cm);
 	label_to_djlabel(home_->cmi_, gclear ? *gclear : label(0), &reqm.gclear, label_clear, &loc_cm);
 
+	if (autorpc_debug) {
+	    warn << "autorpc: global taint " << reqm.taint
+		 << " grant " << reqm.glabel
+		 << " gclear " << reqm.gclear << "\n";
+	    warn << "autorpc: starting remote-host conversions...\n";
+	}
+
 	/* Populate the catmap for the remote node */
 	djlabel_to_label(nc_->cmi_, reqm.taint,  0, label_taint, &rem_cm);
 	djlabel_to_label(nc_->cmi_, reqm.glabel, 0, label_owner, &rem_cm);
 	djlabel_to_label(nc_->cmi_, reqm.gclear, 0, label_clear, &rem_cm);
+
+	if (autorpc_debug)
+	    warn << "autorpc: done with conversions.\n";
 
 	/*
 	 * XXX
@@ -54,6 +77,13 @@ class dj_autorpc {
 
 	reqm.catmap = rem_cm.to_catmap();
 	reqm.dset = rem_dset;
+
+	if (autorpc_debug) {
+	    for (uint64_t i = 0; i < reqm.catmap.ents.size(); i++)
+		warn << "autorpc_call: catmap entry for "
+		     << reqm.catmap.ents[i].gcat << " <-> "
+		     << reqm.catmap.ents[i].lcat << "\n";
+	}
 
 	str reqstr = xdr2str(arg);
 	if (!reqstr) {
