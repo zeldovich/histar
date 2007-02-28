@@ -10,14 +10,14 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 	l->reset(1);
 
     for (uint32_t i = 0; i < dl.ents.size(); i++) {
-	const dj_label_entry &e = dl.ents[i];
+	const dj_gcat &gcat = dl.ents[i];
 	uint64_t lcat;
-	if (!m.g2l(e.cat, &lcat, out))
+	if (!m.g2l(gcat, &lcat, out))
 	    throw basic_exception("djlabel_to_label: missing mapping");
 	if (l) {
 	    if (l->get(lcat) != 1)
 		throw basic_exception("djlabel_to_label: duplicate label entry?");
-	    l->set(lcat, e.cat.integrity ? 0 : 3);
+	    l->set(lcat, gcat.integrity ? 0 : 3);
 	}
     }
 }
