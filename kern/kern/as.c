@@ -43,6 +43,10 @@ as_copy(const struct Address_space *as, const struct Label *l, struct Address_sp
     if (r < 0)
 	return r;
 
+    nas->as_utrap_entry = as->as_utrap_entry;
+    nas->as_utrap_stack_base = as->as_utrap_stack_base;
+    nas->as_utrap_stack_top = as->as_utrap_stack_top;
+
     *asp = nas;
     return 0;
 }
