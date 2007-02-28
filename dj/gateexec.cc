@@ -78,9 +78,9 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     try {
 	dj_catmap_indexed cmi(m.catmap);
-	djlabel_to_label(cmi, m.taint,  &msg_taint);
-	djlabel_to_label(cmi, m.glabel, &msg_glabel);
-	djlabel_to_label(cmi, m.gclear, &msg_gclear);
+	djlabel_to_label(cmi, m.taint,  &msg_taint, label_taint);
+	djlabel_to_label(cmi, m.glabel, &msg_glabel, label_owner);
+	djlabel_to_label(cmi, m.gclear, &msg_gclear, label_clear);
     } catch (std::exception &e) {
 	warn << "gate_exec2: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING, 0);

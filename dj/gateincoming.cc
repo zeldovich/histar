@@ -168,9 +168,9 @@ class incoming_impl : public dj_incoming_gate {
 		// Make sure global labels are within the caller's authority
 		dj_catmap_indexed mi(req.catmap);
 		label mt, mg, mc;
-		djlabel_to_label(mi, req.m.taint, &mt);
-		djlabel_to_label(mi, req.m.glabel, &mg);
-		djlabel_to_label(mi, req.m.gclear, &mc);
+		djlabel_to_label(mi, req.m.taint, &mt, label_taint);
+		djlabel_to_label(mi, req.m.glabel, &mg, label_owner);
+		djlabel_to_label(mi, req.m.gclear, &mc, label_clear);
 
 		error_check(vl.compare(&mg, label::leq_starlo));
 		error_check(vl.compare(&mt, label::leq_starlo));

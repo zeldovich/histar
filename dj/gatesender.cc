@@ -25,9 +25,9 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
 
     dj_catmap_indexed cmi(cm);
     label tlabel, glabel, gclear;
-    djlabel_to_label(cmi, msg.taint, &tlabel);
-    djlabel_to_label(cmi, msg.glabel, &glabel);
-    djlabel_to_label(cmi, msg.gclear, &gclear);
+    djlabel_to_label(cmi, msg.taint, &tlabel, label_taint);
+    djlabel_to_label(cmi, msg.glabel, &glabel, label_owner);
+    djlabel_to_label(cmi, msg.gclear, &gclear, label_clear);
 
     if (grantlabel) {
 	label tmp;

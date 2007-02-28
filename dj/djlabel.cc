@@ -4,7 +4,7 @@
 
 void
 djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
-		 dj_catmap_indexed *out)
+		 label_type t, dj_catmap_indexed *out)
 {
     if (l)
 	l->reset(1);
@@ -17,14 +17,23 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 	if (l) {
 	    if (l->get(lcat) != 1)
 		throw basic_exception("djlabel_to_label: duplicate label entry?");
-	    l->set(lcat, gcat.integrity ? 0 : 3);
+	    level_t lv;
+	    if (t == label_taint)
+		lv = gcat.integrity ? 0 : 3;
+	    else if (t == label_clear)
+		lv = 3;
+	    else if (t == label_owner)
+		lv = LB_LEVEL_STAR;
+	    else
+		throw basic_exception("djlabel_to_label: bad type");
+	    l->set(lcat, lv);
 	}
     }
 }
 
 void
 label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
-		 dj_catmap_indexed *out)
+		 label_type t, dj_catmap_indexed *out)
 {
     if (dl)
 	dl->ents.setsize(0);
@@ -41,10 +50,18 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 	if (!m.l2g(lcat, &gcat, out))
 	    throw basic_exception("label_to_djlabel: missing mapping");
 
-	if (gcat.integrity && lv != 0)
-	    throw basic_exception("label_to_djlabel: bad level for integrity");
-	if (!gcat.integrity && lv != 3)
-	    throw basic_exception("level_to_djlabel: bad level for secrecy");
+	if (t == label_taint) {
+	    if ((gcat.integrity && lv != 0) || (!gcat.integrity && lv != 3))
+		throw basic_exception("label_to_djlabel: bad taint level");
+	} else if (t == label_clear) {
+	    if (lv != 3)
+		throw basic_exception("label_to_djlabel: bad clearance level");
+	} else if (t == label_owner) {
+	    if (lv != LB_LEVEL_STAR)
+		throw basic_exception("label_to_djlabel: bad ownership level");
+	} else {
+	    throw basic_exception("label_to_djlabel: bad label type");
+	}
 
 	if (dl)
 	    dl->ents.push_back(gcat);

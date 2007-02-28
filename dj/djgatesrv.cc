@@ -50,9 +50,9 @@ djgate_incoming(gate_call_data *gcd,
      */
     dj_catmap_indexed mi(m->m.catmap);
     label mt, mg, mc;
-    djlabel_to_label(mi, m->m.taint, &mt);
-    djlabel_to_label(mi, m->m.glabel, &mg);
-    djlabel_to_label(mi, m->m.gclear, &mc);
+    djlabel_to_label(mi, m->m.taint, &mt, label_taint);
+    djlabel_to_label(mi, m->m.glabel, &mg, label_owner);
+    djlabel_to_label(mi, m->m.gclear, &mc, label_clear);
 
     error_check(vl.compare(&mg, label::leq_starlo));
     error_check(vl.compare(&mt, label::leq_starlo));

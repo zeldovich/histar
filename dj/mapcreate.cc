@@ -30,9 +30,9 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
 	    label taint = vl;
 	    taint.transform(label::star_to, taint.get_default());
-	    label_to_djlabel(cmi, taint, &reply_taint);
+	    label_to_djlabel(cmi, taint, &reply_taint, label_taint);
 	} else {
-	    djlabel_to_label(cmi, m.taint, &vl);
+	    djlabel_to_label(cmi, m.taint, &vl, label_taint);
 	    vc = vl;
 	    reply_taint = m.taint;
 	}

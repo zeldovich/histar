@@ -74,9 +74,9 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	 */
 	dj_catmap_indexed cmi(replymsg.catmap);
 	label tlabel, glabel, gclear;
-	djlabel_to_label(cmi, replymsg.m.taint, &tlabel);
-	djlabel_to_label(cmi, replymsg.m.glabel, &glabel);
-	djlabel_to_label(cmi, replymsg.m.gclear, &gclear);
+	djlabel_to_label(cmi, replymsg.m.taint, &tlabel, label_taint);
+	djlabel_to_label(cmi, replymsg.m.glabel, &glabel, label_owner);
+	djlabel_to_label(cmi, replymsg.m.gclear, &gclear, label_clear);
 
 	gate_compute_labels(djd_gate, &tlabel, &glabel, &gclear, tgtl, tgtc);
 

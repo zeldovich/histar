@@ -1,3 +1,7 @@
+extern "C" {
+#include <inc/syscall.h>
+}
+
 #include <inc/labelutil.hh>
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
@@ -33,48 +37,71 @@ main(int ac, char **av)
     dj_catmap cm;
     dj_message m;
 
+    /* Create a local container for call-related state */
+    label localct_l(1);
+    int64_t local_ct = sys_container_alloc(start_env->shared_container,
+					   localct_l.to_ulabel(), "blah",
+					   0, CT_QUOTA_INF);
+    error_check(local_ct);
+
     /* Allocate a new category to taint with.. */
     uint64_t tcat = handle_alloc();
     warn << "allocated category " << tcat << " for tainting\n";
 
-    /* XXX abuse of call_ct -- assumes same node */
     dj_mapreq mapreq;
-    mapreq.ct = ep.ep_gate->msg_ct;
+    mapreq.ct = local_ct;
     mapreq.lcat = tcat;
-
-    m.target.set_type(EP_MAPCREATE);
-    m.token = 0;
+    mapreq.gcat.integrity = 0;
 
     label xgrant(3);
     xgrant.set(tcat, LB_LEVEL_STAR);
 
-    dj_message replym;
-    dj_delivery_code c = dj_rpc_call(&gs, k, 1, dset, cm, m,
-				     xdr2str(mapreq), &replym, &xgrant);
+    dj_message_endpoint map_ep;
+    map_ep.set_type(EP_MAPCREATE);
+
+    dj_autorpc local_ar(&gs, 1, gs.hostkey(), djcache);
+
+    dj_cat_mapping local_cme;
+    dj_delivery_code c = local_ar.call(map_ep, mapreq, local_cme,
+				       0, 0, 0, &xgrant);
     if (c != DELIVERY_DONE)
 	warn << "error talking to mapcreate: code " << c << "\n";
 
-    dj_cat_mapping tcatmap;
-    if (!bytes2xdr(tcatmap, replym.msg))
-	warn << "unmarshaling dj_cat_mapping\n";
+    warn << "Local dj_cat_mapping: "
+	 << local_cme.gcat << ", "
+	 << local_cme.lcat << ", "
+	 << local_cme.user_ct << ", "
+	 << local_cme.res_ct << ", "
+	 << local_cme.res_gt << "\n";
+    djcache[gs.hostkey()]->cmi_.insert(local_cme);
 
-    warn << "Got a dj_cat_mapping: "
-	 << tcatmap.gcat << ", "
-	 << tcatmap.lcat << ", "
-	 << tcatmap.user_ct << ", "
-	 << tcatmap.res_ct << ", "
-	 << tcatmap.res_gt << "\n";
+    mapreq.ct = ep.ep_gate->msg_ct;
+    mapreq.gcat = local_cme.gcat;
+    mapreq.lcat = 0;
+
+    dj_autorpc remote_ar(&gs, 1, k, djcache);
+    dj_cat_mapping remote_cme;
+    c = remote_ar.call(map_ep, mapreq, remote_cme, 0, &xgrant);
+    if (c != DELIVERY_DONE)
+	warn << "error from remote mapcreate: code " << c << "\n";
+
+    warn << "Remote dj_cat_mapping: "
+	 << remote_cme.gcat << ", "
+	 << remote_cme.lcat << ", "
+	 << remote_cme.user_ct << ", "
+	 << remote_cme.res_ct << ", "
+	 << remote_cme.res_gt << "\n";
+    djcache[k]->cmi_.insert(remote_cme);
 
     /* Send a real echo request now.. */
-    dj_autorpc ar(&gs, 1, k, djcache);
     dj_gatename arg;
     dj_gatename res;
     arg.gate_ct = 123456;
     arg.gate_id = 654321;
     res.gate_ct = 101;
     res.gate_id = 102;
-    c = ar.call(ep, arg, res);
-    warn << "autorpc code = " << c << "\n";
+    c = remote_ar.call(ep, arg, res);
+    warn << "echo response code = " << c << "\n";
     if (c == DELIVERY_DONE)
 	warn << "autorpc echo: " << res.gate_ct << "." << res.gate_id << "\n";
 }

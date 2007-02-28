@@ -18,10 +18,6 @@ class dj_global_cache {
     dj_global_cache() {}
     ~dj_global_cache() { m_.traverse(wrap(&dj_global_cache::delete_nc)); }
 
-    dj_node_cache *home() {
-	return &home_;
-    }
-
     dj_node_cache *get(const dj_pubkey &pk) {
 	if (!m_[pk])
 	    m_.insert(pk, New dj_node_cache());
@@ -37,7 +33,6 @@ class dj_global_cache {
 	delete *nc;
     }
 
-    dj_node_cache home_;
     qhash<dj_pubkey, dj_node_cache*> m_;
 };
 
