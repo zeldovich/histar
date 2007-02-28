@@ -9,6 +9,7 @@ extern "C" {
 #include <dj/djsrpc.hh>
 #include <dj/internalx.h>
 #include <dj/djautorpc.hh>
+#include <dj/miscx.h>
 
 int
 main(int ac, char **av)
@@ -28,10 +29,10 @@ main(int ac, char **av)
     //dj_pubkey k = sfspub2dj(sfspub);
     dj_pubkey k = gs.hostkey();
 
-    dj_message_endpoint ep;
-    ep.set_type(EP_GATE);
-    ep.ep_gate->msg_ct = atoi(av[2]);
-    ep.ep_gate->gate <<= av[3];
+    uint64_t call_ct = atoi(av[2]);
+
+    dj_gatename echo_gate;
+    echo_gate <<= av[3];
 
     dj_delegation_set dset;
     dj_catmap cm;
@@ -73,10 +74,11 @@ main(int ac, char **av)
 	 << local_cme.user_ct << ", "
 	 << local_cme.res_ct << ", "
 	 << local_cme.res_gt << "\n";
+    dj_gcat gcat = local_cme.gcat;
     djcache[gs.hostkey()]->cmi_.insert(local_cme);
 
-    mapreq.ct = ep.ep_gate->msg_ct;
-    mapreq.gcat = local_cme.gcat;
+    mapreq.ct = call_ct;
+    mapreq.gcat = gcat;
     mapreq.lcat = 0;
 
     dj_autorpc remote_ar(&gs, 1, k, djcache);
@@ -93,14 +95,43 @@ main(int ac, char **av)
 	 << remote_cme.res_gt << "\n";
     djcache[k]->cmi_.insert(remote_cme);
 
+    /* Create a remote tainted container */
+    dj_message_endpoint ctalloc_ep;
+    ctalloc_ep.set_type(EP_GATE);
+    ctalloc_ep.ep_gate->msg_ct = call_ct;
+    ctalloc_ep.ep_gate->gate.gate_ct = 0;
+    ctalloc_ep.ep_gate->gate.gate_id = GSPEC_CTALLOC;
+
+    container_alloc_req ctreq;
+    container_alloc_res ctres;
+
+    ctreq.parent = call_ct;
+    ctreq.quota = 2 * 1024 * 1024;
+    ctreq.timeout_msec = 5000;
+    ctreq.label.ents.push_back(gcat);
+
+    c = remote_ar.call(ctalloc_ep, ctreq, ctres, 0, &xgrant);
+    if (c != DELIVERY_DONE)
+	warn << "error from ctalloc: code " << c << "\n";
+    warn << "New remote container: " << ctres.ct_id << "\n";
+
     /* Send a real echo request now.. */
+    dj_message_endpoint ep;
+    ep.set_type(EP_GATE);
+    ep.ep_gate->msg_ct = ctres.ct_id;
+    ep.ep_gate->gate = echo_gate;
+
     dj_gatename arg;
     dj_gatename res;
     arg.gate_ct = 123456;
     arg.gate_id = 654321;
     res.gate_ct = 101;
     res.gate_id = 102;
-    c = remote_ar.call(ep, arg, res);
+
+    label taint;
+    taint.set(tcat, 3);
+
+    c = remote_ar.call(ep, arg, res, &taint);
     warn << "echo response code = " << c << "\n";
     if (c == DELIVERY_DONE)
 	warn << "autorpc echo: " << res.gate_ct << "." << res.gate_id << "\n";

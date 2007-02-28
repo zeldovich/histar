@@ -44,8 +44,8 @@ try {
     dj_catmap_indexed cmi(m.catmap);
     label lt, lg, lc;
     djlabel_to_label(cmi, m.taint, &lt, label_taint);
-    djlabel_to_label(cmi, m.glabel, &lg, label_ownership);
-    djlabel_to_label(cmi, m.gclear, &lc, label_clearance);
+    djlabel_to_label(cmi, m.glabel, &lg, label_owner);
+    djlabel_to_label(cmi, m.gclear, &lc, label_clear);
 
     label lng, lnc;
     lt.merge(&lg, &lng, label::min, label::leq_starlo);

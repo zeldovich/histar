@@ -83,6 +83,10 @@ enum dj_endpoint_type {
     EP_DELEGATOR
 };
 
+enum dj_special_gate_ids {	/* set container to zero */
+    GSPEC_CTALLOC = 1,
+};
+
 struct dj_gatename {
     unsigned hyper gate_ct;
     unsigned hyper gate_id;

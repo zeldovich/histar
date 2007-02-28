@@ -92,8 +92,36 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      */
     gate_exec_thread_state s;
     s.done = 0;
-    s.gate.container = m.target.ep_gate->gate.gate_ct;
-    s.gate.object = m.target.ep_gate->gate.gate_id;
+    if (m.target.ep_gate->gate.gate_ct) {
+	s.gate.container = m.target.ep_gate->gate.gate_ct;
+	s.gate.object = m.target.ep_gate->gate.gate_id;
+    } else {
+	uint64_t spec_id = m.target.ep_gate->gate.gate_id;
+	const char *ctname = 0, *gtname = 0;
+
+	if (spec_id == GSPEC_CTALLOC) {
+	    ctname = "ctallocd";
+	    gtname = "ctallocd";
+	}
+
+	if (!ctname || !gtname) {
+	    warn << "gate_exec2: bad special gate id " << spec_id << "\n";
+	    da.cb(DELIVERY_REMOTE_ERR, 0);
+	    return;
+	}
+
+	int64_t ct = container_find(start_env->root_container,
+				    kobj_container, ctname);
+	int64_t gt = container_find(ct, kobj_gate, gtname);
+	if (ct < 0 || gt < 0) {
+	    warn << "gate_exec2: cannot find spec gate " << spec_id << "\n";
+	    da.cb(DELIVERY_REMOTE_ERR, 0);
+	    return;
+	}
+
+	s.gate.container = ct;
+	s.gate.object = gt;
+    }
     s.msg_ct = m.target.ep_gate->msg_ct;
 
     msg_taint.merge(&msg_glabel, &s.vl, label::min, label::leq_starlo);
