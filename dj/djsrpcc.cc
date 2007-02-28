@@ -51,7 +51,7 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
     djgate_incoming(gcd, vl, vc, &m, r);
 
     if (m.sender != s->server) {
-	printf("dj_rpc_reply_entry: reply from unexpected node");
+	printf("dj_rpc_reply_entry: reply from unexpected node\n");
 	return;
     }
 
@@ -146,6 +146,7 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    return DELIVERY_LOCAL_ERR;
 	}
 
+	sys_sync_wakeup(&rs.token.counter);
 	sys_sync_wait(&rs.token.counter, token,
 		      sys_clock_msec() + retry_delivery_msec);
 	uint64_t ntoken = atomic_compare_exchange64(&rs.token, token, 0);
