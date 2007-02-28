@@ -13,25 +13,22 @@ main(int ac, char **av)
 
     if (ac != 4) {
 	printf("Usage: %s host-pk call-ct gate-ct.id\n", av[0]);
-
-	gate_sender gs;
-	warn << "local key " << gs.hostkey() << "\n";
-
 	exit(-1);
     }
 
+    gate_sender gs;
+
     str pkstr(av[1]);
-    ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
-    assert(sfspub);
-    dj_pubkey k = sfspub2dj(sfspub);
+    //ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
+    //assert(sfspub);
+    //dj_pubkey k = sfspub2dj(sfspub);
+    dj_pubkey k = gs.hostkey();
 
     uint64_t call_ct = atoi(av[2]);
 
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     *ep.gate <<= av[3];
-
-    gate_sender gs;
 
     dj_delegation_set dset;
     dj_catmap cm;
