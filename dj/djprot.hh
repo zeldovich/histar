@@ -28,8 +28,6 @@ class djprot : public message_sender {
 
     virtual dj_pubkey pubkey() const = 0;
     virtual ptr<sfspriv> privkey() = 0;
-    virtual void set_label(const dj_label &l) = 0;
-    virtual void set_clear(const dj_label &c) = 0;
     virtual void set_delivery_cb(local_delivery_cb cb) = 0;
     virtual void sign_statement(dj_stmt_signed*) = 0;
 

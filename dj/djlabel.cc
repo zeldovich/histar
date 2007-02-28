@@ -7,21 +7,18 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 		 dj_catmap_indexed *out)
 {
     if (l)
-	l->reset(dl.deflevel);
+	l->reset(1);
+
     for (uint32_t i = 0; i < dl.ents.size(); i++) {
 	const dj_label_entry &e = dl.ents[i];
 	uint64_t lcat;
-	if (e.level == dl.deflevel)
-	    continue;
 	if (!m.g2l(e.cat, &lcat, out))
 	    throw basic_exception("djlabel_to_label: missing mapping");
-	if (l && l->get(lcat) != dl.deflevel)
-	    throw basic_exception("djlabel_to_label: duplicate label entry?");
-	if (e.level > LB_LEVEL_STAR)
-	    throw basic_exception("djlabel_to_label: bad level");
-
-	if (l)
-	    l->set(lcat, e.level);
+	if (l) {
+	    if (l->get(lcat) != 1)
+		throw basic_exception("djlabel_to_label: duplicate label entry?");
+	    l->set(lcat, e.cat.integrity ? 0 : 3);
+	}
     }
 }
 
@@ -29,10 +26,8 @@ void
 label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 		 dj_catmap_indexed *out)
 {
-    if (dl) {
-	dl->deflevel = l.get_default();
+    if (dl)
 	dl->ents.setsize(0);
-    }
 
     const ulabel *ul = l.to_ulabel_const();
     for (uint32_t i = 0; i < ul->ul_nent; i++) {
@@ -42,12 +37,16 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 	    continue;
 
 	uint64_t lcat = LB_HANDLE(ent);
-	dj_label_entry dje;
-	if (!m.l2g(lcat, &dje.cat, out))
+	dj_gcat gcat;
+	if (!m.l2g(lcat, &gcat, out))
 	    throw basic_exception("label_to_djlabel: missing mapping");
 
-	dje.level = lv;
+	if (gcat.integrity && lv != 0)
+	    throw basic_exception("label_to_djlabel: bad level for integrity");
+	if (!gcat.integrity && lv != 3)
+	    throw basic_exception("level_to_djlabel: bad level for secrecy");
+
 	if (dl)
-	    dl->ents.push_back(dje);
+	    dl->ents.push_back(gcat);
     }
 }

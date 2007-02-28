@@ -77,6 +77,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	dj_gcat gcat;
 	gcat.key = p_->pubkey();
 	gcat.id = ++counter_;
+	gcat.integrity = mapreq.gcat.integrity;
 
 	if (cmi.l2g(mapreq.lcat, 0)) {
 	    // Caller already provided an existing mapping for lcat,
@@ -121,8 +122,6 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.msg_ct = callmsg.return_ct;
     replym.token = mapent.res_ct;
     replym.taint = reply_taint;
-    replym.glabel.deflevel = 3;
-    replym.gclear.deflevel = 0;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(mapent);

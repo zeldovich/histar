@@ -51,9 +51,6 @@ sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_en
     dj_message m;
     m.target = ep;
     m.msg_ct = 12345;
-    m.taint.deflevel = 1;
-    m.glabel.deflevel = 3;
-    m.gclear.deflevel = 0;
 
     djfs_request req;
     req.set_op(DJFS_READDIR);
@@ -79,9 +76,6 @@ sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endp
     dj_message m;
     m.target = ep;
     m.msg_ct = 12345;
-    m.taint.deflevel = 1;
-    m.glabel.deflevel = 3;
-    m.gclear.deflevel = 0;
 
     dj_delegation_set dset;
     ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
@@ -104,9 +98,6 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
     a.target = ep;
     a.msg_ct = 5432;
     a.token = 1234;
-    a.taint.deflevel = 1;
-    a.glabel.deflevel = 3;
-    a.gclear.deflevel = 0;
     a.msg = "Hello world!";
 
     dj_delegation_set dset;

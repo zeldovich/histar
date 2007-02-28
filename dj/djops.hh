@@ -109,7 +109,8 @@ strbuf_cat(const strbuf &sb, const dj_pubkey &pk)
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_gcat &gc)
 {
-    sb << "<" << gc.key << "." << gc.id << ">";
+    sb << "<" << (gc.integrity ? "I" : "S")	/* integrity/secrecy */
+	      << "." << gc.key << "." << gc.id << ">";
     return sb;
 }
 
@@ -143,26 +144,11 @@ strbuf_cat(const strbuf &sb, const dj_entity &dje)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_label_entry &e)
-{
-    sb << e.cat << ":";
-    if (e.level == LB_LEVEL_STAR)
-	sb << "*";
-    else
-	sb << e.level;
-    return sb;
-}
-
-inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_label &l)
 {
     sb << "{";
     for (uint64_t i = 0; i < l.ents.size(); i++)
 	sb << " " << l.ents[i] << ",";
-    if (l.deflevel == LB_LEVEL_STAR)
-	sb << " *";
-    else
-	sb << " " << l.deflevel;
     sb << " }";
     return sb;
 }
@@ -248,15 +234,6 @@ operator<<=(dj_gatename &c, str s)
 	strtou64(dot + 1, 0, 10, &c.gate_id);
     }
     strtou64(s.cstr(), 0, 10, &c.gate_ct);
-}
-
-inline level_t
-operator%(const dj_label &l, const dj_gcat &c)
-{
-    for (uint32_t i = 0; i < l.ents.size(); i++)
-	if (l.ents[i].cat == c)
-	    return l.ents[i].level;
-    return l.deflevel;
 }
 
 #endif

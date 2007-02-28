@@ -59,9 +59,6 @@ class djprot_impl : public djprot {
 					SFS_ENCRYPT | SFS_DECRYPT)),
 	  exp_cb_(0)
     {
-	net_label_.deflevel = 1;
-	net_clear_.deflevel = 1;
-
 	xid_ = 0;
 	bc_port_ = htons(port);
 
@@ -117,9 +114,6 @@ class djprot_impl : public djprot {
 	return k_;
     }
 
-    virtual void set_label(const dj_label &l) { net_label_ = l; }
-    virtual void set_clear(const dj_label &l) { net_clear_ = l; }
-
     virtual void send(const dj_pubkey &target, time_t timeout,
 		      const dj_delegation_set &dset,
 		      const dj_message &msg, delivery_status_cb cb,
@@ -159,12 +153,6 @@ class djprot_impl : public djprot {
     }
 
  private:
-    /*
-     * Node_L(c) = { *, if Node speaks for c; 0 otherwise }
-     * N_L = net_label_; N_C = net_clear_
-     * M_L = a.taint; M_G = a.grant
-     */
-
     bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
 			 const dj_delegation_set &dset)
     {
@@ -173,16 +161,10 @@ class djprot_impl : public djprot {
 
 	dj_delegation_map dm(dset);
 
-	/* M_L \leq (Node_L^\histar \cup N_C) */
-	if (a.taint.deflevel > net_clear_.deflevel)
-	    return false;
-
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
-	    dj_gcat c = a.taint.ents[i].cat;
-	    uint32_t lv = a.taint.ents[i].level;
-	    if (lv <= net_clear_ % c)
+	    const dj_gcat &c = a.taint.ents[i];
+	    if (c.integrity)
 		continue;
-
 	    if (!key_speaks_for(dst, c, dm, dm.size()))
 		return false;
 	}
@@ -198,46 +180,20 @@ class djprot_impl : public djprot {
 
 	dj_delegation_map dm(dset);
 
-	/*
-	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_L
-	 * M_L \leq (Node_L^\histar \cup N_C)
-	 *
-	 * (Node_L^\histar \cup N_L^\histar)^\star \leq M_G [approximately]
-	 */
-	if (a.taint.deflevel < net_label_.deflevel ||
-	    a.taint.deflevel > net_clear_.deflevel ||
-	    a.glabel.deflevel != 3 || a.gclear.deflevel != 0)
-	    return false;
-
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
-	    dj_gcat c = a.taint.ents[i].cat;
-	    uint32_t lv = a.taint.ents[i].level;
-	    if (lv >= LB_LEVEL_STAR)
-		return false;
-	    if (net_label_ % c <= lv && lv <= net_clear_ % c)
-		continue;
+	    const dj_gcat &c = a.taint.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
 
 	for (uint64_t i = 0; i < a.glabel.ents.size(); i++) {
-	    dj_gcat c = a.glabel.ents[i].cat;
-	    uint32_t lv = a.glabel.ents[i].level;
-	    if (lv != LB_LEVEL_STAR)
-		return false;
-	    if (net_label_ % c == LB_LEVEL_STAR)
-		continue;
+	    const dj_gcat &c = a.glabel.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
 
 	for (uint64_t i = 0; i < a.gclear.ents.size(); i++) {
-	    dj_gcat c = a.gclear.ents[i].cat;
-	    uint32_t lv = a.gclear.ents[i].level;
-	    if (lv >= LB_LEVEL_STAR)
-		return false;
-	    if (lv <= net_clear_ % c)
-		continue;
+	    const dj_gcat &c = a.gclear.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size()))
 		return false;
 	}
@@ -516,7 +472,6 @@ class djprot_impl : public djprot {
 
     time_t exp_first_;
     timecb_t *exp_cb_;
-    dj_label net_label_, net_clear_;
     local_delivery_cb local_delivery_;
 };
 

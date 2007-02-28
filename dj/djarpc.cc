@@ -29,8 +29,6 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.msg.token = selftoken;
 
     r.r.msg.taint = m.taint;
-    r.r.msg.glabel.deflevel = 3;
-    r.r.msg.gclear.deflevel = 0;
     r.r.msg.catmap = cm.return_cm;
     r.r.msg.dset = cm.return_ds;
 

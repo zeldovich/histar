@@ -30,8 +30,7 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
     const dj_gcat &gcat = dreq.gcat;
     bool owner = false;
     for (uint32_t i = 0; i < m.glabel.ents.size(); i++)
-	if (m.glabel.ents[i].cat == gcat &&
-	    m.glabel.ents[i].level == LB_LEVEL_STAR)
+	if (m.glabel.ents[i] == gcat)
 	    owner = true;
 
     if (!owner) {
@@ -57,8 +56,6 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
     replym.msg_ct = callmsg.return_ct;
     replym.token = tf->token();
     replym.taint = m.taint;
-    replym.glabel.deflevel = 3;
-    replym.gclear.deflevel = 0;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(ss);

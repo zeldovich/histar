@@ -13,6 +13,7 @@ typedef sfs_sig2 dj_sign;
 struct dj_gcat {		/* Global category name */
     dj_pubkey key;
     unsigned hyper id;
+    unsigned integrity;
 };
 
 struct dj_address {
@@ -24,14 +25,8 @@ struct dj_address {
  * Labels.
  */
 
-struct dj_label_entry {
-    dj_gcat cat;
-    unsigned level;		/* LB_LEVEL_STAR from <inc/label.h> */
-};
-
 struct dj_label {
-    dj_label_entry ents<>;
-    unsigned deflevel;
+    dj_gcat ents<>;
 };
 
 struct dj_cat_mapping {

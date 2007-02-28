@@ -126,7 +126,7 @@ $(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(DIS_HEADERS)
 
 $(OBJDIR)/test/%: $(DIS_OBJS) $(OBJDIR)/test/%.o
 	@mkdir -p $(@D)
-	$(NCC) $(DIS_NCC_LDFLAGS) -o $@ $^ -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm -ldmalloc
+	$(NCC) $(DIS_NCC_LDFLAGS) -o $@ $^ -lsfsmisc -lsvc -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm -ldmalloc -lresolv
 
 ## lwip bench rules
 $(OBJDIR)/test/lwip/%.o: user/%.cc

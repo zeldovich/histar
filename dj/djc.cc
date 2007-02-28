@@ -44,9 +44,6 @@ main(int ac, char **av)
 
     m.target.set_type(EP_MAPCREATE);
     m.token = 0;
-    m.taint.deflevel = 1;
-    m.glabel.deflevel = 3;
-    m.gclear.deflevel = 0;
 
     label xgrant(3);
     xgrant.set(tcat, LB_LEVEL_STAR);

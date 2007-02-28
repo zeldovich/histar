@@ -55,8 +55,6 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	reply.msg.msg_ct = cm.return_ct;
 	reply.msg.token = thread_id();
 	reply.msg.taint = reqmsg.m.taint;
-	reply.msg.glabel.deflevel = 3;
-	reply.msg.gclear.deflevel = 0;
 	reply.msg.catmap = cm.return_cm;
 	reply.msg.dset = cm.return_ds;
 
