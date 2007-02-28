@@ -1,0 +1,34 @@
+OBJDIRS += pkg/httpd/user
+
+HTTPD_LDEPS   := $(OBJDIR)/pkg/httpd/lib/libhttpd.a
+HTTPD_LDFLAGS := $(OBJDIR)/pkg/httpd/lib/libhttpd.a \
+		 $(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
+	   
+## Generic build rules
+
+$(OBJDIR)/pkg/httpd/user/%.o: pkg/httpd/user/%.cc acpkg/openssl-0.9.8a/__build
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(HTTPD_CFLAGS)
+
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/pkg/httpd/user/%.o $(LDEPS) $(HTTPD_LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $< $(HTTPD_LDFLAGS)
+
+## Special targets
+
+$(OBJDIR)/user/%.pl: pkg/httpd/script/%.pl
+	@mkdir -p $(@D)
+	cp $< $@
+
+$(OBJDIR)/user/%.sh: pkg/httpd/script/%.sh
+	@mkdir -p $(@D)
+	cp $< $@
+
+$(OBJDIR)/user/server.pem $(OBJDIR)/user/servkey.pem:
+	@mkdir -p $(@D)
+	openssl req -new -x509 -keyout $(OBJDIR)/user/servkey.pem \
+		-out $(OBJDIR)/user/server.pem -days 3650 \
+		-nodes -subj /CN=histar-httpd
+
+$(OBJDIR)/user/dh.pem:
+	@mkdir -p $(@D)
+	openssl dhparam -out $@ 1024
