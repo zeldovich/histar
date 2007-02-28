@@ -12,8 +12,11 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
     for (uint32_t i = 0; i < dl.ents.size(); i++) {
 	const dj_gcat &gcat = dl.ents[i];
 	uint64_t lcat;
-	if (!m.g2l(gcat, &lcat, out))
+	if (!m.g2l(gcat, &lcat, out)) {
+	    warn << "djlabel_to_label: missing mapping for " << gcat << "\n";
 	    throw basic_exception("djlabel_to_label: missing mapping");
+	}
+
 	if (l) {
 	    if (l->get(lcat) != 1)
 		throw basic_exception("djlabel_to_label: duplicate label entry?");
@@ -47,8 +50,10 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 
 	uint64_t lcat = LB_HANDLE(ent);
 	dj_gcat gcat;
-	if (!m.l2g(lcat, &gcat, out))
+	if (!m.l2g(lcat, &gcat, out)) {
+	    warn << "label_to_djlabel: missing mapping for " << lcat << "\n";
 	    throw basic_exception("label_to_djlabel: missing mapping");
+	}
 
 	if (t == label_taint) {
 	    if ((gcat.integrity && lv != 0) || (!gcat.integrity && lv != 3))
