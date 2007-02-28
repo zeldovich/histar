@@ -141,7 +141,8 @@ class incoming_impl : public dj_incoming_gate {
 		       bool untainted, dj_incoming_gate_res *res)
     {
 	cobj_ref rseg = gcd->param_obj;
-	error_check(sys_obj_set_readonly(rseg));
+	if (!untainted)
+	    error_check(sys_obj_set_readonly(rseg));
 
 	label vl, vc;
 	thread_cur_verify(&vl, &vc);
