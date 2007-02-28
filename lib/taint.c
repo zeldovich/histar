@@ -280,8 +280,9 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
 		start_env_ro->shared_container, start_env_ro->proc_container);
     if (start_env_ro->taint_cow_as.object) {
 	cur_as = start_env_ro->taint_cow_as;
-	cprintf("taint_cow: using checkpointed AS %ld.%ld\n",
-		cur_as.container, cur_as.object);
+	if (taint_debug)
+	    cprintf("taint_cow: using checkpointed AS %ld.%ld\n",
+		    cur_as.container, cur_as.object);
     }
     int r = taint_cow_slow(cur_as, taint_container, declassify_gate);
     utrap_set_mask(maskold);
