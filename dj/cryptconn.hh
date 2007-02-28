@@ -5,18 +5,28 @@
 #include <arpc.h>
 #include <dj/djprot.hh>
 
-class crypt_conn : virtual public refcount {
+typedef enum {
+    crypt_cannot_connect,
+    crypt_connected,
+    crypt_disconnected
+} crypt_conn_status;
+
+class crypt_conn {
  public:
     typedef callback<void, const dj_pubkey&, const str&>::ptr rcb_t;
-    crypt_conn(int fd, djprot*, rcb_t, cbv ready_cb);
-    crypt_conn(int fd, dj_pubkey remote, djprot*, rcb_t, cbv ready_cb);
+    typedef callback<void, crypt_conn*, crypt_conn_status>::ptr readycb_t;
+
+    crypt_conn(int fd, djprot*, rcb_t, readycb_t ready_cb);
+    crypt_conn(int fd, dj_pubkey remote, djprot*, rcb_t, readycb_t ready_cb);
 
     void send(const str &msg);
-    bool ready() { return setup_done_; }
-    bool dead() { return x_ == 0; }
+
+    // For ihash
+    dj_pubkey remote_;
+    ihash_entry<crypt_conn> link_;
 
  private:
-    void die() { x_ = 0; }
+    void die(crypt_conn_status code) { ready_cb_(this, code); }
     void key_send();
 
     void key_recv(const char *buf, ssize_t len, const sockaddr*);
@@ -24,12 +34,10 @@ class crypt_conn : virtual public refcount {
 
     bool initiate_;
     dj_stmt_signed local_ss_;
-    dj_pubkey remote_;
     djprot *p_;
     rcb_t cb_;
-    cbv ready_cb_;
+    readycb_t ready_cb_;
 
-    bool setup_done_;
     ptr<axprt_crypt> x_;
 };
 

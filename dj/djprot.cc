@@ -8,6 +8,7 @@
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
 #include <dj/djkey.hh>
+#include <dj/cryptconn.hh>
 
 enum {
     addr_cert_valid = 60,
@@ -62,13 +63,13 @@ class djprot_impl : public djprot {
 	xid_ = 0;
 	bc_port_ = htons(port);
 
-	int ufd = inetsocket(SOCK_DGRAM);
-	if (ufd < 0)
+	int listenfd = inetsocket(SOCK_STREAM);
+	if (listenfd < 0)
 	    fatal << "djprot_impl: inetsocket\n";
 
 	sockaddr_in sin;
 	socklen_t slen = sizeof(sin);
-	if (getsockname(ufd, (sockaddr *) &sin, &slen) < 0)
+	if (getsockname(listenfd, (sockaddr *) &sin, &slen) < 0)
 	    fatal << "djprot_impl: getsockname\n";
 	my_port_ = sin.sin_port;
 
@@ -79,18 +80,19 @@ class djprot_impl : public djprot {
 	     << ntohs(bc_port_) << "\n";
 	warn << "djprot: my public key is " << pubkey() << "\n";
 
-	make_async(ufd);
-	ux_ = axprt_dgram::alloc(ufd);
-	ux_->setrcb(wrap(this, &djprot_impl::rcv));
+	listen(listenfd, 5);
+	make_async(listenfd);
+	fdcb(listenfd, selread, wrap(this, &djprot_impl::tcp_accept, listenfd));
 
 	make_async(bfd);
 	bx_ = axprt_dgram::alloc(bfd);
-	bx_->setrcb(wrap(this, &djprot_impl::rcv));
+	bx_->setrcb(wrap(this, &djprot_impl::rcv_bcast));
 
 	send_bcast();
     }
 
     virtual ~djprot_impl() {
+	tcpconn_.deleteall();
 	addr_exp_.deleteall();
 	if (exp_cb_)
 	    timecb_remove(exp_cb_);
@@ -201,7 +203,19 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool send_message(str msg, dj_pubkey nodekey) {
+    bool send_message(const dj_stmt_signed &ss, dj_pubkey nodekey) {
+	crypt_conn *cc = tcpconn_[nodekey];
+	if (cc) {
+	    str msg = xdr2str(ss.stmt);
+	    if (!msg) {
+		warn << "send_message: cannot encode statement\n";
+		return false;
+	    }
+
+	    cc->send(msg);
+	    return true;
+	}
+
 	pk_addr *a = addr_key_[nodekey];
 	if (!a) {
 	    warn << "send_message: can't find address for pubkey\n";
@@ -216,11 +230,7 @@ class djprot_impl : public djprot {
 	    return false;
 	}
 
-	sockaddr_in sin;
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = addr.ip;
-	sin.sin_port = addr.port;
-	ux_->send(msg.cstr(), msg.len(), (sockaddr *) &sin);
+	tcp_connect(nodekey, addr);
 	return true;
     }
 
@@ -248,15 +258,7 @@ class djprot_impl : public djprot {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
 	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
 	} else {
-	    sign_statement(&cc->ss);
-	    str msg = xdr2str(cc->ss);
-	    if (!msg) {
-		warn << "clnt_transmit: cannot encode msg xfer statement\n";
-		clnt_done(cc, DELIVERY_LOCAL_ERR, 0);
-		return;
-	    }
-
-	    if (!send_message(msg, cc->ss.stmt.msgx->to)) {
+	    if (!send_message(cc->ss, cc->ss.stmt.msgx->to)) {
 		clnt_done(cc, DELIVERY_NO_ADDRESS, 0);
 		return;
 	    }
@@ -329,14 +331,7 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	sign_statement(&ss);
-	str msg = xdr2str(ss);
-	if (!msg) {
-	    warn << "srvr_send_status: cannot encode reply\n";
-	    return;
-	}
-
-	send_message(msg, cid.key);
+	send_message(ss, cid.key);
     }
 
     void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
@@ -393,7 +388,7 @@ class djprot_impl : public djprot {
 	}
     }
 
-    void rcv(const char *pkt, ssize_t len, const sockaddr *addr) {
+    void rcv_bcast(const char *pkt, ssize_t len, const sockaddr *addr) {
 	if (!pkt) {
 	    warn << "receive error -- but it's UDP?\n";
 	    return;
@@ -415,12 +410,8 @@ class djprot_impl : public djprot {
 	    process_delegation(*m.stmt.delegation);
 	    break;
 
-	case STMT_MSG_XFER:
-	    process_msg(*m.stmt.msgx);
-	    break;
-
 	default:
-	    warn << "Unhandled statement type " << m.stmt.type << "\n";
+	    warn << "Unhandled bcast statement type " << m.stmt.type << "\n";
 	}
     }
 
@@ -459,9 +450,94 @@ class djprot_impl : public djprot {
 	delaycb(broadcast_period, wrap(this, &djprot_impl::send_bcast));
     }
 
+    void tcp_accept(int fd) {
+	sockaddr_in sin;
+	socklen_t sinlen = sizeof(sin);
+	int c = accept(fd, (sockaddr *) &sin, &sinlen);
+	if (c < 0) {
+	    warn << "accept: " << strerror(errno) << "\n";
+	    return;
+	}
+
+	vNew crypt_conn(c, this,
+			wrap(this, &djprot_impl::tcp_receive),
+			wrap(this, &djprot_impl::tcp_ready));
+    }
+
+    void tcp_connect(const dj_pubkey &pk, const dj_address &addr) {
+	in_addr inaddr;
+	inaddr.s_addr = addr.ip;
+	tcpconnect(inaddr, ntohs(addr.port),
+		   wrap(this, &djprot_impl::tcp_connected, pk));
+    }
+
+    void tcp_connected(dj_pubkey pk, int fd) {
+	if (fd < 0) {
+	    warn << "tcp_connected: " << strerror(errno) << "\n";
+	    return;
+	}
+
+	vNew crypt_conn(fd, pk, this,
+			wrap(this, &djprot_impl::tcp_receive),
+			wrap(this, &djprot_impl::tcp_ready));
+    }
+
+    void tcp_ready(crypt_conn *cc, crypt_conn_status code) {
+	if (code == crypt_cannot_connect) {
+	    delete cc;
+	    return;
+	}
+
+	if (code == crypt_disconnected) {
+	    tcpconn_.remove(cc);
+	    delete cc;
+	    return;
+	}
+
+	if (code == crypt_connected) {
+	    tcpconn_.insert(cc);
+
+	    msg_client *nmc;
+	    for (msg_client *mc = clnt_.first(); mc; mc = nmc) {
+		nmc = clnt_.next(mc);
+
+		if (mc->ss.stmt.msgx->to != cc->remote_)
+		    continue;
+		if (!mc->timecb)
+		    continue;
+
+		timecb_remove(mc->timecb);
+		clnt_transmit(mc);
+	    }
+
+	    return;
+	}
+
+	panic << "funny tcp_ready code " << code << "\n";
+    }
+
+    void tcp_receive(const dj_pubkey &sender, const str &msg) {
+	dj_stmt stmt;
+	if (!str2xdr(stmt, msg)) {
+	    warn << "tcp_receive: cannot decode incoming message\n";
+	    return;
+	}
+
+	if (stmt.type != STMT_MSG_XFER) {
+	    warn << "tcp_receive: unexpected statement type\n";
+	    return;
+	}
+
+	if (stmt.msgx->from != sender) {
+	    warn << "tcp_receive: sender vs envelope mismatch\n";
+	    return;
+	}
+
+	process_msg(*stmt.msgx);
+    }
+
     uint16_t bc_port_;	/* network byte order */
     uint16_t my_port_;	/* network byte order */
-    ptr<axprt> ux_;
     ptr<axprt> bx_;
     ptr<sfspriv> k_;
     uint64_t xid_;
@@ -473,6 +549,8 @@ class djprot_impl : public djprot {
     time_t exp_first_;
     timecb_t *exp_cb_;
     local_delivery_cb local_delivery_;
+
+    ihash<dj_pubkey, crypt_conn, &crypt_conn::remote_, &crypt_conn::link_> tcpconn_;
 };
 
 djprot *
