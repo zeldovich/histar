@@ -119,7 +119,6 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
     dj_message replym;
     replym.target = callmsg.return_ep;
-    replym.msg_ct = callmsg.return_ct;
     replym.token = mapent.res_ct;
     replym.taint = reply_taint;
     replym.catmap = callmsg.return_cm;

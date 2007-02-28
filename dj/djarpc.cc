@@ -25,7 +25,6 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.dset = m.dset;
     r.r.catmap = m.catmap;
     r.r.msg.target = cm.return_ep;
-    r.r.msg.msg_ct = cm.return_ct;
     r.r.msg.token = selftoken;
 
     r.r.msg.taint = m.taint;
@@ -58,7 +57,6 @@ dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &d
     rep_created_ = true;
 
     dj_call_msg cm;
-    cm.return_ct = rct_;
     cm.return_ep = rep_;
     cm.buf = buf;
 

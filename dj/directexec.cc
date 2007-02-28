@@ -10,8 +10,8 @@ dj_direct_gatemap::deliver(const dj_pubkey &sender,
 	return;
     }
 
-    dj_msg_sink *s = gatemap_[COBJ(a.target.gate->gate_ct,
-				   a.target.gate->gate_id)];
+    dj_msg_sink *s = gatemap_[COBJ(a.target.ep_gate->gate.gate_ct,
+				   a.target.ep_gate->gate.gate_id)];
     if (!s) {
 	da.cb(DELIVERY_REMOTE_ERR, 0);
 	return;
@@ -27,9 +27,10 @@ dj_direct_gatemap::create_gate(uint64_t ct, dj_msg_sink cb)
 {
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
-    ep.gate->gate_ct = ct;
-    ep.gate->gate_id = ++counter_;
-    gatemap_.insert(COBJ(ep.gate->gate_ct, ep.gate->gate_id), cb);
+    ep.ep_gate->msg_ct = 0xdeadbeef;
+    ep.ep_gate->gate.gate_ct = ct;
+    ep.ep_gate->gate.gate_id = ++counter_;
+    gatemap_.insert(COBJ(ep.ep_gate->gate.gate_ct, ep.ep_gate->gate.gate_id), cb);
     return ep;
 }
 
@@ -41,6 +42,6 @@ dj_direct_gatemap::destroy(const dj_message_endpoint &ep)
 	return;
     }
 
-    cobj_ref cid = COBJ(ep.gate->gate_ct, ep.gate->gate_id);
+    cobj_ref cid = COBJ(ep.ep_gate->gate.gate_ct, ep.ep_gate->gate.gate_id);
     gatemap_.remove(cid);
 }

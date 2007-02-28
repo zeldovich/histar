@@ -92,8 +92,9 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      */
     gate_exec_thread_state s;
     s.done = 0;
-    s.gate = COBJ(m.target.gate->gate_ct, m.target.gate->gate_id);
-    s.msg_ct = m.msg_ct;
+    s.gate.container = m.target.ep_gate->gate.gate_ct;
+    s.gate.object = m.target.ep_gate->gate.gate_id;
+    s.msg_ct = m.target.ep_gate->msg_ct;
 
     msg_taint.merge(&msg_glabel, &s.vl, label::min, label::leq_starlo);
     msg_taint.merge(&msg_gclear, &s.vc, label::max, label::leq_starlo);
@@ -127,12 +128,12 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     gmsg.m = m;
     str gmstr = xdr2str(gmsg);
 
-    if (!ctx.can_rw(COBJ(m.msg_ct, m.msg_ct)))
-	throw basic_exception("caller cannot write container %ld", m.msg_ct);
+    if (!ctx.can_rw(COBJ(s.msg_ct, s.msg_ct)))
+	throw basic_exception("caller cannot write container %ld", s.msg_ct);
 
     cobj_ref mseg;
     void *data_map = 0;
-    error_check(segment_alloc(m.msg_ct, gmstr.len(), &mseg,
+    error_check(segment_alloc(s.msg_ct, gmstr.len(), &mseg,
 			      &data_map, msg_taint.to_ulabel(),
 			      "gate_exec message"));
     scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);

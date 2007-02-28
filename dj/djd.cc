@@ -51,7 +51,6 @@ sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_en
 {
     dj_message m;
     m.target = ep;
-    m.msg_ct = 12345;
 
     djfs_request req;
     req.set_op(DJFS_READDIR);
@@ -76,7 +75,6 @@ sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endp
 {
     dj_message m;
     m.target = ep;
-    m.msg_ct = 12345;
 
     dj_delegation_set dset;
     ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
@@ -97,7 +95,6 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
 
     dj_message a;
     a.target = ep;
-    a.msg_ct = 5432;
     a.token = 1234;
     a.msg = "Hello world!";
 
@@ -118,7 +115,8 @@ main(int ac, char **av)
 
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
-    *ep.gate <<= "5.7";
+    ep.ep_gate->msg_ct = 12345;
+    ep.ep_gate->gate <<= "5.7";
 
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
@@ -149,7 +147,7 @@ main(int ac, char **av)
 	assert(sfspub);
 	dj_pubkey k = sfspub2dj(sfspub);
 
-	*ep.gate <<= av[2];
+	ep.ep_gate->gate <<= av[2];
 
 	sndfsrpc(djs, &gm, k, ep);
     }

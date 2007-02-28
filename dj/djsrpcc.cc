@@ -110,10 +110,10 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     cobj_ref return_gate = gate_create(&gd);
 
     dj_call_msg callmsg;
-    callmsg.return_ct = call_ct;
     callmsg.return_ep.set_type(EP_GATE);
-    callmsg.return_ep.gate->gate_ct = call_ct;
-    callmsg.return_ep.gate->gate_id = return_gate.object;
+    callmsg.return_ep.ep_gate->msg_ct = call_ct;
+    callmsg.return_ep.ep_gate->gate.gate_ct = call_ct;
+    callmsg.return_ep.ep_gate->gate.gate_id = return_gate.object;
     callmsg.return_cm = cm;
     callmsg.return_ds = dset;
     callmsg.buf = calldata;

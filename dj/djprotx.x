@@ -88,16 +88,20 @@ struct dj_gatename {
     unsigned hyper gate_id;
 };
 
+struct dj_ep_gate {
+    unsigned hyper msg_ct;	/* container ID for message segment & thread */
+    dj_gatename gate;
+};
+
 union dj_message_endpoint switch (dj_endpoint_type type) {
  case EP_GATE:
-    dj_gatename gate;
+    dj_ep_gate ep_gate;
  case EP_MAPCREATE:
     void;
 };
 
 struct dj_message {
     dj_message_endpoint target;	/* gate or segment to call on delivery */
-    unsigned hyper msg_ct;	/* container ID for message segment */
     unsigned hyper token;	/* token returned on sending (0=none) */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */

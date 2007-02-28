@@ -9,8 +9,8 @@
 class dj_autorpc {
  public:
     dj_autorpc(gate_sender *gs, time_t tmo, const dj_pubkey &pk,
-	       uint64_t ct, dj_global_cache &cache)
-	: gs_(gs), tmo_(tmo), pk_(pk), msgct_(ct),
+	       dj_global_cache &cache)
+	: gs_(gs), tmo_(tmo), pk_(pk),
 	  home_(cache.home()), nc_(cache[pk]) {}
 
     template<class TA, class TR>
@@ -27,7 +27,6 @@ class dj_autorpc {
 
 	dj_message reqm;
 	reqm.target = ep;
-	reqm.msg_ct = msgct_;
 	reqm.token = 0;
 
 	label tl;
@@ -84,7 +83,6 @@ class dj_autorpc {
     gate_sender *gs_;
     time_t tmo_;
     dj_pubkey pk_;
-    uint64_t msgct_;
     dj_node_cache *home_;
     dj_node_cache *nc_;
 };

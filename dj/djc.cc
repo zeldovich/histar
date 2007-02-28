@@ -24,11 +24,10 @@ main(int ac, char **av)
     //dj_pubkey k = sfspub2dj(sfspub);
     dj_pubkey k = gs.hostkey();
 
-    uint64_t call_ct = atoi(av[2]);
-
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
-    *ep.gate <<= av[3];
+    ep.ep_gate->msg_ct = atoi(av[2]);
+    ep.ep_gate->gate <<= av[3];
 
     dj_delegation_set dset;
     dj_catmap cm;
@@ -40,7 +39,7 @@ main(int ac, char **av)
 
     /* XXX abuse of call_ct -- assumes same node */
     dj_mapreq mapreq;
-    mapreq.ct = call_ct;
+    mapreq.ct = ep.ep_gate->msg_ct;
     mapreq.lcat = tcat;
 
     m.target.set_type(EP_MAPCREATE);
@@ -67,7 +66,7 @@ main(int ac, char **av)
 	 << tcatmap.res_gt << "\n";
 
     /* Send a real echo request now.. */
-    dj_autorpc ar(&gs, 1, k, call_ct, djcache);
+    dj_autorpc ar(&gs, 1, k, djcache);
     dj_gatename arg;
     dj_gatename res;
     arg.gate_ct = 123456;

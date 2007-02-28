@@ -53,7 +53,6 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
 
     dj_message replym;
     replym.target = callmsg.return_ep;
-    replym.msg_ct = callmsg.return_ct;
     replym.token = tf->token();
     replym.taint = m.taint;
     replym.catmap = callmsg.return_cm;

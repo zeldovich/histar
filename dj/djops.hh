@@ -172,7 +172,9 @@ strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
 {
     switch (ep.type) {
     case EP_GATE:
-	sb << "G:" << ep.gate->gate_ct << "." << ep.gate->gate_id;
+	sb << "G:" << ep.ep_gate->msg_ct << "+"
+		   << ep.ep_gate->gate.gate_ct << "."
+		   << ep.ep_gate->gate.gate_id;
 	break;
 
     default:
@@ -185,7 +187,6 @@ inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_message &a)
 {
     sb << "target ep:    " << a.target << "\n";
-    sb << "msg ct:       " << a.msg_ct << "\n";
     sb << "sent token:   " << a.token << "\n";
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";
