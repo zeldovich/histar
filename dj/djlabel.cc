@@ -6,8 +6,16 @@ void
 djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 		 label_type t, dj_catmap_indexed *out)
 {
-    if (l)
-	l->reset(1);
+    if (l) {
+	if (t == label_taint)
+	    l->reset(1);
+	else if (t == label_clear)
+	    l->reset(0);
+	else if (t == label_owner)
+	    l->reset(3);
+	else
+	    throw basic_exception("djlabel_to_label: bad type");
+    }
 
     for (uint32_t i = 0; i < dl.ents.size(); i++) {
 	const dj_gcat &gcat = dl.ents[i];
@@ -18,7 +26,7 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 	}
 
 	if (l) {
-	    if (l->get(lcat) != 1)
+	    if (l->get(lcat) != l->get_default())
 		throw basic_exception("djlabel_to_label: duplicate label entry?");
 	    level_t lv;
 	    if (t == label_taint)
