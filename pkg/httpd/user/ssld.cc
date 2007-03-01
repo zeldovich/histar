@@ -98,8 +98,9 @@ ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 {
     SSL *ssl = 0;
 
-    int cipher_fd = bipipe_fd(COBJ(cc, co), 1, 0);
-    int plain_fd = bipipe_fd(COBJ(pc, po), 1, 0);
+    // don't worry about extra taint and grant
+    int cipher_fd = bipipe_fd(COBJ(cc, co), 1, 0, 0, 0);
+    int plain_fd = bipipe_fd(COBJ(pc, po), 1, 0, 0, 0);
     error_check(cipher_fd);
     error_check(plain_fd);
     

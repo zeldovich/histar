@@ -228,34 +228,20 @@ ssl_proxy::start(void)
     try {
 	// manually setup bipipe segments
 	struct cobj_ref cipher_seg;
-	struct bipipe_seg *cipher_bs = 0;
 	label cipher_label(1);
 	cipher_label.set(ssl_taint, 3);
-	error_check(segment_alloc(ssl_root_ct,
-				  sizeof(*cipher_bs), &cipher_seg, 
-				  (void **)&cipher_bs, cipher_label.to_ulabel(), 
-			      "cipher-bipipe"));
+	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
+				 cipher_label.to_ulabel(), "cipher-bipipe"));
 	scope_guard<int, struct cobj_ref> 
 	    unref_cipher(sys_obj_unref, cipher_seg);
-	scope_guard<int, void*> umap(segment_unmap, cipher_bs);
-	memset(cipher_bs, 0, sizeof(*cipher_bs));
-	cipher_bs->p[0].open = 1;
-	cipher_bs->p[1].open = 1;
+
 	
 	struct cobj_ref plain_seg;
-	struct bipipe_seg *plain_bs = 0;
 	label plain_label(1);
 	plain_label.set(ssl_taint, 3);
-	error_check(segment_alloc(ssl_root_ct,
-				  sizeof(*plain_bs), &plain_seg, 
-				  (void **)&plain_bs, plain_label.to_ulabel(), 
-				  "plain-bipipe"));
+	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
+				 plain_label.to_ulabel(), "plain-bipipe"));
 	scope_guard<int, struct cobj_ref> unref_plain(sys_obj_unref, plain_seg);
-	scope_guard<int, void*> umap2(segment_unmap, plain_bs);
-	memset(plain_bs, 0, sizeof(*plain_bs));
-	plain_bs->p[0].open = 1;
-	plain_bs->p[1].open = 1;
-
 	
 	struct cobj_ref eproc_seg = COBJ(0, 0);
 	if (eproc_gate_.object) {
@@ -273,8 +259,8 @@ ssl_proxy::start(void)
 	}
 
 	// NONBLOCK to avoid potential deadlock with ssld
-	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK);
-	int plain_fd = bipipe_fd(plain_seg, 0, 0);
+	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK, ssl_taint, 0);
+	int plain_fd = bipipe_fd(plain_seg, 0, 0, ssl_taint, 0);
 	error_check(cipher_fd);
 	unref_cipher.dismiss();
 	error_check(plain_fd);

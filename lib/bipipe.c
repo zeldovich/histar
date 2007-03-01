@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
+#include <unistd.h>
 #include <sys/socket.h>
 
 #define BIPIPE_SEG_MAP(__fd, __va)				\
@@ -53,7 +54,7 @@ bipipe_alloc(uint64_t container, struct cobj_ref *cobj,
 }
 
 int
-bipipe_fd(struct cobj_ref seg, int a, int mode)
+bipipe_fd(struct cobj_ref seg, int a, int mode, uint64_t grant, uint64_t taint)
 {
     struct Fd *fd;
     int r = fd_alloc(&fd, "bipipe");
@@ -65,6 +66,7 @@ bipipe_fd(struct cobj_ref seg, int a, int mode)
     fd->fd_omode = O_RDWR | mode;
     fd->fd_bipipe.bipipe_seg = seg;
     fd->fd_bipipe.bipipe_a = a;
+    fd_set_extra_handles(fd, grant, taint);
     return fd2num(fd);
 }
 
@@ -73,58 +75,39 @@ bipipe(int fv[2])
 {
     int r;
     struct cobj_ref seg;
-    struct bipipe_seg *bs = 0;
     uint64_t ct = start_env->shared_container;
     
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
-    struct ulabel *l = label_alloc();
-    l->ul_default = 1;
-    label_set_level(l, taint, 3, 1);
-    label_set_level(l, grant, 0, 1);
-    if ((r = segment_alloc(ct, sizeof(*bs), &seg, (void *)&bs, l, "bipipe")) < 0) {
-	label_free(l);
+    
+    uint64_t label_ent[16];
+    struct ulabel label = { .ul_size = 16, .ul_ent = &label_ent[0] };
+    label.ul_default = 1;
+    label.ul_nent = 0;
+
+    label_set_level(&label, taint, 3, 1);
+    label_set_level(&label, grant, 0, 1);
+
+    if ((r = bipipe_alloc(ct, &seg, &label, "bipipe")) < 0) {
         errno = ENOMEM;
         return -1;
     }
-    label_free(l);
 
-    memset(bs, 0, sizeof(*bs));
+    r = bipipe_fd(seg, 1, 0, 0, 0);
+    if (r < 0) {
+	sys_obj_unref(seg);
+	return r;
+    }
+    fv[0] = r;
 
-    struct Fd *fda;
-    r = fd_alloc(&fda, "bipipe");
+    r = bipipe_fd(seg, 0, 0, 0, 0);
     if (r < 0) {
-	segment_unmap_delayed(bs, 1);
-	sys_obj_unref(seg);
-	errno = ENOMEM;
-        return -1;
+	// unrefs seg
+	close(fv[0]);
+	return r;
     }
-    fda->fd_dev_id = devbipipe.dev_id;
-    fda->fd_omode = O_RDWR;
-    fda->fd_bipipe.bipipe_seg = seg;
-    fda->fd_bipipe.bipipe_a = 1;
-    fd_set_extra_handles(fda, grant, taint);
-    bs->p[1].open = 1;
+    fv[1] = r;
     
-    struct Fd *fdb;
-    r = fd_alloc(&fdb, "bipipe");
-    if (r < 0) {
-        segment_unmap_delayed(bs, 1);
-	sys_obj_unref(seg);
-        jos_fd_close(fda);
-        errno = ENOMEM;
-        return -1;
-    }
-    fdb->fd_dev_id = devbipipe.dev_id;
-    fdb->fd_omode = O_RDWR;
-    fdb->fd_bipipe.bipipe_seg = seg;
-    fdb->fd_bipipe.bipipe_a = 0;   
-    fd_set_extra_handles(fdb, grant, taint);
-    bs->p[0].open = 1;
-    
-    fv[0] = fd2num(fda);
-    fv[1] = fd2num(fdb);
-    segment_unmap_delayed(bs, 1);
     return 0;
 }
 

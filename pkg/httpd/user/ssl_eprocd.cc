@@ -39,7 +39,8 @@ static char *cow_stacktop;
 static void __attribute__((noreturn))
 handle_client(uint64_t ec, uint64_t eo)
 {
-    int s = bipipe_fd(COBJ(ec, eo), 1, 0);
+    // don't worry about extra taint and grant
+    int s = bipipe_fd(COBJ(ec, eo), 1, 0, 0, 0);
     error_check(s);
     
     unsigned char pub_e[256], pub_n[256];

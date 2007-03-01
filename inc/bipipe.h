@@ -7,7 +7,8 @@ int bipipe(int fv[2]);
 
 int bipipe_alloc(uint64_t container, struct cobj_ref *seg,
 		 const struct ulabel *label, const char *name);
-int bipipe_fd(struct cobj_ref seg, int mode, int a);
+int bipipe_fd(struct cobj_ref seg, int mode, int a, 
+	      uint64_t grant, uint64_t taint);
 
 // Defined in bipipe.h so pty can reuse structure and code.
 enum { bipipe_bufsz = 4000 };

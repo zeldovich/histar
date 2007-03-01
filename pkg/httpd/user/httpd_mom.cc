@@ -17,8 +17,8 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static char ssl_enable = 1;
-static char ssl_privsep_enable = 0;
-static char ssl_eproc_enable = 0;
+static char ssl_privsep_enable = 1;
+static char ssl_eproc_enable = 1;
 static char http_auth_enable = 0;
 static const char* httpd_root_path = "/www";
 
