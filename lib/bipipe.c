@@ -33,6 +33,26 @@
 #define BIPIPE_SEG_UNMAP(__va) segment_unmap_delayed((__va), 1)
 
 int
+bipipe_alloc(uint64_t container, struct cobj_ref *cobj,
+	     const struct ulabel *label, const char *name)
+{
+    struct bipipe_seg *bs = 0;
+    struct cobj_ref seg;
+    int r = segment_alloc(container, sizeof(*bs), &seg, 
+			  (void **)&bs, label, name);
+    if (r < 0)
+	return r;
+
+    memset(bs, 0, sizeof(*bs));
+    bs->p[0].open = 1;
+    bs->p[1].open = 1;
+    
+    segment_unmap_delayed(bs, 1);
+    *cobj = seg;
+    return 0;
+}
+
+int
 bipipe_fd(struct cobj_ref seg, int a, int mode)
 {
     struct Fd *fd;

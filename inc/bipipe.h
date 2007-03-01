@@ -4,6 +4,9 @@
 #include <inc/fd.h>
 
 int bipipe(int fv[2]);
+
+int bipipe_alloc(uint64_t container, struct cobj_ref *seg,
+		 const struct ulabel *label, const char *name);
 int bipipe_fd(struct cobj_ref seg, int mode, int a);
 
 // Defined in bipipe.h so pty can reuse structure and code.
