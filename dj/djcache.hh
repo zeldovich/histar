@@ -3,6 +3,7 @@
 
 #include <dj/djlabel.hh>
 #include <dj/djops.hh>
+#include <dj/djkey.hh>
 #include <qhash.h>
 
 class dj_node_cache {
@@ -27,6 +28,8 @@ class dj_global_cache {
     dj_node_cache *operator[](const dj_pubkey &pk) {
 	return get(pk);
     }
+
+    dj_delegation_map dmap_;
 
  private:
     static void delete_nc(const dj_pubkey&, dj_node_cache **nc) {
