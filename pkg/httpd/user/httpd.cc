@@ -25,6 +25,7 @@ extern "C" {
 
 #include <inc/nethelper.hh>
 #include <inc/error.hh>
+#include <inc/errno.hh>
 #include <inc/scopeguard.hh>
 #include <inc/authclnt.hh>
 #include <inc/cpplabel.hh>
@@ -119,19 +120,25 @@ http_client(void *arg)
 {
     char buf[512];
     int sock_fd = (int64_t) arg;
+    scope_guard<int, int> close_sock(close, sock_fd);
 
     try {
 	ssl_proxy proxy(the_ssld_cow, the_eprocd_cow, 
 			start_env->shared_container, sock_fd);
 	int s = sock_fd;
+	
 	if (ssl_enable && ssl_privsep_enable) {
 	    proxy.start();
-	    s = proxy.plain_fd();
+	    cobj_ref plain_seg = proxy.plain_bipipe();
+		errno_check(s = bipipe_fd(plain_seg, 0, ssl_proxy::bipipe_client, 
+					  0, 0));
 	} else if (ssl_enable) {
 	    error_check(s = ssl_accept(the_ctx, s));
 	}
+	close_sock.dismiss();
+	scope_guard<int, int> close_s(close, s);
 	
-	tcpconn tc(s, !(ssl_enable && ssl_privsep_enable));
+	tcpconn tc(s, 0);
 	lineparser lp(&tc);
 
 	const char *req = lp.read_line();

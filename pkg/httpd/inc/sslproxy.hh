@@ -3,25 +3,31 @@
 
 class ssl_proxy
 {
-public:
+ public:
     ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
 	      uint64_t base_ct, int sock_fd);
     ~ssl_proxy(void);
 
     void start(void);
-    int plain_fd(void);
 
-private:
+    cobj_ref plain_bipipe(void) { return plain_bipipe_; }
+
+    static const char bipipe_client = 0;
+    static const char bipipe_ssld   = 1;
+
+ private:
     struct info {
+	uint64_t taint_;
 	int cipher_fd_;
 	int sock_fd_;
 	uint64_t base_ct_;
 	uint64_t ssl_ct_;
 	atomic64_t ref_count_;
     } *nfo_;
-    struct cobj_ref ssld_gate_;
-    struct cobj_ref eproc_gate_;
-    uint64_t plain_fd_;
+    cobj_ref ssld_gate_;
+    cobj_ref eproc_gate_;
+    cobj_ref plain_bipipe_;
+
     char proxy_started_;
     char ssld_started_;
     char eproc_started_;

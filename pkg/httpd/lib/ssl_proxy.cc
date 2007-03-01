@@ -29,7 +29,6 @@ ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
     proxy_started_ = 0;
     ssld_started_ = 0;
     eproc_started_ = 0;
-    plain_fd_ = 0;
     ssld_gate_ = ssld_gate;
     eproc_gate_ = eproc_gate;
     nfo_ = (struct info*)malloc(sizeof(*nfo_));
@@ -43,16 +42,11 @@ ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
 
 ssl_proxy::~ssl_proxy(void)
 {
-    // if started_, proxy thread is responsible for closing sock_fd 
-    // and cipher_fd
-    if (proxy_started_)
-	close(plain_fd_);
-    else {
+    // if !started_, need to do cleanup for proxy thread
+    if (!proxy_started_) {
 	close(nfo_->sock_fd_);
 	if (nfo_->cipher_fd_)
 	    close(nfo_->cipher_fd_);
-	if (plain_fd_)
-	    close(plain_fd_);
     }
 
     if (ssld_started_) {
@@ -77,15 +71,8 @@ ssl_proxy::cleanup(struct info *nfo)
 	if (nfo->ssl_ct_)
 	    sys_obj_unref(COBJ(nfo->base_ct_, nfo->ssl_ct_));
 	free(nfo);
+	thread_drop_star(nfo->taint_);
     }
-}
-
-int
-ssl_proxy::plain_fd(void)
-{
-    if (!proxy_started_)
-	throw basic_exception("proxy isn't running");
-    return plain_fd_;
 }
 
 int
@@ -249,13 +236,12 @@ ssl_proxy::start(void)
 	}
 
 	// NONBLOCK to avoid potential deadlock with ssld
-	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK, ssl_taint, 0);
-	int plain_fd = bipipe_fd(plain_seg, 0, 0, ssl_taint, 0);
+	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK, 0, 0);
 	error_check(cipher_fd);
-	error_check(plain_fd);
 
 	nfo_->cipher_fd_ = cipher_fd;
-	plain_fd_ = plain_fd;
+	nfo_->taint_ = ssl_taint;
+	plain_bipipe_ = plain_seg;
 
 	if (eproc_gate_.object) {
 	    ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint, &eproc_worker_args_);
