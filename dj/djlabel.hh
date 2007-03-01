@@ -9,68 +9,15 @@
 class dj_catmap_indexed {
  public:
     dj_catmap_indexed() {}
-    dj_catmap_indexed(const dj_catmap &cm) {
-	for (uint32_t i = 0; i < cm.ents.size(); i++) {
-	    const dj_cat_mapping &e = cm.ents[i];
-	    insert(e);
-	}
-    }
-
+    dj_catmap_indexed(const dj_catmap &cm);
     ~dj_catmap_indexed() { l2g_.deleteall(); }
 
-    dj_catmap to_catmap() {
-	dj_catmap cm;
-
-	entry *e = g2l_.first();
-	while (e) {
-	    cm.ents.push_back(e->m);
-	    e = g2l_.next(e);
-	}
-
-	return cm;
-    }
-
+    dj_catmap to_catmap();
     bool g2l(const dj_gcat &gcat, uint64_t *lcatp,
-	     dj_catmap_indexed *out = 0) const
-    {
-	entry *e = g2l_[gcat];
-	if (e) {
-	    if (lcatp)
-		*lcatp = e->local;
-	    if (out)
-		out->insert(e->m);
-	    return true;
-	}
-
-	return false;
-    }
-
+	     dj_catmap_indexed *out = 0) const;
     bool l2g(uint64_t lcat, dj_gcat *gcatp,
-	     dj_catmap_indexed *out = 0) const
-    {
-	entry *e = l2g_[lcat];
-	if (e) {
-	    if (gcatp)
-		*gcatp = e->global;
-	    if (out)
-		out->insert(e->m);
-	    return true;
-	}
-
-	return false;
-    }
-
-    void insert(const dj_cat_mapping &m) {
-	if (g2l(m.gcat, 0) && l2g(m.lcat, 0))
-	    return;
-
-	entry *e = New entry();
-	e->local = m.lcat;
-	e->global = m.gcat;
-	e->m = m;
-	l2g_.insert(e);
-	g2l_.insert(e);
-    }
+	     dj_catmap_indexed *out = 0) const;
+    void insert(const dj_cat_mapping &m);
 
  private:
     struct entry {
