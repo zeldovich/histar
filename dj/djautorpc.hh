@@ -50,9 +50,9 @@ class dj_autorpc {
 	}
 
 	/* Convert labels into global equivalents; fill catmap for local node */
-	label_to_djlabel(home_->cmi_, taint  ? *taint  : tl,       &reqm.taint,  label_taint, &loc_cm);
-	label_to_djlabel(home_->cmi_, grant  ? *grant  : label(3), &reqm.glabel, label_owner, &loc_cm);
-	label_to_djlabel(home_->cmi_, gclear ? *gclear : label(0), &reqm.gclear, label_clear, &loc_cm);
+	label_to_djlabel(home_->cmi_, taint  ? *taint  : tl,       &reqm.taint,  label_taint, false, &loc_cm);
+	label_to_djlabel(home_->cmi_, grant  ? *grant  : label(3), &reqm.glabel, label_owner, false, &loc_cm);
+	label_to_djlabel(home_->cmi_, gclear ? *gclear : label(0), &reqm.gclear, label_clear, false, &loc_cm);
 
 	if (autorpc_debug) {
 	    warn << "autorpc: global taint " << reqm.taint
@@ -62,9 +62,13 @@ class dj_autorpc {
 	}
 
 	/* Populate the catmap for the remote node */
-	djlabel_to_label(nc_->cmi_, reqm.taint,  0, label_taint, &rem_cm);
-	djlabel_to_label(nc_->cmi_, reqm.glabel, 0, label_owner, &rem_cm);
-	djlabel_to_label(nc_->cmi_, reqm.gclear, 0, label_clear, &rem_cm);
+	bool skip_missing = false;
+	if (ep.type == EP_MAPCREATE)
+	    skip_missing = true;
+
+	djlabel_to_label(nc_->cmi_, reqm.taint,  0, label_taint, skip_missing, &rem_cm);
+	djlabel_to_label(nc_->cmi_, reqm.glabel, 0, label_owner, skip_missing, &rem_cm);
+	djlabel_to_label(nc_->cmi_, reqm.gclear, 0, label_clear, skip_missing, &rem_cm);
 
 	if (autorpc_debug)
 	    warn << "autorpc: done with conversions.\n";
@@ -104,9 +108,9 @@ class dj_autorpc {
 	    return DELIVERY_LOCAL_ERR;
 	}
 
-	djlabel_to_label(resm.catmap, resm.taint,  taint,  label_taint, &home_->cmi_);
-	djlabel_to_label(resm.catmap, resm.glabel, grant,  label_owner, &home_->cmi_);
-	djlabel_to_label(resm.catmap, resm.gclear, gclear, label_clear, &home_->cmi_);
+	djlabel_to_label(resm.catmap, resm.taint,  taint,  label_taint, false, &home_->cmi_);
+	djlabel_to_label(resm.catmap, resm.glabel, grant,  label_owner, false, &home_->cmi_);
+	djlabel_to_label(resm.catmap, resm.gclear, gclear, label_clear, false, &home_->cmi_);
 
 	return code;
     }

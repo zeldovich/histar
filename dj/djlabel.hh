@@ -91,8 +91,8 @@ class dj_catmap_indexed {
 typedef enum { label_taint, label_clear, label_owner } label_type;
 
 void label_to_djlabel(const dj_catmap_indexed&, const label&, dj_label*,
-		      label_type, dj_catmap_indexed *out = 0);
+		      label_type, bool skip_missing = false, dj_catmap_indexed *out = 0);
 void djlabel_to_label(const dj_catmap_indexed&, const dj_label&, label*,
-		      label_type, dj_catmap_indexed *out = 0);
+		      label_type, bool skip_missing = false, dj_catmap_indexed *out = 0);
 
 #endif

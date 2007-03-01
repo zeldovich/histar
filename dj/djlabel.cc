@@ -4,7 +4,7 @@
 
 void
 djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
-		 label_type t, dj_catmap_indexed *out)
+		 label_type t, bool skip_missing, dj_catmap_indexed *out)
 {
     if (l) {
 	if (t == label_taint)
@@ -21,6 +21,8 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 	const dj_gcat &gcat = dl.ents[i];
 	uint64_t lcat;
 	if (!m.g2l(gcat, &lcat, out)) {
+	    if (skip_missing)
+		continue;
 	    warn << "djlabel_to_label: missing mapping for " << gcat << "\n";
 	    throw basic_exception("djlabel_to_label: missing mapping");
 	}
@@ -44,7 +46,7 @@ djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 
 void
 label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
-		 label_type t, dj_catmap_indexed *out)
+		 label_type t, bool skip_missing, dj_catmap_indexed *out)
 {
     if (dl)
 	dl->ents.setsize(0);
@@ -59,6 +61,8 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 	uint64_t lcat = LB_HANDLE(ent);
 	dj_gcat gcat;
 	if (!m.l2g(lcat, &gcat, out)) {
+	    if (skip_missing)
+		continue;
 	    warn << "label_to_djlabel: missing mapping for " << lcat << "\n";
 	    throw basic_exception("label_to_djlabel: missing mapping");
 	}
