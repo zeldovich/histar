@@ -80,7 +80,7 @@ struct Fd
     /* handles for this fd */
     uint64_t fd_handle[fd_handle_max];
 
-    atomic_t fd_ref;
+    atomic64_t fd_ref;
 
     union {
 	struct {

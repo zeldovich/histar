@@ -176,7 +176,7 @@ do_fork()
 
 	    struct Fd *fd = (struct Fd *) va;
 	    if (!fd->fd_immutable)
-		atomic_inc(&fd->fd_ref);
+		atomic_inc64(&fd->fd_ref);
             if (fd->fd_dev_id == devbipipe.dev_id)
                 sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
 	    if (fd->fd_dev_id == devptm.dev_id)
