@@ -151,6 +151,18 @@ static __inline__ int atomic_dec_and_test(atomic_t *v)
 	return c != 0;
 }
 
+static __inline__ int atomic_dec_and_test64(atomic64_t *v)
+{
+	unsigned char c;
+
+	__asm__ __volatile__(
+		ATOMIC_LOCK "decq %0; sete %1"
+		:"+m" (v->counter), "=qm" (c)
+		:
+		:"cc");
+	return c != 0;
+}
+
 /**
  * atomic_inc_and_test - increment and test 
  * @v: pointer of type atomic_t
