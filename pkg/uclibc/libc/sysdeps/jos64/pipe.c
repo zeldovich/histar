@@ -2,6 +2,7 @@
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/ioctl.h>
+#include <inc/multisync.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -101,9 +102,16 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	    __set_errno(EAGAIN);
 	    return -1;
 	}
+	
+	struct wait_stat wstat[2];
+	memset(wstat, 0, sizeof(wstat));
+	WS_SETADDR(&wstat[0], &fd->fd_pipe.bytes);
+	WS_SETVAL(&wstat[0], 0);
+	WS_SETADDR(&wstat[1], &atomic_read(&fd->fd_ref));
+	WS_SETVAL(&wstat[1], ref);
+	if (multisync_wait(wstat, 2, ~0UL) < 0)
+	    return -1;
 
-    	// Need to periodically wake up and check for EOF
-	sys_sync_wait(&fd->fd_pipe.bytes, 0, sys_clock_msec() + 1000);
     	jthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
@@ -130,10 +138,6 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 static int
 pipe_close(struct Fd *fd)
 {
-    // Wake up any readers that might be waiting for EOF.
-    // Not completely reliable; we still need to check for EOF
-    // with a timeout in pipe_read().
-    sys_sync_wakeup(&fd->fd_pipe.bytes);
     return 0;
 }
 
