@@ -69,6 +69,7 @@ LIB_SRCFILES :=	\
 	lib/netbench.cc \
 	lib/prof.cc \
 	lib/cyg_prof.c \
+	lib/wrap.cc \
 	lib/hashtable.c
 
 include lib/cppsup/Makefrag

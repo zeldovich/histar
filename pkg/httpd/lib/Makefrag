@@ -6,7 +6,6 @@ HTTPD_LIB_SRCFILES :=			\
 	pkg/httpd/lib/ssl_proxy.cc   	\
 	pkg/httpd/lib/a2pdf.cc		\
 	pkg/httpd/lib/perl.cc		\
-	pkg/httpd/lib/wrap.cc		\
 	pkg/httpd/lib/ssl_fd.c		\
 	pkg/httpd/lib/argv.c		\
 	pkg/httpd/lib/openssl.c

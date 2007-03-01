@@ -1,5 +1,5 @@
-#ifndef JOS_HTTPD_INC_WRAP_HH
-#define JOS_HTTPD_INC_WRAP_HH
+#ifndef JOS_INC_WRAP_HH
+#define JOS_INC_WRAP_HH
 
 #include <iostream>
 #include <sstream>
