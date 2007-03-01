@@ -1,3 +1,9 @@
+apache 2.0.55
+openssl 0.9.8a
+uclibc 0.9.28.2 (histar?)
+a2ps 4.13b (uclibc)
+gs 8.54 (uclibc)
+
 httpd
 -----
 latency: obj/test/httpd host port -r requests
@@ -37,6 +43,38 @@ gsbench msec
 
 untar gs.tar in /fs, and optionally create test.ps in /fs
 
+
+02/28/07 results:
+
+httpd + a2pdf
+----------------------
+histar, openssl, no privsep
+0 char
+ latency: 0.1611
+ throughput: 6.21 conns/sec (1 client)
+1 char
+ latency: 0.1823
+ throughput: 5.49 conns/sec (1 client)
+1024 char 
+ latency: 0.1876
+ throughput: 5.33 conns/sec (1 client)
+8192 char
+ latency: 0.2063
+ throughput: 4.85 conns/sec (1 client)
+
+linux, apache, openssl
+0 char
+ latency: 0.1382
+ throughput: 7.5 conns/sec (3 clients)
+1 char
+ latency: 0.1581
+ throughput: 6.5 conns/sec (2 clients)
+1024 char
+ latency: 0.1606
+ throughput: 6.3833 (2 clients)
+8192 char
+ latency: 0.1791
+ throughput: 5.7167 (2 clients)
 
 02/21/07 results:
 
