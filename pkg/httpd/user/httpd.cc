@@ -123,20 +123,20 @@ http_client(void *arg)
     scope_guard<int, int> close_sock(close, sock_fd);
 
     try {
-	ssl_proxy proxy(the_ssld_cow, the_eprocd_cow, 
-			start_env->shared_container, sock_fd);
 	int s = sock_fd;
 	
 	if (ssl_enable && ssl_privsep_enable) {
-	    proxy.start();
-	    cobj_ref plain_seg = proxy.plain_bipipe();
-	    s = bipipe_fd(plain_seg, ssl_proxy::bipipe_client, 0, 0, 0);
+	    ssl_proxy_descriptor d;
+	    ssl_proxy_alloc(the_ssld_cow, the_eprocd_cow, 
+			    start_env->shared_container, sock_fd, &d);
+	    ssl_proxy_thread(&d, 1);
+	    s = bipipe_fd(d.plain_bipipe_, ssl_proxy_bipipe_client, 0, 0, 0);
 	    if (s < 0) {
 		// proxy thread will close sock
 		close_sock.dismiss();
 		throw basic_exception("unable to open plain bipipe: %s\n", 
 				      strerror(errno));
-	    }
+	    }	    
 	} else if (ssl_enable) {
 	    error_check(s = ssl_accept(the_ctx, s));
 	}

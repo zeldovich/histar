@@ -1,45 +1,53 @@
 #ifndef JOS_HTTPD_INC_SSLPROXY_HH
 #define JOS_HTTPD_INC_SSLPROXY_HH
 
-class ssl_proxy
-{
+extern "C" {
+#include <string.h>
+}
+
+enum { 
+    ssl_proxy_bipipe_client, 
+    ssl_proxy_bipipe_ssld 
+};
+
+struct ssl_proxy_descriptor {
  public:
-    ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
-	      uint64_t base_ct, int sock_fd);
-    ~ssl_proxy(void);
+    ssl_proxy_descriptor() :
+	base_ct_(0), ssl_ct_(0), 
+	sock_fd_(0),
+	taint_(0),
+	cipher_bipipe_(COBJ(0, 0)), plain_bipipe_(COBJ(0, 0)),
+	eproc_started_(0), ssld_started_(0) 
+    {
+	memset(&eproc_worker_args_, 0, sizeof(eproc_worker_args_));
+	memset(&ssld_worker_args_, 0, sizeof(ssld_worker_args_));
+    }
 
-    void start(void);
+    uint64_t base_ct_;
+    uint64_t ssl_ct_;
 
-    cobj_ref plain_bipipe(void) { return plain_bipipe_; }
+    int sock_fd_;
 
-    static const char bipipe_client = 0;
-    static const char bipipe_ssld   = 1;
+    uint64_t taint_;
 
- private:
-    struct info {
-	uint64_t taint_;
-	cobj_ref cipher_bipipe_;
-	int sock_fd_;
-	uint64_t base_ct_;
-	uint64_t ssl_ct_;
-	atomic64_t ref_count_;
-    } *nfo_;
-    cobj_ref ssld_gate_;
-    cobj_ref eproc_gate_;
+    cobj_ref cipher_bipipe_;
     cobj_ref plain_bipipe_;
 
-    char proxy_started_;
-    char ssld_started_;
     char eproc_started_;
-    struct thread_args ssld_worker_args_;
-    struct thread_args eproc_worker_args_;
-    
-    static void proxy_thread(void *a);
-    static void cleanup(struct info *nfo);
-    static int select(int sock_fd, int cipher_fd, uint64_t msec);
+    char ssld_started_;
+    thread_args eproc_worker_args_;
+    thread_args ssld_worker_args_;
+ private:
+    ssl_proxy_descriptor(const ssl_proxy_descriptor&);
+    ssl_proxy_descriptor &operator=(const ssl_proxy_descriptor&);
 
-    static const uint32_t SELECT_SOCK =   0x0001;
-    static const uint32_t SELECT_CIPHER = 0x0002;
 };
+
+void ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate, 
+		     uint64_t base_ct, int sock_fd, ssl_proxy_descriptor *d);
+void ssl_proxy_cleanup(ssl_proxy_descriptor *d);
+void ssl_proxy_loop(ssl_proxy_descriptor *d, char cleanup);
+void ssl_proxy_thread(ssl_proxy_descriptor *d, char cleanup);
+
 
 #endif

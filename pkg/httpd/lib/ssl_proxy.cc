@@ -22,55 +22,96 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
 
-static const char proxy_dbg = 0;
+static const char dbg = 0;
 
-ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate, 
-		     uint64_t base_ct, int sock_fd)
+#define SELECT_SOCK    0x0001
+#define SELECT_CIPHER  0x0002
+
+void
+ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate, 
+		uint64_t base_ct, int sock_fd, ssl_proxy_descriptor *d)
 {
-    proxy_started_ = 0;
-    ssld_started_ = 0;
-    eproc_started_ = 0;
-    ssld_gate_ = ssld_gate;
-    eproc_gate_ = eproc_gate;
-    nfo_ = (struct info*)malloc(sizeof(*nfo_));
-    if (nfo_ < 0)
-	throw error(-E_NO_MEM, "cannot malloc");
-    memset(nfo_, 0, sizeof(*nfo_));
-    nfo_->base_ct_ = base_ct;
-    nfo_->sock_fd_ = sock_fd;
-    atomic_inc64(&nfo_->ref_count_);
-}
+    uint64_t ssl_taint = handle_alloc();
+    scope_guard<void, uint64_t> drop_star(thread_drop_star, ssl_taint);
+    label ssl_root_label(1);
+    ssl_root_label.set(ssl_taint, 3);
 
-ssl_proxy::~ssl_proxy(void)
-{
-    if (ssld_started_) {
-	int r = thread_cleanup(&ssld_worker_args_);
-	if (r < 0)
-	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+    int64_t ssl_root_ct = sys_container_alloc(base_ct,
+					      ssl_root_label.to_ulabel(),
+					      "ssl-root", 0, CT_QUOTA_INF);
+    error_check(ssl_root_ct);
+    d->base_ct_ = base_ct;
+    d->ssl_ct_ = ssl_root_ct;
+    d->sock_fd_ = sock_fd;
+
+    try {
+	// manually setup bipipe segments
+	struct cobj_ref cipher_seg;
+	label cipher_label(1);
+	cipher_label.set(ssl_taint, 3);
+	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
+				 cipher_label.to_ulabel(), "cipher-bipipe"));
+	
+	struct cobj_ref plain_seg;
+	label plain_label(1);
+	plain_label.set(ssl_taint, 3);
+	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
+				 plain_label.to_ulabel(), "plain-bipipe"));
+	
+	struct cobj_ref eproc_seg = COBJ(0, 0);
+	if (eproc_gate.object) {
+	    label eproc_label(1);
+	    eproc_label.set(ssl_taint, 3);
+	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
+				     eproc_label.to_ulabel(), "eproc-bipipe"));
+	}
+
+	d->cipher_bipipe_ = cipher_seg;
+	d->taint_ = ssl_taint;
+	d->plain_bipipe_ = plain_seg;
+
+	if (eproc_gate.object) {
+	    ssl_eproc_taint_cow(eproc_gate, eproc_seg, ssl_root_ct, 
+				ssl_taint, &d->eproc_worker_args_);
+	    d->eproc_started_ = 1;
+	}
+	scope_guard<int, thread_args *> 
+	    worker_cu(thread_cleanup, &d->eproc_worker_args_, d->eproc_started_);
+
+	// taint cow ssld and pass both bipipes
+	ssld_taint_cow(ssld_gate, eproc_seg, cipher_seg, plain_seg, 
+		       ssl_root_ct, ssl_taint, &d->ssld_worker_args_);
+	d->ssld_started_ = 1;
+	worker_cu.dismiss();
+    } catch (std::exception &e) {
+	sys_obj_unref(COBJ(d->base_ct_, d->ssl_ct_));
+	throw e;
     }
-
-    if (eproc_started_) {
-	int r = thread_cleanup(&eproc_worker_args_);
-	if (r < 0)
-	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
-    }
-
-    cleanup(nfo_);
+    drop_star.dismiss();
+    debug_print(dbg, "ssld_started %d eproc_started %d",
+		d->ssld_started_, d->eproc_started_);
 }
 
 void
-ssl_proxy::cleanup(struct info *nfo)
+ssl_proxy_cleanup(ssl_proxy_descriptor *d)
 {
-    if (atomic_dec_and_test((atomic_t *)&nfo->ref_count_)) {
-	if (nfo->ssl_ct_)
-	    sys_obj_unref(COBJ(nfo->base_ct_, nfo->ssl_ct_));
-	free(nfo);
-	thread_drop_star(nfo->taint_);
+    sys_obj_unref(COBJ(d->base_ct_, d->ssl_ct_));
+    thread_drop_star(d->taint_);    
+    if (d->ssld_started_) {
+	int r = thread_cleanup(&d->ssld_worker_args_);
+	if (r < 0)
+	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
     }
+    if (d->eproc_started_) {
+	int r = thread_cleanup(&d->eproc_worker_args_);
+	if (r < 0)
+	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+    }
+    close(d->sock_fd_);
 }
 
-int
-ssl_proxy::select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
+static int
+ssl_proxy_select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
 {
     struct Fd *sock_fd;
     error_check(fd_lookup(sock_fdnum, &sock_fd, 0, 0));
@@ -122,28 +163,14 @@ ssl_proxy::select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
     
     return r;
 }
- 
 
-void 
-ssl_proxy::proxy_thread(void *a)
-{
-    struct info *nfo = (struct info*)a;
-    scope_guard<void, struct info *> cu2(cleanup, nfo);
-
-    int sock_fd = nfo->sock_fd_;
-    scope_guard<int, int> cu1(close, sock_fd);
-
-    int cipher_fd;
-    // NONBLOCK to avoid potential deadlock with ssld
-    errno_check(cipher_fd = bipipe_fd(nfo->cipher_bipipe_, 
-				      ssl_proxy::bipipe_client, 
-				      O_NONBLOCK, 0, 0));
-    scope_guard<int, int> cu0(close, cipher_fd);
-
+static void
+ssl_proxy_worker(int sock_fd, int cipher_fd)
+{    
     char buf[4096];
     
     for (;;) {
-	int r = select(sock_fd, cipher_fd, 10000);
+	int r = ssl_proxy_select(sock_fd, cipher_fd, 10000);
 	error_check(r);
 	if (!r) {
 	    cprintf("ssl_proxy::select timeout!\n");
@@ -156,13 +183,13 @@ ssl_proxy::proxy_thread(void *a)
 		cprintf("unknown read error: %d\n", r1);
 		break;
 	    } else if (!r1) {
-		debug_cprint(proxy_dbg, "stopping -- socket fd closed");
+		debug_cprint(dbg, "stopping -- socket fd closed");
 		break;
 	    } else {
 		int r2 = write(cipher_fd, buf, r1);
 		if (r2 < 0) {
 		    if (errno == EPIPE) {
-			debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+			debug_cprint(dbg, "stopping -- cipher fd closed");
 			break;
 		    } else {
 			cprintf("unknown write error: %d\n", r2);
@@ -177,7 +204,7 @@ ssl_proxy::proxy_thread(void *a)
 	if (r & SELECT_CIPHER) {
 	    int r1 = read(cipher_fd, buf, sizeof(buf));
 	    if (!r1) {
-		debug_cprint(proxy_dbg, "stopping -- cipher fd closed");
+		debug_cprint(dbg, "stopping -- cipher fd closed");
 		break;
 	    } else if (r1 < 0) {
 		cprintf("http_ssl_proxy: unknown read error: %d\n", r1);
@@ -186,7 +213,7 @@ ssl_proxy::proxy_thread(void *a)
 		int r2 = write(sock_fd, buf, r1);
 		if (r2 < 0) {
 		    if (errno == ENOTCONN) {
-			debug_cprint(proxy_dbg, "stopping -- sock fd closed");
+			debug_cprint(dbg, "stopping -- sock fd closed");
 			break;
 		    }
 		    cprintf("unknown write error: %d\n", r2);
@@ -200,67 +227,49 @@ ssl_proxy::proxy_thread(void *a)
     return;
 }
 
-void
-ssl_proxy::start(void)
+static void
+ssl_proxy_stub_cleanup(void *a)
 {
-    uint64_t ssl_taint = handle_alloc();
-    label ssl_root_label(1);
-    ssl_root_label.set(ssl_taint, 3);
+    ssl_proxy_descriptor *d = (ssl_proxy_descriptor *) a;
+    ssl_proxy_loop(d, 1);
+}
 
-    int64_t ssl_root_ct = sys_container_alloc(nfo_->base_ct_,
-					      ssl_root_label.to_ulabel(),
-					      "ssl-root", 0, CT_QUOTA_INF);
-    error_check(ssl_root_ct);
-    nfo_->ssl_ct_ = ssl_root_ct;
+static void
+ssl_proxy_stub(void *a)
+{
+    ssl_proxy_descriptor *d = (ssl_proxy_descriptor *) a;    
+    ssl_proxy_loop(d, 0);
+}
 
-    try {
-	// manually setup bipipe segments
-	struct cobj_ref cipher_seg;
-	label cipher_label(1);
-	cipher_label.set(ssl_taint, 3);
-	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
-				 cipher_label.to_ulabel(), "cipher-bipipe"));
-	
-	struct cobj_ref plain_seg;
-	label plain_label(1);
-	plain_label.set(ssl_taint, 3);
-	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
-				 plain_label.to_ulabel(), "plain-bipipe"));
-	
-	struct cobj_ref eproc_seg = COBJ(0, 0);
-	if (eproc_gate_.object) {
-	    label eproc_label(1);
-	    eproc_label.set(ssl_taint, 3);
-	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
-				     eproc_label.to_ulabel(), "eproc-bipipe"));
-	}
+void 
+ssl_proxy_loop(ssl_proxy_descriptor *d, char cleanup)
+{
+    int cipher_fd;
+    // NONBLOCK to avoid potential deadlock with ssld
+    errno_check(cipher_fd = bipipe_fd(d->cipher_bipipe_, 
+				      ssl_proxy_bipipe_client, 
+				      O_NONBLOCK, 0, 0));
+    scope_guard<void, ssl_proxy_descriptor *> 
+	cu1(ssl_proxy_cleanup, d, cleanup);
+    scope_guard<int, int> cu0(close, cipher_fd);
 
-	nfo_->cipher_bipipe_ = cipher_seg;
-	nfo_->taint_ = ssl_taint;
-	plain_bipipe_ = plain_seg;
+    ssl_proxy_worker(d->sock_fd_, cipher_fd);
+}
 
-	if (eproc_gate_.object) {
-	    ssl_eproc_taint_cow(eproc_gate_, eproc_seg, ssl_root_ct, ssl_taint, &eproc_worker_args_);
-	    eproc_started_ = 1;
-	}
-
-	// taint cow ssld and pass both bipipes
-	ssld_taint_cow(ssld_gate_, eproc_seg, cipher_seg, plain_seg, 
-		       ssl_root_ct, ssl_taint, &ssld_worker_args_);
-	ssld_started_ = 1;
-    } catch (std::exception &e) {
-	sys_obj_unref(COBJ(nfo_->base_ct_, nfo_->ssl_ct_));
-	throw e;
-    }
-
-    atomic_inc64(&nfo_->ref_count_);
-
+void 
+ssl_proxy_thread(ssl_proxy_descriptor *d, char cleanup)
+{
+    debug_print(dbg, "cleanup %d", cleanup);
     struct cobj_ref t;
-    int r = thread_create(start_env->proc_container, &proxy_thread,
-			  nfo_, &t, "ssl-proxy");
-    if (r < 0) {
-	atomic_dec((atomic_t *)&nfo_->ref_count_);
-	throw error(r, "can't start proxy thread");
+    if (cleanup) {
+	error_check(thread_create_option(start_env->proc_container, 
+					 &ssl_proxy_stub_cleanup,
+					 d, sizeof(*d),
+					 &t, "ssl-proxy", 0, THREAD_OPT_ARGCOPY));
+    } else {
+	error_check(thread_create_option(start_env->proc_container, 
+					 &ssl_proxy_stub,
+					 d, sizeof(*d),
+					 &t, "ssl-proxy", 0, THREAD_OPT_ARGCOPY));
     }
-    proxy_started_ = 1;
 }
