@@ -74,7 +74,8 @@ void
 ssl_proxy::cleanup(struct info *nfo)
 {
     if (atomic_dec_and_test((atomic_t *)&nfo->ref_count_)) {
-	sys_obj_unref(COBJ(nfo->base_ct_, nfo->ssl_ct_));
+	if (nfo->ssl_ct_)
+	    sys_obj_unref(COBJ(nfo->base_ct_, nfo->ssl_ct_));
 	free(nfo);
     }
 }
@@ -245,17 +246,10 @@ ssl_proxy::start(void)
 	
 	struct cobj_ref eproc_seg = COBJ(0, 0);
 	if (eproc_gate_.object) {
-	    struct bipipe_seg *eproc_bs = 0;
 	    label eproc_label(1);
 	    eproc_label.set(ssl_taint, 3);
-	    error_check(segment_alloc(ssl_root_ct,
-				      sizeof(*eproc_bs), &eproc_seg, 
-				      (void **)&eproc_bs, eproc_label.to_ulabel(), 
-				      "eproc-bipipe"));
-	    scope_guard<int, void*> umap3(segment_unmap, eproc_bs);
-	    memset(eproc_bs, 0, sizeof(*eproc_bs));
-	    eproc_bs->p[0].open = 1;
-	    eproc_bs->p[1].open = 1;
+	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
+				     eproc_label.to_ulabel(), "eproc-bipipe"));
 	}
 
 	// NONBLOCK to avoid potential deadlock with ssld
