@@ -120,8 +120,6 @@ class dj_autorpc {
     }
 
  private:
-    void add_delegations(
-
     gate_sender *gs_;
     time_t tmo_;
     dj_pubkey pk_;
