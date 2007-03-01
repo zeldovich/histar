@@ -64,3 +64,55 @@ key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
 
     return false;
 }
+
+void
+dj_delegation_map::insert(const dj_delegation_set &dset)
+{
+    for (uint32_t i = 0; i < dset.ents.size(); i++) {
+	dj_stmt_signed ss;
+	if (!bytes2xdr(ss, dset.ents[i]))
+	    continue;
+	insert(ss);
+    }
+}
+
+void
+dj_delegation_map::insert(const dj_delegation_map &dmap)
+{
+    for (dm_ent *e = dmap.t_.first(); e; e = dmap.t_.next(e))
+	insert(e->ss);
+}
+
+void
+dj_delegation_map::insert(const dj_stmt_signed &ss)
+{
+    if (!verify_stmt(ss))
+	return;
+    if (ss.stmt.type != STMT_DELEGATION)
+	return;
+    if (ss.stmt.delegation->a.type != ENT_PUBKEY)
+	return;
+
+    str mysig = xdr2str(ss.sign);
+    for (dm_ent *e = t_[*ss.stmt.delegation->a.key]; e; e = t_.next(e)) {
+	str esig = xdr2str(e->ss.sign);
+	if (esig == mysig)
+	    return;
+    }
+
+    dm_ent *e = New dm_ent(ss);
+    t_.insert(e);
+    size_++;
+}
+
+dj_delegation_set
+dj_delegation_map::to_delegation_set()
+{
+    dj_delegation_set dset;
+    for (dm_ent *e = t_.first(); e; e = t_.next(e)) {
+	rpc_bytes<2147483647ul> s;
+	xdr2bytes(s, e->d);
+	dset.ents.push_back(s);
+    }
+    return dset;
+}
