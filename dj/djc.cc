@@ -16,23 +16,26 @@ main(int ac, char **av)
 {
     dj_global_cache djcache;
 
-    if (ac != 4) {
-	printf("Usage: %s host-pk call-ct gate-ct.id\n", av[0]);
+    if (ac != 3) {
+	printf("Usage: %s host-pk call-ct\n", av[0]);
+
+	try {
+	    gate_sender gs;
+	    warn << "Local key: " << gs.hostkey() << "\n";
+	} catch (...) {}
+
 	exit(-1);
     }
 
     gate_sender gs;
 
     str pkstr(av[1]);
-    //ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
-    //assert(sfspub);
-    //dj_pubkey k = sfspub2dj(sfspub);
-    dj_pubkey k = gs.hostkey();
+    ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
+    assert(sfspub);
+    dj_pubkey k = sfspub2dj(sfspub);
+    //dj_pubkey k = gs.hostkey();
 
     uint64_t call_ct = atoi(av[2]);
-
-    dj_gatename echo_gate;
-    echo_gate <<= av[3];
 
     dj_delegation_set dset;
     dj_catmap cm;
@@ -128,7 +131,8 @@ main(int ac, char **av)
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = ctres.ct_id;
-    ep.ep_gate->gate = echo_gate;
+    ep.ep_gate->gate.gate_ct = 0;
+    ep.ep_gate->gate.gate_id = GSPEC_ECHO;
 
     dj_gatename arg;
     dj_gatename res;

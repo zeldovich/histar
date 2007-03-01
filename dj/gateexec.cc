@@ -104,6 +104,11 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	    gtname = "ctallocd";
 	}
 
+	if (spec_id == GSPEC_ECHO) {
+	    ctname = "djechod";
+	    gtname = "djechod";
+	}
+
 	if (!ctname || !gtname) {
 	    warn << "gate_exec2: bad special gate id " << spec_id << "\n";
 	    da.cb(DELIVERY_REMOTE_ERR, 0);
