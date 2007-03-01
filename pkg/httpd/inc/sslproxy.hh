@@ -18,7 +18,7 @@ class ssl_proxy
  private:
     struct info {
 	uint64_t taint_;
-	int cipher_fd_;
+	cobj_ref cipher_bipipe_;
 	int sock_fd_;
 	uint64_t base_ct_;
 	uint64_t ssl_ct_;

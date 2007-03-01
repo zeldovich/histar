@@ -17,6 +17,7 @@ extern "C" {
 
 #include <inc/sslproxy.hh>
 #include <inc/error.hh>
+#include <inc/errno.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
 #include <inc/ssldclnt.hh>
@@ -42,13 +43,6 @@ ssl_proxy::ssl_proxy(struct cobj_ref ssld_gate, struct cobj_ref eproc_gate,
 
 ssl_proxy::~ssl_proxy(void)
 {
-    // if !started_, need to do cleanup for proxy thread
-    if (!proxy_started_) {
-	close(nfo_->sock_fd_);
-	if (nfo_->cipher_fd_)
-	    close(nfo_->cipher_fd_);
-    }
-
     if (ssld_started_) {
 	int r = thread_cleanup(&ssld_worker_args_);
 	if (r < 0)
@@ -134,13 +128,19 @@ void
 ssl_proxy::proxy_thread(void *a)
 {
     struct info *nfo = (struct info*)a;
-    int cipher_fd = nfo->cipher_fd_;
-    int sock_fd = nfo->sock_fd_;
-    char buf[4096];
-    
     scope_guard<void, struct info *> cu2(cleanup, nfo);
-    scope_guard<int, int> cu1(close, cipher_fd);
-    scope_guard<int, int> cu0(close, sock_fd);
+
+    int sock_fd = nfo->sock_fd_;
+    scope_guard<int, int> cu1(close, sock_fd);
+
+    int cipher_fd;
+    // NONBLOCK to avoid potential deadlock with ssld
+    errno_check(cipher_fd = bipipe_fd(nfo->cipher_bipipe_, 
+				      ssl_proxy::bipipe_client, 
+				      O_NONBLOCK, 0, 0));
+    scope_guard<int, int> cu0(close, cipher_fd);
+
+    char buf[4096];
     
     for (;;) {
 	int r = select(sock_fd, cipher_fd, 10000);
@@ -235,11 +235,7 @@ ssl_proxy::start(void)
 				     eproc_label.to_ulabel(), "eproc-bipipe"));
 	}
 
-	// NONBLOCK to avoid potential deadlock with ssld
-	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK, 0, 0);
-	error_check(cipher_fd);
-
-	nfo_->cipher_fd_ = cipher_fd;
+	nfo_->cipher_bipipe_ = cipher_seg;
 	nfo_->taint_ = ssl_taint;
 	plain_bipipe_ = plain_seg;
 

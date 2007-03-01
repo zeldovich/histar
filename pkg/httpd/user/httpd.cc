@@ -130,8 +130,13 @@ http_client(void *arg)
 	if (ssl_enable && ssl_privsep_enable) {
 	    proxy.start();
 	    cobj_ref plain_seg = proxy.plain_bipipe();
-		errno_check(s = bipipe_fd(plain_seg, 0, ssl_proxy::bipipe_client, 
-					  0, 0));
+	    s = bipipe_fd(plain_seg, ssl_proxy::bipipe_client, 0, 0, 0);
+	    if (s < 0) {
+		// proxy thread will close sock
+		close_sock.dismiss();
+		throw basic_exception("unable to open plain bipipe: %s\n", 
+				      strerror(errno));
+	    }
 	} else if (ssl_enable) {
 	    error_check(s = ssl_accept(the_ctx, s));
 	}
