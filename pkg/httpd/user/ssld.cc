@@ -31,6 +31,7 @@ extern "C" {
 #include <openssl/engine.h>
 }
 
+#include <inc/sslproxy.hh>
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
@@ -99,8 +100,8 @@ ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
     SSL *ssl = 0;
 
     // don't worry about extra taint and grant
-    int cipher_fd = bipipe_fd(COBJ(cc, co), 1, 0, 0, 0);
-    int plain_fd = bipipe_fd(COBJ(pc, po), 1, 0, 0, 0);
+    int cipher_fd = bipipe_fd(COBJ(cc, co), ssl_proxy::bipipe_ssld, 0, 0, 0);
+    int plain_fd = bipipe_fd(COBJ(pc, po), ssl_proxy::bipipe_ssld, 0, 0, 0);
     error_check(cipher_fd);
     error_check(plain_fd);
     
