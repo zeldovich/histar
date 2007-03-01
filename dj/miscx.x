@@ -15,3 +15,17 @@ struct container_alloc_res {
     hyper ct_id;	/* negative is error code */
 };
 
+/*
+ * Perl running service.
+ */
+
+struct perl_run_arg {
+    string script<>;
+    string input<>;
+};
+
+struct perl_run_res {
+    int retval;
+    string output<>;
+};
+
