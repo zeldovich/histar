@@ -49,15 +49,13 @@ key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
 	if (e->d.via && !key_speaks_for(*e->d.via, gcat, dm, depth - 1))
 	    continue;
 
-	if (e->d.b.type == ENT_GCAT) {
+	if (e->d.b.type == ENT_GCAT)
 	    if (*e->d.b.gcat == gcat)
 		return true;
-	}
 
-	if (e->d.b.type == ENT_PUBKEY) {
+	if (e->d.b.type == ENT_PUBKEY)
 	    if (key_speaks_for(*e->d.b.key, gcat, dm, depth - 1))
 		return true;
-	}
 
 	e = dm.t_.next(e);
     }
@@ -86,12 +84,20 @@ dj_delegation_map::insert(const dj_delegation_map &dmap)
 void
 dj_delegation_map::insert(const dj_stmt_signed &ss)
 {
-    if (!verify_stmt(ss))
+    if (!verify_stmt(ss)) {
+	warn << "dj_delegation_map: cannot verify\n";
 	return;
-    if (ss.stmt.type != STMT_DELEGATION)
+    }
+
+    if (ss.stmt.type != STMT_DELEGATION) {
+	warn << "dj_delegation_map: not a delegation\n";
 	return;
-    if (ss.stmt.delegation->a.type != ENT_PUBKEY)
+    }
+
+    if (ss.stmt.delegation->a.type != ENT_PUBKEY) {
+	warn << "dj_delegation_map: A not a public key\n";
 	return;
+    }
 
     str mysig = xdr2str(ss.sign);
     for (dm_ent *e = t_[*ss.stmt.delegation->a.key]; e; e = t_.next(e)) {
@@ -111,7 +117,7 @@ dj_delegation_map::to_delegation_set()
     dj_delegation_set dset;
     for (dm_ent *e = t_.first(); e; e = t_.next(e)) {
 	rpc_bytes<2147483647ul> s;
-	xdr2bytes(s, e->d);
+	xdr2bytes(s, e->ss);
 	dset.ents.push_back(s);
     }
     return dset;
