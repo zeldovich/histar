@@ -138,6 +138,9 @@ strbuf_cat(const strbuf &sb, const dj_entity &dje)
     case ENT_ADDRESS:
 	sb << *dje.addr;
 	break;
+
+    default:
+	sb << "unknown";
     }
 
     return sb;
