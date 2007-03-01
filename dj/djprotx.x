@@ -103,6 +103,8 @@ union dj_message_endpoint switch (dj_endpoint_type type) {
     dj_ep_gate ep_gate;
  case EP_MAPCREATE:
     void;
+ case EP_DELEGATOR:
+    void;
 };
 
 struct dj_message {
