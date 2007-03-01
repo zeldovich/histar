@@ -60,6 +60,14 @@ run_perl(str script, str input, str *output)
     sd.fd1_ = fds[1];
     sd.fd2_ = fds[1];
 
+    label tl;
+    thread_cur_label(&tl);
+    tl.transform(label::star_to, tl.get_default());
+
+    sd.cs_ = &tl;
+    sd.dr_ = &tl;
+    sd.co_ = &tl;
+
     sd.ac_ = 4;
     sd.av_ = argv;
     sd.envc_ = 0;
@@ -106,7 +114,7 @@ dj_perl_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	r->msg.msg = xdr2str(pres);
 	return true;
     } catch (std::exception &e) {
-	warn << "djperld: " << e.what() << "\n";
+	cprintf("djperld: %s\n", e.what());
 	return false;
     }
 }
@@ -120,6 +128,17 @@ gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 int
 main(int ac, char **av)
 {
+    // We need to do this not-so-amusing dance to call fd_handles_init()
+    // which can touch a bad file descriptor mapping in the tainted AS.
+    int pipefd[2];
+    if (pipe(pipefd) < 0) {
+	warn << "cannot create pipes?\n";
+	exit(1);
+    }
+
+    close(pipefd[0]);
+    close(pipefd[1]);
+
     label lpub(1);
 
     int64_t call_ct;
@@ -129,10 +148,15 @@ main(int ac, char **av)
 
     warn << "djperld public container: " << call_ct << "\n";
 
+    label srv_label;
+    thread_cur_label(&srv_label);
+    srv_label.set(start_env->process_grant, 1);
+
     gatesrv_descriptor gd;
     gd.gate_container_ = start_env->shared_container;
     gd.name_ = "djperld";
     gd.func_ = &gate_entry;
+    gd.label_ = &srv_label;
 
     cobj_ref g = gate_create(&gd);
     warn << "djperld gate: " << g << "\n";
