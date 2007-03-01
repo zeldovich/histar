@@ -82,7 +82,7 @@ class dj_autorpc {
 	rem_dmap.insert(cache_->dmap_);
 
 	reqm.catmap = rem_cm.to_catmap();
-	reqm.dset = rem_dmap.to_delegation_map();
+	reqm.dset = rem_dmap.to_delegation_set();
 
 	if (autorpc_debug) {
 	    for (uint64_t i = 0; i < reqm.catmap.ents.size(); i++)
