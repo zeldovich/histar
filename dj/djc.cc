@@ -30,10 +30,14 @@ main(int ac, char **av)
     gate_sender gs;
 
     str pkstr(av[1]);
-    ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
-    assert(sfspub);
-    dj_pubkey k = sfspub2dj(sfspub);
-    //dj_pubkey k = gs.hostkey();
+    dj_pubkey k;
+    if (pkstr == "0") {
+	k = gs.hostkey();
+    } else {
+	ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	k = sfspub2dj(sfspub);
+    }
 
     uint64_t call_ct = atoi(av[2]);
 
@@ -100,6 +104,26 @@ main(int ac, char **av)
 	 << remote_cme.res_ct << ", "
 	 << remote_cme.res_gt << "\n";
     djcache[k]->cmi_.insert(remote_cme);
+
+    /* Create a delegation for the remote host */
+    dj_message_endpoint delegate_ep;
+    delegate_ep.set_type(EP_DELEGATOR);
+
+    dj_delegate_req dreq;
+    dj_stmt_signed dres;
+    dreq.gcat = gcat;
+    dreq.to = k;
+    dreq.from_ts = 0;
+    dreq.until_ts = ~0;
+
+    xgrant.reset(3);
+    xgrant.set(tcat, LB_LEVEL_STAR);
+
+    c = local_ar.call(delegate_ep, dreq, dres, 0, &xgrant);
+    if (c != DELIVERY_DONE)
+	warn << "error from delegator: code " << c << "\n";
+
+    warn << "Delegation!  type " << dres.stmt.type << "\n";
 
     /* Create a remote tainted container */
     dj_message_endpoint ctalloc_ep;
