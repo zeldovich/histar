@@ -59,7 +59,7 @@ ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
     call->call(pr->k, 1, pr->dset, m, xdr2str(parg),
-	       wrap(&perl_cb, pr, call));
+	       wrap(&perl_cb, pr, call), &pr->catmap, &pr->dset);
 }
 
 static void

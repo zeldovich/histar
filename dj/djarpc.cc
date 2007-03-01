@@ -47,7 +47,8 @@ dj_rpc_to_arpc(dj_rpc_service_cb srv, const dj_message &m, const str &s,
 
 void
 dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &dset,
-		   const dj_message &a, const str &buf, call_reply_cb cb)
+		   const dj_message &a, const str &buf, call_reply_cb cb,
+		   const dj_catmap *return_cm, const dj_delegation_set *return_ds)
 {
     dset_ = dset;
     a_ = a;
@@ -58,6 +59,10 @@ dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &d
 
     dj_call_msg cm;
     cm.return_ep = rep_;
+    if (return_cm)
+	cm.return_cm = *return_cm;
+    if (return_ds)
+	cm.return_ds = *return_ds;
     cm.buf = buf;
 
     a_.msg = xdr2str(cm);

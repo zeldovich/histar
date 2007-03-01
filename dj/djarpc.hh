@@ -13,7 +13,9 @@ class dj_arpc_call : virtual public refcount {
 	: s_(s), f_(f), rct_(rct), rep_created_(false), reply_token_(0), done_(false) {}
     ~dj_arpc_call();
     void call(const dj_pubkey&, time_t tmo, const dj_delegation_set&,
-	      const dj_message&, const str&, call_reply_cb cb);
+	      const dj_message&, const str&, call_reply_cb cb,
+	      const dj_catmap *return_cm = 0,
+	      const dj_delegation_set *return_ds = 0);
 
  private:
     void retransmit();
