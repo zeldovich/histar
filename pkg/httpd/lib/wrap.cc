@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/spawn.hh>
 
-static const char debug = 1;
+static const char debug = 0;
 
 wrap_call::wrap_call(const char *pn, fs_inode root_ino) :
     sin_(-1), eout_(-1), root_ino_(root_ino), called_(0)
@@ -49,7 +49,7 @@ void
 wrap_call::print_to(int fd, std::ostringstream &out)
 {
     for (;;) {
-	char buf[512];
+	char buf[1024];
 	int r;
 	errno_check(r = read(fd, buf, sizeof(buf)));
 	if (r == 0)
