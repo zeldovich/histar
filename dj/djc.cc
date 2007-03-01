@@ -16,8 +16,8 @@ main(int ac, char **av)
 {
     dj_global_cache djcache;
 
-    if (ac != 3) {
-	printf("Usage: %s host-pk call-ct\n", av[0]);
+    if (ac != 4) {
+	printf("Usage: %s host-pk call-ct perl-gate\n", av[0]);
 
 	try {
 	    gate_sender gs;
@@ -40,6 +40,9 @@ main(int ac, char **av)
     }
 
     uint64_t call_ct = atoi(av[2]);
+
+    dj_gatename service_gate;
+    service_gate <<= av[3];
 
     dj_delegation_set dset;
     dj_catmap cm;
@@ -152,25 +155,24 @@ main(int ac, char **av)
 	warn << "error from ctalloc: code " << c << "\n";
     warn << "New remote container: " << ctres.ct_id << "\n";
 
-    /* Send a real echo request now.. */
+    /* Send a real request now.. */
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = ctres.ct_id;
-    ep.ep_gate->gate.gate_ct = 0;
-    ep.ep_gate->gate.gate_id = GSPEC_ECHO;
+    ep.ep_gate->gate = service_gate;
 
-    dj_gatename arg;
-    dj_gatename res;
-    arg.gate_ct = 123456;
-    arg.gate_id = 654321;
-    res.gate_ct = 101;
-    res.gate_id = 102;
+    perl_run_arg parg;
+    perl_run_res pres;
+    parg.script = str("print 'A'x5; print <>;");
+    parg.input = str("Hello world.");
 
     label taint(1);
     taint.set(tcat, 3);
 
-    c = remote_ar.call(ep, arg, res, &taint);
-    warn << "echo response code = " << c << "\n";
-    if (c == DELIVERY_DONE)
-	warn << "autorpc echo: " << res.gate_ct << "." << res.gate_id << "\n";
+    c = remote_ar.call(ep, parg, pres, &taint);
+    warn << "Server response code = " << c << "\n";
+    if (c == DELIVERY_DONE) {
+	warn << "Perl exit code: " << pres.retval << "\n";
+	warn << "Perl output: " << pres.output << "\n";
+    }
 }
