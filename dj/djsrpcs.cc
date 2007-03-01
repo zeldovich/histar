@@ -35,6 +35,7 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 
 	dj_outgoing_gate_msg reqmsg;
 	djgate_incoming(gcd, vl, vc, &reqmsg, ret);
+	sys_obj_unref(gcd->param_obj);
 
 	djd_gate.container = reqmsg.djd_gate.gate_ct;
 	djd_gate.object = reqmsg.djd_gate.gate_id;
