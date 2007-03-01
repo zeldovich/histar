@@ -62,6 +62,26 @@ histar, openssl, no privsep
  latency: 0.2063
  throughput: 4.85 conns/sec (1 client)
 
+histar, openssl, ssl privsep
+0 char
+ latency: 0.1659
+1 char
+ latency: 0.1867
+1024 char 
+ latency: 0.1891
+8192 char
+ latency: 0.2091
+
+histar, openssl, ssl privsep, tainted rsa service
+0 char
+ latency: 0.1668
+1 char
+ latency: 0.1872
+1024 char 
+ latency: 0.1891
+8192 char
+ latency: 0.2100
+
 linux, apache, openssl
 0 char
  latency: 0.1382
