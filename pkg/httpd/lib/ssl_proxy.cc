@@ -233,16 +233,12 @@ ssl_proxy::start(void)
 	cipher_label.set(ssl_taint, 3);
 	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
 				 cipher_label.to_ulabel(), "cipher-bipipe"));
-	scope_guard<int, struct cobj_ref> 
-	    unref_cipher(sys_obj_unref, cipher_seg);
-
 	
 	struct cobj_ref plain_seg;
 	label plain_label(1);
 	plain_label.set(ssl_taint, 3);
 	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
 				 plain_label.to_ulabel(), "plain-bipipe"));
-	scope_guard<int, struct cobj_ref> unref_plain(sys_obj_unref, plain_seg);
 	
 	struct cobj_ref eproc_seg = COBJ(0, 0);
 	if (eproc_gate_.object) {
@@ -256,9 +252,7 @@ ssl_proxy::start(void)
 	int cipher_fd = bipipe_fd(cipher_seg, 0, O_NONBLOCK, ssl_taint, 0);
 	int plain_fd = bipipe_fd(plain_seg, 0, 0, ssl_taint, 0);
 	error_check(cipher_fd);
-	unref_cipher.dismiss();
 	error_check(plain_fd);
-	unref_plain.dismiss();
 
 	nfo_->cipher_fd_ = cipher_fd;
 	plain_fd_ = plain_fd;
