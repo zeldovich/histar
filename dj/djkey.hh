@@ -45,6 +45,11 @@ class dj_delegation_map {
 	}
     }
 
+    void insert(const dj_delegation_map &dmap) {
+	for (dm_ent *e = dmap.t_.first(); e; e = dmap.t_.next(e))
+	    insert(e->ss);
+    }
+
     void insert(const dj_stmt_signed &ss) {
 	if (!verify_stmt(ss))
 	    return;

@@ -124,6 +124,7 @@ main(int ac, char **av)
 	warn << "error from delegator: code " << c << "\n";
 
     warn << "Delegation!  type " << dres.stmt.type << "\n";
+    djcache.dmap_.insert(dres);
 
     /* Create a remote tainted container */
     dj_message_endpoint ctalloc_ep;
