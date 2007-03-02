@@ -94,7 +94,7 @@ ssld_close(SSL *ssl)
     return 0;
 }
 
-static void
+static void __attribute__((noreturn))
 ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 {
     SSL *ssl = 0;
