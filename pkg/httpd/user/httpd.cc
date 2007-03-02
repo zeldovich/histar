@@ -1,24 +1,14 @@
 extern "C" {
 #include <inc/stdio.h>
-#include <inc/lib.h>
 #include <inc/assert.h>
-#include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
-#include <inc/fd.h>
 #include <inc/base64.h>
 #include <inc/authd.h>
-#include <inc/gateparam.h>
 #include <inc/bipipe.h>
 #include <inc/debug.h>
 #include <inc/ssl_fd.h>
 #include <inc/argv.h>
-
-#include <string.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <errno.h>
-#include <fcntl.h>
 
 #include <sys/socket.h>
 }
@@ -29,10 +19,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/authclnt.hh>
 #include <inc/cpplabel.hh>
-#include <inc/spawn.hh>
-#include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
-#include <inc/ssldclnt.hh>
 #include <inc/sslproxy.hh>
 
 #include <inc/a2pdf.hh>
