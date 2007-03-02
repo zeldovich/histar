@@ -6,8 +6,10 @@ extern "C" {
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <stdio.h>
+#include <unistd.h>
 }
 
 #include <inc/error.hh>
@@ -21,7 +23,9 @@ static char ssl_enable = 1;
 static char ssl_privsep_enable = 1;
 static char ssl_eproc_enable = 1;
 static char http_auth_enable = 0;
+
 static const char* httpd_root_path = "/www";
+static const char *module_setup_bin = "/bin/modulei";
 
 static struct fs_inode
 fs_inode_for(const char *pn)
@@ -47,6 +51,15 @@ segment_copy_to_file(struct cobj_ref seg, struct fs_inode dir,
     error_check(fs_pwrite(ino, va, bytes, 0));
 }
 
+static void
+module_setup(void)
+{
+    if (fork() == 0)
+	error_check(execl(module_setup_bin, module_setup_bin, 0));
+    else
+	wait(0);
+}
+
 int
 main (int ac, char **av)
 {
@@ -58,6 +71,9 @@ main (int ac, char **av)
     static const char *ssld_dh_pem = "/httpd/ssld-priv/dh.pem";
 
     static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
+
+    errno_check(mkdir(httpd_root_path, 0));
+    module_setup();
 
     int64_t ssld_taint = handle_alloc();
     int64_t eprocd_taint = ssl_eproc_enable ? handle_alloc() : ssld_taint;
@@ -147,8 +163,6 @@ main (int ac, char **av)
     label httpd_dr(0);
     httpd_dr.set(access_grant, 3);
 
-    errno_check(mkdir(httpd_root_path, 0));
-    
     char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4];
     snprintf(ssle_buf, sizeof(verify_arg), "%d", ssl_enable );
     snprintf(sslp_buf, sizeof(verify_arg), "%d", ssl_privsep_enable );
