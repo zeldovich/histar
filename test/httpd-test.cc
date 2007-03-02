@@ -28,7 +28,7 @@ static char *request_template =
     "GET %s HTTP/1.0\r\nUser-Agent: "
     "TestClient\r\nHost: %s:%d\r\n\r\n";
 static const char* path = "/";
-static const char logging = 0;
+static char logging = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
 
@@ -160,7 +160,8 @@ main(int ac, char **av)
 
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
-		"[-r requests | -c clients | -l time-limit | -p path]\n", av[0]);
+		"[-r requests | -c clients | -l time-limit | "
+		"-p path -d]\n", av[0]);
 	exit(-1);
     }
 
@@ -170,7 +171,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:p:")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:d")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -183,6 +184,9 @@ main(int ac, char **av)
 	    break;
 	case 'p':
 	    path = strdup(optarg);
+	    break;
+	case 'd':
+	    logging = 1;
 	    break;
 	}
     }
