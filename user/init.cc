@@ -99,6 +99,11 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
 				    0, CT_QUOTA_INF));
 
+    // create a hard link "sh" to "ksh" using the mount table.
+    struct fs_inode fs_ksh;
+    error_check(fs_namei("/bin/ksh", &fs_ksh));
+    error_check(fs_mount(start_env->fs_mtab_seg, bin_dir, "sh", fs_ksh));
+
     // create a /dev directory
     struct fs_inode dev;
     error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));
@@ -112,15 +117,17 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_mknod(dev, "ptmx", 'x', 0, &dummy_ino, 0));
     error_check(fs_mkdir(dev, "pts", &dummy_ino, 0));
 
+    // create a /home directory
+    struct fs_inode fs_home;
+    error_check(fs_mkdir(start_env->fs_root, "home", &fs_home, 0));
+
     // create a /fs directory
     struct fs_inode fs_root;
     error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
     error_check(fs_mkdir(fs_root, "tmp", &dummy_ino, 0));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "bin", bin_dir));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "dev", dev));
-
-    // create a /home directory
-    error_check(fs_mkdir(start_env->fs_root, "home", &dummy_ino, 0));
+    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "home", fs_home));
 
     // create a scratch container
     label ltmp(1);
