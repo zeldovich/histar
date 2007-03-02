@@ -24,14 +24,9 @@ static fs_inode httpd_root_ino;
 static char *httpd_path;
 
 arg_desc cmdarg[] = {
-    { "ssl_enable", "1" },
     { "ssl_privsep_enable", "1" },
     { "ssl_eproc_enable", "1" },
     
-    { "ssl_server_pem", "/bin/server.pem" },
-    { "ssl_dh_pem", "/bin/dh.pem" },
-    { "ssl_servkey_pem", "/bin/servkey.pem" },
-
     { "http_auth_enable", "0" },
     { "httpd_path", "/bin/httpd2"},
     { "httpd_root_path", "/www" },

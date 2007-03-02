@@ -159,7 +159,6 @@ main (int ac, char **av)
 	const char *inetd_pn = "/bin/inetd";
 	struct fs_inode inetd_ino = fs_inode_for(inetd_pn);
 	const char *inetd_argv[] = { inetd_pn, 
-				     "--ssl_enable", ssle_buf,
 				     "--ssl_privsep_enable", sslp_buf,
 				     "--ssl_eproc_enable", ssle2_buf,
 				     "--http_auth_enable", httpa_buf,
@@ -180,7 +179,7 @@ main (int ac, char **av)
 				     "--httpd_root_path", "/www" };
 	spawn(httpd_ct, httpd_ino,
 	      0, 0, 0,
-	      9, &httpd_argv[0],
+	      11, &httpd_argv[0],
 	      0, 0,
 	      0, &httpd_ds, 0, &httpd_dr, 0);
     }

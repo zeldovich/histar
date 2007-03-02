@@ -31,7 +31,7 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-static const char dbg = 1;
+static const char dbg = 0;
 
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
