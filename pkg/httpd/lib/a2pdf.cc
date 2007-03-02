@@ -20,7 +20,7 @@ extern "C" {
 void 
 a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
 {
-    const char *av0[] = { "/bin/a2ps", "--output=-", fn };
+    const char *av0[] = { "/bin/a2ps", "--quiet", "--output=-", fn };
     const char *av1[] = { "/bin/gs", 
 			  "-q",     
 			  "-dNOPAUSE", 
@@ -40,7 +40,7 @@ a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &ou
 
     wrap_call wc0("/bin/a2ps", root_ino);
     wrap_call wc1("/bin/gs", root_ino);
-    wc0.call(3, av0, 0, 0, &taint);
+    wc0.call(4, av0, 0, 0, &taint);
     wc0.pipe(&wc1, 10, av1, 0, 0, &taint, pdf_out);
 
     int64_t exit_code0, exit_code1;
