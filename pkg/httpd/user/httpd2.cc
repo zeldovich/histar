@@ -23,6 +23,7 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
 #include <inc/sslproxy.hh>
+#include <inc/module.hh>
 
 #include <inc/a2pdf.hh>
 #include <inc/perl.hh>
@@ -38,7 +39,7 @@ static fs_inode httpd_root_ino;
 
 arg_desc cmdarg[] = {
     { "http_auth_enable", "0" },
-    { "httpd_root_path", "/www" },
+    { "httpd_root_path", "/" },
         
     { 0, 0 }
 };
@@ -46,12 +47,32 @@ arg_desc cmdarg[] = {
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 {
+    char *tmp;
+    char strip_req[256];
+    strncpy(strip_req, req, sizeof(strip_req) - 1);
+    strip_req[sizeof(strip_req) - 1] = 0;
+    
     std::ostringstream header;
 
     // XXX wrap stuff has no timeout
     if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
 	perl(httpd_root_ino, pn.c_str(), ut, header);
+    } else if (tmp = strchr(strip_req, '?')) {
+	*tmp = 0;
+	tmp++;
+	if (!strcmp(tmp, "a2pdf")) {
+	    std::string pn = strip_req;
+	    a2pdf(httpd_root_ino, pn.c_str(), ut, header);
+	} else if (!strcmp(tmp, "cat")) {
+	    std::string pn = strip_req;
+	    cat(httpd_root_ino, pn.c_str(), ut, header);
+	} else {
+	    header << "HTTP/1.0 500 Server error\r\n";
+	    header << "Content-Type: text/html\r\n";
+	    header << "\r\n";
+	    header << "<h1>unknown module: " << tmp << "</h1>\r\n";
+	}
     } else if (strcmp(req, "/")) {
 	std::string pn = req;
 	a2pdf(httpd_root_ino, pn.c_str(), ut, header);

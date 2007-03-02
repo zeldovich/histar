@@ -10,7 +10,7 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-#include <inc/perl.hh>
+#include <inc/module.hh>
 #include <inc/error.hh>
 #include <inc/errno.hh>
 #include <inc/labelutil.hh>
@@ -21,17 +21,16 @@ extern "C" {
 static const char debug = 1;
 
 void
-perl(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
+cat(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
 {
-    const char *av[] = { "/bin/perl", fn };
-
+    const char *av[] = { "/bin/cat", fn };
 
     struct stat sb;
     if (stat(fn, &sb) < 0) {
 	out << "HTTP/1.0 404 Not Found\r\n";
 	out << "Content-Type: text/html\r\n";
 	out << "\r\n";
-	out << "Cannot find script " << fn << "\r\n";
+	out << "Error cating file " << fn << ": " << strerror(errno) << "\r\n";
 	return;
     } 
 
@@ -41,7 +40,7 @@ perl(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out
     if (utaint)
 	taint.set(utaint, 3);
     
-    wrap_call wc("/bin/perl", root_ino);
+    wrap_call wc("/bin/cat", root_ino);
     wc.call(2, av, 0, 0, &taint, out);
     
     int64_t exit_code;

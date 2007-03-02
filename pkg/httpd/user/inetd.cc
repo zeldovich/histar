@@ -94,6 +94,8 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
     sd.dr_ = &dr;
     
     sd.fs_mtab_seg_ = httpd_mtab_seg;
+    sd.fs_root_ = httpd_root_ino;
+    sd.fs_cwd_ = httpd_root_ino;
     spawn(&sd);
 
 }
@@ -174,13 +176,15 @@ main(int ac, const char **av)
 				 start_env->shared_container,
 				 0, "http mtab"));
     httpd_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
-    fs_inode home_dir, etc_dir, share_dir;
+    fs_inode home_dir, etc_dir, share_dir, bin_dir;
     error_check(fs_namei("/home", &home_dir));
     error_check(fs_namei("/etc", &etc_dir));
     error_check(fs_namei("/share", &share_dir));
+    error_check(fs_namei("/bin", &bin_dir));
     fs_mount(httpd_mtab_seg, httpd_root_ino, "home", home_dir);
     fs_mount(httpd_mtab_seg, httpd_root_ino, "etc", etc_dir);
     fs_mount(httpd_mtab_seg, httpd_root_ino, "share", share_dir);
+    fs_mount(httpd_mtab_seg, httpd_root_ino, "bin", bin_dir);
     
     printf("inted: config:\n");
     printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
