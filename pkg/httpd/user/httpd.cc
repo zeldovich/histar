@@ -220,7 +220,7 @@ http_client(void *arg)
 }
 
 static void __attribute__((noreturn))
-http_server(void)
+http_server(uint16_t port)
 {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0)
@@ -229,7 +229,7 @@ http_server(void)
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
-    sin.sin_port = htons(80);
+    sin.sin_port = htons(port);
     int r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     if (r < 0)
         panic("cannot bind socket: %d\n", r);
@@ -238,7 +238,7 @@ http_server(void)
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
-    printf("httpd: server on port 80\n");
+    printf("httpd: server on port %d\n", port);
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -263,6 +263,8 @@ http_server(void)
 int
 main(int ac, const char **av)
 {
+    uint16_t port = 80;
+
     error_check(argv_parse(ac, av, cmdarg));
 
     ssl_enable = atoi(arg_val(cmdarg, "ssl_enable"));
@@ -294,6 +296,7 @@ main(int ac, const char **av)
 		return -1;
 	    }
 	}
+	port = 443;
     } else if (ssl_enable) {
 	const char *server_pem = arg_val(cmdarg, "ssl_server_pem");
 	const char *servkey_pem = arg_val(cmdarg, "ssl_servkey_pem");
@@ -305,6 +308,8 @@ main(int ac, const char **av)
 	printf(" %-20s %s\n", "dh_pem", dh_pem);
 	
 	error_check(ssl_init(server_pem, dh_pem, servkey_pem, &the_ctx));
+	port = 443;
     }
-    http_server();
+    
+    http_server(port);
 }

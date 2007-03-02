@@ -101,7 +101,7 @@ inet_client(void *a)
 }
 
 static void __attribute__((noreturn))
-inet_server(void)
+inet_server(uint16_t port)
 {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0)
@@ -110,7 +110,7 @@ inet_server(void)
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
-    sin.sin_port = htons(80);
+    sin.sin_port = htons(port);
     int r = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     if (r < 0)
         panic("cannot bind socket: %d\n", r);
@@ -119,7 +119,7 @@ inet_server(void)
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
-    printf("inetd: http server on port 80\n");
+    printf("inetd: server on port %d\n", port);
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -176,5 +176,5 @@ main(int ac, const char **av)
 	    }
 	}
     } 
-    inet_server();
+    inet_server(443);
 }
