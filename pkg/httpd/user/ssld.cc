@@ -111,7 +111,7 @@ ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 	    cprintf("ssld_worker: unable to accept SSL connection\n");
 	    close(cipher_fd);
 	    close(plain_fd);
-	    return;
+	    thread_halt();
 	}
 
 	debug_cprint(dbg, "SSL connection established");
