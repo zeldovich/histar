@@ -21,10 +21,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/sslproxy.hh>
-
-#include <inc/a2pdf.hh>
-#include <inc/perl.hh>
-#include <inc/wrap.hh>
+#include <inc/module.hh>
 
 #include <iostream>
 #include <sstream>

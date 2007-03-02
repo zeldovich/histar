@@ -9,7 +9,7 @@ extern "C" {
 #include <sstream>
 
 
-#include <inc/a2pdf.hh>
+#include <inc/module.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/errno.hh>

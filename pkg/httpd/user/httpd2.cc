@@ -25,10 +25,6 @@ extern "C" {
 #include <inc/sslproxy.hh>
 #include <inc/module.hh>
 
-#include <inc/a2pdf.hh>
-#include <inc/perl.hh>
-#include <inc/wrap.hh>
-
 #include <iostream>
 #include <sstream>
 

@@ -10,7 +10,7 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-#include <inc/perl.hh>
+#include <inc/module.hh>
 #include <inc/error.hh>
 #include <inc/errno.hh>
 #include <inc/labelutil.hh>
