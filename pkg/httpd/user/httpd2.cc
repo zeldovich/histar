@@ -1,24 +1,16 @@
 extern "C" {
-#include <inc/stdio.h>
-#include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/string.h>
-#include <inc/syscall.h>
 #include <inc/error.h>
-#include <inc/fd.h>
 #include <inc/base64.h>
 #include <inc/authd.h>
 #include <inc/gateparam.h>
 #include <inc/bipipe.h>
 #include <inc/debug.h>
-#include <inc/ssl_fd.h>
 #include <inc/argv.h>
 
 #include <string.h>
-#include <unistd.h>
-#include <malloc.h>
 #include <errno.h>
-#include <fcntl.h>
 
 #include <sys/socket.h>
 }
@@ -28,10 +20,8 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/authclnt.hh>
 #include <inc/cpplabel.hh>
-#include <inc/spawn.hh>
 #include <inc/gateclnt.hh>
 #include <inc/labelutil.hh>
-#include <inc/ssldclnt.hh>
 #include <inc/sslproxy.hh>
 
 #include <inc/a2pdf.hh>
@@ -47,14 +37,6 @@ static char http_auth_enable;
 static fs_inode httpd_root_ino;
 
 arg_desc cmdarg[] = {
-    { "ssl_enable", "1" },
-    { "ssl_privsep_enable", "1" },
-    { "ssl_eproc_enable", "1" },
-    
-    { "ssl_server_pem", "/bin/server.pem" },
-    { "ssl_dh_pem", "/bin/dh.pem" },
-    { "ssl_servkey_pem", "/bin/servkey.pem" },
-
     { "http_auth_enable", "0" },
     { "httpd_root_path", "/www" },
         
