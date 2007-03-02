@@ -41,7 +41,6 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-static char ssl_enable;
 static char ssl_privsep_enable;
 static char ssl_eproc_enable;
 static char http_auth_enable;
@@ -66,8 +65,6 @@ arg_desc cmdarg[] = {
 
 static struct cobj_ref the_ssld_cow;
 static struct cobj_ref the_eprocd_cow;
-
-static void *the_ctx;
 
 static struct cobj_ref
 get_ssld_cow(void)
@@ -180,23 +177,22 @@ main(int ac, const char **av)
 {
     error_check(argv_parse(ac, av, cmdarg));
 
-    ssl_enable = atoi(arg_val(cmdarg, "ssl_enable"));
     ssl_privsep_enable = atoi(arg_val(cmdarg, "ssl_privsep_enable"));
     ssl_eproc_enable = atoi(arg_val(cmdarg, "ssl_eproc_enable"));
     http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
-    httpd_path = arg_val(cmdarg, "http_handler_path");
+    httpd_path = arg_val(cmdarg, "httpd_path");
 
     const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
     error_check(fs_namei(httpd_root_path, &httpd_root_ino));
 
-    printf("httpd: config:\n");
-    printf(" %-20s %d\n", "ssl_enable", ssl_enable);
+    printf("inted: config:\n");
     printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
     printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
     printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
     printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
+    printf(" %-20s %s\n", "httpd_path", httpd_path);
 
-    if (ssl_enable && ssl_privsep_enable) {
+    if (ssl_privsep_enable) {
 	the_ssld_cow = get_ssld_cow();
 	try {
 	    the_eprocd_cow = get_eprocd_cow();
@@ -210,17 +206,6 @@ main(int ac, const char **av)
 		return -1;
 	    }
 	}
-    } else if (ssl_enable) {
-	const char *server_pem = arg_val(cmdarg, "ssl_server_pem");
-	const char *servkey_pem = arg_val(cmdarg, "ssl_servkey_pem");
-	const char *dh_pem = arg_val(cmdarg, "ssl_dh_pem");
-	
-	printf("httpd: ssl files:\n");
-	printf(" %-20s %s\n", "server_pem", server_pem);
-	printf(" %-20s %s\n", "servkey_pem", servkey_pem);
-	printf(" %-20s %s\n", "dh_pem", dh_pem);
-	
-	error_check(ssl_init(server_pem, dh_pem, servkey_pem, &the_ctx));
-    }
+    } 
     inet_server();
 }

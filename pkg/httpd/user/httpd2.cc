@@ -41,6 +41,8 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
+static const char dbg = 1;
+
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
 
@@ -196,6 +198,17 @@ main(int ac, const char **av)
     if (r < 0)
 	panic("parsing object id %s: %s", av[2], e2s(r));
 
+    http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
+    const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
+    error_check(fs_namei(httpd_root_path, &httpd_root_ino));
+    
+    if (dbg) {
+	printf("httpd2: config:\n");
+	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
+	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+	printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
+    }
+    
     try {
 	int s;
 	error_check(s = bipipe_fd(COBJ(c, o), ssl_proxy_bipipe_client, 0, 0, 0));
