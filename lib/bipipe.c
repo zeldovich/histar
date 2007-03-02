@@ -267,7 +267,7 @@ bipipe_close(struct Fd *fd)
     jthread_mutex_unlock(&p1->mu);
     jthread_mutex_unlock(&p0->mu);
 
-    BIPIPE_SEG_UNMAP(bs);
+    segment_unmap_delayed(bs, 0);
 
     if (flag) {
 	int r = sys_obj_unref(fd->fd_bipipe.bipipe_seg);
