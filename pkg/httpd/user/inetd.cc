@@ -74,7 +74,8 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
 
     fs_inode ino;
     error_check(fs_namei(httpd_path, &ino));
-    const char *argv[] = { httpd_path, container_arg, object_arg };
+    const char *argv[] = { httpd_path, container_arg, object_arg, 
+			   http_auth_enable ? "1" : "0" };
 
     label ds(3), dr(1);
     ds.set(taint, LB_LEVEL_STAR);
@@ -87,7 +88,7 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
     sd.fd1_ = 0;
     sd.fd2_ = 0;
     
-    sd.ac_ = 3;
+    sd.ac_ = 4;
     sd.av_ = &argv[0];
 
     sd.ds_ = &ds;

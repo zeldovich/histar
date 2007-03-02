@@ -33,13 +33,6 @@ static const char dbg = 0;
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
 
-arg_desc cmdarg[] = {
-    { "http_auth_enable", "0" },
-    { "httpd_root_path", "/" },
-        
-    { 0, 0 }
-};
-
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 {
@@ -181,8 +174,8 @@ http_client(int s)
 int
 main(int ac, const char **av)
 {
-    if (ac < 3) {
-	cprintf("usage: %s bipipe-container bipipe-object\n", av[0]);
+    if (ac < 4) {
+	cprintf("usage: %s bipipe-container bipipe-object auth-enable\n", av[0]);
 	return -1;
     }
     
@@ -196,16 +189,14 @@ main(int ac, const char **av)
     r = strtou64(av[2], 0, 10, &o);
     if (r < 0)
 	panic("parsing object id %s: %s", av[2], e2s(r));
-
-    http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
-    const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
-    error_check(fs_namei(httpd_root_path, &httpd_root_ino));
+    
+    http_auth_enable = av[3][0] != '0' ? 1 : 0;
+    httpd_root_ino = start_env->fs_root;
     
     if (dbg) {
 	printf("httpd2: config:\n");
 	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
 	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
-	printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
     }
     
     try {
