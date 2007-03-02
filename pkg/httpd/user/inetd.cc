@@ -1,4 +1,5 @@
 extern "C" {
+#include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/error.h>
 #include <inc/bipipe.h>
@@ -22,6 +23,7 @@ static char ssl_eproc_enable;
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
 static char *httpd_path;
+static cobj_ref httpd_mtab_seg;
 
 arg_desc cmdarg[] = {
     { "ssl_privsep_enable", "1" },
@@ -78,11 +80,22 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
     ds.set(taint, LB_LEVEL_STAR);
     dr.set(taint, 3);
 
-    spawn(ct, ino,
-	  0, 0, 0,
-	  3, &argv[0],
-	  0, 0,
-	  0, &ds, 0, &dr, 0);
+    spawn_descriptor sd;
+    sd.ct_ = ct;
+    sd.elf_ino_ = ino;
+    sd.fd0_ = 0;
+    sd.fd1_ = 0;
+    sd.fd2_ = 0;
+    
+    sd.ac_ = 3;
+    sd.av_ = &argv[0];
+
+    sd.ds_ = &ds;
+    sd.dr_ = &dr;
+    
+    sd.fs_mtab_seg_ = httpd_mtab_seg;
+    spawn(&sd);
+
 }
 
 static void
@@ -154,6 +167,21 @@ main(int ac, const char **av)
     const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
     error_check(fs_namei(httpd_root_path, &httpd_root_ino));
 
+    // setup mount table for httpd
+    int64_t new_mtab_id;
+    error_check(new_mtab_id = 
+		sys_segment_copy(start_env->fs_mtab_seg, 
+				 start_env->shared_container,
+				 0, "http mtab"));
+    httpd_mtab_seg = COBJ(start_env->shared_container, new_mtab_id);
+    fs_inode home_dir, etc_dir, share_dir;
+    error_check(fs_namei("/home", &home_dir));
+    error_check(fs_namei("/etc", &etc_dir));
+    error_check(fs_namei("/share", &share_dir));
+    fs_mount(httpd_mtab_seg, httpd_root_ino, "home", home_dir);
+    fs_mount(httpd_mtab_seg, httpd_root_ino, "etc", etc_dir);
+    fs_mount(httpd_mtab_seg, httpd_root_ino, "share", share_dir);
+    
     printf("inted: config:\n");
     printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
     printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
