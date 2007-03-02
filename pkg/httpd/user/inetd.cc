@@ -79,16 +79,15 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
     error_check(fs_namei(httpd_path, &ino));
     const char *argv[] = { httpd_path, container_arg, object_arg };
 
-    label cs(LB_LEVEL_STAR), dr(1), co(0);
-    cs.set(taint, 3);
+    label ds(3), dr(1);
+    ds.set(taint, LB_LEVEL_STAR);
     dr.set(taint, 3);
-    co.set(taint, 3);
 
     spawn(ct, ino,
 	  0, 0, 0,
 	  3, &argv[0],
 	  0, 0,
-	  &cs, 0, 0, &dr, &co);
+	  0, &ds, 0, &dr, 0);
 }
 
 static void
@@ -105,7 +104,6 @@ inet_client(void *a)
 	printf("inet_client: %s\n", e.what());
     }	
 }
-
 
 static void __attribute__((noreturn))
 inet_server(void)

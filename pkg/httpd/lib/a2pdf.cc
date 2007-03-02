@@ -31,15 +31,10 @@ a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &ou
 			  ".setpdfwrite",
 			  "-f",
 			  "-" };
-
-    int64_t ctaint;
-    error_check(ctaint = handle_alloc());
-    scope_guard<void, uint64_t> drop(thread_drop_star, ctaint);
     
     label taint(0);
     if (utaint)
 	taint.set(utaint, 3);
-    taint.set(ctaint, 3);
 
     std::ostringstream pdf_out;
 

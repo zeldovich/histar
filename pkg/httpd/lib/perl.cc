@@ -35,14 +35,10 @@ perl(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out
     } 
 
     out << "HTTP/2.0 200 OK\r\n";
-
-    int64_t ctaint;
-    error_check(ctaint = handle_alloc());
-    scope_guard<void, uint64_t> drop(thread_drop_star, ctaint);
     
     label taint(0);
-    taint.set(utaint, 3);
-    taint.set(ctaint, 3);
+    if (utaint)
+	taint.set(utaint, 3);
     
     wrap_call wc("/bin/perl", root_ino);
     wc.call(2, av, 0, 0, &taint, out);
