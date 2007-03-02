@@ -9,7 +9,7 @@
 static int
 thread_cleanup_internal(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
 {
-    int r = segment_unmap_delayed(stackbase, 1);
+    int r = segment_unmap_delayed(stackbase, 0);
     if (r < 0)
 	return r;
 
