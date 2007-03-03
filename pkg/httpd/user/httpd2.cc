@@ -261,8 +261,12 @@ http_client(int s)
 	    throw basic_exception("no space in http req: %s", req);
 
 	char pnbuf[256];
-	strncpy(&pnbuf[0], pn_start, space - pn_start);
-	pnbuf[sizeof(pnbuf) - 1] = '\0';
+	uint32_t pnlen = space - pn_start;
+	if (pnlen >= sizeof(pnbuf))
+	    throw basic_exception("request path too long: %s", req);
+
+	strncpy(&pnbuf[0], pn_start, pnlen);
+	pnbuf[pnlen] = '\0';
 
 	char auth[64];
 	auth[0] = '\0';
