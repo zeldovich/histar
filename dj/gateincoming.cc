@@ -117,6 +117,8 @@ class incoming_impl : public dj_incoming_gate {
 	process_call1(gcd, &cs, &halt, untainted);
 	if (!halt)
 	    ret->ret(cs, 0, 0);
+
+	sys_obj_unref(COBJ(gcd->taint_container, sys_self_id()));
     }
 
     void process_call1(gate_call_data *gcd, label **csp, bool *haltp, bool untainted) {
