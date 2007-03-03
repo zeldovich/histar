@@ -9,6 +9,7 @@ extern "C" {
 #include <dj/djsrpc.hh>
 #include <dj/internalx.h>
 #include <dj/djautorpc.hh>
+#include <dj/djutil.hh>
 #include <dj/miscx.h>
 
 int
@@ -59,75 +60,22 @@ main(int ac, char **av)
     uint64_t tcat = handle_alloc();
     warn << "allocated category " << tcat << " for tainting\n";
 
-    dj_mapreq mapreq;
-    mapreq.ct = local_ct;
-    mapreq.lcat = tcat;
-    mapreq.gcat.integrity = 0;
-
-    label xgrant(3);
-    xgrant.set(tcat, LB_LEVEL_STAR);
-
-    dj_message_endpoint map_ep;
-    map_ep.set_type(EP_MAPCREATE);
-
-    dj_autorpc local_ar(&gs, 1, gs.hostkey(), djcache);
-
+    /* Allocate mappings & delegations */
     dj_cat_mapping local_cme;
-    dj_delivery_code c = local_ar.call(map_ep, mapreq, local_cme,
-				       0, 0, 0, &xgrant);
-    if (c != DELIVERY_DONE)
-	warn << "error talking to mapcreate: code " << c << "\n";
-
-    warn << "Local dj_cat_mapping: "
-	 << local_cme.gcat << ", "
-	 << local_cme.lcat << ", "
-	 << local_cme.user_ct << ", "
-	 << local_cme.res_ct << ", "
-	 << local_cme.res_gt << "\n";
-    dj_gcat gcat = local_cme.gcat;
-    djcache[gs.hostkey()]->cmi_.insert(local_cme);
-
-    mapreq.ct = call_ct;
-    mapreq.gcat = gcat;
-    mapreq.lcat = 0;
-
-    xgrant.reset(3);
-    xgrant.set(tcat, LB_LEVEL_STAR);
-
-    dj_autorpc remote_ar(&gs, 1, k, djcache);
     dj_cat_mapping remote_cme;
-    c = remote_ar.call(map_ep, mapreq, remote_cme, 0, &xgrant);
-    if (c != DELIVERY_DONE)
-	warn << "error from remote mapcreate: code " << c << "\n";
 
-    warn << "Remote dj_cat_mapping: "
-	 << remote_cme.gcat << ", "
-	 << remote_cme.lcat << ", "
-	 << remote_cme.user_ct << ", "
-	 << remote_cme.res_ct << ", "
-	 << remote_cme.res_gt << "\n";
-    djcache[k]->cmi_.insert(remote_cme);
+    try {
+	label ct_local(1), ct_remote(1);
 
-    /* Create a delegation for the remote host */
-    dj_message_endpoint delegate_ep;
-    delegate_ep.set_type(EP_DELEGATOR);
-
-    dj_delegate_req dreq;
-    dj_stmt_signed dres;
-    dreq.gcat = gcat;
-    dreq.to = k;
-    dreq.from_ts = 0;
-    dreq.until_ts = ~0;
-
-    xgrant.reset(3);
-    xgrant.set(tcat, LB_LEVEL_STAR);
-
-    c = local_ar.call(delegate_ep, dreq, dres, 0, &xgrant);
-    if (c != DELIVERY_DONE)
-	warn << "error from delegator: code " << c << "\n";
-
-    warn << "Delegation!  type " << dres.stmt.type << "\n";
-    djcache.dmap_.insert(dres);
+	dj_stmt_signed dres;
+	dj_map_and_delegate(tcat, false,
+			    ct_local, ct_remote,
+			    local_ct, call_ct, k,
+			    &gs, djcache,
+			    &local_cme, &remote_cme, &dres);
+    } catch (std::exception &e) {
+	warn << "dj_map_and_delegate: " << e.what() << "\n";
+    }
 
     /* Create a remote tainted container */
     dj_message_endpoint ctalloc_ep;
@@ -142,14 +90,16 @@ main(int ac, char **av)
     ctreq.parent = call_ct;
     ctreq.quota = CT_QUOTA_INF;
     ctreq.timeout_msec = 5000;
-    ctreq.label.ents.push_back(gcat);
+    ctreq.label.ents.push_back(local_cme.gcat);
 
-    xgrant.reset(3);
+    label xgrant(3);
     xgrant.set(tcat, LB_LEVEL_STAR);
 
     label xclear(0);
     xclear.set(tcat, 3);
 
+    dj_delivery_code c;
+    dj_autorpc remote_ar(&gs, 5, k, djcache);
     c = remote_ar.call(ctalloc_ep, ctreq, ctres, 0, &xgrant, &xclear);
     if (c != DELIVERY_DONE)
 	warn << "error from ctalloc: code " << c << "\n";
