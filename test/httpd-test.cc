@@ -24,11 +24,20 @@
 // some knobs
 static const int default_requests = 100;
 static const int default_clients = 1;
-static char *request_template = 
+static char *request_template_noauth = ""
     "GET %s HTTP/1.0\r\nUser-Agent: "
-    "TestClient\r\nHost: %s:%d\r\n\r\n";
+    "TestClient\r\nHost: %s:%d\r\n"
+    "\r\n";
+static char *request_template_auth = ""
+    "GET %s HTTP/1.0\r\nUser-Agent: "
+    "TestClient\r\nHost: %s:%d\r\n"
+    "Authorization: Basic cm9vdDo=\r\n"
+    "\r\n";
+static char *request_template = 0;
+
 static const char* path = "/";
 static char logging = 0;
+static char auth = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
 
@@ -161,7 +170,7 @@ main(int ac, char **av)
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
 		"[-r requests | -c clients | -l time-limit | "
-		"-p path -d]\n", av[0]);
+		"-p path -a -d]\n", av[0]);
 	exit(-1);
     }
 
@@ -171,7 +180,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:p:d")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:da")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -188,8 +197,16 @@ main(int ac, char **av)
 	case 'd':
 	    logging = 1;
 	    break;
+	case 'a':
+	    auth = 1;
+	    break;
 	}
     }
+
+    if (auth)
+	request_template = request_template_auth;
+    else
+	request_template = request_template_noauth;
     
     struct hostent *hp;
     struct sockaddr_in addr;
