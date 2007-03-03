@@ -1,5 +1,4 @@
 extern "C" {
-#include <inc/assert.h>
 #include <inc/string.h>
 #include <inc/error.h>
 #include <inc/base64.h>
@@ -8,6 +7,8 @@ extern "C" {
 #include <inc/bipipe.h>
 #include <inc/debug.h>
 #include <inc/argv.h>
+#include <inc/syscall.h>
+#include <inc/stdio.h>
 
 #include <string.h>
 #include <errno.h>
@@ -25,6 +26,11 @@ extern "C" {
 #include <inc/sslproxy.hh>
 #include <inc/module.hh>
 
+#include <dj/gatesender.hh>
+#include <dj/djautorpc.hh>
+#include <dj/djutil.hh>
+#include <dj/miscx.h>
+
 #include <iostream>
 #include <sstream>
 
@@ -32,6 +38,10 @@ static const char dbg = 0;
 
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
+static int httpd_djauth = 0;
+
+static gate_sender *the_gs;
+static dj_global_cache djcache;
 
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
@@ -74,6 +84,93 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
     std::string reply = header.str();
     tc->write(reply.data(), reply.size());
+}
+
+static str
+read_file(const char *pn)
+{
+    fs_inode ino;
+    error_check(fs_namei(pn, &ino));
+
+    uint64_t len;
+    error_check(fs_getsize(ino, &len));
+
+    mstr s(len);
+    error_check(fs_pread(ino, (void *) s.cstr(), len, 0));
+
+    return s;
+}
+
+static void
+do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
+{
+    if (httpd_djauth) {
+	/*
+	 * Figure out the parameters for the call:
+	 * -- public key of server
+	 * -- container on the server
+	 * -- authproxy gate on server
+	 */
+
+	str pk_str = read_file("/dj_host");
+	ptr<sfspub> sfspub = sfscrypt.alloc(pk_str, SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	dj_pubkey pk = sfspub2dj(sfspub);
+
+	dj_message_endpoint auth_ep;
+	auth_ep.set_type(EP_GATE);
+	auth_ep.ep_gate->msg_ct = atoi(read_file("/dj_ct").cstr());
+	auth_ep.ep_gate->gate <<= read_file("/dj_authgate").cstr();
+
+	/*
+	 * Allocate a call taint category to protect the password in transit
+	 */
+	uint64_t call_taint = handle_alloc();
+	label call_ct_label(1);
+	call_ct_label.set(call_taint, 3);
+	int64_t call_ct = sys_container_alloc(start_env->shared_container,
+					      call_ct_label.to_ulabel(),
+					      "httpd dj call", 0, CT_QUOTA_INF);
+	error_check(call_ct);
+
+	/* XXX assumes publicly-writable container on the other side */
+	dj_cat_mapping local_call_taint;
+	dj_cat_mapping remote_call_taint;
+	dj_stmt_signed delegation;
+
+	label grant_local(3), grant_remote(3);
+	dj_map_and_delegate(call_taint, false,
+			    grant_local, grant_remote,
+			    call_ct, auth_ep.ep_gate->msg_ct, pk,
+			    the_gs, djcache,
+			    &local_call_taint, &remote_call_taint, &delegation);
+
+	/*
+	 * Invoke the user auth code..
+	 */
+	authproxy_arg ap_arg;
+	authproxy_res ap_res;
+
+	ap_arg.username = user;
+	ap_arg.password = pass;
+	ap_arg.map_ct = auth_ep.ep_gate->msg_ct;
+	ap_arg.return_map_ct = call_ct;
+
+	label grant(3);
+	grant.set(call_taint, LB_LEVEL_STAR);
+
+	dj_autorpc arpc(the_gs, 5, pk, djcache);
+	dj_delivery_code c = arpc.call(auth_ep, ap_arg, ap_res, 0, &grant);
+	if (c != DELIVERY_DONE)
+	    throw basic_exception("auth rpc: code %d", c);
+	if (!ap_res.ok)
+	    throw basic_exception("authproxy: not ok");
+
+	*ug = ap_res.resok->ug_remote.lcat;
+	*ut = ap_res.resok->ut_remote.lcat;
+    } else {
+	auth_login(user, pass, ug, ut);
+    }
 }
 
 static void
@@ -130,7 +227,7 @@ http_client(int s)
 
 		uint64_t ug, ut;
 		try {
-		    auth_login(user, pass, &ug, &ut);
+		    do_login(user, pass, &ug, &ut);
 		} catch (std::exception &e) {
 		    snprintf(buf, sizeof(buf),
 			    "HTTP/1.0 401 Forbidden\r\n"
@@ -199,7 +296,10 @@ main(int ac, const char **av)
 	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
 	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
     }
-    
+
+    if (httpd_djauth)
+	the_gs = new gate_sender();
+
     try {
 	int s;
 	error_check(s = bipipe_fd(COBJ(c, o), ssl_proxy_bipipe_client, 0, 0, 0));

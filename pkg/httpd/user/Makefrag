@@ -1,12 +1,15 @@
 OBJDIRS += pkg/httpd/user
 
-HTTPD_LDEPS   := $(OBJDIR)/pkg/httpd/lib/libhttpd.a
+HTTPD_LDEPS   := $(OBJDIR)/pkg/httpd/lib/libhttpd.a $(DIS_LDDEPS)
 HTTPD_LDFLAGS := $(OBJDIR)/pkg/httpd/lib/libhttpd.a \
-		 $(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a
-	   
+		 $(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a \
+		 $(DIS_LDFLAGS)
+HTTPD_CCDEPS  := acpkg/openssl-0.9.8a/__build $(DIS_CCDEPS)
+HTTPD_CFLAGS  += $(DIS_CFLAGS)
+
 ## Generic build rules
 
-$(OBJDIR)/pkg/httpd/user/%.o: pkg/httpd/user/%.cc acpkg/openssl-0.9.8a/__build
+$(OBJDIR)/pkg/httpd/user/%.o: pkg/httpd/user/%.cc $(HTTPD_CCDEPS)
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(HTTPD_CFLAGS)
 
