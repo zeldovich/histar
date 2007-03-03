@@ -8,6 +8,7 @@ enum { reqctx_debug = 0 };
 bool
 verify_label_reqctx::can_read(cobj_ref o)
 {
+    label l;
     try {
 	if (o.container != o.object && !can_read(COBJ(o.container, o.container)))
 	    return false;
@@ -21,6 +22,10 @@ verify_label_reqctx::can_read(cobj_ref o)
     } catch (std::exception &e) {
 	warn << "verify_label_reqctx::can_read " << o
 	     << ": " << e.what() << "\n";
+
+	warn << "o.label=" << l.to_string()
+	     << ", vl=" << vl_.to_string() << "\n";
+
 	return false;
     }
 }
@@ -28,11 +33,11 @@ verify_label_reqctx::can_read(cobj_ref o)
 bool
 verify_label_reqctx::can_rw(cobj_ref o)
 {
+    label l;
     try {
 	if (o.container != o.object && !can_read(COBJ(o.container, o.container)))
 	    return false;
 
-	label l;
 	obj_get_label(o, &l);
 	if (reqctx_debug)
 	    warn << "can_rw(" << o << "): label " << l.to_string() << ", vl " << vl_.to_string() << "\n";
@@ -42,6 +47,10 @@ verify_label_reqctx::can_rw(cobj_ref o)
     } catch (std::exception &e) {
 	warn << "verify_label_reqctx::can_rw " << o
 	     << ": " << e.what() << "\n";
+
+	warn << "o.label=" << l.to_string()
+	     << ", vl=" << vl_.to_string() << "\n";
+
 	return false;
     }
 }
