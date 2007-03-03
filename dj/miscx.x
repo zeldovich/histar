@@ -61,6 +61,8 @@ union authproxy_res switch (bool ok) {
  */
 
 struct webapp_arg {
+    dj_gcat ug;
+    dj_gcat ut;
     string reqpath<>;
 };
 

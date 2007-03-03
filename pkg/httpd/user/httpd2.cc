@@ -101,6 +101,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	webapp_arg web_arg;
 	webapp_res web_res;
+	web_arg.ug = dj_ug;
+	web_arg.ut = dj_ut;
 	web_arg.reqpath = req;
 
 	dj_message_endpoint webapp_ep;
@@ -138,7 +140,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	    a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
 	} else if (!strcmp(tmp, "cat")) {
 	    std::string pn = strip_req;
-	    cat(httpd_root_ino, pn.c_str(), ut, ug, header);
+	    webcat(httpd_root_ino, pn.c_str(), ut, ug, header);
 	} else {
 	    header << "HTTP/1.0 500 Server error\r\n";
 	    header << "Content-Type: text/html\r\n";

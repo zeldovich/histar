@@ -21,7 +21,7 @@ extern "C" {
 static const char debug = 1;
 
 void
-cat(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::ostringstream &out)
+webcat(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::ostringstream &out)
 {
     const char *av[] = { "/bin/cat", fn };
 
