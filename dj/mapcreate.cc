@@ -70,14 +70,13 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     uint64_t lcat = mapreq.lcat;
 
     if (lcat) {		/* Create a global category */
-	gcat.key = p_->pubkey();
-	gcat.id = ++counter_;
-	gcat.integrity = gcat.integrity;
-
-	if (cmi.l2g(lcat, 0)) {
+	if (cmi.l2g(lcat, &gcat)) {
 	    // Caller already provided an existing mapping for lcat,
 	    // so just create a new mapping.
 	} else {
+	    gcat.key = p_->pubkey();
+	    gcat.id = ++counter_;
+
 	    // Caller better have granted us the star on gate invocation,
 	    // because this is the first mapping for this category.
 	    if (!lms) {
@@ -98,14 +97,19 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    sp.acquire();
 	}
     } else {
-	int64_t x_lcat = handle_alloc();
-	if (x_lcat < 0) {
-	    warn << "histar_mapcreate: cannot allocate handle\n";
-	    da.cb(DELIVERY_REMOTE_ERR, 0);
-	    return;
-	}
+	if (cmi.g2l(gcat, &lcat)) {
+	    // Actual local category already exists, can reuse it,
+	    // and just create a new mapping.
+	} else {
+	    int64_t x_lcat = handle_alloc();
+	    if (x_lcat < 0) {
+		warn << "histar_mapcreate: cannot allocate handle\n";
+		da.cb(DELIVERY_REMOTE_ERR, 0);
+		return;
+	    }
 
-	lcat = x_lcat;
+	    lcat = x_lcat;
+	}
     }
 
     scope_guard<void, uint64_t> drop(thread_drop_star, lcat);

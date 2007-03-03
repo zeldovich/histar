@@ -19,7 +19,8 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     label xgrant(3);
     xgrant.set(lcat, LB_LEVEL_STAR);
 
-    dj_autorpc arpc_local(gs, 5, gs->hostkey(), cache);
+    dj_pubkey localkey = gs->hostkey();
+    dj_autorpc arpc_local(gs, 5, localkey, cache);
     dj_autorpc arpc_remote(gs, 5, host, cache);
 
     /*
@@ -39,7 +40,7 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
 			&call_taint, &call_grant, &call_clear, &xgrant);
     if (c != DELIVERY_DONE)
 	throw basic_exception("Could not create local mapping: code %d", c);
-    cache[gs->hostkey()]->cmi_.insert(*lmap);
+    cache[localkey]->cmi_.insert(*lmap);
 
     /*
      * Create mapping on remote host.
@@ -47,7 +48,17 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     mapreq.ct = rct;
     mapreq.lcat = 0;
     mapreq.gcat = lmap->gcat;
+
     call_taint = taint; call_grant = grant_remote; call_clear = taint;
+
+    /*
+     * If it's the same machine, reuse the local category by including
+     * the existing mapping.  We force autorpc to include it by adding
+     * the category to call_grant.
+     */
+    if (localkey == host)
+	call_grant.set(lcat, LB_LEVEL_STAR);
+
     c = arpc_remote.call(ep_mapcreate, mapreq, *rmap,
 			 &call_taint, &call_grant, &call_clear, &xgrant);
     if (c != DELIVERY_DONE)
