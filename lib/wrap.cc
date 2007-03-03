@@ -88,6 +88,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     called_ = 1;
 
     int def_fd = debug ? opencons() : open("/dev/null", O_RDWR);
+    errno_check(def_fd);
     scope_guard<int, int> close_def(close, def_fd);
 
     if (sin_ < 0) 
