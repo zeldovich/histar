@@ -128,6 +128,8 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.target = callmsg.return_ep;
     replym.token = mapent.res_ct;
     replym.taint = reply_taint;
+    replym.glabel = m.glabel;
+    replym.gclear = m.gclear;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(mapent);
