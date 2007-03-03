@@ -1,80 +1,53 @@
-#include <async.h>
-#include <crypt.h>
-#include <wmstr.h>
-#include <arpc.h>
-#include <dj/dis.hh>
+extern "C" {
+#include <inc/syscall.h>
+}
+
+#include <dj/gatesender.hh>
 #include <dj/djops.hh>
-#include <dj/djauth.h>
-#include <dj/djgatecall.hh>
-
-static void
-logincb(dj_reply_status stat, const djcall_args *args)
-{
-    if (stat != REPLY_DONE) {
-	warn << "logincb: stat " << stat << "\n";
-	return;
-    }
-
-    djauth_reply reply;
-    if (!str2xdr(reply, args->data)) {
-	warn << "logincb: cannot decode\n";
-	return;
-    }
-
-    if (!reply.ok) {
-	warn << "logincb: not ok\n";
-	return;
-    }
-
-    warn << "logincb: ok!\n";
-}
-
-static void
-dostuff(djgate_caller *dc, str node_pk, dj_gatename gate, int taint_bit)
-{
-    djcall_args args;
-    args.taint = label(1);
-    args.grant = label(3);
-
-#ifndef JOS_TEST
-    if (taint_bit)
-	args.taint.set(start_env->user_taint, 3);
-#endif
-
-    dj_reply_status stat;
-    djcall_args res;
-
-    djauth_request req;
-    req.username = "root";
-    req.password = "";
-    args.data = xdr2str(req);
-
-    stat = dc->call(node_pk, gate, args, &res);
-    logincb(stat, &res);
-}
+#include <dj/djcache.hh>
+#include <dj/djautorpc.hh>
+#include <dj/miscx.h>
 
 int
 main(int ac, char **av)
 {
-    if (ac != 4 && ac != 5) {
-	printf("Usage: %s djd-gate-ct.id host-pk gate-ct.id [taint-bit]\n", av[0]);
+    if (ac != 4) {
+	printf("Usage: %s proxy-gate username password\n", av[0]);
 	exit(-1);
     }
 
-    cobj_ref djd_gate;
-    djd_gate <<= av[1];
-    const char *pk16 = av[2];
+    label pub(1);
+    int64_t ctid = sys_container_alloc(start_env->shared_container,
+				       pub.to_ulabel(), "foobar", 0, CT_QUOTA_INF);
+    error_check(ctid);
 
-    dj_gatename gate;
-    gate <<= av[3];
+    gate_sender gs;
+    dj_pubkey pk = gs.hostkey();
 
-    dj_esign_pubkey k;
-    k.n = bigint(pk16, 16);
-    k.k = 8;
-    str nodepk = xdr2str(k);
+    dj_message_endpoint ep;
+    ep.set_type(EP_GATE);
+    ep.ep_gate->msg_ct = ctid;
+    ep.ep_gate->gate <<= av[1];
 
-    int taint_bit = (ac == 4) ? 0 : atoi(av[4]);
+    dj_global_cache cache;
 
-    djgate_caller dc(djd_gate);
-    dostuff(&dc, xdr2str(k), gate, taint_bit);
+    authproxy_arg arg;
+    authproxy_res res;
+
+    arg.username = av[2];
+    arg.password = av[3];
+    arg.map_ct = ctid;
+    arg.return_map_ct = ctid;
+
+    dj_autorpc remote_ar(&gs, 5, pk, cache);
+
+    dj_delivery_code c = remote_ar.call(ep, arg, res);
+    if (c != DELIVERY_DONE)
+	fatal << "rpc call: code " << c << "\n";
+    if (!res.ok)
+	fatal << "authproxy: not ok\n";
+
+    warn << "all done\n";
+    warn << res.resok->ut_remote.gcat << "\n";
+    warn << res.resok->ug_remote.gcat << "\n";
 }

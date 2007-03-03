@@ -7,6 +7,7 @@ extern "C" {
 }
 
 #include <inc/error.hh>
+#include <inc/cpplabel.hh>
 #include <dj/djprotx.h>
 #include <dj/hsutil.hh>
 
