@@ -133,8 +133,6 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     label dr(1);
     dr.merge(&taint_label, &tmp, label::max, label::leq_starlo);
     dr = tmp;
-    
-    dr.set(start_env->user_grant, 3);
 
     label ds(3);
     if (ds_arg)
