@@ -38,9 +38,9 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	dj_pubkey thiskey = the_gs->hostkey();
 	dj_global_cache cache;
 	cache[thiskey]->cmi_.insert(m.catmap);
-	cache[r->sender]->cmi_.insert(r->catmap);
+	cache[r->sender]->cmi_.insert(r->msg.catmap);
 	cache.dmap_.insert(m.dset);
-	cache.dmap_.insert(r->dset);
+	cache.dmap_.insert(r->msg.dset);
 
 	/*
 	 * Convert caller's labels so we can invoke mapcreate.
