@@ -129,6 +129,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "dev", dev));
     error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "home", fs_home));
 
+    // create a /share directory
+    error_check(fs_mkdir(start_env->fs_root, "share", &dummy_ino, 0));
+
     // create a scratch container
     label ltmp(1);
     error_check(fs_mkdir(start_env->fs_root, "tmp", &dummy_ino, ltmp.to_ulabel()));
