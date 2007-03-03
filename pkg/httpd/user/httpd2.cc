@@ -131,7 +131,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	if (c != DELIVERY_DONE)
 	    throw basic_exception("webapp: %d\n", c);
 
-	header << web_res.httpres;
+	header.write(web_res.httpres.base(), web_res.httpres.size());
     } else if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
 	perl(httpd_root_ino, pn.c_str(), ut, ug, header);

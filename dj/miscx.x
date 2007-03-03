@@ -67,6 +67,6 @@ struct webapp_arg {
 };
 
 struct webapp_res {
-    string httpres<>;
+    opaque httpres<>;
 };
 
