@@ -98,6 +98,13 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
     delete_l.dismiss();
     delete_c.dismiss();
 
+    /*
+     * Make sure that djd knows where the thread is anchored, when
+     * its gatesrv code wants to call sys_self_sched_parents().
+     */
+    sys_self_set_sched_parents(start_env->proc_container, djcall_ct);
+    gcd->taint_container = djcall_ct;
+
     stack_switch((uint64_t) &djd_gate,
 		 (uint64_t) tgtl,
 		 (uint64_t) tgtc,
