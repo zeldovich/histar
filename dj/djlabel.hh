@@ -18,6 +18,7 @@ class dj_catmap_indexed {
     bool l2g(uint64_t lcat, dj_gcat *gcatp,
 	     dj_catmap_indexed *out = 0) const;
     void insert(const dj_cat_mapping &m);
+    void insert(const dj_catmap &cm);
 
  private:
     struct entry {

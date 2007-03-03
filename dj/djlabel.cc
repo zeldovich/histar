@@ -88,10 +88,7 @@ label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 
 dj_catmap_indexed::dj_catmap_indexed(const dj_catmap &cm)
 {
-    for (uint32_t i = 0; i < cm.ents.size(); i++) {
-	const dj_cat_mapping &e = cm.ents[i];
-	insert(e);
-    }
+    insert(cm);
 }
 
 dj_catmap
@@ -138,6 +135,15 @@ dj_catmap_indexed::l2g(uint64_t lcat, dj_gcat *gcatp,
     }
 
     return false;
+}
+
+void
+dj_catmap_indexed::insert(const dj_catmap &cm)
+{
+    for (uint32_t i = 0; i < cm.ents.size(); i++) {
+	const dj_cat_mapping &e = cm.ents[i];
+	insert(e);
+    }
 }
 
 void
