@@ -11,8 +11,8 @@ extern "C" {
 int
 main(int ac, char **av)
 {
-    if (ac != 4) {
-	printf("Usage: %s proxy-gate username password\n", av[0]);
+    if (ac != 6) {
+	printf("Usage: %s proxy-host proxy-ct proxy-gate username password\n", av[0]);
 	exit(-1);
     }
 
@@ -22,21 +22,30 @@ main(int ac, char **av)
     error_check(ctid);
 
     gate_sender gs;
-    dj_pubkey pk = gs.hostkey();
+
+    str pkstr(av[1]);
+    dj_pubkey pk;
+    if (pkstr == "0") {
+	pk = gs.hostkey();
+    } else {
+	ptr<sfspub> sfspub = sfscrypt.alloc(pkstr, SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	pk = sfspub2dj(sfspub);
+    }
 
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
-    ep.ep_gate->msg_ct = ctid;
-    ep.ep_gate->gate <<= av[1];
+    ep.ep_gate->msg_ct = atoi(av[2]);
+    ep.ep_gate->gate <<= av[3];
 
     dj_global_cache cache;
 
     authproxy_arg arg;
     authproxy_res res;
 
-    arg.username = av[2];
-    arg.password = av[3];
-    arg.map_ct = ctid;
+    arg.username = av[4];
+    arg.password = av[5];
+    arg.map_ct = ep.ep_gate->msg_ct;
     arg.return_map_ct = ctid;
 
     dj_autorpc remote_ar(&gs, 5, pk, cache);
