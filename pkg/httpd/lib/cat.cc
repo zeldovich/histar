@@ -35,7 +35,9 @@ cat(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
     } 
 
     out << "HTTP/2.0 200 OK\r\n";
-    
+    out << "Content-Type: text/html\r\n";
+    out << "\r\n";
+
     label taint(0);
     if (utaint)
 	taint.set(utaint, 3);
