@@ -26,13 +26,21 @@ djgate_incoming(gate_call_data *gcd,
      * Verify that we aren't being tricked into reading something..
      */
     label sl;
-    obj_get_label(COBJ(sg.container, sg.container), &sl);
-    error_check(vl.compare(&sl, label::leq_starlo));
-    error_check(sl.compare(&vc, label::leq_starlo));
+    try {
+	obj_get_label(COBJ(sg.container, sg.container), &sl);
+	error_check(vl.compare(&sl, label::leq_starlo));
+	error_check(sl.compare(&vc, label::leq_starlo));
  
-    obj_get_label(sg, &sl);
-    error_check(vl.compare(&sl, label::leq_starlo));
-    error_check(sl.compare(&vc, label::leq_starlo));
+	obj_get_label(sg, &sl);
+	error_check(vl.compare(&sl, label::leq_starlo));
+	error_check(sl.compare(&vc, label::leq_starlo));
+    } catch (std::exception &e) {
+	warn << "djgate_incoming: " << e.what() << "\n";
+	warn << "vl = " << vl.to_string() << "\n";
+	warn << "sl = " << sl.to_string() << "\n";
+	warn << "vc = " << vc.to_string() << "\n";
+	throw;
+    }
 
     /*
      * Read it in
