@@ -66,23 +66,17 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	return;
     }
 
-    if (!ctx.can_rw(COBJ(mapreq.ct, mapreq.ct))) {
-	warn << "histar_mapcreate: cannot write target ct\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
-	return;
-    }
+    dj_gcat gcat = mapreq.gcat;
+    uint64_t lcat = mapreq.lcat;
 
-    dj_cat_mapping mapent;
-    if (mapreq.lcat) {		/* Create a global category */
-	dj_gcat gcat;
+    if (lcat) {		/* Create a global category */
 	gcat.key = p_->pubkey();
 	gcat.id = ++counter_;
-	gcat.integrity = mapreq.gcat.integrity;
+	gcat.integrity = gcat.integrity;
 
-	if (cmi.l2g(mapreq.lcat, 0)) {
+	if (cmi.l2g(lcat, 0)) {
 	    // Caller already provided an existing mapping for lcat,
 	    // so just create a new mapping.
-	    mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
 	} else {
 	    // Caller better have granted us the star on gate invocation,
 	    // because this is the first mapping for this category.
@@ -94,28 +88,41 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
 	    label gl;
 	    obj_get_label(lms->privgate, &gl);
-	    if (gl.get(mapreq.lcat) != LB_LEVEL_STAR) {
+	    if (gl.get(lcat) != LB_LEVEL_STAR) {
 		warn << "histar_mapcreate: trying to map unknown lcat\n";
 		da.cb(DELIVERY_REMOTE_ERR, 0);
 		return;
 	    }
 
-	    saved_privilege sp(mapreq.lcat, lms->privgate);
+	    saved_privilege sp(lcat, lms->privgate);
 	    sp.acquire();
-	    scope_guard<void, uint64_t> drop(thread_drop_star, mapreq.lcat);
-	    mapent = cm_->store(gcat, mapreq.lcat, mapreq.ct);
 	}
     } else {
-	int64_t lcat = handle_alloc();
-	if (lcat < 0) {
+	int64_t x_lcat = handle_alloc();
+	if (x_lcat < 0) {
 	    warn << "histar_mapcreate: cannot allocate handle\n";
 	    da.cb(DELIVERY_REMOTE_ERR, 0);
 	    return;
 	}
 
-	scope_guard<void, uint64_t> drop(thread_drop_star, lcat);
-	mapent = cm_->store(mapreq.gcat, lcat, mapreq.ct);
+	lcat = x_lcat;
     }
+
+    scope_guard<void, uint64_t> drop(thread_drop_star, lcat);
+
+    /*
+     * Perform this check here, to ensure that we have picked up
+     * any privilege (from lms) the user might have granted us but
+     * could not name as part of the message using global categories,
+     * since those mappings don't yet exist.
+     */
+    if (!ctx.can_rw(COBJ(mapreq.ct, mapreq.ct))) {
+	warn << "histar_mapcreate: cannot write target ct\n";
+	da.cb(DELIVERY_REMOTE_ERR, 0);
+	return;
+    }
+
+    dj_cat_mapping mapent = cm_->store(gcat, lcat, mapreq.ct);
 
     dj_message replym;
     replym.target = callmsg.return_ep;
