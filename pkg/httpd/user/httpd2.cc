@@ -71,6 +71,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	ct_req.parent = dj_server_ct;
 	ct_req.quota = CT_QUOTA_INF;
 	ct_req.timeout_msec = 10000;
+	ct_req.label.ents.push_back(dj_ug);
 	ct_req.label.ents.push_back(dj_ut);
 
 	dj_message_endpoint ctalloc_ep;
@@ -80,10 +81,12 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	ctalloc_ep.ep_gate->gate.gate_id = GSPEC_CTALLOC;
 
 	label ct_grant(3);
+	ct_grant.set(ug, LB_LEVEL_STAR);
 	ct_grant.set(ut, LB_LEVEL_STAR);
 	ct_grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	label ct_clear(0);
+	ct_clear.set(ug, 3);
 	ct_clear.set(ut, 3);
 	ct_clear.set(dj_calltaint, 3);
 
@@ -114,6 +117,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	web_grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	label web_clear(0);
+	web_clear.set(ug, 3);
 	web_clear.set(ut, 3);
 	web_clear.set(dj_calltaint, 3);
 
