@@ -24,7 +24,7 @@ struct fs_mtab_ent {
     struct fs_inode mnt_root;
 };
 
-#define FS_NMOUNT	8
+#define FS_NMOUNT	16
 struct fs_mount_table {
     struct fs_mtab_ent mtab_ent[FS_NMOUNT];
 };
