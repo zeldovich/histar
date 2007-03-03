@@ -158,10 +158,11 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     sd.ds_ = &ds;
     sd.dr_ = &dr;
     sd.co_ = &taint_label;
-    
+
     sd.fs_mtab_seg_ = fs_mtab_seg;
     sd.fs_root_ = root_ino_;
     sd.fs_cwd_ = root_ino_;
+    sd.spawn_flags_ = SPAWN_NO_AUTOGRANT;
 
     cp_ = spawn(&sd);
 
