@@ -143,6 +143,14 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     msg_taint.merge(&msg_glabel, &s.vl, label::min, label::leq_starlo);
     msg_taint.merge(&msg_gclear, &s.vc, label::max, label::leq_starlo);
 
+    if (gate_exec_debug) {
+	warn << "gate_exec: msg_taint  " << msg_taint.to_string() << "\n";
+	warn << "gate_exec: msg_glabel " << msg_glabel.to_string() << "\n";
+	warn << "gate_exec: msg_gclear " << msg_gclear.to_string() << "\n";
+	warn << "gate_exec: verify lab " << s.vl.to_string() << "\n";
+	warn << "gate_exec: verify clr " << s.vc.to_string() << "\n";
+    }
+
     verify_label_reqctx ctx(s.vl, s.vc);
 
     /*
