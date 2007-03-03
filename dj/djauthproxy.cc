@@ -9,6 +9,7 @@ extern "C" {
 #include <dj/gatesender.hh>
 #include <dj/djautorpc.hh>
 #include <dj/internalx.h>
+#include <dj/djutil.hh>
 #include <dj/miscx.h>
 
 static gate_sender *the_gs;
@@ -47,96 +48,23 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	djlabel_to_label(cache[thiskey]->cmi_, m.gclear, &gclear, label_clear);
 
 	/*
-	 * autorpc objects for doing mapcreate & delegate.
+	 * Create mappings & delegations
 	 */
-	dj_autorpc local_ar(the_gs, 2, thiskey, cache);
-	dj_autorpc remote_ar(the_gs, 2, r->sender, cache);
+	dj_map_and_delegate(ug, true,
+			    glabel, glabel,
+			    arg.map_ct, arg.return_map_ct, r->sender,
+			    the_gs, cache,
+			    &res.resok->ug_local,
+			    &res.resok->ug_remote,
+			    &res.resok->ug_delegation);
 
-	/*
-	 * Map user categories onto global categories.
-	 */
-	dj_delivery_code c;
-	dj_message_endpoint mapcreate_ep;
-	mapcreate_ep.set_type(EP_MAPCREATE);
-
-	dj_mapreq mapreq;
-	mapreq.gcat.integrity = 1;
-	mapreq.lcat = ug;
-	mapreq.ct = arg.map_ct;
-
-	label t(taint), gl(glabel), gc(gclear), xl(3);
-	xl.set(ug, LB_LEVEL_STAR);
-	c = local_ar.call(mapcreate_ep, mapreq, res.resok->ug_local,
-			  &t, &gl, &gc, &xl);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot mapcreate local ug");
-
-	mapreq.gcat.integrity = 0;
-	mapreq.lcat = ut;
-
-	t = taint; gl = glabel; gc = gclear; xl.reset(3);
-	xl.set(ut, LB_LEVEL_STAR);
-	c = local_ar.call(mapcreate_ep, mapreq, res.resok->ut_local,
-			  &t, &gl, &gc, &xl);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot mapcreate local ut");
-
-	cache[thiskey]->cmi_.insert(res.resok->ut_local);
-	cache[thiskey]->cmi_.insert(res.resok->ug_local);
-
-	/*
-	 * Generate delegations.
-	 */
-	glabel.set(ug, LB_LEVEL_STAR);
-	glabel.set(ut, LB_LEVEL_STAR);
-	gclear.set(ug, 3);
-	gclear.set(ut, 3);
-
-	dj_message_endpoint delegate_ep;
-	delegate_ep.set_type(EP_DELEGATOR);
-
-	dj_delegate_req dreq;
-	dreq.gcat = res.resok->ug_local.gcat;
-	dreq.to = r->sender;
-	dreq.from_ts = 0;
-	dreq.until_ts = ~0;
-
-	xl.reset(3);
-	xl.set(ug, LB_LEVEL_STAR);
-	c = local_ar.call(delegate_ep, dreq, res.resok->ug_delegation,
-			  0, &xl, 0);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot delegate ug");
-
-	dreq.gcat = res.resok->ut_local.gcat;
-	xl.reset(3);
-	xl.set(ut, LB_LEVEL_STAR);
-	c = local_ar.call(delegate_ep, dreq, res.resok->ut_delegation,
-			  0, &xl, 0);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot delegate ut");
-
-	cache.dmap_.insert(res.resok->ug_delegation);
-	cache.dmap_.insert(res.resok->ut_delegation);
-
-	/*
-	 * Create mappings on the remote side.
-	 */
-	mapreq.gcat = res.resok->ug_local.gcat;
-	mapreq.lcat = 0;
-	mapreq.ct = arg.return_map_ct;
-	t = taint; gl = glabel; gc = gclear;
-	c = remote_ar.call(mapcreate_ep, mapreq, res.resok->ug_remote,
-			   &t, &gl, &gc);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot mapcreate remote ug");
-
-	mapreq.gcat = res.resok->ut_local.gcat;
-	t = taint; gl = glabel; gc = gclear;
-	c = remote_ar.call(mapcreate_ep, mapreq, res.resok->ut_remote,
-			   &t, &gl, &gc);
-	if (c != DELIVERY_DONE)
-	    throw basic_exception("cannot mapcreate remote ut");
+	dj_map_and_delegate(ut, false,
+			    glabel, glabel,
+			    arg.map_ct, arg.return_map_ct, r->sender,
+			    the_gs, cache,
+			    &res.resok->ut_local,
+			    &res.resok->ut_remote,
+			    &res.resok->ut_delegation);
 
 	/*
 	 * XXX if we cache global category names, esp. those that were
