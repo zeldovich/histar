@@ -6,7 +6,6 @@ extern "C" {
 #include <crypt.h>
 #include <inc/authclnt.hh>
 
-#include <dj/djgatesrv.hh>
 #include <dj/gatesender.hh>
 #include <dj/djautorpc.hh>
 #include <dj/internalx.h>
@@ -46,11 +45,6 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	djlabel_to_label(cache[thiskey]->cmi_, m.taint,  &taint,  label_taint);
 	djlabel_to_label(cache[thiskey]->cmi_, m.glabel, &glabel, label_owner);
 	djlabel_to_label(cache[thiskey]->cmi_, m.gclear, &gclear, label_clear);
-
-	glabel.set(ug, LB_LEVEL_STAR);
-	glabel.set(ut, LB_LEVEL_STAR);
-	gclear.set(ug, 3);
-	gclear.set(ut, 3);
 
 	/*
 	 * autorpc objects for doing mapcreate & delegate.
@@ -93,6 +87,11 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	/*
 	 * Generate delegations.
 	 */
+	glabel.set(ug, LB_LEVEL_STAR);
+	glabel.set(ut, LB_LEVEL_STAR);
+	gclear.set(ug, 3);
+	gclear.set(ut, 3);
+
 	dj_message_endpoint delegate_ep;
 	delegate_ep.set_type(EP_DELEGATOR);
 
@@ -140,6 +139,18 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	    throw basic_exception("cannot mapcreate remote ut");
 
 	/*
+	 * XXX if we cache global category names, esp. those that were
+	 * created on a different exporter, we may need to potentially
+	 * need to fill in r->msg.dset to prove that our exporter
+	 * speaks for them.  since we're only granting privilege that
+	 * our exporter inherently speaks for here, it's fine.
+	 */
+	r->catmap.ents.push_back(res.resok->ug_local);
+	r->catmap.ents.push_back(res.resok->ut_local);
+	r->msg.catmap.ents.push_back(res.resok->ug_remote);
+	r->msg.catmap.ents.push_back(res.resok->ut_remote);
+
+	/*
 	 * We should be done..
 	 */
 	r->msg.glabel.ents.push_back(res.resok->ug_local.gcat);
@@ -164,8 +175,17 @@ gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 int
 main(int ac, char **av)
 {
-    gate_sender gs;
-    the_gs = &gs;
+    for (uint32_t retry = 0; ; retry++) {
+	try {
+	    the_gs = New gate_sender();
+	    break;
+	} catch (...) {
+	    if (retry == 10)
+		throw;
+
+	    sleep(1);
+	}
+    }
 
     gatesrv_descriptor gd;
     gd.gate_container_ = start_env->shared_container;
