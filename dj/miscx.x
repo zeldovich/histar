@@ -56,3 +56,15 @@ union authproxy_res switch (bool ok) {
     void;
 };
 
+/*
+ * Remote web server application execution.
+ */
+
+struct webapp_arg {
+    string reqpath<>;
+};
+
+struct webapp_res {
+    string httpres<>;
+};
+
