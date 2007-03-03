@@ -32,12 +32,15 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	auth_login(arg.username, arg.password, &ug, &ut);
 
 	/*
-	 * Fill in category mappings that we will need soon.
+	 * Fill in category mappings & delegations that we will need
+	 * to issue MAPCREATE & DELEGATE RPCs.
 	 */
 	dj_pubkey thiskey = the_gs->hostkey();
 	dj_global_cache cache;
 	cache[thiskey]->cmi_.insert(m.catmap);
 	cache[r->sender]->cmi_.insert(r->catmap);
+	cache.dmap_.insert(m.dset);
+	cache.dmap_.insert(r->dset);
 
 	/*
 	 * Convert caller's labels so we can invoke mapcreate.
