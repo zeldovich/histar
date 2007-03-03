@@ -29,3 +29,30 @@ struct perl_run_res {
     string output<>;
 };
 
+/*
+ * Remote authentication/login.
+ */
+
+struct authproxy_arg {
+    string username<16>;
+    string password<16>;
+    unsigned hyper map_ct;
+    unsigned hyper return_map_ct;
+};
+
+struct authproxy_resok {
+    dj_stmt_signed ut_delegation;
+    dj_stmt_signed ug_delegation;
+    dj_cat_mapping ut_local;
+    dj_cat_mapping ug_local;
+    dj_cat_mapping ut_remote;
+    dj_cat_mapping ug_remote;
+};
+
+union authproxy_res switch (bool ok) {
+ case TRUE:
+    authproxy_resok resok;
+ case FALSE:
+    void;
+};
+
