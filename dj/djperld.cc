@@ -72,6 +72,7 @@ run_perl(str script, str input, str *output)
     sd.av_ = argv;
     sd.envc_ = 0;
     sd.envv_ = 0;
+    sd.spawn_flags_ = SPAWN_NO_AUTOGRANT;
 
     child_process cp = spawn(&sd);
     close(fds[1]);
