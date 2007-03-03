@@ -124,10 +124,11 @@ main(int ac, char **av)
 
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));
+    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs, tf));
 
+#ifdef JOS_TEST
     dj_direct_gatemap gm;
     emux.set(EP_GATE, wrap(&gm, &dj_direct_gatemap::deliver));
-    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs, tf));
 
     ep = gm.create_gate(1, wrap(&dj_debug_sink));
     warn << "dj_debug_sink on " << ep << "\n";
@@ -151,6 +152,7 @@ main(int ac, char **av)
 
 	sndfsrpc(djs, &gm, k, ep);
     }
+#endif
 
 #ifndef JOS_TEST
     catmgr *cm = catmgr::alloc();
