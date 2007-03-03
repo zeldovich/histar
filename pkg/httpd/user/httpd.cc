@@ -161,6 +161,7 @@ http_client(void *arg)
 	try {
 	    if (auth[0]) {
 		char *authdata = base64_decode(&auth[0]);
+		scope_guard<void, void*> free_ad(free, authdata);
 		if (authdata == 0)
 		    throw error(-E_NO_MEM, "base64_decode");
 
