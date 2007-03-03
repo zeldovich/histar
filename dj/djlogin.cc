@@ -48,6 +48,9 @@ main(int ac, char **av)
     arg.map_ct = ep.ep_gate->msg_ct;
     arg.return_map_ct = ctid;
 
+    label tl_before;
+    thread_cur_label(&tl_before);
+
     dj_autorpc remote_ar(&gs, 5, pk, cache);
 
     dj_delivery_code c = remote_ar.call(ep, arg, res);
@@ -59,4 +62,10 @@ main(int ac, char **av)
     warn << "all done\n";
     warn << res.resok->ut_remote.gcat << "\n";
     warn << res.resok->ug_remote.gcat << "\n";
+
+    label tl_after;
+    thread_cur_label(&tl_after);
+
+    warn << "label before: " << tl_before.to_string() << "\n";
+    warn << "label after:  " << tl_after.to_string() << "\n";
 }

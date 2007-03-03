@@ -59,7 +59,7 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
     if (!buf2xdr(res, &gcd.param_buf[0], sizeof(gcd.param_buf)))
 	throw basic_exception("cannot unmarshal response");
 
-    if (res.stat == DELIVERY_DONE)
+    if (res.stat == DELIVERY_DONE && tokenp)
 	*tokenp = *res.token;
     return res.stat;
 }

@@ -2,6 +2,8 @@ extern "C" {
 #include <inc/atomic.h>
 #include <inc/intmacro.h>
 #include <inc/syscall.h>
+#include <inc/setjmp.h>
+#include <inc/stdio.h>
 }
 
 #include <inc/labelutil.hh>
@@ -10,14 +12,20 @@ extern "C" {
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>
 
-enum { token_done = (UINT64(1)<<63) };
 enum { retry_delivery_msec = 5000 };
+enum { reply_none, reply_copying, reply_done };
 
 struct dj_rpc_reply_state {
+    uint64_t base_procct;
+    uint64_t callct;
     dj_pubkey server;
-    atomic64_t token;
+    atomic64_t reply;
     uint64_t mdone;
     dj_message m;
+
+    cobj_ref privgate;
+    label privlabel;
+    label privclear;
 };
 
 /*
@@ -33,16 +41,16 @@ struct dj_rpc_reply_state {
  * Other race conditions also abound.  How to GC all unwanted
  * reply threads?  We can't kill them because they have stack
  * allocations.
- *
- * Would be nice if we could accept an older reply after having
- * timed out on waiting for it and sent a new request..  Keep a
- * vector of acceptable reply tokens?  Watch out for taint_cow()
- * not having happened (otherwise not safe).
  */
 static void
 dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 {
     dj_rpc_reply_state *s = (dj_rpc_reply_state *) arg;
+
+    if (start_env->proc_container != s->base_procct) {
+	cprintf("dj_rpc_reply_entry: tainted, refusing to proceed\n");
+	return;
+    }
 
     label vl, vc;
     thread_cur_verify(&vl, &vc);
@@ -55,30 +63,42 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 	return;
     }
 
-    for (;;) {
-	uint64_t curtok = atomic_read(&s->token);
-	if (curtok == m.m.token) {
-	    uint64_t newtok = m.m.token | token_done;
-	    if (atomic_compare_exchange64(&s->token, curtok, newtok) == curtok) {
-		sys_sync_wakeup(&s->token.counter);
-		break;
-	    }
+    if (atomic_compare_exchange64(&s->reply,
+	    reply_none, reply_copying) != reply_none) {
+	printf("dj_rpc_reply_entry: duplicate reply, dropping\n");
+	return;
+    }
+
+    if (m.m.glabel.ents.size() || m.m.gclear.ents.size()) {
+	label tl, tc;
+	thread_cur_label(&tl);
+	thread_cur_clearance(&tc);
+
+	label vl, vc;
+	thread_cur_verify(&vl, &vc);
+
+	vl.merge(&tl, &s->privlabel, label::min, label::leq_starhi);
+	vc.merge(&tc, &s->privclear, label::max, label::leq_starlo);
+
+	label v(3);
+	v.set(start_env->process_grant, 0);
+	int64_t id = sys_gate_create(s->callct, 0,
+				     s->privlabel.to_ulabel(),
+				     s->privclear.to_ulabel(),
+				     v.to_ulabel(),
+				     "djrpc reply privs", 0);
+	if (id < 0) {
+	    printf("dj_rpc_reply_entry: cannot save privs!\n");
+	    return;
 	}
 
-	sys_sync_wait(&s->token.counter, curtok, ~0UL);
+	s->privgate = COBJ(s->callct, id);
     }
 
     s->m = m.m;
-    s->mdone = 1;
-    sys_sync_wakeup(&s->mdone);
-
-    /*
-     * XXX
-     *
-     * What if we got some privilege, either glabel or gclear?
-     * Should create an unbound gate with a process_grant:0 verify,
-     * and have the dj_rpc_call() code jump through it.
-     */
+    assert(atomic_compare_exchange64(&s->reply,
+		reply_copying, reply_done) == reply_copying);
+    sys_sync_wakeup(&s->reply.counter);
 }
 
 dj_delivery_code
@@ -101,9 +121,10 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 				     COBJ(start_env->proc_container, call_ct));
 
     dj_rpc_reply_state rs;
-    atomic_set(&rs.token, 0);
+    rs.base_procct = start_env->proc_container;
+    atomic_set(&rs.reply, reply_none);
     rs.server = node;
-    rs.mdone = 0;
+    rs.callct = call_ct;
 
     gatesrv_descriptor gd;
     gd.gate_container_ = call_ct;
@@ -131,38 +152,49 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	if (now_msec >= timeout_at_msec)
 	    return DELIVERY_TIMEOUT;
 
-	uint64_t token;
-
 	dj_delivery_code code = gs->send(node,
 					 (timeout_at_msec - now_msec) / 1000,
-					 dset, cm, m2, &token, grantlabel);
+					 dset, cm, m2, 0, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 
-	if (token & token_done) {
-	    printf("dj_rpc_call: reserved bit in token already set\n");
-	    return DELIVERY_LOCAL_ERR;
-	}
+	if (atomic_read(&rs.reply) == reply_none)
+	    sys_sync_wait(&rs.reply.counter, reply_none,
+			  sys_clock_msec() + retry_delivery_msec);
 
-	if (atomic_compare_exchange64(&rs.token, 0, token) != 0) {
-	    printf("dj_rpc_call: token CAS failure\n");
-	    return DELIVERY_LOCAL_ERR;
-	}
+	while (atomic_read(&rs.reply) == reply_copying)
+	    sys_sync_wait(&rs.reply.counter, reply_copying, ~0UL);
 
-	sys_sync_wakeup(&rs.token.counter);
-	sys_sync_wait(&rs.token.counter, token,
-		      sys_clock_msec() + retry_delivery_msec);
-	uint64_t ntoken = atomic_compare_exchange64(&rs.token, token, 0);
-	if (ntoken != token) {
-	    if (ntoken != (token | token_done)) {
-		printf("dj_rpc_call: funny new token value\n");
-		return DELIVERY_LOCAL_ERR;
-	    }
-
-	    while (!rs.mdone)
-		sys_sync_wait(&rs.mdone, 0, ~0UL);
-	    *reply = rs.m;
-	    return DELIVERY_DONE;
-	}
+	if (atomic_read(&rs.reply) == reply_done)
+	    break;
     }
+
+    if (rs.m.glabel.ents.size() || rs.m.gclear.ents.size()) {
+	label tl, tc;
+	thread_cur_label(&tl);
+	thread_cur_clearance(&tc);
+
+	label nl, nc;
+	tl.merge(&rs.privlabel, &nl, label::min, label::leq_starlo);
+	tc.merge(&rs.privclear, &nc, label::max, label::leq_starlo);
+
+	struct jos_jmp_buf jb;
+	if (!jos_setjmp(&jb)) {
+	    struct thread_entry te;
+	    memset(&te, 0, sizeof(te));
+	    error_check(sys_self_get_as(&te.te_as));
+	    te.te_entry = (void *) &jos_longjmp;
+	    te.te_arg[0] = (uintptr_t) &jb;
+	    te.te_arg[1] = 1;
+
+	    int r = sys_gate_enter(rs.privgate, nl.to_ulabel(),
+					        nc.to_ulabel(), &te);
+	    printf("djsrpcc: cannot regain privs: %s\n", e2s(r));
+	    return DELIVERY_LOCAL_ERR;
+	}
+	thread_label_cache_update(&nl, &nc);
+    }
+
+    *reply = rs.m;
+    return DELIVERY_DONE;
 }
