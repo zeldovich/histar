@@ -13,7 +13,6 @@ verify_label_reqctx::can_read(cobj_ref o)
 	if (o.container != o.object && !can_read(COBJ(o.container, o.container)))
 	    return false;
 
-	label l;
 	obj_get_label(o, &l);
 	if (reqctx_debug)
 	    warn << "can_read(" << o << "): label " << l.to_string() << "\n";
