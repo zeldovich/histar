@@ -54,12 +54,9 @@ base64_decode(char *s)
 		    v = (unsigned char) ((v == '$') ? 0 : v - 61);
 	    }
 
-	    if (*p) {
+	    if (v) {
 		len++;
-		if (v)
-		    in[i] = (unsigned char) (v - 1);
-	    } else {
-		in[i] = 0;
+		in[i] = (unsigned char) (v - 1);
 	    }
         }
 
