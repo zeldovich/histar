@@ -60,6 +60,9 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
     char strip_req[256];
     strncpy(strip_req, req, sizeof(strip_req) - 1);
     strip_req[sizeof(strip_req) - 1] = 0;
+
+    start_env->user_grant = ug;
+    start_env->user_taint = ut;
     
     std::ostringstream header;
 
