@@ -17,6 +17,8 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/gateinvoke.hh>
 
+enum { gate_exec_debug = 0 };
+
 struct gate_exec_thread_state {
     cobj_ref gate;
     uint64_t msg_ct;
@@ -70,6 +72,15 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 {
     if (m.target.type != EP_GATE)
 	throw basic_exception("gate_exec only does gates");
+
+    if (gate_exec_debug) {
+	warn << "gate_exec: delivering to " << m.target.ep_gate->msg_ct
+	     << "." << m.target.ep_gate->gate.gate_ct
+	     << "." << m.target.ep_gate->gate.gate_id << "\n";
+	warn << "taint " << m.taint << "\n";
+	warn << "grant " << m.glabel << "\n";
+	warn << "clear " << m.gclear << "\n";
+    }
 
     /*
      * Translate the global labels into local ones.
