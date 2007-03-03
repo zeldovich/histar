@@ -69,7 +69,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	header << "HTTP/1.0 500 Server error\r\n";
 	header << "Content-Type: text/html\r\n";
 	header << "\r\n";
-	header << "<h1>unknown request</h1>\r\n";
+	header << "<h1>unknown request: " << req << "</h1>\r\n";
     }
 
     std::string reply = header.str();
