@@ -18,7 +18,7 @@ extern "C" {
 #include <inc/wrap.hh>
 
 void 
-a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
+a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::ostringstream &out)
 {
     const char *av0[] = { "/bin/a2ps",
 			  "--quiet",
@@ -40,12 +40,16 @@ a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &ou
     if (utaint)
 	taint.set(utaint, 3);
 
+    label grant(3);
+    if (ugrant)
+	grant.set(ugrant, LB_LEVEL_STAR);
+
     std::ostringstream pdf_out;
 
     wrap_call wc0("/bin/a2ps", root_ino);
     wrap_call wc1("/bin/gs", root_ino);
-    wc0.call(5, av0, 0, 0, &taint);
-    wc0.pipe(&wc1, 10, av1, 0, 0, &taint, pdf_out);
+    wc0.call(5, av0, 0, 0, &taint, &grant);
+    wc0.pipe(&wc1, 10, av1, 0, 0, &taint, &grant, pdf_out);
 
     int64_t exit_code0, exit_code1;
     error_check(process_wait(wc0.child_proc(), &exit_code0));

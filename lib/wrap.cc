@@ -61,10 +61,10 @@ wrap_call::print_to(int fd, std::ostringstream &out)
 
 void
 wrap_call::pipe(wrap_call *wc ,int ac, const char **av, 
-		int ec, const char **ev, label *taint_label)
+		int ec, const char **ev, label *taint_label, label *ds)
 {
     wc->sin_ = wout_;
-    wc->call(ac, av, ec, ev, taint_label);
+    wc->call(ac, av, ec, ev, taint_label, ds);
     
     close(wout_);
     wout_ = -1;
@@ -73,15 +73,15 @@ wrap_call::pipe(wrap_call *wc ,int ac, const char **av,
 void
 wrap_call::pipe(wrap_call *wc ,int ac, const char **av, 
 		int ec, const char **ev, 
-		label *taint_label, std::ostringstream &out)
+		label *taint_label, label *ds, std::ostringstream &out)
 {
-    pipe(wc, ac, av, ec, ev, taint_label);
+    pipe(wc, ac, av, ec, ev, taint_label, ds);
     print_to(wc->wout_, out);
 }
 
 void
 wrap_call::call(int ac, const char **av, int ec, const char **ev, 
-		label *taint)
+		label *taint, label *ds_arg)
 {
     if (called_)
 	throw basic_exception("wrap_call::call already called");
@@ -135,6 +135,10 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     dr = tmp;
     
     dr.set(start_env->user_grant, 3);
+
+    label ds(3);
+    if (ds_arg)
+	ds = *ds_arg;
     
     struct fs_inode ino;
     error_check(fs_namei(pn_, &ino));
@@ -153,6 +157,7 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
     sd.envv_ = ev;
     
     sd.cs_ = &cs;
+    sd.ds_ = &ds;
     sd.dr_ = &dr;
     sd.co_ = &taint_label;
     
@@ -168,8 +173,8 @@ wrap_call::call(int ac, const char **av, int ec, const char **ev,
 
 void
 wrap_call::call(int ac, const char **av, int ec, const char **ev, 
-		label *taint, std::ostringstream &out)
+		label *taint, label *ds, std::ostringstream &out)
 {
-    call(ac, av, ec, ev, taint);
+    call(ac, av, ec, ev, taint, ds);
     print_to(wout_, out);
 }

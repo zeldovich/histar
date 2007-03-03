@@ -84,10 +84,10 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
     // XXX wrap stuff has no timeout
     if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
-	perl(httpd_root_ino, pn.c_str(), ut, header);
+	perl(httpd_root_ino, pn.c_str(), ut, ug, header);
     } else if (strcmp(req, "/")) {
 	std::string pn = req;
-	a2pdf(httpd_root_ino, pn.c_str(), ut, header);
+	a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
     } else {
 	header << "HTTP/1.0 500 Server error\r\n";
 	header << "Content-Type: text/html\r\n";

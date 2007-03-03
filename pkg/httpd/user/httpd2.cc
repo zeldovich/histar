@@ -46,16 +46,16 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
     // XXX wrap stuff has no timeout
     if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
-	perl(httpd_root_ino, pn.c_str(), ut, header);
+	perl(httpd_root_ino, pn.c_str(), ut, ug, header);
     } else if (tmp = strchr(strip_req, '?')) {
 	*tmp = 0;
 	tmp++;
 	if (!strcmp(tmp, "a2pdf")) {
 	    std::string pn = strip_req;
-	    a2pdf(httpd_root_ino, pn.c_str(), ut, header);
+	    a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
 	} else if (!strcmp(tmp, "cat")) {
 	    std::string pn = strip_req;
-	    cat(httpd_root_ino, pn.c_str(), ut, header);
+	    cat(httpd_root_ino, pn.c_str(), ut, ug, header);
 	} else {
 	    header << "HTTP/1.0 500 Server error\r\n";
 	    header << "Content-Type: text/html\r\n";
@@ -64,7 +64,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	}
     } else if (strcmp(req, "/")) {
 	std::string pn = req;
-	a2pdf(httpd_root_ino, pn.c_str(), ut, header);
+	a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
     } else {
 	header << "HTTP/1.0 500 Server error\r\n";
 	header << "Content-Type: text/html\r\n";

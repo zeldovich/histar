@@ -21,7 +21,7 @@ extern "C" {
 static const char debug = 1;
 
 void
-cat(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
+cat(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::ostringstream &out)
 {
     const char *av[] = { "/bin/cat", fn };
 
@@ -41,9 +41,13 @@ cat(fs_inode root_ino, const char *fn, uint64_t utaint, std::ostringstream &out)
     label taint(0);
     if (utaint)
 	taint.set(utaint, 3);
+
+    label grant(3);
+    if (ugrant)
+	grant.set(ugrant, LB_LEVEL_STAR);
     
     wrap_call wc("/bin/cat", root_ino);
-    wc.call(2, av, 0, 0, &taint, out);
+    wc.call(2, av, 0, 0, &taint, &grant, out);
     
     int64_t exit_code;
     error_check(process_wait(wc.child_proc(), &exit_code));
