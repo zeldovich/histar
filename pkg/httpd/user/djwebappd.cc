@@ -115,7 +115,7 @@ main(int ac, char **av)
 	if (r >= 0)
 	    break;
 
-	if (retry >= 10) {
+	if (retry >= 100) {
 	    printf("djwebappd: tired of waiting for /www to appear\n");
 	    exit(1);
 	}

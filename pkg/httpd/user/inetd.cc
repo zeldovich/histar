@@ -55,7 +55,9 @@ static struct cobj_ref
 get_eprocd_cow(void)
 {
     struct fs_inode ct_ino;
-    error_check(fs_namei("/httpd/ssl_eprocd/", &ct_ino));
+    int r = fs_namei("/djechod/public call/ssl_eprocd", &ct_ino);
+    if (r < 0)
+	error_check(fs_namei("/httpd/ssl_eprocd", &ct_ino));
     uint64_t eproc_ct = ct_ino.obj.object;
     
     int64_t gate_id;
