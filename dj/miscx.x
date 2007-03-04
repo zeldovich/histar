@@ -70,3 +70,29 @@ struct webapp_res {
     opaque httpres<>;
 };
 
+/*
+ * Guarded calls.  For now it doesn't support gate invocation
+ * and checksumming, and instead only does ELF invocation, with
+ * the checksum being over the ELF binary instead of the address
+ * space layout defined by the ELF binary.
+ */
+
+struct wrapped_string {		/* To avoid double-deref syntax */
+    string s<>;
+}
+
+struct guardcall_arg {
+    unsigned hyper parent_ct;
+    string elf_pn<>;
+    wrapped_string args<>;
+    opaque sha1sum[20];
+
+    dj_label taint;
+    dj_label glabel;
+    dj_label gclear;
+};
+
+struct guardcall_res {
+    hyper spawn_ct;
+};
+

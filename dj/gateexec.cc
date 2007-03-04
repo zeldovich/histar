@@ -120,6 +120,11 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	    gtname = "djechod";
 	}
 
+	if (spec_id == GSPEC_GUARDCALL) {
+	    ctname = "djguardcall";
+	    gtname = "djguardcall";
+	}
+
 	if (!ctname || !gtname) {
 	    warn << "gate_exec2: bad special gate id " << spec_id << "\n";
 	    da.cb(DELIVERY_REMOTE_ERR, 0);

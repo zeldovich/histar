@@ -85,7 +85,8 @@ enum dj_endpoint_type {
 
 enum dj_special_gate_ids {	/* set container to zero */
     GSPEC_CTALLOC = 1,
-    GSPEC_ECHO
+    GSPEC_ECHO,
+    GSPEC_GUARDCALL
 };
 
 struct dj_gatename {
