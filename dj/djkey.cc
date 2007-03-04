@@ -70,8 +70,10 @@ dj_delegation_map::insert(const dj_delegation_set &dset)
 {
     for (uint32_t i = 0; i < dset.ents.size(); i++) {
 	dj_stmt_signed ss;
-	if (!bytes2xdr(ss, dset.ents[i]))
+	if (!bytes2xdr(ss, dset.ents[i])) {
+	    warn << "dj_delegation_map insert: cannot decode dset entry\n";
 	    continue;
+	}
 	insert(ss);
     }
 }
