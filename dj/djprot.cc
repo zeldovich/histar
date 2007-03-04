@@ -189,7 +189,7 @@ class djprot_impl : public djprot {
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
 	    const dj_gcat &c = a.taint.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size())) {
-		warn << "labelcheck_send: missing delegation for taint "
+		warn << "labelcheck_recv: missing delegation for taint "
 		     << c << " for host " << src << "\n";
 		return false;
 	    }
@@ -198,7 +198,7 @@ class djprot_impl : public djprot {
 	for (uint64_t i = 0; i < a.glabel.ents.size(); i++) {
 	    const dj_gcat &c = a.glabel.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size())) {
-		warn << "labelcheck_send: missing delegation for grant "
+		warn << "labelcheck_recv: missing delegation for grant "
 		     << c << " for host " << src << "\n";
 		return false;
 	    }
@@ -207,7 +207,7 @@ class djprot_impl : public djprot {
 	for (uint64_t i = 0; i < a.gclear.ents.size(); i++) {
 	    const dj_gcat &c = a.gclear.ents[i];
 	    if (!key_speaks_for(src, c, dm, dm.size())) {
-		warn << "labelcheck_send: missing delegation for clear "
+		warn << "labelcheck_recv: missing delegation for clear "
 		     << c << " for host " << src << "\n";
 		return false;
 	    }
