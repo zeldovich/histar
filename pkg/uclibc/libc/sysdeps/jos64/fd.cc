@@ -28,6 +28,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
+#include <inc/jthread.hh>
 
 extern uint64_t signal_counter;
 
@@ -160,6 +161,9 @@ static struct cobj_ref fd_segment_cache;
 int
 fd_alloc(struct Fd **fd_store, const char *name)
 {
+    static jthread_mutex_t alloc_mu;
+    scoped_jthread_lock l(&alloc_mu);
+
     fd_handles_init();
 
     int i;
