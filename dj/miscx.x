@@ -61,8 +61,19 @@ union authproxy_res switch (bool ok) {
  */
 
 struct webapp_arg {
-    dj_gcat ug;
-    dj_gcat ut;
+    dj_cat_mapping ug_map_apphost;
+    dj_cat_mapping ut_map_apphost;
+    dj_cat_mapping ug_map_userhost;
+    dj_cat_mapping ut_map_userhost;
+
+    dj_stmt_signed ug_dlg_apphost;
+    dj_stmt_signed ut_dlg_apphost;
+    dj_stmt_signed ug_dlg_userhost;
+    dj_stmt_signed ut_dlg_userhost;
+
+    dj_pubkey userhost;
+    dj_message_endpoint user_fs;
+
     string reqpath<>;
 };
 

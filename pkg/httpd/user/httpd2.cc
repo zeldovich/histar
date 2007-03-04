@@ -45,14 +45,21 @@ static gate_sender *the_gs;
 static dj_global_cache djcache;
 
 /* Config state for DJ */
-static dj_pubkey dj_server_pk;
-static uint64_t dj_server_ct;
-static dj_gatename dj_authgate;
-static dj_gatename dj_appgate;
+static dj_pubkey dj_app_server_pk;
+static uint64_t dj_app_server_ct;
+static dj_gatename dj_app_gate;
+
+static dj_pubkey dj_user_server_pk;
+static uint64_t dj_user_server_ct;
+static dj_gatename dj_user_authgate;
+static dj_gatename dj_user_fsgate;
 
 /* State associated with DJ calls */
 static dj_gcat dj_ut, dj_ug;
+static dj_cat_mapping dj_ut_authmap, dj_ug_authmap;
+static dj_stmt_signed dj_ut_authdlg, dj_ug_authdlg;
 static uint64_t dj_calltaint;
+static uint64_t dj_calltaint_ct;
 
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
@@ -69,10 +76,46 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
     // XXX wrap stuff has no timeout
     if (httpd_dj_enable) {
+	dj_cat_mapping calltaint_local, calltaint_app;
+	dj_cat_mapping ug_map_local, ug_map_app;
+	dj_cat_mapping ut_map_local, ut_map_app;
+	dj_stmt_signed calltaint_dlg, ug_dlg, ut_dlg;
+
+	/*
+	 * Create mappings & delegations for the call_taint category
+	 * and for the user grant and taint categories, on the application
+	 * server.
+	 */
+
+	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache);
+	dj_delivery_code c;
+	label grant(3);
+	grant.set(dj_calltaint, LB_LEVEL_STAR);
+
+	/* Force inclusion of existing mappings for reuse */
+	grant.set(ut, LB_LEVEL_STAR);
+	grant.set(ug, LB_LEVEL_STAR);
+
+	dj_map_and_delegate(dj_calltaint, false, grant, grant,
+			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
+			    the_gs, djcache,
+			    &calltaint_local, &calltaint_app, &calltaint_dlg);
+	dj_map_and_delegate(ut, false, grant, grant,
+			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
+			    the_gs, djcache,
+			    &ut_map_local, &ut_map_app, &ut_dlg);
+	dj_map_and_delegate(ug, true, grant, grant,
+			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
+			    the_gs, djcache,
+			    &ug_map_local, &ug_map_app, &ug_dlg);
+
+	/*
+	 * Now, create a container to execute application code.
+	 */
 	container_alloc_req ct_req;
 	container_alloc_res ct_res;
 
-	ct_req.parent = dj_server_ct;
+	ct_req.parent = dj_app_server_ct;
 	ct_req.quota = CT_QUOTA_INF;
 	ct_req.timeout_msec = 10000;
 	ct_req.label.ents.push_back(dj_ug);
@@ -80,7 +123,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	dj_message_endpoint ctalloc_ep;
 	ctalloc_ep.set_type(EP_GATE);
-	ctalloc_ep.ep_gate->msg_ct = dj_server_ct;
+	ctalloc_ep.ep_gate->msg_ct = dj_app_server_ct;
 	ctalloc_ep.ep_gate->gate.gate_ct = 0;
 	ctalloc_ep.ep_gate->gate.gate_id = GSPEC_CTALLOC;
 
@@ -94,25 +137,71 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	ct_clear.set(ut, 3);
 	ct_clear.set(dj_calltaint, 3);
 
-	dj_autorpc arpc(the_gs, 5, dj_server_pk, djcache);
-	dj_delivery_code c = arpc.call(ctalloc_ep, ct_req, ct_res,
-				       0, &ct_grant, &ct_clear);
+	c = app_arpc.call(ctalloc_ep, ct_req, ct_res,
+			  0, &ct_grant, &ct_clear);
 	if (c != DELIVERY_DONE)
-	    throw basic_exception("ctallocd: %d", c);
+	    throw basic_exception("ctallocd(1): %d", c);
 
 	error_check(ct_res.ct_id);
-	uint64_t userct = ct_res.ct_id;
+	uint64_t app_call_ct = ct_res.ct_id;
 
+	/*
+	 * Create container on the fileserver.
+	 */
+	ct_req.parent = dj_user_server_ct;
+	ct_req.quota = CT_QUOTA_INF;
+	ct_req.timeout_msec = 10000;
+	ct_req.label.ents.setsize(0);
+	ct_req.label.ents.push_back(dj_ug);
+	ct_req.label.ents.push_back(dj_ut);
+
+	ctalloc_ep.ep_gate->msg_ct = dj_user_server_ct;
+
+	ct_grant.reset(3);
+	ct_grant.set(ug, LB_LEVEL_STAR);
+	ct_grant.set(ut, LB_LEVEL_STAR);
+	ct_grant.set(dj_calltaint, LB_LEVEL_STAR);
+
+	ct_clear.reset(0);
+	ct_clear.set(ug, 3);
+	ct_clear.set(ut, 3);
+	ct_clear.set(dj_calltaint, 3);
+
+	dj_autorpc user_arpc(the_gs, 5, dj_user_server_pk, djcache);
+	c = user_arpc.call(ctalloc_ep, ct_req, ct_res,
+			   0, &ct_grant, &ct_clear);
+	if (c != DELIVERY_DONE)
+	    throw basic_exception("ctallocd(2): %d", c);
+
+	error_check(ct_res.ct_id);
+	uint64_t user_call_ct = ct_res.ct_id;
+
+	/*
+	 * Invoke application code.
+	 */
 	webapp_arg web_arg;
 	webapp_res web_res;
-	web_arg.ug = dj_ug;
-	web_arg.ut = dj_ut;
+
+	web_arg.ug_map_apphost = ug_map_app;
+	web_arg.ut_map_apphost = ut_map_app;
+	web_arg.ug_map_userhost = dj_ug_authmap;
+	web_arg.ut_map_userhost = dj_ut_authmap;
+
+	web_arg.ug_dlg_apphost = ug_dlg;
+	web_arg.ut_dlg_apphost = ut_dlg;
+	web_arg.ug_dlg_userhost = dj_ug_authdlg;
+	web_arg.ut_dlg_userhost = dj_ut_authdlg;
+
+	web_arg.userhost = dj_user_server_pk;
+	web_arg.user_fs.set_type(EP_GATE);
+	web_arg.user_fs.ep_gate->msg_ct = user_call_ct;
+	web_arg.user_fs.ep_gate->gate = dj_user_fsgate;
 	web_arg.reqpath = req;
 
 	dj_message_endpoint webapp_ep;
 	webapp_ep.set_type(EP_GATE);
-	webapp_ep.ep_gate->msg_ct = userct;
-	webapp_ep.ep_gate->gate = dj_appgate;
+	webapp_ep.ep_gate->msg_ct = app_call_ct;
+	webapp_ep.ep_gate->gate = dj_app_gate;
 
 	label web_taint(1);
 	web_taint.set(ug, 0);
@@ -127,8 +216,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	web_clear.set(ut, 3);
 	web_clear.set(dj_calltaint, 3);
 
-	c = arpc.call(webapp_ep, web_arg, web_res,
-		      &web_taint, &web_grant, &web_clear);
+	c = app_arpc.call(webapp_ep, web_arg, web_res,
+			  &web_taint, &web_grant, &web_clear);
 	if (c != DELIVERY_DONE)
 	    throw basic_exception("webapp: %d\n", c);
 
@@ -186,8 +275,8 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
     if (httpd_dj_enable) {
 	dj_message_endpoint auth_ep;
 	auth_ep.set_type(EP_GATE);
-	auth_ep.ep_gate->msg_ct = dj_server_ct;
-	auth_ep.ep_gate->gate = dj_authgate;
+	auth_ep.ep_gate->msg_ct = dj_user_server_ct;
+	auth_ep.ep_gate->gate = dj_user_authgate;
 
 	/*
 	 * Allocate a call taint category to protect the password in transit
@@ -199,6 +288,7 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 					      call_ct_label.to_ulabel(),
 					      "httpd dj call", 0, CT_QUOTA_INF);
 	error_check(call_ct);
+	dj_calltaint_ct = call_ct;
 
 	/* XXX assumes publicly-writable container on the other side */
 	dj_cat_mapping local_call_taint;
@@ -208,7 +298,7 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	label grant_local(3), grant_remote(3);
 	dj_map_and_delegate(dj_calltaint, false,
 			    grant_local, grant_remote,
-			    call_ct, dj_server_ct, dj_server_pk,
+			    call_ct, dj_user_server_ct, dj_user_server_pk,
 			    the_gs, djcache,
 			    &local_call_taint, &remote_call_taint, &delegation);
 
@@ -223,7 +313,7 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
 	ap_arg.username = user;
 	ap_arg.password = pass;
-	ap_arg.map_ct = dj_server_ct;
+	ap_arg.map_ct = dj_user_server_ct;
 	ap_arg.return_map_ct = call_ct;
 
 	label taint(1);
@@ -232,15 +322,15 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	label grant(3);
 	grant.set(dj_calltaint, LB_LEVEL_STAR);
 
-	dj_autorpc arpc(the_gs, 5, dj_server_pk, djcache);
-	dj_delivery_code c = arpc.call(auth_ep, ap_arg, ap_res, &taint, &grant);
+	dj_autorpc auth_arpc(the_gs, 5, dj_user_server_pk, djcache);
+	dj_delivery_code c = auth_arpc.call(auth_ep, ap_arg, ap_res, &taint, &grant);
 	if (c != DELIVERY_DONE)
 	    throw basic_exception("auth rpc: code %d", c);
 	if (!ap_res.ok)
 	    throw basic_exception("authproxy: not ok");
 
-	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ug_local);
-	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ut_local);
+	djcache[dj_user_server_pk]->cmi_.insert(ap_res.resok->ug_local);
+	djcache[dj_user_server_pk]->cmi_.insert(ap_res.resok->ut_local);
 	djcache.dmap_.insert(ap_res.resok->ug_delegation);
 	djcache.dmap_.insert(ap_res.resok->ut_delegation);
 
@@ -249,6 +339,11 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
 	dj_ug = ap_res.resok->ug_remote.gcat;
 	dj_ut = ap_res.resok->ut_remote.gcat;
+
+	dj_ug_authmap = ap_res.resok->ug_local;
+	dj_ut_authmap = ap_res.resok->ut_local;
+	dj_ug_authdlg = ap_res.resok->ug_delegation;
+	dj_ut_authdlg = ap_res.resok->ut_delegation;
 
 	if (debug_dj) {
 	    warn << "httpd2: dj_ug " << dj_ug << "\n";
@@ -390,15 +485,21 @@ main(int ac, const char **av)
     if (httpd_dj_enable) {
 	the_gs = new gate_sender();
 
-	str dj_server_str = read_file("/dj_host");
-	ptr<sfspub> sfspub = sfscrypt.alloc(dj_server_str,
+	str dj_user_server_str = read_file("/dj_user_host");
+	ptr<sfspub> sfspub = sfscrypt.alloc(dj_user_server_str,
 					    SFS_VERIFY | SFS_ENCRYPT);
 	assert(sfspub);
-	dj_server_pk = sfspub2dj(sfspub);
+	dj_user_server_pk = sfspub2dj(sfspub);
+	dj_user_server_ct = atoi(read_file("/dj_user_ct").cstr());
+	dj_user_authgate <<= read_file("/dj_user_authgate").cstr();
+	dj_user_fsgate <<= read_file("/dj_user_fsgate").cstr();
 
-	dj_server_ct = atoi(read_file("/dj_ct").cstr());
-	dj_authgate <<= read_file("/dj_authgate").cstr();
-	dj_appgate <<= read_file("/dj_appgate").cstr();
+	str dj_app_server_str = read_file("/dj_app_host");
+	sfspub = sfscrypt.alloc(dj_app_server_str, SFS_VERIFY | SFS_ENCRYPT);
+	assert(sfspub);
+	dj_app_server_pk = sfspub2dj(sfspub);
+	dj_app_server_ct = atoi(read_file("/dj_app_ct").cstr());
+	dj_app_gate <<= read_file("/dj_app_gate").cstr();
     }
 
     try {

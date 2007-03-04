@@ -5,18 +5,26 @@ extern "C" {
 #include <sstream>
 #include <inc/module.hh>
 #include <inc/labelutil.hh>
+#include <dj/gatesender.hh>
+#include <dj/djcache.hh>
 #include <dj/djsrpc.hh>
 #include <dj/djops.hh>
 #include <dj/djlabel.hh>
+#include <dj/djautorpc.hh>
+#include <dj/hsutil.hh>
 #include <dj/miscx.h>
+#include <dj/djfs.h>
 
 enum { webapp_debug = 0 };
 
+static gate_sender *the_gs;
 static fs_inode httpd_root_ino;
 
 static void
 handle_req(const char *req, uint64_t ut, uint64_t ug,
-	   std::ostringstream &header)
+	   std::ostringstream &header,
+	   dj_global_cache &cache, const dj_pubkey &userhost,
+	   const dj_message_endpoint &user_fs)
 {
     char *tmp;
     char strip_req[256];
@@ -29,11 +37,49 @@ handle_req(const char *req, uint64_t ut, uint64_t ug,
     if (tmp = strchr(strip_req, '?')) {
         *tmp = 0;
         tmp++;
+
+	/* Fetch requested file */
+	djfs_request arg;
+	djfs_reply res;
+
+	arg.set_op(DJFS_READ);
+	arg.read->pn = strip_req;
+
+	label taint(1), grant(3), clear(0);
+	taint.set(ut, 3);
+	grant.set(ug, LB_LEVEL_STAR);
+	clear.set(ut, 3);
+
+	dj_autorpc fs_arpc(the_gs, 5, userhost, cache);
+	dj_delivery_code c = fs_arpc.call(user_fs, arg, res, &taint, &grant, &clear);
+	if (c != DELIVERY_DONE || res.err) {
+	    header << "HTTP/1.0 500 Server error\r\n";
+	    header << "Content-Type: text/html\r\n";
+	    header << "\r\n";
+	    header << "FS error: code " << c << ", err " << res.err << "\r\n";
+	    return;
+	}
+
+	/* Create a mount table to stick this file in our namespace */
+	str filedata = str(res.d->read->data.base(), res.d->read->data.size());
+	cobj_ref file_obj = str_to_segment(start_env->shared_container,
+					   filedata, "blah");
+
+	int64_t mtab_id = sys_segment_copy(start_env->fs_mtab_seg,
+					   start_env->shared_container,
+					   0, "new mtab");
+	error_check(mtab_id);
+	start_env->fs_mtab_seg = COBJ(start_env->shared_container, mtab_id);
+
+	fs_inode file_ino;
+	file_ino.obj = file_obj;
+	error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root,
+			     "infile", file_ino));
+	std::string pn = "/infile";
+
         if (!strcmp(tmp, "a2pdf")) {
-            std::string pn = strip_req;
             a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
         } else if (!strcmp(tmp, "cat")) {
-            std::string pn = strip_req;
             webcat(httpd_root_ino, pn.c_str(), ut, ug, header);
         } else {
             header << "HTTP/1.0 500 Server error\r\n";
@@ -63,12 +109,8 @@ try {
 	return false;
     }
 
-    dj_catmap_indexed cmi(m.catmap);
-    uint64_t ug, ut;
-    if (!cmi.g2l(arg.ug, &ug) || !cmi.g2l(arg.ut, &ut)) {
-	warn << "webapp_service: cannot map onto local categories\n";
-	return false;
-    }
+    uint64_t ug = arg.ug_map_apphost.lcat;
+    uint64_t ut = arg.ut_map_apphost.lcat;
 
     if (webapp_debug) {
 	label tl, tc;
@@ -79,8 +121,21 @@ try {
 	warn << "tc = " << tc.to_string() << "\n";
     }
 
+    dj_global_cache djcache;
+    dj_pubkey thiskey = the_gs->hostkey();
+    djcache.dmap_.insert(arg.ug_dlg_apphost);
+    djcache.dmap_.insert(arg.ut_dlg_apphost);
+    djcache.dmap_.insert(arg.ug_dlg_userhost);
+    djcache.dmap_.insert(arg.ut_dlg_userhost);
+
+    djcache[thiskey]->cmi_.insert(arg.ug_map_apphost);
+    djcache[thiskey]->cmi_.insert(arg.ut_map_apphost);
+    djcache[arg.userhost]->cmi_.insert(arg.ug_map_userhost);
+    djcache[arg.userhost]->cmi_.insert(arg.ut_map_userhost);
+
     std::ostringstream obuf;
-    handle_req(arg.reqpath, ut, ug, obuf);
+    handle_req(arg.reqpath, ut, ug, obuf,
+	       djcache, arg.userhost, arg.user_fs);
 
     std::string reply = obuf.str();
     res.httpres = str(reply.data(), reply.size());
@@ -120,6 +175,17 @@ main(int ac, char **av)
 	    exit(1);
 	}
 	sleep(1);
+    }
+
+    for (int retry = 0; ; retry++) {
+	try {
+	    the_gs = new gate_sender();
+	    break;
+	} catch (...) {
+	    if (retry >= 10)
+		throw;
+	    sleep(1);
+	}
     }
 
     int64_t mtab_id = sys_segment_copy(start_env->fs_mtab_seg,
