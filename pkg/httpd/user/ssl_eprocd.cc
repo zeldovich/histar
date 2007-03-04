@@ -171,26 +171,18 @@ int
 main(int ac, char **av)
 {
     if (ac < 3) {
-	printf("Usage: %s verify-handle servkey-pem\n", av[0]);
+	printf("Usage: %s verify-handle servkey-pem-data\n", av[0]);
 	return -1;
     }
     
     uint64_t verify;
     error_check(strtou64(av[1], 0, 10, &verify));
 
-    char *pemfile = av[2];
+    char *pemdata = av[2];
+    int pemlen = strlen(pemdata);
     BIO *in = BIO_new(BIO_s_mem());
     assert(in);
-
-    fs_inode ino;
-    error_check(fs_namei(pemfile, &ino));
-
-    uint64_t len;
-    error_check(fs_getsize(ino, &len));
-
-    void *pemdata = malloc(len);
-    error_check(fs_pread(ino, pemdata, len, 0));
-    BIO_write(in, pemdata, len);
+    BIO_write(in, pemdata, pemlen);
 
     EVP_PKEY *pkey = PEM_read_bio_PrivateKey(in, 0, 0, 0);
     assert(pkey);

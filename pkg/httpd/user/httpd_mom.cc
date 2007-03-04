@@ -3,14 +3,15 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/labelutil.h>
 #include <inc/error.h>
+}
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-
-#include <stdio.h>
-#include <unistd.h>
-}
 
 #include <inc/error.hh>
 #include <inc/errno.hh>
@@ -139,13 +140,21 @@ main (int ac, char **av)
 	throw error(exit_code, "error starting ssld");
     
     if (ssl_eproc_enable) {
+	uint64_t keylen;
+	error_check(fs_getsize(servkey_pem_ino, &keylen));
+
+	char *keydata = (char *) malloc(keylen + 1);
+	error_check(fs_pread(servkey_pem_ino, keydata, keylen, 0));
+	keydata[keylen] = '\0';
+	scope_guard<void, void*> freekey(free, keydata);
+
 	label eprocd_ds(3), eprocd_dr(0);
 	eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
 	eprocd_dr.set(eprocd_taint, 3);
 	
 	const char *eprocd_pn = "/bin/ssl_eprocd";
 	struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
-	const char *eprocd_argv[] = { eprocd_pn, verify_arg, ssld_servkey_pem };
+	const char *eprocd_argv[] = { eprocd_pn, verify_arg, keydata };
 	cp = spawn(httpd_ct, eprocd_ino,
 		   0, 0, 0,
 		   3, &eprocd_argv[0],
