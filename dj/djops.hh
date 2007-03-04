@@ -73,13 +73,15 @@ operator!=(const dj_msg_id &a, const dj_msg_id &b)
 inline bool
 operator<(const dj_gcat &a, const dj_gcat &b)
 {
-    return a.key < b.key || (a.key == b.key && a.id < b.id);
+    return a.key < b.key ||
+	(a.key == b.key && (a.id < b.id ||
+			   (a.id == b.id && a.integrity < b.integrity)));
 }
 
 inline bool
 operator==(const dj_gcat &a, const dj_gcat &b)
 {
-    return a.key == b.key && a.id == b.id;
+    return a.key == b.key && a.id == b.id && a.integrity == b.integrity;
 }
 
 inline bool
