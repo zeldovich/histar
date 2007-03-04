@@ -7,6 +7,7 @@ int
 __pthread_mutex_init(pthread_mutex_t * mutex,
 		     const pthread_mutexattr_t *attr)
 {
+    memset(mutex, 0, sizeof(*mutex));
     jthread_mutex_init(&mutex->jmu);
     return 0;
 }
@@ -62,6 +63,8 @@ int
 __pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     if (mutex->kind == PTHREAD_MUTEX_RECURSIVE) {
+	assert(mutex->owner == thread_id());
+	assert(mutex->count != 0);
 	mutex->count--;
 
 	if (mutex->count == 0) {
