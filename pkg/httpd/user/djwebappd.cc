@@ -101,6 +101,15 @@ gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 int
 main(int ac, char **av)
 {
+    // We need to do this not-so-amusing dance to call fd_handles_init()
+    // which can touch a bad file descriptor mapping in the tainted AS.
+    int pipefd[2];
+    if (pipe(pipefd) < 0)
+	fatal << "cannot create pipes?\n";
+
+    close(pipefd[0]);
+    close(pipefd[1]);
+
     for (int retry = 0; ; retry++) {
 	int r = fs_namei("/www", &httpd_root_ino);
 	if (r >= 0)
