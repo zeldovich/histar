@@ -46,8 +46,10 @@ key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
 
     dj_delegation_map::dm_ent *e = dm.t_[k];
     while (e && e->pk == k) {
-	if (e->d.via && !key_speaks_for(*e->d.via, gcat, dm, depth - 1))
+	if (e->d.via && !key_speaks_for(*e->d.via, gcat, dm, depth - 1)) {
+	    e = dm.t_.next(e);
 	    continue;
+	}
 
 	if (e->d.b.type == ENT_GCAT)
 	    if (*e->d.b.gcat == gcat)
