@@ -235,6 +235,9 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	if (!ap_res.ok)
 	    throw basic_exception("authproxy: not ok");
 
+	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ug_local);
+	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ut_local);
+
 	*ug = ap_res.resok->ug_remote.lcat;
 	*ut = ap_res.resok->ut_remote.lcat;
 
