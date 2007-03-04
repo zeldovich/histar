@@ -90,16 +90,12 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache);
 	dj_delivery_code c;
 	label grant(3);
-	grant.set(dj_calltaint, LB_LEVEL_STAR);
-
-	/* Force inclusion of existing mappings for reuse */
-	grant.set(ut, LB_LEVEL_STAR);
-	grant.set(ug, LB_LEVEL_STAR);
-
 	dj_map_and_delegate(dj_calltaint, false, grant, grant,
 			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
 			    &calltaint_local, &calltaint_app, &calltaint_dlg);
+
+	grant.set(dj_calltaint, LB_LEVEL_STAR);
 	dj_map_and_delegate(ut, false, grant, grant,
 			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,

@@ -36,6 +36,14 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     mapreq.gcat.integrity = integrity ? 1 : 0;
 
     label call_taint(taint), call_grant(grant_local), call_clear(taint);
+
+    /* If a local mapping is already in our cache, force dj_autorpc to
+     * include it in the catmap by granting it.  As a result, mapcreate
+     * will reuse the same global category name for it.
+     */
+    if (cache[localkey]->cmi_.l2g(lcat, 0))
+	call_grant.set(lcat, LB_LEVEL_STAR);
+
     c = arpc_local.call(ep_mapcreate, mapreq, *lmap,
 			&call_taint, &call_grant, &call_clear, &xgrant);
     if (c != DELIVERY_DONE)
@@ -52,11 +60,11 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     call_taint = taint; call_grant = grant_remote; call_clear = taint;
 
     /*
-     * If it's the same machine, reuse the local category by including
-     * the existing mapping.  We force autorpc to include it by adding
-     * the category to call_grant.
+     * If we already have a mapping to a local category on the remote
+     * machine, force dj_autorpc to include it in the catmap, by granting
+     * it, so mapcreate will reuse the same remote category name.
      */
-    if (localkey == host)
+    if (cache[host]->cmi_.g2l(lmap->gcat, 0))
 	call_grant.set(lcat, LB_LEVEL_STAR);
 
     c = arpc_remote.call(ep_mapcreate, mapreq, *rmap,
