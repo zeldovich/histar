@@ -35,7 +35,8 @@ operator<(const dj_pubkey &a, const dj_pubkey &b)
     uint32_t bl = bs.len();
     if (al < bl) return true;
     if (al > bl) return false;
-    return memcmp(as.cstr(), bs.cstr(), al);
+    if (memcmp(as.cstr(), bs.cstr(), al) < 0) return true;
+    return false;
 }
 
 inline bool
