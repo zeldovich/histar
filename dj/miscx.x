@@ -92,7 +92,14 @@ struct guardcall_arg {
     dj_label gclear;
 };
 
-struct guardcall_res {
+struct guardcall_resok {
     hyper spawn_ct;
+};
+
+union guardcall_res switch (bool ok) {
+ case TRUE:
+    guardcall_resok resok;
+ case FALSE:
+    void;
 };
 
