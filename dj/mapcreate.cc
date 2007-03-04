@@ -32,12 +32,16 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    taint.transform(label::star_to, taint.get_default());
 	    label_to_djlabel(cmi, taint, &reply_taint, label_taint);
 	} else {
-	    djlabel_to_label(cmi, m.taint, &vl, label_taint);
-	    vc = vl;
+	    label t, g;
+
+	    djlabel_to_label(cmi, m.taint,  &t, label_taint);
+	    djlabel_to_label(cmi, m.glabel, &g, label_owner);
+	    t.merge(&g, &vl, label::min, label::leq_starlo);
+	    vc = t;
 	    reply_taint = m.taint;
 	}
     } catch (std::exception &e) {
-	warn << "histar_mapcreate: " << e.what() << "\n";
+	warn << "histar_mapcreate(1): " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING, 0);
 	return;
     }
@@ -47,7 +51,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	cm_->acquire(m.catmap, true);
 	cm_->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
-	warn << "histar_mapcreate: " << e.what() << "\n";
+	warn << "histar_mapcreate(2): " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING, 0);
 	return;
     }

@@ -12,6 +12,8 @@ extern "C" {
 #include <dj/djutil.hh>
 #include <dj/miscx.h>
 
+enum { authproxy_debug = 0 };
+
 static gate_sender *the_gs;
 
 bool
@@ -49,6 +51,12 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	djlabel_to_label(cache[thiskey]->cmi_, m.taint,  &taint,  label_taint);
 	djlabel_to_label(cache[thiskey]->cmi_, m.glabel, &glabel, label_owner);
 	djlabel_to_label(cache[thiskey]->cmi_, m.gclear, &gclear, label_clear);
+
+	if (authproxy_debug) {
+	    warn << "authproxy: taint  " << taint.to_string() << "\n";
+	    warn << "authproxy: glabel " << glabel.to_string() << "\n";
+	    warn << "authproxy: gclear " << gclear.to_string() << "\n";
+	}
 
 	/*
 	 * Create mappings & delegations
