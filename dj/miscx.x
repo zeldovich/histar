@@ -79,7 +79,7 @@ struct webapp_res {
 
 struct wrapped_string {		/* To avoid double-deref syntax */
     string s<>;
-}
+};
 
 struct guardcall_arg {
     unsigned hyper parent_ct;
