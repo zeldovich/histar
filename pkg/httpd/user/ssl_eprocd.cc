@@ -136,8 +136,9 @@ cow_gate_create(uint64_t ct, uint64_t verify)
     te.te_stack = (char *) tls_stack_top - 8;
     error_check(sys_self_get_as(&te.te_as));
 
-    label verify_label(2);
-    verify_label.set(verify, 0);
+    label verify_label(3);
+    if (verify)
+	verify_label.set(verify, 0);
 
     int64_t gate_id = sys_gate_create(ct, &te, 0, 0,
 				      verify_label.to_ulabel(), "eproc-cow", 0);
@@ -178,10 +179,19 @@ main(int ac, char **av)
     error_check(strtou64(av[1], 0, 10, &verify));
 
     char *pemfile = av[2];
-    BIO *in = BIO_new(BIO_s_file_internal());
+    BIO *in = BIO_new(BIO_s_mem());
     assert(in);
 
-    BIO_read_filename(in, pemfile);
+    fs_inode ino;
+    error_check(fs_namei(pemfile, &ino));
+
+    uint64_t len;
+    error_check(fs_getsize(ino, &len));
+
+    void *pemdata = malloc(len);
+    error_check(fs_pread(ino, pemdata, len, 0));
+    BIO_write(in, pemdata, len);
+
     EVP_PKEY *pkey = PEM_read_bio_PrivateKey(in, 0, 0, 0);
     assert(pkey);
     assert(pkey->type == EVP_PKEY_RSA || pkey->type == EVP_PKEY_RSA2);
