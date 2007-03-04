@@ -35,6 +35,7 @@ extern "C" {
 #include <sstream>
 
 static const char dbg = 0;
+enum { debug_dj = 0 };
 
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
@@ -211,6 +212,9 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 			    the_gs, djcache,
 			    &local_call_taint, &remote_call_taint, &delegation);
 
+	if (debug_dj)
+	    warn << "httpd2: dj_calltaint " << local_call_taint.gcat << "\n";
+
 	/*
 	 * Invoke the user auth code..
 	 */
@@ -237,12 +241,19 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 
 	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ug_local);
 	djcache[dj_server_pk]->cmi_.insert(ap_res.resok->ut_local);
+	djcache.dmap_.insert(ap_res.resok->ug_delegation);
+	djcache.dmap_.insert(ap_res.resok->ut_delegation);
 
 	*ug = ap_res.resok->ug_remote.lcat;
 	*ut = ap_res.resok->ut_remote.lcat;
 
 	dj_ug = ap_res.resok->ug_remote.gcat;
 	dj_ut = ap_res.resok->ut_remote.gcat;
+
+	if (debug_dj) {
+	    warn << "httpd2: dj_ug " << dj_ug << "\n";
+	    warn << "httpd2: dj_ut " << dj_ut << "\n";
+	}
     } else {
 	auth_login(user, pass, ug, ut);
     }
