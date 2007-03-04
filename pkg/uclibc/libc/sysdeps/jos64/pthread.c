@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <errno.h>
+#include <string.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
 
