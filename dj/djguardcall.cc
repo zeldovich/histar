@@ -76,7 +76,7 @@ guardcall_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 					    0, &elfname[0]);
 	error_check(elf_copy);
 
-	elf_ino.obj = COBJ(start_env->shared_container, elf_copy);
+	elf_ino.obj = COBJ(start_env->proc_container, elf_copy);
 	scope_guard<int, cobj_ref> unref(sys_obj_unref, elf_ino.obj);
 
 	void *data_map = 0;
