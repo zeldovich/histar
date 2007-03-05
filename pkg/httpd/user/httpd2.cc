@@ -93,6 +93,24 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	label grant_local(3), grant_remote(3);
 	grant_local.set(dj_calltaint, LB_LEVEL_STAR);	/* prove catmaps */
 
+	/*
+	 * XXX the only reason to create mappings for dj_calltaint 
+	 * is so that we can include the dj_calltaint map entry in
+	 * our catmap when we want to copy the ug/ut mappings that
+	 * are themselves tainted with dj_calltaint..  if only we
+	 * had a more direct interface to the dj_message layout
+	 * here, we could just do it explicitly.  the remote machine
+	 * has no need to know anything about dj_calltaint.
+	 */
+	dj_cat_mapping calltaint_map_local, calltaint_map_app;
+	dj_stmt_signed calltaint_dlg;
+	dj_map_and_delegate(dj_calltaint, false, grant_local, grant_remote,
+			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
+			    the_gs, djcache,
+			    &calltaint_map_local, &calltaint_map_app,
+			    &calltaint_dlg);
+
+	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
 	dj_map_and_delegate(ut, false, grant_local, grant_remote,
 			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
