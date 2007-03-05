@@ -104,6 +104,7 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
     delaycb(5, wrap(&sndmsg, s, node_pk, ep));
 }
 
+#ifdef JOS_TEST
 static uint64_t
 time_usec()
 {
@@ -114,6 +115,7 @@ time_usec()
     usec = usec * 1000000 + tv.tv_usec;
     return usec;
 }
+#endif
 
 int
 main(int ac, char **av)
