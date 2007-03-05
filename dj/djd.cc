@@ -174,7 +174,7 @@ main(int ac, char **av)
 
     start = time_usec();
     for (uint32_t i = 0; i < count; i++)
-	verify_stmt(ss);
+	assert(verify_stmt(ss));
     end = time_usec();
     printf("Verify: %ld usec\n", (end - start) / count);
 
