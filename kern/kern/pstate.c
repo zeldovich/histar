@@ -285,6 +285,11 @@ pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1 __attribute__((unused)), uin
 int
 pstate_swapin(kobject_id_t id)
 {
+    if (!pstate_enable) {
+	kobject_negative_insert(id);
+	return 0;
+    }
+
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin: object %"PRIu64"\n", id);
 
@@ -410,6 +415,9 @@ pstate_reset(void)
 int
 pstate_load(void)
 {
+    if (!pstate_enable)
+	return -E_INVAL;
+
     int done = 0;
     int r = stackwrap_call(&pstate_load_stackwrap, (uintptr_t) &done, 0, 0);
     if (r < 0) {
@@ -710,6 +718,9 @@ pstate_sync(void)
 int
 pstate_sync_now(void)
 {
+    if (!pstate_enable)
+	return 0;
+
     int rval = 0;
     int r = stackwrap_call(&pstate_sync_stackwrap, (uintptr_t) &rval, 0, 0);
     if (r < 0)
@@ -806,6 +817,9 @@ int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 		   uint64_t start, uint64_t nbytes)
 {
+    if (!pstate_enable)
+	return 0;
+
     if (stable_hdr.ph_magic != PSTATE_MAGIC)
 	goto fallback;
 
@@ -831,6 +845,9 @@ fallback:
 int
 pstate_sync_user(uint64_t timestamp)
 {
+    if (!pstate_enable)
+	return 0;
+
     if (stable_hdr.ph_magic == PSTATE_MAGIC &&
 	handle_decrypt(stable_hdr.ph_sync_ts) > handle_decrypt(timestamp))
 	return 0;
@@ -843,6 +860,9 @@ pstate_sync_user(uint64_t timestamp)
 void
 pstate_init(void)
 {
+    if (!pstate_enable)
+	return;
+
     pstate_reset();
 
     static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };

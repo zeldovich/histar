@@ -3,5 +3,6 @@
 
 enum { kobj_hash_size = 1 };
 enum { kobj_neg_size = 1 };
+enum { pstate_enable = 0 };
 
 #endif
