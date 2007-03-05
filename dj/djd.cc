@@ -17,6 +17,7 @@
 #include <dj/djhistar.hh>
 #include <dj/delegator.hh>
 #include <dj/hsutil.hh>
+#include <dj/djkey.hh>
 
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
@@ -103,6 +104,17 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
     delaycb(5, wrap(&sndmsg, s, node_pk, ep));
 }
 
+static uint64_t
+time_usec()
+{
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+
+    uint64_t usec = tv.tv_sec;
+    usec = usec * 1000000 + tv.tv_usec;
+    return usec;
+}
+
 int
 main(int ac, char **av)
 {
@@ -141,6 +153,28 @@ main(int ac, char **av)
     ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs, wrap(&dj_rpc_to_arpc, wrap(&dj_posixfs_service))));
     warn << "dj_posixfs_service on " << ep << "\n";
     //sndfsrpc(djs, &gm, djs->pubkey(), ep);
+
+    dj_stmt_signed ss;
+    ss.stmt.set_type(STMT_DELEGATION);
+    ss.stmt.delegation->a.set_type(ENT_PUBKEY);
+    ss.stmt.delegation->b.set_type(ENT_PUBKEY);
+    *ss.stmt.delegation->a.key = djs->pubkey();
+    *ss.stmt.delegation->b.key = djs->pubkey();
+
+    uint64_t start, end;
+    uint64_t count = 100;
+
+    start = time_usec();
+    for (uint32_t i = 0; i < count; i++)
+	djs->sign_statement(&ss);
+    end = time_usec();
+    printf("Signature: %ld usec\n", (end - start) / count);
+
+    start = time_usec();
+    for (uint32_t i = 0; i < count; i++)
+	verify_stmt(ss);
+    end = time_usec();
+    printf("Verify: %ld usec\n", (end - start) / count);
 
     if (ac == 3) {
 	str pubstr(av[1]);
