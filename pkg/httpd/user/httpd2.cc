@@ -59,7 +59,6 @@ static dj_gcat dj_ut, dj_ug;
 static dj_cat_mapping dj_ut_authmap, dj_ug_authmap;
 static dj_stmt_signed dj_ut_authdlg, dj_ug_authdlg;
 static uint64_t dj_calltaint;
-static uint64_t dj_calltaint_ct;
 
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
@@ -76,32 +75,30 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
     // XXX wrap stuff has no timeout
     if (httpd_dj_enable) {
-	dj_cat_mapping calltaint_local, calltaint_app;
 	dj_cat_mapping ug_map_local, ug_map_app;
 	dj_cat_mapping ut_map_local, ut_map_app;
-	dj_stmt_signed calltaint_dlg, ug_dlg, ut_dlg;
+	dj_stmt_signed ug_dlg, ut_dlg;
 
 	/*
-	 * Create mappings & delegations for the call_taint category
-	 * and for the user grant and taint categories, on the application
-	 * server.
+	 * Create mappings & delegations for the user grant and taint
+	 * categories on the application server.
 	 */
+	label mapping_ct_label(1);
+	mapping_ct_label.set(ut, 3);
+	int64_t mapping_ct = sys_container_alloc(start_env->shared_container,
+						 mapping_ct_label.to_ulabel(),
+						 "httpd mct", 0, CT_QUOTA_INF);
+	error_check(mapping_ct);
 
-	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache);
-	dj_delivery_code c;
-	label grant(3);
-	dj_map_and_delegate(dj_calltaint, false, grant, grant,
-			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
-			    the_gs, djcache,
-			    &calltaint_local, &calltaint_app, &calltaint_dlg);
+	label grant_local(3), grant_remote(3);
+	grant_local.set(dj_calltaint, LB_LEVEL_STAR);	/* prove catmaps */
 
-	grant.set(dj_calltaint, LB_LEVEL_STAR);
-	dj_map_and_delegate(ut, false, grant, grant,
-			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
+	dj_map_and_delegate(ut, false, grant_local, grant_remote,
+			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
 			    &ut_map_local, &ut_map_app, &ut_dlg);
-	dj_map_and_delegate(ug, true, grant, grant,
-			    dj_calltaint_ct, dj_app_server_ct, dj_app_server_pk,
+	dj_map_and_delegate(ug, true, grant_local, grant_remote,
+			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
 			    &ug_map_local, &ug_map_app, &ug_dlg);
 
@@ -126,12 +123,23 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	label ct_grant(3);
 	ct_grant.set(ug, LB_LEVEL_STAR);
 	ct_grant.set(ut, LB_LEVEL_STAR);
-	ct_grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	label ct_clear(0);
 	ct_clear.set(ug, 3);
 	ct_clear.set(ut, 3);
-	ct_clear.set(dj_calltaint, 3);
+
+	dj_global_cache djcache_app;
+	djcache_app.dmap_.insert(dj_ug_authdlg);
+	djcache_app.dmap_.insert(dj_ut_authdlg);
+	djcache_app.dmap_.insert(ug_dlg);
+	djcache_app.dmap_.insert(ut_dlg);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(ug_map_local);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(ut_map_local);
+	djcache_app[dj_app_server_pk]->cmi_.insert(ug_map_app);
+	djcache_app[dj_app_server_pk]->cmi_.insert(ut_map_app);
+
+	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache_app);
+	dj_delivery_code c;
 
 	c = app_arpc.call(ctalloc_ep, ct_req, ct_res,
 			  0, &ct_grant, &ct_clear);
@@ -205,12 +213,10 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	label web_grant(3);
 	web_grant.set(ug, LB_LEVEL_STAR);
-	web_grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	label web_clear(0);
 	web_clear.set(ug, 3);
 	web_clear.set(ut, 3);
-	web_clear.set(dj_calltaint, 3);
 
 	c = app_arpc.call(webapp_ep, web_arg, web_res,
 			  &web_taint, &web_grant, &web_clear);
@@ -284,7 +290,6 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 					      call_ct_label.to_ulabel(),
 					      "httpd dj call", 0, CT_QUOTA_INF);
 	error_check(call_ct);
-	dj_calltaint_ct = call_ct;
 
 	/* XXX assumes publicly-writable container on the other side */
 	dj_cat_mapping local_call_taint;
