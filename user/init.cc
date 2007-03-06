@@ -145,7 +145,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(fs_create(etc, "passwd", &passwd, 0));
     error_check(fs_create(etc, "group", &group, 0));
 
-    const char *resolv_conf = "nameserver 171.66.3.11\n";
+    const char *resolv_conf = "nameserver 171.66.3.11\nnameserver 171.66.3.10\n";
     error_check(fs_pwrite(resolv, resolv_conf, strlen(resolv_conf), 0));
 
     const char *hosts_data = "171.66.3.9 www.scs.stanford.edu www\n";
