@@ -659,7 +659,7 @@ kobject_gc(struct kobject *ko)
     return 0;
 }
 
-static void
+void
 kobject_gc_scan(void)
 {
     // Clear cur_thread to avoid putting it to sleep on behalf of

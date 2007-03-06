@@ -111,6 +111,9 @@ void kobject_swapin(struct kobject *kp);
 // in-memory copy should be discarded.
 void kobject_swapout(struct kobject *kp);
 
+// Perform a garbage-collection pass.
+void kobject_gc_scan(void);
+
 void kobject_snapshot(struct kobject_hdr *kp);
 void kobject_snapshot_release(struct kobject_hdr *kp);
 struct kobject *

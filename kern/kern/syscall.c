@@ -225,6 +225,8 @@ sys_obj_unref(struct cobj_ref cobj)
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
     check(container_unref(&kobject_dirty(&c->ct_ko)->ct, &ko->hdr));
+
+    kobject_gc_scan();
     return 0;
 }
 
