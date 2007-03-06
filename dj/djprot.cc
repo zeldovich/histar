@@ -101,7 +101,7 @@ class djprot_impl : public djprot {
 	msg_client *ncc;
 	for (msg_client *cc = clnt_.first(); cc; cc = ncc) {
 	    ncc = clnt_.next(cc);
-	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
+	    clnt_done(cc, DELIVERY_TIMEOUT);
 	}
 
 	warn << "djprot_impl dead\n";
@@ -129,7 +129,7 @@ class djprot_impl : public djprot {
 	cc->local_deliver_arg = local_deliver_arg;
 
 	if (!labelcheck_send(msg, target, dset)) {
-	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION, 0);
+	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION);
 	    return;
 	}
 
@@ -247,11 +247,11 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    void clnt_done(msg_client *cc, dj_delivery_code code, uint64_t token) {
+    void clnt_done(msg_client *cc, dj_delivery_code code) {
 	if (code != DELIVERY_DONE)
 	    warn << "clnt_done: code " << code << "\n";
 	if (cc->cb)
-	    cc->cb(code, token);
+	    cc->cb(code);
 	if (cc->timecb)
 	    timecb_remove(cc->timecb);
 	clnt_.remove(cc);
@@ -262,7 +262,7 @@ class djprot_impl : public djprot {
 	if (cc->timecb && time(0) >= cc->until) {
 	    /* Have to transmit at least once for a timeout.. */
 	    cc->timecb = 0;
-	    clnt_done(cc, DELIVERY_TIMEOUT, 0);
+	    clnt_done(cc, DELIVERY_TIMEOUT);
 	    return;
 	}
 
@@ -274,7 +274,7 @@ class djprot_impl : public djprot {
 	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
 	} else {
 	    if (!send_message(cc->ss, cc->ss.stmt.msgx->to)) {
-		clnt_done(cc, DELIVERY_NO_ADDRESS, 0);
+		clnt_done(cc, DELIVERY_NO_ADDRESS);
 		return;
 	    }
 	}
@@ -329,16 +329,14 @@ class djprot_impl : public djprot {
 	}
     }
 
-    void srvr_send_status(dj_msg_id cid, dj_delivery_code code, uint64_t token) {
+    void srvr_send_status(dj_msg_id cid, dj_delivery_code code) {
 	dj_stmt_signed ss;
 	ss.stmt.set_type(STMT_MSG_XFER);
 	ss.stmt.msgx->from = pubkey();
 	ss.stmt.msgx->to = cid.key;
 	ss.stmt.msgx->xid = cid.xid;
 	ss.stmt.msgx->u.set_op(MSG_STATUS);
-	ss.stmt.msgx->u.stat->set_code(code);
-	if (code == DELIVERY_DONE)
-	    *ss.stmt.msgx->u.stat->token = token;
+	ss.stmt.msgx->u.stat->code = code;
 
 	if (ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
 	    dj_msg_id cid(ss.stmt.msgx->from, ss.stmt.msgx->xid);
@@ -354,12 +352,12 @@ class djprot_impl : public djprot {
     {
 	if (!local_delivery_) {
 	    warn << "process_msg_request: missing delivery backend\n";
-	    srvr_send_status(cid, DELIVERY_REMOTE_ERR, 0);
+	    srvr_send_status(cid, DELIVERY_REMOTE_ERR);
 	    return;
 	}
 
 	if (!labelcheck_recv(*c.u.req, c.from, c.u.req->dset)) {
-	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION, 0);
+	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION);
 	    return;
 	}
 
@@ -377,8 +375,7 @@ class djprot_impl : public djprot {
 	}
 
 	dj_delivery_code code = c.u.stat->code;
-	uint64_t token = (code == DELIVERY_DONE) ? *c.u.stat->token : 0;
-	clnt_done(cc, code, token);
+	clnt_done(cc, code);
     }
 
     void process_msg(const dj_msg_xfer &c) {

@@ -19,14 +19,4 @@ class dj_direct_gatemap : public dj_gate_factory {
     uint64_t counter_;
 };
 
-class simple_token_factory : public token_factory {
- public:
-    simple_token_factory() : token_(1) {}
-    virtual ~simple_token_factory() {}
-    virtual uint64_t token() { return ++token_; }
-
- private:
-    uint64_t token_;
-};
-
 #endif

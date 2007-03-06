@@ -10,8 +10,7 @@ dj_arpc_srv_cb(message_sender *s, bool ok, const dj_rpc_reply &r)
 
 void
 dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
-		 const dj_pubkey &sender, const dj_message &m,
-		 uint64_t selftoken)
+		 const dj_pubkey &sender, const dj_message &m)
 {
     dj_call_msg cm;
     if (!bytes2xdr(cm, m.msg)) {
@@ -25,7 +24,6 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     r.r.dset = m.dset;
     r.r.catmap = m.catmap;
     r.r.msg.target = cm.return_ep;
-    r.r.msg.token = selftoken;
 
     r.r.msg.taint = m.taint;
     r.r.msg.catmap = cm.return_cm;
@@ -66,7 +64,6 @@ dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &d
     cm.buf = buf;
 
     a_.msg = xdr2str(cm);
-    a_.token = 0;
     until_ = time(0) + tmo;
     retransmit();
 }
@@ -92,7 +89,7 @@ dj_arpc_call::retransmit()
 }
 
 void
-dj_arpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
+dj_arpc_call::delivery_cb(dj_delivery_code c)
 {
     if (done_)
 	return;
@@ -104,36 +101,16 @@ dj_arpc_call::delivery_cb(dj_delivery_code c, uint64_t token)
     }
 
     delaycb(1, wrap(mkref(this), &dj_arpc_call::retransmit));
-
-    reply_token_ = token;
-    while (delivery_waiters_.size())
-	delivery_waiters_.pop_back()();
 }
 
 void
-dj_arpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a, uint64_t)
+dj_arpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a)
 {
     if (done_)
 	return;
 
-    if (reply_token_ == 0) {
-	delivery_waiters_.push_back(wrap(mkref(this), &dj_arpc_call::reply_sink2, sender, a));
-	return;
-    }
-
-    reply_sink2(sender, a);
-}
-
-void
-dj_arpc_call::reply_sink2(dj_pubkey sender, dj_message a)
-{
     if (sender != dst_) {
-	warn << "dj_arpc_call::reply_sink2: reply from wrong node\n";
-	return;
-    }
-
-    if (reply_token_ != a.token) {
-	warn << "dj_arpc_call::reply_sink: wrong reply token\n";
+	warn << "dj_arpc_call::reply_sink: reply from wrong node\n";
 	return;
     }
 

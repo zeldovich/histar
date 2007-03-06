@@ -13,7 +13,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 {
     if (m.target.type != EP_MAPCREATE) {
 	warn << "histar_mapcreate: not a mapcreate target\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -42,7 +42,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	}
     } catch (std::exception &e) {
 	warn << "histar_mapcreate(1): " << e.what() << "\n";
-	da.cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING);
 	return;
     }
 
@@ -52,7 +52,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	cm_->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "histar_mapcreate(2): " << e.what() << "\n";
-	da.cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING);
 	return;
     }
 
@@ -60,13 +60,13 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     dj_mapreq mapreq;
     if (!bytes2xdr(callmsg, m.msg) || !bytes2xdr(mapreq, callmsg.buf)) {
 	warn << "histar_mapcreate: cannot unmarshal\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
     if (callmsg.return_ep.type != EP_GATE) {
 	warn << "histar_mapcreate: must return to a gate\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -85,7 +85,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    // because this is the first mapping for this category.
 	    if (!lms) {
 		warn << "histar_mapcreate: missing local_delivery_arg\n";
-		da.cb(DELIVERY_REMOTE_ERR, 0);
+		da.cb(DELIVERY_REMOTE_ERR);
 		return;
 	    }
 
@@ -93,7 +93,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    obj_get_label(lms->privgate, &gl);
 	    if (gl.get(lcat) != LB_LEVEL_STAR) {
 		warn << "histar_mapcreate: trying to map unknown lcat\n";
-		da.cb(DELIVERY_REMOTE_ERR, 0);
+		da.cb(DELIVERY_REMOTE_ERR);
 		return;
 	    }
 
@@ -108,7 +108,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    int64_t x_lcat = handle_alloc();
 	    if (x_lcat < 0) {
 		warn << "histar_mapcreate: cannot allocate handle\n";
-		da.cb(DELIVERY_REMOTE_ERR, 0);
+		da.cb(DELIVERY_REMOTE_ERR);
 		return;
 	    }
 
@@ -126,7 +126,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
      */
     if (!ctx.can_rw(COBJ(mapreq.ct, mapreq.ct))) {
 	warn << "histar_mapcreate: cannot write target ct\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -134,7 +134,6 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
     dj_message replym;
     replym.target = callmsg.return_ep;
-    replym.token = mapent.res_ct;
     replym.taint = reply_taint;
     replym.glabel = m.glabel;
     replym.gclear = m.gclear;
@@ -143,5 +142,5 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.msg = xdr2str(mapent);
 
     p_->send(sender, 0, m.dset, replym, 0, 0);
-    da.cb(DELIVERY_DONE, replym.token);
+    da.cb(DELIVERY_DONE);
 }

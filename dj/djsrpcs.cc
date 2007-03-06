@@ -53,7 +53,6 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	reply.catmap = reqmsg.m.catmap;
 
 	reply.msg.target = cm.return_ep;
-	reply.msg.token = thread_id();
 	reply.msg.taint = reqmsg.m.taint;
 	reply.msg.glabel = reqmsg.m.glabel;
 	reply.msg.gclear = reqmsg.m.gclear;
@@ -105,6 +104,7 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
      * its gatesrv code wants to call sys_self_sched_parents().
      */
     sys_self_set_sched_parents(start_env->proc_container, djcall_ct);
+    gcd->return_gate = COBJ(0, 0);
     gcd->taint_container = djcall_ct;
 
     stack_switch((uint64_t) &djd_gate,

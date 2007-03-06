@@ -31,8 +31,7 @@ class gate_sender {
 
     dj_delivery_code send(const dj_pubkey &node, time_t timeout,
 			  const dj_delegation_set &dset, const dj_catmap &cm,
-			  const dj_message &msg, uint64_t *tokenp,
-			  label *grantlabel = 0);
+			  const dj_message &msg, label *grantlabel = 0);
     dj_pubkey hostkey() { return hostkey_; }
 
  private:

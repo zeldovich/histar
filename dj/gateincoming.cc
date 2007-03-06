@@ -112,23 +112,23 @@ class incoming_impl : public dj_incoming_gate {
     }
 
     void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted) {
-	bool halt = false;
+	bool halt = (gcd->return_gate.object == 0) ? true : false;
 	label *cs = 0;
-	process_call1(gcd, &cs, &halt, untainted);
+	process_call1(gcd, &cs, untainted);
 	if (!halt)
 	    ret->ret(cs, 0, 0);
 
 	sys_obj_unref(COBJ(gcd->taint_container, sys_self_id()));
     }
 
-    void process_call1(gate_call_data *gcd, label **csp, bool *haltp, bool untainted) {
+    void process_call1(gate_call_data *gcd, label **csp, bool untainted) {
 	dj_incoming_gate_res res;
 
 	try {
-	    process_call2(gcd, csp, haltp, untainted, &res);
+	    process_call2(gcd, csp, untainted, &res);
 	} catch (std::exception &e) {
 	    warn << "incoming_impl::process_call1: " << e.what() << "\n";
-	    res.set_stat(DELIVERY_LOCAL_ERR);
+	    res.stat = DELIVERY_LOCAL_ERR;
 	}
 
 	str s = xdr2str(res);
@@ -139,7 +139,7 @@ class incoming_impl : public dj_incoming_gate {
 	}
     }
 
-    void process_call2(gate_call_data *gcd, label **csp, bool *haltp,
+    void process_call2(gate_call_data *gcd, label **csp,
 		       bool untainted, dj_incoming_gate_res *res)
     {
 	cobj_ref rseg = gcd->param_obj;
@@ -185,7 +185,7 @@ class incoming_impl : public dj_incoming_gate {
 		error_check(mc.compare(&vc, label::leq_starhi));
 	    } catch (std::exception &e) {
 		warn << "process_call2: local mapping: " << e.what() << "\n";
-		res->set_stat(DELIVERY_LOCAL_MAPPING);
+		res->stat = DELIVERY_LOCAL_MAPPING;
 		return;
 	    }
 
@@ -204,14 +204,6 @@ class incoming_impl : public dj_incoming_gate {
 		sys_gate_enter(untaint_gate_, tgtl.to_ulabel(), tgtc.to_ulabel(), 0);
 		fatal << "incoming_impl::call: untainting gate call returned\n";
 	    }
-	}
-
-	if (req.m.token) {
-	    int64_t tid = sys_self_id();
-	    if (tid >= 0 && req.m.token == (uint64_t) tid)
-		*haltp = true;
-	    else
-		throw basic_exception("refusing bad token");
 	}
 
 	bool lms_init = false;
@@ -280,11 +272,8 @@ class incoming_impl : public dj_incoming_gate {
 		 wrap(this, &incoming_impl::callcb, ir), ir->local_deliver_arg);
     }
 
-    void callcb(incoming_req *ir, dj_delivery_code stat, uint64_t token) {
-	ir->res.set_stat(stat);
-	if (stat == DELIVERY_DONE)
-	    *ir->res.token = token;
-
+    void callcb(incoming_req *ir, dj_delivery_code stat) {
+	ir->res.stat = stat;
 	ir->done = 1;
 	sys_sync_wakeup(&ir->done);
     }

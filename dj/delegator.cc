@@ -4,12 +4,12 @@
 #include <dj/djrpcx.h>
 
 void
-delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
+delegation_create(djprot *p, const dj_pubkey &sender,
 		  const dj_message &m, const delivery_args &da)
 {
     if (m.target.type != EP_DELEGATOR) {
 	warn << "delegation_create: not a delegator target\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -17,13 +17,13 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
     dj_delegate_req dreq;
     if (!bytes2xdr(callmsg, m.msg) || !bytes2xdr(dreq, callmsg.buf)) {
 	warn << "delegation_create: cannot unmarshal\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
     if (callmsg.return_ep.type != EP_GATE) {
 	warn << "delegation_create: must return to a gate\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -35,7 +35,7 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
 
     if (!owner) {
 	warn << "delegation_create: not owner\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
@@ -53,7 +53,6 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
 
     dj_message replym;
     replym.target = callmsg.return_ep;
-    replym.token = tf->token();
     replym.taint = m.taint;
     replym.glabel = m.glabel;
     replym.gclear = m.gclear;
@@ -62,5 +61,5 @@ delegation_create(djprot *p, token_factory *tf, const dj_pubkey &sender,
     replym.msg = xdr2str(ss);
 
     p->send(sender, 0, m.dset, replym, 0, 0);
-    da.cb(DELIVERY_DONE, replym.token);
+    da.cb(DELIVERY_DONE);
 }

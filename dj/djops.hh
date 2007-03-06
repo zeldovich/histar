@@ -193,7 +193,6 @@ inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_message &a)
 {
     sb << "target ep:    " << a.target << "\n";
-    sb << "sent token:   " << a.token << "\n";
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";
     sb << "grant clear:  " << a.gclear << "\n";

@@ -5,7 +5,7 @@
 #include <sfscrypt.h>
 #include <dj/djprotx.h>
 
-typedef callback<void, dj_delivery_code, uint64_t>::ptr delivery_status_cb;
+typedef callback<void, dj_delivery_code>::ptr delivery_status_cb;
 
 struct delivery_args {
     delivery_status_cb cb;

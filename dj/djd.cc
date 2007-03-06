@@ -14,7 +14,6 @@
 #include <dj/gateexec.hh>
 #include <dj/execmux.hh>
 #include <dj/mapcreate.hh>
-#include <dj/djhistar.hh>
 #include <dj/delegator.hh>
 #include <dj/hsutil.hh>
 #include <dj/djkey.hh>
@@ -84,9 +83,9 @@ sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endp
 }
 
 static void
-msgcb(dj_delivery_code c, uint64_t token)
+msgcb(dj_delivery_code c)
 {
-    warn << "sendcb: code " << c << ", token " << token << "\n";
+    warn << "sendcb: code " << c << "\n";
 }
 
 static void
@@ -96,7 +95,6 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
 
     dj_message a;
     a.target = ep;
-    a.token = 1234;
     a.msg = "Hello world!";
 
     dj_delegation_set dset;
@@ -120,13 +118,6 @@ time_usec()
 int
 main(int ac, char **av)
 {
-    token_factory *tf;
-#ifdef JOS_TEST
-    tf = New simple_token_factory();
-#else
-    tf = New histar_token_factory();
-#endif
-
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = 12345;
@@ -138,7 +129,7 @@ main(int ac, char **av)
 
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));
-    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs, tf));
+    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs));
 
 #ifdef JOS_TEST
     dj_direct_gatemap gm;

@@ -30,7 +30,6 @@ class dj_autorpc {
 
 	dj_message reqm;
 	reqm.target = ep;
-	reqm.token = 0;
 
 	label tl;
 	if (!taint) {

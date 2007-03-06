@@ -10,15 +10,13 @@ dj_debug_delivery(const dj_pubkey &sender,
     warn << "dj_debug_delivery: got a message from " << sender << "\n";
     warn << a;
 
-    cb(DELIVERY_DONE, 0);
+    cb(DELIVERY_DONE);
 }
 
 void
-dj_debug_sink(const dj_pubkey &sender, const dj_message &a,
-	      uint64_t selftoken)
+dj_debug_sink(const dj_pubkey &sender, const dj_message &a)
 {
-    warn << "dj_debug_sink: got a message from " << sender
-	 << ", selftoken " << selftoken << "\n";
+    warn << "dj_debug_sink: got a message from " << sender << "\n";
     warn << a;
 }
 

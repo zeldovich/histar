@@ -147,7 +147,6 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     callmsg.buf = calldata;
 
     dj_message m2 = m;
-    m2.token = 0;
     m2.msg = xdr2str(callmsg);
 
     uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
@@ -158,7 +157,7 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
 	dj_delivery_code code = gs->send(node,
 					 (timeout_at_msec - now_msec) / 1000,
-					 dset, cm, m2, 0, grantlabel);
+					 dset, cm, m2, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 

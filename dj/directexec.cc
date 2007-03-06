@@ -6,20 +6,19 @@ dj_direct_gatemap::deliver(const dj_pubkey &sender,
 			   const delivery_args &da)
 {
     if (a.target.type != EP_GATE) {
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
     dj_msg_sink *s = gatemap_[COBJ(a.target.ep_gate->gate.gate_ct,
 				   a.target.ep_gate->gate.gate_id)];
     if (!s) {
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }
 
-    uint64_t token = ++counter_;
-    (*s)(sender, a, token);
-    da.cb(DELIVERY_DONE, token);
+    (*s)(sender, a);
+    da.cb(DELIVERY_DONE);
 }
 
 dj_message_endpoint

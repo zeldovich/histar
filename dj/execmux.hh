@@ -18,7 +18,7 @@ class exec_mux {
 	    m_.find(m.target.type);
 	if (i == m_.end()) {
 	    warn << "exec_mux: no delivery for type " << m.target.type << "\n";
-	    a.cb(DELIVERY_REMOTE_ERR, 0);
+	    a.cb(DELIVERY_REMOTE_ERR);
 	    return;
 	}
 

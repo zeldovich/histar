@@ -110,7 +110,6 @@ union dj_message_endpoint switch (dj_endpoint_type type) {
 
 struct dj_message {
     dj_message_endpoint target;	/* gate or segment to call on delivery */
-    unsigned hyper token;	/* token returned on sending (0=none) */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */
     dj_label gclear;		/* grant clearance on gate invocation */
@@ -131,11 +130,8 @@ enum dj_delivery_code {
     DELIVERY_REMOTE_ERR
 };
 
-union dj_message_status switch (dj_delivery_code code) {
- case DELIVERY_DONE:
-    unsigned hyper token;	/* 0=none, token issued on delivery */
- default:
-    void;
+struct dj_message_status {
+    dj_delivery_code code;
 };
 
 enum dj_msg_op {

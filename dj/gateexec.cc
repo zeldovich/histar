@@ -94,7 +94,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	djlabel_to_label(cmi, m.gclear, &msg_gclear, label_clear);
     } catch (std::exception &e) {
 	warn << "gate_exec2: " << e.what() << "\n";
-	da.cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING);
 	return;
     }
 
@@ -127,7 +127,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
 	if (!ctname || !gtname) {
 	    warn << "gate_exec2: bad special gate id " << spec_id << "\n";
-	    da.cb(DELIVERY_REMOTE_ERR, 0);
+	    da.cb(DELIVERY_REMOTE_ERR);
 	    return;
 	}
 
@@ -136,7 +136,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	int64_t gt = container_find(ct, kobj_gate, gtname);
 	if (ct < 0 || gt < 0) {
 	    warn << "gate_exec2: cannot find spec gate " << spec_id << "\n";
-	    da.cb(DELIVERY_REMOTE_ERR, 0);
+	    da.cb(DELIVERY_REMOTE_ERR);
 	    return;
 	}
 
@@ -166,7 +166,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	cm->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "gate_exec2: acquiring: " << e.what() << "\n";
-	da.cb(DELIVERY_REMOTE_MAPPING, 0);
+	da.cb(DELIVERY_REMOTE_MAPPING);
 	return;
     }
 
@@ -218,7 +218,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     while (s.done == 0)
 	sys_sync_wait(&s.done, 0, ~0UL);
-    da.cb(DELIVERY_DONE, tid);
+    da.cb(DELIVERY_DONE);
 
     unref1.dismiss();
     unref2.dismiss();
@@ -232,6 +232,6 @@ gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
 	gate_exec2(cm, node, m, da, djd_gate);
     } catch (std::exception &e) {
 	warn << "gate_exec: " << e.what() << "\n";
-	da.cb(DELIVERY_REMOTE_ERR, 0);
+	da.cb(DELIVERY_REMOTE_ERR);
     }
 }

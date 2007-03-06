@@ -165,11 +165,9 @@ main(int ac, char **av)
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));
 
-    token_factory *tf = New simple_token_factory();
-
     dj_direct_gatemap gm;
     emux.set(EP_GATE, wrap(&gm, &dj_direct_gatemap::deliver));
-    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs, tf));
+    emux.set(EP_DELEGATOR, wrap(&delegation_create, djs));
 
     pr->p = djs;
     pr->f = &gm;
