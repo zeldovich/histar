@@ -774,17 +774,23 @@ readv(int fd, const struct iovec *vector, int count) __THROW
 ssize_t 
 writev(int fd, const struct iovec *vector, int count) __THROW
 {
-    int ret = 0;
+    ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
-	int r = write(fd, vector[i].iov_base, vector[i].iov_len);
-	if (r < 0) {
+	ssize_t cc = write(fd, vector[i].iov_base, vector[i].iov_len);
+	if (cc <= 0) {
+	    if (debug)
+		printf("writev: write error: %lld %s\n", cc, strerror(errno));
+
 	    if (i == 0)
-		return r;
-	    printf("writev: write error: %s\n", e2s(r));
-	    return ret;
+		return cc;
+	    else
+		return ret;
 	}
-	ret += r;
-	if ((uint32_t)r < vector[i].iov_len)
+
+	ret += cc;
+
+	/* If we did only a partial write, bail out now. */
+	if ((size_t) cc < vector[i].iov_len)
 	    return ret;
     }
     return ret;
