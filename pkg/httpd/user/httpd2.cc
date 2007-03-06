@@ -89,12 +89,12 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 						 mapping_ct_label.to_ulabel(),
 						 "httpd mct", 0, CT_QUOTA_INF);
 	error_check(mapping_ct);
+	if (debug_dj)
+	    warn << "httpd2: mapping_ct = " << mapping_ct << "\n";
 
 	label grant_local(3), grant_remote(3);
 	grant_local.set(dj_calltaint, LB_LEVEL_STAR);	/* prove catmaps */
 	grant_local.set(ut, LB_LEVEL_STAR);
-	grant_local.set(ug, LB_LEVEL_STAR);
-
 	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
 
 	/*
@@ -113,15 +113,22 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 			    the_gs, djcache,
 			    &calltaint_map_local, &calltaint_map_app,
 			    &calltaint_dlg);
+	if (debug_dj)
+	    warn << "httpd2: created app server delegation for dj_calltaint\n";
 
 	dj_map_and_delegate(ut, false, grant_local, grant_remote,
 			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
 			    &ut_map_local, &ut_map_app, &ut_dlg);
+	if (debug_dj)
+	    warn << "httpd2: created app server delegation for ut\n";
+
 	dj_map_and_delegate(ug, true, grant_local, grant_remote,
 			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
 			    &ug_map_local, &ug_map_app, &ug_dlg);
+	if (debug_dj)
+	    warn << "httpd2: created app server delegation for ug\n";
 
 	/*
 	 * Now, create a container to execute application code.
@@ -169,6 +176,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	error_check(ct_res.ct_id);
 	uint64_t app_call_ct = ct_res.ct_id;
+	if (debug_dj)
+	    warn << "httpd2: app server call container " << app_call_ct << "\n";
 
 	/*
 	 * Create container on the fileserver.
@@ -200,6 +209,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	error_check(ct_res.ct_id);
 	uint64_t user_call_ct = ct_res.ct_id;
+	if (debug_dj)
+	    warn << "httpd2: user server call container " << user_call_ct << "\n";
 
 	/*
 	 * Invoke application code.
@@ -239,10 +250,16 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	web_clear.set(ug, 3);
 	web_clear.set(ut, 3);
 
+	if (debug_dj)
+	    warn << "httpd2: calling app server\n";
+
 	c = app_arpc.call(webapp_ep, web_arg, web_res,
 			  &web_taint, &web_grant, &web_clear);
 	if (c != DELIVERY_DONE)
 	    throw basic_exception("webapp: %d\n", c);
+
+	if (debug_dj)
+	    warn << "httpd2: app server done\n";
 
 	header.write(web_res.httpres.base(), web_res.httpres.size());
     } else if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
