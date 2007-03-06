@@ -92,6 +92,10 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	label grant_local(3), grant_remote(3);
 	grant_local.set(dj_calltaint, LB_LEVEL_STAR);	/* prove catmaps */
+	grant_local.set(ut, LB_LEVEL_STAR);
+	grant_local.set(ug, LB_LEVEL_STAR);
+
+	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
 
 	/*
 	 * XXX the only reason to create mappings for dj_calltaint 
@@ -110,7 +114,6 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 			    &calltaint_map_local, &calltaint_map_app,
 			    &calltaint_dlg);
 
-	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
 	dj_map_and_delegate(ut, false, grant_local, grant_remote,
 			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
@@ -322,7 +325,8 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 			    &local_call_taint, &remote_call_taint, &delegation);
 
 	if (debug_dj)
-	    warn << "httpd2: dj_calltaint " << local_call_taint.gcat << "\n";
+	    warn << "httpd2: dj_calltaint " << dj_calltaint
+		 << ", " << local_call_taint.gcat << "\n";
 
 	/*
 	 * Invoke the user auth code..
@@ -365,8 +369,8 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	dj_ut_authdlg = ap_res.resok->ut_delegation;
 
 	if (debug_dj) {
-	    warn << "httpd2: dj_ug " << dj_ug << "\n";
-	    warn << "httpd2: dj_ut " << dj_ut << "\n";
+	    warn << "httpd2: ug " << *ug << ", dj_ug " << dj_ug << "\n";
+	    warn << "httpd2: ut " << *ut << ", dj_ut " << dj_ut << "\n";
 	}
     } else {
 	auth_login(user, pass, ug, ut);
