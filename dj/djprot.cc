@@ -499,11 +499,13 @@ class djprot_impl : public djprot {
 
     void tcp_ready(crypt_conn *cc, crypt_conn_status code) {
 	if (code == crypt_cannot_connect) {
+	    warn << "cryptconn: cannot connect\n";
 	    delete cc;
 	    return;
 	}
 
 	if (code == crypt_disconnected) {
+	    warn << "cryptconn: disconnected\n";
 	    tcpconn_.remove(cc);
 	    delete cc;
 	    return;
