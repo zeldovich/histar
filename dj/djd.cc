@@ -18,6 +18,12 @@
 #include <dj/hsutil.hh>
 #include <dj/djkey.hh>
 
+#ifndef JOS_TEST
+extern "C" {
+#include <machine/x86.h>
+}
+#endif
+
 static void
 fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
 {
@@ -194,6 +200,9 @@ main(int ac, char **av)
 
     str_to_segment(start_env->shared_container,
 		   xdr2str(djs->pubkey()), "selfkey");
+
+    uint64_t tsc = read_tsc();
+    rnd_input.update(&tsc, sizeof(tsc));
 #endif
 
     amain();
