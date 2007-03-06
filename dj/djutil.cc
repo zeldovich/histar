@@ -51,6 +51,26 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     cache[localkey]->cmi_.insert(*lmap);
 
     /*
+     * Create delegation to the remote host.
+     */
+    dj_message_endpoint ep_delegate;
+    ep_delegate.set_type(EP_DELEGATOR);
+
+    dj_delegate_req dreq;
+    dreq.gcat = lmap->gcat;
+    dreq.to = host;
+    dreq.from_ts = 0;
+    dreq.until_ts = ~0;
+
+    call_taint = taint; call_grant = grant_local; call_clear = taint;
+    call_grant.set(lcat, LB_LEVEL_STAR);
+    c = arpc_local.call(ep_delegate, dreq, *delegation,
+			&call_taint, &call_grant, &call_clear);
+    if (c != DELIVERY_DONE)
+	throw basic_exception("Could not create delegation: code %d", c);
+    cache.dmap_.insert(*delegation);
+
+    /*
      * Create mapping on remote host.
      */
     mapreq.ct = rct;
@@ -72,24 +92,4 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     if (c != DELIVERY_DONE)
 	throw basic_exception("Could not create remote mapping: code %d", c);
     cache[host]->cmi_.insert(*rmap);
-
-    /*
-     * Create delegation to the remote host.
-     */
-    dj_message_endpoint ep_delegate;
-    ep_delegate.set_type(EP_DELEGATOR);
-
-    dj_delegate_req dreq;
-    dreq.gcat = lmap->gcat;
-    dreq.to = host;
-    dreq.from_ts = 0;
-    dreq.until_ts = ~0;
-
-    call_taint = taint; call_grant = grant_local; call_clear = taint;
-    call_grant.set(lcat, LB_LEVEL_STAR);
-    c = arpc_local.call(ep_delegate, dreq, *delegation,
-			&call_taint, &call_grant, &call_clear);
-    if (c != DELIVERY_DONE)
-	throw basic_exception("Could not create delegation: code %d", c);
-    cache.dmap_.insert(*delegation);
 }

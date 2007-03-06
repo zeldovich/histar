@@ -35,7 +35,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 	    label t, g;
 
 	    djlabel_to_label(cmi, m.taint,  &t, label_taint);
-	    djlabel_to_label(cmi, m.glabel, &g, label_owner);
+	    djlabel_to_label(cmi, m.glabel, &g, label_owner, true);
 	    t.merge(&g, &vl, label::min, label::leq_starlo);
 	    vc = t;
 	    reply_taint = m.taint;

@@ -312,12 +312,18 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 					      "httpd dj call", 0, CT_QUOTA_INF);
 	error_check(call_ct);
 
+	if (debug_dj)
+	    warn << "httpd2: dj_calltaint " << dj_calltaint
+		 << ", container " << call_ct << "\n";
+
 	/* XXX assumes publicly-writable container on the other side */
 	dj_cat_mapping local_call_taint;
 	dj_cat_mapping remote_call_taint;
 	dj_stmt_signed delegation;
 
 	label grant_local(3), grant_remote(3);
+	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
+
 	dj_map_and_delegate(dj_calltaint, false,
 			    grant_local, grant_remote,
 			    call_ct, dj_user_server_ct, dj_user_server_pk,
@@ -325,8 +331,7 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 			    &local_call_taint, &remote_call_taint, &delegation);
 
 	if (debug_dj)
-	    warn << "httpd2: dj_calltaint " << dj_calltaint
-		 << ", " << local_call_taint.gcat << "\n";
+	    warn << "httpd2: dj_calltaint global " << local_call_taint.gcat << "\n";
 
 	/*
 	 * Invoke the user auth code..
