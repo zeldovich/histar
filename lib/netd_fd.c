@@ -214,8 +214,12 @@ sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
 	    const struct sockaddr *to, socklen_t tolen)
 {
     if (count > netd_buf_size) {
-	errno = EMSGSIZE;
-	return -1;
+	if (to) {
+	    errno = EMSGSIZE;
+	    return -1;
+	} else {
+	    count = netd_buf_size;
+	}
     }
 
     struct netd_op_args a;
