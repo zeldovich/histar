@@ -60,6 +60,14 @@ class dj_autorpc {
 	    warn << "autorpc: starting remote-host conversions...\n";
 	}
 
+	/* If we are granting some non-globally-named categories,
+	 * just to the local exporter, see if we happen to have
+	 * some mappings for them, and include them in the local
+	 * catmap if so.
+	 */
+	if (xgrant)
+	    label_to_djlabel(home_->cmi_, *xgrant, 0, label_owner, true, &loc_cm);
+
 	/* Populate the catmap for the remote node */
 	bool skip_missing = false;
 	if (ep.type == EP_MAPCREATE)

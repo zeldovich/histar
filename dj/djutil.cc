@@ -16,7 +16,7 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     thread_cur_label(&taint);
     taint.transform(label::star_to, taint.get_default());
 
-    label xgrant(3);
+    label xgrant = grant_local;
     xgrant.set(lcat, LB_LEVEL_STAR);
 
     dj_pubkey localkey = gs->hostkey();
