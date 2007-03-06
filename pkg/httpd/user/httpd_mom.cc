@@ -55,9 +55,11 @@ segment_copy_to_file(struct cobj_ref seg, struct fs_inode dir,
 static void
 module_setup(void)
 {
-    if (fork() == 0)
-	error_check(execl(module_setup_bin, module_setup_bin, 0));
-    else
+    if (fork() == 0) {
+	int r = execl(module_setup_bin, module_setup_bin, 0);
+	printf("httpd_mom: could not setup modules: %s\n", strerror(r));
+	exit(1);
+    } else
 	wait(0);
 }
 
