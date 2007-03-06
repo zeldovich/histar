@@ -3,6 +3,8 @@
 #include <dj/djautorpc.hh>
 #include <dj/internalx.h>
 
+enum { map_debug = 0 };
+
 void
 dj_map_and_delegate(uint64_t lcat, bool integrity,
 		    const label &grant_local, const label &grant_remote,
@@ -44,8 +46,13 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     if (cache[localkey]->cmi_.l2g(lcat, 0))
 	call_grant.set(lcat, LB_LEVEL_STAR);
 
+    if (map_debug)
+	warn << "map_and_delegate: creating local mapping\n";
+
     c = arpc_local.call(ep_mapcreate, mapreq, *lmap,
 			&call_taint, &call_grant, &call_clear, &xgrant);
+    if (map_debug)
+	warn << "map_and_delegate: creating local mapping: " << c << "\n";
     if (c != DELIVERY_DONE)
 	throw basic_exception("Could not create local mapping: code %d", c);
     cache[localkey]->cmi_.insert(*lmap);
@@ -64,8 +71,13 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
 
     call_taint = taint; call_grant = grant_local; call_clear = taint;
     call_grant.set(lcat, LB_LEVEL_STAR);
+
+    if (map_debug)
+	warn << "map_and_delegate: creating delegation\n";
     c = arpc_local.call(ep_delegate, dreq, *delegation,
 			&call_taint, &call_grant, &call_clear);
+    if (map_debug)
+	warn << "map_and_delegate: creating delegation: " << c << "\n";
     if (c != DELIVERY_DONE)
 	throw basic_exception("Could not create delegation: code %d", c);
     cache.dmap_.insert(*delegation);
@@ -87,8 +99,12 @@ dj_map_and_delegate(uint64_t lcat, bool integrity,
     if (cache[host]->cmi_.g2l(lmap->gcat, 0))
 	call_grant.set(lcat, LB_LEVEL_STAR);
 
+    if (map_debug)
+	warn << "map_and_delegate: creating remote mapping\n";
     c = arpc_remote.call(ep_mapcreate, mapreq, *rmap,
 			 &call_taint, &call_grant, &call_clear, &xgrant);
+    if (map_debug)
+	warn << "map_and_delegate: creating remote mapping: " << c << "\n";
     if (c != DELIVERY_DONE)
 	throw basic_exception("Could not create remote mapping: code %d", c);
     cache[host]->cmi_.insert(*rmap);
