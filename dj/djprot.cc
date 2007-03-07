@@ -573,9 +573,5 @@ class djprot_impl : public djprot {
 djprot *
 djprot::alloc(uint16_t port)
 {
-    /* XXX just for testing */
-    //sfs_rsasize = 768;
-
-    random_init();
     return New djprot_impl(port);
 }

@@ -124,6 +124,13 @@ time_usec()
 int
 main(int ac, char **av)
 {
+    random_init();
+
+#ifndef JOS_TEST
+    uint64_t tsc = read_tsc();
+    rnd_input.update(&tsc, sizeof(tsc));
+#endif
+
     dj_message_endpoint ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = 12345;
@@ -200,9 +207,6 @@ main(int ac, char **av)
 
     str_to_segment(start_env->shared_container,
 		   xdr2str(djs->pubkey()), "selfkey");
-
-    uint64_t tsc = read_tsc();
-    rnd_input.update(&tsc, sizeof(tsc));
 #endif
 
     amain();
