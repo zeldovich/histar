@@ -141,10 +141,8 @@ inet_server(uint16_t port)
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
-        if (ss < 0) {
-            printf("cannot accept client: %d\n", ss);
-            continue;
-        }
+        if (ss < 0)
+            panic("cannot accept client: %s\n", strerror(ss));
 
 	struct cobj_ref t;
 	r = thread_create(start_env->proc_container, &inet_client,
