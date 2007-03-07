@@ -18,7 +18,7 @@ struct one_pipe {
 
     char reader_waiting;
     char writer_waiting;
-    char open;
+    uint64_t open;
     uint32_t read_ptr;  /* read at this offset */
     uint64_t bytes; /* # bytes in circular buffer */
     jthread_mutex_t mu;
