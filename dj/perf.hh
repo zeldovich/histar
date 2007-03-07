@@ -21,6 +21,7 @@ read_tsc(void)
 class dumpable {
  public:
     virtual void dump() = 0;
+    virtual ~dumpable() {}
 };
 
 class perf_collection : public dumpable {
