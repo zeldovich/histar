@@ -49,6 +49,9 @@ class perf_counter : public dumpable {
 
     void sample(uint64_t v) { count_++; total_ += v; }
     virtual void dump() {
+	if (!count_)
+	    return;
+
 	printf("%-20s %12"PRIu64" %12"PRIu64" %12"PRIu64"\n",
 	       name_, count_, total_ / count_, total_);
 	count_ = 0;
