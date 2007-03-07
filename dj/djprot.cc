@@ -259,11 +259,16 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
-	if (cc->timecb && time(0) >= cc->until) {
-	    /* Have to transmit at least once for a timeout.. */
-	    cc->timecb = 0;
-	    clnt_done(cc, DELIVERY_TIMEOUT);
-	    return;
+	if (cc->timecb) {
+	    if (time(0) >= cc->until) {
+		/* Have to transmit at least once for a timeout.. */
+		warn << "clnt_transmit: timed out, giving up\n";
+		cc->timecb = 0;
+		clnt_done(cc, DELIVERY_TIMEOUT);
+		return;
+	    }
+
+	    warn << "clnt_transmit: timed out, retransmitting\n";
 	}
 
 	cc->tmo *= 2;
