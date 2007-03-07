@@ -1,8 +1,23 @@
 #include <dj/djkey.hh>
+#include <dj/perf.hh>
+
+static bool
+verify_sign(const dj_stmt &stmt, const dj_pubkey &pk, const dj_sign &sig)
+{
+    str msg = xdr2str(stmt);
+    if (!msg)
+	return false;
+
+    ptr<sfspub> p = sfscrypt.alloc(pk, SFS_VERIFY);
+    return p && p->verify(sig, msg);
+}
 
 bool
 verify_stmt(const dj_stmt_signed &s)
 {
+    static perf_counter pc("verify_stmt");
+    scoped_timer st(&pc);
+
     switch (s.stmt.type) {
     case STMT_DELEGATION:
 	if (s.stmt.delegation->via)
@@ -38,6 +53,9 @@ bool
 key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
 	       dj_delegation_map &dm, uint32_t depth)
 {
+    static perf_counter pc("key_speaks_for");
+    scoped_timer st(&pc);
+
     if (gcat.key == k)
 	return true;
 

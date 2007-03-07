@@ -7,18 +7,6 @@
 
 bool verify_stmt(const dj_stmt_signed &s);
 
-template<class T>
-bool
-verify_sign(const T &xdrblob, const dj_pubkey &pk, const dj_sign &sig)
-{
-    str msg = xdr2str(xdrblob);
-    if (!msg)
-	return false;
-
-    ptr<sfspub> p = sfscrypt.alloc(pk, SFS_VERIFY);
-    return p && p->verify(sig, msg);
-}
-
 class dj_delegation_map {
  public:
     struct dm_ent {

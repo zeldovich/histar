@@ -17,6 +17,7 @@
 #include <dj/delegator.hh>
 #include <dj/hsutil.hh>
 #include <dj/djkey.hh>
+#include <dj/perf.hh>
 
 #ifndef JOS_TEST
 extern "C" {
@@ -121,6 +122,13 @@ time_usec()
 }
 #endif
 
+static void
+print_stats()
+{
+    global_stats.dump();
+    delaycb(10, wrap(&print_stats));
+}
+
 int
 main(int ac, char **av)
 {
@@ -209,5 +217,6 @@ main(int ac, char **av)
 		   xdr2str(djs->pubkey()), "selfkey");
 #endif
 
+    print_stats();
     amain();
 }
