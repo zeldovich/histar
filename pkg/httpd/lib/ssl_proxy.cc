@@ -33,11 +33,11 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 {
     uint64_t ssl_taint = handle_alloc();
     scope_guard<void, uint64_t> drop_star(thread_drop_star, ssl_taint);
-    label ssl_root_label(1);
-    ssl_root_label.set(ssl_taint, 3);
+    label taint_label(1);
+    taint_label.set(ssl_taint, 3);
 
     int64_t ssl_root_ct = sys_container_alloc(base_ct,
-					      ssl_root_label.to_ulabel(),
+					      taint_label.to_ulabel(),
 					      "ssl-root", 0, CT_QUOTA_INF);
     error_check(ssl_root_ct);
     d->base_ct_ = base_ct;
@@ -47,28 +47,29 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
     try {
 	// manually setup bipipe segments
 	struct cobj_ref cipher_seg;
-	label cipher_label(1);
-	cipher_label.set(ssl_taint, 3);
 	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
-				 cipher_label.to_ulabel(), "cipher-bipipe"));
+				 taint_label.to_ulabel(), "cipher-bipipe"));
 	
 	struct cobj_ref plain_seg;
-	label plain_label(1);
-	plain_label.set(ssl_taint, 3);
 	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
-				 plain_label.to_ulabel(), "plain-bipipe"));
+				 taint_label.to_ulabel(), "plain-bipipe"));
 	
 	struct cobj_ref eproc_seg = COBJ(0, 0);
 	if (eproc_gate.object) {
-	    label eproc_label(1);
-	    eproc_label.set(ssl_taint, 3);
 	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
-				     eproc_label.to_ulabel(), "eproc-bipipe"));
+				     taint_label.to_ulabel(), "eproc-bipipe"));
 	}
 
 	d->cipher_bipipe_ = cipher_seg;
 	d->taint_ = ssl_taint;
-	d->plain_bipipe_ = plain_seg;
+
+	struct ssl_proxy_client *spc = 0;
+	error_check(segment_alloc(ssl_root_ct, sizeof(*spc), &d->client_seg_, 
+				  (void **)&spc, taint_label.to_ulabel(), 
+				  "proxy-client"));
+	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 1);
+	memset(spc, 0, sizeof(*spc));
+	spc->plain_bipipe_ = plain_seg;
 
 	if (eproc_gate.object) {
 	    ssl_eproc_taint_cow(eproc_gate, eproc_seg, ssl_root_ct, 
@@ -95,17 +96,33 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 void
 ssl_proxy_cleanup(ssl_proxy_descriptor *d)
 {
+    struct ssl_proxy_client *spc = 0;
+    uint64_t bytes = sizeof(*spc);
+    error_check(segment_map(d->client_seg_, 0, SEGMAP_READ, 
+			    (void **)&spc, &bytes, 0));
+
+    int64_t start = sys_clock_msec();
+    int64_t end = start + 10000;
+    while (atomic_read(&spc->ref_)) {
+	sys_sync_wait(&atomic_read(&spc->ref_), atomic_read(&spc->ref_), end);
+	if (end <= sys_clock_msec()) {
+	    cprintf("ssl_proxy_cleanup: timeout expired, cleaning up\n");
+	    break;
+	}
+    }
+    segment_unmap_delayed(spc, 1);
+
     sys_obj_unref(COBJ(d->base_ct_, d->ssl_ct_));
     thread_drop_star(d->taint_);    
     if (d->ssld_started_) {
 	int r = thread_cleanup(&d->ssld_worker_args_);
 	if (r < 0)
-	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+	    cprintf("ssl_proxy_cleanup: unable to unmap stack %s\n", e2s(r));
     }
     if (d->eproc_started_) {
 	int r = thread_cleanup(&d->eproc_worker_args_);
 	if (r < 0)
-	    cprintf("ssl_proxy::~ssl_proxy: unable to unmap stack %s\n", e2s(r));
+	    cprintf("ssl_proxy_cleanup: unable to unmap stack %s\n", e2s(r));
     }
     close(d->sock_fd_);
 }
@@ -272,4 +289,39 @@ ssl_proxy_thread(ssl_proxy_descriptor *d, char cleanup)
 					 d, sizeof(*d),
 					 &t, "ssl-proxy", 0, THREAD_OPT_ARGCOPY));
     }
+}
+
+int 
+ssl_proxy_client_fd(cobj_ref plain_seg)
+{
+    try {
+	struct ssl_proxy_client *spc = 0;
+	uint64_t bytes = sizeof(*spc);
+	error_check(segment_map(plain_seg, 0, SEGMAP_READ | SEGMAP_WRITE, 
+				(void **)&spc, &bytes, 0));
+	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
+	int s;
+	error_check(s = bipipe_fd(spc->plain_bipipe_, ssl_proxy_bipipe_client, 0, 0, 0));
+	atomic_inc64(&spc->ref_);
+	return s;
+    } catch (basic_exception &e) {
+	cprintf("ssl_proxy_client_fd: error: %s\n", e.what());
+	return -1;
+    }
+}
+
+void 
+ssl_proxy_client_done(cobj_ref plain_seg)
+{
+    try {
+	struct ssl_proxy_client *spc = 0;
+	uint64_t bytes = sizeof(*spc);
+	error_check(segment_map(plain_seg, 0, SEGMAP_READ | SEGMAP_WRITE, 
+				(void **)&spc, &bytes, 0));
+	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
+	atomic_dec64(&spc->ref_);
+    } catch (basic_exception &e) {
+	cprintf("ssl_proxy_client_done: error: %s\n", e.what());
+    }
+    return;
 }

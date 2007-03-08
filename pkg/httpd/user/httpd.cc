@@ -108,13 +108,15 @@ http_client(void *arg)
 
     try {
 	int s = sock_fd;
-	
+
+	// this is a mess, but http is only here for performance 
+	// comparisons...
+	ssl_proxy_descriptor d;
 	if (ssl_enable && ssl_privsep_enable) {
-	    ssl_proxy_descriptor d;
 	    ssl_proxy_alloc(the_ssld_cow, the_eprocd_cow, 
 			    start_env->shared_container, sock_fd, &d);
 	    ssl_proxy_thread(&d, 1);
-	    s = bipipe_fd(d.plain_bipipe_, ssl_proxy_bipipe_client, 0, 0, 0);
+	    s = ssl_proxy_client_fd(d.client_seg_);
 	    if (s < 0) {
 		// proxy thread will close sock
 		close_sock.dismiss();
@@ -126,6 +128,9 @@ http_client(void *arg)
 	}
 	close_sock.dismiss();
 	scope_guard<int, int> close_s(close, s);
+	scope_guard<void, cobj_ref> 
+	    client_done(ssl_proxy_client_done, d.client_seg_, 
+			ssl_enable && ssl_privsep_enable);
 	
 	tcpconn tc(s, 0);
 	lineparser lp(&tc);
