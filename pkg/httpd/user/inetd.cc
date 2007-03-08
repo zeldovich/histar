@@ -112,15 +112,15 @@ inet_client(void *a)
 	ssl_proxy_descriptor d;
 	ssl_proxy_alloc(the_ssld_cow, the_eprocd_cow, 
 			start_env->shared_container, ss, &d);
-
+	
+	// we don't care about waiting for http2 to finish
+	// with the connection, so don't use ssl_proxy_client*
 	struct ssl_proxy_client *spc = 0;
 	uint64_t bytes = sizeof(*spc);
 	error_check(segment_map(d.client_seg_, 0, SEGMAP_READ, 
 				(void **)&spc, &bytes, 0));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
-	
 	spawn_httpd(d.ssl_ct_, spc->plain_bipipe_, d.taint_);
-	//spawn_httpd(d.ssl_ct_, d.plain_bipipe_, d.taint_);
 	ssl_proxy_loop(&d, 1);
     } catch (basic_exception &e) {
 	printf("inet_client: %s\n", e.what());
