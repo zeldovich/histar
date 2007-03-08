@@ -131,6 +131,15 @@ static __inline__ void atomic_dec(atomic_t *v)
 		:"cc");
 }
 
+static __inline__ void atomic_dec64(atomic64_t *v)
+{
+	__asm__ __volatile__(
+		ATOMIC_LOCK "decq %0"
+		:"+m" (v->counter)
+		:
+		:"cc");
+}
+
 /**
  * atomic_dec_and_test - decrement and test
  * @v: pointer of type atomic_t
