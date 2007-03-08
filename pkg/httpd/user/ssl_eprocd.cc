@@ -14,6 +14,7 @@ extern "C" {
 #include <inc/stack.h>
 #include <inc/bipipe.h>
 #include <inc/ssleproc.h>
+#include <inc/debug.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -33,12 +34,15 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/ssldclnt.hh>
 
+static const char dbg = 0;
+
 static RSA *the_key;
 static char *cow_stacktop;
 
 static void __attribute__((noreturn))
 handle_client(uint64_t ec, uint64_t eo)
 {
+    debug_cprint(dbg, "opening bipipe...");
     // don't worry about extra taint and grant
     int s = bipipe_fd(COBJ(ec, eo), 1, 0, 0, 0);
     error_check(s);
@@ -49,6 +53,7 @@ handle_client(uint64_t ec, uint64_t eo)
     pub_e_len = BN_bn2bin(the_key->e, pub_e);
     pub_n_len = BN_bn2bin(the_key->n, pub_n);
 
+    debug_cprint(dbg, "writing pub* to bipipe");
     write(s, &pub_e_len, sizeof(pub_e_len));
 
     write(s, pub_e, pub_e_len);
@@ -59,6 +64,7 @@ handle_client(uint64_t ec, uint64_t eo)
     unsigned char *fbuf = (unsigned char *) malloc(buflen);
     unsigned char *tbuf = (unsigned char *) malloc(buflen);
 
+    debug_cprint(dbg, "waiting to sign...");
     for (;;) {
 	int op, padding, rval;
 	unsigned int flen, tlen = 0;
@@ -114,6 +120,7 @@ eprocd_cow_entry(void)
 	tls_revalidate();
 	thread_label_cache_invalidate();
 
+	debug_cprint(dbg, "COWed and ready to handled client...");
 	stack_switch(d->privkey_biseg.container, d->privkey_biseg.object,
 		     0, 0,
 		     cow_stacktop, (void *) &handle_client);
@@ -190,6 +197,8 @@ main(int ac, char **av)
     the_key = pkey->pkey.rsa;
 
     cow_gate_create(start_env->shared_container, verify);
+
+    cprintf("eprocd: ready!\n");
     
     return 0;
 }
