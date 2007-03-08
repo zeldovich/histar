@@ -847,6 +847,35 @@ getsockopt(int fdnum, int level, int optname, void *optval,
     return FD_CALL(fdnum, getsockopt, level, optname, optval, optlen);
 }
 
+static void
+select_timeout(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
+	       struct timeval *timeout)
+{
+    extern const char *__progname;
+    uint64_t to = (timeout->tv_sec * 1000) + 
+	(timeout->tv_usec / 1000);
+    cprintf("select: %s(%ld) timed out in %ld:\n", 
+	    __progname, thread_id(), to);
+
+    struct Fd *fd;
+    struct Dev *dev;
+
+    for (int i = 0; i < maxfd; i++) {
+	if (readset && FD_ISSET(i, readset)) {
+	    error_check(fd_lookup(i, &fd, 0, 0));
+	    error_check(dev_lookup(fd->fd_dev_id, &dev));
+	    cprintf(" [readset, fdnum %d, dev_id %c, ready %d]\n", 
+		    i, fd->fd_dev_id, DEV_CALL(dev, probe, fd, dev_probe_read));
+	}
+	if (writeset && FD_ISSET(i, writeset)) {
+	    error_check(fd_lookup(i, &fd, 0, 0));
+	    error_check(dev_lookup(fd->fd_dev_id, &dev));
+	    cprintf(" [writeset, fdnum %d, dev_id %c, ready %d]\n", 
+		    i, fd->fd_dev_id, DEV_CALL(dev, probe, fd, dev_probe_write));
+	}
+    }
+}
+
 // XXX
 // one issue is selecting on fd_set with size < sizeof(fd_set)...
 // this can happen with fd_set *set = malloc(x).  Use FD_* macros
@@ -935,13 +964,8 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             gettimeofday(&now, 0);
             timersub(&now, &start, &elapsed);
             if (timercmp(&elapsed, timeout, >)) {
-		if (select_debug) {
-		    extern const char *__progname;
-		    uint64_t to = (timeout->tv_sec * 1000) + 
-			(timeout->tv_usec / 1000);
-		    cprintf("select: %s(%ld) timed out in %ld\n", 
-			    __progname, thread_id(), to);
-		}
+		if (select_debug)
+		    select_timeout(maxfd, readset, writeset, exceptset, timeout);
                 break;
 	    }
 	    timersub(timeout, &elapsed, &remaining);
