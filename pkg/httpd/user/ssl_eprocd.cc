@@ -198,7 +198,7 @@ main(int ac, char **av)
 
     cow_gate_create(start_env->shared_container, verify);
 
-    cprintf("eprocd: ready!\n");
+    cprintf("eprocd: ready\n");
     
     return 0;
 }
