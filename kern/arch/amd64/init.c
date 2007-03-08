@@ -149,7 +149,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
     prof_init();
     if (strstr(&boot_cmdline[0], "reboot=periodic")) {
 	static struct periodic_task reboot_pt = { .pt_fn = &reboot_periodic };
-	reboot_pt.pt_interval_ticks = 6 * 3600 * kclock_hz;
+	reboot_pt.pt_interval_ticks = 3600 * kclock_hz;
 	timer_add_periodic(&reboot_pt);
     }
 
