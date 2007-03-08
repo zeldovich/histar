@@ -254,6 +254,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
     ERRCHECK(sys_self_set_as(new_as));
     segment_as_switched();
+    segment_as_invalidate_nowb();
 
     ERRCHECK(sys_self_addref(mlt_ct));
     ERRCHECK(sys_self_set_sched_parents(start_env->proc_container, mlt_ct));

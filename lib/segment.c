@@ -202,6 +202,12 @@ segment_as_switched(void)
 }
 
 void
+segment_as_invalidate_nowb(void)
+{
+    cache_asref.object = 0;
+}
+
+void
 segment_map_print(struct u_address_space *as)
 {
     cprintf("slot  kslot  segment  start  npages  fl  va\n");
