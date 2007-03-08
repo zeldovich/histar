@@ -856,6 +856,8 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
+    static char select_debug = 0;
+
     struct wait_stat wstat[(2 * maxfd) + 1];
     uint64_t wstat_count = 0;
     memset(wstat, 0, sizeof(wstat));
@@ -932,8 +934,16 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
             struct timeval now, elapsed;
             gettimeofday(&now, 0);
             timersub(&now, &start, &elapsed);
-            if (timercmp(&elapsed, timeout, >))
+            if (timercmp(&elapsed, timeout, >)) {
+		if (select_debug) {
+		    extern const char *__progname;
+		    uint64_t to = (timeout->tv_sec * 1000) + 
+			(timeout->tv_usec / 1000);
+		    cprintf("select: %s(%ld) timed out in %ld\n", 
+			    __progname, thread_id(), to);
+		}
                 break;
+	    }
 	    timersub(timeout, &elapsed, &remaining);
         }
 
