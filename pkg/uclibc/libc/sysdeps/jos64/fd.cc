@@ -445,8 +445,7 @@ jos_fd_close(struct Fd *fd)
     } else {
 	sys_obj_unref(fd_seg);
     }
-    // XXX delaying here triggers bugs in inetd..
-    assert(segment_unmap_delayed(fd, 0) >= 0);
+    assert(segment_unmap_delayed(fd, 1) >= 0);
 
     fd_map_cache[fdnum].valid_proc_ct = start_env->proc_container;
     fd_map_cache[fdnum].mapped = 0;
