@@ -42,7 +42,7 @@ netd_probe(struct Fd *fd, dev_probe_t probe)
 	scope_guard2<int, void *, int> x(segment_unmap_delayed, lw, 1);
 	
 	if (probe == dev_probe_read)
-	    return lw[fd->fd_sock.s].rcvevent;
+	    return lw[fd->fd_sock.s].rcvevent || lw[fd->fd_sock.s].lastdata;
 	else 
 	    return lw[fd->fd_sock.s].sendevent;
 
