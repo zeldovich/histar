@@ -57,6 +57,9 @@ as_mutex_unlock(int old)
 static void
 cache_uas_flush(void)
 {
+    if (!cache_asref_object)
+	return;
+
     for (uint32_t i = 0; i < cache_uas.nent; i++) {
 	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
 	    cache_uas.ents[i].flags = 0;
@@ -149,6 +152,7 @@ cache_refresh(struct cobj_ref as)
     if (as.object == cache_asref.object)
 	return 0;
 
+    cache_uas_flush();
 retry:
     r = sys_as_get(as, &cache_uas);
     if (r == -E_NO_SPACE) {
