@@ -97,6 +97,7 @@ ssld_close(SSL *ssl)
 static void __attribute__((noreturn))
 ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 {
+    debug_cprint(dbg, "starting...");
     SSL *ssl = 0;
 
     // don't worry about extra taint and grant
@@ -208,7 +209,9 @@ ssl_load_rmt_privkey(SSL_CTX *ctx, struct cobj_ref privkey_biseg)
     if(!ENGINE_set_default_RSA(e))
 	throw basic_exception("Couldn't sef default RSA engine %s", engine_id);
 
+    debug_cprint(dbg, "loading rmt_privkey...");
     EVP_PKEY *pk = ENGINE_load_private_key(e, (char *)&privkey_biseg, 0, 0);
+    debug_cprint(dbg, "loading rmt_privkey done!");
 
     if (!SSL_CTX_use_PrivateKey(ctx, pk))
 	throw basic_exception("Couldn't use remote private key");
