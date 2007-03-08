@@ -864,7 +864,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     
     uint64_t start_signal_counter = signal_counter;
     WS_SETADDR(&wstat[wstat_count], &signal_counter);
-    WS_SETVAL(&wstat[wstat_count], signal_counter);
+    WS_SETVAL(&wstat[wstat_count], start_signal_counter);
     wstat_count++;
     
     // XXX
