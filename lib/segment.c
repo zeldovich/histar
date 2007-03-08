@@ -57,7 +57,7 @@ as_mutex_unlock(int old)
 static void
 cache_uas_flush(void)
 {
-    if (!cache_asref_object)
+    if (!cache_asref.object)
 	return;
 
     for (uint32_t i = 0; i < cache_uas.nent; i++) {
