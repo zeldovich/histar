@@ -52,6 +52,8 @@
 #include "lwip/tcp.h"
 #include "lwip/stats.h"
 
+enum { lwip_tcp_rexmit_debug = 1 };
+
 #if LWIP_TCP
 
 /* Forward declarations.*/
@@ -619,6 +621,9 @@ tcp_rexmit_rto(struct tcp_pcb *pcb)
     return;
   }
 
+  if (lwip_tcp_rexmit_debug)
+    cprintf("tcp_rexmit_rto..\n");
+
   /* Move all unacked segments to the head of the unsent queue */
   for (seg = pcb->unacked; seg->next != NULL; seg = seg->next);
   /* concatenate unsent queue after unacked queue */
@@ -647,6 +652,9 @@ tcp_rexmit(struct tcp_pcb *pcb)
   if (pcb->unacked == NULL) {
     return;
   }
+
+  if (lwip_tcp_rexmit_debug)
+    cprintf("tcp_rexmit..\n");
 
   /* Move the first unacked segment to the unsent queue */
   seg = pcb->unacked->next;
