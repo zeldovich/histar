@@ -30,6 +30,7 @@ typedef enum {
     netd_op_sendto,
     netd_op_recvfrom,
     netd_op_notify,
+    netd_op_probe,
     netd_op_shutdown,
 } netd_op_t;
 
@@ -118,6 +119,11 @@ struct netd_op_notify_args {
     char write;
 };
 
+struct netd_op_probe_args {
+    int fd;
+    char write;
+};
+
 struct netd_op_shutdown_args {
     int fd;
     int how;
@@ -144,6 +150,7 @@ struct netd_op_args {
 	struct netd_op_send_args send;
 	struct netd_op_sendto_args sendto;
 	struct netd_op_notify_args notify;
+	struct netd_op_probe_args probe;
 	struct netd_op_shutdown_args shutdown;
     };
 };

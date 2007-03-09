@@ -5,5 +5,6 @@
 
 int netd_probe(struct Fd *fd, dev_probe_t probe);
 int netd_wstat(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat);
+int netd_slow_probe(struct Fd *fd, dev_probe_t probe);
 
 #endif

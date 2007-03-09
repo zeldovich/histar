@@ -30,8 +30,21 @@ netd_event_init(void)
 }
 
 int
+netd_slow_probe(struct Fd *fd, dev_probe_t probe)
+{
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, probe) + sizeof(a.probe);
+    a.op_type = netd_op_probe;
+    a.probe.fd = fd->fd_sock.s;
+    a.probe.write = probe == dev_probe_write ? 1 : 0;
+    return netd_call(fd->fd_sock.netd_gate, &a);
+}
+
+int
 netd_probe(struct Fd *fd, dev_probe_t probe)
 {
+    static char sanity_check = 0;
+
     try {    
 	if (socket_seg.object == 0)
 	    netd_event_init();
@@ -40,12 +53,22 @@ netd_probe(struct Fd *fd, dev_probe_t probe)
 	error_check(segment_map(socket_seg, 0, SEGMAP_READ,			
 				(void **)&lw, 0, 0));
 	scope_guard2<int, void *, int> x(segment_unmap_delayed, lw, 1);
-	
-	if (probe == dev_probe_read)
-	    return lw[fd->fd_sock.s].rcvevent || lw[fd->fd_sock.s].lastdata;
-	else 
-	    return lw[fd->fd_sock.s].sendevent;
 
+	int slow_probe = 0;
+	if (sanity_check) 
+	    slow_probe = netd_slow_probe(fd, probe);
+
+	if (probe == dev_probe_read) {
+	    int r = lw[fd->fd_sock.s].rcvevent || lw[fd->fd_sock.s].lastdata;
+	    if (sanity_check && !r) 
+		assert(!slow_probe);
+	    return r;
+	} else {
+	    int r = lw[fd->fd_sock.s].sendevent;
+	    if (sanity_check && !r)
+		assert(!slow_probe);
+	    return r;
+	}
     } catch (error &e) {
 	cprintf("netd_probe: %s\n", e.what());
 	return e.err();

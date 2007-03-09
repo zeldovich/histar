@@ -149,6 +149,23 @@ netd_dispatch(struct netd_op_args *a)
 	a->rval = lwipext_sync_waiting(a->notify.fd, a->notify.write);
 	break;
 
+    case netd_op_probe: {
+	err_fd = a->probe.fd;
+	
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET(a->probe.fd, &set);
+	struct timeval to;
+	to.tv_sec = 0;
+	to.tv_usec = 0;
+
+	if (a->probe.write)
+	    a->rval = lwip_select(a->probe.fd + 1, 0, &set, 0, &to);
+	else 
+	    a->rval = lwip_select(a->probe.fd + 1, &set, 0, 0, &to);
+
+	break;
+    }
     case netd_op_shutdown:
 	err_fd = a->shutdown.fd;
 	a->rval = lwip_shutdown(a->shutdown.fd, a->shutdown.how);
