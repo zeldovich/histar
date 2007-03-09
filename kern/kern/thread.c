@@ -312,8 +312,8 @@ thread_check_sched_parents(const struct Thread *t)
 	return;
     }
 
-    cprintf("thread %"PRIu64" (%s) not self-aware, halting\n",
-	    t->th_ko.ko_id, t->th_ko.ko_name);
+    cprintf("thread %"PRIu64" (%s) not self-aware (%"PRIu64" refs), halting\n",
+	    t->th_ko.ko_id, t->th_ko.ko_name, t->th_ko.ko_ref);
     thread_halt(t);
 }
 
