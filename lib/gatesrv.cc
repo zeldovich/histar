@@ -70,7 +70,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
     try {
 	// Copy-on-write if we are tainted
 	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
-	taint_cow(gcd->taint_container, gcd->declassify_gate);
+	int did_taint = taint_cow(gcd->taint_container, gcd->declassify_gate);
 
 	// Reset our cached thread ID, stored in TLS
 	tls_revalidate();
@@ -82,7 +82,9 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 
 	uint64_t entry_ct = start_env->proc_container;
 	error_check(sys_self_set_sched_parents(gcd->thread_ref_ct, entry_ct));
-	if (!(flags & GATESRV_NO_THREAD_ADDREF))
+
+	/* taint_cow() already addref's the thread into the new proc_container */
+	if (!(flags & GATESRV_NO_THREAD_ADDREF) && !did_taint)
 	    error_check(sys_self_addref(entry_ct));
 	scope_guard<int, cobj_ref>
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
