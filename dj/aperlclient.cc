@@ -17,15 +17,32 @@ struct perl_req {
     dj_gatename srvgate;
     dj_gcat gcat;
 
+    uint64_t start_usec;
+
     dj_delegation_set dset;
     dj_catmap catmap;
 };
+
+static uint64_t
+time_usec()
+{
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+
+    uint64_t usec = tv.tv_sec;
+    usec = usec * 1000000 + tv.tv_usec;
+    return usec;
+}
 
 static void
 perl_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	dj_delivery_code c, const dj_message *rm)
 {
+    uint64_t end_usec = time_usec();
+
     warn << "perl_cb: code " << c << "\n";
+    warn << "perl runtime: " << (end_usec - pr->start_usec) << " usec\n";
+
     if (c == DELIVERY_DONE) {
 	perl_run_res pres;
 	assert(bytes2xdr(pres, rm->msg));
@@ -39,6 +56,8 @@ static void
 ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	   dj_delivery_code c, const dj_message *rm)
 {
+    warn << "ctalloc_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+
     container_alloc_res ctres;
     if (c != DELIVERY_DONE)
 	fatal << "ctalloc_cb: code " << c << "\n";
@@ -47,8 +66,8 @@ ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 
     /* Send a real request now.. */
     perl_run_arg parg;
-    parg.script = str("print 'A'x5; print <>;");
-    parg.input = str("Hello world.");
+    parg.script = str("print 'Hello world.';");
+    parg.input = str("");
 
     dj_message m;
     m.target.set_type(EP_GATE);
@@ -67,6 +86,8 @@ static void
 delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	    dj_delivery_code c, const dj_message *rm)
 {
+    warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+
     dj_stmt_signed ss;
     assert(c == DELIVERY_DONE);
     assert(bytes2xdr(ss, rm->msg));
@@ -101,6 +122,8 @@ static void
 map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	      dj_delivery_code c, const dj_message *rm)
 {
+    warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+
     dj_cat_mapping cme;
     assert(c == DELIVERY_DONE);
     assert(bytes2xdr(cme, rm->msg));
@@ -139,6 +162,7 @@ do_stuff(perl_req *pr)
     dj_message m;
     m.target.set_type(EP_MAPCREATE);
 
+    pr->start_usec = time_usec();
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
     call->call(pr->k, 1, pr->dset, m, xdr2str(mapreq),
 	       wrap(&map_create_cb, pr, call));
@@ -174,5 +198,9 @@ main(int ac, char **av)
     pr->f = &gm;
 
     delaycb(5, wrap(&do_stuff, pr));
+
+    perl_req pr2(*pr);
+    delaycb(10, wrap(&do_stuff, &pr2));
+
     amain();
 }
