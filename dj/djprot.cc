@@ -11,6 +11,8 @@
 #include <dj/cryptconn.hh>
 #include <dj/perf.hh>
 
+enum { conn_debug = 1 };
+
 enum {
     addr_cert_valid = 60,
     delegation_time_skew = 5,
@@ -492,6 +494,9 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
+	if (conn_debug)
+	    warn << "djprot: accepted new connection\n";
+
 	vNew crypt_conn(c, this,
 			wrap(this, &djprot_impl::tcp_receive),
 			wrap(this, &djprot_impl::tcp_ready));
@@ -500,6 +505,9 @@ class djprot_impl : public djprot {
     void tcp_connect(const dj_pubkey &pk, const dj_address &addr) {
 	in_addr inaddr;
 	inaddr.s_addr = addr.ip;
+	if (conn_debug)
+	    warn << "djprot: opening connection to "
+		 << inet_ntoa(inaddr) << ":" << ntohs(addr.port) << "\n";
 	tcpconnect(inaddr, ntohs(addr.port),
 		   wrap(this, &djprot_impl::tcp_connected, pk));
     }
