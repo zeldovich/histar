@@ -4,7 +4,6 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
-#include <machine/x86.h>
 }
 
 #include <crypt.h>
