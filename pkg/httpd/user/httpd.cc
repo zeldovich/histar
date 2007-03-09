@@ -79,12 +79,32 @@ get_eprocd_cow(void)
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 {
+    char *tmp;
+    char strip_req[256];
+    strncpy(strip_req, req, sizeof(strip_req) - 1);
+    strip_req[sizeof(strip_req) - 1] = 0;
+
     std::ostringstream header;
 
     // XXX wrap stuff has no timeout
     if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
 	perl(httpd_root_ino, pn.c_str(), ut, ug, header);
+    } else if (tmp = strchr(strip_req, '?')) {
+	*tmp = 0;
+	tmp++;
+	if (!strcmp(tmp, "a2pdf")) {
+	    std::string pn = strip_req;
+	    a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
+	} else if (!strcmp(tmp, "cat")) {
+	    std::string pn = strip_req;
+	    webcat(httpd_root_ino, pn.c_str(), ut, ug, header);
+	} else {
+	    header << "HTTP/1.0 500 Server error\r\n";
+	    header << "Content-Type: text/html\r\n";
+	    header << "\r\n";
+	    header << "<h1>unknown module: " << tmp << "</h1>\r\n";
+	}
     } else if (strcmp(req, "/")) {
 	std::string pn = req;
 	a2pdf(httpd_root_ino, pn.c_str(), ut, ug, header);
@@ -92,9 +112,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	header << "HTTP/1.0 500 Server error\r\n";
 	header << "Content-Type: text/html\r\n";
 	header << "\r\n";
-	header << "<h1>unknown request</h1>\r\n";
+	header << "<h1>unknown request: " << req << "</h1>\r\n";
     }
-
     std::string reply = header.str();
     tc->write(reply.data(), reply.size());
 }
@@ -313,6 +332,13 @@ main(int ac, const char **av)
 	error_check(ssl_init(server_pem, dh_pem, servkey_pem, &the_ctx));
 	port = 443;
     }
-    
+
+    // setup a mount table for chrooted wrap calls
+    fs_inode home_dir, share_dir;
+    error_check(fs_namei("/home", &home_dir));
+    error_check(fs_namei("/share", &share_dir));
+    error_check(fs_mount(start_env->fs_mtab_seg, httpd_root_ino, "home", home_dir));
+    error_check(fs_mount(start_env->fs_mtab_seg, httpd_root_ino, "share", share_dir));
+
     http_server(port);
 }
