@@ -3,6 +3,7 @@
 #include <inc/labelutil.hh>
 #include <dj/catmgr.hh>
 #include <dj/djops.hh>
+#include <dj/perf.hh>
 
 enum { gc_period = 60 };
 
@@ -16,6 +17,9 @@ class histar_catmgr : public catmgr {
     }
 
     virtual void acquire(const dj_catmap &m, bool droplater) {
+	static perf_counter pc("catmgr::acquire");
+	scoped_timer st(&pc);
+
 	for (uint32_t i = 0; i < m.ents.size(); i++) {
 	    const dj_cat_mapping &e = m.ents[i];
 
@@ -47,6 +51,9 @@ class histar_catmgr : public catmgr {
     }
 
     virtual void resource_check(request_context *ctx, const dj_catmap &m) {
+	static perf_counter pc("catmgr::res_check");
+	scoped_timer st(&pc);
+
 	for (uint32_t i = 0; i < m.ents.size(); i++) {
 	    const dj_cat_mapping &e = m.ents[i];
 	    if (!ctx->can_read(COBJ(e.user_ct, e.user_ct)))
@@ -55,6 +62,9 @@ class histar_catmgr : public catmgr {
     }
 
     virtual dj_cat_mapping store(const dj_gcat &gc, uint64_t lc, uint64_t uct) {
+	static perf_counter pc("catmgr::store");
+	scoped_timer st(&pc);
+
 	label ctl(1);
 	ctl.set(start_env->process_grant, 0);
 	ctl.set(start_env->process_taint, 3);
@@ -83,6 +93,9 @@ class histar_catmgr : public catmgr {
 
  private:
     void drop() {
+	static perf_counter pc("catmgr::drop");
+	scoped_timer st(&pc);
+
 	droptmo_ = 0;
 
 	if (!dropq_.size())

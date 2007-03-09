@@ -2,12 +2,16 @@
 #include <inc/labelutil.hh>
 #include <dj/reqcontext.hh>
 #include <dj/djops.hh>
+#include <dj/perf.hh>
 
 enum { reqctx_debug = 0 };
 
 bool
 verify_label_reqctx::can_read(cobj_ref o)
 {
+    static perf_counter pc("reqctx::can_read");
+    scoped_timer st(&pc);
+
     label l;
     try {
 	if (o.container != o.object && !can_read(COBJ(o.container, o.container)))
@@ -32,6 +36,9 @@ verify_label_reqctx::can_read(cobj_ref o)
 bool
 verify_label_reqctx::can_rw(cobj_ref o)
 {
+    static perf_counter pc("reqctx::can_rw");
+    scoped_timer st(&pc);
+
     label l;
     try {
 	if (o.container != o.object && !can_read(COBJ(o.container, o.container)))
@@ -57,6 +64,9 @@ verify_label_reqctx::can_rw(cobj_ref o)
 void
 verify_label_reqctx::read_seg(cobj_ref o, str *buf)
 {
+    static perf_counter pc("reqctx::read_seg");
+    scoped_timer st(&pc);
+
     if (!can_read(o))
 	throw basic_exception("vl_reqctx::read_seg: cannot read object");
 

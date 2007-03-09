@@ -271,6 +271,9 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
+	static perf_counter pc("clnt_transmit");
+	scoped_timer st(&pc);
+
 	if (cc->timecb) {
 	    if (time(0) >= cc->until) {
 		/* Have to transmit at least once for a timeout.. */
@@ -370,6 +373,9 @@ class djprot_impl : public djprot {
     void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
 			     void *local_deliver_arg)
     {
+	static perf_counter pc("process_msg_request");
+	scoped_timer st(&pc);
+
 	if (!local_delivery_) {
 	    warn << "process_msg_request: missing delivery backend\n";
 	    srvr_send_status(cid, DELIVERY_REMOTE_ERR);

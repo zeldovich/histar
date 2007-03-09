@@ -1,5 +1,6 @@
 #include <dj/djops.hh>
 #include <dj/djlabel.hh>
+#include <dj/perf.hh>
 #include <inc/error.hh>
 #include <inc/cpplabel.hh>
 
@@ -7,6 +8,9 @@ void
 djlabel_to_label(const dj_catmap_indexed &m, const dj_label &dl, label *l,
 		 label_type t, bool skip_missing, dj_catmap_indexed *out)
 {
+    static perf_counter pc("djlabel_to_label");
+    scoped_timer st(&pc);
+
     if (l) {
 	if (t == label_taint)
 	    l->reset(1);
@@ -49,6 +53,9 @@ void
 label_to_djlabel(const dj_catmap_indexed &m, const label &l, dj_label *dl,
 		 label_type t, bool skip_missing, dj_catmap_indexed *out)
 {
+    static perf_counter pc("label_to_djlabel");
+    scoped_timer st(&pc);
+
     if (dl)
 	dl->ents.setsize(0);
 
