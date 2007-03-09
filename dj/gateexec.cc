@@ -27,8 +27,6 @@ struct gate_exec_thread_state {
 
     label tgt_l, tgt_c;
     label vl, vc;
-
-    uint64_t done;
 };
 
 static void
@@ -45,10 +43,7 @@ gate_exec_invoke_cb(label *tgt_l, label *tgt_c, void *arg)
     if (r < 0)
 	cprintf("gate_exec_invoke_cb: set_sched_parents: %s\n", e2s(r));
 
-    s->done = 1;
-    r = sys_sync_wakeup(&s->done);
-    if (r < 0)
-	cprintf("gate_exec_invoke_cb: sys_sync_wakeup: %s\n", e2s(r));
+    delete s;
 
     r = sys_obj_unref(COBJ(start_env->proc_container, tid));
     if (r < 0)
@@ -105,11 +100,12 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     /*
      * Compute the verify/grant label and clearance.
      */
-    gate_exec_thread_state s;
-    s.done = 0;
+    gate_exec_thread_state *s = New gate_exec_thread_state();
+    scope_guard<void, gate_exec_thread_state*> delete_s(delete_obj, s);
+
     if (m.target.ep_gate->gate.gate_ct) {
-	s.gate.container = m.target.ep_gate->gate.gate_ct;
-	s.gate.object = m.target.ep_gate->gate.gate_id;
+	s->gate.container = m.target.ep_gate->gate.gate_ct;
+	s->gate.object = m.target.ep_gate->gate.gate_id;
     } else {
 	static perf_counter pc2("gate_exec2::specfind");
 	scoped_timer st2(&pc2);
@@ -147,23 +143,23 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	    return;
 	}
 
-	s.gate.container = ct;
-	s.gate.object = gt;
+	s->gate.container = ct;
+	s->gate.object = gt;
     }
-    s.msg_ct = m.target.ep_gate->msg_ct;
+    s->msg_ct = m.target.ep_gate->msg_ct;
 
-    msg_taint.merge(&msg_glabel, &s.vl, label::min, label::leq_starlo);
-    msg_taint.merge(&msg_gclear, &s.vc, label::max, label::leq_starlo);
+    msg_taint.merge(&msg_glabel, &s->vl, label::min, label::leq_starlo);
+    msg_taint.merge(&msg_gclear, &s->vc, label::max, label::leq_starlo);
 
     if (gate_exec_debug) {
 	warn << "gate_exec: msg_taint  " << msg_taint.to_string() << "\n";
 	warn << "gate_exec: msg_glabel " << msg_glabel.to_string() << "\n";
 	warn << "gate_exec: msg_gclear " << msg_gclear.to_string() << "\n";
-	warn << "gate_exec: verify lab " << s.vl.to_string() << "\n";
-	warn << "gate_exec: verify clr " << s.vc.to_string() << "\n";
+	warn << "gate_exec: verify lab " << s->vl.to_string() << "\n";
+	warn << "gate_exec: verify clr " << s->vc.to_string() << "\n";
     }
 
-    verify_label_reqctx ctx(s.vl, s.vc);
+    verify_label_reqctx ctx(s->vl, s->vc);
 
     /*
      * Acquire whatever resources the caller wants..
@@ -180,7 +176,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     /*
      * Compute target gate labels
      */
-    gate_compute_labels(s.gate, &msg_taint, &s.vl, &s.vc, &s.tgt_l, &s.tgt_c);
+    gate_compute_labels(s->gate, &msg_taint, &s->vl, &s->vc, &s->tgt_l, &s->tgt_c);
 
     /*
      * Write message to segment
@@ -192,18 +188,18 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     gmsg.m = m;
     str gmstr = xdr2str(gmsg);
 
-    if (!ctx.can_rw(COBJ(s.msg_ct, s.msg_ct)))
-	throw basic_exception("caller cannot write container %ld", s.msg_ct);
+    if (!ctx.can_rw(COBJ(s->msg_ct, s->msg_ct)))
+	throw basic_exception("caller cannot write container %ld", s->msg_ct);
 
     cobj_ref mseg;
     void *data_map = 0;
-    error_check(segment_alloc(s.msg_ct, gmstr.len(), &mseg,
+    error_check(segment_alloc(s->msg_ct, gmstr.len(), &mseg,
 			      &data_map, msg_taint.to_ulabel(),
 			      "gate_exec message"));
     scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
     scope_guard<int, cobj_ref> unref1(sys_obj_unref, mseg);
     memcpy(data_map, gmstr.cstr(), gmstr.len());
-    s.msg_id = mseg.object;
+    s->msg_id = mseg.object;
 
     /*
      * Start the thread to call the gate
@@ -211,7 +207,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     thread_entry te;
     te.te_entry = (void *) &gate_exec_thread;
     te.te_stack = tls_stack_top;
-    te.te_arg[0] = (uintptr_t) &s;
+    te.te_arg[0] = (uintptr_t) s;
     error_check(sys_self_get_as(&te.te_as));
 
     uint64_t pct = start_env->proc_container;
@@ -223,15 +219,9 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     error_check(sys_obj_set_fixedquota(COBJ(pct, tid)));
     error_check(sys_thread_start(COBJ(pct, tid), &te, 0, 0));
 
-    {
-	static perf_counter pc2("gate_exec2::wait");
-	scoped_timer st2(&pc2);
-
-	while (s.done == 0)
-	    sys_sync_wait(&s.done, 0, ~0UL);
-    }
     da.cb(DELIVERY_DONE);
 
+    delete_s.dismiss();
     unref1.dismiss();
     unref2.dismiss();
 }
