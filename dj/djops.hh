@@ -201,6 +201,12 @@ strbuf_cat(const strbuf &sb, const dj_message &a)
     return sb;
 }
 
+inline const strbuf &
+strbuf_cat(const strbuf &sb, const dj_delivery_code &c)
+{
+    return rpc_print(sb, c, 0, 0, 0);
+}
+
 template<> struct hashfn<cobj_ref> {
     hashfn() {}
     hash_t operator() (const cobj_ref &a) const
