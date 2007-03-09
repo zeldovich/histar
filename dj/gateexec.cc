@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <machine/x86.h>
 }
 
 #include <crypt.h>
@@ -12,6 +13,7 @@ extern "C" {
 #include <dj/reqcontext.hh>
 #include <dj/catmgr.hh>
 #include <dj/djlabel.hh>
+#include <dj/perf.hh>
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 #include <inc/labelutil.hh>
@@ -70,6 +72,9 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	   const dj_message &m, const delivery_args &da,
 	   const cobj_ref &djd_gate)
 {
+    static perf_counter pc("gate_exec2");
+    scoped_timer st(&pc);
+
     if (m.target.type != EP_GATE)
 	throw basic_exception("gate_exec only does gates");
 
@@ -107,6 +112,9 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	s.gate.container = m.target.ep_gate->gate.gate_ct;
 	s.gate.object = m.target.ep_gate->gate.gate_id;
     } else {
+	static perf_counter pc2("gate_exec2::specfind");
+	scoped_timer st2(&pc2);
+
 	uint64_t spec_id = m.target.ep_gate->gate.gate_id;
 	const char *ctname = 0, *gtname = 0;
 
@@ -216,8 +224,13 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
     error_check(sys_obj_set_fixedquota(COBJ(pct, tid)));
     error_check(sys_thread_start(COBJ(pct, tid), &te, 0, 0));
 
-    while (s.done == 0)
-	sys_sync_wait(&s.done, 0, ~0UL);
+    {
+	static perf_counter pc2("gate_exec2::wait");
+	scoped_timer st2(&pc2);
+
+	while (s.done == 0)
+	    sys_sync_wait(&s.done, 0, ~0UL);
+    }
     da.cb(DELIVERY_DONE);
 
     unref1.dismiss();
