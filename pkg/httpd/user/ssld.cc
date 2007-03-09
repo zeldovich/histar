@@ -118,17 +118,16 @@ ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
 	debug_cprint(dbg, "SSL connection established");
 	
 	char buf[4096];
-	fd_set readset, writeset, exceptset;
+	fd_set readset, writeset;
 	int maxfd = MAX(cipher_fd, plain_fd) + 1;
 	
 	for (;;) {
 	    FD_ZERO(&readset);
 	    FD_ZERO(&writeset);
-	    FD_ZERO(&exceptset);
 	    FD_SET(plain_fd, &readset);	
 	    FD_SET(cipher_fd, &readset);	
 	    
-	    int r = select(maxfd, &readset, &writeset, &exceptset, 0);
+	    int r = select(maxfd, &readset, &writeset, 0, 0);
 	    if (r < 0)
 		throw basic_exception("unknown select error: %s\n", 
 				      strerror(errno));
