@@ -32,7 +32,9 @@ schedule(void)
     do {
 	const struct Thread *t, *min_pass_th = 0;
 	LIST_FOREACH(t, &thread_list_runnable, th_link)
-	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
+	    if (!min_pass_th ||
+		(t->th_sched_pass < min_pass_th->th_sched_pass &&
+		 !(t->th_ko.ko_flags & KOBJ_PIN_IDLE)))
 		min_pass_th = t;
 
 	if (!min_pass_th)
