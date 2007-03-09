@@ -19,6 +19,7 @@ extern "C" {
 #include <dj/reqcontext.hh>
 #include <dj/djlabel.hh>
 #include <dj/mapcreate.hh>
+#include <dj/perf.hh>
 
 struct incoming_req {
     const dj_incoming_gate_req *req;
@@ -112,6 +113,8 @@ class incoming_impl : public dj_incoming_gate {
     }
 
     void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted) {
+	PERF_COUNTER(gate_incoming::call);
+
 	bool halt = (gcd->return_gate.object == 0) ? true : false;
 	label *cs = 0;
 	process_call1(gcd, &cs, untainted);
@@ -251,6 +254,8 @@ class incoming_impl : public dj_incoming_gate {
 
 	incoming_req *irp = &ir;
 	assert(sizeof(irp) == write(fds_[1], (void *) &irp, sizeof(irp)));
+
+	PERF_COUNTER(gate_incoming::wait);
 	while (!ir.done)
 	    sys_sync_wait(&ir.done, 0, ~0UL);
 
@@ -258,6 +263,8 @@ class incoming_impl : public dj_incoming_gate {
     }
 
     void readcb() {
+	PERF_COUNTER(gate_incoming::readcb);
+
 	incoming_req *ir;
 	ssize_t cc = read(fds_[0], (void *) &ir, sizeof(ir));
 	if (cc < 0) {
