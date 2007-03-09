@@ -40,7 +40,8 @@ ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	   dj_delivery_code c, const dj_message *rm)
 {
     container_alloc_res ctres;
-    assert(c == DELIVERY_DONE);
+    if (c != DELIVERY_DONE)
+	fatal << "ctalloc_cb: code " << c << "\n";
     assert(bytes2xdr(ctres, rm->msg));
     pr->taint_ct = ctres.ct_id;
 
@@ -93,7 +94,7 @@ delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
     call->call(pr->k, 1, pr->dset, m, xdr2str(ctreq),
-	       wrap(&ctalloc_cb, pr, call));
+	       wrap(&ctalloc_cb, pr, call), &pr->catmap, &pr->dset);
 }
 
 static void
@@ -172,6 +173,6 @@ main(int ac, char **av)
     pr->p = djs;
     pr->f = &gm;
 
-    delaycb(10, wrap(&do_stuff, pr));
+    delaycb(5, wrap(&do_stuff, pr));
     amain();
 }
