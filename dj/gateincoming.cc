@@ -118,7 +118,7 @@ class incoming_impl : public dj_incoming_gate {
 	if (!halt)
 	    ret->ret(cs, 0, 0);
 
-	sys_obj_unref(COBJ(gcd->taint_container, sys_self_id()));
+	sys_obj_unref(COBJ(gcd->thread_ref_ct, sys_self_id()));
     }
 
     void process_call1(gate_call_data *gcd, label **csp, bool untainted) {
@@ -201,6 +201,10 @@ class incoming_impl : public dj_incoming_gate {
 
 		label tgtl, tgtc;
 		gate_compute_labels(untaint_gate_, 0, &tl, &tc, &tgtl, &tgtc);
+
+		sys_self_set_sched_parents(gcd->thread_ref_ct, 0);
+		sys_obj_unref(COBJ(start_env->proc_container, thread_id()));
+
 		sys_gate_enter(untaint_gate_, tgtl.to_ulabel(), tgtc.to_ulabel(), 0);
 		fatal << "incoming_impl::call: untainting gate call returned\n";
 	    }

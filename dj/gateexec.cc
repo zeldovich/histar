@@ -54,7 +54,8 @@ static void __attribute__((noreturn))
 gate_exec_thread(gate_exec_thread_state *s)
 {
     gate_call_data *gcd = (gate_call_data *) tls_gate_args;
-    gcd->taint_container = s->msg_ct;	/* for set_sched_parents */
+    gcd->taint_container = s->msg_ct;
+    gcd->thread_ref_ct = s->msg_ct;
     gcd->param_obj = COBJ(s->msg_ct, s->msg_id);
 
     sys_self_set_verify(s->vl.to_ulabel(), s->vc.to_ulabel());

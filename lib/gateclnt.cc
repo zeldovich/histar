@@ -173,12 +173,13 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate_;
     d->taint_container = taint_ct_obj_.object;
+    d->thread_ref_ct = d->taint_container;
     d->call_taint = call_taint_;
     d->call_grant = call_grant_;
 
-    error_check(sys_self_addref(d->taint_container));
+    error_check(sys_self_addref(d->thread_ref_ct));
     error_check(sys_self_set_sched_parents(start_env->proc_container,
-					   d->taint_container));
+					   d->thread_ref_ct));
 
     // Flush delayed unmap segment mappings; if we come back tainted,
     // we won't be able to look at our in-memory delayed unmap cache.

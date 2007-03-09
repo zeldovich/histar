@@ -22,6 +22,8 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 {
     cobj_ref djd_gate;
     uint64_t djcall_ct = gcd->param_obj.container;
+    uint64_t taint_ct = gcd->taint_container;
+    uint64_t thread_ref_ct = gcd->thread_ref_ct;
 
     label *tgtl = New label();
     scope_guard<void, label*> delete_l(delete_obj, tgtl);
@@ -103,9 +105,10 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
      * Make sure that djd knows where the thread is anchored, when
      * its gatesrv code wants to call sys_self_sched_parents().
      */
-    sys_self_set_sched_parents(start_env->proc_container, djcall_ct);
+    sys_self_set_sched_parents(start_env->proc_container, thread_ref_ct);
     gcd->return_gate = COBJ(0, 0);
-    gcd->taint_container = djcall_ct;
+    gcd->taint_container = taint_ct;
+    gcd->thread_ref_ct = thread_ref_ct;
 
     stack_switch((uint64_t) &djd_gate,
 		 (uint64_t) tgtl,

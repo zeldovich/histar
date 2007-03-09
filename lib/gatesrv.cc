@@ -21,7 +21,7 @@ extern "C" {
 enum { gatesrv_debug = 0 };
 
 static void __attribute__((noreturn))
-gatesrv_cleanup_tls(void *stack, uint64_t taint_ct)
+gatesrv_cleanup_tls(void *stack, uint64_t thread_ref_ct)
 {
     if (stack) {
 	struct u_segment_mapping usm;
@@ -36,9 +36,9 @@ gatesrv_cleanup_tls(void *stack, uint64_t taint_ct)
 
     uint64_t tid = sys_self_id();
 
-    sys_self_set_sched_parents(start_env->proc_container, taint_ct);
+    sys_self_set_sched_parents(start_env->proc_container, thread_ref_ct);
     sys_obj_unref(COBJ(start_env->proc_container, tid));
-    sys_obj_unref(COBJ(taint_ct, tid));
+    sys_obj_unref(COBJ(thread_ref_ct, tid));
     thread_halt();
 }
 
@@ -47,11 +47,11 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 {
     // Arguments for gate call passed on the top of the TLS stack.
     gate_call_data *d = (gate_call_data *) tls_gate_args;
-    uint64_t taint_ct = d->taint_container;
+    uint64_t thread_ref_ct = d->thread_ref_ct;
 
     try {
 	gatesrv_return ret(d->return_gate, start_env->proc_container,
-			   d->taint_container, stack, flags);
+			   d->thread_ref_ct, stack, flags);
 	fn(arg, d, &ret);
     } catch (std::exception &e) {
 	printf("gatesrv_entry: %s\n", e.what());
@@ -60,7 +60,7 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
     if (flags & GATESRV_NO_THREAD_ADDREF)
 	thread_halt();
 
-    stack_switch((uint64_t) stack, taint_ct, 0, 0,
+    stack_switch((uint64_t) stack, thread_ref_ct, 0, 0,
 		 tls_stack_top, (void *) &gatesrv_cleanup_tls);
 }
 
@@ -81,7 +81,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	thread_label_cache_invalidate();
 
 	uint64_t entry_ct = start_env->proc_container;
-	error_check(sys_self_set_sched_parents(gcd->taint_container, entry_ct));
+	error_check(sys_self_set_sched_parents(gcd->thread_ref_ct, entry_ct));
 	if (!(flags & GATESRV_NO_THREAD_ADDREF))
 	    error_check(sys_self_addref(entry_ct));
 	scope_guard<int, cobj_ref>
@@ -167,7 +167,7 @@ gate_create(gatesrv_descriptor *gd)
 void
 gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 {
-    error_check(sys_self_set_sched_parents(thread_ct_, gatecall_ct_));
+    error_check(sys_self_set_sched_parents(thread_ct_, gate_tref_ct_));
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))
 	error_check(sys_self_addref(thread_ct_));
 
@@ -215,6 +215,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 	} else {
 	    gcd->taint_container = id;
 	}
+	gcd->thread_ref_ct = gate_tref_ct_;
     }
 
     if (!(flags_ & GATESRV_KEEP_TLS_STACK))
