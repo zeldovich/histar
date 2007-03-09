@@ -9,8 +9,7 @@ enum { reqctx_debug = 0 };
 bool
 verify_label_reqctx::can_read(cobj_ref o)
 {
-    static perf_counter pc("reqctx::can_read");
-    scoped_timer st(&pc);
+    PERF_COUNTER(reqctx::can_read);
 
     label l;
     try {
@@ -36,8 +35,7 @@ verify_label_reqctx::can_read(cobj_ref o)
 bool
 verify_label_reqctx::can_rw(cobj_ref o)
 {
-    static perf_counter pc("reqctx::can_rw");
-    scoped_timer st(&pc);
+    PERF_COUNTER(reqctx::can_rw);
 
     label l;
     try {
@@ -64,8 +62,7 @@ verify_label_reqctx::can_rw(cobj_ref o)
 void
 verify_label_reqctx::read_seg(cobj_ref o, str *buf)
 {
-    static perf_counter pc("reqctx::read_seg");
-    scoped_timer st(&pc);
+    PERF_COUNTER(reqctx::read_seg);
 
     if (!can_read(o))
 	throw basic_exception("vl_reqctx::read_seg: cannot read object");

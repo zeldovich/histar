@@ -67,8 +67,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	   const dj_message &m, const delivery_args &da,
 	   const cobj_ref &djd_gate)
 {
-    static perf_counter pc("gate_exec2");
-    scoped_timer st(&pc);
+    PERF_COUNTER(gate_exec2);
 
     if (m.target.type != EP_GATE)
 	throw basic_exception("gate_exec only does gates");
@@ -108,8 +107,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 	s->gate.container = m.target.ep_gate->gate.gate_ct;
 	s->gate.object = m.target.ep_gate->gate.gate_id;
     } else {
-	static perf_counter pc2("gate_exec2::specfind");
-	scoped_timer st2(&pc2);
+	PERF_COUNTER(gate_exec2::specfind);
 
 	uint64_t spec_id = m.target.ep_gate->gate.gate_id;
 	const char *ctname = 0, *gtname = 0;

@@ -17,8 +17,7 @@ class histar_catmgr : public catmgr {
     }
 
     virtual void acquire(const dj_catmap &m, bool droplater) {
-	static perf_counter pc("catmgr::acquire");
-	scoped_timer st(&pc);
+	PERF_COUNTER(catmgr::acquire);
 
 	for (uint32_t i = 0; i < m.ents.size(); i++) {
 	    const dj_cat_mapping &e = m.ents[i];
@@ -51,8 +50,7 @@ class histar_catmgr : public catmgr {
     }
 
     virtual void resource_check(request_context *ctx, const dj_catmap &m) {
-	static perf_counter pc("catmgr::res_check");
-	scoped_timer st(&pc);
+	PERF_COUNTER(catmgr::res_check);
 
 	for (uint32_t i = 0; i < m.ents.size(); i++) {
 	    const dj_cat_mapping &e = m.ents[i];
@@ -62,8 +60,7 @@ class histar_catmgr : public catmgr {
     }
 
     virtual dj_cat_mapping store(const dj_gcat &gc, uint64_t lc, uint64_t uct) {
-	static perf_counter pc("catmgr::store");
-	scoped_timer st(&pc);
+	PERF_COUNTER(catmgr::store);
 
 	label ctl(1);
 	ctl.set(start_env->process_grant, 0);
@@ -93,8 +90,7 @@ class histar_catmgr : public catmgr {
 
  private:
     void drop() {
-	static perf_counter pc("catmgr::drop");
-	scoped_timer st(&pc);
+	PERF_COUNTER(catmgr::drop);
 
 	droptmo_ = 0;
 

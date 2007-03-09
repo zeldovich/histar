@@ -125,8 +125,7 @@ class djprot_impl : public djprot {
 		      const dj_message &msg, delivery_status_cb cb,
 		      void *local_deliver_arg)
     {
-	static perf_counter pc("djprot::send");
-	scoped_timer st(&pc);
+	PERF_COUNTER(djprot::send);
 
 	msg_client *cc = New msg_client(target, ++xid_);
 	clnt_.insert(cc);
@@ -165,8 +164,7 @@ class djprot_impl : public djprot {
     bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
 			 const dj_delegation_set &dset)
     {
-	static perf_counter pc("labelcheck_send");
-	scoped_timer st(&pc);
+	PERF_COUNTER(labelcheck_send);
 
 	if (!check_local_msgs && dst == pubkey())
 	    return true;
@@ -190,8 +188,7 @@ class djprot_impl : public djprot {
     bool labelcheck_recv(const dj_message &a, const dj_pubkey &src,
 			 const dj_delegation_set &dset)
     {
-	static perf_counter pc("labelcheck_recv");
-	scoped_timer st(&pc);
+	PERF_COUNTER(labelcheck_recv);
 
 	if (!check_local_msgs && src == pubkey())
 	    return true;
@@ -271,8 +268,7 @@ class djprot_impl : public djprot {
     }
 
     void clnt_transmit(msg_client *cc) {
-	static perf_counter pc("clnt_transmit");
-	scoped_timer st(&pc);
+	PERF_COUNTER(clnt_transmit);
 
 	if (cc->timecb) {
 	    if (time(0) >= cc->until) {
@@ -325,8 +321,7 @@ class djprot_impl : public djprot {
     }
 
     void process_delegation(const dj_delegation &d) {
-	static perf_counter pc("process_delegation");
-	scoped_timer st(&pc);
+	PERF_COUNTER(process_delegation);
 
 	//warn << "delegation: " << d.a << " speaks-for " << d.b << "\n";
 
@@ -373,8 +368,7 @@ class djprot_impl : public djprot {
     void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
 			     void *local_deliver_arg)
     {
-	static perf_counter pc("process_msg_request");
-	scoped_timer st(&pc);
+	PERF_COUNTER(process_msg_request);
 
 	if (!local_delivery_) {
 	    warn << "process_msg_request: missing delivery backend\n";

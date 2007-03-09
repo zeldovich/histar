@@ -15,8 +15,7 @@ verify_sign(const dj_stmt &stmt, const dj_pubkey &pk, const dj_sign &sig)
 bool
 verify_stmt(const dj_stmt_signed &s)
 {
-    static perf_counter pc("verify_stmt");
-    scoped_timer st(&pc);
+    PERF_COUNTER(verify_stmt);
 
     switch (s.stmt.type) {
     case STMT_DELEGATION:
@@ -53,8 +52,7 @@ bool
 key_speaks_for(const dj_pubkey &k, const dj_gcat &gcat,
 	       dj_delegation_map &dm, uint32_t depth)
 {
-    static perf_counter pc("key_speaks_for");
-    scoped_timer st(&pc);
+    PERF_COUNTER(key_speaks_for);
 
     if (gcat.key == k)
 	return true;

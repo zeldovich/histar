@@ -122,12 +122,14 @@ time_usec()
 }
 #endif
 
+#if PERF_ENABLE
 static void
 print_stats()
 {
     global_stats.dump();
     delaycb(10, wrap(&print_stats));
 }
+#endif
 
 int
 main(int ac, char **av)
@@ -217,6 +219,8 @@ main(int ac, char **av)
 		   xdr2str(djs->pubkey()), "selfkey");
 #endif
 
+#if PERF_ENABLE
     print_stats();
+#endif
     amain();
 }

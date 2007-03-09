@@ -1,6 +1,9 @@
 #ifndef JOS_DJ_PERF_HH
 #define JOS_DJ_PERF_HH
 
+#define PERF_ENABLE	1
+
+#if PERF_ENABLE
 extern "C" {
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -74,5 +77,13 @@ class scoped_timer {
     perf_counter *pc_;
     uint64_t start_;
 };
+
+#define PERF_COUNTER(name) \
+    static perf_counter __pc##__LINE__(#name); \
+    scoped_timer __st##__LINE__(&__pc##__LINE__)
+
+#else
+#define PERF_COUNTER(name)
+#endif
 
 #endif
