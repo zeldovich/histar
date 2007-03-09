@@ -33,7 +33,7 @@ class perf_collection : public dumpable {
 
     void add(dumpable *pc) { v_.push_back(pc); }
     virtual void dump() {
-	printf("%-20s %12s %12s %12s\n",
+	printf("%-30s %12s %12s %12s\n",
 	       "Measurement", "Count", "Average", "Total");
 	for (uint32_t i = 0; i < v_.size(); i++)
 	    v_[i]->dump();
@@ -56,7 +56,7 @@ class perf_counter : public dumpable {
 	if (!count_)
 	    return;
 
-	printf("%-20s %12"PRIu64" %12"PRIu64" %12"PRIu64"\n",
+	printf("%-30s %12"PRIu64" %12"PRIu64" %12"PRIu64"\n",
 	       name_, count_, total_ / count_, total_);
 	count_ = 0;
 	total_ = 0;
