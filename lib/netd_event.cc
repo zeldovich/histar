@@ -13,7 +13,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/scopeguard.hh>
 
-struct cobj_ref socket_seg;
+static struct lwip_socket *lw;
 
 static void
 netd_event_init(void)
@@ -26,7 +26,9 @@ netd_event_init(void)
     int64_t seg_id;
     error_check(seg_id = container_find(netd_ct, kobj_segment, "sockets"));
     
-    socket_seg = COBJ(netd_ct, seg_id);
+    cobj_ref socket_seg = COBJ(netd_ct, seg_id);
+    error_check(segment_map(socket_seg, 0, SEGMAP_READ,			
+			    (void **)&lw, 0, 0));
 }
 
 int
@@ -46,14 +48,9 @@ netd_probe(struct Fd *fd, dev_probe_t probe)
     static char sanity_check = 0;
 
     try {    
-	if (socket_seg.object == 0)
+	if (!lw)
 	    netd_event_init();
 	
-	struct lwip_socket *lw = 0;
-	error_check(segment_map(socket_seg, 0, SEGMAP_READ,			
-				(void **)&lw, 0, 0));
-	scope_guard2<int, void *, int> x(segment_unmap_delayed, lw, 1);
-
 	int slow_probe = 0;
 	if (sanity_check) 
 	    slow_probe = netd_slow_probe(fd, probe);
@@ -86,6 +83,13 @@ msync_cb(void *arg0, dev_probe_t probe, volatile uint64_t *addr, void **arg1)
 {
     struct Fd *fd = (struct Fd*)arg0;
 
+    if (!lw)
+	netd_event_init();
+    if (probe == dev_probe_write && lw[fd->fd_sock.s].send_wakeup)
+	return 0;
+    if (probe == dev_probe_read && lw[fd->fd_sock.s].recv_wakeup)
+	return 0;
+
     struct netd_op_args a;
     a.size = offsetof(struct netd_op_args, notify) + sizeof(a.notify);
     a.op_type = netd_op_notify;
@@ -97,18 +101,14 @@ msync_cb(void *arg0, dev_probe_t probe, volatile uint64_t *addr, void **arg1)
 int
 netd_wstat(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    static uint64_t rcv_offset = offsetof(struct lwip_socket, rcvevent);
-    static uint64_t send_offset = offsetof(struct lwip_socket, sendevent);
-					  
     try {
-	if (socket_seg.object == 0)
+	if (!lw)
 	    netd_event_init();
-	
-	uint64_t offset = fd->fd_sock.s * sizeof(struct lwip_socket);
+
 	if (probe == dev_probe_read)
-	    WS_SETOBJ(wstat, socket_seg, offset + rcv_offset);
+	    WS_SETADDR(wstat, &lw[fd->fd_sock.s].rcvevent);
 	else
-	    WS_SETOBJ(wstat, socket_seg, offset + send_offset);
+	    WS_SETADDR(wstat, &lw[fd->fd_sock.s].sendevent);
 	WS_SETVAL(wstat, 0);
 	WS_SETCBARG(wstat, fd);
 	WS_SETCB0(wstat, &msync_cb);

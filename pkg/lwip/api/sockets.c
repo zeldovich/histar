@@ -142,6 +142,10 @@ alloc_socket(struct netconn *newconn)
       sockets[i].sendevent = 1; /* TCP send buf is empty */
       sockets[i].flags = 0;
       sockets[i].err = 0;
+
+      sockets[i].recv_wakeup = 0;
+      sockets[i].send_wakeup = 0;
+
       sys_sem_signal(socksem);
       return i;
     }

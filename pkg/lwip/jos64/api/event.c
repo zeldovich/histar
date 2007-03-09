@@ -9,19 +9,16 @@
 
 extern struct lwip_socket *sockets;
 
-static char read_notify[NUM_SOCKETS];
-static char write_notify[NUM_SOCKETS];
-
 int
 lwipext_sync_waiting(int s, char w)
 {
     if (s < 0 || s > NUM_SOCKETS)
 	return -E_INVAL;
-    
+
     if (w)
-	write_notify[s] = 1;
+	sockets[s].send_wakeup = 1;
     else
-	read_notify[s] = 1;
+	sockets[s].recv_wakeup = 1;
 
     return 0;
 }
@@ -29,25 +26,18 @@ lwipext_sync_waiting(int s, char w)
 void
 lwipext_sync_notify(int s, enum netconn_evt evt)
 {
-    if (evt == NETCONN_EVT_RCVPLUS || evt == NETCONN_EVT_RCVMINUS) {
-	if (sockets[s].rcvevent && read_notify[s]) {
-	    read_notify[s] = 0;
+    if (evt == NETCONN_EVT_RCVPLUS) {
+	if (sockets[s].rcvevent && sockets[s].recv_wakeup)
 	    sys_sync_wakeup(&sockets[s].rcvevent);
-	}
-    }  else {
-	if (sockets[s].sendevent && write_notify[s]) {
-	    write_notify[s] = 0;
+    } else if (evt == NETCONN_EVT_SENDPLUS) {
+	if (sockets[s].sendevent && sockets[s].send_wakeup)
 	    sys_sync_wakeup(&sockets[s].sendevent);
-	}
     }
 }
 
 void
 lwipext_init(char public_sockets)
 {
-    memset(read_notify, 0, sizeof(read_notify));
-    memset(write_notify, 0, sizeof(write_notify));
-    
     uint64_t bytes = NUM_SOCKETS * sizeof(struct lwip_socket);
     sockets = 0;
     struct cobj_ref seg;
