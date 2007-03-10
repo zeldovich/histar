@@ -34,7 +34,7 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-static const char dbg = 0;
+enum { dbg = 0 };
 enum { debug_dj = 0 };
 
 static char http_auth_enable;
@@ -531,11 +531,21 @@ main(int ac, const char **av)
     http_auth_enable = av[3][0] != '0' ? 1 : 0;
     httpd_root_ino = start_env->fs_root;
     
+    char dj_app_host_file[64], dj_app_ct_file[64], dj_app_gate_file[64];
+    snprintf(dj_app_host_file, sizeof(dj_app_host_file), 
+	     "/dj_app_host%lu", dj_app_server_index);
+    snprintf(dj_app_ct_file, sizeof(dj_app_ct_file), 
+	     "/dj_app_ct%lu", dj_app_server_index);
+    snprintf(dj_app_gate_file, sizeof(dj_app_gate_file), 
+	     "/dj_app_gate%lu", dj_app_server_index);
+    
     if (dbg) {
 	printf("httpd2: config:\n");
 	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
 	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
-	printf(" %-20s %ld\n", "dj_app_server_index", dj_app_server_index);
+	printf(" %-20s %s\n", "dj_app_host_file", dj_app_host_file);
+	printf(" %-20s %s\n", "dj_app_ct_file", dj_app_ct_file);
+	printf(" %-20s %s\n", "dj_app_gate_file", dj_app_gate_file);
     }
 
     if (httpd_dj_enable) {
@@ -549,13 +559,13 @@ main(int ac, const char **av)
 	dj_user_server_ct = atoi(read_file("/dj_user_ct").cstr());
 	dj_user_authgate <<= read_file("/dj_user_authgate").cstr();
 	dj_user_fsgate <<= read_file("/dj_user_fsgate").cstr();
-
-	str dj_app_server_str = read_file("/dj_app_host");
+	
+	str dj_app_server_str = read_file(dj_app_host_file);
 	sfspub = sfscrypt.alloc(dj_app_server_str, SFS_VERIFY | SFS_ENCRYPT);
 	assert(sfspub);
 	dj_app_server_pk = sfspub2dj(sfspub);
-	dj_app_server_ct = atoi(read_file("/dj_app_ct").cstr());
-	dj_app_gate <<= read_file("/dj_app_gate").cstr();
+	dj_app_server_ct = atoi(read_file(dj_app_ct_file).cstr());
+	dj_app_gate <<= read_file(dj_app_gate_file).cstr();
     }
 
     try {

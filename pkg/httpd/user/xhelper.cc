@@ -120,12 +120,12 @@ main(int ac, char **av)
     fsgate << ct << "." << id << "\n";
 
     write_to_file("/www/dj_user_host", gs_key);
-    write_to_file("/www/dj_app_host", gs_key);
+    write_to_file("/www/dj_app_host0", gs_key);
     write_to_file("/www/dj_user_ct", callct);
-    write_to_file("/www/dj_app_ct", callct);
+    write_to_file("/www/dj_app_ct0", callct);
     write_to_file("/www/dj_user_authgate", authgate);
     write_to_file("/www/dj_user_fsgate", fsgate);
-    write_to_file("/www/dj_app_gate", appgate);
+    write_to_file("/www/dj_app_gate0", appgate);
 
     system("adduser alice foo");
     system("adduser bob bar");

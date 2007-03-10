@@ -19,7 +19,7 @@ main(int ac, char **av)
 {
     static uint16_t port = 1234;
     if (ac < 3) {
-	printf("usage: %s ip req\n", av[0]);
+	printf("usage: %s ip req [suffix]\n", av[0]);
 	return -1;
     }
     
@@ -28,6 +28,10 @@ main(int ac, char **av)
     conn.write("\r\n", 2);
     lineparser lp(&conn);
 
+    const char *suffix = 0;
+    if (ac > 3)
+	suffix = av[3];
+
     for (;;) {
 	const char *fn;
 	if (!(fn = lp.read_line()))
@@ -35,6 +39,8 @@ main(int ac, char **av)
 	
 	char buf[4096] = "/www/";
 	strcat(buf, fn);
+	if (suffix)
+	    strcat(buf, suffix);
 
 	int fd = open(buf, O_RDWR | O_CREAT | O_TRUNC, 0666);
 	
