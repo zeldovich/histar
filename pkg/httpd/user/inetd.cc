@@ -40,6 +40,14 @@ arg_desc cmdarg[] = {
 static struct cobj_ref the_ssld_cow;
 static struct cobj_ref the_eprocd_cow;
 
+union conn_info {
+    struct {
+	int sock;
+	uint32_t count;
+    } data;
+    uint64_t u64;
+};
+
 static struct cobj_ref
 get_ssld_cow(void)
 {
@@ -67,18 +75,23 @@ get_eprocd_cow(void)
 }
 
 static void
-spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
+spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint, uint32_t count)
 {
-    char container_arg[32], object_arg[32];
+    char container_arg[32], object_arg[32], count_arg[32];
     snprintf(container_arg, sizeof(container_arg), 
 	     "%lu", plain_bipipe.container);
     snprintf(object_arg, sizeof(object_arg), 
 	     "%lu", plain_bipipe.object);
+    snprintf(count_arg, sizeof(count_arg), 
+	     "%d", count);
 
     fs_inode ino;
     error_check(fs_namei(httpd_path, &ino));
-    const char *argv[] = { httpd_path, container_arg, object_arg, 
-			   http_auth_enable ? "1" : "0" };
+    const char *argv[] = { httpd_path, 
+			   container_arg, 
+			   object_arg, 
+			   http_auth_enable ? "1" : "0",
+			   count_arg };
 
     label ds(3), dr(1);
     ds.set(taint, LB_LEVEL_STAR);
@@ -91,7 +104,7 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
     sd.fd1_ = 0;
     sd.fd2_ = 0;
     
-    sd.ac_ = 4;
+    sd.ac_ = 5;
     sd.av_ = &argv[0];
 
     sd.ds_ = &ds;
@@ -107,7 +120,9 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint)
 static void
 inet_client(void *a)
 {
-    int ss = (int64_t) a;
+    conn_info ci;
+    ci.u64 = (uint64_t)a;
+    int ss = ci.data.sock;
     try {
 	ssl_proxy_descriptor d;
 	ssl_proxy_alloc(the_ssld_cow, the_eprocd_cow, 
@@ -120,7 +135,8 @@ inet_client(void *a)
 	error_check(segment_map(d.client_seg_, 0, SEGMAP_READ, 
 				(void **)&spc, &bytes, 0));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
-	spawn_httpd(d.ssl_ct_, spc->plain_bipipe_, d.taint_);
+	
+	spawn_httpd(d.ssl_ct_, spc->plain_bipipe_, d.taint_, ci.data.count);
 	ssl_proxy_loop(&d, 1);
     } catch (basic_exception &e) {
 	printf("inet_client: %s\n", e.what());
@@ -147,15 +163,16 @@ inet_server(uint16_t port)
         panic("cannot listen on socket: %d\n", r);
 
     printf("inetd: server on port %d\n", port);
-    for (;;) {
+    for (uint32_t i = 0;; i++) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
         if (ss < 0)
             panic("cannot accept client: %s\n", strerror(ss));
-
+	
+	conn_info ci = { ss, i };
 	struct cobj_ref t;
 	r = thread_create(start_env->proc_container, &inet_client,
-			  (void*) (int64_t) ss, &t, "inet client");
+			  (void*) ci.u64, &t, "inet client");
 
 	if (r < 0) {
 	    printf("cannot spawn client thread: %s\n", e2s(r));

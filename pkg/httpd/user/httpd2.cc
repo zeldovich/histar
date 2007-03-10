@@ -40,6 +40,7 @@ enum { debug_dj = 0 };
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
 static int httpd_dj_enable = 0;
+static uint64_t dj_app_server_count = 1;
 
 static gate_sender *the_gs;
 static dj_global_cache djcache;
@@ -503,7 +504,8 @@ int
 main(int ac, const char **av)
 {
     if (ac < 4) {
-	cprintf("usage: %s bipipe-container bipipe-object auth-enable\n", av[0]);
+	cprintf("usage: %s bipipe-container bipipe-object "
+		"auth-enable [conn-count]\n", av[0]);
 	return -1;
     }
     
@@ -518,6 +520,14 @@ main(int ac, const char **av)
     if (r < 0)
 	panic("parsing object id %s: %s", av[2], e2s(r));
     
+    uint64_t dj_app_server_index = 0;
+    if (ac > 4) {
+	r = strtou64(av[4], 0, 10, &dj_app_server_index);
+	if (r < 0)
+	    panic("parsing conn-count%s: %s", av[4], e2s(r));
+	dj_app_server_index = dj_app_server_index % dj_app_server_count;
+    }
+
     http_auth_enable = av[3][0] != '0' ? 1 : 0;
     httpd_root_ino = start_env->fs_root;
     
@@ -525,6 +535,7 @@ main(int ac, const char **av)
 	printf("httpd2: config:\n");
 	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
 	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+	printf(" %-20s %ld\n", "dj_app_server_index", dj_app_server_index);
     }
 
     if (httpd_dj_enable) {
