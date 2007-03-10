@@ -187,7 +187,7 @@ httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 	    sprintf(size, "%ld", sz);
 	    std::string content_length = std::string("Content-Length: ") + size + "\r\n";
 
-	    header << "HTTP/2.0 200 OK\r\n";
+	    header << "HTTP/1.0 200 OK\r\n";
 	    header << "Content-Type: application/pdf\r\n";
 	    header << content_length;
 	    header << "\r\n";

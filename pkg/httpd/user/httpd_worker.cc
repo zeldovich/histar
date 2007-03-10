@@ -40,7 +40,7 @@ httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
 
     std::ostringstream out;
 
-    out << "HTTP/2.0 200 OK\r\n";
+    out << "HTTP/1.0 200 OK\r\n";
     out << "Content-Type: text/html\r\n";
     out << "\r\n";
     out << "<h1>Hello " << user << "</h1>\r\n";
