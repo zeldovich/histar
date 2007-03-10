@@ -621,8 +621,11 @@ tcp_rexmit_rto(struct tcp_pcb *pcb)
     return;
   }
 
-  if (lwip_tcp_rexmit_debug)
-    cprintf("tcp_rexmit_rto..\n");
+  if (lwip_tcp_rexmit_debug) {
+    cprintf("tcp_rexmit_rto: seqno %u local port %u remote port %u\n", 
+	    ntohl(pcb->unacked->tcphdr->seqno), 
+	    pcb->local_port, pcb->remote_port);
+  }
 
   /* Move all unacked segments to the head of the unsent queue */
   for (seg = pcb->unacked; seg->next != NULL; seg = seg->next);
