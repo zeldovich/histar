@@ -25,15 +25,6 @@ webcat(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std:
 {
     const char *av[] = { "/bin/cat", fn };
 
-    struct stat sb;
-    if (stat(fn, &sb) < 0) {
-	out << "HTTP/1.0 404 Not Found\r\n";
-	out << "Content-Type: text/html\r\n";
-	out << "\r\n";
-	out << "Error cating file " << fn << ": " << strerror(errno) << "\r\n";
-	return;
-    } 
-
     out << "HTTP/2.0 200 OK\r\n";
     out << "Content-Type: text/html\r\n";
     out << "\r\n";
