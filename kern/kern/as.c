@@ -8,10 +8,11 @@
 #include <inc/safeint.h>
 
 const struct Address_space *cur_as;
+const struct Pagemap *cur_pgmap;
 
 enum { as_invlpg_max = 4 };
-static uint32_t cur_as_invlpg_count;
-static void *cur_as_invlpg_addrs[as_invlpg_max];
+static uint32_t cur_pgmap_invlpg_count;
+static void *cur_pgmap_invlpg_addrs[as_invlpg_max];
 
 enum { as_debug = 0 };
 enum { as_courtesy_pages = 8 };
@@ -289,27 +290,27 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 }
 
 static void
-as_queue_invlpg(const struct Address_space *as, void *addr)
+as_queue_invlpg(const struct Pagemap *pgmap, void *addr)
 {
-    if (cur_as != as)
+    if (cur_pgmap != pgmap)
 	return;
 
-    if (cur_as_invlpg_count >= as_invlpg_max) {
-	cur_as_invlpg_count = as_invlpg_max + 1;
+    if (cur_pgmap_invlpg_count >= as_invlpg_max) {
+	cur_pgmap_invlpg_count = as_invlpg_max + 1;
 	return;
     }
 
-    if (cur_as_invlpg_count > 0 &&
-	cur_as_invlpg_addrs[cur_as_invlpg_count - 1] == addr)
+    if (cur_pgmap_invlpg_count > 0 &&
+	cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count - 1] == addr)
 	return;
 
-    cur_as_invlpg_addrs[cur_as_invlpg_count++] = addr;
+    cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count++] = addr;
 }
 
 static void
 as_collect_dirty_bits(const void *arg, uint64_t *ptep, void *va)
 {
-    const struct Address_space *as = arg;
+    const struct Pagemap *pgmap = arg;
     uint64_t pte = *ptep;
     if (!(pte & PTE_P) || !(pte & PTE_D))
 	return;
@@ -317,13 +318,13 @@ as_collect_dirty_bits(const void *arg, uint64_t *ptep, void *va)
     struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
     pi->pi_dirty = 1;
     *ptep &= ~PTE_D;
-    as_queue_invlpg(as, va);
+    as_queue_invlpg(pgmap, va);
 }
 
 static void
 as_page_invalidate_cb(const void *arg, uint64_t *ptep, void *va)
 {
-    const struct Address_space *as = arg;
+    const struct Pagemap *pgmap = arg;
     as_collect_dirty_bits(arg, ptep, va);
 
     uint64_t pte = *ptep;
@@ -331,21 +332,21 @@ as_page_invalidate_cb(const void *arg, uint64_t *ptep, void *va)
 	if ((pte & PTE_W))
 	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
 	*ptep = 0;
-	as_queue_invlpg(as, va);
+	as_queue_invlpg(pgmap, va);
     }
 }
 
 static void
 as_page_map_ro_cb(const void *arg, uint64_t *ptep, void *va)
 {
-    const struct Address_space *as = arg;
+    const struct Pagemap *pgmap = arg;
     as_collect_dirty_bits(arg, ptep, va);
 
     uint64_t pte = *ptep;
     if ((pte & PTE_P) && (pte & PTE_W)) {
 	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~PTE_W;
-	as_queue_invlpg(as, va);
+	as_queue_invlpg(pgmap, va);
     }
 }
 
@@ -361,12 +362,12 @@ as_swapout(struct Address_space *as)
 {
     // In case we're the current AS, make sure the page table we're about
     // to free isn't the one being used by the CPU.
-    if (cur_as && cur_as->as_ko.ko_id == as->as_ko.ko_id)
+    if (cur_pgmap == as->as_pgmap)
 	as_switch(0);
 
     if (as->as_pgmap) {
 	assert(0 == page_map_traverse(as->as_pgmap, 0, (void **) ULIM,
-				      0, &as_page_invalidate_cb, as));
+				      0, &as_page_invalidate_cb, as->as_pgmap));
 	page_map_free(as->as_pgmap);
     }
 
@@ -469,7 +470,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	    goto err;
 	}
 
-	as_page_invalidate_cb(as, ptep, va);
+	as_page_invalidate_cb(as->as_pgmap, ptep, va);
 	*ptep = kva2pa(pp) | ptflags;
 	if ((ptflags & PTE_W))
 	    pagetree_incpin(pp);
@@ -478,7 +479,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	pi->pi_segid = sg->sg_ko.ko_id;
 	pi->pi_segpg = segpage;
 
-	as_queue_invlpg(as, va);
+	as_queue_invlpg(as->as_pgmap, va);
     }
 
     sm->sm_as = as;
@@ -496,7 +497,7 @@ err:
 	cprintf("as_pmap_fill_segment: %s\n", e2s(r));
 
     assert(page_map_traverse(as->as_pgmap, usm_first, usm_last,
-			     0, &as_page_invalidate_cb, as) == 0);
+			     0, &as_page_invalidate_cb, as->as_pgmap) == 0);
     return r;
 }
 
@@ -575,17 +576,20 @@ as_switch(const struct Address_space *as)
 	kobject_dirty(&as->as_ko)->as.as_pgmap_tid = cur_thread->th_ko.ko_id;
     }
 
+    struct Pagemap *new_pgmap = as ? as->as_pgmap : 0;
+
     int flush_tlb = 0;
-    if (cur_as_invlpg_count > as_invlpg_max) {
+    if (cur_pgmap != new_pgmap || cur_pgmap_invlpg_count > as_invlpg_max) {
 	flush_tlb = 1;
     } else {
-	for (uint32_t i = 0; i < cur_as_invlpg_count; i++)
-	    pmap_tlb_invlpg(cur_as_invlpg_addrs[i]);
+	for (uint32_t i = 0; i < cur_pgmap_invlpg_count; i++)
+	    pmap_tlb_invlpg(cur_pgmap_invlpg_addrs[i]);
     }
 
     cur_as = as;
-    cur_as_invlpg_count = 0;
-    pmap_set_current(as ? as->as_pgmap : 0, flush_tlb);
+    cur_pgmap = new_pgmap;
+    cur_pgmap_invlpg_count = 0;
+    pmap_set_current(new_pgmap, flush_tlb);
 }
 
 void
@@ -599,7 +603,7 @@ as_collect_dirty_sm(struct segment_mapping *sm)
     assert(page_map_traverse(sm->sm_as->as_pgmap,
 			     usm->va,
 			     usm->va + (usm->num_pages - 1) * PGSIZE,
-			     0, &as_collect_dirty_bits, sm->sm_as) == 0);
+			     0, &as_collect_dirty_bits, sm->sm_as->as_pgmap) == 0);
 }
 
 void
@@ -614,7 +618,7 @@ as_map_ro_sm(struct segment_mapping *sm)
     void *map_first = usm->va;
     void *map_last = usm->va + (usm->num_pages - 1) * PGSIZE;
     assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last,
-			     0, &as_page_map_ro_cb, sm->sm_as) == 0);
+			     0, &as_page_map_ro_cb, sm->sm_as->as_pgmap) == 0);
     sm->sm_rw_mappings = 0;
 }
 
@@ -633,7 +637,7 @@ as_invalidate_sm(struct segment_mapping *sm)
     void *map_first = usm->va;
     void *map_last = usm->va + (usm->num_pages - 1) * PGSIZE;
     assert(page_map_traverse(sm->sm_as->as_pgmap, map_first, map_last, 0,
-			     &as_page_invalidate_cb, sm->sm_as) == 0);
+			     &as_page_invalidate_cb, sm->sm_as->as_pgmap) == 0);
 
     LIST_REMOVE(sm, sm_link);
     kobject_unpin_page(&sm->sm_sg->sg_ko);
