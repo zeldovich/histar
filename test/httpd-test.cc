@@ -38,6 +38,7 @@ static char *request_template = 0;
 static const char* path = "/";
 static char logging = 0;
 static char auth = 0;
+static char warnings = 1;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
 
@@ -111,7 +112,8 @@ http_request(SSL *ssl, const char *host, int port)
 
     if (logging)
 	printf("--server response start--\n");
-    
+
+    char first = 1;
     while (1) {
 	r = SSL_read(ssl, buf, sizeof(buf));
 
@@ -126,6 +128,12 @@ http_request(SSL *ssl, const char *host, int port)
 	}
 	if (logging)
 	    fwrite(buf, 1, len, stdout);
+	
+	if (first) {
+	    if (warnings && memcmp("HTTP/1.0 200", buf, strlen("HTTP/1.0 200")))
+		fprintf(stderr, "HTTP error: %s\n", buf);
+	    first = 0;
+	}
     }
        
  shutdown:
@@ -170,7 +178,7 @@ main(int ac, char **av)
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
 		"[-r requests | -c clients | -l time-limit | "
-		"-p path -a -d]\n", av[0]);
+		"-p path -a -d -s]\n", av[0]);
 	exit(-1);
     }
 
@@ -180,7 +188,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:p:da")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:das")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -199,6 +207,9 @@ main(int ac, char **av)
 	    break;
 	case 'a':
 	    auth = 1;
+	    break;
+	case 's':
+	    warnings = 0;
 	    break;
 	}
     }
