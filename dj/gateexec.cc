@@ -165,7 +165,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      */
     try {
 	cm->acquire(m.catmap, true);
-	cm->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "gate_exec2: acquiring: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING);

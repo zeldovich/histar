@@ -171,9 +171,8 @@ class incoming_impl : public dj_incoming_gate {
 		label temp_vc(0);
 		sys_self_set_verify(temp_vl.to_ulabel(), temp_vc.to_ulabel());
 
-		// Verify & acquire the mapping resources provided by caller
+		// Acquire the mapping resources provided by caller
 		cm_->acquire(req.catmap);
-		cm_->resource_check(&ctx, req.catmap);
 
 		// Make sure global labels are within the caller's authority
 		dj_catmap_indexed mi(req.catmap);

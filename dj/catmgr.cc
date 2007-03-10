@@ -49,16 +49,6 @@ class histar_catmgr : public catmgr {
 	    droptmo_ = delaycb(1, wrap(this, &histar_catmgr::drop));
     }
 
-    virtual void resource_check(request_context *ctx, const dj_catmap &m) {
-	PERF_COUNTER(catmgr::res_check);
-
-	for (uint32_t i = 0; i < m.ents.size(); i++) {
-	    const dj_cat_mapping &e = m.ents[i];
-	    if (!ctx->can_read(COBJ(e.user_ct, e.user_ct)))
-		throw basic_exception("dj_catmap dead resource");
-	}
-    }
-
     virtual dj_cat_mapping store(const dj_gcat &gc, uint64_t lc, uint64_t uct) {
 	PERF_COUNTER(catmgr::store);
 
@@ -75,7 +65,6 @@ class histar_catmgr : public catmgr {
 	dj_cat_mapping e;
 	e.gcat = gc;
 	e.lcat = lc;
-	e.user_ct = uct;
 	e.res_ct = rct;
 	e.res_gt = sp.gate().object;
 

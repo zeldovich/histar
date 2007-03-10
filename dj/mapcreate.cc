@@ -49,7 +49,6 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     verify_label_reqctx ctx(vl, vc);
     try {
 	cm_->acquire(m.catmap, true);
-	cm_->resource_check(&ctx, m.catmap);
     } catch (std::exception &e) {
 	warn << "histar_mapcreate(2): " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_MAPPING);

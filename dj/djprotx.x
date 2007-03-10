@@ -33,7 +33,6 @@ struct dj_cat_mapping {
     dj_gcat gcat;
     unsigned hyper lcat;
 
-    unsigned hyper user_ct;	/* container provided by the user */
     unsigned hyper res_ct;	/* sub-container used to store mapping */
     unsigned hyper res_gt;	/* unbound gate providing { lcat* } */
 };
