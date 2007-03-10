@@ -38,15 +38,19 @@ static void
 perl_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	dj_delivery_code c, const dj_message *rm)
 {
-    uint64_t end_usec = time_usec();
+    //uint64_t end_usec = time_usec();
+    //warn << "perl runtime: " << (end_usec - pr->start_usec) << " usec\n";
 
-    warn << "perl_cb: code " << c << "\n";
-    warn << "perl runtime: " << (end_usec - pr->start_usec) << " usec\n";
+    if (c != DELIVERY_DONE) {
+	warn << "perl delivery code " << c << "\n";
+	return;
+    }
 
-    if (c == DELIVERY_DONE) {
-	perl_run_res pres;
-	assert(bytes2xdr(pres, rm->msg));
+    warn << "finished: " << time_usec() << "\n";
 
+    perl_run_res pres;
+    assert(bytes2xdr(pres, rm->msg));
+    if (pres.retval != 0 || pres.output != "Hello world.") {
 	warn << "Perl exit code: " << pres.retval << "\n";
 	warn << "Perl output: " << pres.output << "\n";
     }
@@ -56,7 +60,7 @@ static void
 ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	   dj_delivery_code c, const dj_message *rm)
 {
-    warn << "ctalloc_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    //warn << "ctalloc_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     container_alloc_res ctres;
     if (c != DELIVERY_DONE)
@@ -86,7 +90,7 @@ static void
 delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	    dj_delivery_code c, const dj_message *rm)
 {
-    warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    //warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     dj_stmt_signed ss;
     assert(c == DELIVERY_DONE);
@@ -122,7 +126,7 @@ static void
 map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	      dj_delivery_code c, const dj_message *rm)
 {
-    warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    //warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     dj_cat_mapping cme;
     assert(c == DELIVERY_DONE);
@@ -168,6 +172,16 @@ do_stuff(perl_req *pr)
 	       wrap(&map_create_cb, pr, call));
 }
 
+static void
+start_stuff(perl_req *pr)
+{
+    warn << "starting: " << time_usec() << "\n";
+    for (int i = 0; i < 10; i++) {
+	perl_req *pr2 = new perl_req(*pr);
+	do_stuff(pr2);
+    }
+}
+
 int
 main(int ac, char **av)
 {
@@ -179,10 +193,10 @@ main(int ac, char **av)
     ptr<sfspub> sfspub = sfscrypt.alloc(av[1], SFS_VERIFY | SFS_ENCRYPT);
     assert(sfspub);
 
-    perl_req *pr = New perl_req();
-    pr->k = sfspub2dj(sfspub);
-    pr->call_ct = atoi(av[2]);
-    pr->srvgate <<= av[3];
+    perl_req pr;
+    pr.k = sfspub2dj(sfspub);
+    pr.call_ct = atoi(av[2]);
+    pr.srvgate <<= av[3];
 
     uint16_t port = 5923;
     djprot *djs = djprot::alloc(port);
@@ -194,13 +208,13 @@ main(int ac, char **av)
     emux.set(EP_GATE, wrap(&gm, &dj_direct_gatemap::deliver));
     emux.set(EP_DELEGATOR, wrap(&delegation_create, djs));
 
-    pr->p = djs;
-    pr->f = &gm;
+    pr.p = djs;
+    pr.f = &gm;
 
-    delaycb(5, wrap(&do_stuff, pr));
+    perl_req pr2(pr);
+    delaycb(5, wrap(&do_stuff, &pr2));
 
-    perl_req pr2(*pr);
-    delaycb(10, wrap(&do_stuff, &pr2));
+    delaycb(6, wrap(&start_stuff, &pr));
 
     amain();
 }
