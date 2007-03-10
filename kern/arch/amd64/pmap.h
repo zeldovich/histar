@@ -6,7 +6,6 @@
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
 #include <kern/lib.h>
-#include <kern/arch.h>
 #include <inc/intmacro.h>
 #endif /* !__ASSEMBLER__ */
 #endif /* JOS_KERNEL */
@@ -53,39 +52,10 @@ int  pgdir_walk(struct Pagemap *pgmap, const void *va,
 	       int create, uint64_t **pte_store)
     __attribute__ ((warn_unused_result));
 
-static __inline void *
-pa2kva (physaddr_t pa)
-{
-    return (void*) (pa + PHYSBASE);
-}
-
-static __inline physaddr_t
-kva2pa (void *kva)
-{
-    physaddr_t va = (physaddr_t) kva;
-    if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
-	return va - KERNBASE;
-    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
-	return va - PHYSBASE;
-    panic("kva2pa called with invalid kva %p", kva);
-}
-
-static __inline ppn_t
-pa2ppn (physaddr_t pa)
-{
-    ppn_t pn = pa >> PGSHIFT;
-    if (pn > global_npages)
-	panic("pa2ppn: pa 0x%lx out of range, npages %ld", pa, global_npages);
-    return pn;
-}
-
-static __inline physaddr_t
-ppn2pa (ppn_t pn)
-{
-    if (pn > global_npages)
-	panic("ppn2pa: ppn %ld out of range, npages %ld", pn, global_npages);
-    return (pn << PGSHIFT);
-}
+void *pa2kva(physaddr_t pa);
+physaddr_t kva2pa(void *kva);
+ppn_t pa2ppn(physaddr_t pa);
+physaddr_t ppn2pa(ppn_t pn);
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 

@@ -11,6 +11,7 @@
 #include <kern/sched.h>
 #include <kern/kobj.h>
 #include <kern/prof.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 
 static uint64_t trap_user_iret_tsc;

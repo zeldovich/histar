@@ -2,7 +2,9 @@
 #include <dev/kclock.h>
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
+#include <kern/arch.h>
 #include <inc/error.h>
+#include <inc/queue.h>
 
 static bool_t scrub_free_pages = 0;
 

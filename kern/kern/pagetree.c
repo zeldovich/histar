@@ -2,6 +2,7 @@
 #include <kern/pagetree.h>
 #include <kern/pageinfo.h>
 #include <kern/lib.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 
 static void pagetree_decref(void *p);

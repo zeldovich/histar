@@ -17,6 +17,7 @@
 #include <kern/pstate.h>
 #include <kern/prof.h>
 #include <kern/thread.h>
+#include <kern/arch.h>
 
 char boot_cmdline[256];
 
