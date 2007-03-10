@@ -7,11 +7,13 @@
 #include <inc/openssl.h>
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <openssl/ssl.h>
 
 struct ssl_fd {
     SSL *ssl;
+    int s;
 };
 
 int
@@ -36,7 +38,7 @@ ssl_accept(void *ctx, int s)
 
     struct ssl_fd * sfd = (struct ssl_fd *)fd->fd_cust.buf;
     sfd->ssl = ssl;
-
+    sfd->s = s;
     return fd2num(fd);
 }
 
@@ -73,6 +75,7 @@ ssl_close(struct Fd *fd)
     // don't do two-step shutdown procedure
     SSL_shutdown(ssl);
     SSL_free(ssl);
+    close(sfd->s);    
     return 0;
 }
 
