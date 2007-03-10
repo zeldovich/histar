@@ -44,7 +44,7 @@ main(int ac, char **av)
 
 	int fd = open(buf, O_RDWR | O_CREAT | O_TRUNC, 0666);
 	
-	printf("creating %s...\n", fn);
+	printf("creating %s...\n", buf);
 
 	uint32_t count = atoi(lp.read_line());
 	assert(sizeof(buf) > count);
