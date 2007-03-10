@@ -174,12 +174,10 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	ct_grant.reset(3);
 	ct_grant.set(ug, LB_LEVEL_STAR);
 	ct_grant.set(ut, LB_LEVEL_STAR);
-	ct_grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	ct_clear.reset(0);
 	ct_clear.set(ug, 3);
 	ct_clear.set(ut, 3);
-	ct_clear.set(dj_calltaint, 3);
 
 	dj_autorpc user_arpc(the_gs, 5, dj_user_server_pk, djcache);
 	c = user_arpc.call(ctalloc_ep, ct_req, ct_res,
