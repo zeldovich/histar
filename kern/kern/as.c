@@ -447,6 +447,22 @@ as_pmap_fill_segment(const struct Address_space *as,
     for (void *va = map_first; va <= map_last; va += PGSIZE) {
 	void *pp = 0;
 	uint64_t segpage = as_va_to_segment_page(usm, va);
+
+	if (va != need_va && (usm->flags & SEGMAP_WRITE)) {
+	    /*
+	     * If this is a courtesy writable mapping, and there's a refcount
+	     * on this page, defer doing the actual copy-on-write until user
+	     * hits this exact page, because it's quite costly.
+	     */
+	    if (segpage >= kobject_npages(&sg->sg_ko))
+		continue;
+
+	    struct kobject *sg_ko = kobject_ephemeral_dirty(&sg->sg_ko);
+	    r = pagetree_get_page(&sg_ko->ko_pt, segpage, &pp, page_shared_ro);
+	    if (r < 0 || !pp || page_to_pageinfo(pp)->pi_ref > 1)
+		continue;
+	}
+
 	r = kobject_get_page(&sg->sg_ko, segpage, &pp,
 			     (usm->flags & SEGMAP_WRITE) ? page_excl_dirty_later
 							 : page_shared_ro);
