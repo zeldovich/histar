@@ -173,10 +173,10 @@ do_stuff(perl_req *pr)
 }
 
 static void
-start_stuff(perl_req *pr)
+start_stuff(perl_req *pr, int count)
 {
     warn << "starting: " << time_usec() << "\n";
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < count; i++) {
 	perl_req *pr2 = new perl_req(*pr);
 	do_stuff(pr2);
     }
@@ -211,13 +211,9 @@ main(int ac, char **av)
     pr.p = djs;
     pr.f = &gm;
 
-    perl_req pr2(pr);
-    delaycb(5, wrap(&do_stuff, &pr2));
-
-    perl_req pr3(pr);
-    delaycb(6, wrap(&do_stuff, &pr3));
-
-    delaycb(7, wrap(&start_stuff, &pr));
+    delaycb(5, wrap(&start_stuff, &pr, 1));
+    delaycb(6, wrap(&start_stuff, &pr, 1));
+    delaycb(7, wrap(&start_stuff, &pr, 10));
 
     amain();
 }
