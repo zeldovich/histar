@@ -294,8 +294,7 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 	eko->hdr.ko_flags |= KOBJ_DIRTY_LATER;
     }
 
-    int r = pagetree_get_page(&kobject_const_h2k(kp)->ko_pt,
-			      npage, pp, rw);
+    int r = pagetree_get_page(&eko->ko_pt, npage, pp, rw);
     if (r == 0) {
 	if (*pp == 0)
 	    panic("kobject_get_page: id %"PRIu64" (%s) type %d npage %"PRIu64" null",
