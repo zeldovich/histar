@@ -171,8 +171,6 @@ class incoming_impl : public dj_incoming_gate {
 		       bool untainted, dj_incoming_gate_res *res)
     {
 	cobj_ref rseg = gcd->param_obj;
-	if (!untainted)
-	    error_check(sys_obj_set_readonly(rseg));
 
 	label vl, vc;
 	thread_cur_verify(&vl, &vc);
@@ -189,6 +187,13 @@ class incoming_impl : public dj_incoming_gate {
 	dj_incoming_gate_req req;
 	if (!str2xdr(req, reqstr))
 	    throw basic_exception("cannot decode dj_incoming_gate_req");
+
+	char digest[20];
+	if (!sha1_hashxdr(&digest[0], req))
+	    throw basic_exception("cannot hash incoming request");
+
+	if (untainted && memcmp(digest, &gcd->param_buf[16], 20))
+	    throw basic_exception("mismatched request after untainting");
 
 	if (!untainted) {
 	    try {
@@ -220,6 +225,7 @@ class incoming_impl : public dj_incoming_gate {
 		sys_self_set_sched_parents(gcd->thread_ref_ct, 0);
 		sys_obj_unref(COBJ(start_env->proc_container, thread_id()));
 
+		memcpy(&gcd->param_buf[16], digest, 20);
 		sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel());
 		stack_switch(base_as_.container, base_as_.object,
 			     (uint64_t) &call_untaint_stub, (uint64_t) this,
