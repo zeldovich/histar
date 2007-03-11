@@ -516,15 +516,6 @@ sys_gate_enter(struct cobj_ref gt,
 	       struct ulabel *uclear,
 	       struct thread_entry *ute)
 {
-    // Verify that the caller has supplied a valid verify label
-    const struct Label *vl, *vc;
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_contaminate, &vl));
-    check(kobject_get_label(&cur_thread->th_ko, kolabel_verify_clearance,   &vc));
-    if (vl)
-	check(label_compare(cur_th_label, vl, label_leq_starlo));
-    if (vc)
-	check(label_compare(vc, cur_th_clearance, label_leq_starhi));
-
     const struct kobject *ko;
     check(cobj_get(gt, kobj_gate, &ko, iflow_none));
     const struct Gate *g = &ko->gt;
@@ -552,6 +543,19 @@ sys_gate_enter(struct cobj_ref gt,
 
     if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
 	return -E_INVAL;
+
+    // Verify that the caller has supplied valid verify labels, for bound gates
+    if (!ute) {
+	const struct Label *vl, *vc;
+	check(kobject_get_label(&cur_thread->th_ko,
+				kolabel_verify_contaminate, &vl));
+	check(kobject_get_label(&cur_thread->th_ko,
+				kolabel_verify_clearance,   &vc));
+	if (vl)
+	    check(label_compare(cur_th_label, vl, label_leq_starlo));
+	if (vc)
+	    check(label_compare(vc, cur_th_clearance, label_leq_starhi));
+    }
 
     struct thread_entry te;
     if (ute) {
