@@ -550,15 +550,18 @@ sys_gate_enter(struct cobj_ref gt,
     check(label_compare(new_label,   new_clear,	  label_leq_starlo));
     check(label_compare(new_clear,   clear_bound, label_leq_starhi));
 
-    const struct thread_entry *te = &g->gt_te;
     if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
 	return -E_INVAL;
+
+    struct thread_entry te;
     if (ute) {
 	check(check_user_access(ute, sizeof(*ute), 0));
-	te = ute;
+	memcpy(&te, ute, sizeof(te));
+    } else {
+	memcpy(&te, &g->gt_te, sizeof(te));
     }
 
-    check(thread_jump(cur_thread, new_label, new_clear, te));
+    check(thread_jump(cur_thread, new_label, new_clear, &te));
     return 0;
 }
 
