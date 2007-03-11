@@ -22,6 +22,8 @@ extern "C" {
 #include <dj/mapcreate.hh>
 #include <dj/perf.hh>
 
+enum { separate_entry_as = 1 };
+
 struct incoming_req {
     const dj_incoming_gate_req *req;
     dj_incoming_gate_res res;
@@ -79,13 +81,15 @@ class incoming_impl : public dj_incoming_gate {
 	gatesrv_descriptor gd;
 	gd.gate_container_ = ct;
 	gd.name_ = "djd-incoming";
-#if 0
-	gd.func_ = &call_stub;
-#else
-	gd.func_ = &call_entry_stub;
-	gd.as_ = entry_as;
-	gd.flags_ = GATESRV_KEEP_TLS_STACK | GATESRV_NO_THREAD_ADDREF;
-#endif
+
+	if (separate_entry_as) {
+	    gd.func_ = &call_entry_stub;
+	    gd.as_ = entry_as;
+	    gd.flags_ = GATESRV_KEEP_TLS_STACK | GATESRV_NO_THREAD_ADDREF;
+	} else {
+	    gd.func_ = &call_stub;
+	}
+
 	gd.arg_ = (void *) this;
 	gd.label_ = &l;
 	gd.clearance_ = &c;
