@@ -197,10 +197,6 @@ class incoming_impl : public dj_incoming_gate {
 
 	if (!untainted) {
 	    try {
-		label temp_vl(3);
-		label temp_vc(0);
-		sys_self_set_verify(temp_vl.to_ulabel(), temp_vc.to_ulabel());
-
 		// Acquire the mapping resources provided by caller
 		cm_->acquire(req.catmap);
 
@@ -226,7 +222,6 @@ class incoming_impl : public dj_incoming_gate {
 		sys_obj_unref(COBJ(start_env->proc_container, thread_id()));
 
 		memcpy(&gcd->param_buf[16], digest, 20);
-		sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel());
 		stack_switch(base_as_.container, base_as_.object,
 			     (uint64_t) &call_untaint_stub, (uint64_t) this,
 			     tls_stack_top, (void *) &pseudo_gate_call);
