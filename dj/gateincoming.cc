@@ -239,12 +239,9 @@ class incoming_impl : public dj_incoming_gate {
 	    tl.merge(&vl, &gl, label::max, label::leq_starlo);
 	    tc.merge(&vc, &gc, label::min, label::leq_starlo);
 
-	    label gv(3);
-	    gv.set(start_env->process_grant, 0);
-
 	    int64_t gid = sys_gate_create(start_env->proc_container,
 					  0, gl.to_ulabel(), gc.to_ulabel(),
-					  gv.to_ulabel(), "gateincoming", 0);
+					  0, "gateincoming", 0);
 	    if (gid > 0) {
 		lms.vl = &vl;
 		lms.vc = &vc;

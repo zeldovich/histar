@@ -63,7 +63,7 @@ class histar_catmgr : public catmgr {
 					  0, 65536);
 	error_check(rct);
 
-	saved_privilege sp(start_env->process_grant, lc, rct);
+	saved_privilege sp(0, lc, rct);
 
 	dj_cat_mapping e;
 	e.gcat = gc;

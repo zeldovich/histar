@@ -80,19 +80,16 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 	vl.merge(&tl, &s->privlabel, label::min, label::leq_starhi);
 	vc.merge(&tc, &s->privclear, label::max, label::leq_starlo);
 
-	label v(3);
-	v.set(start_env->process_grant, 0);
-	int64_t id = sys_gate_create(s->callct, 0,
+	int64_t id = sys_gate_create(start_env->proc_container, 0,
 				     s->privlabel.to_ulabel(),
 				     s->privclear.to_ulabel(),
-				     v.to_ulabel(),
-				     "djrpc reply privs", 0);
+				     0, "djrpc reply privs", 0);
 	if (id < 0) {
 	    printf("dj_rpc_reply_entry: cannot save privs!\n");
 	    return;
 	}
 
-	s->privgate = COBJ(s->callct, id);
+	s->privgate = COBJ(start_env->proc_container, id);
     }
 
     s->m = m.m;
@@ -196,6 +193,7 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    return DELIVERY_LOCAL_ERR;
 	}
 	thread_label_cache_update(&nl, &nc);
+	sys_obj_unref(rs.privgate);
     }
 
     *reply = rs.m;
