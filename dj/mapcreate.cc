@@ -146,4 +146,5 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
 
     p_->send(sender, 0, m.dset, replym, 0, 0);
     da.cb(DELIVERY_DONE);
+    cm_->drop_now();
 }

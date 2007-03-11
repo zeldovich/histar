@@ -234,4 +234,6 @@ gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
 	warn << "gate_exec: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_ERR);
     }
+
+    cm->drop_now();
 }

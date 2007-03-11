@@ -12,8 +12,7 @@ class histar_catmgr : public catmgr {
     histar_catmgr() : droptmo_(0) {}
 
     virtual ~histar_catmgr() {
-	if (droptmo_)
-	    timecb_remove(droptmo_);
+	drop_now();
     }
 
     virtual void acquire(const dj_catmap &m, bool droplater) {
@@ -79,6 +78,12 @@ class histar_catmgr : public catmgr {
 
 	sp.set_gc(false);
 	return e;
+    }
+
+    virtual void drop_now() {
+	if (droptmo_)
+	    timecb_remove(droptmo_);
+	drop();
     }
 
  private:
