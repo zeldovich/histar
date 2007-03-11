@@ -214,7 +214,10 @@ main(int ac, char **av)
     perl_req pr2(pr);
     delaycb(5, wrap(&do_stuff, &pr2));
 
-    delaycb(6, wrap(&start_stuff, &pr));
+    perl_req pr3(pr);
+    delaycb(6, wrap(&do_stuff, &pr3));
+
+    delaycb(7, wrap(&start_stuff, &pr));
 
     amain();
 }
