@@ -94,6 +94,17 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
 	sys_self_set_verify(tl.to_ulabel(), tc.to_ulabel());
+
+	/*
+	 * Give djd a tainted container to work from.
+	 */
+	label tct_label(*tgtl);
+	tct_label.transform(label::star_to, tct_label.get_default());
+
+	int64_t tct_id = sys_container_alloc(taint_ct, tct_label.to_ulabel(),
+					     "djgate return taint", 0, CT_QUOTA_INF);
+	error_check(tct_id);
+	taint_ct = tct_id;
     }
 
     delete_l.dismiss();
