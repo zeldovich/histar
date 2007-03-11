@@ -64,7 +64,7 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 		 tls_stack_top, (void *) &gatesrv_cleanup_tls);
 }
 
-static void __attribute__((noreturn))
+void __attribute__((noreturn))
 gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 {
     try {

@@ -78,4 +78,7 @@ cobj_ref gate_create(uint64_t gate_container, const char *name,
 		     label *label, label *clearance, label *verify,
 		     gatesrv_entry_t func, void *arg);
 
+void gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
+    __attribute__((noreturn));
+
 #endif
