@@ -1,7 +1,7 @@
 #ifndef JOS_DJ_PERF_HH
 #define JOS_DJ_PERF_HH
 
-#define PERF_ENABLE	1
+#define PERF_ENABLE	0
 
 #if PERF_ENABLE
 extern "C" {
