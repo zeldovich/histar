@@ -35,7 +35,7 @@ perl(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::o
 	return;
     } 
 
-    out << "HTTP/2.0 200 OK\r\n";
+    out << "HTTP/1.0 200 OK\r\n";
     
     label taint(0);
     if (utaint)

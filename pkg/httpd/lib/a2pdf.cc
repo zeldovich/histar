@@ -63,7 +63,7 @@ a2pdf(fs_inode root_ino, const char *fn, uint64_t utaint, uint64_t ugrant, std::
     sprintf(size, "%ld", pdf.size());
     std::string content_length = std::string("Content-Length: ") + size + "\r\n";
 	
-    out << "HTTP/2.0 200 OK\r\n";
+    out << "HTTP/1.0 200 OK\r\n";
     out << "Content-Type: application/pdf\r\n";
     out << content_length;
     out << "\r\n";
