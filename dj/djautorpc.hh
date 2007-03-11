@@ -118,9 +118,10 @@ class dj_autorpc {
 	    return DELIVERY_LOCAL_ERR;
 	}
 
-	djlabel_to_label(resm.catmap, resm.taint,  taint,  label_taint, false, &home_->cmi_);
-	djlabel_to_label(resm.catmap, resm.glabel, grant,  label_owner, false, &home_->cmi_);
-	djlabel_to_label(resm.catmap, resm.gclear, gclear, label_clear, false, &home_->cmi_);
+	dj_catmap_indexed res_cmi(resm.catmap);
+	djlabel_to_label(res_cmi, resm.taint,  taint,  label_taint, false, &home_->cmi_);
+	djlabel_to_label(res_cmi, resm.glabel, grant,  label_owner, false, &home_->cmi_);
+	djlabel_to_label(res_cmi, resm.gclear, gclear, label_clear, false, &home_->cmi_);
 
 	cache_->dmap_.insert(resm.dset);
 	return code;
