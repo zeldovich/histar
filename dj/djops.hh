@@ -29,22 +29,23 @@ sfspub2dj(ptr<sfspub> sfspub)
 inline bool
 operator<(const dj_pubkey &a, const dj_pubkey &b)
 {
-    str as = xdr2str(a);
-    str bs = xdr2str(b);
-    uint32_t al = as.len();
-    uint32_t bl = bs.len();
-    if (al < bl) return true;
-    if (al > bl) return false;
-    if (memcmp(as.cstr(), bs.cstr(), al) < 0) return true;
-    return false;
+    if (a.type != SFS_RABIN || b.type != SFS_RABIN) {
+	warn << "comparing non-rabin public keys (<)..\n";
+	return true;
+    }
+
+    return *a.rabin < *b.rabin;
 }
 
 inline bool
 operator==(const dj_pubkey &a, const dj_pubkey &b)
 {
-    str as = xdr2str(a);
-    str bs = xdr2str(b);
-    return as.len() == bs.len() && !memcmp(as.cstr(), bs.cstr(), as.len());
+    if (a.type != SFS_RABIN || b.type != SFS_RABIN) {
+	warn << "comparing non-rabin public keys (==)..\n";
+	return false;
+    }
+
+    return *a.rabin == *b.rabin;
 }
 
 inline bool
@@ -56,7 +57,7 @@ operator!=(const dj_pubkey &a, const dj_pubkey &b)
 inline bool
 operator<(const dj_msg_id &a, const dj_msg_id &b)
 {
-    return a.key < b.key || (a.key == b.key && a.xid < b.xid);
+    return a.xid < b.xid || (a.xid == b.xid && a.key < b.key);
 }
 
 inline bool
@@ -74,9 +75,10 @@ operator!=(const dj_msg_id &a, const dj_msg_id &b)
 inline bool
 operator<(const dj_gcat &a, const dj_gcat &b)
 {
-    return a.key < b.key ||
-	(a.key == b.key && (a.id < b.id ||
-			   (a.id == b.id && a.integrity < b.integrity)));
+    return (a.integrity < b.integrity) ||
+	   (a.integrity == b.integrity &&
+		((a.id < b.id) ||
+		 (a.id == b.id && a.key < b.key)));
 }
 
 inline bool
@@ -222,8 +224,7 @@ template<> struct hashfn<dj_gcat> {
 template<> struct hashfn<dj_pubkey> {
     hashfn() {}
     hash_t operator() (const dj_pubkey &pk) const
-	{ char d[20]; assert(sha1_hashxdr(&d[0], pk));
-	  return hash_bytes(&d[0], sizeof(d)); }
+	{ return pk.type == SFS_RABIN ? pk.rabin->getu64() : 0; }
 };
 
 inline void
