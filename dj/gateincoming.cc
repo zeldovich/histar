@@ -2,6 +2,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <inc/stack.h>
 }
 
 #include <async.h>
@@ -66,42 +67,38 @@ class incoming_impl : public dj_incoming_gate {
 	c.transform(label::nonstar_to, 2);
 	c.transform(label::star_to, 3);
 
-	label v(3);
-	v.set(start_env->process_grant, 0);
-
-	gatesrv_descriptor gdi;
-	gdi.gate_container_ = ct;
-	gdi.name_ = "djd-untainted";
-	gdi.func_ = &call_untaint_stub;
-	gdi.arg_ = (void *) this;
-	gdi.label_ = &l;
-	gdi.clearance_ = &c;
-	gdi.verify_ = &v;
-	untaint_gate_ = gate_create(&gdi);
-
+	error_check(sys_self_get_as(&base_as_));
 	checkpoint_update();
 
-	gatesrv_descriptor gde;
-	gde.gate_container_ = ct;
-	gde.name_ = "djd-incoming";
-	gde.func_ = &call_stub;
-	gde.arg_ = (void *) this;
-	gde.label_ = &l;
-	gde.clearance_ = &c;
-	gate_ = gate_create(&gde);
+	gatesrv_descriptor gd;
+	gd.gate_container_ = ct;
+	gd.name_ = "djd-incoming";
+	gd.func_ = &call_stub;
+	gd.arg_ = (void *) this;
+	gd.label_ = &l;
+	gd.clearance_ = &c;
+	gate_ = gate_create(&gd);
     }
 
     virtual ~incoming_impl() {
 	fdcb(fds_[0], selread, 0);
 	close(fds_[0]);
 	close(fds_[1]);
-	sys_obj_unref(untaint_gate_);
 	sys_obj_unref(gate_);
     }
 
     virtual cobj_ref gate() { return gate_; }
 
  private:
+    static void pseudo_gate_call(uint64_t as_ct, uint64_t as_id,
+				 uint64_t fn, uint64_t arg)
+	__attribute__((noreturn))
+    {
+	sys_self_set_as(COBJ(as_ct, as_id));
+	stack_switch(fn, arg, 0, 0,
+		     tls_stack_top, (void*) gatesrv_entry_tls);
+    }
+
     static void call_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
 	incoming_impl *i = (incoming_impl *) arg;
 	i->call(gcd, ret, false);
@@ -192,23 +189,13 @@ class incoming_impl : public dj_incoming_gate {
 	    }
 
 	    if (start_env->proc_container != proc_ct_) {
-		label tl, tc;
-		thread_cur_label(&tl);
-		thread_cur_clearance(&tc);
-
-		label nvl, nvc;
-		vl.merge(&tl, &nvl, label::max, label::leq_starlo);
-		vc.merge(&tc, &nvc, label::min, label::leq_starhi);
-		sys_self_set_verify(nvl.to_ulabel(), nvc.to_ulabel());
-
-		label tgtl, tgtc;
-		gate_compute_labels(untaint_gate_, 0, &tl, &tc, &tgtl, &tgtc);
-
 		sys_self_set_sched_parents(gcd->thread_ref_ct, 0);
 		sys_obj_unref(COBJ(start_env->proc_container, thread_id()));
 
-		sys_gate_enter(untaint_gate_, tgtl.to_ulabel(), tgtc.to_ulabel(), 0);
-		fatal << "incoming_impl::call: untainting gate call returned\n";
+		sys_self_set_verify(vl.to_ulabel(), vc.to_ulabel());
+		stack_switch(base_as_.container, base_as_.object,
+			     (uint64_t) &call_untaint_stub, (uint64_t) this,
+			     tls_stack_top, (void *) &pseudo_gate_call);
 	    }
 	}
 
@@ -290,10 +277,11 @@ class incoming_impl : public dj_incoming_gate {
 
     djprot *p_;
     catmgr *cm_;
-    cobj_ref untaint_gate_;
     cobj_ref gate_;
     uint64_t proc_ct_;
     int fds_[2];
+
+    cobj_ref base_as_;
 };
 
 dj_incoming_gate*
