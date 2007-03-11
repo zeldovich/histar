@@ -652,8 +652,9 @@ lwip_selscan(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset)
         {
             /* See if netconn of this socket is ready for read, or closed */
             p_sock = get_socket(i);
-            if (p_sock && (p_sock->lastdata || p_sock->conn->recvmbox == SYS_MBOX_NULL
-					    || p_sock->rcvevent))
+            if (p_sock && (p_sock->lastdata || 
+			   (p_sock->conn->recvmbox == SYS_MBOX_NULL && p_sock->conn->acceptmbox == SYS_MBOX_NULL) ||
+			   p_sock->rcvevent))
             {
                 FD_SET(i, &lreadset);
 		LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for reading\n", i));
