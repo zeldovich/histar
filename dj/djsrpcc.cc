@@ -23,9 +23,6 @@ struct dj_rpc_reply_state {
     uint64_t mdone;
     dj_message m;
 
-    uint32_t sent_grant;
-    uint32_t sent_clear;
-
     cobj_ref privgate;
     label privlabel;
     label privclear;
@@ -72,9 +69,7 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 	return;
     }
 
-    if (m.m.glabel.ents.size() > s->sent_grant ||
-	m.m.gclear.ents.size() > s->sent_clear)
-    {
+    if (m.m.glabel.ents.size() || m.m.gclear.ents.size()) {
 	label tl, tc;
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);
@@ -135,9 +130,6 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     rs.server = node;
     rs.callct = call_ct;
 
-    rs.sent_grant = m.glabel.ents.size();
-    rs.sent_clear = m.gclear.ents.size();
-
     gatesrv_descriptor gd;
     gd.gate_container_ = call_ct;
     gd.name_ = "dj_rpc_reply_entry";
@@ -180,9 +172,7 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    break;
     }
 
-    if (rs.m.glabel.ents.size() > rs.sent_grant ||
-	rs.m.gclear.ents.size() > rs.sent_clear)
-    {
+    if (rs.m.glabel.ents.size() || rs.m.gclear.ents.size()) {
 	label tl, tc;
 	thread_cur_label(&tl);
 	thread_cur_clearance(&tc);

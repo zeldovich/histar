@@ -54,8 +54,6 @@ delegation_create(djprot *p, const dj_pubkey &sender,
     dj_message replym;
     replym.target = callmsg.return_ep;
     replym.taint = m.taint;
-    replym.glabel = m.glabel;
-    replym.gclear = m.gclear;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(ss);
