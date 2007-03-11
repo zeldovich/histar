@@ -68,12 +68,24 @@ class incoming_impl : public dj_incoming_gate {
 	c.transform(label::star_to, 3);
 
 	error_check(sys_self_get_as(&base_as_));
+
+	int64_t entry_asid = sys_as_copy(base_as_, start_env->proc_container,
+					 0, "gateincoming-entry");
+	error_check(entry_asid);
+	cobj_ref entry_as = COBJ(start_env->proc_container, entry_asid);
+
 	checkpoint_update();
 
 	gatesrv_descriptor gd;
 	gd.gate_container_ = ct;
 	gd.name_ = "djd-incoming";
+#if 0
 	gd.func_ = &call_stub;
+#else
+	gd.func_ = &call_entry_stub;
+	gd.as_ = entry_as;
+	gd.flags_ = GATESRV_KEEP_TLS_STACK | GATESRV_NO_THREAD_ADDREF;
+#endif
 	gd.arg_ = (void *) this;
 	gd.label_ = &l;
 	gd.clearance_ = &c;
@@ -97,6 +109,18 @@ class incoming_impl : public dj_incoming_gate {
 	sys_self_set_as(COBJ(as_ct, as_id));
 	stack_switch(fn, arg, 0, 0,
 		     tls_stack_top, (void*) gatesrv_entry_tls);
+    }
+
+    static void call_entry_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
+	incoming_impl *i = (incoming_impl *) arg;
+	if (start_env->proc_container == i->proc_ct_) {
+	    /* Everything is fine, jump into the base AS */
+	    pseudo_gate_call(i->base_as_.container, i->base_as_.object,
+			     (uint64_t) &call_stub, (uint64_t) i);
+	} else {
+	    /* Tainted, might as well continue running in this AS.. */
+	    call_stub(arg, gcd, ret);
+	}
     }
 
     static void call_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
