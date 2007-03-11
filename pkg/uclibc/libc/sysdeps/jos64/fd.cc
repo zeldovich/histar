@@ -848,15 +848,8 @@ getsockopt(int fdnum, int level, int optname, void *optval,
 }
 
 static void
-select_timeout(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
-	       struct timeval *timeout)
+print_fd_sets(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset)
 {
-    extern const char *__progname;
-    uint64_t to = (timeout->tv_sec * 1000) + 
-	(timeout->tv_usec / 1000);
-    cprintf("select: %s(%ld) timed out in %ld:\n", 
-	    __progname, thread_id(), to);
-
     struct Fd *fd;
     struct Dev *dev;
 
@@ -885,7 +878,10 @@ int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
-    static char select_debug = 0;
+    // for debugging
+    extern const char *__progname;
+    char select_debug = 0;
+    static char timeout_last = 0;
 
     struct wait_stat wstat[(2 * maxfd) + 1];
     uint64_t wstat_count = 0;
@@ -958,14 +954,21 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 		}
             }
         }
+	
+	// XXX fix this mess
 	struct timeval remaining;
         if (timeout) {
             struct timeval now, elapsed;
             gettimeofday(&now, 0);
             timersub(&now, &start, &elapsed);
             if (timercmp(&elapsed, timeout, >)) {
-		if (select_debug)
-		    select_timeout(maxfd, readset, writeset, exceptset, timeout);
+		if (select_debug) {
+		    uint64_t to = (timeout->tv_sec * 1000) + 
+			(timeout->tv_usec / 1000);
+		    cprintf("select: %s(%ld) timed out in %ld:\n", 
+			    __progname, thread_id(), to);
+		    print_fd_sets(maxfd, readset, writeset, exceptset);
+		}
                 break;
 	    }
 	    timersub(timeout, &elapsed, &remaining);
@@ -994,6 +997,17 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         memcpy(writeset, &rwriteset, sz);
     if (readset)
         memcpy(readset, &rreadset, sz);
+
+    if (ready && timeout_last && select_debug) {
+	cprintf("select: %s(%ld) after timeout, set fds:\n", 
+		__progname, thread_id());
+	print_fd_sets(maxfd, readset, writeset, exceptset);
+    }
+    
+    if (!ready)
+	timeout_last = 1;
+    else
+	timeout_last = 0;
 
     return ready;
 }
