@@ -34,7 +34,8 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
     gv.set(guard, 0);
 
     int64_t gate_id = sys_gate_create(ct, 0,
-				      gl.to_ulabel(), gc.to_ulabel(), gv.to_ulabel(),
+				      gl.to_ulabel(), gc.to_ulabel(),
+				      guard ? gv.to_ulabel() : 0,
 				      "saved privilege", 0);
     if (gate_id < 0)
 	throw error(gate_id, "sys_gate_create failed");
