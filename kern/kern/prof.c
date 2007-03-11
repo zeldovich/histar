@@ -14,7 +14,7 @@ struct entry {
 
 struct tentry {
     struct entry entry;
-    uint64_t tid;
+    char asname[KOBJ_NAME_LEN];
     uint64_t last;
 };
 
@@ -135,18 +135,26 @@ prof_user(uint64_t time)
 }
 
 void
-prof_thread(uint64_t tid, uint64_t time)
+prof_thread(const struct Thread *th, uint64_t time)
 {
+    const char *asname = "---";
+
     if (!prof_thread_enable)
 	return;
-    
+
+    if (!th->th_as)
+	return;
+
+    if (th->th_as->as_ko.ko_name[0])
+	asname = th->th_as->as_ko.ko_name;
+
     int64_t entry = -1;
     for (uint64_t i = 0; i < NTHREADS; i++) {
-	if (thread_table[i].tid == tid) {
+	if (!strcmp(thread_table[i].asname, asname)) {
 	    entry = i;
 	    break;
 	} else if (entry == -1) {
-	    if (!thread_table[i].tid)
+	    if (!thread_table[i].asname[0])
 		entry = i;
 	    else if ((timer_user_msec - thread_table[i].last) >  
 		     prof_thread_msec_threshold)
@@ -159,9 +167,9 @@ prof_thread(uint64_t tid, uint64_t time)
 	return; 
     }
 
-    if (thread_table[entry].tid != tid) {
+    if (strcmp(thread_table[entry].asname, asname)) {
 	memset(&thread_table[entry], 0, sizeof(thread_table[entry]));
-	thread_table[entry].tid = tid;
+	memcpy(thread_table[entry].asname, asname, strlen(asname) + 1);
     }
 
     thread_table[entry].last = timer_user_msec;
@@ -191,26 +199,13 @@ print_entry(struct entry *tab, int i, const char *name)
 static void
 print_tentry(struct tentry *tab, int i)
 {
-    const char *name = 0;
-    if (tab[i].tid && 
-	(timer_user_msec - tab[i].last) < prof_thread_msec_threshold) {
-	const struct kobject *ko;
-	int r = kobject_get(thread_table[i].tid, &ko, kobj_thread, iflow_none);
-	if (r == 0)
-	    name = ko->hdr.ko_name;
-	else if (r == -E_INVAL)
-	    name = "----";
-	else {
-	    cprintf("print_tentry: kobject_get error: %s\n", e2s(r));
-	    return;
-	}
-    } else
+    if (!tab[i].asname[0])
 	return;
 
     cprintf("%3d cnt%12"PRIu64" tot%12"PRIu64" avg%12"PRIu64" %s\n",
 	    i,
 	    tab[i].entry.count, tab[i].entry.time, 
-	    tab[i].entry.time / tab[i].entry.count, name);
+	    tab[i].entry.time / tab[i].entry.count, tab[i].asname);
 }
 
 void

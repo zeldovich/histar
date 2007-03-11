@@ -3,12 +3,13 @@
 
 #include <machine/types.h>
 #include <kern/syscall.h>
+#include <kern/thread.h>
 
 void prof_init(void);
 void prof_syscall(uint64_t num, uint64_t time);
 void prof_trap(uint64_t num, uint64_t time);
 void prof_user(uint64_t time);
-void prof_thread(uint64_t tid, uint64_t time);
+void prof_thread(const struct Thread *th, uint64_t time);
 void prof_print(void);
 void prof_toggle(void);
 

@@ -112,7 +112,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     s = read_tsc();
 
     prof_user(s - trap_user_iret_tsc);
-    prof_thread(cur_thread->th_ko.ko_id, s - trap_user_iret_tsc);
+    prof_thread(cur_thread, s - trap_user_iret_tsc);
 
     switch (trapno) {
     case T_SYSCALL:
