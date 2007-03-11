@@ -114,7 +114,7 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     struct Label *cl;
     check(label_alloc(&cl, 1));
     check(label_set(cl, user_root_handle, 0));
-    check(label_compare(cur_th_label, cl, label_leq_starlo));
+    check(label_compare(cur_th_label, cl, label_leq_starlo, 0));
 
     const struct Label *l;
     check(alloc_ulabel(ul, &l, 0));
@@ -183,7 +183,7 @@ sys_machine_reboot(void)
     struct Label *l;
     check(label_alloc(&l, 1));
     check(label_set(l, user_root_handle, 0));
-    check(label_compare(cur_th_label, l, label_leq_starlo));
+    check(label_compare(cur_th_label, l, label_leq_starlo, 0));
 
     check(pstate_sync_now());
     machine_reboot();
@@ -443,9 +443,9 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     const struct Label *g_label, *g_clear;
     check(alloc_ulabel(u_label, &g_label, &cur_th_label->lb_ko));
     check(alloc_ulabel(u_clear, &g_clear, &cur_th_clearance->lb_ko));
-    check(label_compare(cur_th_label, g_label, label_leq_starlo));
-    check(label_compare(g_label, g_clear, label_leq_starlo));
-    check(label_compare(g_clear, cur_th_clearance, label_leq_starlo));
+    check(label_compare(cur_th_label, g_label, label_leq_starlo, 0));
+    check(label_compare(g_label, g_clear, label_leq_starlo, 0));
+    check(label_compare(g_clear, cur_th_clearance, label_leq_starlo, 0));
 
     const struct Label *g_guard = 0;
     if (u_guard)
@@ -526,7 +526,7 @@ sys_gate_enter(struct cobj_ref gt,
     check(kobject_get_label(&g->gt_ko, kolabel_verify_contaminate, &gt_verify));
 
     if (gt_verify)
-	check(label_compare(cur_th_label, gt_verify, label_leq_starlo));
+	check(label_compare(cur_th_label, gt_verify, label_leq_starlo, 0));
 
     struct Label *label_bound, *clear_bound;
     check(label_alloc(&label_bound, LB_LEVEL_UNDEF));
@@ -537,9 +537,9 @@ sys_gate_enter(struct cobj_ref gt,
     const struct Label *new_label, *new_clear;
     check(alloc_ulabel(ulabel, &new_label, 0));
     check(alloc_ulabel(uclear, &new_clear, 0));
-    check(label_compare(label_bound, new_label,   label_leq_starlo));
-    check(label_compare(new_label,   new_clear,	  label_leq_starlo));
-    check(label_compare(new_clear,   clear_bound, label_leq_starhi));
+    check(label_compare(label_bound, new_label,   label_leq_starlo, 0));
+    check(label_compare(new_label,   new_clear,	  label_leq_starlo, 0));
+    check(label_compare(new_clear,   clear_bound, label_leq_starhi, 0));
 
     if ((ute && !g->gt_te_unspec) || (!ute && g->gt_te_unspec))
 	return -E_INVAL;
@@ -552,9 +552,9 @@ sys_gate_enter(struct cobj_ref gt,
 	check(kobject_get_label(&cur_thread->th_ko,
 				kolabel_verify_clearance,   &vc));
 	if (vl)
-	    check(label_compare(cur_th_label, vl, label_leq_starlo));
+	    check(label_compare(cur_th_label, vl, label_leq_starlo, 0));
 	if (vc)
-	    check(label_compare(vc, cur_th_clearance, label_leq_starhi));
+	    check(label_compare(vc, cur_th_clearance, label_leq_starhi, 0));
     }
 
     struct thread_entry te;
@@ -590,9 +590,9 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     const struct Label *new_clearance;
     check(alloc_ulabel(uclear, &new_clearance, &cur_th_clearance->lb_ko));
 
-    check(label_compare(cur_th_label, new_label, label_leq_starlo));
-    check(label_compare(new_label, new_clearance, label_leq_starlo));
-    check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi));
+    check(label_compare(cur_th_label, new_label, label_leq_starlo, 0));
+    check(label_compare(new_label, new_clearance, label_leq_starlo, 0));
+    check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi, 0));
 
     check(thread_jump(t, new_label, new_clearance, &te));
     thread_set_sched_parents(t, thread.container, 0);
@@ -614,7 +614,7 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     struct Label *lmax;
     check(label_alloc(&lmax, LB_LEVEL_UNDEF));
     check(label_max(th_label, cur_th_label, lmax, label_leq_starhi));
-    check(label_compare(lmax, cur_th_label, label_leq_starlo));
+    check(label_compare(lmax, cur_th_label, label_leq_starlo, 0));
 
     if (th->th.th_asref.object != asref.object)
 	return -E_INVAL;
@@ -673,8 +673,8 @@ sys_self_set_label(struct ulabel *ul)
     const struct Label *l;
     check(alloc_ulabel(ul, &l, 0));
 
-    check(label_compare(cur_th_label, l, label_leq_starlo));
-    check(label_compare(l, cur_th_clearance, label_leq_starlo));
+    check(label_compare(cur_th_label, l, label_leq_starlo, 0));
+    check(label_compare(l, cur_th_clearance, label_leq_starlo, 0));
     check(thread_change_label(cur_thread, l));
     return 0;
 }
@@ -690,8 +690,8 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(label_max(cur_th_clearance, cur_th_label,
 		    clearance_bound, label_leq_starhi));
 
-    check(label_compare(cur_th_label, clearance, label_leq_starlo));
-    check(label_compare(clearance, clearance_bound, label_leq_starhi));
+    check(label_compare(cur_th_label, clearance, label_leq_starlo, 0));
+    check(label_compare(clearance, clearance_bound, label_leq_starhi, 0));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_clearance, clearance));
     return 0;

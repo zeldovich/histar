@@ -317,12 +317,12 @@ label_compare_id(kobject_id_t l1_id, kobject_id_t l2_id, level_comparator cmp)
     if (r < 0)
 	return r;
 
-    return label_compare(&l1_ko->lb, &l2_ko->lb, cmp);
+    return label_compare(&l1_ko->lb, &l2_ko->lb, cmp, 1);
 }
 
 int
-label_compare(const struct Label *l1,
-	      const struct Label *l2, level_comparator cmp)
+label_compare(const struct Label *l1, const struct Label *l2,
+	      level_comparator cmp, int cacheable)
 {
     assert(l1);
     assert(l2);
@@ -330,11 +330,13 @@ label_compare(const struct Label *l1,
     kobject_id_t lhs_id = l1->lb_ko.ko_id;
     kobject_id_t rhs_id = l2->lb_ko.ko_id;
 
-    for (int i = 0; i < compare_cache_size; i++)
-	if (compare_cache[i].lhs == lhs_id &&
-	    compare_cache[i].rhs == rhs_id &&
-	    compare_cache[i].cmp == cmp)
-	    return 0;
+    if (cacheable) {
+	for (int i = 0; i < compare_cache_size; i++)
+	    if (compare_cache[i].lhs == lhs_id &&
+		compare_cache[i].rhs == rhs_id &&
+		compare_cache[i].cmp == cmp)
+		return 0;
+    }
 
     level_comparator_init(cmp);
 
@@ -375,10 +377,12 @@ label_compare(const struct Label *l1,
     if (r < 0)
 	return r;
 
-    int cache_slot = (compare_cache_next++) % compare_cache_size;
-    compare_cache[cache_slot].lhs = lhs_id;
-    compare_cache[cache_slot].rhs = rhs_id;
-    compare_cache[cache_slot].cmp = cmp;
+    if (cacheable) {
+	int cache_slot = (compare_cache_next++) % compare_cache_size;
+	compare_cache[cache_slot].lhs = lhs_id;
+	compare_cache[cache_slot].rhs = rhs_id;
+	compare_cache[cache_slot].cmp = cmp;
+    }
 
     return 0;
 }
