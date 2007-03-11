@@ -76,9 +76,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
     // XXX wrap stuff has no timeout
     if (httpd_dj_enable) {
-	dj_cat_mapping ug_map_local, ug_map_app;
-	dj_cat_mapping ut_map_local, ut_map_app;
-	dj_stmt_signed ug_dlg, ut_dlg;
+	dj_cat_mapping u_map_local[2], u_map_app[2];
+	dj_stmt_signed u_dlg[2];
 
 	/*
 	 * Create mappings & delegations for the user grant and taint
@@ -96,19 +95,13 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	label grant_local(3), grant_remote(3);
 	grant_local.set(ut, LB_LEVEL_STAR);
 
-	dj_map_and_delegate(ut, false, grant_local, grant_remote,
+	uint64_t cats[2] = { ut, ug };
+	bool integrity[2] = { false, true };
+	dj_map_and_delegate(2, &cats[0], &integrity[0],
+			    grant_local, grant_remote,
 			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
-			    &ut_map_local, &ut_map_app, &ut_dlg);
-	if (debug_dj)
-	    warn << "httpd2: created app server delegation for ut\n";
-
-	dj_map_and_delegate(ug, true, grant_local, grant_remote,
-			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
-			    the_gs, djcache,
-			    &ug_map_local, &ug_map_app, &ug_dlg);
-	if (debug_dj)
-	    warn << "httpd2: created app server delegation for ug\n";
+			    &u_map_local[0], &u_map_app[0], &u_dlg[0]);
 
 	/*
 	 * Now, create a container to execute application code.
@@ -139,12 +132,12 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	dj_global_cache djcache_app;
 	djcache_app.dmap_.insert(dj_ug_authdlg);
 	djcache_app.dmap_.insert(dj_ut_authdlg);
-	djcache_app.dmap_.insert(ug_dlg);
-	djcache_app.dmap_.insert(ut_dlg);
-	djcache_app[the_gs->hostkey()]->cmi_.insert(ug_map_local);
-	djcache_app[the_gs->hostkey()]->cmi_.insert(ut_map_local);
-	djcache_app[dj_app_server_pk]->cmi_.insert(ug_map_app);
-	djcache_app[dj_app_server_pk]->cmi_.insert(ut_map_app);
+	djcache_app.dmap_.insert(u_dlg[0]);
+	djcache_app.dmap_.insert(u_dlg[1]);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[0]);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[1]);
+	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[0]);
+	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[0]);
 
 	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache_app);
 	dj_delivery_code c;
@@ -196,13 +189,13 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	webapp_arg web_arg;
 	webapp_res web_res;
 
-	web_arg.ug_map_apphost = ug_map_app;
-	web_arg.ut_map_apphost = ut_map_app;
+	web_arg.ug_map_apphost = u_map_app[1];
+	web_arg.ut_map_apphost = u_map_app[0];
 	web_arg.ug_map_userhost = dj_ug_authmap;
 	web_arg.ut_map_userhost = dj_ut_authmap;
 
-	web_arg.ug_dlg_apphost = ug_dlg;
-	web_arg.ut_dlg_apphost = ut_dlg;
+	web_arg.ug_dlg_apphost = u_dlg[1];
+	web_arg.ut_dlg_apphost = u_dlg[0];
 	web_arg.ug_dlg_userhost = dj_ug_authdlg;
 	web_arg.ut_dlg_userhost = dj_ut_authdlg;
 
@@ -319,7 +312,8 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	label grant_local(3), grant_remote(3);
 	grant_remote.set(dj_calltaint, LB_LEVEL_STAR);
 
-	dj_map_and_delegate(dj_calltaint, false,
+	bool integrity = false;
+	dj_map_and_delegate(1, &dj_calltaint, &integrity,
 			    grant_local, grant_remote,
 			    call_ct, dj_user_server_ct, dj_user_server_pk,
 			    the_gs, djcache,

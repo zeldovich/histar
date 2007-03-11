@@ -92,12 +92,13 @@ delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 {
     //warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
-    dj_stmt_signed ss;
+    dj_delegate_res dres;
     assert(c == DELIVERY_DONE);
-    assert(bytes2xdr(ss, rm->msg));
+    assert(bytes2xdr(dres, rm->msg));
+    assert(dres.delegations.size() == 1);
 
     rpc_bytes<2147483647ul> s;
-    xdr2bytes(s, ss);
+    xdr2bytes(s, dres.delegations[0]);
     pr->dset.ents.push_back(s);
 
     /* Create a remote tainted container */
@@ -128,9 +129,12 @@ map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 {
     //warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
-    dj_cat_mapping cme;
+    dj_mapcreate_res mres;
     assert(c == DELIVERY_DONE);
-    assert(bytes2xdr(cme, rm->msg));
+    assert(bytes2xdr(mres, rm->msg));
+    assert(mres.mappings.size() == 1);
+
+    dj_cat_mapping &cme = mres.mappings[0];
     pr->catmap.ents.push_back(cme);
 
     /* Create a delegation for the remote host */
@@ -140,12 +144,15 @@ map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     dreq.from_ts = 0;
     dreq.until_ts = ~0;
 
+    dj_delegate_arg darg;
+    darg.reqs.push_back(dreq);
+
     dj_message m;
     m.target.set_type(EP_DELEGATOR);
     m.glabel.ents.push_back(pr->gcat);
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->p->pubkey(), 1, pr->dset, m, xdr2str(dreq),
+    call->call(pr->p->pubkey(), 1, pr->dset, m, xdr2str(darg),
 	       wrap(&delegate_cb, pr, call));
 }
 
@@ -163,12 +170,15 @@ do_stuff(perl_req *pr)
     mapreq.gcat = pr->gcat;
     mapreq.lcat = 0;
 
+    dj_mapcreate_arg marg;
+    marg.reqs.push_back(mapreq);
+
     dj_message m;
     m.target.set_type(EP_MAPCREATE);
 
     pr->start_usec = time_usec();
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->k, 1, pr->dset, m, xdr2str(mapreq),
+    call->call(pr->k, 1, pr->dset, m, xdr2str(marg),
 	       wrap(&map_create_cb, pr, call));
 }
 

@@ -42,11 +42,15 @@ class histar_catmgr : public catmgr {
 
 	    saved_privilege(e.lcat, COBJ(e.res_ct, e.res_gt)).acquire();
 	    if (droplater)
-		dropq_.push_back(e.lcat);
+		drop_later(e.lcat);
 	}
+    }
 
-	if (droplater && !droptmo_)
-	    droptmo_ = delaycb(1, wrap(this, &histar_catmgr::drop));
+    virtual void drop_later(uint64_t cat) {
+	dropq_.push_back(cat);
+
+	if (!droptmo_)
+	    droptmo_ = delaycb(10, wrap(this, &histar_catmgr::drop));
     }
 
     virtual dj_cat_mapping store(const dj_gcat &gc, uint64_t lc, uint64_t uct) {

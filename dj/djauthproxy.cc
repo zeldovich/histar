@@ -61,21 +61,23 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	/*
 	 * Create mappings & delegations
 	 */
-	dj_map_and_delegate(ug, true,
-			    glabel, glabel,
-			    arg.map_ct, arg.return_map_ct, r->sender,
-			    the_gs, cache,
-			    &res.resok->ug_local,
-			    &res.resok->ug_remote,
-			    &res.resok->ug_delegation);
+	uint64_t cats[2] = { ug, ut };
+	bool integrity[2] = { true, false };
+	dj_cat_mapping lmap[2], rmap[2];
+	dj_stmt_signed delegations[2];
 
-	dj_map_and_delegate(ut, false,
+	dj_map_and_delegate(2, &cats[0], &integrity[0],
 			    glabel, glabel,
 			    arg.map_ct, arg.return_map_ct, r->sender,
 			    the_gs, cache,
-			    &res.resok->ut_local,
-			    &res.resok->ut_remote,
-			    &res.resok->ut_delegation);
+			    &lmap[0], &rmap[0], &delegations[0]);
+
+	res.resok->ug_local = lmap[0];
+	res.resok->ut_local = lmap[1];
+	res.resok->ug_remote = rmap[0];
+	res.resok->ut_remote = rmap[1];
+	res.resok->ug_delegation = delegations[0];
+	res.resok->ut_delegation = delegations[1];
 
 	/*
 	 * XXX if we cache global category names, esp. those that were

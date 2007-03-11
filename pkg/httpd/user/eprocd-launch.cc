@@ -58,7 +58,8 @@ main(int ac, char **av)
     dj_cat_mapping lcm, rcm;
     dj_stmt_signed delegation;
 
-    dj_map_and_delegate(key_t, false,
+    bool integrity = false;
+    dj_map_and_delegate(1, &key_t, &integrity,
 			map_grant, map_grant,
 			local_ct, call_ct, k,
 			&gs, djcache,

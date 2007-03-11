@@ -68,7 +68,8 @@ main(int ac, char **av)
 	label ct_local(1), ct_remote(1);
 
 	dj_stmt_signed dres;
-	dj_map_and_delegate(tcat, false,
+	bool integrity = false;
+	dj_map_and_delegate(1, &tcat, &integrity,
 			    ct_local, ct_remote,
 			    local_ct, call_ct, k,
 			    &gs, djcache,

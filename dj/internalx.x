@@ -2,7 +2,7 @@
 
 /*
  * Mapping creation service, implemented as an RPC server
- * on a special endpoint.  Replies with dj_cat_mapping.
+ * on a special endpoint.
  */
 
 struct dj_mapreq {
@@ -11,9 +11,16 @@ struct dj_mapreq {
     unsigned hyper ct;
 };
 
+struct dj_mapcreate_arg {
+    dj_mapreq reqs<>;
+};
+
+struct dj_mapcreate_res {
+    dj_cat_mapping mappings<>;
+};
+
 /*
  * Delegation creation internal RPC service.
- * Replies with dj_stmt_signed.
  */
 
 struct dj_delegate_req {
@@ -21,5 +28,13 @@ struct dj_delegate_req {
     dj_pubkey to;
     dj_timestamp from_ts;
     dj_timestamp until_ts;
+};
+
+struct dj_delegate_arg {
+    dj_delegate_req reqs<>;
+};
+
+struct dj_delegate_res {
+    dj_stmt_signed delegations<>;
 };
 
