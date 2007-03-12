@@ -137,7 +137,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[0]);
 	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[1]);
 	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[0]);
-	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[0]);
+	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[1]);
 
 	dj_autorpc app_arpc(the_gs, 5, dj_app_server_pk, djcache_app);
 	dj_delivery_code c;
