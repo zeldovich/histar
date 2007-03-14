@@ -158,14 +158,15 @@ gate_call::set_verify(const label *vl, const label *vc)
 
 void
 gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
-		void (*returncb)(void*), void *cbarg)
+		void (*returncb)(void*), void *cbarg, bool setup_return_gate)
 {
     set_verify(vl, vc);
 
     // Create a return gate in the taint container
     jos_jmp_buf back_from_call;
-    return_setup(&return_gate_, &back_from_call, call_grant_, call_ct_obj_.object,
-		 returncb, cbarg);
+    if (setup_return_gate)
+	return_setup(&return_gate_, &back_from_call, call_grant_, call_ct_obj_.object,
+		     returncb, cbarg);
 
     // Gate call parameters
     gate_call_data *d = (gate_call_data *) tls_gate_args;

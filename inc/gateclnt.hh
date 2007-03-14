@@ -24,8 +24,8 @@ class gate_call {
     void call(gate_call_data *gcd,
 	      const label *verify_label = 0,		// { 3 } for none
 	      const label *verify_clear = 0,		// { 0 } for none
-	      void (*return_cb)(void*) = 0, void *cbarg = 0);
-
+	      void (*return_cb)(void*) = 0, void *cbarg = 0,
+	      bool setup_return_gate = true);
  private:
     gate_call(const gate_call&);
     gate_call &operator=(const gate_call&);
