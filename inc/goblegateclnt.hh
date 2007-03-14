@@ -77,7 +77,7 @@ public:
 
     static void goblegate_stub(void *a) {
 	leftovers *lo = (leftovers *)a;
-	lo->gc_->call(&lo->gcd_, lo->vl_, lo->vc_);
+	lo->gc_->call(&lo->gcd_, lo->vl_, lo->vc_, 0, 0, false);
     }
     
 private:
