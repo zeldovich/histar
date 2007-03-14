@@ -98,11 +98,11 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
     sys_sync_wakeup(&s->reply.counter);
 }
 
-dj_delivery_code
-dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
-	    const dj_delegation_set &dset, const dj_catmap &cm,
-	    const dj_message &m, const str &calldata, dj_message *reply,
-	    label *grantlabel, label *return_ct_taint)
+static dj_delivery_code
+dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+		 const dj_delegation_set &dset, const dj_catmap &cm,
+		 const dj_message &m, const str &calldata, dj_message *reply,
+		 label *grantlabel, label *return_ct_taint)
 {
     label lcallct;
 
@@ -198,4 +198,88 @@ dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
     *reply = rs.m;
     return DELIVERY_DONE;
+}
+
+static dj_delivery_code
+dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+		const dj_delegation_set &dset, const dj_catmap &cm,
+		const dj_message &m, const str &calldata, dj_message *reply,
+		label *grantlabel, label *return_ct_taint)
+{
+    label lseg;
+
+    if (return_ct_taint) {
+	lseg = *return_ct_taint;
+    } else {
+	thread_cur_label(&lseg);
+	lseg.transform(label::star_to, lseg.get_default());
+    }
+
+    int64_t seg_id = sys_segment_create(start_env->shared_container,
+					8, lseg.to_ulabel(), "gate return seg");
+    error_check(seg_id);
+    cobj_ref reply_seg = COBJ(start_env->shared_container, seg_id);
+    scope_guard<int, cobj_ref> unref(sys_obj_unref, reply_seg);
+
+    error_check(sys_container_move_quota(start_env->shared_container,
+					 seg_id, 10 * 1024 * 1024));
+
+    dj_call_msg callmsg;
+    callmsg.return_ep.set_type(EP_SEGMENT);
+    callmsg.return_ep.ep_segment->seg_ct = reply_seg.container;
+    callmsg.return_ep.ep_segment->seg_id = reply_seg.object;
+    callmsg.return_cm = cm;
+    callmsg.return_ds = dset;
+    callmsg.buf = calldata;
+
+    dj_message m2 = m;
+    m2.msg = xdr2str(callmsg);
+
+    uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
+    for (;;) {
+	uint64_t now_msec = sys_clock_msec();
+	if (now_msec >= timeout_at_msec)
+	    return DELIVERY_TIMEOUT;
+
+	dj_delivery_code code = gs->send(node,
+					 (timeout_at_msec - now_msec) / 1000,
+					 dset, cm, m2, grantlabel);
+	if (code != DELIVERY_DONE)
+	    return code;
+
+	uint64_t *base = 0;
+	error_check(segment_map(reply_seg, 0, SEGMAP_READ,
+				(void **) &base, 0, 0));
+	scope_guard2<int, void*, int> unmap(segment_unmap_delayed, base, 1);
+
+	if (*base == 0)
+	    sys_sync_wait(base, 0, sys_clock_msec() + retry_delivery_msec);
+
+	if (*base)
+	    break;
+    }
+
+    uint64_t *base = 0;
+    uint64_t len = 0;
+    error_check(segment_map(reply_seg, 0, SEGMAP_READ,
+			    (void **) &base, &len, 0));
+    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, base, 1);
+
+    base += 1;
+    len -= 8;
+
+    buf2xdr(*reply, (const void *) base, len);
+    return DELIVERY_DONE;
+}
+
+dj_delivery_code
+dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+	    const dj_delegation_set &dset, const dj_catmap &cm,
+	    const dj_message &m, const str &calldata, dj_message *reply,
+	    label *grantlabel, label *return_ct_taint, bool gateret)
+{
+    if (gateret)
+	return dj_rpc_call_gate(gs, node, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
+    else
+	return dj_rpc_call_seg(gs, node, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
 }

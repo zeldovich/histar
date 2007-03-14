@@ -21,8 +21,8 @@ delegation_create(djprot *p, const dj_pubkey &sender,
 	return;
     }
 
-    if (callmsg.return_ep.type != EP_GATE) {
-	warn << "delegation_create: must return to a gate\n";
+    if (callmsg.return_ep.type != EP_GATE && callmsg.return_ep.type != EP_SEGMENT) {
+	warn << "delegation_create: must return to a gate or segment\n";
 	da.cb(DELIVERY_REMOTE_ERR);
 	return;
     }

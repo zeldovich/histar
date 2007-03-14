@@ -340,7 +340,8 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	grant.set(dj_calltaint, LB_LEVEL_STAR);
 
 	dj_autorpc auth_arpc(the_gs, 5, dj_user_server_pk, djcache);
-	dj_delivery_code c = auth_arpc.call(auth_ep, ap_arg, ap_res, &taint, &grant);
+	dj_delivery_code c = auth_arpc.call(auth_ep, ap_arg, ap_res,
+					    &taint, &grant, 0, 0, true);
 	if (c != DELIVERY_DONE)
 	    throw basic_exception("auth rpc: code %d", c);
 	if (!ap_res.ok)

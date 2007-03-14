@@ -20,7 +20,8 @@ class dj_autorpc {
 			  label *taint = 0,
 			  label *grant = 0,
 			  label *gclear = 0,
-			  label *xgrant = 0)
+			  label *xgrant = 0,
+			  bool gateret = false)
     {
 	dj_delegation_map loc_dmap;
 	dj_delegation_map rem_dmap;
@@ -109,7 +110,7 @@ class dj_autorpc {
 					    loc_dmap.to_delegation_set(),
 					    loc_cm.to_catmap(),
 					    reqm, reqstr, &resm, xgrant,
-					    taint);
+					    taint, gateret);
 	if (code != DELIVERY_DONE)
 	    return code;
 
