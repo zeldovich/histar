@@ -5,14 +5,15 @@ class segment_helper
 {
 public:
     segment_helper(cobj_ref seg_obj, void **vap, uint64_t flags) 
+	: addr_(0), bytes_(0)
     {
-	int r =  segment_map(seg_obj, 0, flags, &addr_, &bytes_, 0);
+	int r = segment_map(seg_obj, 0, flags, &addr_, &bytes_, 0);
 	if (r < 0)
 	    throw error(r, "cannot map segment");
 	if (vap)
 	    *vap = addr_;
-	
     }
+
     ~segment_helper(void) {
 	segment_unmap_delayed(addr_, 1);
     }
