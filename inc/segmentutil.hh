@@ -5,7 +5,7 @@ class segment_helper
 {
 public:
     segment_helper(cobj_ref seg_obj, void **vap, uint64_t flags) 
-	: addr_(0), bytes_(0)
+	: bytes_(0), addr_(0)
     {
 	int r = segment_map(seg_obj, 0, flags, &addr_, &bytes_, 0);
 	if (r < 0)
