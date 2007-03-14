@@ -16,6 +16,7 @@ class gate_call {
     ~gate_call();
 
     uint64_t call_ct() { return call_ct_obj_.object; }
+    uint64_t call_taint_ct() { return taint_ct_obj_.object; }
     uint64_t call_taint() { return call_taint_; }
     uint64_t call_grant() { return call_grant_; }
     cobj_ref return_gate() { return return_gate_; }
