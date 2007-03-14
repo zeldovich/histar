@@ -23,13 +23,13 @@ extern "C" {
 #include <dj/djlabel.hh>
 #include <dj/mapcreate.hh>
 #include <dj/perf.hh>
-#include <dj/gatecallstatus.h>
+#include <dj/gatecallstatus.hh>
 
 enum { separate_entry_as = 1 };
 
 struct incoming_req {
     const dj_incoming_gate_req *req;
-    dj_incoming_gate_res res;
+    dj_delivery_code res;
     void *local_deliver_arg;
     uint64_t done;
 };
@@ -143,9 +143,15 @@ class incoming_impl : public dj_incoming_gate {
     void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted) {
 	PERF_COUNTER(gate_incoming::call);
 
-	int64_t res;
-	label *cs = 0;
+	try {
+	    process_call1(gcd, untainted);
+	} catch (std::exception &e) {
+	    warn << "gateincoming: " << e.what() << "\n";
+	}
+    }
 
+    void process_call1(gate_call_data *gcd, bool untainted) {
+	dj_delivery_code res;
 	cobj_ref rseg = gcd->param_obj;
 
 	label vl, vc;
@@ -154,7 +160,6 @@ class incoming_impl : public dj_incoming_gate {
 	    throw basic_exception("bad verify labels %s, %s",
 				  vl.to_string(), vc.to_string());
 
-	cs = New label(vl);
 	verify_label_reqctx ctx(vl, vc);
 
 	str reqstr;
@@ -188,7 +193,7 @@ class incoming_impl : public dj_incoming_gate {
 		error_check(mt.compare(&vc, label::leq_starhi));
 		error_check(mc.compare(&vc, label::leq_starhi));
 	    } catch (std::exception &e) {
-		warn << "process_call2: local mapping: " << e.what() << "\n";
+		warn << "process_call1: local mapping: " << e.what() << "\n";
 		res = DELIVERY_LOCAL_MAPPING;
 		return;
 	    }
@@ -226,7 +231,7 @@ class incoming_impl : public dj_incoming_gate {
 	    }
 	}
 
-	process_call1(req, &res, lms_init ? (void *) &lms : 0);
+	process_call2(req, &res, lms_init ? (void *) &lms : 0);
 
 	if (lms_init)
 	    sys_obj_unref(lms.privgate);
@@ -241,7 +246,8 @@ class incoming_impl : public dj_incoming_gate {
 	gatecall_status_done(ret_obj, res);
     }
 
-    void process_call1(const dj_incoming_gate_req &req, int64_t *res,
+    void process_call2(const dj_incoming_gate_req &req,
+		       dj_delivery_code *res,
 		       void *local_deliver_arg)
     {
 	incoming_req ir;
@@ -256,7 +262,7 @@ class incoming_impl : public dj_incoming_gate {
 	while (!ir.done)
 	    sys_sync_wait(&ir.done, 0, ~0UL);
 
-	*res = ir.res.stat;
+	*res = ir.res;
     }
 
     void readcb() {
@@ -281,7 +287,7 @@ class incoming_impl : public dj_incoming_gate {
     }
 
     void callcb(incoming_req *ir, dj_delivery_code stat) {
-	ir->res.stat = stat;
+	ir->res = stat;
 	ir->done = 1;
 	sys_sync_wakeup(&ir->done);
     }

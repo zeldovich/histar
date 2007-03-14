@@ -11,7 +11,7 @@ extern "C" {
 #include <dj/gatesender.hh>
 #include <dj/djlabel.hh>
 #include <dj/djgate.h>
-#include <dj/gatecallstatus.h>
+#include <dj/gatecallstatus.hh>
 
 dj_delivery_code
 gate_sender::send(const dj_pubkey &node, time_t timeout,
@@ -61,5 +61,5 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
     thread_cur_clearance(&vc);
     gc.call(&gcd, &vl, &vc);
 
-    return (dj_delivery_code)gatecall_status_wait(gcs_obj);
+    return gatecall_status_wait(gcs_obj);
 }

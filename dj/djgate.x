@@ -14,10 +14,6 @@ struct dj_incoming_gate_req {
     uint64_t res_seg;
 };
 
-struct dj_incoming_gate_res {
-    dj_delivery_code stat;
-};
-
 struct dj_outgoing_gate_msg {
     dj_pubkey sender;
     dj_gatename djd_gate;

@@ -29,7 +29,8 @@ LIBDIS_SRCFILES +=		\
 	dj/cryptconn.cc		\
 	dj/djutil.cc		\
 	dj/perf.cc		\
-	dj/gatecallstatus.cc	
+	dj/gatecallstatus.cc
+
 # Application-specific stuff
 LIBDIS_SRCFILES +=		\
 	dj/djfs.x		\
