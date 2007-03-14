@@ -1,14 +1,17 @@
 extern "C" {
 #include <inc/gateparam.h>
+#include <inc/syscall.h>
+#include <inc/stdio.h>
 }
 
 #include <crypt.h>
 #include <inc/scopeguard.hh>
-#include <inc/gateclnt.hh>
+#include <inc/goblegateclnt.hh>
 #include <inc/labelutil.hh>
 #include <dj/gatesender.hh>
 #include <dj/djlabel.hh>
 #include <dj/djgate.h>
+#include <dj/gatecallstatus.h>
 
 dj_delivery_code
 gate_sender::send(const dj_pubkey &node, time_t timeout,
@@ -34,12 +37,16 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
 	glabel = tmp;
     }
 
-    gate_call gc(g_, &tlabel, &glabel, &gclear);
+    goblegate_call gc(g_, &tlabel, &glabel, &gclear, true);
 
     label reqlabel(tlabel);
     reqlabel.set(gc.call_grant(), 0);
     reqlabel.set(gc.call_taint(), 3);
-
+    
+    cobj_ref gcs_obj = gatecall_status_alloc(gc.call_ct(), &reqlabel);
+    req.res_ct = gcs_obj.container;
+    req.res_seg = gcs_obj.object;
+     
     str reqstr = xdr2str(req);
     gate_call_data gcd;
 
@@ -54,9 +61,5 @@ gate_sender::send(const dj_pubkey &node, time_t timeout,
     thread_cur_clearance(&vc);
     gc.call(&gcd, &vl, &vc);
 
-    dj_incoming_gate_res res;
-    if (!buf2xdr(res, &gcd.param_buf[0], sizeof(gcd.param_buf)))
-	throw basic_exception("cannot unmarshal response");
-
-    return res.stat;
+    return (dj_delivery_code)gatecall_status_wait(gcs_obj);
 }

@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/fd.h>
 #include <inc/stack.h>
+#include <inc/stdio.h>
 }
 
 #include <async.h>
@@ -14,6 +15,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
 #include <inc/gateinvoke.hh>
+#include <inc/segmentutil.hh>
 #include <dj/djgate.h>
 #include <dj/gateincoming.hh>
 #include <dj/checkpoint.hh>
@@ -21,6 +23,7 @@ extern "C" {
 #include <dj/djlabel.hh>
 #include <dj/mapcreate.hh>
 #include <dj/perf.hh>
+#include <dj/gatecallstatus.h>
 
 enum { separate_entry_as = 1 };
 
@@ -140,36 +143,10 @@ class incoming_impl : public dj_incoming_gate {
     void call(gate_call_data *gcd, gatesrv_return *ret, bool untainted) {
 	PERF_COUNTER(gate_incoming::call);
 
-	bool halt = (gcd->return_gate.object == 0) ? true : false;
+	int64_t res;
+	//bool halt = (gcd->return_gate.object == 0) ? true : false;
 	label *cs = 0;
-	process_call1(gcd, &cs, untainted);
-	if (!halt)
-	    ret->ret(cs, 0, 0);
 
-	sys_obj_unref(COBJ(gcd->thread_ref_ct, sys_self_id()));
-    }
-
-    void process_call1(gate_call_data *gcd, label **csp, bool untainted) {
-	dj_incoming_gate_res res;
-
-	try {
-	    process_call2(gcd, csp, untainted, &res);
-	} catch (std::exception &e) {
-	    warn << "incoming_impl::process_call1: " << e.what() << "\n";
-	    res.stat = DELIVERY_LOCAL_ERR;
-	}
-
-	str s = xdr2str(res);
-	if (s.len() > sizeof(gcd->param_buf)) {
-	    warn << "incoming_impl::process_call1: encoded response size too large!\n";
-	} else {
-	    memcpy(&gcd->param_buf[0], s.cstr(), s.len());
-	}
-    }
-
-    void process_call2(gate_call_data *gcd, label **csp,
-		       bool untainted, dj_incoming_gate_res *res)
-    {
 	cobj_ref rseg = gcd->param_obj;
 
 	label vl, vc;
@@ -178,7 +155,7 @@ class incoming_impl : public dj_incoming_gate {
 	    throw basic_exception("bad verify labels %s, %s",
 				  vl.to_string(), vc.to_string());
 
-	*csp = New label(vl);
+	cs = New label(vl);
 	verify_label_reqctx ctx(vl, vc);
 
 	str reqstr;
@@ -213,7 +190,7 @@ class incoming_impl : public dj_incoming_gate {
 		error_check(mc.compare(&vc, label::leq_starhi));
 	    } catch (std::exception &e) {
 		warn << "process_call2: local mapping: " << e.what() << "\n";
-		res->stat = DELIVERY_LOCAL_MAPPING;
+		res = DELIVERY_LOCAL_MAPPING;
 		return;
 	    }
 
@@ -250,13 +227,22 @@ class incoming_impl : public dj_incoming_gate {
 	    }
 	}
 
-	process_call3(req, res, lms_init ? (void *) &lms : 0);
+	process_call1(req, &res, lms_init ? (void *) &lms : 0);
 
 	if (lms_init)
 	    sys_obj_unref(lms.privgate);
+
+	if (!req.res_ct || !req.res_seg)
+	    return;
+
+	cobj_ref ret_obj = COBJ(req.res_ct, req.res_seg);
+	if (!ctx.can_rw(ret_obj))
+	    return;
+
+	gatecall_status_done(ret_obj, res);
     }
 
-    void process_call3(const dj_incoming_gate_req &req, dj_incoming_gate_res *res,
+    void process_call1(const dj_incoming_gate_req &req, int64_t *res,
 		       void *local_deliver_arg)
     {
 	incoming_req ir;
@@ -271,7 +257,7 @@ class incoming_impl : public dj_incoming_gate {
 	while (!ir.done)
 	    sys_sync_wait(&ir.done, 0, ~0UL);
 
-	*res = ir.res;
+	*res = ir.res.stat;
     }
 
     void readcb() {

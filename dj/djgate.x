@@ -10,6 +10,8 @@ struct dj_incoming_gate_req {
     dj_delegation_set dset;
     dj_catmap catmap;
     dj_message m;
+    uint64_t res_ct;
+    uint64_t res_seg;
 };
 
 struct dj_incoming_gate_res {
