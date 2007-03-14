@@ -1,6 +1,8 @@
 #ifndef JOS_INC_SEGMENTUTIL_HH
 #define JOS_INC_SEGMENTUTIL_HH
 
+#include <inc/error.hh>
+
 class segment_helper
 {
 public:
