@@ -210,6 +210,7 @@ main(int ac, char **av)
     warn << "dj_incoming_gate at " << in->gate() << "\n";
 
     emux.set(EP_GATE, wrap(&gate_exec, cm, in->gate()));
+    emux.set(EP_SEGMENT, wrap(&segment_exec, cm));
     warn << "delivering gate messages via gate_exec\n";
 
     histar_mapcreate hmc(djs, cm);

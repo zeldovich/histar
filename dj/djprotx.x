@@ -78,6 +78,7 @@ struct dj_delegation_set {
 
 enum dj_endpoint_type {
     EP_GATE = 1,
+    EP_SEGMENT,
     EP_MAPCREATE,
     EP_DELEGATOR
 };
@@ -98,9 +99,16 @@ struct dj_ep_gate {
     dj_gatename gate;
 };
 
+struct dj_ep_segment {
+    unsigned hyper seg_ct;
+    unsigned hyper seg_id;
+};
+
 union dj_message_endpoint switch (dj_endpoint_type type) {
  case EP_GATE:
     dj_ep_gate ep_gate;
+ case EP_SEGMENT:
+    dj_ep_segment ep_segment;
  case EP_MAPCREATE:
     void;
  case EP_DELEGATOR:

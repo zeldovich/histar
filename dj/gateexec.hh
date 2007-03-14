@@ -6,5 +6,7 @@
 
 void gate_exec(catmgr*, cobj_ref djd_gate,
 	       const dj_pubkey&, const dj_message&, const delivery_args&);
+void segment_exec(catmgr*, const dj_pubkey&,
+		  const dj_message&, const delivery_args&);
 
 #endif

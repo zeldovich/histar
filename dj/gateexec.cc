@@ -219,7 +219,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     da.cb(DELIVERY_DONE);
 
-    delete_s.dismiss();
     unref1.dismiss();
     unref2.dismiss();
 }
@@ -232,6 +231,90 @@ gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
 	gate_exec2(cm, node, m, da, djd_gate);
     } catch (std::exception &e) {
 	warn << "gate_exec: " << e.what() << "\n";
+	da.cb(DELIVERY_REMOTE_ERR);
+    }
+
+    cm->drop_now();
+}
+
+static void
+segment_exec2(catmgr *cm, const dj_pubkey &sender,
+	      const dj_message &m, const delivery_args &da)
+{
+    PERF_COUNTER(segment_exec2);
+
+    if (m.target.type != EP_SEGMENT)
+	throw basic_exception("segment_exec only does segments");
+
+    /*
+     * Translate the global labels into local ones.
+     */
+    label msg_taint, msg_glabel, msg_gclear;
+
+    try {
+	dj_catmap_indexed cmi(m.catmap);
+	djlabel_to_label(cmi, m.taint,  &msg_taint, label_taint);
+	djlabel_to_label(cmi, m.glabel, &msg_glabel, label_owner);
+	djlabel_to_label(cmi, m.gclear, &msg_gclear, label_clear);
+    } catch (std::exception &e) {
+	warn << "segment_exec2: " << e.what() << "\n";
+	da.cb(DELIVERY_REMOTE_MAPPING);
+	return;
+    }
+
+    /*
+     * Acquire whatever resources the caller wants..
+     */
+    try {
+	cm->acquire(m.catmap, true);
+    } catch (std::exception &e) {
+	warn << "segment_exec2: acquiring: " << e.what() << "\n";
+	da.cb(DELIVERY_REMOTE_MAPPING);
+	return;
+    }
+
+    /*
+     * Make sure caller can write to this segment.
+     */
+    label vl, vc;
+    msg_taint.merge(&msg_glabel, &vl, label::min, label::leq_starlo);
+    msg_taint.merge(&msg_gclear, &vc, label::max, label::leq_starlo);
+
+    verify_label_reqctx ctx(vl, vc);
+    cobj_ref seg = COBJ(m.target.ep_segment->seg_ct,
+			m.target.ep_segment->seg_id);
+    if (!ctx.can_rw(seg)) {
+	warn << "segment_exec2: cannot write to segment\n";
+	da.cb(DELIVERY_REMOTE_ERR);
+	return;
+    }
+
+    /*
+     * Write message to segment
+     */
+    str s = xdr2str(m);
+    uint64_t seglen = s.len() + 8;
+    error_check(sys_segment_resize(seg, seglen));
+
+    uint64_t *data_map = 0;
+    error_check(segment_map(seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+			    (void **) &data_map, &seglen, 0));
+    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, data_map, 1);
+    memcpy(data_map + 1, s.cstr(), s.len());
+    *data_map = 1;
+    sys_sync_wakeup(data_map);
+
+    da.cb(DELIVERY_DONE);
+}
+
+void
+segment_exec(catmgr *cm, const dj_pubkey &node,
+	     const dj_message &m, const delivery_args &da)
+{
+    try {
+	segment_exec2(cm, node, m, da);
+    } catch (std::exception &e) {
+	warn << "segment_exec: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_ERR);
     }
 
