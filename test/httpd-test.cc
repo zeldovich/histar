@@ -39,8 +39,13 @@ static const char* path = "/";
 static char logging = 0;
 static char auth = 0;
 static char warnings = 1;
+static char host_hack = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
+
+#define NUM_HOSTS 2
+static const char *hosts[NUM_HOSTS] = { "class1.scs.stanford.edu",
+					"silas-jos64.scs.stanford.edu" };
 
 static int 
 err_exit(char *string)
@@ -178,7 +183,7 @@ main(int ac, char **av)
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
 		"[-r requests | -c clients | -l time-limit | "
-		"-p path -a -d -s]\n", av[0]);
+		"-p path -a -d -s -h]\n", av[0]);
 	exit(-1);
     }
 
@@ -188,7 +193,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:p:das")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:dash")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -211,6 +216,9 @@ main(int ac, char **av)
 	case 's':
 	    warnings = 0;
 	    break;
+	case 'h':
+	    host_hack = 1;
+	    break;
 	}
     }
 
@@ -219,16 +227,6 @@ main(int ac, char **av)
     else
 	request_template = request_template_noauth;
     
-    struct hostent *hp;
-    struct sockaddr_in addr;
-    
-    if(!(hp = gethostbyname(host)))
-	err_exit("Couldn't resolve host");
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_addr = *((struct in_addr*) hp->h_addr_list[0]);
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-
     int fd[2];
     if (pipe(fd) < 0)
 	err_exit("unable to create pipe");
@@ -242,10 +240,23 @@ main(int ac, char **av)
 	    fprintf(stderr, "%d (%d) started...\n", i, p);
 	    continue;
 	}
-	
+
 	int log = fd[1];
 	close(fd[0]);
 
+	if (host_hack)
+	    host = hosts[i % NUM_HOSTS];
+
+	struct hostent *hp;
+	struct sockaddr_in addr;
+	
+	if(!(hp = gethostbyname(host)))
+	    err_exit("Couldn't resolve host");
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_addr = *((struct in_addr*) hp->h_addr_list[0]);
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	
 	if (timelimit) {
 	    // wait so all processes can be forked
 	    kill(getpid(), SIGSTOP);
