@@ -37,8 +37,14 @@ public:
     };
 
     goblegate_call(cobj_ref gate, 
-		   const label *cs, const label *ds, const label *dr) {
+		   const label *cs, const label *ds, const label *dr,
+		   bool cleanup) : cleanup_(cleanup) {
 	lo_.gc_ = new gate_call(gate, cs, ds, dr);
+    }
+
+    ~goblegate_call(void) {
+	if (cleanup_)
+	    lo_.cleanup();
     }
 
     void call(gate_call_data *gcd_param, const label *vl, const label *vc) {
@@ -75,7 +81,9 @@ public:
     }
     
 private:
-    leftovers lo_;    
+    leftovers lo_;
+    bool cleanup_;
+    
 };
 
 #endif
