@@ -211,14 +211,12 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	webapp_ep.ep_gate->gate = dj_app_gate;
 
 	label web_taint(1);
-	web_taint.set(ug, 0);
 	web_taint.set(ut, 3);
 
 	label web_grant(3);
 	web_grant.set(ug, LB_LEVEL_STAR);
 
 	label web_clear(0);
-	web_clear.set(ug, 3);
 	web_clear.set(ut, 3);
 
 	if (debug_dj)
