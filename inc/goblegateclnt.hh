@@ -45,6 +45,16 @@ public:
 	cobj_ref t;
 	uint64_t thread_ct = lo_.gc_->call_taint_ct();
 	memcpy(&lo_.gcd_, gcd_param, sizeof(lo_.gcd_));
+
+	if (vl) {
+	    lo_.vl_ = new label();
+	    lo_.vl_->from_ulabel(vl->to_ulabel_const());
+	}
+	if (vc) {
+	    lo_.vc_ = new label();
+	    lo_.vc_->from_ulabel(vc->to_ulabel_const());
+	}
+	
 	int r = thread_create_option(thread_ct, &goblegate_stub,
 				     &lo_, sizeof(lo_), 
 				     &t, "goblegate_stub", 
@@ -54,10 +64,10 @@ public:
     }
 
     uint64_t call_ct(void) { return lo_.gc_->call_ct(); }
+    uint64_t call_taint() { return lo_.gc_->call_taint(); }
+    uint64_t call_grant() { return lo_.gc_->call_grant(); }
     
-    leftovers lo(void) {
-	return lo_;
-    }
+    leftovers lo(void) { return lo_; }
 
     static void goblegate_stub(void *a) {
 	leftovers *lo = (leftovers *)a;
