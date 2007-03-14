@@ -144,7 +144,6 @@ class incoming_impl : public dj_incoming_gate {
 	PERF_COUNTER(gate_incoming::call);
 
 	int64_t res;
-	//bool halt = (gcd->return_gate.object == 0) ? true : false;
 	label *cs = 0;
 
 	cobj_ref rseg = gcd->param_obj;
