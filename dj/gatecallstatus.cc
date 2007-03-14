@@ -31,8 +31,8 @@ gatecall_status_alloc(uint64_t ct, label *l)
 void
 gatecall_status_done(cobj_ref gcs_obj, uint64_t res)
 {
-    segment_writer sw(gcs_obj);
-    gatecall_status *gcs = (gatecall_status *) sw.addr();
+    segment_writer<gatecall_status> sw(gcs_obj);
+    gatecall_status *gcs = sw.addr();
     gcs->res = res;
     gcs->signal = gatecall_complete;
     sys_sync_wakeup(&gcs->signal);
@@ -41,8 +41,8 @@ gatecall_status_done(cobj_ref gcs_obj, uint64_t res)
 uint64_t 
 gatecall_status_wait(cobj_ref gcs_obj)
 {
-    segment_reader sr(gcs_obj);
-    gatecall_status *gcs = (gatecall_status *) sr.addr();
+    segment_reader<gatecall_status> sr(gcs_obj);
+    gatecall_status *gcs = sr.addr();
     int64_t r = sys_sync_wait(&gcs->signal, gatecall_incomplete ,~0UL);
     if (r < 0)
 	throw error(r, "unable to wait on signal");
