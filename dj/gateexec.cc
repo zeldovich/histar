@@ -219,6 +219,7 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 
     da.cb(DELIVERY_DONE);
 
+    delete_s.dismiss();
     unref1.dismiss();
     unref2.dismiss();
 }
