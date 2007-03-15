@@ -43,9 +43,10 @@ static char host_hack = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
 
-#define NUM_HOSTS 2
-static const char *hosts[NUM_HOSTS] = { "class1.scs.stanford.edu",
-					"silas-jos64.scs.stanford.edu" };
+static int num_hosts = 3;
+static const char *hosts[] = { "silas-jos64.scs.stanford.edu",
+			       "class3.scs.stanford.edu",
+			       "class4.scs.stanford.edu" };
 
 static int 
 err_exit(char *string)
@@ -193,7 +194,7 @@ main(int ac, char **av)
     port = atoi(av[2]);
 
     int c;
-    while ((c = getopt(ac, av, "r:c:l:p:dash")) != -1) {
+    while ((c = getopt(ac, av, "r:c:l:p:dash:")) != -1) {
 	switch(c) {
 	case 'r':
 	    requests = atoi(optarg);
@@ -217,6 +218,7 @@ main(int ac, char **av)
 	    warnings = 0;
 	    break;
 	case 'h':
+	    num_hosts = atoi(optarg);
 	    host_hack = 1;
 	    break;
 	}
@@ -245,7 +247,7 @@ main(int ac, char **av)
 	close(fd[0]);
 
 	if (host_hack)
-	    host = hosts[i % NUM_HOSTS];
+	    host = hosts[i % num_hosts];
 
 	struct hostent *hp;
 	struct sockaddr_in addr;
