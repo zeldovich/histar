@@ -44,9 +44,16 @@ static const char session_reuse = 0;
 static const int bufsize = 4096;
 
 static int num_hosts = 3;
+
+#if 0
 static const char *hosts[] = { "silas-jos64.scs.stanford.edu",
 			       "class3.scs.stanford.edu",
 			       "class4.scs.stanford.edu" };
+#else
+static const char *hosts[] = { "171.66.3.241",
+			       "171.66.3.248",
+			       "171.66.3.249" };
+#endif
 
 static int 
 err_exit(char *string)
