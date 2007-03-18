@@ -33,38 +33,40 @@ dj_map_and_delegate(uint32_t ncat, uint64_t *lcatp, bool *integrityp,
     ep_mapcreate.set_type(EP_MAPCREATE);
 
     dj_mapcreate_arg maparg;
-    maparg.reqs.setsize(ncat);
-    for (uint32_t i = 0; i < ncat; i++) {
-	maparg.reqs[i].ct = lct;
-	maparg.reqs[i].lcat = lcatp[i];
-	maparg.reqs[i].gcat.integrity = integrityp[i] ? 1 : 0;
-    }
-
+    dj_mapcreate_res mapres;
     label call_taint(taint), call_grant(grant_local), call_clear(taint);
 
-    /* If a local mapping is already in our cache, force dj_autorpc to
-     * include it in the catmap by granting it.  As a result, mapcreate
-     * will reuse the same global category name for it.
-     */
-    for (uint32_t i = 0; i < ncat; i++) {
-	if (cache[localkey]->cmi_.l2g(lcatp[i], 0))
-	    call_grant.set(lcatp[i], LB_LEVEL_STAR);
-    }
+    if (lct) {
+	maparg.reqs.setsize(ncat);
+	for (uint32_t i = 0; i < ncat; i++) {
+	    maparg.reqs[i].ct = lct;
+	    maparg.reqs[i].lcat = lcatp[i];
+	    maparg.reqs[i].gcat.integrity = integrityp[i] ? 1 : 0;
+	}
 
-    if (map_debug)
-	warn << "map_and_delegate: creating local mapping\n";
+	/* If a local mapping is already in our cache, force dj_autorpc to
+	 * include it in the catmap by granting it.  As a result, mapcreate
+	 * will reuse the same global category name for it.
+	 */
+	for (uint32_t i = 0; i < ncat; i++) {
+	    if (cache[localkey]->cmi_.l2g(lcatp[i], 0))
+		call_grant.set(lcatp[i], LB_LEVEL_STAR);
+	}
 
-    dj_mapcreate_res mapres;
-    c = arpc_local.call(ep_mapcreate, maparg, mapres,
-			&call_taint, &call_grant, &call_clear, &xgrant);
-    if (map_debug)
-	warn << "map_and_delegate: creating local mapping: " << c << "\n";
-    if (c != DELIVERY_DONE)
-	throw basic_exception("Could not create local mapping: code %d", c);
+	if (map_debug)
+	    warn << "map_and_delegate: creating local mapping\n";
 
-    for (uint32_t i = 0; i < ncat; i++) {
-	lmapp[i] = mapres.mappings[i];
-	cache[localkey]->cmi_.insert(lmapp[i]);
+	c = arpc_local.call(ep_mapcreate, maparg, mapres,
+			    &call_taint, &call_grant, &call_clear, &xgrant);
+	if (map_debug)
+	    warn << "map_and_delegate: creating local mapping: " << c << "\n";
+	if (c != DELIVERY_DONE)
+	    throw basic_exception("Could not create local mapping: code %d", c);
+
+	for (uint32_t i = 0; i < ncat; i++) {
+	    lmapp[i] = mapres.mappings[i];
+	    cache[localkey]->cmi_.insert(lmapp[i]);
+	}
     }
 
     /*
