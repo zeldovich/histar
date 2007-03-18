@@ -46,6 +46,10 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 
 ## Special targets
 
+$(OBJDIR)/user/%.sh: user/%.sh
+	@mkdir -p $(@D)
+	cp $< $@
+
 $(OBJDIR)/user/%.C: user/%.x
 	@mkdir -p $(@D)
 	$(RPCC) -c -o $@ $<

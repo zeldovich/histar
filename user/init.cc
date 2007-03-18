@@ -264,6 +264,7 @@ init_procs(int cons)
 		spawn_fs(cons, fn, &root_grant_buf[0], 0, 0);
 	}
     }
+    spawn_fs(cons, "/bin/ksh", "/bin/init.sh", 0, 0);
 }
 
 static void __attribute__((noreturn))
