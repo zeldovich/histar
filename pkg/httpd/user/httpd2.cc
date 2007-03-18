@@ -60,6 +60,7 @@ static dj_gcat dj_ut, dj_ug;
 static dj_cat_mapping dj_ut_authmap, dj_ug_authmap;
 static dj_stmt_signed dj_ut_authdlg, dj_ug_authdlg;
 static uint64_t dj_calltaint;
+static dj_cat_mapping dj_u_map_local[2];
 
 static void
 http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
@@ -76,22 +77,13 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
     // XXX wrap stuff has no timeout
     if (httpd_dj_enable) {
-	dj_cat_mapping u_map_local[2], u_map_app[2];
+	dj_cat_mapping u_map_app[2];
 	dj_stmt_signed u_dlg[2];
 
 	/*
 	 * Create mappings & delegations for the user grant and taint
 	 * categories on the application server.
 	 */
-	label mapping_ct_label(1);
-	mapping_ct_label.set(ut, 3);
-	int64_t mapping_ct = sys_container_alloc(start_env->shared_container,
-						 mapping_ct_label.to_ulabel(),
-						 "httpd mct", 0, CT_QUOTA_INF);
-	error_check(mapping_ct);
-	if (debug_dj)
-	    warn << "httpd2: mapping_ct = " << mapping_ct << "\n";
-
 	label grant_local(3), grant_remote(3);
 	grant_local.set(ut, LB_LEVEL_STAR);
 
@@ -99,9 +91,9 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	bool integrity[2] = { false, true };
 	dj_map_and_delegate(2, &cats[0], &integrity[0],
 			    grant_local, grant_remote,
-			    mapping_ct, dj_app_server_ct, dj_app_server_pk,
+			    0, dj_app_server_ct, dj_app_server_pk,
 			    the_gs, djcache,
-			    &u_map_local[0], &u_map_app[0], &u_dlg[0]);
+			    &dj_u_map_local[0], &u_map_app[0], &u_dlg[0]);
 
 	/*
 	 * Now, create a container to execute application code.
@@ -134,8 +126,8 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	djcache_app.dmap_.insert(dj_ut_authdlg);
 	djcache_app.dmap_.insert(u_dlg[0]);
 	djcache_app.dmap_.insert(u_dlg[1]);
-	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[0]);
-	djcache_app[the_gs->hostkey()]->cmi_.insert(u_map_local[1]);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(dj_u_map_local[0]);
+	djcache_app[the_gs->hostkey()]->cmi_.insert(dj_u_map_local[1]);
 	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[0]);
 	djcache_app[dj_app_server_pk]->cmi_.insert(u_map_app[1]);
 
@@ -349,6 +341,9 @@ do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 	djcache[dj_user_server_pk]->cmi_.insert(ap_res.resok->ut_local);
 	djcache.dmap_.insert(ap_res.resok->ug_delegation);
 	djcache.dmap_.insert(ap_res.resok->ut_delegation);
+
+	dj_u_map_local[0] = ap_res.resok->ut_remote;
+	dj_u_map_local[1] = ap_res.resok->ug_remote;
 
 	*ug = ap_res.resok->ug_remote.lcat;
 	*ut = ap_res.resok->ut_remote.lcat;
