@@ -18,7 +18,7 @@ enum {
     delegation_time_skew = 5,
 
     broadcast_period = 5,
-    check_local_msgs = 1,
+    check_local_msgs = 0,
     direct_local_msgs = 1,
 };
 
