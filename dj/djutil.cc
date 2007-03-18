@@ -36,8 +36,9 @@ dj_map_and_delegate(uint32_t ncat, uint64_t *lcatp, bool *integrityp,
     dj_mapcreate_res mapres;
     label call_taint(taint), call_grant(grant_local), call_clear(taint);
 
+    maparg.reqs.setsize(ncat);
+
     if (lct) {
-	maparg.reqs.setsize(ncat);
 	for (uint32_t i = 0; i < ncat; i++) {
 	    maparg.reqs[i].ct = lct;
 	    maparg.reqs[i].lcat = lcatp[i];
