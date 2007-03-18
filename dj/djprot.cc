@@ -197,6 +197,8 @@ class djprot_impl : public djprot {
 
 	for (uint64_t i = 0; i < a.taint.ents.size(); i++) {
 	    const dj_gcat &c = a.taint.ents[i];
+	    if (!c.integrity)
+		continue;
 	    if (!key_speaks_for(src, c, dm, dm.size())) {
 		warn << "labelcheck_recv: missing delegation for taint "
 		     << c << " for host " << src << "\n";
