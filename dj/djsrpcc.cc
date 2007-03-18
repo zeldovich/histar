@@ -145,6 +145,7 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
     dj_message m2 = m;
     m2.msg = xdr2str(callmsg);
+    m2.want_ack = 0;
 
     uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
     for (;;) {
@@ -234,6 +235,7 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
     dj_message m2 = m;
     m2.msg = xdr2str(callmsg);
+    m2.want_ack = 0;
 
     uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
     for (;;) {

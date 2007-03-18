@@ -122,6 +122,7 @@ struct dj_message {
     dj_label gclear;		/* grant clearance on gate invocation */
     dj_catmap catmap;		/* target node category mappings */
     dj_delegation_set dset;	/* supporting delegations */
+    bool want_ack;
     opaque msg<>;
 };
 

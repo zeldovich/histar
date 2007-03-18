@@ -127,6 +127,9 @@ class djprot_impl : public djprot {
     {
 	PERF_COUNTER(djprot::send);
 
+	if (msg.want_ack)
+	    warn << "djprot::send: want_ack set, unexpected..\n";
+
 	msg_client *cc = New msg_client(target, ++xid_);
 	clnt_.insert(cc);
 	cc->cb = cb;
@@ -227,7 +230,9 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool send_message(const dj_stmt_signed &ss, dj_pubkey nodekey) {
+    bool send_message(const dj_stmt_signed &ss, dj_pubkey nodekey,
+		      msg_client *msgclient)
+    {
 	crypt_conn *cc = tcpconn_[nodekey];
 	if (cc) {
 	    str msg = xdr2str(ss.stmt);
@@ -237,6 +242,8 @@ class djprot_impl : public djprot {
 	    }
 
 	    cc->send(msg);
+	    if (msgclient && !ss.stmt.msgx->u.req->want_ack)
+		clnt_done(msgclient, DELIVERY_DONE);
 	    return true;
 	}
 
@@ -290,8 +297,11 @@ class djprot_impl : public djprot {
 	if (cc->ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
 	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
 	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
+
+	    if (!cc->ss.stmt.msgx->u.req->want_ack)
+		clnt_done(cc, DELIVERY_DONE);
 	} else {
-	    if (!send_message(cc->ss, cc->ss.stmt.msgx->to)) {
+	    if (!send_message(cc->ss, cc->ss.stmt.msgx->to, cc)) {
 		clnt_done(cc, DELIVERY_NO_ADDRESS);
 		return;
 	    }
@@ -364,7 +374,10 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	send_message(ss, cid.key);
+	send_message(ss, cid.key, 0);
+    }
+
+    void srvr_send_no_status(dj_delivery_code code) {
     }
 
     void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
@@ -384,12 +397,17 @@ class djprot_impl : public djprot {
 	}
 
 	delivery_args da;
-	da.cb = wrap(this, &djprot_impl::srvr_send_status, cid);
+	if (c.u.req->want_ack)
+	    da.cb = wrap(this, &djprot_impl::srvr_send_status, cid);
+	else
+	    da.cb = wrap(this, &djprot_impl::srvr_send_no_status);
 	da.local_delivery_arg = local_deliver_arg;
 	local_delivery_(c.from, *c.u.req, da);
     }
 
     void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
+	warn << "Unexpected: process_msg_status\n";
+
 	msg_client *cc = clnt_[cid];
 	if (!cc) {
 	    warn << "process_msg_status: unexpected delivery status\n";

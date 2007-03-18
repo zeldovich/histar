@@ -64,6 +64,7 @@ dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &d
     cm.buf = buf;
 
     a_.msg = xdr2str(cm);
+    a_.want_ack = 0;
     until_ = time(0) + tmo;
     retransmit();
 }

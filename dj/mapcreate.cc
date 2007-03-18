@@ -143,6 +143,7 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(mapres);
+    replym.want_ack = 0;
 
     p_->send(sender, 0, m.dset, replym, 0, 0);
     da.cb(DELIVERY_DONE);

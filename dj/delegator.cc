@@ -62,6 +62,7 @@ delegation_create(djprot *p, const dj_pubkey &sender,
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(dres);
+    replym.want_ack = 0;
 
     p->send(sender, 0, m.dset, replym, 0, 0);
     da.cb(DELIVERY_DONE);
