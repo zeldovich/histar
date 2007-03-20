@@ -41,6 +41,7 @@ static char http_auth_enable;
 static fs_inode httpd_root_ino;
 static int httpd_dj_enable = 0;
 static uint64_t dj_app_server_count = 1;
+static uint64_t dj_user_server_count = 1;
 
 static gate_sender *the_gs;
 static dj_global_cache djcache;
@@ -486,11 +487,14 @@ main(int ac, const char **av)
 	panic("parsing object id %s: %s", av[2], e2s(r));
     
     uint64_t dj_app_server_index = 0;
+    uint64_t dj_user_server_index = 0;
     if (ac > 4) {
-	r = strtou64(av[4], 0, 10, &dj_app_server_index);
+	uint64_t index = 1;
+	r = strtou64(av[4], 0, 10, &index);
 	if (r < 0)
 	    panic("parsing conn-count%s: %s", av[4], e2s(r));
-	dj_app_server_index = dj_app_server_index % dj_app_server_count;
+	dj_app_server_index = index % dj_app_server_count;
+	dj_user_server_index = index % dj_user_server_count;
     }
 
     http_auth_enable = av[3][0] != '0' ? 1 : 0;
@@ -503,6 +507,17 @@ main(int ac, const char **av)
 	     "/dj_app_ct%lu", dj_app_server_index);
     snprintf(dj_app_gate_file, sizeof(dj_app_gate_file), 
 	     "/dj_app_gate%lu", dj_app_server_index);
+
+    char dj_user_host_file[64], dj_user_ct_file[64];
+    char dj_user_authgate_file[64], dj_user_fsgate_file[64];
+    snprintf(dj_user_host_file, sizeof(dj_user_host_file), 
+	     "/dj_user_host%lu", dj_user_server_index);
+    snprintf(dj_user_ct_file, sizeof(dj_user_ct_file), 
+	     "/dj_user_ct%lu", dj_user_server_index);
+    snprintf(dj_user_authgate_file, sizeof(dj_user_authgate_file), 
+	     "/dj_user_authgate%lu", dj_user_server_index);
+    snprintf(dj_user_fsgate_file, sizeof(dj_user_fsgate_file), 
+	     "/dj_user_fsgate%lu", dj_user_server_index);
     
     if (dbg) {
 	printf("httpd2: config:\n");
@@ -511,19 +526,24 @@ main(int ac, const char **av)
 	printf(" %-20s %s\n", "dj_app_host_file", dj_app_host_file);
 	printf(" %-20s %s\n", "dj_app_ct_file", dj_app_ct_file);
 	printf(" %-20s %s\n", "dj_app_gate_file", dj_app_gate_file);
+
+	printf(" %-20s %s\n", "dj_user_host_file", dj_user_host_file);
+	printf(" %-20s %s\n", "dj_user_ct_file", dj_user_ct_file);
+	printf(" %-20s %s\n", "dj_user_authgate_file", dj_user_authgate_file);
+	printf(" %-20s %s\n", "dj_user_fsgate_file", dj_user_fsgate_file);
     }
 
     if (httpd_dj_enable) {
 	the_gs = new gate_sender();
 
-	str dj_user_server_str = read_file("/dj_user_host");
+	str dj_user_server_str = read_file(dj_user_host_file);
 	ptr<sfspub> sfspub = sfscrypt.alloc(dj_user_server_str,
 					    SFS_VERIFY | SFS_ENCRYPT);
 	assert(sfspub);
 	dj_user_server_pk = sfspub2dj(sfspub);
-	dj_user_server_ct = atoi(read_file("/dj_user_ct").cstr());
-	dj_user_authgate <<= read_file("/dj_user_authgate").cstr();
-	dj_user_fsgate <<= read_file("/dj_user_fsgate").cstr();
+	dj_user_server_ct = atoi(read_file(dj_user_ct_file).cstr());
+	dj_user_authgate <<= read_file(dj_user_authgate_file).cstr();
+	dj_user_fsgate <<= read_file(dj_user_fsgate_file).cstr();
 	
 	str dj_app_server_str = read_file(dj_app_host_file);
 	sfspub = sfscrypt.alloc(dj_app_server_str, SFS_VERIFY | SFS_ENCRYPT);

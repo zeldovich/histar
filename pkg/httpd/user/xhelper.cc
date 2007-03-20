@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/fs.h>
+#include <inc/error.h>
 }
 
 #include <inc/error.hh>
@@ -95,13 +96,13 @@ server(void)
     }
 }
 
-int
-main(int ac, char **av)
+static void
+init(void)
 {
     gate_sender gs;
 
     gs_key << gs.hostkey();
-
+    
     int64_t ct, id;
     error_check(ct = container_find(start_env->root_container, kobj_container, "djechod"));
     error_check(id = container_find(ct, kobj_container, "public call"));
@@ -119,20 +120,42 @@ main(int ac, char **av)
     error_check(id = container_find(ct, kobj_gate, "djfsd"));
     fsgate << ct << "." << id << "\n";
 
-    write_to_file("/www/dj_user_host", gs_key);
+    write_to_file("/www/dj_user_host0", gs_key);
     write_to_file("/www/dj_app_host0", gs_key);
-    write_to_file("/www/dj_user_ct", callct);
+    write_to_file("/www/dj_user_ct0", callct);
     write_to_file("/www/dj_app_ct0", callct);
-    write_to_file("/www/dj_user_authgate", authgate);
-    write_to_file("/www/dj_user_fsgate", fsgate);
+    write_to_file("/www/dj_user_authgate0", authgate);
+    write_to_file("/www/dj_user_fsgate0", fsgate);
     write_to_file("/www/dj_app_gate0", appgate);
 
     system("adduser alice foo");
     system("adduser bob bar");
     warn << "All done, alice/foo, bob/bar\n";
-    
-    if (ac >= 2 && av[1][0] == 's') {
-	warn << "starting server...\n";
-	server();
+}
+
+int
+main(int ac, char **av)
+{
+    try {
+	init();
+    } catch (error &e) {
+	if (e.err() == -E_NOT_FOUND) {
+	    warn << "Unable to init -- waiting 3 seconds";
+	    usleep(3000000);
+	    init();
+	} else {
+	    throw e;
+	}
     }
+    
+    
+
+    if (ac >= 2 && av[1][0] == 'x') {
+	warn << "not starting server...\n";
+	return 0;
+    }
+    
+    warn << "starting server...\n";
+    server();
+    return 0;
 }
