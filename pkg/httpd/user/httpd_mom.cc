@@ -23,7 +23,7 @@ static char inetd_enable = 1;
 static char ssl_enable = 1;
 static char ssl_privsep_enable = 1;
 static char ssl_eproc_enable = 1;
-static char http_auth_enable = 0;
+static char http_auth_enable = 1;
 
 static const char* httpd_root_path = "/www";
 static const char *module_setup_bin = "/bin/modulei";
