@@ -158,7 +158,7 @@ inet_server(uint16_t port)
     if (r < 0)
         panic("cannot bind socket: %d\n", r);
 
-    r = listen(s, 5);
+    r = listen(s, 10);
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
