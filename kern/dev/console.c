@@ -7,7 +7,7 @@
 #include <kern/lib.h>
 #include <kern/prof.h>
 #include <dev/console.h>
-#include <inc/kbdreg.h>
+#include <dev/kbdreg.h>
 
 void cons_intr (int (*proc) (void));
 

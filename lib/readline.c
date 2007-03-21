@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <inc/stdio.h>
 #include <inc/error.h>
-#include <inc/kbdreg.h>
 #include <inc/lib.h>
 #include <stddef.h>
 
@@ -29,30 +28,6 @@ readline(const char *prompt)
 			if (c != -E_EOF)
 				printf("read error: %s\n", e2s(c));
 			return NULL;
-		} else if (c == KEY_UP) {
-			buf[i] = 0;
-			// delete what is currently viewable
-			if (echoing)
-				while (i-- > 0)
-					putchar('\b');
-			i = 0;
-			curbuf = (curbuf + NBUFS - 1) % NBUFS;
-			buf = &allbufs[curbuf][0];
-			while (buf[i]) {
-				putchar(buf[i++]);
-			}
-		} else if (c == KEY_DN) {
-			buf[i] = 0;
-			// delete what is currently viewable
-			if (echoing)
-				while (i-- > 0)
-					putchar('\b');
-			i = 0;
-			curbuf = (curbuf + NBUFS + 1) % NBUFS;
-			buf = &allbufs[curbuf][0];
-			while (buf[i]) {
-				putchar(buf[i++]);
-			}
 		} else if (c >= ' ' && i < BUFLEN-1) {
 			if (echoing)
 				putchar(c);
