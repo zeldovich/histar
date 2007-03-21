@@ -74,6 +74,8 @@ Cleanup:
 * potentially unify spawn & gate invocation.  spawn could be split into two
   parts: (1) create new address space and a gate vectoring into _start, and
   (2) invoke said gate with whatever privileges, arguments, etc that we want.
+* provide resource-clean abstractions for starting a thread on TLS,
+  and jumping through a gate without leaving any resources behind.
 
 Bugs:
 
