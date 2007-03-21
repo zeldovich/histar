@@ -2,7 +2,7 @@
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/intr.h>
-#include <kern/sync.h>
+#include <kern/sched.h>
 #include <dev/kclock.h>
 #include <inc/queue.h>
 
@@ -26,6 +26,8 @@ timer_intr(void)
 	    pt->pt_wakeup_ticks = timer_ticks + pt->pt_interval_ticks;
 	}
     }
+
+    schedule();
 }
 
 void
@@ -46,8 +48,4 @@ timer_init(void)
 {
     static struct interrupt_handler timer_ih = { .ih_func = &timer_intr };
     irq_register(0, &timer_ih);
-
-    static struct periodic_task sync_timer_pt =
-	{ .pt_fn = &sync_wakeup_timer, .pt_interval_ticks = 1 };
-    timer_add_periodic(&sync_timer_pt);
 }

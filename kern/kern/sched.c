@@ -4,6 +4,7 @@
 #include <kern/lib.h>
 #include <kern/timer.h>
 #include <kern/container.h>
+#include <kern/sync.h>
 #include <inc/error.h>
 
 static uint64_t global_tickets;
@@ -29,6 +30,8 @@ global_pass_update(uint128_t new_global_pass)
 void
 schedule(void)
 {
+    sync_wakeup_timer();
+
     do {
 	const struct Thread *t, *min_pass_th = 0;
 	LIST_FOREACH(t, &thread_list_runnable, th_link)
@@ -90,8 +93,4 @@ sched_init(void)
     // Set stride1 to all-ones
     stride1 = 0;
     stride1--;
-
-    static struct periodic_task sched_pt =
-	{ .pt_fn = &schedule, .pt_interval_ticks = 1 };
-    timer_add_periodic(&sched_pt);
 }
