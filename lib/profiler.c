@@ -10,7 +10,7 @@
 #include <string.h>
 #include <errno.h>
 
-static uint64_t delay_msec = 10;
+static uint64_t delay_nsec = NSEC_PER_SECOND / 100;
 enum { buffer_size = 4096 };
 
 static struct cobj_ref prof_thread;
@@ -32,14 +32,14 @@ profiler_sig(int signo, siginfo_t *si, void *arg)
 static void
 profiler_thread(void *arg)
 {
-    uint64_t now = sys_clock_msec();
+    uint64_t now = sys_clock_nsec();
     siginfo_t si;
     memset(&si, 0, sizeof(si));
     si.si_signo = SIGUSR1;
 
     while (prof_enable < 2) {
-	sys_sync_wait(&now, now, now + delay_msec);
-	now = sys_clock_msec();
+	sys_sync_wait(&now, now, now + delay_nsec);
+	now = sys_clock_nsec();
 
 	prof_rip = 0;
 	kill_thread_siginfo(prof_target, &si);

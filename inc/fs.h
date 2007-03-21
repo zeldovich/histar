@@ -42,8 +42,8 @@ struct fs_readdir_state {
 
 // Metadata stored for filesystem objects.  Should be KOBJ_META_LEN in size.
 struct fs_object_meta {
-    uint64_t mtime_msec;
-    uint64_t ctime_msec;
+    uint64_t mtime_nsec;
+    uint64_t ctime_nsec;
     uint64_t f_type;
     uint64_t dseg_id;
     uint32_t dev_id;

@@ -13,7 +13,7 @@ extern "C" {
 #include <inc/error.hh>
 
 extern "C" int
-multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t msec)
+multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 {
     int r = 0;
     volatile uint64_t *addrs[n];
@@ -63,10 +63,10 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t msec)
 	    }
 	}
 	
-	r = sys_sync_wait_multi(addrs, vals, n, msec);
+	r = sys_sync_wait_multi(addrs, vals, n, nsec);
 	if (r == -E_NO_SPACE) {
 	    error_check(sys_self_set_waitslots(n));
-	    error_check(sys_sync_wait_multi(addrs, vals, n, msec));
+	    error_check(sys_sync_wait_multi(addrs, vals, n, nsec));
 	    r = 0;
 	}
 	else if (r < 0)

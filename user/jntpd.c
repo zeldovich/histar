@@ -19,11 +19,11 @@ enum { poll_time = 300 };
 static int cur_delay;
 
 static uint64_t
-ntp_ts_to_msec(ntp_ts ts)
+ntp_ts_to_nsec(ntp_ts ts)
 {
-    uint64_t msec_frac = (UINT64(1) << 32) / 1000;
-    return (CAST64(ntohl(ts.ts_sec)) * 1000) +
-	   (ntohl(ts.ts_frac) / msec_frac);
+    uint64_t one_second_frac = UINT64(1) << 32;
+    return NSEC_PER_SECOND * ntohl(ts.ts_sec) +
+	   NSEC_PER_SECOND * ntohl(ts.ts_frac) / one_second_frac;
 }
 
 static void __attribute__((noreturn))
@@ -61,16 +61,16 @@ receiver(void *arg)
 	    continue;
 	}
 
-	uint64_t t4 = sys_clock_msec();
-	uint64_t t3 = ntp_ts_to_msec(u.pkt.ntp_transmit_ts);
-	uint64_t t2 = ntp_ts_to_msec(u.pkt.ntp_receive_ts);
-	uint64_t t1 = ntp_ts_to_msec(u.pkt.ntp_originate_ts);
+	uint64_t t4 = sys_clock_nsec();
+	uint64_t t3 = ntp_ts_to_nsec(u.pkt.ntp_transmit_ts);
+	uint64_t t2 = ntp_ts_to_nsec(u.pkt.ntp_receive_ts);
+	uint64_t t1 = ntp_ts_to_nsec(u.pkt.ntp_originate_ts);
 	uint64_t delay = ((t4 - t1) - (t3 - t2))/2;
 	//printf("reply: t1=%ld, t2=%ld, t3=%ld, t4=%ld\n", t1, t2, t3, t4);
 
-	uint64_t unix_msec_at_t4 = (t2 + t3) / 2 + delay -
-				   UINT64(2208988800) * 1000;
-	tods->unix_msec_offset = unix_msec_at_t4 - t4;
+	uint64_t unix_nsec_at_t4 = (t2 + t3) / 2 + delay -
+				   NSEC_PER_SECOND * UINT64(2208988800);
+	tods->unix_nsec_offset = unix_nsec_at_t4 - t4;
 	cur_delay = poll_time;
 
 	static int synced;
@@ -137,10 +137,14 @@ main(int ac, char **av)
 	memset(&ntp, 0, sizeof(ntp));
 	ntp.ntp_lvm = NTP_LVM_ENCODE(NTP_LI_NONE, 4, NTP_MODE_CLIENT);
 
-	uint64_t ts = sys_clock_msec();
-	uint64_t msec_frac = (UINT64(1) << 32) / 1000;
-	ntp.ntp_transmit_ts.ts_sec = htonl(ts / 1000);
-	ntp.ntp_transmit_ts.ts_frac = htonl((ts % 1000) * msec_frac);
+	uint64_t ts = sys_clock_nsec();
+	uint64_t one_second_frac = UINT64(1) << 32;
+
+	uint64_t ts_sec  = ts / NSEC_PER_SECOND;
+	uint64_t ts_nsec = ts % NSEC_PER_SECOND;
+
+	ntp.ntp_transmit_ts.ts_sec = htonl(ts_sec);
+	ntp.ntp_transmit_ts.ts_frac = htonl(ts_nsec * one_second_frac / NSEC_PER_SECOND);
 
 	//printf("Sending a request: ts=%ld\n", ts);
 	send(fd, &ntp, sizeof(ntp), 0);

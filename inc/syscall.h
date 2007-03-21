@@ -82,12 +82,12 @@ int	sys_self_set_waitslots(uint64_t nslots);
 int	sys_self_set_sched_parents(uint64_t p0, uint64_t p1);
 
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
-		      uint64_t wakeup_at_msec);
+		      uint64_t wakeup_at_nsec);
 int	sys_sync_wait_multi(volatile uint64_t **addrs, uint64_t *vals,
-			    uint64_t num, uint64_t msec);
+			    uint64_t num, uint64_t nsec);
 int	sys_sync_wakeup(volatile uint64_t *addr);
 
-int64_t	sys_clock_msec(void);
+int64_t	sys_clock_nsec(void);
 
 int64_t	sys_pstate_timestamp(void);
 int	sys_pstate_sync(uint64_t timestamp);

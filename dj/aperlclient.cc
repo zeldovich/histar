@@ -105,7 +105,7 @@ delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     container_alloc_req ctreq;
     ctreq.parent = pr->call_ct;
     ctreq.quota = CT_QUOTA_INF;
-    ctreq.timeout_msec = 5000;
+    ctreq.timeout_sec = 5;
     ctreq.label.ents.push_back(pr->gcat);
 
     dj_message m;

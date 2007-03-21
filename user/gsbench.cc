@@ -34,12 +34,12 @@ main(int ac, char **av)
     int fd = 0;
     errno_check(fd = open("/dev/null", O_RDWR));
 
-    uint64_t start = sys_clock_msec();
+    uint64_t start = sys_clock_nsec();
     uint64_t end = start;
-    uint64_t time;
     if (ac >= 2) {
+	uint64_t time;
 	error_check(strtou64(av[1], 0, 10, &time));
-	end += time;
+	end += NSEC_PER_SECOND / 1000 * time;
     }
 
     struct fs_inode root_ino;
@@ -59,7 +59,7 @@ main(int ac, char **av)
     sd.fs_root_ = root_ino;
     sd.fs_cwd_ = root_ino;
     
-    for (; end > (stop = (uint64_t)sys_clock_msec()); i++) {	
+    for (; end > (stop = (uint64_t)sys_clock_nsec()); i++) {
 	child_process cp = spawn(&sd);
 	int64_t exit_code;
 	error_check(process_wait(&cp, &exit_code));
@@ -68,7 +68,7 @@ main(int ac, char **av)
 				       cp.container)));
     }
 
-    printf("completed %ld in %ld msec\n", i, stop - start);
+    printf("completed %ld in %ld nsec\n", i, stop - start);
 }
 
 

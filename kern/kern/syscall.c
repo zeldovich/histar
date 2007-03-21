@@ -770,15 +770,15 @@ sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_msec)
+sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_nsec)
 {
-    check(sync_wait(&addr, &val, 1, wakeup_at_msec));
+    check(sync_wait(&addr, &val, 1, wakeup_at_nsec));
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
-		    uint64_t msec)
+		    uint64_t nsec)
 {
     int overflow = 0;
     check(check_user_access(vals,
@@ -788,7 +788,7 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
     if (overflow)
 	return -E_INVAL;
 
-    check(sync_wait(addrs, vals, num, msec));
+    check(sync_wait(addrs, vals, num, nsec));
     return 0;
 }
 
@@ -802,9 +802,9 @@ sys_sync_wakeup(uint64_t *addr)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_clock_msec(void)
+sys_clock_nsec(void)
 {
-    return timer_user_msec;
+    return timer_user_msec * 1000 * 1000;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -1052,7 +1052,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(container_get_parent, a1);
 	SYSCALL(thread_create, a1, p2);
 	SYSCALL(self_id);
-	SYSCALL(clock_msec);
+	SYSCALL(clock_nsec);
 	SYSCALL(segment_create, a1, a2, p3, p4);
 	SYSCALL(segment_copy, COBJ(a1, a2), a3, p4, p5);
 	SYSCALL(segment_get_nbytes, COBJ(a1, a2));

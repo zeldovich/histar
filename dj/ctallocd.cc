@@ -19,7 +19,7 @@ killer_thread(uint64_t kill_at, uint64_t ctparent, uint64_t ct,
 				uint64_t tparent, uint64_t tid)
 {
     for (;;) {
-	uint64_t now = sys_clock_msec();
+	uint64_t now = sys_clock_nsec();
 	if (now > kill_at)
 	    break;
 
@@ -69,7 +69,7 @@ try {
 	goto out;
     }
 
-    if (req.timeout_msec) {
+    if (req.timeout_sec) {
 	int64_t tparent = res.ct_id;
 	int64_t tid = sys_thread_create(tparent, "killer-thread");
 
@@ -89,7 +89,7 @@ try {
 	te.te_entry = (void *) &killer_thread;
 	te.te_stack = tls_stack_top;
 	te.te_as = base_as;
-	te.te_arg[0] = sys_clock_msec() + req.timeout_msec;
+	te.te_arg[0] = sys_clock_nsec() + NSEC_PER_SECOND * req.timeout_sec;
 	te.te_arg[1] = req.parent;
 	te.te_arg[2] = res.ct_id;
 	te.te_arg[3] = tparent;

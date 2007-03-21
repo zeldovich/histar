@@ -30,7 +30,7 @@ static int netd_stats = 0;
 static netd_dev_type dev_type;
 
 struct timer_thread {
-    int msec;
+    uint64_t nsec;
     void (*func)(void);
     const char *name;
     struct cobj_ref thread;
@@ -89,21 +89,21 @@ net_timer(void *arg)
     struct timer_thread *t = (struct timer_thread *) arg;
 
     for (;;) {
-	uint64_t cur = sys_clock_msec();
+	uint64_t cur = sys_clock_nsec();
 
 	lwip_core_lock();
 	t->func();
 	lwip_core_unlock();
 
 	uint64_t v = 0xabcd;
-	sys_sync_wait(&v, v, cur + t->msec);
+	sys_sync_wait(&v, v, cur + t->nsec);
     }
 }
 
 static void
 start_timer(struct timer_thread *t, void (*func)(void), const char *name, int msec)
 {
-    t->msec = msec;
+    t->nsec = NSEC_PER_SECOND / 1000 * msec;
     t->func = func;
     t->name = name;
     int r = thread_create(start_env->proc_container, &net_timer,
@@ -195,7 +195,7 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 	}
 
 	lwip_core_unlock();
-	thread_sleep(1000);
+	thread_sleep_nsec(NSEC_PER_SECOND);
 	lwip_core_lock();
     }
 }

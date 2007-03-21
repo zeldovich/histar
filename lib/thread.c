@@ -203,12 +203,12 @@ thread_get_label(struct ulabel *ul)
 }
 
 void
-thread_sleep(uint64_t msec)
+thread_sleep_nsec(uint64_t nsec)
 {
-    int64_t cur = sys_clock_msec();
+    int64_t cur = sys_clock_nsec();
     if (cur < 0)
 	panic("thread_sleep: cannot read clock: %s\n", e2s(cur));
 
     uint64_t v = 0xc0de;
-    sys_sync_wait(&v, v, cur + msec);
+    sys_sync_wait(&v, v, cur + nsec);
 }

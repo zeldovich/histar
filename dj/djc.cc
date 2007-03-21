@@ -90,7 +90,7 @@ main(int ac, char **av)
 
     ctreq.parent = call_ct;
     ctreq.quota = CT_QUOTA_INF;
-    ctreq.timeout_msec = 5000;
+    ctreq.timeout_sec = 5;
     ctreq.label.ents.push_back(local_cme.gcat);
 
     label xgrant(3);

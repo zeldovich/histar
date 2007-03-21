@@ -196,7 +196,8 @@ again:
 	if (child_debug)
 	    cprintf("[%ld] wait4: waiting..\n", thread_id());
 
-	sys_sync_wait(&child_counter, start_counter, sys_clock_msec() + 1000);
+	sys_sync_wait(&child_counter, start_counter,
+		      sys_clock_nsec() + NSEC_PER_SECOND);
 	goto again;
     }
 

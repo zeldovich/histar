@@ -164,10 +164,10 @@ netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
 		ipc_shared->sync = NETD_IPC_SYNC_REPLY;
 		error_check(sys_sync_wakeup(&ipc_shared->sync));
 
-		int64_t msec_keepalive = sys_clock_msec() + 1000;
+		int64_t nsec_keepalive = sys_clock_nsec() + NSEC_PER_SECOND;
 		while (ipc_shared->sync == NETD_IPC_SYNC_REPLY &&
-		       sys_clock_msec() < msec_keepalive)
-		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, msec_keepalive);
+		       sys_clock_nsec() < nsec_keepalive)
+		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, nsec_keepalive);
 	    }
 	}
 

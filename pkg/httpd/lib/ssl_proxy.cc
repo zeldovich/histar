@@ -101,11 +101,11 @@ ssl_proxy_cleanup(ssl_proxy_descriptor *d)
     error_check(segment_map(d->client_seg_, 0, SEGMAP_READ, 
 			    (void **)&spc, &bytes, 0));
 
-    int64_t start = sys_clock_msec();
-    int64_t end = start + 10000;
+    int64_t start = sys_clock_nsec();
+    int64_t end = start + NSEC_PER_SECOND * 10;
     while (atomic_read(&spc->ref_)) {
 	sys_sync_wait(&atomic_read(&spc->ref_), atomic_read(&spc->ref_), end);
-	if (end <= sys_clock_msec()) {
+	if (end <= sys_clock_nsec()) {
 	    cprintf("ssl_proxy_cleanup: timeout expired, cleaning up\n");
 	    break;
 	}
@@ -128,7 +128,7 @@ ssl_proxy_cleanup(ssl_proxy_descriptor *d)
 }
 
 static int
-ssl_proxy_select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
+ssl_proxy_select(int sock_fdnum, int cipher_fdnum, uint64_t nsec)
 {
     struct Fd *sock_fd;
     error_check(fd_lookup(sock_fdnum, &sock_fd, 0, 0));
@@ -165,8 +165,8 @@ ssl_proxy_select(int sock_fdnum, int cipher_fdnum, uint64_t msec)
 	return r;
 
     int64_t t;
-    error_check(t = sys_clock_msec());
-    error_check(multisync_wait(wstat, wstat_num, t + msec));
+    error_check(t = sys_clock_nsec());
+    error_check(multisync_wait(wstat, wstat_num, t + nsec));
     
     r0 = sock_dev->dev_probe(sock_fd, dev_probe_read);
     r1 = cipher_dev->dev_probe(cipher_fd, dev_probe_read);
@@ -187,7 +187,7 @@ ssl_proxy_worker(int sock_fd, int cipher_fd)
     char buf[4096];
     
     for (;;) {
-	int r = ssl_proxy_select(sock_fd, cipher_fd, 10000);
+	int r = ssl_proxy_select(sock_fd, cipher_fd, NSEC_PER_SECOND * 10);
 	error_check(r);
 	if (!r) {
 	    cprintf("ssl_proxy::select timeout!\n");

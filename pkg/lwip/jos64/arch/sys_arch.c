@@ -170,8 +170,9 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	} else if (tm_msec == SYS_ARCH_NOWAIT) {
 	    return SYS_ARCH_TIMEOUT;
 	} else {
-	    uint64_t a = sys_clock_msec();
-	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
+	    uint64_t a = sys_clock_nsec();
+	    uint64_t sleep_until = tm_msec ?
+		a + NSEC_PER_SECOND / 1000 * (tm_msec - waited) : ~0UL;
 	    sems[sem].waiters = 1;
 	    uint64_t cur_v = sems[sem].v;
 	    lwip_core_unlock();
@@ -181,8 +182,8 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 		cprintf("sys_arch_sem_wait: sem freed under waiter!\n");
 		return SYS_ARCH_TIMEOUT;
 	    }
-	    uint64_t b = sys_clock_msec();
-	    waited += (b - a);
+	    uint64_t b = sys_clock_nsec();
+	    waited += (b - a) / (NSEC_PER_SECOND / 1000);
 	}
     }
 

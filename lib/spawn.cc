@@ -304,7 +304,7 @@ process_wait(const struct child_process *child, int64_t *exit_code)
 	if (r < 0)
 	    return r;
 
-	sys_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_msec() + 10000);
+	sys_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_nsec() + NSEC_PER_SECOND * 10);
 	proc_status = ps->status;
 	if (proc_status == PROCESS_EXITED && exit_code)
 	    *exit_code = ps->exit_code;

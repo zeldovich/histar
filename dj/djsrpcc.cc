@@ -12,7 +12,7 @@ extern "C" {
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>
 
-enum { retry_delivery_msec = 5000 };
+enum { retry_delivery_nsec = NSEC_PER_SECOND * 5 };
 enum { reply_none, reply_copying, reply_done };
 
 struct dj_rpc_reply_state {
@@ -147,21 +147,22 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     m2.msg = xdr2str(callmsg);
     m2.want_ack = 0;
 
-    uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
+    uint64_t timeout_at_nsec = sys_clock_nsec() + NSEC_PER_SECOND * timeout;
     for (;;) {
-	uint64_t now_msec = sys_clock_msec();
-	if (now_msec >= timeout_at_msec)
+	uint64_t now_nsec = sys_clock_nsec();
+	if (now_nsec >= timeout_at_nsec)
 	    return DELIVERY_TIMEOUT;
 
-	dj_delivery_code code = gs->send(node,
-					 (timeout_at_msec - now_msec) / 1000,
-					 dset, cm, m2, grantlabel);
+	dj_delivery_code code =
+	    gs->send(node,
+		     (timeout_at_nsec - now_nsec) / NSEC_PER_SECOND,
+		     dset, cm, m2, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 
 	if (atomic_read(&rs.reply) == reply_none)
 	    sys_sync_wait(&rs.reply.counter, reply_none,
-			  sys_clock_msec() + retry_delivery_msec);
+			  sys_clock_nsec() + retry_delivery_nsec);
 
 	while (atomic_read(&rs.reply) == reply_copying)
 	    sys_sync_wait(&rs.reply.counter, reply_copying, ~0UL);
@@ -237,15 +238,16 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     m2.msg = xdr2str(callmsg);
     m2.want_ack = 0;
 
-    uint64_t timeout_at_msec = sys_clock_msec() + timeout * 1000;
+    uint64_t timeout_at_nsec = sys_clock_nsec() + NSEC_PER_SECOND * timeout;
     for (;;) {
-	uint64_t now_msec = sys_clock_msec();
-	if (now_msec >= timeout_at_msec)
+	uint64_t now_nsec = sys_clock_nsec();
+	if (now_nsec >= timeout_at_nsec)
 	    return DELIVERY_TIMEOUT;
 
-	dj_delivery_code code = gs->send(node,
-					 (timeout_at_msec - now_msec) / 1000,
-					 dset, cm, m2, grantlabel);
+	dj_delivery_code code =
+	    gs->send(node,
+		     (timeout_at_nsec - now_nsec) / NSEC_PER_SECOND,
+		     dset, cm, m2, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 
@@ -255,7 +257,7 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	scope_guard2<int, void*, int> unmap(segment_unmap_delayed, base, 1);
 
 	if (*base == 0)
-	    sys_sync_wait(base, 0, sys_clock_msec() + retry_delivery_msec);
+	    sys_sync_wait(base, 0, sys_clock_nsec() + retry_delivery_nsec);
 
 	if (*base)
 	    break;

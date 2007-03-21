@@ -57,7 +57,7 @@ struct sync_wait_slot {
 LIST_HEAD(sync_wait_list, sync_wait_slot);
 
 struct Thread_ephemeral {
-    uint64_t te_wakeup_msec;
+    uint64_t te_wakeup_nsec;
     struct sync_wait_list te_wait_slots;
     struct sync_wait_slot te_sync;
 };

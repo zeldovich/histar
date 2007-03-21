@@ -17,22 +17,22 @@ static const char string_start = 0xAA;
 static const char string_end = 0x00;
 
 // AMD Athlon(tm) 64 Processor 3400+
-static const uint64_t period = 50;
+static const uint64_t period = NSEC_PER_SECOND / 1000 * 50;
 static const uint64_t iters = 10000;
-static const uint64_t tolerance = 3;
+static const uint64_t tolerance = NSEC_PER_SECOND / 1000 * 3;
 static const uint64_t lo_thresh = period * 800000;
 
 // moscow+qemu settings
-//static const uint64_t period = 1000;
+//static const uint64_t period = NSEC_PER_SECOND / 1000 * 1000;
 //static const uint64_t iters = 100000;
-//static const uint64_t tolerance = 10;
+//static const uint64_t tolerance = NSEC_PER_SECOND / 1000 * 10;
 //static const uint64_t lo_thresh = 2000000;
 
 static void 
 wallbang_align(void)
 {
     uint64_t waiter = 0;
-    uint64_t t = sys_clock_msec();
+    uint64_t t = sys_clock_nsec();
     uint64_t d = t % period;
     if (d)
 	sys_sync_wait(&waiter, 0, (period - d) + t);
@@ -42,13 +42,13 @@ static void
 wallbang_sendbit(char bit)
 {
     uint64_t waiter = 0;
-    uint64_t now = sys_clock_msec();
+    uint64_t now = sys_clock_nsec();
     uint64_t stop_target = (now - (now % period)) + period;
     debug_print(send_dbg, "sending %d (%ld)", bit ? 1 : 0, stop_target);
     debug_print(send_dbg, "now %ld, try to stop at %ld", now, stop_target);
     uint64_t stopped;
     
-    while ((stopped = sys_clock_msec()) < stop_target) {
+    while ((stopped = sys_clock_nsec()) < stop_target) {
 	if (bit)
 	    for (uint64_t i = 0; i < iters; i++) {}
 	else if (stop_target - stopped > tolerance)
@@ -101,13 +101,13 @@ wallbang_sendstr(const char *s)
 static void
 wallbang_recvbit(char *bit)
 {
-    uint64_t now = sys_clock_msec();
+    uint64_t now = sys_clock_nsec();
     uint64_t stop_target = (now - (now % period)) + period;
     debug_print(recv_dbg, "now %ld, try to stop at %ld", now, stop_target);
     uint64_t stopped;
     
     uint64_t count = 0;
-    while ((stopped = sys_clock_msec()) < stop_target) {
+    while ((stopped = sys_clock_nsec()) < stop_target) {
 	for (uint64_t i = 0; i < iters; i++)
 	    count++;
     }

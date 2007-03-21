@@ -25,7 +25,7 @@
 #include <inc/fd.h>
 #include <inc/syscall.h>
 
-#define time_msec() sys_clock_msec()
+#define time_msec() (NSEC_PER_SECOND / 1000 * sys_clock_nsec())
 #endif // JOS64
 
 #if LINUX

@@ -47,7 +47,7 @@ netd_get_gate(void)
     for (int i = 0; i < 10 && netd_gate.object == 0; i++) {
 	int r = netd_client_init();
 	if (r < 0)
-	    thread_sleep(100);
+	    thread_sleep_nsec(NSEC_PER_SECOND / 10);
     }
 
     if (netd_gate.object == 0)

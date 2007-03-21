@@ -975,13 +975,14 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         }
 
         if (!ready) {
-	    uint64_t msec = ~0UL;
+	    uint64_t nsec = ~0UL;
 	    if (timeout) {
-	    	uint64_t time = sys_clock_msec();
-	    	msec = time + (remaining.tv_sec * 1000) + (remaining.tv_usec / 1000);
+		uint64_t now = sys_clock_nsec();
+		nsec = now + NSEC_PER_SECOND * remaining.tv_sec
+			   + 1000 * remaining.tv_usec;
 	    }
 
-	    multisync_wait(wstat, wstat_count, msec);
+	    multisync_wait(wstat, wstat_count, nsec);
 	    if (start_signal_counter != signal_counter) {
 		__set_errno(EINTR);
 		return -1;

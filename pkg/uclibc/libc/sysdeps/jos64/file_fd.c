@@ -153,7 +153,7 @@ __libc_open(const char *pn, int flags, ...) __THROW
     if ((flags & O_ACCMODE) != O_RDONLY) {
 	struct fs_object_meta m;
 	if (sys_obj_get_meta(ino.obj, &m) >= 0) {
-	    m.mtime_msec = sys_clock_msec();
+	    m.mtime_nsec = sys_clock_nsec();
 	    sys_obj_set_meta(ino.obj, 0, &m);
 	}
     }

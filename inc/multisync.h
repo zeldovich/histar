@@ -57,6 +57,6 @@ struct wait_stat
 #define WS_SETCB0(__ws, __cb) (__ws)->ws_cb0 = __cb
 #define WS_SETCB1(__ws, __cb) (__ws)->ws_cb1 = __cb
 
-int multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t msec);
+int multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec);
 
 #endif

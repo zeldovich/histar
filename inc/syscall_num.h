@@ -60,7 +60,7 @@
     SYSCALL_ENTRY(sync_wait)			\
     SYSCALL_ENTRY(sync_wait_multi)		\
     SYSCALL_ENTRY(sync_wakeup)			\
-    SYSCALL_ENTRY(clock_msec)			\
+    SYSCALL_ENTRY(clock_nsec)			\
     SYSCALL_ENTRY(handle_create)		\
     SYSCALL_ENTRY(pstate_timestamp)		\
     SYSCALL_ENTRY(pstate_sync)			\

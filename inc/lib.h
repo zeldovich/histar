@@ -6,6 +6,9 @@
 #include <inc/label.h>
 #include <inc/kobj.h>
 #include <inc/fs.h>
+#include <inc/intmacro.h>
+
+#define NSEC_PER_SECOND		UINT64(1000000000)
 
 /* console.c */
 int	iscons(int fd);
@@ -128,7 +131,7 @@ int     thread_create_option(uint64_t container, void (*entry)(void*),
 uint64_t thread_id(void);
 void	thread_halt(void) __attribute__((noreturn));
 int	thread_get_label(struct ulabel *ul);
-void	thread_sleep(uint64_t msec);
+void	thread_sleep_nsec(uint64_t nsec);
 int     thread_cleanup(struct thread_args *ta);
 
 /* spawn.cc */

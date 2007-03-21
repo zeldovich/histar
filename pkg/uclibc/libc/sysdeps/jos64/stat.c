@@ -26,10 +26,10 @@ jos_stat(struct fs_inode ino, struct stat *buf)
     struct fs_object_meta meta;
     int r = sys_obj_get_meta(ino.obj, &meta);
     if (r >= 0) {
-	buf->st_mtime = meta.mtime_msec / 1000;
-	buf->st_mtimensec = (meta.mtime_msec % 1000) * 1000 * 1000;
-	buf->st_ctime = meta.ctime_msec / 1000;
-	buf->st_ctimensec = (meta.ctime_msec % 1000) * 1000 * 1000;
+	buf->st_mtime = meta.mtime_nsec / NSEC_PER_SECOND;
+	buf->st_mtimensec = meta.mtime_nsec % NSEC_PER_SECOND;
+	buf->st_ctime = meta.ctime_nsec / NSEC_PER_SECOND;
+	buf->st_ctimensec = meta.ctime_nsec % NSEC_PER_SECOND;
 
 	// XXX __S_IFCHR?
 	if (meta.dev_id && meta.dev_id != devfile.dev_id)

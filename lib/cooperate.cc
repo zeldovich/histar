@@ -368,6 +368,6 @@ coop_gate_invoke(cobj_ref coop_gate,
     scope_guard<int, void *> unmap(segment_unmap, stat);
 
     while (!invoke_done || !stat->done)
-	sys_sync_wait(&stat->done, 0, sys_clock_msec() + 1000);
+	sys_sync_wait(&stat->done, 0, sys_clock_nsec() + NSEC_PER_SECOND);
     return stat->rval;
 }

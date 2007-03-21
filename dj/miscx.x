@@ -7,7 +7,7 @@
 struct container_alloc_req {
     uint64_t parent;
     uint64_t quota;
-    uint64_t timeout_msec;
+    uint64_t timeout_sec;
     dj_label label;
 };
 

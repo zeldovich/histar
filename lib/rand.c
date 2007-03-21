@@ -35,7 +35,7 @@ rand_init(void)
 {
     uint64_t keybuf[4];
     keybuf[0] = thread_id();
-    keybuf[1] = sys_clock_msec();
+    keybuf[1] = sys_clock_nsec();
     keybuf[2] = sys_pstate_timestamp();
     keybuf[3] = sys_pstate_timestamp();
 

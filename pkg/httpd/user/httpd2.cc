@@ -104,7 +104,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 
 	ct_req.parent = dj_app_server_ct;
 	ct_req.quota = CT_QUOTA_INF;
-	ct_req.timeout_msec = 10000;
+	ct_req.timeout_sec = 10;
 	ct_req.label.ents.push_back(dj_ug);
 	ct_req.label.ents.push_back(dj_ut);
 
@@ -150,7 +150,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	 */
 	ct_req.parent = dj_user_server_ct;
 	ct_req.quota = CT_QUOTA_INF;
-	ct_req.timeout_msec = 10000;
+	ct_req.timeout_sec = 10;
 	ct_req.label.ents.setsize(0);
 	ct_req.label.ents.push_back(dj_ug);
 	ct_req.label.ents.push_back(dj_ut);

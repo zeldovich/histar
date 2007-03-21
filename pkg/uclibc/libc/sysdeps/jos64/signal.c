@@ -197,7 +197,7 @@ signal_trap_thread(struct cobj_ref tobj)
 	    if (signal_debug || !(retry_count % 10))
 		cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld, retrying\n",
 			thread_id(), tobj.container, tobj.object);
-	    thread_sleep(10);
+	    thread_sleep_nsec(NSEC_PER_SECOND / 100);
 	    continue;
 	}
 

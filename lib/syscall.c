@@ -302,16 +302,16 @@ sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 }
 
 int
-sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t msec)
+sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t nsec)
 {
-    return syscall(SYS_sync_wait, addr, val, msec);
+    return syscall(SYS_sync_wait, addr, val, nsec);
 }
 
 int 
 sys_sync_wait_multi(volatile uint64_t **addrs, uint64_t *vals,
-		    uint64_t num, uint64_t msec)
+		    uint64_t num, uint64_t nsec)
 {
-    return syscall(SYS_sync_wait_multi, addrs, vals, num, msec);
+    return syscall(SYS_sync_wait_multi, addrs, vals, num, nsec);
 }
 
 int
@@ -321,9 +321,9 @@ sys_sync_wakeup(volatile uint64_t *addr)
 }
 
 int64_t
-sys_clock_msec(void)
+sys_clock_nsec(void)
 {
-    return syscall(SYS_clock_msec);
+    return syscall(SYS_clock_nsec);
 }
 
 int64_t
