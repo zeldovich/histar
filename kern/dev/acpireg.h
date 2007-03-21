@@ -28,4 +28,12 @@ struct acpi_rsdt {
     uint32_t offset[0];
 };
 
+struct acpi_gas {
+    uint8_t as_id;
+    uint8_t reg_bit_width;
+    uint8_t reg_bit_offset;
+    uint8_t access_size;
+    uint64_t addr;
+};
+
 #endif

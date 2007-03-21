@@ -1,5 +1,6 @@
 #include <machine/pmap.h>
 #include <dev/acpi.h>
+#include <dev/hpet.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
 
@@ -26,10 +27,8 @@ acpi_load_table(struct acpi_table_hdr *th)
 {
     cprintf("ACPI table: %.4s\n", th->sig);
 
-/*
     if (!memcmp(th->sig, "HPET", 4))
 	hpet_attach(th);
-*/
 }
 
 void
