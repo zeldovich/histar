@@ -31,4 +31,15 @@ struct hpet_acpi {
     uint8_t page_prot;
 };
 
+#define HPET_CAP_64BIT		(1 << 13)
+#define HPET_CAP_LEGACY		(1 << 15)
+
+#define HPET_CONFIG_ENABLE	(1 << 0)
+#define HPET_CONFIG_LEGACY	(1 << 1)
+
+#define HPET_TIMER_LEVELTRIG	(1 << 1)
+#define HPET_TIMER_ENABLE	(1 << 2)
+#define HPET_TIMER_PERIODIC	(1 << 3)
+#define HPET_TIMER_SET		(1 << 6)
+
 #endif
