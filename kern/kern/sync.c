@@ -53,9 +53,11 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
 int
 sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
 {
+    uint64_t now_nsec = timer_user_nsec();
+
     if (sync_debug)
 	cprintf("sync_wait: t %p num %"PRIu64" wakeup %"PRIx64" now %"PRIx64"\n",
-		cur_thread, num, wakeup_nsec, timer_user_msec);
+		cur_thread, num, wakeup_nsec, now_nsec);
 
     if (num == 0)
 	return 0;
@@ -63,7 +65,7 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
     if (num > cur_thread->th_multi_slots + 1)
 	return -E_NO_SPACE;
 
-    if (wakeup_nsec / 1000000 <= timer_user_msec)
+    if (wakeup_nsec <= now_nsec)
 	return 0;
 
     int r = thread_load_as(cur_thread);
@@ -101,7 +103,7 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
     te->te_wakeup_nsec = wakeup_nsec;
     thread_suspend(cur_thread, &sync_time_waiting);
     t->th_sync_waiting = 1;
-    return 0;
+    return 1;
 }
 
 int
@@ -142,6 +144,7 @@ sync_wakeup_addr(uint64_t *addr)
 void
 sync_wakeup_timer(void)
 {
+    uint64_t now_nsec = timer_user_nsec();
     if (sync_debug)
 	cprintf("sync_wakeup_timer\n");
 
@@ -150,10 +153,10 @@ sync_wakeup_timer(void)
 	struct Thread *next = LIST_NEXT(t, th_link);
 	struct Thread_ephemeral *te = &kobject_ephemeral_dirty(&t->th_ko)->ko_th_e;
 
-	if (te->te_wakeup_nsec / 1000000 <= timer_user_msec) {
+	if (te->te_wakeup_nsec <= now_nsec) {
 	    if (sync_debug)
 		cprintf("sync_wakeup_timer: waking up %"PRIx64" now %"PRIx64"\n",
-			te->te_wakeup_nsec, timer_user_msec);
+			te->te_wakeup_nsec, now_nsec);
 
 	    thread_set_runnable(t);
 	}

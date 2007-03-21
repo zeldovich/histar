@@ -1,6 +1,5 @@
 #include <machine/x86.h>
 #include <dev/console.h>
-#include <dev/kclock.h>
 #include <kern/thread.h>
 #include <kern/as.h>
 #include <kern/label.h>
@@ -12,6 +11,7 @@
 #include <kern/pstate.h>
 #include <kern/embedbin.h>
 #include <kern/arch.h>
+#include <kern/timer.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -370,7 +370,7 @@ user_init(void)
 	    break;
 	}
 
-	kclock_delay(1000);
+	timer_delay(1000000);
     }
 
     int r = pstate_load();

@@ -31,7 +31,7 @@ static int prof_enable = 0;
 static int prof_thread_enable = 0;
 enum { prof_print_count_threshold = 100 };
 enum { prof_print_cycles_threshold = 10000000UL };
-enum { prof_thread_msec_threshold = 1000 };
+enum { prof_thread_nsec_threshold = 1000000000 };
 
 static struct periodic_task timer2;
 
@@ -86,12 +86,12 @@ prof_init(void)
     hash_init(&cyg_data.stats_lookup, cyg_data.stats_lookup_back, NUM_SYMS);
 
     prof_timer.pt_fn = &prof_print;
-    prof_timer.pt_interval_ticks = kclock_hz * 10;
+    prof_timer.pt_interval_sec = 10;
     if (prof_enable)
 	timer_add_periodic(&prof_timer);
 
     timer2.pt_fn = &cyg_profile_print;
-    timer2.pt_interval_ticks = kclock_hz * 10;
+    timer2.pt_interval_sec = 10;
     if (cyg_prof_print_enable)
 	timer_add_periodic(&timer2);
 
@@ -149,6 +149,7 @@ prof_thread(const struct Thread *th, uint64_t time)
 	asname = th->th_as->as_ko.ko_name;
 
     int64_t entry = -1;
+    uint64_t now_nsec = timer_user_nsec();
     for (uint64_t i = 0; i < NTHREADS; i++) {
 	if (!strcmp(thread_table[i].asname, asname)) {
 	    entry = i;
@@ -156,8 +157,8 @@ prof_thread(const struct Thread *th, uint64_t time)
 	} else if (entry == -1) {
 	    if (!thread_table[i].asname[0])
 		entry = i;
-	    else if ((timer_user_msec - thread_table[i].last) >  
-		     prof_thread_msec_threshold)
+	    else if ((now_nsec - thread_table[i].last) >  
+		     prof_thread_nsec_threshold)
 		entry = i;
 	}
     }
@@ -172,7 +173,7 @@ prof_thread(const struct Thread *th, uint64_t time)
 	memcpy(thread_table[entry].asname, asname, strlen(asname) + 1);
     }
 
-    thread_table[entry].last = timer_user_msec;
+    thread_table[entry].last = now_nsec;
     thread_table[entry].entry.count++;
     thread_table[entry].entry.time += time;
 }

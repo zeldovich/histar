@@ -4,12 +4,12 @@
 #include <dev/pci.h>
 #include <dev/fxp.h>
 #include <dev/fxpreg.h>
-#include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
 #include <kern/netdev.h>
+#include <kern/timer.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -58,41 +58,41 @@ static void
 fxp_eeprom_shiftin(struct fxp_card *c, int data, int len)
 {
     for (int x = 1 << (len - 1); x != 0; x >>= 1) {
-	kclock_delay(40);
+	timer_delay(40000);
 	uint16_t reg = ((data & x) ? FXP_EEPROM_EEDI : 0) | FXP_EEPROM_EECS;
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
-	kclock_delay(40);
+	timer_delay(40000);
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg | FXP_EEPROM_EESK);
-	kclock_delay(40);
+	timer_delay(40000);
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
     }
-    kclock_delay(40);
+    timer_delay(40000);
 }
 
 static void
 fxp_eeprom_autosize(struct fxp_card *c)
 {
     outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
-    kclock_delay(40);
+    timer_delay(40000);
 
     fxp_eeprom_shiftin(c, FXP_EEPROM_OPC_READ, 3);
     int x;
     for (x = 1; x <= 8; x++) {
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
-	kclock_delay(40);
+	timer_delay(40000);
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS |
 						FXP_EEPROM_EESK);
-	kclock_delay(40);
+	timer_delay(40000);
 	uint16_t v = inw(c->iobase + FXP_CSR_EEPROMCONTROL);
 	if (!(v & FXP_EEPROM_EEDO))
 	    break;
-	kclock_delay(40);
+	timer_delay(40000);
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, FXP_EEPROM_EECS);
-	kclock_delay(40);
+	timer_delay(40000);
     }
 
     outw(c->iobase + FXP_CSR_EEPROMCONTROL, 0);
-    kclock_delay(40);
+    timer_delay(40000);
 
     c->eeprom_width = x;
 }
@@ -110,16 +110,16 @@ fxp_eeprom_read(struct fxp_card *c, uint16_t *buf, int off, int count)
 
 	for (int x = 16; x > 0; x--) {
 	    outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg | FXP_EEPROM_EESK);
-	    kclock_delay(40);
+	    timer_delay(40000);
 	    uint16_t v = inw(c->iobase + FXP_CSR_EEPROMCONTROL);
 	    if ((v & FXP_EEPROM_EEDO))
 		buf[i] |= (1 << (x - 1));
 	    outw(c->iobase + FXP_CSR_EEPROMCONTROL, reg);
-	    kclock_delay(40);
+	    timer_delay(40000);
 	}
 
 	outw(c->iobase + FXP_CSR_EEPROMCONTROL, 0);
-	kclock_delay(40);
+	timer_delay(40000);
     }
 }
 
@@ -147,7 +147,7 @@ fxp_waitcomplete(volatile uint16_t *status)
     for (int i = 0; i < 1000; i++) {
 	if ((*status & FXP_CB_STATUS_C))
 	    return;
-	kclock_delay(1);
+	timer_delay(1000);
     }
 
     cprintf("fxp_waitcomplete: timed out\n");
@@ -168,7 +168,7 @@ fxp_buffer_reset(struct fxp_card *c)
 	for (int i = 0; i < 1000; i++) {
 	    if ((c->tx[slot].tcb.cb_status & FXP_CB_STATUS_C))
 		break;
-	    kclock_delay(10);
+	    timer_delay(10000);
 	}
 
 	c->tx_head = (slot + 1) % FXP_TX_SLOTS;
@@ -467,7 +467,7 @@ fxp_attach(struct pci_func *pcif)
 
     // Initialize the card
     outl(c->iobase + FXP_CSR_PORT, FXP_PORT_SOFTWARE_RESET);
-    kclock_delay(50);
+    timer_delay(50000);
 
     uint16_t myaddr[3];
     fxp_eeprom_autosize(c);

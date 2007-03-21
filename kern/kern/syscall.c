@@ -792,7 +792,6 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
     return 0;
 }
 
-
 static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wakeup(uint64_t *addr)
 {
@@ -804,7 +803,7 @@ sys_sync_wakeup(uint64_t *addr)
 static int64_t __attribute__ ((warn_unused_result))
 sys_clock_nsec(void)
 {
-    return timer_user_msec * 1000 * 1000;
+    return timer_user_nsec();
 }
 
 static int64_t __attribute__ ((warn_unused_result))

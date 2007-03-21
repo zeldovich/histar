@@ -4,12 +4,12 @@
 #include <dev/pci.h>
 #include <dev/e1000.h>
 #include <dev/e1000reg.h>
-#include <dev/kclock.h>
 #include <kern/segment.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
 #include <kern/netdev.h>
+#include <kern/timer.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -70,7 +70,7 @@ e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
 	for (int x = 0; x < 100; x++) {
 	    reg = e1000_io_read(c, WMREG_EERD);
 	    if (!(reg & EERD_DONE))
-		kclock_delay(5);
+		timer_delay(5000);
 	}
 
 	if (!(reg & EERD_DONE))
@@ -87,12 +87,12 @@ e1000_reset(struct e1000_card *c)
 
     e1000_io_write(c, WMREG_PBA, PBA_48K);
     e1000_io_write(c, WMREG_CTRL, CTRL_RST);
-    kclock_delay(10 * 1000);
+    timer_delay(10 * 1000 * 1000);
 
     for (int i = 0; i < 1000; i++) {
 	if ((e1000_io_read(c, WMREG_CTRL) & CTRL_RST) == 0)
 	    break;
-	kclock_delay(20);
+	timer_delay(20000);
     }
 
     if (e1000_io_read(c, WMREG_CTRL) & CTRL_RST)

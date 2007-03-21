@@ -52,6 +52,9 @@ schedule(void)
 
     // Make sure we don't miss a TSC rollover, and reset it just in case
     global_pass_update(cur_thread->th_sched_pass);
+
+    // Schedule a preemption timer, 10 msec quantum
+    the_timer->schedule(the_timer->arg, 10 * 1000 * 1000);
 }
 
 void

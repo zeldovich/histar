@@ -238,7 +238,8 @@ pstate_swapin_id(kobject_id_t id)
     struct mobject mobj;
 
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	cprintf("pstate_swapin_id: disk not initialized\n");
+	if (pstate_swapin_debug)
+	    cprintf("pstate_swapin_id: disk not initialized\n");
 	kobject_negative_insert(id);
 	return -E_NOT_FOUND;
     }
@@ -388,12 +389,13 @@ pstate_load2(void)
     user_root_handle = stable_hdr.ph_user_root_handle;
     memcpy(&handle_key[0], &stable_hdr.ph_handle_key, HANDLE_KEY_SIZE);
 
-    if (timer_user_msec < stable_hdr.ph_user_msec)
-	timer_user_msec_offset = stable_hdr.ph_user_msec - timer_user_msec;
+    uint64_t now = timer_user_nsec();
+    if (now < stable_hdr.ph_user_nsec)
+	timer_user_nsec_offset = stable_hdr.ph_user_nsec - now;
 
     if (pstate_load_debug)
-	cprintf("pstate_load2: handle_ctr %"PRIu64" root_handle %"PRIu64" msec %"PRIu64"\n",
-		handle_counter, user_root_handle, timer_user_msec);
+	cprintf("pstate_load2: handle_ctr %"PRIu64" root_handle %"PRIu64" nsec %"PRIu64"\n",
+		handle_counter, user_root_handle, now);
 
     return 1;
 }
@@ -638,7 +640,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1 __attribute__((unused)), uint
     hdr->ph_sync_ts = handle_alloc();
     hdr->ph_handle_counter = handle_counter;
     hdr->ph_user_root_handle = user_root_handle;
-    hdr->ph_user_msec = timer_user_msec;
+    hdr->ph_user_nsec = timer_user_nsec();
     memcpy(&hdr->ph_handle_key[0], &handle_key[0], HANDLE_KEY_SIZE);
 
     struct swapout_stats stats;
@@ -865,7 +867,7 @@ pstate_init(void)
 
     pstate_reset();
 
-    static struct periodic_task sync_pt = { .pt_fn = &pstate_sync };
-    sync_pt.pt_interval_ticks = kclock_hz * 3600;
+    static struct periodic_task sync_pt =
+	{ .pt_fn = &pstate_sync, .pt_interval_sec = 3600 };
     timer_add_periodic(&sync_pt);
 }

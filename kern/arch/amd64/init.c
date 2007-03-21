@@ -98,16 +98,6 @@ bss_init (void)
   memset (edata, 0, end - edata);
 }
 
-static void
-reboot_periodic(void)
-{
-    // periodic tasks get called first right away,
-    // and then after a period of time
-    static int counter = 0;
-    if (counter++)
-	machine_reboot();
-}
-
 void __attribute__((noreturn))
 init (uint32_t start_eax, uint32_t start_ebx)
 {
@@ -139,9 +129,8 @@ init (uint32_t start_eax, uint32_t start_ebx)
     cons_init();
     pic_init();
     //apic_init();
-    kclock_init();
-    timer_init();
     acpi_init();
+    pit_init();
 
     page_init(lower_kb, upper_kb);
     pci_init();
@@ -152,8 +141,8 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     prof_init();
     if (strstr(&boot_cmdline[0], "reboot=periodic")) {
-	static struct periodic_task reboot_pt = { .pt_fn = &reboot_periodic };
-	reboot_pt.pt_interval_ticks = 3600 * kclock_hz;
+	static struct periodic_task reboot_pt =
+	    { .pt_fn = &machine_reboot, .pt_interval_sec = 3600 };
 	timer_add_periodic(&reboot_pt);
     }
 
