@@ -25,7 +25,8 @@ acpi_checksum(const void *base, uint64_t len)
 static void
 acpi_load_table(struct acpi_table_hdr *th)
 {
-    cprintf("ACPI table: %.4s\n", th->sig);
+    if (acpi_debug)
+	cprintf("ACPI table: %.4s\n", th->sig);
 
     if (!memcmp(th->sig, "HPET", 4))
 	hpet_attach(th);
@@ -41,7 +42,9 @@ acpi_init(void)
 	return;
     }
 
-    //cprintf("ACPI: %.6s at %p\n", rsdp->oem, rsdp);
+    if (acpi_debug)
+	cprintf("ACPI: %.6s at %p\n", rsdp->oem, rsdp);
+
     struct acpi_rsdt *rsdt = pa2kva(rsdp->rsdt_pa);
     uint32_t nent = (rsdt->hdr.len - sizeof(rsdt->hdr)) /
 		    sizeof(rsdt->offset[0]);

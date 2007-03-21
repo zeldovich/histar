@@ -88,9 +88,6 @@ hpet_attach(struct acpi_table_hdr *th)
     irq_register(0, &irq0_ih);
     irq_register(8, &irq8_ih);
 
-
-    cprintf("HPET: currently at %"PRIu64"\n", hpet->reg->counter);
-
     hpet->hwt.arg = hpet;
     hpet->hwt.ticks = &hpet_ticks;
     hpet->hwt.schedule = &hpet_schedule;
