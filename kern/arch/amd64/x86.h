@@ -41,6 +41,7 @@ X86_INST_ATTR uint64_t read_rsp(void);
 X86_INST_ATTR void cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 			 uint32_t *ecxp, uint32_t *edxp);
 X86_INST_ATTR uint64_t read_tsc(void);
+X86_INST_ATTR uint64_t read_tscp(uint32_t *auxp);
 X86_INST_ATTR void fxsave(struct Fpregs *f);
 X86_INST_ATTR void fxrstor(const struct Fpregs *f);
 X86_INST_ATTR uint64_t read_msr(uint32_t msr);
@@ -299,6 +300,15 @@ read_tsc(void)
 {
 	uint32_t a, d;
 	__asm __volatile("rdtsc" : "=a" (a), "=d" (d));
+	return ((uint64_t) a) | (((uint64_t) d) << 32);
+}
+
+uint64_t
+read_tscp(uint32_t *auxp)
+{
+	uint32_t a, d, c;
+	__asm __volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
+	*auxp = c;
 	return ((uint64_t) a) | (((uint64_t) d) << 32);
 }
 
