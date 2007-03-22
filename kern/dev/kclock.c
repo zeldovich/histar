@@ -101,10 +101,12 @@ pit_init(void)
     pit_timesrc.freq_hz = pit_hz;
     pit_timesrc.ticks = &pit_get_ticks;
     pit_timesrc.delay_nsec = &pit_delay;
-    the_timesrc = &pit_timesrc;
+    if (!the_timesrc)
+	the_timesrc = &pit_timesrc;
 
     pit_preempt.schedule_nsec = &pit_schedule;
-    the_schedtmr = &pit_preempt;
+    if (!the_schedtmr)
+	the_schedtmr = &pit_preempt;
 
     cprintf("Setup timer interrupts via 8259A\n");
 }
