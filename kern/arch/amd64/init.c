@@ -3,6 +3,7 @@
 #include <machine/trap.h>
 #include <machine/multiboot.h>
 #include <machine/boot.h>
+#include <machine/tsctimer.h>
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
@@ -131,6 +132,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     acpi_init();	/* Picks up HPET, PM timer */
     apic_init();	/* LAPIC timer for preemption */
+    tsc_timer_init();	/* Optimization for PM timer */
     pit_init();		/* Fallback position */
 
     page_init(lower_kb, upper_kb);

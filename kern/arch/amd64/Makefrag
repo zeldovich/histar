@@ -13,7 +13,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/mtrr.c			\
 	$(ARCHDIR)/acpimach.c			\
-	$(ARCHDIR)/reboot.c
+	$(ARCHDIR)/reboot.c			\
+	$(ARCHDIR)/tsctimer.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
