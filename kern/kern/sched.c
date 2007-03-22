@@ -55,7 +55,7 @@ schedule(void)
     global_pass_update(cur_thread->th_sched_pass);
 
     // Schedule a preemption timer, 10 msec quantum
-    the_timer->schedule(the_timer->arg, 10 * 1000 * 1000);
+    the_schedtmr->schedule_nsec(the_schedtmr->arg, 10 * 1000 * 1000);
 }
 
 void

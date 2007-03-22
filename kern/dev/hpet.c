@@ -6,7 +6,9 @@
 #include <kern/sched.h>
 
 struct hpet_state {
-    struct hw_timer hwt;
+    struct time_source timesrc;
+    struct preemption_timer preempt;
+
     struct hpet_reg *reg;
     uint16_t min_tick;
 };
@@ -22,7 +24,7 @@ static void
 hpet_schedule(void *arg, uint64_t nsec)
 {
     struct hpet_state *hpet = arg;
-    uint64_t ticks = nsec * hpet->hwt.freq_hz / 1000000000;
+    uint64_t ticks = nsec * hpet->timesrc.freq_hz / 1000000000;
     if (ticks < hpet->min_tick)
 	ticks = hpet->min_tick;
 
@@ -33,7 +35,7 @@ hpet_schedule(void *arg, uint64_t nsec)
     now = hpet->reg->counter;
     int64_t diff = then - now;
     if (diff < 0) {
-	hpet->reg->timer[0].compare = now + hpet->hwt.freq_hz;
+	hpet->reg->timer[0].compare = now + hpet->timesrc.freq_hz;
 	cprintf("hpet_schedule: lost a tick, recovering in a second\n");
     }
 }
@@ -43,7 +45,7 @@ hpet_delay(void *arg, uint64_t nsec)
 {
     struct hpet_state *hpet = arg;
     uint64_t now = hpet->reg->counter;
-    uint64_t diff = nsec * hpet->hwt.freq_hz / 1000000000;
+    uint64_t diff = nsec * hpet->timesrc.freq_hz / 1000000000;
     while ((hpet->reg->counter - now) < diff)
 	;
 }
@@ -54,7 +56,7 @@ hpet_attach(struct acpi_table_hdr *th)
     static struct hpet_state the_hpet;
     struct hpet_state *hpet = &the_hpet;
 
-    if (the_timer)
+    if (the_timesrc || the_schedtmr)
 	return;
 
     struct hpet_acpi *t = (struct hpet_acpi *) th;
@@ -67,9 +69,9 @@ hpet_attach(struct acpi_table_hdr *th)
     }
 
     uint64_t period = cap >> 32;
-    hpet->hwt.freq_hz = UINT64(1000000000000000) / period;
+    hpet->timesrc.freq_hz = UINT64(1000000000000000) / period;
     hpet->min_tick = t->min_tick;
-    cprintf("HPET: %"PRIu64" Hz, min tick %d\n", hpet->hwt.freq_hz, hpet->min_tick);
+    cprintf("HPET: %"PRIu64" Hz, min tick %d\n", hpet->timesrc.freq_hz, hpet->min_tick);
 
     hpet->reg->config = HPET_CONFIG_ENABLE | HPET_CONFIG_LEGACY;
 
@@ -82,9 +84,12 @@ hpet_attach(struct acpi_table_hdr *th)
     static struct interrupt_handler irq0_ih = { .ih_func = &schedule };
     irq_register(0, &irq0_ih);
 
-    hpet->hwt.arg = hpet;
-    hpet->hwt.ticks = &hpet_ticks;
-    hpet->hwt.schedule = &hpet_schedule;
-    hpet->hwt.delay = &hpet_delay;
-    the_timer = &hpet->hwt;
+    hpet->timesrc.arg = hpet;
+    hpet->timesrc.ticks = &hpet_ticks;
+    hpet->timesrc.delay_nsec = &hpet_delay;
+    the_timesrc = &hpet->timesrc;
+
+    hpet->preempt.arg = hpet;
+    hpet->preempt.schedule_nsec = &hpet_schedule;
+    the_schedtmr = &hpet->preempt;
 }

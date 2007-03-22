@@ -10,7 +10,9 @@
 
 static int pit_hz = 100;
 static int pit_tval;
-static struct hw_timer pit_timer;
+
+static struct time_source pit_timesrc;
+static struct preemption_timer pit_preempt;
 static uint64_t pit_ticks;
 
 unsigned
@@ -81,7 +83,7 @@ pit_delay(void *arg, uint64_t nsec)
 void
 pit_init(void)
 {
-    if (the_timer)
+    if (the_timesrc || the_schedtmr)
 	return;
 
     /* initialize 8253 clock to interrupt pit_hz times/sec */
@@ -95,9 +97,11 @@ pit_init(void)
     static struct interrupt_handler pit_ih = { .ih_func = &pit_intr };
     irq_register(0, &pit_ih);
 
-    pit_timer.freq_hz = pit_hz;
-    pit_timer.ticks = &pit_get_ticks;
-    pit_timer.schedule = &pit_schedule;
-    pit_timer.delay = &pit_delay;
-    the_timer = &pit_timer;
+    pit_timesrc.freq_hz = pit_hz;
+    pit_timesrc.ticks = &pit_get_ticks;
+    pit_timesrc.delay_nsec = &pit_delay;
+    the_timesrc = &pit_timesrc;
+
+    pit_preempt.schedule_nsec = &pit_schedule;
+    the_schedtmr = &pit_preempt;
 }

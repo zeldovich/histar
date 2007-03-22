@@ -6,23 +6,27 @@
 #include <kern/thread.h>
 #include <inc/queue.h>
 
-struct hw_timer {
-    void *arg;
+struct time_source {
     uint64_t freq_hz;
-
+    void *arg;
     uint64_t (*ticks) (void *);
-    void (*schedule) (void *, uint64_t);	// ticks
-    void (*delay) (void *, uint64_t);		// nsec
+    void (*delay_nsec) (void *, uint64_t);
 };
 
-extern struct hw_timer *the_timer;
+struct preemption_timer {
+    void *arg;
+    void (*schedule_nsec) (void *, uint64_t);
+};
+
+extern struct time_source *the_timesrc;
+extern struct preemption_timer *the_schedtmr;
 
 extern uint64_t timer_user_nsec_offset;		// used by pstate
 uint64_t timer_user_nsec(void);
 void timer_delay(uint64_t nsec);
 
 /*
- * Periodic task handling.
+ * Periodic task handling.  schedule() calls timer_periodic_notify().
  */
 struct periodic_task {
     // external
