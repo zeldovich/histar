@@ -10,21 +10,31 @@ uint64_t timer_user_nsec_offset;
 struct time_source *the_timesrc;
 struct preemption_timer *the_schedtmr;
 
+/*
+ * timer_convert() assumes both a and b are on the order of 1<<32.
+ */
 uint64_t
 timer_convert(uint64_t n, uint64_t a, uint64_t b)
 {
     uint64_t hi = n >> 32;
-    uint64_t lo = n & ((UINT64(1) << 32) - 1);
+    uint64_t lo = n & 0xffffffff;
 
-    return ((hi * a / b) << 32) + (lo * a / b);
+    uint64_t hi_hz = hi * a;
+    uint64_t hi_b = hi_hz / b;
+    uint64_t hi_hz_carry = hi_hz - hi_b * b;
+
+    uint64_t lo_hz = lo * a + (hi_hz_carry << 32);
+    uint64_t lo_b = lo_hz / b;
+
+    return (hi_b << 32) + lo_b;
 }
 
 uint64_t
 timer_user_nsec(void)
 {
-    return timer_convert(the_timesrc->ticks(the_timesrc->arg),
-			 1000000000, the_timesrc->freq_hz) +
-	   timer_user_nsec_offset;
+    uint64_t ticks = the_timesrc->ticks(the_timesrc->arg);
+    uint64_t nsec = timer_convert(ticks, 1000000000, the_timesrc->freq_hz);
+    return nsec + timer_user_nsec_offset;
 }
 
 void
