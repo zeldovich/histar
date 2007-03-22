@@ -76,17 +76,11 @@ hpet_attach(struct acpi_table_hdr *th)
     /* Timer 0 is used in one-shot mode for preemption */
     hpet->reg->timer[0].config = HPET_TIMER_ENABLE;
 
-    /* Timer 1 is used in periodic mode for periodic tasks */
-    hpet->reg->timer[1].compare = hpet->hwt.freq_hz;
-    hpet->reg->timer[1].config = HPET_TIMER_ENABLE | HPET_TIMER_ENABLE;
-
     /* Reset main counter to ensure the periodic counter starts */
     hpet->reg->counter = 0;
 
     static struct interrupt_handler irq0_ih = { .ih_func = &schedule };
-    static struct interrupt_handler irq8_ih = { .ih_func = &timer_periodic_notify };
     irq_register(0, &irq0_ih);
-    irq_register(8, &irq8_ih);
 
     hpet->hwt.arg = hpet;
     hpet->hwt.ticks = &hpet_ticks;

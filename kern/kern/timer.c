@@ -39,8 +39,7 @@ void timer_periodic_notify(void)
 
     struct periodic_task *pt;
     LIST_FOREACH(pt, &periodic_tasks, pt_link) {
-	uint64_t waitsec = (ticks - pt->pt_last_ticks) / the_timer->freq_hz;
-	if (waitsec >= pt->pt_interval_sec) {
+	if (ticks - pt->pt_last_ticks >= pt->pt_interval_ticks) {
 	    pt->pt_fn();
 	    pt->pt_last_ticks = ticks;
 	}
@@ -51,6 +50,7 @@ void
 timer_add_periodic(struct periodic_task *pt)
 {
     pt->pt_last_ticks = the_timer->ticks(the_timer->arg);
+    pt->pt_interval_ticks = pt->pt_interval_sec * the_timer->freq_hz;
     LIST_INSERT_HEAD(&periodic_tasks, pt, pt_link);
 }
 

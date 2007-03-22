@@ -31,7 +31,6 @@ static void
 pit_intr(void)
 {
     pit_ticks++;
-    timer_periodic_notify();
     schedule();
 }
 

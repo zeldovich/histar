@@ -30,6 +30,7 @@ struct periodic_task {
     uint64_t pt_interval_sec;
 
     // internal
+    uint64_t pt_interval_ticks;
     uint64_t pt_last_ticks;
     LIST_ENTRY(periodic_task) pt_link;
 };

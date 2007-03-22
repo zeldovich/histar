@@ -31,6 +31,7 @@ void
 schedule(void)
 {
     sync_wakeup_timer();
+    timer_periodic_notify();
 
     do {
 	const struct Thread *t, *min_pass_th = 0;
