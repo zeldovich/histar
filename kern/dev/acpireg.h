@@ -23,11 +23,6 @@ struct acpi_table_hdr {
     uint32_t creatorrev;
 };
 
-struct acpi_rsdt {
-    struct acpi_table_hdr hdr;
-    uint32_t offset[0];
-};
-
 struct acpi_gas {
     uint8_t as_id;
     uint8_t reg_bit_width;
@@ -35,5 +30,23 @@ struct acpi_gas {
     uint8_t access_size;
     uint64_t addr;
 };
+
+struct acpi_rsdt {
+    struct acpi_table_hdr hdr;
+    uint32_t offset[0];
+};
+
+struct acpi_fadt {
+    struct acpi_table_hdr hdr;
+    uint32_t facs_pa;
+    uint32_t dsdt_pa;		// offset 40
+    uint32_t __pad0[8];
+    uint32_t pm_tmr_blk;	// offset 76
+    uint32_t __pad1[8];
+    uint32_t flags;		// offset 112
+    /* We don't care about the rest, for now */
+};
+
+#define FADT_TMR_VAL_EXT	(1 << 8)
 
 #endif

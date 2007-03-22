@@ -11,8 +11,6 @@ struct hpet_state {
     uint16_t min_tick;
 };
 
-static struct hpet_state the_hpet;
-
 static uint64_t
 hpet_ticks(void *arg)
 {
@@ -53,10 +51,12 @@ hpet_delay(void *arg, uint64_t nsec)
 void
 hpet_attach(struct acpi_table_hdr *th)
 {
+    static struct hpet_state the_hpet;
+    struct hpet_state *hpet = &the_hpet;
+
     if (the_timer)
 	return;
 
-    struct hpet_state *hpet = &the_hpet;
     struct hpet_acpi *t = (struct hpet_acpi *) th;
     hpet->reg = pa2kva(t->base.addr);
 
