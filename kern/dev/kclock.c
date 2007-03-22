@@ -104,4 +104,6 @@ pit_init(void)
 
     pit_preempt.schedule_nsec = &pit_schedule;
     the_schedtmr = &pit_preempt;
+
+    cprintf("Setup timer interrupts via 8259A\n");
 }
