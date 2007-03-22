@@ -97,6 +97,7 @@ pit_init(void)
     static struct interrupt_handler pit_ih = { .ih_func = &pit_intr };
     irq_register(0, &pit_ih);
 
+    pit_timesrc.type = time_source_pit;
     pit_timesrc.freq_hz = pit_hz;
     pit_timesrc.ticks = &pit_get_ticks;
     pit_timesrc.delay_nsec = &pit_delay;

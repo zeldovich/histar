@@ -84,6 +84,7 @@ hpet_attach(struct acpi_table_hdr *th)
     static struct interrupt_handler irq0_ih = { .ih_func = &schedule };
     irq_register(0, &irq0_ih);
 
+    hpet->timesrc.type = time_source_hpet;
     hpet->timesrc.arg = hpet;
     hpet->timesrc.ticks = &hpet_ticks;
     hpet->timesrc.delay_nsec = &hpet_delay;

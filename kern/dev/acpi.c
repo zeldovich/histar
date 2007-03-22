@@ -74,6 +74,7 @@ acpi_pmtimer_init(uint32_t ioaddr, int extflag)
     static struct acpi_pmtimer the_pmt;
     struct acpi_pmtimer *pmt = &the_pmt;
 
+    pmt->timesrc.type = time_source_pmt;
     pmt->timesrc.freq_hz = 3579545;
     pmt->timesrc.arg = pmt;
     pmt->timesrc.ticks = &acpi_pmtimer_ticks;

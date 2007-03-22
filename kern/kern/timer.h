@@ -6,7 +6,15 @@
 #include <kern/thread.h>
 #include <inc/queue.h>
 
+enum {
+    time_source_pit,
+    time_source_hpet,
+    time_source_pmt,
+    time_source_tsc,
+};
+
 struct time_source {
+    int type;
     uint64_t freq_hz;
     void *arg;
     uint64_t (*ticks) (void *);
