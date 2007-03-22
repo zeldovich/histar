@@ -31,7 +31,11 @@ apic_send_ipi(uint32_t target, uint32_t vector)
 void
 apic_init(void)
 {
-    mtrr_set(LAPIC_BASE, PGSIZE, MTRR_BASE_UC);
+    int r = mtrr_set(LAPIC_BASE, PGSIZE, MTRR_BASE_UC);
+    if (r < 0) {
+	cprintf("apic_init: out of MTRRs\n");
+	return;
+    }
 
     uint32_t id = (apic_read(LAPIC_ID) & LAPIC_ID_MASK) >> LAPIC_ID_SHIFT;
 

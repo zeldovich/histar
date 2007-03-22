@@ -28,7 +28,8 @@ extern struct Gatedesc idt[0x100];
 extern struct Pseudodesc idtdesc;
 
 /* mtrr.c */
-void mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type);
+int  mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
+    __attribute__ ((warn_unused_result));
 
 /* pmap.c */
 struct Pagemap {

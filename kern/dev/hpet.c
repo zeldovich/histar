@@ -56,7 +56,7 @@ hpet_attach(struct acpi_table_hdr *th)
     static struct hpet_state the_hpet;
     struct hpet_state *hpet = &the_hpet;
 
-    if (the_timesrc || the_schedtmr)
+    if (the_timesrc && the_schedtmr)
 	return;
 
     struct hpet_acpi *t = (struct hpet_acpi *) th;

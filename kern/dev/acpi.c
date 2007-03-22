@@ -4,6 +4,7 @@
 #include <dev/hpet.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/timer.h>
 
 enum { acpi_debug = 0 };
 
@@ -26,7 +27,8 @@ acpi_checksum(const void *base, uint64_t len)
  * ACPI PM Timer: ACPI spec, section 4.7.3.3.
  */
 struct acpi_pmtimer {
-    uint32_t freq_hz;
+    struct time_source timesrc;
+
     uint32_t ioaddr;
     uint32_t mask;
 
@@ -53,19 +55,37 @@ acpi_pmtimer_ticks(void *arg)
 }
 
 static void
+acpi_pmtimer_delay(void *arg, uint64_t nsec)
+{
+    struct acpi_pmtimer *pmt = (struct acpi_pmtimer *) arg;
+    uint64_t ticks = nsec * pmt->timesrc.freq_hz;
+
+    uint64_t start = acpi_pmtimer_ticks(pmt);
+    while (acpi_pmtimer_ticks(pmt) < start + ticks)
+	;
+}
+
+static void
 acpi_pmtimer_init(uint32_t ioaddr, int extflag)
 {
+    if (the_timesrc)
+	return;
+
     static struct acpi_pmtimer the_pmt;
     struct acpi_pmtimer *pmt = &the_pmt;
 
-    pmt->freq_hz = 3579545;
+    pmt->timesrc.freq_hz = 3579545;
+    pmt->timesrc.arg = pmt;
+    pmt->timesrc.ticks = &acpi_pmtimer_ticks;
+    pmt->timesrc.delay_nsec = &acpi_pmtimer_delay;
+
     pmt->ioaddr = ioaddr;
     pmt->mask = extflag ? 0xffffffff : 0xffffff;
     pmt->last_read = inl(ioaddr);
     pmt->ticks = 0;
 
     cprintf("ACPI: %d-bit PM timer at 0x%x\n", extflag ? 32 : 24, ioaddr);
-    cprintf("[ticks = %ld]\n", acpi_pmtimer_ticks(pmt));
+    the_timesrc = &pmt->timesrc;
 }
 
 /*

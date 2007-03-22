@@ -1,7 +1,8 @@
 #include <machine/pmap.h>
 #include <machine/x86.h>
+#include <inc/error.h>
 
-void
+int
 mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
 {
     uint64_t new_base = base | type;
@@ -14,7 +15,7 @@ mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
 
 	if (i_base == new_base && i_mask == new_mask) {
 	    cprintf("mtrr_set: dup: base %lx, mask %lx\n", i_base, i_mask);
-	    return;
+	    return 0;
 	}
 
 	if (i_mask & MTRR_MASK_VALID)
@@ -22,8 +23,8 @@ mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
 
 	write_msr(MTRR_BASE(i), new_base);
 	write_msr(MTRR_MASK(i), new_mask);
-	return;
+	return 0;
     }
 
-    panic("out of variable MTRRs");
+    return -E_NO_MEM;
 }

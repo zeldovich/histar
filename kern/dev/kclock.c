@@ -83,7 +83,7 @@ pit_delay(void *arg, uint64_t nsec)
 void
 pit_init(void)
 {
-    if (the_timesrc || the_schedtmr)
+    if (the_timesrc && the_schedtmr)
 	return;
 
     /* initialize 8253 clock to interrupt pit_hz times/sec */

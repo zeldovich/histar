@@ -128,9 +128,10 @@ init (uint32_t start_eax, uint32_t start_ebx)
     idt_init();
     cons_init();
     pic_init();
-    //apic_init();
-    acpi_init();
-    pit_init();
+
+    acpi_init();	/* Picks up HPET, PM timer */
+    apic_init();	/* LAPIC timer for preemption */
+    pit_init();		/* Fallback position */
 
     page_init(lower_kb, upper_kb);
     pci_init();
