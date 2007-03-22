@@ -10,8 +10,6 @@ Performance:
 * deal with fragmentation on-disk
 * partial segment swapin and swapout
 * page reclamation, LRU (unpin callbacks for reclaiming space?)
-* RDTSC-based time source, calibrated to a slower underlying PMtimer
-  (ACPI's PMtimer takes about 2000 cycles to read)
 
 Kernel bugs:
 
