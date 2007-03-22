@@ -58,7 +58,7 @@ static void
 acpi_pmtimer_delay(void *arg, uint64_t nsec)
 {
     struct acpi_pmtimer *pmt = (struct acpi_pmtimer *) arg;
-    uint64_t ticks = nsec * pmt->timesrc.freq_hz / 1000000000;
+    uint64_t ticks = timer_convert(nsec, pmt->timesrc.freq_hz, 1000000000);
 
     uint64_t start = acpi_pmtimer_ticks(pmt);
     while (acpi_pmtimer_ticks(pmt) < start + ticks)

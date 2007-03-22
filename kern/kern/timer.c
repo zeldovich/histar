@@ -11,15 +11,19 @@ struct time_source *the_timesrc;
 struct preemption_timer *the_schedtmr;
 
 uint64_t
+timer_convert(uint64_t n, uint64_t a, uint64_t b)
+{
+    uint64_t hi = n >> 32;
+    uint64_t lo = n & ((UINT64(1) << 32) - 1);
+
+    return ((hi * a / b) << 32) + (lo * a / b);
+}
+
+uint64_t
 timer_user_nsec(void)
 {
-    uint64_t ticks = the_timesrc->ticks(the_timesrc->arg);
-
-    uint64_t ticks_hi = ticks >> 32;
-    uint64_t ticks_lo = ticks & ((UINT64(1) << 32) - 1);
-
-    return ((ticks_hi * 1000000000 / the_timesrc->freq_hz) << 32) +
-	    (ticks_lo * 1000000000 / the_timesrc->freq_hz) +
+    return timer_convert(the_timesrc->ticks(the_timesrc->arg),
+			 1000000000, the_timesrc->freq_hz) +
 	   timer_user_nsec_offset;
 }
 

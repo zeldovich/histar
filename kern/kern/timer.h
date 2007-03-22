@@ -33,6 +33,9 @@ extern uint64_t timer_user_nsec_offset;		// used by pstate
 uint64_t timer_user_nsec(void);
 void timer_delay(uint64_t nsec);
 
+/* timer_convert returns n * a / b while trying to avoid wrap-around */
+uint64_t timer_convert(uint64_t n, uint64_t a, uint64_t b);
+
 /*
  * Periodic task handling.  schedule() calls timer_periodic_notify().
  */

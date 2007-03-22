@@ -41,7 +41,8 @@ static void
 apic_schedule(void *arg, uint64_t nsec)
 {
     struct apic_preempt *ap = arg;
-    apic_write(LAPIC_ICR_TIMER, nsec * ap->freq_hz / 1000000000);
+    apic_write(LAPIC_ICR_TIMER,
+	       timer_convert(nsec, ap->freq_hz, 1000000000));
 }
 
 static void

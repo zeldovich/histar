@@ -24,7 +24,7 @@ static void
 hpet_schedule(void *arg, uint64_t nsec)
 {
     struct hpet_state *hpet = arg;
-    uint64_t ticks = nsec * hpet->timesrc.freq_hz / 1000000000;
+    uint64_t ticks = timer_convert(nsec, hpet->timesrc.freq_hz, 1000000000);
     if (ticks < hpet->min_tick)
 	ticks = hpet->min_tick;
 
@@ -45,7 +45,7 @@ hpet_delay(void *arg, uint64_t nsec)
 {
     struct hpet_state *hpet = arg;
     uint64_t now = hpet->reg->counter;
-    uint64_t diff = nsec * hpet->timesrc.freq_hz / 1000000000;
+    uint64_t diff = timer_convert(nsec, hpet->timesrc.freq_hz, 1000000000);
     while ((hpet->reg->counter - now) < diff)
 	;
 }
