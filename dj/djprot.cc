@@ -60,7 +60,6 @@ class djprot_impl : public djprot {
 					SFS_ENCRYPT | SFS_DECRYPT)),
 	  exp_cb_(0)
     {
-	xid_ = 0;
 	bc_port_ = htons(port);
 
 	int listenfd = inetsocket(SOCK_STREAM);
@@ -525,7 +524,6 @@ class djprot_impl : public djprot {
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> bx_;
     ptr<sfspriv> k_;
-    uint64_t xid_;
 
     ihash<dj_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
     itree<dj_timestamp, pk_addr, &pk_addr::expires, &pk_addr::exp_link> addr_exp_;
