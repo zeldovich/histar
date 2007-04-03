@@ -231,13 +231,13 @@ class djprot_impl : public djprot {
     void clnt_transmit(msg_client *cc) {
 	PERF_COUNTER(clnt_transmit);
 
-	if (cc->ss.stmt.msg->to == pubkey() && direct_local_msgs) {
+	if (cc->to == pubkey() && direct_local_msgs) {
 	    process_msg(*cc->ss.stmt.msg, cc->local_deliver_arg);
 	    clnt_done(cc, DELIVERY_DONE);
 	    return;
 	}
 
-	crypt_conn *cxn = tcpconn_[cc->ss.stmt.msg->to];
+	crypt_conn *cxn = tcpconn_[cc->to];
 	if (cxn) {
 	    str msg = xdr2str(cc->ss.stmt);
 	    if (!msg) {
@@ -246,15 +246,15 @@ class djprot_impl : public djprot {
 		return;
 	    }
 
-	    cxn->send(msg);
 	    clnt_done(cc, DELIVERY_DONE);
+	    cxn->send(msg);
 	    return;
 	}
 
-	pk_addr *a = addr_key_[cc->ss.stmt.msg->to];
+	pk_addr *a = addr_key_[cc->to];
 	if (!a) {
 	    warn << "send_message: can't find address for pubkey "
-		 << cc->ss.stmt.msg->to << "\n";
+		 << cc->to << "\n";
 	    clnt_done(cc, DELIVERY_NO_ADDRESS);
 	    return;
 	}
@@ -272,7 +272,7 @@ class djprot_impl : public djprot {
 	cc->cb(DELIVERY_DONE);
 	cc->cb = 0;
 
-	tcp_connect(cc->ss.stmt.msg->to, addr);
+	tcp_connect(cc->to, addr);
     }
 
     void addr_remove(pk_addr *a) {
@@ -481,6 +481,15 @@ class djprot_impl : public djprot {
 	if (code == crypt_disconnected) {
 	    warn << "cryptconn: disconnected\n";
 	    tcpconn_.remove(cc);
+
+	    msg_client *nmc;
+	    for (msg_client *mc = clnt_[cc->remote_];
+		 mc && mc->to == cc->remote_; mc = nmc)
+	    {
+		nmc = clnt_.next(mc);
+		clnt_done(mc, DELIVERY_TIMEOUT);
+	    }
+
 	    delete cc;
 	    return;
 	}
@@ -489,7 +498,9 @@ class djprot_impl : public djprot {
 	    tcpconn_.insert(cc);
 
 	    msg_client *nmc;
-	    for (msg_client *mc = clnt_.first(); mc; mc = nmc) {
+	    for (msg_client *mc = clnt_[cc->remote_];
+		 mc && mc->to == cc->remote_; mc = nmc)
+	    {
 		nmc = clnt_.next(mc);
 		clnt_transmit(mc);
 	    }
