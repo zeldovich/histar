@@ -8,8 +8,7 @@
 #include <dj/djrpcx.h>
 
 void
-histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
-		       const delivery_args &da)
+histar_mapcreate::exec(const dj_message &m, const delivery_args &da)
 {
     if (m.target.type != EP_MAPCREATE) {
 	warn << "histar_mapcreate: not a mapcreate target\n";
@@ -138,14 +137,14 @@ histar_mapcreate::exec(const dj_pubkey &sender, const dj_message &m,
     }
 
     dj_message replym;
+    replym.to = m.from;
     replym.target = callmsg.return_ep;
     replym.taint = reply_taint;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(mapres);
-    replym.want_ack = 0;
 
-    p_->send(sender, 0, m.dset, replym, 0, 0);
+    p_->send(replym, m.dset, 0, 0);
     da.cb(DELIVERY_DONE);
     cm_->drop_now();
 }

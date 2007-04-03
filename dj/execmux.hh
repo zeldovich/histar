@@ -13,7 +13,7 @@ class exec_mux {
 	m_[t] = cb;
     }
 
-    void exec(const dj_pubkey &pk, const dj_message &m, const delivery_args &a) {
+    void exec(const dj_message &m, const delivery_args &a) {
 	std::map<dj_endpoint_type, djprot::local_delivery_cb>::iterator i =
 	    m_.find(m.target.type);
 	if (i == m_.end()) {
@@ -22,7 +22,7 @@ class exec_mux {
 	    return;
 	}
 
-	i->second(pk, m, a);
+	i->second(m, a);
     }
 
  private:

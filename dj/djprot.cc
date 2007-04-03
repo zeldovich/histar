@@ -12,6 +12,7 @@
 #include <dj/perf.hh>
 
 enum { conn_debug = 1 };
+enum { bcast_debug = 0 };
 
 enum {
     addr_cert_valid = 60,
@@ -43,18 +44,13 @@ struct pk_addr {	/* d.a.addr speaks-for pk */
 };
 
 struct msg_client {
-    ihash_entry<msg_client> link;
-    dj_msg_id id;
+    itree_entry<msg_client> link;
+    dj_pubkey to;
     dj_stmt_signed ss;
     delivery_status_cb cb;
-
-    uint32_t until;
-    timecb_t *timecb;
-    uint32_t tmo;
     void *local_deliver_arg;
 
-    msg_client(const dj_pubkey &k, uint64_t xid)
-	: id(k, xid), timecb(0), tmo(1) {}
+    msg_client(const dj_pubkey &k) : to(k) {}
 };
 
 class djprot_impl : public djprot {
@@ -120,34 +116,26 @@ class djprot_impl : public djprot {
 	return k_;
     }
 
-    virtual void send(const dj_pubkey &target, time_t timeout,
+    virtual void send(const dj_message &msg,
 		      const dj_delegation_set &dset,
-		      const dj_message &msg, delivery_status_cb cb,
+		      delivery_status_cb cb,
 		      void *local_deliver_arg)
     {
 	PERF_COUNTER(djprot::send);
 
-	if (msg.want_ack)
-	    warn << "djprot::send: want_ack set, unexpected..\n";
-
-	msg_client *cc = New msg_client(target, ++xid_);
+	msg_client *cc = New msg_client(msg.to);
 	clnt_.insert(cc);
 	cc->cb = cb;
-	cc->until = time(0) + timeout;
 	cc->local_deliver_arg = local_deliver_arg;
 
-	if (!labelcheck_send(msg, target, dset)) {
+	if (!labelcheck_send(msg, dset)) {
 	    clnt_done(cc, DELIVERY_LOCAL_DELEGATION);
 	    return;
 	}
 
-	cc->ss.stmt.set_type(STMT_MSG_XFER);
-	cc->ss.stmt.msgx->from = pubkey();
-	cc->ss.stmt.msgx->to = target;
-	cc->ss.stmt.msgx->xid = cc->id.xid;
-	cc->ss.stmt.msgx->u.set_op(MSG_REQUEST);
-	*cc->ss.stmt.msgx->u.req = msg;
-
+	cc->ss.stmt.set_type(STMT_MSG);
+	*cc->ss.stmt.msg = msg;
+	cc->ss.stmt.msg->from = pubkey();
 	clnt_transmit(cc);
     }
 
@@ -164,10 +152,11 @@ class djprot_impl : public djprot {
     }
 
  private:
-    bool labelcheck_send(const dj_message &a, const dj_pubkey &dst,
+    bool labelcheck_send(const dj_message &a,
 			 const dj_delegation_set &dset)
     {
 	PERF_COUNTER(labelcheck_send);
+	const dj_pubkey &dst = a.to;
 
 	if (!check_local_msgs && dst == pubkey())
 	    return true;
@@ -188,10 +177,11 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool labelcheck_recv(const dj_message &a, const dj_pubkey &src,
+    bool labelcheck_recv(const dj_message &a,
 			 const dj_delegation_set &dset)
     {
 	PERF_COUNTER(labelcheck_recv);
+	const dj_pubkey &src = a.from;
 
 	if (!check_local_msgs && src == pubkey())
 	    return true;
@@ -230,48 +220,11 @@ class djprot_impl : public djprot {
 	return true;
     }
 
-    bool send_message(const dj_stmt_signed &ss, dj_pubkey nodekey,
-		      msg_client *msgclient)
-    {
-	crypt_conn *cc = tcpconn_[nodekey];
-	if (cc) {
-	    str msg = xdr2str(ss.stmt);
-	    if (!msg) {
-		warn << "send_message: cannot encode statement\n";
-		return false;
-	    }
-
-	    cc->send(msg);
-	    if (msgclient && !ss.stmt.msgx->u.req->want_ack)
-		clnt_done(msgclient, DELIVERY_DONE);
-	    return true;
-	}
-
-	pk_addr *a = addr_key_[nodekey];
-	if (!a) {
-	    warn << "send_message: can't find address for pubkey\n";
-	    return false;
-	}
-	dj_address addr = *a->d.a.addr;
-
-	time_t now = time(0);
-	if (now < a->d.from_ts - delegation_time_skew ||
-	    now > a->d.until_ts + delegation_time_skew) {
-	    warn << "send_message: expired address delegation\n";
-	    return false;
-	}
-
-	tcp_connect(nodekey, addr);
-	return true;
-    }
-
     void clnt_done(msg_client *cc, dj_delivery_code code) {
 	if (code != DELIVERY_DONE)
 	    warn << "clnt_done: code " << code << "\n";
 	if (cc->cb)
 	    cc->cb(code);
-	if (cc->timecb)
-	    timecb_remove(cc->timecb);
 	clnt_.remove(cc);
 	delete cc;
     }
@@ -279,33 +232,48 @@ class djprot_impl : public djprot {
     void clnt_transmit(msg_client *cc) {
 	PERF_COUNTER(clnt_transmit);
 
-	if (cc->timecb) {
-	    if (time(0) >= cc->until) {
-		/* Have to transmit at least once for a timeout.. */
-		warn << "clnt_transmit: timed out, giving up\n";
-		cc->timecb = 0;
-		clnt_done(cc, DELIVERY_TIMEOUT);
+	if (cc->ss.stmt.msg->to == pubkey() && direct_local_msgs) {
+	    process_msg(*cc->ss.stmt.msg, cc->local_deliver_arg);
+	    clnt_done(cc, DELIVERY_DONE);
+	    return;
+	}
+
+	crypt_conn *cxn = tcpconn_[cc->ss.stmt.msg->to];
+	if (cxn) {
+	    str msg = xdr2str(cc->ss.stmt);
+	    if (!msg) {
+		warn << "clnt_transmit: cannot encode statement\n";
+		clnt_done(cc, DELIVERY_LOCAL_ERR);
 		return;
 	    }
 
-	    warn << "clnt_transmit: timed out, retransmitting\n";
+	    cxn->send(msg);
+	    clnt_done(cc, DELIVERY_DONE);
+	    return;
 	}
 
-	cc->tmo *= 2;
-	cc->timecb = delaycb(cc->tmo, wrap(this, &djprot_impl::clnt_transmit, cc));
-
-	if (cc->ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
-	    dj_msg_id cid(cc->ss.stmt.msgx->from, cc->ss.stmt.msgx->xid);
-	    process_msg_request(*cc->ss.stmt.msgx, cid, cc->local_deliver_arg);
-
-	    if (!cc->ss.stmt.msgx->u.req->want_ack)
-		clnt_done(cc, DELIVERY_DONE);
-	} else {
-	    if (!send_message(cc->ss, cc->ss.stmt.msgx->to, cc)) {
-		clnt_done(cc, DELIVERY_NO_ADDRESS);
-		return;
-	    }
+	pk_addr *a = addr_key_[cc->ss.stmt.msg->to];
+	if (!a) {
+	    warn << "send_message: can't find address for pubkey "
+		 << cc->ss.stmt.msg->to << "\n";
+	    clnt_done(cc, DELIVERY_NO_ADDRESS);
+	    return;
 	}
+	dj_address addr = *a->d.a.addr;
+
+	time_t now = time(0);
+	if (now < a->d.from_ts - delegation_time_skew ||
+	    now > a->d.until_ts + delegation_time_skew)
+	{
+	    warn << "send_message: expired address delegation\n";
+	    clnt_done(cc, DELIVERY_NO_ADDRESS);
+	    return;
+	}
+
+	cc->cb(DELIVERY_DONE);
+	cc->cb = 0;
+
+	tcp_connect(cc->ss.stmt.msg->to, addr);
     }
 
     void addr_remove(pk_addr *a) {
@@ -359,85 +327,31 @@ class djprot_impl : public djprot {
 	}
     }
 
-    void srvr_send_status(dj_msg_id cid, dj_delivery_code code) {
-	dj_stmt_signed ss;
-	ss.stmt.set_type(STMT_MSG_XFER);
-	ss.stmt.msgx->from = pubkey();
-	ss.stmt.msgx->to = cid.key;
-	ss.stmt.msgx->xid = cid.xid;
-	ss.stmt.msgx->u.set_op(MSG_STATUS);
-	ss.stmt.msgx->u.stat->code = code;
-
-	if (ss.stmt.msgx->to == pubkey() && direct_local_msgs) {
-	    dj_msg_id cid(ss.stmt.msgx->from, ss.stmt.msgx->xid);
-	    process_msg_status(*ss.stmt.msgx, cid);
-	    return;
-	}
-
-	send_message(ss, cid.key, 0);
-    }
-
     void srvr_send_no_status(dj_delivery_code code) {
     }
 
-    void process_msg_request(const dj_msg_xfer &c, const dj_msg_id &cid,
-			     void *local_deliver_arg)
-    {
-	PERF_COUNTER(process_msg_request);
+    void process_msg(const dj_message &m, void *local_deliver_arg) {
+	PERF_COUNTER(process_msg);
 
-	if (!local_delivery_) {
-	    warn << "process_msg_request: missing delivery backend\n";
-	    srvr_send_status(cid, DELIVERY_REMOTE_ERR);
+	if (m.to != pubkey()) {
+	    warn << "misrouted message to " << m.to << "\n";
 	    return;
 	}
 
-	if (!labelcheck_recv(*c.u.req, c.from, c.u.req->dset)) {
-	    srvr_send_status(cid, DELIVERY_REMOTE_DELEGATION);
+	if (!local_delivery_) {
+	    warn << "process_msg: missing delivery backend\n";
+	    return;
+	}
+
+	if (!labelcheck_recv(m, m.dset)) {
+	    warn << "process_msg: bad delegations\n";
 	    return;
 	}
 
 	delivery_args da;
-	if (c.u.req->want_ack)
-	    da.cb = wrap(this, &djprot_impl::srvr_send_status, cid);
-	else
-	    da.cb = wrap(this, &djprot_impl::srvr_send_no_status);
+	da.cb = wrap(this, &djprot_impl::srvr_send_no_status);
 	da.local_delivery_arg = local_deliver_arg;
-	local_delivery_(c.from, *c.u.req, da);
-    }
-
-    void process_msg_status(const dj_msg_xfer &c, const dj_msg_id &cid) {
-	warn << "Unexpected: process_msg_status\n";
-
-	msg_client *cc = clnt_[cid];
-	if (!cc) {
-	    warn << "process_msg_status: unexpected delivery status\n";
-	    return;
-	}
-
-	dj_delivery_code code = c.u.stat->code;
-	clnt_done(cc, code);
-    }
-
-    void process_msg(const dj_msg_xfer &c) {
-	if (c.to != pubkey()) {
-	    warn << "misrouted message to " << c.to << "\n";
-	    return;
-	}
-
-	dj_msg_id cid(c.from, c.xid);
-
-	switch (c.u.op) {
-	case MSG_REQUEST:
-	    process_msg_request(c, cid, 0);
-	    break;
-
-	case MSG_STATUS:
-	    process_msg_status(c, cid);
-	    break;
-
-	default:
-	    warn << "process_msg: unhandled op " << c.u.op << "\n";
-	}
+	local_delivery_(m, da);
     }
 
     void rcv_bcast(const char *pkt, ssize_t len, const sockaddr *addr) {
@@ -459,6 +373,9 @@ class djprot_impl : public djprot {
 
 	switch (m.stmt.type) {
 	case STMT_DELEGATION:
+	    if (bcast_debug)
+		warn << "received bcast delegation..\n";
+
 	    process_delegation(*m.stmt.delegation);
 	    break;
 
@@ -496,7 +413,10 @@ class djprot_impl : public djprot {
 	    bcast.sin_addr = *ap;
 	    bcast.sin_port = bc_port_;
 	    bx_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
-	    //warn << "Sent broadcast delegation to " << inet_ntoa(*ap) << "\n";
+
+	    if (bcast_debug)
+		warn << "Sent broadcast delegation to "
+		     << inet_ntoa(*ap) << "\n";
 	}
 
 	// Chew on our own delegation, for good measure..
@@ -546,6 +466,15 @@ class djprot_impl : public djprot {
     void tcp_ready(crypt_conn *cc, crypt_conn_status code) {
 	if (code == crypt_cannot_connect) {
 	    warn << "cryptconn: cannot connect\n";
+
+	    msg_client *nmc;
+	    for (msg_client *mc = clnt_[cc->remote_];
+		 mc && mc->to == cc->remote_; mc = nmc)
+	    {
+		nmc = clnt_.next(mc);
+		clnt_done(mc, DELIVERY_TIMEOUT);
+	    }
+
 	    delete cc;
 	    return;
 	}
@@ -563,13 +492,6 @@ class djprot_impl : public djprot {
 	    msg_client *nmc;
 	    for (msg_client *mc = clnt_.first(); mc; mc = nmc) {
 		nmc = clnt_.next(mc);
-
-		if (mc->ss.stmt.msgx->to != cc->remote_)
-		    continue;
-		if (!mc->timecb)
-		    continue;
-
-		timecb_remove(mc->timecb);
 		clnt_transmit(mc);
 	    }
 
@@ -586,17 +508,17 @@ class djprot_impl : public djprot {
 	    return;
 	}
 
-	if (stmt.type != STMT_MSG_XFER) {
+	if (stmt.type != STMT_MSG) {
 	    warn << "tcp_receive: unexpected statement type\n";
 	    return;
 	}
 
-	if (stmt.msgx->from != sender) {
+	if (stmt.msg->from != sender) {
 	    warn << "tcp_receive: sender vs envelope mismatch\n";
 	    return;
 	}
 
-	process_msg(*stmt.msgx);
+	process_msg(*stmt.msg, 0);
     }
 
     uint16_t bc_port_;	/* network byte order */
@@ -607,7 +529,7 @@ class djprot_impl : public djprot {
 
     ihash<dj_pubkey, pk_addr, &pk_addr::pk, &pk_addr::pk_link> addr_key_;
     itree<dj_timestamp, pk_addr, &pk_addr::expires, &pk_addr::exp_link> addr_exp_;
-    ihash<dj_msg_id, msg_client, &msg_client::id, &msg_client::link> clnt_;
+    itree<dj_pubkey, msg_client, &msg_client::to, &msg_client::link> clnt_;
 
     time_t exp_first_;
     timecb_t *exp_cb_;

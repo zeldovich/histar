@@ -3,7 +3,6 @@
  */
 
 %#include <sfs_prot.h>
-%#include <inc/label.h>		/* for LB_LEVEL_STAR */
 
 typedef unsigned dj_timestamp;	/* UNIX seconds */
 typedef opaque dj_stmt_blob<>;	/* No recursive definitions in XDR */
@@ -116,15 +115,21 @@ union dj_message_endpoint switch (dj_endpoint_type type) {
 };
 
 struct dj_message {
+    dj_pubkey from;
+    dj_pubkey to;
+
     dj_message_endpoint target;	/* gate or segment to call on delivery */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */
     dj_label gclear;		/* grant clearance on gate invocation */
     dj_catmap catmap;		/* target node category mappings */
     dj_delegation_set dset;	/* supporting delegations */
-    bool want_ack;
     opaque msg<>;
 };
+
+/*
+ * Not all message delivery codes are exposed to the sender.
+ */
 
 enum dj_delivery_code {
     DELIVERY_DONE = 1,
@@ -136,29 +141,6 @@ enum dj_delivery_code {
     DELIVERY_REMOTE_MAPPING,
     DELIVERY_LOCAL_ERR,
     DELIVERY_REMOTE_ERR
-};
-
-struct dj_message_status {
-    dj_delivery_code code;
-};
-
-enum dj_msg_op {
-    MSG_REQUEST = 1,
-    MSG_STATUS
-};
-
-union dj_msg_u switch (dj_msg_op op) {
- case MSG_REQUEST:
-    dj_message req;
- case MSG_STATUS:
-    dj_message_status stat;
-};
-
-struct dj_msg_xfer {
-    dj_pubkey from;
-    dj_pubkey to;
-    unsigned hyper xid;
-    dj_msg_u u;
 };
 
 /*
@@ -181,15 +163,15 @@ struct dj_key_setup {
 
 enum dj_stmt_type {
     STMT_DELEGATION = 1,
-    STMT_MSG_XFER,
+    STMT_MSG,
     STMT_KEY_SETUP
 };
 
 union dj_stmt switch (dj_stmt_type type) {
  case STMT_DELEGATION:
     dj_delegation delegation;
- case STMT_MSG_XFER:
-    dj_msg_xfer msgx;
+ case STMT_MSG:
+    dj_message msg;
  case STMT_KEY_SETUP:
     dj_key_setup keysetup;
 };

@@ -49,16 +49,14 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	}
 
 	dj_rpc_reply reply;
-	reply.sender = reqmsg.sender;
-	reply.tmo = 5;
 	reply.dset = reqmsg.m.dset;
 	reply.catmap = reqmsg.m.catmap;
 
+	reply.msg.to = reqmsg.m.from;
 	reply.msg.target = cm.return_ep;
 	reply.msg.taint = reqmsg.m.taint;
 	reply.msg.catmap = cm.return_cm;
 	reply.msg.dset = cm.return_ds;
-	reply.msg.want_ack = 0;
 
 	if (!fn(reqmsg.m, str(cm.buf.base(), cm.buf.size()), &reply)) {
 	    printf("dj_rpc_srv: service function is bummed out\n");
@@ -66,8 +64,6 @@ dj_rpc_srv(dj_rpc_service_fn *fn,
 	}
 
 	dj_incoming_gate_req replymsg;
-	replymsg.node = reply.sender;
-	replymsg.timeout = reply.tmo;
 	replymsg.dset = reply.dset;
 	replymsg.catmap = reply.catmap;
 	replymsg.m = reply.msg;

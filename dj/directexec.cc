@@ -1,8 +1,7 @@
 #include <dj/directexec.hh>
 
 void
-dj_direct_gatemap::deliver(const dj_pubkey &sender,
-			   const dj_message &a,
+dj_direct_gatemap::deliver(const dj_message &a,
 			   const delivery_args &da)
 {
     if (a.target.type != EP_GATE) {
@@ -17,7 +16,7 @@ dj_direct_gatemap::deliver(const dj_pubkey &sender,
 	return;
     }
 
-    (*s)(sender, a);
+    (*s)(a);
     da.cb(DELIVERY_DONE);
 }
 

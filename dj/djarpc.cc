@@ -5,12 +5,12 @@ static void
 dj_arpc_srv_cb(message_sender *s, bool ok, const dj_rpc_reply &r)
 {
     if (ok)
-	s->send(r.sender, r.tmo, r.dset, r.msg, 0, 0);
+	s->send(r.msg, r.dset, 0, 0);
 }
 
 void
 dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
-		 const dj_pubkey &sender, const dj_message &m)
+		 const dj_message &m)
 {
     dj_call_msg cm;
     if (!bytes2xdr(cm, m.msg)) {
@@ -19,12 +19,11 @@ dj_arpc_srv_sink(message_sender *s, dj_arpc_service srv,
     }
 
     dj_arpc_reply r;
-    r.r.sender = sender;
-    r.r.tmo = 0;
     r.r.dset = m.dset;
     r.r.catmap = m.catmap;
-    r.r.msg.target = cm.return_ep;
 
+    r.r.msg.to = m.from;
+    r.r.msg.target = cm.return_ep;
     r.r.msg.taint = m.taint;
     r.r.msg.catmap = cm.return_cm;
     r.r.msg.dset = cm.return_ds;
@@ -44,13 +43,12 @@ dj_rpc_to_arpc(dj_rpc_service_cb srv, const dj_message &m, const str &s,
 }
 
 void
-dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &dset,
+dj_arpc_call::call(time_t tmo, const dj_delegation_set &dset,
 		   const dj_message &a, const str &buf, call_reply_cb cb,
 		   const dj_catmap *return_cm, const dj_delegation_set *return_ds)
 {
     dset_ = dset;
     a_ = a;
-    dst_ = node;
     cb_ = cb;
     rep_ = f_->create_gate(rct_, wrap(mkref(this), &dj_arpc_call::reply_sink));
     rep_created_ = true;
@@ -64,7 +62,6 @@ dj_arpc_call::call(const dj_pubkey &node, time_t tmo, const dj_delegation_set &d
     cm.buf = buf;
 
     a_.msg = xdr2str(cm);
-    a_.want_ack = 0;
     until_ = time(0) + tmo;
     retransmit();
 }
@@ -79,7 +76,7 @@ dj_arpc_call::retransmit()
     if (now > until_)
 	now = until_;
 
-    s_->send(dst_, until_ - now, dset_, a_,
+    s_->send(a_, dset_,
 	     wrap(mkref(this), &dj_arpc_call::delivery_cb), 0);
 
     if (now >= until_ && !done_) {
@@ -105,12 +102,12 @@ dj_arpc_call::delivery_cb(dj_delivery_code c)
 }
 
 void
-dj_arpc_call::reply_sink(const dj_pubkey &sender, const dj_message &a)
+dj_arpc_call::reply_sink(const dj_message &a)
 {
     if (done_)
 	return;
 
-    if (sender != dst_) {
+    if (a.from != a_.to) {
 	warn << "dj_arpc_call::reply_sink: reply from wrong node\n";
 	return;
     }

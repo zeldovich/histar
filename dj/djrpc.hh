@@ -5,8 +5,6 @@
 #include <dj/djprotx.h>
 
 struct dj_rpc_reply {
-    dj_pubkey sender;
-    time_t tmo;
     dj_delegation_set dset;
     dj_catmap catmap;
     dj_message msg;

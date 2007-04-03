@@ -4,8 +4,7 @@
 #include <dj/djrpcx.h>
 
 void
-delegation_create(djprot *p, const dj_pubkey &sender,
-		  const dj_message &m, const delivery_args &da)
+delegation_create(djprot *p, const dj_message &m, const delivery_args &da)
 {
     if (m.target.type != EP_DELEGATOR) {
 	warn << "delegation_create: not a delegator target\n";
@@ -57,13 +56,13 @@ delegation_create(djprot *p, const dj_pubkey &sender,
     }
 
     dj_message replym;
+    replym.to = m.from;
     replym.target = callmsg.return_ep;
     replym.taint = m.taint;
     replym.catmap = callmsg.return_cm;
     replym.dset = callmsg.return_ds;
     replym.msg = xdr2str(dres);
-    replym.want_ack = 0;
 
-    p->send(sender, 0, m.dset, replym, 0, 0);
+    p->send(replym, m.dset, 0, 0);
     da.cb(DELIVERY_DONE);
 }

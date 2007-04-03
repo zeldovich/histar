@@ -15,7 +15,7 @@ class histar_mapcreate {
  public:
     histar_mapcreate(djprot *p, catmgr *cm)
 	: counter_(1), p_(p), cm_(cm) {}
-    void exec(const dj_pubkey&, const dj_message&, const delivery_args&);
+    void exec(const dj_message&, const delivery_args&);
 
  private:
     uint64_t counter_;

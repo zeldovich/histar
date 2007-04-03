@@ -10,14 +10,6 @@ extern "C" {
 #include <dj/djprotx.h>
 #include <inc/cpplabel.hh>
 
-struct dj_msg_id {
-    dj_pubkey key;
-    uint64_t xid;
-
-    dj_msg_id(const dj_pubkey &k, uint64_t x) : key(k), xid(x) {}
-    operator hash_t() const { return xid; }
-};
-
 inline dj_pubkey
 sfspub2dj(ptr<sfspub> sfspub)
 {
@@ -50,24 +42,6 @@ operator==(const dj_pubkey &a, const dj_pubkey &b)
 
 inline bool
 operator!=(const dj_pubkey &a, const dj_pubkey &b)
-{
-    return !(a == b);
-}
-
-inline bool
-operator<(const dj_msg_id &a, const dj_msg_id &b)
-{
-    return a.xid < b.xid || (a.xid == b.xid && a.key < b.key);
-}
-
-inline bool
-operator==(const dj_msg_id &a, const dj_msg_id &b)
-{
-    return a.key == b.key && a.xid == b.xid;
-}
-
-inline bool
-operator!=(const dj_msg_id &a, const dj_msg_id &b)
 {
     return !(a == b);
 }
@@ -194,6 +168,8 @@ strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
 inline const strbuf &
 strbuf_cat(const strbuf &sb, const dj_message &a)
 {
+    sb << "from:         " << a.from << "\n";
+    sb << "to:           " << a.to << "\n";
     sb << "target ep:    " << a.target << "\n";
     sb << "taint:        " << a.taint << "\n";
     sb << "grant label:  " << a.glabel << "\n";

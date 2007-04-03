@@ -14,13 +14,10 @@ extern "C" {
 #include <dj/gatecallstatus.hh>
 
 dj_delivery_code
-gate_sender::send(const dj_pubkey &node, time_t timeout,
-		  const dj_delegation_set &dset, const dj_catmap &cm,
+gate_sender::send(const dj_delegation_set &dset, const dj_catmap &cm,
 		  const dj_message &msg, label *grantlabel)
 {
     dj_incoming_gate_req req;
-    req.node = node;
-    req.timeout = timeout;
     req.dset = dset;
     req.catmap = cm;
     req.m = msg;

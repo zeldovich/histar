@@ -37,8 +37,8 @@ verify_stmt(const dj_stmt_signed &s)
 	    return false;
 	}
 
-    case STMT_MSG_XFER:
-	return verify_sign(s.stmt, s.stmt.msgx->from, s.sign);
+    case STMT_MSG:
+	return verify_sign(s.stmt, s.stmt.msg->from, s.sign);
 
     case STMT_KEY_SETUP:
 	return verify_sign(s.stmt, s.stmt.keysetup->sender, s.sign);

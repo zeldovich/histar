@@ -29,8 +29,7 @@ class gate_sender {
 
     gate_sender(cobj_ref djd_gate) : g_(djd_gate) {}
 
-    dj_delivery_code send(const dj_pubkey &node, time_t timeout,
-			  const dj_delegation_set &dset, const dj_catmap &cm,
+    dj_delivery_code send(const dj_delegation_set &dset, const dj_catmap &cm,
 			  const dj_message &msg, label *grantlabel = 0);
     dj_pubkey hostkey() { return hostkey_; }
 

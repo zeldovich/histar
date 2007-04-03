@@ -63,8 +63,7 @@ gate_exec_thread(gate_exec_thread_state *s)
 }
 
 static void
-gate_exec2(catmgr *cm, const dj_pubkey &sender,
-	   const dj_message &m, const delivery_args &da,
+gate_exec2(catmgr *cm, const dj_message &m, const delivery_args &da,
 	   const cobj_ref &djd_gate)
 {
     PERF_COUNTER(gate_exec2);
@@ -180,7 +179,6 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
      * Write message to segment
      */
     dj_outgoing_gate_msg gmsg;
-    gmsg.sender = sender;
     gmsg.djd_gate.gate_ct = djd_gate.container;
     gmsg.djd_gate.gate_id = djd_gate.object;
     gmsg.m = m;
@@ -225,11 +223,11 @@ gate_exec2(catmgr *cm, const dj_pubkey &sender,
 }
 
 void
-gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
+gate_exec(catmgr *cm, cobj_ref djd_gate,
 	  const dj_message &m, const delivery_args &da)
 {
     try {
-	gate_exec2(cm, node, m, da, djd_gate);
+	gate_exec2(cm, m, da, djd_gate);
     } catch (std::exception &e) {
 	warn << "gate_exec: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_ERR);
@@ -239,8 +237,7 @@ gate_exec(catmgr *cm, cobj_ref djd_gate, const dj_pubkey &node,
 }
 
 static void
-segment_exec2(catmgr *cm, const dj_pubkey &sender,
-	      const dj_message &m, const delivery_args &da)
+segment_exec2(catmgr *cm, const dj_message &m, const delivery_args &da)
 {
     PERF_COUNTER(segment_exec2);
 
@@ -309,11 +306,10 @@ segment_exec2(catmgr *cm, const dj_pubkey &sender,
 }
 
 void
-segment_exec(catmgr *cm, const dj_pubkey &node,
-	     const dj_message &m, const delivery_args &da)
+segment_exec(catmgr *cm, const dj_message &m, const delivery_args &da)
 {
     try {
-	segment_exec2(cm, node, m, da);
+	segment_exec2(cm, m, da);
     } catch (std::exception &e) {
 	warn << "segment_exec: " << e.what() << "\n";
 	da.cb(DELIVERY_REMOTE_ERR);

@@ -15,15 +15,15 @@ struct delivery_args {
 class message_sender {
  public:
     virtual ~message_sender() {}
-    virtual void send(const dj_pubkey &node, time_t timeout,
+    virtual void send(const dj_message &msg,
 		      const dj_delegation_set &dset,
-		      const dj_message &msg, delivery_status_cb cb,
+		      delivery_status_cb cb,
 		      void *delivery_arg) = 0;
 };
 
 class djprot : public message_sender {
  public:
-    typedef callback<void, const dj_pubkey&, const dj_message&,
+    typedef callback<void, const dj_message&,
 			   const delivery_args&>::ptr local_delivery_cb;
 
     virtual dj_pubkey pubkey() const = 0;

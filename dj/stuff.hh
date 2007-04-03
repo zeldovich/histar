@@ -4,7 +4,7 @@
 #include <dj/djprot.hh>
 #include <dj/djops.hh>
 
-typedef callback<void, const dj_pubkey&, const dj_message&>::ptr dj_msg_sink;
+typedef callback<void, const dj_message&>::ptr dj_msg_sink;
 
 class dj_gate_factory {
  public:

@@ -58,7 +58,7 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
     dj_outgoing_gate_msg m;
     djgate_incoming(gcd, vl, vc, &m, r);
 
-    if (m.sender != s->server) {
+    if (m.m.from != s->server) {
 	printf("dj_rpc_reply_entry: reply from unexpected node\n");
 	return;
     }
@@ -99,7 +99,7 @@ dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
 }
 
 static dj_delivery_code
-dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+dj_rpc_call_gate(gate_sender *gs, time_t timeout,
 		 const dj_delegation_set &dset, const dj_catmap &cm,
 		 const dj_message &m, const str &calldata, dj_message *reply,
 		 label *grantlabel, label *return_ct_taint)
@@ -124,7 +124,7 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
     dj_rpc_reply_state rs;
     rs.base_procct = start_env->proc_container;
     atomic_set(&rs.reply, reply_none);
-    rs.server = node;
+    rs.server = m.to;
     rs.callct = call_ct;
 
     gatesrv_descriptor gd;
@@ -145,7 +145,6 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
     dj_message m2 = m;
     m2.msg = xdr2str(callmsg);
-    m2.want_ack = 0;
 
     uint64_t timeout_at_nsec = sys_clock_nsec() + NSEC_PER_SECOND * timeout;
     for (;;) {
@@ -154,9 +153,7 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    return DELIVERY_TIMEOUT;
 
 	dj_delivery_code code =
-	    gs->send(node,
-		     (timeout_at_nsec - now_nsec) / NSEC_PER_SECOND,
-		     dset, cm, m2, grantlabel);
+	    gs->send(dset, cm, m2, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 
@@ -203,7 +200,7 @@ dj_rpc_call_gate(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 }
 
 static dj_delivery_code
-dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+dj_rpc_call_seg(gate_sender *gs, time_t timeout,
 		const dj_delegation_set &dset, const dj_catmap &cm,
 		const dj_message &m, const str &calldata, dj_message *reply,
 		label *grantlabel, label *return_ct_taint)
@@ -236,7 +233,6 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 
     dj_message m2 = m;
     m2.msg = xdr2str(callmsg);
-    m2.want_ack = 0;
 
     uint64_t timeout_at_nsec = sys_clock_nsec() + NSEC_PER_SECOND * timeout;
     for (;;) {
@@ -245,9 +241,7 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 	    return DELIVERY_TIMEOUT;
 
 	dj_delivery_code code =
-	    gs->send(node,
-		     (timeout_at_nsec - now_nsec) / NSEC_PER_SECOND,
-		     dset, cm, m2, grantlabel);
+	    gs->send(dset, cm, m2, grantlabel);
 	if (code != DELIVERY_DONE)
 	    return code;
 
@@ -277,13 +271,13 @@ dj_rpc_call_seg(gate_sender *gs, const dj_pubkey &node, time_t timeout,
 }
 
 dj_delivery_code
-dj_rpc_call(gate_sender *gs, const dj_pubkey &node, time_t timeout,
+dj_rpc_call(gate_sender *gs, time_t timeout,
 	    const dj_delegation_set &dset, const dj_catmap &cm,
 	    const dj_message &m, const str &calldata, dj_message *reply,
 	    label *grantlabel, label *return_ct_taint, bool gateret)
 {
     if (gateret)
-	return dj_rpc_call_gate(gs, node, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
+	return dj_rpc_call_gate(gs, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
     else
-	return dj_rpc_call_seg(gs, node, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
+	return dj_rpc_call_seg(gs, timeout, dset, cm, m, calldata, reply, grantlabel, return_ct_taint);
 }

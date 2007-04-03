@@ -57,6 +57,7 @@ static void
 sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endpoint ep)
 {
     dj_message m;
+    m.to = node_pk;
     m.target = ep;
 
     djfs_request req;
@@ -65,7 +66,7 @@ sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_en
 
     dj_delegation_set dset;
     ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
-    rc->call(node_pk, 1, dset, m, xdr2str(req), wrap(&fsrpccb, rc));
+    rc->call(1, dset, m, xdr2str(req), wrap(&fsrpccb, rc));
     delaycb(5, wrap(&sndfsrpc, s, f, node_pk, ep));
 }
 
@@ -81,11 +82,12 @@ static void
 sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endpoint ep)
 {
     dj_message m;
+    m.to = node_pk;
     m.target = ep;
 
     dj_delegation_set dset;
     ptr<dj_arpc_call> rc = New refcounted<dj_arpc_call>(s, f, 9876);
-    rc->call(node_pk, 1, dset, m, "Hello world.", wrap(&rpccb, rc));
+    rc->call(1, dset, m, "Hello world.", wrap(&rpccb, rc));
     delaycb(5, wrap(&sndrpc, s, f, node_pk, ep));
 }
 
@@ -101,11 +103,12 @@ sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
     warn << "sending a message..\n";
 
     dj_message a;
+    a.to = node_pk;
     a.target = ep;
     a.msg = "Hello world!";
 
     dj_delegation_set dset;
-    s->send(node_pk, 1, dset, a, wrap(&msgcb), 0);
+    s->send(a, dset, wrap(&msgcb), 0);
     delaycb(5, wrap(&sndmsg, s, node_pk, ep));
 }
 

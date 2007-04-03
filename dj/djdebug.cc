@@ -3,20 +3,19 @@
 #include <dj/djrpc.hh>
 
 void
-dj_debug_delivery(const dj_pubkey &sender,
-		  const dj_message &a,
+dj_debug_delivery(const dj_message &a,
 		  delivery_status_cb cb)
 {
-    warn << "dj_debug_delivery: got a message from " << sender << "\n";
+    warn << "dj_debug_delivery: got a message\n";
     warn << a;
 
     cb(DELIVERY_DONE);
 }
 
 void
-dj_debug_sink(const dj_pubkey &sender, const dj_message &a)
+dj_debug_sink(const dj_message &a)
 {
-    warn << "dj_debug_sink: got a message from " << sender << "\n";
+    warn << "dj_debug_sink: got a message\n";
     warn << a;
 }
 

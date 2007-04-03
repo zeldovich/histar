@@ -40,7 +40,7 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 	dj_pubkey thiskey = the_gs->hostkey();
 	dj_global_cache cache;
 	cache[thiskey]->cmi_.insert(m.catmap);
-	cache[r->sender]->cmi_.insert(r->msg.catmap);
+	cache[r->msg.to]->cmi_.insert(r->msg.catmap);
 	cache.dmap_.insert(m.dset);
 	cache.dmap_.insert(r->msg.dset);
 
@@ -68,7 +68,7 @@ auth_proxy_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 
 	dj_map_and_delegate(2, &cats[0], &integrity[0],
 			    glabel, glabel,
-			    arg.map_ct, arg.return_map_ct, r->sender,
+			    arg.map_ct, arg.return_map_ct, r->msg.to,
 			    the_gs, cache,
 			    &lmap[0], &rmap[0], &delegations[0]);
 

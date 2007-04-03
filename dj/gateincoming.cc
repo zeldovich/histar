@@ -211,7 +211,7 @@ class incoming_impl : public dj_incoming_gate {
 
 	bool lms_init = false;
 	local_mapcreate_state lms;
-	if (req.m.target.type == EP_MAPCREATE && req.node == p_->pubkey()) {
+	if (req.m.target.type == EP_MAPCREATE && req.m.to == p_->pubkey()) {
 	    label tl, tc;
 	    thread_cur_label(&tl);
 	    thread_cur_clearance(&tc);
@@ -282,7 +282,7 @@ class incoming_impl : public dj_incoming_gate {
 	}
 
 	assert(cc == sizeof(ir));
-	p_->send(ir->req->node, ir->req->timeout, ir->req->dset, ir->req->m,
+	p_->send(ir->req->m, ir->req->dset,
 		 wrap(this, &incoming_impl::callcb, ir), ir->local_deliver_arg);
     }
 

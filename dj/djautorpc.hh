@@ -30,6 +30,7 @@ class dj_autorpc {
 	dj_catmap_indexed rem_cm;
 
 	dj_message reqm;
+	reqm.to = pk_;
 	reqm.target = ep;
 
 	label tl;
@@ -106,7 +107,7 @@ class dj_autorpc {
 	}
 
 	dj_message resm;
-	dj_delivery_code code = dj_rpc_call(gs_, pk_, tmo_,
+	dj_delivery_code code = dj_rpc_call(gs_, tmo_,
 					    loc_dmap.to_delegation_set(),
 					    loc_cm.to_catmap(),
 					    reqm, reqstr, &resm, xgrant,
