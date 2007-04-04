@@ -1,5 +1,9 @@
 # -*-Makefile-*-
 
+# The 0x1e0 link offset corresponds to the offset of the text section
+# inthe resulting ELF kernel file.  This way, the kernel ELF binary
+# can be loaded at exactly 0x100000, without any further relocation.
+
 KERN_LDFLAGS = -N -Ttext 0xffffffff801001e0 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
 
