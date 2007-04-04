@@ -63,6 +63,9 @@ Building libstdc++-v3, which is needed for a lot of C++ features,
 requires system headers for the target platform (e.g. from building
 a cross-glibc).
 
+Note that for some versions of gcc, you may need to say "env
+SHELL=/bin/sh gmake" if you have a different shell.
+
 * GDB
 
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
@@ -74,5 +77,16 @@ a cross-glibc).
 
 * Qemu
 
-Apply ./conf/qemu-movd.patch to avoid 32-bit truncation for some MMX operations.
+For qemu 0.8.2 and earlier, you must apply ./conf/qemu-movd.patch to
+avoid 32-bit truncation for some MMX operations.
 
+You must use gcc 3.4 to compile qemu, so after running ./configure you
+may need to set something like "CC=gcc-3.4.6" in config-host.mak.
+
+To boot HiStar for the first time
+
+rm -f obj/kern/bochs.img
+gmake
+mkdir ./obj/fs
+qemu-img create -f qcow2 ./obj/fs/fs.img 1G
+./qemu.sh
