@@ -10,9 +10,11 @@
  *  * This program(boot.S and main.c) is the bootloader.  It should
  *    be stored in the first sector of the disk.
  * 
- *  * The 2nd sector onward holds the kernel image.
+ *  * The 2nd sector holds Linux style setup header (setup.S) for 
+ *    SYSLINUX loaders.
  *	
- *  * The kernel image must be in ELF format.
+ *  * The 3rd sector onward hols the kernel image.  The kernel image  
+ *    must be in ELF format.
  *
  * BOOT UP STEPS	
  *  * when the CPU boots it loads the BIOS into memory and executes it
@@ -24,7 +26,7 @@
  *  * Assuming this boot loader is stored in the first sector of the
  *    hard-drive, this code takes over...
  *
- *  * control starts in bootloader.S -- which sets up protected mode,
+ *  * control starts in boot.S -- which sets up protected mode,
  *    and a stack so C code then run, then calls cmain()
  *
  *  * cmain() in this file takes over, reads in the kernel and jumps to it.
@@ -32,6 +34,7 @@
 
 #define SECTSIZE	512
 #define ELFHDR		((Elf64_Ehdr *) 0x10000) // scratch space
+#define ELFOFF          1024
 
 void readsect(void*, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
@@ -43,7 +46,7 @@ cmain(uint32_t extmem_kb)
   int i;
 
   // read 1st page off disk
-  readseg((uint32_t) ELFHDR, SECTSIZE*8, 512);
+  readseg((uint32_t) ELFHDR, SECTSIZE*8, ELFOFF);
 
   if (ELFHDR->e_magic != ELF_MAGIC /* Invalid Elf */
       || ELFHDR->e_ident[0] != 2) /* not 64-bit */
@@ -52,7 +55,7 @@ cmain(uint32_t extmem_kb)
   // load each program segment (ignores ph flags)
   ph = (Elf64_Phdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
   for (i = ELFHDR->e_phnum; i != 0; i--) {
-    readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + 512);
+    readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
     ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
   }
 
@@ -84,7 +87,7 @@ readseg(uint32_t va, uint32_t count, uint32_t offset)
   va &= ~(SECTSIZE - 1);
 
   // translate from bytes to sectors, and kernel starts at sector 1
-  offset = (offset / SECTSIZE) + 1;
+  offset = (offset / SECTSIZE);
 
   // If this is too slow, we could read lots of sectors at a time.
   // We'd write more to memory than asked, but it doesn't matter --
