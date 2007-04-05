@@ -8,18 +8,28 @@ extern "C" {
 #include <inc/wait.h>
 #include <inc/debug_gate.h>
 #include <inc/error.h>
+#include <inc/process.h>
 
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 }
 
 #include <inc/error.hh>
 #include <inc/labelutil.hh>
 #include <inc/cpplabel.hh>
 #include <inc/scopeguard.hh>
+#include <inc/jthread.hh>
 
 static int fork_debug = 0;
+jthread_mutex_t fork_mu;
+
+static void
+signal_unmask(const sigset_t *sigset)
+{
+    sigprocmask(SIG_SETMASK, sigset, 0);
+}
 
 static pid_t
 do_fork()
@@ -113,8 +123,21 @@ do_fork()
 				  pgid_label.to_ulabel(), "process gid"));
     }
     scope_guard<int, void *> pgid_unmap(segment_unmap, child_pgid);
-    
+
     *child_pgid = getpgrp();
+
+    /*
+     * Mask signals so we get a more consistent copy of our address space.
+     */
+    sigset_t oldset, maskset;
+    sigfillset(&maskset);
+    sigprocmask(SIG_SETMASK, &maskset, &oldset);
+    scope_guard<void, const sigset_t*> unmask_sig(signal_unmask, &oldset);
+
+    /*
+     * Lock fork_mu to prevent gate exit code from calling malloc & free.
+     */
+    scoped_jthread_lock l(&fork_mu);
 
     // Prepare a setjmp buffer for the new thread, before we copy our stack!
     struct jos_jmp_buf jb;

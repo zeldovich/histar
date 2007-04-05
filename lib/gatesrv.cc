@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/taint.h>
 #include <inc/error.h>
+#include <inc/process.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +18,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
+#include <inc/jthread.hh>
 
 enum { gatesrv_debug = 0 };
 
@@ -173,6 +175,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
     if ((flags_ & GATESRV_NO_THREAD_ADDREF))
 	error_check(sys_self_addref(thread_ct_));
 
+    scoped_jthread_lock l(&fork_mu);
     label *tgt_label = new label();
     label *tgt_clear = new label();
 
@@ -236,6 +239,7 @@ gatesrv_return::ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_cle
 	r->ret_tls(tgt_label, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
+	jthread_mutex_unlock(&fork_mu);
 	thread_halt();
     }
 }
@@ -274,5 +278,6 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
 	error_check(segment_unmap_delayed(stack_, 1));
 	error_check(sys_obj_unref(stackseg));
     }
+    jthread_mutex_unlock(&fork_mu);
     error_check(sys_obj_unref(thread_self));
 }

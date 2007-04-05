@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/stack.h>
+#include <inc/process.h>
 }
 
 #include <inc/gateinvoke.hh>
@@ -13,6 +14,7 @@ extern "C" {
 static void __attribute__((noreturn))
 dj_rpc_srv_return(cobj_ref *gp, label *tgtl, label *tgtc, gatesrv_return *r)
 {
+    jthread_mutex_lock(&fork_mu);
     gate_invoke(*gp, tgtl, tgtc, &gatesrv_return::cleanup_stub, r);
 }
 
