@@ -1,7 +1,7 @@
 #!/bin/sh
 qemu-system-x86_64 \
 	-serial stdio \
-	-hda ./obj/kern/bochs.img \
+	-hda ./obj/boot/bochs.img \
 	-hdb ./obj/fs/fs.img \
 	-m 128 \
 	-redir tcp:9923::23 \
