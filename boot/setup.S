@@ -1,5 +1,6 @@
 #include <machine/mmu.h>
 
+/* This setup header should be loaded at 0x30200 */
 #define SETUP_RELOC(x)	(x - 0x30200)
 	
 .set PROT_MODE_CSEG,0x8		# code segment selector
