@@ -21,8 +21,9 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	u_segment_mapping usm;
 	int r = segment_lookup(va, &usm);
 
-	cprintf("%s: fatal signal %d, addr=%p\n",
-		__progname, si->si_signo, si->si_addr);
+	cprintf("%s: fatal signal %d, addr=%p [tid=%ld, pid=%ld]\n",
+		__progname, si->si_signo, si->si_addr,
+		sys_self_id(), start_env->shared_container);
 	if (sc)
 	    cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
 		    __progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
