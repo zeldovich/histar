@@ -43,7 +43,7 @@ cmain(uint32_t extmem_kb)
   int i;
 
   // read 1st page off disk
-  readseg((uint32_t) ELFHDR, SECTSIZE*8, 0);
+  readseg((uint32_t) ELFHDR, SECTSIZE*8, 512);
 
   if (ELFHDR->e_magic != ELF_MAGIC /* Invalid Elf */
       || ELFHDR->e_ident[0] != 2) /* not 64-bit */
@@ -52,7 +52,7 @@ cmain(uint32_t extmem_kb)
   // load each program segment (ignores ph flags)
   ph = (Elf64_Phdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
   for (i = ELFHDR->e_phnum; i != 0; i--) {
-    readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset);
+    readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + 512);
     ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
   }
 

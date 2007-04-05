@@ -1,4 +1,6 @@
-.text
+# Should be in the first sector of the image at offset 0x1F0
+.data
+pad:		.byte 0
 setup_sects:	.byte 1
 root_flags:	.word 1
 syssize:	.word 0

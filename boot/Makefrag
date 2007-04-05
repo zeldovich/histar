@@ -17,27 +17,33 @@ $(OBJDIR)/boot/%.o: boot/%.S
 $(OBJDIR)/boot/main.o: boot/main.c
 	$(CC) $(BOOT_CFLAGS) $(INCLUDES) $(CSTD) -c -o $@ $<
 
-$(OBJDIR)/boot/bsdata: $(OBJDIR)/boot/bsdata.o
-	$(LD) -Ttext 0x0 -s --oformat binary -o $@ $<
-
-$(OBJDIR)/boot/boot: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata
-	$(LD) -melf_i386 -N -e start -Ttext 0x7C00 -o $@.out $(BOOT_OBJS)
+# Build a Linux style image for isolinux
+$(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setup
+	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x7C00 $(BOOT_OBJS) \
+	      -Tdata 0x7DF0 $(OBJDIR)/boot/bsdata.o
 	$(OBJDUMP) -S $@.out >$@.asm
-	$(OBJCOPY) -S -O binary $@.out $@
-	perl boot/sign.pl $(OBJDIR)/boot/boot $(OBJDIR)/boot/bsdata
+	$(OBJCOPY) -S -O binary $@.out $@~
+	dd if=$(OBJDIR)/boot/setup of=$@~ bs=512 count=1 seek=1 2>/dev/null
+	cp $@~ $@
 
 $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
 	$(LD) -Ttext 0x30200 -s --oformat binary -e begtext -o $@ $<
 	perl boot/setup.pl $(OBJDIR)/boot/setup
 
-# Build a Linux style image for isolinux
-$(OBJDIR)/boot/isolinux.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot $(OBJDIR)/boot/setup
-	cat $(OBJDIR)/boot/boot > $(OBJDIR)/boot/isolinux.img
-	cat $(OBJDIR)/boot/setup >> $(OBJDIR)/boot/isolinux.img
-	cat $(OBJDIR)/kern/kernel >> $(OBJDIR)/boot/isolinux.img
+$(OBJDIR)/boot/bimage: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bheader
+	cat $(OBJDIR)/boot/bheader > $@
+	cat $(OBJDIR)/kern/kernel >> $@
 
+# Build the Bochs disk image
+$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage
+	dd if=/dev/zero of=$(OBJDIR)/boot/bochs.img~ bs=1024k count=64 2>/dev/null
+	dd if=$< of=$(OBJDIR)/boot/bochs.img~ \
+	   conv=notrunc 2>/dev/null
+	mv $(OBJDIR)/boot/bochs.img~ $(OBJDIR)/boot/bochs.img
+
+# Build a bootable iso
 $(OBJDIR)/boot/boot.iso: IMAGE_CMDLINE = default histar
-$(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/isolinux.img
+$(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/bimage
 	-rm -rf $(@D)/isoimage
 	@mkdir -p $(@D)/isoimage
 	for i in lib lib64 share end ; do \
@@ -47,7 +53,7 @@ $(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/isolinux.img
 		fi ; \
 		if [ $$i = end ] ; then exit 1 ; fi ; \
 	done
-	cp $(OBJDIR)/boot/isolinux.img $(@D)/isoimage/histar
+	cp $(OBJDIR)/boot/bimage $(@D)/isoimage/histar
 	echo '$(IMAGE_CMDLINE)' > $(@D)/isoimage/isolinux.cfg
 	mkisofs -J -r -o $@ -b isolinux.bin -c boot.cat \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \

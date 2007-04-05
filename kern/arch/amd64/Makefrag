@@ -51,5 +51,5 @@ KERN_DEV :=					\
 $(OBJDIR)/kern/kernel:
 	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB)
 
-all: $(OBJDIR)/kern/bochs.img
+all: $(OBJDIR)/boot/bochs.img
 
