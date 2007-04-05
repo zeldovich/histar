@@ -1,70 +1,10 @@
-/*
- *	setup.S		Copyright (C) 1991, 1992 Linus Torvalds
- *
- * setup.s is responsible for getting the system data from the BIOS,
- * and putting them into the appropriate places in system memory.
- * both setup.s and system has been loaded by the bootblock.
- *
- * This code asks the bios for memory/disk/other parameters, and
- * puts them in a "safe" place: 0x90000-0x901FF, ie where the
- * boot-block used to be. It is then up to the protected mode
- * system to read them from there before the area is overwritten
- * for buffer-blocks.
- *
- * Move PS/2 aux init code to psaux.c
- * (troyer@saifr00.cfsat.Honeywell.COM) 03Oct92
- *
- * some changes and additional features by Christoph Niemann,
- * March 1993/June 1994 (Christoph.Niemann@linux.org)
- *
- * add APM BIOS checking by Stephen Rothwell, May 1994
- * (sfr@canb.auug.org.au)
- *
- * High load stuff, initrd support and position independency
- * by Hans Lermen & Werner Almesberger, February 1996
- * <lermen@elserv.ffm.fgan.de>, <almesber@lrc.epfl.ch>
- *
- * Video handling moved to video.S by Martin Mares, March 1996
- * <mj@k332.feld.cvut.cz>
- *
- * Extended memory detection scheme retwiddled by orc@pell.chi.il.us (david
- * parsons) to avoid loadlin confusion, July 1997
- *
- * Transcribed from Intel (as86) -> AT&T (gas) by Chris Noe, May 1999.
- * <stiker@northlink.com>
- *
- * Fix to work around buggy BIOSes which don't use carry bit correctly
- * and/or report extended memory in CX/DX for e801h memory size detection 
- * call.  As a result the kernel got wrong figures.  The int15/e801h docs
- * from Ralf Brown interrupt list seem to indicate AX/BX should be used
- * anyway.  So to avoid breaking many machines (presumably there was a reason
- * to orginally use CX/DX instead of AX/BX), we do a kludge to see
- * if CX/DX have been changed in the e801 call and if so use AX/BX .
- * Michael Miller, April 2001 <michaelm@mjmm.org>
- *
- * Added long mode checking and SSE force. March 2003, Andi Kleen.		
-
-	
-	#include <asm/segment.h>
-#include <linux/utsrelease.h>
-#include <linux/compile.h>
-#include <asm/boot.h>
-#include <asm/e820.h>
-#include <asm/page.h>
-
-	
-	 */
-
 #include <machine/mmu.h>
 
-/* Signature words to ensure LILO loaded us right */
-#define SIG1	0xAA55
-#define SIG2	0x5A5A
-
+#define SETUP_RELOC(x)	(x - 0x30200)
+	
 .set PROT_MODE_CSEG,0x8		# code segment selector
 .set PROT_MODE_DSEG,0x10        # data segment selector
 .set CR0_PE_ON,0x1		# protected mode enable flag
-.set FOO,0x0		# code segment selector
 			
 .code16
 .globl begtext, begdata, begbss, endtext, enddata, endbss
@@ -80,7 +20,9 @@ begbss:
 start:
 	jmp	trampoline
 
-# This is the setup header, and it must start at %cs:2 (old 0x9020:2)
+# This is the setup header, and it must start at %cs:2
+# Copied from Linux arch/i386/boot/setup.S and filled in enough 
+# for SYSLINUX (header sign, header version, load high)
 
 		.ascii	"HdrS"		# header signature
 		.word	0x0204		# header version number (>= 0x0105)
@@ -116,11 +58,7 @@ setup_move_size: .word  0x8000		# size to move, when setup is not
 
 code32_start:				# here loaders can put a different
 					# start address for 32-bit code.
-#ifndef __BIG_KERNEL__
-		.long	0x1000		#   0x1000 = default for zImage
-#else
 		.long	0x100000	# 0x100000 = default for big kernel
-#endif
 
 ramdisk_image:	.long	0		# address of loaded ramdisk image
 					# Here the loader puts the 32-bit
@@ -132,7 +70,7 @@ ramdisk_size:	.long	0		# its size in bytes
 bootsect_kludge:
 		.long	0		# obsolete
 
-heap_end_ptr:	.word	0#modelist+1024	# (Header version 0x0201 or later)
+heap_end_ptr:	.word	0		# (Header version 0x0201 or later)
 					# space from here (exclusive) down to
 					# end of setup code can be used by setup
 					# for local heap purposes.
@@ -163,8 +101,9 @@ start_of_setup:
 		cld				# String operations increment
 
 		# Set up the important data segment registers (DS, ES, SS).
+		movw	%cs,%ax			# -> Data Segment
+		movw	%ax,%ds
 		xorw	%ax,%ax			# Segment number zero
-		movw	%ax,%ds			# -> Data Segment
 		movw	%ax,%es			# -> Extra Segment
 		movw	%ax,%ss			# -> Stack Segment
 
@@ -225,9 +164,7 @@ memdetected:
 ####	 to ensure that the transition to protected mode occurs smoothly.
 	
 real_to_prot:	cli				# Mandatory since we dont set up an IDT
-		movw	%cs, %ax
-		movw    %ax ,%ds
-		movl	$(gdtdesc - 0x30200), %eax
+		movl	$SETUP_RELOC(gdtdesc), %eax
 		lgdtl	(%eax)			# load GDT -- mandatory in protected mode
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
@@ -268,6 +205,3 @@ gdt:
 gdtdesc:
 	.word	0x17			# sizeof(gdt) - 1
 	.long	gdt			# address gdt
-
-	#.word	0x17			# sizeof(gdt) - 1
-	#.long	gdt			# address gdt
