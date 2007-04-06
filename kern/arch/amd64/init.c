@@ -20,6 +20,7 @@
 #include <kern/prof.h>
 #include <kern/thread.h>
 #include <kern/arch.h>
+#include <kern/part.h>
 
 char boot_cmdline[256];
 
@@ -137,6 +138,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 
     page_init(lower_kb, upper_kb);
     pci_init();
+    part_init();
 
     kobject_init ();
     sched_init ();

@@ -4,6 +4,7 @@
 #include <machine/types.h>
 #include <dev/disk.h>
 #include <inc/queue.h>
+#include <kern/part.h>
 
 typedef void (*stackwrap_fn) (uint64_t, uint64_t, uint64_t);
 
@@ -11,11 +12,12 @@ int  stackwrap_call(stackwrap_fn fn,
 		    uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
     __attribute__ ((warn_unused_result));
 
-disk_io_status stackwrap_disk_io(disk_op op, void *buf,
+disk_io_status stackwrap_disk_io(disk_op op, struct part_desc *pd, void *buf,
 				 uint32_t count, uint64_t offset)
     __attribute__ ((warn_unused_result));
-disk_io_status stackwrap_disk_iov(disk_op op, struct kiovec *iov_buf,
-				  int iov_len, uint64_t offset)
+disk_io_status stackwrap_disk_iov(disk_op op, struct part_desc *pd, 
+				  struct kiovec *iov_buf, int iov_len, 
+				  uint64_t offset)
     __attribute__ ((warn_unused_result));
 
 struct lock {

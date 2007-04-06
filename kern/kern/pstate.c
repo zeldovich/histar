@@ -11,6 +11,7 @@
 #include <kern/log.h>
 #include <kern/stackwrap.h>
 #include <inc/error.h>
+#include <kern/part.h>
 
 // verbose flags
 static int pstate_load_debug = 0;
@@ -54,7 +55,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	    memset(p, 0xc4, PGSIZE);
 
 	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
-		s = stackwrap_disk_io(op_write, p, 512, mobj.off + i * 512);
+		s = stackwrap_disk_io(op_write, &the_part, p, 512, mobj.off + i * 512);
 
 	    page_free(p);
 	}
@@ -118,7 +119,7 @@ pstate_iov_flush(struct pstate_iov_collector *x)
 {
     if (x->iov_bytes > 0) {
 	disk_io_status s =
-	    stackwrap_disk_iov(x->flush_op, x->iov_buf, x->iov_cnt, x->flush_off);
+	    stackwrap_disk_iov(x->flush_op, &the_part, x->iov_buf, x->iov_cnt, x->flush_off);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    cprintf("pstate_iov_flush: error during disk io\n");
 	    return -E_IO;
@@ -321,21 +322,21 @@ pstate_apply_disk_log(void)
 	return r;
     }
 
-    disk_io_status s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    disk_io_status s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_apply_disk_log: cannot flush\n");
 	return -E_IO;
     }
 
     stable_hdr.ph_log_blocks = 0;
-    s = stackwrap_disk_io(op_write, &stable_hdr.ph_buf[0],
+    s = stackwrap_disk_io(op_write, &the_part, &stable_hdr.ph_buf[0],
 			  PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_apply_disk_log: cannot write out header\n");
 	return -E_IO;
     }
 
-    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success))
 	panic("pstate_apply_disk_log: cannot flush header");
 
@@ -345,7 +346,7 @@ pstate_apply_disk_log(void)
 static int
 pstate_load2(void)
 {
-    disk_io_status s = stackwrap_disk_io(op_read, &stable_hdr.ph_buf[0],
+    disk_io_status s = stackwrap_disk_io(op_read, &the_part, &stable_hdr.ph_buf[0],
 					 PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_load2: cannot read header\n");
@@ -551,7 +552,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return flush_blocks;
     }
 
-    disk_io_status s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    disk_io_status s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_loop: unable to flush disk\n");
 	btree_unlock_all();
@@ -559,14 +560,14 @@ pstate_sync_loop(struct pstate_header *hdr,
     }
 
     hdr->ph_log_blocks = flush_blocks;
-    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+    s = stackwrap_disk_io(op_write, &the_part, hdr, PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_loop: unable to commit header\n");
 	btree_unlock_all();
 	return -E_IO;
     }
 
-    s = stackwrap_disk_io(op_flush, 0, 0, 0);
+    s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success))
 	panic("pstate_sync_loop: unable to flush commit record");
 
@@ -586,12 +587,12 @@ pstate_sync_loop(struct pstate_header *hdr,
 
 	hdr->ph_log_blocks = 0;
 	do {
-	    s = stackwrap_disk_io(op_write, hdr, PSTATE_BUF_SIZE, 0);
+	    s = stackwrap_disk_io(op_write, &the_part, hdr, PSTATE_BUF_SIZE, 0);
 	    if (!SAFE_EQUAL(s, disk_io_success))
 		cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
 	} while (!SAFE_EQUAL(s, disk_io_success));
 
-	s = stackwrap_disk_io(op_flush, 0, 0, 0);
+	s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    panic("pstate_sync_loop: unable to flush applied log");
     }
@@ -617,16 +618,16 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1 __attribute__((unused)), uint
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	uint64_t disk_pages = disk_bytes / PGSIZE;
+	uint64_t part_pages = the_part.pd_size / PGSIZE;
 	uint64_t reserved_pages = RESERVED_PAGES;
-	assert(disk_pages > reserved_pages);
+	assert(part_pages > reserved_pages);
 
 	if (pstate_swapout_debug)
-	    cprintf("pstate_sync: %"PRIu64" disk pages\n", disk_pages);
+	    cprintf("pstate_sync: %"PRIu64" disk pages\n", part_pages);
 
 	btree_manager_init();
 	freelist_init(&freelist, reserved_pages * PGSIZE,
-		      (disk_pages - reserved_pages) * PGSIZE);
+		      (part_pages - reserved_pages) * PGSIZE);
     }
 
     static_assert(sizeof(struct pstate_header) == PSTATE_BUF_SIZE);
@@ -796,7 +797,7 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
     if (r < 0)
 	goto fallback;
 
-    if (!SAFE_EQUAL(stackwrap_disk_io(op_flush, 0, 0, 0), disk_io_success))
+    if (!SAFE_EQUAL(stackwrap_disk_io(op_flush, &the_part, 0, 0, 0), disk_io_success))
 	goto fallback;
 
     if (pstate_swapout_object_debug)

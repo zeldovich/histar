@@ -2,6 +2,7 @@
 #include <kern/stackwrap.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/part.h>
 #include <inc/setjmp.h>
 #include <inc/error.h>
 #include <inc/intmacro.h>
@@ -100,8 +101,27 @@ disk_io_cb(disk_io_status status, void *arg)
 }
 
 disk_io_status
-stackwrap_disk_iov(disk_op op, struct kiovec *iov_buf, int iov_cnt, uint64_t offset)
+stackwrap_disk_iov(disk_op op, struct part_desc *pd, struct kiovec *iov_buf, 
+		   int iov_cnt, uint64_t offset)
 {
+    if (offset > pd->pd_size) {
+	cprintf("stackwrap_disk_io: offset greater than partition size: %lu > %lu\n",
+		offset, pd->pd_size);
+	return disk_io_failure;
+    }
+    
+    uint64_t size = 0;
+    for (int i = 0; i < iov_cnt; i++)
+	size += iov_buf[i].iov_len;
+    
+    if (pd->pd_size < offset + size) {
+	cprintf("stackwrap_disk_io: not enough space in partition: %lu < %lu\n",
+		pd->pd_size - offset, size);
+	return disk_io_failure;
+    }
+    
+    offset += pd->pd_offset;
+    
     struct stackwrap_state *ss = stackwrap_cur();
     struct disk_io_request ds = { .ss = ss };
 
@@ -135,10 +155,11 @@ stackwrap_disk_iov(disk_op op, struct kiovec *iov_buf, int iov_cnt, uint64_t off
 }
 
 disk_io_status
-stackwrap_disk_io(disk_op op, void *buf, uint32_t count, uint64_t offset)
+stackwrap_disk_io(disk_op op, struct part_desc *pd, 
+		  void *buf, uint32_t count, uint64_t offset)
 {
     struct kiovec iov = { buf, count };
-    return stackwrap_disk_iov(op, &iov, 1, offset);
+    return stackwrap_disk_iov(op, pd, &iov, 1, offset);
 }
 
 // Locks
