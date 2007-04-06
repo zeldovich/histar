@@ -1,25 +1,15 @@
 #include <machine/mmu.h>
 
-/* This setup header should be loaded at 0x30200 */
-#define SETUP_RELOC(x)	(x - 0x30200)
-	
-.set PROT_MODE_CSEG,0x8		# code segment selector
-.set PROT_MODE_DSEG,0x10        # data segment selector
+.set PROT_MODE_CSEG,0x08	# code segment selector
+.set PROT_MODE_DSEG,0x10	# data segment selector
 .set CR0_PE_ON,0x1		# protected mode enable flag
-			
-.code16
-.globl begtext, begdata, begbss, endtext, enddata, endbss
 
 .text
-begtext:
-.data
-begdata:
-.bss
-begbss:
-.text
+.code16
+.global start
 
 start:
-	jmp	trampoline
+		jmp	trampoline
 
 # This is the setup header, and it must start at %cs:2
 # Copied from Linux arch/i386/boot/setup.S and filled in enough 
@@ -77,7 +67,7 @@ heap_end_ptr:	.word	0		# (Header version 0x0201 or later)
 					# for local heap purposes.
 
 pad1:		.word	0
-cmd_line_ptr:	.long 0			# (Header version 0x0202 or later)
+cmd_line_ptr:	.long	0		# (Header version 0x0202 or later)
 					# If nonzero, a 32-bit pointer
 					# to the kernel command line.
 					# The command line should be
@@ -92,24 +82,11 @@ cmd_line_ptr:	.long 0			# (Header version 0x0202 or later)
 					# can be located anywhere in
 					# low memory 0x10000 or higher.
 
-ramdisk_max:	.long 0xffffffff
-	
-trampoline:	call	start_of_setup
-		.align 16
+ramdisk_max:	.long	0xffffffff
 
-start_of_setup:
+trampoline:
 		cli				# Disable interrupts
 		cld				# String operations increment
-
-		# Set up the important data segment registers (DS, ES, SS).
-		movw	%cs,%ax			# -> Data Segment
-		movw	%ax,%ds
-		xorw	%ax,%ax			# Segment number zero
-		movw	%ax,%es			# -> Extra Segment
-		movw	%ax,%ss			# -> Stack Segment
-
-		# Set up the stack pointer, growing downward from 0x7c00.
-		movl	$start,%esp         	# Stack Pointer
 
 #### Enable A20:
 ####   For fascinating historical reasons (related to the fact that
@@ -118,7 +95,7 @@ start_of_setup:
 ####   physical address line 20 is tied to low when the machine boots.
 ####   Obviously this a bit of a drag for us, especially when trying to
 ####   address memory above 1MB.  This code undoes this.
-	
+
 seta20.1:	inb	$0x64,%al		# Get status
 		testb	$0x2,%al		# Busy?
 		jnz	seta20.1		# Yes
@@ -154,6 +131,26 @@ nobiosmem:	xorw	%cx,%cx
 		xorw	%dx,%dx
 memdetected:
 
+## Set %edi to the difference between linear load and link addresses
+		movw	%cs, %ax
+		movw	%ax, %ss
+		movl	$4, %esp
+
+		calll	eip_abs
+eip_abs:
+		popl	%edi
+		xorl	%eax, %eax
+		movw	%cs, %ax
+		shll	$4, %eax
+		addl	%eax, %edi
+		subl	$eip_abs, %edi
+
+## Setup a real stack at start going down
+		xorw	%ax, %ax
+		movw	%ax, %ss
+		movl	$start, %esp
+		addl	%edi, %esp
+
 #### Switch from real to protected mode	
 ####     The descriptors in our GDT allow all physical memory to be accessed.
 ####     Furthermore, the descriptors have base addresses of 0, so that the
@@ -163,17 +160,32 @@ memdetected:
 ####	 that it is running directly on physical memory with no translation.
 ####	 This initial NOP-translation setup is required by the processor
 ####	 to ensure that the transition to protected mode occurs smoothly.
-	
-real_to_prot:	cli				# Mandatory since we dont set up an IDT
-		movl	$SETUP_RELOC(gdtdesc), %eax
-		lgdtl	(%eax)			# load GDT -- mandatory in protected mode
+
+		xorw	%ax, %ax
+		movw	%ax, %ds
+
+		movl	$gdtaddr, %eax
+		addl	%edi, %eax
+		addl	%edi, (%eax)
+
+		movl	$gdtdesc, %eax		# gdtdesc is 16-byte aligned
+		addl	%edi, %eax
+		lgdtl	(%eax)			# load GDT
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
 		movl	%eax, %cr0		# 
-	        ### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
+		### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
 		### Has the effect of just jmp to the next instruction, but simultaneous
 		### loads CS with $PROT_MODE_CSEG.
-		ljmpl	$PROT_MODE_CSEG, $protcseg
+
+		movl	$protcseg_far, %eax
+		addl	%edi, %eax
+		addl	%edi, (%eax)
+		ljmpl	*(%eax)
+
+protcseg_far:
+		.long	protcseg
+		.word	PROT_MODE_CSEG
 
 #### we are in 32-bit protected mode (hence the .code32)
 .code32
@@ -190,19 +202,21 @@ protcseg:
 		shll	$6,%edx			# go from 64K to 1K chunks
 		andl	%eax,%ecx		# clip to 16 bits
 		addl	%edx,%ecx		# add results
-		
+
 		pushl	%ecx			# Push the amount of extended memory
 
 		movl	0x100018,%eax		# read elf64 e_entry
 		addl	$0x80000000,%eax	# get rid of offset
 		call	*%eax
 
-.p2align 2					# force 4 byte alignment
+.align 4
 gdt:
 	.quad 0					# null segment
 	.quad SEG32(SEG_X|SEG_R, 0x0, 0xffffffff, 0) # code seg
 	.quad SEG32(SEG_W, 0x0, 0xffffffff, 0)	# data seg
-	
+
+.align 16
 gdtdesc:
 	.word	0x17			# sizeof(gdt) - 1
+gdtaddr:
 	.long	gdt			# address gdt
