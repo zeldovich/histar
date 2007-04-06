@@ -17,7 +17,8 @@ int	sys_cons_getc(void);
 int	sys_cons_cursor(int line, int col);
 int	sys_cons_probe(void);
 
-int64_t sys_net_create(uint64_t container, const struct ulabel *l, const char *name);
+int64_t sys_net_create(uint64_t container, uint64_t card_idx,
+		       const struct ulabel *l, const char *name);
 int64_t	sys_net_wait(struct cobj_ref ndev, uint64_t waiter_id,
 		     int64_t waitgen);
 int	sys_net_buf(struct cobj_ref ndev, struct cobj_ref seg,

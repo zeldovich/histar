@@ -10,6 +10,7 @@
 #include <kern/kobj.h>
 #include <kern/intr.h>
 #include <kern/netdev.h>
+#include <kern/arch.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -34,8 +35,6 @@ struct pnic_card {
 
     struct net_device netdev;
 };
-
-static struct pnic_card the_card;
 
 static void
 pnic_buffer_reset(struct pnic_card *c)
@@ -76,9 +75,9 @@ pnic_flush_read(struct pnic_card *c, uint16_t size)
 }
 
 static void
-pnic_intr(void)
+pnic_intr(void *arg)
 {
-    struct pnic_card *c = &the_card;
+    struct pnic_card *c = arg;
 
     for (;;) {
 	outw(c->iobase + PNIC_REG_CMD, PNIC_CMD_RECV_QLEN);
@@ -205,7 +204,14 @@ pnic_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type typ
 void
 pnic_attach(struct pci_func *pcif)
 {
-    struct pnic_card *c = &the_card;
+    struct pnic_card *c;
+    int r = page_alloc((void **) &c);
+    if (r < 0) {
+	cprintf("pnic_attach: cannot allocate memory: %s\n", e2s(r));
+	return;
+    }
+
+    static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
 
     if (pcif->reg_size[4] < 5) {
@@ -216,6 +222,7 @@ pnic_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[4];
     c->ih.ih_func = &pnic_intr;
+    c->ih.ih_arg = c;
 
     pnic_buffer_reset(c);
 
@@ -238,7 +245,7 @@ pnic_attach(struct pci_func *pcif)
     c->netdev.buffer_reset = &pnic_buffer_reset_v;
 
     // Register this card with the kernel
-    the_net_device = &c->netdev;
+    netdev_register(&c->netdev);
 
     // All done
     cprintf("pnic: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",

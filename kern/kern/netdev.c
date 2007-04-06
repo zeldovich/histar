@@ -2,7 +2,8 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
-struct net_device *the_net_device;
+struct net_device *netdevs[netdevs_max];
+uint64_t netdevs_num;
 
 void
 netdev_macaddr(struct net_device *ndev, uint8_t *addrbuf)
@@ -46,4 +47,15 @@ netdev_thread_wakeup(struct net_device *ndev)
 	struct Thread *t = LIST_FIRST(&ndev->wait_list);
 	thread_set_runnable(t);
     }
+}
+
+void
+netdev_register(struct net_device *ndev)
+{
+    if (netdevs_num >= netdevs_max) {
+	cprintf("netdev_register: out of netdev slots\n");
+	return;
+    }
+
+    netdevs[netdevs_num++] = ndev;
 }

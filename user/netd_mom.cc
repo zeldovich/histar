@@ -22,7 +22,7 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 	net_label.set(netdev_grant, 0);
 	net_label.set(netdev_taint, 3);
 	net_label.set(inet_taint, 2);
-	netdev_id = sys_net_create(ct, net_label.to_ulabel(), "netdev");
+	netdev_id = sys_net_create(ct, 0, net_label.to_ulabel(), "netdev");
 	error_check(netdev_id);
 
 	if (netd_mom_debug)

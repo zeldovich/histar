@@ -4,7 +4,8 @@
 #include <inc/queue.h>
 
 struct interrupt_handler {
-    void (*ih_func) (void);
+    void (*ih_func) (void *);
+    void *ih_arg;
     LIST_ENTRY(interrupt_handler) ih_link;
 };
 

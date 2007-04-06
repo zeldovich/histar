@@ -10,6 +10,7 @@
 #include <kern/intr.h>
 #include <kern/netdev.h>
 #include <kern/timer.h>
+#include <kern/arch.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -23,14 +24,22 @@ struct e1000_buffer_slot {
 };
 
 // Static allocation ensures contiguous memory.
+struct e1000_tx_descs {
+    struct wiseman_txdesc txd[E1000_TX_SLOTS] __attribute__((aligned (16)));
+};
+
+struct e1000_rx_descs {
+    struct wiseman_rxdesc rxd[E1000_RX_SLOTS] __attribute__((aligned (16)));
+};
+
 struct e1000_card {
     uint32_t membase;
     uint32_t iobase;
     uint8_t irq_line;
     struct interrupt_handler ih;
 
-    struct wiseman_txdesc txd[E1000_TX_SLOTS] __attribute__((aligned (16)));
-    struct wiseman_rxdesc rxd[E1000_RX_SLOTS] __attribute__((aligned (16)));
+    struct e1000_tx_descs *txds;
+    struct e1000_rx_descs *rxds;
 
     struct e1000_buffer_slot tx[E1000_TX_SLOTS];
     struct e1000_buffer_slot rx[E1000_RX_SLOTS];
@@ -43,8 +52,6 @@ struct e1000_card {
 
     struct net_device netdev;
 };
-
-static struct e1000_card the_card;
 
 static uint32_t
 e1000_io_read(struct e1000_card *c, uint32_t reg)
@@ -100,19 +107,19 @@ e1000_reset(struct e1000_card *c)
 
     e1000_io_write(c, WMREG_CTRL, CTRL_SLU | CTRL_ASDE);
 
-    uint64_t rptr = kva2pa(&c->rxd[0]);
+    uint64_t rptr = kva2pa(&c->rxds->rxd[0]);
     e1000_io_write(c, WMREG_RDBAH, rptr >> 32);
     e1000_io_write(c, WMREG_RDBAL, rptr & ((UINT64(1) << 32) - 1));
-    e1000_io_write(c, WMREG_RDLEN, sizeof(c->rxd));
+    e1000_io_write(c, WMREG_RDLEN, sizeof(c->rxds->rxd));
     e1000_io_write(c, WMREG_RDH, 0);
     e1000_io_write(c, WMREG_RDT, 0);
     e1000_io_write(c, WMREG_RDTR, 0);
     e1000_io_write(c, WMREG_RADV, 0);
 
-    uint64_t tptr = kva2pa(&c->txd[0]);
+    uint64_t tptr = kva2pa(&c->txds->txd[0]);
     e1000_io_write(c, WMREG_TBDAH, tptr >> 32);
     e1000_io_write(c, WMREG_TBDAL, tptr & ((UINT64(1) << 32) - 1));
-    e1000_io_write(c, WMREG_TDLEN, sizeof(c->txd));
+    e1000_io_write(c, WMREG_TDLEN, sizeof(c->txds->txd));
     e1000_io_write(c, WMREG_TDH, 0);
     e1000_io_write(c, WMREG_TDT, 0);
     e1000_io_write(c, WMREG_TIDV, 1);
@@ -188,16 +195,16 @@ e1000_intr_rx(struct e1000_card *c)
 {
     for (;;) {
 	int i = c->rx_head;
-	if (i == -1 || !(c->rxd[i].wrx_status & WRX_ST_DD))
+	if (i == -1 || !(c->rxds->rxd[i].wrx_status & WRX_ST_DD))
 	    break;
 
 	kobject_unpin_page(&c->rx[i].sg->sg_ko);
 	pagetree_decpin(c->rx[i].nb);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
-	c->rx[i].nb->actual_count = c->rxd[i].wrx_len;
+	c->rx[i].nb->actual_count = c->rxds->rxd[i].wrx_len;
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
-	if (c->rxd[i].wrx_errors)
+	if (c->rxds->rxd[i].wrx_errors)
 	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 
 	c->rx_head = (i + 1) % E1000_RX_SLOTS;
@@ -211,7 +218,7 @@ e1000_intr_tx(struct e1000_card *c)
 {
     for (;;) {
 	int i = c->tx_head;
-	if (i == -1 || !(c->txd[i].wtx_fields.wtxu_status & WTX_ST_DD))
+	if (i == -1 || !(c->txds->txd[i].wtx_fields.wtxu_status & WTX_ST_DD))
 	    break;
 
 	kobject_unpin_page(&c->tx[i].sg->sg_ko);
@@ -227,9 +234,9 @@ e1000_intr_tx(struct e1000_card *c)
 }
 
 static void
-e1000_intr(void)
+e1000_intr(void *arg)
 {
-    struct e1000_card *c = &the_card;
+    struct e1000_card *c = arg;
     uint32_t icr = e1000_io_read(c, WMREG_ICR);
 
     if (icr & ICR_TXDW)
@@ -265,9 +272,9 @@ e1000_add_txbuf(struct e1000_card *c, const struct Segment *sg,
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    c->txd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
-    c->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
-    memset(&c->txd[slot].wtx_fields, 0, sizeof(&c->txd[slot].wtx_fields));
+    c->txds->txd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
+    c->txds->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
+    memset(&c->txds->txd[slot].wtx_fields, 0, sizeof(&c->txds->txd[slot].wtx_fields));
 
     c->tx_nextq = (slot + 1) % E1000_TX_SLOTS;
     if (c->tx_head == -1)
@@ -298,8 +305,8 @@ e1000_add_rxbuf(struct e1000_card *c, const struct Segment *sg,
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    memset(&c->rxd[slot], 0, sizeof(c->rxd[slot]));
-    c->rxd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
+    memset(&c->rxds->rxd[slot], 0, sizeof(c->rxds->rxd[slot]));
+    c->rxds->rxd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
     e1000_io_write(c, WMREG_RDT, slot);
 
     c->rx_nextq = (slot + 1) % E1000_RX_SLOTS;
@@ -341,8 +348,29 @@ e1000_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type ty
 void
 e1000_attach(struct pci_func *pcif)
 {
-    struct e1000_card *c = &the_card;
+    struct e1000_card *c;
+    int r = page_alloc((void **) &c);
+    if (r < 0) {
+	cprintf("e1000_attach: cannot allocate memory: %s\n", e2s(r));
+	return;
+    }
+
     memset(c, 0, sizeof(*c));
+    static_assert(PGSIZE >= sizeof(*c));
+    static_assert(PGSIZE >= sizeof(*c->txds));
+    static_assert(PGSIZE >= sizeof(*c->rxds));
+
+    r = page_alloc((void **) &c->txds);
+    if (r < 0) {
+	cprintf("e1000_attach: cannot allocate txds: %s\n", e2s(r));
+	return;
+    }
+
+    r = page_alloc((void **) &c->rxds);
+    if (r < 0) {
+	cprintf("e1000_attach: cannot allocate rxds: %s\n", e2s(r));
+	return;
+    }
 
     c->irq_line = pcif->irq_line;
     c->membase = pcif->reg_base[0];
@@ -360,13 +388,13 @@ e1000_attach(struct pci_func *pcif)
 
     // Register card with kernel
     c->ih.ih_func = &e1000_intr;
+    c->ih.ih_arg = c;
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf = &e1000_add_buf;
     c->netdev.buffer_reset = &e1000_reset_v;
-
-    the_net_device = &c->netdev;
+    netdev_register(&c->netdev);
 
     // All done
     cprintf("e1000: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",

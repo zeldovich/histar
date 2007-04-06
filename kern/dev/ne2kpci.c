@@ -6,6 +6,7 @@
 #include <kern/lib.h>
 #include <kern/netdev.h>
 #include <kern/kobj.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/netdev.h>
 
@@ -42,8 +43,6 @@ struct ne2kpci_card {
     struct net_device netdev;
 };
 
-static struct ne2kpci_card the_card;
-
 static void
 ne2kpci_buffer_reset(struct ne2kpci_card *c)
 {
@@ -67,10 +66,9 @@ ne2kpci_buffer_reset_v(void *a)
 }
 
 static void
-ne2kpci_rmt_read(uint8_t * buf, uint16_t size, uint16_t ad)
+ne2kpci_rmt_read(struct ne2kpci_card *c, uint8_t *buf,
+		 uint16_t size, uint16_t ad)
 {
-    struct ne2kpci_card *c = &the_card;
-
     outb(c->iobase + ED_P0_RBCR0, size & 0x00FF);
     outb(c->iobase + ED_P0_RBCR1, (size >> 8) & 0x00FF);
     outb(c->iobase + ED_P0_RSAR0, ad & 0x00FF);
@@ -81,10 +79,9 @@ ne2kpci_rmt_read(uint8_t * buf, uint16_t size, uint16_t ad)
 }
 
 static void
-ne2kpci_rmt_write(uint8_t * buf, uint16_t size, uint16_t ad)
+ne2kpci_rmt_write(struct ne2kpci_card *c, uint8_t *buf,
+		  uint16_t size, uint16_t ad)
 {
-    struct ne2kpci_card *c = &the_card;
-
     outb(c->iobase + ED_P0_RBCR0, size & 0x00FF);
     outb(c->iobase + ED_P0_RBCR1, (size >> 8) & 0x00FF);
     outb(c->iobase + ED_P0_RSAR0, ad & 0x00FF);
@@ -107,18 +104,15 @@ static void __attribute__ ((unused))
 }
 
 static void
-ne2kpci_stop(void)
+ne2kpci_stop(struct ne2kpci_card *c)
 {
-    struct ne2kpci_card *c = &the_card;
     outb(c->iobase + ED_P0_CR, ED_CR_PAGE_0 | ED_CR_STP);
     while ((inb(c->iobase + ED_P0_ISR) & ED_ISR_RST) == 0) ;
 }
 
 static void
-ne2kpci_flush_packet(struct dp8390_ring *rrd)
+ne2kpci_flush_packet(struct ne2kpci_card *c, struct dp8390_ring *rrd)
 {
-    struct ne2kpci_card *c = &the_card;
-
     // update desribed in NS reference
     c->next_pkt = rrd->next_packet;
     uint8_t boundary = c->next_pkt - 1;
@@ -128,10 +122,8 @@ ne2kpci_flush_packet(struct dp8390_ring *rrd)
 }
 
 static void
-ne2kpci_init(void)
+ne2kpci_init(struct ne2kpci_card *c)
 {
-    struct ne2kpci_card *c = &the_card;
-
     // init procedure as specified in NS reference
 
     // reset
@@ -164,7 +156,7 @@ ne2kpci_init(void)
 
     // read station address
     uint8_t buf[12];
-    ne2kpci_rmt_read(buf, 12, 0x00);
+    ne2kpci_rmt_read(c, buf, 12, 0x00);
     for (int i = 0; i < 6; i++)
 	c->netdev.mac_addr[i] = buf[i * 2];
 
@@ -182,10 +174,8 @@ ne2kpci_init(void)
 }
 
 static void
-ne2kpci_rintr(void)
+ne2kpci_rintr(struct ne2kpci_card *c)
 {
-    struct ne2kpci_card *c = &the_card;
-
     for (;;) {
 	outb(c->iobase + ED_P0_CR, ED_CR_PAGE_1 | ED_CR_STA);
 	uint8_t current = inb(c->iobase + ED_P1_CURR);
@@ -197,26 +187,26 @@ ne2kpci_rintr(void)
 	int i = c->rx_head;
 	if (i == -1) {
 	    struct dp8390_ring r;
-	    ne2kpci_rmt_read((uint8_t *) & r, 4,
+	    ne2kpci_rmt_read(c, (uint8_t *) & r, 4,
 			     c->next_pkt << ED_PAGE_SHIFT);
-	    ne2kpci_flush_packet(&r);
+	    ne2kpci_flush_packet(c, &r);
 	    continue;
 	}
 
 	struct dp8390_ring *rrd = &c->rx[i].rrd;
 	void *buf = (c->rx[i].nb + 1);
 
-	ne2kpci_rmt_read((uint8_t *) rrd, 4, c->next_pkt << ED_PAGE_SHIFT);
+	ne2kpci_rmt_read(c, (uint8_t *) rrd, 4, c->next_pkt << ED_PAGE_SHIFT);
 
 	// subtract the size of recieve ring descriptor
 	uint16_t size = rrd->count - 4;
 
 	if (size > c->rx[i].size) {
-	    cprintf("ne2kpci_intr: receive buffer too small: %d > %d\n",
+	    cprintf("ne2kpci_rintr: receive buffer too small: %d > %d\n",
 		    size, c->rx[i].size);
 	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 	} else {
-	    ne2kpci_rmt_read(buf, size, (c->next_pkt << ED_PAGE_SHIFT) + 4);
+	    ne2kpci_rmt_read(c, buf, size, (c->next_pkt << ED_PAGE_SHIFT) + 4);
 	    c->rx[i].nb->actual_count = size;
 	    //ne2kpci_print_packet(&c->rx[i]) ;
 	}
@@ -231,15 +221,14 @@ ne2kpci_rintr(void)
 	if (c->rx_head == c->rx_nextq)
 	    c->rx_head = -1;
 
-	ne2kpci_flush_packet(rrd);
+	ne2kpci_flush_packet(c, rrd);
     }
-
 }
 
 static void
-ne2kpci_intr(void)
+ne2kpci_intr(void *arg)
 {
-    struct ne2kpci_card *c = &the_card;
+    struct ne2kpci_card *c = arg;
 
     uint8_t status = inb(c->iobase + ED_P0_ISR);
 
@@ -249,10 +238,10 @@ ne2kpci_intr(void)
 
 	if (status & ED_ISR_OVW) {
 	    // how netbsd handles overwrite
-	    ne2kpci_stop();
-	    ne2kpci_init();
+	    ne2kpci_stop(c);
+	    ne2kpci_init(c);
 	} else
-	    ne2kpci_rintr();
+	    ne2kpci_rintr(c);
     }
     // nic inited to reject rxp with errors
     if (status & ED_ISR_RXE)
@@ -277,7 +266,7 @@ ne2kpci_add_txbuf(struct ne2kpci_card *c,
 	while (inb(c->iobase + ED_P0_CR) & ED_CR_TXP) ;
     }
 
-    ne2kpci_rmt_write((uint8_t *) (nb + 1), size,
+    ne2kpci_rmt_write(c, (uint8_t *) (nb + 1), size,
 		      NE2KPCI_TXP_BUF << ED_PAGE_SHIFT);
 
     outb(c->iobase + ED_P0_TPSR, NE2KPCI_TXP_BUF);
@@ -346,12 +335,20 @@ ne2kpci_add_buf(void *a, const struct Segment *sg, uint64_t offset,
 void
 ne2kpci_attach(struct pci_func *pcif)
 {
-    struct ne2kpci_card *c = &the_card;
+    struct ne2kpci_card *c;
+    int r = page_alloc((void **) &c);
+    if (r < 0) {
+	cprintf("ne2kpci_attach: cannot allocate memory: %s\n", e2s(r));
+	return;
+    }
+
+    static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
 
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[0];
     c->ih.ih_func = &ne2kpci_intr;
+    c->ih.ih_arg = c;
 
     ne2kpci_buffer_reset(c);
 
@@ -361,15 +358,14 @@ ne2kpci_attach(struct pci_func *pcif)
 	return;
     }
 
-    ne2kpci_init();
+    ne2kpci_init(c);
 
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
     c->netdev.add_buf = &ne2kpci_add_buf;
     c->netdev.buffer_reset = &ne2kpci_buffer_reset_v;
-
-    the_net_device = &c->netdev;
+    netdev_register(&c->netdev);
 
     cprintf("ne2k: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",
 	    c->irq_line, c->iobase,

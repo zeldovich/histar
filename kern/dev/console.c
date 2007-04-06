@@ -237,7 +237,7 @@ serial_proc_data (void)
 }
 
 static void
-serial_intr (void)
+serial_intr (void *arg)
 {
   if (serial_exists)
     cons_intr (serial_proc_data);
@@ -304,7 +304,7 @@ lpt_putc (int c)
 }
 
 static void
-lpt_intr(void)
+lpt_intr(void *arg)
 {
     // do nothing
 }
@@ -491,7 +491,7 @@ kbd_proc_data (void)
 }
 
 static void
-kbd_intr (void)
+kbd_intr (void *arg)
 {
   cons_intr (kbd_proc_data);
 }
@@ -500,7 +500,7 @@ static void
 kbd_init (void)
 {
   // Drain the kbd buffer so that Bochs generates interrupts.
-  kbd_intr ();
+  kbd_intr (0);
   static struct interrupt_handler ih = { .ih_func = &kbd_intr };
   irq_register (1, &ih);
 }
@@ -555,8 +555,8 @@ cons_getc (void)
   // poll for any pending input characters,
   // so that this function works even when interrupts are disabled
   // (e.g., when called from the kernel monitor).
-  serial_intr ();
-  kbd_intr ();
+  serial_intr (0);
+  kbd_intr (0);
 
   // grab the next character from the input buffer.
   if (cons.rpos != cons.wpos) {
@@ -577,8 +577,8 @@ cons_cursor (int line, int col)
 int
 cons_probe (void)
 {
-    serial_intr ();
-    kbd_intr ();
+    serial_intr (0);
+    kbd_intr (0);
 
     return (cons.rpos != cons.wpos);
 }

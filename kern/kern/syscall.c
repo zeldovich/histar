@@ -108,7 +108,8 @@ sys_cons_probe(void)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
+sys_net_create(uint64_t container, uint64_t card_idx,
+	       struct ulabel *ul, const char *name)
 {
     // Must have PCL <= { root_handle 0 } to create a netdev
     struct Label *cl;
@@ -122,6 +123,7 @@ sys_net_create(uint64_t container, struct ulabel *ul, const char *name)
     struct kobject *ko;
     check(kobject_alloc(kobj_netdev, l, &ko));
     check(alloc_set_name(&ko->hdr, name));
+    ko->nd.nd_idx = card_idx;
 
     const struct Container *c;
     check(container_find(&c, container, iflow_rw));
@@ -136,7 +138,10 @@ sys_net_wait(struct cobj_ref ndref, uint64_t waiter_id, int64_t waitgen)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    struct net_device *ndev = the_net_device;
+    if (ko->nd.nd_idx >= netdevs_num)
+	return -E_INVAL;
+
+    struct net_device *ndev = netdevs[ko->nd.nd_idx];
     if (ndev == 0)
 	return -E_INVAL;
 
@@ -150,7 +155,10 @@ sys_net_buf(struct cobj_ref ndref, struct cobj_ref seg, uint64_t offset,
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_rw));
 
-    struct net_device *ndev = the_net_device;
+    if (ko->nd.nd_idx >= netdevs_num)
+	return -E_INVAL;
+
+    struct net_device *ndev = netdevs[ko->nd.nd_idx];
     if (ndev == 0)
 	return -E_INVAL;
 
@@ -168,7 +176,10 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     const struct kobject *ko;
     check(cobj_get(ndref, kobj_netdev, &ko, iflow_read));
 
-    struct net_device *ndev = the_net_device;
+    if (ko->nd.nd_idx >= netdevs_num)
+	return -E_INVAL;
+
+    struct net_device *ndev = netdevs[ko->nd.nd_idx];
     if (ndev == 0)
 	return -E_INVAL;
 
@@ -1038,7 +1049,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 	SYSCALL(cons_getc);
 	SYSCALL(cons_probe);
-	SYSCALL(net_create, a1, p2, p3);
+	SYSCALL(net_create, a1, a2, p3, p4);
 	SYSCALL(net_wait, COBJ(a1, a2), a3, a4);
 	SYSCALL(handle_create);
 	SYSCALL(obj_get_quota_total, COBJ(a1, a2));

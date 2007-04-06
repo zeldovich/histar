@@ -4,7 +4,13 @@
 #include <machine/types.h>
 #include <kern/thread.h>
 #include <kern/segment.h>
+#include <kern/kobjhdr.h>
 #include <inc/netdev.h>
+
+struct Netdev {
+    struct kobject_hdr gt_ko;
+    uint64_t nd_idx;
+};
 
 struct net_device {
     void *arg;
@@ -20,7 +26,9 @@ struct net_device {
     struct Thread_list wait_list;
 };
 
-extern struct net_device *the_net_device;
+enum { netdevs_max = 32 };
+extern struct net_device *netdevs[netdevs_max];
+extern uint64_t netdevs_num;
 
 // The API for netdev_thread_wait is as follows:
 //
@@ -44,5 +52,7 @@ void	netdev_macaddr(struct net_device *ndev, uint8_t *addrbuf);
 int	netdev_add_buf(struct net_device *ndev, const struct Segment *sg,
 		       uint64_t offset, netbuf_type type)
 	__attribute__ ((warn_unused_result));
+
+void	netdev_register(struct net_device *netdev);
 
 #endif

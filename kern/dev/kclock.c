@@ -30,7 +30,7 @@ mc146818_write(unsigned reg, unsigned datum)
 }
 
 static void
-pit_intr(void)
+pit_intr(void *arg)
 {
     pit_ticks++;
     schedule();

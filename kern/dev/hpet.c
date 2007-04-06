@@ -50,6 +50,12 @@ hpet_delay(void *arg, uint64_t nsec)
 	;
 }
 
+static void
+hpet_intr(void *arg)
+{
+    schedule();
+}
+
 void
 hpet_attach(struct acpi_table_hdr *th)
 {
@@ -81,7 +87,7 @@ hpet_attach(struct acpi_table_hdr *th)
     /* Reset main counter to ensure the periodic counter starts */
     hpet->reg->counter = 0;
 
-    static struct interrupt_handler irq0_ih = { .ih_func = &schedule };
+    static struct interrupt_handler irq0_ih = { .ih_func = &hpet_intr };
     irq_register(0, &irq0_ih);
 
     hpet->timesrc.type = time_source_hpet;

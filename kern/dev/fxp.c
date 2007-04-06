@@ -10,6 +10,7 @@
 #include <kern/intr.h>
 #include <kern/netdev.h>
 #include <kern/timer.h>
+#include <kern/arch.h>
 #include <inc/queue.h>
 #include <inc/netdev.h>
 #include <inc/error.h>
@@ -32,14 +33,22 @@ struct fxp_rx_slot {
 };
 
 // Static allocation ensures contiguous memory.
+struct fxp_tx_slots {
+    struct fxp_tx_slot tx[FXP_TX_SLOTS];
+};
+
+struct fxp_rx_slots {
+    struct fxp_rx_slot rx[FXP_RX_SLOTS];
+};
+
 struct fxp_card {
     uint32_t iobase;
     uint8_t irq_line;
     uint16_t eeprom_width;
     struct interrupt_handler ih;
 
-    struct fxp_tx_slot tx[FXP_TX_SLOTS];
-    struct fxp_rx_slot rx[FXP_RX_SLOTS];
+    struct fxp_tx_slots *txs;
+    struct fxp_rx_slots *rxs;
 
     int rx_head;	// card receiving into rx_head, -1 if none
     int rx_nextq;	// next slot for rx buffer
@@ -51,8 +60,6 @@ struct fxp_card {
 
     struct net_device netdev;
 };
-
-static struct fxp_card the_card;
 
 static void
 fxp_eeprom_shiftin(struct fxp_card *c, int data, int len)
@@ -166,7 +173,7 @@ fxp_buffer_reset(struct fxp_card *c)
 	    break;
 
 	for (int i = 0; i < 1000; i++) {
-	    if ((c->tx[slot].tcb.cb_status & FXP_CB_STATUS_C))
+	    if ((c->txs->tx[slot].tcb.cb_status & FXP_CB_STATUS_C))
 		break;
 	    timer_delay(10000);
 	}
@@ -177,21 +184,21 @@ fxp_buffer_reset(struct fxp_card *c)
     }
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
-	if (c->tx[i].sg) {
-	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	    pagetree_decpin(c->tx[i].nb);
-	    kobject_dirty(&c->tx[i].sg->sg_ko);
+	if (c->txs->tx[i].sg) {
+	    kobject_unpin_page(&c->txs->tx[i].sg->sg_ko);
+	    pagetree_decpin(c->txs->tx[i].nb);
+	    kobject_dirty(&c->txs->tx[i].sg->sg_ko);
 	}
-	c->tx[i].sg = 0;
+	c->txs->tx[i].sg = 0;
     }
 
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
-	if (c->rx[i].sg) {
-	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	    pagetree_decpin(c->rx[i].nb);
-	    kobject_dirty(&c->rx[i].sg->sg_ko);
+	if (c->rxs->rx[i].sg) {
+	    kobject_unpin_page(&c->rxs->rx[i].sg->sg_ko);
+	    pagetree_decpin(c->rxs->rx[i].nb);
+	    kobject_dirty(&c->rxs->rx[i].sg->sg_ko);
 	}
-	c->rx[i].sg = 0;
+	c->rxs->rx[i].sg = 0;
     }
 
     c->rx_head = -1;
@@ -223,7 +230,7 @@ fxp_rx_start(struct fxp_card *c)
     }
 
     fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->rx[c->rx_head].rfd));
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->rxs->rx[c->rx_head].rfd));
     fxp_scb_cmd(c, FXP_SCB_COMMAND_RU_START);
     c->rx_halted = 0;
 
@@ -244,7 +251,7 @@ fxp_tx_start(struct fxp_card *c)
     }
 
     fxp_scb_wait(c);
-    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->tx[c->tx_head].tcb));
+    outl(c->iobase + FXP_CSR_SCB_GENERAL, kva2pa(&c->txs->tx[c->tx_head].tcb));
     fxp_scb_cmd(c, FXP_SCB_COMMAND_CU_START);
     c->tx_halted = 0;
 }
@@ -269,17 +276,17 @@ fxp_intr_rx(struct fxp_card *c)
 {
     for (;;) {
 	int i = c->rx_head;
-	if (i == -1 || !(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
+	if (i == -1 || !(c->rxs->rx[i].rfd.rfa_status & FXP_RFA_STATUS_C))
 	    break;
 
-	kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	pagetree_decpin(c->rx[i].nb);
-	kobject_dirty(&c->rx[i].sg->sg_ko);
-	c->rx[i].sg = 0;
-	c->rx[i].nb->actual_count = c->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
-	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
-	if (!(c->rx[i].rfd.rfa_status & FXP_RFA_STATUS_OK))
-	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
+	kobject_unpin_page(&c->rxs->rx[i].sg->sg_ko);
+	pagetree_decpin(c->rxs->rx[i].nb);
+	kobject_dirty(&c->rxs->rx[i].sg->sg_ko);
+	c->rxs->rx[i].sg = 0;
+	c->rxs->rx[i].nb->actual_count = c->rxs->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
+	c->rxs->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+	if (!(c->rxs->rx[i].rfd.rfa_status & FXP_RFA_STATUS_OK))
+	    c->rxs->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 
 	c->rx_head = (i + 1) % FXP_RX_SLOTS;
 	if (c->rx_head == c->rx_nextq)
@@ -292,14 +299,14 @@ fxp_intr_tx(struct fxp_card *c)
 {
     for (;;) {
 	int i = c->tx_head;
-	if (i == -1 || !(c->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
+	if (i == -1 || !(c->txs->tx[i].tcb.cb_status & FXP_CB_STATUS_C))
 	    break;
 
-	kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	pagetree_decpin(c->tx[i].nb);
-	kobject_dirty(&c->tx[i].sg->sg_ko);
-	c->tx[i].sg = 0;
-	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+	kobject_unpin_page(&c->txs->tx[i].sg->sg_ko);
+	pagetree_decpin(c->txs->tx[i].nb);
+	kobject_dirty(&c->txs->tx[i].sg->sg_ko);
+	c->txs->tx[i].sg = 0;
+	c->txs->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
 	c->tx_head = (i + 1) % FXP_TX_SLOTS;
 	if (c->tx_head == c->tx_nextq)
@@ -308,9 +315,9 @@ fxp_intr_tx(struct fxp_card *c)
 }
 
 static void
-fxp_intr(void)
+fxp_intr(void *arg)
 {
-    struct fxp_card *c = &the_card;
+    struct fxp_card *c = arg;
 
     int r = inb(c->iobase + FXP_CSR_SCB_STATACK);
     outb(c->iobase + FXP_CSR_SCB_STATACK, r);
@@ -339,19 +346,19 @@ fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
     if (slot == c->tx_head)
 	return -E_NO_SPACE;
 
-    c->tx[slot].nb = nb;
-    c->tx[slot].sg = sg;
+    c->txs->tx[slot].nb = nb;
+    c->txs->tx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    c->tx[slot].tbd.tb_addr = kva2pa(c->tx[slot].nb + 1);
-    c->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
-    c->tx[slot].tcb.cb_status = 0;
-    c->tx[slot].tcb.cb_command = FXP_CB_COMMAND_XMIT |
+    c->txs->tx[slot].tbd.tb_addr = kva2pa(c->txs->tx[slot].nb + 1);
+    c->txs->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
+    c->txs->tx[slot].tcb.cb_status = 0;
+    c->txs->tx[slot].tcb.cb_command = FXP_CB_COMMAND_XMIT |
 	FXP_CB_COMMAND_SF | FXP_CB_COMMAND_I | FXP_CB_COMMAND_S;
 
     int prev = (slot + FXP_TX_SLOTS - 1) % FXP_TX_SLOTS;
-    c->tx[prev].tcb.cb_command &= ~FXP_CB_COMMAND_S;
+    c->txs->tx[prev].tcb.cb_command &= ~FXP_CB_COMMAND_S;
 
     c->tx_nextq = (slot + 1) % FXP_TX_SLOTS;
     if (c->tx_head == -1)
@@ -376,18 +383,18 @@ fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
     if (slot == c->rx_head)
 	return -E_NO_SPACE;
 
-    c->rx[slot].nb = nb;
-    c->rx[slot].sg = sg;
+    c->rxs->rx[slot].nb = nb;
+    c->rxs->rx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    c->rx[slot].rbd.rbd_buffer = kva2pa(c->rx[slot].nb + 1);
-    c->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;
-    c->rx[slot].rfd.rfa_status = 0;
-    c->rx[slot].rfd.rfa_control = FXP_RFA_CONTROL_SF | FXP_RFA_CONTROL_S;
+    c->rxs->rx[slot].rbd.rbd_buffer = kva2pa(c->rxs->rx[slot].nb + 1);
+    c->rxs->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;
+    c->rxs->rx[slot].rfd.rfa_status = 0;
+    c->rxs->rx[slot].rfd.rfa_control = FXP_RFA_CONTROL_SF | FXP_RFA_CONTROL_S;
 
     int prev = (slot + FXP_RX_SLOTS - 1) % FXP_RX_SLOTS;
-    c->rx[prev].rfd.rfa_control &= ~FXP_RFA_CONTROL_S;
+    c->rxs->rx[prev].rfd.rfa_control &= ~FXP_RFA_CONTROL_S;
 
     c->rx_nextq = (slot + 1) % FXP_RX_SLOTS;
     if (c->rx_head == -1)
@@ -431,8 +438,29 @@ fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type
 void
 fxp_attach(struct pci_func *pcif)
 {
-    struct fxp_card *c = &the_card;
+    struct fxp_card *c;
+    int r = page_alloc((void **) &c);
+    if (r < 0) {
+	cprintf("fxp_attach: cannot allocate memory: %s\n", e2s(r));
+	return;
+    }
+
     memset(&c->netdev, 0, sizeof(c->netdev));
+    static_assert(PGSIZE >= sizeof(*c));
+    static_assert(PGSIZE >= sizeof(*c->txs));
+    static_assert(PGSIZE >= sizeof(*c->rxs));
+
+    r = page_alloc((void **) &c->txs);
+    if (r < 0) {
+	cprintf("fxp_attach: cannot allocate txs: %s\n", e2s(r));
+	return;
+    }
+
+    r = page_alloc((void **) &c->rxs);
+    if (r < 0) {
+	cprintf("fxp_attach: cannot allocate rxs: %s\n", e2s(r));
+	return;
+    }
 
     if (pcif->reg_size[1] < 64) {
 	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
@@ -443,22 +471,23 @@ fxp_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[1];
     c->ih.ih_func = &fxp_intr;
+    c->ih.ih_arg = c;
 
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	int next = (i + 1) % FXP_TX_SLOTS;
-	memset(&c->tx[i], 0, sizeof(c->tx[i]));
-	c->tx[i].tcb.link_addr = kva2pa(&c->tx[next].tcb);
-	c->tx[i].tcb.tbd_array_addr = kva2pa(&c->tx[next].tbd);
-	c->tx[i].tcb.tbd_number = 1;
-	c->tx[i].tcb.tx_threshold = 4;
+	memset(&c->txs->tx[i], 0, sizeof(c->txs->tx[i]));
+	c->txs->tx[i].tcb.link_addr = kva2pa(&c->txs->tx[next].tcb);
+	c->txs->tx[i].tcb.tbd_array_addr = kva2pa(&c->txs->tx[next].tbd);
+	c->txs->tx[i].tcb.tbd_number = 1;
+	c->txs->tx[i].tcb.tx_threshold = 4;
     }
 
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
 	int next = (i + 1) % FXP_RX_SLOTS;
-	memset(&c->rx[i], 0, sizeof(c->rx[i]));
-	c->rx[i].rfd.link_addr = kva2pa(&c->rx[next].rfd);
-	c->rx[i].rfd.rbd_addr = kva2pa(&c->rx[i].rbd);
-	c->rx[i].rbd.rbd_link = kva2pa(&c->rx[next].rbd);
+	memset(&c->rxs->rx[i], 0, sizeof(c->rxs->rx[i]));
+	c->rxs->rx[i].rfd.link_addr = kva2pa(&c->rxs->rx[next].rfd);
+	c->rxs->rx[i].rfd.rbd_addr = kva2pa(&c->rxs->rx[i].rbd);
+	c->rxs->rx[i].rbd.rbd_link = kva2pa(&c->rxs->rx[next].rbd);
     }
 
     c->rx_head = -1;
@@ -514,8 +543,7 @@ fxp_attach(struct pci_func *pcif)
     c->netdev.arg = c;
     c->netdev.add_buf = &fxp_add_buf;
     c->netdev.buffer_reset = &fxp_buffer_reset_v;
-
-    the_net_device = &c->netdev;
+    netdev_register(&c->netdev);
 
     // All done
     cprintf("fxp: irq %d io 0x%x mac %02x:%02x:%02x:%02x:%02x:%02x\n",

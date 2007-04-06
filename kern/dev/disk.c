@@ -224,11 +224,11 @@ ide_dma_irqack(struct ide_channel *idec)
 	 inb(idec->bm_addr + IDE_BM_STAT_REG));
 }
 
-void
-ide_intr(void)
+static void
+ide_intr(void *arg)
 {
     int r;
-    struct ide_channel *idec = &the_ide_channel;
+    struct ide_channel *idec = arg;
 
     if (!idec->irq_wait) {
 	inb(idec->cmd_addr + IDE_REG_STATUS);
@@ -270,6 +270,12 @@ ide_intr(void)
     }
 
     ide_complete(idec, disk_io_success);
+}
+
+void
+ide_poke(void)
+{
+    ide_intr(&the_ide_channel);
 }
 
 static int
@@ -407,6 +413,7 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     outb(idec->ctl_addr, 0);
 
     idec->ih.ih_func = &ide_intr;
+    idec->ih.ih_arg = idec;
     irq_register(idec->irq, &idec->ih);
     return 0;
 }

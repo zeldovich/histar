@@ -46,7 +46,7 @@ apic_schedule(void *arg, uint64_t nsec)
 }
 
 static void
-apic_intr(void)
+apic_intr(void *arg)
 {
     apic_write(LAPIC_EOI, 0);
     schedule();

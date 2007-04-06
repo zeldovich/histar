@@ -19,7 +19,7 @@ irq_handler(int irqno)
 
     struct interrupt_handler *ih;
     LIST_FOREACH(ih, &irq_handlers[irqno], ih_link)
-	ih->ih_func();
+	ih->ih_func(ih->ih_arg);
 }
 
 void

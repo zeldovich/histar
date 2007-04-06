@@ -435,7 +435,7 @@ pstate_load(void)
 	    cprintf("pstate_load: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
 	}
-	ide_intr();
+	ide_poke();
     }
 
     if (done < 0)
@@ -729,7 +729,7 @@ pstate_sync_now(void)
 	return r;
 
     while (rval == 0)
-	ide_intr();
+	ide_poke();
 
     return rval < 0 ? rval : 0;
 }

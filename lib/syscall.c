@@ -27,9 +27,10 @@ sys_cons_cursor(int line, int col)
 }
 
 int64_t
-sys_net_create(uint64_t container, const struct ulabel *l, const char *name)
+sys_net_create(uint64_t container, uint64_t card_idx,
+	       const struct ulabel *l, const char *name)
 {
-    return syscall(SYS_net_create, container, l, name);
+    return syscall(SYS_net_create, container, card_idx, l, name);
 }
 
 int64_t
