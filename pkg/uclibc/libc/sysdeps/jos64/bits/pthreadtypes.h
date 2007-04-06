@@ -2,9 +2,10 @@
 #define UCLIBC_JOS64_PTHREADTYPES_H
 
 #include <inc/jthread.h>
+#include <inc/container.h>
 
 // Simple pthread-lookalike wrapper around a jthread_mutex_t
-typedef uint64_t pthread_t;
+typedef struct cobj_ref pthread_t;
 typedef struct {
     int reserved;
     int count;

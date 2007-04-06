@@ -81,6 +81,24 @@ __pthread_mutex_unlock(pthread_mutex_t *mutex)
     return 0;
 }
 
+int
+pthread_create(pthread_t *__restrict tid,
+	       __const pthread_attr_t *__restrict attr,
+	       void *(*startfn) (void *),
+	       void *__restrict arg) __THROW
+{
+    void (*startfn_void) (void *) = (void *) startfn;
+    int r = thread_create(start_env->proc_container,
+			  startfn_void, arg,
+			  tid, "pthread");
+    if (r < 0) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    return 0;
+}
+
 weak_alias (__pthread_mutex_init, pthread_mutex_init)
 weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
 weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
