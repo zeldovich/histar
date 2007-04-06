@@ -36,7 +36,8 @@ ACENV += CC=\"$(CC)\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no ac_cv_func_psignal=yes \
-	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes
+	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
+	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no
 
 ##
 ## ./configure arguments for different packages
@@ -53,6 +54,7 @@ AUTOCONF_sfslite-1.0.0	    := --enable-shared=no --without-x --enable-sfsmisc
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
 AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
 AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
+AUTOCONF_apr-1.2.8	    := --disable-dso
 
 ##
 ## Patches to apply to various packages
