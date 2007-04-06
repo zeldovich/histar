@@ -24,7 +24,7 @@ main(int ac, char **av)
 {
     int64_t ndev_id = container_find(start_env->root_container, kobj_netdev, 0);
     if (ndev_id < 0) {
-	ndev_id = sys_net_create(start_env->root_container, 0, "netdev");
+	ndev_id = sys_net_create(start_env->root_container, 0, 0, "netdev");
 	if (ndev_id < 0)
 	    panic("creating netdev obj: %s", e2s(ndev_id));
     }
