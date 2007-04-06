@@ -112,15 +112,14 @@ part_init(void)
     if (!part_enable) {
 	the_part.pd_offset = 0;
 	the_part.pd_size = disk_bytes;
-	return 0;
+	return;
     }
 
     struct part_table table;
     int r = part_table_read(&table);
-    if (r < 0) {
-	cprintf("cannot read partition table: %s\n", e2s(r));
-	return r;
-    }
+    if (r < 0)
+	panic("cannot read partition table: %s\n", e2s(r));
+
     part_table_print(&table);
     
     struct part_entry *e = 0;
@@ -151,6 +150,4 @@ part_init(void)
     the_part.pd_size = e->pe_nsectors * 512;
     cprintf("partition LBA offset %d, sectors %d\n", 
 	    e->pe_lbastart, e->pe_nsectors);
-    
-    return 0;
 }
