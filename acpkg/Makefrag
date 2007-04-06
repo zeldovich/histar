@@ -54,7 +54,7 @@ AUTOCONF_sfslite-1.0.0	    := --enable-shared=no --without-x --enable-sfsmisc
 AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasper --without-x
 AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
 AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
-AUTOCONF_apr-1.2.8	    := --disable-dso
+AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 
 ##
 ## Patches to apply to various packages

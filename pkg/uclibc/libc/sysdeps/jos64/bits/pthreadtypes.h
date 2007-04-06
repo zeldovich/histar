@@ -35,4 +35,8 @@ int __pthread_mutex_lock(pthread_mutex_t *mutex) __THROW;
 int __pthread_mutex_trylock(pthread_mutex_t *mutex) __THROW;
 int __pthread_mutex_unlock(pthread_mutex_t *mutex) __THROW;
 
+struct _pthread_fastlock {
+    jthread_mutex_t jmu;
+};
+
 #endif

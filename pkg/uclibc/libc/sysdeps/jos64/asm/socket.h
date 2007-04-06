@@ -2,7 +2,7 @@
 #define _ASM_SOCKET_H
 
 /*
- *  Copied from lwip/socket.h 
+ * Copied from pkg/lwip/include/lwip/sockets.h 
  */
 
 /*
@@ -37,5 +37,14 @@
  * Level number for (get/set)sockopt() to apply to socket itself.
  */
 #define  SOL_SOCKET  0xfff    /* options for socket level */
+
+/* Socket I/O Controls */
+#ifndef SIOCSHIWAT
+#define SIOCSHIWAT  _IOW('s',  0, unsigned long)  /* set high watermark */
+#define SIOCGHIWAT  _IOR('s',  1, unsigned long)  /* get high watermark */
+#define SIOCSLOWAT  _IOW('s',  2, unsigned long)  /* set low watermark */
+#define SIOCGLOWAT  _IOR('s',  3, unsigned long)  /* get low watermark */
+#define SIOCATMARK  _IOR('s',  7, unsigned long)  /* at oob mark? */
+#endif
 
 #endif /* _ASM_SOCKET_H */
