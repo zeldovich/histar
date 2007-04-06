@@ -101,7 +101,7 @@ part_table_print(struct part_table *pt)
 {
     for (uint32_t i = 0; i < 4; i++) {
 	struct part_entry *pe = &pt->pt_entry[i];
-	cprintf(" %d  type %2x  active%2x  LBA %10d size %10d\n", i, 
+	cprintf(" %d  type %2x  active %2x  LBA %10d size %10d\n", i, 
 		pe->pe_type, pe->pe_active, pe->pe_lbastart, pe->pe_nsectors);
     }
 }
