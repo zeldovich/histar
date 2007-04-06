@@ -10,6 +10,6 @@ struct part_desc {
 // the global partition 
 extern struct part_desc the_part;
 
-int part_init(void);
+void part_init(void);
 
 #endif

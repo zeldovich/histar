@@ -1,7 +1,7 @@
-#include <machine/param.h>
 #include <machine/x86.h>
 #include <kern/lib.h>
 #include <kern/part.h>
+#include <kern/arch.h>
 #include <dev/disk.h>
 #include <inc/error.h>
 
@@ -106,7 +106,7 @@ part_table_print(struct part_table *pt)
     }
 }
 
-int
+void
 part_init(void)
 {
     if (!part_enable) {
@@ -123,21 +123,34 @@ part_init(void)
     }
     part_table_print(&table);
     
-    for (uint32_t i = 0; i < 4; i++) {
-	if (table.pt_entry[i].pe_type == JOS64_PART_ID) {
-	    the_part.pd_offset = table.pt_entry[i].pe_lbastart * 512;
-	    the_part.pd_size = table.pt_entry[i].pe_nsectors * 512;
-
-	    cprintf("partition LBA offset %d, sectors %d\n",
-		    table.pt_entry[i].pe_lbastart, table.pt_entry[i].pe_nsectors);
-	    break;
+    struct part_entry *e = 0;
+    const char *store;
+    if ((store = strstr(&boot_cmdline[0], "store=/dev/hd"))) {
+	const char *spec = store + strlen("store=/dev/hd");
+	int i = spec[1] - '1';
+	if (i < 0 || i > 3)
+	    panic("unknown %s", store);
+	if (table.pt_entry[i].pe_type != JOS64_PART_ID) {
+	    panic("%s (%x) is not type JOS64 (%x)", store, 
+		  table.pt_entry[i].pe_type, JOS64_PART_ID);
+	}
+	e = &table.pt_entry[i];
+    } else {
+	for (uint32_t i = 0; i < 4; i++) {
+	    if (table.pt_entry[i].pe_type == JOS64_PART_ID) {
+		e = &table.pt_entry[i];
+		break;
+	    }
 	}
     }
     
-    if (the_part.pd_size == 0) {
-	cprintf("no JOS64 partition found\n");
-	return -E_INVAL;
-    }
+    if (!e)
+	panic ("no JOS64 partitions found");
+    
+    the_part.pd_offset = e->pe_lbastart * 512;
+    the_part.pd_size = e->pe_nsectors * 512;
+    cprintf("partition LBA offset %d, sectors %d\n", 
+	    e->pe_lbastart, e->pe_nsectors);
     
     return 0;
 }
