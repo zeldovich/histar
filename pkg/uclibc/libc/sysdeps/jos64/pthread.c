@@ -4,6 +4,7 @@
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
+#include <inc/container.h>
 
 int
 __pthread_mutex_init(pthread_mutex_t * mutex,
@@ -94,15 +95,17 @@ pthread_create(pthread_t *__restrict tid,
 	       void *(*startfn) (void *),
 	       void *__restrict arg) __THROW
 {
+    struct cobj_ref cobj_tid;
     void (*startfn_void) (void *) = (void *) startfn;
     int r = thread_create(start_env->proc_container,
 			  startfn_void, arg,
-			  tid, "pthread");
+			  &cobj_tid, "pthread");
     if (r < 0) {
 	__set_errno(EINVAL);
 	return -1;
     }
 
+    *tid = cobj_tid.object;
     return 0;
 }
 
@@ -116,10 +119,7 @@ pthread_join(pthread_t tid, void **retp) __THROW
 pthread_t
 pthread_self(void) __THROW
 {
-    struct cobj_ref tid;
-    tid.container = start_env->proc_container;
-    tid.object = thread_id();
-    return tid;
+    return thread_id();
 }
 
 int
@@ -180,7 +180,7 @@ pthread_cond_broadcast(pthread_cond_t *cond) __THROW
 int
 pthread_equal(pthread_t t1, pthread_t t2) __THROW
 {
-    return t1.object == t2.object;
+    return t1 == t2;
 }
 
 weak_alias (__pthread_mutex_init, pthread_mutex_init)
