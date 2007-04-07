@@ -82,6 +82,12 @@ __pthread_mutex_unlock(pthread_mutex_t *mutex)
 }
 
 int
+pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+    return 0;
+}
+
+int
 pthread_create(pthread_t *__restrict tid,
 	       __const pthread_attr_t *__restrict attr,
 	       void *(*startfn) (void *),
@@ -96,6 +102,77 @@ pthread_create(pthread_t *__restrict tid,
 	return -1;
     }
 
+    return 0;
+}
+
+int
+pthread_join(pthread_t tid, void **retp) __THROW
+{
+    __set_errno(ENOSYS);
+    return -1;
+}
+
+pthread_t
+pthread_self(void) __THROW
+{
+    struct cobj_ref tid;
+    tid.container = start_env->proc_container;
+    tid.object = thread_id();
+    return tid;
+}
+
+int
+pthread_attr_init(pthread_attr_t *attr) __THROW
+{
+    return 0;
+}
+
+int
+pthread_attr_destroy(pthread_attr_t *attr) __THROW
+{
+    return 0;
+}
+
+int
+pthread_attr_setscope(pthread_attr_t *attr, int scope) __THROW
+{
+    return 0;
+}
+
+int
+pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) __THROW
+{
+    cond->counter = 0;
+    return 0;
+}
+
+int
+pthread_cond_destroy(pthread_cond_t *cond) __THROW
+{
+    return 0;
+}
+
+int
+pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu) __THROW
+{
+    uint64_t v = cond->counter;
+    pthread_mutex_unlock(mu);
+    sys_sync_wait(&cond->counter, v, ~0UL);
+    pthread_mutex_lock(mu);
+    return 0;
+}
+
+int
+pthread_cond_signal(pthread_cond_t *cond) __THROW
+{
+    return pthread_cond_broadcast(cond);
+}
+
+int
+pthread_cond_broadcast(pthread_cond_t *cond) __THROW
+{
+    cond->counter++;
+    sys_sync_wakeup(&cond->counter);
     return 0;
 }
 

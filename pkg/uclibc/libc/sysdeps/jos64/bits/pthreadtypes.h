@@ -14,13 +14,17 @@ typedef struct {
     jthread_mutex_t jmu;
 } pthread_mutex_t;
 
+// Condition variables
+typedef struct {
+    uint64_t counter;
+} pthread_cond_t;
+
 #define __LOCK_INITIALIZER JTHREAD_LOCK_INITIALIZER
 
 // Types we don't care about
 typedef int pthread_attr_t;
 typedef int pthread_mutexattr_t;
 
-typedef int pthread_cond_t;
 typedef int pthread_condattr_t;
 
 typedef int pthread_rwlock_t;
