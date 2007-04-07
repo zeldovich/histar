@@ -3,6 +3,7 @@
 #include <string.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
+#include <inc/syscall.h>
 
 int
 __pthread_mutex_init(pthread_mutex_t * mutex,
