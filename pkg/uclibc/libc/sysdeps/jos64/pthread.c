@@ -177,6 +177,12 @@ pthread_cond_broadcast(pthread_cond_t *cond) __THROW
     return 0;
 }
 
+int
+pthread_equal(pthread_t t1, pthread_t t2) __THROW
+{
+    return t1.object == t2.object;
+}
+
 weak_alias (__pthread_mutex_init, pthread_mutex_init)
 weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
 weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
