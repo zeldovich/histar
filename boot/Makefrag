@@ -24,7 +24,7 @@ $(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setu
 	$(OBJDUMP) -S $@.out >$@.asm
 	$(OBJCOPY) -S -O binary $@.out $@~
 	dd if=$(OBJDIR)/boot/setup of=$@~ bs=512 count=1 seek=1 2>/dev/null
-	cp $@~ $@
+	mv $@~ $@
 
 $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
 	# Links address should be 0x0, but load address is irrelevant
@@ -47,13 +47,7 @@ $(OBJDIR)/boot/boot.iso: IMAGE_CMDLINE = default histar
 $(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/bimage
 	-rm -rf $(@D)/isoimage
 	@mkdir -p $(@D)/isoimage
-	for i in lib lib64 share end ; do \
-		if [ -f /usr/$$i/syslinux/isolinux.bin ] ; then \
-			cp /usr/$$i/syslinux/isolinux.bin $(@D)/isoimage ; \
-			break ; \
-		fi ; \
-		if [ $$i = end ] ; then exit 1 ; fi ; \
-	done
+	cp boot/isolinux.bin $(@D)/isoimage/isolinux.bin
 	cp $(OBJDIR)/boot/bimage $(@D)/isoimage/histar
 	echo '$(IMAGE_CMDLINE)' > $(@D)/isoimage/isolinux.cfg
 	mkisofs -J -r -o $@ -b isolinux.bin -c boot.cat \
