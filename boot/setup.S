@@ -131,7 +131,7 @@ nobiosmem:	xorw	%cx,%cx
 		xorw	%dx,%dx
 memdetected:
 
-## Set %edi to the difference between linear load and link addresses
+## Set %edi to the linear load address (our link address is 0)
 		movw	%cs, %ax
 		movw	%ax, %ss
 		movl	$4, %esp
@@ -145,7 +145,11 @@ eip_abs:
 		addl	%eax, %edi
 		subl	$eip_abs, %edi
 
-## Setup a real stack at start going down
+## Set %esi to the load address within %cs
+		movl	%edi, %esi
+		subl	%eax, %esi
+
+## Setup a real stack at 'start' going down
 		xorw	%ax, %ax
 		movw	%ax, %ss
 		movl	$start, %esp
@@ -164,9 +168,11 @@ eip_abs:
 		movw	%ax, %ds
 
 		movl	$gdtaddr, %eax
+		addl	%esi, %eax
 		addl	%edi, (%eax)
 
 		movl	$gdtdesc, %eax		# gdtdesc is 16-byte aligned
+		addl	%esi, %eax
 		lgdtl	(%eax)			# load GDT
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
@@ -176,6 +182,7 @@ eip_abs:
 		### loads CS with $PROT_MODE_CSEG.
 
 		movl	$protcseg_far, %eax
+		addl	%esi, %eax
 		addl	%edi, (%eax)
 		ljmpl	*(%eax)
 
