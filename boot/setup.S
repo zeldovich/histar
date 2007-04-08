@@ -160,16 +160,13 @@ eip_abs:
 ####	 that it is running directly on physical memory with no translation.
 ####	 This initial NOP-translation setup is required by the processor
 ####	 to ensure that the transition to protected mode occurs smoothly.
-
-		xorw	%ax, %ax
+		movw	%cs, %ax
 		movw	%ax, %ds
 
 		movl	$gdtaddr, %eax
-		addl	%edi, %eax
 		addl	%edi, (%eax)
 
 		movl	$gdtdesc, %eax		# gdtdesc is 16-byte aligned
-		addl	%edi, %eax
 		lgdtl	(%eax)			# load GDT
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
@@ -179,7 +176,6 @@ eip_abs:
 		### loads CS with $PROT_MODE_CSEG.
 
 		movl	$protcseg_far, %eax
-		addl	%edi, %eax
 		addl	%edi, (%eax)
 		ljmpl	*(%eax)
 

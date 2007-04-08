@@ -27,8 +27,8 @@ $(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setu
 	cp $@~ $@
 
 $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
-	# Link address is irrelevant, this code is position-independent
-	$(LD) -melf_i386 -Ttext 0x1000 -s --oformat binary -e start -o $@ $<
+	# Links address should be 0x0, but load address is irrelevant
+	$(LD) -melf_i386 -Ttext 0x0 -s --oformat binary -e start -o $@ $<
 	perl boot/setup.pl $(OBJDIR)/boot/setup
 
 $(OBJDIR)/boot/bimage: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bheader
