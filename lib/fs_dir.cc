@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/declassify.h>
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
+#include <inc/string.h>
 
 #include <string.h>
 }
@@ -202,6 +203,15 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 int
 fs_namei(const char *pn, struct fs_inode *o)
 {
+    if (pn[0] == '#') {
+	uint64_t ctid;
+	int r = strtou64(pn + 1, 0, 10, &ctid);
+	if (r == 0) {
+	    o->obj = COBJ(ctid, ctid);
+	    return 0;
+	}
+    }
+
     struct fs_inode d = pn[0] == '/' ? start_env->fs_root : start_env->fs_cwd;
     return fs_lookup_path(d, pn, o);
 }
