@@ -125,7 +125,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     a.size = offsetof(struct netd_op_args, accept) + sizeof(a.accept);
 
     struct sockaddr_in sin;
-    if (*addrlen < sizeof(sin))
+    if (addrlen && *addrlen < sizeof(sin))
 	return -E_INVAL;
 
     struct Fd *nfd;
@@ -148,7 +148,8 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_sock.netd_gate = fd->fd_sock.netd_gate;
 
     netd_to_libc(&a.accept.sin, &sin);
-    memcpy(addr, &sin, sizeof(sin));
+    if (addr)
+	memcpy(addr, &sin, sizeof(sin));
 
     return fd2num(nfd);
 }
