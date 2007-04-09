@@ -1,6 +1,6 @@
 #include <machine/mmu.h>
-#include <machine/sysxboot.h>
-	
+#include <machine/boot.h>
+
 .set PROT_MODE_CSEG,0x08	# code segment selector
 .set PROT_MODE_DSEG,0x10	# data segment selector
 .set CR0_PE_ON,0x1		# protected mode enable flag
@@ -108,17 +108,14 @@ trampoline:
 ####   Obviously this a bit of a drag for us, especially when trying to
 ####   address memory above 1MB.  This code undoes this.
 
-seta20.1:	inb	$0x64,%al		# Get status
-		testb	$0x2,%al		# Busy?
-		jnz	seta20.1		# Yes
-		movb	$0xd1,%al		# Command: Write
-		outb	%al,$0x64		#  output port
-seta20.2:	inb	$0x64,%al		# Get status
-		testb	$0x2,%al		# Busy?
-		jnz	seta20.2		# Yes
-		movb	$0xdf,%al		# Enable
-		outb	%al,$0x60		#  A20
-		movw	$(0x0200 + '0'), %es:(0x02)
+## We don't bother frobbing the keyboard controller; all recent hardware
+## has the fast A20 gate on the chipset at 0x92.
+
+## "Fast A20 gate" -- new machines like laptops have no keyboard controller
+		inb	$0x92, %al
+		orb	$0x02, %al
+		andb	$0xfe, %al		# avoid reboot
+		outb	%al, $0x92
 
 #### Before going to protected mode, query memory size
 #### Taken from Linux 2.6.6's arch/i386/boot/setup.S
@@ -239,7 +236,7 @@ protcseg:
 		addl	%edi, %ebx		# header.  So, we copy the pointer
 		movl	(%ebx), %ebx		# over to our sysx_info.
 		movl	%ebx, (%eax)
-	
+
 		movl	0x100000, %edx
 		cmpl	$0x464C457F, %edx
 		jne	badelf
@@ -252,7 +249,7 @@ protcseg:
 		movl	$SYSXBOOT_EAX_MAGIC,%eax	
 		movl	$sysx_info,%ebx
 		addl	%edi,%ebx
-	
+
 		call	*%edx
 
 badelf:

@@ -3,7 +3,6 @@
 #include <machine/trap.h>
 #include <machine/multiboot.h>
 #include <machine/boot.h>
-#include <machine/sysxboot.h>
 #include <machine/tsctimer.h>
 #include <dev/console.h>
 #include <dev/disk.h>
