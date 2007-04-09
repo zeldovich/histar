@@ -147,9 +147,9 @@ init (uint32_t start_eax, uint32_t start_ebx)
     pci_init();
     part_init();
 
-    kobject_init ();
-    sched_init ();
-    pstate_init ();
+    kobject_init();
+    sched_init();
+    pstate_init();
 
     prof_init();
     if (strstr(&boot_cmdline[0], "reboot=periodic")) {
@@ -158,7 +158,7 @@ init (uint32_t start_eax, uint32_t start_ebx)
 	timer_add_periodic(&reboot_pt);
     }
 
-    user_init ();
+    user_init();
 
     cprintf("=== kernel ready, calling schedule() ===\n");
     schedule();
