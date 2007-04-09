@@ -117,6 +117,7 @@ seta20.2:	inb	$0x64,%al		# Get status
 					# without changing them.
 		movw	$0xe801,%ax
 		int	$0x15
+		cli			# Some BIOSes re-enable interrupts
 		jc	nobiosmem
 
 		cmpw	$0x0,%cx	# Kludge to handle BIOSes
