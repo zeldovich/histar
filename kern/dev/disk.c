@@ -25,6 +25,7 @@ struct ide_channel {
     struct interrupt_handler ih;
 
     // Flags
+    bool_t present;
     bool_t dma_wait;
     bool_t irq_wait;
 
@@ -415,6 +416,8 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
     idec->ih.ih_func = &ide_intr;
     idec->ih.ih_arg = idec;
     irq_register(idec->irq, &idec->ih);
+
+    idec->present = 1;
     return 0;
 }
 
@@ -455,6 +458,9 @@ disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 {
     struct ide_channel *idec = &the_ide_channel;
     struct ide_op *curop = &idec->current_op;
+
+    if (!idec->present)
+	return -E_NOT_FOUND;
 
     if (!SAFE_EQUAL(curop->op, op_none))
 	return -E_BUSY;
