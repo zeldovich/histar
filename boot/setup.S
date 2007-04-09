@@ -1,5 +1,6 @@
 #include <machine/mmu.h>
-
+#include <machine/sysxboot.h>
+	
 .set PROT_MODE_CSEG,0x08	# code segment selector
 .set PROT_MODE_DSEG,0x10	# data segment selector
 .set CR0_PE_ON,0x1		# protected mode enable flag
@@ -84,6 +85,12 @@ cmd_line_ptr:	.long	0		# (Header version 0x0202 or later)
 
 ramdisk_max:	.long	0xffffffff
 
+# A sysx_info header that we will use to pass memory size and 
+# a command line pointer to init()
+sysx_info:
+memory_size:	.long	0x00000000
+cmd_line_addr:	.long	0x00000000
+	
 trampoline:
 		cli				# Disable interrupts
 		cld				# String operations increment
@@ -221,16 +228,32 @@ protcseg:
 		andl	%eax,%ecx		# clip to 16 bits
 		addl	%edx,%ecx		# add results
 
-		pushl	%ecx			# Push the amount of extended memory
+		### initialize the sysx_info header for init()
+		movl	$memory_size, %eax	# save the amount of extended memory
+		addl	%edi, %eax
+		movl	%ecx, (%eax)
 
-		movl	0x100000, %eax
-		cmpl	$0x464C457F, %eax
+		movl	$cmd_line_addr, %eax	# SYSLINUX copies the command line
+		addl	%edi, %eax		# to somewhere in low memory and
+		movl	$cmd_line_ptr, %ebx	# saves a pointer in the Linux setup
+		addl	%edi, %ebx		# header.  So, we copy the pointer
+		movl	(%ebx), %ebx		# over to our sysx_info.
+		movl	%ebx, (%eax)
+	
+		movl	0x100000, %edx
+		cmpl	$0x464C457F, %edx
 		jne	badelf
 
-		movl	0x100018, %eax		# read elf64 e_entry
-		addl	$0x80000000, %eax	# get rid of offset
+		movl	0x100018, %edx		# read elf64 e_entry
+		addl	$0x80000000, %edx	# get rid of offset
 		movw	$(0x0300 + '6'), (0xb800e)
-		call	*%eax
+
+		### set %eax and %ebx for init()
+		movl	$SYSXBOOT_EAX_MAGIC,%eax	
+		movl	$sysx_info,%ebx
+		addl	%edi,%ebx
+	
+		call	*%edx
 
 badelf:
 		movw	$(0x0300 + 'X'), (0xb800e)

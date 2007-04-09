@@ -3,6 +3,7 @@
 #include <machine/trap.h>
 #include <machine/multiboot.h>
 #include <machine/boot.h>
+#include <machine/sysxboot.h>
 #include <machine/tsctimer.h>
 #include <dev/console.h>
 #include <dev/disk.h>
@@ -121,6 +122,13 @@ init (uint32_t start_eax, uint32_t start_ebx)
 	    lower_kb = mbi->mem_lower;
 	    upper_kb = mbi->mem_upper;
 	}
+    }
+
+    if (start_eax == SYSXBOOT_EAX_MAGIC) {
+	struct sysx_info *sxi = pa2kva(start_ebx);
+	char *cmdline = pa2kva(sxi->cmdline);
+	strncpy(&boot_cmdline[0], cmdline, sizeof(boot_cmdline) - 1);
+	upper_kb = sxi->extmem_kb;
     }
 
     // Our boot sector passes in the upper memory size this way
