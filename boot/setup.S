@@ -223,10 +223,18 @@ protcseg:
 
 		pushl	%ecx			# Push the amount of extended memory
 
-		movl	0x100018,%eax		# read elf64 e_entry
-		addl	$0x80000000,%eax	# get rid of offset
+		movl	0x100000, %eax
+		cmpl	$0x464C457F, %eax
+		jne	badelf
+
+		movl	0x100018, %eax		# read elf64 e_entry
+		addl	$0x80000000, %eax	# get rid of offset
 		movw	$(0x0300 + '6'), (0xb800e)
 		call	*%eax
+
+badelf:
+		movw	$(0x0300 + 'X'), (0xb800e)
+		jmp	badelf
 
 .align 4
 gdt:
