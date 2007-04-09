@@ -83,10 +83,9 @@ avoid 32-bit truncation for some MMX operations.
 You must use gcc 3.4 to compile qemu, so after running ./configure you
 may need to set something like "CC=gcc-3.4.6" in config-host.mak.
 
-To boot HiStar for the first time
+* To boot HiStar for the first time:
 
-rm -f obj/kern/bochs.img
-gmake
-mkdir ./obj/fs
-qemu-img create -f qcow2 ./obj/fs/fs.img 1G
-./qemu.sh
+    % gmake
+    % cp conf/sample-qemu.sh qemu.sh
+    % ./qemu.sh
+

@@ -21,26 +21,30 @@ $(OBJDIR)/boot/main.o: boot/main.c
 $(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setup
 	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x7C00 $(BOOT_OBJS) \
 	      -Tdata 0x7DF0 $(OBJDIR)/boot/bsdata.o
-	$(OBJDUMP) -S $@.out >$@.asm
 	$(OBJCOPY) -S -O binary $@.out $@~
 	dd if=$(OBJDIR)/boot/setup of=$@~ bs=512 count=1 seek=1 2>/dev/null
 	mv $@~ $@
 
 $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
-	# Links address should be 0x0, but load address is irrelevant
+	# Link address should be 0x0, but load address is irrelevant
 	$(LD) -melf_i386 -Ttext 0x0 -s --oformat binary -e start -o $@ $<
-	perl boot/setup.pl $(OBJDIR)/boot/setup
+	perl boot/setup.pl $@
 
-$(OBJDIR)/boot/bimage: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bheader
-	cat $(OBJDIR)/boot/bheader > $@
-	cat $(OBJDIR)/kern/kernel >> $@
+$(OBJDIR)/boot/bimage: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel
+	cat $^ > $@
 
 # Build the Bochs disk image
 $(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage
-	dd if=/dev/zero of=$(OBJDIR)/boot/bochs.img~ bs=1024k count=64 2>/dev/null
-	dd if=$< of=$(OBJDIR)/boot/bochs.img~ \
-	   conv=notrunc 2>/dev/null
-	mv $(OBJDIR)/boot/bochs.img~ $(OBJDIR)/boot/bochs.img
+	dd if=/dev/zero of=$@~ bs=1024k count=64 2>/dev/null
+	dd if=$< of=$@~ conv=notrunc 2>/dev/null
+	mv $@~ $@
+
+# Build a pstate disk with a partition table
+$(OBJDIR)/fs/fs.img:
+	@mkdir -p $(@D)
+	dd if=/dev/zero of=$@~ bs=1024k count=512 2>/dev/null
+	perl boot/partinit.pl $@~
+	mv $@~ $@
 
 # Build a bootable iso
 $(OBJDIR)/boot/boot.iso: IMAGE_CMDLINE = default histar
