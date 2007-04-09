@@ -60,6 +60,7 @@ Security:
 * split the pstate sync timestamp counter from the handle counter
 * what happens when a segment being waited on is swapped out or GCed?
 * threads can detect reboot using SIDT, SGDT, SLDT, STR?
+  use CPUID, %eflags[ID] to detect hardware changes
 
 Cleanup:
 
