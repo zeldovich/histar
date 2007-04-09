@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <kern/part.h>
 #include <kern/arch.h>
+#include <kern/pstate.h>
 #include <dev/disk.h>
 #include <inc/error.h>
 
@@ -58,8 +59,8 @@ struct part_table {
     struct part_entry pt_entry[4]; 
 };
 
-// the global partition
-struct part_desc the_part = { 0, 0 };
+// the global pstate partition
+static struct part_desc the_part = { 0, 0 };
 
 static void
 disk_io_cb(disk_io_status status, void *arg)
@@ -80,7 +81,7 @@ part_table_read(struct part_table *pt)
     int r = disk_io(op_read, &iov, 1, 0, &disk_io_cb, &blocked);
     if (r < 0)
 	return r;
-    
+
     uint64_t ts_start = read_tsc();
     int warned = 0;
     while (blocked == 1) {
@@ -91,7 +92,7 @@ part_table_read(struct part_table *pt)
 	}
 	ide_poke();
     }
-    
+
     memcpy(pt, &sect[PART_TABLE_OFFSET], sizeof(*pt));
     return blocked;
 }
@@ -112,13 +113,16 @@ part_init(void)
     if (!part_enable) {
 	the_part.pd_offset = 0;
 	the_part.pd_size = disk_bytes;
+	pstate_part = &the_part;
 	return;
     }
 
     struct part_table table;
     int r = part_table_read(&table);
-    if (r < 0)
-	panic("cannot read partition table: %s\n", e2s(r));
+    if (r < 0) {
+	cprintf("cannot read partition table: %s\n", e2s(r));
+	return;
+    }
 
     part_table_print(&table);
     
@@ -127,11 +131,15 @@ part_init(void)
     if ((store = strstr(&boot_cmdline[0], "store=/dev/hd"))) {
 	const char *spec = store + strlen("store=/dev/hd");
 	int i = spec[1] - '1';
-	if (i < 0 || i > 3)
-	    panic("unknown %s", store);
+	if (i < 0 || i > 3) {
+	    cprintf("part store: unknown %s\n", store);
+	    return;
+	}
+
 	if (table.pt_entry[i].pe_type != JOS64_PART_ID) {
-	    panic("%s (%x) is not type JOS64 (%x)", store, 
-		  table.pt_entry[i].pe_type, JOS64_PART_ID);
+	    cprintf("part store: %s (%x) is not type JOS64 (%x)\n",
+		    store, table.pt_entry[i].pe_type, JOS64_PART_ID);
+	    return;
 	}
 	e = &table.pt_entry[i];
     } else {
@@ -143,11 +151,14 @@ part_init(void)
 	}
     }
     
-    if (!e)
-	panic ("no JOS64 partitions found");
+    if (!e) {
+	cprintf("no JOS64 partitions found\n");
+	return;
+    }
     
     the_part.pd_offset = e->pe_lbastart * 512;
     the_part.pd_size = e->pe_nsectors * 512;
-    cprintf("partition LBA offset %d, sectors %d\n", 
+    pstate_part = &the_part;
+    cprintf("partition LBA offset %d, sectors %d\n",
 	    e->pe_lbastart, e->pe_nsectors);
 }

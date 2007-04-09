@@ -23,6 +23,9 @@ static int pstate_swapout_stats = 0;
 static int scrub_disk_pages = 0;
 static int commit_panic = 0;
 
+// Disk partition to use
+struct part_desc *pstate_part;
+
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
 
@@ -55,7 +58,7 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 	    memset(p, 0xc4, PGSIZE);
 
 	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
-		s = stackwrap_disk_io(op_write, &the_part, p, 512, mobj.off + i * 512);
+		s = stackwrap_disk_io(op_write, pstate_part, p, 512, mobj.off + i * 512);
 
 	    page_free(p);
 	}
@@ -119,7 +122,8 @@ pstate_iov_flush(struct pstate_iov_collector *x)
 {
     if (x->iov_bytes > 0) {
 	disk_io_status s =
-	    stackwrap_disk_iov(x->flush_op, &the_part, x->iov_buf, x->iov_cnt, x->flush_off);
+	    stackwrap_disk_iov(x->flush_op, pstate_part,
+			       x->iov_buf, x->iov_cnt, x->flush_off);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    cprintf("pstate_iov_flush: error during disk io\n");
 	    return -E_IO;
@@ -287,7 +291,7 @@ pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1 __attribute__((unused)), uin
 int
 pstate_swapin(kobject_id_t id)
 {
-    if (!pstate_enable) {
+    if (!pstate_part) {
 	kobject_negative_insert(id);
 	return 0;
     }
@@ -322,21 +326,21 @@ pstate_apply_disk_log(void)
 	return r;
     }
 
-    disk_io_status s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
+    disk_io_status s = stackwrap_disk_io(op_flush, pstate_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_apply_disk_log: cannot flush\n");
 	return -E_IO;
     }
 
     stable_hdr.ph_log_blocks = 0;
-    s = stackwrap_disk_io(op_write, &the_part, &stable_hdr.ph_buf[0],
+    s = stackwrap_disk_io(op_write, pstate_part, &stable_hdr.ph_buf[0],
 			  PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_apply_disk_log: cannot write out header\n");
 	return -E_IO;
     }
 
-    s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
+    s = stackwrap_disk_io(op_flush, pstate_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success))
 	panic("pstate_apply_disk_log: cannot flush header");
 
@@ -346,7 +350,8 @@ pstate_apply_disk_log(void)
 static int
 pstate_load2(void)
 {
-    disk_io_status s = stackwrap_disk_io(op_read, &the_part, &stable_hdr.ph_buf[0],
+    disk_io_status s = stackwrap_disk_io(op_read, pstate_part,
+					 &stable_hdr.ph_buf[0],
 					 PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_load2: cannot read header\n");
@@ -418,7 +423,7 @@ pstate_reset(void)
 int
 pstate_load(void)
 {
-    if (!pstate_enable)
+    if (!pstate_part)
 	return -E_INVAL;
 
     int done = 0;
@@ -552,7 +557,7 @@ pstate_sync_loop(struct pstate_header *hdr,
 	return flush_blocks;
     }
 
-    disk_io_status s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
+    disk_io_status s = stackwrap_disk_io(op_flush, pstate_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_loop: unable to flush disk\n");
 	btree_unlock_all();
@@ -560,14 +565,14 @@ pstate_sync_loop(struct pstate_header *hdr,
     }
 
     hdr->ph_log_blocks = flush_blocks;
-    s = stackwrap_disk_io(op_write, &the_part, hdr, PSTATE_BUF_SIZE, 0);
+    s = stackwrap_disk_io(op_write, pstate_part, hdr, PSTATE_BUF_SIZE, 0);
     if (!SAFE_EQUAL(s, disk_io_success)) {
 	cprintf("pstate_sync_loop: unable to commit header\n");
 	btree_unlock_all();
 	return -E_IO;
     }
 
-    s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
+    s = stackwrap_disk_io(op_flush, pstate_part, 0, 0, 0);
     if (!SAFE_EQUAL(s, disk_io_success))
 	panic("pstate_sync_loop: unable to flush commit record");
 
@@ -587,12 +592,12 @@ pstate_sync_loop(struct pstate_header *hdr,
 
 	hdr->ph_log_blocks = 0;
 	do {
-	    s = stackwrap_disk_io(op_write, &the_part, hdr, PSTATE_BUF_SIZE, 0);
+	    s = stackwrap_disk_io(op_write, pstate_part, hdr, PSTATE_BUF_SIZE, 0);
 	    if (!SAFE_EQUAL(s, disk_io_success))
 		cprintf("pstate_sync_loop: unable to rewrite header, retrying\n");
 	} while (!SAFE_EQUAL(s, disk_io_success));
 
-	s = stackwrap_disk_io(op_flush, &the_part, 0, 0, 0);
+	s = stackwrap_disk_io(op_flush, pstate_part, 0, 0, 0);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    panic("pstate_sync_loop: unable to flush applied log");
     }
@@ -618,7 +623,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1 __attribute__((unused)), uint
 
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
-	uint64_t part_pages = the_part.pd_size / PGSIZE;
+	uint64_t part_pages = pstate_part->pd_size / PGSIZE;
 	uint64_t reserved_pages = RESERVED_PAGES;
 	assert(part_pages > reserved_pages);
 
@@ -721,7 +726,7 @@ pstate_sync(void)
 int
 pstate_sync_now(void)
 {
-    if (!pstate_enable)
+    if (!pstate_part)
 	return 0;
 
     int rval = 0;
@@ -787,7 +792,8 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 	if (r < 0)
 	    goto fallback;
 
-	uint32_t pagebytes = MIN(ROUNDUP(sync_end - page * PGSIZE, 512), (uint32_t) PGSIZE);
+	uint32_t pagebytes = MIN(ROUNDUP(sync_end - page * PGSIZE, 512),
+				 (uint32_t) PGSIZE);
 	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
 	    goto fallback;
@@ -797,7 +803,8 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
     if (r < 0)
 	goto fallback;
 
-    if (!SAFE_EQUAL(stackwrap_disk_io(op_flush, &the_part, 0, 0, 0), disk_io_success))
+    if (!SAFE_EQUAL(stackwrap_disk_io(op_flush, pstate_part,
+				      0, 0, 0), disk_io_success))
 	goto fallback;
 
     if (pstate_swapout_object_debug)
@@ -820,7 +827,7 @@ int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 		   uint64_t start, uint64_t nbytes)
 {
-    if (!pstate_enable)
+    if (!pstate_part)
 	return 0;
 
     if (stable_hdr.ph_magic != PSTATE_MAGIC)
@@ -848,7 +855,7 @@ fallback:
 int
 pstate_sync_user(uint64_t timestamp)
 {
-    if (!pstate_enable)
+    if (!pstate_part)
 	return 0;
 
     if (stable_hdr.ph_magic == PSTATE_MAGIC &&
@@ -863,7 +870,7 @@ pstate_sync_user(uint64_t timestamp)
 void
 pstate_init(void)
 {
-    if (!pstate_enable)
+    if (!pstate_part)
 	return;
 
     pstate_reset();

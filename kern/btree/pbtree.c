@@ -6,7 +6,7 @@
 #include <kern/stackwrap.h>
 #include <kern/log.h>
 #include <kern/arch.h>
-#include <kern/part.h>
+#include <kern/pstate.h>
 #include <inc/error.h>
 
 extern struct freelist freelist;
@@ -27,7 +27,7 @@ pbtree_open_node(uint64_t id, offset_t offset, uint8_t ** mem)
     if (r < 0) {
 	// 'updated' node not in log, so read from disk
 	disk_io_status s = stackwrap_disk_io(op_read,
-					     &the_part,
+					     pstate_part,
 					     buf,
 					     BTREE_BLOCK_SIZE,
 					     offset);

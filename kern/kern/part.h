@@ -7,9 +7,6 @@ struct part_desc {
     uint64_t pd_size;
 };
 
-// the global partition 
-extern struct part_desc the_part;
-
 void part_init(void);
 
 #endif

@@ -4,7 +4,7 @@
 #include <kern/disklayout.h>
 #include <kern/stackwrap.h>
 #include <kern/arch.h>
-#include <kern/part.h>
+#include <kern/pstate.h>
 #include <inc/hashtable.h>
 #include <inc/queue.h>
 #include <inc/error.h>
@@ -35,7 +35,7 @@ log_write_to_disk(struct node_list *nodes, uint64_t * count)
 	assert(node->block.offset < the_log.byteoff ||
 	       node->block.offset >= the_log.byteoff + the_log.npages * PGSIZE);
 
-	s = stackwrap_disk_io(op_write, &the_part, node, BTREE_BLOCK_SIZE,
+	s = stackwrap_disk_io(op_write, pstate_part, node, BTREE_BLOCK_SIZE,
 			      node->block.offset);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    *count = n;
@@ -60,7 +60,7 @@ log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
 	    continue;
 
 	assert(off + n * PGSIZE < the_log.npages * PGSIZE + the_log.byteoff);
-	s = stackwrap_disk_io(op_write, &the_part, node, BTREE_BLOCK_SIZE,
+	s = stackwrap_disk_io(op_write, pstate_part, node, BTREE_BLOCK_SIZE,
 			      off + n * PGSIZE);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    *count = n;
@@ -98,7 +98,7 @@ log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
     for (uint64_t i = 0; i < n_nodes; i++, off += BTREE_BLOCK_SIZE) {
 	if ((r = page_alloc((void **) &node)) < 0)
 	    return r;
-	s = stackwrap_disk_io(op_read, &the_part, node, BTREE_BLOCK_SIZE, off);
+	s = stackwrap_disk_io(op_read, pstate_part, node, BTREE_BLOCK_SIZE, off);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    return -E_IO;
 	TAILQ_INSERT_TAIL(nodes, node, node_log_link);
@@ -118,7 +118,8 @@ log_read_map(struct hashtable *map, struct node_list *nodes)
 	offset_t off = iter.hi_val;
 	if ((r = page_alloc((void **) &node)) < 0)
 	    return r;
-	s = stackwrap_disk_io(op_read, &the_part, node, BTREE_BLOCK_SIZE, off);
+	s = stackwrap_disk_io(op_read, pstate_part,
+			      node, BTREE_BLOCK_SIZE, off);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    return -E_IO;
 	assert(node->block.offset == iter.hi_key);
@@ -142,8 +143,8 @@ log_try_read(offset_t byteoff, void *page)
     offset_t log_off;
     if (hash_get(&the_log.disk_map, byteoff, &log_off) < 0)
 	return -E_NOT_FOUND;
-    disk_io_status s =
-	stackwrap_disk_io(op_read, &the_part, page, BTREE_BLOCK_SIZE, log_off);
+    disk_io_status s = stackwrap_disk_io(op_read, pstate_part,
+					 page, BTREE_BLOCK_SIZE, log_off);
     if (!SAFE_EQUAL(s, disk_io_success))
 	return -E_IO;
 

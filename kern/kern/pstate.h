@@ -6,6 +6,7 @@
 #include <kern/freelist.h>
 #include <kern/handle.h>
 #include <kern/btree.h>
+#include <kern/part.h>
 
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
 #define PSTATE_VERSION	3
@@ -46,5 +47,8 @@ int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 
 // waits in the kernel until a snapshot is written to disk
 int  pstate_sync_now(void);
+
+// partition to be used by the pstate code
+extern struct part_desc *pstate_part;
 
 #endif
