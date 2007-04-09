@@ -7,6 +7,7 @@
 	.text
 .globl	start
 start:	.code32
+	movw	$(0x0400 + '7'), (0xb8010)
 	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable PAE
@@ -28,9 +29,12 @@ start:	.code32
 	movl	%cr0,%eax			// Enable paging
 	orl	$(CR0_PE|CR0_PG|CR0_WP|CR0_AM|CR0_TS|CR0_MP|CR0_NE),%eax
 	movl	%eax,%cr0
+	movw	$(0x0400 + '8'), (0xb8012)
+
 	ljmp	*(%ecx)
 
 inlong:	.code64
+	movw	$(0x0500 + '9'), (0xb8014)
 	movabsq	$(KSTACKTOP),%rsp		// set %rsp to top of stack
 	movl	%ebp,%edi			// restore & pass multiboot magic
 	movl	%ebx,%esi			// pass multiboot pointer

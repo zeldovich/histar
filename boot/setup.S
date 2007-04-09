@@ -88,6 +88,11 @@ trampoline:
 		cli				# Disable interrupts
 		cld				# String operations increment
 
+## Print a diagnostic message
+		movw	$0xb800, %ax
+		movw	%ax, %es
+		movw	$(0x0200 + '*'), %es:(0x00)
+
 #### Enable A20:
 ####   For fascinating historical reasons (related to the fact that
 ####   the earliest 8086-based PCs could only address 1MB of physical memory
@@ -106,6 +111,7 @@ seta20.2:	inb	$0x64,%al		# Get status
 		jnz	seta20.2		# Yes
 		movb	$0xdf,%al		# Enable
 		outb	%al,$0x60		#  A20
+		movw	$(0x0200 + '0'), %es:(0x02)
 
 #### Before going to protected mode, query memory size
 #### Taken from Linux 2.6.6's arch/i386/boot/setup.S
@@ -131,6 +137,7 @@ seta20.2:	inb	$0x64,%al		# Get status
 nobiosmem:	xorw	%cx,%cx
 		xorw	%dx,%dx
 memdetected:
+		movw	$(0x0200 + '1'), %es:(0x04)
 
 ## Set %edi to the linear load address (our link address is 0)
 		movw	%cs, %ax
@@ -156,6 +163,8 @@ eip_abs:
 		movl	$start, %esp
 		addl	%edi, %esp
 
+		movw	$(0x0200 + '2'), %es:(0x06)
+
 #### Switch from real to protected mode	
 ####     The descriptors in our GDT allow all physical memory to be accessed.
 ####     Furthermore, the descriptors have base addresses of 0, so that the
@@ -175,9 +184,13 @@ eip_abs:
 		movl	$gdtdesc, %eax		# gdtdesc is 16-byte aligned
 		addl	%esi, %eax
 		lgdtl	(%eax)			# load GDT
+		movw	$(0x0200 + '3'), %es:(0x08)
+
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
 		movl	%eax, %cr0		# 
+		movw	$(0x0200 + '4'), %es:(0x0a)
+
 		### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
 		### Has the effect of just jmp to the next instruction, but simultaneous
 		### loads CS with $PROT_MODE_CSEG.
@@ -200,6 +213,7 @@ protcseg:
 		movw	%ax, %fs		# -> FS
 		movw	%ax, %gs		# -> GS
 		movw	%ax, %ss		# -> SS: Stack Segment
+		movw	$(0x0300 + '5'), (0xb800c)
 
 		movl	$0xffff,%eax
 		andl	%eax,%edx		# clip to 16 bits
@@ -211,6 +225,7 @@ protcseg:
 
 		movl	0x100018,%eax		# read elf64 e_entry
 		addl	$0x80000000,%eax	# get rid of offset
+		movw	$(0x0300 + '6'), (0xb800e)
 		call	*%eax
 
 .align 4
