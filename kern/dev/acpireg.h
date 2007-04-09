@@ -29,7 +29,7 @@ struct acpi_gas {
     uint8_t reg_bit_offset;
     uint8_t access_size;
     uint64_t addr;
-};
+} __attribute__((__packed__));
 
 struct acpi_rsdt {
     struct acpi_table_hdr hdr;

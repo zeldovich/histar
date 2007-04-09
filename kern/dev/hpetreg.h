@@ -29,7 +29,7 @@ struct hpet_acpi {
     uint8_t hpet_number;
     uint16_t min_tick;
     uint8_t page_prot;
-};
+} __attribute__((__packed__));
 
 #define HPET_CAP_64BIT		(1 << 13)
 #define HPET_CAP_LEGACY		(1 << 15)
