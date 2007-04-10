@@ -122,6 +122,13 @@ pci_bridge_update(struct pci_bus *sbus)		// sbus is secondary bus
 	(((io_limit >> 8) & PCI_BRIDGE_STATIO_IOLIMIT_MASK)
 		<< PCI_BRIDGE_STATIO_IOLIMIT_SHIFT);
     pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG, ioreg);
+
+    // Clear out various other registers, for good measure...
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHMEM_REG,
+		   (0xffffffff >> 20) << PCI_BRIDGE_PREFETCHMEM_BASE_SHIFT);
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHBASE32_REG, 0);
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHLIMIT32_REG, 0);
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_IOHIGH_REG, 0);
 }
 
 static uint32_t pci_bridge_units[pci_res_max] = {
