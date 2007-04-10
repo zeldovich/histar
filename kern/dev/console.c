@@ -225,8 +225,8 @@ delay (void)
 #define   COM_LSR_TSRE	0x40	//   Transmitter off
 
 static bool_t serial_exists;
-bool_t output2lpt = 0;
-bool_t output2com = 0;
+static bool_t lpt_enable = 1;
+static bool_t com_enable = 1;
 
 static int
 serial_proc_data (void)
@@ -282,6 +282,8 @@ serial_init (void)
   if (serial_exists) {
     static struct interrupt_handler ih = { .ih_func = &serial_intr };
     irq_register(4, &ih);
+  } else {
+    cprintf("Serial port does not exist\n");
   }
 }
 
@@ -587,9 +589,9 @@ cons_probe (void)
 void
 cons_putc (int c)
 {
-  if (output2lpt)
+  if (lpt_enable)
     lpt_putc (c);
-  if (output2com)
+  if (com_enable)
     serial_putc (c);
   cga_putc (c);
 }
@@ -600,28 +602,31 @@ cons_init (void)
 {
   uint64_t output_start;
 
+  if (strstr(&boot_cmdline[0], "serial=off"))
+    com_enable = 0;
+  if (strstr(&boot_cmdline[0], "lpt=off"))
+    lpt_enable = 0;
+
   cga_init ();
   kbd_init ();
-  serial_init ();
-  lpt_init ();
+  if (com_enable)
+    serial_init ();
+  if (lpt_enable)
+    lpt_init ();
 
   LIST_INIT (&console_waiting);
 
-  output_start = read_tsc ();
-  lpt_putc ('\n');
-  if (read_tsc () - output_start < 0x100000)
-    output2lpt = 1;
+  if (lpt_enable) {
+    output_start = read_tsc ();
+    lpt_putc ('\n');
+    if (read_tsc () - output_start > 0x100000)
+      lpt_enable = 0;
+  }
 
-  output_start = read_tsc ();
-  serial_putc ('\n');
-  if (read_tsc () - output_start < 0x100000)
-    output2com = 1;
-
-  if (strstr(&boot_cmdline[0], "serial=off"))
-    output2com = 0;
-  if (strstr(&boot_cmdline[0], "lpt=off"))
-    output2lpt = 0;
-
-  if (!serial_exists)
-    cprintf ("Serial port does not exist!\n");
+  if (com_enable) {
+    output_start = read_tsc ();
+    serial_putc ('\n');
+    if (read_tsc () - output_start > 0x100000)
+      com_enable = 0;
+  }
 }
