@@ -90,28 +90,38 @@ pci_bridge_update(struct pci_bus *sbus)		// sbus is secondary bus
 	(sbus->end[pci_res_bus] - 1)	<< PCI_BRIDGE_BUS_SUBORDINATE_SHIFT;
     pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_BUS_REG, busreg);
 
+    uint32_t mem_base, mem_limit;
     if (sbus->base[pci_res_mem] < sbus->end[pci_res_mem]) {
-	uint32_t memreg =
-	    (sbus->base[pci_res_mem] >> 20)
-		<< PCI_BRIDGE_MEMORY_BASE_SHIFT |
-	    ((sbus->end[pci_res_mem] - 1) >> 20)
-		<< PCI_BRIDGE_MEMORY_LIMIT_SHIFT;
-	pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_MEMORY_REG, memreg);
+	mem_base  = sbus->base[pci_res_mem];
+	mem_limit = sbus->end[pci_res_mem] - 1;
+    } else {
+	mem_base  = 0xffffffff;
+	mem_limit = 0;
     }
 
+    uint32_t io_base, io_limit;
     if (sbus->base[pci_res_io] < sbus->end[pci_res_io]) {
-	uint32_t stat =
-	    pci_conf_read(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG) &
-	    (PCI_BRIDGE_STATIO_STATUS_MASK << PCI_BRIDGE_STATIO_STATUS_SHIFT);
-	uint32_t ioreg = stat |
-	    (((sbus->base[pci_res_io] >> 8)
-		& PCI_BRIDGE_STATIO_IOBASE_MASK)
-		<< PCI_BRIDGE_STATIO_IOBASE_SHIFT) |
-	    ((((sbus->end[pci_res_io] - 1) >> 8)
-		& PCI_BRIDGE_STATIO_IOLIMIT_MASK)
-		<< PCI_BRIDGE_STATIO_IOLIMIT_SHIFT);
-	pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG, ioreg);
+	io_base  = sbus->base[pci_res_io];
+	io_limit = sbus->end[pci_res_io] - 1;
+    } else {
+	io_base  = 0xffffffff;
+	io_limit = 0;
     }
+
+    uint32_t memreg =
+	((mem_base >> 20) << PCI_BRIDGE_MEMORY_BASE_SHIFT) |
+	((mem_limit >> 20) << PCI_BRIDGE_MEMORY_LIMIT_SHIFT);
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_MEMORY_REG, memreg);
+
+    uint32_t stat =
+	pci_conf_read(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG) &
+	(PCI_BRIDGE_STATIO_STATUS_MASK << PCI_BRIDGE_STATIO_STATUS_SHIFT);
+    uint32_t ioreg = stat |
+	(((io_base >> 8) & PCI_BRIDGE_STATIO_IOBASE_MASK)
+		<< PCI_BRIDGE_STATIO_IOBASE_SHIFT) |
+	(((io_limit >> 8) & PCI_BRIDGE_STATIO_IOLIMIT_MASK)
+		<< PCI_BRIDGE_STATIO_IOLIMIT_SHIFT);
+    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG, ioreg);
 }
 
 static uint32_t pci_bridge_units[pci_res_max] = {
@@ -183,7 +193,17 @@ pci_config_bus(struct pci_bus *bus)
 		cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d\n",
 			df.bus->busno, df.dev, df.func, nbus.busno);
 
+	    // Clear the ISA compat bit, we avoid ISA for simplicity..
+	    uint32_t bctl = pci_conf_read(&df, PCI_BRIDGE_CONTROL_REG);
+	    bctl &= ~(PCI_BRIDGE_CONTROL_ISA << PCI_BRIDGE_CONTROL_SHIFT);
+	    pci_conf_write(&df, PCI_BRIDGE_CONTROL_REG, bctl);
+
 	    pci_bridge_update(&nbus);
+	    pci_conf_write(&df, PCI_COMMAND_STATUS_REG,
+			   PCI_COMMAND_IO_ENABLE |
+			   PCI_COMMAND_MEM_ENABLE |
+			   PCI_COMMAND_MASTER_ENABLE);
+
 	    pci_config_bus(&nbus);
 	    continue;
 	}
@@ -279,7 +299,7 @@ pci_init(void)
     root_bus.base[pci_res_mem] = root_bus.free[pci_res_mem] = 0xc0000000;
     root_bus.base[pci_res_io]  = root_bus.free[pci_res_io]  = 0xc000;
 
-    root_bus.end[pci_res_bus] = 0xffffffff;
+    root_bus.end[pci_res_bus] = 0xff;
     root_bus.end[pci_res_mem] = 0xffffffff;
     root_bus.end[pci_res_io] = 0xffff;
 
