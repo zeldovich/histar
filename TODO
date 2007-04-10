@@ -20,6 +20,10 @@ Kernel bugs:
   - log.c: pre-allocate max_mem pages and keep them in-core
   - page_alloc: if cur_thread, suspend, pstate_sync(), and return -E_RESTART
 
+User-level device drivers:
+
+* need to handle NMI
+
 Security:
 
 * netd_server doesn't do any checking on who's asking for what fd.
