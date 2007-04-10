@@ -214,6 +214,7 @@ pnic_attach(struct pci_func *pcif)
     static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
 
+    pci_func_enable(pcif);
     if (pcif->reg_size[4] < 5) {
 	cprintf("pnic_attach: io window too small %d\n", pcif->reg_size[4]);
 	return;

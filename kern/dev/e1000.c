@@ -372,6 +372,7 @@ e1000_attach(struct pci_func *pcif)
 	return;
     }
 
+    pci_func_enable(pcif);
     c->irq_line = pcif->irq_line;
     c->membase = pcif->reg_base[0];
     c->iobase = pcif->reg_base[2];

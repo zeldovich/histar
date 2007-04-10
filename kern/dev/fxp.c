@@ -462,6 +462,7 @@ fxp_attach(struct pci_func *pcif)
 	return;
     }
 
+    pci_func_enable(pcif);
     if (pcif->reg_size[1] < 64) {
 	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
 		pcif->reg_size[1], pcif->reg_base[1]);

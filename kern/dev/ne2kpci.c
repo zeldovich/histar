@@ -345,6 +345,7 @@ ne2kpci_attach(struct pci_func *pcif)
     static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
 
+    pci_func_enable(pcif);
     c->irq_line = pcif->irq_line;
     c->iobase = pcif->reg_base[0];
     c->ih.ih_func = &ne2kpci_intr;

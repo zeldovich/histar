@@ -434,6 +434,7 @@ disk_init(struct pci_func *pcif)
     }
 
     struct ide_channel *idec = &the_ide_channel;
+    pci_func_enable(pcif);
 
     // Use the first IDE channel on the IDE controller
     idec->cmd_addr = pcif->reg_size[0] ? pcif->reg_base[0] : 0x1f0;
