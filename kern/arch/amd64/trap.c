@@ -158,6 +158,11 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
 
     cyg_profile_free_stack(read_rsp());
 
+    if (trapno == T_NMI) {
+	uint8_t reason = inb(0x61);
+	panic("NMI, reason code 0x%x\n", reason);
+    }
+
     if (cur_thread == 0) {
 	trapframe_print(tf);
 	panic("trap %d with no active thread", trapno);
