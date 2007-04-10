@@ -117,6 +117,8 @@ trampoline:
 		andb	$0xfe, %al		# avoid reboot
 		outb	%al, $0x92
 
+		movw	$(0x0200 + '0'), %es:(0x02)
+
 #### Before going to protected mode, query memory size
 #### Taken from Linux 2.6.6's arch/i386/boot/setup.S
 		stc			# Fix to work around buggy
