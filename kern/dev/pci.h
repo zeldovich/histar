@@ -4,10 +4,12 @@
 #include <machine/types.h>
 
 // PCI subsystem interface
+enum { pci_res_bus, pci_res_mem, pci_res_io, pci_res_max };
+
 struct pci_bus;
 
 struct pci_func {
-    struct pci_bus *bus;
+    struct pci_bus *bus;	// Primary bus for bridges
 
     uint32_t dev;
     uint32_t func;
@@ -19,13 +21,11 @@ struct pci_func {
 
 struct pci_bus {
     struct pci_func *parent_bridge;
-    uint32_t busno;
+    uint32_t busno;		// This bus number
 
-    uint32_t mem_base;		// First memory address
-    uint32_t mem_limit;		// One past the last memory address
-
-    uint32_t io_base;		// First IO address
-    uint32_t io_limit;		// One past the last IO address
+    uint32_t base[pci_res_max];	// First valid address
+    uint32_t free[pci_res_max];	// First free address
+    uint32_t end[pci_res_max];	// One past the last valid one
 };
 
 void pci_init(void);
