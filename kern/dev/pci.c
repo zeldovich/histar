@@ -306,8 +306,8 @@ pci_init(void)
      * Note that this means we can't directly support over 3GB RAM.
      */
     root_bus.free[pci_res_bus] = 1;
-    root_bus.base[pci_res_mem] = root_bus.free[pci_res_mem] = 0xc0000000;
-    root_bus.base[pci_res_io]  = root_bus.free[pci_res_io]  = 0xc000;
+    root_bus.base[pci_res_mem] = root_bus.free[pci_res_mem] = 0xee000000;
+    root_bus.base[pci_res_io]  = root_bus.free[pci_res_io]  = 0x3000;
 
     root_bus.end[pci_res_bus] = 0xff;
     root_bus.end[pci_res_mem] = 0xffffffff;
