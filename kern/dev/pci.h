@@ -21,11 +21,7 @@ struct pci_func {
 
 struct pci_bus {
     struct pci_func *parent_bridge;
-    uint32_t busno;		// This bus number
-
-    uint32_t base[pci_res_max];	// First valid address
-    uint32_t free[pci_res_max];	// First free address
-    uint32_t end[pci_res_max];	// One past the last valid one
+    uint32_t busno;
 };
 
 void pci_init(void);

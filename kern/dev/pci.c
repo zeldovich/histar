@@ -51,94 +51,7 @@ static void
 pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif);
 
 static void
-pci_bridge_update(struct pci_bus *sbus)		// sbus is secondary bus
-{
-    uint32_t busreg =
-	sbus->parent_bridge->bus->busno << PCI_BRIDGE_BUS_PRIMARY_SHIFT   |
-	sbus->base[pci_res_bus]		<< PCI_BRIDGE_BUS_SECONDARY_SHIFT |
-	(sbus->end[pci_res_bus] - 1)	<< PCI_BRIDGE_BUS_SUBORDINATE_SHIFT;
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_BUS_REG, busreg);
-
-    uint32_t mem_base, mem_limit;
-    if (sbus->base[pci_res_mem] < sbus->end[pci_res_mem]) {
-	mem_base  = sbus->base[pci_res_mem];
-	mem_limit = sbus->end[pci_res_mem] - 1;
-    } else {
-	mem_base  = 0xffffffff;
-	mem_limit = 0;
-    }
-
-    uint32_t io_base, io_limit;
-    if (sbus->base[pci_res_io] < sbus->end[pci_res_io]) {
-	io_base  = sbus->base[pci_res_io];
-	io_limit = sbus->end[pci_res_io] - 1;
-    } else {
-	io_base  = 0xffffffff;
-	io_limit = 0;
-    }
-
-    uint32_t memreg =
-	((mem_base >> 20) << PCI_BRIDGE_MEMORY_BASE_SHIFT) |
-	((mem_limit >> 20) << PCI_BRIDGE_MEMORY_LIMIT_SHIFT);
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_MEMORY_REG, memreg);
-
-    uint32_t stat =
-	pci_conf_read(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG) &
-	(PCI_BRIDGE_STATIO_STATUS_MASK << PCI_BRIDGE_STATIO_STATUS_SHIFT);
-    uint32_t ioreg = stat |
-	(((io_base >> 8) & PCI_BRIDGE_STATIO_IOBASE_MASK)
-		<< PCI_BRIDGE_STATIO_IOBASE_SHIFT) |
-	(((io_limit >> 8) & PCI_BRIDGE_STATIO_IOLIMIT_MASK)
-		<< PCI_BRIDGE_STATIO_IOLIMIT_SHIFT);
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_STATIO_REG, ioreg);
-
-    // Clear out various other registers, for good measure...
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHMEM_REG,
-		   (0xffffffff >> 20) << PCI_BRIDGE_PREFETCHMEM_BASE_SHIFT);
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHBASE32_REG, 0);
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_PREFETCHLIMIT32_REG, 0);
-    pci_conf_write(sbus->parent_bridge, PCI_BRIDGE_IOHIGH_REG, 0);
-}
-
-static uint32_t pci_bridge_units[pci_res_max] = {
-    [pci_res_bus] = (1 << 0),	    // Allocate bus numbers one at a time
-    [pci_res_mem] = (1 << 20),	    // Allocate memory in 1MB increments
-    [pci_res_io]  = (1 << 12),	    // Allocate IO addresses in 4KB increments
-};
-
-static uint32_t
-pci_bus_alloc(struct pci_bus *bus, uint32_t res, uint32_t size)
-{
- retry:
-    assert(res < pci_res_max);
-
-    uint32_t mask = size - 1;
-    uint32_t align = (bus->free[res] + mask) & ~mask;
-    uint32_t nfree = align + size;
-    if (nfree > bus->end[res]) {
-	/* Out of resources on this bus, gotta ask the parent. */
-	if (!bus->parent_bridge)
-	    panic("pci_bus_alloc: out of resources: res %d, size %d\n",
-		  res, size);
-
-	uint32_t n = pci_bus_alloc(bus->parent_bridge->bus, res,
-				   pci_bridge_units[res]);
-	if (bus->base[res] == bus->end[res])
-	    bus->base[res] = bus->free[res] = n;
-	else
-	    assert(n == bus->end[res]);
-	bus->end[res] = n + pci_bridge_units[res];
-
-	pci_bridge_update(bus);
-	goto retry;
-    }
-
-    bus->free[res] = nfree;
-    return align;
-}
-
-static void
-pci_config_bus(struct pci_bus *bus)
+pci_scan_bus(struct pci_bus *bus)
 {
     struct pci_func df;
     memset(&df, 0, sizeof(df));
@@ -186,30 +99,24 @@ pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
 	    return;
 	}
 
+	uint32_t busreg = pci_conf_read(pcif, PCI_BRIDGE_BUS_REG);
+
 	struct pci_bus nbus;
 	memset(&nbus, 0, sizeof(nbus));
 	nbus.parent_bridge = pcif;
-	nbus.busno = pci_bus_alloc(pcif->bus, pci_res_bus, 1);
-	nbus.base[pci_res_bus] = nbus.busno;
-	nbus.free[pci_res_bus] = nbus.busno + 1;
-	nbus.end[pci_res_bus] = nbus.busno + 1;
+	nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;
 
 	if (pci_show_devs)
-	    cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d\n",
-		    pcif->bus->busno, pcif->dev, pcif->func, nbus.busno);
+	    cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d--%d\n",
+		    pcif->bus->busno, pcif->dev, pcif->func,
+		    nbus.busno,
+		    (busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
 
-	// Clear the ISA compat bit, we avoid ISA for simplicity..
-	uint32_t bctl = pci_conf_read(pcif, PCI_BRIDGE_CONTROL_REG);
-	bctl &= ~(PCI_BRIDGE_CONTROL_ISA << PCI_BRIDGE_CONTROL_SHIFT);
-	pci_conf_write(pcif, PCI_BRIDGE_CONTROL_REG, bctl);
-
-	pci_bridge_update(&nbus);
 	pci_conf_write(pcif, PCI_COMMAND_STATUS_REG,
 		       PCI_COMMAND_IO_ENABLE |
 		       PCI_COMMAND_MEM_ENABLE |
 		       PCI_COMMAND_MASTER_ENABLE);
-
-	pci_config_bus(&nbus);
+	pci_scan_bus(&nbus);
 	return;
     }
 
@@ -252,18 +159,12 @@ pci_func_enable(struct pci_func *f)
 		   PCI_COMMAND_MEM_ENABLE |
 		   PCI_COMMAND_MASTER_ENABLE);
 
-    uint32_t bhlc = pci_conf_read(f, PCI_BHLC_REG);
-    if (PCI_LATTIMER(bhlc) < 16)
-	bhlc = (bhlc & ~(PCI_LATTIMER_MASK << PCI_LATTIMER_SHIFT)) |
-	       (64 << PCI_LATTIMER_SHIFT);
-    //cprintf("PCI: %02x:%02x.%d: latency timer %d\n",
-    //        f->bus->busno, f->dev, f->func, PCI_LATTIMER(bhlc));
-    pci_conf_write(f, PCI_BHLC_REG, bhlc);
-
     uint32_t bar_width;
     for (uint32_t bar = PCI_MAPREG_START; bar < PCI_MAPREG_END;
 	 bar += bar_width)
     {
+	uint32_t oldv = pci_conf_read(f, bar);
+
 	bar_width = 4;
 	pci_conf_write(f, bar, 0xffffffff);
 	uint32_t rv = pci_conf_read(f, bar);
@@ -278,19 +179,19 @@ pci_func_enable(struct pci_func *f)
 		bar_width = 8;
 
 	    size = PCI_MAPREG_MEM_SIZE(rv);
-	    base = pci_bus_alloc(f->bus, pci_res_mem, size);
+	    base = PCI_MAPREG_MEM_ADDR(oldv);
 	    if (pci_show_addrs)
 		cprintf("  mem region %d: %d bytes at 0x%x\n",
 			regnum, size, base);
 	} else {
 	    size = PCI_MAPREG_IO_SIZE(rv);
-	    base = pci_bus_alloc(f->bus, pci_res_io, size);
+	    base = PCI_MAPREG_IO_ADDR(oldv);
 	    if (pci_show_addrs)
 		cprintf("  io region %d: %d bytes at 0x%x\n",
 			regnum, size, base);
 	}
 
-	pci_conf_write(f, bar, base);
+	pci_conf_write(f, bar, oldv);
 	f->reg_base[regnum] = base;
 	f->reg_size[regnum] = size;
     }
@@ -302,16 +203,5 @@ pci_init(void)
     static struct pci_bus root_bus;
     memset(&root_bus, 0, sizeof(root_bus));
 
-    /*
-     * Note that this means we can't directly support over 3GB RAM.
-     */
-    root_bus.free[pci_res_bus] = 1;
-    root_bus.base[pci_res_mem] = root_bus.free[pci_res_mem] = 0xee000000;
-    root_bus.base[pci_res_io]  = root_bus.free[pci_res_io]  = 0x3000;
-
-    root_bus.end[pci_res_bus] = 0xff;
-    root_bus.end[pci_res_mem] = 0xffffffff;
-    root_bus.end[pci_res_io] = 0xffff;
-
-    pci_config_bus(&root_bus);
+    pci_scan_bus(&root_bus);
 }
