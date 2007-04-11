@@ -47,39 +47,8 @@ pci_conf_write(struct pci_func *f, uint32_t off, uint32_t v)
     outl(pci_conf1_data_ioport, v);
 }
 
-
 static void
-pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
-{
-    if (PCI_CLASS(dev_class) == PCI_CLASS_MASS_STORAGE &&
-	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
-    {
-	disk_init(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0x10ec && PCI_PRODUCT(dev_id) == 0x8029) {
-	ne2kpci_attach(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0x8086 && PCI_PRODUCT(dev_id) == 0x1229) {
-	fxp_attach(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0xfefe && PCI_PRODUCT(dev_id) == 0xefef) {
-	pnic_attach(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0x8086 && (PCI_PRODUCT(dev_id) == 0x107c ||
-					 PCI_PRODUCT(dev_id) == 0x109a)) {
-	e1000_attach(pcif);
-	return;
-    }
-}
-
+pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif);
 
 static void
 pci_bridge_update(struct pci_bus *sbus)		// sbus is secondary bus
@@ -180,41 +149,6 @@ pci_config_bus(struct pci_bus *bus)
 	if (PCI_HDRTYPE_TYPE(bhlc) > 1)	    // Unsupported or no device
 	    continue;
 
-	if (PCI_HDRTYPE_TYPE(bhlc) == 1) {
-	    uint32_t ioreg = pci_conf_read(&df, PCI_BRIDGE_STATIO_REG);
-	    if (PCI_BRIDGE_IO_32BITS(ioreg)) {
-		cprintf("PCI: %02x:%02x: 32-bit bridge IO not supported.\n",
-			df.bus->busno, df.dev);
-		continue;
-	    }
-
-	    struct pci_bus nbus;
-	    memset(&nbus, 0, sizeof(nbus));
-	    nbus.parent_bridge = &df;
-	    nbus.busno = pci_bus_alloc(bus, pci_res_bus, 1);
-	    nbus.base[pci_res_bus] = nbus.busno;
-	    nbus.free[pci_res_bus] = nbus.busno + 1;
-	    nbus.end[pci_res_bus] = nbus.busno + 1;
-
-	    if (pci_show_devs)
-		cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d\n",
-			df.bus->busno, df.dev, df.func, nbus.busno);
-
-	    // Clear the ISA compat bit, we avoid ISA for simplicity..
-	    uint32_t bctl = pci_conf_read(&df, PCI_BRIDGE_CONTROL_REG);
-	    bctl &= ~(PCI_BRIDGE_CONTROL_ISA << PCI_BRIDGE_CONTROL_SHIFT);
-	    pci_conf_write(&df, PCI_BRIDGE_CONTROL_REG, bctl);
-
-	    pci_bridge_update(&nbus);
-	    pci_conf_write(&df, PCI_COMMAND_STATUS_REG,
-			   PCI_COMMAND_IO_ENABLE |
-			   PCI_COMMAND_MEM_ENABLE |
-			   PCI_COMMAND_MASTER_ENABLE);
-
-	    pci_config_bus(&nbus);
-	    continue;
-	}
-
 	struct pci_func f = df;
 	for (f.func = 0; f.func < (PCI_HDRTYPE_MULTIFN(bhlc) ? 8 : 1);
 			 f.func++) {
@@ -236,6 +170,75 @@ pci_config_bus(struct pci_bus *bus)
 
 	    pci_attach(dev_id, dev_class, &af);
 	}
+    }
+}
+
+static void
+pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
+{
+    if (PCI_CLASS(dev_class) == PCI_CLASS_BRIDGE &&
+	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_BRIDGE_PCI)
+    {
+	uint32_t ioreg = pci_conf_read(pcif, PCI_BRIDGE_STATIO_REG);
+	if (PCI_BRIDGE_IO_32BITS(ioreg)) {
+	    cprintf("PCI: %02x:%02x.%d: 32-bit bridge IO not supported.\n",
+		    pcif->bus->busno, pcif->dev, pcif->func);
+	    return;
+	}
+
+	struct pci_bus nbus;
+	memset(&nbus, 0, sizeof(nbus));
+	nbus.parent_bridge = pcif;
+	nbus.busno = pci_bus_alloc(pcif->bus, pci_res_bus, 1);
+	nbus.base[pci_res_bus] = nbus.busno;
+	nbus.free[pci_res_bus] = nbus.busno + 1;
+	nbus.end[pci_res_bus] = nbus.busno + 1;
+
+	if (pci_show_devs)
+	    cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d\n",
+		    pcif->bus->busno, pcif->dev, pcif->func, nbus.busno);
+
+	// Clear the ISA compat bit, we avoid ISA for simplicity..
+	uint32_t bctl = pci_conf_read(pcif, PCI_BRIDGE_CONTROL_REG);
+	bctl &= ~(PCI_BRIDGE_CONTROL_ISA << PCI_BRIDGE_CONTROL_SHIFT);
+	pci_conf_write(pcif, PCI_BRIDGE_CONTROL_REG, bctl);
+
+	pci_bridge_update(&nbus);
+	pci_conf_write(pcif, PCI_COMMAND_STATUS_REG,
+		       PCI_COMMAND_IO_ENABLE |
+		       PCI_COMMAND_MEM_ENABLE |
+		       PCI_COMMAND_MASTER_ENABLE);
+
+	pci_config_bus(&nbus);
+	return;
+    }
+
+    if (PCI_CLASS(dev_class) == PCI_CLASS_MASS_STORAGE &&
+	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
+    {
+	disk_init(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(dev_id) == 0x10ec && PCI_PRODUCT(dev_id) == 0x8029) {
+	ne2kpci_attach(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(dev_id) == 0x8086 && PCI_PRODUCT(dev_id) == 0x1229) {
+	fxp_attach(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(dev_id) == 0xfefe && PCI_PRODUCT(dev_id) == 0xefef) {
+	pnic_attach(pcif);
+	return;
+    }
+
+    if (PCI_VENDOR(dev_id) == 0x8086 && (PCI_PRODUCT(dev_id) == 0x107c ||
+					 PCI_PRODUCT(dev_id) == 0x109a)) {
+	e1000_attach(pcif);
+	return;
     }
 }
 
