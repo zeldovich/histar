@@ -84,7 +84,7 @@ typedef struct {
 
     int argc;
     int envc;
-    char args[0];
+    char args[];
 } start_env_t;
 
 extern uint64_t start_arg0, start_arg1;
@@ -114,7 +114,7 @@ struct thread_args {
     void (*entry)(void *);
     void *arg;
     int options;
-    char entry_args[0];
+    char entry_args[];
 };
 
 enum { thread_quota_slush = 65536 };

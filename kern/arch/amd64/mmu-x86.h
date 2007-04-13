@@ -204,7 +204,7 @@ struct Tss {
   uint64_t tss_ist[8];		/* Note: tss_ist[0] is ignored */
   char tss__ign2[10];
   uint16_t tss_iomb;		/* I/O map base */
-  uint8_t tss_iopb[0];
+  uint8_t tss_iopb[];
 } __attribute__ ((packed));
 
 struct Gatedesc {

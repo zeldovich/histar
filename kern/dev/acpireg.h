@@ -33,7 +33,7 @@ struct acpi_gas {
 
 struct acpi_rsdt {
     struct acpi_table_hdr hdr;
-    uint32_t offset[0];
+    uint32_t offset[];
 };
 
 struct acpi_fadt {

@@ -28,7 +28,7 @@ struct ntp_packet {
     ntp_ts ntp_receive_ts;
     ntp_ts ntp_transmit_ts;
 
-    struct ntp_auth ntp_auth[0];
+    struct ntp_auth ntp_auth[];
 };
 
 #define NTP_LI_NONE	0
