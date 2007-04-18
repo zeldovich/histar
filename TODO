@@ -68,6 +68,8 @@ Security:
 * can use CPUID, %eflags[ID] to detect hardware changes
 * should disable RDTSC from user-level, except we use it for profiling now..
   what to do about high-precision time in general?
+* extend the scheduling quantum when we take a hardware interrupt?  to allow
+  ssl_eprocd to finish its RSA operation without preemption.
 
 Cleanup:
 

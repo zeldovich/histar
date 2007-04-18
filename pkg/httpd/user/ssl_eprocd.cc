@@ -64,6 +64,8 @@ handle_client(uint64_t ec, uint64_t eo)
     unsigned char *fbuf = (unsigned char *) malloc(buflen);
     unsigned char *tbuf = (unsigned char *) malloc(buflen);
 
+    sys_self_set_cflush(1);
+
     debug_cprint(dbg, "waiting to sign...");
     for (;;) {
 	int op, padding, rval;

@@ -430,6 +430,7 @@ thread_jump(const struct Thread *const_t,
 			       cur_clearance, clearance, &qr_th);
     thread_change_as(t, te->te_as);
 
+    t->th_cache_flush = 0;
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;

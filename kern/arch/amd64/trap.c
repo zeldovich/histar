@@ -187,10 +187,29 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
 }
 
 
+static void
+run_cache_flush(const struct Thread *t)
+{
+    static uint64_t prev_tid;
+    static int prev_cflush;
+
+    if (prev_tid != t->th_ko.ko_id && (prev_cflush || t->th_cache_flush))
+	wbinvd();
+
+    prev_tid = t->th_ko.ko_id;
+    prev_cflush = t->th_cache_flush;
+}
+
 void
 thread_arch_run(const struct Thread *t)
 {
     trap_user_iret_tsc = read_tsc();
+
+    /*
+     * Unclear who should get charged for the overhead of the cache flush,
+     * since the real overhead is incurred when user-space code runs anyway.
+     */
+    run_cache_flush(t);
 
     if (t->th_fp_enabled) {
 	void *p;

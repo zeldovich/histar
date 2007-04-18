@@ -4,6 +4,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#ifdef JOS_USER
+#include <inc/syscall.h>
+#endif
+
 static void __attribute__((noreturn))
 xperror(const char *msg)
 {
@@ -14,8 +18,8 @@ xperror(const char *msg)
 int
 main(int ac, char **av)
 {
-    if (ac != 2) {
-	printf("Usage: %s rttcount\n", av[0]);
+    if (ac != 2 && ac != 3) {
+	printf("Usage: %s rttcount [cflush]\n", av[0]);
 	exit(-1);
     }
 
@@ -25,12 +29,24 @@ main(int ac, char **av)
 	exit(-1);
     }
 
+    int cflush = 0;
+    if (ac == 3)
+	cflush = atoi(av[2]);
+
+    printf("RTT count:   %d\n", count);
+    printf("Cache flush: %d\n", cflush);
+
     int to_worker[2];
     int from_worker[2];
     if (pipe(to_worker) < 0 || pipe(from_worker) < 0)
 	xperror("pipe");
 
     pid_t pid = fork();
+
+#ifdef JOS_USER
+    sys_self_set_cflush(cflush);
+#endif
+
     if (pid == 0) {
 	close(to_worker[1]);
 	close(from_worker[0]);

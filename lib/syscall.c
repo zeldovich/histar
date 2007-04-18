@@ -303,6 +303,12 @@ sys_self_set_sched_parents(uint64_t p0, uint64_t p1)
 }
 
 int
+sys_self_set_cflush(int cflush)
+{
+    return syscall(SYS_self_set_cflush, cflush);
+}
+
+int
 sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t nsec)
 {
     return syscall(SYS_sync_wait, addr, val, nsec);

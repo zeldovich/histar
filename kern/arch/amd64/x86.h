@@ -20,6 +20,7 @@ X86_INST_ATTR void outsw(uint16_t port, const void *addr, int cnt);
 X86_INST_ATTR void outsl(uint16_t port, const void *addr, int cnt);
 X86_INST_ATTR void outl(uint16_t port, uint32_t data);
 X86_INST_ATTR void invlpg(const void *addr);
+X86_INST_ATTR void wbinvd(void);
 X86_INST_ATTR void lidt(void *p);
 X86_INST_ATTR void lgdt(void *p);
 X86_INST_ATTR void lldt(uint16_t sel);
@@ -153,7 +154,13 @@ void
 invlpg(const void *addr)
 { 
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
-}  
+}
+
+void
+wbinvd(void)
+{
+	__asm __volatile("wbinvd");
+}
 
 void
 lidt(void *p)

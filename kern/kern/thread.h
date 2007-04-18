@@ -32,6 +32,7 @@ struct Thread {
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
     uint8_t th_sync_waiting : 1;
+    uint8_t th_cache_flush : 1;
     uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
 
