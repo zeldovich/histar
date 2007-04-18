@@ -27,13 +27,18 @@ K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
 
+#K_ARCH	:= i386
+#TARGET	:= i386-jos-linux
+#OBJTYPE := elf32-i386
+
 ## Uncomment for user-space kernel stuff.
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache!
 ##
 ## To use FT, point CC below to ft-cc and blank out COMWARNS, CWARNS,
 ##   OPTFLAG, and remove -Werror from KERN_CFLAGS.
+#K_ARCH	:= ft
+#TARGET := i386-jos-linux
 #OBJTYPE := elf32-i386
-#K_ARCH	:= lnx64
 #GCCPREFIX := /usr/bin/
 
 CC	:= $(GCCPREFIX)gcc -pipe
