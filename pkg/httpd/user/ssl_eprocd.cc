@@ -85,6 +85,7 @@ handle_client(uint64_t ec, uint64_t eo)
 	if (cc != sizeof(padding))
 	    break;
 
+	sys_self_yield();
 	if (op == eproc_encrypt) {
 	    rval = RSA_private_encrypt(flen, fbuf, tbuf, the_key, padding);
 	    if (rval > 0)
