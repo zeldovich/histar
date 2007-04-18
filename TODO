@@ -75,7 +75,9 @@ Cleanup:
 
 * expose CPU resource allocation: track resources in container entries and
   re-compute a thread's th_sched_tickets when it changes its label to only
-  include resources from containers it can read.
+  include resources from containers it can read (set_sched_parents).
+  associate scheduling type (time-based, instruction-based) and cache
+  clearing flag with container.
 * better separation between kernel, user-space and shared header files
 * user-space resource allocators -- i.e. running without CT_QUOTA_INF
 * (?) expose kobj_label's at the syscall API to get label sharing
