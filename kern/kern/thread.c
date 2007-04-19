@@ -9,6 +9,7 @@
 #include <kern/as.h>
 #include <kern/sync.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
