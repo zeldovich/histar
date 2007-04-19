@@ -189,32 +189,6 @@
   } while (0)
 
 #ifndef __ASSEMBLER__
-/* Pseudo-descriptors used for LGDT, LLDT and LIDT instructions. */
-struct Pseudodesc {
-  uint16_t pd__garbage1;
-  uint16_t pd__garbage2;
-  uint16_t pd__garbage3;
-  uint16_t pd_lim;		/* Limit */
-  uint64_t pd_base __attribute__ ((packed)); /* Base address */
-};
-
-struct Tss {
-  char tss__ign1[4];
-  uint64_t tss_rsp[3];		/* Stack pointer for CPL 0, 1, 2 */
-  uint64_t tss_ist[8];		/* Note: tss_ist[0] is ignored */
-  char tss__ign2[10];
-  uint16_t tss_iomb;		/* I/O map base */
-  uint8_t tss_iopb[];
-} __attribute__ ((packed));
-
-struct Gatedesc {
-  uint64_t gd_lo;
-  uint64_t gd_hi;
-};
-#endif /* !__ASSEMBLER__ */
-#define PD_SKIP 6		/* Offset of pd_lim in Pseudodesc */
-
-#ifndef __ASSEMBLER__
 
 struct Fpregs {
     uint16_t cwd;
