@@ -1,9 +1,9 @@
 #include <machine/trapcodes.h>
-#include <machine/x86.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
 #include <kern/lib.h>
 #include <kern/kobj.h>
+#include <kern/arch.h>
 #include <inc/hashtable.h>
 #include <inc/error.h>
 
@@ -354,14 +354,14 @@ __cyg_profile_func_enter(void *this_fn, void *call_site __attribute__((unused)))
 	return;
 
     cyg_data.enable = 0;
-    uint64_t sp = ROUNDUP(read_rsp(), PGSIZE);
+    uint64_t sp = ROUNDUP(karch_get_sp(), PGSIZE);
 
     struct cyg_stack *s;
     if ((s = stack_for(sp)) == 0)
 	assert((s = stack_alloc(sp)) != 0);
     // out of func addr stacks
 
-    uint64_t f = read_tsc();
+    uint64_t f = karch_get_tsc();
     if (s->size > 0) {
 	uint64_t caller = s->func_stamp[s->size - 1].func_addr;
 	cyg_profile_data((void *) (uintptr_t) caller, f - cyg_data.last_tsc, 0);
@@ -369,7 +369,7 @@ __cyg_profile_func_enter(void *this_fn, void *call_site __attribute__((unused)))
     cyg_data.last_tsc = f;
 
     s->func_stamp[s->size].func_addr = (uintptr_t) this_fn;
-    s->func_stamp[s->size].entry_tsc = read_tsc();
+    s->func_stamp[s->size].entry_tsc = karch_get_tsc();
     s->size++;
 
     // overflow func addr stack
@@ -384,10 +384,10 @@ __cyg_profile_func_exit(void *this_fn, void *call_site __attribute__((unused)))
     if (!cyg_data.enable)
 	return;
 
-    uint64_t f = read_tsc();
+    uint64_t f = karch_get_tsc();
 
     cyg_data.enable = 0;
-    uint64_t sp = ROUNDUP(read_rsp(), PGSIZE);
+    uint64_t sp = ROUNDUP(karch_get_sp(), PGSIZE);
 
     struct cyg_stack *s = stack_for(sp);
 

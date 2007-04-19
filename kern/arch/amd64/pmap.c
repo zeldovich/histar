@@ -262,3 +262,15 @@ ppn2pa (ppn_t pn)
 	panic("ppn2pa: ppn %ld out of range, npages %ld", pn, global_npages);
     return (pn << PGSHIFT);
 }
+
+uintptr_t
+karch_get_sp(void)
+{
+    return read_rsp();
+}
+
+uintptr_t
+karch_get_tsc(void)
+{
+    return read_tsc();
+}

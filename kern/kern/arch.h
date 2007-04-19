@@ -53,6 +53,8 @@ physaddr_t ppn2pa(ppn_t pn);
  */
 extern char boot_cmdline[];
 void machine_reboot(void);
+uintptr_t karch_get_sp(void);
+uintptr_t karch_get_tsc(void);
 
 /*
  * Page map manipulation
