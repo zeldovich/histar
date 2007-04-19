@@ -1,11 +1,11 @@
 #include <machine/x86.h>
-#include <machine/pmap.h>
 #include <dev/apic.h>
 #include <dev/apicreg.h>
 #include <dev/picirq.h>
 #include <kern/timer.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
+#include <kern/arch.h>
 
 struct apic_preempt {
     struct preemption_timer pt;

@@ -1,9 +1,9 @@
-#include <machine/pmap.h>
 #include <dev/hpet.h>
 #include <dev/hpetreg.h>
 #include <kern/timer.h>
 #include <kern/intr.h>
 #include <kern/sched.h>
+#include <kern/arch.h>
 
 struct hpet_state {
     struct time_source timesrc;

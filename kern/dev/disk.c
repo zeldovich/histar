@@ -1,9 +1,9 @@
 #include <machine/x86.h>
-#include <machine/pmap.h>
 #include <dev/ide.h>
 #include <dev/disk.h>
 #include <kern/lib.h>
 #include <kern/intr.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 
 struct ide_op {
