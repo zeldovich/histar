@@ -602,10 +602,9 @@ cons_init(void)
 
     cga_init();
     kbd_init();
-    if (com_enable)
-	serial_init();
-    if (lpt_enable)
-	lpt_init();
+
+    serial_init();
+    lpt_init();
 
     LIST_INIT(&console_waiting);
 
