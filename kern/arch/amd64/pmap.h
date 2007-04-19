@@ -1,5 +1,5 @@
-#ifndef JOS_INC_PMAP_H
-#define JOS_INC_PMAP_H
+#ifndef JOS_MACHINE_PMAP_H
+#define JOS_MACHINE_PMAP_H
 
 #ifdef JOS_KERNEL
 #include <machine/mmu.h>
@@ -32,32 +32,14 @@ int  mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
     __attribute__ ((warn_unused_result));
 
 /* pmap.c */
+typedef uint64_t ptent_t;
+
 struct Pagemap {
-    uint64_t pm_ent[NPTENTRIES];
+    ptent_t pm_ent[NPTENTRIES];
 };
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
 
-int  page_map_alloc(struct Pagemap **pm_store)
-    __attribute__ ((warn_unused_result));
-void page_map_free(struct Pagemap *pgmap);
-
-/* Traverse [first .. last]; clamps last down to ULIM-PGSIZE */
-typedef void (*page_map_traverse_cb)(const void *arg, uint64_t *ptep, void *va);
-int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
-		       int create, page_map_traverse_cb cb, const void *arg)
-    __attribute__ ((warn_unused_result));
-
-/* Get (and possibly create) the PTE entry for va; clamps down to ULIM-PGSIZE */
-int  pgdir_walk(struct Pagemap *pgmap, const void *va,
-	       int create, uint64_t **pte_store)
-    __attribute__ ((warn_unused_result));
-
-void *pa2kva(physaddr_t pa);
-physaddr_t kva2pa(void *kva);
-ppn_t pa2ppn(physaddr_t pa);
-physaddr_t ppn2pa(ppn_t pn);
-
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
-#endif /* !JOS_INC_PMAP_H */
+#endif /* !JOS_MACHINE_PMAP_H */

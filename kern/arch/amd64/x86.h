@@ -1,5 +1,5 @@
-#ifndef JOS_INC_X86_H
-#define JOS_INC_X86_H
+#ifndef JOS_MACHINE_X86_H
+#define JOS_MACHINE_X86_H
 
 #include <inc/types.h>
 #include <machine/mmu.h>
@@ -377,4 +377,4 @@ RW_SEGMENT_REG(gs)
 #undef READ_SEGMENT_REG
 #undef WRITE_SEGMENT_REG
 
-#endif /* !JOS_INC_X86_H */
+#endif /* !JOS_MACHINE_X86_H */

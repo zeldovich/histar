@@ -206,4 +206,4 @@ struct Fpregs {
 
 #endif /* !__ASSEMBLER__ */
 
-#endif /* !JOS_INC_MMU_H */
+#endif /* !JOS_MACHINE_MMU_X86_H */
