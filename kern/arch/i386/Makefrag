@@ -4,7 +4,7 @@
 # in the resulting ELF kernel file.  This way, the kernel ELF binary
 # can be loaded at exactly 0x100000, without any further relocation.
 
-KERN_LDFLAGS = -N -Ttext 0x80100134 -e start -nostdlib
+KERN_LDFLAGS = -N -Ttext 0xc0100134 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\

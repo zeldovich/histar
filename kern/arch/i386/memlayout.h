@@ -30,7 +30,7 @@
 
 #define KSTACKTOP	(0xffffffff - PGSIZE + 1)
 #define KERNBASE	0xc0000000
-#define RELOC(x)	(x - KERNBASE)
+#define RELOC(x)	((uintptr_t) (x - KERNBASE))
 
 #define PHYSBASE	0x80000000
 #define ULIM		PHYSBASE
