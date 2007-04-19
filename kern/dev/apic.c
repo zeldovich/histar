@@ -6,6 +6,7 @@
 #include <kern/intr.h>
 #include <kern/sched.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 
 struct apic_preempt {
     struct preemption_timer pt;

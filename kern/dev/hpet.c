@@ -4,6 +4,7 @@
 #include <kern/intr.h>
 #include <kern/sched.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 
 struct hpet_state {
     struct time_source timesrc;

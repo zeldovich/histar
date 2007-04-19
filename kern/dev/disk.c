@@ -58,7 +58,7 @@ ide_wait(struct ide_channel *idec, uint8_t flagmask, uint8_t flagset)
 
 	uint64_t ts_diff = read_tsc() - ts_start;
 	if (ts_diff > 1024 * 1024 * 1024) {
-	    cprintf("ide_wait: stuck for %ld cycles, status %02x\n",
+	    cprintf("ide_wait: stuck for %"PRIu64" cycles, status %02x\n",
 		    ts_diff, idec->ide_status);
 	    return -E_BUSY;
 	}
@@ -143,7 +143,7 @@ ide_complete(struct ide_channel *idec, disk_io_status stat)
 	return;
 
     if (SAFE_EQUAL(stat, disk_io_failure))
-	cprintf("ide_complete: %s error at byte offset %lu\n",
+	cprintf("ide_complete: %s error at byte offset %"PRIu64"\n",
 		SAFE_EQUAL(idec->current_op.op, op_read) ? "read" :
 		SAFE_EQUAL(idec->current_op.op, op_write) ? "write" :
 		SAFE_EQUAL(idec->current_op.op, op_flush) ? "flush" : "unknown",
