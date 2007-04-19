@@ -62,4 +62,4 @@ typedef uint64_t ppn_t;
 #define PRIu64 "ld"
 #define PRIx64 "lx"
 
-#endif /* !JOS_INC_TYPES_H */
+#endif /* !JOS_MACHINE_TYPES_H */
