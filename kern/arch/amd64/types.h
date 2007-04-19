@@ -40,18 +40,8 @@ typedef int64_t intptr_t;
 typedef uint64_t uintptr_t;
 typedef uint64_t physaddr_t;
 
-// Page numbers are 32 bits long.
+// Page numbers are 64 bits long.
 typedef uint64_t ppn_t;
-
-// ssize_t is a signed version of ssize_t, used in case there might be an
-// error return.
-typedef long ssize_t;
-
-// off_t is used for file offsets and lengths.
-typedef int32_t off_t;
-
-// is this needed?
-typedef uint32_t time_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
