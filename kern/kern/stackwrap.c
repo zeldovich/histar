@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <kern/stackwrap.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
@@ -24,7 +23,7 @@ struct stackwrap_state {
 struct stackwrap_state *
 stackwrap_cur(void)
 {
-    void *rsp = (void *) (uintptr_t) read_rsp();
+    void *rsp = (void *) (uintptr_t) karch_get_sp();
     void *base = ROUNDDOWN(rsp, PGSIZE);
     struct stackwrap_state *ss = (struct stackwrap_state *) base;
 
@@ -105,7 +104,8 @@ stackwrap_disk_iov(disk_op op, struct part_desc *pd, struct kiovec *iov_buf,
 		   int iov_cnt, uint64_t offset)
 {
     if (offset > pd->pd_size) {
-	cprintf("stackwrap_disk_io: offset greater than partition size: %lu > %lu\n",
+	cprintf("stackwrap_disk_io: offset greater than partition size: "
+		"%"PRIu64" > %"PRIu64"\n",
 		offset, pd->pd_size);
 	return disk_io_failure;
     }
@@ -115,7 +115,8 @@ stackwrap_disk_iov(disk_op op, struct part_desc *pd, struct kiovec *iov_buf,
 	size += iov_buf[i].iov_len;
     
     if (pd->pd_size < offset + size) {
-	cprintf("stackwrap_disk_io: not enough space in partition: %lu < %lu\n",
+	cprintf("stackwrap_disk_io: not enough space in partition: "
+		"%"PRIu64" < %"PRIu64"\n",
 		pd->pd_size - offset, size);
 	return disk_io_failure;
     }
