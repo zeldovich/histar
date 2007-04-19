@@ -23,7 +23,7 @@ struct stackwrap_state {
 struct stackwrap_state *
 stackwrap_cur(void)
 {
-    void *rsp = (void *) (uintptr_t) karch_get_sp();
+    void *rsp = (void *) (karch_get_sp() - 1);
     void *base = ROUNDDOWN(rsp, PGSIZE);
     struct stackwrap_state *ss = (struct stackwrap_state *) base;
 
@@ -76,8 +76,7 @@ stackwrap_call(stackwrap_fn fn, uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_
     ss->stackbase = stackbase;
     ss->alive = 1;
     ss->magic = STACKWRAP_MAGIC;
-    ss->task_state.jb_rip = (uint64_t) &stackwrap_entry;
-    ss->task_state.jb_rsp = (uintptr_t) stackbase + PGSIZE;
+    karch_jmpbuf_init(&ss->task_state, &stackwrap_entry, ss + 1);
 
     stackwrap_wakeup(ss);
     return 0;

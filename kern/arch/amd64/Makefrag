@@ -15,6 +15,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/misc.c			\
 	$(ARCHDIR)/mtrr.c			\
 	$(ARCHDIR)/acpimach.c			\
 	$(ARCHDIR)/reboot.c			\
