@@ -60,7 +60,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     e->te_entry = (void*) elf->e_entry;
     Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
-	if (ph->p_type != 1)
+	if (ph->p_type != ELF_PROG_LOAD)
 	    continue;
 
 	int va_off = ph->p_vaddr & 0xfff;

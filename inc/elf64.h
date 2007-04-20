@@ -1,9 +1,8 @@
-#ifndef JOS_INC_ELF_H
-#define JOS_INC_ELF_H
+#ifndef JOS_INC_ELF64_H
+#define JOS_INC_ELF64_H
 
 #include <inc/types.h>
-
-#define ELF_MAGIC 0x464C457FU	/* "\x7FELF" in little endian */
+#include <inc/elf.h>
 
 typedef uint64_t Elf64_Addr;
 typedef uint64_t Elf64_Off;
@@ -64,12 +63,5 @@ typedef struct {
   Elf64_Addr	st_value;
   Elf64_Xword	st_size;
 } Elf64_Sym;
-
-#define ELF_PF_X	0x01
-#define ELF_PF_W	0x02
-#define ELF_PF_R	0x04
-
-#define ELF_TYPE_EXEC	2
-#define ELF_TYPE_CORE	4
 
 #endif /* !JOS_INC_ELF_H */

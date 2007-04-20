@@ -147,7 +147,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	    return -E_INVAL;
 	}
 
-	if (ph.p_type != 1)
+	if (ph.p_type != ELF_PROG_LOAD)
 	    continue;
 
 	if (ph.p_offset + ph.p_filesz > size) {
