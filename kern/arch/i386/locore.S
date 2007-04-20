@@ -11,7 +11,9 @@ start:	.code32
 	movl	%eax,%ebp			// Save multiboot magic
 
 	movl	%cr4,%eax			// Enable global pages
-	orl	$(CR4_PGE|CR4_OSFXSR|CR4_OSX),%eax
+	/* XXX why doesn't bochs like OSFXSR, OSX? */
+	//orl	$(CR4_PGE|CR4_PSE|CR4_OSFXSR|CR4_OSX),%eax
+	orl	$(CR4_PGE|CR4_PSE),%eax
 	movl	%eax,%cr4
 
 	movl	$RELOC(bootpd),%eax		// Load CR3
@@ -33,8 +35,9 @@ almost:
 	movl	%ebp,%eax			// restore & pass multiboot magic
 	movl	%ebx,%edx			// pass multiboot pointer
 	xorl	%ebp,%ebp			// clear frame pointer
-	call	init
-1:	jmp	1b				// shouldn't get here
+	movl	$init,%ebx
+	call	*%ebx				// call by absolute address
+1:	jmp	1b				// init should not return
 
 farptr: .long	RELOC(almost)
 	.word	GD_KT
