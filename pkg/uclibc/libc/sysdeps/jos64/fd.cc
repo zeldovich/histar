@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/stdio.h>
 #include <inc/fd.h>
@@ -23,6 +25,7 @@ extern "C" {
 #include <termios.h>
 #include <string.h>
 #include <stddef.h>
+#include <inttypes.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -779,7 +782,8 @@ writev(int fd, const struct iovec *vector, int count) __THROW
 	ssize_t cc = write(fd, vector[i].iov_base, vector[i].iov_len);
 	if (cc <= 0) {
 	    if (debug)
-		printf("writev: write error: %lld %s\n", cc, strerror(errno));
+		printf("writev: write error: %"PRIi64" %s\n",
+		       cc, strerror(errno));
 
 	    if (i == 0)
 		return cc;
