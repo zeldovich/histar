@@ -54,8 +54,15 @@ typedef unsigned short int __uint16_t;
 typedef signed int __int32_t;
 typedef unsigned int __uint32_t;
 #ifdef __GNUC__
+#if __LONG_MAX__==9223372036854775807L
+__extension__ typedef signed long int __int64_t;
+__extension__ typedef unsigned long int __uint64_t;
+#elif __LONG_LONG_MAX__==9223372036854775807LL
 __extension__ typedef signed long long int __int64_t;
 __extension__ typedef unsigned long long int __uint64_t;
+#else
+#error Cannot find a 64-bit type
+#endif
 #endif
 typedef __quad_t *__qaddr_t;
 
@@ -67,7 +74,7 @@ typedef __u_int __mode_t;		/* Type of file attribute bitmasks.  */
 typedef __u_int __nlink_t;		/* Type of file link counts.  */
 typedef long int __off_t;		/* Type of file sizes and offsets.  */
 typedef __quad_t __loff_t;		/* Type of file sizes and offsets.  */
-typedef long __pid_t;			/* Type of process identifications.  */
+typedef __int64_t __pid_t;		/* Type of process identifications.  */
 typedef __int64_t __ssize_t;		/* Type of a byte count, or error.  */
 typedef __u_long __rlim_t;		/* Type of resource counts.  */
 typedef __u_quad_t __rlim64_t;		/* Type of resource counts (LFS).  */
