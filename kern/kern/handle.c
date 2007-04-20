@@ -1,7 +1,7 @@
 #include <kern/handle.h>
 #include <inc/bf60.h>
 
-static int handle_encrypt = 0;
+static int handle_encrypt = 1;
 
 static struct bf_ctx handle_key_ctx;
 static int handle_key_ctx_inited;

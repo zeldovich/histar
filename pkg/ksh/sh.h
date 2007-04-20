@@ -232,7 +232,7 @@ typedef enum temp_type Temp_type;
 struct temp {
 	struct temp	*next;
 	struct shf	*shf;
-	int		pid;		/* pid of process parsed here-doc */
+	pid_t		pid;		/* pid of process parsed here-doc */
 	Temp_type	type;
 	char		*name;
 };

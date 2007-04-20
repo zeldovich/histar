@@ -1082,7 +1082,7 @@ j_sigchld(int sig)
 	int		errno_ = errno;
 	Job		*j;
 	Proc		*p = NULL;
-	int		pid;
+	pid_t		pid;
 	int		status;
 	struct rusage	ru0, ru1;
 
