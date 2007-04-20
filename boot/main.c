@@ -1,5 +1,6 @@
 #include <machine/x86.h>
 #include <machine/boot.h>
+#include <inc/elf32.h>
 #include <inc/elf64.h>
 
 /**********************************************************************
@@ -32,8 +33,20 @@
  *  * cmain() in this file takes over, reads in the kernel and jumps to it.
  **********************************************************************/
 
+#if defined(JOS_KARCH_i386)
+#define ELF_EHDR Elf32_Ehdr
+#define ELF_PHDR Elf32_Phdr
+#define ELF_MACH ELF_MACH_386
+#elif defined(JOS_KARCH_amd64)
+#define ELF_EHDR Elf64_Ehdr
+#define ELF_PHDR Elf64_Phdr
+#define ELF_MACH ELF_MACH_AMD64
+#else
+#error Boot loader does not support K_ARCH
+#endif
+
 #define SECTSIZE	512
-#define ELFHDR		((Elf64_Ehdr *) 0x10000)	// scratch space
+#define ELFHDR		((ELF_EHDR *) 0x10000)	// scratch space
 #define ELFOFF          1024
 
 void readsect(void *, uint32_t);
@@ -42,21 +55,21 @@ void readseg(uint32_t, uint32_t, uint32_t);
 void
 cmain(uint32_t extmem_kb)
 {
-    Elf64_Phdr *ph;
+    ELF_PHDR *ph;
     int i;
 
     // read 1st page off disk
     readseg((uint32_t) ELFHDR, SECTSIZE * 8, ELFOFF);
 
-    if (ELFHDR->e_magic != ELF_MAGIC	/* Invalid Elf */
-	|| ELFHDR->e_ident[0] != 2)	/* not 64-bit */
+    if (ELFHDR->e_magic != ELF_MAGIC ||	/* Invalid ELF */
+	ELFHDR->e_machine != ELF_MACH)	/* Wrong machine */
 	goto bad;
 
     // load each program segment (ignores ph flags)
-    ph = (Elf64_Phdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+    ph = (ELF_PHDR *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
     for (i = ELFHDR->e_phnum; i != 0; i--) {
 	readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
-	ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
+	ph = (ELF_PHDR *) ((uint8_t *) ph + ELFHDR->e_phentsize);
     }
 
     // call the entry point from the ELF header, passing in extmem_kb
