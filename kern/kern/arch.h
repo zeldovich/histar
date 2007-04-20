@@ -9,22 +9,6 @@
 #include <kern/thread.h>
 
 /*
- * Page allocation
- */
-extern uint64_t global_npages;
-
-extern struct page_stats {
-    uint64_t pages_used;
-    uint64_t pages_avail;
-    uint64_t allocations;
-    uint64_t failures;
-} page_stats;
-
-int  page_alloc(void **p)
-    __attribute__ ((warn_unused_result));
-void page_free(void *p);
-
-/*
  * Page table (Pagemap) handling
  */
 int  page_map_alloc(struct Pagemap **pm_store)

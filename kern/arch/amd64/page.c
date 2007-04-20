@@ -7,25 +7,13 @@
 #include <inc/error.h>
 #include <inc/queue.h>
 
-static bool_t scrub_free_pages = 0;
-
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa;	// Maximum physical address
-uint64_t global_npages;		// Amount of physical memory (in pages)
 static size_t basemem;		// Amount of base memory (in bytes)
 static size_t extmem;		// Amount of extended memory (in bytes)
 
 // These variables are set in i386_vm_init()
 static char *boot_freemem;	// Pointer to next byte of free mem
-
-struct Page_link {
-    TAILQ_ENTRY(Page_link) pp_link;	// free list link
-};
-static TAILQ_HEAD(Page_list, Page_link) page_free_list;
-				// Free list of physical pages
-
-// Global page allocation stats
-struct page_stats page_stats;
 
 // Keep track of various page metadata
 struct page_info *page_infos;
@@ -96,47 +84,10 @@ boot_alloc(uint32_t n, uint32_t align)
 }
 
 void
-page_free(void *v)
-{
-    struct Page_link *pl = (struct Page_link *) v;
-    if (PGOFF(pl))
-	panic("page_free: not a page-aligned pointer %p", pl);
-
-    if (scrub_free_pages)
-	memset(v, 0xde, PGSIZE);
-
-    TAILQ_INSERT_TAIL(&page_free_list, pl, pp_link);
-    page_stats.pages_avail++;
-    page_stats.pages_used--;
-}
-
-int
-page_alloc(void **vp)
-{
-    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
-    if (pl) {
-	TAILQ_REMOVE(&page_free_list, pl, pp_link);
-	*vp = pl;
-	page_stats.pages_avail--;
-	page_stats.pages_used++;
-	page_stats.allocations++;
-
-	if (scrub_free_pages)
-	    memset(pl, 0xcd, PGSIZE);
-
-	return 0;
-    }
-
-    cprintf("page_alloc: returning no mem\n");
-    page_stats.failures++;
-    return -E_NO_MEM;
-}
-
-void
 page_init(uint64_t lower_kb, uint64_t upper_kb)
 {
+    page_alloc_init();
     i386_detect_memory(lower_kb, upper_kb);
-    TAILQ_INIT(&page_free_list);
 
     int inuse;
 

@@ -55,4 +55,21 @@ void _panic (const char *file, int line, const char *fmt, ...)
 // static_assert(x) will generate a compile-time error if 'x' is false.
 #define static_assert(x) do { switch (x) { default: case 0: case (x): break; } } while (0)
 
+/*
+ * Page allocation
+ */
+extern uint64_t global_npages;
+
+extern struct page_stats {
+    uint64_t pages_used;
+    uint64_t pages_avail;
+    uint64_t allocations;
+    uint64_t failures;
+} page_stats;
+
+void page_alloc_init(void);
+int  page_alloc(void **p)
+    __attribute__ ((warn_unused_result));
+void page_free(void *p);
+
 #endif /* !JOS_KERN_LIB_H */
