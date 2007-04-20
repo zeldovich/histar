@@ -192,3 +192,39 @@ pmap_tlb_invlpg(const void *va)
 {
     invlpg(va);
 }
+
+void *
+pa2kva(physaddr_t pa)
+{
+    return (void*) (pa + PHYSBASE);
+}
+
+physaddr_t
+kva2pa(void *kva)
+{
+    physaddr_t va = (physaddr_t) kva;
+    if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
+	return va - KERNBASE;
+    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
+	return va - PHYSBASE;
+    panic("kva2pa called with invalid kva %p", kva);
+}
+
+ppn_t
+pa2ppn(physaddr_t pa)
+{
+    ppn_t pn = pa >> PGSHIFT;
+    if (pn > global_npages)
+	panic("pa2ppn: pa 0x%lx out of range, npages %"PRIu64,
+	      pa, global_npages);
+    return pn;
+}
+
+physaddr_t
+ppn2pa(ppn_t pn)
+{
+    if (pn > global_npages)
+	panic("ppn2pa: ppn %ld out of range, npages %"PRIu64,
+	      pn, global_npages);
+    return (pn << PGSHIFT);
+}
