@@ -432,18 +432,7 @@ thread_jump(const struct Thread *const_t,
     thread_change_as(t, te->te_as);
 
     t->th_cache_flush = 0;
-    memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_rflags = FL_IF;
-    t->th_tf.tf_cs = GD_UT_NMASK | 3;
-    t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rip = (uintptr_t) te->te_entry;
-    t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
-    t->th_tf.tf_rdi = te->te_arg[0];
-    t->th_tf.tf_rsi = te->te_arg[1];
-    t->th_tf.tf_rdx = te->te_arg[2];
-    t->th_tf.tf_rcx = te->te_arg[3];
-    t->th_tf.tf_r8  = te->te_arg[4];
-    t->th_tf.tf_r9  = te->te_arg[5];
+    thread_arch_jump(t, te);
 
     return 0;
 }

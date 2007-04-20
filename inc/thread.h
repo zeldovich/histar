@@ -4,12 +4,14 @@
 #include <inc/types.h>
 #include <inc/segment.h>
 
+enum { thread_entry_narg = 6 };
+
 struct thread_entry {
     struct cobj_ref te_as;
     void *te_entry;
     void *te_stack;
 
-    uint64_t te_arg[6];
+    uint64_t te_arg[thread_entry_narg];
 };
 
 #endif
