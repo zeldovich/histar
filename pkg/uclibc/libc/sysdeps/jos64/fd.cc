@@ -782,7 +782,7 @@ writev(int fd, const struct iovec *vector, int count) __THROW
 	ssize_t cc = write(fd, vector[i].iov_base, vector[i].iov_len);
 	if (cc <= 0) {
 	    if (debug)
-		printf("writev: write error: %"PRIi64" %s\n",
+		printf("writev: write error: %"PRId64" %s\n",
 		       cc, strerror(errno));
 
 	    if (i == 0)
