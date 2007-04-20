@@ -82,6 +82,7 @@ int	sys_self_fp_disable(void);
 int	sys_self_set_waitslots(uint64_t nslots);
 int	sys_self_set_sched_parents(uint64_t p0, uint64_t p1);
 int	sys_self_set_cflush(int cflush);
+int	sys_self_get_entry_args(struct thread_entry_args *targ);
 
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
 		      uint64_t wakeup_at_nsec);

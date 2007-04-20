@@ -788,6 +788,13 @@ sys_self_set_cflush(int cflush)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
+sys_self_get_entry_args(struct thread_entry_args *targ)
+{
+    check(check_user_access(targ, sizeof(*targ), SEGMAP_WRITE));
+    return thread_arch_get_entry_args(targ);
+}
+
+static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_nsec)
 {
     check(sync_wait(&addr, &val, 1, wakeup_at_nsec));
@@ -1043,6 +1050,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(self_set_waitslots, a1);
 	SYSCALL(self_set_sched_parents, a1, a2);
 	SYSCALL(self_set_cflush, a1);
+	SYSCALL(self_get_entry_args, p1);
 	SYSCALL(sync_wait, p1, a2, a3);
 	SYSCALL(sync_wait_multi, p1, p2, a3, a4);
 	SYSCALL(sync_wakeup, p1);

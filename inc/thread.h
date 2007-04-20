@@ -14,4 +14,8 @@ struct thread_entry {
     uint64_t te_arg[thread_entry_narg];
 };
 
+struct thread_entry_args {
+    uint64_t te_arg[thread_entry_narg];
+};
+
 #endif

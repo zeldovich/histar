@@ -57,6 +57,7 @@
     SYSCALL_ENTRY(self_set_waitslots)		\
     SYSCALL_ENTRY(self_set_sched_parents)	\
     SYSCALL_ENTRY(self_set_cflush)		\
+    SYSCALL_ENTRY(self_get_entry_args)		\
 						\
     SYSCALL_ENTRY(sync_wait)			\
     SYSCALL_ENTRY(sync_wait_multi)		\
