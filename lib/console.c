@@ -112,11 +112,11 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     }
     else if (req == TIOCGPGRP) {
-	int *pgrp = va_arg(ap, int *);
+	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = fd->fd_cons.pgid;
 	return 0;
     } else if (req == TIOCSPGRP) {
-	int *pgrp = va_arg(ap, int *);
+	pid_t *pgrp = va_arg(ap, pid_t *);
 	if (!fd->fd_immutable)
 	    fd->fd_cons.pgid = *pgrp;
 	return 0;

@@ -102,7 +102,7 @@ int tcsetpgrp ( int fd, pid_t pgrp_id)
 /* Return the foreground process group ID of FD.  */
 pid_t tcgetpgrp ( int fd)
 {
-    int pgrp;
+    pid_t pgrp;
 
     if (ioctl (fd, TIOCGPGRP, &pgrp) < 0)
 	return (pid_t) -1;

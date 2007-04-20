@@ -370,7 +370,7 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 	    __set_errno(ENOTTY);
 	    return -1;
     	}
-	
+
 	struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	memcpy(k_termios, &ps->ios, sizeof(*k_termios));
@@ -381,11 +381,11 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 	memcpy(&ps->ios, k_termios, sizeof(ps->ios));
 	return 0;
     } else if (req == TIOCGPGRP) {
-	int *pgrp = va_arg(ap, int *);
+	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = ps->pgrp;
 	return 0;
     } else if (req == TIOCSPGRP) {
-	int *pgrp = va_arg(ap, int *);
+	pid_t *pgrp = va_arg(ap, pid_t *);
 	ps->pgrp = *pgrp;
 	return 0;
     } else if (req == TIOCSCTTY) {
