@@ -233,6 +233,54 @@ thread_arch_run(const struct Thread *t)
     trapframe_pop(&t->th_tf);
 }
 
+void
+thread_syscall_restart(const struct Thread *t)
+{
+    kobject_dirty(&t->th_ko)->th.th_tf.tf_rip -= 2;
+}
+
+int
+thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
+{
+    void *stacktop;
+    uint64_t rsp = t->th_tf.tf_rsp;
+    if (rsp > t->th_as->as_utrap_stack_base &&
+	rsp <= t->th_as->as_utrap_stack_top)
+    {
+	// Skip red zone (see ABI spec)
+	stacktop = (void *) (uintptr_t) rsp - 128;
+    } else {
+	stacktop = (void *) t->th_as->as_utrap_stack_top;
+    }
+
+    struct UTrapframe t_utf;
+    t_utf.utf_trap_src = src;
+    t_utf.utf_trap_num = num;
+    t_utf.utf_trap_arg = arg;
+#define UTF_COPY(r) t_utf.utf_##r = t->th_tf.tf_##r
+    UTF_COPY(rax);  UTF_COPY(rbx);  UTF_COPY(rcx);  UTF_COPY(rdx);
+    UTF_COPY(rsi);  UTF_COPY(rdi);  UTF_COPY(rbp);  UTF_COPY(rsp);
+    UTF_COPY(r8);   UTF_COPY(r9);   UTF_COPY(r10);  UTF_COPY(r11);
+    UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
+    UTF_COPY(rip);  UTF_COPY(rflags);
+#undef UTF_COPY
+
+    struct UTrapframe *utf = stacktop - sizeof(*utf);
+    int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
+    if (r < 0) {
+	if ((uintptr_t) utf <= t->th_as->as_utrap_stack_base)
+	    cprintf("thread_arch_utrap: utrap stack overflow\n");
+	return r;
+    }
+
+    memcpy(utf, &t_utf, sizeof(*utf));
+    t->th_tf.tf_rsp = (uintptr_t) utf;
+    t->th_tf.tf_rip = t->th_as->as_utrap_entry;
+    t->th_tf.tf_rflags &= ~FL_TF;
+    t->th_tf.tf_cs = GD_UT_MASK;
+    return 0;
+}
+
 static void __attribute__((used))
 trap_field_symbols(void)
 {

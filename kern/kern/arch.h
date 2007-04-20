@@ -77,6 +77,9 @@ int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
  * Threads and traps
  */
 void thread_arch_run(const struct Thread *t)
-     __attribute__((__noreturn__));
+    __attribute__((__noreturn__));
+int  thread_arch_utrap(struct Thread *t, uint32_t src,
+		       uint32_t num, uint64_t arg)
+    __attribute__ ((warn_unused_result));
 
 #endif
