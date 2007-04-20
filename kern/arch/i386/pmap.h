@@ -37,7 +37,7 @@ struct Pagemap {
     ptent_t pm_ent[NPTENTRIES];
 };
 
-void page_init(uint32_t lower_kb, uint32_t upper_kb);
+void page_init(uint64_t lower_kb, uint64_t upper_kb);
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
