@@ -46,7 +46,7 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
     uint32_t first_idx = PDX(pmlevel, first);
     uint32_t last_idx  = PDX(pmlevel, last);
 
-    for (uint32_t idx = first_idx; idx <= last_idx; idx++) {
+    for (uint64_t idx = first_idx; idx <= last_idx; idx++) {
 	ptent_t *pm_entp = &pgmap->pm_ent[idx];
 	ptent_t pm_ent = *pm_entp;
 
