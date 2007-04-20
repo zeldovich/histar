@@ -66,9 +66,6 @@ init(uint32_t start_eax, uint32_t start_ebx)
     mmu_init();
     bss_init();
 
-    panic("XXX");
-
-#if 0
     uint64_t lower_kb = 0;
     uint64_t upper_kb = 0;
 
@@ -101,6 +98,8 @@ init(uint32_t start_eax, uint32_t start_ebx)
     cons_init();
     pic_init();
 
+    panic("XXX");
+#if 0
     acpi_init();	/* Picks up HPET, PM timer */
     apic_init();	/* LAPIC timer for preemption */
     tsc_timer_init();	/* Optimization for PM timer */

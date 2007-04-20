@@ -65,7 +65,8 @@ void thread_arch_run(const struct Thread *t)
 int  thread_arch_utrap(struct Thread *t, uint32_t src,
 		       uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
-int  thread_arch_get_entry_args(struct thread_entry_args *targ)
+int  thread_arch_get_entry_args(const struct Thread *t,
+				struct thread_entry_args *targ)
     __attribute__ ((warn_unused_result));
 void thread_arch_jump(struct Thread *t, const struct thread_entry *te);
 

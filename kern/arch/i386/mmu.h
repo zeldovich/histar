@@ -4,6 +4,7 @@
 #ifndef __ASSEMBLER__
 # include <inc/types.h>
 # include <inc/intmacro.h>
+# include <inc/thread.h>
 #else /* __ASSEMBLER__ */
 # define UINT64(x) x
 # define CAST64(x) (x)
@@ -72,8 +73,11 @@ struct Tss {
 } __attribute__ ((packed));
 
 struct Gatedesc {
-  uint32_t gd_lo;
-  uint32_t gd_hi;
+  uint64_t gd;
+};
+
+struct Trapframe_aux {
+  struct thread_entry_args tfa_entry_args;
 };
 
 struct Trapframe {

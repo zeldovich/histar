@@ -45,6 +45,9 @@ struct Gatedesc {
   uint64_t gd_hi;
 };
 
+struct Trapframe_aux {
+};
+
 struct Trapframe {
   /* callee-saved registers except %rax and %rsi */
   uint64_t tf_rcx;

@@ -791,7 +791,7 @@ static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_entry_args(struct thread_entry_args *targ)
 {
     check(check_user_access(targ, sizeof(*targ), SEGMAP_WRITE));
-    return thread_arch_get_entry_args(targ);
+    return thread_arch_get_entry_args(cur_thread, targ);
 }
 
 static int64_t __attribute__ ((warn_unused_result))

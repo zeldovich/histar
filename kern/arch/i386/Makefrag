@@ -11,7 +11,9 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/amd64shared.c		\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/init.c			\
-	$(ARCHDIR)/pmap.c
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/trap.c
 
 DUMMY := \
 	$(ARCHDIR)/init.c			\

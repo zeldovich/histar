@@ -21,16 +21,16 @@ static struct {
 } trap_entry_stubs[256];
 
 void
-idt_init (void)
+idt_init(void)
 {
     int i;
     extern char trap_ec_entry_stub[], trap_noec_entry_stub[];
 
-#define	SET_TRAP_GATE(i, dpl)					\
-	SETGATE(idt[i], SEG_IG, GD_KT,				\
-		&trap_entry_stubs[i].trap_entry_code[0], dpl)
-#define	SET_TRAP_CODE(i, ec_prefix)				\
-	memcpy(&trap_entry_stubs[i].trap_entry_code[0],		\
+#define	SET_TRAP_GATE(i, dpl)						\
+	idt[i].gd = GATE32(SEG_IG, GD_KT,				\
+		(uintptr_t) &trap_entry_stubs[i].trap_entry_code[0], dpl)
+#define	SET_TRAP_CODE(i, ec_prefix)					\
+	memcpy(&trap_entry_stubs[i].trap_entry_code[0],			\
 	       trap_##ec_prefix##_entry_stub, 16)
 
     for (i = 0; i < 0x100; i++) {
@@ -56,26 +56,18 @@ idt_init (void)
 }
 
 static void
-trapframe_print (struct Trapframe *tf)
+trapframe_print(struct Trapframe *tf)
 {
-    cprintf("rax %016lx  rbx %016lx  rcx %016lx\n",
-	    tf->tf_rax, tf->tf_rbx, tf->tf_rcx);
-    cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n",
-	    tf->tf_rdx, tf->tf_rsi, tf->tf_rdi);
-    cprintf("r8  %016lx  r9  %016lx  r10 %016lx\n",
-	    tf->tf_r8, tf->tf_r9, tf->tf_r10);
-    cprintf("r11 %016lx  r12 %016lx  r13 %016lx\n",
-	    tf->tf_r11, tf->tf_r12, tf->tf_r13);
-    cprintf("r14 %016lx  r15 %016lx  rbp %016lx\n",
-	    tf->tf_r14, tf->tf_r15, tf->tf_rbp);
-    cprintf("rip %016lx  rsp %016lx  cs %04x  ss %04x\n",
-	    tf->tf_rip, tf->tf_rsp, tf->tf_cs, tf->tf_ss);
-    cprintf("rflags %016lx  err %08x\n",
-	    tf->tf_rflags, tf->tf_err);
+    cprintf("eax %08x  ebx %08x  ecx %08x  edx %08x\n",
+	    tf->tf_eax, tf->tf_ebx, tf->tf_ecx, tf->tf_edx);
+    cprintf("esi %08x  edi %08x  ebp %08x  esp %08x\n",
+	    tf->tf_esi, tf->tf_edi, tf->tf_ebp, tf->tf_esp);
+    cprintf("eip %08x  cs %04x  ss %04x  eflags %08x  err %08x\n",
+	    tf->tf_eip, tf->tf_cs, tf->tf_ss, tf->tf_eflags, tf->tf_err);
 }
 
 static void
-page_fault (struct Trapframe *tf, uint32_t err)
+page_fault(struct Trapframe *tf, uint32_t err)
 {
     void *fault_va = (void*) rcr2();
     uint32_t reqflags = 0;
@@ -86,10 +78,11 @@ page_fault (struct Trapframe *tf, uint32_t err)
 	reqflags |= SEGMAP_EXEC;
 
     if ((tf->tf_cs & 3) == 0) {
-	cprintf("kernel page fault: thread %ld (%s), va=%p, rip=0x%lx, rsp=0x%lx\n",
+	cprintf("kernel page fault: thread %"PRIu64" (%s), "
+		"va=%p, eip=0x%x, esp=0x%x\n",
 		cur_thread ? cur_thread->th_ko.ko_id : 0,
 		cur_thread ? cur_thread->th_ko.ko_name : "(null)",
-		fault_va, tf->tf_rip, tf->tf_rsp);
+		fault_va, tf->tf_eip, tf->tf_esp);
 
 	panic("kernel page fault");
     } else {
@@ -97,15 +90,16 @@ page_fault (struct Trapframe *tf, uint32_t err)
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
-	cprintf("user page fault: thread %ld (%s), va=%p: rip=0x%lx, rsp=0x%lx: %s\n",
+	cprintf("user page fault: thread %"PRIu64" (%s), "
+		"va=%p: eip=0x%x, rsp=0x%x: %s\n",
 		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name,
-		fault_va, tf->tf_rip, tf->tf_rsp, e2s(r));
+		fault_va, tf->tf_eip, tf->tf_esp, e2s(r));
 	thread_halt(cur_thread);
     }
 }
 
 static void
-trap_dispatch (int trapno, struct Trapframe *tf)
+trap_dispatch(int trapno, struct Trapframe *tf)
 {
     int64_t r;
     uint64_t s, f;
@@ -116,10 +110,13 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
+/* XXX figure out syscall calling convention... */
+#if 0
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 	if (r != -E_RESTART)
 	    tf->tf_rax = r;
+#endif
 	break;
 
     case T_PGFLT:
@@ -146,17 +143,17 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 }
 
 void __attribute__((__noreturn__, no_instrument_function))
-trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
+trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
 {
-    uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
-    uint32_t trapno = (trampoline_rip - trap0rip) / 16;
+    uint32_t trap0eip = (uint32_t) &trap_entry_stubs[0].trap_entry_code[0];
+    uint32_t trapno = (trampoline_eip - trap0eip) / 16;
 
     tf->tf_ds = read_ds();
     tf->tf_es = read_es();
     tf->tf_fs = read_fs();
     tf->tf_gs = read_gs();
 
-    cyg_profile_free_stack(read_rsp());
+    cyg_profile_free_stack(read_esp());
 
     if (trapno == T_NMI) {
 	uint8_t reason = inb(0x61);
@@ -236,19 +233,18 @@ thread_arch_run(const struct Thread *t)
 void
 thread_syscall_restart(const struct Thread *t)
 {
-    kobject_dirty(&t->th_ko)->th.th_tf.tf_rip -= 2;
+    kobject_dirty(&t->th_ko)->th.th_tf.tf_eip -= 2;
 }
 
 int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 {
     void *stacktop;
-    uint64_t rsp = t->th_tf.tf_rsp;
-    if (rsp > t->th_as->as_utrap_stack_base &&
-	rsp <= t->th_as->as_utrap_stack_top)
+    uint32_t esp = t->th_tf.tf_esp;
+    if (esp > t->th_as->as_utrap_stack_base &&
+	esp <= t->th_as->as_utrap_stack_top)
     {
-	// Skip red zone (see ABI spec)
-	stacktop = (void *) (uintptr_t) rsp - 128;
+	stacktop = (void *) (uintptr_t) esp;
     } else {
 	stacktop = (void *) t->th_as->as_utrap_stack_top;
     }
@@ -258,11 +254,9 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     t_utf.utf_trap_num = num;
     t_utf.utf_trap_arg = arg;
 #define UTF_COPY(r) t_utf.utf_##r = t->th_tf.tf_##r
-    UTF_COPY(rax);  UTF_COPY(rbx);  UTF_COPY(rcx);  UTF_COPY(rdx);
-    UTF_COPY(rsi);  UTF_COPY(rdi);  UTF_COPY(rbp);  UTF_COPY(rsp);
-    UTF_COPY(r8);   UTF_COPY(r9);   UTF_COPY(r10);  UTF_COPY(r11);
-    UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
-    UTF_COPY(rip);  UTF_COPY(rflags);
+    UTF_COPY(eax);  UTF_COPY(ebx);  UTF_COPY(ecx);  UTF_COPY(edx);
+    UTF_COPY(esi);  UTF_COPY(edi);  UTF_COPY(ebp);  UTF_COPY(esp);
+    UTF_COPY(eip);  UTF_COPY(eflags);
 #undef UTF_COPY
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
@@ -274,37 +268,43 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));
-    t->th_tf.tf_rsp = (uintptr_t) utf;
-    t->th_tf.tf_rip = t->th_as->as_utrap_entry;
-    t->th_tf.tf_rflags &= ~FL_TF;
+    t->th_tf.tf_esp = (uintptr_t) utf;
+    t->th_tf.tf_eip = t->th_as->as_utrap_entry;
+    t->th_tf.tf_eflags &= ~FL_TF;
     t->th_tf.tf_cs = GD_UT_MASK;
     return 0;
-}
-
-int
-thread_arch_get_entry_args(const struct Thread *t,
-			   struct thread_entry_args *targ)
-{
-    return -E_INVAL;
 }
 
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
     memset(&t->th_tf, 0, sizeof(t->th_tf));
-    t->th_tf.tf_rflags = FL_IF;
+    t->th_tf.tf_eflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;
     t->th_tf.tf_ss = GD_UD | 3;
-    t->th_tf.tf_rip = (uintptr_t) te->te_entry;
-    t->th_tf.tf_rsp = (uintptr_t) te->te_stack;
-    t->th_tf.tf_rdi = te->te_arg[0];
-    t->th_tf.tf_rsi = te->te_arg[1];
-    t->th_tf.tf_rdx = te->te_arg[2];
-    t->th_tf.tf_rcx = te->te_arg[3];
-    t->th_tf.tf_r8  = te->te_arg[4];
-    t->th_tf.tf_r9  = te->te_arg[5];
+    t->th_tf.tf_eip = (uintptr_t) te->te_entry;
+    t->th_tf.tf_esp = (uintptr_t) te->te_stack;
 
-    static_assert(thread_entry_narg == 6);
+    for (uint32_t i = 0; i < thread_entry_narg; i++)
+	t->th_tfa.tfa_entry_args.te_arg[i] = te->te_arg[i];
+
+    /*
+     * As an optimization, pass first 3 arguments truncated to 32 bits.
+     * gcc allows taking 3 register args using __attribute__((regparm(3))).
+     */
+    t->th_tf.tf_eax = te->te_arg[0];
+    t->th_tf.tf_edx = te->te_arg[1];
+    t->th_tf.tf_ecx = te->te_arg[2];
+
+    static_assert(thread_entry_narg >= 3);
+}
+
+int
+thread_arch_get_entry_args(const struct Thread *t,
+			   struct thread_entry_args *targ)
+{
+    memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
+    return 0;
 }
 
 static void __attribute__((used))
@@ -313,30 +313,22 @@ trap_field_symbols(void)
 #define TF_DEF(field)							\
   __asm volatile (".globl\t" #field "\n\t.set\t" #field ",%0"		\
 		:: "m" (*(int *) offsetof (struct Trapframe, field)))
-  TF_DEF (tf_rax);
-  TF_DEF (tf_rcx);
-  TF_DEF (tf_rdx);
-  TF_DEF (tf_rsi);
-  TF_DEF (tf_rdi);
-  TF_DEF (tf_r8);
-  TF_DEF (tf_r9);
-  TF_DEF (tf_r10);
-  TF_DEF (tf_r11);
-  TF_DEF (tf_rbx);
-  TF_DEF (tf_rbp);
-  TF_DEF (tf_r12);
-  TF_DEF (tf_r13);
-  TF_DEF (tf_r14);
-  TF_DEF (tf_r15);
+  TF_DEF (tf_eax);
+  TF_DEF (tf_ebx);
+  TF_DEF (tf_ecx);
+  TF_DEF (tf_edx);
+  TF_DEF (tf_esi);
+  TF_DEF (tf_edi);
+  TF_DEF (tf_ebp);
   TF_DEF (tf_err);
-  TF_DEF (tf_rip);
+  TF_DEF (tf_eip);
   TF_DEF (tf_cs);
   TF_DEF (tf_ds);
   TF_DEF (tf_es);
   TF_DEF (tf_fs);
-  TF_DEF (tf_rflags);
-  TF_DEF (tf_rsp);
+  TF_DEF (tf_eflags);
+  TF_DEF (tf_esp);
   TF_DEF (tf_ss);
   TF_DEF (tf_gs);
-  TF_DEF (tf__trapentry_rip);
+  TF_DEF (tf__trapentry_eip);
 }
