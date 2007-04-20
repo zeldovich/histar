@@ -142,7 +142,7 @@ trap_dispatch(int trapno, struct Trapframe *tf)
     prof_trap(trapno, f - s);
 }
 
-void __attribute__((__noreturn__, no_instrument_function))
+void __attribute__((noreturn, no_instrument_function, regparm(2)))
 trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
 {
     uint32_t trap0eip = (uint32_t) &trap_entry_stubs[0].trap_entry_code[0];

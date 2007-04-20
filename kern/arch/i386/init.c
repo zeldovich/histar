@@ -60,7 +60,7 @@ bss_init(void)
     memset(edata, 0, end - edata);
 }
 
-void __attribute__((noreturn))
+void __attribute__((noreturn, regparm (2)))
 init(uint32_t start_eax, uint32_t start_ebx)
 {
     mmu_init();

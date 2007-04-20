@@ -5,9 +5,11 @@
 # include <inc/types.h>
 # include <inc/intmacro.h>
 # include <inc/thread.h>
+# define CASTPTR(x) ((uintptr_t) x)
 #else /* __ASSEMBLER__ */
 # define UINT64(x) x
 # define CAST64(x) (x)
+# define CASTPTR(x) (x)
 #endif /* __ASSEMBLER__ */
 #define ONE UINT64 (1)
 
@@ -84,8 +86,8 @@ struct Trapframe {
   /* XXX not laid out properly yet */
   uint32_t tf_ebx;
   uint32_t tf_ecx;
-  uint32_t tf_edx;
   uint32_t tf_edi;
+  uint32_t tf_esi;
   uint32_t tf_ebp;
 
   uint16_t tf_ds;
@@ -93,7 +95,7 @@ struct Trapframe {
 
   /* for use by trap_{ec,noec}_entry_stub */
   union {
-    uint32_t tf_esi;
+    uint32_t tf_edx;
     uint32_t tf__trapentry_eip;
   };
 

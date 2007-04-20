@@ -13,17 +13,10 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/misc.c			\
-	$(ARCHDIR)/trap.c
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/locore.S
 
 DUMMY := \
-	$(ARCHDIR)/init.c			\
-	$(ARCHDIR)/locore.S			\
-	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/page.c			\
-	$(ARCHDIR)/pmap.c			\
-	$(ARCHDIR)/mtrr.c			\
-	$(ARCHDIR)/acpimach.c			\
-	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/tsctimer.c
 
 KERN_LIB :=					\
