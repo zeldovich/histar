@@ -83,7 +83,6 @@ struct Trapframe_aux {
 };
 
 struct Trapframe {
-  /* XXX not laid out properly yet */
   uint32_t tf_ebx;
   uint32_t tf_ecx;
   uint32_t tf_edi;
