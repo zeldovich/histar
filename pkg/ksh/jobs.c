@@ -328,7 +328,7 @@ exchild(struct op *t, int flags,
 {
 	static Proc	*last_proc;	/* for pipelines */
 
-	int		i;
+	pid_t		i;
 	sigset_t	omask;
 	Proc		*p;
 	Job		*j;
