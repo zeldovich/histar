@@ -11,7 +11,7 @@
 /*
  * Page allocation
  */
-extern size_t global_npages;
+extern uint64_t global_npages;
 
 extern struct page_stats {
     uint64_t pages_used;

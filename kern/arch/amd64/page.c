@@ -10,7 +10,7 @@ static bool_t scrub_free_pages = 0;
 
 // These variables are set by i386_detect_memory()
 static physaddr_t maxpa;	// Maximum physical address
-size_t global_npages;		// Amount of physical memory (in pages)
+uint64_t_t global_npages;	// Amount of physical memory (in pages)
 static size_t basemem;		// Amount of base memory (in bytes)
 static size_t extmem;		// Amount of extended memory (in bytes)
 
