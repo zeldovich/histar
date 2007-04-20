@@ -36,6 +36,9 @@ static const char **argv;
 void __attribute__((noinline))
 setup_env(uint64_t envaddr, uint64_t arg1)
 {
+    if (arg1)
+	return;
+
     // This process has enough of an environment,
     // unlike a bootstrap process.
     start_env = (start_env_t *) envaddr;

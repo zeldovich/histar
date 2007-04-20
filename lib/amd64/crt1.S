@@ -14,11 +14,8 @@ ENTRY(_start)
 	movq	%rsi, %r13
 
 	// Call setup_env with our args
-	test	%rsi, %rsi
-	jnz	1f
 	call	setup_env
 
-1:
 	// crtbegin, crtend, and whatever else
 	call	_init
 
