@@ -27,6 +27,7 @@ K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
 
+## 32-bit x86 port: Don't forget to turn off -march=athlon64!
 #K_ARCH	:= i386
 #TARGET	:= i386-jos-linux
 #OBJTYPE := elf32-i386
