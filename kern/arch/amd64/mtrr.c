@@ -14,7 +14,8 @@ mtrr_set(physaddr_t base, uint64_t nbytes, uint32_t type)
 	uint64_t i_mask = read_msr(MTRR_MASK(i));
 
 	if (i_base == new_base && i_mask == new_mask) {
-	    cprintf("mtrr_set: dup: base %lx, mask %lx\n", i_base, i_mask);
+	    cprintf("mtrr_set: dup: base %"PRIx64", mask %"PRIx64"\n",
+		    i_base, i_mask);
 	    return 0;
 	}
 

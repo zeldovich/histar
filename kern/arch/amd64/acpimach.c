@@ -1,6 +1,7 @@
 #include <machine/pmap.h>
 #include <dev/acpi.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 
 static int

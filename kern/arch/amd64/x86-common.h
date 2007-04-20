@@ -241,7 +241,9 @@ read_msr(uint32_t msr)
 void
 write_msr(uint32_t msr, uint64_t val)
 {
-    __asm __volatile("wrmsr" : : "c" (msr), "a" (val & 0xffffffff), "d" (val << 32));
+    uint32_t lo = val & 0xffffffff;
+    uint32_t hi = val >> 32;
+    __asm __volatile("wrmsr" : : "c" (msr), "a" (lo), "d" (hi));
 }
 
 /* Read/write the extra segment registers */
