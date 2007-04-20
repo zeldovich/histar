@@ -261,8 +261,8 @@ badelf:
 .align 4
 gdt:
 	.quad 0					# null segment
-	.quad SEG32(SEG_X|SEG_R, 0x0, 0xffffffff, 0) # code seg
-	.quad SEG32(SEG_W, 0x0, 0xffffffff, 0)	# data seg
+	SEG32_ASM(STA_X|STA_R, 0x0, 0xffffffff)	# code seg
+	SEG32_ASM(STA_W, 0x0, 0xffffffff)	# data seg
 
 .align 16
 gdtdesc:

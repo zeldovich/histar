@@ -144,13 +144,23 @@
  *
  */
 
+/* STA_ macros are for segment type values */
+#define STA_A (ONE << 0)	/* Accessed */
+#define STA_W (ONE << 1)	/* Writable (for data segments) */
+#define STA_E (ONE << 2)	/* Expand down (for data segments) */
+#define STA_X (ONE << 3)	/* 1 = Code segment (executable) */
+#define STA_R (ONE << 1)	/* Readable (for code segments) */
+#define STA_C (ONE << 2)	/* Conforming (for code segments) */
+
+/* SEG_ macros specify segment type values shifted into place */
+#define SEG_A (STA_A << 40)	/* Accessed */
+#define SEG_W (STA_W << 40)	/* Writable (for data segments) */
+#define SEG_E (STA_E << 40)	/* Expand down (for data segments) */
+#define SEG_X (STA_X << 40)	/* 1 = Code segment (executable) */
+#define SEG_R (STA_R << 40)	/* Readable (for code segments) */
+#define SEG_C (STA_C << 40)	/* Conforming (for code segments) */
+
 #define SEG_S (ONE << 44)	/* 1 = non-system, 0 = system segment */
-#define SEG_A (ONE << 40)	/* Accessed */
-#define SEG_W (ONE << 41)	/* Writable (for data segments) */
-#define SEG_E (ONE << 42)	/* Expand down (for data segments) */
-#define SEG_X (ONE << 43)	/* 1 = Code segment (executable) */
-#define SEG_R (ONE << 41)	/* Readable (for code segments) */
-#define SEG_C (ONE << 42)	/* Conforming (for code segments) */
 
 #define SEG_LDT (UINT64 (0x2) << 40) /* 64-bit local descriptor segment */
 #define SEG_TSSA (UINT64 (0x9) << 40) /* Available 64-bit TSS */
@@ -170,6 +180,11 @@
 #define SEG_BASELO(x) (((CAST64 (x) & 0xffffff) << 16)		\
 		       | ((CAST64 (x) & 0xff000000) << 32))
 #define SEG_BASEHI(x) (CAST64 (x) >> 32)
+
+#define SEG32_ASM(type, base, lim)					\
+    .word (((lim) >> 12) & 0xffff), ((base) & 0xffff);			\
+    .byte (((base) >> 16) & 0xff), (0x90 | (type)),			\
+	  (0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 
 #define SEG32(type, base, lim, dpl)					\
   ((type) | SEG_S | SEG_P | SEG_D | SEG_G | SEG_A | SEG_DPL (dpl)	\

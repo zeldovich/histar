@@ -89,14 +89,14 @@ real_to_prot:	cli				# Mandatory since we dont set up an IDT
 		movl	%cr0, %eax		# turn on protected mode
 		orl	$CR0_PE_ON, %eax	# 
 		movl	%eax, %cr0		# 
-	        ### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
+		### CPU magic: jump to relocation, flush prefetch queue, and reload %cs
 		### Has the effect of just jmp to the next instruction, but simultaneous
 		### loads CS with $PROT_MODE_CSEG.
 		ljmp	$PROT_MODE_CSEG, $protcseg
 	
 #### we are in 32-bit protected mode (hence the .code32)
 .code32
-protcseg:	
+protcseg:
 		# Set up the protected-mode data segment registers
 		movw	$PROT_MODE_DSEG, %ax	# Our data segment selector
 		movw	%ax, %ds		# -> DS: Data Segment
@@ -110,7 +110,7 @@ protcseg:
 		shll	$6,%edx			# go from 64K to 1K chunks
 		andl	%eax,%ecx		# clip to 16 bits
 		addl	%edx,%ecx		# add results
-		
+
 		pushl	%ecx			# Push the amount of extended memory
 		call	cmain			# finish the boot load from C.
 						# cmain() should not return
@@ -119,8 +119,8 @@ spin:		jmp	spin			# ..but in case it does, spin
 .p2align 2					# force 4 byte alignment
 gdt:
 	.quad 0					# null segment
-	.quad SEG32(SEG_X|SEG_R, 0, 0xffffffff, 0) # code seg
-	.quad SEG32(SEG_W, 0, 0xffffffff, 0)	# data seg
+	SEG32_ASM(STA_X|STA_R, 0, 0xffffffff)	# code seg
+	SEG32_ASM(STA_W, 0, 0xffffffff)		# data seg
 	
 gdtdesc:
 	.word	0x17			# sizeof(gdt) - 1
