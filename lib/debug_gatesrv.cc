@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/lib.h>
@@ -18,6 +20,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <bits/signalgate.h>
 #include <sys/user.h>
@@ -363,7 +366,7 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
     dinfo->gen++;
 
     debug_print(debug_dbg, "signo %d, gen %ld", signo, dinfo->gen);
-    debug_print(debug_dbg, "stop: tid %ld, pid %ld, rsp %lx", 
+    debug_print(debug_dbg, "stop: tid %"PRIu64", pid %"PRIu64", rsp %lx", 
 		thread_id(), getpid(), read_rsp());
 
     while (dinfo->signo == signo)
