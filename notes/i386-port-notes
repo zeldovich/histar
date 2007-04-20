@@ -1,0 +1,39 @@
+x86 has 7 free registers:
+    eax, ebx, ecx, edx, edi, esi, ebp
+
+calling conventions require preserving:
+    ebx, esi, edi, ebp
+
+gcc allows __attribute__((regparm (3))), passing 32-bit args in:
+    eax, edx, ecx
+
+what functions are vectored into by the kernel via thread_jump()?
+
+    function		#args	where				what to do
+
+    _start		2 x64	uinit, lib/elf.c		entry_buf?
+    jos_longjmp		2 x32	fork, djsrpcc, privstore	ok
+    ssld_cow_entry	0	pkg/httpd/user/ssld.cc		ok
+    eprocd_cow_entry	0	pkg/httpd/user/ssl_eprocd.cc	ok
+    gate_exec_thread	1 x32	dj/gateexec.cc			ok
+    killer_thread	5 x64	dj/ctallocd.cc			entry_buf
+    thread_entry	1 x32	lib/thread.c			ok
+    return_stub		5 x32	lib/gateclnt.cc			entry_buf
+    gatesrv_entry_tls	4 x32	lib/gatesrv.cc			entry_buf
+    COOP_TEXT		1 x32	lib/cooperate.cc		ok
+    coop_gate_invoke_th	6 x32	lib/cooperate.cc		entry_buf
+
+entry_buf: kernel keeps a copy of the 6 x64 entry args as part of the
+thread object.  system call to fetch those values from cur_thread.
+
+as an optimization, store 32-bit-truncated values for the first 3 args
+into eax, edx, ecx, thereby allowing regparm(3) for functions that don't
+need more than 3 x32 arguments.
+
+===
+
+netd_server_init assumes that 64-bit taint handle fits in void*.
+declassier() similarly assumes void* takes 64-bit handle value.
+auth_user.cc assumes handle fits in void*.
+db.cc assumes handle fits in void*.
+
