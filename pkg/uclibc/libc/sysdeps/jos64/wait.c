@@ -141,6 +141,10 @@ child_get_siginfo(struct wait_child *wc, int *statusp)
 pid_t
 wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 {
+    /* Ugh. */
+    if (pid == -1)
+	pid = UINT64(~0);
+
     struct wait_child *wc, *next;
     uint64_t start_counter;
 
