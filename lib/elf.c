@@ -41,7 +41,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return -E_INVAL;
     }
 
-    if (elf->e_ident[0] != 2) {
+    if (elf->e_machine != ELF_MACH_AMD64) {
 	cprintf("elf_load: ELF file not 64-bit\n");
 	return -E_INVAL;
     }

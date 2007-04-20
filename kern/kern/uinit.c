@@ -118,7 +118,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return -E_INVAL;
     }
 
-    if (elf.e_magic != ELF_MAGIC || elf.e_ident[0] != 2) {
+    if (elf.e_magic != ELF_MAGIC || elf.e_machine != ELF_MACH_AMD64) {
 	cprintf("ELF magic mismatch\n");
 	return -E_INVAL;
     }

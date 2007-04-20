@@ -7,6 +7,11 @@
 #define ELF_TYPE_EXEC		2
 #define ELF_TYPE_CORE		4
 
+// e_machine values
+#define ELF_MACH_386		3
+#define ELF_MACH_486		6
+#define ELF_MACH_AMD64		62
+
 // p_type values
 #define ELF_PROG_LOAD		1
 
