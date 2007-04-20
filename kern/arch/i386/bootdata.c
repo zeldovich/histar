@@ -26,7 +26,7 @@
   DO_64 ((_start) + 0, _macro) DO_64 ((_start) + 64, _macro)	\
   DO_64 ((_start) + 128, _macro) DO_64 ((_start) + 192, _macro)
 
-#define TRANS2MEG(n) (0x200000UL * (n) | KPDE_BITS), 
+#define TRANS4MEG(n) (0x400000UL * (n) | KPDE_BITS), 
 
 /* Page table mapping the kernel stack (one page under 2^32) */
 char kstack[2 * PGSIZE] __attribute__ ((aligned (4096), section (".data")));
@@ -45,10 +45,10 @@ struct Pagemap bootpts PTATTR = {
  */
 struct Pagemap bootpd PTATTR = {
   .pm_ent = {
-    [0] = DO_256(0, TRANS2MEG)
-    [512] = DO_256(512, TRANS2MEG)
-    [768] = DO_64(768, TRANS2MEG)
-    [832] = DO_64(832, TRANS2MEG)
+    [0] = DO_256(0, TRANS4MEG)
+    [512] = DO_256(0, TRANS4MEG)
+    [768] = DO_64(0, TRANS4MEG)
+    [832] = DO_64(64, TRANS4MEG)
     [1023] = RELOC(&bootpts) + KPT_COM_BITS
   }
 };
