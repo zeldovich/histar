@@ -37,14 +37,18 @@
 #include <kern/lib.h>
 #endif
 
-#define	wsize	sizeof(uint64_t)
+#ifndef __LONG_MAX__
+#error Need to know the size of a long
+#endif
+
+#define	wsize	sizeof(unsigned long)
 #define	wmask	(wsize - 1)
 
 void *
 memset(void *dst0, int c0, size_t length)
 {
 	size_t t;
-	uint64_t c;
+	unsigned long c;
 	uint8_t *dst;
 
 	dst = dst0;
@@ -70,13 +74,17 @@ memset(void *dst0, int c0, size_t length)
 	}
 
 	if ((c = (uint8_t)c0) != 0) {	/* Fill the word. */
-		c = (c << 8) | c;	/* uint64_t is 16 bits. */
-		c = (c << 16) | c;	/* uint64_t is 32 bits. */
-		c = (c << 32) | c;	/* uint64_t is 64 bits. */
+		c = (c << 8) | c;	/* long is 16 bits. */
+#if __LONG_MAX__ > 0x7fff
+		c = (c << 16) | c;	/* long is 32 bits. */
+#endif
+#if __LONG_MAX__ > 0x7fffffff
+		c = (c << 32) | c;	/* long is 64 bits. */
+#endif
 	}
 
 	/* Align destination by filling in bytes. */
-	if ((t = (uint64_t)dst & wmask) != 0) {
+	if ((t = (uintptr_t)dst & wmask) != 0) {
 		t = wsize - t;
 		length -= t;
 		do {
@@ -87,7 +95,7 @@ memset(void *dst0, int c0, size_t length)
 	/* Fill words.  Length was >= 2*words so we know t >= 1 here. */
 	t = length / wsize;
 	do {
-		*(uint64_t *)dst = c;
+		*(unsigned long *)dst = c;
 		dst += wsize;
 	} while (--t != 0);
 
