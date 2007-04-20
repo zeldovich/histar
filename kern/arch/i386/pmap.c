@@ -29,3 +29,24 @@ pmap_set_current(struct Pagemap *pm, int flush_tlb)
 
     lcr3(new_cr3);
 }
+
+void *
+pa2kva(physaddr_t pa)
+{
+    if (pa < 0x40000000U)
+	return (void *) (pa + PHYSBOT);
+    if (pa >= 0xc0000000U)
+	return (void *) (pa);
+    panic("cannot map physaddr %x\n", pa);
+}
+
+physaddr_t
+kva2pa(void *kva)
+{
+    physaddr_t va = (physaddr_t) kva;
+    if (va >= PHYSBOT && va < PHYSBOT + (global_npages << PGSHIFT))
+	return va - PHYSBOT;
+    if (va >= PHYSTOP)
+	return va;
+    panic("kva2pa called with invalid kva %p", kva);
+}

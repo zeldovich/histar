@@ -29,7 +29,7 @@ start:	.code32
 	ljmp	*(%ecx)
 almost:
 	movw	$(0x0500 + '9'), (0xb8014)
-	movl	$(KSTACKTOP),%esp		// set %esp to top of stack
+	movl	$(kstack + KSTACK_SIZE),%esp	// set %esp to top of stack
 	movl	%ebp,%eax			// restore & pass multiboot magic
 	movl	%ebx,%edx			// pass multiboot pointer
 	xorl	%ebp,%ebp			// clear frame pointer

@@ -6,9 +6,7 @@
  */
 
 #define PTATTR __attribute__ ((aligned (4096), section (".data")))
-#define KPT_COM_BITS (PTE_P|PTE_W)
-#define KPDE_BITS (KPT_COM_BITS|PTE_G|PTE_PS)
-#define KPTE_BITS (KPT_COM_BITS|PTE_G)
+#define KPDE_BITS (PTE_P|PTE_W|PTE_G|PTE_PS)
 
 #define DO_8(_start, _macro)				\
   _macro (((_start) + 0)) _macro (((_start) + 1))	\
@@ -28,28 +26,18 @@
 
 #define TRANS4MEG(n) (0x400000UL * (n) | KPDE_BITS), 
 
-/* Page table mapping the kernel stack (one page under 2^32) */
-char kstack[2 * PGSIZE] __attribute__ ((aligned (4096), section (".data")));
-struct Pagemap bootpts PTATTR = {
-  .pm_ent = {
-    [1021] = RELOC (&kstack[0 * PGSIZE]) + KPTE_BITS,
-    [1022] = RELOC (&kstack[1 * PGSIZE]) + KPTE_BITS,
-  }
-};
+char kstack[KSTACK_SIZE] __attribute__ ((aligned (4096), section (".data")));
 
 /*
  * Map first 1GB identically at bottom of VM space (for booting).
- * Map first 512MB at KERNBASE (0xc0000000), where the kernel will run.
- * Map first 1GB at PHYSBASE (0x80000000).
- * Map the kernel stack a page under 2^32.
+ * Map first 1GB at PHYSBOT (0x80000000).
+ * Map last 1GB at PHYSTOP (0xc0000000).
  */
 struct Pagemap bootpd PTATTR = {
   .pm_ent = {
     [0] = DO_256(0, TRANS4MEG)
     [512] = DO_256(0, TRANS4MEG)
-    [768] = DO_64(0, TRANS4MEG)
-    [832] = DO_64(64, TRANS4MEG)
-    [1023] = RELOC(&bootpts) + KPT_COM_BITS
+    [768] = DO_256(768, TRANS4MEG)
   }
 };
 
@@ -57,7 +45,7 @@ struct Pagemap bootpd PTATTR = {
  * Boot segments
  */
 struct Tss tss = {
-  .tss_sp = { [0] = { KSTACKTOP, GD_KT, 0 } },
+  .tss_sp = { [0] = { (uintptr_t) &kstack[KSTACK_SIZE], GD_KT, 0 } },
   .tss_iomb = offsetof (struct Tss, tss_iopb),
 };
 

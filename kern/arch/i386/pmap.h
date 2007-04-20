@@ -16,9 +16,12 @@
 #define GD_UT_NMASK (0x20 | 0x03)	/* User text, traps not masked */
 #define GD_UT_MASK  (0x28 | 0x03)	/* User text, traps masked */
 
+#define KSTACK_SIZE (2 * PGSIZE)
+
 /* bootdata.c */
 #if !defined(__ASSEMBLER__) && defined(JOS_KERNEL)
 extern struct Pagemap bootpd;
+extern char kstack[];
 
 extern struct Tss tss;
 extern uint64_t gdt[];

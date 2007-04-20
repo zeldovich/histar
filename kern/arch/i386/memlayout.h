@@ -7,33 +7,26 @@
  * Virtual memory map
  *
  *   2^32 --------->  +---------------------------------------------+
- *   KSTACKTOP ---->  +---------------------------------------------+
- *                    |            Kernel stack (2 pages)           |
- *                    +---------------------------------------------+
- *                    |                      :                      |
- *                    |                      :                      |
- *                    |                      :                      |
- *                    +---------------------------------------------+
  *                    |                                             |
- *                    |   Kernel memory (all symbols point here)    |
+ *                    |         Top 1GB of physical memory          |
  *                    |                                             |
- *   KERNBASE ----->  +---------------------------------------------+
+ *   PHYSTOP  ----->  +---------------------------------------------+
  *                    |                                             |
- *                    |     All of physical memory mapped here      |
+ *                    |       Bottom 1GB of physical memory         |
  *                    |                                             |
- *   PHYSBASE/ULIM->  +---------------------------------------------+
+ *   PHYSBOT/ULIM ->  +---------------------------------------------+
  *                    |                 user stack                  |
  *                    |                 user data                   |
  *                    |                 user text                   |
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define KSTACKTOP	(0xffffffff - PGSIZE + 1)
-#define KERNBASE	0xc0000000
-#define RELOC(x)	(CASTPTR(x) - KERNBASE)
+#define PHYSBOT		0x80000000
+#define PHYSTOP		0xc0000000
+#define KERNBASE	PHYSBOT
+#define RELOC(x)	(CASTPTR(x) - PHYSBOT)
 
-#define PHYSBASE	0x80000000
-#define ULIM		PHYSBASE
+#define ULIM		PHYSBOT
 
 // At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
 // IOPHYSMEM can be addressed at PHYSBASE + IOPHYSMEM.  The hole ends
