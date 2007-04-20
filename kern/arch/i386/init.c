@@ -3,7 +3,7 @@
 #include <machine/trap.h>
 #include <machine/multiboot.h>
 #include <machine/boot.h>
-//#include <machine/tsctimer.h>
+#include <machine/tsctimer.h>
 #include <dev/console.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
@@ -45,7 +45,7 @@ mmu_init(void)
     /* Nuke identically mapped physical memory */
     for (uint32_t i = 0; i < 256; i++)
 	bootpd.pm_ent[i] = 0;
-    flush_tlb_hard ();
+    flush_tlb_hard();
 
     /* Load TSS */
     gdt[(GD_TSS >> 3)] = SEG_BASELO(&tss) | SEG_LIM(sizeof(tss) - 1) |
@@ -98,8 +98,6 @@ init(uint32_t start_eax, uint32_t start_ebx)
     cons_init();
     pic_init();
 
-    panic("XXX");
-#if 0
     acpi_init();	/* Picks up HPET, PM timer */
     apic_init();	/* LAPIC timer for preemption */
     tsc_timer_init();	/* Optimization for PM timer */
@@ -125,5 +123,4 @@ init(uint32_t start_eax, uint32_t start_ebx)
     cprintf("=== kernel ready, calling schedule() ===\n");
     schedule();
     thread_run(cur_thread);
-#endif
 }
