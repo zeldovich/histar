@@ -22,18 +22,23 @@
  *   n = 2 => page directory pointer
  *   n = 3 => page map level 4
  */
-#define PDX(n, la)	(((uintptr_t) (la)) >> (12 + NPTBITS * (n)) & 0x1FF)
+#define PDXMASK		((1 << NPTBITS) - 1)
+#define PDSHIFT(n)	(12 + NPTBITS * (n))
+#define PDX(n, la)	((((uintptr_t) (la)) >> PDSHIFT(n)) & PDXMASK)
+
+#define NPTENTRIES	(1 << NPTBITS)
 
 /* page number field of address */
 #define PPN(la)		((la) >> PGSHIFT)
 
-/* offset in page */
-#define PGOFF(la)	(((uintptr_t) (la)) & 0xFFF)
-#define PGADDR(la)	(((uintptr_t) (la)) & ~0xFFFL)
-
-#define PGSIZE		0x1000		/* bytes mapped by a page */
+/* page size */
 #define PGSHIFT		12		/* log2(PGSIZE) */
-#define PDSHIFT(n)	(12 + NPTBITS * (n))
+#define PGSIZE		(1 << PGSHIFT)	/* bytes mapped by a page */
+#define PGMASK		(PGSIZE - 1)
+
+/* offset in page */
+#define PGOFF(la)	(((uintptr_t) (la)) & PGMASK)
+#define PGADDR(la)	(((uintptr_t) (la)) & ~CAST64(PGMASK))
 
 /* Page table/directory entry flags. */
 #define PTE_P	0x001		/* Present */

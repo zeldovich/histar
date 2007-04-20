@@ -17,9 +17,9 @@
  */
 
 /* Page directory and page table constants. */
-#define NPTENTRIES  512		/* page table entries per page table */
 #define NPTBITS	    9		/* log2(NPTENTRIES) */
-#define PD_SKIP 6		/* Offset of pd_lim in Pseudodesc */
+#define NPTLVLS	    3		/* page table depth -1 */
+#define PD_SKIP	    6		/* Offset of pd_lim in Pseudodesc */
 
 #ifndef __ASSEMBLER__
 /* Pseudo-descriptors used for LGDT, LLDT and LIDT instructions. */
