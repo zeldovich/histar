@@ -10,7 +10,8 @@ KERN_CFLAGS += -msoft-float -fno-builtin
 KERN_ARCH :=					\
 	$(ARCHDIR)/amd64shared.c		\
 	$(ARCHDIR)/bootdata.c			\
-	$(ARCHDIR)/init.c
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/pmap.c
 
 DUMMY := \
 	$(ARCHDIR)/init.c			\
