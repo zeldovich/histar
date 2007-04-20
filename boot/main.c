@@ -33,44 +33,44 @@
  **********************************************************************/
 
 #define SECTSIZE	512
-#define ELFHDR		((Elf64_Ehdr *) 0x10000) // scratch space
+#define ELFHDR		((Elf64_Ehdr *) 0x10000)	// scratch space
 #define ELFOFF          1024
 
-void readsect(void*, uint32_t);
+void readsect(void *, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
 
 void
 cmain(uint32_t extmem_kb)
 {
-  Elf64_Phdr *ph;
-  int i;
+    Elf64_Phdr *ph;
+    int i;
 
-  // read 1st page off disk
-  readseg((uint32_t) ELFHDR, SECTSIZE*8, ELFOFF);
+    // read 1st page off disk
+    readseg((uint32_t) ELFHDR, SECTSIZE * 8, ELFOFF);
 
-  if (ELFHDR->e_magic != ELF_MAGIC /* Invalid Elf */
-      || ELFHDR->e_ident[0] != 2) /* not 64-bit */
-    goto bad;
+    if (ELFHDR->e_magic != ELF_MAGIC	/* Invalid Elf */
+	|| ELFHDR->e_ident[0] != 2)	/* not 64-bit */
+	goto bad;
 
-  // load each program segment (ignores ph flags)
-  ph = (Elf64_Phdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
-  for (i = ELFHDR->e_phnum; i != 0; i--) {
-    readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
-    ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
-  }
+    // load each program segment (ignores ph flags)
+    ph = (Elf64_Phdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+    for (i = ELFHDR->e_phnum; i != 0; i--) {
+	readseg(ph->p_vaddr, ph->p_memsz, ph->p_offset + ELFOFF);
+	ph = (Elf64_Phdr *) ((uint8_t *) ph + ELFHDR->e_phentsize);
+    }
 
-  // call the entry point from the ELF header, passing in extmem_kb
-  // note: does not return!
-  uint32_t eax = DIRECT_BOOT_EAX_MAGIC;
-  uint32_t ebx = extmem_kb;
-  uint32_t ecx = ELFHDR->e_entry & 0xFFFFFF;
-  __asm__("jmp *%%ecx" : : "a" (eax), "b" (ebx), "c" (ecx));
+    // call the entry point from the ELF header, passing in extmem_kb
+    // note: does not return!
+    uint32_t eax = DIRECT_BOOT_EAX_MAGIC;
+    uint32_t ebx = extmem_kb;
+    uint32_t ecx = ELFHDR->e_entry & 0xFFFFFF;
+    __asm__("jmp *%%ecx": :"a"(eax), "b"(ebx), "c"(ecx));
 
  bad:
-  outw(0x8A00, 0x8A00);
-  outw(0x8A00, 0x8AE0);
-  for (;;)
-    ;
+    outw(0x8A00, 0x8A00);
+    outw(0x8A00, 0x8AE0);
+    for (;;)
+	;
 }
 
 // Read 'count' bytes at 'offset' from kernel into virtual address 'va'.
@@ -78,52 +78,51 @@ cmain(uint32_t extmem_kb)
 void
 readseg(uint32_t va, uint32_t count, uint32_t offset)
 {
-  uint32_t end_va;
+    uint32_t end_va;
 
-  va &= 0xFFFFFF;
-  end_va = va + count;
-	
-  // round down to sector boundary
-  va &= ~(SECTSIZE - 1);
+    va &= 0xFFFFFF;
+    end_va = va + count;
 
-  // translate from bytes to sectors, and kernel starts at sector 1
-  offset = (offset / SECTSIZE);
+    // round down to sector boundary
+    va &= ~(SECTSIZE - 1);
 
-  // If this is too slow, we could read lots of sectors at a time.
-  // We'd write more to memory than asked, but it doesn't matter --
-  // we load in increasing order.
-  while (va < end_va) {
-    readsect((uint8_t*) va, offset);
-    va += SECTSIZE;
-    offset++;
-  }
+    // translate from bytes to sectors, and kernel starts at sector 1
+    offset = (offset / SECTSIZE);
+
+    // If this is too slow, we could read lots of sectors at a time.
+    // We'd write more to memory than asked, but it doesn't matter --
+    // we load in increasing order.
+    while (va < end_va) {
+	readsect((uint8_t *) va, offset);
+	va += SECTSIZE;
+	offset++;
+    }
 }
 
 void
 waitdisk(void)
 {
-  // wait for disk reaady
-  while ((inb(0x1F7) & 0xC0) != 0x40)
-    /* do nothing */;
+    // wait for disk reaady
+    while ((inb(0x1F7) & 0xC0) != 0x40)
+	/* do nothing */ ;
 }
 
 void
 readsect(void *dst, uint32_t offset)
 {
-  // wait for disk to be ready
-  waitdisk();
+    // wait for disk to be ready
+    waitdisk();
 
-  outb(0x1F2, 1);		// count = 1
-  outb(0x1F3, offset);
-  outb(0x1F4, offset >> 8);
-  outb(0x1F5, offset >> 16);
-  outb(0x1F6, (offset >> 24) | 0xE0);
-  outb(0x1F7, 0x20);	// cmd 0x20 - read sectors
+    outb(0x1F2, 1);		// count = 1
+    outb(0x1F3, offset);
+    outb(0x1F4, offset >> 8);
+    outb(0x1F5, offset >> 16);
+    outb(0x1F6, (offset >> 24) | 0xE0);
+    outb(0x1F7, 0x20);		// cmd 0x20 - read sectors
 
-  // wait for disk to be ready
-  waitdisk();
+    // wait for disk to be ready
+    waitdisk();
 
-  // read a sector
-  insl(0x1F0, dst, SECTSIZE/4);
+    // read a sector
+    insl(0x1F0, dst, SECTSIZE / 4);
 }
-
