@@ -6,7 +6,7 @@
 struct embed_bin {
     const char *name;
     const uint8_t *buf;
-    uint64_t size;
+    uintptr_t size;
 };
 
 extern struct embed_bin embed_bins[];
