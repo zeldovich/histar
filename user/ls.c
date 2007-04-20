@@ -112,9 +112,9 @@ main(int ac, char **av)
 		label = label_to_string(l);
 	    label_free(l);
 
-	    char id[16];
+	    char id[32];
 	    snprintf(id, 32, "%ld", de.de_inode.obj.object);
-	    printf("%-20.20s %-1.1s %c %-8.8s %s\n", de.de_name, type, dev_id, id, label);
+	    printf("%-20.20s %-1.1s %c %-20.20s %s\n", de.de_name, type, dev_id, id, label);
 	} else {
 	    printf("%s\n", de.de_name);
 	}
