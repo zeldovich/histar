@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <kern/lib.h>
 #include <kern/thread.h>
 
@@ -31,13 +30,4 @@ _panic(const char *file, int line, const char *fmt, ...)
 
  dead:
     abort();
-}
-
-void
-abort(void)
-{
-    outw(0x8A00, 0x8A00);
-    outw(0x8A00, 0x8AE0);
-    for (;;)
-	;
 }

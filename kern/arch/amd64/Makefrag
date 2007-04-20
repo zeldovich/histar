@@ -11,7 +11,6 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/multiboot.S			\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/init.c			\
-	$(ARCHDIR)/panic.c			\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/page.c			\
