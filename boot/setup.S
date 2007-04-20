@@ -1,5 +1,6 @@
 #include <machine/mmu.h>
 #include <machine/boot.h>
+#include <inc/elf.h>
 
 .set PROT_MODE_CSEG,0x08	# code segment selector
 .set PROT_MODE_DSEG,0x10	# data segment selector
@@ -240,11 +241,11 @@ protcseg:
 		movl	%ebx, (%eax)
 
 		movl	0x100000, %edx
-		cmpl	$0x464C457F, %edx
+		cmpl	$ELF_MAGIC, %edx
 		jne	badelf
 
-		movl	0x100018, %edx		# read elf64 e_entry
-		addl	$0x80000000, %edx	# get rid of offset
+		movl	0x100018, %edx		# read e_entry (elf32, elf64)
+		andl	$0x0fffffff, %edx	# get rid of offset
 		movw	$(0x0300 + '6'), (0xb800e)
 
 		### set %eax and %ebx for init()
