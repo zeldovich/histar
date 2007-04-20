@@ -4,6 +4,7 @@
 #include <kern/pageinfo.h>
 #include <kern/as.h>
 #include <kern/arch.h>
+#include <kern/lib.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
@@ -308,7 +309,7 @@ as_queue_invlpg(const struct Pagemap *pgmap, void *addr)
 }
 
 static void
-as_collect_dirty_bits(const void *arg, uint64_t *ptep, void *va)
+as_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
     const struct Pagemap *pgmap = arg;
     uint64_t pte = *ptep;
@@ -322,7 +323,7 @@ as_collect_dirty_bits(const void *arg, uint64_t *ptep, void *va)
 }
 
 static void
-as_page_invalidate_cb(const void *arg, uint64_t *ptep, void *va)
+as_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
     const struct Pagemap *pgmap = arg;
     as_collect_dirty_bits(arg, ptep, va);
@@ -337,7 +338,7 @@ as_page_invalidate_cb(const void *arg, uint64_t *ptep, void *va)
 }
 
 static void
-as_page_map_ro_cb(const void *arg, uint64_t *ptep, void *va)
+as_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
     const struct Pagemap *pgmap = arg;
     as_collect_dirty_bits(arg, ptep, va);
@@ -478,7 +479,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	if ((usm->flags & SEGMAP_EXEC))
 	    ptflags &= ~PTE_NX;
 
-	uint64_t *ptep;
+	ptent_t *ptep;
 	r = pgdir_walk(as->as_pgmap, va, 1, &ptep);
 	if (r < 0) {
 	    if (va != need_va)
@@ -704,7 +705,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 		 kobject_id_t *seg_idp, uint64_t *offsetp)
 {
     if (as->as_pgmap) {
-	uint64_t *pte;
+	ptent_t *pte;
 	int r = pgdir_walk(as->as_pgmap, addr, 0, &pte);
 	if (r >= 0 && *pte) {
 	    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*pte)));
