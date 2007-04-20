@@ -12,7 +12,7 @@ megs: 32
 
 # filename of ROM images
 romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
-vgaromimage: $BXSHARE/VGABIOS-lgpl-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 
 # Use the parallel port as an alternate console,
 # so that we can run Bochs without the GUI.
@@ -83,7 +83,7 @@ keyboard_serial_delay: 10
 # the line below will allow you true network access, but you must be root
 #ne2k: ioaddr=0x300, irq=9, mac=b0:c4:20:00:00:01, ethmod=linux, ethdev=eth0
 
-ne2k: enabled=1, mac=b0:c4:20:00:00:01, ethmod=null, ethdev=eth0, ioaddr=0x300, irq=9
+#ne2k: enabled=1, mac=b0:c4:20:00:00:01, ethmod=null, ethdev=eth0, ioaddr=0x300, irq=9
 pnic: enabled=1, mac=b0:c4:20:00:00:02, ethmod=null, ethdev=eth0
 
 i440fxsupport: enabled=1, slot1=ne2k, slot2=pcipnic
