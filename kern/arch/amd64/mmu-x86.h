@@ -22,7 +22,7 @@
  *   n = 2 => page directory pointer
  *   n = 3 => page map level 4
  */
-#define PDX(n, la)	(((uintptr_t) (la)) >> (12 + 9 * (n)) & 0x1FF)
+#define PDX(n, la)	(((uintptr_t) (la)) >> (12 + NPTBITS * (n)) & 0x1FF)
 
 /* page number field of address */
 #define PPN(la)		((la) >> PGSHIFT)
@@ -33,7 +33,7 @@
 
 #define PGSIZE		0x1000		/* bytes mapped by a page */
 #define PGSHIFT		12		/* log2(PGSIZE) */
-#define PDSHIFT(n)	(12 + 9 * (n))
+#define PDSHIFT(n)	(12 + NPTBITS * (n))
 
 /* Page table/directory entry flags. */
 #define PTE_P	0x001		/* Present */
