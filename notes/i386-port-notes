@@ -32,13 +32,6 @@ need more than 3 x32 arguments.
 
 ===
 
-netd_server_init assumes that 64-bit taint handle fits in void*.
-declassier() similarly assumes void* takes 64-bit handle value.
-auth_user.cc assumes handle fits in void*.
-db.cc assumes handle fits in void*.
-
-===
-
 setup_env() takes 64-bit values but they are really only 32-bit values?
 same for libmain()..
 what's going to happen with stack_switch()?
