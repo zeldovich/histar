@@ -202,14 +202,14 @@ thread_load_elf(struct Container *c, struct Thread *t,
     }
 
     uintptr_t elf_entry;
-    if (elf.elf32.e_machine == ELF_MACH_AMD64) {
+    if (elf.elf32.e_ident[EI_CLASS] == ELF_CLASS_64) {
 	r = elf_load64(&elf.elf64, as, c, obj_label, binary, size,
 		       &segmap_i, &elf_entry);
-    } else if (elf.elf32.e_machine == ELF_MACH_386) {
+    } else if (elf.elf32.e_ident[EI_CLASS] == ELF_CLASS_32) {
 	r = elf_load32(&elf.elf32, as, c, obj_label, binary, size,
 		       &segmap_i, &elf_entry);
     } else {
-	cprintf("thread_load_elf: unknown machine %d\n", elf.elf32.e_machine);
+	cprintf("thread_load_elf: bad class %d\n", elf.elf32.e_ident[EI_CLASS]);
 	r = -E_INVAL;
     }
 
