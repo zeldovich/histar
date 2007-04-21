@@ -33,6 +33,6 @@ struct declassify_args {
     };
 };
 
-void declassifier(void *, struct gate_call_data *, struct gatesrv_return *);
+void declassifier(uint64_t, struct gate_call_data *, struct gatesrv_return *);
 
 #endif

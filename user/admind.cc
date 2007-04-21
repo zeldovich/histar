@@ -49,7 +49,7 @@ admind_dispatch(struct gate_call_data *parm)
 }
 
 static void __attribute__((noreturn))
-admind_entry(void *x, struct gate_call_data *parm, gatesrv_return *r)
+admind_entry(uint64_t x, struct gate_call_data *parm, gatesrv_return *r)
 {
     try {
 	admind_dispatch(parm);

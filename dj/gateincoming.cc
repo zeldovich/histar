@@ -93,7 +93,7 @@ class incoming_impl : public dj_incoming_gate {
 	    gd.func_ = &call_stub;
 	}
 
-	gd.arg_ = (void *) this;
+	gd.arg_ = (uintptr_t) this;
 	gd.label_ = &l;
 	gd.clearance_ = &c;
 	gate_ = gate_create(&gd);
@@ -118,7 +118,9 @@ class incoming_impl : public dj_incoming_gate {
 		     tls_stack_top, (void*) gatesrv_entry_tls);
     }
 
-    static void call_entry_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
+    static void call_entry_stub(uint64_t arg, gate_call_data *gcd,
+				gatesrv_return *ret)
+    {
 	incoming_impl *i = (incoming_impl *) arg;
 	if (start_env->proc_container == i->proc_ct_) {
 	    /* Everything is fine, jump into the base AS */
@@ -130,7 +132,9 @@ class incoming_impl : public dj_incoming_gate {
 	}
     }
 
-    static void call_stub(void *arg, gate_call_data *gcd, gatesrv_return *ret) {
+    static void call_stub(uint64_t arg, gate_call_data *gcd,
+			  gatesrv_return *ret)
+    {
 	incoming_impl *i = (incoming_impl *) arg;
 	i->call(gcd, ret, false);
     }

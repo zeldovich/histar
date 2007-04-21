@@ -61,7 +61,7 @@ remove_pts(struct pty_args *args)
 }
 
 static void __attribute__((noreturn))
-pty_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+pty_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     struct pty_args *a = (struct pty_args *)parm->param_buf;
     

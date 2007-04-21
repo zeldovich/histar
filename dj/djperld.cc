@@ -121,7 +121,7 @@ dj_perl_service(const dj_message &m, const str &s, dj_rpc_reply *r)
 }
 
 static void
-gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
+gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
 {
     dj_rpc_srv(dj_perl_service, gcd, r);
 }

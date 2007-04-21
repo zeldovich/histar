@@ -17,9 +17,9 @@ extern "C" {
 enum { declass_debug = 0 };
 
 void __attribute__((noreturn))
-declassifier(void *arg, struct gate_call_data *gcd, gatesrv_return *gr)
+declassifier(uint64_t arg, struct gate_call_data *gcd, gatesrv_return *gr)
 {
-    uint64_t declassify_handle = (uint64_t) arg;
+    uint64_t declassify_handle = arg;
 
     label vl, vc;
     thread_cur_verify(&vl, &vc);

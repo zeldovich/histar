@@ -35,7 +35,7 @@ struct retry_seg {
 };
 
 static void __attribute__((noreturn))
-auth_grant_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
+auth_grant_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
 {
     char log_msg[256];
     snprintf(&log_msg[0], sizeof(log_msg), "authenticated OK");
@@ -57,11 +57,11 @@ auth_grant_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 }
 
 static void __attribute__((noreturn))
-auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
+auth_uauth_entry(uint64_t arg, gate_call_data *parm, gatesrv_return *gr)
 {
     auth_uauth_req *req = (auth_uauth_req *) &parm->param_buf[0];
     auth_uauth_reply *reply = (auth_uauth_reply *) &parm->param_buf[0];
-    uint64_t retry_seg_id = (uint64_t) arg;
+    uint64_t retry_seg_id = arg;
 
     req->pass[sizeof(req->pass) - 1] = '\0';
     req->npass[sizeof(req->npass) - 1] = '\0';
@@ -126,7 +126,7 @@ auth_uauth_entry(void *arg, gate_call_data *parm, gatesrv_return *gr)
 }
 
 static void __attribute__((noreturn))
-auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+auth_user_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     auth_user_req req = *(auth_user_req *) &parm->param_buf[0];
     auth_user_reply reply;
@@ -207,7 +207,7 @@ auth_user_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 	gd.clearance_ = 0;
 	gd.verify_ = &verify;
 	gd.func_ = auth_uauth_entry;
-	gd.arg_ = (void *) retry_seg_copy.object;
+	gd.arg_ = retry_seg_copy.object;
 	cobj_ref ga = gate_create(&gd);
 
 	verify.set(xh, 0);

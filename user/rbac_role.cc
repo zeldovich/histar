@@ -28,7 +28,7 @@ static const uint32_t trans_id_count = 16;
 static uint64_t trans_id[trans_id_count];
 
 static void __attribute__((noreturn))
-acquire_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+acquire_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     uint64_t *taint = (uint64_t *)parm->param_buf;
     label *dr = new label(0);
@@ -45,7 +45,7 @@ acquire_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 }
 
 static void __attribute__((noreturn))
-trans_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+trans_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     struct gate_call_data back;
     gate_call_data_copy(&back, parm);
@@ -71,7 +71,7 @@ trans_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 
 static void __attribute__((noreturn))
-admin_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+admin_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     uint64_t gate_id = parm->param_obj.object;
     for (uint32_t i = 0; i < trans_id_count; i++) {

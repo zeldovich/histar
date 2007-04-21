@@ -43,7 +43,7 @@ class gatesrv_return {
     uint64_t flags_;
 };
 
-typedef void (*gatesrv_entry_t) (void *, gate_call_data *, gatesrv_return *);
+typedef void (*gatesrv_entry_t) (uint64_t, gate_call_data *, gatesrv_return *);
 
 class gatesrv_descriptor {
  public:
@@ -61,7 +61,7 @@ class gatesrv_descriptor {
     label *verify_;
 
     gatesrv_entry_t func_;
-    void *arg_;
+    uint64_t arg_;
 
     uint64_t flags_;
 
@@ -76,9 +76,9 @@ class gatesrv_descriptor {
 cobj_ref gate_create(gatesrv_descriptor *dsc);
 cobj_ref gate_create(uint64_t gate_container, const char *name,
 		     label *label, label *clearance, label *verify,
-		     gatesrv_entry_t func, void *arg);
+		     gatesrv_entry_t func, uint64_t arg);
 
-void gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
+void gatesrv_entry_tls(gatesrv_entry_t fn, uint64_t arg, uint64_t flags)
     __attribute__((noreturn));
 
 #endif

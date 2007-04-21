@@ -45,7 +45,7 @@ gatesrv_cleanup_tls(void *stack, uint64_t thread_ref_ct)
 }
 
 static void __attribute__((noreturn))
-gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
+gatesrv_entry(gatesrv_entry_t fn, uint64_t arg, void *stack, uint64_t flags)
 {
     // Arguments for gate call passed on the top of the TLS stack.
     gate_call_data *d = (gate_call_data *) tls_gate_args;
@@ -67,7 +67,7 @@ gatesrv_entry(gatesrv_entry_t fn, void *arg, void *stack, uint64_t flags)
 }
 
 void __attribute__((noreturn))
-gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
+gatesrv_entry_tls(gatesrv_entry_t fn, uint64_t arg, uint64_t flags)
 {
     try {
 	// Copy-on-write if we are tainted
@@ -109,7 +109,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 	    g.dismiss();
 	    s.dismiss();
 
-	    stack_switch((uint64_t) fn, (uint64_t) arg, (uint64_t) stackbase, flags,
+	    stack_switch((uint64_t) fn, arg, (uint64_t) stackbase, flags,
 			 stacktop, (void *) &gatesrv_entry);
 	}
     } catch (std::exception &e) {
@@ -121,7 +121,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, void *arg, uint64_t flags)
 struct cobj_ref
 gate_create(uint64_t gate_ct, const char *name,
 	    label *label, label *clearance, label *verify,
-	    gatesrv_entry_t func, void *arg)
+	    gatesrv_entry_t func, uint64_t arg)
 {
     gatesrv_descriptor gd;
     gd.gate_container_ = gate_ct;
@@ -150,7 +150,7 @@ gate_create(gatesrv_descriptor *gd)
     te.te_entry = (void *) &gatesrv_entry_tls;
     te.te_stack = (char *) tls_stack_top - 8;
     te.te_arg[0] = (uint64_t) gd->func_;
-    te.te_arg[1] = (uint64_t) gd->arg_;
+    te.te_arg[1] = gd->arg_;
     te.te_arg[2] = gd->flags_;
     te.te_as = gd->as_;
 

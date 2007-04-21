@@ -10,7 +10,7 @@ extern "C" {
 #include <dj/djops.hh>
 
 static void
-gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
+gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
 {
     dj_rpc_srv(dj_echo_service, gcd, r);
 }

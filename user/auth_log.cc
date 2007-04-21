@@ -10,7 +10,7 @@ extern "C" {
 #include <inc/error.hh>
 
 static void __attribute__((noreturn))
-authlog_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+authlog_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     parm->param_buf[sizeof(parm->param_buf) - 1] = '\0';
     FILE *f = fopen("/authlog_self/log/log.out", "a");

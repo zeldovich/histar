@@ -77,7 +77,7 @@ glabel_to_label(global_label *gl, label *l, char save_gate_args)
 }
 
 static void __attribute__((noreturn))
-bridge_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+bridge_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     gate_call_data bck;
     gate_call_data_copy_all(&bck, parm);

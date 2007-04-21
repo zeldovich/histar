@@ -119,7 +119,7 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
 }
 
 static void __attribute__((noreturn))
-auth_dir_entry(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+auth_dir_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     auth_dir_req req = *(auth_dir_req *) &parm->param_buf[0];
     req.user[sizeof(req.user) - 1] = '\0';

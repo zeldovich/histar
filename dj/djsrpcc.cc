@@ -43,7 +43,7 @@ struct dj_rpc_reply_state {
  * allocations.
  */
 static void
-dj_rpc_reply_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
+dj_rpc_reply_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
 {
     dj_rpc_reply_state *s = (dj_rpc_reply_state *) arg;
 
@@ -131,7 +131,7 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
     gd.gate_container_ = call_ct;
     gd.name_ = "dj_rpc_reply_entry";
     gd.func_ = &dj_rpc_reply_entry;
-    gd.arg_ = (void *) &rs;
+    gd.arg_ = (uintptr_t) &rs;
     cobj_ref return_gate = gate_create(&gd);
 
     dj_call_msg callmsg;

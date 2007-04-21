@@ -24,7 +24,7 @@ extern "C" {
 static struct cobj_ref gs;
 
 static void __attribute__ ((noreturn))
-signal_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
+signal_gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     siginfo_t *si = (siginfo_t *) &gcd->param_buf[0];
     static_assert(sizeof(*si) <= sizeof(gcd->param_buf));

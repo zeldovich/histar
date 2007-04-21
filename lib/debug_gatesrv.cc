@@ -197,7 +197,7 @@ debug_gate_attach_detach(struct debug_args *da)
 }
 
 static void __attribute__ ((noreturn))
-debug_gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
+debug_gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     struct debug_args *da = (struct debug_args *) &gcd->param_buf[0];
     static_assert(sizeof(*da) <= sizeof(gcd->param_buf));

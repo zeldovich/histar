@@ -28,10 +28,10 @@ struct db_table_info {
 };
 
 static void __attribute__((noreturn))
-db_row_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
+db_row_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     try {
-	uint64_t row_seg_id = (uint64_t) arg;
+	uint64_t row_seg_id = arg;
 	cobj_ref row_seg = COBJ(db_table_ct, row_seg_id);
 
 	db_row *row = 0;
@@ -117,7 +117,7 @@ db_insert(label *v, db_query *dbq, db_reply *dbr)
     gd.clearance_ = 0;
     gd.verify_ = &verify;
     gd.func_ = &db_row_entry;
-    gd.arg_ = (void *) copy_id;
+    gd.arg_ = copy_id;
 
     gate_create(&gd);
     row_drop.dismiss();
@@ -193,7 +193,7 @@ db_handle_query(db_query *dbq, db_reply *dbr, uint64_t reply_ct)
 }
 
 static void __attribute__((noreturn))
-db_entry(void *arg, gate_call_data *gcd, gatesrv_return *gr)
+db_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     db_query dbq = *(db_query *) &gcd->param_buf[0];
     db_reply *dbr = (db_reply *) &gcd->param_buf[0];

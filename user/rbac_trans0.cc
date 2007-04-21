@@ -8,7 +8,7 @@ extern "C" {
 #include <inc/gatesrv.hh>
 
 static void __attribute__((noreturn))
-trans_gate(void *arg, struct gate_call_data *parm, gatesrv_return *gr)
+trans_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     gr->ret(0,0,0);
 }

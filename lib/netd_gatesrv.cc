@@ -28,7 +28,7 @@ static struct cobj_ref netd_asref;
 static void netd_gate_init(uint64_t gate_ct, label *l, label *clear);
 
 static void __attribute__((noreturn))
-netd_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
+netd_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
@@ -107,7 +107,7 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
 }
 
 static void __attribute__((noreturn))
-netd_fast_gate_entry(void *x, struct gate_call_data *gcd, gatesrv_return *rg)
+netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref temp_as;
@@ -217,7 +217,7 @@ netd_server_init(uint64_t gate_ct,
 
     declassify_gate =
 	gate_create(start_env->shared_container, "declassifier",
-		    0, 0, 0, &declassifier, (void *) taint_handle);
+		    0, 0, 0, &declassifier, taint_handle);
 
     netd_gate_init(gate_ct, l, clear);
 }

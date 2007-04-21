@@ -9,7 +9,7 @@ extern "C" {
 #include <dj/djops.hh>
 
 static void
-gate_entry(void *arg, gate_call_data *gcd, gatesrv_return *r)
+gate_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
 {
     label vl, vc;
     thread_cur_verify(&vl, &vc);

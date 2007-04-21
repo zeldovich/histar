@@ -162,7 +162,7 @@ a2pdf(int fd, std::ostringstream &pdf_out)
 }
 
 static void __attribute__((noreturn))
-httpd_worker(void *arg, gate_call_data *gcd, gatesrv_return *gr)
+httpd_worker(uint64_t arg, gate_call_data *gcd, gatesrv_return *gr)
 {
     gcd->param_buf[sizeof(gcd->param_buf) - 1] = '\0';
     const char *user = &gcd->param_buf[0];
