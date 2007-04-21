@@ -12,8 +12,13 @@ extern "C" {
 #include <dj/djrpcx.h>
 
 static void __attribute__((noreturn))
-dj_rpc_srv_return(cobj_ref *gp, label *tgtl, label *tgtc, gatesrv_return *r)
+dj_rpc_srv_return(uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3)
 {
+    cobj_ref *gp = (cobj_ref *) a0;
+    label *tgtl = (label *) a1;
+    label *tgtc = (label *) a2;
+    gatesrv_return *r = (gatesrv_return *) r;
+
     jthread_mutex_lock(&fork_mu);
     gate_invoke(*gp, tgtl, tgtc, &gatesrv_return::cleanup_stub, r);
 }

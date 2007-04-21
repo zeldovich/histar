@@ -26,8 +26,10 @@ thread_cleanup(struct thread_args *ta)
 }
 
 static void __attribute__((noreturn))
-thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, void *stackbase)
+thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, uint64_t stackbasearg)
 {
+    void *stackbase = (void *) stackbasearg;
+
     int r = thread_cleanup_internal(ct, thr_id, stack_id, stackbase);
     if (r < 0)
 	cprintf("thread_exit: cannot cleanup: %s\n", e2s(r));

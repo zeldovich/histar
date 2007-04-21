@@ -21,8 +21,13 @@ extern "C" {
 static int self_taint_debug = 0;
 
 static void __attribute__((noreturn))
-taint_self_tls(int *rp, label *l, uint64_t taint_ct, struct jos_jmp_buf *back)
+taint_self_tls(uint64_t rparg, uint64_t larg,
+	       uint64_t taint_ct, uint64_t backarg)
 {
+    int *rp = (int *) rparg;
+    label *l = (label *) larg;
+    struct jos_jmp_buf *back = (struct jos_jmp_buf *) backarg;
+
     int r;
     r = sys_self_set_label(l->to_ulabel());
     if (r >= 0) {

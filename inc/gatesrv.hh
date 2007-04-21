@@ -29,7 +29,7 @@ class gatesrv_return {
     gatesrv_return(const gatesrv_return&);
     gatesrv_return &operator=(const gatesrv_return&);
 
-    static void ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
+    static void ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 	__attribute__((noreturn));
     void ret_tls(label *tgt_label, label *tgt_clear)
 	__attribute__((noreturn));
@@ -78,7 +78,7 @@ cobj_ref gate_create(uint64_t gate_container, const char *name,
 		     label *label, label *clearance, label *verify,
 		     gatesrv_entry_t func, uint64_t arg);
 
-void gatesrv_entry_tls(gatesrv_entry_t fn, uint64_t arg, uint64_t flags)
+void gatesrv_entry_tls(uint64_t fn, uint64_t arg, uint64_t flags)
     __attribute__((noreturn));
 
 #endif

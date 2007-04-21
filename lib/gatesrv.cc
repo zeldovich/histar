@@ -23,8 +23,9 @@ extern "C" {
 enum { gatesrv_debug = 0 };
 
 static void __attribute__((noreturn))
-gatesrv_cleanup_tls(void *stack, uint64_t thread_ref_ct)
+gatesrv_cleanup_tls(uint64_t stackarg, uint64_t thread_ref_ct)
 {
+    void *stack = (void *) stackarg;
     if (stack) {
 	struct u_segment_mapping usm;
 	int r = segment_lookup(stack, &usm);
@@ -45,8 +46,11 @@ gatesrv_cleanup_tls(void *stack, uint64_t thread_ref_ct)
 }
 
 static void __attribute__((noreturn))
-gatesrv_entry(gatesrv_entry_t fn, uint64_t arg, void *stack, uint64_t flags)
+gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
 {
+    gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
+    void *stack = (void *) stackarg;
+
     // Arguments for gate call passed on the top of the TLS stack.
     gate_call_data *d = (gate_call_data *) tls_gate_args;
     uint64_t thread_ref_ct = d->thread_ref_ct;
@@ -67,8 +71,9 @@ gatesrv_entry(gatesrv_entry_t fn, uint64_t arg, void *stack, uint64_t flags)
 }
 
 void __attribute__((noreturn))
-gatesrv_entry_tls(gatesrv_entry_t fn, uint64_t arg, uint64_t flags)
+gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 {
+    gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
     try {
 	// Copy-on-write if we are tainted
 	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
@@ -92,7 +97,7 @@ gatesrv_entry_tls(gatesrv_entry_t fn, uint64_t arg, uint64_t flags)
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
 
 	if ((flags & GATESRV_KEEP_TLS_STACK)) {
-	    gatesrv_entry(fn, arg, 0, flags);
+	    gatesrv_entry((uint64_t) fn, arg, 0, flags);
 	} else {
 	    struct cobj_ref stackobj;
 	    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
@@ -231,8 +236,12 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 }
 
 void
-gatesrv_return::ret_tls_stub(gatesrv_return *r, label *tgt_label, label *tgt_clear)
+gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 {
+    gatesrv_return *r = (gatesrv_return *) a0;
+    label *tgt_label = (label *) a1;
+    label *tgt_clear = (label *) a2;
+
     try {
 	if (gatesrv_debug)
 	    cprintf("[%ld] gatesrv_return::ret_tls_stub\n", thread_id());
