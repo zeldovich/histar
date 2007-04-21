@@ -29,6 +29,12 @@ start:	.code32
 	ljmp	*(%ecx)
 almost:
 	movw	$(0x0500 + '9'), (0xb8014)
+
+	movw	$GD_KD, %ax
+	movw	%ax, %ss
+	movw	%ax, %ds
+	movw	%ax, %es
+
 	movl	$(kstack + KSTACK_SIZE),%esp	// set %esp to top of stack
 	movl	%ebp,%eax			// restore & pass multiboot magic
 	movl	%ebx,%edx			// pass multiboot pointer
@@ -68,6 +74,12 @@ trap_entry:
 	movl	%edi,tf_edi(%esp)
 	movl	%esi,tf_esi(%esp)
 	movl	%ebp,tf_ebp(%esp)
+	movw	%ds,tf_ds(%esp)
+	movw	%es,tf_es(%esp)
+
+	movw	$GD_KD, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
 
 	movl	%esp,%eax	    // first arg: Trapframe
 	xchgl	%edx,tf_edx(%esp)   // %edx and _trapentry_eip are union'd
@@ -76,6 +88,9 @@ trap_entry:
 .globl	trapframe_pop
 trapframe_pop:
 	movl	%eax,%esp
+
+	movw	tf_ds(%esp),%ds
+	movw	tf_es(%esp),%es
 
 	movl	tf_eax(%esp),%eax
 	movl	tf_ebx(%esp),%ebx

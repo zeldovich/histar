@@ -45,12 +45,13 @@ struct Pagemap bootpd PTATTR = {
  * Boot segments
  */
 struct Tss tss = {
-  .tss_sp = { [0] = { (uintptr_t) &kstack[KSTACK_SIZE], GD_KT, 0 } },
+  .tss_sp = { [0] = { (uintptr_t) &kstack[KSTACK_SIZE], GD_KD, 0 } },
   .tss_iomb = offsetof (struct Tss, tss_iopb),
 };
 
 uint64_t gdt[] = {
   [GD_KT  >> 3] = SEG32(SEG_X|SEG_R, 0, 0xffffffff, 0),
+  [GD_KD  >> 3] = SEG32(SEG_W, 0, 0xffffffff, 0),
   [GD_TSS >> 3]	= 0, 0,
   [GD_UD  >> 3] = SEG32(SEG_W, 0, 0xffffffff, 3),
   [GD_UT_NMASK >> 3] = SEG32(SEG_X|SEG_R, 0, 0xffffffff, 3),

@@ -148,8 +148,6 @@ trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
     uint32_t trap0eip = (uint32_t) &trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (trampoline_eip - trap0eip) / 16;
 
-    tf->tf_ds = read_ds();
-    tf->tf_es = read_es();
     tf->tf_fs = read_fs();
     tf->tf_gs = read_gs();
 
@@ -217,14 +215,10 @@ thread_arch_run(const struct Thread *t)
 	lcr0(rcr0() | CR0_TS);
     }
 
-#define LOAD_SEGMENT_REG(t, rs) \
-    if (t->th_tf.tf_##rs != read_##rs()) { write_##rs(t->th_tf.tf_##rs); }
-
-    LOAD_SEGMENT_REG(t, ds);
-    LOAD_SEGMENT_REG(t, es);
-    LOAD_SEGMENT_REG(t, fs);
-    LOAD_SEGMENT_REG(t, gs);
-#undef LOAD_SEGMENT_REG
+    if (t->th_tf.tf_fs != read_fs())
+	write_fs(t->th_tf.tf_fs);
+    if (t->th_tf.tf_gs != read_gs())
+	write_gs(t->th_tf.tf_gs);
 
     sched_start(t, read_tsc());
     trapframe_pop(&t->th_tf);
@@ -282,6 +276,10 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_eflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;
     t->th_tf.tf_ss = GD_UD | 3;
+    t->th_tf.tf_ds = GD_UD | 3;
+    t->th_tf.tf_es = GD_UD | 3;
+    t->th_tf.tf_fs = GD_UD | 3;
+    t->th_tf.tf_gs = GD_UD | 3;
     t->th_tf.tf_eip = (uintptr_t) te->te_entry;
     t->th_tf.tf_esp = (uintptr_t) te->te_stack;
 
