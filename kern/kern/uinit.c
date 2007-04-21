@@ -12,6 +12,7 @@
 #include <kern/embedbin.h>
 #include <kern/arch.h>
 #include <kern/timer.h>
+#include <inc/elf32.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 
@@ -104,6 +105,64 @@ segment_create_embed(struct Container *c, struct Label *l, uint64_t segsize,
     return container_put(c, &sg->sg_ko);
 }
 
+#define ELF_LOAD_MACRO(bits)						\
+static int								\
+elf_load##bits(Elf##bits##_Ehdr *elf,					\
+	       struct Address_space *as,				\
+	       struct Container *c, struct Label *obj_label,		\
+	       const uint8_t *binary, uint64_t size,			\
+	       uint32_t *segmap_ip,					\
+	       uintptr_t *entryp)					\
+{									\
+    for (uint32_t i = 0; i < elf->e_phnum; i++) {			\
+	Elf##bits##_Phdr ph;						\
+	if (elf_copyin(&ph, elf->e_phoff + i * sizeof(ph), sizeof(ph),	\
+		       binary, size) < 0)				\
+	{								\
+	    cprintf("ELF section header unreadable\n");			\
+	    return -E_INVAL;						\
+	}								\
+									\
+	if (ph.p_type != ELF_PROG_LOAD)					\
+	    continue;							\
+									\
+	if (ph.p_offset + ph.p_filesz > size) {				\
+	    cprintf("ELF: section past the end of the file\n");		\
+	    return -E_INVAL;						\
+	}								\
+									\
+	char *va = (char *) (uintptr_t) ROUNDDOWN(ph.p_vaddr, PGSIZE);	\
+	uintptr_t page_offset = PGOFF(ph.p_offset);			\
+	uintptr_t mem_pages = ROUNDUP(page_offset + ph.p_memsz,		\
+				      PGSIZE) / PGSIZE;			\
+									\
+	struct Segment *s;						\
+	int r = segment_create_embed(c, obj_label,			\
+				     mem_pages * PGSIZE,		\
+				     binary + ph.p_offset - page_offset,\
+				     page_offset + ph.p_filesz, &s);	\
+	if (r < 0) {							\
+	    cprintf("ELF: cannot create segment: %s\n", e2s(r));	\
+	    return r;							\
+	}								\
+									\
+	r = elf_add_segmap(as, segmap_ip,				\
+			   COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),	\
+			   0, mem_pages, va, ph.p_flags);		\
+	if (r < 0) {							\
+	    cprintf("ELF: cannot map segment\n");			\
+	    return r;							\
+	}								\
+    }									\
+									\
+    *entryp = elf->e_entry;						\
+    return 0;								\
+}
+
+ELF_LOAD_MACRO(32)
+ELF_LOAD_MACRO(64)
+#undef ELF_LOAD_MACRO
+
 static int
 thread_load_elf(struct Container *c, struct Thread *t,
 		struct Label *obj_label,
@@ -112,13 +171,17 @@ thread_load_elf(struct Container *c, struct Thread *t,
 		const uint8_t *binary, uint64_t size,
 		uint64_t arg0, uint64_t arg1)
 {
-    Elf64_Ehdr elf;
+    union {
+	Elf32_Ehdr elf32;
+	Elf64_Ehdr elf64;
+    } elf;
+
     if (elf_copyin(&elf, 0, sizeof(elf), binary, size) < 0) {
 	cprintf("ELF header unreadable\n");
 	return -E_INVAL;
     }
 
-    if (elf.e_magic != ELF_MAGIC || elf.e_machine != ELF_MACH_AMD64) {
+    if (elf.elf32.e_magic != ELF_MAGIC) {
 	cprintf("ELF magic mismatch\n");
 	return -E_INVAL;
     }
@@ -138,45 +201,20 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return r;
     }
 
-    for (int i = 0; i < elf.e_phnum; i++) {
-	Elf64_Phdr ph;
-	if (elf_copyin(&ph, elf.e_phoff + i * sizeof(ph), sizeof(ph),
-		       binary, size) < 0)
-	{
-	    cprintf("ELF section header unreadable\n");
-	    return -E_INVAL;
-	}
-
-	if (ph.p_type != ELF_PROG_LOAD)
-	    continue;
-
-	if (ph.p_offset + ph.p_filesz > size) {
-	    cprintf("ELF: section past the end of the file\n");
-	    return -E_INVAL;
-	}
-
-	char *va = (char *) (uintptr_t) ROUNDDOWN(ph.p_vaddr, PGSIZE);
-	uint64_t page_offset = PGOFF(ph.p_offset);
-	uint64_t mem_pages = ROUNDUP(page_offset + ph.p_memsz, PGSIZE) / PGSIZE;
-
-	struct Segment *s;
-	r = segment_create_embed(c, obj_label,
-				 mem_pages * PGSIZE,
-				 binary + ph.p_offset - page_offset,
-				 page_offset + ph.p_filesz, &s);
-	if (r < 0) {
-	    cprintf("ELF: cannot create segment: %s\n", e2s(r));
-	    return r;
-	}
-
-	r = elf_add_segmap(as, &segmap_i,
-			   COBJ(c->ct_ko.ko_id, s->sg_ko.ko_id),
-			   0, mem_pages, va, ph.p_flags);
-	if (r < 0) {
-	    cprintf("ELF: cannot map segment\n");
-	    return r;
-	}
+    uintptr_t elf_entry;
+    if (elf.elf32.e_machine == ELF_MACH_AMD64) {
+	r = elf_load64(&elf.elf64, as, c, obj_label, binary, size,
+		       &segmap_i, &elf_entry);
+    } else if (elf.elf32.e_machine == ELF_MACH_386) {
+	r = elf_load32(&elf.elf32, as, c, obj_label, binary, size,
+		       &segmap_i, &elf_entry);
+    } else {
+	cprintf("thread_load_elf: unknown machine %d\n", elf.elf32.e_machine);
+	r = -E_INVAL;
     }
+
+    if (r < 0)
+	return r;
 
     // Map a stack
     int stackpages = 2;
@@ -200,7 +238,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     struct thread_entry te;
     memset(&te, 0, sizeof(te));
     te.te_as = COBJ(c->ct_ko.ko_id, as->as_ko.ko_id);
-    te.te_entry = (void *) (uintptr_t) elf.e_entry;
+    te.te_entry = (void *) (uintptr_t) elf_entry;
     te.te_stack = (void *) USTACKTOP;
     te.te_arg[0] = arg0;
     te.te_arg[1] = arg1;
