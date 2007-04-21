@@ -1,10 +1,10 @@
 x86 has 7 free registers:
     eax, ebx, ecx, edx, edi, esi, ebp
 
-calling conventions require preserving:
-    ebx, esi, edi, ebp
+calling conventions require preserving these callee-save registers:
+    ebx, esi, edi, ebp [and esp]
 
-gcc allows __attribute__((regparm (3))), passing 32-bit args in:
+gcc allows __attribute__((regparm(3))), passing 32-bit args in caller-save regs:
     eax, edx, ecx
 
 what functions are vectored into by the kernel via thread_jump()?
