@@ -109,15 +109,20 @@ trap_dispatch(int trapno, struct Trapframe *tf)
     prof_thread(cur_thread, s - trap_user_iret_tsc);
 
     switch (trapno) {
-    case T_SYSCALL:
-/* XXX figure out syscall calling convention... */
-#if 0
-	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
-			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
-	if (r != -E_RESTART)
-	    tf->tf_rax = r;
-#endif
+    case T_SYSCALL: {
+	uint32_t sysnum = tf->tf_eax;
+	uint64_t *args = (uint64_t *) tf->tf_edx;
+	r = check_user_access(args, sizeof(uint64_t) * 7, 0);
+	if (r >= 0)
+	    r = kern_syscall(sysnum, args[0], args[1], args[2],
+			     args[3], args[4], args[5], args[6]);
+
+	if (r != -E_RESTART) {
+	    tf->tf_eax = r & 0xffffffff;
+	    tf->tf_edx = r >> 32;
+	}
 	break;
+    }
 
     case T_PGFLT:
 	page_fault(tf, tf->tf_err);
