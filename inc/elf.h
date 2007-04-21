@@ -7,6 +7,16 @@
 #define ELF_TYPE_EXEC		2
 #define ELF_TYPE_CORE		4
 
+// e_ident indexes
+#define EI_CLASS		0
+#define EI_DATA			1
+#define EI_VERSION		2
+#define EI_ABI			3
+
+// e_ident[EI_CLASS]
+#define ELF_CLASS_32		1
+#define ELF_CLASS_64		2
+
 // e_machine values
 #define ELF_MACH_386		3
 #define ELF_MACH_486		6
