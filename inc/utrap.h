@@ -6,7 +6,8 @@
 /* Assembly stubs */
 void utrap_entry_asm(void);
 void utrap_chain_dwarf2(void);
-void utrap_ret(struct UTrapframe *utf) __attribute__((noreturn));
+void utrap_ret(struct UTrapframe *utf)
+    __attribute__((noreturn, regparm(1)));
 
 /* C fault handler */
 void utrap_entry(struct UTrapframe *utf) __attribute__((noreturn));
