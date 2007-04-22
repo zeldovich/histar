@@ -41,26 +41,18 @@ OBJTYPE	:= elf64-x86-64
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/
 
-CC	:= $(GCCPREFIX)gcc -pipe
-CXX	:= $(GCCPREFIX)g++ -pipe
+include conf/Makefrag.$(K_ARCH)
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
 ARCH	:= $(shell $(TOP)/conf/gcc-get-arch.sh $(CC))
-AS	:= $(GCCPREFIX)as
-AR	:= $(GCCPREFIX)ar
-LD	:= $(GCCPREFIX)ld
-OBJCOPY	:= $(GCCPREFIX)objcopy
-OBJDUMP	:= $(GCCPREFIX)objdump
-NM	:= $(GCCPREFIX)nm
-STRIP	:= $(GCCPREFIX)strip
-LEX	:= flex
-YACC	:= bison
-RPCC	:= rpcc
-TAME 	:= tame
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
+LEX	:= flex
+YACC	:= bison
+RPCC	:= rpcc
+TAME 	:= tame
 
 # Compiler flags.
 
