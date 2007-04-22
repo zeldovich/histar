@@ -6,7 +6,8 @@ ENTRY(_start)
 	// Terminate stack unwinding
 	pushl	$0
 
-	// Save our two arguments, pass them on the stack
+	// Save our three arguments, pass them on the stack
+	pushl	%ecx
 	pushl	%edx
 	pushl	%eax
 
