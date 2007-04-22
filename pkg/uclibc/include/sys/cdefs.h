@@ -195,7 +195,9 @@
 /* At some point during the gcc 2.96 development the `malloc' attribute
    for functions was introduced.  We don't want to use it unconditionally
    (although this would be possible) since it generates warnings.  */
-#if __GNUC_PREREQ (2,96)
+#if __GNUC_PREREQ (4,0)
+# define __attribute_malloc__ /* Ignore */
+#elif __GNUC_PREREQ (2,96)
 # define __attribute_malloc__ __attribute__ ((__malloc__))
 #else
 # define __attribute_malloc__ /* Ignore */
