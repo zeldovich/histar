@@ -85,7 +85,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libstdc++.a
 
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
-	   -specs=$(TOP)/conf/gcc.specs
+	   -specs=$(TOP)/conf/gcc.specs -static
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

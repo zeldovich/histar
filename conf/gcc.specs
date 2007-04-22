@@ -1,3 +1,3 @@
 *lib:
---start-group -ljos -llwip -lc -lm -lutil -lstdc++ --end-group
+-ljos -llwip -lc -lm -lutil -lstdc++
 
