@@ -5,6 +5,7 @@
 #include <inc/memlayout.h>
 #include <stddef.h>
 #include <string.h>
+#include <inttypes.h>
 
 /* x86 %cs-based masking */
 #include <machine/pmap.h>

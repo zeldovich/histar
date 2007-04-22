@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 static uint64_t delay_nsec = NSEC_PER_SECOND / 100;
 enum { buffer_size = 4096 };

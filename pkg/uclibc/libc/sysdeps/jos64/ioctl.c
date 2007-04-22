@@ -4,6 +4,7 @@
 
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <inttypes.h>
 
 int
 jos_ioctl(struct Fd *fd, uint64_t req, va_list va)
