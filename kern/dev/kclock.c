@@ -107,6 +107,7 @@ pit_init(void)
     pit_state.pit_timesrc.freq_hz = pit_hz;
     pit_state.pit_timesrc.ticks = &pit_get_ticks;
     pit_state.pit_timesrc.delay_nsec = &pit_delay;
+    pit_state.pit_timesrc.arg = &pit_state;
     if (!the_timesrc)
 	the_timesrc = &pit_state.pit_timesrc;
 
