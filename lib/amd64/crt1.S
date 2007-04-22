@@ -9,9 +9,10 @@ ENTRY(_start)
 	// AMD64 requires 16-byte stack alignment before the call
 	pushq	$0
 
-	// Save our two arguments
+	// Save our three arguments
 	movq	%rdi, %r12
 	movq	%rsi, %r13
+	movq	%rdx, %r14
 
 	// Call setup_env with our args
 	call	setup_env
@@ -22,6 +23,7 @@ ENTRY(_start)
 	// Call libmain with the right args
 	movq	%r12, %rdi
 	movq	%r13, %rsi
+	movq	%r14, %rdx
 	call	libmain
 	.cfi_endproc
 

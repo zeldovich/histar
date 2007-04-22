@@ -34,14 +34,17 @@ static int argc;
 static const char **argv;
 
 void __attribute__((noinline))
-setup_env(uint64_t envaddr, uint64_t arg1)
+setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
-    if (arg1)
+    start_arg0 = arg0;
+    start_arg1 = arg1;
+
+    if (bootstrap)
 	return;
 
     // This process has enough of an environment,
     // unlike a bootstrap process.
-    start_env = (start_env_t *) envaddr;
+    start_env = (start_env_t *) start_arg0;
     start_env->taint_cow_as = COBJ(0, 0);
     prof_init(0);
 
@@ -117,12 +120,9 @@ setup_env(uint64_t envaddr, uint64_t arg1)
 }
 
 void
-libmain(uint64_t arg0, uint64_t arg1)
+libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
-    start_arg0 = arg0;
-    start_arg1 = arg1;
-
-    if (start_arg1 == 0) {
+    if (!bootstrap) {
 	if (start_env->trace_on) {
 	    debug_gate_trace_is(1);
 	    debug_gate_breakpoint();

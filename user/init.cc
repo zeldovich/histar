@@ -317,7 +317,7 @@ try
 	throw error(h_root_t, "cannot allocate root taint handle");
     start_env->user_taint = h_root_t;
 
-    setup_env((uint64_t) start_env, 0);
+    setup_env(0, (uintptr_t) start_env, 0);
     init_procs(cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {

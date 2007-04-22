@@ -240,8 +240,9 @@ thread_load_elf(struct Container *c, struct Thread *t,
     te.te_as = COBJ(c->ct_ko.ko_id, as->as_ko.ko_id);
     te.te_entry = (void *) (uintptr_t) elf_entry;
     te.te_stack = (void *) USTACKTOP;
-    te.te_arg[0] = arg0;
-    te.te_arg[1] = arg1;
+    te.te_arg[0] = 1;
+    te.te_arg[1] = arg0;
+    te.te_arg[2] = arg1;
     assert_check(thread_jump(t, th_label, th_clearance, &te));
     return 0;
 }

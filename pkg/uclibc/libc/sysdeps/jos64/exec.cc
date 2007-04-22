@@ -190,7 +190,8 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     error_check(segment_map_as(e.te_as, new_env_ref,
 			       0, SEGMAP_READ | SEGMAP_WRITE,
 			       &new_env_va, 0, 0));
-    e.te_arg[0] = (uint64_t) new_env_va;
+    e.te_arg[0] = 0;
+    e.te_arg[1] = (uint64_t) new_env_va;
 
     // Create a thread
     int64_t tid = sys_thread_create(proc_ct, &name[0]);

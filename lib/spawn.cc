@@ -246,10 +246,12 @@ spawn(spawn_descriptor *sd)
     }
 
     if (uinit_style) {
-	e.te_arg[0] = sd->ct_;
-	e.te_arg[1] = start_env->user_grant;
+	e.te_arg[0] = 1;
+	e.te_arg[1] = sd->ct_;
+	e.te_arg[2] = start_env->user_grant;
     } else {
-	e.te_arg[0] = (uint64_t) spawn_env_va;
+	e.te_arg[0] = 0;
+	e.te_arg[1] = (uint64_t) spawn_env_va;
     }
     error_check(sys_thread_start(tobj, &e,
 				 thread_label.to_ulabel(),
