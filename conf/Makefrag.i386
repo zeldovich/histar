@@ -1,0 +1,9 @@
+CC      := $(GCCPREFIX)gcc -pipe -m32
+CXX     := $(GCCPREFIX)g++ -pipe -m32
+AS      := $(GCCPREFIX)as --64
+AR      := $(GCCPREFIX)ar
+LD      := $(GCCPREFIX)ld -m elf_i386
+OBJCOPY := $(GCCPREFIX)objcopy
+OBJDUMP := $(GCCPREFIX)objdump -m i386
+NM      := $(GCCPREFIX)nm
+STRIP   := $(GCCPREFIX)strip
