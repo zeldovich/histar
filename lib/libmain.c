@@ -33,18 +33,25 @@ int setup_env_done;
 static int argc;
 static const char **argv;
 
-void __attribute__((noinline))
+void __attribute__((noinline, regparm(3)))
 setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
-    start_arg0 = arg0;
-    start_arg1 = arg1;
+    if (sizeof(arg0) == sizeof(start_arg0)) {
+	start_arg0 = arg0;
+	start_arg1 = arg1;
+    } else {
+	struct thread_entry_args targs;
+	sys_self_get_entry_args(&targs);
+	start_arg0 = targs.te_arg[1];
+	start_arg1 = targs.te_arg[2];
+    }
 
     if (bootstrap)
 	return;
 
     // This process has enough of an environment,
     // unlike a bootstrap process.
-    start_env = (start_env_t *) start_arg0;
+    start_env = (start_env_t *) (uintptr_t) start_arg0;
     start_env->taint_cow_as = COBJ(0, 0);
     prof_init(0);
 
@@ -119,7 +126,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     setup_env_done = 1;
 }
 
-void
+void __attribute__((regparm(3)))
 libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
     if (!bootstrap) {

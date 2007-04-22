@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <inc/memlayout.h>
 #include <inc/lib.h>
 #include <inc/setjmp.h>
@@ -10,8 +9,10 @@
 #include <inc/string.h>
 #include <inc/jthread.h>
 #include <inc/utrap.h>
+#include <inc/stack.h>
 
 #include <string.h>
+#include <inttypes.h>
 
 #define N_BASE_MAPPINGS 64
 static struct u_segment_mapping cache_ents[N_BASE_MAPPINGS];
@@ -35,9 +36,9 @@ reserve_stack_page(void)
 static int __attribute__((warn_unused_result))
 as_mutex_lock(void)
 {
-    void *rsp = (void *) read_rsp();
+    void *curstack = (void *) stack_curptr();
     if (setup_env_done && !utrap_is_masked() &&
-	(rsp > tls_stack_top || rsp <= tls_base))
+	(curstack > tls_stack_top || curstack <= tls_base))
     {
 	reserve_stack_page();
     }
@@ -218,7 +219,8 @@ segment_map_print(struct u_address_space *as)
 
 	if (as->ents[i].flags == 0)
 	    continue;
-	cprintf("%4ld  %5d  %3ld.%-3ld  %5ld  %6ld  %02x  %p (%s)\n",
+	cprintf("%4"PRId64"  %5d  %3"PRId64".%-3"PRId64"  "
+		"%5"PRId64"  %6"PRId64"  %02x  %p (%s)\n",
 		i, as->ents[i].kslot,
 		as->ents[i].segment.container,
 		as->ents[i].segment.object,
@@ -660,7 +662,8 @@ retry:
 	slot = match_segslot;
 
     if (segment_debug)
-	cprintf("segment_map: nent %ld empty %d delay %d overlap %d exact %d\n",
+	cprintf("segment_map: nent %"PRId64" empty %d "
+		"delay %d overlap %d exact %d\n",
 		cache_uas.nent, empty_segslot, delay_segslot,
 		delay_overlap, match_segslot);
 
@@ -717,7 +720,7 @@ retry:
 	cache_uas.nent = slot + 1;
 
     if (segment_debug)
-	cprintf("segment_map: mapping <%ld.%ld> at %p, slot %d\n",
+	cprintf("segment_map: mapping <%"PRId64".%"PRId64"> at %p, slot %d\n",
 		cache_uas.ents[slot].segment.container,
 		cache_uas.ents[slot].segment.object,
 		cache_uas.ents[slot].va, slot);
