@@ -1,6 +1,7 @@
 #include <machine/pmap.h>
 #include <machine/lnxpage.h>
 #include <machine/lnxopts.h>
+#include <machine/ftglue.h>
 #include <kern/arch.h>
 #include <kern/sched.h>
 #include <inc/error.h>

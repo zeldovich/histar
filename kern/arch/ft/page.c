@@ -1,6 +1,7 @@
 #define _GNU_SOURCE 1	    // dang GNU header files
 
 #include <machine/lnxpage.h>
+#include <machine/ftglue.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
@@ -14,16 +15,14 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-size_t global_npages;
-struct page_stats page_stats;
 struct page_info *page_infos;
 
 #include <ft_public.h>
 #include <ft_runtest.h>
-int enable_page_alloc_failure;
 
 // debug flags
 static int scrub_free_pages = 0;
+int enable_page_alloc_failure = 0;
 
 // linked list of pages
 struct Page_link {
@@ -82,46 +81,6 @@ lnxpage_init(uint64_t membytes)
     }
 
     page_stats.pages_used = 0;
-}
-
-int
-page_alloc(void **vp)
-{
-    if (enable_page_alloc_failure && FT_CHOOSE(2))
-	return -E_NO_MEM;
-
-    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
-    if (pl) {
-        TAILQ_REMOVE(&page_free_list, pl, pp_link);
-        *vp = pl;
-        page_stats.pages_avail--;
-        page_stats.pages_used++;
-        page_stats.allocations++;
-
-        if (scrub_free_pages)
-            memset(pl, 0xcd, PGSIZE);
-
-        return 0;
-    }
-
-    cprintf("page_alloc: returning no mem\n");
-    page_stats.failures++;
-    return -E_NO_MEM;
-}
-
-void
-page_free(void *v)
-{
-    struct Page_link *pl = (struct Page_link *) v;
-    if (PGOFF(pl))
-        panic("page_free: not a page-aligned pointer %p", pl);
-
-    if (scrub_free_pages)
-        memset(v, 0xde, PGSIZE);
-
-    TAILQ_INSERT_TAIL(&page_free_list, pl, pp_link);
-    page_stats.pages_avail++;
-    page_stats.pages_used--;
 }
 
 void *

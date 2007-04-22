@@ -217,6 +217,8 @@ struct Gatedesc {
 #define PD_SKIP 6		/* Offset of pd_lim in Pseudodesc */
 
 #ifndef __ASSEMBLER__
+struct Trapframe_aux {};
+
 struct Trapframe {
   /* callee-saved registers */
   uint64_t tf_rax;

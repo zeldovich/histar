@@ -1,11 +1,10 @@
-#ifndef JOS_INC_PMAP_H
-#define JOS_INC_PMAP_H
+#ifndef JOS_MACHINE_PMAP_H
+#define JOS_MACHINE_PMAP_H
 
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
 #include <kern/lib.h>
-#include <kern/arch.h>
 #include <inc/queue.h>
 #endif /* !__ASSEMBLER__ */
 
@@ -20,9 +19,11 @@
 #ifndef __ASSEMBLER__
 
 /* pmap.c */
+typedef uint64_t ptent_t;
+
 struct Pagemapent {
     void *va;
-    uint64_t pte;
+    ptent_t pte;
 };
 
 #define NPME 2
@@ -31,24 +32,6 @@ struct Pagemap {
 };
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
-
-int  page_map_alloc(struct Pagemap **pm_store)
-    __attribute__ ((warn_unused_result));
-void page_map_free(struct Pagemap *pgmap);
-
-typedef void (*page_map_traverse_cb)(const void *arg, uint64_t *ptep, void *va);
-int  page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
-		       int create, page_map_traverse_cb cb, const void *arg)
-    __attribute__ ((warn_unused_result));
-
-int  pgdir_walk(struct Pagemap *pgmap, const void *va,
-	       int create, uint64_t **pte_store)
-    __attribute__ ((warn_unused_result));
-
-void *pa2kva(physaddr_t pa);
-physaddr_t kva2pa(void *kva);
-ppn_t pa2ppn(physaddr_t pa);
-physaddr_t ppn2pa(ppn_t pn);
 
 #endif /* !__ASSEMBLER__ */
 
