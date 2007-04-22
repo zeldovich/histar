@@ -1,5 +1,9 @@
 #include <machine/asm.h>
 
+ENTRY(stack_curptr)
+	movq	%rsp, %rax
+	ret
+
 ENTRY(stack_switch)
 	movq	$0xfffffffffffffff0, %rax
 	andq	%r8, %rax

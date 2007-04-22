@@ -1,5 +1,9 @@
 #include <machine/asm.h>
 
+ENTRY(stack_curptr)
+	movl	%esp, %eax
+	ret
+
 ENTRY(stack_switch)
 	// Stack layout:
 	//  %esp	Return address
