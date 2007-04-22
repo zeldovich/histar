@@ -68,6 +68,7 @@ utrap_field_symbols(void)
     __asm volatile (".globl\t" #field "\n\t.set\t" #field ",%0"		\
 		    :: "m" (*(int *) offsetof (struct UTrapframe, field)))
 
+#ifdef JOS_ARCH_amd64
     UTF_DEF (utf_rax);
     UTF_DEF (utf_rbx);
     UTF_DEF (utf_rcx);
@@ -90,4 +91,20 @@ utrap_field_symbols(void)
 
     UTF_DEF (utf_rip);
     UTF_DEF (utf_rflags);
+#endif
+
+#ifdef JOS_ARCH_i386
+    UTF_DEF (utf_eax);
+    UTF_DEF (utf_ebx);
+    UTF_DEF (utf_ecx);
+    UTF_DEF (utf_edx);
+
+    UTF_DEF (utf_esi);
+    UTF_DEF (utf_edi);
+    UTF_DEF (utf_ebp);
+    UTF_DEF (utf_esp);
+
+    UTF_DEF (utf_eip);
+    UTF_DEF (utf_eflags);
+#endif
 }
