@@ -37,8 +37,8 @@ static const char debug_dbg = 0;
 static char debug_gate_inited = 0;
 static char debug_trace = 0;
 
-static struct cobj_ref debug_gate_as = COBJ(0,0);
-static struct cobj_ref gs = COBJ(0,0);
+static struct cobj_ref debug_gate_as;
+static struct cobj_ref gs;
 
 static struct debug_info *dinfo = 0;
 
