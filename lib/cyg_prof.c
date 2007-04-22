@@ -123,7 +123,7 @@ cyg_profile_print(void)
 }
 
 static void __attribute__ ((no_instrument_function))
-cyg_profile_data(void *func_addr, uint64_t time, int count)
+cyg_profile_data(void *func_addr, uint64_t tm, int count)
 {
     uint64_t func = (uintptr_t) func_addr;
     uint64_t val;
@@ -135,7 +135,7 @@ cyg_profile_data(void *func_addr, uint64_t time, int count)
     }
 
     cyg_data.stat[val].count += count;
-    cyg_data.stat[val].time += time;
+    cyg_data.stat[val].time += tm;
 
     return;
 }
@@ -194,9 +194,9 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
 	assert(s->size != 0);
     }
 
-    uint64_t time = f - cyg_data.last_tsc;
+    uint64_t tm = f - cyg_data.last_tsc;
     cyg_data.last_tsc = f;
-    cyg_profile_data(this_fn, time, 1);
+    cyg_profile_data(this_fn, tm, 1);
 
     // To account for time spent in a function including all of the
     // children called from there, use this:
