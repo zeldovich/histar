@@ -10,7 +10,7 @@ endif
 
 UCLIBC_INCLUDES := \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/jos64 \
-	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/x86_64 \
+	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
 	-I$(TOP)/pkg/uclibc/include
 
