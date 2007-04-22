@@ -65,7 +65,7 @@ CWARNS	 :=
 OPTFLAG	 := 
 endif
 
-COMFLAGS := -g $(OPTFLAG) -fno-strict-aliasing -Wall -MD
+COMFLAGS := -g $(OPTFLAG) -fno-strict-aliasing -Wall -MD -DJOS_ARCH_$(ARCH)
 CSTD	 := -std=c99 -fms-extensions
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
