@@ -23,23 +23,22 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 # be detected as well.  If you have the right compiler toolchain installed
 # using a different name, set GCCPREFIX explicitly by doing
 
+## 64-bit x86
 K_ARCH	:= amd64
 TARGET	:= x86_64-jos-linux
 OBJTYPE	:= elf64-x86-64
 
-## 32-bit x86 port: Don't forget to turn off -march=athlon64!
+## 32-bit x86
 #K_ARCH	:= i386
 #TARGET	:= i386-jos-linux
 #OBJTYPE := elf32-i386
 
-## Uncomment for user-space kernel stuff.
-## On Fedora Core you may need a full path to avoid /usr/lib/ccache!
-##
-## To use FT, point CC below to ft-cc and blank out COMWARNS, CWARNS,
-##   OPTFLAG, and remove -Werror from KERN_CFLAGS.
+## FT userspace kernel
 #K_ARCH	:= ft
 #TARGET := i386-jos-linux
 #OBJTYPE := elf32-i386
+
+## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/
 
 CC	:= $(GCCPREFIX)gcc -pipe
@@ -72,11 +71,20 @@ CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
 CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # SFS seems to be violating -Woverloaded-virtual
 # Too many false positives:
-# -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline -Weffc++
-# -Wswitch-enum
+# -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
+# -Weffc++ -Wswitch-enum
 
-#OPTFLAG := -O2
-OPTFLAG := -O3 -march=athlon64
+OPTFLAG	 := -O3
+ifeq ($(ARCH),amd64)
+OPTFLAG  += -march=athlon64
+endif
+
+ifeq ($(K_ARCH),ft)
+COMWARNS := 
+CWARNS	 := 
+OPTFLAG	 := 
+endif
+
 COMFLAGS := -g $(OPTFLAG) -fno-strict-aliasing -Wall -MD
 CSTD	 := -std=c99 -fms-extensions
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
