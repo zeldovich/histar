@@ -31,8 +31,8 @@ ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 ACENV += LIBS=\"\"
 
 ## uncomment the below line to use libcprof with acpkgs
-#ACENV += CC=\"x86_64-jos-linux-gcc-prof\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\"
-ACENV += CC=\"$(CC)\" CXX=\"$(CXX)\" RPCC=\"$(RPCC)\"
+#ACENV += CC=\"acpkg-wrap-gcc-prof\" CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
+ACENV += CC=\"acpkg-wrap-gcc\" CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no ac_cv_func_psignal=yes \
@@ -81,30 +81,28 @@ ACPKG_BUILD_LIST := tar-1.15
 ##
 ## Create a wrapper around gcc that passes it all of the flags we want.
 ##
-REAL_TARGET_GCC	:= $(shell which $(TARGET)-gcc)
-REAL_TARGET_CXX	:= $(shell which $(TARGET)-c++)
-ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/$(TARGET)-gcc \
-		   $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof \
-		   $(ACPKG_WRAPDIR)/$(TARGET)-c++ \
-		   $(ACPKG_WRAPDIR)/$(TARGET)-g++
+ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/acpkg-wrap-gcc \
+		   $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof \
+		   $(ACPKG_WRAPDIR)/acpkg-wrap-c++ \
+		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
 $(ACPKG_WRAPS):
 	@mkdir -p $(ACPKG_WRAPDIR)
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc
-	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc
-	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
+	echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
+	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
-	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_GCC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" >> $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
-	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-gcc-prof
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
+	echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" >> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
+	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/$(TARGET)-c++
-	echo "exec $(ACPKG_CCACHE) $(REAL_TARGET_CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/$(TARGET)-c++
-	chmod a+x $(ACPKG_WRAPDIR)/$(TARGET)-c++
+	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-c++
+	echo "exec $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/acpkg-wrap-c++
+	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 
-	cp -p $(ACPKG_WRAPDIR)/$(TARGET)-c++ $(ACPKG_WRAPDIR)/$(TARGET)-g++
+	cp -p $(ACPKG_WRAPDIR)/acpkg-wrap-c++ $(ACPKG_WRAPDIR)/acpkg-wrap-g++
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
