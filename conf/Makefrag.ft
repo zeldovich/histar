@@ -2,7 +2,7 @@ ARCH    := i386
 TARGET  := i386-jos-linux
 OBJTYPE := elf32-i386
 
-CC      := ft-cc
+CC      := ft-cc --save-temps=$(OBJDIR)/
 CXX     := $(GCCPREFIX)g++ -pipe -m32
 AS      := $(GCCPREFIX)as --32
 AR      := $(GCCPREFIX)ar
