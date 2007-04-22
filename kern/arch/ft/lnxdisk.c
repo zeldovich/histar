@@ -42,9 +42,9 @@ disk_io(disk_op op __attribute__((unused)),
 }
 
 void
-ide_intr(void)
+ide_poke(void)
 {
-    printf("Hmm, ide_intr()...\n");
+    printf("Hmm, ide_poke()...\n");
 }
 
 void

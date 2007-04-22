@@ -1,6 +1,6 @@
 # -*-Makefile-*-
 
-KERN_CFLAGS += -mno-red-zone -D_GNU_SOURCE=1
+KERN_CFLAGS += -mno-red-zone -D_GNU_SOURCE=1 -Wno-error
 EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\
@@ -9,6 +9,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/page.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/misc.c			\
 	$(ARCHDIR)/lnxdisk.c			\
 	$(ARCHDIR)/lnxcons.c			\
 	$(ARCHDIR)/devstub.c
