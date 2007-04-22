@@ -99,3 +99,9 @@ $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@
 	$(AR) r $@ $(LIB_OBJFILES)
+
+## Without this symlink, gcc can't find crt1.o on 32-bit machines:
+##   gcc -m32 -Bjos64/obj/lib -print-file-name=crt1.o
+$(OBJDIR)/lib/32:
+	ln -s . $(OBJDIR)/lib/32
+
