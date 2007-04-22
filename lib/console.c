@@ -124,44 +124,41 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     return -1;
 }
 
+struct cons_statsync {
+    atomic_t ref;
+    volatile uint64_t *wakeaddr;
+};
+
 static void
 cons_statsync_thread(void *arg)
 {
-    struct {
-	volatile atomic64_t ref;
-	volatile uint64_t *addr;
-    } *args = arg;
-    
+    struct cons_statsync *args = arg;
+
     while (atomic_read(&args->ref) > 1) {
 	int r = sys_cons_probe();
-	if (r) {
-	    atomic_inc64((atomic64_t *)args->addr);
-	    sys_sync_wakeup(args->addr);
+	if (r >= 0) {
+	    (*args->wakeaddr)++;
+	    sys_sync_wakeup(args->wakeaddr);
 	    break;
 	}
 	usleep(50000);
     }
 
-    if (atomic_dec_and_test((atomic_t *)&args->ref))
-	free((void *)args);
+    if (atomic_dec_and_test(&args->ref))
+	free(args);
 }
 
 static int
 cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
 		  void **arg1)
 {
-    struct {
-	atomic64_t ref;
-	volatile uint64_t *addr;
-    } *thread_arg;
-
-    thread_arg = malloc(sizeof(*thread_arg));
+    struct cons_statsync *thread_arg = malloc(sizeof(*thread_arg));
     atomic_set(&thread_arg->ref, 2);
-    thread_arg->addr = addr;
+    thread_arg->wakeaddr = addr;
 
     struct cobj_ref tobj;
-    thread_create(start_env->proc_container, cons_statsync_thread, 
-		  thread_arg, &tobj, "select thread");
+    thread_create(start_env->proc_container, cons_statsync_thread,
+		  thread_arg, &tobj, "cons select thread");
 
     *arg1 = thread_arg;
     return 0;
@@ -170,11 +167,8 @@ cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 static int
 cons_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
 {
-    struct {
-	atomic64_t ref;
-    } *args = arg1;
-
-    if (atomic_dec_and_test((atomic_t *)&args->ref))
+    struct cons_statsync *args = arg1;
+    if (atomic_dec_and_test(&args->ref))
 	free(args);
     
     return 0;
