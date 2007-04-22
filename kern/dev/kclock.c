@@ -99,7 +99,8 @@ pit_init(void)
     outb(IO_TIMER1, pit_state.pit_tval / 256);
     irq_setmask_8259A(irq_mask_8259A & ~(1 << 0));
 
-    static struct interrupt_handler pit_ih = { .ih_func = &pit_intr };
+    static struct interrupt_handler pit_ih =
+	{ .ih_func = &pit_intr, .ih_arg = &pit_state };
     irq_register(0, &pit_ih);
 
     pit_state.pit_timesrc.type = time_source_pit;
