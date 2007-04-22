@@ -93,7 +93,7 @@ int
 pthread_create(pthread_t *__restrict tid,
 	       __const pthread_attr_t *__restrict attr,
 	       void *(*startfn) (void *),
-	       void *__restrict arg) __THROW
+	       void *__restrict arg)
 {
     struct cobj_ref cobj_tid;
     void (*startfn_void) (void *) = (void *) startfn;
@@ -110,51 +110,51 @@ pthread_create(pthread_t *__restrict tid,
 }
 
 int
-pthread_join(pthread_t tid, void **retp) __THROW
+pthread_join(pthread_t tid, void **retp)
 {
     __set_errno(ENOSYS);
     return -1;
 }
 
 pthread_t
-pthread_self(void) __THROW
+pthread_self(void)
 {
     return thread_id();
 }
 
 int
-pthread_attr_init(pthread_attr_t *attr) __THROW
+pthread_attr_init(pthread_attr_t *attr)
 {
     return 0;
 }
 
 int
-pthread_attr_destroy(pthread_attr_t *attr) __THROW
+pthread_attr_destroy(pthread_attr_t *attr)
 {
     return 0;
 }
 
 int
-pthread_attr_setscope(pthread_attr_t *attr, int scope) __THROW
+pthread_attr_setscope(pthread_attr_t *attr, int scope)
 {
     return 0;
 }
 
 int
-pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) __THROW
+pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     cond->counter = 0;
     return 0;
 }
 
 int
-pthread_cond_destroy(pthread_cond_t *cond) __THROW
+pthread_cond_destroy(pthread_cond_t *cond)
 {
     return 0;
 }
 
 int
-pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu) __THROW
+pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu)
 {
     uint64_t v = cond->counter;
     pthread_mutex_unlock(mu);
@@ -164,13 +164,13 @@ pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu) __THROW
 }
 
 int
-pthread_cond_signal(pthread_cond_t *cond) __THROW
+pthread_cond_signal(pthread_cond_t *cond)
 {
     return pthread_cond_broadcast(cond);
 }
 
 int
-pthread_cond_broadcast(pthread_cond_t *cond) __THROW
+pthread_cond_broadcast(pthread_cond_t *cond)
 {
     cond->counter++;
     sys_sync_wakeup(&cond->counter);
@@ -178,7 +178,7 @@ pthread_cond_broadcast(pthread_cond_t *cond) __THROW
 }
 
 int
-pthread_equal(pthread_t t1, pthread_t t2) __THROW
+pthread_equal(pthread_t t1, pthread_t t2)
 {
     return t1 == t2;
 }

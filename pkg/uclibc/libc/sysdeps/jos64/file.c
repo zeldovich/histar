@@ -203,7 +203,7 @@ umask(mode_t mask)
 }
 
 int
-utime (const char *file, const struct utimbuf *file_times) __THROW
+utime (const char *file, const struct utimbuf *file_times)
 {
     return 0;
 }
@@ -243,7 +243,7 @@ stat(const char *file_name, struct stat *buf)
 }
 
 int
-stat64(const char *file_name, struct stat64 *buf) __THROW
+stat64(const char *file_name, struct stat64 *buf)
 {
     int fd = open(file_name, O_RDONLY);
     if (fd < 0)
@@ -262,7 +262,7 @@ lstat(const char *file_name, struct stat *buf)
 }
 
 int 
-lstat64 (const char *file_name, struct stat64 *buf) __THROW
+lstat64 (const char *file_name, struct stat64 *buf)
 {
     return stat64(file_name, buf);
 }

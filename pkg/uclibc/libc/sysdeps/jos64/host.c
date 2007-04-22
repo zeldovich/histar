@@ -30,7 +30,7 @@ sethostname(const char *name, size_t len)
 }
 
 int
-uname (struct utsname *name) __THROW
+uname (struct utsname *name)
 {
     name->sysname[0] = '\0';
     name->nodename[0] = '\0';

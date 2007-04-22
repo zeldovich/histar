@@ -20,10 +20,10 @@
 #include <bits/unimpl.h>
 
 // Fake prototype to make GCC happy
-int __libc_open(const char *pn, int flags, ...) __THROW;
+int __libc_open(const char *pn, int flags, ...);
 
 int
-__libc_open(const char *pn, int flags, ...) __THROW
+__libc_open(const char *pn, int flags, ...)
 {
     // A dirty hack because we don't have a place to store file modes:
     // We specify that a file should be a character device by way of

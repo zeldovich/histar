@@ -598,7 +598,7 @@ signal_init(void)
 
 // System calls emulated in jos64
 int
-sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW
+sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
     uint32_t i;
     int oumask = utrap_set_mask(1);
@@ -661,7 +661,7 @@ __syscall_sigaction (int signum, const struct old_kernel_sigaction *act,
 }
 
 int
-sigsuspend(const sigset_t *mask) __THROW
+sigsuspend(const sigset_t *mask)
 {
     int oumask = utrap_set_mask(1);
     jthread_mutex_lock(&sigmask_mu);
@@ -698,7 +698,7 @@ sigsuspend(const sigset_t *mask) __THROW
 }
 
 int
-kill(pid_t pid, int sig) __THROW
+kill(pid_t pid, int sig)
 {
     siginfo_t si;
     memset(&si, 0, sizeof(si));
@@ -744,7 +744,7 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 }
 
 int
-__sigsetjmp(sigjmp_buf env, int savemask) __THROW
+__sigsetjmp(sigjmp_buf env, int savemask)
 {
     if (savemask) {
 	env->__mask_was_saved = 1;
@@ -761,7 +761,7 @@ __sigsetjmp(sigjmp_buf env, int savemask) __THROW
 }
 
 void
-siglongjmp(sigjmp_buf env, int val) __THROW
+siglongjmp(sigjmp_buf env, int val)
 {
     if (env->__mask_was_saved) {
 	assert(0 == utrap_set_mask(1));
