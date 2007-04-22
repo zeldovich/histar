@@ -1,5 +1,3 @@
-#define __STDC_FORMAT_MACROS
-
 extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
@@ -42,7 +40,7 @@ netd_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
     int64_t arg_copy_id = sys_segment_copy(arg, netd_ct, 0,
 					   "netd_gate_entry() args");
     if (arg_copy_id < 0)
-	panic("netd_gate_entry: cannot copy <%ld.%ld> args: %s",
+	panic("netd_gate_entry: cannot copy <%"PRIu64".%"PRIu64"> args: %s",
 	      arg.container, arg.object, e2s(arg_copy_id));
     sys_obj_unref(arg);
 
@@ -127,8 +125,8 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 		   (void **) &ipc, &map_bytes, &temp_as);
     
     if (map_bytes != sizeof(*ipc))
-	throw basic_exception("wrong size IPC segment: %ld should be %ld\n",
-			      map_bytes, sizeof(*ipc));
+	throw basic_exception("wrong size IPC segment: %"PRIu64" should be %"PRIu64"\n",
+			      map_bytes, (uint64_t) sizeof(*ipc));
 
     for (;;) {
 	while (ipc->sync == NETD_IPC_SYNC_REPLY)

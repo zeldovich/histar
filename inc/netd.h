@@ -204,7 +204,7 @@ void netd_set_gate(struct cobj_ref g);
 int netd_ip(struct netd_sockaddr_in *nsin);
 int netd_netmask(struct netd_sockaddr_in *nsin);
 int netd_name(char *buf);
-int netd_flags(uint16_t *flags);
+int netd_flags(int16_t *flags);
 
 struct host_entry {
     const char *alias;

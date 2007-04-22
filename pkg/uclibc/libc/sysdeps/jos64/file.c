@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <utime.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -331,7 +332,7 @@ getcwd(char *buf, size_t size)
 	    }
 
 	    if (r == 0) {
-		cprintf("getcwd: fs_readdir_dent: cannot find %ld in parent %ld\n",
+		cprintf("getcwd: fs_readdir_dent: cannot find %"PRIu64" in parent %"PRIu64"\n",
 			ino.obj.object, parent_ct);
 		fs_readdir_close(&s);
 		goto err;

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -174,7 +175,7 @@ pts_close(struct Fd *fd)
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	struct cobj_ref obj = fd->fd_ptm.slave_pty_seg;
-	cprintf("pts_close: unable to map slave_pty_seg (%ld, %ld): %s\n", 
+	cprintf("pts_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
 		obj.container, obj.object, e2s(r));
 	return -1;
     }
@@ -209,7 +210,7 @@ ptm_close(struct Fd *fd)
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	struct cobj_ref obj = fd->fd_ptm.slave_pty_seg;
-	cprintf("ptm_close: unable to map slave_pty_seg (%ld, %ld): %s\n", 
+	cprintf("ptm_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
 		obj.container, obj.object, e2s(r));
 	return -1;
     }
@@ -285,7 +286,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	
 	int n = select(fdnum + 1, 0, &writeset, 0, &tv);
 	if (n == 0) {
-	    cprintf("pty_write: only able to write %d out of %ld\n", r, count);
+	    cprintf("pty_write: only able to write %d out of %"PRIu64"\n", r, count);
 	    __set_errno(EIO);
 	    return -1;
 	}
@@ -393,7 +394,7 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 	return 0;
     }
     
-    cprintf("pty_ioctl: request 0x%lx unimplemented\n", req);
+    cprintf("pty_ioctl: request 0x%"PRIx64" unimplemented\n", req);
     return -1;
 }
 

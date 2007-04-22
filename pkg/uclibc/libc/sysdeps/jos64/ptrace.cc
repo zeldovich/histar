@@ -9,6 +9,7 @@ extern "C" {
 
 #include <machine/x86.h>
 
+#include <inttypes.h>
 #include <unistd.h>
 
 #include <stdarg.h>
@@ -80,7 +81,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
     uint64_t ct = pid;
     int64_t gate_id = container_find(ct, kobj_gate, "debug");
     if (gate_id < 0) {
-	debug_print(ptrace_dbg, "couldn't find debug gate for %ld\n", pid);
+	debug_print(ptrace_dbg, "couldn't find debug gate for %"PRIu64"\n", pid);
 	return 0;
     }
 

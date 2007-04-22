@@ -21,6 +21,7 @@
 #include <setjmp.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <bits/unimpl.h>
 #include <bits/signalgate.h>
@@ -123,13 +124,13 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     fatalities++;
     if (fatalities > 1) {
 	if (fatalities == 2) {
-	    cprintf("[%ld] %s: sig_fatal: recursive\n",
+	    cprintf("[%"PRIu64"] %s: sig_fatal: recursive\n",
 		    sys_self_id(), __progname);
 	    print_backtrace(1);
 	}
 
 	sys_self_halt();
-	cprintf("[%ld] %s: sig_fatal: halt returned\n",
+	cprintf("[%"PRIu64"] %s: sig_fatal: halt returned\n",
 		sys_self_id(), __progname);
 	for (;;)
 	    ;
@@ -137,14 +138,14 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
-	fprintf(stderr, "[%ld] %s: fatal signal %d, backtrace follows.\n",
+	fprintf(stderr, "[%"PRIu64"] %s: fatal signal %d, backtrace follows.\n",
 		sys_self_id(), __progname, si->si_signo);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
 
     case SIGABRT:
-	fprintf(stderr, "[%ld] %s: abort\n", sys_self_id(), __progname);
+	fprintf(stderr, "[%"PRIu64"] %s: abort\n", sys_self_id(), __progname);
 	print_backtrace(0);
 	break;
 
@@ -153,7 +154,7 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     }
 
     process_exit(0, si->si_signo);
-    cprintf("[%ld] %s: sig_fatal: process_exit returned\n",
+    cprintf("[%"PRIu64"] %s: sig_fatal: process_exit returned\n",
 	    sys_self_id(), __progname);
     for (;;)
 	;
@@ -178,13 +179,13 @@ signal_trap_thread(struct cobj_ref tobj)
     int retry_count = 0;
     for (;;) {
 	if (signal_debug)
-	    cprintf("[%ld] signal_trap_thread: trying to trap %ld.%ld\n",
+	    cprintf("[%"PRIu64"] signal_trap_thread: trying to trap %"PRIu64".%"PRIu64"\n",
 		    thread_id(), tobj.container, tobj.object);
 	int r = sys_thread_trap(tobj, cur_as, UTRAP_USER_SIGNAL, 0);
 
 	if (r == 0) {
 	    if (signal_debug)
-		cprintf("[%ld] signal_trap_thread: trapped %ld.%ld\n",
+		cprintf("[%"PRIu64"] signal_trap_thread: trapped %"PRIu64".%"PRIu64"\n",
 			thread_id(), tobj.container, tobj.object);
 
 	    if (trap_mu_locked)
@@ -195,14 +196,14 @@ signal_trap_thread(struct cobj_ref tobj)
 	if (r == -E_BUSY) {
 	    retry_count++;
 	    if (signal_debug || !(retry_count % 10))
-		cprintf("[%ld] signal_trap_thread: cannot trap %ld.%ld, retrying\n",
+		cprintf("[%"PRIu64"] signal_trap_thread: cannot trap %"PRIu64".%"PRIu64", retrying\n",
 			thread_id(), tobj.container, tobj.object);
 	    thread_sleep_nsec(NSEC_PER_SECOND / 100);
 	    continue;
 	}
 
 	extern const char *__progname;
-	cprintf("[%ld] (%s) signal_trap_thread: cannot trap %ld.%ld: %s\n",
+	cprintf("[%"PRIu64"] (%s) signal_trap_thread: cannot trap %"PRIu64".%"PRIu64": %s\n",
 		thread_id(), __progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
 	if (trap_mu_locked)
@@ -228,7 +229,7 @@ signal_trap_if_pending(void)
 	    !sigismember(&signal_masked, i))
 	{
 	    if (signal_debug)
-		cprintf("[%ld] signal_trap_if_pending: signal %d\n",
+		cprintf("[%"PRIu64"] signal_trap_if_pending: signal %d\n",
 			thread_id(), i);
 	    pending++;
 	}
@@ -258,7 +259,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 
     if (si->si_signo == SIGCHLD) {
 	if (signal_debug)
-	    cprintf("[%ld] signal_execute: calling child_notify()\n",
+	    cprintf("[%"PRIu64"] signal_execute: calling child_notify()\n",
 		    thread_id());
 	child_notify();
     }
@@ -290,7 +291,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
     }
 
     if (signal_debug)
-	cprintf("[%ld] signal_execute: running sigaction\n", thread_id());
+	cprintf("[%"PRIu64"] signal_execute: running sigaction\n", thread_id());
     sa.sa_sigaction(si->si_signo, si, sc);
 }
 
@@ -303,12 +304,12 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 {
     int signo = si->si_signo;
     if (signal_debug)
-	cprintf("[%ld] signal_utrap_onstack: signal %d\n",
+	cprintf("[%"PRIu64"] signal_utrap_onstack: signal %d\n",
 		thread_id(), signo);
 
     if (signo == SIGSEGV && tls_pgfault_all && *tls_pgfault_all) {
 	if (signal_debug)
-	    cprintf("[%ld] signal_utrap_onstack: longjmp to tls_pgfault_all\n",
+	    cprintf("[%"PRIu64"] signal_utrap_onstack: longjmp to tls_pgfault_all\n",
 		    thread_id());
 
 	utrap_set_mask(1);
@@ -343,7 +344,7 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 
     // resume where we got interrupted; clears utrap
     if (signal_debug)
-	cprintf("[%ld] signal_utrap_onstack: returning\n",
+	cprintf("[%"PRIu64"] signal_utrap_onstack: returning\n",
 		thread_id());
 
     utrap_ret(&sc->sc_utf);
@@ -353,7 +354,7 @@ static void __attribute__((noreturn))
 signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 {
     if (signal_debug)
-	cprintf("[%ld] signal_utrap_si: signal %d\n",
+	cprintf("[%"PRIu64"] signal_utrap_si: signal %d\n",
 		thread_id(), si->si_signo);
 
     // Make sure sigsuspend() wakes up
@@ -368,7 +369,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	// If the trapped stack was the TLS, just call the function
 	// to deliver signals, as we're already on the TLS.
 	if (signal_debug)
-	    cprintf("[%ld] signal_utrap_si: staying on tls stack\n",
+	    cprintf("[%"PRIu64"] signal_utrap_si: staying on tls stack\n",
 		    thread_id());
 
 	utrap_set_mask(0);
@@ -386,12 +387,12 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 
 	// Ensure there's space, because we're masking traps right now..
 	if (signal_debug)
-	    cprintf("[%ld] signal_utrap_si: pre-allocating stack at %p\n",
+	    cprintf("[%"PRIu64"] signal_utrap_si: pre-allocating stack at %p\n",
 		    thread_id(), s);
 
 	int r = stack_grow(s);
 	if (r < 0) {
-	    cprintf("[%ld] signal_utrap_si: stack overflow @ %p\n",
+	    cprintf("[%"PRIu64"] signal_utrap_si: stack overflow @ %p\n",
 		    thread_id(), s);
 	    utf_dump(&sc->sc_utf);
 
@@ -405,7 +406,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	memcpy(&s->sc, sc, sizeof(*sc));
 
 	if (signal_debug)
-	    cprintf("[%ld] signal_utrap_si: jumping to real stack at %p\n",
+	    cprintf("[%"PRIu64"] signal_utrap_si: jumping to real stack at %p\n",
 		    thread_id(), s);
 
 	// jump over there and unmask utrap atomically
@@ -425,7 +426,7 @@ static void
 signal_utrap(struct UTrapframe *utf)
 {
     if (signal_debug)
-	cprintf("[%ld] signal_utrap: rsp=0x%lx rip=0x%lx\n",
+	cprintf("[%"PRIu64"] signal_utrap: rsp=0x%"PRIx64" rip=0x%"PRIx64"\n",
 		thread_id(), utf->utf_rsp, utf->utf_rip);
 
     siginfo_t si;
@@ -438,13 +439,13 @@ signal_utrap(struct UTrapframe *utf)
 	    int r = stack_grow(si.si_addr);
 	    if (r > 0) {
 		if (signal_debug)
-		    cprintf("[%ld] signal_utrap: grew stack\n", thread_id());
+		    cprintf("[%"PRIu64"] signal_utrap: grew stack\n", thread_id());
 		return;
 	    }
 
 	    if (r == 0) {
 		if (signal_debug)
-		    cprintf("[%ld] signal_utrap: stack_grow returns 0\n",
+		    cprintf("[%"PRIu64"] signal_utrap: stack_grow returns 0\n",
 			    thread_id());
 	    }
 
@@ -454,11 +455,11 @@ signal_utrap(struct UTrapframe *utf)
 	    int r = sys_self_fp_enable();
 	    if (r >= 0) {
 		if (signal_debug)
-		    cprintf("[%ld] signal_utrap: enabled FP\n", thread_id());
+		    cprintf("[%"PRIu64"] signal_utrap: enabled FP\n", thread_id());
 		return;
 	    }
 
-	    cprintf("[%ld] signal_utrap: cannot enable fp: %s\n",
+	    cprintf("[%"PRIu64"] signal_utrap: cannot enable fp: %s\n",
 		    thread_id(), e2s(r));
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
@@ -468,7 +469,7 @@ signal_utrap(struct UTrapframe *utf)
 	    // XXX TRAP_BRKPT or TRAP_TRACE?
 	    si.si_code = TRAP_BRKPT;
 	} else {
-	    cprintf("[%ld] signal_utrap: unknown hw trap %d\n", thread_id(),
+	    cprintf("[%"PRIu64"] signal_utrap: unknown hw trap %d\n", thread_id(),
 		    utf->utf_trap_num);
 	    utf_dump(utf);
 
@@ -480,7 +481,7 @@ signal_utrap(struct UTrapframe *utf)
 	    return;
 
 	if (utf->utf_trap_num != UTRAP_USER_SIGNAL) {
-	    cprintf("[%ld] signal_utrap: unknown user trap# %d\n",
+	    cprintf("[%"PRIu64"] signal_utrap: unknown user trap# %d\n",
 		    thread_id(), utf->utf_trap_num);
 	    return;
 	}
@@ -504,12 +505,12 @@ signal_utrap(struct UTrapframe *utf)
 	    // No available signal, just return..
 	    jthread_mutex_unlock(&sigmask_mu);
 	    if (signal_debug)
-		cprintf("[%ld] signal_utrap: no pending signals\n",
+		cprintf("[%"PRIu64"] signal_utrap: no pending signals\n",
 			thread_id());
 	    return;
 	}
     } else {
-	cprintf("[%ld] signal_utrap: unknown trap src %d\n",
+	cprintf("[%"PRIu64"] signal_utrap: unknown trap src %d\n",
 		thread_id(), utf->utf_trap_src);
 	si.si_signo = SIGILL;
 	si.si_code = ILL_ILLTRP;
@@ -551,7 +552,7 @@ void
 signal_gate_incoming(siginfo_t *si)
 {
     if (signal_debug)
-	cprintf("[%ld] signal_gate_incoming: signal %d\n",
+	cprintf("[%"PRIu64"] signal_gate_incoming: signal %d\n",
 		thread_id(), si->si_signo);
 
     struct cobj_ref tobj = COBJ(start_env->proc_container, signal_thread_id);
@@ -644,7 +645,7 @@ sigsuspend(const sigset_t *mask) __THROW
 
     uint64_t ctr = signal_counter;
     if (signal_debug)
-	cprintf("[%ld] sigsuspend: starting, ctr=%ld\n",
+	cprintf("[%"PRIu64"] sigsuspend: starting, ctr=%"PRIu64"\n",
 		thread_id(), ctr);
 
     sigset_t osigmask;
@@ -657,7 +658,7 @@ sigsuspend(const sigset_t *mask) __THROW
     signal_trap_if_pending();
     while (signal_counter == ctr) {
 	if (signal_debug)
-	    cprintf("[%ld] sigsuspend: waiting..\n", thread_id());
+	    cprintf("[%"PRIu64"] sigsuspend: waiting..\n", thread_id());
 	sys_sync_wait(&signal_counter, ctr, ~0ULL);
     }
 
@@ -687,7 +688,7 @@ int
 kill_siginfo(pid_t pid, siginfo_t *si)
 {
     if (signal_debug)
-	cprintf("[%ld] kill_siginfo: pid %ld signal %d\n",
+	cprintf("[%"PRIu64"] kill_siginfo: pid %"PRIu64" signal %d\n",
 		thread_id(), pid, si->si_signo);
 
     if (pid == 0) {
@@ -710,7 +711,7 @@ kill_siginfo(pid_t pid, siginfo_t *si)
     int64_t gate_id = container_find(ct, kobj_gate, "signal");
     if (gate_id < 0) {
 	if (signal_debug)
-	    cprintf("[%ld] kill_siginfo: cannot find signal gate in %ld: %s\n",
+	    cprintf("[%"PRIu64"] kill_siginfo: cannot find signal gate in %"PRIu64": %s\n",
 		    thread_id(), ct, e2s(gate_id));
 	__set_errno(ESRCH);
 	return -1;

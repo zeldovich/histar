@@ -26,7 +26,7 @@ fs_dir_mlt::list(fs_readdir_pos *i, fs_dent *de)
     }
 
     de->de_inode.obj = COBJ(ct, ct);
-    snprintf(&de->de_name[0], sizeof(de->de_name), "%lu", ct);
+    snprintf(&de->de_name[0], sizeof(de->de_name), "%"PRIu64, ct);
     return 1;
 #endif
 }

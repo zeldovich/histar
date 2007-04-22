@@ -1,5 +1,3 @@
-#define __STDC_FORMAT_MACROS
-
 extern "C" {
 #include <inc/lib.h>
 #include <inc/syscall.h>

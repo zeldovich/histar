@@ -60,7 +60,7 @@ profiler_exit(void)
     printf("Profiling samples:");
     for (uint32_t i = 0; i < buffer_size; i++)
 	if (prof_samples[i])
-	    printf(" %lx", prof_samples[i]);
+	    printf(" %"PRIx64, prof_samples[i]);
     printf("\n");
 }
 

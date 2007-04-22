@@ -10,6 +10,7 @@ extern "C" {
 #include <inc/string.h>
 
 #include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/gateclnt.hh>
@@ -110,7 +111,7 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
     }
 
     if (fs_debug)
-	cprintf("fs_get_dent: dir %ld r %d obj %ld name %s\n",
+	cprintf("fs_get_dent: dir %"PRIu64" r %d obj %"PRIu64" name %s\n",
 		s->dir.obj.object, r, de->de_inode.obj.object,
 		&de->de_name[0]);
 
@@ -122,7 +123,7 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
 	      struct fs_mount_table *mtab)
 {
     if (fs_debug)
-	cprintf("fs_lookup_one: dir %ld fn %s\n",
+	cprintf("fs_lookup_one: dir %"PRIu64" fn %s\n",
 		dir.obj.object, fn);
 
     if (!strcmp(fn, ".")) {

@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <inttypes.h>
 
 struct wait_child {
     pid_t wc_pid;
@@ -147,7 +148,7 @@ wait4(pid_t pid, int *statusp, int options, struct rusage *rusage)
 again:
     start_counter = child_counter;
     if (child_debug)
-	cprintf("[%ld] wait4: counter %ld\n", thread_id(), start_counter);
+	cprintf("[%"PRIu64"] wait4: counter %"PRIu64"\n", thread_id(), start_counter);
 
     for (wc = LIST_FIRST(&live_children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
@@ -157,7 +158,7 @@ again:
 
 	int r = child_get_status(wc, statusp);
 	if (child_debug)
-	    cprintf("[%ld] wait4: child %ld status %d\n",
+	    cprintf("[%"PRIu64"] wait4: child %"PRIu64" status %d\n",
 		    thread_id(), wc->wc_pid, r);
 	if (r < 0) {
 	    // Bad child?
@@ -169,7 +170,7 @@ again:
 	if (r == 0) {
 	    r = child_get_siginfo(wc, statusp);
 	    if (child_debug)
-		cprintf("[%ld] wait4: child %ld siginfo %d\n",
+		cprintf("[%"PRIu64"] wait4: child %"PRIu64" siginfo %d\n",
 			thread_id(), wc->wc_pid, r);
 	    if (r == 1)
 		return wc->wc_pid;
@@ -186,7 +187,7 @@ again:
 	    sys_obj_unref(COBJ(start_env->shared_container, pid));
 
 	    if (child_debug)
-		cprintf("[%ld] wait4: returning child %ld\n",
+		cprintf("[%"PRIu64"] wait4: returning child %"PRIu64"\n",
 			thread_id(), pid);
 	    return pid;
 	}
@@ -194,7 +195,7 @@ again:
 
     if (!(options & WNOHANG)) {
 	if (child_debug)
-	    cprintf("[%ld] wait4: waiting..\n", thread_id());
+	    cprintf("[%"PRIu64"] wait4: waiting..\n", thread_id());
 
 	sys_sync_wait(&child_counter, start_counter,
 		      sys_clock_nsec() + NSEC_PER_SECOND);
@@ -202,7 +203,7 @@ again:
     }
 
     if (child_debug)
-	cprintf("[%ld] wait4: returning ECHILD\n", thread_id());
+	cprintf("[%"PRIu64"] wait4: returning ECHILD\n", thread_id());
 
     __set_errno(ECHILD);
     return -1;

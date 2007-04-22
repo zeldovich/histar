@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/syscall.h>
 #include <inc/stdio.h>
+#include <inttypes.h>
 }
 
 #include <inc/labelutil.hh>
@@ -48,7 +49,7 @@ void
 thread_drop_star(uint64_t handle)
 {
     if (handle_debug)
-	cprintf("[%ld] handle: dropping %ld\n", thread_id(), handle);
+	cprintf("[%"PRIu64"] handle: dropping %"PRIu64"\n", thread_id(), handle);
 
     try {
 	label clear;
@@ -74,7 +75,7 @@ void
 thread_drop_starpair(uint64_t h1, uint64_t h2)
 {
     if (handle_debug)
-	cprintf("[%ld] handle: dropping %ld, %ld\n", thread_id(), h1, h2);
+	cprintf("[%"PRIu64"] handle: dropping %"PRIu64", %"PRIu64"\n", thread_id(), h1, h2);
 
     try {
 	label clear;
@@ -226,7 +227,7 @@ handle_alloc(void)
     }
 
     if (handle_debug)
-	cprintf("[%ld] handle: allocated %ld\n", thread_id(), h);
+	cprintf("[%"PRIu64"] handle: allocated %"PRIu64"\n", thread_id(), h);
 
     return h;
 }

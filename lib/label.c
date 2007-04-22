@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <inc/stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 int
 label_grow(struct ulabel *l)
@@ -119,7 +120,7 @@ label_to_string(const struct ulabel *l)
 	if (lv == l->ul_default)
 	    continue;
 
-	off += snprintf(&buf[off], bufsize - off, "%ld:%c ",
+	off += snprintf(&buf[off], bufsize - off, "%"PRIu64":%c ",
 			LB_HANDLE(l->ul_ent[i]), level_to_char(lv));
     }
     off += snprintf(&buf[off], bufsize - off, "%c }",

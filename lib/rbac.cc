@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/error.h>
 
 #include <string.h> 
+#include <inttypes.h>
 }
 
 #include <inc/error.hh>
@@ -45,7 +46,7 @@ gate_send(struct cobj_ref gate, void *args, uint64_t n)
 {
     struct gate_call_data gcd;
     if (n > sizeof(gcd.param_buf))
-	throw error(-E_NO_SPACE, "%ld > %ld", n, sizeof(gcd.param_buf));
+	throw error(-E_NO_SPACE, "%"PRIu64" > %"PRIu64, n, sizeof(gcd.param_buf));
     
     void *args2 = (void *) &gcd.param_buf[0];
     memcpy(args2, args, n);

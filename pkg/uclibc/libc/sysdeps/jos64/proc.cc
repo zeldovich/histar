@@ -4,6 +4,7 @@ extern "C" {
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <bits/unimpl.h>
 }
@@ -36,7 +37,7 @@ int
 setpgid(pid_t pid, pid_t pgid) __THROW
 {
     
-    cprintf("setpgid: pid %ld pgid %ld getpid() %ld\n", pid, pgid, getpid());
+    cprintf("setpgid: pid %"PRIu64" pgid %"PRIu64" getpid() %"PRIu64"\n", pid, pgid, getpid());
     __set_errno(ENOSYS);
     return -1;
 }
@@ -53,7 +54,7 @@ setpgid(pid_t pid, pid_t new_pgid) __THROW
     int64_t seg_id = container_find(pid, kobj_segment, "process gid");
     if (seg_id < 0) {
 	if (proc_debug)
-	    cprintf("setpgid: cannot find process gid segment in %ld: %s\n",
+	    cprintf("setpgid: cannot find process gid segment in %"PRIu64": %s\n",
 		    pid, e2s(seg_id));
 	__set_errno(ESRCH);
 	return -1;
@@ -87,7 +88,7 @@ __getpgid(pid_t pid) __THROW
 	return pid;
     } else if (seg_id < 0) {
 	if (proc_debug)
-	    cprintf("__getpgid: cannot find process gid segment in %ld: %s\n",
+	    cprintf("__getpgid: cannot find process gid segment in %"PRIu64": %s\n",
 		    pid, e2s(seg_id));
 	__set_errno(ESRCH);
 	return -1;

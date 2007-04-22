@@ -1,5 +1,3 @@
-#define __STDC_FORMAT_MACROS
-
 extern "C" {
 #include <inc/stdio.h>
 #include <inc/fd.h>
@@ -221,7 +219,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
     *fd_store = fd;
 
     if (fd_alloc_debug)
-	cprintf("[%ld] fd_alloc: fd %d (%s)\n", thread_id(), fd2num(fd), name);
+	cprintf("[%"PRIu64"] fd_alloc: fd %d (%s)\n", thread_id(), fd2num(fd), name);
 
     return 0;
 }
@@ -315,7 +313,7 @@ fd_make_public(int fdnum, struct ulabel *ul_taint)
     fd->fd_private = 0;
 
     if (fd_handle_debug)
-	cprintf("[%ld] fd_make_public(%d): grant %ld, taint %ld\n",
+	cprintf("[%"PRIu64"] fd_make_public(%d): grant %"PRIu64", taint %"PRIu64"\n",
 		thread_id(), fdnum, fd_grant, fd_taint);
 
     grant_drop.dismiss();
@@ -335,7 +333,7 @@ fd_set_extra_handles(struct Fd *fd, uint64_t eg, uint64_t et)
     fd_handles[fdnum].h[fd_handle_extra_taint] = et;
 
     if (fd_handle_debug)
-	cprintf("[%ld] fd_set_extra_handles(%d): extra grant %ld, extra taint %ld\n",
+	cprintf("[%"PRIu64"] fd_set_extra_handles(%d): extra grant %"PRIu64", extra taint %"PRIu64"\n",
 		thread_id(), fdnum, eg, et);
 }
 
@@ -350,7 +348,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 {
     if (fdnum < 0 || fdnum >= MAXFD) {
 	if (debug)
-	    cprintf("[%lx] bad fd %d\n", thread_id(), fdnum);
+	    cprintf("[%"PRIx64"] bad fd %d\n", thread_id(), fdnum);
 	return -E_INVAL;
     }
     struct Fd *fd = INDEX2FD(fdnum);
@@ -381,7 +379,7 @@ fd_lookup(int fdnum, struct Fd **fd_store, struct cobj_ref *objp, uint64_t *flag
 
     if (r == 0) {
 	if (debug)
-	    cprintf("[%lx] closed fd %d\n", thread_id(), fdnum);
+	    cprintf("[%"PRIx64"] closed fd %d\n", thread_id(), fdnum);
 	return -E_INVAL;
     }
 
@@ -411,7 +409,7 @@ jos_fd_close(struct Fd *fd)
 	handle_refs[i] = fd_count_handles(fd->fd_handle[i]);
 
 	if (fd_handle_debug && fd->fd_handle[i] && handle_refs[i] > 1)
-	    cprintf("[%ld] jos_fd_close(%d): refcount on handle %ld is %d\n",
+	    cprintf("[%"PRIu64"] jos_fd_close(%d): refcount on handle %"PRIu64" is %d\n",
 		    thread_id(), fdnum, fd_handles[fdnum].h[i], handle_refs[i]);
     }
 
@@ -464,7 +462,7 @@ jos_fd_close(struct Fd *fd)
     }
 
     if (fd_alloc_debug)
-	cprintf("[%ld] jos_fd_close(%d)\n", thread_id(), fdnum);
+	cprintf("[%"PRIu64"] jos_fd_close(%d)\n", thread_id(), fdnum);
 
     return r;
 }
@@ -543,7 +541,7 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
     if (*dev)
 	return 0;
 
-    cprintf("[%lx] unknown device type %d\n", thread_id(), dev_id);
+    cprintf("[%"PRIx64"] unknown device type %d\n", thread_id(), dev_id);
     return -E_INVAL;
 }
 
@@ -558,7 +556,7 @@ close(int fdnum) __THROW
 	return -1;
     } else {
 	if (fd_alloc_debug)
-	    cprintf("[%ld] close(%d)\n", thread_id(), fdnum);
+	    cprintf("[%"PRIu64"] close(%d)\n", thread_id(), fdnum);
 
 	return jos_fd_close(fd);
     }
@@ -622,7 +620,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
 	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
 
     if (fd_handle_debug || fd_alloc_debug)
-	cprintf("[%ld] dup2: %d -> %d\n", thread_id(), oldfdnum, newfdnum);
+	cprintf("[%"PRIu64"] dup2: %d -> %d\n", thread_id(), oldfdnum, newfdnum);
 
     return newfdnum;
 }
@@ -661,7 +659,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     if (old_seg.container != start_env->shared_container &&
 	old_seg.container != start_env->proc_container)
     {
-	cprintf("dup2_as: strange container %ld (shared %ld proc %ld)\n",
+	cprintf("dup2_as: strange container %"PRIu64" (shared %"PRIu64" proc %"PRIu64")\n",
 		old_seg.container,
 		start_env->shared_container,
 		start_env->proc_container);
@@ -712,7 +710,7 @@ read(int fdnum, void *buf, size_t n) __THROW
     }
 
     if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
-	cprintf("[%lx] read %d -- bad mode\n", thread_id(), fdnum); 
+	cprintf("[%"PRIx64"] read %d -- bad mode\n", thread_id(), fdnum); 
 	__set_errno(EINVAL);
 	return -1;
     }
@@ -740,13 +738,13 @@ write(int fdnum, const void *buf, size_t n) __THROW
     }
 
     if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
-	cprintf("[%lx] write %d -- bad mode\n", thread_id(), fdnum);
+	cprintf("[%"PRIx64"] write %d -- bad mode\n", thread_id(), fdnum);
 	__set_errno(EINVAL);
 	return -1;
     }
 
     if (debug)
-	cprintf("write %d %p %ld via dev %s\n",
+	cprintf("write %d %p %"PRIu64" via dev %s\n",
 		fdnum, buf, n, dev->dev_name);
 
     r = DEV_CALL(dev, write, fd, buf, n, fd->fd_offset);
@@ -969,7 +967,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 		if (select_debug) {
 		    uint64_t to = (timeout->tv_sec * 1000) + 
 			(timeout->tv_usec / 1000);
-		    cprintf("select: %s(%ld) timed out in %ld:\n", 
+		    cprintf("select: %s(%"PRIu64") timed out in %"PRIu64":\n", 
 			    __progname, thread_id(), to);
 		    print_fd_sets(maxfd, readset, writeset, exceptset);
 		}
@@ -1004,7 +1002,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         memcpy(readset, &rreadset, sz);
 
     if (ready && timeout_last && select_debug) {
-	cprintf("select: %s(%ld) after timeout, set fds:\n", 
+	cprintf("select: %s(%"PRIu64") after timeout, set fds:\n", 
 		__progname, thread_id());
 	print_fd_sets(maxfd, readset, writeset, exceptset);
     }

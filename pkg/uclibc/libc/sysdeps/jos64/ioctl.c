@@ -22,7 +22,7 @@ jos_ioctl(struct Fd *fd, uint64_t req, va_list va)
 	    return -1;
 	}
     default:
-	cprintf("jos_ioctl[%s]: device does not support request [0x%lx]\n", 
+	cprintf("jos_ioctl[%s]: device does not support request [0x%"PRIx64"]\n", 
 		dev->dev_name, req);
 	__set_errno(EPERM);
 	return -1;

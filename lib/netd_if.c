@@ -24,7 +24,7 @@
 #define NETIF_CALL(fn, ...)					\
     ({								\
 	int __r;						\
-	struct cobj_ref __o;					\
+	struct cobj_ref __o = COBJ(0, 0);			\
 	if ((__r = netd_defif(&__o)) < 0)			\
 	    return __r;						\
 	__r = netd_##fn (__o, __VA_ARGS__);			\
@@ -32,7 +32,7 @@
     })
 
 static void
-flags_lwip_to_libc(uint8_t *lwip, uint16_t *netd)
+flags_lwip_to_libc(uint8_t *lwip, int16_t *netd)
 {
     *netd = 0;
     *netd |= *lwip & NETIF_FLAG_UP ? (IFF_UP|IFF_RUNNING) : 0;
@@ -111,7 +111,7 @@ netd_name(char *buf)
 }
 
 static int
-netd_ifflags(struct cobj_ref r, uint16_t *flags)
+netd_ifflags(struct cobj_ref r, int16_t *flags)
 {
     struct netif *nif = 0;
     NETIF_SEG_MAP(r, &nif);
@@ -121,7 +121,7 @@ netd_ifflags(struct cobj_ref r, uint16_t *flags)
 }
 
 int
-netd_flags(uint16_t *flags)
+netd_flags(int16_t *flags)
 {
     return NETIF_CALL(ifflags, flags);
 }

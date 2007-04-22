@@ -12,6 +12,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 }
 
 saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
@@ -112,7 +113,7 @@ privilege_store::fetch_priv(uint64_t h)
 {
     std::map<uint64_t, saved_privilege*>::iterator i = m_.find(h);
     if (i == m_.end())
-	throw basic_exception("fetch_priv: cannot find %ld", h);
+	throw basic_exception("fetch_priv: cannot find %"PRIu64, h);
     i->second->acquire();
 }
 
@@ -121,7 +122,7 @@ privilege_store::drop_priv(uint64_t h)
 {
     std::map<uint64_t, uint64_t>::iterator ri = refcount_.find(h);
     if (ri == refcount_.end())
-	throw basic_exception("fetch_priv: cannot find %ld", h);
+	throw basic_exception("fetch_priv: cannot find %"PRIu64, h);
 
     uint64_t newref = ri->second - 1;
     refcount_.erase(ri);

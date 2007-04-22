@@ -5,6 +5,7 @@
 #include <inc/stdio.h>
 
 #include <unistd.h>
+#include <inttypes.h>
 
 static struct {
     uint64_t inited_pct;
@@ -56,13 +57,13 @@ sbrk(intptr_t x)
 
     size_t nbrk = heap.brk + x;
     if (nbrk > heap_maxbytes) {
-	cprintf("sbrk: heap too large: %ld > %ld\n", nbrk, heap_maxbytes);
+	cprintf("sbrk: heap too large: %"PRIu64" > %"PRIu64"\n", nbrk, heap_maxbytes);
 	goto out;
     }
 
     r = sys_segment_resize(heap.heapseg, nbrk);
     if (r < 0) {
-	cprintf("sbrk: resizing heap to %ld: %s\n", nbrk, e2s(r));
+	cprintf("sbrk: resizing heap to %"PRIu64": %s\n", nbrk, e2s(r));
 	goto out;
     }
 

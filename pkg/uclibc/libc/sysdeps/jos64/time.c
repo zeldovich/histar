@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <sys/time.h>
 #include <sys/times.h>
@@ -26,7 +27,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 				SEGMAP_READ, (void **) &tods,
 				&bytes, 0);
 	    if (r < 0)
-		cprintf("gettimeofday: cannot map time segment %ld.%ld: %s\n",
+		cprintf("gettimeofday: cannot map time segment %"PRIu64".%"PRIu64": %s\n",
 			start_env->time_seg.container,
 			start_env->time_seg.object, e2s(r));
 

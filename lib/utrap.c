@@ -24,7 +24,7 @@ utrap_entry(struct UTrapframe *utf)
     if (handler) {
 	handler(utf);
     } else {
-	cprintf("utrap_entry: unhandled trap src %d num %d arg 0x%lx\n",
+	cprintf("utrap_entry: unhandled trap src %d num %d arg 0x%"PRIx64"\n",
 		utf->utf_trap_src, utf->utf_trap_num, utf->utf_trap_arg);
 	sys_self_halt();
     }

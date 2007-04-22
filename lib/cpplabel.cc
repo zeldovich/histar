@@ -4,6 +4,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -37,7 +38,7 @@ label::label(const label &o) : dynamic_(true), ul_(o.ul_)
 	size_t sz = ul_.ul_size * sizeof(ul_.ul_ent[0]);
 	ul_.ul_ent = (uint64_t *) malloc(sz);
 	if (ul_.ul_ent == 0) {
-	    fprintf(stderr, "label::label: cannot allocate %ld\n", sz);
+	    fprintf(stderr, "label::label: cannot allocate %zd\n", sz);
 	    throw std::bad_alloc();
 	}
 	memcpy(ul_.ul_ent, o.ul_.ul_ent, sz);
@@ -94,7 +95,7 @@ label::grow()
 	uint64_t newbytes = newsize * sizeof(ul_.ul_ent[0]);
 	uint64_t *newent = (uint64_t *) realloc(ul_.ul_ent, newbytes);
 	if (newent == 0) {
-	    fprintf(stderr, "label::grow: could not realloc %ld bytes\n", newbytes);
+	    fprintf(stderr, "label::grow: could not realloc %"PRIu64" bytes\n", newbytes);
 	    throw std::bad_alloc();
 	}
 

@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/setjmp.h>
+#include <inttypes.h>
 }
 
 #include <inc/error.hh>
@@ -21,11 +22,11 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	u_segment_mapping usm;
 	int r = segment_lookup(va, &usm);
 
-	cprintf("%s: fatal signal %d, addr=%p [tid=%ld, pid=%ld]\n",
+	cprintf("%s: fatal signal %d, addr=%p [tid=%"PRIu64", pid=%"PRIu64"]\n",
 		__progname, si->si_signo, si->si_addr,
 		sys_self_id(), start_env->shared_container);
 	if (sc)
-	    cprintf("%s: rip=0x%lx, rsp=0x%lx\n",
+	    cprintf("%s: rip=0x%"PRIx64", rsp=0x%"PRIx64"\n",
 		    __progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
 
 	if (r < 0)
@@ -41,7 +42,7 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	label cur_label;
 	thread_cur_label(&cur_label);
 
-	cprintf("%s: segfault_helper: VA %p, segment %ld.%ld (%s), flags %x\n",
+	cprintf("%s: segfault_helper: VA %p, segment %"PRIu64".%"PRIu64" (%s), flags %x\n",
 		__progname, va,
 		usm.segment.container, usm.segment.object,
 		&name[0], usm.flags);

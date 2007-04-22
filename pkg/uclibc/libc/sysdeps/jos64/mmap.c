@@ -4,6 +4,7 @@
 #include <inc/memlayout.h>
 
 #include <errno.h>
+#include <inttypes.h>
 #include <sys/mman.h>
 
 #include <bits/unimpl.h>
@@ -50,7 +51,7 @@ int
 munmap(void *start, size_t length)
 {
     if ((length % PGSIZE) != 0) {
-	cprintf("munmap: unaligned unmap, va %p, length %ld\n", start, length);
+	cprintf("munmap: unaligned unmap, va %p, length %"PRIu64"\n", start, length);
 	__set_errno(EINVAL);
 	return -1;
     }
