@@ -66,7 +66,7 @@ PERL	:= perl
 # Compiler flags.
 
 COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
-	    -Wwrite-strings -Wno-unused-parameters -Wmissing-format-attribute \
+	    -Wwrite-strings -Wno-unused-parameter -Wmissing-format-attribute \
 	    -Wswitch-default
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
 CXXWARNS := $(COMWARNS) -Wno-non-template-friend
