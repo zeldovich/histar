@@ -53,15 +53,15 @@ mkdir(const char *pn, mode_t mode)
     }
 
     strcpy(pn2, pn);
-    const char *dirname, *basename;
-    fs_dirbase(pn2, &dirname, &basename);
+    const char *dirname, *basenm;
+    fs_dirbase(pn2, &dirname, &basenm);
 
     r = fs_namei(dirname, &dir);
     if (r < 0)
         goto done ;
 
     struct fs_inode ndir;
-    r = fs_mkdir(dir, basename, &ndir, 0);
+    r = fs_mkdir(dir, basenm, &ndir, 0);
 
 done:
     free(pn2);
@@ -101,8 +101,8 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
     
     char *pn = strdup(pathname);
     const char *dirname;
-    const char *basename;    
-    fs_dirbase(pn, &dirname, &basename);
+    const char *basenm;    
+    fs_dirbase(pn, &dirname, &basenm);
 
     struct fs_inode dir_ino;
     r = fs_namei(dirname, &dir_ino);
@@ -136,7 +136,7 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
     }
 
     struct fs_inode ino;
-    r = fs_mknod(dir_ino, basename, dev_id, 0, &ino, &ul);
+    r = fs_mknod(dir_ino, basenm, dev_id, 0, &ino, &ul);
     free(pn);
     return err_jos2libc(r);
 }
@@ -149,8 +149,8 @@ unlink(const char *pn)
 	return -E_NO_MEM;
 
     strcpy(pn2, pn);
-    const char *dirname, *basename;
-    fs_dirbase(pn2, &dirname, &basename);
+    const char *dirname, *basenm;
+    fs_dirbase(pn2, &dirname, &basenm);
 
     struct fs_inode dir;
     int r = fs_namei(dirname, &dir);
@@ -166,7 +166,7 @@ unlink(const char *pn)
 	return r;
     }
 
-    r = fs_remove(dir, basename, f);
+    r = fs_remove(dir, basenm, f);
     free(pn2);
     return r;
 }
