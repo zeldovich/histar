@@ -16,6 +16,7 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <inttypes.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -189,8 +190,8 @@ init_auth(int cons, const char *shroot)
     error_check(fs_namei("/bin/auth_user", &user_authd));
 
     char root_grant[32], root_taint[32];
-    sprintf(&root_grant[0], "%ld", start_env->user_grant);
-    sprintf(&root_taint[0], "%ld", start_env->user_taint);
+    sprintf(&root_grant[0], "%"PRIu64, start_env->user_grant);
+    sprintf(&root_taint[0], "%"PRIu64, start_env->user_taint);
     const char *argv[] = { "auth_user", root_grant, root_grant, root_taint };
 
     cp = spawn(root_user_ct, user_authd, cons, cons, cons,
@@ -232,7 +233,7 @@ init_procs(int cons)
     root_dr.set(start_env->user_taint, 3);
 
     char root_grant_buf[32];
-    snprintf(&root_grant_buf[0], sizeof(root_grant_buf), "%lu",
+    snprintf(&root_grant_buf[0], sizeof(root_grant_buf), "%"PRIu64,
 	     start_env->user_grant);
 
     try {
@@ -285,7 +286,7 @@ run_shell(int cons)
         if ((r = process_wait(&shell_proc, &exit_code)) < 0)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));
         else
-            cprintf("run_shell: shell exit value %ld\n", exit_code);
+            cprintf("run_shell: shell exit value %"PRId64"\n", exit_code);
 	sys_obj_unref(COBJ(start_env->root_container, shell_proc.container));
     }
 }
@@ -301,7 +302,7 @@ try
     if (c_self < 0)
 	throw error(c_self, "cannot find init container");
 
-    cprintf("JOS: init (root container %ld)\n", c_root);
+    cprintf("JOS: init (root container %"PRIu64")\n", c_root);
 
     init_env(c_root, c_self, h_root);
 
