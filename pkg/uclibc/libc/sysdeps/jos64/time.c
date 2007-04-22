@@ -50,11 +50,16 @@ nanosleep(const struct timespec *req, struct timespec *rem)
     uint64_t start = sys_clock_nsec();
     uint64_t end = start + NSEC_PER_SECOND * req->tv_sec + req->tv_nsec;
 
-    uint64_t now = start;
-    do {
-	sys_sync_wait(&now, now, end);
-	now = sys_clock_nsec();
-    } while (now < end);
+    sys_sync_wait(&start, start, end);
+    uint64_t stop = sys_clock_nsec();
+
+    if (stop > end)
+	stop = end;
+
+    if (rem) {
+	rem->tv_sec = (end - stop) / NSEC_PER_SECOND;
+	rem->tv_nsec = (end - stop) % NSEC_PER_SECOND;
+    }
 
     return 0;
 }
