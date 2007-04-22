@@ -303,6 +303,18 @@ coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
 			label *cs, label *ds, label *dr,
 			coop_sysarg arg_values[8])
 {
+    if (!__jos_entry_allregs) {
+	struct thread_entry_args targ;
+	sys_self_get_entry_args(&targ);
+
+	invoke_donep = (void *) (uintptr_t) targ.te_arg[0];
+	gatep = (void *) (uintrptr_t) targ.te_arg[1];
+	cs = (void *) (uintptr_t) targ.te_arg[2];
+	ds = (void *) (uintptr_t) targ.te_arg[3];
+	dr = (void *) (uintptr_t) targ.te_arg[4];
+	arg_values = (void *) (uintptr_t) targ.te_arg[5];
+    }
+
     struct gate_call_data *gcd =
 	(struct gate_call_data *) TLS_GATE_ARGS;
     struct coop_syscall_argval *csa_val =

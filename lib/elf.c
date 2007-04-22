@@ -1,11 +1,23 @@
+#include <machine/param.h>
 #include <inc/syscall.h>
 #include <inc/stdio.h>
-#include <stdio.h>
 #include <inc/lib.h>
-#include <string.h>
+#include <inc/elf32.h>
 #include <inc/elf64.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
+#include <stdio.h>
+#include <string.h>
+
+#if JOS_ARCH_BITS==32
+#define ARCH_ELF_EHDR	Elf32_Ehdr
+#define ARCH_ELF_PHDR	Elf32_Phdr
+#elif JOS_ARCH_BITS==64
+#define ARCH_ELF_EHDR	Elf64_Ehdr
+#define ARCH_ELF_PHDR	Elf64_Phdr
+#else
+#error What is this architecture?
+#endif
 
 enum { elf_debug = 0 };
 
@@ -29,7 +41,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     struct u_segment_mapping sm_ents[8];
     int si = 0;
 
-    Elf64_Ehdr *elf = (Elf64_Ehdr*) segbuf;
+    ARCH_ELF_EHDR *elf = (ARCH_ELF_EHDR*) segbuf;
     if (elf->e_magic != ELF_MAGIC) {
 	if (elf_debug)
 	    cprintf("elf_load: ELF magic mismatch\n");
@@ -58,7 +70,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     uint64_t stack_pgoff = 0;
 
     e->te_entry = (void*) elf->e_entry;
-    Elf64_Phdr *ph = (Elf64_Phdr *) (segbuf + elf->e_phoff);
+    ARCH_ELF_PHDR *ph = (ARCH_ELF_PHDR *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
 	if (ph->p_type != ELF_PROG_LOAD)
 	    continue;
@@ -73,7 +85,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    sm_ents[si].va = (void*) (ph->p_vaddr - va_off);
 	    si++;
 	} else {
-	    uint64_t shared_pages = (va_off + ph->p_filesz) / PGSIZE;
+	    uintptr_t shared_pages = (va_off + ph->p_filesz) / PGSIZE;
 
 	    sm_ents[si].segment = copyseg;
             sm_ents[si].start_page = (ph->p_offset - va_off) / PGSIZE;

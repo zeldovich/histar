@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/lib.h>
 #include <inc/syscall.h>
@@ -7,8 +9,10 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
 #include <inc/signal.h>
+#include <inc/features.h>
 
 #include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/gateclnt.hh>
@@ -23,9 +27,20 @@ enum { gate_client_debug = 0 };
 static void __attribute__((noreturn))
 return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
 {
+    if (!__jos_entry_allregs) {
+	struct thread_entry_args targ;
+	sys_self_get_entry_args(&targ);
+
+	jb = (jos_jmp_buf *) (uintptr_t) targ.te_arg[0];
+	tid = targ.te_arg[1];
+	returncb = (void (*)(void*)) (uintptr_t) targ.te_arg[2];
+	cbarg = (void *) (uintptr_t) targ.te_arg[3];
+    }
+
     uint64_t mytid = sys_self_id();
     if (mytid != tid) {
-	cprintf("return_stub: wrong thread id %ld vs %ld\n", mytid, tid);
+	cprintf("return_stub: wrong thread id %"PRIu64" vs %"PRIu64"\n",
+		mytid, tid);
 	sys_self_halt();
     }
 
@@ -37,7 +52,7 @@ return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
     taint_cow(gcd->taint_container, gcd->declassify_gate);
 
     if (gate_client_debug)
-	cprintf("[%ld] gateclnt: return_stub\n", sys_self_id());
+	cprintf("[%"PRIu64"] gateclnt: return_stub\n", sys_self_id());
 
     jos_longjmp(jb, 1);
 }
@@ -191,7 +206,7 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
     // Off into the gate!
     if (jos_setjmp(&back_from_call) == 0) {
 	if (gate_client_debug)
-	    cprintf("[%ld] gate_call: invoking with label %s, clear %s\n",
+	    cprintf("[%"PRIu64"] gate_call: invoking with label %s, clear %s\n",
 		    thread_id(), tgt_label_->to_string(), tgt_clear_->to_string());
 
 	error_check(sys_gate_enter(gate_, tgt_label_->to_ulabel(),
@@ -200,7 +215,7 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
     }
 
     if (gate_client_debug)
-	cprintf("[%ld] gate_call: returned\n", thread_id());
+	cprintf("[%"PRIu64"] gate_call: returned\n", thread_id());
 
     // Restore cached thread ID, just to be safe
     tls_revalidate();

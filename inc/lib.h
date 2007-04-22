@@ -101,9 +101,8 @@ extern void *tls_stack_top;	/* same as tls_gate_args, grows down */
 extern void *tls_base;		/* base */
 
 void	libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
-    __attribute__((__noreturn__, regparm(3)));
-void    setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
-    __attribute__((regparm(3)));
+    __attribute__((__noreturn__));
+void    setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1);
 void	tls_revalidate(void);
 
 /* thread.c */

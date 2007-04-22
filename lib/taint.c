@@ -6,6 +6,7 @@
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/utrap.h>
+#include <inttypes.h>
 
 enum { taint_debug = 0 };
 
@@ -25,9 +26,9 @@ taint_cow_cprint_label(struct ulabel *l)
 	level_t lv = label_get_level(l, h);
 	if (lv != def) {
 	    if (lv == LB_LEVEL_STAR)
-		cprintf("%ld:*, ", h);
+		cprintf("%"PRIu64":*, ", h);
 	    else
-		cprintf("%ld:%d, ", h, lv);
+		cprintf("%"PRIu64":%d, ", h, lv);
 	}
     }
     cprintf("%d }", def);
@@ -150,7 +151,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 
     struct cobj_ref new_as = COBJ(mlt_ct, id);
     if (taint_debug) {
-	cprintf("taint_cow: new as: %lu.%lu, label: ", new_as.container, new_as.object);
+	cprintf("taint_cow: new as: %"PRIu64".%"PRIu64", label: ", new_as.container, new_as.object);
 	taint_cow_cprint_label(&obj_label);
 	cprintf("\n");
     }
@@ -174,7 +175,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 	    panic("taint_cow: cannot get AS slot: %s", e2s(r));
 
 	if (taint_debug) {
-	    cprintf("taint_cow: mapping of %ld.%ld at VA %p--%p, flags 0x%x\n",
+	    cprintf("taint_cow: mapping of %"PRIu64".%"PRIu64" at VA %p--%p, flags 0x%x\n",
 		    usm.segment.container, usm.segment.object,
 		    usm.va, usm.va + usm.num_pages * PGSIZE, usm.flags);
 	}
@@ -202,7 +203,7 @@ taint_cow_slow(struct cobj_ref cur_as, uint64_t taint_container,
 	taint_cow_compute_label(&cur_label, &obj_label);
 
 	if (taint_debug) {
-	    cprintf("taint_cow: trying to copy segment %ld.%ld, VA %p, label ",
+	    cprintf("taint_cow: trying to copy segment %"PRIu64".%"PRIu64", VA %p, label ",
 		    usm.segment.container,
 		    usm.segment.object,
 		    usm.va);
@@ -277,12 +278,12 @@ taint_cow(uint64_t taint_container, struct cobj_ref declassify_gate)
     int maskold = utrap_set_mask(1);
     start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
     if (taint_debug)
-	cprintf("taint_cow: trying to COW; shared/proc CT %ld/%ld\n",
+	cprintf("taint_cow: trying to COW; shared/proc CT %"PRIu64"/%"PRIu64"\n",
 		start_env_ro->shared_container, start_env_ro->proc_container);
     if (start_env_ro->taint_cow_as.object) {
 	cur_as = start_env_ro->taint_cow_as;
 	if (taint_debug)
-	    cprintf("taint_cow: using checkpointed AS %ld.%ld\n",
+	    cprintf("taint_cow: using checkpointed AS %"PRIu64".%"PRIu64"\n",
 		    cur_as.container, cur_as.object);
     }
     int r = taint_cow_slow(cur_as, taint_container, declassify_gate);

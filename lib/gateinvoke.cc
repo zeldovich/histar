@@ -1,7 +1,11 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/stdio.h>
 #include <inc/memlayout.h>
+
+#include <inttypes.h>
 }
 
 #include <inc/gateinvoke.hh>
@@ -109,11 +113,11 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
     if (lbytes > 512) {
 	uint64_t tlsbytes = PGSIZE + lbytes;
 	if (label_debug)
-	    cprintf("[%ld] gate_invoke: growing TLS to %ld bytes\n",
+	    cprintf("[%"PRIu64"] gate_invoke: growing TLS to %"PRIu64" bytes\n",
 		    thread_id(), tlsbytes);
 	error_check(sys_segment_resize(COBJ(0, kobject_id_thread_sg), tlsbytes));
 	if (label_debug)
-	    cprintf("[%ld] gate_invoke: growing TLS to %ld bytes OK\n",
+	    cprintf("[%"PRIu64"] gate_invoke: growing TLS to %"PRIu64" bytes OK\n",
 		    thread_id(), tlsbytes);
     }
 

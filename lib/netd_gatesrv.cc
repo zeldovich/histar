@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
@@ -14,6 +16,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <inttypes.h>
 }
 
 #include <inc/gatesrv.hh>

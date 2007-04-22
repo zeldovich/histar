@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 extern "C" {
 #include <inc/lib.h>
 #include <inc/syscall.h>
@@ -8,9 +10,11 @@ extern "C" {
 #include <inc/taint.h>
 #include <inc/error.h>
 #include <inc/process.h>
+#include <inc/features.h>
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -73,6 +77,15 @@ gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
 void __attribute__((noreturn))
 gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 {
+    if (!__jos_entry_allregs) {
+	struct thread_entry_args targ;
+	sys_self_get_entry_args(&targ);
+
+	fnarg = targ.te_arg[0];
+	arg = targ.te_arg[1];
+	flags = targ.te_arg[2];
+    }
+
     gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
     try {
 	// Copy-on-write if we are tainted
@@ -83,7 +96,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 	tls_revalidate();
 
 	if (gatesrv_debug)
-	    cprintf("[%ld] gatesrv_entry_tls\n", thread_id());
+	    cprintf("[%"PRIu64"] gatesrv_entry_tls\n", thread_id());
 
 	thread_label_cache_invalidate();
 
@@ -219,7 +232,8 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 	if (id < 0) {
 	    // Usually -E_INVAL means the caller has died, so it doesn't matter..
 	    if (id != -E_INVAL)
-		cprintf("gatesrv_return: allocating taint container in %ld: %s\n",
+		cprintf("gatesrv_return: allocating taint container "
+			"in %"PRIu64": %s\n",
 			gcd->taint_container, e2s(id));
 	    gcd->taint_container = 0;
 	} else {
@@ -244,7 +258,7 @@ gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 
     try {
 	if (gatesrv_debug)
-	    cprintf("[%ld] gatesrv_return::ret_tls_stub\n", thread_id());
+	    cprintf("[%"PRIu64"] gatesrv_return::ret_tls_stub\n", thread_id());
 	r->ret_tls(tgt_label, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
@@ -263,13 +277,13 @@ void
 gatesrv_return::cleanup_stub(label *tgt_s, label *tgt_r, void *arg)
 {
     if (gatesrv_debug)
-	cprintf("[%ld] gatesrv_return::cleanup_stub\n", thread_id());
+	cprintf("[%"PRIu64"] gatesrv_return::cleanup_stub\n", thread_id());
 
     gatesrv_return *r = (gatesrv_return *) arg;
     r->cleanup(tgt_s, tgt_r);
 
     if (gatesrv_debug)
-	cprintf("[%ld] gatesrv_return::cleanup_stub done\n", thread_id());
+	cprintf("[%"PRIu64"] gatesrv_return::cleanup_stub done\n", thread_id());
 }
 
 void

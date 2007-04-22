@@ -28,7 +28,7 @@ thread_cleanup(struct thread_args *ta)
 static void __attribute__((noreturn))
 thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, uint64_t stackbasearg)
 {
-    void *stackbase = (void *) stackbasearg;
+    void *stackbase = (void *) (uintptr_t) stackbasearg;
 
     int r = thread_cleanup_internal(ct, thr_id, stack_id, stackbase);
     if (r < 0)
@@ -37,7 +37,7 @@ thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, uint64_t stackbasea
     thread_halt();
 }
 
-static void __attribute__((noreturn))
+static void __attribute__((noreturn, regparm(1)))
 thread_entry(void *arg)
 {
     struct thread_args *ta = arg;
@@ -45,7 +45,7 @@ thread_entry(void *arg)
     ta->entry(ta->arg);
 
     stack_switch(ta->container, ta->thread_id, ta->stack_id,
-		 (uint64_t) ta->stackbase,
+		 (uintptr_t) ta->stackbase,
 		 tls_stack_top, &thread_exit);
 }
 
@@ -118,7 +118,7 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 
     e.te_entry = &thread_entry;
     e.te_stack = entry_top;
-    e.te_arg[0] = (uint64_t) ta;
+    e.te_arg[0] = (uintptr_t) ta;
 
     int64_t tid = sys_thread_create(container, name);
     if (tid < 0) {

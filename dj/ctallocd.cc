@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/stdio.h>
+#include <inc/features.h>
 }
 
 #include <async.h>
@@ -18,6 +19,17 @@ static void
 killer_thread(uint64_t kill_at, uint64_t ctparent, uint64_t ct,
 				uint64_t tparent, uint64_t tid)
 {
+    if (!__jos_entry_allregs) {
+	struct thread_entry_args targ;
+	sys_self_get_entry_args(&targ);
+
+	kill_at = targ->te_arg[0];
+	ctparent = targ->te_arg[1];
+	ct = targ->te_arg[2];
+	tparent = targ->te_arg[3];
+	tid = targ->te_arg[4];
+    }
+
     for (;;) {
 	uint64_t now = sys_clock_nsec();
 	if (now > kill_at)

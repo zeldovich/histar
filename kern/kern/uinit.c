@@ -12,6 +12,7 @@
 #include <kern/embedbin.h>
 #include <kern/arch.h>
 #include <kern/timer.h>
+#include <inc/elf32.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 

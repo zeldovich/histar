@@ -33,7 +33,7 @@ int setup_env_done;
 static int argc;
 static const char **argv;
 
-void __attribute__((noinline, regparm(3)))
+void __attribute__((noinline))
 setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
     if (sizeof(arg0) == sizeof(start_arg0)) {
@@ -126,7 +126,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     setup_env_done = 1;
 }
 
-void __attribute__((regparm(3)))
+void
 libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
     if (!bootstrap) {
