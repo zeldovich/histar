@@ -1,3 +1,6 @@
+TARGET  := x86_64-jos-linux
+OBJTYPE := elf64-x86-64
+
 CC      := $(GCCPREFIX)gcc -pipe
 CXX     := $(GCCPREFIX)g++ -pipe
 AS      := $(GCCPREFIX)as

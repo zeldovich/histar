@@ -21,22 +21,11 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 # installed as 'TARGET-*', if one exists.  If the host tools ('gcc',
 # 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
 # be detected as well.  If you have the right compiler toolchain installed
-# using a different name, set GCCPREFIX explicitly by doing
+# using a different name, set GCCPREFIX explicitly.
 
-## 64-bit x86
 K_ARCH	:= amd64
-TARGET	:= x86_64-jos-linux
-OBJTYPE	:= elf64-x86-64
-
-## 32-bit x86
 #K_ARCH	:= i386
-#TARGET	:= i386-jos-linux
-#OBJTYPE := elf32-i386
-
-## FT userspace kernel
 #K_ARCH	:= ft
-#TARGET := i386-jos-linux
-#OBJTYPE := elf32-i386
 
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/
