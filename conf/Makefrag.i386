@@ -1,3 +1,4 @@
+ARCH    := i386
 TARGET  := i386-jos-linux
 OBJTYPE := elf32-i386
 

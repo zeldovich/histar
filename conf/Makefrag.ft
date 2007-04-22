@@ -1,7 +1,8 @@
+ARCH    := i386
 TARGET  := i386-jos-linux
 OBJTYPE := elf32-i386
 
-CC      := $(GCCPREFIX)ft-cc
+CC      := ft-cc
 CXX     := $(GCCPREFIX)g++ -pipe -m32
 AS      := $(GCCPREFIX)as --32
 AR      := $(GCCPREFIX)ar
