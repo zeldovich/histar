@@ -17,9 +17,15 @@ struct UTrapframe {
     uint32_t utf_esi;
     uint32_t utf_edi;
     uint32_t utf_ebp;
-    uint32_t utf_esp;
+    union {
+	uint32_t utf_esp;
+	uint32_t utf_stackptr;
+    };
 
-    uint32_t utf_eip;
+    union {
+	uint32_t utf_eip;
+	uint32_t utf_pc;
+    };
     uint32_t utf_eflags;
 
     uint32_t utf_trap_src;

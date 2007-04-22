@@ -286,7 +286,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	
 	int n = select(fdnum + 1, 0, &writeset, 0, &tv);
 	if (n == 0) {
-	    cprintf("pty_write: only able to write %d out of %"PRIu64"\n", r, count);
+	    cprintf("pty_write: only able to write %d out of %zu\n", r, count);
 	    __set_errno(EIO);
 	    return -1;
 	}

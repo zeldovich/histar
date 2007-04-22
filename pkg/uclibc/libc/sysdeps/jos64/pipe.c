@@ -107,7 +107,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	memset(wstat, 0, sizeof(wstat));
 	WS_SETADDR(&wstat[0], &fd->fd_pipe.bytes);
 	WS_SETVAL(&wstat[0], 0);
-	WS_SETADDR(&wstat[1], &atomic_read(&fd->fd_ref));
+	WS_SETADDR(&wstat[1], &fd->fd_ref64);
 	WS_SETVAL(&wstat[1], ref);
 	if (multisync_wait(wstat, 2, ~0UL) < 0)
 	    return -1;

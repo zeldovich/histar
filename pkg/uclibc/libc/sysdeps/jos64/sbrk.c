@@ -57,13 +57,13 @@ sbrk(intptr_t x)
 
     size_t nbrk = heap.brk + x;
     if (nbrk > heap_maxbytes) {
-	cprintf("sbrk: heap too large: %"PRIu64" > %"PRIu64"\n", nbrk, heap_maxbytes);
+	cprintf("sbrk: heap too large: %zu > %"PRIu64"\n", nbrk, heap_maxbytes);
 	goto out;
     }
 
     r = sys_segment_resize(heap.heapseg, nbrk);
     if (r < 0) {
-	cprintf("sbrk: resizing heap to %"PRIu64": %s\n", nbrk, e2s(r));
+	cprintf("sbrk: resizing heap to %zu: %s\n", nbrk, e2s(r));
 	goto out;
     }
 

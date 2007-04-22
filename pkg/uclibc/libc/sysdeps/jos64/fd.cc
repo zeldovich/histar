@@ -431,12 +431,12 @@ jos_fd_close(struct Fd *fd)
 	jos_sigio_disable(fdnum);
 
     int lastref = 0;
-    if (!fd->fd_immutable && atomic_dec_and_test64(&fd->fd_ref)) {
+    if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref)) {
 	lastref = 1;
 	r = DEV_CALL(dev, close, fd);
     }
     if (!fd->fd_immutable)
-	sys_sync_wakeup(&atomic_read(&fd->fd_ref));
+	sys_sync_wakeup(&fd->fd_ref64);
 
     if (fd->fd_private && lastref &&
 	fd_segment_cache.container != start_env->proc_container)
@@ -614,7 +614,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     fd_map_cache[newfdnum].flags = fd_flags;
 
     if (!immutable)
-	atomic_inc64(&oldfd->fd_ref);
+	atomic_inc(&oldfd->fd_ref);
 
     for (int i = 0; i < fd_handle_max; i++)
 	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
@@ -691,7 +691,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     }
 
     if (!immutable)
-	atomic_inc64(&oldfd->fd_ref);
+	atomic_inc(&oldfd->fd_ref);
     return newfdnum;
 }
 
@@ -744,7 +744,7 @@ write(int fdnum, const void *buf, size_t n) __THROW
     }
 
     if (debug)
-	cprintf("write %d %p %"PRIu64" via dev %s\n",
+	cprintf("write %d %p %zu via dev %s\n",
 		fdnum, buf, n, dev->dev_name);
 
     r = DEV_CALL(dev, write, fd, buf, n, fd->fd_offset);
@@ -958,7 +958,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         }
 	
 	// XXX fix this mess
-	struct timeval remaining;
+	struct timeval remaining = { 0, 0 };
         if (timeout) {
             struct timeval now, elapsed;
             gettimeofday(&now, 0);

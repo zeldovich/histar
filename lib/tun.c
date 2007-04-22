@@ -86,7 +86,7 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
     }
 
     if (plen > len) {
-	cprintf("tun_read: packet too big: %"PRIu64" > %"PRIu64"\n", plen, len);
+	cprintf("tun_read: packet too big: %"PRIu64" > %zd\n", plen, len);
 	atomic_set(&tp->len, 0);
 	errno = E2BIG;
 	goto out;
@@ -106,7 +106,7 @@ static ssize_t
 tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 {
     if (len > tun_max_msg) {
-	cprintf("tun_write: packet too big: %"PRIu64" > %d\n", len, tun_max_msg);
+	cprintf("tun_write: packet too big: %zd > %d\n", len, tun_max_msg);
 	errno = E2BIG;
 	return -1;
     }

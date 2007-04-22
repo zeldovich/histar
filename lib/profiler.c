@@ -26,7 +26,7 @@ static void
 profiler_sig(int signo, siginfo_t *si, void *arg)
 {
     struct sigcontext *sc = (struct sigcontext *) arg;
-    prof_rip = sc->sc_utf.utf_rip;
+    prof_rip = sc->sc_utf.utf_pc;
     sys_sync_wakeup(&prof_rip);
 }
 

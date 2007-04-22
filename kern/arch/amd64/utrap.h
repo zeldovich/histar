@@ -17,7 +17,10 @@ struct UTrapframe {
     uint64_t utf_rsi;
     uint64_t utf_rdi;
     uint64_t utf_rbp;
-    uint64_t utf_rsp;
+    union {
+	uint64_t utf_rsp;
+	uint64_t utf_stackptr;
+    };
 
     uint64_t utf_r8;
     uint64_t utf_r9;
@@ -29,7 +32,10 @@ struct UTrapframe {
     uint64_t utf_r14;
     uint64_t utf_r15;
 
-    uint64_t utf_rip;
+    union {
+	uint64_t utf_rip;
+	uint64_t utf_pc;
+    };
     uint64_t utf_rflags;
 
     uint32_t utf_trap_src;

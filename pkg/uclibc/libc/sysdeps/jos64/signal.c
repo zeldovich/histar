@@ -50,6 +50,7 @@ static int signal_queued_any;
 static void
 utf_dump(struct UTrapframe *utf)
 {
+#if defined(JOS_ARCH_amd64)
     cprintf("rax %016lx  rbx %016lx  rcx %016lx\n",
 	    utf->utf_rax, utf->utf_rbx, utf->utf_rcx);
     cprintf("rdx %016lx  rsi %016lx  rdi %016lx\n",
@@ -62,6 +63,16 @@ utf_dump(struct UTrapframe *utf)
 	    utf->utf_r14, utf->utf_r15, utf->utf_rbp);
     cprintf("rip %016lx  rsp %016lx  rflags %016lx\n",
 	    utf->utf_rip, utf->utf_rsp, utf->utf_rflags);
+#elif defined(JOS_ARCH_i386)
+    cprintf("eax %08x  ebx %08x  ecx %08x  edx %08x\n",
+            utf->utf_eax, utf->utf_ebx, utf->utf_ecx, utf->utf_edx);
+    cprintf("esi %08x  edi %08x  ebp %08x  esp %08x\n",
+            utf->utf_esi, utf->utf_edi, utf->utf_ebp, utf->utf_esp);
+    cprintf("eip %08x  eflags %08x\n",
+            utf->utf_eip, utf->utf_eflags);
+#else
+#error Unknown arch
+#endif
 }
 
 static int
@@ -299,7 +310,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 // Called with utrap unmasked and no locks held.
 // Signal is masked.
 // Jumps back to sc to return.
-static void __attribute__((noreturn))
+static void __attribute__((noreturn, regparm(2)))
 signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 {
     int signo = si->si_signo;
@@ -363,8 +374,8 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 
     // Run signal_utrap_onstack(), which will figure out the right
     // signal handler and execute it.
-    if (sc->sc_utf.utf_rsp <= (uint64_t) tls_stack_top &&
-	sc->sc_utf.utf_rsp > (uint64_t) tls_base)
+    if (sc->sc_utf.utf_stackptr <= (uintptr_t) tls_stack_top &&
+	sc->sc_utf.utf_stackptr > (uintptr_t) tls_base)
     {
 	// If the trapped stack was the TLS, just call the function
 	// to deliver signals, as we're already on the TLS.
@@ -382,7 +393,8 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	    uint8_t redzone[128];
 	} *s;
 
-	s = (void *) sc->sc_utf.utf_rsp;
+	// XXX assumes stack grows down
+	s = (void *) sc->sc_utf.utf_stackptr;
 	s--;
 
 	// Ensure there's space, because we're masking traps right now..
@@ -411,13 +423,24 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 
 	// jump over there and unmask utrap atomically
 	struct UTrapframe utf_jump;
+#if defined(JOS_ARCH_amd64)
 	utf_jump.utf_rflags = read_rflags();
 	utf_jump.utf_rip = (uint64_t) &utrap_chain_dwarf2;
 	utf_jump.utf_rsp = (uint64_t) s;
 	utf_jump.utf_rdi = (uint64_t) &s->si;
 	utf_jump.utf_rsi = (uint64_t) &s->sc;
-
 	utf_jump.utf_r15 = (uint64_t) &signal_utrap_onstack;
+#elif defined(JOS_ARCH_i386)
+	utf_jump.utf_eflags = read_eflags();
+	utf_jump.utf_eip = (uintptr_t) &utrap_chain_dwarf2;
+	utf_jump.utf_esp = (uintptr_t) s;
+	utf_jump.utf_eax = (uintptr_t) &s->si;
+	utf_jump.utf_edx = (uintptr_t) &s->sc;
+	utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
+#else
+#error Unknown arch
+#endif
+
 	utrap_ret(&utf_jump);
     }
 }
@@ -426,15 +449,15 @@ static void
 signal_utrap(struct UTrapframe *utf)
 {
     if (signal_debug)
-	cprintf("[%"PRIu64"] signal_utrap: rsp=0x%"PRIx64" rip=0x%"PRIx64"\n",
-		thread_id(), utf->utf_rsp, utf->utf_rip);
+	cprintf("[%"PRIu64"] signal_utrap: sp=0x%zx pc=0x%zx\n",
+		thread_id(), utf->utf_stackptr, utf->utf_pc);
 
     siginfo_t si;
     memset(&si, 0, sizeof(si));
     int sigmu_taken = 0;
 
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
-	si.si_addr = (void *) utf->utf_trap_arg;
+	si.si_addr = (void *) (uintptr_t) utf->utf_trap_arg;
 	if (utf->utf_trap_num == T_PGFLT) {
 	    int r = stack_grow(si.si_addr);
 	    if (r > 0) {

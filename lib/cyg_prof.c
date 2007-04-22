@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 void __attribute__ ((no_instrument_function))
      __cyg_profile_func_enter(void *this_fn, void *call_site);
@@ -57,9 +58,6 @@ enum { prof_print_cycles_threshold = 0UL };
 static uint64_t cyg_profs_threshold = 0UL;
 
 #define NUM_PROFS_PRINTED (sizeof(cyg_profs_printed) / sizeof(cyg_profs_printed[0]))
-
-#define PRIu64 "ld"
-#define PRIx64 "lx"
 
 static void __attribute__ ((no_instrument_function))
 cyg_profile_reset(void)

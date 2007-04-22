@@ -8,6 +8,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <unwind.h>
+#include <inttypes.h>
 }
 
 #include <inc/scopedprof.hh>
@@ -106,11 +107,11 @@ prof_print(char use_cprintf)
     for (uint64_t i = 0; i < sizeof(table) / sizeof(struct entry); i++) {
 	if (table[i].func_addr) {
 	    if (use_cprintf) 
-		cprintf("%3ld addr %12lx cnt %12ld tot%12ld\n", 
+		cprintf("%3"PRIu64" addr %12"PRIx64" cnt %12"PRIu64" tot%12"PRIu64"\n", 
 			i, (uint64_t )table[i].func_addr, 
 			table[i].cnt, table[i].time);
 	    else 
-		printf("%3ld addr %12lx cnt %12ld tot%12ld\n", 
+		printf("%3"PRIu64" addr %12"PRIx64" cnt %12"PRIu64" tot%12"PRIu64"\n", 
 		       i, (uint64_t )table[i].func_addr, 
 		       table[i].cnt, table[i].time);
 	}
@@ -124,7 +125,7 @@ prof_print(char use_cprintf)
 	tot = e - start_prof;
 
     if (use_cprintf) 
-	cprintf("%42s%12ld\n", "tot", tot);
+	cprintf("%42s%12"PRIu64"\n", "tot", tot);
     else 
-	printf("%42s%12ld\n", "tot", tot);
+	printf("%42s%12"PRIu64"\n", "tot", tot);
 }

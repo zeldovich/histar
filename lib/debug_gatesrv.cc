@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/debug_gate.h>
 #include <inc/debug.h>
 #include <inc/memlayout.h>
+#include <inc/stack.h>
 
 #include <machine/x86.h>
 
@@ -90,7 +91,13 @@ debug_gate_cont(struct debug_args *da)
 static void
 debug_gate_singlestep(struct debug_args *da)
 {
+#if defined(JOS_ARCH_amd64)
     dinfo->utf.utf_rflags |= FL_TF;
+#elif defined(JOS_ARCH_i386)
+    dinfo->utf.utf_eflags |= FL_TF;
+#else
+#error Unknown arch
+#endif
     dinfo->signo = 0;
     error_check(sys_sync_wakeup(&dinfo->signo));
     da->ret = 0;
@@ -358,14 +365,20 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
 
     struct UTrapframe *utf = &sc->sc_utf;
     memcpy(&dinfo->utf, utf, sizeof(dinfo->utf));
+#if defined(JOS_ARCH_amd64)
     dinfo->utf.utf_rflags &= ~FL_TF;
+#elif defined(JOS_ARCH_i386)
+    dinfo->utf.utf_eflags &= ~FL_TF;
+#else
+#error Unknown arch
+#endif
     fxsave(&dinfo->fpregs);
     dinfo->signo = signo;
     dinfo->gen++;
 
     debug_print(debug_dbg, "signo %d, gen %"PRIu64, signo, dinfo->gen);
-    debug_print(debug_dbg, "stop: tid %"PRIu64", pid %"PRIu64", rsp %"PRIx64, 
-		thread_id(), getpid(), read_rsp());
+    debug_print(debug_dbg, "stop: tid %"PRIu64", pid %"PRIu64", sp %zx",
+		thread_id(), getpid(), stack_curptr());
 
     while (dinfo->signo == signo)
 	sys_sync_wait(&dinfo->signo, signo, ~0L);

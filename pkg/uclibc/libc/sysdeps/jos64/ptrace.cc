@@ -26,6 +26,7 @@ static const char ptrace_dbg = 0;
 static void 
 copy_to_utf(struct UTrapframe *u, struct user_regs_struct *r)
 {
+#if defined(JOS_ARCH_amd64)
 #define REG_COPY(R) u->utf_r##R = r->r##R
     REG_COPY(ax);  REG_COPY(bx);  REG_COPY(cx);  REG_COPY(dx);
     REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
@@ -34,11 +35,21 @@ copy_to_utf(struct UTrapframe *u, struct user_regs_struct *r)
     REG_COPY(ip);
 #undef REG_COPY
     u->utf_rflags = r->eflags;
+#elif defined(JOS_ARCH_i386)
+#define REG_COPY(R) u->utf_e##R = r->e##R
+    REG_COPY(ax);  REG_COPY(bx);  REG_COPY(cx);  REG_COPY(dx);
+    REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
+    REG_COPY(ip);  REG_COPY(flags);
+#undef REG_COPY
+#else
+#error Unknown arch
+#endif
 }
 
 static void
 copy_to_user_regs(struct user_regs_struct *r, struct UTrapframe *u)
 {
+#if defined(JOS_ARCH_amd64)
 #define REG_COPY(R) r->r##R = u->utf_r##R
     REG_COPY(ax);  REG_COPY(bx);  REG_COPY(cx);  REG_COPY(dx);
     REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
@@ -47,6 +58,16 @@ copy_to_user_regs(struct user_regs_struct *r, struct UTrapframe *u)
     REG_COPY(ip);
 #undef REG_COPY
     r->eflags = u->utf_rflags;
+#elif defined(JOS_ARCH_i386)
+#define REG_COPY(R) r->e##R = u->utf_e##R
+    REG_COPY(ax);  REG_COPY(bx);  REG_COPY(cx);  REG_COPY(dx);
+    REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
+    REG_COPY(ip);  REG_COPY(flags);
+#undef REG_COPY
+#else
+#error Unknown arch
+#endif
+
     //r->orig_rax = 
     //r->cs = 
     //r->ss = 

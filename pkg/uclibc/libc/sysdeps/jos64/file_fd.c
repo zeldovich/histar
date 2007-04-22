@@ -158,8 +158,11 @@ __libc_open(const char *pn, int flags, ...) __THROW
 	}
     }
 
-    if ((flags & O_APPEND))
-	fs_getsize(ino, &fd->fd_offset);
+    if ((flags & O_APPEND)) {
+	uint64_t cursize;
+	fs_getsize(ino, &cursize);
+	fd->fd_offset = cursize;
+    }
 
     return fd2num(fd);
 }

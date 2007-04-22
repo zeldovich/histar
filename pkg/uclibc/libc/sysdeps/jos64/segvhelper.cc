@@ -26,8 +26,8 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 		__progname, si->si_signo, si->si_addr,
 		sys_self_id(), start_env->shared_container);
 	if (sc)
-	    cprintf("%s: rip=0x%"PRIx64", rsp=0x%"PRIx64"\n",
-		    __progname, sc->sc_utf.utf_rip, sc->sc_utf.utf_rsp);
+	    cprintf("%s: rip=0x%zx, rsp=0x%zx\n",
+		    __progname, sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
 
 	if (r < 0)
 	    throw error(r, "segment_lookup");
