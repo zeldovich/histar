@@ -13,6 +13,14 @@ Performance:
 
 Kernel bugs:
 
+* SYS_pstate_sync checkpoints the calling thread in the next instruction,
+  so the pstate_sync system call is not re-executed on restore-from-disk.
+* On the other hand, when calling SYS_thread_utrap on the current thread,
+  it should appear that the system call already executed -- otherwise, we
+  will go into an infinite loop, re-sending the trap again on trap return.
+* SYS_obj_unref can delete the current thread, at which point trap_dispatch()
+  will write the system call return value into free memory!
+
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: preallocate space for free_later list on disk
   - btree/cache: check cache size is enough, use static disk read buffer page
