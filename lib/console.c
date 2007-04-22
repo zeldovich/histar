@@ -125,7 +125,7 @@ cons_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 }
 
 struct cons_statsync {
-    atomic_t ref;
+    jos_atomic_t ref;
     volatile uint64_t *wakeaddr;
 };
 
@@ -134,7 +134,7 @@ cons_statsync_thread(void *arg)
 {
     struct cons_statsync *args = arg;
 
-    while (atomic_read(&args->ref) > 1) {
+    while (jos_atomic_read(&args->ref) > 1) {
 	int r = sys_cons_probe();
 	if (r >= 0) {
 	    (*args->wakeaddr)++;
@@ -144,7 +144,7 @@ cons_statsync_thread(void *arg)
 	usleep(50000);
     }
 
-    if (atomic_dec_and_test(&args->ref))
+    if (jos_atomic_dec_and_test(&args->ref))
 	free(args);
 }
 
@@ -153,7 +153,7 @@ cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 		  void **arg1)
 {
     struct cons_statsync *thread_arg = malloc(sizeof(*thread_arg));
-    atomic_set(&thread_arg->ref, 2);
+    jos_atomic_set(&thread_arg->ref, 2);
     thread_arg->wakeaddr = addr;
 
     struct cobj_ref tobj;
@@ -168,7 +168,7 @@ static int
 cons_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
 {
     struct cons_statsync *args = arg1;
-    if (atomic_dec_and_test(&args->ref))
+    if (jos_atomic_dec_and_test(&args->ref))
 	free(args);
     
     return 0;

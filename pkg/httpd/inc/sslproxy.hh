@@ -14,7 +14,7 @@ enum {
 struct ssl_proxy_client {
  public:
     cobj_ref plain_bipipe_;
-    atomic64_t ref_;
+    jos_atomic64_t ref_;
 };
 
 struct ssl_proxy_descriptor {

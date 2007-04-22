@@ -10,7 +10,7 @@
 #define ATOMIC_LOCK ""
 #endif
 
-typedef struct { volatile uint64_t counter; } atomic64_t;
+typedef struct { volatile uint64_t counter; } jos_atomic64_t;
 
 /*
  * Atomically compare the value in "v" with "old", and set "v" to "newv"
@@ -20,7 +20,7 @@ typedef struct { volatile uint64_t counter; } atomic64_t;
  * as "old", the swap occurred, otherwise it did not.
  */
 static __inline__ uint64_t
-atomic_compare_exchange64(atomic64_t *v, uint64_t old, uint64_t newv)
+jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
 {
     uint32_t new_lo = newv & 0xffffffff;
     uint32_t new_hi = newv >> 32;

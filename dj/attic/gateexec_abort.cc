@@ -70,7 +70,7 @@ class gate_exec : public djcallexec {
 	    _make_async(pipes_[0]);
 	    _make_async(pipes_[1]);
 
-	    atomic_set(&state_, GATE_EXEC_CALL);
+	    jos_atomic_set(&state_, GATE_EXEC_CALL);
 	    error_check(thread_create_option(start_env->proc_container,
 					     &gate_exec::gate_call_thread, this, 0,
 					     &callthread_tid_, "gate_exec call thread",
@@ -84,7 +84,7 @@ class gate_exec : public djcallexec {
     }
 
     virtual void abort() {
-	if (atomic_compare_exchange(&state_, GATE_EXEC_CALL, GATE_EXEC_ABORT) == GATE_EXEC_CALL) {
+	if (jos_atomic_compare_exchange(&state_, GATE_EXEC_CALL, GATE_EXEC_ABORT) == GATE_EXEC_CALL) {
 	    /*
 	     * Wait until the thread calls gate_enter().  Presumption that
 	     * we are making a call into a different address space..
@@ -104,7 +104,7 @@ class gate_exec : public djcallexec {
 	    delete gc_;
 	    gc_ = 0;
 	} else {
-	    atomic_set(&state_, GATE_EXEC_ABORT);
+	    jos_atomic_set(&state_, GATE_EXEC_ABORT);
 	}
 
 	cb_(REPLY_ABORTED, (const djcall_args *) 0);
@@ -144,7 +144,7 @@ class gate_exec : public djcallexec {
 
 	thread_cur_verify(&ge->reply_vl_, &ge->reply_vc_);
 	ge->cm_->import(ge->reply_vl_, ge->gc_->call_grant(), ge->gc_->call_taint());
-	atomic_compare_exchange(&ge->state_, GATE_EXEC_RETURN, GATE_EXEC_DONE);
+	jos_atomic_compare_exchange(&ge->state_, GATE_EXEC_RETURN, GATE_EXEC_DONE);
 	write(ge->pipes_[1], "", 1);
     }
 
@@ -153,7 +153,7 @@ class gate_exec : public djcallexec {
 	start_env_t *start_env_ro = (start_env_t *) USTARTENVRO;
 
 	sys_self_set_sched_parents(start_env_ro->proc_container, 0);
-	if (atomic_compare_exchange(&ge->state_, GATE_EXEC_CALL, GATE_EXEC_RETURN) != GATE_EXEC_CALL) {
+	if (jos_atomic_compare_exchange(&ge->state_, GATE_EXEC_CALL, GATE_EXEC_RETURN) != GATE_EXEC_CALL) {
 	    cprintf("gate_exec::gate_return_cb: aborted\n");
 	    sys_self_halt();
 	}
@@ -163,7 +163,7 @@ class gate_exec : public djcallexec {
 	char buf[64];
 	read(pipes_[0], &buf[0], sizeof(buf));
 
-	if (atomic_read(&state_) != GATE_EXEC_DONE)
+	if (jos_atomic_read(&state_) != GATE_EXEC_DONE)
 	    return;
 	fdcb(pipes_[0], selread, 0);
 
@@ -192,7 +192,7 @@ class gate_exec : public djcallexec {
     thread_args callthread_args_;
     label call_vl_, call_vc_;
     label reply_vl_, reply_vc_;
-    atomic_t state_;
+    jos_atomic_t state_;
     int pipes_[2];
     ptr<catmgr> cm_;
     uint64_t proc_ct_;

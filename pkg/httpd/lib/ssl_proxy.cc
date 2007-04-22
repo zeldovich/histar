@@ -103,8 +103,8 @@ ssl_proxy_cleanup(ssl_proxy_descriptor *d)
 
     int64_t start = sys_clock_nsec();
     int64_t end = start + NSEC_PER_SECOND * 10;
-    while (atomic_read(&spc->ref_)) {
-	sys_sync_wait(&atomic_read(&spc->ref_), atomic_read(&spc->ref_), end);
+    while (jos_atomic_read(&spc->ref_)) {
+	sys_sync_wait(&jos_atomic_read(&spc->ref_), jos_atomic_read(&spc->ref_), end);
 	if (end <= sys_clock_nsec()) {
 	    cprintf("ssl_proxy_cleanup: timeout expired, cleaning up\n");
 	    break;
@@ -302,7 +302,7 @@ ssl_proxy_client_fd(cobj_ref plain_seg)
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
 	int s;
 	error_check(s = bipipe_fd(spc->plain_bipipe_, ssl_proxy_bipipe_client, 0, 0, 0));
-	atomic_inc64(&spc->ref_);
+	jos_atomic_inc64(&spc->ref_);
 	return s;
     } catch (basic_exception &e) {
 	cprintf("ssl_proxy_client_fd: error: %s\n", e.what());
@@ -319,7 +319,7 @@ ssl_proxy_client_done(cobj_ref plain_seg)
 	error_check(segment_map(plain_seg, 0, SEGMAP_READ | SEGMAP_WRITE, 
 				(void **)&spc, &bytes, 0));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
-	atomic_dec64(&spc->ref_);
+	jos_atomic_dec64(&spc->ref_);
     } catch (basic_exception &e) {
 	cprintf("ssl_proxy_client_done: error: %s\n", e.what());
     }

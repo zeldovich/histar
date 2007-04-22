@@ -10,10 +10,10 @@
 #define ATOMIC_LOCK ""
 #endif
 
-typedef struct { volatile uint64_t counter; } atomic64_t;
+typedef struct { volatile uint64_t counter; } jos_atomic64_t;
 
 static __inline__ void
-atomic_inc64(atomic64_t *v)
+jos_atomic_inc64(jos_atomic64_t *v)
 {
     __asm__ __volatile__(
 	ATOMIC_LOCK "incq %0"
@@ -23,7 +23,7 @@ atomic_inc64(atomic64_t *v)
 }
 
 static __inline__ void
-atomic_dec64(atomic64_t *v)
+jos_atomic_dec64(jos_atomic64_t *v)
 {
     __asm__ __volatile__(
 	ATOMIC_LOCK "decq %0"
@@ -34,7 +34,7 @@ atomic_dec64(atomic64_t *v)
 
 /* Returns true if result is zero. */
 static __inline__ int
-atomic_dec_and_test64(atomic64_t *v)
+jos_atomic_dec_and_test64(jos_atomic64_t *v)
 {
     unsigned char c;
 
@@ -54,7 +54,7 @@ atomic_dec_and_test64(atomic64_t *v)
  * as "old", the swap occurred, otherwise it did not.
  */
 static __inline__ uint64_t
-atomic_compare_exchange64(atomic64_t *v, uint64_t old, uint64_t newv)
+jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
 {
     uint64_t out;
     __asm__ __volatile__(

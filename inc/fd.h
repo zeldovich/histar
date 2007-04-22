@@ -81,7 +81,7 @@ struct Fd
     uint64_t fd_handle[fd_handle_max];
 
     union {
-	atomic_t fd_ref;
+	jos_atomic_t fd_ref;
 	uint64_t fd_ref64;
     };
 

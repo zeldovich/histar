@@ -47,7 +47,7 @@ pipe(int fds[2])
 static ssize_t
 pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    if (atomic_read(&fd->fd_ref) == 1) {
+    if (jos_atomic_read(&fd->fd_ref) == 1) {
 	raise(SIGPIPE);
 	__set_errno(EPIPE);
 	return -1;
@@ -89,7 +89,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     jthread_mutex_lock(&fd->fd_pipe.mu);
     while (fd->fd_pipe.bytes == 0) {
-	uint32_t ref = atomic_read(&fd->fd_ref);
+	uint32_t ref = jos_atomic_read(&fd->fd_ref);
 	int nonblock = (fd->fd_omode & O_NONBLOCK);
 	fd->fd_pipe.reader_waiting = 1;
 	jthread_mutex_unlock(&fd->fd_pipe.mu);
@@ -153,7 +153,7 @@ pipe_probe(struct Fd *fd, dev_probe_t probe)
     if (fd->fd_pipe.bytes)
 	return 1;
 
-    if (atomic_read(&fd->fd_ref) == 1)
+    if (jos_atomic_read(&fd->fd_ref) == 1)
 	return 1;
 
     return 0;

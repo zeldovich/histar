@@ -14,7 +14,7 @@ enum { tun_max_msg = 2000 };
 
 struct tun_pipe {
     char buf[tun_max_msg];
-    atomic64_t len;
+    jos_atomic64_t len;
 };
 
 struct tun_seg {
@@ -73,7 +73,7 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
     uint64_t plen;
 
     for (;;) {
-	plen = atomic_read(&tp->len);
+	plen = jos_atomic_read(&tp->len);
 	if (plen)
 	    break;
 
@@ -82,19 +82,19 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 	    goto out;
 	}
 
-	sys_sync_wait(&atomic_read(&tp->len), 0, ~0UL);
+	sys_sync_wait(&jos_atomic_read(&tp->len), 0, ~0UL);
     }
 
     if (plen > len) {
 	cprintf("tun_read: packet too big: %"PRIu64" > %zd\n", plen, len);
-	atomic_set(&tp->len, 0);
+	jos_atomic_set(&tp->len, 0);
 	errno = E2BIG;
 	goto out;
     }
 
     memcpy(buf, &tp->buf[0], plen);
-    atomic_set(&tp->len, 0);
-    sys_sync_wakeup(&atomic_read(&tp->len));
+    jos_atomic_set(&tp->len, 0);
+    sys_sync_wakeup(&jos_atomic_read(&tp->len));
     cc = plen;
 
 out:
@@ -124,7 +124,7 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     struct tun_pipe *tp = &ts->p[!fd->fd_tun.tun_a];
 
     for (;;) {
-	uint64_t plen = atomic_read(&tp->len);
+	uint64_t plen = jos_atomic_read(&tp->len);
 	if (!plen)
 	    break;
 
@@ -133,12 +133,12 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	    goto out;
 	}
 
-	sys_sync_wait(&atomic_read(&tp->len), plen, ~0UL);
+	sys_sync_wait(&jos_atomic_read(&tp->len), plen, ~0UL);
     }
 
     memcpy(&tp->buf[0], buf, len);
-    atomic_set(&tp->len, len);
-    sys_sync_wakeup(&atomic_read(&tp->len));
+    jos_atomic_set(&tp->len, len);
+    sys_sync_wakeup(&jos_atomic_read(&tp->len));
     cc = len;
 
 out:
@@ -161,10 +161,10 @@ tun_probe(struct Fd *fd, dev_probe_t probe)
     int rv;
     if (probe == dev_probe_read) {
 	struct tun_pipe *tp = &ts->p[fd->fd_tun.tun_a];
-	rv = atomic_read(&tp->len) ? 1 : 0;
+	rv = jos_atomic_read(&tp->len) ? 1 : 0;
     } else {
 	struct tun_pipe *tp = &ts->p[!fd->fd_tun.tun_a];
-	rv = atomic_read(&tp->len) ? 0 : 1;
+	rv = jos_atomic_read(&tp->len) ? 0 : 1;
     }
 
     segment_unmap_delayed(ts, 1);

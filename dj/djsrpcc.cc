@@ -19,7 +19,7 @@ struct dj_rpc_reply_state {
     uint64_t base_procct;
     uint64_t callct;
     dj_pubkey server;
-    atomic64_t reply;
+    jos_atomic64_t reply;
     uint64_t mdone;
     dj_message m;
 
@@ -63,7 +63,7 @@ dj_rpc_reply_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
 	return;
     }
 
-    if (atomic_compare_exchange64(&s->reply,
+    if (jos_atomic_compare_exchange64(&s->reply,
 	    reply_none, reply_copying) != reply_none) {
 	printf("dj_rpc_reply_entry: duplicate reply, dropping\n");
 	return;
@@ -93,7 +93,7 @@ dj_rpc_reply_entry(uint64_t arg, gate_call_data *gcd, gatesrv_return *r)
     }
 
     s->m = m.m;
-    assert(atomic_compare_exchange64(&s->reply,
+    assert(jos_atomic_compare_exchange64(&s->reply,
 		reply_copying, reply_done) == reply_copying);
     sys_sync_wakeup(&s->reply.counter);
 }
@@ -123,7 +123,7 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
 
     dj_rpc_reply_state rs;
     rs.base_procct = start_env->proc_container;
-    atomic_set(&rs.reply, reply_none);
+    jos_atomic_set(&rs.reply, reply_none);
     rs.server = m.to;
     rs.callct = call_ct;
 
@@ -157,14 +157,14 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
 	if (code != DELIVERY_DONE)
 	    return code;
 
-	if (atomic_read(&rs.reply) == reply_none)
+	if (jos_atomic_read(&rs.reply) == reply_none)
 	    sys_sync_wait(&rs.reply.counter, reply_none,
 			  sys_clock_nsec() + retry_delivery_nsec);
 
-	while (atomic_read(&rs.reply) == reply_copying)
+	while (jos_atomic_read(&rs.reply) == reply_copying)
 	    sys_sync_wait(&rs.reply.counter, reply_copying, ~0UL);
 
-	if (atomic_read(&rs.reply) == reply_done)
+	if (jos_atomic_read(&rs.reply) == reply_done)
 	    break;
     }
 

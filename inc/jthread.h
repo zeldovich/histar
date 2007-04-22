@@ -3,7 +3,7 @@
 
 #include <inc/atomic.h>
 
-typedef atomic64_t jthread_mutex_t;
+typedef jos_atomic64_t jthread_mutex_t;
 #define JTHREAD_LOCK_INITIALIZER	{ 0 }
 
 void jthread_mutex_init(jthread_mutex_t *mu);

@@ -18,7 +18,7 @@ static uint64_t alarm_worker_ct;
 
 static struct cobj_ref alarm_target_obj;
 
-static atomic64_t alarm_at_nsec;
+static jos_atomic64_t alarm_at_nsec;
 
 static void __attribute__((noreturn))
 alarm_worker(void *arg)
@@ -29,15 +29,15 @@ alarm_worker(void *arg)
 
     for (;;) {
 	uint64_t now = sys_clock_nsec();
-	uint64_t alarm_at = atomic_read(&alarm_at_nsec);
+	uint64_t alarm_at = jos_atomic_read(&alarm_at_nsec);
 
 	if (now >= alarm_at) {
-	    uint64_t old = atomic_compare_exchange64(&alarm_at_nsec,
-						     alarm_at, ~0UL);
+	    uint64_t old = jos_atomic_compare_exchange64(&alarm_at_nsec,
+							 alarm_at, ~0UL);
 	    if (old == alarm_at)
 		kill_thread_siginfo(alarm_target_obj, &si);
 	} else {
-	    sys_sync_wait(&atomic_read(&alarm_at_nsec), alarm_at, alarm_at);
+	    sys_sync_wait(&jos_atomic_read(&alarm_at_nsec), alarm_at, alarm_at);
 	}
     }
 }
@@ -47,7 +47,7 @@ alarm(unsigned int seconds)
 {
     if (alarm_worker_ct != start_env->proc_container) {
 	alarm_target_obj = COBJ(start_env->proc_container, thread_id());
-	atomic_set(&alarm_at_nsec, ~0UL);
+	jos_atomic_set(&alarm_at_nsec, ~0UL);
 
 	// Either we forked, or never had an alarm thread to start with.
 	int r = thread_create(start_env->proc_container, &alarm_worker, 0,
@@ -63,8 +63,8 @@ alarm(unsigned int seconds)
 
     uint64_t now = sys_clock_nsec();
     uint64_t nsec = seconds ? now + NSEC_PER_SECOND * seconds : ~0UL;
-    atomic_set(&alarm_at_nsec, nsec);
-    sys_sync_wakeup(&atomic_read(&alarm_at_nsec));
+    jos_atomic_set(&alarm_at_nsec, nsec);
+    sys_sync_wakeup(&jos_atomic_read(&alarm_at_nsec));
     return 0;
 }
 

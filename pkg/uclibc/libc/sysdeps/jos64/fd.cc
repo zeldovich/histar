@@ -212,7 +212,7 @@ fd_alloc(struct Fd **fd_store, const char *name)
     fd_map_cache[i].seg = seg;
     fd_map_cache[i].flags = SEGMAP_READ | SEGMAP_WRITE;
 
-    atomic_set(&fd->fd_ref, 1);
+    jos_atomic_set(&fd->fd_ref, 1);
     fd->fd_dev_id = 0;
     fd->fd_private = 1;
 
@@ -431,7 +431,7 @@ jos_fd_close(struct Fd *fd)
 	jos_sigio_disable(fdnum);
 
     int lastref = 0;
-    if (!fd->fd_immutable && atomic_dec_and_test(&fd->fd_ref)) {
+    if (!fd->fd_immutable && jos_atomic_dec_and_test(&fd->fd_ref)) {
 	lastref = 1;
 	r = DEV_CALL(dev, close, fd);
     }
@@ -524,13 +524,13 @@ dev_register(struct Dev *dev)
 int
 dev_lookup(uint8_t dev_id, struct Dev **dev)
 {
-    static atomic64_t devtab_init;
-    while (atomic_read(&devtab_init) != 2) {
-	if (atomic_compare_exchange64(&devtab_init, 0, 1) == 0) {
+    static jos_atomic64_t devtab_init;
+    while (jos_atomic_read(&devtab_init) != 2) {
+	if (jos_atomic_compare_exchange64(&devtab_init, 0, 1) == 0) {
 	    for (int i = 0; devlist[i]; i++)
 		dev_register(devlist[i]);
 
-	    atomic_set(&devtab_init, 2);
+	    jos_atomic_set(&devtab_init, 2);
 	    sys_sync_wakeup(&devtab_init.counter);
 	} else {
 	    sys_sync_wait(&devtab_init.counter, 1, ~0UL);
@@ -614,7 +614,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     fd_map_cache[newfdnum].flags = fd_flags;
 
     if (!immutable)
-	atomic_inc(&oldfd->fd_ref);
+	jos_atomic_inc(&oldfd->fd_ref);
 
     for (int i = 0; i < fd_handle_max; i++)
 	fd_handles[newfdnum].h[i] = oldfd->fd_handle[i];
@@ -691,7 +691,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
     }
 
     if (!immutable)
-	atomic_inc(&oldfd->fd_ref);
+	jos_atomic_inc(&oldfd->fd_ref);
     return newfdnum;
 }
 
