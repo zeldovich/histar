@@ -15,14 +15,14 @@
 #include <inc/elf64.h>
 #include <inc/error.h>
 
-#if defined(JOS_ARCH_amd64)
-#define ARCH_ELF_CLASS	ELF_CLASS_64
-#define ARCH_ELF_EHDR	Elf64_Ehdr
-#define ARCH_ELF_PHDR	Elf64_Phdr
-#elif defined(JOS_ARCH_i386)
+#if JOS_ARCH_BITS==32
 #define ARCH_ELF_CLASS	ELF_CLASS_32
 #define ARCH_ELF_EHDR	Elf32_Ehdr
 #define ARCH_ELF_PHDR	Elf32_Phdr
+#elif JOS_ARCH_BITS==64
+#define ARCH_ELF_CLASS	ELF_CLASS_64
+#define ARCH_ELF_EHDR	Elf64_Ehdr
+#define ARCH_ELF_PHDR	Elf64_Phdr
 #else
 #error Unknown arch
 #endif
