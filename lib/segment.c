@@ -598,7 +598,7 @@ retry:
 	    {
 		match_segslot = i;
 	    } else {
-		cprintf("segment_map: VA %p busy\n", map_start);
+		cprintf("segment_map: VA %p--%p busy\n", map_start, map_end);
 		cache_invalidate();
 		as_mutex_unlock(lockold);
 		return -E_BUSY;
