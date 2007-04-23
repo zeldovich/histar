@@ -7,14 +7,14 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(fread_unlocked)
+
 #ifdef __DO_UNLOCKED
 
-weak_alias(__fread_unlocked,fread_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__fread_unlocked,fread);
-#endif
+libc_hidden_proto(memcpy)
+libc_hidden_proto(fflush_unlocked)
 
-size_t __fread_unlocked(void * __restrict ptr, size_t size, size_t nmemb,
+size_t fread_unlocked(void * __restrict ptr, size_t size, size_t nmemb,
 						FILE * __restrict stream)
 {
 	__STDIO_STREAM_VALIDATE(stream);
@@ -87,9 +87,17 @@ size_t __fread_unlocked(void * __restrict ptr, size_t size, size_t nmemb,
 	__STDIO_STREAM_VALIDATE(stream);
 	return 0;
 }
+libc_hidden_def(fread_unlocked)
+
+#ifndef __UCLIBC_HAS_THREADS__
+libc_hidden_proto(fread)
+strong_alias(fread_unlocked,fread)
+libc_hidden_def(fread)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 
+libc_hidden_proto(fread)
 size_t fread(void * __restrict ptr, size_t size, size_t nmemb,
 			 register FILE * __restrict stream)
 {
@@ -98,11 +106,12 @@ size_t fread(void * __restrict ptr, size_t size, size_t nmemb,
 
 	__STDIO_AUTO_THREADLOCK(stream);
 
-	retval = __fread_unlocked(ptr, size, nmemb, stream);
+	retval = fread_unlocked(ptr, size, nmemb, stream);
 
 	__STDIO_AUTO_THREADUNLOCK(stream);
 
 	return retval;
 }
+libc_hidden_def(fread)
 
 #endif

@@ -1,57 +1,60 @@
 # Makefile for uClibc
 #
-# Copyright (C) 2000,2001 Erik Andersen <andersen@uclibc.org>
+# Copyright (C) 2000-2005 Erik Andersen <andersen@uclibc.org>
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU Library General Public License as published by the Free
-# Software Foundation; either version 2 of the License, or (at your option) any
-# later version.
+# Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU Library General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Library General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-TOPDIR=../
--include $(TOPDIR).config
+top_builddir=../
+include Rules.mak
 
-.EXPORT_ALL_VARIABLES:
+ALL_SUBDIRS := $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
-
-ALL_SUBDIRS = \
-	args assert crypt ctype pwd_grp signal silly stdlib string unistd \
-	#misc
 DIRS := $(ALL_SUBDIRS)
-
-ifeq ($(HAVE_SHARED)$(BUILD_UCLIBC_LDSO),yy)
-	DIRS += dlopen
+ifneq ($(HAVE_SHARED)$(UCLIBC_HAS_THREADS),yy)
+	DIRS := $(filter-out dlopen,$(DIRS))
 endif
-ifeq ($(UCLIBC_HAS_THREADS),y)
-	DIRS += pthread
+ifneq ($(findstring -static,$(LDFLAGS)),)
+	DIRS := $(filter-out dlopen,$(DIRS))
 endif
-ALL_SUBDIRS += pthread dlopen
+ifneq ($(UCLIBC_HAS_THREADS),y)
+	DIRS := $(filter-out pthread,$(DIRS))
+endif
+ifneq ($(UCLIBC_HAS_FULL_RPC),y)
+	DIRS := $(filter-out rpc,$(DIRS))
+endif
+ifneq ($(UCLIBC_HAS_REGEX),y)
+	DIRS := $(filter-out regex,$(DIRS))
+endif
+DIRS := $(filter-out math,$(DIRS))
 
 
-all: subdirs
+test check all: run
+
+run: compile subdirs_run
+
+compile:subdirs_compile
 
 tags:
 	ctags -R
 
 clean: subdirs_clean
-	$(RM) *.[oa] *~ core
 
 subdirs: $(patsubst %, _dir_%, $(DIRS))
+subdirs_compile: $(patsubst %, _dircompile_%, $(DIRS))
+subdirs_run: $(patsubst %, _dirrun_%, $(DIRS))
 subdirs_clean: $(patsubst %, _dirclean_%, $(ALL_SUBDIRS))
 
 $(patsubst %, _dir_%, $(DIRS)) : dummy
-	@echo "Making test in $(patsubst _dir_%,%,$@)"
-	$(MAKE) -C $(patsubst _dir_%, %, $@)
+	$(Q)$(MAKE) -C $(patsubst _dir_%, %, $@)
+
+$(patsubst %, _dirrun_%, $(DIRS)) : dummy
+	$(Q)$(MAKE) -C $(patsubst _dirrun_%, %, $@) run
+
+$(patsubst %, _dircompile_%, $(DIRS)) : dummy
+	$(Q)$(MAKE) -C $(patsubst _dircompile_%, %, $@) compile
 
 $(patsubst %, _dirclean_%, $(ALL_SUBDIRS)) : dummy
-	$(MAKE) -C $(patsubst _dirclean_%, %, $@) clean
+	$(Q)$(MAKE) -C $(patsubst _dirclean_%, %, $@) clean
 
-.PHONY: dummy
+.PHONY: all check clean dummy subdirs_compile subdirs_run subdirs subdirs_clean test run compile

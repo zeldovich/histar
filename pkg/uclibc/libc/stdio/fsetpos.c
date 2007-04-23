@@ -7,15 +7,11 @@
 
 #include "_stdio.h"
 
-#ifdef __DO_LARGEFILE
-# ifndef __UCLIBC_HAS_LFS__
-#  error large file support is not enabled!
-# endif
-
-# define fsetpos	fsetpos64
-# define fpos_t		fpos64_t
-# define fseek		fseeko64
+#ifndef __DO_LARGEFILE
+#define FSEEK fseek
 #endif
+
+libc_hidden_proto(FSEEK)
 
 int fsetpos(FILE *stream, register const fpos_t *pos)
 {
@@ -26,7 +22,7 @@ int fsetpos(FILE *stream, register const fpos_t *pos)
 
 	__STDIO_AUTO_THREADLOCK(stream);
 
-	if ((retval = fseek(stream, pos->__pos, SEEK_SET)) == 0) {
+	if ((retval = FSEEK(stream, pos->__pos, SEEK_SET)) == 0) {
 		__COPY_MBSTATE(&(stream->__state), &(pos->__mbstate));
 		stream->__ungot_width[0]= pos->__mblen_pending;
 	}
@@ -37,8 +33,7 @@ int fsetpos(FILE *stream, register const fpos_t *pos)
 
 #else
 
-	return fseek(stream, pos->__pos, SEEK_SET);
+	return FSEEK(stream, pos->__pos, SEEK_SET);
 
 #endif
 }
-

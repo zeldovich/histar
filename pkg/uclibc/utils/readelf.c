@@ -2,8 +2,7 @@
 /*
  * A small little readelf implementation for uClibc
  *
- * Copyright (C) 2000 by Lineo, inc and Erik Andersen
- * Copyright (C) 2000-2002 Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
  * Several functions in this file (specifically, elf_find_section_type(),
  * elf_find_phdr_type(), and elf_find_dynamic(), were stolen from elflib.c from
@@ -11,20 +10,7 @@
  * <jreiser@BitWagon.com>, which is copyright 2000 BitWagon Software LLC
  * (GPL2).
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later
  */
 
 
@@ -38,8 +24,8 @@
 #include <sys/types.h>
 
 #include "bswap.h"
-#include "elf.h"
-
+#include "link.h"
+/* makefile will include elf.h for us */
 
 int byteswap;
 inline uint32_t byteswap32_to_host(uint32_t value)
@@ -50,25 +36,38 @@ inline uint32_t byteswap32_to_host(uint32_t value)
 		return(value);
 	}
 }
+inline uint64_t byteswap64_to_host(uint64_t value)
+{
+	if (byteswap==1) {
+		return(bswap_64(value));
+	} else {
+		return(value);
+	}
+}
+#if __WORDSIZE == 64
+# define byteswap_to_host(x) byteswap64_to_host(x)
+#else
+# define byteswap_to_host(x) byteswap32_to_host(x)
+#endif
 
-Elf32_Shdr * elf_find_section_type( int key, Elf32_Ehdr *ehdr)
+ElfW(Shdr) * elf_find_section_type( uint32_t key, ElfW(Ehdr) *ehdr)
 {
 	int j;
-	Elf32_Shdr *shdr = (Elf32_Shdr *)(ehdr->e_shoff + (char *)ehdr);
+	ElfW(Shdr) *shdr = (ElfW(Shdr) *)(ehdr->e_shoff + (char *)ehdr);
 	for (j = ehdr->e_shnum; --j>=0; ++shdr) {
-		if (key==(int)byteswap32_to_host(shdr->sh_type)) {
+		if (key==byteswap32_to_host(shdr->sh_type)) {
 			return shdr;
 		}
 	}
 	return NULL;
 }
 
-Elf32_Phdr * elf_find_phdr_type( int type, Elf32_Ehdr *ehdr)
+ElfW(Phdr) * elf_find_phdr_type( uint32_t type, ElfW(Ehdr) *ehdr)
 {
 	int j;
-	Elf32_Phdr *phdr = (Elf32_Phdr *)(ehdr->e_phoff + (char *)ehdr);
+	ElfW(Phdr) *phdr = (ElfW(Phdr) *)(ehdr->e_phoff + (char *)ehdr);
 	for (j = ehdr->e_phnum; --j>=0; ++phdr) {
-		if (type==(int)byteswap32_to_host(phdr->p_type)) {
+		if (type==byteswap32_to_host(phdr->p_type)) {
 			return phdr;
 		}
 	}
@@ -76,26 +75,27 @@ Elf32_Phdr * elf_find_phdr_type( int type, Elf32_Ehdr *ehdr)
 }
 
 /* Returns value if return_val==1, ptr otherwise */ 
-void * elf_find_dynamic(int const key, Elf32_Dyn *dynp, 
-	Elf32_Ehdr *ehdr, int return_val)
+void * elf_find_dynamic( int64_t const key, ElfW(Dyn) *dynp, 
+	ElfW(Ehdr) *ehdr, int return_val)
 {
-	Elf32_Phdr *pt_text = elf_find_phdr_type(PT_LOAD, ehdr);
-	unsigned tx_reloc = byteswap32_to_host(pt_text->p_vaddr) - byteswap32_to_host(pt_text->p_offset);
-	for (; DT_NULL!=byteswap32_to_host(dynp->d_tag); ++dynp) {
-		if (key == (int)byteswap32_to_host(dynp->d_tag)) {
+	ElfW(Phdr) *pt_text = elf_find_phdr_type(PT_LOAD, ehdr);
+	ElfW(Addr) tx_reloc = byteswap_to_host(pt_text->p_vaddr) - byteswap_to_host(pt_text->p_offset);
+	for (; DT_NULL!=byteswap_to_host(dynp->d_tag); ++dynp) {
+		if (key == byteswap_to_host(dynp->d_tag)) {
 			if (return_val == 1)
-				return (void *)(intptr_t)byteswap32_to_host(dynp->d_un.d_val);
+				return (void *)byteswap_to_host(dynp->d_un.d_val);
 			else
-				return (void *)(byteswap32_to_host(dynp->d_un.d_val) - tx_reloc + (char *)ehdr );
+				return (void *)(byteswap_to_host(dynp->d_un.d_val) - tx_reloc + (char *)ehdr );
 		}
 	}
 	return NULL;
 }
 
-int check_elf_header(Elf32_Ehdr *const ehdr)
+int check_elf_header(ElfW(Ehdr) *const ehdr)
 {
 	if (! ehdr || strncmp((void *)ehdr, ELFMAG, SELFMAG) != 0 ||  
-			ehdr->e_ident[EI_CLASS] != ELFCLASS32 ||
+			(ehdr->e_ident[EI_CLASS] != ELFCLASS32 &&
+			 ehdr->e_ident[EI_CLASS] != ELFCLASS64) ||
 			ehdr->e_ident[EI_VERSION] != EV_CURRENT) 
 	{
 		return 1;
@@ -119,8 +119,8 @@ int check_elf_header(Elf32_Ehdr *const ehdr)
 	if (byteswap==1) {
 		ehdr->e_type=bswap_16(ehdr->e_type);
 		ehdr->e_machine=bswap_16(ehdr->e_machine);
-		ehdr->e_phoff=bswap_32(ehdr->e_phoff);
-		ehdr->e_shoff=bswap_32(ehdr->e_shoff);
+		ehdr->e_phoff=byteswap_to_host(ehdr->e_phoff);
+		ehdr->e_shoff=byteswap_to_host(ehdr->e_shoff);
 		ehdr->e_phnum=bswap_16(ehdr->e_phnum);
 		ehdr->e_shnum=bswap_16(ehdr->e_shnum);
 	}
@@ -128,21 +128,7 @@ int check_elf_header(Elf32_Ehdr *const ehdr)
 }
 
 
-#define ELFOSABI_NONE   0       /* UNIX System V ABI */
-#define ELFOSABI_HPUX   1       /* HP-UX operating system */
-#define ELFOSABI_NETBSD 2       /* NetBSD */
-#define ELFOSABI_LINUX  3       /* GNU/Linux */
-#define ELFOSABI_HURD   4       /* GNU/Hurd */
-#define ELFOSABI_SOLARIS 6      /* Solaris */
-#define ELFOSABI_AIX    7       /* AIX */
-#define ELFOSABI_IRIX   8       /* IRIX */
-#define ELFOSABI_FREEBSD 9      /* FreeBSD */
-#define ELFOSABI_TRU64  10      /* TRU64 UNIX */
-#define ELFOSABI_MODESTO 11     /* Novell Modesto */
-#define ELFOSABI_OPENBSD 12     /* OpenBSD */
-#define ELFOSABI_STANDALONE 255 /* Standalone (embedded) application */
-#define ELFOSABI_ARM   97       /* ARM */
-static void describe_elf_hdr(Elf32_Ehdr* ehdr)
+static void describe_elf_hdr(ElfW(Ehdr)* ehdr)
 {
 	char *tmp, *tmp1;
 
@@ -164,21 +150,22 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 		case EM_386:		tmp="Intel 80386"; break;
 		case EM_68K:		tmp="Motorola m68k family"; break;
 		case EM_88K:		tmp="Motorola m88k family"; break;
+		case EM_486:		tmp="Intel 80486"; break;
 		case EM_860:		tmp="Intel 80860"; break;
 		case EM_MIPS:		tmp="MIPS R3000 big-endian"; break;
 		case EM_S370:		tmp="IBM System/370"; break;
 		case EM_MIPS_RS3_LE:	tmp="MIPS R3000 little-endian"; break;
+		case EM_OLD_SPARCV9:	tmp="Sparc v9 (old)"; break;
 		case EM_PARISC:		tmp="HPPA"; break;
-		case EM_VPP500:		tmp="Fujitsu VPP500"; break;
+		/*case EM_PPC_OLD:	tmp="Power PC (old)"; break;  conflicts with EM_VPP500 */
 		case EM_SPARC32PLUS:	tmp="Sun's v8plus"; break;
 		case EM_960:		tmp="Intel 80960"; break;
 		case EM_PPC:		tmp="PowerPC"; break;
 		case EM_PPC64:		tmp="PowerPC 64-bit"; break;
-		case EM_S390:		tmp="IBM S390"; break;
 		case EM_V800:		tmp="NEC V800 series"; break;
 		case EM_FR20:		tmp="Fujitsu FR20"; break;
 		case EM_RH32:		tmp="TRW RH-32"; break;
-		case EM_RCE:		tmp="Motorola RCE"; break;
+		case EM_MCORE:		tmp="MCORE"; break;
 		case EM_ARM:		tmp="ARM"; break;
 		case EM_FAKE_ALPHA:	tmp="Digital Alpha"; break;
 		case EM_SH:			tmp="Renesas SH"; break;
@@ -193,6 +180,24 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 		case EM_MIPS_X:		tmp="Stanford MIPS-X"; break;
 		case EM_COLDFIRE:	tmp="Motorola Coldfire"; break;
 		case EM_68HC12:		tmp="Motorola M68HC12"; break;
+		case EM_ALPHA:		tmp="Alpha"; break;
+		case EM_CYGNUS_D10V:
+		case EM_D10V:		tmp="Mitsubishi D10V"; break;
+		case EM_CYGNUS_D30V:
+		case EM_D30V:		tmp="Mitsubishi D30V"; break;
+		case EM_CYGNUS_M32R:
+		case EM_M32R:		tmp="Renesas M32R (formerly Mitsubishi M32r)"; break;
+		case EM_CYGNUS_V850:
+		case EM_V850:		tmp="NEC v850"; break;
+		case EM_CYGNUS_MN10300:
+		case EM_MN10300:	tmp="Matsushita MN10300"; break;
+		case EM_CYGNUS_MN10200:
+		case EM_MN10200:	tmp="Matsushita MN10200"; break;
+		case EM_CYGNUS_FR30:
+		case EM_FR30:		tmp="Fujitsu FR30"; break;
+		case EM_CYGNUS_FRV:
+		case EM_PJ_OLD:		
+		case EM_PJ:			tmp="picoJava"; break;
 		case EM_MMA:		tmp="Fujitsu MMA Multimedia Accelerator"; break;
 		case EM_PCP:		tmp="Siemens PCP"; break;
 		case EM_NCPU:		tmp="Sony nCPU embeeded RISC"; break;
@@ -201,8 +206,6 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 		case EM_ME16:		tmp="Toyota ME16 processor"; break;
 		case EM_ST100:		tmp="STMicroelectronic ST100 processor"; break;
 		case EM_TINYJ:		tmp="Advanced Logic Corp. Tinyj emb.fam"; break;
-		case EM_X86_64:		tmp="AMD x86-64 architecture"; break;
-		case EM_PDSP:		tmp="Sony DSP Processor"; break;
 		case EM_FX66:		tmp="Siemens FX66 microcontroller"; break;
 		case EM_ST9PLUS:	tmp="STMicroelectronics ST9+ 8/16 mc"; break;
 		case EM_ST7:		tmp="STmicroelectronics ST7 8 bit mc"; break;
@@ -213,6 +216,8 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 		case EM_SVX:		tmp="Silicon Graphics SVx"; break;
 		case EM_ST19:		tmp="STMicroelectronics ST19 8 bit mc"; break;
 		case EM_VAX:		tmp="Digital VAX"; break;
+		case EM_AVR_OLD:
+		case EM_AVR:		tmp="Atmel AVR 8-bit microcontroller"; break;
 		case EM_CRIS:		tmp="Axis Communications 32-bit embedded processor"; break;
 		case EM_JAVELIN:	tmp="Infineon Technologies 32-bit embedded processor"; break;
 		case EM_FIREPATH:	tmp="Element 14 64-bit DSP Processor"; break;
@@ -220,15 +225,26 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 		case EM_MMIX:		tmp="Donald Knuth's educational 64-bit processor"; break;
 		case EM_HUANY:		tmp="Harvard University machine-independent object files"; break;
 		case EM_PRISM:		tmp="SiTera Prism"; break;
-		case EM_AVR:		tmp="Atmel AVR 8-bit microcontroller"; break;
-		case EM_FR30:		tmp="Fujitsu FR30"; break;
-		case EM_D10V:		tmp="Mitsubishi D10V"; break;
-		case EM_D30V:		tmp="Mitsubishi D30V"; break;
-		case EM_V850:		tmp="NEC v850"; break;
-		case EM_M32R:		tmp="Renesas M32R"; break;
-		case EM_MN10300:	tmp="Matsushita MN10300"; break;
-		case EM_MN10200:	tmp="Matsushita MN10200"; break;
-		case EM_PJ:			tmp="picoJava"; break;
+		case EM_X86_64:		tmp="AMD x86-64 architecture"; break;
+		case EM_S390_OLD:
+		case EM_S390:		tmp="IBM S390"; break;
+		case EM_XSTORMY16:	tmp="Sanyo Xstormy16 CPU core"; break;
+		case EM_OPENRISC:
+		case EM_OR32:		tmp="OpenRISC"; break;
+		case EM_CRX:		tmp="National Semiconductor CRX microprocessor"; break;
+		case EM_DLX:		tmp="OpenDLX"; break;
+		case EM_IP2K_OLD:
+		case EM_IP2K:		tmp="Ubicom IP2xxx 8-bit microcontrollers"; break;
+		case EM_IQ2000:		tmp="Vitesse IQ2000"; break;
+		case EM_XTENSA_OLD:
+		case EM_XTENSA:		tmp="Tensilica Xtensa Processor"; break;
+		case EM_M32C:		tmp="Renesas M32c"; break;
+		case EM_MT:			tmp="Morpho Techologies MT processor"; break;
+		case EM_BLACKFIN:	tmp="Analog Devices Blackfin"; break;
+		case EM_NIOS32:		tmp="Altera Nios 32"; break;
+		case EM_ALTERA_NIOS2:	tmp="Altera Nios II"; break;
+		case EM_VPP500:		tmp="Fujitsu VPP500"; break;
+		case EM_PDSP:		tmp="Sony DSP Processor"; break;
 		default:			tmp="unknown";
 	}
 	printf( "Machine:\t%s\n", tmp);	
@@ -275,24 +291,24 @@ static void describe_elf_hdr(Elf32_Ehdr* ehdr)
 	printf( "ABI Version:\t%d\n", ehdr->e_ident[EI_ABIVERSION]);
 }
 
-static void list_needed_libraries(Elf32_Dyn* dynamic, char *strtab)
+static void list_needed_libraries(ElfW(Dyn)* dynamic, char *strtab)
 {
-	Elf32_Dyn  *dyns;
+	ElfW(Dyn)  *dyns;
 
 	printf("Dependancies:\n");
-	for (dyns=dynamic; byteswap32_to_host(dyns->d_tag)!=DT_NULL; ++dyns) {
+	for (dyns=dynamic; byteswap_to_host(dyns->d_tag)!=DT_NULL; ++dyns) {
 		if (dyns->d_tag == DT_NEEDED) {
-			printf("\t%s\n", (char*)strtab + byteswap32_to_host(dyns->d_un.d_val));
+			printf("\t%s\n", (char*)strtab + byteswap_to_host(dyns->d_un.d_val));
 		}
 	}
 }
     
-static void describe_elf_interpreter(Elf32_Ehdr* ehdr)
+static void describe_elf_interpreter(ElfW(Ehdr)* ehdr)
 {
-	Elf32_Phdr *phdr;
+	ElfW(Phdr) *phdr;
 	phdr = elf_find_phdr_type(PT_INTERP, ehdr);
 	if (phdr) {
-		printf("Interpreter:\t%s\n", (char*)ehdr + byteswap32_to_host(phdr->p_offset));
+		printf("Interpreter:\t%s\n", (char*)ehdr + byteswap_to_host(phdr->p_offset));
 	}
 }
 
@@ -303,9 +319,9 @@ int main( int argc, char** argv)
 	char *thefilename = argv[1];
 	FILE *thefile;
 	struct stat statbuf;
-	Elf32_Ehdr *ehdr = 0;
-	Elf32_Shdr *dynsec;
-	Elf32_Dyn *dynamic;
+	ElfW(Ehdr) *ehdr = 0;
+	ElfW(Shdr) *dynsec;
+	ElfW(Dyn) *dynamic;
 
 	if (argc < 2 || !thefilename) {
 		fprintf(stderr, "No filename specified.\n");
@@ -320,11 +336,11 @@ int main( int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if ((size_t)statbuf.st_size < sizeof(Elf32_Ehdr))
+	if ((size_t)statbuf.st_size < sizeof(ElfW(Ehdr)))
 		goto foo;
 
 	/* mmap the file to make reading stuff from it effortless */
-	ehdr = (Elf32_Ehdr *)mmap(0, statbuf.st_size, 
+	ehdr = (ElfW(Ehdr) *)mmap(0, statbuf.st_size, 
 			PROT_READ|PROT_WRITE, MAP_PRIVATE, fileno(thefile), 0);
 
 foo:
@@ -338,11 +354,10 @@ foo:
 
 	dynsec = elf_find_section_type(SHT_DYNAMIC, ehdr);
 	if (dynsec) {
-		dynamic = (Elf32_Dyn*)(byteswap32_to_host(dynsec->sh_offset) + (intptr_t)ehdr);
+		dynamic = (ElfW(Dyn)*)(byteswap_to_host(dynsec->sh_offset) + (char *)ehdr);
 		dynstr = (char *)elf_find_dynamic(DT_STRTAB, dynamic, ehdr, 0);
 		list_needed_libraries(dynamic, dynstr);
 	}
 
 	return 0;
 }
-

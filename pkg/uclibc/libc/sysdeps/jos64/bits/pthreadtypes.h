@@ -28,6 +28,9 @@ typedef int pthread_condattr_t;
 
 typedef int pthread_rwlock_t;
 typedef int pthread_rwlockattr_t;
+typedef int pthread_spinlock_t;
+typedef int pthread_barrier_t;
+typedef int pthread_barrierattr_t;
 
 typedef int pthread_key_t;
 typedef int pthread_once_t;

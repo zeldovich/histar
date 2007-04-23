@@ -2,27 +2,27 @@
 /*
  * pause() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#define __UCLIBC_HIDE_DEPRECATED__
+#include <sys/syscall.h>
 #include <unistd.h>
 
+extern __typeof(pause) __libc_pause;
 #ifdef __NR_pause
-
 #define __NR___libc_pause __NR_pause
 _syscall0(int, __libc_pause);
-weak_alias(__libc_pause, pause);
-
 #else
-
 #include <signal.h>
+libc_hidden_proto(__sigpause)
+libc_hidden_proto(sigblock)
+
 int __libc_pause(void)
 {
 	return (__sigpause(sigblock(0), 0));
 }
-weak_alias(__libc_pause, pause);
-
 #endif
+weak_alias(__libc_pause,pause)

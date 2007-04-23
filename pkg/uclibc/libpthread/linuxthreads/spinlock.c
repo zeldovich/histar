@@ -14,8 +14,6 @@
 
 /* Internal locks */
 
-#define __FORCE_GLIBC
-#include <features.h>
 #include <errno.h>
 #include <sched.h>
 #include <time.h>
@@ -32,7 +30,7 @@ static inline void __pthread_release(int * spinlock)
 {
   WRITE_MEMORY_BARRIER();
   *spinlock = __LT_SPINLOCK_INIT;
-  __asm __volatile ("" : "=m" (*spinlock) : "m" (*spinlock));
+  __asm__ __volatile__ ("" : "=m" (*spinlock) : "m" (*spinlock));
 }
 
 
@@ -88,7 +86,7 @@ void internal_function __pthread_lock(struct _pthread_fastlock * lock,
   spin_count = 0;
 
   /* On SMP, try spinning to get the lock. */
-#if 0
+
   if (__pthread_smp_kernel) {
     int max_count = lock->__spinlock * 2 + 10;
 
@@ -108,12 +106,11 @@ void internal_function __pthread_lock(struct _pthread_fastlock * lock,
 #ifdef BUSY_WAIT_NOP
       BUSY_WAIT_NOP;
 #endif
-      __asm __volatile ("" : "=m" (lock->__status) : "0" (lock->__status));
+      __asm__ __volatile__ ("" : "=m" (lock->__status) : "m" (lock->__status));
     }
 
     lock->__spinlock += (spin_count - lock->__spinlock) / 8;
   }
-#endif	
 
 again:
 

@@ -1,12 +1,11 @@
-#include <string.h>
-#include <errno.h>
-#include <assert.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/stat.h>
-
-/* Jan 1, 2004    Manuel Novoa III
+/*
+ * Copyright (C) Jan 1, 2004    Manuel Novoa III
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
+/*
  * Kept the same approach, but rewrote the code for the most part.
  * Fixed some minor issues plus (as I recall) one SUSv3 errno case.
  */
@@ -24,14 +23,25 @@
  *
  * If you change this, also change _SC_TTY_NAME_MAX in libc/unistd/sysconf.c
  */
+
+#include <string.h>
+#include <errno.h>
+#include <assert.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+libc_hidden_proto(ttyname_r)
+libc_hidden_proto(fstat)
+libc_hidden_proto(lstat)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(opendir)
+libc_hidden_proto(closedir)
+libc_hidden_proto(readdir)
+libc_hidden_proto(isatty)
+
 #define TTYNAME_BUFLEN		32
-
-char *ttyname(int fd)
-{
-	static char name[TTYNAME_BUFLEN];
-
-	return ttyname_r(fd, name, TTYNAME_BUFLEN) ? NULL : name;
-}
 
 static const char dirlist[] =
 /*   12345670123 */
@@ -50,7 +60,7 @@ int ttyname_r(int fd, char *ubuf, size_t ubuflen)
 	char *s;
 	DIR *fp;
 	int rv;
-	int len;
+	size_t len;
 	char buf[TTYNAME_BUFLEN];
 
 	if (fstat(fd, &st) < 0) {
@@ -115,4 +125,12 @@ int ttyname_r(int fd, char *ubuf, size_t ubuflen)
 	__set_errno(rv);
 
 	return rv;
+}
+libc_hidden_def(ttyname_r)
+
+char *ttyname(int fd)
+{
+	static char name[TTYNAME_BUFLEN];
+
+	return ttyname_r(fd, name, TTYNAME_BUFLEN) ? NULL : name;
 }

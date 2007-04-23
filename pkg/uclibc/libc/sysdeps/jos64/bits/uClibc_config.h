@@ -1,11 +1,4 @@
 /*
- * Automatically generated C config: don't edit
- */
-#if !defined __FEATURES_H && !defined __need_uClibc_config_h
-#error Never include <bits/uClibc_config.h> directly; use <features.h> instead
-#endif
-
-/*
  * Version Number
  */
 #define __UCLIBC_MAJOR__ 0
@@ -59,10 +52,13 @@
 #undef __ARCH_BIG_ENDIAN__
 #undef __ARCH_HAS_NO_MMU__
 #define __ARCH_HAS_MMU__ 1
+#define __ARCH_USE_MMU__ 1
 #define __UCLIBC_HAS_FLOATS__ 1
 #undef __KERNEL_SOURCE__
 #define __C_SYMBOL_PREFIX__ ""
 #define __HAVE_DOT_CONFIG__ 1
+#define UP 1		/* uni-processor */
+#define STATIC 1
 
 /*
  * General Library Settings
@@ -89,6 +85,7 @@
 #define __UCLIBC_HAS_TZ_FILE__ 1
 #define __UCLIBC_HAS_TZ_FILE_READ_MANY__ 1
 #define __UCLIBC_TZ_FILE_PATH__ "/etc/TZ"
+#define __UCLIBC_HAS___PROGNAME__ 1
 
 /*
  * Networking Support
@@ -135,6 +132,7 @@
 #define __UCLIBC_HAS_SIGNUM_MESSAGES__ 1
 #define __UCLIBC_HAS_SYS_SIGLIST__ 1
 #define __UCLIBC_HAS_GNU_GETOPT__ 1
+#define __UCLIBC_SUSV3_LEGACY__ 1
 
 /*
  * Big and Tall
@@ -143,6 +141,7 @@
 #undef __UCLIBC_HAS_WORDEXP__
 #undef __UCLIBC_HAS_FTW__
 #define __UCLIBC_HAS_GLOB__ 1
+#define __UCLIBC_HAS_GNU_GLOB__ 1
 
 /*
  * Library Installation Options
@@ -163,3 +162,7 @@
 #define __DOASSERTS__ 1
 #define __WARNINGS__ "-Wall"
 #undef __UCLIBC_MJN3_ONLY__
+
+#define __UCLIBC_GRP_BUFFER_SIZE__ 256
+#define __UCLIBC_PWD_BUFFER_SIZE__ 256
+

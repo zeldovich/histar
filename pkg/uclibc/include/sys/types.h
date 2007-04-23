@@ -1,4 +1,5 @@
-/* Copyright (C) 1991,92,94,95,96,97,98,99,2000 Free Software Foundation, Inc.
+/* Copyright (C) 1991,1992,1994,1995,1996,1997,1998,1999,2000,2001,2002
+   	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -162,7 +163,9 @@ typedef unsigned int uint;
 typedef	char int8_t;
 typedef	short int int16_t;
 typedef	int int32_t;
-#  ifdef __GNUC__
+#  if __WORDSIZE == 64
+typedef long int int64_t;
+#  elif defined __GNUC__ || defined __ICC
 __extension__ typedef long long int int64_t;
 #  endif
 # endif
@@ -171,7 +174,9 @@ __extension__ typedef long long int int64_t;
 typedef	unsigned char u_int8_t;
 typedef	unsigned short int u_int16_t;
 typedef	unsigned int u_int32_t;
-# ifdef __GNUC__
+# if __WORDSIZE == 64
+typedef unsigned long int u_int64_t;
+# elif defined __GNUC__ || defined __ICC
 __extension__ typedef unsigned long long int u_int64_t;
 # endif
 
@@ -257,6 +262,12 @@ typedef __fsfilcnt64_t fsfilcnt_t; /* Type to count file system inodes.  */
 typedef __blkcnt64_t blkcnt64_t;     /* Type to count number of disk blocks. */
 typedef __fsblkcnt64_t fsblkcnt64_t; /* Type to count file system blocks.  */
 typedef __fsfilcnt64_t fsfilcnt64_t; /* Type to count file system inodes.  */
+#endif
+
+
+/* Now add the thread types.  */
+#if (defined __USE_POSIX199506 || defined __USE_UNIX98) && defined __UCLIBC_HAS_THREADS__
+# include <bits/pthreadtypes.h>
 #endif
 
 __END_DECLS

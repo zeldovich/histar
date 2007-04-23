@@ -15,11 +15,11 @@
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning TODO: Fix prototype.
 #endif
-extern size_t __wcsnrtombs(char *__restrict dst,
-						   const wchar_t **__restrict src,
-						   size_t NWC, size_t len, mbstate_t *__restrict ps);
 
-size_t _wstdio_fwrite(const wchar_t *__restrict ws, size_t n,
+libc_hidden_proto(wmemcpy)
+libc_hidden_proto(wcsnrtombs)
+
+size_t attribute_hidden _wstdio_fwrite(const wchar_t *__restrict ws, size_t n,
 					  register FILE *__restrict stream)
 {
 	size_t r, count;
@@ -53,7 +53,7 @@ size_t _wstdio_fwrite(const wchar_t *__restrict ws, size_t n,
 
 		pw = ws;
 		while (n > count) {
-			r = __wcsnrtombs(buf, &pw, n-count, sizeof(buf), &stream->__state);
+			r = wcsnrtombs(buf, &pw, n-count, sizeof(buf), &stream->__state);
 			if (r != ((size_t) -1)) { /* No encoding errors */
 				if (!r) {
 					++r;		  /* 0 is returned when nul is reached. */

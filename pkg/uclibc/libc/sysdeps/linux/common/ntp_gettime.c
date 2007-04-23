@@ -18,13 +18,15 @@
 
 #include <sys/timex.h>
 
+libc_hidden_proto(adjtimex)
+
 int ntp_gettime(struct ntptimeval *ntv)
 {
     struct timex tntx;
     int result;
 
     tntx.modes = 0;
-    result = __adjtimex(&tntx);
+    result = adjtimex(&tntx);
     ntv->time = tntx.time;
     ntv->maxerror = tntx.maxerror;
     ntv->esterror = tntx.esterror;

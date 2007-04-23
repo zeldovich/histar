@@ -2,21 +2,23 @@
 /*
  * getgid() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
 #include <unistd.h>
 
-#define __NR___syscall_getgid __NR_getgid
-#if defined (__alpha__)
-#define __NR_getgid     __NR_getxgid
+#if defined __NR_getxgid
+# undef __NR_getgid
+# define __NR_getgid __NR_getxgid
+#endif
+#ifdef __NR_getgid32
+# undef __NR_getgid
+# define __NR_getgid __NR_getgid32
 #endif
 
-static inline _syscall0(int, __syscall_getgid);
-gid_t getgid(void)
-{
-	return (__syscall_getgid());
-}
+libc_hidden_proto(getgid)
+_syscall0(gid_t, getgid);
+libc_hidden_def(getgid)

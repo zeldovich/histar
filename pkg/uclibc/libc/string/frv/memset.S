@@ -18,6 +18,7 @@
  *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <features.h>
 
         .text
         .p2align	4
@@ -153,3 +154,5 @@ memset:
 	cstb.p		gr12,@(gr4,gr0)		,cc7,#1
 	bralr
 	.size		memset, .-memset
+
+libc_hidden_proto(memset)

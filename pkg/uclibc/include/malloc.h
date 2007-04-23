@@ -64,11 +64,13 @@
 /* GCC can always grok prototypes.  For C++ programs we add throw()
    to help it optimize the function calls.  But this works only with
    gcc 2.8.x and egcs.  */
+#ifndef __THROW
 # if defined __cplusplus && (__GNUC__ >= 3 || __GNUC_MINOR__ >= 8)
 #  define __THROW	throw ()
 # else
 #  define __THROW
 # endif
+#endif
 # define __MALLOC_P(args)	args __THROW
 /* This macro will be used for functions which might take C++ callback
    functions.  */
@@ -174,6 +176,7 @@ extern void malloc_stats(FILE *file);
 #define M_MMAP_THRESHOLD    -3
 #define M_MMAP_MAX          -4
 #define M_CHECK_ACTION      -5
+#define M_PERTURB           -6
 
 /* General SVID/XPG interface to tunable parameters. */
 extern int mallopt __MALLOC_P ((int __param, int __val));
@@ -182,7 +185,7 @@ extern int mallopt __MALLOC_P ((int __param, int __val));
 
 
 #ifdef __cplusplus
-}; /* end of extern "C" */
+} /* end of extern "C" */
 #endif
 
 #endif /* malloc.h */

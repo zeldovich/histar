@@ -8,9 +8,4 @@ SIGNAL_CSRC := \
         sysv_signal.c sigwait.c
 
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/signal/%.c, $(SIGNAL_CSRC))
-LIBC_OBJFILES += $(SIGNAL_MOBJ)
-
-$(SIGNAL_MOBJ): $(SIGNAL_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/signal/%.o,%,$@) $< -c -o $@
 

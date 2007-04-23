@@ -133,6 +133,9 @@ static char rcsid[] = "$NetBSD: k_rem_pio2.c,v 1.7 1995/05/10 20:46:25 jtc Exp $
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(scalbn)
+libm_hidden_proto(floor)
+
 #ifdef __STDC__
 static const int init_jk[] = {2,3,4,6}; /* initial value for jk */
 #else
@@ -165,9 +168,9 @@ two24   =  1.67772160000000000000e+07, /* 0x41700000, 0x00000000 */
 twon24  =  5.96046447753906250000e-08; /* 0x3E700000, 0x00000000 */
 
 #ifdef __STDC__
-	int __kernel_rem_pio2(double *x, double *y, int e0, int nx, int prec, const int32_t *ipio2)
+	int attribute_hidden __kernel_rem_pio2(double *x, double *y, int e0, int nx, int prec, const int32_t *ipio2)
 #else
-	int __kernel_rem_pio2(x,y,e0,nx,prec,ipio2)
+	int attribute_hidden __kernel_rem_pio2(x,y,e0,nx,prec,ipio2)
 	double x[], y[]; int e0,nx,prec; int32_t ipio2[];
 #endif
 {

@@ -2,28 +2,23 @@
 /*
  * select() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
-#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/select.h>
+
+extern __typeof(select) __libc_select;
 
 #ifdef __NR__newselect
-
-extern int _newselect(int n, fd_set * readfds, fd_set * writefds,
-					  fd_set * exceptfds, struct timeval *timeout);
-_syscall5(int, _newselect, int, n, fd_set *, readfds, fd_set *, writefds,
-		  fd_set *, exceptfds, struct timeval *, timeout);
-weak_alias(_newselect, select);
-
+# define __NR___libc_select __NR__newselect
 #else
-
-//Used as a fallback if _newselect isn't available...
-extern int select(int n, fd_set * readfds, fd_set * writefds,
-				  fd_set * exceptfds, struct timeval *timeout);
-_syscall5(int, select, int, n, fd_set *, readfds, fd_set *, writefds,
-		  fd_set *, exceptfds, struct timeval *, timeout);
-
+# define __NR___libc_select __NR_select
 #endif
+_syscall5(int, __libc_select, int, n, fd_set *, readfds, fd_set *, writefds,
+		  fd_set *, exceptfds, struct timeval *, timeout);
+libc_hidden_proto(select)
+weak_alias(__libc_select,select)
+libc_hidden_weak(select)

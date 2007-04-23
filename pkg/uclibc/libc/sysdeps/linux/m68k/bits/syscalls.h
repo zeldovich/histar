@@ -4,16 +4,16 @@
 # error "Never use <bits/syscalls.h> directly; include <sys/syscall.h> instead."
 #endif
 
-/* This includes the `__NR_<name>' syscall numbers taken from the Linux kernel
- * header files.  It also defines the traditional `SYS_<name>' macros for older
- * programs.  */
-#include <bits/sysnum.h>
-
-#ifndef __set_errno
-# define __set_errno(val) (*__errno_location ()) = (val)
-#endif
+/* m68k headers does stupid stuff with __NR_iopl / __NR_vm86:
+ * #define __NR_iopl   not supported
+ * #define __NR_vm86   not supported
+ */
+#undef __NR_iopl
+#undef __NR_vm86
 
 #ifndef __ASSEMBLER__
+
+#include <errno.h>
 
 /* Linux takes system call arguments in registers:
 
@@ -62,7 +62,7 @@ type name(void) \
 		"movel	%%d0, %0" \
 		: "=g" (__res) \
 		: "i" (__NR_##name) \
-		: "cc", "%d0"); \
+		: "memory", "cc", "%d0"); \
 	__syscall_return(type, __res); \
 }
 
@@ -78,7 +78,7 @@ type name(atype a) \
 		: "=g" (__res) \
 		: "i" (__NR_##name), \
 		  "g" ((long)a) \
-		: "cc", "%d0", "%d1"); \
+		: "memory", "cc", "%d0", "%d1"); \
 	__syscall_return(type, __res); \
 }
 
@@ -96,7 +96,7 @@ type name(atype a, btype b) \
 		: "i" (__NR_##name), \
 		  "a" ((long)a), \
 		  "g" ((long)b) \
-		: "cc", "%d0", "%d1", "%d2"); \
+		: "memory", "cc", "%d0", "%d1", "%d2"); \
 	__syscall_return(type, __res); \
 }
 
@@ -116,7 +116,7 @@ type name(atype a, btype b, ctype c) \
 		  "a" ((long)a), \
 		  "a" ((long)b), \
 		  "g" ((long)c) \
-		: "cc", "%d0", "%d1", "%d2", "%d3"); \
+		: "memory", "cc", "%d0", "%d1", "%d2", "%d3"); \
 	__syscall_return(type, __res); \
 }
 
@@ -138,7 +138,7 @@ type name(atype a, btype b, ctype c, dtype d) \
 		  "a" ((long)b), \
 		  "a" ((long)c), \
 		  "g" ((long)d) \
-		: "cc", "%d0", "%d1", "%d2", "%d3", \
+		: "memory", "cc", "%d0", "%d1", "%d2", "%d3", \
 		  "%d4"); \
 	__syscall_return(type, __res); \
 }
@@ -163,7 +163,7 @@ type name(atype a, btype b, ctype c, dtype d, etype e) \
 		  "a" ((long)c), \
 		  "a" ((long)d), \
 		  "g" ((long)e) \
-		: "cc", "%d0", "%d1", "%d2", "%d3", \
+		: "memory", "cc", "%d0", "%d1", "%d2", "%d3", \
 		  "%d4", "%d5"); \
 	__syscall_return(type, __res); \
 }
@@ -190,7 +190,7 @@ type name(atype a, btype b, ctype c, dtype d, etype e, ftype f) \
 		  "a" ((long)d), \
 		  "g" ((long)e), \
 		  "g" ((long)f) \
-		: "cc", "%d0", "%d1", "%d2", "%d3", \
+		: "memory", "cc", "%d0", "%d1", "%d2", "%d3", \
 		  "%d4", "%d5", "%a0"); \
 	__syscall_return(type, __res); \
 }

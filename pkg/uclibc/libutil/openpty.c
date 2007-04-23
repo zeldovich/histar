@@ -1,21 +1,21 @@
-/* Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+/* Copyright (C) 1998, 1999, 2004 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Zack Weinberg <zack@rabi.phys.columbia.edu>, 1998.
 
    The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public License as
-   published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
    The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
+   Lesser General Public License for more details.
 
-   You should have received a copy of the GNU Library General Public
-   License along with the GNU C Library; see the file COPYING.LIB.  If not,
-   write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -26,11 +26,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/types.h>
-
-extern int getpt (void);
-extern int grantpt (int fd);
-extern int ptsname_r (int fd, char *buf, size_t buflen);
-extern int unlockpt (int fd);
 
 /* BCS: the following function is, IMO, overkill */
 #if 0
@@ -72,7 +67,7 @@ pts_name (int fd, char **pts, size_t buf_len)
       if (! new_buf)
 	{
 	  rv = -1;
-	  errno = ENOMEM;
+	  __set_errno (ENOMEM);
 	  break;
 	}
       buf = new_buf;
@@ -90,6 +85,7 @@ pts_name (int fd, char **pts, size_t buf_len)
 /* Create pseudo tty master slave pair and set terminal attributes
    according to TERMP and WINP.  Return handles for both ends in
    AMASTER and ASLAVE, and return the name of the slave end in NAME.  */
+libutil_hidden_proto(openpty)
 int
 openpty (int *amaster, int *aslave, char *name, struct termios *termp,
 	 struct winsize *winp)
@@ -158,3 +154,4 @@ openpty (int *amaster, int *aslave, char *name, struct termios *termp,
   close (master);
   return -1;
 }
+libutil_hidden_def(openpty)

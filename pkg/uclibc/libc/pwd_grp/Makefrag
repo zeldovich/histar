@@ -1,20 +1,11 @@
 OBJDIRS += pkg/uclibc/libc/pwd_grp
 
-PWD_GRP_MSRC := pkg/uclibc/libc/pwd_grp/pwd_grp.c
-PWD_GRP_MOBJ := \
-	fgetpwent_r.o fgetgrent_r.o fgetpwent.o fgetgrent.o \
-        getpwnam_r.o getgrnam_r.o getpwuid_r.o getgrgid_r.o \
-        getpwuid.o getgrgid.o getpwnam.o getgrnam.o getpw.o \
-        getpwent_r.o getgrent_r.o getpwent.o getgrent.o \
-        initgroups.o putpwent.o putgrent.o \
-        __parsepwent.o __parsegrent.o __pgsreader.o \
-        fgetspent_r.o fgetspent.o sgetspent_r.o getspnam_r.o \
-        getspnam.o getspent_r.o getspent.o sgetspent.o \
-        putspent.o __parsespent.o
-PWD_GRP_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/pwd_grp/%.o, $(PWD_GRP_MOBJ))
-LIBC_OBJFILES += $(PWD_GRP_MOBJ)
-
-$(PWD_GRP_MOBJ): $(PWD_GRP_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/pwd_grp/%.o,%,$@) $< -c -o $@
+PWD_GRP_SRC := \
+	fgetpwent_r.c fgetgrent_r.c fgetpwent.c fgetgrent.c \
+        getpwnam_r.c getgrnam_r.c getpwuid_r.c getgrgid_r.c \
+        getpwuid.c getgrgid.c getpwnam.c getgrnam.c getpw.c \
+        getpwent_r.c getgrent_r.c getpwent.c getgrent.c \
+        initgroups.c putpwent.c putgrent.c \
+        __parsepwent.c __parsegrent.c __pgsreader.c
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/pwd_grp/%.c, $(PWD_GRP_SRC))
 

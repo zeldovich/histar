@@ -21,15 +21,44 @@ OBJDIRS += \
 ##
 
 MISC_INTERNALS_CSRC := \
-	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c static.c
+	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c
 
 MISC_ERROR_CSRC := error.c err.c
-MISC_GLOB_CSRC := glob.c glob64.c glob-hooks.c
+MISC_GLOB_CSRC := glob.c glob64.c glob-susv3.c glob64-susv3.c
 
 MISC_DIRENT_CSRC := \
 	alphasort.c closedir.c dirfd.c opendir.c readdir.c rewinddir.c scandir.c \
         seekdir.c telldir.c readdir64.c alphasort64.c scandir64.c readdir_r.c \
         readdir64_r.c
+
+MISC_CTYPE_CSRC := \
+	isalnum.c isalpha.c isascii.c iscntrl.c isdigit.c \
+        isgraph.c islower.c isprint.c ispunct.c isspace.c \
+        isupper.c isxdigit.c toascii.c tolower.c toupper.c \
+        isblank.c \
+	__C_ctype_b.c __C_ctype_tolower.c __C_ctype_toupper.c \
+        __ctype_b_loc.c __ctype_tolower_loc.c __ctype_toupper_loc.c \
+        __ctype_assert.c isctype.c
+
+MISC_LOCALE_CSRC := \
+	setlocale.c localeconv.c _locale_init.c nl_langinfo.c
+
+MISC_TIME_CSRC := \
+	asctime.c asctime_r.c clock.c ctime.c ctime_r.c gmtime.c gmtime_r.c \
+        localtime.c localtime_r.c mktime.c strftime.c strptime.c tzset.c \
+        _time_t2tm.c __time_tm.c _time_mktime.c dysize.c timegm.c \
+        _time_mktime_tzi.c _time_localtime_tzi.c
+
+MISC_WCHAR_CSRC := \
+	btowc.c wctob.c mbsinit.c mbrlen.c mbrtowc.c wcrtomb.c mbsrtowcs.c \
+        wcsrtombs.c _wchar_utf8sntowcs.c _wchar_wcsntoutf8s.c \
+        mbsnrtowcs.c wcsnrtombs.c wcwidth.c wcswidth.c
+
+MISC_WCTYPE_CSRC := \
+	iswalnum.c iswalpha.c iswcntrl.c iswdigit.c iswgraph.c \
+        iswlower.c iswprint.c iswpunct.c iswspace.c iswupper.c \
+        iswxdigit.c iswblank.c wctrans.c towctrans.c \
+        wctype.c iswctype.c towlower.c towupper.c
 
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
@@ -40,77 +69,14 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/mntent/mntent.c \
 	pkg/uclibc/libc/misc/syslog/syslog.c \
 	pkg/uclibc/libc/misc/regex/regex.c \
-	pkg/uclibc/libc/misc/pthread/no-tsd.c \
+	pkg/uclibc/libc/misc/pthread/unlock.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/glob/%.c, $(MISC_GLOB_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC))
-
-##
-## Combined source files (multiple object files per .c file)
-##
-
-CTYPE_MSRC := pkg/uclibc/libc/misc/ctype/ctype.c
-CTYPE_MOBJ := \
-	isalnum.o isalpha.o isascii.o iscntrl.o isdigit.o \
-        isgraph.o islower.o isprint.o ispunct.o isspace.o \
-        isupper.o isxdigit.o toascii.o tolower.o toupper.o \
-        isblank.o isxlower.o isxupper.o \
-	__C_ctype_b.o __C_ctype_tolower.o __C_ctype_toupper.o \
-        __ctype_b_loc.o __ctype_tolower_loc.o __ctype_toupper_loc.o \
-        __ctype_assert.o isctype.o
-CTYPE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o, $(CTYPE_MOBJ))
-LIBC_OBJFILES += $(CTYPE_MOBJ)
-
-LOCALE_MSRC := pkg/uclibc/libc/misc/locale/locale.c
-LOCALE_MOBJ := setlocale.o localeconv.o _locale_init.o nl_langinfo.o
-LOCALE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/locale/%.o, $(LOCALE_MOBJ))
-LIBC_OBJFILES += $(LOCALE_MOBJ)
-
-TIME_MSRC := pkg/uclibc/libc/misc/time/time.c
-TIME_MOBJ := \
-	asctime.o asctime_r.o clock.o ctime.o ctime_r.o gmtime.o gmtime_r.o \
-        localtime.o localtime_r.o mktime.o strftime.o strptime.o tzset.o \
-        _time_t2tm.o __time_tm.o _time_mktime.o dysize.o timegm.o \
-        _time_mktime_tzi.o _time_localtime_tzi.o
-TIME_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/time/%.o, $(TIME_MOBJ))
-LIBC_OBJFILES += $(TIME_MOBJ)
-
-WCHAR_MSRC := pkg/uclibc/libc/misc/wchar/wchar.c
-WCHAR_MOBJ := \
-	btowc.o wctob.o mbsinit.o mbrlen.o mbrtowc.o wcrtomb.o mbsrtowcs.o \
-        wcsrtombs.o _wchar_utf8sntowcs.o _wchar_wcsntoutf8s.o \
-        __mbsnrtowcs.o __wcsnrtombs.o wcwidth.o wcswidth.o
-WCHAR_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o, $(WCHAR_MOBJ))
-LIBC_OBJFILES += $(WCHAR_MOBJ)
-
-WCTYPE_MSRC := pkg/uclibc/libc/misc/wctype/wctype.c
-WCTYPE_MOBJ := \
-	iswalnum.o iswalpha.o iswcntrl.o iswdigit.o iswgraph.o \
-        iswlower.o iswprint.o iswpunct.o iswspace.o iswupper.o \
-        iswxdigit.o iswblank.o wctrans.o towctrans.o \
-        wctype.o iswctype.o towlower.o towupper.o
-WCTYPE_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/misc/wctype/%.o, $(WCTYPE_MOBJ))
-LIBC_OBJFILES += $(WCTYPE_MOBJ)
-
-$(CTYPE_MOBJ): $(CTYPE_MSRC)
-$(CTYPE_MOBJ): $(CTYPE_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/ctype/%.o,%,$@) $< -c -o $@
-
-$(LOCALE_MOBJ): $(LOCALE_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/locale/%.o,%,$@) $< -c -o $@
-
-$(TIME_MOBJ): $(TIME_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/time/%.o,%,$@) $< -c -o $@
-
-$(WCHAR_MOBJ): $(WCHAR_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/wchar/%.o,%,$@) $< -c -o $@
-
-$(WCTYPE_MOBJ): $(WCTYPE_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/misc/wctype/%.o,%,$@) $< -c -o $@
+	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/ctype/%.c, $(MISC_CTYPE_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/locale/%.c, $(MISC_LOCALE_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/time/%.c, $(MISC_TIME_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/wchar/%.c, $(MISC_WCHAR_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/wctype/%.c, $(MISC_WCTYPE_CSRC))
 

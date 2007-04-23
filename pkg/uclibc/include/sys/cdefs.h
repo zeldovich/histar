@@ -42,7 +42,7 @@
    gcc 2.8.x and egcs.  For gcc 3.2 and up we even mark C functions
    as non-throwing using a function attribute since programs can use
    the -fexceptions options for C code as well.  */
-# if 0 //!defined __cplusplus && __GNUC_PREREQ (3, 3)
+# if !defined __cplusplus && __GNUC_PREREQ (3, 3)
 #  define __THROW	__attribute__ ((__nothrow__))
 #  define __NTH(fct)	__attribute__ ((__nothrow__)) fct
 # else
@@ -164,8 +164,6 @@
 #if defined __GNUC__ && __GNUC__ >= 2
 
 # define __REDIRECT(name, proto, alias) name proto __asm__ (__ASMNAME (#alias))
-# define __ASMNAME(cname) __C_SYMBOL_PREFIX__ cname
-/*
 # ifdef __cplusplus
 #  define __REDIRECT_NTH(name, proto, alias) \
      name proto __THROW __asm__ (__ASMNAME (#alias))
@@ -175,7 +173,6 @@
 # endif
 # define __ASMNAME(cname)  __ASMNAME2 (__USER_LABEL_PREFIX__, cname)
 # define __ASMNAME2(prefix, cname) __STRING (prefix) cname
-*/
 
 /*
 #elif __SOME_OTHER_COMPILER__
@@ -190,6 +187,14 @@
    they are omitted for compilers that don't understand it. */
 #if !defined __GNUC__ || __GNUC__ < 2
 # define __attribute__(xyz)	/* Ignore */
+#endif
+
+/* We make this a no-op unless it can be used as both a variable and
+   a type attribute.  gcc 2.8 is known to support both.  */
+#if __GNUC_PREREQ (2,8)
+# define __attribute_aligned__(size) __attribute__ ((__aligned__ (size)))
+#else
+# define __attribute_aligned__(size) /* Ignore */
 #endif
 
 /* At some point during the gcc 2.96 development the `malloc' attribute
@@ -224,7 +229,7 @@
 #endif
 
 /* gcc allows marking deprecated functions.  */
-#if __GNUC_PREREQ (3,2)
+#if __GNUC_PREREQ (3,2) && !defined(__UCLIBC_HIDE_DEPRECATED__)
 # define __attribute_deprecated__ __attribute__ ((__deprecated__))
 #else
 # define __attribute_deprecated__ /* Ignore */

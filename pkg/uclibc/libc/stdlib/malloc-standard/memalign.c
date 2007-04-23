@@ -28,13 +28,14 @@ void* memalign(size_t alignment, size_t bytes)
     size_t nb;             /* padded  request size */
     char*           m;              /* memory returned by malloc call */
     mchunkptr       p;              /* corresponding chunk */
-    char*           brk;            /* alignment point within p */
+    char*           _brk;            /* alignment point within p */
     mchunkptr       newp;           /* chunk to return */
     size_t newsize;        /* its size */
     size_t leadsize;       /* leading space before alignment point */
     mchunkptr       remainder;      /* spare room at end to split off */
     unsigned long    remainder_size; /* its size */
     size_t size;
+    void *retval;
 
     /* If need less alignment than we give anyway, just relay to malloc */
 
@@ -51,7 +52,7 @@ void* memalign(size_t alignment, size_t bytes)
 	alignment = a;
     }
 
-    LOCK;
+    __MALLOC_LOCK;
     checked_request2size(bytes, nb);
 
     /* Strategy: find a spot within that chunk that meets the alignment
@@ -63,8 +64,8 @@ void* memalign(size_t alignment, size_t bytes)
     m  = (char*)(malloc(nb + alignment + MINSIZE));
 
     if (m == 0) {
-	UNLOCK;
-	return 0; /* propagate failure */
+	retval = 0; /* propagate failure */
+	goto DONE;
     }
 
     p = mem2chunk(m);
@@ -79,21 +80,21 @@ void* memalign(size_t alignment, size_t bytes)
 	   total room so that this is always possible.
 	   */
 
-	brk = (char*)mem2chunk((unsigned long)(((unsigned long)(m + alignment - 1)) &
+	_brk = (char*)mem2chunk((unsigned long)(((unsigned long)(m + alignment - 1)) &
 		    -((signed long) alignment)));
-	if ((unsigned long)(brk - (char*)(p)) < MINSIZE)
-	    brk += alignment;
+	if ((unsigned long)(_brk - (char*)(p)) < MINSIZE)
+	    _brk += alignment;
 
-	newp = (mchunkptr)brk;
-	leadsize = brk - (char*)(p);
+	newp = (mchunkptr)_brk;
+	leadsize = _brk - (char*)(p);
 	newsize = chunksize(p) - leadsize;
 
 	/* For mmapped chunks, just adjust offset */
 	if (chunk_is_mmapped(p)) {
 	    newp->prev_size = p->prev_size + leadsize;
 	    set_head(newp, newsize|IS_MMAPPED);
-	    UNLOCK;
-	    return chunk2mem(newp);
+	    retval = chunk2mem(newp);
+	    goto DONE;
 	}
 
 	/* Otherwise, give back leader, use the rest */
@@ -120,7 +121,10 @@ void* memalign(size_t alignment, size_t bytes)
     }
 
     check_inuse_chunk(p);
-    UNLOCK;
-    return chunk2mem(p);
+    retval = chunk2mem(p);
+
+ DONE:
+    __MALLOC_UNLOCK;
+	return retval;
 }
 

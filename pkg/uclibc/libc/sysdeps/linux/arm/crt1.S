@@ -1,11 +1,29 @@
 /* Startup code for ARM & ELF
-   Copyright (C) 1995, 1996, 1997, 1998, 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1995, 1996, 1997, 1998, 2001, 2002, 2005
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2.1 of the License, or (at your option) any later version.
+
+   In addition to the permissions in the GNU Lesser General Public
+   License, the Free Software Foundation gives you unlimited
+   permission to link the compiled version of this file with other
+   programs, and to distribute those programs without any restriction
+   coming from the use of this file. (The GNU Lesser General Public
+   License restrictions do apply in other respects; for example, they
+   cover modification of the file, and distribution when not linked
+   into another program.)
+
+   Note that people who make modified versions of this file are not
+   obligated to grant this special exception for their modified
+   versions; it is their choice whether to do so. The GNU Lesser
+   General Public License gives permission to release a modified
+   version without this exception; this exception also makes it
+   possible to release a modified version which carries forward this
+   exception.
 
    The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -75,17 +93,37 @@ ARM register quick reference:
     pc      r15          program counter
 */
 
-	.text
-	.globl _start
-	.type _start,#function
+#include <features.h>
+
+.text
+	.globl	_start
+	.type	_start,%function
+	.type	_init,%function
+	.type	_fini,%function
+#ifndef __UCLIBC_CTOR_DTOR__
+	.weak	_init
+	.weak	_fini
+#endif
+
 _start:
 	/* Clear the frame pointer and link register since this is the outermost frame.  */
 	mov fp, #0
 	mov lr, #0
 
+#ifdef __ARCH_USE_MMU__
 	/* Pop argc off the stack and save a pointer to argv */
 	ldr a2, [sp], #4
 	mov a3, sp
+#else
+	/*
+	 * uClinux/arm stacks look a little different from normal
+	 * MMU-full Linux/arm stacks (for no good reason)
+	 */
+	/* pull argc and argv off the stack.  We are going to push 3
+	 * arguments, so pop one here to maintain doubleword alignment.  */
+	ldr a2, [sp], #4
+	ldr a3, [sp]
+#endif
 
 	/* Push stack limit */
 	str a3, [sp, #-4]!
@@ -122,9 +160,13 @@ _start:
 	ldr a4, =_init
 
 	/* __uClibc_main (main, argc, argv, init, fini, rtld_fini, stack_end) */
+
 	/* Let the libc call main and exit with its return code.  */
 	b __uClibc_main
 #endif
+
+	/* should never get here....*/
+	bl abort
 
 #ifdef __PIC__
 .L_GOT:

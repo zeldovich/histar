@@ -25,15 +25,15 @@
 
 #ifndef __NR_vfork
 /* No vfork so use fork instead */
-.weak vfork
-	vfork = __libc_fork
-
-#else
+# define __NR_vfork __NR_fork
+#endif
 
 .text
 .global __vfork
+.hidden __vfork
 .type	__vfork,%function
 .align 16
+
 __vfork:
 
 	/* Pop the return PC value into RDI.  We need a register that
@@ -48,17 +48,12 @@ __vfork:
 	pushq	%rdi
 
 	cmpl	$-4095, %eax
-	jae __error		/* Branch forward if it failed.  */
+	jae __syscall_error		/* Branch forward if it failed.  */
 
 	/* Normal return.  */
 	ret
 
-__error:
-	jmp __syscall_error
-
 .size __vfork,.-__vfork
 
-.weak vfork
-	vfork = __vfork
-
-#endif /* __NR_vfork */
+weak_alias(__vfork,vfork)
+libc_hidden_weak(vfork)

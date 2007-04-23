@@ -7,14 +7,11 @@
 
 #include "_stdio.h"
 
-#ifdef __DO_UNLOCKED
+libc_hidden_proto(fgetwc_unlocked)
 
-weak_alias(__fgetwc_unlocked,fgetwc_unlocked);
-weak_alias(__fgetwc_unlocked,getwc_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__fgetwc_unlocked,fgetwc);
-weak_alias(__fgetwc_unlocked,getwc);
-#endif
+libc_hidden_proto(mbrtowc)
+
+#ifdef __DO_UNLOCKED
 
 static void munge_stream(register FILE *stream, unsigned char *buf)
 {
@@ -24,7 +21,7 @@ static void munge_stream(register FILE *stream, unsigned char *buf)
 	__STDIO_STREAM_DISABLE_PUTC(stream);
 }
 
-wint_t __fgetwc_unlocked(register FILE *stream)
+wint_t fgetwc_unlocked(register FILE *stream)
 {
 	wint_t wi;
 	wchar_t wc[1];
@@ -112,11 +109,20 @@ wint_t __fgetwc_unlocked(register FILE *stream)
 
 	return wi;
 }
+libc_hidden_def(fgetwc_unlocked)
+
+strong_alias(fgetwc_unlocked,getwc_unlocked)
+#ifndef __UCLIBC_HAS_THREADS__
+libc_hidden_proto(fgetwc)
+strong_alias(fgetwc_unlocked,fgetwc)
+libc_hidden_def(fgetwc)
+
+strong_alias(fgetwc_unlocked,getwc)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 
-weak_alias(fgetwc,getwc);
-
+libc_hidden_proto(fgetwc)
 wint_t fgetwc(register FILE *stream)
 {
 	wint_t retval;
@@ -124,11 +130,13 @@ wint_t fgetwc(register FILE *stream)
 
 	__STDIO_AUTO_THREADLOCK(stream);
 
-	retval = __fgetwc_unlocked(stream);
+	retval = fgetwc_unlocked(stream);
 
 	__STDIO_AUTO_THREADUNLOCK(stream);
 
 	return retval;
 }
+libc_hidden_def(fgetwc)
 
+strong_alias(fgetwc,getwc)
 #endif

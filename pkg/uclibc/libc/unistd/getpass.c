@@ -1,26 +1,42 @@
-/* Copyright (C) 1992,93,94,95,96,97,98,99 Free Software Foundation, Inc.
+/* Copyright (C) 1992-1999,2001,2003,2004,2005 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public License as
-   published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
    The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
+   Lesser General Public License for more details.
 
-   You should have received a copy of the GNU Library General Public
-   License along with the GNU C Library; see the file COPYING.LIB.  If not,
-   write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
 
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
+
+#if defined __USE_BSD || (defined __USE_XOPEN && !defined __USE_XOPEN2K)
+
+libc_hidden_proto(strlen)
+libc_hidden_proto(tcsetattr)
+libc_hidden_proto(tcgetattr)
+libc_hidden_proto(setvbuf)
+libc_hidden_proto(fopen)
+libc_hidden_proto(fclose)
+libc_hidden_proto(fileno)
+libc_hidden_proto(fflush)
+libc_hidden_proto(fgets)
+libc_hidden_proto(fputs)
+libc_hidden_proto(fputc)
+libc_hidden_proto(putc)
+libc_hidden_proto(__fputc_unlocked)
 
 /* It is desirable to use this bit on systems that have it.
    The only bit of terminal state we want to twiddle is echoing, which is
@@ -104,3 +120,4 @@ getpass (prompt)
 
   return buf;
 }
+#endif

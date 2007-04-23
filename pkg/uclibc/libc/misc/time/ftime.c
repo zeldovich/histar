@@ -19,6 +19,8 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 
+libc_hidden_proto(gettimeofday)
+
 int ftime(timebuf)
 struct timeb *timebuf;
 {

@@ -2,35 +2,66 @@
 /*
  * setgroups() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <grp.h>
+
+#ifdef __USE_BSD
+
+libc_hidden_proto(setgroups)
+
+#if defined(__NR_setgroups32)
+# undef __NR_setgroups
+# define __NR_setgroups __NR_setgroups32
+_syscall2(int, setgroups, size_t, size, const gid_t *, list);
+
+#elif __WORDSIZE == 64
+_syscall2(int, setgroups, size_t, size, const gid_t *, list);
+
+#else
+
+libc_hidden_proto(sysconf)
 
 #define __NR___syscall_setgroups __NR_setgroups
 static inline _syscall2(int, __syscall_setgroups,
 		size_t, size, const __kernel_gid_t *, list);
 
-int setgroups(size_t n, const gid_t * groups)
+int setgroups(size_t size, const gid_t *groups)
 {
-	if (n > (size_t) sysconf(_SC_NGROUPS_MAX)) {
+	if (size > (size_t) sysconf(_SC_NGROUPS_MAX)) {
+ret_error:
 		__set_errno(EINVAL);
 		return -1;
 	} else {
 		size_t i;
-		__kernel_gid_t kernel_groups[n];
+		__kernel_gid_t *kernel_groups = NULL;
 
-		for (i = 0; i < n; i++) {
+		if (size) {
+			kernel_groups = (__kernel_gid_t *)malloc(sizeof(*kernel_groups) * size);
+			if (kernel_groups == NULL)
+				goto ret_error;
+		}
+
+		for (i = 0; i < size; i++) {
 			kernel_groups[i] = (groups)[i];
 			if (groups[i] != (gid_t) ((__kernel_gid_t) groups[i])) {
-				__set_errno(EINVAL);
-				return -1;
+				goto ret_error;
 			}
 		}
-		return (__syscall_setgroups(n, kernel_groups));
+
+		i = __syscall_setgroups(size, kernel_groups);
+		if (kernel_groups)
+			free(kernel_groups);
+		return i;
 	}
 }
+#endif
+
+libc_hidden_def(setgroups)
+#endif

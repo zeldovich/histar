@@ -1,7 +1,6 @@
 OBJDIRS += lib lib/$(ARCH)
 
 LIB_SRCFILES :=	\
-	lib/$(ARCH)/strlen.S \
 	lib/$(ARCH)/longjmp.S \
 	lib/$(ARCH)/syscall_entry.S \
 	lib/$(ARCH)/stack.S \

@@ -45,6 +45,19 @@
 #include <sys/time.h>
 #include "tempname.h"
 
+libc_hidden_proto(strlen)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(sprintf)
+libc_hidden_proto(mkdir)
+libc_hidden_proto(open)
+#ifdef __UCLIBC_HAS_LFS__
+libc_hidden_proto(open64)
+#endif
+libc_hidden_proto(read)
+libc_hidden_proto(close)
+libc_hidden_proto(getpid)
+libc_hidden_proto(stat)
+libc_hidden_proto(gettimeofday)
 
 /* Return nonzero if DIR is an existent directory.  */
 static int direxists (const char *dir)
@@ -59,8 +72,8 @@ static int direxists (const char *dir)
    for use with mk[s]temp.  Will fail (-1) if DIR is non-null and
    doesn't exist, none of the searched dirs exists, or there's not
    enough space in TMPL. */
-int __path_search (char *tmpl, size_t tmpl_len, const char *dir,
-	const char *pfx, int try_tmpdir)
+int attribute_hidden ___path_search (char *tmpl, size_t tmpl_len, const char *dir,
+	const char *pfx /*, int try_tmpdir*/)
 {
     //const char *d;
     size_t dlen, plen;
@@ -114,13 +127,14 @@ int __path_search (char *tmpl, size_t tmpl_len, const char *dir,
 	return -1;
     }
 
-    sprintf (tmpl, "%.*s/%.*sXXXXXX", (int) dlen, dir, (int) plen, pfx);
+    sprintf (tmpl, "%.*s/%.*sXXXXXX", dlen, dir, plen, pfx);
     return 0;
 }
 
 /* These are the characters used in temporary filenames.  */
 static const char letters[] =
 "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+#define NUM_LETTERS (62)
 
 static unsigned int fillrand(unsigned char *buf, unsigned int len)
 {
@@ -139,7 +153,7 @@ static unsigned int fillrand(unsigned char *buf, unsigned int len)
 
 static void brain_damaged_fillrand(unsigned char *buf, unsigned int len)
 {
-	int i, k;
+	unsigned int i, k;
 	struct timeval tv;
 	uint32_t high, low, rh;
 	static uint64_t value;
@@ -148,15 +162,15 @@ static void brain_damaged_fillrand(unsigned char *buf, unsigned int len)
 	low = value & UINT32_MAX;
 	high = value >> 32;
 	for (i = 0; i < len; ++i) {
-		rh = high % 62;
-		high /= 62;
-#define L ((UINT32_MAX % 62 + 1) % 62)
-		k = (low % 62) + (L * rh);
+		rh = high % NUM_LETTERS;
+		high /= NUM_LETTERS;
+#define L ((UINT32_MAX % NUM_LETTERS + 1) % NUM_LETTERS)
+		k = (low % NUM_LETTERS) + (L * rh);
 #undef L
-#define H ((UINT32_MAX / 62) + ((UINT32_MAX % 62 + 1) / 62))
-		low = (low / 62) + (H * rh) + (k / 62);
+#define H ((UINT32_MAX / NUM_LETTERS) + ((UINT32_MAX % NUM_LETTERS + 1) / NUM_LETTERS))
+		low = (low / NUM_LETTERS) + (H * rh) + (k / NUM_LETTERS);
 #undef H
-		k %= 62;
+		k %= NUM_LETTERS;
 		buf[i] = letters[k];
 	}
 }
@@ -175,52 +189,46 @@ static void brain_damaged_fillrand(unsigned char *buf, unsigned int len)
    __GT_DIR:            create a directory, which will be mode 0700.
 
 */
-int __gen_tempname (char *tmpl, int kind)
+int attribute_hidden __gen_tempname (char *tmpl, int kind)
 {
     char *XXXXXX;
-    unsigned int k;
-    int len, i, count, fd, save_errno = errno;
+    unsigned int i;
+    int fd, save_errno = errno;
     unsigned char randomness[6];
+    size_t len;
 
     len = strlen (tmpl);
-    if (len < 6 || strcmp (&tmpl[len - 6], "XXXXXX"))
+    /* This is where the Xs start.  */
+    XXXXXX = tmpl + len - 6;
+    if (len < 6 || strcmp (XXXXXX, "XXXXXX"))
     {
 	__set_errno (EINVAL);
 	return -1;
     }
 
-    /* This is where the Xs start.  */
-    XXXXXX = &tmpl[len - 6];
-
-    for (count = 0; count < TMP_MAX; ++count)
-    {
+    for (i = 0; i < TMP_MAX; ++i) {
 	/* Get some random data.  */
 	if (fillrand(randomness, sizeof(randomness)) != sizeof(randomness)) {
-		/* if random device nodes failed us, lets use the braindamaged ver */
-		brain_damaged_fillrand(randomness, sizeof(randomness));
+	    /* if random device nodes failed us, lets use the braindamaged ver */
+	    brain_damaged_fillrand(randomness, sizeof(randomness));
 	}
-	for (i = 0 ; i < sizeof(randomness) ; i++) {
-		k = ((randomness[i]) % 62);
-		XXXXXX[i] = letters[k];
-	}
+
+	for (i = 0; i < sizeof(randomness); ++i)
+	    XXXXXX[i] = letters[(randomness[i]) % NUM_LETTERS];
 
 	switch(kind) {
 	    case __GT_NOCREATE:
 		{
 		    struct stat st;
-		    if (stat (tmpl, &st) < 0)
-		    {
-			if (errno == ENOENT)
-			{
-			    __set_errno (save_errno);
-			    return 0;
-			}
-			else
+		    if (stat (tmpl, &st) < 0) {
+			if (errno == ENOENT) {
+			    fd = 0;
+			    goto restore_and_ret;
+			} else
 			    /* Give up now. */
 			    return -1;
-		    }
-		    else
-			continue;
+		    } else
+			fd = 0;
 		}
 	    case __GT_FILE:
 		fd = open (tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
@@ -239,6 +247,7 @@ int __gen_tempname (char *tmpl, int kind)
 	}
 
 	if (fd >= 0) {
+restore_and_ret:
 	    __set_errno (save_errno);
 	    return fd;
 	}

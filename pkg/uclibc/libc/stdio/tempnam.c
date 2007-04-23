@@ -20,6 +20,8 @@
 #include <string.h>
 #include "../misc/internals/tempname.h"
 
+libc_hidden_proto(strdup)
+
 /* Generate a unique temporary filename using up to five characters of PFX
    if it is not NULL.  The directory to put this file in is searched for
    as follows: First the environment variable "TMPDIR" is checked.

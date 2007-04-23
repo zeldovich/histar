@@ -18,6 +18,7 @@
  *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <features.h>
 
         .text
         .p2align	4
@@ -122,3 +123,5 @@ memcpy_32:
 	bralr
 
 	.size		memcpy, .-memcpy
+
+libc_hidden_def(memcpy)

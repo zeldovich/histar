@@ -24,6 +24,8 @@ Cambridge, MA 02139, USA.
 #include <unistd.h>
 #include <malloc.h>
 
+libc_hidden_proto(getpagesize)
+
 static size_t pagesize;
 
 __ptr_t valloc (size_t size)

@@ -39,11 +39,11 @@ enum __libc_tsd_key_t { _LIBC_TSD_KEY_MALLOC = 0,
 
 #else
 
-extern void *(*__libc_internal_tsd_get) (enum __libc_tsd_key_t) __THROW;
+extern void *(*__libc_internal_tsd_get) (enum __libc_tsd_key_t);
 extern int (*__libc_internal_tsd_set) (enum __libc_tsd_key_t,
-				       __const void *)  __THROW;
+				       __const void *);
 extern void **(*const __libc_internal_tsd_address) (enum __libc_tsd_key_t)
-     __THROW __attribute__ ((__const__));
+     __attribute__ ((__const__));
 
 #define __libc_tsd_address(KEY) \
   (__libc_internal_tsd_address != NULL \
@@ -61,5 +61,31 @@ extern void **(*const __libc_internal_tsd_address) (enum __libc_tsd_key_t)
    : ((__libc_tsd_##KEY##_data = (VALUE)), 0))
 
 #endif
+
+/* Define once control variable.  */
+#if PTHREAD_ONCE_INIT == 0
+/* Special case for static variables where we can avoid the initialization
+   if it is zero.  */
+# define __libc_once_define(CLASS, NAME) \
+  CLASS pthread_once_t NAME
+#else
+# define __libc_once_define(CLASS, NAME) \
+  CLASS pthread_once_t NAME = PTHREAD_ONCE_INIT
+#endif
+
+/* Call handler iff the first call.  */
+#define __libc_once(ONCE_CONTROL, INIT_FUNCTION) \
+  do {                                                                        \
+    if (__pthread_once != NULL)                                               \
+      __pthread_once (&(ONCE_CONTROL), (INIT_FUNCTION));                      \
+    else if ((ONCE_CONTROL) == PTHREAD_ONCE_INIT) {                           \
+      INIT_FUNCTION ();                                                       \
+      (ONCE_CONTROL) = 2;                                                     \
+    }                                                                         \
+  } while (0)
+
+extern int __pthread_once (pthread_once_t *__once_control,
+                           void (*__init_routine) (void));
+weak_extern (__pthread_once)
 
 #endif	/* bits/libc-tsd.h */

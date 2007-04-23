@@ -1,3 +1,10 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * Copyright (C) 2000-2005 by Erik Andersen <andersen@codepoet.org>
+ *
+ * GNU Lesser General Public License version 2.1 or later.
+ */
+
 #ifndef LINUXELF_H
 #define LINUXELF_H
 
@@ -87,15 +94,21 @@ extern void _dl_protect_relro (struct elf_resolve *l);
 
 #define DYNAMIC_SIZE (DT_NUM+OS_NUM+ARCH_NUM)
 
-extern void _dl_parse_dynamic_info(ElfW(Dyn) *dpnt, unsigned long dynamic_info[], void *debug_addr, ElfW(Addr) load_off);
+extern void _dl_parse_dynamic_info(ElfW(Dyn) *dpnt, unsigned long dynamic_info[],
+                                   void *debug_addr, DL_LOADADDR_TYPE load_off);
 
 static __always_inline
-void __dl_parse_dynamic_info(ElfW(Dyn) *dpnt, unsigned long dynamic_info[], void *debug_addr, ElfW(Addr) load_off)
+void __dl_parse_dynamic_info(ElfW(Dyn) *dpnt, unsigned long dynamic_info[],
+                             void *debug_addr, DL_LOADADDR_TYPE load_off)
 {
 	for (; dpnt->d_tag; dpnt++) {
 		if (dpnt->d_tag < DT_NUM) {
 			dynamic_info[dpnt->d_tag] = dpnt->d_un.d_val;
 #ifndef __mips__
+			/* we disable for mips because normally this page is readonly
+			 * and modifying the value here needlessly dirties a page.
+			 * see this post for more info:
+			 * http://uclibc.org/lists/uclibc/2006-April/015224.html */
 			if (dpnt->d_tag == DT_DEBUG)
 				dpnt->d_un.d_val = (unsigned long)debug_addr;
 #endif
@@ -128,7 +141,7 @@ void __dl_parse_dynamic_info(ElfW(Dyn) *dpnt, unsigned long dynamic_info[], void
 #define ADJUST_DYN_INFO(tag, load_off) \
 	do { \
 		if (dynamic_info[tag]) \
-			dynamic_info[tag] += load_off; \
+			dynamic_info[tag] = (unsigned long) DL_RELOC_ADDR(load_off, dynamic_info[tag]); \
 	} while(0)
 	ADJUST_DYN_INFO(DT_HASH, load_off);
 	ADJUST_DYN_INFO(DT_PLTGOT, load_off);

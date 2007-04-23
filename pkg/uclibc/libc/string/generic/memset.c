@@ -19,13 +19,8 @@
 #include <string.h>
 #include "memcopy.h"
 
-#undef memset
-
-void *
-memset (dstpp, c, len)
-     void *dstpp;
-     int c;
-     size_t len;
+libc_hidden_proto(memset)
+void *memset (void *dstpp, int c, size_t len)
 {
   long int dstp = (long int) dstpp;
 
@@ -88,3 +83,4 @@ memset (dstpp, c, len)
 
   return dstpp;
 }
+libc_hidden_def(memset)

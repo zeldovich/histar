@@ -7,26 +7,30 @@
 
 #include "_stdio.h"
 
-extern int __fputws_unlocked(const wchar_t *__restrict ws,
-							 FILE *__restrict stream);
+libc_hidden_proto(fputws_unlocked)
+
+libc_hidden_proto(wcslen)
 
 #ifdef __DO_UNLOCKED
 
-weak_alias(__fputws_unlocked,fputws_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__fputws_unlocked,fputws);
-#endif
-
-int __fputws_unlocked(const wchar_t *__restrict ws,
+int fputws_unlocked(const wchar_t *__restrict ws,
 					  register FILE *__restrict stream)
 {
 	size_t n = wcslen(ws);
 
 	return (_wstdio_fwrite(ws, n, stream) == n) ? 0 : -1;
 }
+libc_hidden_def(fputws_unlocked)
+
+#ifndef __UCLIBC_HAS_THREADS__
+libc_hidden_proto(fputws)
+strong_alias(fputws_unlocked,fputws)
+libc_hidden_def(fputws)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 
+libc_hidden_proto(fputws)
 int fputws(const wchar_t *__restrict ws, register FILE *__restrict stream)
 {
 	int retval;
@@ -34,11 +38,12 @@ int fputws(const wchar_t *__restrict ws, register FILE *__restrict stream)
 
 	__STDIO_AUTO_THREADLOCK(stream);
 
-	retval = __fputws_unlocked(ws, stream);
+	retval = fputws_unlocked(ws, stream);
 
 	__STDIO_AUTO_THREADUNLOCK(stream);
 
 	return retval;
 }
+libc_hidden_def(fputws)
 
 #endif

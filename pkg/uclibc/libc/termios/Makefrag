@@ -1,17 +1,9 @@
 OBJDIRS += pkg/uclibc/libc/termios
 
-TERMIOS_MSRC := pkg/uclibc/libc/termios/termios.c
-TERMIOS_MOBJ := \
-	tcdrain.o tcflow.o tcflush.o tcsendbreak.o tcsetpgrp.o tcgetpgrp.o \
-        isatty.o cfgetospeed.o cfgetispeed.o cfsetospeed.o cfsetispeed.o \
-        cfmakeraw.o cfsetspeed.o
-TERMIOS_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/termios/%.o, $(TERMIOS_MOBJ))
+TERMIOS_CSRC := \
+	tcgetattr.c tcgetsid.c tcsetattr.c ttyname.c \
+	tcdrain.c tcflow.c tcflush.c tcsendbrk.c tcsetpgrp.c tcgetpgrp.c \
+        isatty.c speed.c cfmakeraw.c cfsetspeed.c
 
-TERMIOS_CSRC := tcgetattr.c tcgetsid.c tcsetattr.c ttyname.c
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/termios/%.c, $(TERMIOS_CSRC))
-LIBC_OBJFILES += $(TERMIOS_MOBJ)
-
-$(TERMIOS_MOBJ): $(TERMIOS_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/termios/%.o,%,$@) $< -c -o $@
 

@@ -20,9 +20,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
-int srand48_r (seedval, buffer)
-     long int seedval;
-     struct drand48_data *buffer;
+libc_hidden_proto(srand48_r)
+int srand48_r (long int seedval, struct drand48_data *buffer)
 {
     /* The standards say we only have 32 bits.  */
     if (sizeof (long int) > 4)
@@ -38,3 +37,4 @@ int srand48_r (seedval, buffer)
 
     return 0;
 }
+libc_hidden_def(srand48_r)

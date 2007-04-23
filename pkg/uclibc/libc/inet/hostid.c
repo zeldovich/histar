@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #define __FORCE_GLIBC
 #include <features.h>
 #include <stdio.h>
@@ -9,9 +15,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(open)
+libc_hidden_proto(close)
+libc_hidden_proto(read)
+libc_hidden_proto(write)
+libc_hidden_proto(getuid)
+libc_hidden_proto(geteuid)
+libc_hidden_proto(gethostbyname)
+libc_hidden_proto(gethostname)
 
 #define HOSTID "/etc/hostid"
 
+#ifdef __USE_BSD
 int sethostid(long int new_id)
 {
 	int fd;
@@ -24,10 +40,11 @@ int sethostid(long int new_id)
 	close (fd);
 	return ret;
 }
+#endif
 
 long int gethostid(void)
 {
-        char host[MAXHOSTNAMELEN + 1];
+	char host[MAXHOSTNAMELEN + 1];
 	int fd, id;
 
 	/* If hostid was already set the we can return that value.
@@ -55,8 +72,19 @@ long int gethostid(void)
 	if (gethostname(host,MAXHOSTNAMELEN)>=0 && *host) {
 		struct hostent *hp;
 		struct in_addr in;
+		struct hostent ghbn_h;
+		char ghbn_buf[sizeof(struct in_addr) +
+			sizeof(struct in_addr *)*2 +
+			sizeof(char *)*((2 + 5/*MAX_ALIASES*/ +
+						1)/*ALIAS_DIM*/) +
+			256/*namebuffer*/ + 32/* margin */];
+		int ghbn_errno;
 
-		if ((hp = gethostbyname(host)) == (struct hostent *)NULL)
+		/* replace gethostbyname() with gethostbyname_r() - ron@zing.net */
+		/*if ((hp = gethostbyname(host)) == (struct hostent *)NULL)*/
+		gethostbyname_r(host, &ghbn_h, ghbn_buf, sizeof(ghbn_buf), &hp, &ghbn_errno);
+
+		if (hp == (struct hostent *)NULL)
 
 		/* This is not a error if we get here, as all it means is that
 		 * this host is not on a network and/or they have not

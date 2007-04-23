@@ -5,8 +5,10 @@
    and invokes a function in the right context after its all over.  */
 
 #define _ERRNO_H
+#include <features.h>
 #include <bits/errno.h>
 #include <sys/syscall.h>
+#include "m68k_pic.S"
 
 /* int _clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg); */
 
@@ -15,19 +17,16 @@
 .type	clone,@function
 .globl	clone;
 clone:
-.type	__clone,@function
-.globl	__clone;
-__clone:
 	/* Sanity check arguments.  */
 	movel   #-EINVAL, %d0
 	movel   4(%sp), %d1             /* no NULL function pointers */
 	movel	%d1, %a0
 	tstl    %d1
-	beq.w   __syscall_error
+	beq.w	__syscall_error_trampoline
 	movel   8(%sp), %d1             /* no NULL stack pointers */
 	movel	%d1, %a1
 	tstl    %d1
-	beq.w   __syscall_error
+	beq.w   __syscall_error_trampoline
 
 	/* Allocate space and copy the argument onto the new stack.  */
 	movel   16(%sp), -(%a1)
@@ -52,19 +51,8 @@ __clone:
 #endif
 
 	tstl    %d0
-	bmi.w   __syscall_error
+	bmi.w   __syscall_error_trampoline
 	beq.w   thread_start
-
-	rts
-
-__syscall_error:
-	negl	%d0
-	movel	%d0, %sp@-
-	lea		__errno_location-.-8, %a0
-	jsr		%pc@(%a0)
-	movel	%d0, %a0
-	movel	%sp@+, %a0@
-	moveq	#-1, %d0
 
 	rts
 
@@ -76,10 +64,6 @@ thread_start:
 	trap	#0
 	/*jsr    exit*/
 
-#if defined(__HAVE_ELF__)
-	.weak clone
-	clone = __clone
-#else
-	.set clone,__clone
-#endif
+__syscall_error_trampoline:
+	JUMP	__syscall_error,%a0
 

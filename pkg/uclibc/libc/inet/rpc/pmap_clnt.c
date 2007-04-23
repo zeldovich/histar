@@ -48,6 +48,16 @@
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
 
+libc_hidden_proto(ioctl)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(perror)
+libc_hidden_proto(exit)
+libc_hidden_proto(clnt_perror)
+libc_hidden_proto(clntudp_bufcreate)
+libc_hidden_proto(xdr_bool)
+libc_hidden_proto(xdr_pmap)
+
 /*
  * Same as get_myaddress, but we try to use the loopback
  * interface. portmap caches interfaces, and on DHCP clients,
@@ -112,11 +122,12 @@ static const struct timeval tottimeout = {60, 0};
  * Set a mapping between program,version and port.
  * Calls the pmap service remotely to do the mapping.
  */
+libc_hidden_proto(pmap_set)
 bool_t
 pmap_set (u_long program, u_long version, int protocol, u_short port)
 {
   struct sockaddr_in myaddress;
-  int socket = -1;
+  int _socket = -1;
   CLIENT *client;
   struct pmap parms;
   bool_t rslt;
@@ -124,7 +135,7 @@ pmap_set (u_long program, u_long version, int protocol, u_short port)
   if (!__get_myaddress (&myaddress))
     return FALSE;
   client = clntudp_bufcreate (&myaddress, PMAPPROG, PMAPVERS,
-			timeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+			timeout, &_socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
   if (client == (CLIENT *) NULL)
     return (FALSE);
   parms.pm_prog = program;
@@ -136,22 +147,24 @@ pmap_set (u_long program, u_long version, int protocol, u_short port)
 		 tottimeout) != RPC_SUCCESS)
     {
       clnt_perror (client, _("Cannot register service"));
-      return FALSE;
+      rslt = FALSE;
     }
   CLNT_DESTROY (client);
-  /* (void)close(socket); CLNT_DESTROY closes it */
+  /* (void)close(_socket); CLNT_DESTROY closes it */
   return rslt;
 }
+libc_hidden_def (pmap_set)
 
 /*
  * Remove the mapping between program,version and port.
  * Calls the pmap service remotely to do the un-mapping.
  */
+libc_hidden_proto(pmap_unset)
 bool_t
 pmap_unset (u_long program, u_long version)
 {
   struct sockaddr_in myaddress;
-  int socket = -1;
+  int _socket = -1;
   CLIENT *client;
   struct pmap parms;
   bool_t rslt;
@@ -159,7 +172,7 @@ pmap_unset (u_long program, u_long version)
   if (!__get_myaddress (&myaddress))
     return FALSE;
   client = clntudp_bufcreate (&myaddress, PMAPPROG, PMAPVERS,
-			timeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+			timeout, &_socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
   if (client == (CLIENT *) NULL)
     return FALSE;
   parms.pm_prog = program;
@@ -168,6 +181,7 @@ pmap_unset (u_long program, u_long version)
   CLNT_CALL (client, PMAPPROC_UNSET, (xdrproc_t)xdr_pmap, (caddr_t)&parms,
 	     (xdrproc_t)xdr_bool, (caddr_t)&rslt, tottimeout);
   CLNT_DESTROY (client);
-  /* (void)close(socket); CLNT_DESTROY already closed it */
+  /* (void)close(_socket); CLNT_DESTROY already closed it */
   return rslt;
 }
+libc_hidden_def (pmap_unset)

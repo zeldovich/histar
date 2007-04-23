@@ -279,7 +279,7 @@ access(const char *pn, int mode)
     return 0;
 }
 
-int
+ssize_t
 readlink(const char *pn, char *buf, size_t bufsize)
 {
     __set_errno(EINVAL);

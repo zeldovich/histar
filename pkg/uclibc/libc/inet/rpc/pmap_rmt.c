@@ -59,7 +59,31 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
 #include <arpa/inet.h>
 #define MAX_BROADCAST_SIZE 1400
 
-extern u_long _create_xid (void);
+libc_hidden_proto(memset)
+libc_hidden_proto(ioctl)
+libc_hidden_proto(perror)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(authunix_create_default)
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_callmsg)
+libc_hidden_proto(xdr_replymsg)
+libc_hidden_proto(xdr_reference)
+libc_hidden_proto(xdr_u_long)
+libc_hidden_proto(xdr_void)
+libc_hidden_proto(xdr_rmtcallres)
+libc_hidden_proto(xdr_rmtcall_args)
+libc_hidden_proto(inet_makeaddr)
+libc_hidden_proto(inet_netof)
+libc_hidden_proto(clntudp_create)
+libc_hidden_proto(setsockopt)
+libc_hidden_proto(recvfrom)
+libc_hidden_proto(sendto)
+libc_hidden_proto(poll)
+libc_hidden_proto(fprintf)
+
+
+extern u_long _create_xid (void) attribute_hidden;
 
 static const struct timeval timeout = {3, 0};
 
@@ -79,14 +103,14 @@ pmap_rmtcall (addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_p
      struct timeval tout;
      u_long *port_ptr;
 {
-  int socket = -1;
+  int _socket = -1;
   CLIENT *client;
   struct rmtcallargs a;
   struct rmtcallres r;
   enum clnt_stat stat;
 
   addr->sin_port = htons (PMAPPORT);
-  client = clntudp_create (addr, PMAPPROG, PMAPVERS, timeout, &socket);
+  client = clntudp_create (addr, PMAPPROG, PMAPVERS, timeout, &_socket);
   if (client != (CLIENT *) NULL)
     {
       a.prog = prog;
@@ -106,7 +130,7 @@ pmap_rmtcall (addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_p
     {
       stat = RPC_FAILED;
     }
-  /* (void)__close(socket); CLNT_DESTROY already closed it */
+  /* (void)close(_socket); CLNT_DESTROY already closed it */
   addr->sin_port = 0;
   return stat;
 }
@@ -125,8 +149,9 @@ xdr_rmtcall_args (XDR *xdrs, struct rmtcallargs *cap)
       xdr_u_long (xdrs, &(cap->vers)) &&
       xdr_u_long (xdrs, &(cap->proc)))
     {
+      u_long dummy_arglen = 0;
       lenposition = XDR_GETPOS (xdrs);
-      if (!xdr_u_long (xdrs, &(cap->arglen)))
+      if (!xdr_u_long (xdrs, &dummy_arglen))
 	return FALSE;
       argposition = XDR_GETPOS (xdrs);
       if (!(*(cap->xdr_args)) (xdrs, cap->args_ptr))
@@ -141,6 +166,7 @@ xdr_rmtcall_args (XDR *xdrs, struct rmtcallargs *cap)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_rmtcall_args)
 
 /*
  * XDR remote call results
@@ -162,6 +188,7 @@ xdr_rmtcallres (xdrs, crp)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_rmtcallres)
 
 
 /*

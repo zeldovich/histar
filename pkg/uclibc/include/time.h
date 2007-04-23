@@ -1,4 +1,5 @@
-/* Copyright (C) 1991-1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+/* Copyright (C) 1991-1999,2000,2001,2002,2003,2006
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -113,6 +114,8 @@ typedef __timer_t timer_t;
       defined __need_timespec)
 # define __timespec_defined	1
 
+# include <bits/types.h>	/* This defines __time_t for us.  */
+
 /* POSIX.1b structure for a time value.  This is like a `struct timeval' but
    has nanoseconds instead of microseconds.  */
 struct timespec
@@ -143,10 +146,10 @@ struct tm
 #ifdef __UCLIBC_HAS_TM_EXTENSIONS__
 #ifdef	__USE_BSD
   long int tm_gmtoff;		/* Seconds east of UTC.  */
-  __const char *tm_zone;	/* Timezone abbreviation. */
+  __const char *tm_zone;	/* Timezone abbreviation.  */
 #else
   long int __tm_gmtoff;		/* Seconds east of UTC.  */
-  __const char *__tm_zone;	/* Timezone abbreviation. */
+  __const char *__tm_zone;	/* Timezone abbreviation.  */
 #endif
 #endif /* __UCLIBC_HAS_TM_EXTENSIONS__ */
 };
@@ -225,17 +228,6 @@ extern size_t strftime_l (char *__restrict __s, size_t __maxsize,
 extern char *strptime_l (__const char *__restrict __s,
 			 __const char *__restrict __fmt, struct tm *__tp,
 			 __locale_t __loc) __THROW;
-
-
-extern size_t __strftime_l (char *__restrict __s, size_t __maxsize,
-							__const char *__restrict __format,
-							__const struct tm *__restrict __tp,
-							__locale_t __loc) __THROW;
-
-extern char *__strptime_l (__const char *__restrict __s,
-						   __const char *__restrict __fmt, struct tm *__tp,
-						   __locale_t __loc) __THROW;
-
 # endif
 #endif
 
@@ -352,7 +344,8 @@ extern int clock_getres (clockid_t __clock_id, struct timespec *__res) __THROW;
 extern int clock_gettime (clockid_t __clock_id, struct timespec *__tp) __THROW;
 
 /* Set clock CLOCK_ID to value TP.  */
-extern int clock_settime (clockid_t __clock_id, __const struct timespec *__tp) __THROW;
+extern int clock_settime (clockid_t __clock_id, __const struct timespec *__tp)
+     __THROW;
 
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning "mjn3 FIXME: a bunch of unimplemented function prototypes."
@@ -368,6 +361,7 @@ extern int clock_nanosleep (clockid_t __clock_id, int __flags,
 /* Return clock ID for CPU-time clock.  */
 extern int clock_getcpuclockid (pid_t __pid, clockid_t *__clock_id) __THROW;
 #  endif
+#endif /* __UCLIBC_MJN3_ONLY__ */
 
 
 /* Create new per-process timer using CLOCK_ID.  */
@@ -389,7 +383,6 @@ extern int timer_gettime (timer_t __timerid, struct itimerspec *__value)
 
 /* Get expiration overrun for timer TIMERID.  */
 extern int timer_getoverrun (timer_t __timerid) __THROW;
-#endif /* __UCLIBC_MJN3_ONLY__ */
 # endif
 
 

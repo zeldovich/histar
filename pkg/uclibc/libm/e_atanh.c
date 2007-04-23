@@ -35,6 +35,8 @@ static char rcsid[] = "$NetBSD: e_atanh.c,v 1.8 1995/05/10 20:44:55 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(log1p)
+
 #ifdef __STDC__
 static const double one = 1.0, huge = 1e300;
 #else
@@ -48,9 +50,9 @@ static double zero = 0.0;
 #endif
 
 #ifdef __STDC__
-	double __ieee754_atanh(double x)
+	double attribute_hidden __ieee754_atanh(double x)
 #else
-	double __ieee754_atanh(x)
+	double attribute_hidden __ieee754_atanh(x)
 	double x;
 #endif
 {

@@ -23,6 +23,15 @@
 #include <signal.h>
 #include <unistd.h>
 
+libc_hidden_proto(sleep)
+
+libc_hidden_proto(sigaction)
+libc_hidden_proto(sigprocmask)
+//libc_hidden_proto(__sigaddset)
+//libc_hidden_proto(__sigemptyset)
+//libc_hidden_proto(__sigismember)
+libc_hidden_proto(nanosleep)
+
 #if 0
 /* This is a quick and dirty, but not 100% compliant with
  * the stupid SysV SIGCHLD vs. SIG_IGN behaviour.  It is
@@ -105,3 +114,4 @@ unsigned int sleep (unsigned int seconds)
     return result;
 }
 #endif
+libc_hidden_def(sleep)

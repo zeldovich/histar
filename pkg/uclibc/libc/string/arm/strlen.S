@@ -17,6 +17,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#include <features.h>
 #include <endian.h>
 #include <sys/syscall.h>
 
@@ -25,10 +26,10 @@
  * exit: r0 = len
  */
 
-		.text
-		.global strlen;
-		.type strlen,%function
-		.align 4;                                                               \
+.text
+.global strlen
+.type strlen,%function
+.align 4
 
 strlen:
 	bic     r1, r0, $3              @ addr of word containing first byte
@@ -74,7 +75,12 @@ Llastword:				@ drop through to here once we find a
 	tstne   r2, $0x00ff0000         @ (if first three all non-zero, 4th
 	addne   r0, r0, $1              @  must be zero)
 #endif
-	mov	pc,lr
+#if defined(__USE_BX__)
+        bx      lr
+#else
+  	mov	pc,lr
+#endif
 
-.size strlen,.-strlen;
+.size strlen,.-strlen
 
+libc_hidden_def(strlen)

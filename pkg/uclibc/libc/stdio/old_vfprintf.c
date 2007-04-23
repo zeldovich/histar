@@ -128,7 +128,6 @@
 /**************************************************************************/
 
 #define _ISOC99_SOURCE			/* for ULLONG primarily... */
-#define _GNU_SOURCE				/* for strnlen */
 #include "_stdio.h"
 /* #include <stdio.h> */
 #include <stdarg.h>
@@ -145,6 +144,13 @@
 #ifdef __UCLIBC_HAS_THREADS__
 #include <pthread.h>
 #endif /* __UCLIBC_HAS_THREADS__ */
+
+libc_hidden_proto(strlen)
+libc_hidden_proto(strnlen)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(putc_unlocked)
+libc_hidden_proto(__fputc_unlocked)
+libc_hidden_proto(__glibc_strerror_r)
 
 /*  #undef __UCLIBC_HAS_FLOATS__ */
 /*  #undef WANT_FLOAT_ERROR */
@@ -217,7 +223,7 @@ typedef void (__fp_outfunc_t)(FILE *fp, intptr_t type, intptr_t len,
 							  intptr_t buf);
 
 extern size_t _fpmaxtostr(FILE * fp, __fpmax_t x, struct printf_info *info,
-						  __fp_outfunc_t fp_outfunc);
+						  __fp_outfunc_t fp_outfunc) attribute_hidden;
 
 static void _charpad(FILE * __restrict stream, int padchar, size_t numpad)
 {
@@ -261,8 +267,8 @@ static const char spec[] = "+-#0 ";
 
 /**********************************************************************/
 
-extern void _store_inttype(void *dest, int desttype, uintmax_t val);
-extern uintmax_t _load_inttype(int desttype, const void *src, int uflag);
+extern void _store_inttype(void *dest, int desttype, uintmax_t val) attribute_hidden;
+extern uintmax_t _load_inttype(int desttype, const void *src, int uflag) attribute_hidden;
 
 /*
  * In order to ease translation to what arginfo and _print_info._flags expect,
@@ -339,6 +345,7 @@ static const char u_spec[] = "%nbopxXudics";
 /* u_radix[i] <-> u_spec[i+2] for unsigned entries only */
 static const char u_radix[] = "\x02\x08\x10\x10\x10\x0a";
 
+libc_hidden_proto(vfprintf)
 int vfprintf(FILE * __restrict op, register const char * __restrict fmt,
 			 va_list ap)
 {
@@ -709,3 +716,4 @@ int vfprintf(FILE * __restrict op, register const char * __restrict fmt,
 
 	return i;
 }
+libc_hidden_def(vfprintf)

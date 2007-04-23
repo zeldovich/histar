@@ -21,16 +21,15 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-
 /* This must be initialized data because commons can't have aliases.  */
-void *__curbrk = 0;
+void *__curbrk attribute_hidden = 0;
 
-
+libc_hidden_proto(brk)
 int brk (void *addr)
 {
     void *__unbounded newbrk, *__unbounded scratch;
 
-    asm ("movl %%ebx, %1\n"	/* Save %ebx in scratch register.  */
+    __asm__ ("movl %%ebx, %1\n"	/* Save %ebx in scratch register.  */
 	    "movl %3, %%ebx\n"	/* Put ADDR in %ebx to be syscall arg.  */
 	    "int $0x80 # %2\n"	/* Perform the system call.  */
 	    "movl %1, %%ebx\n"	/* Restore %ebx from scratch register.  */
@@ -47,3 +46,4 @@ int brk (void *addr)
 
     return 0;
 }
+libc_hidden_def(brk)

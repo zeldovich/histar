@@ -2,13 +2,14 @@
 /*
  * sched_getparam() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
 #include <sched.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 #define __NR___syscall_sched_getparam __NR_sched_getparam
 static inline _syscall2(int, __syscall_sched_getparam,

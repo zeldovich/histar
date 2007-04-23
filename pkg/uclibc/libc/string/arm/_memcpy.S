@@ -37,7 +37,7 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-
+#include <features.h>
 #include <endian.h>
 
 /*
@@ -71,10 +71,11 @@
  * Apologies for the state of the comments ;-)
  */
 
-		.text
-		.global _memcpy;
-		.type _memcpy,%function
-		.align 4;                                                               \
+.text
+.global _memcpy
+.hidden _memcpy
+.type _memcpy,%function
+.align 4
 
 _memcpy:
 	/* Determine copy direction */
@@ -82,8 +83,11 @@ _memcpy:
 	bcc	.Lmemcpy_backwards
 
 	moveq	r0, #0			/* Quick abort for len=0 */
-	moveq	pc, lr
-
+#if defined(__USE_BX__)
+        bxeq    lr
+#else
+        moveq   pc, lr
+#endif
 	stmdb	sp!, {r0, lr}		/* memcpy() returns dest addr */
 	subs	r2, r2, #4
 	blt	.Lmemcpy_fl4		/* less than 4 bytes */
@@ -388,8 +392,11 @@ _memcpy:
 .Lmemcpy_bl4:
 	/* less than 4 bytes to go */
 	adds	r2, r2, #4
+#if defined(__USE_BX__)
+        bxeq    lr
+#else
 	moveq	pc, lr			/* done */
-
+#endif
 	/* copy the crud byte at a time */
 	cmp	r2, #2
 	ldrb	r3, [r1, #-1]!
@@ -398,8 +405,11 @@ _memcpy:
 	strgeb	r3, [r0, #-1]!
 	ldrgtb	r3, [r1, #-1]!
 	strgtb	r3, [r0, #-1]!
+#if defined(__USE_BX__)
+        bx      lr
+#else
 	mov	pc, lr
-
+#endif
 	/* erg - unaligned destination */
 .Lmemcpy_bdestul:
 	cmp	r12, #2

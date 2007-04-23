@@ -1,17 +1,5 @@
 OBJDIRS += pkg/uclibc/libc/stdio
 
-STDIO_MSRC := pkg/uclibc/libc/stdio/vfprintf.c
-STDIO_MOBJ := \
-	vfprintf.o _ppfs_init.o _ppfs_prepargs.o _ppfs_setargs.o _ppfs_parsespec.o \
-	register_printf_function.o parse_printf_format.o
-STDIO_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(STDIO_MOBJ))
-
-STDIO_MSRC2 := pkg/uclibc/libc/stdio/scanf.c
-STDIO_MOBJ2 := \
-	vfscanf.o __scan_cookie.o __psfs_parse_spec.o __psfs_do_numeric.o \
-        scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o
-STDIO_MOBJ2 := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdio/%.o, $(STDIO_MOBJ2))
-
 STDIO_CSRC := \
 	fclose.c fcloseall.c fdopen.c fgetpos.c fopen.c freopen.c \
         fseeko.c fsetpos.c ftello.c getdelim.c getline.c gets.c getw.c \
@@ -25,7 +13,11 @@ STDIO_CSRC := \
         _cs_funcs.c _load_inttype.c _store_inttype.c _uintmaxtostr.c \
 	__fbufsize.c __flbf.c __fpending.c __fpurge.c __freadable.c \
         __freading.c __fsetlocking.c __fwritable.c __fwriting.c _flushlbf.c \
-	_fpmaxtostr.c
+	_fpmaxtostr.c \
+	vfprintf.c _ppfs_init.c _ppfs_prepargs.c _ppfs_setargs.c _ppfs_parsespec.c \
+	register_printf_function.c parse_printf_format.c \
+	vfscanf.c __scan_cookie.c __psfs_parse_spec.c __psfs_do_numeric.c \
+        scanf.c sscanf.c fscanf.c vscanf.c vsscanf.c
 
 STDIO_CUSRC := \
 	clearerr.c feof.c ferror.c fflush.c fgetc.c fgets.c fileno.c \
@@ -37,14 +29,5 @@ STDIO_C64SRC := \
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%.c, $(STDIO_CSRC))
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%.c, $(STDIO_CUSRC))
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%_unlocked.c, $(STDIO_CUSRC))
-LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%_64.c, $(STDIO_C64SRC))
-LIBC_OBJFILES += $(STDIO_MOBJ) $(STDIO_MOBJ2)
-
-$(STDIO_MOBJ): $(STDIO_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
-
-$(STDIO_MOBJ2): $(STDIO_MSRC2)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdio/%.o,%,$@) $< -c -o $@
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdio/%64.c, $(STDIO_C64SRC))
 

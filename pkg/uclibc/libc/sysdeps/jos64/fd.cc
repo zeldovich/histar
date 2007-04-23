@@ -546,7 +546,7 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
 }
 
 int
-close(int fdnum) __THROW
+close(int fdnum)
 {
     struct Fd *fd;
     int r;
@@ -696,7 +696,7 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 }
 
 ssize_t
-read(int fdnum, void *buf, size_t n) __THROW
+read(int fdnum, void *buf, size_t n)
 {
     int64_t r;
     struct Dev *dev;
@@ -724,7 +724,7 @@ read(int fdnum, void *buf, size_t n) __THROW
 }
 
 ssize_t
-write(int fdnum, const void *buf, size_t n) __THROW
+write(int fdnum, const void *buf, size_t n)
 {
     int64_t r;
     struct Dev *dev;
@@ -754,7 +754,7 @@ write(int fdnum, const void *buf, size_t n) __THROW
 }
 
 ssize_t 
-readv(int fd, const struct iovec *vector, int count) __THROW
+readv(int fd, const struct iovec *vector, int count)
 {
     int ret = 0;
     for (int i = 0; i < count; i++) {
@@ -773,7 +773,7 @@ readv(int fd, const struct iovec *vector, int count) __THROW
 }
 
 ssize_t 
-writev(int fd, const struct iovec *vector, int count) __THROW
+writev(int fd, const struct iovec *vector, int count)
 {
     ssize_t ret = 0;
     for (int i = 0; i < count; i++) {
@@ -805,7 +805,7 @@ bind(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
 }
 
 int
-connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen) __THROW
+connect(int fdnum, const struct sockaddr *addr, socklen_t addrlen)
 {
     return FD_CALL(fdnum, connect, addr, addrlen);
 }
@@ -817,7 +817,7 @@ listen(int fdnum, int backlog) __THROW
 }
 
 int
-accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen) __THROW
+accept(int fdnum, struct sockaddr *addr, socklen_t *addrlen)
 {
     return FD_CALL(fdnum, accept, addr, addrlen);
 }
@@ -878,7 +878,7 @@ print_fd_sets(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset)
 // writeset or execept set.
 int
 select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
-       struct timeval *timeout) __THROW
+       struct timeval *timeout)
 {
     // for debugging
     char select_debug = 0;
@@ -1015,7 +1015,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 }
 
 int 
-poll(struct pollfd *ufds, nfds_t nfds, int timeout) __THROW
+poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
     fd_set readset, writeset;
     struct timeval tv;
@@ -1074,39 +1074,39 @@ poll(struct pollfd *ufds, nfds_t nfds, int timeout) __THROW
 }
 
 ssize_t
-send(int fdnum, const void *dataptr, size_t size, int flags) __THROW
+send(int fdnum, const void *dataptr, size_t size, int flags)
 {
     return sendto(fdnum, dataptr, size, flags, 0, 0);
 }
 
 ssize_t
 sendto(int fdnum, const void *dataptr, size_t len, int flags, 
-       const struct sockaddr *to, socklen_t tolen) __THROW
+       const struct sockaddr *to, socklen_t tolen)
 {
     return FD_CALL(fdnum, sendto, dataptr, len, flags, to, tolen);
 }
 
 ssize_t
-sendmsg(int fdnum, const struct msghdr *msg, int flags) __THROW
+sendmsg(int fdnum, const struct msghdr *msg, int flags)
 {
     return FD_CALL(fdnum, sendmsg, msg, flags);
 }
 
 ssize_t
-recv(int fdnum, void *mem, size_t len, int flags) __THROW
+recv(int fdnum, void *mem, size_t len, int flags)
 {
     return FD_CALL(fdnum, recvfrom, mem, len, flags, 0, 0);
 }
 
 ssize_t
 recvfrom(int fdnum, void *mem, size_t len, int flags, 
-         struct sockaddr *from, socklen_t *fromlen) __THROW
+         struct sockaddr *from, socklen_t *fromlen)
 {
     return FD_CALL(fdnum, recvfrom, mem, len, flags, from, fromlen);
 }
 
 ssize_t 
-recvmsg(int fdnum, struct msghdr *msg, int flags) __THROW
+recvmsg(int fdnum, struct msghdr *msg, int flags)
 {
     set_enosys();
     return -1;
@@ -1207,7 +1207,7 @@ statfs(const char *path, struct statfs *buf) __THROW
 }
 
 extern "C" int
-__libc_fcntl(int fdnum, int cmd, ...) __THROW
+__libc_fcntl(int fdnum, int cmd, ...)
 {
     int r;
     va_list ap;
@@ -1400,7 +1400,7 @@ int ftruncate64 (int fdnum, off64_t length) __THROW
 }
 
 int
-fsync(int fdnum) __THROW
+fsync(int fdnum)
 {
     return FD_CALL(fdnum, sync);
 }

@@ -4,7 +4,7 @@
  * after resolving ELF shared library symbols
  *
  * Copyright (C) 2005 by Joakim Tjernlund
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 by Erik Andersen <andersen@codepoet.org>
  * Copyright (c) 1994-2000 Eric Youngdale, Peter MacDonald,
  *				David Engel, Hongjiu Lu and Mitch D'Souza
  *
@@ -39,7 +39,7 @@
 #define ALLOW_ZERO_PLTGOT
 
 /* Pull in the value of _dl_progname */
-#include "dl-progname.h"
+#include LDSO_ELFINTERP
 
 /* Global variables used within the shared library loader */
 char *_dl_library_path         = 0;	/* Where we look for libraries */
@@ -66,6 +66,7 @@ int   _dl_debug_file      = 2;
 unsigned long attribute_hidden _dl_skip_args = 0;
 const char *_dl_progname = UCLIBC_LDSO;      /* The name of the executable being run */
 #include "dl-startup.c"
+#include "dl-array.c"
 /* Forward function declarations */
 static int _dl_suid_ok(void);
 
@@ -74,16 +75,38 @@ static int _dl_suid_ok(void);
  * can set an internal breakpoint on it, so that we are notified when the
  * address mapping is changed in some way.
  */
+void _dl_debug_state(void);
+rtld_hidden_proto(_dl_debug_state, noinline);
 void _dl_debug_state(void)
 {
+	/* Make sure GCC doesn't recognize this function as pure, to avoid
+	 * having the calls optimized away.
+	 */
+	__asm__("");
 }
+rtld_hidden_def(_dl_debug_state);
 
 static unsigned char *_dl_malloc_addr = 0;	/* Lets _dl_malloc use the already allocated memory page */
 static unsigned char *_dl_mmap_zero   = 0;	/* Also used by _dl_malloc */
 
 static struct elf_resolve **init_fini_list;
-static int nlist; /* # items in init_fini_list */
+static unsigned int nlist; /* # items in init_fini_list */
 extern void _start(void);
+
+#ifdef __UCLIBC_HAS_SSP__
+# include <dl-osinfo.h>
+uintptr_t stack_chk_guard;
+# ifndef THREAD_SET_STACK_GUARD
+/* Only exported for architectures that don't store the stack guard canary
+ * in local thread area.  */
+uintptr_t __stack_chk_guard attribute_relro;
+#  ifdef __UCLIBC_HAS_SSP_COMPAT__
+strong_alias(__stack_chk_guard,__guard)
+#  endif
+# elif __UCLIBC_HAS_SSP_COMPAT__
+uintptr_t __guard attribute_relro;
+# endif
+#endif
 
 static void __attribute__ ((destructor)) __attribute_used__ _dl_fini(void)
 {
@@ -95,24 +118,26 @@ static void __attribute__ ((destructor)) __attribute_used__ _dl_fini(void)
 		if (tpnt->init_flag & FINI_FUNCS_CALLED)
 			continue;
 		tpnt->init_flag |= FINI_FUNCS_CALLED;
+		_dl_run_fini_array(tpnt);
 		if (tpnt->dynamic_info[DT_FINI]) {
 			void (*dl_elf_func) (void);
 
-			dl_elf_func = (void (*)(void)) (intptr_t) (tpnt->loadaddr + tpnt->dynamic_info[DT_FINI]);
+			dl_elf_func = (void (*)(void)) (intptr_t) DL_RELOC_ADDR(tpnt->loadaddr, tpnt->dynamic_info[DT_FINI]);
 			_dl_if_debug_dprint("\ncalling FINI: %s\n\n", tpnt->libname);
-			(*dl_elf_func) ();
+			DL_CALL_FUNC_AT_ADDR (dl_elf_func, tpnt->loadaddr, (void(*)(void)));
 		}
 	}
 }
 
-void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
-			  ElfW(auxv_t) auxvt[AT_EGID + 1], char **envp,
-			  char **argv)
+void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
+                          ElfW(auxv_t) auxvt[AT_EGID + 1], char **envp,
+                          char **argv)
 {
 	ElfW(Phdr) *ppnt;
 	ElfW(Dyn) *dpnt;
 	char *lpntstr;
-	int i, goof = 0, unlazy = 0, trace_loaded_objects = 0;
+	unsigned int i;
+	int unlazy = 0, trace_loaded_objects = 0;
 	struct dyn_elf *rpnt;
 	struct elf_resolve *tcurr;
 	struct elf_resolve *tpnt1;
@@ -123,11 +148,13 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	unsigned long *_dl_envp;		/* The environment address */
 	ElfW(Addr) relro_addr = 0;
 	size_t relro_size = 0;
+	struct stat st;
 
 	/* Wahoo!!! We managed to make a function call!  Get malloc
 	 * setup so we can use _dl_dprintf() to print debug noise
 	 * instead of the SEND_STDERR macros used in dl-startup.c */
 
+	_dl_memset(app_tpnt, 0x00, sizeof(*app_tpnt));
 
 	/* Store the page size for later use */
 	_dl_pagesize = (auxvt[AT_PAGESZ].a_un.a_val) ? (size_t) auxvt[AT_PAGESZ].a_un.a_val : PAGE_SIZE;
@@ -168,8 +195,8 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	 * Note that for SUID programs we ignore the settings in
 	 * LD_LIBRARY_PATH.
 	 */
-	if ((auxvt[AT_UID].a_un.a_val == -1 && _dl_suid_ok()) ||
-	    (auxvt[AT_UID].a_un.a_val != -1 &&
+	if ((auxvt[AT_UID].a_un.a_val == (size_t)-1 && _dl_suid_ok()) ||
+	    (auxvt[AT_UID].a_un.a_val != (size_t)-1 &&
 	     auxvt[AT_UID].a_un.a_val == auxvt[AT_EUID].a_un.a_val &&
 	     auxvt[AT_GID].a_un.a_val == auxvt[AT_EGID].a_un.a_val)) {
 		_dl_secure = 0;
@@ -196,6 +223,20 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		unlazy = RTLD_NOW;
 	}
 
+	/* sjhill: your TLS init should go before this */
+#ifdef __UCLIBC_HAS_SSP__
+	/* Set up the stack checker's canary.  */
+	stack_chk_guard = _dl_setup_stack_chk_guard ();
+# ifdef THREAD_SET_STACK_GUARD
+	THREAD_SET_STACK_GUARD (stack_chk_guard);
+#  ifdef __UCLIBC_HAS_SSP_COMPAT__
+	__guard = stack_chk_guard;
+#  endif
+# else
+	__stack_chk_guard = stack_chk_guard;
+# endif
+#endif
+
 	/* At this point we are now free to examine the user application,
 	 * and figure out which libraries are supposed to be called.  Until
 	 * we have this list, we will not be completely ready for dynamic
@@ -206,18 +247,18 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	 * different from what the ELF header says for ET_DYN/PIE executables.
 	 */
 	{
-		int i;
-		ElfW(Phdr) *ppnt = (ElfW(Phdr) *) auxvt[AT_PHDR].a_un.a_val;
+		unsigned int idx;
+		ElfW(Phdr) *phdr = (ElfW(Phdr) *) auxvt[AT_PHDR].a_un.a_val;
 
-		for (i = 0; i < auxvt[AT_PHNUM].a_un.a_val; i++, ppnt++)
-			if (ppnt->p_type == PT_PHDR) {
-				app_tpnt->loadaddr = (ElfW(Addr)) (auxvt[AT_PHDR].a_un.a_val - ppnt->p_vaddr);
+		for (idx = 0; idx < auxvt[AT_PHNUM].a_un.a_val; idx++, phdr++)
+			if (phdr->p_type == PT_PHDR) {
+				DL_INIT_LOADADDR_PROG(app_tpnt->loadaddr, auxvt[AT_PHDR].a_un.a_val - phdr->p_vaddr);
 				break;
 			}
 
-		if (app_tpnt->loadaddr)
+		if (DL_LOADADDR_BASE(app_tpnt->loadaddr))
 			_dl_debug_early("Position Independent Executable: "
-					"app_tpnt->loadaddr=%x\n", app_tpnt->loadaddr);
+					"app_tpnt->loadaddr=%x\n", DL_LOADADDR_BASE(app_tpnt->loadaddr));
 	}
 
 	/*
@@ -234,7 +275,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 			relro_size = ppnt->p_memsz;
 		}
 		if (ppnt->p_type == PT_DYNAMIC) {
-			dpnt = (ElfW(Dyn) *) (ppnt->p_vaddr + app_tpnt->loadaddr);
+			dpnt = (ElfW(Dyn) *) DL_RELOC_ADDR(app_tpnt->loadaddr, ppnt->p_vaddr);
 			_dl_parse_dynamic_info(dpnt, app_tpnt->dynamic_info, debug_addr, app_tpnt->loadaddr);
 #ifndef __FORCE_SHAREABLE_TEXT_SEGMENTS__
 			/* Ugly, ugly.  We need to call mprotect to change the
@@ -248,7 +289,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 				ppnt = (ElfW(Phdr) *) auxvt[AT_PHDR].a_un.a_val;
 				for (i = 0; i < auxvt[AT_PHNUM].a_un.a_val; i++, ppnt++) {
 					if (ppnt->p_type == PT_LOAD && !(ppnt->p_flags & PF_W))
-						_dl_mprotect((void *) ((ppnt->p_vaddr + app_tpnt->loadaddr) & PAGE_ALIGN),
+						_dl_mprotect((void *) (DL_RELOC_ADDR(app_tpnt->loadaddr, ppnt->p_vaddr) & PAGE_ALIGN),
 							     ((ppnt->p_vaddr + app_tpnt->loadaddr) & ADDR_ALIGN) +
 							     (unsigned long) ppnt->p_filesz,
 							     PROT_READ | PROT_WRITE | PROT_EXEC);
@@ -262,8 +303,10 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 				continue;
 #endif
 			/* OK, we have what we need - slip this one into the list. */
-			app_tpnt = _dl_add_elf_hash_table(_dl_progname, (char *)app_tpnt->loadaddr,
-					app_tpnt->dynamic_info, ppnt->p_vaddr + app_tpnt->loadaddr, ppnt->p_filesz);
+			app_tpnt = _dl_add_elf_hash_table(_dl_progname, app_tpnt->loadaddr,
+					app_tpnt->dynamic_info,
+					DL_RELOC_ADDR(app_tpnt->loadaddr, ppnt->p_vaddr),
+					ppnt->p_filesz);
 			_dl_loaded_modules->libtype = elf_executable;
 			_dl_loaded_modules->ppnt = (ElfW(Phdr) *) auxvt[AT_PHDR].a_un.a_val;
 			_dl_loaded_modules->n_phent = auxvt[AT_PHNUM].a_un.a_val;
@@ -284,7 +327,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		if (ppnt->p_type == PT_INTERP) {
 			char *ptmp;
 
-			tpnt->libname = (char *) ppnt->p_vaddr + app_tpnt->loadaddr;
+			tpnt->libname = (char *) DL_RELOC_ADDR(app_tpnt->loadaddr, ppnt->p_vaddr);
 
 			/* Store the path where the shared lib loader was found
 			 * for later use
@@ -294,7 +337,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 			if (ptmp != _dl_ldsopath)
 				*ptmp = '\0';
 
-			_dl_debug_early("Lib Loader: (%x) %s\n", tpnt->loadaddr, tpnt->libname);
+			_dl_debug_early("Lib Loader: (%x) %s\n", DL_LOADADDR_BASE(tpnt->loadaddr), tpnt->libname);
 		}
 	}
 	app_tpnt->relro_addr = relro_addr;
@@ -366,7 +409,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	 */
 	debug_addr->r_map = (struct link_map *) _dl_loaded_modules;
 	debug_addr->r_version = 1;
-	debug_addr->r_ldbase = load_addr;
+	debug_addr->r_ldbase = DL_LOADADDR_BASE(load_addr);
 	debug_addr->r_brk = (unsigned long) &_dl_debug_state;
 	_dl_debug_addr = debug_addr;
 
@@ -407,13 +450,13 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 					else
 #endif
 					{
-						_dl_dprintf(_dl_debug_file, "%s: can't load " "library '%s'\n", _dl_progname, str);
+						_dl_dprintf(2, "%s: can't load " "library '%s'\n", _dl_progname, str);
 						_dl_exit(15);
 					}
 				} else {
 					tpnt1->rtld_flags = unlazy | RTLD_GLOBAL;
 
-					_dl_debug_early("Loading: (%x) %s\n", tpnt1->loadaddr, tpnt1->libname);
+					_dl_debug_early("Loading: (%x) %s\n", DL_LOADADDR_BASE(tpnt1->loadaddr), tpnt1->libname);
 
 #ifdef __LDSO_LDD_SUPPORT__
 					if (trace_loaded_objects &&
@@ -425,7 +468,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 						 */
 						if (_dl_strcmp(_dl_progname, str) != 0)
 							_dl_dprintf(1, "\t%s => %s (%x)\n", str, tpnt1->libname,
-								    tpnt1->loadaddr);
+								    DL_LOADADDR_BASE(tpnt1->loadaddr));
 					}
 #endif
 				}
@@ -450,7 +493,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		}
 
 		if ((fd = _dl_open(LDSO_PRELOAD, O_RDONLY, 0)) < 0) {
-			_dl_dprintf(_dl_debug_file, "%s: can't open file '%s'\n",
+			_dl_dprintf(2, "%s: can't open file '%s'\n",
 				    _dl_progname, LDSO_PRELOAD);
 			break;
 		}
@@ -459,8 +502,8 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 					     PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 		_dl_close(fd);
 		if (preload == (caddr_t) -1) {
-			_dl_dprintf(_dl_debug_file, "%s: can't map file '%s'\n",
-				    _dl_progname, LDSO_PRELOAD);
+			_dl_dprintf(2, "%s:%i: can't map '%s'\n",
+				    _dl_progname, __LINE__, LDSO_PRELOAD);
 			break;
 		}
 
@@ -498,20 +541,20 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 				else
 #endif
 				{
-					_dl_dprintf(_dl_debug_file, "%s: can't load library '%s'\n", _dl_progname, cp2);
+					_dl_dprintf(2, "%s: can't load library '%s'\n", _dl_progname, cp2);
 					_dl_exit(15);
 				}
 			} else {
 				tpnt1->rtld_flags = unlazy | RTLD_GLOBAL;
 
-				_dl_debug_early("Loading: (%x) %s\n", tpnt1->loadaddr, tpnt1->libname);
+				_dl_debug_early("Loading: (%x) %s\n", DL_LOADADDR_BASE(tpnt1->loadaddr), tpnt1->libname);
 
 #ifdef __LDSO_LDD_SUPPORT__
 				if (trace_loaded_objects &&
 				    tpnt1->usage_count == 1) {
 					_dl_dprintf(1, "\t%s => %s (%x)\n",
 						    cp2, tpnt1->libname,
-						    (unsigned)tpnt1->loadaddr);
+						    DL_LOADADDR_BASE(tpnt1->loadaddr));
 				}
 #endif
 			}
@@ -528,15 +571,15 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 
 	nlist = 0;
 	for (tcurr = _dl_loaded_modules; tcurr; tcurr = tcurr->next) {
-		ElfW(Dyn) *dpnt;
+		ElfW(Dyn) *this_dpnt;
 
 		nlist++;
-		for (dpnt = (ElfW(Dyn) *) tcurr->dynamic_addr; dpnt->d_tag; dpnt++) {
-			if (dpnt->d_tag == DT_NEEDED) {
+		for (this_dpnt = (ElfW(Dyn) *) tcurr->dynamic_addr; this_dpnt->d_tag; this_dpnt++) {
+			if (this_dpnt->d_tag == DT_NEEDED) {
 				char *name;
 				struct init_fini_list *tmp;
 
-				lpntstr = (char*) (tcurr->dynamic_info[DT_STRTAB] + dpnt->d_un.d_val);
+				lpntstr = (char*) (tcurr->dynamic_info[DT_STRTAB] + this_dpnt->d_un.d_val);
 				name = _dl_get_last_path_component(lpntstr);
 				if (_dl_strcmp(name, UCLIBC_LDSO) == 0)
 					continue;
@@ -551,7 +594,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 					} else
 #endif
 					{
-						_dl_dprintf(_dl_debug_file, "%s: can't load library '%s'\n", _dl_progname, lpntstr);
+						_dl_dprintf(2, "%s: can't load library '%s'\n", _dl_progname, lpntstr);
 						_dl_exit(16);
 					}
 				}
@@ -563,14 +606,14 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 
 				tpnt1->rtld_flags = unlazy | RTLD_GLOBAL;
 
-				_dl_debug_early("Loading: (%x) %s\n", tpnt1->loadaddr, tpnt1->libname);
+				_dl_debug_early("Loading: (%x) %s\n", DL_LOADADDR_BASE(tpnt1->loadaddr), tpnt1->libname);
 
 #ifdef __LDSO_LDD_SUPPORT__
 				if (trace_loaded_objects &&
 				    tpnt1->usage_count == 1) {
 					_dl_dprintf(1, "\t%s => %s (%x)\n",
 						    lpntstr, tpnt1->libname,
-						    (unsigned)tpnt1->loadaddr);
+						    DL_LOADADDR_BASE(tpnt1->loadaddr));
 				}
 #endif
 			}
@@ -608,7 +651,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		}
 	}
 #ifdef __SUPPORT_LD_DEBUG__
-	if(_dl_debug) {
+	if (_dl_debug) {
 		_dl_dprintf(_dl_debug_file, "\nINIT/FINI order and dependencies:\n");
 		for (i = 0; i < nlist; i++) {
 			struct init_fini_list *tmp;
@@ -631,14 +674,18 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	 */
 	if (tpnt) {
 		ElfW(Ehdr) *epnt = (ElfW(Ehdr) *) auxvt[AT_BASE].a_un.a_val;
-		ElfW(Phdr) *myppnt = (ElfW(Phdr) *) (load_addr + epnt->e_phoff);
+		ElfW(Phdr) *myppnt = (ElfW(Phdr) *) DL_RELOC_ADDR(load_addr, epnt->e_phoff);
 		int j;
-		
-		tpnt = _dl_add_elf_hash_table(tpnt->libname, (char *)load_addr,
+
+		tpnt = _dl_add_elf_hash_table(tpnt->libname, load_addr,
 					      tpnt->dynamic_info,
 					      (unsigned long)tpnt->dynamic_addr,
 					      0);
 
+		if (_dl_stat(tpnt->libname, &st) >= 0) {
+			tpnt->st_dev = st.st_dev;
+			tpnt->st_ino = st.st_ino;
+		} 
 		tpnt->n_phent = epnt->e_phnum;
 		tpnt->ppnt = myppnt;
 		for (j = 0; j < epnt->e_phnum; j++, myppnt++) {
@@ -681,7 +728,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	if (trace_loaded_objects) {
 		_dl_dprintf(1, "\t%s => %s (%x)\n",
 			    rpnt->dyn->libname + _dl_strlen(_dl_ldsopath) + 1,
-			    rpnt->dyn->libname, rpnt->dyn->loadaddr);
+			    rpnt->dyn->libname, DL_LOADADDR_BASE(rpnt->dyn->loadaddr));
 		_dl_exit(0);
 	}
 #endif
@@ -703,15 +750,13 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	 * order so that COPY directives work correctly.
 	 */
 	if (_dl_symbol_tables)
-		goof += _dl_fixup(_dl_symbol_tables, unlazy);
+		if (_dl_fixup(_dl_symbol_tables, unlazy))
+			_dl_exit(-1);
 
 	for (tpnt = _dl_loaded_modules; tpnt; tpnt = tpnt->next) {
 		if (tpnt->relro_size)
 			_dl_protect_relro (tpnt);
 	}
-
-
-
 
 	/* OK, at this point things are pretty much ready to run.  Now we need
 	 * to touch up a few items that are required, and then we can let the
@@ -735,7 +780,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		for (tpnt = _dl_loaded_modules; tpnt; tpnt = tpnt->next) {
 			for (myppnt = tpnt->ppnt, j = 0; j < tpnt->n_phent; j++, myppnt++) {
 				if (myppnt->p_type == PT_LOAD && !(myppnt->p_flags & PF_W) && tpnt->dynamic_info[DT_TEXTREL]) {
-					_dl_mprotect((void *) (tpnt->loadaddr + (myppnt->p_vaddr & PAGE_ALIGN)),
+					_dl_mprotect((void *) (DL_RELOC_ADDR(tpnt->loadaddr, myppnt->p_vaddr) & PAGE_ALIGN),
 							(myppnt->p_vaddr & ADDR_ALIGN) + (unsigned long) myppnt->p_filesz, LXFLAGS(myppnt->p_flags));
 				}
 			}
@@ -746,6 +791,14 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 	/* Notify the debugger we have added some objects. */
 	_dl_debug_addr->r_state = RT_ADD;
 	_dl_debug_state();
+
+	/* Run pre-initialization functions for the executable.  */
+	_dl_run_array_forward(_dl_loaded_modules->dynamic_info[DT_PREINIT_ARRAY],
+			      _dl_loaded_modules->dynamic_info[DT_PREINIT_ARRAYSZ],
+			      _dl_loaded_modules->loadaddr);
+
+	/* Run initialization functions for loaded objects.  For the
+	   main executable, they will be run from __uClibc_main.  */
 	for (i = nlist; i; --i) {
 		tpnt = init_fini_list[i-1];
 		tpnt->init_fini = NULL; /* Clear, since alloca was used */
@@ -756,23 +809,15 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
 		if (tpnt->dynamic_info[DT_INIT]) {
 			void (*dl_elf_func) (void);
 
-			dl_elf_func = (void (*)(void)) (intptr_t) (tpnt->loadaddr + tpnt->dynamic_info[DT_INIT]);
+			dl_elf_func = (void (*)(void)) DL_RELOC_ADDR(tpnt->loadaddr, tpnt->dynamic_info[DT_INIT]);
 
 			_dl_if_debug_dprint("calling INIT: %s\n\n", tpnt->libname);
 
-			(*dl_elf_func) ();
+			DL_CALL_FUNC_AT_ADDR (dl_elf_func, tpnt->loadaddr, (void(*)(void)));
 		}
-	}
-#ifdef _DL_FINI_CRT_COMPAT
-	/* arches that have moved their ldso FINI handling should skip this part */
-	{
-		int (*_dl_atexit) (void *) = (int (*)(void *)) (intptr_t) _dl_find_hash("atexit",
-				_dl_symbol_tables, NULL, ELF_RTYPE_CLASS_PLT);
 
-		if (_dl_atexit)
-			(*_dl_atexit) (_dl_fini);
+		_dl_run_init_array(tpnt);
 	}
-#endif
 
 	/* Find the real malloc function and make ldso functions use that from now on */
 	 _dl_malloc_function = (void* (*)(size_t)) (intptr_t) _dl_find_hash("malloc",
@@ -826,7 +871,7 @@ static int _dl_suid_ok(void)
 	gid = _dl_getgid();
 	egid = _dl_getegid();
 
-	if(uid == euid && gid == egid) {
+	if (uid == euid && gid == egid) {
 		return 1;
 	}
 	return 0;
@@ -848,7 +893,7 @@ void *_dl_malloc(int size)
 		_dl_mmap_zero = _dl_malloc_addr = _dl_mmap((void *) 0, size,
 				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if (_dl_mmap_check_error(_dl_mmap_zero)) {
-			_dl_dprintf(_dl_debug_file, "%s: mmap of a spare page failed!\n", _dl_progname);
+			_dl_dprintf(2, "%s: mmap of a spare page failed!\n", _dl_progname);
 			_dl_exit(20);
 		}
 	}
@@ -856,10 +901,11 @@ void *_dl_malloc(int size)
 	_dl_malloc_addr += size;
 
 	/*
-	 * Align memory to 4 byte boundary.  Some platforms require this,
-	 * others simply get better performance.
+	 * Align memory to DL_MALLOC_ALIGN byte boundary.  Some
+	 * platforms require this, others simply get better
+	 * performance.
 	 */
-	_dl_malloc_addr = (unsigned char *) (((unsigned long) _dl_malloc_addr + 3) & ~(3));
+	_dl_malloc_addr = (unsigned char *) (((unsigned long) _dl_malloc_addr + DL_MALLOC_ALIGN - 1) & ~(DL_MALLOC_ALIGN - 1));
 	return retval;
 }
 

@@ -12,12 +12,14 @@ UCLIBC_INCLUDES := \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/jos64 \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/common \
-	-I$(TOP)/pkg/uclibc/include
+	-I$(TOP)/pkg/uclibc/include \
+	-I$(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread
 
 USER_INC := $(UCLIBC_INCLUDES) $(USER_INC)
 
-UCLIBC_CFLAGS   = $(USER_CFLAGS)   -D_LIBC
-UCLIBC_CXXFLAGS = $(USER_CXXFLAGS) -D_LIBC
+UCLIBC_COMFLAGS = -D_LIBC -include pkg/uclibc/include/libc-symbols.h
+UCLIBC_CFLAGS   = $(UCLIBC_COMFLAGS) $(USER_CFLAGS)   $(CSTD)
+UCLIBC_CXXFLAGS = $(UCLIBC_COMFLAGS) $(USER_CXXFLAGS)
 
 include pkg/uclibc/libc/Makefrag
 include pkg/uclibc/libc/Makefrag.prof

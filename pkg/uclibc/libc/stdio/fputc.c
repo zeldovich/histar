@@ -12,14 +12,9 @@
 #undef putc
 #undef putc_unlocked
 
-#ifdef __DO_UNLOCKED
+libc_hidden_proto(__fputc_unlocked)
 
-weak_alias(__fputc_unlocked,fputc_unlocked);
-weak_alias(__fputc_unlocked,putc_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__fputc_unlocked,fputc);
-weak_alias(__fputc_unlocked,putc);
-#endif
+#ifdef __DO_UNLOCKED
 
 int __fputc_unlocked(int c, register FILE *stream)
 {
@@ -75,11 +70,28 @@ int __fputc_unlocked(int c, register FILE *stream)
  BAD:
 	return EOF;
 }
+libc_hidden_def(__fputc_unlocked)
+
+/* exposing these would be fundamentally *wrong*! fix you, instead! */
+/* libc_hidden_proto(fputc_unlocked) */
+strong_alias(__fputc_unlocked,fputc_unlocked)
+/* exposing these would be fundamentally *wrong*! fix you, instead! */
+/* libc_hidden_def(fputc_unlocked) */
+
+libc_hidden_proto(putc_unlocked)
+strong_alias(__fputc_unlocked,putc_unlocked)
+libc_hidden_def(putc_unlocked)
+#ifndef __UCLIBC_HAS_THREADS__
+strong_alias(__fputc_unlocked,fputc)
+
+libc_hidden_proto(putc)
+strong_alias(__fputc_unlocked,putc)
+libc_hidden_def(putc)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 
-weak_alias(fputc,putc);
-
+libc_hidden_proto(fputc)
 int fputc(int c, register FILE *stream)
 {
 	if (stream->__user_locking != 0) {
@@ -92,5 +104,10 @@ int fputc(int c, register FILE *stream)
 		return retval;
 	}
 }
+libc_hidden_def(fputc)
+
+libc_hidden_proto(putc)
+strong_alias(fputc,putc)
+libc_hidden_def(putc)
 
 #endif

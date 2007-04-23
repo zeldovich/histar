@@ -22,13 +22,9 @@
 #include "memcopy.h"
 #include "bp-checks.h"
 
-#undef strcpy
-
+libc_hidden_proto(strcpy)
 /* Copy SRC to DEST.  */
-char *
-strcpy (dest, src)
-     char *dest;
-     const char *src;
+char *strcpy (char *dest, const char *src)
 {
   reg_char c;
   char *__unbounded s = (char *__unbounded) CHECK_BOUNDS_LOW (src);
@@ -48,3 +44,4 @@ strcpy (dest, src)
 
   return dest;
 }
+libc_hidden_def(strcpy)

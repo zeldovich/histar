@@ -3,15 +3,6 @@ OBJDIRS += pkg/uclibc/libc/unistd
 UNISTD_CSRC := \
 	sleep.c usleep.c ualarm.c getpass.c sysconf.c getlogin.c \
         fpathconf.c confstr.c pathconf.c swab.c usershell.c \
-        getsubopt.c getopt.c
+        getsubopt.c getopt.c execl.c execv.c execle.c execlp.c execvp.c
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/unistd/%.c, $(UNISTD_CSRC))
-
-UNISTD_MSRC := pkg/uclibc/libc/unistd/exec.c
-UNISTD_MOBJ := execl.o execv.o execle.o execlp.o execvp.o
-UNISTD_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/unistd/%.o, $(UNISTD_MOBJ))
-LIBC_OBJFILES += $(UNISTD_MOBJ)
-
-$(UNISTD_MOBJ): $(UNISTD_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/unistd/%.o,%,$@) $< -c -o $@
 

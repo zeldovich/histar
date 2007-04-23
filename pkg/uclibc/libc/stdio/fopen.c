@@ -7,18 +7,16 @@
 
 #include "_stdio.h"
 
-#ifdef __DO_LARGEFILE
-# ifndef __UCLIBC_HAS_LFS__
-#  error large file support is not enabled!
-# endif
-
-# define fopen			fopen64
-# define FILEDES_ARG    (-2)
-#else
+#ifndef __DO_LARGEFILE
 # define FILEDES_ARG    (-1)
+#undef fopen
+#else
+#undef fopen64
 #endif
 
+libc_hidden_proto(fopen)
 FILE *fopen(const char * __restrict filename, const char * __restrict mode)
 {
 	return _stdio_fopen(((intptr_t) filename), mode, NULL, FILEDES_ARG);
 }
+libc_hidden_def(fopen)

@@ -27,14 +27,6 @@ $(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(UCLIBC_CXXFLAGS) $(MKTARGET_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/pkg/uclibc/libc/%_unlocked.o : pkg/uclibc/libc/%.c
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -D__DO_UNLOCKED -c -o $@ $<
-
-$(OBJDIR)/pkg/uclibc/libc/%_64.o : pkg/uclibc/libc/%.c
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -D__DO_LARGEFILE -c -o $@ $<
-
 $(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
 	@mkdir -p $(@D)
 	rm -f $@

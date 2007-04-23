@@ -50,6 +50,13 @@ static char sccsid[] = "@(#)clnt_simple.c 1.35 87/08/11 Copyr 1984 Sun Micro";
 #include <netdb.h>
 #include <string.h>
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strncpy)
+libc_hidden_proto(close)
+libc_hidden_proto(clntudp_create)
+libc_hidden_proto(gethostbyname_r)
+
 struct callrpc_private_s
   {
     CLIENT *client;
@@ -150,8 +157,7 @@ callrpc (const char *host, u_long prognum, u_long versnum, u_long procnum,
 }
 
 #ifdef __UCLIBC_HAS_THREADS__
-void
-__rpc_thread_clnt_cleanup (void)
+void attribute_hidden __rpc_thread_clnt_cleanup (void)
 {
 	struct callrpc_private_s *rcp = RPC_THREAD_VARIABLE(callrpc_private_s);
 

@@ -19,8 +19,7 @@
    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.  */
 
-#define _GNU_SOURCE
-#include <sys/cdefs.h>
+#include <features.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -36,6 +35,45 @@
 #include <glob.h>
 #include <wordexp.h>
 
+libc_hidden_proto(mempcpy)
+libc_hidden_proto(stpcpy)
+libc_hidden_proto(strchr)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strdup)
+libc_hidden_proto(strlen)
+libc_hidden_proto(strndup)
+libc_hidden_proto(strspn)
+libc_hidden_proto(strcspn)
+libc_hidden_proto(setenv)
+libc_hidden_proto(unsetenv)
+libc_hidden_proto(waitpid)
+libc_hidden_proto(kill)
+libc_hidden_proto(getuid)
+libc_hidden_proto(getpwnam_r)
+libc_hidden_proto(getpwuid_r)
+libc_hidden_proto(execve)
+libc_hidden_proto(dup2)
+libc_hidden_proto(atoi)
+libc_hidden_proto(fnmatch)
+libc_hidden_proto(pipe)
+libc_hidden_proto(fork)
+libc_hidden_proto(open)
+libc_hidden_proto(close)
+libc_hidden_proto(read)
+libc_hidden_proto(getenv)
+libc_hidden_proto(getpid)
+libc_hidden_proto(sprintf)
+libc_hidden_proto(fprintf)
+libc_hidden_proto(abort)
+libc_hidden_proto(glob)
+libc_hidden_proto(globfree)
+libc_hidden_proto(wordfree)
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
+#endif
+
 #define __WORDEXP_FULL
 //#undef __WORDEXP_FULL
 
@@ -48,8 +86,8 @@
 //extern char **__libc_argv;
 
 /* FIXME!!!! */
-int __libc_argc;
-char **__libc_argv;
+int attribute_hidden __libc_argc;
+char attribute_hidden **__libc_argv;
 
 /* Some forward declarations */
 static int parse_dollars(char **word, size_t * word_length,
@@ -2017,6 +2055,7 @@ void wordfree(wordexp_t * pwordexp)
 		pwordexp->we_wordv = NULL;
 	}
 }
+libc_hidden_def(wordfree)
 
 /*
  * wordexp()

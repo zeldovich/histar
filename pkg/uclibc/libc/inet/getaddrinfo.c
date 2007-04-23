@@ -1,3 +1,10 @@
+/*
+ * Copyright 1996 by Craig Metz 
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 /* $USAGI: getaddrinfo.c,v 1.16 2001/10/04 09:52:03 sekiya Exp $ */
 
 /* The Inner Net License, Version 2.00
@@ -42,9 +49,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   If these license terms cause you a real problem, contact the author.  */
 
-/* This software is Copyright 1996 by Craig Metz, All Rights Reserved.  */
-
-#define _GNU_SOURCE
 #define __FORCE_GLIBC
 #include <features.h>
 #include <assert.h>
@@ -62,6 +66,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <net/if.h>
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+/* libc_hidden_proto(strcmp) */
+/* libc_hidden_proto(stpcpy) */
+libc_hidden_proto(strchr)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(getservbyname_r)
+libc_hidden_proto(gethostbyname_r)
+libc_hidden_proto(gethostbyname2_r)
+libc_hidden_proto(gethostbyaddr_r)
+libc_hidden_proto(inet_pton)
+libc_hidden_proto(inet_ntop)
+libc_hidden_proto(strtoul)
+libc_hidden_proto(if_nametoindex)
+libc_hidden_proto(__h_errno_location)
+/* libc_hidden_proto(uname) */
+#ifdef __UCLIBC_HAS_IPV6__
+libc_hidden_proto(in6addr_loopback)
+#endif
 
 /* The following declarations and definitions have been removed from
  *    the public header since we don't want people to use them.  */
@@ -240,7 +267,7 @@ gaih_local (const char *name, const struct gaih_service *service,
 		sizeof (sunp->sun_path))
 		return GAIH_OKIFUNSPEC | -EAI_SERVICE;
 
-	    __stpcpy (__stpcpy (sunp->sun_path, P_tmpdir "/"), service->name);
+	    stpcpy (stpcpy (sunp->sun_path, P_tmpdir "/"), service->name);
 	}
     }
     else
@@ -583,10 +610,9 @@ gaih_inet (const char *name, const struct gaih_service *service,
 #if __UCLIBC_HAS_IPV6__
 	if (req->ai_family == 0 || req->ai_family == AF_INET6)
 	{
-	    extern const struct in6_addr __in6addr_loopback;
 	    at->family = AF_INET6;
 	    if ((req->ai_flags & AI_PASSIVE) == 0)
-		memcpy (at->addr, &__in6addr_loopback, sizeof (struct in6_addr));
+		memcpy (at->addr, &in6addr_loopback, sizeof (struct in6_addr));
 	    atr = at->next;
 	}
 #endif
@@ -759,6 +785,22 @@ static struct gaih gaih[] =
     { PF_UNSPEC, NULL }
 };
 
+libc_hidden_proto(freeaddrinfo)
+void
+freeaddrinfo (struct addrinfo *ai)
+{
+    struct addrinfo *p;
+
+    while (ai != NULL)
+    {
+	p = ai;
+	ai = ai->ai_next;
+	free (p);
+    }
+}
+libc_hidden_def(freeaddrinfo)
+
+libc_hidden_proto(getaddrinfo)
 int
 getaddrinfo (const char *name, const char *service,
 	     const struct addrinfo *hints, struct addrinfo **pai)
@@ -858,16 +900,4 @@ getaddrinfo (const char *name, const char *service,
 
     return last_i ? -(last_i & GAIH_EAI) : EAI_NONAME;
 }
-
-void
-freeaddrinfo (struct addrinfo *ai)
-{
-    struct addrinfo *p;
-
-    while (ai != NULL)
-    {
-	p = ai;
-	ai = ai->ai_next;
-	free (p);
-    }
-}
+libc_hidden_def(getaddrinfo)

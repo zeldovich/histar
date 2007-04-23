@@ -29,10 +29,12 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-		.text
-		.global strcmp;
-		.type strcmp,%function
-		.align 4;                                                               \
+#include <features.h>
+
+.text
+.global strcmp
+.type strcmp,%function
+.align 4
 
 strcmp:
 1:
@@ -42,8 +44,16 @@ strcmp:
 	cmpcs	r2, r3
 	beq	1b
 	sub	r0, r2, r3
-	mov	pc, lr
+#if defined(__USE_BX__)
+        bx      lr
+#else
+  	mov	pc, lr
+#endif
 
-.weak  strcoll;
-    strcoll = strcmp
+.size strcmp,.-strcmp
 
+libc_hidden_def(strcmp)
+#ifndef __UCLIBC_HAS_LOCALE__
+strong_alias(strcmp,strcoll)
+libc_hidden_def(strcoll)
+#endif

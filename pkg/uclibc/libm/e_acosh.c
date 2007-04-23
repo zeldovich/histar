@@ -31,6 +31,9 @@ static char rcsid[] = "$NetBSD: e_acosh.c,v 1.9 1995/05/12 04:57:18 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(log1p)
+libm_hidden_proto(sqrt)
+
 #ifdef __STDC__
 static const double
 #else
@@ -40,9 +43,9 @@ one	= 1.0,
 ln2	= 6.93147180559945286227e-01;  /* 0x3FE62E42, 0xFEFA39EF */
 
 #ifdef __STDC__
-	double __ieee754_acosh(double x)
+	double attribute_hidden __ieee754_acosh(double x)
 #else
-	double __ieee754_acosh(x)
+	double attribute_hidden __ieee754_acosh(x)
 	double x;
 #endif
 {

@@ -1,4 +1,4 @@
-/* Copyright (C) 1991,92,93,95,96,97,98,99,2000,2001 Free Software Foundation, Inc.
+/* Copyright (C) 1991-1993,1995-2003,2004,2005 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -19,6 +19,23 @@
 #ifndef	_FEATURES_H
 #define	_FEATURES_H	1
 
+/* This macro indicates that the installed library is uClibc.  Use
+ * __UCLIBC_MAJOR__ and __UCLIBC_MINOR__ to test for the features in
+ * specific releases.  */
+#define	__UCLIBC__		1
+
+/* Load up the current set of uClibc supported features along
+ * with the current uClibc major and minor version numbers.
+ * For uClibc release 0.9.26, these numbers would be:
+ *	#define	__UCLIBC_MAJOR__	0
+ *	#define	__UCLIBC_MINOR__	9
+ *	#define	__UCLIBC_SUBLEVEL__	26
+ */
+#define __need_uClibc_config_h
+#include <bits/uClibc_config.h>
+#undef __need_uClibc_config_h
+#include <bits/uClibc_arch_features.h>
+
 /* For uClibc, always optimize for size -- this should disable
  * a lot of expensive inlining... */
 /* #define __OPTIMIZE_SIZE__   1 */		// disable for jos64
@@ -31,7 +48,8 @@
    _POSIX_SOURCE	IEEE Std 1003.1.
    _POSIX_C_SOURCE	If ==1, like _POSIX_SOURCE; if >=2 add IEEE Std 1003.2;
 			if >=199309L, add IEEE Std 1003.1b-1993;
-			if >=199506L, add IEEE Std 1003.1c-1995
+			if >=199506L, add IEEE Std 1003.1c-1995;
+			if >=200112L, all of IEEE 1003.1-2004
    _XOPEN_SOURCE	Includes POSIX and XPG things.  Set to 500 if
 			Single Unix conformance is wanted, to 600 for the
 			upcoming sixth revision.
@@ -41,9 +59,12 @@
    _FILE_OFFSET_BITS=N	Select default filesystem interface.
    _BSD_SOURCE		ISO C, POSIX, and 4.3BSD things.
    _SVID_SOURCE		ISO C, POSIX, and SVID things.
+   _ATFILE_SOURCE	Additional *at interfaces.
    _GNU_SOURCE		All of the above, plus GNU extensions.
    _REENTRANT		Select additionally reentrant object.
    _THREAD_SAFE		Same as _REENTRANT, often used by other systems.
+   _FORTIFY_SOURCE	If set to numeric value > 0 additional security
+			measures are defined, according to level.
 
    The `-ansi' switch to the GNU C compiler defines __STRICT_ANSI__.
    If none of these are defined, the default is to have _SVID_SOURCE,
@@ -70,8 +91,10 @@
    __USE_BSD		Define 4.3BSD things.
    __USE_SVID		Define SVID things.
    __USE_MISC		Define things common to BSD and System V Unix.
+   __USE_ATFILE		Define *at interfaces and AT_* constants for them.
    __USE_GNU		Define GNU extensions.
    __USE_REENTRANT	Define reentrant/thread-safe *_r functions.
+   __USE_FORTIFY_LEVEL	Additional security measures used, according to level.
    __FAVOR_BSD		Favor 4.3BSD things in cases of conflict.
 
    The macros `__GNU_LIBRARY__', `__GLIBC__', and `__GLIBC_MINOR__' are
@@ -84,6 +107,7 @@
    Feature-test macros that are not defined by the user or compiler
    but are implied by the other feature-test macros defined (or by the
    lack of any definitions) are defined by the file.  */
+
 
 /* Undefine everything, so we get a clean slate.  */
 #undef	__USE_ISOC99
@@ -101,8 +125,10 @@
 #undef	__USE_BSD
 #undef	__USE_SVID
 #undef	__USE_MISC
+#undef	__USE_ATFILE
 #undef	__USE_GNU
 #undef	__USE_REENTRANT
+#undef	__USE_FORTIFY_LEVEL
 #undef	__FAVOR_BSD
 #undef	__KERNEL_STRICT_NAMES
 
@@ -114,6 +140,20 @@
 
 /* Always use ISO C things.  */
 #define	__USE_ANSI	1
+
+/* Convenience macros to test the versions of glibc and gcc.
+   Use them like this:
+   #if __GNUC_PREREQ (2,8)
+   ... code requiring gcc 2.8 or later ...
+   #endif
+   Note - they won't work for gcc1 or glibc1, since the _MINOR macros
+   were not defined then.  */
+#if defined __GNUC__ && defined __GNUC_MINOR__
+# define __GNUC_PREREQ(maj, min) \
+	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+# define __GNUC_PREREQ(maj, min) 0
+#endif
 
 
 /* If _BSD_SOURCE was defined by the user, favor BSD over POSIX.  */
@@ -136,12 +176,16 @@
 # define _XOPEN_SOURCE	600
 # undef  _XOPEN_SOURCE_EXTENDED
 # define _XOPEN_SOURCE_EXTENDED	1
-# undef	 _LARGEFILE64_SOURCE
-# define _LARGEFILE64_SOURCE	1
+# ifdef __UCLIBC_HAS_LFS__
+#  undef	 _LARGEFILE64_SOURCE
+#  define _LARGEFILE64_SOURCE	1
+# endif /* __UCLIBC_HAS_LFS__ */
 # undef  _BSD_SOURCE
 # define _BSD_SOURCE	1
 # undef  _SVID_SOURCE
 # define _SVID_SOURCE	1
+# undef  _ATFILE_SOURCE
+# define _ATFILE_SOURCE	1
 #endif
 
 /* If nothing (other than _GNU_SOURCE) is defined,
@@ -165,8 +209,8 @@
 
 /* If none of the ANSI/POSIX macros are defined, use POSIX.1 and POSIX.2
    (and IEEE Std 1003.1b-1993 unless _XOPEN_SOURCE is defined).  */
-#if (!defined __STRICT_ANSI__ && !defined _POSIX_SOURCE && \
-     !defined _POSIX_C_SOURCE)
+#if ((!defined __STRICT_ANSI__ || (_XOPEN_SOURCE - 0) >= 500) && \
+     !defined _POSIX_SOURCE && !defined _POSIX_C_SOURCE)
 # define _POSIX_SOURCE	1
 # if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 500
 #  define _POSIX_C_SOURCE	2
@@ -189,6 +233,10 @@
 
 #if (_POSIX_C_SOURCE - 0) >= 199506L
 # define __USE_POSIX199506	1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 200112L
+# define __USE_XOPEN2K		1
 #endif
 
 #ifdef	_XOPEN_SOURCE
@@ -234,6 +282,10 @@
 # define __USE_SVID	1
 #endif
 
+#ifdef	_ATFILE_SOURCE
+# define __USE_ATFILE	1
+#endif
+
 #ifdef	_GNU_SOURCE
 # define __USE_GNU	1
 #endif
@@ -242,28 +294,25 @@
 # define __USE_REENTRANT	1
 #endif
 
+/* uClibc does not support _FORTIFY_SOURCE */
+#undef _FORTIFY_SOURCE
+#if defined _FORTIFY_SOURCE && _FORTIFY_SOURCE > 0 \
+    && __GNUC_PREREQ (4, 1) && defined __OPTIMIZE__ && __OPTIMIZE__ > 0
+# if _FORTIFY_SOURCE > 1
+#  define __USE_FORTIFY_LEVEL 2
+# else
+#  define __USE_FORTIFY_LEVEL 1
+# endif
+#else
+# define __USE_FORTIFY_LEVEL 0
+#endif
+
 /* We do support the IEC 559 math functionality, real and complex.  */
 #define __STDC_IEC_559__		1
 #define __STDC_IEC_559_COMPLEX__	1
 
-/* This macro indicates that the installed library is uClibc.  Use
- * __UCLIBC_MAJOR__ and __UCLIBC_MINOR__ to test for the features in
- * specific releases.  */
-#define	__UCLIBC__		1
-
-/* Load up the current set of uClibc supported features along
- * with the current uClibc major and minor version numbers.
- * For uClibc release 0.9.26, these numbers would be:
- *	#define	__UCLIBC_MAJOR__	0
- *	#define	__UCLIBC_MINOR__	9
- *	#define	__UCLIBC_SUBLEVEL__	26
- */
-#define __need_uClibc_config_h
-#include <bits/uClibc_config.h>
-#undef __need_uClibc_config_h
-
 #ifdef __UCLIBC_HAS_WCHAR__
-/* wchar_t uses ISO 10646-1 (2nd ed., published 2000-09-15) / Unicode 3.0.  */
+/* wchar_t uses ISO 10646-1 (2nd ed., published 2000-09-15) / Unicode 3.1.  */
 # define __STDC_ISO_10646__		200009L
 #endif
 
@@ -275,33 +324,37 @@
  *  are not really intended to check for the presence of a particular library,
  *  but rather are used to define an _interface_.  */
 #if !defined __FORCE_NOGLIBC && (!defined _LIBC || defined __FORCE_GLIBC)
-#   define __GNU_LIBRARY__ 6
-#   define __GLIBC__       2
-#   define __GLIBC_MINOR__ 2
-#endif
+/* This macro indicates that the installed library is the GNU C Library.
+   For historic reasons the value now is 6 and this will stay from now
+   on.  The use of this variable is deprecated.  */
+# undef  __GNU_LIBRARY__
+# define __GNU_LIBRARY__ 6
 
-/* Convenience macros to test the versions of glibc and gcc.
-   Use them like this:
-   #if __GNUC_PREREQ (2,8)
-   ... code requiring gcc 2.8 or later ...
-   #endif
-   Note - they won't work for gcc1 or glibc1, since the _MINOR macros
-   were not defined then.  */
-#if defined __GNUC__ && defined __GNUC_MINOR__
-# define __GNUC_PREREQ(maj, min) \
-	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#else
-# define __GNUC_PREREQ(maj, min) 0
+/* Major and minor version number of the GNU C library package.  Use
+   these macros to test for features in specific releases.  */
+/* Don't do it, if you want to keep uClibc happy.  */
+# define	__GLIBC__	2
+# define	__GLIBC_MINOR__	2
 #endif
 
 #define __GLIBC_PREREQ(maj, min) \
 	((__GLIBC__ << 16) + __GLIBC_MINOR__ >= ((maj) << 16) + (min))
 
+#ifndef __UCLIBC__
+/* Decide whether a compiler supports the long long datatypes.  */
+#if defined __GNUC__ \
+    || (defined __PGI && defined __i386__ ) \
+    || (defined __INTEL_COMPILER && (defined __i386__ || defined __ia64__)) \
+    || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L)
+# define __GLIBC_HAVE_LONG_LONG	1
+#endif
+#endif
+
 /* This is here only because every header file already includes this one.  */
 #ifndef __ASSEMBLER__
-#ifndef _SYS_CDEFS_H
-# include <sys/cdefs.h>
-#endif
+# ifndef _SYS_CDEFS_H
+#  include <sys/cdefs.h>
+# endif
 
 /* If we don't have __REDIRECT, prototypes will be missing if
    __USE_FILE_OFFSET64 but not __USE_LARGEFILE[64]. */
@@ -323,118 +376,42 @@
 #ifndef __UCLIBC_HAS_LFS__
 
 /* If uClibc was built without large file support, output an error if
- * and 64-bit file offsets were requested, output an error.
+ * 64-bit file offsets were requested.
  * NOTE: This is probably incorrect on a 64-bit arch... */
-#ifdef __USE_FILE_OFFSET64
-#error It appears you have defined _FILE_OFFSET_BITS=64.  Unfortunately, \
+# ifdef __USE_FILE_OFFSET64
+#  error It appears you have defined _FILE_OFFSET_BITS=64.  Unfortunately, \
 uClibc was built without large file support enabled.
-#endif
+# endif
 
 /* If uClibc was built without large file support and _LARGEFILE64_SOURCE
  * is defined, undefine it. */
-#if defined(_LARGEFILE64_SOURCE)
-#undef _LARGEFILE64_SOURCE
-#undef __USE_LARGEFILE64
-#endif
+# ifdef _LARGEFILE64_SOURCE
+#  undef _LARGEFILE64_SOURCE
+#  undef __USE_LARGEFILE64
+# endif
 
 /* If we're actually building uClibc with large file support,
  * define __USE_LARGEFILE64 and __USE_LARGEFILE. */
-#elif defined(_LIBC)
-#undef _LARGEFILE_SOURCE
-#undef _LARGEFILE64_SOURCE
-#undef _FILE_OFFSET_BITS
-#undef __USE_LARGEFILE
-#undef __USE_LARGEFILE64
-#undef __USE_FILE_OFFSET64
-#define _LARGEFILE_SOURCE       1
-#define _LARGEFILE64_SOURCE     1
-#define __USE_LARGEFILE         1
-#define __USE_LARGEFILE64       1
+#elif defined _LIBC
+# undef _LARGEFILE_SOURCE
+# undef _LARGEFILE64_SOURCE
+# undef _FILE_OFFSET_BITS
+# undef __USE_LARGEFILE
+# undef __USE_LARGEFILE64
+# undef __USE_FILE_OFFSET64
+# define _LARGEFILE_SOURCE       1
+# define _LARGEFILE64_SOURCE     1
+# define __USE_LARGEFILE         1
+# define __USE_LARGEFILE64       1
 #endif
 
-/* Some nice features only work properly with ELF */
-#if defined _LIBC 
-#if defined __HAVE_ELF__
-/* Define ALIASNAME as a weak alias for NAME. */
-#  define weak_alias(name, aliasname) _weak_alias (name, aliasname)
-#  define _weak_alias(name, aliasname) \
-      extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
-/* Define ALIASNAME as a strong alias for NAME.  */
-# define strong_alias(name, aliasname) _strong_alias(name, aliasname)
-# define _strong_alias(name, aliasname) \
-  extern __typeof (name) aliasname __attribute__ ((alias (#name)));
-/* This comes between the return type and function name in
- *    a function definition to make that definition weak.  */
-# define weak_function __attribute__ ((weak))
-# define weak_const_function __attribute__ ((weak, __const__))
-/* Tacking on "\n\t#" to the section name makes gcc put it's bogus
- * section attributes on what looks like a comment to the assembler. */
-#  if defined(__cris__) 
-#    define link_warning(symbol, msg)
-#  else
-#    define link_warning(symbol, msg)					      \
-	asm (".section "  ".gnu.warning." #symbol  "\n\t.previous");	      \
-	    static const char __evoke_link_warning_##symbol[]		      \
-	    __attribute__ ((unused, section (".gnu.warning." #symbol "\n\t#"))) = msg;
-#endif
-#else /* !defined __HAVE_ELF__ */
-#  define strong_alias(name, aliasname) _strong_alias (name, aliasname)
-#  define weak_alias(name, aliasname) _strong_alias (name, aliasname)
-#  define _strong_alias(name, aliasname) \
-	__asm__(".global " __C_SYMBOL_PREFIX__ #aliasname "\n" \
-                ".set " __C_SYMBOL_PREFIX__ #aliasname "," __C_SYMBOL_PREFIX__ #name);
-#  define link_warning(symbol, msg) \
-	asm (".stabs \"" msg "\",30,0,0,0\n\t" \
-	      ".stabs \"" #symbol "\",1,0,0,0\n");
-#endif
+/* uClibc does not support *at interfaces. */
+#undef _ATFILE_SOURCE
+#undef __USE_ATFILE
 
-#ifndef weak_function
-/* If we do not have the __attribute__ ((weak)) syntax, there is no way we
-   can define functions as weak symbols.  The compiler will emit a `.globl'
-   directive for the function symbol, and a `.weak' directive in addition
-   will produce an error from the assembler.  */ 
-# define weak_function          /* empty */
-# define weak_const_function    /* empty */
+#ifdef _LIBC
+# include <libc-internal.h>
 #endif
-
-/* On some platforms we can make internal function calls (i.e., calls of
-   functions not exported) a bit faster by using a different calling
-   convention.  */
-#ifndef internal_function
-# define internal_function      /* empty */
-#endif
-
-/* Prepare for the case that `__builtin_expect' is not available.  */
-#if __GNUC__ == 2 && __GNUC_MINOR__ < 96
-#define __builtin_expect(x, expected_value) (x)
-#endif
-#ifndef likely
-# define likely(x)	__builtin_expect((!!(x)),1)
-#endif
-#ifndef unlikely
-# define unlikely(x)	__builtin_expect((!!(x)),0)
-#endif
-#ifndef __LINUX_COMPILER_H
-#define __LINUX_COMPILER_H
-#endif
-#ifndef __cast__
-#define __cast__(_to)
-#endif
-
-/* Arrange to hide uClibc internals */
-#if __GNUC_PREREQ (3, 3)
-# define attribute_hidden __attribute__ ((visibility ("hidden")))
-#else
-# define attribute_hidden
-#endif
-
-/* Pull in things like __attribute_used__ */
-#include <sys/cdefs.h>
-
-/* --- this is added to integrate linuxthreads */
-#define __USE_UNIX98            1
-
-#endif /* _LIBC only stuff */
 
 #ifndef __linux__
 # define __linux__ 1

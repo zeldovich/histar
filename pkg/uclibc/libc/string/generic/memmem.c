@@ -19,7 +19,9 @@
 #include <string.h>
 #include <stddef.h>
 
-#undef memmem
+#ifdef __USE_GNU
+libc_hidden_proto(memmem)
+libc_hidden_proto(memcmp)
 
 /* Return the first occurrence of NEEDLE in HAYSTACK.  */
 void *memmem (const void *haystack, size_t haystack_len,
@@ -48,3 +50,5 @@ void *memmem (const void *haystack, size_t haystack_len,
 
   return NULL;
 }
+libc_hidden_def(memmem)
+#endif

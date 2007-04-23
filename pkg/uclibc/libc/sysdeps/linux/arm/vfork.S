@@ -1,24 +1,11 @@
 /* vi: set sw=4 ts=4: */
-/* vfork for uClibc
- *
- * Copyright (C) 2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 2000,2001 by Erik Andersen <andersen@uclibc.org>
- * Written by Erik Andersen <andersen@uclibc.org>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Library General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Library General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Library General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+/*
+ * vfork for uClibc
+ * Copyright (C) 2000-2006 by Erik Andersen <andersen@uclibc.org>
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
+
+#include <features.h>
 
 #define _ERRNO_H
 #include <bits/errno.h>
@@ -26,15 +13,21 @@
 
 #ifdef __NR_fork
 .text
-.global vfork
-.type vfork,%function
+.global	__vfork
+.hidden	__vfork
+.type	__vfork,%function
 .align 4
-vfork:
+
+__vfork:
 
 #ifdef __NR_vfork
-	swi	__NR_vfork
+	DO_CALL (vfork)
 	cmn	r0, #4096
+#if defined(__USE_BX__)
+	bxcc	lr
+#else
 	movcc	pc, lr
+#endif
 
 	/* Check if vfork even exists.  */
 	ldr     r1, =-ENOSYS
@@ -43,14 +36,20 @@ vfork:
 #endif
 
 	/* If we don't have vfork, use fork.  */
-	swi     __NR_fork
+	DO_CALL (fork)
 	cmn     r0, #4096
 
-	/* Syscal worked.  Return to child/parent */
+	/* Syscall worked.  Return to child/parent */
+#if defined(__USE_BX__)
+	bxcc	lr
+#else
 	movcc   pc, lr
+#endif
 
 __error:
 	b	__syscall_error
 
-.size vfork,.-vfork
+.size __vfork,.-__vfork
+weak_alias(__vfork,vfork)
+libc_hidden_weak(vfork)
 #endif

@@ -14,20 +14,23 @@
 
 /* Thread cancellation */
 
-#define __FORCE_GLIBC
-#include <features.h>
 #include <errno.h>
+#include <libc-internal.h>
 #include "pthread.h"
 #include "internals.h"
 #include "spinlock.h"
 #include "restart.h"
-#ifdef __UCLIBC_HAS_RPC__
-#include <rpc/rpc.h>
-extern void __rpc_thread_destroy(void);
+
+#ifdef _STACK_GROWS_DOWN
+# define FRAME_LEFT(frame, other) ((char *) frame >= (char *) other)
+#elif _STACK_GROWS_UP
+# define FRAME_LEFT(frame, other) ((char *) frame <= (char *) other)
+#else
+# error "Define either _STACK_GROWS_DOWN or _STACK_GROWS_UP"
 #endif
 
 
-int pthread_setcancelstate(int state, int * oldstate)
+int __pthread_setcancelstate(int state, int * oldstate)
 {
   pthread_descr self = thread_self();
   if (state < PTHREAD_CANCEL_ENABLE || state > PTHREAD_CANCEL_DISABLE)
@@ -37,11 +40,12 @@ int pthread_setcancelstate(int state, int * oldstate)
   if (THREAD_GETMEM(self, p_canceled) &&
       THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE &&
       THREAD_GETMEM(self, p_canceltype) == PTHREAD_CANCEL_ASYNCHRONOUS)
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   return 0;
 }
+strong_alias (__pthread_setcancelstate, pthread_setcancelstate)
 
-int pthread_setcanceltype(int type, int * oldtype)
+int __pthread_setcanceltype(int type, int * oldtype)
 {
   pthread_descr self = thread_self();
   if (type < PTHREAD_CANCEL_DEFERRED || type > PTHREAD_CANCEL_ASYNCHRONOUS)
@@ -51,9 +55,36 @@ int pthread_setcanceltype(int type, int * oldtype)
   if (THREAD_GETMEM(self, p_canceled) &&
       THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE &&
       THREAD_GETMEM(self, p_canceltype) == PTHREAD_CANCEL_ASYNCHRONOUS)
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   return 0;
 }
+strong_alias (__pthread_setcanceltype, pthread_setcanceltype)
+
+
+/* The next two functions are similar to pthread_setcanceltype() but
+   more specialized for the use in the cancelable functions like write().
+   They do not need to check parameters etc.  */
+int
+attribute_hidden
+__pthread_enable_asynccancel (void)
+{
+  pthread_descr self = thread_self();
+  int oldtype = THREAD_GETMEM(self, p_canceltype);
+  THREAD_SETMEM(self, p_canceltype, PTHREAD_CANCEL_ASYNCHRONOUS);
+  if (__builtin_expect (THREAD_GETMEM(self, p_canceled), 0) &&
+      THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE)
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
+  return oldtype;
+}
+
+void
+internal_function attribute_hidden
+__pthread_disable_asynccancel (int oldtype)
+{
+  pthread_descr self = thread_self();
+  THREAD_SETMEM(self, p_canceltype, oldtype);
+}
+
 
 int pthread_cancel(pthread_t thread)
 {
@@ -62,6 +93,7 @@ int pthread_cancel(pthread_t thread)
   int dorestart = 0;
   pthread_descr th;
   pthread_extricate_if *pextricate;
+  int already_canceled;
 
   __pthread_lock(&handle->h_lock, NULL);
   if (invalid_handle(handle, thread)) {
@@ -71,19 +103,21 @@ int pthread_cancel(pthread_t thread)
 
   th = handle->h_descr;
 
-  if (th->p_canceled) {
+  already_canceled = th->p_canceled;
+  th->p_canceled = 1;
+
+  if (th->p_cancelstate == PTHREAD_CANCEL_DISABLE || already_canceled) {
     __pthread_unlock(&handle->h_lock);
     return 0;
   }
 
   pextricate = th->p_extricate;
-  th->p_canceled = 1;
   pid = th->p_pid;
 
   /* If the thread has registered an extrication interface, then
      invoke the interface. If it returns 1, then we succeeded in
      dequeuing the thread from whatever waiting object it was enqueued
-     with. In that case, it is our responsibility to wake it up. 
+     with. In that case, it is our responsibility to wake it up.
      And also to set the p_woken_by_cancel flag so the woken thread
      can tell that it was woken by cancellation. */
 
@@ -104,7 +138,7 @@ int pthread_cancel(pthread_t thread)
 
   if (dorestart)
     restart(th);
-  else 
+  else
     kill(pid, __pthread_sig_cancel);
 
   return 0;
@@ -115,7 +149,7 @@ void pthread_testcancel(void)
   pthread_descr self = thread_self();
   if (THREAD_GETMEM(self, p_canceled)
       && THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE)
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
 }
 
 void _pthread_cleanup_push(struct _pthread_cleanup_buffer * buffer,
@@ -125,6 +159,8 @@ void _pthread_cleanup_push(struct _pthread_cleanup_buffer * buffer,
   buffer->__routine = routine;
   buffer->__arg = arg;
   buffer->__prev = THREAD_GETMEM(self, p_cleanup);
+  if (buffer->__prev != NULL && FRAME_LEFT (buffer, buffer->__prev))
+    buffer->__prev = NULL;
   THREAD_SETMEM(self, p_cleanup, buffer);
 }
 
@@ -144,6 +180,8 @@ void _pthread_cleanup_push_defer(struct _pthread_cleanup_buffer * buffer,
   buffer->__arg = arg;
   buffer->__canceltype = THREAD_GETMEM(self, p_canceltype);
   buffer->__prev = THREAD_GETMEM(self, p_cleanup);
+  if (buffer->__prev != NULL && FRAME_LEFT (buffer, buffer->__prev))
+    buffer->__prev = NULL;
   THREAD_SETMEM(self, p_canceltype, PTHREAD_CANCEL_DEFERRED);
   THREAD_SETMEM(self, p_cleanup, buffer);
 }
@@ -158,15 +196,39 @@ void _pthread_cleanup_pop_restore(struct _pthread_cleanup_buffer * buffer,
   if (THREAD_GETMEM(self, p_canceled) &&
       THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE &&
       THREAD_GETMEM(self, p_canceltype) == PTHREAD_CANCEL_ASYNCHRONOUS)
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
 }
 
-void __pthread_perform_cleanup(void)
+extern void __rpc_thread_destroy(void);
+void __pthread_perform_cleanup(char *currentframe)
 {
   pthread_descr self = thread_self();
-  struct _pthread_cleanup_buffer * c;
-  for (c = THREAD_GETMEM(self, p_cleanup); c != NULL; c = c->__prev)
-    c->__routine(c->__arg);
+  struct _pthread_cleanup_buffer *c = THREAD_GETMEM(self, p_cleanup);
+  struct _pthread_cleanup_buffer *last;
+
+  if (c != NULL)
+    while (FRAME_LEFT (currentframe, c))
+      {
+	last = c;
+	c = c->__prev;
+
+	if (c == NULL || FRAME_LEFT (last, c))
+	  {
+	    c = NULL;
+	    break;
+	  }
+      }
+
+  while (c != NULL)
+    {
+      c->__routine(c->__arg);
+
+      last = c;
+      c = c->__prev;
+
+      if (FRAME_LEFT (last, c))
+	break;
+    }
 
 #ifdef __UCLIBC_HAS_RPC__
   /* And the TSD which needs special help.  */
@@ -174,11 +236,3 @@ void __pthread_perform_cleanup(void)
       __rpc_thread_destroy ();
 #endif
 }
-
-#ifndef __PIC__
-/* We need a hook to force the cancelation wrappers to be linked in when
-   static libpthread is used.  */
-extern const int __pthread_provide_wrappers;
-static const int * const __pthread_require_wrappers =
-  &__pthread_provide_wrappers;
-#endif

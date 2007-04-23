@@ -1,5 +1,5 @@
 /* Parse comma separate list into words.
-   Copyright (C) 1996, 1997, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1999, 2004 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1996.
 
@@ -21,7 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern char *__strchrnul(const char *s, int c);
+libc_hidden_proto(memchr)
+libc_hidden_proto(strncmp)
+libc_hidden_proto(strchrnul)
 
 /* Parse comma separated suboption from *OPTIONP and match against
    strings in TOKENS.  If found return index and set *VALUEP to
@@ -29,7 +31,8 @@ extern char *__strchrnul(const char *s, int c);
    not part of TOKENS return in *VALUEP beginning of unknown
    suboption.  On exit *OPTIONP is set to the beginning of the next
    token or at the terminating NUL character.  */
-int getsubopt(char **optionp, char *const *tokens, char **valuep)
+int
+getsubopt (char **optionp, char *const *tokens, char **valuep)
 {
   char *endp, *vstart;
   int cnt;
@@ -38,7 +41,7 @@ int getsubopt(char **optionp, char *const *tokens, char **valuep)
     return -1;
 
   /* Find end of next token.  */
-  endp = __strchrnul (*optionp, ',');
+  endp = strchrnul (*optionp, ',');
 
   /* Find start of value.  */
   vstart = memchr (*optionp, '=', endp - *optionp);
@@ -48,7 +51,7 @@ int getsubopt(char **optionp, char *const *tokens, char **valuep)
   /* Try to match the characters between *OPTIONP and VSTART against
      one of the TOKENS.  */
   for (cnt = 0; tokens[cnt] != NULL; ++cnt)
-    if (memcmp (*optionp, tokens[cnt], vstart - *optionp) == 0
+    if (strncmp (*optionp, tokens[cnt], vstart - *optionp) == 0
 	&& tokens[cnt][vstart - *optionp] == '\0')
       {
 	/* We found the current option in TOKENS.  */

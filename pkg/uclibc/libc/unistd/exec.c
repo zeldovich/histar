@@ -1,18 +1,6 @@
 /*  Copyright (C) 2004     Manuel Novoa III
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Library General Public
- *  License as published by the Free Software Foundation; either
- *  version 2 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Library General Public License for more details.
- *
- *  You should have received a copy of the GNU Library General Public
- *  License along with this library; if not, write to the Free
- *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
 /* Jan 1, 2004
@@ -30,7 +18,6 @@
  * to free the storage allocated for the copy.  Better ideas anyone?
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,10 +27,20 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-extern char *__strchrnul(const char *s, int c);
+libc_hidden_proto(execl)
+libc_hidden_proto(execle)
+libc_hidden_proto(execvp)
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(strchr)
+libc_hidden_proto(strlen)
+libc_hidden_proto(execve)
+libc_hidden_proto(mmap)
+libc_hidden_proto(munmap)
+libc_hidden_proto(getenv)
 
 /**********************************************************************/
-#if defined(__ARCH_HAS_MMU__) || defined(__UCLIBC_UCLINUX_BROKEN_MUNMAP__)
+#if defined(__ARCH_USE_MMU__) || defined(__UCLIBC_UCLINUX_BROKEN_MUNMAP__)
 
 /* We have an MMU, so use alloca() to grab space for buffers and
  * arg lists.  Also fall back to alloca() if munmap() is broken. */
@@ -64,12 +61,12 @@ extern char *__strchrnul(const char *s, int c);
 # define EXEC_ALLOC(SIZE,VAR)	__exec_alloc((VAR = (SIZE)))
 # define EXEC_FREE(PTR,VAR)		__exec_free((PTR),(VAR))
 
-extern void *__exec_alloc(size_t size);
-extern void __exec_free(void *ptr, size_t size);
+extern void *__exec_alloc(size_t size) attribute_hidden;
+extern void __exec_free(void *ptr, size_t size) attribute_hidden;
 
 # ifdef L___exec_alloc
 
-void *__exec_alloc(size_t size)
+void attribute_hidden *__exec_alloc(size_t size)
 {
 	void *p;
 
@@ -78,7 +75,7 @@ void *__exec_alloc(size_t size)
 	return (p != MAP_FAILED) ? p : NULL;
 }
 
-void __exec_free(void *ptr, size_t size)
+void attribute_hidden __exec_free(void *ptr, size_t size)
 {
 	if (ptr) {
 		munmap(ptr, size);
@@ -122,6 +119,7 @@ int execl(const char *path, const char *arg, ...)
 
 	return n;
 }
+libc_hidden_def(execl)
 
 #endif
 /**********************************************************************/
@@ -169,6 +167,7 @@ int execle(const char *path, const char *arg, ...)
 
 	return n;
 }
+libc_hidden_def(execle)
 
 #endif
 /**********************************************************************/
@@ -209,6 +208,8 @@ int execlp(const char *file, const char *arg, ...)
 #endif
 /**********************************************************************/
 #ifdef L_execvp
+
+libc_hidden_proto(strchrnul)
 
 /* Use a default path that matches glibc behavior, since SUSv3 says
  * this is implementation-defined.  The default is current working dir,
@@ -273,7 +274,7 @@ int execvp(const char *path, char *const argv[])
 
 			do {
 				s = s0;
-				e = __strchrnul(p, ':');
+				e = strchrnul(p, ':');
 				if (e > p) {
 					plen = e - p;
 					if (e[-1] != '/') {
@@ -312,6 +313,7 @@ int execvp(const char *path, char *const argv[])
 
 	return -1;
 }
+libc_hidden_def(execvp)
 
 #endif
 /**********************************************************************/

@@ -20,21 +20,52 @@
 
 /* If no SA_RESTORER function was specified by the application we use
    one of these.  This avoids the need for the kernel to synthesise a return
-   instruction on the stack, which would involve expensive cache flushes. */
+   instruction on the stack, which would involve expensive cache flushes.
+
+   Nowadays (2.6 series, and somewhat earlier) the kernel uses a high page
+   for signal trampolines, so the cache flushes are not an issue.  But since
+   we do not have a vDSO, continue to use these so that we can provide
+   unwind information.
+
+   Start the unwind tables at least one instruction before the signal
+   trampoline, because the unwinder will assume we are returning after
+   a call site.  */
 
 .global __default_sa_restorer
 .type __default_sa_restorer,%function
-.align 4
+.align 2
+#ifdef __ARM_EABI__
+	.fnstart
+	.save {r0-r15}
+	.pad #12
+	nop
 __default_sa_restorer:
-	swi	__NR_sigreturn
+	mov	r7, $SYS_ify(sigreturn)
+	swi	0x0
+	.fnend
+#else
+__default_sa_restorer:
+	DO_CALL (sigreturn)
+#endif
 
 
 #ifdef __NR_rt_sigreturn
 
 .global __default_rt_sa_restorer
 .type __default_rt_sa_restorer,%function
-.align 4
+.align 2
+#ifdef __ARM_EABI__
+	.fnstart
+	.save {r0-r15}
+	.pad #168
+	nop
 __default_rt_sa_restorer:
-	swi	__NR_rt_sigreturn
+	mov	r7, $SYS_ify(rt_sigreturn)
+	swi	0x0
+	.fnend
+#else
+__default_rt_sa_restorer:
+	DO_CALL (rt_sigreturn)
+#endif
 
 #endif

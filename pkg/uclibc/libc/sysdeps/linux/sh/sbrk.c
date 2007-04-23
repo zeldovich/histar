@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-extern void * __curbrk;
+extern void * __curbrk attribute_hidden;
+extern int __init_brk (void) attribute_hidden;
+extern void *_brk(void *ptr) attribute_hidden;
 
-extern int __init_brk (void);
-extern void *_brk(void *ptr);
-
+libc_hidden_proto(sbrk)
 void *
 sbrk(intptr_t increment)
 {
@@ -23,3 +23,4 @@ sbrk(intptr_t increment)
     }
     return ((void *) -1);
 }
+libc_hidden_def(sbrk)

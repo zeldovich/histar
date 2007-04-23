@@ -22,6 +22,10 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+libc_hidden_proto(tcsetattr)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(ioctl)
+
 /* The difference here is that the termios structure used in the
    kernel is not the same as we use in the libc.  Therefore we must
    translate it here.  */
@@ -114,3 +118,4 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 
     return retval;
 }
+libc_hidden_def(tcsetattr)

@@ -20,7 +20,12 @@
 #include <netdb.h>
 #include <string.h>
 
-extern int _net_stayopen;
+libc_hidden_proto(strcmp)
+libc_hidden_proto(setnetent)
+libc_hidden_proto(getnetent)
+libc_hidden_proto(endnetent)
+
+extern int _net_stayopen attribute_hidden;
 
 struct netent *
 getnetbyname(const char *name)

@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#include <features.h>
+
 	.section .text..SHmedia32,"ax"
 	.globl	strlen
 	.type	strlen,@function
@@ -56,5 +58,6 @@ loop:
 	or	r0, r63, r2
 	blink	tr4, r63
 
-	.size	strlen, . - strlen
+	.size	strlen,.-strlen
 
+libc_hidden_def(strlen)

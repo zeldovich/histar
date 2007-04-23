@@ -43,6 +43,11 @@ static char rcsid[] = "$NetBSD: e_jn.c,v 1.9 1995/05/10 20:45:34 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(sin)
+libm_hidden_proto(cos)
+libm_hidden_proto(sqrt)
+libm_hidden_proto(fabs)
+
 #ifdef __STDC__
 static const double
 #else
@@ -59,9 +64,9 @@ static double zero  =  0.00000000000000000000e+00;
 #endif
 
 #ifdef __STDC__
-	double __ieee754_jn(int n, double x)
+	double attribute_hidden __ieee754_jn(int n, double x)
 #else
-	double __ieee754_jn(n,x)
+	double attribute_hidden __ieee754_jn(n,x)
 	int n; double x;
 #endif
 {
@@ -219,9 +224,9 @@ static double zero  =  0.00000000000000000000e+00;
 }
 
 #ifdef __STDC__
-	double __ieee754_yn(int n, double x)
+	double attribute_hidden __ieee754_yn(int n, double x)
 #else
-	double __ieee754_yn(n,x)
+	double attribute_hidden __ieee754_yn(n,x)
 	int n; double x;
 #endif
 {

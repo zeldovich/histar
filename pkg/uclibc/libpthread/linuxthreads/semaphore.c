@@ -14,8 +14,6 @@
 
 /* Semaphores a la POSIX 1003.1b */
 
-#include <features.h>
-#define __USE_GNU
 #include <errno.h>
 #include "pthread.h"
 #include "semaphore.h"
@@ -23,8 +21,9 @@
 #include "spinlock.h"
 #include "restart.h"
 #include "queue.h"
+#include <not-cancel.h>
 
-int __new_sem_init(sem_t *sem, int pshared, unsigned int value)
+int sem_init(sem_t *sem, int pshared, unsigned int value)
 {
   if (value > SEM_VALUE_MAX) {
     errno = EINVAL;
@@ -41,11 +40,11 @@ int __new_sem_init(sem_t *sem, int pshared, unsigned int value)
 }
 
 /* Function called by pthread_cancel to remove the thread from
-   waiting inside __new_sem_wait. */
+   waiting inside sem_wait. */
 
 static int new_sem_extricate_func(void *obj, pthread_descr th)
 {
-  volatile pthread_descr self = thread_self();
+  __volatile__ pthread_descr self = thread_self();
   sem_t *sem = obj;
   int did_remove = 0;
 
@@ -56,9 +55,9 @@ static int new_sem_extricate_func(void *obj, pthread_descr th)
   return did_remove;
 }
 
-int __new_sem_wait(sem_t * sem)
+int sem_wait(sem_t * sem)
 {
-  volatile pthread_descr self = thread_self();
+  __volatile__ pthread_descr self = thread_self();
   pthread_extricate_if extr;
   int already_canceled = 0;
   int spurious_wakeup_count;
@@ -86,7 +85,7 @@ int __new_sem_wait(sem_t * sem)
 
   if (already_canceled) {
     __pthread_set_own_extricate_if(self, 0);
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   }
 
   /* Wait for sem_post or cancellation, or fall through if already canceled */
@@ -112,13 +111,13 @@ int __new_sem_wait(sem_t * sem)
   if (THREAD_GETMEM(self, p_woken_by_cancel)
       && THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE) {
     THREAD_SETMEM(self, p_woken_by_cancel, 0);
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   }
   /* We got the semaphore */
   return 0;
 }
 
-int __new_sem_trywait(sem_t * sem)
+int sem_trywait(sem_t * sem)
 {
   int retval;
 
@@ -134,7 +133,7 @@ int __new_sem_trywait(sem_t * sem)
   return retval;
 }
 
-int __new_sem_post(sem_t * sem)
+int sem_post(sem_t * sem)
 {
   pthread_descr self = thread_self();
   pthread_descr th;
@@ -169,19 +168,19 @@ int __new_sem_post(sem_t * sem)
     }
     request.req_kind = REQ_POST;
     request.req_args.post = sem;
-    TEMP_FAILURE_RETRY(__libc_write(__pthread_manager_request,
-				    (char *) &request, sizeof(request)));
+    TEMP_FAILURE_RETRY(write_not_cancel(__pthread_manager_request,
+					(char *) &request, sizeof(request)));
   }
   return 0;
 }
 
-int __new_sem_getvalue(sem_t * sem, int * sval)
+int sem_getvalue(sem_t * sem, int * sval)
 {
   *sval = sem->__sem_value;
   return 0;
 }
 
-int __new_sem_destroy(sem_t * sem)
+int sem_destroy(sem_t * sem)
 {
   if (sem->__sem_waiting != NULL) {
     __set_errno (EBUSY);
@@ -247,7 +246,7 @@ int sem_timedwait(sem_t *sem, const struct timespec *abstime)
 
   if (already_canceled) {
     __pthread_set_own_extricate_if(self, 0);
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   }
 
   spurious_wakeup_count = 0;
@@ -292,17 +291,8 @@ int sem_timedwait(sem_t *sem, const struct timespec *abstime)
   if (THREAD_GETMEM(self, p_woken_by_cancel)
       && THREAD_GETMEM(self, p_cancelstate) == PTHREAD_CANCEL_ENABLE) {
     THREAD_SETMEM(self, p_woken_by_cancel, 0);
-    pthread_exit(PTHREAD_CANCELED);
+    __pthread_do_exit(PTHREAD_CANCELED, CURRENT_STACK_FRAME);
   }
   /* We got the semaphore */
   return 0;
 }
-
-
-weak_alias (__new_sem_init, sem_init)
-weak_alias (__new_sem_wait, sem_wait)
-weak_alias (__new_sem_trywait, sem_trywait)
-weak_alias (__new_sem_post, sem_post)
-weak_alias (__new_sem_getvalue, sem_getvalue)
-weak_alias (__new_sem_destroy, sem_destroy)
-

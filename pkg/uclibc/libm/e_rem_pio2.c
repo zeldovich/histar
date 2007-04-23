@@ -23,6 +23,8 @@ static char rcsid[] = "$NetBSD: e_rem_pio2.c,v 1.8 1995/05/10 20:46:02 jtc Exp $
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(fabs)
+
 /*
  * Table of constants for 2/pi, 396 Hex digits (476 decimal) of 2/pi
  */
@@ -84,9 +86,9 @@ pio2_3  =  2.02226624871116645580e-21, /* 0x3BA3198A, 0x2E000000 */
 pio2_3t =  8.47842766036889956997e-32; /* 0x397B839A, 0x252049C1 */
 
 #ifdef __STDC__
-	int32_t __ieee754_rem_pio2(double x, double *y)
+	int32_t attribute_hidden __ieee754_rem_pio2(double x, double *y)
 #else
-	int32_t __ieee754_rem_pio2(x,y)
+	int32_t attribute_hidden __ieee754_rem_pio2(x,y)
 	double x,y[];
 #endif
 {

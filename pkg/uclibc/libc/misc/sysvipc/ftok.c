@@ -20,6 +20,8 @@
 #include <sys/ipc.h>
 #include <sys/stat.h>
 
+libc_hidden_proto(stat)
+
 key_t ftok (const char *pathname, int proj_id)
 {
   struct stat st;

@@ -1,7 +1,19 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #include <string.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <errno.h>
+
+libc_hidden_proto(gethostname)
+
+libc_hidden_proto(strlen)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(uname)
 
 int
 gethostname(char *name, size_t len)
@@ -22,3 +34,4 @@ gethostname(char *name, size_t len)
   strcpy(name, uts.nodename);
   return 0;
 }
+libc_hidden_def(gethostname)

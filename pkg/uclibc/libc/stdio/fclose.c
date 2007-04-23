@@ -6,18 +6,25 @@
  */
 
 #include "_stdio.h"
+libc_hidden_proto(fclose)
+
+libc_hidden_proto(close)
+libc_hidden_proto(fflush_unlocked)
 
 int fclose(register FILE *stream)
 {
 	int rv = 0;
 	__STDIO_AUTO_THREADLOCK_VAR;
 
-	/* First, remove the file from the open file list. */
 #ifdef __STDIO_HAS_OPENLIST
+#if !defined(__UCLIBC_HAS_THREADS__) || !defined(__STDIO_BUFFERS)
+	/* First, remove the file from the open file list. */
 	{
-		register FILE *ptr;
+		FILE *ptr;
 
-		__STDIO_THREADLOCK_OPENLIST;
+		__STDIO_THREADLOCK_OPENLIST_DEL;
+		__STDIO_THREADLOCK_OPENLIST_ADD;
+		ptr = _stdio_openlist;
 		if ((ptr = _stdio_openlist) == stream) {
 			_stdio_openlist = stream->__nextopen;
 		} else {
@@ -29,12 +36,10 @@ int fclose(register FILE *stream)
 				ptr = ptr->__nextopen;
 			}
 		}
-		__STDIO_THREADUNLOCK_OPENLIST;
-
-		if (!ptr) {	  /* Did not find stream in the open file list! */
-			return EOF;
-		}
+		__STDIO_THREADUNLOCK_OPENLIST_ADD;
+		__STDIO_THREADUNLOCK_OPENLIST_DEL;
 	}
+#endif
 #endif
 
 	__STDIO_AUTO_THREADLOCK(stream);
@@ -44,7 +49,7 @@ int fclose(register FILE *stream)
 #ifdef __STDIO_BUFFERS
 	/* Write any pending buffered chars. */
 	if (__STDIO_STREAM_IS_WRITING(stream)) {
-		rv = __fflush_unlocked(stream);
+		rv = fflush_unlocked(stream);
 	}
 #endif
 
@@ -58,6 +63,11 @@ int fclose(register FILE *stream)
 	 * Since a file can't be both readonly and writeonly, that makes
 	 * an effective signal.  It also has the benefit of disabling
 	 * transitions to either reading or writing. */
+#if defined(__UCLIBC_HAS_THREADS__) && defined(__STDIO_BUFFERS)
+	/* Before we mark the file as closed, make sure we increment the openlist use count
+	 * so it isn't freed under us while still cleaning up. */
+	__STDIO_OPENLIST_INC_USE;
+#endif
 	stream->__modeflags &= (__FLAG_FREEBUF|__FLAG_FREEFILE);
 	stream->__modeflags |= (__FLAG_READONLY|__FLAG_WRITEONLY);
 
@@ -80,7 +90,17 @@ int fclose(register FILE *stream)
 	__STDIO_AUTO_THREADUNLOCK(stream);
 
 	__STDIO_STREAM_FREE_BUFFER(stream);
+#ifdef __UCLIBC_MJN3_ONLY__
+#warning REMINDER: inefficient - locks and unlocks twice and walks whole list
+#endif
+#if defined(__UCLIBC_HAS_THREADS__) && defined(__STDIO_BUFFERS)
+	/* inefficient - locks/unlocks twice and walks whole list */
+	__STDIO_OPENLIST_INC_DEL_CNT;
+	__STDIO_OPENLIST_DEC_USE;	/* This with free the file if necessary. */
+#else
 	__STDIO_STREAM_FREE_FILE(stream);
+#endif
 
 	return rv;
 }
+libc_hidden_def(fclose)

@@ -7,15 +7,11 @@
 
 #include "_stdio.h"
 
-#ifdef __DO_LARGEFILE
-# ifndef __UCLIBC_HAS_LFS__
-#  error large file support is not enabled!
-# endif
-
-# define fgetpos	fgetpos64
-# define fpos_t		fpos64_t
-# define ftell		ftello64
+#ifndef __DO_LARGEFILE
+#define FTELL ftell
 #endif
+
+libc_hidden_proto(FTELL)
 
 int fgetpos(FILE * __restrict stream, register fpos_t * __restrict pos)
 {
@@ -26,7 +22,7 @@ int fgetpos(FILE * __restrict stream, register fpos_t * __restrict pos)
 
 	__STDIO_AUTO_THREADLOCK(stream);
 
-	if ((pos->__pos = ftell(stream)) >= 0) {
+	if ((pos->__pos = FTELL(stream)) >= 0) {
 		__COPY_MBSTATE(&(pos->__mbstate), &(stream->__state));
 		pos->__mblen_pending = stream->__ungot_width[0];
 		retval = 0;
@@ -38,7 +34,7 @@ int fgetpos(FILE * __restrict stream, register fpos_t * __restrict pos)
 
 #else
 
-	return ((pos->__pos = ftell(stream)) >= 0) ? 0 : -1;
+	return ((pos->__pos = FTELL(stream)) >= 0) ? 0 : -1;
 
 #endif
 }

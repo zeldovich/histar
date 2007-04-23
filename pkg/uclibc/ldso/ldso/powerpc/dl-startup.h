@@ -16,8 +16,15 @@ asm(
     "	bl	_dl_start@local\n" /* Perform relocation */
     /*  Save the address of the apps entry point in CTR register */
     "	mtctr	3\n" /* application entry point */
+#ifdef HAVE_ASM_PPC_REL16
+    "	bcl	20,31,1f\n"
+    "1:	mflr	31\n"
+    "	addis	31,31,_GLOBAL_OFFSET_TABLE_-1b@ha\n"
+    "	addi	31,31,_GLOBAL_OFFSET_TABLE_-1b@l\n"
+#else
     "	bl	_GLOBAL_OFFSET_TABLE_-4@local\n" /*  Put our GOT pointer in r31, */
     "	mflr	31\n"
+#endif
     "	addi	1,1,16\n" /* Restore SP */
     "	lwz	7,_dl_skip_args@got(31)\n" /* load EA of _dl_skip_args */
     "	lwz	7,0(7)\n"	/* Load word from _dl_skip_args */
@@ -42,8 +49,10 @@ asm(
     "	bne	2b\n"
     "	addi	6,6,4\n"
 #endif
-    /* Pass a termination function pointer (in this case _dl_fini) in r7.  */
-    "	lwz	7,_dl_fini@got(31)\n"
+    /* Pass a termination function pointer (in this case _dl_fini) in r3. */
+    /* Paulus promized he would keep r3 zero in the exec ABI. */
+    "	lwz	3,_dl_fini@got(31)\n"
+    "	mr	7,3\n"		/* Pass _dl_fini in r7 to maintain compat */
     "	bctr\n" /* Jump to entry point */
     "	.size	_start,.-_start\n"
     "	.previous\n"
@@ -78,9 +87,3 @@ asm(
 		_dl_exit(100+ELF32_R_TYPE((RELP)->r_info));\
 	}						\
 	}
-/*
- * Transfer control to the user's application, once the dynamic loader
- * is done.  This routine has to exit the current function, then
- * call the _dl_elf_main function.
- */
-#define START()	    return _dl_elf_main

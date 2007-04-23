@@ -29,14 +29,18 @@
 #include <unistd.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
+#ifdef __UCLIBC_HAS_REGEX__
 #include <regex.h>
+#endif
+
+libc_hidden_proto(sysconf)
+
+libc_hidden_proto(getpagesize)
+libc_hidden_proto(getdtablesize)
 
 #ifndef __UCLIBC_CLK_TCK_CONST
 #error __UCLIBC_CLK_TCK_CONST not defined!
 #endif
-
-extern int getpagesize (void);
-extern int getdtablesize (void);
 
 /***********************************************************************/
 /*
@@ -69,7 +73,7 @@ extern int getdtablesize (void);
 #endif /* _UCLIBC_GENERATE_SYSCONF_ARCH */
 
 /* Get the value of the system variable NAME.  */
-long int __sysconf(int name)
+long int sysconf(int name)
 {
   switch (name)
     {
@@ -564,13 +568,11 @@ long int __sysconf(int name)
 #endif
 
 /* If you change these, also change libc/pwd_grp/pwd_grp.c to match */
-#define PWD_BUFFER_SIZE 256
-#define GRP_BUFFER_SIZE 256
     case _SC_GETGR_R_SIZE_MAX:
-      return GRP_BUFFER_SIZE;
+      return __UCLIBC_GRP_BUFFER_SIZE__;
 
     case _SC_GETPW_R_SIZE_MAX:
-      return PWD_BUFFER_SIZE;
+      return __UCLIBC_PWD_BUFFER_SIZE__;
 
 /* getlogin() is a worthless interface.  In uClibc we let the user specify
  * whatever they want via the LOGNAME environment variable, or we return NULL
@@ -879,7 +881,15 @@ long int __sysconf(int name)
 #else
       RETURN_NEG_1;
 #endif
+
+    case _SC_MONOTONIC_CLOCK:
+#ifdef __NR_clock_getres
+      /* Check using the clock_getres system call.  */
+      if (clock_getres(CLOCK_MONOTONIC, NULL) >= 0)
+        return _POSIX_VERSION;
+#endif
+
+      RETURN_NEG_1;
     }
 }
-weak_alias(__sysconf, sysconf);
-
+libc_hidden_def(sysconf)

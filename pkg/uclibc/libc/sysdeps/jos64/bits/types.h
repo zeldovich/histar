@@ -146,6 +146,52 @@ typedef __int64_t __intptr_t;
 typedef unsigned int __socklen_t;
 
 
+#if __LONG_MAX__==9223372036854775807L
+#define __WORDSIZE 64
+#elif __LONG_MAX__==2147483647L
+#define __WORDSIZE 32
+#else
+#error Cannot determine word size
+#endif
+
+
+#define __S16_TYPE              short int
+#define __U16_TYPE              unsigned short int
+#define __S32_TYPE              int
+#define __U32_TYPE              unsigned int
+#define __SLONGWORD_TYPE        long int
+#define __ULONGWORD_TYPE        unsigned long int
+#if __WORDSIZE == 32
+# define __SQUAD_TYPE           __quad_t
+# define __UQUAD_TYPE           __u_quad_t
+# define __SWORD_TYPE           int
+# define __UWORD_TYPE           unsigned int
+# define __SLONG32_TYPE         long int
+# define __ULONG32_TYPE         unsigned long int
+# define __S64_TYPE             __quad_t
+# define __U64_TYPE             __u_quad_t
+/* We want __extension__ before typedef's that use nonstandard base types
+   such as `long long' in C89 mode.  */
+# define __STD_TYPE             __extension__ typedef
+#elif __WORDSIZE == 64
+# define __SQUAD_TYPE           long int
+# define __UQUAD_TYPE           unsigned long int
+# define __SWORD_TYPE           long int
+# define __UWORD_TYPE           unsigned long int
+# define __SLONG32_TYPE         int
+# define __ULONG32_TYPE         unsigned int
+# define __S64_TYPE             long int
+# define __U64_TYPE             unsigned long int
+/* No need to mark the typedef with __extension__.   */
+# define __STD_TYPE             typedef
+#else
+# error
+#endif
+#include <bits/typesizes.h>     /* Defines __*_T_TYPE macros.  */
+
+
+
+
 /* Now add the thread types.  */
 #if defined __UCLIBC_HAS_THREADS__ && (defined __USE_POSIX199506 || defined __USE_UNIX98)
 # include <bits/pthreadtypes.h>

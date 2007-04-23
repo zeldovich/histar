@@ -37,12 +37,18 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-		.text
-		.global memcpy;
-		.type memcpy,%function
-		.align 4;                                                               \
+#include <features.h>
+
+.text
+.global memcpy
+.type memcpy,%function
+.align 4
 
 memcpy:
 	stmfd	sp!, {r0, lr}
-	bl	_memcpy (PLT)
+	bl	_memcpy
 	ldmfd	sp!, {r0, pc}
+
+.size memcpy,.-memcpy
+
+libc_hidden_def(memcpy)

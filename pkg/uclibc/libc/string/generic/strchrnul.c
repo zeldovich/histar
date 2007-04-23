@@ -24,13 +24,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef __USE_GNU
+libc_hidden_proto(strchrnul)
+libc_hidden_proto(abort)
+
 #include "memcopy.h"
 
-#undef __strchrnul
-#undef strchrnul
-
 /* Find the first occurrence of C in S or the final NUL byte.  */
-char *__strchrnul (const char *s, int c_in)
+char *strchrnul (const char *s, int c_in)
 {
   const unsigned char *char_ptr;
   const unsigned long int *longword_ptr;
@@ -41,8 +42,8 @@ char *__strchrnul (const char *s, int c_in)
 
   /* Handle the first few characters by reading one character at a time.
      Do this until CHAR_PTR is aligned on a longword boundary.  */
-  for (char_ptr = s; ((unsigned long int) char_ptr
-		      & (sizeof (longword) - 1)) != 0;
+  for (char_ptr = (const unsigned char *) s;
+       ((unsigned long int) char_ptr & (sizeof (longword) - 1)) != 0;
        ++char_ptr)
     if (*char_ptr == c || *char_ptr == '\0')
       return (void *) char_ptr;
@@ -164,5 +165,5 @@ char *__strchrnul (const char *s, int c_in)
   /* This should never happen.  */
   return NULL;
 }
-
-weak_alias (__strchrnul, strchrnul)
+libc_hidden_def(strchrnul)
+#endif

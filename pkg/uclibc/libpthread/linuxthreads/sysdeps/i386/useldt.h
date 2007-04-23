@@ -22,6 +22,7 @@
 #ifndef __ASSEMBLER__
 #include <stddef.h>	/* For offsetof.  */
 #include <stdlib.h>	/* For abort().	 */
+#include <sysdep.h>
 
 
 /* We don't want to include the kernel header.	So duplicate the
@@ -71,12 +72,12 @@ extern int __modify_ldt (int, struct modify_ldt_ldt_s *, size_t);
       1, 0, 0, 1, 0, 1, 0 };						      \
   if (__modify_ldt (1, &ldt_entry, sizeof (ldt_entry)) != 0)		      \
     abort ();								      \
-  asm ("movw %w0, %%gs" : : "q" (nr * 8 + 7));				      \
+  __asm__ ("movw %w0, %%gs" : : "q" (nr * 8 + 7));				      \
 })
 
 #ifdef __PIC__
 # define USETLS_EBX_ARG "r"
-# define USETLS_LOAD_EBX "xchgl %3, %%ebx\n\t"
+# define USETLS_LOAD_EBX "xchgl %1, %%ebx\n\t"
 #else
 # define USETLS_EBX_ARG "b"
 # define USETLS_LOAD_EBX
@@ -97,21 +98,23 @@ extern int __modify_ldt (int, struct modify_ldt_ldt_s *, size_t);
   int __gs;								      \
   if (DO_SET_THREAD_AREA_REUSE (nr))					      \
     {									      \
-      asm ("movw %%gs, %w0" : "=q" (__gs));				      \
+      __asm__ ("movw %%gs, %w0" : "=q" (__gs));				      \
       struct modify_ldt_ldt_s ldt_entry =				      \
 	{ (__gs & 0xffff) >> 3,						      \
 	  (unsigned long int) (descr), 0xfffff /* 4GB in pages */,	      \
 	  1, 0, 0, 1, 0, 1, 0 };					      \
 									      \
       int __result;							      \
-      __asm (USETLS_LOAD_EBX						      \
+      __asm__ (USETLS_LOAD_EBX						      \
 	     "movl %2, %%eax\n\t"					      \
 	     "int $0x80\n\t"						      \
 	     USETLS_LOAD_EBX						      \
-	     : "&a" (__result)						      \
-	     : USETLS_EBX_ARG (&ldt_entry), "i" (__NR_set_thread_area));      \
+	     : "=&a" (__result)						      \
+	     : USETLS_EBX_ARG (&ldt_entry), "i" (__NR_set_thread_area),	      \
+	       "m" (ldt_entry)						      \
+	     : "memory");						      \
       if (__result == 0)						      \
-	asm ("movw %w0, %%gs" :: "q" (__gs));				      \
+	__asm__ ("movw %w0, %%gs" :: "q" (__gs));				      \
       else								      \
 	__gs = -1;							      \
     }									      \
@@ -122,16 +125,18 @@ extern int __modify_ldt (int, struct modify_ldt_ldt_s *, size_t);
 	  (unsigned long int) (descr), 0xfffff /* 4GB in pages */,	      \
 	  1, 0, 0, 1, 0, 1, 0 };					      \
       int __result;							      \
-      __asm (USETLS_LOAD_EBX						      \
+      __asm__ (USETLS_LOAD_EBX						      \
 	     "movl %2, %%eax\n\t"					      \
 	     "int $0x80\n\t"						      \
 	     USETLS_LOAD_EBX						      \
-	     : "&a" (__result)						      \
-	     : USETLS_EBX_ARG (&ldt_entry), "i" (__NR_set_thread_area));      \
+	     : "=&a" (__result)						      \
+	     : USETLS_EBX_ARG (&ldt_entry), "i" (__NR_set_thread_area),	      \
+	       "m" (ldt_entry)						      \
+	     : "memory");						      \
       if (__result == 0)						      \
 	{								      \
 	  __gs = (ldt_entry.entry_number << 3) + 3;			      \
-	  asm ("movw %w0, %%gs" : : "q" (__gs));			      \
+	  __asm__ ("movw %w0, %%gs" : : "q" (__gs));			      \
 	}								      \
       else								      \
 	__gs = -1;							      \
@@ -300,8 +305,10 @@ extern int __have_no_set_thread_area;
 })
 #endif
 
+#if __ASSUME_LDT_WORKS > 0
 /* We want the OS to assign stack addresses.  */
 #define FLOATING_STACKS	1
 
 /* Maximum size of the stack if the rlimit is unlimited.  */
 #define ARCH_STACK_MAX_SIZE	8*1024*1024
+#endif

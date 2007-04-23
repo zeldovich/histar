@@ -60,9 +60,35 @@
 #include <rpc/pmap_clnt.h>
 #ifdef USE_IN_LIBIO
 # include <wchar.h>
+libc_hidden_proto(fwprintf)
 #endif
 
-extern u_long _create_xid (void);
+libc_hidden_proto(strlen)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(getpid)
+libc_hidden_proto(authnone_create)
+libc_hidden_proto(xdrrec_create)
+libc_hidden_proto(xdrrec_endofrecord)
+libc_hidden_proto(xdrrec_skiprecord)
+libc_hidden_proto(xdr_callhdr)
+libc_hidden_proto(xdr_replymsg)
+libc_hidden_proto(xdr_opaque_auth)
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_void)
+libc_hidden_proto(getegid)
+libc_hidden_proto(geteuid)
+libc_hidden_proto(_seterr_reply)
+libc_hidden_proto(setsockopt)
+libc_hidden_proto(connect)
+libc_hidden_proto(recvmsg)
+libc_hidden_proto(sendmsg)
+libc_hidden_proto(poll)
+libc_hidden_proto(fputs)
+libc_hidden_proto(__rpc_thread_createerr)
+
+extern u_long _create_xid (void) attribute_hidden;
 
 #define MCALL_MSG_SIZE 24
 
@@ -114,6 +140,7 @@ static struct clnt_ops unix_ops =
  * NB: The rpch->cl_auth is set null authentication.  Caller may wish to set this
  * something more useful.
  */
+libc_hidden_proto(clntunix_create)
 CLIENT *
 clntunix_create (struct sockaddr_un *raddr, u_long prog, u_long vers,
 		 int *sockp, u_int sendsz, u_int recvsz)
@@ -129,7 +156,7 @@ clntunix_create (struct sockaddr_un *raddr, u_long prog, u_long vers,
       struct rpc_createerr *ce = &get_rpc_createerr ();
 #ifdef USE_IN_LIBIO
       if (_IO_fwide (stderr, 0) > 0)
-	(void) __fwprintf (stderr, L"%s",
+	(void) fwprintf (stderr, L"%s",
 			   _("clntunix_create: out of memory\n"));
       else
 #endif
@@ -212,6 +239,7 @@ fooy:
   mem_free ((caddr_t) h, sizeof (CLIENT));
   return (CLIENT *) NULL;
 }
+libc_hidden_def(clntunix_create)
 
 static enum clnt_stat
 clntunix_call (h, proc, xdr_args, args_ptr, xdr_results, results_ptr, timeout)

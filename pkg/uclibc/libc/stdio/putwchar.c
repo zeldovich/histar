@@ -7,21 +7,24 @@
 
 #include "_stdio.h"
 
-extern wint_t __putwchar_unlocked(wchar_t wc);
-
 #ifdef __DO_UNLOCKED
 
-weak_alias(__putwchar_unlocked,putwchar_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__putwchar_unlocked,putwchar);
-#endif
+libc_hidden_proto(fputwc_unlocked)
 
-wint_t __putwchar_unlocked(wchar_t wc)
+wint_t putwchar_unlocked(wchar_t wc)
 {
-	return __fputwc_unlocked(wc, stdout);
+	return fputwc_unlocked(wc, stdout);
 }
 
+#ifndef __UCLIBC_HAS_THREADS__
+strong_alias(putwchar_unlocked,putwchar)
+#endif
+
 #elif defined __UCLIBC_HAS_THREADS__
+
+libc_hidden_proto(__fputc_unlocked)
+/* psm: should this be fputwc? */
+libc_hidden_proto(fputc)
 
 wint_t putwchar(wchar_t wc)
 {

@@ -27,11 +27,13 @@
 
 #define SA_RESTORER	0x04000000
 
+extern __typeof(sigaction) __libc_sigaction;
 
 #if defined __NR_rt_sigaction
-#warning "Yes there are two warnings here.  Don't worry about it."
-static void restore_rt (void) asm ("__restore_rt");
-static void restore (void) asm ("__restore");
+libc_hidden_proto(memcpy)
+
+extern void restore_rt (void) __asm__ ("__restore_rt") attribute_hidden;
+extern void restore (void) __asm__ ("__restore") attribute_hidden;
 
 /* If ACT is not NULL, change the action for SIG to *ACT.
    If OACT is not NULL, put the old action for SIG in *OACT.  */
@@ -73,8 +75,7 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 
 
 #else
-#warning "Yes there is a warning here.  Don't worry about it."
-static void restore (void) asm ("__restore");
+extern void restore (void) __asm__ ("__restore") attribute_hidden;
 
 /* If ACT is not NULL, change the action for SIG to *ACT.
    If OACT is not NULL, put the old action for SIG in *OACT.  */
@@ -97,7 +98,7 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 	kact.sa_restorer = &restore;
     }
 
-    asm volatile ("pushl %%ebx\n"
+    __asm__ __volatile__ ("pushl %%ebx\n"
 	    "movl %2, %%ebx\n"
 	    "int $0x80\n"
 	    "popl %%ebx"
@@ -121,7 +122,12 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 }
 
 #endif
-weak_alias (__libc_sigaction, sigaction)
+
+#ifndef LIBC_SIGACTION
+libc_hidden_proto(sigaction)
+weak_alias(__libc_sigaction,sigaction)
+libc_hidden_weak(sigaction)
+#endif
 
 
 
@@ -136,7 +142,7 @@ weak_alias (__libc_sigaction, sigaction)
 
 #define RESTORE(name, syscall) RESTORE2 (name, syscall)
 #define RESTORE2(name, syscall) \
-asm						\
+__asm__						\
   (						\
    ".text\n"					\
    "	.align 16\n"				\
@@ -150,10 +156,11 @@ asm						\
 RESTORE (restore_rt, __NR_rt_sigreturn)
 #endif
 
+#ifdef __NR_sigreturn
 /* For the boring old signals.  */
 # undef RESTORE2
 # define RESTORE2(name, syscall) \
-asm						\
+__asm__						\
   (						\
    ".text\n"					\
    "	.align 8\n"				\
@@ -164,4 +171,4 @@ asm						\
    );
 
 RESTORE (restore, __NR_sigreturn)
-
+#endif

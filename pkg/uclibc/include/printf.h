@@ -75,6 +75,7 @@ struct printf_info
   unsigned int is_short:1;	/* h flag.  */
   unsigned int is_long:1;	/* l flag.  */
   unsigned int is_long_double:1;/* L flag.  */
+  unsigned int __padding:20;/* non-gnu -- total of 32 bits on 32bit arch */
 
 #elif __BYTE_ORDER == __BIG_ENDIAN
 
@@ -154,6 +155,7 @@ struct printf_info
    The function should return the number of characters written,
    or -1 for errors.  */
 
+#ifdef __UCLIBC_HAS_GLIBC_CUSTOM_PRINTF__
 typedef int (*printf_function) (FILE *__stream,
 			     __const struct printf_info *__info,
 			     __const void *__const *__args);
@@ -172,6 +174,7 @@ typedef int printf_arginfo_function (__const struct printf_info *__info,
 
 extern int register_printf_function (int __spec, printf_function __func,
 				     printf_arginfo_function __arginfo);
+#endif
 
 
 /* Parse FMT, and fill in N elements of ARGTYPES with the

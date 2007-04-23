@@ -31,9 +31,6 @@
  * SUCH DAMAGE.
  */
 
-#define __FORCE_GLIBC
-#define _GNU_SOURCE
-#include <features.h>
 /*
  * SYSLOG -- print message on log file
  *
@@ -61,6 +58,8 @@
  *  - Major code cleanup.
  */
 
+#define __FORCE_GLIBC
+#include <features.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/file.h>
@@ -80,16 +79,33 @@
 #include <ctype.h>
 #include <signal.h>
 
+libc_hidden_proto(openlog)
+libc_hidden_proto(syslog)
+libc_hidden_proto(vsyslog)
+libc_hidden_proto(closelog)
 
-#ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
-static pthread_mutex_t mylock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-# define LOCK	__pthread_mutex_lock(&mylock)
-# define UNLOCK	__pthread_mutex_unlock(&mylock);
-#else
-# define LOCK
-# define UNLOCK
-#endif
+libc_hidden_proto(memset)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memmove)
+libc_hidden_proto(strchr)
+libc_hidden_proto(strlen)
+libc_hidden_proto(strncpy)
+libc_hidden_proto(open)
+/*libc_hidden_proto(fcntl)*/
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(write)
+libc_hidden_proto(getpid)
+libc_hidden_proto(ctime)
+libc_hidden_proto(sigaction)
+libc_hidden_proto(sigemptyset)
+libc_hidden_proto(connect)
+libc_hidden_proto(sprintf)
+libc_hidden_proto(vsnprintf)
+libc_hidden_proto(time)
+
+#include <bits/uClibc_mutex.h>
+__UCLIBC_MUTEX_STATIC(mylock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
 
 
 static int	LogFile = -1;		/* fd for log */
@@ -100,17 +116,10 @@ static int	LogFacility = LOG_USER;	/* default facility code */
 static int	LogMask = 0xff;		/* mask of priorities to be logged */
 static struct sockaddr SyslogAddr;	/* AF_UNIX address of local logger */
 
-static void closelog_intern( int );
-void syslog( int, const char *, ...);
-void vsyslog( int, const char *, va_list );
-void openlog( const char *, int, int );
-void closelog( void );
-int setlogmask(int pmask);
-
-static void 
+static void
 closelog_intern(int to_default)
 {
-	LOCK;
+	__UCLIBC_MUTEX_LOCK(mylock);
 	if (LogFile != -1) {
 	    (void) close(LogFile);
 	}
@@ -123,29 +132,72 @@ closelog_intern(int to_default)
 		LogFacility = LOG_USER;
 		LogMask = 0xff;
 	}
-	UNLOCK;
+	__UCLIBC_MUTEX_UNLOCK(mylock);
 }
 
 static void
-sigpipe_handler (int sig)
+sigpipe_handler (attribute_unused int sig)
 {
   closelog_intern (0);
 }
 
 /*
+ * OPENLOG -- open system log
+ */
+void
+openlog( const char *ident, int logstat, int logfac )
+{
+    int logType = SOCK_DGRAM;
+
+    __UCLIBC_MUTEX_LOCK(mylock);
+
+    if (ident != NULL)
+	LogTag = ident;
+    LogStat = logstat;
+    if (logfac != 0 && (logfac &~ LOG_FACMASK) == 0)
+	LogFacility = logfac;
+    if (LogFile == -1) {
+	SyslogAddr.sa_family = AF_UNIX;
+	(void)strncpy(SyslogAddr.sa_data, _PATH_LOG,
+		      sizeof(SyslogAddr.sa_data));
+retry:
+	if (LogStat & LOG_NDELAY) {
+	    if ((LogFile = socket(AF_UNIX, logType, 0)) == -1) {
+		goto DONE;
+	    }
+	    /*			fcntl(LogFile, F_SETFD, 1); */
+	}
+    }
+
+    if (LogFile != -1 && !connected) {
+	if (connect(LogFile, &SyslogAddr, sizeof(SyslogAddr) -
+		    sizeof(SyslogAddr.sa_data) + strlen(SyslogAddr.sa_data)) != -1)
+	{
+	    connected = 1;
+	} else if (logType == SOCK_DGRAM) {
+	    logType = SOCK_STREAM;
+	    if (LogFile != -1) {
+		close(LogFile);
+		LogFile = -1;
+	    }
+	    goto retry;
+	} else {
+	    if (LogFile != -1) {
+		close(LogFile);
+		LogFile = -1;
+	    }
+	}
+    }
+
+DONE:
+    __UCLIBC_MUTEX_UNLOCK(mylock);
+}
+libc_hidden_def(openlog)
+
+/*
  * syslog, vsyslog --
  *     print message on log file; output is intended for syslogd(8).
  */
-void
-syslog(int pri, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsyslog(pri, fmt, ap);
-	va_end(ap);
-}
-
 void
 vsyslog( int pri, const char *fmt, va_list ap )
 {
@@ -165,7 +217,7 @@ vsyslog( int pri, const char *fmt, va_list ap )
 
 	saved_errno = errno;
 
-	LOCK;
+	__UCLIBC_MUTEX_LOCK(mylock);
 
 	/* See if we should just throw out this message. */
 	if (!(LogMask & LOG_MASK(LOG_PRI(pri))) || (pri &~ (LOG_PRIMASK|LOG_FACMASK)))
@@ -208,7 +260,7 @@ vsyslog( int pri, const char *fmt, va_list ap )
 	if (p >= end || p < head_end) {	/* Returned -1 in case of error... */
 		static const char truncate_msg[12] = "[truncated] ";
 		memmove(head_end + sizeof(truncate_msg), head_end,
-			end - head_end - sizeof(truncate_msg));
+				end - head_end - sizeof(truncate_msg));
 		memcpy(head_end, truncate_msg, sizeof(truncate_msg));
 		if (p < head_end) {
 			while (p < end && *p) {
@@ -243,7 +295,7 @@ vsyslog( int pri, const char *fmt, va_list ap )
 		}
 		p+=rc;
 	} while (p <= last_chr);
-	if (rc >= 0) 
+	if (rc >= 0)
 		goto getout;
 
 	/*
@@ -254,7 +306,7 @@ vsyslog( int pri, const char *fmt, va_list ap )
 	/* should mode be `O_WRONLY | O_NOCTTY' ? -- Uli */
 	if (LogStat & LOG_CONS &&
 	    (fd = open(_PATH_CONSOLE, O_WRONLY, 0)) >= 0) {
-		p = index(tbuf, '>') + 1;
+		p = strchr(tbuf, '>') + 1;
 		last_chr[0] = '\r';
 		last_chr[1] = '\n';
 		(void)write(fd, p, last_chr - p + 2);
@@ -262,63 +314,23 @@ vsyslog( int pri, const char *fmt, va_list ap )
 	}
 
 getout:
-	UNLOCK;
+	__UCLIBC_MUTEX_UNLOCK(mylock);
 	if (sigpipe == 0)
 		sigaction (SIGPIPE, &oldaction,
-			(struct sigaction *) NULL);
+				   (struct sigaction *) NULL);
 }
+libc_hidden_def(vsyslog)
 
-/*
- * OPENLOG -- open system log
- */
 void
-openlog( const char *ident, int logstat, int logfac )
+syslog(int pri, const char *fmt, ...)
 {
-    int logType = SOCK_DGRAM;
+	va_list ap;
 
-    LOCK;
-
-    if (ident != NULL)
-	LogTag = ident;
-    LogStat = logstat;
-    if (logfac != 0 && (logfac &~ LOG_FACMASK) == 0)
-	LogFacility = logfac;
-    if (LogFile == -1) {
-	SyslogAddr.sa_family = AF_UNIX;
-	(void)strncpy(SyslogAddr.sa_data, _PATH_LOG,
-		      sizeof(SyslogAddr.sa_data));
-retry:
-	if (LogStat & LOG_NDELAY) {
-	    if ((LogFile = socket(AF_UNIX, logType, 0)) == -1){
-		UNLOCK;
-		return;
-	    }
-	    /*			fcntl(LogFile, F_SETFD, 1); */
-	}
-    }
-
-    if (LogFile != -1 && !connected) {
-	if (connect(LogFile, &SyslogAddr, sizeof(SyslogAddr) - 
-		    sizeof(SyslogAddr.sa_data) + strlen(SyslogAddr.sa_data)) != -1)
-	{
-	    connected = 1;
-	} else if (logType == SOCK_DGRAM) {
-	    logType = SOCK_STREAM;
-	    if (LogFile != -1) {
-		close(LogFile);
-		LogFile = -1;
-	    }
-	    goto retry;
-	} else {
-	    if (LogFile != -1) {
-		close(LogFile);
-		LogFile = -1;
-	    }
-	}
-    }
-
-    UNLOCK;
+	va_start(ap, fmt);
+	vsyslog(pri, fmt, ap);
+	va_end(ap);
 }
+libc_hidden_def(syslog)
 
 /*
  * CLOSELOG -- close the system log
@@ -328,6 +340,7 @@ closelog( void )
 {
 	closelog_intern(1);
 }
+libc_hidden_def(closelog)
 
 /* setlogmask -- set the log mask level */
 int setlogmask(int pmask)
@@ -335,10 +348,10 @@ int setlogmask(int pmask)
     int omask;
 
     omask = LogMask;
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     if (pmask != 0)
-	LogMask = pmask;
-    UNLOCK;
+		LogMask = pmask;
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return (omask);
 }
 

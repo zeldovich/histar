@@ -22,13 +22,10 @@
 #include <limits.h>
 
 extern int __drand48_iterate(unsigned short xsubi[3], 
-	struct drand48_data *buffer);
+	struct drand48_data *buffer) attribute_hidden;
 
-
-int erand48_r (xsubi, buffer, result)
-     unsigned short int xsubi[3];
-     struct drand48_data *buffer;
-     double *result;
+libc_hidden_proto(erand48_r)
+int erand48_r (unsigned short int xsubi[3], struct drand48_data *buffer, double *result)
 {
     union ieee754_double temp;
 
@@ -49,3 +46,4 @@ int erand48_r (xsubi, buffer, result)
 
     return 0;
 }
+libc_hidden_def(erand48_r)

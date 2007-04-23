@@ -2,17 +2,22 @@
 /*
  * time() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
 #include <time.h>
 #include <sys/time.h>
+
+libc_hidden_proto(time)
+
 #ifdef __NR_time
 _syscall1(time_t, time, time_t *, t);
 #else
+libc_hidden_proto(gettimeofday)
+
 time_t time(time_t * t)
 {
 	time_t result;
@@ -29,3 +34,4 @@ time_t time(time_t * t)
 	return result;
 }
 #endif
+libc_hidden_def(time)

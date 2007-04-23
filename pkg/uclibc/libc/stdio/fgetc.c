@@ -1,6 +1,7 @@
 /* Copyright (C) 2004       Manuel Novoa III    <mjn3@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  *
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
@@ -12,16 +13,11 @@
 #undef getc
 #undef getc_unlocked
 
-extern int __fgetc_unlocked(FILE *stream);
+libc_hidden_proto(__fgetc_unlocked)
 
 #ifdef __DO_UNLOCKED
 
-weak_alias(__fgetc_unlocked,fgetc_unlocked);
-weak_alias(__fgetc_unlocked,getc_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__fgetc_unlocked,fgetc);
-weak_alias(__fgetc_unlocked,getc);
-#endif
+libc_hidden_proto(fflush_unlocked)
 
 int __fgetc_unlocked(FILE *stream)
 {
@@ -77,11 +73,31 @@ int __fgetc_unlocked(FILE *stream)
 
 	return EOF;
 }
+libc_hidden_def(__fgetc_unlocked)
+
+libc_hidden_proto(fgetc_unlocked)
+strong_alias(__fgetc_unlocked,fgetc_unlocked)
+libc_hidden_def(fgetc_unlocked)
+
+//libc_hidden_proto(__getc_unlocked)
+//strong_alias(__fgetc_unlocked,__getc_unlocked)
+//libc_hidden_def(__getc_unlocked)
+
+libc_hidden_proto(getc_unlocked)
+strong_alias(__fgetc_unlocked,getc_unlocked)
+libc_hidden_def(getc_unlocked)
+
+#ifndef __UCLIBC_HAS_THREADS__
+libc_hidden_proto(fgetc)
+strong_alias(__fgetc_unlocked,fgetc)
+libc_hidden_def(fgetc)
+
+strong_alias(__fgetc_unlocked,getc)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 
-weak_alias(fgetc,getc);
-
+libc_hidden_proto(fgetc)
 int fgetc(register FILE *stream)
 {
 	if (stream->__user_locking != 0) {
@@ -94,5 +110,8 @@ int fgetc(register FILE *stream)
 		return retval;
 	}
 }
+libc_hidden_def(fgetc)
+
+strong_alias(fgetc,getc)
 
 #endif

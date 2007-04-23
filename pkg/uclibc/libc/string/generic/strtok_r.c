@@ -17,11 +17,18 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#define _GNU_SOURCE
 #include <string.h>
 
-#undef strtok_r
-#undef __strtok_r
+libc_hidden_proto(strtok_r)
+libc_hidden_proto(strspn)
+libc_hidden_proto(strpbrk)
+#ifdef __USE_GNU
+# define __rawmemchr rawmemchr
+libc_hidden_proto(rawmemchr)
+#else
+# define __rawmemchr strchr
+libc_hidden_proto(strchr)
+#endif
 
 /* Parse S into tokens separated by characters in DELIM.
    If S is NULL, the saved pointer in SAVE_PTR is used as
@@ -33,11 +40,7 @@
 	x = strtok_r(NULL, "=", &sp);	// x = NULL
 		// s = "abc\0-def\0"
 */
-char *
-__strtok_r (s, delim, save_ptr)
-     char *s;
-     const char *delim;
-     char **save_ptr;
+char *strtok_r (char *s, const char *delim, char **save_ptr)
 {
   char *token;
 
@@ -57,7 +60,7 @@ __strtok_r (s, delim, save_ptr)
   s = strpbrk (token, delim);
   if (s == NULL)
     /* This token finishes the string.  */
-    *save_ptr = rawmemchr (token, '\0');
+    *save_ptr = __rawmemchr (token, '\0');
   else
     {
       /* Terminate the token and make *SAVE_PTR point past it.  */
@@ -66,4 +69,4 @@ __strtok_r (s, delim, save_ptr)
     }
   return token;
 }
-weak_alias (__strtok_r, strtok_r)
+libc_hidden_def(strtok_r)

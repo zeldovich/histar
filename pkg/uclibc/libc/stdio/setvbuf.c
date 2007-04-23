@@ -14,6 +14,7 @@
 #error Assumption violated for buffering mode flags
 #endif
 
+libc_hidden_proto(setvbuf)
 int setvbuf(register FILE * __restrict stream, register char * __restrict buf,
 			int mode, size_t size)
 {
@@ -75,8 +76,8 @@ int setvbuf(register FILE * __restrict stream, register char * __restrict buf,
 	}
 
 	stream->__modeflags |= alloc_flag;
-	stream->__bufstart = buf;
-	stream->__bufend = buf + size;
+	stream->__bufstart = (unsigned char *) buf;
+	stream->__bufend = (unsigned char *) buf + size;
 	__STDIO_STREAM_INIT_BUFREAD_BUFPOS(stream);
 	__STDIO_STREAM_DISABLE_GETC(stream);
 	__STDIO_STREAM_DISABLE_PUTC(stream);
@@ -104,3 +105,4 @@ int setvbuf(register FILE * __restrict stream, register char * __restrict buf,
 
 #endif
 }
+libc_hidden_def(setvbuf)

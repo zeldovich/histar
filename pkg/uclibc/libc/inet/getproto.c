@@ -52,7 +52,6 @@
 */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -62,15 +61,17 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
-static pthread_mutex_t mylock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-# define LOCK	__pthread_mutex_lock(&mylock)
-# define UNLOCK	__pthread_mutex_unlock(&mylock);
-#else
-# define LOCK
-# define UNLOCK
-#endif
+libc_hidden_proto(fopen)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strpbrk)
+libc_hidden_proto(atoi)
+libc_hidden_proto(rewind)
+libc_hidden_proto(fgets)
+libc_hidden_proto(fclose)
+libc_hidden_proto(abort)
+
+#include <bits/uClibc_mutex.h>
+__UCLIBC_MUTEX_STATIC(mylock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
 
 
 
@@ -91,28 +92,33 @@ static void __initbuf(void)
     }
 }
 
+libc_hidden_proto(setprotoent)
 void setprotoent(int f)
 {
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     if (protof == NULL)
 	protof = fopen(_PATH_PROTOCOLS, "r" );
     else
 	rewind(protof);
     proto_stayopen |= f;
-    UNLOCK;
+    __UCLIBC_MUTEX_UNLOCK(mylock);
 }
+libc_hidden_def(setprotoent)
 
+libc_hidden_proto(endprotoent)
 void endprotoent(void)
 {
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     if (protof) {
 	fclose(protof);
 	protof = NULL;
     }
     proto_stayopen = 0;
-    UNLOCK;
+    __UCLIBC_MUTEX_UNLOCK(mylock);
 }
+libc_hidden_def(endprotoent)
 
+libc_hidden_proto(getprotoent_r)
 int getprotoent_r(struct protoent *result_buf,
 		  char *buf, size_t buflen,
 		  struct protoent **result)
@@ -121,6 +127,7 @@ int getprotoent_r(struct protoent *result_buf,
     register char *cp, **q;
     char **proto_aliases;
     char *line;
+    int rv;
 
     *result = NULL;
 
@@ -128,28 +135,27 @@ int getprotoent_r(struct protoent *result_buf,
 	errno=ERANGE;
 	return errno;
     }
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     proto_aliases=(char **)buf;
     buf+=sizeof(*proto_aliases)*MAXALIASES;
     buflen-=sizeof(*proto_aliases)*MAXALIASES;
 
     if (buflen < BUFSIZ+1) {
-	UNLOCK;
-	errno=ERANGE;
-	return errno;
+	errno=rv=ERANGE;
+	goto DONE;
     }
     line=buf;
     buf+=BUFSIZ+1;
     buflen-=BUFSIZ+1;
 
     if (protof == NULL && (protof = fopen(_PATH_PROTOCOLS, "r" )) == NULL) {
-	UNLOCK;
-	return errno;
+	rv=errno;
+	goto DONE;
     }
 again:
     if ((p = fgets(line, BUFSIZ, protof)) == NULL) {
-	UNLOCK;
-	return TRY_AGAIN;
+	rv=TRY_AGAIN;
+	goto DONE;
     }
 
     if (*p == '#')
@@ -186,9 +192,12 @@ again:
     }
     *q = NULL;
     *result=result_buf;
-    UNLOCK;
+    rv = 0;
+DONE:
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return 0;
 }
+libc_hidden_def(getprotoent_r)
 
 struct protoent * getprotoent(void)
 {
@@ -200,6 +209,7 @@ struct protoent * getprotoent(void)
 }
 
 
+libc_hidden_proto(getprotobyname_r)
 int getprotobyname_r(const char *name,
 		    struct protoent *result_buf,
 		    char *buf, size_t buflen,
@@ -208,7 +218,7 @@ int getprotobyname_r(const char *name,
     register char **cp;
     int ret;
 
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     setprotoent(proto_stayopen);
     while (!(ret=getprotoent_r(result_buf, buf, buflen, result))) {
 	if (strcmp(result_buf->p_name, name) == 0)
@@ -220,9 +230,10 @@ int getprotobyname_r(const char *name,
 found:
     if (!proto_stayopen)
 	endprotoent();
-    UNLOCK;
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return *result?0:ret;
 }
+libc_hidden_def(getprotobyname_r)
 
 
 struct protoent * getprotobyname(const char *name)
@@ -235,6 +246,7 @@ struct protoent * getprotobyname(const char *name)
 }
 
 
+libc_hidden_proto(getprotobynumber_r)
 int getprotobynumber_r (int proto_num,
 			struct protoent *result_buf,
 			char *buf, size_t buflen,
@@ -242,16 +254,17 @@ int getprotobynumber_r (int proto_num,
 {
     int ret;
 
-    LOCK;
+    __UCLIBC_MUTEX_LOCK(mylock);
     setprotoent(proto_stayopen);
     while (!(ret=getprotoent_r(result_buf, buf, buflen, result)))
 	if (result_buf->p_proto == proto_num)
 	    break;
     if (!proto_stayopen)
 	endprotoent();
-    UNLOCK;
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return *result?0:ret;
 }
+libc_hidden_def(getprotobynumber_r)
 
 struct protoent * getprotobynumber(int proto_num)
 {

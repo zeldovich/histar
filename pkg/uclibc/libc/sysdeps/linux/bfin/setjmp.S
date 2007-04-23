@@ -1,19 +1,15 @@
-
-/* Cetjmp for the Blackfin project
+/* setjmp for the Blackfin project
  *
- * Copyright (C) 2003,  Metrowerks
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ * Copyright (C) 2003 Metrowerks
  * Based on code from Analog Devices.
  *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License.  See the file COPYING.LIB in the main
- * directory of this archive for more details.
- *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
-#define _ASM
-#define _SETJMP_H
-#include <bits/setjmp.h>
 
-.globl ___sigsetjmp;
+.text
+.global ___sigsetjmp;
+.type	___sigsetjmp,STT_FUNC;
 .align 4;
 
 ___sigsetjmp:
@@ -96,10 +92,5 @@ ___sigsetjmp:
 	[P0 + 0x9C] = R0;
 
 	R0 = [P0 + 0x20];
-	CC = R1 == 1;
-	IF CC JUMP finished;
-	CALL ___sigjmp_save;
-finished:
-	R0 = 0;
-	RTS;
-___sigsetjmp.end:
+	JUMP.L ___sigjmp_save; 
+.size ___sigsetjmp, .-___sigsetjmp

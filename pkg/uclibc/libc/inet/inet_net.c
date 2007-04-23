@@ -36,19 +36,26 @@
 #include <features.h>
 #include <ctype.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
+#endif
 
 /*
  * Internet network address interpretation routine.
  * The library routines call this routine to interpret
  * network numbers.
  */
+libc_hidden_proto(inet_network)
 in_addr_t
 inet_network(const char *cp)
 {
 	register in_addr_t val, base, n;
 	register char c;
 	in_addr_t parts[4], *pp = parts;
-	register int i;
+	register unsigned int i;
 
 again:
 	/*
@@ -98,3 +105,4 @@ again:
 	}
 	return (val);
 }
+libc_hidden_def(inet_network)

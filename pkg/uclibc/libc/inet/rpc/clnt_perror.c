@@ -37,6 +37,7 @@ static char sccsid[] = "@(#)clnt_perror.c 1.15 87/10/07 Copyr 1984 Sun Micro";
  * Copyright (C) 1984, Sun Microsystems, Inc.
  *
  */
+
 #define __FORCE_GLIBC
 #include <features.h>
 
@@ -48,6 +49,15 @@ static char sccsid[] = "@(#)clnt_perror.c 1.15 87/10/07 Copyr 1984 Sun Micro";
 # include <wchar.h>
 # include <libio/iolibio.h>
 # define fputs(s, f) _IO_fputs (s, f)
+#endif
+
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(sprintf)
+libc_hidden_proto(__glibc_strerror_r)
+libc_hidden_proto(fputs)
+#ifdef USE_IN_LIBIO
+libc_hidden_proto(fwprintf)
 #endif
 
 static char *auth_errmsg (enum auth_stat stat) internal_function;
@@ -70,105 +80,6 @@ _buf (void)
     buf = (char *) malloc (256);
   return buf;
 }
-
-/*
- * Print reply error info
- */
-char *
-clnt_sperror (CLIENT * rpch, const char *msg)
-{
-  char chrbuf[1024];
-  struct rpc_err e;
-  char *err;
-  char *str = _buf ();
-  char *strstart = str;
-  int len;
-
-  if (str == NULL)
-    return NULL;
-  CLNT_GETERR (rpch, &e);
-
-  len = sprintf (str, "%s: ", msg);
-  str += len;
-
-  (void) strcpy(str, clnt_sperrno(e.re_status));
-  str += strlen(str);
-
-  switch (e.re_status)
-    {
-    case RPC_SUCCESS:
-    case RPC_CANTENCODEARGS:
-    case RPC_CANTDECODERES:
-    case RPC_TIMEDOUT:
-    case RPC_PROGUNAVAIL:
-    case RPC_PROCUNAVAIL:
-    case RPC_CANTDECODEARGS:
-    case RPC_SYSTEMERROR:
-    case RPC_UNKNOWNHOST:
-    case RPC_UNKNOWNPROTO:
-    case RPC_PMAPFAILURE:
-    case RPC_PROGNOTREGISTERED:
-    case RPC_FAILED:
-      break;
-
-    case RPC_CANTSEND:
-    case RPC_CANTRECV:
-      strerror_r (e.re_errno, chrbuf, sizeof chrbuf);
-      len = sprintf (str, "; errno = %s", chrbuf); 
-      str += len;
-      break;
-
-    case RPC_VERSMISMATCH:
-      len= sprintf (str, _("; low version = %lu, high version = %lu"),
-		    e.re_vers.low, e.re_vers.high);
-      str += len;
-      break;
-
-    case RPC_AUTHERROR:
-      err = auth_errmsg (e.re_why);
-      (void) strcpy(str, _("; why = "));
-      str += strlen(str);
-
-      if (err != NULL)
-	{
-	  (void) strcpy(str, err);
-	  str += strlen(str);
-	}
-      else
-	{
-	  len = sprintf (str, _("(unknown authentication error - %d)"),
-			 (int) e.re_why);
-	  str += len;
-	}
-      break;
-
-    case RPC_PROGVERSMISMATCH:
-      len = sprintf (str, _("; low version = %lu, high version = %lu"),
-		     e.re_vers.low, e.re_vers.high);
-      str += len;
-      break;
-
-    default:			/* unknown */
-      len = sprintf (str, "; s1 = %lu, s2 = %lu", e.re_lb.s1, e.re_lb.s2);
-      str += len;
-      break;
-    }
-  *str = '\n';
-  *++str = '\0';
-  return (strstart);
-}
-
-void
-clnt_perror (CLIENT * rpch, const char *msg)
-{
-#ifdef USE_IN_LIBIO
-  if (_IO_fwide (stderr, 0) > 0)
-    (void) __fwprintf (stderr, L"%s", clnt_sperror (rpch, msg));
-  else
-#endif
-    (void) fputs (clnt_sperror (rpch, msg), stderr);
-}
-
 
 struct rpc_errtab
 {
@@ -275,6 +186,7 @@ static const struct rpc_errtab rpc_errlist[] =
 /*
  * This interface for use by clntrpc
  */
+libc_hidden_proto(clnt_sperrno)
 char *
 clnt_sperrno (enum clnt_stat stat)
 {
@@ -289,19 +201,122 @@ clnt_sperrno (enum clnt_stat stat)
     }
   return _("RPC: (unknown error code)");
 }
+libc_hidden_def(clnt_sperrno)
 
 void
 clnt_perrno (enum clnt_stat num)
 {
 #ifdef USE_IN_LIBIO
   if (_IO_fwide (stderr, 0) > 0)
-    (void) __fwprintf (stderr, L"%s", clnt_sperrno (num));
+    (void) fwprintf (stderr, L"%s", clnt_sperrno (num));
   else
 #endif
     (void) fputs (clnt_sperrno (num), stderr);
 }
 
+/*
+ * Print reply error info
+ */
+libc_hidden_proto(clnt_sperror)
+char *
+clnt_sperror (CLIENT * rpch, const char *msg)
+{
+  char chrbuf[1024];
+  struct rpc_err e;
+  char *err;
+  char *str = _buf ();
+  char *strstart = str;
+  int len;
 
+  if (str == NULL)
+    return NULL;
+  CLNT_GETERR (rpch, &e);
+
+  len = sprintf (str, "%s: ", msg);
+  str += len;
+
+  (void) strcpy(str, clnt_sperrno(e.re_status));
+  str += strlen(str);
+
+  switch (e.re_status)
+    {
+    case RPC_SUCCESS:
+    case RPC_CANTENCODEARGS:
+    case RPC_CANTDECODERES:
+    case RPC_TIMEDOUT:
+    case RPC_PROGUNAVAIL:
+    case RPC_PROCUNAVAIL:
+    case RPC_CANTDECODEARGS:
+    case RPC_SYSTEMERROR:
+    case RPC_UNKNOWNHOST:
+    case RPC_UNKNOWNPROTO:
+    case RPC_PMAPFAILURE:
+    case RPC_PROGNOTREGISTERED:
+    case RPC_FAILED:
+      break;
+
+    case RPC_CANTSEND:
+    case RPC_CANTRECV:
+      __glibc_strerror_r (e.re_errno, chrbuf, sizeof chrbuf);
+      len = sprintf (str, "; errno = %s", chrbuf); 
+      str += len;
+      break;
+
+    case RPC_VERSMISMATCH:
+      len= sprintf (str, _("; low version = %lu, high version = %lu"),
+		    e.re_vers.low, e.re_vers.high);
+      str += len;
+      break;
+
+    case RPC_AUTHERROR:
+      err = auth_errmsg (e.re_why);
+      (void) strcpy(str, _("; why = "));
+      str += strlen(str);
+
+      if (err != NULL)
+	{
+	  (void) strcpy(str, err);
+	  str += strlen(str);
+	}
+      else
+	{
+	  len = sprintf (str, _("(unknown authentication error - %d)"),
+			 (int) e.re_why);
+	  str += len;
+	}
+      break;
+
+    case RPC_PROGVERSMISMATCH:
+      len = sprintf (str, _("; low version = %lu, high version = %lu"),
+		     e.re_vers.low, e.re_vers.high);
+      str += len;
+      break;
+
+    default:			/* unknown */
+      len = sprintf (str, "; s1 = %lu, s2 = %lu", e.re_lb.s1, e.re_lb.s2);
+      str += len;
+      break;
+    }
+  *str = '\n';
+  *++str = '\0';
+  return (strstart);
+}
+libc_hidden_def(clnt_sperror)
+
+libc_hidden_proto(clnt_perror)
+void
+clnt_perror (CLIENT * rpch, const char *msg)
+{
+#ifdef USE_IN_LIBIO
+  if (_IO_fwide (stderr, 0) > 0)
+    (void) fwprintf (stderr, L"%s", clnt_sperror (rpch, msg));
+  else
+#endif
+    (void) fputs (clnt_sperror (rpch, msg), stderr);
+}
+libc_hidden_def(clnt_perror)
+
+libc_hidden_proto(clnt_spcreateerror)
 char *
 clnt_spcreateerror (const char *msg)
 {
@@ -334,7 +349,7 @@ clnt_spcreateerror (const char *msg)
       (void) strcpy(cp, " - ");
       cp += strlen(cp);
 
-      strerror_r (ce->cf_error.re_errno, chrbuf, sizeof chrbuf);
+      __glibc_strerror_r (ce->cf_error.re_errno, chrbuf, sizeof chrbuf);
       (void) strcpy(cp, chrbuf);
       cp += strlen(cp);
       break;
@@ -345,13 +360,14 @@ clnt_spcreateerror (const char *msg)
   *++cp = '\0';
   return str;
 }
+libc_hidden_def(clnt_spcreateerror)
 
 void
 clnt_pcreateerror (const char *msg)
 {
 #ifdef USE_IN_LIBIO
   if (_IO_fwide (stderr, 0) > 0)
-    (void) __fwprintf (stderr, L"%s", clnt_spcreateerror (msg));
+    (void) fwprintf (stderr, L"%s", clnt_spcreateerror (msg));
   else
 #endif
     (void) fputs (clnt_spcreateerror (msg), stderr);

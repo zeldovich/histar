@@ -37,12 +37,18 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-		.text
-		.global memmove;
-		.type memmove,%function
-		.align 4;                                                               \
+#include <features.h>
+
+.text
+.global memmove
+.type memmove,%function
+.align 4
 
 memmove:
 	stmfd	sp!, {r0, lr}
-	bl	_memcpy (PLT)
+	bl	_memcpy
 	ldmfd	sp!, {r0, pc}
+
+.size memmove,.-memmove
+
+libc_hidden_def(memmove)

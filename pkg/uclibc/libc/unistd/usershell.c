@@ -30,7 +30,6 @@
  * November 2002, Erik Andersen <andersen@codepoet.org> 
  */
 
-#define _GNU_SOURCE
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -40,6 +39,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <paths.h>
+
+#if defined __USE_BSD || (defined __USE_XOPEN && !defined __USE_UNIX98)
+
+libc_hidden_proto(fstat)
+libc_hidden_proto(fopen)
+libc_hidden_proto(fclose)
+libc_hidden_proto(__fsetlocking)
+libc_hidden_proto(fileno)
+libc_hidden_proto(fgets_unlocked)
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
+#endif
 
 /*
  * Local shells should NOT be added here.  They should be added in
@@ -135,3 +148,4 @@ cleanup:
     fclose(fp);
     return (char **) validsh;
 }
+#endif

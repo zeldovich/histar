@@ -4,32 +4,16 @@
 #
 
 config TARGET_ARCH
+	string
 	default "sh"
 
-config HAVE_ELF
+config FORCE_OPTIONS_FOR_ARCH
 	bool
 	default y
+	select ARCH_ANY_ENDIAN
 
 config ARCH_CFLAGS
 	string
-
-config ARCH_LDFLAGS
-	string
-
-config LIBGCC_CFLAGS
-	string
-
-config HAVE_DOT_HIDDEN
-        bool
-	default y
-
-config ARCH_SUPPORTS_BIG_ENDIAN
-	bool
-	default y
-
-config ARCH_SUPPORTS_LITTLE_ENDIAN
-	bool
-	default y
 
 choice
 	prompt "Target Processor Type"
@@ -48,13 +32,11 @@ choice
 
 config CONFIG_SH2A
 	select ARCH_HAS_NO_MMU
-	select ARCH_HAS_NO_LDSO
 	select HAVE_NO_PIC
 	bool "SH2A"
 
 config CONFIG_SH2
 	select ARCH_HAS_NO_MMU
-	select ARCH_HAS_NO_LDSO
 	bool "SH2"
 
 config CONFIG_SH3
@@ -66,4 +48,3 @@ config CONFIG_SH4
 	bool "SH4"
 
 endchoice
-

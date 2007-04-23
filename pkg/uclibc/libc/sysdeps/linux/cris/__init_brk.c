@@ -5,8 +5,9 @@
 #include <errno.h>
 #include "sysdep.h"
 
-void * __curbrk = 0;
+void * __curbrk attribute_hidden = 0;
 
+extern int __init_brk (void) attribute_hidden;
 int
 __init_brk (void)
 {

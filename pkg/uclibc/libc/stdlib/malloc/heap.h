@@ -7,7 +7,7 @@
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License.  See the file COPYING.LIB in the main
  * directory of this archive for more details.
- * 
+ *
  * Written by Miles Bader <miles@gnu.org>
  */
 
@@ -17,6 +17,7 @@
 /* On multi-threaded systems, the heap includes a lock.  */
 #ifdef __UCLIBC_HAS_THREADS__
 # include <pthread.h>
+# include <bits/uClibc_pthread.h>
 # define HEAP_USE_LOCKING
 #endif
 
@@ -24,8 +25,8 @@
 /* The heap allocates in multiples of, and aligned to, HEAP_GRANULARITY.
    HEAP_GRANULARITY must be a power of 2.  Malloc depends on this being the
    same as MALLOC_ALIGNMENT.  */
-#define HEAP_GRANULARITY_TYPE	double
-#define HEAP_GRANULARITY	(sizeof (HEAP_GRANULARITY_TYPE))
+#define HEAP_GRANULARITY_TYPE	double __attribute_aligned__ (sizeof (size_t))
+#define HEAP_GRANULARITY	(__alignof__ (HEAP_GRANULARITY_TYPE))
 
 
 /* A heap is a collection of memory blocks, from which smaller blocks
@@ -135,14 +136,8 @@ extern void __heap_dump (struct heap *heap, const char *str);
 extern void __heap_check (struct heap *heap, const char *str);
 
 
-#ifdef HEAP_USE_LOCKING
-# define __heap_lock(heap)	__pthread_mutex_lock (&(heap)->lock)
-# define __heap_unlock(heap)	__pthread_mutex_unlock (&(heap)->lock)
-#else /* !__UCLIBC_HAS_THREADS__ */
-/* Without threads, mutex operations are a nop.  */
-# define __heap_lock(heap)	(void)0
-# define __heap_unlock(heap)	(void)0
-#endif /* HEAP_USE_LOCKING */
+#define __heap_lock(heap)	__pthread_mutex_lock (&(heap)->lock)
+#define __heap_unlock(heap)	__pthread_mutex_unlock (&(heap)->lock)
 
 
 /* Delete the free-area FA from HEAP.  */

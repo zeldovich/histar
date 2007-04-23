@@ -1,16 +1,31 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #include <stdio.h>
 #include <stddef.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <stdlib.h>
+
+libc_hidden_proto(_exit)
+libc_hidden_proto(wait4)
+libc_hidden_proto(execl)
+libc_hidden_proto(signal)
+libc_hidden_proto(vfork)
 
 /* uClinux-2.0 has vfork, but Linux 2.0 doesn't */
 #include <sys/syscall.h>
-#if ! defined __NR_vfork
-#define vfork fork	
+#ifndef __NR_vfork
+# define vfork fork	
+libc_hidden_proto(fork)
 #endif
 
-int __libc_system(char *command)
+extern __typeof(system) __libc_system;
+int __libc_system(const char *command)
 {
 	int wait_val, pid;
 	__sighandler_t save_quit, save_int, save_chld;
@@ -41,7 +56,7 @@ int __libc_system(char *command)
 	signal(SIGINT, SIG_IGN);
 
 #if 0
-	printf("Waiting for child %d\n", pid);
+	__printf("Waiting for child %d\n", pid);
 #endif
 
 	if (wait4(pid, &wait_val, 0, 0) == -1)
@@ -52,4 +67,4 @@ int __libc_system(char *command)
 	signal(SIGCHLD, save_chld);
 	return wait_val;
 }
-weak_alias(__libc_system, system)
+weak_alias(__libc_system,system)

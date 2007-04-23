@@ -9,6 +9,10 @@
 #include <stdarg.h>
 #include <wchar.h>
 
+libc_hidden_proto(vswprintf)
+
+libc_hidden_proto(vfwprintf)
+
 #ifndef __STDIO_BUFFERS
 #warning Skipping vswprintf since no buffering!
 #else  /* __STDIO_BUFFERS */
@@ -66,5 +70,6 @@ int vswprintf(wchar_t *__restrict buf, size_t size,
 	}
 	return rv;
 }
+libc_hidden_def(vswprintf)
 
 #endif /* __STDIO_BUFFERS */

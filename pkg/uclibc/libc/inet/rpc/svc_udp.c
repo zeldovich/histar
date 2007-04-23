@@ -40,7 +40,6 @@ static char sccsid[] = "@(#)svc_udp.c 1.24 87/08/11 Copyr 1984 Sun Micro";
  */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 #include <stdio.h>
@@ -58,7 +57,30 @@ static char sccsid[] = "@(#)svc_udp.c 1.24 87/08/11 Copyr 1984 Sun Micro";
 # include <wchar.h>
 # include <libio/iolibio.h>
 # define fputs(s, f) _IO_fputs (s, f)
+libc_hidden_proto(fwprintf)
 #endif
+
+libc_hidden_proto(memcmp)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+libc_hidden_proto(perror)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(xprt_register)
+libc_hidden_proto(xprt_unregister)
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_callmsg)
+libc_hidden_proto(xdr_replymsg)
+libc_hidden_proto(getsockname)
+libc_hidden_proto(setsockopt)
+libc_hidden_proto(bind)
+libc_hidden_proto(bindresvport)
+libc_hidden_proto(recvfrom)
+libc_hidden_proto(sendto)
+libc_hidden_proto(recvmsg)
+libc_hidden_proto(sendmsg)
+libc_hidden_proto(fputs)
+libc_hidden_proto(fprintf)
 
 #define rpc_buffer(xprt) ((xprt)->xp_p1)
 #ifndef MAX
@@ -112,10 +134,9 @@ struct svcudp_data
  * see (svc.h, xprt_register).
  * The routines returns NULL if a problem occurred.
  */
+libc_hidden_proto(svcudp_bufcreate)
 SVCXPRT *
-svcudp_bufcreate (sock, sendsz, recvsz)
-     int sock;
-     u_int sendsz, recvsz;
+svcudp_bufcreate (int sock, u_int sendsz, u_int recvsz)
 {
   bool_t madesock = FALSE;
   SVCXPRT *xprt;
@@ -155,7 +176,7 @@ svcudp_bufcreate (sock, sendsz, recvsz)
     {
 #ifdef USE_IN_LIBIO
       if (_IO_fwide (stderr, 0) > 0)
-	(void) __fwprintf (stderr, L"%s", _("svcudp_create: out of memory\n"));
+	(void) fwprintf (stderr, L"%s", _("svcudp_create: out of memory\n"));
       else
 #endif
 	(void) fputs (_("svcudp_create: out of memory\n"), stderr);
@@ -181,7 +202,7 @@ svcudp_bufcreate (sock, sendsz, recvsz)
     {
 # ifdef USE_IN_LIBIO
       if (_IO_fwide (stderr, 0) > 0)
-	(void) __fwprintf (stderr, L"%s",
+	(void) fwprintf (stderr, L"%s",
 			   _("svcudp_create: xp_pad is too small for IP_PKTINFO\n"));
       else
 # endif
@@ -203,18 +224,20 @@ svcudp_bufcreate (sock, sendsz, recvsz)
   xprt_register (xprt);
   return xprt;
 }
+libc_hidden_def(svcudp_bufcreate)
 
+libc_hidden_proto(svcudp_create)
 SVCXPRT *
-svcudp_create (sock)
-     int sock;
+svcudp_create (int sock)
 {
 
   return svcudp_bufcreate (sock, UDPMSGSIZE, UDPMSGSIZE);
 }
+libc_hidden_def(svcudp_create)
 
 static enum xprt_stat
 svcudp_stat (xprt)
-     SVCXPRT *xprt;
+     SVCXPRT *xprt attribute_unused;
 {
 
   return XPRT_IDLE;
@@ -462,6 +485,7 @@ struct udp_cache
  * Enable use of the cache.
  * Note: there is no disable.
  */
+int svcudp_enablecache (SVCXPRT *transp, u_long size);
 int
 svcudp_enablecache (SVCXPRT *transp, u_long size)
 {

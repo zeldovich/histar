@@ -69,7 +69,8 @@ alarm(unsigned int seconds)
 }
 
 int
-setitimer(int which, const struct itimerval *value, struct itimerval *ovalue)
+setitimer(__itimer_which_t which, const struct itimerval *value,
+	  struct itimerval *ovalue)
 {
     set_enosys();
     return -1;

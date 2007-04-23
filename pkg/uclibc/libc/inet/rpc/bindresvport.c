@@ -40,9 +40,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+libc_hidden_proto(memset)
+libc_hidden_proto(bind)
+libc_hidden_proto(getpid)
+
 /*
  * Bind a socket to a privileged IP port
  */
+libc_hidden_proto(bindresvport)
 int
 bindresvport (int sd, struct sockaddr_in *sin)
 {
@@ -86,3 +91,4 @@ bindresvport (int sd, struct sockaddr_in *sin)
 
   return res;
 }
+libc_hidden_def(bindresvport)

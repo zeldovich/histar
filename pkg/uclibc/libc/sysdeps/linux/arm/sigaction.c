@@ -25,14 +25,11 @@
 #include <sys/syscall.h>
 #include <bits/kernel_sigaction.h>
 
-extern int __syscall_sigaction (int, const struct old_kernel_sigaction *__unbounded,
-				struct old_kernel_sigaction *__unbounded);
-extern int __syscall_rt_sigaction (int, const struct kernel_sigaction *__unbounded,
-				   struct kernel_sigaction *__unbounded, size_t);
-
 #define SA_RESTORER	0x04000000
 extern void __default_sa_restorer(void);
 extern void __default_rt_sa_restorer(void);
+
+extern __typeof(sigaction) __libc_sigaction;
 
 /* When RT signals are in use we need to use a different return stub.  */
 #ifdef __NR_rt_sigreturn
@@ -44,10 +41,9 @@ extern void __default_rt_sa_restorer(void);
   __default_sa_restorer
 #endif
 
-
-
 #ifdef __NR_rt_sigaction
 
+libc_hidden_proto(memcpy)
 
 /* If ACT is not NULL, change the action for SIG to *ACT.
    If OACT is not NULL, put the old action for SIG in *OACT.  */
@@ -61,14 +57,7 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 	memcpy (&kact.sa_mask, &act->sa_mask, sizeof (sigset_t));
 	kact.sa_flags = act->sa_flags;
 # ifdef HAVE_SA_RESTORER
-	/* If the user specified SA_ONSTACK this means she is trying to
-	   use the old-style stack switching.  Unfortunately this
-	   requires the sa_restorer field so we cannot install our own
-	   handler.  (In fact the user is likely to be out of luck anyway
-	   since the kernel currently only supports stack switching via
-	   the X/Open sigaltstack interface, but we allow for the
-	   possibility that this might change in the future.)  */
-	if (kact.sa_flags & (SA_RESTORER | SA_ONSTACK)) {
+	if (kact.sa_flags & SA_RESTORER) {
 	    kact.sa_restorer = act->sa_restorer;
 	} else {
 	    kact.sa_restorer = choose_restorer (kact.sa_flags);
@@ -95,8 +84,6 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 
 #else
 
-
-
 /* If ACT is not NULL, change the action for SIG to *ACT.
    If OACT is not NULL, put the old action for SIG in *OACT.  */
 int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oact)
@@ -109,8 +96,7 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 	kact.sa_mask = act->sa_mask.__val[0];
 	kact.sa_flags = act->sa_flags;
 # ifdef HAVE_SA_RESTORER
-	/* See the comments above for why we test SA_ONSTACK.  */
-	if (kact.sa_flags & (SA_RESTORER | SA_ONSTACK)) {
+	if (kact.sa_flags & SA_RESTORER) {
 	    kact.sa_restorer = act->sa_restorer;
 	} else {
 	    kact.sa_restorer = choose_restorer (kact.sa_flags);
@@ -132,5 +118,9 @@ int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oa
 }
 
 #endif
-weak_alias(__libc_sigaction, sigaction)
 
+#ifndef LIBC_SIGACTION
+libc_hidden_proto(sigaction)
+weak_alias(__libc_sigaction,sigaction)
+libc_hidden_weak(sigaction)
+#endif

@@ -1,18 +1,6 @@
 /*  Copyright (C) 2003     Manuel Novoa III
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Library General Public
- *  License as published by the Free Software Foundation; either
- *  version 2 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Library General Public License for more details.
- *
- *  You should have received a copy of the GNU Library General Public
- *  License along with this library; if not, write to the Free
- *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
 /*  ATTENTION!   ATTENTION!   ATTENTION!   ATTENTION!   ATTENTION!
@@ -30,10 +18,13 @@
  *   Initial version of a SUSv3 compliant getopt().
  */
 
-#define _GNU_SOURCE
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <getopt.h>
+
+libc_hidden_proto(fprintf)
+libc_hidden_proto(strchr)
 
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning TODO: Enable gettext awareness.
@@ -55,6 +46,7 @@ int optind = 1;
 int optopt = 0;
 char *optarg = NULL;
 
+libc_hidden_proto(getopt)
 int getopt(int argc, char * const argv[], const char *optstring)
 {
 	static const char *o;		/* multi opt position */
@@ -131,3 +123,4 @@ int getopt(int argc, char * const argv[], const char *optstring)
  DONE:
 	return retval;
 }
+libc_hidden_def(getopt)

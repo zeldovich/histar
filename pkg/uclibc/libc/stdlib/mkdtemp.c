@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include "../misc/internals/tempname.h"
 
+#ifdef __USE_BSD
 /* Generate a unique temporary directory name from TEMPLATE.
    The last six characters of TEMPLATE must be "XXXXXX";
    they are replaced with a string that makes the filename unique.
@@ -28,9 +29,9 @@
    (This function comes from OpenBSD.) */
 char * mkdtemp (char *template)
 {
-    if (__gen_tempname (template, __GT_DIR))
-	/* We return the null string if we can't find a unique file name.  */
-	template[0] = '\0';
-
+  if (__gen_tempname (template, __GT_DIR))
+    return NULL;
+  else
     return template;
 }
+#endif

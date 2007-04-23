@@ -27,27 +27,26 @@
  * and is useful in debugging the stdio code.
  */
 
-#define _ISOC99_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <bits/uClibc_uintmaxtostr.h>
+
+libc_hidden_proto(fprintf)
+libc_hidden_proto(abort)
 
 /* Get the prototype from assert.h as a double-check. */
 #undef NDEBUG
 #include <assert.h>
 #undef assert
 
+libc_hidden_proto(__assert)
 
 #define ASSERT_SHOW_PROGNAME 1
 
-#ifdef ASSERT_SHOW_PROGNAME
-extern const char *__progname;
-#endif
-
 static int in_assert;			/* bss inits to 0. */
 
-void __assert(const char *assertion, const char * filename,
+void attribute_noreturn __assert(const char *assertion, const char * filename,
 			  int linenumber, register const char * function)
 {
 	if (!in_assert) {
@@ -55,7 +54,7 @@ void __assert(const char *assertion, const char * filename,
 
 		fprintf(stderr,
 #ifdef ASSERT_SHOW_PROGNAME
-				"%s: %s: %d: %s: Assertion `%s' failed.\n", __progname,
+				"%s: %s: %d: %s: Assertion `%s' failed.\n", __uclibc_progname,
 #else
 				"%s: %d: %s: Assertion `%s' failed.\n",
 #endif
@@ -68,3 +67,5 @@ void __assert(const char *assertion, const char * filename,
 	}
 	abort();
 }
+
+libc_hidden_def(__assert)

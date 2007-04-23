@@ -86,7 +86,7 @@
  *   NOTE: uClibc mktime behavior is different than glibc's when
  *   the struct tm has tm_isdst == -1 and also had fields outside of
  *   the normal ranges.
- * 
+ *
  *   Apparently, glibc examines (at least) tm_sec and guesses the app's
  *   intention of assuming increasing or decreasing time when entering an
  *   ambiguous time period at the dst<->st boundaries.
@@ -129,22 +129,64 @@
  *            differs (intentionally) from glibc's behavior.
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
+#include <sys/time.h>
 #include <limits.h>
 #include <assert.h>
 #include <errno.h>
 #include <ctype.h>
 #include <langinfo.h>
 #include <locale.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <bits/uClibc_uintmaxtostr.h>
+#include <bits/uClibc_mutex.h>
 
+
+#ifdef __UCLIBC_HAS_WCHAR__
+#include <wchar.h>
+#endif
 #ifdef __UCLIBC_HAS_XLOCALE__
 #include <xlocale.h>
+#endif
+
+libc_hidden_proto(asctime)
+libc_hidden_proto(asctime_r)
+libc_hidden_proto(ctime)
+libc_hidden_proto(localtime)
+libc_hidden_proto(localtime_r)
+
+libc_hidden_proto(memset)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(strncpy)
+/* libc_hidden_proto(sprintf) */
+libc_hidden_proto(open)
+libc_hidden_proto(read)
+libc_hidden_proto(close)
+libc_hidden_proto(getenv)
+libc_hidden_proto(tzset)
+libc_hidden_proto(gettimeofday)
+libc_hidden_proto(strncasecmp)
+libc_hidden_proto(strtol)
+libc_hidden_proto(strtoul)
+libc_hidden_proto(nl_langinfo)
+
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(strncasecmp_l)
+libc_hidden_proto(strtol_l)
+libc_hidden_proto(strtoul_l)
+libc_hidden_proto(nl_langinfo_l)
+libc_hidden_proto(__ctype_b_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
 #endif
 
 #ifndef __isleap
@@ -153,6 +195,23 @@
 
 #ifndef TZNAME_MAX
 #define TZNAME_MAX _POSIX_TZNAME_MAX
+#endif
+
+#if defined (L_tzset) || defined (L_localtime_r) || defined(L_strftime) || \
+    defined(L__time_mktime) || defined(L__time_mktime_tzi) || \
+    ((defined(L_strftime) || defined(L_strftime_l)) && \
+    defined(__UCLIBC_HAS_XLOCALE__))
+
+void _time_tzset(int use_old_rules);
+libc_hidden_proto(_time_tzset)
+
+#ifndef L__time_mktime
+
+ /* Jan 1, 2007 Z - tm = 0,0,0,1,0,107,1,0,0 */
+
+const static time_t new_rule_starts = 1167609600;
+
+#endif
 #endif
 
 /**********************************************************************/
@@ -164,8 +223,6 @@
 #ifdef __UCLIBC_HAS_TZ_FILE__
 
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include "paths.h"
 /* ":<tzname>+hh:mm:ss<tzname>+hh:mm:ss,Mmm.w.d/hh:mm:ss,Mmm.w.d/hh:mm:ss" + nul */
 /* 1 + 2*(1+TZNAME_MAX+1 + 9 + 7 + 9) + 1 = 2*TZNAME_MAX + 56 */
@@ -179,7 +236,7 @@
 
 /**********************************************************************/
 
-extern struct tm __time_tm;
+extern struct tm __time_tm attribute_hidden;
 
 typedef struct {
 	long gmt_offset;
@@ -191,45 +248,32 @@ typedef struct {
 	char tzname[TZNAME_MAX+1];
 } rule_struct;
 
-#ifdef __UCLIBC_HAS_THREADS__
+__UCLIBC_MUTEX_EXTERN(_time_tzlock);
 
-#include <pthread.h>
-
-extern pthread_mutex_t _time_tzlock;
-
-#define TZLOCK		__pthread_mutex_lock(&_time_tzlock)
-#define TZUNLOCK	__pthread_mutex_unlock(&_time_tzlock)
-
-#else
-
-#define TZLOCK		((void) 0)
-#define TZUNLOCK	((void) 0)
-
-#endif
-
-extern rule_struct _time_tzinfo[2];
+extern rule_struct _time_tzinfo[2] attribute_hidden;
 
 extern struct tm *_time_t2tm(const time_t *__restrict timer,
-							 int offset, struct tm *__restrict result);
+					int offset, struct tm *__restrict result) attribute_hidden;
 
-extern time_t _time_mktime(struct tm *timeptr, int store_on_success);
+extern time_t _time_mktime(struct tm *timeptr, int store_on_success) attribute_hidden;
 
 extern struct tm *__time_localtime_tzi(const time_t *__restrict timer,
-									   struct tm *__restrict result,
-									   rule_struct *tzi);
+					struct tm *__restrict result,
+					rule_struct *tzi) attribute_hidden;
 
 extern time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
-							   rule_struct *tzi);
+					rule_struct *tzi) attribute_hidden;
 
 /**********************************************************************/
 #ifdef L_asctime
 
 static char __time_str[26];
 
-char *asctime(const struct tm *__restrict ptm)
+char *asctime(const struct tm *ptm)
 {
 	return asctime_r(ptm, __time_str);
 }
+libc_hidden_def(asctime)
 
 #endif
 /**********************************************************************/
@@ -245,16 +289,16 @@ char *asctime(const struct tm *__restrict ptm)
  *       };
  *       static char mon_name[12][3] = {
  *           "Jan", "Feb", "Mar", "Apr", "May", "Jun",
- *           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" 
+ *           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
  *       };
  *       static char result[26];
- *   
+ *
  *       sprintf(result, "%.3s %.3s%3d %.2d:%.2d:%.2d %d\n",
- *           wday_name[timeptr->tm_wday],                   
+ *           wday_name[timeptr->tm_wday],
  *           mon_name[timeptr->tm_mon],
  *           timeptr->tm_mday, timeptr->tm_hour,
- *           timeptr->tm_min, timeptr->tm_sec,  
- *           1900 + timeptr->tm_year);        
+ *           timeptr->tm_min, timeptr->tm_sec,
+ *           1900 + timeptr->tm_year);
  *       return result;
  *   }
  *
@@ -280,10 +324,10 @@ static const unsigned char at_data[] = {
 
 	'J', 'a', 'n', 'F', 'e', 'b', 'M', 'a', 'r', 'A', 'p', 'r',
 	'M', 'a', 'y', 'J', 'u', 'n', 'J', 'u', 'l', 'A', 'u', 'g',
-	'S', 'e', 'p', 'O', 'c', 't', 'N', 'o', 'v', 'D', 'e', 'c', 
+	'S', 'e', 'p', 'O', 'c', 't', 'N', 'o', 'v', 'D', 'e', 'c',
 
 #ifdef SAFE_ASCTIME_R
-	'?', '?', '?', 
+	'?', '?', '?',
 #endif
 	' ', '?', '?', '?',
 	' ', '0',
@@ -335,10 +379,22 @@ char *asctime_r(register const struct tm *__restrict ptm,
 			tmp /= 10;
 		} while (*--buffer == '?');
 	}
+/*	Not sure if we should even bother ...
+	} else {
+		__set_errno(EOVERFLOW);
+		return NULL;
+	}
+*/
 #else  /* SAFE_ASCTIME_R */
 	buffer += 23;
 	tmp = ptm->tm_year + 1900;
 	assert( ((unsigned int) tmp) < 10000 );
+/*	Not sure if we should even bother ...
+	if ( ((unsigned int) tmp) >= 10000 ) {
+		__set_errno(EOVERFLOW);
+		return NULL;
+	}
+*/
 	do {
 		*buffer = '0' + (tmp % 10);
 		tmp /= 10;
@@ -371,12 +427,15 @@ char *asctime_r(register const struct tm *__restrict ptm,
 
 	return buffer - 8;
 }
+libc_hidden_def(asctime_r)
 
 #endif
 /**********************************************************************/
 #ifdef L_clock
 
 #include <sys/times.h>
+
+libc_hidden_proto(times)
 
 #ifndef __BCC__
 #if CLOCKS_PER_SEC != 1000000L
@@ -442,21 +501,21 @@ clock_t clock(void)
 /**********************************************************************/
 #ifdef L_ctime
 
-char *ctime(const time_t *clock)
+char *ctime(const time_t *t)
 {
 	/* ANSI/ISO/SUSv3 say that ctime is equivalent to the following. */
-	return asctime(localtime(clock));
+	return asctime(localtime(t));
 }
-
+libc_hidden_def(ctime)
 #endif
 /**********************************************************************/
 #ifdef L_ctime_r
 
-char *ctime_r(const time_t *clock, char *buf)
+char *ctime_r(const time_t *t, char *buf)
 {
 	struct tm xtm;
 
-	return asctime_r(localtime_r(clock, &xtm), buf);
+	return asctime_r(localtime_r(t, &xtm), buf);
 }
 
 #endif
@@ -534,6 +593,7 @@ struct tm *localtime(const time_t *timer)
 
 	return ptm;
 }
+libc_hidden_def(localtime)
 
 #endif
 /**********************************************************************/
@@ -542,22 +602,25 @@ struct tm *localtime(const time_t *timer)
 struct tm *localtime_r(register const time_t *__restrict timer,
 					   register struct tm *__restrict result)
 {
-	TZLOCK;
+	__UCLIBC_MUTEX_LOCK(_time_tzlock);
 
-	tzset();
+	_time_tzset(*timer < new_rule_starts);
 
 	__time_localtime_tzi(timer, result, _time_tzinfo);
 
-	TZUNLOCK;
+	__UCLIBC_MUTEX_UNLOCK(_time_tzlock);
 
 	return result;
 }
+libc_hidden_def(localtime_r)
 
 #endif
 /**********************************************************************/
 #ifdef L__time_localtime_tzi
 
 #ifdef __UCLIBC_HAS_TM_EXTENSIONS__
+
+libc_hidden_proto(strnlen)
 
 struct ll_tzname_item;
 
@@ -600,7 +663,7 @@ static const char *lookup_tzname(const char *key)
 
 static const unsigned char day_cor[] = { /* non-leap */
 	31, 31, 34, 34, 35, 35, 36, 36, 36, 37, 37, 38, 38
-/* 	 0,  0,  3,  3,  4,  4,  5,  5,  5,  6,  6,  7,  7 */
+/*	 0,  0,  3,  3,  4,  4,  5,  5,  5,  6,  6,  7,  7 */
 /*	    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 */
 };
 
@@ -679,7 +742,7 @@ static int tm_isdst(register const struct tm *__restrict ptm,
 	return (isdst & 1);
 }
 
-struct tm *__time_localtime_tzi(register const time_t *__restrict timer,
+struct tm attribute_hidden *__time_localtime_tzi(register const time_t *__restrict timer,
 								register struct tm *__restrict result,
 								rule_struct *tzi)
 {
@@ -700,8 +763,13 @@ struct tm *__time_localtime_tzi(register const time_t *__restrict timer,
 		_time_t2tm(x, days, result);
 		result->tm_isdst = dst;
 #ifdef __UCLIBC_HAS_TM_EXTENSIONS__
+# ifdef __USE_BSD
 		result->tm_gmtoff = - tzi[dst].gmt_offset;
 		result->tm_zone = lookup_tzname(tzi[dst].tzname);
+# else
+		result->__tm_gmtoff = - tzi[dst].gmt_offset;
+		result->__tm_zone = lookup_tzname(tzi[dst].tzname);
+# endif
 #endif /* __UCLIBC_HAS_TM_EXTENSIONS__ */
 	} while ((++dst < 2)
 			 && ((result->tm_isdst = tm_isdst(result, tzi)) != 0));
@@ -713,14 +781,14 @@ struct tm *__time_localtime_tzi(register const time_t *__restrict timer,
 /**********************************************************************/
 #ifdef L_mktime
 
-/* Another name for `mktime'.  */
-/* time_t timelocal(struct tm *tp) */
-weak_alias(mktime,timelocal);
-
 time_t mktime(struct tm *timeptr)
 {
 	return  _time_mktime(timeptr, 1);
 }
+
+/* Another name for `mktime'.  */
+/* time_t timelocal(struct tm *tp) */
+strong_alias(mktime,timelocal)
 
 #endif
 /**********************************************************************/
@@ -743,12 +811,17 @@ time_t timegm(struct tm *timeptr)
 
 #if defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE)
 
+libc_hidden_proto(strftime)
+
+libc_hidden_proto(strftime_l)
+
 size_t strftime(char *__restrict s, size_t maxsize,
 				const char *__restrict format,
 				const struct tm *__restrict timeptr)
 {
-	return __strftime_l(s, maxsize, format, timeptr, __UCLIBC_CURLOCALE);
+	return strftime_l(s, maxsize, format, timeptr, __UCLIBC_CURLOCALE);
 }
+libc_hidden_def(strftime)
 
 #else  /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
@@ -948,7 +1021,8 @@ static int load_field(int k, const struct tm *__restrict timeptr)
 #warning TODO: Check multibyte format string validity.
 #endif
 
-size_t __XL(strftime)(char *__restrict s, size_t maxsize,
+libc_hidden_proto(__XL_NPP(strftime))
+size_t __XL_NPP(strftime)(char *__restrict s, size_t maxsize,
 					  const char *__restrict format,
 					  const struct tm *__restrict timeptr   __LOCALE_PARAM )
 {
@@ -968,13 +1042,14 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 	unsigned char mod;
 	unsigned char code;
 
-	tzset();					/* We'll, let's get this out of the way. */
+	/* We'll, let's get this out of the way. */
+	_time_tzset(_time_mktime((struct tm *) timeptr, 0) < new_rule_starts);
 
 	lvl = 0;
 	p = format;
 	count = maxsize;
 
- LOOP:
+LOOP:
 	if (!count) {
 		return 0;
 	}
@@ -1021,7 +1096,7 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 				+ (code & 7);
 #ifdef ENABLE_ERA_CODE
 			if ((mod & NO_E_MOD) /* Actually, this means E modifier present. */
-				&& (*(o = __XL(nl_langinfo)(_NL_ITEM(LC_TIME,
+				&& (*(o = __XL_NPP(nl_langinfo)(_NL_ITEM(LC_TIME,
 											 (int)(((unsigned char *)p)[4]))
 											__LOCALE_ARG
 									  )))
@@ -1030,14 +1105,14 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 				goto LOOP;
 			}
 #endif
-			p = __XL(nl_langinfo)(_NL_ITEM(LC_TIME,
+			p = __XL_NPP(nl_langinfo)(_NL_ITEM(LC_TIME,
 									 (int)(*((unsigned char *)p)))
 								  __LOCALE_ARG
 								  );
 			goto LOOP;
 		}
 
-		o = spec + 26;		/* set to "????" */
+		o = ((const char *) spec) + 26;	/* set to "????" */
 		if ((code & MASK_SPEC) == CALC_SPEC) {
 
 			if (*p == 's') {
@@ -1073,17 +1148,20 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 
 #ifdef __UCLIBC_HAS_TM_EXTENSIONS__
 
-#define RSP_TZUNLOCK	((void) 0)
-#define RSP_TZNAME		timeptr->tm_zone
-#define RSP_GMT_OFFSET	(-timeptr->tm_gmtoff)
+# ifdef __USE_BSD
+#  define RSP_TZNAME		timeptr->tm_zone
+#  define RSP_GMT_OFFSET	(-timeptr->tm_gmtoff)
+# else
+#  define RSP_TZNAME		timeptr->__tm_zone
+#  define RSP_GMT_OFFSET	(-timeptr->__tm_gmtoff)
+# endif
 
 #else
 
-#define RSP_TZUNLOCK	TZUNLOCK
 #define RSP_TZNAME		rsp->tzname
 #define RSP_GMT_OFFSET	rsp->gmt_offset
 
-				TZLOCK;
+				__UCLIBC_MUTEX_LOCK(_time_tzlock);
 
 				rsp = _time_tzinfo;
 				if (timeptr->tm_isdst > 0) {
@@ -1114,24 +1192,30 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 					}
 #endif
 					o_count = SIZE_MAX;
-					RSP_TZUNLOCK;
+#ifdef __UCLIBC_HAS_TM_EXTENSIONS__
 					goto OUTPUT;
+#endif
 				} else {		/* z */
 					*s = '+';
 					if ((tzo = -RSP_GMT_OFFSET) < 0) {
 						tzo = -tzo;
 						*s = '-';
 					}
-					RSP_TZUNLOCK;
 					++s;
 					--count;
 
 					i = tzo / 60;
 					field_val = ((i / 60) * 100) + (i % 60);
-			
+
 					i = 16 + 6;	/* 0-fill, width = 4 */
 				}
-
+#ifdef __UCLIBC_HAS_TM_EXTENSIONS__
+#else
+				__UCLIBC_MUTEX_UNLOCK(_time_tzlock);
+				if (*p == 'Z') {
+					goto OUTPUT;
+				}
+#endif
 			} else {
 				/* TODO: don't need year for U, W */
 				for (i=0 ; i < 3 ; i++) {
@@ -1203,11 +1287,11 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 				field_val += 7;
 			}
 		}
-		
+
 		if ((code & MASK_SPEC) == STRING_SPEC) {
 			o_count = SIZE_MAX;
 			field_val += spec[STRINGS_NL_ITEM_START + (code & 0xf)];
-			o = __XL(nl_langinfo)(_NL_ITEM(LC_TIME, field_val)  __LOCALE_ARG );
+			o = __XL_NPP(nl_langinfo)(_NL_ITEM(LC_TIME, field_val)  __LOCALE_ARG );
 		} else {
 			o_count = ((i >> 1) & 3) + 1;
 			o = buf + o_count;
@@ -1221,7 +1305,7 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 		}
 	}
 
- OUTPUT:
+OUTPUT:
 	++p;
 	while (o_count && count && *o) {
 		*s++ = *o++;
@@ -1230,8 +1314,7 @@ size_t __XL(strftime)(char *__restrict s, size_t maxsize,
 	}
 	goto LOOP;
 }
-
-__XL_ALIAS(strftime)
+libc_hidden_def(__XL_NPP(strftime))
 
 #endif /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
@@ -1239,9 +1322,7 @@ __XL_ALIAS(strftime)
 /**********************************************************************/
 #if defined(L_strptime) || defined(L_strptime_l)
 
-#if defined(L_strptime) || defined(L_strptime_l)
 #define ISDIGIT(C) __isdigit_char((C))
-#endif
 
 #ifdef __UCLIBC_DO_XLOCALE
 #define ISSPACE(C) isspace_l((C), locale_arg)
@@ -1251,11 +1332,16 @@ __XL_ALIAS(strftime)
 
 #if defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE)
 
+libc_hidden_proto(strptime)
+
+libc_hidden_proto(strptime_l)
+
 char *strptime(const char *__restrict buf, const char *__restrict format,
 			   struct tm *__restrict tm)
 {
-	return __strptime_l(buf, format, tm, __UCLIBC_CURLOCALE);
+	return strptime_l(buf, format, tm, __UCLIBC_CURLOCALE);
 }
+libc_hidden_def(strptime)
 
 #else  /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
@@ -1401,7 +1487,8 @@ static const unsigned char spec[] = {
 
 #define MAX_PUSH 4
 
-char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
+libc_hidden_proto(__XL_NPP(strptime))
+char *__XL_NPP(strptime)(const char *__restrict buf, const char *__restrict format,
 					 struct tm *__restrict tm   __LOCALE_PARAM)
 {
 	register const char *p;
@@ -1420,7 +1507,7 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 	lvl = 0;
 	p = format;
 
- LOOP:
+LOOP:
 	if (!*p) {
 		if (lvl == 0) {			/* Done. */
 			if (fields[6] == 7) { /* Cleanup for %u here since just once. */
@@ -1469,7 +1556,7 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 				+ (code & 7);
 #ifdef ENABLE_ERA_CODE
 			if ((mod & NO_E_MOD) /* Actually, this means E modifier present. */
-				&& (*(o = __XL(nl_langinfo)(_NL_ITEM(LC_TIME,
+				&& (*(o = __XL_NPP(nl_langinfo)(_NL_ITEM(LC_TIME,
 											  (int)(((unsigned char *)p)[4]))
 											__LOCALE_ARG
 											)))
@@ -1478,7 +1565,7 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 				goto LOOP;
 			}
 #endif
-			p = __XL(nl_langinfo)(_NL_ITEM(LC_TIME,
+			p = __XL_NPP(nl_langinfo)(_NL_ITEM(LC_TIME,
 										   (int)(*((unsigned char *)p)))
 								  __LOCALE_ARG );
 			goto LOOP;
@@ -1493,8 +1580,8 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 			/* Go backwards to check full names before abreviations. */
 			do {
 				--j;
-				o = __XL(nl_langinfo)(i+j   __LOCALE_ARG);
-				if (!__XL(strncasecmp)(buf,o,strlen(o)   __LOCALE_ARG) && *o) {
+				o = __XL_NPP(nl_langinfo)(i+j   __LOCALE_ARG);
+				if (!__XL_NPP(strncasecmp)(buf,o,strlen(o)   __LOCALE_ARG) && *o) {
 					do {		/* Found a match. */
 						++buf;
 					} while (*++o);
@@ -1522,9 +1609,9 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 				__set_errno(0);
 				if (!ISSPACE(*buf)) { /* Signal an error if whitespace. */
 #ifdef TIME_T_IS_UNSIGNED
-					t = __XL(strtoul)(buf, &o, 10   __LOCALE_ARG);
+					t = __XL_NPP(strtoul)(buf, &o, 10   __LOCALE_ARG);
 #else
-					t = __XL(strtol)(buf, &o, 10   __LOCALE_ARG);
+					t = __XL_NPP(strtol)(buf, &o, 10   __LOCALE_ARG);
 #endif
 				}
 				if ((o == buf) || errno) { /* Not a number or overflow. */
@@ -1610,8 +1697,7 @@ char *__XL(strptime)(const char *__restrict buf, const char *__restrict format,
 	}
 	return NULL;
 }
-
-__XL_ALIAS(strptime)
+libc_hidden_def(__XL_NPP(strptime))
 
 #endif /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
@@ -1650,7 +1736,9 @@ static const char vals[] = {
 	6,  0,  0,					/* Note: overloaded for non-M non-J case... */
 	0, 1, 0,					/* J */
 	',', 'M',      '4', '.', '1', '.', '0',
-	',', 'M', '1', '0', '.', '5', '.', '0', 0
+	',', 'M', '1', '0', '.', '5', '.', '0', 0,
+	',', 'M',      '3', '.', '2', '.', '0',
+	',', 'M', '1', '1', '.', '1', '.', '0', 0
 };
 
 #define TZ    vals
@@ -1658,15 +1746,14 @@ static const char vals[] = {
 #define RANGE (vals + 7)
 #define RULE  (vals + 11 - 1)
 #define DEFAULT_RULES (vals + 22)
+#define DEFAULT_2007_RULES (vals + 38)
 
 /* Initialize to UTC. */
 int daylight = 0;
 long timezone = 0;
 char *tzname[2] = { (char *) UTC, (char *) (UTC-1) };
 
-#ifdef __UCLIBC_HAS_THREADS__
-pthread_mutex_t _time_tzlock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#endif
+__UCLIBC_MUTEX_INIT(_time_tzlock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
 
 rule_struct _time_tzinfo[2];
 
@@ -1739,7 +1826,7 @@ static const char *getnumber(register const char *e, int *pn)
 #ifdef __UCLIBC_HAS_TZ_FILE__
 
 #ifndef __UCLIBC_HAS_TZ_FILE_READ_MANY__
-static int TZ_file_read;  		/* Let BSS initialization set this to 0. */
+static int TZ_file_read;		/* Let BSS initialization set this to 0. */
 #endif /* __UCLIBC_HAS_TZ_FILE_READ_MANY__ */
 
 static char *read_TZ_file(char *buf)
@@ -1770,7 +1857,7 @@ static char *read_TZ_file(char *buf)
 			++TZ_file_read;
 #endif /* __UCLIBC_HAS_TZ_FILE_READ_MANY__ */
 		} else {
-		ERROR:
+ERROR:
 			p = NULL;
 		}
 		close(fd);
@@ -1780,7 +1867,16 @@ static char *read_TZ_file(char *buf)
 
 #endif /* __UCLIBC_HAS_TZ_FILE__ */
 
+#ifndef __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(isascii)
+#endif
+
 void tzset(void)
+{
+    _time_tzset((time(NULL)) < new_rule_starts);
+}
+
+void _time_tzset(int use_old_rules)
 {
 	register const char *e;
 	register char *s;
@@ -1796,7 +1892,7 @@ void tzset(void)
 	static char oldval[TZ_BUFLEN]; /* BSS-zero'd. */
 #endif /* __UCLIBC_HAS_TZ_CACHING__ */
 
-	TZLOCK;
+	__UCLIBC_MUTEX_LOCK(_time_tzlock);
 
 	e = getenv(TZ);				/* TZ env var always takes precedence. */
 
@@ -1821,7 +1917,7 @@ void tzset(void)
 		 && !(e = read_TZ_file(buf)) /* and no file or invalid file */
 #endif /* __UCLIBC_HAS_TZ_FILE__ */
 		 ) || !*e) {			/* or set to empty string. */
-	ILLEGAL:					/* TODO: Clean up the following... */
+ILLEGAL:					/* TODO: Clean up the following... */
 #ifdef __UCLIBC_HAS_TZ_CACHING__
 		*oldval = 0;			/* Set oldval to an empty string. */
 #endif /* __UCLIBC_HAS_TZ_CACHING__ */
@@ -1843,10 +1939,10 @@ void tzset(void)
 	 * to the empty string anyway. */
 	strncpy(oldval, e, TZ_BUFLEN);
 #endif /* __UCLIBC_HAS_TZ_CACHING__ */
-	
+
 	count = 0;
 	new_rules[1].tzname[0] = 0;
- LOOP:
+LOOP:
 	/* Get std or dst name. */
 	c = 0;
 	if (*e == '<') {
@@ -1892,7 +1988,7 @@ void tzset(void)
 	if (*s == '-') {
 		off = -off;				/* Save off in case needed for dst default. */
 	}
- SKIP_OFFSET:
+SKIP_OFFSET:
 	new_rules[count].gmt_offset = off;
 
 	if (!count) {
@@ -1904,7 +2000,15 @@ void tzset(void)
 	} else {					/* OK, we have dst, so get some rules. */
 		count = 0;
 		if (!*e) {				/* No rules so default to US rules. */
-			e = DEFAULT_RULES;
+		        e = use_old_rules ? DEFAULT_RULES : DEFAULT_2007_RULES;
+#ifdef DEBUG_TZSET
+			if (e == DEFAULT_RULES)
+			    printf("tzset: Using old rules.\n");
+			else if (e == DEFAULT_2007_RULES)
+			    printf("tzset: Using new rules\n");
+			else
+			    printf("tzset: Using undefined rules\n");
+#endif /* DEBUG_TZSET */
 		}
 
 		do {
@@ -1956,18 +2060,18 @@ void tzset(void)
 	}
 
 	memcpy(_time_tzinfo, new_rules, sizeof(new_rules));
- DONE:
+DONE:
 	tzname[0] = _time_tzinfo[0].tzname;
 	tzname[1] = _time_tzinfo[1].tzname;
 	daylight = !!_time_tzinfo[1].tzname[0];
 	timezone = _time_tzinfo[0].gmt_offset;
 
-#if defined(__UCLIBC_HAS_TZ_FILE__)
- FAST_DONE:
+#if defined(__UCLIBC_HAS_TZ_FILE__) || defined(__UCLIBC_HAS_TZ_CACHING__)
+FAST_DONE:
 #endif
-	TZUNLOCK;
+	__UCLIBC_MUTEX_UNLOCK(_time_tzlock);
 }
-
+libc_hidden_def(tzset)
 #endif
 /**********************************************************************/
 /*  #ifdef L_utime */
@@ -2005,7 +2109,7 @@ int utimes(const char *filename, register const struct timeval *tvp)
 /**********************************************************************/
 #ifdef L__time_t2tm
 
-static const uint16_t vals[] = {
+static const uint16_t _vals[] = {
 	60, 60, 24, 7 /* special */, 36524, 1461, 365, 0
 };
 
@@ -2025,7 +2129,7 @@ static const char utc_string[] = "UTC";
 
 /* Note: offset is the correction in _days_ to *timer! */
 
-struct tm *_time_t2tm(const time_t *__restrict timer,
+struct tm attribute_hidden *_time_t2tm(const time_t *__restrict timer,
 					  int offset, struct tm *__restrict result)
 {
 	register int *p;
@@ -2037,7 +2141,7 @@ struct tm *_time_t2tm(const time_t *__restrict timer,
 		t = *timer;
 		p = (int *) result;
 		p[7] = 0;
-		vp = vals;
+		vp = _vals;
 		do {
 			if ((v = *vp) == 7) {
 				/* Overflow checking, assuming time_t is long int... */
@@ -2066,7 +2170,7 @@ struct tm *_time_t2tm(const time_t *__restrict timer,
 				++v;
 				/* Change to days since 1/1/1601 so that for 32 bit time_t
 				 * values, we'll have t >= 0.  This should be changed for
-				 * archs with larger time_t types. 
+				 * archs with larger time_t types.
 				 * Also, correct for offset since a multiple of 7. */
 
 				/* TODO: Does this still work on archs with time_t > 32 bits? */
@@ -2146,8 +2250,13 @@ struct tm *_time_t2tm(const time_t *__restrict timer,
 	/* TODO -- should this be 0? */
 	p[4] = 0;					/* result[8] .. tm_isdst */
 #ifdef __UCLIBC_HAS_TM_EXTENSIONS__
+# ifdef __USE_BSD
 	result->tm_gmtoff = 0;
 	result->tm_zone = utc_string;
+# else
+	result->__tm_gmtoff = 0;
+	result->__tm_zone = utc_string;
+# endif
 #endif /* __UCLIBC_HAS_TM_EXTENSIONS__ */
 
 	return result;
@@ -2163,17 +2272,17 @@ struct tm __time_tm;	/* Global shared by gmtime() and localtime(). */
 /**********************************************************************/
 #ifdef L__time_mktime
 
-time_t _time_mktime(struct tm *timeptr, int store_on_success)
+time_t attribute_hidden _time_mktime(struct tm *timeptr, int store_on_success)
 {
 	time_t t;
 
-	TZLOCK;
+	__UCLIBC_MUTEX_LOCK(_time_tzlock);
 
 	tzset();
 
 	t = _time_mktime_tzi(timeptr, store_on_success, _time_tzinfo);
 
-	TZUNLOCK;
+	__UCLIBC_MUTEX_UNLOCK(_time_tzlock);
 
 	return t;
 }
@@ -2182,12 +2291,12 @@ time_t _time_mktime(struct tm *timeptr, int store_on_success)
 /**********************************************************************/
 #ifdef L__time_mktime_tzi
 
-static const unsigned char vals[] = {
+static const unsigned char __vals[] = {
 	31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, /* non-leap */
 	    29,
 };
 
-time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
+time_t attribute_hidden _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 						rule_struct *tzi)
 {
 #ifdef __BCC__
@@ -2221,12 +2330,12 @@ time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 		--p[5];
 	}
 
-	s = vals;
+	s = __vals;
 	d = (p[5] += 1900);			/* Correct year.  Now between 1900 and 2300. */
 	if (__isleap(d)) {
 		s += 11;
 	}
-	
+
 	p[7] = 0;
 	d = p[4];
 	while (d) {
@@ -2238,12 +2347,14 @@ time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 		--d;
 	}
 
+	_time_tzset (x.tm_year < 2007);	/* tm_year was expanded above */
+
 #ifdef __BCC__
 	d = p[5] - 1;
 	days = -719163L + ((long)d)*365 + ((d/4) - (d/100) + (d/400) + p[3] + p[7]);
 	secs = p[0] + 60*( p[1] + 60*((long)(p[2])) )
 		+ tzi[default_dst].gmt_offset;
- DST_CORRECT:
+DST_CORRECT:
 	if (secs < 0) {
 		secs += 120009600L;
 		days -= 1389;
@@ -2263,7 +2374,7 @@ time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 					 + 24*(((146073L * ((long long)(p[6])) + d)
 							+ p[3]) + p[7])));
 
- DST_CORRECT:
+DST_CORRECT:
 	if (((unsigned long long)(secs - LONG_MIN))
 		> (((unsigned long long)LONG_MAX) - LONG_MIN)
 		) {
@@ -2296,7 +2407,7 @@ time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 	}
 
 
- DONE:
+DONE:
 	return t;
 }
 
@@ -2306,29 +2417,29 @@ time_t _time_mktime_tzi(struct tm *timeptr, int store_on_success,
 
 #if defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE)
 
-extern size_t __wcsftime_l (wchar_t *__restrict __s, size_t __maxsize,
-			  __const wchar_t *__restrict __format,
-			  __const struct tm *__restrict __timeptr,
-			  __locale_t __loc) __THROW;
+libc_hidden_proto(wcsftime)
+
+libc_hidden_proto(wcsftime_l)
 
 size_t wcsftime(wchar_t *__restrict s, size_t maxsize,
 				const wchar_t *__restrict format,
 				const struct tm *__restrict timeptr)
 {
-	return __wcsftime_l(s, maxsize, format, timeptr, __UCLIBC_CURLOCALE);
+	return wcsftime_l(s, maxsize, format, timeptr, __UCLIBC_CURLOCALE);
 }
+libc_hidden_def(wcsftime)
 
 #else  /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
-size_t __XL(wcsftime)(wchar_t *__restrict s, size_t maxsize,
+libc_hidden_proto(__XL_NPP(wcsftime))
+size_t __XL_NPP(wcsftime)(wchar_t *__restrict s, size_t maxsize,
 					  const wchar_t *__restrict format,
 					  const struct tm *__restrict timeptr   __LOCALE_PARAM )
 {
 #warning wcsftime always fails
 	return 0;					/* always fail */
 }
-
-__XL_ALIAS(wcsftime)
+libc_hidden_def(__XL_NPP(wcsftime))
 
 #endif /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 

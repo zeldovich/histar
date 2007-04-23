@@ -1,17 +1,12 @@
-#include <features.h>
-#ifdef __UCLIBC_HAS_LFS__
-#if defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS != 64 
-#undef _FILE_OFFSET_BITS
-#define	_FILE_OFFSET_BITS   64
-#endif
-#ifndef __USE_LARGEFILE64
-# define __USE_LARGEFILE64	1
-#endif
-/* We absolutely do _NOT_ want interfaces silently
- * renamed under us or very bad things will happen... */
-#ifdef __USE_FILE_OFFSET64
-# undef __USE_FILE_OFFSET64
-#endif
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
+#include <_lfs_64.h>
+
+#include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +14,9 @@
 #include <dirent.h>
 #include "dirstream.h"
 
+libc_hidden_proto(memcpy)
 
+libc_hidden_proto(readdir64_r)
 int readdir64_r(DIR *dir, struct dirent64 *entry, struct dirent64 **result)
 {
 	int ret;
@@ -32,9 +29,7 @@ int readdir64_r(DIR *dir, struct dirent64 *entry, struct dirent64 **result)
 	}
 	de = NULL;
 
-#ifdef __UCLIBC_HAS_THREADS__
-	__pthread_mutex_lock(&(dir->dd_lock));
-#endif
+	__UCLIBC_MUTEX_LOCK(dir->dd_lock);
 
 	do {
 	    if (dir->dd_size <= dir->dd_nextloc) {
@@ -68,10 +63,7 @@ int readdir64_r(DIR *dir, struct dirent64 *entry, struct dirent64 **result)
 
 all_done:
 
-#ifdef __UCLIBC_HAS_THREADS__
-	__pthread_mutex_unlock(&(dir->dd_lock));
-#endif
+	__UCLIBC_MUTEX_UNLOCK(dir->dd_lock);
         return((de != NULL)? 0 : ret);
 }
-#endif /* __UCLIBC_HAS_LFS__ */
-
+libc_hidden_def(readdir64_r)

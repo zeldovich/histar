@@ -5,7 +5,14 @@
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
+#include <features.h>
+
+#ifdef __USE_GNU
 #include "_stdio.h"
+
+libc_hidden_proto(getdelim)
+
+libc_hidden_proto(__fgetc_unlocked)
 
 /* Note: There is a defect in this function.  (size_t vs ssize_t). */
 
@@ -18,11 +25,9 @@
  * a reading.  So space may be allocated even if initially at EOF.
  */
 
-weak_alias(__getdelim,getdelim);
-
 #define GETDELIM_GROWBY		64
 
-ssize_t __getdelim(char **__restrict lineptr, size_t *__restrict n,
+ssize_t getdelim(char **__restrict lineptr, size_t *__restrict n,
 				   int delimiter, register FILE *__restrict stream)
 {
 	register char *buf;
@@ -75,3 +80,5 @@ ssize_t __getdelim(char **__restrict lineptr, size_t *__restrict n,
 
 	return pos;
 }
+libc_hidden_def(getdelim)
+#endif

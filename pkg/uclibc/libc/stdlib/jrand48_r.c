@@ -20,12 +20,10 @@
 #include <stdlib.h>
 
 extern int __drand48_iterate(unsigned short xsubi[3], 
-	struct drand48_data *buffer);
+	struct drand48_data *buffer) attribute_hidden;
 
-int jrand48_r (xsubi, buffer, result)
-     unsigned short int xsubi[3];
-     struct drand48_data *buffer;
-     long int *result;
+libc_hidden_proto(jrand48_r)
+int jrand48_r (unsigned short int xsubi[3], struct drand48_data *buffer, long int *result)
 {
     /* Compute next state.  */
     if (__drand48_iterate (xsubi, buffer) < 0)
@@ -36,3 +34,4 @@ int jrand48_r (xsubi, buffer, result)
 
     return 0;
 }
+libc_hidden_def(jrand48_r)

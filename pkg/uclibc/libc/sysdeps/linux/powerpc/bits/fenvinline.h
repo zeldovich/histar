@@ -1,5 +1,6 @@
 /* Inline floating-point environment handling functions for powerpc.
-   Copyright (C) 1995, 1996, 1997, 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2006
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,13 +18,16 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#include <features.h>
+
 #if defined __GNUC__ && !defined _SOFT_FLOAT && !defined __NO_MATH_INLINES
 
 /* Inline definition for fegetround.  */
 # define fegetround() \
   (__extension__  ({ int __fegetround_result;				      \
-		     __asm__ ("mcrfs 7,7 ; mfcr %0"			      \
-			     : "=r"(__fegetround_result) : : "cr7");	      \
+		     __asm__ __volatile__				      \
+		       ("mcrfs 7,7 ; mfcr %0"				      \
+			: "=r"(__fegetround_result) : : "cr7");		      \
 		     __fegetround_result & 3; }))
 
 /* The weird 'i#*X' constraints on the following suppress a gcc
@@ -57,3 +61,4 @@
    : (feclearexcept) (__excepts))
 
 #endif /* __GNUC__ && !_SOFT_FLOAT */
+

@@ -16,11 +16,19 @@
    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.  */
 
+#include <features.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+
+libc_hidden_proto(lockf)
+
+libc_hidden_proto(memset)
+libc_hidden_proto(fcntl)
+libc_hidden_proto(getpid)
 
 /* lockf is a simplified interface to fcntl's locking facilities.  */
 
@@ -68,3 +76,4 @@ int lockf (int fd, int cmd, off_t len)
 
     return fcntl(fd, cmd, &fl);
 }
+libc_hidden_def(lockf)

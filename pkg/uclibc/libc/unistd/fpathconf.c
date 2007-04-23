@@ -32,6 +32,8 @@
 
 //#include "linux_fsinfo.h"
 
+libc_hidden_proto(fstat)
+libc_hidden_proto(fstatfs)
 
 /* The Linux kernel headers mention this as a kind of generic value.  */
 #define LINUX_LINK_MAX	127

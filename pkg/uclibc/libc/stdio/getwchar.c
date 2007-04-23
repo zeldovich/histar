@@ -7,21 +7,22 @@
 
 #include "_stdio.h"
 
-wint_t __getwchar_unlocked(void);
-
 #ifdef __DO_UNLOCKED
 
-weak_alias(__getwchar_unlocked,getwchar_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__getwchar_unlocked,getwchar);
-#endif
+libc_hidden_proto(fgetwc_unlocked)
 
-wint_t __getwchar_unlocked(void)
+wint_t getwchar_unlocked(void)
 {
-	return __fgetwc_unlocked(stdin);
+	return fgetwc_unlocked(stdin);
 }
 
+#ifndef __UCLIBC_HAS_THREADS__
+strong_alias(getwchar_unlocked,getwchar)
+#endif
+
 #elif defined __UCLIBC_HAS_THREADS__
+
+libc_hidden_proto(fgetwc)
 
 wint_t getwchar(void)
 {

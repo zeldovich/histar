@@ -7,6 +7,10 @@
 
 #include "_stdio.h"
 
+#ifdef __USE_BSD
+
+libc_hidden_proto(setvbuf)
+
 /* A BSD function.  The implementation matches the linux man page,
  * except that we do not bother calling setvbuf if not configured
  * for stream buffering.
@@ -18,3 +22,4 @@ void setlinebuf(FILE * __restrict stream)
 	setvbuf(stream, NULL, _IOLBF, (size_t) 0);
 #endif
 }
+#endif

@@ -29,18 +29,22 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
+#include <features.h>
 
-		.text
-		.global memcmp;
-		.type memcmp,%function
-		.align 4;                                                               \
+.text
+.global memcmp
+.type memcmp,%function
+.align 4
 
 memcmp:
 	/* if ((len - 1) < 0) return 0 */
 	subs	r2, r2, #1
 	movmi	r0, #0
+#if defined(__USE_BX__)
+        bxmi    lr
+#else
 	movmi	pc, lr
-
+#endif
 	/* ip == last src address to compare */
 	add	ip, r0, r2
 1:
@@ -50,8 +54,15 @@ memcmp:
 	cmpcs	r2, r3
 	beq	1b
 	sub	r0, r2, r3
-	mov	pc, lr
+#if defined(__USE_BX__)
+        bx      lr
+#else
+ 	mov	pc, lr
+#endif
 
-.weak  bcmp;
-    bcmp = memcmp
+.size memcmp,.-memcmp
 
+libc_hidden_def(memcmp)
+#ifdef __UCLIBC_SUSV3_LEGACY__
+strong_alias(memcmp,bcmp)
+#endif

@@ -7,13 +7,15 @@
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License.  See the file COPYING.LIB in the main
  * directory of this archive for more details.
- * 
+ *
  * Written by Miles Bader <miles@gnu.org>
  */
 
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+libc_hidden_proto(memcpy)
 
 #include "malloc.h"
 #include "heap.h"
@@ -26,13 +28,13 @@ realloc (void *mem, size_t new_size)
   char *base_mem;
 
   /* Check for special cases.  */
-  if (! mem)
-    return malloc (new_size);
   if (! new_size)
     {
       free (mem);
       return malloc (new_size);
     }
+  if (! mem)
+    return malloc (new_size);
 
   /* Normal realloc.  */
 

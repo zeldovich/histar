@@ -24,6 +24,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef __USE_GNU
+libc_hidden_proto(strnlen)
+libc_hidden_proto(abort)
+
 /* Find the length of S, but scan at most MAXLEN characters.  If no
    '\0' terminator is found in that many characters, return MAXLEN.  */
 size_t strnlen (const char *str, size_t maxlen)
@@ -156,3 +160,5 @@ size_t strnlen (const char *str, size_t maxlen)
     char_ptr = end_ptr;
   return char_ptr - str;
 }
+libc_hidden_def(strnlen)
+#endif

@@ -9,7 +9,10 @@
 ! Copyright 2002 SuperH Ltd.
 !
 
-#ifdef __LITTLE_ENDIAN__
+#include <features.h>
+#include <endian.h>
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define SHHI shlld
 #define SHLO shlrd
 #else
@@ -88,5 +91,6 @@ loop:
 	sthi.q r5, -1, r3
 	blink tr2,r63
 
-	.size	memset, . - memset
+	.size	memset,.-memset
 
+libc_hidden_def(memset)

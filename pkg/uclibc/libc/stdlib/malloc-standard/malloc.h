@@ -21,17 +21,18 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <bits/uClibc_mutex.h>
+
+libc_hidden_proto(mmap)
+libc_hidden_proto(sysconf)
+libc_hidden_proto(sbrk)
+libc_hidden_proto(abort)
 
 
-#ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
-extern pthread_mutex_t __malloc_lock;
-# define LOCK	__pthread_mutex_lock(&__malloc_lock)
-# define UNLOCK	__pthread_mutex_unlock(&__malloc_lock);
-#else
-# define LOCK
-# define UNLOCK
-#endif
+__UCLIBC_MUTEX_EXTERN(__malloc_lock);
+#define __MALLOC_LOCK		__UCLIBC_MUTEX_LOCK(__malloc_lock)
+#define __MALLOC_UNLOCK		__UCLIBC_MUTEX_UNLOCK(__malloc_lock)
 
 
 
@@ -351,7 +352,7 @@ extern pthread_mutex_t __malloc_lock;
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#ifdef __ARCH_HAS_MMU__
+#ifdef __ARCH_USE_MMU__
 
 #define MMAP(addr, size, prot) \
  (mmap((addr), (size), (prot), MAP_PRIVATE|MAP_ANONYMOUS, 0, 0))
@@ -923,17 +924,17 @@ extern struct malloc_state __malloc_state;  /* never directly referenced */
    At most one "call" to get_malloc_state is made per invocation of
    the public versions of malloc and free, but other routines
    that in turn invoke malloc and/or free may call more then once.
-   Also, it is called in check* routines if __MALLOC_DEBUGGING is set.
+   Also, it is called in check* routines if __UCLIBC_MALLOC_DEBUGGING__ is set.
 */
 
 #define get_malloc_state() (&(__malloc_state))
 
 /* External internal utilities operating on mstates */
-void   __malloc_consolidate(mstate);
+void   __malloc_consolidate(mstate) attribute_hidden;
 
 
 /* Debugging support */
-#if ! __MALLOC_DEBUGGING
+#ifndef __UCLIBC_MALLOC_DEBUGGING__
 
 #define check_chunk(P)
 #define check_free_chunk(P)

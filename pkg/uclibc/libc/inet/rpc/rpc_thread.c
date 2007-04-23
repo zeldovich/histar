@@ -1,16 +1,27 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #define __FORCE_GLIBC
 #include <features.h>
 #include <stdio.h>
 #include <assert.h>
-#include <bits/libc-tsd.h>
 #include "rpc_private.h"
+
+libc_hidden_proto(__rpc_thread_svc_fdset)
+libc_hidden_proto(__rpc_thread_createerr)
+libc_hidden_proto(__rpc_thread_svc_pollfd)
+libc_hidden_proto(__rpc_thread_svc_max_pollfd)
 
 #ifdef __UCLIBC_HAS_THREADS__
 
+#include <bits/libc-tsd.h>
+
 /* Variable used in non-threaded applications or for the first thread.  */
 static struct rpc_thread_variables __libc_tsd_RPC_VARS_mem;
-static struct rpc_thread_variables *__libc_tsd_RPC_VARS_data =
-     &__libc_tsd_RPC_VARS_mem;
+__libc_tsd_define (, RPC_VARS)
 
 /*
  * Task-variable destructor
@@ -18,7 +29,7 @@ static struct rpc_thread_variables *__libc_tsd_RPC_VARS_data =
 void
 __rpc_thread_destroy (void)
 {
-	struct rpc_thread_variables *tvp = __rpc_thread_variables();
+	struct rpc_thread_variables *tvp = __libc_tsd_get (RPC_VARS);
 
 	if (tvp != NULL && tvp != &__libc_tsd_RPC_VARS_mem) {
 		__rpc_thread_svc_cleanup ();
@@ -31,26 +42,9 @@ __rpc_thread_destroy (void)
 		free (tvp->authdes_cache_s);
 		free (tvp->authdes_lru_s);
 		free (tvp);
+		__libc_tsd_set (RPC_VARS, NULL);
 	}
 }
-
-
-extern int weak_function __pthread_once (pthread_once_t *__once_control,
-			   void (*__init_routine) (void));
-
-# define __libc_once_define(CLASS, NAME) \
-  CLASS pthread_once_t NAME = PTHREAD_ONCE_INIT
-
-/* Call handler iff the first call.  */
-#define __libc_once(ONCE_CONTROL, INIT_FUNCTION) \
-  do {									      \
-    if (__pthread_once != NULL)						      \
-      __pthread_once (&(ONCE_CONTROL), (INIT_FUNCTION));		      \
-    else if ((ONCE_CONTROL) == PTHREAD_ONCE_INIT) {			      \
-      INIT_FUNCTION ();							      \
-      (ONCE_CONTROL) = !PTHREAD_ONCE_INIT;				      \
-    }									      \
-  } while (0)
 
 /*
  * Initialize RPC multi-threaded operation
@@ -62,7 +56,7 @@ rpc_thread_multi (void)
 }
 
 
-struct rpc_thread_variables *
+struct rpc_thread_variables attribute_hidden *
 __rpc_thread_variables (void)
 {
 	__libc_once_define (static, once);
@@ -77,7 +71,7 @@ __rpc_thread_variables (void)
 			if (tvp != NULL)
 				__libc_tsd_set (RPC_VARS, tvp);
 			else
-				tvp = __libc_tsd_RPC_VARS_data;
+				tvp = __libc_tsd_get (RPC_VARS);
 		}
 	}
 	return tvp;
@@ -143,29 +137,33 @@ __rpc_thread_svc_max_pollfd (void)
 #undef svc_pollfd
 #undef svc_max_pollfd
 
+extern fd_set svc_fdset;
 fd_set * __rpc_thread_svc_fdset (void)
 {
-    extern fd_set svc_fdset;
     return &(svc_fdset);
 }
 
+extern struct rpc_createerr rpc_createerr;
 struct rpc_createerr * __rpc_thread_createerr (void)
 {
-    extern struct rpc_createerr rpc_createerr;
     return &(rpc_createerr);
 }
 
+extern struct pollfd *svc_pollfd;
 struct pollfd ** __rpc_thread_svc_pollfd (void)
 {
-    extern struct pollfd *svc_pollfd;
     return &(svc_pollfd);
 }
 
+extern int svc_max_pollfd;
 int * __rpc_thread_svc_max_pollfd (void)
 {
-    extern int svc_max_pollfd;
     return &(svc_max_pollfd);
 }
 
 #endif /* __UCLIBC_HAS_THREADS__ */
 
+libc_hidden_def(__rpc_thread_svc_fdset)
+libc_hidden_def(__rpc_thread_createerr)
+libc_hidden_def(__rpc_thread_svc_pollfd)
+libc_hidden_def(__rpc_thread_svc_max_pollfd)

@@ -17,23 +17,14 @@
    02111-1307 USA.  */
 
 #include <string.h>
-#include <locale.h>
 
 #include "memcopy.h"
 
-#undef strcmp
-
-#ifdef __LOCALE_C_ONLY
-weak_alias(strcmp,strcoll);
-#endif /* __LOCALE_C_ONLY */
-
+libc_hidden_proto(strcmp)
 /* Compare S1 and S2, returning less than, equal to or
    greater than zero if S1 is lexicographically less than,
    equal to or greater than S2.  */
-int
-strcmp (p1, p2)
-     const char *p1;
-     const char *p2;
+int strcmp (const char *p1, const char *p2)
 {
   register const unsigned char *s1 = (const unsigned char *) p1;
   register const unsigned char *s2 = (const unsigned char *) p2;
@@ -50,3 +41,10 @@ strcmp (p1, p2)
 
   return c1 - c2;
 }
+libc_hidden_def(strcmp)
+
+#ifndef __UCLIBC_HAS_LOCALE__
+libc_hidden_proto(strcoll)
+strong_alias(strcmp,strcoll)
+libc_hidden_def(strcoll)
+#endif

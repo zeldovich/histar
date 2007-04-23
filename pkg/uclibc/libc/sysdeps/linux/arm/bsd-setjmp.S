@@ -21,13 +21,9 @@
    We cannot do it in C because it must be a tail-call, so frame-unwinding
    in setjmp doesn't clobber the state restored by longjmp.  */
 
-#define _SETJMP_H
-#define _ASM
-#include <bits/setjmp.h>
-
 .global setjmp
 .type setjmp,%function
-.align 4
+.align 2
 setjmp:
 	mov	r1, #1
 #ifdef __PIC__

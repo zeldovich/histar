@@ -1,6 +1,14 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #include <dirent.h>
 #include <string.h>
 #include "dirstream.h"
+
+libc_hidden_proto(strcmp)
 
 int alphasort(const void * a, const void * b)
 {

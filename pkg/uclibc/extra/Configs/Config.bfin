@@ -4,25 +4,15 @@
 #
 
 config TARGET_ARCH
+	string
 	default "bfin"
 
-config HAVE_ELF
+config FORCE_OPTIONS_FOR_ARCH
 	bool
-	select ARCH_HAS_NO_MMU
-	select ARCH_LITTLE_ENDIAN
-	select HAVE_NO_SHARED
-	select ARCH_HAS_NO_LDSO
 	default y
+	select ARCH_LITTLE_ENDIAN
+	select ARCH_HAS_NO_MMU
+	select UCLIBC_HAS_LFS
 
 config ARCH_CFLAGS
 	string
-
-config ARCH_LDFLAGS
-	string
-
-config LIBGCC_CFLAGS
-	string
-
-config HAVE_ELF
-	bool
-	default y

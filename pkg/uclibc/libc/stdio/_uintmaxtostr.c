@@ -11,13 +11,15 @@
 #include <locale.h>
 #include <bits/uClibc_uintmaxtostr.h>
 
+libc_hidden_proto(memcpy)
+
 /* Avoid using long long / and % operations to cut down dependencies on
  * libgcc.a.  Definitely helps on i386 at least. */
 #if (INTMAX_MAX > INT_MAX) && (((INTMAX_MAX/INT_MAX)/2) - 2 <= INT_MAX)
 #define INTERNAL_DIV_MOD
 #endif
 
-char *_uintmaxtostr(register char * __restrict bufend, uintmax_t uval,
+char attribute_hidden *_uintmaxtostr(register char * __restrict bufend, uintmax_t uval,
 					int base, __UIM_CASE alphacase)
 {
     int negative;

@@ -7,6 +7,9 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(fdopen)
+libc_hidden_proto(fcntl)
+
 FILE *fdopen(int filedes, const char *mode)
 {
 	intptr_t cur_mode;
@@ -15,3 +18,4 @@ FILE *fdopen(int filedes, const char *mode)
 		? _stdio_fopen(cur_mode, mode, NULL, filedes) 
 		: NULL;
 }
+libc_hidden_def(fdopen)

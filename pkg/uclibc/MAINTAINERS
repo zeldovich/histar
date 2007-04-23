@@ -33,15 +33,15 @@ S:	Maintained
 
 
 BFIN
-N:	Erik Andersen
-E:	andersen@codepoet.org
+N:	Mike Frysinger
+E:	michael.frysinger@analog.com
 W:	http://blackfin.uclinux.org
 S:	Maintained
 
 
 CRIS
-P:	Tobias Anderberg
-M:	tobias.anderberg@axis.com
+P:	Ricard Wanderlof
+M:	ricard.wanderlof@axis.com
 W:	http://developer.axis.com
 S:	Maintained
 
@@ -55,6 +55,14 @@ S:	Unmaintained
 
 
 H8300
+S:	Unmaintained
+
+
+HPPA
+S:	Unmaintained
+
+
+IA64
 S:	Unmaintained
 
 
@@ -104,6 +112,11 @@ S:	Maintained
 SPARC
 S:	Unmaintained
 
+VAX
+P:	Jan-Benedict Glaw
+E:	jbglaw@lug-owl.de (personal), linux-vax@pergamentum.com (mailing list)
+W:	http://linux-vax.sourceforge.net/
+S:	Maintained
 
 V850
 S:	Unmaintained

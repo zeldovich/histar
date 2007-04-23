@@ -22,21 +22,22 @@
  * Rewritten to use reentrant functions by Ulrich Drepper, 1995.
  */
 
-#define _GNU_SOURCE
 #include <features.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
-#ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
+
+libc_hidden_proto(random_r)
+libc_hidden_proto(srandom_r)
+libc_hidden_proto(setstate_r)
+libc_hidden_proto(initstate_r)
+
 /* POSIX.1c requires that there is mutual exclusion for the `rand' and
    `srand' functions to prevent concurrent calls from modifying common
    data.  */
-static pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#else
-#define __pthread_mutex_lock(x)
-#define __pthread_mutex_unlock(x)
-#endif
+#include <bits/uClibc_mutex.h>
+__UCLIBC_MUTEX_STATIC(mylock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
+
 
 /* An improved random number generation package.  In addition to the standard
    rand()/srand() like interface, this package also has a special state info
@@ -184,11 +185,11 @@ static struct random_data unsafe_state =
    for default usage relies on values produced by this routine.  */
 void srandom (unsigned int x)
 {
-    __pthread_mutex_lock(&lock);
+    __UCLIBC_MUTEX_LOCK(mylock);
     srandom_r (x, &unsafe_state);
-    __pthread_mutex_unlock(&lock);
+    __UCLIBC_MUTEX_UNLOCK(mylock);
 }
-weak_alias (srandom, srand)
+strong_alias(srandom,srand)
 
 /* Initialize the state information in the given array of N bytes for
    future random number generation.  Based on the number of bytes we
@@ -205,10 +206,10 @@ char * initstate (unsigned int seed, char *arg_state, size_t n)
 {
     int32_t *ostate;
 
-    __pthread_mutex_lock(&lock);
+    __UCLIBC_MUTEX_LOCK(mylock);
     ostate = &unsafe_state.state[-1];
     initstate_r (seed, arg_state, n, &unsafe_state);
-    __pthread_mutex_unlock(&lock);
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return (char *) ostate;
 }
 
@@ -224,11 +225,11 @@ char * setstate (char *arg_state)
 {
     int32_t *ostate;
 
-    __pthread_mutex_lock(&lock);
+    __UCLIBC_MUTEX_LOCK(mylock);
     ostate = &unsafe_state.state[-1];
     if (setstate_r (arg_state, &unsafe_state) < 0)
 	ostate = NULL;
-    __pthread_mutex_unlock(&lock);
+    __UCLIBC_MUTEX_UNLOCK(mylock);
     return (char *) ostate;
 }
 
@@ -243,13 +244,14 @@ char * setstate (char *arg_state)
    rear pointers can't wrap on the same call by not testing the rear
    pointer if the front one has wrapped.  Returns a 31-bit random number.  */
 
-long int random ()
+libc_hidden_proto(random)
+long int random (void)
 {
   int32_t retval;
 
-  __pthread_mutex_lock(&lock);
+  __UCLIBC_MUTEX_LOCK(mylock);
   random_r (&unsafe_state, &retval);
-  __pthread_mutex_unlock(&lock);
+  __UCLIBC_MUTEX_UNLOCK(mylock);
   return retval;
 }
-
+libc_hidden_def(random)

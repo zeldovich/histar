@@ -11,31 +11,21 @@
 # error Assumption violated -- values of SEEK_SET, SEEK_CUR, SEEK_END
 #endif
 
-#ifdef __DO_LARGEFILE
-# ifndef __UCLIBC_HAS_LFS__
-#  error large file support is not enabled!
-# endif
-
-# define FSEEK				__fseeko64
-# define OFFSET_TYPE		__off64_t
-
-weak_alias(__fseeko64,fseeko64);
-
-#else
-
-# define FSEEK				fseek
-# define OFFSET_TYPE		long int
-
-weak_alias(fseek,fseeko);
-
+#ifndef __DO_LARGEFILE
+# define FSEEK         fseek
+# define OFFSET_TYPE   long int
 #endif
 
+#ifdef __UCLIBC_HAS_LFS__
+libc_hidden_proto(fseeko64)
+#endif
+libc_hidden_proto(fseek)
 
 int FSEEK(register FILE *stream, OFFSET_TYPE offset, int whence)
 {
 #if defined(__UCLIBC_HAS_LFS__) && !defined(__DO_LARGEFILE)
 
-	return __fseeko64(stream, offset, whence);
+	return fseeko64(stream, offset, whence);
 
 #else
 
@@ -87,3 +77,10 @@ int FSEEK(register FILE *stream, OFFSET_TYPE offset, int whence)
 
 #endif
 }
+
+#ifdef __DO_LARGEFILE
+libc_hidden_def(fseeko64)
+#else
+libc_hidden_def(fseek)
+strong_alias(fseek,fseeko)
+#endif

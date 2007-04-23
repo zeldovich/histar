@@ -2,12 +2,12 @@
 /*
  * umount2() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
 #ifdef __NR_umount2	/* Old kernels don't have umount2 */
 #include <sys/mount.h>
 _syscall2(int, umount2, const char *, special_file, int, flags);

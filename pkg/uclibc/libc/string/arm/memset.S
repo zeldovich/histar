@@ -17,12 +17,13 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#include <features.h>
 #include <sys/syscall.h>
 
-		.text
-		.global memset;
-		.type memset,%function
-		.align 4;                                                               \
+.text
+.global memset
+.type memset,%function
+.align 4
 
 memset:
 	mov	a4, a1
@@ -55,7 +56,11 @@ memset:
 	bge	1b
 2:
 	movs	a3, a3		@ anything left?
-	moveq	pc, lr		@ nope
+#if defined(__USE_BX__)
+        bxeq    lr
+#else
+        moveq	pc, lr		@ nope
+#endif
 	rsb	a3, a3, $7
 	add	pc, pc, a3, lsl $2
 	mov	r0, r0
@@ -66,7 +71,12 @@ memset:
 	strb	a2, [a4], $1
 	strb	a2, [a4], $1
 	strb	a2, [a4], $1
-	mov	pc, lr
+#if defined(__USE_BX__)
+        bx      lr
+#else
+ 	mov	pc, lr
+#endif
 
-.size memset,.-memset;
+.size memset,.-memset
 
+libc_hidden_def(memset)

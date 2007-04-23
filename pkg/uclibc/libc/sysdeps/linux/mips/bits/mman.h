@@ -1,5 +1,6 @@
 /* Definitions for POSIX memory map interface.  Linux/MIPS version.
-   Copyright (C) 1997, 2000 Free Software Foundation, Inc.
+   Copyright (C) 1997, 2000, 2003, 2004, 2005, 2006
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -34,6 +35,10 @@
 #define PROT_WRITE	0x2		/* Page can be written.  */
 #define PROT_EXEC	0x4		/* Page can be executed.  */
 #define PROT_NONE	0x0		/* Page can not be accessed.  */
+#define PROT_GROWSDOWN	0x01000000	/* Extend change to start of
+					   growsdown vma (mprotect only).  */
+#define PROT_GROWSUP	0x02000000	/* Extend change to start of
+					   growsup vma (mprotect only).  */
 
 /* Sharing types (must choose one and only one of these).  */
 #define MAP_SHARED	0x01		/* Share changes.  */
@@ -45,7 +50,7 @@
 /* Other flags.  */
 #define MAP_FIXED	0x10		/* Interpret addr exactly.  */
 #ifdef __USE_MISC
-# define MAP_FILE	0x00
+# define MAP_FILE	0
 # define MAP_ANONYMOUS	0x0800		/* Don't use a file.  */
 # define MAP_ANON	MAP_ANONYMOUS
 # define MAP_RENAME	MAP_ANONYMOUS
@@ -59,28 +64,43 @@
 # define MAP_DENYWRITE	0x2000		/* ETXTBSY */
 # define MAP_EXECUTABLE	0x4000		/* mark it as an executable */
 # define MAP_LOCKED	0x8000		/* pages are locked */
+# define MAP_POPULATE   0x10000         /* populate (prefault) pagetables */
+# define MAP_NONBLOCK   0x20000         /* do not block on IO */
 #endif
 
 /* Flags to `msync'.  */
 #define MS_ASYNC	1		/* Sync memory asynchronously.  */
-#define MS_INVALIDATE	2		/* Invalidate the caches.  */
 #define MS_SYNC		4		/* Synchronous memory sync.  */
+#define MS_INVALIDATE	2		/* Invalidate the caches.  */
 
 /* Flags for `mlockall'.  */
 #define MCL_CURRENT	1		/* Lock all currently mapped pages.  */
 #define MCL_FUTURE	2		/* Lock all additions to address
 					   space.  */
 
-/* Advice to `madvise'.  */
-#ifdef __USE_BSD
-#define MADV_NORMAL	0		/* default page-in behavior */
-#define MADV_RANDOM	1		/* page-in minimum required */
-#define MADV_SEQUENTIAL	2		/* read-ahead aggressively */
-#define MADV_WILLNEED	3		/* pre-fault pages */
-#define MADV_DONTNEED	4		/* discard these pages */
-#endif
-
 /* Flags for `mremap'.  */
 #ifdef __USE_GNU
 # define MREMAP_MAYMOVE	1
+# define MREMAP_FIXED	2
+#endif
+
+/* Advice to `madvise'.  */
+#ifdef __USE_BSD
+# define MADV_NORMAL	 0	/* No further special treatment.  */
+# define MADV_RANDOM	 1	/* Expect random page references.  */
+# define MADV_SEQUENTIAL 2	/* Expect sequential page references.  */
+# define MADV_WILLNEED	 3	/* Will need these pages.  */
+# define MADV_DONTNEED	 4	/* Don't need these pages.  */
+# define MADV_REMOVE	 9	/* Remove these pages and resources.  */
+# define MADV_DONTFORK	 10	/* Do not inherit across fork.  */
+# define MADV_DOFORK	 11	/* Do inherit across fork.  */
+#endif
+
+/* The POSIX people had to invent similar names for the same things.  */
+#ifdef __USE_XOPEN2K
+# define POSIX_MADV_NORMAL	0 /* No further special treatment.  */
+# define POSIX_MADV_RANDOM	1 /* Expect random page references.  */
+# define POSIX_MADV_SEQUENTIAL	2 /* Expect sequential page references.  */
+# define POSIX_MADV_WILLNEED	3 /* Will need these pages.  */
+# define POSIX_MADV_DONTNEED	4 /* Don't need these pages.  */
 #endif

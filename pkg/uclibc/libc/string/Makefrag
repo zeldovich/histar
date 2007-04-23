@@ -1,33 +1,19 @@
 OBJDIRS += pkg/uclibc/libc/string
 
-STRING_MSRC := pkg/uclibc/libc/string/wstring.c
+STRING_CSRC := \
+	basename.c bcopy.c bzero.c dirname.c ffs.c memccpy.c memchr.c memcmp.c \
+        memcpy.c memmove.c mempcpy.c memrchr.c  memset.c rawmemchr.c stpcpy.c \
+        stpncpy.c strcasecmp.c strcasestr.c strcat.c strchrnul.c strchr.c \
+        strcmp.c strcpy.c strcspn.c strdup.c strlen.c strncasecmp.c strncat.c \
+        strncmp.c strncpy.c strndup.c strnlen.c strpbrk.c strrchr.c strsep.c \
+        strspn.c strstr.c strtok.c strtok_r.c strerror.c __xpg_strerror_r.c \
+        _string_syserrmsgs.c __glibc_strerror_r.c \
+        _string_syssigmsgs.c sys_siglist.c strsignal.c psignal.c \
+         __xpg_basename.c strlcat.c strlcpy.c sys_errlist.c memmem.c \
+	wcscasecmp.c wcscat.c wcschrnul.c wcschr.c wcscmp.c wcscpy.c wcscspn.c \
+	wcsdup.c wcslen.c wcsncasecmp.c wcsncat.c wcsncmp.c wcsncpy.c \
+	wcsnlen.c wcspbrk.c wcsrchr.c wcsspn.c wcsstr.c wcstok.c wmemchr.c \
+	wmemcmp.c wmemcpy.c wmemmove.c wmempcpy.c wmemset.c wcpcpy.c wcpncpy.c
 
-STRING_MOBJ := \
-	basename.o bcopy.o bzero.o dirname.o ffs.o memccpy.o memchr.o memcmp.o \
-        memcpy.o memmove.o mempcpy.o memrchr.o  memset.o rawmemchr.o stpcpy.o \
-        stpncpy.o strcasecmp.o strcasestr.o strcat.o strchrnul.o strchr.o \
-        strcmp.o strcpy.o strcspn.o strdup.o strlen.o strncasecmp.o strncat.o \
-        strncmp.o strncpy.o strndup.o strnlen.o strpbrk.o strrchr.o strsep.o \
-        strspn.o strstr.o strtok.o strtok_r.o strerror.o __xpg_strerror_r.o \
-        _string_syserrmsgs.o __glibc_strerror_r.o \
-        _string_syssigmsgs.o sys_siglist.o strsignal.o psignal.o \
-         __xpg_basename.o strlcat.o strlcpy.o sys_errlist.o memmem.o
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/string/%.c, $(STRING_CSRC))
 
-W_MOBJ := \
-	wcscasecmp.o wcscat.o wcschrnul.o wcschr.o wcscmp.o wcscpy.o wcscspn.o \
-	wcsdup.o wcslen.o wcsncasecmp.o wcsncat.o wcsncmp.o wcsncpy.o \
-	wcsnlen.o wcspbrk.o wcsrchr.o wcsspn.o wcsstr.o wcstok.o wmemchr.o \
-	wmemcmp.o wmemcpy.o wmemmove.o wmempcpy.o wmemset.o wcpcpy.o wcpncpy.o
-
-STRING_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(STRING_MOBJ))
-W_MOBJ  := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/string/%.o, $(W_MOBJ))
-
-LIBC_OBJFILES += $(STRING_MOBJ) $(W_MOBJ)
-
-$(STRING_MOBJ): $(STRING_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/string/%.o,%,$@) $< -c -o $@
-
-$(W_MOBJ): $(STRING_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DWANT_WIDE -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/string/%.o,%,$@) $< -c -o $@

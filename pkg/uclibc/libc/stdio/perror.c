@@ -7,10 +7,14 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(fprintf)
+libc_hidden_proto(__glibc_strerror_r)
+
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning CONSIDER: Increase buffer size for error message (non-%m case)?
 #endif
 
+libc_hidden_proto(perror)
 void perror(register const char *s)
 {
 	/* If the program is calling perror, it's a safe bet that printf and
@@ -34,3 +38,4 @@ void perror(register const char *s)
 	}
 #endif
 }
+libc_hidden_def(perror)

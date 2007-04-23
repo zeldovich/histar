@@ -2,14 +2,14 @@ char *readsonameXX(char *name, FILE *infile, int expected_type, int *type)
 {
   ElfW(Ehdr) *epnt;
   ElfW(Phdr) *ppnt;
-  int i, j;
+  unsigned int i, j;
   char *header;
-  ElfW(Word) dynamic_addr = 0;
-  ElfW(Word) dynamic_size = 0;
+  ElfW(Addr) dynamic_addr = 0;
+  ElfW(Addr) dynamic_size = 0;
   unsigned long page_size = getpagesize();
-  ElfW(Word) strtab_val = 0;
-  ElfW(Word) needed_val;
-  ElfW(Sword) loadaddr = -1;
+  ElfW(Addr) strtab_val = 0;
+  ElfW(Addr) needed_val;
+  ElfW(Addr) loadaddr = -1;
   ElfW(Dyn) *dpnt;
   struct stat st;
   char *needed;
@@ -26,13 +26,26 @@ char *readsonameXX(char *name, FILE *infile, int expected_type, int *type)
 
   if (fstat(fileno(infile), &st))
     return NULL;
-  header = mmap(0, st.st_size, PROT_READ, MAP_SHARED, fileno(infile), 0);
+  header = mmap(0, st.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fileno(infile), 0);
   if (header == (caddr_t)-1)
     return NULL;
 
   epnt = (ElfW(Ehdr) *)header;
   if ((char *)(epnt+1) > (char *)(header + st.st_size))
     goto skip;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  byteswap = (epnt->e_ident[5] == ELFDATA2MSB) ? 1 : 0;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  byteswap = (epnt->e_ident[5] == ELFDATA2LSB) ? 1 : 0;
+#else
+#error Unknown host byte order!
+#endif
+  /* Be very lazy, and only byteswap the stuff we use */
+  if (byteswap==1) {
+    epnt->e_phoff=bswap_32(epnt->e_phoff);
+    epnt->e_phnum=bswap_16(epnt->e_phnum);
+  }
 
   ppnt = (ElfW(Phdr) *)&header[epnt->e_phoff];
   if ((char *)ppnt < (char *)header ||
@@ -41,7 +54,15 @@ char *readsonameXX(char *name, FILE *infile, int expected_type, int *type)
 
   for(i = 0; i < epnt->e_phnum; i++)
   {
-    if (loadaddr == -1 && ppnt->p_type == PT_LOAD) 
+    /* Be very lazy, and only byteswap the stuff we use */
+    if (byteswap==1) {
+      ppnt->p_type=bswap_32(ppnt->p_type);
+      ppnt->p_vaddr=bswap_32(ppnt->p_vaddr);
+      ppnt->p_offset=bswap_32(ppnt->p_offset);
+      ppnt->p_filesz=bswap_32(ppnt->p_filesz);
+    }
+
+    if (loadaddr == (ElfW(Addr))-1 && ppnt->p_type == PT_LOAD) 
       loadaddr = (ppnt->p_vaddr & ~(page_size-1)) -
 	(ppnt->p_offset & ~(page_size-1));
     if(ppnt->p_type == 2)
@@ -58,11 +79,20 @@ char *readsonameXX(char *name, FILE *infile, int expected_type, int *type)
       (char *)(dpnt+dynamic_size) > (char *)(header + st.st_size))
     goto skip;
   
+  if (byteswap==1) {
+    dpnt->d_tag=bswap_32(dpnt->d_tag);
+    dpnt->d_un.d_val=bswap_32(dpnt->d_un.d_val);
+  }
+
   while (dpnt->d_tag != DT_NULL)
   {
     if (dpnt->d_tag == DT_STRTAB)
       strtab_val = dpnt->d_un.d_val;
     dpnt++;
+    if (byteswap==1) {
+      dpnt->d_tag=bswap_32(dpnt->d_tag);
+      dpnt->d_un.d_val=bswap_32(dpnt->d_un.d_val);
+    }
   };
 
   if (!strtab_val)
@@ -74,8 +104,8 @@ char *readsonameXX(char *name, FILE *infile, int expected_type, int *type)
     if (dpnt->d_tag == DT_SONAME || dpnt->d_tag == DT_NEEDED)
     {
       needed_val = dpnt->d_un.d_val;
-      if (needed_val + strtab_val - loadaddr >= 0 ||
-	  needed_val + strtab_val - loadaddr < st.st_size)
+      if (needed_val + strtab_val >= loadaddr ||
+	  needed_val + strtab_val < st.st_size - loadaddr)
       {
 	needed = (char *) (header - loadaddr + strtab_val + needed_val);
 

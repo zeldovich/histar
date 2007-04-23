@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <utmp.h>
 
+libutil_hidden_proto(login_tty)
 int login_tty(int fd)
 {
 	(void) setsid();
@@ -67,3 +68,4 @@ int login_tty(int fd)
 		(void) close(fd);
 	return (0);
 }
+libutil_hidden_def(login_tty)

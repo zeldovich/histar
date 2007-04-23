@@ -42,7 +42,6 @@ static char sccsid[] = "@(#)xdr.c 1.35 87/08/12";
  */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 #include <stdio.h>
@@ -54,7 +53,11 @@ static char sccsid[] = "@(#)xdr.c 1.35 87/08/12";
 
 #ifdef USE_IN_LIBIO
 # include <wchar.h>
+libc_hidden_proto(fwprintf)
 #endif
+
+libc_hidden_proto(strlen)
+libc_hidden_proto(fputs)
 
 /*
  * constants specific to the xdr "protocol"
@@ -84,15 +87,73 @@ xdr_free (xdrproc_t proc, char *objp)
 /*
  * XDR nothing
  */
+libc_hidden_proto(xdr_void)
 bool_t
 xdr_void (void)
 {
   return TRUE;
 }
+libc_hidden_def(xdr_void)
+
+/*
+ * XDR long integers
+ * The definition of xdr_long() is kept for backward
+ * compatibility. Instead xdr_int() should be used.
+ */
+libc_hidden_proto(xdr_long)
+bool_t
+xdr_long (XDR *xdrs, long *lp)
+{
+
+  if (xdrs->x_op == XDR_ENCODE
+      && (sizeof (int32_t) == sizeof (long)
+	  || (int32_t) *lp == *lp))
+    return XDR_PUTLONG (xdrs, lp);
+
+  if (xdrs->x_op == XDR_DECODE)
+    return XDR_GETLONG (xdrs, lp);
+
+  if (xdrs->x_op == XDR_FREE)
+    return TRUE;
+
+  return FALSE;
+}
+libc_hidden_def(xdr_long)
+
+/*
+ * XDR short integers
+ */
+libc_hidden_proto(xdr_short)
+bool_t
+xdr_short (XDR *xdrs, short *sp)
+{
+  long l;
+
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      l = (long) *sp;
+      return XDR_PUTLONG (xdrs, &l);
+
+    case XDR_DECODE:
+      if (!XDR_GETLONG (xdrs, &l))
+	{
+	  return FALSE;
+	}
+      *sp = (short) l;
+      return TRUE;
+
+    case XDR_FREE:
+      return TRUE;
+    }
+  return FALSE;
+}
+libc_hidden_def(xdr_short)
 
 /*
  * XDR integers
  */
+libc_hidden_proto(xdr_int)
 bool_t
 xdr_int (XDR *xdrs, int *ip)
 {
@@ -121,72 +182,17 @@ xdr_int (XDR *xdrs, int *ip)
 #elif INT_MAX == SHRT_MAX
   return xdr_short (xdrs, (short *) ip);
 #else
-#error unexpected integer sizes in_xdr_int()
+#error unexpected integer sizes in xdr_int()
 #endif
 }
-
-/*
- * XDR unsigned integers
- */
-bool_t
-xdr_u_int (XDR *xdrs, u_int *up)
-{
-#if UINT_MAX < ULONG_MAX
-  u_long l;
-
-  switch (xdrs->x_op)
-    {
-    case XDR_ENCODE:
-      l = (u_long) * up;
-      return XDR_PUTLONG (xdrs, &l);
-
-    case XDR_DECODE:
-      if (!XDR_GETLONG (xdrs, &l))
-	{
-	  return FALSE;
-	}
-      *up = (u_int) l;
-    case XDR_FREE:
-      return TRUE;
-    }
-  return FALSE;
-#elif UINT_MAX == ULONG_MAX
-  return xdr_u_long (xdrs, (u_long *) up);
-#elif UINT_MAX == USHRT_MAX
-  return xdr_short (xdrs, (short *) up);
-#else
-#error unexpected integer sizes in_xdr_u_int()
-#endif
-}
-
-/*
- * XDR long integers
- * The definition of xdr_long() is kept for backward
- * compatibility. Instead xdr_int() should be used.
- */
-bool_t
-xdr_long (XDR *xdrs, long *lp)
-{
-
-  if (xdrs->x_op == XDR_ENCODE
-      && (sizeof (int32_t) == sizeof (long)
-	  || (int32_t) *lp == *lp))
-    return XDR_PUTLONG (xdrs, lp);
-
-  if (xdrs->x_op == XDR_DECODE)
-    return XDR_GETLONG (xdrs, lp);
-
-  if (xdrs->x_op == XDR_FREE)
-    return TRUE;
-
-  return FALSE;
-}
+libc_hidden_def(xdr_int)
 
 /*
  * XDR unsigned long integers
  * The definition of xdr_u_long() is kept for backward
  * compatibility. Instead xdr_u_int() should be used.
  */
+libc_hidden_proto(xdr_u_long)
 bool_t
 xdr_u_long (XDR *xdrs, u_long *ulp)
 {
@@ -215,11 +221,49 @@ xdr_u_long (XDR *xdrs, u_long *ulp)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_u_long)
+
+/*
+ * XDR unsigned integers
+ */
+libc_hidden_proto(xdr_u_int)
+bool_t
+xdr_u_int (XDR *xdrs, u_int *up)
+{
+#if UINT_MAX < ULONG_MAX
+  u_long l;
+
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      l = (u_long) * up;
+      return XDR_PUTLONG (xdrs, &l);
+
+    case XDR_DECODE:
+      if (!XDR_GETLONG (xdrs, &l))
+	{
+	  return FALSE;
+	}
+      *up = (u_int) l;
+    case XDR_FREE:
+      return TRUE;
+    }
+  return FALSE;
+#elif UINT_MAX == ULONG_MAX
+  return xdr_u_long (xdrs, (u_long *) up);
+#elif UINT_MAX == USHRT_MAX
+  return xdr_short (xdrs, (short *) up);
+#else
+#error unexpected integer sizes in xdr_u_int()
+#endif
+}
+libc_hidden_def(xdr_u_int)
 
 /*
  * XDR hyper integers
  * same as xdr_u_hyper - open coded to save a proc call!
  */
+libc_hidden_proto(xdr_hyper)
 bool_t
 xdr_hyper (XDR *xdrs, quad_t *llp)
 {
@@ -247,12 +291,14 @@ xdr_hyper (XDR *xdrs, quad_t *llp)
 
   return FALSE;
 }
+libc_hidden_def(xdr_hyper)
 
 
 /*
  * XDR hyper integers
  * same as xdr_hyper - open coded to save a proc call!
  */
+libc_hidden_proto(xdr_u_hyper)
 bool_t
 xdr_u_hyper (XDR *xdrs, u_quad_t *ullp)
 {
@@ -280,6 +326,7 @@ xdr_u_hyper (XDR *xdrs, u_quad_t *ullp)
 
   return FALSE;
 }
+libc_hidden_def(xdr_u_hyper)
 
 bool_t
 xdr_longlong_t (XDR *xdrs, quad_t *llp)
@@ -294,36 +341,9 @@ xdr_u_longlong_t (XDR *xdrs, u_quad_t *ullp)
 }
 
 /*
- * XDR short integers
- */
-bool_t
-xdr_short (XDR *xdrs, short *sp)
-{
-  long l;
-
-  switch (xdrs->x_op)
-    {
-    case XDR_ENCODE:
-      l = (long) *sp;
-      return XDR_PUTLONG (xdrs, &l);
-
-    case XDR_DECODE:
-      if (!XDR_GETLONG (xdrs, &l))
-	{
-	  return FALSE;
-	}
-      *sp = (short) l;
-      return TRUE;
-
-    case XDR_FREE:
-      return TRUE;
-    }
-  return FALSE;
-}
-
-/*
  * XDR unsigned short integers
  */
+libc_hidden_proto(xdr_u_short)
 bool_t
 xdr_u_short (XDR *xdrs, u_short *usp)
 {
@@ -348,6 +368,7 @@ xdr_u_short (XDR *xdrs, u_short *usp)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_u_short)
 
 
 /*
@@ -387,6 +408,7 @@ xdr_u_char (XDR *xdrs, u_char *cp)
 /*
  * XDR booleans
  */
+libc_hidden_proto(xdr_bool)
 bool_t
 xdr_bool (XDR *xdrs, bool_t *bp)
 {
@@ -411,10 +433,12 @@ xdr_bool (XDR *xdrs, bool_t *bp)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_bool)
 
 /*
  * XDR enumerations
  */
+libc_hidden_proto(xdr_enum)
 bool_t
 xdr_enum (XDR *xdrs, enum_t *ep)
 {
@@ -461,12 +485,14 @@ xdr_enum (XDR *xdrs, enum_t *ep)
       return FALSE;
     }
 }
+libc_hidden_def(xdr_enum)
 
 /*
  * XDR opaque data
  * Allows the specification of a fixed size sequence of opaque bytes.
  * cp points to the opaque object and cnt gives the byte length.
  */
+libc_hidden_proto(xdr_opaque)
 bool_t
 xdr_opaque (XDR *xdrs, caddr_t cp, u_int cnt)
 {
@@ -511,18 +537,16 @@ xdr_opaque (XDR *xdrs, caddr_t cp, u_int cnt)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_opaque)
 
 /*
  * XDR counted bytes
  * *cpp is a pointer to the bytes, *sizep is the count.
  * If *cpp is NULL maxsize bytes are allocated
  */
+libc_hidden_proto(xdr_bytes)
 bool_t
-xdr_bytes (xdrs, cpp, sizep, maxsize)
-     XDR *xdrs;
-     char **cpp;
-     u_int *sizep;
-     u_int maxsize;
+xdr_bytes (XDR *xdrs, char **cpp, u_int *sizep, u_int maxsize)
 {
   char *sp = *cpp;	/* sp is the actual string pointer */
   u_int nodesize;
@@ -558,7 +582,7 @@ xdr_bytes (xdrs, cpp, sizep, maxsize)
 	{
 #ifdef USE_IN_LIBIO
 	  if (_IO_fwide (stderr, 0) > 0)
-	    (void) __fwprintf (stderr, L"%s", _("xdr_bytes: out of memory\n"));
+	    (void) fwprintf (stderr, L"%s", _("xdr_bytes: out of memory\n"));
 	  else
 #endif
 	    (void) fputs (_("xdr_bytes: out of memory\n"), stderr);
@@ -579,6 +603,7 @@ xdr_bytes (xdrs, cpp, sizep, maxsize)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_bytes)
 
 /*
  * Implemented here due to commonality of the object.
@@ -603,13 +628,9 @@ xdr_netobj (xdrs, np)
  * routine may be called.
  * If there is no specific or default routine an error is returned.
  */
+libc_hidden_proto(xdr_union)
 bool_t
-xdr_union (xdrs, dscmp, unp, choices, dfault)
-     XDR *xdrs;
-     enum_t *dscmp;		/* enum to decide which arm to work on */
-     char *unp;			/* the union itself */
-     const struct xdr_discrim *choices;	/* [value, xdr proc] for each arm */
-     xdrproc_t dfault;		/* default xdr routine */
+xdr_union (XDR *xdrs, enum_t *dscmp, char *unp, const struct xdr_discrim *choices, xdrproc_t dfault)
 {
   enum_t dscm;
 
@@ -638,7 +659,7 @@ xdr_union (xdrs, dscmp, unp, choices, dfault)
   return ((dfault == NULL_xdrproc_t) ? FALSE :
 	  (*dfault) (xdrs, unp, LASTUNSIGNED));
 }
-
+libc_hidden_def(xdr_union)
 
 /*
  * Non-portable xdr primitives.
@@ -654,11 +675,9 @@ xdr_union (xdrs, dscmp, unp, choices, dfault)
  * storage is allocated.  The last parameter is the max allowed length
  * of the string as specified by a protocol.
  */
+libc_hidden_proto(xdr_string)
 bool_t
-xdr_string (xdrs, cpp, maxsize)
-     XDR *xdrs;
-     char **cpp;
-     u_int maxsize;
+xdr_string (XDR *xdrs, char **cpp, u_int maxsize)
 {
   char *sp = *cpp;	/* sp is the actual string pointer */
   u_int size;
@@ -709,7 +728,7 @@ xdr_string (xdrs, cpp, maxsize)
 	{
 #ifdef USE_IN_LIBIO
 	  if (_IO_fwide (stderr, 0) > 0)
-	    (void) __fwprintf (stderr, L"%s",
+	    (void) fwprintf (stderr, L"%s",
 			       _("xdr_string: out of memory\n"));
 	  else
 #endif
@@ -729,6 +748,7 @@ xdr_string (xdrs, cpp, maxsize)
     }
   return FALSE;
 }
+libc_hidden_def(xdr_string)
 
 /*
  * Wrapper for xdr_string that can be called directly from

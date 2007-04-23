@@ -1,12 +1,11 @@
-/* Copyright (C) 2004       Manuel Novoa III    <mjn3@codepoet.org>
+/* Copyright (C) 2004-2005 Manuel Novoa III    <mjn3@codepoet.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  *
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
-#define _GNU_SOURCE
-
+#include <features.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,28 +16,74 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #ifdef __UCLIBC_HAS_WCHAR__
 #include <wchar.h>
 #endif
 
+#include <bits/uClibc_mutex.h>
+
+#define __STDIO_THREADLOCK_OPENLIST_ADD			\
+        __UCLIBC_MUTEX_LOCK(_stdio_openlist_add_lock)
+
+#define __STDIO_THREADUNLOCK_OPENLIST_ADD		\
+        __UCLIBC_MUTEX_UNLOCK(_stdio_openlist_add_lock)
+
+#ifdef __STDIO_BUFFERS
+
+#define __STDIO_THREADLOCK_OPENLIST_DEL			\
+        __UCLIBC_MUTEX_LOCK(_stdio_openlist_del_lock)
+
+#define __STDIO_THREADUNLOCK_OPENLIST_DEL		\
+        __UCLIBC_MUTEX_UNLOCK(_stdio_openlist_del_lock)
+
+
 #ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
+#define __STDIO_OPENLIST_INC_USE			\
+do {							\
+	__STDIO_THREADLOCK_OPENLIST_DEL;		\
+	++_stdio_openlist_use_count;			\
+	__STDIO_THREADUNLOCK_OPENLIST_DEL;		\
+} while (0)
 
-#define __STDIO_THREADLOCK_OPENLIST \
-	__pthread_mutex_lock(&_stdio_openlist_lock)
+extern void _stdio_openlist_dec_use(void);
 
-#define __STDIO_THREADUNLOCK_OPENLIST \
-	__pthread_mutex_unlock(&_stdio_openlist_lock)
+#define __STDIO_OPENLIST_DEC_USE			\
+	_stdio_openlist_dec_use()
 
-#define __STDIO_THREADTRYLOCK_OPENLIST \
-	__pthread_mutex_trylock(&_stdio_openlist_lock)
+#define __STDIO_OPENLIST_INC_DEL_CNT			\
+do {							\
+	__STDIO_THREADLOCK_OPENLIST_DEL;		\
+	++_stdio_openlist_del_count;			\
+	__STDIO_THREADUNLOCK_OPENLIST_DEL;		\
+} while (0)
 
-#else
+#define __STDIO_OPENLIST_DEC_DEL_CNT			\
+do { \
+	__STDIO_THREADLOCK_OPENLIST_DEL;		\
+	--_stdio_openlist_del_count;			\
+	__STDIO_THREADUNLOCK_OPENLIST_DEL;		\
+} while (0)
 
-#define	__STDIO_THREADLOCK_OPENLIST     ((void)0)
-#define	__STDIO_THREADUNLOCK_OPENLIST   ((void)0)
+#endif /* __UCLIBC_HAS_THREADS__ */
+#endif /* __STDIO_BUFFERS */
 
+#ifndef __STDIO_THREADLOCK_OPENLIST_DEL
+#define	__STDIO_THREADLOCK_OPENLIST_DEL     ((void)0)
+#endif
+#ifndef __STDIO_THREADUNLOCK_OPENLIST_DEL
+#define	__STDIO_THREADUNLOCK_OPENLIST_DEL   ((void)0)
+#endif
+#ifndef __STDIO_OPENLIST_INC_USE
+#define __STDIO_OPENLIST_INC_USE            ((void)0)
+#endif
+#ifndef __STDIO_OPENLIST_DEC_USE
+#define __STDIO_OPENLIST_DEC_USE            ((void)0)
+#endif
+#ifndef __STDIO_OPENLIST_INC_DEL_CNT
+#define __STDIO_OPENLIST_INC_DEL_CNT        ((void)0)
+#endif
+#ifndef __STDIO_OPENLIST_DEC_DEL_CNT
+#define __STDIO_OPENLIST_DEC_DEL_CNT        ((void)0)
 #endif
 
 #define __UNDEFINED_OR_NONPORTABLE ((void)0)
@@ -46,10 +91,10 @@
 /**********************************************************************/
 #ifdef __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__
 
-extern __ssize_t _cs_read(void *cookie, char *buf, size_t bufsize);
-extern __ssize_t _cs_write(void *cookie, const char *buf, size_t bufsize);
-extern int _cs_seek(void *cookie, __offmax_t *pos, int whence);
-extern int _cs_close(void *cookie);
+extern __ssize_t _cs_read(void *cookie, char *buf, size_t bufsize) attribute_hidden;
+extern __ssize_t _cs_write(void *cookie, const char *buf, size_t bufsize) attribute_hidden;
+extern int _cs_seek(void *cookie, __offmax_t *pos, int whence) attribute_hidden;
+extern int _cs_close(void *cookie) attribute_hidden;
 
 #define __STDIO_STREAM_RESET_GCS(S) \
 	(S)->__cookie = &((S)->__filedes); \
@@ -74,7 +119,7 @@ extern int _cs_close(void *cookie);
 
 #else  /* __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__ */
 
-extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
+extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence) attribute_hidden;
 
 #define __STDIO_STREAM_RESET_GCS(S) ((void)0)
 
@@ -122,30 +167,30 @@ extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
 /**********************************************************************/
 #ifdef __UCLIBC_HAS_WCHAR__
 
-#define __STDIO_STREAM_IS_NARROW_WRITING(S)   \
-	(((S)->__modeflags & (__FLAG_WRITING|__FLAG_NARROW)) \
+#define __STDIO_STREAM_IS_NARROW_WRITING(S)			\
+	(((S)->__modeflags & (__FLAG_WRITING|__FLAG_NARROW))	\
 	 == (__FLAG_WRITING|__FLAG_NARROW))
 
-#define __STDIO_STREAM_IS_WIDE_WRITING(S)   \
-	(((S)->__modeflags & (__FLAG_WRITING|__FLAG_WIDE)) \
+#define __STDIO_STREAM_IS_WIDE_WRITING(S)			\
+	(((S)->__modeflags & (__FLAG_WRITING|__FLAG_WIDE))	\
 	 == (__FLAG_WRITING|__FLAG_WIDE))
 
 #if (__FLAG_NARROW <= __MASK_READING)
 #error assumption violated regarding __FLAG_NARROW
 #endif
 
-#define __STDIO_STREAM_IS_NARROW_READING(S)   \
+#define __STDIO_STREAM_IS_NARROW_READING(S)			\
 	(((S)->__modeflags & (__MASK_READING|__FLAG_NARROW)) > __FLAG_NARROW)
 
-#define __STDIO_STREAM_IS_WIDE_READING(S)   \
+#define __STDIO_STREAM_IS_WIDE_READING(S)			\
 	(((S)->__modeflags & (__MASK_READING|__FLAG_WIDE)) > __FLAG_WIDE)
 
 #define __STDIO_STREAM_IS_NARROW(S)		((S)->__modeflags & __FLAG_NARROW)
 #define __STDIO_STREAM_IS_WIDE(S)		((S)->__modeflags & __FLAG_WIDE)
 
-#define __STDIO_STREAM_SET_NARROW(S) \
+#define __STDIO_STREAM_SET_NARROW(S)				\
 	((void)((S)->__modeflags |= __FLAG_NARROW))
-#define __STDIO_STREAM_SET_WIDE(S) \
+#define __STDIO_STREAM_SET_WIDE(S)				\
 	((void)((S)->__modeflags |= __FLAG_WIDE))
 
 #else
@@ -154,11 +199,11 @@ extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
 
 #define __STDIO_STREAM_IS_NARROW_READING(S)  __STDIO_STREAM_IS_READING(S)
 
-#define __STDIO_STREAM_IS_NARROW(S)		(1)
-#define __STDIO_STREAM_IS_WIDE(S)		(0)
+#define __STDIO_STREAM_IS_NARROW(S)			(1)
+#define __STDIO_STREAM_IS_WIDE(S)			(0)
 
-#define __STDIO_STREAM_SET_NARROW(S)	((void)0)
-#define __STDIO_STREAM_SET_WIDE(S)		((void)0)
+#define __STDIO_STREAM_SET_NARROW(S)			((void)0)
+#define __STDIO_STREAM_SET_WIDE(S)			((void)0)
 
 #endif
 /**********************************************************************/
@@ -188,7 +233,7 @@ extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
 #else
 # define __STDIO_STREAM_DISABLE_GETC(S)			((void)0)
 # define __STDIO_STREAM_ENABLE_GETC(S)			((void)0)
-# define __STDIO_STREAM_CAN_USE_BUFFER_GET(S)	(0)
+# define __STDIO_STREAM_CAN_USE_BUFFER_GET(S)		(0)
 #endif
 
 #ifdef __UCLIBC_HAS_STDIO_PUTC_MACRO__
@@ -201,26 +246,28 @@ extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
 #else
 # define __STDIO_STREAM_DISABLE_PUTC(S)			((void)0)
 # define __STDIO_STREAM_ENABLE_PUTC(S)			((void)0)
-# define __STDIO_STREAM_CAN_USE_BUFFER_ADD(S)	(0)
+# define __STDIO_STREAM_CAN_USE_BUFFER_ADD(S)		(0)
 #endif
 
 #ifdef __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__
 #define __STDIO_STREAM_IS_CUSTOM(S)		((S)->__cookie != &((S)->__filedes))
 #else
-#define __STDIO_STREAM_IS_CUSTOM(S)		(0)
+#define __STDIO_STREAM_IS_CUSTOM(S)			(0)
 #endif
 
 /**********************************************************************/
 
 #ifdef __STDIO_BUFFERS
-#define __STDIO_STREAM_FREE_BUFFER(S) \
-	do { if ((S)->__modeflags & __FLAG_FREEBUF) free((S)->__bufstart); } while (0)
+#define __STDIO_STREAM_FREE_BUFFER(S)			\
+	do { if ((S)->__modeflags & __FLAG_FREEBUF)	\
+	free((S)->__bufstart); } while (0)
 #else
 #define __STDIO_STREAM_FREE_BUFFER(S) ((void)0)
 #endif
 
 #define __STDIO_STREAM_FREE_FILE(S) \
-	do { if ((S)->__modeflags & __FLAG_FREEFILE) free((S)); } while (0)
+	do { if ((S)->__modeflags & __FLAG_FREEFILE)	\
+	free((S)); } while (0)
 
 
 #ifdef __UCLIBC_HAS_LFS__
@@ -236,13 +283,13 @@ extern int __stdio_seek(FILE *stream, register __offmax_t *pos, int whence);
 /* Assume stream in valid writing state.  Do not reset writing flag
  * or disble putc macro unless error. */
 /* Should we assume that buffer is not empty to avoid a check? */
-extern size_t __stdio_wcommit(FILE *__restrict stream);
+extern size_t __stdio_wcommit(FILE *__restrict stream) attribute_hidden;
 
 /* Remember to fail if at EOF! */
-extern size_t __stdio_rfill(FILE *__restrict stream);
+extern size_t __stdio_rfill(FILE *__restrict stream) attribute_hidden;
 
 extern size_t __stdio_fwrite(const unsigned char *__restrict buffer,
-							 size_t bytes, FILE *__restrict stream);
+		size_t bytes, FILE *__restrict stream) attribute_hidden;
 #else
 
 #define __stdio_fwrite(B,N,S)  __stdio_WRITE((S),(B),(N))
@@ -250,14 +297,15 @@ extern size_t __stdio_fwrite(const unsigned char *__restrict buffer,
 #endif
 
 extern size_t __stdio_WRITE(FILE *stream, const unsigned char *buf,
-							size_t bufsize);
-extern size_t __stdio_READ(FILE *stream, unsigned char *buf, size_t bufsize);
+		size_t bufsize) attribute_hidden;
+extern size_t __stdio_READ(FILE *stream, unsigned char *buf,
+		size_t bufsize) attribute_hidden;
 
-extern int __stdio_trans2r(FILE *__restrict stream);
-extern int __stdio_trans2w(FILE *__restrict stream);
+extern int __stdio_trans2r(FILE *__restrict stream) attribute_hidden;
+extern int __stdio_trans2w(FILE *__restrict stream) attribute_hidden;
 
-extern int __stdio_trans2r_o(FILE *__restrict stream, int oflag);
-extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag);
+extern int __stdio_trans2r_o(FILE *__restrict stream, int oflag) attribute_hidden;
+extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag) attribute_hidden;
 
 /**********************************************************************/
 #ifdef __STDIO_BUFFERS
@@ -284,14 +332,14 @@ extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag);
 /* Valid when reading... */
 #define __STDIO_STREAM_BUFFER_RAVAIL(S)		((S)->__bufread - (S)->__bufpos)
 #define __STDIO_STREAM_BUFFER_GET(S)		(*(S)->__bufpos++)
-#define __STDIO_FILL_READ_BUFFER(S)			__stdio_rfill((S))
+#define __STDIO_FILL_READ_BUFFER(S)		__stdio_rfill((S))
 
-#define __STDIO_STREAM_INIT_BUFREAD_BUFPOS(S) \
+#define __STDIO_STREAM_INIT_BUFREAD_BUFPOS(S)		\
 	(S)->__bufread = (S)->__bufpos = (S)->__bufstart
 
 
 #define __STDIO_STREAM_FAKE_VSNPRINTF_FILEDES		(-2)
-#define __STDIO_STREAM_FAKE_VSSCANF_FILEDES			(-2)
+#define __STDIO_STREAM_FAKE_VSSCANF_FILEDES		(-2)
 #define __STDIO_STREAM_FAKE_VSWPRINTF_FILEDES		(-3)
 #define __STDIO_STREAM_FAKE_VSWSCANF_FILEDES		(-3)
 
@@ -306,9 +354,9 @@ extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag);
 
 #else  /* __STDIO_BUFFERS */
 
-#define __STDIO_STREAM_IS_FBF(S)					(0)
-#define __STDIO_STREAM_IS_LBF(S)					(0)
-#define __STDIO_STREAM_IS_NBF(S)					(1)
+#define __STDIO_STREAM_IS_FBF(S)				(0)
+#define __STDIO_STREAM_IS_LBF(S)				(0)
+#define __STDIO_STREAM_IS_NBF(S)				(1)
 
 #define __STDIO_STREAM_BUFFER_SIZE(S)				(0)
 #define __STDIO_STREAM_BUFFER_ADD(S,C)				((void)0)
@@ -320,8 +368,8 @@ extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag);
 
 #define __STDIO_STREAM_BUFFER_RAVAIL(S)				(0)
 #define __STDIO_STREAM_BUFFER_GET(S)				(EOF)
-#define __STDIO_FILL_READ_BUFFER(S)					(0)
-#define __STDIO_STREAM_INIT_BUFREAD_BUFPOS(S)		((void)0)
+#define __STDIO_FILL_READ_BUFFER(S)				(0)
+#define __STDIO_STREAM_INIT_BUFREAD_BUFPOS(S)			((void)0)
 
 #undef __STDIO_STREAM_FAKE_VSNPRINTF_FILEDES
 #undef __STDIO_STREAM_FAKE_VSSCANF_FILEDES
@@ -332,57 +380,26 @@ extern int __stdio_trans2w_o(FILE *__restrict stream, int oflag);
 #undef __STDIO_STREAM_IS_FAKE_VSWPRINTF
 
 # ifdef __USE_OLD_VFPRINTF__
-#  define __STDIO_STREAM_FAKE_VSNPRINTF_FILEDES_NB	(-2)
-#  define __STDIO_STREAM_IS_FAKE_VSNPRINTF_NB(S) \
+#  define __STDIO_STREAM_FAKE_VSNPRINTF_FILEDES_NB		(-2)
+#  define __STDIO_STREAM_IS_FAKE_VSNPRINTF_NB(S)		\
 	((S)->__filedes == __STDIO_STREAM_FAKE_VSNPRINTF_FILEDES_NB)
 # endif
 
 # ifndef __UCLIBC_HAS_WCHAR__
-#  define __STDIO_STREAM_FAKE_VSSCANF_FILEDES_NB	(-2)
-#  define __STDIO_STREAM_IS_FAKE_VSSCANF_NB(S) \
+#  define __STDIO_STREAM_FAKE_VSSCANF_FILEDES_NB		(-2)
+#  define __STDIO_STREAM_IS_FAKE_VSSCANF_NB(S)			\
 	((S)->__filedes == __STDIO_STREAM_FAKE_VSSCANF_FILEDES_NB)
 # endif
 
 #endif /* __STDIO_BUFFERS */
 /**********************************************************************/
 
-extern int __fputs_unlocked(const char *__restrict s, FILE *__restrict stream);
-
-extern int __putchar_unlocked(int c);
-
-
-extern size_t __fwrite_unlocked(const void *__restrict ptr, size_t size,
-								size_t nmemb, FILE *__restrict stream);
-
-extern size_t __fread_unlocked(void *__restrict ptr, size_t size,
-							   size_t nmemb, FILE *__restrict stream);
-
-extern int __fputc_unlocked(int c, FILE *stream);
-
-extern int __fflush_unlocked(FILE *stream);
-
-extern int __stdio_adjust_position(FILE *__restrict stream, __offmax_t *pos);
-
-extern void __clearerr_unlocked(FILE *stream);
-extern int __feof_unlocked(FILE *stream);
-extern int __ferror_unlocked(FILE *stream);
-
-extern int __fgetc_unlocked(FILE *stream);
-extern char *__fgets_unlocked(char *__restrict s, int n,
-							  FILE * __restrict stream);
-
-extern int __fileno_unlocked(FILE *stream);
-
-extern int __getchar_unlocked(void);
-
-#ifdef __UCLIBC_HAS_LFS__
-extern int __fseeko64(FILE *stream, __off64_t offset, int whence);
-extern __off64_t __ftello64(FILE *stream);
-#endif
+extern int __stdio_adjust_position(FILE *__restrict stream, __offmax_t *pos) attribute_hidden;
 
 #ifdef __STDIO_HAS_OPENLIST
 	/* Uses an implementation hack!!! */
-#define __STDIO_FLUSH_LBF_STREAMS  __fflush_unlocked((FILE *) &_stdio_openlist)
+#define __STDIO_FLUSH_LBF_STREAMS		\
+	fflush_unlocked((FILE *) &_stdio_openlist)
 #else
 #define __STDIO_FLUSH_LBF_STREAMS		((void)0)
 #endif
@@ -405,24 +422,12 @@ extern void _stdio_validate_FILE(const FILE *stream);
 
 /**********************************************************************/
 
-extern int _stdio_adjpos(FILE *__restrict stream, __offmax_t * pos);
-extern int _stdio_lseek(FILE *stream, __offmax_t *pos, int whence);
-
-extern size_t _stdio_fwrite(const unsigned char *buffer, size_t bytes,
-							FILE *stream);
-extern size_t _stdio_fread(unsigned char *buffer, size_t bytes,
-						   FILE *stream);
-
-extern FILE *_stdio_fopen(intptr_t fname_or_mode,
-						  const char *__restrict mode,
-						  FILE *__restrict stream, int filedes);
+extern FILE *_stdio_fopen(intptr_t fname_or_mode, const char *__restrict mode,
+		FILE *__restrict stream, int filedes) attribute_hidden;
 
 #ifdef __UCLIBC_HAS_WCHAR__
-extern size_t _wstdio_fwrite(const wchar_t *__restrict ws, size_t n,
-							 FILE *__restrict stream);
-
-extern wint_t __fgetwc_unlocked(register FILE *stream);
-extern wint_t __fputwc_unlocked(wchar_t wc, FILE *stream);
+extern size_t _wstdio_fwrite(const wchar_t *__restrict ws,
+		size_t n, FILE *__restrict stream) attribute_hidden;
 #endif
 
 /**********************************************************************/

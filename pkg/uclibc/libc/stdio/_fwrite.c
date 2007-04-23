@@ -7,11 +7,15 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(memchr)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memrchr)
+
 #ifdef __STDIO_BUFFERS
 
 /* Either buffer data or (commit buffer if necessary and) write. */
 
-size_t __stdio_fwrite(const unsigned char * __restrict buffer,
+size_t attribute_hidden __stdio_fwrite(const unsigned char * __restrict buffer,
 					  size_t bytes,
 					  register FILE * __restrict stream)
 {

@@ -7,6 +7,8 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(strcpy)
+
 char *ctermid(register char *s)
 {
 	static char sbuf[L_ctermid];

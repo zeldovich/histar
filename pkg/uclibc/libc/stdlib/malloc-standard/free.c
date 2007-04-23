@@ -16,6 +16,7 @@
 
 #include "malloc.h"
 
+libc_hidden_proto(munmap)
 
 /* ------------------------- __malloc_trim -------------------------
    __malloc_trim is an inverse of sorts to __malloc_alloc.  It gives memory
@@ -167,7 +168,7 @@ static void malloc_init_state(mstate av)
   malloc anyway, it turns out to be the perfect place to trigger
   initialization code.
 */
-void __malloc_consolidate(mstate av)
+void attribute_hidden __malloc_consolidate(mstate av)
 {
     mfastbinptr*    fb;                 /* current fastbin being consolidated */
     mfastbinptr*    maxfb;              /* last fastbin (for loop control) */
@@ -281,7 +282,7 @@ void free(void* mem)
     if (mem == NULL)
 	return;
 
-    LOCK;
+    __MALLOC_LOCK;
     av = get_malloc_state();
     p = mem2chunk(mem);
     size = chunksize(p);
@@ -400,14 +401,11 @@ void free(void* mem)
        */
 
     else {
-	int ret;
 	size_t offset = p->prev_size;
 	av->n_mmaps--;
 	av->mmapped_mem -= (size + offset);
-	ret = munmap((char*)p - offset, size + offset);
-	/* munmap returns non-zero on failure */
-	assert(ret == 0);
+	munmap((char*)p - offset, size + offset);
     }
-    UNLOCK;
+    __MALLOC_UNLOCK;
 }
 

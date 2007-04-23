@@ -36,11 +36,13 @@
 !     enirety if at least one byte is included in the copy.
 !
 
+#include <features.h>
+
 	.section .text..SHmedia32,"ax"
 	.globl	memcpy
 	.type	memcpy, @function
-
 	.align	5
+
 memcpy:
 
 #define LDUAQ(P,O,D0,D1) ldlo.q P,O,D0; ldhi.q P,O+7,D1
@@ -198,5 +200,6 @@ Loop_ua:
 	stlo.q r5, 8, r1
 	blink tr1, r63
 
-	.size memcpy, . - memcpy
+	.size memcpy,.-memcpy
 
+libc_hidden_def(memcpy)

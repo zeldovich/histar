@@ -22,7 +22,6 @@
  * Rewritten to be reentrant by Ulrich Drepper, 1995
  */
 
-#define _GNU_SOURCE
 #include <features.h>
 #include <errno.h>
 #include <limits.h>
@@ -123,6 +122,67 @@ static const struct random_poly_info random_poly_info =
 
 
 
+/* If we are using the trivial TYPE_0 R.N.G., just do the old linear
+   congruential bit.  Otherwise, we do our fancy trinomial stuff, which is the
+   same in all the other cases due to all the global variables that have been
+   set up.  The basic operation is to add the number at the rear pointer into
+   the one at the front pointer.  Then both pointers are advanced to the next
+   location cyclically in the table.  The value returned is the sum generated,
+   reduced to 31 bits by throwing away the "least random" low bit.
+   Note: The code takes advantage of the fact that both the front and
+   rear pointers can't wrap on the same call by not testing the rear
+   pointer if the front one has wrapped.  Returns a 31-bit random number.  */
+
+libc_hidden_proto(random_r)
+int random_r(struct random_data *buf, int32_t *result)
+{
+    int32_t *state;
+
+    if (buf == NULL || result == NULL)
+	goto fail;
+
+    state = buf->state;
+
+    if (buf->rand_type == TYPE_0)
+    {
+	int32_t val = state[0];
+	val = ((state[0] * 1103515245) + 12345) & 0x7fffffff;
+	state[0] = val;
+	*result = val;
+    }
+    else
+    {
+	int32_t *fptr = buf->fptr;
+	int32_t *rptr = buf->rptr;
+	int32_t *end_ptr = buf->end_ptr;
+	int32_t val;
+
+	val = *fptr += *rptr;
+	/* Chucking least random bit.  */
+	*result = (val >> 1) & 0x7fffffff;
+	++fptr;
+	if (fptr >= end_ptr)
+	{
+	    fptr = state;
+	    ++rptr;
+	}
+	else
+	{
+	    ++rptr;
+	    if (rptr >= end_ptr)
+		rptr = state;
+	}
+	buf->fptr = fptr;
+	buf->rptr = rptr;
+    }
+    return 0;
+
+fail:
+    __set_errno (EINVAL);
+    return -1;
+}
+libc_hidden_def(random_r)
+
 /* Initialize the random number generator based on the given seed.  If the
    type is the trivial no-state-information type, just remember the seed.
    Otherwise, initializes state[] based on the given "seed" via a linear
@@ -131,6 +191,7 @@ static const struct random_poly_info random_poly_info =
    information a given number of times to get rid of any initial dependencies
    introduced by the L.C.R.N.G.  Note that the initialization of randtbl[]
    for default usage relies on values produced by this routine.  */
+libc_hidden_proto(srandom_r)
 int srandom_r (unsigned int seed, struct random_data *buf)
 {
     int type;
@@ -185,6 +246,7 @@ done:
 fail:
     return -1;
 }
+libc_hidden_def(srandom_r)
 
 /* Initialize the state information in the given array of N bytes for
    future random number generation.  Based on the number of bytes we
@@ -197,11 +259,8 @@ fail:
    Note: The first thing we do is save the current state, if any, just like
    setstate so that it doesn't matter when initstate is called.
    Returns a pointer to the old state.  */
-int initstate_r (seed, arg_state, n, buf)
-     unsigned int seed;
-     char *arg_state;
-     size_t n;
-     struct random_data *buf;
+libc_hidden_proto(initstate_r)
+int initstate_r (unsigned int seed, char *arg_state, size_t n, struct random_data *buf)
 {
     int type;
     int degree;
@@ -249,6 +308,7 @@ fail:
     __set_errno (EINVAL);
     return -1;
 }
+libc_hidden_def(initstate_r)
 
 /* Restore the state from the given state array.
    Note: It is important that we also remember the locations of the pointers
@@ -258,6 +318,7 @@ fail:
    to the order in which things are done, it is OK to call setstate with the
    same state as the current state
    Returns a pointer to the old state information.  */
+libc_hidden_proto(setstate_r)
 int setstate_r (char *arg_state, struct random_data *buf)
 {
     int32_t *new_state = 1 + (int32_t *) arg_state;
@@ -301,65 +362,4 @@ fail:
     __set_errno (EINVAL);
     return -1;
 }
-
-/* If we are using the trivial TYPE_0 R.N.G., just do the old linear
-   congruential bit.  Otherwise, we do our fancy trinomial stuff, which is the
-   same in all the other cases due to all the global variables that have been
-   set up.  The basic operation is to add the number at the rear pointer into
-   the one at the front pointer.  Then both pointers are advanced to the next
-   location cyclically in the table.  The value returned is the sum generated,
-   reduced to 31 bits by throwing away the "least random" low bit.
-   Note: The code takes advantage of the fact that both the front and
-   rear pointers can't wrap on the same call by not testing the rear
-   pointer if the front one has wrapped.  Returns a 31-bit random number.  */
-
-int random_r (buf, result)
-     struct random_data *buf;
-     int32_t *result;
-{
-    int32_t *state;
-
-    if (buf == NULL || result == NULL)
-	goto fail;
-
-    state = buf->state;
-
-    if (buf->rand_type == TYPE_0)
-    {
-	int32_t val = state[0];
-	val = ((state[0] * 1103515245) + 12345) & 0x7fffffff;
-	state[0] = val;
-	*result = val;
-    }
-    else
-    {
-	int32_t *fptr = buf->fptr;
-	int32_t *rptr = buf->rptr;
-	int32_t *end_ptr = buf->end_ptr;
-	int32_t val;
-
-	val = *fptr += *rptr;
-	/* Chucking least random bit.  */
-	*result = (val >> 1) & 0x7fffffff;
-	++fptr;
-	if (fptr >= end_ptr)
-	{
-	    fptr = state;
-	    ++rptr;
-	}
-	else
-	{
-	    ++rptr;
-	    if (rptr >= end_ptr)
-		rptr = state;
-	}
-	buf->fptr = fptr;
-	buf->rptr = rptr;
-    }
-    return 0;
-
-fail:
-    __set_errno (EINVAL);
-    return -1;
-}
-
+libc_hidden_def(setstate_r)

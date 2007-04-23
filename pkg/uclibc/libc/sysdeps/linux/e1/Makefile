@@ -1,20 +1,8 @@
 # Makefile for uClibc
 #
-# Copyright (C) 2000-2003 Erik Andersen <andersen@uclibc.org>
+# Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU Library General Public License as published by the Free
-# Software Foundation; either version 2 of the License, or (at your option) any
-# later version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU Library General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Library General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
 
 TOPDIR=../../../../
 include $(TOPDIR)Rules.mak
@@ -24,68 +12,45 @@ UCLIBC_CTOR_DTOR=n
 
 # If you're looking for vfork(), it is defined in include/unistd.h
 
+CRT_SRC := crt0.S
+CRT_OBJ := crt0.o
+CTOR_TARGETS := $(TOPDIR)lib/crti.o $(TOPDIR)lib/crtn.o
 
-CRT0=crt0.S
-CRT0_OBJ=$(patsubst %.S,%.o, $(CRT0))
-CTOR_TARGETS=$(TOPDIR)lib/crti.o $(TOPDIR)lib/crtn.o
+# why is crt1.c listed in CSRC ?
+CSRC := crt1.c syscalls.c longjmp.c setjmp.c vfork.c
+OBJS := $(patsubst %.c,%.o, $(CSRC))
 
-SSRC=
-SOBJS=$(patsubst %.S,%.o, $(SSRC))
+OBJ_LIST := ../../../obj.sysdeps.$(TARGET_ARCH)
 
-CSRC=crt1.c syscalls.c longjmp.c setjmp.c vfork.c
-COBJS=$(patsubst %.c,%.o, $(CSRC))
+all: $(OBJ_LIST) $(CTOR_TARGETS)
 
-OBJS=$(SOBJS) $(MOBJ) $(COBJS) $(CRT0_OBJ)
-
-OBJ_LIST=../../../obj.sysdeps.$(TARGET_ARCH)
-
-all: $(OBJ_LIST)
-
-$(OBJ_LIST): $(OBJS) $(CRT0_OBJ) $(CTOR_TARGETS)
-	echo $(patsubst %, sysdeps/linux/$(TARGET_ARCH)/%, $(OBJS)) > $(OBJ_LIST)
+$(OBJ_LIST): $(OBJS) $(CRT_OBJ)
+	$(STRIPTOOL) -x -R .note -R .comment $^
 	$(INSTALL) -d $(TOPDIR)lib/
-	cp $(CRT0_OBJ) $(TOPDIR)lib/$(CRT0_OBJ)
+	cp $(CRT_OBJ) $(TOPDIR)lib/
+	echo $(patsubst %, sysdeps/linux/$(TARGET_ARCH)/%, $(OBJS)) > $@
 
-$(CRT0_OBJ): %.o : %.S
+$(CRT_OBJ): %.o : %.S
 	$(CC) $(ASFLAGS) -c $< -o $@
-	$(STRIPTOOL) -x -R .note -R .comment $*.o
 
-$(SOBJS): %.o : %.S
-	$(CC) $(ASFLAGS) -c $< -o $@
-	$(STRIPTOOL) -x -R .note -R .comment $*.o
-
-$(COBJS): %.o : %.c
+$(OBJS): %.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-	$(STRIPTOOL) -x -R .note -R .comment $*.o
 
-ifeq ($(strip $(UCLIBC_CTOR_DTOR)),y)
-crti.o: crti.S
-	$(CC) $(ASFLAGS) -c crti.S -o crti.o
-
-$(TOPDIR)lib/crti.o: crti.o
+ifeq ($(UCLIBC_CTOR_DTOR),y)
+$(TOPDIR)lib/crti.o: crti.S
 	$(INSTALL) -d $(TOPDIR)lib/
-	cp crti.o $(TOPDIR)lib/
+	$(CC) $(ASFLAGS) $(SSP_DISABLE_FLAGS) -c $< -o $@
 
-crtn.o: crtn.S
-	$(CC) $(ASFLAGS) -c crtn.S -o crtn.o
-
-$(TOPDIR)lib/crtn.o: crtn.o
+$(TOPDIR)lib/crtn.o: crtn.S
 	$(INSTALL) -d $(TOPDIR)lib/
-	cp crtn.o $(TOPDIR)lib/
+	$(CC) $(ASFLAGS) $(SSP_DISABLE_FLAGS) -c $< -o $@
 else
-$(TOPDIR)lib/crti.o:
+$(CTOR_TARGETS):
 	$(INSTALL) -d $(TOPDIR)lib/
-	$(AR) $(ARFLAGS) $(TOPDIR)lib/crti.o
-$(TOPDIR)lib/crtn.o:
-	$(INSTALL) -d $(TOPDIR)lib/
-	$(AR) $(ARFLAGS) $(TOPDIR)lib/crtn.o
+	$(AR) $(ARFLAGS) $@
 endif
 
 headers:
 
 clean:
-	$(RM) *.[oa] *~ core
-	$(RM) bits/sysnum.h
-ifneq ($(strip $(HAVE_ELF)),y)
-	$(RM) $(TOPDIR)/include/float.h
-endif
+	$(RM) *.o *~ core

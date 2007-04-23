@@ -20,13 +20,14 @@
    and invokes a function in the right context after its all over.  */
 
 #include <features.h>
-#include <asm/unistd.h>
-#define _ERRNO_H	1
+#include <sys/syscall.h>
+#define _ERRNO_H
 #include <bits/errno.h>
+#include <bits/sysnum.h>
 
 
-#if defined __HAVE_ELF__ && defined __HAVE_SHARED__ 
-#define PLTJMP(_x)	_x##@PLT
+#ifdef __HAVE_SHARED__ 
+#define PLTJMP(_x)	_x@PLT
 #else
 #define PLTJMP(_x)	_x
 #endif
@@ -38,9 +39,9 @@
 
 .text
 .align 4
-.type	__clone,@function
-.globl	__clone;
-__clone:
+.type	clone,@function
+.globl	clone;
+clone:
 	/* sanity check arguments.  */
 	tst	r4, r4
 	bt	0f
@@ -59,9 +60,9 @@ __clone:
 	
 	/* do the system call */
 	mov	r6, r4
-	trapa	#0x12
+	trapa	#(__SH_SYSCALL_TRAP_BASE + 2)
 	mov     r0, r1
-#ifdef __sh2__
+#ifdef __CONFIG_SH2__
 // 12 arithmetic shifts for the crappy sh2, because shad doesn't exist!	
 	shar	r1
 	shar	r1
@@ -98,7 +99,7 @@ __clone:
 
 	/* we are done, passing the return value through r0  */
 	mov.l	.L1, r1
-#if defined __HAVE_ELF__ && defined __HAVE_SHARED__ 
+#ifdef __HAVE_SHARED__ 
 	mov.l	r12, @-r15
 	sts.l	pr, @-r15
 	mov	r0, r4
@@ -118,10 +119,7 @@ __clone:
 #endif
 	.align	2
 .L1:
-	.long	PLTJMP(_exit)
-.size __clone,.-__clone;
-
-.globl  clone;
-    clone = __clone
+	.long	PLTJMP( HIDDEN_JUMPTARGET(_exit))
+.size clone,.-clone;
 
 #include "syscall_error.S"

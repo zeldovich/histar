@@ -4,21 +4,16 @@
 # error "Never use <bits/syscalls.h> directly; include <sys/syscall.h> instead."
 #endif
 
-/* This includes the `__NR_<name>' syscall numbers taken from the Linux kernel
- * header files.  It also defines the traditional `SYS_<name>' macros for older
- * programs.  */
-#include <bits/sysnum.h>
-
-#ifndef __set_errno
-# define __set_errno(val) (*__errno_location ()) = (val)
-#endif
-
 /*
    Some of the sneaky macros in the code were taken from 
    glibc-2.2.5/sysdeps/unix/sysv/linux/x86_64/sysdep.h
 */
 
 #ifndef __ASSEMBLER__
+
+#include <errno.h>
+
+#define SYS_ify(syscall_name)  (__NR_##syscall_name)
 
 #undef _syscall0
 #define _syscall0(type,name) \
@@ -130,13 +125,13 @@ return (type) (INLINE_SYSCALL(name, 6, arg1, arg2, arg3, arg4, arg5, arg6)); \
 #undef INLINE_SYSCALL
 #define INLINE_SYSCALL(name, nr, args...) \
   ({									      \
-    unsigned long resultvar = INTERNAL_SYSCALL (name, , nr, args);	      \
-    if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (resultvar, ), 0))	      \
+    unsigned long _resultvar = INTERNAL_SYSCALL (name, , nr, args);	      \
+    if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (_resultvar, ), 0))	      \
       {									      \
-	__set_errno (INTERNAL_SYSCALL_ERRNO (resultvar, ));		      \
-	resultvar = (unsigned long) -1;					      \
+	__set_errno (INTERNAL_SYSCALL_ERRNO (_resultvar, ));		      \
+	_resultvar = (unsigned long) -1;					      \
       }									      \
-    (long) resultvar; })
+    (long) _resultvar; })
 
 #undef INTERNAL_SYSCALL_DECL
 #define INTERNAL_SYSCALL_DECL(err) do { } while (0)

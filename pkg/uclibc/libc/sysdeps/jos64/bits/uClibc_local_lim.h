@@ -1,0 +1,7 @@
+#ifndef	_BITS_UCLIBC_LOCAL_LIM_H
+#define	_BITS_UCLIBC_LOCAL_LIM_H	1
+
+#define PTHREAD_THREADS_MAX	1024
+#define TIMER_MAX		256
+
+#endif

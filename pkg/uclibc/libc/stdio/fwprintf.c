@@ -9,6 +9,8 @@
 #include <stdarg.h>
 #include <wchar.h>
 
+libc_hidden_proto(vfwprintf)
+
 int fwprintf(FILE * __restrict stream, const wchar_t * __restrict format, ...)
 {
 	va_list arg;

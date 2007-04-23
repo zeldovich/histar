@@ -46,10 +46,7 @@
  *    locale support had (8-bit codesets only).
  */
 
-#define _GNU_SOURCE
-
 #define __CTYPE_HAS_8_BIT_LOCALES 1
-
 
 #include <string.h>
 #include <stdlib.h>
@@ -60,6 +57,20 @@
 #include <errno.h>
 #include <ctype.h>
 #include <stdio.h>
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+libc_hidden_proto(strtok_r)
+libc_hidden_proto(strlen)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strncmp)
+libc_hidden_proto(strchr)
+libc_hidden_proto(getenv)
+#ifdef __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__C_ctype_toupper)
+#endif
+/*libc_hidden_proto(fflush)*/
 
 #ifdef __UCLIBC_MJN3_ONLY__
 #ifdef L_setlocale
@@ -119,8 +130,8 @@
 #define MAX_LOCALE_CATEGORY_STR    32 /* TODO: Only sufficient for current case. */
 /* Note: Best if MAX_LOCALE_CATEGORY_STR is a power of 2. */
 
-extern int _locale_set_l(const unsigned char *p, __locale_t base);
-extern void _locale_init_l(__locale_t base);
+extern int _locale_set_l(const unsigned char *p, __locale_t base) attribute_hidden;
+extern void _locale_init_l(__locale_t base) attribute_hidden;
 
 #endif /* __LOCALE_C_ONLY */
 
@@ -181,6 +192,9 @@ static const char utf8[] = "UTF-8";
  * This holds for LC_ALL as well.
  */
 static char hr_locale[(MAX_LOCALE_CATEGORY_STR * LC_ALL) + MAX_LOCALE_STR];
+
+libc_hidden_proto(stpcpy)
+libc_hidden_proto(newlocale)
 
 static void update_hr_locale(const unsigned char *spec)
 {
@@ -269,7 +283,7 @@ char *setlocale(int category, const char *locale)
 	}
 
 	if (locale != NULL) {		/* Not just a query... */
-		if (!__newlocale((1 << category), locale, __global_locale)) {
+		if (!newlocale((1 << category), locale, __global_locale)) {
 			return NULL;		/* Failed! */
 		}
 		update_hr_locale(__global_locale->cur_locale);
@@ -288,6 +302,8 @@ char *setlocale(int category, const char *locale)
 /* Note: We assume here that the compiler does the sane thing regarding
  * placement of the fields in the struct.  If necessary, we could ensure
  * this usings an array of offsets but at some size cost. */
+
+libc_hidden_proto(localeconv)
 
 #ifdef __LOCALE_C_ONLY
 
@@ -342,9 +358,19 @@ struct lconv *localeconv(void)
 
 #endif /* __LOCALE_C_ONLY */
 
+libc_hidden_def(localeconv)
+
 #endif
 /**********************************************************************/
 #if defined(L__locale_init) && !defined(__LOCALE_C_ONLY)
+
+libc_hidden_proto(__C_ctype_b)
+libc_hidden_proto(__C_ctype_tolower)
+#ifndef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b)
+libc_hidden_proto(__ctype_tolower)
+libc_hidden_proto(__ctype_toupper)
+#endif
 
 __uclibc_locale_t __global_locale_data;
 
@@ -561,7 +587,7 @@ static int init_cur_collate(int der_num, __collate_t *cur_collate)
 	return 1;
 }
 
-int _locale_set_l(const unsigned char *p, __locale_t base)
+int attribute_hidden _locale_set_l(const unsigned char *p, __locale_t base)
 {
 	const char **x;
 	unsigned char *s = base->cur_locale + 1;
@@ -843,7 +869,7 @@ static const uint16_t __code2flag[16] = {
 	_IScntrl					/* cntrl_nonspace */
 };
 
-void _locale_init_l(__locale_t base)
+void attribute_hidden _locale_init_l(__locale_t base)
 {
 	memset(base->cur_locale, 0, LOCALE_SELECTOR_SIZE);
 	base->cur_locale[0] = '#';
@@ -906,6 +932,7 @@ void _locale_init_l(__locale_t base)
 	_locale_set_l(C_LOCALE_SELECTOR, base);
 }
 
+void _locale_init(void) attribute_hidden;
 void _locale_init(void)
 {
 	/* TODO: mmap the locale file  */
@@ -999,6 +1026,7 @@ static const unsigned char nl_data[C_LC_ALL + 1 + 90 + 320] = {
 	   ']', '\x00',    '^',    '[',    'n',    'N',    ']', '\x00', 
 };
 
+libc_hidden_proto(nl_langinfo)
 char *nl_langinfo(nl_item item)
 {
 	unsigned int c;
@@ -1012,21 +1040,29 @@ char *nl_langinfo(nl_item item)
 	}
 	return (char *) cat_start;	/* Conveniently, this is the empty string. */
 }
+libc_hidden_def(nl_langinfo)
 
 #else  /* __LOCALE_C_ONLY */
 
 #if defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE)
 
+libc_hidden_proto(nl_langinfo)
+
+libc_hidden_proto(nl_langinfo_l)
+
 char *nl_langinfo(nl_item item)
 {
-	return __nl_langinfo_l(item, __UCLIBC_CURLOCALE);
+	return nl_langinfo_l(item, __UCLIBC_CURLOCALE);
 }
+libc_hidden_def(nl_langinfo)
 
 #else  /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
+libc_hidden_proto(__XL_NPP(nl_langinfo))
+
 static const char empty[] = "";
 
-char *__XL(nl_langinfo)(nl_item item   __LOCALE_PARAM )
+char *__XL_NPP(nl_langinfo)(nl_item item   __LOCALE_PARAM )
 {
 	unsigned int c = _NL_ITEM_CATEGORY(item);
 	unsigned int i = _NL_ITEM_INDEX(item);
@@ -1038,6 +1074,7 @@ char *__XL(nl_langinfo)(nl_item item   __LOCALE_PARAM )
 
 	return (char *) empty;
 }
+libc_hidden_def(__XL_NPP(nl_langinfo))
 
 #endif /* defined(__UCLIBC_HAS_XLOCALE__) && !defined(__UCLIBC_DO_XLOCALE) */
 
@@ -1046,6 +1083,9 @@ char *__XL(nl_langinfo)(nl_item item   __LOCALE_PARAM )
 #endif
 /**********************************************************************/
 #ifdef L_newlocale
+
+libc_hidden_proto(stpcpy)
+libc_hidden_proto(newlocale)
 
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning TODO: Move posix and utf8 strings.
@@ -1200,7 +1240,7 @@ static unsigned char *composite_locale(int category_mask, const char *locale,
 	return new_locale;
 }
 
-__locale_t __newlocale(int category_mask, const char *locale, __locale_t base)
+__locale_t newlocale(int category_mask, const char *locale, __locale_t base)
 {
 	const unsigned char *p;
 	int i, j, k;
@@ -1284,18 +1324,19 @@ __locale_t __newlocale(int category_mask, const char *locale, __locale_t base)
 
 	return base;
 }
-
-weak_alias(__newlocale, newlocale)
+libc_hidden_def(newlocale)
 
 #endif
 /**********************************************************************/
 #ifdef L_duplocale
 
+libc_hidden_proto(duplocale)
+
 #ifdef __UCLIBC_MJN3_ONLY__
 #warning REMINDER: When we allocate ctype tables, remember to dup them.
 #endif
 
-__locale_t __duplocale(__locale_t dataset)
+__locale_t duplocale(__locale_t dataset)
 {
 	__locale_t r;
 	uint16_t * i2w;
@@ -1318,8 +1359,7 @@ __locale_t __duplocale(__locale_t dataset)
 	}
 	return r;
 }
-
-weak_alias(__duplocale, duplocale)
+libc_hidden_def(duplocale)
 
 #endif
 /**********************************************************************/
@@ -1329,7 +1369,7 @@ weak_alias(__duplocale, duplocale)
 #warning REMINDER: When we allocate ctype tables, remember to free them.
 #endif
 
-void __freelocale(__locale_t dataset)
+void freelocale(__locale_t dataset)
 {
 	assert(dataset != __global_locale);
 	assert(dataset != LC_GLOBAL_LOCALE);
@@ -1338,13 +1378,12 @@ void __freelocale(__locale_t dataset)
 	free(dataset);				/* Free locale */
 }
 
-weak_alias(__freelocale, freelocale)
-
 #endif
 /**********************************************************************/
 #ifdef L_uselocale
 
-__locale_t __uselocale(__locale_t dataset)
+libc_hidden_proto(uselocale)
+__locale_t uselocale(__locale_t dataset)
 {
 	__locale_t old;
 
@@ -1367,8 +1406,7 @@ __locale_t __uselocale(__locale_t dataset)
 	}
 	return old;
 }
-
-weak_alias(__uselocale, uselocale)
+libc_hidden_def(uselocale)
 
 #endif
 /**********************************************************************/
@@ -1413,10 +1451,10 @@ __locale_t weak_function __curlocale_set(__locale_t newloc)
 #define Cc2wc_ROW_LEN		__LOCALE_DATA_Cc2wc_ROW_LEN
 
 extern size_t _wchar_utf8sntowcs(wchar_t *__restrict pwc, size_t wn,
-								 const char **__restrict src, size_t n,
-								 mbstate_t *ps, int allow_continuation);
+						 const char **__restrict src, size_t n,
+						 mbstate_t *ps, int allow_continuation) attribute_hidden;
 
-int __locale_mbrtowc_l(wchar_t *__restrict dst,
+int attribute_hidden __locale_mbrtowc_l(wchar_t *__restrict dst,
 					   const char *__restrict src,
 					   __locale_t loc )
 {

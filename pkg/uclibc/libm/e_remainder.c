@@ -26,6 +26,8 @@ static char rcsid[] = "$NetBSD: e_remainder.c,v 1.8 1995/05/10 20:46:05 jtc Exp 
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(fabs)
+
 #ifdef __STDC__
 static const double zero = 0.0;
 #else
@@ -34,9 +36,9 @@ static double zero = 0.0;
 
 
 #ifdef __STDC__
-	double __ieee754_remainder(double x, double p)
+	double attribute_hidden __ieee754_remainder(double x, double p)
 #else
-	double __ieee754_remainder(x,p)
+	double attribute_hidden __ieee754_remainder(x,p)
 	double x,p;
 #endif
 {

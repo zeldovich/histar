@@ -24,15 +24,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+libc_hidden_proto(strchr)
+libc_hidden_proto(abort)
+
 #include "memcopy.h"
 
-#undef strchr
-
 /* Find the first occurrence of C in S.  */
-char *
-strchr (s, c_in)
-     const char *s;
-     int c_in;
+char *strchr (const char *s, int c_in)
 {
   const unsigned char *char_ptr;
   const unsigned long int *longword_ptr;
@@ -43,8 +41,8 @@ strchr (s, c_in)
 
   /* Handle the first few characters by reading one character at a time.
      Do this until CHAR_PTR is aligned on a longword boundary.  */
-  for (char_ptr = s; ((unsigned long int) char_ptr
-		      & (sizeof (longword) - 1)) != 0;
+  for (char_ptr = (const unsigned char *) s;
+       ((unsigned long int) char_ptr & (sizeof (longword) - 1)) != 0;
        ++char_ptr)
     if (*char_ptr == c)
       return (void *) char_ptr;
@@ -183,8 +181,7 @@ strchr (s, c_in)
 
   return NULL;
 }
-
-#ifdef weak_alias
-#undef index
-weak_alias (strchr, index)
+libc_hidden_def(strchr)
+#ifdef __UCLIBC_SUSV3_LEGACY__
+strong_alias(strchr,index)
 #endif

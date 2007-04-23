@@ -38,12 +38,15 @@ static char sccsid[] = "@(#)rpc_dtablesize.c 1.2 87/08/11 Copyr 1987 Sun Micro";
 #include <unistd.h>
 #include <rpc/clnt.h>
 
+libc_hidden_proto(getdtablesize)
+
 /*
  * Cache the result of getdtablesize(), so we don't have to do an
  * expensive system call every time.
  */
+libc_hidden_proto(_rpc_dtablesize)
 int
-_rpc_dtablesize (void)
+_rpc_dtablesize(void)
 {
   static int size;
 
@@ -52,3 +55,4 @@ _rpc_dtablesize (void)
 
   return size;
 }
+libc_hidden_def(_rpc_dtablesize)

@@ -1,23 +1,22 @@
-/* Copyright (C) 1998 Free Software Foundation, Inc.
+/* Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Zack Weinberg <zack@rabi.phys.columbia.edu>, 1998.
 
    The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public License as
-   published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
    The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
+   Lesser General Public License for more details.
 
-   You should have received a copy of the GNU Library General Public
-   License along with the GNU C Library; see the file COPYING.LIB.  If not,
-   write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
 
-#define _ISOC99_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <paths.h>
@@ -30,6 +29,13 @@
 #include <unistd.h>
 #include <bits/uClibc_uintmaxtostr.h>
 
+libc_hidden_proto(strcat)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(isatty)
+libc_hidden_proto(ioctl)
+libc_hidden_proto(fstat)
+libc_hidden_proto(stat)
 
 #if !defined __UNIX98PTY_ONLY__
 
@@ -39,7 +45,7 @@
    || (major ((Dev)) == 4 && minor ((Dev)) >= 128 && minor ((Dev)) < 192)     \
    || (major ((Dev)) >= 128 && major ((Dev)) < 136))
 
-/* Check if DEV corresponds to a master pseudo terminal device.  */
+/* Check if DEV corresponds to a slave pseudo terminal device.  */
 #define SLAVE_P(Dev)                                                          \
   (major ((Dev)) == 3                                                         \
    || (major ((Dev)) == 4 && minor ((Dev)) >= 192 && minor ((Dev)) < 256)     \
@@ -51,8 +57,8 @@
    and 3 (slaves).  */
      
 /* The are declared in getpt.c.  */
-extern const char _ptyname1[];
-extern const char _ptyname2[];
+extern const char __libc_ptyname1[] attribute_hidden;
+extern const char __libc_ptyname2[] attribute_hidden;
 
 #endif
 
@@ -62,6 +68,7 @@ extern const char _ptyname2[];
 /* Store at most BUFLEN characters of the pathname of the slave pseudo
    terminal associated with the master FD is open on in BUF.
    Return 0 on success, otherwise an error number.  */
+libc_hidden_proto(ptsname_r)
 int ptsname_r (int fd, char *buf, size_t buflen)
 {
   int save_errno = errno;
@@ -95,7 +102,7 @@ int ptsname_r (int fd, char *buf, size_t buflen)
 
       p = _int10tostr(&numbuf[sizeof numbuf - 1], ptyno);
 
-      if (buflen < sizeof devpts + &numbuf[sizeof numbuf - 1] - p)
+      if (buflen < sizeof(devpts) + (size_t)(&numbuf[sizeof(numbuf) - 1] - p))
 	{
 	  errno = ERANGE;
 	  return ERANGE;
@@ -150,7 +157,7 @@ int ptsname_r (int fd, char *buf, size_t buflen)
       if (major (st.st_rdev) == 4)
 	ptyno -= 128;
 
-      if (ptyno / 16 >= strlen (_ptyname1))
+      if (ptyno / 16 >= strlen (__libc_ptyname1))
 	{
 	  errno = ENOTTY;
 	  return ENOTTY;
@@ -158,8 +165,8 @@ int ptsname_r (int fd, char *buf, size_t buflen)
 
       strcpy (buf, _PATH_TTY);
       p = buf + strlen (buf);
-      p[0] = _ptyname1[ptyno / 16];
-      p[1] = _ptyname2[ptyno % 16];
+      p[0] = __libc_ptyname1[ptyno / 16];
+      p[1] = __libc_ptyname2[ptyno % 16];
       p[2] = '\0';
     }
 
@@ -179,6 +186,7 @@ int ptsname_r (int fd, char *buf, size_t buflen)
   errno = save_errno;
   return 0;
 }
+libc_hidden_def(ptsname_r)
 
 /* Return the pathname of the pseudo terminal slave assoicated with
    the master FD is open on, or NULL on errors.

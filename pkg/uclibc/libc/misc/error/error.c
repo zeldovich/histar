@@ -1,23 +1,21 @@
 /* Error handler for noninteractive utilities
-   Copyright (C) 1990-1998, 2000, 2001 Free Software Foundation, Inc.
-
-   This file is part of the GNU C Library.  Its master source is NOT part of
-   the C library, however.  The master source lives in /gd/gnu/lib.
+   Copyright (C) 1990-1998, 2000-2004, 2005 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public License as
-   published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
    The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
+   Lesser General Public License for more details.
 
-   You should have received a copy of the GNU Library General Public
-   License along with the GNU C Library; see the file COPYING.LIB.  If not,
-   write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
 
 /* Written by David MacKenzie <djm@gnu.ai.mit.edu>.  */
 /* Adjusted slightly by Erik Andersen <andersen@uclibc.org> */
@@ -26,20 +24,29 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include "error.h"
+#include <error.h>
 
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strerror)
+libc_hidden_proto(fprintf)
+libc_hidden_proto(exit)
+libc_hidden_proto(putc)
+libc_hidden_proto(vfprintf)
+libc_hidden_proto(fflush)
+libc_hidden_proto(fputc)
+libc_hidden_proto(__fputc_unlocked)
 
 /* This variable is incremented each time `error' is called.  */
-unsigned int error_message_count;
+unsigned int error_message_count = 0;
 /* Sometimes we want to have at most one error per line.  This
    variable controls whether this mode is selected or not.  */
 int error_one_per_line;
 /* If NULL, error will flush stdout, then print on stderr the program
    name, a colon and a space.  Otherwise, error will call this
    function without parameters instead.  */
-void (*error_print_progname) (void) = NULL;
+/* void (*error_print_progname) (void) = NULL; */
 
-
+extern __typeof(error) __error attribute_hidden;
 void __error (int status, int errnum, const char *message, ...)
 {
     va_list args;
@@ -57,7 +64,9 @@ void __error (int status, int errnum, const char *message, ...)
     if (status)
 	exit (status);
 }
+weak_alias(__error,error)
 
+extern __typeof(error_at_line) __error_at_line attribute_hidden;
 void __error_at_line (int status, int errnum, const char *file_name,
 	       unsigned int line_number, const char *message, ...)
 {
@@ -93,9 +102,4 @@ void __error_at_line (int status, int errnum, const char *file_name,
     if (status)
 	exit (status);
 }
-
-/* Use the weaks here in an effort at controlling namespace pollution */
-#undef error
-#undef error_at_line
-weak_alias (__error, error)
-weak_alias (__error_at_line, error_at_line)
+weak_alias(__error_at_line,error_at_line)

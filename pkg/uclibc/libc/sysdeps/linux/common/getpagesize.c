@@ -19,9 +19,12 @@
 #include <unistd.h>
 #include <features.h>
 #include <sys/param.h>
+
 extern size_t __pagesize;
 
 /* Return the system page size.  */
+/* couldn't make __getpagesize hidden, because shm.h uses it in a macro */
+extern __typeof(getpagesize) __getpagesize;
 int __getpagesize(void)
 {
   if (__pagesize != 0)
@@ -40,5 +43,6 @@ int __getpagesize(void)
 #endif	/* NBPG.  */
 #endif	/* EXEC_PAGESIZE.  */
 }
-weak_alias(__getpagesize, getpagesize);
-
+libc_hidden_proto(getpagesize)
+strong_alias(__getpagesize,getpagesize)
+libc_hidden_def(getpagesize)

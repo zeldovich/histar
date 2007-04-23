@@ -48,6 +48,15 @@ static char sccsid[] = "@(#)clnt_raw.c 1.22 87/08/11 Copyr 1984 Sun Micro";
 #include <rpc/svc.h>
 #include <rpc/xdr.h>
 
+libc_hidden_proto(perror)
+libc_hidden_proto(authnone_create)
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_callhdr)
+libc_hidden_proto(xdr_replymsg)
+libc_hidden_proto(xdr_opaque_auth)
+libc_hidden_proto(svc_getreq)
+libc_hidden_proto(_seterr_reply)
+
 #define MCALL_MSG_SIZE 24
 
 /*
@@ -139,7 +148,7 @@ clntraw_call (h, proc, xargs, argsp, xresults, resultsp, timeout)
      caddr_t argsp;
      xdrproc_t xresults;
      caddr_t resultsp;
-     struct timeval timeout;
+     struct timeval timeout attribute_unused;
 {
   struct clntraw_private_s *clp = clntraw_private;
   XDR *xdrs = &clp->xdr_stream;
@@ -214,16 +223,13 @@ call_again:
 }
 
 static void
-clntraw_geterr (CLIENT *cl, struct rpc_err *err)
+clntraw_geterr (CLIENT *cl attribute_unused, struct rpc_err *err attribute_unused)
 {
 }
 
 
 static bool_t
-clntraw_freeres (cl, xdr_res, res_ptr)
-     CLIENT *cl;
-     xdrproc_t xdr_res;
-     caddr_t res_ptr;
+clntraw_freeres (CLIENT *cl attribute_unused, xdrproc_t xdr_res, caddr_t res_ptr)
 {
   struct clntraw_private_s *clp = clntraw_private;
   XDR *xdrs = &clp->xdr_stream;
@@ -244,12 +250,12 @@ clntraw_abort (void)
 }
 
 static bool_t
-clntraw_control (CLIENT *cl, int i, char *c)
+clntraw_control (CLIENT *cl attribute_unused, int i attribute_unused, char *c attribute_unused)
 {
   return FALSE;
 }
 
 static void
-clntraw_destroy (CLIENT *cl)
+clntraw_destroy (CLIENT *cl attribute_unused)
 {
 }

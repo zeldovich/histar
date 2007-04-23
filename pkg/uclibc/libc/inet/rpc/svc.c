@@ -37,7 +37,6 @@
  */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 #include <errno.h>
@@ -46,6 +45,17 @@
 #include <rpc/svc.h>
 #include <rpc/pmap_clnt.h>
 #include <sys/poll.h>
+
+libc_hidden_proto(ffs)
+libc_hidden_proto(pmap_set)
+libc_hidden_proto(pmap_unset)
+libc_hidden_proto(_authenticate)
+libc_hidden_proto(_rpc_dtablesize)
+/* used by svc_[max_]pollfd */
+libc_hidden_proto(__rpc_thread_svc_pollfd)
+libc_hidden_proto(__rpc_thread_svc_max_pollfd)
+/* used by svc_fdset */
+libc_hidden_proto(__rpc_thread_svc_fdset)
 
 #ifdef __UCLIBC_HAS_THREADS__
 #define xports (*(SVCXPRT ***)&RPC_THREAD_VARIABLE(svc_xports_s))
@@ -75,6 +85,7 @@ static struct svc_callout *svc_head;
 /* ***************  SVCXPRT related stuff **************** */
 
 /* Activate a transport handle. */
+libc_hidden_proto(xprt_register)
 void
 xprt_register (SVCXPRT *xprt)
 {
@@ -115,8 +126,10 @@ xprt_register (SVCXPRT *xprt)
 					       POLLRDNORM | POLLRDBAND);
     }
 }
+libc_hidden_def(xprt_register)
 
 /* De-activate a transport handle. */
+libc_hidden_proto(xprt_unregister)
 void
 xprt_unregister (SVCXPRT *xprt)
 {
@@ -135,6 +148,7 @@ xprt_unregister (SVCXPRT *xprt)
 	  svc_pollfd[i].fd = -1;
     }
 }
+libc_hidden_def(xprt_unregister)
 
 
 /* ********************** CALLOUT list related stuff ************* */
@@ -161,6 +175,7 @@ done:
 /* Add a service program to the callout list.
    The dispatch routine will be called when a rpc request for this
    program number comes in. */
+libc_hidden_proto(svc_register)
 bool_t
 svc_register (SVCXPRT * xprt, rpcprog_t prog, rpcvers_t vers,
 	      void (*dispatch) (struct svc_req *, SVCXPRT *),
@@ -192,8 +207,10 @@ pmap_it:
 
   return TRUE;
 }
+libc_hidden_def(svc_register)
 
 /* Remove a service program from the callout list. */
+libc_hidden_proto(svc_unregister)
 void
 svc_unregister (rpcprog_t prog, rpcvers_t vers)
 {
@@ -213,10 +230,12 @@ svc_unregister (rpcprog_t prog, rpcvers_t vers)
   /* now unregister the information with the local binder service */
   pmap_unset (prog, vers);
 }
+libc_hidden_def(svc_unregister)
 
 /* ******************* REPLY GENERATION ROUTINES  ************ */
 
 /* Send a reply to an rpc request */
+libc_hidden_proto(svc_sendreply)
 bool_t
 svc_sendreply (register SVCXPRT *xprt, xdrproc_t xdr_results,
 	       caddr_t xdr_location)
@@ -231,6 +250,7 @@ svc_sendreply (register SVCXPRT *xprt, xdrproc_t xdr_results,
   rply.acpted_rply.ar_results.proc = xdr_results;
   return SVC_REPLY (xprt, &rply);
 }
+libc_hidden_def(svc_sendreply)
 
 /* No procedure error reply */
 void
@@ -246,6 +266,7 @@ svcerr_noproc (register SVCXPRT *xprt)
 }
 
 /* Can't decode args error reply */
+libc_hidden_proto(svcerr_decode)
 void
 svcerr_decode (register SVCXPRT *xprt)
 {
@@ -257,6 +278,7 @@ svcerr_decode (register SVCXPRT *xprt)
   rply.acpted_rply.ar_stat = GARBAGE_ARGS;
   SVC_REPLY (xprt, &rply);
 }
+libc_hidden_def(svcerr_decode)
 
 /* Some system error */
 void
@@ -272,6 +294,7 @@ svcerr_systemerr (register SVCXPRT *xprt)
 }
 
 /* Authentication error reply */
+libc_hidden_proto(svcerr_auth)
 void
 svcerr_auth (SVCXPRT *xprt, enum auth_stat why)
 {
@@ -283,6 +306,7 @@ svcerr_auth (SVCXPRT *xprt, enum auth_stat why)
   rply.rjcted_rply.rj_why = why;
   SVC_REPLY (xprt, &rply);
 }
+libc_hidden_def(svcerr_auth)
 
 /* Auth too weak error reply */
 void
@@ -292,6 +316,7 @@ svcerr_weakauth (SVCXPRT *xprt)
 }
 
 /* Program unavailable error reply */
+libc_hidden_proto(svcerr_noprog)
 void
 svcerr_noprog (register SVCXPRT *xprt)
 {
@@ -303,8 +328,10 @@ svcerr_noprog (register SVCXPRT *xprt)
   rply.acpted_rply.ar_stat = PROG_UNAVAIL;
   SVC_REPLY (xprt, &rply);
 }
+libc_hidden_def(svcerr_noprog)
 
 /* Program version mismatch error reply */
+libc_hidden_proto(svcerr_progvers)
 void
 svcerr_progvers (register SVCXPRT *xprt, rpcvers_t low_vers,
 		 rpcvers_t high_vers)
@@ -319,6 +346,7 @@ svcerr_progvers (register SVCXPRT *xprt, rpcvers_t low_vers,
   rply.acpted_rply.ar_vers.high = high_vers;
   SVC_REPLY (xprt, &rply);
 }
+libc_hidden_def(svcerr_progvers)
 
 /* ******************* SERVER INPUT STUFF ******************* */
 
@@ -338,56 +366,7 @@ svcerr_progvers (register SVCXPRT *xprt, rpcvers_t low_vers,
  * is mallocated in kernel land.
  */
 
-void
-svc_getreq (int rdfds)
-{
-  fd_set readfds;
-
-  FD_ZERO (&readfds);
-  readfds.fds_bits[0] = rdfds;
-  svc_getreqset (&readfds);
-}
-
-void
-svc_getreqset (fd_set *readfds)
-{
-  register u_int32_t mask;
-  register u_int32_t *maskp;
-  register int setsize;
-  register int sock;
-  register int bit;
-
-  setsize = _rpc_dtablesize ();
-  maskp = (u_int32_t *) readfds->fds_bits;
-  for (sock = 0; sock < setsize; sock += 32)
-    for (mask = *maskp++; (bit = ffs (mask)); mask ^= (1 << (bit - 1)))
-      svc_getreq_common (sock + bit - 1);
-}
-
-void
-svc_getreq_poll (struct pollfd *pfdp, int pollretval)
-{
-  register int i;
-  register int fds_found;
-
-  for (i = fds_found = 0; i < svc_max_pollfd && fds_found < pollretval; ++i)
-    {
-      register struct pollfd *p = &pfdp[i];
-
-      if (p->fd != -1 && p->revents)
-	{
-	  /* fd has input waiting */
-	  ++fds_found;
-
-	  if (p->revents & POLLNVAL)
-	    xprt_unregister (xports[p->fd]);
-	  else
-	    svc_getreq_common (p->fd);
-	}
-    }
-}
-
-
+libc_hidden_proto(svc_getreq_common)
 void
 svc_getreq_common (const int fd)
 {
@@ -477,11 +456,66 @@ svc_getreq_common (const int fd)
     }
   while (stat == XPRT_MOREREQS);
 }
+libc_hidden_def(svc_getreq_common)
+
+libc_hidden_proto(svc_getreqset)
+void
+svc_getreqset (fd_set *readfds)
+{
+  register u_int32_t mask;
+  register u_int32_t *maskp;
+  register int setsize;
+  register int sock;
+  register int bit;
+
+  setsize = _rpc_dtablesize ();
+  maskp = (u_int32_t *) readfds->fds_bits;
+  for (sock = 0; sock < setsize; sock += 32)
+    for (mask = *maskp++; (bit = ffs (mask)); mask ^= (1 << (bit - 1)))
+      svc_getreq_common (sock + bit - 1);
+}
+libc_hidden_def(svc_getreqset)
+
+libc_hidden_proto(svc_getreq)
+void
+svc_getreq (int rdfds)
+{
+  fd_set readfds;
+
+  FD_ZERO (&readfds);
+  readfds.fds_bits[0] = rdfds;
+  svc_getreqset (&readfds);
+}
+libc_hidden_def(svc_getreq)
+
+libc_hidden_proto(svc_getreq_poll)
+void
+svc_getreq_poll (struct pollfd *pfdp, int pollretval)
+{
+  register int i;
+  register int fds_found;
+
+  for (i = fds_found = 0; i < svc_max_pollfd && fds_found < pollretval; ++i)
+    {
+      register struct pollfd *p = &pfdp[i];
+
+      if (p->fd != -1 && p->revents)
+	{
+	  /* fd has input waiting */
+	  ++fds_found;
+
+	  if (p->revents & POLLNVAL)
+	    xprt_unregister (xports[p->fd]);
+	  else
+	    svc_getreq_common (p->fd);
+	}
+    }
+}
+libc_hidden_def(svc_getreq_poll)
 
 #ifdef __UCLIBC_HAS_THREADS__
 
-void
-__rpc_thread_svc_cleanup (void)
+void attribute_hidden __rpc_thread_svc_cleanup (void)
 {
   struct svc_callout *svcp;
 

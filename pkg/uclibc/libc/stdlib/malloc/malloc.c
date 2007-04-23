@@ -7,7 +7,7 @@
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License.  See the file COPYING.LIB in the main
  * directory of this archive for more details.
- * 
+ *
  * Written by Miles Bader <miles@gnu.org>
  */
 
@@ -15,6 +15,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
+
+libc_hidden_proto(mmap)
+libc_hidden_proto(sbrk)
 
 #include "malloc.h"
 #include "heap.h"
@@ -103,7 +106,7 @@ malloc_from_heap (size_t size, struct heap *heap)
 #else /* !MALLOC_USE_SBRK */
 
       /* Otherwise, use mmap.  */
-#ifdef __ARCH_HAS_MMU__
+#ifdef __ARCH_USE_MMU__
       block = mmap ((void *)0, block_size, PROT_READ | PROT_WRITE,
 		    MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 #else
@@ -197,7 +200,7 @@ malloc (size_t size)
 #else
   /* Some programs will call malloc (0).  Lets be strict and return NULL */
   if (unlikely (size == 0))
-    return 0;
+    goto oom;
 #endif
 
   /* Check if they are doing something dumb like malloc(-1) */

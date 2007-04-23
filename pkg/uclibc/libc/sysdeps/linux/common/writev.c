@@ -2,12 +2,17 @@
 /*
  * writev() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
 #include <sys/uio.h>
-_syscall3(ssize_t, writev, int, filedes, const struct iovec *, vector,
+
+extern __typeof(writev) __libc_writev;
+
+#define __NR___libc_writev __NR_writev
+_syscall3(ssize_t, __libc_writev, int, filedes, const struct iovec *, vector,
 		  int, count);
+weak_alias(__libc_writev,writev)

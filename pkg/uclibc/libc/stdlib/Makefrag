@@ -2,44 +2,20 @@ OBJDIRS += pkg/uclibc/libc/stdlib
 
 include pkg/uclibc/libc/stdlib/malloc-standard/Makefrag
 
-STDLIB_MSRC := pkg/uclibc/libc/stdlib/stdlib.c
-STDLIB_MOBJ := \
-	abs.o labs.o atoi.o atol.o strtol.o strtoul.o _stdlib_strto_l.o \
-	qsort.o bsearch.o atof.o \
-	llabs.o atoll.o strtoll.o strtoull.o _stdlib_strto_ll.o \
-	mblen.o mbtowc.o wctomb.o mbstowcs.o wcstombs.o \
-        _stdlib_mb_cur_max.o _stdlib_wcsto_l.o _stdlib_wcsto_ll.o \
-        wcstol.o wcstoul.o wcstoll.o wcstoull.o
-STDLIB_MOBJ := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o, $(STDLIB_MOBJ))
-
-STDLIB_MSRC1 := pkg/uclibc/libc/stdlib/strtod.c
-STDLIB_MOBJ1 := strtod.o strtof.o strtold.o __strtofpmax.o __fp_range_check.o
-STDLIB_MOBJ1 := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o, $(STDLIB_MOBJ1))
-
-STDLIB_MSRC2 := pkg/uclibc/libc/stdlib/atexit.c
-STDLIB_MOBJ2 := atexit.o on_exit.o __exit_handler.o exit.o
-STDLIB_MOBJ2 := $(patsubst %.o, $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o, $(STDLIB_MOBJ2))
-
 STDLIB_CSRC := \
 	abort.c getenv.c mkdtemp.c mktemp.c realpath.c mkstemp.c mkstemp64.c \
 	rand.c random.c random_r.c setenv.c system.c div.c ldiv.c lldiv.c \
 	getpt.c ptsname.c grantpt.c unlockpt.c gcvt.c drand48-iter.c jrand48.c \
 	jrand48_r.c lrand48.c lrand48_r.c mrand48.c mrand48_r.c nrand48.c \
 	nrand48_r.c rand_r.c srand48.c srand48_r.c seed48.c seed48_r.c \
-	valloc.c
+	valloc.c \
+	abs.c labs.c atoi.c atol.c strtol.c strtoul.c _stdlib_strto_l.c \
+	qsort.c bsearch.c atof.c \
+	llabs.c atoll.c strtoll.c strtoull.c _stdlib_strto_ll.c \
+	mblen.c mbtowc.c wctomb.c mbstowcs.c wcstombs.c \
+        _stdlib_mb_cur_max.c _stdlib_wcsto_l.c _stdlib_wcsto_ll.c \
+        wcstol.c wcstoul.c wcstoll.c wcstoull.c \
+	strtod.c strtof.c strtold.c __strtofpmax.c __fp_range_check.c \
+	atexit.c on_exit.c __exit_handler.c exit.c
 
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdlib/%.c, $(STDLIB_CSRC))
-LIBC_OBJFILES += $(STDLIB_MOBJ) $(STDLIB_MOBJ1) $(STDLIB_MOBJ2)
-
-$(STDLIB_MOBJ): $(STDLIB_MSRC)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o,%,$@) $< -c -o $@
-
-$(STDLIB_MOBJ1): $(STDLIB_MSRC1)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o,%,$@) $< -c -o $@
-
-$(STDLIB_MOBJ2): $(STDLIB_MSRC2)
-	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) -DL_$(patsubst $(OBJDIR)/pkg/uclibc/libc/stdlib/%.o,%,$@) $< -c -o $@
-

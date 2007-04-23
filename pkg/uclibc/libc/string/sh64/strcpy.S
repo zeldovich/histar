@@ -6,7 +6,10 @@
 !
 ! SH5 code Copyright 2002 SuperH Ltd.
 
-#ifdef __LITTLE_ENDIAN__
+#include <features.h>
+#include <endian.h>
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define SHHI shlld
 #define SHLO shlrd
 #else
@@ -17,8 +20,8 @@
 	.section .text..SHmedia32,"ax"
 	.globl	strcpy
 	.type	strcpy, @function
-
 	.align 5
+
 strcpy:
 
 	pta/l shortstring,tr1
@@ -64,7 +67,7 @@ no_lddst:
 	add r5, r63, r4
 	addi r0, 8, r0
 shortstring:
-#ifndef __LITTLE_ENDIAN__
+#if __BYTE_ORDER != __LITTLE_ENDIAN
 	pta/l shortstring2,tr1
 	byterev r4,r4
 #endif
@@ -94,5 +97,6 @@ loop:
 	addi r0, 8, r0
 	blink tr1, r63 // shortstring
 
-	.size	strcpy, . - strcpy
+	.size	strcpy,.-strcpy
 
+libc_hidden_def(strcpy)

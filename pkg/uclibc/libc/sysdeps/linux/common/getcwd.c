@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 /* These functions find the absolute path to the current working directory.  */
 
 #include <stdlib.h>
@@ -5,11 +11,25 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/param.h>
 #include <sys/syscall.h>
+
+libc_hidden_proto(getcwd)
+libc_hidden_proto(getpagesize)
+
+libc_hidden_proto(strcat)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strncpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(opendir)
+libc_hidden_proto(readdir)
+libc_hidden_proto(closedir)
+libc_hidden_proto(stat)
 
 #ifdef __NR_getcwd
 
-#define __NR___syscall_getcwd __NR_getcwd
+# define __NR___syscall_getcwd __NR_getcwd
 static inline
 _syscall2(int, __syscall_getcwd, char *, buf, unsigned long, size);
 
@@ -34,18 +54,18 @@ static char *search_dir(dev_t this_dev, ino_t this_ino, char *path_buf, int path
 	int slen;
 	struct stat st;
 
-#ifdef FAST_DIR_SEARCH_POSSIBLE
+# ifdef FAST_DIR_SEARCH_POSSIBLE
 	/* The test is for ELKS lib 0.0.9, this should be fixed in the real kernel */
 	int slow_search = (sizeof(ino_t) != sizeof(d->d_ino));
-#endif
+# endif
 
 	if (stat(path_buf, &st) < 0) {
 		goto oops;
 	}
-#ifdef FAST_DIR_SEARCH_POSSIBLE
+# ifdef FAST_DIR_SEARCH_POSSIBLE
 	if (this_dev != st.st_dev)
 		slow_search = 1;
-#endif
+# endif
 
 	slen = strlen(path_buf);
 	ptr = path_buf + slen - 1;
@@ -64,9 +84,9 @@ static char *search_dir(dev_t this_dev, ino_t this_ino, char *path_buf, int path
 	}
 
 	while ((d = readdir(dp)) != 0) {
-#ifdef FAST_DIR_SEARCH_POSSIBLE
+# ifdef FAST_DIR_SEARCH_POSSIBLE
 		if (slow_search || this_ino == d->d_ino) {
-#endif
+# endif
 			if (slen + strlen(d->d_name) > path_size) {
 			    goto oops;
 			}
@@ -77,9 +97,9 @@ static char *search_dir(dev_t this_dev, ino_t this_ino, char *path_buf, int path
 				closedir(dp);
 				return path_buf;
 			}
-#ifdef FAST_DIR_SEARCH_POSSIBLE
+# ifdef FAST_DIR_SEARCH_POSSIBLE
 		}
-#endif
+# endif
 	}
 
 	closedir(dp);
@@ -151,9 +171,9 @@ int __syscall_getcwd(char * buf, unsigned long size)
     return len;
 }
 
-#endif
+#endif /* __NR_getcwd */
 
-char *getcwd(char *buf, int size)
+char *getcwd(char *buf, size_t size)
 {
     int ret;
     char *path;
@@ -164,7 +184,7 @@ char *getcwd(char *buf, int size)
 	    __set_errno(EINVAL);
 	    return NULL;
 	}
-	alloc_size = PATH_MAX;
+	alloc_size = MAX (PATH_MAX, getpagesize ());
     }
     path=buf;
     if (buf == NULL) {
@@ -185,4 +205,4 @@ char *getcwd(char *buf, int size)
 	free (path);
     return NULL;
 }
-
+libc_hidden_def(getcwd)

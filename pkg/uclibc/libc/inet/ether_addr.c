@@ -23,7 +23,6 @@
  * 	- initial uClibc port
  */
 
-
 #define __FORCE_GLIBC
 #include <features.h>
 #include <ctype.h>
@@ -32,12 +31,16 @@
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
 
-struct ether_addr *ether_aton(const char *asc)
-{
-	static struct ether_addr result;
-
-	return ether_aton_r(asc, &result);
-}
+libc_hidden_proto(ether_aton_r)
+libc_hidden_proto(ether_ntoa_r)
+libc_hidden_proto(sprintf)
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b_loc)
+libc_hidden_proto(__ctype_tolower_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
+libc_hidden_proto(__ctype_tolower)
+#endif
 
 struct ether_addr *ether_aton_r(const char *asc, struct ether_addr *addr)
 {
@@ -75,12 +78,13 @@ struct ether_addr *ether_aton_r(const char *asc, struct ether_addr *addr)
 
 	return addr;
 }
+libc_hidden_def(ether_aton_r)
 
-char *ether_ntoa(const struct ether_addr *addr)
+struct ether_addr *ether_aton(const char *asc)
 {
-	static char asc[18];
+	static struct ether_addr result;
 
-	return ether_ntoa_r(addr, asc);
+	return ether_aton_r(asc, &result);
 }
 
 char *ether_ntoa_r(const struct ether_addr *addr, char *buf)
@@ -90,4 +94,12 @@ char *ether_ntoa_r(const struct ether_addr *addr, char *buf)
 			addr->ether_addr_octet[2], addr->ether_addr_octet[3],
 			addr->ether_addr_octet[4], addr->ether_addr_octet[5]);
 	return buf;
+}
+libc_hidden_def(ether_ntoa_r)
+
+char *ether_ntoa(const struct ether_addr *addr)
+{
+	static char asc[18];
+
+	return ether_ntoa_r(addr, asc);
 }

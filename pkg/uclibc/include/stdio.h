@@ -359,9 +359,11 @@ __END_NAMESPACE_C99
 extern int vasprintf (char **__restrict __ptr, __const char *__restrict __f,
 		      __gnuc_va_list __arg)
      __THROW __attribute__ ((__format__ (__printf__, 2, 0)));
+#if 0 /* uClibc: disabled */
 extern int __asprintf (char **__restrict __ptr,
 		       __const char *__restrict __fmt, ...)
      __THROW __attribute__ ((__format__ (__printf__, 2, 3)));
+#endif
 extern int asprintf (char **__restrict __ptr,
 		     __const char *__restrict __fmt, ...)
      __THROW __attribute__ ((__format__ (__printf__, 2, 3)));
@@ -557,9 +559,11 @@ extern char *fgets_unlocked (char *__restrict __s, int __n,
    cancellation point.  But due to similarity with an POSIX interface
    or due to the implementation they are cancellation points and
    therefore not marked with __THROW.  */
+#if 0 /* uClibc: disabled */
 extern __ssize_t __getdelim (char **__restrict __lineptr,
 			       size_t *__restrict __n, int __delimiter,
 			       FILE *__restrict __stream);
+#endif
 extern __ssize_t getdelim (char **__restrict __lineptr,
 			     size_t *__restrict __n, int __delimiter,
 			     FILE *__restrict __stream);
@@ -790,7 +794,7 @@ extern char *cuserid (char *__s);
 #endif /* Use X/Open, but not issue 6.  */
 
 
-#ifdef	__USE_GNU
+#if 0 /* def	__USE_GNU uClibc note: not supported */
 struct obstack;			/* See <obstack.h>.  */
 
 /* Write formatted output to an obstack.  */
@@ -836,7 +840,14 @@ extern void funlockfile (FILE *__stream) __THROW;
 #define fputc_unlocked(_ch, _fp)     __FPUTC_UNLOCKED(_ch, _fp)
 #endif
 
+#ifndef __STDIO_GETC_MACRO
+#define __stdin stdin
+#endif
 #define getchar()                    __GETC(__stdin)
+
+#ifndef __STDIO_PUTC_MACRO
+#define __stdout stdout
+#endif
 #define putchar(_ch)                 __PUTC((_ch), __stdout)
 
 #if defined __USE_POSIX || defined __USE_MISC

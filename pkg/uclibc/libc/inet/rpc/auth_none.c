@@ -39,7 +39,10 @@
 #include <features.h>
 #include "rpc_private.h"
 
-#define MAX_MARSHEL_SIZE 20
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_opaque_auth)
+
+#define MAX_MARSHAL_SIZE 20
 
 /*
  * Authenticator operations routines
@@ -50,7 +53,7 @@ static bool_t authnone_marshal (AUTH *, XDR *);
 static bool_t authnone_validate (AUTH *, struct opaque_auth *);
 static bool_t authnone_refresh (AUTH *);
 
-static struct auth_ops ops = {
+static const struct auth_ops ops = {
   authnone_verf,
   authnone_marshal,
   authnone_validate,
@@ -58,9 +61,11 @@ static struct auth_ops ops = {
   authnone_destroy
 };
 
+/* Internal data and routines */
+
 struct authnone_private_s {
   AUTH no_client;
-  char marshalled_client[MAX_MARSHEL_SIZE];
+  char marshalled_client[MAX_MARSHAL_SIZE];
   u_int mcnt;
 };
 #ifdef __UCLIBC_HAS_THREADS__
@@ -69,6 +74,7 @@ struct authnone_private_s {
 static struct authnone_private_s *authnone_private;
 #endif
 
+libc_hidden_proto(authnone_create)
 AUTH *
 authnone_create (void)
 {
@@ -87,9 +93,9 @@ authnone_create (void)
   if (!ap->mcnt)
     {
       ap->no_client.ah_cred = ap->no_client.ah_verf = _null_auth;
-      ap->no_client.ah_ops = &ops;
+      ap->no_client.ah_ops = (struct auth_ops *)&ops;
       xdrs = &xdr_stream;
-      xdrmem_create (xdrs, ap->marshalled_client, (u_int) MAX_MARSHEL_SIZE,
+      xdrmem_create (xdrs, ap->marshalled_client, (u_int) MAX_MARSHAL_SIZE,
 		     XDR_ENCODE);
       (void) xdr_opaque_auth (xdrs, &ap->no_client.ah_cred);
       (void) xdr_opaque_auth (xdrs, &ap->no_client.ah_verf);
@@ -98,10 +104,10 @@ authnone_create (void)
     }
   return (&ap->no_client);
 }
+libc_hidden_def(authnone_create)
 
-/*ARGSUSED */
 static bool_t
-authnone_marshal (AUTH *client, XDR *xdrs)
+authnone_marshal (AUTH *client attribute_unused, XDR *xdrs)
 {
   struct authnone_private_s *ap;
 
@@ -112,23 +118,23 @@ authnone_marshal (AUTH *client, XDR *xdrs)
 }
 
 static void
-authnone_verf (AUTH *auth)
+authnone_verf (AUTH *auth attribute_unused)
 {
 }
 
 static bool_t
-authnone_validate (AUTH *auth, struct opaque_auth *oa)
+authnone_validate (AUTH *auth attribute_unused, struct opaque_auth *oa attribute_unused)
 {
   return TRUE;
 }
 
 static bool_t
-authnone_refresh (AUTH *auth)
+authnone_refresh (AUTH *auth attribute_unused)
 {
   return FALSE;
 }
 
 static void
-authnone_destroy (AUTH *auth)
+authnone_destroy (AUTH *auth attribute_unused)
 {
 }

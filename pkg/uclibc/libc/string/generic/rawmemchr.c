@@ -25,11 +25,13 @@
 #include <stdlib.h>
 #include <limits.h>
 
+#ifdef __USE_GNU
+libc_hidden_proto(rawmemchr)
+libc_hidden_proto(abort)
+
 #include "memcopy.h"
 
 #define LONG_MAX_32_BITS 2147483647
-
-#undef rawmemchr
 
 /* Find the first occurrence of C in S.  */
 void *rawmemchr (const void * s, int c_in)
@@ -158,3 +160,5 @@ void *rawmemchr (const void * s, int c_in)
 	}
     }
 }
+libc_hidden_def(rawmemchr)
+#endif

@@ -49,8 +49,8 @@ __libc_open(const char *pn, int flags, ...)
 	struct fs_inode ino;
 	int r = fs_namei(pn2, &ino);
 	if (r == -E_NOT_FOUND) {
-	    const char *dirname, *basename;
-	    fs_dirbase(pn2, &dirname, &basename);
+	    const char *dirname, *basenm;
+	    fs_dirbase(pn2, &dirname, &basenm);
 
 	    struct fs_inode dir;
 	    r = fs_namei(dirname, &dir);
@@ -60,7 +60,7 @@ __libc_open(const char *pn, int flags, ...)
 		return -1;
 	    }
 
-	    r = fs_create(dir, basename, &ino, 0);
+	    r = fs_create(dir, basenm, &ino, 0);
 	}
 
 	free(pn2);
@@ -106,8 +106,8 @@ __libc_open(const char *pn, int flags, ...)
 	}
 
 	strcpy(pn2, pn);
-	const char *dirname, *basename;
-	fs_dirbase(pn2, &dirname, &basename);
+	const char *dirname, *basenm;
+	fs_dirbase(pn2, &dirname, &basenm);
 
 	struct fs_inode dir;
 	r = fs_namei(dirname, &dir);
@@ -117,7 +117,7 @@ __libc_open(const char *pn, int flags, ...)
 	    return -1;
 	}
 
-	r = fs_create(dir, basename, &ino, 0);
+	r = fs_create(dir, basenm, &ino, 0);
 	free(pn2);
 	if (r < 0) {
 	    __set_errno(EPERM);

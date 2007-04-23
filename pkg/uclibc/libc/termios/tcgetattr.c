@@ -17,12 +17,17 @@
    02111-1307 USA.  */
 
 #include <features.h>
-#define __USE_GNU
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+
+libc_hidden_proto(ioctl)
+libc_hidden_proto(memset)
+libc_hidden_proto(memcpy)
+libc_hidden_proto(mempcpy)
+libc_hidden_proto(tcgetattr)
 
 /* The difference here is that the termios structure used in the
    kernel is not the same as we use in the libc.  Therefore we must
@@ -73,4 +78,4 @@ int tcgetattr (int fd, struct termios *termios_p)
 
     return retval;
 }
-
+libc_hidden_def(tcgetattr)

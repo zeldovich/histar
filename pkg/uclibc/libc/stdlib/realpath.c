@@ -1,16 +1,9 @@
 /*
  * realpath.c -- canonicalize pathname by removing symlinks
  * Copyright (C) 1993 Rick Sladkey <jrs@world.std.com>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Library Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library Public License for more details.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,8 +18,15 @@
 #include <limits.h>				/* for PATH_MAX */
 #include <sys/param.h>			/* for MAXPATHLEN */
 #include <errno.h>
+#include <stdlib.h>
 
 #include <sys/stat.h>			/* for S_IFLNK */
+
+libc_hidden_proto(strcat)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(strlen)
+libc_hidden_proto(readlink)
+libc_hidden_proto(getcwd)
 
 #ifndef PATH_MAX
 #ifdef _POSIX_VERSION
@@ -58,6 +58,14 @@ char resolved_path[];
 	int readlinks = 0;
 	int n;
 
+	if (path == NULL) {
+		__set_errno(EINVAL);
+		return NULL;
+	}
+	if (*path == '\0') {
+		__set_errno(ENOENT);
+		return NULL;
+	}
 	/* Make a copy of the source path since we may need to modify it. */
 	if (strlen(path) >= PATH_MAX - 2) {
 		__set_errno(ENAMETOOLONG);
@@ -66,15 +74,10 @@ char resolved_path[];
 	strcpy(copy_path, path);
 	path = copy_path;
 	max_path = copy_path + PATH_MAX - 2;
-	/* If it's a relative pathname use getwd for starters. */
+	/* If it's a relative pathname use getcwd for starters. */
 	if (*path != '/') {
 		/* Ohoo... */
-#define HAVE_GETCWD
-#ifdef HAVE_GETCWD
 		getcwd(new_path, PATH_MAX - 1);
-#else
-		getwd(new_path);
-#endif
 		new_path += strlen(new_path);
 		if (new_path[-1] != '/')
 			*new_path++ = '/';

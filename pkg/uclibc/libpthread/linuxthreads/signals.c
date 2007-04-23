@@ -16,15 +16,13 @@
 
 #include <errno.h>
 #include <signal.h>
-#include <stdio.h>
 #include "pthread.h"
 #include "internals.h"
 #include "spinlock.h"
 #include <ucontext.h>
-#include <bits/sigcontextinfo.h>
 
 /* mods for uClibc: __libc_sigaction is not in any standard headers */
-extern int __libc_sigaction (int sig, const struct sigaction *act, struct sigaction *oact);
+extern __typeof(sigaction) __libc_sigaction;
 
 int pthread_sigmask(int how, const sigset_t * newmask, sigset_t * oldmask)
 {
@@ -76,74 +74,27 @@ int pthread_kill(pthread_t thread, int signo)
     return 0;
 }
 
-/* User-provided signal handlers */
-typedef void (*arch_sighandler_t) __PMT ((int, SIGCONTEXT));
-static union
-{
-  arch_sighandler_t old;
-  void (*rt) (int, struct siginfo *, struct ucontext *);
-} sighandler[NSIG];
-
-/* The wrapper around user-provided signal handlers */
-static void pthread_sighandler(int signo, SIGCONTEXT ctx)
-{
-  pthread_descr self = thread_self();
-  char * in_sighandler;
-  /* If we're in a sigwait operation, just record the signal received
-     and return without calling the user's handler */
-  if (THREAD_GETMEM(self, p_sigwaiting)) {
-    THREAD_SETMEM(self, p_sigwaiting, 0);
-    THREAD_SETMEM(self, p_signal, signo);
-    return;
-  }
-  /* Record that we're in a signal handler and call the user's
-     handler function */
-  in_sighandler = THREAD_GETMEM(self, p_in_sighandler);
-  if (in_sighandler == NULL)
-    THREAD_SETMEM(self, p_in_sighandler, CURRENT_STACK_FRAME);
-  sighandler[signo].old(signo, SIGCONTEXT_EXTRA_ARGS ctx);
-  if (in_sighandler == NULL)
-    THREAD_SETMEM(self, p_in_sighandler, NULL);
-}
-
-/* The same, this time for real-time signals.  */
-static void pthread_sighandler_rt(int signo, struct siginfo *si,
-				  struct ucontext *uc)
-{
-  pthread_descr self = thread_self();
-  char * in_sighandler;
-  /* If we're in a sigwait operation, just record the signal received
-     and return without calling the user's handler */
-  if (THREAD_GETMEM(self, p_sigwaiting)) {
-    THREAD_SETMEM(self, p_sigwaiting, 0);
-    THREAD_SETMEM(self, p_signal, signo);
-    return;
-  }
-  /* Record that we're in a signal handler and call the user's
-     handler function */
-  in_sighandler = THREAD_GETMEM(self, p_in_sighandler);
-  if (in_sighandler == NULL)
-    THREAD_SETMEM(self, p_in_sighandler, CURRENT_STACK_FRAME);
-  sighandler[signo].rt(signo, si, uc);
-  if (in_sighandler == NULL)
-    THREAD_SETMEM(self, p_in_sighandler, NULL);
-}
+union sighandler __sighandler[NSIG] =
+  { [1 ... NSIG - 1] = { (arch_sighandler_t) SIG_ERR } };
 
 /* The wrapper around sigaction.  Install our own signal handler
    around the signal. */
-int __sigaction(int sig, const struct sigaction * act,
-              struct sigaction * oact)
+int __pthread_sigaction(int sig, const struct sigaction * act,
+			struct sigaction * oact)
 {
   struct sigaction newact;
   struct sigaction *newactp;
+  __sighandler_t old = SIG_DFL;
 
-#ifdef DEBUG_PT
-printf(__FUNCTION__": pthreads wrapper!\n");
-#endif
   if (sig == __pthread_sig_restart ||
       sig == __pthread_sig_cancel ||
       (sig == __pthread_sig_debug && __pthread_sig_debug > 0))
-    return EINVAL;
+    {
+      __set_errno (EINVAL);
+      return -1;
+    }
+  if (sig > 0 && sig < NSIG)
+    old = (__sighandler_t) __sighandler[sig].old;
   if (act)
     {
       newact = *act;
@@ -151,39 +102,46 @@ printf(__FUNCTION__": pthreads wrapper!\n");
 	  && sig > 0 && sig < NSIG)
 	{
 	  if (act->sa_flags & SA_SIGINFO)
-	    newact.sa_handler = (__sighandler_t) pthread_sighandler_rt;
+	    newact.sa_handler = (__sighandler_t) __pthread_sighandler_rt;
 	  else
-	    newact.sa_handler = (__sighandler_t) pthread_sighandler;
+	    newact.sa_handler = (__sighandler_t) __pthread_sighandler;
+	  if (old == SIG_IGN || old == SIG_DFL || old == SIG_ERR)
+	    __sighandler[sig].old = (arch_sighandler_t) act->sa_handler;
 	}
       newactp = &newact;
     }
   else
     newactp = NULL;
   if (__libc_sigaction(sig, newactp, oact) == -1)
-    return -1;
-#ifdef DEBUG_PT
-printf(__FUNCTION__": signahdler installed, __sigaction successful\n");
-#endif
+    {
+      if (act)
+	__sighandler[sig].old = (arch_sighandler_t) old;
+      return -1;
+    }
   if (sig > 0 && sig < NSIG)
     {
-      if (oact != NULL)
-	oact->sa_handler = (__sighandler_t) sighandler[sig].old;
+      if (oact != NULL
+	  /* We may have inherited SIG_IGN from the parent, so return the
+	     kernel's idea of the signal handler the first time
+	     through.  */
+	  && old != SIG_ERR)
+	oact->sa_handler = old;
       if (act)
-	/* For the assignment is does not matter whether it's a normal
+	/* For the assignment it does not matter whether it's a normal
 	   or real-time signal.  */
-	sighandler[sig].old = (arch_sighandler_t) act->sa_handler;
+	__sighandler[sig].old = (arch_sighandler_t) act->sa_handler;
     }
   return 0;
 }
-strong_alias(__sigaction, sigaction)
-
-/* A signal handler that does nothing */
-static void pthread_null_sighandler(int sig) { }
+#ifdef SHARED
+strong_alias(__pthread_sigaction, __sigaction)
+strong_alias(__pthread_sigaction, sigaction)
+#endif
 
 /* sigwait -- synchronously wait for a signal */
-int sigwait(const sigset_t * set, int * sig)
+int __pthread_sigwait(const sigset_t * set, int * sig)
 {
-  volatile pthread_descr self = thread_self();
+  __volatile__ pthread_descr self = thread_self();
   sigset_t mask;
   int s;
   sigjmp_buf jmpbuf;
@@ -197,17 +155,17 @@ int sigwait(const sigset_t * set, int * sig)
      signals in set is unspecified." */
   sigfillset(&mask);
   sigdelset(&mask, __pthread_sig_cancel);
-  for (s = 1; s <= NSIG; s++) {
+  for (s = 1; s < NSIG; s++) {
     if (sigismember(set, s) &&
         s != __pthread_sig_restart &&
         s != __pthread_sig_cancel &&
         s != __pthread_sig_debug) {
       sigdelset(&mask, s);
-      if (sighandler[s].old == NULL ||
-	  sighandler[s].old == (arch_sighandler_t) SIG_DFL ||
-	  sighandler[s].old == (arch_sighandler_t) SIG_IGN) {
-        sa.sa_handler = pthread_null_sighandler;
-        sigemptyset(&sa.sa_mask);
+      if (__sighandler[s].old == (arch_sighandler_t) SIG_ERR ||
+          __sighandler[s].old == (arch_sighandler_t) SIG_DFL ||
+          __sighandler[s].old == (arch_sighandler_t) SIG_IGN) {
+        sa.sa_handler = __pthread_null_sighandler;
+        sigfillset(&sa.sa_mask);
         sa.sa_flags = 0;
         sigaction(s, &sa, NULL);
       }
@@ -233,10 +191,13 @@ int sigwait(const sigset_t * set, int * sig)
   *sig = THREAD_GETMEM(self, p_signal);
   return 0;
 }
+#ifdef SHARED
+strong_alias (__pthread_sigwait, sigwait)
+#endif
 
 /* Redefine raise() to send signal to calling thread only,
    as per POSIX 1003.1c */
-int raise (int sig)
+int __pthread_raise (int sig)
 {
   int retcode = pthread_kill(pthread_self(), sig);
   if (retcode == 0)
@@ -246,3 +207,9 @@ int raise (int sig)
     return -1;
   }
 }
+#ifdef SHARED
+strong_alias (__pthread_raise, raise)
+#endif
+
+/* This files handles cancellation internally.  */
+LIBC_CANCEL_HANDLED ();

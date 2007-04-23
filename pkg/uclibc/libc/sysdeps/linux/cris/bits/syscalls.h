@@ -5,19 +5,11 @@
 #error "Never use <bits/syscall.h> directly; include <sys/syscall.h> instead."
 #endif
 
-/* Include the __NR_<name> definitions. */
-#include <bits/sysnum.h>
-
-#if 0
-#ifndef __set_errno
-#define __set_errno(val) (*__errno_location()) = (val)
-#endif
-#endif
-
-#undef SYS_ify
-#define SYS_ify(syscall_name)   (__NR_##syscall_name)
-
 #ifndef __ASSEMBLER__
+
+#include <errno.h>
+
+#define SYS_ify(syscall_name)  (__NR_##syscall_name)
 
 #undef _syscall0
 #define _syscall0(type,name) \
@@ -60,6 +52,14 @@ return (type) (INLINE_SYSCALL(name, 4, arg1, arg2, arg3, arg4)); \
 type name (type1 arg1,type2 arg2,type3 arg3,type4 arg4,type5 arg5) \
 { \
 return (type) (INLINE_SYSCALL(name, 5, arg1, arg2, arg3, arg4, arg5)); \
+}
+
+#undef _syscall6
+#define _syscall6(type,name,type1,arg1,type2,arg2,type3,arg3,type4,arg4, \
+          type5,arg5,type6,arg6) \
+type name (type1 arg1,type2 arg2,type3 arg3,type4 arg4,type5 arg5,type6 arg6) \
+{ \
+return (type) (INLINE_SYSCALL(name, 6, arg1, arg2, arg3, arg4, arg5, arg6)); \
 }
 
 #undef INLINE_SYSCALL

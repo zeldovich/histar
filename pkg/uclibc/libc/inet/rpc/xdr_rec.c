@@ -45,7 +45,6 @@
  */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 
@@ -58,7 +57,12 @@
 # include <wchar.h>
 # include <libio/iolibio.h>
 # define fputs(s, f) _IO_fputs (s, f)
+libc_hidden_proto(fwprintf)
 #endif
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(fputs)
+libc_hidden_proto(lseek)
 
 static bool_t xdrrec_getlong (XDR *, long *);
 static bool_t xdrrec_putlong (XDR *, const long *);
@@ -66,7 +70,7 @@ static bool_t xdrrec_getbytes (XDR *, caddr_t, u_int);
 static bool_t xdrrec_putbytes (XDR *, const char *, u_int);
 static u_int xdrrec_getpos (const XDR *);
 static bool_t xdrrec_setpos (XDR *, u_int);
-static int32_t *xdrrec_inline (XDR *, int);
+static int32_t *xdrrec_inline (XDR *, u_int);
 static void xdrrec_destroy (XDR *);
 static bool_t xdrrec_getint32 (XDR *, int32_t *);
 static bool_t xdrrec_putint32 (XDR *, const int32_t *);
@@ -142,6 +146,7 @@ static bool_t get_input_bytes (RECSTREAM *, caddr_t, int) internal_function;
  * write respectively.   They are like the system
  * calls expect that they take an opaque handle rather than an fd.
  */
+libc_hidden_proto(xdrrec_create)
 void
 xdrrec_create (XDR *xdrs, u_int sendsize,
 	       u_int recvsize, caddr_t tcp_handle,
@@ -160,7 +165,7 @@ xdrrec_create (XDR *xdrs, u_int sendsize,
     {
 #ifdef USE_IN_LIBIO
       if (_IO_fwide (stderr, 0) > 0)
-	(void) __fwprintf (stderr, L"%s", _("xdrrec_create: out of memory\n"));
+	(void) fwprintf (stderr, L"%s", _("xdrrec_create: out of memory\n"));
       else
 #endif
 	(void) fputs (_("xdrrec_create: out of memory\n"), stderr);
@@ -204,6 +209,7 @@ xdrrec_create (XDR *xdrs, u_int sendsize,
   rstrm->fbtbc = 0;
   rstrm->last_frag = TRUE;
 }
+libc_hidden_def(xdrrec_create)
 
 
 /*
@@ -377,7 +383,7 @@ xdrrec_setpos (XDR *xdrs, u_int pos)
 }
 
 static int32_t *
-xdrrec_inline (XDR *xdrs, int len)
+xdrrec_inline (XDR *xdrs, u_int len)
 {
   RECSTREAM *rstrm = (RECSTREAM *) xdrs->x_private;
   int32_t *buf = NULL;
@@ -475,6 +481,7 @@ xdrrec_putint32 (XDR *xdrs, const int32_t *ip)
  * Before reading (deserializing from the stream, one should always call
  * this procedure to guarantee proper record alignment.
  */
+libc_hidden_proto(xdrrec_skiprecord)
 bool_t
 xdrrec_skiprecord (XDR *xdrs)
 {
@@ -491,12 +498,14 @@ xdrrec_skiprecord (XDR *xdrs)
   rstrm->last_frag = FALSE;
   return TRUE;
 }
+libc_hidden_def(xdrrec_skiprecord)
 
 /*
  * Lookahead function.
  * Returns TRUE iff there is no more input in the buffer
  * after consuming the rest of the current record.
  */
+libc_hidden_proto(xdrrec_eof)
 bool_t
 xdrrec_eof (XDR *xdrs)
 {
@@ -514,6 +523,7 @@ xdrrec_eof (XDR *xdrs)
     return TRUE;
   return FALSE;
 }
+libc_hidden_def(xdrrec_eof)
 
 /*
  * The client must tell the package when an end-of-record has occurred.
@@ -521,6 +531,7 @@ xdrrec_eof (XDR *xdrs)
  * (output) tcp stream.  (This lets the package support batched or
  * pipelined procedure calls.)  TRUE => immediate flush to tcp connection.
  */
+libc_hidden_proto(xdrrec_endofrecord)
 bool_t
 xdrrec_endofrecord (XDR *xdrs, bool_t sendnow)
 {
@@ -540,7 +551,7 @@ xdrrec_endofrecord (XDR *xdrs, bool_t sendnow)
   rstrm->out_finger += BYTES_PER_XDR_UNIT;
   return TRUE;
 }
-
+libc_hidden_def(xdrrec_endofrecord)
 
 /*
  * Internal useful routines

@@ -48,6 +48,10 @@ static  char sccsid[] = "@(#)getrpcport.c 1.3 87/08/11 SMI";
 #include <rpc/pmap_clnt.h>
 #include <sys/socket.h>
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(pmap_getport)
+libc_hidden_proto(gethostbyname_r)
+
 int
 getrpcport (const char *host, u_long prognum, u_long versnum, u_int proto)
 {

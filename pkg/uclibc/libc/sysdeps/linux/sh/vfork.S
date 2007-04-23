@@ -21,10 +21,10 @@
 */
 
 #include <features.h>
-#define _SYSCALL_H
-#include <bits/sysnum.h>
-#define _ERRNO_H	1
+#include <sys/syscall.h>
+#define _ERRNO_H
 #include <bits/errno.h>
+#include <bits/sysnum.h>
 
 /* Clone the calling process, but without copying the whole address space.
    The calling process is suspended until the new process exits or is
@@ -32,14 +32,16 @@
    and the process ID of the new process to the old process.  */
 
 .text
-.align 4
+.globl	__vfork
+.hidden	__vfork
 .type	__vfork,@function
-.globl	__vfork;
+.align 4
+
 __vfork:
 	mov.w	.L2, r3
-	trapa	#0x10
+	trapa	#__SH_SYSCALL_TRAP_BASE
 	mov     r0, r1
-#ifdef __sh2__
+#ifdef __CONFIG_SH2__
 // 12 arithmetic shifts for the crappy sh2, because shad doesn't exist!	
 	shar	r1
 	shar	r1
@@ -68,9 +70,9 @@ __vfork:
 
 	/* If we don't have vfork, use fork.  */
 	mov.w	.L3, r3
-	trapa	#0x10
+	trapa	#__SH_SYSCALL_TRAP_BASE
 	mov     r0, r1
-#ifdef __sh2__
+#ifdef __CONFIG_SH2__
 // 12 arithmetic shifts for the crappy sh2, because shad doesn't exist!	
 	shar	r1
 	shar	r1
@@ -104,9 +106,9 @@ __vfork:
 	.word	__NR_vfork
 .L3:
 	.word	__NR_fork
-        .size   __vfork, .-__vfork
-.weak	vfork
-	vfork =  __vfork
+
+.size   __vfork, .-__vfork
+weak_alias(__vfork,vfork)
+libc_hidden_weak(vfork)
 
 #include "syscall_error.S"
-

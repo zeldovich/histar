@@ -163,7 +163,7 @@ sock_sendmsg(struct Fd *fd, const struct msghdr *msg, int flags)
     }
 
     uint32_t iovbytes = 0;
-    for (int i = 0; i < msg->msg_iovlen; i++)
+    for (uint32_t i = 0; i < msg->msg_iovlen; i++)
 	iovbytes += msg->msg_iov[i].iov_len;
 
     if (iovbytes > netd_buf_size) {
@@ -189,7 +189,7 @@ sock_sendmsg(struct Fd *fd, const struct msghdr *msg, int flags)
 	memcpy(&sin, msg->msg_name, msg->msg_namelen);
 	libc_to_netd(&sin, &a.sendto.sin);
 
-	for (int i = 0; i < msg->msg_iovlen; i++) {
+	for (uint32_t i = 0; i < msg->msg_iovlen; i++) {
 	    memcpy(&a.sendto.buf[cc], msg->msg_iov[i].iov_base, msg->msg_iov[i].iov_len);
 	    cc += msg->msg_iov[i].iov_len;
 	}
@@ -201,7 +201,7 @@ sock_sendmsg(struct Fd *fd, const struct msghdr *msg, int flags)
 	a.send.count = iovbytes;
 	a.send.flags = flags;
 
-	for (int i = 0; i < msg->msg_iovlen; i++) {
+	for (uint32_t i = 0; i < msg->msg_iovlen; i++) {
 	    memcpy(&a.send.buf[cc], msg->msg_iov[i].iov_base, msg->msg_iov[i].iov_len);
 	    cc += msg->msg_iov[i].iov_len;
 	}

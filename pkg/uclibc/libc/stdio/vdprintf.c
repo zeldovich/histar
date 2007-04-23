@@ -5,9 +5,16 @@
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
+#include <features.h>
+
+#ifdef __USE_GNU
 #include "_stdio.h"
 #include <stdarg.h>
 
+libc_hidden_proto(vfprintf)
+libc_hidden_proto(fflush_unlocked)
+
+libc_hidden_proto(vdprintf)
 int vdprintf(int filedes, const char * __restrict format, va_list arg)
 {
 	FILE f;
@@ -15,8 +22,8 @@ int vdprintf(int filedes, const char * __restrict format, va_list arg)
 #ifdef __STDIO_BUFFERS
 	char buf[64];				/* TODO: provide _optional_ buffering? */
 
-	f.__bufend = buf + sizeof(buf);
-	f.__bufstart = buf;
+	f.__bufend = (unsigned char *) buf + sizeof(buf);
+	f.__bufstart = (unsigned char *) buf;
 	__STDIO_STREAM_DISABLE_GETC(&f);
 	__STDIO_STREAM_DISABLE_PUTC(&f);
 	__STDIO_STREAM_INIT_BUFREAD_BUFPOS(&f);
@@ -51,7 +58,7 @@ int vdprintf(int filedes, const char * __restrict format, va_list arg)
 
 #ifdef __STDIO_BUFFERS
 	/* If not buffering, then fflush is unnecessary. */
-	if ((rv > 0) && __fflush_unlocked(&f)) {
+	if ((rv > 0) && fflush_unlocked(&f)) {
 		rv = -1;
 	}
 #endif
@@ -60,3 +67,5 @@ int vdprintf(int filedes, const char * __restrict format, va_list arg)
 
 	return rv;
 }
+libc_hidden_def(vdprintf)
+#endif

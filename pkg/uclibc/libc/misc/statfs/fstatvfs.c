@@ -18,8 +18,6 @@
    02111-1307 USA.  */
 
 #include <features.h>
-
-#define __USE_GNU
 #include <errno.h>
 #include <mntent.h>
 #include <paths.h>
@@ -28,6 +26,17 @@
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/statvfs.h>
+
+libc_hidden_proto(memset)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strsep)
+libc_hidden_proto(setmntent)
+libc_hidden_proto(getmntent_r)
+libc_hidden_proto(endmntent)
+
+libc_hidden_proto(fstatfs)
+libc_hidden_proto(fstat)
+libc_hidden_proto(stat)
 
 int fstatvfs (int fd, struct statvfs *buf)
 {

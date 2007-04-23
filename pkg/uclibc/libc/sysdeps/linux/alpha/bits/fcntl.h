@@ -1,5 +1,5 @@
 /* O_*, F_*, FD_* bit values for Linux.
-   Copyright (C) 1995-1999, 2000 Free Software Foundation, Inc.
+   Copyright (C) 1995-2000, 2004, 2005, 2006 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -21,8 +21,10 @@
 # error "Never use <bits/fcntl.h> directly; include <fcntl.h> instead."
 #endif
 
-
 #include <sys/types.h>
+#ifdef __USE_GNU
+# include <bits/uio.h>
+#endif
 
 
 /* open/fcntl - O_SYNC is only implemented on blocks devices and on files
@@ -44,10 +46,10 @@
 #define O_ASYNC		020000	/* fcntl, for BSD compatibility */
 
 #ifdef __USE_GNU
-# define O_DIRECT	040000	/* Direct disk access.  */
 # define O_DIRECTORY	0100000	/* Must be a directory.  */
 # define O_NOFOLLOW	0200000	/* Do not follow links.  */
-# define O_STREAMING	04000000/* streaming access */
+# define O_DIRECT	02000000 /* Direct disk access.  */
+# define O_NOATIME	04000000 /* Do not set atime.  */
 #endif
 
 #ifdef __USE_LARGEFILE64
@@ -76,7 +78,7 @@
 #define F_SETLK64	F_SETLK	/* Set record locking info (non-blocking).  */
 #define F_SETLKW64	F_SETLKW /* Set record locking info (blocking).  */
 
-#if defined __USE_BSD || defined __USE_XOPEN2K
+#if defined __USE_BSD || defined __USE_UNIX98
 # define F_SETOWN	5	/* Get owner of socket (receiver of SIGIO).  */
 # define F_GETOWN	6	/* Set owner of socket (receiver of SIGIO).  */
 #endif
@@ -169,6 +171,51 @@ struct flock64
 # define POSIX_FADV_RANDOM	1 /* Expect random page references.  */
 # define POSIX_FADV_SEQUENTIAL	2 /* Expect sequential page references.  */
 # define POSIX_FADV_WILLNEED	3 /* Will need these pages.  */
-# define POSIX_FADV_DONTNEED	6 /* Don't need these pages.  */
-# define POSIX_FADV_NOREUSE	7 /* Data will be accessed once.  */
+# define POSIX_FADV_DONTNEED	4 /* Don't need these pages.  */
+# define POSIX_FADV_NOREUSE	5 /* Data will be accessed once.  */
 #endif
+
+
+#ifdef __USE_GNU
+# define SYNC_FILE_RANGE_WAIT_BEFORE	1 /* Wait upon writeout of all pages
+					     in the range before performing the
+					     write.  */
+# define SYNC_FILE_RANGE_WRITE		2 /* Initiate writeout of all those
+					     dirty pages in the range which are
+					     not presently under writeback.  */
+# define SYNC_FILE_RANGE_WAIT_AFTER	4 /* Wait upon writeout of all pages in
+					     the range after performing the
+					     write.  */
+#endif
+
+__BEGIN_DECLS
+
+#ifdef __USE_GNU
+
+/* Provide kernel hint to read ahead.  */
+extern ssize_t readahead (int __fd, __off64_t __offset, size_t __count)
+    __THROW;
+
+
+#if 0
+/* Selective file content synch'ing.  */
+extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+			    unsigned int __flags);
+
+
+/* Splice address range into a pipe.  */
+extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+		     unsigned int __flags);
+
+/* Splice two files together.  */
+extern int splice (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+    __THROW;
+
+/* In-kernel implementation of tee for pipe buffers.  */
+extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+    __THROW;
+#endif
+
+#endif
+
+__END_DECLS

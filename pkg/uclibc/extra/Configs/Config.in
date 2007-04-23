@@ -2,11 +2,11 @@
 # For a description of the syntax of this configuration file,
 # see extra/config/Kconfig-language.txt
 #
+
 mainmenu "uClibc C Library Configuration"
 
 choice
 	prompt "Target Architecture"
-	default TARGET_i386
 	help
 	  Stuff
 
@@ -23,25 +23,31 @@ config TARGET_cris
 	bool "cris"
 
 config TARGET_e1
-	bool "e1"
+	bool "e1 (BROKEN)"
 
 config TARGET_frv
-	bool "frv"
+	bool "frv (BROKEN)"
 
 config TARGET_h8300
-	bool "h8300"
+	bool "h8300 (BROKEN)"
+
+config TARGET_hppa
+	bool "hppa"
 
 config TARGET_i386
 	bool "i386"
 
 config TARGET_i960
-	bool "i960"
+	bool "i960 (BROKEN)"
+
+config TARGET_ia64
+	bool "ia64"
 
 config TARGET_m68k
 	bool "m68k"
 
 config TARGET_microblaze
-	bool "microblaze"
+	bool "microblaze (BROKEN)"
 
 config TARGET_mips
 	bool "mips"
@@ -65,7 +71,10 @@ config TARGET_sparc
 	bool "sparc"
 
 config TARGET_v850
-	bool "v850"
+	bool "v850 (BROKEN)"
+
+config TARGET_vax
+	bool "vax"
 
 config TARGET_x86_64
 	bool "x86_64"
@@ -103,12 +112,20 @@ if TARGET_h8300
 source "extra/Configs/Config.h8300"
 endif
 
+if TARGET_hppa
+source "extra/Configs/Config.hppa"
+endif
+
 if TARGET_i386
 source "extra/Configs/Config.i386"
 endif
 
 if TARGET_i960
 source "extra/Configs/Config.i960"
+endif
+
+if TARGET_ia64
+source "extra/Configs/Config.ia64"
 endif
 
 if TARGET_m68k
@@ -151,10 +168,19 @@ if TARGET_v850
 source "extra/Configs/Config.v850"
 endif
 
+if TARGET_vax
+source "extra/Configs/Config.vax"
+endif
+
 if TARGET_x86_64
 source "extra/Configs/Config.x86_64"
 endif
 
+config TARGET_SUBARCH
+	string
+	default "e500" if CONFIG_E500
+	default "classic" if CONFIG_CLASSIC
+	default ""
 
 source "extra/Configs/Config.in.arch"
 
@@ -167,59 +193,49 @@ config HAVE_NO_PIC
 	default n
 
 config DOPIC
-	bool "Generate Position Independent Code (PIC)"
+	bool "Generate only Position Independent Code (PIC)"
 	default y
 	depends !HAVE_NO_PIC
 	help
-	  If you wish to build uClibc with support for shared libraries then
-	  answer Y here.  If you only want to build uClibc as a static library,
-	  then answer N.
+	  If you wish to build all of uClibc as PIC objects, then answer Y here.
+	  If you are unsure, then you should answer N.
 
 config HAVE_NO_SHARED
 	bool
 	default n
 
+config ARCH_HAS_NO_LDSO
+	bool
+	select HAVE_NO_SHARED
+	default n
+
 config HAVE_SHARED
 	bool "Enable support for shared libraries"
-	depends on DOPIC && !HAVE_NO_SHARED
+	depends on !HAVE_NO_SHARED
 	default y
 	help
 	  If you wish to build uClibc with support for shared libraries then
 	  answer Y here.  If you only want to build uClibc as a static library,
 	  then answer N.
 
-config ARCH_HAS_NO_LDSO
-	bool
-	default n
-
-config BUILD_UCLIBC_LDSO
-	bool "Compile native shared library loader"
-	depends on HAVE_SHARED && !ARCH_HAS_NO_LDSO
-	default y
-	help
-	  uClibc has a native shared library loader for some architectures.
-	  If you answer Y here, the uClibc native shared library loader will
-	  be built for your target architecture.  If this option is available,
-	  to you, then you almost certainly want to answer Y.
-
 config FORCE_SHAREABLE_TEXT_SEGMENTS
 	bool "Only load shared libraries which can share their text segment"
-	depends on BUILD_UCLIBC_LDSO
+	depends on HAVE_SHARED
 	default n
 	help
 	  If you answer Y here, the uClibc native shared library loader will
 	  only load shared libraries, which do not need to modify any non-writable
 	  segments. These libraries haven't set the DT_TEXTREL tag in the dynamic
-	  section (==> objdump). So all your libraries must be compiled with
+	  section (==> objdump). All your libraries must be compiled with
 	  -fPIC or -fpic, and all assembler function must be written as position
 	  independent code (PIC).
-	  Enabling this option will makes uClibc's shared library loader a
+	  Enabling this option will make uClibc's shared library loader a
 	  little bit smaller and guarantee that no memory will be wasted by badly
 	  coded shared libraries.
 
 config LDSO_LDD_SUPPORT
-	bool "Native shared library loader 'ldd' support"
-	depends on BUILD_UCLIBC_LDSO
+	bool "Native 'ldd' support"
+	depends on HAVE_SHARED
 	default y
 	help
 	  Enable this to enable all the code needed to support traditional ldd,
@@ -229,8 +245,8 @@ config LDSO_LDD_SUPPORT
 	  shared library loader a little bit smaller.  Most people will answer Y.
 
 config LDSO_CACHE_SUPPORT
-	bool "Enable shared library loader cache"
-	depends on BUILD_UCLIBC_LDSO
+	bool "Enable library loader cache (ld.so.conf)"
+	depends on HAVE_SHARED
 	default y
 	help
 	  Enable this to make use of /etc/ld.so.conf, the shared library loader
@@ -239,8 +255,8 @@ config LDSO_CACHE_SUPPORT
 	  the /etc/ld.so.cache shared library loader cache file.
 
 config LDSO_PRELOAD_FILE_SUPPORT
-	bool "Enable shared library loader preload file support"
-	depends on BUILD_UCLIBC_LDSO
+	bool "Enable library loader preload file (ld.so.preload)"
+	depends on HAVE_SHARED
 	default n
 	help
 	  Enable this to make use of /etc/ld.so.preload. This file contains a
@@ -249,7 +265,7 @@ config LDSO_PRELOAD_FILE_SUPPORT
 
 config LDSO_BASE_FILENAME
 	string "Shared library loader naming prefix"
-	depends on BUILD_UCLIBC_LDSO && (LDSO_CACHE_SUPPORT || LDSO_PRELOAD_FILE_SUPPORT)
+	depends on HAVE_SHARED && (LDSO_CACHE_SUPPORT || LDSO_PRELOAD_FILE_SUPPORT)
 	default "ld.so"
 	help
 	  If you wish to support both uClibc and glibc on the same system, it
@@ -264,9 +280,21 @@ config LDSO_BASE_FILENAME
 	  WARNING: Changing the default prefix could cause problems with
 	           binutils' ld !
 
+config UCLIBC_STATIC_LDCONFIG
+	bool "Link ldconfig statically"
+	depends on HAVE_SHARED
+	default y
+	help
+	  Enable this option to statically link the ldconfig binary.
+
+	  Making ldconfig static can be beneficial if you have a library
+	  problem and need to use ldconfig to recover.  Sometimes, it is
+	  preferable to instead keep the size of the system down, in which
+	  case you should disable this option.
+
 config LDSO_RUNPATH
 	bool "Enable ELF RUNPATH tag support"
-	depends on BUILD_UCLIBC_LDSO
+	depends on HAVE_SHARED
 	default y
 	help
 	  ELF's may have dynamic RPATH/RUNPATH tags.  These tags list paths 
@@ -276,13 +304,6 @@ config LDSO_RUNPATH
 
 	  Usage of RUNPATH tags is not too common, so disabling this feature 
 	  should be safe for most people.
-
-config DL_FINI_CRT_COMPAT
-	bool "uClibc 0.9.27 compatibility"
-	default n
-	help
-	  Allows to update a 0.9.27 based system to new crt/fini handling.
-	  After rebuilding all apps, this option can be disabled.
 
 config UCLIBC_CTOR_DTOR
 	bool "Support global constructors and destructors"
@@ -334,6 +355,20 @@ config PTHREADS_DEBUG_SUPPORT
 	  If you are doing development and want to debug applications using
 	  uClibc's pthread library, answer Y.  Otherwise, answer N.
 
+config LINUXTHREADS_OLD
+	bool "Use the older (stable) version of linuxthreads"
+	default y
+	depends on UCLIBC_HAS_THREADS
+	help
+	  There are two versions of linuxthreads.  The older (stable) version
+	  has been in uClibc for quite a long time but hasn't seen too many
+	  updates other than bugfixes.
+
+	  The new version has not been tested much, and lacks ports for arches
+	  which glibc does not support (like bfin/frv/etc...), but is based on
+	  the latest code from glibc, so it may be the only choice for the
+	  newer ports (like alpha/amd64/64bit arches and hppa).
+
 config UCLIBC_HAS_LFS
 	bool "Large File Support"
 	default y
@@ -343,21 +378,10 @@ config UCLIBC_HAS_LFS
 	  if you are using an older Linux kernel (2.0.x) that lacks large file
 	  support.  Enabling this option will increase the size of uClibc.
 
-config UCLIBC_STATIC_LDCONFIG
-	bool "Link ldconfig statically"
-	default y
-	help
-	  Enable this option to statically link the ldconfig binary.
-
-	  Making ldconfig static can be beneficial if you have a library
-	  problem and need to use ldconfig to recover.  Sometimes, it is
-	  preferable to instead keep the size of the system down, in which
-	  case you should disable this option.
-
 choice
 	prompt "Malloc Implementation"
-	default MALLOC if ! ARCH_HAS_MMU
-	default MALLOC_STANDARD if ARCH_HAS_MMU
+	default MALLOC if ! ARCH_USE_MMU
+	default MALLOC_STANDARD if ARCH_USE_MMU
 	help
 	  "malloc" use mmap for all allocations and so works very well on MMU-less
 	  systems that do not support the brk() system call.   It is pretty smart
@@ -389,7 +413,7 @@ config MALLOC_SIMPLE
 
 config MALLOC_STANDARD
 	bool "malloc-standard"
-	depends on ARCH_HAS_MMU
+	depends on ARCH_USE_MMU
 
 endchoice
 
@@ -426,13 +450,62 @@ config UCLIBC_DYNAMIC_ATEXIT
 
 	  Unless you use uClibc with C++, you should probably answer N.
 
+config COMPAT_ATEXIT
+	bool "Old (visible) atexit Support"
+	default n
+	help
+	  Enable this option if you want to update from 0.9.28 to svn/0.9.29, else
+	  you will be missing atexit() until you rebuild all apps.
 
-config HAS_SHADOW
+config UCLIBC_SUSV3_LEGACY
+	bool "Enable SuSv3 LEGACY functions"
+	default n
+	help
+	  Enable this option if you want to have SuSv3 LEGACY functions
+	  in the library, else they are replaced by SuSv3 proposed macros.
+	  Currently applies to bcopy/bzero/bcmp/index/rindex.
+	  WARNING! ABI incompatibility.
+
+config UCLIBC_SUSV3_LEGACY_MACROS
+	bool "Enable SuSv3 LEGACY macros"
+	default n
+	help
+	  Enable this option if you want to have SuSv3 LEGACY macros.
+	  Currently applies to bcopy/bzero/bcmp/index/rindex et al.
+	  WARNING! ABI incompatibility.
+
+config UCLIBC_HAS_SHADOW
 	bool "Shadow Password Support"
 	default y
 	help
 	  Answer N if you do not need shadow password support.
 	  Most people will answer Y.
+
+config UCLIBC_HAS_PROGRAM_INVOCATION_NAME
+	bool "Support for program_invocation_name"
+	default n
+	help
+	  Support for the GNU-specific program_invocation_name and
+	  program_invocation_short_name strings.  Some GNU packages
+	  (like tar and coreutils) utilize these for extra useful
+	  output, but in general are not required.
+
+	  At startup, these external strings are automatically set
+	  up based on the value of ARGV[0].
+
+	  If unsure, just answer N.
+
+config UCLIBC_HAS___PROGNAME
+	bool "Support for __progname"
+	default y
+	help
+	  Some packages (like openssh) like to peek into internal libc
+	  symbols to make their output a bit more user friendly.
+
+	  At startup, __progname is automatically set up based on the
+	  value of ARGV[0].
+
+	  If unsure, just answer N.
 
 config UNIX98PTY_ONLY
 	bool "Support only Unix 98 PTYs"
@@ -523,6 +596,30 @@ config UCLIBC_TZ_FILE_PATH
 
 endmenu
 
+menu "Advanced Library Settings"
+
+config UCLIBC_PWD_BUFFER_SIZE
+	int "Buffer size for getpwnam() and friends"
+	default 256
+	range 12 1024
+	help
+	  This sets the value of the buffer size for getpwnam() and friends.
+	  By default, this is 256. (For reference, glibc uses 1024).
+	  The value can be found using sysconf() with the _SC_GETPW_R_SIZE_MAX
+	  parameter.
+
+config UCLIBC_GRP_BUFFER_SIZE
+	int "Buffer size for getgrnam() and friends"
+	default 256
+	range 256 1024
+	help
+	  This sets the value of the buffer size for getgrnam() and friends.
+	  By default, this is 256. (For reference, glibc uses 1024).
+	  The value can be found using sysconf() with the _SC_GETGR_R_SIZE_MAX
+	  parameter.
+
+endmenu
+
 menu "Networking Support"
 
 config UCLIBC_HAS_IPV6
@@ -551,6 +648,29 @@ config UCLIBC_HAS_FULL_RPC
 	  Normally we enable just enough RPC support for things like rshd and
 	  nfs mounts to work.  If you find you need the rest of the RPC stuff,
 	  then enable this option.  Most people can safely answer N.
+
+config UCLIBC_HAS_REENTRANT_RPC
+	bool "Reentrant RPC support"
+	depends on UCLIBC_HAS_RPC
+	default y if !HAVE_SHARED
+	help
+	  Most packages utilize the normal (non-reentrant) RPC functions, but 
+	  some (like exportfs from nfs-utils) need these reentrant versions.  
+
+	  Most people can safely answer N.
+
+config UCLIBC_USE_NETLINK
+	bool "Use netlink to query interfaces"
+	default n
+	help
+	  In newer versions of Linux (2.4.17+), support was added for querying
+	  network device information via netlink rather than the old style
+	  ioctl's.  Most of the time, the older ioctl style is sufficient (and
+	  it is smaller than netlink), but if you find that not all of your
+	  devices are being returned by the if_nameindex() function, you will
+	  have to use the netlink implementation.
+
+	  Most people can safely answer N.
 
 endmenu
 
@@ -583,7 +703,7 @@ config UCLIBC_HAS_CTYPE_TABLES
 	help
 	  Answer Y to use table versions of the 'ctype.h' functions.
 	  While the non-table versions are often smaller when building
-	  staticly linked apps, they work only in stub locale mode.
+	  statically linked apps, they work only in stub locale mode.
 
 	  Most people will answer Y.
 
@@ -743,8 +863,8 @@ config UCLIBC_HAS_GLIBC_CUSTOM_PRINTF
 
 	  NOTE: This implementation limits the number or registered specifiers to 10.
 	  NOTE: This implementation requires new conversion specifiers to be ASCII
-                characters (0-0x7f).  This is to avoid problems with processing
-                format strings in locales with different multibyte conversions.
+	        characters (0-0x7f).  This is to avoid problems with processing
+	        format strings in locales with different multibyte conversions.
 
 	  Most people will answer N.
 
@@ -853,7 +973,7 @@ config UCLIBC_HAS_STDIO_BUILTIN_BUFFER_8
 endchoice
 
 config UCLIBC_HAS_STDIO_SHUTDOWN_ON_ABORT
-	bool "Attemt to shutdown stdio subsystem when abort() is called."
+	bool "Attempt to shutdown stdio subsystem when abort() is called."
 	default n
 	help
 	  ANSI/ISO C99 requires abort() to be asyn-signal-safe.  So there was a behavioral
@@ -1009,6 +1129,24 @@ config UCLIBC_HAS_GNU_GETOPT
 
 	  Most people will answer Y.
 
+config UCLIBC_HAS_GETOPT_LONG
+	bool "Support getopt_long/getopt_long_only"
+	depends !UCLIBC_HAS_GNU_GETOPT
+	default y
+	help
+	  Answer Y if you want to include getopt_long[_only() used by many
+	  apps, even busybox.
+
+	  Most people will answer Y.
+
+config UCLIBC_HAS_GNU_GETSUBOPT
+	bool "Support glibc getsubopt"
+	default y
+	help
+	  Answer Y if you want to include glibc getsubopt() instead of a
+	  smaller SUSv3 compatible getsubopt().
+
+	  Most people will answer Y.
 endmenu
 
 
@@ -1018,13 +1156,50 @@ config UCLIBC_HAS_REGEX
 	bool "Regular Expression Support"
 	default y
 	help
-	  POSIX regular expression code is really big -- 27k all by itself.
+	  POSIX regular expression code is really big -- 53k all by itself.
 	  If you don't use regular expressions, turn this off and save space.
-	  Of course, if you only staticly link, leave this on, since it will
+	  Of course, if you only statically link, leave this on, since it will
 	  only be included in your apps if you use regular expressions.
+
+config UCLIBC_HAS_REGEX_OLD
+	bool "Use the older (stable) regular expression code"
+	depends on UCLIBC_HAS_REGEX
+	default y
+	help
+	  There are two versions of regex.  The older (stable) version has
+	  been in uClibc for quite a long time but hasn't seen too many
+	  updates.  It also has some known issues when dealing with uncommon
+	  corner cases and multibyte/unicode strings.  However, it is quite
+	  a bit smaller than the newer version.
+
+	  If the older version has worked for you and you don't need unicode
+	  support, then stick with the old version (and say Y here).
+	  Otherwise, you should use the new version (and say N here).
+
+config UCLIBC_HAS_FNMATCH
+	bool "fnmatch Support"
+	default y
+	help
+	  POSIX fnmatch.
+
+config UCLIBC_HAS_FNMATCH_OLD
+	bool "Use the older (stable) fnmatch code"
+	depends on UCLIBC_HAS_FNMATCH
+	default y
+	help
+	  There are two versions of fnmatch.  The older (stable) version has
+	  been in uClibc for quite a long time but hasn't seen too many
+	  updates.  It also has some known issues when dealing with uncommon
+	  corner cases and multibyte/unicode strings.  However, it is quite
+	  a bit smaller than the newer version.
+
+	  If the older version has worked for you and you don't need unicode
+	  support, then stick with the old version (and say Y here).
+	  Otherwise, you should use the new version (and say N here).
 
 config UCLIBC_HAS_WORDEXP
 	bool "Support the wordexp() interface"
+	depends on UCLIBC_HAS_GLOB
 	default n
 	help
 	  The SuSv3 wordexp() interface performs word expansions per the  Shell
@@ -1047,14 +1222,29 @@ config UCLIBC_HAS_FTW
 
 config UCLIBC_HAS_GLOB
 	bool "Support the glob() interface"
+	depends on UCLIBC_HAS_FNMATCH
 	default y
 	help
 
-	  The glob interface is somewhat large (weighing in at about 4k).  It
+	  The glob interface is somewhat large (weighing in at about 2,5k).  It
 	  is used fairly often, but is an option since people wanting to go for
 	  absolute minimum size may wish to omit it.
 
 	  Most people will answer Y.
+
+config UCLIBC_HAS_GNU_GLOB
+	bool "Support gnu glob() interface"
+	depends on UCLIBC_HAS_GLOB
+	default n
+	help
+	  The gnu glob interface is somewhat larger (weighing in at about 4,2k) than
+	  it's SuSv3 counterpart (and is out of date). It is an old copy from glibc and
+	  does not support all the GNU specific options.
+
+	  Answer Y if you want to include full gnu glob() instead of the smaller SUSv3
+	  compatible glob().
+
+	  Most people will answer N.
 
 endmenu
 
@@ -1065,8 +1255,8 @@ menu "Library Installation Options"
 
 config SHARED_LIB_LOADER_PREFIX
 	string "Shared library loader path"
-	depends on BUILD_UCLIBC_LDSO
-	default "$(DEVEL_PREFIX)/lib"
+	depends on HAVE_SHARED
+	default "$(RUNTIME_PREFIX)lib"
 	help
 	  When using shared libraries, this path is the location where the
 	  shared library will be invoked.  This value will be compiled into
@@ -1117,19 +1307,14 @@ config DEVEL_PREFIX
 endmenu
 
 
-menu "uClibc security related options"
-
-config UCLIBC_SECURITY
-	bool "Enable security options"
-	default n
+menu "Security options"
 
 config UCLIBC_BUILD_PIE
 	bool "Build utilities as ET_DYN/PIE executables"
-	depends on UCLIBC_SECURITY
 	depends on HAVE_SHARED
 	depends on TARGET_arm || TARGET_frv || TARGET_i386 || TARGET_mips || TARGET_powerpc
-	select FORCE_SHAREABLE_TEXT_SEGMENTS if BUILD_UCLIBC_LDSO
-	default y
+	select FORCE_SHAREABLE_TEXT_SEGMENTS
+	default n
 	help
 	  If you answer Y here, ldd and iconv are built as ET_DYN/PIE executables.
 	  It requires gcc-3.4 and binutils-2.15 (for arm 2.16) or later.
@@ -1138,16 +1323,44 @@ config UCLIBC_BUILD_PIE
 		libraries have to be built with -fPIC or -fpic, and all assembler
 		functions must be written as position independent code (PIC).
 
+config UCLIBC_HAS_ARC4RANDOM
+	bool "Include the arc4random() function"
+	default n
+	help
+	  Answer Y to support the OpenBSD-like arc4random() function. This
+	  function picks a random number between 0 and N, and will always return
+	  something even if the random driver is dead. If urandom fails then
+	  gettimeofday(2) will be used as the random seed. This function is
+	  designed to be more dependable than invoking /dev/urandom directly.
+	  OpenSSL and OpenNTPD currently support this function.
+
+	  Most people will answer N.
+
+config HAVE_NO_SSP
+	bool
+	default n
+
 config UCLIBC_HAS_SSP
 	bool "Support for propolice smashing stack protector"
-	depends on UCLIBC_SECURITY
+	depends on !HAVE_NO_SSP
 	default n
 	help
 	  Add propolice smashing stack protector to the library.
+	  This requires GCC 4.1, supporting the -fstack-protector[-all]
+	  options. GCC does not have to provide libssp, the needed
+	  functions are added to ldso/libc instead.
+	  Most people will answer N.
+
+config UCLIBC_HAS_SSP_COMPAT
+	bool "Support for gcc-3.x propolice smashing stack protector"
+	depends on UCLIBC_HAS_SSP
+	default n
+	help
+	  Add gcc-3.x propolice smashing stack protector to the library.
 	  This requires a patched version of GCC, supporting the
 	  -fstack-protector[-all] options, with the __guard and
 	  __stack_smash_handler functions removed from libgcc.
-	  These functions are added to libc instead.
+	  These functions are added to ldso/libc instead.
 	  More information at:
 	  <http://www.research.ibm.com/trl/projects/security/ssp/>
 	  Most people will answer N.
@@ -1163,17 +1376,6 @@ config SSP_QUICK_CANARY
 	  	attacks.
 	  Most people will answer N.
 
-config SSP_USE_ERANDOM
-	bool "Use erandom for setting guard value if /dev/urandom fails"
-	depends on UCLIBC_HAS_SSP && !SSP_QUICK_CANARY
-	default n
-	help
-	  Use /dev/erandom to define the guard if /dev/urandom fails (chroot).
-	  This requires a modified kernel.
-	  More information at:
-	  <http://frandom.sourceforge.net/>
-	  Most people will answer N.
-
 choice
 	prompt "Propolice protection blocking signal"
 	depends on UCLIBC_HAS_SSP
@@ -1186,9 +1388,6 @@ choice
 	  "segfault" use SIGSEGV to block offending programs.
 	  Use this for debugging.
 
-	  "kill" use SIGKILL to block offending programs.
-	  Perhaps the best for security.
-
 	  If unsure, answer "abort".
 
 config PROPOLICE_BLOCK_ABRT
@@ -1196,9 +1395,6 @@ config PROPOLICE_BLOCK_ABRT
 
 config PROPOLICE_BLOCK_SEGV
 	bool "segfault"
-
-config PROPOLICE_BLOCK_KILL
-	bool "kill"
 
 endchoice
 
@@ -1211,23 +1407,20 @@ config UCLIBC_BUILD_SSP
 
 config UCLIBC_BUILD_RELRO
 	bool "Build uClibc with RELRO"
-	depends on UCLIBC_SECURITY
-	depends on BUILD_UCLIBC_LDSO
+	depends on HAVE_SHARED
 	default y
 	help
 	  Build all libraries and executables with -z relro.
 
 config UCLIBC_BUILD_NOW
 	bool "Build uClibc with NOW"
-	depends on UCLIBC_SECURITY
-	depends on BUILD_UCLIBC_LDSO
-	default y
+	depends on HAVE_SHARED
+	default n
 	help
 	  Build all libraries and executables with -z now.
 
 config UCLIBC_BUILD_NOEXECSTACK
 	bool "Build uClibc with noexecstack marking"
-	depends on UCLIBC_SECURITY
 	default y
 	help
 	  Mark all assembler files as noexecstack. This will result in marking
@@ -1246,10 +1439,16 @@ config CROSS_COMPILER_PREFIX
 	  example, if you run 'arm-linux-uclibc-gcc' to compile something, 
 	  then enter 'arm-linux-uclibc-' here.
 
+config UCLIBC_EXTRA_CFLAGS
+	string "Enter any extra CFLAGS to use to build uClibc"
+	default ""
+	help
+	  Add any additional CFLAGS to be used to build uClibc.
+
 config DODEBUG
 	bool "Build uClibc with debugging symbols"
-	select PTHREADS_DEBUG_SUPPORT if UCLIBC_HAS_THREADS
 	default n
+	select EXTRA_WARNINGS
 	help
 	  Say Y here if you wish to compile uClibc with debugging symbols.
 	  This will allow you to use a debugger to examine uClibc internals
@@ -1261,13 +1460,23 @@ config DODEBUG
 
 config DODEBUG_PT
 	bool "Build pthread with debugging output"
-	depends on UCLIBC_HAS_THREADS
+	depends on UCLIBC_HAS_THREADS && LINUXTHREADS_OLD
 	default n
 	help
 	  Enable debug output in libpthread.  This is only useful when doing 
 	  development in libpthread itself.
 
 	  Otherwise, answer N.
+
+config DOSTRIP
+	bool "Strip libraries and executables"
+	default y
+	depends on !DODEBUG
+	help
+	  Say Y here if you do wish to strip all uClibc libraries and
+	  executables.  No stripping increases the size of the binaries
+	  considerably, but makes it possible to debug uClibc libraries.
+	  Most people will answer Y.
 
 config DOASSERTS
 	bool "Build uClibc with run-time assertion testing"
@@ -1280,7 +1489,7 @@ config DOASSERTS
 
 config SUPPORT_LD_DEBUG
 	bool "Build the shared library loader with debugging support"
-	depends on BUILD_UCLIBC_LDSO
+	depends on HAVE_SHARED
 	default n
 	help
 	  Answer Y here to enable all the extra code needed to debug the uClibc
@@ -1314,7 +1523,7 @@ config SUPPORT_LD_DEBUG
 
 config SUPPORT_LD_DEBUG_EARLY
 	bool "Build the shared library loader with early debugging support"
-	depends on BUILD_UCLIBC_LDSO
+	depends on HAVE_SHARED
 	default n
 	help
 	  Answer Y here to if you find the uClibc shared library loader is
@@ -1328,7 +1537,7 @@ config SUPPORT_LD_DEBUG_EARLY
 
 config UCLIBC_MALLOC_DEBUGGING
 	bool "Build malloc with debugging support"
-	depends MALLOC
+	depends MALLOC || MALLOC_STANDARD
 	default n
 	help
 	  Answer Y here to compile extra debugging support code into malloc.
@@ -1350,6 +1559,18 @@ config WARNINGS
 	default "-Wall"
 	help
 	  Set this to the set of gcc warnings you wish to see while compiling.
+
+config EXTRA_WARNINGS
+	bool "Enable extra annoying warnings"
+	default n
+	help
+	  If you wish to build with extra warnings enabled, say Y here.
+
+config DOMULTI
+	bool "Compile all sources at once into an object"
+	default n
+	help
+	  Set this to compile all sources at once into an object (IMA).
 
 config UCLIBC_MJN3_ONLY
 	bool "Manuel's hidden warnings"

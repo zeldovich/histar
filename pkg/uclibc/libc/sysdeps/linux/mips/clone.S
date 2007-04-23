@@ -20,28 +20,34 @@
 /* clone() is even more special than fork() as it mucks with stacks
    and invokes a function in the right context after its all over.  */
 
+#include <features.h>
 #include <asm/unistd.h>
 #include <sys/regdef.h>
 #define _ERRNO_H	1
 #include <bits/errno.h>
-#include <asm/asm.h>
+#include <sys/asm.h>
 
 /* int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg) */
 
 	.text
-.globl   __clone ;
+.globl   clone ;
 	.align       2;
-	.type         __clone,@function;
-	.ent        __clone, 0;
+	.type         clone,@function;
+	.ent        clone, 0;
 	
-__clone:
+clone:
 	.frame	    sp, 4*SZREG, sp
 #ifdef __PIC__
+#if _MIPS_SIM == _MIPS_SIM_ABI32
 	.set		noreorder
 	.cpload		$25
 	.set		reorder
 	subu		sp,32
 	.cprestore	16
+#else	/* N32 */
+	PTR_SUBU	sp,32	/* fn, arg, gp, pad */
+	.cpsetup	$25, 16, clone
+#endif	/* N32 */
 #else
 	subu		sp,32
 #endif
@@ -52,9 +58,12 @@ __clone:
 	beqz		a0,error	/* No NULL function pointers.  */
 	beqz		a1,error	/* No NULL stack pointers.  */
 
-	subu		a1,32		/* Reserve argument save space.  */
-	sw		a0,0(a1)	/* Save function pointer.  */
-	sw		a3,4(a1)	/* Save argument pointer.  */
+#if _MIPS_SIM != _MIPS_SIM_ABI32
+	and		a1,~(16-1)	/* force alignment */
+#endif
+	PTR_SUBU	a1,32		/* Reserve argument save space.  */
+	PTR_S		a0,0(a1)	/* Save function pointer.  */
+	PTR_S		a3,PTRSIZE(a1)	/* Save argument pointer.  */
 
 
 	/* Do the system call */
@@ -66,24 +75,30 @@ __clone:
 	beqz		v0,__thread_start
 
 	/* Successful return from the parent */
-	addiu		sp,32
+#if _MIPS_SIM != _MIPS_SIM_ABI32
+	.cpreturn
+#endif
+	PTR_ADDU	sp,32
 	j $31  ; nop
 
 	/* Something bad happened -- no child created */
 error:
-	addiu		sp,32
+#if _MIPS_SIM != _MIPS_SIM_ABI32
+	.cpreturn
+#endif
+	PTR_ADDU	sp,32
 
 	/* uClibc change -- start */
 	move		a0,v0		/* Pass return val to C function. */
 	/* uClibc change -- stop */
 
 #ifdef __PIC__
-	la		t9,__syscall_error
+	PTR_LA		t9,__syscall_error
 	jr		t9
 #else
 	j		__syscall_error
 #endif
-	.end  __clone
+	.end  clone
 
 /* Load up the arguments to the function.  Put this block of code in
    its own function so that we can terminate the stack trace with our
@@ -94,25 +109,19 @@ error:
 	.ent  __thread_start, 0;
 
 __thread_start:
+#if _MIPS_SIM == _MIPS_SIM_ABI32
 	/* cp is already loaded.  */
 	.cprestore	16
+#endif
 	/* The stackframe has been created on entry of clone().  */
 	/* Restore the arg for user's function.  */
-	lw		t9,0(sp)	/* Function pointer.  */
-	lw		a0,4(sp)	/* Argument pointer.  */
+	PTR_L		t9,0(sp)	/* Function pointer.  */
+	PTR_L		a0,PTRSIZE(sp)	/* Argument pointer.  */
 
 	/* Call the user's function.  */
 	jal		t9
 
 	/* Call _exit rather than doing it inline for breakpoint purposes.  */
 	move		a0,v0
-#ifdef __PIC__
-	la		t9,_exit
-	jalr		t9
-#else
-	jal		_exit
-#endif
+	jal		HIDDEN_JUMPTARGET(_exit)
 	.end  __thread_start
-
-.weak clone;
-	clone = __clone

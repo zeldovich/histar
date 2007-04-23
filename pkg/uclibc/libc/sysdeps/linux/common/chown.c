@@ -2,15 +2,28 @@
 /*
  * chown() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
+#include <sys/syscall.h>
 #include <unistd.h>
+#include <bits/wordsize.h>
 
-#define __NR___syscall_chown __NR_chown
+libc_hidden_proto(chown)
+
+#if (__WORDSIZE == 32 && defined(__NR_chown32)) || __WORDSIZE == 64
+# ifdef __NR_chown32
+#  undef __NR_chown
+#  define __NR_chown __NR_chown32
+# endif
+
+_syscall3(int, chown, const char *, path, uid_t, owner, gid_t, group);
+
+#else
+
+# define __NR___syscall_chown __NR_chown
 static inline _syscall3(int, __syscall_chown, const char *, path,
 		__kernel_uid_t, owner, __kernel_gid_t, group);
 
@@ -23,3 +36,6 @@ int chown(const char *path, uid_t owner, gid_t group)
 	}
 	return (__syscall_chown(path, owner, group));
 }
+#endif
+
+libc_hidden_def(chown)

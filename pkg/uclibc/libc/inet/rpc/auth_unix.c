@@ -56,6 +56,23 @@
 # include <wchar.h>
 #endif
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(sysconf)
+libc_hidden_proto(getegid)
+libc_hidden_proto(geteuid)
+libc_hidden_proto(getgroups)
+libc_hidden_proto(gethostname)
+libc_hidden_proto(xdrmem_create)
+libc_hidden_proto(xdr_authunix_parms)
+libc_hidden_proto(xdr_opaque_auth)
+libc_hidden_proto(gettimeofday)
+libc_hidden_proto(fputs)
+libc_hidden_proto(perror)
+libc_hidden_proto(abort)
+#ifdef USE_IN_LIBIO
+libc_hidden_proto(fwprintf)
+#endif
+
 /*
  * Unix authenticator operations vector
  */
@@ -92,6 +109,7 @@ static bool_t marshal_new_auth (AUTH *) internal_function;
  * Create a unix style authenticator.
  * Returns an auth handle with the given stuff in it.
  */
+libc_hidden_proto(authunix_create)
 AUTH *
 authunix_create (char *machname, uid_t uid, gid_t gid, int len,
 		 gid_t *aup_gids)
@@ -113,7 +131,7 @@ authunix_create (char *machname, uid_t uid, gid_t gid, int len,
 no_memory:
 #ifdef USE_IN_LIBIO
       if (_IO_fwide (stderr, 0) > 0)
-	(void) __fwprintf (stderr, L"%s",
+	(void) fwprintf (stderr, L"%s",
 			   _("authunix_create: out of memory\n"));
       else
 #endif
@@ -158,11 +176,13 @@ no_memory:
   marshal_new_auth (auth);
   return auth;
 }
+libc_hidden_def(authunix_create)
 
 /*
  * Returns an auth handle with parameters determined by doing lots of
  * syscalls.
  */
+libc_hidden_proto(authunix_create_default)
 AUTH *
 authunix_create_default (void)
 {
@@ -171,7 +191,14 @@ authunix_create_default (void)
   uid_t uid;
   gid_t gid;
   int max_nr_groups = sysconf (_SC_NGROUPS_MAX);
-  gid_t gids[max_nr_groups];
+  gid_t *gids = NULL;
+  AUTH *ret_auth;
+
+  if (max_nr_groups) {
+    gids = (gid_t*)malloc(sizeof(*gids) * max_nr_groups);
+    if (gids == NULL)
+      abort ();
+  }
 
   if (gethostname (machname, MAX_MACHINE_NAME) == -1)
     abort ();
@@ -184,15 +211,19 @@ authunix_create_default (void)
   /* This braindamaged Sun code forces us here to truncate the
      list of groups to NGRPS members since the code in
      authuxprot.c transforms a fixed array.  Grrr.  */
-  return authunix_create (machname, uid, gid, MIN (NGRPS, len), gids);
+  ret_auth = authunix_create (machname, uid, gid, MIN (NGRPS, len), gids);
+  if (gids)
+    free (gids);
+  return ret_auth;
 }
+libc_hidden_def(authunix_create_default)
 
 /*
  * authunix operations
  */
 
 static void
-authunix_nextverf (AUTH *auth)
+authunix_nextverf (AUTH *auth attribute_unused)
 {
   /* no action necessary */
 }

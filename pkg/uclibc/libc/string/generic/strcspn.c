@@ -18,14 +18,12 @@
 
 #include <string.h>
 
-#undef strcspn
+libc_hidden_proto(strcspn)
+libc_hidden_proto(strchr)
 
 /* Return the length of the maximum initial segment of S
    which contains no characters from REJECT.  */
-size_t
-strcspn (s, reject)
-     const char *s;
-     const char *reject;
+size_t strcspn (const char *s, const char *reject)
 {
   size_t count = 0;
 
@@ -37,3 +35,4 @@ strcspn (s, reject)
 
   return count;
 }
+libc_hidden_def(strcspn)

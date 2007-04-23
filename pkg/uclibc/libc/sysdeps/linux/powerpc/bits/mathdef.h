@@ -1,4 +1,5 @@
-/* Copyright (C) 1997, 1998, 1999, 2000 Free Software Foundation, Inc.
+/* Copyright (C) 1997,1998,1999,2000,2003,2004,2006
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -15,6 +16,8 @@
    License along with the GNU C Library; if not, write to the Free
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
+
+#include <features.h>
 
 #if !defined _MATH_H && !defined _COMPLEX_H
 # error "Never use <bits/mathdef.h> directly; include <math.h> instead"
@@ -39,12 +42,6 @@ typedef float float_t;		/* `float' expressions are evaluated as
 typedef double double_t;	/* `double' expressions are evaluated as
 				   `double'.  */
 
-/* Signal that types stay as they were declared.  */
-#   define FLT_EVAL_METHOD	0
-
-/* Define `INFINITY' as value of type `float'.  */
-#   define INFINITY	HUGE_VALF
-
 #  else
 
 /* For `gcc -traditional', `float' expressions are evaluated as `double'. */
@@ -53,18 +50,12 @@ typedef double float_t;		/* `float' expressions are evaluated as
 typedef double double_t;	/* `double' expressions are evaluated as
 				   `double'.  */
 
-/* Define `INFINITY' as value of type `float'.  */
-#   define INFINITY	HUGE_VALF
-
 #  endif
 # else
 
 /* Wild guess at types for float_t and double_t. */
 typedef double float_t;
 typedef double double_t;
-
-/* Define `INFINITY' as value of type `float'.  */
-#  define INFINITY	HUGE_VALF
 
 # endif
 
@@ -75,7 +66,12 @@ typedef double double_t;
 #endif	/* ISO C99 */
 
 #ifndef __NO_LONG_DOUBLE_MATH
+#include <bits/wordsize.h>
 /* Signal that we do not really have a `long double'.  The disables the
    declaration of all the `long double' function variants.  */
-# define __NO_LONG_DOUBLE_MATH	1
-#endif
+# if __WORDSIZE == 32
+#  define __NO_LONG_DOUBLE_MATH	1
+# elif !defined __UCLIBC_HAS_LONG_DOUBLE_MATH__
+#  define __NO_LONG_DOUBLE_MATH	1
+# endif  /* __WORDSIZE == 32 */
+#endif  /* __NO_LONG_DOUBLE_MATH */

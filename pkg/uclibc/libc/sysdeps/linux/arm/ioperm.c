@@ -43,9 +43,22 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
-
-#include <asm/page.h>
 #include <sys/sysctl.h>
+#include <sys/io.h>
+
+libc_hidden_proto(ioperm)
+
+libc_hidden_proto(readlink)
+libc_hidden_proto(mmap)
+libc_hidden_proto(sscanf)
+libc_hidden_proto(fscanf)
+libc_hidden_proto(fprintf)
+libc_hidden_proto(fgets)
+libc_hidden_proto(fopen)
+libc_hidden_proto(fclose)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(open)
+libc_hidden_proto(close)
 
 #include <linux/version.h>
 
@@ -200,45 +213,46 @@ int ioperm (unsigned long int from, unsigned long int num, int turn_on)
 
     return 0;
 }
+libc_hidden_def(ioperm)
 
 
 void
 outb(unsigned char b, unsigned long int port)
 {
-    *((volatile unsigned char *)(IO_ADDR (port))) = b;
+    *((__volatile__ unsigned char *)(IO_ADDR (port))) = b;
 }
 
 
 void
 outw(unsigned short b, unsigned long int port)
 {
-    *((volatile unsigned short *)(IO_ADDR (port))) = b;
+    *((__volatile__ unsigned short *)(IO_ADDR (port))) = b;
 }
 
 
 void
-outl(unsigned int b, unsigned long int port)
+outl(unsigned long b, unsigned long int port)
 {
-    *((volatile unsigned long *)(IO_ADDR (port))) = b;
+    *((__volatile__ unsigned long *)(IO_ADDR (port))) = b;
 }
 
 
-unsigned int
+unsigned char
 inb (unsigned long int port)
 {
-    return *((volatile unsigned char *)(IO_ADDR (port)));
+    return *((__volatile__ unsigned char *)(IO_ADDR (port)));
 }
 
 
-unsigned int
+unsigned short int
 inw(unsigned long int port)
 {
-    return *((volatile unsigned short *)(IO_ADDR (port)));
+    return *((__volatile__ unsigned short *)(IO_ADDR (port)));
 }
 
 
-unsigned int
+unsigned long int
 inl(unsigned long int port)
 {
-    return *((volatile unsigned long *)(IO_ADDR (port)));
+    return *((__volatile__ unsigned long *)(IO_ADDR (port)));
 }

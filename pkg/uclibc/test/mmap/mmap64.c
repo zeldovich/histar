@@ -7,9 +7,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <features.h>
 
 int main(int argc, char **argv)
 {
+#ifdef __UCLIBC_HAS_LFS__
 	void *ptr;
 
 	ptr = mmap64(NULL, 4096, PROT_READ|PROT_WRITE,
@@ -21,4 +23,7 @@ int main(int argc, char **argv)
 	}
 	printf("mmap returned %p\n", ptr);
 	exit(0);
+#else
+	exit(0);
+#endif
 }

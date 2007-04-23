@@ -26,6 +26,8 @@ have additions to this FAQ document, we would love to add them,
 <li><a href="#bugs">I think I found a bug in uClibc!  What should I do?!</a>
 <li><a href="#miscompile">My package builds fine but link fails with errors like "undefined reference 
 	to __fputc_unlocked", who do I blame?!</a>
+<li><a href="#gnu_malloc">My package builds fine but link fails with errors like "undefined reference
+	to rpl_realloc / rpl_malloc", who do I blame?!</a>
 <li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control
 	turned off" errors?  Why doesn't Control-C work within my shell?</a>
 <li><a href="#autoconf">How do I make autoconf and automake behave?</a>
@@ -51,14 +53,14 @@ have additions to this FAQ document, we would love to add them,
 <h2><a name="naming">Why is it called uClibc?</a></h2>
 <p>
 
-    The letter 'u' is short for µ (the greek letter "mu").  µ is commonly used
+    The letter 'u' is short for &#181; (the greek letter "mu").  &#181; is commonly used
     as the abbreviation for the word "micro".  The capital "C" is short for
     "controller".  So the name uClibc is sortof an abbreviation for "the
     microcontroller C library".  For simplicity, uClibc is pronounced
     "yew-see-lib-see".
     <p>
     The name is partly historical, since uClibc was originally
-    created to support <a href="http://www.uclinux.org">µClinux</a>, a port of
+    created to support <a href="http://www.uclinux.org">&#181;Clinux</a>, a port of
     Linux for MMU-less microcontrollers such as the Dragonball, Coldfire, and
     ARM7TDMI.  These days, uClibc also works just fine on normal Linux systems
     (such as i386, ARM, and PowerPC), but we couldn't think of a better name.
@@ -171,9 +173,9 @@ How could it be smaller and not suck?</a></h2>
 
     No, you do not need to give away your application source code just because
     you use uClibc and/or run on Linux.  uClibc is licensed under the <a
-    href="http://www.gnu.org/copyleft/lesser.html">Lesser GPL</a> licence, just
-    like the GNU C library (glibc).  Please read this licence, or have a lawyer
-    read this licence if you have any questions.  Here is my brief summary...
+    href="http://www.gnu.org/copyleft/lesser.html">Lesser GPL</a> license, just
+    like the GNU C library (glibc).  Please read this license, or have a lawyer
+    read this license if you have any questions.  Here is my brief summary...
     Using shared libraries makes complying with the license easy.  You can
     distribute a closed source application which is linked with an unmodified
     uClibc shared library.  In this case, you do not need to give away any
@@ -260,7 +262,7 @@ How could it be smaller and not suck?</a></h2>
 
 <hr />
 <p>
-<h2><a name="toolchain">Do I really need to build a uClibc toolchain?</h2>
+<h2><a name="toolchain">Do I really need to build a uClibc toolchain?</a></h2>
 <p>
 
     Yes, you really do need to build a toolchain to produce uClibc binaries.
@@ -281,7 +283,7 @@ How could it be smaller and not suck?</a></h2>
 
 <hr />
 <p>
-<h2><a name="wrapper">What happened to the old toolchain wrapper?</h2>
+<h2><a name="wrapper">What happened to the old toolchain wrapper?</a></h2>
 <p>
 
     It is possible in some limited cases to re-use an existing glibc toolchain
@@ -334,9 +336,7 @@ How could it be smaller and not suck?</a></h2>
     <p>
 
     Each of these uClibc development systems was created using
-    <a href="http://buildroot.uclibc.org/">buildroot</a>, specifically,
-    <a href="http://www.uclibc.org/downloads/buildroot.tar.bz2">buildroot.tar.bz2</a>
-    along with <a href="http://www.uclibc.org/downloads/buildroot-sources">these sources</a>.
+    <a href="http://buildroot.uclibc.org/">buildroot</a>.
 
     <p>
 
@@ -364,7 +364,7 @@ How could it be smaller and not suck?</a></h2>
 
 <hr />
 <p>
-<h2><a name="bugs">I think I found a bug in uClibc!  What should I do?</h2>
+<h2><a name="bugs">I think I found a bug in uClibc!  What should I do?</a></h2>
 <p>
 
     If you find a problem with uClibc, please submit a detailed bug report to
@@ -385,7 +385,7 @@ How could it be smaller and not suck?</a></h2>
 <hr />
 <p>
 <h2><a name="miscompile">My package builds fine but link fails with errors like 
-	"undefined reference to __fputc_unlocked", who do I blame?!</h2>
+	"undefined reference to __fputc_unlocked", who do I blame?!</a></h2>
 <p>
 
     This error crops up when a build system mixes system headers (say glibc) 
@@ -394,6 +394,24 @@ How could it be smaller and not suck?</a></h2>
     the correct compiler.  Many build systems incorrectly force things like 
     -I/usr/include or -I/usr/local/include or -I${prefix}/include (which usually 
     just expands to -I/usr/include).
+
+
+<hr />
+<p>
+<h2><a name="gnu_malloc">My package builds fine but link fails with errors like "undefined reference
+	to rpl_realloc / rpl_malloc", who do I blame?!</a></h2>
+<p>
+
+    This error crops up because you didn't enable MALLOC_GLIBC_COMPAT support.
+    Configure scripts detect whether your libc supports "GNU malloc" features by
+    seeing whether malloc(0) returns NULL (glibc malloc(0) will return a non NULL
+    pointer).  uClibc defaults to malloc(0) returning NULL so autoconf will assume
+    malloc from your libc sucks and procede to try and compile the malloc replacement
+    version in the gnulib addon.  However, since not many packages include gnulib,
+    they will fail to link with rpl_realloc / rpl_malloc errors.  You could force
+    configure to assume working behavior by exporting the variables 'jm_cv_func_working_malloc'
+    (older autoconf) and 'ac_cv_func_malloc_0_nonnull' (newer autoconf) to 'yes'
+    before running `./configure`.
 
 
 <hr />
@@ -459,7 +477,7 @@ How could it be smaller and not suck?</a></h2>
      <a href="http://www.opengroup.org/onlinepubs/007904975/basedefs/xbd_chap08.html">
     http://www.opengroup.org/onlinepubs/007904975/basedefs/xbd_chap08.html</a>
     for details on valid settings of TZ.  For some additional examples, read
-    <a href="http://www.uclibc.org/lists/uclibc/2002-August/006261.html">
+    <a href="http://www.uclibc.org/lists/uclibc/2002-August/004010.html">
     http://www.uclibc.org/lists/uclibc/2002-August/004010.html</a> in the uClibc
     mailing list archive.
     You can store the value of TZ in the file '/etc/TZ' and uClibc will then

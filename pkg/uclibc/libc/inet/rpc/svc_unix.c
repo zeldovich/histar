@@ -55,6 +55,34 @@
 # include <wchar.h>
 #endif
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+libc_hidden_proto(strlen)
+libc_hidden_proto(socket)
+libc_hidden_proto(close)
+libc_hidden_proto(perror)
+libc_hidden_proto(getpid)
+libc_hidden_proto(xdrrec_create)
+libc_hidden_proto(xdrrec_endofrecord)
+libc_hidden_proto(xdrrec_skiprecord)
+libc_hidden_proto(xdrrec_eof)
+libc_hidden_proto(xdr_callmsg)
+libc_hidden_proto(xdr_replymsg)
+libc_hidden_proto(xprt_register)
+libc_hidden_proto(xprt_unregister)
+libc_hidden_proto(getegid)
+libc_hidden_proto(geteuid)
+libc_hidden_proto(getsockname)
+libc_hidden_proto(setsockopt)
+libc_hidden_proto(bind)
+libc_hidden_proto(recvmsg)
+libc_hidden_proto(sendmsg)
+libc_hidden_proto(poll)
+libc_hidden_proto(accept)
+libc_hidden_proto(listen)
+libc_hidden_proto(fputs)
+libc_hidden_proto(abort)
+
 /*
  * Ops vector for AF_UNIX based rpc service handle
  */
@@ -80,7 +108,7 @@ static const struct xp_ops svcunix_op =
  */
 static bool_t rendezvous_request (SVCXPRT *, struct rpc_msg *);
 static enum xprt_stat rendezvous_stat (SVCXPRT *);
-static void svcunix_rendezvous_abort (void);
+static void svcunix_rendezvous_abort (void) attribute_noreturn;
 
 /* This function makes sure abort() relocation goes through PLT
    and thus can be lazy bound.  */
@@ -202,6 +230,8 @@ svcunix_create (int sock, u_int sendsize, u_int recvsize, char *path)
  * descriptor as its first input.
  */
 SVCXPRT *
+svcunixfd_create (int fd, u_int sendsize, u_int recvsize);
+SVCXPRT *
 svcunixfd_create (int fd, u_int sendsize, u_int recvsize)
 {
   return makefd_xprt (fd, sendsize, recvsize);
@@ -244,7 +274,7 @@ makefd_xprt (int fd, u_int sendsize, u_int recvsize)
 }
 
 static bool_t
-rendezvous_request (SVCXPRT *xprt, struct rpc_msg *errmsg)
+rendezvous_request (SVCXPRT *xprt, struct rpc_msg *errmsg attribute_unused)
 {
   int sock;
   struct unix_rendezvous *r;
@@ -273,7 +303,7 @@ again:
 }
 
 static enum xprt_stat
-rendezvous_stat (SVCXPRT *xprt)
+rendezvous_stat (SVCXPRT *xprt attribute_unused)
 {
   return XPRT_IDLE;
 }

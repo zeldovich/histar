@@ -1,6 +1,10 @@
 #ifndef _BITS_STAT_STRUCT_H
 #define _BITS_STAT_STRUCT_H
 
+#ifndef _LIBC
+#error bits/kernel_stat.h is for internal uClibc use only!
+#endif
+
 /* This file provides whatever this particular arch's kernel thinks 
  * struct kernel_stat should look like...  It turns out each arch has a 
  * different opinion on the subject... */
@@ -54,13 +58,8 @@ struct kernel_stat64 {
 
 	long long          st_size;
 	unsigned long      st_blksize;
-#if defined(__ARMEB__)
-	unsigned long      __pad4;     /* future possible st_blocks high bits */
-	unsigned long      st_blocks;  /* Number 512-byte blocks allocated. */
-#else
-	unsigned long      st_blocks;  /* Number 512-byte blocks allocated. */
-	unsigned long      __pad4;     /* future possible st_blocks high bits */
-#endif
+	unsigned long long st_blocks;  /* Number 512-byte blocks allocated. */
+
 	unsigned long      st_atime;
 	unsigned long      st_atime_nsec;
 	unsigned long      st_mtime;
@@ -68,6 +67,10 @@ struct kernel_stat64 {
 	unsigned long      st_ctime;
 	unsigned long      st_ctime_nsec;
 	unsigned long long st_ino;
+#ifndef __ARM_EABI__
 } __attribute__((packed));
+#else
+};
+#endif
 
 #endif	/*  _BITS_STAT_STRUCT_H */

@@ -2,40 +2,69 @@
 /*
  * setrlimit() for uClibc
  *
- * Copyright (C) 2000-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  */
 
-#include "syscalls.h"
-
-#ifndef __NR_ugetrlimit
-/* Only wrap setrlimit if the new ugetrlimit is not present */
-
-#define __NR___setrlimit __NR_setrlimit
+#define setrlimit64 __hide_setrlimit64
+#include <sys/syscall.h>
 #include <unistd.h>
 #include <sys/resource.h>
-#define RMIN(x, y) ((x) < (y) ? (x) : (y))
-_syscall2(int, __setrlimit, int, resource, const struct rlimit *, rlim);
+#undef setrlimit64
+
+libc_hidden_proto(setrlimit)
+
+/* Only wrap setrlimit if the new usetrlimit is not present and setrlimit sucks */
+
+#if defined(__NR_usetrlimit)
+
+/* just call usetrlimit() */
+# define __NR___syscall_usetrlimit __NR_usetrlimit
+static inline
+_syscall2(int, __syscall_usetrlimit, enum __rlimit_resource, resource,
+          const struct rlimit *, rlim);
+int setrlimit(__rlimit_resource_t resource, struct rlimit *rlimits)
+{
+	return (__syscall_usetrlimit(resource, rlimits));
+}
+
+#elif !defined(__UCLIBC_HANDLE_OLDER_RLIMIT__)
+
+/* We don't need to wrap setrlimit() */
+_syscall2(int, setrlimit, __rlimit_resource_t, resource,
+		const struct rlimit *, rlim);
+
+#else
+
+/* we have to handle old style setrlimit() */
+# define __NR___syscall_setrlimit __NR_setrlimit
+static inline
+_syscall2(int, __syscall_setrlimit, int, resource, const struct rlimit *, rlim);
+
 int setrlimit(__rlimit_resource_t resource, const struct rlimit *rlimits)
 {
 	struct rlimit rlimits_small;
 
+	if (rlimits == NULL) {
+		__set_errno(EINVAL);
+		return -1;
+	}
+
 	/* We might have to correct the limits values.  Since the old values
 	 * were signed the new values might be too large.  */
+# define RMIN(x, y) ((x) < (y) ? (x) : (y))
 	rlimits_small.rlim_cur = RMIN((unsigned long int) rlimits->rlim_cur,
 								  RLIM_INFINITY >> 1);
 	rlimits_small.rlim_max = RMIN((unsigned long int) rlimits->rlim_max,
 								  RLIM_INFINITY >> 1);
-	return (__setrlimit(resource, &rlimits_small));
-}
-
 #undef RMIN
+	return (__syscall_setrlimit(resource, &rlimits_small));
+}
+#endif
 
-#else							/* We don't need to wrap setrlimit */
+libc_hidden_def(setrlimit)
 
-#include <unistd.h>
-struct rlimit;
-_syscall2(int, setrlimit, unsigned int, resource,
-		const struct rlimit *, rlim);
+#if defined __UCLIBC_HAS_LFS__ && __WORDSIZE == 64
+strong_alias(setrlimit, setrlimit64)
 #endif

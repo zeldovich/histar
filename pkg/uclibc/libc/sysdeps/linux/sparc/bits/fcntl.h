@@ -1,5 +1,6 @@
 /* O_*, F_*, FD_* bit values for Linux/SPARC.
-   Copyright (C) 1995, 1996, 1997, 1998, 2000 Free Software Foundation, Inc.
+   Copyright (C) 1995, 1996, 1997, 1998, 2000, 2003, 2004, 2006
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -23,6 +24,9 @@
 
 #include <sys/types.h>
 #include <bits/wordsize.h>
+#ifdef __USE_GNU
+# include <bits/uio.h>
+#endif
 
 /* open/fcntl - O_SYNC is only implemented on blocks devices and on files
    located on an ext2 file system */
@@ -43,7 +47,8 @@
 #ifdef __USE_GNU
 # define O_DIRECTORY	0x10000 /* must be a directory */
 # define O_NOFOLLOW	0x20000 /* don't follow links */
-# define O_STREAMING	0x4000000/* streaming access */
+# define O_DIRECT	0x100000 /* direct disk access hint */
+# define O_NOATIME	0x200000 /* Do not set atime.  */
 #endif
 
 #ifdef __USE_LARGEFILE64
@@ -76,7 +81,7 @@
 #define F_SETFD		2	/* Set file descriptor flags.  */
 #define F_GETFL		3	/* Get file status flags.  */
 #define F_SETFL		4	/* Set file status flags.  */
-#if defined __USE_BSD || defined __USE_XOPEN2K
+#if defined __USE_BSD || defined __USE_UNIX98
 # define F_GETOWN	5	/* Get owner of socket (receiver of SIGIO).  */
 # define F_SETOWN	6	/* Set owner of socket (receiver of SIGIO).  */
 #endif
@@ -196,3 +201,48 @@ struct flock64
 # define POSIX_FADV_DONTNEED	4 /* Don't need these pages.  */
 # define POSIX_FADV_NOREUSE	5 /* Data will be accessed once.  */
 #endif
+
+
+#ifdef __USE_GNU
+# define SYNC_FILE_RANGE_WAIT_BEFORE	1 /* Wait upon writeout of all pages
+					     in the range before performing the
+					     write.  */
+# define SYNC_FILE_RANGE_WRITE		2 /* Initiate writeout of all those
+					     dirty pages in the range which are
+					     not presently under writeback.  */
+# define SYNC_FILE_RANGE_WAIT_AFTER	4 /* Wait upon writeout of all pages in
+					     the range after performing the
+					     write.  */
+#endif
+
+__BEGIN_DECLS
+
+#ifdef __USE_GNU
+
+/* Provide kernel hint to read ahead.  */
+extern ssize_t readahead (int __fd, __off64_t __offset, size_t __count)
+    __THROW;
+
+
+#if 0
+/* Selective file content synch'ing.  */
+extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+			    unsigned int __flags);
+
+
+/* Splice address range into a pipe.  */
+extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+		     unsigned int __flags);
+
+/* Splice two files together.  */
+extern int splice (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+    __THROW;
+
+/* In-kernel implementation of tee for pipe buffers.  */
+extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+    __THROW;
+#endif
+
+#endif
+
+__END_DECLS

@@ -7,22 +7,22 @@
 
 #include "_stdio.h"
 
-#undef putchar_unlocked
-#undef putchar
+libc_hidden_proto(__fputc_unlocked)
 
+#undef putchar
 #ifdef __DO_UNLOCKED
 
-weak_alias(__putchar_unlocked,putchar_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__putchar_unlocked,putchar);
-#endif
-
-int __putchar_unlocked(int c)
+#undef putchar_unlocked
+int putchar_unlocked(int c)
 {
 	register FILE *stream = stdout;
 
 	return __PUTC_UNLOCKED_MACRO(c, stream);
 }
+
+#ifndef __UCLIBC_HAS_THREADS__
+strong_alias(putchar_unlocked,putchar)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 

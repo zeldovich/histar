@@ -18,15 +18,16 @@
  * Method: call __ieee754_lgamma_r
  */
 
+#include <math.h>
 #include "math_private.h"
 
-extern int signgam;
+libm_hidden_proto(signgam)
 
 #ifdef __STDC__
 	//__private_extern__
-	double __ieee754_lgamma(double x)
+	double attribute_hidden __ieee754_lgamma(double x)
 #else
-	double __ieee754_lgamma(x)
+	double attribute_hidden __ieee754_lgamma(x)
 	double x;
 #endif
 {

@@ -37,14 +37,20 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-		.text
-		.global __bzero;
-		.type __bzero,%function
-		.align 4;                                                               \
+#include <features.h>
 
-__bzero:
+#ifdef __UCLIBC_SUSV3_LEGACY__
+
+.text
+.global bzero
+.type bzero,%function
+.align 4
+
+bzero:
 	mov	r2, r1
 	mov	r1, #0
-	b	memset (PLT)
+	b	HIDDEN_JUMPTARGET(memset)
 
-.weak bzero ; bzero = __bzero
+.size bzero,.-bzero
+
+#endif

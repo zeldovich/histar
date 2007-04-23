@@ -5,9 +5,13 @@
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
+#include <features.h>
+
+#ifdef __USE_GNU
 #include "_stdio.h"
 #include <stdarg.h>
 #include <bits/uClibc_va_copy.h>
+
 
 #ifdef __UCLIBC_MJN3_ONLY__
 /* Do the memstream stuff inline to avoid fclose and the openlist? */
@@ -18,6 +22,15 @@
 #warning Skipping vasprintf since no vsnprintf!
 #else
 
+#ifdef __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__
+libc_hidden_proto(open_memstream)
+libc_hidden_proto(fclose)
+libc_hidden_proto(vfprintf)
+#else
+libc_hidden_proto(vsnprintf)
+#endif
+
+libc_hidden_proto(vasprintf)
 int vasprintf(char **__restrict buf, const char * __restrict format,
 			 va_list arg)
 {
@@ -72,5 +85,7 @@ int vasprintf(char **__restrict buf, const char * __restrict format,
 
 #endif /* __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__ */
 }
+libc_hidden_def(vasprintf)
 
+#endif
 #endif

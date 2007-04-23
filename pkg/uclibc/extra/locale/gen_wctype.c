@@ -1,4 +1,8 @@
-
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,17 +14,13 @@
 #include <wchar.h>
 #include <ctype.h>
 
-#ifdef __linux__
-#include <sys/resource.h>
-#endif
-
 #ifndef _CTYPE_H
 #define _CTYPE_H
 #endif
 #ifndef _WCTYPE_H
 #define _WCTYPE_H
 #endif
-#include "../../libc/sysdeps/linux/common/bits/uClibc_ctype.h"
+#include UCLIBC_CTYPE_HEADER
 
 /*       0x9 : space  blank */
 /*       0xa : space */
@@ -247,14 +247,6 @@ int main(int argc, char **argv)
 	static const char empty_slot[] = "empty_slot";
 	int built = 0;
 
-#ifdef __linux__
-	struct rlimit limit;
-
-	limit.rlim_max = RLIM_INFINITY;
-	limit.rlim_cur = RLIM_INFINITY;
-	setrlimit(RLIMIT_STACK, &limit);
-#endif
-
 #define INIT_TYPENAME(X) typename[__CTYPE_##X] = "C_" #X
 
 	for (i=0 ; i < 16 ; i++) {
@@ -281,7 +273,7 @@ int main(int argc, char **argv)
 
 	while (--argc) {
 		if (!setlocale(LC_CTYPE, *++argv)) {
-			printf("setlocale(LC_CTYPE,%s) failed!\n", *argv);
+			printf("setlocale(LC_CTYPE,%s) failed!  Skipping this locale...\n", *argv);
 			continue;
 		}
 
@@ -786,6 +778,8 @@ size_t newopt(unsigned char *ut, size_t usize, int shift, table_data *tbl)
 	int uniqblock[256];
 	unsigned char uit[RANGE+1];
 	int shift2;
+
+	memset(uniqblock, 0x00, sizeof(uniqblock));
 
 	ii_save = NULL;
 	blocksize = 1 << shift;

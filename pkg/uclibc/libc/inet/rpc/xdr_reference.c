@@ -41,7 +41,6 @@ static char sccsid[] = "@(#)xdr_reference.c 1.11 87/08/11 SMI";
  */
 
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 #include <stdio.h>
@@ -53,7 +52,12 @@ static char sccsid[] = "@(#)xdr_reference.c 1.11 87/08/11 SMI";
 # include <wchar.h>
 # include <libio/iolibio.h>
 # define fputs(s, f) _IO_fputs (s, f)
+libc_hidden_proto(fwprintf)
 #endif
+
+libc_hidden_proto(memset)
+libc_hidden_proto(xdr_bool)
+libc_hidden_proto(fputs)
 
 #define LASTUNSIGNED	((u_int)0-1)
 
@@ -66,12 +70,9 @@ static char sccsid[] = "@(#)xdr_reference.c 1.11 87/08/11 SMI";
  * size is the size of the referneced structure.
  * proc is the routine to handle the referenced structure.
  */
+libc_hidden_proto(xdr_reference)
 bool_t
-xdr_reference (xdrs, pp, size, proc)
-     XDR *xdrs;
-     caddr_t *pp;		/* the pointer to work on */
-     u_int size;		/* size of the object pointed to */
-     xdrproc_t proc;		/* xdr routine to handle the object */
+xdr_reference (XDR *xdrs, caddr_t *pp, u_int size, xdrproc_t proc)
 {
   caddr_t loc = *pp;
   bool_t stat;
@@ -88,7 +89,7 @@ xdr_reference (xdrs, pp, size, proc)
 	  {
 #ifdef USE_IN_LIBIO
 	    if (_IO_fwide (stderr, 0) > 0)
-	      (void) __fwprintf (stderr, L"%s",
+	      (void) fwprintf (stderr, L"%s",
 				 _("xdr_reference: out of memory\n"));
 	    else
 #endif
@@ -110,7 +111,7 @@ xdr_reference (xdrs, pp, size, proc)
     }
   return stat;
 }
-
+libc_hidden_def(xdr_reference)
 
 /*
  * xdr_pointer():

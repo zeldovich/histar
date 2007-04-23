@@ -5,7 +5,6 @@
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,10 +16,19 @@
 #endif
 
 #ifdef __UCLIBC_MJN3_ONLY__
-#warning REMINDER: Need a centralized __progname prototype.
 #warning REMINDER: Deal with wide oriented stderr case.
 #endif
-extern const char *__progname;
+
+libc_hidden_proto(vwarn)
+libc_hidden_proto(vwarnx)
+libc_hidden_proto(verr)
+libc_hidden_proto(verrx)
+
+libc_hidden_proto(fprintf)
+libc_hidden_proto(vfprintf)
+libc_hidden_proto(__xpg_strerror_r)
+libc_hidden_proto(exit)
+libc_hidden_proto(vfprintf)
 
 static void vwarn_work(const char *format, va_list args, int showerr)
 {
@@ -39,7 +47,7 @@ static void vwarn_work(const char *format, va_list args, int showerr)
 
 	__STDIO_AUTO_THREADLOCK(stderr);
 
-	fprintf(stderr, fmt, __progname);
+	fprintf(stderr, fmt, __uclibc_progname);
 	if (format) {
 		vfprintf(stderr, format, args);
 		f -= 2;					/* At 5 (showerr) or 9. */
@@ -49,7 +57,13 @@ static void vwarn_work(const char *format, va_list args, int showerr)
 	__STDIO_AUTO_THREADUNLOCK(stderr);
 }
 
-extern void warn(const char *format, ...)
+void vwarn(const char *format, va_list args)
+{
+	vwarn_work(format, args, 1);
+}
+libc_hidden_def(vwarn)
+
+void warn(const char *format, ...)
 {
 	va_list args;
 
@@ -58,12 +72,13 @@ extern void warn(const char *format, ...)
 	va_end(args);
 }
 
-extern void vwarn(const char *format, va_list args)
+void vwarnx(const char *format, va_list args)
 {
-	vwarn_work(format, args, 1);
+	vwarn_work(format, args, 0);
 }
+libc_hidden_def(vwarnx)
 
-extern void warnx(const char *format, ...)
+void warnx(const char *format, ...)
 {
 	va_list args;
 
@@ -72,39 +87,40 @@ extern void warnx(const char *format, ...)
 	va_end(args);
 }
 
-extern void vwarnx(const char *format, va_list args)
+void verr(int status, const char *format, va_list args)
 {
-	vwarn_work(format, args, 0);
+	vwarn(format, args);
+	exit(status);
 }
+libc_hidden_def(verr)
 
-extern void err(int status, const char *format, ...)
+void attribute_noreturn err(int status, const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
 	verr(status, format, args);
 	/* This should get optimized away.  We'll leave it now for safety. */
-	va_end(args);
+	/* The loop is added only to keep gcc happy. */
+	while(1)
+		va_end(args);
 }
 
-extern void verr(int status, const char *format, va_list args)
+void verrx(int status, const char *format, va_list args)
 {
-	vwarn(format, args);
+	vwarnx(format, args);
 	exit(status);
 }
+libc_hidden_def(verrx)
 
-extern void errx(int status, const char *format, ...)
+void attribute_noreturn errx(int status, const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
 	verrx(status, format, args);
 	/* This should get optimized away.  We'll leave it now for safety. */
-	va_end(args);
-}
-
-extern void verrx(int status, const char *format, va_list args)
-{
-	vwarnx(format, args);
-	exit(status);
+	/* The loop is added only to keep gcc happy. */
+	while(1)
+		va_end(args);
 }

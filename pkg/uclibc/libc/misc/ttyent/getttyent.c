@@ -27,7 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#define _GNU_SOURCE
 #include <features.h>
 #include <ttyent.h>
 #include <stdio.h>
@@ -39,22 +38,26 @@
 #include <pthread.h>
 #endif
 
+libc_hidden_proto(strchr)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strncmp)
+libc_hidden_proto(__fsetlocking)
+libc_hidden_proto(rewind)
+libc_hidden_proto(fgets_unlocked)
+libc_hidden_proto(getc_unlocked)
+libc_hidden_proto(__fgetc_unlocked)
+libc_hidden_proto(fopen)
+libc_hidden_proto(fclose)
+libc_hidden_proto(abort)
+#ifdef __UCLIBC_HAS_XLOCALE__
+libc_hidden_proto(__ctype_b_loc)
+#elif __UCLIBC_HAS_CTYPE_TABLES__
+libc_hidden_proto(__ctype_b)
+#endif
+
 static char zapchar;
 static FILE *tf;
 static struct ttyent tty;
-
-
-struct ttyent * getttynam(const char *tty)
-{
-    register struct ttyent *t;
-
-    setttyent();
-    while ((t = getttyent()))
-	if (!strcmp(tty, t->ty_name))
-	    break;
-    endttyent();
-    return (t);
-}
 
 
 /* Skip over the current field, removing quotes, and return 
@@ -96,14 +99,34 @@ static char * skip(register char *p)
 static char * value(register char *p)
 {
 
-    return ((p = index(p, '=')) ? ++p : NULL);
+    return ((p = strchr(p, '=')) ? ++p : NULL);
 }
 
+libc_hidden_proto(setttyent)
+int setttyent(void)
+{
+
+    if (tf) {
+	rewind(tf);
+	return (1);
+    } else if ((tf = fopen(_PATH_TTYS, "r"))) {
+	/* We do the locking ourselves.  */
+#ifdef __UCLIBC_HAS_THREADS__
+	__fsetlocking (tf, FSETLOCKING_BYCALLER);
+#endif
+	return (1);
+    }
+    return (0);
+}
+libc_hidden_def(setttyent)
+
+libc_hidden_proto(getttyent)
 struct ttyent * getttyent(void)
 {
     register int c;
     register char *p;
     static char *line = NULL;
+    struct ttyent *retval = NULL;
 
     if (!tf && !setttyent())
 	return (NULL);
@@ -118,11 +141,10 @@ struct ttyent * getttyent(void)
 
     for (;;) {
 	if (!fgets_unlocked(p = line, BUFSIZ, tf)) {
-		__STDIO_ALWAYS_THREADUNLOCK(tf);
-	    return (NULL);
+	    goto DONE;
 	}
 	/* skip lines that are too big */
-	if (!index(p, '\n')) {
+	if (!strchr(p, '\n')) {
 	    while ((c = getc_unlocked(tf)) != '\n' && c != EOF)
 		;
 	    continue;
@@ -162,8 +184,6 @@ struct ttyent * getttyent(void)
 	else
 	    break;
     }
-    /* We can release the lock only here since `zapchar' is global.  */
-	__STDIO_ALWAYS_THREADUNLOCK(tf);
 
     if (zapchar == '#' || *p == '#')
 	while ((c = *++p) == ' ' || c == '\t')
@@ -171,27 +191,17 @@ struct ttyent * getttyent(void)
     tty.ty_comment = p;
     if (*p == 0)
 	tty.ty_comment = 0;
-    if ((p = index(p, '\n')))
+    if ((p = strchr(p, '\n')))
 	*p = '\0';
-    return (&tty);
+    retval = &tty;
+
+ DONE:
+    __STDIO_ALWAYS_THREADUNLOCK(tf);
+    return retval;
 }
+libc_hidden_def(getttyent)
 
-int setttyent(void)
-{
-
-    if (tf) {
-	rewind(tf);
-	return (1);
-    } else if ((tf = fopen(_PATH_TTYS, "r"))) {
-	/* We do the locking ourselves.  */
-#ifdef __UCLIBC_HAS_THREADS__
-	__fsetlocking (tf, FSETLOCKING_BYCALLER);
-#endif
-	return (1);
-    }
-    return (0);
-}
-
+libc_hidden_proto(endttyent)
 int endttyent(void)
 {
     int rval;
@@ -202,4 +212,17 @@ int endttyent(void)
 	return (rval);
     }
     return (1);
+}
+libc_hidden_def(endttyent)
+
+struct ttyent * getttynam(const char *_tty)
+{
+    register struct ttyent *t;
+
+    setttyent();
+    while ((t = getttyent()))
+	if (!strcmp(_tty, t->ty_name))
+	    break;
+    endttyent();
+    return (t);
 }

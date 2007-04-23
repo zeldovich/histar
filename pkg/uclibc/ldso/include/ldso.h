@@ -1,10 +1,17 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * Copyright (C) 2000-2005 by Erik Andersen <andersen@codepoet.org>
+ *
+ * GNU Lesser General Public License version 2.1 or later.
+ */
+
 #ifndef _LDSO_H_
 #define _LDSO_H_
 
 #include <features.h>
 
 /* Prepare for the case that `__builtin_expect' is not available.  */
-#if __GNUC__ == 2 && __GNUC_MINOR__ < 96
+#if defined __GNUC__ && __GNUC__ == 2 && __GNUC_MINOR__ < 96
 #define __builtin_expect(x, expected_value) (x)
 #endif
 #ifndef likely
@@ -20,13 +27,14 @@
 /* Pull in compiler and arch stuff */
 #include <stdlib.h>
 #include <stdarg.h>
+#include <bits/wordsize.h>
 /* Pull in the arch specific type information */
 #include <sys/types.h>
+/* Pull in the arch specific page size */
+#include <bits/uClibc_page.h>
 /* Pull in the ldso syscalls and string functions */
 #include <dl-syscall.h>
 #include <dl-string.h>
-/* Pull in the arch specific page size */
-#include <bits/uClibc_page.h>
 /* Now the ldso specific headers */
 #include <dl-elf.h>
 #include <dl-hash.h>
@@ -80,7 +88,7 @@ extern void _dl_unsetenv(const char *symbol, char **envp);
 extern char *_dl_strdup(const char *string);
 extern void _dl_dprintf(int, const char *, ...);
 
-extern void _dl_get_ready_to_run(struct elf_resolve *tpnt, unsigned long load_addr,
-		ElfW(auxv_t) auxvt[AT_EGID + 1], char **envp, char **argv);
+extern void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
+                                 ElfW(auxv_t) auxvt[AT_EGID + 1], char **envp, char **argv);
 
 #endif /* _LDSO_H_ */

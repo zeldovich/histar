@@ -5,7 +5,14 @@
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
 
+#include <features.h>
+
+#ifdef __USE_GNU
 #include "_stdio.h"
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+libc_hidden_proto(fopencookie)
 
 #ifndef __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__
 #error no custom streams!
@@ -124,6 +131,7 @@ static const cookie_io_functions_t _oms_io_funcs = {
  * (ie replace the FILE buffer with the cookie buffer and update FILE bufstart,
  * etc. whenever we seek). */
 
+libc_hidden_proto(open_memstream)
 FILE *open_memstream(char **__restrict bufloc, size_t *__restrict sizeloc)
 {
 	register __oms_cookie *cookie;
@@ -160,3 +168,5 @@ FILE *open_memstream(char **__restrict bufloc, size_t *__restrict sizeloc)
 
 	return NULL;
 }
+libc_hidden_def(open_memstream)
+#endif

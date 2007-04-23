@@ -7,19 +7,20 @@
 
 #include "_stdio.h"
 
+#undef feof
 #ifdef __DO_UNLOCKED
 
-weak_alias(__feof_unlocked,feof_unlocked);
-#ifndef __UCLIBC_HAS_THREADS__
-weak_alias(__feof_unlocked,feof);
-#endif
-
-int __feof_unlocked(register FILE *stream)
+#undef feof_unlocked
+int feof_unlocked(register FILE *stream)
 {
 	__STDIO_STREAM_VALIDATE(stream);
 
 	return __FEOF_UNLOCKED(stream);
 }
+
+#ifndef __UCLIBC_HAS_THREADS__
+strong_alias(feof_unlocked,feof)
+#endif
 
 #elif defined __UCLIBC_HAS_THREADS__
 

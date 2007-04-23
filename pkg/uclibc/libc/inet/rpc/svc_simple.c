@@ -37,8 +37,8 @@ static char sccsid[] = "@(#)svc_simple.c 1.18 87/08/11 Copyr 1984 Sun Micro";
  *
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
+
 #define __FORCE_GLIBC
-#define _GNU_SOURCE
 #include <features.h>
 
 #include <stdio.h>
@@ -54,6 +54,19 @@ static char sccsid[] = "@(#)svc_simple.c 1.18 87/08/11 Copyr 1984 Sun Micro";
 # include <libio/iolibio.h>
 # define fputs(s, f) _IO_fputs (s, f)
 #endif
+
+libc_hidden_proto(strdup)
+libc_hidden_proto(memset)
+libc_hidden_proto(asprintf)
+libc_hidden_proto(fputs)
+libc_hidden_proto(write)
+libc_hidden_proto(exit)
+libc_hidden_proto(svc_sendreply)
+libc_hidden_proto(svc_register)
+libc_hidden_proto(svcerr_decode)
+libc_hidden_proto(svcudp_create)
+libc_hidden_proto(pmap_unset)
+libc_hidden_proto(xdr_void)
 
 struct proglst_
   {
@@ -77,6 +90,8 @@ static void universal (struct svc_req *rqstp, SVCXPRT *transp_s);
 static SVCXPRT *transp;
 #endif
 
+int registerrpc (u_long prognum, u_long versnum, u_long procnum,
+	     char *(*progname) (char *), xdrproc_t inproc, xdrproc_t outproc);
 int
 registerrpc (u_long prognum, u_long versnum, u_long procnum,
 	     char *(*progname) (char *), xdrproc_t inproc, xdrproc_t outproc)

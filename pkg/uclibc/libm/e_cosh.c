@@ -38,6 +38,9 @@ static char rcsid[] = "$NetBSD: e_cosh.c,v 1.7 1995/05/10 20:44:58 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
+libm_hidden_proto(expm1)
+libm_hidden_proto(fabs)
+
 #ifdef __STDC__
 static const double one = 1.0, half=0.5, huge = 1.0e300;
 #else
@@ -45,9 +48,9 @@ static double one = 1.0, half=0.5, huge = 1.0e300;
 #endif
 
 #ifdef __STDC__
-	double __ieee754_cosh(double x)
+	double attribute_hidden __ieee754_cosh(double x)
 #else
-	double __ieee754_cosh(x)
+	double attribute_hidden __ieee754_cosh(x)
 	double x;
 #endif
 {

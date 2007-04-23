@@ -23,7 +23,7 @@
 #include "memcopy.h"
 #include "pagecopy.h"
 
-#undef memcpy
+libc_hidden_proto(memcpy)
 
 /* _wordcopy_fwd_aligned -- Copy block beginning at SRCP to
    block beginning at DSTP with LEN `op_t' words (not LEN bytes!).
@@ -244,3 +244,4 @@ void *memcpy (void *dstpp, const void *srcpp, size_t len)
 
   return dstpp;
 }
+libc_hidden_def(memcpy)

@@ -38,8 +38,18 @@
 #include <string.h>
 #include <rpc/rpc.h>
 #include <sys/socket.h>
-#include <sys/errno.h>
 #include <netdb.h>
+
+libc_hidden_proto(memcpy)
+libc_hidden_proto(memset)
+libc_hidden_proto(strcmp)
+libc_hidden_proto(strcpy)
+libc_hidden_proto(clnttcp_create)
+libc_hidden_proto(clntudp_create)
+libc_hidden_proto(clntunix_create)
+libc_hidden_proto(getprotobyname_r)
+libc_hidden_proto(gethostbyname_r)
+libc_hidden_proto(__rpc_thread_createerr)
 
 /*
  * Generic client creation: takes (hostname, program-number, protocol) and
@@ -53,7 +63,9 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
   struct hostent hostbuf, *h;
   size_t hstbuflen;
   char *hsttmpbuf;
-  struct protoent *p;
+  struct protoent protobuf, *p;
+  size_t prtbuflen;
+  char *prttmpbuf;
   struct sockaddr_in sin;
   struct sockaddr_un sun;
   int sock;
@@ -113,14 +125,23 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
   memset (sin.sin_zero, 0, sizeof (sin.sin_zero));
   memcpy ((char *) &sin.sin_addr, h->h_addr, h->h_length);
 
-#warning getprotobyname is not reentrant...  Add getprotobyname_r
-  p = getprotobyname(proto);
-  if (p == NULL) {
-      struct rpc_createerr *ce = &get_rpc_createerr ();
-      ce->cf_stat = RPC_UNKNOWNPROTO;
-      ce->cf_error.re_errno = EPFNOSUPPORT;
-      return NULL;
-  }
+  prtbuflen = 1024;
+  prttmpbuf = alloca (prtbuflen);
+  while (getprotobyname_r (proto, &protobuf, prttmpbuf, prtbuflen, &p) != 0
+	 || p == NULL)
+	if (errno != ERANGE)
+      {
+	struct rpc_createerr *ce = &get_rpc_createerr ();
+	ce->cf_stat = RPC_UNKNOWNPROTO;
+	ce->cf_error.re_errno = EPFNOSUPPORT;
+	return NULL;
+      }
+    else
+      {
+	/* Enlarge the buffer.  */
+	prtbuflen *= 2;
+	prttmpbuf = alloca (prtbuflen);
+      }
 
   sock = RPC_ANYSOCK;
   switch (p->p_proto)

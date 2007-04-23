@@ -42,20 +42,37 @@
 #include <string.h>
 #include <unistd.h>
 
+libc_hidden_proto(memset)
+libc_hidden_proto(strlen)
+libc_hidden_proto(strncpy)
+libc_hidden_proto(read)
+libc_hidden_proto(write)
+libc_hidden_proto(close)
+libc_hidden_proto(socket)
+libc_hidden_proto(perror)
+libc_hidden_proto(sprintf)
+libc_hidden_proto(snprintf)
+libc_hidden_proto(getsockname)
+libc_hidden_proto(getnameinfo)
+libc_hidden_proto(getaddrinfo)
+libc_hidden_proto(freeaddrinfo)
+libc_hidden_proto(sleep)
+libc_hidden_proto(atoi)
+libc_hidden_proto(connect)
+libc_hidden_proto(accept)
+libc_hidden_proto(listen)
+
 #define SA_LEN(_x)      __libc_sa_len((_x)->sa_family)
-extern int __libc_sa_len (sa_family_t __af) __THROW;
+extern int __libc_sa_len (sa_family_t __af) __THROW attribute_hidden;
 
 int	rexecoptions;
-char	ahostbuf[NI_MAXHOST];
-extern int ruserpass(const char *host, const char **aname, const char **apass);
+char	ahostbuf[NI_MAXHOST] attribute_hidden;
+extern int ruserpass(const char *host, const char **aname, const char **apass) attribute_hidden;
+libc_hidden_proto(ruserpass)
 
+libc_hidden_proto(rexec_af)
 int
-rexec_af(ahost, rport, name, pass, cmd, fd2p, af)
-	char **ahost;
-	int rport;
-	const char *name, *pass, *cmd;
-	int *fd2p;
-	sa_family_t af;
+rexec_af(char **ahost, int rport, const char *name, const char *pass, const char *cmd, int *fd2p, sa_family_t af)
 {
 	struct sockaddr_storage sa2, from;
 	struct addrinfo hints, *res0;
@@ -70,7 +87,7 @@ rexec_af(ahost, rport, name, pass, cmd, fd2p, af)
 	snprintf(servbuff, sizeof(servbuff), "%d", ntohs(rport));
 	servbuff[sizeof(servbuff) - 1] = '\0';
 
-	memset(&hints, 0, sizeof(hints));
+	memset(&hints, '\0', sizeof(hints));
 	hints.ai_family = af;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_CANONNAME;
@@ -87,6 +104,8 @@ rexec_af(ahost, rport, name, pass, cmd, fd2p, af)
 	}
 	else{
 		*ahost = NULL;
+		__set_errno (ENOENT);
+		return -1;
 	}
 	ruserpass(res0->ai_canonname, &name, &pass);
 retry:
@@ -110,7 +129,8 @@ retry:
 		port = 0;
 	} else {
 		char num[32];
-		int s2, sa2len;
+		int s2;
+		socklen_t sa2len;
 
 		s2 = socket(res0->ai_family, res0->ai_socktype, 0);
 		if (s2 < 0) {
@@ -136,7 +156,8 @@ retry:
 		(void) sprintf(num, "%u", port);
 		(void) write(s, num, strlen(num)+1);
 		{ socklen_t len = sizeof (from);
-		  s3 = accept(s2, (struct sockaddr *)&from, &len);
+		  s3 = TEMP_FAILURE_RETRY (accept(s2, (struct sockaddr *)&from,
+						  &len));
 		  close(s2);
 		  if (s3 < 0) {
 			perror("accept");
@@ -179,6 +200,7 @@ bad:
 	freeaddrinfo(res0);
 	return (-1);
 }
+libc_hidden_def(rexec_af)
 
 int
 rexec(ahost, rport, name, pass, cmd, fd2p)

@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
+ *
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+ */
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +11,9 @@
 #include <dirent.h>
 #include "dirstream.h"
 
+libc_hidden_proto(memcpy)
 
+libc_hidden_proto(readdir_r)
 int readdir_r(DIR *dir, struct dirent *entry, struct dirent **result)
 {
 	int ret;
@@ -18,9 +26,7 @@ int readdir_r(DIR *dir, struct dirent *entry, struct dirent **result)
 	}
 	de = NULL;
 
-#ifdef __UCLIBC_HAS_THREADS__
-	__pthread_mutex_lock(&(dir->dd_lock));
-#endif
+	__UCLIBC_MUTEX_LOCK(dir->dd_lock);
 
 	do {
 	    if (dir->dd_size <= dir->dd_nextloc) {
@@ -28,7 +34,7 @@ int readdir_r(DIR *dir, struct dirent *entry, struct dirent **result)
 		bytes = __getdents(dir->dd_fd, dir->dd_buf, dir->dd_max);
 		if (bytes <= 0) {
 		    *result = NULL;
-		    ret = errno;
+		    ret = (bytes==0)? 0 : errno;
 		    goto all_done;
 		}
 		dir->dd_size = bytes;
@@ -54,8 +60,7 @@ int readdir_r(DIR *dir, struct dirent *entry, struct dirent **result)
 
 all_done:
 
-#ifdef __UCLIBC_HAS_THREADS__
-	__pthread_mutex_unlock(&(dir->dd_lock));
-#endif
-        return((de != NULL)? 0 : ret);
+	__UCLIBC_MUTEX_UNLOCK(dir->dd_lock);
+	return((de != NULL)? 0 : ret);
 }
+libc_hidden_def(readdir_r)

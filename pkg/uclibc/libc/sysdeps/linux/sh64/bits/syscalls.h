@@ -4,19 +4,11 @@
 # error "Never use <bits/syscalls.h> directly; include <sys/syscall.h> instead."
 #endif
 
-/* This includes the `__NR_<name>' syscall numbers taken from the Linux kernel
- * header files.  It also defines the traditional `SYS_<name>' macros for older
- * programs.  */
-#include <bits/sysnum.h>
-
-#ifndef __set_errno
-# define __set_errno(val) (*__errno_location ()) = (val)
-#endif
-#ifndef SYS_ify
-# define SYS_ify(syscall_name)  (__NR_##syscall_name)
-#endif
-
 #ifndef __ASSEMBLER__
+
+#include <errno.h>
+
+#define SYS_ify(syscall_name)  (__NR_##syscall_name)
 
 /* user-visible error numbers are in the range -1 - -125: see <asm-sh64/errno.h> */
 #define __syscall_return(type, res) \

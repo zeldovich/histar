@@ -1,6 +1,7 @@
 /* Copyright (C) 2004       Manuel Novoa III    <mjn3@codepoet.org>
+ * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *
- * GNU Library General Public License (LGPL) version 2 or later.
+ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
  *
  * Dedicated to Toni.  See uClibc/DEDICATION.mjn3 for details.
  */
@@ -14,34 +15,40 @@
  *   Fix failure exit code for failed execve().
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <bits/uClibc_mutex.h>
+
+#ifdef __UCLIBC_MJN3_ONLY__
+#warning "hmm... susv3 says Pipe streams are byte-oriented."
+#endif /* __UCLIBC_MJN3_ONLY__ */
+
+libc_hidden_proto(close)
+libc_hidden_proto(_exit)
+libc_hidden_proto(waitpid)
+libc_hidden_proto(execl)
+libc_hidden_proto(dup2)
+libc_hidden_proto(fdopen)
+libc_hidden_proto(pipe)
+libc_hidden_proto(vfork)
+libc_hidden_proto(fclose)
 
 /* uClinux-2.0 has vfork, but Linux 2.0 doesn't */
 #include <sys/syscall.h>
 #if ! defined __NR_vfork
-# define vfork fork	
+# define vfork fork
 # define VFORK_LOCK		((void) 0)
-# define VFORK_UNLOCK	((void) 0)
+# define VFORK_UNLOCK		((void) 0)
+libc_hidden_proto(fork)
 #endif
 
-#ifdef __UCLIBC_HAS_THREADS__
-#include <pthread.h>
-static pthread_mutex_t mylock = PTHREAD_MUTEX_INITIALIZER;
-# define LOCK			__pthread_mutex_lock(&mylock)
-# define UNLOCK			__pthread_mutex_unlock(&mylock);
-#else
-# define LOCK			((void) 0)
-# define UNLOCK			((void) 0)
-#endif      
-
 #ifndef VFORK_LOCK
-# define VFORK_LOCK		LOCK
-# define VFORK_UNLOCK	UNLOCK
+__UCLIBC_MUTEX_STATIC(mylock, PTHREAD_MUTEX_INITIALIZER);
+# define VFORK_LOCK		__UCLIBC_MUTEX_LOCK(mylock)
+# define VFORK_UNLOCK		__UCLIBC_MUTEX_UNLOCK(mylock)
 #endif
 
 struct popen_list_item {
@@ -118,11 +125,11 @@ FILE *popen(const char *command, const char *modes)
 	if (pid > 0) {				/* Parent of vfork... */
 		pi->pid = pid;
 		pi->f = fp;
-		LOCK;
+		VFORK_LOCK;
 		pi->next = popen_list;
 		popen_list = pi;
-		UNLOCK;
-		
+		VFORK_UNLOCK;
+
 		return fp;
 	}
 
@@ -136,6 +143,8 @@ FILE *popen(const char *command, const char *modes)
 	return NULL;
 }
 
+#warning is pclose correct wrt the new mutex semantics?
+
 int pclose(FILE *stream)
 {
 	struct popen_list_item *p;
@@ -144,7 +153,7 @@ int pclose(FILE *stream)
 
 	/* First, find the list entry corresponding to stream and remove it
 	 * from the list.  Set p to the list item (NULL if not found). */
-	LOCK;
+	VFORK_LOCK;
 	if ((p = popen_list) != NULL) {
 		if (p->f == stream) {
 			popen_list = p->next;
@@ -163,7 +172,7 @@ int pclose(FILE *stream)
 			} while (1);
 		}
 	}
-	UNLOCK;
+	VFORK_UNLOCK;
 
 	if (p) {
 		pid = p->pid;			/* Save the pid we need */

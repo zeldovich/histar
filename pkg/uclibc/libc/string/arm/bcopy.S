@@ -39,14 +39,22 @@
 
 /* bcopy = memcpy/memmove with arguments reversed. */
 
-		.text
-		.global bcopy;
-		.type bcopy,%function
-		.align 4;                                                               \
+#include <features.h>
+
+#ifdef __UCLIBC_SUSV3_LEGACY__
+
+.text
+.global bcopy
+.type bcopy,%function
+.align 4
 
 bcopy:
 	/* switch the source and destination registers */
 	eor     r0, r1, r0 
 	eor     r1, r0, r1 
 	eor     r0, r1, r0 
-	b	_memcpy (PLT)
+	b	_memcpy /* (PLT) */
+	
+.size bcopy,.-bcopy
+
+#endif

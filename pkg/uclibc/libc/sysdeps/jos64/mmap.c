@@ -120,7 +120,7 @@ munmap(void *start, size_t length)
 }
 
 void *
-mremap(void *old_address, size_t old_size, size_t new_size, int may_move)
+mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
 {
     __set_errno(ENOMEM);
     return MAP_FAILED;

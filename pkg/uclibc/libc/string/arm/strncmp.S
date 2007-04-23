@@ -29,16 +29,23 @@
  * by Erik Andersen <andersen@codepoet.org>
  */
 
-		.text
-		.global strncmp;
-		.type strncmp,%function
-		.align 4;                                                               \
+#include <features.h>
+
+.text
+.global strncmp
+.type strncmp,%function
+.align 4
 
 strncmp:
-	/* if ((len - 1) < 0) return 0 */
+	/* if (len == 0) return 0 */
+	cmp	r2, #0
+	moveq	r0, #0
+#if defined(__USE_BX__)
+        bxeq    lr
+#else
+	moveq	pc, lr
+#endif
 	subs	r2, r2, #1
-	movmi	r0, #0
-	movmi	pc, lr
 
 	/* ip == last src address to compare */
 	add	ip, r0, r2
@@ -50,4 +57,12 @@ strncmp:
 	cmpcs	r2, r3
 	beq	1b
 	sub	r0, r2, r3
-	mov	pc, lr
+#if defined(__USE_BX__)
+        bx      lr
+#else
+  	mov	pc, lr
+#endif
+
+.size strncmp,.-strncmp
+
+libc_hidden_weak(strncmp)

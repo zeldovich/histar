@@ -7,6 +7,9 @@
 
 #include "_stdio.h"
 
+libc_hidden_proto(memcpy)
+libc_hidden_proto(isatty)
+
 /* This is pretty much straight from uClibc, but with one important
  * difference.
  *
@@ -151,8 +154,12 @@ FILE *__stdout = _stdio_streams + 1; /* For putchar() macro. */
 FILE *_stdio_openlist = _stdio_streams;
 
 # ifdef __UCLIBC_HAS_THREADS__
-pthread_mutex_t _stdio_openlist_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-int _stdio_openlist_delflag = 0;
+__UCLIBC_MUTEX_INIT(_stdio_openlist_add_lock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
+#ifdef __STDIO_BUFFERS
+__UCLIBC_MUTEX_INIT(_stdio_openlist_del_lock, PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
+volatile int _stdio_openlist_use_count = 0;
+int _stdio_openlist_del_count = 0;
+#endif
 # endif
 
 #endif
@@ -162,10 +169,10 @@ int _stdio_openlist_delflag = 0;
 /* 2 if threading not initialized and 0 otherwise; */
 int _stdio_user_locking = 2;
 
-void __stdio_init_mutex(pthread_mutex_t *m)
+void attribute_hidden __stdio_init_mutex(__UCLIBC_MUTEX_TYPE *m)
 {
-	static const pthread_mutex_t __stdio_mutex_initializer
-		= PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+	const __UCLIBC_MUTEX_STATIC(__stdio_mutex_initializer,
+		PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP);
 
 	memcpy(m, &__stdio_mutex_initializer, sizeof(__stdio_mutex_initializer));
 }
@@ -174,7 +181,7 @@ void __stdio_init_mutex(pthread_mutex_t *m)
 /**********************************************************************/
 
 /* We assume here that we are the only remaining thread. */
-void _stdio_term(void)
+void attribute_hidden _stdio_term(void)
 {
 #if defined(__STDIO_BUFFERS) || defined(__UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__)
 	register FILE *ptr;
@@ -183,8 +190,12 @@ void _stdio_term(void)
 	/* First, make sure the open file list is unlocked.  If it was
 	 * locked, then I suppose there is a chance that a pointer in the
 	 * chain might be corrupt due to a partial store.
-	 */ 
-	__stdio_init_mutex(&_stdio_openlist_lock);
+	 */
+	__stdio_init_mutex(&_stdio_openlist_add_lock);
+#warning check
+#ifdef __STDIO_BUFFERS
+	__stdio_init_mutex(&_stdio_openlist_del_lock);
+#endif
 
 	/* Next we need to worry about the streams themselves.  If a stream
 	 * is currently locked, then it may be in an invalid state.  So we
@@ -192,7 +203,7 @@ void _stdio_term(void)
 	 * Then we reinitialize the locks.
 	 */
 	for (ptr = _stdio_openlist ; ptr ; ptr = ptr->__nextopen ) {
-		if (__STDIO_ALWAYS_THREADTRYLOCK(ptr)) {
+		if (__STDIO_ALWAYS_THREADTRYLOCK_CANCEL_UNSAFE(ptr)) {
 			/* The stream is already locked, so we don't want to touch it.
 			 * However, if we have custom streams, we can't just close it
 			 * or leave it locked since a custom stream may be stacked
@@ -203,7 +214,7 @@ void _stdio_term(void)
 			__STDIO_STREAM_DISABLE_PUTC(ptr);
 			__STDIO_STREAM_INIT_BUFREAD_BUFPOS(ptr);
 		}
-		
+
 		ptr->__user_locking = 1; /* Set locking mode to "by caller". */
 		__stdio_init_mutex(&ptr->__lock); /* Shouldn't be necessary, but... */
 	}
@@ -236,7 +247,8 @@ void _stdio_term(void)
 #endif
 }
 
-void _stdio_init(void)
+#if defined __STDIO_BUFFERS || !defined __UCLIBC__
+void attribute_hidden _stdio_init(void)
 {
 #ifdef __STDIO_BUFFERS
 	int old_errno = errno;
@@ -249,8 +261,9 @@ void _stdio_init(void)
 	/* _stdio_term is done automatically when exiting if stdio is used.
 	 * See misc/internals/__uClibc_main.c and and stdlib/atexit.c. */
 	atexit(_stdio_term);
-#endif /* __UCLIBC__ */
+#endif
 }
+#endif
 
 /**********************************************************************/
 
