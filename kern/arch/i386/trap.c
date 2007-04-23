@@ -110,6 +110,8 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL: {
+	syscall_thread = cur_thread;
+
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
 	r = check_user_access(args, sizeof(uint64_t) * 7, 0);
@@ -117,8 +119,8 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	if (trap_thread) {
-	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	if (syscall_thread) {
+	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
 
 	    if (r == -E_RESTART) {
 		t->th_tf.tf_eip -= 2;
@@ -174,7 +176,6 @@ trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
 	panic("trap %d with no active thread", trapno);
     }
 
-    trap_thread = cur_thread;
     struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
     sched_stop(t, read_tsc());
 
