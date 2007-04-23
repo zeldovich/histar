@@ -12,8 +12,8 @@
  * Target Features and Options
  */
 #define __UCLIBCXX_HAS_FLOATS__ 1
-#define __UCLIBCXX_HAS_LONG_DOUBLE__ 1
-#define __UCLIBCXX_HAS_TLS__ 1
+#undef __UCLIBCXX_HAS_LONG_DOUBLE__
+#undef __UCLIBCXX_HAS_TLS__
 #define __WARNINGS__ "-Wall"
 #define __BUILD_EXTRA_LIBRARIES__ ""
 #define __HAVE_DOT_CONFIG__ 1
