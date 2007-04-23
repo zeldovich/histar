@@ -40,7 +40,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     if (sizeof(arg0) == sizeof(start_arg0)) {
 	start_arg0 = arg0;
 	start_arg1 = arg1;
-    } else {
+    } else if (!start_arg0) {
 	struct thread_entry_args targs;
 	sys_self_get_entry_args(&targs);
 	start_arg0 = targs.te_arg[1];

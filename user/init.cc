@@ -305,30 +305,38 @@ try
     uint64_t h_root = start_arg1;
 
     int64_t c_self = container_find(c_root, kobj_container, "init");
-    if (c_self < 0)
-	throw error(c_self, "cannot find init container");
+    if (c_self < 0) {
+	cprintf("cannot find init container: %s\n", e2s(c_self));
+	return -1;
+    }
 
     cprintf("JOS: init (root container %"PRIu64")\n", c_root);
 
     init_env(c_root, c_self, h_root);
 
     int cons = opencons();
-    if (cons != 0)
-	throw error(cons, "cannot opencons: %d", cons);
+    if (cons != 0) {
+	cprintf("cannot opencons: %s", e2s(cons));
+	return -1;
+    }
 
     assert(1 == dup2(0, 1));
     assert(2 == dup2(0, 2));
 
     int64_t h_root_t = handle_alloc();
-    if (h_root_t < 0)
-	throw error(h_root_t, "cannot allocate root taint handle");
+    if (h_root_t < 0) {
+	cprintf("cannot allocate root taint handle: %s\n", e2s(h_root_t));
+	return -1;
+    }
     start_env->user_taint = h_root_t;
 
-    setup_env(0, (uintptr_t) start_env, 0);
+    start_arg0 = (uintptr_t) start_env;
+    setup_env(0, start_arg0, 0);
 
     init_fs();
     init_procs(cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {
     cprintf("init: %s\n", e.what());
+    return -1;
 }
