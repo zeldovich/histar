@@ -13,11 +13,13 @@ Performance:
 
 Kernel bugs:
 
-* SYS_pstate_sync checkpoints the calling thread in the next instruction,
-  so the pstate_sync system call is not re-executed on restore-from-disk.
-* On the other hand, when calling SYS_thread_utrap on the current thread,
-  it should appear that the system call already executed -- otherwise, we
-  will go into an infinite loop, re-sending the trap again on trap return.
+* some sort of pstate bug.  repeating the following sequence leads to
+  unexpected results, e.g. two "sync" processes running or a panic:
+
+    ./qemu.sh
+    <load pstate>
+    run sync
+    ^C
 
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: preallocate space for free_later list on disk

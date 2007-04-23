@@ -117,16 +117,26 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     switch (trapno) {
     case T_SYSCALL:
 	syscall_thread = cur_thread;
+
+	/*
+	 * We must rewind %rip to appear that the system call has not been
+	 * executed.  If the thread is checkpointed to disk as part of this
+	 * system call, and resumed later, it should re-execute the system
+	 * call.
+	 */
+	kobject_dirty(&cur_thread->th_ko)->th.th_tf.tf_rip -= 2;
+
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 
-	if (syscall_thread) {
+	if (syscall_thread && r != -E_RESTART) {
+	    /*
+	     * If the thread is still alive, and the system call completed,
+	     * roll forward the program counter and return the result.
+	     */
 	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
-
-	    if (r == -E_RESTART)
-		t->th_tf.tf_rip -= 2;
-	    else
-		t->th_tf.tf_rax = r;
+	    t->th_tf.tf_rip += 2;
+	    t->th_tf.tf_rax = r;
 	}
 	break;
 
@@ -140,7 +150,7 @@ trap_dispatch (int trapno, struct Trapframe *tf)
 	    break;
 	}
 
-	r = thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, 0);
+	r = thread_utrap(cur_thread, 0, UTRAP_SRC_HW, trapno, 0);
 	if (r != 0 && r != -E_RESTART) {
 	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
 		    trapno, e2s(r));
@@ -242,7 +252,8 @@ thread_arch_run(const struct Thread *t)
 }
 
 int
-thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
+thread_arch_utrap(struct Thread *t, int selftrap,
+		  uint32_t src, uint32_t num, uint64_t arg)
 {
     void *stacktop;
     uint64_t rsp = t->th_tf.tf_rsp;
@@ -266,6 +277,10 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
     UTF_COPY(rip);  UTF_COPY(rflags);
 #undef UTF_COPY
+
+    // If sending a utrap to self, pretend that the system call completed
+    if (selftrap)
+	t_utf.utf_rip += 2;
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
@@ -293,6 +308,9 @@ thread_arch_get_entry_args(const struct Thread *t,
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
+    if (syscall_thread == t)
+	syscall_thread = 0;
+
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;

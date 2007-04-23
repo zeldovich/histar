@@ -482,7 +482,7 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 		t->th_as->as_ko.ko_id, &t->th_as->as_ko.ko_name[0],
 		fault_va, e2s(r));
 
-    r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uintptr_t) fault_va);
+    r = thread_utrap(t, 0, UTRAP_SRC_HW, T_PGFLT, (uintptr_t) fault_va);
     if (r >= 0 || r == -E_RESTART)
 	return r;
 
@@ -491,7 +491,8 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 }
 
 int
-thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t arg)
+thread_utrap(const struct Thread *const_t, int selftrap,
+	     uint32_t src, uint32_t num, uint64_t arg)
 {
     if (!SAFE_EQUAL(const_t->th_status, thread_runnable) &&
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
@@ -513,7 +514,7 @@ thread_utrap(const struct Thread *const_t, uint32_t src, uint32_t num, uint64_t 
     // Switch to trap target thread's address space.
     as_switch(t->th_as);
 
-    r = thread_arch_utrap(t, src, num, arg);
+    r = thread_arch_utrap(t, selftrap, src, num, arg);
     if (r >= 0)
 	thread_set_runnable(t);
 

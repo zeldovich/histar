@@ -630,7 +630,8 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     if (th->th.th_asref.object != asref.object)
 	return -E_INVAL;
 
-    check(thread_utrap(&th->th, UTRAP_SRC_USER, trapno, arg));
+    int selftrap = (cur_thread->th_ko.ko_id == th->hdr.ko_id) ? 1 : 0;
+    check(thread_utrap(&th->th, selftrap, UTRAP_SRC_USER, trapno, arg));
     return 0;
 }
 

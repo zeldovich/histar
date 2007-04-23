@@ -111,6 +111,7 @@ trap_dispatch(int trapno, struct Trapframe *tf)
     switch (trapno) {
     case T_SYSCALL: {
 	syscall_thread = cur_thread;
+	kobject_dirty(&cur_thread->th_ko)->th.th_tf.tf_eip -= 2;
 
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
@@ -119,15 +120,11 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	if (syscall_thread) {
+	if (syscall_thread && r != -E_RESTART) {
 	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
-
-	    if (r == -E_RESTART) {
-		t->th_tf.tf_eip -= 2;
-	    } else {
-		t->th_tf.tf_eax = r & 0xffffffff;
-		t->th_tf.tf_edx = r >> 32;
-	    }
+	    t->th_tf.tf_eip += 2;
+	    t->th_tf.tf_eax = ((uint64_t) r) & 0xffffffff;
+	    t->th_tf.tf_edx = ((uint64_t) r) >> 32;
 	}
 	break;
     }
@@ -142,7 +139,7 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 	    break;
 	}
 
-	r = thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, 0);
+	r = thread_utrap(cur_thread, 0, UTRAP_SRC_HW, trapno, 0);
 	if (r != 0 && r != -E_RESTART) {
 	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
 		    trapno, e2s(r));
@@ -260,6 +257,10 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     UTF_COPY(eip);  UTF_COPY(eflags);
 #undef UTF_COPY
 
+    // If sending a utrap to self, pretend that the system call completed
+    if (selftrap)
+	t_utf.utf_eip += 2;
+
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
     if (r < 0) {
@@ -279,6 +280,9 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
+    if (syscall_thread == t)
+	syscall_thread = 0;
+
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_eflags = FL_IF;
     t->th_tf.tf_cs = GD_UT_NMASK | 3;

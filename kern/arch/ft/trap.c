@@ -134,7 +134,8 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 }
 
 int
-thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
+thread_arch_utrap(struct Thread *t, int selftrap,
+		  uint32_t src, uint32_t num, uint64_t arg)
 {
     void *stacktop;
     uint64_t rsp = t->th_tf.tf_rsp;
@@ -158,6 +159,10 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     UTF_COPY(r12);  UTF_COPY(r13);  UTF_COPY(r14);  UTF_COPY(r15);
     UTF_COPY(rip);  UTF_COPY(rflags);
 #undef UTF_COPY
+
+    // If sending a utrap to self, pretend that the system call completed
+    if (selftrap)
+	t_utf.utf_rip += 2;
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
     int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
