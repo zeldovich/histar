@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/assert.h>
 #include <inc/prof.h>
 #include <inc/types.h>
+#include <inc/lib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
