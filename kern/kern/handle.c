@@ -44,6 +44,8 @@ handle_alloc(void)
 uint64_t
 handle_decrypt(uint64_t h)
 {
+    handle_key_ctx_init();
+
     uint64_t d = bf61_decipher(&handle_key_ctx, h);
     return handle_encrypt ? d : h;
 }
