@@ -1,0 +1,9 @@
+include/crypt.h
+include/features.h
+include/sys/cdefs.h
+include/unistd.h
+libc/misc/internals/tempname.c
+libc/misc/internals/__uClibc_main.c
+libc/termios/tcgetpgrp.c
+include/libc-symbols.h
+
