@@ -223,11 +223,7 @@ struct msghdr
     socklen_t msg_namelen;	/* Length of address data.  */
 
     struct iovec *msg_iov;	/* Vector of data to send/receive into.  */
-#if __WORDSIZE == 32
-    int msg_iovlen;		/* Number of elements in the vector.  */
-#else
     size_t msg_iovlen;		/* Number of elements in the vector.  */
-#endif
 
     void *msg_control;		/* Ancillary data (eg BSD filedesc passing). */
 #if __WORDSIZE == 32

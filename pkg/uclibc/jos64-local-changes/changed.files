@@ -1,3 +1,5 @@
+[ relative to uClibc-0.9.29_rc1 ]
+
 include/crypt.h
 include/features.h
 include/sys/cdefs.h
@@ -7,10 +9,12 @@ libc/misc/internals/__uClibc_main.c
 libc/termios/tcgetpgrp.c
 include/libc-symbols.h
 
-./libc/sysdeps/linux/alpha/bits/atomic.h
-./libc/sysdeps/linux/alpha/bits/atomic.h
-./libc/sysdeps/linux/i386/bits/atomic.h
-./libc/sysdeps/linux/x86_64/bits/atomic.h
-./libc/sysdeps/linux/powerpc/bits/atomic.h
-./libc/sysdeps/linux/powerpc/bits/atomic.h
+libc/sysdeps/linux/alpha/bits/atomic.h
+libc/sysdeps/linux/alpha/bits/atomic.h
+libc/sysdeps/linux/i386/bits/atomic.h
+libc/sysdeps/linux/x86_64/bits/atomic.h
+libc/sysdeps/linux/powerpc/bits/atomic.h
+libc/sysdeps/linux/powerpc/bits/atomic.h
+
+libc/sysdeps/linux/common/bits/socket.h
 
