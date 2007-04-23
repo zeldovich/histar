@@ -235,7 +235,8 @@ thread_arch_run(const struct Thread *t)
 }
 
 int
-thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
+thread_arch_utrap(struct Thread *t, int selftrap,
+		  uint32_t src, uint32_t num, uint64_t arg)
 {
     void *stacktop;
     uint32_t esp = t->th_tf.tf_esp;
