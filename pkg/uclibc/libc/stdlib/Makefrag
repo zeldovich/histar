@@ -16,6 +16,6 @@ STDLIB_CSRC := \
         _stdlib_mb_cur_max.c _stdlib_wcsto_l.c _stdlib_wcsto_ll.c \
         wcstol.c wcstoul.c wcstoll.c wcstoull.c \
 	strtod.c strtof.c strtold.c __strtofpmax.c __fp_range_check.c \
-	atexit.c on_exit.c __exit_handler.c exit.c
+	atexit.c on_exit.c __exit_handler.c exit.c __cxa_atexit.c
 
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/stdlib/%.c, $(STDLIB_CSRC))

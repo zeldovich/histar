@@ -18,5 +18,7 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/sysdeps/linux/common/setpgrp.c \
 	pkg/uclibc/libc/sysdeps/linux/common/cmsg_nxthdr.c \
 	pkg/uclibc/libc/sysdeps/linux/common/utimes.c \
-	pkg/uclibc/libc/sysdeps/linux/common/pause.c
+	pkg/uclibc/libc/sysdeps/linux/common/pause.c \
+	pkg/uclibc/libc/sysdeps/linux/common/ssp.c \
+	pkg/uclibc/libc/sysdeps/linux/common/ssp-local.c
 
