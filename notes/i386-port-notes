@@ -43,4 +43,9 @@ bochs doesn't seem to implement CR4_OSFXSR|CR4_OSX
 ===
 
 TLS annoyance: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29838
+  i386 uses %gs to index into the TLS
+  x86_64 uses %fs to index into the TLS
+
+  TLS layout: struct _pthread_descr_struct
+    glibc-2.5/linuxthread/descr.h
 
