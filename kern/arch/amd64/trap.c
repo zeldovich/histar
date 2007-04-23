@@ -105,6 +105,12 @@ page_fault (struct Trapframe *tf, uint32_t err)
 }
 
 static void
+thread_syscall_restart(const struct Thread *t)
+{
+    kobject_dirty(&t->th_ko)->th.th_tf.tf_rip -= 2;
+}
+
+static void
 trap_dispatch (int trapno, struct Trapframe *tf)
 {
     int64_t r;
@@ -115,12 +121,16 @@ trap_dispatch (int trapno, struct Trapframe *tf)
     prof_thread(cur_thread, s - trap_user_iret_tsc);
 
     switch (trapno) {
-    case T_SYSCALL:
+    case T_SYSCALL: {
+	const struct Thread *caller = cur_thread;
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
-	if (r != -E_RESTART)
+	if (r == -E_RESTART)
+	    thread_syscall_restart(caller);
+	else
 	    tf->tf_rax = r;
 	break;
+    }
 
     case T_PGFLT:
 	page_fault(tf, tf->tf_err);
@@ -231,12 +241,6 @@ thread_arch_run(const struct Thread *t)
 
     sched_start(t, read_tsc());
     trapframe_pop(&t->th_tf);
-}
-
-void
-thread_syscall_restart(const struct Thread *t)
-{
-    kobject_dirty(&t->th_ko)->th.th_tf.tf_rip -= 2;
 }
 
 int

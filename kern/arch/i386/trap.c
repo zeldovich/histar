@@ -99,6 +99,12 @@ page_fault(struct Trapframe *tf, uint32_t err)
 }
 
 static void
+thread_syscall_restart(const struct Thread *t)
+{
+    kobject_dirty(&t->th_ko)->th.th_tf.tf_eip -= 2;
+}
+
+static void
 trap_dispatch(int trapno, struct Trapframe *tf)
 {
     int64_t r;
@@ -110,6 +116,8 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL: {
+	const struct Thread *caller = cur_thread;
+
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
 	r = check_user_access(args, sizeof(uint64_t) * 7, 0);
@@ -117,7 +125,9 @@ trap_dispatch(int trapno, struct Trapframe *tf)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	if (r != -E_RESTART) {
+	if (r == -E_RESTART) {
+	    thread_syscall_restart(caller);
+	} else {
 	    tf->tf_eax = r & 0xffffffff;
 	    tf->tf_edx = r >> 32;
 	}
@@ -227,12 +237,6 @@ thread_arch_run(const struct Thread *t)
 
     sched_start(t, read_tsc());
     trapframe_pop(&t->th_tf);
-}
-
-void
-thread_syscall_restart(const struct Thread *t)
-{
-    kobject_dirty(&t->th_ko)->th.th_tf.tf_eip -= 2;
 }
 
 int

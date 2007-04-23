@@ -107,12 +107,6 @@ thread_arch_run(const struct Thread *ct)
     }
 }
 
-void
-thread_syscall_restart(const struct Thread *t)
-{
-    /* Do nothing for now. */
-}
-
 int
 thread_arch_get_entry_args(const struct Thread *t,
 			   struct thread_entry_args *targ)

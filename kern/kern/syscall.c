@@ -1099,8 +1099,6 @@ kern_syscall(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 {
     uint64_t s = read_tsc();
     int64_t r = syscall_exec(num, a1, a2, a3, a4, a5, a6, a7);
-    if (r == -E_RESTART)
-	thread_syscall_restart(cur_thread);
     prof_syscall(num, read_tsc() - s);
     return r;
 }
