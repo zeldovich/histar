@@ -1,7 +1,7 @@
 #include <inc/syscall.h>
 #include <machine/trapcodes.h>
 
-int __attribute__((noreturn))
+int
 main(int ac, char **av)
 {
     for (;;)
