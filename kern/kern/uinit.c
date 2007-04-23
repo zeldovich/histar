@@ -336,7 +336,7 @@ user_bootstrap(void)
     assert_check(label_set(idle_obj_label, idle_handle, 0));
     assert_check(label_set(idle_th_clear, idle_handle, 3));
     thread_create_embed(rc, idle_obj_label, idle_th_label, idle_th_clear,
-			"idle", 1, 1, KOBJ_PIN_IDLE);
+			"idle", 0, 0, KOBJ_PIN_IDLE);
 
     // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { uroot:3 2 }
     struct Label *init_th_label;
