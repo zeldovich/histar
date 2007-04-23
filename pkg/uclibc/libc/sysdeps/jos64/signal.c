@@ -129,20 +129,19 @@ stack_grow(void *faultaddr)
 static void __attribute__((noreturn))
 sig_fatal(siginfo_t *si, struct sigcontext *sc)
 {
-    extern const char *__progname;
     static int fatalities = 0;
 
     fatalities++;
     if (fatalities > 1) {
 	if (fatalities == 2) {
 	    cprintf("[%"PRIu64"] %s: sig_fatal: recursive\n",
-		    sys_self_id(), __progname);
+		    sys_self_id(), jos_progname);
 	    print_backtrace(1);
 	}
 
 	sys_self_halt();
 	cprintf("[%"PRIu64"] %s: sig_fatal: halt returned\n",
-		sys_self_id(), __progname);
+		sys_self_id(), jos_progname);
 	for (;;)
 	    ;
     }
@@ -150,13 +149,13 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
 	fprintf(stderr, "[%"PRIu64"] %s: fatal signal %d, backtrace follows.\n",
-		sys_self_id(), __progname, si->si_signo);
+		sys_self_id(), jos_progname, si->si_signo);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
 
     case SIGABRT:
-	fprintf(stderr, "[%"PRIu64"] %s: abort\n", sys_self_id(), __progname);
+	fprintf(stderr, "[%"PRIu64"] %s: abort\n", sys_self_id(), jos_progname);
 	print_backtrace(0);
 	break;
 
@@ -166,7 +165,7 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 
     process_exit(0, si->si_signo);
     cprintf("[%"PRIu64"] %s: sig_fatal: process_exit returned\n",
-	    sys_self_id(), __progname);
+	    sys_self_id(), jos_progname);
     for (;;)
 	;
 }
@@ -213,9 +212,8 @@ signal_trap_thread(struct cobj_ref tobj)
 	    continue;
 	}
 
-	extern const char *__progname;
 	cprintf("[%"PRIu64"] (%s) signal_trap_thread: cannot trap %"PRIu64".%"PRIu64": %s\n",
-		thread_id(), __progname, tobj.container, tobj.object, e2s(r));
+		thread_id(), jos_progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
 	if (trap_mu_locked)
 	    jthread_mutex_unlock(&trap_mu);
@@ -262,8 +260,6 @@ signal_trap_if_pending(void)
 static void
 signal_execute(siginfo_t *si, struct sigcontext *sc)
 {
-    extern const char *__progname;
-
     jthread_mutex_lock(&sigactions_mu);
     struct sigaction sa = sigactions[si->si_signo];
     jthread_mutex_unlock(&sigactions_mu);
@@ -288,7 +284,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	    sig_fatal(si, sc);
 
 	case SIGSTOP: case SIGTSTP: case SIGTTIN: case SIGTTOU:
-	    cprintf("%s: should stop process: %d\n", __progname, si->si_signo);
+	    cprintf("%s: should stop process: %d\n", jos_progname, si->si_signo);
 	    return;
 
 	case SIGURG:  case SIGCONT: case SIGCHLD: case SIGWINCH:
@@ -296,7 +292,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	    return;
 
 	default:
-	    cprintf("%s: unhandled default signal %d\n", __progname, si->si_signo);
+	    cprintf("%s: unhandled default signal %d\n", jos_progname, si->si_signo);
 	    exit(-1);
 	}
     }

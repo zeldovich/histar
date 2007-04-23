@@ -30,7 +30,6 @@ typedef union {
 } jos_sigio_t;
 
 static jos_sigio_t jos_sigio;
-extern char *__progname;
 
 static void __attribute__((noreturn))
 jos_sigio_thread(void *arg)
@@ -57,7 +56,7 @@ jos_sigio_thread(void *arg)
 	int r = select(s.fd + 1, &fds, 0, 0, &tv);
 	if (r < 0) {
 	    fprintf(stderr, "%s: jos_sigio_thread: select: %d (errno=%d)\n",
-		    __progname, r, errno);
+		    jos_progname, r, errno);
 	    continue;
 	}
 
@@ -91,13 +90,13 @@ jos_sigio_enable(int fd)
     int r = jos_sigio_start_thread();
     if (r < 0) {
 	fprintf(stderr, "%s: jos_sigio_enable: cannot start thread: %s\n",
-		__progname, e2s(r));
+		jos_progname, e2s(r));
 	return;
     }
 
     if (jos_sigio.fd != 0) {
 	fprintf(stderr, "%s: jos_sigio_enable: busy with fd %d, dropping fd %d\n",
-		__progname, jos_sigio.fd, fd);
+		jos_progname, jos_sigio.fd, fd);
 	return;
     }	
 

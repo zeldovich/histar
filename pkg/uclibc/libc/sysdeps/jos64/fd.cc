@@ -881,7 +881,6 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
        struct timeval *timeout) __THROW
 {
     // for debugging
-    extern const char *__progname;
     char select_debug = 0;
     static char timeout_last = 0;
 
@@ -968,7 +967,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 		    uint64_t to = (timeout->tv_sec * 1000) + 
 			(timeout->tv_usec / 1000);
 		    cprintf("select: %s(%"PRIu64") timed out in %"PRIu64":\n", 
-			    __progname, thread_id(), to);
+			    jos_progname, thread_id(), to);
 		    print_fd_sets(maxfd, readset, writeset, exceptset);
 		}
                 break;
@@ -1003,7 +1002,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
 
     if (ready && timeout_last && select_debug) {
 	cprintf("select: %s(%"PRIu64") after timeout, set fds:\n", 
-		__progname, thread_id());
+		jos_progname, thread_id());
 	print_fd_sets(maxfd, readset, writeset, exceptset);
     }
     

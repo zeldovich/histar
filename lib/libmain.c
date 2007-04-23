@@ -17,6 +17,7 @@ extern int main(int argc, const char **argv, char **envp);
 uint64_t start_arg0;
 uint64_t start_arg1;
 start_env_t *start_env;
+const char *jos_progname;
 
 void *tls_top;
 uint64_t *tls_tidp;
@@ -55,8 +56,10 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     start_env->taint_cow_as = COBJ(0, 0);
     prof_init(0);
 
+    jos_progname = &start_env->args[0];
+
     extern const char *__progname;
-    __progname = &start_env->args[0];
+    __progname = jos_progname;
 
     struct u_segment_mapping usm;
     struct cobj_ref start_env_seg;

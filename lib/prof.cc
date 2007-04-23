@@ -94,10 +94,9 @@ prof_print(char use_cprintf)
     if (!enable || !table[0].func_addr)
 	return;
 
-    extern const char *__progname;
     const char *progn = "(unknown)";
-    if (__progname)
-	progn = __progname;
+    if (jos_progname)
+	progn = jos_progname;
 
     if (use_cprintf)
 	cprintf("prof_print: results for %s\n", progn);

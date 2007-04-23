@@ -15,7 +15,6 @@ extern "C" {
 void
 segfault_helper(siginfo_t *si, struct sigcontext *sc)
 {
-    extern const char *__progname;
     void *va = si->si_addr;
 
     try {
@@ -23,11 +22,11 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	int r = segment_lookup(va, &usm);
 
 	cprintf("%s: fatal signal %d, addr=%p [tid=%"PRIu64", pid=%"PRIu64"]\n",
-		__progname, si->si_signo, si->si_addr,
+		jos_progname, si->si_signo, si->si_addr,
 		sys_self_id(), start_env->shared_container);
 	if (sc)
 	    cprintf("%s: rip=0x%zx, rsp=0x%zx\n",
-		    __progname, sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
+		    jos_progname, sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
 
 	if (r < 0)
 	    throw error(r, "segment_lookup");
@@ -43,12 +42,12 @@ segfault_helper(siginfo_t *si, struct sigcontext *sc)
 	thread_cur_label(&cur_label);
 
 	cprintf("%s: segfault_helper: VA %p, segment %"PRIu64".%"PRIu64" (%s), flags %x\n",
-		__progname, va,
+		jos_progname, va,
 		usm.segment.container, usm.segment.object,
 		&name[0], usm.flags);
 	cprintf("%s: segfault_helper: segment label %s, thread label %s\n",
-		__progname, seg_label.to_string(), cur_label.to_string());
+		jos_progname, seg_label.to_string(), cur_label.to_string());
     } catch (std::exception &e) {
-	cprintf("%s: segfault_helper: %s\n", __progname, e.what());
+	cprintf("%s: segfault_helper: %s\n", jos_progname, e.what());
     }
 }
