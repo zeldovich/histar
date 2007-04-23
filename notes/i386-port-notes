@@ -40,3 +40,7 @@ what's going to happen with stack_switch()?
 
 bochs doesn't seem to implement CR4_OSFXSR|CR4_OSX
 
+===
+
+TLS annoyance: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29838
+
