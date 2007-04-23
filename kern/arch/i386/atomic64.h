@@ -27,7 +27,7 @@ jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
 
     __asm__ __volatile__(
 	ATOMIC_LOCK "cmpxchg8b %1"
-	: "=A" (old), "+m" (v->counter)
+	: "+A" (old), "+m" (v->counter)
 	: "c" (new_hi), "b" (new_lo)
 	: "cc");
     return old;
