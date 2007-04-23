@@ -44,7 +44,7 @@ typedef intmax_t atomic_max_t;
 typedef uintmax_t uatomic_max_t;
 
 
-#ifdef UP
+#ifdef __UCLIBC_UP__
 # define __MB		/* nothing */
 #else
 # define __MB		"	mb\n"
@@ -362,7 +362,7 @@ typedef uintmax_t uatomic_max_t;
 
 */
 
-#ifndef UP
+#ifndef __UCLIBC_UP__
 # define atomic_full_barrier()	__asm ("mb" : : : "memory");
 # define atomic_read_barrier()	__asm ("mb" : : : "memory");
 # define atomic_write_barrier()	__asm ("wmb" : : : "memory");

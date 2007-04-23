@@ -239,7 +239,7 @@
 /*
  * "light weight" sync can also be used for the release barrier.
  */
-# ifndef UP
+# ifndef __UCLIBC_UP__
 #  define __ARCH_REL_INSTR	"lwsync"
 # endif
 
@@ -377,7 +377,7 @@ typedef uintmax_t uatomic_max_t;
 #define __arch_compare_and_exchange_bool_16_rel(mem, newval, oldval) \
   (abort (), 0)
 
-#ifdef UP
+#ifdef __UCLIBC_UP__
 # define __ARCH_ACQ_INSTR	""
 # define __ARCH_REL_INSTR	""
 #else

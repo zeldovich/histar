@@ -47,7 +47,7 @@ typedef uintmax_t uatomic_max_t;
 
 
 #ifndef LOCK_PREFIX
-# ifdef UP
+# ifdef __UCLIBC_UP__
 #  define LOCK_PREFIX	/* nothing */
 # else
 #  define LOCK_PREFIX "lock;"
