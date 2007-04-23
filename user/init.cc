@@ -88,6 +88,15 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     // set the filesystem root to be the same as the container root
     fs_get_root(c_root, &start_env->fs_root);
 
+    // start out in the root directory
+    start_env->fs_cwd = start_env->fs_root;
+}
+
+static void
+init_fs(void)
+{
+    uint64_t c_root = start_env->root_container;
+
     // mount binaries on /bin
     int64_t fs_bin_id = container_find(c_root, kobj_container, "embed_bins");
     if (fs_bin_id < 0)
@@ -161,9 +170,6 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     const char *group_data =
 	"root:x:0:\n";
     error_check(fs_pwrite(group, group_data, strlen(group_data), 0));
-
-    // start out in the root directory
-    start_env->fs_cwd = start_env->fs_root;
 }
 
 static void
@@ -319,6 +325,8 @@ try
     start_env->user_taint = h_root_t;
 
     setup_env(0, (uintptr_t) start_env, 0);
+
+    init_fs();
     init_procs(cons);
     run_shell(cons);	// does not return
 } catch (std::exception &e) {
