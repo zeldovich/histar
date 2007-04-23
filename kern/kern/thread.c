@@ -16,7 +16,7 @@
 
 enum { thread_pf_debug = 0 };
 
-const struct Thread *cur_thread;
+const struct Thread *cur_thread, *trap_thread;
 struct Thread_list thread_list_runnable;
 struct Thread_list thread_list_limbo;
 
@@ -98,6 +98,8 @@ thread_halt(const struct Thread *const_t)
     thread_unpin(t);
     if (cur_thread == t)
 	cur_thread = 0;
+    if (trap_thread == t)
+	trap_thread = 0;
 }
 
 int

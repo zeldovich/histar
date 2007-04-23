@@ -66,7 +66,7 @@ struct Thread_ephemeral {
 
 extern struct Thread_list thread_list_runnable;
 extern struct Thread_list thread_list_limbo;
-extern const struct Thread *cur_thread;
+extern const struct Thread *cur_thread, *trap_thread;
 
 int  thread_alloc(const struct Label *contaminate,
 		  const struct Label *clearance,
