@@ -76,7 +76,7 @@
 #undef __MALLOC_SIMPLE__
 #define __MALLOC_STANDARD__ 1
 #undef __MALLOC_GLIBC_COMPAT__
-#define __UCLIBC_DYNAMIC_ATEXIT__ 1
+#undef __UCLIBC_DYNAMIC_ATEXIT__
 #undef __HAS_SHADOW__
 #undef __UNIX98PTY_ONLY__
 #define __ASSUME_DEVPTS__ 1

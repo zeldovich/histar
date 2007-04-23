@@ -23,6 +23,11 @@ sbrk(intptr_t x)
     int r;
     void *p = 0;
 
+    if (!start_env) {
+	cprintf("sbrk called without a start_env\n");
+	return 0;
+    }
+
     jthread_mutex_lock(&heap.mu);
 
     if (heap.inited_pct != start_env->proc_container) {

@@ -97,6 +97,9 @@ Cleanup:
   (2) invoke said gate with whatever privileges, arguments, etc that we want.
 * provide resource-clean abstractions for starting a thread on TLS,
   and jumping through a gate without leaving any resources behind.
+* enable __UCLIBC_DYNAMIC_ATEXIT__; the problem with it is that global objects
+  get registered from _init, at which point there isn't a start_env, which
+  makes dynamic allocation difficult.
 
 Bugs:
 
