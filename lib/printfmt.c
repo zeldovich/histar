@@ -164,6 +164,16 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
       lflag++;
       goto reswitch;
 
+      // size_t
+    case 'z':
+      if (sizeof(size_t) == sizeof(long))
+	lflag = 1;
+      else if (sizeof(size_t) == sizeof(long long))
+	lflag = 2;
+      else
+	lflag = 0;
+      goto reswitch;
+
       // character
     case 'c':
       putch (va_arg (ap, int), putdat);
