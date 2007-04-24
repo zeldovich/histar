@@ -10,7 +10,7 @@ struct chunk {
 };
 
 static int64_t
-freelist_insert(struct freelist *l __attribute__((unused)), uint64_t offset, uint64_t nbytes)
+freelist_insert(struct freelist *l, uint64_t offset, uint64_t nbytes)
 {
     struct chunk k = { nbytes, offset };
 
@@ -142,7 +142,7 @@ freelist_free(struct freelist *l, uint64_t base, uint64_t nbytes)
 static struct dstack free_later;
 
 void
-freelist_free_later(struct freelist *l __attribute__((unused)), uint64_t base, uint64_t nbytes)
+freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
     dstack_push(&free_later, base);
     dstack_push(&free_later, nbytes);

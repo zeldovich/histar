@@ -92,7 +92,7 @@ ne2kpci_rmt_write(struct ne2kpci_card *c, uint8_t *buf,
 }
 
 static void __attribute__ ((unused))
-    ne2kpci_print_packet(struct ne2kpci_rx_slot *rx)
+ne2kpci_print_packet(struct ne2kpci_rx_slot *rx)
 {
     cprintf("stat 0x%02x next 0x%02x count %d\n",
 	    rx->rrd.rsr, rx->rrd.next_packet, rx->rrd.count);
@@ -257,7 +257,7 @@ ne2kpci_intr(void *arg)
 
 static int
 ne2kpci_add_txbuf(struct ne2kpci_card *c,
-		  const struct Segment *sg __attribute__ ((unused)),
+		  const struct Segment *sg,
 		  struct netbuf_hdr *nb, uint16_t size)
 {
     // txp queue?

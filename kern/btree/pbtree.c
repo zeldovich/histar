@@ -64,7 +64,7 @@ pbtree_save_node(struct btree_node *node)
 }
 
 int
-pbtree_new_node(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg __attribute__((unused)))
+pbtree_new_node(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg)
 {
     int64_t offset = freelist_alloc(&freelist, BTREE_BLOCK_SIZE);
 
@@ -85,7 +85,7 @@ pbtree_new_node(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg __attribu
 }
 
 int
-pbtree_free_node(uint64_t id, offset_t offset, void *arg __attribute__((unused)))
+pbtree_free_node(uint64_t id, offset_t offset, void *arg)
 {
     freelist_free_later(&freelist, offset, BTREE_BLOCK_SIZE);
     log_free(offset);

@@ -77,7 +77,7 @@ sched_leave(struct Thread *t)
 }
 
 void
-sched_start(const struct Thread *t __attribute__((unused)), uint64_t tsc)
+sched_start(const struct Thread *t, uint64_t tsc)
 {
     cur_start_tsc = tsc;
 }

@@ -131,7 +131,7 @@ pnic_intr(void *arg)
 
 static int
 pnic_add_txbuf(struct pnic_card *c,
-	       const struct Segment *sg __attribute__((unused)),
+	       const struct Segment *sg,
 	       struct netbuf_hdr *nb, uint16_t size)
 {
     const char *buf = (const char *) (nb + 1);
