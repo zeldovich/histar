@@ -10,7 +10,7 @@
 
 #define PSTATE_MAGIC	0x4A4F535053544154ULL
 #define PSTATE_VERSION	3
-#define PSTATE_BUF_SIZE	1024
+#define PSTATE_BUF_SIZE	512
 
 struct pstate_header {
     union {
