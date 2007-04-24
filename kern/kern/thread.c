@@ -148,6 +148,14 @@ thread_swapin(struct Thread *t)
     t->th_sched_joined = 0;
     t->th_sync_waiting = 0;
 
+    /*
+     * Zeroing out scheduler state means we can lose or gain resources
+     * across swapout.  The reason is that th_sched_remain might be
+     * negative, with an absolute value greater than global_pass.
+     * So, on sched_join(), the thread's pass will underflow.
+     */
+    t->th_sched_remain = 0;
+
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
 
