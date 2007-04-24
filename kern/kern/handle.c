@@ -43,7 +43,7 @@ key_derive_one(struct bf_ctx *src, struct bf_ctx *dst, uint64_t ctr)
 void
 key_derive(void)
 {
-    struct bf_ctx init_ctx;
+    static struct bf_ctx init_ctx;
     bf_setkey(&init_ctx, &system_key[0], SYSTEM_KEY_SIZE);
 
     uint64_t ctr = 0;
