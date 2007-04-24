@@ -6,7 +6,7 @@
 
 #define SYSTEM_KEY_SIZE		64
 extern uint64_t handle_counter;
-extern uint8_t system_key[HANDLE_KEY_SIZE];
+extern uint8_t system_key[SYSTEM_KEY_SIZE];
 extern struct bf_ctx pstate_key_ctx;
 
 void     key_generate(void);

@@ -23,7 +23,7 @@ struct pstate_header {
 	    uint64_t ph_handle_counter;
 	    uint64_t ph_user_root_handle;
 	    uint64_t ph_user_nsec;
-	    uint8_t ph_handle_key[HANDLE_KEY_SIZE];
+	    uint8_t ph_system_key[SYSTEM_KEY_SIZE];
 
 	    uint64_t ph_sync_ts;
 	    uint64_t ph_log_blocks;

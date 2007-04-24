@@ -1,4 +1,5 @@
 #include <kern/handle.h>
+#include <kern/lib.h>
 #include <inc/bf60.h>
 
 enum { handle_encrypt = 1 };
