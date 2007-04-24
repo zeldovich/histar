@@ -13,14 +13,6 @@ Performance:
 
 Kernel bugs:
 
-* some sort of pstate bug.  repeating the following sequence leads to
-  unexpected results, e.g. two "sync" processes running or a panic:
-
-    ./qemu.sh
-    <load pstate>
-    run sync
-    ^C
-
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: preallocate space for free_later list on disk
   - btree/cache: check cache size is enough, use static disk read buffer page

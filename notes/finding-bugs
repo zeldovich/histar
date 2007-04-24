@@ -68,3 +68,30 @@ unreadable refcounts (and thus receive information from that unreadable
 compartment), by observing whether it continues executing after dropping
 its readable refcounts.
 
+***
+
+Persistent state checkpointing took a snapshot of the thread calling sync
+with the instruction pointer pointing to the next instruction, but without
+the result of the system call written into the thread's register set yet.
+As a result, the thread would resume at the next instruction as if the
+system call did not execute at all.  (Solution: roll back thread's %rip
+before doing system call, and roll forward on commit when writing the
+syscall result into thread register set.)
+
+***
+
+If a thread is deallocated as a result of a system call it made (e.g. if
+it unrefs itself), the system call handler would write back the system
+call result into the now-deallocated page that used to hold the thread's
+register state.
+
+***
+
+Threads checkpointed to disk would not have the KOBJ_ON_DISK flag set,
+because they weren't on disk at the time of the checkpoint.  However,
+when they got swapped in after a checkpoint restore, the kernel thinks
+they aren't on disk, and doesn't bother keeping a "tombstone" around
+when the thread died.  As a result, the thread is "resurrected" when
+we resume from subsequent checkpoints, because it is never erased from
+disk.
+

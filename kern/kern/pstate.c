@@ -493,6 +493,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 {
     struct kobject *snap = kobject_get_snapshot(ko);
     snap->hdr.ko_sync_ts = hdr->ph_sync_ts;
+    snap->hdr.ko_flags |= KOBJ_ON_DISK;
 
     int64_t off = pstate_kobj_alloc(&freelist, snap);
     if (off < 0) {
