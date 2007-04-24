@@ -264,7 +264,7 @@ init_ephem(void)
     btree[BTREE_FCHUNK].free = frm_free;
     btree[BTREE_FCHUNK].btree = &fchunk;
     btree[BTREE_FCHUNK].cache = &fchunk_cache;
-    btree[BTREE_FCHUNK].arg = &freelist.chunk_frm;
+    btree[BTREE_FCHUNK].arg = &freelist.frm;
     strncpy(btree[BTREE_FCHUNK].name, FCHUNK_NAME, BTREE_NAME_SIZE);
     cache_init(&fchunk_cache);
     lock_init(&btree[BTREE_FCHUNK].lock);
@@ -276,7 +276,7 @@ init_ephem(void)
     btree[BTREE_FOFFSET].free = frm_free;
     btree[BTREE_FOFFSET].btree = &foffset;
     btree[BTREE_FOFFSET].cache = &foffset_cache;
-    btree[BTREE_FOFFSET].arg = &freelist.offset_frm;
+    btree[BTREE_FOFFSET].arg = &freelist.frm;
     strncpy(btree[BTREE_FOFFSET].name, FOFFSET_NAME, BTREE_NAME_SIZE);
     cache_init(&foffset_cache);
     lock_init(&btree[BTREE_FOFFSET].lock);

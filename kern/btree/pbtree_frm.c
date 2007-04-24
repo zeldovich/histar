@@ -88,20 +88,10 @@ frm_service_one(struct frm *f, struct freelist *l)
 void
 frm_service(struct freelist *l)
 {
-    struct frm *chunk_manager = &l->chunk_frm;
-    struct frm *offset_manager = &l->offset_frm;
-
-    while (chunk_manager->service && !chunk_manager->servicing
-	   && !offset_manager->servicing) {
-	chunk_manager->servicing = 1;
-	frm_service_one(chunk_manager, l);
-	chunk_manager->servicing = 0;
-    }
-    while (offset_manager->service && !offset_manager->servicing
-	   && !chunk_manager->servicing) {
-	offset_manager->servicing = 1;
-	frm_service_one(offset_manager, l);
-	offset_manager->servicing = 0;
+    while (l->frm.service && !l->frm.servicing) {
+	l->frm.servicing = 1;
+	frm_service_one(&l->frm, l);
+	l->frm.servicing = 0;
     }
 }
 

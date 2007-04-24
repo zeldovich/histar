@@ -5,8 +5,7 @@
 #include <btree/pbtree_frm.h>
 
 struct freelist {
-    struct frm offset_frm;
-    struct frm chunk_frm;
+    struct frm frm;
 };
 
 void	freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes);

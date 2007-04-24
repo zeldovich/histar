@@ -183,11 +183,7 @@ freelist_init(struct freelist *l, uint64_t base, uint64_t nbytes)
     int r;
 
     uint32_t frm_bytes;
-    frm_bytes = frm_init(&l->chunk_frm, base);
-    base += frm_bytes;
-    nbytes -= frm_bytes;
-
-    frm_bytes = frm_init(&l->offset_frm, base);
+    frm_bytes = frm_init(&l->frm, base);
     base += frm_bytes;
     nbytes -= frm_bytes;
 
