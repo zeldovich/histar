@@ -95,3 +95,13 @@ when the thread died.  As a result, the thread is "resurrected" when
 we resume from subsequent checkpoints, because it is never erased from
 disk.
 
+***
+
+When swapping in a thread from disk, th_sched_remain was preserved.
+It's a signed quantity representing how much the thread overused or
+underused its CPU allocation.  The problem is that if this value is
+negative, its absolute value may be greater than global_pass.  When
+the thread's current CPU priority was computed, by adding global_pass
+and th_sched_remain, the value could underflow and become very large,
+meaning that the thread would almost never get scheduled.
+
