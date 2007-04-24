@@ -409,11 +409,12 @@ pstate_load2(void)
 	}
     }
 
-    pstate_counter   = stable_hdr.ph_sync_ts;
-    handle_counter   = stable_hdr.ph_handle_counter;
-    user_root_handle = stable_hdr.ph_user_root_handle;
     memcpy(&system_key[0], &stable_hdr.ph_system_key, SYSTEM_KEY_SIZE);
     key_derive();
+
+    handle_counter   = stable_hdr.ph_handle_counter;
+    user_root_handle = stable_hdr.ph_user_root_handle;
+    pstate_counter   = pstate_ts_decrypt(stable_hdr.ph_sync_ts);
 
     uint64_t now = timer_user_nsec();
     if (now < stable_hdr.ph_user_nsec)
