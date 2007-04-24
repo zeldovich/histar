@@ -43,7 +43,7 @@ struct mobject {
 
 static uint64_t pstate_counter;
 
-static uint64_t
+uint64_t
 pstate_ts_alloc(void)
 {
     return bf61_encipher(&pstate_key_ctx, pstate_counter++);

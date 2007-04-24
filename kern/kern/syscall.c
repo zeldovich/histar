@@ -986,7 +986,7 @@ sys_as_set_slot(struct cobj_ref asref, struct u_segment_mapping *usm)
 static int64_t __attribute__ ((warn_unused_result))
 sys_pstate_timestamp(void)
 {
-    return handle_alloc();
+    return pstate_ts_alloc();
 }
 
 static int64_t __attribute__ ((warn_unused_result))
