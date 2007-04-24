@@ -40,6 +40,8 @@ stackwrap_entry(void)
 
     ss->fn(ss->fn_arg[0], ss->fn_arg[1], ss->fn_arg[2]);
     ss->alive = 0;
+
+    assert(ss->magic == STACKWRAP_MAGIC);
     jos_longjmp(&ss->entry_cb, 1);
 }
 
