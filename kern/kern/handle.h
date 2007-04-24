@@ -2,13 +2,16 @@
 #define JOS_KERN_HANDLE_H
 
 #include <machine/types.h>
+#include <inc/bf60.h>
 
-#define HANDLE_KEY_SIZE	64
+#define SYSTEM_KEY_SIZE		64
 extern uint64_t handle_counter;
-extern uint8_t handle_key[HANDLE_KEY_SIZE];
+extern uint8_t system_key[HANDLE_KEY_SIZE];
+extern struct bf_ctx pstate_key_ctx;
+
+void     key_generate(void);
+void	 key_derive(void);
 
 uint64_t handle_alloc(void);
-uint64_t handle_decrypt(uint64_t h);
-void     handle_key_generate(void);
 
 #endif

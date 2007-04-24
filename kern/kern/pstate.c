@@ -38,6 +38,24 @@ struct mobject {
 };
 
 //////////////////////////////////////////////////
+// Encrypted pstate timestamps
+//////////////////////////////////////////////////
+
+static uint64_t pstate_counter;
+
+static uint64_t
+pstate_ts_alloc(void)
+{
+    return bf61_encipher(&pstate_key_ctx, pstate_counter++);
+}
+
+static uint64_t
+pstate_ts_decrypt(uint64_t v)
+{
+    return bf61_decipher(&pstate_key_ctx, v);
+}
+
+//////////////////////////////////////////////////
 // Object map
 //////////////////////////////////////////////////
 
@@ -391,9 +409,11 @@ pstate_load2(void)
 	}
     }
 
+    pstate_counter   = stable_hdr.ph_sync_ts;
     handle_counter   = stable_hdr.ph_handle_counter;
     user_root_handle = stable_hdr.ph_user_root_handle;
-    memcpy(&handle_key[0], &stable_hdr.ph_handle_key, HANDLE_KEY_SIZE);
+    memcpy(&system_key[0], &stable_hdr.ph_system_key, SYSTEM_KEY_SIZE);
+    key_derive();
 
     uint64_t now = timer_user_nsec();
     if (now < stable_hdr.ph_user_nsec)
@@ -643,11 +663,11 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1 __attribute__((unused)), uint
 
     hdr->ph_magic = PSTATE_MAGIC;
     hdr->ph_version = PSTATE_VERSION;
-    hdr->ph_sync_ts = handle_alloc();
+    hdr->ph_sync_ts = pstate_ts_alloc();
     hdr->ph_handle_counter = handle_counter;
     hdr->ph_user_root_handle = user_root_handle;
     hdr->ph_user_nsec = timer_user_nsec();
-    memcpy(&hdr->ph_handle_key[0], &handle_key[0], HANDLE_KEY_SIZE);
+    memcpy(&hdr->ph_system_key[0], &system_key[0], SYSTEM_KEY_SIZE);
 
     struct swapout_stats stats;
     memset(&stats, 0, sizeof(stats));
@@ -762,7 +782,7 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
     kobject_snapshot(&ko->hdr);
     ko->hdr.ko_flags |= dirty;
     struct kobject *snap = kobject_get_snapshot(&ko->hdr);
-    uint64_t sync_ts = handle_alloc();
+    uint64_t sync_ts = pstate_ts_alloc();
 
     kobject_id_t id_found, id = snap->hdr.ko_id;
     struct mobject mobj;
@@ -834,7 +854,7 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	goto fallback;
 
     if (ko->hdr.ko_sync_ts &&
-	handle_decrypt(ko->hdr.ko_sync_ts) > handle_decrypt(timestamp))
+	pstate_ts_decrypt(ko->hdr.ko_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
     int r = stackwrap_call(&pstate_sync_object_stackwrap,
@@ -859,7 +879,7 @@ pstate_sync_user(uint64_t timestamp)
 	return 0;
 
     if (stable_hdr.ph_magic == PSTATE_MAGIC &&
-	handle_decrypt(stable_hdr.ph_sync_ts) > handle_decrypt(timestamp))
+	pstate_ts_decrypt(stable_hdr.ph_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
     thread_suspend(cur_thread, &swapout_waiting);
