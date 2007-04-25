@@ -12,9 +12,11 @@
 #if JOS_ARCH_BITS==32
 #define ARCH_ELF_EHDR	Elf32_Ehdr
 #define ARCH_ELF_PHDR	Elf32_Phdr
+#define ARCH_ELF_CLASS	ELF_CLASS_32
 #elif JOS_ARCH_BITS==64
 #define ARCH_ELF_EHDR	Elf64_Ehdr
 #define ARCH_ELF_PHDR	Elf64_Phdr
+#define ARCH_ELF_CLASS	ELF_CLASS_64
 #else
 #error What is this architecture?
 #endif
@@ -53,8 +55,8 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return -E_INVAL;
     }
 
-    if (elf->e_machine != ELF_MACH_AMD64) {
-	cprintf("elf_load: ELF file not 64-bit\n");
+    if (elf->e_ident[EI_CLASS] != ARCH_ELF_CLASS) {
+	cprintf("elf_load: ELF file wrong class\n");
 	return -E_INVAL;
     }
 
