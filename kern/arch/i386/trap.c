@@ -56,7 +56,7 @@ idt_init(void)
 }
 
 static void
-trapframe_print(struct Trapframe *tf)
+trapframe_print(const struct Trapframe *tf)
 {
     cprintf("eax %08x  ebx %08x  ecx %08x  edx %08x\n",
 	    tf->tf_eax, tf->tf_ebx, tf->tf_ecx, tf->tf_edx);
@@ -67,7 +67,7 @@ trapframe_print(struct Trapframe *tf)
 }
 
 static void
-page_fault(struct Trapframe *tf, uint32_t err)
+page_fault(const struct Trapframe *tf, uint32_t err)
 {
     void *fault_va = (void*) rcr2();
     uint32_t reqflags = 0;
@@ -99,7 +99,7 @@ page_fault(struct Trapframe *tf, uint32_t err)
 }
 
 static void
-trap_dispatch(int trapno, struct Trapframe *tf)
+trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
     uint64_t s, f;
