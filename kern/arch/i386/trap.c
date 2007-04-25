@@ -290,8 +290,8 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_ss = GD_UD | 3;
     t->th_tf.tf_ds = GD_UD | 3;
     t->th_tf.tf_es = GD_UD | 3;
-    t->th_tf.tf_fs = GD_UD | 3;
-    t->th_tf.tf_gs = GD_UD | 3;
+    t->th_tf.tf_fs = GD_TD | 3;
+    t->th_tf.tf_gs = GD_TD | 3;
     t->th_tf.tf_eip = (uintptr_t) te->te_entry;
     t->th_tf.tf_esp = (uintptr_t) te->te_stack;
 

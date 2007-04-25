@@ -54,6 +54,7 @@ uint64_t gdt[] = {
   [GD_KD  >> 3] = SEG32(SEG_W, 0, 0xffffffff, 0),
   [GD_TSS >> 3]	= 0, 0,
   [GD_UD  >> 3] = SEG32(SEG_W, 0, 0xffffffff, 3),
+  [GD_TD  >> 3] = SEG32(SEG_W, USTARTENVRO, PGSIZE, 3),
   [GD_UT_NMASK >> 3] = SEG32(SEG_X|SEG_R, 0, 0xffffffff, 3),
   [GD_UT_MASK  >> 3] = SEG32(SEG_X|SEG_R, 0, 0xffffffff, 3),
 };
