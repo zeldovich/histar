@@ -33,6 +33,14 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
+/*
+ * gcc requires that the code resides either in the bottom 2GB of the
+ * virtual address space (-mcmodel=small, medium) or the top 2GB of
+ * the address space (-mcmodel=kernel).  Unfortunately this means
+ * that we need to duplicate the physical memory somewhere else if
+ * we want to access more than 2GB of physical memory.
+ */
+
 #define KERNBASE	UINT64 (0xffffffff80000000)
 #define RELOC(x)	(CAST64 (x) - KERNBASE)
 
