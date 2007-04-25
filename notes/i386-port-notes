@@ -42,7 +42,10 @@ bochs doesn't seem to implement CR4_OSFXSR|CR4_OSX
 
 ===
 
-TLS annoyance: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29838
+TLS annoyance:
+    http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29838
+    http://people.redhat.com/drepper/tls.pdf
+
   i386 uses %gs to index into the TLS
   x86_64 uses %fs to index into the TLS
 
