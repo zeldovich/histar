@@ -77,6 +77,9 @@ SHELL=/bin/sh gmake" if you have a different shell.
 
 * Qemu
 
+For qemu 0.9.0 and earlier, you must apply ./conf/qemu-cmpxchg8b.patch
+to make the cmpxchg8b instruction restartable.
+
 For qemu 0.8.2 and earlier, you must apply ./conf/qemu-movd.patch to
 avoid 32-bit truncation for some MMX operations.
 

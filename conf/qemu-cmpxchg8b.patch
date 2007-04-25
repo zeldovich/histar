@@ -1,0 +1,10 @@
+--- qemu-0.9.0/target-i386/translate.c	2007-02-05 15:01:54.000000000 -0800
++++ /home/nickolai/build/qemu-0.9.0/target-i386/translate.c	2007-04-24 19:33:47.000000000 -0700
+@@ -3800,6 +3800,7 @@
+         if (s->cc_op != CC_OP_DYNAMIC)
+             gen_op_set_cc_op(s->cc_op);
+         gen_lea_modrm(s, modrm, &reg_addr, &offset_addr);
++        gen_jmp_im(pc_start - s->cs_base);
+         gen_op_cmpxchg8b();
+         s->cc_op = CC_OP_EFLAGS;
+         break;
