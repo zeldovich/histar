@@ -4,22 +4,23 @@
 #include <inc/assert.h>
 #include <inc/memlayout.h>
 #include <inc/setjmp.h>
+#include <inc/utrap.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <inc/utrap.h>
+#include <inttypes.h>
 
 static struct jos_jmp_buf jb;
 
 static void __attribute__((noreturn))
 trap_handler(struct UTrapframe *utf)
 {
-    cprintf("utf %p size %ld, src %d num %d arg 0x%lx\n",
+    cprintf("utf %p size %zd, src %d num %d arg 0x%"PRIx64"\n",
             utf, sizeof(*utf),
             utf->utf_trap_src, utf->utf_trap_num,
             utf->utf_trap_arg);
 
-    cprintf("rip 0x%lx\n", utf->utf_rip);
+    cprintf("rip 0x%zx\n", utf->utf_pc);
     jos_longjmp(&jb, 1);
 }
 
@@ -64,7 +65,7 @@ main(int ac, char **av)
     utrap_set_mask(0);
 
     printf("Trying to execute funny instruction\n");
-    __asm__("swapgs");
+    __asm__("ud2");
 
     printf("done\n");
 }
