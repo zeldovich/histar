@@ -5,6 +5,7 @@
 #include <inc/fs.h>
 #include <inc/syscall.h>
 #include <string.h>
+#include <inttypes.h>
 
 const char *kobj_str[] = {
     "c",
@@ -113,7 +114,7 @@ main(int ac, char **av)
 	    label_free(l);
 
 	    char id[32];
-	    snprintf(id, 32, "%ld", de.de_inode.obj.object);
+	    snprintf(id, 32, "%"PRIu64, de.de_inode.obj.object);
 	    printf("%-20.20s %-1.1s %c %-20.20s %s\n", de.de_name, type, dev_id, id, label);
 	} else {
 	    printf("%s\n", de.de_name);

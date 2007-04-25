@@ -10,6 +10,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/spawn.hh>
@@ -32,19 +33,19 @@ print_cobj(uint64_t ct, uint64_t slot)
     if (id == -E_NOT_FOUND)
 	return;
     if (id < 0) {
-	printf("cannot get slot %ld in %ld: %s\n", slot, ct, e2s(id));
+	printf("cannot get slot %"PRIu64" in %"PRIu64": %s\n", slot, ct, e2s(id));
 	return;
     }
 
     struct cobj_ref cobj = COBJ(ct, id);
     int type = sys_obj_get_type(cobj);
     if (type < 0) {
-	printf("sys_obj_get_type <%ld.%ld>: %s\n",
+	printf("sys_obj_get_type <%"PRIu64".%"PRIu64">: %s\n",
 		cobj.container, cobj.object, e2s(type));
 	return;
     }
 
-    printf("%5ld [%4ld]  ", id, slot);
+    printf("%5"PRIu64" [%4"PRIu64"]  ", id, slot);
 
     int r;
     switch (type) {
@@ -96,9 +97,9 @@ print_cobj(uint64_t ct, uint64_t slot)
 	    printf(" (infinite quota)");
 	} else {
 	    if (q_avail >= 0)
-		printf(" (quota %ld, avail %ld)", q_total, q_avail);
+		printf(" (quota %"PRIu64", avail %"PRIu64")", q_total, q_avail);
 	    else
-		printf(" (quota %ld)", q_total);
+		printf(" (quota %"PRIu64")", q_total);
 	}
     }
 
@@ -128,12 +129,12 @@ builtin_list_container(int ac, char **av)
     int64_t ct_quota = sys_obj_get_quota_total(COBJ(ct, ct));
     int64_t ct_avail = sys_obj_get_quota_avail(COBJ(ct, ct));
 
-    printf("Container %ld (%ld bytes, %ld avail):\n", ct, ct_quota, ct_avail);
+    printf("Container %"PRIu64" (%"PRIu64" bytes, %"PRIu64" avail):\n", ct, ct_quota, ct_avail);
     printf("   id  slot   object\n");
 
     int64_t nslots = sys_container_get_nslots(ct);
     if (nslots < 0) {
-	printf("sys_container_nslots(%ld): %s\n", ct, e2s(nslots));
+	printf("sys_container_nslots(%"PRIu64"): %s\n", ct, e2s(nslots));
 	return;
     }
 
@@ -187,7 +188,7 @@ builtin_spawn(int ac, char **av)
     struct child_process child;
     int64_t ct = do_spawn(ac, av, &child);
     if (ct >= 0)
-	printf("Spawned in container %ld\n", ct);
+	printf("Spawned in container %"PRIu64"\n", ct);
 }
 
 static void
@@ -207,7 +208,7 @@ spawn_and_wait(int ac, char **av)
 
     if (r == PROCESS_EXITED) {
 	if (code)
-	    printf("Exited with code %ld\n", code);
+	    printf("Exited with code %"PRIu64"\n", code);
 	sys_obj_unref(COBJ(start_env->shared_container, ct));
     } else if (r == PROCESS_TAINTED) {
 	printf("Process tainted itself, detaching.\n");
@@ -240,11 +241,11 @@ builtin_unref(int ac, char **av)
 
     r = sys_obj_unref(COBJ(c, i));
     if (r < 0) {
-	printf("Cannot unref <%ld.%ld>: %s\n", c, i, e2s(r));
+	printf("Cannot unref <%"PRIu64".%"PRIu64">: %s\n", c, i, e2s(r));
 	return;
     }
 
-    printf("Dropped <%ld.%ld>\n", c, i);
+    printf("Dropped <%"PRIu64".%"PRIu64">\n", c, i);
 }
 
 static void
@@ -355,7 +356,7 @@ main(int ac, char **av)
 
     for (;;) {
 	char prompt[64];
-	snprintf(prompt, sizeof(prompt), "[jos:%ld]> ",
+	snprintf(prompt, sizeof(prompt), "[jos:%"PRIu64"]> ",
 		 start_env->fs_cwd.obj.object);
 	char *cmd = readline(prompt);
 	if (cmd == 0) {
