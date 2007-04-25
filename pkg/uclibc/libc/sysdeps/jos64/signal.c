@@ -148,8 +148,10 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 
     switch (si->si_signo) {
     case SIGSEGV: case SIGBUS:  case SIGILL:
-	fprintf(stderr, "[%"PRIu64"] %s: fatal signal %d, backtrace follows.\n",
-		sys_self_id(), jos_progname, si->si_signo);
+	fprintf(stderr, "[%"PRIu64"] %s: fatal signal %d "
+			"(rip=0x%zx, rsp=0x%zx), backtrace follows.\n",
+		sys_self_id(), jos_progname, si->si_signo,
+		sc->sc_utf.utf_pc, sc->sc_utf.utf_stackptr);
 	print_backtrace(0);
 	segfault_helper(si, sc);
 	break;
