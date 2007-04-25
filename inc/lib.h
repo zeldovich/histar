@@ -120,7 +120,7 @@ struct thread_args {
 };
 
 enum { thread_quota_slush = 65536 };
-enum { thread_stack_pages = 256 * 1024 };
+enum { thread_stack_pages = 2560 };	/* 10MB max stack */
 
 #define THREAD_OPT_ARGCOPY	0x02
 
