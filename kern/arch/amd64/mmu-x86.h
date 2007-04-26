@@ -97,7 +97,7 @@
 #define MTRR_BASE_WP 0x05	/* Write-Protect */
 #define MTRR_BASE_WB 0x06	/* Writeback */
 #define MTRR_MASK(i) (0x201 + 2*(i))	/* Physical address mask */
-#define MTRR_MASK_FULL PGADDR((ONE << 52) - 1)
+#define MTRR_MASK_FULL PGADDR((ONE << 36) - 1)
 #define MTRR_MASK_VALID 0x800
 
 /* EFER Register */
