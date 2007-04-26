@@ -1,0 +1,74 @@
+AMD's DEV (Device Exclusion Vector) [available now]:
+    Maps HyperTransport devices [32] onto protection domains
+    Maps protection domains [4] onto a page access bitmap,
+	except domain 0's bitmap is all-ones (so, 3 usable)
+
+    Problem: in a typical motherboard, there's only three HyperTransport
+	devices: the CPU, the video adapter, and the host PCI bridge.
+	As a result, it's possible to protect against the video card,
+	but not individual PCI cards.
+
+Intel TXT [available now]:
+    Single protection domain for all non-CPU devices that access main memory,
+    called "NoDMA".  Page-granularity bitmap that prevents any PCI/AGP device
+    from accessing particular pages of physical memory.  Intended for use with
+    "trusted computing" to implement tamper-resistant memory.
+
+AMD IOMMU [not available now]:
+    Translation and protection, maps PCI device ID to page table pointer.
+    Although structure seems quite general, it appears to only be defined
+    for HyperTransport tunnel devices and PCI-to-HyperTransport bridges
+    (and not for PCI-to-PCI bridges).
+
+Intel VT-d [not available now]:
+    Similar to AMD's IOMMU, also defined just for MCH and root complex.
+
+PCI:
+    Any PCI card can initiate memory or IO access to any address.  If the
+    path to the target device does not pass through the IOMMU, no protection
+    checks take place.  Thus, a malicious driver with access to one PCI
+    device can freely modify memory-mapped or IO-mapped registers of
+    other PCI devices.
+
+    A malicious (or buggy) PCI card could initiate PCI configuration space
+    transactions to devices on the same bus (or any devices downstream of
+    that bus), and potentially initiate special-cycle type 1 configuration
+    write requests to upstream devices.  PCI bridges have no mechanism to
+    disable configuration-space transactions.
+
+    PCI-express is a step in the right direction, in the sense that every
+    device is on a separate "bus" and all memory and IO access has to go
+    through that device's parent PCI-express bus.  But we still need
+    PCI-express buses that can filter requests based on address.  PCI-express
+    does have destination type codes in each request specifying where the
+    message is going, and a "upstream" type code is guaranteed not to go
+    downstream.  However, nothing prevents PCI-express cards from generating
+    "address-routed" type messages, which get routed as with regular PCI.
+
+    In general, the problem seems similar to distributed HiStar or HiStar
+    on SANE, with switches roughly corresponding to bridges.
+
+Interrupts:
+    PIC does not provide enough distinct interrupt lines, and requires
+    sharing interrupts.  As a result, one device can preclude other
+    devices from raising new interrupts.  APIC provides sufficient
+    number of interrupt lines, but only masks groups of 16 interrupts
+    at a time.  Again, a device can prevent other devices in the same
+    masking group from raising interrupts.
+
+    Workaround: if an interrupt appears to be stuck high, periodically
+    generate fake interrupts to other devices sharing the same interrupt
+    line to check for pending work.  Problem: significantly higher latency.
+
+Persistence:
+    Need to add a boot sequence number to "PCI device" objects in HiStar.
+    On reboot, the global boot sequence number would be incremented, and
+    using PCI device objects with a stale boot sequence number would return
+    -E_STALE.  A device manager process would be responsible for enumerating
+    the PCI bus on a system restart and creating new devices, since the PCI
+    configuration might have changed across reboot.
+
+    PCI express appears to have Per-Vector Masking (PVM) which allows
+    masking MSIs (message-signaled interrupts) from a particular device.
+    [For some MSI overview: linux/Documentation/MSI-HOWTO.txt]
+
