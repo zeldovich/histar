@@ -77,7 +77,6 @@
 #define __MALLOC_STANDARD__ 1
 #undef __MALLOC_GLIBC_COMPAT__
 #undef __UCLIBC_DYNAMIC_ATEXIT__
-#undef __HAS_SHADOW__
 #undef __UNIX98PTY_ONLY__
 #define __ASSUME_DEVPTS__ 1
 #define __UCLIBC_HAS_TM_EXTENSIONS__ 1
@@ -86,6 +85,7 @@
 #define __UCLIBC_HAS_TZ_FILE_READ_MANY__ 1
 #define __UCLIBC_TZ_FILE_PATH__ "/etc/TZ"
 #define __UCLIBC_HAS___PROGNAME__ 1
+#define __UCLIBC_HAS_SHADOW__ 1
 
 /*
  * Networking Support

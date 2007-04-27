@@ -6,6 +6,9 @@ PWD_GRP_SRC := \
         getpwuid.c getgrgid.c getpwnam.c getgrnam.c getpw.c \
         getpwent_r.c getgrent_r.c getpwent.c getgrent.c \
         initgroups.c putpwent.c putgrent.c \
-        __parsepwent.c __parsegrent.c __pgsreader.c
+        __parsepwent.c __parsegrent.c __pgsreader.c \
+	__parsespent.c fgetspent_r.c getspent_r.c getspnam_r.c sgetspent.c \
+	fgetspent.c getspent.c getspnam.c putspent.c sgetspent_r.c
+
 LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/pwd_grp/%.c, $(PWD_GRP_SRC))
 
