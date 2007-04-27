@@ -755,6 +755,10 @@ __sigsetjmp(sigjmp_buf env, int savemask)
 	env->__mask_was_saved = 0;
     }
 
+    /*
+     * Tail-call optimization is critical for this to work.
+     * As a result, without -O2 this will be very broken.
+     */
     return jos_setjmp(&env->__jmpbuf);
 }
 
