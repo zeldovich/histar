@@ -1,4 +1,4 @@
-OBJDIRS += pkg/uclibc++/src
+OBJDIRS += pkg/uclibc++/src pkg/uclibc++/src/abi
 USER_CXXFLAGS += -I$(TOP)/pkg/uclibc++/include
 
 LIBCXX_SRC := algorithm.cpp bitset.cpp char_traits.cpp complex.cpp \
