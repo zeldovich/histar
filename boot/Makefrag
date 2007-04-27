@@ -25,9 +25,10 @@ $(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setu
 	dd if=$(OBJDIR)/boot/setup of=$@~ bs=512 count=1 seek=1 2>/dev/null
 	mv $@~ $@
 
+# For Linux setup code, link at 0x0, but load address is irrelevant
 $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
-	# Link address should be 0x0, but load address is irrelevant
-	$(LD) -melf_i386 -Ttext 0x0 -s --oformat binary -e start -o $@ $<
+	$(LD) -melf_i386 -N -e start -o $@.bin -Ttext 0x0 $<
+	$(OBJCOPY) -S -O binary $@.bin $@
 	perl boot/setup.pl $@
 
 $(OBJDIR)/boot/bimage: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel
