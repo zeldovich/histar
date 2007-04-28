@@ -16,6 +16,30 @@ static int pci_show_addrs = 0;
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
 static uint32_t pci_conf1_data_ioport = 0x0cfc;
 
+// Forward declarations
+static void pci_bridge_attach(struct pci_func *pcif);
+
+// PCI driver table
+struct pci_driver {
+    uint32_t key1, key2;
+    void (*attachfn) (struct pci_func *pcif);
+};
+
+struct pci_driver pci_attach_class[] = {
+    { PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI, &pci_bridge_attach },
+    { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE, &disk_init },
+    { 0, 0, 0 },
+};
+
+struct pci_driver pci_attach_vendor[] = {
+    { 0x10ec, 0x8029, &ne2kpci_attach },
+    { 0x8086, 0x1229, &fxp_attach },
+    { 0xfefe, 0xefef, &pnic_attach },
+    { 0x8086, 0x107c, &e1000_attach },
+    { 0x8086, 0x109a, &e1000_attach },
+    { 0, 0, 0 },
+};
+
 static void
 pci_conf1_set_addr(uint32_t bus,
 		   uint32_t dev,
@@ -47,8 +71,29 @@ pci_conf_write(struct pci_func *f, uint32_t off, uint32_t v)
     outl(pci_conf1_data_ioport, v);
 }
 
-static void
-pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif);
+static int __attribute__((warn_unused_result))
+pci_attach_match(uint32_t key1, uint32_t key2,
+		 struct pci_driver *list, struct pci_func *pcif)
+{
+    for (uint32_t i = 0; list[i].attachfn; i++) {
+	if (list[i].key1 == key1 && list[i].key2 == key2) {
+	    list[i].attachfn(pcif);
+	    return 1;
+	}
+    }
+
+    return 0;
+}
+
+static int
+pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
+{
+    return
+	pci_attach_match(PCI_CLASS(dev_class), PCI_SUBCLASS(dev_class),
+			 &pci_attach_class[0], pcif) ||
+	pci_attach_match(PCI_VENDOR(dev_id), PCI_PRODUCT(dev_id),
+			 &pci_attach_vendor[0], pcif);
+}
 
 static void
 pci_scan_bus(struct pci_bus *bus)
@@ -87,66 +132,33 @@ pci_scan_bus(struct pci_bus *bus)
 }
 
 static void
-pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
+pci_bridge_attach(struct pci_func *pcif)
 {
-    if (PCI_CLASS(dev_class) == PCI_CLASS_BRIDGE &&
-	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_BRIDGE_PCI)
-    {
-	uint32_t ioreg = pci_conf_read(pcif, PCI_BRIDGE_STATIO_REG);
-	if (PCI_BRIDGE_IO_32BITS(ioreg)) {
-	    cprintf("PCI: %02x:%02x.%d: 32-bit bridge IO not supported.\n",
-		    pcif->bus->busno, pcif->dev, pcif->func);
-	    return;
-	}
+    uint32_t ioreg  = pci_conf_read(pcif, PCI_BRIDGE_STATIO_REG);
+    uint32_t busreg = pci_conf_read(pcif, PCI_BRIDGE_BUS_REG);
 
-	uint32_t busreg = pci_conf_read(pcif, PCI_BRIDGE_BUS_REG);
-
-	struct pci_bus nbus;
-	memset(&nbus, 0, sizeof(nbus));
-	nbus.parent_bridge = pcif;
-	nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;
-
-	if (pci_show_devs)
-	    cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d--%d\n",
-		    pcif->bus->busno, pcif->dev, pcif->func,
-		    nbus.busno,
-		    (busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
-
-	pci_conf_write(pcif, PCI_COMMAND_STATUS_REG,
-		       PCI_COMMAND_IO_ENABLE |
-		       PCI_COMMAND_MEM_ENABLE |
-		       PCI_COMMAND_MASTER_ENABLE);
-	pci_scan_bus(&nbus);
+    if (PCI_BRIDGE_IO_32BITS(ioreg)) {
+	cprintf("PCI: %02x:%02x.%d: 32-bit bridge IO not supported.\n",
+		pcif->bus->busno, pcif->dev, pcif->func);
 	return;
     }
 
-    if (PCI_CLASS(dev_class) == PCI_CLASS_MASS_STORAGE &&
-	PCI_SUBCLASS(dev_class) == PCI_SUBCLASS_MASS_STORAGE_IDE)
-    {
-	disk_init(pcif);
-	return;
-    }
+    struct pci_bus nbus;
+    memset(&nbus, 0, sizeof(nbus));
+    nbus.parent_bridge = pcif;
+    nbus.busno = (busreg >> PCI_BRIDGE_BUS_SECONDARY_SHIFT) & 0xff;
 
-    if (PCI_VENDOR(dev_id) == 0x10ec && PCI_PRODUCT(dev_id) == 0x8029) {
-	ne2kpci_attach(pcif);
-	return;
-    }
+    if (pci_show_devs)
+	cprintf("PCI: %02x:%02x.%d: bridge to PCI bus %d--%d\n",
+		pcif->bus->busno, pcif->dev, pcif->func,
+		nbus.busno,
+		(busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
 
-    if (PCI_VENDOR(dev_id) == 0x8086 && PCI_PRODUCT(dev_id) == 0x1229) {
-	fxp_attach(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0xfefe && PCI_PRODUCT(dev_id) == 0xefef) {
-	pnic_attach(pcif);
-	return;
-    }
-
-    if (PCI_VENDOR(dev_id) == 0x8086 && (PCI_PRODUCT(dev_id) == 0x107c ||
-					 PCI_PRODUCT(dev_id) == 0x109a)) {
-	e1000_attach(pcif);
-	return;
-    }
+    pci_conf_write(pcif, PCI_COMMAND_STATUS_REG,
+		   PCI_COMMAND_IO_ENABLE |
+		   PCI_COMMAND_MEM_ENABLE |
+		   PCI_COMMAND_MASTER_ENABLE);
+    pci_scan_bus(&nbus);
 }
 
 // External PCI subsystem interface
