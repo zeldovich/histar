@@ -67,7 +67,7 @@ e1000_io_write(struct e1000_card *c, uint32_t reg, uint32_t val)
     outl(c->iobase + 4, val);
 }
 
-static void
+static int
 e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
 {
     for (int i = 0; i < count; i++) {
@@ -80,8 +80,11 @@ e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
 		timer_delay(5000);
 	}
 
-	if (!(reg & EERD_DONE))
-	    panic("e1000_eeprom_eerd_read: timeout");
+	if (!(reg & EERD_DONE)) {
+	    cprintf("e1000_eeprom_eerd_read: timeout");
+	    return -1;
+	}
+
 	buf[i] = (reg & EERD_DATA_MASK) >> EERD_DATA_SHIFT;
     }
 }
@@ -379,7 +382,12 @@ e1000_attach(struct pci_func *pcif)
 
     // Get the MAC address
     uint16_t myaddr[3];
-    e1000_eeprom_read(c, &myaddr[0], EEPROM_OFF_MACADDR, 3);
+    r = e1000_eeprom_read(c, &myaddr[0], EEPROM_OFF_MACADDR, 3);
+    if (r < 0) {
+	cprintf("e1000_attach: cannot read EEPROM MAC addr: %s\n", e2s(r));
+	return;
+    }
+
     for (int i = 0; i < 3; i++) {
 	c->netdev.mac_addr[2*i + 0] = myaddr[i] & 0xff;
 	c->netdev.mac_addr[2*i + 1] = myaddr[i] >> 8;
