@@ -477,6 +477,8 @@ pstate_load(void)
 
 static struct Thread_list swapout_waiting;
 static struct lock swapout_lock;
+static char swapout_stack0[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
+static char swapout_stack1[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
 
 struct swapout_stats {
     uint64_t written_kobj;
@@ -636,13 +638,6 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     if (arg0)
 	rvalp = (int *) (uintptr_t) arg0;
 
-    if (lock_try_acquire(&swapout_lock) < 0) {
-	cprintf("pstate_sync: another sync still active\n");
-	if (rvalp && !*rvalp)
-	    *rvalp = -E_BUSY;
-	return;
-    }
-
     // If we don't have a valid header on disk, init the freelist
     if (stable_hdr.ph_magic != PSTATE_MAGIC) {
 	uint64_t part_pages = pstate_part->pd_size / PGSIZE;
@@ -740,9 +735,12 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 static void
 pstate_sync(void)
 {
-    int r = stackwrap_call(&pstate_sync_stackwrap, 0, 0, 0);
-    if (r < 0)
-	cprintf("pstate_sync: cannot stackwrap: %s\n", e2s(r));
+    if (lock_try_acquire(&swapout_lock) < 0) {
+	cprintf("pstate_sync: another sync still active\n");
+	return;
+    }
+
+    stackwrap_call_stack(&swapout_stack0[0], &pstate_sync_stackwrap, 0, 0, 0);
 }
 
 int
@@ -751,15 +749,19 @@ pstate_sync_now(void)
     if (!pstate_part)
 	return 0;
 
-    int rval = 0;
-    int r = stackwrap_call(&pstate_sync_stackwrap, (uintptr_t) &rval, 0, 0);
-    if (r < 0)
-	return r;
+    if (lock_try_acquire(&swapout_lock) < 0) {
+	cprintf("pstate_sync_now: another sync still active\n");
+	thread_suspend(cur_thread, &swapout_waiting);
+	return -E_RESTART;
+    }
 
-    while (rval == 0)
+    int r = 0;
+    stackwrap_call_stack(&swapout_stack0[0], &pstate_sync_stackwrap,
+			 (uintptr_t) &r, 0, 0);
+    while (r == 0)
 	ide_poke();
 
-    return rval < 0 ? rval : 0;
+    return r < 0 ? r : 0;
 }
 
 //////////////////////////////////////////////////
@@ -771,13 +773,6 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 {
     // Casting to non-const, but it's OK here.
     struct kobject *ko = (struct kobject *) (uintptr_t) arg;
-
-    thread_suspend(cur_thread, &swapout_waiting);
-    if (lock_try_acquire(&swapout_lock) < 0) {
-	if (pstate_swapout_object_debug)
-	    cprintf("pstate_sync_object_stackwrap: waiting for swapout lock\n");
-	return;
-    }
 
     // kobject_snapshot() clears KOBJ_DIRTY, but we don't want that here..
     uint64_t dirty = (ko->hdr.ko_flags & KOBJ_DIRTY);
@@ -859,13 +854,14 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	pstate_ts_decrypt(ko->hdr.ko_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
-    int r = stackwrap_call(&pstate_sync_object_stackwrap,
-			   (uintptr_t) ko, start, nbytes);
-    if (r < 0) {
-	cprintf("pstate_sync_object: cannot stackwrap: %s\n", e2s(r));
-	goto fallback;
+    thread_suspend(cur_thread, &swapout_waiting);
+    if (lock_try_acquire(&swapout_lock) < 0) {
+	cprintf("pstate_sync_object: another sync still active\n");
+	return -E_RESTART;
     }
 
+    stackwrap_call_stack(&swapout_stack1[0], &pstate_sync_object_stackwrap,
+			 (uintptr_t) ko, start, nbytes);
     return -E_RESTART;
 
 fallback:
