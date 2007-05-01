@@ -20,10 +20,6 @@ Kernel bugs:
   - log.c: pre-allocate max_mem pages and keep them in-core
   - page_alloc: if cur_thread, suspend, pstate_sync(), and return -E_RESTART
 
-User-level device drivers:
-
-* need to handle NMI
-
 Security:
 
 * netd_server doesn't do any checking on who's asking for what fd.
@@ -34,13 +30,13 @@ Security:
   operation on behalf of the caller (e.g. in the declassifier gate).
 * should be more careful in dealing with segments passed in via gates; namely,
   need to avoid page faults, and ensure that we access them only with caller's
-  privileges (verify label).  can arise for two reasons: first, we map the segment
-  into our AS but don't have the privilege to read or write to it.  this can be
-  fixed by segment_map() checking the label.  second, the other side can drop the
-  segment and the service (other side of gate) will fault because the segment is
-  gone.  for this, need either to copy all segments first, or to have a careful-read
-  and careful-write wrapper that does setjmp() first, and the segfault handler will
-  longjmp().
+  privileges (verify label).  can arise for two reasons: first, we map the
+  segment into our AS but don't have the privilege to read or write to it.
+  this can be fixed by segment_map() checking the label.  second, the other
+  side can drop the segment and the service (other side of gate) will fault
+  because the segment is gone.  for this, need either to copy all segments
+  first, or to have a careful-read and careful-write wrapper that does
+  setjmp() first, and the segfault handler will longjmp().
 * force checkpoint every N handle allocations, and roll forward handle counter by
   N after restore, for some large value N.
 * real randomness...
@@ -72,11 +68,6 @@ Security:
 
 Cleanup:
 
-* expose CPU resource allocation: track resources in container entries and
-  re-compute a thread's th_sched_tickets when it changes its label to only
-  include resources from containers it can read (set_sched_parents).
-  associate scheduling type (time-based, instruction-based) and cache
-  clearing flag with container.
 * better separation between kernel, user-space and shared header files
 * user-space resource allocators -- i.e. running without CT_QUOTA_INF
 * (?) expose kobj_label's at the syscall API to get label sharing
@@ -104,6 +95,15 @@ Larger issues:
 * system management in a fully-persistent world:
   - restarting services with handles and gates
   - upgrades (signing binaries => integrity handles?)
+* expose CPU resource allocation: track resources in container entries and
+  re-compute a thread's th_sched_tickets when it changes its label to only
+  include resources from containers it can read (set_sched_parents).
+  associate scheduling type (time-based, instruction-based) and cache
+  clearing flag with container.
+* Linux in histar userspace to replace LWIP with Linux's TCP stack.
+* port SANE switches to HiStar (Ed)
+* "decentralized SANE" to reduce covert channels in distributed HiStar
+* trusted path for voting machines?  port python to HiStar for voting software.
 
 New hardware support:
 
@@ -112,9 +112,16 @@ New hardware support:
 * debug registers: use call tracing for kernel debugging?
   intel CPUs have 16-slot buffers it seems, while AMD traps on every jmp.
 * iommu: device drivers into user-mode.  some more thoughts on hardcopy paper.
+  not so easy due to overly-trusting PCI-PCI bridges.  it may be OK to have
+  one "device driver" protection domain for most PCI devices, except that
+  the disk is a fully-trusted device.  if we can ensure that bad PCI cards
+  cannot take over the disk, then we may be OK.  also handle NMI.
 * cpu virt: containerize SMM (do any desktops use SMM much?  usb kbd virt?)
 * cpu virt: move parts of the current CPL=0 kernel into a VMM ("ring -1")
   and make the CPL=0 code less trusted.
+* cpu virt: with nested page tables, implement a "vmrun" system call that
+  will allow us to run a VM in a HiStar thread.  for devices, use qemu
+  which was ported to do the same thing for Linux's KVM.
 * use ata "nv cache" (flash memory) feature set to speed up disk sync.
 
 Miscellaneous:
@@ -135,12 +142,4 @@ at non-* levels, this might be a non-issue?
 possible answer: store all stars in a privstore; stars in thread label
 are a cache.  how to catch -E_LABEL errors and how to fetch the right
 handle?
-
-===
-
-also need to figure out how to specify which capability-like *-handles to pass
-across fork/exec/spawn.  e.g. want to pass unix-user *-handles when spawning
-processes, but not your process taint/grant handles.
-
-===
 
