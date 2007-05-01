@@ -91,6 +91,7 @@ Bugs:
 
 Larger issues:
 
+* system management: kernel upgrades?  system install?  partitioning a disk?
 * backup/restore
 * system management in a fully-persistent world:
   - restarting services with handles and gates
