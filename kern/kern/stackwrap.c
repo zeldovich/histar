@@ -63,13 +63,22 @@ stackwrap_sleep(struct stackwrap_state *ss)
 }
 
 int
-stackwrap_call(stackwrap_fn fn, uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
+stackwrap_call(stackwrap_fn fn,
+	       uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
 {
     void *stackbase;
     int r = page_alloc(&stackbase);
     if (r < 0)
 	return r;
 
+    stackwrap_call_stack(stackbase, fn, fn_arg0, fn_arg1, fn_arg2);
+    return 0;
+}
+
+void
+stackwrap_call_stack(void *stackbase, stackwrap_fn fn,
+		     uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
+{
     struct stackwrap_state *ss = (struct stackwrap_state *) stackbase;
     ss->fn = fn;
     ss->fn_arg[0] = fn_arg0;
@@ -81,7 +90,6 @@ stackwrap_call(stackwrap_fn fn, uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_
     karch_jmpbuf_init(&ss->task_state, &stackwrap_entry, ss + 1);
 
     stackwrap_wakeup(ss);
-    return 0;
 }
 
 // Blocking disk I/O support
