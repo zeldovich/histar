@@ -185,9 +185,6 @@ trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
     }
 
     trap_dispatch(trapno, &t->th_tf);
-
-    if (cur_thread == 0 || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
-	schedule();
     thread_run();
 }
 

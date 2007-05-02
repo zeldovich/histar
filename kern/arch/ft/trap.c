@@ -76,8 +76,6 @@ lnx64_schedule_loop(void)
     if (lnx64_stack_gc && sigsetjmp(env, 1) != 0)
 	lnx64_thread_cb(arch_run_t);
 
-    if (!cur_thread)
-	schedule();
     thread_run();
     printf("lnx64_schedule: thread_run returned!\n");
     exit(-1);

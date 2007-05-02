@@ -220,14 +220,17 @@ thread_gc(struct Thread *t)
 void
 thread_run(void)
 {
-    const struct Thread *t = cur_thread;
-
-    if (!SAFE_EQUAL(t->th_status, thread_runnable))
-	panic("trying to run a non-runnable thread %p", t);
-
     pstate_swapout_check();
-    thread_switch(t);
-    thread_arch_run(t);
+
+    if (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
+	schedule();
+
+    if (!SAFE_EQUAL(cur_thread->th_status, thread_runnable))
+	panic("trying to run a non-runnable thread %p", cur_thread);
+
+    // Reload the AS, in case something changed
+    thread_switch(cur_thread);
+    thread_arch_run(cur_thread);
 }
 
 int

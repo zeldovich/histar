@@ -120,7 +120,6 @@ init(uint32_t start_eax, uint32_t start_ebx)
 
     user_init();
 
-    cprintf("=== kernel ready, calling schedule() ===\n");
-    schedule();
+    cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();
 }

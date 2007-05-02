@@ -44,7 +44,7 @@ schedule(void)
 	if (!min_pass_th)
 	    panic("no runnable threads");
 
-	cur_thread = min_pass_th;
+	thread_switch(min_pass_th);
 	assert(SAFE_EQUAL(cur_thread->th_status, thread_runnable));
 
 	// Halt thread if it can't know of its existence..
