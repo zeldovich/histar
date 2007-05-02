@@ -10,6 +10,7 @@ struct lwip_socket {
     u16_t lastoffset;
     u16_t flags;
     int err;
+    int inuse;
 
     int recv_wakeup;
     int send_wakeup;

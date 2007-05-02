@@ -112,7 +112,7 @@ get_socket(int s)
 
   sock = &sockets[s];
 
-  if (!sock->conn) {
+  if (!sock->inuse) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("get_socket(%d): not active\n", s));
     set_errno(EBADF);
     return NULL;
@@ -134,7 +134,7 @@ alloc_socket(struct netconn *newconn)
 
   /* allocate a new socket identifier */
   for(i = 0; i < NUM_SOCKETS; ++i) {
-    if (!sockets[i].conn) {
+    if (!sockets[i].inuse) {
       sockets[i].conn = newconn;
       sockets[i].lastdata = NULL;
       sockets[i].lastoffset = 0;
@@ -142,6 +142,7 @@ alloc_socket(struct netconn *newconn)
       sockets[i].sendevent = 1; /* TCP send buf is empty */
       sockets[i].flags = 0;
       sockets[i].err = 0;
+      sockets[i].inuse = 1;
 
       sockets[i].recv_wakeup = 0;
       sockets[i].send_wakeup = 0;
@@ -168,6 +169,11 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
   sock = get_socket(s);
   if (!sock) {
     set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -227,6 +233,11 @@ lwip_bind(int s, struct sockaddr *name, socklen_t namelen)
     return -1;
   }
 
+  if (!sock->conn) {
+    set_errno(EINVAL);
+    return -1;
+  }
+
   local_addr.addr = ((struct sockaddr_in *)name)->sin_addr.s_addr;
   local_port = ((struct sockaddr_in *)name)->sin_port;
 
@@ -266,13 +277,14 @@ lwip_close(int s)
       return -1;
   }
 
-  netconn_delete(sock->conn);
-  if (sock->lastdata) {
+  if (sock->conn)
+    netconn_delete(sock->conn);
+  if (sock->lastdata)
     netbuf_delete(sock->lastdata);
-  }
   sock->lastdata = NULL;
   sock->lastoffset = 0;
   sock->conn = NULL;
+  sock->inuse = 0;
   sys_sem_signal(socksem);
   sock_set_errno(sock, 0);
   return 0;
@@ -287,6 +299,11 @@ lwip_connect(int s, struct sockaddr *name, socklen_t namelen)
   sock = get_socket(s);
   if (!sock) {
     set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -331,6 +348,11 @@ lwip_listen(int s, int backlog)
     return -1;
   }
 
+  if (!sock->conn) {
+    set_errno(EINVAL);
+    return -1;
+  }
+
   err = netconn_listen(sock->conn);
 
   if (err != ERR_OK) {
@@ -359,6 +381,11 @@ lwip_recvfrom(int s, void *mem, int len, unsigned int flags,
   sock = get_socket(s);
   if (!sock) {
     set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -501,6 +528,11 @@ lwip_send(int s, void *data, int size, unsigned int flags)
     return -1;
   }
 
+  if (!sock->conn) {
+    set_errno(EINVAL);
+    return -1;
+  }
+
   switch (netconn_type(sock->conn)) {
   case NETCONN_RAW:
   case NETCONN_UDP:
@@ -555,6 +587,11 @@ lwip_sendto(int s, void *data, int size, unsigned int flags,
   sock = get_socket(s);
   if (!sock) {
     set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -652,9 +689,10 @@ lwip_selscan(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset)
         {
             /* See if netconn of this socket is ready for read, or closed */
             p_sock = get_socket(i);
-            if (p_sock && (p_sock->lastdata || 
-			   (p_sock->conn->recvmbox == SYS_MBOX_NULL && p_sock->conn->acceptmbox == SYS_MBOX_NULL) ||
-			   p_sock->rcvevent))
+            if (p_sock && p_sock->conn &&
+		(p_sock->lastdata || 
+		 (p_sock->conn->recvmbox == SYS_MBOX_NULL && p_sock->conn->acceptmbox == SYS_MBOX_NULL) ||
+		 p_sock->rcvevent))
             {
                 FD_SET(i, &lreadset);
 		LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for reading\n", i));
@@ -665,7 +703,7 @@ lwip_selscan(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset)
         {
             /* See if netconn of this socket is ready for write */
             p_sock = get_socket(i);
-            if (p_sock && p_sock->sendevent)
+            if (p_sock && p_sock->conn && p_sock->sendevent)
             {
                 FD_SET(i, &lwriteset);
 		LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_selscan: fd=%d ready for writing\n", i));
@@ -921,8 +959,33 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
 
 int lwip_shutdown(int s, int how)
 {
+  /* XXX temporary hack until proper implementation: same as close */
+  struct lwip_socket *sock;
+
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_shutdown(%d, how=%d)\n", s, how));
-  return lwip_close(s); /* XXX temporary hack until proper implementation */
+  if (!socksem)
+      socksem = sys_sem_new(1);
+
+  /* We cannot allow multiple closes of the same socket. */
+  sys_sem_wait(socksem);
+
+  sock = get_socket(s);
+  if (!sock) {
+      sys_sem_signal(socksem);
+      set_errno(EBADF);
+      return -1;
+  }
+
+  if (sock->conn)
+    netconn_delete(sock->conn);
+  if (sock->lastdata)
+    netbuf_delete(sock->lastdata);
+  sock->lastdata = NULL;
+  sock->lastoffset = 0;
+  sock->conn = NULL;
+  sys_sem_signal(socksem);
+  sock_set_errno(sock, 0);
+  return 0;
 }
 
 int lwip_getpeername (int s, struct sockaddr *name, socklen_t *namelen)
@@ -935,6 +998,11 @@ int lwip_getpeername (int s, struct sockaddr *name, socklen_t *namelen)
   sock = get_socket(s);
   if (!sock) {
     set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -976,6 +1044,11 @@ int lwip_getsockname (int s, struct sockaddr *name, socklen_t *namelen)
     return -1;
   }
 
+  if (!sock->conn) {
+    set_errno(EINVAL);
+    return -1;
+  }
+
   memset(&sin, 0, sizeof(sin));
   sin.sin_len = sizeof(sin);
   sin.sin_family = AF_INET;
@@ -1005,6 +1078,11 @@ int lwip_getsockopt (int s, int level, int optname, void *optval, socklen_t *opt
 
   if(!sock) {
    	set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
@@ -1198,6 +1276,11 @@ int lwip_setsockopt (int s, int level, int optname, const void *optval, socklen_
     return -1;
   }
 
+  if (!sock->conn) {
+    set_errno(EINVAL);
+    return -1;
+  }
+
   if( NULL == optval ) {
     sock_set_errno( sock, EFAULT );
     return -1;
@@ -1360,6 +1443,11 @@ int lwip_ioctl(int s, long cmd, void *argp)
 
   if(!sock) {
    	set_errno(EBADF);
+    return -1;
+  }
+
+  if (!sock->conn) {
+    set_errno(EINVAL);
     return -1;
   }
 
