@@ -105,6 +105,13 @@ thread_arch_run(const struct Thread *ct)
     }
 }
 
+void
+thread_arch_idle(void)
+{
+    printf("system idle, exiting\n");
+    exit(0);
+}
+
 int
 thread_arch_get_entry_args(const struct Thread *t,
 			   struct thread_entry_args *targ)

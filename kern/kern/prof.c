@@ -139,10 +139,7 @@ prof_thread(const struct Thread *th, uint64_t time)
 {
     const char *asname = "---";
 
-    if (!prof_thread_enable)
-	return;
-
-    if (!th->th_as)
+    if (!prof_thread_enable || !th || !th->th_as)
 	return;
 
     if (th->th_as->as_ko.ko_name[0])

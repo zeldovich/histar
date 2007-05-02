@@ -36,15 +36,16 @@ schedule(void)
     do {
 	const struct Thread *t, *min_pass_th = 0;
 	LIST_FOREACH(t, &thread_list_runnable, th_link)
-	    if (!min_pass_th ||
-		(t->th_sched_pass < min_pass_th->th_sched_pass &&
-		 !(t->th_ko.ko_flags & KOBJ_PIN_IDLE)))
+	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
 		min_pass_th = t;
 
-	if (!min_pass_th)
-	    panic("no runnable threads");
+	cur_thread = min_pass_th;
+	if (!cur_thread) {
+	    // Schedule a preemption timer, 10 msec quantum
+	    the_schedtmr->schedule_nsec(the_schedtmr->arg, 10 * 1000 * 1000);
+	    return;
+	}
 
-	thread_switch(min_pass_th);
 	assert(SAFE_EQUAL(cur_thread->th_status, thread_runnable));
 
 	// Halt thread if it can't know of its existence..

@@ -824,9 +824,6 @@ kobject_negative_contains(kobject_id_t id)
 bool_t
 kobject_initial(const struct kobject *ko)
 {
-    if ((ko->hdr.ko_flags & KOBJ_PIN_IDLE))
-	return 1;
-
     if (ko->hdr.ko_ref == 0)
 	return 1;
 

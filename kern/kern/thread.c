@@ -225,6 +225,9 @@ thread_run(void)
     if (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();
 
+    if (!cur_thread)
+	thread_arch_idle();
+
     if (!SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	panic("trying to run a non-runnable thread %p", cur_thread);
 

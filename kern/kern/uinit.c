@@ -228,14 +228,8 @@ thread_create_embed(struct Container *c,
 		    struct Label *th_label,
 		    struct Label *th_clearance,
 		    const char *name,
-		    uint64_t arg0, uint64_t arg1,
-		    uint64_t koflag)
+		    uint64_t arg0, uint64_t arg1)
 {
-    // pin the labels of the idle process
-    obj_label->lb_ko.ko_flags |= koflag;
-    th_label->lb_ko.ko_flags |= koflag;
-    th_clearance->lb_ko.ko_flags |= koflag;
-
     struct embed_bin *prog = 0;
 
     for (int i = 0; embed_bins[i].name; i++)
@@ -248,7 +242,6 @@ thread_create_embed(struct Container *c,
     struct Container *tc;
     assert_check(container_alloc(obj_label, &tc));
     tc->ct_ko.ko_quota_total = (((uint64_t) 1) << 32);
-    tc->ct_ko.ko_flags |= koflag;
     strncpy(&tc->ct_ko.ko_name[0], name, KOBJ_NAME_LEN - 1);
     assert(container_put(c, &tc->ct_ko) >= 0);
 
@@ -262,10 +255,6 @@ thread_create_embed(struct Container *c,
     assert_check(thread_load_elf(tc, t,
 				 obj_label, th_label, th_clearance,
 				 prog->buf, prog->size, arg0, arg1));
-
-    /* XXX should go away when we have real CPU resource allocation */
-    if ((koflag & KOBJ_PIN_IDLE))
-	t->th_sched_tickets = 1;
 
     thread_set_runnable(t);
 }
@@ -323,21 +312,6 @@ user_bootstrap(void)
 
     fs_init(fsc, obj_label);
 
-    // idle: thread { idle:* 1 }, objects { idle:0 1 }, clearance { idle:3 2 }
-    struct Label *idle_th_label;
-    struct Label *idle_obj_label;
-    struct Label *idle_th_clear;
-    assert_check(label_alloc(&idle_th_label, 1));
-    assert_check(label_alloc(&idle_obj_label, 1));
-    assert_check(label_alloc(&idle_th_clear, 2));
-
-    uint64_t idle_handle = handle_alloc();
-    assert_check(label_set(idle_th_label, idle_handle, LB_LEVEL_STAR));
-    assert_check(label_set(idle_obj_label, idle_handle, 0));
-    assert_check(label_set(idle_th_clear, idle_handle, 3));
-    thread_create_embed(rc, idle_obj_label, idle_th_label, idle_th_clear,
-			"idle", 0, 0, KOBJ_PIN_IDLE);
-
     // init: thread { uroot:* }, objects { uroot:0 1 }, clearance { uroot:3 2 }
     struct Label *init_th_label;
     struct Label *init_obj_label;
@@ -351,7 +325,7 @@ user_bootstrap(void)
     assert_check(label_set(init_th_clear, user_root_handle, 3));
 
     thread_create_embed(rc, init_obj_label, init_th_label, init_th_clear,
-			"init", rc->ct_ko.ko_id, user_root_handle, 0);
+			"init", rc->ct_ko.ko_id, user_root_handle);
 }
 
 static void

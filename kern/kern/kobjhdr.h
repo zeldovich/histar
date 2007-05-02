@@ -14,7 +14,6 @@ enum {
     kolabel_max
 };
 
-#define KOBJ_PIN_IDLE		0x0001	// Pinned for the idle process
 #define KOBJ_ON_DISK		0x0002	// Might have some version on disk
 #define KOBJ_SNAPSHOTING	0x0004	// Being written out to disk
 #define KOBJ_DIRTY		0x0008	// Modified since last swapin/out

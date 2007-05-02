@@ -105,14 +105,24 @@ page_fault (const struct Trapframe *tf, uint32_t err)
 }
 
 static void
-trap_dispatch (int trapno, const struct Trapframe *tf)
+trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
-    uint64_t s, f;
-    s = read_tsc();
 
-    prof_user(s - trap_user_iret_tsc);
-    prof_thread(cur_thread, s - trap_user_iret_tsc);
+    if (trapno == T_NMI) {
+	uint8_t reason = inb(0x61);
+	panic("NMI, reason code 0x%x\n", reason);
+    }
+
+    if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
+	irq_handler(trapno - IRQ_OFFSET);
+	return;
+    }
+
+    if (!cur_thread) {
+	trapframe_print(tf);
+	panic("trap %d with no active thread", trapno);
+    }
 
     switch (trapno) {
     case T_SYSCALL:
@@ -145,11 +155,6 @@ trap_dispatch (int trapno, const struct Trapframe *tf)
 	break;
 
     default:
-	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-	    irq_handler(trapno - IRQ_OFFSET);
-	    break;
-	}
-
 	r = thread_utrap(cur_thread, 0, UTRAP_SRC_HW, trapno, 0);
 	if (r != 0 && r != -E_RESTART) {
 	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
@@ -158,13 +163,10 @@ trap_dispatch (int trapno, const struct Trapframe *tf)
 	    thread_halt(cur_thread);
 	}
     }
-
-    f = read_tsc();
-    prof_trap(trapno, f - s);
 }
 
 void __attribute__((__noreturn__, no_instrument_function))
-trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
+trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
 {
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
     uint32_t trapno = (trampoline_rip - trap0rip) / 16;
@@ -176,28 +178,26 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
 
     cyg_profile_free_stack(read_rsp());
 
-    if (trapno == T_NMI) {
-	uint8_t reason = inb(0x61);
-	panic("NMI, reason code 0x%x\n", reason);
+    if (cur_thread) {
+	struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
+	sched_stop(t, read_tsc());
+
+	t->th_tf = *tf;
+	if (t->th_fp_enabled) {
+	    void *p;
+	    assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
+	    lcr0(rcr0() & ~CR0_TS);
+	    fxsave((struct Fpregs *) p);
+	}
     }
 
-    if (cur_thread == 0) {
-	trapframe_print(tf);
-	panic("trap %d with no active thread", trapno);
-    }
+    uint64_t start = read_tsc();
+    prof_user(start - trap_user_iret_tsc);
+    prof_thread(cur_thread, start - trap_user_iret_tsc);
 
-    struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
-    sched_stop(t, read_tsc());
+    trap_dispatch(trapno, tf);
+    prof_trap(trapno, read_tsc() - start);
 
-    t->th_tf = *tf;
-    if (t->th_fp_enabled) {
-	void *p;
-	assert(0 == kobject_get_page(&t->th_ko, 0, &p, page_excl_dirty));
-	lcr0(rcr0() & ~CR0_TS);
-	fxsave((struct Fpregs *) p);
-    }
-
-    trap_dispatch(trapno, &t->th_tf);
     thread_run();
 }
 

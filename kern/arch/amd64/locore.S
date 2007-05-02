@@ -111,6 +111,12 @@ trapframe_pop:
 	addq	$tf_rip,%rsp
 	iretq
 
+.globl	thread_arch_idle
+thread_arch_idle:
+	movabsq	$(KSTACKTOP), %rsp
+	sti
+1:	jmp 1b
+
 // Local Variables:
 // comment-start: "// "
 // comment-char: ?/
