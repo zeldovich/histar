@@ -192,7 +192,7 @@ static void brain_damaged_fillrand(unsigned char *buf, unsigned int len)
 int attribute_hidden __gen_tempname (char *tmpl, int kind)
 {
     char *XXXXXX;
-    unsigned int i;
+    unsigned int i, count;
     int fd, save_errno = errno;
     unsigned char randomness[6];
     size_t len;
@@ -206,7 +206,7 @@ int attribute_hidden __gen_tempname (char *tmpl, int kind)
 	return -1;
     }
 
-    for (i = 0; i < TMP_MAX; ++i) {
+    for (count = 0; count < TMP_MAX; ++count) {
 	/* Get some random data.  */
 	if (fillrand(randomness, sizeof(randomness)) != sizeof(randomness)) {
 	    /* if random device nodes failed us, lets use the braindamaged ver */
