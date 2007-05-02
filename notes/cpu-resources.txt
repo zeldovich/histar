@@ -1,0 +1,19 @@
+flags that control the degree of CPU resource sharing:
+    - yield leftover quantum to others
+    - keep cache contents
+
+in a sense, we'd really like these to be tied to categories: e.g. any
+thread tainted in a category will necessarily be forced to not yield
+its leftover time quantum to others, and to flush cache contents.
+
+but associating it with resources may be a reasonable alternative,
+since the owner of the category is the one that must provide any
+resources for this tainted execution in the first place.
+
+so, these flags get set on containers that provide CPU resources, and
+a thread can also voluntarily ask its CPU resources to be subject to
+stronger constraints (e.g. a thread that owns a category may want to,
+at its discretion, flush cache contents on context switch).  this is
+simply an optimization to avoid the need to create dummy containers
+and shuffle owner threads around.
+
