@@ -10,6 +10,7 @@
 #include <kern/sync.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/pstate.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
@@ -222,6 +223,7 @@ thread_run(const struct Thread *t)
     if (!SAFE_EQUAL(t->th_status, thread_runnable))
 	panic("trying to run a non-runnable thread %p", t);
 
+    pstate_swapout_check();
     thread_switch(t);
     thread_arch_run(t);
 }

@@ -49,6 +49,9 @@ uint64_t pstate_ts_alloc(void);
 // waits in the kernel until a snapshot is written to disk
 int  pstate_sync_now(void);
 
+// checks if there are any pending swapout actions just before return to user
+void pstate_swapout_check(void);
+
 // partition to be used by the pstate code
 extern struct part_desc *pstate_part;
 

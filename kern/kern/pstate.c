@@ -475,10 +475,15 @@ pstate_load(void)
 // Swap-out code
 //////////////////////////////////////////////////
 
+static struct {
+    int valid;
+    stackwrap_fn fn;
+    uint64_t arg[3];
+} swapout_queue;
+
 static struct Thread_list swapout_waiting;
 static struct lock swapout_lock;
-static char swapout_stack0[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
-static char swapout_stack1[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
+static char swapout_stack[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
 
 struct swapout_stats {
     uint64_t written_kobj;
@@ -487,6 +492,33 @@ struct swapout_stats {
     uint64_t dead_kobj;
     uint64_t total_kobj;
 };
+
+void
+pstate_swapout_check(void)
+{
+    while (swapout_queue.valid) {
+	if (lock_try_acquire(&swapout_lock) < 0)
+	    return;
+
+	swapout_queue.valid = 0;
+	stackwrap_call_stack(&swapout_stack[0], swapout_queue.fn,
+			     swapout_queue.arg[0], swapout_queue.arg[1],
+			     swapout_queue.arg[2]);
+    }
+}
+
+static void
+pstate_swapout_schedule(stackwrap_fn fn, uint64_t a0, uint64_t a1, uint64_t a2)
+{
+    if (swapout_queue.valid)
+	return;
+
+    swapout_queue.valid = 1;
+    swapout_queue.fn = fn;
+    swapout_queue.arg[0] = a0;
+    swapout_queue.arg[1] = a1;
+    swapout_queue.arg[2] = a2;
+}
 
 static int
 pstate_sync_kobj(struct pstate_header *hdr,
@@ -735,12 +767,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 static void
 pstate_sync(void)
 {
-    if (lock_try_acquire(&swapout_lock) < 0) {
-	cprintf("pstate_sync: another sync still active\n");
-	return;
-    }
-
-    stackwrap_call_stack(&swapout_stack0[0], &pstate_sync_stackwrap, 0, 0, 0);
+    pstate_swapout_schedule(&pstate_sync_stackwrap, 0, 0, 0);
 }
 
 int
@@ -756,7 +783,7 @@ pstate_sync_now(void)
     }
 
     int r = 0;
-    stackwrap_call_stack(&swapout_stack0[0], &pstate_sync_stackwrap,
+    stackwrap_call_stack(&swapout_stack[0], &pstate_sync_stackwrap,
 			 (uintptr_t) &r, 0, 0);
     while (r == 0)
 	ide_poke();
@@ -855,13 +882,8 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	return 0;
 
     thread_suspend(cur_thread, &swapout_waiting);
-    if (lock_try_acquire(&swapout_lock) < 0) {
-	cprintf("pstate_sync_object: another sync still active\n");
-	return -E_RESTART;
-    }
-
-    stackwrap_call_stack(&swapout_stack1[0], &pstate_sync_object_stackwrap,
-			 (uintptr_t) ko, start, nbytes);
+    pstate_swapout_schedule(&pstate_sync_object_stackwrap,
+			    (uintptr_t) ko, start, nbytes);
     return -E_RESTART;
 
 fallback:
