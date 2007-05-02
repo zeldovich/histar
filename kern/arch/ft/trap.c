@@ -78,7 +78,7 @@ lnx64_schedule_loop(void)
 
     if (!cur_thread)
 	schedule();
-    thread_run(cur_thread);
+    thread_run();
     printf("lnx64_schedule: thread_run returned!\n");
     exit(-1);
 }

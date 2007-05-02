@@ -101,7 +101,7 @@ void thread_suspend(const struct Thread *t, struct Thread_list *waitq);
 void thread_halt(const struct Thread *t);
 
 void thread_switch(const struct Thread *t);
-void thread_run(const struct Thread *t) __attribute__((__noreturn__));
+void thread_run(void) __attribute__((__noreturn__));
 
 int  thread_pagefault(const struct Thread *t, void *va, uint32_t reqflags)
     __attribute__ ((warn_unused_result));

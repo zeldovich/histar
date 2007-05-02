@@ -201,7 +201,7 @@ trap_handler (struct Trapframe *tf, uint64_t trampoline_rip)
 
     if (cur_thread == 0 || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();
-    thread_run(cur_thread);
+    thread_run();
 }
 
 

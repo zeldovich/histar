@@ -218,8 +218,10 @@ thread_gc(struct Thread *t)
 }
 
 void
-thread_run(const struct Thread *t)
+thread_run(void)
 {
+    const struct Thread *t = cur_thread;
+
     if (!SAFE_EQUAL(t->th_status, thread_runnable))
 	panic("trying to run a non-runnable thread %p", t);
 
