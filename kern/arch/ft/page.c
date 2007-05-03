@@ -24,12 +24,6 @@ struct page_info *page_infos;
 static int scrub_free_pages = 0;
 int enable_page_alloc_failure = 0;
 
-// linked list of pages
-struct Page_link {
-    TAILQ_ENTRY(Page_link) pp_link;     // free list link
-};
-static TAILQ_HEAD(Page_list, Page_link) page_free_list;
-
 // base of our simulated physical memory range
 void *physmem_base;
 int physmem_file_fd;
@@ -72,7 +66,7 @@ lnxpage_init(uint64_t membytes)
     memset(page_infos, 0, sz);
 
     // chain the pages
-    TAILQ_INIT(&page_free_list);
+    page_alloc_init();
     for (uint64_t i = 0; i < global_npages; i++) {
 	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
 	ft_register_memory(fool_ft, PGSIZE, "physmem-page");
