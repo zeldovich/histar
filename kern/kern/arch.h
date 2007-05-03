@@ -64,7 +64,7 @@ void thread_arch_run(const struct Thread *t)
     __attribute__((__noreturn__));
 void thread_arch_idle(void)
     __attribute__((__noreturn__));
-int  thread_arch_utrap(struct Thread *t, int selftrap,
+int  thread_arch_utrap(struct Thread *t, 
 		       uint32_t src, uint32_t num, uint64_t arg)
     __attribute__ ((warn_unused_result));
 int  thread_arch_get_entry_args(const struct Thread *t,
