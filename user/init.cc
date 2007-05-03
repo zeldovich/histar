@@ -300,7 +300,7 @@ run_shell(int cons)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));
         else
             cprintf("run_shell: shell exit value %"PRId64"\n", exit_code);
-	sys_obj_unref(COBJ(start_env->root_container, shell_proc.container));
+	sys_obj_unref(COBJ(start_env->process_pool, shell_proc.container));
     }
 }
 
