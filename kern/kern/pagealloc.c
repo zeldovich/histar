@@ -40,6 +40,13 @@ page_alloc(void **vp)
 	kobject_reclaim();
 
 	if (!TAILQ_FIRST(&page_free_list)) {
+	    cprintf("page_alloc: could not reclaim any memory, swapping out\n");
+	    cprintf("page_alloc: used %"PRIu64" avail %"PRIu64
+		    " alloc %"PRIu64" fail %"PRIu64"\n",
+		    page_stats.pages_used, page_stats.pages_avail,
+		    page_stats.allocations, page_stats.failures);
+
+	    cprintf("page_alloc: trying to sync\n");
 	    pstate_sync();
 	    return -E_RESTART;
 	}

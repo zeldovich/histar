@@ -834,19 +834,9 @@ kobject_initial(const struct kobject *ko)
     return 0;
 }
 
-static int
-kobject_reclaim_check(void)
-{
-    // A rather simple heuristic for when to clean up
-    return (page_stats.pages_avail < global_npages / 4);
-}
-
 void
 kobject_reclaim(void)
 {
-    if (!kobject_reclaim_check())
-	return;
-
     const struct Thread *t = cur_thread;
     cur_thread = 0;
 
@@ -866,13 +856,6 @@ kobject_reclaim(void)
 	kobject_swapout(ko);
     }
 
-    if (kobject_reclaim_check()) {
-	cprintf("kobject_reclaim: unable to reclaim much memory\n");
-	cprintf("kobject_reclaim: used %"PRIu64" avail %"PRIu64" alloc %"PRIu64" fail %"PRIu64"\n",
-		page_stats.pages_used, page_stats.pages_avail,
-		page_stats.allocations, page_stats.failures);
-    }
-
     cur_thread = t;
 }
 
@@ -882,10 +865,6 @@ kobject_init(void)
     static struct periodic_task gc_pt =
 	{ .pt_fn = &kobject_gc_scan, .pt_interval_sec = 1 };
     timer_add_periodic(&gc_pt);
-
-    static struct periodic_task reclaim_pt =
-	{ .pt_fn = &kobject_reclaim, .pt_interval_sec = 1 };
-    timer_add_periodic(&reclaim_pt);
 
     if (kobject_print_sizes) {
 	cprintf("kobject sizes:\n");
