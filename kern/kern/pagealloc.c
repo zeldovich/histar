@@ -1,5 +1,7 @@
 #include <kern/lib.h>
 #include <kern/arch.h>
+#include <kern/kobj.h>
+#include <kern/pstate.h>
 #include <inc/error.h>
 #include <inc/queue.h>
 
@@ -34,23 +36,26 @@ page_free(void *v)
 int
 page_alloc(void **vp)
 {
-    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
-    if (pl) {
-	TAILQ_REMOVE(&page_free_list, pl, pp_link);
-	*vp = pl;
-	page_stats.pages_avail--;
-	page_stats.pages_used++;
-	page_stats.allocations++;
+    if (!TAILQ_FIRST(&page_free_list)) {
+	kobject_reclaim();
 
-	if (scrub_free_pages)
-	    memset(pl, 0xcd, PGSIZE);
-
-	return 0;
+	if (!TAILQ_FIRST(&page_free_list)) {
+	    pstate_sync();
+	    return -E_RESTART;
+	}
     }
 
-    cprintf("page_alloc: returning no mem\n");
-    page_stats.failures++;
-    return -E_NO_MEM;
+    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
+    TAILQ_REMOVE(&page_free_list, pl, pp_link);
+    *vp = pl;
+    page_stats.pages_avail--;
+    page_stats.pages_used++;
+    page_stats.allocations++;
+
+    if (scrub_free_pages)
+	memset(pl, 0xcd, PGSIZE);
+
+    return 0;
 }
 
 void

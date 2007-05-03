@@ -46,6 +46,9 @@ int  pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 			uint64_t start, uint64_t nbytes);
 uint64_t pstate_ts_alloc(void);
 
+// schedule a swapout
+void pstate_sync(void);
+
 // waits in the kernel until a snapshot is written to disk
 int  pstate_sync_now(void);
 

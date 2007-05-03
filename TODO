@@ -17,7 +17,6 @@ Kernel bugs:
   - freelist/dstack: preallocate space for free_later list on disk
   - btree/cache: check cache size is enough, use static disk read buffer page
   - log.c: pre-allocate max_mem pages and keep them in-core
-  - page_alloc: if cur_thread, suspend, pstate_sync(), and return -E_RESTART
 
 Security:
 

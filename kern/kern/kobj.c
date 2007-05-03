@@ -841,7 +841,7 @@ kobject_reclaim_check(void)
     return (page_stats.pages_avail < global_npages / 4);
 }
 
-static void
+void
 kobject_reclaim(void)
 {
     if (!kobject_reclaim_check())

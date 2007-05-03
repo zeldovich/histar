@@ -767,7 +767,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 	*rvalp = 1;
 }
 
-static void
+void
 pstate_sync(void)
 {
     pstate_swapout_schedule(&pstate_sync_stackwrap, 0, 0, 0);
