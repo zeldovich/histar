@@ -184,7 +184,9 @@ again:
 	    LIST_INSERT_HEAD(&free_children, wc, wc_link);
 
 	    // Clean up the child process's container
-	    sys_obj_unref(COBJ(start_env->shared_container, pid));
+	    int64_t pidparent = sys_container_get_parent(pid);
+	    if (pidparent >= 0)
+		sys_obj_unref(COBJ(pidparent, pid));
 
 	    if (child_debug)
 		cprintf("[%"PRIu64"] wait4: returning child %"PRIu64"\n",

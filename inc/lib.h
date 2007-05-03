@@ -60,6 +60,7 @@ typedef struct {
     uint64_t proc_container;
     uint64_t shared_container;
     uint64_t root_container;
+    uint64_t process_pool;
 
     struct cobj_ref process_status_seg;
     struct cobj_ref process_gid_seg;

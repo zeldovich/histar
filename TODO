@@ -2,8 +2,6 @@ Compatibility issues:
 
 * implement libc-tsd for correct multi-threaded libc-rpc
 * MT-safe c++ support (lib/cppsup/bits/gthr.h)
-* flatten process resource hierarchy so double-fork works,
-  then revert to uclibc's pkg/uclibc/libc/unistd/daemon.c
 
 Performance:
 

@@ -31,7 +31,8 @@ static const char *env[] = { "USER=root", "HOME=/" };
 static uint64_t time_grant;
 
 static struct child_process
-spawn_fs(int fd, const char *pn, const char *arg, label *ds, label *dr)
+spawn_fs(int rootct, int fd, const char *pn, const char *arg,
+	 label *ds, label *dr)
 {
     struct child_process cp;
     try {
@@ -41,8 +42,8 @@ spawn_fs(int fd, const char *pn, const char *arg, label *ds, label *dr)
 	    throw error(r, "cannot fs_lookup %s", pn);
 
 	const char *argv[] = { pn, arg };
-	cp = spawn(start_env->root_container, ino,
-	           fd, fd, fd,
+	cp = spawn(rootct ? start_env->root_container : start_env->process_pool,
+		   ino, fd, fd, fd,
 	           arg ? 2 : 1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
 	           0, ds, 0, dr, 0, SPAWN_NO_AUTOGRANT);
@@ -97,8 +98,14 @@ init_fs(void)
 {
     uint64_t c_root = start_env->root_container;
 
+    // create a process pool
+    int64_t procpool = sys_container_alloc(start_env->root_container, 0,
+					   "procpool", 0, CT_QUOTA_INF);
+    error_check(procpool);
+    start_env->process_pool = procpool;
+
     // mount binaries on /bin
-    int64_t fs_bin_id = container_find(c_root, kobj_container, "embed_bins");
+    int64_t fs_bin_id = container_find(c_root, kobj_container, "bin");
     if (fs_bin_id < 0)
 	throw error(fs_bin_id, "cannot find /bin");
 
@@ -178,10 +185,10 @@ init_auth(int cons, const char *shroot)
     struct child_process cp;
     int64_t ec;
 
-    cp = spawn_fs(cons, "/bin/auth_log", 0, 0, 0);
+    cp = spawn_fs(1, cons, "/bin/auth_log", 0, 0, 0);
     error_check(process_wait(&cp, &ec));
 
-    cp = spawn_fs(cons, "/bin/auth_dir", shroot, 0, 0);
+    cp = spawn_fs(1, cons, "/bin/auth_dir", shroot, 0, 0);
     error_check(process_wait(&cp, &ec));
 
     // spawn user-auth agent for root
@@ -251,7 +258,7 @@ init_procs(int cons)
     label time_ds(3), time_dr(0);
     time_ds.set(time_grant, LB_LEVEL_STAR);
     time_dr.set(time_grant, 3);
-    spawn_fs(cons, "/bin/jntpd", "ntp.stanford.edu", &time_ds, &time_dr);
+    spawn_fs(0, cons, "/bin/jntpd", "ntp.stanford.edu", &time_ds, &time_dr);
 
     FILE *inittab = fopen("/bin/inittab", "r");
     if (inittab) {
@@ -266,12 +273,12 @@ init_procs(int cons)
 	    }
 	    
 	    if (priv[0] == 'r')
-		spawn_fs(cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
+		spawn_fs(1, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
 	    else 
-		spawn_fs(cons, fn, &root_grant_buf[0], 0, 0);
+		spawn_fs(1, cons, fn, &root_grant_buf[0], 0, 0);
 	}
     }
-    spawn_fs(cons, "/bin/ksh", "/bin/init.sh", 0, 0);
+    spawn_fs(0, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
 }
 
 static void __attribute__((noreturn))
@@ -287,7 +294,7 @@ run_shell(int cons)
     dr.set(start_env->user_taint, 3);
 
     for (;;) {
-        struct child_process shell_proc = spawn_fs(cons, "/bin/ksh", 0, &ds, &dr);
+        struct child_process shell_proc = spawn_fs(0, cons, "/bin/ksh", 0, &ds, &dr);
         int64_t exit_code = 0;
         if ((r = process_wait(&shell_proc, &exit_code)) < 0)
             cprintf("run_shell: process_wait error: %s\n", e2s(r));

@@ -164,7 +164,7 @@ do_spawn(int ac, char **av, struct child_process *childp)
 
     try {
 	struct child_process child;
-        child = spawn(start_env->shared_container, ino,
+        child = spawn(start_env->process_pool, ino,
 		      0, 1, 2,
 		      ac, (const char **) av,
 		      0, 0,
@@ -209,7 +209,7 @@ spawn_and_wait(int ac, char **av)
     if (r == PROCESS_EXITED) {
 	if (code)
 	    printf("Exited with code %"PRIu64"\n", code);
-	sys_obj_unref(COBJ(start_env->shared_container, ct));
+	sys_obj_unref(COBJ(start_env->process_pool, ct));
     } else if (r == PROCESS_TAINTED) {
 	printf("Process tainted itself, detaching.\n");
     } else {
