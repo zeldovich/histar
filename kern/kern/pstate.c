@@ -767,10 +767,17 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 	*rvalp = 1;
 }
 
+static void
+pstate_sync_schedule(void)
+{
+    pstate_swapout_schedule(&pstate_sync_stackwrap, 0, 0, 0);
+}
+
 void
 pstate_sync(void)
 {
-    pstate_swapout_schedule(&pstate_sync_stackwrap, 0, 0, 0);
+    thread_suspend(cur_thread, &swapout_waiting);
+    pstate_sync_schedule();
 }
 
 int
@@ -867,7 +874,7 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 fallback:
     kobject_snapshot_release(&ko->hdr);
     lock_release(&swapout_lock);
-    pstate_sync();
+    pstate_sync_schedule();
 }
 
 int
@@ -891,7 +898,7 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 
 fallback:
     thread_suspend(cur_thread, &swapout_waiting);
-    pstate_sync();
+    pstate_sync_schedule();
     return -E_RESTART;
 }
 
@@ -906,7 +913,7 @@ pstate_sync_user(uint64_t timestamp)
 	return 0;
 
     thread_suspend(cur_thread, &swapout_waiting);
-    pstate_sync();
+    pstate_sync_schedule();
     return -E_RESTART;
 }
 

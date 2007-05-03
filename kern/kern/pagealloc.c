@@ -46,7 +46,6 @@ page_alloc(void **vp)
 		    page_stats.pages_used, page_stats.pages_avail,
 		    page_stats.allocations, page_stats.failures);
 
-	    cprintf("page_alloc: trying to sync\n");
 	    pstate_sync();
 	    return -E_RESTART;
 	}
