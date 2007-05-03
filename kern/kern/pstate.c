@@ -14,14 +14,14 @@
 #include <kern/part.h>
 
 // verbose flags
-static int pstate_load_debug = 0;
-static int pstate_swapin_debug = 0;
-static int pstate_swapout_debug = 0;
-static int pstate_swapout_object_debug = 0;
-static int pstate_swapout_stats = 0;
+enum { pstate_load_debug = 0 };
+enum { pstate_swapin_debug = 0 };
+enum { pstate_swapout_debug = 0 };
+enum { pstate_swapout_object_debug = 0 };
+enum { pstate_swapout_stats = 0 };
 
-static int scrub_disk_pages = 0;
-static int commit_panic = 0;
+enum { scrub_disk_pages = 0 };
+enum { commit_panic = 0 };
 
 // Disk partition to use
 struct part_desc *pstate_part;
@@ -67,18 +67,21 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 
     int r = btree_search(BTREE_OBJMAP, &ko->hdr.ko_id, &key, (uint64_t *)&mobj);
     if (r == 0) {
-    	assert(key == ko->hdr.ko_id);
+	assert(key == ko->hdr.ko_id);
 
 	if (scrub_disk_pages) {
-	    disk_io_status s;
-	    void *p;
-	    assert(0 == page_alloc(&p));
-	    memset(p, 0xc4, PGSIZE);
+	    static uint8_t dummy_sector[512];
+	    memset(&dummy_sector[0], 0xc4, PGSIZE);
 
-	    for (uint32_t i = 0; i < mobj.nbytes; i += 512)
-		s = stackwrap_disk_io(op_write, pstate_part, p, 512, mobj.off + i * 512);
-
-	    page_free(p);
+	    for (uint32_t i = 0; i < mobj.nbytes; i += 512) {
+		disk_io_status s =
+		    stackwrap_disk_io(op_write, pstate_part,
+				      &dummy_sector[0], 512,
+				      mobj.off + i * 512);
+		if (!SAFE_EQUAL(s, disk_io_success))
+		    cprintf("pstate_kobj_free: cannot scrub sector %"PRIu64"\n",
+			    mobj.off + i * 512);
+	    }
 	}
 
 	freelist_free_later(f, mobj.off, mobj.nbytes);

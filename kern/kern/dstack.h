@@ -12,8 +12,11 @@ struct dstack {
 };
 
 void dstack_init(struct dstack *s);
-int dstack_push(struct dstack *s, uint64_t n);
-uint64_t dstack_pop(struct dstack *s);
-char dstack_empty(struct dstack *s);
+int  dstack_push(struct dstack *s, uint64_t n)
+    __attribute__((warn_unused_result));
+uint64_t dstack_pop(struct dstack *s)
+    __attribute__((warn_unused_result));
+char dstack_empty(struct dstack *s)
+    __attribute__((warn_unused_result));
 
 #endif /*DSTACK_H_ */

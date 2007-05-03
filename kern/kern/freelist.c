@@ -144,8 +144,8 @@ static struct dstack free_later;
 void
 freelist_free_later(struct freelist *l, uint64_t base, uint64_t nbytes)
 {
-    dstack_push(&free_later, base);
-    dstack_push(&free_later, nbytes);
+    assert(0 == dstack_push(&free_later, base));
+    assert(0 == dstack_push(&free_later, nbytes));
 }
 
 int
