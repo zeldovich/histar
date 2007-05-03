@@ -24,8 +24,8 @@ static struct {
     struct hashentry map_back[LOG_PAGES];
 } the_log;
 
-static int
-log_write_to_disk(struct node_list *nodes, uint64_t * count)
+static int __attribute__((warn_unused_result))
+log_write_to_disk(struct node_list *nodes, uint64_t *count)
 {
     disk_io_status s;
     uint64_t n = 0;
@@ -47,8 +47,8 @@ log_write_to_disk(struct node_list *nodes, uint64_t * count)
     return 0;
 }
 
-static int
-log_write_to_log(struct node_list *nodes, uint64_t * count, offset_t off)
+static int __attribute__((warn_unused_result))
+log_write_to_log(struct node_list *nodes, uint64_t *count, offset_t off)
 {
     disk_io_status s;
     uint64_t n = 0;
@@ -88,7 +88,7 @@ log_free_list(struct node_list *nodes)
     return n;
 }
 
-static int
+static int __attribute__((warn_unused_result))
 log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
 {
     int r;
@@ -106,15 +106,16 @@ log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
     return 0;
 }
 
-static int
-log_read_map(struct hashtable *map, struct node_list *nodes)
+static int64_t __attribute__((warn_unused_result))
+log_read_map(struct hashtable *map, uint64_t max_nodes, struct node_list *nodes)
 {
     int r;
     struct btree_node *node;
     disk_io_status s;
     struct hashiter iter;
 
-    for (hashiter_init(map, &iter); hashiter_next(&iter);) {
+    uint64_t count = 0;
+    for (hashiter_init(map, &iter); hashiter_next(&iter); ) {
 	offset_t off = iter.hi_val;
 	if ((r = page_alloc((void **) &node)) < 0)
 	    return r;
@@ -124,8 +125,13 @@ log_read_map(struct hashtable *map, struct node_list *nodes)
 	    return -E_IO;
 	assert(node->block.offset == iter.hi_key);
 	TAILQ_INSERT_HEAD(nodes, node, node_log_link);
+
+	count++;
+	if (count >= max_nodes)
+	    break;
     }
-    return 0;
+
+    return count;
 }
 
 int
@@ -261,7 +267,7 @@ log_apply_disk(uint64_t n_nodes)
 int
 log_apply_mem(void)
 {
-    int r;
+    int64_t r;
     uint64_t count;
     if ((r = log_write_to_disk(&the_log.nodes, &count)) < 0)
 	return r;
@@ -274,11 +280,20 @@ log_apply_mem(void)
     the_log.in_mem -= count;
     assert(the_log.in_mem == 0);
 
-    if (the_log.disk_map.size) {
+    while (the_log.disk_map.size) {
 	struct node_list in_log;
 	TAILQ_INIT(&in_log);
-	log_read_map(&the_log.disk_map, &in_log);
-	log_write_to_disk(&in_log, &count);
+	r = log_read_map(&the_log.disk_map, the_log.max_mem, &in_log);
+	assert(r != 0);
+	if (r < 0)
+	    return r;
+
+	r = log_write_to_disk(&in_log, &count);
+	if (r < 0)
+	    return r;
+
+	TAILQ_FOREACH(node, &in_log, node_log_link)
+	    hash_del(&the_log.disk_map, node->block.offset);
 	log_free_list(&in_log);
     }
 
