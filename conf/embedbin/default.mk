@@ -1,4 +1,4 @@
-KERN_BINFILES	:= user/idle user/init user/jshell user/ksh user/inittab
+KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab
 KERN_BINFILES	+= user/netd user/netd_mom
 #KERN_BINFILES	+= user/telnetd user/httpd user/httpd_worker user/tcpserv user/ftpd user/jntpd
 KERN_BINFILES	+= user/fetch user/dnstest
