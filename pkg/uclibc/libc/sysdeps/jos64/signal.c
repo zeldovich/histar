@@ -191,13 +191,15 @@ signal_trap_thread(struct cobj_ref tobj)
     int retry_count = 0;
     for (;;) {
 	if (signal_debug)
-	    cprintf("[%"PRIu64"] signal_trap_thread: trying to trap %"PRIu64".%"PRIu64"\n",
+	    cprintf("[%"PRIu64"] signal_trap_thread: "
+		    "trying to trap %"PRIu64".%"PRIu64"\n",
 		    thread_id(), tobj.container, tobj.object);
 	int r = sys_thread_trap(tobj, cur_as, UTRAP_USER_SIGNAL, 0);
 
 	if (r == 0) {
 	    if (signal_debug)
-		cprintf("[%"PRIu64"] signal_trap_thread: trapped %"PRIu64".%"PRIu64"\n",
+		cprintf("[%"PRIu64"] signal_trap_thread: "
+			"trapped %"PRIu64".%"PRIu64"\n",
 			thread_id(), tobj.container, tobj.object);
 
 	    if (trap_mu_locked)
@@ -208,13 +210,15 @@ signal_trap_thread(struct cobj_ref tobj)
 	if (r == -E_BUSY) {
 	    retry_count++;
 	    if (signal_debug || !(retry_count % 10))
-		cprintf("[%"PRIu64"] signal_trap_thread: cannot trap %"PRIu64".%"PRIu64", retrying\n",
+		cprintf("[%"PRIu64"] signal_trap_thread: "
+			"cannot trap %"PRIu64".%"PRIu64", retrying\n",
 			thread_id(), tobj.container, tobj.object);
 	    thread_sleep_nsec(NSEC_PER_SECOND / 100);
 	    continue;
 	}
 
-	cprintf("[%"PRIu64"] (%s) signal_trap_thread: cannot trap %"PRIu64".%"PRIu64": %s\n",
+	cprintf("[%"PRIu64"] (%s) signal_trap_thread: "
+		"cannot trap %"PRIu64".%"PRIu64": %s\n",
 		thread_id(), jos_progname, tobj.container, tobj.object, e2s(r));
 	__set_errno(EPERM);
 	if (trap_mu_locked)
@@ -294,7 +298,8 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 	    return;
 
 	default:
-	    cprintf("%s: unhandled default signal %d\n", jos_progname, si->si_signo);
+	    cprintf("%s: unhandled default signal %d\n",
+		    jos_progname, si->si_signo);
 	    exit(-1);
 	}
     }
@@ -318,7 +323,8 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 
     if (signo == SIGSEGV && tls_pgfault_all && *tls_pgfault_all) {
 	if (signal_debug)
-	    cprintf("[%"PRIu64"] signal_utrap_onstack: longjmp to tls_pgfault_all\n",
+	    cprintf("[%"PRIu64"] signal_utrap_onstack: "
+		    "longjmp to tls_pgfault_all\n",
 		    thread_id());
 
 	utrap_set_mask(1);
@@ -460,7 +466,8 @@ signal_utrap(struct UTrapframe *utf)
 	    int r = stack_grow(si.si_addr);
 	    if (r > 0) {
 		if (signal_debug)
-		    cprintf("[%"PRIu64"] signal_utrap: grew stack\n", thread_id());
+		    cprintf("[%"PRIu64"] signal_utrap: grew stack\n",
+			    thread_id());
 		return;
 	    }
 
@@ -476,7 +483,8 @@ signal_utrap(struct UTrapframe *utf)
 	    int r = sys_self_fp_enable();
 	    if (r >= 0) {
 		if (signal_debug)
-		    cprintf("[%"PRIu64"] signal_utrap: enabled FP\n", thread_id());
+		    cprintf("[%"PRIu64"] signal_utrap: enabled FP\n",
+			    thread_id());
 		return;
 	    }
 
@@ -490,8 +498,8 @@ signal_utrap(struct UTrapframe *utf)
 	    // XXX TRAP_BRKPT or TRAP_TRACE?
 	    si.si_code = TRAP_BRKPT;
 	} else {
-	    cprintf("[%"PRIu64"] signal_utrap: unknown hw trap %d\n", thread_id(),
-		    utf->utf_trap_num);
+	    cprintf("[%"PRIu64"] signal_utrap: unknown hw trap %d\n",
+		    thread_id(), utf->utf_trap_num);
 	    utf_dump(utf);
 
 	    si.si_signo = SIGILL;
