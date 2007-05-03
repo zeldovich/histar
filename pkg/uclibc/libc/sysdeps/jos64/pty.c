@@ -366,7 +366,8 @@ pty_shutdown(struct Fd *fd, int how)
 static int
 pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 {
-    if (req == TCGETS) {
+    switch (req) {
+    case TCGETS: {
     	if (!fd->fd_isatty) {
 	    __set_errno(ENOTTY);
 	    return -1;
@@ -376,26 +377,48 @@ pty_ioctl(struct Fd *fd, uint64_t req, va_list ap, struct pty_seg *ps)
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	memcpy(k_termios, &ps->ios, sizeof(*k_termios));
 	return 0;
-    } else if (req == TCSETS || req == TCSETSW || req == TCSETSF) {
+    }
+
+    case TCSETS:
+    case TCSETSW:
+    case TCSETSF: {
 	const struct __kernel_termios *k_termios;
 	k_termios = va_arg(ap, struct __kernel_termios *);
 	memcpy(&ps->ios, k_termios, sizeof(ps->ios));
 	return 0;
-    } else if (req == TIOCGPGRP) {
+    }
+
+    case TIOCGPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	*pgrp = ps->pgrp;
 	return 0;
-    } else if (req == TIOCSPGRP) {
+    }
+
+    case TIOCSPGRP: {
 	pid_t *pgrp = va_arg(ap, pid_t *);
 	ps->pgrp = *pgrp;
 	return 0;
-    } else if (req == TIOCSCTTY) {
+    }
+
+    case TIOCSCTTY:
 	ps->pgrp = getpgrp();
 	return 0;
+
+    case TIOCSWINSZ:
+	ps->winsize = *(struct winsize *) va_arg(ap, struct winsize*);
+	/*
+	 * In theory, should send SIGWINCH to the process group.
+	 */
+	return 0;
+
+    case TIOCGWINSZ:
+	*(struct winsize *) va_arg(ap, struct winsize*) = ps->winsize;
+	return 0;
+
+    default:
+	cprintf("pty_ioctl: request 0x%"PRIx64" unimplemented\n", req);
+	return -1;
     }
-    
-    cprintf("pty_ioctl: request 0x%"PRIx64" unimplemented\n", req);
-    return -1;
 }
 
 static int
