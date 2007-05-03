@@ -408,6 +408,12 @@ get_more_data:
     buf = netconn_recv(sock->conn);
 
     if (!buf) {
+      /* TCP connection closed, make sure select wakes up */
+      if (!sock->rcvevent) {
+	sock->rcvevent++;
+	lwipext_sync_notify(s, NETCONN_EVT_RCVPLUS);
+      }
+
       /* We should really do some error checking here. */
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): buf == NULL!\n", s));
       sock_set_errno(sock, 0);
