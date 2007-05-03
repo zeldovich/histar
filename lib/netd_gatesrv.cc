@@ -149,6 +149,13 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 		throw basic_exception("cannot allocate ipc_copy");
 	    scope_guard<void, void*> free_copy(free, ipc_copy);
 
+	    struct jos_jmp_buf pgfault2;
+	    if (jos_setjmp(&pgfault2) != 0) {
+		*tls_pgfault = &pgfault;
+		break;
+	    }
+	    *tls_pgfault = &pgfault2;
+
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		memcpy(&ipc_copy->args, &ipc_shared->args,
 		       ipc_shared->args.size);
@@ -165,11 +172,15 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY,
 				  nsec_keepalive);
 	    }
+
+	    *tls_pgfault = &pgfault;
 	}
 
 	unref.force();
 	error_check(sys_self_set_as(temp_as));
     }
+
+    thread_halt();
 }
 
 static void
