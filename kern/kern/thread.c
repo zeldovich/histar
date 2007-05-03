@@ -495,7 +495,8 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 	return r;
 
     if (thread_pf_debug)
-	cprintf("thread_pagefault(th %"PRIu64" %s, as %"PRIu64" %s, va %p): %s\n",
+	cprintf("thread_pagefault(th %"PRIu64" %s, as %"PRIu64
+		" (%s), va %p): %s\n",
 		t->th_ko.ko_id, &t->th_ko.ko_name[0],
 		t->th_as->as_ko.ko_id, &t->th_as->as_ko.ko_name[0],
 		fault_va, e2s(r));
