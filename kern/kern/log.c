@@ -18,6 +18,7 @@ static struct {
     uint8_t tailq_inited;
     uint8_t must_apply;
     struct node_list nodes;
+    struct node_list free_nodes;
 
     uint64_t on_disk;
     struct hashtable disk_map;
@@ -83,7 +84,7 @@ log_free_list(struct node_list *nodes)
     for (prev = TAILQ_FIRST(nodes); prev; prev = next, n++) {
 	next = TAILQ_NEXT(prev, node_log_link);
 	TAILQ_REMOVE(nodes, prev, node_log_link);
-	page_free(prev);
+	TAILQ_INSERT_HEAD(&the_log.free_nodes, prev, node_log_link);
     }
     return n;
 }
@@ -91,13 +92,14 @@ log_free_list(struct node_list *nodes)
 static int __attribute__((warn_unused_result))
 log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
 {
-    int r;
     struct btree_node *node;
     disk_io_status s;
 
     for (uint64_t i = 0; i < n_nodes; i++, off += BTREE_BLOCK_SIZE) {
-	if ((r = page_alloc((void **) &node)) < 0)
-	    return r;
+	node = TAILQ_FIRST(&the_log.free_nodes);
+	assert(node);
+	TAILQ_REMOVE(&the_log.free_nodes, node, node_log_link);
+
 	s = stackwrap_disk_io(op_read, pstate_part, node, BTREE_BLOCK_SIZE, off);
 	if (!SAFE_EQUAL(s, disk_io_success))
 	    return -E_IO;
@@ -109,16 +111,17 @@ log_read_log(offset_t off, uint64_t n_nodes, struct node_list *nodes)
 static int64_t __attribute__((warn_unused_result))
 log_read_map(struct hashtable *map, uint64_t max_nodes, struct node_list *nodes)
 {
-    int r;
     struct btree_node *node;
     disk_io_status s;
     struct hashiter iter;
 
     uint64_t count = 0;
     for (hashiter_init(map, &iter); hashiter_next(&iter); ) {
+	node = TAILQ_FIRST(&the_log.free_nodes);
+	assert(node);
+	TAILQ_REMOVE(&the_log.free_nodes, node, node_log_link);
+
 	offset_t off = iter.hi_val;
-	if ((r = page_alloc((void **) &node)) < 0)
-	    return r;
 	s = stackwrap_disk_io(op_read, pstate_part,
 			      node, BTREE_BLOCK_SIZE, off);
 	if (!SAFE_EQUAL(s, disk_io_success))
@@ -171,6 +174,7 @@ log_write(struct btree_node *node)
 	    break;
 	}
     }
+
     if (!found) {
 	if (the_log.in_mem == the_log.max_mem) {
 	    if ((r = log_flush()) < 0)
@@ -179,8 +183,11 @@ log_write(struct btree_node *node)
 	    the_log.in_mem -= count;
 	    assert(the_log.in_mem == 0);
 	}
-	if ((r = page_alloc((void **) &store)) < 0)
-	    return r;
+
+	store = TAILQ_FIRST(&the_log.free_nodes);
+	assert(store);
+	TAILQ_REMOVE(&the_log.free_nodes, store, node_log_link);
+
 	memset(store, 0, PGSIZE);
 	the_log.in_mem++;
     }
@@ -199,7 +206,7 @@ log_free(offset_t byteoff)
     TAILQ_FOREACH(node, &the_log.nodes, node_log_link) {
 	if (byteoff == node->block.offset) {
 	    TAILQ_REMOVE(&the_log.nodes, node, node_log_link);
-	    page_free(node);
+	    TAILQ_INSERT_HEAD(&the_log.free_nodes, node, node_log_link);
 	    the_log.in_mem--;
 	    break;
 	}
@@ -312,7 +319,16 @@ log_init(void)
 {
     if (!the_log.tailq_inited) {
 	TAILQ_INIT(&the_log.nodes);
+	TAILQ_INIT(&the_log.free_nodes);
 	the_log.tailq_inited = 1;
+
+	for (uint64_t i = 0; i < LOG_MEMORY; i++) {
+	    struct btree_node *node;
+	    int r = page_alloc((void **) &node);
+	    if (r < 0)
+		panic("log_init: cannot allocate buffers: %s\n", e2s(r));
+	    TAILQ_INSERT_TAIL(&the_log.free_nodes, node, node_log_link);
+	}
     }
 
     log_free_list(&the_log.nodes);
