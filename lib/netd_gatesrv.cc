@@ -87,19 +87,10 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
 		    sys_container_alloc(taint_ct, private_label.to_ulabel(),
 					"netd_fast private", 0, CT_QUOTA_INF));
 	
-	struct u_address_space uas;
-	uas.size = 64;
-	uas.ents = (struct u_segment_mapping *) malloc(sizeof(*uas.ents) * uas.size);
-	if (!uas.ents)
-	    throw error(-E_NO_MEM, "netd_ipc_setup: out of memory");
-	
 	int64_t asid;
-	error_check(asid = sys_as_create(private_ct, 0, "netd_ipc temp AS"));
+	error_check(asid = sys_as_copy(netd_asref, private_ct,
+				       0, "netd_ipc temp AS"));
 	*temp_as = COBJ(private_ct, asid);
-	segment_unmap_flush();
-	error_check(sys_as_get(netd_asref, &uas));
-	error_check(sys_as_set(*temp_as, &uas));
-	free(uas.ents);
     }
     
     error_check(sys_self_set_as(*temp_as));
@@ -123,7 +114,12 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
     netd_ipc_setup(gcd->taint_container, gcd->param_obj, 
 		   SEGMAP_READ | SEGMAP_WRITE,
 		   (void **) &ipc, &map_bytes, &temp_as);
-    
+
+    struct jos_jmp_buf pgfault;
+    if (jos_setjmp(&pgfault) != 0)
+	thread_halt();
+    *tls_pgfault = &pgfault;
+
     if (map_bytes != sizeof(*ipc))
 	throw basic_exception("wrong size IPC segment: %"PRIu64" should be %"PRIu64"\n",
 			      map_bytes, (uint64_t) sizeof(*ipc));
@@ -132,35 +128,33 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 	while (ipc->sync == NETD_IPC_SYNC_REPLY)
 	    sys_sync_wait(&ipc->sync, NETD_IPC_SYNC_REPLY, ~0UL);
 
-	error_check(sys_self_addref(netd_ct));
-	scope_guard<int, cobj_ref> unref(sys_obj_unref, COBJ(netd_ct, thread_id()));
-
 	error_check(sys_self_set_as(netd_asref));
+	error_check(sys_self_addref(netd_ct));
+	scope_guard<int, cobj_ref> unref(sys_obj_unref,
+					 COBJ(netd_ct, thread_id()));
 	segment_as_switched();
 
 	// Map shared memory segment & execute operation
 	{
 	    struct netd_ipc_segment *ipc_shared = 0;
-	    error_check(segment_map(gcd->param_obj, 0, SEGMAP_READ | SEGMAP_WRITE | SEGMAP_VECTOR_PF,
+	    error_check(segment_map(gcd->param_obj, 0,
+				    SEGMAP_READ | SEGMAP_WRITE
+						| SEGMAP_VECTOR_PF,
 				    (void **) &ipc_shared, &map_bytes, 0));
 	    scope_guard<int, void *> unmap(segment_unmap, ipc_shared);
 
-	    cobj_ref copy_seg;
-	    struct netd_ipc_segment *ipc_copy = 0;
-	    error_check(segment_alloc(start_env->proc_container, sizeof(*ipc_copy),
-				      &copy_seg, (void **) &ipc_copy, 0, "ipc copy"));
-	    scope_guard<int, void *> unmap2(segment_unmap, ipc_copy);
-	    scope_guard<int, cobj_ref> drop(sys_obj_unref, copy_seg);
+	    struct netd_ipc_segment *ipc_copy;
+	    ipc_copy = (struct netd_ipc_segment *) malloc(sizeof(*ipc_copy));
+	    if (!ipc_copy)
+		throw basic_exception("cannot allocate ipc_copy");
+	    scope_guard<void, void*> free_copy(free, ipc_copy);
 
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
-		struct jos_jmp_buf pgfault;
-		if (jos_setjmp(&pgfault) != 0)
-		    break;
-		*tls_pgfault = &pgfault;
-
-		memcpy(&ipc_copy->args, &ipc_shared->args, ipc_shared->args.size);
+		memcpy(&ipc_copy->args, &ipc_shared->args,
+		       ipc_shared->args.size);
 		netd_dispatch(&ipc_copy->args);
-		memcpy(&ipc_shared->args, &ipc_copy->args, ipc_copy->args.size);
+		memcpy(&ipc_shared->args, &ipc_copy->args,
+		       ipc_copy->args.size);
 
 		ipc_shared->sync = NETD_IPC_SYNC_REPLY;
 		error_check(sys_sync_wakeup(&ipc_shared->sync));
@@ -168,13 +162,13 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 		int64_t nsec_keepalive = sys_clock_nsec() + NSEC_PER_SECOND;
 		while (ipc_shared->sync == NETD_IPC_SYNC_REPLY &&
 		       sys_clock_nsec() < nsec_keepalive)
-		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY, nsec_keepalive);
+		    sys_sync_wait(&ipc_shared->sync, NETD_IPC_SYNC_REPLY,
+				  nsec_keepalive);
 	    }
 	}
 
 	unref.force();
 	error_check(sys_self_set_as(temp_as));
-	segment_as_switched();	
     }
 }
 
