@@ -19,10 +19,10 @@ struct Thread_list kobj_snapshot_waiting;
 static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
 static struct kobject_list ko_gc_list;
 
-static int kobject_reclaim_debug = 0;
-static int kobject_checksum_enable = 0;
-static int kobject_checksum_pedantic = 0;
-static int kobject_print_sizes = 0;
+enum { kobject_reclaim_debug = 0 };
+enum { kobject_checksum_enable = 0 };
+enum { kobject_checksum_pedantic = 0 };
+enum { kobject_print_sizes = 0 };
 
 struct kobject *
 kobject_h2k(struct kobject_hdr *kh)
