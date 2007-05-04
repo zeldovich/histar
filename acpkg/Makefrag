@@ -15,7 +15,8 @@ ACPKG_LDFLAGS	:= $(LDFLAGS) -L$(TOP)/$(ACPKG_PREFIX)/lib
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include \
 		   -I$(TOP)/pkg/uclibc++/include
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
-AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) --build=$(ACPKG_BUILD_SYS) \
+AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) \
+		   --build=$(ACPKG_BUILD_SYS) \
 		   --prefix=$(TOP)/$(ACPKG_PREFIX)
 
 ## autoconf terminology:
@@ -35,7 +36,8 @@ ACENV += LIBS=\"\"
 ACENV += CC=\"acpkg-wrap-gcc\" CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
-	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no ac_cv_func_psignal=yes \
+	ac_cv_func_psignal=yes \
+	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no \
 	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
 	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no
 
@@ -84,25 +86,39 @@ ACPKG_BUILD_LIST := tar-1.15
 ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/acpkg-wrap-gcc \
 		   $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof \
 		   $(ACPKG_WRAPDIR)/acpkg-wrap-c++ \
-		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++
+		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++ \
+		   $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
 $(ACPKG_WRAPS):
 	@mkdir -p $(ACPKG_WRAPDIR)
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
-	echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
+	( echo "#!/bin/sh"; \
+	  echo "PATH=$$PATH"; \
+	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
-	echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" >> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
+	( echo "#!/bin/sh"; \
+	  echo "PATH=$$PATH"; \
+	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
+	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc
+
+	( echo "#!/bin/sh"; \
+	  echo "PATH=$$PATH"; \
+	  echo "exec $(ACPKG_CCACHE) $(CC) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS) -lcprof" ) \
+	> $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof
 
-	echo "#!/bin/sh" > $(ACPKG_WRAPDIR)/acpkg-wrap-c++
-	echo "exec $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" >> $(ACPKG_WRAPDIR)/acpkg-wrap-c++
+	( echo "#!/bin/sh"; \
+	  echo "PATH=$$PATH"; \
+	  echo "exec $(ACPKG_CCACHE) $(CXX) \"\$$@\" $(ACPKG_CPPFLAGS) $(ACPKG_LDFLAGS)" ) \
+	> $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 
 	cp -p $(ACPKG_WRAPDIR)/acpkg-wrap-c++ $(ACPKG_WRAPDIR)/acpkg-wrap-g++
+	cp -p $(ACPKG_WRAPDIR)/acpkg-wrap-gcc $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
