@@ -199,8 +199,31 @@ pthread_equal(pthread_t t1, pthread_t t2)
     return t1 == t2;
 }
 
+int
+__pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+{
+    static jthread_mutex_t once_mu;
+
+    jthread_mutex_lock(&once_mu);
+    if (*once_control) {
+	jthread_mutex_unlock(&once_mu);
+	return 0;
+    }
+
+    *once_control = 1;
+    jthread_mutex_unlock(&once_mu);
+
+    init_routine();
+    return 0;
+}
+
 weak_alias (__pthread_mutex_init, pthread_mutex_init)
 weak_alias (__pthread_mutex_lock, pthread_mutex_lock)
 weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
 weak_alias (__pthread_mutex_unlock, pthread_mutex_unlock)
+weak_alias (__pthread_once, pthread_once)
+
+void *__libc_internal_tsd_get;
+void *__libc_internal_tsd_set;
+void *__libc_internal_tsd_address;
 
