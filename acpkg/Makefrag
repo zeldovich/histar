@@ -31,15 +31,18 @@ AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) \
 ACENV += CFLAGS_FOR_BUILD=\"-g -O2 -DSTDC_HEADERS\"
 ACENV += LIBS=\"\"
 
-## uncomment the below line to use libcprof with acpkgs
-#ACENV += CC=\"acpkg-wrap-gcc-prof\" CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
-ACENV += CC=\"acpkg-wrap-gcc\" CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
+ACENV += CC=\"acpkg-wrap-gcc\"
+ACENV += CC_FOR_TARGET=\"acpkg-wrap-gcc\"
+ACENV += CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	ac_cv_func_psignal=yes \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no \
 	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
 	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no
+
+## uncomment the below line to use libcprof with acpkgs
+#ACENV += CC=\"acpkg-wrap-gcc-prof\"
 
 ##
 ## ./configure arguments for different packages
@@ -86,8 +89,7 @@ ACPKG_BUILD_LIST := tar-1.15
 ACPKG_WRAPS	:= $(ACPKG_WRAPDIR)/acpkg-wrap-gcc \
 		   $(ACPKG_WRAPDIR)/acpkg-wrap-gcc-prof \
 		   $(ACPKG_WRAPDIR)/acpkg-wrap-c++ \
-		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++ \
-		   $(ACPKG_WRAPDIR)/$(TARGET)-gcc
+		   $(ACPKG_WRAPDIR)/acpkg-wrap-g++
 ACPKG_CCACHE	:= $(shell ccache -V >/dev/null 2>/dev/null && echo ccache)
 
 $(ACPKG_WRAPS):
@@ -118,7 +120,6 @@ $(ACPKG_WRAPS):
 	chmod a+x $(ACPKG_WRAPDIR)/acpkg-wrap-c++
 
 	cp -p $(ACPKG_WRAPDIR)/acpkg-wrap-c++ $(ACPKG_WRAPDIR)/acpkg-wrap-g++
-	cp -p $(ACPKG_WRAPDIR)/acpkg-wrap-gcc $(ACPKG_WRAPDIR)/$(TARGET)-gcc
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
