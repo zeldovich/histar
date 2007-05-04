@@ -5,6 +5,7 @@
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/container.h>
+#include <bits/libc-tsd.h>
 
 int
 __pthread_mutex_init(pthread_mutex_t * mutex,
@@ -223,7 +224,8 @@ weak_alias (__pthread_mutex_trylock, pthread_mutex_trylock)
 weak_alias (__pthread_mutex_unlock, pthread_mutex_unlock)
 weak_alias (__pthread_once, pthread_once)
 
-void *__libc_internal_tsd_get;
-void *__libc_internal_tsd_set;
-void *__libc_internal_tsd_address;
+void *(*__libc_internal_tsd_get) (enum __libc_tsd_key_t);
+int (*__libc_internal_tsd_set) (enum __libc_tsd_key_t, __const void *);
+void **(*const __libc_internal_tsd_address) (enum __libc_tsd_key_t)
+     __attribute__ ((__const__));
 
