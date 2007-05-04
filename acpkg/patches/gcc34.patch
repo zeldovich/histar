@@ -10,3 +10,16 @@
  	r=`${PWD_COMMAND}`; export r; \
  	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
  	AR="$(AR_FOR_BUILD)"; export AR; \
+--- /home/nickolai/build/gcc-3.4.5/libiberty/strsignal.c	2003-04-15 13:36:33.000000000 -0700
++++ gcc-3.4.5/libiberty/strsignal.c	2007-05-04 14:18:06.000000000 -0700
+@@ -558,8 +558,8 @@
+ 
+ void
+ psignal (signo, message)
+-  unsigned signo;
+-  char *message;
++  int signo;
++  const char *message;
+ {
+   if (signal_names == NULL)
+     {
