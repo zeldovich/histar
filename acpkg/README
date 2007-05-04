@@ -1,0 +1,2 @@
+After extracting gcc-3.4.5, rm -r gcc-3.4.5/libstdc++-v3
+
