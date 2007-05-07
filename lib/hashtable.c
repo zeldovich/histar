@@ -117,9 +117,14 @@ hash_put(struct hashtable *table, uint64_t key, uint64_t val)
 	    break;
     }
 
+    uint64_t oldkey = table->entry[probe].key;
+    if (oldkey != key) {
+	assert(oldkey == 0 || oldkey == TOMB);
+	table->size++;
+    }
+
     table->entry[probe].key = key;
     table->entry[probe].val = val;
-    table->size++;
     return 0;
 }
 
@@ -181,10 +186,12 @@ hash_init(struct hashtable *table, struct hashentry *back, int n)
 void
 hash_print(struct hashtable *table)
 {
-    int i;
-    for (i = 0; i < table->capacity; i++)
+    for (int i = 0; i < table->capacity; i++) {
+	if (table->entry[i].key == 0 && table->entry[i].val == 0)
+	    continue;
 	cprintf("i %d key %"PRIu64" val %"PRIu64"\n", i,
 		table->entry[i].key, table->entry[i].val);
+    }
 }
 
 
