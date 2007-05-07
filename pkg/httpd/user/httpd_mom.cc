@@ -56,7 +56,7 @@ static void
 module_setup(void)
 {
     if (fork() == 0) {
-	int r = execl(module_setup_bin, module_setup_bin, 0);
+	int r = execl(module_setup_bin, module_setup_bin, NULL);
 	printf("httpd_mom: could not setup modules: %s\n", strerror(r));
 	exit(1);
     } else

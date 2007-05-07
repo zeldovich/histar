@@ -34,7 +34,7 @@ arg_desc cmdarg[] = {
     { "httpd_path", "/bin/httpd2"},
     { "httpd_root_path", "/www" },
         
-    { 0, 0 }
+    { 0, "" }
 };
 
 static struct cobj_ref the_ssld_cow;
@@ -169,7 +169,9 @@ inet_server(uint16_t port)
         if (ss < 0)
             panic("cannot accept client: %s\n", strerror(ss));
 	
-	conn_info ci = { ss, i };
+	conn_info ci;
+	ci.data.sock = ss;
+	ci.data.count = i;
 	struct cobj_ref t;
 	r = thread_create(start_env->proc_container, &inet_client,
 			  (void*) ci.u64, &t, "inet client");

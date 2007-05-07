@@ -227,7 +227,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
     } else if (!memcmp(req, "/cgi-bin/", strlen("/cgi-bin/"))) {
 	std::string pn = req;
 	perl(httpd_root_ino, pn.c_str(), ut, ug, header);
-    } else if (tmp = strchr(strip_req, '?')) {
+    } else if ((tmp = strchr(strip_req, '?'))) {
 	*tmp = 0;
 	tmp++;
 	if (!strcmp(tmp, "a2pdf")) {

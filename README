@@ -37,31 +37,17 @@ very faithfully.  For example, the OpenBSD 3.7 floppy won't boot.
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
         --disable-nls --enable-64-bit-bfd
 
-* GCC
+* GCC 4.1.2
 
-patch -p0 <<EOM
---- gcc-3.4.4/libiberty/configure       2005/11/29 19:33:30     1.1
-+++ gcc-3.4.4/libiberty/configure       2005/11/29 19:33:52
-@@ -3244,7 +3244,7 @@
- int main() { _ascii (); _ebcdic (); return 0; }
- EOF
-  if test -f conftest.c ; then
--     if ${CC-cc} ${CFLAGS} conftest.c -o conftest.o && test -f conftest.o ; then
-+     if ${CC-cc} ${CFLAGS} conftest.c -c -o conftest.o && test -f conftest.o ; then
-         if test `grep -l BIGenDianSyS conftest.o` ; then
-            echo $ac_n ' big endian probe OK, ' 1>&6
-            ac_cv_c_bigendian=yes
-EOM
-
-rm -r gcc-3.4.4/libstdc++-v3
+rm -r gcc-4.1.2/libstdc++-v3
 
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
-        --disable-nls --without-headers --with-newlib \
-        --disable-threads --disable-shared
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp 
 
-Building libstdc++-v3, which is needed for a lot of C++ features,
-requires system headers for the target platform (e.g. from building
-a cross-glibc).
+We don't build libstdc++-v3, libmudflap, or libssp, because it
+requires system headers and crt files for the target platform.
 
 Note that for some versions of gcc, you may need to say "env
 SHELL=/bin/sh gmake" if you have a different shell.

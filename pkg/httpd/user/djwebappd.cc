@@ -34,7 +34,7 @@ handle_req(const char *req, uint64_t ut, uint64_t ug,
     start_env->user_grant = ug;
     start_env->user_taint = ut;
 
-    if (tmp = strchr(strip_req, '?')) {
+    if ((tmp = strchr(strip_req, '?'))) {
         *tmp = 0;
         tmp++;
 
