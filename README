@@ -32,7 +32,9 @@ On bochs 2.2, --enable-instrumentation doesn't compile, but CVS
 versions work.  Unfortunately, bochs doesn't seem to emulate AMD64
 very faithfully.  For example, the OpenBSD 3.7 floppy won't boot.
 
-* Binutils doesn't understand elf64, so use target x86_64-jos-linux:
+* binutils
+
+Download binutils from http://www.kernel.org/pub/linux/devel/binutils/
 
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
         --disable-nls --enable-64-bit-bfd
