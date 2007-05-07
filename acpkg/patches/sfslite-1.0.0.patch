@@ -199,3 +199,14 @@
  }
  
  bool
+--- sfslite-1.0.0/crypt/blowfish.h.orig	2007-05-07 15:28:57.000000000 -0700
++++ sfslite-1.0.0/crypt/blowfish.h	2007-05-07 15:29:03.000000000 -0700
+@@ -44,7 +44,7 @@
+   /* Note: BF_N must be divisible by 2! */
+   enum { BF_N = 16 };
+   static void enforce_bf_n_even ()
+-    { switch (1) case BF_N & 1: case 1:; }
++    { switch (1) default: case BF_N & 1: case 1:; }
+ 
+   u_int32_t P[BF_N + 2];
+   u_int32_t S[4][256];
