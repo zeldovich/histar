@@ -449,7 +449,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     }
 }
 
-static void
+void
 signal_utrap(struct UTrapframe *utf)
 {
     if (signal_debug)
