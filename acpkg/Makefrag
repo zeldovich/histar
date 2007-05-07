@@ -13,7 +13,7 @@ ACPKG_WRAPDIR	:= $(OBJDIR)/acpkg-wrap
 
 ACPKG_LDFLAGS	:= $(LDFLAGS) -L$(TOP)/$(ACPKG_PREFIX)/lib
 ACPKG_CPPFLAGS	:= $(USER_INC) -DJOS_USER -I$(TOP)/$(ACPKG_PREFIX)/include \
-		   -I$(TOP)/pkg/uclibc++/include
+		   -I$(TOP)/pkg/uclibc++/include -fno-builtin-fork
 ACPKG_BUILD_SYS	:= $(shell $(TOP)/acpkg/config.guess)
 AUTOCONF_ARGS	:= --host=$(TARGET) --target=$(TARGET) \
 		   --build=$(ACPKG_BUILD_SYS) \
