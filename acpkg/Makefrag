@@ -144,7 +144,9 @@ acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PA
 .PRECIOUS: acpkg/%/__reconf
 acpkg/%/__reconf: PKGNAME=$(patsubst acpkg/%/__reconf,%,$@)
 acpkg/%/__reconf: $(ACPKG_WRAPS) acpkg/%/__patch
-	( cd acpkg/$(PKGNAME) && sh -c "autoreconf -fis" )
+	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
+	    ( cd acpkg/$(PKGNAME) && sh -c "autoreconf -fis" ); \
+	fi
 	touch $@
 
 .PRECIOUS: acpkg/%/__build
