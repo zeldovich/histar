@@ -25,7 +25,8 @@ openssl_print_error(SSL *ssl, int r, int use_cprintf)
 {
     int e;
 
-    int (*print)(const char *fmt, ...) = &printf;
+    int __attribute__((format (__printf__, 1, 0)))
+	(*print)(const char *fmt, ...) = &printf;
     if (use_cprintf)
 	print = &cprintf;
 

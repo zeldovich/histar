@@ -16,11 +16,13 @@ HTTPD_LIB_OBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(HTTPD_LIB_OBJFILES))
 
 $(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.c acpkg/openssl-0.9.8a/__build
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $< $(HTTPD_CFLAGS)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE \
+	    -Wno-missing-format-attribute -Werror -c -o $@ $< $(HTTPD_CFLAGS)
 
 $(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.cc acpkg/openssl-0.9.8a/__build
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(HTTPD_CFLAGS)
+	$(CXX) $(USER_CXXFLAGS) -Wno-missing-format-attribute \
+	    -Werror -c -o $@ $< $(HTTPD_CFLAGS)
 
 $(OBJDIR)/pkg/httpd/lib/libhttpd.a: $(HTTPD_LIB_OBJFILES)
 	rm -f $@
