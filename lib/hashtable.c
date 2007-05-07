@@ -1,6 +1,7 @@
 #include <kern/lib.h>
 #include <inc/hashtable.h>
 #include <inc/error.h>
+#include <inc/intmacro.h>
 
 #define TOMB  UINT64(0xFFFFFFFFFFFFFFFF)
 #define LEN   1
