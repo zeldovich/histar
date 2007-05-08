@@ -11,6 +11,13 @@ Performance:
 
 Kernel bugs:
 
+* better tracking of suspended threads:
+  - clear cur_thread when running kernel threads (stackwraps)
+  - if an operation cannot complete when in a kernel thread, then user
+    threads that were waiting for the kernel thread now need to wait
+    for the new operation.
+  - so, need to take threads off one Thread_list and suspend them onto
+    another Thread_list.  maybe we need a cur_waitlist?
 * race between swapout and swapin?
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: preallocate space for free_later list on disk
