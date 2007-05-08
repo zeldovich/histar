@@ -282,6 +282,7 @@ as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 	// Can skip invalidation -- simply growing the mapping.
     } else {
 	// Invalidate any pre-existing mappings first..
+	assert(!sm->sm_sg || as == sm->sm_as);
 	as_invalidate_sm(sm);
     }
 
@@ -691,6 +692,7 @@ as_invalidate_label(const struct Address_space *as, int invalidate_tls)
 	{
 	    if (as_debug)
 		cprintf("as_invalidate_label: calling as_invalidate_sm\n");
+	    assert(as == sm->sm_as);
 	    as_invalidate_sm(sm);
 	}
     }
