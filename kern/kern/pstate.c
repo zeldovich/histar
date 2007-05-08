@@ -781,18 +781,22 @@ pstate_sync_schedule(void)
 void
 pstate_sync(void)
 {
-    thread_suspend(cur_thread, &swapout_waiting);
+    if (cur_thread)
+	thread_suspend(cur_thread, &swapout_waiting);
     pstate_sync_schedule();
 }
 
 int
 pstate_sync_now(void)
 {
+    assert(cur_thread);
+
     if (!pstate_part)
 	return 0;
 
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync_now: another sync still active\n");
+
 	thread_suspend(cur_thread, &swapout_waiting);
 	return -E_RESTART;
     }
@@ -886,6 +890,8 @@ int
 pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 		   uint64_t start, uint64_t nbytes)
 {
+    assert(cur_thread);
+
     if (!pstate_part)
 	return 0;
 
@@ -910,6 +916,8 @@ fallback:
 int
 pstate_sync_user(uint64_t timestamp)
 {
+    assert(cur_thread);
+
     if (!pstate_part)
 	return 0;
 
