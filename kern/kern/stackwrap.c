@@ -48,6 +48,8 @@ stackwrap_entry(void)
 void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
+    assert(ss->magic == STACKWRAP_MAGIC && ss->alive == 1);
+
     if (jos_setjmp(&ss->entry_cb) == 0)
 	jos_longjmp(&ss->task_state, 1);
 
