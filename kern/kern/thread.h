@@ -28,12 +28,15 @@ struct Thread {
     kobject_id_t th_sg;
 
     thread_status th_status;
+
     uint8_t th_pinned : 1;
     uint8_t th_fp_enabled : 1;
     uint8_t th_fp_space : 1;
     uint8_t th_sched_joined : 1;
     uint8_t th_sync_waiting : 1;
     uint8_t th_cache_flush : 1;
+    uint8_t th_linked : 1;
+
     uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
 
@@ -65,7 +68,6 @@ struct Thread_ephemeral {
 };
 
 extern struct Thread_list thread_list_runnable;
-extern struct Thread_list thread_list_limbo;
 extern const struct Thread *cur_thread, *syscall_thread;
 
 int  thread_alloc(const struct Label *contaminate,

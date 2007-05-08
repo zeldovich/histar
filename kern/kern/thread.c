@@ -19,7 +19,6 @@ enum { thread_pf_debug = 0 };
 
 const struct Thread *cur_thread, *syscall_thread;
 struct Thread_list thread_list_runnable;
-struct Thread_list thread_list_limbo;
 
 static void
 thread_pin(struct Thread *t)
@@ -42,9 +41,21 @@ thread_unpin(struct Thread *t)
 static void
 thread_unlink(struct Thread *t)
 {
-    LIST_REMOVE(t, th_link);
+    if (t->th_linked) {
+	LIST_REMOVE(t, th_link);
+	t->th_linked = 0;
+    }
+
     if (t->th_sync_waiting)
 	sync_remove_thread(t);
+}
+
+static void
+thread_link(struct Thread *t, struct Thread_list *tlist)
+{
+    assert(!t->th_linked);
+    LIST_INSERT_HEAD(tlist, t, th_link);
+    t->th_linked = 1;
 }
 
 static void
@@ -68,10 +79,10 @@ thread_set_runnable(const struct Thread *const_t)
 
     thread_sched_adjust(t, 0);
     thread_unlink(t);
-    LIST_INSERT_HEAD(&thread_list_runnable, t, th_link);
+    thread_link(t, &thread_list_runnable);
+    t->th_status = thread_runnable;
     thread_sched_adjust(t, 1);
 
-    t->th_status = thread_runnable;
     thread_pin(t);
 }
 
@@ -82,7 +93,7 @@ thread_suspend(const struct Thread *const_t, struct Thread_list *waitq)
 
     thread_sched_adjust(t, 0);
     thread_unlink(t);
-    LIST_INSERT_HEAD(waitq, t, th_link);
+    thread_link(t, waitq);
     t->th_status = thread_suspended;
     thread_pin(t);
 }
@@ -94,7 +105,6 @@ thread_halt(const struct Thread *const_t)
 
     thread_sched_adjust(t, 0);
     thread_unlink(t);
-    LIST_INSERT_HEAD(&thread_list_limbo, t, th_link);
     t->th_status = thread_halted;
     thread_unpin(t);
     if (cur_thread == t)
@@ -148,6 +158,7 @@ thread_swapin(struct Thread *t)
     t->th_pinned = 0;
     t->th_sched_joined = 0;
     t->th_sync_waiting = 0;
+    t->th_linked = 0;
 
     /*
      * Zeroing out scheduler state means we can lose or gain resources
@@ -160,13 +171,10 @@ thread_swapin(struct Thread *t)
     if (SAFE_EQUAL(t->th_status, thread_suspended))
 	t->th_status = thread_runnable;
 
-    struct Thread_list *tq =
-	SAFE_EQUAL(t->th_status, thread_runnable) ? &thread_list_runnable
-						  : &thread_list_limbo;
-    LIST_INSERT_HEAD(tq, t, th_link);
-
-    // Runnable and suspended threads are pinned
     if (SAFE_EQUAL(t->th_status, thread_runnable)) {
+	thread_link(t, &thread_list_runnable);
+
+	// Runnable and suspended threads are pinned
 	thread_sched_adjust(t, 1);
 	thread_pin(t);
     }

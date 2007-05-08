@@ -105,3 +105,10 @@ the thread's current CPU priority was computed, by adding global_pass
 and th_sched_remain, the value could underflow and become very large,
 meaning that the thread would almost never get scheduled.
 
+***
+
+When we run out of memory part-way through allocating a thread, the
+object is left in an inconsistent state (not on any linked list).
+When this zero-ref object is later GC'ed, the kernel removes it
+from a linked list, and panics due to a null pointer deref.
+
