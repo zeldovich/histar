@@ -286,17 +286,14 @@ pstate_swapin_id(kobject_id_t id)
     return r;
 }
 
+static struct Thread_list swapin_waiting;
+
 static void
 pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
 {
     kobject_id_t id = (kobject_id_t) arg;
-    static struct Thread_list swapin_waiting;
     static struct lock swapin_lock;
 
-    if (cur_thread)
-	thread_suspend(cur_thread, &swapin_waiting);
-
-    // XXX
     // The reason for having only one swapin at a time is to avoid
     // swapping in the same object twice.
     if (lock_try_acquire(&swapin_lock) < 0)
@@ -320,15 +317,22 @@ pstate_swapin(kobject_id_t id)
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin: object %"PRIu64"\n", id);
 
-    int r = stackwrap_call(&pstate_swapin_stackwrap, id, 0, 0);
+    void *stackpage;
+    int r = page_alloc(&stackpage);
     if (r < 0) {
-	cprintf("pstate_swapin: cannot stackwrap: %s\n", e2s(r));
+	cprintf("pstate_swapin: cannot alloc stack page: %s\n", e2s(r));
 	return r;
     }
+
+    if (cur_thread)
+	thread_suspend(cur_thread, &swapin_waiting);
+
+    stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
 
     // If the thread is still runnable, don't claim -E_RESTART.
     if (cur_thread && SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	return 0;
+
     return -E_RESTART;
 }
 
