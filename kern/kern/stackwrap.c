@@ -54,6 +54,8 @@ stackwrap_wakeup(struct stackwrap_state *ss)
     if (jos_setjmp(&ss->entry_cb) == 0)
 	jos_longjmp(&ss->task_state, 1);
 
+    assert(ss->magic == STACKWRAP_MAGIC);
+
     if (!ss->alive && ss->freestack)
 	page_free(ss->stackbase);
 }
@@ -61,8 +63,12 @@ stackwrap_wakeup(struct stackwrap_state *ss)
 void
 stackwrap_sleep(struct stackwrap_state *ss)
 {
+    assert(ss->magic == STACKWRAP_MAGIC && ss->alive);
+
     if (jos_setjmp(&ss->task_state) == 0)
 	jos_longjmp(&ss->entry_cb, 1);
+
+    assert(ss->magic == STACKWRAP_MAGIC && ss->alive);
 }
 
 int
