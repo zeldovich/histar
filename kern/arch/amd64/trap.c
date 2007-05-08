@@ -86,11 +86,8 @@ page_fault (const struct Trapframe *tf, uint32_t err)
 	reqflags |= SEGMAP_EXEC;
 
     if ((tf->tf_cs & 3) == 0) {
-	cprintf("kernel page fault: thread %ld (%s), va=%p\n",
-		cur_thread ? cur_thread->th_ko.ko_id : 0,
-		cur_thread ? cur_thread->th_ko.ko_name : "(null)", fault_va);
+	cprintf("kernel page fault: va=%p\n", fault_va);
 	trapframe_print(tf);
-
 	panic("kernel page fault");
     } else {
 	int r = thread_pagefault(cur_thread, fault_va, reqflags);
