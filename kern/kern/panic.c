@@ -28,6 +28,19 @@ _panic(const char *file, int line, const char *fmt, ...)
     cprintf("\n");
     va_end(ap);
 
+#define PRINT_STACK(i) \
+    cprintf("Call stack[%d]: %p\n", i, __builtin_return_address(i))
+
+    PRINT_STACK(0);
+    PRINT_STACK(1);
+    PRINT_STACK(2);
+    PRINT_STACK(3);
+    PRINT_STACK(4);
+    PRINT_STACK(5);
+    PRINT_STACK(6);
+    PRINT_STACK(7);
+    
+
  dead:
     abort();
 }
