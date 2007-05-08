@@ -42,12 +42,12 @@ int
 page_alloc(void **vp)
 {
     if (!TAILQ_FIRST(&page_free_list)) {
-	cprintf("page_alloc: out of memory, swapping out\n");
-	cprintf("page_alloc: used %"PRIu64" avail %"PRIu64
+	cprintf("page_alloc: out of memory: used %"PRIu64" avail %"PRIu64
 		" alloc %"PRIu64" fail %"PRIu64"\n",
 		page_stats.pages_used, page_stats.pages_avail,
 		page_stats.allocations, page_stats.failures);
 
+	page_stats.failures++;
 	pstate_sync();
 	return -E_RESTART;
     }
