@@ -2,6 +2,7 @@
 #include <kern/arch.h>
 #include <kern/kobj.h>
 #include <kern/pstate.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 #include <inc/queue.h>
 
@@ -24,6 +25,10 @@ page_free(void *v)
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
 	panic("page_free: not a page-aligned pointer %p", pl);
+
+    struct page_info *pi = page_to_pageinfo(v);
+    assert(!pi->pi_freepage);
+    pi->pi_freepage = 1;
 
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
@@ -56,6 +61,10 @@ page_alloc(void **vp)
 
     if (scrub_free_pages)
 	memset(pl, 0xcd, PGSIZE);
+
+    struct page_info *pi = page_to_pageinfo(pl);
+    assert(pi->pi_freepage);
+    pi->pi_freepage = 0;
 
     return 0;
 }
