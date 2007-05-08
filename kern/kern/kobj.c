@@ -474,6 +474,8 @@ kobject_copy_pages(const struct kobject_hdr *srch,
 struct kobject *
 kobject_dirty(const struct kobject_hdr *kh)
 {
+    assert(kh);
+
     struct kobject *ko = kobject_const_h2k(kh);
     ko->hdr.ko_flags |= KOBJ_DIRTY;
     return ko;
@@ -497,18 +499,19 @@ kobject_swapin(struct kobject *ko)
 	cprintf("kobject_swapin: %"PRIu64" (%s) checksum mismatch: 0x%"PRIx64" != 0x%"PRIx64"\n",
 		ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
 
+    struct kobject_list *hash_head = HASH_SLOT(&ko_hash, ko->hdr.ko_id);
+
     struct kobject *kx;
-    LIST_FOREACH(kx, &ko_list, ko_link)
+    LIST_FOREACH(kx, hash_head, ko_hash)
 	if (ko->hdr.ko_id == kx->hdr.ko_id)
 	    panic("kobject_swapin: duplicate %"PRIu64" (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
 
     kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
+    LIST_INSERT_HEAD(hash_head, ko, ko_hash);
     if (ko->hdr.ko_ref == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
-    struct kobject_list *hash_head = HASH_SLOT(&ko_hash, ko->hdr.ko_id);
-    LIST_INSERT_HEAD(hash_head, ko, ko_hash);
 
     ko->hdr.ko_pin = 0;
     ko->hdr.ko_pin_pg = 0;
