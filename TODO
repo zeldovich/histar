@@ -14,7 +14,6 @@ Kernel bugs:
 * race between swapout and swapin?
 * bugs in handling out-of-memory conditions [low priority for now]:
   - freelist/dstack: preallocate space for free_later list on disk
-  - btree/cache: check cache size is enough, use static disk read buffer page
 
 Security:
 
