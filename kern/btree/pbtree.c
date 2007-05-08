@@ -19,29 +19,29 @@ pbtree_open_node(uint64_t id, offset_t offset, uint8_t ** mem)
     if ((r = cache_ent(cache, offset, mem)) == 0)
 	return 0;
 
-    uint8_t *buf;
-    if (page_alloc((void **) &buf) < 0)
-	return -E_NO_MEM;
+    static struct lock buffer_lock;
+    static uint8_t buf[BTREE_BLOCK_SIZE];
 
-    r = log_try_read(offset, buf);
+    lock_acquire(&buffer_lock);
+
+    r = log_try_read(offset, &buf[0]);
     if (r < 0) {
 	// 'updated' node not in log, so read from disk
 	disk_io_status s = stackwrap_disk_io(op_read,
 					     pstate_part,
-					     buf,
+					     &buf[0],
 					     BTREE_BLOCK_SIZE,
 					     offset);
 	if (!SAFE_EQUAL(s, disk_io_success)) {
 	    cprintf("btree_simple_node: error reading node from disk\n");
-	    page_free(buf);
+	    lock_release(&buffer_lock);
 	    *mem = 0;
 	    return -E_IO;
 	}
     }
 
     r = cache_try_insert(cache, offset, buf, mem);
-
-    page_free(buf);
+    lock_release(&buffer_lock);
 
     if (r < 0) {
 	*mem = 0;
