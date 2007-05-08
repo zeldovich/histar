@@ -11,6 +11,8 @@ Performance:
 
 Kernel bugs:
 
+* instead of having syscall_thread (gets invalidated on thread GC/swapout),
+  pin the thread while executing the syscall..
 * better tracking of suspended threads:
   - clear cur_thread when running kernel threads (stackwraps)
   - if an operation cannot complete when in a kernel thread, then user
