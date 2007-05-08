@@ -74,7 +74,7 @@ stackwrap_call(stackwrap_fn fn,
     if (r < 0)
 	return r;
 
-    stackwrap_call_stack(stackbase, 0, fn, fn_arg0, fn_arg1, fn_arg2);
+    stackwrap_call_stack(stackbase, 1, fn, fn_arg0, fn_arg1, fn_arg2);
     return 0;
 }
 
