@@ -424,15 +424,21 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	    panic("kobject_set_nbytes: cannot drop page: %s", e2s(r));
     }
 
+    uint64_t maxalloc = curnpg;
     for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
 	r = page_alloc(&p);
-	if (r == 0)
+	if (r == 0) {
 	    r = pagetree_put_page(&ko->ko_pt, i, p);
+	    if (r < 0)
+		page_free(p);
+	    else
+		maxalloc++;
+	}
 
 	if (r < 0) {
 	    // free all the pages we allocated up to now
-	    for (uint64_t j = kobject_npages(kp); j < i; j++)
+	    for (uint64_t j = curnpg; j < maxalloc; j++)
 		assert(0 == pagetree_put_page(&ko->ko_pt, j, 0));
 	    return r;
 	}
