@@ -11,7 +11,7 @@ typedef void (*stackwrap_fn) (uint64_t, uint64_t, uint64_t);
 int  stackwrap_call(stackwrap_fn fn,
 		    uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
     __attribute__ ((warn_unused_result));
-void stackwrap_call_stack(void *stackpage, stackwrap_fn fn,
+void stackwrap_call_stack(void *stackpage, int freestack, stackwrap_fn fn,
 			  uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2);
 
 disk_io_status stackwrap_disk_io(disk_op op, struct part_desc *pd, void *buf,

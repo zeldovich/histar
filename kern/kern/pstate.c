@@ -509,7 +509,7 @@ pstate_swapout_check(void)
 	if (lock_try_acquire(&swapout_lock) < 0)
 	    return;
 
-	stackwrap_call_stack(&swapout_stack[0], swapout_queue.fn,
+	stackwrap_call_stack(&swapout_stack[0], 0, swapout_queue.fn,
 			     swapout_queue.arg[0], swapout_queue.arg[1],
 			     swapout_queue.arg[2]);
     }
@@ -802,7 +802,7 @@ pstate_sync_now(void)
     }
 
     int r = 0;
-    stackwrap_call_stack(&swapout_stack[0], &pstate_sync_stackwrap,
+    stackwrap_call_stack(&swapout_stack[0], 0, &pstate_sync_stackwrap,
 			 (uintptr_t) &r, 0, 0);
     while (r == 0)
 	ide_poke();

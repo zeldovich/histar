@@ -16,7 +16,8 @@ struct stackwrap_state {
     struct jos_jmp_buf entry_cb;
     struct jos_jmp_buf task_state;
 
-    int alive;
+    uint8_t alive : 1;
+    uint8_t freestack : 1;
     uint64_t magic;
 };
 
@@ -48,12 +49,12 @@ stackwrap_entry(void)
 void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
-    assert(ss->magic == STACKWRAP_MAGIC && ss->alive == 1);
+    assert(ss->magic == STACKWRAP_MAGIC && ss->alive);
 
     if (jos_setjmp(&ss->entry_cb) == 0)
 	jos_longjmp(&ss->task_state, 1);
 
-    if (ss->alive == 0)
+    if (!ss->alive && ss->freestack)
 	page_free(ss->stackbase);
 }
 
@@ -73,12 +74,12 @@ stackwrap_call(stackwrap_fn fn,
     if (r < 0)
 	return r;
 
-    stackwrap_call_stack(stackbase, fn, fn_arg0, fn_arg1, fn_arg2);
+    stackwrap_call_stack(stackbase, 0, fn, fn_arg0, fn_arg1, fn_arg2);
     return 0;
 }
 
 void
-stackwrap_call_stack(void *stackbase, stackwrap_fn fn,
+stackwrap_call_stack(void *stackbase, int freestack, stackwrap_fn fn,
 		     uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
 {
     struct stackwrap_state *ss = (struct stackwrap_state *) stackbase;
@@ -88,6 +89,7 @@ stackwrap_call_stack(void *stackbase, stackwrap_fn fn,
     ss->fn_arg[2] = fn_arg2;
     ss->stackbase = stackbase;
     ss->alive = 1;
+    ss->freestack = !!freestack;
     ss->magic = STACKWRAP_MAGIC;
     karch_jmpbuf_init(&ss->task_state, &stackwrap_entry, ss + 1);
 
@@ -142,7 +144,7 @@ stackwrap_disk_iov(disk_op op, struct part_desc *pd, struct kiovec *iov_buf,
 
     for (;;) {
 	int r = disk_io(op, iov_buf, iov_cnt, offset, &disk_io_cb, &ds);
-	if (r == 0) {
+	if (r >= 0) {
 	    stackwrap_sleep(ss);
 	    break;
 	} else if (r == -E_BUSY) {
