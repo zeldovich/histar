@@ -504,6 +504,7 @@ pstate_swapout_check(void)
 
 	/* Garbage-collect before writing garbage to disk */
 	kobject_gc_scan();
+	kobject_reclaim();
 
 	if (lock_try_acquire(&swapout_lock) < 0)
 	    return;

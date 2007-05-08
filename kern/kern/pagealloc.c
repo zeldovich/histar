@@ -37,18 +37,14 @@ int
 page_alloc(void **vp)
 {
     if (!TAILQ_FIRST(&page_free_list)) {
-	kobject_reclaim();
+	cprintf("page_alloc: could not reclaim any memory, swapping out\n");
+	cprintf("page_alloc: used %"PRIu64" avail %"PRIu64
+		" alloc %"PRIu64" fail %"PRIu64"\n",
+		page_stats.pages_used, page_stats.pages_avail,
+		page_stats.allocations, page_stats.failures);
 
-	if (!TAILQ_FIRST(&page_free_list)) {
-	    cprintf("page_alloc: could not reclaim any memory, swapping out\n");
-	    cprintf("page_alloc: used %"PRIu64" avail %"PRIu64
-		    " alloc %"PRIu64" fail %"PRIu64"\n",
-		    page_stats.pages_used, page_stats.pages_avail,
-		    page_stats.allocations, page_stats.failures);
-
-	    pstate_sync();
-	    return -E_RESTART;
-	}
+	pstate_sync();
+	return -E_RESTART;
     }
 
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
