@@ -39,7 +39,6 @@ _panic(const char *file, int line, const char *fmt, ...)
     PRINT_STACK(5);
     PRINT_STACK(6);
     PRINT_STACK(7);
-    
 
  dead:
     abort();
