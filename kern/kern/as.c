@@ -649,7 +649,9 @@ as_invalidate_sm(struct segment_mapping *sm)
 	cprintf("as_invalidate_sm\n");
 
     const struct u_segment_mapping *usm;
-    assert(0 == as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro));
+    int r = as_get_usegmap(sm->sm_as, &usm, sm->sm_as_slot, page_shared_ro);
+    if (r < 0)
+	panic("as_invalidate_sm: cannot fetch usegmap: %s", e2s(r));
 
     void *map_first = usm->va;
     void *map_last = usm->va + (usm->num_pages - 1) * PGSIZE;
