@@ -245,6 +245,12 @@ thread_arch_run(const struct Thread *t)
     trapframe_pop(&t->th_tf);
 }
 
+void
+thread_arch_idle(void)
+{
+    thread_arch_idle_asm();
+}
+
 int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 {
