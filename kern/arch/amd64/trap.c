@@ -123,8 +123,6 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	panic("trap %d while idle", trapno);
     }
 
-    kobject_pin_hdr(&trap_thread->th_ko);
-
     switch (trapno) {
     case T_SYSCALL:
 	trap_thread_jumped = 0;
@@ -157,8 +155,6 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	    thread_halt(trap_thread);
 	}
     }
-
-    kobject_unpin_hdr(&trap_thread->th_ko);
 }
 
 void __attribute__((__noreturn__, no_instrument_function))
@@ -211,10 +207,24 @@ run_cache_flush(const struct Thread *t)
     prev_cflush = t->th_cache_flush;
 }
 
+static void
+trap_thread_set(const struct Thread *t)
+{
+    if (trap_thread) {
+	kobject_unpin_hdr(&trap_thread->th_ko);
+	trap_thread = 0;
+    }
+
+    if (t) {
+	kobject_pin_hdr(&t->th_ko);
+	trap_thread = t;
+    }
+}
+
 void
 thread_arch_run(const struct Thread *t)
 {
-    trap_thread = t;
+    trap_thread_set(t);
     trap_user_iret_tsc = read_tsc();
 
     /*
@@ -248,7 +258,7 @@ thread_arch_run(const struct Thread *t)
 void
 thread_arch_idle(void)
 {
-    trap_thread = 0;
+    trap_thread_set(0);
     thread_arch_idle_asm();
 }
 
