@@ -15,6 +15,8 @@
 #include <inc/error.h>
 
 static uint64_t trap_user_iret_tsc;
+static const struct Thread *syscall_thread;
+static int syscall_thread_jumped;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -124,14 +126,16 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     switch (trapno) {
     case T_SYSCALL:
 	syscall_thread = cur_thread;
+	syscall_thread_jumped = 0;
+	kobject_pin_hdr(&syscall_thread->th_ko);
 
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 
-	if (syscall_thread) {
+	if (!syscall_thread_jumped) {
 	    /*
-	     * If the thread is still alive, and the system call completed,
-	     * roll forward the program counter and return the result.
+	     * If the thread didn't get vectored elsewhere,
+	     * write the result into the thread's registers.
 	     */
 	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
 	    if (r == -E_RESTART)
@@ -139,6 +143,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	    else
 		t->th_tf.tf_rax = r;
 	}
+
+	kobject_unpin_hdr(&syscall_thread->th_ko);
 	break;
 
     case T_PGFLT:
@@ -292,7 +298,7 @@ void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
     if (syscall_thread == t)
-	syscall_thread = 0;
+	syscall_thread_jumped = 1;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;

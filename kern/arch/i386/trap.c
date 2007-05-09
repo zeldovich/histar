@@ -15,6 +15,8 @@
 #include <inc/error.h>
 
 static uint64_t trap_user_iret_tsc;
+static const struct Thread *syscall_thread;
+static int syscall_thread_jumped;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -117,6 +119,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     switch (trapno) {
     case T_SYSCALL: {
 	syscall_thread = cur_thread;
+	syscall_thread_jumped = 0;
+	kobject_pin_hdr(&syscall_thread->th_ko);
 
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
@@ -125,7 +129,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	if (syscall_thread) {
+	if (!syscall_thread_jumped) {
 	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
 	    if (r == -E_RESTART) {
 		t->th_tf.tf_eip -= 2;
@@ -134,6 +138,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 		t->th_tf.tf_edx = ((uint64_t) r) >> 32;
 	    }
 	}
+
+	kobject_unpin_hdr(&syscall_thread->th_ko);
 	break;
     }
 
@@ -272,7 +278,7 @@ void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
     if (syscall_thread == t)
-	syscall_thread = 0;
+	syscall_thread_jumped = 1;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_eflags = FL_IF;
