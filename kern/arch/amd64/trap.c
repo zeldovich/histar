@@ -15,8 +15,8 @@
 #include <inc/error.h>
 
 static uint64_t trap_user_iret_tsc;
-static const struct Thread *syscall_thread;
-static int syscall_thread_jumped;
+static const struct Thread *trap_thread;
+static int trap_thread_jumped;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -77,7 +77,7 @@ trapframe_print (const struct Trapframe *tf)
 }
 
 static void
-page_fault (const struct Trapframe *tf, uint32_t err)
+page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 {
     void *fault_va = (void*) rcr2();
     uint32_t reqflags = 0;
@@ -92,14 +92,14 @@ page_fault (const struct Trapframe *tf, uint32_t err)
 	trapframe_print(tf);
 	panic("kernel page fault");
     } else {
-	int r = thread_pagefault(cur_thread, fault_va, reqflags);
+	int r = thread_pagefault(t, fault_va, reqflags);
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
 	cprintf("user page fault: thread %ld (%s), va=%p: rip=0x%lx, rsp=0x%lx: %s\n",
-		cur_thread->th_ko.ko_id, cur_thread->th_ko.ko_name,
+		t->th_ko.ko_id, t->th_ko.ko_name,
 		fault_va, tf->tf_rip, tf->tf_rsp, e2s(r));
-	thread_halt(cur_thread);
+	thread_halt(t);
     }
 }
 
@@ -118,48 +118,47 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	return;
     }
 
-    if (!cur_thread) {
+    if (!trap_thread) {
 	trapframe_print(tf);
-	panic("trap %d with no active thread", trapno);
+	panic("trap %d while idle", trapno);
     }
+
+    kobject_pin_hdr(&trap_thread->th_ko);
 
     switch (trapno) {
     case T_SYSCALL:
-	syscall_thread = cur_thread;
-	syscall_thread_jumped = 0;
-	kobject_pin_hdr(&syscall_thread->th_ko);
-
+	trap_thread_jumped = 0;
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 
-	if (!syscall_thread_jumped) {
+	if (!trap_thread_jumped) {
 	    /*
 	     * If the thread didn't get vectored elsewhere,
 	     * write the result into the thread's registers.
 	     */
-	    struct Thread *t = &kobject_dirty(&syscall_thread->th_ko)->th;
+	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	    if (r == -E_RESTART)
 		t->th_tf.tf_rip -= 2;
 	    else
 		t->th_tf.tf_rax = r;
 	}
-
-	kobject_unpin_hdr(&syscall_thread->th_ko);
 	break;
 
     case T_PGFLT:
-	page_fault(tf, tf->tf_err);
+	page_fault(trap_thread, tf, tf->tf_err);
 	break;
 
     default:
-	r = thread_utrap(cur_thread, UTRAP_SRC_HW, trapno, 0);
+	r = thread_utrap(trap_thread, UTRAP_SRC_HW, trapno, 0);
 	if (r != 0 && r != -E_RESTART) {
 	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
 		    trapno, e2s(r));
 	    trapframe_print(tf);
-	    thread_halt(cur_thread);
+	    thread_halt(trap_thread);
 	}
     }
+
+    kobject_unpin_hdr(&trap_thread->th_ko);
 }
 
 void __attribute__((__noreturn__, no_instrument_function))
@@ -175,8 +174,8 @@ trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
 
     cyg_profile_free_stack(read_rsp());
 
-    if (cur_thread) {
-	struct Thread *t = &kobject_dirty(&cur_thread->th_ko)->th;
+    if (trap_thread) {
+	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	sched_stop(t, read_tsc());
 
 	t->th_tf = *tf;
@@ -190,7 +189,7 @@ trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
 
     uint64_t start = read_tsc();
     prof_user(start - trap_user_iret_tsc);
-    prof_thread(cur_thread, start - trap_user_iret_tsc);
+    prof_thread(trap_thread, start - trap_user_iret_tsc);
 
     trap_dispatch(trapno, tf);
     prof_trap(trapno, read_tsc() - start);
@@ -215,6 +214,7 @@ run_cache_flush(const struct Thread *t)
 void
 thread_arch_run(const struct Thread *t)
 {
+    trap_thread = t;
     trap_user_iret_tsc = read_tsc();
 
     /*
@@ -248,6 +248,7 @@ thread_arch_run(const struct Thread *t)
 void
 thread_arch_idle(void)
 {
+    trap_thread = 0;
     thread_arch_idle_asm();
 }
 
@@ -303,8 +304,8 @@ thread_arch_get_entry_args(const struct Thread *t,
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
-    if (syscall_thread == t)
-	syscall_thread_jumped = 1;
+    if (t == trap_thread)
+	trap_thread_jumped = 1;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;
