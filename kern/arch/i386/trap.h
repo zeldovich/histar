@@ -10,6 +10,10 @@ void idt_init(void);
 void trapframe_pop(const struct Trapframe *)
     __attribute__((noreturn, regparm (1)));
 
+// Idle with interrupts enabled
+void thread_arch_idle_asm(void)
+    __attribute__((noreturn));
+
 // Entry into kernel from the bootloader
 void init(uint32_t start_eax, uint32_t start_ebx)
     __attribute__((noreturn, regparm (2)));

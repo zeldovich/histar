@@ -103,8 +103,8 @@ trapframe_pop:
 	addl	$tf_eip,%esp
 	iret
 
-.globl	thread_arch_idle
-thread_arch_idle:
+.globl	thread_arch_idle_asm
+thread_arch_idle_asm:
 	movl	$(kstack + KSTACK_SIZE), %esp
 	sti
 1:	jmp	1b
