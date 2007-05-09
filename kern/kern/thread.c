@@ -18,6 +18,7 @@
 enum { thread_pf_debug = 0 };
 
 const struct Thread *cur_thread;
+struct Thread_list *cur_waitlist;
 struct Thread_list thread_list_runnable;
 
 static void
@@ -546,4 +547,15 @@ thread_utrap(const struct Thread *const_t,
     as_switch(cur_thread->th_as);
     cur_thread = saved_cur;
     return r;
+}
+
+void
+thread_suspend_cur(struct Thread_list *waitq)
+{
+    if (cur_thread) {
+	thread_suspend(cur_thread, waitq);
+    } else if (cur_waitlist) {
+	const struct Thread *t = LIST_FIRST(cur_waitlist);
+	thread_suspend(t, waitq);
+    }
 }

@@ -68,6 +68,7 @@ struct Thread_ephemeral {
 };
 
 extern struct Thread_list thread_list_runnable;
+extern struct Thread_list *cur_waitlist;
 extern const struct Thread *cur_thread;
 
 int  thread_alloc(const struct Label *contaminate,
@@ -101,6 +102,9 @@ void thread_check_sched_parents(const struct Thread *t);
 void thread_set_runnable(const struct Thread *t);
 void thread_suspend(const struct Thread *t, struct Thread_list *waitq);
 void thread_halt(const struct Thread *t);
+
+// Suspend cur_thread, or something off cur_waitlist if no cur_thread
+void thread_suspend_cur(struct Thread_list *waitq);
 
 void thread_switch(const struct Thread *t);
 void thread_run(void) __attribute__((__noreturn__));

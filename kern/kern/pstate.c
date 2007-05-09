@@ -324,9 +324,7 @@ pstate_swapin(kobject_id_t id)
 	return r;
     }
 
-    if (cur_thread)
-	thread_suspend(cur_thread, &swapin_waiting);
-
+    thread_suspend_cur(&swapin_waiting);
     stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
 
     // If the thread is still runnable, don't claim -E_RESTART.
@@ -785,8 +783,7 @@ pstate_sync_schedule(void)
 void
 pstate_sync(void)
 {
-    if (cur_thread)
-	thread_suspend(cur_thread, &swapout_waiting);
+    thread_suspend_cur(&swapout_waiting);
     pstate_sync_schedule();
 }
 
@@ -801,7 +798,7 @@ pstate_sync_now(void)
     if (lock_try_acquire(&swapout_lock) < 0) {
 	cprintf("pstate_sync_now: another sync still active\n");
 
-	thread_suspend(cur_thread, &swapout_waiting);
+	thread_suspend_cur(&swapout_waiting);
 	return -E_RESTART;
     }
 
@@ -906,13 +903,13 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	pstate_ts_decrypt(ko->hdr.ko_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
-    thread_suspend(cur_thread, &swapout_waiting);
+    thread_suspend_cur(&swapout_waiting);
     pstate_swapout_schedule(&pstate_sync_object_stackwrap,
 			    (uintptr_t) ko, start, nbytes);
     return -E_RESTART;
 
 fallback:
-    thread_suspend(cur_thread, &swapout_waiting);
+    thread_suspend_cur(&swapout_waiting);
     pstate_sync_schedule();
     return -E_RESTART;
 }
@@ -929,7 +926,7 @@ pstate_sync_user(uint64_t timestamp)
 	pstate_ts_decrypt(stable_hdr.ph_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
-    thread_suspend(cur_thread, &swapout_waiting);
+    thread_suspend_cur(&swapout_waiting);
     pstate_sync_schedule();
     return -E_RESTART;
 }

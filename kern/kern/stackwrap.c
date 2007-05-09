@@ -8,19 +8,6 @@
 
 #define STACKWRAP_MAGIC	UINT64(0xabcd9262deed1713)
 
-struct stackwrap_state {
-    stackwrap_fn fn;
-    uint64_t fn_arg[3];
-
-    void *stackbase;
-    struct jos_jmp_buf entry_cb;
-    struct jos_jmp_buf task_state;
-
-    uint8_t alive : 1;
-    uint8_t freestack : 1;
-    uint64_t magic;
-};
-
 struct stackwrap_state *
 stackwrap_cur(void)
 {
@@ -50,11 +37,14 @@ void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
     assert(ss->magic == STACKWRAP_MAGIC && ss->alive);
+    struct Thread_list *save_cw = cur_waitlist;
+    cur_waitlist = ss->waitlist;
 
     if (jos_setjmp(&ss->entry_cb) == 0)
 	jos_longjmp(&ss->task_state, 1);
 
     assert(ss->magic == STACKWRAP_MAGIC);
+    cur_waitlist = save_cw;
 
     if (!ss->alive && ss->freestack)
 	page_free(ss->stackbase);
@@ -97,6 +87,7 @@ stackwrap_call_stack(void *stackbase, int freestack, stackwrap_fn fn,
     ss->alive = 1;
     ss->freestack = !!freestack;
     ss->magic = STACKWRAP_MAGIC;
+    ss->waitlist = 0;
     karch_jmpbuf_init(&ss->task_state, &stackwrap_entry, ss + 1);
 
     stackwrap_wakeup(ss);
