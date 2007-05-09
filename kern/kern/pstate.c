@@ -299,6 +299,7 @@ pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
     if (lock_try_acquire(&swapin_lock) < 0)
 	return;
 
+    cur_waitlist = &swapin_waiting;
     pstate_swapin_id(id);
 
     lock_release(&swapin_lock);

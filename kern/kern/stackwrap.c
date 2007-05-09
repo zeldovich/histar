@@ -53,13 +53,20 @@ void
 stackwrap_wakeup(struct stackwrap_state *ss)
 {
     assert(ss->magic == STACKWRAP_MAGIC && ss->alive);
+    const struct Thread *save_ct = cur_thread;
     struct Thread_list *save_cw = cur_waitlist;
+
     cur_waitlist = ss->waitlist;
+    cur_thread = 0;
 
     if (jos_setjmp(&ss->entry_cb) == 0)
 	jos_longjmp(&ss->task_state, 1);
 
     assert(ss->magic == STACKWRAP_MAGIC);
+    assert(cur_thread == 0);
+    ss->waitlist = cur_waitlist;
+
+    cur_thread = save_ct;
     cur_waitlist = save_cw;
 
     if (!ss->alive && ss->freestack)
