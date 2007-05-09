@@ -2,7 +2,6 @@
 #define JOS_KERN_STACKWRAP_H
 
 #include <machine/types.h>
-#include <machine/setjmp.h>
 #include <dev/disk.h>
 #include <inc/queue.h>
 #include <kern/part.h>
@@ -32,22 +31,6 @@ void lock_acquire(struct lock *l);
 int  lock_try_acquire(struct lock *l);
 void lock_release(struct lock *l);
 void lock_init(struct lock *l);
-
-struct stackwrap_state {
-    void *stackbase;
-    stackwrap_fn fn;
-    uint64_t fn_arg[3];
-
-    uint8_t alive : 1;
-    uint8_t freestack : 1;
-
-    struct Thread_list *waitlist;
-
-    struct jos_jmp_buf entry_cb;
-    struct jos_jmp_buf task_state;
-
-    uint64_t magic;
-};
 
 struct stackwrap_state;
 struct stackwrap_state *stackwrap_cur(void);
