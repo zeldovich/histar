@@ -3,10 +3,13 @@
 #include <kern/kobj.h>
 #include <kern/pstate.h>
 #include <kern/pageinfo.h>
+#include <kern/timer.h>
 #include <inc/error.h>
 #include <inc/queue.h>
 
 enum { scrub_free_pages = 0 };
+enum { page_nomem_debug = 0 };
+enum { page_memstat_debug = 0 };
 
 uint64_t global_npages;		// Amount of physical memory (in pages)
 
@@ -41,18 +44,20 @@ page_free(void *v)
 int
 page_alloc(void **vp)
 {
-    if (!TAILQ_FIRST(&page_free_list)) {
-	cprintf("page_alloc: out of memory: used %"PRIu64" avail %"PRIu64
-		" alloc %"PRIu64" fail %"PRIu64"\n",
-		page_stats.pages_used, page_stats.pages_avail,
-		page_stats.allocations, page_stats.failures);
+    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
+
+    if (!pl) {
+	if (page_nomem_debug)
+	    cprintf("page_alloc: out of memory: used %"PRIu64" avail %"PRIu64
+		    " alloc %"PRIu64" fail %"PRIu64"\n",
+		    page_stats.pages_used, page_stats.pages_avail,
+		    page_stats.allocations, page_stats.failures);
 
 	page_stats.failures++;
 	pstate_sync();
 	return -E_RESTART;
     }
 
-    struct Page_link *pl = TAILQ_FIRST(&page_free_list);
     TAILQ_REMOVE(&page_free_list, pl, pp_link);
     *vp = pl;
     page_stats.pages_avail--;
@@ -69,8 +74,22 @@ page_alloc(void **vp)
     return 0;
 }
 
+static void
+print_memstat(void)
+{
+    cprintf("pagealloc: used %"PRIu64" avail %"PRIu64
+	    " alloc %"PRIu64" fail %"PRIu64"\n",
+	    page_stats.pages_used, page_stats.pages_avail,
+	    page_stats.allocations, page_stats.failures);
+}
+
 void
 page_alloc_init(void)
 {
     TAILQ_INIT(&page_free_list);
+
+    static struct periodic_task pt =
+	{ .pt_fn = &print_memstat, .pt_interval_sec = 5 };
+    if (page_memstat_debug)
+	timer_add_periodic(&pt);
 }
