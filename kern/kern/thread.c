@@ -227,7 +227,7 @@ thread_gc(struct Thread *t)
 void
 thread_run(void)
 {
-    pstate_swapout_check();
+    pstate_op_check();
 
     if (!cur_thread || !SAFE_EQUAL(cur_thread->th_status, thread_runnable))
 	schedule();

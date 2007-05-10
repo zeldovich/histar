@@ -60,6 +60,60 @@ pstate_ts_decrypt(uint64_t v)
 }
 
 //////////////////////////////////////////////////
+// Delayed pstate operations
+//////////////////////////////////////////////////
+
+enum {
+    op_swapin = 1,
+    op_swapout_obj,
+    op_swapout_global
+};
+
+static struct {
+    uint32_t prio;
+    stackwrap_fn fn;
+    uint64_t arg[3];
+} pstate_op_queue;
+
+static char pstate_op_stack[PGSIZE]
+    __attribute__((aligned(PGSIZE), section(".data")));
+
+void
+pstate_op_check(void)
+{
+    while (pstate_op_queue.prio) {
+	uint32_t oprio = pstate_op_queue.prio;
+	pstate_op_queue.prio = 0;
+
+	if (oprio == op_swapout_global) {
+	    /* Garbage-collect before writing garbage to disk */
+	    kobject_gc_scan();
+	    kobject_reclaim();
+	}
+
+	if (lock_try_acquire(&pstate_lock) < 0)
+	    return;
+
+	stackwrap_call_stack(&pstate_op_stack[0], 0, pstate_op_queue.fn,
+			     pstate_op_queue.arg[0], pstate_op_queue.arg[1],
+			     pstate_op_queue.arg[2]);
+    }
+}
+
+static void
+pstate_op_schedule(uint32_t prio, stackwrap_fn fn,
+		   uint64_t a0, uint64_t a1, uint64_t a2)
+{
+    if (prio > pstate_op_queue.prio) {
+	pstate_op_queue.prio = prio;
+	pstate_op_queue.fn = fn;
+	pstate_op_queue.arg[0] = a0;
+	pstate_op_queue.arg[1] = a1;
+	pstate_op_queue.arg[2] = a2;
+    }
+}
+
+//////////////////////////////////////////////////
 // Object map
 //////////////////////////////////////////////////
 
@@ -290,18 +344,10 @@ static void
 pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
 {
     kobject_id_t id = (kobject_id_t) arg;
-
-    // The reason for having only one swapin at a time is to avoid
-    // swapping in the same object twice.  We also avoid doing a
-    // swapin concurrent with a swapout, since we have no locking
-    // of disk objects.  (An object can get deleted between the
-    // time we read its address from the btree and read the object
-    // block itself.)
-    if (lock_try_acquire(&pstate_lock) < 0)
-	return;
-
-    cur_waitlist = &pstate_waiting;
-    pstate_swapin_id(id);
+    if (kobject_incore(id) < 0) {
+	cur_waitlist = &pstate_waiting;
+	pstate_swapin_id(id);
+    }
 
     lock_release(&pstate_lock);
     while (!LIST_EMPTY(&pstate_waiting))
@@ -319,13 +365,8 @@ pstate_swapin(kobject_id_t id)
     if (pstate_swapin_debug)
 	cprintf("pstate_swapin: object %"PRIu64"\n", id);
 
-    void *stackpage;
-    int r = page_alloc(&stackpage);
-    if (r < 0)
-	return r;
-
     thread_suspend_cur(&pstate_waiting);
-    stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
+    pstate_op_schedule(op_swapin, &pstate_swapin_stackwrap, id, 0, 0);
     return -E_RESTART;
 }
 
@@ -475,15 +516,6 @@ pstate_load(void)
 // Swap-out code
 //////////////////////////////////////////////////
 
-static struct {
-    int valid;
-    stackwrap_fn fn;
-    uint64_t arg[3];
-} swapout_queue;
-
-static char swapout_stack[PGSIZE]
-    __attribute__((aligned(PGSIZE), section(".data")));
-
 struct swapout_stats {
     uint64_t written_kobj;
     uint64_t written_pages;
@@ -491,38 +523,6 @@ struct swapout_stats {
     uint64_t dead_kobj;
     uint64_t total_kobj;
 };
-
-void
-pstate_swapout_check(void)
-{
-    while (swapout_queue.valid) {
-	swapout_queue.valid = 0;
-
-	/* Garbage-collect before writing garbage to disk */
-	kobject_gc_scan();
-	kobject_reclaim();
-
-	if (lock_try_acquire(&pstate_lock) < 0)
-	    return;
-
-	stackwrap_call_stack(&swapout_stack[0], 0, swapout_queue.fn,
-			     swapout_queue.arg[0], swapout_queue.arg[1],
-			     swapout_queue.arg[2]);
-    }
-}
-
-static void
-pstate_swapout_schedule(stackwrap_fn fn, uint64_t a0, uint64_t a1, uint64_t a2)
-{
-    if (swapout_queue.valid)
-	return;
-
-    swapout_queue.valid = 1;
-    swapout_queue.fn = fn;
-    swapout_queue.arg[0] = a0;
-    swapout_queue.arg[1] = a1;
-    swapout_queue.arg[2] = a2;
-}
 
 static int
 pstate_sync_kobj(struct pstate_header *hdr,
@@ -771,7 +771,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 static void
 pstate_sync_schedule(void)
 {
-    pstate_swapout_schedule(&pstate_sync_stackwrap, 0, 0, 0);
+    pstate_op_schedule(op_swapout_global, &pstate_sync_stackwrap, 0, 0, 0);
 }
 
 void
@@ -797,7 +797,7 @@ pstate_sync_now(void)
     }
 
     int r = 0;
-    stackwrap_call_stack(&swapout_stack[0], 0, &pstate_sync_stackwrap,
+    stackwrap_call_stack(&pstate_op_stack[0], 0, &pstate_sync_stackwrap,
 			 (uintptr_t) &r, 0, 0);
     while (r == 0)
 	ide_poke();
@@ -898,8 +898,8 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	return 0;
 
     thread_suspend_cur(&pstate_waiting);
-    pstate_swapout_schedule(&pstate_sync_object_stackwrap,
-			    (uintptr_t) ko, start, nbytes);
+    pstate_op_schedule(op_swapout_obj, &pstate_sync_object_stackwrap,
+		       (uintptr_t) ko, start, nbytes);
     return -E_RESTART;
 
 fallback:

@@ -113,6 +113,18 @@ kobject_translate_id(kobject_id_t id)
 }
 
 int
+kobject_incore(kobject_id_t id)
+{
+    struct kobject *ko;
+    struct kobject_list *head = HASH_SLOT(&ko_hash, id);
+    LIST_FOREACH(ko, head, ko_hash)
+	if (ko->hdr.ko_id == id)
+	    return 0;
+
+    return -E_NOT_FOUND;
+}
+
+int
 kobject_get(kobject_id_t id, const struct kobject **kp,
 	    kobject_type_t type, info_flow_type iflow)
 {
