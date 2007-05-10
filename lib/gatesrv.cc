@@ -244,7 +244,9 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 	stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
 		     tls_stack_top, (void *) &ret_tls_stub);
     else
-	ret_tls(tgt_label, tgt_clear);
+	ret_tls_stub((uintptr_t) this,
+		     (uintptr_t) tgt_label,
+		     (uintptr_t) tgt_clear);
 }
 
 void
