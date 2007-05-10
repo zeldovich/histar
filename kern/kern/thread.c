@@ -556,6 +556,7 @@ thread_suspend_cur(struct Thread_list *waitq)
 	thread_suspend(cur_thread, waitq);
     } else if (cur_waitlist) {
 	const struct Thread *t = LIST_FIRST(cur_waitlist);
-	thread_suspend(t, waitq);
+	if (t)
+	    thread_suspend(t, waitq);
     }
 }
