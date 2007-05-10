@@ -26,6 +26,9 @@ enum { commit_panic = 0 };
 // Disk partition to use
 struct part_desc *pstate_part;
 
+// Lock serializing all disk access
+static struct lock pstate_lock;
+
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
 
@@ -288,17 +291,20 @@ static void
 pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
 {
     kobject_id_t id = (kobject_id_t) arg;
-    static struct lock swapin_lock;
 
     // The reason for having only one swapin at a time is to avoid
-    // swapping in the same object twice.
-    if (lock_try_acquire(&swapin_lock) < 0)
+    // swapping in the same object twice.  We also avoid doing a
+    // swapin concurrent with a swapout, since we have no locking
+    // of disk objects.  (An object can get deleted between the
+    // time we read its address from the btree and read the object
+    // block itself.)
+    if (lock_try_acquire(&pstate_lock) < 0)
 	return;
 
     cur_waitlist = &swapin_waiting;
     pstate_swapin_id(id);
 
-    lock_release(&swapin_lock);
+    lock_release(&pstate_lock);
     while (!LIST_EMPTY(&swapin_waiting))
 	thread_set_runnable(LIST_FIRST(&swapin_waiting));
 }
@@ -482,7 +488,6 @@ static struct {
 } swapout_queue;
 
 static struct Thread_list swapout_waiting;
-static struct lock swapout_lock;
 static char swapout_stack[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
 
 struct swapout_stats {
@@ -503,7 +508,7 @@ pstate_swapout_check(void)
 	kobject_gc_scan();
 	kobject_reclaim();
 
-	if (lock_try_acquire(&swapout_lock) < 0)
+	if (lock_try_acquire(&pstate_lock) < 0)
 	    return;
 
 	stackwrap_call_stack(&swapout_stack[0], 0, swapout_queue.fn,
@@ -764,7 +769,7 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     while (!LIST_EMPTY(&swapout_waiting))
 	thread_set_runnable(LIST_FIRST(&swapout_waiting));
 
-    lock_release(&swapout_lock);
+    lock_release(&pstate_lock);
     if (rvalp && !*rvalp)
 	*rvalp = 1;
 }
@@ -790,7 +795,7 @@ pstate_sync_now(void)
     if (!pstate_part)
 	return 0;
 
-    if (lock_try_acquire(&swapout_lock) < 0) {
+    if (lock_try_acquire(&pstate_lock) < 0) {
 	cprintf("pstate_sync_now: another sync still active\n");
 
 	thread_suspend_cur(&swapout_waiting);
@@ -873,12 +878,12 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
     while (!LIST_EMPTY(&swapout_waiting))
 	thread_set_runnable(LIST_FIRST(&swapout_waiting));
     kobject_snapshot_release(&ko->hdr);
-    lock_release(&swapout_lock);
+    lock_release(&pstate_lock);
     return;
 
 fallback:
     kobject_snapshot_release(&ko->hdr);
-    lock_release(&swapout_lock);
+    lock_release(&pstate_lock);
     pstate_sync_schedule();
 }
 
