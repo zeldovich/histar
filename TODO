@@ -12,7 +12,9 @@ Performance:
 Kernel bugs:
 
 * bugs in handling out-of-memory conditions [low priority for now]:
-  - freelist/dstack: preallocate space for free_later list on disk
+  - freelist/dstack: free_later list using a btree
+  - implement log.disk_map using a btree
+  - larger FRM, stick FRM contents in a separate disk block
 
 Security:
 
