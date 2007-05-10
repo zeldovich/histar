@@ -313,7 +313,7 @@ pstate_swapin(kobject_id_t id)
 {
     if (!pstate_part) {
 	kobject_negative_insert(id);
-	return 0;
+	return -E_RESTART;
     }
 
     if (pstate_swapin_debug)
