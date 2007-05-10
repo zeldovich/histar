@@ -70,8 +70,9 @@ class gatesrv_descriptor {
     gatesrv_descriptor &operator=(const gatesrv_descriptor&);
 };
 
-#define GATESRV_KEEP_TLS_STACK		0x01
-#define GATESRV_NO_THREAD_ADDREF	0x02
+#define GATESRV_KEEP_TLS_STACK		0x0001
+#define GATESRV_NO_THREAD_ADDREF	0x0002
+#define GATESRV_FORK_MU_UNLOCKED	0x1000	// internal use
 
 cobj_ref gate_create(gatesrv_descriptor *dsc);
 cobj_ref gate_create(uint64_t gate_container, const char *name,
