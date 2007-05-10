@@ -326,11 +326,6 @@ pstate_swapin(kobject_id_t id)
 
     thread_suspend_cur(&pstate_waiting);
     stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
-
-    // If the thread is still runnable, don't claim -E_RESTART.
-    if (cur_thread && SAFE_EQUAL(cur_thread->th_status, thread_runnable))
-	return 0;
-
     return -E_RESTART;
 }
 
