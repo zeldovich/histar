@@ -111,9 +111,11 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 {
     *pte_store = 0;
     int r = page_map_traverse(pgmap, va, va, create, &pgdir_walk_cb, pte_store);
+    if (r < 0)
+	return r;
     if (create && !*pte_store)
 	return -E_INVAL;
-    return r;
+    return 0;
 }
 
 static void *
