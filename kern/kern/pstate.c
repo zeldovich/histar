@@ -316,10 +316,8 @@ pstate_swapin(kobject_id_t id)
 
     void *stackpage;
     int r = page_alloc(&stackpage);
-    if (r < 0) {
-	cprintf("pstate_swapin: cannot alloc stack page: %s\n", e2s(r));
+    if (r < 0)
 	return r;
-    }
 
     thread_suspend_cur(&swapin_waiting);
     stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
