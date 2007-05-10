@@ -907,8 +907,11 @@ kobject_qres_reserve(struct kobject_quota_resv *qr, const struct kobject_hdr *ko
     if (qr->qr_ko->ko_quota_total != CT_QUOTA_INF) {
 	uint64_t quota_avail = qr->qr_ko->ko_quota_total - qr->qr_ko->ko_quota_used;
 	if (quota_avail < ko->ko_quota_total) {
-	    int r = kobject_borrow_parent_quota(qr->qr_ko,
-						ko->ko_quota_total - quota_avail);
+	    uint64_t need = ko->ko_quota_total - quota_avail;
+	    int r = kobject_borrow_parent_quota(qr->qr_ko, need);
+	    if (r == -E_RESTART)
+		return r;
+
 	    if (r < 0) {
 		cprintf("kobject_qres_reserve: borrow parent: %s\n", e2s(r));
 		return -E_RESOURCE;
