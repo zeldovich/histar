@@ -28,6 +28,7 @@ struct part_desc *pstate_part;
 
 // Lock serializing all disk access
 static struct lock pstate_lock;
+static struct Thread_list pstate_waiting;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;
@@ -285,8 +286,6 @@ pstate_swapin_id(kobject_id_t id)
     return r;
 }
 
-static struct Thread_list swapin_waiting;
-
 static void
 pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
 {
@@ -301,12 +300,12 @@ pstate_swapin_stackwrap(uint64_t arg, uint64_t arg1, uint64_t arg2)
     if (lock_try_acquire(&pstate_lock) < 0)
 	return;
 
-    cur_waitlist = &swapin_waiting;
+    cur_waitlist = &pstate_waiting;
     pstate_swapin_id(id);
 
     lock_release(&pstate_lock);
-    while (!LIST_EMPTY(&swapin_waiting))
-	thread_set_runnable(LIST_FIRST(&swapin_waiting));
+    while (!LIST_EMPTY(&pstate_waiting))
+	thread_set_runnable(LIST_FIRST(&pstate_waiting));
 }
 
 int
@@ -325,7 +324,7 @@ pstate_swapin(kobject_id_t id)
     if (r < 0)
 	return r;
 
-    thread_suspend_cur(&swapin_waiting);
+    thread_suspend_cur(&pstate_waiting);
     stackwrap_call_stack(stackpage, 1, &pstate_swapin_stackwrap, id, 0, 0);
 
     // If the thread is still runnable, don't claim -E_RESTART.
@@ -487,8 +486,8 @@ static struct {
     uint64_t arg[3];
 } swapout_queue;
 
-static struct Thread_list swapout_waiting;
-static char swapout_stack[PGSIZE] __attribute__((aligned(PGSIZE), section(".data")));
+static char swapout_stack[PGSIZE]
+    __attribute__((aligned(PGSIZE), section(".data")));
 
 struct swapout_stats {
     uint64_t written_kobj;
@@ -766,8 +765,8 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 		page_stats.allocations, page_stats.failures);
     }
 
-    while (!LIST_EMPTY(&swapout_waiting))
-	thread_set_runnable(LIST_FIRST(&swapout_waiting));
+    while (!LIST_EMPTY(&pstate_waiting))
+	thread_set_runnable(LIST_FIRST(&pstate_waiting));
 
     lock_release(&pstate_lock);
     if (rvalp && !*rvalp)
@@ -783,7 +782,7 @@ pstate_sync_schedule(void)
 void
 pstate_sync(void)
 {
-    thread_suspend_cur(&swapout_waiting);
+    thread_suspend_cur(&pstate_waiting);
     pstate_sync_schedule();
 }
 
@@ -798,7 +797,7 @@ pstate_sync_now(void)
     if (lock_try_acquire(&pstate_lock) < 0) {
 	cprintf("pstate_sync_now: another sync still active\n");
 
-	thread_suspend_cur(&swapout_waiting);
+	thread_suspend_cur(&pstate_waiting);
 	return -E_RESTART;
     }
 
@@ -875,8 +874,8 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 	cprintf("pstate_sync_object_stackwrap: incremental sync OK\n");
     ko->hdr.ko_sync_ts = sync_ts;
 
-    while (!LIST_EMPTY(&swapout_waiting))
-	thread_set_runnable(LIST_FIRST(&swapout_waiting));
+    while (!LIST_EMPTY(&pstate_waiting))
+	thread_set_runnable(LIST_FIRST(&pstate_waiting));
     kobject_snapshot_release(&ko->hdr);
     lock_release(&pstate_lock);
     return;
@@ -903,13 +902,13 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 	pstate_ts_decrypt(ko->hdr.ko_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
-    thread_suspend_cur(&swapout_waiting);
+    thread_suspend_cur(&pstate_waiting);
     pstate_swapout_schedule(&pstate_sync_object_stackwrap,
 			    (uintptr_t) ko, start, nbytes);
     return -E_RESTART;
 
 fallback:
-    thread_suspend_cur(&swapout_waiting);
+    thread_suspend_cur(&pstate_waiting);
     pstate_sync_schedule();
     return -E_RESTART;
 }
@@ -926,7 +925,7 @@ pstate_sync_user(uint64_t timestamp)
 	pstate_ts_decrypt(stable_hdr.ph_sync_ts) > pstate_ts_decrypt(timestamp))
 	return 0;
 
-    thread_suspend_cur(&swapout_waiting);
+    thread_suspend_cur(&pstate_waiting);
     pstate_sync_schedule();
     return -E_RESTART;
 }
