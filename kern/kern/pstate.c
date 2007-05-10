@@ -204,10 +204,8 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
     uint64_t ko_bytes = mobj.nbytes - KOBJ_DISK_SIZE;
     for (uint64_t page = 0; page < ROUNDUP(ko_bytes, PGSIZE) / PGSIZE; page++) {
 	r = page_alloc(&p);
-	if (r < 0) {
-	    cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
+	if (r < 0)
 	    goto err;
-	}
 
 	r = pagetree_put_page(&ko->ko_pt, page, p);
 	if (r < 0) {
