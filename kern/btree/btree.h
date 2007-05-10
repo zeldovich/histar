@@ -40,10 +40,9 @@ struct btree {
 
     uint8_t min_leaf;
     uint8_t min_intrn;
+    uint16_t height;
 
     uint64_t size;
-    uint64_t height;
-
     offset_t root;
     offset_t left_leaf;
 

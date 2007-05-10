@@ -163,7 +163,7 @@ int
 btree_search_impl(struct btree *tree, const uint64_t * key,
 		  uint64_t * key_store, uint64_t * val_store)
 {
-    assert(((struct btree *) tree)->magic == BTREE_MAGIC);
+    assert(tree->magic == BTREE_MAGIC);
     return search(tree, key, match_eq, key_store, val_store);
 }
 
@@ -171,7 +171,7 @@ int
 btree_ltet_impl(struct btree *tree, const uint64_t * key,
 		uint64_t * key_store, uint64_t * val_store)
 {
-    assert(((struct btree *) tree)->magic == BTREE_MAGIC);
+    assert(tree->magic == BTREE_MAGIC);
     return search(tree, key, match_ltet, key_store, val_store);
 }
 
@@ -179,6 +179,6 @@ int
 btree_gtet_impl(struct btree *tree, const uint64_t * key,
 		uint64_t * key_store, uint64_t * val_store)
 {
-    assert(((struct btree *) tree)->magic == BTREE_MAGIC);
+    assert(tree->magic == BTREE_MAGIC);
     return search(tree, key, match_gtet, key_store, val_store);
 }
