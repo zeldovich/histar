@@ -69,7 +69,7 @@ enum {
     op_swapout_global
 };
 
-static struct {
+static struct pstate_op_t {
     uint32_t prio;
     stackwrap_fn fn;
     uint64_t arg[3];
@@ -82,10 +82,10 @@ void
 pstate_op_check(void)
 {
     while (pstate_op_queue.prio) {
-	uint32_t oprio = pstate_op_queue.prio;
+	struct pstate_op_t op = pstate_op_queue;
 	pstate_op_queue.prio = 0;
 
-	if (oprio == op_swapout_global) {
+	if (op.prio == op_swapout_global) {
 	    /* Garbage-collect before writing garbage to disk */
 	    kobject_gc_scan();
 	    kobject_reclaim();
@@ -94,9 +94,8 @@ pstate_op_check(void)
 	if (lock_try_acquire(&pstate_lock) < 0)
 	    return;
 
-	stackwrap_call_stack(&pstate_op_stack[0], 0, pstate_op_queue.fn,
-			     pstate_op_queue.arg[0], pstate_op_queue.arg[1],
-			     pstate_op_queue.arg[2]);
+	stackwrap_call_stack(&pstate_op_stack[0], 0, op.fn,
+			     op.arg[0], op.arg[1], op.arg[2]);
     }
 }
 
