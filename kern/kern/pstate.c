@@ -184,10 +184,8 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 {
     void *p;
     int r = page_alloc(&p);
-    if (r < 0) {
-	cprintf("pstate_swapin_obj: cannot alloc page: %s\n", e2s(r));
+    if (r < 0)
 	return r;
-    }
 
     struct kobject *ko = (struct kobject *) p;
     memset(ko, 0, sizeof(*ko));
@@ -279,7 +277,7 @@ pstate_swapin_id(kobject_id_t id)
 	cprintf("pstate_swapin_stackwrap: error during lookup: %s\n", e2s(r));
     } else {
 	r = pstate_swapin_mobj(mobj, id);
-	if (r < 0)
+	if (r < 0 && r != -E_RESTART)
 	    cprintf("pstate_swapin_id: swapping in: %s\n", e2s(r));
     }
 
