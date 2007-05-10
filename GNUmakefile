@@ -75,8 +75,8 @@ CRTI	:= $(OBJDIR)/lib/crti.o
 CRTN	:= $(OBJDIR)/lib/crtn.o
 
 LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
-	   $(OBJDIR)/lib/32 \
 	   $(OBJDIR)/lib/libjos.a \
+	   $(OBJDIR)/lib/32/libjos.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libm.a \
