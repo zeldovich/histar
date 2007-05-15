@@ -10,8 +10,9 @@
 #include <kern/lib.h>
 #include <kern/log.h>
 #include <kern/stackwrap.h>
-#include <inc/error.h>
 #include <kern/part.h>
+#include <btree/cache.h>
+#include <inc/error.h>
 
 // verbose flags
 enum { pstate_load_debug = 0 };
