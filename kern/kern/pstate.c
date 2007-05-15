@@ -721,7 +721,11 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
     if (r < 0) {
 	cprintf("pstate_sync_stackwrap: cannot sync: %s\n", e2s(r));
 
-	// XXX flush btree cache?
+	// Flush btree caches
+	for (uint64_t i = 0; i < BTREE_COUNT; i++) {
+	    struct cache *c = btree_cache(i);
+	    cache_flush(c);
+	}
 
 	// Reset the un-committed log by applying the committed on-disk one.
 	assert(0 == pstate_apply_disk_log());

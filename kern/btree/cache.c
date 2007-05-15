@@ -166,7 +166,7 @@ cache_print(struct cache *c)
 }
 
 static char __attribute__ ((unused))
-    cache_sanity_check(struct cache *c)
+cache_sanity_check(struct cache *c)
 {
     for (int i = 0; i < c->n_ent; i++) {
 	if (!c->meta[i].inuse)
