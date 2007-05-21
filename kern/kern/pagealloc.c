@@ -54,7 +54,7 @@ page_alloc(void **vp)
 		    page_stats.allocations, page_stats.failures);
 
 	page_stats.failures++;
-	pstate_sync();
+	pstate_sync(1);
 	return -E_RESTART;
     }
 

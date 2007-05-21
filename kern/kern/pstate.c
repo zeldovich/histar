@@ -67,7 +67,8 @@ pstate_ts_decrypt(uint64_t v)
 enum {
     op_swapin = 1,
     op_swapout_obj,
-    op_swapout_global
+    op_swapout_global,
+    op_swapout_global_gc
 };
 
 static struct pstate_op_t {
@@ -86,7 +87,7 @@ pstate_op_check(void)
 	struct pstate_op_t op = pstate_op_queue;
 	pstate_op_queue.prio = 0;
 
-	if (op.prio == op_swapout_global) {
+	if (op.prio == op_swapout_global_gc) {
 	    /* Garbage-collect before writing garbage to disk */
 	    kobject_gc_scan();
 	    kobject_reclaim();
@@ -773,16 +774,17 @@ pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 }
 
 static void
-pstate_sync_schedule(void)
+pstate_sync_schedule(int gc)
 {
-    pstate_op_schedule(op_swapout_global, &pstate_sync_stackwrap, 0, 0, 0);
+    pstate_op_schedule(gc ? op_swapout_global_gc : op_swapout_global,
+		       &pstate_sync_stackwrap, 0, 0, 0);
 }
 
 void
-pstate_sync(void)
+pstate_sync(int gc)
 {
     thread_suspend_cur(&pstate_waiting);
-    pstate_sync_schedule();
+    pstate_sync_schedule(gc);
 }
 
 int
@@ -882,7 +884,7 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 fallback:
     kobject_snapshot_release(&ko->hdr);
     lock_release(&pstate_lock);
-    pstate_sync_schedule();
+    pstate_sync_schedule(0);
 }
 
 int
@@ -908,7 +910,7 @@ pstate_sync_object(uint64_t timestamp, const struct kobject *ko,
 
 fallback:
     thread_suspend_cur(&pstate_waiting);
-    pstate_sync_schedule();
+    pstate_sync_schedule(0);
     return -E_RESTART;
 }
 
@@ -925,8 +927,14 @@ pstate_sync_user(uint64_t timestamp)
 	return 0;
 
     thread_suspend_cur(&pstate_waiting);
-    pstate_sync_schedule();
+    pstate_sync_schedule(0);
     return -E_RESTART;
+}
+
+static void
+pstate_sync_periodic(void)
+{
+    pstate_sync_schedule(0);
 }
 
 void
@@ -938,6 +946,6 @@ pstate_init(void)
     pstate_reset();
 
     static struct periodic_task sync_pt =
-	{ .pt_fn = &pstate_sync, .pt_interval_sec = 3600 };
+	{ .pt_fn = &pstate_sync_periodic, .pt_interval_sec = 300 };
     timer_add_periodic(&sync_pt);
 }
