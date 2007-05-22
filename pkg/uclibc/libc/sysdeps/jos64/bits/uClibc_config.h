@@ -142,6 +142,7 @@
 #undef __UCLIBC_HAS_FTW__
 #define __UCLIBC_HAS_GLOB__ 1
 #define __UCLIBC_HAS_GNU_GLOB__ 1
+#define __UCLIBC_HAS_LONG_DOUBLE_MATH__ 1
 
 /*
  * Library Installation Options
