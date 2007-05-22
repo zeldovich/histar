@@ -1,0 +1,33 @@
+--- make-3.81/function.c	2007/05/22 23:22:37	1.1
++++ make-3.81/function.c	2007/05/22 23:26:18
+@@ -1417,7 +1417,8 @@
+ 
+ 
+ 
+-int shell_function_pid = 0, shell_function_completed;
++pid_t shell_function_pid = 0;
++int shell_function_completed;
+ 
+ 
+ #ifdef WINDOWS32
+@@ -1586,7 +1587,7 @@
+   char *error_prefix;
+   char **envp;
+   int pipedes[2];
+-  int pid;
++  pid_t pid;
+ 
+ #ifndef __MSDOS__
+   /* Construct the argument list.  */
+--- make-3.81/job.c	2007/05/22 23:22:37	1.1
++++ make-3.81/job.c	2007/05/22 23:33:40
+@@ -434,7 +434,8 @@
+   */
+ }
+ 
+-extern int shell_function_pid, shell_function_completed;
++extern pid_t shell_function_pid;
++extern int shell_function_completed;
+ 
+ /* Reap all dead children, storing the returned status and the new command
+    state (`cs_finished') in the `file' member of the `struct child' for the

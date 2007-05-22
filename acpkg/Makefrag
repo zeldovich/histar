@@ -77,6 +77,7 @@ PATCHFILE_ghostscript-8.54-gpl := ghostscript-8.54-gpl.patch
 PATCHFILE_a2ps-4.13	    := a2ps-4.13b.patch
 PATCHFILE_perl-5.8.8	    := perl-5.8.8.patch
 PATCHFILE_dmalloc-5.5.0	    := dmalloc-5.5.0.patch
+PATCHFILE_make-3.81	    := make-3.81.patch
 PATCHFILE_default	    := empty.patch
 
 ##
