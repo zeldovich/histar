@@ -426,7 +426,7 @@ $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
 ## trying to build.
 
 ## ftp://ftp.gnu.org/pub/gnu/gcc/gcc-3.4.5/gcc-core-3.4.5.tar.gz
-acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.16.1/__build
+acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.17.50.0.15/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
 	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" ); \
@@ -436,7 +436,7 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	fi
 	touch $@
 
-$(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build $(LDEPS) acpkg/binutils-2.16.1/__build
+$(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/__build $(LDEPS)
 	rm -f $@
 	cp $(OBJDIR)/lib/crt*.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
 	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
