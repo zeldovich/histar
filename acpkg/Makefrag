@@ -279,7 +279,8 @@ acpkg/dhcp-3.0.5/__build: $(LDEPS) $(ACPKG_WRAPS) acpkg/dhcp-3.0.5/__patch
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake" )
 	touch $@
 
-$(OBJDIR)/acpkg/bin/dhclient: acpkg/dhcp-3.0.5/__build
+$(OBJDIR)/acpkg/sbin/dhclient: acpkg/dhcp-3.0.5/__build
+	mkdir -p $(@D)
 	cp acpkg/dhcp-3.0.5/work.jos64/client/dhclient $@
 
 ## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
