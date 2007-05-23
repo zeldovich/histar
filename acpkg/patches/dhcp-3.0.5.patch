@@ -1,0 +1,23 @@
+--- dhcp-3.0.5_orig/configure	2004-09-10 14:02:30.000000000 -0700
++++ dhcp-3.0.5/configure	2007-05-21 22:02:34.000000000 -0700
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ 
+-#sysname=$1
++sysname=jos64
+ 
+ while [ $# != 0 ]; do
+   if [ x$1 = x--with-nsupdate ]; then
+--- dhcp-3.0.5_orig/Makefile.conf	2005-06-16 12:39:35.000000000 -0700
++++ dhcp-3.0.5/Makefile.conf	2007-05-22 23:58:17.000000000 -0700
+@@ -78,6 +78,10 @@
+ # removes the comment characters from the appropriate set of
+ # assignments, and writes the output to Makefile.
+ 
++##--jos64--
++CC=acpkg-wrap-gcc
++##--jos64--
++
+ ## AIX 4.3
+ ##--aix--
+ #CF = cf/aix.h

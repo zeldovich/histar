@@ -78,6 +78,7 @@ PATCHFILE_a2ps-4.13	    := a2ps-4.13b.patch
 PATCHFILE_perl-5.8.8	    := perl-5.8.8.patch
 PATCHFILE_dmalloc-5.5.0	    := dmalloc-5.5.0.patch
 PATCHFILE_make-3.81	    := make-3.81.patch
+PATCHFILE_dhcp-3.0.5	    := dhcp-3.0.5.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -271,6 +272,15 @@ $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 
 ## http://ftp.gnu.org/pub/gnu/bash/bash-3.1.tar.gz
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
+
+acpkg/dhcp-3.0.5/__build: $(LDEPS) $(ACPKG_WRAPS) acpkg/dhcp-3.0.5/__patch
+	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake clean" )
+	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) ./configure" )
+	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake" )
+	touch $@
+
+$(OBJDIR)/acpkg/bin/dhclient: acpkg/dhcp-3.0.5/__build
+	cp acpkg/dhcp-3.0.5/work.jos64/client/dhclient $@
 
 ## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
