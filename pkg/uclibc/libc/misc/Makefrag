@@ -13,7 +13,6 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/wctype \
 	pkg/uclibc/libc/misc/regex \
 	pkg/uclibc/libc/misc/glob \
-	pkg/uclibc/libc/misc/syslog \
 	pkg/uclibc/libc/misc/pthread
 
 ##
@@ -67,7 +66,6 @@ LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/fnmatch/fnmatch.c \
 	pkg/uclibc/libc/misc/gnu/obstack.c \
 	pkg/uclibc/libc/misc/mntent/mntent.c \
-	pkg/uclibc/libc/misc/syslog/syslog.c \
 	pkg/uclibc/libc/misc/regex/regex.c \
 	pkg/uclibc/libc/misc/pthread/unlock.c \
 	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
