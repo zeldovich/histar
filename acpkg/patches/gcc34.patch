@@ -101,3 +101,14 @@
       int *status;
       int flags ATTRIBUTE_UNUSED;
  {
+--- gcc-3.4.5/gcc/collect2.c	2007/05/23 00:28:39	1.1
++++ gcc-3.4.5/gcc/collect2.c	2007/05/23 00:28:52
+@@ -222,7 +222,7 @@
+ char * temporary_firstobj;
+ 
+ /* Holds the return value of pexecute and fork.  */
+-int pid;
++pid_t pid;
+ 
+ /* Structure to hold all the directories in which to search for files to
+    execute.  */

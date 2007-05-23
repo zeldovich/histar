@@ -150,12 +150,14 @@ again:
     if (child_debug)
 	cprintf("[%"PRIu64"] wait4: counter %"PRIu64"\n", thread_id(), start_counter);
 
+    int found_pid = 0;
     for (wc = LIST_FIRST(&live_children); wc; wc = next) {
 	next = LIST_NEXT(wc, wc_link);
 
 	if (pid >= 0 && pid != wc->wc_pid)
 	    continue;
 
+	found_pid = 1;
 	int r = child_get_status(wc, statusp);
 	if (child_debug)
 	    cprintf("[%"PRIu64"] wait4: child %"PRIu64" status %d\n",
@@ -194,6 +196,10 @@ again:
 	    return pid;
 	}
     }
+
+    if (pid >= 0 && !found_pid)
+	cprintf("[%"PRIu64"] wait4: %s: dud pid %"PRIu64"\n",
+		thread_id(), jos_progname, pid);
 
     if (!(options & WNOHANG)) {
 	if (child_debug)
