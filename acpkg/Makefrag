@@ -452,7 +452,9 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
 		lib/libutil.a lib/libstdc++.a \
-		lib/gcc/x86_64-jos-linux/3.4.5/crt*.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crt{begin,end}{,S}.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crtbeginT.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crt{1,i,n}.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/specs \
 		lib/gcc/x86_64-jos-linux/3.4.5/include
