@@ -439,7 +439,7 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 
 $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/__build $(LDEPS)
 	rm -f $@
-	cp $(OBJDIR)/lib/crt*.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
+	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
 	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libc.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
@@ -452,12 +452,8 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
 		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
 		lib/libutil.a lib/libstdc++.a \
-		lib/gcc/x86_64-jos-linux/3.4.5/crtbegin.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/crtend.o \
+		lib/gcc/x86_64-jos-linux/3.4.5/crt*.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
 		lib/gcc/x86_64-jos-linux/3.4.5/specs \
-		lib/gcc/x86_64-jos-linux/3.4.5/crt1.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/crti.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/crtn.o \
 		lib/gcc/x86_64-jos-linux/3.4.5/include
 
