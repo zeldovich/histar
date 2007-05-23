@@ -35,7 +35,7 @@ netd_to_libc(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
 }
 
 int
-socket(int domain, int type, int protocol)
+netd_socket(int domain, int type, int protocol)
 {
     struct cobj_ref netd_gate = netd_get_gate();
 
@@ -63,13 +63,6 @@ socket(int domain, int type, int protocol)
     fd->fd_sock.s = sock;
     fd->fd_sock.netd_gate = netd_gate;
     return fd2num(fd);
-}
-
-int
-socketpair(int domain, int type, int protocol, int sv[2])
-{
-    // fudge the socketpair
-    return bipipe(sv);
 }
 
 static int

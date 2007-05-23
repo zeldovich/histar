@@ -6,7 +6,7 @@ UCLIBC_JOS64_CSRC := \
 	sbrk.c errno.c signal.c exit.c uidgid.c mmap.c memlayout.c fd.cc \
 	file.c file_fd.c getdnnm.c proc.cc time.c rlim.c host.c ptyhelper.cc \
 	pipe.c pty.c ptrace.cc misc.c fork.cc exec.cc signalgate.cc sysinfo.c \
-	wait.c alarm.c segvhelper.cc resolv.c pthread.c ioctl.c stat.c
+	wait.c alarm.c segvhelper.cc resolv.c pthread.c ioctl.c stat.c socket.c
 
 LIBC_SRCFILES += $(patsubst %c, pkg/uclibc/libc/sysdeps/jos64/%c, $(UCLIBC_JOS64_CSRC))
 

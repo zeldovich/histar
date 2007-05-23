@@ -206,6 +206,8 @@ int netd_netmask(struct netd_sockaddr_in *nsin);
 int netd_name(char *buf);
 int netd_flags(int16_t *flags);
 
+int netd_socket(int domain, int type, int protocol);
+
 struct host_entry {
     const char *alias;
     const char *name;
