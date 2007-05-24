@@ -14,10 +14,16 @@ extern "C" {
 class saved_privilege {
  public:
     saved_privilege(uint64_t guard, uint64_t h, uint64_t ct);
-    saved_privilege(uint64_t h, cobj_ref g) : handle_(h), gate_(g), gc_(false) {}
+    saved_privilege(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct);
+    saved_privilege(uint64_t h, cobj_ref g) 
+	: handle_(h), handle2_(0), gate_(g), gc_(false) {}
+    saved_privilege(uint64_t h, uint64_t h2, cobj_ref g) 
+	: handle_(h), handle2_(h2), gate_(g), gc_(false) {}
+
     ~saved_privilege() { if (gc_) sys_obj_unref(gate_); }
 
     uint64_t handle() { return handle_; }
+    uint64_t handle2() { return handle2_; }
     cobj_ref gate() { return gate_; }
     void set_gc(bool b) { gc_ = b; }
     void acquire();
@@ -25,8 +31,10 @@ class saved_privilege {
  private:
     saved_privilege(const saved_privilege&);
     saved_privilege &operator=(const saved_privilege&);
+    void init(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct);
 
     uint64_t handle_;
+    uint64_t handle2_;
     cobj_ref gate_;
     bool gc_;
 };

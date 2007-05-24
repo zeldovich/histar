@@ -15,8 +15,8 @@ extern "C" {
 #include <inttypes.h>
 }
 
-saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
-    : handle_(h), gate_(), gc_(true)
+void 
+saved_privilege::init(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct)
 {
     // XXX
     // This assumes our default label and clearance levels are
@@ -24,12 +24,17 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
     // to actually call thread_cur_label(), thread_cur_clear().
     // Possible to do this as a fallback when sys_gate_create
     // returns an error..
-
+    
     label gl(1);
     gl.set(h, LB_LEVEL_STAR);
-
+    
     label gc(2);
     gc.set(h, 3);
+
+    if (h2) {
+	gl.set(h2, LB_LEVEL_STAR);
+	gc.set(h2, 3);
+    }
 
     label gv(3);
     gv.set(guard, 0);
@@ -44,6 +49,18 @@ saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
     gate_ = COBJ(ct, gate_id);
 }
 
+saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t ct)
+    : handle_(h), handle2_(0), gate_(), gc_(true)
+{
+    init(guard, h, 0, ct);
+}
+
+saved_privilege::saved_privilege(uint64_t guard, uint64_t h, uint64_t h2, uint64_t ct)
+    : handle_(h), handle2_(h2), gate_(), gc_(true)
+{
+    init(guard, h, h2, ct);
+}
+
 void
 saved_privilege::acquire()
 {
@@ -51,9 +68,18 @@ saved_privilege::acquire()
     thread_cur_label(&tl);
     thread_cur_clearance(&tc);
 
-    if (tl.get(handle_) == LB_LEVEL_STAR) {
+    if (tl.get(handle_) == LB_LEVEL_STAR && 
+	(!handle2_ || tl.get(handle2_) == LB_LEVEL_STAR)) {
+	char f = 0;
 	if (tc.get(handle_) != 3) {
 	    tc.set(handle_, 3);
+	    f = 1;
+	}
+	if (handle2_ && tc.get(handle2_) != 3) {
+	    tc.set(handle2_, 3);
+	    f = 1;
+	}
+	if (f) {
 	    error_check(sys_self_set_clearance(tc.to_ulabel()));
 	    thread_label_cache_update(&tl, &tc);
 	}
@@ -62,6 +88,11 @@ saved_privilege::acquire()
 
     tl.set(handle_, LB_LEVEL_STAR);
     tc.set(handle_, 3);
+
+    if (handle2_) {
+	tl.set(handle2_, LB_LEVEL_STAR);
+	tc.set(handle2_, 3);
+    }
 
     struct jos_jmp_buf jb;
     if (!jos_setjmp(&jb)) {
