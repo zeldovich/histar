@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/fs.h>
+#include <inc/fd.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/error.h>
@@ -231,11 +232,7 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
     o->obj = COBJ(dir.obj.object, id);
     scope_guard<int, cobj_ref> unref(sys_obj_unref, o->obj);
     try {
-	uint64_t dseg_id = fs_dir_dseg::init(*o);
-	struct fs_object_meta meta;
-	error_check(sys_obj_get_meta(o->obj, &meta));
-	meta.dseg_id = dseg_id;
-	error_check(sys_obj_set_meta(o->obj, 0, &meta));
+	fs_dir_dseg::init(*o);
     } catch (error &e) {
 	cprintf("fs_mkdir: %s\n", e.what());
 	return e.err();
@@ -256,40 +253,7 @@ fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel 
 int
 fs_create(struct fs_inode dir, const char *fn, struct fs_inode *f, struct ulabel *l)
 {
-    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
-    if (id < 0) {
-	if (id == -E_LABEL && start_env->declassify_gate.object) {
-	    struct gate_call_data gcd;
-	    struct declassify_args *darg =
-		(struct declassify_args *) &gcd.param_buf[0];
-	    darg->req = declassify_fs_create;
-	    darg->fs_create.dir = dir;
-	    snprintf(&darg->fs_create.name[0],
-		     sizeof(darg->fs_create.name),
-		     "%s", fn);
-
-	    label verify;
-	    thread_cur_label(&verify);
-	    gate_call(start_env->declassify_gate, 0, 0, 0).call(&gcd, &verify);
-	    *f = darg->fs_create.new_file;
-	    return darg->status;
-	}
-
-	return id;
-    }
-
-    f->obj = COBJ(dir.obj.object, id);
-
-    try {
-	fs_dir *d = fs_dir_open(dir, 1);
-	scope_guard<void, fs_dir *> g(delete_obj, d);
-	d->insert(fn, *f);
-    } catch (error &e) {
-	sys_obj_unref(f->obj);
-	return e.err();
-    }
-
-    return 0;
+    return fs_mknod(dir, fn, devfile.dev_id, 0, f, l);
 }
 
 int
@@ -354,28 +318,50 @@ fs_dirbase(char *pn, const char **dirname, const char **basename)
 
 int  
 fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt,
-	 struct fs_inode *ino, struct ulabel *l)
+	 struct fs_inode *f, struct ulabel *l)
 {
-    int r;
+    int64_t id = sys_segment_create(dir.obj.object, 0, l, fn);
+    if (id < 0) {
+	if (id == -E_LABEL && start_env->declassify_gate.object) {
+	    struct gate_call_data gcd;
+	    struct declassify_args *darg =
+		(struct declassify_args *) &gcd.param_buf[0];
+	    darg->req = declassify_fs_create;
+	    darg->fs_create.dir = dir;
+	    snprintf(&darg->fs_create.name[0],
+		     sizeof(darg->fs_create.name),
+		     "%s", fn);
 
-    r = fs_create(dir, fn, ino, l);
-    if (r < 0)
-	return r;
-    
-    struct fs_object_meta m;
-    r = sys_obj_get_meta(ino->obj, &m);
+	    label verify;
+	    thread_cur_label(&verify);
+	    gate_call(start_env->declassify_gate, 0, 0, 0).call(&gcd, &verify);
+	    *f = darg->fs_create.new_file;
+	    return darg->status;
+	}
+
+	return id;
+    }
+
+    f->obj = COBJ(dir.obj.object, id);
+
+    struct fs_object_meta meta;
+    meta.mtime_nsec = meta.ctime_nsec = sys_clock_nsec();
+    meta.dev_id = dev_id;
+    meta.dev_opt = dev_opt;
+    int r = sys_obj_set_meta(f->obj, 0, &meta);
     if (r < 0) {
-	fs_remove(dir, fn, *ino);
+	sys_obj_unref(f->obj);
 	return r;
     }
-    
-    m.dev_id = dev_id;
-    m.dev_opt = dev_opt;
-    r = sys_obj_set_meta(ino->obj, 0, &m);
-    if (r < 0) {
-	fs_remove(dir, fn, *ino);
-	return r;
+
+    try {
+	fs_dir *d = fs_dir_open(dir, 1);
+	scope_guard<void, fs_dir *> g(delete_obj, d);
+	d->insert(fn, *f);
+    } catch (error &e) {
+	sys_obj_unref(f->obj);
+	return e.err();
     }
-    
+
     return 0;
 }

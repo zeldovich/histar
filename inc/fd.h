@@ -196,12 +196,13 @@ extern struct Dev devfile;	/* type 'f' */
 extern struct Dev devpipe;	/* type 'p' */
 extern struct Dev devtun;	/* type 't' */
 extern struct Dev devbipipe;	/* type 'b' */
-extern struct Dev devrand;  	/* type 'r' */
+extern struct Dev devrand;	/* type 'r' */
 extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
-extern struct Dev devptm;       /* type 'x' */
-extern struct Dev devpts;       /* type 'y' */
-extern struct Dev devuds;       /* type 'u' */
+extern struct Dev devptm;	/* type 'x' */
+extern struct Dev devpts;	/* type 'y' */
+extern struct Dev devuds;	/* type 'u' */
+extern struct Dev devsymlink;	/* type 'l' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

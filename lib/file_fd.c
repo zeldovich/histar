@@ -342,6 +342,12 @@ struct Dev devfile = {
     .dev_ioctl = file_ioctl,
 };
 
+struct Dev devsymlink = {
+    .dev_id = 'l',
+    .dev_name = "symlink",
+    /* No actual ops -- just a placeholder */
+};
+
 weak_alias(__libc_open, open);
 weak_alias(__libc_open, open64);
 

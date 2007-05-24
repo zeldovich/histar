@@ -66,7 +66,7 @@ class fs_dir_dseg : public fs_dir {
     void unlock();
     void refresh();
 
-    static uint64_t init(fs_inode dir);
+    static void init(fs_inode dir);
 
  private:
     fs_dir_dseg(const fs_dir_dseg&);

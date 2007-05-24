@@ -511,6 +511,7 @@ static struct Dev *devlist[] = {
     &devptm,
     &devpts,
     &devuds,
+    &devsymlink,
     0
 };
 
@@ -519,6 +520,12 @@ static struct Dev *devtab[256];
 void
 dev_register(struct Dev *dev)
 {
+    if (!dev->dev_id)
+	cprintf("[%"PRIx64"] registering null device type\n", thread_id());
+    if (devtab[dev->dev_id])
+	cprintf("[%"PRIx64"] registering existing device type %d\n",
+		thread_id(), dev->dev_id);
+
     devtab[dev->dev_id] = dev;
 }
 
@@ -542,7 +549,8 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
     if (*dev)
 	return 0;
 
-    cprintf("[%"PRIx64"] unknown device type %d\n", thread_id(), dev_id);
+    if (dev_id != 0)
+	cprintf("[%"PRIx64"] unknown device type %d\n", thread_id(), dev_id);
     return -E_INVAL;
 }
 
