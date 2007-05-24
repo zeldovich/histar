@@ -9,8 +9,6 @@ include pkg/uclibc/libc/termios/Makefrag
 include pkg/uclibc/libc/signal/Makefrag
 include pkg/uclibc/libc/pwd_grp/Makefrag
 
-include pkg/uclibc/libc/sysdeps/jos64/Makefrag
-
 LIBC_COBJFILES := $(LIBC_SRCFILES)
 LIBC_COBJFILES := $(patsubst %.c,  $(OBJDIR)/%.o, $(LIBC_COBJFILES))
 LIBC_COBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(LIBC_COBJFILES))

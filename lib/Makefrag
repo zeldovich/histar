@@ -69,7 +69,14 @@ LIB_SRCFILES :=	\
 	lib/prof.cc \
 	lib/cyg_prof.c \
 	lib/wrap.cc \
-	lib/hashtable.c
+	lib/hashtable.c \
+	lib/alarm.c lib/errno.c lib/exec.cc lib/exit.c lib/fd.cc lib/file.c \
+	lib/file_fd.c lib/fork.cc lib/getdnnm.c lib/host.c \
+	lib/ioctl.c lib/memlayout.c lib/misc.c lib/mmap.c lib/pipe.c \
+	lib/proc.cc lib/pthread.c lib/ptrace.cc lib/pty.c lib/ptyhelper.cc \
+	lib/resolv.c lib/rlim.c lib/sbrk.c lib/segvhelper.cc lib/signal.c \
+	lib/signalgate.cc lib/socket.c lib/stat.c lib/sysinfo.c lib/time.c \
+	lib/uidgid.c lib/wait.c
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag
@@ -79,21 +86,24 @@ LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 LIB_OBJFILES := $(patsubst lib/%.cc, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
+LIBJOS_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
+LIBJOS_CXXFLAGS	= $(USER_CXXFLAGS) $(UCLIBC_COMFLAGS)
+
 $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+	$(CXX) $(LIBJOS_CXXFLAGS) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) -Werror -c -o $@ $<
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) -c -o $@ $<
+	$(CC) $(LIBJOS_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@
