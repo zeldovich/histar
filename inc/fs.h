@@ -45,10 +45,13 @@ struct fs_object_meta {
     uint64_t mtime_nsec;
     uint64_t ctime_nsec;
     uint64_t f_type;
-    uint64_t dseg_id;
-    uint32_t dev_id;
+    uint64_t dseg_id;		// directory containers
+
+    uint8_t dev_id;
+    uint8_t pad0[3];
     uint32_t dev_opt;
-    uint64_t pad[3];
+
+    uint64_t pad1[3];
 };
 
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);
