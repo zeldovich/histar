@@ -15,6 +15,11 @@
 int
 uds_socket(int domain, int type, int protocol)
 {
+    if (type != SOCK_STREAM) {
+	errno = ENOSYS;
+	return -1;
+    }
+
     struct Fd *fd;
     int r = fd_alloc(&fd, "unix-domain");
     if (r < 0) {
