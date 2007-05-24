@@ -139,6 +139,37 @@ struct Fd
 	} fd_tun;
 
 	struct {
+	    struct cobj_ref bipipe_seg;
+	    int bipipe_a;
+	    
+	    struct fs_inode uds_file;
+	    int uds_type;
+	    int uds_prot;
+
+	    /* client state */
+	    char uds_connect;
+
+	    /* listener state */
+	    uint32_t uds_backlog;
+	    char uds_listen;
+
+	    struct cobj_ref uds_gate;
+	    struct {
+		volatile uint64_t op;
+		struct cobj_ref bipipe_seg;
+
+		struct cobj_ref priv_gt0;
+		struct cobj_ref priv_gt1;
+
+		uint64_t h0;
+		uint64_t h1;
+		
+	    } slot[16];
+	    jthread_mutex_t uds_mu;
+
+	} fd_uds;
+
+	struct {
 	    char buf[4000];
 	} fd_cust;
     };
@@ -170,6 +201,7 @@ extern struct Dev devzero;	/* type 'z' */
 extern struct Dev devnull;	/* type 'n' */
 extern struct Dev devptm;       /* type 'x' */
 extern struct Dev devpts;       /* type 'y' */
+extern struct Dev devuds;       /* type 'u' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);

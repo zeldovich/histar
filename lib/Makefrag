@@ -76,7 +76,7 @@ LIB_SRCFILES :=	\
 	lib/proc.cc lib/pthread.c lib/ptrace.cc lib/pty.c lib/ptyhelper.cc \
 	lib/resolv.c lib/rlim.c lib/sbrk.c lib/segvhelper.cc lib/signal.c \
 	lib/signalgate.cc lib/socket.c lib/stat.c lib/sysinfo.c lib/time.c \
-	lib/uidgid.c lib/wait.c
+	lib/uidgid.c lib/wait.c lib/uds.c lib/udsgate.cc
 
 include lib/cppsup/Makefrag
 include lib/vt/Makefrag

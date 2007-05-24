@@ -510,6 +510,7 @@ static struct Dev *devlist[] = {
     &devnull,
     &devptm,
     &devpts,
+    &devuds,
     0
 };
 
