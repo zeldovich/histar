@@ -162,7 +162,9 @@ uds_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	if (r < 0)
 	    return errno_val(EACCES);
 
-    } else if (r < 0)
+    } else if (r == 0)
+	return errno_val(EEXIST);
+    else
 	return errno_val(EINVAL);
     
     fd->fd_uds.uds_file = ino;
