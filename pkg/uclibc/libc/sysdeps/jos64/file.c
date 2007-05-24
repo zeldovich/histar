@@ -126,7 +126,7 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
     uint32_t dev_id;
 
     if (mode | S_IFREG)
-	dev_id = 'f';
+	dev_id = devfile.dev_id;
     else if ((mode | S_IFCHR))
 	dev_id = dev;
     else {
@@ -221,7 +221,7 @@ stat(const char *file_name, struct stat *buf)
 	struct fs_object_meta m;
 	struct Dev *dev;
 	r = sys_obj_get_meta(ino.obj, &m);
-	if (m.dev_id != 'f' &&
+	if (m.dev_id != devfile.dev_id &&
 	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat)
 	{
 	    // call dev_stat via fstat below if have a custom stat

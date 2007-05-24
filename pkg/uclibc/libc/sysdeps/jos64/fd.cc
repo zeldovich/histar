@@ -1124,7 +1124,7 @@ fchdir(int fdnum) __THROW
 	return -1;
     }
     
-    if (fd->fd_dev_id != 'f') {
+    if (fd->fd_dev_id != devfile.dev_id) {
 	cprintf("fchdir(%d): not a dir\n", fdnum);
 	__set_errno(ENOTDIR);
 	return -1;
@@ -1176,7 +1176,7 @@ fstatfs(int fdnum, struct statfs *buf) __THROW
 	return -1;
     }
     
-    if (fd->fd_dev_id != 'f') {
+    if (fd->fd_dev_id != devfile.dev_id) {
 	cprintf("fstatfs(%d): not a file\n", fdnum);
 	__set_errno(ENOTSUP);
 	return -1;
