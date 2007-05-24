@@ -467,7 +467,7 @@ struct Dev devptm = {
 };
 
 struct Dev devpts = {
-    .dev_id = 'z',
+    .dev_id = 'y',
     .dev_name = "pts",
     .dev_read = pty_read,
     .dev_write = pts_write,
