@@ -302,6 +302,7 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 
     fd->fd_uds.bipipe_a = 1;
     fd->fd_uds.bipipe_seg = bs;
+    fd->fd_uds.uds_connect = 1;
     fd_set_extra_handles(fd, grant, taint);
     
     unref.dismiss();
@@ -346,11 +347,15 @@ uds_listen(struct Fd *fd, int backlog)
 ssize_t
 uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
+    if (!fd->fd_uds.uds_connect)
+	return errno_val(EINVAL);
     return (*devbipipe.dev_write)(fd, buf, count, 0); 
 }
 
 ssize_t
 uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
+    if (!fd->fd_uds.uds_connect)
+	return errno_val(EINVAL);
     return (*devbipipe.dev_read)(fd, buf, count, 0);
 }
