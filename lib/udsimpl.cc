@@ -8,7 +8,7 @@ extern "C" {
 #include <inc/multisync.h>
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
-#include <bits/udsgate.h>
+#include <inc/udsimpl.h>
 
 #include <string.h>
 #include <fcntl.h>
@@ -29,6 +29,19 @@ struct uds_gate_args {
     int ret;
 };
 
+static int
+errno_val(uint64_t e)
+{
+    errno = e;
+    return -1;
+}
+
+static uint32_t
+max_slots(struct Fd *fd)
+{
+    return (sizeof(fd->fd_uds.uds_slots) / sizeof(fd->fd_uds.uds_slots[0]));
+}
+
 static void __attribute__((noreturn))
 uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
@@ -36,7 +49,10 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     uds_gate_args *a = (uds_gate_args *)parm->param_buf;
     struct uds_slot *slot = 0;
     
-    assert(fd->fd_uds.uds_listen);
+    if (!fd->fd_uds.uds_listen) {
+	a->ret = -1;
+	gr->ret(0, 0, 0);
+    }
     
     jthread_mutex_lock(&fd->fd_uds.uds_mu);
     for (uint32_t i = 0; i < fd->fd_uds.uds_backlog; i++) {
@@ -84,21 +100,77 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 }
 
 int
-uds_gate_new(struct Fd *fd, uint64_t ct, struct cobj_ref *gate)
+uds_socket(int domain, int type, int protocol)
 {
-    try {
-	*gate = gate_create(ct, "uds", 0, 0, 0, uds_gate, (uint64_t)fd);
-    } catch (error &e) {
-	return e.err();
-    } catch (std::exception &e) {
-	cprintf("uds_gate_new: error: %s\n", e.what());
-	return -E_INVAL;
+    if (type != SOCK_STREAM)
+	return errno_val(ENOSYS);
+
+    struct Fd *fd;
+    int r = fd_alloc(&fd, "unix-domain");
+    if (r < 0)
+	return errno_val(ENOMEM);
+    memset(&fd->fd_uds, 0, sizeof(fd->fd_uds));
+    
+    fd->fd_dev_id = devuds.dev_id;
+    fd->fd_omode = O_RDWR;
+
+    fd->fd_uds.uds_backlog = max_slots(fd);
+    return fd2num(fd);
+}
+
+int
+uds_close(struct Fd *fd)
+{
+    int r;
+
+    if (fd->fd_uds.uds_gate.object) {
+	r = sys_obj_unref(fd->fd_uds.uds_gate);
+	if (r < 0)
+	    cprintf("uds_close: unable to unref gate: %s\n", e2s(r));
     }
+
+    return (*devbipipe.dev_close)(fd);
+}
+
+int
+uds_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int r;
+    struct fs_inode ino;
+
+    if (fd->fd_uds.uds_file.obj.object != 0)
+	return errno_val(EINVAL);
+
+    char *pn = (char *)addr->sa_data;
+    r = fs_namei(pn, &ino);
+    if (r == -E_NOT_FOUND) {
+	char *pn2;
+	const char *dn, *fn;
+	struct fs_inode dir_ino;
+	pn2 = strdup(pn);
+	scope_guard<void, void *> fstr(free, pn2);
+	fs_dirbase(pn2, &dn, &fn);
+	r = fs_namei(dn, &dir_ino);
+	if (r < 0)
+	    return errno_val(ENOTDIR);
+
+	label l(1);
+	if (start_env->user_grant)
+	    l.set(start_env->user_grant, 0);
+
+	r = fs_mknod(dir_ino, fn, devuds.dev_id, 0, &ino, l.to_ulabel());
+	if (r < 0)
+	    return errno_val(EACCES);
+
+    } else if (r < 0)
+	return errno_val(EINVAL);
+    
+    fd->fd_uds.uds_file = ino;
     return 0;
 }
 
-int 
-uds_gate_accept(struct Fd *fd)
+int
+uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct wait_stat ws[fd->fd_uds.uds_backlog];
     struct uds_slot *slots = fd->fd_uds.uds_slots;
@@ -138,10 +210,8 @@ uds_gate_accept(struct Fd *fd)
  out:
     struct Fd *nfd;
     int r = fd_alloc(&nfd, "unix-domain");
-    if (r < 0) {
-	errno = ENOMEM;
-	return -1;
-    }
+    if (r < 0)
+	return errno_val(ENOMEM);
     memset(&nfd->fd_uds, 0, sizeof(nfd->fd_uds));
     nfd->fd_dev_id = devuds.dev_id;
     nfd->fd_omode = O_RDWR;
@@ -157,10 +227,44 @@ uds_gate_accept(struct Fd *fd)
     return fd2num(nfd);
 }
 
-int 
-uds_gate_connect(struct Fd *fd, cobj_ref gate)
+static int
+uds_read_gate(struct Fd *fd, const struct sockaddr *addr, cobj_ref *gate)
 {
     int r;
+    struct fs_inode ino;
+    char *pn = (char *)addr->sa_data;
+    
+    r = fs_namei(pn, &ino);
+    if (r < 0)
+	return errno_val(ENOENT);
+    
+    struct fs_object_meta m;
+    r = sys_obj_get_meta(ino.obj, &m);
+    if (r < 0)
+	return errno_val(EACCES);
+
+    if (m.dev_id != devuds.dev_id)
+	return errno_val(ECONNREFUSED);
+
+    r = fs_pread(ino, gate, sizeof(*gate), 0);
+    if (r < 0)
+	return errno_val(EACCES);
+    else if (r != sizeof(*gate))
+	/* a uds dev was just created, and nobody is listening yet */
+	return errno_val(ECONNREFUSED);
+    
+    return 0;
+}
+
+int
+uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    int r;
+    struct cobj_ref gate;
+    r = uds_read_gate(fd, addr, &gate);
+    if (r < 0)
+	return r;
+
     struct gate_call_data gcd;
     cobj_ref bs;
     memset(&gcd, 0, sizeof(gcd));
@@ -172,7 +276,6 @@ uds_gate_connect(struct Fd *fd, cobj_ref gate)
     scope_guard2<void, uint64_t, uint64_t> 
 	drop(thread_drop_starpair, taint, grant);
     
-
     l.set(taint, 3);
     l.set(grant, 0);
 
@@ -191,10 +294,10 @@ uds_gate_connect(struct Fd *fd, cobj_ref gate)
     try {
 	gate_call(gate, 0, &l, 0).call(&gcd, 0);
     } catch (error &e) {
-	return e.err();
+	return errno_val(EINVAL);
     } catch (std::exception &e) {
-	cprintf("uds_gate_new: error: %s\n", e.what());
-	return -E_INVAL;
+	cprintf("uds_gate_connect: error: %s\n", e.what());
+	return errno_val(EINVAL);
     }
 
     fd->fd_uds.bipipe_a = 1;
@@ -204,4 +307,50 @@ uds_gate_connect(struct Fd *fd, cobj_ref gate)
     unref.dismiss();
     drop.dismiss();
     return 0;
+}
+
+int
+uds_listen(struct Fd *fd, int backlog)
+{
+    int r;
+
+    if ((uint32_t)backlog > max_slots(fd))
+	return errno_val(EINVAL);
+    
+    if (!fd->fd_uds.uds_gate.object) {
+	try {
+	    uint64_t ct = start_env->shared_container;
+	    fd->fd_uds.uds_gate = 
+		gate_create(ct, "uds", 0, 0, 0, uds_gate, (uint64_t)fd);
+	} catch (error &e) {
+	    return errno_val(EACCES);
+	} catch (std::exception &e) {
+	    cprintf("uds_gate_new: error: %s\n", e.what());
+	    return errno_val(EACCES);
+	}
+    }
+
+    fd->fd_uds.uds_backlog = backlog;
+    fd->fd_uds.uds_listen = 1;
+    
+    r = fs_pwrite(fd->fd_uds.uds_file, &fd->fd_uds.uds_gate, 
+		  sizeof(fd->fd_uds.uds_gate), 0);
+    if (r < 0) {
+	fd->fd_uds.uds_listen = 0;
+	return errno_val(EACCES);
+    }
+
+    return 0;
+}
+
+ssize_t
+uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
+{
+    return (*devbipipe.dev_write)(fd, buf, count, 0); 
+}
+
+ssize_t
+uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
+{
+    return (*devbipipe.dev_read)(fd, buf, count, 0);
 }
