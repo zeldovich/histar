@@ -221,8 +221,9 @@ stat(const char *file_name, struct stat *buf)
 	struct fs_object_meta m;
 	struct Dev *dev;
 	r = sys_obj_get_meta(ino.obj, &m);
-	if ((m.dev_id < 123) && (m.dev_id > 47) && (m.dev_id != 'f') &&
-	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat) {
+	if (m.dev_id != 'f' &&
+	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat)
+	{
 	    // call dev_stat via fstat below if have a custom stat
 	    ;
 	} else {

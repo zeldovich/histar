@@ -89,10 +89,8 @@ __libc_open(const char *pn, int flags, ...)
 	struct fs_object_meta m;
 	r = sys_obj_get_meta(ino.obj, &m);
 	struct Dev *dev;
-	// hack,  check if an ascii char between 0 and z
-	if (r >= 0 && (m.dev_id < 123) && (m.dev_id > 47))
-	    if ((dev_lookup((uint8_t)m.dev_id, &dev) >= 0) && dev->dev_open)
-		return dev->dev_open(ino, flags, m.dev_opt);	
+	if (r >= 0 && (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_open)
+	    return dev->dev_open(ino, flags, m.dev_opt);	
     } else if (r == -E_NOT_FOUND) {
 	if (!(flags & O_CREAT)) {
 	    __set_errno(ENOENT);
