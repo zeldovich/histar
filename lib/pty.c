@@ -273,6 +273,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
     if (r < 0)
 	return r;
 
+    /* lots of code assumes a write to stdout writes all bytes */
     while ((uint32_t) r < cc) {
 	int fdnum = fd2num(fd);
 
