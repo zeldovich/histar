@@ -19,6 +19,7 @@ extern "C" {
 #include <inc/gateclnt.hh>
 #include <inc/scopeguard.hh>
 #include <inc/privstore.hh>
+#include <inc/labelutil.hh>
 
 struct uds_gate_args {
     struct cobj_ref bipipe_seg;
@@ -33,53 +34,49 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     struct Fd *fd = (struct Fd *) arg;
     uds_gate_args *a = (uds_gate_args *)parm->param_buf;
-    int32_t ndx = -1;
+    struct uds_slot *slot = 0;
     
     assert(fd->fd_uds.uds_listen);
     
     jthread_mutex_lock(&fd->fd_uds.uds_mu);
     for (uint32_t i = 0; i < fd->fd_uds.uds_backlog; i++) {
-	if (fd->fd_uds.slot[i].op == 0) {
-	    ndx = i;
+	if (fd->fd_uds.uds_slots[i].op == 0) {
+	    slot = &fd->fd_uds.uds_slots[i];
 	    break;
 	}
     }
 
-    if (ndx < 0) {
+    if (slot == 0) {
 	a->ret = -1;
 	jthread_mutex_unlock(&fd->fd_uds.uds_mu);
 	gr->ret(0, 0, 0);
     }
 
-    saved_privilege sp0(start_env->process_grant, 
-			a->taint, 
-			start_env->proc_container);
-    saved_privilege sp1(start_env->process_grant, 
-			a->grant, 
-			start_env->proc_container);
-    sp0.set_gc(false);
-    sp1.set_gc(false);
+    saved_privilege sp(start_env->process_grant, 
+		       a->taint, 
+		       a->grant,
+		       start_env->proc_container);
+    sp.set_gc(false);
     
-    fd->fd_uds.slot[ndx].op = 1;
-    fd->fd_uds.slot[ndx].bipipe_seg = a->bipipe_seg;
-    fd->fd_uds.slot[ndx].priv_gt0 = sp0.gate();
-    fd->fd_uds.slot[ndx].h0 = sp0.handle();
-    fd->fd_uds.slot[ndx].priv_gt1 = sp1.gate();
-    fd->fd_uds.slot[ndx].h1 = sp1.handle();
+    slot->op = 1;
+    slot->bipipe_seg = a->bipipe_seg;
+    slot->priv_gt = sp.gate();
+    slot->taint = a->taint;
+    slot->grant = a->grant;
     
     for (;;) {
-	if (fd->fd_uds.slot[ndx].op == 2)
+	if (slot->op == 2)
 	    break;
-	else if (fd->fd_uds.slot[ndx].op == 0)
+	else if (slot->op == 0)
 	    panic("uds_gate: unexpected op");
 	
-	sys_sync_wakeup(&fd->fd_uds.slot[ndx].op);
+	sys_sync_wakeup(&slot->op);
 	jthread_mutex_unlock(&fd->fd_uds.uds_mu);
-	sys_sync_wait(&fd->fd_uds.slot[ndx].op, 1, ~0UL);
+	sys_sync_wait(&slot->op, 1, ~0UL);
 	jthread_mutex_lock(&fd->fd_uds.uds_mu);
     }
 
-    fd->fd_uds.slot[ndx].op = 0;
+    slot->op = 0;
     jthread_mutex_unlock(&fd->fd_uds.uds_mu);
 
     a->ret = 0;
@@ -104,6 +101,7 @@ int
 uds_gate_accept(struct Fd *fd)
 {
     struct wait_stat ws[fd->fd_uds.uds_backlog];
+    struct uds_slot *slots = fd->fd_uds.uds_slots;
     cobj_ref bs;
     uint64_t grant, taint;
     
@@ -111,28 +109,24 @@ uds_gate_accept(struct Fd *fd)
     
     memset(ws, 0, sizeof(ws));
     for (uint32_t i = 0; i < fd->fd_uds.uds_backlog; i++) {
-	WS_SETADDR(&ws[i], &fd->fd_uds.slot[i].op);
+	WS_SETADDR(&ws[i], &slots[i].op);
 	WS_SETVAL(&ws[i], 0);
     }
     
     for (;;) {
 	jthread_mutex_lock(&fd->fd_uds.uds_mu);
 	for (uint32_t i = 0; i < fd->fd_uds.uds_backlog; i++)
-	    if (fd->fd_uds.slot[i].op == 1) {
-		saved_privilege sp0(fd->fd_uds.slot[i].h0, fd->fd_uds.slot[i].priv_gt0);
-		saved_privilege sp1(fd->fd_uds.slot[i].h1, fd->fd_uds.slot[i].priv_gt1);
-		sp0.set_gc(true);
-		sp1.set_gc(true);
+	    if (slots[i].op == 1) {
+		saved_privilege sp(slots[i].taint, slots[i].grant, slots[i].priv_gt);
+		sp.set_gc(true);
+		sp.acquire();
 		
-		sp0.acquire();
-		sp1.acquire();
+		taint = slots[i].taint;
+		grant = slots[i].grant; 
 		
-		taint = fd->fd_uds.slot[i].h0;
-		grant = fd->fd_uds.slot[i].h1; 
-		
-		bs = fd->fd_uds.slot[i].bipipe_seg;
-		fd->fd_uds.slot[i].op = 2;
-		sys_sync_wakeup(&fd->fd_uds.slot[i].op);
+		bs = slots[i].bipipe_seg;
+		slots[i].op = 2;
+		sys_sync_wakeup(&slots[i].op);
 		jthread_mutex_unlock(&fd->fd_uds.uds_mu);
 		goto out;
 	    }
@@ -175,6 +169,9 @@ uds_gate_connect(struct Fd *fd, cobj_ref gate)
     
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
+    scope_guard2<void, uint64_t, uint64_t> 
+	drop(thread_drop_starpair, taint, grant);
+    
 
     l.set(taint, 3);
     l.set(grant, 0);
@@ -202,7 +199,9 @@ uds_gate_connect(struct Fd *fd, cobj_ref gate)
 
     fd->fd_uds.bipipe_a = 1;
     fd->fd_uds.bipipe_seg = bs;
-
+    fd_set_extra_handles(fd, grant, taint);
+    
     unref.dismiss();
+    drop.dismiss();
     return 0;
 }

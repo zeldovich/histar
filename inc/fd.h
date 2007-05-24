@@ -9,6 +9,7 @@
 #include <inc/label.h>
 #include <inc/multisync.h>
 #include <inc/pty.h>
+#include <inc/uds.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -154,17 +155,7 @@ struct Fd
 	    char uds_listen;
 
 	    struct cobj_ref uds_gate;
-	    struct {
-		volatile uint64_t op;
-		struct cobj_ref bipipe_seg;
-
-		struct cobj_ref priv_gt0;
-		struct cobj_ref priv_gt1;
-
-		uint64_t h0;
-		uint64_t h1;
-		
-	    } slot[16];
+	    struct uds_slot uds_slots[16];
 	    jthread_mutex_t uds_mu;
 
 	} fd_uds;
