@@ -22,15 +22,23 @@ sbrk(intptr_t x)
 {
     int r;
     void *p = 0;
+    uint64_t ct;
 
     if (!start_env) {
-	cprintf("sbrk called without a start_env\n");
-	return 0;
+	struct cobj_ref as;
+	r = sys_self_get_as(&as);
+	if (r < 0) {
+	    cprintf("sbrk: failed to get as: %s\n", e2s(r));
+	    return 0;
+	}
+	ct = as.container;
+    } else {
+	ct = start_env->proc_container;
     }
 
     jthread_mutex_lock(&heap.mu);
 
-    if (heap.inited_pct != start_env->proc_container) {
+    if (heap.inited_pct != ct) {
 	struct u_segment_mapping usm;
 	r = segment_lookup(heap_base, &usm);
 	if (r < 0) {
@@ -41,7 +49,7 @@ sbrk(intptr_t x)
 	if (r > 0) {
 	    heap.heapseg = usm.segment;
 	} else {
-	    r = segment_alloc(start_env->proc_container, 0,
+	    r = segment_alloc(ct, 0,
 			      &heap.heapseg, 0, 0, "heap");
 	    if (r < 0) {
 		cprintf("sbrk: cannot allocate heap: %s\n", e2s(r));
@@ -57,7 +65,7 @@ sbrk(intptr_t x)
 	    }
 	}
 
-	heap.inited_pct = start_env->proc_container;
+	heap.inited_pct = ct;
     }
 
     size_t nbrk = heap.brk + x;
