@@ -285,7 +285,6 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	return r;
 
     struct gate_call_data gcd;
-    cobj_ref bs;
     memset(&gcd, 0, sizeof(gcd));
     uds_gate_args *a = (uds_gate_args *)gcd.param_buf;
     label l(1);
@@ -307,7 +306,6 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     
     if (r < 0)
 	return r;
-    scope_guard<int, cobj_ref> unref(sys_obj_unref, bs); 
 
     l.set(taint, LB_LEVEL_STAR);
     l.set(grant, LB_LEVEL_STAR);
@@ -323,7 +321,6 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     fd->fd_uds.uds_connect = 1;
     fd_set_extra_handles(fd, grant, taint);
     
-    unref.dismiss();
     drop.dismiss();
     return 0;
 }
