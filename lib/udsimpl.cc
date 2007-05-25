@@ -21,6 +21,8 @@ extern "C" {
 #include <inc/privstore.hh>
 #include <inc/labelutil.hh>
 
+#define UDS_JCOMM_CT start_env->shared_container
+
 struct uds_gate_args {
     struct jcomm jc;
     uint64_t taint;
@@ -129,8 +131,14 @@ uds_close(struct Fd *fd)
 	    cprintf("uds_close: unable to unref gate: %s\n", e2s(r));
     }
     
-    /* XXX cleanup jcomm seg */
-    jcomm_shut(&fd->fd_uds.uds_jc, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+    if (fd->fd_uds.uds_connect) {
+	r = jcomm_shut(&fd->fd_uds.uds_jc, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+	if (r < 0)
+	    cprintf("uds_close: jcomm_shut error: %s\n", e2s(r));
+	r = jcomm_unref(&fd->fd_uds.uds_jc, UDS_JCOMM_CT);
+	if (r < 0)
+	    cprintf("uds_close: jcomm_unref error: %s\n", e2s(r));
+    }
     return 0;
 }
 
@@ -201,6 +209,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 		grant = slots[i].grant; 
 		
 		memcpy(&jc, &slots[i].jc, sizeof(jc));
+		/* XXX shouldn't do this until sure we won't fail */
 		slots[i].op = 2;
 		sys_sync_wakeup(&slots[i].op);
 		jthread_mutex_unlock(&fd->fd_uds.uds_mu);
@@ -224,6 +233,12 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     
     nfd->fd_uds.uds_connect = 1;
     memcpy(&nfd->fd_uds.uds_jc, &jc, sizeof(nfd->fd_uds.uds_jc));
+    r = jcomm_addref(&nfd->fd_uds.uds_jc, UDS_JCOMM_CT);
+    if (r < 0) {
+	cprintf("uds_accept: unable to addref jcomm: %s\n", e2s(r));
+	jos_fd_close(nfd);
+	return errno_val(EINVAL);
+    }
     fd_set_extra_handles(fd, grant, taint);
     
     return fd2num(nfd);
@@ -283,7 +298,7 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 
     a->taint = taint;
     a->grant = grant;
-    r = jcomm_alloc(start_env->shared_container, l.to_ulabel(), 0, 
+    r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), 0, 
 		    &fd->fd_uds.uds_jc, &a->jc);
 
     if (r < 0)
