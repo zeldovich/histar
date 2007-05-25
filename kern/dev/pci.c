@@ -154,10 +154,6 @@ pci_bridge_attach(struct pci_func *pcif)
 		nbus.busno,
 		(busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
 
-    pci_conf_write(pcif, PCI_COMMAND_STATUS_REG,
-		   PCI_COMMAND_IO_ENABLE |
-		   PCI_COMMAND_MEM_ENABLE |
-		   PCI_COMMAND_MASTER_ENABLE);
     pci_scan_bus(&nbus);
 }
 
