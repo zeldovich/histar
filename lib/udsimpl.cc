@@ -22,9 +22,10 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 #define UDS_JCOMM_CT start_env->shared_container
+#define UDS_JCOMM(fd) JCOMM(UDS_JCOMM_CT, fd->fd_uds.uds_jc)
 
 struct uds_gate_args {
-    struct jcomm jc;
+    struct jcomm_ref jr;
     uint64_t taint;
     uint64_t grant;
     
@@ -77,7 +78,7 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     sp.set_gc(false);
     
     slot->op = 1;
-    memcpy(&slot->jc, &a->jc, sizeof(slot->jc));
+    memcpy(&slot->jr, &a->jr, sizeof(slot->jr));
     slot->priv_gt = sp.gate();
     slot->taint = a->taint;
     slot->grant = a->grant;
@@ -132,10 +133,11 @@ uds_close(struct Fd *fd)
     }
     
     if (fd->fd_uds.uds_connect) {
-	r = jcomm_shut(&fd->fd_uds.uds_jc, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+	struct jcomm_ref jr = UDS_JCOMM(fd);
+	r = jcomm_shut(jr, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
 	if (r < 0)
 	    cprintf("uds_close: jcomm_shut error: %s\n", e2s(r));
-	r = jcomm_unref(&fd->fd_uds.uds_jc, UDS_JCOMM_CT);
+	r = jcomm_unref(jr);
 	if (r < 0)
 	    cprintf("uds_close: jcomm_unref error: %s\n", e2s(r));
     }
@@ -186,7 +188,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct wait_stat ws[fd->fd_uds.uds_backlog];
     struct uds_slot *slots = fd->fd_uds.uds_slots;
-    struct jcomm jc;
+    struct jcomm_ref jr;
     uint64_t grant, taint;
     
     assert(fd->fd_uds.uds_listen);
@@ -208,7 +210,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 		taint = slots[i].taint;
 		grant = slots[i].grant; 
 		
-		memcpy(&jc, &slots[i].jc, sizeof(jc));
+		memcpy(&jr, &slots[i].jr, sizeof(jr));
 		/* XXX shouldn't do this until sure we won't fail */
 		slots[i].op = 2;
 		sys_sync_wakeup(&slots[i].op);
@@ -232,8 +234,8 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_uds.uds_prot = fd->fd_uds.uds_prot;
     
     nfd->fd_uds.uds_connect = 1;
-    memcpy(&nfd->fd_uds.uds_jc, &jc, sizeof(nfd->fd_uds.uds_jc));
-    r = jcomm_addref(&nfd->fd_uds.uds_jc, UDS_JCOMM_CT);
+    r = jcomm_addref(jr, UDS_JCOMM_CT);
+    memcpy(&nfd->fd_uds.uds_jc, &jr.jc, sizeof(nfd->fd_uds.uds_jc));
     if (r < 0) {
 	cprintf("uds_accept: unable to addref jcomm: %s\n", e2s(r));
 	jos_fd_close(nfd);
@@ -298,9 +300,11 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 
     a->taint = taint;
     a->grant = grant;
+    struct jcomm_ref jr;
     r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), 0, 
-		    &fd->fd_uds.uds_jc, &a->jc);
-
+		    &jr, &a->jr);
+    fd->fd_uds.uds_jc = jr.jc;
+    
     if (r < 0)
 	return r;
     scope_guard<int, cobj_ref> unref(sys_obj_unref, bs); 
@@ -365,7 +369,7 @@ uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
     
-    r = jcomm_write(&fd->fd_uds.uds_jc, buf, count);
+    r = jcomm_write(UDS_JCOMM(fd), buf, count);
     if (r == -E_AGAIN)
 	return errno_val(EAGAIN);
     else if (r == -E_EOF)
@@ -383,8 +387,8 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
     int r;
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
-    
-    r = jcomm_read(&fd->fd_uds.uds_jc, buf, count);
+
+    r = jcomm_read(UDS_JCOMM(fd), buf, count);
     if (r == -E_AGAIN)
 	return errno_val(EAGAIN);
     else if (r == -E_EOF)

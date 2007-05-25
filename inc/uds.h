@@ -7,7 +7,7 @@ int uds_socket(int domain, int type, int protocol);
 
 struct uds_slot {
     volatile uint64_t op;
-    struct jcomm jc;
+    struct jcomm_ref jr;
     uint64_t taint;
     uint64_t grant;
     

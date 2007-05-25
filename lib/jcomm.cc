@@ -8,20 +8,22 @@ extern "C" {
 
 #include <inc/scopeguard.hh>
 
+#define JCSEG(jr) (COBJ(jr.container, jr.jc.segment))
+
 static int
-jcomm_links_map(struct jcomm *jc, struct jlink **links)
+jcomm_links_map(struct jcomm_ref jr, struct jlink **links)
 {
     int r;
     uint64_t sz = 2 * sizeof(struct jlink);
     *links = 0;
-    r = segment_map(jc->links, 0, SEGMAP_READ | SEGMAP_WRITE,
+    r = segment_map(JCSEG(jr), 0, SEGMAP_READ | SEGMAP_WRITE, 
 		    (void **)links, &sz, 0);
     return r;
 }
 
 int
 jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode, 
-	    struct jcomm *a, struct jcomm *b)
+	    struct jcomm_ref *a, struct jcomm_ref *b)
 {
     int r;
     uint64_t sz = 2 * sizeof(struct jlink);
@@ -44,43 +46,45 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     memset(a, 0, sizeof(*a));
     memset(b, 0, sizeof(*b));
     
-    a->a = 1;
-    b->a = 0;
-    
-    a->links = seg;
-    b->links = seg;
+    a->jc.a = 1;
+    b->jc.a = 0;
+    a->jc.mode = mode;
+    b->jc.mode = mode;
+    a->jc.segment = seg.object;
+    b->jc.segment = seg.object;
+
+    a->container = seg.container;
+    b->container = seg.container;
 
     return 0;
 }
 
 int
-jcomm_addref(struct jcomm *jc, uint64_t ct)
+jcomm_addref(struct jcomm_ref jr, uint64_t ct)
 {
-    return sys_segment_addref(jc->links, ct);
+    return sys_segment_addref(JCSEG(jr), ct);
 }
 
 int
-jcomm_unref(struct jcomm *jc, uint64_t ct)
+jcomm_unref(struct jcomm_ref jr)
 {
-    if (ct)
-	return sys_obj_unref(COBJ(ct, jc->links.object));
-    return sys_obj_unref(jc->links);
+    return sys_obj_unref(JCSEG(jr));
 }
 
 int64_t
-jcomm_read(struct jcomm *jc, void *buf, uint64_t cnt)
+jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
 {
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    struct jlink *jl = &links[jc->a];
+    struct jlink *jl = &links[jr.jc.a];
     
     int64_t cc = -1;
     jthread_mutex_lock(&jl->mu);
     while (jl->bytes == 0) {
-        int nonblock = (jc->mode & JCOMM_NONBLOCK);
+        int nonblock = (jr.jc.mode & JCOMM_NONBLOCK);
 	if (!nonblock)
 	    jl->reader_waiting = 1;
 
@@ -127,14 +131,14 @@ jcomm_read(struct jcomm *jc, void *buf, uint64_t cnt)
 }
 
 int64_t
-jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt)
+jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 {
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    struct jlink *jl = &links[!jc->a];
+    struct jlink *jl = &links[!jr.jc.a];
 
     uint32_t bufsize = sizeof(jl->buf);
 
@@ -143,7 +147,7 @@ jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt)
     while (jl->open && jl->bytes > bufsize - PIPE_BUF) {
         uint64_t b = jl->bytes;
 
-	int nonblock = (jc->mode & JCOMM_NONBLOCK);
+	int nonblock = (jr.jc.mode & JCOMM_NONBLOCK);
 	if (!nonblock)
 	    jl->writer_waiting = 1;
 
@@ -190,22 +194,22 @@ jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt)
 }
 
 int
-jcomm_probe(struct jcomm *jc, dev_probe_t probe)
+jcomm_probe(struct jcomm_ref jr, dev_probe_t probe)
 {
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
 
     int rv;
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jc->a];
+	struct jlink *jl = &links[jr.jc.a];
     	jthread_mutex_lock(&jl->mu);
         rv = !jl->open || jl->bytes ? 1 : 0;
         jthread_mutex_unlock(&jl->mu);
     } else {
-	struct jlink *jl = &links[!jc->a];
+	struct jlink *jl = &links[!jr.jc.a];
     	jthread_mutex_lock(&jl->mu);
         rv = !jl->open || (jl->bytes > sizeof(jl->buf) - PIPE_BUF) ? 0 : 1;
         jthread_mutex_unlock(&jl->mu);
@@ -215,16 +219,16 @@ jcomm_probe(struct jcomm *jc, dev_probe_t probe)
 }
 
 int
-jcomm_shut(struct jcomm *jc, uint16_t how)
+jcomm_shut(struct jcomm_ref jr, uint16_t how)
 {
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
 
     if (how & JCOMM_SHUT_RD) {
-	struct jlink *jl = &links[jc->a];
+	struct jlink *jl = &links[jr.jc.a];
 	jthread_mutex_lock(&jl->mu);
 	jl->open = 0;
 	jthread_mutex_unlock(&jl->mu);
@@ -232,7 +236,7 @@ jcomm_shut(struct jcomm *jc, uint16_t how)
     }
 
     if (how & JCOMM_SHUT_WR) {
-	struct jlink *jl = &links[!jc->a];
+	struct jlink *jl = &links[!jr.jc.a];
 	jthread_mutex_lock(&jl->mu);
 	jl->open = 0;
 	jthread_mutex_unlock(&jl->mu);
@@ -242,13 +246,14 @@ jcomm_shut(struct jcomm *jc, uint16_t how)
     return 0;
 }
 
+#if 0
 static int
 jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
 		    void **arg1)
 {
     struct jcomm *jc = (struct jcomm *) arg0;
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr.jc.a, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
@@ -262,6 +267,8 @@ jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     return 0;
 }
 
+/* XXX can't pass jc as WSTAT arg..it might be short lived.  Need
+   to make a copy, or something. */
 int 
 jcomm_multisync(struct jcomm *jc, dev_probe_t probe, struct wait_stat *wstat)
 {
@@ -287,3 +294,4 @@ jcomm_multisync(struct jcomm *jc, dev_probe_t probe, struct wait_stat *wstat)
     
     return 0;
 }
+#endif
