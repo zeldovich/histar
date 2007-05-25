@@ -32,7 +32,11 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-
+    
+    r = sys_obj_set_fixedquota(seg);
+    if (r < 0)
+	return r;
+    
     memset(links, 0, sz);
     links[0].open = 1;
     links[1].open = 1;
@@ -47,6 +51,20 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     b->links = seg;
 
     return 0;
+}
+
+int
+jcomm_addref(struct jcomm *jc, uint64_t ct)
+{
+    return sys_segment_addref(jc->links, ct);
+}
+
+int
+jcomm_unref(struct jcomm *jc, uint64_t ct)
+{
+    if (ct)
+	return sys_obj_unref(COBJ(ct, jc->links.object));
+    return sys_obj_unref(jc->links);
 }
 
 int64_t

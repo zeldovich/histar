@@ -35,6 +35,9 @@ int jcomm_probe(struct jcomm *jc, dev_probe_t probe);
 int jcomm_shut(struct jcomm *jc, uint16_t how);
 int jcomm_multisync(struct jcomm *jc, struct wait_stat *wstat);
 
+int jcomm_addref(struct jcomm *jc, uint64_t ct);
+int jcomm_unref(struct jcomm *jc, uint64_t ct);
+
 int64_t jcomm_read(struct jcomm *jc, void *buf, uint64_t cnt);
 int64_t jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt);
 
