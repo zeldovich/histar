@@ -328,7 +328,6 @@ bipipe_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     return 0;
 }
 
-
 static int
 bipipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
