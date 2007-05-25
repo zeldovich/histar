@@ -3,6 +3,7 @@
 
 #include <inc/container.h>
 #include <inc/multisync.h>
+#include <inc/label.h>
 
 enum { jlink_bufsz = 4000 };
 
@@ -35,6 +36,6 @@ int jcomm_shut(struct jcomm *jc, uint16_t how);
 int jcomm_multisync(struct jcomm *jc, struct wait_stat *wstat);
 
 int64_t jcomm_read(struct jcomm *jc, void *buf, uint64_t cnt);
-int64_t jcomm_write(struct jcomm *jc, void *buf, uint64_t cnt);
+int64_t jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt);
 
 #endif
