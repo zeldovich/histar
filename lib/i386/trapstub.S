@@ -44,8 +44,8 @@ ENTRY(utrap_chain_dwarf2)
 	.cfi_endproc
 
 ENTRY(utrap_ret)
-	popl	%eax			// lose return address
-	popl	%eax			// UTrapframe pointer
+	// UTrapframe pointer passed in via %eax
+	popl	%ebx			// lose return address
 
 	// Generate an iret frame on the stack to atomically restore
 	// eflags, esp and eip.
