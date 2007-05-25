@@ -27,7 +27,7 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     uint64_t sz = 2 * sizeof(struct jlink);
     
     struct cobj_ref seg;
-    struct jlink *links;
+    struct jlink *links = 0;
     r = segment_alloc(ct, sz, &seg, (void **)&links, l, "jcomm-seg");
     if (r < 0)
 	return r;
@@ -109,14 +109,14 @@ jcomm_read(struct jcomm *jc, void *buf, uint64_t cnt)
 }
 
 int64_t
-jcomm_write(struct jcomm *jc, void *buf, uint64_t cnt)
+jcomm_write(struct jcomm *jc, const void *buf, uint64_t cnt)
 {
     struct jlink *links;
     int r = jcomm_links_map(jc, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    struct jlink *jl = &links[jc->a];
+    struct jlink *jl = &links[!jc->a];
 
     uint32_t bufsize = sizeof(jl->buf);
 
@@ -254,7 +254,7 @@ jcomm_multisync(struct jcomm *jc, dev_probe_t probe, struct wait_stat *wstat)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[!jc->a];	
+	struct jlink *jl = &links[jc->a];	
 	uint64_t off = (uint64_t)&jl->bytes - (uint64_t)links;
 	WS_SETOBJ(wstat, jc->links, off);
 	WS_SETVAL(wstat, jl->bytes);
