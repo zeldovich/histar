@@ -6,7 +6,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/multisync.h>
-#include <inc/bipipe.h>
+#include <inc/jcomm.h>
 #include <inc/labelutil.h>
 #include <inc/udsimpl.h>
 
@@ -22,7 +22,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 
 struct uds_gate_args {
-    struct cobj_ref bipipe_seg;
+    struct jcomm jc;
     uint64_t taint;
     uint64_t grant;
     
@@ -75,7 +75,7 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     sp.set_gc(false);
     
     slot->op = 1;
-    slot->bipipe_seg = a->bipipe_seg;
+    memcpy(&slot->jc, &a->jc, sizeof(slot->jc));
     slot->priv_gt = sp.gate();
     slot->taint = a->taint;
     slot->grant = a->grant;
@@ -128,8 +128,10 @@ uds_close(struct Fd *fd)
 	if (r < 0)
 	    cprintf("uds_close: unable to unref gate: %s\n", e2s(r));
     }
-
-    return (*devbipipe.dev_close)(fd);
+    
+    /* XXX cleanup jcomm seg */
+    jcomm_shut(&fd->fd_uds.uds_jc, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+    return 0;
 }
 
 int
@@ -176,7 +178,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct wait_stat ws[fd->fd_uds.uds_backlog];
     struct uds_slot *slots = fd->fd_uds.uds_slots;
-    cobj_ref bs;
+    struct jcomm jc;
     uint64_t grant, taint;
     
     assert(fd->fd_uds.uds_listen);
@@ -198,7 +200,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 		taint = slots[i].taint;
 		grant = slots[i].grant; 
 		
-		bs = slots[i].bipipe_seg;
+		memcpy(&jc, &slots[i].jc, sizeof(jc));
 		slots[i].op = 2;
 		sys_sync_wakeup(&slots[i].op);
 		jthread_mutex_unlock(&fd->fd_uds.uds_mu);
@@ -221,9 +223,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_uds.uds_prot = fd->fd_uds.uds_prot;
     
     nfd->fd_uds.uds_connect = 1;
-    nfd->fd_uds.bipipe_seg = bs;
-    nfd->fd_uds.bipipe_a = 0;
-
+    memcpy(&nfd->fd_uds.uds_jc, &jc, sizeof(nfd->fd_uds.uds_jc));
     fd_set_extra_handles(fd, grant, taint);
     
     return fd2num(nfd);
@@ -281,15 +281,14 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     l.set(taint, 3);
     l.set(grant, 0);
 
-    r = bipipe_alloc(start_env->shared_container, &bs,
-		     l.to_ulabel(), "uds-bipipe");
+    a->taint = taint;
+    a->grant = grant;
+    r = jcomm_alloc(start_env->shared_container, l.to_ulabel(), 0, 
+		    &fd->fd_uds.uds_jc, &a->jc);
+
     if (r < 0)
 	return r;
     scope_guard<int, cobj_ref> unref(sys_obj_unref, bs); 
-
-    a->bipipe_seg = bs;
-    a->taint = taint;
-    a->grant = grant;
 
     l.set(taint, LB_LEVEL_STAR);
     l.set(grant, LB_LEVEL_STAR);
@@ -302,8 +301,6 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	return errno_val(EINVAL);
     }
 
-    fd->fd_uds.bipipe_a = 1;
-    fd->fd_uds.bipipe_seg = bs;
     fd->fd_uds.uds_connect = 1;
     fd_set_extra_handles(fd, grant, taint);
     
@@ -349,15 +346,36 @@ uds_listen(struct Fd *fd, int backlog)
 ssize_t
 uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
+    int r;
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
-    return (*devbipipe.dev_write)(fd, buf, count, 0); 
+    
+    r = jcomm_write(&fd->fd_uds.uds_jc, buf, count);
+    if (r == -E_AGAIN)
+	return errno_val(EAGAIN);
+    else if (r == -E_EOF)
+	/* XXX deliver SIGPIPE */
+	return errno_val(EPIPE);
+    else if (r < 0)
+	return errno_val(EIO);
+
+    return r;
 }
 
 ssize_t
 uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
+    int r;
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
-    return (*devbipipe.dev_read)(fd, buf, count, 0);
+    
+    r = jcomm_read(&fd->fd_uds.uds_jc, buf, count);
+    if (r == -E_AGAIN)
+	return errno_val(EAGAIN);
+    else if (r == -E_EOF)
+	return 0;
+    else if (r < 0)
+	return errno_val(EIO);
+
+    return r;
 }

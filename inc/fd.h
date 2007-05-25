@@ -140,16 +140,14 @@ struct Fd
 	} fd_tun;
 
 	struct {
-	    struct cobj_ref bipipe_seg;
-	    int bipipe_a;
-	    
 	    struct fs_inode uds_file;
 	    int uds_type;
 	    int uds_prot;
 
-	    /* client state */
+	    /* connected state */
 	    char uds_connect;
-
+	    struct jcomm uds_jc;
+	    
 	    /* listener state */
 	    uint32_t uds_backlog;
 	    char uds_listen;
