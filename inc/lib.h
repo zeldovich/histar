@@ -99,6 +99,10 @@ struct tls_layout {
     struct jos_jmp_buf *tls_pgfault;
     struct jos_jmp_buf *tls_pgfault_all;
     uint64_t tls_tid;
+
+#ifdef JOS_ARCH_i386
+    uint8_t tls_utrap_ret_buf[8];
+#endif
 };
 
 extern void *tls_top;

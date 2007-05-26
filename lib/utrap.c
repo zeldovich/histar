@@ -106,5 +106,9 @@ utrap_field_symbols(void)
 
     UTF_DEF (utf_eip);
     UTF_DEF (utf_eflags);
+
+    __asm volatile (".globl tls_utrap_ret_buf\n"
+		    ".set tls_utrap_ret_buf,%0\n"
+		    :: "m" (*(int *) &TLS_DATA->tls_utrap_ret_buf));
 #endif
 }

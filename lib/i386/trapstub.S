@@ -45,27 +45,26 @@ ENTRY(utrap_chain_dwarf2)
 
 ENTRY(utrap_ret)
 	// UTrapframe pointer passed in via %eax
-	popl	%ebx			// lose return address
 
-	// Generate an iret frame on the stack to atomically restore
-	// eflags, esp and eip.
-	subl	$20, %esp
+	// Mask traps first, to ensure exclusive use of tls_utrap_ret_buf
+	pushl	$GD_UT_MASK
+	pushl	$utrap_ret_masked
+	lret
+
+utrap_ret_masked:
+	// Restore eflags -- be careful not to modify them afterwards!
+	pushl	utf_eflags(%eax)
+	popf
+
+	// Construct a ljmp target buffer..
+	movl	$0, %ecx
+	movl	$4, %edx
+
 	movl	utf_eip(%eax), %ebx
-	movl	%ebx, 0(%esp)		// %eip
+	movl	%ebx, tls_utrap_ret_buf(%ecx)
+	movl	$GD_UT_NMASK, tls_utrap_ret_buf(%edx)
 
-	movl	$GD_UT_NMASK, 4(%esp)	// %cs
-
-	movl	utf_eflags(%eax), %ebx
-	movl	%ebx, 8(%esp)		// %eflags
-
-	movl	utf_esp(%eax), %ebx
-	movl	%ebx, 12(%esp)		// %esp
-
-	xorl	%ebx, %ebx
-	movw	%ss, %bx
-	movl	%ebx, 16(%esp)		// %ss
-
-	// Restore all registers except eflags, esp and eip.
+	// Restore all registers except eflags, eax, and eip.
 	movl	utf_ebx(%eax), %ebx
 	movl	utf_ecx(%eax), %ecx
 	movl	utf_edx(%eax), %edx
@@ -73,12 +72,13 @@ ENTRY(utrap_ret)
 	movl	utf_esi(%eax), %esi
 	movl	utf_edi(%eax), %edi
 	movl	utf_ebp(%eax), %ebp
+	movl	utf_esp(%eax), %esp
 
-	// Restore eax last, overwriting the UTrapframe address
+	// Restore eax, overwriting the UTrapframe address
 	movl	utf_eax(%eax), %eax
 
-	// Restore eip, esp and eflags using the iret frame.
-	iret
+	// Restore eip and unmask traps
+	ljmp	*tls_utrap_ret_buf
 
 ENTRY(utrap_set_cs)
 	popl	%ecx		// return %eip
