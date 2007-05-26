@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/stdio.h>
 #include <inc/fs.h>
+#include <inc/fd.h>
 
 #include <bits/ptyhelper.h>
 
@@ -33,7 +34,7 @@ alloc_pts(struct pty_args *args)
 
 	    char num_buf[32];
 	    sprintf(num_buf, "%d", i);
-	    error_check(fs_mknod(pts_ino, num_buf, 'z', i, &num_ino, 0));
+	    error_check(fs_mknod(pts_ino, num_buf, devpts.dev_id, i, &num_ino, 0));
 	    return i;
 	}
     }
