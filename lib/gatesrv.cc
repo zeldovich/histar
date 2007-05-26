@@ -54,7 +54,7 @@ gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
     void *stack = (void *) stackarg;
 
     // Arguments for gate call passed on the top of the TLS stack.
-    gate_call_data *d = (gate_call_data *) tls_gate_args;
+    gate_call_data *d = &tls_data->tls_gate_args;
     uint64_t thread_ref_ct = d->thread_ref_ct;
 
     try {
@@ -223,7 +223,7 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 	thread_label.merge(tgt_label, &taint_ct_label, label::max, label::leq_starlo);
 	taint_ct_label.transform(label::star_to, taint_ct_label.get_default());
 
-	gate_call_data *gcd = (gate_call_data *) tls_gate_args;
+	gate_call_data *gcd = &tls_data->tls_gate_args;
 	int64_t id = sys_container_alloc(gcd->taint_container,
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint", 0, CT_QUOTA_INF);

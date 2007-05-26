@@ -20,10 +20,7 @@ start_env_t *start_env;
 const char *jos_progname;
 
 void *tls_top;
-uint64_t *tls_tidp;
-struct jos_jmp_buf **tls_pgfault;
-struct jos_jmp_buf **tls_pgfault_all;
-void *tls_gate_args;
+struct tls_layout *tls_data;
 void *tls_stack_top;
 void *tls_base;
 
@@ -82,14 +79,11 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     if (r < 0)
 	panic("libmain: cannot map tls: %s", e2s(r));
 
-    tls_tidp = tls_top - sizeof(uint64_t);
-    tls_pgfault = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault);
-    tls_pgfault_all = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all);
-    tls_gate_args = tls_top - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data);
-    assert(tls_gate_args == (void *) TLS_GATE_ARGS);
+    tls_data = tls_top - sizeof(*tls_data);
+    assert(&tls_data->tls_gate_args == (void *) TLS_GATE_ARGS);
 
     // AMD64 ABI requires 16-byte stack frame alignment
-    tls_stack_top = ROUNDDOWN(tls_gate_args, 16);
+    tls_stack_top = ROUNDDOWN(tls_data, 16);
 
     assert(0 == sys_container_move_quota(start_env->proc_container,
 					 thread_id(), thread_quota_slush));
@@ -145,10 +139,9 @@ libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 void
 tls_revalidate(void)
 {
-    if (tls_tidp)
-	*tls_tidp = sys_self_id();
-    if (tls_pgfault)
-	*tls_pgfault = 0;
-    if (tls_pgfault_all)
-	*tls_pgfault_all = 0;
+    if (tls_data) {
+	tls_data->tls_tid = sys_self_id();
+	tls_data->tls_pgfault = 0;
+	tls_data->tls_pgfault_all = 0;
+    }
 }

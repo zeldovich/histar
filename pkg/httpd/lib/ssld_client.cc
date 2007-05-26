@@ -38,7 +38,8 @@ ssld_worker_setup(void *b)
     struct cobj_ref cow_gate = a->cow_gate;
     uint64_t taint = a->taint;
 
-    struct ssld_cow_args *d = (struct ssld_cow_args *)tls_gate_args;
+    struct ssld_cow_args *d =
+	(struct ssld_cow_args *) &tls_data->tls_gate_args.param_buf[0];
     memset(d, 0, sizeof(*d));
     d->cipher_biseg = a->cipher_biseg;
     d->plain_biseg = a->plain_biseg;

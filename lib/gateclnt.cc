@@ -182,7 +182,7 @@ gate_call::call(gate_call_data *gcd_param, const label *vl, const label *vc,
 		     returncb, cbarg);
 
     // Gate call parameters
-    gate_call_data *d = (gate_call_data *) tls_gate_args;
+    gate_call_data *d = &tls_data->tls_gate_args;
     if (gcd_param)
 	memcpy(d, gcd_param, sizeof(*d));
     d->return_gate = return_gate_;

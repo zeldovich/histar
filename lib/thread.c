@@ -174,8 +174,8 @@ thread_create_option(uint64_t container, void (*entry)(void*),
 uint64_t
 thread_id(void)
 {
-    if (tls_tidp) {
-	uint64_t tls_tid = *tls_tidp;
+    if (tls_data) {
+	uint64_t tls_tid = tls_data->tls_tid;
 	if (tls_tid)
 	    return tls_tid;
     }
@@ -184,8 +184,8 @@ thread_id(void)
     if (tid < 0)
 	panic("sys_self_id: %s", e2s(tid));
 
-    if (tls_tidp)
-	*tls_tidp = tid;
+    if (tls_data)
+	tls_data->tls_tid = tid;
     return tid;
 }
 

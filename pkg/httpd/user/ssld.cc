@@ -220,7 +220,8 @@ static void __attribute__((noreturn))
 ssld_cow_entry(void)
 {
     try {
-	struct ssld_cow_args *d = (ssld_cow_args *) TLS_GATE_ARGS;
+	struct ssld_cow_args *d =
+	    (ssld_cow_args *) &tls_data->tls_gate_args.param_buf[0];
 
 	if (!taint_cow(d->root_ct, COBJ(0, 0)))
 	    throw error(-E_UNSPEC, "cow didn't happen?");

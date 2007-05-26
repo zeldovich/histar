@@ -90,9 +90,9 @@ stack_grow(void *faultaddr)
 	// Not a stack.
 
 	if (usm.flags & SEGMAP_VECTOR_PF) {
-	    assert(*tls_pgfault);
+	    assert(tls_data->tls_pgfault);
 	    utrap_set_mask(0);
-	    jos_longjmp(*tls_pgfault, 1);
+	    jos_longjmp(tls_data->tls_pgfault, 1);
 	}
 
 	return -1;
@@ -322,7 +322,7 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 	cprintf("[%"PRIu64"] signal_utrap_onstack: signal %d\n",
 		thread_id(), signo);
 
-    if (signo == SIGSEGV && tls_pgfault_all && *tls_pgfault_all) {
+    if (signo == SIGSEGV && tls_data && tls_data->tls_pgfault_all) {
 	if (signal_debug)
 	    cprintf("[%"PRIu64"] signal_utrap_onstack: "
 		    "longjmp to tls_pgfault_all\n",
@@ -334,7 +334,7 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 	jthread_mutex_unlock(&sigmask_mu);
 	utrap_set_mask(0);
 
-	jos_longjmp(*tls_pgfault_all, 1);
+	jos_longjmp(tls_data->tls_pgfault_all, 1);
     }
 
 

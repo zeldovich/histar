@@ -7,6 +7,7 @@
 #include <inc/kobj.h>
 #include <inc/fs.h>
 #include <inc/intmacro.h>
+#include <inc/gateparam.h>
 
 #define NSEC_PER_SECOND		UINT64(1000000000)
 
@@ -93,13 +94,17 @@ extern start_env_t *start_env;
 extern int setup_env_done;
 extern const char *jos_progname;
 
+struct tls_layout {
+    struct gate_call_data tls_gate_args;
+    struct jos_jmp_buf *tls_pgfault;
+    struct jos_jmp_buf *tls_pgfault_all;
+    uint64_t tls_tid;
+};
+
 extern void *tls_top;
-extern uint64_t *tls_tidp;	/* 8 bytes for cached thread ID */
-extern struct jos_jmp_buf **tls_pgfault;
-extern struct jos_jmp_buf **tls_pgfault_all;
-extern void *tls_gate_args;	/* struct gate_call_args */
-#define TLS_GATE_ARGS	(UTLSTOP - sizeof(uint64_t) - sizeof(*tls_pgfault) - sizeof(*tls_pgfault_all) - sizeof(struct gate_call_data))
-extern void *tls_stack_top;	/* same as tls_gate_args, grows down */
+#define TLS_GATE_ARGS	(UTLSTOP - sizeof(struct tls_layout))
+extern struct tls_layout *tls_data;
+extern void *tls_stack_top;	/* same as tls_data, grows down */
 extern void *tls_base;		/* base */
 
 void	libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)

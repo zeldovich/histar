@@ -25,7 +25,8 @@ eproc_worker_setup(void *b)
     struct cobj_ref cow_gate = a->cow_gate;
     uint64_t taint = a->taint;
 
-    struct ssl_eproc_cow_args *d = (struct ssl_eproc_cow_args *)tls_gate_args;
+    struct ssl_eproc_cow_args *d =
+	(struct ssl_eproc_cow_args *) &tls_data->tls_gate_args.param_buf[0];
     d->privkey_biseg = a->eproc_biseg;
     d->root_ct = a->root_ct;
 

@@ -118,7 +118,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
     struct jos_jmp_buf pgfault;
     if (jos_setjmp(&pgfault) != 0)
 	thread_halt();
-    *tls_pgfault = &pgfault;
+    tls_data->tls_pgfault = &pgfault;
 
     if (map_bytes != sizeof(*ipc))
 	throw basic_exception("wrong size IPC segment: %"PRIu64" should be %"PRIu64"\n",
@@ -151,10 +151,10 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 
 	    struct jos_jmp_buf pgfault2;
 	    if (jos_setjmp(&pgfault2) != 0) {
-		*tls_pgfault = &pgfault;
+		tls_data->tls_pgfault = &pgfault;
 		break;
 	    }
-	    *tls_pgfault = &pgfault2;
+	    tls_data->tls_pgfault = &pgfault2;
 
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		memcpy(&ipc_copy->args, &ipc_shared->args,
@@ -173,7 +173,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 				  nsec_keepalive);
 	    }
 
-	    *tls_pgfault = &pgfault;
+	    tls_data->tls_pgfault = &pgfault;
 	}
 
 	unref.force();
