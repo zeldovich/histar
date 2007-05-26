@@ -28,6 +28,7 @@
 #include <bits/kernel_sigaction.h>
 
 enum { signal_debug = 0 };
+enum { signal_debug_utf_dump = 0 };
 uint64_t signal_counter;
 
 // BSD compat
@@ -358,9 +359,12 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
     signal_trap_if_pending();
 
     // resume where we got interrupted; clears utrap
-    if (signal_debug)
+    if (signal_debug) {
 	cprintf("[%"PRIu64"] signal_utrap_onstack: returning\n",
 		thread_id());
+	if (signal_debug_utf_dump)
+	    utf_dump(&sc->sc_utf);
+    }
 
     utrap_ret(&sc->sc_utf);
 }
@@ -394,7 +398,9 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	struct {
 	    struct sigcontext sc;
 	    siginfo_t si;
+#if defined(JOS_ARCH_amd64)
 	    uint8_t redzone[128];
+#endif
 	} *s;
 
 	// XXX assumes stack grows down
@@ -452,9 +458,12 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 void
 signal_utrap(struct UTrapframe *utf)
 {
-    if (signal_debug)
+    if (signal_debug) {
 	cprintf("[%"PRIu64"] signal_utrap: sp=0x%zx pc=0x%zx\n",
 		thread_id(), utf->utf_stackptr, utf->utf_pc);
+	if (signal_debug_utf_dump)
+	    utf_dump(utf);
+    }
 
     siginfo_t si;
     memset(&si, 0, sizeof(si));
