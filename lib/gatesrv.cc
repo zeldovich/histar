@@ -87,7 +87,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
     gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
     try {
 	// Copy-on-write if we are tainted
-	gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
+	gate_call_data *gcd = &TLS_DATA->tls_gate_args;
 	int did_taint = taint_cow(gcd->taint_container, gcd->declassify_gate);
 
 	// Reset our cached thread ID, stored in TLS

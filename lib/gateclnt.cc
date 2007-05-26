@@ -45,8 +45,8 @@ return_stub(jos_jmp_buf *jb, uint64_t tid, void (*returncb)(void*), void *cbarg)
     if (returncb)
 	returncb(cbarg);
 
-    // Note: cannot use tls_gate_args variable since it's in RW-mapped space
-    gate_call_data *gcd = (gate_call_data *) TLS_GATE_ARGS;
+    // Note: cannot use tls_data variable since it's in RW-mapped space
+    gate_call_data *gcd = &TLS_DATA->tls_gate_args;
     taint_cow(gcd->taint_container, gcd->declassify_gate);
 
     if (gate_client_debug)

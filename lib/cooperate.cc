@@ -106,7 +106,7 @@ coop_gate_create(uint64_t container,
 	(struct coop_syscall_argval *) (text_va + coop_syscall_argval_offset);
 
     struct gate_call_data *tls_args =
-	(struct gate_call_data *) TLS_GATE_ARGS;
+	(struct gate_call_data *) &TLS_DATA->tls_gate_args;
     struct coop_syscall_argval *csa_free =
 	(struct coop_syscall_argval *) &tls_args->param_buf[0];
 
@@ -241,7 +241,7 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
 	(struct coop_syscall_argval *) (text_va + code_len + sizeof(*csa_ptr));
 
     struct gate_call_data *tls_args =
-	(struct gate_call_data *) TLS_GATE_ARGS;
+	(struct gate_call_data *) &TLS_DATA->tls_gate_args;
     struct coop_syscall_argval *csa_free =
 	(struct coop_syscall_argval *) &tls_args->param_buf[0];
 
@@ -317,7 +317,7 @@ coop_gate_invoke_thread(int *invoke_donep, cobj_ref *gatep,
     }
 
     struct gate_call_data *gcd =
-	(struct gate_call_data *) TLS_GATE_ARGS;
+	(struct gate_call_data *) &TLS_DATA->tls_gate_args;
     struct coop_syscall_argval *csa_val =
 	(struct coop_syscall_argval *) &gcd->param_buf[0];
 

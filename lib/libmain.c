@@ -80,7 +80,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 	panic("libmain: cannot map tls: %s", e2s(r));
 
     tls_data = tls_top - sizeof(*tls_data);
-    assert(&tls_data->tls_gate_args == (void *) TLS_GATE_ARGS);
+    assert(tls_data == TLS_DATA);
 
     // AMD64 ABI requires 16-byte stack frame alignment
     tls_stack_top = ROUNDDOWN(tls_data, 16);

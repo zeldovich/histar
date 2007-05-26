@@ -102,7 +102,7 @@ struct tls_layout {
 };
 
 extern void *tls_top;
-#define TLS_GATE_ARGS	(UTLSTOP - sizeof(struct tls_layout))
+#define TLS_DATA ((struct tls_layout *) (UTLSTOP - sizeof(struct tls_layout)))
 extern struct tls_layout *tls_data;
 extern void *tls_stack_top;	/* same as tls_data, grows down */
 extern void *tls_base;		/* base */
