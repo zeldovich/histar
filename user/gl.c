@@ -1,10 +1,12 @@
 #include <inc/lib.h>
-#include <stdio.h>
 #include <inc/stdio.h>
-#include <string.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
 
 static void
 usage(const char *n)
@@ -57,7 +59,7 @@ retry:
     if (r < 0) {
 	printf("cannot get label: %s\n", e2s(r));
     } else {
-	printf("label for <%ld.%ld>: %s\n",
+	printf("label for <%"PRIu64".%"PRIu64">: %s\n",
 	       o.container, o.object, label_to_string(l));
     }
 
@@ -74,7 +76,7 @@ retry2:
 	if (r < 0) {
 	    printf("cannot get clearance: %s\n", e2s(r));
 	} else {
-	    printf("clearance for <%ld.%ld>: %s\n",
+	    printf("clearance for <%"PRIu64".%"PRIu64">: %s\n",
 		   o.container, o.object, label_to_string(l));
 	}
     }

@@ -7,6 +7,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <inttypes.h>
 }
 
 #include <inc/error.hh>
@@ -27,7 +28,7 @@ login(char *u, char *p)
     }
 
     if (login_debug)
-	printf("login: taint %lu grant %lu\n", ut, ug);
+	printf("login: taint %"PRIu64" grant %"PRIu64"\n", ut, ug);
 
     start_env->user_taint = ut;
     start_env->user_grant = ug;

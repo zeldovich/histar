@@ -4,10 +4,12 @@ extern "C" {
 #include <inc/string.h>
 #include <inc/fs.h>
 #include <inc/syscall.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <inc/assert.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <inttypes.h>
 }
 
 #include <inc/nethelper.hh>
@@ -83,7 +85,7 @@ try
 
 	static size_t reported;
 	if (off > reported + 256 * 1024) {
-	    printf("Fetched %ld bytes\n", off);
+	    printf("Fetched %"PRIu64" bytes\n", off);
 	    reported = off;
 	}
     }

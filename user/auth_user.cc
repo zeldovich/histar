@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/stdio.h>
 
 #include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/authclnt.hh>
@@ -261,13 +262,13 @@ auth_user_init(void)
     char *s = 0;
     error_check(segment_alloc(config_ct, 128, 0, (void **) &s,
 			      0, "user-grant"));
-    snprintf(s, 128, "%ld\n", user_grant);
+    snprintf(s, 128, "%"PRIu64"\n", user_grant);
     error_check(segment_unmap(s));
 
     s = 0;
     error_check(segment_alloc(config_ct, 128, 0, (void **) &s,
 			      0, "user-taint"));
-    snprintf(s, 128, "%ld\n", user_taint);
+    snprintf(s, 128, "%"PRIu64"\n", user_taint);
     error_check(segment_unmap(s));
 
     // password segment

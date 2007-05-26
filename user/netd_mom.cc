@@ -1,9 +1,11 @@
 extern "C" {
 #include <inc/syscall.h>
-#include <stdio.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/fs.h>
+
+#include <stdio.h>
+#include <inttypes.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -26,7 +28,7 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
 	error_check(netdev_id);
 
 	if (netd_mom_debug)
-	    printf("netd_mom: netdev %ld grant %ld taint %ld inet %ld\n",
+	    printf("netd_mom: netdev %"PRIu64" grant %"PRIu64" taint %"PRIu64" inet %"PRIu64"\n",
 		   netdev_id, netdev_grant, netdev_taint, inet_taint);
     }
 }
@@ -59,9 +61,9 @@ try
     dr.set(inet_taint, 3);
 
     char grant_arg[32], taint_arg[32], inet_arg[32];
-    sprintf(grant_arg, "%lu", netdev_grant);
-    sprintf(taint_arg, "%lu", netdev_taint);
-    sprintf(inet_arg,  "%lu", inet_taint);
+    sprintf(grant_arg, "%"PRIu64, netdev_grant);
+    sprintf(taint_arg, "%"PRIu64, netdev_taint);
+    sprintf(inet_arg,  "%"PRIu64, inet_taint);
 
     const char *argv[] = { "netd", grant_arg, taint_arg, inet_arg };
 

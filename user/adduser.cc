@@ -9,6 +9,7 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 #include <pwd.h>
+#include <inttypes.h>
 
 #include <sys/types.h>
 }
@@ -48,7 +49,7 @@ main(int ac, char **av)
 	error_check(fs_namei("/bin/auth_user", &user_authd));
 
 	char root_grant[32];
-	sprintf(&root_grant[0], "%ld", start_env->user_grant);
+	sprintf(&root_grant[0], "%"PRIu64, start_env->user_grant);
 	const char *argv[] = { "auth_user", root_grant };
 
 	// Avoid giving our user privilege to this new process

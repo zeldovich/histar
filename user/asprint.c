@@ -2,9 +2,11 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <inc/assert.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
 
 static void
 as_print_ents(struct u_address_space *uas)
@@ -15,8 +17,8 @@ as_print_ents(struct u_address_space *uas)
 	    continue;
 
 	uint64_t flags = uas->ents[i].flags;
-	printf("%16lx %3ld %3ld %c%c%c %ld.%ld\n",
-		(uint64_t) uas->ents[i].va,
+	printf("%16p %3"PRIu64" %3"PRIu64" %c%c%c %"PRIu64".%"PRIu64"\n",
+		uas->ents[i].va,
 		uas->ents[i].start_page,
 		uas->ents[i].num_pages,
 		(flags & SEGMAP_READ)  ? 'r' : '-',

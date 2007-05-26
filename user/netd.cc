@@ -1,12 +1,14 @@
 extern "C" {
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
-#include <stdio.h>
 #include <inc/string.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
-#include <string.h>
 #include <inc/netd.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
 }
 
 #include <inc/gatesrv.hh>
@@ -45,7 +47,7 @@ main(int ac, char **av)
 	panic("parsing inet taint handle %s: %s", av[3], e2s(r));
 
     if (netd_debug)
-	printf("netd: grant handle %ld, taint handle %ld\n",
+	printf("netd: grant handle %"PRIu64", taint handle %"PRIu64"\n",
 	       grant, taint);
 
     try {

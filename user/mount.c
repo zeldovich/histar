@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 int
 main(int ac, char **av)
@@ -23,7 +24,7 @@ main(int ac, char **av)
 	for (int i = 0; i < FS_NMOUNT; i++) {
 	    struct fs_mtab_ent *mtab = &fs_mtab->mtab_ent[i];
 	    if (mtab->mnt_name[0])
-		printf("<%ld.%ld>: %s -> <%ld.%ld>\n",
+		printf("<%"PRIu64".%"PRIu64">: %s -> <%"PRIu64".%"PRIu64">\n",
 		       mtab->mnt_dir.obj.container, mtab->mnt_dir.obj.object,
 		       mtab->mnt_name,
 		       mtab->mnt_root.obj.container, mtab->mnt_root.obj.object);
