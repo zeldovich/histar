@@ -114,7 +114,7 @@ e1000_reset(struct e1000_card *c)
 
     uint64_t rptr = kva2pa(&c->rxds->rxd[0]);
     e1000_io_write(c, WMREG_RDBAH, rptr >> 32);
-    e1000_io_write(c, WMREG_RDBAL, rptr & ((UINT64(1) << 32) - 1));
+    e1000_io_write(c, WMREG_RDBAL, rptr & 0xffffffff);
     e1000_io_write(c, WMREG_RDLEN, sizeof(c->rxds->rxd));
     e1000_io_write(c, WMREG_RDH, 0);
     e1000_io_write(c, WMREG_RDT, 0);
@@ -122,8 +122,8 @@ e1000_reset(struct e1000_card *c)
     e1000_io_write(c, WMREG_RADV, 0);
 
     uint64_t tptr = kva2pa(&c->txds->txd[0]);
-    e1000_io_write(c, WMREG_TBDAH, tptr >> 32);
-    e1000_io_write(c, WMREG_TBDAL, tptr & ((UINT64(1) << 32) - 1));
+    e1000_io_write(c, WMREG_TDBAH, tptr >> 32);
+    e1000_io_write(c, WMREG_TDBAL, tptr & 0xffffffff);
     e1000_io_write(c, WMREG_TDLEN, sizeof(c->txds->txd));
     e1000_io_write(c, WMREG_TDH, 0);
     e1000_io_write(c, WMREG_TDT, 0);
