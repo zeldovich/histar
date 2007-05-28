@@ -25,53 +25,6 @@ int __libc_open(const char *pn, int flags, ...);
 int
 __libc_open(const char *pn, int flags, ...)
 {
-    // A dirty hack because we don't have a place to store file modes:
-    // We specify that a file should be a character device by way of
-    // appending a suffix to the filename.  So, to treat some segment
-    // as a "tun" character device, it should be named /foo/bar@tun.
-    // Moreover, for tun devices, we support two ways of opening them:
-    // tun-a or tun-b, which correspond to two endpoints of the tunnel.
-
-    const char *tun_suffix = "@tun-";
-    int pnlen = strlen(pn);
-    int sflen = strlen(tun_suffix);
-    if (pnlen >= sflen + 1 && !strncmp(&pn[pnlen - sflen - 1], tun_suffix, sflen)) {
-	tun_suffix = &pn[pnlen - sflen];
-
-	char *pn2 = strdup(pn);
-	if (!pn2) {
-	    __set_errno(ENOMEM);
-	    return -1;
-	}
-
-	pn2[pnlen - sflen - 1] = '\0';
-
-	struct fs_inode ino;
-	int r = fs_namei(pn2, &ino);
-	if (r == -E_NOT_FOUND) {
-	    const char *dirname, *basenm;
-	    fs_dirbase(pn2, &dirname, &basenm);
-
-	    struct fs_inode dir;
-	    r = fs_namei(dirname, &dir);
-	    if (r < 0) {
-		free(pn2);
-		__set_errno(ENOENT);
-		return -1;
-	    }
-
-	    r = fs_create(dir, basenm, &ino, 0);
-	}
-
-	free(pn2);
-	if (r < 0) {
-	    __set_errno(ENOENT);
-	    return -1;
-	}
-
-	return jos_tun_open(ino, tun_suffix, flags);
-    }
-
     if (!strcmp(pn, "")) {
 	__set_errno(ENOENT);
 	return -1;
