@@ -90,8 +90,32 @@ link(const char *oldpath, const char *newpath)
 int 
 symlink(const char *oldpath, const char *newpath)
 {
-    set_enosys();
-    return -1;
+    char *pn = strdup(newpath);
+    const char *dirname, *basenm;
+    fs_dirbase(pn, &dirname, &basenm);
+
+    struct fs_inode dir_ino;
+    int r = fs_namei(dirname, &dir_ino);
+    if (r < 0) {
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    struct fs_inode ino;
+    r = fs_mknod(dir_ino, basenm, devsymlink.dev_id, 0, &ino, 0);
+    if (r < 0) {
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    ssize_t cc = fs_pwrite(ino, oldpath, strlen(oldpath), 0);
+    if (cc < 0) {
+	fs_remove(dir_ino, basenm, ino);
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    return 0;
 }
 
 int 
@@ -160,7 +184,7 @@ unlink(const char *pn)
     }
 
     struct fs_inode f;
-    r = fs_namei(pn, &f);
+    r = fs_namei_flags(pn, &f, NAMEI_LEAF_NOEVAL);
     if (r < 0) {
 	free(pn2);
 	return r;
@@ -283,8 +307,25 @@ access(const char *pn, int mode)
 ssize_t
 readlink(const char *pn, char *buf, size_t bufsize)
 {
-    __set_errno(EINVAL);
-    return -1;
+    struct fs_inode ino;
+    int r = fs_namei_flags(pn, &ino, NAMEI_LEAF_NOEVAL);
+    if (r < 0)
+	return err_jos2libc(r);
+
+    struct fs_object_meta m;
+    r = sys_obj_get_meta(ino.obj, &m);
+    if (r < 0)
+	return err_jos2libc(r);
+
+    if (m.dev_id != devsymlink.dev_id) {
+	__set_errno(EINVAL);
+	return -1;
+    }
+
+    ssize_t cc = fs_pread(ino, buf, bufsize, 0);
+    if (cc < 0)
+	return err_jos2libc(cc);
+    return cc;
 }
 
 char *

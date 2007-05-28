@@ -54,8 +54,12 @@ struct fs_object_meta {
     uint64_t pad1[3];
 };
 
+#define NAMEI_LEAF_NOFOLLOW	0x01
+#define NAMEI_LEAF_NOEVAL	0x02
+
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);
 int  fs_namei(const char *pn, struct fs_inode *o);
+int  fs_namei_flags(const char *pn, struct fs_inode *o, uint32_t flags);
 
 int  fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir);
 int  fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,

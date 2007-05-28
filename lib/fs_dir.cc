@@ -164,9 +164,23 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
 }
 
 static int
-fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
+fs_lookup_path(struct fs_inode start_dir, const char *pn,
+	       struct fs_inode *o, int symlinks,
+	       uint32_t flags)
 {
-    *o = dir;
+    if (pn[0] == '#') {
+	uint64_t ctid;
+	int r = strtou64(pn + 1, 0, 10, &ctid);
+	if (r == 0) {
+	    o->obj = COBJ(ctid, ctid);
+	    return 0;
+	}
+    }
+
+    if (pn[0] == '/')
+	start_dir = start_env->fs_root;
+
+    *o = start_dir;
 
     struct fs_mount_table *mtab = 0;
     uint64_t mtlen = sizeof(*mtab);
@@ -177,7 +191,7 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 	unmap.dismiss();
 	mtab = 0;
     }
-        
+
     while (pn[0] != '\0') {
 	const char *name_end = strchr(pn, '/');
 	const char *next_pn = name_end ? name_end + 1 : "";
@@ -191,9 +205,36 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 	fn[namelen] = '\0';
 
 	if (fn[0] != '\0') {
-	    r = fs_lookup_one(*o, &fn[0], o, mtab);
+	    fs_inode cur_dir = *o;
+
+	    r = fs_lookup_one(cur_dir, &fn[0], o, mtab);
 	    if (r < 0)
 		return r;
+
+	    /* Handle symlinks */
+	    if (!next_pn[0] && (flags & NAMEI_LEAF_NOEVAL))
+		break;
+
+	    struct fs_object_meta m;
+	    r = sys_obj_get_meta(o->obj, &m);
+	    if (r < 0)
+		return r;
+
+	    if (m.dev_id == devsymlink.dev_id) {
+		if (!symlinks || (!next_pn[0] && (flags & NAMEI_LEAF_NOFOLLOW)))
+		    return -E_INVAL;
+
+		char linkbuf[1024];
+		ssize_t cc = fs_pread(*o, &linkbuf[0], sizeof(linkbuf), 0);
+		if (cc < 0)
+		    return cc;
+
+		linkbuf[cc] = '\0';
+		symlinks--;
+		r = fs_lookup_path(cur_dir, linkbuf, o, symlinks, 0);
+		if (r < 0)
+		    return r;
+	    }
 	}
 
 	pn = next_pn;
@@ -205,17 +246,13 @@ fs_lookup_path(struct fs_inode dir, const char *pn, struct fs_inode *o)
 int
 fs_namei(const char *pn, struct fs_inode *o)
 {
-    if (pn[0] == '#') {
-	uint64_t ctid;
-	int r = strtou64(pn + 1, 0, 10, &ctid);
-	if (r == 0) {
-	    o->obj = COBJ(ctid, ctid);
-	    return 0;
-	}
-    }
+    return fs_lookup_path(start_env->fs_cwd, pn, o, MAXSYMLINKS, 0);
+}
 
-    struct fs_inode d = pn[0] == '/' ? start_env->fs_root : start_env->fs_cwd;
-    return fs_lookup_path(d, pn, o);
+int
+fs_namei_flags(const char *pn, struct fs_inode *o, uint32_t flags)
+{
+    return fs_lookup_path(start_env->fs_cwd, pn, o, MAXSYMLINKS, flags);
 }
 
 int
