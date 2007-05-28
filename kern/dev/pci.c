@@ -87,13 +87,13 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 }
 
 static int
-pci_attach(uint32_t dev_id, uint32_t dev_class, struct pci_func *pcif)
+pci_attach(struct pci_func *f)
 {
     return
-	pci_attach_match(PCI_CLASS(dev_class), PCI_SUBCLASS(dev_class),
-			 &pci_attach_class[0], pcif) ||
-	pci_attach_match(PCI_VENDOR(dev_id), PCI_PRODUCT(dev_id),
-			 &pci_attach_vendor[0], pcif);
+	pci_attach_match(PCI_CLASS(f->dev_class), PCI_SUBCLASS(f->dev_class),
+			 &pci_attach_class[0], f) ||
+	pci_attach_match(PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id),
+			 &pci_attach_vendor[0], f);
 }
 
 static void
@@ -111,23 +111,24 @@ pci_scan_bus(struct pci_bus *bus)
 	struct pci_func f = df;
 	for (f.func = 0; f.func < (PCI_HDRTYPE_MULTIFN(bhlc) ? 8 : 1);
 			 f.func++) {
-	    uint32_t dev_id = pci_conf_read(&f, PCI_ID_REG);
-	    if (PCI_VENDOR(dev_id) == 0xffff)
+	    struct pci_func af = f;
+
+	    af.dev_id = pci_conf_read(&f, PCI_ID_REG);
+	    if (PCI_VENDOR(af.dev_id) == 0xffff)
 		continue;
 
-	    struct pci_func af = f;
 	    uint32_t intr = pci_conf_read(&af, PCI_INTERRUPT_REG);
 	    af.irq_line = PCI_INTERRUPT_LINE(intr);
 
-	    uint32_t dev_class = pci_conf_read(&af, PCI_CLASS_REG);
+	    af.dev_class = pci_conf_read(&af, PCI_CLASS_REG);
 	    if (pci_show_devs)
 		cprintf("PCI: %02x:%02x.%d: %04x:%04x: class %x.%x irq %d\n",
 			af.bus->busno, af.dev, af.func,
-			PCI_VENDOR(dev_id), PCI_PRODUCT(dev_id),
-			PCI_CLASS(dev_class), PCI_SUBCLASS(dev_class),
+			PCI_VENDOR(af.dev_id), PCI_PRODUCT(af.dev_id),
+			PCI_CLASS(af.dev_class), PCI_SUBCLASS(af.dev_class),
 			af.irq_line);
 
-	    pci_attach(dev_id, dev_class, &af);
+	    pci_attach(&af);
 	}
     }
 }

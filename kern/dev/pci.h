@@ -14,6 +14,9 @@ struct pci_func {
     uint32_t dev;
     uint32_t func;
 
+    uint32_t dev_id;
+    uint32_t dev_class;
+
     uint32_t reg_base[6];
     uint32_t reg_size[6];
     uint8_t irq_line;
