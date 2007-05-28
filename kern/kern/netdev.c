@@ -23,9 +23,9 @@ netdev_thread_wait(struct net_device *ndev, const struct Thread *t,
 		   uint64_t waiter, int64_t gen)
 {
     if (waiter != ndev->waiter_id) {
+	ndev->buffer_reset(ndev->arg);
 	ndev->waiter_id = waiter;
 	ndev->wait_gen = 0;
-	ndev->buffer_reset(ndev->arg);
 	return -E_AGAIN;
     }
 
