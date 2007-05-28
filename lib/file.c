@@ -253,11 +253,11 @@ jos_stat64_to_stat(struct stat64 *src, struct stat *dst)
     return 0;
 }
 
-int
-stat64(const char *file_name, struct stat64 *buf)
+static int
+stat_common(const char *file_name, struct stat64 *buf, uint32_t namei_flags)
 {
     struct fs_inode ino;
-    int r = fs_namei(file_name, &ino);
+    int r = fs_namei_flags(file_name, &ino, namei_flags);
     if (r < 0)
 	return err_jos2libc(r);
 
@@ -266,7 +266,7 @@ stat64(const char *file_name, struct stat64 *buf)
 	struct fs_object_meta m;
 	struct Dev *dev;
 	r = sys_obj_get_meta(ino.obj, &m);
-	if (m.dev_id != devfile.dev_id &&
+	if (m.dev_id != devfile.dev_id && m.dev_id != devsymlink.dev_id &&
 	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat)
 	{
 	    // call dev_stat via fstat below if have a custom stat
@@ -289,6 +289,12 @@ stat64(const char *file_name, struct stat64 *buf)
 }
 
 int
+stat64(const char *file_name, struct stat64 *buf)
+{
+    return stat_common(file_name, buf, 0);
+}
+
+int
 stat(const char *file_name, struct stat *buf)
 {
     struct stat64 s64;
@@ -302,7 +308,7 @@ stat(const char *file_name, struct stat *buf)
 int
 lstat64(const char *file_name, struct stat64 *buf)
 {
-    return stat64(file_name, buf);
+    return stat_common(file_name, buf, NAMEI_LEAF_NOEVAL);
 }
 
 int 

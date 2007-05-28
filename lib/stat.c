@@ -21,8 +21,8 @@ jos_stat(struct fs_inode ino, struct stat64 *buf)
 	return -1;
     }
 
-    mode_t mode_mask = ~0;
-    
+    uint32_t ftype = 0;
+
     struct fs_object_meta meta;
     int r = sys_obj_get_meta(ino.obj, &meta);
     if (r >= 0) {
@@ -31,17 +31,22 @@ jos_stat(struct fs_inode ino, struct stat64 *buf)
 	buf->st_ctime = meta.ctime_nsec / NSEC_PER_SECOND;
 	buf->st_ctimensec = meta.ctime_nsec % NSEC_PER_SECOND;
 
-	// XXX __S_IFCHR?
-	if (meta.dev_id && meta.dev_id != devfile.dev_id)
-	    mode_mask &= ~__S_IFREG;
+	if (meta.dev_id) {
+	    if (meta.dev_id == devsymlink.dev_id)
+		ftype = __S_IFLNK;
+	    else if (meta.dev_id != devfile.dev_id)
+		ftype = __S_IFCHR;
+	}
     }
 
     buf->st_mode = S_IRWXU;
     buf->st_ino = ino.obj.object;
     if (type == kobj_container) {
-	buf->st_mode |= __S_IFDIR;
+	if (!ftype)
+	    ftype = __S_IFDIR;
     } else {
-	buf->st_mode |= __S_IFREG;
+	if (!ftype)
+	    ftype = __S_IFREG;
 
 	uint64_t len;
 	r = fs_getsize(ino, &len);
@@ -53,6 +58,6 @@ jos_stat(struct fs_inode ino, struct stat64 *buf)
 	buf->st_size = len;
     }
 
-    buf->st_mode &= mode_mask;
+    buf->st_mode |= ftype;
     return 0;
 }
