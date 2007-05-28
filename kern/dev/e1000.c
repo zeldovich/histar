@@ -91,6 +91,17 @@ e1000_eeprom_read(struct e1000_card *c, uint16_t *buf, int off, int count)
     return 0;
 }
 
+static void __attribute__((unused))
+e1000_dump_stats(struct e1000_card *c)
+{
+    for (uint32_t i = 0; i <= 0x124; i += 4) {
+	uint32_t v = e1000_io_read(c, 0x4000 + i);
+	if (v != 0)
+	    cprintf("%x:%x ", i, v);
+    }
+    cprintf("\n");
+}
+
 static void
 e1000_reset(struct e1000_card *c)
 {
