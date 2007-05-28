@@ -32,7 +32,7 @@ __libc_open(const char *pn, int flags, ...)
 
     int just_created = 0;
     struct fs_inode ino;
-    int r = fs_namei(pn, &ino);
+    int r = fs_namei_flags(pn, &ino, (flags & O_NOFOLLOW) ? NAMEI_LEAF_NOFOLLOW : 0);
     if (r == 0) {
 	if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL)) {
 	    __set_errno(EEXIST);
