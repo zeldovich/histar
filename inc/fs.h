@@ -55,7 +55,6 @@ struct fs_object_meta {
 };
 
 void fs_get_root(uint64_t container, struct fs_inode *rdirp);
-void fs_get_obj(struct fs_inode ino, struct cobj_ref *segp);
 int  fs_namei(const char *pn, struct fs_inode *o);
 
 int  fs_readdir_init(struct fs_readdir_state *s, struct fs_inode dir);

@@ -11,12 +11,6 @@ fs_get_root(uint64_t ct, struct fs_inode *rdirp)
     rdirp->obj = COBJ(ct, ct);
 }
 
-void
-fs_get_obj(struct fs_inode ino, struct cobj_ref *segp)
-{
-    *segp = ino.obj;
-}
-
 int
 fs_mount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, 
 	 const char *mnt_name, struct fs_inode root)

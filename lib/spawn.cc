@@ -107,8 +107,7 @@ spawn(spawn_descriptor *sd)
     }
 
     // Now spawn with computed labels
-    struct cobj_ref elf;
-    fs_get_obj(sd->elf_ino_, &elf);
+    struct cobj_ref elf = sd->elf_ino_.obj;
 
     char name[KOBJ_NAME_LEN];
     error_check(sys_obj_get_name(elf, &name[0]));
