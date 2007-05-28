@@ -53,7 +53,7 @@ gate_exec_invoke_cb(label *tgt_l, label *tgt_c, void *arg)
 static void __attribute__((noreturn, regparm(1)))
 gate_exec_thread(gate_exec_thread_state *s)
 {
-    gate_call_data *gcd = (gate_call_data *) tls_gate_args;
+    gate_call_data *gcd = &tls_data->tls_gate_args;
     gcd->taint_container = s->msg_ct;
     gcd->thread_ref_ct = s->msg_ct;
     gcd->param_obj = COBJ(s->msg_ct, s->msg_id);
