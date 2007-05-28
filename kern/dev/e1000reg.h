@@ -573,3 +573,13 @@ struct livengood_tcpip_ctxdesc {
 #define	WMREG_XOFFRXC	0x4050	/* XOFF Rx Count - R/clr */
 #define	WMREG_XOFFTXC	0x4054	/* XOFF Tx Count - R/clr */
 #define	WMREG_FCRUC	0x4058	/* Flow Control Rx Unsupported Count - R/clr */
+
+#define WMREG_MANC	0x5820	/* Management control */
+#define MANC_ARP_REQ	0x00002000	/* ARP request filtering */
+#define MANC_ARP_RES	0x00008000	/* ARP response filtering */
+#define MANC_MNG2HOST	0x00200000	/* Management packets to host */
+
+#define WMREG_MANC2H	0x5860	/* Management control to host */
+#define MANC2H_PORT_623	0x0020
+#define MANC2H_PORT_664	0x0040
+

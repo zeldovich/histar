@@ -36,6 +36,7 @@ struct e1000_card {
     uint32_t membase;
     uint32_t iobase;
     uint8_t irq_line;
+    uint16_t pci_dev_id;
     struct interrupt_handler ih;
 
     struct e1000_tx_descs *txds;
@@ -132,6 +133,16 @@ e1000_reset(struct e1000_card *c)
 	cprintf("e1000_reset: card still resetting, odd..\n");
 
     e1000_io_write(c, WMREG_CTRL, ctrl | CTRL_SLU | CTRL_ASDE);
+
+    // Make sure the management hardware is not hiding any packets
+    if (c->pci_dev_id == 0x108c || c->pci_dev_id == 0x109a) {
+	uint32_t manc = e1000_io_read(c, WMREG_MANC);
+	manc &= ~MANC_ARP_REQ;
+	manc |= MANC_MNG2HOST;
+
+	e1000_io_write(c, WMREG_MANC2H, MANC2H_PORT_623 | MANC2H_PORT_664);
+	e1000_io_write(c, WMREG_MANC, manc);
+    }
 
     // Setup RX, TX rings
     uint64_t rptr = kva2pa(&c->rxds->rxd[0]);
@@ -409,6 +420,7 @@ e1000_attach(struct pci_func *pcif)
     c->irq_line = pcif->irq_line;
     c->membase = pcif->reg_base[0];
     c->iobase = pcif->reg_base[2];
+    c->pci_dev_id = pcif->dev_id;
 
     // Get the MAC address
     uint16_t myaddr[3];
