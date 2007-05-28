@@ -114,8 +114,12 @@ e1000_reset(struct e1000_card *c)
 		    ((pba >> PBA_TX_SHIFT) & PBA_TX_MASK);
     e1000_io_write(c, WMREG_PBA, rxtx / 2);
 
-    // Reset card
-    e1000_io_write(c, WMREG_CTRL, CTRL_RST);
+    // Reset PHY, card
+    uint32_t ctrl = e1000_io_read(c, WMREG_CTRL);
+    e1000_io_write(c, WMREG_CTRL, ctrl | CTRL_PHY_RESET);
+    timer_delay(5 * 1000 * 1000);
+
+    e1000_io_write(c, WMREG_CTRL, ctrl | CTRL_RST);
     timer_delay(10 * 1000 * 1000);
 
     for (int i = 0; i < 1000; i++) {
@@ -127,8 +131,9 @@ e1000_reset(struct e1000_card *c)
     if (e1000_io_read(c, WMREG_CTRL) & CTRL_RST)
 	cprintf("e1000_reset: card still resetting, odd..\n");
 
-    e1000_io_write(c, WMREG_CTRL, CTRL_SLU | CTRL_ASDE);
+    e1000_io_write(c, WMREG_CTRL, ctrl | CTRL_SLU | CTRL_ASDE);
 
+    // Setup RX, TX rings
     uint64_t rptr = kva2pa(&c->rxds->rxd[0]);
     e1000_io_write(c, WMREG_RDBAH, rptr >> 32);
     e1000_io_write(c, WMREG_RDBAL, rptr & 0xffffffff);
@@ -163,20 +168,23 @@ e1000_reset(struct e1000_card *c)
     e1000_io_write(c, WMREG_IMS, ICR_TXDW | ICR_RXO | ICR_RXT0);
 
     // MAC address filters
-    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 0, (c->netdev.mac_addr[0]) |
-						  (c->netdev.mac_addr[1] << 8) |
-						  (c->netdev.mac_addr[2] << 16) |
-						  (c->netdev.mac_addr[3] << 24));
-    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 4, (c->netdev.mac_addr[4]) |
-						  (c->netdev.mac_addr[5] << 8) |
-						  RAL_AV);
+    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 0,
+		   (c->netdev.mac_addr[0]) |
+		   (c->netdev.mac_addr[1] << 8) |
+		   (c->netdev.mac_addr[2] << 16) |
+		   (c->netdev.mac_addr[3] << 24));
+    e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + 4,
+		   (c->netdev.mac_addr[4]) |
+		   (c->netdev.mac_addr[5] << 8) | RAL_AV);
+
     for (int i = 2; i < WM_RAL_TABSIZE * 2; i++)
 	e1000_io_write(c, WMREG_CORDOVA_RAL_BASE + i * 4, 0);
     for (int i = 0; i < WM_MC_TABSIZE; i++)
 	e1000_io_write(c, WMREG_CORDOVA_MTA + i * 4, 0);
 
     // Enable RX, TX
-    e1000_io_write(c, WMREG_RCTL, RCTL_EN | RCTL_RDMTS_1_2 | RCTL_DPF | RCTL_BAM);
+    e1000_io_write(c, WMREG_RCTL,
+		   RCTL_EN | RCTL_RDMTS_1_2 | RCTL_DPF | RCTL_BAM);
     e1000_io_write(c, WMREG_TCTL,
 		   TCTL_EN | TCTL_PSP | TCTL_CT(TX_COLLISION_THRESHOLD) |
 		   TCTL_COLD(TX_COLLISION_DISTANCE_FDX));
@@ -204,10 +212,13 @@ e1000_reset(struct e1000_card *c)
 
     c->tx_head = -1;
     c->tx_nextq = 0;
+
+    c->netdev.waiter_id = 0;
+    netdev_thread_wakeup(&c->netdev);
 }
 
 static void
-e1000_reset_v(void *a)
+e1000_buffer_reset(void *a)
 {
     e1000_reset(a);
 }
@@ -421,7 +432,7 @@ e1000_attach(struct pci_func *pcif)
 
     c->netdev.arg = c;
     c->netdev.add_buf = &e1000_add_buf;
-    c->netdev.buffer_reset = &e1000_reset_v;
+    c->netdev.buffer_reset = &e1000_buffer_reset;
     netdev_register(&c->netdev);
 
     // All done
