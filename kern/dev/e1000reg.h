@@ -550,14 +550,10 @@ struct livengood_tcpip_ctxdesc {
 #define	WM_VLAN_TABSIZE	128
 
 #define	WMREG_PBA	0x1000	/* Packet Buffer Allocation */
-#define	PBA_BYTE_SHIFT	10		/* KB -> bytes */
-#define	PBA_ADDR_SHIFT	7		/* KB -> quadwords */
-#define	PBA_16K		0x0010		/* 16K, default Tx allocation */
-#define	PBA_22K		0x0016
-#define	PBA_24K		0x0018
-#define	PBA_30K		0x001e
-#define	PBA_40K		0x0028
-#define	PBA_48K		0x0030		/* 48K, default Rx allocation */
+#define	PBA_RX_MASK	0xffff
+#define	PBA_RX_SHIFT	0
+#define	PBA_TX_MASK	0xffff
+#define	PBA_TX_SHIFT	16
 
 #define	WMREG_TXDMAC	0x3000	/* Transfer DMA Control */
 #define	TXDMAC_DPP	(1U << 0)	/* disable packet prefetch */

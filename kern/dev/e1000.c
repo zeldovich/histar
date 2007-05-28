@@ -108,7 +108,13 @@ e1000_reset(struct e1000_card *c)
     e1000_io_write(c, WMREG_RCTL, 0);
     e1000_io_write(c, WMREG_TCTL, 0);
 
-    e1000_io_write(c, WMREG_PBA, PBA_48K);
+    // Allocate the card's packet buffer memory equally between rx, tx
+    uint32_t pba = e1000_io_read(c, WMREG_PBA);
+    uint32_t rxtx = ((pba >> PBA_RX_SHIFT) & PBA_RX_MASK) +
+		    ((pba >> PBA_TX_SHIFT) & PBA_TX_MASK);
+    e1000_io_write(c, WMREG_PBA, rxtx / 2);
+
+    // Reset card
     e1000_io_write(c, WMREG_CTRL, CTRL_RST);
     timer_delay(10 * 1000 * 1000);
 
