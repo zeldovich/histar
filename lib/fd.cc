@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/sigio.h>
+#include <inc/stat.h>
 
 #include <termios/kernel_termios.h>
 #include <bits/unimpl.h>
@@ -1143,14 +1144,18 @@ fchdir(int fdnum) __THROW
 }
 
 int
-fstat64 (int __fd, struct stat64 *__buf) __THROW
+fstat(int fdnum, struct stat *buf) __THROW
 {
-    set_enosys();
-    return -1;
+    struct stat64 s64;
+    int r = fstat64(fdnum, &s64);
+    if (r < 0)
+	return r;
+
+    return jos_stat64_to_stat(&s64, buf);
 }
 
 int
-fstat(int fdnum, struct stat *buf) __THROW
+fstat64(int fdnum, struct stat64 *buf) __THROW
 {
     int r;
     struct Fd *fd;

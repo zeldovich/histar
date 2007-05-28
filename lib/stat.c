@@ -12,7 +12,7 @@
 #include <sys/unistd.h>
 
 int
-jos_stat(struct fs_inode ino, struct stat *buf)
+jos_stat(struct fs_inode ino, struct stat64 *buf)
 {
     int type = sys_obj_get_type(ino.obj);
     if (type < 0) {

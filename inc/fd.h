@@ -15,7 +15,7 @@
 #include <arpa/inet.h>
 #include <stdarg.h>
 
-struct stat;
+struct stat64;
 
 /* Maximum number of file descriptors a program may hold open concurrently */
 #define MAXFD		64
@@ -40,7 +40,7 @@ struct Dev
     int (*dev_close)(struct Fd *fd);
     int (*dev_seek)(struct Fd *fd, off_t pos);
     int (*dev_trunc)(struct Fd *fd, off_t length);
-    int (*dev_stat)(struct Fd *fd, struct stat *buf);
+    int (*dev_stat)(struct Fd *fd, struct stat64 *buf);
     int (*dev_probe)(struct Fd *fd, dev_probe_t probe);
     int (*dev_sync)(struct Fd *fd);
     int (*dev_statsync)(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat);

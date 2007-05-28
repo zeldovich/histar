@@ -233,7 +233,28 @@ utime (const char *file, const struct utimbuf *file_times)
 }
 
 int
-stat(const char *file_name, struct stat *buf)
+jos_stat64_to_stat(struct stat64 *src, struct stat *dst)
+{
+#define F(n)				\
+    do {				\
+	dst->n = src->n;		\
+	if (dst->n != src->n) {		\
+	    __set_errno(ERANGE);	\
+	    return -1;			\
+	}				\
+    } while (0)
+
+    F(st_dev);	    F(st_ino);	    F(st_nlink);    F(st_mode);
+    F(st_uid);	    F(st_gid);	    F(st_rdev);	    F(st_size);
+    F(st_blksize);  F(st_blocks);   F(st_atime);    F(st_mtime);
+    F(st_ctime);
+#undef F
+
+    return 0;
+}
+
+int
+stat64(const char *file_name, struct stat64 *buf)
 {
     struct fs_inode ino;
     int r = fs_namei(file_name, &ino);
@@ -257,39 +278,42 @@ stat(const char *file_name, struct stat *buf)
 	    return jos_stat(ino, buf);
 	}
     }
-    
+
     int fd = open(file_name, O_RDONLY);
     if (fd < 0)
 	return fd;
 
-    r = fstat(fd, buf);
+    r = fstat64(fd, buf);
     close(fd);
     return r;
 }
 
 int
-stat64(const char *file_name, struct stat64 *buf)
+stat(const char *file_name, struct stat *buf)
 {
-    int fd = open(file_name, O_RDONLY);
-    if (fd < 0)
-	return fd;
-    
-    int r = fstat64(fd, buf);
-    close(fd);
-    
-    return r;
+    struct stat64 s64;
+    int r = stat64(file_name, &s64);
+    if (r < 0)
+	return r;
+
+    return jos_stat64_to_stat(&s64, buf);
 }
 
 int
-lstat(const char *file_name, struct stat *buf)
+lstat64(const char *file_name, struct stat64 *buf)
 {
-    return stat(file_name, buf);
+    return stat64(file_name, buf);
 }
 
 int 
-lstat64 (const char *file_name, struct stat64 *buf)
+lstat(const char *file_name, struct stat *buf)
 {
-    return stat64(file_name, buf);
+    struct stat64 s64;
+    int r = lstat64(file_name, &s64);
+    if (r < 0)
+	return r;
+
+    return jos_stat64_to_stat(&s64, buf);
 }
 
 int

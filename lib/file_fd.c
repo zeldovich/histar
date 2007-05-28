@@ -205,7 +205,7 @@ file_close(struct Fd *fd)
 }
 
 static int
-file_stat(struct Fd *fd, struct stat *buf)
+file_stat(struct Fd *fd, struct stat64 *buf)
 {
     return jos_stat(fd->fd_file.ino, buf);    
 }

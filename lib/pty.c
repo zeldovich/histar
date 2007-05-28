@@ -344,7 +344,7 @@ pty_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 }
 
 static int
-pts_stat(struct Fd *fd, struct stat *buf)
+pts_stat(struct Fd *fd, struct stat64 *buf)
 {
     buf->st_mode |= S_IFCHR;
     buf->st_rdev = fd->fd_pts.ptyno;
@@ -352,7 +352,7 @@ pts_stat(struct Fd *fd, struct stat *buf)
 }
 
 static int
-ptm_stat(struct Fd *fd, struct stat *buf)
+ptm_stat(struct Fd *fd, struct stat64 *buf)
 {
     buf->st_mode |= S_IFCHR;
     return 0;
