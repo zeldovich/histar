@@ -116,10 +116,8 @@ init_fs(void)
     error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
 				    0, CT_QUOTA_INF));
 
-    // create a hard link "sh" to "ksh" using the mount table.
-    struct fs_inode fs_ksh;
-    error_check(fs_namei("/bin/ksh", &fs_ksh));
-    error_check(fs_mount(start_env->fs_mtab_seg, bin_dir, "sh", fs_ksh));
+    // symlink "sh" to "ksh"
+    symlink("ksh", "/bin/sh");
 
     // create a /dev directory
     struct fs_inode dev;
