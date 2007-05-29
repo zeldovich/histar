@@ -4,6 +4,8 @@ extern "C" {
 #include <inc/jcomm.h>
 #include <inc/multisync.h>
 #include <inc/error.h>
+
+#include <malloc.h>
 }
 
 #include <inc/scopeguard.hh>
@@ -246,52 +248,55 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
     return 0;
 }
 
-#if 0
 static int
 jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
 		    void **arg1)
 {
-    struct jcomm *jc = (struct jcomm *) arg0;
+    struct jcomm_ref *jr = (struct jcomm_ref *) arg0;
     struct jlink *links;
-    int r = jcomm_links_map(jr.jc.a, &links);
+    int r = jcomm_links_map(*jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
     
     if (probe == dev_probe_read)
-	links[jc->a].reader_waiting = 1;
+	links[jr->jc.a].reader_waiting = 1;
     else
-	links[!jc->a].writer_waiting = 1;
-    
+	links[!jr->jc.a].writer_waiting = 1;
+
+    free(jr);
     return 0;
 }
 
-/* XXX can't pass jc as WSTAT arg..it might be short lived.  Need
-   to make a copy, or something. */
 int 
-jcomm_multisync(struct jcomm *jc, dev_probe_t probe, struct wait_stat *wstat)
+jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
 {
     struct jlink *links;
-    int r = jcomm_links_map(jc, &links);
+    int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jc->a];	
+	struct jlink *jl = &links[jr.jc.a];	
 	uint64_t off = (uint64_t)&jl->bytes - (uint64_t)links;
-	WS_SETOBJ(wstat, jc->links, off);
+	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes);
     } else {
-	struct jlink *jl = &links[!jc->a];
+	struct jlink *jl = &links[!jr.jc.a];
 	uint64_t off = (uint64_t)&jl->bytes - (uint64_t)links;
-	WS_SETOBJ(wstat, jc->links, off);
+	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes); 
     }
-    WS_SETCBARG(wstat, jc);
+
+    struct jcomm_ref *jr_copy = (struct jcomm_ref *)malloc(sizeof(jr));
+    if (!jr_copy)
+	return -E_NO_MEM;
+    memcpy(jr_copy, &jr, sizeof(*jr_copy));
+    
+    WS_SETCBARG(wstat, jr_copy);
     WS_SETCB0(wstat, &jcomm_statsync_cb0); 
     
     return 0;
 }
-#endif

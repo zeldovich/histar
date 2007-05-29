@@ -41,7 +41,7 @@ int jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
 		struct jcomm_ref *a, struct jcomm_ref *b);
 int jcomm_probe(struct jcomm_ref jr, dev_probe_t probe);
 int jcomm_shut(struct jcomm_ref jr, uint16_t how);
-int jcomm_multisync(struct jcomm_ref jr, struct wait_stat *wstat);
+int jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat);
 
 int jcomm_addref(struct jcomm_ref jr, uint64_t ct);
 int jcomm_unref(struct jcomm_ref jr);
