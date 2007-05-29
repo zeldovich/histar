@@ -49,6 +49,8 @@ label::~label()
 {
     if (dynamic_ && ul_.ul_ent)
 	free(ul_.ul_ent);
+
+    ul_.ul_ent = (uint64_t *) 0xdeadbeef;
 }
 
 uint64_t *
