@@ -28,7 +28,7 @@ alloc_pts(struct pty_args *args)
     for (uint32_t i = 0; i < num_pts; i++) {
 	if (!pts_table[i].slave_pty_seg.object) {
 	    pts_table[i].slave_pty_seg = args->alloc.slave_pty_seg;
-	    pts_table[i].slave_bipipe_seg = args->alloc.slave_bipipe_seg;
+	    pts_table[i].slave_jc = args->alloc.slave_jc;
 	    pts_table[i].taint = args->alloc.taint;
 	    pts_table[i].grant = args->alloc.grant;
 
