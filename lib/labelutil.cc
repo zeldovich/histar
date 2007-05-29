@@ -13,20 +13,30 @@ extern "C" {
 
 static jthread_mutex_t label_ops_mu;
 static uint64_t cur_th_label_id, cur_th_clear_id;
-static label cur_th_label, cur_th_clear;
+static label *cur_th_label, *cur_th_clear;
 
 enum { handle_debug = 0 };
+
+static void
+label_cache_init(void)
+{
+    if (!cur_th_label)
+	cur_th_label = new label();
+    if (!cur_th_clear)
+	cur_th_clear = new label();
+}
 
 int
 thread_set_label(label *l)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     int r = sys_self_set_label(l->to_ulabel());
     if (r < 0)
 	return r;
 
-    cur_th_label = *l;
+    *cur_th_label = *l;
     cur_th_label_id = thread_id();
     return 0;
 }
@@ -35,12 +45,13 @@ int
 thread_set_clearance(label *l)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     int r = sys_self_set_clearance(l->to_ulabel());
     if (r < 0)
 	return r;
 
-    cur_th_clear = *l;
+    *cur_th_clear = *l;
     cur_th_clear_id = thread_id();
     return 0;
 }
@@ -140,12 +151,13 @@ void
 thread_cur_label(label *l)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     if (cur_th_label_id == thread_id()) {
-	*l = cur_th_label;
+	*l = *cur_th_label;
     } else {
 	get_label_retry(l, thread_get_label);
-	cur_th_label = *l;
+	*cur_th_label = *l;
 	cur_th_label_id = thread_id();
     }
 }
@@ -154,12 +166,13 @@ void
 thread_cur_clearance(label *l)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     if (cur_th_clear_id == thread_id()) {
-	*l = cur_th_clear;
+	*l = *cur_th_clear;
     } else {
 	get_label_retry(l, &sys_self_get_clearance);
-	cur_th_clear = *l;
+	*cur_th_clear = *l;
 	cur_th_clear_id = thread_id();
     }
 }
@@ -168,11 +181,12 @@ void
 thread_label_cache_update(label *l, label *c)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     if (cur_th_label_id == thread_id())
-	cur_th_label = *l;
+	*cur_th_label = *l;
     if (cur_th_clear_id == thread_id())
-	cur_th_clear = *c;
+	*cur_th_clear = *c;
 }
 
 void
@@ -205,6 +219,7 @@ int64_t
 handle_alloc(void)
 {
     scoped_jthread_lock x(&label_ops_mu);
+    label_cache_init();
 
     int64_t h = sys_handle_create();
     if (h < 0)
@@ -212,7 +227,7 @@ handle_alloc(void)
 
     if (cur_th_label_id == thread_id()) {
 	try {
-	    cur_th_label.set(h, LB_LEVEL_STAR);
+	    cur_th_label->set(h, LB_LEVEL_STAR);
 	} catch (...) {
 	    cur_th_label_id = 0;
 	}
@@ -220,7 +235,7 @@ handle_alloc(void)
 
     if (cur_th_clear_id == thread_id()) {
 	try {
-	    cur_th_clear.set(h, 3);
+	    cur_th_clear->set(h, 3);
 	} catch (...) {
 	    cur_th_clear_id = 0;
 	}
