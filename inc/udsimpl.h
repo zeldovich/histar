@@ -10,4 +10,6 @@ int uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen);
 ssize_t uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset);
 ssize_t uds_read(struct Fd *fd, void *buf, size_t count, off_t offset);
 
+int uds_onfork(struct Fd *fd, uint64_t ct);
+
 #endif

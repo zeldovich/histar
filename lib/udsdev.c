@@ -11,4 +11,5 @@ struct Dev devuds = {
     .dev_bind = &uds_bind,
     .dev_listen = &uds_listen,
     .dev_accept = &uds_accept,
+    .dev_onfork = &uds_onfork,
 };

@@ -59,6 +59,8 @@ struct Dev
 			  void *optval, socklen_t *optlen);
     int (*dev_shutdown)(struct Fd *fd, int how);
     int (*dev_ioctl)(struct Fd *fd, uint64_t cmd, va_list ap);
+
+    int (*dev_onfork)(struct Fd *fd, uint64_t ct);
 };
 
 enum {
@@ -121,11 +123,8 @@ struct Fd
 	struct {
 	    struct jcomm pty_jc;
 	    int pty_no;
-	    union {
-		struct cobj_ref ptm_slave_seg;
-		struct cobj_ref pts_seg;
-	    };
-	    struct pty_seg ptm_ps;
+	    struct cobj_ref pty_slave_seg;
+	    struct pty_seg ptm_ps; /* only used by a pty master */
 	} fd_pty;
 
 	struct {

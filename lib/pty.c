@@ -65,7 +65,7 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     ps->master_open = 1;
 
     fd->fd_pty.pty_jc = master_jr.jc;
-    fd->fd_pty.ptm_slave_seg = slave_pty_seg;
+    fd->fd_pty.pty_slave_seg = slave_pty_seg;
 
     segment_unmap_delayed(ps, 1);
 
@@ -124,11 +124,11 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
      * jcomm and pty_seg.
      */
     fd->fd_pty.pty_jc = pd.slave_jc;
-    fd->fd_pty.pts_seg = pd.slave_pty_seg;
+    fd->fd_pty.pty_slave_seg = pd.slave_pty_seg;
     fd_set_extra_handles(fd, pd.taint, pd.grant);
 
     struct pty_seg *ps = 0;
-    r = segment_map(fd->fd_pty.pts_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 		    (void **)&ps, 0, 0);
     if (r < 0) {
 	/* common for processes (via libc) to open pty slaves they don't
@@ -153,14 +153,14 @@ pts_close(struct Fd *fd)
 {
     int flag = 0;
     // a 'partially' allocated pts
-    if (!fd->fd_pty.pts_seg.object) 
+    if (!fd->fd_pty.pty_slave_seg.object) 
 	return 0;
 
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pts_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
-	struct cobj_ref obj = fd->fd_pty.pts_seg;
+	struct cobj_ref obj = fd->fd_pty.pty_slave_seg;
 	cprintf("pts_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
 		obj.container, obj.object, e2s(r));
 	return -1;
@@ -188,7 +188,7 @@ pts_close(struct Fd *fd)
     segment_unmap(ps);
     
     if (flag) {
-	r = sys_obj_unref(fd->fd_pty.pts_seg);
+	r = sys_obj_unref(fd->fd_pty.pty_slave_seg);
 	if (r < 0)
 	    cprintf("pts_close: can't unref pty_seg: %s\n", e2s(r));
     }
@@ -203,10 +203,10 @@ ptm_close(struct Fd *fd)
     pty_remove(fd->fd_pty.pty_no);
 
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.ptm_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
-	struct cobj_ref obj = fd->fd_pty.ptm_slave_seg;
+	struct cobj_ref obj = fd->fd_pty.pty_slave_seg;
 	cprintf("ptm_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
 		obj.container, obj.object, e2s(r));
 	return -1;
@@ -226,7 +226,7 @@ ptm_close(struct Fd *fd)
 	cprintf("ptm_close: jcomm_shut error: %s\n", e2s(r));
 
     if (flag) {
-    	r = sys_obj_unref(fd->fd_pty.ptm_slave_seg);
+    	r = sys_obj_unref(fd->fd_pty.pty_slave_seg);
 	if (r < 0)
 	    cprintf("ptm_close: can't unref slave_pty_seg: %s\n", e2s(r));
 	r = jcomm_unref(PTY_JCOMM(fd));
@@ -322,7 +322,7 @@ static ssize_t
 pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pts_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pts_write: unable to map pty_seg: %s\n", e2s(r));
@@ -451,7 +451,7 @@ static int
 pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pts_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pts_ioctl: unable to map pty_seg: %s\n", e2s(r));
@@ -460,6 +460,20 @@ pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     
     r = pty_ioctl(fd, req, ap, ps);
     segment_unmap_delayed(ps, 1);
+    return r;
+}
+
+static int
+pty_onfork(struct Fd *fd, uint64_t ct)
+{
+    int r = jcomm_addref(PTY_JCOMM(fd), ct);
+    if (r < 0) {
+	cprintf("pty_onfork: jcomm_addref error: %s\n", e2s(r));
+	return r;
+    }
+    r = sys_segment_addref(fd->fd_pty.pty_slave_seg, ct);
+    if (r < 0)
+	cprintf("pty_onfork: sys_segment_addref error: %s\n", e2s(r));
     return r;
 }
 
@@ -475,6 +489,7 @@ struct Dev devptm = {
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
     .dev_ioctl = ptm_ioctl,
+    .dev_onfork = &pty_onfork,
 };
 
 struct Dev devpts = {
@@ -489,4 +504,5 @@ struct Dev devpts = {
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
     .dev_ioctl = pts_ioctl,
+    .dev_onfork = &pty_onfork,
 };

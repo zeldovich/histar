@@ -395,3 +395,12 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 
     return r;
 }
+
+int
+uds_onfork(struct Fd *fd, uint64_t ct)
+{
+    int r = jcomm_addref(UDS_JCOMM(fd), ct);
+    if (r < 0)
+	cprintf("uds_onfork: jcomm_addref error: %s\n", e2s(r));
+    return r;
+}

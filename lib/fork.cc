@@ -210,18 +210,10 @@ do_fork()
 	    struct Fd *fd = (struct Fd *) va;
 	    if (!fd->fd_immutable)
 		jos_atomic_inc(&fd->fd_ref);
-            if (fd->fd_dev_id == devbipipe.dev_id)
-                sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
-	    if (fd->fd_dev_id == devptm.dev_id) {
-		jcomm_addref(JCOMM(start_env->shared_container, 
-				   fd->fd_pty.pty_jc), top_ct);
-		sys_segment_addref(fd->fd_pty.ptm_slave_seg, top_ct);
-	    }		
-	    if (fd->fd_dev_id == devpts.dev_id) {
-		jcomm_addref(JCOMM(start_env->shared_container, 
-				   fd->fd_pty.pty_jc), top_ct);
-		sys_segment_addref(fd->fd_pty.pts_seg, top_ct);
-	    }
+
+	    struct Dev *dev;
+	    if (dev_lookup(fd->fd_dev_id, &dev) == 0 && dev->dev_onfork)
+		(*dev->dev_onfork)(fd, top_ct);
 	}
 
 	// What gets copied across fork() and what stays shared?
