@@ -15,6 +15,7 @@ X86_INST_ATTR uint32_t rcr4(void);
 X86_INST_ATTR uint32_t read_eflags(void);
 X86_INST_ATTR void write_eflags(uint32_t eflags);
 X86_INST_ATTR uint32_t read_esp(void);
+X86_INST_ATTR uint32_t read_ebp(void);
 
 void
 lcr0(uint32_t val)
@@ -86,6 +87,14 @@ read_esp(void)
 	uint32_t esp;
 	__asm __volatile("movl %%esp,%0" : "=r" (esp));
 	return esp;
+}
+
+uint32_t
+read_ebp(void)
+{
+	uint32_t ebp;
+	__asm __volatile("movl %%ebp,%0" : "=r" (ebp));
+	return ebp;
 }
 
 #endif /* !JOS_MACHINE_X86_H */
