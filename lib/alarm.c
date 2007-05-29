@@ -33,7 +33,7 @@ alarm_worker(void *arg)
 
 	if (now >= alarm_at) {
 	    uint64_t old = jos_atomic_compare_exchange64(&alarm_at_nsec,
-							 alarm_at, ~0UL);
+							 alarm_at, UINT64(~0));
 	    if (old == alarm_at)
 		kill_thread_siginfo(alarm_target_obj, &si);
 	} else {
@@ -47,7 +47,7 @@ alarm(unsigned int seconds)
 {
     if (alarm_worker_ct != start_env->proc_container) {
 	alarm_target_obj = COBJ(start_env->proc_container, thread_id());
-	jos_atomic_set(&alarm_at_nsec, ~0UL);
+	jos_atomic_set(&alarm_at_nsec, UINT64(~0));
 
 	// Either we forked, or never had an alarm thread to start with.
 	int r = thread_create(start_env->proc_container, &alarm_worker, 0,
@@ -62,7 +62,7 @@ alarm(unsigned int seconds)
     }
 
     uint64_t now = sys_clock_nsec();
-    uint64_t nsec = seconds ? now + NSEC_PER_SECOND * seconds : ~0UL;
+    uint64_t nsec = seconds ? now + NSEC_PER_SECOND * seconds : UINT64(~0);
     jos_atomic_set(&alarm_at_nsec, nsec);
     sys_sync_wakeup(&jos_atomic_read(&alarm_at_nsec));
     return 0;

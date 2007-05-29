@@ -53,9 +53,9 @@ static struct {
 } cyg_data;
 
 enum { prof_print_count_threshold = 0 };
-enum { prof_print_cycles_threshold = 0UL };
+enum { prof_print_cycles_threshold = UINT64(0) };
 
-static uint64_t cyg_profs_threshold = 0UL;
+static uint64_t cyg_profs_threshold = UINT64(0);
 
 #define NUM_PROFS_PRINTED (sizeof(cyg_profs_printed) / sizeof(cyg_profs_printed[0]))
 

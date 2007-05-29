@@ -144,7 +144,7 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	WS_SETVAL(&wstat[0], 0);
 	WS_SETADDR(&wstat[1], &op->open);
 	WS_SETVAL(&wstat[1], 1);
-	if (multisync_wait(wstat, 2, ~0UL) < 0)
+	if (multisync_wait(wstat, 2, UINT64(~0)) < 0)
 	    goto out;
 
         jthread_mutex_lock(&op->mu);
@@ -196,7 +196,7 @@ bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
             goto out;
         }
 	
-        sys_sync_wait(&op->bytes, b, ~0UL);
+        sys_sync_wait(&op->bytes, b, UINT64(~0));
         jthread_mutex_lock(&op->mu);
     }
 

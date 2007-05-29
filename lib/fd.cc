@@ -542,7 +542,7 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
 	    jos_atomic_set(&devtab_init, 2);
 	    sys_sync_wakeup(&devtab_init.counter);
 	} else {
-	    sys_sync_wait(&devtab_init.counter, 1, ~0UL);
+	    sys_sync_wait(&devtab_init.counter, 1, UINT64(~0));
 	}
     }
 
@@ -986,7 +986,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         }
 
         if (!ready) {
-	    uint64_t nsec = ~0UL;
+	    uint64_t nsec = UINT64(~0);
 	    if (timeout) {
 		uint64_t now = sys_clock_nsec();
 		nsec = now + NSEC_PER_SECOND * remaining.tv_sec

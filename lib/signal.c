@@ -697,7 +697,7 @@ sigsuspend(const sigset_t *mask)
     while (signal_counter == ctr) {
 	if (signal_debug)
 	    cprintf("[%"PRIu64"] sigsuspend: waiting..\n", thread_id());
-	sys_sync_wait(&signal_counter, ctr, ~0ULL);
+	sys_sync_wait(&signal_counter, ctr, UINT64(~0));
     }
 
     oumask = utrap_set_mask(1);

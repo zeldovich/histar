@@ -162,7 +162,7 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
 			  sys_clock_nsec() + retry_delivery_nsec);
 
 	while (jos_atomic_read(&rs.reply) == reply_copying)
-	    sys_sync_wait(&rs.reply.counter, reply_copying, ~0UL);
+	    sys_sync_wait(&rs.reply.counter, reply_copying, UINT64(~0));
 
 	if (jos_atomic_read(&rs.reply) == reply_done)
 	    break;

@@ -175,7 +175,7 @@ pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu)
 {
     uint64_t v = cond->counter;
     pthread_mutex_unlock(mu);
-    sys_sync_wait(&cond->counter, v, ~0UL);
+    sys_sync_wait(&cond->counter, v, UINT64(~0));
     pthread_mutex_lock(mu);
     return 0;
 }

@@ -242,7 +242,7 @@ file_trunc(struct Fd *fd, off_t pos)
     }
 
     if ((fd->fd_omode & O_SYNC)) {
-	r = sys_segment_sync(fd->fd_file.ino.obj, 0, ~0UL,
+	r = sys_segment_sync(fd->fd_file.ino.obj, 0, UINT64(~0),
 			     sys_pstate_timestamp());
 	if (r < 0)
 	    cprintf("file_trunc: sync: %s\n", e2s(r));
@@ -257,7 +257,8 @@ file_sync(struct Fd *fd)
     if ((fd->fd_omode & O_SYNC))
 	return 0;
 
-    int r = sys_segment_sync(fd->fd_file.ino.obj, 0, ~0UL, sys_pstate_timestamp());
+    int r = sys_segment_sync(fd->fd_file.ino.obj, 0,
+			     UINT64(~0), sys_pstate_timestamp());
     if (r < 0) {
 	cprintf("file_sync: %s\n", e2s(r));
 	__set_errno(EINVAL);

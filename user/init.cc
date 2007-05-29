@@ -84,7 +84,7 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(segment_alloc(c_self, sizeof(struct time_of_day_seg),
 			      &start_env->time_seg, (void **) &tods,
 			      time_label.to_ulabel(), "time-of-day"));
-    tods->unix_nsec_offset = NSEC_PER_SECOND * 1000000000UL;
+    tods->unix_nsec_offset = NSEC_PER_SECOND * UINT64(1000000000);
 
     // set the filesystem root to be the same as the container root
     fs_get_root(c_root, &start_env->fs_root);

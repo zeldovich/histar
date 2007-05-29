@@ -32,7 +32,7 @@ static void __attribute__((noreturn))
 netd_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     while (!netd_server_enabled)
-	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
+	sys_sync_wait(&netd_server_enabled, 0, UINT64(~0));
 
     uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref arg = gcd->param_obj;
@@ -109,7 +109,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
     error_check(sys_segment_resize(COBJ(0, kobject_id_thread_sg), 2 * PGSIZE));
 
     while (!netd_server_enabled)
-	sys_sync_wait(&netd_server_enabled, 0, ~0UL);
+	sys_sync_wait(&netd_server_enabled, 0, UINT64(~0));
 
     netd_ipc_setup(gcd->taint_container, gcd->param_obj, 
 		   SEGMAP_READ | SEGMAP_WRITE,
@@ -126,7 +126,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 
     for (;;) {
 	while (ipc->sync == NETD_IPC_SYNC_REPLY)
-	    sys_sync_wait(&ipc->sync, NETD_IPC_SYNC_REPLY, ~0UL);
+	    sys_sync_wait(&ipc->sync, NETD_IPC_SYNC_REPLY, UINT64(~0));
 
 	error_check(sys_self_set_as(netd_asref));
 	error_check(sys_self_addref(netd_ct));

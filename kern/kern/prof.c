@@ -30,7 +30,7 @@ static struct periodic_task prof_timer;
 static int prof_enable = 0;
 static int prof_thread_enable = 0;
 enum { prof_print_count_threshold = 100 };
-enum { prof_print_cycles_threshold = 10000000UL };
+enum { prof_print_cycles_threshold = UINT64(10000000) };
 enum { prof_thread_nsec_threshold = 1000000000 };
 
 static struct periodic_task timer2;
@@ -44,7 +44,7 @@ static void *cyg_profs_printed[] = {
 };
 
 #define NUM_PROFS_PRINTED (sizeof(cyg_profs_printed) / sizeof(cyg_profs_printed[0]))
-static uint64_t cyg_profs_threshold = 1000000000UL;
+static uint64_t cyg_profs_threshold = UINT64(1000000000);
 
 struct func_stamp {
     uint64_t func_addr;

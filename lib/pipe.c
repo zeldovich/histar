@@ -60,7 +60,7 @@ pipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	uint64_t b = fd->fd_pipe.bytes;
 	fd->fd_pipe.writer_waiting = 1;
 	jthread_mutex_unlock(&fd->fd_pipe.mu);
-	sys_sync_wait(&fd->fd_pipe.bytes, b, ~0UL);
+	sys_sync_wait(&fd->fd_pipe.bytes, b, UINT64(~0));
 	jthread_mutex_lock(&fd->fd_pipe.mu);
     }
 
@@ -109,7 +109,7 @@ pipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	WS_SETVAL(&wstat[0], 0);
 	WS_SETADDR(&wstat[1], &fd->fd_ref64);
 	WS_SETVAL(&wstat[1], ref);
-	if (multisync_wait(wstat, 2, ~0UL) < 0)
+	if (multisync_wait(wstat, 2, UINT64(~0)) < 0)
 	    return -1;
 
     	jthread_mutex_lock(&fd->fd_pipe.mu);

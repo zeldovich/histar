@@ -17,7 +17,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/jthread.hh>
 
-#define DIR_GEN_BUSY	(~0UL)
+#define DIR_GEN_BUSY	(UINT64(~0))
 
 struct fs_dirslot {
     uint64_t gen;

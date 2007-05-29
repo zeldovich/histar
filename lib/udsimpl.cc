@@ -91,7 +91,7 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 	
 	sys_sync_wakeup(&slot->op);
 	jthread_mutex_unlock(&fd->fd_uds.uds_mu);
-	sys_sync_wait(&slot->op, 1, ~0UL);
+	sys_sync_wait(&slot->op, 1, UINT64(~0));
 	jthread_mutex_lock(&fd->fd_uds.uds_mu);
     }
 
@@ -219,7 +219,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	    }
 	
 	jthread_mutex_unlock(&fd->fd_uds.uds_mu);
-	multisync_wait(ws, fd->fd_uds.uds_backlog, ~0UL);
+	multisync_wait(ws, fd->fd_uds.uds_backlog, UINT64(~0));
     }
 
  out:

@@ -103,7 +103,7 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
 	WS_SETVAL(&wstat[0], 0);
 	WS_SETADDR(&wstat[1], &jl->open);
 	WS_SETVAL(&wstat[1], 1);
-	if ((r = multisync_wait(wstat, 2, ~0UL)) < 0)
+	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
 	    return r;
 
         jthread_mutex_lock(&jl->mu);
@@ -162,7 +162,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 	WS_SETVAL(&wstat[0], b);
 	WS_SETADDR(&wstat[1], &jl->open);
 	WS_SETVAL(&wstat[1], 1);
-	if ((r = multisync_wait(wstat, 2, ~0UL)) < 0)
+	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
 	    return r;
 	
         jthread_mutex_lock(&jl->mu);

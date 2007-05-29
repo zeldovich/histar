@@ -17,7 +17,7 @@ jthread_mutex_lock(jthread_mutex_t *mu)
 	    break;
 
 	jos_atomic_compare_exchange64(mu, 1, 2);
-	sys_sync_wait(&mu->counter, 2, ~0UL);
+	sys_sync_wait(&mu->counter, 2, UINT64(~0));
     }
 }
 

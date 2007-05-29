@@ -82,7 +82,7 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 	    goto out;
 	}
 
-	sys_sync_wait(&jos_atomic_read(&tp->len), 0, ~0UL);
+	sys_sync_wait(&jos_atomic_read(&tp->len), 0, UINT64(~0));
     }
 
     if (plen > len) {
@@ -133,7 +133,7 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
 	    goto out;
 	}
 
-	sys_sync_wait(&jos_atomic_read(&tp->len), plen, ~0UL);
+	sys_sync_wait(&jos_atomic_read(&tp->len), plen, UINT64(~0));
     }
 
     memcpy(&tp->buf[0], buf, len);

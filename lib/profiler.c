@@ -46,7 +46,7 @@ profiler_thread(void *arg)
 	kill_thread_siginfo(prof_target, &si);
 
 	while (!prof_rip)
-	    sys_sync_wait(&prof_rip, 0, ~0UL);
+	    sys_sync_wait(&prof_rip, 0, UINT64(~0));
 
 	prof_samples[prof_sample_next] = prof_rip;
 	prof_sample_next = (prof_sample_next + 1) % buffer_size;

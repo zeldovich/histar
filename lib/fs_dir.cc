@@ -258,7 +258,7 @@ fs_namei_flags(const char *pn, struct fs_inode *o, uint32_t flags)
 int
 fs_mkdir(struct fs_inode dir, const char *fn, struct fs_inode *o, struct ulabel *l)
 {
-    uint64_t avoid_types = ~0UL;
+    uint64_t avoid_types = UINT64(~0);
     avoid_types &= ~(1 << kobj_segment);
     avoid_types &= ~(1 << kobj_container);
 

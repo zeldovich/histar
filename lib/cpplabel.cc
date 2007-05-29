@@ -69,7 +69,7 @@ label::slot_grow(uint64_t handle)
 
     uint64_t n = ul_.ul_nent;
     if (n >= ul_.ul_size) {
-	ul_.ul_needed = MAX(ul_.ul_size, 8UL);
+	ul_.ul_needed = MAX(ul_.ul_size, UINT64(8));
 	grow();
     }
 

@@ -172,7 +172,7 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	} else {
 	    uint64_t a = sys_clock_nsec();
 	    uint64_t sleep_until = tm_msec ?
-		a + NSEC_PER_SECOND / 1000 * (tm_msec - waited) : ~0UL;
+		a + NSEC_PER_SECOND / 1000 * (tm_msec - waited) : UINT64(~0);
 	    sems[sem].waiters = 1;
 	    uint64_t cur_v = sems[sem].v;
 	    lwip_core_unlock();

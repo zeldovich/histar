@@ -37,12 +37,12 @@ jos_sigio_thread(void *arg)
     for (;;) {
 	jos_sigio_t s = jos_sigio;
 	if (s.fd == 0) {
-	    sys_sync_wait(&jos_sigio.v, s.v, ~0ULL);
+	    sys_sync_wait(&jos_sigio.v, s.v, UINT64(~0));
 	    continue;
 	}
 
 	if (s.activated == 0) {
-	    sys_sync_wait(&jos_sigio.v, s.v, ~0ULL);
+	    sys_sync_wait(&jos_sigio.v, s.v, UINT64(~0));
 	    continue;
 	}
 

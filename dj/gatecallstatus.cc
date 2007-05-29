@@ -32,6 +32,6 @@ gatecall_status_wait(cobj_ref gcs_obj)
 {
     segment_reader<dj_delivery_code> sr(gcs_obj);
     while (*sr.addr() == 0)
-	error_check(sys_sync_wait((uint64_t *) sr.addr(), 0, ~0UL));
+	error_check(sys_sync_wait((uint64_t *) sr.addr(), 0, UINT64(~0)));
     return *sr.addr();
 }

@@ -198,7 +198,7 @@ sys_arch_sem_wait(sys_sem_t sem, u32_t tm_msec)
 	    waited = SYS_ARCH_TIMEOUT;
 	} else {
 	    uint64_t a = lwip_clock_msec();
-	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : ~0UL;
+	    uint64_t sleep_until = tm_msec ? a + tm_msec - waited : UINT64(~0);
 	    sems[sem].waiters = 1;
 
 	    cond_timedwait(&sems[sem].cond, &lwip_core_mu, sleep_until);

@@ -8,7 +8,7 @@
 #include <kern/btree.h>
 #include <kern/part.h>
 
-#define PSTATE_MAGIC	0x4A4F535053544154ULL
+#define PSTATE_MAGIC	UINT64(0x4A4F535053544154)
 #define PSTATE_VERSION	3
 #define PSTATE_BUF_SIZE	512
 

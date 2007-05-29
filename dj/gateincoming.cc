@@ -264,7 +264,7 @@ class incoming_impl : public dj_incoming_gate {
 
 	PERF_COUNTER(gate_incoming::wait);
 	while (!ir.done)
-	    sys_sync_wait(&ir.done, 0, ~0UL);
+	    sys_sync_wait(&ir.done, 0, UINT64(~0));
 
 	*res = ir.res;
     }

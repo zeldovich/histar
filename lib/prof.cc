@@ -48,7 +48,7 @@ scoped_prof::~scoped_prof(void)
 {
     uint64_t end = read_tsc();
     if (end < start_)
-	prof_data(func_addr_, end + (~0UL - start_));
+	prof_data(func_addr_, end + (UINT64(~0) - start_));
     else
 	prof_data(func_addr_, end - start_);
 }
@@ -120,7 +120,7 @@ prof_print(char use_cprintf)
     uint64_t e = read_tsc();
     uint64_t tot = 0;
     if (e < start_prof)
-	tot = e + (~0UL - start_prof);
+	tot = e + (UINT64(~0) - start_prof);
     else
 	tot = e - start_prof;
 

@@ -162,7 +162,7 @@ netd_fast_init(struct netd_fast_ipc_state *s)
 	if (s->fast_ipc_inited == 2)
 	    return;
 
-	sys_sync_wait(&s->fast_ipc_inited, 1, ~0UL);
+	sys_sync_wait(&s->fast_ipc_inited, 1, UINT64(~0));
     }
 }
 
@@ -174,7 +174,7 @@ netd_fast_call(struct netd_fast_ipc_state *s, struct netd_op_args *a)
     sys_sync_wakeup(&s->fast_ipc->sync);
 
     while (s->fast_ipc->sync != NETD_IPC_SYNC_REPLY)
-	sys_sync_wait(&s->fast_ipc->sync, NETD_IPC_SYNC_REQUEST, ~0UL);
+	sys_sync_wait(&s->fast_ipc->sync, NETD_IPC_SYNC_REQUEST, UINT64(~0));
     memcpy(a, &s->fast_ipc->args, s->fast_ipc->args.size);
 
 }
