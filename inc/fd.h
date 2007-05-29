@@ -119,18 +119,15 @@ struct Fd
 	} fd_bipipe;
 
 	struct {
-	    struct cobj_ref bipipe_seg;
-	    int bipipe_a;
-
-	    struct pty_seg ps;
+	    struct jcomm ptm_jc;
 	    int ptyno;
 	    struct cobj_ref slave_pty_seg;
+	    struct pty_seg ps;
 	} fd_ptm;
+
 	struct {
-	    struct cobj_ref bipipe_seg;
-	    int bipipe_a;
-	    
-	    int ptyno;
+	    struct jcomm pts_jc;
+	    int ptyno;	    
 	    struct cobj_ref pty_seg;
 	} fd_pts;
 

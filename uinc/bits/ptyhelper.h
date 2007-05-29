@@ -1,6 +1,8 @@
 #ifndef UCLIBC_JOS64_PTYHELPER_H
 #define UCLIBC_JOS64_PTYHELPER_H
 
+#include <inc/jcomm.h>
+
 typedef enum {
     ptyd_op_alloc_pts = 1,
     ptyd_op_remove_pts, 
@@ -8,7 +10,7 @@ typedef enum {
 
 struct pts_descriptor {
     struct cobj_ref slave_pty_seg;
-    struct cobj_ref slave_bipipe_seg;
+    struct jcomm slave_jc;
     uint64_t grant;
     uint64_t taint;
 };

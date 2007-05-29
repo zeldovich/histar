@@ -1,5 +1,6 @@
 #include <inc/lib.h>
-#include <inc/bipipe.h>
+#include <inc/fd.h>
+#include <inc/jcomm.h>
 #include <inc/stdio.h>
 #include <inc/pty.h>
 #include <inc/labelutil.h>
@@ -17,10 +18,12 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
+#define PTY_JCOMM_CT start_env->shared_container
 
 static int
 ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 {
+    struct pts_descriptor pd;
     struct Fd *fd;
     int r = fd_alloc(&fd, "ptm fd");
     if (r < 0) {
@@ -44,40 +47,28 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     label_set_level(&label, grant, 0, 0);
     
     uint64_t ct = start_env->shared_container;
-    struct bipipe_seg *bs = 0;
-    struct cobj_ref bipipe_seg;
-    if ((r = segment_alloc(ct, sizeof(*bs), &bipipe_seg, 
-			   (void **)&bs, &label, "pty-bipipe")) < 0) {
-	jos_fd_close(fd);
-	errno = ENOMEM;
-	return -1;        
-    }
-    memset(bs, 0, sizeof(*bs));
+    
+    struct jcomm_ref master_jr, slave_jr;
+    r = jcomm_alloc(PTY_JCOMM_CT, &label, 0, &master_jr, &slave_jr);
    
     struct pty_seg *ps = 0;
     struct cobj_ref slave_pty_seg;
     if ((r = segment_alloc(ct, sizeof(*ps), &slave_pty_seg, 
 			   (void **)&ps, &label, "pty-slave-ios")) < 0) {
 	jos_fd_close(fd);
-	segment_unmap(bs);
 	errno = ENOMEM;
 	return -1;        
     }
     memset(ps, 0, sizeof(*ps));
     ps->master_open = 1;
 
-    fd->fd_ptm.bipipe_seg = bipipe_seg;
+    fd->fd_ptm.ptm_jc = master_jr.jc;
     fd->fd_ptm.slave_pty_seg = slave_pty_seg;
 
-    fd->fd_ptm.bipipe_a = 1;
-    bs->p[1].open = 1;    
-
-    segment_unmap_delayed(bs, 1);
     segment_unmap_delayed(ps, 1);
 
-    struct pts_descriptor pd;
     pd.slave_pty_seg = slave_pty_seg;
-    pd.slave_bipipe_seg = bipipe_seg;
+    pd.slave_jc = slave_jr.jc;
     pd.grant = grant;
     pd.taint = taint;
     r = pty_alloc(&pd);
@@ -125,33 +116,25 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     }
     
     fd->fd_pts.ptyno = ptyno;
-    fd->fd_pts.bipipe_seg = pd.slave_bipipe_seg;
-    fd->fd_pts.pty_seg = pd.slave_pty_seg;
-    fd->fd_pts.bipipe_a = 0;
-    fd_set_extra_handles(fd, pd.taint, pd.grant);
     
-    struct bipipe_seg *bs = 0;
-    r = segment_map(fd->fd_pts.bipipe_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-		    (void **)&bs, 0, 0);
-    if (r < 0) {
-	/* common for processes (via libc) to open pty slaves they don't
-	 * have the priv. for.  Note, we are closing a 'parially' allocated 
-	 * fd.
-	 * cprintf("pts_open: unable to map bipipe_seg: %s\n", e2s(r));
-	 */
-	errno = EACCES;
-	jos_fd_close(fd);
-	return -1;
-    }
-    bs->p[0].open = 1;    
-    segment_unmap_delayed(bs, 1);
+    /* Again, assume that process opening master is also opening the
+     * slave.  If this were not the case, we would want to addref the
+     * jcomm and pty_seg.
+     */
+    fd->fd_pts.pts_jc = pd.slave_jc;
+    fd->fd_pts.pty_seg = pd.slave_pty_seg;
+    fd_set_extra_handles(fd, pd.taint, pd.grant);
 
     struct pty_seg *ps = 0;
     r = segment_map(fd->fd_pts.pty_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 		    (void **)&ps, 0, 0);
     if (r < 0) {
-	cprintf("pts_open: unable to map pty_seg: %s\n", e2s(r));
+	/* common for processes (via libc) to open pty slaves they don't
+	 * have the priv. for.  Note, we are closing a 'parially' allocated 
+	 * fd.
+	 */
 	jos_fd_close(fd);
+	errno = EACCES;
 	return -1;
     }
 
@@ -166,6 +149,7 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 static int
 pts_close(struct Fd *fd)
 {
+    int flag = 0;
     // a 'partially' allocated pts
     if (!fd->fd_pts.pty_seg.object) 
 	return 0;
@@ -174,7 +158,7 @@ pts_close(struct Fd *fd)
     int r = segment_map(fd->fd_pts.pty_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
-	struct cobj_ref obj = fd->fd_ptm.slave_pty_seg;
+	struct cobj_ref obj = fd->fd_pts.pty_seg;
 	cprintf("pts_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
 		obj.container, obj.object, e2s(r));
 	return -1;
@@ -182,27 +166,39 @@ pts_close(struct Fd *fd)
 
     jthread_mutex_lock(&ps->mu);
     
-    if (!ps->master_open) {
+    if (!ps->master_open)
+	flag = 1;
+    
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_pts.pts_jc); 
+    ps->slave_ref--;
+    if (ps->slave_ref == 0) { 
+	r = jcomm_shut(jr, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+	if (r < 0)
+	    cprintf("pts_close: jcomm_shut error: %s\n", e2s(r));
+	if (flag) {
+	    r = jcomm_unref(jr);
+	    if (r < 0)
+		cprintf("pts_close: jcomm_unref failed: %s\n", e2s(r));
+	}
+    } else
+	r = 0;
+
+    jthread_mutex_unlock(&ps->mu);
+    segment_unmap(ps);
+    
+    if (flag) {
 	r = sys_obj_unref(fd->fd_pts.pty_seg);
 	if (r < 0)
 	    cprintf("pts_close: can't unref pty_seg: %s\n", e2s(r));
     }
     
-    ps->slave_ref--;
-    if (ps->slave_ref == 0)
-	r = (*devbipipe.dev_close)(fd);
-    else
-	r = 0;
-
-    jthread_mutex_unlock(&ps->mu);
-
-    segment_unmap(ps);
     return r;
 }
 
 static int
 ptm_close(struct Fd *fd)
 {
+    int flag = 0;
     pty_remove(fd->fd_ptm.ptyno);
 
     struct pty_seg *ps = 0;
@@ -218,15 +214,27 @@ ptm_close(struct Fd *fd)
     jthread_mutex_lock(&ps->mu);
 
     ps->master_open = 0;
-    if (!ps->slave_ref) {
-	r = sys_obj_unref(fd->fd_ptm.slave_pty_seg);
-	if (r < 0)
-	    cprintf("ptm_close: can't unref slave_pty_seg: %s\n", e2s(r));
-    }
+    if (!ps->slave_ref)
+	flag = 1;
 
     jthread_mutex_unlock(&ps->mu);
     segment_unmap(ps);
-    return (*devbipipe.dev_close)(fd);
+
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_ptm.ptm_jc);
+    r = jcomm_shut(jr, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+    if (r < 0)
+	cprintf("ptm_close: jcomm_shut error: %s\n", e2s(r));
+
+    if (flag) {
+    	r = sys_obj_unref(fd->fd_ptm.slave_pty_seg);
+	if (r < 0)
+	    cprintf("ptm_close: can't unref slave_pty_seg: %s\n", e2s(r));
+	r = jcomm_unref(jr);
+	if (r < 0)
+	    cprintf("pts_close: jcomm_unref failed: %s\n", e2s(r));
+    }
+    
+    return r;
 }
 
 static uint32_t
@@ -269,7 +277,9 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	}
     }
     
-    int r = (*devbipipe.dev_write)(fd, bf, cc, 0); 
+    /* XXX using fd->fd_ptm.ptm_jc in pty func! */    
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_ptm.ptm_jc);
+    int r = jcomm_write(jr, bf, cc);
     if (r < 0)
 	return r;
 
@@ -291,9 +301,10 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	    __set_errno(EIO);
 	    return -1;
 	}
-	int rr = (*devbipipe.dev_write)(fd, bf, cc - r, r); 
+
+	int rr = jcomm_write(jr, bf, cc - r);
 	if (rr < 0) {
-	    cprintf("pty_write: error on bipipe write: %s\n", e2s(rr));
+	    cprintf("pty_write: error on jcomm write: %s\n", e2s(rr));
 	    __set_errno(EIO);
 	    return -1;
 	}
@@ -328,19 +339,25 @@ pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static ssize_t
 pty_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    return (*devbipipe.dev_read)(fd, buf, count, offset);
+    /* XXX using fd->fd_ptm.ptm_jc in pty func! */    
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_ptm.ptm_jc);
+    return jcomm_read(jr, buf, count);
 }
 
 static int
 pty_probe(struct Fd *fd, dev_probe_t probe)
 {
-    return (*devbipipe.dev_probe)(fd, probe);
+    /* XXX using fd->fd_ptm.ptm_jc in pty func! */    
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_ptm.ptm_jc);
+    return jcomm_probe(jr, probe);
 }
 
 static int
 pty_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    return  (*devbipipe.dev_statsync)(fd, probe, wstat);
+    /* XXX using fd->fd_ptm.ptm_jc in pty func! */    
+    struct jcomm_ref jr = JCOMM(PTY_JCOMM_CT, fd->fd_ptm.ptm_jc);
+    return jcomm_multisync(jr, probe, wstat);
 }
 
 static int
@@ -361,6 +378,7 @@ ptm_stat(struct Fd *fd, struct stat64 *buf)
 static int
 pty_shutdown(struct Fd *fd, int how)
 {
+    
     return (*devbipipe.dev_shutdown)(fd, how);
 }
 

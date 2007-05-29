@@ -212,10 +212,13 @@ do_fork()
 		jos_atomic_inc(&fd->fd_ref);
             if (fd->fd_dev_id == devbipipe.dev_id)
                 sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
-	    if (fd->fd_dev_id == devptm.dev_id)
-		sys_segment_addref(fd->fd_ptm.bipipe_seg, top_ct);
+	    if (fd->fd_dev_id == devptm.dev_id) {
+		jcomm_addref(JCOMM(start_env->shared_container, 
+				   fd->fd_ptm.ptm_jc), top_ct);
+	    }		
 	    if (fd->fd_dev_id == devpts.dev_id) {
-		sys_segment_addref(fd->fd_pts.bipipe_seg, top_ct);
+		jcomm_addref(JCOMM(start_env->shared_container, 
+				   fd->fd_pts.pts_jc), top_ct);
 		sys_segment_addref(fd->fd_pts.pty_seg, top_ct);
 	    }
 	}
