@@ -214,12 +214,13 @@ do_fork()
                 sys_segment_addref(fd->fd_bipipe.bipipe_seg, top_ct);
 	    if (fd->fd_dev_id == devptm.dev_id) {
 		jcomm_addref(JCOMM(start_env->shared_container, 
-				   fd->fd_ptm.ptm_jc), top_ct);
+				   fd->fd_pty.pty_jc), top_ct);
+		sys_segment_addref(fd->fd_pty.ptm_slave_seg, top_ct);
 	    }		
 	    if (fd->fd_dev_id == devpts.dev_id) {
 		jcomm_addref(JCOMM(start_env->shared_container, 
-				   fd->fd_pts.pts_jc), top_ct);
-		sys_segment_addref(fd->fd_pts.pty_seg, top_ct);
+				   fd->fd_pty.pty_jc), top_ct);
+		sys_segment_addref(fd->fd_pty.pts_seg, top_ct);
 	    }
 	}
 
