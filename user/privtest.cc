@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <stdio.h>
+#include <inttypes.h>
 }
 
 #include <inc/privstore.hh>
@@ -26,7 +27,7 @@ try
     error_check(h);
     privilege_store ps(h);
 
-    printf("Starting, ps handle %lu\n", h);
+    printf("Starting, ps handle %"PRIu64"\n", h);
     print_label();
 
     for (int i = 0; i < nhandles; i++) {
@@ -34,7 +35,7 @@ try
 	error_check(handles[i]);
 	ps.store_priv(handles[i]);
 
-	printf("Stored %d (%lu)\n", i, handles[i]);
+	printf("Stored %d (%"PRIu64")\n", i, handles[i]);
 	print_label();
 
 	thread_drop_star(handles[i]);
@@ -43,7 +44,7 @@ try
     for (int i = 0; i < nhandles; i++) {
 	ps.fetch_priv(handles[i]);
 
-	printf("Fetched %d (%lu)\n", i, handles[i]);
+	printf("Fetched %d (%"PRIu64")\n", i, handles[i]);
 	print_label();
 
 	thread_drop_star(handles[i]);
