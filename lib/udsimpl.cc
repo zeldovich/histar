@@ -238,14 +238,14 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_uds.uds_type = fd->fd_uds.uds_type;
     nfd->fd_uds.uds_prot = fd->fd_uds.uds_prot;
     
-    nfd->fd_uds.uds_connect = 1;
     r = jcomm_addref(jr, UDS_JCOMM_CT);
-    memcpy(&nfd->fd_uds.uds_jc, &jr.jc, sizeof(nfd->fd_uds.uds_jc));
     if (r < 0) {
 	cprintf("uds_accept: unable to addref jcomm: %s\n", e2s(r));
 	jos_fd_close(nfd);
 	return errno_val(EINVAL);
     }
+    nfd->fd_uds.uds_connect = 1;
+    memcpy(&nfd->fd_uds.uds_jc, &jr.jc, sizeof(nfd->fd_uds.uds_jc));
     fd_set_extra_handles(fd, grant, taint);
     
     return fd2num(nfd);
@@ -258,6 +258,8 @@ uds_read_gate(struct Fd *fd, const struct sockaddr *addr, cobj_ref *gate)
     struct fs_inode ino;
     char *pn = (char *)addr->sa_data;
     
+    cprintf("uds_read_gate: %s\n", pn);
+
     r = fs_namei(pn, &ino);
     if (r < 0)
 	return errno_val(ENOENT);
@@ -306,7 +308,12 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a->grant = grant;
     a->type = fd->fd_uds.uds_type;
     struct jcomm_ref jr;
-    r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), 0, 
+    uint16_t mode = 0;
+    
+    if (fd->fd_uds.uds_type == SOCK_DGRAM)
+	mode |= JCOMM_PACKET;
+    
+    r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), mode, 
 		    &jr, &a->jr);
     fd->fd_uds.uds_jc = jr.jc;
     
