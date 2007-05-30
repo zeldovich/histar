@@ -61,6 +61,7 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 	errno = ENOMEM;
 	return -1;        
     }
+    sys_obj_set_fixedquota(slave_pty_seg);
     memset(ps, 0, sizeof(*ps));
     ps->master_open = 1;
 
