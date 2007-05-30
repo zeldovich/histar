@@ -28,6 +28,7 @@ struct uds_gate_args {
     struct jcomm_ref jr;
     uint64_t taint;
     uint64_t grant;
+    int type;
     
     int ret;
 };
@@ -52,8 +53,8 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     uds_gate_args *a = (uds_gate_args *)parm->param_buf;
     struct uds_slot *slot = 0;
     
-    if (!fd->fd_uds.uds_listen) {
-	a->ret = -1;
+    if (!fd->fd_uds.uds_listen || fd->fd_uds.uds_type != a->type) {
+	a->ret = ECONNREFUSED;
 	gr->ret(0, 0, 0);
     }
     
@@ -66,7 +67,7 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
     }
 
     if (slot == 0) {
-	a->ret = -1;
+	a->ret = ETIMEDOUT;
 	jthread_mutex_unlock(&fd->fd_uds.uds_mu);
 	gr->ret(0, 0, 0);
     }
@@ -105,9 +106,11 @@ uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 int
 uds_socket(int domain, int type, int protocol)
 {
-    if (type != SOCK_STREAM)
+    if (type != SOCK_STREAM && type != SOCK_DGRAM)
 	return errno_val(ENOSYS);
-
+    if (protocol != 0)
+	return errno_val(ENOSYS);
+    
     struct Fd *fd;
     int r = fd_alloc(&fd, "unix-domain");
     if (r < 0)
@@ -118,6 +121,8 @@ uds_socket(int domain, int type, int protocol)
     fd->fd_omode = O_RDWR;
 
     fd->fd_uds.uds_backlog = max_slots(fd);
+    fd->fd_uds.uds_type = type;
+    fd->fd_uds.uds_prot = protocol;
     return fd2num(fd);
 }
 
@@ -299,6 +304,7 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 
     a->taint = taint;
     a->grant = grant;
+    a->type = fd->fd_uds.uds_type;
     struct jcomm_ref jr;
     r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), 0, 
 		    &jr, &a->jr);
@@ -316,6 +322,12 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     } catch (std::exception &e) {
 	cprintf("uds_gate_connect: error: %s\n", e.what());
 	return errno_val(EINVAL);
+    }
+
+    if (a->ret != 0) {
+	jcomm_unref(jr);
+	memset(&fd->fd_uds.uds_jc, 0, sizeof(fd->fd_uds.uds_jc));
+	return errno_val(a->ret);
     }
 
     fd->fd_uds.uds_connect = 1;
