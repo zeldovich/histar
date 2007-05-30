@@ -256,8 +256,6 @@ uds_read_gate(struct Fd *fd, const struct sockaddr *addr, cobj_ref *gate)
     struct fs_inode ino;
     char *pn = (char *)addr->sa_data;
     
-    cprintf("uds_read_gate: %s\n", pn);
-
     r = fs_namei(pn, &ino);
     if (r < 0)
 	return errno_val(ENOENT);
