@@ -4,6 +4,7 @@ extern "C" {
 #include <inc/jcomm.h>
 #include <inc/multisync.h>
 #include <inc/error.h>
+#include <inc/stdio.h>
 
 #include <malloc.h>
 }
@@ -11,6 +12,45 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 #define JCSEG(jr) (COBJ(jr.container, jr.jc.segment))
+
+static char
+jlink_minwrite(struct jlink *jl)
+{
+    return !(jl->bytes > (sizeof(jl->buf) - PIPE_BUF));
+}
+
+static char
+jlink_fullwrite(struct jlink *jl, uint64_t cnt)
+{
+    return !(cnt > (sizeof(jl->buf) - jl->bytes));
+} 
+
+static uint64_t
+jlink_copyfrom(void *buf, struct jlink *jl, uint64_t cnt)
+{
+    uint64_t bufsize = sizeof(jl->buf);
+    uint64_t idx = jl->read_ptr;
+    
+    uint64_t cc1 = MIN(cnt, bufsize-idx);        // idx to end-of-buffer
+    uint64_t cc2 = (cc1 == cnt) ? 0 : (cnt - cc1);    // wrap-around
+    memcpy(buf,       &jl->buf[idx], cc1);
+    memcpy((char *)buf + cc1, &jl->buf[0],   cc2);
+
+    return (idx + cnt) % bufsize;
+}
+
+static void
+jlink_copyto(struct jlink *jl, const void *buf, uint64_t cnt)
+{
+    uint64_t bufsize = sizeof(jl->buf);
+    uint64_t idx = (jl->read_ptr + jl->bytes) % bufsize;
+
+    uint64_t cc1 = MIN(cnt, bufsize - idx);      // idx to end-of-buffer
+    uint64_t cc2 = (cc1 == cnt) ? 0 : (cnt - cc1);    // wrap-around
+
+    memcpy(&jl->buf[idx], buf,       cc1);
+    memcpy(&jl->buf[0],   (char *)buf + cc1, cc2);
+}
 
 static int
 jcomm_links_map(struct jcomm_ref jr, struct jlink **links)
@@ -111,18 +151,23 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
         jthread_mutex_lock(&jl->mu);
     }
 
+    if (jr.jc.mode & JCOMM_PACKET) {
+	uint64_t header;
+	uint64_t read_ptr = jlink_copyfrom(&header, jl, sizeof(header));
+	if (header > cnt)
+	    return -E_NO_SPACE;
+	jl->read_ptr = read_ptr;
+	jl->bytes -= sizeof(header);
+	
+	jl->read_ptr = jlink_copyfrom(buf, jl, header);
+	jl->bytes -= header;
+	cc = header;
+    } else {
+	cc = MIN(cnt, jl->bytes);	
+	jl->read_ptr = jlink_copyfrom(buf, jl, cc);
+	jl->bytes -= cc;	
+    }
 
-    uint32_t bufsize = sizeof(jl->buf);
-    uint32_t idx = jl->read_ptr;
-
-    cc = MIN(cnt, jl->bytes);
-    uint32_t cc1 = MIN(cc, bufsize-idx);        // idx to end-of-buffer
-    uint32_t cc2 = (cc1 == cc) ? 0 : (cc - cc1);    // wrap-around
-    memcpy(buf,       &jl->buf[idx], cc1);
-    memcpy((char *)buf + cc1, &jl->buf[0],   cc2);
-
-    jl->read_ptr = (idx + cc) % bufsize;
-    jl->bytes -= cc;
     if (jl->writer_waiting) {
         jl->writer_waiting = 0;
         sys_sync_wakeup(&jl->bytes);
@@ -142,13 +187,20 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[!jr.jc.a];
 
-    uint32_t bufsize = sizeof(jl->buf);
+    uint64_t bufsize = sizeof(jl->buf);
+    if ((jr.jc.mode & JCOMM_PACKET) && cnt > bufsize) {
+	cprintf("jcomm_write: req. write too big: %ld > %ld\n", cnt, bufsize);
+	return -E_INVAL;
+    }
 
-    int64_t cc = -1;
+    uint64_t header = cnt;
+    uint64_t pm = jr.jc.mode & JCOMM_PACKET;
+    
     jthread_mutex_lock(&jl->mu);
-    while (jl->open && jl->bytes > bufsize - PIPE_BUF) {
-        uint64_t b = jl->bytes;
-
+    while ((jl->open) && 
+	   ((pm && !jlink_fullwrite(jl, cnt)) || (!pm && !jlink_minwrite(jl)))) {
+    	uint64_t b = jl->bytes;
+	
 	int nonblock = (jr.jc.mode & JCOMM_NONBLOCK);
 	if (!nonblock)
 	    jl->writer_waiting = 1;
@@ -175,17 +227,20 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 	return -E_EOF;
     }
 
-    uint32_t avail = bufsize - jl->bytes;
-    cc = MIN(cnt, avail);
-    uint32_t idx = (jl->read_ptr + jl->bytes) % bufsize;
+    uint64_t cc;
+    if (pm) {
+	jlink_copyto(jl, &header, sizeof(header));
+	jl->bytes += sizeof(header);
+	jlink_copyto(jl, buf, cnt);
+	jl->bytes += cnt;
+	cc = cnt;
+    } else {
+	uint64_t avail = bufsize - jl->bytes;
+	cc = MIN(cnt, avail);
+	jlink_copyto(jl, buf, cc);
+	jl->bytes += cc;
+    }
 
-    uint32_t cc1 = MIN(cc, bufsize - idx);      // idx to end-of-buffer
-    uint32_t cc2 = (cc1 == cc) ? 0 : (cc - cc1);    // wrap-around
-
-    memcpy(&jl->buf[idx], buf,       cc1);
-    memcpy(&jl->buf[0],   (char *)buf + cc1, cc2);
-
-    jl->bytes += cc;
     if (jl->reader_waiting) {
         jl->reader_waiting = 0;
         sys_sync_wakeup(&jl->bytes);
