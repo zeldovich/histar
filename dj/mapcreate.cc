@@ -7,6 +7,18 @@
 #include <dj/djops.hh>
 #include <dj/djrpcx.h>
 
+histar_mapcreate::histar_mapcreate(djprot *p, catmgr *cm)
+    : counter_(1), p_(p), cm_(cm)
+{
+    uint64_t keybuf[32];
+
+    for (uint32_t i = 0; i < sizeof(keybuf) / sizeof(keybuf[0]); i++)
+	keybuf[i] = sys_pstate_timestamp();
+
+    bf_setkey(&bf_ctx_, &keybuf[0], sizeof(keybuf));
+    memset(&keybuf[0], 0, sizeof(keybuf));
+}
+
 void
 histar_mapcreate::exec(const dj_message &m, const delivery_args &da)
 {
@@ -81,7 +93,7 @@ histar_mapcreate::exec(const dj_message &m, const delivery_args &da)
 		// so just create a new mapping.
 	    } else {
 		gcat.key = p_->pubkey();
-		gcat.id = ++counter_;
+		gcat.id = bf64_encipher(&bf_ctx_, ++counter_);
 
 		// Caller better have granted us the star on gate invocation,
 		// because this is the first mapping for this category.

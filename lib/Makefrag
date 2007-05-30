@@ -70,7 +70,7 @@ LIB_SRCFILES :=	\
 	lib/cyg_prof.c \
 	lib/wrap.cc \
 	lib/hashtable.c \
-	lib/jcomm.c \
+	lib/jcomm.c lib/bf60.c \
 	lib/alarm.c lib/errno.c lib/exec.cc lib/exit.c lib/fd.cc lib/file.c \
 	lib/file_fd.c lib/fork.cc lib/getdnnm.c lib/host.c \
 	lib/ioctl.c lib/memlayout.c lib/misc.c lib/mmap.c lib/pipe.c \
