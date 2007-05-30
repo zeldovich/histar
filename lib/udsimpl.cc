@@ -47,7 +47,7 @@ max_slots(struct Fd *fd)
 }
 
 static void __attribute__((noreturn))
-uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
+uds_stream_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
     struct Fd *fd = (struct Fd *) (uintptr_t) arg;
     uds_gate_args *a = (uds_gate_args *)parm->param_buf;
@@ -174,11 +174,35 @@ uds_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	label l(1);
 	if (start_env->user_grant)
 	    l.set(start_env->user_grant, 0);
-
+	
 	r = fs_mknod(dir_ino, fn, devuds.dev_id, 0, &ino, l.to_ulabel());
 	if (r < 0)
 	    return errno_val(EACCES);
 
+	assert(!fd->fd_uds.uds_gate.object);
+	struct cobj_ref gate;
+	try {
+	    uint64_t ct = start_env->shared_container;
+	    if (fd->fd_uds.uds_type == SOCK_STREAM)
+		gate = gate_create(ct, "uds", 0, 0, 0, uds_stream_gate, (uintptr_t) fd);
+	    else
+		throw error(-1, "XXX");
+	} catch (error &e) {
+	    fs_remove(dir_ino, fn, ino);
+	    return errno_val(EACCES);
+	} catch (std::exception &e) {
+	    cprintf("uds_bind: error: %s\n", e.what());
+	    fs_remove(dir_ino, fn, ino);
+	    return errno_val(EACCES);
+	}
+
+	r = fs_pwrite(ino, &gate, sizeof(gate), 0);
+	if (r < 0) {
+	    sys_obj_unref(gate);
+	    fs_remove(dir_ino, fn, ino);
+	    return errno_val(EACCES);
+	}
+	fd->fd_uds.uds_gate = gate;
     } else if (r == 0)
 	return errno_val(EEXIST);
     else
@@ -194,6 +218,9 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     struct wait_stat ws[fd->fd_uds.uds_backlog];
     struct uds_slot *slots = fd->fd_uds.uds_slots;
     struct uds_slot *os;
+
+    if (fd->fd_uds.uds_type != SOCK_STREAM)
+	return errno_val(EOPNOTSUPP);
     
     assert(fd->fd_uds.uds_listen);
     
@@ -343,33 +370,14 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 int
 uds_listen(struct Fd *fd, int backlog)
 {
-    int r;
+    if (fd->fd_uds.uds_type != SOCK_STREAM)
+	return errno_val(EOPNOTSUPP);
 
     if ((uint32_t)backlog > max_slots(fd))
 	return errno_val(EINVAL);
-    
-    if (!fd->fd_uds.uds_gate.object) {
-	try {
-	    uint64_t ct = start_env->shared_container;
-	    fd->fd_uds.uds_gate = 
-		gate_create(ct, "uds", 0, 0, 0, uds_gate, (uintptr_t) fd);
-	} catch (error &e) {
-	    return errno_val(EACCES);
-	} catch (std::exception &e) {
-	    cprintf("uds_gate_new: error: %s\n", e.what());
-	    return errno_val(EACCES);
-	}
-    }
 
     fd->fd_uds.uds_backlog = backlog;
     fd->fd_uds.uds_listen = 1;
-    
-    r = fs_pwrite(fd->fd_uds.uds_file, &fd->fd_uds.uds_gate, 
-		  sizeof(fd->fd_uds.uds_gate), 0);
-    if (r < 0) {
-	fd->fd_uds.uds_listen = 0;
-	return errno_val(EACCES);
-    }
 
     return 0;
 }
@@ -378,6 +386,9 @@ ssize_t
 uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     int r;
+    if (fd->fd_uds.uds_type != SOCK_STREAM)
+	return errno_val(ENOSYS);
+
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
     
@@ -397,6 +408,9 @@ ssize_t
 uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     int r;
+    if (fd->fd_uds.uds_type != SOCK_STREAM)
+	return errno_val(ENOSYS);
+
     if (!fd->fd_uds.uds_connect)
 	return errno_val(EINVAL);
 
