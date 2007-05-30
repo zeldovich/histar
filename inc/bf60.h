@@ -28,10 +28,10 @@
 
 #include <inc/types.h>
 
-#define BF_N 16
+#define JOS_BF_N 16
 
 struct bf_ctx {
-  uint32_t P[BF_N + 2];
+  uint32_t P[JOS_BF_N + 2];
   uint32_t S[4][256];
 };
 typedef struct bf_ctx bf_ctx;

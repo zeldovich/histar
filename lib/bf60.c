@@ -44,7 +44,7 @@ bf_encipher (const bf_ctx *bfc, uint32_t *xl, uint32_t *xr)
   uint32_t Xr = *xr;
   int i;
 
-  for (i = 0; i < BF_N;) {
+  for (i = 0; i < JOS_BF_N;) {
     Xl ^= bfc->P[i++];
     Xr ^= bf_F (bfc, Xl);
 
@@ -52,8 +52,8 @@ bf_encipher (const bf_ctx *bfc, uint32_t *xl, uint32_t *xr)
     Xl ^= bf_F (bfc, Xr);
   }
 
-  *xr = Xl ^ bfc->P[BF_N];
-  *xl = Xr ^ bfc->P[BF_N + 1];
+  *xr = Xl ^ bfc->P[JOS_BF_N];
+  *xl = Xr ^ bfc->P[JOS_BF_N + 1];
 }
 
 void
@@ -63,7 +63,7 @@ bf_decipher (const bf_ctx *bfc, uint32_t *xl, uint32_t *xr)
   uint32_t Xr = *xr;
   int i;
 
-  for (i = BF_N + 1; i > 1;) {
+  for (i = JOS_BF_N + 1; i > 1;) {
     Xl ^= bfc->P[i--];
     Xr ^= bf_F (bfc, Xl);
 
@@ -82,7 +82,7 @@ bf_initstate (bf_ctx *bfc)
   int i, j;
 
   /* Load up the initialization data */
-  for (i = 0; i < BF_N + 2; ++i)
+  for (i = 0; i < JOS_BF_N + 2; ++i)
     bfc->P[i] = *idp++;
   for (i = 0; i < 4; ++i)
     for (j = 0; j < 256; ++j)
@@ -97,7 +97,7 @@ bf_keysched (bf_ctx *bfc, const void *_key, size_t keybytes)
   uint32_t datal, datar;
 
   if (keybytes > 0)
-    for (i = 0, keypos = 0; i < BF_N + 2; ++i) {
+    for (i = 0, keypos = 0; i < JOS_BF_N + 2; ++i) {
       uint32_t data = 0;
       int k;
       for (k = 0; k < 4; ++k) {
@@ -111,7 +111,7 @@ bf_keysched (bf_ctx *bfc, const void *_key, size_t keybytes)
   datal = 0;
   datar = 0;
 
-  for (i = 0; i < BF_N + 2; i += 2) {
+  for (i = 0; i < JOS_BF_N + 2; i += 2) {
     bf_encipher (bfc, &datal, &datar);
     bfc->P[i] = datal;
     bfc->P[i + 1] = datar;
@@ -141,7 +141,7 @@ bf60_encipher (bf_ctx *bfc, uint64_t val)
   uint32_t Xr = val & 0x3fffffff;
   int i;
 
-  for (i = 0; i < BF_N;) {
+  for (i = 0; i < JOS_BF_N;) {
     Xl ^= bfc->P[i++] & 0x3fffffff;
     Xr ^= bf_F (bfc, Xl) & 0x3fffffff;
 
@@ -149,8 +149,8 @@ bf60_encipher (bf_ctx *bfc, uint64_t val)
     Xl ^= bf_F (bfc, Xr) & 0x3fffffff;
   }
 
-  Xl ^= bfc->P[BF_N] & 0x3fffffff;
-  Xr ^= bfc->P[BF_N + 1] & 0x3fffffff;
+  Xl ^= bfc->P[JOS_BF_N] & 0x3fffffff;
+  Xr ^= bfc->P[JOS_BF_N + 1] & 0x3fffffff;
   return (uint64_t) Xr << 30 | Xl;
 }
 
@@ -161,7 +161,7 @@ bf60_decipher (bf_ctx *bfc, uint64_t val)
   uint32_t Xr = val & 0x3fffffff;
   int i;
 
-  for (i = BF_N + 1; i > 1;) {
+  for (i = JOS_BF_N + 1; i > 1;) {
     Xl ^= bfc->P[i--] & 0x3fffffff;
     Xr ^= bf_F (bfc, Xl) & 0x3fffffff;
 
@@ -181,7 +181,7 @@ bf61_encipher (bf_ctx *bfc, uint64_t val)
   uint32_t Xr = val & 0x7fffffff;
   int i;
 
-  for (i = 0; i < BF_N;) {
+  for (i = 0; i < JOS_BF_N;) {
     Xl ^= bfc->P[i++] & 0x3fffffff;
     Xr ^= bf_F (bfc, Xl) & 0x7fffffff;
 
@@ -189,8 +189,8 @@ bf61_encipher (bf_ctx *bfc, uint64_t val)
     Xl ^= bf_F (bfc, Xr) & 0x3fffffff;
   }
 
-  Xl ^= bfc->P[BF_N] & 0x3fffffff;
-  Xr ^= bfc->P[BF_N + 1] & 0x7fffffff;
+  Xl ^= bfc->P[JOS_BF_N] & 0x3fffffff;
+  Xr ^= bfc->P[JOS_BF_N + 1] & 0x7fffffff;
   return (uint64_t) Xr << 30 | Xl;
 }
 
@@ -201,7 +201,7 @@ bf61_decipher (bf_ctx *bfc, uint64_t val)
   uint32_t Xr = val & 0x3fffffff;
   int i;
 
-  for (i = BF_N + 1; i > 1;) {
+  for (i = JOS_BF_N + 1; i > 1;) {
     Xl ^= bfc->P[i--] & 0x7fffffff;
     Xr ^= bf_F (bfc, Xl) & 0x3fffffff;
 
@@ -220,7 +220,7 @@ bf64_encipher (bf_ctx *bfc, uint64_t val) {
   uint32_t Xr = val;
   int i;
 
-  for (i = 0; i < BF_N;) {
+  for (i = 0; i < JOS_BF_N;) {
     Xl ^= bfc->P[i++];
     Xr ^= bf_F (bfc, Xl);
 
@@ -228,8 +228,8 @@ bf64_encipher (bf_ctx *bfc, uint64_t val) {
     Xl ^= bf_F (bfc, Xr);
   }
 
-  Xl ^= bfc->P[BF_N];
-  Xr ^= bfc->P[BF_N + 1];
+  Xl ^= bfc->P[JOS_BF_N];
+  Xr ^= bfc->P[JOS_BF_N + 1];
   return (uint64_t) Xr << 32 | Xl;
 }
 
@@ -239,7 +239,7 @@ bf64_decipher (bf_ctx *bfc, uint64_t val) {
   uint32_t Xr = val;
   int i;
 
-  for (i = BF_N + 1; i > 1;) {
+  for (i = JOS_BF_N + 1; i > 1;) {
     Xl ^= bfc->P[i--];
     Xr ^= bf_F (bfc, Xl);
 
