@@ -28,9 +28,9 @@ static uint64_t start_prof = 0;
 static _Unwind_Reason_Code
 backtrace_cb(struct _Unwind_Context *ctx, void *arg)
 {
-    uint64_t *addr = (uint64_t *) arg; 
+    uintptr_t *addr = (uintptr_t *) arg; 
     if (*addr) {
-	*addr = (uint64_t) _Unwind_GetIP(ctx);
+	*addr = (uintptr_t) _Unwind_GetIP(ctx);
 	return _URC_END_OF_STACK;
     } else {
 	*addr = 1;
@@ -65,7 +65,7 @@ prof_init(char on)
 void
 prof_func(uint64_t time)
 {
-    uint64_t addr = 0;
+    uintptr_t addr = 0;
     // watch out for inline
     _Unwind_Backtrace(&backtrace_cb, &addr);
     prof_data((void *)addr, time);
@@ -107,13 +107,11 @@ prof_print(char use_cprintf)
     for (uint64_t i = 0; i < sizeof(table) / sizeof(struct entry); i++) {
 	if (table[i].func_addr) {
 	    if (use_cprintf) 
-		cprintf("%3"PRIu64" addr %12"PRIx64" cnt %12"PRIu64" tot%12"PRIu64"\n", 
-			i, (uint64_t )table[i].func_addr, 
-			table[i].cnt, table[i].time);
+		cprintf("%3"PRIu64" addr %12p cnt %12"PRIu64" tot%12"PRIu64"\n", 
+			i, table[i].func_addr, table[i].cnt, table[i].time);
 	    else 
-		printf("%3"PRIu64" addr %12"PRIx64" cnt %12"PRIu64" tot%12"PRIu64"\n", 
-		       i, (uint64_t )table[i].func_addr, 
-		       table[i].cnt, table[i].time);
+		printf("%3"PRIu64" addr %12p cnt %12"PRIu64" tot%12"PRIu64"\n", 
+		       i, table[i].func_addr, table[i].cnt, table[i].time);
 	}
     }
 

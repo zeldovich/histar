@@ -176,7 +176,7 @@ ptrace(enum __ptrace_request request, ...) __THROW
 
     case PTRACE_PEEKTEXT: {
 	args.op = da_peektext;
-	args.addr = (uint64_t)addr;
+	args.addr = (uintptr_t) addr;
 	debug_gate_send(gate_obj, &args);
 	if (args.ret < 0) {
 	    __set_errno(EFAULT);
@@ -189,8 +189,8 @@ ptrace(enum __ptrace_request request, ...) __THROW
 
     case PTRACE_POKETEXT: {
 	args.op = da_poketext;
-	args.addr = (uint64_t)addr;
-	args.word = (uint64_t)data;
+	args.addr = (uintptr_t) addr;
+	args.word = (uintptr_t) data;
 	debug_gate_send(gate_obj, &args);
 	return args.ret;
     }

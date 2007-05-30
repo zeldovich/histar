@@ -48,7 +48,7 @@ max_slots(struct Fd *fd)
 static void __attribute__((noreturn))
 uds_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
-    struct Fd *fd = (struct Fd *) arg;
+    struct Fd *fd = (struct Fd *) (uintptr_t) arg;
     uds_gate_args *a = (uds_gate_args *)parm->param_buf;
     struct uds_slot *slot = 0;
     
@@ -337,7 +337,7 @@ uds_listen(struct Fd *fd, int backlog)
 	try {
 	    uint64_t ct = start_env->shared_container;
 	    fd->fd_uds.uds_gate = 
-		gate_create(ct, "uds", 0, 0, 0, uds_gate, (uint64_t)fd);
+		gate_create(ct, "uds", 0, 0, 0, uds_gate, (uintptr_t) fd);
 	} catch (error &e) {
 	    return errno_val(EACCES);
 	} catch (std::exception &e) {

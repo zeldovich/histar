@@ -55,9 +55,9 @@ debug_gate_map_code(struct cobj_ref as, uint64_t addr,
     error_check(sys_as_get(as, &uas));
     
     for (uint64_t i = 0; i < uas.nent; i++) {
-	uint64_t a = (uint64_t)uas.ents[i].va;
-	uint64_t z = (uint64_t)uas.ents[i].va + 
-	    (uas.ents[i].num_pages * PGSIZE );
+	uint64_t a = (uintptr_t) uas.ents[i].va;
+	uint64_t z = (uintptr_t) uas.ents[i].va + 
+	    (uas.ents[i].num_pages * PGSIZE);
 	if (a <= addr && addr < z) {
 	    uint64_t start = uas.ents[i].start_page * PGSIZE;
 	    uint64_t nbytes = uas.ents[i].num_pages * PGSIZE;
@@ -66,7 +66,7 @@ debug_gate_map_code(struct cobj_ref as, uint64_t addr,
 	    error_check(segment_map(seg, start, SEGMAP_READ|SEGMAP_WRITE, 
 				    (void**)&va, &nbytes, 0));
 	    *code_start = va;
-	    *code_off = (uint64_t)uas.ents[i].va;
+	    *code_off = (uintptr_t) uas.ents[i].va;
 	    return;
 	}
     }
@@ -160,7 +160,7 @@ debug_gate_setfpregs(struct debug_args *da)
 static void
 debug_gate_peektext(struct debug_args *da)
 {
-    uint64_t *word = (uint64_t *)da->addr;
+    uint64_t *word = (uint64_t *) (uintptr_t) da->addr;
 
     struct jos_jmp_buf jb;
     if (jos_setjmp(&jb) == 0) {

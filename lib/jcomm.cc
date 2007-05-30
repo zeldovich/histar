@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/stdio.h>
 
 #include <malloc.h>
+#include <inttypes.h>
 }
 
 #include <inc/scopeguard.hh>
@@ -189,7 +190,8 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 
     uint64_t bufsize = sizeof(jl->buf);
     if ((jr.jc.mode & JCOMM_PACKET) && cnt > bufsize) {
-	cprintf("jcomm_write: req. write too big: %ld > %ld\n", cnt, bufsize);
+	cprintf("jcomm_write: req. write too big: %"PRIu64" > %"PRIu64"\n",
+		cnt, bufsize);
 	return -E_INVAL;
     }
 
@@ -335,12 +337,12 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
     
     if (probe == dev_probe_read) {
 	struct jlink *jl = &links[jr.jc.a];	
-	uint64_t off = (uint64_t)&jl->bytes - (uint64_t)links;
+	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
 	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes);
     } else {
 	struct jlink *jl = &links[!jr.jc.a];
-	uint64_t off = (uint64_t)&jl->bytes - (uint64_t)links;
+	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
 	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes); 
     }

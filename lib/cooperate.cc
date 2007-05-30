@@ -57,20 +57,20 @@ coop_gate_create(uint64_t container,
 		 char arg_freemask[8])
 {
     // First, compute the space needed in the text/data segment.
-    uint64_t data_seg_len = 0;
+    uintptr_t data_seg_len = 0;
 
     // Code length.
-    uint64_t code_len = (cooperate_syscall_end - cooperate_syscall);
+    uintptr_t code_len = (cooperate_syscall_end - cooperate_syscall);
     data_seg_len += code_len;
 
     // System call argument pointers and fixed-value arguments.
-    uint64_t coop_syscall_args_offset = data_seg_len;
+    uintptr_t coop_syscall_args_offset = data_seg_len;
     data_seg_len += sizeof(struct coop_syscall_args);
 
-    uint64_t coop_syscall_argval_offset = data_seg_len;
+    uintptr_t coop_syscall_argval_offset = data_seg_len;
     data_seg_len += sizeof(struct coop_syscall_argval);
 
-    uint64_t coop_brk_offset = data_seg_len;
+    uintptr_t coop_brk_offset = data_seg_len;
 
     // Any labels we need to pass in.
     for (int i = 0; i < 8; i++) {
@@ -181,7 +181,7 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
 	    cobj_ref *status_segp)
 {
     int64_t r;
-    uint64_t code_len = (cooperate_syscall_end - cooperate_syscall);
+    uintptr_t code_len = (cooperate_syscall_end - cooperate_syscall);
 
     struct thread_entry te;
     error_check(sys_gate_get_entry(coop_gate, &te));
@@ -245,7 +245,7 @@ coop_verify(cobj_ref coop_gate, coop_sysarg arg_values[8],
     struct coop_syscall_argval *csa_free =
 	(struct coop_syscall_argval *) &tls_args->param_buf[0];
 
-    uint64_t brk_offset = code_len + sizeof(*csa_ptr) + sizeof(*csa_val);
+    uintptr_t brk_offset = code_len + sizeof(*csa_ptr) + sizeof(*csa_val);
     should_be(brk_offset <= dseg_len);
 
     for (int i = 0; i < 8; i++) {
@@ -363,12 +363,12 @@ coop_gate_invoke(cobj_ref coop_gate,
     error_check(sys_self_get_as(&te.te_as));
     te.te_entry = (void *) &coop_gate_invoke_thread;
     te.te_stack = tls_stack_top;
-    te.te_arg[0] = (uint64_t) &invoke_done;
-    te.te_arg[1] = (uint64_t) &coop_gate;
-    te.te_arg[2] = (uint64_t) cs;
-    te.te_arg[3] = (uint64_t) &new_ds;
-    te.te_arg[4] = (uint64_t) dr;
-    te.te_arg[5] = (uint64_t) &arg_values[0];
+    te.te_arg[0] = (uintptr_t) &invoke_done;
+    te.te_arg[1] = (uintptr_t) &coop_gate;
+    te.te_arg[2] = (uintptr_t) cs;
+    te.te_arg[3] = (uintptr_t) &new_ds;
+    te.te_arg[4] = (uintptr_t) dr;
+    te.te_arg[5] = (uintptr_t) &arg_values[0];
 
     error_check(tid = sys_thread_start(tobj, &te,
 				       cur_label.to_ulabel(),

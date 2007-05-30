@@ -27,7 +27,7 @@ enum { gatesrv_debug = 0 };
 static void __attribute__((noreturn))
 gatesrv_cleanup_tls(uint64_t stackarg, uint64_t thread_ref_ct)
 {
-    void *stack = (void *) stackarg;
+    void *stack = (void *) (uintptr_t) stackarg;
     if (stack) {
 	struct u_segment_mapping usm;
 	int r = segment_lookup(stack, &usm);
@@ -50,8 +50,8 @@ gatesrv_cleanup_tls(uint64_t stackarg, uint64_t thread_ref_ct)
 static void __attribute__((noreturn))
 gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
 {
-    gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
-    void *stack = (void *) stackarg;
+    gatesrv_entry_t fn = (gatesrv_entry_t) (uintptr_t) fnarg;
+    void *stack = (void *) (uintptr_t) stackarg;
 
     // Arguments for gate call passed on the top of the TLS stack.
     gate_call_data *d = &tls_data->tls_gate_args;
@@ -68,7 +68,7 @@ gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
     if (flags & GATESRV_NO_THREAD_ADDREF)
 	thread_halt();
 
-    stack_switch((uint64_t) stack, thread_ref_ct, 0, 0,
+    stack_switch((uintptr_t) stack, thread_ref_ct, 0, 0,
 		 tls_stack_top, (void *) &gatesrv_cleanup_tls);
 }
 
@@ -84,7 +84,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 	flags = targ.te_arg[2];
     }
 
-    gatesrv_entry_t fn = (gatesrv_entry_t) fnarg;
+    gatesrv_entry_t fn = (gatesrv_entry_t) (uintptr_t) fnarg;
     try {
 	// Copy-on-write if we are tainted
 	gate_call_data *gcd = &TLS_DATA->tls_gate_args;
@@ -108,7 +108,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 	    g(sys_obj_unref, COBJ(entry_ct, thread_id()));
 
 	if ((flags & GATESRV_KEEP_TLS_STACK)) {
-	    gatesrv_entry((uint64_t) fn, arg, 0, flags);
+	    gatesrv_entry((uintptr_t) fn, arg, 0, flags);
 	} else {
 	    struct cobj_ref stackobj;
 	    error_check(segment_alloc(entry_ct, PGSIZE, &stackobj,
@@ -125,7 +125,7 @@ gatesrv_entry_tls(uint64_t fnarg, uint64_t arg, uint64_t flags)
 	    g.dismiss();
 	    s.dismiss();
 
-	    stack_switch((uint64_t) fn, arg, (uint64_t) stackbase, flags,
+	    stack_switch((uintptr_t) fn, arg, (uintptr_t) stackbase, flags,
 			 stacktop, (void *) &gatesrv_entry);
 	}
     } catch (std::exception &e) {
@@ -165,7 +165,7 @@ gate_create(gatesrv_descriptor *gd)
     memset(&te, 0, sizeof(te));
     te.te_entry = (void *) &gatesrv_entry_tls;
     te.te_stack = (char *) tls_stack_top - 8;
-    te.te_arg[0] = (uint64_t) gd->func_;
+    te.te_arg[0] = (uintptr_t) gd->func_;
     te.te_arg[1] = gd->arg_;
     te.te_arg[2] = gd->flags_;
     te.te_as = gd->as_;
@@ -241,7 +241,8 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
     }
 
     if (!(flags_ & GATESRV_KEEP_TLS_STACK))
-	stack_switch((uint64_t) this, (uint64_t) tgt_label, (uint64_t) tgt_clear, 0,
+	stack_switch((uintptr_t) this, (uintptr_t) tgt_label,
+		     (uintptr_t) tgt_clear, 0,
 		     tls_stack_top, (void *) &ret_tls_stub);
     else
 	ret_tls_stub((uintptr_t) this,
@@ -252,9 +253,9 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 void
 gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 {
-    gatesrv_return *r = (gatesrv_return *) a0;
-    label *tgt_label = (label *) a1;
-    label *tgt_clear = (label *) a2;
+    gatesrv_return *r = (gatesrv_return *) (uintptr_t) a0;
+    label *tgt_label = (label *) (uintptr_t) a1;
+    label *tgt_clear = (label *) (uintptr_t) a2;
 
     try {
 	if (gatesrv_debug)

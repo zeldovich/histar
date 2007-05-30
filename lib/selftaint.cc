@@ -24,9 +24,9 @@ static void __attribute__((noreturn))
 taint_self_tls(uint64_t rparg, uint64_t larg,
 	       uint64_t taint_ct, uint64_t backarg)
 {
-    int *rp = (int *) rparg;
-    label *l = (label *) larg;
-    struct jos_jmp_buf *back = (struct jos_jmp_buf *) backarg;
+    int *rp = (int *) (uintptr_t) rparg;
+    label *l = (label *) (uintptr_t) larg;
+    struct jos_jmp_buf *back = (struct jos_jmp_buf *) (uintptr_t) backarg;
 
     int r;
     r = sys_self_set_label(l->to_ulabel());
@@ -68,8 +68,8 @@ taint_self(label *taint)
     struct jos_jmp_buf back;
     int r;
     if (jos_setjmp(&back) == 0)
-	stack_switch((uint64_t) &r, (uint64_t) &tl,
-		     taint_ct, (uint64_t) &back,
+	stack_switch((uintptr_t) &r, (uintptr_t) &tl,
+		     taint_ct, (uintptr_t) &back,
 		     tls_stack_top, (void *) &taint_self_tls);
 
     if (r < 0)
