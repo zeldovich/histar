@@ -193,8 +193,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct wait_stat ws[fd->fd_uds.uds_backlog];
     struct uds_slot *slots = fd->fd_uds.uds_slots;
-    struct jcomm_ref jr;
-    uint64_t grant, taint;
+    struct uds_slot *os;
     
     assert(fd->fd_uds.uds_listen);
     
@@ -208,18 +207,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 	jthread_mutex_lock(&fd->fd_uds.uds_mu);
 	for (uint32_t i = 0; i < fd->fd_uds.uds_backlog; i++)
 	    if (slots[i].op == 1) {
-		saved_privilege sp(slots[i].taint, slots[i].grant, slots[i].priv_gt);
-		sp.set_gc(true);
-		sp.acquire();
-		
-		taint = slots[i].taint;
-		grant = slots[i].grant; 
-		
-		memcpy(&jr, &slots[i].jr, sizeof(jr));
-		/* XXX shouldn't do this until sure we won't fail */
-		slots[i].op = 2;
-		sys_sync_wakeup(&slots[i].op);
-		jthread_mutex_unlock(&fd->fd_uds.uds_mu);
+		os = &slots[i];
 		goto out;
 	    }
 	
@@ -228,6 +216,13 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
  out:
+    scope_guard<void, jthread_mutex_t *> 
+	unlock(jthread_mutex_unlock, &fd->fd_uds.uds_mu);
+
+    saved_privilege sp(os->taint, os->grant, os->priv_gt);
+    sp.set_gc(true);
+    sp.acquire();
+            
     struct Fd *nfd;
     int r = fd_alloc(&nfd, "unix-domain");
     if (r < 0)
@@ -238,16 +233,19 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_uds.uds_type = fd->fd_uds.uds_type;
     nfd->fd_uds.uds_prot = fd->fd_uds.uds_prot;
     
-    r = jcomm_addref(jr, UDS_JCOMM_CT);
+    r = jcomm_addref(os->jr, UDS_JCOMM_CT);
     if (r < 0) {
 	cprintf("uds_accept: unable to addref jcomm: %s\n", e2s(r));
 	jos_fd_close(nfd);
 	return errno_val(EINVAL);
     }
     nfd->fd_uds.uds_connect = 1;
-    memcpy(&nfd->fd_uds.uds_jc, &jr.jc, sizeof(nfd->fd_uds.uds_jc));
-    fd_set_extra_handles(fd, grant, taint);
+    memcpy(&nfd->fd_uds.uds_jc, &os->jr.jc, sizeof(nfd->fd_uds.uds_jc));
+    fd_set_extra_handles(fd, os->grant, os->taint);
     
+    os->op = 2;
+    sys_sync_wakeup(&os->op);
+
     return fd2num(nfd);
 }
 
