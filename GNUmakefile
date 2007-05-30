@@ -54,7 +54,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
 # -Weffc++ -Wswitch-enum
 
-OPTFLAG	 := -O3
+OPTFLAG	 := -O3 -fno-omit-frame-pointer
 ifeq ($(ARCH),amd64)
 OPTFLAG  += -march=athlon64
 endif
