@@ -53,6 +53,132 @@ jlink_copyto(struct jlink *jl, const void *buf, uint64_t cnt)
     memcpy(&jl->buf[0],   (char *)buf + cc1, cc2);
 }
 
+int64_t
+jlink_read(struct jlink *jl, void *buf, uint64_t cnt, int16_t mode)
+{
+    int r;
+    int64_t cc = -1;
+    jthread_mutex_lock(&jl->mu);
+    while (jl->bytes == 0) {
+        int nonblock = (mode & JCOMM_NONBLOCK);
+	if (!nonblock)
+	    jl->reader_waiting = 1;
+
+        char opn = jl->open;
+        jthread_mutex_unlock(&jl->mu);
+
+        if (!opn)
+	    return 0;
+    
+        if (nonblock)
+	    return -E_AGAIN;
+
+	struct wait_stat wstat[2];
+	memset(wstat, 0, sizeof(wstat));
+	WS_SETADDR(&wstat[0], &jl->bytes);
+	WS_SETVAL(&wstat[0], 0);
+	WS_SETADDR(&wstat[1], &jl->open);
+	WS_SETVAL(&wstat[1], 1);
+	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
+	    return r;
+
+        jthread_mutex_lock(&jl->mu);
+    }
+
+    if (mode & JCOMM_PACKET) {
+	uint64_t header;
+	uint64_t read_ptr = jlink_copyfrom(&header, jl, sizeof(header));
+	if (header > cnt)
+	    return -E_NO_SPACE;
+	jl->read_ptr = read_ptr;
+	jl->bytes -= sizeof(header);
+	
+	jl->read_ptr = jlink_copyfrom(buf, jl, header);
+	jl->bytes -= header;
+	cc = header;
+    } else {
+	cc = MIN(cnt, jl->bytes);	
+	jl->read_ptr = jlink_copyfrom(buf, jl, cc);
+	jl->bytes -= cc;	
+    }
+
+    if (jl->writer_waiting) {
+        jl->writer_waiting = 0;
+        sys_sync_wakeup(&jl->bytes);
+    }
+
+    jthread_mutex_unlock(&jl->mu);
+    return cc;
+}
+
+int64_t
+jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
+{
+    int r;
+    uint64_t header = cnt;
+    uint64_t pm = mode & JCOMM_PACKET;
+    uint64_t bufsize = sizeof(jl->buf);
+
+    if (pm && cnt > bufsize) {
+	cprintf("jcomm_write: req. write too big: %"PRIu64" > %"PRIu64"\n",
+		cnt, bufsize);
+	return -E_INVAL;
+    }
+    
+    jthread_mutex_lock(&jl->mu);
+    while ((jl->open) && 
+	   ((pm && !jlink_fullwrite(jl, cnt)) || (!pm && !jlink_minwrite(jl)))) {
+    	uint64_t b = jl->bytes;
+	
+	int nonblock = (mode & JCOMM_NONBLOCK);
+	if (!nonblock)
+	    jl->writer_waiting = 1;
+
+        jthread_mutex_unlock(&jl->mu);
+
+	if (nonblock)
+	    return -E_AGAIN;
+
+	struct wait_stat wstat[2];
+	memset(wstat, 0, sizeof(wstat));
+	WS_SETADDR(&wstat[0], &jl->bytes);
+	WS_SETVAL(&wstat[0], b);
+	WS_SETADDR(&wstat[1], &jl->open);
+	WS_SETVAL(&wstat[1], 1);
+	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
+	    return r;
+	
+        jthread_mutex_lock(&jl->mu);
+    }
+
+    if (!jl->open) {
+        jthread_mutex_unlock(&jl->mu);
+	return -E_EOF;
+    }
+
+    uint64_t cc;
+    if (pm) {
+	jlink_copyto(jl, &header, sizeof(header));
+	jl->bytes += sizeof(header);
+	jlink_copyto(jl, buf, cnt);
+	jl->bytes += cnt;
+	cc = cnt;
+    } else {
+	uint64_t avail = bufsize - jl->bytes;
+	cc = MIN(cnt, avail);
+	jlink_copyto(jl, buf, cc);
+	jl->bytes += cc;
+    }
+
+    if (jl->reader_waiting) {
+        jl->reader_waiting = 0;
+        sys_sync_wakeup(&jl->bytes);
+    }
+    
+    jthread_mutex_unlock(&jl->mu);
+    return cc;
+}
+
 static int
 jcomm_links_map(struct jcomm_ref jr, struct jlink **links)
 {
@@ -123,59 +249,8 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[jr.jc.a];
-    
-    int64_t cc = -1;
-    jthread_mutex_lock(&jl->mu);
-    while (jl->bytes == 0) {
-        int nonblock = (jr.jc.mode & JCOMM_NONBLOCK);
-	if (!nonblock)
-	    jl->reader_waiting = 1;
 
-        char opn = jl->open;
-        jthread_mutex_unlock(&jl->mu);
-
-        if (!opn)
-	    return 0;
-    
-        if (nonblock)
-	    return -E_AGAIN;
-
-	struct wait_stat wstat[2];
-	memset(wstat, 0, sizeof(wstat));
-	WS_SETADDR(&wstat[0], &jl->bytes);
-	WS_SETVAL(&wstat[0], 0);
-	WS_SETADDR(&wstat[1], &jl->open);
-	WS_SETVAL(&wstat[1], 1);
-	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
-	    return r;
-
-        jthread_mutex_lock(&jl->mu);
-    }
-
-    if (jr.jc.mode & JCOMM_PACKET) {
-	uint64_t header;
-	uint64_t read_ptr = jlink_copyfrom(&header, jl, sizeof(header));
-	if (header > cnt)
-	    return -E_NO_SPACE;
-	jl->read_ptr = read_ptr;
-	jl->bytes -= sizeof(header);
-	
-	jl->read_ptr = jlink_copyfrom(buf, jl, header);
-	jl->bytes -= header;
-	cc = header;
-    } else {
-	cc = MIN(cnt, jl->bytes);	
-	jl->read_ptr = jlink_copyfrom(buf, jl, cc);
-	jl->bytes -= cc;	
-    }
-
-    if (jl->writer_waiting) {
-        jl->writer_waiting = 0;
-        sys_sync_wakeup(&jl->bytes);
-    }
-
-    jthread_mutex_unlock(&jl->mu);
-    return cc;
+    return jlink_read(jl, buf, cnt, jr.jc.mode);
 }
 
 int64_t
@@ -188,68 +263,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[!jr.jc.a];
 
-    uint64_t bufsize = sizeof(jl->buf);
-    if ((jr.jc.mode & JCOMM_PACKET) && cnt > bufsize) {
-	cprintf("jcomm_write: req. write too big: %"PRIu64" > %"PRIu64"\n",
-		cnt, bufsize);
-	return -E_INVAL;
-    }
-
-    uint64_t header = cnt;
-    uint64_t pm = jr.jc.mode & JCOMM_PACKET;
-    
-    jthread_mutex_lock(&jl->mu);
-    while ((jl->open) && 
-	   ((pm && !jlink_fullwrite(jl, cnt)) || (!pm && !jlink_minwrite(jl)))) {
-    	uint64_t b = jl->bytes;
-	
-	int nonblock = (jr.jc.mode & JCOMM_NONBLOCK);
-	if (!nonblock)
-	    jl->writer_waiting = 1;
-
-        jthread_mutex_unlock(&jl->mu);
-
-	if (nonblock)
-	    return -E_AGAIN;
-
-	struct wait_stat wstat[2];
-	memset(wstat, 0, sizeof(wstat));
-	WS_SETADDR(&wstat[0], &jl->bytes);
-	WS_SETVAL(&wstat[0], b);
-	WS_SETADDR(&wstat[1], &jl->open);
-	WS_SETVAL(&wstat[1], 1);
-	if ((r = multisync_wait(wstat, 2, UINT64(~0))) < 0)
-	    return r;
-	
-        jthread_mutex_lock(&jl->mu);
-    }
-
-    if (!jl->open) {
-        jthread_mutex_unlock(&jl->mu);
-	return -E_EOF;
-    }
-
-    uint64_t cc;
-    if (pm) {
-	jlink_copyto(jl, &header, sizeof(header));
-	jl->bytes += sizeof(header);
-	jlink_copyto(jl, buf, cnt);
-	jl->bytes += cnt;
-	cc = cnt;
-    } else {
-	uint64_t avail = bufsize - jl->bytes;
-	cc = MIN(cnt, avail);
-	jlink_copyto(jl, buf, cc);
-	jl->bytes += cc;
-    }
-
-    if (jl->reader_waiting) {
-        jl->reader_waiting = 0;
-        sys_sync_wakeup(&jl->bytes);
-    }
-    
-    jthread_mutex_unlock(&jl->mu);
-    return cc;    
+    return jlink_write(jl, buf, cnt, jr.jc.mode);
 }
 
 int
