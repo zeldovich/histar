@@ -15,9 +15,6 @@ Kernel bugs:
   - freelist/dstack: free_later list using a btree
   - implement log.disk_map using a btree
   - larger FRM, stick FRM contents in a separate disk block
-* when trapping self, the syscall return value should go into utrapframe.
-  i.e., need to commit to syscall completion before delivering utrap.
-  otherwise, when resuming from trap, syscall return value is garbage.
 
 Security:
 

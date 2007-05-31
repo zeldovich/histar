@@ -16,7 +16,7 @@
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
-static int trap_thread_jumped;
+static int trap_thread_syscall_writeback;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -125,11 +125,12 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL:
-	trap_thread_jumped = 0;
+	trap_thread_syscall_writeback = 1;
 	r = kern_syscall(tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx,
 			 tf->tf_r8,  tf->tf_r9,  tf->tf_r10, tf->tf_r11);
 
-	if (!trap_thread_jumped) {
+	if (trap_thread_syscall_writeback) {
+	    trap_thread_syscall_writeback = 0;
 	    /*
 	     * If the thread didn't get vectored elsewhere,
 	     * write the result into the thread's registers.
@@ -139,6 +140,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 		t->th_tf.tf_rip -= 2;
 	    else
 		t->th_tf.tf_rax = r;
+	} else {
+	    assert(r == 0);
 	}
 	break;
 
@@ -296,6 +299,11 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 	return r;
     }
 
+    if (t == trap_thread) {
+	trap_thread_syscall_writeback = 0;
+	t_utf.tf_rax = 0;
+    }
+
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_rsp = (uintptr_t) utf;
     t->th_tf.tf_rip = t->th_as->as_utrap_entry;
@@ -315,7 +323,7 @@ void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
     if (t == trap_thread)
-	trap_thread_jumped = 1;
+	trap_thread_syscall_writeback = 0;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_rflags = FL_IF;

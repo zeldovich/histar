@@ -16,7 +16,7 @@
 
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
-static int trap_thread_jumped;
+static int trap_thread_syscall_writeback;
 
 static struct {
     char trap_entry_code[16] __attribute__ ((aligned (16)));
@@ -118,7 +118,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 
     switch (trapno) {
     case T_SYSCALL: {
-	trap_thread_jumped = 0;
+	trap_thread_syscall_writeback = 1;
 
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
@@ -127,7 +127,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
 
-	if (!trap_thread_jumped) {
+	if (trap_thread_syscall_writeback) {
+	    trap_thread_syscall_writeback = 0;
 	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	    if (r == -E_RESTART) {
 		t->th_tf.tf_eip -= 2;
@@ -135,6 +136,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 		t->th_tf.tf_eax = ((uint64_t) r) & 0xffffffff;
 		t->th_tf.tf_edx = ((uint64_t) r) >> 32;
 	    }
+	} else {
+	    assert(r == 0);
 	}
 	break;
     }
@@ -284,6 +287,12 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 	return r;
     }
 
+    if (t == trap_thread) {
+	trap_thread_syscall_writeback = 0;
+	t_utf.utf_eax = 0;
+	t_utf.utf_edx = 0;
+    }
+
     memcpy(utf, &t_utf, sizeof(*utf));
     t->th_tf.tf_esp = (uintptr_t) utf;
     t->th_tf.tf_eip = t->th_as->as_utrap_entry;
@@ -296,7 +305,7 @@ void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
     if (t == trap_thread)
-	trap_thread_jumped = 1;
+	trap_thread_syscall_writeback = 0;
 
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_eflags = FL_IF;

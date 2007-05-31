@@ -117,3 +117,11 @@ from a linked list, and panics due to a null pointer deref.
 In a few places (pgdir_walk, kobject_borrow_parent_quota) we failed to
 pass up -E_RESTART, causing errors instead of suspending the thread.
 
+***
+
+When thread sends a utrap to self, the syscall return value should go
+into the UTrapframe.  However, the system call return value was either
+being discarded, or written into the live register (not in UTrapframe).
+As a result, resuming from the trap caused garbage (some previous value)
+to be loaded into the syscall return value register.
+
