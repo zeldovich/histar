@@ -256,14 +256,18 @@ gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
     gatesrv_return *r = (gatesrv_return *) (uintptr_t) a0;
     label *tgt_label = (label *) (uintptr_t) a1;
     label *tgt_clear = (label *) (uintptr_t) a2;
+    
+    /* r might live on stack_, which gets unref+unmaped */
+    gatesrv_return tlsr(r->rgate_, r->thread_ct_, r->gate_tref_ct_, 
+			r->stack_, r->flags_);
 
     try {
 	if (gatesrv_debug)
 	    cprintf("[%"PRIu64"] gatesrv_return::ret_tls_stub\n", thread_id());
-	r->ret_tls(tgt_label, tgt_clear);
+	tlsr.ret_tls(tgt_label, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
-	if (!(r->flags_ & GATESRV_FORK_MU_UNLOCKED))
+	if (!(tlsr.flags_ & GATESRV_FORK_MU_UNLOCKED))
 	    jthread_mutex_unlock(&fork_mu);
 	thread_halt();
     }
