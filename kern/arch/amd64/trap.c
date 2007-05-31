@@ -301,7 +301,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 
     if (t == trap_thread) {
 	trap_thread_syscall_writeback = 0;
-	t_utf.tf_rax = 0;
+	t_utf.utf_rax = 0;
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));
