@@ -120,7 +120,7 @@ jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
     uint64_t bufsize = sizeof(jl->buf);
 
     if (pm && cnt > bufsize) {
-	cprintf("jcomm_write: req. write too big: %"PRIu64" > %"PRIu64"\n",
+	cprintf("jlink_write: req. write too big: %"PRIu64" > %"PRIu64"\n",
 		cnt, bufsize);
 	return -E_INVAL;
     }
