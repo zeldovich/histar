@@ -133,22 +133,27 @@ struct Fd
 	} fd_tun;
 
 	struct {
-	    struct fs_inode uds_file;
 	    int uds_type;
-	    int uds_prot;
-
-	    /* connected state */
-	    char uds_connect;
-	    struct jcomm uds_jc;
-	    
-	    /* listener state */
-	    uint32_t uds_backlog;
-	    char uds_listen;
-
 	    struct cobj_ref uds_gate;
-	    struct uds_slot uds_slots[16];
-	    jthread_mutex_t uds_mu;
-
+	    
+	    union {
+		struct {
+		    /* connected state */
+		    char connect;
+		    struct jcomm jc;
+		    
+		    /* listener state */
+		    uint16_t backlog;
+		    char listen;
+		    
+		    struct uds_slot slots[16];
+		    jthread_mutex_t mu;
+		} s; /* stream */
+		struct {
+		    struct cobj_ref jl;
+		    char dst[128];
+		} d; /* dgram */
+	    };
 	} fd_uds;
 
 	struct {
