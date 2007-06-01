@@ -187,8 +187,12 @@ trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
     }
 
     uint64_t start = read_tsc();
-    prof_user(start - trap_user_iret_tsc);
-    prof_thread(trap_thread, start - trap_user_iret_tsc);
+    if (trap_thread) {
+	prof_user(0, start - trap_user_iret_tsc);
+	prof_thread(trap_thread, start - trap_user_iret_tsc);
+    } else {
+	prof_user(1, start - trap_user_iret_tsc);
+    }
 
     trap_dispatch(trapno, tf);
     prof_trap(trapno, read_tsc() - start);
@@ -262,6 +266,7 @@ void
 thread_arch_idle(void)
 {
     trap_thread_set(0);
+    trap_user_iret_tsc = read_tsc();
     thread_arch_idle_asm();
 }
 

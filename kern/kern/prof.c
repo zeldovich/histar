@@ -23,7 +23,7 @@ struct tentry {
 
 struct entry sysc_table[NSYSCALLS];
 struct entry trap_table[NTRAPS];
-struct entry user_table[1];
+struct entry user_table[2];
 struct tentry thread_table[NTHREADS];
 
 static struct periodic_task prof_timer;
@@ -125,13 +125,16 @@ prof_trap(uint64_t num, uint64_t time)
 }
 
 void
-prof_user(uint64_t time)
+prof_user(int idle, uint64_t time)
 {
     if (!prof_enable)
 	return;
 
-    user_table[0].count++;
-    user_table[0].time += time;
+    if (idle != 0 && idle != 1)
+	return;
+
+    user_table[idle].count++;
+    user_table[idle].time += time;
 }
 
 void
@@ -218,7 +221,8 @@ prof_print(void)
 	print_entry(&trap_table[0], i, "trap");
 
     cprintf("prof_print: user\n");
-    print_entry(&user_table[0], 0, "user");
+    for (int i = 0; i < 2; i++)
+	print_entry(&user_table[0], i, "user");
 
     if (prof_thread_enable) {
 	cprintf("prof_print: threads\n");

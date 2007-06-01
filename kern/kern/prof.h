@@ -8,7 +8,7 @@
 void prof_init(void);
 void prof_syscall(uint64_t num, uint64_t time);
 void prof_trap(uint64_t num, uint64_t time);
-void prof_user(uint64_t time);
+void prof_user(int idle, uint64_t time);
 void prof_thread(const struct Thread *th, uint64_t time);
 void prof_print(void);
 void prof_toggle(void);
