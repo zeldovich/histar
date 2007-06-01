@@ -151,6 +151,7 @@ struct Fd
 		    jthread_mutex_t mu;
 		} s; /* stream */
 		struct {
+		    char bound;
 		    struct cobj_ref jl;
 		    char dst[128];
 		} d; /* dgram */

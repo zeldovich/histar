@@ -21,8 +21,9 @@ extern "C" {
 #include <inc/privstore.hh>
 #include <inc/labelutil.hh>
 
-#define UDS_JCOMM_CT start_env->shared_container
-#define UDS_JCOMM(fd) JCOMM(UDS_JCOMM_CT, fd->fd_uds.s.jc)
+#define UDS_CT start_env->shared_container
+#define UDS_JCOMM(fd) JCOMM(UDS_CT, fd->fd_uds.s.jc)
+#define UDS_JLINK(fd) COBJ(UDS_CT, fd->fd_uds.d.jl.object)
 
 struct uds_stream_args {
     int type;
@@ -80,7 +81,7 @@ uds_dgram_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 
 	struct jlink *jl = 0;
 	uint64_t sz = sizeof(struct jlink);
-	r = segment_map(fd->fd_uds.d.jl, 0, SEGMAP_READ | SEGMAP_WRITE, 
+	r = segment_map(UDS_JLINK(fd), 0, SEGMAP_READ | SEGMAP_WRITE, 
 			    (void **)&jl, &sz, 0);
 	error_check(r);
 	scope_guard2<int, void *, int> unmap2(segment_unmap_delayed, jl, 1);
@@ -169,9 +170,28 @@ uds_socket(int domain, int type, int protocol)
     
     fd->fd_dev_id = devuds.dev_id;
     fd->fd_omode = O_RDWR;
-
-    fd->fd_uds.s.backlog = max_slots(fd);
+    
     fd->fd_uds.uds_type = type;
+    
+    if (type == SOCK_DGRAM) {
+	uint64_t taint = handle_alloc();
+	uint64_t grant = handle_alloc();
+
+	label l(1);
+	l.set(taint, 3);
+	l.set(grant, 0);
+	fd_set_extra_handles(fd, grant, taint);
+
+	struct jlink *jl = 0;
+	int r = segment_alloc(UDS_CT, sizeof(struct jlink), &fd->fd_uds.d.jl,
+			      (void **)&jl, l.to_ulabel(), "jlink-seg");
+	error_check(r);
+	scope_guard<int, void *> unmap(segment_unmap, jl);
+	memset(jl, 0, sizeof(*jl));
+	jl->open = 1;
+    } else {
+	fd->fd_uds.s.backlog = max_slots(fd);
+    }
     return fd2num(fd);
 }
 
@@ -187,8 +207,7 @@ uds_close(struct Fd *fd)
     }
     
     if (fd->fd_uds.uds_type == SOCK_DGRAM) {
-	if (fd->fd_uds.d.jl.object)
-	    sys_obj_unref(fd->fd_uds.d.jl);
+	sys_obj_unref(UDS_JLINK(fd));
     } else {
         if (fd->fd_uds.s.connect) {
 	    struct jcomm_ref jr = UDS_JCOMM(fd);
@@ -237,14 +256,8 @@ uds_bind(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
 	    if (fd->fd_uds.uds_type == SOCK_STREAM)
 		gate = gate_create(ct, "uds", 0, 0, 0, uds_stream_gate, (uintptr_t) fd);
 	    else {
-		struct jlink *jl = 0;
-		int r = segment_alloc(ct, sizeof(struct jlink), &fd->fd_uds.d.jl,
-				      (void **)&jl, 0, "jlink-seg");
-		error_check(r);
-		scope_guard<int, void *> unmap(segment_unmap, jl);
-		memset(jl, 0, sizeof(*jl));
-		jl->open = 1;
 		gate = gate_create(ct, "uds", 0, 0, 0, uds_dgram_gate, (uintptr_t) fd);
+		fd->fd_uds.d.bound = 1;
 	    }
 	} catch (error &e) {
 	    fs_remove(dir_ino, fn, ino);
@@ -317,7 +330,7 @@ uds_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_omode = O_RDWR;
     nfd->fd_uds.uds_type = fd->fd_uds.uds_type;
     
-    r = jcomm_addref(os->jr, UDS_JCOMM_CT);
+    r = jcomm_addref(os->jr, UDS_CT);
     if (r < 0) {
 	cprintf("uds_accept: unable to addref jcomm: %s\n", e2s(r));
 	jos_fd_close(nfd);
@@ -398,7 +411,7 @@ uds_connect(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen)
     a->type = fd->fd_uds.uds_type;
     struct jcomm_ref jr;
             
-    r = jcomm_alloc(UDS_JCOMM_CT, l.to_ulabel(), 0, 
+    r = jcomm_alloc(UDS_CT, l.to_ulabel(), 0, 
 		    &jr, &a->jr);
     fd->fd_uds.s.jc = jr.jc;
     
@@ -513,12 +526,12 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
     int r;
     if (fd->fd_uds.uds_type == SOCK_DGRAM) {
-	if (fd->fd_uds.d.jl.object == 0)
+	if (fd->fd_uds.d.bound == 0)
 	    return errno_val(EBADF);
 
 	struct jlink *jl = 0;
 	uint64_t sz = sizeof(struct jlink);
-	r = segment_map(fd->fd_uds.d.jl, 0, SEGMAP_READ | SEGMAP_WRITE, 
+	r = segment_map(UDS_JLINK(fd), 0, SEGMAP_READ | SEGMAP_WRITE, 
 			(void **)&jl, &sz, 0);
 
 	if (r < 0)
@@ -549,12 +562,9 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 int
 uds_addref(struct Fd *fd, uint64_t ct)
 {
-    
     int r;
     if (fd->fd_uds.uds_type == SOCK_DGRAM) {
-	r = 0;
-	if (fd->fd_uds.d.jl.object)
-	    r = sys_segment_addref(fd->fd_uds.d.jl, ct);
+	r = sys_segment_addref(UDS_JLINK(fd), ct);
 	if (r < 0)
 	    cprintf("uds_addref: sys_segment_addref error: %s\n", e2s(r));
     } else {
@@ -570,7 +580,7 @@ uds_unref(struct Fd *fd)
 {
     int r;
     if (fd->fd_uds.uds_type == SOCK_DGRAM) {
-	r = sys_obj_unref(fd->fd_uds.d.jl);
+	r = sys_obj_unref(UDS_JLINK(fd));
 	if (r < 0)
 	    cprintf("uds_unref: sys_obj_unref error: %s\n", e2s(r));
     } else {
