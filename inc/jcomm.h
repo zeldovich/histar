@@ -6,6 +6,7 @@
 #include <inc/label.h>
 
 enum { jlink_bufsz = 4000 };
+enum { jcomm_chan0 = 0, jcomm_chan1 = 1 };
 
 struct jlink {
     char buf[jlink_bufsz];
@@ -20,7 +21,7 @@ struct jlink {
 
 struct jcomm {
     uint64_t segment;
-    char a;
+    char chan;
 };
 
 struct jcomm_ref {

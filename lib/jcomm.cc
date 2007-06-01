@@ -218,8 +218,8 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     memset(a, 0, sizeof(*a));
     memset(b, 0, sizeof(*b));
     
-    a->jc.a = 1;
-    b->jc.a = 0;
+    a->jc.chan = jcomm_chan0;
+    b->jc.chan = jcomm_chan1;
     a->jc.segment = seg.object;
     b->jc.segment = seg.object;
 
@@ -249,7 +249,7 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    struct jlink *jl = &links[jr.jc.a];
+    struct jlink *jl = &links[jr.jc.chan];
 
     return jlink_read(jl, buf, cnt, jl->mode);
 }
@@ -262,7 +262,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    struct jlink *jl = &links[!jr.jc.a];
+    struct jlink *jl = &links[!jr.jc.chan];
 
     return jlink_write(jl, buf, cnt, jl->mode);
 }
@@ -278,12 +278,12 @@ jcomm_probe(struct jcomm_ref jr, dev_probe_t probe)
 
     int rv;
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jr.jc.a];
+	struct jlink *jl = &links[jr.jc.chan];
     	jthread_mutex_lock(&jl->mu);
         rv = !jl->open || jl->bytes ? 1 : 0;
         jthread_mutex_unlock(&jl->mu);
     } else {
-	struct jlink *jl = &links[!jr.jc.a];
+	struct jlink *jl = &links[!jr.jc.chan];
     	jthread_mutex_lock(&jl->mu);
         rv = !jl->open || (jl->bytes > sizeof(jl->buf) - PIPE_BUF) ? 0 : 1;
         jthread_mutex_unlock(&jl->mu);
@@ -302,7 +302,7 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
 
     if (how & JCOMM_SHUT_RD) {
-	struct jlink *jl = &links[jr.jc.a];
+	struct jlink *jl = &links[jr.jc.chan];
 	jthread_mutex_lock(&jl->mu);
 	jl->open = 0;
 	jthread_mutex_unlock(&jl->mu);
@@ -310,7 +310,7 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
     }
 
     if (how & JCOMM_SHUT_WR) {
-	struct jlink *jl = &links[!jr.jc.a];
+	struct jlink *jl = &links[!jr.jc.chan];
 	jthread_mutex_lock(&jl->mu);
 	jl->open = 0;
 	jthread_mutex_unlock(&jl->mu);
@@ -333,9 +333,9 @@ jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
     
     
     if (probe == dev_probe_read)
-	links[jr->jc.a].reader_waiting = 1;
+	links[jr->jc.chan].reader_waiting = 1;
     else
-	links[!jr->jc.a].writer_waiting = 1;
+	links[!jr->jc.chan].writer_waiting = 1;
 
     free(jr);
     return 0;
@@ -351,12 +351,12 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
     if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jr.jc.a];	
+	struct jlink *jl = &links[jr.jc.chan];	
 	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
 	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes);
     } else {
-	struct jlink *jl = &links[!jr.jc.a];
+	struct jlink *jl = &links[!jr.jc.chan];
 	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
 	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
 	WS_SETVAL(wstat, jl->bytes); 
