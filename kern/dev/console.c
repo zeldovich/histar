@@ -202,6 +202,10 @@ delay(void)
 /***** Serial I/O code *****/
 
 #define COM1		0x3F8
+#define COM2		0x2F8
+
+#define COM1_IRQ	4
+#define COM2_IRQ	3
 
 #define COM_RX		0	// In:  Receive buffer (DLAB=0)
 #define COM_TX		0	// Out: Transmit buffer (DLAB=0)
@@ -280,7 +284,7 @@ serial_init(void)
     // Enable serial interrupts
     if (serial_exists) {
 	static struct interrupt_handler ih = {.ih_func = &serial_intr };
-	irq_register(4, &ih);
+	irq_register(COM1_IRQ, &ih);
     } else {
 	cprintf("Serial port does not exist\n");
     }
