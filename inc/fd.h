@@ -117,10 +117,10 @@ struct Fd
 	} fd_pipe;
 
 	struct {
-	    struct cobj_ref bipipe_seg;
-	    int bipipe_a;
+	    struct jcomm bipipe_jc;
+	    uint64_t bipipe_ct;
 	} fd_bipipe;
-
+	
 	struct {
 	    struct jcomm pty_jc;
 	    int pty_no;
