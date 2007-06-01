@@ -436,6 +436,10 @@ jos_fd_close(struct Fd *fd)
 	lastref = 1;
 	r = DEV_CALL(dev, close, fd);
     }
+
+    if (!lastref && dev->dev_unref)
+	(*dev->dev_unref)(fd);
+    
     if (!fd->fd_immutable)
 	sys_sync_wakeup(&fd->fd_ref64);
 
@@ -602,6 +606,10 @@ dup2(int oldfdnum, int newfdnum) __THROW
 	__set_errno(EPERM);
 	return -1;
     }
+    
+    struct Dev *dev;
+    if (dev_lookup(oldfd->fd_dev_id, &dev) == 0 && dev->dev_addref)
+	(*dev->dev_addref)(oldfd, fd_seg.container);
 
     close(newfdnum);
     struct Fd *newfd = INDEX2FD(newfdnum);
@@ -681,6 +689,10 @@ dup2_as(int oldfdnum, int newfdnum, struct cobj_ref target_as, uint64_t target_c
 	return r;
     }
 
+    struct Dev *dev;
+    if (dev_lookup(oldfd->fd_dev_id, &dev) == 0 && dev->dev_addref)
+	(*dev->dev_addref)(oldfd, target_ct);
+    
     struct cobj_ref new_seg = COBJ(target_ct, old_seg.object);
 
     // XXX only works for initial setup, as this doesn't close

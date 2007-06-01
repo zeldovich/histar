@@ -18,9 +18,46 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
+/* Note: pty Fd slaves use an additional segment (pty_seg) for their 
+ * meta data, instead of storing it in the Fd segment like pty masters.
+ * This is done so pty masters can read and write slave meta data.
+ * This is unnecessary in the current impl, but would be required for
+ * some features, like 'ctrl+c'.
+ */
+
 /* XXX dependent on fork.cc */
-#define PTY_JCOMM_CT start_env->shared_container
-#define PTY_JCOMM(fd) JCOMM(PTY_JCOMM_CT, fd->fd_pty.pty_jc)
+#define PTY_CT start_env->shared_container
+#define PTY_JCOMM(fd) JCOMM(PTY_CT, fd->fd_pty.pty_jc)
+#define PTY_SLAVE(fd) COBJ(PTY_CT, fd->fd_pty.pty_slave_seg.object)
+
+static int
+pty_addref(struct Fd *fd, uint64_t ct)
+{
+    int r = jcomm_addref(PTY_JCOMM(fd), ct);
+    if (r < 0) {
+	/* this is probably a spurious warning, remove if annoying */
+	cprintf("pty_addref: jcomm_addref error: %s\n", e2s(r));
+	return r;
+    }
+    r = sys_segment_addref(PTY_SLAVE(fd), ct);
+    if (r < 0)
+	cprintf("pty_addref: sys_segment_addref error: %s\n", e2s(r));
+    return r;
+}
+
+static int
+pty_unref(struct Fd *fd)
+{
+    int r = jcomm_unref(PTY_JCOMM(fd));
+    if (r < 0) {
+	cprintf("pty_unref: jcomm_unref error: %s\n", e2s(r));
+	return r;
+    }
+    r = sys_obj_unref(PTY_SLAVE(fd));
+    if (r < 0)
+	cprintf("pty_unref: sys_obj_unref error: %s\n", e2s(r));
+    return r;
+}
 
 static int
 ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
@@ -51,7 +88,7 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     uint64_t ct = start_env->shared_container;
     
     struct jcomm_ref master_jr, slave_jr;
-    r = jcomm_alloc(PTY_JCOMM_CT, &label, 0, &master_jr, &slave_jr);
+    r = jcomm_alloc(PTY_CT, &label, 0, &master_jr, &slave_jr);
    
     struct pty_seg *ps = 0;
     struct cobj_ref slave_pty_seg;
@@ -63,7 +100,6 @@ ptm_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     }
     sys_obj_set_fixedquota(slave_pty_seg);
     memset(ps, 0, sizeof(*ps));
-    ps->master_open = 1;
 
     fd->fd_pty.pty_jc = master_jr.jc;
     fd->fd_pty.pty_slave_seg = slave_pty_seg;
@@ -114,37 +150,43 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     
     if (r < 0) {
 	jos_fd_close(fd);
-	__set_errno(ENOTSUP);
+	errno = ENOTSUP;
 	return -1;
     }
-    
+  
     fd->fd_pty.pty_no = ptyno;
-    
-    /* Again, assume that process opening master is also opening the
-     * slave.  If this were not the case, we would want to addref the
-     * jcomm and pty_seg.
-     */
     fd->fd_pty.pty_jc = pd.slave_jc;
     fd->fd_pty.pty_slave_seg = pd.slave_pty_seg;
     fd_set_extra_handles(fd, pd.taint, pd.grant);
 
-    struct pty_seg *ps = 0;
-    r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-		    (void **)&ps, 0, 0);
+    /* common for processes (via libc) to open pty slaves they don't
+     * have the priv. for.  Note, we will close a 'parially' allocated 
+     * fd.
+     */
+    
+    r = pty_addref(fd, PTY_CT);
     if (r < 0) {
-	/* common for processes (via libc) to open pty slaves they don't
-	 * have the priv. for.  Note, we are closing a 'parially' allocated 
-	 * fd.
-	 */
+	memset(&fd->fd_pty, 0, sizeof(fd->fd_pty));
 	jos_fd_close(fd);
 	errno = EACCES;
 	return -1;
     }
 
-    /* A number of different fds can point to the same slave pty device,
-     * while each pty master fd points to a different slave pty device.
+    struct pty_seg *ps = 0;
+    r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
+		    (void **)&ps, 0, 0);
+    if (r < 0) {
+	memset(&fd->fd_pty, 0, sizeof(fd->fd_pty));
+	jos_fd_close(fd);
+	errno = EACCES;
+	return -1;
+    }
+
+    /* ps->ref counts the number of pts struct Fds that are open.  So,
+     * it only gets incremented when a new slave Fd is allocated, and
+     * not by pty_addref.
      */
-    ps->slave_ref++;
+    jos_atomic_inc(&ps->ref);
     segment_unmap_delayed(ps, 1);
     return fd2num(fd);
 }
@@ -152,90 +194,38 @@ pts_open(struct fs_inode ino, int flags, uint32_t dev_opt)
 static int
 pts_close(struct Fd *fd)
 {
-    int flag = 0;
-    // a 'partially' allocated pts
+    /* a 'partially' allocated pts */
     if (!fd->fd_pty.pty_slave_seg.object) 
 	return 0;
 
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
-	struct cobj_ref obj = fd->fd_pty.pty_slave_seg;
-	cprintf("pts_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
-		obj.container, obj.object, e2s(r));
+	cprintf("pts_close: unable to map pty_seg: %s\n", e2s(r));
+	errno = EACCES;
 	return -1;
     }
-
-    jthread_mutex_lock(&ps->mu);
     
-    if (!ps->master_open)
-	flag = 1;
-    
-    ps->slave_ref--;
-    if (ps->slave_ref == 0) { 
+    if (jos_atomic_dec_and_test(&ps->ref)) {
 	r = jcomm_shut(PTY_JCOMM(fd), JCOMM_SHUT_RD | JCOMM_SHUT_WR);
 	if (r < 0)
 	    cprintf("pts_close: jcomm_shut error: %s\n", e2s(r));
-	if (flag) {
-	    r = jcomm_unref(PTY_JCOMM(fd));
-	    if (r < 0)
-		cprintf("pts_close: jcomm_unref failed: %s\n", e2s(r));
-	}
-    } else
-	r = 0;
-
-    jthread_mutex_unlock(&ps->mu);
-    segment_unmap(ps);
-    
-    if (flag) {
-	r = sys_obj_unref(fd->fd_pty.pty_slave_seg);
-	if (r < 0)
-	    cprintf("pts_close: can't unref pty_seg: %s\n", e2s(r));
     }
-    
-    return r;
+    segment_unmap_delayed(ps, 1);
+        
+    return pty_unref(fd);
 }
 
 static int
 ptm_close(struct Fd *fd)
 {
-    int flag = 0;
-    pty_remove(fd->fd_pty.pty_no);
-
-    struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
-			(void **)&ps, 0, 0);
-    if (r < 0) {
-	struct cobj_ref obj = fd->fd_pty.pty_slave_seg;
-	cprintf("ptm_close: unable to map slave_pty_seg (%"PRIu64", %"PRIu64"): %s\n", 
-		obj.container, obj.object, e2s(r));
-	return -1;
-    }
-    
-    jthread_mutex_lock(&ps->mu);
-
-    ps->master_open = 0;
-    if (!ps->slave_ref)
-	flag = 1;
-
-    jthread_mutex_unlock(&ps->mu);
-    segment_unmap(ps);
-
-    r = jcomm_shut(PTY_JCOMM(fd), JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+    int r = jcomm_shut(PTY_JCOMM(fd), JCOMM_SHUT_RD | JCOMM_SHUT_WR);
     if (r < 0)
 	cprintf("ptm_close: jcomm_shut error: %s\n", e2s(r));
 
-    if (flag) {
-    	r = sys_obj_unref(fd->fd_pty.pty_slave_seg);
-	if (r < 0)
-	    cprintf("ptm_close: can't unref slave_pty_seg: %s\n", e2s(r));
-	r = jcomm_unref(PTY_JCOMM(fd));
-	if (r < 0)
-	    cprintf("pts_close: jcomm_unref failed: %s\n", e2s(r));
-    }
-    
-    return r;
+    pty_remove(fd->fd_pty.pty_no);
+    return pty_unref(fd);
 }
 
 static uint32_t
@@ -250,7 +240,6 @@ pty_handle_nl(struct Fd *fd, char *buf, tcflag_t flags)
 	return 1;
     }
 }
-
 
 static ssize_t
 pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
@@ -279,8 +268,10 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
     }
     
     int r = jcomm_write(PTY_JCOMM(fd), bf, cc);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("pty_write: jcomm_write failed: %s\n", e2s(r));
 	return r;
+    }
 
     /* lots of code assumes a write to stdout writes all bytes */
     while ((uint32_t) r < cc) {
@@ -323,7 +314,7 @@ static ssize_t
 pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pts_write: unable to map pty_seg: %s\n", e2s(r));
@@ -338,7 +329,10 @@ pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static ssize_t
 pty_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    return jcomm_read(PTY_JCOMM(fd), buf, count);
+    int r = jcomm_read(PTY_JCOMM(fd), buf, count);
+    if (r < 0)
+	cprintf("pty_read: jcomm_read error: %s\n", e2s(r));
+    return r;
 }
 
 static int
@@ -371,8 +365,17 @@ ptm_stat(struct Fd *fd, struct stat64 *buf)
 static int
 pty_shutdown(struct Fd *fd, int how)
 {
-    
-    return (*devbipipe.dev_shutdown)(fd, how);
+    int16_t h = 0;
+    if (how & SHUT_RD)
+	h |= JCOMM_SHUT_RD;
+    if (how & SHUT_WR)
+	h |= JCOMM_SHUT_WR;
+    if (how & SHUT_RDWR)
+	h |= JCOMM_SHUT_RD | JCOMM_SHUT_WR;
+    int r = jcomm_shut(PTY_JCOMM(fd), h);
+    if (r < 0)
+	cprintf("pty_shutdown: jcomm_shut error: %s\n", e2s(r));
+    return r;
 }
 
 static int
@@ -441,7 +444,7 @@ ptm_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	*ptyno = fd->fd_pty.pty_no;
 	return 0;
     } if (req == TIOCSPTLCK) {
-	// the pts associated with fd is always unlocked
+	/* the pts associated with fd is always unlocked */
 	return 0;
     } 
 
@@ -452,7 +455,7 @@ static int
 pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
     struct pty_seg *ps = 0;
-    int r = segment_map(fd->fd_pty.pty_slave_seg, 0, SEGMAP_READ | SEGMAP_WRITE,
+    int r = segment_map(PTY_SLAVE(fd), 0, SEGMAP_READ | SEGMAP_WRITE,
 			(void **)&ps, 0, 0);
     if (r < 0) {
 	cprintf("pts_ioctl: unable to map pty_seg: %s\n", e2s(r));
@@ -461,20 +464,6 @@ pts_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     
     r = pty_ioctl(fd, req, ap, ps);
     segment_unmap_delayed(ps, 1);
-    return r;
-}
-
-static int
-pty_onfork(struct Fd *fd, uint64_t ct)
-{
-    int r = jcomm_addref(PTY_JCOMM(fd), ct);
-    if (r < 0) {
-	cprintf("pty_onfork: jcomm_addref error: %s\n", e2s(r));
-	return r;
-    }
-    r = sys_segment_addref(fd->fd_pty.pty_slave_seg, ct);
-    if (r < 0)
-	cprintf("pty_onfork: sys_segment_addref error: %s\n", e2s(r));
     return r;
 }
 
@@ -490,7 +479,8 @@ struct Dev devptm = {
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
     .dev_ioctl = ptm_ioctl,
-    .dev_onfork = &pty_onfork,
+    .dev_addref = &pty_addref,
+    .dev_unref = &pty_unref,
 };
 
 struct Dev devpts = {
@@ -505,5 +495,6 @@ struct Dev devpts = {
     .dev_statsync = pty_statsync,
     .dev_shutdown = pty_shutdown,
     .dev_ioctl = pts_ioctl,
-    .dev_onfork = &pty_onfork,
+    .dev_addref = &pty_addref,
+    .dev_unref = &pty_unref,
 };

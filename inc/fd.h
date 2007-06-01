@@ -60,7 +60,8 @@ struct Dev
     int (*dev_shutdown)(struct Fd *fd, int how);
     int (*dev_ioctl)(struct Fd *fd, uint64_t cmd, va_list ap);
 
-    int (*dev_onfork)(struct Fd *fd, uint64_t ct);
+    int (*dev_addref)(struct Fd *fd, uint64_t ct);
+    int (*dev_unref)(struct Fd *fd);
 };
 
 enum {

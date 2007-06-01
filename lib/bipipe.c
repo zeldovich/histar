@@ -351,11 +351,20 @@ bipipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 }
 
 static int
-bipipe_onfork(struct Fd *fd, uint64_t ct)
+bipipe_addref(struct Fd *fd, uint64_t ct)
 {
     int r = sys_segment_addref(fd->fd_bipipe.bipipe_seg, ct);
     if (r < 0)
-	cprintf("bipipe_onfork: sys_segment_addref error: %s\n", e2s(r));
+	cprintf("bipipe_addref: sys_segment_addref error: %s\n", e2s(r));
+    return r;
+}
+
+static int
+bipipe_unref(struct Fd *fd)
+{
+    int r = sys_obj_unref(fd->fd_bipipe.bipipe_seg);
+    if (r < 0)
+	cprintf("bipipe_unref: sys_obj_unref error: %s\n", e2s(r));
     return r;
 }
            
@@ -368,5 +377,6 @@ struct Dev devbipipe = {
     .dev_close = &bipipe_close,
     .dev_shutdown = &bipipe_shutdown,
     .dev_statsync = &bipipe_statsync,
-    .dev_onfork = &bipipe_onfork,
+    .dev_addref = &bipipe_addref,
+    .dev_unref = &bipipe_unref,
 };

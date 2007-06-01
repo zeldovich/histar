@@ -212,8 +212,8 @@ do_fork()
 		jos_atomic_inc(&fd->fd_ref);
 
 	    struct Dev *dev;
-	    if (dev_lookup(fd->fd_dev_id, &dev) == 0 && dev->dev_onfork)
-		(*dev->dev_onfork)(fd, top_ct);
+	    if (dev_lookup(fd->fd_dev_id, &dev) == 0 && dev->dev_addref)
+		(*dev->dev_addref)(fd, top_ct);
 	}
 
 	// What gets copied across fork() and what stays shared?

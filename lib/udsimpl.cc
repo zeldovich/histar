@@ -547,7 +547,7 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 }
 
 int
-uds_onfork(struct Fd *fd, uint64_t ct)
+uds_addref(struct Fd *fd, uint64_t ct)
 {
     
     int r;
@@ -556,11 +556,27 @@ uds_onfork(struct Fd *fd, uint64_t ct)
 	if (fd->fd_uds.d.jl.object)
 	    r = sys_segment_addref(fd->fd_uds.d.jl, ct);
 	if (r < 0)
-	    cprintf("uds_onfork: sys_segment_addref error: %s\n", e2s(r));
+	    cprintf("uds_addref: sys_segment_addref error: %s\n", e2s(r));
     } else {
 	r = jcomm_addref(UDS_JCOMM(fd), ct);
 	if (r < 0)
-	    cprintf("uds_onfork: jcomm_addref error: %s\n", e2s(r));
+	    cprintf("uds_addref: jcomm_addref error: %s\n", e2s(r));
+    }
+    return r;
+}
+
+int
+uds_unref(struct Fd *fd)
+{
+    int r;
+    if (fd->fd_uds.uds_type == SOCK_DGRAM) {
+	r = sys_obj_unref(fd->fd_uds.d.jl);
+	if (r < 0)
+	    cprintf("uds_unref: sys_obj_unref error: %s\n", e2s(r));
+    } else {
+	r = jcomm_unref(UDS_JCOMM(fd));
+	if (r < 0)
+	    cprintf("uds_unref: jcomm_unref error: %s\n", e2s(r));
     }
     return r;
 }
