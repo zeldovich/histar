@@ -212,13 +212,14 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     links[0].open = 1;
     links[1].open = 1;
 
+    links[0].mode = mode;
+    links[1].mode = mode;
+
     memset(a, 0, sizeof(*a));
     memset(b, 0, sizeof(*b));
     
     a->jc.a = 1;
     b->jc.a = 0;
-    a->jc.mode = mode;
-    b->jc.mode = mode;
     a->jc.segment = seg.object;
     b->jc.segment = seg.object;
 
@@ -250,7 +251,7 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[jr.jc.a];
 
-    return jlink_read(jl, buf, cnt, jr.jc.mode);
+    return jlink_read(jl, buf, cnt, jl->mode);
 }
 
 int64_t
@@ -263,7 +264,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[!jr.jc.a];
 
-    return jlink_write(jl, buf, cnt, jr.jc.mode);
+    return jlink_write(jl, buf, cnt, jl->mode);
 }
 
 int

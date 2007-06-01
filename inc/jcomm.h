@@ -14,12 +14,12 @@ struct jlink {
     uint64_t open;
     uint32_t read_ptr;  /* read at this offset */
     uint64_t bytes; /* # bytes in circular buffer */
+    uint16_t mode; /* default mode */
     jthread_mutex_t mu;
 };
 
 struct jcomm {
     uint64_t segment;
-    uint16_t mode;
     char a;
 };
 
