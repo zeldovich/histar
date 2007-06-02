@@ -71,8 +71,9 @@ to make the cmpxchg8b instruction restartable.
 For qemu 0.8.2 and earlier, you must apply ./conf/qemu-movd.patch to
 avoid 32-bit truncation for some MMX operations.
 
-You must use gcc 3.4 to compile qemu, so after running ./configure you
-may need to set something like "CC=gcc-3.4.6" in config-host.mak.
+./configure --disable-kqemu --disable-sdl --disable-gfx-check \
+	--cc=gcc34 --host-cc=gcc34 \
+	--target-list='x86_64-softmmu i386-softmmu sparc-softmmu'
 
 * To boot HiStar for the first time:
 
