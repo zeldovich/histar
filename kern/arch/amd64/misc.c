@@ -7,7 +7,7 @@ karch_get_sp(void)
     return read_rsp();
 }
 
-uintptr_t
+uint64_t
 karch_get_tsc(void)
 {
     return read_tsc();
