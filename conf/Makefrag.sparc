@@ -1,0 +1,13 @@
+ARCH    := sparc
+TARGET  := sparc-jos-linux
+OBJTYPE := elf32-sparc
+
+CC      := $(GCCPREFIX)gcc -pipe -m32
+CXX     := $(GCCPREFIX)g++ -pipe -m32
+AS      := $(GCCPREFIX)as -32
+AR      := $(GCCPREFIX)ar
+LD      := $(GCCPREFIX)ld -m elf32_sparc
+OBJCOPY := $(GCCPREFIX)objcopy
+OBJDUMP := $(GCCPREFIX)objdump -m sparc
+NM      := $(GCCPREFIX)nm
+STRIP   := $(GCCPREFIX)strip

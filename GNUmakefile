@@ -26,6 +26,7 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 K_ARCH	:= amd64
 #K_ARCH	:= i386
 #K_ARCH	:= ft
+#K_ARCH	:= sparc
 
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/
