@@ -8,11 +8,11 @@
  *
  *   2^32 --------->  +---------------------------------------------+
  *                    |                                             |
- *                    |         Top 1GB of physical memory          |
+ *                    |        3GB..4GB of physical memory          |
  *                    |                                             |
  *   PHYSTOP  ----->  +---------------------------------------------+
  *                    |                                             |
- *                    |       Bottom 1GB of physical memory         |
+ *                    |        0GB..1GB of physical memory          |
  *                    |                                             |
  *   PHYSBOT/ULIM ->  +---------------------------------------------+
  *                    |                 user stack                  |

@@ -30,8 +30,8 @@ char kstack[KSTACK_SIZE] __attribute__ ((aligned (4096), section (".data")));
 
 /*
  * Map first 1GB identically at bottom of VM space (for booting).
- * Map first 1GB at PHYSBOT (0x80000000).
- * Map last 1GB at PHYSTOP (0xc0000000).
+ * Map 0GB..1GB at PHYSBOT (0x80000000).
+ * Map 3GB..4GB at PHYSTOP (0xc0000000).
  */
 struct Pagemap bootpd PTATTR = {
   .pm_ent = {
