@@ -50,13 +50,13 @@ static uint32_t the_ide_drive;
 static int
 ide_wait(struct ide_channel *idec, uint8_t flagmask, uint8_t flagset)
 {
-    uint64_t ts_start = read_tsc();
+    uint64_t ts_start = karch_get_tsc();
     for (;;) {
 	idec->ide_status = inb(idec->cmd_addr + IDE_REG_STATUS);
 	if ((idec->ide_status & (IDE_STAT_BSY | flagmask)) == flagset)
 	    break;
 
-	uint64_t ts_diff = read_tsc() - ts_start;
+	uint64_t ts_diff = karch_get_tsc() - ts_start;
 	if (ts_diff > 1024 * 1024 * 1024) {
 	    cprintf("ide_wait: stuck for %"PRIu64" cycles, status %02x\n",
 		    ts_diff, idec->ide_status);

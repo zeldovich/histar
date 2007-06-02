@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <dev/disk.h>
 #include <kern/thread.h>
 #include <kern/arch.h>
@@ -496,10 +495,10 @@ pstate_load(void)
 	return r;
     }
 
-    uint64_t ts_start = read_tsc();
+    uint64_t ts_start = karch_get_tsc();
     int warned = 0;
     while (!done) {
-	uint64_t ts_now = read_tsc();
+	uint64_t ts_now = karch_get_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
 	    cprintf("pstate_load: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;

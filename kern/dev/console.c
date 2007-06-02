@@ -613,16 +613,16 @@ cons_init(void)
     LIST_INIT(&console_waiting);
 
     if (lpt_enable) {
-	output_start = read_tsc();
+	output_start = karch_get_tsc();
 	lpt_putc('\n');
-	if (read_tsc() - output_start > 0x100000)
+	if (karch_get_tsc() - output_start > 0x100000)
 	    lpt_enable = 0;
     }
 
     if (com_enable) {
-	output_start = read_tsc();
+	output_start = karch_get_tsc();
 	serial_putc('\n');
-	if (read_tsc() - output_start > 0x100000)
+	if (karch_get_tsc() - output_start > 0x100000)
 	    com_enable = 0;
     }
 }

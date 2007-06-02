@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <machine/utrap.h>
 #include <dev/console.h>
 #include <dev/kclock.h>
@@ -1097,8 +1096,8 @@ uint64_t
 kern_syscall(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	     uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7)
 {
-    uint64_t s = read_tsc();
+    uint64_t s = karch_get_tsc();
     int64_t r = syscall_exec(num, a1, a2, a3, a4, a5, a6, a7);
-    prof_syscall(num, read_tsc() - s);
+    prof_syscall(num, karch_get_tsc() - s);
     return r;
 }

@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <kern/lib.h>
 #include <kern/part.h>
 #include <kern/arch.h>
@@ -82,10 +81,10 @@ part_table_read(struct part_table *pt)
     if (r < 0)
 	return r;
 
-    uint64_t ts_start = read_tsc();
+    uint64_t ts_start = karch_get_tsc();
     int warned = 0;
     while (blocked == 1) {
-	uint64_t ts_now = read_tsc();
+	uint64_t ts_now = karch_get_tsc();
 	if (warned == 0 && ts_now - ts_start > 1024*1024*1024) {
 	    cprintf("part_table_read: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
