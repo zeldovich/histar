@@ -16,9 +16,6 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/locore.S
 
-DUMMY := \
-	$(ARCHDIR)/tsctimer.c
-
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
 	lib/$(ARCH)/longjmp.S			\
