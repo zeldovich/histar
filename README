@@ -41,6 +41,7 @@ Download binutils from http://www.kernel.org/pub/linux/devel/binutils/
 
 * GCC 4.1.2
 
+unpack both gcc-core and gcc-g++
 rm -r gcc-4.1.2/libstdc++-v3
 
 ./configure --target=x86_64-jos-linux --prefix=/usr/local \
