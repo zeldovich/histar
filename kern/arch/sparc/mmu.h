@@ -12,6 +12,33 @@
 #define	PGSHIFT		12
 #define	PGSIZE		(1 << PGSHIFT)
 
+/* Page table descriptors */
+#define PTD_PTP_SHIFT	2
+#define PTD_PTP_MASK	0x3fffffff
+#define PTD_ET_SHIFT	0
+#define PTD_ET_MASK	0x03
+
+/* Page table entries */
+#define PTE_PPN_SHIFT	8
+#define PTE_PPN_MASK	0xffffff
+#define PTE_C		(1 << 7)	/* Cacheable */
+#define PTE_M		(1 << 6)	/* Modified */
+#define PTE_R		(1 << 5)	/* Referenced */
+#define PTE_ACC_SHIFT	2		/* Access permissions */
+#define	PTE_ACC_MASK	0x07
+#define PTE_ET_SHIFT	0		/* Entry type */
+#define PTE_ET_MASK	0x03
+
+/* Simplified view of access permission values */
+#define PTE_ACC_W	(1 << 0)
+#define PTE_ACC_X	(1 << 1)
+#define PTE_ACC_SUPER	7		/* User none, supervisor RWX */
+
+/* Entry types */
+#define PT_ET_NONE	0
+#define PT_ET_PTD	1
+#define PT_ET_PTE	2
+
 /*
  * Processor status register
  */
