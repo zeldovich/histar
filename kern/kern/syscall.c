@@ -19,7 +19,6 @@
 #include <kern/arch.h>
 #include <kern/thread.h>
 #include <inc/error.h>
-#include <inc/setjmp.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
 #include <inc/safeint.h>
