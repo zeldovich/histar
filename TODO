@@ -15,6 +15,7 @@ Kernel bugs:
   - freelist/dstack: free_later list using a btree
   - implement log.disk_map using a btree
   - larger FRM, stick FRM contents in a separate disk block
+* do something about uint128_t on i386 -- it's not there natively
 
 Security:
 
