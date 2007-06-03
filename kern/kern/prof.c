@@ -18,7 +18,6 @@ struct tentry {
     uint64_t last;
 };
 
-#define NTRAPS (T_SYSCALL + 1)
 #define NTHREADS 32
 
 struct entry sysc_table[NSYSCALLS];

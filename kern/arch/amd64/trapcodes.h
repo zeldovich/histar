@@ -27,4 +27,6 @@
 // processor defined exceptions or interrupt vectors.
 #define T_SYSCALL   48		// system call
 
+#define NTRAPS	    256
+
 #endif
