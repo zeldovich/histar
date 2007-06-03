@@ -34,3 +34,8 @@ cq (coprocessor queue)
 hi (22 high bits)
 lo (10 low bits)
 
+== other stuff
+
+make sure we check alignment for user-provided pointers
+how to do utrap masking?
+
