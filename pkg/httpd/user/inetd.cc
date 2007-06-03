@@ -84,7 +84,7 @@ spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
 	     "%lu", plain_comm.container);
     snprintf(object_arg, sizeof(object_arg), 
 	     "%lu", plain_comm.jc.segment);
-    snprintf(object_arg, sizeof(chan_arg), 
+    snprintf(chan_arg, sizeof(chan_arg), 
 	     "%d", plain_comm.jc.chan);
     snprintf(count_arg, sizeof(count_arg), 
 	     "%d", count);
