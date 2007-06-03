@@ -201,11 +201,13 @@ delay(void)
 
 /***** Serial I/O code *****/
 
-#define COM1		0x3F8
-#define COM2		0x2F8
-
-#define COM1_IRQ	4
-#define COM2_IRQ	3
+static struct serial_port {
+    uint16_t io;
+    uint8_t irq;
+} serial_ports[] = {
+    { 0x3f8, 4 },   /* COM1 */
+    { 0x2f8, 3 },   /* COM2 */
+};
 
 #define COM_RX		0	// In:  Receive buffer (DLAB=0)
 #define COM_TX		0	// Out: Transmit buffer (DLAB=0)
@@ -227,22 +229,21 @@ delay(void)
 #define   COM_LSR_TXRDY	0x20	//   Transmit buffer avail
 #define   COM_LSR_TSRE	0x40	//   Transmitter off
 
-static bool_t serial_exists;
 static bool_t lpt_enable = 1;
-static bool_t com_enable = 1;
+static struct serial_port *com_port;
 
 static int
 serial_proc_data(void)
 {
-    if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA))
+    if (!(inb(com_port->io + COM_LSR) & COM_LSR_DATA))
 	return -1;
-    return inb(COM1 + COM_RX);
+    return inb(com_port->io + COM_RX);
 }
 
 static void
 serial_intr(void *arg)
 {
-    if (serial_exists)
+    if (com_port)
 	cons_intr(serial_proc_data);
 }
 
@@ -251,42 +252,46 @@ serial_putc(int c)
 {
     int i;
 
-    for (i = 0; !(inb(COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800; i++)
+    for (i = 0; !(inb(com_port->io + COM_LSR) & COM_LSR_TXRDY) && i < 12800; i++)
 	delay();
-    outb(COM1 + COM_TX, c);
+    outb(com_port->io + COM_TX, c);
 }
 
 static void
 serial_init(void)
 {
+    if (!com_port)
+	return;
+
     // Turn off the FIFO
-    outb(COM1 + COM_FCR, 0);
+    outb(com_port->io + COM_FCR, 0);
 
     // Set speed; requires DLAB latch
-    outb(COM1 + COM_LCR, COM_LCR_DLAB);
-    outb(COM1 + COM_DLL, (uint8_t) (115200 / 9600));
-    outb(COM1 + COM_DLM, 0);
+    outb(com_port->io + COM_LCR, COM_LCR_DLAB);
+    outb(com_port->io + COM_DLL, (uint8_t) (115200 / 9600));
+    outb(com_port->io + COM_DLM, 0);
 
     // 8 data bits, 1 stop bit, parity off; turn off DLAB latch
-    outb(COM1 + COM_LCR, COM_LCR_WLEN8 & ~COM_LCR_DLAB);
+    outb(com_port->io + COM_LCR, COM_LCR_WLEN8 & ~COM_LCR_DLAB);
 
     // No modem controls
-    outb(COM1 + COM_MCR, 0);
+    outb(com_port->io + COM_MCR, 0);
     // Enable rcv interrupts
-    outb(COM1 + COM_IER, COM_IER_RDI);
+    outb(com_port->io + COM_IER, COM_IER_RDI);
 
     // Clear any preexisting overrun indications and interrupts
     // Serial port doesn't exist if COM_LSR returns 0xFF
-    serial_exists = (inb(COM1 + COM_LSR) != 0xFF);
-    (void) inb(COM1 + COM_IIR);
-    (void) inb(COM1 + COM_RX);
+    bool_t serial_exists = (inb(com_port->io + COM_LSR) != 0xFF);
+    (void) inb(com_port->io + COM_IIR);
+    (void) inb(com_port->io + COM_RX);
 
     // Enable serial interrupts
     if (serial_exists) {
 	static struct interrupt_handler ih = {.ih_func = &serial_intr };
-	irq_register(COM1_IRQ, &ih);
+	irq_register(com_port->irq, &ih);
     } else {
 	cprintf("Serial port does not exist\n");
+	com_port = 0;
     }
 }
 
@@ -588,7 +593,7 @@ cons_putc(int c)
 {
     if (lpt_enable)
 	lpt_putc(c);
-    if (com_enable)
+    if (com_port)
 	serial_putc(c);
     cga_putc(c);
 }
@@ -597,10 +602,19 @@ cons_putc(int c)
 void
 cons_init(void)
 {
-    uint64_t output_start;
+    com_port = &serial_ports[0];
 
-    if (strstr(&boot_cmdline[0], "serial=off"))
-	com_enable = 0;
+    const char *s;
+    if ((s = strstr(&boot_cmdline[0], "serial="))) {
+	s += 7;
+	if (!strncmp(s, "off", 3))
+	    com_port = 0;
+	if (!strncmp(s, "com1", 4))
+	    com_port = &serial_ports[0];
+	if (!strncmp(s, "com2", 4))
+	    com_port = &serial_ports[1];
+    }
+
     if (strstr(&boot_cmdline[0], "lpt=off"))
 	lpt_enable = 0;
 
@@ -611,18 +625,23 @@ cons_init(void)
     lpt_init();
 
     LIST_INIT(&console_waiting);
+    uint64_t output_start;
 
     if (lpt_enable) {
 	output_start = karch_get_tsc();
 	lpt_putc('\n');
-	if (karch_get_tsc() - output_start > 0x100000)
+	if (karch_get_tsc() - output_start > 0x100000) {
 	    lpt_enable = 0;
+	    cprintf("Parallel port too slow, disabling.\n");
+	}
     }
 
-    if (com_enable) {
+    if (com_port) {
 	output_start = karch_get_tsc();
 	serial_putc('\n');
-	if (karch_get_tsc() - output_start > 0x100000)
-	    com_enable = 0;
+	if (karch_get_tsc() - output_start > 0x100000) {
+	    com_port = 0;
+	    cprintf("Serial port too slow, disabling.\n");
+	}
     }
 }
