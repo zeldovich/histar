@@ -5,6 +5,6 @@
 
 int  jos_setjmp(struct jos_jmp_buf *buf);
 void jos_longjmp(struct jos_jmp_buf *buf, uint64_t val)
-	__attribute__((__noreturn__, regparm(2)));
+	__attribute__((__noreturn__));
 
 #endif
