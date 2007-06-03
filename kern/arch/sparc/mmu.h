@@ -105,6 +105,12 @@ struct Trapframe {
     uint32_t tf_pc;
     uint32_t tf_npc;
 };
+
+struct Fpregs {
+    uint32_t tf_freg[32];
+    uint32_t tf_fsr;
+    /* Make sure we do the right thing with %fq */
+};
 #endif
 
 #endif
