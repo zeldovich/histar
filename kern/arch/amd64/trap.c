@@ -96,6 +96,10 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
+	r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uintptr_t) fault_va);
+	if (r == 0 || r == -E_RESTART)
+	    return;
+
 	cprintf("user page fault: thread %ld (%s), va=%p: rip=0x%lx, rsp=0x%lx: %s\n",
 		t->th_ko.ko_id, t->th_ko.ko_name,
 		fault_va, tf->tf_rip, tf->tf_rsp, e2s(r));
@@ -270,6 +274,12 @@ thread_arch_idle(void)
     trap_thread_set(0);
     trap_user_iret_tsc = read_tsc();
     thread_arch_idle_asm();
+}
+
+int
+thread_arch_is_masked(const struct Thread *t)
+{
+    return t->th_tf.tf_cs == GD_UT_MASK;
 }
 
 int

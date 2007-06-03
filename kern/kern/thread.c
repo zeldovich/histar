@@ -503,12 +503,6 @@ thread_pagefault(const struct Thread *t, void *fault_va, uint32_t reqflags)
 		t->th_ko.ko_id, &t->th_ko.ko_name[0],
 		t->th_as->as_ko.ko_id, &t->th_as->as_ko.ko_name[0],
 		fault_va, e2s(r));
-
-    r = thread_utrap(t, UTRAP_SRC_HW, T_PGFLT, (uintptr_t) fault_va);
-    if (r >= 0 || r == -E_RESTART)
-	return r;
-
-    cprintf("thread_pagefault: utrap: %s\n", e2s(r));
     return r;
 }
 
@@ -520,7 +514,7 @@ thread_utrap(const struct Thread *const_t,
 	!SAFE_EQUAL(const_t->th_status, thread_suspended))
 	return -E_INVAL;
 
-    if (const_t->th_tf.tf_cs == GD_UT_MASK)
+    if (thread_arch_is_masked(const_t))
 	return -E_BUSY;
 
     struct Thread *t = &kobject_dirty(&const_t->th_ko)->th;
