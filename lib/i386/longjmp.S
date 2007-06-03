@@ -18,16 +18,17 @@ ENTRY(jos_setjmp)
 	ret
 
 ENTRY(jos_longjmp)
-	movl	 4(%esp), %edx	// jos_jmp_buf
-	movl	 8(%esp), %eax	// return value
+	// %eax is the jos_jmp_buf*
+	// %edx is the return value
 
-	movl	 0(%edx), %ecx	// %eip
-	movl	 4(%edx), %esp
-	movl	 8(%edx), %ebp
-	movl	12(%edx), %ebx
-	movl	16(%edx), %esi
-	movl	20(%edx), %edi
+	movl	 0(%eax), %ecx	// %eip
+	movl	 4(%eax), %esp
+	movl	 8(%eax), %ebp
+	movl	12(%eax), %ebx
+	movl	16(%eax), %esi
+	movl	20(%eax), %edi
 
+	movl	%edx, %eax
 	cmpl	$0, %eax	// never return 0
 	jnz	1f
 	movl	$1, %eax
