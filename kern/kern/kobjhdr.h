@@ -59,7 +59,7 @@ struct kobject_hdr {
     // Ephemeral state (doesn't persist across swapout)
     uint32_t ko_pin_pg;	// pages are pinned (DMA, PTE)
     uint32_t ko_pin;	// header is pinned (linked lists)
-};
+} __attribute__((aligned (16)));
 
 typedef SAFE_TYPE(int) info_flow_type;
 #define iflow_read  SAFE_WRAP(info_flow_type, 1)
