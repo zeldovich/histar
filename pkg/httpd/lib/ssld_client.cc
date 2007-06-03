@@ -22,10 +22,10 @@ extern "C" {
 #include <inc/gateinvoke.hh>
 
 struct worker_args {
-    struct cobj_ref cipher_biseg;
-    struct cobj_ref plain_biseg;
-    struct cobj_ref cow_gate;
-    struct cobj_ref eproc_biseg;
+    cobj_ref cow_gate;
+    jcomm_ref cipher_comm;
+    jcomm_ref plain_comm;
+    jcomm_ref eproc_comm;
     uint64_t root_ct;
     uint64_t taint;
 };
@@ -41,10 +41,10 @@ ssld_worker_setup(void *b)
     struct ssld_cow_args *d =
 	(struct ssld_cow_args *) &tls_data->tls_gate_args.param_buf[0];
     memset(d, 0, sizeof(*d));
-    d->cipher_biseg = a->cipher_biseg;
-    d->plain_biseg = a->plain_biseg;
+    d->cipher_comm = a->cipher_comm;
+    d->plain_comm = a->plain_comm;
     d->root_ct = a->root_ct;
-    d->privkey_biseg = a->eproc_biseg;
+    d->privkey_comm = a->eproc_comm;
 
     uint64_t tgt_label_ent[16];
     uint64_t tgt_clear_ent[16];
@@ -65,16 +65,15 @@ ssld_worker_setup(void *b)
 }
 
 void
-ssld_taint_cow(struct cobj_ref cow_gate, struct cobj_ref eproc_biseg,
-	       struct cobj_ref cipher_biseg, struct cobj_ref plain_biseg,
-	       uint64_t root_ct, uint64_t taint,
-	       thread_args *ta)
+ssld_taint_cow(cobj_ref cow_gate, jcomm_ref eproc_comm,
+	       jcomm_ref cipher_comm, jcomm_ref plain_comm,
+	       uint64_t root_ct, uint64_t taint, thread_args *ta)
 {
     struct worker_args a;    
-    a.cipher_biseg = cipher_biseg;
-    a.plain_biseg = plain_biseg;
+    a.cipher_comm = cipher_comm;
+    a.plain_comm = plain_comm;
     a.cow_gate = cow_gate;
-    a.eproc_biseg = eproc_biseg;
+    a.eproc_comm = eproc_comm;
     a.root_ct = root_ct;
     a.taint = taint;
 

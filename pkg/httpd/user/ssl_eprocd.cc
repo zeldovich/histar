@@ -40,11 +40,14 @@ static RSA *the_key;
 static char *cow_stacktop;
 
 static void __attribute__((noreturn))
-handle_client(uint64_t ec, uint64_t eo)
+handle_client(uintptr_t arg)
 {
     debug_cprint(dbg, "opening bipipe...");
+
+    jcomm_ref *comm = (jcomm_ref *)arg;
+
     // don't worry about extra taint and grant
-    int s = bipipe_fd(COBJ(ec, eo), 1, 0, 0, 0);
+    int s = bipipe_fd(*comm, 0, 0, 0);
     error_check(s);
     
     unsigned char pub_e[256], pub_n[256];
@@ -125,8 +128,11 @@ eprocd_cow_entry(void)
 	thread_label_cache_invalidate();
 
 	debug_cprint(dbg, "COWed and ready to handled client...");
-	stack_switch(d->privkey_biseg.container, d->privkey_biseg.object,
-		     0, 0,
+
+	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
+	cow_stacktop -= sizeof(jcomm_ref);
+	*comm = d->privkey_comm;
+	stack_switch((uintptr_t)comm, 0, 0, 0, 
 		     cow_stacktop, (void *) &handle_client);
     
 	cprintf("eprocd_cow_entry: still running\n");

@@ -95,14 +95,16 @@ ssld_close(SSL *ssl)
 }
 
 static void __attribute__((noreturn))
-ssld_worker(uint64_t cc, uint64_t co, uint64_t pc, uint64_t po)
+ssld_worker(uintptr_t arg)
 {
     debug_cprint(dbg, "starting...");
     SSL *ssl = 0;
 
+    jcomm_ref *comm = (jcomm_ref *)arg;
+    
     // don't worry about extra taint and grant
-    int cipher_fd = bipipe_fd(COBJ(cc, co), ssl_proxy_bipipe_ssld, 0, 0, 0);
-    int plain_fd = bipipe_fd(COBJ(pc, po), ssl_proxy_bipipe_ssld, 0, 0, 0);
+    int cipher_fd = bipipe_fd(comm[0], 0, 0, 0);
+    int plain_fd = bipipe_fd(comm[1], 0, 0, 0);
     error_check(cipher_fd);
     error_check(plain_fd);
     
@@ -191,7 +193,7 @@ ssl_load_file_privkey(SSL_CTX *ctx, const char *servkey_pem)
 }
 
 static void
-ssl_load_rmt_privkey(SSL_CTX *ctx, struct cobj_ref privkey_biseg)
+ssl_load_rmt_privkey(SSL_CTX *ctx, jcomm_ref privkey_comm)
 {
     ENGINE *e;
     const char *engine_id = "proc-engine";
@@ -209,7 +211,7 @@ ssl_load_rmt_privkey(SSL_CTX *ctx, struct cobj_ref privkey_biseg)
 	throw basic_exception("Couldn't sef default RSA engine %s", engine_id);
 
     debug_cprint(dbg, "loading rmt_privkey...");
-    EVP_PKEY *pk = ENGINE_load_private_key(e, (char *)&privkey_biseg, 0, 0);
+    EVP_PKEY *pk = ENGINE_load_private_key(e, (char *)&privkey_comm, 0, 0);
     debug_cprint(dbg, "loading rmt_privkey done!");
 
     if (!SSL_CTX_use_PrivateKey(ctx, pk))
@@ -229,12 +231,15 @@ ssld_cow_entry(void)
 	tls_revalidate();
 	thread_label_cache_invalidate();
 
-	if (d->privkey_biseg.object)
-	    ssl_load_rmt_privkey(the_ctx, d->privkey_biseg);
+	if (d->privkey_comm.container)
+	    ssl_load_rmt_privkey(the_ctx, d->privkey_comm);
 
-	stack_switch(d->cipher_biseg.container, d->cipher_biseg.object,
-		     d->plain_biseg.container, d->plain_biseg.object,
-		     cow_stacktop, (void *) &ssld_worker);
+	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
+	cow_stacktop -= 2 * sizeof(jcomm_ref);
+	comm[0] = d->cipher_comm;
+	comm[1] = d->plain_comm;
+
+	stack_switch((uintptr_t)comm, 0, 0, 0, cow_stacktop, (void *) &ssld_worker);
     
 	cprintf("ssld_cow_entry: still running\n");
 	thread_halt();

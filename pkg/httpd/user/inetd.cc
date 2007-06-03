@@ -5,12 +5,14 @@ extern "C" {
 #include <inc/bipipe.h>
 #include <inc/debug.h>
 #include <inc/argv.h>
+#include <inc/fd.h>
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 }
 
 #include <inc/error.hh>
@@ -75,13 +77,15 @@ get_eprocd_cow(void)
 }
 
 static void
-spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint, uint32_t count)
+spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
 {
-    char container_arg[32], object_arg[32], count_arg[32];
+    char container_arg[32], object_arg[32], chan_arg[32], count_arg[32];
     snprintf(container_arg, sizeof(container_arg), 
-	     "%lu", plain_bipipe.container);
+	     "%lu", plain_comm.container);
     snprintf(object_arg, sizeof(object_arg), 
-	     "%lu", plain_bipipe.object);
+	     "%lu", plain_comm.jc.segment);
+    snprintf(object_arg, sizeof(chan_arg), 
+	     "%d", plain_comm.jc.chan);
     snprintf(count_arg, sizeof(count_arg), 
 	     "%d", count);
 
@@ -90,6 +94,7 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint, uint32_t count)
     const char *argv[] = { httpd_path, 
 			   container_arg, 
 			   object_arg, 
+			   chan_arg,
 			   http_auth_enable ? "1" : "0",
 			   count_arg };
 
@@ -104,7 +109,7 @@ spawn_httpd(uint64_t ct, cobj_ref plain_bipipe, uint64_t taint, uint32_t count)
     sd.fd1_ = 0;
     sd.fd2_ = 0;
     
-    sd.ac_ = 5;
+    sd.ac_ = 6;
     sd.av_ = &argv[0];
 
     sd.ds_ = &ds;
@@ -136,7 +141,7 @@ inet_client(void *a)
 				(void **)&spc, &bytes, 0));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
 	
-	spawn_httpd(d.ssl_ct_, spc->plain_bipipe_, d.taint_, ci.data.count);
+	spawn_httpd(d.ssl_ct_, spc->plain_comm_, d.taint_, ci.data.count);
 	ssl_proxy_loop(&d, 1);
     } catch (basic_exception &e) {
 	printf("inet_client: %s\n", e.what());

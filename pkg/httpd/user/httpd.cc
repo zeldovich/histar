@@ -9,7 +9,9 @@ extern "C" {
 #include <inc/debug.h>
 #include <inc/ssl_fd.h>
 #include <inc/argv.h>
+#include <inc/fd.h>
 
+#include <netinet/in.h>
 #include <sys/socket.h>
 }
 

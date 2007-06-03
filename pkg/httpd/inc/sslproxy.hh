@@ -4,16 +4,12 @@
 extern "C" {
 #include <string.h>
 #include <machine/atomic.h>
+#include <inc/jcomm.h>
 }
-
-enum { 
-    ssl_proxy_bipipe_client, 
-    ssl_proxy_bipipe_ssld 
-};
 
 struct ssl_proxy_client {
  public:
-    cobj_ref plain_bipipe_;
+    jcomm_ref plain_comm_;
     jos_atomic64_t ref_;
 };
 
@@ -23,11 +19,12 @@ struct ssl_proxy_descriptor {
 	base_ct_(0), ssl_ct_(0), 
 	sock_fd_(0),
 	taint_(0),
-	cipher_bipipe_(COBJ(0, 0)), client_seg_(COBJ(0, 0)),
+	client_seg_(COBJ(0, 0)),
 	eproc_started_(0), ssld_started_(0) 
     {
 	memset(&eproc_worker_args_, 0, sizeof(eproc_worker_args_));
 	memset(&ssld_worker_args_, 0, sizeof(ssld_worker_args_));
+	memset(&cipher_comm_, 0, sizeof(cipher_comm_));
     }
 
     uint64_t base_ct_;
@@ -37,9 +34,8 @@ struct ssl_proxy_descriptor {
 
     uint64_t taint_;
 
-    cobj_ref cipher_bipipe_;
+    jcomm_ref cipher_comm_;
     cobj_ref client_seg_;
-    //cobj_ref plain_bipipe_;
 
     char eproc_started_;
     char ssld_started_;

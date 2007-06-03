@@ -11,8 +11,8 @@ extern "C" {
 #include <inc/ssldclnt.hh>
 
 struct worker_args {
-    struct cobj_ref cow_gate;
-    struct cobj_ref eproc_biseg;
+    cobj_ref cow_gate;
+    jcomm_ref eproc_comm;
     uint64_t root_ct;
     uint64_t taint;
 };
@@ -27,7 +27,7 @@ eproc_worker_setup(void *b)
 
     struct ssl_eproc_cow_args *d =
 	(struct ssl_eproc_cow_args *) &tls_data->tls_gate_args.param_buf[0];
-    d->privkey_biseg = a->eproc_biseg;
+    d->privkey_comm = a->eproc_comm;
     d->root_ct = a->root_ct;
 
     uint64_t tgt_label_ent[16];
@@ -49,12 +49,12 @@ eproc_worker_setup(void *b)
 }
 
 void
-ssl_eproc_taint_cow(struct cobj_ref gate, struct cobj_ref eproc_seg, 
+ssl_eproc_taint_cow(struct cobj_ref gate, jcomm_ref eproc_comm, 
 		    uint64_t root_ct, uint64_t taint, thread_args *ta)
 {
     struct worker_args a;
     a.cow_gate = gate;
-    a.eproc_biseg = eproc_seg;
+    a.eproc_comm = eproc_comm;
     a.root_ct = root_ct;
     a.taint = taint;
 

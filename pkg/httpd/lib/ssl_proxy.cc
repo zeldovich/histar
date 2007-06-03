@@ -45,11 +45,27 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
     d->sock_fd_ = sock_fd;
 
     try {
+	struct ulabel *ul = taint_label.to_ulabel();
+	
+	struct jcomm_ref cipher_comm0;
+	struct jcomm_ref cipher_comm1;
+	error_check(jcomm_alloc(ssl_root_ct, ul, 0, &cipher_comm0, &cipher_comm1));
+
+	struct jcomm_ref plain_comm0;
+	struct jcomm_ref plain_comm1;
+	error_check(jcomm_alloc(ssl_root_ct, ul, 0, &plain_comm0, &plain_comm1));
+
+	struct jcomm_ref eproc_comm0;
+	struct jcomm_ref eproc_comm1;
+	if (eproc_gate.object)
+	    error_check(jcomm_alloc(ssl_root_ct, ul, 0, &plain_comm0, &plain_comm1));
+
 	// manually setup bipipe segments
+#if 0	
 	struct cobj_ref cipher_seg;
 	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
 				 taint_label.to_ulabel(), "cipher-bipipe"));
-	
+
 	struct cobj_ref plain_seg;
 	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
 				 taint_label.to_ulabel(), "plain-bipipe"));
@@ -59,8 +75,9 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
 				     taint_label.to_ulabel(), "eproc-bipipe"));
 	}
+#endif	
 
-	d->cipher_bipipe_ = cipher_seg;
+	d->cipher_comm_ = cipher_comm0;
 	d->taint_ = ssl_taint;
 
 	struct ssl_proxy_client *spc = 0;
@@ -69,10 +86,10 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 				  "proxy-client"));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 1);
 	memset(spc, 0, sizeof(*spc));
-	spc->plain_bipipe_ = plain_seg;
+	spc->plain_comm_ = plain_comm0;
 
 	if (eproc_gate.object) {
-	    ssl_eproc_taint_cow(eproc_gate, eproc_seg, ssl_root_ct, 
+	    ssl_eproc_taint_cow(eproc_gate, eproc_comm0, ssl_root_ct, 
 				ssl_taint, &d->eproc_worker_args_);
 	    d->eproc_started_ = 1;
 	}
@@ -80,7 +97,7 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 	    worker_cu(thread_cleanup, &d->eproc_worker_args_, d->eproc_started_);
 
 	// taint cow ssld and pass both bipipes
-	ssld_taint_cow(ssld_gate, eproc_seg, cipher_seg, plain_seg, 
+	ssld_taint_cow(ssld_gate, eproc_comm1, cipher_comm1, plain_comm1, 
 		       ssl_root_ct, ssl_taint, &d->ssld_worker_args_);
 	d->ssld_started_ = 1;
 	worker_cu.dismiss();
@@ -263,9 +280,8 @@ ssl_proxy_loop(ssl_proxy_descriptor *d, char cleanup)
 {
     int cipher_fd;
     // NONBLOCK to avoid potential deadlock with ssld
-    errno_check(cipher_fd = bipipe_fd(d->cipher_bipipe_, 
-				      ssl_proxy_bipipe_client, 
-				      O_NONBLOCK, 0, 0));
+
+    errno_check(cipher_fd = bipipe_fd(d->cipher_comm_, O_NONBLOCK, 0, 0));
     scope_guard<void, ssl_proxy_descriptor *> 
 	cu1(ssl_proxy_cleanup, d, cleanup);
     scope_guard<int, int> cu0(close, cipher_fd);
@@ -301,7 +317,7 @@ ssl_proxy_client_fd(cobj_ref plain_seg)
 				(void **)&spc, &bytes, 0));
 	scope_guard2<int, void *, int> spc_cu(segment_unmap_delayed, spc, 0);	
 	int s;
-	error_check(s = bipipe_fd(spc->plain_bipipe_, ssl_proxy_bipipe_client, 0, 0, 0));
+	error_check(s = bipipe_fd(spc->plain_comm_, 0, 0, 0));
 	jos_atomic_inc64(&spc->ref_);
 	return s;
     } catch (basic_exception &e) {

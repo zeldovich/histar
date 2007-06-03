@@ -469,13 +469,13 @@ http_client(int s)
 int
 main(int ac, const char **av)
 {
-    if (ac < 4) {
-	cprintf("usage: %s bipipe-container bipipe-object "
+    if (ac < 5) {
+	cprintf("usage: %s jcomm-container jcomm-object jcomm-chan"
 		"auth-enable [conn-count]\n", av[0]);
 	return -1;
     }
     
-    uint64_t c, o;
+    uint64_t c, o, ch;
 
     int r;
     r = strtou64(av[1], 0, 10, &c);
@@ -486,18 +486,22 @@ main(int ac, const char **av)
     if (r < 0)
 	panic("parsing object id %s: %s", av[2], e2s(r));
     
+    r = strtou64(av[3], 0, 10, &ch);
+    if (r < 0)
+	panic("parsing channel %s: %s", av[3], e2s(r));
+    
     uint64_t dj_app_server_index = 0;
     uint64_t dj_user_server_index = 0;
-    if (ac > 4) {
+    if (ac > 5) {
 	uint64_t index = 1;
-	r = strtou64(av[4], 0, 10, &index);
+	r = strtou64(av[5], 0, 10, &index);
 	if (r < 0)
-	    panic("parsing conn-count%s: %s", av[4], e2s(r));
+	    panic("parsing conn-count%s: %s", av[5], e2s(r));
 	dj_app_server_index = index % dj_app_server_count;
 	dj_user_server_index = index % dj_user_server_count;
     }
 
-    http_auth_enable = av[3][0] != '0' ? 1 : 0;
+    http_auth_enable = av[4][0] != '0' ? 1 : 0;
     httpd_root_ino = start_env->fs_root;
     
     char dj_app_host_file[64], dj_app_ct_file[64], dj_app_gate_file[64];
@@ -555,7 +559,11 @@ main(int ac, const char **av)
 
     try {
 	int s;
-	error_check(s = bipipe_fd(COBJ(c, o), ssl_proxy_bipipe_client, 0, 0, 0));
+	jcomm_ref jr;
+	jr.container = c;
+	jr.jc.segment = o;
+	jr.jc.chan = ch;
+	error_check(s = bipipe_fd(jr, 0, 0, 0));
 	scope_guard<int, int> close_bipipe(close, s);
 	http_client(s);
     } catch (basic_exception &e) {
