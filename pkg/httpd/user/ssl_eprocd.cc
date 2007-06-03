@@ -129,8 +129,8 @@ eprocd_cow_entry(void)
 
 	debug_cprint(dbg, "COWed and ready to handled client...");
 
-	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
 	cow_stacktop -= sizeof(jcomm_ref);
+	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
 	*comm = d->privkey_comm;
 	stack_switch((uintptr_t)comm, 0, 0, 0, 
 		     cow_stacktop, (void *) &handle_client);

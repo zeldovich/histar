@@ -234,8 +234,8 @@ ssld_cow_entry(void)
 	if (d->privkey_comm.container)
 	    ssl_load_rmt_privkey(the_ctx, d->privkey_comm);
 
-	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
 	cow_stacktop -= 2 * sizeof(jcomm_ref);
+	jcomm_ref *comm = (jcomm_ref *)cow_stacktop;
 	comm[0] = d->cipher_comm;
 	comm[1] = d->plain_comm;
 
