@@ -90,7 +90,8 @@ memmove(dst0, src0, length)
 		 * Copy whole words, then mop up any trailing bytes.
 		 */
 		t = length / wsize;
-		TLOOP(*(word *)dst = *(word *)src; src += wsize; dst += wsize);
+		TLOOP(*(word *)(void *)dst = *(word *)(void *)src;
+		      src += wsize; dst += wsize);
 		t = length & wmask;
 		TLOOP(*dst++ = *src++);
 	} else {
@@ -111,7 +112,8 @@ memmove(dst0, src0, length)
 			TLOOP1(*--dst = *--src);
 		}
 		t = length / wsize;
-		TLOOP(src -= wsize; dst -= wsize; *(word *)dst = *(word *)src);
+		TLOOP(src -= wsize; dst -= wsize;
+		      *(word *)(void *)dst = *(word *)(void *)src);
 		t = length & wmask;
 		TLOOP(*--dst = *--src);
 	}

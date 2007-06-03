@@ -11,9 +11,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/bootdata.c
 
-X_KERN_LIB :=					\
-	lib/$(ARCH)/strlen.S			\
-	lib/$(ARCH)/longjmp.S			\
+KERN_LIB :=					\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
@@ -24,6 +22,10 @@ X_KERN_LIB :=					\
 	lib/bf60.c				\
 	lib/string.c				\
 	lib/hashtable.c
+
+X_KERN_LIB :=					\
+	lib/$(ARCH)/strlen.S			\
+	lib/$(ARCH)/longjmp.S
 
 X_KERN_DEV :=					\
 	kern/dev/console.c			\

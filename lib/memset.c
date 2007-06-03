@@ -95,7 +95,7 @@ memset(void *dst0, int c0, size_t length)
 	/* Fill words.  Length was >= 2*words so we know t >= 1 here. */
 	t = length / wsize;
 	do {
-		*(unsigned long *)dst = c;
+		*(unsigned long *)(void *)dst = c;
 		dst += wsize;
 	} while (--t != 0);
 
