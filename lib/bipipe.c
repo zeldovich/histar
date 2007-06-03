@@ -63,6 +63,9 @@ bipipe_fd(struct jcomm_ref jr, int fd_mode, uint64_t grant, uint64_t taint)
     fd->fd_bipipe.bipipe_jc = jr.jc;
     if (jr.container != BIPIPE_DEF_CT)
 	fd->fd_bipipe.bipipe_ct = jr.container;
+
+    if (fd_mode & O_NONBLOCK)
+	jcomm_mode_set(jr, JCOMM_NONBLOCK);
     
     fd_set_extra_handles(fd, grant, taint);
     return fd2num(fd);

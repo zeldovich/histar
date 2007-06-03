@@ -229,6 +229,19 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     return 0;
 }
 
+int 
+jcomm_mode_set(struct jcomm_ref jr, int16_t mode)
+{
+    struct jlink *links;
+    int r = jcomm_links_map(jr, &links);
+    if (r < 0)
+	return r;
+    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    struct jlink *jl = &links[jr.jc.chan];
+    jl->mode = mode;
+    return 0;
+}
+
 int
 jcomm_addref(struct jcomm_ref jr, uint64_t ct)
 {
@@ -263,8 +276,9 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[!jr.jc.chan];
+    int16_t mode = links[jr.jc.chan].mode;
 
-    return jlink_write(jl, buf, cnt, jl->mode);
+    return jlink_write(jl, buf, cnt, mode);
 }
 
 int
