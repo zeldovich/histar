@@ -30,7 +30,7 @@ frm_free(uint64_t id, offset_t offset, void *arg)
 }
 
 int
-frm_new(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg)
+frm_new(uint64_t id, void **mem, uint64_t * off, void *arg)
 {
     struct frm *f = (struct frm *) arg;
 
@@ -44,7 +44,7 @@ frm_new(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg)
     if (f->n_use < (FRM_BUF_SIZE / 2))
 	f->service = 1;
 
-    uint8_t *buf;
+    void *buf;
     if ((cache_alloc(btree_cache(id), offset, &buf)) < 0) {
 	cprintf("new: cache fully pinned (%d)\n", btree_cache(id)->n_ent);
 	*mem = 0;

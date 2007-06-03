@@ -22,9 +22,9 @@
 #define BTREE_NAME_SIZE 32
 
 struct btree_obj {
-    int (*new) (uint64_t id, uint8_t ** mem, uint64_t * off, void *arg);
+    int (*new) (uint64_t id, void **mem, uint64_t * off, void *arg);
     int (*free) (uint64_t id, offset_t offset, void *arg);
-    int (*open) (uint64_t id, offset_t offset, uint8_t ** mem);
+    int (*open) (uint64_t id, offset_t offset, void **mem);
     int (*close) (uint64_t id, offset_t offset);
     int (*save) (struct btree_node * node);
 
@@ -85,7 +85,7 @@ extern struct freelist freelist;
 ///////////////////////////////
 
 int
-btree_alloc_node(uint64_t id, uint8_t ** mem, uint64_t * off)
+btree_alloc_node(uint64_t id, void **mem, uint64_t * off)
 {
     if (id >= BTREE_COUNT)
 	return -E_INVAL;
@@ -112,7 +112,7 @@ btree_close_node(uint64_t id, offset_t off)
 }
 
 int
-btree_open_node(uint64_t id, uint64_t off, uint8_t ** mem)
+btree_open_node(uint64_t id, uint64_t off, void **mem)
 {
     if (id >= BTREE_COUNT)
 	return -E_INVAL;

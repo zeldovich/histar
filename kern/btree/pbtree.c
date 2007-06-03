@@ -12,7 +12,7 @@
 extern struct freelist freelist;
 
 int
-pbtree_open_node(uint64_t id, offset_t offset, uint8_t ** mem)
+pbtree_open_node(uint64_t id, offset_t offset, void ** mem)
 {
     int r;
     struct cache *cache = btree_cache(id);
@@ -64,14 +64,14 @@ pbtree_save_node(struct btree_node *node)
 }
 
 int
-pbtree_new_node(uint64_t id, uint8_t ** mem, uint64_t * off, void *arg)
+pbtree_new_node(uint64_t id, void **mem, uint64_t * off, void *arg)
 {
     int64_t offset = freelist_alloc(&freelist, BTREE_BLOCK_SIZE);
 
     if (offset < 0)
 	return offset;
 
-    uint8_t *buf;
+    void *buf;
     if ((cache_alloc(btree_cache(id), offset, &buf)) < 0) {
 	cprintf("new: cache fully pinned (%d)\n", btree_cache(id)->n_ent);
 	*mem = 0;

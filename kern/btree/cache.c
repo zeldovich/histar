@@ -17,7 +17,7 @@ cache_num_ent(struct cache *c)
 }
 
 int
-cache_alloc(struct cache *c, tag_t tag, uint8_t ** store)
+cache_alloc(struct cache *c, tag_t tag, void **store)
 {
     if (tag == 0)
 	return -E_INVAL;
@@ -48,7 +48,7 @@ cache_alloc(struct cache *c, tag_t tag, uint8_t ** store)
 }
 
 int
-cache_try_insert(struct cache *c, tag_t t, uint8_t * src, uint8_t ** store)
+cache_try_insert(struct cache *c, tag_t t, void *src, void **store)
 {
     if (t == 0)
 	return -E_INVAL;
@@ -63,12 +63,11 @@ cache_try_insert(struct cache *c, tag_t t, uint8_t * src, uint8_t ** store)
 	return r;
 
     memcpy(*store, src, c->s_ent);
-
     return 0;
 }
 
 int
-cache_ent(struct cache *c, tag_t t, uint8_t ** store)
+cache_ent(struct cache *c, tag_t t, void **store)
 {
     if (t == 0)
 	return -E_INVAL;
