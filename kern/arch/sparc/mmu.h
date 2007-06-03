@@ -94,6 +94,10 @@
 #define FSR_CX_MASK	0x1f
 
 #ifndef __ASSEMBLER__
+struct Trapcode {
+    uint8_t code[16];
+};
+
 struct Trapframe_aux {
     struct thread_entry_args tfa_entry_args;
 };

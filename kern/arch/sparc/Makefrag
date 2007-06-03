@@ -8,7 +8,8 @@ KERN_LDFLAGS = -N -Ttext 0x80100134 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
-	$(ARCHDIR)/locore.S
+	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/bootdata.c
 
 X_KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\
