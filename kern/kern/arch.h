@@ -42,6 +42,7 @@ uintptr_t karch_get_sp(void);
 uint64_t karch_get_tsc(void);
 void karch_jmpbuf_init(struct jos_jmp_buf *jb, void *fn, void *stackbase);
 void irq_arch_enable(uint32_t irqno);
+void karch_fp_init(struct Fpregs *fpreg);
 
 /*
  * Page map manipulation
