@@ -1,6 +1,7 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <kern/lib.h>
+#include <kern/arch.h>
 #include <dev/picirq.h>
 
 
@@ -92,4 +93,10 @@ irq_eoi(int irqno)
 	// xxx: specific interrupt line
 	outb(IO_PIC1, 0x20);
 	outb(IO_PIC2, 0x20);
+}
+
+void
+irq_arch_enable(uint32_t irq)
+{
+    irq_setmask_8259A(irq_mask_8259A & ~(1 << irq));
 }

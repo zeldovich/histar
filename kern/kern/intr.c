@@ -1,6 +1,6 @@
 #include <kern/intr.h>
 #include <kern/lib.h>
-#include <dev/picirq.h>
+#include <kern/arch.h>
 #include <inc/queue.h>
 
 LIST_HEAD(ih_list, interrupt_handler);
@@ -27,5 +27,5 @@ irq_register(uint32_t irq, struct interrupt_handler *ih)
 	panic("irq_register: invalid IRQ %d", irq);
 
     LIST_INSERT_HEAD(&irq_handlers[irq], ih, ih_link);
-    irq_setmask_8259A(irq_mask_8259A & ~(1 << irq));
+    irq_arch_enable(irq);
 }
