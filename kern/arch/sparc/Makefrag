@@ -12,6 +12,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/bootdata.c
 
 KERN_LIB :=					\
+	lib/$(ARCH)/mathops.S			\
+	lib/$(ARCH)/strlen.S			\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
@@ -24,7 +26,6 @@ KERN_LIB :=					\
 	lib/hashtable.c
 
 X_KERN_LIB :=					\
-	lib/$(ARCH)/strlen.S			\
 	lib/$(ARCH)/longjmp.S
 
 X_KERN_DEV :=					\
