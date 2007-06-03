@@ -1,10 +1,10 @@
-#include <machine/x86.h>
 #include <kern/thread.h>
 #include <kern/sched.h>
 #include <kern/lib.h>
 #include <kern/timer.h>
 #include <kern/container.h>
 #include <kern/sync.h>
+#include <kern/arch.h>
 #include <inc/error.h>
 
 static uint64_t global_tickets;
@@ -17,7 +17,7 @@ global_pass_update(uint128_t new_global_pass)
 {
     static uint64_t last_tsc;
 
-    uint64_t elapsed = read_tsc() - last_tsc;
+    uint64_t elapsed = karch_get_tsc() - last_tsc;
     last_tsc += elapsed;
 
     if (new_global_pass) {
