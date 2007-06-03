@@ -58,24 +58,7 @@ ssl_proxy_alloc(cobj_ref ssld_gate, cobj_ref eproc_gate,
 	struct jcomm_ref eproc_comm0;
 	struct jcomm_ref eproc_comm1;
 	if (eproc_gate.object)
-	    error_check(jcomm_alloc(ssl_root_ct, ul, 0, &plain_comm0, &plain_comm1));
-
-	// manually setup bipipe segments
-#if 0	
-	struct cobj_ref cipher_seg;
-	error_check(bipipe_alloc(ssl_root_ct, &cipher_seg, 
-				 taint_label.to_ulabel(), "cipher-bipipe"));
-
-	struct cobj_ref plain_seg;
-	error_check(bipipe_alloc(ssl_root_ct,&plain_seg, 
-				 taint_label.to_ulabel(), "plain-bipipe"));
-	
-	struct cobj_ref eproc_seg = COBJ(0, 0);
-	if (eproc_gate.object) {
-	    error_check(bipipe_alloc(ssl_root_ct, &eproc_seg, 
-				     taint_label.to_ulabel(), "eproc-bipipe"));
-	}
-#endif	
+	    error_check(jcomm_alloc(ssl_root_ct, ul, 0, &eproc_comm0, &eproc_comm1));
 
 	d->cipher_comm_ = cipher_comm0;
 	d->taint_ = ssl_taint;
