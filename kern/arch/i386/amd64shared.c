@@ -3,3 +3,4 @@
 #include <kern/arch/amd64/reboot.c>
 #include <kern/arch/amd64/page.c>
 #include <kern/arch/amd64/tsctimer.c>
+#include <kern/arch/amd64/arch-x86.c>

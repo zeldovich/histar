@@ -20,7 +20,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/mtrr.c			\
 	$(ARCHDIR)/acpimach.c			\
 	$(ARCHDIR)/reboot.c			\
-	$(ARCHDIR)/tsctimer.c
+	$(ARCHDIR)/tsctimer.c			\
+	$(ARCHDIR)/arch-x86.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/strlen.S			\

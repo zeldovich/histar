@@ -7,12 +7,6 @@ karch_get_sp(void)
     return read_rsp();
 }
 
-uint64_t
-karch_get_tsc(void)
-{
-    return read_tsc();
-}
-
 void
 karch_jmpbuf_init(struct jos_jmp_buf *jb,
 		  void *fn, void *stackbase)
