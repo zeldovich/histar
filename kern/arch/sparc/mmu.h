@@ -4,6 +4,10 @@
 #ifndef __ASSEMBLER__
 # include <inc/types.h>
 # include <inc/thread.h>
+# include <inc/intmacro.h>
+#else
+# define UINT64(x) x
+# define CAST64(x) (x)
 #endif
 
 /*
@@ -11,6 +15,11 @@
  */
 #define	PGSHIFT		12
 #define	PGSIZE		(1 << PGSHIFT)
+#define PGMASK		(PGSIZE - 1)
+
+/* offset in page */
+#define PGOFF(la)	(((uintptr_t) (la)) & PGMASK)
+#define PGADDR(la)	(((uintptr_t) (la)) & ~CAST64(PGMASK))
 
 /* Page table descriptors */
 #define PTD_PTP_SHIFT	2

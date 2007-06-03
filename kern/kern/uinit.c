@@ -1,4 +1,3 @@
-#include <machine/x86.h>
 #include <dev/console.h>
 #include <kern/thread.h>
 #include <kern/as.h>
