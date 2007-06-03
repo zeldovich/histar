@@ -114,7 +114,9 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     }
 
     if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + MAX_IRQS) {
-	irq_handler(trapno - IRQ_OFFSET);
+	uint32_t irqno = trapno - IRQ_OFFSET;
+	irq_eoi(irqno);
+	irq_handler(irqno);
 	return;
     }
 
