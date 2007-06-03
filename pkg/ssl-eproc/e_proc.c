@@ -5,6 +5,7 @@
 
 #include <inc/container.h>
 #include <inc/stdio.h>
+#include <inc/jcomm.h>
 #include "ssleproc.h"
 
 #include <sys/types.h>
@@ -21,13 +22,13 @@ static EVP_PKEY *
 eproc_load_privkey(ENGINE *e, const char *key_id,
 		   UI_METHOD *ui_method, void *callback_data)
 {
-    struct cobj_ref eproc_biseg = *(struct cobj_ref *)key_id;
-    int fd = bipipe_fd(eproc_biseg, 0, 0);
+    struct jcomm_ref eproc_comm = *(struct jcomm_ref *)key_id;
+    int fd = bipipe_fd(eproc_comm, 0, 0, 0);
     if (fd < 0) {
 	cprintf("eproc_load_privkey: unable to open bipipe\n");
 	return 0;
     }
-
+    
     unsigned int pub_len[2];
     unsigned char pub_val[2][256];
     int i;
