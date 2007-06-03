@@ -88,7 +88,7 @@ struct Trapframe {
   uint16_t tf_ss;
   uint16_t tf_gs;	// not saved/restored by hardware
   uint16_t tf__pad3[2];
-} __attribute__ ((aligned (16)));
+};
 #endif
 
 #endif /* !JOS_MACHINE_MMU_H */
