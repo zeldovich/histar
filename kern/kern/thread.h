@@ -18,7 +18,7 @@ typedef SAFE_TYPE(uint8_t) thread_status;
 struct Thread {
     struct kobject_hdr th_ko;
 
-    struct Trapframe th_tf __attribute__ ((aligned (16)));
+    struct Trapframe th_tf;
     struct Trapframe_aux th_tfa;
 
     struct cobj_ref th_asref;
