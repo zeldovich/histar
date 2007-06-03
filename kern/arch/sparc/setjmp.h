@@ -3,6 +3,8 @@
 
 #include <inc/types.h>
 
+#define JOS_LONGJMP_GCCATTR	
+
 struct jos_jmp_buf {
     /* If we are using register windows, this is sufficient */
     uint32_t jb_sp;
