@@ -120,7 +120,7 @@ eprocd_cow_entry(void)
 {
     try {
 	struct ssl_eproc_cow_args *d =
-	    (struct ssl_eproc_cow_args *) &tls_data->tls_gate_args.param_buf[0];
+	    (struct ssl_eproc_cow_args *) &TLS_DATA->tls_gate_args.param_buf[0];
 	if (!taint_cow(d->root_ct, COBJ(0, 0)))
 	    throw error(-E_UNSPEC, "cow didn't happen?");
 
