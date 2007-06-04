@@ -39,3 +39,10 @@ lo (10 low bits)
 make sure we check alignment for user-provided pointers
 how to do utrap masking?
 
+make sure we clear kernel data from register windows before returning to
+user-space (or set WIM to block them, and zero them on demand).
+
+to avoid flush-to-stack covert channels, simulate a 2-window register set
+which gets saved and restored in its entirety on context switches?  3-window
+register set is probably too big to fit in Thread.
+
