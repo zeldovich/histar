@@ -75,7 +75,6 @@ int
 bipipe(int fv[2])
 {
     int r;
-    struct cobj_ref seg;
     
     uint64_t taint = handle_alloc();
     uint64_t grant = handle_alloc();
@@ -97,7 +96,7 @@ bipipe(int fv[2])
 
     r = bipipe_fd(jr0, O_RDWR, grant, taint);
     if (r < 0) {
-	sys_obj_unref(seg);
+	jcomm_unref(jr0);
 	return r;
     }
     fv[0] = r;
