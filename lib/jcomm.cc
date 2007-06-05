@@ -60,7 +60,7 @@ jlink_read(struct jlink *jl, void *buf, uint64_t cnt, int16_t mode)
     int64_t cc = -1;
     jthread_mutex_lock(&jl->mu);
     while (jl->bytes == 0) {
-        int nonblock = (mode & JCOMM_NONBLOCK);
+        int nonblock = (mode & JCOMM_NONBLOCK_RD);
 	if (!nonblock)
 	    jl->reader_waiting = 1;
 
@@ -130,7 +130,7 @@ jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
 	   ((pm && !jlink_fullwrite(jl, cnt)) || (!pm && !jlink_minwrite(jl)))) {
     	uint64_t b = jl->bytes;
 	
-	int nonblock = (mode & JCOMM_NONBLOCK);
+	int nonblock = (mode & JCOMM_NONBLOCK_WR);
 	if (!nonblock)
 	    jl->writer_waiting = 1;
 
@@ -239,6 +239,21 @@ jcomm_mode_set(struct jcomm_ref jr, int16_t mode)
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[jr.jc.chan];
     jl->mode = mode;
+    return 0;
+}
+
+int
+jcomm_nonblock_enable(struct jcomm_ref jr)
+{
+    struct jlink *links;
+    int r = jcomm_links_map(jr, &links);
+    if (r < 0)
+	return r;
+    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    
+    links[jr.jc.chan].mode |= JCOMM_NONBLOCK_RD;
+    links[!jr.jc.chan].mode |=  JCOMM_NONBLOCK_WR;
+    
     return 0;
 }
 
