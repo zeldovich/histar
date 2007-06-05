@@ -118,6 +118,7 @@ sercons_init(void)
     // Enable serial interrupts
     if (serial_exists) {
 	static struct interrupt_handler ih = {.ih_func = &serial_intr };
+	ih.ih_arg = com_port;
 	irq_register(com_port->irq, &ih);
     } else {
 	cprintf("Serial port does not exist\n");
