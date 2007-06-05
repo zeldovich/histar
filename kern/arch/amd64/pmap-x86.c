@@ -3,6 +3,7 @@
 #include <kern/lib.h>
 #include <kern/thread.h>
 #include <kern/arch.h>
+#include <kern/pageinfo.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 #include <inc/intmacro.h>
@@ -189,12 +190,6 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     return 0;
 }
 
-void
-pmap_tlb_invlpg(const void *va)
-{
-    invlpg(va);
-}
-
 ppn_t
 pa2ppn(physaddr_t pa)
 {
@@ -212,4 +207,114 @@ ppn2pa(ppn_t pn)
 	panic("ppn2pa: ppn %lx out of range, npages %"PRIu64,
 	      (unsigned long) pn, global_npages);
     return (pn << PGSHIFT);
+}
+
+/*
+ * Page table entry management.
+ */
+
+enum { pmap_invlpg_max = 4 };
+static uint32_t cur_pgmap_invlpg_count;
+static void *cur_pgmap_invlpg_addrs[pmap_invlpg_max];
+
+static void
+pmap_queue_invlpg(const struct Pagemap *pgmap, void *addr)
+{
+    if (cur_pgmap != pgmap)
+	return;
+
+    if (cur_pgmap_invlpg_count >= pmap_invlpg_max) {
+	cur_pgmap_invlpg_count = pmap_invlpg_max + 1;
+	return;
+    }
+
+    if (cur_pgmap_invlpg_count > 0 &&
+	cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count - 1] == addr)
+	return;
+
+    cur_pgmap_invlpg_addrs[cur_pgmap_invlpg_count++] = addr;
+}
+
+void
+pmap_set_current(struct Pagemap *new_pgmap)
+{
+    int flush_tlb = 0;
+    if (cur_pgmap != new_pgmap || cur_pgmap_invlpg_count > pmap_invlpg_max) {
+	flush_tlb = 1;
+    } else {
+	for (uint32_t i = 0; i < cur_pgmap_invlpg_count; i++)
+	    invlpg(cur_pgmap_invlpg_addrs[i]);
+    }
+
+    cur_pgmap = new_pgmap;
+    cur_pgmap_invlpg_count = 0;
+
+    if (flush_tlb)
+	pmap_set_current_arch(new_pgmap);
+}
+
+void
+as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
+{
+    const struct Pagemap *pgmap = arg;
+    uint64_t pte = *ptep;
+    if (!(pte & PTE_P) || !(pte & PTE_D))
+	return;
+
+    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
+    pi->pi_dirty = 1;
+    *ptep &= ~PTE_D;
+    pmap_queue_invlpg(pgmap, va);
+}
+
+void
+as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
+{
+    const struct Pagemap *pgmap = arg;
+    as_arch_collect_dirty_bits(arg, ptep, va);
+
+    uint64_t pte = *ptep;
+    if ((pte & PTE_P)) {
+	if ((pte & PTE_W))
+	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep = 0;
+	pmap_queue_invlpg(pgmap, va);
+    }
+}
+
+void
+as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
+{
+    const struct Pagemap *pgmap = arg;
+    as_arch_collect_dirty_bits(arg, ptep, va);
+
+    uint64_t pte = *ptep;
+    if ((pte & PTE_P) && (pte & PTE_W)) {
+	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep &= ~PTE_W;
+	pmap_queue_invlpg(pgmap, va);
+    }
+}
+
+int
+as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
+{
+    uint64_t ptflags = PTE_P | PTE_U | PTE_NX;
+    if ((flags & SEGMAP_WRITE))
+	ptflags |= PTE_W;
+    if ((flags & SEGMAP_EXEC))
+	ptflags &= ~PTE_NX;
+
+    ptent_t *ptep;
+    int r = pgdir_walk(pgmap, va, 1, &ptep);
+    if (r < 0)
+	return r;
+
+    as_arch_page_invalidate_cb(pgmap, ptep, va);
+    *ptep = kva2pa(pp) | ptflags;
+    if ((ptflags & PTE_W))
+	pagetree_incpin(pp);
+
+    pmap_queue_invlpg(pgmap, va);
+    return 0;
 }

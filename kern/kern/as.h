@@ -37,6 +37,7 @@ struct Address_space {
 };
 
 extern const struct Address_space *cur_as;
+extern const struct Pagemap *cur_pgmap;
 
 int  as_alloc(const struct Label *l, struct Address_space **asp)
     __attribute__ ((warn_unused_result));

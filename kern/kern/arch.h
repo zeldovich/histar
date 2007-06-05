@@ -48,8 +48,11 @@ void karch_fp_init(struct Fpregs *fpreg);
  * Page map manipulation
  */
 struct Pagemap;
-void pmap_tlb_invlpg(const void *va);
-void pmap_set_current(struct Pagemap *pm, int flush_tlb);
+void pmap_set_current(struct Pagemap *pm);
+void as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va);
+void as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va);
+void as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va);
+int  as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags);
 
 /*
  * Checks that [ptr .. ptr + nbytes) is valid user memory,

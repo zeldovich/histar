@@ -39,6 +39,7 @@ struct Pagemap {
 };
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
+void pmap_set_current_arch(struct Pagemap *pm);
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 

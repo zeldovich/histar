@@ -164,11 +164,6 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 }
 
 void
-pmap_tlb_invlpg(const void *va)
-{
-}
-
-void
 pmap_set_current(struct Pagemap *pm, int flush_tlb)
 {
     cur_pm = pm;

@@ -21,20 +21,12 @@ page_map_alloc(struct Pagemap **pm_store)
 }
 
 void
-pmap_set_current(struct Pagemap *pm, int flush_tlb)
+pmap_set_current_arch(struct Pagemap *pm)
 {
     if (!pm)
 	pm = &bootpml4;
 
-    uint64_t new_cr3 = kva2pa(pm);
-
-    if (!flush_tlb) {
-	uint64_t cur_cr3 = rcr3();
-	if (cur_cr3 == new_cr3)
-	    return;
-    }
-
-    lcr3(new_cr3);
+    lcr3(kva2pa(pm));
 }
 
 void *
