@@ -1,6 +1,5 @@
 #include <machine/utrap.h>
-#include <dev/console.h>
-#include <dev/kclock.h>
+#include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/sched.h>
 #include <kern/syscall.h>

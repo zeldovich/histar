@@ -4,7 +4,9 @@
 #include <machine/multiboot.h>
 #include <machine/boot.h>
 #include <machine/tsctimer.h>
-#include <dev/console.h>
+#include <dev/sercons.h>
+#include <dev/cgacons.h>
+#include <dev/lptcons.h>
 #include <dev/disk.h>
 #include <dev/pci.h>
 #include <dev/picirq.h>
@@ -95,7 +97,9 @@ init (uint32_t start_eax, uint32_t start_ebx)
 	upper_kb = start_ebx;
 
     idt_init();
-    cons_init();
+    cgacons_init();
+    sercons_init();
+    lptcons_init();
     pic_init();
 
     acpi_init();	/* Picks up HPET, PM timer */

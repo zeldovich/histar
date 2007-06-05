@@ -38,7 +38,9 @@ KERN_LIB :=					\
 	lib/hashtable.c
 
 KERN_DEV :=					\
-	kern/dev/console.c			\
+	kern/dev/cgacons.c			\
+	kern/dev/sercons.c			\
+	kern/dev/lptcons.c			\
 	kern/dev/kclock.c			\
 	kern/dev/picirq.c			\
 	kern/dev/disk.c				\

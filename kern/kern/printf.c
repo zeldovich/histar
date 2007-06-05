@@ -2,7 +2,7 @@
 // based on printfmt() and the kernel console's putchar().
 
 #include <kern/lib.h>
-#include <dev/console.h>
+#include <kern/console.h>
 #include <inc/types.h>
 
 static void

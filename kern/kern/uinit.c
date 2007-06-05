@@ -1,4 +1,4 @@
-#include <dev/console.h>
+#include <kern/console.h>
 #include <kern/thread.h>
 #include <kern/as.h>
 #include <kern/label.h>
