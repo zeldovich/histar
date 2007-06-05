@@ -48,6 +48,8 @@
 #define PT_ET_PTD	1
 #define PT_ET_PTE	2
 
+#define PTE_ADDR(e)	(((e >> PTE_PPN_SHIFT) & PTE_PPN_MASK) << PGSHIFT)
+
 /*
  * Processor status register
  */
