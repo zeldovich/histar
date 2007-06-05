@@ -1,5 +1,6 @@
 extern "C" {
 #include <inc/lib.h>
+#include <inc/netd.h>
 #include <inc/netdlinux.h>
 #include <inc/stdio.h>
 }

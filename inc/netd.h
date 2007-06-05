@@ -175,14 +175,7 @@ typedef enum {
     netd_sel_op_count,
 } netd_sel_op_t;
 
-struct netd_sel_segment {
-    struct {
-	uint64_t init;
-	uint64_t sync;
-	uint64_t gen;
-    } sel_op[netd_sel_op_count];
-    int sock;
-};
+typedef void (*netd_handler)(struct netd_op_args *);
 
 typedef enum {
     netd_if_jif,
