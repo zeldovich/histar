@@ -35,7 +35,7 @@ lpt_intr(void *arg)
     // do nothing
 }
 
-static void
+void
 lptcons_init(void)
 {
     static struct interrupt_handler ih = {.ih_func = &lpt_intr };

@@ -1,5 +1,3 @@
-#include <machine/x86.h>
-#include <machine/pmap.h>
 #include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/intr.h>
