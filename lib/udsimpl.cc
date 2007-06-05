@@ -85,7 +85,7 @@ uds_dgram_gate(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 			    (void **)&jl, &sz, 0);
 	error_check(r);
 	scope_guard2<int, void *, int> unmap2(segment_unmap_delayed, jl, 1);
-	int16_t mode = JCOMM_PACKET | JCOMM_NONBLOCK;
+	int16_t mode = JCOMM_PACKET | JCOMM_NONBLOCK_RD | JCOMM_NONBLOCK_WR;
 	jlink_write(jl, buf, cnt, mode);
     } catch (error &e) {
 	a->ret = EACCES;
@@ -540,7 +540,7 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	
 	int16_t mode = JCOMM_PACKET;
 	if (fd->fd_omode & O_NONBLOCK)
-	    mode |= JCOMM_NONBLOCK;
+	    mode |= JCOMM_NONBLOCK_RD | JCOMM_NONBLOCK_WR;
 	r = jlink_read(jl, buf, count, JCOMM_PACKET);
     } else {
 	if (!fd->fd_uds.s.connect)
