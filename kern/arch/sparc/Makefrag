@@ -12,7 +12,10 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/pmap.c			\
 	$(ARCHDIR)/page.c			\
-	$(ARCHDIR)/reboot.c
+	$(ARCHDIR)/reboot.c			\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/misc.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\
