@@ -14,8 +14,22 @@ extern "C" {
 
 enum { netd_do_taint = 0 };
 
+static void __attribute__((noreturn))
+netd_jcomm_gate_entry(uint64_t a, gate_call_data *gcd, gatesrv_return *rg)
+{
+    netd_jcomm_handler h = (netd_jcomm_handler)a;
+
+    jcomm_ref jr;
+    int *ret = (int *)gcd->param_buf;
+    memcpy(&jr, gcd->param_buf, sizeof(jr));
+    
+    *ret = h(jr);
+    
+    rg->ret(0, 0, 0);
+}
+
 int
-netd_linux_server_init(netd_handler h)
+netd_linux_server_init(netd_jcomm_handler h)
 {
     try {
 	label cntm;
@@ -27,10 +41,15 @@ netd_linux_server_init(netd_handler h)
 	if (netd_do_taint)
 	    cntm.set(inet_taint, 2);
 
+	gate_create(start_env->shared_container, "netd-jcomm", &cntm, &clear, 
+		    0, netd_jcomm_gate_entry, (uintptr_t)h);
+
+	/*
 	netd_server_init(start_env->shared_container,
 			 inet_taint, &cntm, &clear, h);
 	netd_server_enable();
-	
+	*/
+
 	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
 	error_check(sig_gt);
