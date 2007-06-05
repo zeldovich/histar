@@ -42,7 +42,7 @@ cons_probe(void)
     struct cons_device *cd;
     LIST_FOREACH(cd, &cdevs, cd_link)
 	if (cd->cd_pollin)
-	    cd->cd_pollin(cd->cd_arg);
+	    cons_intr(cd->cd_pollin, cd->cd_arg);
 
     return cons_inq.rpos != cons_inq.wpos;
 }
@@ -51,7 +51,6 @@ void
 cons_intr(int (*proc)(void*), void *arg)
 {
     int c;
-    int i;
 
     while ((c = (*proc)(arg)) != -1) {
 	if (c == 0)

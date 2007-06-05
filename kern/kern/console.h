@@ -8,7 +8,7 @@ extern struct Thread_list console_waiting;
 
 struct cons_device {
     void *cd_arg;
-    void (*cd_pollin) (void *);
+    int  (*cd_pollin) (void *);
     void (*cd_output) (void *, int);
     LIST_ENTRY(cons_device) cd_link;
 };
