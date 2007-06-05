@@ -11,7 +11,8 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/pmap.c			\
-	$(ARCHDIR)/page.c
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/reboot.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\

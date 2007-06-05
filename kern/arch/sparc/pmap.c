@@ -14,4 +14,16 @@ kva2pa(void *kva)
     if (va >= PHYSBASE)
 	return va - PHYSBASE;
     panic("kva2pa called with invalid kva %p", kva);
-} 
+}
+
+ppn_t
+pa2ppn(physaddr_t pa)
+{
+    return (pa >> PGSHIFT);
+}
+
+physaddr_t
+ppn2pa(ppn_t pn)
+{
+    return (pn << PGSHIFT);
+}
