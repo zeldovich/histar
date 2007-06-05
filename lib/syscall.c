@@ -23,12 +23,6 @@ sys_cons_probe(void)
     return syscall(SYS_cons_probe, 0, 0, 0, 0, 0, 0, 0);
 }
 
-int
-sys_cons_cursor(int line, int col)
-{
-    return syscall(SYS_cons_cursor, line, col, 0, 0, 0, 0, 0);
-}
-
 int64_t
 sys_net_create(uint64_t container, uint64_t card_idx,
 	       const struct ulabel *l, const char *name)

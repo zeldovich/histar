@@ -15,7 +15,6 @@ uint64_t syscall(uint32_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
 int	sys_cons_puts(const char *s, uint64_t size);
 int	sys_cons_getc(void);
-int	sys_cons_cursor(int line, int col);
 int	sys_cons_probe(void);
 
 int64_t sys_net_create(uint64_t container, uint64_t card_idx,

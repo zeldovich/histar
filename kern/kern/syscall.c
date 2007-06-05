@@ -93,13 +93,6 @@ sys_cons_getc(void)
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_cons_cursor(int line, int col)
-{
-    cons_cursor(line, col);
-    return 0;
-}
-
-static int64_t __attribute__ ((warn_unused_result))
 sys_cons_probe(void)
 {
     return cons_probe();
@@ -1016,7 +1009,6 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 
     switch (num) {
 	SYSCALL(cons_puts, p1, a2);
-	SYSCALL(cons_cursor, a1, a2);
 	SYSCALL(net_macaddr, COBJ(a1, a2), p3);
 	SYSCALL(net_buf, COBJ(a1, a2), COBJ(a3, a4), a5, a6);
 	SYSCALL(machine_reboot);

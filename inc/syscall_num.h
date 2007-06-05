@@ -4,7 +4,6 @@
 #define ALL_SYSCALLS \
     SYSCALL_ENTRY(cons_puts)			\
     SYSCALL_ENTRY(cons_getc)			\
-    SYSCALL_ENTRY(cons_cursor)			\
     SYSCALL_ENTRY(cons_probe)			\
 						\
     SYSCALL_ENTRY(net_create)			\
