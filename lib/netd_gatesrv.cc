@@ -21,16 +21,17 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
+#include <inc/netdsrv.hh>
 
 static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;
 static struct cobj_ref netd_asref;
 
-static void netd_gate_init(uint64_t gate_ct, label *l, label *clear);
-
 static void __attribute__((noreturn))
-netd_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
+netd_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
+    netd_handler h = (netd_handler)a;    
+    
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, UINT64(~0));
 
@@ -50,7 +51,7 @@ netd_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
     if (r < 0)
 	panic("netd_gate_entry: cannot map args: %s\n", e2s(r));
 
-    netd_dispatch(netd_op);
+    h(netd_op);
     segment_unmap(netd_op);
 
     uint64_t copy_back_ct = gcd->taint_container;
@@ -99,8 +100,9 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
 }
 
 static void __attribute__((noreturn))
-netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
+netd_fast_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
+    netd_handler h = (netd_handler)a;    
     uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref temp_as;
     struct netd_ipc_segment *ipc = 0;
@@ -159,7 +161,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 	    while (ipc_shared->sync == NETD_IPC_SYNC_REQUEST) {
 		memcpy(&ipc_copy->args, &ipc_shared->args,
 		       ipc_shared->args.size);
-		netd_dispatch(&ipc_copy->args);
+		h(&ipc_copy->args);
 		memcpy(&ipc_shared->args, &ipc_copy->args,
 		       ipc_copy->args.size);
 
@@ -184,7 +186,7 @@ netd_fast_gate_entry(uint64_t x, struct gate_call_data *gcd, gatesrv_return *rg)
 }
 
 static void
-netd_gate_init(uint64_t gate_ct, label *l, label *clear)
+netd_gate_init(uint64_t gate_ct, label *l, label *clear, netd_handler h)
 {
     try {
 	label verify(3);
@@ -194,7 +196,7 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 	gd.label_ = l;
 	gd.clearance_ = clear;
 	gd.verify_ = &verify;
-	gd.arg_ = 0;
+	gd.arg_ = (uintptr_t)h;
 
 	gd.name_ = "netd";
 	gd.func_ = &netd_gate_entry;
@@ -217,7 +219,8 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear)
 void
 netd_server_init(uint64_t gate_ct,
 		 uint64_t taint_handle,
-		 label *l, label *clear)
+		 label *l, label *clear, 
+		 netd_handler h)
 {
     error_check(sys_self_get_as(&netd_asref));
 
@@ -225,7 +228,7 @@ netd_server_init(uint64_t gate_ct,
 	gate_create(start_env->shared_container, "declassifier",
 		    0, 0, 0, &declassifier, taint_handle);
 
-    netd_gate_init(gate_ct, l, clear);
+    netd_gate_init(gate_ct, l, clear, h);
 }
 
 void

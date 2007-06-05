@@ -60,7 +60,7 @@ main(int ac, char **av)
 	    cntm.set(inet_taint, 2);
 
 	netd_server_init(start_env->shared_container,
-			 inet_taint, &cntm, &clear);
+			 inet_taint, &cntm, &clear, netd_dispatch);
 
 	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
