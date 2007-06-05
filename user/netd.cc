@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/netd.h>
+#include <inc/netdlwip.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -60,7 +61,7 @@ main(int ac, char **av)
 	    cntm.set(inet_taint, 2);
 
 	netd_server_init(start_env->shared_container,
-			 inet_taint, &cntm, &clear, netd_dispatch);
+			 inet_taint, &cntm, &clear, netd_lwip_dispatch);
 
 	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");

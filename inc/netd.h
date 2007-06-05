@@ -194,8 +194,6 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
 		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
     __attribute__((noreturn));
 
-void netd_dispatch(struct netd_op_args *a);
-
 int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 struct cobj_ref netd_get_gate(void);

@@ -6,6 +6,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
+#include <inc/netdlwip.h>
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>
@@ -29,7 +30,7 @@ lwip_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
 }
 
 void
-netd_dispatch(struct netd_op_args *a)
+netd_lwip_dispatch(struct netd_op_args *a)
 {
     lwip_core_lock();
 
