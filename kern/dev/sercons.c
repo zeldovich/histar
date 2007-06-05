@@ -125,7 +125,7 @@ sercons_init(void)
     }
 
     uint64_t start = karch_get_tsc();
-    serial_putc(0, '\n');
+    serial_putc(com_port, '\n');
     if (karch_get_tsc() - start > 0x100000) {
 	cprintf("Serial port too slow, disabling.\n");
 	return;
