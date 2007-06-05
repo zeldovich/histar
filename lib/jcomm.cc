@@ -276,9 +276,8 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     struct jlink *jl = &links[!jr.jc.chan];
-    int16_t mode = links[jr.jc.chan].mode;
 
-    return jlink_write(jl, buf, cnt, mode);
+    return jlink_write(jl, buf, cnt, jl->mode);
 }
 
 int
