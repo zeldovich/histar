@@ -8,11 +8,11 @@
  *
  *   2^32 --------->  +---------------------------------------------+
  *                    |                                             |
- *                    |        3GB..4GB of physical memory          |
+ *                    |     1GB..2GB of physical address space      |
  *                    |                                             |
- *   PHYSTOP  ----->  +---------------------------------------------+
+ *                    +---------------------------------------------+
  *                    |                                             |
- *                    |        0GB..1GB of physical memory          |
+ *                    |     0GB..1GB of physical address space      |
  *                    |                                             |
  *   PHYSBOT/ULIM ->  +---------------------------------------------+
  *                    |                 user stack                  |
@@ -21,12 +21,11 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define PHYSBOT		0x80000000
-#define PHYSTOP		0xc0000000
-#define KERNBASE	PHYSBOT
-#define RELOC(x)	(CASTPTR(x) - PHYSBOT)
+#define PHYSBASE	0x80000000
+#define KERNBASE	PHYSBASE
+#define RELOC(x)	(CASTPTR(x) - PHYSBASE)
 
-#define ULIM		PHYSBOT
+#define ULIM		PHYSBASE
 
 // User-mode (below ULIM) address space layout conventions.
 #define USTACKTOP	ULIM
