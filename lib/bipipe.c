@@ -72,7 +72,7 @@ bipipe_fd(struct jcomm_ref jr, int fd_mode, uint64_t grant, uint64_t taint)
 }
 
 int
-bipipe(int fv[2])
+bipipe(int type, int fv[2])
 {
     int r;
     
@@ -89,7 +89,11 @@ bipipe(int fv[2])
 
     struct jcomm_ref jr0, jr1;
 
-    if ((r = jcomm_alloc(BIPIPE_DEF_CT, &label, 0, &jr0, &jr1)) < 0) {
+    int16_t mode = 0;
+    if (type == SOCK_DGRAM)
+	mode = JCOMM_PACKET;
+    
+    if ((r = jcomm_alloc(BIPIPE_DEF_CT, &label, mode, &jr0, &jr1)) < 0) {
 	errno = ENOMEM;
         return -1;
     }
