@@ -1,10 +1,10 @@
 # -*-Makefile-*-
 
-# The 0x134 link offset corresponds to the offset of the text section
+# The 0x74 link offset corresponds to the offset of the text section
 # in the resulting ELF kernel file.  This way, the kernel ELF binary
-# can be loaded at exactly 0xc0000000, without any further relocation.
+# can be loaded at a zero offset without any padding or relocation.
 
-KERN_LDFLAGS = -N -Ttext 0xc0000134 -e start -nostdlib
+KERN_LDFLAGS = -N -Ttext 0xc0000074 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
