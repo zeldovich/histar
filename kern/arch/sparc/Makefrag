@@ -4,7 +4,7 @@
 # in the resulting ELF kernel file.  This way, the kernel ELF binary
 # can be loaded at a zero offset without any padding or relocation.
 
-KERN_LDFLAGS = -N -Ttext 0xc0000074 -e start -nostdlib
+KERN_LDFLAGS = -N -Ttext 0x40000074 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
