@@ -46,3 +46,8 @@ to avoid flush-to-stack covert channels, simulate a 2-window register set
 which gets saved and restored in its entirety on context switches?  3-window
 register set is probably too big to fit in Thread.
 
+page tables are not page-sized (1st level PT is 1K, 2nd/3rd level PTs are
+256 bytes each), but we can avoid wasteful memory allocation by sticking
+16 2nd/3rd level PTs per 4KB page, and linking all of them into the higher
+level table.
+
