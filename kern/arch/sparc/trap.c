@@ -18,10 +18,23 @@ thread_arch_run(const struct Thread *t)
     panic("thread_arch_run");
 }
 
+void
+thread_arch_idle(void)
+{
+    panic("thread_arch_idle");
+}
+
 int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 {
     return -E_INVAL;
+}
+
+void
+karch_jmpbuf_init(struct jos_jmp_buf *jb,
+		  void *fn, void *stackbase)
+{
+    /* XXX */
 }
 
 int
@@ -29,5 +42,18 @@ thread_arch_get_entry_args(const struct Thread *t,
 			   struct thread_entry_args *targ)
 {
     memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
+    return 0;
+}
+
+void
+karch_fp_init(struct Fpregs *fpreg)
+{
+    /* XXX */
+}
+
+int
+thread_arch_is_masked(const struct Thread *t)
+{
+    /* XXX */
     return 0;
 }
