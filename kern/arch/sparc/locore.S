@@ -2,7 +2,8 @@
 
 ENTRY(start)
 	mov	%l0, %l1
-//1:	jmp 1b
+1:	ba 1b
+	nop
 
 trap_return:
 	jmpl	%r17, %r0	/* old PC */
