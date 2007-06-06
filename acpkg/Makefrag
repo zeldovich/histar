@@ -261,6 +261,9 @@ acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
 
 $(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
 
+## ftp://ftp.gnu.org/gnu/findutils/findutils-4.2.31.tar.gz
+$(OBJDIR)/acpkg/bin/find: acpkg/findutils-4.2.31/__build
+
 ## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 
