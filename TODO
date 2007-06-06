@@ -1,3 +1,7 @@
+Usability:
+
+* shared libraries: all of libc+libjos in ld.so, replace ld.so to upgrade?
+
 Compatibility issues:
 
 * implement libc-tsd for correct multi-threaded libc-rpc
