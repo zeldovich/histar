@@ -22,6 +22,10 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
 	@mkdir -p $(@D)
 	$(CC) $(LDSO_CFLAGS) -D_GNU_SOURCE -c -o $@ $<
 
+$(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(LDSO_CFLAGS) -c -o $@ $<
+
 $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES)
 	@mkdir -p $(@D)
 	$(CC) -o $@ $(LDFLAGS) $< $(LDSO_LDFLAGS)
