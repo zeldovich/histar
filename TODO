@@ -1,6 +1,20 @@
 Usability:
 
 * shared libraries: all of libc+libjos in ld.so, replace ld.so to upgrade?
+* multi-referenced containers
+  - what happens to parent pointers?  disable for multi-refable containers..
+  - depth count, with inf value?  not so composable, but decent.
+* bootstrapping
+  - disk device object:
+    + disk_create(int index)
+    + disk_identify(struct disk_id) -> bus, device#, manuf, serial, size
+    + disk_{read,write}_buf() -> read or write sector buffer for disk device
+    + disk_cmd(uint64_t offset) -> transfer data between disk and sector buffer
+    + disk_status() -> command active/completed
+  - pstate=bootstrap enables disk devices, does not write pstate to disk.
+    + initialize partition table, write a kernel-only boot file to disk
+  - sys_pstate_enable() disables disk device access, writes pstate to disk.
+    + writes the user-level persistent state to disk for later use.
 
 Compatibility issues:
 
