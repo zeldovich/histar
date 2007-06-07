@@ -15,7 +15,6 @@ Usability:
     + initialize partition table, write a kernel-only boot file to disk
   - sys_pstate_enable() disables disk device access, writes pstate to disk.
     + writes the user-level persistent state to disk for later use.
-* rename!
 
 Compatibility issues:
 

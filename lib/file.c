@@ -21,9 +21,9 @@
 #include <bits/unimpl.h>
 
 static int
-err_jos2libc(int r)
+err_jos2libc(int64_t r)
 {
-    if (!r)
+    if (r >= 0)
 	return 0;
 
     if (r == -E_LABEL)
@@ -58,7 +58,7 @@ mkdir(const char *pn, mode_t mode)
 
     r = fs_namei(dirname, &dir);
     if (r < 0)
-        goto done ;
+        goto done;
 
     struct fs_inode ndir;
     r = fs_mkdir(dir, basenm, &ndir, 0);
@@ -89,30 +89,24 @@ link(const char *oldpath, const char *newpath)
 
     struct fs_inode dir_ino;
     int r = fs_namei(dirname, &dir_ino);
-    if (r < 0) {
-	free(pn);
-	return err_jos2libc(r);
-    }
+    if (r < 0)
+	goto err;
 
     struct fs_inode ino;
     r = fs_namei(oldpath, &ino);
-    if (r < 0) {
-	free(pn);
-	return err_jos2libc(r);
-    }
+    if (r < 0)
+	goto err;
 
     r = fs_link(dir_ino, basenm, ino);
-    if (r < 0) {
+    if (r < 0 && r != -E_LABEL) {
 	free(pn);
-	if (r != -E_LABEL) {
-	    __set_errno(EXDEV);
-	    return -1;
-	} else {
-	    return err_jos2libc(r);
-	}
+	__set_errno(EXDEV);
+	return -1;
     }
 
-    return 0;
+ err:
+    free(pn);
+    return err_jos2libc(r);
 }
 
 int 
@@ -124,26 +118,24 @@ symlink(const char *oldpath, const char *newpath)
 
     struct fs_inode dir_ino;
     int r = fs_namei(dirname, &dir_ino);
-    if (r < 0) {
-	free(pn);
-	return err_jos2libc(r);
-    }
+    if (r < 0)
+	goto err;
 
     struct fs_inode ino;
     r = fs_mknod(dir_ino, basenm, devsymlink.dev_id, 0, &ino, 0);
-    if (r < 0) {
-	free(pn);
-	return err_jos2libc(r);
-    }
+    if (r < 0)
+	goto err;
 
     ssize_t cc = fs_pwrite(ino, oldpath, strlen(oldpath), 0);
     if (cc < 0) {
 	fs_remove(dir_ino, basenm, ino);
-	free(pn);
-	return err_jos2libc(r);
+	r = cc;
+	goto err;
     }
 
-    return 0;
+ err:
+    free(pn);
+    return err_jos2libc(r);
 }
 
 int 
@@ -206,19 +198,17 @@ unlink(const char *pn)
 
     struct fs_inode dir;
     int r = fs_namei(dirname, &dir);
-    if (r < 0) {
-	free(pn2);
-	return r;
-    }
+    if (r < 0)
+	goto err;
 
     struct fs_inode f;
     r = fs_namei_flags(pn, &f, NAMEI_LEAF_NOEVAL);
-    if (r < 0) {
-	free(pn2);
-	return r;
-    }
+    if (r < 0)
+	goto err;
 
     r = fs_remove(dir, basenm, f);
+
+ err:
     free(pn2);
     return r;
 }
@@ -232,8 +222,42 @@ rmdir(const char *pn)
 int
 rename(const char *src, const char *dst)
 {
-    set_enosys();
-    return -1;
+    char *src2 = strdup(src);
+    const char *src_dir, *src_base;
+    fs_dirbase(src2, &src_dir, &src_base);
+
+    char *dst2 = strdup(dst);
+    const char *dst_dir, *dst_base;
+    fs_dirbase(dst2, &dst_dir, &dst_base);
+
+    struct fs_inode src_dir_ino;
+    int r = fs_namei(src_dir, &src_dir_ino);
+    if (r < 0)
+	goto err;
+
+    struct fs_inode dst_dir_ino;
+    r = fs_namei(dst_dir, &dst_dir_ino);
+    if (r < 0)
+	goto err;
+
+    if (src_dir_ino.obj.object != dst_dir_ino.obj.object) {
+	free(src2);
+	free(dst2);
+	__set_errno(EXDEV);
+	return -1;
+    }
+
+    struct fs_inode f;
+    r = fs_namei_flags(src, &f, NAMEI_LEAF_NOEVAL);
+    if (r < 0)
+	goto err;
+
+    r = fs_rename(src_dir_ino, src_base, dst_base, f);
+
+ err:
+    free(src2);
+    free(dst2);
+    return err_jos2libc(r);
 }
 
 int

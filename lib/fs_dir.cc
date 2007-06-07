@@ -335,6 +335,22 @@ fs_remove(struct fs_inode dir, const char *name, struct fs_inode f)
     return 0;
 }
 
+int
+fs_rename(struct fs_inode dir, const char *oldfn, const char *newfn, struct fs_inode f)
+{
+    try {
+	fs_dir *d = fs_dir_open(dir, 1);
+	scope_guard<void, fs_dir *> g(delete_obj, d);
+
+	d->insert(newfn, f);
+	d->remove(oldfn, f);
+    } catch (error &e) {
+	return e.err();
+    }
+
+    return 0;
+}
+
 void
 fs_dirbase(char *pn, const char **dirname, const char **basename)
 {
