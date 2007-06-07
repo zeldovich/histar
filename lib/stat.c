@@ -56,6 +56,8 @@ jos_stat(struct fs_inode ino, struct stat64 *buf)
 	    return -1;
 	}
 	buf->st_size = len;
+	buf->st_blksize = 512;
+	buf->st_blocks = ROUNDUP(len, 512) / 512;
     }
 
     buf->st_mode |= ftype;
