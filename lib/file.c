@@ -83,8 +83,36 @@ done:
 int 
 link(const char *oldpath, const char *newpath)
 {
-    set_enosys();
-    return -1;
+    char *pn = strdup(newpath);
+    const char *dirname, *basenm;
+    fs_dirbase(pn, &dirname, &basenm);
+
+    struct fs_inode dir_ino;
+    int r = fs_namei(dirname, &dir_ino);
+    if (r < 0) {
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    struct fs_inode ino;
+    r = fs_namei(oldpath, &ino);
+    if (r < 0) {
+	free(pn);
+	return err_jos2libc(r);
+    }
+
+    r = fs_link(dir_ino, basenm, ino);
+    if (r < 0) {
+	free(pn);
+	if (r != -E_LABEL) {
+	    __set_errno(EXDEV);
+	    return -1;
+	} else {
+	    return err_jos2libc(r);
+	}
+    }
+
+    return 0;
 }
 
 int 
