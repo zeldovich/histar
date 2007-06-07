@@ -2,7 +2,7 @@ OBJDIRS += pkg/uclibc/ldso/ldso
 
 LDSO_OBJFILES := \
 	$(OBJDIR)/pkg/uclibc/ldso/ldso/ldso.o \
-	$(OBJDIR)/pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/resolve.o
+	$(OBJDIR)/pkg/uclibc/ldso/ldso/resolve.o
 
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
@@ -26,7 +26,7 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
 	@mkdir -p $(@D)
 	$(CC) $(LDSO_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES)
+$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDEPS)
 	@mkdir -p $(@D)
-	$(CC) -o $@ $(LDFLAGS) $< $(LDSO_LDFLAGS)
+	$(CC) -o $@ $(LDFLAGS) $(LDSO_OBJFILES) $(LDSO_LDFLAGS) -nostartfiles
 
