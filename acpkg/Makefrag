@@ -253,10 +253,12 @@ $(OBJDIR)/user/gs.tar: acpkg/ghostscript-8.54-gpl/__build $(ACPKG_GS_FONTS)
 ## [ description of microperl:
 ##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
 acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro clean" )	
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" )	
-	mkdir -p $(OBJDIR)/acpkg/bin/
-	cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl
+	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro clean" ); \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" ) && \
+	    mkdir -p $(OBJDIR)/acpkg/bin && \
+	    cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl; \
+	fi
 	touch $@
 
 $(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
