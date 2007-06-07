@@ -5,6 +5,7 @@
 
 // e_type values
 #define ELF_TYPE_EXEC		2
+#define ELF_TYPE_DYNAMIC	3
 #define ELF_TYPE_CORE		4
 
 // e_ident indexes
