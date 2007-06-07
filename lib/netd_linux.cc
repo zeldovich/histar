@@ -15,50 +15,53 @@ extern "C" {
 enum { netd_do_taint = 0 };
 
 static void __attribute__((noreturn))
-netd_jcomm_gate_entry(uint64_t a, gate_call_data *gcd, gatesrv_return *rg)
+netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    netd_jcomm_handler h = (netd_jcomm_handler)a;
+    netd_socket_handler h = (netd_socket_handler) a;
+    socket_conn *sr = (socket_conn *)gcd->param_buf;
+    h(sr);
 
-    jcomm_ref jr;
-    int *ret = (int *)gcd->param_buf;
-    memcpy(&jr, gcd->param_buf, sizeof(jr));
-    
-    *ret = h(jr);
-    
     rg->ret(0, 0, 0);
 }
 
 int
-netd_linux_server_init(netd_jcomm_handler h)
+netd_linux_server_init(netd_socket_handler h)
 {
     try {
-	label cntm;
-	label clear;
-	uint64_t inet_taint = 0;
+	label l(1);
+	label c(3);
+	label v(3);
 	
-	thread_cur_label(&cntm);
-	thread_cur_clearance(&clear);
+	thread_cur_label(&l);
+	thread_cur_clearance(&c);
+
+	uint64_t inet_taint = 0;
 	if (netd_do_taint)
-	    cntm.set(inet_taint, 2);
+	    l.set(inet_taint, 2);
+	
+	
+	gatesrv_descriptor gd;
+	gd.gate_container_ = start_env->shared_container;
+	gd.label_ = &l;
+	gd.clearance_ = &c;
+	gd.verify_ = &v;
 
-	gate_create(start_env->shared_container, "netd-jcomm", &cntm, &clear, 
-		    0, netd_jcomm_gate_entry, (uintptr_t)h);
+	gd.arg_ = (uintptr_t) h;
+	gd.name_ = "netd-socket";
+	gd.func_ = &netd_linux_gate_entry;
+	gd.flags_ = GATESRV_KEEP_TLS_STACK;
+	cobj_ref gate = gate_create(&gd);
+	
+	cprintf("gate: %ld.%ld\n", gate.container, gate.object);
 
-	/*
-	netd_server_init(start_env->shared_container,
-			 inet_taint, &cntm, &clear, h);
-	netd_server_enable();
-	*/
-
-	// Disable signals -- the signal gate has { inet_taint:* }
 	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
 	error_check(sig_gt);
 	error_check(sys_obj_unref(COBJ(start_env->shared_container, sig_gt)));
-
-	thread_set_label(&cntm);
+	
+	thread_set_label(&l);
     } catch (std::exception &e) {
-	panic("%s", e.what());
+	cprintf("netd_linux_server_init: %s\n", e.what());
+	return -1;
     }
-    
     return 0;
 }
