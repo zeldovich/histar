@@ -7,11 +7,12 @@ LDSO_OBJFILES := \
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
 		-fno-omit-frame-pointer \
+		-Iuinc/ldso \
 		-Ipkg/uclibc/ldso/ldso/$(UCLIBC_ARCH) \
 		-Ipkg/uclibc/ldso/include \
 		-Ipkg/uclibc/ldso/ldso \
-		-DUCLIBC_RUNTIME_PREFIX=/ \
-		-DUCLIBC_LDSO=ld.so \
+		-DUCLIBC_RUNTIME_PREFIX=\"/\" \
+		-DUCLIBC_LDSO=\"ld.so\" \
 		$(UCLIBC_CFLAGS)
 
 LDSO_LDFLAGS := -z defs -z now -e _start -Bsymbolic --export-dynamic \
@@ -19,7 +20,7 @@ LDSO_LDFLAGS := -z defs -z now -e _start -Bsymbolic --export-dynamic \
 
 $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
 	@mkdir -p $(@D)
-	$(CC) $(LDSO_CFLAGS) -D_GNU_SOURCE -Werror -c -o $@ $<
+	$(CC) $(LDSO_CFLAGS) -D_GNU_SOURCE -c -o $@ $<
 
 $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES)
 	@mkdir -p $(@D)
