@@ -126,7 +126,15 @@ mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
     return MAP_FAILED;
 }
 
-int msync(void *start, size_t length, int flags)
+int
+msync(void *start, size_t length, int flags)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+mprotect(void *addr, size_t len, int prot)
 {
     set_enosys();
     return -1;
