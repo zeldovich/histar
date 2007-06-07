@@ -1,0 +1,27 @@
+OBJDIRS += pkg/uclibc/ldso/ldso
+
+LDSO_OBJFILES := \
+	$(OBJDIR)/pkg/uclibc/ldso/ldso/ldso.o \
+	$(OBJDIR)/pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/resolve.o
+
+LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
+		-DNOT_IN_libc -DIS_IN_rtld \
+		-fno-omit-frame-pointer \
+		-Ipkg/uclibc/ldso/ldso/$(UCLIBC_ARCH) \
+		-Ipkg/uclibc/ldso/include \
+		-Ipkg/uclibc/ldso/ldso \
+		-DUCLIBC_RUNTIME_PREFIX=/ \
+		-DUCLIBC_LDSO=ld.so \
+		$(UCLIBC_CFLAGS)
+
+LDSO_LDFLAGS := -z defs -z now -e _start -Bsymbolic --export-dynamic \
+		--sort-common --discard-locals --discard-all --no-undefined
+
+$(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LDSO_CFLAGS) -D_GNU_SOURCE -Werror -c -o $@ $<
+
+$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES)
+	@mkdir -p $(@D)
+	$(CC) -o $@ $(LDFLAGS) $< $(LDSO_LDFLAGS)
+
