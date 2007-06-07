@@ -299,7 +299,7 @@ jos_stat64_to_stat(struct stat64 *src, struct stat *dst)
     F(st_dev);	    F(st_ino);	    F(st_nlink);    F(st_mode);
     F(st_uid);	    F(st_gid);	    F(st_rdev);	    F(st_size);
     F(st_blksize);  F(st_blocks);   F(st_atime);    F(st_mtime);
-    F(st_ctime);
+    F(st_ctime);    F(st_atimensec);F(st_mtimensec);F(st_ctimensec);
 #undef F
 
     return 0;

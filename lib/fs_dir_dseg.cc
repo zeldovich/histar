@@ -6,6 +6,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
+#include <inc/time.h>
 
 #include <string.h>
 }
@@ -245,7 +246,7 @@ fs_dir_dseg::init(fs_inode dir)
 
     struct fs_object_meta meta;
     memset(&meta, 0, sizeof(meta));
-    meta.mtime_nsec = meta.ctime_nsec = sys_clock_nsec();
+    meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();
     meta.dseg_id = dseg.object;
     error_check(sys_obj_set_meta(dir.obj, 0, &meta));
 }

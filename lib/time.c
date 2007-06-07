@@ -14,8 +14,8 @@
 
 #include <bits/unimpl.h>
 
-int
-gettimeofday(struct timeval *tv, struct timezone *tz)
+uint64_t
+jos_time_nsec(void)
 {
     static struct time_of_day_seg *tods;
     if (!tods) {
@@ -27,7 +27,8 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 				SEGMAP_READ, (void **) &tods,
 				&bytes, 0);
 	    if (r < 0)
-		cprintf("gettimeofday: cannot map time segment %"PRIu64".%"PRIu64": %s\n",
+		cprintf("jos_time_nsec: cannot map time segment "
+			"%"PRIu64".%"PRIu64": %s\n",
 			start_env->time_seg.container,
 			start_env->time_seg.object, e2s(r));
 
@@ -39,7 +40,13 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 	jthread_mutex_unlock(&mu);
     }
 
-    uint64_t nsec = sys_clock_nsec() + (tods ? tods->unix_nsec_offset : 0);
+    return sys_clock_nsec() + (tods ? tods->unix_nsec_offset : 0);
+}
+
+int
+gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+    uint64_t nsec = jos_time_nsec();
     tv->tv_sec = nsec / NSEC_PER_SECOND;
     tv->tv_usec = (nsec % NSEC_PER_SECOND) / 1000;
     return 0;

@@ -7,6 +7,7 @@
 #include <inc/chardevs.h>
 #include <inc/syscall.h>
 #include <inc/stat.h>
+#include <inc/time.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -104,7 +105,7 @@ __libc_open(const char *pn, int flags, ...)
     if ((flags & O_ACCMODE) != O_RDONLY) {
 	struct fs_object_meta m;
 	if (sys_obj_get_meta(ino.obj, &m) >= 0) {
-	    m.mtime_nsec = sys_clock_nsec();
+	    m.mtime_nsec = jos_time_nsec();
 	    sys_obj_set_meta(ino.obj, 0, &m);
 	}
     }

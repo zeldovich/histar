@@ -9,6 +9,7 @@ extern "C" {
 #include <inc/gateparam.h>
 #include <inc/stdio.h>
 #include <inc/string.h>
+#include <inc/time.h>
 
 #include <string.h>
 #include <inttypes.h>
@@ -398,7 +399,7 @@ fs_mknod(struct fs_inode dir, const char *fn, uint32_t dev_id, uint32_t dev_opt,
     f->obj = COBJ(dir.obj.object, id);
 
     struct fs_object_meta meta;
-    meta.mtime_nsec = meta.ctime_nsec = sys_clock_nsec();
+    meta.mtime_nsec = meta.ctime_nsec = jos_time_nsec();
     meta.dev_id = dev_id;
     meta.dev_opt = dev_opt;
     int r = sys_obj_set_meta(f->obj, 0, &meta);
