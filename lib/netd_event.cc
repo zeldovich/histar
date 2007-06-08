@@ -39,7 +39,7 @@ netd_slow_probe(struct Fd *fd, dev_probe_t probe)
     a.op_type = netd_op_probe;
     a.probe.fd = fd->fd_sock.s;
     a.probe.write = probe == dev_probe_write ? 1 : 0;
-    return netd_call(fd->fd_sock.netd_gate, &a);
+    return netd_call(fd, &a);
 }
 
 int
@@ -95,7 +95,7 @@ msync_cb(void *arg0, dev_probe_t probe, volatile uint64_t *addr, void **arg1)
     a.op_type = netd_op_notify;
     a.notify.fd = fd->fd_sock.s;
     a.notify.write = probe == dev_probe_write ? 1 : 0;
-    return netd_call(fd->fd_sock.netd_gate, &a);
+    return netd_call(fd, &a);
 }
 
 int

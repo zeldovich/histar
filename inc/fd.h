@@ -100,6 +100,7 @@ struct Fd
 	struct {
 	    struct cobj_ref netd_gate;
 	    int s;
+	    char extra[128];
 	} fd_sock;
 
 	struct {

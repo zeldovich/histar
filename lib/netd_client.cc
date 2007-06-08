@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/stdio.h>
 #include <inc/gateparam.h>
+#include <inc/netdlinux.h>
 
 #include <string.h>
 #include <errno.h>
@@ -21,23 +22,37 @@ extern "C" {
 
 static struct cobj_ref netd_gate;
 
+enum { netd_lwip_mode = 1, netd_linux_mode = 2 };
+static char netd_mode;
+
+static int
+netd_gate_lookup(const char *pn, struct cobj_ref *ret)
+{
+    struct fs_inode netd_ct_ino;
+    int r = fs_namei(pn, &netd_ct_ino);
+    if (r == 0) {
+	uint64_t netd_ct = netd_ct_ino.obj.object;
+	
+	int64_t gate_id = container_find(netd_ct, kobj_gate, "netd");
+	if (gate_id > 0) {
+	    *ret = COBJ(netd_ct, gate_id);
+	    return 0;
+	}
+    }
+    return -1;
+}
+
 static int
 netd_client_init(void)
 {
-    struct fs_inode netd_ct_ino;
-    int r = fs_namei("/netd", &netd_ct_ino);
-    if (r < 0) {
-	cprintf("netd_client_init: fs_namei /netd: %s\n", e2s(r));
-	return r;
+    if (netd_gate_lookup("/netd", &netd_gate) == 0)
+	netd_mode = netd_lwip_mode;
+    else if(netd_gate_lookup("/vmlinux", &netd_gate) == 0)
+	netd_mode = netd_linux_mode;
+    else {
+	cprintf("netd_client_init: unable to find a netd\n");
+	return -E_NOT_FOUND;
     }
-
-    uint64_t netd_ct = netd_ct_ino.obj.object;
-
-    int64_t gate_id = container_find(netd_ct, kobj_gate, "netd");
-    if (gate_id < 0)
-	return gate_id;
-
-    netd_gate = COBJ(netd_ct, gate_id);
     return 0;
 }
 
@@ -233,24 +248,8 @@ netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
     return a->rval;
 }
 
-struct cobj_ref
-netd_create_gates(struct cobj_ref util_gate, uint64_t ct, 
-		  label *cs, label *ds, label *dr)
-{
-    gate_call c(util_gate, cs, ds, dr);
-    struct gate_call_data gcd;
-    int64_t *arg = (int64_t *)gcd.param_buf;
-    *arg = ct;
-    c.call(&gcd);
-    
-    if(*arg < 0)
-	throw error(*arg, "netd_create_gates: unable to create gates");
-    
-    return COBJ(ct, *arg);
-}
-
-int
-netd_call(struct cobj_ref gate, struct netd_op_args *a)
+static int
+netd_lwip_call(struct cobj_ref gate, struct netd_op_args *a)
 {
     static int do_fast_calls;
 
@@ -263,7 +262,7 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 		errno = a->rerrno;
 	    return a->rval;
 	} catch (std::exception &e) {
-	    cprintf("netd_call: cannot fast-call: %s\n", e.what());
+	    cprintf("netd_lwip_call: cannot fast-call: %s\n", e.what());
 	}
     }
 
@@ -276,7 +275,27 @@ netd_call(struct cobj_ref gate, struct netd_op_args *a)
 	
 	return r;
     } catch (error &e) {
-	cprintf("netd_call: %s\n", e.what());
+	cprintf("netd_lwip_call: %s\n", e.what());
 	return e.err();
+    }
+}
+
+int
+netd_call(struct Fd *fd, struct netd_op_args *a)
+{
+    int r;
+    if (!netd_mode) {
+	r = netd_client_init();
+	if (r < 0)
+	    return r;
+    }
+
+    if (netd_mode == netd_lwip_mode)
+	return netd_lwip_call(fd->fd_sock.netd_gate, a);
+    else if(netd_mode == netd_linux_mode)
+	return netd_linux_call(fd, a);
+    else {
+	cprintf("netd_call: bad mode: %d\n", netd_mode);
+	return -E_UNSPEC;
     }
 }

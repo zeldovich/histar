@@ -5,6 +5,8 @@
 #include <inc/container.h>
 #include <sys/select.h>
 
+struct Fd;
+
 // We define our own sockaddr_in because we need to translate
 // between libc and lwip sockaddr_in equivalents.
 struct netd_sockaddr_in {
@@ -187,7 +189,7 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
 		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
     __attribute__((noreturn));
 
-int  netd_call(struct cobj_ref netd_gate, struct netd_op_args *a);
+int  netd_call(struct Fd *fd, struct netd_op_args *a);
 int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 struct cobj_ref netd_get_gate(void);
 void netd_set_gate(struct cobj_ref g);
