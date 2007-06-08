@@ -1,5 +1,5 @@
-#ifndef JOS_INC_GOBLEGATECLNT_HH
-#define JOS_INC_GOBLEGATECLNT_HH
+#ifndef JOS_INC_GOBBLEGATECLNT_HH
+#define JOS_INC_GOBBLEGATECLNT_HH
 
 extern "C" {
 #include <inc/lib.h>
@@ -10,7 +10,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/error.hh>
 
-class goblegate_call 
+class gobblegate_call 
 {
 public:
     struct leftovers {
@@ -36,13 +36,13 @@ public:
 	}
     };
 
-    goblegate_call(cobj_ref gate, 
+    gobblegate_call(cobj_ref gate, 
 		   const label *cs, const label *ds, const label *dr,
 		   bool cleanup) : cleanup_(cleanup) {
 	lo_.gc_ = new gate_call(gate, cs, ds, dr);
     }
 
-    ~goblegate_call(void) {
+    ~gobblegate_call(void) {
 	if (cleanup_)
 	    lo_.cleanup();
     }
@@ -61,9 +61,9 @@ public:
 	    lo_.vc_->from_ulabel(vc->to_ulabel_const());
 	}
 	
-	int r = thread_create_option(thread_ct, &goblegate_stub,
+	int r = thread_create_option(thread_ct, &gobblegate_stub,
 				     &lo_, sizeof(lo_), 
-				     &t, "goblegate_stub", 
+				     &t, "gobblegate_stub", 
 				     &lo_.ta_, THREAD_OPT_ARGCOPY);
 	if (r < 0)
 	    throw error(r, "cannot start thread");
@@ -75,7 +75,7 @@ public:
     
     leftovers lo(void) { return lo_; }
 
-    static void goblegate_stub(void *a) {
+    static void gobblegate_stub(void *a) {
 	leftovers *lo = (leftovers *)a;
 	lo->gc_->call(&lo->gcd_, lo->vl_, lo->vc_, 0, 0, false);
     }

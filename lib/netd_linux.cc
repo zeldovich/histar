@@ -12,7 +12,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
 #include <inc/netdsrv.hh>
-#include <inc/goblegateclnt.hh>
+#include <inc/gobblegateclnt.hh>
 
 enum { netd_do_taint = 0 };
 
@@ -107,7 +107,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 
     try {
 	/* clean up thread artifacts in destructor */
-	goblegate_call gc(gate, 0, &ds, 0, 1);
+	gobblegate_call gc(gate, 0, &ds, 0, 1);
 	gc.call(&gcd, 0, 0);
 
 	client_conn->container = ct;
@@ -122,7 +122,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	    return z;
 	}
 	else if (r < 0) {
-	    cprintf("setup_socket_conn: goble thread error: %d\n", r);
+	    cprintf("setup_socket_conn: gobble thread error: %d\n", r);
 	    return r;
 	}
     } catch (std::exception &e) {

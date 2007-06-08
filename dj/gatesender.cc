@@ -6,7 +6,7 @@ extern "C" {
 
 #include <crypt.h>
 #include <inc/scopeguard.hh>
-#include <inc/goblegateclnt.hh>
+#include <inc/gobblegateclnt.hh>
 #include <inc/labelutil.hh>
 #include <dj/gatesender.hh>
 #include <dj/djlabel.hh>
@@ -34,7 +34,7 @@ gate_sender::send(const dj_delegation_set &dset, const dj_catmap &cm,
 	glabel = tmp;
     }
 
-    goblegate_call gc(g_, &tlabel, &glabel, &gclear, true);
+    gobblegate_call gc(g_, &tlabel, &glabel, &gclear, true);
 
     label reqlabel(tlabel);
     reqlabel.set(gc.call_grant(), 0);
