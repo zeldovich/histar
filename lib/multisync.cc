@@ -66,8 +66,7 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	r = sys_sync_wait_multi(addrs, vals, n, nsec);
 	if (r == -E_NO_SPACE) {
 	    error_check(sys_self_set_waitslots(n));
-	    error_check(sys_sync_wait_multi(addrs, vals, n, nsec));
-	    r = 0;
+	    error_check(r = sys_sync_wait_multi(addrs, vals, n, nsec));
 	}
 	else if (r < 0)
 	    throw error(r, "sys_sync_wait_multi error");
