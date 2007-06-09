@@ -1,6 +1,5 @@
 #include <inc/lib.h>
 #include <inc/netd.h>
-#include <inc/netdioctl.h>
 #include <inc/fs.h>
 #include <inc/error.h>
 #include <inc/stdio.h>

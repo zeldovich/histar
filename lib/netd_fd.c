@@ -2,7 +2,6 @@
 #include <inc/error.h>
 #include <inc/netd.h>
 #include <inc/netdevent.h>
-#include <inc/netdioctl.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
