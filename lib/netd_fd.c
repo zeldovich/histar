@@ -422,7 +422,10 @@ sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 static int
 sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
-    struct netd_ioctl_args a;
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, ioctl) + sizeof(a.ioctl);
+    a.op_type = netd_op_ioctl;
+    struct netd_op_ioctl_args *ia = (struct netd_op_ioctl_args *) &a.ioctl;
 
     switch (req) {
     case SIOCGIFCONF: {
@@ -433,43 +436,40 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	}
 	struct ifreq *r = (struct ifreq *)ifc->ifc_buf;
 
-	a.libc_ioctl = SIOCGIFCONF;
-	a.size = offsetof(struct netd_ioctl_args, gifconf) + sizeof(a.gifconf);
-	int z = netd_ioctl(fd, &a);
+	ia->libc_ioctl = SIOCGIFCONF;
+	int z = netd_call(fd, &a);
 	if (z < 0)
 	    return z;
 
 	int n = sizeof(r->ifr_name);
-	strncpy(r->ifr_name, a.gifconf.name, n);
+	strncpy(r->ifr_name, ia->gifconf.name, n);
 	r->ifr_name[n - 1] = 0;
 
-	netd_to_libc(&a.gifconf.addr, (struct sockaddr_in *)&r->ifr_addr);
+	netd_to_libc(&ia->gifconf.addr, (struct sockaddr_in *)&r->ifr_addr);
 	ifc->ifc_len = sizeof(struct ifreq);
 	return 0;
     }
 
     case SIOCGIFFLAGS: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
-	a.libc_ioctl = SIOCGIFFLAGS;
-	strncpy(a.gifflags.name, r->ifr_name, sizeof(a.gifbrdaddr.name));
-	a.size = offsetof(struct netd_ioctl_args, gifflags) + sizeof(a.gifflags);
-	int z = netd_ioctl(fd, &a);
+	ia->libc_ioctl = SIOCGIFFLAGS;
+	strncpy(ia->gifflags.name, r->ifr_name, sizeof(ia->gifbrdaddr.name));
+	int z = netd_call(fd, &a);
 	if (z < 0)
 	    return z;
 
-	r->ifr_flags = a.gifflags.flags;
+	r->ifr_flags = ia->gifflags.flags;
 	return 0;
     }
     case SIOCGIFBRDADDR: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
-	a.libc_ioctl = SIOCGIFBRDADDR;
-	strncpy(a.gifbrdaddr.name, r->ifr_name, sizeof(a.gifbrdaddr.name));
-	a.size = offsetof(struct netd_ioctl_args, gifbrdaddr) + sizeof(a.gifbrdaddr);
-	int z = netd_ioctl(fd, &a);
+	ia->libc_ioctl = SIOCGIFBRDADDR;
+	strncpy(ia->gifbrdaddr.name, r->ifr_name, sizeof(ia->gifbrdaddr.name));
+	int z = netd_call(fd, &a);
 	if (z < 0)
 	    return z;
 	
-	netd_to_libc(&a.gifbrdaddr.baddr, (struct sockaddr_in *) &r->ifr_broadaddr);
+	netd_to_libc(&ia->gifbrdaddr.baddr, (struct sockaddr_in *) &r->ifr_broadaddr);
 	return 0;
     }
     default:

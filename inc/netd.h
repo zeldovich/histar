@@ -35,6 +35,7 @@ typedef enum {
     netd_op_notify,
     netd_op_probe,
     netd_op_shutdown,
+    netd_op_ioctl,
 } netd_op_t;
 
 struct netd_op_socket_args {
@@ -132,6 +133,30 @@ struct netd_op_shutdown_args {
     int how;
 };
 
+struct netd_ioctl_gifconf {
+    char name[16];
+    struct netd_sockaddr_in addr;
+};
+
+struct netd_ioctl_gifflags {
+    char name[16];
+    int16_t flags;
+};
+
+struct netd_ioctl_gifbrdaddr {
+    char name[16];
+    struct netd_sockaddr_in baddr;
+};
+
+struct netd_op_ioctl_args {
+    uint64_t libc_ioctl;
+    union {
+	struct netd_ioctl_gifconf gifconf;
+	struct netd_ioctl_gifflags gifflags;
+	struct netd_ioctl_gifbrdaddr gifbrdaddr;
+    };
+};
+
 struct netd_op_args {
     netd_op_t op_type;
     int size;
@@ -155,6 +180,7 @@ struct netd_op_args {
 	struct netd_op_notify_args notify;
 	struct netd_op_probe_args probe;
 	struct netd_op_shutdown_args shutdown;
+	struct netd_op_ioctl_args ioctl;
     };
 };
 
@@ -189,6 +215,8 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
 		    netd_dev_type type, void *if_state,
 		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
     __attribute__((noreturn));
+
+int netd_lwip_ioctl(struct netd_op_ioctl_args *a);
 
 int  netd_call(struct Fd *fd, struct netd_op_args *a);
 int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);

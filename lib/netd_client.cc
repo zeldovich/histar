@@ -2,7 +2,6 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/netd.h>
-#include <inc/netdioctl.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
@@ -254,6 +253,9 @@ netd_lwip_call(struct cobj_ref gate, struct netd_op_args *a)
 {
     static int do_fast_calls;
 
+    if (a->op_type == netd_op_ioctl)
+	return netd_lwip_ioctl(&a->ioctl);
+
     // A bit of a hack because we need to get tainted first...
     if (do_fast_calls) {
 	try {
@@ -297,24 +299,5 @@ netd_call(struct Fd *fd, struct netd_op_args *a)
 	return netd_linux_call(fd, a);
 
     cprintf("netd_call: bad mode: %d\n", netd_mode);
-    return -E_UNSPEC;
-}
-
-int
-netd_ioctl(struct Fd *fd, struct netd_ioctl_args *a)
-{
-    int r;
-    if (!netd_mode) {
-	r = netd_client_init();
-	if (r < 0)
-	    return r;
-    }
-
-    if (netd_mode == netd_lwip_mode)
-	return netd_lwip_ioctl(a);
-    else if (netd_mode == netd_linux_mode)
-	return netd_linux_ioctl(fd, a);
-    
-    cprintf("netd_ioctl: bad mode: %d\n", netd_mode);
     return -E_UNSPEC;
 }

@@ -132,7 +132,7 @@ netd_flags(int16_t *flags)
 }
 
 int
-netd_lwip_ioctl(struct netd_ioctl_args *a)
+netd_lwip_ioctl(struct netd_op_ioctl_args *a)
 {
     int r = -1;
     switch(a->libc_ioctl) {

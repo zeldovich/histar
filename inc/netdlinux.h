@@ -11,6 +11,7 @@ struct socket_conn {
     uint64_t grant;
 };
 
+/* XXX drop me */
 struct netd_linux_ret {
     int rerrno;
 };
