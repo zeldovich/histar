@@ -2,6 +2,7 @@
 #include <inc/error.h>
 #include <inc/netd.h>
 #include <inc/netdevent.h>
+#include <inc/netdioctl.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
@@ -421,6 +422,8 @@ sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 static int
 sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 {
+    struct netd_ioctl_args a;
+
     switch (req) {
     case SIOCGIFCONF: {
 	struct ifconf *ifc = va_arg(ap, struct ifconf *);
@@ -429,40 +432,46 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	    return -1;
 	}
 	struct ifreq *r = (struct ifreq *)ifc->ifc_buf;
-	netd_name(r->ifr_name);
-	r->ifr_name[2] = 0;
-	
-	struct netd_sockaddr_in nsin;
-	netd_ip(&nsin);
-	netd_to_libc(&nsin, (struct sockaddr_in *)&r->ifr_addr);
-	ifc->ifc_len = sizeof(struct ifreq);
 
+	a.libc_ioctl = SIOCGIFCONF;
+	a.size = offsetof(struct netd_ioctl_args, gifconf) + sizeof(a.gifconf);
+	int z = netd_ioctl(fd, &a);
+	if (z < 0)
+	    return z;
+
+	int n = sizeof(r->ifr_name);
+	strncpy(r->ifr_name, a.gifconf.name, n);
+	r->ifr_name[n - 1] = 0;
+
+	netd_to_libc(&a.gifconf.addr, (struct sockaddr_in *)&r->ifr_addr);
+	ifc->ifc_len = sizeof(struct ifreq);
 	return 0;
     }
 
-    case SIOCGIFFLAGS:
+    case SIOCGIFFLAGS: {
+	struct ifreq *r = va_arg(ap, struct ifreq *);
+	a.libc_ioctl = SIOCGIFFLAGS;
+	strncpy(a.gifflags.name, r->ifr_name, sizeof(a.gifbrdaddr.name));
+	a.size = offsetof(struct netd_ioctl_args, gifflags) + sizeof(a.gifflags);
+	int z = netd_ioctl(fd, &a);
+	if (z < 0)
+	    return z;
+
+	r->ifr_flags = a.gifflags.flags;
+	return 0;
+    }
     case SIOCGIFBRDADDR: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
-	char reqname[2];
-	netd_name(reqname);
-	if (r->ifr_name[0] != reqname[0] || r->ifr_name[1] != reqname[1] || r->ifr_name[2]) {
-	    errno = ENXIO;
-	    return -1;
-	}
-
-	if (req == SIOCGIFFLAGS)
-	    netd_flags(&r->ifr_flags);
-	if (req == SIOCGIFBRDADDR) {
-	    struct netd_sockaddr_in s1, s2;
-	    netd_ip(&s1);
-	    netd_netmask(&s2);
-	    s1.sin_addr |= ~s2.sin_addr;
-	    netd_to_libc(&s1, (struct sockaddr_in *) &r->ifr_broadaddr);
-	}
-
+	a.libc_ioctl = SIOCGIFBRDADDR;
+	strncpy(a.gifbrdaddr.name, r->ifr_name, sizeof(a.gifbrdaddr.name));
+	a.size = offsetof(struct netd_ioctl_args, gifbrdaddr) + sizeof(a.gifbrdaddr);
+	int z = netd_ioctl(fd, &a);
+	if (z < 0)
+	    return z;
+	
+	netd_to_libc(&a.gifbrdaddr.baddr, (struct sockaddr_in *) &r->ifr_broadaddr);
 	return 0;
     }
-
     default:
 	break;
     }

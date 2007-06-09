@@ -12,12 +12,15 @@ struct socket_conn {
 };
 
 struct netd_linux_ret {
-    int errno;
+    int rerrno;
 };
 
 typedef void (*netd_socket_handler)(struct socket_conn *);
 
+/* server */
 int netd_linux_server_init(netd_socket_handler h);
+
+/* client */
 int netd_linux_call(struct Fd *fd, struct netd_op_args *a);
 
 #endif

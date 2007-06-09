@@ -1,10 +1,14 @@
 #include <inc/lib.h>
 #include <inc/netd.h>
+#include <inc/netdioctl.h>
 #include <inc/fs.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <lwip/netif.h>
 #include <net/if.h>
+#include <sys/ioctl.h>
+
+#include <string.h>
 #include <errno.h>
 
 #define NETIF_SEG_MAP(__seg, __va)				\
@@ -70,7 +74,7 @@ netd_ifip(struct cobj_ref r, struct netd_sockaddr_in *nsin)
     return 0;
 }
 
-int 
+static int 
 netd_ip(struct netd_sockaddr_in *nsin)
 {
     return NETIF_CALL(ifip, nsin);
@@ -87,7 +91,7 @@ netd_ifmask(struct cobj_ref r, struct netd_sockaddr_in *nsin)
     return 0;
 }
 
-int 
+static int 
 netd_netmask(struct netd_sockaddr_in *nsin)
 {
     return NETIF_CALL(ifmask, nsin);
@@ -100,11 +104,12 @@ netd_ifname(struct cobj_ref r, char *buf)
     NETIF_SEG_MAP(r, &nif);
     buf[0] = nif->name[0];
     buf[1] = nif->name[1];
+    buf[2] = 0;
     NETIF_SEG_UNMAP(nif);
     return 0;
 }
 
-int
+static int
 netd_name(char *buf)
 {
     return NETIF_CALL(ifname, buf);
@@ -120,8 +125,58 @@ netd_ifflags(struct cobj_ref r, int16_t *flags)
     return 0;
 }
 
-int
+static int
 netd_flags(int16_t *flags)
 {
     return NETIF_CALL(ifflags, flags);
+}
+
+int
+netd_lwip_ioctl(struct netd_ioctl_args *a)
+{
+    int r = -1;
+    switch(a->libc_ioctl) {
+    case SIOCGIFCONF:
+	r = netd_name(a->gifconf.name);
+	if (r < 0)
+	    break;
+	r = netd_ip(&a->gifconf.addr);
+	break;
+    case SIOCGIFFLAGS: {
+	char reqname[3];
+	r = netd_name(reqname);
+	if (strncmp(reqname, a->gifflags.name, 3)) {
+	    errno = ENXIO;
+	    return -1;
+	}
+	r = netd_flags(&a->gifflags.flags);
+	break;
+    }
+    case SIOCGIFBRDADDR: {
+	char reqname[3];
+	r = netd_name(reqname);
+	if (strncmp(reqname, a->gifflags.name, 3)) {
+	    errno = ENXIO;
+	    return -1;
+	}
+
+	struct netd_sockaddr_in s1, s2;
+	r = netd_ip(&s1);
+	if (r < 0)
+	    break;
+	r = netd_netmask(&s2);
+	if (r < 0)
+	    break;
+	a->gifbrdaddr.baddr.sin_addr = s1.sin_addr | ~s2.sin_addr;
+	break;
+    }
+    default:
+	break;
+    }
+
+    if (r < 0) {
+	errno = EINVAL;
+	return -1;
+    }
+    return 0;
 }

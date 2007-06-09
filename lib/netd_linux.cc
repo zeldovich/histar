@@ -1,11 +1,14 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/netd.h>
+#include <inc/netdioctl.h>
 #include <inc/netdlinux.h>
 #include <inc/syscall.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/fd.h>
+
+#include <errno.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -160,5 +163,16 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     struct netd_linux_ret ret;
     z = jcomm_read(client_conn->socket_comm, &ret, sizeof(ret));
     assert(z == sizeof(ret));
-    return ret.errno;
+
+    if (ret.rerrno < 0) {
+	errno = ret.rerrno; 
+	return -1;
+    }
+    return 0;
+}
+
+int 
+netd_linux_ioctl(struct Fd *fd, struct netd_ioctl_args *a)
+{
+    return -1;
 }

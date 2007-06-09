@@ -2,6 +2,7 @@ extern "C" {
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/netd.h>
+#include <inc/netdioctl.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>
@@ -294,8 +295,26 @@ netd_call(struct Fd *fd, struct netd_op_args *a)
 	return netd_lwip_call(fd->fd_sock.netd_gate, a);
     else if(netd_mode == netd_linux_mode)
 	return netd_linux_call(fd, a);
-    else {
-	cprintf("netd_call: bad mode: %d\n", netd_mode);
-	return -E_UNSPEC;
+
+    cprintf("netd_call: bad mode: %d\n", netd_mode);
+    return -E_UNSPEC;
+}
+
+int
+netd_ioctl(struct Fd *fd, struct netd_ioctl_args *a)
+{
+    int r;
+    if (!netd_mode) {
+	r = netd_client_init();
+	if (r < 0)
+	    return r;
     }
+
+    if (netd_mode == netd_lwip_mode)
+	return netd_lwip_ioctl(a);
+    else if (netd_mode == netd_linux_mode)
+	return netd_linux_ioctl(fd, a);
+    
+    cprintf("netd_ioctl: bad mode: %d\n", netd_mode);
+    return -E_UNSPEC;
 }
