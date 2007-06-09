@@ -449,7 +449,6 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	ifc->ifc_len = sizeof(struct ifreq);
 	return 0;
     }
-
     case SIOCGIFFLAGS: {
 	struct ifreq *r = va_arg(ap, struct ifreq *);
 	ia->libc_ioctl = SIOCGIFFLAGS;
