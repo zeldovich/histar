@@ -377,7 +377,8 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    
+    memset(wstat, 0, sizeof(*wstat));
+
     if (probe == dev_probe_read) {
 	struct jlink *jl = &links[jr.jc.chan];	
 	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
