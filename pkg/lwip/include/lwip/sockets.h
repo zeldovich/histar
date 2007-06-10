@@ -59,34 +59,57 @@ struct sockaddr {
 #define SOCK_RAW        3
 
 /*
- * Option flags per-socket.
+ * Copied from linux-2.6.20.4 asm-i385/socket.h
  */
-#define  SO_DEBUG  0x0001    /* turn on debugging info recording */
-#define  SO_ACCEPTCONN  0x0002    /* socket has had listen() */
-#define  SO_REUSEADDR  0x0004    /* allow local address reuse */
-#define  SO_KEEPALIVE  0x0008    /* keep connections alive */
-#define  SO_DONTROUTE  0x0010    /* just use interface addresses */
-#define  SO_BROADCAST  0x0020    /* permit sending of broadcast msgs */
-#define  SO_USELOOPBACK  0x0040    /* bypass hardware when possible */
-#define  SO_LINGER  0x0080    /* linger on close if data present */
-#define  SO_OOBINLINE  0x0100    /* leave received OOB data in line */
-#define	 SO_REUSEPORT	0x0200		/* allow local address & port reuse */
+/* For setsockopt(2) */
+#define SOL_SOCKET	1
 
-#define SO_DONTLINGER   (int)(~SO_LINGER)
+#define SO_DEBUG	1
+#define SO_REUSEADDR	2
+#define SO_TYPE		3
+#define SO_ERROR	4
+#define SO_DONTROUTE	5
+#define SO_BROADCAST	6
+#define SO_SNDBUF	7
+#define SO_RCVBUF	8
+#define SO_SNDBUFFORCE	32
+#define SO_RCVBUFFORCE	33
+#define SO_KEEPALIVE	9
+#define SO_OOBINLINE	10
+#define SO_NO_CHECK	11
+#define SO_PRIORITY	12
+#define SO_LINGER	13
+#define SO_BSDCOMPAT	14
+/* To add :#define SO_REUSEPORT 15 */
+#define SO_PASSCRED	16
+#define SO_PEERCRED	17
+#define SO_RCVLOWAT	18
+#define SO_SNDLOWAT	19
+#define SO_RCVTIMEO	20
+#define SO_SNDTIMEO	21
 
+/* Security levels - as per NRL IPv6 - don't actually do anything */
+#define SO_SECURITY_AUTHENTICATION		22
+#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
+#define SO_SECURITY_ENCRYPTION_NETWORK		24
+
+#define SO_BINDTODEVICE	25
+
+/* Socket filtering */
+#define SO_ATTACH_FILTER        26
+#define SO_DETACH_FILTER        27
+
+#define SO_PEERNAME		28
+#define SO_TIMESTAMP		29
+#define SCM_TIMESTAMP		SO_TIMESTAMP
+
+#define SO_ACCEPTCONN		30
+
+#define SO_PEERSEC             31
+#define SO_PASSSEC		34
 /*
- * Additional options, not kept in so_options.
+ * End of Linux copy
  */
-#define SO_SNDBUF  0x1001    /* send buffer size */
-#define SO_RCVBUF  0x1002    /* receive buffer size */
-#define SO_SNDLOWAT  0x1003    /* send low-water mark */
-#define SO_RCVLOWAT  0x1004    /* receive low-water mark */
-#define SO_SNDTIMEO  0x1005    /* send timeout */
-#define SO_RCVTIMEO  0x1006    /* receive timeout */
-#define  SO_ERROR  0x1007    /* get error status and clear */
-#define  SO_TYPE    0x1008    /* get socket type */
-
-
 
 /*
  * Structure used for manipulating linger option.
@@ -95,12 +118,6 @@ struct linger {
        int l_onoff;                /* option on/off */
        int l_linger;               /* linger time */
 };
-
-/*
- * Level number for (get/set)sockopt() to apply to socket itself.
- */
-#define  SOL_SOCKET  0xfff    /* options for socket level */
-
 
 #define AF_UNSPEC       0
 #define AF_INET         2
@@ -181,14 +198,19 @@ struct linger {
 #define FIONBIO     _IOW('f', 126, unsigned long) /* set/clear non-blocking i/o */
 #endif
 
-/* Socket I/O Controls */
-#ifndef SIOCSHIWAT
-#define SIOCSHIWAT  _IOW('s',  0, unsigned long)  /* set high watermark */
-#define SIOCGHIWAT  _IOR('s',  1, unsigned long)  /* get high watermark */
-#define SIOCSLOWAT  _IOW('s',  2, unsigned long)  /* set low watermark */
-#define SIOCGLOWAT  _IOR('s',  3, unsigned long)  /* get low watermark */
-#define SIOCATMARK  _IOR('s',  7, unsigned long)  /* at oob mark? */
-#endif
+/*
+ * Copied from linux-2.6.20.4 asm-i385/sockios.h
+ */
+/* Socket-level I/O control calls. */
+#define FIOSETOWN 	0x8901
+#define SIOCSPGRP	0x8902
+#define FIOGETOWN	0x8903
+#define SIOCGPGRP	0x8904
+#define SIOCATMARK	0x8905
+#define SIOCGSTAMP	0x8906		/* Get stamp */
+/*
+ * End of Linux copy
+ */
 
 #ifndef O_NONBLOCK
 #define O_NONBLOCK    04000U

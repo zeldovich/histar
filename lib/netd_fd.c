@@ -366,7 +366,7 @@ sock_setsockopt(struct Fd *fd, int level, int optname,
 
     if (level == SOL_SOCKET) {
 	// LWIP does not support these, so fake it..
-	if (optname == SO_REUSEADDR || optname == SO_REUSEPORT)
+	if (optname == SO_REUSEADDR)
 	    return 0;
     }
 
