@@ -147,6 +147,19 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    return r;
 	fd_set_extra_handles(fd, client_conn->grant, client_conn->taint);
 	break;
+    case netd_op_close:
+	/* Linux doesn't send a response on close.  We send the close 
+	 * operation over the jcomm to pop Linux out of multisync.
+	 */
+	z = jcomm_write(client_conn->socket_comm, a, a->size);
+	assert(z == a->size);
+	r = jcomm_shut(client_conn->socket_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+	if (r < 0)
+	    cprintf("netd_linux_call: jcomm_shut error: %s\n", e2s(r));
+	r = sys_obj_unref(COBJ(start_env->shared_container, client_conn->container));
+	if (r < 0)
+	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
+	return 0;
     case netd_op_ioctl:
 	break;
     default:
