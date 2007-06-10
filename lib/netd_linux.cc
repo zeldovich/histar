@@ -29,7 +29,6 @@ netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg
     if (z < 0) 
 	cprintf("netd_lnux_gate_entry: jcomm_write error: %ld\n", z);
     h(sr);
-
     rg->ret(0, 0, 0);
 }
 
@@ -148,7 +147,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    return r;
 	fd_set_extra_handles(fd, client_conn->grant, client_conn->taint);
 	break;
-    case netd_op_close:
+    case netd_op_ioctl:
+	break;
     default:
 	panic("not implemented");
 	break;
@@ -159,13 +159,11 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     assert(z == a->size);
 
     /* read return value */
-    struct netd_linux_ret ret;
-    z = jcomm_read(client_conn->socket_comm, &ret, sizeof(ret));
-    assert(z == sizeof(ret));
-
-    if (ret.rerrno < 0) {
-	errno = ret.rerrno; 
+    z = jcomm_read(client_conn->socket_comm, a, sizeof(*a));
+    assert(z == a->size);
+    if (a->rval < 0) {
+	errno = a->rval;
 	return -1;
     }
-    return 0;
+    return a->rval;
 }
