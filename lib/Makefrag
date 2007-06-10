@@ -80,7 +80,6 @@ LIB_SRCFILES :=	\
 	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc lib/netd_linux.cc
 
 include lib/cppsup/Makefrag
-include lib/vt/Makefrag
 
 LIB_OBJFILES := $(LIB_SRCFILES)
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))

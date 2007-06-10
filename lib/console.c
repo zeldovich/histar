@@ -10,9 +10,7 @@
 #include <sys/stat.h>
 #include <termios/kernel_termios.h>
 #include <sys/ioctl.h>
-#include <lib/vt/vt.h>
-
-static int enable_vt = 0 ;
+#include <unistd.h>
 
 int
 iscons(int fdnum)
@@ -76,10 +74,7 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 static ssize_t
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
-    if (enable_vt)
-        vt_write(vbuf, n, offset) ;
-    else    
-        sys_cons_puts(vbuf, n);
+    sys_cons_puts(vbuf, n);
     return n;
 }
 
