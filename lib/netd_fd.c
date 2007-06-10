@@ -409,13 +409,31 @@ sock_stat(struct Fd *fd, struct stat64 *buf)
 static int
 sock_probe(struct Fd *fd, dev_probe_t probe)
 {
-    return netd_probe(fd, probe);
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, probe) + sizeof(a.probe);
+
+    a.op_type = netd_op_probe;
+    a.probe.fd = fd->fd_sock.s;
+    a.probe.how = probe;
+    return netd_call(fd, &a);
 }
 
 static int
 sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
 {
-    return netd_wstat(fd, probe, wstat);
+    int r;
+    struct netd_op_args a;
+    a.size = offsetof(struct netd_op_args, statsync) + sizeof(a.statsync);
+
+    a.op_type = netd_op_statsync;
+    a.statsync.how = probe;
+    a.statsync.fd = fd->fd_sock.s;
+    
+    r = netd_call(fd, &a);
+    if (r < 0)
+	return r;
+    memcpy(wstat, &a.statsync.wstat, sizeof(*wstat));
+    return r;
 }
 
 static int

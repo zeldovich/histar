@@ -4,6 +4,7 @@
 #include <inc/types.h>
 #include <inc/container.h>
 #include <sys/select.h>
+#include <inc/multisync.h>
 
 struct Fd;
 struct netd_ioctl_args;
@@ -34,6 +35,7 @@ typedef enum {
     netd_op_recvfrom,
     netd_op_notify,
     netd_op_probe,
+    netd_op_statsync,
     netd_op_shutdown,
     netd_op_ioctl,
 } netd_op_t;
@@ -106,7 +108,7 @@ struct netd_op_setsockopt_args {
     int fd;
     int level;
     int optname;
-    char optval[16];
+    char optval[64];
     uint32_t optlen;
 };
 
@@ -114,18 +116,24 @@ struct netd_op_getsockopt_args {
     int fd;
     int level;
     int optname;
-    char optval[16];
+    char optval[64];
     uint32_t optlen;
 };
 
 struct netd_op_notify_args {
     int fd;
-    char write;
+    dev_probe_t how;
 };
 
 struct netd_op_probe_args {
     int fd;
-    char write;
+    dev_probe_t how;
+};
+
+struct netd_op_statsync_args {
+    int fd;
+    dev_probe_t how;
+    struct wait_stat wstat;
 };
 
 struct netd_op_shutdown_args {
@@ -179,6 +187,7 @@ struct netd_op_args {
 	struct netd_op_sendto_args sendto;
 	struct netd_op_notify_args notify;
 	struct netd_op_probe_args probe;
+	struct netd_op_statsync_args statsync;
 	struct netd_op_shutdown_args shutdown;
 	struct netd_op_ioctl_args ioctl;
     };
@@ -217,6 +226,8 @@ void netd_lwip_init(void (*cb)(void*), void *cbarg,
     __attribute__((noreturn));
 
 int netd_lwip_ioctl(struct netd_op_ioctl_args *a);
+int netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a);
+int netd_lwip_probe(struct Fd *fd, struct netd_op_probe_args *a);
 
 int  netd_call(struct Fd *fd, struct netd_op_args *a);
 int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);

@@ -249,13 +249,17 @@ netd_slow_call(struct cobj_ref gate, struct netd_op_args *a)
 }
 
 static int
-netd_lwip_call(struct cobj_ref gate, struct netd_op_args *a)
+netd_lwip_call(struct Fd *fd, struct netd_op_args *a)
 {
     static int do_fast_calls;
 
     if (a->op_type == netd_op_ioctl)
 	return netd_lwip_ioctl(&a->ioctl);
-
+    else if (a->op_type == netd_op_probe)
+	return netd_lwip_probe(fd, &a->probe);
+    else if (a->op_type == netd_op_statsync)
+	return netd_lwip_statsync(fd, &a->statsync);
+    
     // A bit of a hack because we need to get tainted first...
     if (do_fast_calls) {
 	try {
@@ -271,7 +275,7 @@ netd_lwip_call(struct cobj_ref gate, struct netd_op_args *a)
 
     try {
 	int r;
-	r = netd_slow_call(gate, a);
+	r = netd_slow_call(fd->fd_sock.netd_gate, a);
 
 	if (a->rval >= 0)
 	    do_fast_calls = 1;
@@ -294,7 +298,7 @@ netd_call(struct Fd *fd, struct netd_op_args *a)
     }
 
     if (netd_mode == netd_lwip_mode)
-	return netd_lwip_call(fd->fd_sock.netd_gate, a);
+	return netd_lwip_call(fd, a);
     else if(netd_mode == netd_linux_mode)
 	return netd_linux_call(fd, a);
 

@@ -38,12 +38,12 @@ netd_slow_probe(struct Fd *fd, dev_probe_t probe)
     a.size = offsetof(struct netd_op_args, probe) + sizeof(a.probe);
     a.op_type = netd_op_probe;
     a.probe.fd = fd->fd_sock.s;
-    a.probe.write = probe == dev_probe_write ? 1 : 0;
+    a.probe.how = probe;
     return netd_call(fd, &a);
 }
 
-int
-netd_probe(struct Fd *fd, dev_probe_t probe)
+int 
+netd_lwip_probe(struct Fd *fd, struct netd_op_probe_args *a)
 {
     static char sanity_check = 0;
 
@@ -53,9 +53,9 @@ netd_probe(struct Fd *fd, dev_probe_t probe)
 	
 	int slow_probe = 0;
 	if (sanity_check) 
-	    slow_probe = netd_slow_probe(fd, probe);
+	    slow_probe = netd_slow_probe(fd, a->how);
 
-	if (probe == dev_probe_read) {
+	if (a->how == dev_probe_read) {
 	    int r = lw[fd->fd_sock.s].rcvevent || lw[fd->fd_sock.s].lastdata;
 	    if (sanity_check && !r) 
 		assert(!slow_probe);
@@ -94,24 +94,25 @@ msync_cb(void *arg0, dev_probe_t probe, volatile uint64_t *addr, void **arg1)
     a.size = offsetof(struct netd_op_args, notify) + sizeof(a.notify);
     a.op_type = netd_op_notify;
     a.notify.fd = fd->fd_sock.s;
-    a.notify.write = probe == dev_probe_write ? 1 : 0;
+    a.notify.how = probe;
     return netd_call(fd, &a);
 }
 
 int
-netd_wstat(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a)
 {
     try {
 	if (!lw)
 	    netd_event_init();
-
-	if (probe == dev_probe_read)
-	    WS_SETADDR(wstat, &lw[fd->fd_sock.s].rcvevent);
+	
+	memset(&a->wstat, 0, sizeof(a->wstat));
+	if (a->how == dev_probe_read)
+	    WS_SETADDR(&a->wstat, &lw[a->fd].rcvevent);
 	else
-	    WS_SETADDR(wstat, &lw[fd->fd_sock.s].sendevent);
-	WS_SETVAL(wstat, 0);
-	WS_SETCBARG(wstat, fd);
-	WS_SETCB0(wstat, &msync_cb);
+	    WS_SETADDR(&a->wstat, &lw[a->fd].sendevent);
+	WS_SETVAL(&a->wstat, 0);
+	WS_SETCBARG(&a->wstat, (void *)fd);
+	WS_SETCB0(&a->wstat, &msync_cb);
     } catch (error &e) {
 	cprintf("netd_wstat: %s\n", e.what());
 	return e.err();
