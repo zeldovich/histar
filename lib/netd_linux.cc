@@ -160,6 +160,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	if (r < 0)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
 	return 0;
+    case netd_op_setsockopt:
     case netd_op_ioctl:
 	break;
     default:
