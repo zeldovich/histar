@@ -150,8 +150,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     case netd_op_ioctl:
 	break;
     default:
-	panic("not implemented");
-	break;
+	cprintf("netd_linux_call: unimplemented %d\n", a->op_type);
+	return -ENOSYS;
     }
     
     /* write operation request */
