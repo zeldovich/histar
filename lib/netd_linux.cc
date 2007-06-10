@@ -151,7 +151,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	break;
     default:
 	cprintf("netd_linux_call: unimplemented %d\n", a->op_type);
-	return -ENOSYS;
+	errno = ENOSYS;
+	return -1;
     }
     
     /* write operation request */
@@ -162,7 +163,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     z = jcomm_read(client_conn->socket_comm, a, sizeof(*a));
     assert(z == a->size);
     if (a->rval < 0) {
-	errno = a->rval;
+	errno = -1 * a->rval;
 	return -1;
     }
     return a->rval;
