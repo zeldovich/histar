@@ -18,7 +18,7 @@ extern "C" {
 
 enum { netd_do_taint = 0 };
 
-static void __attribute__((noreturn))
+static void
 netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
     int r = 0;
@@ -29,7 +29,6 @@ netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg
     if (z < 0) 
 	cprintf("netd_lnux_gate_entry: jcomm_write error: %ld\n", z);
     h(sr);
-    rg->ret(0, 0, 0);
 }
 
 int
@@ -161,6 +160,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
 	return 0;
     case netd_op_setsockopt:
+    case netd_op_bind:
     case netd_op_ioctl:
 	break;
     default:
