@@ -15,8 +15,11 @@ LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DUCLIBC_LDSO=\"ld.so\" \
 		$(UCLIBC_CFLAGS)
 
-LDSO_LDFLAGS := -z defs -z now -e _start -Bsymbolic --export-dynamic \
-		--sort-common --discard-locals --discard-all --no-undefined
+LDSO_LDFLAGS := -shared --warn-common --warn-once \
+		-z combreloc -z relro -z defs -z now \
+		-s -e _start -Bsymbolic \
+		--export-dynamic --sort-common --discard-locals --discard-all \
+		-soname=ld-histar.so.0
 
 $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
 	@mkdir -p $(@D)
@@ -28,5 +31,5 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
 
 $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDEPS)
 	@mkdir -p $(@D)
-	$(CC) -o $@ $(LDFLAGS) $(LDSO_OBJFILES) $(LDSO_LDFLAGS) -nostartfiles
+	$(LD) -o $@ $(LDSO_OBJFILES) $(GCC_LIB) $(LDSO_LDFLAGS)
 
