@@ -193,6 +193,13 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	if (r < 0)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
 	return 0;
+    case netd_op_probe: 
+	/* XXX how to handle selecting on a listening socket */
+	return jcomm_probe(client_conn->data_comm, a->probe.how);
+    case netd_op_statsync:
+	return jcomm_multisync(client_conn->data_comm, 
+			       a->statsync.how, 
+			       &a->statsync.wstat);
     case netd_op_setsockopt:
     case netd_op_bind:
     case netd_op_ioctl:
