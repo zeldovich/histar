@@ -201,6 +201,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	return jcomm_multisync(client_conn->data_comm, 
 			       a->statsync.how, 
 			       &a->statsync.wstat);
+    case netd_op_sendto:
     case netd_op_setsockopt:
     case netd_op_bind:
     case netd_op_ioctl:
