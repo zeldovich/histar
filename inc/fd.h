@@ -10,6 +10,7 @@
 #include <inc/multisync.h>
 #include <inc/pty.h>
 #include <inc/uds.h>
+#include <inc/lfs.h>
 
 #include <dirent.h>
 #include <arpa/inet.h>
@@ -160,6 +161,10 @@ struct Fd
 	} fd_uds;
 
 	struct {
+	    struct lfs_descriptor ld;
+	} fd_lfs;
+
+	struct {
 	    char buf[4000];
 	} fd_cust;
     };
@@ -193,6 +198,7 @@ extern struct Dev devptm;	/* type 'x' */
 extern struct Dev devpts;	/* type 'y' */
 extern struct Dev devuds;	/* type 'u' */
 extern struct Dev devsymlink;	/* type 'l' */
+extern struct Dev devlfs;       /* type 'o' */
 
 int	dup2_as(int oldfd, int newfd,
 		struct cobj_ref target_as, uint64_t target_ct);
