@@ -100,8 +100,11 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
-	cprintf("user page fault: thread %ld (%s), va=%p: rip=0x%lx, rsp=0x%lx: %s\n",
+	cprintf("user page fault: thread %ld (%s), as %ld (%s), "
+		"va=%p: rip=0x%lx, rsp=0x%lx: %s\n",
 		t->th_ko.ko_id, t->th_ko.ko_name,
+		t->th_as ? t->th_as->as_ko.ko_id : 0,
+		t->th_as ? t->th_as->as_ko.ko_name : "null",
 		fault_va, tf->tf_rip, tf->tf_rsp, e2s(r));
 	thread_halt(t);
     }
