@@ -93,6 +93,10 @@ $(OBJDIR)/lib/%.o: lib/%.c
 	@mkdir -p $(@D)
 	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
 
+$(OBJDIR)/lib/%.S: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -S -o $@ $<
+
 $(OBJDIR)/lib/%.o: lib/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(LIBJOS_CXXFLAGS) -Werror -c -o $@ $<
@@ -101,7 +105,7 @@ $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -Werror -c -o $@ $<
 
-$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S
+$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S $(OBJDIR)/lib/utrapasm.h
 	@mkdir -p $(@D)
 	$(CC) $(LIBJOS_CFLAGS) -c -o $@ $<
 
@@ -114,4 +118,8 @@ $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 $(OBJDIR)/lib/32/libjos.a: $(OBJDIR)/lib/libjos.a
 	rm -rf $(OBJDIR)/lib/32
 	ln -s . $(OBJDIR)/lib/32
+
+## Hack to extract struct offsets for assembly use
+$(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
+	grep '#define' $< > $@
 
