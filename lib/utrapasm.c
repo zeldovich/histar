@@ -1,5 +1,6 @@
 #include <inc/lib.h>
 #include <inc/utrap.h>
+#include <inc/memlayout.h>
 #include <stddef.h>
 
 static void __attribute__((used))
