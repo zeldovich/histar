@@ -9,6 +9,7 @@ extern "C" {
 #include <netd/netdlinux.h>
 
 #include <errno.h>
+#include <inttypes.h>
 }
 
 #include <inc/cpplabel.hh>
@@ -45,7 +46,7 @@ netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg
     /* let our caller know we are clear */
     int64_t z = jcomm_write(sr->ctrl_comm, &r, sizeof(r));
     if (z < 0) 
-	cprintf("netd_lnux_gate_entry: jcomm_write error: %ld\n", z);
+	cprintf("netd_lnux_gate_entry: jcomm_write error: %"PRIu64"\n", z);
     h(sr);
 }
 
@@ -145,7 +146,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	/* need to wait for thread signal, so can safely cleanup */
 	int64_t z = jcomm_read(ctrl_comm0, &r, sizeof(r));
 	if (z < 0) { 
-	    cprintf("setup_socket_conn: jcomm_read error: %ld\n", z);
+	    cprintf("setup_socket_conn: jcomm_read error: %"PRIu64"\n", z);
 	    return z;
 	}
 	else if (r < 0) {
