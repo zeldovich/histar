@@ -10,6 +10,7 @@ extern "C" {
 #include <inc/setjmp.h>
 #include <inc/atomic.h>
 #include <inc/utrap.h>
+#include <netd/netdipc.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +22,7 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/scopeguard.hh>
-#include <inc/netdsrv.hh>
+#include <netd/netdsrv.hh>
 
 static uint64_t netd_server_enabled;
 static struct cobj_ref declassify_gate;

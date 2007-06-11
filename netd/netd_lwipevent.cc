@@ -1,10 +1,10 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/multisync.h>
-#include <inc/netdevent.h>
 #include <inc/error.h>
 #include <inc/fd.h>
 #include <inc/netd.h>
+#include <netd/netdlwip.h>
 #include <api/socketdef.h>
 
 #include <stddef.h>
@@ -31,7 +31,7 @@ netd_event_init(void)
 			    (void **)&lw, 0, 0));
 }
 
-int
+static int
 netd_slow_probe(struct Fd *fd, dev_probe_t probe)
 {
     struct netd_op_args a;

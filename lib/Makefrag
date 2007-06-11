@@ -22,13 +22,7 @@ LIB_SRCFILES :=	\
 	lib/gateclnt.cc \
 	lib/gateinvoke.cc \
 	lib/taint.c \
-	lib/netd_client.cc \
-	lib/netd_gatesrv.cc \
-	lib/netd_if.c \
-	lib/netd_fd.c \
-	lib/netd_lwip.c \
-	lib/netd_lwipinit.c \
-	lib/netd_event.cc \
+	lib/sock_fd.c \
 	lib/console.c \
 	lib/spawn.cc \
 	lib/container.c \
@@ -77,7 +71,7 @@ LIB_SRCFILES :=	\
 	lib/proc.cc lib/pthread.c lib/ptrace.cc lib/pty.c lib/ptyhelper.cc \
 	lib/resolv.c lib/rlim.c lib/sbrk.c lib/segvhelper.cc lib/signal.c \
 	lib/signalgate.cc lib/socket.c lib/stat.c lib/sysinfo.c lib/time.c \
-	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc lib/netd_linux.cc
+	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc
 
 include lib/cppsup/Makefrag
 

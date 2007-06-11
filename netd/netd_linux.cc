@@ -1,11 +1,12 @@
 extern "C" {
 #include <inc/lib.h>
 #include <inc/netd.h>
-#include <inc/netdlinux.h>
 #include <inc/syscall.h>
 #include <inc/stdio.h>
 #include <inc/assert.h>
 #include <inc/fd.h>
+#include <inc/error.h>
+#include <netd/netdlinux.h>
 
 #include <errno.h>
 }
@@ -13,10 +14,27 @@ extern "C" {
 #include <inc/cpplabel.hh>
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
-#include <inc/netdsrv.hh>
 #include <inc/gobblegateclnt.hh>
+#include <netd/netdsrv.hh>
 
 enum { netd_do_taint = 0 };
+
+static int
+gate_lookup(const char *bn, const char *gn, struct cobj_ref *ret)
+{
+    struct fs_inode netd_ct_ino;
+    int r = fs_namei(bn, &netd_ct_ino);
+    if (r == 0) {
+	uint64_t netd_ct = netd_ct_ino.obj.object;
+	
+	int64_t gate_id = container_find(netd_ct, kobj_gate, gn);
+	if (gate_id > 0) {
+	    *ret = COBJ(netd_ct, gate_id);
+	    return 0;
+	}
+    }
+    return -E_NOT_FOUND;
+}
 
 static void
 netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
@@ -130,6 +148,12 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	return -1;
     }
     return 0;
+}
+
+int
+netd_linux_client_init(struct cobj_ref *gate)
+{
+    return gate_lookup("/vmlinux", "netd", gate);
 }
 
 int 

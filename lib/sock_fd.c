@@ -1,7 +1,7 @@
 #include <inc/memlayout.h>
 #include <inc/error.h>
 #include <inc/netd.h>
-#include <inc/netdevent.h>
+#include <inc/sockfd.h>
 #include <inc/lib.h>
 #include <inc/syscall.h>
 #include <inc/fd.h>

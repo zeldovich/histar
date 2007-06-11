@@ -3,7 +3,9 @@
 #include <inc/fs.h>
 #include <inc/error.h>
 #include <inc/stdio.h>
+#include <netd/netdlwip.h>
 #include <lwip/netif.h>
+
 #include <net/if.h>
 #include <sys/ioctl.h>
 

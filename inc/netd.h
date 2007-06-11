@@ -7,7 +7,6 @@
 #include <inc/multisync.h>
 
 struct Fd;
-struct netd_ioctl_args;
 
 // We define our own sockaddr_in because we need to translate
 // between libc and lwip sockaddr_in equivalents.
@@ -193,54 +192,7 @@ struct netd_op_args {
     };
 };
 
-struct netd_ipc_segment {
-    uint64_t sync;
-    struct netd_op_args args;
-};
-
-#define NETD_IPC_SYNC_REPLY	0x00
-#define NETD_IPC_SYNC_REQUEST	0x01
-
-#define NETD_SEL_SYNC_DONE      0x00
-#define NETD_SEL_SYNC_REQUEST   0x01
-#define NETD_SEL_SYNC_CLOSE     0x02
-
-
-// match dev_probe_t
-typedef enum {
-    netd_sel_op_read = 0,
-    netd_sel_op_write,
-    netd_sel_op_count,
-} netd_sel_op_t;
-
-typedef void (*netd_handler)(struct netd_op_args *);
-
-typedef enum {
-    netd_if_jif,
-    netd_if_tun,
-} netd_dev_type;
-
-void netd_lwip_init(void (*cb)(void*), void *cbarg,
-		    netd_dev_type type, void *if_state,
-		    uint32_t ipaddr, uint32_t netmask, uint32_t gw)
-    __attribute__((noreturn));
-
-int netd_lwip_ioctl(struct netd_op_ioctl_args *a);
-int netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a);
-int netd_lwip_probe(struct Fd *fd, struct netd_op_probe_args *a);
-
 int  netd_call(struct Fd *fd, struct netd_op_args *a);
-int  netd_slow_call(struct cobj_ref netd_gate, struct netd_op_args *a);
 struct cobj_ref netd_get_gate(void);
-void netd_set_gate(struct cobj_ref g);
-
-int netd_socket(int domain, int type, int protocol);
-
-struct host_entry {
-    const char *alias;
-    const char *name;
-};
-
-extern const struct host_entry host_table[];
 
 #endif

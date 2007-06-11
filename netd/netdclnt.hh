@@ -16,4 +16,7 @@ struct netd_fast_ipc_state {
     jthread_mutex_t fast_ipc_mu;
 };
 
+void netd_fast_call(struct netd_op_args *a);
+int  netd_slow_call(struct cobj_ref gate, struct netd_op_args *a);
+
 #endif

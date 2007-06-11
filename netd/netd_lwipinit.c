@@ -7,6 +7,7 @@
 #include <inc/string.h>
 #include <inc/netd.h>
 #include <inc/assert.h>
+#include <netd/netdlwip.h>
 #include <string.h>
 
 #include <lwip/sockets.h>

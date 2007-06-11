@@ -6,7 +6,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/netd.h>
-#include <inc/netdlwip.h>
+#include <netd/netdlwip.h>
 
 #include <lwip/sockets.h>
 #include <arch/sys_arch.h>

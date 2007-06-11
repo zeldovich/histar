@@ -78,6 +78,7 @@ CRTN	:= $(OBJDIR)/lib/crtn.o
 LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libjos.a \
 	   $(OBJDIR)/lib/32/libjos.a \
+	   $(OBJDIR)/lib/libnetd.a \
 	   $(OBJDIR)/lib/liblwip.a \
 	   $(OBJDIR)/lib/libc.a \
 	   $(OBJDIR)/lib/libm.a \
@@ -129,6 +130,7 @@ conf/gcc.mk:
 include boot/Makefrag
 include kern/Makefrag
 include lib/Makefrag
+include netd/Makefrag
 include dj/Makefrag
 include pkg/Makefrag
 include acpkg/Makefrag

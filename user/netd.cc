@@ -5,7 +5,7 @@ extern "C" {
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/netd.h>
-#include <inc/netdlwip.h>
+#include <netd/netdlwip.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -13,8 +13,8 @@ extern "C" {
 }
 
 #include <inc/gatesrv.hh>
-#include <inc/netdsrv.hh>
 #include <inc/labelutil.hh>
+#include <netd/netdsrv.hh>
 
 static int netd_debug = 0;
 enum { netd_do_taint = 0 };

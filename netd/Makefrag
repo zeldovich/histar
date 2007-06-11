@@ -1,0 +1,30 @@
+OBJDIRS += netd
+
+NETD_SRCFILES := \
+	netd/netd_client.cc \
+	netd/netd_gatesrv.cc \
+	netd/netd_lwip.c \
+	netd/netd_lwipinit.c \
+	netd/netd_lwipclient.cc \
+	netd/netd_lwipevent.cc \
+	netd/netd_lwipif.c \
+	netd/netd_linux.cc
+
+NETD_OBJFILES := $(NETD_SRCFILES)
+NETD_OBJFILES := $(patsubst netd/%.c, $(OBJDIR)/netd/%.o, $(NETD_OBJFILES))
+NETD_OBJFILES := $(patsubst netd/%.cc, $(OBJDIR)/netd/%.o, $(NETD_OBJFILES))
+
+NETD_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
+NETD_CXXFLAGS	= $(USER_CXXFLAGS) $(UCLIBC_COMFLAGS)
+
+$(OBJDIR)/netd/%.o: netd/%.c
+	@mkdir -p $(@D)
+	$(CC) $(NETD_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+
+$(OBJDIR)/netd/%.o: netd/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(NETD_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/libnetd.a: $(NETD_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $(NETD_OBJFILES)
