@@ -1,10 +1,9 @@
 Usability:
 
 * shared libraries: all of libc+libjos in ld.so, replace ld.so to upgrade?
-  - accessing global data (GOT, PLT) in a RO address space does not work now:
-    kernel does not map RW segments as RO.  even with RW segments mapped RO,
-    the PLT fixup code would fail when inserting the new PLT entry.  so, no
-    -fPIC code on gate entry..
+  - potential problem accessing unresolved PLT entries while in a read-only
+    address space (tainted gate entry).  may be fine if gate entry code is
+    part of the semi-static ld.so+libjos+libc that has no dependencies.
 * multi-referenced containers
   - what happens to parent pointers?  disable for multi-refable containers..
   - depth count, with inf value?  not so composable, but decent.
