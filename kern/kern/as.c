@@ -347,7 +347,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 		     const struct Segment *sg,
 		     struct segment_mapping *sm,
 		     const struct u_segment_mapping *usm,
-		     void *need_va)
+		     void *need_va, uint32_t usmflags)
 {
     if (usm->num_pages == 0)
 	return -E_INVAL;
@@ -386,7 +386,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	void *pp = 0;
 	uint64_t segpage = as_va_to_segment_page(usm, va);
 
-	if (va != need_va && (usm->flags & SEGMAP_WRITE)) {
+	if (va != need_va && (usmflags & SEGMAP_WRITE)) {
 	    /*
 	     * If this is a courtesy writable mapping, and there's a refcount
 	     * on this page, defer doing the actual copy-on-write until user
@@ -402,15 +402,15 @@ as_pmap_fill_segment(const struct Address_space *as,
 	}
 
 	r = kobject_get_page(&sg->sg_ko, segpage, &pp,
-			     (usm->flags & SEGMAP_WRITE) ? page_excl_dirty_later
-							 : page_shared_ro);
+			     (usmflags & SEGMAP_WRITE) ? page_excl_dirty_later
+						       : page_shared_ro);
 	if (r < 0) {
 	    if (va != need_va)
 		continue;
 	    goto err;
 	}
 
-	r = as_arch_putpage(as->as_pgmap, va, pp, usm->flags);
+	r = as_arch_putpage(as->as_pgmap, va, pp, usmflags);
 	if (r < 0) {
 	    if (va != need_va)
 		continue;
@@ -424,7 +424,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 
     sm->sm_as = as;
     sm->sm_sg = sg;
-    if ((usm->flags & SEGMAP_WRITE))
+    if (usmflags & SEGMAP_WRITE)
 	sm->sm_rw_mappings = 1;
 
     struct Segment *msg = &kobject_dirty(&sg->sg_ko)->sg;
@@ -468,10 +468,25 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 
 	struct cobj_ref seg_ref = usm->segment;
 	const struct kobject *ko;
+
+ retry_ro:
 	r = cobj_get(seg_ref, kobj_segment, &ko,
 		     (flags & SEGMAP_WRITE) ? iflow_rw : iflow_read);
-	if (r < 0)
+	if (r < 0) {
+	    /*
+	     * If this is a writable segment that we can't write to,
+	     * and the faulting instruction is not a write, try to
+	     * map the segment as read-only as a fall-back.
+	     */
+	    if (r == -E_LABEL && (flags & SEGMAP_WRITE) &&
+		!(reqflags & SEGMAP_WRITE))
+	    {
+		flags &= ~SEGMAP_WRITE;
+		goto retry_ro;
+	    }
+
 	    return r;
+	}
 
 	struct segment_mapping *sm;
 	r = as_get_segmap(as, &sm, i);
@@ -483,7 +498,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
-	return as_pmap_fill_segment(as, sg, sm, usm, va);
+	return as_pmap_fill_segment(as, sg, sm, usm, va, flags);
     }
 
     return -E_NOT_FOUND;
