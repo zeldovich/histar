@@ -5,7 +5,8 @@
 #include <inc/netd.h>
 
 struct socket_conn {
-    struct jcomm_ref socket_comm;
+    struct jcomm_ref ctrl_comm;
+    struct jcomm_ref data_comm;
     uint64_t container;
     uint64_t taint;
     uint64_t grant;

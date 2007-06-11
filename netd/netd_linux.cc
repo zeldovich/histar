@@ -43,7 +43,7 @@ netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg
     netd_socket_handler h = (netd_socket_handler) a;
     socket_conn *sr = (socket_conn *)gcd->param_buf;
     /* let our caller know we are clear */
-    int64_t z = jcomm_write(sr->socket_comm, &r, sizeof(r));
+    int64_t z = jcomm_write(sr->ctrl_comm, &r, sizeof(r));
     if (z < 0) 
 	cprintf("netd_lnux_gate_entry: jcomm_write error: %ld\n", z);
     h(sr);
@@ -105,20 +105,28 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 				     "socket-store", 0, CT_QUOTA_INF);
     if (ct < 0)
 	return ct;
-    jcomm_ref socket_comm0, socket_comm1;
+    jcomm_ref ctrl_comm0, ctrl_comm1;
     r = jcomm_alloc(ct, l.to_ulabel(), JCOMM_PACKET, 
-		    &socket_comm0, &socket_comm1);
+		    &ctrl_comm0, &ctrl_comm1);
     if (r < 0)
 	return r;
 
+    jcomm_ref data_comm0, data_comm1;
+    r = jcomm_alloc(ct, l.to_ulabel(), 0, &data_comm0, &data_comm1);
+    if (r < 0) {
+	jcomm_unref(ctrl_comm0);
+	return r;
+    }
+    
     gate_call_data gcd;
     socket_conn *sc = (socket_conn *)gcd.param_buf;
     
     sc->container = ct;
     sc->taint = taint;
     sc->grant = grant;
-    sc->socket_comm = socket_comm1;
-
+    sc->ctrl_comm = ctrl_comm1;
+    sc->data_comm = data_comm1;
+    
     label ds(3);
     ds.set(taint, LB_LEVEL_STAR);
     ds.set(grant, LB_LEVEL_STAR);
@@ -131,10 +139,11 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	client_conn->container = ct;
 	client_conn->taint = taint;
 	client_conn->grant = grant;
-	client_conn->socket_comm = socket_comm0;
+	client_conn->ctrl_comm = ctrl_comm0;
+	client_conn->data_comm = data_comm0;
 	
 	/* need to wait for thread signal, so can safely cleanup */
-	int64_t z = jcomm_read(socket_comm0, &r, sizeof(r));
+	int64_t z = jcomm_read(ctrl_comm0, &r, sizeof(r));
 	if (z < 0) { 
 	    cprintf("setup_socket_conn: jcomm_read error: %ld\n", z);
 	    return z;
@@ -174,11 +183,12 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	/* Linux doesn't send a response on close.  We send the close 
 	 * operation over the jcomm to pop Linux out of multisync.
 	 */
-	z = jcomm_write(client_conn->socket_comm, a, a->size);
+	z = jcomm_write(client_conn->ctrl_comm, a, a->size);
 	assert(z == a->size);
-	r = jcomm_shut(client_conn->socket_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
+	r = jcomm_shut(client_conn->ctrl_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
 	if (r < 0)
 	    cprintf("netd_linux_call: jcomm_shut error: %s\n", e2s(r));
+	jcomm_shut(client_conn->data_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
 	r = sys_obj_unref(COBJ(start_env->shared_container, client_conn->container));
 	if (r < 0)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
@@ -194,11 +204,11 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     }
     
     /* write operation request */
-    z = jcomm_write(client_conn->socket_comm, a, a->size);
+    z = jcomm_write(client_conn->ctrl_comm, a, a->size);
     assert(z == a->size);
 
     /* read return value */
-    z = jcomm_read(client_conn->socket_comm, a, sizeof(*a));
+    z = jcomm_read(client_conn->ctrl_comm, a, sizeof(*a));
     assert(z == a->size);
     if (a->rval < 0) {
 	errno = -1 * a->rval;
