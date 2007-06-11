@@ -10,7 +10,7 @@
 
 #include <sys/time.h>
 #include <sys/times.h>
-#include <time.h>
+#include <sys/timex.h>
 
 #include <bits/unimpl.h>
 
@@ -120,4 +120,11 @@ clock_getres (clockid_t clock_id, struct timespec *res)
     }
     
     return retval;
+}
+
+int
+adjtimex(struct timex *buf)
+{
+    set_enosys();
+    return -1;
 }

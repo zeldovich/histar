@@ -3,7 +3,7 @@ OBJDIRS += pkg/uclibc/libc/inet
 INET_CSRC :=	\
 	getservice.c getproto.c hostid.c getnetent.c getnetbynm.c getnetbyad.c \
 	inet_net.c ntop.c herror.c if_index.c gai_strerror.c getaddrinfo.c \
-	in6_addr.c ether_addr.c ntohl.c \
+	in6_addr.c ether_addr.c ntohl.c opensock.c \
 	inet_aton.c inet_addr.c inet_ntoa.c inet_makeaddr.c inet_lnaof.c \
 	inet_netof.c \
 	encodeh.c decodeh.c encoded.c decoded.c lengthd.c encodeq.c \
