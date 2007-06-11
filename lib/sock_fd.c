@@ -458,6 +458,11 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	if (z < 0)
 	    return z;
 
+	if (ia->gifconf.name[0] == 0) {
+	    ifc->ifc_len = 0;	    
+	    return 0;
+	}
+	
 	int n = sizeof(r->ifr_name);
 	strncpy(r->ifr_name, ia->gifconf.name, n);
 	r->ifr_name[n - 1] = 0;
