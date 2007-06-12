@@ -19,6 +19,7 @@
 #define ELF_CLASS_64		2
 
 // e_machine values
+#define ELF_MACH_SPARC		2
 #define ELF_MACH_386		3
 #define ELF_MACH_486		6
 #define ELF_MACH_AMD64		62
