@@ -129,6 +129,17 @@ netd_lwip_dispatch(struct netd_op_args *a)
 
     case netd_op_setsockopt:
 	err_fd = a->setsockopt.fd;
+
+	if (a->setsockopt.level == SOL_SOCKET) {
+	    /* LWIP does not supoport and some packages error out 
+	     * if REUSEADDR fails 
+	     */
+	    if (a->setsockopt.optname == SO_REUSEADDR) {
+		a->rval = 0;
+		break;
+	    }
+	}
+
         a->rval = lwip_setsockopt(a->setsockopt.fd,
                                   a->setsockopt.level,
                                   a->setsockopt.optname,
