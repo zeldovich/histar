@@ -17,7 +17,7 @@ UCLIBC_INCLUDES := \
 
 USER_INC := $(UCLIBC_INCLUDES) $(USER_INC)
 
-UCLIBC_COMFLAGS = -D_LIBC -include pkg/uclibc/include/libc-symbols.h
+UCLIBC_COMFLAGS = -D_LIBC -include pkg/uclibc/include/libc-symbols.h # -fPIC -DSHARED
 UCLIBC_CFLAGS   = $(UCLIBC_COMFLAGS) $(USER_CFLAGS)   $(CSTD)
 UCLIBC_CXXFLAGS = $(UCLIBC_COMFLAGS) $(USER_CXXFLAGS)
 
