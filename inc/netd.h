@@ -155,12 +155,20 @@ struct netd_ioctl_gifbrdaddr {
     struct netd_sockaddr_in baddr;
 };
 
+struct netd_ioctl_gifhwaddr {
+    char name[16];
+    int hwfamily;
+    int hwlen;
+    char hwaddr[16];
+};
+
 struct netd_op_ioctl_args {
     uint64_t libc_ioctl;
     union {
 	struct netd_ioctl_gifconf gifconf;
 	struct netd_ioctl_gifflags gifflags;
 	struct netd_ioctl_gifbrdaddr gifbrdaddr;
+	struct netd_ioctl_gifhwaddr gifhwaddr;
     };
 };
 
