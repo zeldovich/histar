@@ -160,7 +160,6 @@ lfs_open(struct fs_inode ino, int flags, uint32_t dev_opt)
     return fd2num(fd);
 }
 
-
 ssize_t 
 lfs_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 {
@@ -168,6 +167,7 @@ lfs_read(struct Fd *fd, void *buf, size_t len, off_t offset)
     a.op_type = lfs_op_read;
     strcpy(a.pn, fd->fd_lfs.ld.pn);
     a.bufcnt = MIN(len, sizeof(a.buf));
+    a.offset = offset;
     int r = lfs_call(fd->fd_lfs.ld.gate, &a);
     if (r < 0)
 	return r;
@@ -175,3 +175,8 @@ lfs_read(struct Fd *fd, void *buf, size_t len, off_t offset)
     return r;
 }
 
+int 
+lfs_close(struct Fd *fd)
+{
+    return 0;
+}

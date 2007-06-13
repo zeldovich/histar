@@ -15,6 +15,7 @@ struct lfs_op_args {
     char pn[128];
     char buf[4096];
     int bufcnt;
+    int offset;
 };
 
 typedef void (*lfs_request_handler)(struct lfs_op_args*);
@@ -23,6 +24,7 @@ int lfs_create(struct fs_inode dir, const char *fn,
 	       const char *linux_pn, struct cobj_ref gate);
 
 int lfs_open(struct fs_inode ino, int flags, uint32_t dev_opt);
+int lfs_close(struct Fd *fd);
 ssize_t lfs_read(struct Fd *fd, void *buf, size_t len, off_t offset);
 
 #endif
