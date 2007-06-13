@@ -488,6 +488,8 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     }
     default:
+	fprintf(stderr, "sock_ioctl: unimplemented 0x%lx\n", req);
+	errno = ENOSYS;
 	break;
     }
     return -1;
