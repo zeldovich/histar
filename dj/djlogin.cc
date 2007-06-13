@@ -33,7 +33,7 @@ main(int ac, char **av)
 	pk = sfspub2dj(sfspub);
     }
 
-    dj_message_endpoint ep;
+    dj_slot ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = atoi(av[2]);
     ep.ep_gate->gate <<= av[3];

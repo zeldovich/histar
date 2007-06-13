@@ -9,8 +9,8 @@ typedef callback<void, const dj_message&>::ptr dj_msg_sink;
 class dj_gate_factory {
  public:
     virtual ~dj_gate_factory() {}
-    virtual dj_message_endpoint create_gate(uint64_t ct, dj_msg_sink) = 0;
-    virtual void destroy(const dj_message_endpoint&) = 0;
+    virtual dj_slot create_gate(uint64_t ct, dj_msg_sink) = 0;
+    virtual void destroy(const dj_slot&) = 0;
 };
 
 #endif

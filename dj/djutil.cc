@@ -29,7 +29,7 @@ dj_map_and_delegate(uint32_t ncat, uint64_t *lcatp, bool *integrityp,
      * Create mapping on local host.
      */
     dj_delivery_code c;
-    dj_message_endpoint ep_mapcreate;
+    dj_slot ep_mapcreate;
     ep_mapcreate.set_type(EP_MAPCREATE);
 
     dj_mapcreate_arg maparg;
@@ -73,7 +73,7 @@ dj_map_and_delegate(uint32_t ncat, uint64_t *lcatp, bool *integrityp,
     /*
      * Create delegation to the remote host.
      */
-    dj_message_endpoint ep_delegate;
+    dj_slot ep_delegate;
     ep_delegate.set_type(EP_DELEGATOR);
 
     dj_delegate_arg darg;

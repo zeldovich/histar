@@ -79,7 +79,7 @@ main(int ac, char **av)
     }
 
     /* Create a remote tainted container */
-    dj_message_endpoint ctalloc_ep;
+    dj_slot ctalloc_ep;
     ctalloc_ep.set_type(EP_GATE);
     ctalloc_ep.ep_gate->msg_ct = call_ct;
     ctalloc_ep.ep_gate->gate.gate_ct = 0;
@@ -107,7 +107,7 @@ main(int ac, char **av)
     warn << "New remote container: " << ctres.ct_id << "\n";
 
     /* Send a real request now.. */
-    dj_message_endpoint ep;
+    dj_slot ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = ctres.ct_id;
     ep.ep_gate->gate = service_gate;

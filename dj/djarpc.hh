@@ -27,7 +27,7 @@ class dj_arpc_call : virtual public refcount {
 
     uint64_t rct_;
     bool rep_created_;
-    dj_message_endpoint rep_;
+    dj_slot rep_;
 
     dj_delegation_set dset_;
     dj_message a_;

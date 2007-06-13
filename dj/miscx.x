@@ -72,7 +72,7 @@ struct webapp_arg {
     dj_stmt_signed ut_dlg_userhost;
 
     dj_pubkey userhost;
-    dj_message_endpoint user_fs;
+    dj_slot user_fs;
 
     string reqpath<>;
 };

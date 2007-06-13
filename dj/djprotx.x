@@ -75,7 +75,7 @@ struct dj_delegation_set {
  * Message transfer.
  */
 
-enum dj_endpoint_type {
+enum dj_slot_type {
     EP_GATE = 1,
     EP_SEGMENT,
     EP_MAPCREATE,
@@ -103,7 +103,7 @@ struct dj_ep_segment {
     unsigned hyper seg_id;
 };
 
-union dj_message_endpoint switch (dj_endpoint_type type) {
+union dj_slot switch (dj_slot_type type) {
  case EP_GATE:
     dj_ep_gate ep_gate;
  case EP_SEGMENT:
@@ -118,7 +118,7 @@ struct dj_message {
     dj_pubkey from;
     dj_pubkey to;
 
-    dj_message_endpoint target;	/* gate or segment to call on delivery */
+    dj_slot target;		/* gate or segment to call on delivery */
     dj_label taint;		/* taint of message */
     dj_label glabel;		/* grant label on gate invocation */
     dj_label gclear;		/* grant clearance on gate invocation */

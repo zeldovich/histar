@@ -16,7 +16,7 @@ class dj_autorpc {
 	  home_(cache[gs->hostkey()]), nc_(cache[pk]) {}
 
     template<class TA, class TR>
-    dj_delivery_code call(const dj_message_endpoint &ep, const TA &arg, TR &res,
+    dj_delivery_code call(const dj_slot &ep, const TA &arg, TR &res,
 			  label *taint = 0,
 			  label *grant = 0,
 			  label *gclear = 0,

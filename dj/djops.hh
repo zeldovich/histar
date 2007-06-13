@@ -150,7 +150,7 @@ strbuf_cat(const strbuf &sb, const label &l)
 }
 
 inline const strbuf &
-strbuf_cat(const strbuf &sb, const dj_message_endpoint &ep)
+strbuf_cat(const strbuf &sb, const dj_slot &ep)
 {
     switch (ep.type) {
     case EP_GATE:

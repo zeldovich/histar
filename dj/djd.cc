@@ -54,7 +54,7 @@ fsrpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
 }
 
 static void
-sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endpoint ep)
+sndfsrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_slot ep)
 {
     dj_message m;
     m.to = node_pk;
@@ -79,7 +79,7 @@ rpccb(ptr<dj_arpc_call>, dj_delivery_code c, const dj_message *m)
 }
 
 static void
-sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_message_endpoint ep)
+sndrpc(message_sender *s, dj_gate_factory *f, dj_pubkey node_pk, dj_slot ep)
 {
     dj_message m;
     m.to = node_pk;
@@ -98,7 +98,7 @@ msgcb(dj_delivery_code c)
 }
 
 static void
-sndmsg(message_sender *s, dj_pubkey node_pk, dj_message_endpoint ep)
+sndmsg(message_sender *s, dj_pubkey node_pk, dj_slot ep)
 {
     warn << "sending a message..\n";
 
@@ -144,7 +144,7 @@ main(int ac, char **av)
     rnd_input.update(&tsc, sizeof(tsc));
 #endif
 
-    dj_message_endpoint ep;
+    dj_slot ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = 12345;
     ep.ep_gate->gate <<= "5.7";

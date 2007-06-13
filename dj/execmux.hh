@@ -9,12 +9,12 @@ class exec_mux {
  public:
     exec_mux() {}
 
-    void set(dj_endpoint_type t, djprot::local_delivery_cb cb) {
+    void set(dj_slot_type t, djprot::local_delivery_cb cb) {
 	m_[t] = cb;
     }
 
     void exec(const dj_message &m, const delivery_args &a) {
-	std::map<dj_endpoint_type, djprot::local_delivery_cb>::iterator i =
+	std::map<dj_slot_type, djprot::local_delivery_cb>::iterator i =
 	    m_.find(m.target.type);
 	if (i == m_.end()) {
 	    warn << "exec_mux: no delivery for type " << m.target.type << "\n";
@@ -26,7 +26,7 @@ class exec_mux {
     }
 
  private:
-    std::map<dj_endpoint_type, djprot::local_delivery_cb> m_;
+    std::map<dj_slot_type, djprot::local_delivery_cb> m_;
 };
 
 #endif

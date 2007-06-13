@@ -51,7 +51,7 @@ main(int ac, char **av)
     sha1_hash(arg.sha1sum.base(), bindata.cstr(), bindata.len());
 
     /* Create a remote tainted container */
-    dj_message_endpoint guardcall_ep;
+    dj_slot guardcall_ep;
     guardcall_ep.set_type(EP_GATE);
     guardcall_ep.ep_gate->msg_ct = call_ct;
     guardcall_ep.ep_gate->gate.gate_ct = 0;

@@ -1,8 +1,7 @@
 %#include <dj/djprotx.h>
 
 /*
- * Mapping creation service, implemented as an RPC server
- * on a special endpoint.
+ * Mapping creation service, implemented as an RPC server on a special slot.
  */
 
 struct dj_mapreq {
