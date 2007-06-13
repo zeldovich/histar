@@ -27,12 +27,14 @@ int	sys_net_macaddr(struct cobj_ref ndev, uint8_t *buf);
 
 int     sys_machine_reboot(void);
 
-int64_t	sys_container_alloc(uint64_t parent, const struct ulabel *l, const char *name,
-			    uint64_t avoid_types, uint64_t quota);
+int64_t	sys_container_alloc(uint64_t parent, const struct ulabel *l,
+			    const char *name, uint64_t avoid_types,
+			    uint64_t quota);
 int64_t	sys_container_get_nslots(uint64_t container);
 int64_t sys_container_get_parent(uint64_t container);
 int64_t	sys_container_get_slot_id(uint64_t container, uint64_t slot);
-int	sys_container_move_quota(uint64_t parent, uint64_t child, int64_t nbytes);
+int	sys_container_move_quota(uint64_t parent, uint64_t child,
+				 int64_t nbytes);
 
 int	sys_obj_unref(struct cobj_ref o);
 kobject_type_t
@@ -62,7 +64,7 @@ int	sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *s);
 
 int64_t	sys_thread_create(uint64_t container, const char *name);
 int	sys_thread_start(struct cobj_ref thread, const struct thread_entry *s,
-			 const struct ulabel *l, const struct ulabel *clearance);
+			 const struct ulabel *l, const struct ulabel *clear);
 int	sys_thread_trap(struct cobj_ref thread, struct cobj_ref as,
 			uint32_t trapno, uint64_t arg);
 
@@ -105,7 +107,8 @@ int64_t	sys_segment_get_nbytes(struct cobj_ref seg);
 int	sys_segment_sync(struct cobj_ref seg, uint64_t start, uint64_t nbytes,
 			 uint64_t pstate_ts);
 
-int64_t sys_as_create(uint64_t container, const struct ulabel *l, const char *name);
+int64_t sys_as_create(uint64_t container, const struct ulabel *l,
+		      const char *name);
 int64_t sys_as_copy(struct cobj_ref as, uint64_t container,
 		    const struct ulabel *l, const char *name);
 int	sys_as_get(struct cobj_ref as, struct u_address_space *uas);
