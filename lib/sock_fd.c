@@ -487,6 +487,19 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	netd_to_libc(&ia->gifbrdaddr.baddr, (struct sockaddr_in *) &r->ifr_broadaddr);
 	return 0;
     }
+    case SIOCGIFHWADDR: {
+	struct ifreq *r = va_arg(ap, struct ifreq *);
+	ia->libc_ioctl = SIOCGIFHWADDR;
+	strncpy(ia->gifhwaddr.name, r->ifr_name, sizeof(ia->gifhwaddr.name));
+	int z = netd_call(fd, &a);
+	if (z < 0)
+	    return z;
+	
+	struct sockaddr *sa = &r->ifr_hwaddr;
+	sa->sa_family = ia->gifhwaddr.hwfamily;
+	memcpy(sa->sa_data, ia->gifhwaddr.hwaddr, ia->gifhwaddr.hwlen);
+	return 0;
+    }
     default:
 	fprintf(stderr, "sock_ioctl: unimplemented 0x%lx\n", req);
 	errno = ENOSYS;
