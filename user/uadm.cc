@@ -41,9 +41,9 @@ main(int ac, char **av)
 
     try {
 	if (op == authd_adduser || op == authd_chpass)
-	    pass = readline("password: ");
+	    pass = readline("password: ", 0);
 	if (op == authd_chpass)
-	    npass = readline("new password: ");
+	    npass = readline("new password: ", 0);
 
 	auth_call(op, uname, pass, npass, 0);
     } catch (std::exception &e) {

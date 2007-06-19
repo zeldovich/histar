@@ -76,13 +76,13 @@ prompt(const char *initial_user)
 	    strcpy(user, initial_user);
 	    initial_user = 0;
 	} else {
-	    char *s = readline("login: ");
+	    char *s = readline("login: ", 1);
 	    if (!s)
 		return;
 	    strcpy(user, s);
 	}
     
-        char *p = readline("password: ");
+        char *p = readline("password: ", 0);
 	if (!p)
 	    return;
         strcpy(pass, p);

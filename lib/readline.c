@@ -10,9 +10,9 @@ static char allbufs[NBUFS][BUFLEN];
 static int curbuf = 0;
 
 char*
-readline(const char *prompt)
+readline(const char *prompt, int echoing)
 {
-	int i, c, echoing;
+	int i, c;
 	char *buf;
 	curbuf = (curbuf + 1) % NBUFS;
 	buf = &allbufs[curbuf][0];
@@ -21,7 +21,6 @@ readline(const char *prompt)
 		printf("%s", prompt);
 
 	i = 0;
-	echoing = iscons(0);
 	while (1) {
 		c = getchar();
 		if (c < 0) {

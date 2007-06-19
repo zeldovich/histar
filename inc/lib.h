@@ -16,7 +16,7 @@ int	iscons(int fd);
 int	opencons(void);
 
 /* readline.c */
-char*	readline(const char *prompt);
+char*	readline(const char *prompt, int echo);
 
 /* segment.c */
 #define SEG_MAPOPT_REPLACE	0x01

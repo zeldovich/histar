@@ -26,12 +26,12 @@ main(int ac, char **av)
     const char *x;
 
     char *pass, *npass;
-    x = readline("password: ");
+    x = readline("password: ", 0);
     if (!x)
 	return -1;
     pass = strdup(x);
 
-    x = readline("new password: ");
+    x = readline("new password: ", 0);
     if (!x)
 	return -1;
     npass = strdup(x);

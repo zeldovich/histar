@@ -358,7 +358,7 @@ main(int ac, char **av)
 	char prompt[64];
 	snprintf(prompt, sizeof(prompt), "[jos:%"PRIu64"]> ",
 		 start_env->fs_cwd.obj.object);
-	char *cmd = readline(prompt);
+	char *cmd = readline(prompt, 1);
 	if (cmd == 0) {
 	    printf("EOF\n");
 	    break;
