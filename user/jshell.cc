@@ -45,7 +45,7 @@ print_cobj(uint64_t ct, uint64_t slot)
 	return;
     }
 
-    printf("%5"PRIu64" [%4"PRIu64"]  ", id, slot);
+    printf("%20"PRIu64" [%4"PRIu64"]  ", id, slot);
 
     int r;
     switch (type) {
@@ -130,7 +130,7 @@ builtin_list_container(int ac, char **av)
     int64_t ct_avail = sys_obj_get_quota_avail(COBJ(ct, ct));
 
     printf("Container %"PRIu64" (%"PRIu64" bytes, %"PRIu64" avail):\n", ct, ct_quota, ct_avail);
-    printf("   id  slot   object\n");
+    printf("                  id  slot   object\n");
 
     int64_t nslots = sys_container_get_nslots(ct);
     if (nslots < 0) {

@@ -11,13 +11,13 @@
 static void
 as_print_ents(struct u_address_space *uas)
 {
-    printf("              va off npg rwx segment\n");
+    printf("              va off  #pages rwx container            segment\n");
     for (uint32_t i = 0; i < uas->nent; i++) {
 	if (uas->ents[i].flags == 0)
 	    continue;
 
 	uint64_t flags = uas->ents[i].flags;
-	printf("%16p %3"PRIu64" %3"PRIu64" %c%c%c %"PRIu64".%"PRIu64"\n",
+	printf("%16p %3"PRIu64" %7"PRIu64" %c%c%c %-20"PRIu64" %-20"PRIu64"\n",
 		uas->ents[i].va,
 		uas->ents[i].start_page,
 		uas->ents[i].num_pages,
