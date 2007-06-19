@@ -39,6 +39,8 @@ ureboot_ct(uint64_t ct)
 	if (type == kobj_container) {
 	    if (!strcmp(name, "bin"))
 		keep = 1;
+	    if (!strcmp(name, "usr"))
+		keep = 1;
 	    if (!strcmp(name, "ureboot")) {
 		ureboot_self = o;
 		keep = 1;
