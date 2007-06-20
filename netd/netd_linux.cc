@@ -201,6 +201,20 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	return jcomm_multisync(client_conn->data_comm, 
 			       a->statsync.how, 
 			       &a->statsync.wstat);
+    case netd_op_recvfrom:
+	if (!a->recvfrom.wantfrom) {
+	    r = jcomm_read(client_conn->data_comm, a->recvfrom.buf, a->recvfrom.count);
+	    if (r < 0) {
+		cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
+		errno = ENOSYS;
+		return -1;
+	    }
+	    return r;
+	}
+	errno = ENOSYS;
+	return -1;
+    case netd_op_connect:
+    case netd_op_send:
     case netd_op_sendto:
     case netd_op_setsockopt:
     case netd_op_bind:
