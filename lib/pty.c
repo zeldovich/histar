@@ -270,7 +270,8 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
     int r = jcomm_write(PTY_JCOMM(fd), bf, cc);
     if (r < 0) {
 	cprintf("pty_write: jcomm_write failed: %s\n", e2s(r));
-	return r;
+	__set_errno(EIO);
+	return -1;
     }
 
     /* lots of code assumes a write to stdout writes all bytes */

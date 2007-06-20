@@ -127,7 +127,9 @@ jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
     
     jthread_mutex_lock(&jl->mu);
     while ((jl->open) && 
-	   ((pm && !jlink_fullwrite(jl, cnt)) || (!pm && !jlink_minwrite(jl)))) {
+	   ((pm && !jlink_fullwrite(jl, cnt + sizeof(header))) ||
+	    (!pm && !jlink_minwrite(jl))))
+    {
     	uint64_t b = jl->bytes;
 	
 	int nonblock = (mode & JCOMM_NONBLOCK_WR);
