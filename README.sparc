@@ -1,0 +1,11 @@
+* binutils
+
+./configure --prefix=/usr/local --disable-nls --target=sparc-jos-linux
+
+* GCC 4.1.2
+
+./configure --target=sparc-jos-linux --prefix=/usr/local \
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp
+
