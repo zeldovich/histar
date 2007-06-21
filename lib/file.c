@@ -210,7 +210,7 @@ unlink(const char *pn)
 
  err:
     free(pn2);
-    return r;
+    return err_jos2libc(r);
 }
 
 int
@@ -266,7 +266,7 @@ chdir(const char *pn)
     struct fs_inode dir;
     int r = fs_namei(pn, &dir);
     if (r < 0)
-	return r;
+	return err_jos2libc(r);
 
     start_env->fs_cwd = dir;
     return 0;
@@ -336,7 +336,11 @@ stat_common(const char *file_name, struct stat64 *buf, uint32_t namei_flags)
 	return fd;
 
     r = fstat64(fd, buf);
+
+    int esave = errno;
     close(fd);
+    __set_errno(esave);
+
     return r;
 }
 
