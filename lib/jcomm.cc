@@ -361,7 +361,6 @@ jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
-    
     if (probe == dev_probe_read)
 	links[jr->jc.chan].reader_waiting = 1;
     else
@@ -400,6 +399,6 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
     
     WS_SETCBARG(wstat, jr_copy);
     WS_SETCB0(wstat, &jcomm_statsync_cb0); 
-    
+    wstat->ws_probe = probe;
     return 0;
 }
