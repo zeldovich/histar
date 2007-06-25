@@ -91,7 +91,7 @@ netd_linux_server_init(netd_socket_handler h)
 }
 
 static int
-setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
+setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn, int sock_id)
 {
     int r;
     /* allocate some args */
@@ -113,6 +113,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	return r;
 
     jcomm_ref data_comm0, data_comm1;
+    /* XXX need to be packet if DGRAM */
     r = jcomm_alloc(ct, l.to_ulabel(), 0, &data_comm0, &data_comm1);
     if (r < 0) {
 	jcomm_unref(ctrl_comm0);
@@ -127,6 +128,8 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
     sc->grant = grant;
     sc->ctrl_comm = ctrl_comm1;
     sc->data_comm = data_comm1;
+    sc->init_magic = NETD_LINUX_MAGIC;
+    sc->sock_id = sock_id;
     
     label ds(3);
     ds.set(taint, LB_LEVEL_STAR);
@@ -157,6 +160,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn)
 	cprintf("setup_socket_conn: gobblegate call error: %s\n", e.what());
 	return -1;
     }
+    client_conn->init_magic = NETD_LINUX_MAGIC;
     return 0;
 }
 
@@ -172,14 +176,22 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     int r;
     int64_t z;
     struct socket_conn *client_conn = (struct socket_conn *) fd->fd_sock.extra;
-    
-    switch(a->op_type) {
-    case netd_op_socket:
-	r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn);
+
+    if (client_conn->init_magic != NETD_LINUX_MAGIC) {
+	/* if we aren't creating a new socket we probably are socket 
+	 * created by accept that hasn't been used yet
+	 */
+	if (a->op_type == netd_op_socket)
+	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn, -1);
+	else
+	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn, fd->fd_sock.s);
+
 	if (r < 0)
 	    return r;
 	fd_set_extra_handles(fd, client_conn->grant, client_conn->taint);
-	break;
+    }
+    
+    switch(a->op_type) {
     case netd_op_close:
 	/* Linux doesn't send a response on close.  We send the close 
 	 * operation over the jcomm to pop Linux out of multisync.
@@ -213,11 +225,21 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	}
 	errno = ENOSYS;
 	return -1;
+    case netd_op_accept:
+	r = jcomm_read(client_conn->data_comm, &a->accept, sizeof(a->accept));
+	if (r < 0) {
+	    cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
+	    errno = ENOSYS;
+	    return -1;
+	}
+	return a->accept.fd;
+    case netd_op_socket:
     case netd_op_connect:
     case netd_op_send:
     case netd_op_sendto:
     case netd_op_setsockopt:
     case netd_op_bind:
+    case netd_op_listen:
     case netd_op_ioctl:
 	break;
     default:

@@ -4,7 +4,12 @@
 #include <inc/jcomm.h>
 #include <inc/netd.h>
 
+#define NETD_LINUX_MAGIC UINT64(0x31960B4)
+
 struct socket_conn {
+    uint64_t init_magic;
+    int sock_id;
+
     struct jcomm_ref ctrl_comm;
     struct jcomm_ref data_comm;
     uint64_t container;
