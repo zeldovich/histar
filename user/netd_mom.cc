@@ -33,6 +33,38 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
     }
 }
 
+static void
+start_lwip(label *ds, label *dr, label *co, 
+	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
+{
+    struct fs_inode netd_ino;
+    error_check(fs_namei("/bin/netd", &netd_ino));
+    const char *argv[] = { "netd", grant_arg, taint_arg, inet_arg };
+    spawn(start_env->root_container, netd_ino,
+	  0, 1, 2,
+	  4, argv,
+	  0, 0,
+	  0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+}
+
+static void
+start_linux(label *ds, label *dr, label *co, 
+	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
+{
+    struct fs_inode netd_ino;
+    const char *vmlinux_pn = "/bin/vmlinux";
+    const char *argv[] = { vmlinux_pn, "ip=dhcp", "initrd=/bin/initrd", 
+			   grant_arg, taint_arg, inet_arg };
+    int argc = sizeof(argv) / sizeof(char *);
+    error_check(fs_namei(vmlinux_pn, &netd_ino));
+    
+    spawn(start_env->root_container, netd_ino,
+	  0, 1, 2,
+	  argc, argv,
+	  0, 0,
+	  0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+}
+
 int
 main(int ac, char **av)
 try
@@ -47,9 +79,6 @@ try
 
     netdev_init(start_env->shared_container, netdev_grant, netdev_taint, inet_taint);
 
-    struct fs_inode netd_ino;
-    error_check(fs_namei("/bin/netd", &netd_ino));
-
     label ds(3);
     ds.set(netdev_grant, LB_LEVEL_STAR);
     ds.set(netdev_taint, LB_LEVEL_STAR);
@@ -61,11 +90,9 @@ try
     dr.set(inet_taint, 3);
 
     char grant_arg[32], taint_arg[32], inet_arg[32];
-    sprintf(grant_arg, "%"PRIu64, netdev_grant);
-    sprintf(taint_arg, "%"PRIu64, netdev_taint);
-    sprintf(inet_arg,  "%"PRIu64, inet_taint);
-
-    const char *argv[] = { "netd", grant_arg, taint_arg, inet_arg };
+    sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
+    sprintf(taint_arg, "netdev_taint=%"PRIu64, netdev_taint);
+    sprintf(inet_arg,  "inet_taint=%"PRIu64, inet_taint);
 
     if (netd_mom_debug)
 	printf("netd_mom: decontaminate-send %s\n", ds.to_string());
@@ -79,11 +106,11 @@ try
     label co(0);
     co.set(inet_taint, 2);
 
-    spawn(start_env->root_container, netd_ino,
-	  0, 1, 2,
-	  4, &argv[0],
-	  0, 0,
-	  0, &ds, 0, &dr, &co, SPAWN_NO_AUTOGRANT);
+    try {
+	start_lwip(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
+    } catch (std::exception &e) {
+	start_linux(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
+    }
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
 }

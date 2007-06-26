@@ -34,24 +34,36 @@ main(int ac, char **av)
 	return -1;
     }
 
-    uint64_t grant, taint, inet_taint;
-    int r = strtou64(av[1], 0, 10, &grant);
-    if (r < 0)
-	panic("parsing grant handle %s: %s", av[1], e2s(r));
-
-    r = strtou64(av[2], 0, 10, &taint);
-    if (r < 0)
-	panic("parsing taint handle %s: %s", av[2], e2s(r));
-
-    r = strtou64(av[3], 0, 10, &inet_taint);
-    if (r < 0)
-	panic("parsing inet taint handle %s: %s", av[3], e2s(r));
-
-    if (netd_debug)
-	printf("netd: grant handle %"PRIu64", taint handle %"PRIu64"\n",
-	       grant, taint);
-
     try {
+	uint64_t grant, taint, inet_taint;
+
+	for (int i = 1; i < 4; i++) {
+	    int n = strlen("netdev_grant=");
+	    if (!strncmp(av[i], "netdev_grant=", n)) {
+		error_check(strtou64(av[i] + n, 0, 10, &grant));
+		continue;
+	    }
+	    
+	    n = strlen("netdev_taint=");
+	    if (!strncmp(av[i], "netdev_taint=", n)) {
+		error_check(strtou64(av[i] + n, 0, 10, &taint));
+		continue;
+	    }
+	    
+	    n = strlen("inet_taint=");
+	    if (!strncmp(av[i], "inet_taint=", n)) {
+		error_check(strtou64(av[i] + n, 0, 10, &inet_taint));
+		continue;
+	    }
+	    
+	    printf("Unknown argument: %s\n", av[i]);
+	    return -1;
+	}
+	
+	if (netd_debug)
+	    printf("netd: grant handle %"PRIu64", taint handle %"PRIu64"\n",
+		   grant, taint);
+	
 	label cntm;
 	label clear;
 
