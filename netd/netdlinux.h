@@ -20,7 +20,7 @@ struct socket_conn {
 typedef void (*netd_socket_handler)(struct socket_conn *);
 
 /* server */
-int netd_linux_server_init(netd_socket_handler h);
+int netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint);
 
 /* client */
 int netd_linux_call(struct Fd *fd, struct netd_op_args *a);

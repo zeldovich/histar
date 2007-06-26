@@ -18,8 +18,6 @@ extern "C" {
 #include <inc/gobblegateclnt.hh>
 #include <netd/netdsrv.hh>
 
-enum { netd_do_taint = 0 };
-
 static int
 gate_lookup(const char *bn, const char *gn, struct cobj_ref *ret)
 {
@@ -46,7 +44,7 @@ netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg
 }
 
 int
-netd_linux_server_init(netd_socket_handler h)
+netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint)
 {
     try {
 	label l(1);
@@ -56,10 +54,8 @@ netd_linux_server_init(netd_socket_handler h)
 	thread_cur_label(&l);
 	thread_cur_clearance(&c);
 
-	uint64_t inet_taint = 0;
-	if (netd_do_taint)
+	if (inet_taint)
 	    l.set(inet_taint, 2);
-	
 	
 	gatesrv_descriptor gd;
 	gd.gate_container_ = start_env->shared_container;
