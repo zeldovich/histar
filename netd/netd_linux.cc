@@ -40,13 +40,8 @@ gate_lookup(const char *bn, const char *gn, struct cobj_ref *ret)
 static void
 netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    int r = 0;
     netd_socket_handler h = (netd_socket_handler) a;
     socket_conn *sr = (socket_conn *)gcd->param_buf;
-    /* let our caller know we are clear */
-    int64_t z = jcomm_write(sr->ctrl_comm, &r, sizeof(r));
-    if (z < 0) 
-	cprintf("netd_lnux_gate_entry: jcomm_write error: %"PRIu64"\n", z);
     h(sr);
 }
 
@@ -153,7 +148,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn, int sock_id)
 	    return z;
 	}
 	else if (r < 0) {
-	    cprintf("setup_socket_conn: gobble thread error: %d\n", r);
+	    cprintf("setup_socket_conn: gobble thread error: %s\n", e2s(r));
 	    return r;
 	}
     } catch (std::exception &e) {
