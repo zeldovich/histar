@@ -109,6 +109,8 @@ try
     try {
 	start_lwip(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
     } catch (std::exception &e) {
+	if (netd_mom_debug)
+	    printf("netd_mom: unable to start lwip: %s\n", e.what());
 	start_linux(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
     }
 } catch (std::exception &e) {
