@@ -29,7 +29,7 @@ static struct cobj_ref netd_gate, netd_fast_gate;
 static int
 netd_client_init(void)
 {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 50; i++) {
 	if (netd_lwip_client_init(&netd_gate, &netd_fast_gate) == 0) {
 	    netd_mode = netd_lwip_mode;
 	    return 0;
