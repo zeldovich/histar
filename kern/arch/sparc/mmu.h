@@ -50,8 +50,13 @@
 
 #define PTE_ADDR(e)	(((e >> PTE_PPN_SHIFT) & PTE_PPN_MASK) << PGSHIFT)
 
-/*
- * Processor status register
+
+/* The Sparc PSR fields are laid out as the following:
+ *
+ *  ------------------------------------------------------------------------
+ *  | impl  | vers  | icc   | resv  | EC | EF | PIL  | S | PS | ET |  CWP  |
+ *  | 31-28 | 27-24 | 23-20 | 19-14 | 13 | 12 | 11-8 | 7 | 6  | 5  |  4-0  |
+ *  ------------------------------------------------------------------------
  */
 #define	PSR_IMPL_SHIFT	28		/* CPU implementation */
 #define	PSR_IMPL_MASK	0x0f
@@ -63,6 +68,7 @@
 #define PSR_EF		(1 << 12)	/* Enable floating-point */
 #define PSR_PIL_SHIFT	8		/* Interrupt level (masking) */
 #define PSR_PIL_MASK	0x0f
+#define PSR_PIL         (PSR_PIL_MASK << PSR_PIL_SHIFT)
 #define PSR_S		(1 << 7)	/* Supervisor */
 #define PSR_PS		(1 << 6)	/* Previous supervisor */
 #define PSR_ET		(1 << 5)	/* Enable traps */
