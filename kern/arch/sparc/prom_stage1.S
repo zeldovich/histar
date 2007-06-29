@@ -346,6 +346,7 @@ uart1:
         !set	BOOTLOADER_uart, %g2		! Load UART scaler register
 	!st	%g2, [%g1 + USCAL0]
 
+stage2:
 	call	__main
 	nop
 
