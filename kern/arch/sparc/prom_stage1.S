@@ -7,10 +7,12 @@
 #include <machine/leon.h> 
 #include <machine/ambapp.h>
 #include <machine/prom_config.h>
-	
+#include <machine/asm.h>
+		
 	.seg	"text"
 
-_start:  ba  1000f
+ENTRY(prom_start)  
+	ba  1000f
           nop
         
 !unsigned int ahbslv_scan(register unsigned int vendor,register unsigned int driver) {
@@ -31,7 +33,7 @@ _start:  ba  1000f
         
 	
          
-	.section	"prom_stage1.text"
+	.section	".text"
 	.align 4
 ahbslv_scan:
 	mov	%o0, %g1
@@ -163,7 +165,7 @@ getbase:
         nop
         
         cmp %g0,%o0
-        be _start
+        be prom_start
          nop
         
         ld [%o0+16],%g1
@@ -181,7 +183,7 @@ getbase:
         call apbslv_scan
          nop
         cmp %g0,%o0
-        be _start
+        be prom_start
          nop
         
         call getbase
@@ -202,7 +204,7 @@ getbase:
         call apbslv_scan
          nop
         cmp %g0,%o0
-        be _start
+        be prom_start
          nop
         
         call getbase
@@ -275,7 +277,7 @@ getbase:
         call apbslv_scan
          nop
         cmp %g0,%o0
-        be _start
+        be prom_start
          nop
         
         call getbase
@@ -344,14 +346,8 @@ uart1:
         !set	BOOTLOADER_uart, %g2		! Load UART scaler register
 	!st	%g2, [%g1 + USCAL0]
 
-#ifdef JUMP_TO
-
-jump:	
-	set	JUMP_TO, %o1
-	call	%o1
+	call	__main
 	nop
-
-#endif
 
 
 dead:	ta 0				! if call returns...
