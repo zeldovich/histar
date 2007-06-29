@@ -1,6 +1,7 @@
 #include <machine/asm.h>
-#include <machine/mmu.h>
+#include <machine/psr.h>
 
+	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
 	.align 4096
 trapbase:
