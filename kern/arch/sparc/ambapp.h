@@ -2,8 +2,8 @@
  * Copyright (C) 2004 Konrad Eisele (eiselekd@web.de), Gaisler Research
  */
 
-#ifndef _LEON3_AMBA_H__
-#define _LEON3_AMBA_H__
+#ifndef JOS_MACHINE_AMBAPP_H
+#define JOS_MACHINE_AMBAPP_H
 
 /*
  *  AMBA Plag & Play Bus Driver Macros

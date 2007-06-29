@@ -2,7 +2,10 @@
  * prom configuration
  */
 
-#include "bootloader.h"
+#ifndef JOS_MACHINE_PROM_CONFIG_H
+#define JOS_MACHINE_PROM_CONFIG_H
+
+#include <machine/bootloader.h>
 
 #define CPUFREQ_KHZ BOOTLOADER_FREQ_KHZ
 //#define CPUFREQ_KHZ 50000
