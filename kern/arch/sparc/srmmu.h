@@ -123,6 +123,9 @@
 #define SRMMU_FAULT_STATUS       0x00000300
 #define SRMMU_FAULT_ADDR         0x00000400
 
+#define SRMMU_CTRL_E       0x00000001
+#define SRMMU_CTRL_NF      0x00000020
+
 /* Accessing the MMU control register. */
 static inline unsigned int srmmu_get_mmureg(void)
 {
