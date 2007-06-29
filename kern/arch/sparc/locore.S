@@ -1,6 +1,8 @@
 #include <machine/asm.h>
 #include <machine/mmu.h>
 
+	.text
+	.align 4096
 trapbase:
 t_zero:	TRAP_ENTRY(def_trap)
 t_tflt:	TRAP_ENTRY(def_trap)		/* Inst. Access Exception        */
@@ -22,6 +24,10 @@ ENTRY(start)
 	set	(PSR_PS | PSR_S | PSR_PIL | PSR_EF), %g2
 	wr	%g2, 0x0, %psr
 
+	/* Make window 1 invalid */
+	mov	2, %g1
+	wr	%g1, 0x0, %wim
+	
 	/* XXX kernel stack */
 
 	/* Start using the trap table  */
@@ -37,12 +43,15 @@ ENTRY(start)
 			
 def_trap:
 	ba	def_trap
-
+	 nop
+	
 window_spill:
 	ba	window_spill
+	 nop
 
 window_fill:	
 	ba	window_fill
+	 nop
 			
 trap_return:
 	jmpl	%r17, %r0	/* old PC */
