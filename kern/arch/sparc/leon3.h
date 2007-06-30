@@ -188,53 +188,6 @@ typedef struct {
 	volatile unsigned int stat_cmd;
 } LEON3_GRPCI_Regs_Map;
 
-/*
- *  Types and structure used for AMBA Plug & Play bus scanning 
- */
-
-typedef struct amba_device_table {
-	int devnr;		/* numbrer of devices on AHB or APB bus */
-	unsigned int *addr[16];	/* addresses to the devices configuration tables */
-	unsigned int allocbits[1];	/* 0=unallocated, 1=allocated driver */
-} amba_device_table;
-
-typedef struct amba_confarea_type {
-	amba_device_table ahbmst;
-	amba_device_table ahbslv;
-	amba_device_table apbslv;
-	unsigned int apbmst;
-} amba_confarea_type;
-
-
-extern unsigned long amba_find_apbslv_addr(unsigned long vendor,
-					   unsigned long device,
-					   unsigned long *irq);
-
-// collect apb slaves
-typedef struct amba_apb_device {
-	unsigned int start, irq, bus_id;
-} amba_apb_device;
-extern int amba_get_number_apbslv_devices(int vendor, int device); 
-extern int amba_get_free_apbslv_devices(int vendor, int device,
-					amba_apb_device * dev, int nr);
-extern void amba_free_apbslv_device(unsigned int bus_id);
-extern int amba_find_next_apbslv_devices (int vendor, int device, amba_apb_device * dev, int nr);
-
-// collect ahb slaves
-typedef struct amba_ahb_device {
-	unsigned int start[4], irq;
-} amba_ahb_device;
-extern int amba_get_number_ahbslv_devices(int vendor, int device);
-extern int amba_get_free_ahbslv_devices(int vendor, int device,
-					amba_ahb_device * dev, int nr);
-extern void amba_free_ahbslv_device(unsigned int bus_id);
-
-extern void amba_prinf_config(void);
-extern void amba_init(void);
-extern int amba_is_init;
-
-extern void vendor_dev_string(unsigned long conf, char *vendorbuf, char *devbuf);
-
 #define ASI_LEON3_SYSCTRL		0x02
 #define ASI_LEON3_SYSCTRL_ICFG		0x08
 #define ASI_LEON3_SYSCTRL_DCFG		0x0c
