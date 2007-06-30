@@ -30,6 +30,10 @@ KERN_LIB :=					\
 	lib/string.c				\
 	lib/hashtable.c
 
+KERN_DEV :=					\
+	kern/dev/amba.c				\
+	kern/dev/leonsercons.c
+
 X_KERN_LIB :=					\
 	lib/$(ARCH)/longjmp.S
 

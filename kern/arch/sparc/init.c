@@ -2,6 +2,8 @@
 #include <kern/lib.h>
 #include <machine/trap.h>
 #include <machine/srmmu.h>
+#include <dev/leonsercons.h>
+#include <dev/amba.h>
 
 char boot_cmdline[256];
 
@@ -30,6 +32,8 @@ init (void)
     mmu_init();
     bss_init();
 
+    amba_init();
+    leonsercons_init();
+
     for (;;) { }
 }
-
