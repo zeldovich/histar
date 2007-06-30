@@ -2,7 +2,7 @@
 #include <kern/lib.h>
 #include <machine/trap.h>
 #include <machine/srmmu.h>
-#include <dev/leonsercons.h>
+#include <dev/apbucons.h>
 #include <dev/amba.h>
 
 char boot_cmdline[256];
@@ -33,6 +33,8 @@ init (void)
     bss_init();
 
     amba_init();
+    apbucons_init();
+    
     cprintf("hello from sparc init\n");
     for (;;) { }
 }

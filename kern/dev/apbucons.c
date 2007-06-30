@@ -6,7 +6,7 @@
 #include <machine/ambapp.h>
 
 #include <dev/amba.h>
-#include <dev/leonsercons.h>
+#include <dev/apbucons.h>
 
 static void
 serial_putc(void *arg, int c)
@@ -27,7 +27,7 @@ serial_putc(void *arg, int c)
 }
 
 void
-leonsercons_init(void)
+apbucons_init(void)
 {    
     uint32_t irq;
     uint32_t reg_base = amba_find_apbslv_addr(VENDOR_GAISLER, 
