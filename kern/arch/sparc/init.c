@@ -33,7 +33,6 @@ init (void)
     bss_init();
 
     amba_init();
-    leonsercons_init();
-
+    cprintf("hello from sparc init\n");
     for (;;) { }
 }
