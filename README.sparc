@@ -9,3 +9,15 @@
 	--disable-threads --disable-shared --disable-libmudflap \
 	--disable-libssp
 
+* GDB
+
+./configure --target=sparc-jos-linux --prefix=/usr/local \
+        --disable-nls
+
+* tsim
+
+Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
+
+   % tsim-leon3 obj/kern/kernel
+     ...
+   tsim> go prom_start
