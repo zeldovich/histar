@@ -19,6 +19,8 @@
  *
  */
 
+#include <machine/sparc-common.h>
+
 #define LEON3_IO_AREA 0xfff00000
 #define LEON3_CONF_AREA 0xff000
 #define LEON3_AHB_SLAVE_CONF_AREA (1 << 11)
@@ -71,7 +73,14 @@
 
 #ifndef __ASSEMBLER__
 
-extern inline char *gaisler_device_str(int id)
+SPARC_INST_ATTR const char *gaisler_device_str(int id);
+SPARC_INST_ATTR const char *esa_device_str(int id);
+SPARC_INST_ATTR const char *opencores_device_str(int id);
+SPARC_INST_ATTR const char *device_id2str(int vendor, int id);
+SPARC_INST_ATTR const char *vendor_id2str(int vendor);
+
+const char *
+gaisler_device_str(int id)
 {
 	switch (id) {
 	case GAISLER_LEON3:
@@ -148,7 +157,8 @@ extern inline char *gaisler_device_str(int id)
 
 #ifndef __ASSEMBLER__
 
-extern inline char *esa_device_str(int id)
+const char *
+esa_device_str(int id)
 {
 	switch (id) {
 	case ESA_LEON2:
@@ -169,7 +179,8 @@ extern inline char *esa_device_str(int id)
 
 #ifndef __ASSEMBLER__
 
-extern inline char *opencores_device_str(int id)
+const char *
+opencores_device_str(int id)
 {
 	switch (id) {
 	case OPENCORES_PCIBR:
@@ -182,7 +193,8 @@ extern inline char *opencores_device_str(int id)
 	return 0;
 }
 
-extern inline char *device_id2str(int vendor, int id)
+const char *
+device_id2str(int vendor, int id)
 {
 	switch (vendor) {
 	case VENDOR_GAISLER:
@@ -198,7 +210,8 @@ extern inline char *device_id2str(int vendor, int id)
 	return 0;
 }
 
-extern inline char *vendor_id2str(int vendor)
+const char *
+vendor_id2str(int vendor)
 {
 	switch (vendor) {
 	case VENDOR_GAISLER:
@@ -228,9 +241,6 @@ int amba_read_procmem(char *buf, char **start, off_t offset, int count, int *eof
  * Macros for manipulating Configuration registers  
  *
  */
-
-#define LEON3_BYPASS_LOAD_PA(x)	(leon_load_reg ((unsigned long)(x)))
-#define LEON3_BYPASS_STORE_PA(x,v) (leon_store_reg ((unsigned long)(x),(unsigned long)(v)))
 
 #define LEON3_BYPASS_ANDIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) & v)
 #define LEON3_BYPASS_ORIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) | v)
