@@ -4,6 +4,7 @@
 #include <machine/srmmu.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
+#include <dev/irqmp.h>
 
 char boot_cmdline[256];
 
@@ -31,10 +32,11 @@ init (void)
 {
     mmu_init();
     bss_init();
-
+    
     amba_init();
     apbucons_init();
-    
+    irqmp_init();    
+
     cprintf("hello from sparc init\n");
     for (;;) { }
 }

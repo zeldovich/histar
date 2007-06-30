@@ -32,7 +32,8 @@ KERN_LIB :=					\
 
 KERN_DEV :=					\
 	kern/dev/amba.c				\
-	kern/dev/apbucons.c
+	kern/dev/apbucons.c			\
+	kern/dev/irqmp.c
 
 X_KERN_LIB :=					\
 	lib/$(ARCH)/longjmp.S
