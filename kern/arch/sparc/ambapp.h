@@ -38,6 +38,24 @@
 #define VENDOR_ESA       4
 #define VENDOR_OPENCORES 8
 
+/* The amba configuration word fields:
+ *
+ *  ------------------------------------------------------------------------
+ *  |    vendor id    |     device id     |   0   |  version   |    irq    | 
+ *  |      31-24      |       23-12       | 11-10 |     9-5    |    4-0    | 
+ *  ------------------------------------------------------------------------
+ */
+
+#define AMBA_CONF_VID_MASK 0xFF000000
+#define AMBA_CONF_DID_MASK 0x00FFF000
+#define AMBA_CONF_VER_MASK 0x000003E0
+#define AMBA_CONF_IRQ_MASK 0x0000001F
+
+#define AMBA_CONF_VID(conf) ((AMBA_CONF_VID_MASK & conf) >> 24)
+#define AMBA_CONF_DID(conf) ((AMBA_CONF_DID_MASK & conf) >> 12)
+#define AMBA_CONF_VER(conf) ((AMBA_CONF_VER_MASK & conf) >> 5)
+#define AMBA_CONF_IRQ(conf) (AMBA_CONF_IRQ_MASK & conf)
+
 /* Gaisler Research device id's */
 #define GAISLER_LEON3    0x003
 #define GAISLER_LEON3DSU 0x004
