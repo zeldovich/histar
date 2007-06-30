@@ -5,6 +5,7 @@
 #include <machine/leon.h>
 #include <machine/ambapp.h>
 
+#include <dev/amba.h>
 #include <dev/leonsercons.h>
 
 static void
@@ -26,12 +27,24 @@ serial_putc(void *arg, int c)
 }
 
 void
-leonsercons_init(uint32_t amba_conf, uint32_t reg_base)
+leonsercons_init(void)
 {    
-    /* Only register serial port A */
-    if (AMBA_CONF_IRQ(amba_conf) != LEON_INTERRUPT_UART_1_RX_TX)
-	return;
+    uint32_t irq;
+    uint32_t reg_base = amba_find_apbslv_addr(VENDOR_GAISLER, 
+					      GAISLER_APBUART, 
+					      &irq);
     
+    /* Only register serial port A */
+    if (irq != LEON_INTERRUPT_UART_1_RX_TX) {
+	struct amba_apb_device dev;
+	int r = amba_find_next_apbslv_devices(VENDOR_GAISLER, GAISLER_APBUART, 
+					      &dev, 1);
+	if (r && dev.irq == LEON_INTERRUPT_UART_1_RX_TX)
+	    reg_base = dev.start;
+	else
+	    return;
+    }
+
     static struct cons_device cd = {
 	.cd_pollin = 0,
 	.cd_output = &serial_putc,
