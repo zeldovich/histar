@@ -263,15 +263,15 @@ int amba_read_procmem(char *buf, char **start, off_t offset, int count, int *eof
 #define LEON3_BYPASS_ANDIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) & v)
 #define LEON3_BYPASS_ORIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) | v)
 
-#define amba_get_confword(tab, index, word) (LEON3_BYPASS_LOAD_PA((tab).addr[(index)]+(word)))
+#define amba_get_confword(tab, index, word) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+(word)))
 
 #define amba_vendor(x) (((x) >> 24) & 0xff)
 
 #define amba_device(x) (((x) >> 12) & 0xfff)
 
-#define amba_ahb_get_membar(tab, index, nr) (LEON3_BYPASS_LOAD_PA((tab).addr[(index)]+4+(nr)))
+#define amba_ahb_get_membar(tab, index, nr) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+4+(nr)))
 
-#define amba_apb_get_membar(tab, index) (LEON3_BYPASS_LOAD_PA((tab).addr[(index)]+1))
+#define amba_apb_get_membar(tab, index) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+1))
 
 #define amba_membar_start(mbar) (((mbar) & 0xfff00000) & (((mbar) & 0xfff0) << 16))
 
