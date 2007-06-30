@@ -23,8 +23,8 @@ mmu_init (void)
 static void
 bss_init (void)
 {
-    extern char edata[], end[];
-    memset (edata, 0, end - edata);
+    extern char sbss[], ebss[];
+    memset(sbss, 0, ebss - sbss);
 }
 
 void __attribute__((noreturn))

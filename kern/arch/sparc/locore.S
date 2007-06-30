@@ -30,7 +30,10 @@ ENTRY(start)
 	mov	2, %g1
 	wr	%g1, 0x0, %wim
 	
-	/* XXX kernel stack */
+	/* kernel stack */
+	set	kstack_top, %g1
+	or	%g0, %g1, %sp
+	mov	0, %fp
 
 	/* Start using the trap table  */
 	set	trapbase, %g3
