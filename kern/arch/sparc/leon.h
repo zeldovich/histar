@@ -6,6 +6,8 @@
 #ifndef JOS_MACHINE_LEON_H
 #define JOS_MACHINE_LEON_H
 
+#include <machine/sparc-common.h>
+
 /* memory mapped leon control registers */
 #define LEON_PREGS	0x80000000
 #define LEON_MCFG1	0x00
@@ -154,8 +156,15 @@
 
 #ifndef __ASSEMBLER__
 
+SPARC_INST_ATTR unsigned long leon_readnobuffer_reg(unsigned long paddr);
+SPARC_INST_ATTR void leon_store_reg(unsigned long paddr, unsigned long value);
+SPARC_INST_ATTR unsigned long leon_load_reg(unsigned long paddr);
+SPARC_INST_ATTR void leon_srmmu_disabletlb(void);
+SPARC_INST_ATTR void leon_srmmu_enabletlb(void);
+
 /* do a virtual address read without cache */
-static __inline__ unsigned long leon_readnobuffer_reg(unsigned long paddr)
+unsigned long 
+leon_readnobuffer_reg(unsigned long paddr)
 {
 	unsigned long retval;
 	__asm__ __volatile__("lda [%1] %2, %0\n\t":
@@ -164,14 +173,16 @@ static __inline__ unsigned long leon_readnobuffer_reg(unsigned long paddr)
 }
 
 /* do a physical address bypass write, i.e. for 0x80000000 */
-static __inline__ void leon_store_reg(unsigned long paddr, unsigned long value)
+void 
+leon_store_reg(unsigned long paddr, unsigned long value)
 {
 	__asm__ __volatile__("sta %0, [%1] %2\n\t"::"r"(value), "r"(paddr),
 			     "i"(ASI_LEON_BYPASS):"memory");
 }
 
 /* do a physical address bypass load, i.e. for 0x80000000 */
-static __inline__ unsigned long leon_load_reg(unsigned long paddr)
+unsigned long 
+leon_load_reg(unsigned long paddr)
 {
 	unsigned long retval;
 	__asm__ __volatile__("lda [%1] %2, %0\n\t":
@@ -179,7 +190,8 @@ static __inline__ unsigned long leon_load_reg(unsigned long paddr)
 	return retval;
 }
 
-extern __inline__ void leon_srmmu_disabletlb(void)
+void 
+leon_srmmu_disabletlb(void)
 {
 	unsigned int retval;
 	__asm__ __volatile__("lda [%%g0] %2, %0\n\t":"=r"(retval):"r"(0),
@@ -189,7 +201,8 @@ extern __inline__ void leon_srmmu_disabletlb(void)
 			     "i"(ASI_LEON_MMUREGS):"memory");
 }
 
-extern __inline__ void leon_srmmu_enabletlb(void)
+void 
+leon_srmmu_enabletlb(void)
 {
 	unsigned int retval;
 	__asm__ __volatile__("lda [%%g0] %2, %0\n\t":"=r"(retval):"r"(0),
