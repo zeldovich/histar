@@ -11,6 +11,7 @@ enum {
     time_source_hpet,
     time_source_pmt,
     time_source_tsc,
+    time_source_gpt,
 };
 
 struct time_source {
