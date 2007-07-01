@@ -1,10 +1,13 @@
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/part.h>
 #include <machine/trap.h>
 #include <machine/srmmu.h>
+#include <machine/pmap.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
 #include <dev/irqmp.h>
+#include <dev/gptimer.h>
 
 char boot_cmdline[256];
 
@@ -35,8 +38,14 @@ init (void)
     
     amba_init();
     apbucons_init();
-    irqmp_init();    
+    amba_print();
 
+    irqmp_init();    
+    gptimer_init();
+
+    page_init();
+    part_init();
+    
     cprintf("hello from sparc init\n");
     for (;;) { }
 }

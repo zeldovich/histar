@@ -16,4 +16,6 @@ struct Pagemap2 {
     ptent_t pm2_ent[64];
 };
 
+void page_init(void);
+
 #endif
