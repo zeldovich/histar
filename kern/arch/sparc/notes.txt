@@ -54,3 +54,5 @@ level table.
 http://www.sics.se/~psm/sparcstack.html
 http://www.cs.clemson.edu/~mark/sparc_assembly.html
 
+Gaisler hardware reference:
+http://gaisler.com/products/grlib/grip.pdf
