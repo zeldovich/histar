@@ -1,7 +1,6 @@
 #include <kern/lib.h>
 
 #include <dev/amba.h>
-#include <dev/leonsercons.h>
 
 #include <machine/ambapp.h>
 #include <machine/leon.h>
@@ -25,6 +24,55 @@ struct amba_confarea_type {
 
 /* Structure containing address to devices found on the AMBA Plug&Play bus */
 struct amba_confarea_type amba_conf;
+
+static void 
+vendor_dev_string(uint32_t conf, char *venbuf, char *devbuf)
+{
+    uint32_t ven = amba_vendor(conf);
+    uint32_t dev = amba_device(conf);
+    const char *devstr;
+    const char *venstr;
+
+    sprintf(venbuf, "Unknown vendor %2x", ven);
+    sprintf(devbuf, "Unknown device %2x", dev);
+
+    venstr = vendor_id2str(ven);
+    if (venstr)
+	sprintf(venbuf, "%s", venstr);
+
+    devstr = device_id2str(ven, dev);
+    if (devstr)
+	sprintf(devbuf, "%s", devstr);
+}
+
+void
+amba_print(void)
+{
+    char venbuf[128];
+    char devbuf[128];
+    uint32_t conf;
+
+    cprintf("AHB masters:\n");
+    for (uint32_t i = 0; i < amba_conf.ahbmst.devnr; i++) {
+	conf = amba_get_confword(amba_conf.ahbmst, i, 0);
+	vendor_dev_string(conf, venbuf, devbuf);
+	cprintf("%2d %-16s %-16s\n", i, venbuf, devbuf);
+    }
+    
+    cprintf("AHB slaves:\n");
+    for (uint32_t i = 0; i < amba_conf.ahbslv.devnr; i++) {
+	conf = amba_get_confword(amba_conf.ahbslv, i, 0);
+	vendor_dev_string(conf, venbuf, devbuf);
+	cprintf("%2d %-16s %-16s\n", i, venbuf, devbuf);
+    }
+
+    cprintf("APB slaves:\n");
+    for (uint32_t i = 0; i < amba_conf.apbslv.devnr; i++) {
+	conf = amba_get_confword(amba_conf.apbslv, i, 0);
+	vendor_dev_string(conf, venbuf, devbuf);
+	cprintf("%2d %-16s %-16s\n", i, venbuf, devbuf);
+    }
+}
 
 uint32_t 
 amba_find_apbslv_addr(uint32_t vendor, uint32_t device, uint32_t *irq)
