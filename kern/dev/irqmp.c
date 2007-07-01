@@ -10,8 +10,12 @@
 void 
 irqmp_init(void)
 {
-    uint32_t base = amba_find_apbslv_addr(VENDOR_GAISLER, GAISLER_IRQMP, 0);
-    LEON3_IrqCtrl_Regs_Map *irq_regs = (LEON3_IrqCtrl_Regs_Map *)base;
+    struct amba_apb_device dev;
+    uint32_t r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_IRQMP, &dev, 0);
+    if (!r)
+	return;
+
+    LEON3_IrqCtrl_Regs_Map *irq_regs = (LEON3_IrqCtrl_Regs_Map *)dev.start;
     if (!irq_regs) {
 	cprintf("irqmp_init: unable to find irq cntrl registers\n");
 	return;

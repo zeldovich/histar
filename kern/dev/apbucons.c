@@ -29,19 +29,15 @@ serial_putc(void *arg, int c)
 void
 apbucons_init(void)
 {    
-    uint32_t irq;
-    uint32_t reg_base = amba_find_apbslv_addr(VENDOR_GAISLER, 
-					      GAISLER_APBUART, 
-					      &irq);
+    struct amba_apb_device dev;
+    uint32_t r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_APBUART, &dev, 0);
+    if (!r)
+	return;
     
     /* Only register serial port A */
-    if (irq != LEON_INTERRUPT_UART_1_RX_TX) {
-	struct amba_apb_device dev;
-	int r = amba_find_next_apbslv_devices(VENDOR_GAISLER, GAISLER_APBUART, 
-					      &dev, 1);
-	if (r && dev.irq == LEON_INTERRUPT_UART_1_RX_TX)
-	    reg_base = dev.start;
-	else
+    if (dev.irq != LEON_INTERRUPT_UART_1_RX_TX) {
+	r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_APBUART, &dev, 1);
+	if (r && dev.irq != LEON_INTERRUPT_UART_1_RX_TX)
 	    return;
     }
 
@@ -50,6 +46,6 @@ apbucons_init(void)
 	.cd_output = &serial_putc,
     };
 
-    cd.cd_arg = (void *)reg_base;
+    cd.cd_arg = (void *)dev.start;
     cons_register(&cd);
 }

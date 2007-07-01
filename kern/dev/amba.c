@@ -75,26 +75,38 @@ amba_print(void)
 }
 
 uint32_t 
-amba_find_apbslv_addr(uint32_t vendor, uint32_t device, uint32_t *irq)
+amba_ahbslv_device(uint32_t vendor, uint32_t device, 
+		   struct amba_ahb_device * dev, uint32_t nr)
 {
-    uint32_t conf, iobar;
     
-    for (uint32_t i = 0; i < amba_conf.apbslv.devnr; i++) {
-	conf = amba_get_confword(amba_conf.apbslv, i, 0);
-	if ((amba_vendor(conf) == vendor)
-	    && (amba_device(conf) == device)) {
-	    if (irq)
-		*irq = amba_irq(conf);
-	    iobar = amba_apb_get_membar(amba_conf.apbslv, i);
-	    return amba_iobar_start(amba_conf.apbmst, iobar);
+    uint32_t start, stop, conf, iobar, j = 0;
+    for (uint32_t i = 0; i < amba_conf.ahbslv.devnr; i++) {
+	conf = amba_get_confword(amba_conf.ahbslv, i, 0);
+	if ((amba_vendor(conf) == vendor) && (amba_device(conf) == device)) {
+	    if (j == nr) {
+		for (uint32_t k = 0; k < 4; k++) {
+		    iobar = amba_ahb_get_membar(amba_conf.ahbslv, i, k);
+		    start = amba_membar_start(iobar);
+		    stop = amba_membar_stop(iobar);
+		    if (amba_membar_type(iobar) == AMBA_TYPE_AHBIO) {
+			start = AMBA_TYPE_AHBIO_ADDR(start);
+			stop = AMBA_TYPE_AHBIO_ADDR(stop);
+		    }
+		    dev->start[k] = start;
+		    dev->stop[k] = stop;
+		}
+		dev->irq = amba_irq(conf);
+		return 1;
+	    }
+	    j++;
 	}
     }
     return 0;
 }
 
 uint32_t 
-amba_find_next_apbslv_devices(uint32_t vendor, uint32_t device, 
-			      struct amba_apb_device * dev, uint32_t nr)
+amba_apbslv_device(uint32_t vendor, uint32_t device, 
+		   struct amba_apb_device *dev, uint32_t nr)
 {
     uint32_t conf, iobar, j = 0;
     
