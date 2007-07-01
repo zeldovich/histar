@@ -275,6 +275,8 @@ int amba_read_procmem(char *buf, char **start, off_t offset, int count, int *eof
 
 #define amba_membar_start(mbar) (((mbar) & 0xfff00000) & (((mbar) & 0xfff0) << 16))
 
+#define amba_membar_stop(mbar) (((mbar) & 0xfff00000) | ~(((mbar) & 0xfff0) << 16))
+
 #define amba_iobar_start(base, iobar) ((base) | ((((iobar) & 0xfff00000)>>12) & (((iobar) & 0xfff0)<<4)) )
 
 #define amba_irq(conf) ((conf) & 0xf)
