@@ -347,7 +347,7 @@ uart1:
 	!st	%g2, [%g1 + USCAL0]
 
 stage2:
-	call	__main
+	call	start
 	nop
 
 

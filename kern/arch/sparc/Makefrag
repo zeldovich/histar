@@ -6,7 +6,6 @@ KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/prom_stage1.S		\
-	$(ARCHDIR)/prom_stage2.c		\
 	$(ARCHDIR)/locore.S			\
 	$(ARCHDIR)/bootdata.c			\
 	$(ARCHDIR)/pmap.c			\
