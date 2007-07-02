@@ -44,6 +44,10 @@
 #define VIRTLOAD_ADDR   KERNBASE
 #define LOAD_OFFSET     (VIRTLOAD_ADDR - PHYSLOAD_ADDR)
 
+#ifndef __ASSEMBLER__
+#define RELOC(x)        ((uint32_t)x - LOAD_OFFSET)
+#else
 #define RELOC(x)        (x - LOAD_OFFSET)
+#endif
 
 #endif

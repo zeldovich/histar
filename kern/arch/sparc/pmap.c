@@ -75,7 +75,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 void *
 pa2kva(physaddr_t pa)
 {
-    return (void *) (pa + PHYSBASE);
+    return (void *) (pa + LOAD_OFFSET);
 }
 
 physaddr_t
@@ -83,7 +83,7 @@ kva2pa(void *kva)
 {
     physaddr_t va = (physaddr_t) kva;
     if (va >= PHYSBASE)
-	return va - PHYSBASE;
+	return va - LOAD_OFFSET;
     panic("kva2pa called with invalid kva %p", kva);
 }
 

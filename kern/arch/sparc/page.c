@@ -60,7 +60,7 @@ boot_alloc(uint32_t n, uint32_t align)
     
     boot_freemem = (char *) ROUNDUP (boot_freemem, align);
     if (boot_freemem + n < boot_freemem
-	|| boot_freemem + n > (char *) (maxpa))
+	|| boot_freemem + n > (char *) (maxpa + LOAD_OFFSET))
 	panic ("boot_alloc: out of memory");
     v = boot_freemem;
     boot_freemem += n;
@@ -73,10 +73,8 @@ page_init(void)
     page_alloc_init();
     leon3_detect_memory();
 
-    /* XXX broken */
-
     boot_alloc(0, PGSIZE);
-    
+
     // Allocate space for page status info.
     uint64_t sz = global_npages * sizeof(*page_infos);
     page_infos = boot_alloc(sz, PGSIZE);
@@ -85,8 +83,7 @@ page_init(void)
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
-    for (uint32_t pa = (uint32_t) boot_freemem; pa <= maxpa; pa += PGSIZE)
+    for (uint32_t pa = (uint32_t) RELOC(boot_freemem); pa <= maxpa; pa += PGSIZE)
 	page_free(pa2kva(pa));
-    
     page_stats.pages_used = 0;
 }
