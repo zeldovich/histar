@@ -13,11 +13,13 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/misc.c
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/unimpl.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\
 	lib/$(ARCH)/strlen.S			\
+	lib/$(ARCH)/longjmp.S			\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
