@@ -1,7 +1,15 @@
 #include <machine/asm.h>
 #include <machine/psr.h>
 #include <machine/win.h>
-	
+#include <machine/asi.h>
+#include <machine/srmmu.h>
+#include <machine/memlayout.h>
+
+#define TRAP_ENTRY_INTERRUPT(num) \
+	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
+#define TRAP_ENTRY(label) \
+        rd %psr, %l0; rd %wim, %l3; b label; nop;
+		
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
 	.align 4096
@@ -18,7 +26,27 @@ t_fpe:	TRAP_ENTRY(def_trap)		/* Floating Point Exception      */
 t_dflt:	TRAP_ENTRY(def_trap)		/* Data Miss Exception           */
 t_tio:	TRAP_ENTRY(def_trap)		/* Tagged Instruction Ovrflw     */
 t_wpt:	TRAP_ENTRY(def_trap)		/* Watchpoint Detected           */
-	
+t_bad:	TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+t_irq1:	TRAP_ENTRY_INTERRUPT(1)         /* IRQ Software/SBUS Level 1     */
+t_irq2:	TRAP_ENTRY_INTERRUPT(2)         /* IRQ SBUS Level 2              */
+t_irq3:	TRAP_ENTRY_INTERRUPT(3)         /* IRQ SCSI/DMA/SBUS Level 3     */
+t_irq4:	TRAP_ENTRY_INTERRUPT(4)         /* IRQ Software Level 4          */
+t_irq5:	TRAP_ENTRY_INTERRUPT(5)         /* IRQ SBUS/Ethernet Level 5     */
+t_irq6:	TRAP_ENTRY_INTERRUPT(6)         /* IRQ Software Level 6          */
+t_irq7:	TRAP_ENTRY_INTERRUPT(7)         /* IRQ Video/SBUS Level 5        */
+t_irq8:	TRAP_ENTRY_INTERRUPT(8)         /* IRQ SBUS Level 6              */
+t_irq9:	TRAP_ENTRY_INTERRUPT(9)         /* IRQ SBUS Level 7              */
+t_irq10:TRAP_ENTRY_INTERRUPT(10)        /* IRQ Timer #1 (one we use)     */
+t_irq11:TRAP_ENTRY_INTERRUPT(11)        /* IRQ Floppy Intr.              */
+t_irq12:TRAP_ENTRY_INTERRUPT(12)        /* IRQ Zilog serial chip         */
+t_irq13:TRAP_ENTRY_INTERRUPT(13)        /* IRQ Audio Intr.               */
+t_irq14:TRAP_ENTRY_INTERRUPT(14)        /* IRQ Timer #2                  */
+t_nmi:	TRAP_ENTRY_INTERRUPT(15)
+
 ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
@@ -26,10 +54,35 @@ ENTRY(start)
 	set	(PSR_PS | PSR_S | PSR_PIL | PSR_EF), %g2
 	wr	%g2, 0x0, %psr
 
+	/* Set the first PTD of the Context Table to point to bootpt */
+	set	RELOC(bootpt), %g2 
+	srl	%g2, 4, %g2
+	or	%g2, PT_ET_PTD, %g2
+	set	RELOC(bootct), %g1
+	st	%g2, [%g1]
+
+	/* Set Context Table Pointer register */	
+	srl	%g1, 4, %g1
+	set	SRMMU_CTXTBL_PTR, %g2
+	sta	%g1, [%g2] ASI_MMUREGS
+
+	/* Set context register to 0 */
+	set	SRMMU_CTX_REG, %g2
+	sta	%g0, [%g2] ASI_MMUREGS
+
+	/* Enable MMU */
+	lda	[%g0] ASI_MMUREGS, %g3
+	or	%g3, 0x01, %g3
+	set	vm_enabled, %g1
+	jmpl	%g1, %g0
+	 sta	%g3, [%g0] ASI_MMUREGS
+
+vm_enabled:	
+	
 	/* Make window 1 invalid */
 	mov	2, %g1
 	wr	%g1, 0x0, %wim
-	
+
 	/* kernel stack */
 	set	kstack_top, %g1
 	or	%g0, %g1, %sp
@@ -47,6 +100,7 @@ ENTRY(start)
 	 nop
 			
 def_trap:
+	/* XXX */
 	ba	def_trap
 	 nop
 
@@ -144,4 +198,3 @@ ENTRY(jos_longjmp)
 ENTRY(jos_setjmp)
 ENTRY(disk_io)
 ENTRY(ide_poke)
-

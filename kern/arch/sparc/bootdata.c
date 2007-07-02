@@ -1,4 +1,3 @@
-
 #include <machine/pmap.h>
 
 /*
@@ -26,14 +25,20 @@
 char kstack[KSTACK_SIZE] __attribute__ ((aligned (4096), section (".data")));
 
 /*
- * Map 0GB..2GB at PHYSBASE (0x80000000).
+ * Map 1GB..3GB at PHYSBASE (0x80000000).
  */
 struct Pagemap bootpt PTATTR = {
   .pm1_ent = {
-    [128] = DO_64(0, TRANS16MEG)
-    [192] = DO_64(64, TRANS16MEG)
+    [128] = DO_64(64, TRANS16MEG)
+    [192] = DO_64(128, TRANS16MEG)
   }
 };
+
+/*
+ * Context table, inited during boot
+ */
+#define CTATTR __attribute__ ((aligned (4096), section (".data")))
+struct Contexttable bootct CTATTR;
 
 struct Trapcode idt[0x100];
 

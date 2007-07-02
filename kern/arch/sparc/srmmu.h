@@ -1,16 +1,10 @@
-/* $Id: pgtsrmmu.h,v 1.31 2000/07/16 21:48:52 anton Exp $
- * pgtsrmmu.h:  SRMMU page table defines and code.
- *
- * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)
- */
-
 #ifndef JOS_MACHINE_SRMMU_H
 #define JOS_MACHINE_SRMMU_H
 
-#include <machine/asi.h>
+#include <machine/sparc-config.h>
 
-/* Number of contexts is implementation-dependent; 64k is the most we support */
-#define SRMMU_MAX_CONTEXTS	65536
+/* Number of contexts is implementation-dependent */
+#define SRMMU_MAX_CONTEXTS	CTX_NCTX
 
 /* PMD_SHIFT determines the size of the area a second-level page table entry can map */
 #define SRMMU_REAL_PMD_SHIFT		18
@@ -125,148 +119,5 @@
 
 #define SRMMU_CTRL_E       0x00000001
 #define SRMMU_CTRL_NF      0x00000020
-
-/* Accessing the MMU control register. */
-static inline unsigned int srmmu_get_mmureg(void)
-{
-        unsigned int retval;
-	__asm__ __volatile__("lda [%%g0] %1, %0\n\t" :
-			     "=r" (retval) :
-			     "i" (ASI_M_MMUREGS));
-	return retval;
-}
-
-static inline void srmmu_set_mmureg(unsigned long regval)
-{
-	__asm__ __volatile__("sta %0, [%%g0] %1\n\t" : :
-			     "r" (regval), "i" (ASI_M_MMUREGS) : "memory");
-
-}
-
-static inline void srmmu_set_ctable_ptr(unsigned long paddr)
-{
-	paddr = ((paddr >> 4) & SRMMU_CTX_PMASK);
-	__asm__ __volatile__("sta %0, [%1] %2\n\t" : :
-			     "r" (paddr), "r" (SRMMU_CTXTBL_PTR),
-			     "i" (ASI_M_MMUREGS) :
-			     "memory");
-}
-
-static inline unsigned long srmmu_get_ctable_ptr(void)
-{
-	unsigned int retval;
-
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (SRMMU_CTXTBL_PTR),
-			     "i" (ASI_M_MMUREGS));
-	return (retval & SRMMU_CTX_PMASK) << 4;
-}
-
-static inline void srmmu_set_context(int context)
-{
-	__asm__ __volatile__("sta %0, [%1] %2\n\t" : :
-			     "r" (context), "r" (SRMMU_CTX_REG),
-			     "i" (ASI_M_MMUREGS) : "memory");
-}
-
-static inline int srmmu_get_context(void)
-{
-	register int retval;
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (SRMMU_CTX_REG),
-			     "i" (ASI_M_MMUREGS));
-	return retval;
-}
-
-static inline unsigned int srmmu_get_fstatus(void)
-{
-	unsigned int retval;
-
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (SRMMU_FAULT_STATUS), "i" (ASI_M_MMUREGS));
-	return retval;
-}
-
-static inline unsigned int srmmu_get_faddr(void)
-{
-	unsigned int retval;
-
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (SRMMU_FAULT_ADDR), "i" (ASI_M_MMUREGS));
-	return retval;
-}
-
-/* This is guaranteed on all SRMMU's. */
-static inline void srmmu_flush_whole_tlb(void)
-{
-	__asm__ __volatile__("sta %%g0, [%0] %1\n\t": :
-			     "r" (0x400),        /* Flush entire TLB!! */
-			     "i" (ASI_M_FLUSH_PROBE) : "memory");
-
-}
-
-/* These flush types are not available on all chips... */
-static inline void srmmu_flush_tlb_ctx(void)
-{
-	__asm__ __volatile__("sta %%g0, [%0] %1\n\t": :
-			     "r" (0x300),        /* Flush TLB ctx.. */
-			     "i" (ASI_M_FLUSH_PROBE) : "memory");
-
-}
-
-static inline void srmmu_flush_tlb_region(unsigned long addr)
-{
-	addr &= SRMMU_PGDIR_MASK;
-	__asm__ __volatile__("sta %%g0, [%0] %1\n\t": :
-			     "r" (addr | 0x200), /* Flush TLB region.. */
-			     "i" (ASI_M_FLUSH_PROBE) : "memory");
-
-}
-
-
-static inline void srmmu_flush_tlb_segment(unsigned long addr)
-{
-	addr &= SRMMU_REAL_PMD_MASK;
-	__asm__ __volatile__("sta %%g0, [%0] %1\n\t": :
-			     "r" (addr | 0x100), /* Flush TLB segment.. */
-			     "i" (ASI_M_FLUSH_PROBE) : "memory");
-
-}
-
-static inline void srmmu_flush_tlb_page(unsigned long page)
-{
-	page &= PGMASK;
-	__asm__ __volatile__("sta %%g0, [%0] %1\n\t": :
-			     "r" (page),        /* Flush TLB page.. */
-			     "i" (ASI_M_FLUSH_PROBE) : "memory");
-
-}
-
-static inline unsigned long srmmu_hwprobe(unsigned long vaddr)
-{
-	unsigned long retval;
-
-	vaddr &= PGMASK;
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (vaddr | 0x400), "i" (ASI_M_FLUSH_PROBE));
-
-	return retval;
-}
-
-static inline int
-srmmu_get_pte (unsigned long addr)
-{
-	register unsigned long entry;
-        
-	__asm__ __volatile__("\n\tlda [%1] %2,%0\n\t" :
-				"=r" (entry):
-				"r" ((addr & 0xfffff000) | 0x400), "i" (ASI_M_FLUSH_PROBE));
-	return entry;
-}
 
 #endif

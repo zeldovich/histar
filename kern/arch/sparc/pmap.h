@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/mmu.h>
+#include <machine/sparc-config.h>
 
 #define KSTACK_SIZE	(2 * PGSIZE)
 
@@ -17,5 +18,14 @@ struct Pagemap2 {
 };
 
 void page_init(void);
+
+extern physaddr_t maxpa;
+extern physaddr_t minpa;
+
+typedef uint32_t ctxptr_t;
+
+struct Contexttable {
+    ctxptr_t ct_ent[CTX_NCTX];
+};
 
 #endif

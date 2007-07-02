@@ -23,7 +23,6 @@
 
 #define PHYSBASE	0x80000000
 #define KERNBASE	PHYSBASE
-#define RELOC(x)	(CASTPTR(x) - PHYSBASE)
 
 #define ULIM		PHYSBASE
 
@@ -37,5 +36,14 @@
 #define UTLSTOP		0x60fff000
 #define UFDBASE		0x61000000
 #define USEGMAPENTS	0x62000000
+
+/*
+ * The linker script uses PHYSLOAD_ADDR and VIRTLOAD_ADDR.
+ */
+#define PHYSLOAD_ADDR   0x40000000
+#define VIRTLOAD_ADDR   KERNBASE
+#define LOAD_OFFSET     (VIRTLOAD_ADDR - PHYSLOAD_ADDR)
+
+#define RELOC(x)        (x - LOAD_OFFSET)
 
 #endif
