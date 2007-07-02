@@ -1,5 +1,6 @@
 #include <machine/memlayout.h>
-	
+#include <machine/pmap.h>
+		
 OUTPUT_FORMAT("elf32-sparc", "elf32-sparc", "elf32-sparc")
 OUTPUT_ARCH("sparc")
 ENTRY(prom_start)
@@ -38,9 +39,8 @@ SECTIONS
 	/* layout for the kernel stack */
 	. += 0x1000;
 	. = ALIGN(0x1000);
-
-	PROVIDE(kstack_bottom = .);
-	. += 0x4000;
+	PROVIDE(kstack = .); 
+	. += KSTACK_SIZE;
 	PROVIDE(kstack_top = .);	
 
 	PROVIDE(end = .);

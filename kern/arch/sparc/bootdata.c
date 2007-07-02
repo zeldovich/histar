@@ -22,8 +22,6 @@
 
 #define TRANS16MEG(n) (KPT_BITS | (((0x1000000UL * (n)) >> PGSHIFT) << PTE_PPN_SHIFT)),
 
-char kstack[KSTACK_SIZE] __attribute__ ((aligned (4096), section (".data")));
-
 /*
  * Map 1GB..3GB at PHYSBASE (0x80000000).
  */

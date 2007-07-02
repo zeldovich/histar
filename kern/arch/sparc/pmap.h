@@ -1,11 +1,10 @@
 #ifndef JOS_MACHINE_PMAP_H
 #define JOS_MACHINE_PMAP_H
 
+#ifndef __ASSEMBLER__
 #include <machine/types.h>
 #include <machine/mmu.h>
 #include <machine/sparc-config.h>
-
-#define KSTACK_SIZE	(2 * PGSIZE)
 
 typedef uint32_t ptent_t;
 
@@ -27,5 +26,8 @@ typedef uint32_t ctxptr_t;
 struct Contexttable {
     ctxptr_t ct_ent[CTX_NCTX];
 };
+#endif /* __ASSEMBLER */
+
+#define KSTACK_SIZE	(2 * PGSIZE)
 
 #endif
