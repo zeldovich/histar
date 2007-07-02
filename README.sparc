@@ -20,4 +20,4 @@ Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
 
    % tsim-leon3 obj/kern/kernel
      ...
-   tsim> go prom_start
+   tsim> go 0x40000000
