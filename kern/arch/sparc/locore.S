@@ -53,7 +53,8 @@ ENTRY(start)
 	 */
 	set	(PSR_PS | PSR_S | PSR_PIL | PSR_EF), %g2
 	wr	%g2, 0x0, %psr
-
+	WRITE_PAUSE
+		
 	/* Set the first PTD of the Context Table to point to bootpt */
 	set	RELOC(bootpt), %g2 
 	srl	%g2, 4, %g2
@@ -82,7 +83,8 @@ vm_enabled:
 	/* Make window 1 invalid */
 	mov	2, %g1
 	wr	%g1, 0x0, %wim
-
+	WRITE_PAUSE
+	
 	/* kernel stack */
 	set	kstack_top, %g1
 	or	%g0, %g1, %sp
@@ -120,7 +122,7 @@ window_spill:
 	save
 	
 	mov	%g1, %wim
-	nop; nop; nop
+	WRITE_PAUSE
 
 	st	%l0, [%sp + 0]
 	st	%l1, [%sp + 4]
@@ -154,7 +156,7 @@ window_fill:
 	or	%l3, %l4, %l3
 
 	mov	%l3, %wim
-	nop; nop; nop
+	WRITE_PAUSE
 
 	/* The CWP is decremented on underflow, so need to restore
 	 * twice to reach the correct window.
