@@ -9,7 +9,7 @@
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define TRAP_ENTRY(label) \
         rd %psr, %l0; rd %wim, %l3; b label; nop;
-		
+	
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
 	.align 4096
@@ -46,7 +46,20 @@ t_irq12:TRAP_ENTRY_INTERRUPT(12)        /* IRQ Zilog serial chip         */
 t_irq13:TRAP_ENTRY_INTERRUPT(13)        /* IRQ Audio Intr.               */
 t_irq14:TRAP_ENTRY_INTERRUPT(14)        /* IRQ Timer #2                  */
 t_nmi:	TRAP_ENTRY_INTERRUPT(15)
-
+t_racc:	TRAP_ENTRY(def_trap)		/* General Register Access Error */
+t_iacce:TRAP_ENTRY(def_trap)		/* Instr Access Error            */
+t_bad22:TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+t_cpdis:TRAP_ENTRY(def_trap)		/* Co-Processor Disabled         */
+t_uflsh:TRAP_ENTRY(def_trap)		/* Unimplemented FLUSH inst.     */
+t_bad26:TRAP_ENTRY(def_trap)
+	TRAP_ENTRY(def_trap)
+t_cpexc:TRAP_ENTRY(def_trap)		/* Co-Processor Exception        */
+t_dacce:TRAP_ENTRY(def_trap)		/* Data Access Error             */
+t_hwdz:	TRAP_ENTRY(def_trap)		/* Division by zero, you lose... */
+t_dserr:TRAP_ENTRY(def_trap)		/* Data Store Error              */
+t_daccm:TRAP_ENTRY(def_trap)		/* Data Access MMU-Miss          */
+	
 ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
@@ -100,12 +113,28 @@ vm_enabled:
 
 	call	init
 	 nop
-			
-def_trap:
-	/* XXX */
-	ba	def_trap
-	 nop
 
+/* Registers to not touch at all. */
+#define t_psr        l0 /* Set by caller */
+#define t_pc         l1 /* Set by caller */
+#define t_npc        l2 /* Set by caller */
+#define t_wim        l3 /* Set by caller */
+#define t_twinmask   l4 /* Set at beginning of this entry routine. */
+#define t_kstack     l5 /* Set right before pt_regs frame is built */
+#define t_retpc      l6 /* If you change this, change winmacro.h header file */
+#define t_systable   l7 /* Never touch this, could be the syscall table ptr. */
+#define curptr       g6 /* Set after pt_regs frame is built */
+def_trap:
+	/* Calculate the mask of trap window */
+	mov	1, %t_twinmask
+	andcc	%t_psr, PSR_PS, %g0
+	be	def_user_trap
+	 sll	%t_twinmask, %t_psr, %t_twinmask
+
+def_user_trap:
+	ba	def_user_trap
+	 nop
+	
 window_spill:
 	mov	%g1, %l7
 	
