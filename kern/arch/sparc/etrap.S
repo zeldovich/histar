@@ -24,20 +24,21 @@ trap_setup:
 	be	def_user_trap
 	 sll	%t_twinmask, %t_psr, %t_twinmask
 
-	/* Get some stack space, store trap frame on it */
+	/* Get some stack space for a trap frame */
 	sub	%fp, TRAPFRAME_SZ, %t_kstack
 
-	restore
-	STORE_TRAPFRAME_REGFILE(t_kstack) 
-	save	
-
-	/* Save some more registers */
+	/* Store stuff that can be read from this window */
 	STORE_TRAPFRAME_OTHER(t_kstack, t_psr, t_pc, t_npc, t_lscratch)
 	
 	andcc	%t_twinmask, %t_wim, %g0
 	bne	trap_setup_kernel_spill
 	 nop
 
+	/* Get rest of trap frame */
+	restore
+	STORE_TRAPFRAME_REGFILE(t_kstack) 
+	save	
+	
 	wr	%t_psr, PSR_ET, %psr
 	WRITE_PAUSE
 
@@ -64,6 +65,11 @@ trap_setup_kernel_spill:
 	wr	%t_psr, PSR_ET, %psr
 	WRITE_PAUSE
 
+	/* Get rest of trap frame */
+	restore
+	STORE_TRAPFRAME_REGFILE(t_kstack) 
+	save	
+	
 	jmpl	%t_retpc + 0x8, %g0
 	 mov	%t_kstack, %sp
 	
