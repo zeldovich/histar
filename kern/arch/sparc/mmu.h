@@ -98,6 +98,70 @@ struct Fpregs {
     uint32_t tf_fsr;
     /* Make sure we do the right thing with %fq */
 };
-#endif
+
+#else
+
+/* Reg_window offsets */
+#define RW_L0     0x00
+#define RW_L1     0x04
+#define RW_L2     0x08
+#define RW_L3     0x0c
+#define RW_L4     0x10
+#define RW_L5     0x14
+#define RW_L6     0x18
+#define RW_L7     0x1c
+#define RW_I0     0x20
+#define RW_I1     0x24
+#define RW_I2     0x28
+#define RW_I3     0x2c
+#define RW_I4     0x30
+#define RW_I5     0x34
+#define RW_I6     0x38
+#define RW_I7     0x3c
+
+/* Trapframe offsets */
+#define TF_G0     0x00
+#define TF_G1     0x04
+#define TF_G2     0x08
+#define TF_G3     0x0C
+#define TF_G4     0x10
+#define TF_G5     0x14
+#define TF_G6     0x18
+#define TF_G7     0x1C
+
+#define TF_O0     0x20
+#define TF_O1     0x24
+#define TF_O2     0x28
+#define TF_O3     0x2C
+#define TF_O4     0x30
+#define TF_O5     0x34
+#define TF_O6     0x38
+#define TF_O7     0x3C
+
+#define TF_L0     0x40
+#define TF_L1     0x44
+#define TF_L2     0x48
+#define TF_L3     0x4C
+#define TF_L4     0x50
+#define TF_L5     0x54
+#define TF_L6     0x58
+#define TF_L7     0x5C
+
+#define TF_I0     0x60
+#define TF_I1     0x64
+#define TF_I2     0x68
+#define TF_I3     0x6C
+#define TF_I4     0x70
+#define TF_I5     0x74
+#define TF_I6     0x78
+#define TF_I7     0x7C
+
+#define TF_PSR    0x80
+#define TF_Y      0x84
+#define TF_PC     0x88
+#define TF_NPC    0x8C
+
+#define TRAPFRAME_SZ 0x90
+#endif /* __ASSEMBLER__ */
 
 #endif
