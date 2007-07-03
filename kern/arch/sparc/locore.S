@@ -4,7 +4,7 @@
 #include <machine/asi.h>
 #include <machine/srmmu.h>
 #include <machine/memlayout.h>
-
+	
 #define TRAP_ENTRY_INTERRUPT(num) \
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define TRAP_ENTRY(label) \
@@ -114,26 +114,10 @@ vm_enabled:
 	call	init
 	 nop
 
-/* Registers to not touch at all. */
-#define t_psr        l0 /* Set by caller */
-#define t_pc         l1 /* Set by caller */
-#define t_npc        l2 /* Set by caller */
-#define t_wim        l3 /* Set by caller */
-#define t_twinmask   l4 /* Set at beginning of this entry routine. */
-#define t_kstack     l5 /* Set right before pt_regs frame is built */
-#define t_retpc      l6 /* If you change this, change winmacro.h header file */
-#define t_systable   l7 /* Never touch this, could be the syscall table ptr. */
-#define curptr       g6 /* Set after pt_regs frame is built */
 def_trap:
-	/* Calculate the mask of trap window */
-	mov	1, %t_twinmask
-	andcc	%t_psr, PSR_PS, %g0
-	be	def_user_trap
-	 sll	%t_twinmask, %t_psr, %t_twinmask
-
-def_user_trap:
-	ba	def_user_trap
-	 nop
+	SAVE_ALL
+	call	trap_handler
+	 mov	%sp, %o0
 	
 window_spill:
 	mov	%g1, %l7
@@ -153,22 +137,7 @@ window_spill:
 	mov	%g1, %wim
 	WRITE_PAUSE
 
-	st	%l0, [%sp + 0]
-	st	%l1, [%sp + 4]
-	st	%l2, [%sp + 8]
-	st	%l3, [%sp + 12]
-	st	%l4, [%sp + 16]
-	st	%l5, [%sp + 20]
-	st	%l6, [%sp + 24]
-	st	%l7, [%sp + 28]
-	st	%i0, [%sp + 32]
-	st	%i1, [%sp + 36]
-	st	%i2, [%sp + 40]
-	st	%i3, [%sp + 44]
-	st	%i4, [%sp + 48]
-	st	%i5, [%sp + 52]
-	st	%i6, [%sp + 56]
-	st	%i7, [%sp + 60] 
+	STORE_WINDOW(sp)
 
 	restore
 
@@ -193,23 +162,8 @@ window_fill:
 	restore				
 	restore				
         
-	ld   [%sp + 0], %l0
-	ld   [%sp + 4], %l1
-	ld   [%sp + 8], %l2
-	ld   [%sp + 12], %l3
-	ld   [%sp + 16], %l4
-	ld   [%sp + 20], %l5
-	ld   [%sp + 24], %l6
-	ld   [%sp + 28], %l7
-	ld   [%sp + 32], %i0
-	ld   [%sp + 36], %i1
-	ld   [%sp + 40], %i2
-	ld   [%sp + 44], %i3
-	ld   [%sp + 48], %i4
-	ld   [%sp + 52], %i5
-	ld   [%sp + 56], %i6
-	ld   [%sp + 60], %i7
-
+	LOAD_WINDOW(sp)
+	
 	save
 	save
 
