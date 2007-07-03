@@ -1,7 +1,30 @@
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <machine/trap.h>
 #include <inc/error.h>
+
+static void
+trapframe_print(const struct Trapframe *tf)
+{
+    cprintf("       globals     outs   locals      ins\n");
+    for (uint32_t i = 0; i < 8; i++) {
+	cprintf("   %d: %08x %08x %08x %08x\n", 
+		i, tf->tf_reg[i], tf->tf_reg[i + 8],
+		tf->tf_reg[i + 16], tf->tf_reg[i + 24]);
+    }
+    cprintf("\n");
+    cprintf(" psr: %08x  y: %08x  pc: %08x  npc: %08x\n",
+	    tf->tf_psr, tf->tf_y, tf->tf_pc, tf->tf_npc);
+}
+
+void __attribute__((__noreturn__, no_instrument_function))
+trap_handler(struct Trapframe *tf)
+{
+    trapframe_print(tf);
+    cprintf("looping\n");
+    for (;;) {}
+}
 
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
