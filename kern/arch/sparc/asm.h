@@ -7,7 +7,7 @@
 
 #define SAVE_ALL \
         sethi   %hi(trap_setup), %l4; \
-        jmpl    %l4 + %lo(trap_setup), %l6; \
+        jmpl    %l4 + %lo(trap_setup), %l5; \
          nop;
 
 /* Store the register window onto the 8-byte aligned area starting
