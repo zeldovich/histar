@@ -2,22 +2,33 @@
 #include <kern/lib.h>
 #include <inc/error.h>
 
+#define perr() cprintf("%s:%u: XXX unimpl\n", __FILE__, __LINE__)
+
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
-    return -E_NO_MEM;
+    void *pmap;
+    int r = page_alloc(&pmap);
+    if (r < 0)
+	return r;
+
+    memcpy(pmap, &bootpt, PGSIZE);
+    *pm_store = (struct Pagemap *) pmap;
+    return 0;
 }
 
 void
 page_map_free(struct Pagemap *pgmap)
 {
     /* XXX free all page table levels */
+    perr();
 }
 
 int
 page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 		  int create, page_map_traverse_cb cb, const void *arg)
 {
+    perr();
     return -E_INVAL;
 }
 
@@ -25,19 +36,21 @@ int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, ptent_t **pte_store)
 {
+    perr();
     return -E_INVAL;
 }
 
 int
 check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 {
+    perr();
     return -E_INVAL;
 }
 
 void
 pmap_set_current(struct Pagemap *pm)
 {
-    cprintf("pmap_set_current: XXX\n");
+    perr();
 }
 
 /*
@@ -47,24 +60,35 @@ pmap_set_current(struct Pagemap *pm)
 void
 as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
+    perr();
     //const struct Pagemap *pgmap = arg;
 }
 
 void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
+    perr();
     //const struct Pagemap *pgmap = arg;
 }
 
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
+    perr();
     //const struct Pagemap *pgmap = arg;
 }
 
 int
 as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
+    uint64_t ptflags = 0;
+    if ((flags & SEGMAP_WRITE))
+	ptflags |= PTE_ACC_W;
+    if ((flags & SEGMAP_EXEC))
+	ptflags |= PTE_ACC_X;
+    
+
+    perr();
     return -E_INVAL;
 }
 
