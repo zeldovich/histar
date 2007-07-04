@@ -16,6 +16,8 @@ struct Pagemap2 {
     ptent_t pm2_ent[64];
 };
 
+extern struct Pagemap bootpt;
+
 void page_init(void);
 
 extern physaddr_t maxpa;
@@ -26,7 +28,8 @@ typedef uint32_t ctxptr_t;
 struct Contexttable {
     ctxptr_t ct_ent[CTX_NCTX];
 };
-#endif /* __ASSEMBLER */
+
+#endif /* __ASSEMBLER__ */
 
 #define KSTACK_SIZE	(2 * PGSIZE)
 
