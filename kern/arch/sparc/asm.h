@@ -34,30 +34,50 @@
         ldd     [%reg + RW_I4], %i4; \
         ldd     [%reg + RW_I6], %i6;
 
+/* Store/load register sets onto the 8-byte aligned area */
 #define STORE_GLOBALS(base_reg) \
-        st      %g1, [%base_reg + TF_G1]; \
-        std     %g2, [%base_reg + TF_G2]; \
-        std     %g4, [%base_reg + TF_G4]; \
-        std     %g6, [%base_reg + TF_G6];
+        st      %g1, [%base_reg + 4]; \
+        std     %g2, [%base_reg + 8]; \
+        std     %g4, [%base_reg + 16]; \
+        std     %g6, [%base_reg + 24];
 
 #define STORE_OUTS(base_reg) \
-        std     %o0, [%base_reg + TF_O0]; \
-        std     %o2, [%base_reg + TF_O2]; \
-        std     %o4, [%base_reg + TF_O4]; \
-        std     %o6, [%base_reg + TF_O6];
+        std     %o0, [%base_reg]; \
+        std     %o2, [%base_reg + 8]; \
+        std     %o4, [%base_reg + 16]; \
+        std     %o6, [%base_reg + 24];
 
 #define STORE_LOCALS(base_reg) \
-        std     %l0, [%base_reg + TF_L0]; \
-        std     %l2, [%base_reg + TF_L2]; \
-        std     %l4, [%base_reg + TF_L4]; \
-        std     %l6, [%base_reg + TF_L6];
+        std     %l0, [%base_reg]; \
+        std     %l2, [%base_reg + 8]; \
+        std     %l4, [%base_reg + 16]; \
+        std     %l6, [%base_reg + 24];
 
 #define STORE_INS(base_reg) \
-        std     %i0, [%base_reg + TF_I0]; \
-        std     %i2, [%base_reg + TF_I2]; \
-        std     %i4, [%base_reg + TF_I4]; \
-        std     %i6, [%base_reg + TF_I6];
+        std     %i0, [%base_reg]; \
+        std     %i2, [%base_reg + 8]; \
+        std     %i4, [%base_reg + 16]; \
+        std     %i6, [%base_reg + 24];
 
+#define LOAD_GLOBALS(base_reg) \
+        ld      [%base_reg + 4], %g1; \
+        ldd     [%base_reg + 8], %g2; \
+        ldd     [%base_reg + 16], %g4; \
+        ldd     [%base_reg + 24], %g6;
+
+#define LOAD_INS(base_reg) \
+        ldd     [%base_reg], %i0; \
+        ldd     [%base_reg + 8], %i2; \
+        ldd     [%base_reg + 16], %i4; \
+        ldd     [%base_reg + 24], %i6;
+
+#define LOAD_LOCALS(base_reg) \
+        ldd     [%base_reg], %l0; \
+        ldd     [%base_reg + 8], %l2; \
+        ldd     [%base_reg + 16], %l4; \
+        ldd     [%base_reg + 24], %l6;
+
+/* Store misc. registers onto the trapframe starting at %base_reg */
 #define STORE_TRAPFRAME_OTHER(base_reg, reg_psr, reg_pc, reg_npc, g_scratch) \
         st      %reg_psr, [%base_reg + TF_PSR]; \
         st      %reg_pc,  [%base_reg + TF_PC]; \
@@ -65,11 +85,6 @@
         rd      %y, %g_scratch; \
         st      %g_scratch, [%base_reg + TF_Y];
 
-#define STORE_TRAPFRAME_REGFILE(base_reg) \
-        STORE_GLOBALS(base_reg) \
-        STORE_OUTS(base_reg) \
-        STORE_LOCALS(base_reg) \
-        STORE_INS(base_reg)
 
 /* Computes a new psr similiar to rett, but without incrementing the
  * CWP.  The old psr is read from psr_reg.

@@ -117,14 +117,14 @@ def_trap:
 	set	kstack_top, %l5
 	sub	%l5, TRAPFRAME_SZ, %l5
 
-	STORE_GLOBALS(l5)
+	STORE_GLOBALS(l5 + TF_G0)
 	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l4)
 	or	%l5, %g0, %g7
 
 	restore
-	STORE_OUTS(g7)
-	STORE_LOCALS(g7)
-	STORE_INS(g7)
+	STORE_OUTS(g7 + TF_O0)
+	STORE_LOCALS(g7 + TF_L0)
+	STORE_INS(g7 + TF_I0)
 
 	/* Have a saved trapframe, so can use any registers */
 	rd	%psr, %l0
