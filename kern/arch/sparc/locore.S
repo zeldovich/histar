@@ -92,9 +92,8 @@ ENTRY(start)
 	 sta	%g3, [%g0] ASI_MMUREGS
 
 vm_enabled:	
-	
-	/* Make window 1 invalid */
-	mov	2, %g1
+	/* Make window 0 valid, all other invalid */
+	orn	%g0, 0x01, %g1
 	wr	%g1, 0x0, %wim
 	WRITE_PAUSE
 	
@@ -115,61 +114,86 @@ vm_enabled:
 	 nop
 
 def_trap:
-	SAVE_ALL
-	call	trap_handler
-	 mov	%sp, %o0
-	
-window_spill:
-	mov	%g1, %l7
-	
-	/* Shift WIM bit right */
-	sll	%l3, NWINDOWS_KERN - 1, %l4
-	srl	%l3, 1, %l3
-	or	%l3, %l4, %g1
+	set	kstack_top, %l5
+	sub	%l5, TRAPFRAME_SZ, %l5
 
-	/* The CWP is decremented on overflow.  We save the window
-	 * that the window trap handler is going to use next, and
-	 * allow the faulting save to use the window the trap handler
-	 * is using now.
-	 */
-	save
-	
-	mov	%g1, %wim
-	WRITE_PAUSE
-
-	STORE_WINDOW(sp)
+	STORE_GLOBALS(l5)
+	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l4)
+	or	%l5, %g0, %g7
 
 	restore
+	STORE_OUTS(g7)
+	STORE_LOCALS(g7)
+	STORE_INS(g7)
 
-	mov	%l7, %g1
-
-	jmp	%l1
-	 rett	%l2
-			
-window_fill:	
-
-	/* Shift WIM bit left */
-	sll	%l3, 1, %l4
-	srl	%l3, NWINDOWS_KERN - 1, %l3
-	or	%l3, %l4, %l3
-
-	mov	%l3, %wim
+	/* Have a saved trapframe, so can use any registers */
+	rd	%psr, %l0
+	wr	%l0, PSR_ET, %psr
 	WRITE_PAUSE
 
-	/* The CWP is decremented on underflow, so need to restore
-	 * twice to reach the correct window.
-	 */
-	restore				
-	restore				
-        
-	LOAD_WINDOW(sp)
+	mov	%g0, %fp
+	mov	%g7, %sp
+	call	trap_handler
+	 mov	%sp, %o0
+
+window_spill:	
+	mov	%l1, %g5
+	mov	%l2, %g6
 	
+	mov	%g0, %wim
+	WRITE_PAUSE
+	
+	restore
+	STORE_WINDOW(sp)
+	save
+			
+	/* Shift WIM bits right */
+	sll	%l3, NWINDOWS_KERN - 1, %l4
+	srl	%l3, 1, %l3
+	or	%l3, %l4, %g7
+
+	RETT_PSR(l0, l5)
+	wr	%l0, %psr
+	WRITE_PAUSE
+
+	restore
+	mov	%g7, %wim
+	WRITE_PAUSE
+		
+	jmp	%g5
+	 jmp	%g6	
+	  nop
+
+window_fill:	
+	mov	%l1, %g5
+	mov	%l2, %g6
+
+	mov	%g0, %wim
+	WRITE_PAUSE
+
+	restore
+	restore
+	LOAD_WINDOW(sp)
 	save
 	save
 
-	jmp  %l1
-	 rett  %l2
-			
+	/* Shift WIM bits left */
+	sll	%l3, 1, %l4
+	srl	%l3, NWINDOWS_KERN - 1, %l3
+	or	%l3, %l4, %g7
+	
+	RETT_PSR(l0, l5)
+	wr	%l0, %psr
+	WRITE_PAUSE
+
+	restore
+	mov	%g7, %wim
+	WRITE_PAUSE	
+		
+	jmp	%g5
+	 jmp	%g6	
+	  nop
+
 trap_return:
 	jmpl	%r17, %r0	/* old PC */
 	rett	%r18		/* old nPC */
