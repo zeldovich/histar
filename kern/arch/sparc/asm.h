@@ -70,3 +70,14 @@
         STORE_OUTS(base_reg) \
         STORE_LOCALS(base_reg) \
         STORE_INS(base_reg)
+
+/* Computes a new psr similiar to rett, but without incrementing the
+ * CWP.  The old psr is read from psr_reg.
+*/
+#define RETT_PSR(psr_reg, scratch) \
+	or	%psr_reg, PSR_ET, %psr_reg; \
+	and	%psr_reg, PSR_PS, %scratch; \
+	sll	%scratch, 0x01, %scratch; \
+	andn	%psr_reg, (PSR_PS | PSR_S), %psr_reg; \
+	or	%scratch, %psr_reg, %psr_reg; 
+
