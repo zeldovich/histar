@@ -35,7 +35,7 @@
         ldd     [%reg + RW_I6], %i6;
 
 #define STORE_GLOBALS(base_reg) \
-        std     %g0, [%base_reg + TF_G0]; \
+        st      %g1, [%base_reg + TF_G1]; \
         std     %g2, [%base_reg + TF_G2]; \
         std     %g4, [%base_reg + TF_G4]; \
         std     %g6, [%base_reg + TF_G6];
