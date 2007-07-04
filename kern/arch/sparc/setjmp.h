@@ -6,12 +6,16 @@
 #define JOS_LONGJMP_GCCATTR	
 
 struct jos_jmp_buf {
-    /* If we are using register windows, this is sufficient */
+    /* For x86 style stack management.
+     * We don't need all the globals, only %g2-%g4.
+     * The 8-byte alignment is so we can use ldd/std.
+     */
     uint32_t jb_sp;
-    uint32_t jb_fp;
     uint32_t jb_pc;
 
-    /* Otherwise, we should store 24 registers -- everything except %o? */
-};
+    uint32_t jb_locals[8];
+    uint32_t jb_ins[8];
+    uint32_t jb_globals[8];
+} __attribute__((aligned (8)));
 
 #endif
