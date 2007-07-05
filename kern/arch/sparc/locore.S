@@ -1,6 +1,5 @@
 #include <machine/asm.h>
 #include <machine/psr.h>
-#include <machine/win.h>
 #include <machine/asi.h>
 #include <machine/srmmu.h>
 #include <machine/memlayout.h>
@@ -148,7 +147,7 @@ window_spill:
 	save
 			
 	/* Shift WIM bits right */
-	sll	%l3, NWINDOWS_KERN - 1, %l4
+	sll	%l3, NWINDOWS - 1, %l4
 	srl	%l3, 1, %l3
 	or	%l3, %l4, %g7
 
@@ -179,7 +178,7 @@ window_fill:
 
 	/* Shift WIM bits left */
 	sll	%l3, 1, %l4
-	srl	%l3, NWINDOWS_KERN - 1, %l3
+	srl	%l3, NWINDOWS - 1, %l3
 	or	%l3, %l4, %g7
 	
 	RETT_PSR(l0, l5)
