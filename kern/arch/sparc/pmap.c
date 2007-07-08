@@ -12,7 +12,7 @@ page_map_alloc(struct Pagemap **pm_store)
     if (r < 0)
 	return r;
 
-    memcpy(pmap, &bootpt, PGSIZE);
+    memcpy(pmap, &bootpt, sizeof(bootpt));
     *pm_store = (struct Pagemap *) pmap;
     return 0;
 }
