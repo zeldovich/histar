@@ -1,8 +1,11 @@
 # -*-Makefile-*-
 
-# The Gaisler board loads ELF files directly.
-KERN_LDFLAGS = -N -nostdlib
-KERN_CFLAGS += -msoft-float -fno-builtin
+# The Gaisler board loads ELF files directly.  KERN_LOADADDR is the 
+# physical address the ELF loader should copy the kernel to and the 
+# entry address for the boot strap code.
+KERN_LOADADDR = 0x40000000
+KERN_LDFLAGS = -N -nostdlib -e $(KERN_LOADADDR)
+KERN_CFLAGS += -msoft-float -fno-builtin -D KERN_LOADADDR=$(KERN_LOADADDR)
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/prom_stage1.S		\
