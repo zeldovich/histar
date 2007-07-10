@@ -50,4 +50,10 @@ utrap_field_symbols(void)
 
     GEN_DEF(tls_utrap_ret_buf, &TLS_DATA->tls_utrap_ret_buf);
 #endif
+
+#ifdef JOS_ARCH_sparc
+    UTF_DEF(utf_stackptr);
+
+    UTF_DEF(utf_pc);
+#endif
 }
