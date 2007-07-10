@@ -8,7 +8,7 @@
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define TRAP_ENTRY(label) \
         rd %psr, %l0; rd %wim, %l3; b label; nop;
-	
+		
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
 	.align 4096
@@ -138,35 +138,57 @@ def_trap:
 window_spill:	
 	mov	%l1, %g5
 	mov	%l2, %g6
-	
-	mov	%g0, %wim
-	WRITE_PAUSE
-	
-	restore
-	STORE_WINDOW(sp)
-	save
-			
+
 	/* Shift WIM bits right */
 	sll	%l3, NWINDOWS - 1, %l4
 	srl	%l3, 1, %l3
 	or	%l3, %l4, %g7
 
-	RETT_PSR(l0, l5)
-	wr	%l0, %psr
-	WRITE_PAUSE
+	orcc	%l0, PSR_PS, %g0
+	be	user_spill
+	 nop
 
+kernel_spill:
 	restore
 	mov	%g7, %wim
 	WRITE_PAUSE
-		
+
+	STORE_WINDOW(sp)
+
+	rd	%psr, %g7
+	or	%g7, PSR_ET, %g7
+	wr	%g7, %psr
+	WRITE_PAUSE
+
 	jmp	%g5
 	 jmp	%g6	
 	  nop
 
+user_spill:
+	restore
+	mov	%g7, %wim
+	WRITE_PAUSE
+
+	rd	%psr, %g7
+	or	%g7, PSR_ET, %g7
+	andn	%g7, PSR_S, %g7
+	wr	%g7, %psr
+	WRITE_PAUSE
+
+	/* XXX jmpl to a user provided handler */
+	set	0x4000000, %g7
+	jmpl	%g7, %g0
+	 nop
+	
 window_fill:	
 	mov	%l1, %g5
 	mov	%l2, %g6
 
+	/* Shift WIM bits left */
+	sll	%l3, 1, %l4
+	srl	%l3, NWINDOWS - 1, %l3
+	or	%l3, %l4, %g7
+	
 	mov	%g0, %wim
 	WRITE_PAUSE
 
@@ -175,11 +197,6 @@ window_fill:
 	LOAD_WINDOW(sp)
 	save
 	save
-
-	/* Shift WIM bits left */
-	sll	%l3, 1, %l4
-	srl	%l3, NWINDOWS - 1, %l3
-	or	%l3, %l4, %g7
 	
 	RETT_PSR(l0, l5)
 	wr	%l0, %psr
