@@ -3,6 +3,8 @@
 
 #include <inc/types.h>
 
+#define JOS_UTRAP_GCCATTR
+
 struct UTrapframe {
     /* XXX missing stuff */
 

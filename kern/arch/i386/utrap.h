@@ -3,6 +3,8 @@
 
 #include <inc/types.h>
 
+#define JOS_UTRAP_GCCATTR regparm(1)
+
 /*
  * The layout of this structure has to match the DWARF2 hints
  * in lib/i386/trapstub.S
