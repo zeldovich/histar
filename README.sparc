@@ -18,6 +18,6 @@
 
 Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
 
-   % tsim-leon3 obj/kern/kernel
+   % tsim-leon3 -mmu -nosram obj/kern/kernel
      ...
    tsim> go
