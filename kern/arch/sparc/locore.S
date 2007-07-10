@@ -188,7 +188,12 @@ window_fill:
 	sll	%l3, 1, %l4
 	srl	%l3, NWINDOWS - 1, %l3
 	or	%l3, %l4, %g7
-	
+
+	orcc	%l0, PSR_PS, %g0
+	be	user_fill
+	 nop
+
+kernel_fill:
 	mov	%g0, %wim
 	WRITE_PAUSE
 
@@ -196,20 +201,43 @@ window_fill:
 	restore
 	LOAD_WINDOW(sp)
 	save
-	save
-	
-	RETT_PSR(l0, l5)
-	wr	%l0, %psr
-	WRITE_PAUSE
 
-	restore
 	mov	%g7, %wim
 	WRITE_PAUSE	
-		
+
+	rd	%psr, %g7
+	or	%g7, PSR_ET, %g7
+	wr	%g7, %psr
+	WRITE_PAUSE
+
 	jmp	%g5
 	 jmp	%g6	
 	  nop
 
+user_fill:
+	mov	%g0, %wim
+	WRITE_PAUSE
+
+	restore
+	restore
+
+	mov	%g7, %wim
+	WRITE_PAUSE	
+
+	rd	%psr, %g7
+	or	%g7, PSR_ET, %g7
+	andn	%g7, PSR_S, %g7
+	wr	%g7, %psr
+	WRITE_PAUSE
+
+	/* XXX jmpl to a user provided handler.  How to decrement CWP so we  
+	 * are in the correct register set to re-exec the faulting inst?
+	 * Special "finish user_fill" software interrupt?
+	 */
+	set	0x4000000, %g7
+	jmpl	%g7, %g0
+	 nop
+	
 trap_return:
 	jmpl	%r17, %r0	/* old PC */
 	rett	%r18		/* old nPC */
