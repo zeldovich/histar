@@ -21,3 +21,13 @@ Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
    % tsim-leon3 -mmu -nosram obj/kern/kernel
      ...
    tsim> go
+
+* Run on real hardware
+
+Download grmon-eval from ftp://ftp.gaisler.com/gaisler.com/grmon/
+Disable firewall rules that might block grmon's UDP packets.
+
+   % grmon-eval -nb -eth -ip 171.66.3.253
+   grlib> load obj/kern/kernel
+   grlib> run
+
