@@ -61,8 +61,8 @@ cmain(uint32_t extmem_kb)
     // read 1st page off disk
     readseg((uint32_t) ELFHDR, SECTSIZE * 8, ELFOFF);
 
-    if (ELFHDR->e_magic != ELF_MAGIC ||	/* Invalid ELF */
-	ELFHDR->e_machine != ELF_MACH)	/* Wrong machine */
+    if (ELFHDR->e_magic != ELF_MAGIC_LE ||	/* Invalid ELF */
+	ELFHDR->e_machine != ELF_MACH)		/* Wrong machine */
 	goto bad;
 
     // load each program segment (ignores ph flags)

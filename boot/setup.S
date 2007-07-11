@@ -241,7 +241,7 @@ protcseg:
 		movl	%ebx, (%eax)
 
 		movl	0x100000, %edx
-		cmpl	$ELF_MAGIC, %edx
+		cmpl	$ELF_MAGIC_LE, %edx
 		jne	badelf
 
 		movl	0x100018, %edx		# read e_entry (elf32, elf64)
