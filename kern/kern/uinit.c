@@ -27,6 +27,14 @@
 #error Unknown arch
 #endif
 
+#if JOS_ARCH_ENDIAN==JOS_LITTLE_ENDIAN
+#define ARCH_ELF_MAGIC	ELF_MAGIC_LE
+#elif JOS_ARCH_ENDIAN==JOS_BIG_ENDIAN
+#define ARCH_ELF_MAGIC	ELF_MAGIC_BE
+#else
+#error Unknown arch
+#endif
+
 uint64_t user_root_handle;
 
 #define assert_check(expr)			\
@@ -130,7 +138,9 @@ thread_load_elf(struct Container *c, struct Thread *t,
 	return -E_INVAL;
     }
 
-    if (elf.e_magic != ELF_MAGIC || elf.e_ident[EI_CLASS] != ARCH_ELF_CLASS) {
+    if (elf.e_magic != ARCH_ELF_MAGIC ||
+	elf.e_ident[EI_CLASS] != ARCH_ELF_CLASS)
+    {
 	cprintf("ELF magic/class mismatch\n");
 	return -E_INVAL;
     }

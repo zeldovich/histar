@@ -21,6 +21,14 @@
 #error What is this architecture?
 #endif
 
+#if JOS_ARCH_ENDIAN==JOS_LITTLE_ENDIAN
+#define ARCH_ELF_MAGIC	ELF_MAGIC_LE
+#elif JOS_ARCH_ENDIAN==JOS_BIG_ENDIAN
+#define ARCH_ELF_MAGIC	ELF_MAGIC_BE
+#else
+#error What is this architecture?
+#endif
+
 enum { elf_debug = 0 };
 
 int
@@ -33,7 +41,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	return r;
 
     uint64_t seglen = 0;
-    char *segbuf = 0;
+    void *segbuf = 0;
     r = segment_map(seg, 0, SEGMAP_READ, (void**)&segbuf, &seglen, 0);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
@@ -44,7 +52,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     int si = 0;
 
     ARCH_ELF_EHDR *elf = (ARCH_ELF_EHDR*) segbuf;
-    if (elf->e_magic != ELF_MAGIC) {
+    if (elf->e_magic != ARCH_ELF_MAGIC) {
 	if (elf_debug)
 	    cprintf("elf_load: ELF magic mismatch\n");
 	return -E_INVAL;

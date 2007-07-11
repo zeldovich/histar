@@ -1,7 +1,8 @@
 #ifndef JOS_INC_ELF_H
 #define JOS_INC_ELF_H
 
-#define ELF_MAGIC 0x464C457F	/* "\x7FELF" in little endian */
+#define ELF_MAGIC_BE		0x7F454C46	/* "\x7FELF" in big endian */
+#define ELF_MAGIC_LE		0x464C457F	/* "\x7FELF" in little endian */
 
 // e_type values
 #define ELF_TYPE_EXEC		2
