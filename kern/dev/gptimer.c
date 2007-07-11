@@ -41,6 +41,7 @@ gptimer_init(void)
 
     static struct interrupt_handler gpt_ih =
 	{ .ih_func = &gpt_intr, .ih_arg = 0 };
+    /* XXX what IRQ num? */
     irq_register(0, &gpt_ih);
         
     gpt_state.gpt_src.type = time_source_gpt;
