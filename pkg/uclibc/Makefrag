@@ -8,6 +8,10 @@ ifeq ($(ARCH),i386)
 UCLIBC_ARCH := i386
 endif
 
+ifeq ($(ARCH),sparc)
+UCLIBC_ARCH := sparc
+endif
+
 UCLIBC_INCLUDES := \
 	-I$(TOP)/uinc \
 	-I$(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) \
