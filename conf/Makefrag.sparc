@@ -1,6 +1,7 @@
 ARCH    := sparc
 TARGET  := sparc-jos-linux
 OBJTYPE := elf32-sparc
+BFDARCH := sparc
 
 CC      := $(GCCPREFIX)gcc -pipe -m32
 CXX     := $(GCCPREFIX)g++ -pipe -m32

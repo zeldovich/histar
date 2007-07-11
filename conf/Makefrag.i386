@@ -1,6 +1,7 @@
 ARCH    := i386
 TARGET  := i386-jos-linux
 OBJTYPE := elf32-i386
+BFDARCH := i386
 
 CC      := $(GCCPREFIX)gcc -pipe -m32
 CXX     := $(GCCPREFIX)g++ -pipe -m32

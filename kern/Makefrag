@@ -116,6 +116,6 @@ $(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.
 
 $(OBJDIR)/kern/embed_obj_user_%.o: $(OBJDIR)/user/%
 	@mkdir -p $(@D)
-	$(OBJCOPY) -I binary -O $(OBJTYPE) -B i386 $< $@
+	$(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) $< $@
 
 -include $(ARCHDIR)/Makefrag.final

@@ -1,6 +1,7 @@
 ARCH	:= amd64
 TARGET  := x86_64-jos-linux
 OBJTYPE := elf64-x86-64
+BFDARCH := i386
 
 CC      := $(GCCPREFIX)gcc -pipe
 CXX     := $(GCCPREFIX)g++ -pipe
