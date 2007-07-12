@@ -474,9 +474,14 @@ $(OBJDIR)/user/initrd:
 	mkdir -p $(@D)/initrdd
 	touch $(@D)/initrdd/linuxrc
 	# so procfs can be mounted easily
-	mkdir $(@D)/initrdd/proc
+	mkdir -p $(@D)/initrdd/proc
 	chmod 744 $(@D)/initrdd/linuxrc
-	mkcramfs $(@D)/initrdd $@~
+	if [ -x /sbin/mkfs.cramfs ]; then \
+	    MKCRAMFS=/sbin/mkfs.cramfs; \
+	else \
+	    MKCRAMFS=mkcramfs; \
+	fi; \
+	$$MKCRAMFS $(@D)/initrdd $@~
 	gzip -9 -c $@~ > $@
 	rm -rf $(@D)/initrdd $@~
 
