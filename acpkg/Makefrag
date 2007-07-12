@@ -445,10 +445,10 @@ $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
 ##   (cd acpkg/linux-2.6.20.4/arch &&
 ##    svn co svn+ssh://market.scs.stanford.edu/home/u1/asbestos/repo/lind lind)
 
-LINUX_CFLAGS  := $(USER_INC) -DJOS_USER
-LINUX_LDFLAGS := $(LDFLAGS)
-LINUX_OUT := $(TOP)/obj/acpkg/linux
-LINUX_SRC := $(TOP)/acpkg/linux-2.6.20.4
+LINUX_CFLAGS	:= $(USER_INC) -DJOS_USER -fno-builtin
+LINUX_LDFLAGS	:= $(LDFLAGS)
+LINUX_OUT	:= $(OBJDIR)/acpkg/linux
+LINUX_SRC	:= acpkg/linux-2.6.20.4
 
 $(LINUX_OUT)/.config:
 	@mkdir -p $(@D)
@@ -461,7 +461,7 @@ $(LINUX_SRC)/__build: $(LDEPS) $(LINUX_OUT)/.config
 	( cd $(LINUX_SRC) && make \
 	  ARCH=lind \
 	  OS=jos64 \
-	  O=$(LINUX_OUT) \
+	  O=$(TOP)/$(LINUX_OUT) \
 	  CROSS_COMPILE=$(GCCPREFIX) \
 	  LIND_CFLAGS="$(LINUX_CFLAGS)" \
 	  LIND_LDFLAGS="$(LINUX_LDFLAGS)" )
