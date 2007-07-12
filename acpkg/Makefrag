@@ -441,21 +441,26 @@ $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
 
 ## For Linux:
 ##   ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.4.tar.gz
-## For lind:
-##   (cd acpkg/linux-2.6.20.4/arch &&
-##    svn co svn+ssh://market.scs.stanford.edu/home/u1/asbestos/repo/lind lind)
 
 LINUX_CFLAGS	:= $(USER_INC) -DJOS_USER -fno-builtin
 LINUX_LDFLAGS	:= $(LDFLAGS)
 LINUX_OUT	:= $(OBJDIR)/acpkg/linux
 LINUX_SRC	:= acpkg/linux-2.6.20.4
 
-$(LINUX_OUT)/.config:
+$(LINUX_OUT)/.config: lind/defconfig
 	@mkdir -p $(@D)
-	ln -s ../arch/lind/asm-lind $(LINUX_SRC)/include/asm-lind
-	cp $(LINUX_SRC)/arch/lind/defconfig $@
+	cp lind/defconfig $@
 
-$(LINUX_SRC)/__build: $(LDEPS) $(LINUX_OUT)/.config
+$(LINUX_SRC)/include/asm-lind:
+	rm -f $@
+	ln -s ../arch/lind/asm-lind $@
+
+$(LINUX_SRC)/arch/lind:
+	rm -f $@
+	ln -s ../../../lind $@
+
+$(LINUX_SRC)/__build: $(LDEPS) $(LINUX_SRC)/include/asm-lind \
+		      $(LINUX_SRC)/arch/lind $(LINUX_OUT)/.config
 	@mkdir -p $(LINUX_OUT)
 	rm -f $(LINUX_OUT)/vmlinux $(LINUX_OUT)/kernel/kallsyms.o
 	( cd $(LINUX_SRC) && make \

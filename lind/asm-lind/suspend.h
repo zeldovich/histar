@@ -1,0 +1,4 @@
+#ifndef JOS64_LINUX_ASM_SUSPEND_H
+#define JOS64_LINUX_ASM_SUSPEND_H
+
+#endif
