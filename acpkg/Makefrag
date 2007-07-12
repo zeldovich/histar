@@ -439,6 +439,47 @@ $(OBJDIR)/acpkg/include/sfslite: acpkg/sfslite-1.0.0/__build
 $(OBJDIR)/acpkg/lib/sfslite/libasync.a: acpkg/sfslite-1.0.0/__build
 $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
 
+## For Linux:
+##   ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.4.tar.gz
+## For lind:
+##   (cd acpkg/linux-2.6.20.4/arch &&
+##    svn co svn+ssh://market.scs.stanford.edu/home/u1/asbestos/repo/lind lind)
+
+LINUX_CFLAGS  := $(USER_INC) -DJOS_USER
+LINUX_LDFLAGS := $(LDFLAGS)
+LINUX_OUT := $(TOP)/obj/acpkg/linux
+LINUX_SRC := $(TOP)/acpkg/linux-2.6.20.4
+
+$(LINUX_OUT)/.config:
+	@mkdir -p $(@D)
+	ln -s ../arch/lind/asm-lind $(LINUX_SRC)/include/asm-lind
+	cp $(LINUX_SRC)/arch/lind/defconfig $@
+
+$(LINUX_SRC)/__build: $(LDEPS) $(LINUX_OUT)/.config
+	@mkdir -p $(LINUX_OUT)
+	rm -f $(LINUX_OUT)/vmlinux $(LINUX_OUT)/kernel/kallsyms.o
+	( cd $(LINUX_SRC) && make \
+	  ARCH=lind \
+	  OS=jos64 \
+	  O=$(LINUX_OUT) \
+	  CROSS_COMPILE=$(GCCPREFIX) \
+	  LIND_CFLAGS="$(LINUX_CFLAGS)" \
+	  LIND_LDFLAGS="$(LINUX_LDFLAGS)" )
+	touch $@
+
+$(OBJDIR)/user/vmlinux: $(LINUX_SRC)/__build
+	cp $(LINUX_OUT)/vmlinux $@
+
+$(OBJDIR)/user/initrd:
+	mkdir -p $(@D)/initrdd
+	touch $(@D)/initrdd/linuxrc
+	# so procfs can be mounted easily
+	mkdir $(@D)/initrdd/proc
+	chmod 744 $(@D)/initrdd/linuxrc
+	mkcramfs $(@D)/initrdd $@~
+	gzip -9 -c $@~ > $@
+	rm -rf $(@D)/initrdd $@~
+
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
