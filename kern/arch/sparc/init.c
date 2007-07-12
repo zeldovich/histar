@@ -18,6 +18,12 @@
 char boot_cmdline[256];
 
 static void
+mmu_init(void)
+{
+    /* XXX Nuke identically mapped physical memory */
+}
+
+static void
 bss_init (void)
 {
     extern char sbss[], ebss[];
@@ -27,6 +33,7 @@ bss_init (void)
 void __attribute__((noreturn))
 init (void)
 {
+    mmu_init();
     bss_init();
 
     amba_init();

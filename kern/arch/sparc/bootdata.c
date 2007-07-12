@@ -27,6 +27,7 @@
  */
 struct Pagemap bootpt PTATTR = {
   .pm1_ent = {
+    [64] = DO_64(64, TRANS16MEG)
     [128] = DO_64(64, TRANS16MEG)
     [192] = DO_64(128, TRANS16MEG)
   }

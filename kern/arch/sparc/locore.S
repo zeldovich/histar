@@ -86,9 +86,12 @@ ENTRY(start)
 	/* Enable MMU */
 	lda	[%g0] ASI_MMUREGS, %g3
 	or	%g3, 0x01, %g3
+	sta	%g3, [%g0] ASI_MMUREGS
+	WRITE_PAUSE
+
 	set	vm_enabled, %g1
 	jmpl	%g1, %g0
-	 sta	%g3, [%g0] ASI_MMUREGS
+	 nop
 
 vm_enabled:	
 	/* Make window 0 valid, all other invalid */
@@ -108,7 +111,8 @@ vm_enabled:
 	/* Turn on traps so that we can call c-code. */	
 	rd	%psr, %g3
 	wr	%g3, PSR_ET, %psr
-
+	WRITE_PAUSE
+	
 	call	init
 	 nop
 
