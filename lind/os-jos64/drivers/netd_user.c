@@ -43,6 +43,12 @@ static int linux_main_pid;
 
 static int linux_socket_thread(void *a);
 
+#define NETD_OP_ENTRY(name) [netd_op_##name] = #name,
+const char *netd_op_name[] = {
+    ALL_NETD_OPS
+};
+#undef NETD_OP_ENTRY
+
 static void
 netd_to_libc(struct netd_sockaddr_in *nsin, struct sockaddr_in *sin)
 {
@@ -177,7 +183,10 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
     struct sockaddr_in sin;
     socklen_t sinlen = sizeof(sin);
 
-    debug_print(dbg, "(l%ld) op %d, sock %d", ss->linuxpid, a->op_type, ss->sock);
+    debug_print(dbg, "(l%ld) op %d (%s), sock %d",
+		ss->linuxpid, a->op_type,
+		(a->op_type < netd_op_max ? netd_op_name[a->op_type] : "unknown"),
+		ss->sock);
 
     switch(a->op_type) {
     case netd_op_socket:

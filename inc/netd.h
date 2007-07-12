@@ -3,8 +3,10 @@
 
 #include <inc/types.h>
 #include <inc/container.h>
-#include <sys/select.h>
 #include <inc/multisync.h>
+#include <inc/netd_opnum.h>
+
+#include <sys/select.h>
 
 struct Fd;
 
@@ -17,27 +19,6 @@ struct netd_sockaddr_in {
 };
 
 enum { netd_buf_size = 8192 };
-
-typedef enum {
-    netd_op_socket,
-    netd_op_bind,
-    netd_op_listen,
-    netd_op_accept,
-    netd_op_connect,
-    netd_op_close,
-    netd_op_getsockname,
-    netd_op_getpeername,
-    netd_op_setsockopt,
-    netd_op_getsockopt,
-    netd_op_send,
-    netd_op_sendto,
-    netd_op_recvfrom,
-    netd_op_notify,
-    netd_op_probe,
-    netd_op_statsync,
-    netd_op_shutdown,
-    netd_op_ioctl,
-} netd_op_t;
 
 struct netd_op_socket_args {
     int domain;
@@ -173,8 +154,8 @@ struct netd_op_ioctl_args {
 };
 
 struct netd_op_args {
-    netd_op_t op_type;
-    int size;
+    uint32_t op_type;
+    uint32_t size;
     int rval;
     int rerrno;
 
