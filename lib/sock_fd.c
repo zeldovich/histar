@@ -43,7 +43,9 @@ netd_socket(int domain, int type, int protocol)
     int r = fd_alloc(&fd, "socket fd");
     if (r < 0)
 	return r;
+
     /* netd_call relies on this being set */
+    memset(&fd->fd_sock, 0, sizeof(fd->fd_sock));
     fd->fd_sock.netd_gate = netd_gate;
 
     struct netd_op_args a;
