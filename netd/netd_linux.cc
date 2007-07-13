@@ -191,6 +191,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     
     switch(a->op_type) {
     case netd_op_close:
+	l.release();
+
 	/* Linux doesn't send a response on close.  We send the close 
 	 * operation over the jcomm to pop Linux out of multisync.
 	 */
@@ -206,7 +208,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
 	return 0;
 
-    case netd_op_probe: 
+    case netd_op_probe:
 	/* XXX how to handle selecting on a listening socket */
 	return jcomm_probe(client_conn->data_comm, a->probe.how);
 
@@ -217,6 +219,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 
     case netd_op_recvfrom:
 	if (!a->recvfrom.wantfrom) {
+	    l.release();
+
 	    r = jcomm_read(client_conn->data_comm,
 			   a->recvfrom.buf, a->recvfrom.count);
 	    if (r < 0) {
@@ -230,6 +234,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	return -1;
 
     case netd_op_accept:
+	l.release();
+
 	r = jcomm_read(client_conn->data_comm, &a->accept, sizeof(a->accept));
 	if (r < 0) {
 	    cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
@@ -237,6 +243,19 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    return -1;
 	}
 	return a->accept.fd;
+
+    case netd_op_send:
+	if (a->send.flags)
+	    break;
+
+	l.release();
+	r = jcomm_write(client_conn->data_comm, &a->send.buf[0], a->send.count);
+	if (r < 0) {
+	    cprintf("netd_linux_call: jcomm_write error: %s\n", e2s(r));
+	    errno = ENOSYS;
+	    return -1;
+	}
+	return r;
 
     default:
 	break;
