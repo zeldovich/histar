@@ -83,7 +83,8 @@ netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint)
 }
 
 static int
-setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn, int sock_id)
+setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
+		  int sock_id, int dgram)
 {
     int r;
     /* allocate some args */
@@ -105,8 +106,8 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn, int sock_id)
 	return r;
 
     jcomm_ref data_comm0, data_comm1;
-    /* XXX need to be packet if DGRAM */
-    r = jcomm_alloc(ct, l.to_ulabel(), 0, &data_comm0, &data_comm1);
+    r = jcomm_alloc(ct, l.to_ulabel(), dgram ? JCOMM_PACKET : 0,
+		    &data_comm0, &data_comm1);
     if (r < 0) {
 	jcomm_unref(ctrl_comm0);
 	return r;
@@ -175,9 +176,13 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	 * created by accept that hasn't been used yet
 	 */
 	if (a->op_type == netd_op_socket)
-	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn, -1);
+	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn,
+				  -1,
+				  (a->socket.type == SOCK_DGRAM) ? 1 : 0);
 	else
-	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn, fd->fd_sock.s);
+	    r = setup_socket_conn(fd->fd_sock.netd_gate, client_conn,
+				  fd->fd_sock.s,
+				  (fd->fd_sock.type == SOCK_DGRAM) ? 1 : 0);
 
 	if (r < 0)
 	    return r;
