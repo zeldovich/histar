@@ -29,7 +29,7 @@ static struct cobj_ref netd_gate, netd_fast_gate;
 static int
 netd_client_init(void)
 {
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 30; i++) {
 	if (netd_lwip_client_init(&netd_gate, &netd_fast_gate) == 0) {
 	    netd_mode = netd_lwip_mode;
 	    return 0;
@@ -37,7 +37,10 @@ netd_client_init(void)
 	    netd_mode = netd_linux_mode;
 	    return 0;
 	}
-	thread_sleep_nsec(NSEC_PER_SECOND / 10);
+
+	uint64_t now = sys_clock_nsec();
+	while ((uint64_t) sys_clock_nsec() < now + NSEC_PER_SECOND)
+	    thread_sleep_nsec(NSEC_PER_SECOND / 10);
     }
     cprintf("netd_client_init: unable to find a netd\n");
     return -E_NOT_FOUND;
