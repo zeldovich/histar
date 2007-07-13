@@ -269,6 +269,10 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	libc_to_netd(&sin, &a->getpeername.sin);
 	break;
 
+    case netd_op_shutdown:
+	a->rval = linux_shutdown(ss->sock, a->shutdown.how);
+	break;
+
     default:
 	arch_printf("netd_linux_dispatch: unimplemented %d\n", a->op_type);
 	a->rval = -ENOSYS;

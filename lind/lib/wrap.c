@@ -79,6 +79,12 @@ linux_getpeername(int fd, struct sockaddr *sa, int *len)
     return sys_getpeername(fd, sa, len);
 }
 
+long
+linux_shutdown(int fd, int how)
+{
+    return sys_shutdown(fd, how);
+}
+
 ssize_t 
 linux_read(unsigned int fd, char *buf, size_t count)
 {
