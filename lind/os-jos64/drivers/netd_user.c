@@ -181,7 +181,8 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 {
     int r;
     struct sockaddr_in sin;
-    socklen_t sinlen = sizeof(sin);
+    int sinlen = sizeof(sin);
+    int xlen;
 
     debug_print(dbg, "(l%ld) op %d (%s), sock %d",
 		ss->linuxpid, a->op_type,
@@ -200,16 +201,19 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	} else
 	    a->rval = r;
 	break;
+
     case netd_op_close:
 	r = linux_close(ss->sock);
 	if (r < 0)
 	    arch_printf("netd_linux_dispatch: close error: %d\n", r);
 	a->rval = r;
 	break;
+
     case netd_op_bind:
 	netd_to_libc(&a->bind.sin, &sin);
 	a->rval = linux_bind(ss->sock, (struct sockaddr *)&sin, sinlen);
 	break;
+
     case netd_op_listen:
 	a->rval = linux_listen(ss->sock, a->listen.backlog);
 	if (a->rval == 0) {
@@ -217,29 +221,54 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	    ss->josfull = 0;
 	}
 	break;
+
     case netd_op_connect:
 	netd_to_libc(&a->connect.sin, &sin);
 	a->rval = linux_connect(ss->sock, (struct sockaddr *)&sin, sinlen);
 	if (a->rval == 0)
 	    ss->josfull = 0;
 	break;
+
     case netd_op_send:
 	a->rval = linux_send(ss->sock, a->send.buf, a->send.count, a->send.flags);
 	break;
+
     case netd_op_sendto:
 	netd_to_libc(&a->sendto.sin, &sin);
 	a->rval = linux_sendto(ss->sock, a->sendto.buf, a->sendto.count,
 			       a->sendto.flags, (struct sockaddr *)&sin, sinlen);
 	break;
+
     case netd_op_ioctl:
 	a->rval = netd_linux_ioctl(ss, &a->ioctl);
 	break;
+
     case netd_op_setsockopt:
 	a->rval = linux_setsockopt(ss->sock, a->setsockopt.level,
 				   a->setsockopt.optname,
 				   a->setsockopt.optval,
 				   a->setsockopt.optlen);
 	break;
+
+    case netd_op_getsockopt:
+	xlen = MIN(sizeof(a->getsockopt.optval), a->getsockopt.optlen);
+	a->rval = linux_getsockopt(ss->sock, a->getsockopt.level,
+				   a->getsockopt.optname,
+				   a->getsockopt.optval,
+				   &xlen);
+	a->getsockopt.optlen = xlen;
+	break;
+
+    case netd_op_getsockname:
+	a->rval = linux_getsockname(ss->sock, (struct sockaddr *) &sin, &sinlen);
+	libc_to_netd(&sin, &a->getsockname.sin);
+	break;
+
+    case netd_op_getpeername:
+	a->rval = linux_getpeername(ss->sock, (struct sockaddr *) &sin, &sinlen);
+	libc_to_netd(&sin, &a->getpeername.sin);
+	break;
+
     default:
 	arch_printf("netd_linux_dispatch: unimplemented %d\n", a->op_type);
 	a->rval = -ENOSYS;

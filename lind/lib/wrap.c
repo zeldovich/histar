@@ -60,6 +60,25 @@ linux_setsockopt(int fd, int level, int optname,
     return sys_setsockopt(fd, level, optname, optval, optlen);
 }
 
+long
+linux_getsockopt(int fd, int level, int optname,
+		 char *optval, int *optlen)
+{
+    return sys_getsockopt(fd, level, optname, optval, optlen);
+}
+
+long
+linux_getsockname(int fd, struct sockaddr *sa, int *len)
+{
+    return sys_getsockname(fd, sa, len);
+}
+
+long
+linux_getpeername(int fd, struct sockaddr *sa, int *len)
+{
+    return sys_getpeername(fd, sa, len);
+}
+
 ssize_t 
 linux_read(unsigned int fd, char *buf, size_t count)
 {

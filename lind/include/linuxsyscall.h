@@ -14,6 +14,10 @@ long linux_close(unsigned int fd);
 long linux_socketpair(int domain, int type, int protocol, int sv[2]);
 long linux_setsockopt(int fd, int level, int optname,
 		      char *optval, int optlen);
+long linux_getsockopt(int fd, int level, int optname,
+		      char *optval, int *optlen);
+long linux_getsockname(int fd, struct sockaddr *sa, int *len);
+long linux_getpeername(int fd, struct sockaddr *sa, int *len);
 
 ssize_t linux_read(unsigned int fd, char *buf, size_t count);
 ssize_t linux_write(unsigned int fd, char *buf, size_t count);
