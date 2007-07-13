@@ -359,8 +359,14 @@ linux_handle_socket(struct sock_slot *ss)
 	    sys_sync_wakeup(&ss->josfull);
 	    debug_print(dbg, "(l%ld) shutdown", ss->linuxpid);
 	    return;
-	} else if (r < 0)
-	    panic("linux_read error (listen?) : %d\n", r);
+	} else if (r < 0) {
+	    /* XXX map read errors to EOF? */
+	    ss->josbuf.op_type = jos64_op_shutdown;
+	    ss->josfull = 1;
+	    sys_sync_wakeup(&ss->josfull);
+	    debug_print(dbg, "(l%ld) shutdown err %d", ss->linuxpid, r);
+	    return;
+	}
 	ss->josbuf.op_type = jos64_op_recv;
 	ss->josbuf.recv.off = 0;
 	ss->josbuf.recv.cnt = r;
