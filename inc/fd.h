@@ -102,6 +102,7 @@ struct Fd
 	    jthread_mutex_t mu;
 	    struct cobj_ref netd_gate;
 	    int s;
+	    int type;
 	    char extra[128];
 	} fd_sock;
 

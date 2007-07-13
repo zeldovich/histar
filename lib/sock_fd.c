@@ -62,6 +62,7 @@ netd_socket(int domain, int type, int protocol)
 
     fd->fd_dev_id = devsock.dev_id;
     fd->fd_omode = O_RDWR;
+    fd->fd_sock.type = type;
     fd->fd_sock.s = sock;
     return fd2num(fd);
 }
@@ -139,6 +140,7 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
     nfd->fd_sock.s = sock;
+    nfd->fd_sock.type = fd->fd_sock.type;
     nfd->fd_sock.netd_gate = fd->fd_sock.netd_gate;
 
     netd_to_libc(&a.accept.sin, &sin);
