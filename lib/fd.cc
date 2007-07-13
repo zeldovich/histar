@@ -610,7 +610,7 @@ dup2(int oldfdnum, int newfdnum) __THROW
     
     struct Dev *dev;
     if (dev_lookup(oldfd->fd_dev_id, &dev) == 0 && dev->dev_addref)
-	(*dev->dev_addref)(oldfd, fd_seg.container);
+	(*dev->dev_addref)(oldfd, start_env->shared_container);
 
     close(newfdnum);
     struct Fd *newfd = INDEX2FD(newfdnum);
