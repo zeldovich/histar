@@ -293,7 +293,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	    return -1;
 	}
 
-	int rr = jcomm_write(PTY_JCOMM(fd), bf, cc - r);
+	int rr = jcomm_write(PTY_JCOMM(fd), bf + r, cc - r);
 	if (rr < 0) {
 	    cprintf("pty_write: error on jcomm write: %s\n", e2s(rr));
 	    __set_errno(EIO);
