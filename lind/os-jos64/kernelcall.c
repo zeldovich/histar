@@ -57,7 +57,7 @@ kernel_call(void (*fn)(uint64_t a, uint64_t b), uint64_t a, uint64_t b)
 
     lutrap_kill(SIGNAL_KCALL);
     /* wait for call to finish */
-    sys_sync_wait(&call.r, 1, UINT64(~0));
+    sys_sync_wait((uint64_t *) &call.r, 1, UINT64(~0));
     
     jthread_mutex_lock(&call.mu);
     r = (int)call.r;
@@ -84,7 +84,7 @@ kernel_call_init(void)
 	if (call.fn) {
 	    (*call.fn)(call.a, call.b);
 	    call.r = 0;
-	    sys_sync_wakeup(&call.r);
+	    sys_sync_wakeup((uint64_t *) &call.r);
 	}
 	jthread_mutex_unlock(&call.mu);
     }
