@@ -116,7 +116,7 @@ jif_rx_thread(void *a)
 	jif->irq_flag = 1;
 	lutrap_kill(SIGNAL_ETH);
 	while (jif->irq_flag)
-	    sys_sync_wait(&jif->irq_flag, 1, UINT64(~0UL));
+	    sys_sync_wait(&jif->irq_flag, 1, UINT64(~0));
     }
 }
 

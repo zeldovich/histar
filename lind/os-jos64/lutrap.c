@@ -67,13 +67,13 @@ lutrap_kill(signal_t sig)
  top:
     r = sys_thread_trap(trap_th, trap_as, UTRAP_USER_LUTRAP, sig);
     if (r == -E_BUSY) {
-	cprintf("lutrap_kill (%d): busy, retrying\n", trapno);
+	cprintf("lutrap_kill (%d): busy, retrying\n", sig);
 	usleep(100000);
 	goto top;
     } else if (r < 0) {
 	cprintf("lutrap_kill (%d): unable to trap Linux thread: %s\n", 
-		trapno, e2s(r));
-	cprintf("lutrap_kill (%d): halting\n", trapno);
+		sig, e2s(r));
+	cprintf("lutrap_kill (%d): halting\n", sig);
 	thread_halt();
     }
 }
