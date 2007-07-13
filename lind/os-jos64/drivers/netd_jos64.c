@@ -24,7 +24,7 @@ jos64_wait_for(struct sock_slot *ss)
 {
     struct wait_stat wstat[3];
     int x, y, z, r;
-    
+
  top:
     x = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
     y = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
@@ -46,10 +46,16 @@ jos64_wait_for(struct sock_slot *ss)
     x = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
     if (x)
 	return 2;
-    y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-    if (y)
-	return 3;
-    
+
+    if (ss->outcnt < sizeof(ss->outbuf) / 2) {
+	y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
+	if (y)
+	    return 3;
+    } else {
+	/* Stop reading data from client, if we have nowhere to put it.. */
+	WS_SETASS(&wstat[1]);
+    }
+
     r = multisync_wait(wstat, 3, UINT64(~0));
     if (r < 0)
 	panic("multisync_wait error: %s", e2s(r));
@@ -64,7 +70,7 @@ jos64_wait_for(struct sock_slot *ss)
     if (x)
 	return 2;
     y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-    if (y)
+    if (y && ss->outcnt < sizeof(ss->outbuf) / 2)
 	return 3;
 
     goto top;
@@ -170,26 +176,23 @@ jos64_socket_thread(struct socket_conn *sc)
 		break;
 	    } else if (ss->opbuf.op_type == netd_op_close)
 		break;
-	    
+
 	    ss->opfull = 1;
 	    lutrap_kill(SIGNAL_NETD);
 	    sys_sync_wait(&ss->opfull, 1, UINT64(~0));
-	    
+
 	    /* send return value */
 	    z = jcomm_write(ctrl, (void *)&ss->opbuf, ss->opbuf.size);
 	    assert(z == ss->opbuf.size);
 	} else if (r == 3) {
-	    /* XXX is there any reason not to read client data from the
-	     * ctrl comm?
-	     */
-	    int64_t z = jcomm_read(data, (void *)&ss->outbuf, sizeof(ss->outbuf));
+	    int64_t z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
+				   sizeof(ss->outbuf) - ss->outcnt);
 	    if (z < 0) {
 		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
 		break;
-	    } 
-	    ss->outcnt = z;
+	    }
+	    ss->outcnt += z;
 	    lutrap_kill(SIGNAL_NETD);
-	    sys_sync_wait(&ss->outcnt, z, UINT64(~0));
 	}
     }
 
