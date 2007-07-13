@@ -302,9 +302,8 @@ linux_wait_for(struct sock_slot *ss)
 	else if (r == -ERESTARTNOHAND && ss->outcnt)
 	    return 3;
 	
-	arch_printf("linux_wait_for: unexpected %d\n", r);
+	arch_printf("linux_wait_for: unexpected select %d\n", r);
 	return 0;
-	
     } else {
 	r = linux_pause();
 	if (r == -ERESTARTNOHAND && ss->opfull)
@@ -315,7 +314,7 @@ linux_wait_for(struct sock_slot *ss)
 	    sys_sync_wakeup(&ss->josfull);
 	    goto top;
 	}
-	arch_printf("linux_wait_for: unexpected %d\n", r);
+	arch_printf("linux_wait_for: unexpected pause %d\n", r);
 	return 0;
     }
 }
