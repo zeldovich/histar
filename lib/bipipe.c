@@ -9,7 +9,9 @@
 #include <inc/syscall.h>
 #include <inc/error.h>
 #include <inc/assert.h>
+#include <inc/ioctl.h>
 
+#include <inttypes.h>
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
@@ -33,10 +35,11 @@ errno_val(uint64_t e)
 static int
 bipipe_addref(struct Fd *fd, uint64_t ct)
 {
-    
     int r = jcomm_addref(BIPIPE_JCOMM(fd), ct);
     if (r < 0)
-	cprintf("bipipe_addref: sys_segment_addref error: %s\n", e2s(r));
+	cprintf("bipipe_addref: <%"PRIu64".%"PRIu64"> error: %s\n",
+		fd->fd_bipipe.bipipe_ct, fd->fd_bipipe.bipipe_jc.segment,
+		e2s(r));
     return r;
 }
 
@@ -45,7 +48,9 @@ bipipe_unref(struct Fd *fd)
 {
     int r = jcomm_unref(BIPIPE_JCOMM(fd));
     if (r < 0)
-	cprintf("bipipe_unref: sys_obj_unref error: %s\n", e2s(r));
+	cprintf("bipipe_unref: <%"PRIu64".%"PRIu64"> error: %s\n",
+		fd->fd_bipipe.bipipe_ct, fd->fd_bipipe.bipipe_jc.segment,
+		e2s(r));
     return r;
 }
 
@@ -92,7 +97,7 @@ bipipe(int type, int fv[2])
     int16_t mode = 0;
     if (type == SOCK_DGRAM)
 	mode = JCOMM_PACKET;
-    
+
     if ((r = jcomm_alloc(BIPIPE_DEF_CT, &label, mode, &jr0, &jr1)) < 0) {
 	errno = ENOMEM;
         return -1;
@@ -112,7 +117,10 @@ bipipe(int type, int fv[2])
 	return r;
     }
     fv[1] = r;
-    
+
+    /* bipipe_fd() does not increment the refcount, and jcomm_alloc()
+     * gives us 1, but we need 2 because of the two FDs..
+     */
     r = jcomm_addref(jr0, BIPIPE_DEF_CT);
     assert(r == 0);
 
@@ -199,4 +207,5 @@ struct Dev devbipipe = {
     .dev_statsync = &bipipe_statsync,
     .dev_addref = &bipipe_addref,
     .dev_unref = &bipipe_unref,
+    .dev_ioctl = &jos_ioctl,
 };
