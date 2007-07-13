@@ -193,20 +193,25 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	if (r < 0)
 	    cprintf("netd_linux_call: jcomm_shut error: %s\n", e2s(r));
 	jcomm_shut(client_conn->data_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
-	r = sys_obj_unref(COBJ(start_env->shared_container, client_conn->container));
+	r = sys_obj_unref(COBJ(start_env->shared_container,
+			       client_conn->container));
 	if (r < 0)
 	    cprintf("netd_linux_call: sys_obj_unref error: %s\n", e2s(r));
 	return 0;
+
     case netd_op_probe: 
 	/* XXX how to handle selecting on a listening socket */
 	return jcomm_probe(client_conn->data_comm, a->probe.how);
+
     case netd_op_statsync:
 	return jcomm_multisync(client_conn->data_comm, 
 			       a->statsync.how, 
 			       &a->statsync.wstat);
+
     case netd_op_recvfrom:
 	if (!a->recvfrom.wantfrom) {
-	    r = jcomm_read(client_conn->data_comm, a->recvfrom.buf, a->recvfrom.count);
+	    r = jcomm_read(client_conn->data_comm,
+			   a->recvfrom.buf, a->recvfrom.count);
 	    if (r < 0) {
 		cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
 		errno = ENOSYS;
@@ -216,6 +221,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	}
 	errno = ENOSYS;
 	return -1;
+
     case netd_op_accept:
 	r = jcomm_read(client_conn->data_comm, &a->accept, sizeof(a->accept));
 	if (r < 0) {
@@ -224,21 +230,11 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    return -1;
 	}
 	return a->accept.fd;
-    case netd_op_socket:
-    case netd_op_connect:
-    case netd_op_send:
-    case netd_op_sendto:
-    case netd_op_setsockopt:
-    case netd_op_bind:
-    case netd_op_listen:
-    case netd_op_ioctl:
-	break;
+
     default:
-	cprintf("netd_linux_call: unimplemented %d\n", a->op_type);
-	errno = ENOSYS;
-	return -1;
+	break;
     }
-    
+
     /* write operation request */
     z = jcomm_write(client_conn->ctrl_comm, a, a->size);
     assert(z == a->size);
