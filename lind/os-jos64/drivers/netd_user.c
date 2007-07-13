@@ -282,41 +282,35 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
     debug_print(dbg, "(l%ld) rval %d", ss->linuxpid, a->rval);
 }
 
-/* returns 1 for linux socket event, 2 for a signal to service
- * the opbuf, 3 for a signal to service the outbuf, 0 for unkown
+/* returns >= 0 for socket events, negative for signals.
  */
 static int
 linux_wait_for(struct sock_slot *ss)
 {
     int r;
- top:
+
     if (ss->sock != -1 && ss->josfull == 0) {
 	fd_set rs;
 	FD_ZERO(&rs);
 	FD_SET(ss->sock, &rs);
 	r = linux_select(ss->sock + 1, &rs, 0, 0, 0);
-	if (r == 1)
-	    return 1;
-	else if (r == -ERESTARTNOHAND && ss->opfull)
-	    return 2;
-	else if (r == -ERESTARTNOHAND && ss->outcnt)
-	    return 3;
-	
-	arch_printf("linux_wait_for: unexpected select %d\n", r);
-	return 0;
     } else {
 	r = linux_pause();
-	if (r == -ERESTARTNOHAND && ss->opfull)
-	    return 2;
-	else if (r == -ERESTARTNOHAND && ss->josfull == CNT_LIMBO) {
-	    linux_thread_flushsig();
+    }
+
+    if (r == -ERESTARTNOHAND) {
+	linux_thread_flushsig();
+
+	/*
+	 * XXX what does this mysterious code segment do?
+	 */
+	if (ss->josfull == CNT_LIMBO) {
 	    ss->josfull = 0;
 	    sys_sync_wakeup(&ss->josfull);
-	    goto top;
 	}
-	arch_printf("linux_wait_for: unexpected pause %d\n", r);
-	return 0;
     }
+
+    return r;
 }
 
 static void
@@ -391,20 +385,22 @@ linux_socket_thread(void *a)
     debug_print(dbg, "(l%ld) starting", ss->linuxpid);
     for (;;) {
 	netd_op_t op;
+
 	r = linux_wait_for(ss);
-	if (r == 1) {
+
+	if (r >= 0)
 	    linux_handle_socket(ss);
-	} else if (r == 2) {
-	    linux_thread_flushsig();
-	    assert(ss->opfull);
+
+	if (ss->opfull) {
 	    op = ss->opbuf.op_type;
 	    netd_linux_dispatch(ss, &ss->opbuf);
 	    ss->opfull = 0;
 	    sys_sync_wakeup(&ss->opfull);
 	    if (op == netd_op_close)
 		break;
-	} else if (r == 3) {
-	    linux_thread_flushsig();
+	}
+
+	if (ss->outcnt) {
 	    r = linux_write(ss->sock, ss->outbuf, ss->outcnt);
 	    assert(r == ss->outcnt);
 	    ss->outcnt = 0;
