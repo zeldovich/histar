@@ -472,7 +472,7 @@ $(LINUX_SRC)/__build: $(LDEPS) $(LINUX_SRC)/include/asm-lind \
 	  LIND_LDFLAGS="$(LINUX_LDFLAGS)" )
 	touch $@
 
-$(OBJDIR)/user/vmlinux: $(LINUX_SRC)/__build
+$(OBJDIR)/user/vmlinux.debuginfo: $(LINUX_SRC)/__build
 	cp $(LINUX_OUT)/vmlinux $@
 
 $(OBJDIR)/user/initrd:
