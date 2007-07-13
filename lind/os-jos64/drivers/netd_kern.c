@@ -19,25 +19,15 @@ netd_interrupt(int irq, void *dev_id)
     return IRQ_HANDLED;
 }
 
-static void
-netd_sighandler(void)
-{
-    irq_enter();
-    __do_IRQ(LIND_NETD_IRQ);
-    irq_exit();
-}
-
 static int
 register_netd(void)
 {
-    extern void (*sig_netd_handler)(void);
     int r = request_irq(LIND_NETD_IRQ, netd_interrupt, IRQF_DISABLED, "netd", 0);
     if (r < 0) {
 	printk(KERN_ERR "unable to allocate netd interrupt\n");	
 	return 1;
     }
 
-    sig_netd_handler = netd_sighandler;
     return 0;
 }
 

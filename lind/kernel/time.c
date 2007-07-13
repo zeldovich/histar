@@ -13,57 +13,6 @@
 static DEFINE_SPINLOCK(timer_spinlock);
 static unsigned long long local_offset = 0;
 
-/* timer_irq */
-static const char real_time_clock = 0;
-static unsigned long long prev_nsecs;
-static long long delta;   		/* Deviation per interval */
-
-static void 
-timer_irq(void)
-{
-    unsigned long long ticks = 0;
-    
-    if (real_time_clock) {
-	if(prev_nsecs) {
-	    unsigned long long nsecs = arch_nsec();
-	    
-	    delta += nsecs - prev_nsecs;
-	    prev_nsecs = nsecs;
-	    
-	    /* Protect against the host clock being set backwards */
-	    if(delta < 0)
-		delta = 0;
-	    
-	    ticks += (delta * HZ) / BILLION;
-	    delta -= (ticks * BILLION) / HZ;
-	}
-	else 
-	    prev_nsecs = arch_nsec();
-    } else 
-	ticks = 1;
-    
-    while(ticks > 0){
-	__do_IRQ(LIND_TIMER_IRQ);
-	ticks--;
-    }
-}
-
-static void 
-timer_handler(void)
-{
-    /* default to account to system time */
-    int user_tick = 0;
-
-    local_irq_disable();
-    irq_enter();
-
-    update_process_times(user_tick);
-    irq_exit();
-    local_irq_enable();
-    
-    timer_irq();
-}
-
 unsigned long long 
 sched_clock(void) 
 {
@@ -128,29 +77,27 @@ lind_timer(int irq, void *dev)
     unsigned long flags;
 
     write_seqlock_irqsave(&xtime_lock, flags);
-    
+
+    update_process_times(1);
     do_timer(1);
-    
+
     nsecs = get_time();
     xtime.tv_sec = nsecs / NSEC_PER_SEC;
     xtime.tv_nsec = nsecs - xtime.tv_sec * NSEC_PER_SEC;
 
     write_sequnlock_irqrestore(&xtime_lock, flags);
-    
+
     return IRQ_HANDLED;
 }
 
 static void 
 register_timer(void)
 {
-    int err;
-    extern void (*sig_timer_handler)(void);
-    
-    err = request_irq(LIND_TIMER_IRQ, lind_timer, IRQF_DISABLED, "timer", NULL);
-    if(err != 0)
+    int err = request_irq(LIND_TIMER_IRQ, lind_timer, IRQF_DISABLED,
+			  "timer", NULL);
+    if (err)
 	printk(KERN_ERR "register_timer : request_irq failed - "
 	       "errno = %d\n", -err);
-    sig_timer_handler = &timer_handler;
 }
 
 void

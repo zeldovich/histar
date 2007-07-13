@@ -1,11 +1,16 @@
 #include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/interrupt.h>
 #include <asm/sections.h>
+#include <inc/atomic.h>
 
 #include <archcall.h>
 #include <longjmp.h>
+#include <kern/time.h>
+#include <kern/signal.h>
 
 static char procdbg = 0;
+static volatile jos_atomic64_t lind_signal_pending;
 
 extern void schedule_tail(struct task_struct *prev);
 
@@ -133,19 +138,74 @@ copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
     return 0;
 }
 
+void (*sig_kcall_handler)(void);
+extern uint64_t sys_clock_nsec(void);
+extern int sys_sync_wait(volatile uint64_t *addr, uint64_t val, uint64_t ns);
+extern int sys_sync_wakeup(volatile uint64_t *addr);
+
+void
+lutrap_kill(signal_t s)
+{
+    for (;;) {
+	uint64_t signal_old = jos_atomic_read(&lind_signal_pending);
+	uint64_t signal_new = signal_old | s;
+	uint64_t was;
+
+	if (signal_old == signal_new)
+	    return;
+
+	was = jos_atomic_compare_exchange64(&lind_signal_pending,
+					    signal_old, signal_new);
+	if (was == signal_old) {
+	    sys_sync_wakeup(&jos_atomic_read(&lind_signal_pending));
+	    return;
+	}
+    }
+}
+
+void
+lind_signal_init(void)
+{
+}
+
 void
 cpu_idle(void)
 {
+    static uint64_t last_jiffies_nsec;
+    static uint64_t nsec_per_jiffies = 1000000000 / HZ;
+    uint64_t now;
+    uint64_t signal_old;
+
     while (1) {
-	/* endless idle loop with no priority at all */
-	
-	/*
-	 * although we are an idle CPU, we do not want to
-	 * get into the scheduler unnecessarily.
-	 */
-	if(need_resched())
+	if (need_resched())
 	    schedule();
-	
-	arch_sleep(10);
+
+	now = sys_clock_nsec();
+	if (now > last_jiffies_nsec + nsec_per_jiffies) {
+	    last_jiffies_nsec = now;
+	    lutrap_kill(SIGNAL_ALARM);
+	}
+
+	signal_old = jos_atomic_read(&lind_signal_pending);
+	if (signal_old) {
+	    while (jos_atomic_compare_exchange64(&lind_signal_pending,
+						 signal_old, 0) != signal_old)
+		signal_old = jos_atomic_read(&lind_signal_pending);
+
+	    irq_enter();
+	    if (signal_old & SIGNAL_ALARM)
+		__do_IRQ(LIND_TIMER_IRQ);
+	    if (signal_old & SIGNAL_ETH)
+		__do_IRQ(LIND_ETH_IRQ);
+	    if (signal_old & SIGNAL_NETD)
+		__do_IRQ(LIND_NETD_IRQ);
+	    irq_exit();
+
+	    if (signal_old & SIGNAL_KCALL)
+		sig_kcall_handler();
+	}
+
+	sys_sync_wait(&jos_atomic_read(&lind_signal_pending), 0,
+		      last_jiffies_nsec + nsec_per_jiffies);
     }
 }

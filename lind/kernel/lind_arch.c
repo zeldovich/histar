@@ -94,10 +94,9 @@ setup_arch(char **cmdline_p)
     lind_signal_init();
 }
 
-static 
-int start_kernel_proc(void *unused)
+static int
+start_kernel_proc(void *unused)
 {
-    block_signals();
     start_kernel();
     return 0;
 }
@@ -198,6 +197,9 @@ command_line_init(int ac, char **av)
     char *cl = arch_env.command_line;
     unsigned int i, n;
     int flag = -1;
+
+    /* avoid delay loop calibration */
+    strcat(cl, "lpj=1");
 
     n = strlen("initrd=");
 

@@ -1,6 +1,9 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 
+/* dummy flag to keep assertions happy */
+int lind_irq_enabled;
+
 /* hw_interrupt_type must define (startup || enable) &&
  * (shutdown || disable) && end */
 static void dummy(unsigned int irq)

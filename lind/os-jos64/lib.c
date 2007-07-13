@@ -55,16 +55,6 @@ arch_printf(const char *fmt, ...)
     return cnt;
 }
 
-static void
-alarm_thread(void *a)
-{
-    int usec = 1000000/HZ;
-    for (;;) {
-	usleep(usec);
-	lutrap_kill(SIGNAL_ALARM);
-    }
-}
-
 int 
 arch_run_kernel_thread(int (*fn)(void *), void *arg, void **jmp_ptr)
 {
@@ -99,21 +89,11 @@ arch_sleep(unsigned long sec)
 void
 arch_signal_handler(signal_handler_t *h)
 {
-    lutrap_signal(h);
 }
 
 void
 arch_init(void)
 {
-    struct cobj_ref to;
-    int r;
-        
-    lutrap_init();
-     
-    r = thread_create(start_env->shared_container, alarm_thread, 
-			  0, &to, "timer-thread");
-    if (r < 0)
-	panic("arch_init: thread_create failed: %s", e2s(r));
 }
 
 void

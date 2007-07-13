@@ -77,14 +77,6 @@ net_if_interrupt(int irq, void *dev_id)
     return IRQ_HANDLED;
 }
 
-void
-net_if_sighandler(void)
-{
-    irq_enter();
-    __do_IRQ(LIND_ETH_IRQ);
-    irq_exit();
-}
-
 static int 
 net_if_close(struct net_device *dev)
 {
@@ -190,7 +182,6 @@ net_if_set_mac(struct net_device *dev, void *addr)
 int
 register_transport(struct transport *trans)
 {
-    extern void (*sig_eth_handler)(void);
     struct net_device *dev;
     struct transport *dev_trans;
     int size, err;
@@ -227,7 +218,5 @@ register_transport(struct transport *trans)
     }
 
     memcpy(dev->dev_addr, dev_trans->mac, ETH_ALEN);
-
-    sig_eth_handler = &net_if_sighandler;
     return 0;
 }
