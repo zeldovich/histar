@@ -99,6 +99,7 @@ struct Fd
 	} fd_cons;
 
 	struct {
+	    jthread_mutex_t mu;
 	    struct cobj_ref netd_gate;
 	    int s;
 	    char extra[128];

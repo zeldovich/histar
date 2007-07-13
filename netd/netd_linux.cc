@@ -16,6 +16,7 @@ extern "C" {
 #include <inc/labelutil.hh>
 #include <inc/gatesrv.hh>
 #include <inc/gobblegateclnt.hh>
+#include <inc/jthread.hh>
 #include <netd/netdsrv.hh>
 
 static int
@@ -167,6 +168,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     int r;
     int64_t z;
     struct socket_conn *client_conn = (struct socket_conn *) fd->fd_sock.extra;
+    scoped_jthread_lock l(&fd->fd_sock.mu);
 
     if (client_conn->init_magic != NETD_LINUX_MAGIC) {
 	/* if we aren't creating a new socket we probably are socket 
