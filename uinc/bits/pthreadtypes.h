@@ -1,6 +1,7 @@
 #ifndef UCLIBC_JOS64_PTHREADTYPES_H
 #define UCLIBC_JOS64_PTHREADTYPES_H
 
+#include <stdint.h>
 #include <inc/jthread.h>
 
 // Simple pthread-lookalike wrapper around a jthread_mutex_t

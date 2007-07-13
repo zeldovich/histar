@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <inc/jthread.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>

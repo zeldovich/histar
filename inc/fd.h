@@ -1,6 +1,7 @@
 #ifndef JOS_INC_FD_H
 #define JOS_INC_FD_H
 
+#include <stdint.h>
 #include <inc/atomic.h>
 #include <inc/container.h>
 #include <inc/types.h>
