@@ -1,11 +1,11 @@
 #include <kern/lib.h>
 
-#include <machine/ambapp.h>
 #include <machine/leon3.h>
 #include <machine/leon.h>
 
 #include <dev/irqmp.h>
 #include <dev/amba.h>
+#include <dev/ambapp.h>
 
 void 
 irqmp_init(void)

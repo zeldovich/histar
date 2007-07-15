@@ -3,9 +3,9 @@
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
-#include <machine/ambapp.h>
 
 #include <dev/amba.h>
+#include <dev/ambapp.h>
 #include <dev/apbucons.h>
 
 static void

@@ -5,7 +5,7 @@
 #define CONFIG_LEON
 #define CONFIG_LEON3
 #include <machine/leon.h> 
-#include <machine/ambapp.h>
+#include <dev/ambapp.h>
 #include <machine/prom_config.h>
 #include <machine/asm.h>
 		

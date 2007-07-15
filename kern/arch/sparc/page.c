@@ -2,11 +2,11 @@
 #include <kern/arch.h>
 #include <kern/pageinfo.h>
 
-#include <machine/ambapp.h>
 #include <machine/leon.h>
 #include <machine/leon3.h>
 #include <machine/srmmu.h>
 #include <dev/amba.h>
+#include <dev/ambapp.h>
 
 physaddr_t maxpa;	// Maximum physical address
 physaddr_t minpa;	// Minimum physical address

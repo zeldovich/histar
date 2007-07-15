@@ -1,8 +1,8 @@
 #include <kern/lib.h>
 
 #include <dev/amba.h>
+#include <dev/ambapp.h>
 
-#include <machine/ambapp.h>
 #include <machine/leon.h>
 #include <machine/leon3.h>
 
@@ -78,7 +78,6 @@ uint32_t
 amba_ahbslv_device(uint32_t vendor, uint32_t device, 
 		   struct amba_ahb_device * dev, uint32_t nr)
 {
-    
     uint32_t start, stop, conf, iobar, j = 0;
     for (uint32_t i = 0; i < amba_conf.ahbslv.devnr; i++) {
 	conf = amba_get_confword(amba_conf.ahbslv, i, 0);
@@ -89,8 +88,8 @@ amba_ahbslv_device(uint32_t vendor, uint32_t device,
 		    start = amba_membar_start(iobar);
 		    stop = amba_membar_stop(iobar);
 		    if (amba_membar_type(iobar) == AMBA_TYPE_AHBIO) {
-			start = AMBA_TYPE_AHBIO_ADDR(start);
-			stop = AMBA_TYPE_AHBIO_ADDR(stop);
+			start = amba_type_ahbio_addr(start);
+			stop = amba_type_ahbio_addr(stop);
 		    }
 		    dev->start[k] = start;
 		    dev->stop[k] = stop;

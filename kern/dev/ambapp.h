@@ -100,71 +100,71 @@ SPARC_INST_ATTR const char *vendor_id2str(int vendor);
 const char *
 gaisler_device_str(int id)
 {
-	switch (id) {
-	case GAISLER_LEON3:
-		return "GAISLER_LEON3";
-	case GAISLER_LEON3DSU:
-		return "GAISLER_LEON3DSU";
-	case GAISLER_ETHAHB:
-		return "GAISLER_ETHAHB";
-	case GAISLER_ETHMAC:
-	        return "GAISLER_ETHMAC";
-	case GAISLER_APBMST:
-		return "GAISLER_APBMST";
-	case GAISLER_AHBUART:
-		return "GAISLER_AHBUART";
-	case GAISLER_SRCTRL:
-		return "GAISLER_SRCTRL";
-	case GAISLER_SDCTRL:
-		return "GAISLER_SDCTRL";
-	case GAISLER_APBUART:
-		return "GAISLER_APBUART";
-	case GAISLER_IRQMP:
-		return "GAISLER_IRQMP";
-	case GAISLER_AHBRAM:
-		return "GAISLER_AHBRAM";
-	case GAISLER_GPTIMER:
-		return "GAISLER_GPTIMER";
-	case GAISLER_PCITRG:
-		return "GAISLER_PCITRG";
-	case GAISLER_PCISBRG:
-		return "GAISLER_PCISBRG";
-	case GAISLER_PCIFBRG:
-		return "GAISLER_PCIFBRG";
-	case GAISLER_PCITRACE:
-		return "GAISLER_PCITRACE";
-	case GAISLER_AHBTRACE:
-		return "GAISLER_AHBTRACE";
-	case GAISLER_ETHDSU:
-		return "GAISLER_ETHDSU";
-   case GAISLER_PIOPORT:
-		return "GAISLER_PIOPORT";
-   case GAISLER_AHBJTAG:
-		return "GAISLER_AHBJTAG";
-   case GAISLER_ATACTRL:
-		return "GAISLER_ATACTRL";
-	case GAISLER_USBEHC:
-		return "GAISLER_USBEHC";
-	case GAISLER_USBUHC:
-		return "GAISLER_USBUHC";
-   case GAISLER_VGA:
-		return "GAISLER_VGA";
-   case GAISLER_SVGA:
-		return "GAISLER_SVGA";
-	case GAISLER_KBD:
-	   return "GAISLER_KBD";
-          
-	case GAISLER_L2TIME:
-		return "GAISLER_L2TIME";
-	case GAISLER_L2C:
-		return "GAISLER_L2C";
-	case GAISLER_PLUGPLAY:
-		return "GAISLER_PLUGPLAY";
-
-	default:
-		break;
-	}
-	return 0;
+    switch (id) {
+    case GAISLER_LEON3:
+	return "GAISLER_LEON3";
+    case GAISLER_LEON3DSU:
+	return "GAISLER_LEON3DSU";
+    case GAISLER_ETHAHB:
+	return "GAISLER_ETHAHB";
+    case GAISLER_ETHMAC:
+	return "GAISLER_ETHMAC";
+    case GAISLER_APBMST:
+	return "GAISLER_APBMST";
+    case GAISLER_AHBUART:
+	return "GAISLER_AHBUART";
+    case GAISLER_SRCTRL:
+	return "GAISLER_SRCTRL";
+    case GAISLER_SDCTRL:
+	return "GAISLER_SDCTRL";
+    case GAISLER_APBUART:
+	return "GAISLER_APBUART";
+    case GAISLER_IRQMP:
+	return "GAISLER_IRQMP";
+    case GAISLER_AHBRAM:
+	return "GAISLER_AHBRAM";
+    case GAISLER_GPTIMER:
+	return "GAISLER_GPTIMER";
+    case GAISLER_PCITRG:
+	return "GAISLER_PCITRG";
+    case GAISLER_PCISBRG:
+	return "GAISLER_PCISBRG";
+    case GAISLER_PCIFBRG:
+	return "GAISLER_PCIFBRG";
+    case GAISLER_PCITRACE:
+	return "GAISLER_PCITRACE";
+    case GAISLER_AHBTRACE:
+	return "GAISLER_AHBTRACE";
+    case GAISLER_ETHDSU:
+	return "GAISLER_ETHDSU";
+    case GAISLER_PIOPORT:
+	return "GAISLER_PIOPORT";
+    case GAISLER_AHBJTAG:
+	return "GAISLER_AHBJTAG";
+    case GAISLER_ATACTRL:
+	return "GAISLER_ATACTRL";
+    case GAISLER_USBEHC:
+	return "GAISLER_USBEHC";
+    case GAISLER_USBUHC:
+	return "GAISLER_USBUHC";
+    case GAISLER_VGA:
+	return "GAISLER_VGA";
+    case GAISLER_SVGA:
+	return "GAISLER_SVGA";
+    case GAISLER_KBD:
+	return "GAISLER_KBD";
+	
+    case GAISLER_L2TIME:
+	return "GAISLER_L2TIME";
+    case GAISLER_L2C:
+	return "GAISLER_L2C";
+    case GAISLER_PLUGPLAY:
+	return "GAISLER_PLUGPLAY";
+	
+    default:
+	break;
+    }
+    return 0;
 }
 
 #endif
@@ -178,15 +178,15 @@ gaisler_device_str(int id)
 const char *
 esa_device_str(int id)
 {
-	switch (id) {
-	case ESA_LEON2:
-		return "ESA_LEON2";
-	case ESA_MCTRL:
-		return "ESA_MCTRL";
-	default:
-		break;
-	}
-	return 0;
+    switch (id) {
+    case ESA_LEON2:
+	return "ESA_LEON2";
+    case ESA_MCTRL:
+	return "ESA_MCTRL";
+    default:
+	break;
+    }
+    return 0;
 }
 
 #endif
@@ -214,45 +214,39 @@ opencores_device_str(int id)
 const char *
 device_id2str(int vendor, int id)
 {
-	switch (vendor) {
-	case VENDOR_GAISLER:
-		return gaisler_device_str(id);
-	case VENDOR_ESA:
-		return esa_device_str(id);
-	case VENDOR_OPENCORES:
-		return opencores_device_str(id);
-	case VENDOR_PENDER:
-	default:
-		break;
-	}
-	return 0;
+    switch (vendor) {
+    case VENDOR_GAISLER:
+	return gaisler_device_str(id);
+    case VENDOR_ESA:
+	return esa_device_str(id);
+    case VENDOR_OPENCORES:
+	return opencores_device_str(id);
+    case VENDOR_PENDER:
+    default:
+	break;
+    }
+    return 0;
 }
 
 const char *
 vendor_id2str(int vendor)
 {
-	switch (vendor) {
-	case VENDOR_GAISLER:
-		return "VENDOR_GAISLER";
-	case VENDOR_ESA:
-		return "VENDOR_ESA";
-	case VENDOR_OPENCORES:
-		return "VENDOR_OPENCORES";
-	case VENDOR_PENDER:
-		return "VENDOR_PENDER";
-	default:
-		break;
-	}
-	return 0;
+    switch (vendor) {
+    case VENDOR_GAISLER:
+	return "VENDOR_GAISLER";
+    case VENDOR_ESA:
+	return "VENDOR_ESA";
+    case VENDOR_OPENCORES:
+	return "VENDOR_OPENCORES";
+    case VENDOR_PENDER:
+	return "VENDOR_PENDER";
+    default:
+	break;
+    }
+    return 0;
 }
 
-#ifdef CONFIG_AMBA_PROC
-int amba_read_procmem(char *buf, char **start, off_t offset, int count, int *eof, void *data);
 #endif
- 
-#endif
-
-/* Vendor codes */
 
 /* 
  *
@@ -260,32 +254,29 @@ int amba_read_procmem(char *buf, char **start, off_t offset, int count, int *eof
  *
  */
 
-#define LEON3_BYPASS_ANDIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) & v)
-#define LEON3_BYPASS_ORIN_PA(x,v) LEON3_BYPASS_STORE_PA(x,LEON3_BYPASS_LOAD_PA(x) | v)
-
-#define amba_get_confword(tab, index, word) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+(word)))
-
 #define amba_vendor(x) (((x) >> 24) & 0xff)
-
 #define amba_device(x) (((x) >> 12) & 0xfff)
-
-#define amba_ahb_get_membar(tab, index, nr) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+4+(nr)))
-
-#define amba_apb_get_membar(tab, index) (LEON_BYPASS_LOAD_PA((tab).addr[(index)]+1))
-
-#define amba_membar_start(mbar) (((mbar) & 0xfff00000) & (((mbar) & 0xfff0) << 16))
-
-#define amba_membar_stop(mbar) (((mbar) & 0xfff00000) | ~(((mbar) & 0xfff0) << 16))
-
-#define amba_iobar_start(base, iobar) ((base) | ((((iobar) & 0xfff00000)>>12) & (((iobar) & 0xfff0)<<4)) )
-
 #define amba_irq(conf) ((conf) & 0xf)
 
+#define amba_ahb_get_membar(tab, index, nr) \
+    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + 4 + (nr)))
+#define amba_apb_get_membar(tab, index) \
+    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + 1))
+#define amba_iobar_start(base, iobar) \
+    ((base) | ((((iobar) & 0xfff00000) >> 12) & (((iobar) & 0xfff0) << 4)))
+#define amba_get_confword(tab, index, word) \
+    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + (word)))
+
+#define amba_membar_start(mbar) \
+    (((mbar) & 0xfff00000) & (((mbar) & 0xfff0) << 16))
+#define amba_membar_stop(mbar) \
+    (((mbar) & 0xfff00000) | ~(((mbar) & 0xfff0) << 16))
 #define amba_membar_type(mbar) ((mbar) & 0xf)
 
 #define AMBA_TYPE_APBIO 0x1
 #define AMBA_TYPE_MEM   0x2
 #define AMBA_TYPE_AHBIO 0x3
 
-#define AMBA_TYPE_AHBIO_ADDR(addr) (LEON3_IO_AREA | ((addr) >> 12))
+#define amba_type_ahbio_addr(addr) (LEON3_IO_AREA | ((addr) >> 12))
+
 #endif
