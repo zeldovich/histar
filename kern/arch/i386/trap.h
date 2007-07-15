@@ -1,5 +1,5 @@
-#ifndef JOS_KERN_TRAP_H
-#define JOS_KERN_TRAP_H
+#ifndef JOS_MACHINE_TRAP_H
+#define JOS_MACHINE_TRAP_H
 
 #include <machine/mmu.h>
 #include <machine/trapcodes.h>
