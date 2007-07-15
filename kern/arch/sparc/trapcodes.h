@@ -1,5 +1,5 @@
-#ifndef JOS_KERN_TRAPCODES_H
-#define JOS_KERN_TRAPCODES_H
+#ifndef JOS_MACHINE_TRAPCODES_H
+#define JOS_MACHINE_TRAPCODES_H
 
 /*
  * Processor-defined traps
