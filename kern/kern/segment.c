@@ -74,10 +74,18 @@ segment_map_ro(struct Segment *sg)
 void
 segment_invalidate(const struct Segment *sg, uint64_t parent_ct)
 {
-    while (!LIST_EMPTY(&sg->sg_segmap_list)) {
-	struct segment_mapping *sm = LIST_FIRST(&sg->sg_segmap_list);
-	if (parent_ct == 0 || parent_ct == sm->sm_ct_id)
+    struct segment_mapping *sm = LIST_FIRST(&sg->sg_segmap_list);
+    struct segment_mapping *prev = 0;
+
+    while (sm != 0) {
+	if (parent_ct == 0 || parent_ct == sm->sm_ct_id) {
 	    as_invalidate_sm(sm);
+	    sm = prev ? LIST_NEXT(prev, sm_link)
+		      : LIST_FIRST(&sg->sg_segmap_list);
+	} else {
+	    prev = sm;
+	    sm = LIST_NEXT(sm, sm_link);
+	}
     }
 }
 
