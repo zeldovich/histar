@@ -10,6 +10,7 @@
 
 static struct Thread_list sync_time_waiting;
 static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
+static HASH_TABLE(seg_hash, struct sync_wait_list, 512) sync_seg_waiting;
 enum { sync_debug = 0 };
 
 static struct sync_wait_list *
@@ -17,6 +18,12 @@ sync_addr_head(uint64_t seg_id, uint64_t offset)
 {
     uint64_t hash_idx = seg_id ^ (offset >> 3);
     return HASH_SLOT(&sync_addr_waiting, hash_idx);
+}
+
+static struct sync_wait_list *
+sync_seg_head(uint64_t seg_id)
+{
+    return HASH_SLOT(&sync_seg_waiting, seg_id);
 }
 
 static int __attribute__((warn_unused_result))
@@ -96,9 +103,11 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
 	    return r;
     }
 
-    LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link)
+    LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link) {
 	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg_id, sw->sw_offset),
 			 sw, sw_addr_link);
+	LIST_INSERT_HEAD(sync_seg_head(sw->sw_seg_id), sw, sw_seg_link);
+    }
 
     te->te_wakeup_nsec = wakeup_nsec;
     thread_suspend(cur_thread, &sync_time_waiting);
@@ -128,6 +137,7 @@ sync_wakeup_addr(uint64_t *addr)
     struct sync_wait_list *waithead = sync_addr_head(seg_id, offset);
     struct sync_wait_slot *sw = LIST_FIRST(waithead);
     struct sync_wait_slot *prev = 0;
+
     while (sw != 0) {
 	if (sw->sw_seg_id == seg_id && sw->sw_offset == offset) {
 	    thread_set_runnable(sw->sw_t);
@@ -139,6 +149,27 @@ sync_wakeup_addr(uint64_t *addr)
     }
 
     return 0;
+}
+
+void
+sync_wakeup_segment(kobject_id_t seg_id)
+{
+    if (sync_debug)
+	cprintf("sync_wakeup_segment: id %"PRIu64"\n", seg_id);
+
+    struct sync_wait_list *waithead = sync_seg_head(seg_id);
+    struct sync_wait_slot *sw = LIST_FIRST(waithead);
+    struct sync_wait_slot *prev = 0;
+
+    while (sw != 0) {
+	if (sw->sw_seg_id == seg_id) {
+	    thread_set_runnable(sw->sw_t);
+	    sw = prev ? LIST_NEXT(prev, sw_seg_link) : LIST_FIRST(waithead);
+	} else {
+	    prev = sw;
+	    sw = LIST_NEXT(sw, sw_seg_link);
+	}
+    }
 }
 
 void
@@ -183,5 +214,6 @@ sync_remove_thread(const struct Thread *t)
 
 	LIST_REMOVE(sw, sw_thread_link);
 	LIST_REMOVE(sw, sw_addr_link);
+	LIST_REMOVE(sw, sw_seg_link);
     }
 }

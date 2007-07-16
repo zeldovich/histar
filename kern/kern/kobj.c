@@ -10,6 +10,7 @@
 #include <kern/ht.h>
 #include <kern/pageinfo.h>
 #include <kern/arch.h>
+#include <kern/sync.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 
@@ -575,8 +576,12 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
     ko->hdr.ko_ref--;
     refholder->ko_quota_used -= kh->ko_quota_total;
 
-    if (ko->hdr.ko_ref == 0)
+    if (ko->hdr.ko_ref == 0) {
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
+
+	if (ko->hdr.ko_type == kobj_segment)
+	    sync_wakeup_segment(ko->hdr.ko_id);
+    }
 
     // Inform threads so that they can halt, even if pinned (on zero refs)
     // or re-check that their parent refcounts are still readable.

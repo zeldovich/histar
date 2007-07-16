@@ -9,6 +9,7 @@ int sync_wait(uint64_t **addrs, uint64_t *vals,
 int  sync_wakeup_addr(uint64_t *addr)
     __attribute__ ((warn_unused_result));
 void sync_wakeup_timer(void);
+void sync_wakeup_segment(kobject_id_t id);
 void sync_remove_thread(const struct Thread *t);
 
 #endif

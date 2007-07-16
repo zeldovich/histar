@@ -57,6 +57,7 @@ struct sync_wait_slot {
     const struct Thread *sw_t;
     LIST_ENTRY(sync_wait_slot) sw_addr_link;
     LIST_ENTRY(sync_wait_slot) sw_thread_link;
+    LIST_ENTRY(sync_wait_slot) sw_seg_link;
 };
 
 LIST_HEAD(sync_wait_list, sync_wait_slot);
