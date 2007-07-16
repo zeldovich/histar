@@ -85,7 +85,7 @@ ENTRY(start)
 
 	/* Enable MMU */
 	lda	[%g0] ASI_MMUREGS, %g3
-	or	%g3, 0x01, %g3
+	or	%g3, SRMMU_CTRL_E, %g3
 	sta	%g3, [%g0] ASI_MMUREGS
 	WRITE_PAUSE
 
