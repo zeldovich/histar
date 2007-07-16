@@ -22,5 +22,6 @@ void segment_map_ro(struct Segment *sg);
 void segment_invalidate(const struct Segment *sg);
 void segment_collect_dirty(const struct Segment *sg);
 void segment_swapin(struct Segment *sg);
+void segment_zero_refs(struct Segment *sg);
 
 #endif

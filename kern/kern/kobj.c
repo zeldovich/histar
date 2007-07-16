@@ -10,7 +10,6 @@
 #include <kern/ht.h>
 #include <kern/pageinfo.h>
 #include <kern/arch.h>
-#include <kern/sync.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
 
@@ -580,7 +579,7 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 
 	if (ko->hdr.ko_type == kobj_segment)
-	    sync_wakeup_segment(ko->hdr.ko_id);
+	    segment_zero_refs(&ko->sg);
     }
 
     // Inform threads so that they can halt, even if pinned (on zero refs)

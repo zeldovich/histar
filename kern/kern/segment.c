@@ -3,6 +3,7 @@
 #include <kern/container.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
+#include <kern/sync.h>
 #include <inc/error.h>
 
 int
@@ -85,4 +86,11 @@ segment_collect_dirty(const struct Segment *sg)
     struct segment_mapping *sm;
     LIST_FOREACH(sm, &sg->sg_segmap_list, sm_link)
 	as_collect_dirty_sm(sm);
+}
+
+void
+segment_zero_refs(struct Segment *sg)
+{
+    segment_invalidate(sg);
+    sync_wakeup_segment(sg->sg_ko.ko_id);
 }
