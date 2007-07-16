@@ -44,7 +44,7 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
 	return 0;
 
     r = as_invert_mapped(cur_thread->th_as, addr,
-			 &slot->sw_seg.object, &slot->sw_offset);
+			 &slot->sw_seg, &slot->sw_offset);
     if (r < 0)
 	return r;
 
@@ -126,11 +126,13 @@ sync_wakeup_addr(uint64_t *addr)
     if (r < 0)
 	return r;
 
-    uint64_t seg_id, offset;
-    r = as_invert_mapped(cur_thread->th_as, addr, &seg_id, &offset);
+    struct cobj_ref seg_ref;
+    uint64_t offset;
+    r = as_invert_mapped(cur_thread->th_as, addr, &seg_ref, &offset);
     if (r < 0)
 	return r;
 
+    uint64_t seg_id = seg_ref.object;
     if (sync_debug)
 	cprintf("sync_wakeup_addr: %p -> %"PRIu64", offset %"PRIu64"\n",
 		addr, seg_id, offset);
@@ -164,7 +166,10 @@ sync_wakeup_segment(struct cobj_ref seg)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	if (/* XXX sw->sw_seg.container == seg.container && */
+	/*
+	 * XXX delete the 0 check when as_invert_mapped returns container IDs.
+	 */
+	if ((sw->sw_seg.container == 0 || sw->sw_seg.container == seg.container) &&
 	    sw->sw_seg.object == seg.object)
 	{
 	    thread_set_runnable(sw->sw_t);

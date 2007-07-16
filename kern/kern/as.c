@@ -638,7 +638,7 @@ err:
 
 int
 as_invert_mapped(const struct Address_space *as, void *addr,
-		 kobject_id_t *seg_idp, uint64_t *offsetp)
+		 struct cobj_ref *seg_refp, uint64_t *offsetp)
 {
     if (as->as_pgmap) {
 	ptent_t *pte;
@@ -646,7 +646,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	if (r >= 0 && *pte) {
 	    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*pte)));
 	    if (pi->pi_pin) {	/* page not shared by multiple segments */
-		*seg_idp = pi->pi_segid;
+		*seg_refp = COBJ(0, pi->pi_segid);
 		*offsetp = (pi->pi_segpg * PGSIZE) + PGOFF(addr);
 		return 0;
 	    }
@@ -674,7 +674,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	    continue;
 
 	uint64_t npage = as_va_to_segment_page(usm, addr);
-	*seg_idp = usm->segment.object;
+	*seg_refp = usm->segment;
 	*offsetp = npage * PGSIZE + PGOFF(addr);
 	found++;
     }
