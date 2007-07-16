@@ -199,12 +199,15 @@ thread_swapout(struct Thread *t)
 }
 
 void
-thread_on_decref(const struct Thread *t)
+thread_on_decref(const struct Thread *t, uint64_t parent_ct)
 {
-    if (t->th_ko.ko_ref == 0)
+    if (t->th_ko.ko_ref == 0) {
 	thread_halt(t);
-    else
-	thread_check_sched_parents(t);
+    } else {
+	if (parent_ct == t->th_sched_parents[0] ||
+	    parent_ct == t->th_sched_parents[1])
+	    thread_check_sched_parents(t);
+    }
 }
 
 int

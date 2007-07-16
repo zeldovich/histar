@@ -80,7 +80,7 @@ void thread_swapin(struct Thread *t);
 void thread_swapout(struct Thread *t);
 int  thread_gc(struct Thread *t)
     __attribute__ ((warn_unused_result));
-void thread_on_decref(const struct Thread *t);
+void thread_on_decref(const struct Thread *t, uint64_t parent_ct);
 
 int  thread_jump(const struct Thread *t,
 		 const struct Label *contaminate,

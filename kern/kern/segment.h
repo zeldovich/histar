@@ -19,9 +19,9 @@ int  segment_copy(const struct Segment *src, const struct Label *newl,
 int  segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
     __attribute__ ((warn_unused_result));
 void segment_map_ro(struct Segment *sg);
-void segment_invalidate(const struct Segment *sg);
+void segment_invalidate(const struct Segment *sg, uint64_t parent_ct);
 void segment_collect_dirty(const struct Segment *sg);
 void segment_swapin(struct Segment *sg);
-void segment_zero_refs(struct Segment *sg);
+void segment_on_decref(struct Segment *sg, uint64_t parent_ct);
 
 #endif

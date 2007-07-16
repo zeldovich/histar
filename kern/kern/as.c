@@ -498,6 +498,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
+	sm->sm_ct_id = seg_ref.container;
 	return as_pmap_fill_segment(as, sg, sm, usm, va, flags);
     }
 

@@ -291,7 +291,7 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 	!SAFE_EQUAL(rw, page_shared_ro))
     {
 	eko->hdr.ko_flags &= ~KOBJ_SHARED_MAPPINGS;
-	segment_invalidate(&eko->sg);
+	segment_invalidate(&eko->sg, 0);
     }
 
     if (SAFE_EQUAL(rw, page_excl_dirty))
@@ -575,17 +575,16 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
     ko->hdr.ko_ref--;
     refholder->ko_quota_used -= kh->ko_quota_total;
 
-    if (ko->hdr.ko_ref == 0) {
+    if (ko->hdr.ko_ref == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
-
-	if (ko->hdr.ko_type == kobj_segment)
-	    segment_zero_refs(&ko->sg);
-    }
 
     // Inform threads so that they can halt, even if pinned (on zero refs)
     // or re-check that their parent refcounts are still readable.
     if (ko->hdr.ko_type == kobj_thread)
-	thread_on_decref(&ko->th);
+	thread_on_decref(&ko->th, refholder->ko_id);
+
+    if (ko->hdr.ko_type == kobj_segment)
+	segment_on_decref(&ko->sg, refholder->ko_id);
 }
 
 void

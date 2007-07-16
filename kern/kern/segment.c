@@ -36,7 +36,7 @@ segment_copy(const struct Segment *src, const struct Label *newl,
     if (r < 0)
 	return r;
 
-    segment_invalidate(src);
+    segment_invalidate(src, 0);
     r = kobject_copy_pages(&src->sg_ko, &dst->sg_ko);
     if (r < 0)
 	return r;
@@ -49,7 +49,7 @@ int
 segment_set_nbytes(struct Segment *sg, uint64_t num_bytes)
 {
     if (sg->sg_ko.ko_nbytes > num_bytes) {
-	segment_invalidate(sg);
+	segment_invalidate(sg, 0);
 	if (sg->sg_ko.ko_pin_pg)
 	    return -E_BUSY;
     }
@@ -72,11 +72,12 @@ segment_map_ro(struct Segment *sg)
 }
 
 void
-segment_invalidate(const struct Segment *sg)
+segment_invalidate(const struct Segment *sg, uint64_t parent_ct)
 {
     while (!LIST_EMPTY(&sg->sg_segmap_list)) {
 	struct segment_mapping *sm = LIST_FIRST(&sg->sg_segmap_list);
-	as_invalidate_sm(sm);
+	if (parent_ct == 0 || parent_ct == sm->sm_ct_id)
+	    as_invalidate_sm(sm);
     }
 }
 
@@ -89,8 +90,11 @@ segment_collect_dirty(const struct Segment *sg)
 }
 
 void
-segment_zero_refs(struct Segment *sg)
+segment_on_decref(struct Segment *sg, uint64_t parent_ct)
 {
-    segment_invalidate(sg);
+    if (sg->sg_ko.ko_ref > 0)
+	return;
+
+    segment_invalidate(sg, parent_ct);
     sync_wakeup_segment(sg->sg_ko.ko_id);
 }

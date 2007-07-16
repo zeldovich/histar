@@ -12,8 +12,9 @@ struct Address_space;
 
 struct segment_mapping {
     const struct Address_space *sm_as;
-    uint64_t sm_as_slot;
     uint8_t sm_rw_mappings;	// any writable mappings?
+    uint64_t sm_ct_id;		// container for segment
+    uint64_t sm_as_slot;
 
     const struct Segment *sm_sg;
     LIST_ENTRY(segment_mapping) sm_link;
