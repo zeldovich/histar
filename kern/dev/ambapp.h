@@ -19,8 +19,6 @@
  *
  */
 
-#include <machine/sparc-common.h>
-
 #define LEON3_IO_AREA 0xfff00000
 #define LEON3_CONF_AREA 0xff000
 #define LEON3_AHB_SLAVE_CONF_AREA (1 << 11)
@@ -90,6 +88,8 @@
 #define GAISLER_PLUGPLAY 0xfff	/* internal device: plug & play configarea */
 
 #ifndef __ASSEMBLER__
+
+#include <machine/sparc-common.h>
 
 SPARC_INST_ATTR const char *gaisler_device_str(int id);
 SPARC_INST_ATTR const char *esa_device_str(int id);
