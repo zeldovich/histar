@@ -151,6 +151,7 @@ int     thread_cleanup(struct thread_args *ta);
 #define PROCESS_TAINTED		1
 #define PROCESS_EXITED		2
 #define PROCESS_TAINTED_EXIT	3
+#define PROCESS_DEAD		4
 
 struct process_state {
     uint64_t status;

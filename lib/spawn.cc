@@ -8,6 +8,7 @@ extern "C" {
 #include <inc/fd.h>
 #include <inc/gateparam.h>
 #include <inc/declassify.h>
+#include <inc/setjmp.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -301,14 +302,29 @@ process_wait(const struct child_process *child, int64_t *exit_code)
 
     while (proc_status == PROCESS_RUNNING) {
 	struct process_state *ps = 0;
-	int r = segment_map(child->wait_seg, 0, SEGMAP_READ, (void **) &ps, 0, 0);
+	int r = segment_map(child->wait_seg, 0, SEGMAP_READ | SEGMAP_VECTOR_PF,
+			    (void **) &ps, 0, 0);
 	if (r < 0)
 	    return r;
 
-	sys_sync_wait(&ps->status, PROCESS_RUNNING, sys_clock_nsec() + NSEC_PER_SECOND * 10);
+	sys_sync_wait(&ps->status, PROCESS_RUNNING,
+		      sys_clock_nsec() + NSEC_PER_SECOND * 10);
+
+	struct jos_jmp_buf pferr;
+	if (jos_setjmp(&pferr) != 0) {
+	    segment_unmap(ps);
+	    proc_status = PROCESS_DEAD;
+	    break;
+	}
+
+	struct jos_jmp_buf *old_pf = tls_data->tls_pgfault;
+	tls_data->tls_pgfault = &pferr;
+
 	proc_status = ps->status;
 	if (proc_status == PROCESS_EXITED && exit_code)
 	    *exit_code = ps->exit_code;
+	tls_data->tls_pgfault = old_pf;
+
 	segment_unmap(ps);
     }
 

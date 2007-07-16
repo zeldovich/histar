@@ -212,6 +212,8 @@ spawn_and_wait(int ac, char **av)
 	sys_obj_unref(COBJ(start_env->process_pool, ct));
     } else if (r == PROCESS_TAINTED) {
 	printf("Process tainted itself, detaching.\n");
+    } else if (r == PROCESS_DEAD) {
+	printf("Process vanished.\n");
     } else {
 	printf("Process reports unknown status %d\n", r);
     }
