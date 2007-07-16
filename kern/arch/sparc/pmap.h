@@ -29,6 +29,8 @@ struct Contexttable {
     ctxptr_t ct_ent[CTX_NCTX];
 };
 
+extern struct Contexttable bootct;
+
 #endif /* __ASSEMBLER__ */
 
 #define KSTACK_SIZE	(2 * PGSIZE)

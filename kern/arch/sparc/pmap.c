@@ -1,5 +1,6 @@
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <machine/sparc-common.h>
 #include <inc/error.h>
 
 #define perr() cprintf("%s:%u: XXX unimpl\n", __FILE__, __LINE__)
@@ -50,7 +51,19 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 void
 pmap_set_current(struct Pagemap *pm)
 {
-    perr();
+    if (!pm)
+	pm = &bootpt;
+
+    uint32_t pa = (ctxptr_t)kva2pa(pm);
+    ctxptr_t ptd = (pa >> 4) & PTD_PTP_MASK;
+    ptd |= PT_ET_PTD;
+    bootct.ct_ent[0] = ptd;
+    
+    /* flush entire TLB (pg 249-250 SPARC v8 manual) */
+    sta_mmuflush(0x400);
+    /* flush both icache and dcache */
+    flush();
+    sta_dflush();
 }
 
 /*
