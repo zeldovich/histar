@@ -32,16 +32,19 @@ struct jos64_op_args {
 
 struct sock_slot {
     char used;
+    char listen;
+
     struct socket_conn conn;
     uint64_t linuxpid;
     int sock;
-    char listen;
-    
-    struct netd_op_args opbuf;
-    struct jos64_op_args josbuf;
+
+    struct netd_op_args jos2lnx_buf;
+    volatile uint64_t jos2lnx_full;
+
+    struct jos64_op_args lnx2jos_buf;
+    volatile uint64_t lnx2jos_full;
+
     char outbuf[4096];
-    volatile uint64_t opfull;
-    volatile uint64_t josfull;
     volatile uint64_t outcnt;
 #define CNT_LIMBO UINT64(~0)
 };

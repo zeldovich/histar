@@ -84,7 +84,7 @@ service_slot(struct sock_slot *s, void *a)
     if (s->linuxpid == 0)
 	*wake_main_thread = 1;
 
-    if (s->opfull || s->outcnt || s->josfull == CNT_LIMBO) {
+    if (s->jos2lnx_full || s->outcnt || s->lnx2jos_full == CNT_LIMBO) {
 	r = linux_kill(s->linuxpid, SIGUSR1);
 	if (r < 0)
 	    panic("unable to kill: %d", r);
@@ -196,7 +196,7 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 			 a->socket.protocol);	
 	if (r >= 0) {
 	    ss->sock = r;
-	    ss->josfull = 0;
+	    ss->lnx2jos_full = 0;
 	    a->rval = slot_to_id(ss);
 	} else
 	    a->rval = r;
@@ -218,7 +218,7 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	a->rval = linux_listen(ss->sock, a->listen.backlog);
 	if (a->rval == 0) {
 	    ss->listen = 1;
-	    ss->josfull = 0;
+	    ss->lnx2jos_full = 0;
 	}
 	break;
 
@@ -226,7 +226,7 @@ netd_linux_dispatch(struct sock_slot *ss, struct netd_op_args *a)
 	netd_to_libc(&a->connect.sin, &sin);
 	a->rval = linux_connect(ss->sock, (struct sockaddr *)&sin, sinlen);
 	if (a->rval == 0)
-	    ss->josfull = 0;
+	    ss->lnx2jos_full = 0;
 	break;
 
     case netd_op_send:
@@ -289,7 +289,7 @@ linux_wait_for(struct sock_slot *ss)
 {
     int r;
 
-    if (ss->sock != -1 && ss->josfull == 0) {
+    if (ss->sock != -1 && ss->lnx2jos_full == 0) {
 	fd_set rs;
 	FD_ZERO(&rs);
 	FD_SET(ss->sock, &rs);
@@ -304,9 +304,9 @@ linux_wait_for(struct sock_slot *ss)
 	/*
 	 * XXX what does this mysterious code segment do?
 	 */
-	if (ss->josfull == CNT_LIMBO) {
-	    ss->josfull = 0;
-	    sys_sync_wakeup(&ss->josfull);
+	if (ss->lnx2jos_full == CNT_LIMBO) {
+	    ss->lnx2jos_full = 0;
+	    sys_sync_wakeup(&ss->lnx2jos_full);
 	}
     }
 
@@ -318,7 +318,7 @@ linux_handle_socket(struct sock_slot *ss)
 {
     int r;
 
-    assert(ss->josfull == 0);
+    assert(ss->lnx2jos_full == 0);
     if (ss->listen) {
 	struct sock_slot *nss;
 	struct sockaddr_in sin;
@@ -334,37 +334,37 @@ linux_handle_socket(struct sock_slot *ss)
 	nss->sock = r;
 	linux_thread_run(linux_socket_thread, nss, "socket-thread");
 	
-	ss->josbuf.op_type = jos64_op_accept;
-	ss->josbuf.accept.a.fd = slot_to_id(nss);
-	libc_to_netd(&sin, &ss->josbuf.accept.a.sin);
-	ss->josfull = 1;
-	sys_sync_wakeup(&ss->josfull);
+	ss->lnx2jos_buf.op_type = jos64_op_accept;
+	ss->lnx2jos_buf.accept.a.fd = slot_to_id(nss);
+	libc_to_netd(&sin, &ss->lnx2jos_buf.accept.a.sin);
+	ss->lnx2jos_full = 1;
+	sys_sync_wakeup(&ss->lnx2jos_full);
 	debug_print(dbg, "(l%ld) accepted conn", ss->linuxpid);
     } else {
 	debug_print(dbg, "(l%ld) reading data", ss->linuxpid);
-	r = linux_read(ss->sock, ss->josbuf.recv.buf, sizeof(ss->josbuf.recv.buf));
+	r = linux_read(ss->sock, ss->lnx2jos_buf.recv.buf, sizeof(ss->lnx2jos_buf.recv.buf));
 	if (r == -ENOTCONN) {
-	    ss->josfull = CNT_LIMBO;
+	    ss->lnx2jos_full = CNT_LIMBO;
 	    return;
 	} else if (r == 0) {
-	    ss->josbuf.op_type = jos64_op_shutdown;
-	    ss->josfull = 1;
-	    sys_sync_wakeup(&ss->josfull);
+	    ss->lnx2jos_buf.op_type = jos64_op_shutdown;
+	    ss->lnx2jos_full = 1;
+	    sys_sync_wakeup(&ss->lnx2jos_full);
 	    debug_print(dbg, "(l%ld) shutdown", ss->linuxpid);
 	    return;
 	} else if (r < 0) {
 	    /* XXX map read errors to EOF? */
-	    ss->josbuf.op_type = jos64_op_shutdown;
-	    ss->josfull = 1;
-	    sys_sync_wakeup(&ss->josfull);
+	    ss->lnx2jos_buf.op_type = jos64_op_shutdown;
+	    ss->lnx2jos_full = 1;
+	    sys_sync_wakeup(&ss->lnx2jos_full);
 	    debug_print(dbg, "(l%ld) shutdown err %d", ss->linuxpid, r);
 	    return;
 	}
-	ss->josbuf.op_type = jos64_op_recv;
-	ss->josbuf.recv.off = 0;
-	ss->josbuf.recv.cnt = r;
-	ss->josfull = 1;
-	sys_sync_wakeup(&ss->josfull);
+	ss->lnx2jos_buf.op_type = jos64_op_recv;
+	ss->lnx2jos_buf.recv.off = 0;
+	ss->lnx2jos_buf.recv.cnt = r;
+	ss->lnx2jos_full = 1;
+	sys_sync_wakeup(&ss->lnx2jos_full);
 	debug_print(dbg, "(l%ld) read %d data", ss->linuxpid, r);
     }
 }
@@ -391,11 +391,11 @@ linux_socket_thread(void *a)
 	if (r >= 0)
 	    linux_handle_socket(ss);
 
-	if (ss->opfull) {
-	    op = ss->opbuf.op_type;
-	    netd_linux_dispatch(ss, &ss->opbuf);
-	    ss->opfull = 0;
-	    sys_sync_wakeup(&ss->opfull);
+	if (ss->jos2lnx_full) {
+	    op = ss->jos2lnx_buf.op_type;
+	    netd_linux_dispatch(ss, &ss->jos2lnx_buf);
+	    ss->jos2lnx_full = 0;
+	    sys_sync_wakeup(&ss->jos2lnx_full);
 	    if (op == netd_op_close)
 		break;
 	}

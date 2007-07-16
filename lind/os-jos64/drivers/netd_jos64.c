@@ -34,11 +34,11 @@ jos64_wait_for(struct sock_slot *ss)
 	return y;
 
     memset(&wstat[2], 0, sizeof(wstat[2]));
-    uint64_t josfull = ss->josfull;
-    WS_SETADDR(&wstat[2], &ss->josfull);
-    WS_SETVAL(&wstat[2], josfull);
+    uint64_t lnx2jos_full = ss->lnx2jos_full;
+    WS_SETADDR(&wstat[2], &ss->lnx2jos_full);
+    WS_SETVAL(&wstat[2], lnx2jos_full);
 
-    if (josfull && josfull != CNT_LIMBO) {
+    if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
 	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
 	if (z > 0)
 	    return 1;
@@ -65,7 +65,8 @@ jos64_wait_for(struct sock_slot *ss)
     if (r < 0)
 	return r;
 
-    if (ss->josfull && ss->josfull != CNT_LIMBO) {
+    lnx2jos_full = ss->lnx2jos_full;
+    if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
 	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
 	if (z > 0)
 	    return 1;
@@ -100,9 +101,9 @@ jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
 	int64_t z = jcomm_write(data, &a->recv.buf[a->recv.off], a->recv.cnt);
 	if (z < 0)
 	    return z;
-	if (z != ss->josbuf.recv.cnt) {
-	    ss->josbuf.recv.off += z;
-	    ss->josbuf.recv.cnt -= z;
+	if (z != ss->lnx2jos_buf.recv.cnt) {
+	    ss->lnx2jos_buf.recv.off += z;
+	    ss->lnx2jos_buf.recv.cnt -= z;
 	    return -E_AGAIN;
 	}
 	return 0;
@@ -165,30 +166,30 @@ jos64_socket_thread(struct socket_conn *sc)
     for (;;) {
 	int r = jos64_wait_for(ss);
 	if (r == 1) {
-	    assert(ss->josfull);
-	    r = jos64_dispatch(ss, &ss->josbuf);
+	    assert(ss->lnx2jos_full);
+	    r = jos64_dispatch(ss, &ss->lnx2jos_buf);
 	    if (r == -E_AGAIN)
 		continue;
 	    else if (r < 0)
 		panic("jos64_dispatch error: %s\n", e2s(r));
-	    ss->josfull = CNT_LIMBO;
+	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
-	    sys_sync_wait(&ss->josfull, CNT_LIMBO, UINT64(~0));
+	    sys_sync_wait(&ss->lnx2jos_full, CNT_LIMBO, UINT64(~0));
 	} else if (r == 2) {
-	    int64_t z = jcomm_read(ctrl, (void *)&ss->opbuf, sizeof(ss->opbuf));
+	    int64_t z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
 	    if (z < 0) {
 		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
 		break;
-	    } else if (ss->opbuf.op_type == netd_op_close)
+	    } else if (ss->jos2lnx_buf.op_type == netd_op_close)
 		break;
 
-	    ss->opfull = 1;
+	    ss->jos2lnx_full = 1;
 	    lutrap_kill(SIGNAL_NETD);
-	    sys_sync_wait(&ss->opfull, 1, UINT64(~0));
+	    sys_sync_wait(&ss->jos2lnx_full, 1, UINT64(~0));
 
 	    /* send return value */
-	    z = jcomm_write(ctrl, (void *)&ss->opbuf, ss->opbuf.size);
-	    assert(z == ss->opbuf.size);
+	    z = jcomm_write(ctrl, (void *)&ss->jos2lnx_buf, ss->jos2lnx_buf.size);
+	    assert(z == ss->jos2lnx_buf.size);
 	} else if (r == 3) {
 	    int64_t z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
 				   sizeof(ss->outbuf) - ss->outcnt);
@@ -204,8 +205,8 @@ jos64_socket_thread(struct socket_conn *sc)
     }
 
  done:
-    ss->opbuf.op_type = netd_op_close;
-    ss->opfull = 1;
+    ss->jos2lnx_buf.op_type = netd_op_close;
+    ss->jos2lnx_full = 1;
     lutrap_kill(SIGNAL_NETD);
     debug_print(dbg, "(j%ld) stopping", thread_id());
 }
