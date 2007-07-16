@@ -5,8 +5,6 @@
 #ifndef JOS_MACHINE_LEON3_H
 #define JOS_MACHINE_LEON3_H
 
-#include <machine/sparc-common.h>
-
 /*
  *  The following defines the bits in the LEON UART Status Registers.
  */
@@ -193,40 +191,6 @@ typedef struct {
 #define ASI_LEON3_SYSCTRL_DCFG		0x0c
 #define ASI_LEON3_SYSCTRL_CFG_SNOOPING (1<<27)
 #define ASI_LEON3_SYSCTRL_CFG_SSIZE(c) (1<<((c>>20)&0xf))
-
-SPARC_INST_ATTR unsigned long sparc_leon3_get_dcachecfg(void);
-SPARC_INST_ATTR void sparc_leon3_enable_snooping(void);
-SPARC_INST_ATTR void sparc_leon3_disable_cache(void);
-
-unsigned long 
-sparc_leon3_get_dcachecfg(void) {
-	unsigned int retval;
-	__asm__ __volatile__("lda [%1] %2, %0\n\t" :
-			     "=r" (retval) :
-			     "r" (ASI_LEON3_SYSCTRL_DCFG),
-			     "i" (ASI_LEON3_SYSCTRL));
-	return (retval);
-}
-
-/*enable snooping*/
-void 
-sparc_leon3_enable_snooping(void) {
-  __asm__ volatile ("lda [%%g0] 2, %%l1\n\t"  \
-                    "set 0x800000, %%l2\n\t"  \
-                    "or  %%l2, %%l1, %%l2\n\t" \
-                    "sta %%l2, [%%g0] 2\n\t"  \
-                    : : : "l1", "l2");	
-};
-
-void 
-sparc_leon3_disable_cache(void) {
-  __asm__ volatile ("lda [%%g0] 2, %%l1\n\t"  \
-                    "set 0x00000f, %%l2\n\t"  \
-                    "andn  %%l2, %%l1, %%l2\n\t" \
-                    "sta %%l2, [%%g0] 2\n\t"  \
-                    : : : "l1", "l2");	
-};
-
 
 #endif
 

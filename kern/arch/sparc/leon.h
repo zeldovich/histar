@@ -6,8 +6,6 @@
 #ifndef JOS_MACHINE_LEON_H
 #define JOS_MACHINE_LEON_H
 
-#include <machine/sparc-common.h>
-
 /* memory mapped leon control registers */
 #define LEON_PREGS	0x80000000
 #define LEON_MCFG1	0x00
@@ -156,69 +154,6 @@
 
 #ifndef __ASSEMBLER__
 
-SPARC_INST_ATTR unsigned long leon_readnobuffer_reg(unsigned long paddr);
-SPARC_INST_ATTR void leon_store_reg(unsigned long paddr, unsigned long value);
-SPARC_INST_ATTR unsigned long leon_load_reg(unsigned long paddr);
-SPARC_INST_ATTR void leon_srmmu_disabletlb(void);
-SPARC_INST_ATTR void leon_srmmu_enabletlb(void);
-
-/* do a virtual address read without cache */
-unsigned long 
-leon_readnobuffer_reg(unsigned long paddr)
-{
-	unsigned long retval;
-	__asm__ __volatile__("lda [%1] %2, %0\n\t":
-			     "=r"(retval): "r"(paddr), "i"(ASI_LEON_NOCACHE));
-	return retval;
-}
-
-/* do a physical address bypass write, i.e. for 0x80000000 */
-void 
-leon_store_reg(unsigned long paddr, unsigned long value)
-{
-	__asm__ __volatile__("sta %0, [%1] %2\n\t"::"r"(value), "r"(paddr),
-			     "i"(ASI_LEON_BYPASS):"memory");
-}
-
-/* do a physical address bypass load, i.e. for 0x80000000 */
-unsigned long 
-leon_load_reg(unsigned long paddr)
-{
-	unsigned long retval;
-	__asm__ __volatile__("lda [%1] %2, %0\n\t":
-			     "=r"(retval): "r"(paddr), "i"(ASI_LEON_BYPASS));
-	return retval;
-}
-
-void 
-leon_srmmu_disabletlb(void)
-{
-	unsigned int retval;
-	__asm__ __volatile__("lda [%%g0] %2, %0\n\t":"=r"(retval):"r"(0),
-			     "i"(ASI_LEON_MMUREGS));
-	retval |= LEON_CNR_CTRL_TLBDIS;
-	__asm__ __volatile__("sta %0, [%%g0] %2\n\t"::"r"(retval), "r"(0),
-			     "i"(ASI_LEON_MMUREGS):"memory");
-}
-
-void 
-leon_srmmu_enabletlb(void)
-{
-	unsigned int retval;
-	__asm__ __volatile__("lda [%%g0] %2, %0\n\t":"=r"(retval):"r"(0),
-			     "i"(ASI_LEON_MMUREGS));
-	retval = retval & ~LEON_CNR_CTRL_TLBDIS;
-	__asm__ __volatile__("sta %0, [%%g0] %2\n\t"::"r"(retval), "r"(0),
-			     "i"(ASI_LEON_MMUREGS):"memory");
-}
-
-#define LEON_BYPASS_LOAD_PA(x)		leon_load_reg ((unsigned long)(x))
-#define LEON_BYPASSCACHE_LOAD_VA(x)	leon_readnobuffer_reg ((unsigned long)(x))
-#define LEON_BYPASS_STORE_PA(x,v)	leon_store_reg((unsigned long)(x),(unsigned long)(v))
-#define LEON_REGLOAD_PA(x)		leon_load_reg ((unsigned long)(x)+LEON_PREGS)
-#define LEON_REGSTORE_PA(x,v)		leon_store_reg((unsigned long)(x)+LEON_PREGS,(unsigned long)(v))
-#define LEON_REGSTORE_OR_PA(x,v)	LEON_REGSTORE_PA(x,LEON_REGLOAD_PA(x)|(unsigned long)(v))
-#define LEON_REGSTORE_AND_PA(x,v)	LEON_REGSTORE_PA(x,LEON_REGLOAD_PA(x)&(unsigned long)(v))
 
 #endif
 
