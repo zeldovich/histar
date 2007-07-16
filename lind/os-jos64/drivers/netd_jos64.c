@@ -28,28 +28,33 @@ jos64_wait_for(struct sock_slot *ss)
  top:
     x = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
     y = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
-    if (x < 0 || y < 0)
-	panic("jcomm_mutlisync error: %s, %s", e2s(x), e2s(y));
-    memset(&wstat[2], 0, sizeof(wstat[2]));
-    WS_SETADDR(&wstat[2], &ss->josfull);
-    WS_SETVAL(&wstat[2], ss->josfull);
+    if (x < 0)
+	return x;
+    if (y < 0)
+	return y;
 
-    if (ss->josfull && ss->josfull != CNT_LIMBO) {
+    memset(&wstat[2], 0, sizeof(wstat[2]));
+    uint64_t josfull = ss->josfull;
+    WS_SETADDR(&wstat[2], &ss->josfull);
+    WS_SETVAL(&wstat[2], josfull);
+
+    if (josfull && josfull != CNT_LIMBO) {
 	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
-	if (z)
+	if (z > 0)
 	    return 1;
+
 	z = jcomm_multisync(ss->conn.data_comm, dev_probe_write, &wstat[2]);
 	if (z < 0)
-	    panic("jcomm_mutlisync error: %s",  e2s(z));
+	    return z;
     }
     
     x = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
-    if (x)
+    if (x > 0)
 	return 2;
 
     if (ss->outcnt < sizeof(ss->outbuf) / 2) {
 	y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-	if (y)
+	if (y > 0)
 	    return 3;
     } else {
 	/* Stop reading data from client, if we have nowhere to put it.. */
@@ -58,19 +63,19 @@ jos64_wait_for(struct sock_slot *ss)
 
     r = multisync_wait(wstat, 3, UINT64(~0));
     if (r < 0)
-	panic("multisync_wait error: %s", e2s(r));
-    
+	return r;
+
     if (ss->josfull && ss->josfull != CNT_LIMBO) {
 	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
-	if (z)
+	if (z > 0)
 	    return 1;
     }
 
     x = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
-    if (x)
+    if (x > 0)
 	return 2;
     y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-    if (y && ss->outcnt < sizeof(ss->outbuf) / 2)
+    if (y > 0 && ss->outcnt < sizeof(ss->outbuf) / 2)
 	return 3;
 
     goto top;
@@ -193,6 +198,8 @@ jos64_socket_thread(struct socket_conn *sc)
 	    }
 	    ss->outcnt += z;
 	    lutrap_kill(SIGNAL_NETD);
+	} else {
+	    break;
 	}
     }
 
