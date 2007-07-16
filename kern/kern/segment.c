@@ -92,9 +92,6 @@ segment_collect_dirty(const struct Segment *sg)
 void
 segment_on_decref(struct Segment *sg, uint64_t parent_ct)
 {
-    if (sg->sg_ko.ko_ref > 0)
-	return;
-
     segment_invalidate(sg, parent_ct);
-    sync_wakeup_segment(sg->sg_ko.ko_id);
+    sync_wakeup_segment(COBJ(parent_ct, sg->sg_ko.ko_id));
 }

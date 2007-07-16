@@ -21,9 +21,9 @@ sync_addr_head(uint64_t seg_id, uint64_t offset)
 }
 
 static struct sync_wait_list *
-sync_seg_head(uint64_t seg_id)
+sync_seg_head(struct cobj_ref seg)
 {
-    return HASH_SLOT(&sync_seg_waiting, seg_id);
+    return HASH_SLOT(&sync_seg_waiting, seg.object);
 }
 
 static int __attribute__((warn_unused_result))
@@ -44,13 +44,14 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
 	return 0;
 
     r = as_invert_mapped(cur_thread->th_as, addr,
-			 &slot->sw_seg_id, &slot->sw_offset);
+			 &slot->sw_seg.object, &slot->sw_offset);
     if (r < 0)
 	return r;
 
     if (sync_debug)
-	cprintf("sync_waitslot_init: %p -> %"PRIu64", offset %"PRIu64"\n",
-		addr, slot->sw_seg_id, slot->sw_offset);
+	cprintf("sync_waitslot_init: %p -> %"PRIu64".%"PRIu64" @ %"PRIu64"\n",
+		addr, slot->sw_seg.container, slot->sw_seg.object,
+		slot->sw_offset);
 
     LIST_INSERT_HEAD(swlist, slot, sw_thread_link);
     slot->sw_t = t;
@@ -104,9 +105,9 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
     }
 
     LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link) {
-	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg_id, sw->sw_offset),
+	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg.object, sw->sw_offset),
 			 sw, sw_addr_link);
-	LIST_INSERT_HEAD(sync_seg_head(sw->sw_seg_id), sw, sw_seg_link);
+	LIST_INSERT_HEAD(sync_seg_head(sw->sw_seg), sw, sw_seg_link);
     }
 
     te->te_wakeup_nsec = wakeup_nsec;
@@ -139,7 +140,7 @@ sync_wakeup_addr(uint64_t *addr)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	if (sw->sw_seg_id == seg_id && sw->sw_offset == offset) {
+	if (sw->sw_seg.object == seg_id && sw->sw_offset == offset) {
 	    thread_set_runnable(sw->sw_t);
 	    sw = prev ? LIST_NEXT(prev, sw_addr_link) : LIST_FIRST(waithead);
 	} else {
@@ -152,17 +153,20 @@ sync_wakeup_addr(uint64_t *addr)
 }
 
 void
-sync_wakeup_segment(kobject_id_t seg_id)
+sync_wakeup_segment(struct cobj_ref seg)
 {
     if (sync_debug)
-	cprintf("sync_wakeup_segment: id %"PRIu64"\n", seg_id);
+	cprintf("sync_wakeup_segment: id %"PRIu64".%"PRIu64"\n",
+		seg.container, seg.object);
 
-    struct sync_wait_list *waithead = sync_seg_head(seg_id);
+    struct sync_wait_list *waithead = sync_seg_head(seg);
     struct sync_wait_slot *sw = LIST_FIRST(waithead);
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	if (sw->sw_seg_id == seg_id) {
+	if (/* XXX sw->sw_seg.container == seg.container && */
+	    sw->sw_seg.object == seg.object)
+	{
 	    thread_set_runnable(sw->sw_t);
 	    sw = prev ? LIST_NEXT(prev, sw_seg_link) : LIST_FIRST(waithead);
 	} else {

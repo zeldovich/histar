@@ -52,7 +52,7 @@ struct Thread {
 LIST_HEAD(Thread_list, Thread);
 
 struct sync_wait_slot {
-    uint64_t sw_seg_id;
+    struct cobj_ref sw_seg;
     uint64_t sw_offset;
     const struct Thread *sw_t;
     LIST_ENTRY(sync_wait_slot) sw_addr_link;
