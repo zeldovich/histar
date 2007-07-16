@@ -179,7 +179,7 @@ trap_handler(struct Trapframe *tf, uint32_t trampoline_eip)
 
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
-	sched_stop(t, read_tsc());
+	sched_stop(t, read_tsc() - trap_user_iret_tsc);
 
 	t->th_tf = *tf;
 	if (t->th_fp_enabled) {
@@ -258,7 +258,6 @@ thread_arch_run(const struct Thread *t)
     if (t->th_tf.tf_gs != read_gs())
 	write_gs(t->th_tf.tf_gs);
 
-    sched_start(t, read_tsc());
     trapframe_pop(&t->th_tf);
 }
 

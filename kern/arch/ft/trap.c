@@ -92,9 +92,7 @@ thread_arch_run(const struct Thread *ct)
     struct Thread *t = &kobject_dirty(&ct->th_ko)->th;
 
     static uint64_t sched_tsc;
-    sched_start(t, sched_tsc);
-    sched_tsc++;
-    sched_stop(t, sched_tsc);
+    sched_stop(t, sched_tsc++);
 
     if (lnx64_stack_gc) {
 	arch_run_t = t;
