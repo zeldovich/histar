@@ -7,4 +7,7 @@
 /* Number of register windows */
 #define NWINDOWS        8
 
+/* Clock frequency in kHz */
+#define CLOCK_FREQ_KHZ 66000
+
 #endif
