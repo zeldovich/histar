@@ -5,7 +5,11 @@
 #include <kern/kobj.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
+#include <machine/srmmu.h>
 #include <machine/sparc-common.h>
+#include <machine/trapcodes.h>
+#include <machine/psr.h>
+#include <machine/utrap.h>
 #include <inc/error.h>
 
 static const struct Thread *trap_thread;
@@ -25,6 +29,40 @@ trapframe_print(const struct Trapframe *tf)
 }
 
 static void
+page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
+{
+    void *fault_va = (void *)lda_mmuregs(SRMMU_FAULT_ADDR);
+    uint32_t fault_status = lda_mmuregs(SRMMU_FAULT_STATUS);
+    uint32_t reqflags = 0;
+
+    if (fault_status)
+	reqflags = 0;
+    
+    if (tf->tf_psr & PSR_PS) {
+	cprintf("kernel page fault: va=%p\n", fault_va);
+	trapframe_print(tf);
+	panic("kernel page fault");
+    } else {
+	int r = thread_pagefault(t, fault_va, reqflags);
+	if (r == 0 || r == -E_RESTART)
+	    return;
+
+	r = thread_utrap(t, UTRAP_SRC_HW, trapno, (uintptr_t) fault_va);
+	if (r == 0 || r == -E_RESTART)
+	    return;
+
+	cprintf("user page fault: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
+		"va=%p: pc=0x%x, npc=0x%x, sp=0x%x: %s\n",
+		t->th_ko.ko_id, t->th_ko.ko_name,
+		t->th_as ? t->th_as->as_ko.ko_id : 0,
+		t->th_as ? t->th_as->as_ko.ko_name : "null",
+		fault_va, tf->tf_pc, tf->tf_npc, 0, e2s(r));
+
+	thread_halt(t);
+    }
+}
+
+static void
 trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     if (!trap_thread) {
@@ -32,18 +70,20 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	panic("trap %d while idle", trapno);
     }
     
-    
+    switch(trapno) {
+    case T_TEXTFAULT:
+    case T_DATAFAULT:
+	page_fault(trap_thread, tf, trapno);
+    default:
+	panic("trap %d", trapno);
+    }
 }
 
 void __attribute__((__noreturn__, no_instrument_function))
 trap_handler(struct Trapframe *tf, uint32_t tbr)
 {
     uint32_t trapno = (tbr >> TBR_TT_SHIFT) & TBR_TT_MASK;
-    trap_dispatch(trapno, tf);
-
-    trapframe_print(tf);
-    panic("trap %d -- unimpl", trapno);
-    
+    trap_dispatch(trapno, tf);    
     thread_run();
 }
 
