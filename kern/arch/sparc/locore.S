@@ -112,7 +112,7 @@ vm_enabled:
 	rd	%psr, %g3
 	wr	%g3, PSR_ET, %psr
 	WRITE_PAUSE
-	
+
 	call	init
 	 nop
 
@@ -159,6 +159,11 @@ ENTRY(trapframe_pop)
 	ld	[%l0 + TF_PC], %l1
 	ld	[%l0 + TF_NPC], %l2
 
+	/* disable traps so rett doesn't complain */
+	rd	%psr, %l3
+	andn	%l3, PSR_ET, %l3
+	wr	%l3, %psr
+	
 	jmp	%l1
 	 rett	%l2
 
