@@ -120,4 +120,16 @@
 #define SRMMU_CTRL_E       0x00000001
 #define SRMMU_CTRL_NF      0x00000020
 
+/* Fault Status Register: fault type */
+#define SRMMU_FT_SHIFT     2
+#define SRMMU_FT_MASK      0x07
+#define SRMMU_FT_LUD       0      /* load user data */
+#define SRMMU_FT_LSD       1      /* load supervisor data */
+#define SRMMU_FT_LUI       2      /* load/exec user instruction */
+#define SRMMU_FT_LSI       3      /* load/exec supervisor instruction */
+#define SRMMU_FT_SUD       4      /* store user data */
+#define SRMMU_FT_SSD       5      /* store supervisor data */
+#define SRMMU_FT_SUI       6      /* store user instruction */
+#define SRMMU_FT_SSI       7      /* store supervisor instruction */
+
 #endif
