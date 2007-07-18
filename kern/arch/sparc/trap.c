@@ -1,8 +1,13 @@
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/sched.h>
+#include <kern/kobj.h>
 #include <machine/trap.h>
+#include <machine/mmu.h>
 #include <inc/error.h>
+
+static const struct Thread *trap_thread;
 
 static void
 trapframe_print(const struct Trapframe *tf)
@@ -29,16 +34,40 @@ trap_handler(struct Trapframe *tf)
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
-    /* XXX */
+    memset(&t->th_tf, 0, sizeof(t->th_tf));
+    t->th_tf.tf_pc = (uintptr_t) te->te_entry;
+    t->th_tf.tf_npc = (uintptr_t) (te->te_entry + 4);
+    t->th_tf.tf_reg[TF_SP] = (uintptr_t) te->te_stack;
+    t->th_tf.tf_reg[TF_I0] = te->te_arg[0];
+    t->th_tf.tf_reg[TF_I1] = te->te_arg[1];
+    t->th_tf.tf_reg[TF_I2] = te->te_arg[2];
+    t->th_tf.tf_reg[TF_I3] = te->te_arg[3];
+    t->th_tf.tf_reg[TF_I4] = te->te_arg[4];
+    t->th_tf.tf_reg[TF_I5] = te->te_arg[5];
+    
+    static_assert(thread_entry_narg == 6);
+}
 
-    for (uint32_t i = 0; i < thread_entry_narg; i++)
-	t->th_tfa.tfa_entry_args.te_arg[i] = te->te_arg[i];
+static void
+trap_thread_set(const struct Thread *t)
+{
+    if (trap_thread) {
+	kobject_unpin_hdr(&trap_thread->th_ko);
+	trap_thread = 0;
+    }
+
+    if (t) {
+	kobject_pin_hdr(&t->th_ko);
+	trap_thread = t;
+    }
 }
 
 void
 thread_arch_run(const struct Thread *t)
 {
-    panic("thread_arch_run");
+    trap_thread_set(t);
+    trapframe_pop(&t->th_tf);
+    //panic("thread_arch_run");
 }
 
 void
@@ -57,7 +86,7 @@ void
 karch_jmpbuf_init(struct jos_jmp_buf *jb,
 		  void *fn, void *stackbase)
 {
-    /* XXX */
+    cprintf("XXX karch_jmpbuf_init\n");
 }
 
 int
@@ -71,12 +100,12 @@ thread_arch_get_entry_args(const struct Thread *t,
 void
 karch_fp_init(struct Fpregs *fpreg)
 {
-    /* XXX */
+    cprintf("karch_fp_init: XXX unimpl\n");
 }
 
 int
 thread_arch_is_masked(const struct Thread *t)
 {
-    /* XXX */
+    cprintf("thread_arch_is_masked: XXX unimpl\n");
     return 0;
 }
