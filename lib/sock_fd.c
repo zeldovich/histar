@@ -7,6 +7,7 @@
 #include <inc/fd.h>
 #include <inc/bipipe.h>
 #include <inc/labelutil.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stddef.h>
@@ -505,7 +506,7 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	return 0;
     }
     default:
-	fprintf(stderr, "sock_ioctl: unimplemented 0x%lx\n", req);
+	fprintf(stderr, "sock_ioctl: unimplemented 0x%"PRIx64"\n", req);
 	errno = ENOSYS;
 	break;
     }
