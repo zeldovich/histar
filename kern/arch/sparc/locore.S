@@ -139,6 +139,27 @@ def_trap:
 	call	trap_handler
 	 mov	%sp, %o0
 
+ENTRY(trapframe_pop)
+	/* XXX need to reset CWP to trap time value (psr) */
+	/* XXX need to reset y */
+	mov	%g0, %wim
+	WRITE_PAUSE
+
+	mov	%o0, %g1
+	LOAD_INS(g1 + TF_I0)
+	LOAD_LOCALS(g1 + TF_L0)
+	LOAD_OUTS(g1 + TF_O0)
+
+	save
+	mov	%g1, %l0
+	LOAD_GLOBALS(l0 + TF_G0)
+
+	ld	[%l0 + TF_PC], %l1
+	ld	[%l0 + TF_NPC], %l2
+
+	jmp	%l1
+	 rett	%l2
+
 window_spill:	
 	mov	%l1, %g5
 	mov	%l2, %g6
@@ -241,7 +262,3 @@ user_fill:
 	set	0x4000000, %g7
 	jmpl	%g7, %g0
 	 nop
-	
-trap_return:
-	jmpl	%r17, %r0	/* old PC */
-	rett	%r18		/* old nPC */
