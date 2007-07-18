@@ -84,12 +84,6 @@ Security:
   ssl_eprocd to finish its RSA operation without preemption.
 * does rflags.RF allow user-space to detect kernel faults?  this bit is
   always cleared by IRET.
-* when segment refcount drops, sync_waiters are woken up.  ideally only those
-  waiting on a particular container entry for that segment should be woken up,
-  but right now as_invert_mapped() cannot figure out the container entry used
-  to map a page.  this is a covert channel, allowing a tainted thread to wake
-  up any waiters on a segment by addref'ing and unref'ing the segment.  fix
-  as_invert_mapped() to figure out the full container entry in the fast path.
 
 Cleanup:
 

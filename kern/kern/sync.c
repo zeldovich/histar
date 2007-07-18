@@ -23,7 +23,7 @@ sync_addr_head(uint64_t seg_id, uint64_t offset)
 static struct sync_wait_list *
 sync_seg_head(struct cobj_ref seg)
 {
-    return HASH_SLOT(&sync_seg_waiting, seg.object);
+    return HASH_SLOT(&sync_seg_waiting, seg.container ^ seg.object);
 }
 
 static int __attribute__((warn_unused_result))
@@ -166,10 +166,7 @@ sync_wakeup_segment(struct cobj_ref seg)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	/*
-	 * XXX delete the 0 check when as_invert_mapped returns container IDs.
-	 */
-	if ((sw->sw_seg.container == 0 || sw->sw_seg.container == seg.container) &&
+	if (sw->sw_seg.container == seg.container &&
 	    sw->sw_seg.object == seg.object)
 	{
 	    thread_set_runnable(sw->sw_t);
