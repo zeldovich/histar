@@ -5,6 +5,7 @@
 #include <kern/kobj.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
+#include <machine/sparc-common.h>
 #include <inc/error.h>
 
 static const struct Thread *trap_thread;
@@ -23,12 +24,27 @@ trapframe_print(const struct Trapframe *tf)
 	    tf->tf_psr, tf->tf_y, tf->tf_pc, tf->tf_npc);
 }
 
-void __attribute__((__noreturn__, no_instrument_function))
-trap_handler(struct Trapframe *tf)
+static void
+trap_dispatch(int trapno, const struct Trapframe *tf)
 {
+    if (!trap_thread) {
+	trapframe_print(tf);
+	panic("trap %d while idle", trapno);
+    }
+    
+    
+}
+
+void __attribute__((__noreturn__, no_instrument_function))
+trap_handler(struct Trapframe *tf, uint32_t tbr)
+{
+    uint32_t trapno = (tbr >> TBR_TT_SHIFT) & TBR_TT_MASK;
+    trap_dispatch(trapno, tf);
+
     trapframe_print(tf);
-    cprintf("looping\n");
-    for (;;) {}
+    panic("trap %d -- unimpl", trapno);
+    
+    thread_run();
 }
 
 void

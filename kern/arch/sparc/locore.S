@@ -136,6 +136,8 @@ def_trap:
 
 	mov	%g0, %fp
 	mov	%g7, %sp
+
+	rd	%tbr, %o1
 	call	trap_handler
 	 mov	%sp, %o0
 

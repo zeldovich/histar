@@ -5,7 +5,8 @@
 void init(void) __attribute__((noreturn));
 
 // Entry into kernel from user space traps
-void trap_handler(struct Trapframe *tf) __attribute__((__noreturn__));
+void trap_handler(struct Trapframe *tf, uint32_t tbr) 
+     __attribute__((__noreturn__));
 
 // Low-level trapframe jump in locore.S
 void trapframe_pop(const struct Trapframe *) __attribute__((__noreturn__));

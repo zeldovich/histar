@@ -5,12 +5,30 @@
 
 #define SPARC_INST_ATTR	static __inline __attribute__((always_inline, no_instrument_function))
 
+SPARC_INST_ATTR uint32_t rd_asr17(void);
+SPARC_INST_ATTR uint32_t rd_tbr(void);
 SPARC_INST_ATTR uint32_t lda_mmuregs(uint32_t regaddr);
 SPARC_INST_ATTR void sta_mmuflush(uint32_t addr);
 SPARC_INST_ATTR void sta_dflush(void);
 SPARC_INST_ATTR void flush(void);
 SPARC_INST_ATTR uint32_t lda_bypass(uint32_t paddr);
 SPARC_INST_ATTR void sta_bypass(uint32_t paddr, uint32_t value);
+
+uint32_t 
+rd_asr17(void)
+{
+    uint32_t retval;
+    __asm__ __volatile__("rd %%asr17, %0\n\t": "=r"(retval));
+    return retval;
+}
+
+uint32_t
+rd_tbr(void)
+{
+    uint32_t retval;
+    __asm__ __volatile__("rd %%tbr, %0\n\t": "=r"(retval));
+    return retval;
+}
 
 uint32_t
 lda_mmuregs(uint32_t regaddr)
