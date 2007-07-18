@@ -77,6 +77,12 @@
         ldd     [%base_reg + 16], %l4; \
         ldd     [%base_reg + 24], %l6;
 
+#define LOAD_OUTS(base_reg) \
+        ldd     [%base_reg], %o0; \
+        ldd     [%base_reg + 8], %o2; \
+        ldd     [%base_reg + 16], %o4; \
+        ldd     [%base_reg + 24], %o6;
+
 /* Store misc. registers onto the trapframe starting at %base_reg */
 #define STORE_TRAPFRAME_OTHER(base_reg, reg_psr, reg_pc, reg_npc, g_scratch) \
         st      %reg_psr, [%base_reg + TF_PSR]; \
