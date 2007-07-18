@@ -98,8 +98,7 @@ struct Fpregs {
     uint32_t tf_fsr;
     /* Make sure we do the right thing with %fq */
 };
-
-#else
+#endif
 
 /* Reg_window offsets */
 #define RW_L0     0x00
@@ -136,6 +135,7 @@ struct Fpregs {
 #define TF_O4     0x30
 #define TF_O5     0x34
 #define TF_O6     0x38
+#define TF_SP     0x38
 #define TF_O7     0x3C
 
 #define TF_L0     0x40
@@ -162,6 +162,5 @@ struct Fpregs {
 #define TF_NPC    0x8C
 
 #define TRAPFRAME_SZ 0x90
-#endif /* __ASSEMBLER__ */
 
 #endif
