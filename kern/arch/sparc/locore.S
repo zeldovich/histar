@@ -142,8 +142,7 @@ def_trap:
 	 mov	%sp, %o0
 
 ENTRY(trapframe_pop)
-	/* XXX need to reset CWP to trap time value (psr) */
-	/* XXX need to reset y */
+	mov	%wim, %g2
 	mov	%g0, %wim
 	WRITE_PAUSE
 
@@ -153,17 +152,23 @@ ENTRY(trapframe_pop)
 	LOAD_OUTS(g1 + TF_O0)
 
 	save
+	mov	%g2, %wim
+	WRITE_PAUSE
+
 	mov	%g1, %l0
 	LOAD_GLOBALS(l0 + TF_G0)
 
 	ld	[%l0 + TF_PC], %l1
 	ld	[%l0 + TF_NPC], %l2
 
-	/* disable traps so rett doesn't complain */
+	ld	[%l0 + TF_Y], %l3
+	wr	%l3, %y
+
+	/* need to disable traps for rett */
 	rd	%psr, %l3
-	andn	%l3, PSR_ET, %l3
+	andn	%l3, PSR_ET | PSR_PS, %l3
 	wr	%l3, %psr
-	
+
 	jmp	%l1
 	 rett	%l2
 
