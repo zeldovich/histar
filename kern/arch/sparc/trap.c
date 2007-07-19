@@ -32,11 +32,14 @@ static void
 page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 {
     void *fault_va = (void *)lda_mmuregs(SRMMU_FAULT_ADDR);
-    uint32_t fault_status = lda_mmuregs(SRMMU_FAULT_STATUS);
+    uint32_t fault_type = 
+	(lda_mmuregs(SRMMU_FAULT_STATUS) >> SRMMU_AT_SHIFT) & SRMMU_AT_MASK;
     uint32_t reqflags = 0;
 
-    if (fault_status)
-	reqflags = 0;
+    if ((fault_type == SRMMU_AT_SUD) || (fault_type == SRMMU_AT_SUI))
+	reqflags |= SEGMAP_WRITE;
+    else if (fault_type == SRMMU_AT_LUI)
+	reqflags |= SEGMAP_EXEC;
     
     if (tf->tf_psr & PSR_PS) {
 	cprintf("kernel page fault: va=%p\n", fault_va);
