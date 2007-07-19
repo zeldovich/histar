@@ -8,6 +8,7 @@
 #include <machine/trap.h>
 #include <machine/srmmu.h>
 #include <machine/pmap.h>
+#include <machine/sparc-common.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
 #include <dev/irqmp.h>
@@ -20,7 +21,9 @@ char boot_cmdline[256];
 static void
 mmu_init(void)
 {
-    /* XXX Nuke identically mapped physical memory */
+    for (uint32_t i = 64; i < 128; i++)
+	bootpt.pm1_ent[i] = 0;
+    tlb_flush_all();
 }
 
 static void

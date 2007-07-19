@@ -58,12 +58,7 @@ pmap_set_current(struct Pagemap *pm)
     ctxptr_t ptd = (pa >> 4) & PTD_PTP_MASK;
     ptd |= PT_ET_PTD;
     bootct.ct_ent[0] = ptd;
-    
-    /* flush entire TLB (pg 249-250 SPARC v8 manual) */
-    sta_mmuflush(0x400);
-    /* flush both icache and dcache */
-    flush();
-    sta_dflush();
+    tlb_flush_all();
 }
 
 /*
@@ -99,7 +94,6 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 	ptflags |= PTE_ACC_W;
     if ((flags & SEGMAP_EXEC))
 	ptflags |= PTE_ACC_X;
-    
 
     perr();
     return -E_INVAL;
