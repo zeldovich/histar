@@ -13,6 +13,7 @@ SPARC_INST_ATTR void sta_dflush(void);
 SPARC_INST_ATTR void flush(void);
 SPARC_INST_ATTR uint32_t lda_bypass(uint32_t paddr);
 SPARC_INST_ATTR void sta_bypass(uint32_t paddr, uint32_t value);
+SPARC_INST_ATTR void tlb_flush_all(void);
 
 uint32_t 
 rd_asr17(void)
@@ -77,6 +78,16 @@ sta_bypass(uint32_t paddr, uint32_t value)
 {
     __asm__ __volatile__("sta %0, [%1] %2\n\t"::"r"(value), "r"(paddr),
 			 "i"(ASI_BYPASS):"memory");
+}
+
+void
+tlb_flush_all(void)
+{
+    /* flush both icache and dcache */
+    flush();
+    sta_dflush();
+    /* flush entire TLB (pg 249-250 SPARC v8 manual) */
+    sta_mmuflush(0x400);
 }
 
 /* XXX */
