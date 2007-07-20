@@ -1,5 +1,6 @@
 #include <kern/arch.h>
 #include <kern/lib.h>
+#include <kern/pageinfo.h>
 #include <machine/sparc-common.h>
 #include <inc/error.h>
 
@@ -205,8 +206,14 @@ pmap_set_current(struct Pagemap *pm)
 void
 as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
-    perr();
     //const struct Pagemap *pgmap = arg;
+    uint64_t pte = *ptep;
+    if (!(PTE_ET(pte) == PT_ET_PTE) || !(pte & PTE_M))
+	return;
+
+    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));
+    pi->pi_dirty = 1;
+    *ptep &= ~PTE_M;
 }
 
 void
