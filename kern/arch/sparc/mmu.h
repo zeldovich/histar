@@ -43,7 +43,7 @@
 #define PTD_PTP_MASK	0x3fffffff
 #define PTD_ET_SHIFT	0
 #define PTD_ET_MASK	0x03
-#define PTD_ET(e)       ((e >> PTD_ET_SHIFT) & PTD_ET_MASK)
+#define PTD_ET(e)       (((e) >> PTD_ET_SHIFT) & PTD_ET_MASK)
 
 /* Page table entries */
 #define PTE_PPN_SHIFT	8
@@ -55,7 +55,9 @@
 #define	PTE_ACC_MASK	0x07
 #define PTE_ET_SHIFT	0		/* Entry type */
 #define PTE_ET_MASK	0x03
-#define PTE_ET(e)       ((e >> PTE_ET_SHIFT) & PTE_ET_MASK)
+#define PTE_ET(e)       (((e) >> PTE_ET_SHIFT) & PTE_ET_MASK)
+
+#define PT_ET(e, n)     ((n) >= 1 ? PTD_ET(e) : PTE_ET(2))
 
 /* Simplified view of access permission values */
 #define PTE_ACC_W	(1 << 0)
