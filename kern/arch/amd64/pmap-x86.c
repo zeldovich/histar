@@ -275,7 +275,7 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 
     uint64_t pte = *ptep;
     if ((pte & PTE_P)) {
-	if ((pte & PTE_W))
+	if (pte & PTE_W)
 	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
 	*ptep = 0;
 	pmap_queue_invlpg(pgmap, va);
