@@ -41,9 +41,6 @@
 /* Page table descriptors */
 #define PTD_PTP_SHIFT	2
 #define PTD_PTP_MASK	0x3fffffff
-#define PTD_ET_SHIFT	0
-#define PTD_ET_MASK	0x03
-#define PTD_ET(e)       (((e) >> PTD_ET_SHIFT) & PTD_ET_MASK)
 
 /* Page table entries */
 #define PTE_PPN_SHIFT	8
@@ -53,11 +50,11 @@
 #define PTE_R		(1 << 5)	/* Referenced */
 #define PTE_ACC_SHIFT	2		/* Access permissions */
 #define	PTE_ACC_MASK	0x07
-#define PTE_ET_SHIFT	0		/* Entry type */
-#define PTE_ET_MASK	0x03
-#define PTE_ET(e)       (((e) >> PTE_ET_SHIFT) & PTE_ET_MASK)
 
-#define PT_ET(e, n)     ((n) >= 1 ? PTD_ET(e) : PTE_ET(2))
+/* Common to PTD and PTE */
+#define PT_ET_SHIFT	0		/* Entry type */
+#define PT_ET_MASK	0x03
+#define PT_ET(e)        (((e) >> PT_ET_SHIFT) & PT_ET_MASK)
 
 /* Simplified view of access permission values */
 #define PTE_ACC_W	(1 << 0)
@@ -74,7 +71,7 @@
 
 #define PTD_ENTRY(pa)   ((((pa) >> PTPSHIFT) << PTD_PTP_SHIFT) | PT_ET_PTD)
 #define PTE_ENTRY(pa, flags) ((((pa) >> PGSHIFT) << PTE_PPN_SHIFT) | \
-                             (PT_ET_PTE << PTE_ET_SHIFT) |           \
+                             (PT_ET_PTE << PT_ET_SHIFT) |            \
                              ((flags) << PTE_ACC_SHIFT) |            \
                              PTE_C)
 

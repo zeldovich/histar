@@ -67,7 +67,7 @@ page_map_free_level(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl)
 
     for (i = 0; i < maxi; i++) {
 	ptent_t ptent = *pmap_entp(pgmap, pmlevel, i);
-	if (PT_ET(ptent, pmlevel) == PT_ET_NONE)
+	if (PT_ET(ptent) == PT_ET_NONE)
 	    continue;
 	if (pmlevel > 0) {
 	    uint32_t *pm = pa2kva(PTD_ADDR(ptent));
@@ -118,14 +118,13 @@ page_map_traverse_internal(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
 	    continue;
 	}
 
-	if ((pmlevel == 1 || pmlevel == 2) && 
-	    (PT_ET(pm_ent, pmlevel) == PT_ET_PTE)) {
+	if ((pmlevel == 1 || pmlevel == 2) && (PT_ET(pm_ent) == PT_ET_PTE)) {
 	    panic("XXX");
 	    cb(arg, pm_entp, ent_va);
 	    continue;
 	}
 
-	if (!(pm_ent & PTE_ET_MASK)) {
+	if (PT_ET(pm_ent) == PT_ET_NONE) {
 	    if (!create)
 		continue;
 
@@ -209,7 +208,7 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
     //const struct Pagemap *pgmap = arg;
     uint64_t pte = *ptep;
-    if (!(PTE_ET(pte) == PT_ET_PTE) || !(pte & PTE_M))
+    if (!(PT_ET(pte) == PT_ET_PTE) || !(pte & PTE_M))
 	return;
 
     struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(pte)));

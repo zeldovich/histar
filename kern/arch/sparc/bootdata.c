@@ -5,7 +5,7 @@
  */
 
 #define PTATTR __attribute__ ((aligned (4096), section (".data")))
-#define KPT_BITS ((PT_ET_PTE << PTE_ET_SHIFT) | \
+#define KPT_BITS ((PT_ET_PTE << PT_ET_SHIFT) | \
 		  (PTE_ACC_SUPER << PTE_ACC_SHIFT) | PTE_C )
 
 #define DO_8(_start, _macro)				\
