@@ -5,6 +5,39 @@
 
 #define perr() cprintf("%s:%u: XXX unimpl\n", __FILE__, __LINE__)
 
+static int
+pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
+{
+    struct Pagemap2 *pm = LIST_FIRST(fl);
+    if (pm) {
+	LIST_REMOVE(pm, pm2_link);
+	*pgmap = pm;
+	return 0;
+    } 
+
+    void *p;
+    int r = page_alloc(&p);
+    if (r < 0)
+	return r;
+    memset(p, 0, PGSIZE);
+
+    pm = (struct Pagemap2 *)p;
+    *pgmap = pm;
+    struct Pagemap2 *end = pm + (PGSIZE / sizeof(struct Pagemap2));
+    for (pm = pm + 1; pm != end; pm++)
+	LIST_INSERT_HEAD(fl, pm, pm2_link);
+
+    return 0;
+}
+
+static ptent_t*
+pmap_entp(uint32_t *pgmap, int pmlevel, uint32_t idx)
+{
+    if (pmlevel == 2)
+	return &((struct Pagemap *)(pgmap))->pm1_ent[idx];
+    return &((struct Pagemap2 *)(pgmap))->pm2_ent[idx];
+}
+
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
@@ -25,20 +58,89 @@ page_map_free(struct Pagemap *pgmap)
     perr();
 }
 
+static int
+page_map_traverse_internal(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
+			   const void *first, const void *last,
+			   int create,
+			   page_map_traverse_cb cb, const void *arg,
+			   void *va_base)
+{
+    int r;
+    assert(pmlevel >= 0 && pmlevel <= NPTLVLS);
+
+    uint32_t first_idx = PDX(pmlevel, first);
+    uint32_t last_idx  = PDX(pmlevel, last);
+
+    for (uint32_t idx = first_idx; idx <= last_idx; idx++) {
+	ptent_t *pm_entp = pmap_entp(pgmap, pmlevel, idx);
+	ptent_t pm_ent = *pm_entp;
+
+	void *ent_va = va_base + (idx << PDSHIFT(pmlevel));
+	
+	if (pmlevel == 0) {
+	    cb(arg, pm_entp, ent_va);
+	    continue;
+	}
+
+	if ((pmlevel == 1 || pmlevel == 2) && (pm_ent & PT_ET_PTE)) {
+	    panic("XXX");
+	    cb(arg, pm_entp, ent_va);
+	    continue;
+	}
+
+	if (!(pm_ent & PTE_ET_MASK)) {
+	    if (!create)
+		continue;
+
+	    struct Pagemap2 *pgmap2 = 0;
+	    if ((r = pmap_alloc_pmap2(fl, &pgmap2)) < 0)
+		return r;
+
+	    pm_ent = PTD_ENTRY(kva2pa(pgmap2));
+	    *pm_entp = pm_ent;
+	}
+
+	uint32_t *pm_next = pa2kva(PTD_ADDR(pm_ent));
+	const void *first_next = (idx == first_idx) ? first : 0;
+	const void *last_next  = (idx == last_idx)  ? last  : (const void *) ~0;
+	r = page_map_traverse_internal(pm_next, pmlevel - 1, fl,
+				       first_next, last_next,
+				       create, cb, arg, ent_va);
+	if (r < 0)
+	    return r;
+    }
+
+    return 0;
+}
+
 int
 page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 		  int create, page_map_traverse_cb cb, const void *arg)
 {
-    perr();
-    return -E_INVAL;
+    if (last >= (const void *) ULIM)
+	last = (const void *) ULIM - PGSIZE;
+    return page_map_traverse_internal((uint32_t *)pgmap, NPTLVLS, &pgmap->fl, 
+				      first, last, create, cb, arg, 0);
+}
+
+static void
+pgdir_walk_cb(const void *arg, ptent_t *ptep, void *va)
+{
+    ptent_t **pte_store = (ptent_t **) arg;
+    *pte_store = ptep;
 }
 
 int
 pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, ptent_t **pte_store)
 {
-    perr();
-    return -E_INVAL;
+    *pte_store = 0;
+    int r = page_map_traverse(pgmap, va, va, create, &pgdir_walk_cb, pte_store);
+    if (r < 0)
+	return r;
+    if (create && !*pte_store)
+	return -E_INVAL;
+    return 0;
 }
 
 int
@@ -95,8 +197,19 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     if ((flags & SEGMAP_EXEC))
 	ptflags |= PTE_ACC_X;
 
-    perr();
-    return -E_INVAL;
+    ptent_t *ptep;
+    int r = pgdir_walk(pgmap, va, 1, &ptep);
+    if (r < 0) {
+	cprintf("XXX pgdir_walk error: %s\n", e2s(r));
+	return r;
+    }
+
+    as_arch_page_invalidate_cb(pgmap, ptep, va);
+    *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
+    if ((ptflags & PTE_ACC_W))
+	pagetree_incpin(pp);
+
+    return 0;
 }
 
 /*

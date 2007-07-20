@@ -10,12 +10,25 @@
 # define CAST64(x) (x)
 #endif
 
+#define NPTLVLS     2		/* page table depth -1 */
+#define NPTBITS1    6
+#define NPTBITS2    8
+
+#define PDXMASK1    ((1 << NPTBITS1) - 1)
+#define PDXMASK2    ((1 << NPTBITS2) - 1)
+#define PDXMASK(n)  ((n) == 2 ? PDXMASK2 : PDXMASK1)
+
+#define PDSHIFT(n)  (12 + NPTBITS1 * (n))
+#define PDX(n, va)  ((((uintptr_t)(va)) >> PDSHIFT(n)) & PDXMASK(n))
+
 /*
  * MMU hardware
  */
 #define	PGSHIFT		12
-#define	PGSIZE		(1 << PGSHIFT)
+#define PGSIZE		(1 << PGSHIFT)
 #define PGMASK		(PGSIZE - 1)
+
+#define PTPSHIFT        6
 
 /* offset in page */
 #define PGOFF(la)	(((uintptr_t) (la)) & PGMASK)
@@ -49,6 +62,13 @@
 #define PT_ET_PTE	2
 
 #define PTE_ADDR(e)	(((e >> PTE_PPN_SHIFT) & PTE_PPN_MASK) << PGSHIFT)
+#define PTD_ADDR(e)     (((e >> PTD_PTP_SHIFT) & PTD_PTP_MASK) << PTPSHIFT)
+
+#define PTD_ENTRY(pa)   ((((pa) >> PTPSHIFT) << PTD_PTP_SHIFT) | PT_ET_PTD)
+#define PTE_ENTRY(pa, flags) ((((pa) >> PGSHIFT) << PTE_PPN_SHIFT) | \
+                             (PT_ET_PTE << PTE_ET_SHIFT) |           \
+                             ((flags) << PTE_ACC_SHIFT) |            \
+                             PTE_C)
 
 /*
  * Trap base register 

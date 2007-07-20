@@ -77,6 +77,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     case T_TEXTFAULT:
     case T_DATAFAULT:
 	page_fault(trap_thread, tf, trapno);
+	break;
     default:
 	panic("trap %d", trapno);
     }
