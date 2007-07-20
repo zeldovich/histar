@@ -50,6 +50,7 @@
 #define PTE_R		(1 << 5)	/* Referenced */
 #define PTE_ACC_SHIFT	2		/* Access permissions */
 #define	PTE_ACC_MASK	0x07
+#define PTE_ACC(pte)    (((pte) >> PTE_ACC_SHIFT) & PTE_ACC_MASK)
 
 /* Common to PTD and PTE */
 #define PT_ET_SHIFT	0		/* Entry type */

@@ -219,15 +219,28 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    perr();
     //const struct Pagemap *pgmap = arg;
+    as_arch_collect_dirty_bits(arg, ptep, va);
+
+    uint32_t pte = *ptep;
+    if (PT_ET(pte) == PT_ET_PTE) {
+	if (PTE_ACC(pte) & PTE_ACC_W)
+	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep = 0;
+    }
 }
 
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    perr();
     //const struct Pagemap *pgmap = arg;
+    as_arch_collect_dirty_bits(arg, ptep, va);
+    
+    uint32_t pte = *ptep;
+    if ((PT_ET(pte) == PT_ET_PTE) && (PTE_ACC(pte) & PTE_ACC_W)) {
+	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	*ptep &= ~PTE_ACC_W;
+    }
 }
 
 int
