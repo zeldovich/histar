@@ -5,6 +5,14 @@
 
 #define perr() cprintf("%s:%u: XXX unimpl\n", __FILE__, __LINE__)
 
+static ptent_t*
+pmap_entp(uint32_t *pgmap, int pmlevel, uint32_t idx)
+{
+    if (pmlevel == 2)
+	return &((struct Pagemap *)(pgmap))->pm1_ent[idx];
+    return &((struct Pagemap2 *)(pgmap))->pm2_ent[idx];
+}
+
 static int
 pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
 {
@@ -30,12 +38,10 @@ pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
     return 0;
 }
 
-static ptent_t*
-pmap_entp(uint32_t *pgmap, int pmlevel, uint32_t idx)
+static void
+pmap_free_pmap2(struct Pagemap2fl *fl, struct Pagemap2 *pgmap)
 {
-    if (pmlevel == 2)
-	return &((struct Pagemap *)(pgmap))->pm1_ent[idx];
-    return &((struct Pagemap2 *)(pgmap))->pm2_ent[idx];
+    LIST_INSERT_HEAD(fl, pgmap, pm2_link);
 }
 
 int
@@ -51,11 +57,40 @@ page_map_alloc(struct Pagemap **pm_store)
     return 0;
 }
 
+static void
+page_map_free_level(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl)
+{
+    // Skip the kernel half of the address space
+    int maxi = (pmlevel == NPTLVLS ? NPTENTRIES(pmlevel)/2 : NPTENTRIES(pmlevel));
+    int i;
+
+    for (i = 0; i < maxi; i++) {
+	ptent_t ptent = *pmap_entp(pgmap, pmlevel, i);
+	if (!(ptent & PT_ET_NONE))
+	    continue;
+	if (pmlevel > 0) {
+	    uint32_t *pm = pa2kva(PTD_ADDR(ptent));
+	    page_map_free_level(pm, pmlevel - 1, fl);
+	}
+    }
+
+    if (pmlevel == NPTLVLS)
+	page_free(pgmap);
+    else
+	pmap_free_pmap2(fl, (struct Pagemap2 *)pgmap);
+}
+
 void
 page_map_free(struct Pagemap *pgmap)
 {
-    /* XXX free all page table levels */
-    perr();
+    page_map_free_level((uint32_t *)pgmap, NPTLVLS, &pgmap->fl);
+    
+    struct Pagemap2 *pm2;
+    LIST_FOREACH(pm2, &pgmap->fl, pm2_link) {
+	uint32_t addr = (uint32_t)pm2;
+	if ((addr % PGSIZE) == 0)
+	    page_free(pm2);
+    }
 }
 
 static int

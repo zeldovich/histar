@@ -14,6 +14,10 @@
 #define NPTBITS1    6
 #define NPTBITS2    8
 
+#define NPTENTRIES1     (1 << NPTBITS1)
+#define NPTENTRIES2     (1 << NPTBITS2)
+#define NPTENTRIES(n)   ((n) == 2 ? NPTBITS2 : NPTBITS1)
+
 #define PDXMASK1    ((1 << NPTBITS1) - 1)
 #define PDXMASK2    ((1 << NPTBITS2) - 1)
 #define PDXMASK(n)  ((n) == 2 ? PDXMASK2 : PDXMASK1)
