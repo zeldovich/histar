@@ -3,8 +3,7 @@
 #include <kern/pageinfo.h>
 #include <machine/sparc-common.h>
 #include <inc/error.h>
-
-#define perr() cprintf("%s:%u: XXX unimpl\n", __FILE__, __LINE__)
+#include <inc/safeint.h>
 
 static ptent_t*
 pmap_entp(uint32_t *pgmap, int pmlevel, uint32_t idx)
@@ -179,11 +178,77 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
     return 0;
 }
 
+static void *
+page_lookup(struct Pagemap *pgmap, void *va, ptent_t **pte_store)
+{
+    /* XXX LEON3 MMU missing probe!? */
+    if ((uintptr_t) va >= ULIM)
+	panic("page_lookup: va %p over ULIM", va);
+
+    ptent_t *ptep;
+    int r = pgdir_walk(pgmap, va, 0, &ptep);
+    if (r < 0)
+	panic("pgdir_walk(%p, create=0) failed: %d", va, r);
+
+    if (pte_store)
+	*pte_store = ptep;
+
+    if (ptep == 0 || PT_ET(*ptep) == PT_ET_NONE)
+	return 0;
+
+    return pa2kva(PTE_ADDR(*ptep));
+}
+
 int
 check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 {
-    perr();
-    return -E_INVAL;
+    assert(cur_thread);
+    if (!cur_as) {
+	int r = thread_load_as(cur_thread);
+	if (r < 0)
+	    return r;
+
+	as_switch(cur_thread->th_as);
+	assert(cur_as);
+    }
+    
+    ptent_t pte_flags = 0;
+    if (reqflags & SEGMAP_WRITE)
+	pte_flags |= PTE_ACC_W;
+    pte_flags = pte_flags << PTE_ACC_SHIFT;
+    
+    int aspf = 0;
+    if (nbytes > 0) {
+	int overflow = 0;
+	uintptr_t iptr = (uintptr_t) ptr;
+	uintptr_t start = ROUNDDOWN(iptr, PGSIZE);
+	uintptr_t end = ROUNDUP(safe_addptr(&overflow, iptr, nbytes), PGSIZE);
+
+	if (end <= start || overflow)
+	    return -E_INVAL;
+
+	for (uintptr_t va = start; va < end; va += PGSIZE) {
+	    if (va >= ULIM)
+		return -E_INVAL;
+
+	    ptent_t *ptep;
+	    if (cur_as->as_pgmap &&
+		page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
+		(*ptep & pte_flags) == pte_flags)
+		continue;
+
+	    aspf = 1;
+	    int r = as_pagefault(cur_as, (void *) va, reqflags);
+	    if (r < 0)
+		return r;
+	}
+    }
+
+    // Flush any stale TLB entries that might have arisen from as_pagefault()
+    if (aspf)
+	as_switch(cur_as);
+
+    return 0;
 }
 
 void
