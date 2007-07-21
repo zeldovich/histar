@@ -215,7 +215,6 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     ptent_t pte_flags = 0;
     if (reqflags & SEGMAP_WRITE)
 	pte_flags |= PTE_ACC_W;
-    pte_flags = pte_flags << PTE_ACC_SHIFT;
     
     int aspf = 0;
     if (nbytes > 0) {
@@ -234,7 +233,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	    ptent_t *ptep;
 	    if (cur_as->as_pgmap &&
 		page_lookup(cur_as->as_pgmap, (void *) va, &ptep) &&
-		(*ptep & pte_flags) == pte_flags)
+		(PTE_ACC(*ptep) & pte_flags) == pte_flags)
 		continue;
 
 	    aspf = 1;
@@ -304,14 +303,14 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
     uint32_t pte = *ptep;
     if ((PT_ET(pte) == PT_ET_PTE) && (PTE_ACC(pte) & PTE_ACC_W)) {
 	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
-	*ptep &= ~PTE_ACC_W;
+	*ptep &= ~(PTE_ACC_W << PTE_ACC_SHIFT);
     }
 }
 
 int
 as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
-    uint64_t ptflags = 0;
+    uint32_t ptflags = 0;
     if ((flags & SEGMAP_WRITE))
 	ptflags |= PTE_ACC_W;
     if ((flags & SEGMAP_EXEC))
@@ -326,7 +325,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
-    if ((ptflags & PTE_ACC_W))
+    if (ptflags & PTE_ACC_W)
 	pagetree_incpin(pp);
 
     return 0;
