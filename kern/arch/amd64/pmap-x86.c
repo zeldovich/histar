@@ -153,7 +153,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
     }
 
     ptent_t pte_flags = PTE_P | PTE_U;
-    if ((reqflags & SEGMAP_WRITE))
+    if (reqflags & SEGMAP_WRITE)
 	pte_flags |= PTE_W;
 
     int aspf = 0;
