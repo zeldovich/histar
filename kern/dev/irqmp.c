@@ -21,6 +21,6 @@ irqmp_init(void)
 	return;
     }
     
-    /* XXX */
-    LEON_BYPASS_STORE_PA(&(irq_regs->mask[0]), 0);
+    LEON_BYPASS_STORE_PA(&(irq_regs->mask[0]), ~0);
+    LEON_BYPASS_STORE_PA(&(irq_regs->iclear), ~0);
 }
