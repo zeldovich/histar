@@ -1,11 +1,5 @@
 #include <kern/arch.h>
 
-void
-irq_arch_enable(uint32_t irqno)
-{
-}
-
-
 uint64_t
 karch_get_tsc(void)
 {

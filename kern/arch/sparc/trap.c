@@ -3,6 +3,7 @@
 #include <kern/lib.h>
 #include <kern/sched.h>
 #include <kern/kobj.h>
+#include <kern/intr.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
 #include <machine/srmmu.h>
@@ -10,6 +11,7 @@
 #include <machine/trapcodes.h>
 #include <machine/psr.h>
 #include <machine/utrap.h>
+#include <dev/irqmp.h>
 #include <inc/error.h>
 
 static const struct Thread *trap_thread;
@@ -71,6 +73,13 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     if (!trap_thread) {
 	trapframe_print(tf);
 	panic("trap %d while idle", trapno);
+    }
+
+    if (trapno >= T_IRQOFFSET && trapno < T_IRQOFFSET + MAX_IRQS) {
+	uint32_t irqno = trapno - T_IRQOFFSET;
+	irqmp_clear(irqno);
+	irq_handler(irqno);
+	return;
     }
     
     switch(trapno) {

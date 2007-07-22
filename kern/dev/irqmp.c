@@ -1,4 +1,5 @@
 #include <kern/lib.h>
+#include <kern/arch.h>
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
@@ -6,6 +7,25 @@
 #include <dev/irqmp.h>
 #include <dev/amba.h>
 #include <dev/ambapp.h>
+
+static LEON3_IrqCtrl_Regs_Map *irq_regs;
+
+void
+irq_arch_enable(uint32_t irqno)
+{
+    assert(irq_regs);
+    assert(irqno > 0 && irqno < MAX_IRQS);
+    uint32_t m = LEON_BYPASS_LOAD_PA(&(irq_regs->mask[0]));
+    m |= (1 << irqno);
+    LEON_BYPASS_STORE_PA(&(irq_regs->mask[0]), m);
+}
+
+void
+irqmp_clear(uint32_t irqno)
+{
+    uint32_t c = (1 << irqno);
+    LEON_BYPASS_STORE_PA(&(irq_regs->iclear), c);
+}
 
 void 
 irqmp_init(void)
@@ -15,12 +35,12 @@ irqmp_init(void)
     if (!r)
 	return;
 
-    LEON3_IrqCtrl_Regs_Map *irq_regs = (LEON3_IrqCtrl_Regs_Map *)dev.start;
+    irq_regs = (LEON3_IrqCtrl_Regs_Map *)dev.start;
     if (!irq_regs) {
 	cprintf("irqmp_init: unable to find irq cntrl registers\n");
 	return;
     }
     
-    LEON_BYPASS_STORE_PA(&(irq_regs->mask[0]), ~0);
+    LEON_BYPASS_STORE_PA(&(irq_regs->mask[0]), 0);
     LEON_BYPASS_STORE_PA(&(irq_regs->iclear), ~0);
 }
