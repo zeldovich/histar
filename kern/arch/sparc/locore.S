@@ -128,10 +128,11 @@ def_trap:
 	STORE_OUTS(g7 + TF_O0)
 	STORE_LOCALS(g7 + TF_L0)
 	STORE_INS(g7 + TF_I0)
-
 	/* Have a saved trapframe, so can use any registers */
+
+	/* Disable interrupts, enable traps */
 	rd	%psr, %l0
-	wr	%l0, PSR_ET, %psr
+	wr	%l0, PSR_ET | PSR_PIL, %psr
 	WRITE_PAUSE
 
 	mov	%g0, %fp
@@ -164,9 +165,9 @@ ENTRY(trapframe_pop)
 	ld	[%l0 + TF_Y], %l3
 	wr	%l3, %y
 
-	/* need to disable traps for rett */
+	/* Enable interrupts, traps enabled below by rett */
 	rd	%psr, %l3
-	andn	%l3, PSR_ET | PSR_PS, %l3
+	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
 	wr	%l3, %psr
 
 	jmp	%l1
