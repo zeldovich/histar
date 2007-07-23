@@ -6,6 +6,7 @@ LIB_SRCFILES :=	\
 	lib/$(ARCH)/stack.S \
 	lib/$(ARCH)/trapstub.S \
 	lib/$(ARCH)/coop_syscall.S \
+	lib/$(ARCH)/misc.c \
 	lib/syscall.c \
 	lib/printfmt.c \
 	lib/sysstring.c \
@@ -79,6 +80,7 @@ include lib/cppsup/Makefrag
 LIB_OBJFILES := $(LIB_SRCFILES)
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 LIB_OBJFILES := $(patsubst lib/%.cc, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
 LIBJOS_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
