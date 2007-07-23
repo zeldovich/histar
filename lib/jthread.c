@@ -6,7 +6,7 @@
 void
 jthread_mutex_init(jthread_mutex_t *mu)
 {
-    jos_atomic_set(mu, 0);
+    jos_atomic_set64(mu, 0);
 }
 
 void
@@ -40,7 +40,7 @@ jthread_mutex_unlock(jthread_mutex_t *mu)
 	panic("jthread_mutex_unlock: %p not locked", mu);
 
     if (was == 2) {
-	jos_atomic_set(mu, 0);
+	jos_atomic_set64(mu, 0);
 	sys_sync_wakeup(&mu->counter);
     }
 }

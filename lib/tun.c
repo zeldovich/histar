@@ -87,13 +87,13 @@ tun_read(struct Fd *fd, void *buf, size_t len, off_t offset)
 
     if (plen > len) {
 	cprintf("tun_read: packet too big: %"PRIu64" > %zd\n", plen, len);
-	jos_atomic_set(&tp->len, 0);
+	jos_atomic_set64(&tp->len, 0);
 	errno = E2BIG;
 	goto out;
     }
 
     memcpy(buf, &tp->buf[0], plen);
-    jos_atomic_set(&tp->len, 0);
+    jos_atomic_set64(&tp->len, 0);
     sys_sync_wakeup(&jos_atomic_read(&tp->len));
     cc = plen;
 
@@ -137,7 +137,7 @@ tun_write(struct Fd *fd, const void *buf, size_t len, off_t offset)
     }
 
     memcpy(&tp->buf[0], buf, len);
-    jos_atomic_set(&tp->len, len);
+    jos_atomic_set64(&tp->len, len);
     sys_sync_wakeup(&jos_atomic_read(&tp->len));
     cc = len;
 

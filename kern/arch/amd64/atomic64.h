@@ -13,6 +13,12 @@
 typedef struct { volatile uint64_t counter; } jos_atomic64_t;
 
 static __inline__ void
+jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
+{
+    v->counter = i;
+}
+
+static __inline__ void
 jos_atomic_inc64(jos_atomic64_t *v)
 {
     __asm__ __volatile__(

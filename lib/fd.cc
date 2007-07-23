@@ -544,7 +544,7 @@ dev_lookup(uint8_t dev_id, struct Dev **dev)
 	    for (int i = 0; devlist[i]; i++)
 		dev_register(devlist[i]);
 
-	    jos_atomic_set(&devtab_init, 2);
+	    jos_atomic_set64(&devtab_init, 2);
 	    sys_sync_wakeup(&devtab_init.counter);
 	} else {
 	    sys_sync_wait(&devtab_init.counter, 1, UINT64(~0));

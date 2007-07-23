@@ -14,7 +14,12 @@ typedef struct { volatile uint32_t counter; } jos_atomic_t;
 
 #define JOS_ATOMIC_INIT(i)		{ (i) }
 #define jos_atomic_read(v)		((v)->counter)
-#define jos_atomic_set(v,i)		(((v)->counter) = (i))
+
+static __inline__ void
+jos_atomic_set(jos_atomic_t *v, int i)
+{
+    v->counter = i;
+}
 
 static __inline__ void
 jos_atomic_add(int i, jos_atomic_t *v)
