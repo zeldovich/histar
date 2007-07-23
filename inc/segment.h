@@ -36,12 +36,12 @@ struct u_segment_mapping {
 };
 
 struct u_address_space {
-    void *trap_handler;
-    void *trap_stack_base;
-    void *trap_stack_top;
     uint64_t size;
     uint64_t nent;
     struct u_segment_mapping *ents;
+    void *trap_handler;
+    void *trap_stack_base;
+    void *trap_stack_top;
 };
 
 #endif
