@@ -8,7 +8,7 @@ enum { __jos_entry_allregs = 1 };
 enum { __jos_entry_allregs = 0 };
 #define JOS_THREAD_ENTRY_GCCATTR regparm(1)
 #elif defined(JOS_ARCH_sparc)
-enum { __jos_entry_allregs = 1 };
+enum { __jos_entry_allregs = 0 };
 #define JOS_THREAD_ENTRY_GCCATTR
 #else
 #error Unknown CPU architecture

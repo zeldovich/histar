@@ -113,6 +113,9 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_reg[TF_I3] = te->te_arg[3];
     t->th_tf.tf_reg[TF_I4] = te->te_arg[4];
     t->th_tf.tf_reg[TF_I5] = te->te_arg[5];
+
+    for (uint32_t i = 0; i < thread_entry_narg; i++)
+	t->th_tfa.tfa_entry_args.te_arg[i] = te->te_arg[i];
     
     static_assert(thread_entry_narg == 6);
 }
