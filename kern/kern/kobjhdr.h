@@ -26,9 +26,9 @@ enum {
 
 struct kobject_hdr {
     kobject_id_t ko_id;
-    uint8_t ko_type;
 
-    uint64_t ko_ref;	// persistent references (via containers or TLS)
+    // Persistent references (via containers, thread's TLS, or ko_label).
+    uint64_t ko_ref;
 
     // Bytes reserved for this object.  Counts towards the parent container's
     // ko_quota_used, and represents the space that is taken up (or could be
@@ -44,11 +44,18 @@ struct kobject_hdr {
     // used for container ".." (parent directory) tracking.
     uint64_t ko_parent;
 
-    uint64_t ko_flags;
+    // IDs of label objects (holds refcount).
+    uint64_t ko_label[kolabel_max];
+
+    // Number of bytes stored in object's pagetree (rounded up to nearest
+    // page in core, up to the nearest sector on disk).
     uint64_t ko_nbytes;
-    uint64_t ko_label[kolabel_max];	// id of label object (holds refcount)
+
     char ko_name[KOBJ_NAME_LEN];
     char ko_meta[KOBJ_META_LEN];
+
+    uint32_t ko_flags;
+    uint32_t ko_type;
 
     // When this object's data was written to disk
     uint64_t ko_sync_ts;
