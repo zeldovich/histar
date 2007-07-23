@@ -80,6 +80,8 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
     if (r < 0)
 	return r;
 
+    as_switch(cur_thread->th_as);
+
     struct kobject *tko = kobject_ephemeral_dirty(&cur_thread->th_ko);
     struct Thread_ephemeral *te = &tko->ko_th_e;
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
@@ -125,6 +127,8 @@ sync_wakeup_addr(uint64_t *addr)
     int r = thread_load_as(cur_thread);
     if (r < 0)
 	return r;
+
+    as_switch(cur_thread->th_as);
 
     struct cobj_ref seg_ref;
     uint64_t offset;

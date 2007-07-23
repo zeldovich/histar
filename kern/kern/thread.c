@@ -405,11 +405,7 @@ thread_change_label(const struct Thread *const_t,
     kobject_set_label_prepared(&sg_new->sg_ko, kolabel_contaminate,
 			       cur_sg_label, new_label, &qr_sg);
 
-    // make sure all label checks get re-evaluated
-    if (t->th_as)
-	as_invalidate_label(t->th_as, 1);
     thread_check_sched_parents(t);
-
     return 0;
 
 qrelease:
@@ -484,8 +480,6 @@ thread_load_as(const struct Thread *t)
     const struct Address_space *as = &ko->as;
     kobject_ephemeral_dirty(&t->th_ko)->th.th_as = as;
     kobject_pin_hdr(&t->th_as->as_ko);
-
-    as_invalidate_label(as, 0);
     return 0;
 }
 
