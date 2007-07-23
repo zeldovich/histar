@@ -94,7 +94,7 @@ sys_handle_create(void)
     return syscall(SYS_handle_create, 0, 0, 0, 0, 0, 0, 0);
 }
 
-kobject_type_t
+int
 sys_obj_get_type(struct cobj_ref o)
 {
     return syscall(SYS_obj_get_type, SOBJ(o), 0, 0, 0, 0, 0);

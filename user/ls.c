@@ -83,11 +83,11 @@ main(int ac, char **av)
 
 	if (long_mode) {
 	    const char *type = 0;
-	    kobject_type_t kobj = sys_obj_get_type(de.de_inode.obj);
-	    if ((int32_t)kobj < 0)
+	    int kobj = sys_obj_get_type(de.de_inode.obj);
+	    if (kobj < 0)
 		type = "?";
 	    else
-	    type = kobj_str[kobj];
+		type = kobj_str[kobj];
 	    
 	    char dev_id = '-';
 	    struct fs_object_meta m;

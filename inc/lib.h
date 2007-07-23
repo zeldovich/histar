@@ -170,8 +170,7 @@ int	process_report_exit(int64_t code, int64_t signo);
 void	process_exit(int64_t rval, int64_t signo) __attribute__((noreturn));
 
 /* container.c */
-int64_t container_find(uint64_t container, kobject_type_t type,
-		       const char *name);
+int64_t container_find(uint64_t container, uint8_t type, const char *name);
 
 /* label.c */
 typedef int (label_comparator)(level_t, level_t);

@@ -4,7 +4,7 @@
 #include <string.h>
 
 int64_t
-container_find(uint64_t rc, kobject_type_t reqtype, const char *reqname)
+container_find(uint64_t rc, uint8_t reqtype, const char *reqname)
 {
     int64_t nslots = sys_container_get_nslots(rc);
     if (nslots < 0)
@@ -16,11 +16,10 @@ container_find(uint64_t rc, kobject_type_t reqtype, const char *reqname)
 	    continue;
 
 	struct cobj_ref ko = COBJ(rc, id);
-	int t = sys_obj_get_type(ko);
-	if (t < 0)
-	    return t;
+	int type = sys_obj_get_type(ko);
+	if (type < 0)
+	    return type;
 
-	kobject_type_t type = t;
 	if (reqtype != kobj_any && reqtype != type)
 	    continue;
 

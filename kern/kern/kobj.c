@@ -98,7 +98,7 @@ kobject_incore(kobject_id_t id)
 
 int
 kobject_get(kobject_id_t id, const struct kobject **kp,
-	    kobject_type_t type, info_flow_type iflow)
+	    uint8_t type, info_flow_type iflow)
 {
     id = kobject_translate_id(id);
 
@@ -198,7 +198,7 @@ kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 }
 
 int
-kobject_alloc(kobject_type_t type, const struct Label *l,
+kobject_alloc(uint8_t type, const struct Label *l,
 	      struct kobject **kp)
 {
     assert(type == kobj_label || l != 0);

@@ -281,11 +281,10 @@ jif_list(struct jif_list *list, unsigned int cnt)
 	    continue;
 
 	struct cobj_ref ko = COBJ(ct, id);
-	int t = sys_obj_get_type(ko);
-	if (t < 0)
-	    return t;
+	int type = sys_obj_get_type(ko);
+	if (type < 0)
+	    return type;
 
-	kobject_type_t type = t;
 	if (type != kobj_netdev)
 	    continue;
 

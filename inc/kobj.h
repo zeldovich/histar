@@ -7,7 +7,7 @@
 #define KOBJ_NAME_LEN	32	/* including the terminating NULL */
 #define KOBJ_META_LEN	64
 
-typedef enum {
+enum kobject_type_enum {
     kobj_container,
     kobj_thread,
     kobj_gate,
@@ -19,7 +19,7 @@ typedef enum {
 
     kobj_ntypes,
     kobj_any
-} kobject_type_t;
+};
 
 typedef uint64_t kobject_id_t;
 #define kobject_id_thread_sg	((kobject_id_t) UINT64(0x4000000000000002))

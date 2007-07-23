@@ -69,10 +69,9 @@ struct kobject_quota_resv {
 void kobject_init(void);
 
 int  kobject_get(kobject_id_t id, const struct kobject **kpp,
-		 kobject_type_t type, info_flow_type iflow)
+		 uint8_t type, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
-int  kobject_alloc(kobject_type_t type,
-		   const struct Label *contaminate,
+int  kobject_alloc(uint8_t type, const struct Label *contaminate,
 		   struct kobject **kpp)
     __attribute__ ((warn_unused_result));
 int  kobject_incore(kobject_id_t id)

@@ -26,7 +26,7 @@ enum {
 
 struct kobject_hdr {
     kobject_id_t ko_id;
-    kobject_type_t ko_type;
+    uint8_t ko_type;
 
     uint64_t ko_ref;	// persistent references (via containers or TLS)
 

@@ -51,7 +51,7 @@ int	container_unref(struct Container *c, const struct kobject_hdr *ko)
     __attribute__ ((warn_unused_result));
 
 // Find an object by <container-id, object-id> pair
-int	cobj_get(struct cobj_ref ref, kobject_type_t type,
+int	cobj_get(struct cobj_ref ref, uint8_t type,
 		 const struct kobject **storep, info_flow_type iflow)
     __attribute__ ((warn_unused_result));
 

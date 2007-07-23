@@ -232,7 +232,7 @@ container_find(const struct Container **cp, kobject_id_t id, info_flow_type iflo
 }
 
 int
-cobj_get(struct cobj_ref ref, kobject_type_t type,
+cobj_get(struct cobj_ref ref, uint8_t type,
 	 const struct kobject **storep, info_flow_type iflow)
 {
     // Some objects can be named without a container -- the current
