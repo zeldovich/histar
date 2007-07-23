@@ -125,3 +125,13 @@ being discarded, or written into the live register (not in UTrapframe).
 As a result, resuming from the trap caused garbage (some previous value)
 to be loaded into the syscall return value register.
 
+***
+
+AS was caching page tables by thread ID, but when a thread changed
+labels, only the page table in the current AS was invalidated.  As
+a result, a thread could construct two AS'es, map a writable segment
+in AS1, switch to AS2, raise its label and read sensitive data, and
+then switch back to AS1 and write it out to an untainted segment.
+Solution: keep label ID along with thread ID (still needed for TLS
+mapping invalidation).
+
