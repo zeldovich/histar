@@ -1,5 +1,6 @@
 #include <inc/lib.h>
 #include <inc/arch.h>
+#include <inc/utrap.h>
 #include <machine/pmap.h>
 #include <machine/x86.h>
 
@@ -12,13 +13,13 @@ arch_read_tsc(void)
 }
 
 int
-arch_utrap_is_masked(void)
+utrap_is_masked(void)
 {
     return (read_cs() == GD_UT_MASK);
 }
 
 int
-arch_utrap_set_mask(int masked)
+utrap_set_mask(int masked)
 {
     uint16_t old_cs = read_cs();
     uint16_t new_cs = masked ? GD_UT_MASK : GD_UT_NMASK;

@@ -41,15 +41,3 @@ utrap_init(void)
 
     return 0;
 }
-
-int
-utrap_is_masked(void)
-{
-    return arch_utrap_is_masked();
-}
-
-int
-utrap_set_mask(int masked)
-{
-    return arch_utrap_set_mask(masked);
-}
