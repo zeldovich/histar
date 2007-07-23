@@ -2,7 +2,6 @@
 #define JOS_MACHINE_PMAP_H
 
 #ifndef __ASSEMBLER__
-#include <machine/types.h>
 #include <machine/mmu.h>
 #include <machine/sparc-config.h>
 #include <inc/queue.h>
@@ -26,9 +25,6 @@ struct Pagemap2 {
 extern struct Pagemap bootpt;
 
 void page_init(void);
-
-extern physaddr_t maxpa;
-extern physaddr_t minpa;
 
 typedef uint32_t ctxptr_t;
 
