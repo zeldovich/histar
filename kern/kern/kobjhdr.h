@@ -50,9 +50,6 @@ struct kobject_hdr {
     char ko_name[KOBJ_NAME_LEN];
     char ko_meta[KOBJ_META_LEN];
 
-    // For verifying the persistence layer
-    uint64_t ko_cksum;
-
     // When this object's data was written to disk
     uint64_t ko_sync_ts;
 
