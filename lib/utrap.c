@@ -8,10 +8,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-/* x86 %cs-based masking */
-#include <machine/pmap.h>
-#include <machine/x86.h>
-
 static void (*handler) (struct UTrapframe *);
 
 void
