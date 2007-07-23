@@ -24,7 +24,7 @@ psr (processor state)
 wim (window invalid mask)
 tbr (trap base)
 y (mul/div)
-fsr (fp state)
+fsr (fp state) -- FSR_TEM controls FP traps; can user trap kernel this way?
 csr (coprocessor state)
 fq (fp queue)
 cq (coprocessor queue)
