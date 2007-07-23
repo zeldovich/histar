@@ -4,6 +4,7 @@
 #include <inc/assert.h>
 #include <inc/stack.h>
 #include <inc/error.h>
+#include <inc/features.h>
 #include <string.h>
 
 static int
@@ -37,7 +38,7 @@ thread_exit(uint64_t ct, uint64_t thr_id, uint64_t stack_id, uint64_t stackbasea
     thread_halt();
 }
 
-static void __attribute__((noreturn, regparm(1)))
+static void __attribute__((noreturn, JOS_THREAD_ENTRY_GCCATTR))
 thread_entry(void *arg)
 {
     struct thread_args *ta = arg;
