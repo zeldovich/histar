@@ -6,3 +6,15 @@ arch_read_tsc(void)
 {
     return 0;
 }
+
+int
+arch_utrap_is_masked(void)
+{
+    return 0;
+}
+
+int
+arch_utrap_set_mask(int masked)
+{
+    return 0;
+}

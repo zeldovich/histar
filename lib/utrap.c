@@ -3,6 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/utrap.h>
 #include <inc/memlayout.h>
+#include <inc/arch.h>
 #include <stddef.h>
 #include <string.h>
 #include <inttypes.h>
@@ -48,15 +49,11 @@ utrap_init(void)
 int
 utrap_is_masked(void)
 {
-    return (read_cs() == GD_UT_MASK);
+    return arch_utrap_is_masked();
 }
 
 int
 utrap_set_mask(int masked)
 {
-    uint16_t old_cs = read_cs();
-    uint16_t new_cs = masked ? GD_UT_MASK : GD_UT_NMASK;
-    if (old_cs != new_cs)
-	utrap_set_cs(new_cs);
-    return old_cs == GD_UT_MASK;
+    return arch_utrap_set_mask(masked);
 }

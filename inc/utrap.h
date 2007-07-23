@@ -18,7 +18,6 @@ void utrap_set_handler(void (*fn)(struct UTrapframe *));
 /* Mask / unmask traps, returns old value */
 int  utrap_is_masked(void);
 int  utrap_set_mask(int masked);
-void utrap_set_cs(uint16_t nval);	/* x86 asm stub */
 
 /* User-mode trap types */
 #define UTRAP_USER_NOP		0x00000001
