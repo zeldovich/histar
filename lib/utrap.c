@@ -16,7 +16,7 @@ utrap_set_handler(void (*fn) (struct UTrapframe *))
     handler = fn;
 }
 
-void __attribute__((regparm (1)))
+void
 utrap_entry(struct UTrapframe *utf)
 {
     if (handler) {
