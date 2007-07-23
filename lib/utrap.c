@@ -16,7 +16,7 @@ utrap_set_handler(void (*fn) (struct UTrapframe *))
     handler = fn;
 }
 
-void
+void __attribute__((noreturn, JOS_UTRAP_GCCATTR))
 utrap_entry(struct UTrapframe *utf)
 {
     if (handler) {
