@@ -6,4 +6,65 @@ typedef struct { volatile uint32_t counter; } jos_atomic_t;
 #define JOS_ATOMIC_INIT(i)		{ (i) }
 #define jos_atomic_read(v)		((v)->counter)
 
+static __inline__ void
+jos_atomic_set(jos_atomic_t *v, int i)
+{
+    
+}
+
+static __inline__ void
+jos_atomic_add(int i, jos_atomic_t *v)
+{
+}
+
+static __inline__ void
+jos_atomic_sub(int i, jos_atomic_t *v)
+{
+}
+
+/* Returns true if result is zero. */
+static __inline__ int
+jos_atomic_sub_and_test(int i, jos_atomic_t *v)
+{
+    return 0;
+}
+
+static __inline__ void
+jos_atomic_inc(jos_atomic_t *v)
+{
+}
+
+static __inline__ void
+jos_atomic_dec(jos_atomic_t *v)
+{
+}
+
+/* Returns true if result is zero. */
+static __inline__ int
+jos_atomic_dec_and_test(jos_atomic_t *v)
+{
+    return 0;
+}
+
+/* Returns true if result is zero. */
+static __inline__ int
+jos_atomic_inc_and_test(jos_atomic_t *v)
+{
+    return 0;
+}
+
+/*
+ * Atomically compare the value in "v" with "old", and set "v" to "newv"
+ * if equal.
+ *
+ * Return value is the previous value of "v".  So if return value is same
+ * as "old", the swap occurred, otherwise it did not.
+ */
+static __inline__ int
+jos_atomic_compare_exchange(jos_atomic_t *v, int old, int newv)
+{
+    return 0;
+}
+
+
 #endif
