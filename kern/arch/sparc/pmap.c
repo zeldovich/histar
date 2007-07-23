@@ -200,7 +200,8 @@ page_lookup(struct Pagemap *pgmap, void *va, ptent_t **pte_store)
 }
 
 int
-check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
+check_user_access(const void *ptr, uint64_t nbytes,
+		  uint32_t reqflags, int align)
 {
     assert(cur_thread);
     if (!cur_as) {
@@ -211,7 +212,7 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	as_switch(cur_thread->th_as);
 	assert(cur_as);
     }
-    
+
     ptent_t pte_flags = 0;
     if (reqflags & SEGMAP_WRITE)
 	pte_flags |= PTE_ACC_W;
@@ -222,6 +223,9 @@ check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
 	uintptr_t iptr = (uintptr_t) ptr;
 	uintptr_t start = ROUNDDOWN(iptr, PGSIZE);
 	uintptr_t end = ROUNDUP(safe_addptr(&overflow, iptr, nbytes), PGSIZE);
+
+	if (align && (iptr % 4))
+	    return -E_INVAL;
 
 	if (end <= start || overflow)
 	    return -E_INVAL;

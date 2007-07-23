@@ -131,7 +131,7 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 
 	uint32_t sysnum = tf->tf_eax;
 	uint64_t *args = (uint64_t *) tf->tf_edx;
-	r = check_user_access(args, sizeof(uint64_t) * 7, 0);
+	r = check_user_access(args, sizeof(uint64_t) * 7, 0, 0);
 	if (r >= 0)
 	    r = kern_syscall(sysnum, args[0], args[1], args[2],
 			     args[3], args[4], args[5], args[6]);
@@ -299,7 +299,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 #undef UTF_COPY
 
     struct UTrapframe *utf = stacktop - sizeof(*utf);
-    int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
+    int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE, 0);
     if (r < 0) {
 	if ((uintptr_t) utf <= t->th_as->as_utrap_stack_base)
 	    cprintf("thread_arch_utrap: utrap stack overflow\n");

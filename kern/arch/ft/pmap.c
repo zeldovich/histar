@@ -32,7 +32,8 @@ lnxpmap_init(void)
 }
 
 int
-check_user_access(const void *base, uint64_t nbytes, uint32_t reqflags)
+check_user_access(const void *base, uint64_t nbytes,
+		  uint32_t reqflags, int align)
 {
     assert(cur_thread);
     if (!cur_as) {

@@ -204,7 +204,7 @@ label_set(struct Label *l, uint64_t handle, uint8_t level)
 int
 label_to_ulabel(const struct Label *l, struct ulabel *ul)
 {
-    int r = check_user_access(ul, sizeof(*ul), SEGMAP_WRITE);
+    int r = check_user_access(ul, sizeof(*ul), SEGMAP_WRITE, 1);
     if (r < 0)
 	return r;
 
@@ -216,7 +216,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
     int mul_of = 0;
     r = check_user_access(ul_ent,
 			  safe_mul64(&mul_of, ul_size, sizeof(*ul_ent)),
-			  SEGMAP_WRITE);
+			  SEGMAP_WRITE, 1);
     if (r < 0)
 	return r;
 
@@ -251,7 +251,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 int
 ulabel_to_label(struct ulabel *ul, struct Label *l)
 {
-    int r = check_user_access(ul, sizeof(*ul), 0);
+    int r = check_user_access(ul, sizeof(*ul), 0, 1);
     if (r < 0)
 	return r;
 
@@ -264,7 +264,7 @@ ulabel_to_label(struct ulabel *ul, struct Label *l)
 
     int mul_of = 0;
     r = check_user_access(ul_ent,
-			  safe_mul64(&mul_of, ul_nent, sizeof(*ul_ent)), 0);
+			  safe_mul64(&mul_of, ul_nent, sizeof(*ul_ent)), 0, 1);
     if (r < 0)
 	return r;
 

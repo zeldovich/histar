@@ -140,7 +140,8 @@ page_lookup(struct Pagemap *pgmap, void *va, ptent_t **pte_store)
 }
 
 int
-check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
+check_user_access(const void *ptr, uint64_t nbytes,
+		  uint32_t reqflags, int align)
 {
     assert(cur_thread);
     if (!cur_as) {

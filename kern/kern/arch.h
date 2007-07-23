@@ -59,8 +59,10 @@ int  as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags);
  * Checks that [ptr .. ptr + nbytes) is valid user memory,
  * and makes sure the address is paged in (might return -E_RESTART).
  * Checks for writability if (reqflags & SEGMAP_WRITE).
+ * Checks for maximum platform alignment if align is set.
  */
-int  check_user_access(const void *ptr, uint64_t nbytes, uint32_t reqflags)
+int  check_user_access(const void *ptr, uint64_t nbytes,
+		       uint32_t reqflags, int align)
     __attribute__ ((warn_unused_result));
 
 /*

@@ -36,8 +36,6 @@ lo (10 low bits)
 
 == other stuff
 
-make sure we check alignment for user-provided pointers: always memcpy?
-
 how to do utrap masking?  %g5,%g6,%g7 reserved for system use, can use them.
 linux uses %g7 for TLS pointer, so avoid that one.
 

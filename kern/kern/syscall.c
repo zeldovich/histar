@@ -38,7 +38,7 @@ static int64_t __attribute__ ((warn_unused_result))
 alloc_set_name(struct kobject_hdr *ko, const char *name)
 {
     if (name) {
-	check(check_user_access(name, KOBJ_NAME_LEN, 0));
+	check(check_user_access(name, KOBJ_NAME_LEN, 0, 0));
 	strncpy(&ko->ko_name[0], name, KOBJ_NAME_LEN - 1);
     }
     return 0;
@@ -75,7 +75,7 @@ sys_cons_puts(const char *s, uint64_t size)
     if (sz < 0)
 	return -E_INVAL;
 
-    check(check_user_access(s, sz, 0));
+    check(check_user_access(s, sz, 0, 0));
     cprintf("%.*s", sz, s);
     return 0;
 }
@@ -173,7 +173,7 @@ sys_net_macaddr(struct cobj_ref ndref, uint8_t *addrbuf)
     if (ndev == 0)
 	return -E_INVAL;
 
-    check(check_user_access(addrbuf, 6, SEGMAP_WRITE));
+    check(check_user_access(addrbuf, 6, SEGMAP_WRITE, 0));
     netdev_macaddr(ndev, addrbuf);
     return 0;
 }
@@ -296,7 +296,7 @@ sys_obj_get_name(struct cobj_ref cobj, char *name)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_none));
-    check(check_user_access(name, KOBJ_NAME_LEN, SEGMAP_WRITE));
+    check(check_user_access(name, KOBJ_NAME_LEN, SEGMAP_WRITE, 0));
     strncpy(name, &ko->hdr.ko_name[0], KOBJ_NAME_LEN);
     return 0;
 }
@@ -324,7 +324,7 @@ sys_obj_get_meta(struct cobj_ref cobj, void *meta)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_read));
-    check(check_user_access(meta, KOBJ_META_LEN, SEGMAP_WRITE));
+    check(check_user_access(meta, KOBJ_META_LEN, SEGMAP_WRITE, 0));
     memcpy(meta, &ko->hdr.ko_meta[0], KOBJ_META_LEN);
     return 0;
 }
@@ -334,9 +334,9 @@ sys_obj_set_meta(struct cobj_ref cobj, const void *oldm, void *newm)
 {
     const struct kobject *ko;
     check(cobj_get(cobj, kobj_any, &ko, iflow_rw));
-    check(check_user_access(newm, KOBJ_META_LEN, 0));
+    check(check_user_access(newm, KOBJ_META_LEN, 0, 0));
     if (oldm) {
-	check(check_user_access(oldm, KOBJ_META_LEN, 0));
+	check(check_user_access(oldm, KOBJ_META_LEN, 0, 0));
 	if (memcmp(oldm, &ko->hdr.ko_meta[0], KOBJ_META_LEN))
 	    return -E_AGAIN;
     }
@@ -459,7 +459,7 @@ sys_gate_create(uint64_t container, struct thread_entry *ute,
     g->gt_te_unspec = ute ? 0 : 1;
     g->gt_te_visible = entry_visible ? 1 : 0;
     if (ute) {
-	check(check_user_access(ute, sizeof(*ute), 0));
+	check(check_user_access(ute, sizeof(*ute), 0, 0));
 	memcpy(&g->gt_te, ute, sizeof(*ute));
 	g->gt_te_unspec = 0;
     } else {
@@ -492,7 +492,7 @@ sys_gate_get_entry(struct cobj_ref gate, struct thread_entry *te)
     if (!ko->gt.gt_te_visible)
 	return -E_INVAL;
 
-    check(check_user_access(te, sizeof(*te), SEGMAP_WRITE));
+    check(check_user_access(te, sizeof(*te), SEGMAP_WRITE, 0));
     memcpy(te, &ko->gt.gt_te, sizeof(*te));
     return 0;
 }
@@ -560,7 +560,7 @@ sys_gate_enter(struct cobj_ref gt,
 
     struct thread_entry te;
     if (ute) {
-	check(check_user_access(ute, sizeof(*ute), 0));
+	check(check_user_access(ute, sizeof(*ute), 0, 0));
 	memcpy(&te, ute, sizeof(te));
     } else {
 	memcpy(&te, &g->gt_te, sizeof(te));
@@ -575,7 +575,7 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
 		 struct ulabel *ul, struct ulabel *uclear)
 {
     struct thread_entry te;
-    check(check_user_access(ute, sizeof(te), 0));
+    check(check_user_access(ute, sizeof(te), 0, 0));
     memcpy(&te, ute, sizeof(te));
 
     const struct kobject *ko;
@@ -656,7 +656,7 @@ sys_self_addref(uint64_t ct)
 static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_as(struct cobj_ref *as_ref)
 {
-    check(check_user_access(as_ref, sizeof(*as_ref), SEGMAP_WRITE));
+    check(check_user_access(as_ref, sizeof(*as_ref), SEGMAP_WRITE, 1));
     *as_ref = cur_thread->th_asref;
     return 0;
 }
@@ -780,7 +780,7 @@ sys_self_set_cflush(int cflush)
 static int64_t __attribute__ ((warn_unused_result))
 sys_self_get_entry_args(struct thread_entry_args *targ)
 {
-    check(check_user_access(targ, sizeof(*targ), SEGMAP_WRITE));
+    check(check_user_access(targ, sizeof(*targ), SEGMAP_WRITE, 1));
     return thread_arch_get_entry_args(cur_thread, targ);
 }
 
@@ -797,9 +797,11 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
 {
     int overflow = 0;
     check(check_user_access(vals,
-			    safe_mul64(&overflow, sizeof(vals[0]), num), 0));
+			    safe_mul64(&overflow, sizeof(vals[0]), num),
+			    0, 1));
     check(check_user_access(addrs,
-			    safe_mul64(&overflow, sizeof(addrs[0]), num), 0));
+			    safe_mul64(&overflow, sizeof(addrs[0]), num),
+			    0, 1));
     if (overflow)
 	return -E_INVAL;
 
@@ -810,7 +812,7 @@ sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num,
 static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wakeup(uint64_t *addr)
 {
-    check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE));
+    check(check_user_access(addr, sizeof(*addr), SEGMAP_WRITE, 1));
     check(sync_wakeup_addr(addr));
     return 0;
 }
