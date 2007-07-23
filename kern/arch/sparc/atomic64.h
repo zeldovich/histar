@@ -4,6 +4,12 @@
 typedef struct { volatile uint64_t counter; } jos_atomic64_t;
 
 static __inline__ void
+jos_atomic_set64(jos_atomic_t *v, int i)
+{
+    
+}
+
+static __inline__ void
 jos_atomic_inc64(jos_atomic64_t *v)
 {
 }
