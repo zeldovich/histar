@@ -525,7 +525,8 @@ as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
 	if (r < 0)
 	    return r;
 
-	mas->as_pgmap_tid = cur_thread->th_ko.ko_id;
+	mas->as_pgmap_tls_id = cur_thread->th_sg;
+	mas->as_pgmap_label_id = cur_thread->th_ko.ko_label[kolabel_contaminate];
     }
 
     if (as_debug)
@@ -534,13 +535,71 @@ as_pagefault(const struct Address_space *as, void *va, uint32_t reqflags)
     return as_pmap_fill(as, va, reqflags);
 }
 
+static void
+as_switch_invalidate(const struct Address_space *as,
+		     int invalidate_tls, int check_label)
+{
+    int r;
+
+    if (!invalidate_tls && !check_label)
+	return;
+
+    for (uint64_t i = 0; i < as_nents(as); i++) {
+	struct segment_mapping *sm;
+	r = as_get_segmap(as, &sm, i);
+	if (r < 0)
+	    goto err;
+
+	if (!sm->sm_sg)
+	    continue;
+
+	const struct u_segment_mapping *usm;
+	r = as_get_usegmap(as, &usm, i, page_shared_ro);
+	if (r < 0)
+	    goto err;
+
+	int do_invalidate = 0;
+
+	if (invalidate_tls)
+	    if (usm->segment.object == kobject_id_thread_sg)
+		do_invalidate = 1;
+
+	if (check_label && !do_invalidate) {
+	    const struct kobject *ko;
+	    if (cobj_get(usm->segment, kobj_segment, &ko,
+		    (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) < 0)
+		do_invalidate = 1;
+	}
+
+	if (do_invalidate) {
+	    if (as_debug)
+		cprintf("as_switch_invalidate: calling as_invalidate_sm\n");
+	    assert(as == sm->sm_as);
+	    as_invalidate_sm(sm);
+	}
+    }
+
+    return;
+
+err:
+    cprintf("as_switch_invalidate: fallback to full invalidation: %s\n", e2s(r));
+    as_invalidate(as);
+}
+
 void
 as_switch(const struct Address_space *as)
 {
     // In case we have thread-specific kobjects cached here..
-    if (as && cur_thread && as->as_pgmap_tid != cur_thread->th_ko.ko_id) {
-	as_invalidate_label(as, 1);
-	kobject_dirty(&as->as_ko)->as.as_pgmap_tid = cur_thread->th_ko.ko_id;
+    if (as && cur_thread) {
+	kobject_id_t cur_tls = cur_thread->th_sg;
+	kobject_id_t cur_lbl = cur_thread->th_ko.ko_label[kolabel_contaminate];
+	as_switch_invalidate(as,
+			     as->as_pgmap_tls_id != cur_tls,
+			     as->as_pgmap_label_id != cur_lbl);
+
+	struct Address_space *das = &kobject_dirty(&as->as_ko)->as;
+	das->as_pgmap_tls_id = cur_tls;
+	das->as_pgmap_label_id = cur_lbl;
     }
 
     struct Pagemap *new_pgmap = as ? as->as_pgmap : 0;
@@ -606,44 +665,6 @@ as_invalidate_sm(struct segment_mapping *sm)
     sm->sm_sg = 0;
     sm->sm_rw_mappings = 0;
     return;
-}
-
-void
-as_invalidate_label(const struct Address_space *as, int invalidate_tls)
-{
-    int r;
-
-    for (uint64_t i = 0; i < as_nents(as); i++) {
-	struct segment_mapping *sm;
-	r = as_get_segmap(as, &sm, i);
-	if (r < 0)
-	    goto err;
-
-	if (!sm->sm_sg)
-	    continue;
-
-	const struct u_segment_mapping *usm;
-	r = as_get_usegmap(as, &usm, i, page_shared_ro);
-	if (r < 0)
-	    goto err;
-
-	const struct kobject *ko;
-	if ((invalidate_tls && usm->segment.object == kobject_id_thread_sg) ||
-	    cobj_get(usm->segment, kobj_segment, &ko,
-		     (usm->flags & SEGMAP_WRITE) ? iflow_rw : iflow_read) < 0)
-	{
-	    if (as_debug)
-		cprintf("as_invalidate_label: calling as_invalidate_sm\n");
-	    assert(as == sm->sm_as);
-	    as_invalidate_sm(sm);
-	}
-    }
-
-    return;
-
-err:
-    cprintf("as_invalidate_label: fallback to full invalidation: %s\n", e2s(r));
-    as_invalidate(as);
 }
 
 int

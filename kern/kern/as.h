@@ -33,8 +33,10 @@ struct Address_space {
     uintptr_t as_utrap_stack_top;
 
     struct pagetree as_segmap_pt;
+
     struct Pagemap *as_pgmap;
-    kobject_id_t as_pgmap_tid;
+    kobject_id_t as_pgmap_label_id;
+    kobject_id_t as_pgmap_tls_id;
 };
 
 extern const struct Address_space *cur_as;
@@ -58,7 +60,6 @@ void as_swapout(struct Address_space *as);
 int  as_gc(struct Address_space *as)
     __attribute__ ((warn_unused_result));
 void as_invalidate(const struct Address_space *as);
-void as_invalidate_label(const struct Address_space *as, int invalidate_tls);
 void as_invalidate_sm(struct segment_mapping *sm);
 void as_collect_dirty_sm(struct segment_mapping *sm);
 void as_map_ro_sm(struct segment_mapping *sm);
