@@ -94,6 +94,8 @@ debug_gate_singlestep(struct debug_args *da)
     dinfo->utf.utf_rflags |= FL_TF;
 #elif defined(JOS_ARCH_i386)
     dinfo->utf.utf_eflags |= FL_TF;
+#elif defined(JOS_ARCH_sparc)
+    // XXX
 #else
 #error Unknown arch
 #endif
@@ -362,6 +364,8 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
     dinfo->utf.utf_rflags &= ~FL_TF;
 #elif defined(JOS_ARCH_i386)
     dinfo->utf.utf_eflags &= ~FL_TF;
+#elif defined(JOS_ARCH_sparc)
+    // XXX
 #else
 #error Unknown arch
 #endif
