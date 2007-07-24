@@ -196,7 +196,9 @@ sync_wakeup_timer(void)
 
 	if (te->te_wakeup_nsec <= now_nsec) {
 	    if (sync_debug)
-		cprintf("sync_wakeup_timer: waking up %"PRIx64" now %"PRIx64"\n",
+		cprintf("sync_wakeup_timer: %"PRIu64" (%s) waited for "
+			"%"PRIx64", now %"PRIx64"\n",
+			t->th_ko.ko_id, t->th_ko.ko_name,
 			te->te_wakeup_nsec, now_nsec);
 
 	    thread_set_runnable(t);
