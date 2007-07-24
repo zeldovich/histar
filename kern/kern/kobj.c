@@ -20,8 +20,8 @@ static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
 static struct kobject_list ko_gc_list;
 
 enum { kobject_reclaim_debug = 0 };
-enum { kobject_checksum_enable = 1 };
-enum { kobject_checksum_pedantic = 1 };
+enum { kobject_checksum_enable = 0 };
+enum { kobject_checksum_pedantic = 0 };
 enum { kobject_print_sizes = 0 };
 
 struct kobject *
