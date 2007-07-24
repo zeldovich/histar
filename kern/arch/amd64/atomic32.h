@@ -16,43 +16,9 @@ typedef struct { volatile uint32_t counter; } jos_atomic_t;
 #define jos_atomic_read(v)		((v)->counter)
 
 static __inline__ void
-jos_atomic_set(jos_atomic_t *v, int i)
+jos_atomic_set(jos_atomic_t *v, uint32_t i)
 {
     v->counter = i;
-}
-
-static __inline__ void
-jos_atomic_add(int i, jos_atomic_t *v)
-{
-    __asm__ __volatile__(
-	ATOMIC_LOCK "addl %1, %0"
-	: "+m" (v->counter)
-	: "ir" (i)
-	: "cc");
-}
-
-static __inline__ void
-jos_atomic_sub(int i, jos_atomic_t *v)
-{
-    __asm__ __volatile__(
-	ATOMIC_LOCK "subl %1, %0"
-	: "+m" (v->counter)
-	: "ir" (i)
-	: "cc");
-}
-
-/* Returns true if result is zero. */
-static __inline__ int
-jos_atomic_sub_and_test(int i, jos_atomic_t *v)
-{
-    unsigned char c;
-
-    __asm__ __volatile__(
-	ATOMIC_LOCK "subl %2,%0; sete %1"
-	: "+m" (v->counter), "=qm" (c)
-	: "ir" (i)
-	: "cc");
-    return c;
 }
 
 static __inline__ void
