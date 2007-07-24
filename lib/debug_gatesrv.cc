@@ -10,8 +10,7 @@ extern "C" {
 #include <inc/debug.h>
 #include <inc/memlayout.h>
 #include <inc/stack.h>
-
-#include <machine/x86.h>
+#include <inc/arch.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -298,12 +297,6 @@ debug_gate_trace(void)
     return debug_trace;
 }
 
-extern "C" void
-debug_gate_breakpoint(void)
-{
-    breakpoint();
-}
-
 void 
 debug_gate_init(void)
 {
@@ -372,7 +365,7 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
 #else
 #error Unknown arch
 #endif
-    fxsave(&dinfo->fpregs);
+    arch_fpregs_save(&dinfo->fpregs);
     dinfo->signo = signo;
     dinfo->gen++;
 
@@ -385,7 +378,7 @@ debug_gate_on_signal(unsigned char signo, struct sigcontext *sc)
 
     dinfo->signo = 0;
     memcpy(utf, &dinfo->utf, sizeof(*utf));
-    fxrstor(&dinfo->fpregs);
+    arch_fpregs_restore(&dinfo->fpregs);
 }
 
 extern "C" int64_t

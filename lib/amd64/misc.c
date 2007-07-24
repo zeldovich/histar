@@ -1,8 +1,10 @@
+#include <machine/pmap.h>
+#include <machine/x86.h>
+
 #include <inc/lib.h>
 #include <inc/arch.h>
 #include <inc/utrap.h>
-#include <machine/pmap.h>
-#include <machine/x86.h>
+#include <inc/debug_gate.h>
 
 void utrap_set_cs(uint16_t nval);	/* x86 asm stub */
 
@@ -26,4 +28,24 @@ utrap_set_mask(int masked)
     if (old_cs != new_cs)
 	utrap_set_cs(new_cs);
     return old_cs == GD_UT_MASK;
+}
+
+void
+debug_gate_breakpoint(void)
+{
+    breakpoint();
+}
+
+void
+arch_fpregs_save(void *a)
+{
+    struct Fpregs *f = (struct Fpregs *) a;
+    fxsave(f);
+}
+
+void
+arch_fpregs_restore(void *a)
+{
+    struct Fpregs *f = (struct Fpregs *) a;
+    fxrstor(f);
 }
