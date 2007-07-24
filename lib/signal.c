@@ -31,6 +31,8 @@
  #define ARCH_DEVICE T_DEVICE
  #define ARCH_BRKPT  T_BRKPT
  #define ARCH_DEBUG  T_DEBUG
+
+ #define JOS_ONSTACK_GCCATTR regparm(2)
 #elif defined(JOS_ARCH_sparc)
  // XXX
  #include <machine/trapcodes.h>
@@ -38,6 +40,8 @@
  #define ARCH_DEVICE 2
  #define ARCH_BRKPT  3
  #define ARCH_DEBUG  4
+
+ #define JOS_ONSTACK_GCCATTR
 #else
 #error Unknown arch
 #endif
@@ -86,6 +90,8 @@ utf_dump(struct UTrapframe *utf)
             utf->utf_esi, utf->utf_edi, utf->utf_ebp, utf->utf_esp);
     cprintf("eip %08x  eflags %08x\n",
             utf->utf_eip, utf->utf_eflags);
+#elif defined(JOS_ARCH_sparc)
+    cprintf("utf_dump: XXX\n");
 #else
 #error Unknown arch
 #endif
@@ -329,7 +335,7 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
 // Called with utrap unmasked and no locks held.
 // Signal is masked.
 // Jumps back to sc to return.
-static void __attribute__((noreturn, regparm(2)))
+static void __attribute__((noreturn, JOS_ONSTACK_GCCATTR))
 signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
 {
     int signo = si->si_signo;
@@ -462,6 +468,8 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	utf_jump.utf_eax = (uintptr_t) &s->si;
 	utf_jump.utf_edx = (uintptr_t) &s->sc;
 	utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
+#elif defined(JOS_ARCH_sparc)
+	panic("signal_utrap_si: XXX");
 #else
 #error Unknown arch
 #endif
