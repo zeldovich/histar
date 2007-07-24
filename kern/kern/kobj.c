@@ -11,6 +11,7 @@
 #include <kern/pageinfo.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+#include <inc/cksum.h>
 
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
@@ -19,6 +20,8 @@ static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
 static struct kobject_list ko_gc_list;
 
 enum { kobject_reclaim_debug = 0 };
+enum { kobject_checksum_enable = 1 };
+enum { kobject_checksum_pedantic = 1 };
 enum { kobject_print_sizes = 0 };
 
 struct kobject *
@@ -37,6 +40,31 @@ static struct kobject *
 kobject_const_h2k(const struct kobject_hdr *kh)
 {
     return (struct kobject *) kh;
+}
+
+static uint64_t
+kobject_cksum(const struct kobject_hdr *ko)
+{
+    if (!kobject_checksum_enable)
+	return 0;
+
+    assert(ko);
+    uint64_t sum = 0;
+
+    // Compute checksum on the persistent parts of kobject_hdr
+    sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_cksum));
+    sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
+		     sizeof(struct kobject_persistent) -
+		     sizeof(struct kobject_hdr));
+
+    for (uint64_t i = 0; i < ko->ko_nbytes; i += PGSIZE) {
+	void *p;
+	assert(0 == kobject_get_page(ko, i / PGSIZE, &p, page_shared_ro));
+	assert(p);
+	sum = cksum(sum, p, MIN((uint32_t) PGSIZE, ko->ko_nbytes - i));
+    }
+
+    return sum;
 }
 
 static int
@@ -476,6 +504,14 @@ void
 kobject_swapin(struct kobject *ko)
 {
     assert(ko->hdr.ko_id);
+
+    uint64_t sum1 = ko->hdr.ko_cksum;
+    uint64_t sum2 = kobject_cksum(&ko->hdr);
+
+    if (sum1 != sum2)
+	cprintf("kobject_swapin: %"PRIu64" (%s) checksum mismatch: 0x%"PRIx64" != 0x%"PRIx64"\n",
+		ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
+
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, ko->hdr.ko_id);
 
     struct kobject *kx;
@@ -688,6 +724,15 @@ kobject_gc_scan(void)
 void
 kobject_swapout(struct kobject *ko)
 {
+    if (kobject_checksum_pedantic) {
+	uint64_t sum1 = ko->hdr.ko_cksum;
+	uint64_t sum2 = kobject_cksum(&ko->hdr);
+
+	if (ko->hdr.ko_ref && sum1 != sum2)
+	    cprintf("kobject_swapout: %"PRIu64" (%s) checksum mismatch: 0x%"PRIx64" != 0x%"PRIx64"\n",
+		    ko->hdr.ko_id, ko->hdr.ko_name, sum1, sum2);
+    }
+
     assert(ko->hdr.ko_pin == 0);
     assert(!(ko->hdr.ko_flags & KOBJ_SNAPSHOTING));
 
@@ -720,6 +765,14 @@ kobject_get_snapshot(struct kobject_hdr *ko)
 {
     assert((ko->ko_flags & KOBJ_SNAPSHOTING));
     struct kobject *snap = kobject_get_snapshot_internal(ko);
+
+    if (kobject_checksum_pedantic) {
+	uint64_t sum = kobject_cksum(&snap->hdr);
+	if (sum != ko->ko_cksum)
+	    cprintf("kobject_get_snapshot(%"PRIu64", %s): cksum changed 0x%"PRIx64" -> 0x%"PRIx64"\n",
+		    ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
+    }
+
     return snap;
 }
 
@@ -732,6 +785,7 @@ kobject_snapshot(struct kobject_hdr *ko)
 	segment_map_ro(&kobject_h2k(ko)->sg);
 
     ko->ko_flags &= ~KOBJ_DIRTY;
+    ko->ko_cksum = kobject_cksum(ko);
     kobject_pin_hdr(ko);
 
     struct kobject *snap = kobject_get_snapshot_internal(ko);

@@ -57,6 +57,9 @@ struct kobject_hdr {
     uint32_t ko_flags;
     uint32_t ko_type;
 
+    // For verifying the persistence layer
+    uint64_t ko_cksum;
+
     // When this object's data was written to disk
     uint64_t ko_sync_ts;
 
