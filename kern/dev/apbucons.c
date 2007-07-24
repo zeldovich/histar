@@ -3,14 +3,19 @@
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
+#include <machine/sparc-config.h>
 
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 #include <dev/apbucons.h>
 
+enum { baud_rate = 38400 };
+
 static void
 serial_putc(void *arg, int c)
 {
+    if (c == '\n')
+	serial_putc(arg, '\r');
     LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)arg;
     
     uint32_t i = 0;
@@ -45,6 +50,10 @@ apbucons_init(void)
 	.cd_pollin = 0,
 	.cd_output = &serial_putc,
     };
+
+    uint32_t scaler = (CLOCK_FREQ_KHZ * 1000) / (baud_rate * 8);
+    LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)dev.start;
+    LEON_BYPASS_STORE_PA(&(uart_regs->scaler), scaler);
 
     cd.cd_arg = (void *)dev.start;
     cons_register(&cd);
