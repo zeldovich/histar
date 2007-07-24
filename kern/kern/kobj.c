@@ -52,10 +52,17 @@ kobject_cksum(const struct kobject_hdr *ko)
     uint64_t sum = 0;
 
     // Compute checksum on the persistent parts of kobject_hdr
-    sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_cksum));
+    uint32_t orig_flags = ko->ko_flags;
+    struct kobject_hdr *mko = &kobject_const_h2k(ko)->hdr;
+    mko->ko_flags &= ~(KOBJ_ON_DISK | KOBJ_SNAPSHOTING | KOBJ_SNAPSHOT_DIRTY |
+		       KOBJ_SHARED_MAPPINGS | KOBJ_DIRTY_LATER);
+
+    sum = cksum(sum, ko, offsetof(struct kobject_hdr, ko_sync_ts));
     sum = cksum(sum, (uint8_t *) ko + sizeof(struct kobject_hdr),
 		     sizeof(struct kobject_persistent) -
 		     sizeof(struct kobject_hdr));
+
+    mko->ko_flags = orig_flags;
 
     for (uint64_t i = 0; i < ko->ko_nbytes; i += PGSIZE) {
 	void *p;
@@ -768,7 +775,7 @@ kobject_get_snapshot(struct kobject_hdr *ko)
 
     if (kobject_checksum_pedantic) {
 	uint64_t sum = kobject_cksum(&snap->hdr);
-	if (sum != ko->ko_cksum)
+	if (sum != snap->hdr.ko_cksum)
 	    cprintf("kobject_get_snapshot(%"PRIu64", %s): cksum changed 0x%"PRIx64" -> 0x%"PRIx64"\n",
 		    ko->ko_id, ko->ko_name, ko->ko_cksum, sum);
     }
