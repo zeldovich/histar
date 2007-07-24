@@ -55,20 +55,6 @@ jos_atomic_dec_and_test(jos_atomic_t *v)
     return c != 0;
 }
 
-/* Returns true if result is zero. */
-static __inline__ int
-jos_atomic_inc_and_test(jos_atomic_t *v)
-{
-    unsigned char c;
-
-    __asm__ __volatile__(
-	ATOMIC_LOCK "incl %0; sete %1"
-	: "+m" (v->counter), "=qm" (c)
-	:
-	: "cc");
-    return c != 0;
-}
-
 /*
  * Atomically compare the value in "v" with "old", and set "v" to "newv"
  * if equal.
