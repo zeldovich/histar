@@ -42,7 +42,7 @@ typedef union sigval
 # define __have_siginfo_t	1
 
 # define __SI_MAX_SIZE     128
-# if __WORDSIZE == 64
+# if __WORDSIZE == 64 || defined(JOS_ARCH_sparc)
 #  define __SI_PAD_SIZE     ((__SI_MAX_SIZE / sizeof (int)) - 4)
 # else
 #  define __SI_PAD_SIZE     ((__SI_MAX_SIZE / sizeof (int)) - 3)
