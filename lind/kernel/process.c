@@ -203,9 +203,9 @@ cpu_idle(void)
 
 	    if (signal_old & SIGNAL_KCALL)
 		sig_kcall_handler();
+	} else {
+	    sys_sync_wait(&jos_atomic_read(&lind_signal_pending), 0,
+			  last_jiffies_nsec + nsec_per_jiffies);
 	}
-
-	sys_sync_wait(&jos_atomic_read(&lind_signal_pending), 0,
-		      last_jiffies_nsec + nsec_per_jiffies);
     }
 }
