@@ -2,8 +2,8 @@
 #include <inc/hashtable.h>
 #include <inc/assert.h>
 #include <inc/lib.h>
+#include <inc/arch.h>
 
-#include <machine/x86.h>
 #include <machine/memlayout.h>
 
 #include <stdio.h>
@@ -154,7 +154,7 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
     
     //struct cyg_stack *s = &cyg_data.stack[0];
 
-    uint64_t f = read_tsc();
+    uint64_t f = arch_read_tsc();
     if (s->size > 0) {
 	uint64_t caller = s->func_stamp[s->size - 1].func_addr;
 	cyg_profile_data((void *) (uintptr_t) caller, f - cyg_data.last_tsc, 0);
@@ -162,7 +162,7 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
     cyg_data.last_tsc = f;
 
     s->func_stamp[s->size].func_addr = (uintptr_t) this_fn;
-    s->func_stamp[s->size].entry_tsc = read_tsc();
+    s->func_stamp[s->size].entry_tsc = arch_read_tsc();
     s->size++;
 
     // overflow func addr stack
@@ -179,7 +179,7 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
 	return;
 
     cyg_data.enable = 0;
-    uint64_t f = read_tsc();
+    uint64_t f = arch_read_tsc();
 
     //struct cyg_stack *s = &cyg_data.stack[0];
     struct cyg_stack *s = stack_for(thread_id());

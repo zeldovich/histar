@@ -1,9 +1,9 @@
 extern "C" {
-#include <machine/x86.h>
 #include <inc/assert.h>
 #include <inc/prof.h>
 #include <inc/types.h>
 #include <inc/lib.h>
+#include <inc/arch.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@ backtrace_cb(struct _Unwind_Context *ctx, void *arg)
     }
 }
 
-scoped_prof::scoped_prof(void) : func_addr_(0), start_(read_tsc())
+scoped_prof::scoped_prof(void) : func_addr_(0), start_(arch_read_tsc())
 {
     // watch out for inline
     _Unwind_Backtrace(&backtrace_cb, &func_addr_);
@@ -46,7 +46,7 @@ scoped_prof::scoped_prof(void) : func_addr_(0), start_(read_tsc())
 
 scoped_prof::~scoped_prof(void)
 {
-    uint64_t end = read_tsc();
+    uint64_t end = arch_read_tsc();
     if (end < start_)
 	prof_data(func_addr_, end + (UINT64(~0) - start_));
     else
@@ -58,7 +58,7 @@ prof_init(char on)
 {
     if (on || getenv("JOS_PROF")) {
 	enable = 1;
-	start_prof = read_tsc();
+	start_prof = arch_read_tsc();
     }
 }
 
@@ -115,7 +115,7 @@ prof_print(char use_cprintf)
 	}
     }
 
-    uint64_t e = read_tsc();
+    uint64_t e = arch_read_tsc();
     uint64_t tot = 0;
     if (e < start_prof)
 	tot = e + (UINT64(~0) - start_prof);

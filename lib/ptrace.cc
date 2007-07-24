@@ -7,7 +7,9 @@ extern "C" {
 #include <inc/debug_gate.h>
 #include <inc/debug.h>
 
+#if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386)
 #include <machine/x86.h>
+#endif
 
 #include <inttypes.h>
 #include <unistd.h>
@@ -41,6 +43,8 @@ copy_to_utf(struct UTrapframe *u, struct user_regs_struct *r)
     REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
     REG_COPY(ip);  REG_COPY(flags);
 #undef REG_COPY
+#elif defined(JOS_ARCH_sparc)
+    /* XXX ptrace does not work yet */
 #else
 #error Unknown arch
 #endif
@@ -64,6 +68,8 @@ copy_to_user_regs(struct user_regs_struct *r, struct UTrapframe *u)
     REG_COPY(si);  REG_COPY(di);  REG_COPY(bp);  REG_COPY(sp);
     REG_COPY(ip);  REG_COPY(flags);
 #undef REG_COPY
+#elif defined(JOS_ARCH_sparc)
+    /* XXX ptrace does not work yet */
 #else
 #error Unknown arch
 #endif
@@ -229,8 +235,10 @@ ptrace(enum __ptrace_request request, ...) __THROW
     case PTRACE_PEEKUSER:
     case PTRACE_POKEDATA:
     case PTRACE_POKEUSER:
+#if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386)
     case PTRACE_GETFPXREGS:
     case PTRACE_SETFPXREGS:
+#endif
     case PTRACE_SYSCALL:
 	cprintf("ptrace: unknown request %d\n", request);
 	print_backtrace(1);
