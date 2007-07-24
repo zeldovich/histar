@@ -4,26 +4,33 @@
 typedef struct { volatile uint64_t counter; } jos_atomic64_t;
 
 static __inline__ void
-jos_atomic_set64(jos_atomic_t *v, int i)
+jos_atomic_set64(jos_atomic64_t *v, uint64_t i)
 {
-    
+    /* XXX not atomic */
+    v->counter = i;
 }
 
 static __inline__ void
 jos_atomic_inc64(jos_atomic64_t *v)
 {
+    /* XXX not atomic */
+    v->counter++;
 }
 
 static __inline__ void
 jos_atomic_dec64(jos_atomic64_t *v)
 {
+    /* XXX not atomic */
+    v->counter--;
 }
 
 /* Returns true if result is zero. */
 static __inline__ int
 jos_atomic_dec_and_test64(jos_atomic64_t *v)
 {
-    return 0;
+    /* XXX not atomic */
+    v->counter--;
+    return (v->counter == 0);
 }
 
 /*
@@ -36,7 +43,11 @@ jos_atomic_dec_and_test64(jos_atomic64_t *v)
 static __inline__ uint64_t
 jos_atomic_compare_exchange64(jos_atomic64_t *v, uint64_t old, uint64_t newv)
 {
-    return 0;
+    /* XXX not atomic */
+    uint64_t cur = jos_atomic_read(v);
+    if (cur == old)
+	jos_atomic_set64(v, newv);
+    return cur;
 }
 
 #endif
