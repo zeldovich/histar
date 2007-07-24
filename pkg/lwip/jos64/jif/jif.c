@@ -225,11 +225,10 @@ low_level_input(struct netif *netif)
 	lwip_core_lock();
 	if (jif->waitgen == -E_AGAIN) {
 	    // All buffers have been cleared
-	    for (int i = 0; i < JIF_BUFS; i++) {
+	    for (int i = 0; i < JIF_BUFS; i++)
 		jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
-		jif->rx_head = -1;
-		jif->rx_tail = -1;
-	    }
+	    jif->rx_head = -1;
+	    jif->rx_tail = -1;
 	}
     }
 

@@ -105,11 +105,10 @@ jif_rx_thread(void *a)
 	    if (jif->waitgen == -E_AGAIN) {
 		int i;
 		// All buffers have been cleared
-		for (i = 0; i < JIF_BUFS; i++) {
+		for (i = 0; i < JIF_BUFS; i++)
 		    jif->tx[i]->actual_count = NETHDR_COUNT_DONE;
-		    jif->rx_head = -1;
-		    jif->rx_tail = -1;
-		}
+		jif->rx_head = -1;
+		jif->rx_tail = -1;
 	    }
 	} 
 	jif_unlock(jif);
