@@ -18,14 +18,16 @@ typedef SAFE_TYPE(uint8_t) thread_status;
 struct Thread {
     struct kobject_hdr th_ko;
 
+    // User-level execution context
     struct Trapframe th_tf;
     struct Trapframe_aux th_tfa;
 
+    // The thread-local segment (holds refcount)
+    kobject_id_t th_sg;
+
+    // Address space container entry and pinned pointer
     struct cobj_ref th_asref;
     const struct Address_space *th_as;
-
-    // The thread-local segment
-    kobject_id_t th_sg;
 
     thread_status th_status;
 
@@ -36,6 +38,7 @@ struct Thread {
     uint8_t th_sync_waiting : 1;
     uint8_t th_cache_flush : 1;
     uint8_t th_linked : 1;
+    uint8_t th_unused_flag : 1;
 
     uint32_t th_sched_tickets;
     uint64_t th_multi_slots;
