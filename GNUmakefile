@@ -45,7 +45,7 @@ TAME 	:= tame
 
 # Compiler flags.
 
-COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn -Wcast-align \
+COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn \
 	    -Wwrite-strings -Wno-unused-parameter -Wmissing-format-attribute \
 	    -Wswitch-default -fno-builtin-fork
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
@@ -53,7 +53,7 @@ CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # SFS seems to be violating -Woverloaded-virtual
 # Too many false positives:
 # -Wconversion -Wcast-qual -Wunreachable-code -Wbad-function-cast -Winline
-# -Weffc++ -Wswitch-enum
+# -Weffc++ -Wswitch-enum -Wcast-align
 
 OPTFLAG	 := -O3 -fno-omit-frame-pointer
 ifeq ($(ARCH),amd64)
