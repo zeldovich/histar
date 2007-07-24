@@ -129,7 +129,7 @@ as_resize(struct Address_space *as, uint64_t nent)
 int
 as_to_user(const struct Address_space *as, struct u_address_space *uas)
 {
-    int r = check_user_access(uas, sizeof(*uas), SEGMAP_WRITE, 1);
+    int r = check_user_access(uas, sizeof(*uas), SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -138,7 +138,7 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
     int overflow = 0;
     r = check_user_access(ents,
 			  safe_mul64(&overflow, sizeof(*ents), size),
-			  SEGMAP_WRITE, 1);
+			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -172,7 +172,7 @@ as_to_user(const struct Address_space *as, struct u_address_space *uas)
 int
 as_from_user(struct Address_space *as, struct u_address_space *uas)
 {
-    int r = check_user_access(uas, sizeof(*uas), 0, 1);
+    int r = check_user_access(uas, sizeof(*uas), 0);
     if (r < 0)
 	return r;
 
@@ -181,7 +181,7 @@ as_from_user(struct Address_space *as, struct u_address_space *uas)
     int overflow = 0;
     r = check_user_access(ents,
 			  safe_mul64(&overflow, sizeof(*ents), nent),
-			  SEGMAP_WRITE, 1);
+			  SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -232,7 +232,7 @@ out:
 int
 as_get_uslot(struct Address_space *as, struct u_segment_mapping *usm)
 {
-    int r = check_user_access(usm, sizeof(*usm), SEGMAP_WRITE, 1);
+    int r = check_user_access(usm, sizeof(*usm), SEGMAP_WRITE);
     if (r < 0)
 	return r;
 
@@ -248,7 +248,7 @@ as_get_uslot(struct Address_space *as, struct u_segment_mapping *usm)
 int
 as_set_uslot(struct Address_space *as, struct u_segment_mapping *usm_new)
 {
-    int r = check_user_access(usm_new, sizeof(*usm_new), 0, 1);
+    int r = check_user_access(usm_new, sizeof(*usm_new), 0);
     if (r < 0)
 	return r;
 

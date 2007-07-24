@@ -33,7 +33,7 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
     if (sync_debug)
 	cprintf("sync_waitslot_init: addr %p val %"PRIx64"\n", addr, val);
 
-    int r = check_user_access(addr, sizeof(*addr), 0, 1);
+    int r = check_user_access(addr, sizeof(*addr), 0);
     if (r < 0)
 	return r;
 

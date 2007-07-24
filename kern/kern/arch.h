@@ -8,6 +8,7 @@
 #include <machine/setjmp.h>
 #include <kern/thread.h>
 #include <kern/param.h>
+#include <inc/alignmacro.h>
 
 /*
  * Page table (Pagemap) handling
@@ -59,11 +60,15 @@ int  as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags);
  * Checks that [ptr .. ptr + nbytes) is valid user memory,
  * and makes sure the address is paged in (might return -E_RESTART).
  * Checks for writability if (reqflags & SEGMAP_WRITE).
- * Checks for maximum platform alignment if align is set.
+ * Checks for alignment to alignbytes, if needed for architecture.
  */
-int  check_user_access(const void *ptr, uint64_t nbytes,
-		       uint32_t reqflags, int align)
+int  check_user_access2(const void *ptr, uint64_t nbytes,
+			uint32_t reqflags, int alignbytes)
     __attribute__ ((warn_unused_result));
+
+#define check_user_access(ptr, nbytes, reqflags)			\
+	check_user_access2(ptr, nbytes, reqflags,			\
+			   __jos_alignment_of(__typeof__(*(ptr))))
 
 /*
  * Threads and traps
