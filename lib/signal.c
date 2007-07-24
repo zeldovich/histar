@@ -1,6 +1,3 @@
-#include <machine/trapcodes.h>
-#include <machine/x86.h>
-#include <machine/pmap.h>
 #include <inc/syscall.h>
 #include <inc/lib.h>
 #include <inc/stdio.h>
@@ -26,6 +23,24 @@
 #include <bits/unimpl.h>
 #include <bits/signalgate.h>
 #include <bits/kernel_sigaction.h>
+
+#if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386)
+ #include <machine/x86.h>
+ #include <machine/trapcodes.h>
+ #define ARCH_PGFLT  T_PGFLT
+ #define ARCH_DEVICE T_DEVICE
+ #define ARCH_BRKPT  T_BRKPT
+ #define ARCH_DEBUG  T_DEBUG
+#elif defined(JOS_ARCH_sparc)
+ // XXX
+ #include <machine/trapcodes.h>
+ #define ARCH_PGFLT  1
+ #define ARCH_DEVICE 2
+ #define ARCH_BRKPT  3
+ #define ARCH_DEBUG  4
+#else
+#error Unknown arch
+#endif
 
 enum { signal_debug = 0 };
 enum { signal_debug_utf_dump = 0 };
@@ -471,7 +486,7 @@ signal_utrap(struct UTrapframe *utf)
 
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) (uintptr_t) utf->utf_trap_arg;
-	if (utf->utf_trap_num == T_PGFLT) {
+	if (utf->utf_trap_num == ARCH_PGFLT) {
 	    int r = stack_grow(si.si_addr);
 	    if (r > 0) {
 		if (signal_debug)
@@ -488,7 +503,7 @@ signal_utrap(struct UTrapframe *utf)
 
 	    si.si_signo = SIGSEGV;
 	    si.si_code = SEGV_ACCERR;	// maybe use segment_lookup()
-	} else if (utf->utf_trap_num == T_DEVICE) {
+	} else if (utf->utf_trap_num == ARCH_DEVICE) {
 	    int r = sys_self_fp_enable();
 	    if (r >= 0) {
 		if (signal_debug)
@@ -501,8 +516,8 @@ signal_utrap(struct UTrapframe *utf)
 		    thread_id(), e2s(r));
 	    si.si_signo = SIGILL;
 	    si.si_code = ILL_ILLTRP;
-	} else if (utf->utf_trap_num == T_BRKPT ||
-		   utf->utf_trap_num == T_DEBUG) {
+	} else if (utf->utf_trap_num == ARCH_BRKPT ||
+		   utf->utf_trap_num == ARCH_DEBUG) {
 	    si.si_signo = SIGTRAP;
 	    // XXX TRAP_BRKPT or TRAP_TRACE?
 	    si.si_code = TRAP_BRKPT;
