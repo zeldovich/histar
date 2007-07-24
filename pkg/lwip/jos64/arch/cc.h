@@ -4,6 +4,7 @@
 #include <inc/types.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <machine/param.h>
 
 typedef uint32_t u32_t;
 typedef int32_t s32_t;
@@ -33,7 +34,13 @@ typedef uintptr_t mem_ptr_t;
 #define LWIP_PLATFORM_ASSERT(x)	panic(x)
 
 #ifndef BYTE_ORDER
+#if JOS_ARCH_ENDIAN==JOS_LITTLE_ENDIAN
 #define BYTE_ORDER LITTLE_ENDIAN
+#elif JOS_ARCH_ENDIAN==JOS_BIG_ENDIAN
+#define BYTE_ORDER BIG_ENDIAN
+#else
+#error Unknown endianness
+#endif
 #endif
 
 #endif
