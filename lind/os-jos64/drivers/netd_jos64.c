@@ -174,7 +174,6 @@ jos64_socket_thread(struct socket_conn *sc)
 		panic("jos64_dispatch error: %s\n", e2s(r));
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
-	    sys_sync_wait(&ss->lnx2jos_full, CNT_LIMBO, UINT64(~0));
 	} else if (r == 2) {
 	    int64_t z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
 	    if (z < 0) {
