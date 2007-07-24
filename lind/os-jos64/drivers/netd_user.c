@@ -35,7 +35,7 @@
 /* copied from linux/errno.h */
 #define ERESTARTNOHAND  514     /* restart if no handler.. */
 
-enum { dbg = 1 };
+enum { dbg = 0 };
 enum { netd_do_taint = 0 };
 
 static uint64_t inet_taint;
