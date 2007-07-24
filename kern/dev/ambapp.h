@@ -74,8 +74,10 @@
 #define GAISLER_AHBTRACE 0x017
 #define GAISLER_ETHDSU   0x018
 #define GAISLER_PIOPORT  0x01A
-#define GAISLER_AHBJTAG  0x01c
+#define GAISLER_AHBROM   0x01B
+#define GAISLER_AHBJTAG  0x01C
 #define GAISLER_ATACTRL  0x024
+#define GAISLER_DDRSPA   0x025
 #define GAISLER_USBEHC   0x026
 #define GAISLER_USBUHC   0x027
 #define GAISLER_KBD      0X060
@@ -139,10 +141,14 @@ gaisler_device_str(int id)
 	return "GAISLER_ETHDSU";
     case GAISLER_PIOPORT:
 	return "GAISLER_PIOPORT";
+    case GAISLER_AHBROM:
+	return "GAISLER_AHBROM";
     case GAISLER_AHBJTAG:
 	return "GAISLER_AHBJTAG";
     case GAISLER_ATACTRL:
 	return "GAISLER_ATACTRL";
+    case GAISLER_DDRSPA:
+	return "GAISLER_DDRSPA";
     case GAISLER_USBEHC:
 	return "GAISLER_USBEHC";
     case GAISLER_USBUHC:
