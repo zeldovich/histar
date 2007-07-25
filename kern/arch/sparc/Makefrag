@@ -16,12 +16,12 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/misc.c
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/longjmp.S
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\
 	lib/$(ARCH)/strlen.S			\
-	lib/$(ARCH)/longjmp.S			\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
@@ -38,9 +38,6 @@ KERN_DEV :=					\
 	kern/dev/apbucons.c			\
 	kern/dev/irqmp.c			\
 	kern/dev/gptimer.c
-
-X_KERN_LIB :=					\
-	lib/$(ARCH)/longjmp.S
 
 X_KERN_DEV :=					\
 	kern/dev/console.c			\

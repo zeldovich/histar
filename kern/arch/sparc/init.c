@@ -14,6 +14,9 @@
 #include <dev/irqmp.h>
 #include <dev/gptimer.h>
 
+
+
+
 #include <inc/setjmp.h>
 
 char boot_cmdline[256];
@@ -38,6 +41,14 @@ init (void)
 {
     mmu_init();
     bss_init();
+
+    struct jos_jmp_buf jb;
+    if (!jos_setjmp(&jb)) {
+	cprintf("direct return\n");
+	jos_longjmp(&jb, 1);
+    } else {
+	cprintf("longjmp return\n");
+    }
 
     amba_init();
     apbucons_init();
