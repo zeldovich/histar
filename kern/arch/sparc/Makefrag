@@ -5,7 +5,7 @@
 # entry address for the boot strap code.
 KERN_LOADADDR = 0x40000000
 KERN_LDFLAGS = -N -nostdlib -e $(KERN_LOADADDR)
-KERN_CFLAGS += -msoft-float -fno-builtin -D KERN_LOADADDR=$(KERN_LOADADDR)
+KERN_CFLAGS += -msoft-float -fno-builtin -DKERN_LOADADDR=$(KERN_LOADADDR)
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/prom_stage1.S		\
