@@ -11,7 +11,7 @@ ENTRY(jos_setjmp)
 ENTRY(jos_longjmp)
 	FLUSH_WINDOWS
 	ld	[%o0], %fp
-	ld	[%o0 + 4], %07
+	ld	[%o0 + 4], %o7
 
 	retl
 	 restore
