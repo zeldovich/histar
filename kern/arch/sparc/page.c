@@ -8,8 +8,9 @@
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 
-static physaddr_t maxpa;	// Maximum physical address
-static physaddr_t minpa;	// Minimum physical address
+physaddr_t minpa;	// Minimum physical address
+physaddr_t maxpa;	// Maximum physical address
+char mem_detect_done;
 
 struct page_info *page_infos;
 
@@ -43,6 +44,7 @@ esa_mctrl_detect(void)
     global_npages = sdram_sz << 8;
     minpa = ahb_dev.start[2];
     maxpa = minpa + (global_npages * PGSIZE);
+    mem_detect_done = 1;
 
     cprintf("Physical address space layout:\n");
     cprintf(" 0x%08x-0x%08x (ROM)\n", ahb_dev.start[0], ahb_dev.stop[0]);
@@ -74,7 +76,8 @@ gaisler_ddrspa_detect(void)
     global_npages = sdram_sz << 8;
     minpa = ahb_dev.start[0];
     maxpa = minpa + (global_npages * PGSIZE);
-    
+    mem_detect_done = 1;
+
     return 1;
 }
 
@@ -122,7 +125,7 @@ page_init(void)
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
-    for (uint32_t pa = (uint32_t) RELOC(boot_freemem); pa <= maxpa; pa += PGSIZE)
+    for (uint32_t pa = (uint32_t) RELOC(boot_freemem); pa < maxpa; pa += PGSIZE)
 	page_free(pa2kva(pa));
     page_stats.pages_used = 0;
 }

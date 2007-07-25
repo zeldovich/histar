@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
 #include <machine/sparc-common.h>
+#include <machine/page.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
@@ -357,11 +358,13 @@ kva2pa(void *kva)
 ppn_t
 pa2ppn(physaddr_t pa)
 {
-    return (pa >> PGSHIFT);
+    assert(mem_detect_done);
+    return ((pa - minpa) >> PGSHIFT);
 }
 
 physaddr_t
 ppn2pa(ppn_t pn)
 {
-    return (pn << PGSHIFT);
+    assert(mem_detect_done);
+    return (pn << PGSHIFT) + minpa;
 }
