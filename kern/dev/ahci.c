@@ -1,12 +1,13 @@
 #include <dev/ahci.h>
 #include <dev/disk.h>
 #include <dev/pcireg.h>
+#include <dev/ahcireg.h>
 #include <kern/arch.h>
 #include <inc/error.h>
 
 struct ahci_hba {
     uint32_t irq;
-    uintptr_t membase;
+    uint32_t membase;
 };
 
 int
@@ -26,6 +27,7 @@ ahci_init(struct pci_func *f)
     pci_func_enable(f);
     a->irq = f->irq_line;
     a->membase = f->reg_base[5];
+    cprintf("AHCI: base 0x%x, irq %d\n", a->membase, a->irq);
 
     return 1;
 }
