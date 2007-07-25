@@ -4,7 +4,7 @@
 
 
 ENTRY(utrap_entry_asm)
-	ba utra_entry_asm
+	ba utrap_entry_asm
 	 nop
 
 ENTRY(utrap_ret)
