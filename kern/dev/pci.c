@@ -6,6 +6,7 @@
 #include <dev/fxp.h>
 #include <dev/pnic.h>
 #include <dev/e1000.h>
+#include <dev/ahci.h>
 #include <kern/lib.h>
 
 // Flag to do "lspci" at bootup
@@ -28,6 +29,7 @@ struct pci_driver {
 struct pci_driver pci_attach_class[] = {
     { PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI, &pci_bridge_attach },
     { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE, &ide_init },
+    { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_SATA, &ahci_init },
     { 0, 0, 0 },
 };
 
