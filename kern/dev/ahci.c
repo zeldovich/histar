@@ -22,13 +22,13 @@ struct ahci_hba {
  */
 
 static uint32_t
-ahci_build_prd(struct ahci_hba *a, uint32_t port, uint32_t cslot,
+ahci_build_prd(struct ahci_hba *a, uint32_t port,
 	       struct kiovec *iov_buf, uint32_t iov_cnt,
 	       void *fis, uint32_t fislen)
 {
     uint32_t nbytes = 0;
 
-    struct ahci_cmd_table *cmd = pa2kva(a->cmd[port][cslot].ctba);
+    struct ahci_cmd_table *cmd = pa2kva(a->cmd[port]->ctba);
     assert(iov_cnt < sizeof(cmd->prdt) / sizeof(cmd->prdt[0]));
 
     for (uint32_t slot = 0; slot < iov_cnt; slot++) {
@@ -38,8 +38,8 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port, uint32_t cslot,
     }
 
     memcpy(&cmd->cfis[0], fis, fislen);
-    a->cmd[port][cslot].prdtl = iov_cnt;
-    a->cmd[port][cslot].flags = fislen / sizeof(uint32_t);
+    a->cmd[port]->prdtl = iov_cnt;
+    a->cmd[port]->flags = fislen / sizeof(uint32_t);
 
     return nbytes;
 }
@@ -84,17 +84,15 @@ ahci_alloc(struct ahci_hba **ap)
 
     for (int i = 0; i < 32; i++) {
 	a->rfis[i] = ahci_malloc(&ms, sizeof(struct ahci_recv_fis));
-	a->cmd[i] = ahci_malloc(&ms, sizeof(struct ahci_cmd_header) * 32);
+	a->cmd[i] = ahci_malloc(&ms, sizeof(struct ahci_cmd_header));
 	if (!a->rfis[i] || !a->cmd[i])
 	    return -E_NO_MEM;
 
-	for (int j = 0; j < 32; j++) {
-	    struct ahci_cmd_table *ctab = ahci_malloc(&ms, sizeof(*ctab));
-	    if (!ctab)
-		return -E_NO_MEM;
+	struct ahci_cmd_table *ctab = ahci_malloc(&ms, sizeof(*ctab));
+	if (!ctab)
+	    return -E_NO_MEM;
 
-	    a->cmd[i][j].ctba = kva2pa(ctab);
-	}
+	a->cmd[i]->ctba = kva2pa(ctab);
     }
 
     *ap = a;
@@ -112,7 +110,6 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     a->r->port[port].ci = 0;
     a->r->port[port].cmd |= AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_ST;
     
-
     static union {
 	struct identify_device id;
 	char buf[512];
@@ -126,12 +123,12 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     fis.type = SATA_FIS_TYPE_REG_H2D;
     fis.command = IDE_CMD_IDENTIFY;
 
-    uint32_t len = ahci_build_prd(a, port, 0, &id_iov, 1, &fis, sizeof(fis));
-    a->cmd[port][0].flags |= 0;		/* _W for writes */
-    a->cmd[port][0].prdbc = 0;		/* len for writes */
+    uint32_t len = ahci_build_prd(a, port, &id_iov, 1, &fis, sizeof(fis));
+    a->cmd[port]->flags |= 0;		/* _W for writes */
+    a->cmd[port]->prdbc = 0;		/* len for writes */
     a->rfis[port]->reg.status = IDE_STAT_BSY;
 
-    a->r->port[port].ci |= (1 << 0);
+    a->r->port[port].ci |= 1;
     cprintf("ahci_port_reset: FIS issued (%d DMA bytes)\n", len);
 
     uint64_t ts_start = karch_get_tsc();
