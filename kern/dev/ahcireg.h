@@ -50,6 +50,7 @@ struct ahci_reg_port {
 #define AHCI_PORT_TFD_ERR(tfd)	(((tfd) >> 8) & 0xff)
 #define AHCI_PORT_TFD_STAT(tfd)	(((tfd) >> 0) & 0xff)
 #define AHCI_PORT_SCTL_RESET	0x01
+#define AHCI_PORT_INTR_DHRE	(1 << 0)
 
 struct ahci_reg {
     union {

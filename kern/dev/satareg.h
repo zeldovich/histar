@@ -13,32 +13,14 @@ struct sata_fis_reg {
 	uint8_t error;		/* D2H */
     };
 
-    union {
-	uint8_t sector;
-	uint8_t lba_0;
-    };
-    union {
-	uint8_t cyl_lo;
-	uint8_t lba_1;
-    };
-    union {
-	uint8_t cyl_hi;
-	uint8_t lba_2;
-    };
+    uint8_t lba_0;
+    uint8_t lba_1;
+    uint8_t lba_2;
     uint8_t dev_head;
 
-    union {
-	uint8_t sector_ex;
-	uint8_t lba_3;
-    };
-    union {
-	uint8_t cyl_lo_ex;
-	uint8_t lba_4;
-    };
-    union {
-	uint8_t cyl_hi_ex;
-	uint8_t lba_5;
-    };
+    uint8_t lba_3;
+    uint8_t lba_4;
+    uint8_t lba_5;
     uint8_t features_ex;
 
     uint8_t sector_count;
