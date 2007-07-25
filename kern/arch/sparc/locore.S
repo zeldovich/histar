@@ -169,7 +169,8 @@ ENTRY(trapframe_pop)
 	rd	%psr, %l3
 	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
 	wr	%l3, %psr
-
+	WRITE_PAUSE
+	
 	jmp	%l1
 	 rett	%l2
 
