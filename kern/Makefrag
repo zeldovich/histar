@@ -39,6 +39,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/panic.c \
 	    kern/kern/pagealloc.c \
 	    kern/kern/console.c \
+	    kern/kern/disk.c \
 	    $(OBJDIR)/kern/embedbin.c
 
 KERN_BTREE := \

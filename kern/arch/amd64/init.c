@@ -7,7 +7,6 @@
 #include <dev/sercons.h>
 #include <dev/cgacons.h>
 #include <dev/lptcons.h>
-#include <dev/disk.h>
 #include <dev/pci.h>
 #include <dev/picirq.h>
 #include <dev/kclock.h>

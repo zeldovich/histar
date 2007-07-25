@@ -2,7 +2,7 @@
 #include <kern/part.h>
 #include <kern/arch.h>
 #include <kern/pstate.h>
-#include <dev/disk.h>
+#include <kern/disk.h>
 #include <inc/error.h>
 
 /*
@@ -36,6 +36,8 @@
 // an unused partition id
 #define JOS64_PART_ID 0xBC
 
+enum { part_debug = 0 };
+
 struct part_entry 
 {
     uint8_t pe_active;
@@ -59,7 +61,7 @@ struct part_table {
 };
 
 // the global pstate partition
-static struct part_desc the_part = { 0, 0 };
+static struct part_desc the_part;
 
 static void
 disk_io_cb(disk_io_status status, void *arg)
@@ -72,12 +74,12 @@ disk_io_cb(disk_io_status status, void *arg)
 }
 
 static int
-part_table_read(struct part_table *pt) 
+part_table_read(struct disk *dk, struct part_table *pt) 
 {
     static uint8_t sect[512];    
     int64_t blocked = 1;
     struct kiovec iov = { sect, 512 };
-    int r = disk_io(op_read, &iov, 1, 0, &disk_io_cb, &blocked);
+    int r = disk_io(dk, op_read, &iov, 1, 0, &disk_io_cb, &blocked);
     if (r < 0)
 	return r;
 
@@ -89,7 +91,7 @@ part_table_read(struct part_table *pt)
 	    cprintf("part_table_read: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
 	}
-	disk_poll();
+	disk_poll(dk);
     }
 
     memcpy(pt, &sect[PART_TABLE_OFFSET], sizeof(*pt));
@@ -106,25 +108,19 @@ part_table_print(struct part_table *pt)
     }
 }
 
-void
-part_init(void)
+static int
+part_init_disk(struct disk *dk)
 {
-    if (!part_enable) {
-	the_part.pd_offset = 0;
-	the_part.pd_size = disk_bytes;
-	pstate_part = &the_part;
-	return;
-    }
-
     struct part_table table;
-    int r = part_table_read(&table);
+    int r = part_table_read(dk, &table);
     if (r < 0) {
 	cprintf("cannot read partition table: %s\n", e2s(r));
-	return;
+	return 0;
     }
 
-    part_table_print(&table);
-    
+    if (part_debug)
+	part_table_print(&table);
+
     struct part_entry *e = 0;
     const char *store;
     if ((store = strstr(&boot_cmdline[0], "store=/dev/hd"))) {
@@ -132,13 +128,13 @@ part_init(void)
 	int i = spec[1] - '1';
 	if (i < 0 || i > 3) {
 	    cprintf("part store: unknown %s\n", store);
-	    return;
+	    return 0;
 	}
 
 	if (table.pt_entry[i].pe_type != JOS64_PART_ID) {
 	    cprintf("part store: %s (%x) is not type JOS64 (%x)\n",
 		    store, table.pt_entry[i].pe_type, JOS64_PART_ID);
-	    return;
+	    return 0;
 	}
 	e = &table.pt_entry[i];
     } else {
@@ -149,15 +145,37 @@ part_init(void)
 	    }
 	}
     }
-    
+
     if (!e) {
 	cprintf("no JOS64 partitions found\n");
-	return;
+	return 0;
     }
-    
+
     the_part.pd_offset = e->pe_lbastart * 512;
     the_part.pd_size = e->pe_nsectors * 512;
+    the_part.pd_dk = dk;
     pstate_part = &the_part;
     cprintf("partition LBA offset %d, sectors %d\n",
 	    e->pe_lbastart, e->pe_nsectors);
+    return 1;
+
+}
+
+void
+part_init(void)
+{
+    struct disk *dk;
+
+    if (!part_enable) {
+	dk = LIST_FIRST(&disks);
+	the_part.pd_offset = 0;
+	the_part.pd_size = dk ? dk->dk_bytes : 0;
+	the_part.pd_dk = dk;
+	pstate_part = &the_part;
+	return;
+    }
+
+    LIST_FOREACH(dk, &disks, dk_link)
+	if (part_init_disk(dk) > 0)
+	    return;
 }

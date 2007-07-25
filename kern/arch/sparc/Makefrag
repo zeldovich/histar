@@ -16,8 +16,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/reboot.c			\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/trap.c			\
-	$(ARCHDIR)/misc.c			\
-	$(ARCHDIR)/unimpl.c
+	$(ARCHDIR)/misc.c
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\

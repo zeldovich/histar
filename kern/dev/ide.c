@@ -1,7 +1,7 @@
 #include <machine/x86.h>
 #include <dev/ide.h>
 #include <dev/idereg.h>
-#include <dev/disk.h>
+#include <kern/disk.h>
 #include <kern/lib.h>
 #include <kern/intr.h>
 #include <kern/arch.h>
@@ -26,7 +26,6 @@ struct ide_channel {
     struct interrupt_handler ih;
 
     // Flags
-    bool_t present;
     bool_t dma_wait;
     bool_t irq_wait;
 
@@ -35,6 +34,9 @@ struct ide_channel {
     uint8_t ide_error;
     uint8_t dma_status;
 
+    // Primary/secondary
+    uint8_t diskno;
+
     // 1-deep command queue
     struct ide_op current_op;
 
@@ -42,11 +44,9 @@ struct ide_channel {
     // 17 slots is enough for up to 64K data (16 pages), the max for DMA.
 #define NPRDSLOTS	17
     struct ide_prd bm_prd[NPRDSLOTS] __attribute__((aligned (256)));
-};
 
-// One global IDE channel and drive on it, for now
-static struct ide_channel the_ide_channel;
-static uint32_t the_ide_drive;
+    struct disk dk;
+};
 
 static int
 ide_wait(struct ide_channel *idec, uint8_t flagmask, uint8_t flagset)
@@ -78,13 +78,13 @@ ide_wait(struct ide_channel *idec, uint8_t flagmask, uint8_t flagset)
 }
 
 static void
-ide_select_drive(struct ide_channel *idec, uint32_t diskno)
+ide_select_drive(struct ide_channel *idec)
 {
-    outb(idec->cmd_addr + IDE_REG_DEVICE, (diskno << 4));
+    outb(idec->cmd_addr + IDE_REG_DEVICE, (idec->diskno << 4));
 }
 
 static void
-ide_select_sectors(struct ide_channel *idec, uint32_t diskno,
+ide_select_sectors(struct ide_channel *idec,
 		   uint32_t start_sector, uint32_t num_sectors)
 {
     assert(num_sectors <= 256);
@@ -95,7 +95,7 @@ ide_select_sectors(struct ide_channel *idec, uint32_t diskno,
     outb(idec->cmd_addr + IDE_REG_LBA_MID, (start_sector >> 8) & 0xff);
     outb(idec->cmd_addr + IDE_REG_LBA_HI, (start_sector >> 16) & 0xff);
     outb(idec->cmd_addr + IDE_REG_DEVICE, IDE_DEV_LBA |
-					  (diskno << 4) |
+					  (idec->diskno << 4) |
 					  ((start_sector >> 24) & 0x0f));
 }
 
@@ -274,16 +274,17 @@ ide_intr(void *arg)
     ide_complete(idec, disk_io_success);
 }
 
-void
-disk_poll(void)
+static void
+ide_poll(struct disk *dk)
 {
-    ide_intr(&the_ide_channel);
+    struct ide_channel *idec = dk->dk_arg;
+    ide_intr(idec);
 }
 
 static int
-ide_send(struct ide_channel *idec, uint32_t diskno)
+ide_send(struct ide_channel *idec)
 {
-    ide_select_drive(idec, diskno);
+    ide_select_drive(idec);
     int r = ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
     if (r < 0)
 	return r;
@@ -304,8 +305,8 @@ ide_send(struct ide_channel *idec, uint32_t diskno)
 	assert((idec->current_op.byte_offset % 512) == 0);
 	assert((num_bytes % 512) == 0);
 
-	ide_select_sectors(idec, diskno, idec->current_op.byte_offset / 512,
-					 num_bytes / 512);
+	ide_select_sectors(idec, idec->current_op.byte_offset / 512,
+				 num_bytes / 512);
 	outb(idec->cmd_addr + IDE_REG_CMD,
 	    SAFE_EQUAL(idec->current_op.op, op_read) ? IDE_CMD_READ_DMA
 						     : IDE_CMD_WRITE_DMA);
@@ -339,15 +340,15 @@ static union {
 } identify_buf;
 
 static int
-idec_init(struct ide_channel *idec, uint32_t diskno)
+idec_init(struct ide_channel *idec)
 {
-    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
     ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
 
-    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_IDENTIFY);
 
-    cprintf("Trying to identify IDE disk %d\n", diskno);
+    cprintf("Trying to identify IDE disk %d\n", idec->diskno);
     if (ide_pio_in(idec, &identify_buf, 1) < 0) {
 	cprintf("Unable to identify disk device\n");
 	return -E_INVAL;
@@ -376,7 +377,7 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
     }
 
     if (udma_mode >= 0) {
-	outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+	outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
 	outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_XFER_MODE);
 	outb(idec->cmd_addr + IDE_REG_SECTOR_COUNT, IDE_XFER_MODE_UDMA | udma_mode);
 	outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
@@ -387,7 +388,7 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
     }
 
     // Enable write-caching
-    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
     outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_WCACHE_ENA);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
 
@@ -396,7 +397,7 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
 	cprintf("IDE: Unable to enable write-caching\n");
 
     // Enable read look-ahead
-    outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
+    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
     outb(idec->cmd_addr + IDE_REG_FEATURES, IDE_FEATURE_RLA_ENA);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_SETFEATURES);
 
@@ -404,8 +405,21 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
     if ((idec->ide_status & (IDE_STAT_DF | IDE_STAT_ERR)))
 	cprintf("IDE: Unable to enable read look-ahead\n");
 
-    disk_bytes = identify_buf.id.lba_sectors;
-    disk_bytes *= 512;
+    idec->dk.dk_bytes = identify_buf.id.lba_sectors;
+    idec->dk.dk_bytes *= 512;
+
+    memcpy(&idec->dk.dk_model[0], identify_buf.id.model,
+	   sizeof(identify_buf.id.model));
+    memcpy(&idec->dk.dk_serial[0], identify_buf.id.serial,
+	   sizeof(identify_buf.id.serial));
+    memcpy(&idec->dk.dk_firmware[0], identify_buf.id.firmware,
+	   sizeof(identify_buf.id.firmware));
+    static_assert(sizeof(idec->dk.dk_model) >= sizeof(identify_buf.id.model));
+    static_assert(sizeof(idec->dk.dk_serial) >= sizeof(identify_buf.id.serial));
+    static_assert(sizeof(idec->dk.dk_firmware) >= sizeof(identify_buf.id.firmware));
+
+    sprintf(&idec->dk.dk_busloc[0], "%s",
+	    idec->diskno ? "IDE secondary" : "IDE primary");
 
     uint8_t bm_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     if (bm_status & IDE_BM_STAT_SIMPLEX)
@@ -418,56 +432,16 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
     idec->ih.ih_arg = idec;
     irq_register(idec->irq, &idec->ih);
 
-    idec->present = 1;
+    LIST_INSERT_HEAD(&disks, &idec->dk, dk_link);
     return 0;
 }
 
-// Disk interface, from disk.h
-uint64_t disk_bytes;
-
-int
-ide_init(struct pci_func *pcif)
+static int
+ide_issue(struct disk *dk, disk_op op, struct kiovec *iov_buf, int iov_cnt,
+	  uint64_t byte_offset, disk_callback cb, void *cbarg)
 {
-    static int disk_init_done = 0;
-    if (disk_init_done++) {
-	cprintf("Additional IDE controllers found -- ignoring\n");
-	return 0;
-    }
-
-    struct ide_channel *idec = &the_ide_channel;
-    pci_func_enable(pcif);
-
-    // Use the first IDE channel on the IDE controller
-    idec->cmd_addr = pcif->reg_size[0] ? pcif->reg_base[0] : 0x1f0;
-    idec->ctl_addr = pcif->reg_size[1] ? pcif->reg_base[1] + 2 : 0x3f6;
-    idec->bm_addr = pcif->reg_base[4];
-    idec->irq = 14;	// PCI IRQ routing is too complicated
-
-    // Use the second IDE drive on the channel
-    the_ide_drive = 1;
-
-    // Try to initialize the chosen drive/channel
-    if (idec_init(idec, the_ide_drive) < 0) {
-	// Try the other drive
-	the_ide_drive = the_ide_drive ? 0 : 1;
-	if (idec_init(idec, the_ide_drive) < 0) {
-	    cprintf("ide_init: cannot attach any drives\n");
-	    return 0;
-	}
-    }
-
-    return 1;
-}
-
-int
-disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
-	uint64_t byte_offset, disk_callback cb, void *cbarg)
-{
-    struct ide_channel *idec = &the_ide_channel;
+    struct ide_channel *idec = dk->dk_arg;
     struct ide_op *curop = &idec->current_op;
-
-    if (!idec->present)
-	return -E_NOT_FOUND;
 
     if (!SAFE_EQUAL(curop->op, op_none))
 	return -E_BUSY;
@@ -479,8 +453,45 @@ disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
     curop->cb = cb;
     curop->cbarg = cbarg;
 
-    int r = ide_send(idec, the_ide_drive);
+    int r = ide_send(idec);
     if (r < 0)
 	curop->op = op_none;
     return r;
+}
+
+int
+ide_init(struct pci_func *pcif)
+{
+    struct ide_channel *idec;
+    int r = page_alloc((void **) &idec);
+    if (r < 0)
+	return r;
+
+    memset(idec, 0, PGSIZE);
+    static_assert(PGSIZE >= sizeof(*idec));
+    pci_func_enable(pcif);
+
+    idec->dk.dk_issue = &ide_issue;
+    idec->dk.dk_poll  = &ide_poll;
+    idec->dk.dk_arg   = idec;
+
+    // Use the first IDE channel on the IDE controller
+    idec->cmd_addr = pcif->reg_size[0] ? pcif->reg_base[0] : 0x1f0;
+    idec->ctl_addr = pcif->reg_size[1] ? pcif->reg_base[1] + 2 : 0x3f6;
+    idec->bm_addr = pcif->reg_base[4];
+    idec->irq = 14;	// PCI IRQ routing is too complicated
+
+    // Try to initialize the second IDE drive (secondary) first
+    idec->diskno = 1;
+    if (idec_init(idec) >= 0)
+	return 1;
+
+    // Try the primary drive instead..
+    idec->diskno = 0;
+    if (idec_init(idec) >= 0)
+	return 1;
+
+    // Doesn't seem to work
+    page_free(idec);
+    return 0;
 }

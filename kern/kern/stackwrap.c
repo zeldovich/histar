@@ -163,7 +163,8 @@ stackwrap_disk_iov(disk_op op, struct part_desc *pd, struct kiovec *iov_buf,
     static bool_t disk_queue_full;
 
     for (;;) {
-	int r = disk_io(op, iov_buf, iov_cnt, offset, &disk_io_cb, &ds);
+	int r = disk_io(pd->pd_dk, op, iov_buf, iov_cnt,
+			offset, &disk_io_cb, &ds);
 	if (r >= 0) {
 	    stackwrap_sleep(ss);
 	    break;

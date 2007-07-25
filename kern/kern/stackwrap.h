@@ -2,9 +2,9 @@
 #define JOS_KERN_STACKWRAP_H
 
 #include <machine/types.h>
-#include <dev/disk.h>
-#include <inc/queue.h>
+#include <kern/disk.h>
 #include <kern/part.h>
+#include <inc/queue.h>
 
 typedef void (*stackwrap_fn) (uint64_t, uint64_t, uint64_t);
 

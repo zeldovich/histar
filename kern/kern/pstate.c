@@ -1,4 +1,4 @@
-#include <dev/disk.h>
+#include <kern/disk.h>
 #include <kern/thread.h>
 #include <kern/arch.h>
 #include <kern/disklayout.h>
@@ -503,7 +503,7 @@ pstate_load(void)
 	    cprintf("pstate_load: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
 	}
-	disk_poll();
+	disk_poll(pstate_part->pd_dk);
     }
 
     if (done < 0)
@@ -805,7 +805,7 @@ pstate_sync_now(void)
     stackwrap_call_stack(&pstate_op_stack[0], 0, &pstate_sync_stackwrap,
 			 (uintptr_t) &r, 0, 0);
     while (r == 0)
-	disk_poll();
+	disk_poll(pstate_part->pd_dk);
 
     return r < 0 ? r : 0;
 }

@@ -31,19 +31,6 @@ lnxdisk_init(const char *disk_pn)
 }
 
 int
-disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
-	uint64_t offset, disk_callback cb, void *cbarg)
-{
-    return -E_IO;
-}
-
-void
-disk_poll(void)
-{
-    printf("Hmm, disk_poll()...\n");
-}
-
-int
 ide_init(struct pci_func *pcif)
 {
     // Just to get the PCI code to link clean.

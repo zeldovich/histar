@@ -1,5 +1,5 @@
+#include <kern/disk.h>
 #include <dev/ahci.h>
-#include <dev/disk.h>
 #include <dev/pcireg.h>
 #include <dev/ahcireg.h>
 #include <dev/idereg.h>
