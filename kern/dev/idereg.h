@@ -9,8 +9,11 @@
 
 #define IDE_REG_SECTOR_COUNT	2	// read-write
 #define IDE_REG_LBA_LOW		3	// read-write
+#define IDE_REG_SECTOR		3
 #define IDE_REG_LBA_MID		4	// read-write
+#define IDE_REG_CYL_LO		4
 #define IDE_REG_LBA_HI		5	// read-write
+#define IDE_REG_CYL_HI		5
 #define IDE_REG_DEVICE		6	// read-write
 
 #define IDE_REG_CMD		7	// write-only
