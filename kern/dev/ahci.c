@@ -59,9 +59,16 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
 static void
 ahci_reset_port(struct ahci_hba *a, uint32_t port)
 {
+    a->port[port]->cmdh.ctba = kva2pa((void *) &a->port[port]->cmdt);
+    a->r->port[port].clb = kva2pa((void *) &a->port[port]->cmdh);
+    a->r->port[port].fb = kva2pa((void *) &a->port[port]->rfis);
     a->r->port[port].ci = 0;
 
-    /* Enable receiving, sending frames */
+    /* Clear any errors first, otherwise the chip wedges */
+    a->r->port[port].serr = ~0;
+    a->r->port[port].serr = 0;
+
+    /* Enable receiving frames */
     a->r->port[port].cmd |= AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_ST |
 			    AHCI_PORT_CMD_SUD | AHCI_PORT_CMD_POD |
 			    AHCI_PORT_CMD_ACTIVE;
@@ -124,7 +131,8 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     }
 
     cprintf("ahci_port_reset: FIS complete\n");
-    cprintf("ahci_port_reset: model %s\n", id_buf.id.model);
+    cprintf("ahci_port_reset: %d sectors\n", id_buf.id.lba_sectors);
+    cprintf("ahci_port_reset: model %1.40s\n", id_buf.id.model);
 }
 
 static void
@@ -132,13 +140,9 @@ ahci_reset(struct ahci_hba *a)
 {
     a->r->ghc |= AHCI_GHC_AE;
 
-    for (uint32_t i = 0; i < 32; i++) {
-	a->port[i]->cmdh.ctba = kva2pa((void *) &a->port[i]->cmdt);
-	a->r->port[i].clb = kva2pa((void *) &a->port[i]->cmdh);
-	a->r->port[i].fb = kva2pa((void *) &a->port[i]->rfis);
+    for (uint32_t i = 0; i < 32; i++)
 	if (a->r->pi & (1 << i))
 	    ahci_reset_port(a, i);
-    }
 
     a->r->ghc |= AHCI_GHC_IE;
 }
