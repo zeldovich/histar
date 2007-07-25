@@ -72,12 +72,17 @@ struct identify_device {
     char model[40];	    // Words 27-46
     uint16_t pad2[13];	    // Words 47-59
     uint32_t lba_sectors;   // Words 60-61, assuming little-endian
-    uint16_t pad3[26];	    // Words 62-87
+    uint16_t pad3[24];	    // Words 62-85
+    uint16_t features86;    // Word 86
+    uint16_t features87;    // Word 87
     uint16_t udma_mode;	    // Word 88
     uint16_t pad4[4];	    // Words 89-92
     uint16_t hwreset;	    // Word 93
+    uint16_t pad5[6];	    // Words 94-99
+    uint64_t lba48_sectors; // Words 100-104, assuming little-endian
 };
 
+#define IDE_FEATURE86_LBA48	(1 << 10)
 #define IDE_HWRESET_CBLID	0x2000
 
 // Bus-master physical region descriptor

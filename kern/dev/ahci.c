@@ -143,9 +143,12 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 	}
     }
 
+    uint64_t sectors = (id_buf.id.features86 & IDE_FEATURE86_LBA48) ?
+			id_buf.id.lba48_sectors : id_buf.id.lba_sectors;
+
     cprintf("ahci_port_reset: FIS complete\n");
-    cprintf("ahci_port_reset: %d sectors\n", id_buf.id.lba_sectors);
-    cprintf("ahci_port_reset: model %1.40s\n", id_buf.id.model);
+    cprintf("ahci_port_reset: %"PRIu64" bytes, model %1.40s\n",
+	    sectors * 512, id_buf.id.model);
 }
 
 static void
