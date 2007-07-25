@@ -36,7 +36,7 @@ void pagetree_init(struct pagetree *pt);
 
 // Copy (with COW) src into dst
 int  pagetree_copy(const struct pagetree *src, struct pagetree *dst,
-		   int share_pinned)
+		   int *share_pinned)
     __attribute__ ((warn_unused_result));
 
 // Free the pagetree, including all of the pages (that aren't shared)

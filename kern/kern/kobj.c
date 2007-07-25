@@ -789,13 +789,19 @@ kobject_snapshot(struct kobject_hdr *ko)
     if (ko->ko_type == kobj_segment)
 	segment_map_ro(&kobject_h2k(ko)->sg);
 
-    ko->ko_flags &= ~KOBJ_DIRTY;
+    ko->ko_flags &= ~(KOBJ_DIRTY | KOBJ_SNAP_SHARE_PIN);
     ko->ko_cksum = kobject_cksum(ko);
     kobject_pin_hdr(ko);
 
     struct kobject *snap = kobject_get_snapshot_internal(ko);
     memcpy(snap, ko, KOBJ_DISK_SIZE);
-    assert(0 == pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt, 1));
+
+    int share_pinned = 0;
+    assert(0 == pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt,
+			      &share_pinned));
+
+    if (share_pinned)
+	snap->hdr.ko_flags |= KOBJ_SNAP_SHARE_PIN;
 
     ko->ko_flags |= KOBJ_SNAPSHOTING;
 }
@@ -807,7 +813,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_unpin_hdr(ko);
-    pagetree_free(&snap->ko_pt, 1);
+    pagetree_free(&snap->ko_pt, !!(snap->hdr.ko_flags & KOBJ_SNAP_SHARE_PIN));
 
     while (!LIST_EMPTY(&kobj_snapshot_waiting)) {
 	struct Thread *t = LIST_FIRST(&kobj_snapshot_waiting);

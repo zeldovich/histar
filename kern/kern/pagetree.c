@@ -115,7 +115,7 @@ pagetree_init(struct pagetree *pt)
 
 int
 pagetree_copy(const struct pagetree *src, struct pagetree *dst,
-	      int share_pinned)
+	      int *share_pinned)
 {
     memcpy(dst, src, sizeof(*dst));
 
@@ -127,7 +127,45 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 	if (dst->pt_indirect[i].page)
 	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_ref++;
 
-    if (share_pinned) {
+    if (share_pinned)
+	*share_pinned = 0;
+
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
+	if (dst->pt_direct[i].page &&
+	    page_to_pageinfo(dst->pt_direct[i].page)->pi_pin)
+	{
+	    if (share_pinned) {
+		*share_pinned = 1;
+		goto sharepin;
+	    }
+
+	    int r = pagetree_cow(&dst->pt_direct[i]);
+	    if (r < 0) {
+		pagetree_free(dst, 0);
+		return r;
+	    }
+	}
+    }
+
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
+	if (dst->pt_indirect[i].page &&
+	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_pin)
+	{
+	    if (share_pinned) {
+		*share_pinned = 1;
+		goto sharepin;
+	    }
+
+	    int r = pagetree_cow(&dst->pt_indirect[i]);
+	    if (r < 0) {
+		pagetree_free(dst, 0);
+		return r;
+	    }
+	}
+    }
+
+ sharepin:
+    if (share_pinned && *share_pinned) {
 	for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
 	    if (dst->pt_direct[i].page)
 		page_to_pageinfo(dst->pt_direct[i].page)->pi_write_shared_ref++;
@@ -135,30 +173,6 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 	for (int i = 0; i < PAGETREE_INDIRECTS; i++)
 	    if (dst->pt_indirect[i].page)
 		page_to_pageinfo(dst->pt_indirect[i].page)->pi_write_shared_ref++;
-    }
-
-    if (!share_pinned) {
-	for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
-	    if (dst->pt_direct[i].page &&
-		page_to_pageinfo(dst->pt_direct[i].page)->pi_pin) {
-		int r = pagetree_cow(&dst->pt_direct[i]);
-		if (r < 0) {
-		    pagetree_free(dst, 0);
-		    return r;
-		}
-	    }
-	}
-
-	for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
-	    if (dst->pt_indirect[i].page &&
-		page_to_pageinfo(dst->pt_indirect[i].page)->pi_pin) {
-		int r = pagetree_cow(&dst->pt_indirect[i]);
-		if (r < 0) {
-		    pagetree_free(dst, 0);
-		    return r;
-		}
-	    }
-	}
     }
 
     return 0;

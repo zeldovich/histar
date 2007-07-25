@@ -23,6 +23,7 @@ enum {
 #define KOBJ_SHARED_MAPPINGS	0x0080	// Shared pages maybe mapped somewhere
 #define KOBJ_DIRTY_LATER	0x0100	// Need to collect dirty bits
 #define KOBJ_READONLY		0x0200	// Cannot be modified
+#define KOBJ_SNAP_SHARE_PIN	0x0400	// Snapshot shares pinned RW pages
 
 struct kobject_hdr {
     kobject_id_t ko_id;
