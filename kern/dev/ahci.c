@@ -59,10 +59,21 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
 static void
 ahci_reset_port(struct ahci_hba *a, uint32_t port)
 {
-    cprintf("ahci_reset_port: %d\n", port);
     a->r->port[port].ci = 0;
-    a->r->port[port].cmd |= AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_ST;
-    
+
+    /* Enable receiving, sending frames */
+    a->r->port[port].cmd |= AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_ST |
+			    AHCI_PORT_CMD_SUD | AHCI_PORT_CMD_POD |
+			    AHCI_PORT_CMD_ACTIVE;
+
+    /* Check if there's anything there */
+    uint32_t phystat = a->r->port[port].ssts;
+    if (!phystat) {
+	cprintf("AHCI: port %d not connected\n", port);
+	return;
+    }
+
+    /* Try to send an IDENTIFY */
     static union {
 	struct identify_device id;
 	char buf[512];
@@ -71,10 +82,13 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     struct kiovec id_iov =
 	{ .iov_base = &id_buf.buf[0], .iov_len = sizeof(id_buf) };
 
+    cprintf("AHCI: identifying port %d...\n", port);
+
     struct sata_fis_reg fis;
     memset(&fis, 0, sizeof(fis));
     fis.type = SATA_FIS_TYPE_REG_H2D;
     fis.command = IDE_CMD_IDENTIFY;
+    fis.sector_count = 1;
 
     uint32_t len = ahci_build_prd(a, port, &id_iov, 1, &fis, sizeof(fis));
     a->port[port]->cmdh.flags |= 0;		/* _W for writes */
@@ -110,11 +124,6 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 static void
 ahci_reset(struct ahci_hba *a)
 {
-    a->r->ghc |= AHCI_GHC_AE;
-    a->r->ghc |= AHCI_GHC_HR;
-    while (a->r->ghc & AHCI_GHC_HR)
-	timer_delay(1000);
-
     a->r->ghc |= AHCI_GHC_AE;
 
     for (uint32_t i = 0; i < 32; i++) {
@@ -156,9 +165,9 @@ ahci_init(struct pci_func *f)
     a->membase = f->reg_base[5];
     a->r = pa2kva(a->membase);
 
-    ahci_reset(a);
-
     cprintf("AHCI: base 0x%x, irq %d, v 0x%x\n",
 	    a->membase, a->irq, a->r->vs);
+    ahci_reset(a);
+
     return 1;
 }
