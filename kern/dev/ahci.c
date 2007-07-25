@@ -8,13 +8,18 @@
 #include <kern/timer.h>
 #include <inc/error.h>
 
+struct ahci_port_page {
+    struct ahci_recv_fis rfis;
+    struct ahci_cmd_header cmdh;
+    struct ahci_cmd_table cmdt;
+};
+
 struct ahci_hba {
     uint32_t irq;
     uint32_t membase;
     uint32_t ncs;			/* # control slots */
     volatile struct ahci_reg *r;
-    volatile struct ahci_recv_fis *rfis[32];
-    volatile struct ahci_cmd_header *cmd[32];
+    volatile struct ahci_port_page *port[32];
 };
 
 /*
@@ -28,7 +33,7 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
 {
     uint32_t nbytes = 0;
 
-    struct ahci_cmd_table *cmd = pa2kva(a->cmd[port]->ctba);
+    struct ahci_cmd_table *cmd = (void *) &a->port[port]->cmdt;
     assert(iov_cnt < sizeof(cmd->prdt) / sizeof(cmd->prdt[0]));
 
     for (uint32_t slot = 0; slot < iov_cnt; slot++) {
@@ -38,65 +43,10 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
     }
 
     memcpy(&cmd->cfis[0], fis, fislen);
-    a->cmd[port]->prdtl = iov_cnt;
-    a->cmd[port]->flags = fislen / sizeof(uint32_t);
+    a->port[port]->cmdh.prdtl = iov_cnt;
+    a->port[port]->cmdh.flags = fislen / sizeof(uint32_t);
 
     return nbytes;
-}
-
-/*
- * Memory allocation.
- */
-
-struct ahci_malloc_state {
-    void *p;
-    uint32_t off;
-};
-
-static void *
-ahci_malloc(struct ahci_malloc_state *ms, uint32_t bytes)
-{
-    assert(bytes <= PGSIZE);
-
-    if (!ms->p || bytes > PGSIZE - ms->off) {
-	int r = page_alloc(&ms->p);
-	if (r < 0)
-	    return 0;
-	ms->off = 0;
-    }
-
-    void *m = ms->p + ms->off;
-    ms->off += bytes;
-
-    memset(m, bytes, 0);
-    return m;
-}
-
-static int
-ahci_alloc(struct ahci_hba **ap)
-{
-    struct ahci_malloc_state ms;
-    memset(&ms, 0, sizeof(ms));
-
-    struct ahci_hba *a = ahci_malloc(&ms, sizeof(*a));
-    if (!a)
-	return -E_NO_MEM;
-
-    for (int i = 0; i < 32; i++) {
-	a->rfis[i] = ahci_malloc(&ms, sizeof(struct ahci_recv_fis));
-	a->cmd[i] = ahci_malloc(&ms, sizeof(struct ahci_cmd_header));
-	if (!a->rfis[i] || !a->cmd[i])
-	    return -E_NO_MEM;
-
-	struct ahci_cmd_table *ctab = ahci_malloc(&ms, sizeof(*ctab));
-	if (!ctab)
-	    return -E_NO_MEM;
-
-	a->cmd[i]->ctba = kva2pa(ctab);
-    }
-
-    *ap = a;
-    return 0;
 }
 
 /*
@@ -124,16 +74,16 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     fis.command = IDE_CMD_IDENTIFY;
 
     uint32_t len = ahci_build_prd(a, port, &id_iov, 1, &fis, sizeof(fis));
-    a->cmd[port]->flags |= 0;		/* _W for writes */
-    a->cmd[port]->prdbc = 0;		/* len for writes */
-    a->rfis[port]->reg.status = IDE_STAT_BSY;
+    a->port[port]->cmdh.flags |= 0;		/* _W for writes */
+    a->port[port]->cmdh.prdbc = 0;		/* len for writes */
+    a->port[port]->rfis.reg.status = IDE_STAT_BSY;
 
     a->r->port[port].ci |= 1;
     cprintf("ahci_port_reset: FIS issued (%d DMA bytes)\n", len);
 
     uint64_t ts_start = karch_get_tsc();
     for (;;) {
-	uint8_t stat = a->rfis[port]->reg.status;
+	uint8_t stat = a->port[port]->rfis.reg.status;
 	if ((stat & (IDE_STAT_BSY | IDE_STAT_DRDY)) == IDE_STAT_DRDY)
 	    break;
 
@@ -161,8 +111,9 @@ ahci_reset(struct ahci_hba *a)
     a->ncs = AHCI_CAP_NCS(a->r->cap);
 
     for (uint32_t i = 0; i < 32; i++) {
-	a->r->port[i].clb = kva2pa((void *) a->cmd[i]);
-	a->r->port[i].fb = kva2pa((void *) a->rfis[i]);
+	a->port[i]->cmdh.ctba = kva2pa((void *) &a->port[i]->cmdt);
+	a->r->port[i].clb = kva2pa((void *) &a->port[i]->cmdh);
+	a->r->port[i].fb = kva2pa((void *) &a->port[i]->rfis);
 	if (a->r->pi & (1 << i))
 	    ahci_reset_port(a, i);
     }
@@ -179,9 +130,19 @@ ahci_init(struct pci_func *f)
     }
 
     struct ahci_hba *a;
-    int r = ahci_alloc(&a);
+    int r = page_alloc((void **) &a);
     if (r < 0)
 	return r;
+
+    static_assert(sizeof(*a) <= PGSIZE);
+    memset(a, 0, sizeof(*a));
+
+    for (int i = 0; i < 32; i++) {
+	static_assert(sizeof(a->port[i]) <= PGSIZE);
+	r = page_alloc((void **) &a->port[i]);
+	if (r < 0)
+	    return r;
+    }
 
     pci_func_enable(f);
     a->irq = f->irq_line;
