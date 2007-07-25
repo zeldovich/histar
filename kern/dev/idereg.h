@@ -43,13 +43,15 @@
 #define IDE_STAT_ERR	0x01
 
 // Command register values
-#define IDE_CMD_READ	    0x20
-#define IDE_CMD_READ_DMA    0xc8
-#define IDE_CMD_WRITE	    0x30
-#define IDE_CMD_WRITE_DMA   0xca
-#define IDE_CMD_FLUSH_CACHE 0xe7
-#define IDE_CMD_IDENTIFY    0xec
-#define IDE_CMD_SETFEATURES 0xef
+#define IDE_CMD_READ		0x20
+#define IDE_CMD_READ_DMA	0xc8
+#define IDE_CMD_READ_DMA_EXT	0x25
+#define IDE_CMD_WRITE		0x30
+#define IDE_CMD_WRITE_DMA	0xca
+#define IDE_CMD_WRITE_DMA_EXT	0x35
+#define IDE_CMD_FLUSH_CACHE	0xe7
+#define IDE_CMD_IDENTIFY	0xec
+#define IDE_CMD_SETFEATURES	0xef
 
 // Feature bits
 #define IDE_FEATURE_WCACHE_ENA	0x02
