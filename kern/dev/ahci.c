@@ -220,7 +220,7 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     /* Check if there's anything there */
     uint32_t phystat = a->r->port[port].ssts;
     if (!phystat) {
-	cprintf("AHCI: port %d not connected\n", port);
+	cprintf("AHCI: port %d: not connected\n", port);
 	return;
     }
 
@@ -232,8 +232,6 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 
     struct kiovec id_iov =
 	{ .iov_base = &id_buf.buf[0], .iov_len = sizeof(id_buf) };
-
-    cprintf("AHCI: identifying port %d...\n", port);
 
     struct sata_fis_reg fis;
     memset(&fis, 0, sizeof(fis));
@@ -247,8 +245,10 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     a->r->port[port].ci |= 1;
 
     int r = ahci_port_wait(a, port);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("AHCI: port %d: cannot identify\n", port);
 	return;
+    }
 
     /* Fill in the disk object */
     struct disk *dk = &a->port[port]->dk;
@@ -284,15 +284,19 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     ahci_fill_fis(a, port, &fis, sizeof(fis));
     a->r->port[port].ci |= 1;
     r = ahci_port_wait(a, port);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("AHCI: port %d: cannot enable write caching\n", port);
 	return;
+    }
 
     fis.features = IDE_FEATURE_RLA_ENA;
     ahci_fill_fis(a, port, &fis, sizeof(fis));
     a->r->port[port].ci |= 1;
     r = ahci_port_wait(a, port);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("AHCI: port %d: cannot enable read lookahead\n", port);
 	return;
+    }
 
     /* Enable LBA48 */
     memset(&fis, 0, sizeof(fis));
@@ -301,8 +305,10 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     ahci_fill_fis(a, port, &fis, sizeof(fis));
     a->r->port[port].ci |= 1;
     r = ahci_port_wait(a, port);
-    if (r < 0)
+    if (r < 0) {
+	cprintf("AHCI: port %d: cannot enable LBA48\n", port);
 	return;
+    }
 
     /* Enable interrupts and done */
     a->r->port[port].ie = AHCI_PORT_INTR_DHRE;
