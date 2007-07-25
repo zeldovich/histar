@@ -111,9 +111,14 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 		    "status %02x, error %02x\n",
 		    ts_diff, AHCI_PORT_TFD_STAT(tfd), AHCI_PORT_TFD_ERR(tfd));
 
+	    cprintf("PxCMD = 0x%x\n", a->r->port[port].cmd);
+	    cprintf("PxTFD = 0x%x\n", a->r->port[port].tfd);
+	    cprintf("PxSIG = 0x%x\n", a->r->port[port].sig);
+	    cprintf("PxCI = 0x%x\n", a->r->port[port].ci);
 	    cprintf("SStatus = 0x%x\n", a->r->port[port].ssts);
 	    cprintf("SControl = 0x%x\n", a->r->port[port].sctl);
 	    cprintf("SError = 0x%x\n", a->r->port[port].serr);
+	    cprintf("GHC = 0x%x\n", a->r->ghc);
 	    return;
 	}
     }
