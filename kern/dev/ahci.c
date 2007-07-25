@@ -2,6 +2,8 @@
 #include <dev/disk.h>
 #include <dev/pcireg.h>
 #include <dev/ahcireg.h>
+#include <dev/idereg.h>
+#include <dev/satareg.h>
 #include <kern/arch.h>
 #include <kern/timer.h>
 #include <inc/error.h>
@@ -11,9 +13,8 @@ struct ahci_hba {
     uint32_t membase;
     uint32_t ncs;			/* # control slots */
     volatile struct ahci_reg *r;
-
-    struct ahci_recv_fis *rfis[32];
-    struct ahci_cmd_header *cmd[32];
+    volatile struct ahci_recv_fis *rfis[32];
+    volatile struct ahci_cmd_header *cmd[32];
 };
 
 /*
@@ -21,9 +22,9 @@ struct ahci_hba {
  */
 
 static uint32_t
-    __attribute__((unused))
 ahci_build_prd(struct ahci_hba *a, uint32_t port, uint32_t cslot,
-	       struct kiovec *iov_buf, uint32_t iov_cnt)
+	       struct kiovec *iov_buf, uint32_t iov_cnt,
+	       void *fis, uint32_t fislen)
 {
     uint32_t nbytes = 0;
 
@@ -36,7 +37,10 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port, uint32_t cslot,
 	nbytes += iov_buf[slot].iov_len;
     }
 
+    memcpy(&cmd->cfis[0], fis, fislen);
     a->cmd[port][cslot].prdtl = iov_cnt;
+    a->cmd[port][cslot].flags = fislen / sizeof(uint32_t);
+
     return nbytes;
 }
 
@@ -63,6 +67,8 @@ ahci_malloc(struct ahci_malloc_state *ms, uint32_t bytes)
 
     void *m = ms->p + ms->off;
     ms->off += bytes;
+
+    memset(m, bytes, 0);
     return m;
 }
 
@@ -103,6 +109,47 @@ static void
 ahci_reset_port(struct ahci_hba *a, uint32_t port)
 {
     cprintf("ahci_reset_port: %d\n", port);
+    a->r->port[port].ci = 0;
+    a->r->port[port].cmd |= AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_ST;
+    
+
+    static union {
+	struct identify_device id;
+	char buf[512];
+    } id_buf;
+
+    struct kiovec id_iov =
+	{ .iov_base = &id_buf.buf[0], .iov_len = sizeof(id_buf) };
+
+    struct sata_fis_reg fis;
+    memset(&fis, 0, sizeof(fis));
+    fis.type = SATA_FIS_TYPE_REG_H2D;
+    fis.command = IDE_CMD_IDENTIFY;
+
+    uint32_t len = ahci_build_prd(a, port, 0, &id_iov, 1, &fis, sizeof(fis));
+    a->cmd[port][0].flags |= 0;		/* _W for writes */
+    a->cmd[port][0].prdbc = 0;		/* len for writes */
+    a->rfis[port]->reg.status = IDE_STAT_BSY;
+
+    a->r->port[port].ci |= (1 << 0);
+    cprintf("ahci_port_reset: FIS issued (%d DMA bytes)\n", len);
+
+    uint64_t ts_start = karch_get_tsc();
+    for (;;) {
+	uint8_t stat = a->rfis[port]->reg.status;
+	if ((stat & (IDE_STAT_BSY | IDE_STAT_DRDY)) == IDE_STAT_DRDY)
+	    break;
+
+	uint64_t ts_diff = karch_get_tsc() - ts_start;
+	if (ts_diff > 1024 * 1024 * 1024) {
+	    cprintf("ahci_reset_port: stuck for %"PRIu64" cycles, status %02x\n",
+		    ts_diff, stat);
+	    return;
+	}
+    }
+
+    cprintf("ahci_port_reset: FIS complete\n");
+    cprintf("ahci_port_reset: model %s\n", id_buf.id.model);
 }
 
 static void
@@ -117,8 +164,8 @@ ahci_reset(struct ahci_hba *a)
     a->ncs = AHCI_CAP_NCS(a->r->cap);
 
     for (uint32_t i = 0; i < 32; i++) {
-	a->r->port[i].clb = kva2pa(a->cmd[i]);
-	a->r->port[i].fb = kva2pa(a->rfis[i]);
+	a->r->port[i].clb = kva2pa((void *) a->cmd[i]);
+	a->r->port[i].fb = kva2pa((void *) a->rfis[i]);
 	if (a->r->pi & (1 << i))
 	    ahci_reset_port(a, i);
     }
