@@ -339,13 +339,14 @@ ahci_init(struct pci_func *f)
 	return r;
 
     static_assert(sizeof(*a) <= PGSIZE);
-    memset(a, 0, sizeof(*a));
+    memset(a, 0, PGSIZE);
 
     for (int i = 0; i < 32; i++) {
 	static_assert(sizeof(a->port[i]) <= PGSIZE);
 	r = page_alloc((void **) &a->port[i]);
 	if (r < 0)
 	    return r;
+	memset((void *) a->port[i], 0, PGSIZE);
     }
 
     pci_func_enable(f);
