@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void	e1000_attach(struct pci_func *pcif);
+int	e1000_attach(struct pci_func *pcif);
 
 #endif

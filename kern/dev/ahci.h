@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void ahci_init(struct pci_func *pcif);
+int	ahci_init(struct pci_func *pcif);
 
 #endif

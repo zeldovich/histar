@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void ne2kpci_attach(struct pci_func *pcif);
+int ne2kpci_attach(struct pci_func *pcif);
 
 #endif

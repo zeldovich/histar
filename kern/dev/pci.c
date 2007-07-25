@@ -18,12 +18,12 @@ static uint32_t pci_conf1_addr_ioport = 0x0cf8;
 static uint32_t pci_conf1_data_ioport = 0x0cfc;
 
 // Forward declarations
-static void pci_bridge_attach(struct pci_func *pcif);
+static int pci_bridge_attach(struct pci_func *pcif);
 
 // PCI driver table
 struct pci_driver {
     uint32_t key1, key2;
-    void (*attachfn) (struct pci_func *pcif);
+    int (*attachfn) (struct pci_func *pcif);
 };
 
 struct pci_driver pci_attach_class[] = {
@@ -80,8 +80,12 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 {
     for (uint32_t i = 0; list[i].attachfn; i++) {
 	if (list[i].key1 == key1 && list[i].key2 == key2) {
-	    list[i].attachfn(pcif);
-	    return 1;
+	    int r = list[i].attachfn(pcif);
+	    if (r > 0)
+		return r;
+	    if (r < 0)
+		cprintf("pci_attach_match: attaching %x.%x (%p): %s\n",
+			key1, key2, list[i].attachfn, e2s(r));
 	}
     }
 
@@ -135,7 +139,7 @@ pci_scan_bus(struct pci_bus *bus)
     }
 }
 
-static void
+static int
 pci_bridge_attach(struct pci_func *pcif)
 {
     uint32_t ioreg  = pci_conf_read(pcif, PCI_BRIDGE_STATIO_REG);
@@ -144,7 +148,7 @@ pci_bridge_attach(struct pci_func *pcif)
     if (PCI_BRIDGE_IO_32BITS(ioreg)) {
 	cprintf("PCI: %02x:%02x.%d: 32-bit bridge IO not supported.\n",
 		pcif->bus->busno, pcif->dev, pcif->func);
-	return;
+	return 0;
     }
 
     struct pci_bus nbus;
@@ -159,6 +163,7 @@ pci_bridge_attach(struct pci_func *pcif)
 		(busreg >> PCI_BRIDGE_BUS_SUBORDINATE_SHIFT) & 0xff);
 
     pci_scan_bus(&nbus);
+    return 1;
 }
 
 // External PCI subsystem interface

@@ -425,13 +425,13 @@ idec_init(struct ide_channel *idec, uint32_t diskno)
 // Disk interface, from disk.h
 uint64_t disk_bytes;
 
-void
+int
 ide_init(struct pci_func *pcif)
 {
     static int disk_init_done = 0;
     if (disk_init_done++) {
 	cprintf("Additional IDE controllers found -- ignoring\n");
-	return;
+	return 0;
     }
 
     struct ide_channel *idec = &the_ide_channel;
@@ -450,8 +450,13 @@ ide_init(struct pci_func *pcif)
     if (idec_init(idec, the_ide_drive) < 0) {
 	// Try the other drive
 	the_ide_drive = the_ide_drive ? 0 : 1;
-	idec_init(idec, the_ide_drive);
+	if (idec_init(idec, the_ide_drive) < 0) {
+	    cprintf("ide_init: cannot attach any drives\n");
+	    return 0;
+	}
     }
+
+    return 1;
 }
 
 int

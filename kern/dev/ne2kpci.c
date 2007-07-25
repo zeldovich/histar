@@ -332,15 +332,13 @@ ne2kpci_add_buf(void *a, const struct Segment *sg, uint64_t offset,
     }
 }
 
-void
+int
 ne2kpci_attach(struct pci_func *pcif)
 {
     struct ne2kpci_card *c;
     int r = page_alloc((void **) &c);
-    if (r < 0) {
-	cprintf("ne2kpci_attach: cannot allocate memory: %s\n", e2s(r));
-	return;
-    }
+    if (r < 0)
+	return r;
 
     static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
@@ -356,7 +354,7 @@ ne2kpci_attach(struct pci_func *pcif)
     if (pcif->reg_size[0] < 16) {
 	cprintf("ne2k: io window too small: %d @ 0x%x\n",
 		pcif->reg_size[0], pcif->reg_base[0]);
-	return;
+	return 0;
     }
 
     ne2kpci_init(c);
@@ -373,4 +371,5 @@ ne2kpci_attach(struct pci_func *pcif)
 	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
 	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
 	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
+    return 1;
 }

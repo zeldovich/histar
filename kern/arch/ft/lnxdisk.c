@@ -43,8 +43,9 @@ disk_poll(void)
     printf("Hmm, disk_poll()...\n");
 }
 
-void
+int
 ide_init(struct pci_func *pcif)
 {
     // Just to get the PCI code to link clean.
+    return 0;
 }

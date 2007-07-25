@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void	pnic_attach(struct pci_func *pcif);
+int	pnic_attach(struct pci_func *pcif);
 
 #endif

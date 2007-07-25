@@ -9,25 +9,23 @@ struct ahci_hba {
     uintptr_t membase;
 };
 
-void
+int
 ahci_init(struct pci_func *f)
 {
     if (PCI_INTERFACE(f->dev_class) != 0x01) {
 	cprintf("ahci_init: not an AHCI controller\n");
-	return;
+	return 0;
     }
 
     struct ahci_hba *a;
     int r = page_alloc((void **) &a);
-    if (r < 0) {
-	cprintf("ahci_init: cannot alloc page: %s\n", e2s(r));
-	return;
-    }
+    if (r < 0)
+	return r;
 
     static_assert(PGSIZE >= sizeof(*a));
     pci_func_enable(f);
     a->irq = f->irq_line;
     a->membase = f->reg_base[5];
 
-    return;
+    return 1;
 }

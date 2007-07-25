@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void ide_init(struct pci_func *pcif);
+int ide_init(struct pci_func *pcif);
 
 #endif

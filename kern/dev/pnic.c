@@ -201,15 +201,13 @@ pnic_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type typ
     }
 }
 
-void
+int
 pnic_attach(struct pci_func *pcif)
 {
     struct pnic_card *c;
     int r = page_alloc((void **) &c);
-    if (r < 0) {
-	cprintf("pnic_attach: cannot allocate memory: %s\n", e2s(r));
-	return;
-    }
+    if (r < 0)
+	return r;
 
     static_assert(PGSIZE >= sizeof(*c));
     memset(c, 0, sizeof(*c));
@@ -217,7 +215,7 @@ pnic_attach(struct pci_func *pcif)
     pci_func_enable(pcif);
     if (pcif->reg_size[4] < 5) {
 	cprintf("pnic_attach: io window too small %d\n", pcif->reg_size[4]);
-	return;
+	return 0;
     }
 
     c->irq_line = pcif->irq_line;
@@ -234,7 +232,7 @@ pnic_attach(struct pci_func *pcif)
     uint16_t sz = inw(c->iobase + PNIC_REG_LEN);
     if (sz != 6) {
 	cprintf("pnic_attach: MAC address size mismatch (%d)\n", sz);
-	return;
+	return 0;
     }
     insb(c->iobase + PNIC_REG_DATA, &c->netdev.mac_addr[0], 6);
 
@@ -254,4 +252,5 @@ pnic_attach(struct pci_func *pcif)
 	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
 	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
 	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
+    return 1;
 }

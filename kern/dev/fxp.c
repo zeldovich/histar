@@ -435,15 +435,13 @@ fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type
     }
 }
 
-void
+int
 fxp_attach(struct pci_func *pcif)
 {
     struct fxp_card *c;
     int r = page_alloc((void **) &c);
-    if (r < 0) {
-	cprintf("fxp_attach: cannot allocate memory: %s\n", e2s(r));
-	return;
-    }
+    if (r < 0)
+	return r;
 
     memset(&c->netdev, 0, sizeof(c->netdev));
     static_assert(PGSIZE >= sizeof(*c));
@@ -452,21 +450,22 @@ fxp_attach(struct pci_func *pcif)
 
     r = page_alloc((void **) &c->txs);
     if (r < 0) {
-	cprintf("fxp_attach: cannot allocate txs: %s\n", e2s(r));
-	return;
+	page_free(c);
+	return r;
     }
 
     r = page_alloc((void **) &c->rxs);
     if (r < 0) {
-	cprintf("fxp_attach: cannot allocate rxs: %s\n", e2s(r));
-	return;
+	page_free(c->txs);
+	page_free(c);
+	return r;
     }
 
     pci_func_enable(pcif);
     if (pcif->reg_size[1] < 64) {
 	cprintf("fxp_attach: io window too small: %d @ 0x%x\n",
 		pcif->reg_size[1], pcif->reg_base[1]);
-	return;
+	return 0;
     }
 
     c->irq_line = pcif->irq_line;
@@ -552,4 +551,5 @@ fxp_attach(struct pci_func *pcif)
 	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
 	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
 	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
+    return 1;
 }

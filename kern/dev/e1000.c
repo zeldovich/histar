@@ -391,15 +391,13 @@ e1000_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type ty
     }
 }
 
-void
+int
 e1000_attach(struct pci_func *pcif)
 {
     struct e1000_card *c;
     int r = page_alloc((void **) &c);
-    if (r < 0) {
-	cprintf("e1000_attach: cannot allocate memory: %s\n", e2s(r));
-	return;
-    }
+    if (r < 0)
+	return r;
 
     memset(c, 0, sizeof(*c));
     static_assert(PGSIZE >= sizeof(*c));
@@ -408,14 +406,15 @@ e1000_attach(struct pci_func *pcif)
 
     r = page_alloc((void **) &c->txds);
     if (r < 0) {
-	cprintf("e1000_attach: cannot allocate txds: %s\n", e2s(r));
-	return;
+	page_free(c);
+	return r;
     }
 
     r = page_alloc((void **) &c->rxds);
     if (r < 0) {
-	cprintf("e1000_attach: cannot allocate rxds: %s\n", e2s(r));
-	return;
+	page_free(c->txds);
+	page_free(c);
+	return r;
     }
 
     pci_func_enable(pcif);
@@ -429,7 +428,7 @@ e1000_attach(struct pci_func *pcif)
     r = e1000_eeprom_read(c, &myaddr[0], EEPROM_OFF_MACADDR, 3);
     if (r < 0) {
 	cprintf("e1000_attach: cannot read EEPROM MAC addr: %s\n", e2s(r));
-	return;
+	return 0;
     }
 
     for (int i = 0; i < 3; i++) {
@@ -455,4 +454,5 @@ e1000_attach(struct pci_func *pcif)
 	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
 	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
 	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
+    return 1;
 }

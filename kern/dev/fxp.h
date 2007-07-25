@@ -3,6 +3,6 @@
 
 #include <dev/pci.h>
 
-void	fxp_attach(struct pci_func *pcif);
+int	fxp_attach(struct pci_func *pcif);
 
 #endif
