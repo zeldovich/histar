@@ -185,7 +185,7 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     static_assert(sizeof(dk->dk_model) >= sizeof(id_buf.id.model));
     static_assert(sizeof(dk->dk_serial) >= sizeof(id_buf.id.serial));
     static_assert(sizeof(dk->dk_firmware) >= sizeof(id_buf.id.firmware));
-    sprintf(&dk->dk_busloc[0], "sata.%d", port);
+    sprintf(&dk->dk_busloc[0], "ahci.%d", port);
 
     disk_register(dk);
 }

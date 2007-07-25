@@ -420,9 +420,7 @@ idec_init(struct ide_channel *idec)
     static_assert(sizeof(idec->dk.dk_model) >= sizeof(identify_buf.id.model));
     static_assert(sizeof(idec->dk.dk_serial) >= sizeof(identify_buf.id.serial));
     static_assert(sizeof(idec->dk.dk_firmware) >= sizeof(identify_buf.id.firmware));
-
-    sprintf(&idec->dk.dk_busloc[0], "%s",
-	    idec->diskno ? "IDE secondary" : "IDE primary");
+    sprintf(&idec->dk.dk_busloc[0], "ide.%d", idec->diskno);
 
     uint8_t bm_status = inb(idec->bm_addr + IDE_BM_STAT_REG);
     if (bm_status & IDE_BM_STAT_SIMPLEX)
