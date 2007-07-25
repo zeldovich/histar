@@ -89,7 +89,7 @@ part_table_read(struct part_table *pt)
 	    cprintf("part_table_read: wedged for %"PRIu64"\n", ts_now - ts_start);
 	    warned = 1;
 	}
-	ide_poke();
+	disk_poll();
     }
 
     memcpy(pt, &sect[PART_TABLE_OFFSET], sizeof(*pt));

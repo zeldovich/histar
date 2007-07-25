@@ -38,9 +38,9 @@ disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 }
 
 void
-ide_poke(void)
+disk_poll(void)
 {
-    printf("Hmm, ide_poke()...\n");
+    printf("Hmm, disk_poll()...\n");
 }
 
 void

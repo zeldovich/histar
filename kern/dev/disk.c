@@ -274,7 +274,7 @@ ide_intr(void *arg)
 }
 
 void
-ide_poke(void)
+disk_poll(void)
 {
     ide_intr(&the_ide_channel);
 }

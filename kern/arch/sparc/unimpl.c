@@ -11,7 +11,7 @@ disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 }
 
 void
-ide_poke(void)
+disk_poll(void)
 {
-    cprintf("XXX ide_poke unimpl\n");
+    cprintf("XXX disk_poll unimpl\n");
 }

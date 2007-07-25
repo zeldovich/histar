@@ -34,6 +34,6 @@ int disk_io(disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	    uint64_t offset, disk_callback cb, void *cbarg)
 	__attribute__ ((warn_unused_result));
 
-void ide_poke(void);
+void disk_poll(void);
 
 #endif
