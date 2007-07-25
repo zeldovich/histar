@@ -1,2 +1,2 @@
-LIB_SRCFILES += lib/$(ARCH)/mathops.S
-
+LIB_SRCFILES += lib/$(ARCH)/mathops.S \
+		lib/$(ARCH)/win.S
