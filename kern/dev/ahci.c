@@ -87,6 +87,7 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     struct sata_fis_reg fis;
     memset(&fis, 0, sizeof(fis));
     fis.type = SATA_FIS_TYPE_REG_H2D;
+    fis.cflag = SATA_FIS_REG_CFLAG;
     fis.command = IDE_CMD_IDENTIFY;
     fis.sector_count = 1;
 

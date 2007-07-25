@@ -3,12 +3,11 @@
 
 struct sata_fis_reg {
     uint8_t type;
-    uint8_t __pad0;
+    uint8_t cflag;
     union {
 	uint8_t command;	/* H2D */
 	uint8_t status;		/* D2H */
     };
-
     union {
 	uint8_t features;	/* H2D */
 	uint8_t error;		/* D2H */
@@ -18,16 +17,21 @@ struct sata_fis_reg {
     uint8_t cyl_lo;
     uint8_t cyl_hi;
     uint8_t dev_head;
+
     uint8_t sector_ex;
     uint8_t cyl_lo_ex;
     uint8_t cyl_hi_ex;
     uint8_t features_ex;
+
     uint8_t sector_count;
     uint8_t sector_count_ex;
     uint8_t __pad1;
     uint8_t control;
+
     uint8_t __pad2[4];
 };
+
+#define SATA_FIS_REG_CFLAG	(1 << 7)	/* issuing new command */
 
 struct sata_fis_devbits {
     uint8_t type;
