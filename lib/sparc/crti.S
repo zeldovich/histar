@@ -2,12 +2,11 @@
 .global	_init
 .type	_init, %function
 _init:
-	ba _init
-	 nop
+	save	%sp, -104, %sp
 
 .section .fini
 .global	_fini
 .type	_fini, %function
-	ba _fini
-	 nop
+_fini:
+	save	%sp, -104, %sp
 
