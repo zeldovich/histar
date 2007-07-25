@@ -76,6 +76,7 @@ LIB_SRCFILES :=	\
 	lib/lfsdev.c lib/lfsimpl.cc
 
 include lib/cppsup/Makefrag
+-include lib/$(ARCH)/Makefrag
 
 LIB_OBJFILES := $(LIB_SRCFILES)
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
