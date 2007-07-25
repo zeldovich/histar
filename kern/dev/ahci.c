@@ -9,9 +9,13 @@
 #include <inc/error.h>
 
 struct ahci_port_page {
-    struct ahci_recv_fis rfis;
-    struct ahci_cmd_header cmdh;
-    struct ahci_cmd_table cmdt;
+    struct ahci_recv_fis rfis;		/* 256-byte alignment */
+    uint8_t pad[0x300];
+
+    struct ahci_cmd_header cmdh;	/* 1024-byte alignment */
+    struct ahci_cmd_header cmdh_unused[31];
+
+    struct ahci_cmd_table cmdt;		/* 128-byte alignment */
 };
 
 struct ahci_hba {
