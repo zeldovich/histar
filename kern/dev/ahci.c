@@ -16,29 +16,32 @@ struct ahci_hba {
     struct ahci_cmd_header *cmd[32];
 };
 
-static void
-ahci_reset(struct ahci_hba *a)
+/*
+ * Helper functions
+ */
+
+static uint32_t
+    __attribute__((unused))
+ahci_build_prd(struct ahci_hba *a, uint32_t port, uint32_t cslot,
+	       struct kiovec *iov_buf, uint32_t iov_cnt)
 {
-    a->r->ghc |= AHCI_GHC_AE;
-    a->r->ghc |= AHCI_GHC_HR;
-    while (a->r->ghc & AHCI_GHC_HR)
-	timer_delay(1000);
+    uint32_t nbytes = 0;
 
-    a->r->ghc |= AHCI_GHC_AE;
-    a->ncs = AHCI_CAP_NCS(a->r->cap);
+    struct ahci_cmd_table *cmd = pa2kva(a->cmd[port][cslot].ctba);
+    assert(iov_cnt < sizeof(cmd->prdt) / sizeof(cmd->prdt[0]));
 
-    for (uint32_t i = 0; i < 32; i++) {
-	a->r->port[i].clb = kva2pa(a->cmd[i]);
-	a->r->port[i].fb = kva2pa(a->rfis[i]);
-	if (a->r->pi & (1 << i))
-	    cprintf("ahci_reset: port %d implemented\n", i);
+    for (uint32_t slot = 0; slot < iov_cnt; slot++) {
+	cmd->prdt[slot].dba = kva2pa(iov_buf[slot].iov_base);
+	cmd->prdt[slot].dbc = iov_buf[slot].iov_len - 1;
+	nbytes += iov_buf[slot].iov_len;
     }
 
-    a->r->ghc |= AHCI_GHC_IE;
+    a->cmd[port][cslot].prdtl = iov_cnt;
+    return nbytes;
 }
 
 /*
- * Initialization code.
+ * Memory allocation.
  */
 
 struct ahci_malloc_state {
@@ -90,6 +93,37 @@ ahci_alloc(struct ahci_hba **ap)
 
     *ap = a;
     return 0;
+}
+
+/*
+ * Initialization.
+ */
+
+static void
+ahci_reset_port(struct ahci_hba *a, uint32_t port)
+{
+    cprintf("ahci_reset_port: %d\n", port);
+}
+
+static void
+ahci_reset(struct ahci_hba *a)
+{
+    a->r->ghc |= AHCI_GHC_AE;
+    a->r->ghc |= AHCI_GHC_HR;
+    while (a->r->ghc & AHCI_GHC_HR)
+	timer_delay(1000);
+
+    a->r->ghc |= AHCI_GHC_AE;
+    a->ncs = AHCI_CAP_NCS(a->r->cap);
+
+    for (uint32_t i = 0; i < 32; i++) {
+	a->r->port[i].clb = kva2pa(a->cmd[i]);
+	a->r->port[i].fb = kva2pa(a->rfis[i]);
+	if (a->r->pi & (1 << i))
+	    ahci_reset_port(a, i);
+    }
+
+    a->r->ghc |= AHCI_GHC_IE;
 }
 
 int
