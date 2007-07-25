@@ -44,7 +44,7 @@ disk_poll(void)
 }
 
 void
-disk_init(struct pci_func *pcif)
+ide_init(struct pci_func *pcif)
 {
     // Just to get the PCI code to link clean.
 }

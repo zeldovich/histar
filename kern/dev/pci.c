@@ -1,7 +1,7 @@
 #include <machine/x86.h>
 #include <dev/pci.h>
 #include <dev/pcireg.h>
-#include <dev/disk.h>
+#include <dev/ide.h>
 #include <dev/ne2kpci.h>
 #include <dev/fxp.h>
 #include <dev/pnic.h>
@@ -27,7 +27,7 @@ struct pci_driver {
 
 struct pci_driver pci_attach_class[] = {
     { PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI, &pci_bridge_attach },
-    { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE, &disk_init },
+    { PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE, &ide_init },
     { 0, 0, 0 },
 };
 

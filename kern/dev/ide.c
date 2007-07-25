@@ -1,5 +1,6 @@
 #include <machine/x86.h>
 #include <dev/ide.h>
+#include <dev/idereg.h>
 #include <dev/disk.h>
 #include <kern/lib.h>
 #include <kern/intr.h>
@@ -338,7 +339,7 @@ static union {
 } identify_buf;
 
 static int
-ide_init(struct ide_channel *idec, uint32_t diskno)
+idec_init(struct ide_channel *idec, uint32_t diskno)
 {
     outb(idec->cmd_addr + IDE_REG_DEVICE, diskno << 4);
     ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
@@ -425,7 +426,7 @@ ide_init(struct ide_channel *idec, uint32_t diskno)
 uint64_t disk_bytes;
 
 void
-disk_init(struct pci_func *pcif)
+ide_init(struct pci_func *pcif)
 {
     static int disk_init_done = 0;
     if (disk_init_done++) {
@@ -446,10 +447,10 @@ disk_init(struct pci_func *pcif)
     the_ide_drive = 1;
 
     // Try to initialize the chosen drive/channel
-    if (ide_init(idec, the_ide_drive) < 0) {
+    if (idec_init(idec, the_ide_drive) < 0) {
 	// Try the other drive
 	the_ide_drive = the_ide_drive ? 0 : 1;
-	ide_init(idec, the_ide_drive);
+	idec_init(idec, the_ide_drive);
     }
 }
 

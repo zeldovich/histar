@@ -9,15 +9,13 @@
 #define DISK_REQMAX	65536
 
 // Support for only one data disk, at the moment
+extern uint64_t disk_bytes;
 
 typedef SAFE_TYPE(int) disk_io_status;
 #define disk_io_success SAFE_WRAP(disk_io_status, 1)
 #define disk_io_failure SAFE_WRAP(disk_io_status, 2)
 
 typedef void (*disk_callback) (disk_io_status, void *);
-
-void disk_init(struct pci_func *pcif);
-extern uint64_t disk_bytes;
 
 typedef SAFE_TYPE(int) disk_op;
 #define op_none  SAFE_WRAP(disk_op, 0)
