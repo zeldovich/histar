@@ -91,7 +91,6 @@
         rd      %y, %g_scratch; \
         st      %g_scratch, [%base_reg + TF_Y];
 
-
 /* Computes a new psr similiar to rett, but without incrementing the
  * CWP.  The old psr is read from psr_reg.
 */
@@ -102,3 +101,8 @@
 	andn	%psr_reg, (PSR_PS | PSR_S), %psr_reg; \
 	or	%scratch, %psr_reg, %psr_reg; 
 
+#define _SV save	%sp, -STACKFRAME_SZ, %sp
+#define _RS restore
+#define FLUSH_WINDOWS \
+        _SV; _SV; _SV; _SV; _SV; _SV; _SV; _SV; \
+        _RS; _RS; _RS; _RS; _RS; _RS; _RS; _RS;

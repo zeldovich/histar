@@ -144,6 +144,8 @@ struct Fpregs {
 #define RW_I6     0x38
 #define RW_I7     0x3c
 
+#define STACKFRAME_SZ 0x40
+
 /* Trapframe offsets */
 #define TF_G0     0x00
 #define TF_G1     0x04

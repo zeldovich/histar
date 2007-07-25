@@ -1,9 +1,17 @@
+#include <machine/mmu.h>
 #include <machine/asm.h>
 
 ENTRY(jos_setjmp)
-	ba jos_setjmp
-	 nop
+	st	%sp, [%o0]
+	st	%o7, [%o0 + 4]
+
+	retl
+	 mov	%g0, %o0
 
 ENTRY(jos_longjmp)
-	ba jos_longjmp
-	 nop
+	FLUSH_WINDOWS
+	ld	[%o0], %fp
+	ld	[%o0 + 4], %07
+
+	retl
+	 restore
