@@ -58,7 +58,7 @@ static uint32_t
 e1000_io_read(struct e1000_card *c, uint32_t reg)
 {
     physaddr_t pa = c->membase + reg;
-    uint32_t *ptr = pa2kva(pa);
+    volatile uint32_t *ptr = pa2kva(pa);
     return *ptr;
 }
 
@@ -66,7 +66,7 @@ static void
 e1000_io_write(struct e1000_card *c, uint32_t reg, uint32_t val)
 {
     physaddr_t pa = c->membase + reg;
-    uint32_t *ptr = pa2kva(pa);
+    volatile uint32_t *ptr = pa2kva(pa);
     *ptr = val;
 }
 
