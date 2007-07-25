@@ -28,6 +28,8 @@
 
 // User-mode (below ULIM) address space layout conventions.
 #define USTACKTOP	ULIM
+#define UWINOVERFLOW    0x3FFFE000 /* keep syncrhonized with */
+#define UWINUNDERFLOW   0x3FFFF000 /* lib/sparc/Makefrag */
 #define UMMAPBASE	0x40000000
 #define UHEAP		0x50000000
 #define UHEAPTOP	0x60000000

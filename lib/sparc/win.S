@@ -1,9 +1,12 @@
+#include <machine/mmu.h>
 #include <machine/asm.h>
 
 /* Save handler 
  * %g5, %g6 hold pc, npc
  */
-window_overflow:
+.section .uwin_overflow, "ax", @progbits
+.globl uwin_overflow
+uwin_overflow:
 	STORE_WINDOW(sp)
 	/* Can use locals now */
 
@@ -39,4 +42,10 @@ window_overflow:
 overflow_bail:
 	/* XXX */
 	ba	overflow_bail
+	 nop
+
+.section .uwin_underflow, "ax", @progbits
+.globl uwin_underflow
+uwin_underflow:
+	ba uwin_underflow
 	 nop
