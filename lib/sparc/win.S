@@ -1,9 +1,10 @@
 #include <machine/mmu.h>
 #include <machine/asm.h>
 
-/* Save handler 
+/* Window handlers that emulate save and restore
  * %g5, %g6 hold pc, npc
  */
+
 .section .uwin_overflow, "ax", @progbits
 .globl uwin_overflow
 uwin_overflow:
@@ -13,7 +14,7 @@ uwin_overflow:
 	/* Read inst op */
 	ld	[%g5], %l7
 
-	/* We only handle save %sp, -imm13, %sp. */
+	/* We only handle "save %sp, -imm13, %sp". */
 	set	0x9DE3B, %l5 /* (save %sp, -imm13, %sp) >> 12 */
 	srl	%l7, 12, %l6
 	cmp	%l6, %l5
@@ -29,8 +30,8 @@ uwin_overflow:
 	mov	%o3, %i3
 	mov	%o4, %i4
 	mov	%o5, %i5
-	mov	%o6, %i6
-	mov	%o7, %i7
+	mov	%o6, %i6  /* %sp -> %fp */
+	mov	%o7, %i7  /* return address - 8 */
 
 	sub	%sp, %l6, %sp
 	dec	%sp /* remember two's complement */
@@ -47,5 +48,24 @@ overflow_bail:
 .section .uwin_underflow, "ax", @progbits
 .globl uwin_underflow
 uwin_underflow:
-	ba uwin_underflow
+	/* Can use locals, util LOAD_WINDOW */
+	/* Read inst op */
+	ld	[%g5], %l7
+
+	/* We only handle "restore". */
+	set	0x81E80000, %l6 /* "restore" machine code */
+	cmp	%l6, %l7
+	bne	underflow_bail
+	 mov	%i0, %o0 /* return value */
+	mov	%i6, %o6 /* %fp -> %sp */
+
+	LOAD_WINDOW(sp)
+	
+	jmp	%g5
+	 jmp	%g6
+	  nop
+	
+underflow_bail:
+	/* XXX */
+	ba underflow_bail
 	 nop
