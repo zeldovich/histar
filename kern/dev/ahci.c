@@ -4,6 +4,7 @@
 #include <dev/ahcireg.h>
 #include <dev/idereg.h>
 #include <dev/satareg.h>
+#include <kern/lib.h>
 #include <kern/arch.h>
 #include <kern/timer.h>
 #include <inc/error.h>
