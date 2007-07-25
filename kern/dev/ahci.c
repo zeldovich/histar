@@ -21,7 +21,6 @@ struct ahci_port_page {
 struct ahci_hba {
     uint32_t irq;
     uint32_t membase;
-    uint32_t ncs;			/* # control slots */
     volatile struct ahci_reg *r;
     volatile struct ahci_port_page *port[32];
 };
@@ -80,21 +79,26 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
     uint32_t len = ahci_build_prd(a, port, &id_iov, 1, &fis, sizeof(fis));
     a->port[port]->cmdh.flags |= 0;		/* _W for writes */
     a->port[port]->cmdh.prdbc = 0;		/* len for writes */
-    a->port[port]->rfis.reg.status = IDE_STAT_BSY;
 
     a->r->port[port].ci |= 1;
     cprintf("ahci_port_reset: FIS issued (%d DMA bytes)\n", len);
 
     uint64_t ts_start = karch_get_tsc();
     for (;;) {
-	uint8_t stat = a->port[port]->rfis.reg.status;
+	uint32_t tfd = a->r->port[port].tfd;
+	uint8_t stat = AHCI_PORT_TFD_STAT(tfd);
 	if ((stat & (IDE_STAT_BSY | IDE_STAT_DRDY)) == IDE_STAT_DRDY)
 	    break;
 
 	uint64_t ts_diff = karch_get_tsc() - ts_start;
 	if (ts_diff > 1024 * 1024 * 1024) {
-	    cprintf("ahci_reset_port: stuck for %"PRIu64" cycles, status %02x\n",
-		    ts_diff, stat);
+	    cprintf("ahci_reset_port: stuck for %"PRIu64" cycles, "
+		    "status %02x, error %02x\n",
+		    ts_diff, AHCI_PORT_TFD_STAT(tfd), AHCI_PORT_TFD_ERR(tfd));
+
+	    cprintf("SStatus = 0x%x\n", a->r->port[port].ssts);
+	    cprintf("SControl = 0x%x\n", a->r->port[port].sctl);
+	    cprintf("SError = 0x%x\n", a->r->port[port].serr);
 	    return;
 	}
     }
@@ -112,7 +116,6 @@ ahci_reset(struct ahci_hba *a)
 	timer_delay(1000);
 
     a->r->ghc |= AHCI_GHC_AE;
-    a->ncs = AHCI_CAP_NCS(a->r->cap);
 
     for (uint32_t i = 0; i < 32; i++) {
 	a->port[i]->cmdh.ctba = kva2pa((void *) &a->port[i]->cmdt);
