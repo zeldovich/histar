@@ -40,11 +40,13 @@ struct ahci_reg_port {
     uint32_t fbs;		/* FIS-based switching control */
 };
 
-#define AHCI_PORT_CMD_ST	(1 << 0)
-#define AHCI_PORT_CMD_SUD	(1 << 1)
-#define AHCI_PORT_CMD_POD	(1 << 2)
-#define AHCI_PORT_CMD_FRE	(1 << 4)
-#define AHCI_PORT_CMD_ACTIVE	(1 << 28)
+#define AHCI_PORT_CMD_ST	(1 << 0)	/* start */
+#define AHCI_PORT_CMD_SUD	(1 << 1)	/* spin-up device */
+#define AHCI_PORT_CMD_POD	(1 << 2)	/* power on device */
+#define AHCI_PORT_CMD_FRE	(1 << 4)	/* FIS receive enable */
+#define AHCI_PORT_CMD_FR	(1 << 14)	/* FIS receive running */
+#define AHCI_PORT_CMD_CR	(1 << 15)	/* command list running */
+#define AHCI_PORT_CMD_ACTIVE	(1 << 28)	/* ICC active */
 #define AHCI_PORT_TFD_ERR(tfd)	(((tfd) >> 8) & 0xff)
 #define AHCI_PORT_TFD_STAT(tfd)	(((tfd) >> 0) & 0xff)
 #define AHCI_PORT_SCTL_RESET	0x01
