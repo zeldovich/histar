@@ -137,12 +137,20 @@
 #define LEON_USTAT_PE	0x20
 #define LEON_USTAT_FE	0x40
 
+/* 
+ * Memory controllers 
+ */
+/* ESA memory controler (used by TSIM) */
 #define LEON_MCFG2_SRAMDIS		0x00002000
 #define LEON_MCFG2_SDRAMEN		0x00004000
 #define LEON_MCFG2_SRAMBANKSZ		0x00001e00	/* [12-9] */
 #define LEON_MCFG2_SRAMBANKSZ_SHIFT	9
 #define LEON_MCFG2_SDRAMBANKSZ		0x03800000	/* [25-23] */
 #define LEON_MCFG2_SDRAMBANKSZ_SHIFT	23
+
+/* Gaisler memory controller (used by Virtex2 Pro) */
+#define LEON_SDCTRL_SDRAMBANKSZ		0x03800000	/* [25-23] */
+#define LEON_SDCTRL_SDRAMBANKSZ_SHIFT	23
 
 #define LEON_TCNT0_MASK	0x7fffff
 

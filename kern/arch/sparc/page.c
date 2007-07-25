@@ -8,20 +8,21 @@
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 
-physaddr_t maxpa;	// Maximum physical address
-physaddr_t minpa;	// Minimum physical address
+static physaddr_t maxpa;	// Maximum physical address
+static physaddr_t minpa;	// Minimum physical address
 
 struct page_info *page_infos;
 
 static char *boot_freemem;	// Pointer to next byte of free mem
 
-static void
-leon3_detect_memory(void)
+static int
+esa_mctrl_detect(void)
 {
-   struct amba_apb_device apb_dev;
+    struct amba_apb_device apb_dev;
+
     uint32_t r = amba_apbslv_device(VENDOR_ESA, ESA_MCTRL, &apb_dev, 0);
     if (!r)
-	panic("unable to find memory controller on APB");
+	return 0;
 
     uint32_t mcfg2_addr = apb_dev.start + 4;
     uint32_t mcfg2 = LEON_BYPASS_LOAD_PA(mcfg2_addr);
@@ -30,7 +31,8 @@ leon3_detect_memory(void)
 	panic("unexpected memory controller config");
     
     uint32_t sdram_banksz = 
-	(mcfg2 & LEON_MCFG2_SDRAMBANKSZ) >> LEON_MCFG2_SDRAMBANKSZ_SHIFT;
+	(mcfg2 & LEON_MCFG2_SDRAMBANKSZ) >> LEON_MCFG2_SDRAMBANKSZ_SHIFT;  
+
     uint32_t sdram_sz = (1 << sdram_banksz) * 4;
 
     struct amba_ahb_device ahb_dev;
@@ -47,6 +49,43 @@ leon3_detect_memory(void)
     cprintf(" 0x%08x-0x%08x (IO)\n", ahb_dev.start[1], ahb_dev.stop[1]);
     cprintf(" 0x%08x-0x%08x (RAM, %dM available)\n", 
 	    ahb_dev.start[2], ahb_dev.stop[2], sdram_sz);
+
+    return 1;
+}
+
+static int
+gaisler_ddrspa_detect(void)
+{
+    struct amba_ahb_device ahb_dev;
+    uint32_t r = amba_ahbslv_device(VENDOR_GAISLER, GAISLER_DDRSPA, &ahb_dev, 0);
+    if (!r)
+	return 0;
+    
+    uint32_t sdctrl_addr = ahb_dev.start[1];
+    uint32_t sdctrl = LEON_BYPASS_LOAD_PA(sdctrl_addr);
+
+    uint32_t sdram_banksz = 
+	(sdctrl & LEON_SDCTRL_SDRAMBANKSZ) >> LEON_SDCTRL_SDRAMBANKSZ_SHIFT;
+    uint32_t sdram_sz = (1 << sdram_banksz) * 8;
+
+    cprintf("SDRAM: 0x%08x-0x%08x (%dM available)\n", 
+	    ahb_dev.start[0], ahb_dev.stop[0], sdram_sz);
+
+    global_npages = sdram_sz << 8;
+    minpa = ahb_dev.start[0];
+    maxpa = minpa + (global_npages * PGSIZE);
+    
+    return 1;
+}
+
+static void
+leon3_detect_memory(void)
+{
+    if (esa_mctrl_detect())
+	return;
+    if (gaisler_ddrspa_detect())
+	return;
+    panic("unable to detect memory controller");
 }
 
 static void *
