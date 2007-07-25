@@ -17,6 +17,11 @@ struct ahci_reg_global {
     uint32_t bohc;		/* BIOS/OS handoff control and status */
 };
 
+#define AHCI_CAP_NCS(cap)	(((cap) >> 8) & 0x1f)
+#define AHCI_GHC_AE		(1 << 31)
+#define AHCI_GHC_IE		(1 << 1)
+#define AHCI_GHC_HR		(1 << 0)
+
 struct ahci_reg_port {
     uint64_t clb;		/* command list base address */
     uint64_t fb;		/* FIS base address */
@@ -37,7 +42,7 @@ struct ahci_reg_port {
 
 struct ahci_reg {
     union {
-	struct ahci_reg_global glob;
+	struct ahci_reg_global;
 	char __pad[0x100];
     };
 
@@ -67,7 +72,7 @@ struct ahci_cmd_header {
     uint16_t flags;
     uint16_t prdtl;
     uint32_t prdbc;
-    uint64_t ctba0;
+    uint64_t ctba;
     uint64_t reserved0;
     uint64_t reserved1;
 };
