@@ -57,15 +57,17 @@ struct e1000_card {
 static uint32_t
 e1000_io_read(struct e1000_card *c, uint32_t reg)
 {
-    outl(c->iobase, reg);
-    return inl(c->iobase + 4);
+    physaddr_t pa = c->membase + reg;
+    uint32_t *ptr = pa2kva(pa);
+    return *ptr;
 }
 
 static void
 e1000_io_write(struct e1000_card *c, uint32_t reg, uint32_t val)
 {
-    outl(c->iobase, reg);
-    outl(c->iobase + 4, val);
+    physaddr_t pa = c->membase + reg;
+    uint32_t *ptr = pa2kva(pa);
+    *ptr = val;
 }
 
 static int
