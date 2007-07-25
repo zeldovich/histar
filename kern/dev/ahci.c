@@ -60,6 +60,19 @@ static void
 ahci_reset_port(struct ahci_hba *a, uint32_t port)
 {
     a->port[port]->cmdh.ctba = kva2pa((void *) &a->port[port]->cmdt);
+
+    if (a->r->port[port].cmd & (AHCI_PORT_CMD_ST | AHCI_PORT_CMD_CR |
+				AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_FR)) {
+	cprintf("AHCI: port %d active, clearing..\n", port);
+	a->r->port[port].cmd &= ~(AHCI_PORT_CMD_ST | AHCI_PORT_CMD_FRE);
+	timer_delay(500 * 1000 * 1000);
+
+	if (a->r->port[port].cmd & (AHCI_PORT_CMD_CR | AHCI_PORT_CMD_FR)) {
+	    cprintf("AHCI: port %d still active, giving up\n", port);
+	    return;
+	}
+    }
+
     a->r->port[port].clb = kva2pa((void *) &a->port[port]->cmdh);
     a->r->port[port].fb = kva2pa((void *) &a->port[port]->rfis);
     a->r->port[port].ci = 0;
