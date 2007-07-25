@@ -38,10 +38,12 @@ struct disk {
 		     uint64_t, disk_callback, void*);
     void (*dk_poll)(struct disk*);
     void *dk_arg;
+    uint64_t dk_id;
 
     LIST_ENTRY(disk) dk_link;
 };
 
+void disk_register(struct disk *dk);
 void disk_poll(struct disk *dk);
 int  disk_io(struct disk *dk, disk_op op, struct kiovec *iov_buf, int iov_cnt,
 	     uint64_t offset, disk_callback cb, void *cbarg)

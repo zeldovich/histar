@@ -7,6 +7,8 @@
 #include <kern/arch.h>
 #include <inc/error.h>
 
+enum { ide_verbose = 0 };
+
 struct ide_op {
     disk_op op;
     struct kiovec *iov_buf;
@@ -366,10 +368,11 @@ idec_init(struct ide_channel *idec)
 	if ((identify_buf.id.udma_mode & (1 << i)))
 	    udma_mode = i;
 
-    cprintf("IDE device (%d sectors, UDMA %d%s): %1.40s\n",
-	    identify_buf.id.lba_sectors, udma_mode,
-	    idec->bm_addr ? ", bus-master" : "",
-	    identify_buf.id.model);
+    if (ide_verbose)
+	cprintf("IDE device (%d sectors, UDMA %d%s): %1.40s\n",
+		identify_buf.id.lba_sectors, udma_mode,
+		idec->bm_addr ? ", bus-master" : "",
+		identify_buf.id.model);
 
     if (!(identify_buf.id.hwreset & IDE_HWRESET_CBLID)) {
 	cprintf("IDE: 80-pin cable absent, not enabling UDMA\n");
@@ -432,7 +435,7 @@ idec_init(struct ide_channel *idec)
     idec->ih.ih_arg = idec;
     irq_register(idec->irq, &idec->ih);
 
-    LIST_INSERT_HEAD(&disks, &idec->dk, dk_link);
+    disk_register(&idec->dk);
     return 0;
 }
 

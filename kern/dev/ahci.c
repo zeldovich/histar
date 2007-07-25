@@ -10,20 +10,21 @@
 #include <inc/error.h>
 
 struct ahci_port_page {
-    struct ahci_recv_fis rfis;		/* 256-byte alignment */
+    volatile struct ahci_recv_fis rfis;		/* 256-byte alignment */
     uint8_t pad[0x300];
 
-    struct ahci_cmd_header cmdh;	/* 1024-byte alignment */
+    volatile struct ahci_cmd_header cmdh;	/* 1024-byte alignment */
     struct ahci_cmd_header cmdh_unused[31];
 
-    struct ahci_cmd_table cmdt;		/* 128-byte alignment */
+    volatile struct ahci_cmd_table cmdt;	/* 128-byte alignment */
+    struct disk dk;
 };
 
 struct ahci_hba {
     uint32_t irq;
     uint32_t membase;
     volatile struct ahci_reg *r;
-    volatile struct ahci_port_page *port[32];
+    struct ahci_port_page *port[32];
 };
 
 /*
@@ -53,6 +54,36 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
     return nbytes;
 }
 
+static void
+ahci_port_debug(struct ahci_hba *a, uint32_t port)
+{
+    cprintf("AHCI port %d dump:\n", port);
+    cprintf("PxCMD    = 0x%x\n", a->r->port[port].cmd);
+    cprintf("PxTFD    = 0x%x\n", a->r->port[port].tfd);
+    cprintf("PxSIG    = 0x%x\n", a->r->port[port].sig);
+    cprintf("PxCI     = 0x%x\n", a->r->port[port].ci);
+    cprintf("SStatus  = 0x%x\n", a->r->port[port].ssts);
+    cprintf("SControl = 0x%x\n", a->r->port[port].sctl);
+    cprintf("SError   = 0x%x\n", a->r->port[port].serr);
+    cprintf("GHC      = 0x%x\n", a->r->ghc);
+}
+
+/*
+ * Driver hooks.
+ */
+
+static void
+ahci_poll(struct disk *dk)
+{
+}
+
+static int
+ahci_issue(struct disk *dk, disk_op op, struct kiovec *iov_buf, int iov_cnt,
+	   uint64_t offset, disk_callback cb, void *cbarg)
+{
+    return -E_BUSY;
+}
+
 /*
  * Initialization.
  */
@@ -60,8 +91,7 @@ ahci_build_prd(struct ahci_hba *a, uint32_t port,
 static void
 ahci_reset_port(struct ahci_hba *a, uint32_t port)
 {
-    a->port[port]->cmdh.ctba = kva2pa((void *) &a->port[port]->cmdt);
-
+    /* Wait for port to quiesce */
     if (a->r->port[port].cmd & (AHCI_PORT_CMD_ST | AHCI_PORT_CMD_CR |
 				AHCI_PORT_CMD_FRE | AHCI_PORT_CMD_FR)) {
 	cprintf("AHCI: port %d active, clearing..\n", port);
@@ -74,6 +104,8 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 	}
     }
 
+    /* Initialize memory buffers */
+    a->port[port]->cmdh.ctba = kva2pa((void *) &a->port[port]->cmdt);
     a->r->port[port].clb = kva2pa((void *) &a->port[port]->cmdh);
     a->r->port[port].fb = kva2pa((void *) &a->port[port]->rfis);
     a->r->port[port].ci = 0;
@@ -132,24 +164,30 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 		    "status %02x, error %02x\n",
 		    ts_diff, AHCI_PORT_TFD_STAT(tfd), AHCI_PORT_TFD_ERR(tfd));
 
-	    cprintf("PxCMD = 0x%x\n", a->r->port[port].cmd);
-	    cprintf("PxTFD = 0x%x\n", a->r->port[port].tfd);
-	    cprintf("PxSIG = 0x%x\n", a->r->port[port].sig);
-	    cprintf("PxCI = 0x%x\n", a->r->port[port].ci);
-	    cprintf("SStatus = 0x%x\n", a->r->port[port].ssts);
-	    cprintf("SControl = 0x%x\n", a->r->port[port].sctl);
-	    cprintf("SError = 0x%x\n", a->r->port[port].serr);
-	    cprintf("GHC = 0x%x\n", a->r->ghc);
+	    ahci_port_debug(a, port);
 	    return;
 	}
     }
 
+    /* Fill in the disk object */
+    struct disk *dk = &a->port[port]->dk;
+    dk->dk_arg = a;
+    dk->dk_id = port;
+    dk->dk_issue = &ahci_issue;
+    dk->dk_poll = &ahci_poll;
+
     uint64_t sectors = (id_buf.id.features86 & IDE_FEATURE86_LBA48) ?
 			id_buf.id.lba48_sectors : id_buf.id.lba_sectors;
+    dk->dk_bytes = sectors * 512;
+    memcpy(&dk->dk_model[0], id_buf.id.model, sizeof(id_buf.id.model));
+    memcpy(&dk->dk_serial[0], id_buf.id.serial, sizeof(id_buf.id.serial));
+    memcpy(&dk->dk_firmware[0], id_buf.id.firmware, sizeof(id_buf.id.firmware));
+    static_assert(sizeof(dk->dk_model) >= sizeof(id_buf.id.model));
+    static_assert(sizeof(dk->dk_serial) >= sizeof(id_buf.id.serial));
+    static_assert(sizeof(dk->dk_firmware) >= sizeof(id_buf.id.firmware));
+    sprintf(&dk->dk_busloc[0], "sata.%d", port);
 
-    cprintf("ahci_port_reset: FIS complete\n");
-    cprintf("ahci_port_reset: %"PRIu64" bytes, model %1.40s\n",
-	    sectors * 512, id_buf.id.model);
+    disk_register(dk);
 }
 
 static void
