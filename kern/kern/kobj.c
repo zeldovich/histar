@@ -334,19 +334,17 @@ kobject_dirty_eval(struct kobject *ko)
 
     segment_collect_dirty(&ko->sg);
 
-    int dirty = 0;
     uint64_t npg = kobject_npages(&ko->hdr);
     for (uint64_t i = 0; i < npg; i++) {
 	void *p;
 	assert(0 == kobject_get_page(&ko->hdr, i, &p, page_shared_ro));
 
 	struct page_info *pi = page_to_pageinfo(p);
-	if (pi->pi_dirty)
-	    dirty = 1;
+	if (pi->pi_dirty) {
+	    ko->hdr.ko_flags |= KOBJ_DIRTY;
+	    return;
+	}
     }
-
-    if (dirty)
-	ko->hdr.ko_flags |= KOBJ_DIRTY;
 }
 
 uint64_t
