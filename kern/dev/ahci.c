@@ -298,18 +298,6 @@ ahci_reset_port(struct ahci_hba *a, uint32_t port)
 	return;
     }
 
-    /* Enable LBA48 */
-    memset(&fis, 0, sizeof(fis));
-    fis.type = SATA_FIS_TYPE_REG_H2D;
-    fis.control = IDE_CTL_LBA48;
-    ahci_fill_fis(a, port, &fis, sizeof(fis));
-    a->r->port[port].ci |= 1;
-    r = ahci_port_wait(a, port);
-    if (r < 0) {
-	cprintf("AHCI: port %d: cannot enable LBA48\n", port);
-	return;
-    }
-
     /* Enable interrupts and done */
     a->r->port[port].ie = AHCI_PORT_INTR_DHRE;
     disk_register(dk);
