@@ -23,61 +23,71 @@ static int
 jos64_wait_for(struct sock_slot *ss)
 {
     struct wait_stat wstat[3];
-    int x, y, z, r;
+    int r;
 
  top:
-    x = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
-    y = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
-    if (x < 0)
-	return x;
-    if (y < 0)
-	return y;
-
-    memset(&wstat[2], 0, sizeof(wstat[2]));
-    uint64_t lnx2jos_full = ss->lnx2jos_full;
-    WS_SETADDR(&wstat[2], &ss->lnx2jos_full);
-    WS_SETVAL(&wstat[2], lnx2jos_full);
-
-    if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
-	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
-	if (z > 0)
-	    return 1;
-
-	z = jcomm_multisync(ss->conn.data_comm, dev_probe_write, &wstat[2]);
-	if (z < 0)
-	    return z;
-    }
-    
-    x = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
-    if (x > 0)
+    r = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
+    if (r > 0)
 	return 2;
 
-    if (ss->outcnt < sizeof(ss->outbuf) / 2) {
-	y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-	if (y > 0)
-	    return 3;
-    } else {
-	/* Stop reading data from client, if we have nowhere to put it.. */
-	WS_SETASS(&wstat[1]);
-    }
-
-    r = multisync_wait(wstat, 3, UINT64(~0));
+    r = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
     if (r < 0)
 	return r;
 
+    uint64_t outcnt = ss->outcnt;
+    if (outcnt < sizeof(ss->outbuf) / 2) {
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_read);
+	if (r > 0)
+	    return 3;
+
+	r = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
+	if (r < 0)
+	    return r;
+    } else {
+	/* Wait for buffer space to become available */
+	WS_SETADDR(&wstat[1], &ss->outcnt);
+	WS_SETVAL(&wstat[1], outcnt);
+    }
+
+    uint64_t lnx2jos_full = ss->lnx2jos_full;
+    if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_write);
+	if (r > 0)
+	    return 1;
+
+	r = jcomm_multisync(ss->conn.data_comm, dev_probe_write, &wstat[2]);
+	if (r < 0)
+	    return r;
+    } else {
+	/* Wait for the buffer to get some data */
+	WS_SETADDR(&wstat[2], &ss->lnx2jos_full);
+	WS_SETVAL(&wstat[2], lnx2jos_full);
+    }
+
+    debug_print(dbg, "(j%ld) waiting..", thread_id());
+    r = multisync_wait(wstat, 3, UINT64(~0));
+    if (r < 0) {
+	debug_print(dbg, "(j%ld) wait error: %s", thread_id(), e2s(r));
+	return r;
+    }
+    debug_print(dbg, "(j%ld) woke up", thread_id());
+
     lnx2jos_full = ss->lnx2jos_full;
     if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
-	z = jcomm_probe(ss->conn.data_comm, dev_probe_write);
-	if (z > 0)
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_write);
+	if (r > 0)
 	    return 1;
     }
 
-    x = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
-    if (x > 0)
+    r = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
+    if (r > 0)
 	return 2;
-    y = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-    if (y > 0 && ss->outcnt < sizeof(ss->outbuf) / 2)
-	return 3;
+
+    if (ss->outcnt < sizeof(ss->outbuf) / 2) {
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_read);
+	if (r > 0)
+	    return 3;
+    }
 
     goto top;
 }
@@ -130,7 +140,8 @@ jos64_socket_thread(struct socket_conn *sc)
 	if (!ss->used) {
 	    status = -E_INVAL;
 	    z = jcomm_write(sc->ctrl_comm, &status, sizeof(status));
-	    debug_print(z < 0, "error writing status: %s", e2s(z));
+	    debug_print(z < 0, "(j%ld) error writing status: %s",
+			thread_id(), e2s(z));
 	    return;
 	}
     } else {
@@ -157,7 +168,7 @@ jos64_socket_thread(struct socket_conn *sc)
     /* let our caller know we are clear */
     status = 0;
     z = jcomm_write(ctrl, &status, sizeof(status));
-    debug_print(z < 0, "error writing status: %s", e2s(z));
+    debug_print(z < 0, "(j%ld) error writing status: %s", thread_id(), e2s(z));
 
     /* wait for data on the jcomm, read into buffer shared with
      * the linux thread, and send SIGNAL_NETD to the jos64
@@ -178,17 +189,18 @@ jos64_socket_thread(struct socket_conn *sc)
 	} else if (r == 2) {
 	    int64_t z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
 	    if (z < 0) {
-		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
+		debug_print(dbg, "(j%ld) jcomm_read ctrl error: %s",
+			    thread_id(), e2s(r));
 		break;
 	    }
 
 	    if (z == 0) {
-		debug_print(dbg, "jcomm_read ctrl eof\n");
+		debug_print(dbg, "(j%ld) jcomm_read ctrl eof", thread_id());
 		break;
 	    }
 
 	    if (ss->jos2lnx_buf.op_type == netd_op_close) {
-		debug_print(dbg, "netd_op_close\n");
+		debug_print(dbg, "(j%ld) netd_op_close", thread_id());
 		break;
 	    }
 
@@ -204,11 +216,12 @@ jos64_socket_thread(struct socket_conn *sc)
 	    int64_t z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
 				   sizeof(ss->outbuf) - ss->outcnt);
 	    if (z < 0) {
-		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
+		debug_print(dbg, "(j%ld) jcomm_read data error: %s",
+			    thread_id(), e2s(r));
 		break;
 	    }
 	    if (z == 0) {
-		debug_print(dbg, "jcomm_read data eof\n");
+		debug_print(dbg, "(j%ld) jcomm_read data eof", thread_id());
 		break;
 	    }
 	    ss->outcnt += z;

@@ -293,10 +293,13 @@ linux_wait_for(struct sock_slot *ss)
 	fd_set rs;
 	FD_ZERO(&rs);
 	FD_SET(ss->sock, &rs);
+	debug_print(dbg, "(l%ld) wait_for: select", ss->linuxpid);
 	r = linux_select(ss->sock + 1, &rs, 0, 0, 0);
     } else {
+	debug_print(dbg, "(l%ld) wait_for: pause", ss->linuxpid);
 	r = linux_pause();
     }
+    debug_print(dbg, "(l%ld) wait_for: %d", ss->linuxpid, r);
 
     if (r == -ERESTARTNOHAND) {
 	linux_thread_flushsig();
