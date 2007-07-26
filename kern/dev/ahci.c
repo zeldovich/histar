@@ -121,6 +121,8 @@ static void
 ahci_intr(void *arg)
 {
     struct ahci_hba *a = arg;
+    a->r->is = ~0;
+
     for (uint32_t i = 0; i < 32; i++) {
 	a->r->port[i].is = ~0;
 	if (a->port[i] && a->port[i]->cb && !(a->r->port[i].ci & 1))
