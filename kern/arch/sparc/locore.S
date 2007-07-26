@@ -64,7 +64,7 @@ ENTRY(start)
 	 * Also puts us in register window zero with traps off.
 	 */
 	set	(PSR_PS | PSR_S | PSR_PIL | PSR_EF), %g2
-	wr	%g2, 0x0, %psr
+	wr	%g2, %psr
 	WRITE_PAUSE
 		
 	/* Set the first PTD of the Context Table to point to bootpt */
@@ -95,8 +95,7 @@ ENTRY(start)
 
 vm_enabled:	
 	/* Make window 1 invalid */
-	or	%g0, 0x02, %g1
-	wr	%g1, 0x0, %wim
+	wr	%g0, 0x02, %wim
 	WRITE_PAUSE
 
 	/* kernel stack */
@@ -122,7 +121,7 @@ def_trap:
 
 	STORE_GLOBALS(l5 + TF_G0)
 	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l4)
-	or	%l5, %g0, %g7
+	mov	%l5, %g7
 
 	restore
 	STORE_OUTS(g7 + TF_O0)
@@ -131,8 +130,7 @@ def_trap:
 	/* Have a saved trapframe, so can use any registers */
 
 	/* Make window 1 invalid */
-	or	%g0, 0x02, %l0
-	wr	%l0, 0x0, %wim
+	wr	%g0, 0x02, %wim
 	WRITE_PAUSE
 	/* set CWP to 0 */
 	rd	%psr, %l0
