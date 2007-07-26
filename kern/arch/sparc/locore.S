@@ -8,7 +8,9 @@
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define TRAP_ENTRY(label) \
         rd %psr, %l0; rd %wim, %l3; b label; nop;
-		
+#define WINDOW_ENTRY(label) \
+	rd %psr, %l0; mov %l1, %g5; ba label; andcc %l0, PSR_PS, %g0;
+				
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
 	.align 4096
@@ -18,8 +20,8 @@ t_tflt:	TRAP_ENTRY(def_trap)		/* Inst. Access Exception        */
 t_bins:	TRAP_ENTRY(def_trap)		/* Illegal Instruction           */
 t_pins:	TRAP_ENTRY(def_trap)		/* Privileged Instruction        */
 t_fpd:	TRAP_ENTRY(def_trap)		/* Floating Point Disabled       */
-t_wovf:	TRAP_ENTRY(window_spill)	/* Window Overflow               */
-t_wunf:	TRAP_ENTRY(window_fill)		/* Window Underflow              */
+t_wovf:	WINDOW_ENTRY(window_spill)	/* Window Overflow               */
+t_wunf:	WINDOW_ENTRY(window_fill)	/* Window Underflow              */
 t_mna:	TRAP_ENTRY(def_trap)		/* Memory Address Not Aligned    */
 t_fpe:	TRAP_ENTRY(def_trap)		/* Floating Point Exception      */
 t_dflt:	TRAP_ENTRY(def_trap)		/* Data Miss Exception           */
@@ -188,13 +190,17 @@ ENTRY(trapframe_pop)
 	jmp	%l1
 	 rett	%l2
 
+/* Window overflow/spill and underflow/fill handlers.
+ * After the branch and delay are executed in window_fill/spill,
+ * the register state is:
+ * %l0 == psr
+ * %l1 == %g5 == pc
+ * %l2 == %g6 == npc
+ * We optimize for user window traps.
+ */
 window_spill:	
-	mov	%l1, %g5
-	mov	%l2, %g6
-
-	orcc	%l0, PSR_PS, %g0
-	be	user_spill
-	 nop
+	bz	user_spill
+	 mov	%l2, %g6
 
 kernel_spill:	
 	mov	%g1, %l7
@@ -227,12 +233,8 @@ user_spill:
 	 rett	%g7 + 4
 	
 window_fill:	
-	mov	%l1, %g5
-	mov	%l2, %g6
-
-	orcc	%l0, PSR_PS, %g0
-	be	user_fill
-	 nop
+	bz	user_fill
+	 mov	%l2, %g6
 
 kernel_fill:
         /* rotate WIM bit left */
