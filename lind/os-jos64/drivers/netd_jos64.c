@@ -171,7 +171,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	    r = jos64_dispatch(ss, &ss->lnx2jos_buf);
 	    if (r == -E_AGAIN)
 		continue;
-	    else if (r < 0)
+	    if (r < 0)
 		panic("jos64_dispatch error: %s\n", e2s(r));
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
@@ -180,8 +180,17 @@ jos64_socket_thread(struct socket_conn *sc)
 	    if (z < 0) {
 		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
 		break;
-	    } else if (ss->jos2lnx_buf.op_type == netd_op_close)
+	    }
+
+	    if (z == 0) {
+		debug_print(dbg, "jcomm_read ctrl eof\n");
 		break;
+	    }
+
+	    if (ss->jos2lnx_buf.op_type == netd_op_close) {
+		debug_print(dbg, "netd_op_close\n");
+		break;
+	    }
 
 	    ss->jos2lnx_full = 1;
 	    lutrap_kill(SIGNAL_NETD);
@@ -196,6 +205,10 @@ jos64_socket_thread(struct socket_conn *sc)
 				   sizeof(ss->outbuf) - ss->outcnt);
 	    if (z < 0) {
 		debug_print(dbg, "jcomm_read error: %s\n", e2s(r));
+		break;
+	    }
+	    if (z == 0) {
+		debug_print(dbg, "jcomm_read data eof\n");
 		break;
 	    }
 	    ss->outcnt += z;
