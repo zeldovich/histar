@@ -89,7 +89,7 @@ try
     dr.set(netdev_taint, 3);
     dr.set(inet_taint, 3);
 
-    char grant_arg[32], taint_arg[32], inet_arg[32];
+    char grant_arg[64], taint_arg[64], inet_arg[64];
     sprintf(grant_arg, "netdev_grant=%"PRIu64, netdev_grant);
     sprintf(taint_arg, "netdev_taint=%"PRIu64, netdev_taint);
     sprintf(inet_arg,  "inet_taint=%"PRIu64, inet_taint);
