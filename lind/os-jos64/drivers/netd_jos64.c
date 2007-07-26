@@ -138,7 +138,8 @@ jos64_socket_thread(struct socket_conn *sc)
 	if (ss == 0)
 	    panic("no slots");
 	lutrap_kill(SIGNAL_NETD);
-	sys_sync_wait(&ss->linuxpid, 0, UINT64(~0));
+	while (!ss->linuxpid)
+	    sys_sync_wait(&ss->linuxpid, 0, UINT64(~0));
     }
 
     /* register socket connection */
@@ -184,7 +185,8 @@ jos64_socket_thread(struct socket_conn *sc)
 
 	    ss->jos2lnx_full = 1;
 	    lutrap_kill(SIGNAL_NETD);
-	    sys_sync_wait(&ss->jos2lnx_full, 1, UINT64(~0));
+	    while (ss->jos2lnx_full)
+		sys_sync_wait(&ss->jos2lnx_full, 1, UINT64(~0));
 
 	    /* send return value */
 	    z = jcomm_write(ctrl, (void *)&ss->jos2lnx_buf, ss->jos2lnx_buf.size);
