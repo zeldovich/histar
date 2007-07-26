@@ -94,11 +94,11 @@ ENTRY(start)
 	 nop
 
 vm_enabled:	
-	/* Make window 0 valid, all other invalid */
-	orn	%g0, 0x01, %g1
+	/* Make window 1 invalid */
+	or	%g0, 0x02, %g1
 	wr	%g1, 0x0, %wim
 	WRITE_PAUSE
-	
+
 	/* kernel stack */
 	set	kstack_top, %g1
 	or	%g0, %g1, %sp
@@ -183,25 +183,27 @@ window_spill:
 	 nop
 
 kernel_spill:	
-	/* Shift WIM bits right */
-	sll	%l3, NWINDOWS - 1, %l4
-	srl	%l3, 1, %l3
-	or	%l3, %l4, %g7
+	mov	%g1, %l7
 
-	restore
-	mov	%g7, %wim
+	/* rotate WIM bit right */
+        mov	%wim, %l3
+        sll	%l3, NWINDOWS - 1, %l4
+	srl	%l3, 1, %l3
+        or	%l3, %l4, %g1
+
+        /* CWP to window we are going to trap onto next */
+        save
+	mov	%g1, %wim
 	WRITE_PAUSE
 
 	STORE_WINDOW(sp)
 
-	rd	%psr, %g7
-	or	%g7, PSR_ET, %g7
-	wr	%g7, %psr
-	WRITE_PAUSE
+	restore
 
-	jmp	%g5
-	 jmp	%g6	
-	  nop
+	mov	%l7, %g1
+
+        jmp	%l1
+         rett	%l2	
 
 user_spill:
 	restore
@@ -219,30 +221,25 @@ window_fill:
 	 nop
 
 kernel_fill:
-	/* Shift WIM bits left */
-	sll	%l3, 1, %l4
-	srl	%l3, NWINDOWS - 1, %l3
-	or	%l3, %l4, %g7
-	
-	mov	%g0, %wim
+        /* rotate WIM bit left */
+        mov	%wim,	%l3
+        srl	%l3, NWINDOWS - 1, %l4
+        sll	%l3, 1, %l3
+        or	%l3, %l4, %l3
+
+	mov	%l3, %wim
 	WRITE_PAUSE
 
 	restore
 	restore
+
 	LOAD_WINDOW(sp)
+
+	save
 	save
 
-	mov	%g7, %wim
-	WRITE_PAUSE	
-
-	rd	%psr, %g7
-	or	%g7, PSR_ET, %g7
-	wr	%g7, %psr
-	WRITE_PAUSE
-
-	jmp	%g5
-	 jmp	%g6	
-	  nop
+	jmp	%l1
+	 rett	%l2
 
 user_fill:
 	restore
