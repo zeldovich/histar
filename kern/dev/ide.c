@@ -345,16 +345,11 @@ static int
 idec_init(struct ide_channel *idec)
 {
     outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
-    ide_wait(idec, IDE_STAT_DRDY, IDE_STAT_DRDY);
-
-    outb(idec->cmd_addr + IDE_REG_DEVICE, idec->diskno << 4);
     outb(idec->cmd_addr + IDE_REG_CMD, IDE_CMD_IDENTIFY);
 
-    cprintf("Trying to identify IDE disk %d\n", idec->diskno);
-    if (ide_pio_in(idec, &identify_buf, 1) < 0) {
-	cprintf("Unable to identify disk device\n");
+    cprintf("Probing IDE disk %d..\n", idec->diskno);
+    if (ide_pio_in(idec, &identify_buf, 1) < 0)
 	return -E_INVAL;
-    }
 
     ide_string_shuffle(identify_buf.id.serial,
 		       sizeof(identify_buf.id.serial));
