@@ -24,5 +24,6 @@
 #define PSR_ET		(1 << 5)	/* Enable traps */
 #define PSR_CWP_SHIFT	0		/* Current window pointer */
 #define PSR_CWP_MASK	0x0f
+#define PSR_CWP         (PSR_CWP_MASK << PSR_CWP_SHIFT)
 
 #endif

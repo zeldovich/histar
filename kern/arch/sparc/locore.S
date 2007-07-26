@@ -130,6 +130,16 @@ def_trap:
 	STORE_INS(g7 + TF_I0)
 	/* Have a saved trapframe, so can use any registers */
 
+	/* Make window 1 invalid */
+	or	%g0, 0x02, %l0
+	wr	%l0, 0x0, %wim
+	WRITE_PAUSE
+	/* set CWP to 0 */
+	rd	%psr, %l0
+	andn	%l0, PSR_CWP, %l0
+	wr	%l0, %psr
+	WRITE_PAUSE
+
 	/* Disable interrupts, enable traps */
 	rd	%psr, %l0
 	wr	%l0, PSR_ET | PSR_PIL, %psr
@@ -143,18 +153,20 @@ def_trap:
 	 mov	%sp, %o0
 
 ENTRY(trapframe_pop)
-	mov	%wim, %g2
+	mov	%o0, %g1
 	mov	%g0, %wim
 	WRITE_PAUSE
-
-	mov	%o0, %g1
+	/* set CWP to 0 */
+	rd	%psr, %l0
+	andn	%l0, PSR_CWP, %l0
+	wr	%l0, %psr
+	WRITE_PAUSE
+	
 	LOAD_INS(g1 + TF_I0)
 	LOAD_LOCALS(g1 + TF_L0)
 	LOAD_OUTS(g1 + TF_O0)
 
 	save
-	mov	%g2, %wim
-	WRITE_PAUSE
 
 	mov	%g1, %l0
 	LOAD_GLOBALS(l0 + TF_G0)
@@ -165,7 +177,11 @@ ENTRY(trapframe_pop)
 	ld	[%l0 + TF_Y], %l3
 	wr	%l3, %y
 
-	/* Enable interrupts, traps enabled below by rett */
+	/* Make only window 0 valid */
+	set	0x0FE, %l3
+	wr	%l3, %wim
+	WRITE_PAUSE
+	/* Disable traps, enable interrupts, clear PS */
 	rd	%psr, %l3
 	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
 	wr	%l3, %psr
@@ -186,13 +202,13 @@ kernel_spill:
 	mov	%g1, %l7
 
 	/* rotate WIM bit right */
-        mov	%wim, %l3
-        sll	%l3, NWINDOWS - 1, %l4
+	mov	%wim, %l3
+	sll	%l3, NWINDOWS - 1, %l4
 	srl	%l3, 1, %l3
-        or	%l3, %l4, %g1
+	or	%l3, %l4, %g1
 
         /* CWP to window we are going to trap onto next */
-        save
+	save
 	mov	%g1, %wim
 	WRITE_PAUSE
 
@@ -202,8 +218,8 @@ kernel_spill:
 
 	mov	%l7, %g1
 
-        jmp	%l1
-         rett	%l2	
+	jmp	%l1
+	 rett	%l2	
 
 user_spill:
 	restore
