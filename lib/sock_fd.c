@@ -142,6 +142,8 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 
     nfd->fd_dev_id = devsock.dev_id;
     nfd->fd_omode = O_RDWR;
+
+    memset(&nfd->fd_sock, 0, sizeof(nfd->fd_sock));
     nfd->fd_sock.s = sock;
     nfd->fd_sock.type = fd->fd_sock.type;
     nfd->fd_sock.netd_gate = fd->fd_sock.netd_gate;
