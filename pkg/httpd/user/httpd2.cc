@@ -108,7 +108,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	ct_req.label.ents.push_back(dj_ug);
 	ct_req.label.ents.push_back(dj_ut);
 
-	dj_message_endpoint ctalloc_ep;
+	dj_slot ctalloc_ep;
 	ctalloc_ep.set_type(EP_GATE);
 	ctalloc_ep.ep_gate->msg_ct = dj_app_server_ct;
 	ctalloc_ep.ep_gate->gate.gate_ct = 0;
@@ -198,7 +198,7 @@ http_on_request(tcpconn *tc, const char *req, uint64_t ut, uint64_t ug)
 	web_arg.user_fs.ep_gate->gate = dj_user_fsgate;
 	web_arg.reqpath = req;
 
-	dj_message_endpoint webapp_ep;
+	dj_slot webapp_ep;
 	webapp_ep.set_type(EP_GATE);
 	webapp_ep.ep_gate->msg_ct = app_call_ct;
 	webapp_ep.ep_gate->gate = dj_app_gate;
@@ -275,7 +275,7 @@ static void
 do_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
 {
     if (httpd_dj_enable) {
-	dj_message_endpoint auth_ep;
+	dj_slot auth_ep;
 	auth_ep.set_type(EP_GATE);
 	auth_ep.ep_gate->msg_ct = dj_user_server_ct;
 	auth_ep.ep_gate->gate = dj_user_authgate;

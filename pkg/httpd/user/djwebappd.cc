@@ -24,7 +24,7 @@ static void
 handle_req(const char *req, uint64_t ut, uint64_t ug,
 	   std::ostringstream &header,
 	   dj_global_cache &cache, const dj_pubkey &userhost,
-	   const dj_message_endpoint &user_fs)
+	   const dj_slot &user_fs)
 {
     char *tmp;
     char strip_req[256];

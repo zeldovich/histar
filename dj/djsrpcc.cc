@@ -1,4 +1,5 @@
 extern "C" {
+#include <inc/types.h>
 #include <inc/atomic.h>
 #include <inc/intmacro.h>
 #include <inc/syscall.h>
@@ -123,7 +124,7 @@ dj_rpc_call_gate(gate_sender *gs, time_t timeout,
 
     dj_rpc_reply_state rs;
     rs.base_procct = start_env->proc_container;
-    jos_atomic_set(&rs.reply, reply_none);
+    jos_atomic_set64(&rs.reply, reply_none);
     rs.server = m.to;
     rs.callct = call_ct;
 
