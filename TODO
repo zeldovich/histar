@@ -143,7 +143,6 @@ New hardware support:
   will allow us to run a VM in a HiStar thread.  for devices, use qemu
   which was ported to do the same thing for Linux's KVM.
 * use ata "nv cache" (flash memory) feature set to speed up disk sync.
-* AHCI SATA driver
 
 Miscellaneous:
 
