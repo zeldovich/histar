@@ -4,8 +4,6 @@
 #include <machine/srmmu.h>
 #include <machine/memlayout.h>
 	
-#define TRAP_ENTRY_INTERRUPT(num) \
-	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define TRAP_ENTRY(label) \
         rd %psr, %l0; rd %wim, %l3; b label; nop;
 #define WINDOW_ENTRY(label) \
@@ -32,21 +30,21 @@ t_bad:	TRAP_ENTRY(def_trap)
 	TRAP_ENTRY(def_trap)
 	TRAP_ENTRY(def_trap)
 	TRAP_ENTRY(def_trap)
-t_irq1:	TRAP_ENTRY_INTERRUPT(1)         /* IRQ Software/SBUS Level 1     */
-t_irq2:	TRAP_ENTRY_INTERRUPT(2)         /* IRQ SBUS Level 2              */
-t_irq3:	TRAP_ENTRY_INTERRUPT(3)         /* IRQ SCSI/DMA/SBUS Level 3     */
-t_irq4:	TRAP_ENTRY_INTERRUPT(4)         /* IRQ Software Level 4          */
-t_irq5:	TRAP_ENTRY_INTERRUPT(5)         /* IRQ SBUS/Ethernet Level 5     */
-t_irq6:	TRAP_ENTRY_INTERRUPT(6)         /* IRQ Software Level 6          */
-t_irq7:	TRAP_ENTRY_INTERRUPT(7)         /* IRQ Video/SBUS Level 5        */
-t_irq8:	TRAP_ENTRY_INTERRUPT(8)         /* IRQ SBUS Level 6              */
-t_irq9:	TRAP_ENTRY_INTERRUPT(9)         /* IRQ SBUS Level 7              */
-t_irq10:TRAP_ENTRY_INTERRUPT(10)        /* IRQ Timer #1 (one we use)     */
-t_irq11:TRAP_ENTRY_INTERRUPT(11)        /* IRQ Floppy Intr.              */
-t_irq12:TRAP_ENTRY_INTERRUPT(12)        /* IRQ Zilog serial chip         */
-t_irq13:TRAP_ENTRY_INTERRUPT(13)        /* IRQ Audio Intr.               */
-t_irq14:TRAP_ENTRY_INTERRUPT(14)        /* IRQ Timer #2                  */
-t_nmi:	TRAP_ENTRY_INTERRUPT(15)
+t_irq1:	TRAP_ENTRY(def_trap)		/* IRQ Software/SBUS Level 1     */
+t_irq2:	TRAP_ENTRY(def_trap)	        /* IRQ SBUS Level 2              */
+t_irq3:	TRAP_ENTRY(def_trap)		/* IRQ SCSI/DMA/SBUS Level 3     */
+t_irq4:	TRAP_ENTRY(def_trap)		/* IRQ Software Level 4          */
+t_irq5:	TRAP_ENTRY(def_trap)		/* IRQ SBUS/Ethernet Level 5     */
+t_irq6:	TRAP_ENTRY(def_trap)		/* IRQ Software Level 6          */
+t_irq7:	TRAP_ENTRY(def_trap)		/* IRQ Video/SBUS Level 5        */
+t_irq8:	TRAP_ENTRY(def_trap)		/* IRQ SBUS Level 6              */
+t_irq9:	TRAP_ENTRY(def_trap)		/* IRQ SBUS Level 7              */
+t_irq10:TRAP_ENTRY(def_trap)		/* IRQ Timer #1 (one we use)     */
+t_irq11:TRAP_ENTRY(def_trap)		/* IRQ Floppy Intr.              */
+t_irq12:TRAP_ENTRY(def_trap)		/* IRQ Zilog serial chip         */
+t_irq13:TRAP_ENTRY(def_trap)		/* IRQ Audio Intr.               */
+t_irq14:TRAP_ENTRY(def_trap)		/* IRQ Timer #2                  */
+t_nmi:	TRAP_ENTRY(def_trap)
 t_racc:	TRAP_ENTRY(def_trap)		/* General Register Access Error */
 t_iacce:TRAP_ENTRY(def_trap)		/* Instr Access Error            */
 t_bad22:TRAP_ENTRY(def_trap)
