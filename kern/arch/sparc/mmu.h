@@ -103,6 +103,57 @@
 #define FSR_CX_MASK	0x1f
 
 #ifndef __ASSEMBLER__
+
+struct Regs {
+    uint32_t g0;
+    uint32_t g1;
+    uint32_t g2;
+    uint32_t g3;
+    uint32_t g4;
+    uint32_t g5;
+    uint32_t g6;
+    uint32_t g7;
+
+    uint32_t o0;
+    uint32_t o1;
+    uint32_t o2;
+    uint32_t o3;
+    uint32_t o4;
+    uint32_t o5;
+    union {
+	uint32_t o6;
+	uint32_t sp;
+    };
+    uint32_t o7;
+    
+    uint32_t l0;
+    uint32_t l1;
+    uint32_t l2;
+    uint32_t l3;
+    uint32_t l4;
+    uint32_t l5;
+    uint32_t l6;
+    uint32_t l7;
+
+    uint32_t i0;
+    uint32_t i1;
+    uint32_t i2;
+    uint32_t i3;
+    uint32_t i4;
+    uint32_t i5;
+    union {
+	uint32_t i6;
+	uint32_t fp;
+    };
+    uint32_t i7;
+};
+
+struct Fpregs {
+    uint32_t tf_freg[32];
+    uint32_t tf_fsr;
+    /* Make sure we do the right thing with %fq */
+};
+
 struct Trapcode {
     uint8_t code[16];
 };
@@ -112,19 +163,17 @@ struct Trapframe_aux {
 };
 
 struct Trapframe {
-    uint32_t tf_reg[32];
+    union {
+	uint32_t tf_reg0[32];
+	struct Regs tf_reg1;
+    };
     uint32_t tf_psr;
     uint32_t tf_y;
     uint32_t tf_pc;
     uint32_t tf_npc;
 };
 
-struct Fpregs {
-    uint32_t tf_freg[32];
-    uint32_t tf_fsr;
-    /* Make sure we do the right thing with %fq */
-};
-#endif
+#else
 
 /* Reg_window offsets */
 #define RW_L0     0x00
@@ -190,5 +239,7 @@ struct Fpregs {
 #define TF_NPC    0x8C
 
 #define TRAPFRAME_SZ 0x90
+
+#endif
 
 #endif
