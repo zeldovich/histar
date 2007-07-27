@@ -1118,6 +1118,7 @@ c_kill(char **wp)
 	char *p;
 	int lflag = 0;
 	int i, n, rv, sig;
+	int64_t pid;
 
 	/* assume old style options if -digits or -UPPERCASE */
 	if ((p = wp[1]) && *p == '-' && (digit(p[1]) || isupper(p[1]))) {
@@ -1199,10 +1200,11 @@ c_kill(char **wp)
 	rv = 0;
 	sig = t ? t->signal : SIGTERM;
 	for (; (p = wp[i]); i++) {
+		char *endp;
 		if (*p == '%') {
 			if (j_kill(p, sig))
 				rv = 1;
-		} else if (!getn(p, &n)) {
+		} else if (strtou64(p, &endp, 10, &pid) < 0 || *endp) {
 			bi_errorf("%s: arguments must be jobs or process IDs",
 			    p);
 			rv = 1;
@@ -1210,7 +1212,7 @@ c_kill(char **wp)
 			/* use killpg if < -1 since -1 does special things for
 			 * some non-killpg-endowed kills
 			 */
-			if ((n < -1 ? killpg(-n, sig) : kill(n, sig)) < 0) {
+			if ((pid < -1 ? killpg(-pid, sig) : kill(pid, sig)) < 0) {
 				bi_errorf("%s: %s", p, strerror(errno));
 				rv = 1;
 			}
