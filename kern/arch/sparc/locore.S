@@ -4,8 +4,8 @@
 #include <machine/sparc-config.h>
 #include <machine/memlayout.h>
 	
-#define TRAP_ENTRY(label) \
-        rd %psr, %l0; rd %wim, %l3; b label; nop;
+#define TRAP_ENTRY \
+        rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define WINDOW_ENTRY(label) \
 	rd %psr, %l0; mov %l1, %g5; ba label; andcc %l0, PSR_PS, %g0;
 				
@@ -13,51 +13,70 @@
 	.text
 	.align 4096
 trapbase:
-t_zero:	TRAP_ENTRY(def_trap)
-t_tflt:	TRAP_ENTRY(def_trap)		/* Inst. Access Exception        */
-t_bins:	TRAP_ENTRY(def_trap)		/* Illegal Instruction           */
-t_pins:	TRAP_ENTRY(def_trap)		/* Privileged Instruction        */
-t_fpd:	TRAP_ENTRY(def_trap)		/* Floating Point Disabled       */
+t_zero:	TRAP_ENTRY
+t_tflt:	TRAP_ENTRY			/* Inst. Access Exception        */
+t_bins:	TRAP_ENTRY			/* Illegal Instruction           */
+t_pins:	TRAP_ENTRY			/* Privileged Instruction        */
+t_fpd:	TRAP_ENTRY			/* Floating Point Disabled       */
 t_wovf:	WINDOW_ENTRY(window_spill)	/* Window Overflow               */
 t_wunf:	WINDOW_ENTRY(window_fill)	/* Window Underflow              */
-t_mna:	TRAP_ENTRY(def_trap)		/* Memory Address Not Aligned    */
-t_fpe:	TRAP_ENTRY(def_trap)		/* Floating Point Exception      */
-t_dflt:	TRAP_ENTRY(def_trap)		/* Data Miss Exception           */
-t_tio:	TRAP_ENTRY(def_trap)		/* Tagged Instruction Ovrflw     */
-t_wpt:	TRAP_ENTRY(def_trap)		/* Watchpoint Detected           */
-t_bad:	TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-t_irq1:	TRAP_ENTRY(def_trap)		/* IRQ Software/SBUS Level 1     */
-t_irq2:	TRAP_ENTRY(def_trap)	        /* IRQ SBUS Level 2              */
-t_irq3:	TRAP_ENTRY(def_trap)		/* IRQ SCSI/DMA/SBUS Level 3     */
-t_irq4:	TRAP_ENTRY(def_trap)		/* IRQ Software Level 4          */
-t_irq5:	TRAP_ENTRY(def_trap)		/* IRQ SBUS/Ethernet Level 5     */
-t_irq6:	TRAP_ENTRY(def_trap)		/* IRQ Software Level 6          */
-t_irq7:	TRAP_ENTRY(def_trap)		/* IRQ Video/SBUS Level 5        */
-t_irq8:	TRAP_ENTRY(def_trap)		/* IRQ SBUS Level 6              */
-t_irq9:	TRAP_ENTRY(def_trap)		/* IRQ SBUS Level 7              */
-t_irq10:TRAP_ENTRY(def_trap)		/* IRQ Timer #1 (one we use)     */
-t_irq11:TRAP_ENTRY(def_trap)		/* IRQ Floppy Intr.              */
-t_irq12:TRAP_ENTRY(def_trap)		/* IRQ Zilog serial chip         */
-t_irq13:TRAP_ENTRY(def_trap)		/* IRQ Audio Intr.               */
-t_irq14:TRAP_ENTRY(def_trap)		/* IRQ Timer #2                  */
-t_nmi:	TRAP_ENTRY(def_trap)
-t_racc:	TRAP_ENTRY(def_trap)		/* General Register Access Error */
-t_iacce:TRAP_ENTRY(def_trap)		/* Instr Access Error            */
-t_bad22:TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-t_cpdis:TRAP_ENTRY(def_trap)		/* Co-Processor Disabled         */
-t_uflsh:TRAP_ENTRY(def_trap)		/* Unimplemented FLUSH inst.     */
-t_bad26:TRAP_ENTRY(def_trap)
-	TRAP_ENTRY(def_trap)
-t_cpexc:TRAP_ENTRY(def_trap)		/* Co-Processor Exception        */
-t_dacce:TRAP_ENTRY(def_trap)		/* Data Access Error             */
-t_hwdz:	TRAP_ENTRY(def_trap)		/* Division by zero, you lose... */
-t_dserr:TRAP_ENTRY(def_trap)		/* Data Store Error              */
-t_daccm:TRAP_ENTRY(def_trap)		/* Data Access MMU-Miss          */
+t_mna:	TRAP_ENTRY			/* Memory Address Not Aligned    */
+t_fpe:	TRAP_ENTRY			/* Floating Point Exception      */
+t_dflt:	TRAP_ENTRY			/* Data Miss Exception           */
+t_tio:	TRAP_ENTRY			/* Tagged Instruction Ovrflw     */
+t_wpt:	TRAP_ENTRY			/* Watchpoint Detected           */
+t_bad:	TRAP_ENTRY
+	TRAP_ENTRY
+	TRAP_ENTRY
+	TRAP_ENTRY
+	TRAP_ENTRY
+t_irq1:	TRAP_ENTRY			/* IRQ Software/SBUS Level 1     */
+t_irq2:	TRAP_ENTRY		        /* IRQ SBUS Level 2              */
+t_irq3:	TRAP_ENTRY			/* IRQ SCSI/DMA/SBUS Level 3     */
+t_irq4:	TRAP_ENTRY			/* IRQ Software Level 4          */
+t_irq5:	TRAP_ENTRY			/* IRQ SBUS/Ethernet Level 5     */
+t_irq6:	TRAP_ENTRY			/* IRQ Software Level 6          */
+t_irq7:	TRAP_ENTRY			/* IRQ Video/SBUS Level 5        */
+t_irq8:	TRAP_ENTRY			/* IRQ SBUS Level 6              */
+t_irq9:	TRAP_ENTRY			/* IRQ SBUS Level 7              */
+t_irq10:TRAP_ENTRY			/* IRQ Timer #1 (one we use)     */
+t_irq11:TRAP_ENTRY			/* IRQ Floppy Intr.              */
+t_irq12:TRAP_ENTRY			/* IRQ Zilog serial chip         */
+t_irq13:TRAP_ENTRY			/* IRQ Audio Intr.               */
+t_irq14:TRAP_ENTRY			/* IRQ Timer #2                  */
+t_nmi:	TRAP_ENTRY
+t_racc:	TRAP_ENTRY			/* General Register Access Error */
+t_iacce:TRAP_ENTRY			/* Instr Access Error            */
+t_bad22:TRAP_ENTRY
+	TRAP_ENTRY
+t_cpdis:TRAP_ENTRY			/* Co-Processor Disabled         */
+t_uflsh:TRAP_ENTRY			/* Unimplemented FLUSH inst.     */
+t_bad26:TRAP_ENTRY
+	TRAP_ENTRY
+t_cpexc:TRAP_ENTRY			/* Co-Processor Exception        */
+t_dacce:TRAP_ENTRY			/* Data Access Error             */
+t_hwdz:	TRAP_ENTRY			/* Division by zero, you lose... */
+t_dserr:TRAP_ENTRY			/* Data Store Error              */
+t_daccm:TRAP_ENTRY			/* Data Access MMU-Miss          */
+t_bad2d:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad32:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad37:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_iaccm:TRAP_ENTRY                      /* Instr Access MMU-Miss         */
+t_bad3d:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad42:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad47:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad4c:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad51:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad56:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad5b:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad60:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad65:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad6a:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad6f:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad74:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad79:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
+t_bad7e:TRAP_ENTRY TRAP_ENTRY
+t_sys:	TRAP_ENTRY
 	
 ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
@@ -95,7 +114,7 @@ ENTRY(start)
 
 vm_enabled:	
 	/* Make window 1 invalid */
-	wr	%g0, 0x02, %wim
+	mov	0x02, %wim
 	WRITE_PAUSE
 
 	/* kernel stack */
@@ -105,11 +124,12 @@ vm_enabled:
 
 	/* Start using the trap table  */
 	set	trapbase, %g3
-	wr	%g3, 0x0, %tbr
+	mov	%g3, %tbr
 
 	/* Turn on traps so that we can call c-code. */	
 	rd	%psr, %g3
-	wr	%g3, PSR_ET, %psr
+	bset	PSR_ET, %g3
+	mov	%g3, %psr
 	WRITE_PAUSE
 
 	call	init
@@ -130,17 +150,18 @@ def_trap:
 	/* Have a saved trapframe, so can use any registers */
 
 	/* Make window 1 invalid */
-	wr	%g0, 0x02, %wim
+	mov	0x02, %wim
 	WRITE_PAUSE
 	/* set CWP to 0 */
 	rd	%psr, %l0
 	andn	%l0, PSR_CWP, %l0
-	wr	%l0, %psr
+	mov	%l0, %psr
 	WRITE_PAUSE
 
 	/* Disable interrupts, enable traps */
 	rd	%psr, %l0
-	wr	%l0, PSR_ET | PSR_PIL, %psr
+	bset	PSR_ET | PSR_PIL, %l0
+	mov	%l0, %psr
 	WRITE_PAUSE
 
 	mov	%g0, %fp
@@ -157,7 +178,7 @@ ENTRY(trapframe_pop)
 	/* set CWP to 0 */
 	rd	%psr, %l0
 	andn	%l0, PSR_CWP, %l0
-	wr	%l0, %psr
+	mov	%l0, %psr
 	WRITE_PAUSE
 	
 	LOAD_INS(g1 + TF_I0)
@@ -173,16 +194,16 @@ ENTRY(trapframe_pop)
 	ld	[%l0 + TF_NPC], %l2
 
 	ld	[%l0 + TF_Y], %l3
-	wr	%l3, %y
+	mov	%l3, %y
 
 	/* Make only window 0 valid */
 	set	0x0FE, %l3
-	wr	%l3, %wim
+	mov	%l3, %wim
 	WRITE_PAUSE
 	/* Disable traps, enable interrupts, clear PS */
 	rd	%psr, %l3
 	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
-	wr	%l3, %psr
+	mov	%l3, %psr
 	WRITE_PAUSE
 	
 	jmp	%l1
