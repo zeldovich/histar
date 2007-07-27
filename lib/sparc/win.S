@@ -36,8 +36,8 @@ uwin_overflow:
 	sub	%sp, %l6, %sp
 	dec	%sp /* remember two's complement */
 	
-	jmp	%g5
-	 jmp	%g6
+	jmp	%g6
+	 jmp	%g6 + 4
 	  nop
 
 overflow_bail:
@@ -61,8 +61,8 @@ uwin_underflow:
 
 	LOAD_WINDOW(sp)
 	
-	jmp	%g5
-	 jmp	%g6
+	jmp	%g6
+	 jmp	%g6 + 4
 	  nop
 	
 underflow_bail:
