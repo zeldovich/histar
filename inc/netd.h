@@ -113,7 +113,7 @@ struct netd_op_probe_args {
 struct netd_op_statsync_args {
     int fd;
     dev_probe_t how;
-    struct wait_stat wstat;
+    struct wait_stat wstat[2];
 };
 
 struct netd_op_shutdown_args {

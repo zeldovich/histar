@@ -433,7 +433,8 @@ sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     r = netd_call(fd, &a);
     if (r < 0)
 	return r;
-    memcpy(wstat, &a.statsync.wstat, sizeof(*wstat));
+
+    memcpy(wstat, &a.statsync.wstat[0], sizeof(*wstat));
     return r;
 }
 

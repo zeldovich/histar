@@ -105,14 +105,14 @@ netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a)
 	if (!lw)
 	    netd_event_init();
 	
-	memset(&a->wstat, 0, sizeof(a->wstat));
+	memset(&a->wstat[0], 0, sizeof(a->wstat[0]));
 	if (a->how == dev_probe_read)
-	    WS_SETADDR(&a->wstat, &lw[a->fd].rcvevent);
+	    WS_SETADDR(&a->wstat[0], &lw[a->fd].rcvevent);
 	else
-	    WS_SETADDR(&a->wstat, &lw[a->fd].sendevent);
-	WS_SETVAL(&a->wstat, 0);
-	WS_SETCBARG(&a->wstat, (void *)fd);
-	WS_SETCB0(&a->wstat, &msync_cb);
+	    WS_SETADDR(&a->wstat[0], &lw[a->fd].sendevent);
+	WS_SETVAL(&a->wstat[0], 0);
+	WS_SETCBARG(&a->wstat[0], (void *)fd);
+	WS_SETCB0(&a->wstat[0], &msync_cb);
     } catch (error &e) {
 	cprintf("netd_wstat: %s\n", e.what());
 	return e.err();
@@ -122,5 +122,5 @@ netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a)
     } catch (...) {
 	return -E_UNSPEC;
     }
-    return 0;
+    return 1;
 }
