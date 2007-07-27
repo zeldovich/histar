@@ -69,6 +69,19 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 }
 
 static void
+align_fault(const struct Thread *t, const struct Trapframe *tf)
+{
+    cprintf("user alignment fault: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
+	    "pc=0x%x, npc=0x%x, sp=0x%x\n",
+	    t->th_ko.ko_id, t->th_ko.ko_name,
+	    t->th_as ? t->th_as->as_ko.ko_id : 0,
+	    t->th_as ? t->th_as->as_ko.ko_name : "null",
+	    tf->tf_pc, tf->tf_npc, tf->tf_reg1.sp);
+    
+    thread_halt(t);
+}
+
+static void
 trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
@@ -120,6 +133,9 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     case T_TEXTFAULT:
     case T_DATAFAULT:
 	page_fault(trap_thread, tf, trapno);
+	break;
+    case T_ALIGN:
+	align_fault(trap_thread, tf);
 	break;
     default:
 	panic("trap %d", trapno);
