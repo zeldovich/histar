@@ -182,7 +182,7 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 static void *
 page_lookup(struct Pagemap *pgmap, void *va, ptent_t **pte_store)
 {
-    /* XXX LEON3 MMU missing probe!? */
+    /* LEON3 MMU is missing probe */
     if ((uintptr_t) va >= ULIM)
 	panic("page_lookup: va %p over ULIM", va);
 
