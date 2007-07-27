@@ -5,6 +5,7 @@
 #include <inc/debug.h>
 #include <inc/multisync.h>
 #include <inc/setjmp.h>
+#include <machine/memlayout.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -143,6 +144,13 @@ jos64_socket_thread(struct socket_conn *sc)
     int64_t z;
     int status ;
     debug_print(dbg, "(j%ld) starting", thread_id());
+
+    int r = sys_segment_resize(COBJ(0, kobject_id_thread_sg), 2 * PGSIZE);
+    if (r < 0) {
+	debug_print(1, "(j%ld) cannot resize TLS: %s", thread_id(), e2s(r));
+	return;
+    }
+
     struct sock_slot *ss;
     if (sc->sock_id != -1) {
 	ss = slot_from_id(sc->sock_id);
@@ -168,8 +176,10 @@ jos64_socket_thread(struct socket_conn *sc)
     struct jcomm_ref data = ss->conn.data_comm;
 
     struct jos_jmp_buf pgfault;
-    if (jos_setjmp(&pgfault) != 0)
+    if (jos_setjmp(&pgfault) != 0) {
+	debug_print(dbg, "(j%ld) hit pagefault, shutting down", thread_id());
 	goto done;
+    }
     tls_data->tls_pgfault_all = &pgfault;
 
     debug_print(dbg, "(j%ld) and (l%ld)", thread_id(), ss->linuxpid);
@@ -185,7 +195,7 @@ jos64_socket_thread(struct socket_conn *sc)
      * appropriate linux threads in netd_user_interrupt.  
      */
     for (;;) {
-	int r = jos64_wait_for(ss);
+	r = jos64_wait_for(ss);
 	if (r == 1) {
 	    assert(ss->lnx2jos_full);
 	    r = jos64_dispatch(ss, &ss->lnx2jos_buf);
@@ -236,6 +246,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	    ss->outcnt += z;
 	    lutrap_kill(SIGNAL_NETD);
 	} else {
+	    debug_print(dbg, "(j%ld) r=%d", thread_id(), r);
 	    break;
 	}
     }
