@@ -4,6 +4,7 @@
 #include <kern/sched.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
+#include <kern/syscall.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
 #include <machine/sparc-common.h>
@@ -14,6 +15,7 @@
 #include <inc/error.h>
 
 static const struct Thread *trap_thread;
+static int trap_thread_syscall_writeback;
 
 static void
 trapframe_print(const struct Trapframe *tf)
@@ -60,7 +62,7 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 		t->th_ko.ko_id, t->th_ko.ko_name,
 		t->th_as ? t->th_as->as_ko.ko_id : 0,
 		t->th_as ? t->th_as->as_ko.ko_name : "null",
-		fault_va, tf->tf_pc, tf->tf_npc, 0, e2s(r));
+		fault_va, tf->tf_pc, tf->tf_npc, tf->tf_reg1.sp, e2s(r));
 
 	thread_halt(t);
     }
@@ -69,6 +71,8 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 static void
 trap_dispatch(int trapno, const struct Trapframe *tf)
 {
+    int64_t r;
+
     if (!trap_thread) {
 	trapframe_print(tf);
 	panic("trap %d while idle", trapno);
@@ -82,6 +86,42 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     }
     
     switch(trapno) {
+    case T_SYSCALL: {
+	trap_thread_syscall_writeback = 1;
+
+	uint32_t *args = (uint32_t *) (tf->tf_reg1.sp + 92);
+	r = check_user_access(args, sizeof(uint32_t) * 9, 0);
+	
+	if (r >= 0) {
+	    uint32_t sysnum = tf->tf_reg1.o0;
+#define MAKE_UINT64(a, b) (((uint64_t)(a) << 32) | (uint64_t)(b))	    
+	    uint64_t arg0 = MAKE_UINT64(tf->tf_reg1.o1, tf->tf_reg1.o2);
+	    uint64_t arg1 = MAKE_UINT64(tf->tf_reg1.o3, tf->tf_reg1.o4);
+	    uint64_t arg2 = MAKE_UINT64(tf->tf_reg1.o5, args[0]);
+	    uint64_t arg3 = MAKE_UINT64(args[1], args[2]);
+	    uint64_t arg4 = MAKE_UINT64(args[3], args[4]);
+	    uint64_t arg5 = MAKE_UINT64(args[5], args[6]);
+	    uint64_t arg6 = MAKE_UINT64(args[7], args[8]);
+#undef MAKE_UINT64
+	    r = kern_syscall(sysnum, arg0, arg1, arg2,
+			     arg3, arg4, arg5, arg6);
+	}
+
+	if (trap_thread_syscall_writeback) {
+	    trap_thread_syscall_writeback = 0;
+	    
+	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	    if (r != -E_RESTART) {
+		t->th_tf.tf_reg1.o0 = ((uint64_t) r) >> 32;
+		t->th_tf.tf_reg1.o1 = ((uint64_t) r) & 0xffffffff;
+		t->th_tf.tf_pc = t->th_tf.tf_npc;
+		t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
+	    } 
+	} else {
+	    assert(r == 0);
+	}
+	break;
+    }
     case T_TEXTFAULT:
     case T_DATAFAULT:
 	page_fault(trap_thread, tf, trapno);
@@ -108,6 +148,9 @@ trap_handler(struct Trapframe *tf, uint32_t tbr)
 void
 thread_arch_jump(struct Thread *t, const struct thread_entry *te)
 {
+    if (t == trap_thread)
+	trap_thread_syscall_writeback = 0;
+
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_pc = (uintptr_t) te->te_entry;
     t->th_tf.tf_npc = (uintptr_t) (te->te_entry + 4);
