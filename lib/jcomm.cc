@@ -352,13 +352,15 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
 
 static int
 jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
-		    void **arg1)
+		   void **arg1)
 {
     struct jcomm_ref *jr = (struct jcomm_ref *) arg0;
     struct jlink *links;
     int r = jcomm_links_map(*jr, &links);
-    if (r < 0)
+    if (r < 0) {
+	free(jr);
 	return r;
+    }
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     
     if (probe == dev_probe_read)
