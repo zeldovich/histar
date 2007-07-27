@@ -144,9 +144,12 @@ ENTRY(trapframe_pop)
 	set	0x0FE, %l3
 	mov	%l3, %wim
 	WRITE_PAUSE
-	/* Disable traps, enable interrupts, clear PS */
+	/* Disable traps, enable interrupts, reset PS */
+	ld	[%l0 + TF_PSR], %l4
+	and	%l4, PSR_PS, %l4
 	rd	%psr, %l3
 	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
+	or	%l3, %l4, %l3
 	mov	%l3, %psr
 	WRITE_PAUSE
 	
