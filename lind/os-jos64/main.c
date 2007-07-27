@@ -22,7 +22,7 @@
 #include <os-jos64/lfs.h>
 #include <linuxthread.h>
 
-static const uint64_t phy_pages = 512;
+static const uint64_t phy_pages = 4096;
 
 void linux_main(int ac, char **av);
 
