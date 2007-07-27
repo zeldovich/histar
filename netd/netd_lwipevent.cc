@@ -79,9 +79,10 @@ netd_lwip_probe(struct Fd *fd, struct netd_op_probe_args *a)
 }
 
 static int
-msync_cb(void *arg0, dev_probe_t probe, volatile uint64_t *addr, void **arg1)
+msync_cb(struct wait_stat *ws, dev_probe_t probe,
+	 volatile uint64_t *addr, void **arg1)
 {
-    struct Fd *fd = (struct Fd*)arg0;
+    struct Fd *fd = (struct Fd*) ws->ws_cbarg;
 
     if (!lw)
 	netd_event_init();
@@ -111,8 +112,8 @@ netd_lwip_statsync(struct Fd *fd, struct netd_op_statsync_args *a)
 	else
 	    WS_SETADDR(&a->wstat[0], &lw[a->fd].sendevent);
 	WS_SETVAL(&a->wstat[0], 0);
-	WS_SETCBARG(&a->wstat[0], (void *)fd);
 	WS_SETCB0(&a->wstat[0], &msync_cb);
+	a->wstat[0].ws_cbarg = fd;
     } catch (error &e) {
 	cprintf("netd_wstat: %s\n", e.what());
 	return e.err();
