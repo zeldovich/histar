@@ -407,28 +407,34 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     signal_counter++;
     sys_sync_wakeup(&signal_counter);
 
+    // Push a copy of sc, si onto the trapped stack, plus the red zone.
+    struct {
+	struct sigcontext sc;
+	siginfo_t si;
+#if defined(JOS_ARCH_amd64)
+	uint8_t redzone[128];
+#endif
+    } *s;
+
+    struct UTrapframe *utrap_chain;
+    void *stackptr;
+    siginfo_t *si_arg;
+    struct sigcontext *sc_arg;
+
     // Run signal_utrap_onstack(), which will figure out the right
     // signal handler and execute it.
     if (sc->sc_utf.utf_stackptr <= (uintptr_t) tls_stack_top &&
 	sc->sc_utf.utf_stackptr > (uintptr_t) tls_base)
     {
-	// If the trapped stack was the TLS, just call the function
-	// to deliver signals, as we're already on the TLS.
 	if (signal_debug)
 	    cprintf("[%"PRIu64"] signal_utrap_si: staying on tls stack\n",
 		    thread_id());
 
-	utrap_set_mask(0);
-	signal_utrap_onstack(si, sc);
+	stackptr = &s;		/* just reuse some stack pointer nearby */
+	si_arg = si;
+	sc_arg = sc;
+	utrap_chain = &sc->sc_utf;
     } else {
-	// Push a copy of sc, si onto the trapped stack, plus the red zone.
-	struct {
-	    struct sigcontext sc;
-	    siginfo_t si;
-#if defined(JOS_ARCH_amd64)
-	    uint8_t redzone[128];
-#endif
-	} *s;
 
 	// XXX assumes stack grows down
 	s = (void *) sc->sc_utf.utf_stackptr;
@@ -458,30 +464,37 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	    cprintf("[%"PRIu64"] signal_utrap_si: jumping to real stack at %p\n",
 		    thread_id(), s);
 
-	// jump over there and unmask utrap atomically
-	struct UTrapframe utf_jump;
+	stackptr = s;
+	si_arg = &s->si;
+	sc_arg = &s->sc;
+	utrap_chain = &s->sc.sc_utf;
+    }
+
+    // Jump over there and unmask utrap atomically
+    struct UTrapframe utf_jump;
 #if defined(JOS_ARCH_amd64)
-	utf_jump.utf_rflags = read_rflags();
-	utf_jump.utf_rip = (uint64_t) &utrap_chain_dwarf2;
-	utf_jump.utf_rsp = (uint64_t) s;
-	utf_jump.utf_rdi = (uint64_t) &s->si;
-	utf_jump.utf_rsi = (uint64_t) &s->sc;
-	utf_jump.utf_r15 = (uint64_t) &signal_utrap_onstack;
+    utf_jump.utf_rflags = read_rflags();
+    utf_jump.utf_rip = (uint64_t) &utrap_chain_dwarf2;
+    utf_jump.utf_rsp = (uint64_t) stackptr;
+    utf_jump.utf_rdi = (uint64_t) si_arg;
+    utf_jump.utf_rsi = (uint64_t) sc_arg;
+    utf_jump.utf_r14 = (uint64_t) utrap_chain;
+    utf_jump.utf_r15 = (uint64_t) &signal_utrap_onstack;
 #elif defined(JOS_ARCH_i386)
-	utf_jump.utf_eflags = read_eflags();
-	utf_jump.utf_eip = (uintptr_t) &utrap_chain_dwarf2;
-	utf_jump.utf_esp = (uintptr_t) s;
-	utf_jump.utf_eax = (uintptr_t) &s->si;
-	utf_jump.utf_edx = (uintptr_t) &s->sc;
-	utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
+    utf_jump.utf_eflags = read_eflags();
+    utf_jump.utf_eip = (uintptr_t) &utrap_chain_dwarf2;
+    utf_jump.utf_esp = (uintptr_t) stackptr;
+    utf_jump.utf_eax = (uintptr_t) si_arg;
+    utf_jump.utf_edx = (uintptr_t) sc_arg;
+    utf_jump.utf_esi = (uintptr_t) utrap_chain;
+    utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
 #elif defined(JOS_ARCH_sparc)
-	panic("signal_utrap_si: XXX");
+    panic("signal_utrap_si: XXX");
 #else
 #error Unknown arch
 #endif
 
-	utrap_ret(&utf_jump);
-    }
+    utrap_ret(&utf_jump);
 }
 
 void

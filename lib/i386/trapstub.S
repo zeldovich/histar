@@ -39,7 +39,7 @@ ENTRY(utrap_entry_asm)
 
 ENTRY(utrap_chain_dwarf2)
 	.cfi_startproc simple
-	.cfi_def_cfa esp, 0
+	.cfi_def_cfa esi, 0
 	CFI_UTF_OFFSETS
 	call	*%ecx
 	.cfi_endproc
