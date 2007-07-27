@@ -17,7 +17,7 @@ ENTRY(syscall)
 
 	ld	[%g1 + 124], %o0
 	
-	ta SOFTWARE_TRAP(T_SYSCALL)
+	ta	SOFTWARE_TRAP(T_SYSCALL)
 	 nop
 
 	ret
