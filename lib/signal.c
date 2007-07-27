@@ -292,6 +292,12 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
     struct sigaction sa = sigactions[si->si_signo];
     jthread_mutex_unlock(&sigactions_mu);
 
+    if (si->si_signo == SIGINFO) {
+	cprintf("%s (pid %"PRIu64", tid %"PRIu64"): SIGINFO backtrace..\n",
+		jos_progname, start_env->shared_container, thread_id());
+	print_backtrace(1);
+    }
+
     if (si->si_signo == SIGCHLD) {
 	if (signal_debug)
 	    cprintf("[%"PRIu64"] signal_execute: calling child_notify()\n",

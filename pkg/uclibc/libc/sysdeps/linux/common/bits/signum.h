@@ -65,6 +65,7 @@
 #define	SIGPWR		30	/* Power failure restart (System V).  */
 #define SIGSYS		31	/* Bad system call.  */
 #define SIGUNUSED	31
+#define SIGINFO		32
 
 #define	_NSIG		65	/* Biggest signal number + 1
 				   (including real-time signals).  */
@@ -74,7 +75,7 @@
 
 /* These are the hard limits of the kernel.  These values should not be
    used directly at user level.  */
-#define __SIGRTMIN	32
+#define __SIGRTMIN	33
 #define __SIGRTMAX	(_NSIG - 1)
 
 #endif	/* <signal.h> included.  */
