@@ -138,10 +138,11 @@ netd_lwip_ioctl(struct netd_op_ioctl_args *a)
     int r = -1;
     switch(a->libc_ioctl) {
     case SIOCGIFCONF:
-	r = netd_name(a->gifconf.name);
+	a->gifconf.ifcount = 1;
+	r = netd_name(a->gifconf.ifs[0].name);
 	if (r < 0)
 	    break;
-	r = netd_ip(&a->gifconf.addr);
+	r = netd_ip(&a->gifconf.ifs[0].addr);
 	break;
     case SIOCGIFFLAGS: {
 	char reqname[3];

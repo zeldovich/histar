@@ -119,23 +119,28 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
     case SIOCGIFCONF: {
 	struct ifconf ifc;
 	struct ifreq *ifrp;
-	char buf[sizeof(struct ifreq)];
+	static const uint32_t maxifs = sizeof(a->gifconf.ifs) /
+				       sizeof(a->gifconf.ifs[0]);
+	struct ifreq buf[maxifs];
 	ifc.ifc_len = sizeof(buf);
-	ifc.ifc_buf = buf;
+	ifc.ifc_buf = (void *) &buf[0];
 
 	if ((r = linux_ioctl(ss->sock, SIOCGIFCONF, &ifc)) < 0)
 	    return r;
 
-	if (!ifc.ifc_len) {
-	    memset(&a->gifconf, 0, sizeof(a->gifconf));
-	    return r;
+	uint32_t nifs = ifc.ifc_len / sizeof(struct ifreq);
+	uint32_t i;
+	for (i = 0; i < nifs; i++) {
+	    ifrp = &buf[i];
+	    uint32_t n = MIN(sizeof(a->gifconf.ifs[i].name),
+			     sizeof(ifrp->ifr_name));
+	    strncpy(a->gifconf.ifs[i].name, ifrp->ifr_name, n);
+	    a->gifconf.ifs[i].name[n] = '\0';
+	    libc_to_netd((struct sockaddr_in *)&ifrp->ifr_addr,
+			 &a->gifconf.ifs[i].addr);
 	}
-	
-	ifrp = ifc.ifc_req;
-	strncpy(a->gifconf.name, ifrp->ifr_name, sizeof(a->gifconf.name));
-	a->gifconf.name[sizeof(a->gifconf.name) - 1] = 0;
-	libc_to_netd((struct sockaddr_in *)&ifrp->ifr_addr, &a->gifconf.addr);
-	
+
+	a->gifconf.ifcount = nifs;
 	return r;
     }
     case SIOCGIFFLAGS: {

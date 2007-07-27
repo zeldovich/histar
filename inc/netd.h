@@ -122,8 +122,11 @@ struct netd_op_shutdown_args {
 };
 
 struct netd_ioctl_gifconf {
-    char name[16];
-    struct netd_sockaddr_in addr;
+    struct {
+	char name[16];
+	struct netd_sockaddr_in addr;
+    } ifs[16];
+    uint32_t ifcount;
 };
 
 struct netd_ioctl_gifflags {

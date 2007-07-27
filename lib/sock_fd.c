@@ -451,10 +451,6 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
     switch (req) {
     case SIOCGIFCONF: {
 	struct ifconf *ifc = va_arg(ap, struct ifconf *);
-	if ((uint32_t)ifc->ifc_len < sizeof(struct ifreq)) {
-	    errno = ENOBUFS;
-	    return -1;
-	}
 	struct ifreq *r = (struct ifreq *)ifc->ifc_buf;
 
 	ia->libc_ioctl = SIOCGIFCONF;
@@ -462,17 +458,22 @@ sock_ioctl(struct Fd *fd, uint64_t req, va_list ap)
 	if (z < 0)
 	    return z;
 
-	if (ia->gifconf.name[0] == 0) {
-	    ifc->ifc_len = 0;	    
-	    return 0;
+	uint32_t ifcount = ia->gifconf.ifcount;
+	if ((uint32_t)ifc->ifc_len < sizeof(struct ifreq) * ifcount) {
+	    errno = ENOBUFS;
+	    return -1;
 	}
-	
-	int n = sizeof(r->ifr_name);
-	strncpy(r->ifr_name, ia->gifconf.name, n);
-	r->ifr_name[n - 1] = 0;
 
-	netd_to_libc(&ia->gifconf.addr, (struct sockaddr_in *)&r->ifr_addr);
-	ifc->ifc_len = sizeof(struct ifreq);
+	for (uint32_t i = 0; i < ifcount; i++) {
+	    int n = MIN(sizeof(r->ifr_name), sizeof(ia->gifconf.ifs[i].name));
+	    strncpy(r->ifr_name, ia->gifconf.ifs[i].name, n);
+	    r->ifr_name[n - 1] = 0;
+
+	    netd_to_libc(&ia->gifconf.ifs[i].addr,
+			 (struct sockaddr_in *)&r->ifr_addr);
+	}
+
+	ifc->ifc_len = sizeof(struct ifreq) * ifcount;
 	return 0;
     }
     case SIOCGIFFLAGS: {
