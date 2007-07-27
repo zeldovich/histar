@@ -35,7 +35,7 @@
  */
 #define T_SYSCALL	0x80
 #define T_BREAKPOINT	0x81
-#define T_FLUSHWIN	0x82
+#define T_EMUERR	0x82
 #define SOFTWARE_TRAP(num) ((num) - 0x80)
 
 #define NTRAPS		0x100

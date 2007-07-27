@@ -82,6 +82,27 @@ align_fault(const struct Thread *t, const struct Trapframe *tf)
 }
 
 static void
+emu_error(const struct Thread *t, const struct Trapframe *tf)
+{
+    cprintf("user emulate error: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
+	    "pc=0x%x\n",
+	    t->th_ko.ko_id, t->th_ko.ko_name,
+	    t->th_as ? t->th_as->as_ko.ko_id : 0,
+	    t->th_as ? t->th_as->as_ko.ko_name : "null",
+	    tf->tf_reg1.o1);
+
+    cprintf(" inst=0x%08x, b", tf->tf_reg1.o0);
+    for (int i = 31; i >= 0; i--) {
+	uint32_t m = 1 << i;
+	const char *s = m & tf->tf_reg1.o0 ? "1" : "0";
+	cprintf("%s", s);
+    }
+    cprintf("\n");
+    
+    thread_halt(t);
+}
+
+static void
 trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
@@ -136,6 +157,9 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	break;
     case T_ALIGN:
 	align_fault(trap_thread, tf);
+	break;
+    case T_EMUERR:
+	emu_error(trap_thread, tf);
 	break;
     default:
 	panic("trap %d", trapno);

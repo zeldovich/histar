@@ -1,6 +1,7 @@
 #include <machine/mmu.h>
 #include <machine/asm.h>
-
+#include <machine/trapcodes.h>
+	
 /* Window handlers that emulate save and restore
  * %g5, %g6 hold pc, npc
  */
@@ -41,8 +42,9 @@ uwin_overflow:
 	  nop
 
 overflow_bail:
-	/* XXX */
-	ba	overflow_bail
+	mov	%l7, %o0
+	mov	%g5, %o1
+	ta	SOFTWARE_TRAP(T_EMUERR)
 	 nop
 
 .section .uwin_underflow, "ax", @progbits
@@ -66,6 +68,7 @@ uwin_underflow:
 	  nop
 	
 underflow_bail:
-	/* XXX */
-	ba underflow_bail
+	mov	%l7, %o0
+	mov	%g5, %o1
+	ta	SOFTWARE_TRAP(T_EMUERR)
 	 nop

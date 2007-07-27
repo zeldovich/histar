@@ -77,7 +77,9 @@ t_bad74:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
 t_bad79:TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY TRAP_ENTRY
 t_bad7e:TRAP_ENTRY TRAP_ENTRY
 t_sys:	TRAP_ENTRY
-	
+t_bkpt:	TRAP_ENTRY
+t_emuer:TRAP_ENTRY
+		
 ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
