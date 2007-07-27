@@ -222,3 +222,14 @@ user_fill:
 	set	UWINUNDERFLOW, %g7
 	jmp	%g7
 	 rett	%g7 + 4
+
+.globl	thread_arch_idle_asm
+thread_arch_idle_asm:
+	set	kstack_top, %sp
+	/* enable interrupts */
+	rd	%psr, %l3
+	andn	%l3, PSR_PIL, %l3
+	mov	%l3, %psr
+	WRITE_PAUSE
+1:	ba	1b
+	 nop

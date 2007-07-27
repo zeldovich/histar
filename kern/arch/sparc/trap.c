@@ -107,16 +107,16 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 {
     int64_t r;
 
-    if (!trap_thread) {
-	trapframe_print(tf);
-	panic("trap %d while idle", trapno);
-    }
-
     if (trapno >= T_IRQOFFSET && trapno < T_IRQOFFSET + MAX_IRQS) {
 	uint32_t irqno = trapno - T_IRQOFFSET;
 	irqmp_clear(irqno);
 	irq_handler(irqno);
 	return;
+    }
+
+    if (!trap_thread) {
+	trapframe_print(tf);
+	panic("trap 0x%x while idle", trapno);
     }
     
     switch(trapno) {
@@ -227,7 +227,8 @@ thread_arch_run(const struct Thread *t)
 void
 thread_arch_idle(void)
 {
-    panic("thread_arch_idle");
+    trap_thread_set(0);
+    thread_arch_idle_asm();
 }
 
 int

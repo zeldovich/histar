@@ -11,4 +11,7 @@ void trap_handler(struct Trapframe *tf, uint32_t tbr)
 // Low-level trapframe jump in locore.S
 void trapframe_pop(const struct Trapframe *) __attribute__((__noreturn__));
 
+// Idle with interrupts enabled
+void thread_arch_idle_asm(void) __attribute__((noreturn));
+
 #endif
