@@ -96,6 +96,12 @@ void __attribute__((__noreturn__, no_instrument_function))
 trap_handler(struct Trapframe *tf, uint32_t tbr)
 {
     uint32_t trapno = (tbr >> TBR_TT_SHIFT) & TBR_TT_MASK;
+
+    if (trap_thread) {
+	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	t->th_tf = *tf;
+    }
+    
     trap_dispatch(trapno, tf);    
     thread_run();
 }
