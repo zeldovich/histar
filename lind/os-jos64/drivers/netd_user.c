@@ -422,9 +422,13 @@ linux_socket_thread(void *a)
 
 	if (ss->outcnt) {
 	    r = linux_write(ss->sock, ss->outbuf, ss->outcnt);
-	    assert(r == ss->outcnt);
-	    ss->outcnt = 0;
-	    sys_sync_wakeup(&ss->outcnt);
+	    if (r == ss->outcnt) {
+		ss->outcnt = 0;
+		sys_sync_wakeup(&ss->outcnt);
+	    } else if (r > 0) {
+		memmove(&ss->outbuf[0], &ss->outbuf[r], ss->outcnt - r);
+		ss->outcnt -= r;
+	    }
 	}
     }
     debug_print(dbg, "(l%ld) stopping", ss->linuxpid);
