@@ -150,7 +150,7 @@ kshdebug_init_(void)
 	kshdebug_shf = shf_open("/tmp/ksh-debug.log",
 	    O_WRONLY|O_APPEND|O_CREAT, 0600, SHF_WR|SHF_MAPHI);
 	if (kshdebug_shf) {
-		shf_fprintf(kshdebug_shf, "\nNew shell[pid %d]\n", getpid());
+		shf_fprintf(kshdebug_shf, "\nNew shell[pid %"PRIu64"]\n", getpid());
 		shf_flush(kshdebug_shf);
 	}
 }
@@ -164,7 +164,7 @@ kshdebug_printf_(const char *fmt, ...)
 	if (!kshdebug_shf)
 		return;
 	va_start(va, fmt);
-	shf_fprintf(kshdebug_shf, "[%d] ", getpid());
+	shf_fprintf(kshdebug_shf, "[%"PRIu64"] ", getpid());
 	shf_vfprintf(kshdebug_shf, fmt, va);
 	va_end(va);
 	shf_flush(kshdebug_shf);
@@ -178,7 +178,7 @@ kshdebug_dump_(const char *str, const void *mem, int nbytes)
 
 	if (!kshdebug_shf)
 		return;
-	shf_fprintf(kshdebug_shf, "[%d] %s:\n", getpid(), str);
+	shf_fprintf(kshdebug_shf, "[%"PRIu64"] %s:\n", getpid(), str);
 	for (i = 0; i < nbytes; i += nprow) {
 		char c = '\t';
 

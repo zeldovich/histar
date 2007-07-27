@@ -16,6 +16,7 @@
  */
 
 #include "sh.h"
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -355,8 +356,8 @@ exchild(struct op *t, int flags,
 	if (flags&XPIPEI) {	/* continuing with a pipe */
 		if (!last_job)
 			internal_errorf(1,
-			    "exchild: XPIPEI and no last_job - pid %d",
-			    (int) procpid);
+			    "exchild: XPIPEI and no last_job - pid %"PRIu64,
+			    procpid);
 		j = last_job;
 		last_proc->next = p;
 		last_proc = p;
@@ -497,7 +498,7 @@ exchild(struct op *t, int flags,
 			if (Flag(FTALKING)) {
 				shf_fprintf(shl_out, "[%d]", j->job);
 				for (p = j->proc_list; p; p = p->next)
-					shf_fprintf(shl_out, " %d", p->pid);
+					shf_fprintf(shl_out, " %"PRIu64, p->pid);
 				shf_putchar('\n', shl_out);
 				shf_flush(shl_out);
 			}
@@ -702,9 +703,9 @@ j_resume(const char *cp, int bg)
 					tcsetattr(tty_fd, TCSADRAIN, &tty_state);
 				sigprocmask(SIG_SETMASK, &omask,
 				    (sigset_t *) 0);
-				bi_errorf("1st tcsetpgrp(%d, %d) failed: %s",
+				bi_errorf("1st tcsetpgrp(%d, %"PRIu64") failed: %s",
 				    tty_fd,
-				    (int) ((j->flags & JF_SAVEDTTYPGRP) ?
+				    ((j->flags & JF_SAVEDTTYPGRP) ?
 				    j->saved_ttypgrp : j->pgrp),
 				    strerror(errno));
 				return 1;
@@ -727,8 +728,8 @@ j_resume(const char *cp, int bg)
 				tcsetattr(tty_fd, TCSADRAIN, &tty_state);
 			if (ttypgrp_ok && tcsetpgrp(tty_fd, our_pgrp) < 0) {
 				warningf(true,
-				    "fg: 2nd tcsetpgrp(%d, %d) failed: %s",
-				    tty_fd, (int) our_pgrp,
+				    "fg: 2nd tcsetpgrp(%d, %"PRIu64") failed: %s",
+				    tty_fd, our_pgrp,
 				    strerror(errno));
 			}
 # endif /* JOBS */
@@ -1002,8 +1003,8 @@ j_waitj(Job *j,
 				j->flags |= JF_SAVEDTTYPGRP;
 			if (tcsetpgrp(tty_fd, our_pgrp) < 0) {
 				warningf(true,
-				    "j_waitj: tcsetpgrp(%d, %d) failed: %s",
-				    tty_fd, (int) our_pgrp,
+				    "j_waitj: tcsetpgrp(%d, %"PRIu64") failed: %s",
+				    tty_fd, our_pgrp,
 					strerror(errno));
 			}
 			if (j->state == PSTOPPED) {
@@ -1114,7 +1115,7 @@ j_sigchld(int sig)
 found:
 		if (j == (Job *) 0) {
 			/* Can occur if process has kids, then execs shell
-			warningf(true, "bad process waited for (pid = %d)",
+			warningf(true, "bad process waited for (pid = %"PRIu64")",
 				pid);
 			 */
 			ru0 = ru1;
@@ -1273,7 +1274,7 @@ j_print(Job *j, int how, struct shf *shf)
 		 * group leader (ie, !FMONITOR).  We arbitrarily return
 		 * last pid (which is what $! returns).
 		 */
-		shf_fprintf(shf, "%d\n", j->pgrp ? j->pgrp :
+		shf_fprintf(shf, "%"PRIu64"\n", j->pgrp ? j->pgrp :
 		    (j->last_proc ? j->last_proc->pid : 0));
 		return;
 	}
