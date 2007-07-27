@@ -112,7 +112,7 @@ page_map_traverse_internal(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
 	ptent_t pm_ent = *pm_entp;
 
 	void *ent_va = va_base + (idx << PDSHIFT(pmlevel));
-	
+
 	if (pmlevel == 0) {
 	    cb(arg, pm_entp, ent_va);
 	    continue;
@@ -315,10 +315,15 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 int
 as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
-    uint32_t ptflags = 0;
-    if ((flags & SEGMAP_WRITE))
+    /* The LEON MMU doesn't seem to work as expected unless readable and
+     * writable pages are marked executable.  Linux does the same thing
+     * for its SRMMU implementation: include/asm-sparc/pgtsrmmu.h and
+     * arch/sparc/mm/srmmu.c
+     */
+    uint32_t ptflags = PTE_ACC_X;
+    if (flags & SEGMAP_WRITE)
 	ptflags |= PTE_ACC_W;
-    if ((flags & SEGMAP_EXEC))
+    if (flags & SEGMAP_EXEC)
 	ptflags |= PTE_ACC_X;
 
     ptent_t *ptep;
@@ -331,7 +336,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
     if (ptflags & PTE_ACC_W)
-	pagetree_incpin(pp);
+    	pagetree_incpin(pp);
 
     return 0;
 }
