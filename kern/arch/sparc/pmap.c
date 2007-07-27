@@ -315,10 +315,10 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 int
 as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
-    /* The LEON MMU doesn't seem to work as expected unless readable and
-     * writable pages are marked executable.  Linux does the same thing
-     * for its SRMMU implementation: include/asm-sparc/pgtsrmmu.h and
-     * arch/sparc/mm/srmmu.c
+    /* The TSIM MMU doesn't seem to work as expected unless readable and
+     * writable pages are marked executable.  Real hardware seems to get it
+     * right.
+     * uint32_t ptflags = 0;
      */
     uint32_t ptflags = PTE_ACC_X;
     if (flags & SEGMAP_WRITE)
