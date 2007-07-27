@@ -228,7 +228,6 @@ user_fill:
 
 .globl	thread_arch_idle_asm
 thread_arch_idle_asm:
-	set	kstack_top, %sp
 	/* enable interrupts */
 	rd	%psr, %l3
 	andn	%l3, PSR_PIL, %l3
