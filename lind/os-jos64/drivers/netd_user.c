@@ -174,6 +174,18 @@ netd_linux_ioctl(struct sock_slot *ss, struct netd_op_ioctl_args *a)
 	memcpy(a->gifhwaddr.hwaddr, ifrp.ifr_hwaddr.sa_data, len);
 	return r;
     }
+    case SIOCGIFBRDADDR: {
+	struct ifreq ifrp;
+	strncpy(ifrp.ifr_name, a->gifbrdaddr.name, sizeof(ifrp.ifr_name));
+	ifrp.ifr_name[sizeof(ifrp.ifr_name) - 1] = '\0';
+
+	if ((r = linux_ioctl(ss->sock, SIOCGIFBRDADDR, &ifrp)) < 0)
+	    return r;
+
+	libc_to_netd((struct sockaddr_in *)&ifrp.ifr_addr,
+		     &a->gifbrdaddr.baddr);
+	return r;
+    }
     default:
 	arch_printf("netd_linux_ioctl: unimplemented %d\n", a->libc_ioctl);
 	return -ENOSYS;
