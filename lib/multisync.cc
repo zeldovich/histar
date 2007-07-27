@@ -32,9 +32,10 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	    if (WS_ISOBJ(&wstat[i])) {
 		// map the segment to pass an address to the kernel, unmap
 		// segments when wait returns.
-		uint8_t *addr = 0;		
+		uint8_t *addr = 0;
+		// SEGMAP_WRITE only because it speeds up sys_sync_wait
 		error_check(segment_map(wstat[i].ws_seg, 0,
-					SEGMAP_READ,
+					SEGMAP_READ | SEGMAP_WRITE,
 					(void **) &addr, 0, 0));
 		mapped[mapped_count] = (uint64_t *)addr;
 		mapped_count++;
