@@ -93,15 +93,15 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	r = check_user_access(args, sizeof(uint32_t) * 9, 0);
 	
 	if (r >= 0) {
-	    uint32_t sysnum = tf->tf_reg1.o0;
+	    uint32_t sysnum = tf->tf_reg1.i0;
 #define MAKE_UINT64(a, b) (((uint64_t)(a) << 32) | (uint64_t)(b))	    
-	    uint64_t arg0 = MAKE_UINT64(tf->tf_reg1.o1, tf->tf_reg1.o2);
-	    uint64_t arg1 = MAKE_UINT64(tf->tf_reg1.o3, tf->tf_reg1.o4);
-	    uint64_t arg2 = MAKE_UINT64(tf->tf_reg1.o5, args[0]);
-	    uint64_t arg3 = MAKE_UINT64(args[1], args[2]);
-	    uint64_t arg4 = MAKE_UINT64(args[3], args[4]);
-	    uint64_t arg5 = MAKE_UINT64(args[5], args[6]);
-	    uint64_t arg6 = MAKE_UINT64(args[7], args[8]);
+	    uint64_t arg0 = MAKE_UINT64(tf->tf_reg1.i1, tf->tf_reg1.i2);
+	    uint64_t arg1 = MAKE_UINT64(tf->tf_reg1.i3, tf->tf_reg1.i4);
+	    uint64_t arg2 = MAKE_UINT64(tf->tf_reg1.i5, tf->tf_reg1.l0);
+	    uint64_t arg3 = MAKE_UINT64(tf->tf_reg1.l1, tf->tf_reg1.l2);
+	    uint64_t arg4 = MAKE_UINT64(tf->tf_reg1.l3, tf->tf_reg1.l4);
+	    uint64_t arg5 = MAKE_UINT64(tf->tf_reg1.l5, tf->tf_reg1.l6);
+	    uint64_t arg6 = MAKE_UINT64(tf->tf_reg1.l7, tf->tf_reg1.o0);
 #undef MAKE_UINT64
 	    r = kern_syscall(sysnum, arg0, arg1, arg2,
 			     arg3, arg4, arg5, arg6);
@@ -112,8 +112,8 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	    
 	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	    if (r != -E_RESTART) {
-		t->th_tf.tf_reg1.o0 = ((uint64_t) r) >> 32;
-		t->th_tf.tf_reg1.o1 = ((uint64_t) r) & 0xffffffff;
+		t->th_tf.tf_reg1.i0 = ((uint64_t) r) >> 32;
+		t->th_tf.tf_reg1.i1 = ((uint64_t) r) & 0xffffffff;
 		t->th_tf.tf_pc = t->th_tf.tf_npc;
 		t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
 	    } 
