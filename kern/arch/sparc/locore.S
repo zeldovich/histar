@@ -224,8 +224,6 @@ kernel_spill:
 	 rett	%l2	
 
 user_spill:
-	restore
-
 	set	UWINOVERFLOW, %g7
 	jmp	%g7
 	 rett	%g7 + 4
@@ -256,8 +254,6 @@ kernel_fill:
 	 rett	%l2
 
 user_fill:
-	restore
-
 	set	UWINUNDERFLOW, %g7
 	jmp	%g7
 	 rett	%g7 + 4
