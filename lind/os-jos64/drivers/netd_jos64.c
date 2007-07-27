@@ -50,6 +50,7 @@ jos64_wait_for(struct sock_slot *ss)
 	    return 3;
     } else {
 	/* Wait for buffer space to become available */
+	memset(&wstat[wcount], 0, sizeof(wstat[wcount]));
 	WS_SETADDR(&wstat[wcount], &ss->outcnt);
 	WS_SETVAL(&wstat[wcount], outcnt);
 	wcount++;
@@ -68,6 +69,7 @@ jos64_wait_for(struct sock_slot *ss)
 	    return 1;
     } else {
 	/* Wait for the buffer to get some data */
+	memset(&wstat[wcount], 0, sizeof(wstat[wcount]));
 	WS_SETADDR(&wstat[wcount], &ss->lnx2jos_full);
 	WS_SETVAL(&wstat[wcount], lnx2jos_full);
 	wcount++;
