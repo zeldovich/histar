@@ -2,6 +2,7 @@
 #include <machine/trapcodes.h>
 
 ENTRY(syscall)
-	ba syscall
+	ta SOFTWARE_TRAP(T_SYSCALL)
 	 nop
-
+	retl
+	 nop
