@@ -94,7 +94,7 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t err)
 
 	cprintf("user page fault: thread %"PRIu64" (%s), "
 		"as %"PRIu64" (%s), "
-		"va=%p: eip=0x%x, rsp=0x%x: %s\n",
+		"va=%p: eip=0x%x, esp=0x%x: %s\n",
 		t->th_ko.ko_id, t->th_ko.ko_name,
 		t->th_as ? t->th_as->as_ko.ko_id : 0,
 		t->th_as ? t->th_as->as_ko.ko_name : "null",
