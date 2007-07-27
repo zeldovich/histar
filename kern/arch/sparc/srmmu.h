@@ -131,5 +131,8 @@
 #define SRMMU_AT_SSD       5      /* store supervisor data */
 #define SRMMU_AT_SUI       6      /* store user instruction */
 #define SRMMU_AT_SSI       7      /* store supervisor instruction */
+/* fault type */
+#define SRMMU_FT_SHIFT     2
+#define SRMMU_FT_MASK      0x07
 
 #endif
