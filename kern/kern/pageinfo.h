@@ -4,7 +4,6 @@
 #include <machine/types.h>
 #include <kern/arch.h>
 #include <kern/pagetree.h>
-#include <inc/kobj.h>
 
 struct page_info {
     // references to this page from pagetree's
@@ -24,8 +23,8 @@ struct page_info {
     // Indirect parent pagetree page, if any (only when pi_ref == 1).
     struct pagetree_indirect_page *pi_parent;
 
-    // Segment container entry and offset, the last time this page was mapped.
-    struct cobj_ref pi_seg;
+    // Segment ID and offset, the last time this page was mapped.
+    uint64_t pi_seg;
     uint64_t pi_segpg;
 };
 

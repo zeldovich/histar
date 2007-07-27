@@ -88,7 +88,7 @@ int	sys_self_get_entry_args(struct thread_entry_args *targ);
 int	sys_sync_wait(volatile uint64_t *addr, uint64_t val,
 		      uint64_t wakeup_at_nsec);
 int	sys_sync_wait_multi(volatile uint64_t **addrs, uint64_t *vals,
-			    uint64_t num, uint64_t nsec);
+			    uint64_t *refcts, uint64_t num, uint64_t nsec);
 int	sys_sync_wakeup(volatile uint64_t *addr);
 
 int64_t	sys_clock_nsec(void);

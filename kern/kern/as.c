@@ -347,8 +347,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 		     const struct Segment *sg,
 		     struct segment_mapping *sm,
 		     const struct u_segment_mapping *usm,
-		     void *need_va, uint32_t usmflags,
-		     uint64_t parent_ct)
+		     void *need_va, uint32_t usmflags)
 {
     if (usm->num_pages == 0)
 	return -E_INVAL;
@@ -381,14 +380,6 @@ as_pmap_fill_segment(const struct Address_space *as,
 	kobject_unpin_page(&sm->sm_sg->sg_ko);
 	sm->sm_sg = 0;
     }
-
-    /*
-     * If the segment is multiply referenced, then we must use a zero
-     * (unknown) container value in the page_info, since it is no longer
-     * possible to invert page to container entry given a physical page.
-     */
-    if (sg->sg_ko.ko_ref > 1)
-	parent_ct = 0;
 
     int r = 0;
     for (void *va = map_first; va <= map_last; va += PGSIZE) {
@@ -427,7 +418,7 @@ as_pmap_fill_segment(const struct Address_space *as,
 	}
 
 	struct page_info *pi = page_to_pageinfo(pp);
-	pi->pi_seg = COBJ(parent_ct, sg->sg_ko.ko_id);
+	pi->pi_seg = sg->sg_ko.ko_id;
 	pi->pi_segpg = segpage;
     }
 
@@ -508,8 +499,7 @@ as_pmap_fill(const struct Address_space *as, void *va, uint32_t reqflags)
 	const struct Segment *sg = &ko->sg;
 	sm->sm_as_slot = i;
 	sm->sm_ct_id = seg_ref.container;
-	return as_pmap_fill_segment(as, sg, sm, usm, va, flags,
-				    seg_ref.container);
+	return as_pmap_fill_segment(as, sg, sm, usm, va, flags);
     }
 
     return -E_NOT_FOUND;
@@ -669,17 +659,15 @@ as_invalidate_sm(struct segment_mapping *sm)
 
 int
 as_invert_mapped(const struct Address_space *as, void *addr,
-		 struct cobj_ref *seg_refp, uint64_t *offsetp)
+		 uint64_t *segp, uint64_t *offsetp)
 {
     if (as->as_pgmap) {
 	ptent_t *pte;
 	int r = pgdir_walk(as->as_pgmap, addr, 0, &pte);
 	if (r >= 0 && *pte) {
 	    struct page_info *pi = page_to_pageinfo(pa2kva(PTE_ADDR(*pte)));
-	    if (pi->pi_pin &&	/* page not shared by multiple segments */
-		pi->pi_seg.container)	/* not multiply referenced */
-	    {
-		*seg_refp = pi->pi_seg;
+	    if (pi->pi_pin) {	/* page not shared by multiple segments */
+		*segp = pi->pi_seg;
 		*offsetp = (pi->pi_segpg * PGSIZE) + PGOFF(addr);
 		return 0;
 	    }
@@ -707,7 +695,7 @@ as_invert_mapped(const struct Address_space *as, void *addr,
 	    continue;
 
 	uint64_t npage = as_va_to_segment_page(usm, addr);
-	*seg_refp = usm->segment;
+	*segp = usm->segment.object;
 	*offsetp = npage * PGSIZE + PGOFF(addr);
 	found++;
     }

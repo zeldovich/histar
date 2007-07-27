@@ -18,15 +18,20 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
     int r = 0;
     volatile uint64_t *addrs[n];
     uint64_t vals[n];
+    uint64_t refcts[n];
+
     // for assigning wait addresses
     uint64_t spares[n];
     uint64_t spares_used = 0;
     memset(spares, 0, sizeof(spares));
+
     // store cb1 args
     void *args[n];
+
     // store mapped segments
     uint64_t *mapped[n];
     uint64_t mapped_count = 0;
+
     try {
 	for (uint64_t i = 0; i < n; i++) {
 	    if (WS_ISOBJ(&wstat[i])) {
@@ -42,16 +47,18 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 		addr += wstat[i].ws_off;
 		addrs[i] = (uint64_t *)addr;
 		vals[i] = wstat[i].ws_val;
+		refcts[i] = wstat[i].ws_seg.container;
 	    } else if (WS_ISASS(&wstat[i])) {
 		// assign address
 		addrs[i] = &spares[spares_used++];
 		vals[i] = 0;
+		refcts[i] = 0;
 	    } else {
 		// given address
 		addrs[i] = wstat[i].ws_addr;
 		vals[i] = wstat[i].ws_val;
+		refcts[i] = wstat[i].ws_refct;
 	    }
-
 	}
 	
 	for (uint64_t i = 0; i < n; i++) {
@@ -64,10 +71,10 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	    }
 	}
 	
-	r = sys_sync_wait_multi(addrs, vals, n, nsec);
+	r = sys_sync_wait_multi(addrs, vals, refcts, n, nsec);
 	if (r == -E_NO_SPACE) {
 	    error_check(sys_self_set_waitslots(n));
-	    error_check(r = sys_sync_wait_multi(addrs, vals, n, nsec));
+	    error_check(r = sys_sync_wait_multi(addrs, vals, refcts, n, nsec));
 	}
 	else if (r < 0)
 	    throw error(r, "sys_sync_wait_multi error");

@@ -787,23 +787,25 @@ sys_self_get_entry_args(struct thread_entry_args *targ)
 static int64_t __attribute__ ((warn_unused_result))
 sys_sync_wait(uint64_t *addr, uint64_t val, uint64_t wakeup_at_nsec)
 {
-    check(sync_wait(&addr, &val, 1, wakeup_at_nsec));
+    check(sync_wait(&addr, &val, 0, 1, wakeup_at_nsec));
     return 0;
 }
 
 static int64_t __attribute__ ((warn_unused_result))
-sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t num, 
-		    uint64_t nsec)
+sys_sync_wait_multi(uint64_t **addrs, uint64_t *vals, uint64_t *refcts,
+		    uint64_t num, uint64_t nsec)
 {
     int overflow = 0;
     check(check_user_access(vals,
 			    safe_mul64(&overflow, sizeof(vals[0]), num), 0));
     check(check_user_access(addrs,
 			    safe_mul64(&overflow, sizeof(addrs[0]), num), 0));
+    check(check_user_access(refcts,
+			    safe_mul64(&overflow, sizeof(refcts[0]), num), 0));
     if (overflow)
 	return -E_INVAL;
 
-    check(sync_wait(addrs, vals, num, nsec));
+    check(sync_wait(addrs, vals, refcts, num, nsec));
     return 0;
 }
 
@@ -1041,7 +1043,7 @@ syscall_exec(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3,
 	SYSCALL(self_set_cflush, a1);
 	SYSCALL(self_get_entry_args, p1);
 	SYSCALL(sync_wait, p1, a2, a3);
-	SYSCALL(sync_wait_multi, p1, p2, a3, a4);
+	SYSCALL(sync_wait_multi, p1, p2, p3, a4, a5);
 	SYSCALL(sync_wakeup, p1);
 	SYSCALL(segment_addref, COBJ(a1, a2), a3);
 	SYSCALL(segment_resize, COBJ(a1, a2), a3);

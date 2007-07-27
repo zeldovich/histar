@@ -27,11 +27,12 @@ struct wait_stat
 	    struct cobj_ref ws_seg;
 	    uint64_t ws_off;
 	};
-	volatile uint64_t *ws_addr;
+	struct {
+	    uint64_t ws_refct;
+	    volatile uint64_t *ws_addr;
+	};
     };
     uint64_t ws_val;
-
-
 };
 
 #define WS_ISOBJ(__ws) ((__ws)->ws_type == 0)
@@ -47,6 +48,7 @@ struct wait_stat
 #define WS_SETADDR(__ws, __addr)      \
     do {			      \
 	(__ws)->ws_type = 1;	      \
+	(__ws)->ws_refct = 0;	      \
 	(__ws)->ws_addr = __addr;     \
     } while (0)
 #define WS_SETASS(__ws) (__ws)->ws_type = 2

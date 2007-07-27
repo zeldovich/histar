@@ -10,7 +10,7 @@
 
 static struct Thread_list sync_time_waiting;
 static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
-static HASH_TABLE(seg_hash, struct sync_wait_list, 512) sync_seg_waiting;
+static HASH_TABLE(cobj_hash, struct sync_wait_list, 512) sync_cobj_waiting;
 enum { sync_debug = 0 };
 
 static struct sync_wait_list *
@@ -21,13 +21,14 @@ sync_addr_head(uint64_t seg_id, uint64_t offset)
 }
 
 static struct sync_wait_list *
-sync_seg_head(struct cobj_ref seg)
+sync_cobj_head(struct cobj_ref cobj)
 {
-    return HASH_SLOT(&sync_seg_waiting, seg.container ^ seg.object);
+    return HASH_SLOT(&sync_cobj_waiting, cobj.container ^ cobj.object);
 }
 
 static int __attribute__((warn_unused_result))
-sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
+sync_waitslot_init(uint64_t *addr, uint64_t val, uint64_t refct,
+		   struct sync_wait_slot *slot,
 		   struct sync_wait_list *swlist, const struct Thread *t)
 {
     if (sync_debug)
@@ -48,10 +49,19 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
     if (r < 0)
 	return r;
 
+    if (refct) {
+	const struct kobject *ko;
+	slot->sw_cobj = COBJ(refct, slot->sw_seg);
+	r = cobj_get(slot->sw_cobj, kobj_segment, &ko, iflow_none);
+	if (r < 0)
+	    return r;
+    } else {
+	slot->sw_cobj = COBJ(0, 0);
+    }
+
     if (sync_debug)
-	cprintf("sync_waitslot_init: %p -> %"PRIu64".%"PRIu64" @ %"PRIu64"\n",
-		addr, slot->sw_seg.container, slot->sw_seg.object,
-		slot->sw_offset);
+	cprintf("sync_waitslot_init: %p -> %"PRIu64" @ %"PRIu64"\n",
+		addr, slot->sw_seg, slot->sw_offset);
 
     LIST_INSERT_HEAD(swlist, slot, sw_thread_link);
     slot->sw_t = t;
@@ -59,7 +69,8 @@ sync_waitslot_init(uint64_t *addr, uint64_t val, struct sync_wait_slot *slot,
 }
 
 int
-sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
+sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t *refcts,
+	  uint64_t num, uint64_t wakeup_nsec)
 {
     uint64_t now_nsec = timer_user_nsec();
 
@@ -87,7 +98,8 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
     struct Thread *t = &kobject_ephemeral_dirty(&cur_thread->th_ko)->th;
 
     LIST_INIT(&te->te_wait_slots);
-    r = sync_waitslot_init(addrs[0], vals[0], &te->te_sync, &te->te_wait_slots, t);
+    r = sync_waitslot_init(addrs[0], vals[0], refcts ? refcts[0] : 0,
+			   &te->te_sync, &te->te_wait_slots, t);
     if (r <= 0)
 	return r;
 
@@ -101,15 +113,17 @@ sync_wait(uint64_t **addrs, uint64_t *vals, uint64_t num, uint64_t wakeup_nsec)
 	if (r < 0)
 	    return r;
 
-	r = sync_waitslot_init(addrs[i], vals[i], &sw[pg_idx], &te->te_wait_slots, t);
+	r = sync_waitslot_init(addrs[i], vals[i], refcts ? refcts[i] : 0,
+			       &sw[pg_idx], &te->te_wait_slots, t);
 	if (r <= 0)
 	    return r;
     }
 
     LIST_FOREACH(sw, &te->te_wait_slots, sw_thread_link) {
-	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg.object, sw->sw_offset),
+	LIST_INSERT_HEAD(sync_addr_head(sw->sw_seg, sw->sw_offset),
 			 sw, sw_addr_link);
-	LIST_INSERT_HEAD(sync_seg_head(sw->sw_seg), sw, sw_seg_link);
+	if (sw->sw_cobj.object)
+	    LIST_INSERT_HEAD(sync_cobj_head(sw->sw_cobj), sw, sw_cobj_link);
     }
 
     te->te_wakeup_nsec = wakeup_nsec;
@@ -130,13 +144,12 @@ sync_wakeup_addr(uint64_t *addr)
 
     as_switch(cur_thread->th_as);
 
-    struct cobj_ref seg_ref;
+    uint64_t seg_id;
     uint64_t offset;
-    r = as_invert_mapped(cur_thread->th_as, addr, &seg_ref, &offset);
+    r = as_invert_mapped(cur_thread->th_as, addr, &seg_id, &offset);
     if (r < 0)
 	return r;
 
-    uint64_t seg_id = seg_ref.object;
     if (sync_debug)
 	cprintf("sync_wakeup_addr: %p -> %"PRIu64", offset %"PRIu64"\n",
 		addr, seg_id, offset);
@@ -146,7 +159,7 @@ sync_wakeup_addr(uint64_t *addr)
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	if (sw->sw_seg.object == seg_id && sw->sw_offset == offset) {
+	if (sw->sw_seg == seg_id && sw->sw_offset == offset) {
 	    thread_set_runnable(sw->sw_t);
 	    sw = prev ? LIST_NEXT(prev, sw_addr_link) : LIST_FIRST(waithead);
 	} else {
@@ -165,19 +178,19 @@ sync_wakeup_segment(struct cobj_ref seg)
 	cprintf("sync_wakeup_segment: id %"PRIu64".%"PRIu64"\n",
 		seg.container, seg.object);
 
-    struct sync_wait_list *waithead = sync_seg_head(seg);
+    struct sync_wait_list *waithead = sync_cobj_head(seg);
     struct sync_wait_slot *sw = LIST_FIRST(waithead);
     struct sync_wait_slot *prev = 0;
 
     while (sw != 0) {
-	if (sw->sw_seg.container == seg.container &&
-	    sw->sw_seg.object == seg.object)
+	if (sw->sw_cobj.container == seg.container &&
+	    sw->sw_cobj.object == seg.object)
 	{
 	    thread_set_runnable(sw->sw_t);
-	    sw = prev ? LIST_NEXT(prev, sw_seg_link) : LIST_FIRST(waithead);
+	    sw = prev ? LIST_NEXT(prev, sw_cobj_link) : LIST_FIRST(waithead);
 	} else {
 	    prev = sw;
-	    sw = LIST_NEXT(sw, sw_seg_link);
+	    sw = LIST_NEXT(sw, sw_cobj_link);
 	}
     }
 }
@@ -226,6 +239,7 @@ sync_remove_thread(const struct Thread *t)
 
 	LIST_REMOVE(sw, sw_thread_link);
 	LIST_REMOVE(sw, sw_addr_link);
-	LIST_REMOVE(sw, sw_seg_link);
+	if (sw->sw_cobj.object)
+	    LIST_REMOVE(sw, sw_cobj_link);
     }
 }
