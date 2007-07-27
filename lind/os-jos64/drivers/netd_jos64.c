@@ -26,23 +26,23 @@ jos64_wait_for(struct sock_slot *ss)
     int r;
 
  top:
-    r = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
-    if (r > 0)
-	return 2;
-
     r = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
     if (r < 0)
 	return r;
 
+    r = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
+    if (r > 0)
+	return 2;
+
     uint64_t outcnt = ss->outcnt;
     if (outcnt < sizeof(ss->outbuf) / 2) {
-	r = jcomm_probe(ss->conn.data_comm, dev_probe_read);
-	if (r > 0)
-	    return 3;
-
 	r = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
 	if (r < 0)
 	    return r;
+
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_read);
+	if (r > 0)
+	    return 3;
     } else {
 	/* Wait for buffer space to become available */
 	WS_SETADDR(&wstat[1], &ss->outcnt);
@@ -51,13 +51,13 @@ jos64_wait_for(struct sock_slot *ss)
 
     uint64_t lnx2jos_full = ss->lnx2jos_full;
     if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
-	r = jcomm_probe(ss->conn.data_comm, dev_probe_write);
-	if (r > 0)
-	    return 1;
-
 	r = jcomm_multisync(ss->conn.data_comm, dev_probe_write, &wstat[2]);
 	if (r < 0)
 	    return r;
+
+	r = jcomm_probe(ss->conn.data_comm, dev_probe_write);
+	if (r > 0)
+	    return 1;
     } else {
 	/* Wait for the buffer to get some data */
 	WS_SETADDR(&wstat[2], &ss->lnx2jos_full);
@@ -120,6 +120,7 @@ jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
     }
     case jos64_op_shutdown:
 	r = jcomm_shut(data, JCOMM_SHUT_WR);
+	debug_print(dbg, "(j%ld) shutdown writes: %d", thread_id(), r);
 	return r;
     default:
 	arch_printf("jos64_dispatch: unimplemented %d\n", a->op_type);
