@@ -179,6 +179,7 @@ cons_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     WS_SETCBARG(wstat, fd);
     WS_SETCB0(wstat, &cons_statsync_cb0);
     WS_SETCB1(wstat, &cons_statsync_cb1); 
+    wstat->ws_probe = probe;
 
     return 0;
 }

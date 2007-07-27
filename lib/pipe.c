@@ -179,6 +179,7 @@ pipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     WS_SETVAL(wstat, fd->fd_pipe.bytes);
     WS_SETCBARG(wstat, fd);
     WS_SETCB0(wstat, &pipe_statsync_cb0);
+    wstat->ws_probe = probe;
     return 0;
 }
 
