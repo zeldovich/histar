@@ -215,7 +215,8 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     case netd_op_statsync:
 	return jcomm_multisync(client_conn->data_comm, 
 			       a->statsync.how, 
-			       &a->statsync.wstat[0]);
+			       &a->statsync.wstat[0],
+			       sizeof(a->statsync.wstat) / sizeof(a->statsync.wstat[0]));
 
     case netd_op_recvfrom:
 	if (!a->recvfrom.wantfrom) {

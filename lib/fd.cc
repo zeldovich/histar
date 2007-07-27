@@ -907,7 +907,7 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
     char select_debug = 0;
     static char timeout_last = 0;
 
-    struct wait_stat wstat[(2 * maxfd) + 1];
+    struct wait_stat wstat[(4 * maxfd) + 1];
     uint64_t wstat_count = 0;
     memset(wstat, 0, sizeof(wstat));
     
@@ -946,9 +946,9 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
                 }
 		
 		r = DEV_CALL(dev, statsync, fd, dev_probe_read, 
-			     &wstat[wstat_count]);
-		if (r == 0)
-		    wstat_count++;
+			     &wstat[wstat_count], 2);
+		if (r > 0)
+		    wstat_count += r;
 
 		if (DEV_CALL(dev, probe, fd, dev_probe_read)) {
                     FD_SET(i, &rreadset);
@@ -964,9 +964,9 @@ select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset,
                 }
 
 		r = DEV_CALL(dev, statsync, fd, dev_probe_write, 
-			     &wstat[wstat_count]);
-		if (r == 0)
-		    wstat_count++;
+			     &wstat[wstat_count], 2);
+		if (r > 0)
+		    wstat_count += r;
 		
 		if (DEV_CALL(dev, probe, fd, dev_probe_write)) {
                     FD_SET(i, &rwriteset);

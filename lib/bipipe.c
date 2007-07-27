@@ -191,9 +191,10 @@ bipipe_shutdown(struct Fd *fd, int how)
 }
 
 static int
-bipipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+bipipe_statsync(struct Fd *fd, dev_probe_t probe,
+		struct wait_stat *wstat, int wslot_avail)
 {
-    return jcomm_multisync(BIPIPE_JCOMM(fd), probe, wstat);
+    return jcomm_multisync(BIPIPE_JCOMM(fd), probe, wstat, wslot_avail);
 }
 
 struct Dev devbipipe = {

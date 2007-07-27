@@ -70,7 +70,8 @@ rand_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
-rand_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+rand_statsync(struct Fd *fd, dev_probe_t probe,
+	      struct wait_stat *wstat, int wslot_avail)
 {
     return -1;
 }

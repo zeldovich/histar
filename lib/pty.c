@@ -343,9 +343,10 @@ pty_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
-pty_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+pty_statsync(struct Fd *fd, dev_probe_t probe,
+	     struct wait_stat *wstat, int wslot_avail)
 {
-    return jcomm_multisync(PTY_JCOMM(fd), probe, wstat);
+    return jcomm_multisync(PTY_JCOMM(fd), probe, wstat, wslot_avail);
 }
 
 static int

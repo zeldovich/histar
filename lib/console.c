@@ -170,9 +170,13 @@ cons_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
 }
 
 static int
-cons_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+cons_statsync(struct Fd *fd, dev_probe_t probe,
+	      struct wait_stat *wstat, int wslot_avail)
 {
     if (probe == dev_probe_write)
+	return -1;
+
+    if (wslot_avail < 1)
 	return -1;
 
     WS_SETASS(wstat);
@@ -181,7 +185,7 @@ cons_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     WS_SETCB1(wstat, &cons_statsync_cb1); 
     wstat->ws_probe = probe;
 
-    return 0;
+    return 1;
 }
 
 struct Dev devcons =

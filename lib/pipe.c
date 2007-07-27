@@ -173,14 +173,22 @@ pipe_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 }
 
 static int
-pipe_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+pipe_statsync(struct Fd *fd, dev_probe_t probe,
+	      struct wait_stat *wstat, int wslot_avail)
 {
+    if (wslot_avail < 2)
+	return -1;
+
+    memset(wstat, 0, sizeof(*wstat) * 2);
+
     WS_SETADDR(wstat, &fd->fd_pipe.bytes);
     WS_SETVAL(wstat, fd->fd_pipe.bytes);
+    WS_SETADDR(wstat + 1, &fd->fd_ref64);
+    WS_SETVAL(wstat + 1, fd->fd_ref64);
     WS_SETCBARG(wstat, fd);
     WS_SETCB0(wstat, &pipe_statsync_cb0);
     wstat->ws_probe = probe;
-    return 0;
+    return 2;
 }
 
 static int

@@ -22,13 +22,15 @@ enum { dbg = 0 };
 static int
 jos64_wait_for(struct sock_slot *ss)
 {
-    struct wait_stat wstat[3];
-    int r;
+    struct wait_stat wstat[6];
+    int r, wcount;
 
  top:
-    r = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[0]);
+    wcount = 0;
+    r = jcomm_multisync(ss->conn.ctrl_comm, dev_probe_read, &wstat[wcount], 2);
     if (r < 0)
 	return r;
+    wcount += r;
 
     r = jcomm_probe(ss->conn.ctrl_comm, dev_probe_read);
     if (r > 0)
@@ -36,36 +38,42 @@ jos64_wait_for(struct sock_slot *ss)
 
     uint64_t outcnt = ss->outcnt;
     if (outcnt < sizeof(ss->outbuf) / 2) {
-	r = jcomm_multisync(ss->conn.data_comm, dev_probe_read, &wstat[1]);
+	r = jcomm_multisync(ss->conn.data_comm, dev_probe_read,
+			    &wstat[wcount], 2);
 	if (r < 0)
 	    return r;
+	wcount += r;
 
 	r = jcomm_probe(ss->conn.data_comm, dev_probe_read);
 	if (r > 0)
 	    return 3;
     } else {
 	/* Wait for buffer space to become available */
-	WS_SETADDR(&wstat[1], &ss->outcnt);
-	WS_SETVAL(&wstat[1], outcnt);
+	WS_SETADDR(&wstat[wcount], &ss->outcnt);
+	WS_SETVAL(&wstat[wcount], outcnt);
+	wcount++;
     }
 
     uint64_t lnx2jos_full = ss->lnx2jos_full;
     if (lnx2jos_full && lnx2jos_full != CNT_LIMBO) {
-	r = jcomm_multisync(ss->conn.data_comm, dev_probe_write, &wstat[2]);
+	r = jcomm_multisync(ss->conn.data_comm, dev_probe_write,
+			    &wstat[wcount], 2);
 	if (r < 0)
 	    return r;
+	wcount += r;
 
 	r = jcomm_probe(ss->conn.data_comm, dev_probe_write);
 	if (r > 0)
 	    return 1;
     } else {
 	/* Wait for the buffer to get some data */
-	WS_SETADDR(&wstat[2], &ss->lnx2jos_full);
-	WS_SETVAL(&wstat[2], lnx2jos_full);
+	WS_SETADDR(&wstat[wcount], &ss->lnx2jos_full);
+	WS_SETVAL(&wstat[wcount], lnx2jos_full);
+	wcount++;
     }
 
     debug_print(dbg, "(j%ld) waiting..", thread_id());
-    r = multisync_wait(wstat, 3, UINT64(~0));
+    r = multisync_wait(wstat, wcount, UINT64(~0));
     if (r < 0) {
 	debug_print(dbg, "(j%ld) wait error: %s", thread_id(), e2s(r));
 	return r;

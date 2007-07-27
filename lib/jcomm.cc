@@ -371,26 +371,32 @@ jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 }
 
 int 
-jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
+jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe,
+		struct wait_stat *wstat, int wslot_avail)
 {
+    if (wslot_avail < 2)
+	return -E_INVAL;
+
     struct jlink *links;
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    memset(wstat, 0, sizeof(*wstat));
+    memset(wstat, 0, sizeof(*wstat) * 2);
 
-    if (probe == dev_probe_read) {
-	struct jlink *jl = &links[jr.jc.chan];	
-	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
-	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
-	WS_SETVAL(wstat, jl->bytes);
-    } else {
-	struct jlink *jl = &links[!jr.jc.chan];
-	uint64_t off = (uintptr_t)&jl->bytes - (uintptr_t)links;
-	WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment), off);
-	WS_SETVAL(wstat, jl->bytes); 
-    }
+    struct jlink *jl;
+    if (probe == dev_probe_read)
+	jl = &links[jr.jc.chan];	
+    else
+	jl = &links[!jr.jc.chan];
+
+    WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment),
+	      (uintptr_t) &jl->bytes - (uintptr_t) links);
+    WS_SETVAL(wstat, jl->bytes);
+
+    WS_SETOBJ(wstat + 1, COBJ(jr.container, jr.jc.segment),
+	      (uintptr_t) &jl->open - (uintptr_t) links);
+    WS_SETVAL(wstat + 1, jl->open);
 
     struct jcomm_ref *jr_copy = (struct jcomm_ref *)malloc(sizeof(jr));
     if (!jr_copy)
@@ -400,5 +406,5 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe, struct wait_stat *wstat)
     WS_SETCBARG(wstat, jr_copy);
     WS_SETCB0(wstat, &jcomm_statsync_cb0); 
     wstat->ws_probe = probe;
-    return 0;
+    return 2;
 }

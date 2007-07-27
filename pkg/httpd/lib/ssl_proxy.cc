@@ -144,22 +144,26 @@ ssl_proxy_select(int sock_fdnum, int cipher_fdnum, uint64_t nsec)
     error_check(dev_lookup(sock_fd->fd_dev_id, &sock_dev));
     error_check(dev_lookup(cipher_fd->fd_dev_id, &cipher_dev));
 
-    static const int wstat_num = 2;
-    struct wait_stat wstat[wstat_num];
-    struct wait_stat *sock_ws = &wstat[0];
-    struct wait_stat *cipher_ws = &wstat[1];
-    
-    int r = 0;
+    int wstat_num = 0;
+    struct wait_stat wstat[4];
+
     memset(wstat, 0, sizeof(wstat));
-    
-    error_check(sock_dev->dev_statsync(sock_fd, dev_probe_read, sock_ws));
-    error_check(cipher_dev->dev_statsync(cipher_fd, dev_probe_read, cipher_ws));
+    int r = sock_dev->dev_statsync(sock_fd, dev_probe_read,
+				   &wstat[wstat_num], 2);
+    error_check(r);
+    wstat_num += r;
+
+    r = cipher_dev->dev_statsync(cipher_fd, dev_probe_read,
+				 &wstat[wstat_num], 2);
+    error_check(r);
+    wstat_num += r;
     
     int r0 = sock_dev->dev_probe(sock_fd, dev_probe_read);
     int r1 = cipher_dev->dev_probe(cipher_fd, dev_probe_read);
     error_check(r0);
     error_check(r1);
-    
+   
+    r = 0; 
     if (r0)
 	r |= SELECT_SOCK;
     if (r1)

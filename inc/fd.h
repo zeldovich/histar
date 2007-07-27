@@ -45,7 +45,7 @@ struct Dev
     int (*dev_stat)(struct Fd *fd, struct stat64 *buf);
     int (*dev_probe)(struct Fd *fd, dev_probe_t probe);
     int (*dev_sync)(struct Fd *fd);
-    int (*dev_statsync)(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat);
+    int (*dev_statsync)(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat, int wslots_avail);
 
     ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
 

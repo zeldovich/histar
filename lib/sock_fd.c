@@ -420,7 +420,8 @@ sock_probe(struct Fd *fd, dev_probe_t probe)
 }
 
 static int
-sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
+sock_statsync(struct Fd *fd, dev_probe_t probe,
+	      struct wait_stat *wstat, int wslot_avail)
 {
     int r;
     struct netd_op_args a;
@@ -433,8 +434,9 @@ sock_statsync(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat)
     r = netd_call(fd, &a);
     if (r < 0)
 	return r;
-
-    memcpy(wstat, &a.statsync.wstat[0], sizeof(*wstat));
+    if (r > wslot_avail)
+	return -E_INVAL;
+    memcpy(wstat, &a.statsync.wstat[0], sizeof(*wstat) * r);
     return r;
 }
 
