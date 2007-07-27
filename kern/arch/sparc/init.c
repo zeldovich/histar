@@ -6,18 +6,12 @@
 #include <kern/pstate.h>
 #include <kern/uinit.h>
 #include <machine/trap.h>
-#include <machine/srmmu.h>
 #include <machine/pmap.h>
 #include <machine/sparc-common.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
 #include <dev/irqmp.h>
 #include <dev/gptimer.h>
-
-
-
-
-#include <inc/setjmp.h>
 
 char boot_cmdline[256];
 
@@ -42,18 +36,10 @@ init (void)
     mmu_init();
     bss_init();
 
-    struct jos_jmp_buf jb;
-    if (!jos_setjmp(&jb)) {
-	cprintf("direct return\n");
-	jos_longjmp(&jb, 1);
-    } else {
-	cprintf("longjmp return\n");
-    }
-
     amba_init();
     apbucons_init();
     amba_print();
-    
+
     irqmp_init();    
     gptimer_init();
 
@@ -66,5 +52,4 @@ init (void)
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();
-
 }

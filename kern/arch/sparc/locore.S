@@ -1,7 +1,7 @@
 #include <machine/asm.h>
 #include <machine/psr.h>
 #include <machine/asi.h>
-#include <machine/srmmu.h>
+#include <machine/sparc-config.h>
 #include <machine/memlayout.h>
 	
 #define TRAP_ENTRY(label) \

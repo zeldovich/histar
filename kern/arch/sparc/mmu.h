@@ -76,6 +76,33 @@
                              ((flags) << PTE_ACC_SHIFT) |            \
                              PTE_C)
 
+/* SRMMU Register addresses in ASI_MMUREGS */
+#define SRMMU_CTRL_REG           0x00000000
+#define SRMMU_CTXTBL_PTR         0x00000100
+#define SRMMU_CTX_REG            0x00000200
+#define SRMMU_FAULT_STATUS       0x00000300
+#define SRMMU_FAULT_ADDR         0x00000400
+
+#define SRMMU_CTRL_E       0x00000001  /* enable MMU bit */
+#define SRMMU_CTRL_NF      0x00000020  /* no fault bit */
+
+/* Fault Status Register fields */
+/* access type */
+#define SRMMU_AT_SHIFT     5
+#define SRMMU_AT_MASK      0x07
+#define SRMMU_AT_LUD       0      /* load user data */
+#define SRMMU_AT_LSD       1      /* load supervisor data */
+#define SRMMU_AT_LUI       2      /* load/exec user instruction */
+#define SRMMU_AT_LSI       3      /* load/exec supervisor instruction */
+#define SRMMU_AT_SUD       4      /* store user data */
+#define SRMMU_AT_SSD       5      /* store supervisor data */
+#define SRMMU_AT_SUI       6      /* store user instruction */
+#define SRMMU_AT_SSI       7      /* store supervisor instruction */
+/* fault type */
+#define SRMMU_FT_SHIFT     2
+#define SRMMU_FT_MASK      0x07
+
+
 /*
  * Trap base register 
  */

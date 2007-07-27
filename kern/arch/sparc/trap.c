@@ -6,7 +6,6 @@
 #include <kern/intr.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
-#include <machine/srmmu.h>
 #include <machine/sparc-common.h>
 #include <machine/trapcodes.h>
 #include <machine/psr.h>

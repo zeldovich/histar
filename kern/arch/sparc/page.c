@@ -4,7 +4,6 @@
 
 #include <machine/leon.h>
 #include <machine/leon3.h>
-#include <machine/srmmu.h>
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 
