@@ -144,8 +144,8 @@ cons_statsync_thread(void *arg)
 }
 
 static int
-cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
-		  void **arg1)
+cons_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
+		  volatile uint64_t *addr, void **arg1)
 {
     struct cons_statsync *thread_arg = malloc(sizeof(*thread_arg));
     jos_atomic_set(&thread_arg->ref, 2);
@@ -160,7 +160,7 @@ cons_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr,
 }
 
 static int
-cons_statsync_cb1(void *arg0, void *arg1, dev_probe_t probe)
+cons_statsync_cb1(struct wait_stat *ws, void *arg1, dev_probe_t probe)
 {
     struct cons_statsync *args = arg1;
     if (jos_atomic_dec_and_test(&args->ref))
@@ -180,9 +180,8 @@ cons_statsync(struct Fd *fd, dev_probe_t probe,
 	return -1;
 
     WS_SETASS(wstat);
-    WS_SETCBARG(wstat, fd);
     WS_SETCB0(wstat, &cons_statsync_cb0);
-    WS_SETCB1(wstat, &cons_statsync_cb1); 
+    WS_SETCB1(wstat, &cons_statsync_cb1);
     wstat->ws_probe = probe;
 
     return 1;

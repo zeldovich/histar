@@ -6,8 +6,8 @@ extern "C" {
 #include <inc/error.h>
 #include <inc/stdio.h>
 #include <inc/setjmp.h>
+#include <inc/assert.h>
 
-#include <malloc.h>
 #include <inttypes.h>
 }
 
@@ -374,25 +374,24 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
 }
 
 static int
-jcomm_statsync_cb0(void *arg0, dev_probe_t probe, volatile uint64_t *addr, 
-		   void **arg1)
+jcomm_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
+		   volatile uint64_t *addr, void **arg1)
 {
-    struct jcomm_ref *jr = (struct jcomm_ref *) arg0;
+    struct jcomm_ref jr;
+    memcpy(&jr, &ws->ws_cbbuf[0], sizeof(jr));
+
     struct jlink *links;
-    int r = jcomm_links_map(*jr, &links);
-    if (r < 0) {
-	free(jr);
+    int r = jcomm_links_map(jr, &links);
+    if (r < 0)
 	return r;
-    }
     scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
     PF_CATCH_BLOCK;
     
     if (probe == dev_probe_read)
-	links[jr->jc.chan].reader_waiting = 1;
+	links[jr.jc.chan].reader_waiting = 1;
     else
-	links[!jr->jc.chan].writer_waiting = 1;
+	links[!jr.jc.chan].writer_waiting = 1;
 
-    free(jr);
     return 0;
 }
 
@@ -426,12 +425,9 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe,
 	      (uintptr_t) &jl->open - (uintptr_t) links);
     WS_SETVAL(wstat + 1, jl->open);
 
-    struct jcomm_ref *jr_copy = (struct jcomm_ref *)malloc(sizeof(jr));
-    if (!jr_copy)
-	return -E_NO_MEM;
-    memcpy(jr_copy, &jr, sizeof(*jr_copy));
-    
-    WS_SETCBARG(wstat, jr_copy);
+    static_assert(sizeof(wstat->ws_cbbuf) >= sizeof(jr));
+    memcpy(&wstat->ws_cbbuf[0], &jr, sizeof(jr));
+
     WS_SETCB0(wstat, &jcomm_statsync_cb0); 
     wstat->ws_probe = probe;
     return 2;

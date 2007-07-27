@@ -9,19 +9,23 @@ typedef enum
     dev_probe_write,    
 } dev_probe_t;
 
-typedef int (*multisync_pre)(void *arg0, dev_probe_t probe, 
+struct wait_stat;
+typedef int (*multisync_pre)(struct wait_stat *, dev_probe_t,
 			     volatile uint64_t *addr, void **arg1);
-typedef int (*multisync_post)(void *arg0, void *arg1, dev_probe_t probe);
+typedef int (*multisync_post)(struct wait_stat *, void *arg1, dev_probe_t);
 
 struct wait_stat
 {
     char ws_type;
 
-    void *ws_cbarg;
+    union {
+	char ws_cbbuf[24];
+	void *ws_cbarg;
+    };
+    dev_probe_t ws_probe;
     multisync_pre ws_cb0;
     multisync_post ws_cb1;
-    
-    dev_probe_t ws_probe;
+
     union {
 	struct {
 	    struct cobj_ref ws_seg;
@@ -55,7 +59,6 @@ struct wait_stat
 
 #define WS_SETVAL(__ws, __val) (__ws)->ws_val = __val
 
-#define WS_SETCBARG(__ws, __arg) (__ws)->ws_cbarg = __arg
 #define WS_SETCB0(__ws, __cb) (__ws)->ws_cb0 = __cb
 #define WS_SETCB1(__ws, __cb) (__ws)->ws_cb1 = __cb
 
