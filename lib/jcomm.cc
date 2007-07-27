@@ -310,12 +310,12 @@ jcomm_probe(struct jcomm_ref jr, dev_probe_t probe)
     if (probe == dev_probe_read) {
 	struct jlink *jl = &links[jr.jc.chan];
     	jthread_mutex_lock(&jl->mu);
-        rv = !jl->open || jl->bytes ? 1 : 0;
+        rv = (!jl->open || jl->bytes) ? 1 : 0;
         jthread_mutex_unlock(&jl->mu);
     } else {
 	struct jlink *jl = &links[!jr.jc.chan];
     	jthread_mutex_lock(&jl->mu);
-        rv = !jl->open || (jl->bytes > sizeof(jl->buf) - PIPE_BUF) ? 0 : 1;
+        rv = (!jl->open || (jl->bytes > sizeof(jl->buf) - PIPE_BUF)) ? 0 : 1;
         jthread_mutex_unlock(&jl->mu);
     }
     
