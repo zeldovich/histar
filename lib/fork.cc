@@ -81,9 +81,13 @@ do_fork()
     integrity_label.set(process_grant, 0);
 
     // Start creating the new process
+    char forkname[KOBJ_NAME_LEN];
+    snprintf(&forkname[0], sizeof(forkname), "fork.%s", jos_progname);
+    forkname[KOBJ_NAME_LEN - 1] = '\0';
+
     int64_t top_ct = sys_container_alloc(start_env->process_pool,
 					 integrity_label.to_ulabel(),
-					 "forked", 0, CT_QUOTA_INF);
+					 &forkname[0], 0, CT_QUOTA_INF);
     if (top_ct < 0) {
 	int64_t procpool = sys_container_alloc(start_env->shared_container,
 					       0, "procpool", 0, CT_QUOTA_INF);
@@ -92,7 +96,7 @@ do_fork()
 	start_env->process_pool = procpool;
 	top_ct = sys_container_alloc(start_env->process_pool,
 				     integrity_label.to_ulabel(),
-				     "forked", 0, CT_QUOTA_INF);
+				     &forkname[0], 0, CT_QUOTA_INF);
     }
     error_check(top_ct);
 
