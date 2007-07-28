@@ -27,7 +27,8 @@ libc_hidden_proto(fork)
 extern __typeof(system) __libc_system;
 int __libc_system(const char *command)
 {
-	int wait_val, pid;
+	int wait_val;
+	pid_t pid;
 	__sighandler_t save_quit, save_int, save_chld;
 
 	if (command == 0)
