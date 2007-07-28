@@ -195,7 +195,7 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 }
 
 static int
-signal_trap_thread(struct cobj_ref tobj)
+signal_trap_thread(struct cobj_ref tobj, int signo)
 {
     static jthread_mutex_t trap_mu;
     int trap_mu_locked = 0;
@@ -233,9 +233,11 @@ signal_trap_thread(struct cobj_ref tobj)
 	if (r == -E_BUSY) {
 	    retry_count++;
 	    if (signal_debug || retry_count > retry_warn) {
-		cprintf("[%"PRIu64"] signal_trap_thread: "
-			"cannot trap %"PRIu64".%"PRIu64", retrying\n",
-			thread_id(), tobj.container, tobj.object);
+		cprintf("[%"PRIu64"] (%s.%"PRIu64") signal_trap_thread: "
+			"cannot trap %"PRIu64".%"PRIu64", retrying (sig=%d)\n",
+			thread_id(), jos_progname,
+			start_env->shared_container,
+			tobj.container, tobj.object, signo);
 		retry_warn <<= 1;
 	    }
 	    thread_sleep_nsec(NSEC_PER_SECOND / 100);
@@ -282,7 +284,7 @@ signal_trap_if_pending(void)
     utrap_set_mask(0);
 
     if (pending)
-	signal_trap_thread(COBJ(0, thread_id()));
+	signal_trap_thread(COBJ(0, thread_id()), 0);
 }
 
 // Called by signal_utrap_onstack() to execute the appropriate signal
@@ -618,17 +620,19 @@ kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
     int oumask = utrap_set_mask(1);
     jthread_mutex_lock(&sigmask_mu);
 
+    int needtrap = 0;
     if (!sigismember(&signal_queued, si->si_signo)) {
 	sigaddset(&signal_queued, si->si_signo);
 	memcpy(&signal_queued_si[si->si_signo], si, sizeof(*si));
 	signal_queued_any = 1;
+	needtrap = 1;
     }
 
     jthread_mutex_unlock(&sigmask_mu);
     utrap_set_mask(oumask);
 
     // Trap the signal-processing thread so it runs the signal handler
-    return signal_trap_thread(tobj);
+    return needtrap ? signal_trap_thread(tobj, si->si_signo) : 0;
 }
 
 void
