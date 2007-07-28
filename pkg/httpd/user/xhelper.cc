@@ -140,7 +140,7 @@ main(int ac, char **av)
 	init();
     } catch (error &e) {
 	if (e.err() == -E_NOT_FOUND) {
-	    warn << "Unable to init -- waiting 3 seconds";
+	    warn << "Unable to init -- waiting 3 seconds\n";
 	    usleep(3000000);
 	    init();
 	} else {
