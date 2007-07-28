@@ -55,6 +55,7 @@ const char *sys_signame[_NSIG];
 
 // Thread which will receive traps to handle signals
 static uint64_t signal_thread_id;
+static int signal_did_shutdown;		// _exit() called
 
 // Signal handlers
 static jthread_mutex_t sigactions_mu;	// don't mask utraps
@@ -194,6 +195,12 @@ sig_fatal(siginfo_t *si, struct sigcontext *sc)
 	;
 }
 
+void
+signal_shutdown(void)
+{
+    signal_did_shutdown = 1;
+}
+
 static int
 signal_trap_thread(struct cobj_ref tobj, int signo)
 {
@@ -213,6 +220,11 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
     int retry_warn = 16;
     int retry_count = 0;
     for (;;) {
+	if (signal_did_shutdown) {
+	    __set_errno(ESRCH);
+	    return -1;
+	}
+
 	if (signal_debug)
 	    cprintf("[%"PRIu64"] signal_trap_thread: "
 		    "trying to trap %"PRIu64".%"PRIu64"\n",

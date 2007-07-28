@@ -2,6 +2,7 @@
 #include <inc/fd.h>
 #include <inc/prof.h>
 #include <inc/syscall.h>
+#include <inc/signal.h>
 
 #include <signal.h>
 #include <unistd.h>
@@ -22,6 +23,7 @@ process_exit(int64_t rval, int64_t signo)
 	     * Until then, the parent has a chance to wait() on us.
 	     */
 	    utrap_set_mask(1);
+	    signal_shutdown();
 
 	    struct cobj_ref ppid_ct = COBJ(start_env->ppid, start_env->ppid);
 	    while (sys_obj_get_type(ppid_ct) == kobj_container)
