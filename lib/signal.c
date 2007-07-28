@@ -210,6 +210,7 @@ signal_trap_thread(struct cobj_ref tobj)
     struct cobj_ref cur_as;
     sys_self_get_as(&cur_as);
 
+    int retry_warn = 16;
     int retry_count = 0;
     for (;;) {
 	if (signal_debug)
@@ -231,10 +232,12 @@ signal_trap_thread(struct cobj_ref tobj)
 
 	if (r == -E_BUSY) {
 	    retry_count++;
-	    if (signal_debug || !(retry_count % 10))
+	    if (signal_debug || retry_count > retry_warn) {
 		cprintf("[%"PRIu64"] signal_trap_thread: "
 			"cannot trap %"PRIu64".%"PRIu64", retrying\n",
 			thread_id(), tobj.container, tobj.object);
+		retry_warn <<= 1;
+	    }
 	    thread_sleep_nsec(NSEC_PER_SECOND / 100);
 	    continue;
 	}
