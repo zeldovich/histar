@@ -82,7 +82,9 @@ do_fork()
 
     // Start creating the new process
     char forkname[KOBJ_NAME_LEN];
-    snprintf(&forkname[0], sizeof(forkname), "fork.%s", jos_progname);
+    char *fname = strrchr(jos_progname, '/');
+    snprintf(&forkname[0], sizeof(forkname), "fork.%s",
+	     fname ? fname + 1 : jos_progname);
     forkname[KOBJ_NAME_LEN - 1] = '\0';
 
     int64_t top_ct = sys_container_alloc(start_env->process_pool,
