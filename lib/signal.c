@@ -221,6 +221,9 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
     int retry_count = 0;
     for (;;) {
 	if (signal_did_shutdown) {
+	    cprintf("[%"PRIu64"] signal_trap_thread: pid %"PRIu64" exited "
+		    "(sig=%d)\n",
+		    thread_id(), start_env->shared_container, signo);
 	    __set_errno(ESRCH);
 	    return -1;
 	}
