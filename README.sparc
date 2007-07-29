@@ -4,6 +4,8 @@
 
 * GCC 4.1.2
 
+apply conf/sparc-gcc-4.1.2.patch
+
 ./configure --target=sparc-jos-linux --prefix=/usr/local \
 	--disable-nls --without-headers --with-newlib \
 	--disable-threads --disable-shared --disable-libmudflap \
