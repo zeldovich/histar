@@ -92,7 +92,7 @@ emu_error(const struct Thread *t)
 	const char *s = m & t->th_tf.tf_reg1.o0 ? "1" : "0";
 	cprintf("%s", s);
     }
-    cprintf("\n");
+    cprintf(", inst pc=0x%x\n", t->th_tf.tf_reg1.o1);
     thread_halt(t);
 }
 
