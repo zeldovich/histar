@@ -12,22 +12,14 @@ include pkg/uclibc/libc/sysdeps/Makefrag
 
 LIBC_COBJFILES := $(LIBC_SRCFILES)
 LIBC_COBJFILES := $(patsubst %.c,  $(OBJDIR)/%.o, $(LIBC_COBJFILES))
-LIBC_COBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(LIBC_COBJFILES))
 
 LIBC_OBJFILES += $(LIBC_COBJFILES)
 
-$(OBJDIR)/pkg/uclibc/libc/sysdeps/jos64/%.o: MKTARGET_CFLAGS=-Werror
-
 $(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
 	@mkdir -p $(@D)
-	$(CC) $(UCLIBC_CFLAGS) $(MKTARGET_CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.cc
-	@mkdir -p $(@D)
-	$(CXX) $(UCLIBC_CXXFLAGS) $(MKTARGET_CFLAGS) -c -o $@ $<
+	$(CC) $(UCLIBC_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
 	@mkdir -p $(@D)
 	rm -f $@
 	$(AR) r $@ $(LIBC_OBJFILES)
-

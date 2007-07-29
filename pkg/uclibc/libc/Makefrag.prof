@@ -1,19 +1,11 @@
 LIBCPROF_COBJFILES := $(LIBC_SRCFILES)
 LIBCPROF_COBJFILES := $(patsubst %.c,  $(OBJDIR)/prof/%.o, $(LIBCPROF_COBJFILES))
-LIBCPROF_COBJFILES := $(patsubst %.cc, $(OBJDIR)/prof/%.o, $(LIBCPROF_COBJFILES))
 
 LIBCPROF_OBJFILES += $(LIBCPROF_COBJFILES)
-
-# override -O3 with -O2 to avoid gcc bug
-$(OBJDIR)/prof/pkg/uclibc/libc/sysdeps/jos64/%.o: MKTARGET_CFLAGS=-Werror -finstrument-functions -O2
 
 $(OBJDIR)/prof/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
 	@mkdir -p $(@D)
 	$(CC) $(UCLIBC_CFLAGS) $(MKTARGET_CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/prof/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.cc
-	@mkdir -p $(@D)
-	$(CXX) $(UCLIBC_CXXFLAGS) $(MKTARGET_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/prof/pkg/uclibc/libc/%_unlocked.o : pkg/uclibc/libc/%.c
 	@mkdir -p $(@D)
