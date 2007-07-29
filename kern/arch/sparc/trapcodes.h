@@ -33,11 +33,14 @@
 /*
  * Software-defined traps
  */
-#define T_SYSCALL	0x80
-#define T_BREAKPOINT	0x81
-#define T_EMUERR	0x82
+#define T_SOFTWARE_MIN  0x80
+
+#define T_FLUSHWIN      0x83
+
+#define T_SYSCALL	0x8A
+#define T_BREAKPOINT	0x8B
+#define T_EMUERR	0x8C
 #define SOFTWARE_TRAP(num) ((num) - 0x80)
 
 #define NTRAPS		0x100
-
 #endif

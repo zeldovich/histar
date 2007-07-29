@@ -18,6 +18,17 @@ static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
 
 static void
+print_state(const char *s, const struct Thread *t)
+{
+    cprintf("%s: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
+	    "pc=0x%x, npc=0x%x, sp=0x%x",
+	    s, t->th_ko.ko_id, t->th_ko.ko_name,
+	    t->th_as ? t->th_as->as_ko.ko_id : 0,
+	    t->th_as ? t->th_as->as_ko.ko_name : "null",
+	    t->th_tf.tf_pc, t->th_tf.tf_npc, t->th_tf.tf_reg1.sp);
+}
+
+static void
 trapframe_print(const struct Trapframe *tf)
 {
     cprintf("       globals     outs   locals      ins\n");
@@ -57,48 +68,39 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 	if (r == 0 || r == -E_RESTART)
 	    return;
 
-	cprintf("user page fault: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
-		"va=%p: pc=0x%x, npc=0x%x, sp=0x%x: %s\n",
-		t->th_ko.ko_id, t->th_ko.ko_name,
-		t->th_as ? t->th_as->as_ko.ko_id : 0,
-		t->th_as ? t->th_as->as_ko.ko_name : "null",
-		fault_va, tf->tf_pc, tf->tf_npc, tf->tf_reg1.sp, e2s(r));
-
+	print_state("user page fault", t);
+	cprintf(", va=%p: %s\n", fault_va, e2s(r));
 	thread_halt(t);
     }
 }
 
 static void
-align_fault(const struct Thread *t, const struct Trapframe *tf)
+align_fault(const struct Thread *t)
 {
-    cprintf("user alignment fault: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
-	    "pc=0x%x, npc=0x%x, sp=0x%x\n",
-	    t->th_ko.ko_id, t->th_ko.ko_name,
-	    t->th_as ? t->th_as->as_ko.ko_id : 0,
-	    t->th_as ? t->th_as->as_ko.ko_name : "null",
-	    tf->tf_pc, tf->tf_npc, tf->tf_reg1.sp);
-    
+    print_state("alignment fault", t);
+    cprintf("\n");
     thread_halt(t);
 }
 
 static void
-emu_error(const struct Thread *t, const struct Trapframe *tf)
+emu_error(const struct Thread *t)
 {
-    cprintf("user emulate error: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
-	    "pc=0x%x\n",
-	    t->th_ko.ko_id, t->th_ko.ko_name,
-	    t->th_as ? t->th_as->as_ko.ko_id : 0,
-	    t->th_as ? t->th_as->as_ko.ko_name : "null",
-	    tf->tf_reg1.o1);
-
-    cprintf(" inst=0x%08x, b", tf->tf_reg1.o0);
+    print_state("emulate error", t);
+    cprintf(", inst=0x%08x, b", t->th_tf.tf_reg1.o0);
     for (int i = 31; i >= 0; i--) {
 	uint32_t m = 1 << i;
-	const char *s = m & tf->tf_reg1.o0 ? "1" : "0";
+	const char *s = m & t->th_tf.tf_reg1.o0 ? "1" : "0";
 	cprintf("%s", s);
     }
     cprintf("\n");
-    
+    thread_halt(t);
+}
+
+static void
+soft_fault(int trapno, const struct Thread *t)
+{
+    print_state("unknown software trap", t);
+    cprintf(", trapno=0x%x\n", trapno);    
     thread_halt(t);
 }
 
@@ -156,13 +158,23 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	page_fault(trap_thread, tf, trapno);
 	break;
     case T_ALIGN:
-	align_fault(trap_thread, tf);
+	align_fault(trap_thread);
 	break;
     case T_EMUERR:
-	emu_error(trap_thread, tf);
+	emu_error(trap_thread);
 	break;
+    case T_FLUSHWIN: {
+	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	t->th_tf.tf_pc = t->th_tf.tf_npc;
+	t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
+	break;
+    }
     default:
-	panic("trap %d", trapno);
+	if (trapno >= T_SOFTWARE_MIN) {
+	    soft_fault(trapno, trap_thread);
+	    break;
+	}	    
+	panic("trap 0x%x", trapno);
     }
 }
 
