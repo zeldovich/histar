@@ -59,8 +59,14 @@ uwin_underflow:
 	cmp	%l6, %l7
 	bne	underflow_bail
 	 mov	%i0, %o0 /* return value */
+	mov	%i1, %o1
+	mov	%i2, %o2
+	mov	%i3, %o3
+	mov	%i4, %o4
+	mov	%i5, %o5
 	mov	%i6, %o6 /* %fp -> %sp */
-
+	mov	%i7, %o7
+	
 	LOAD_WINDOW(sp)
 	
 	jmp	%g6
