@@ -111,6 +111,10 @@ USER_COMFLAGS = $(COMFLAGS) $(USER_INC) -DJOS_USER
 USER_CFLAGS   = $(USER_COMFLAGS) $(CWARNS)
 USER_CXXFLAGS = $(USER_COMFLAGS) $(CXXWARNS) -D__STDC_FORMAT_MACROS
 
+ifeq ($(K_ARCH),sparc)
+KERN_CFLAGS += -mrestore
+endif
+
 # try to infer the correct GCCPREFIX
 conf/gcc.mk:
 	@if $(TARGET)-objdump -i 2>&1 | grep '^$(OBJTYPE)$$' >/dev/null 2>&1; \
