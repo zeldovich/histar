@@ -106,26 +106,37 @@ jos64_wait_for(struct sock_slot *ss)
 static int
 jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
 {
-    int r;
+    int64_t r;
     struct jcomm_ref data = ss->conn.data_comm;
     
     switch(a->op_type) {
     case jos64_op_accept: {
-	int64_t z = jcomm_write(data, &a->accept, sizeof(a->accept));
-	if (z < 0)
-	    return z;
+	r = jcomm_write(data, &a->accept, sizeof(a->accept));
+	if (r < 0)
+	    return r;
 	/* should never fail since sizeof(s->accept) < PIPE_BUF */
-	assert(z == sizeof(a->accept));
+	assert(r == sizeof(a->accept));
 	return 0;
     }
     case jos64_op_recv: {
-	int64_t z = jcomm_write(data, &a->recv.buf[a->recv.off], a->recv.cnt);
-	if (z < 0)
-	    return z;
-	if (z != ss->lnx2jos_buf.recv.cnt) {
-	    ss->lnx2jos_buf.recv.off += z;
-	    ss->lnx2jos_buf.recv.cnt -= z;
-	    return -E_AGAIN;
+	if (ss->dgram) {
+	    r = jcomm_write(data, &a->recv.from,
+			    sizeof(a->recv.from) + a->recv.cnt);
+	    if (r < 0) {
+		debug_print(1, "(j%ld) %d byte dgram too big, dropping",
+			    thread_id(), a->recv.cnt);
+	    } else {
+		assert(r == sizeof(a->recv.from) + a->recv.cnt);
+	    }
+	} else {
+	    r = jcomm_write(data, &a->recv.buf[a->recv.off], a->recv.cnt);
+	    if (r < 0)
+		return r;
+	    if (r != a->recv.cnt) {
+		a->recv.off += r;
+		a->recv.cnt -= r;
+		return -E_AGAIN;
+	    }
 	}
 	return 0;
     }
@@ -204,8 +215,12 @@ jos64_socket_thread(struct socket_conn *sc)
 	    r = jos64_dispatch(ss, &ss->lnx2jos_buf);
 	    if (r == -E_AGAIN)
 		continue;
-	    if (r < 0)
-		panic("jos64_dispatch error: %s\n", e2s(r));
+	    if (r < 0) {
+		debug_print(1, "(j%ld) jos64_dispatch error: %s",
+			    thread_id(), e2s(r));
+		break;
+	    }
+
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
 	} else if (r == 2) {

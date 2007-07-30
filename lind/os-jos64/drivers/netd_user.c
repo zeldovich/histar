@@ -387,6 +387,7 @@ linux_handle_socket(struct sock_slot *ss)
 	    debug_print(dbg, "(l%ld) shutdown err %d", ss->linuxpid, r);
 	    return;
 	}
+
 	libc_to_netd(&sin, &ss->lnx2jos_buf.recv.from);
 	ss->lnx2jos_buf.op_type = jos64_op_recv;
 	ss->lnx2jos_buf.recv.off = 0;

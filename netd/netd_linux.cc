@@ -139,6 +139,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
 	client_conn->grant = grant;
 	client_conn->ctrl_comm = ctrl_comm0;
 	client_conn->data_comm = data_comm0;
+	client_conn->dgram = dgram;
 	
 	/* need to wait for thread signal, so can safely cleanup */
 	int64_t z = jcomm_read(ctrl_comm0, &r, sizeof(r));
@@ -189,7 +190,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    return r;
 	fd_set_extra_handles(fd, client_conn->grant, client_conn->taint);
     }
-    
+
     switch(a->op_type) {
     case netd_op_close:
 	l.release();
@@ -220,20 +221,32 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 			       sizeof(a->statsync.wstat) / sizeof(a->statsync.wstat[0]));
 
     case netd_op_recvfrom:
-	if (!a->recvfrom.wantfrom) {
-	    l.release();
+	l.release();
 
+	if (client_conn->dgram) {
 	    r = jcomm_read(client_conn->data_comm,
-			   a->recvfrom.buf, a->recvfrom.count);
-	    if (r < 0) {
-		cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
-		errno = ENOSYS;
-		return -1;
+			   &a->recvfrom.sin,
+			   sizeof(a->recvfrom.sin) + a->recvfrom.count);
+	    if (r > 0) {
+		assert(r >= (ssize_t) sizeof(a->recvfrom.sin));
+		r -= sizeof(a->recvfrom.sin);
+	    } else {
+		cprintf("netd_linux_call: recvfrom: %s\n", e2s(r));
 	    }
-	    return r;
+	} else {
+	    if (a->recvfrom.wantfrom)
+		memset(&a->recvfrom.sin, 0, sizeof(a->recvfrom.sin));
+	    r = jcomm_read(client_conn->data_comm,
+			   &a->recvfrom.buf[0], a->recvfrom.count);
 	}
-	errno = ENOSYS;
-	return -1;
+
+	if (r < 0) {
+	    cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
+	    errno = EAGAIN;
+	    return -1;
+	}
+
+	return r;
 
     case netd_op_accept:
 	l.release();

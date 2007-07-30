@@ -66,6 +66,8 @@ struct netd_op_recvfrom_args {
     uint32_t wantfrom : 1;
     uint32_t count : 31;
     int flags;
+
+    /* "sin" must be immediately followed by "buf" */
     struct netd_sockaddr_in sin;
     char buf[netd_buf_size];
 };
