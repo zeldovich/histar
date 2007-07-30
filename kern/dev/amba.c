@@ -15,15 +15,13 @@ struct amba_device_table {
     uint32_t *addr[16];	/* addresses to the devices configuration tables */
 };
 
-struct amba_confarea_type {
+/* Structure containing address to devices found on the AMBA Plug&Play bus */
+static struct {
     struct amba_device_table ahbmst;
     struct amba_device_table ahbslv;
     struct amba_device_table apbslv;
     uint32_t apbmst;
-};
-
-/* Structure containing address to devices found on the AMBA Plug&Play bus */
-struct amba_confarea_type amba_conf;
+} amba_conf;;
 
 static void 
 vendor_dev_string(uint32_t conf, char *venbuf, char *devbuf)
