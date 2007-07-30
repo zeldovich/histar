@@ -362,7 +362,13 @@ linux_handle_socket(struct sock_slot *ss)
 	debug_print(dbg, "(l%ld) accepted conn", ss->linuxpid);
     } else {
 	debug_print(dbg, "(l%ld) reading data", ss->linuxpid);
-	r = linux_read(ss->sock, ss->lnx2jos_buf.recv.buf, sizeof(ss->lnx2jos_buf.recv.buf));
+	struct sockaddr_in sin;
+	int fromlen = sizeof(sin);
+
+	r = linux_recvfrom(ss->sock,
+			   ss->lnx2jos_buf.recv.buf,
+			   sizeof(ss->lnx2jos_buf.recv.buf),
+			   0, (struct sockaddr *) &sin, &fromlen);
 	if (r == -ENOTCONN) {
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    return;
@@ -380,6 +386,7 @@ linux_handle_socket(struct sock_slot *ss)
 	    debug_print(dbg, "(l%ld) shutdown err %d", ss->linuxpid, r);
 	    return;
 	}
+	libc_to_netd(&sin, &ss->lnx2jos_buf.recv.from);
 	ss->lnx2jos_buf.op_type = jos64_op_recv;
 	ss->lnx2jos_buf.recv.off = 0;
 	ss->lnx2jos_buf.recv.cnt = r;

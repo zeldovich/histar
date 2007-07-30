@@ -21,6 +21,8 @@ long linux_getpeername(int fd, struct sockaddr *sa, int *len);
 long linux_shutdown(int fd, int how);
 
 ssize_t linux_read(unsigned int fd, char *buf, size_t count);
+ssize_t linux_recvfrom(unsigned int fd, char *buf, size_t count,
+		       int flags, struct sockaddr *addr, int *addrlen);
 ssize_t linux_write(unsigned int fd, char *buf, size_t count);
 long linux_open(const char *filename, int flags, int mode);
 

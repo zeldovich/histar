@@ -15,6 +15,7 @@ struct jos64_op_accept_args {
 
 struct jos64_op_recv_args {
     char buf[4000];
+    struct netd_sockaddr_in from;
     uint64_t cnt;
     uint64_t off;
 };

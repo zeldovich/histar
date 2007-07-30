@@ -91,6 +91,13 @@ linux_read(unsigned int fd, char *buf, size_t count)
     return sys_read(fd, buf, count);
 }
 
+ssize_t
+linux_recvfrom(unsigned int fd, char *buf, size_t count,
+	       int flags, struct sockaddr *from, int *fromlen)
+{
+    return sys_recvfrom(fd, buf, count, flags, from, fromlen);
+}
+
 ssize_t 
 linux_write(unsigned int fd, char *buf, size_t count)
 {
