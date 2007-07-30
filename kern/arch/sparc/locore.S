@@ -96,14 +96,9 @@ def_trap:
 	/* Make window 1 invalid */
 	mov	0x02, %wim
 	WRITE_PAUSE
-	/* set CWP to 0 */
+	/* set CWP to 0, disable interrupts, enable traps */
 	rd	%psr, %l0
 	andn	%l0, PSR_CWP, %l0
-	mov	%l0, %psr
-	WRITE_PAUSE
-
-	/* Disable interrupts, enable traps */
-	rd	%psr, %l0
 	bset	PSR_ET | PSR_PIL, %l0
 	mov	%l0, %psr
 	WRITE_PAUSE
