@@ -123,6 +123,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
     sc->data_comm = data_comm1;
     sc->init_magic = NETD_LINUX_MAGIC;
     sc->sock_id = sock_id;
+    sc->dgram = dgram;
     
     label ds(3);
     ds.set(taint, LB_LEVEL_STAR);

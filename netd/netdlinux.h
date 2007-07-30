@@ -9,6 +9,7 @@
 struct socket_conn {
     uint64_t init_magic;
     int sock_id;
+    int dgram;
 
     struct jcomm_ref ctrl_comm;
     struct jcomm_ref data_comm;
