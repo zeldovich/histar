@@ -84,7 +84,8 @@
         ldd     [%base_reg + 24], %o6;
 
 /* Store misc. registers onto the trapframe starting at %base_reg */
-#define STORE_TRAPFRAME_OTHER(base_reg, reg_psr, reg_pc, reg_npc, g_scratch) \
+#define STORE_TRAPFRAME_OTHER(base_reg, reg_psr, reg_pc, reg_npc, reg_wim, g_scratch) \
+        st      %reg_wim, [%base_reg + TF_WIM]; \
         st      %reg_psr, [%base_reg + TF_PSR]; \
         st      %reg_pc,  [%base_reg + TF_PC]; \
         st      %reg_npc, [%base_reg + TF_NPC]; \

@@ -84,7 +84,7 @@ def_trap:
 	sub	%l5, TRAPFRAME_SZ, %l5
 
 	STORE_GLOBALS(l5 + TF_G0)
-	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l4)
+	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l3, l4)
 	mov	%l5, %g7
 
 	restore
