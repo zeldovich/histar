@@ -37,10 +37,10 @@ init (void)
     bss_init();
 
     amba_init();
+    irqmp_init();
     apbucons_init();
     amba_print();
 
-    irqmp_init();    
     gptimer_init();
 
     page_init();
