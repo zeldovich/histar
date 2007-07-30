@@ -21,7 +21,7 @@ static struct {
     struct amba_device_table ahbslv;
     struct amba_device_table apbslv;
     uint32_t apbmst;
-} amba_conf;;
+} amba_conf;
 
 static void 
 vendor_dev_string(uint32_t conf, char *venbuf, char *devbuf)
