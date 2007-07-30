@@ -201,6 +201,8 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_pc = (uintptr_t) te->te_entry;
     t->th_tf.tf_npc = (uintptr_t) (te->te_entry + 4);
+    t->th_tf.tf_wim = 0xFE;
+    t->th_tf.tf_psr = PSR_S | ((NWINDOWS - 1) << PSR_CWP_SHIFT);
     t->th_tf.tf_reg1.sp = (uintptr_t) te->te_stack;
     t->th_tf.tf_reg1.i0 = te->te_arg[0];
     t->th_tf.tf_reg1.i1 = te->te_arg[1];

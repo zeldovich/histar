@@ -194,11 +194,11 @@ struct Trapframe {
 	uint32_t tf_reg0[32];
 	struct Regs tf_reg1;
     };
-    uint32_t tf_psr;
+    uint32_t tf_psr; /* post trap PSR */
     uint32_t tf_y;
     uint32_t tf_pc;
     uint32_t tf_npc;
-    uint32_t tf_win;
+    uint32_t tf_wim;
     uint32_t tf_pad;
 };
 

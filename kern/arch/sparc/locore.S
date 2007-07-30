@@ -114,12 +114,14 @@ ENTRY(trapframe_pop)
 	mov	%o0, %g1
 	mov	%g0, %wim
 	WRITE_PAUSE
-	/* set CWP to 0 */
-	rd	%psr, %l0
-	andn	%l0, PSR_CWP, %l0
+
+	ld	[%g1 + TF_PSR], %l0
 	mov	%l0, %psr
 	WRITE_PAUSE
 	
+	/* move to window we want to reload */
+	restore
+			
 	LOAD_INS(g1 + TF_I0)
 	LOAD_LOCALS(g1 + TF_L0)
 	LOAD_OUTS(g1 + TF_O0)
@@ -135,17 +137,8 @@ ENTRY(trapframe_pop)
 	ld	[%l0 + TF_Y], %l3
 	mov	%l3, %y
 
-	/* Make only window 0 valid */
-	set	0x0FE, %l3
+	ld	[%l0 + TF_WIM], %l3
 	mov	%l3, %wim
-	WRITE_PAUSE
-	/* Disable traps, enable interrupts, reset PS */
-	ld	[%l0 + TF_PSR], %l4
-	and	%l4, PSR_PS, %l4
-	rd	%psr, %l3
-	andn	%l3, PSR_ET | PSR_PS | PSR_PIL, %l3
-	or	%l3, %l4, %l3
-	mov	%l3, %psr
 	WRITE_PAUSE
 	
 	jmp	%l1
