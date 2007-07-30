@@ -352,6 +352,7 @@ linux_handle_socket(struct sock_slot *ss)
 	if (nss == 0)
 	    panic("no slots");
 	nss->sock = r;
+	nss->dgram = 0;
 	linux_thread_run(linux_socket_thread, nss, "socket-thread");
 	
 	ss->lnx2jos_buf.op_type = jos64_op_accept;

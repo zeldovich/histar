@@ -14,8 +14,8 @@ struct jos64_op_accept_args {
 };
 
 struct jos64_op_recv_args {
-    char buf[4000];
     struct netd_sockaddr_in from;
+    char buf[4000];
     uint64_t cnt;
     uint64_t off;
 };
@@ -34,6 +34,7 @@ struct jos64_op_args {
 struct sock_slot {
     char used;
     char listen;
+    char dgram;
 
     struct socket_conn conn;
     uint64_t linuxpid;
