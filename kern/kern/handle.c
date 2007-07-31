@@ -1,6 +1,7 @@
 #include <kern/handle.h>
 #include <kern/lib.h>
 #include <inc/bf60.h>
+#include <inc/intmacro.h>
 
 enum { handle_encrypt = 1 };
 
@@ -57,6 +58,9 @@ handle_alloc(void)
 {
     uint64_t new_count = handle_counter++;
     uint64_t new_crypt = bf61_encipher(&handle_key_ctx, new_count);
+
+    if (handle_counter >= (UINT64(1) << 61))
+	panic("This HiStar instance is over.");
 
     uint64_t h = handle_encrypt ? new_crypt : new_count;
     if (h == 0)
