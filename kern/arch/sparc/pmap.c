@@ -355,7 +355,7 @@ physaddr_t
 kva2pa(void *kva)
 {
     physaddr_t va = (physaddr_t) kva;
-    if (va >= PHYSBASE)
+    if (va >= PHYSBASE && va < PHYSEND)
 	return va - LOAD_OFFSET;
     panic("kva2pa called with invalid kva %p", kva);
 }

@@ -11,7 +11,7 @@
  *                    |                                             |
  *                    |              Nothing mapped                 |
  *                    |                                             |
- *                    +---------------------------------------------+
+ *        PHYSEND ->  +---------------------------------------------+
  *                    |                                             |
  *                    |     0GB..1GB of physical address space      |
  *                    |                                             |
@@ -31,6 +31,7 @@
  
 #define AHBPNPIO        0xF0000000
 #define PHYSBASE	0x90000000
+#define PHYSEND         (PHYSBASE + 0x40000000)
 #define KERNBASE	PHYSBASE
 #define AHBBASE         0x80000000
 
