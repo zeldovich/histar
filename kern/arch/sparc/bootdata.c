@@ -6,7 +6,7 @@
 
 #define PTATTR __attribute__ ((aligned (4096), section (".data")))
 #define KPT_BITS ((PT_ET_PTE << PT_ET_SHIFT) | \
-		  (PTE_ACC_SUPER << PTE_ACC_SHIFT) | PTE_C )
+		  (PTE_ACC_SUPER << PTE_ACC_SHIFT))
 
 #define DO_8(_start, _macro)				\
   _macro (((_start) + 0)) _macro (((_start) + 1))	\
@@ -23,17 +23,20 @@
   DO_8 ((_start) + 32, _macro) DO_8 ((_start) + 40, _macro)	\
   DO_8 ((_start) + 48, _macro) DO_8 ((_start) + 56, _macro)
 
-#define TRANS16MEG(n) (KPT_BITS | (((0x1000000UL * (n)) >> PGSHIFT) << PTE_PPN_SHIFT)),
+#define TRANS16MEG_C(n) \
+    (PTE_C | KPT_BITS | (((0x1000000UL * (n)) >> PGSHIFT) << PTE_PPN_SHIFT)),
+#define TRANS16MEG_NC(n) \
+    (KPT_BITS | (((0x1000000UL * (n)) >> PGSHIFT) << PTE_PPN_SHIFT)),
 
 /*
- * Map 1GB..3GB at PHYSBASE (0x80000000).
+ * See memlayout.h for kernel memory layout.
  */
 struct Pagemap bootpt PTATTR = {
   .pm1_ent = {
-    [64] = DO_64(64, TRANS16MEG)
-    [128] = DO_64(64, TRANS16MEG)
-    [224] = DO_16(128, TRANS16MEG)
-    [240] = DO_16(240, TRANS16MEG)
+    [64] = DO_64(64, TRANS16MEG_C)
+    [128] = DO_64(64, TRANS16MEG_C)
+    [224] = DO_16(128, TRANS16MEG_NC)
+    [240] = DO_16(240, TRANS16MEG_NC)
   }
 };
 
