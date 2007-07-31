@@ -14,17 +14,20 @@
  *                    |                                             |
  *                    |     0GB..1GB of physical address space      |
  *                    |                                             |
- *   PHYSBOT/ULIM ->  +---------------------------------------------+
+ *       PHYSBASE ->  +---------------------------------------------+
+ *                    |                 AHB memory                  |
+ *   AHBBASE/ULIM ->  +---------------------------------------------+
  *                    |                 user stack                  |
  *                    |                 user data                   |
  *                    |                 user text                   |
  *   0 ------------>  +---------------------------------------------+
  */
 
-#define PHYSBASE	0x80000000
+#define PHYSBASE	0x90000000
 #define KERNBASE	PHYSBASE
+#define AHBBASE         0x80000000
 
-#define ULIM		PHYSBASE
+#define ULIM		0x80000000
 
 // User-mode (below ULIM) address space layout conventions.
 #define USTACKTOP	ULIM

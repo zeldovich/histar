@@ -14,6 +14,9 @@
   _macro (((_start) + 4)) _macro (((_start) + 5))	\
   _macro (((_start) + 6)) _macro (((_start) + 7))
 
+#define DO_16(_start, _macro)					\
+  DO_8 ((_start) + 0, _macro) DO_8 ((_start) + 8, _macro)
+
 #define DO_64(_start, _macro)					\
   DO_8 ((_start) + 0, _macro) DO_8 ((_start) + 8, _macro)	\
   DO_8 ((_start) + 16, _macro) DO_8 ((_start) + 24, _macro)	\
@@ -28,8 +31,11 @@
 struct Pagemap bootpt PTATTR = {
   .pm1_ent = {
     [64] = DO_64(64, TRANS16MEG)
-    [128] = DO_64(64, TRANS16MEG)
-    [192] = DO_64(128, TRANS16MEG)
+    [128] = DO_16(128, TRANS16MEG)
+    [144] = DO_16(64, TRANS16MEG)
+    [160] = DO_16(80, TRANS16MEG)
+    [176] = DO_16(96, TRANS16MEG)
+    [192] = DO_16(112, TRANS16MEG)
   }
 };
 
