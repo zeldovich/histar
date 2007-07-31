@@ -5,10 +5,11 @@
 
 /*
  * Virtual memory map
- *
  *   2^32 --------->  +---------------------------------------------+
+ *                    |        AHB plug & play and I/O banks        |
+ *       AHBPNPIO ->  +---------------------------------------------+
  *                    |                                             |
- *                    |     1GB..2GB of physical address space      |
+ *                    |              Nothing mapped                 |
  *                    |                                             |
  *                    +---------------------------------------------+
  *                    |                                             |
@@ -23,13 +24,19 @@
  *   0 ------------>  +---------------------------------------------+
  */
 
+/* AHBBASE and AHBPNPIO are 1-to-1 mappings with physical memory.
+ * AHBPNPIO starts at PA 0xFFF00000, but we map 256M starting at 
+ * 0xF0000000 for convenience.
+ */
+ 
+#define AHBPNPIO        0xF0000000
 #define PHYSBASE	0x90000000
 #define KERNBASE	PHYSBASE
 #define AHBBASE         0x80000000
 
 #define ULIM		0x80000000
 
-// User-mode (below ULIM) address space layout conventions.
+/* User-mode (below ULIM) address space layout conventions. */
 #define USTACKTOP	ULIM
 #define UWINOVERFLOW    0x3FFFE000 /* keep syncrhonized with */
 #define UWINUNDERFLOW   0x3FFFF000 /* lib/sparc/Makefrag */
