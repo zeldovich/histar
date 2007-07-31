@@ -1,6 +1,7 @@
 #include <kern/lib.h>
 #include <kern/console.h>
 #include <kern/intr.h>
+#include <kern/arch.h>
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
@@ -20,15 +21,13 @@ serial_putc(void *arg, int c)
     LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)arg;
     
     uint32_t i = 0;
-    while (!(LEON_BYPASS_LOAD_PA(&(uart_regs->status)) &
-	     LEON_REG_UART_STATUS_THE) && (i < 12800))
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_THE) && (i < 12800))
 	i++;
     
-    LEON_BYPASS_STORE_PA(&(uart_regs->data), c);
+    uart_regs->data = c;
     
     i = 0;
-    while (!(LEON_BYPASS_LOAD_PA(&(uart_regs->status)) &
-	     LEON_REG_UART_STATUS_TSE) && (i < 12800))
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_TSE) && (i < 12800))
 	i++;
 }
 
@@ -36,11 +35,8 @@ static int
 serial_proc_data(void *arg)
 {
     LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)arg;    
-    uint32_t status = LEON_BYPASS_LOAD_PA(&(uart_regs->status));
-    if (status & LEON_REG_UART_STATUS_DR) {
-	uint32_t data = LEON_BYPASS_LOAD_PA(&(uart_regs->data));
-	return data & 0xFF; 
-    }
+    if (uart_regs->status & LEON_REG_UART_STATUS_DR)
+	return uart_regs->data & 0xFF; 
     return -1;
 }
 
@@ -67,16 +63,16 @@ apbucons_init(void)
     }
 
     uint32_t scaler = (CLOCK_FREQ_KHZ * 1000) / (baud_rate * 8);
-    LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)dev.start;
-    LEON_BYPASS_STORE_PA(&(uart_regs->scaler), scaler);
+    LEON3_APBUART_Regs_Map *uart_regs = pa2kva(dev.start);
+    uart_regs->scaler = scaler;
 
     /* enable rx, tx, and rx interrupts */
     uint32_t ctrl = LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
 	LEON_REG_UART_CTRL_RI;
-    LEON_BYPASS_STORE_PA(&(uart_regs->ctrl), ctrl);
+    uart_regs->ctrl = ctrl;
     
     static struct interrupt_handler ih = { .ih_func = &serial_intr };
-    ih.ih_arg = (void *)dev.start;
+    ih.ih_arg = uart_regs;
     irq_register(dev.irq, &ih);
 
     static struct cons_device cd = {
@@ -84,6 +80,6 @@ apbucons_init(void)
 	.cd_output = &serial_putc,
     };
 
-    cd.cd_arg = (void *)dev.start;
+    cd.cd_arg = uart_regs;
     cons_register(&cd);
 }
