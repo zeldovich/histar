@@ -25,8 +25,8 @@
  */
 
 /* AHBBASE and AHBPNPIO are 1-to-1 mappings with physical memory.
- * AHBPNPIO starts at PA 0xFFF00000, but we map 256M starting at 
- * 0xF0000000 for convenience.
+ * AHB plug & play registers and I/O banks start at PA 0xFFF00000, 
+ * but we map 256M starting at 0xF0000000 for convenience.
  */
  
 #define AHBPNPIO        0xF0000000
