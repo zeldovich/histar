@@ -2,7 +2,6 @@
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
 #include <machine/sparc-common.h>
-#include <machine/page.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
@@ -348,7 +347,16 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 void *
 pa2kva(physaddr_t pa)
 {
-    return (void *) (pa + LOAD_OFFSET);
+    if (pa >= PA_MEMBASE && pa < PA_MEMEND)
+	return (void *) (pa + LOAD_OFFSET);
+    
+    if (pa >= PA_AHBBASE && pa < PA_AHBEND)
+	return (void *)(AHBBASE + (pa - PA_AHBBASE));
+
+    if (pa > PA_AHBIO)
+	return (void *)pa;
+
+    panic("pa2kva called with invalid pa 0x%x", pa);
 }
 
 physaddr_t
@@ -363,13 +371,11 @@ kva2pa(void *kva)
 ppn_t
 pa2ppn(physaddr_t pa)
 {
-    assert(mem_detect_done);
-    return ((pa - minpa) >> PGSHIFT);
+    return ((pa - PA_MEMBASE) >> PGSHIFT);
 }
 
 physaddr_t
 ppn2pa(ppn_t pn)
 {
-    assert(mem_detect_done);
-    return (pn << PGSHIFT) + minpa;
+    return (pn << PGSHIFT) + PA_MEMBASE;
 }

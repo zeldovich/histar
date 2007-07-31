@@ -7,33 +7,31 @@
  * Virtual memory map
  *   2^32 --------->  +---------------------------------------------+
  *                    |        AHB plug & play and I/O banks        |
- *       AHBPNPIO ->  +---------------------------------------------+
+ *       AHBPNPIO ->  +---------------------------------------------
+ *                    |                 AHB memory                  |
+ *        AHBBASE ->  +---------------------------------------------+
  *                    |                                             |
- *                    |              Nothing mapped                 |
+ *                    |         invalid virtual addresses           |
  *                    |                                             |
  *        PHYSEND ->  +---------------------------------------------+
  *                    |                                             |
  *                    |     0GB..1GB of physical address space      |
  *                    |                                             |
- *       PHYSBASE ->  +---------------------------------------------+
- *                    |                 AHB memory                  |
- *   AHBBASE/ULIM ->  +---------------------------------------------+
+ *   PHYSBASE/ULM ->  +---------------------------------------------+
  *                    |                 user stack                  |
  *                    |                 user data                   |
  *                    |                 user text                   |
  *   0 ------------>  +---------------------------------------------+
  */
 
-/* AHBBASE and AHBPNPIO are 1-to-1 mappings with physical memory.
- * AHB plug & play registers and I/O banks start at PA 0xFFF00000, 
- * but we map 256M starting at 0xF0000000 for convenience.
+/* The physical address ranges for AHB plug & play, I/O and memory are less
+ * than 256M, but we use 256M mappings out of convenience.
  */
- 
 #define AHBPNPIO        0xF0000000
-#define PHYSBASE	0x90000000
+#define AHBBASE         0xE0000000
+#define PHYSBASE	0x80000000
 #define PHYSEND         (PHYSBASE + 0x40000000)
 #define KERNBASE	PHYSBASE
-#define AHBBASE         0x80000000
 
 #define ULIM		0x80000000
 
@@ -49,6 +47,23 @@
 #define UTLSTOP		0x60fff000
 #define UFDBASE		0x61000000
 #define USEGMAPENTS	0x62000000
+
+/* Default physical memory layout for the LEON3 */
+#define PA_MEMBASE      0x40000000
+#define PA_MEMEND       0x80000000
+
+#define PA_AHBBASE      0x80000000
+#define PA_APBREG       0x80000000
+#define PA_APBREGEND    0x800FF000
+#define PA_APBPNP       0x800FF000
+#define PA_APBPNPEND    0x800FFFFF
+#define PA_AHBEND       0x800FFFFF
+
+#define PA_AHBIO        0xFFF00000
+#define PA_AHBIOEND     0xFFFFF000
+
+#define PA_AHBPNP       0xFFFFF000
+#define PA_AHBPNPEND    0xFFFFFFFF
 
 /*
  * The linker script uses PHYSLOAD_ADDR and VIRTLOAD_ADDR.
