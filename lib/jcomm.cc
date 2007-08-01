@@ -197,6 +197,39 @@ jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
     return cc;
 }
 
+int
+jlink_write_flush(struct jlink *jl)
+{
+    uint64_t bytes, open;
+
+    jthread_mutex_lock(&jl->mu);
+    for (;;) {
+	bytes = jl->bytes;
+	open = jl->open;
+	if (!open || !bytes)
+	    break;
+
+	jl->writer_waiting = 1;
+	jthread_mutex_unlock(&jl->mu);
+
+	struct wait_stat wstat[2];
+	memset(wstat, 0, sizeof(wstat));
+	WS_SETADDR(&wstat[0], &jl->bytes);
+	WS_SETVAL(&wstat[0], bytes);
+	WS_SETADDR(&wstat[1], &jl->open);
+	WS_SETVAL(&wstat[1], open);
+
+	int r = multisync_wait(wstat, 2, UINT64(~0));
+	if (r < 0)
+	    return r;
+
+	jthread_mutex_lock(&jl->mu);
+    }
+
+    jthread_mutex_unlock(&jl->mu);
+    return bytes ? -E_EOF : 0;
+}
+
 static int
 jcomm_links_map(struct jcomm_ref jr, struct jlink **links)
 {
@@ -316,6 +349,20 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
 
     struct jlink *jl = &links[!jr.jc.chan];
     return jlink_write(jl, buf, cnt, jl->mode);
+}
+
+int
+jcomm_write_flush(struct jcomm_ref jr)
+{
+    struct jlink *links;
+    int r = jcomm_links_map(jr, &links);
+    if (r < 0)
+	return r;
+    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    PF_CATCH_BLOCK;
+
+    struct jlink *jl = &links[!jr.jc.chan];
+    return jlink_write_flush(jl);
 }
 
 int

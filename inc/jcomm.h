@@ -52,8 +52,10 @@ int jcomm_unref(struct jcomm_ref jr);
 
 int64_t jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt);
 int64_t jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt);
+int     jcomm_write_flush(struct jcomm_ref jr);
 
 int64_t jlink_read(struct jlink *jl, void *buf, uint64_t cnt, int16_t mode);
 int64_t jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode);
+int     jlink_write_flush(struct jlink *jl);
 
 #endif
