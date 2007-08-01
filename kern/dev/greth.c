@@ -1,6 +1,7 @@
 #include <kern/lib.h>
 #include <kern/arch.h>
 #include <kern/netdev.h>
+#include <kern/timer.h>
 #include <dev/greth.h>
 #include <dev/grethreg.h>
 #include <dev/ambapp.h>
@@ -11,6 +12,9 @@ static const char greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x01 };
 struct greth_card {
     struct greth_regs *regs;
     struct net_device netdev;
+
+    struct greth_bd txbd[128] __attribute__((aligned (1024)));
+    struct greth_bd rxbd[128] __attribute__((aligned (1024)));
 };
 
 static void
@@ -27,6 +31,8 @@ greth_set_mac(struct greth_regs *regs, const char *mac)
 void
 greth_init(void)
 {
+    static_assert(sizeof(struct greth_card) <= PGSIZE);
+
     struct amba_apb_device dev;
     int r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_ETHMAC, &dev, 0);
     if (!r)
@@ -39,9 +45,17 @@ greth_init(void)
 	cprintf("greth_init: error %s\n", e2s(r));
 	return;
     }
-
+    memset(c, 0, PGSIZE);
+    
     regs->control |= GRETH_RESET;
-
+    uint64_t s = timer_user_nsec();
+    while (regs->control & GRETH_RESET) {
+	if ((timer_user_nsec() - s) > 1000000000) {
+	    cprintf("greth_init: timeout waiting for reset\n");
+	    return;
+	}
+    }
+    
     greth_set_mac(regs, greth_mac);
     memcpy(&c->netdev.mac_addr[0], &greth_mac[0], 6);
     c->regs = regs;
