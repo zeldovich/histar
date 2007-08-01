@@ -73,8 +73,8 @@ struct greth_regs {
 
 /* Ethernet buffer descriptor */
 struct greth_bd {
-    int stat;
-    int addr;           /* Buffer address */
+    volatile int stat;
+    volatile int addr;           /* Buffer address */
 };
 
 #endif
