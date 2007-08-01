@@ -1,3 +1,6 @@
+#ifndef JOS_MACHINE_GRETHREG_H
+#define JOS_MACHINE_GRETHREG_H
+
 #define GRETH_REG_BASE  ETH_BASE_ADD 
 
 #define GRETH_FD 0x10
@@ -58,26 +61,20 @@
 #define GRETH_RX_BUF_SIZE 2048
 
 /* Ethernet configuration registers */
-typedef struct _greth_regs {
-   volatile int    control;        
-   volatile int    status;        
-   volatile int    esa_msb;        
-   volatile int    esa_lsb;        
-   volatile int    mdio;        
-   volatile int    tx_desc_p;        
-   volatile int    rx_desc_p;        
-} greth_regs;
+struct greth_regs {
+    volatile int control;        
+    volatile int status;        
+    volatile int esa_msb;        
+    volatile int esa_lsb;        
+    volatile int mdio;        
+    volatile int tx_desc_p;        
+    volatile int rx_desc_p;        
+};
 
 /* Ethernet buffer descriptor */
-typedef struct _greth_bd {
-  int    stat;
-  int    addr;           /* Buffer address */
-} greth_bd;
+struct greth_bd {
+    int stat;
+    int addr;           /* Buffer address */
+};
 
-
-
-
-
-
-
-
+#endif
