@@ -12,6 +12,7 @@
 #include <dev/amba.h>
 #include <dev/irqmp.h>
 #include <dev/gptimer.h>
+#include <dev/greth.h>
 
 char boot_cmdline[256];
 
@@ -44,6 +45,9 @@ init (void)
     gptimer_init();
 
     page_init();
+
+    greth_init();
+
     kobject_init();
     sched_init();
     pstate_init();

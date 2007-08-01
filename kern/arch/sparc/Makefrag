@@ -37,7 +37,8 @@ KERN_DEV :=					\
 	kern/dev/amba.c				\
 	kern/dev/apbucons.c			\
 	kern/dev/irqmp.c			\
-	kern/dev/gptimer.c
+	kern/dev/gptimer.c			\
+	kern/dev/greth.c			\
 
 X_KERN_DEV :=					\
 	kern/dev/console.c			\
