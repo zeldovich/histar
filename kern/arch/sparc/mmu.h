@@ -222,7 +222,18 @@ struct Trapframe {
 #define RW_I6     0x38
 #define RW_I7     0x3c
 
-#define STACKFRAME_SZ 0x40
+#define STRUCT_PTR 0x40
+#define CALLEE_0   0x44
+#define CALLEE_1   0x48
+#define CALLEE_2   0x4c
+#define CALLEE_3   0x50
+#define CALLEE_4   0x54
+#define CALLEE_5   0x58
+
+/* The minimum space required for a stack frame is 0x5c, but
+ * but we use 0x60 to keep 8-byte alignment.
+ */
+#define STACKFRAME_SZ 0x60
 
 /* Trapframe offsets */
 #define TF_G0     0x00
