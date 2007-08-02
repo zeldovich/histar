@@ -3,7 +3,7 @@
 #include <machine/trapcodes.h>
 	
 /* Window handlers that emulate save and restore
- * %g5, %g6 hold pc, npc
+ * %y, %g5 hold pc, npc
  */
 
 .section .uwin_overflow, "ax", @progbits
@@ -13,7 +13,8 @@ uwin_overflow:
 	/* Can use locals now */
 
 	/* Read inst op */
-	ld	[%g5], %l7
+	mov	%y, %l6
+	ld	[%l6], %l7
 
 	/* We only handle "save %sp, -imm13, %sp". */
 	set	0x9DE3B, %l5 /* (save %sp, -imm13, %sp) >> 12 */
@@ -37,13 +38,13 @@ uwin_overflow:
 	sub	%sp, %l6, %sp
 	dec	%sp /* remember two's complement */
 	
-	jmp	%g6
-	 jmp	%g6 + 4
+	jmp	%g5
+	 jmp	%g5 + 4
 	  nop
 
 overflow_bail:
 	mov	%l7, %o0
-	mov	%g5, %o1
+	mov	%y, %o1
 	ta	SOFTWARE_TRAP(T_EMUERR)
 	 nop
 
@@ -52,7 +53,8 @@ overflow_bail:
 uwin_underflow:
 	/* Can use locals, util LOAD_WINDOW */
 	/* Read inst op */
-	ld	[%g5], %l7
+	mov	%y, %l6
+	ld	[%l6], %l7
 
 	/* We only handle "restore". */
 	set	0x81E80000, %l6 /* "restore" machine code */
@@ -69,12 +71,12 @@ uwin_underflow:
 	
 	LOAD_WINDOW(sp)
 	
-	jmp	%g6
-	 jmp	%g6 + 4
+	jmp	%g5
+	 jmp	%g5 + 4
 	  nop
 	
 underflow_bail:
 	mov	%l7, %o0
-	mov	%g5, %o1
+	mov	%y, %o1
 	ta	SOFTWARE_TRAP(T_EMUERR)
 	 nop

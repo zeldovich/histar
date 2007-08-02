@@ -7,7 +7,7 @@
 #define TRAP_ENTRY \
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define WINDOW_ENTRY(label) \
-	rd %psr, %l0; mov %l1, %g5; ba label; andcc %l0, PSR_PS, %g0;
+	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
 
 	/* The Trap Base Address (TBA) must be 4096 aligned */
 	.text
@@ -148,13 +148,15 @@ ENTRY(trapframe_pop)
  * After the branch and delay are executed in window_fill/spill,
  * the register state is:
  * %l0 == psr
- * %l1 == %g5 == pc
- * %l2 == %g6 == npc
- * We optimize for user window traps.
+ * %l1 == %y == pc
+ * %l2 == %g5 == npc
+ * We optimize for user window traps.  We use %y instead of %g1,
+ * because it seems GCC assumes %g1 is preserved across function
+ * calls in some places.
  */
 window_spill:	
 	bz	user_spill
-	 mov	%l2, %g6
+	 mov	%l2, %g5
 
 kernel_spill:	
 	mov	%g1, %l7
@@ -180,13 +182,13 @@ kernel_spill:
 	 rett	%l2	
 
 user_spill:
-	set	UWINOVERFLOW, %g7
-	jmp	%g7
-	 rett	%g7 + 4
+	set	UWINOVERFLOW, %l7
+	jmp	%l7
+	 rett	%l7 + 4
 	
 window_fill:	
 	bz	user_fill
-	 mov	%l2, %g6
+	 mov	%l2, %g5
 
 kernel_fill:
         /* rotate WIM bit left */
@@ -210,9 +212,9 @@ kernel_fill:
 	 rett	%l2
 
 user_fill:
-	set	UWINUNDERFLOW, %g7
-	jmp	%g7
-	 rett	%g7 + 4
+	set	UWINUNDERFLOW, %l7
+	jmp	%l7
+	 rett	%l7 + 4
 
 .globl	thread_arch_idle_asm
 thread_arch_idle_asm:
