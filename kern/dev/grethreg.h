@@ -8,6 +8,16 @@
 #define GRETH_MII_BUSY 0x8
 #define GRETH_MII_NVALID 0x10
 
+/* MDIO ctrl/status register */
+#define MDIO_PHYADDR_SHIFT 11
+#define MDIO_PHYADDR_MASK  0x1F
+#define MDIO_REGADDR_SHIFT 6
+#define MDIO_REGADDR_MASK  0x1F
+#define MDIO_DATA_SHIFT    0x16
+#define MDIO_DATA_MASK     0xFFFF
+#define MDIO_RD_BIT        0x10
+#define MDIO_WR_BIT        0x01
+
 /* MII registers */
 #define GRETH_MII_EXTADV_1000FD 0x00000200
 #define GRETH_MII_EXTADV_1000HD 0x00000100
