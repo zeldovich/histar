@@ -7,7 +7,11 @@
 #define SYS_LIGHTWEIGHT_PROT	1
 
 // Various tuning knobs, partly from jos32's lwipopts.h
+#if defined(JOS_ARCH_sparc)
+#define MEM_ALIGNMENT		8
+#else
 #define MEM_ALIGNMENT		4
+#endif
 
 #define MEMP_SANITY_CHECK	1
 #define MEMP_NUM_PBUF		64
