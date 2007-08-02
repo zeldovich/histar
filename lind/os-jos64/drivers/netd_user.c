@@ -420,15 +420,6 @@ linux_socket_thread(void *a)
 	if (r >= 0)
 	    linux_handle_socket(ss);
 
-	if (ss->jos2lnx_full) {
-	    op = ss->jos2lnx_buf.op_type;
-	    netd_linux_dispatch(ss, &ss->jos2lnx_buf);
-	    ss->jos2lnx_full = 0;
-	    sys_sync_wakeup(&ss->jos2lnx_full);
-	    if (op == netd_op_close)
-		break;
-	}
-
 	if (ss->outcnt) {
 	    r = linux_write(ss->sock, ss->outbuf, ss->outcnt);
 	    if (r == ss->outcnt) {
@@ -438,6 +429,20 @@ linux_socket_thread(void *a)
 		memmove(&ss->outbuf[0], &ss->outbuf[r], ss->outcnt - r);
 		ss->outcnt -= r;
 	    }
+	}
+
+	if (ss->jos2lnx_full) {
+	    op = ss->jos2lnx_buf.op_type;
+	    if (op == netd_op_close && ss->outcnt) {
+		ss->lnx2jos_full = 0;
+		continue;
+	    }
+
+	    netd_linux_dispatch(ss, &ss->jos2lnx_buf);
+	    ss->jos2lnx_full = 0;
+	    sys_sync_wakeup(&ss->jos2lnx_full);
+	    if (op == netd_op_close)
+		break;
 	}
     }
     debug_print(dbg, "(l%ld) stopping", ss->linuxpid);

@@ -195,6 +195,9 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     case netd_op_close:
 	l.release();
 
+	/* Push through all written data, before deallocating jcomm buffers */
+	jcomm_write_flush(client_conn->data_comm);
+
 	/* Linux doesn't send a response on close.  We send the close 
 	 * operation over the jcomm to pop Linux out of multisync.
 	 */

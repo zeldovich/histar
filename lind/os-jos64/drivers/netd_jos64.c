@@ -224,10 +224,12 @@ jos64_socket_thread(struct socket_conn *sc)
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
 	} else if (r == 2) {
-	    int64_t z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
+	    z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
 	    if (z < 0) {
 		debug_print(dbg, "(j%ld) jcomm_read ctrl error: %s",
 			    thread_id(), e2s(r));
+		if (z == -E_NO_SPACE)
+		    debug_print(1, "(j%ld) jcomm_read ctrl: no space", thread_id());
 		break;
 	    }
 
@@ -250,12 +252,17 @@ jos64_socket_thread(struct socket_conn *sc)
 	    z = jcomm_write(ctrl, (void *)&ss->jos2lnx_buf, ss->jos2lnx_buf.size);
 	    assert(z == ss->jos2lnx_buf.size);
 	} else if (r == 3) {
-	    int64_t z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
-				   sizeof(ss->outbuf) - ss->outcnt);
+	    z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
+			   sizeof(ss->outbuf) - ss->outcnt);
 	    if (z < 0) {
 		debug_print(dbg, "(j%ld) jcomm_read data error: %s",
 			    thread_id(), e2s(r));
-		break;
+		if (z == -E_NO_SPACE) {
+		    debug_print(1, "(j%ld) jcomm_read data: no space", thread_id());
+		    continue;
+		} else {
+		    break;
+		}
 	    }
 	    if (z == 0) {
 		debug_print(dbg, "(j%ld) jcomm_read data eof", thread_id());
@@ -268,6 +275,26 @@ jos64_socket_thread(struct socket_conn *sc)
 	    break;
 	}
     }
+
+    /* Flush write data */
+    for (;;) {
+	while (ss->outcnt == sizeof(ss->outbuf))
+	    sys_sync_wait(&ss->outcnt, sizeof(ss->outbuf), UINT64(~0));
+
+	z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
+		       sizeof(ss->outbuf) - ss->outcnt);
+	if (z == -E_NO_SPACE) {
+	    debug_print(1, "(j%ld) jcomm_read data flush: no space", thread_id());
+	    continue;
+	}
+
+	if (z <= 0)
+	    break;
+
+	ss->outcnt += z;
+	lutrap_kill(SIGNAL_NETD);
+    }
+
 
  done:
     ss->jos2lnx_buf.op_type = netd_op_close;
