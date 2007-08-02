@@ -34,6 +34,8 @@ bss_init (void)
 void __attribute__((noreturn))
 init (void)
 {
+    int r;
+
     mmu_init();
     bss_init();
 
@@ -46,8 +48,10 @@ init (void)
 
     page_init();
 
-    greth_init();
-
+    r = greth_init();
+    if (r < 0)
+	cprintf("init: greth_init error: %s\n", e2s(r));
+    
     kobject_init();
     sched_init();
     pstate_init();
