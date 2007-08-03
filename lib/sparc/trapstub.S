@@ -7,6 +7,9 @@ ENTRY(utrap_entry_asm)
 	ba utrap_entry_asm
 	 nop
 
-ENTRY(utrap_ret)
+.section .utrap_masked, "ax", @progbits
+.globl utrap_ret
+.type utrap_ret, %function
+utrap_ret:
 	ba utrap_ret
 	 nop

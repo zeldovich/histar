@@ -2,5 +2,6 @@ LIB_SRCFILES += lib/$(ARCH)/mathops.S \
 		lib/$(ARCH)/win.S
 
 # Keep synchronized with memlayout.h
-LDFLAGS += -Wl,-u,uwin_overflow -Wl,--section-start,.uwin_overflow=0x3FFFE000 \
+LDFLAGS += -Wl,--section-start,.utrap_masked=0x3FFFD000 \
+	   -Wl,-u,uwin_overflow -Wl,--section-start,.uwin_overflow=0x3FFFE000 \
 	   -Wl,-u,uwin_underflow -Wl,--section-start,.uwin_underflow=0x3FFFF000
