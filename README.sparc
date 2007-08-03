@@ -1,10 +1,18 @@
 * binutils
 
+Apply patches from:
+
+    http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/binutils/files/binutils-leon-nofpu.patch
+    http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/binutils/files/binutils-raksha-taginsn.patch
+
 ./configure --prefix=/usr/local --disable-nls --target=sparc-jos-linux
 
 * GCC 4.1.2
 
-apply conf/sparc-gcc-4.1.2.patch
+Apply conf/sparc-gcc-4.1.2.patch
+Apply patch from:
+
+    http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/gcc/files/gcc-leon-nofpu.patch
 
 ./configure --target=sparc-jos-linux --prefix=/usr/local \
 	--disable-nls --without-headers --with-newlib \
