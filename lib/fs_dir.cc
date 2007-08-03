@@ -169,12 +169,31 @@ fs_lookup_path(struct fs_inode start_dir, const char *pn,
 	       struct fs_inode *o, int symlinks,
 	       uint32_t flags)
 {
+    /*
+     * We allow specifying two special pathnames:
+     *
+     *    #containerid
+     *    #containerid.objectid
+     */
     if (pn[0] == '#') {
 	uint64_t ctid;
-	int r = strtou64(pn + 1, 0, 10, &ctid);
+	char *leftover;
+
+	int r = strtou64(pn + 1, &leftover, 10, &ctid);
 	if (r == 0) {
-	    o->obj = COBJ(ctid, ctid);
-	    return 0;
+	    if (*leftover == '\0') {
+		o->obj = COBJ(ctid, ctid);
+		return 0;
+	    }
+
+	    if (*leftover == '.') {
+		uint64_t objid;
+		r = strtou64(leftover + 1, &leftover, 10, &objid);
+		if (r == 0 && *leftover == '\0') {
+		    o->obj = COBJ(ctid, objid);
+		    return 0;
+		}
+	    }
 	}
     }
 
