@@ -13,7 +13,7 @@ main(int ac, char **av)
 
     if (r == 0) {
 	printf("jmptest: longjmp'ing back\n");
-	jos_longjmp(&jb, 0);
+	jos_longjmp(&jb, 1);
     }
 
     if (r == 1) {
