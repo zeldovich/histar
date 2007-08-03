@@ -270,6 +270,7 @@ do_fork()
     te.te_entry = (void *) &jos_longjmp;
     te.te_stack = 0;
     te.te_arg[0] = (uintptr_t) &jb;
+    te.te_arg[1] = 1;
 
     if (fork_debug)
 	cprintf("fork: new thread labels %s / %s\n",
