@@ -104,11 +104,12 @@ def_trap:
 	WRITE_PAUSE
 
 	mov	%g0, %fp
+	mov	%g7, %o0
 	mov	%g7, %sp
 
 	rd	%tbr, %o1
 	call	trap_handler
-	 mov	%sp, %o0
+	 sub	%sp, STACKFRAME_SZ, %sp
 
 ENTRY(trapframe_pop)
 	mov	%o0, %g1
