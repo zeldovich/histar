@@ -872,7 +872,7 @@ siglongjmp(sigjmp_buf env, int val)
 	signal_trap_if_pending();
     }
 
-    jos_longjmp(&env->__jmpbuf, val);
+    jos_longjmp(&env->__jmpbuf, val ? : 1);
 }
 
 int
@@ -885,5 +885,5 @@ _setjmp(jmp_buf env)
 void
 longjmp(jmp_buf env, int val)
 {
-    jos_longjmp(&env->__jmpbuf, val);
+    jos_longjmp(&env->__jmpbuf, val ? : 1);
 }
