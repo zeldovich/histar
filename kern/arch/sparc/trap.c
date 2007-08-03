@@ -205,12 +205,12 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_wim = 0xFE;
     t->th_tf.tf_psr = PSR_S | ((NWINDOWS - 1) << PSR_CWP_SHIFT);
     t->th_tf.tf_reg1.sp = (uintptr_t) te->te_stack;
-    t->th_tf.tf_reg1.i0 = te->te_arg[0];
-    t->th_tf.tf_reg1.i1 = te->te_arg[1];
-    t->th_tf.tf_reg1.i2 = te->te_arg[2];
-    t->th_tf.tf_reg1.i3 = te->te_arg[3];
-    t->th_tf.tf_reg1.i4 = te->te_arg[4];
-    t->th_tf.tf_reg1.i5 = te->te_arg[5];
+    t->th_tf.tf_reg1.o0 = te->te_arg[0];
+    t->th_tf.tf_reg1.o1 = te->te_arg[1];
+    t->th_tf.tf_reg1.o2 = te->te_arg[2];
+    t->th_tf.tf_reg1.o3 = te->te_arg[3];
+    t->th_tf.tf_reg1.o4 = te->te_arg[4];
+    t->th_tf.tf_reg1.o5 = te->te_arg[5];
     
     for (uint32_t i = 0; i < thread_entry_narg; i++)
 	t->th_tfa.tfa_entry_args.te_arg[i] = te->te_arg[i];
