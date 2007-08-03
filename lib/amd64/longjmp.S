@@ -26,14 +26,6 @@ ENTRY(jos_longjmp)
 	movq	56(%rdi), %r15
 
 	pushq	%rax		// push %rip for ret
-
-	xorq	%rax, %rax	// never return 0
-	cmp	%rsi, %rax
-	jnz	1f
-	movq	$1, %rax
-	jmp	2f
-1:
 	movq	%rsi, %rax
-2:
 	ret
 

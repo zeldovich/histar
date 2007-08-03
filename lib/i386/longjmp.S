@@ -29,9 +29,5 @@ ENTRY(jos_longjmp)
 	movl	20(%eax), %edi
 
 	movl	%edx, %eax
-	cmpl	$0, %eax	// never return 0
-	jnz	1f
-	movl	$1, %eax
-1:
 	jmp	*%ecx
 
