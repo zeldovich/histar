@@ -10,6 +10,9 @@ extern "C" {
 
 #include <string.h>
 #include <inttypes.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 }
 
 #include <inc/authclnt.hh>
@@ -237,6 +240,10 @@ ret:
 static void
 auth_user_init(void)
 {
+    /* Don't need any input, close our stdin */
+    close(0);
+    open("/dev/null", O_RDWR);
+
     error_check(sys_self_get_as(&base_as_ref));
 
     int64_t config_ct = 0;
@@ -277,16 +284,33 @@ auth_user_init(void)
     pw_ctm.set(user_taint, 3);
 
     struct user_password *pw = 0;
-    error_check(segment_alloc(start_env->shared_container,
+    error_check(segment_alloc(config_ct,
 			      sizeof(struct user_password),
 			      &user_password_seg,
 			      (void **)&pw, pw_ctm.to_ulabel(), "password"));
     scope_guard<int, void *> unmap(segment_unmap, pw);
-    
+
     sha1_ctx sctx;
     sha1_init(&sctx);
     sha1_final((unsigned char *) pw->pwhash, &sctx);
 
+    // any error output
+    struct cobj_ref log_seg;
+    error_check(segment_alloc(config_ct, 0, &log_seg,
+			      0, pw_ctm.to_ulabel(), "log"));
+
+    char logpn[64];
+    sprintf(&logpn[0], "#%"PRIu64".%"PRIu64, log_seg.container, log_seg.object);
+    int logfd = open(logpn, O_RDWR);
+    if (logfd < 0) {
+	printf("cannot open log file: %d %s\n", logfd, strerror(errno));
+    } else {
+	dup2(logfd, 1);
+	dup2(logfd, 2);
+	close(logfd);
+    }
+
+    // gate
     label th_ctm, th_clr;
     thread_cur_label(&th_ctm);
     thread_cur_clearance(&th_clr);
@@ -295,6 +319,8 @@ auth_user_init(void)
     gate_create(start_env->shared_container,
 		"user login gate", &th_ctm, &th_clr, 0,
 		&auth_user_entry, 0);
+
+    printf("auth_user: ready\n");
 }
 
 int
