@@ -103,7 +103,7 @@ all:
 
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o $(OBJDIR)/lib/%.o \
-	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo
+	$(OBJDIR)/user/%.o $(OBJDIR)/user/%.debuginfo $(OBJDIR)/user/%
 
 KERN_CFLAGS := $(COMFLAGS) $(INCLUDES) -DJOS_KERNEL $(CWARNS) -Werror $(KERN_PROF)
 USER_INC    := $(INCLUDES)
