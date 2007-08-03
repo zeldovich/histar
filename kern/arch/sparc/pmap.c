@@ -5,14 +5,6 @@
 #include <inc/error.h>
 #include <inc/safeint.h>
 
-static ptent_t*
-pmap_entp(uint32_t *pgmap, int pmlevel, uint32_t idx)
-{
-    if (pmlevel == 2)
-	return &((struct Pagemap *)(pgmap))->pm1_ent[idx];
-    return &((struct Pagemap2 *)(pgmap))->pm2_ent[idx];
-}
-
 static int
 pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
 {
@@ -38,12 +30,6 @@ pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
     return 0;
 }
 
-static void
-pmap_free_pmap2(struct Pagemap2fl *fl, struct Pagemap2 *pgmap)
-{
-    LIST_INSERT_HEAD(fl, pgmap, pm2_link);
-}
-
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
@@ -58,43 +44,49 @@ page_map_alloc(struct Pagemap **pm_store)
 }
 
 static void
-page_map_free_level(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl)
+page_map_free_level(ptent_t *pgmap, int pmlevel, struct Pagemap2fl *fl)
 {
-    // Skip the kernel half of the address space
-    int maxi = (pmlevel == NPTLVLS ? NPTENTRIES(pmlevel)/2 : NPTENTRIES(pmlevel));
-    int i;
+    /* For higher-level page tables, free their lower-level page tables */
+    if (pmlevel > 0) {
+	/* Skip the kernel half of the address space */
+	int maxi = (pmlevel == NPTLVLS ? NPTENTRIES(pmlevel)/2 : NPTENTRIES(pmlevel));
 
-    for (i = 0; i < maxi; i++) {
-	ptent_t ptent = *pmap_entp(pgmap, pmlevel, i);
-	if (PT_ET(ptent) == PT_ET_NONE)
-	    continue;
-	if (pmlevel > 0) {
-	    uint32_t *pm = pa2kva(PTD_ADDR(ptent));
-	    page_map_free_level(pm, pmlevel - 1, fl);
+	for (int i = 0; i < maxi; i++) {
+	    ptent_t ptent = pgmap[i];
+	    if (PT_ET(ptent) == PT_ET_PTD) {
+		ptent_t *pm = pa2kva(PTD_ADDR(ptent));
+		page_map_free_level(pm, pmlevel - 1, fl);
+	    }
 	}
     }
 
-    if (pmlevel == NPTLVLS)
-	page_free(pgmap);
-    else
-	pmap_free_pmap2(fl, (struct Pagemap2 *)pgmap);
+    /* For non-top-level PTs, put them back onto the free list */
+    if (pmlevel < NPTLVLS)
+	LIST_INSERT_HEAD(fl, (struct Pagemap2 *) pgmap, pm2_link);
 }
 
 void
 page_map_free(struct Pagemap *pgmap)
 {
-    page_map_free_level((uint32_t *)pgmap, NPTLVLS, &pgmap->fl);
-    
-    struct Pagemap2 *pm2;
-    LIST_FOREACH(pm2, &pgmap->fl, pm2_link) {
-	uint32_t addr = (uint32_t)pm2;
-	if ((addr % PGSIZE) == 0)
-	    page_free(pm2);
+    page_map_free_level(&pgmap->pm1_ent[0], NPTLVLS, &pgmap->fl);
+
+    struct Pagemap2 *pm2, *npm2;
+    for (pm2 = LIST_FIRST(&pgmap->fl); pm2; pm2 = npm2) {
+	npm2 = LIST_NEXT(pm2, pm2_link);
+	if (PGOFF(pm2))
+	    LIST_REMOVE(pm2, pm2_link);
     }
+
+    for (pm2 = LIST_FIRST(&pgmap->fl); pm2; pm2 = npm2) {
+	npm2 = LIST_NEXT(pm2, pm2_link);
+	page_free(pm2);
+    }
+
+    page_free(pgmap);
 }
 
 static int
-page_map_traverse_internal(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
+page_map_traverse_internal(ptent_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
 			   const void *first, const void *last,
 			   int create,
 			   page_map_traverse_cb cb, const void *arg,
@@ -107,7 +99,7 @@ page_map_traverse_internal(uint32_t *pgmap, int pmlevel, struct Pagemap2fl *fl,
     uint32_t last_idx  = PDX(pmlevel, last);
 
     for (uint32_t idx = first_idx; idx <= last_idx; idx++) {
-	ptent_t *pm_entp = pmap_entp(pgmap, pmlevel, idx);
+	ptent_t *pm_entp = &pgmap[idx];
 	ptent_t pm_ent = *pm_entp;
 
 	void *ent_va = va_base + (idx << PDSHIFT(pmlevel));
@@ -154,7 +146,7 @@ page_map_traverse(struct Pagemap *pgmap, const void *first, const void *last,
 {
     if (last >= (const void *) ULIM)
 	last = (const void *) ULIM - PGSIZE;
-    return page_map_traverse_internal((uint32_t *)pgmap, NPTLVLS, &pgmap->fl, 
+    return page_map_traverse_internal(&pgmap->pm1_ent[0], NPTLVLS, &pgmap->fl, 
 				      first, last, create, cb, arg, 0);
 }
 
@@ -274,7 +266,6 @@ pmap_set_current(struct Pagemap *pm)
 void
 as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 {
-    //const struct Pagemap *pgmap = arg;
     uint64_t pte = *ptep;
     if (!(PT_ET(pte) == PT_ET_PTE) || !(pte & PTE_M))
 	return;
@@ -287,7 +278,6 @@ as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
 void
 as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    //const struct Pagemap *pgmap = arg;
     as_arch_collect_dirty_bits(arg, ptep, va);
 
     uint32_t pte = *ptep;
@@ -301,7 +291,6 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
 void
 as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 {
-    //const struct Pagemap *pgmap = arg;
     as_arch_collect_dirty_bits(arg, ptep, va);
     
     uint32_t pte = *ptep;
@@ -335,7 +324,7 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
     if (ptflags & PTE_ACC_W)
-    	pagetree_incpin(pp);
+	pagetree_incpin(pp);
 
     return 0;
 }
