@@ -4,7 +4,8 @@
 
 
 ENTRY(utrap_entry_asm)
-	ba utrap_entry_asm
+	mov	%sp, %o0
+	call	utrap_entry
 	 nop
 
 .section .utrap_masked, "ax", @progbits
