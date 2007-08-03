@@ -201,6 +201,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     memset(&t->th_tf, 0, sizeof(t->th_tf));
     t->th_tf.tf_pc = (uintptr_t) te->te_entry;
     t->th_tf.tf_npc = (uintptr_t) (te->te_entry + 4);
+    t->th_tf.tf_reg1.g7 = UT_NMASK;
     t->th_tf.tf_wim = 0xFE;
     t->th_tf.tf_psr = PSR_S | ((NWINDOWS - 1) << PSR_CWP_SHIFT);
     t->th_tf.tf_reg1.sp = (uintptr_t) te->te_stack;
@@ -210,7 +211,7 @@ thread_arch_jump(struct Thread *t, const struct thread_entry *te)
     t->th_tf.tf_reg1.i3 = te->te_arg[3];
     t->th_tf.tf_reg1.i4 = te->te_arg[4];
     t->th_tf.tf_reg1.i5 = te->te_arg[5];
-
+    
     for (uint32_t i = 0; i < thread_entry_narg; i++)
 	t->th_tfa.tfa_entry_args.te_arg[i] = te->te_arg[i];
     
@@ -246,9 +247,57 @@ thread_arch_idle(void)
 }
 
 int
+thread_arch_is_masked(const struct Thread *t)
+{
+    if (t->th_tf.tf_reg1.g7 == UT_MASK)
+	return 1;
+    if (t->th_tf.tf_pc >= UTRAPMASKED && t->th_tf.tf_pc < (UTRAPMASKED + PGSIZE))
+	return 1;
+    return 0;
+}
+
+int
 thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 {
-    return -E_INVAL;
+    void *stacktop;
+    uint32_t sp = t->th_tf.tf_reg1.sp;
+    if (sp > t->th_as->as_utrap_stack_base &&
+	sp <= t->th_as->as_utrap_stack_top)
+	stacktop = (void *) sp;
+    else
+	stacktop = (void *) t->th_as->as_utrap_stack_top;
+
+    struct UTrapframe t_utf;
+    t_utf.utf_trap_src = src;
+    t_utf.utf_trap_num = num;
+    t_utf.utf_trap_arg = arg;
+
+    memcpy(&t_utf.utf_reg, &t->th_tf.tf_reg1, sizeof(t_utf.utf_reg));
+    t_utf.utf_pc = t->th_tf.tf_pc;
+    t_utf.utf_npc = t->th_tf.tf_npc;
+    t_utf.utf_y = t->th_tf.tf_y;
+    
+    struct UTrapframe *utf = stacktop - sizeof(*utf);
+    int r = check_user_access(utf, sizeof(*utf), SEGMAP_WRITE);
+    if (r < 0) {
+	if ((uintptr_t) utf <= t->th_as->as_utrap_stack_base)
+	    cprintf("thread_arch_utrap: utrap stack overflow\n");
+	return r;
+    }
+
+    if (t == trap_thread && trap_thread_syscall_writeback) {
+	trap_thread_syscall_writeback = 0;
+	t_utf.utf_reg.i0 = 0;
+	t_utf.utf_reg.i1 = 0;
+    }
+
+    memcpy(utf, &t_utf, sizeof(*utf));
+    t->th_tf.tf_reg1.sp = (uintptr_t) utf;
+    t->th_tf.tf_pc = t->th_as->as_utrap_entry;
+    t->th_tf.tf_npc = t->th_tf.tf_pc + 4;
+    t->th_tf.tf_reg1.g7 = UT_MASK;
+    
+    return 0;
 }
 
 void
@@ -270,11 +319,4 @@ void
 karch_fp_init(struct Fpregs *fpreg)
 {
     cprintf("karch_fp_init: XXX unimpl\n");
-}
-
-int
-thread_arch_is_masked(const struct Thread *t)
-{
-    cprintf("thread_arch_is_masked: XXX unimpl\n");
-    return 0;
 }

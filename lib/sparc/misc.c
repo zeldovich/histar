@@ -12,13 +12,24 @@ arch_read_tsc(void)
 int
 utrap_is_masked(void)
 {
-    return 0;
+    uint32_t g7;
+    __asm__ __volatile__("mov %%g7, %0\n\t": "=r"(g7));
+    /* We never call this in the UTRAPMASKED section */
+    return g7 == UT_MASK;
 }
 
 int
 utrap_set_mask(int masked)
 {
-    return 0;
+    uint32_t oldg7;
+    __asm__ __volatile__("mov %%g7, %0\n\t": "=r"(oldg7));
+
+    if (masked)
+	__asm__ __volatile__("mov %0, %%g7\n\t":: "i"(UT_MASK));
+    else
+	__asm__ __volatile__("mov %0, %%g7\n\t":: "i"(UT_NMASK));
+    
+    return oldg7 == UT_MASK;
 }
 
 void
