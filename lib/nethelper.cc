@@ -115,16 +115,10 @@ tcpconn::read(char *buf, size_t len)
 }
 
 lineparser::lineparser(tcpconn *tc)
-    : tc_(tc), size_(4096), buf_((char *) malloc(size_)), pos_(0), valid_(0)
+    : tc_(tc), pos_(0), valid_(0)
 {
     if (buf_ == 0)
 	throw std::bad_alloc();
-}
-
-lineparser::~lineparser()
-{
-    if (buf_)
-	free(buf_);
 }
 
 size_t
@@ -167,7 +161,7 @@ lineparser::refill()
     valid_ -= pos_;
     pos_ = 0;
 
-    size_t space = size_ - valid_;
+    size_t space = sizeof(buf_) - valid_;
     if (space > 0) {
 	size_t cc = tc_->read(&buf_[valid_], space);
 	valid_ += cc;

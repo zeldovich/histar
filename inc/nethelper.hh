@@ -41,7 +41,7 @@ class tcpconn {
 class lineparser {
  public:
     lineparser(tcpconn *tc);
-    ~lineparser();
+    ~lineparser() {};
 
     size_t read(char *buf, size_t len);
     const char *read_line();
@@ -54,9 +54,7 @@ class lineparser {
 
     tcpconn *tc_;
 
-    size_t size_;
-    char *buf_;
-
+    char buf_[1024];
     size_t pos_;
     size_t valid_;
 };
