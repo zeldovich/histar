@@ -24,6 +24,7 @@ static char ssl_enable = 1;
 static char ssl_privsep_enable = 1;
 static char ssl_eproc_enable = 1;
 static char http_auth_enable = 1;
+static char http_dj_enable = 0;
 
 static const char* httpd_root_path = "/www";
 static const char *module_setup_bin = "/bin/modulei";
@@ -174,11 +175,12 @@ main (int ac, char **av)
     label httpd_dr(0);
     httpd_dr.set(access_grant, 3);
 
-    char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4];
-    snprintf(ssle_buf, sizeof(verify_arg), "%d", ssl_enable );
-    snprintf(sslp_buf, sizeof(verify_arg), "%d", ssl_privsep_enable );
-    snprintf(ssle2_buf, sizeof(verify_arg), "%d", ssl_eproc_enable );
-    snprintf(httpa_buf, sizeof(verify_arg), "%d", http_auth_enable );
+    char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4], httpd_buf[4];
+    snprintf(ssle_buf, sizeof(ssle_buf), "%d", ssl_enable);
+    snprintf(sslp_buf, sizeof(sslp_buf), "%d", ssl_privsep_enable);
+    snprintf(ssle2_buf, sizeof(ssle2_buf), "%d", ssl_eproc_enable);
+    snprintf(httpa_buf, sizeof(httpa_buf), "%d", http_auth_enable);
+    snprintf(httpd_buf, sizeof(httpd_buf), "%d", http_dj_enable);
 
     if (inetd_enable) {
 	const char *inetd_pn = "/bin/inetd";
@@ -187,6 +189,7 @@ main (int ac, char **av)
 				     "--ssl_privsep_enable", sslp_buf,
 				     "--ssl_eproc_enable", ssle2_buf,
 				     "--http_auth_enable", httpa_buf,
+				     "--http_dj_enable", httpd_buf,
 				     "--httpd_root_path", "/www" };
 	spawn(httpd_ct, inetd_ino,
 	      0, 0, 0,
@@ -201,6 +204,7 @@ main (int ac, char **av)
 				     "--ssl_privsep_enable", sslp_buf,
 				     "--ssl_eproc_enable", ssle2_buf,
 				     "--http_auth_enable", httpa_buf,
+				     "--http_dj_enable", httpd_buf,
 				     "--httpd_root_path", "/www" };
 	spawn(httpd_ct, httpd_ino,
 	      0, 0, 0,

@@ -24,6 +24,7 @@ extern "C" {
 static char ssl_privsep_enable;
 static char ssl_eproc_enable;
 static char http_auth_enable;
+static char http_dj_enable;
 static fs_inode httpd_root_ino;
 static char *httpd_path;
 static cobj_ref httpd_mtab_seg;
@@ -33,6 +34,7 @@ arg_desc cmdarg[] = {
     { "ssl_eproc_enable", "1" },
     
     { "http_auth_enable", "0" },
+    { "http_dj_enable", "0" },
     { "httpd_path", "/bin/httpd2"},
     { "httpd_root_path", "/www" },
         
@@ -96,7 +98,8 @@ spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
 			   object_arg, 
 			   chan_arg,
 			   http_auth_enable ? "1" : "0",
-			   count_arg };
+			   count_arg,
+			   http_dj_enable ? "1" : "0" };
 
     label ds(3), dr(1);
     ds.set(taint, LB_LEVEL_STAR);
@@ -109,7 +112,7 @@ spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
     sd.fd1_ = 0;
     sd.fd2_ = 0;
     
-    sd.ac_ = 6;
+    sd.ac_ = sizeof(argv) / sizeof(argv[0]);
     sd.av_ = &argv[0];
 
     sd.ds_ = &ds;
@@ -198,6 +201,7 @@ main(int ac, const char **av)
     ssl_privsep_enable = atoi(arg_val(cmdarg, "ssl_privsep_enable"));
     ssl_eproc_enable = atoi(arg_val(cmdarg, "ssl_eproc_enable"));
     http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
+    http_dj_enable = atoi(arg_val(cmdarg, "http_dj_enable"));
     httpd_path = arg_val(cmdarg, "httpd_path");
 
     const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
@@ -226,6 +230,7 @@ main(int ac, const char **av)
     printf(" %-20s %d\n", "ssl_privsep_enable", ssl_privsep_enable);
     printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
     printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+    printf(" %-20s %d\n", "http_dj_enable", http_dj_enable);
     printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
     printf(" %-20s %s\n", "httpd_path", httpd_path);
 

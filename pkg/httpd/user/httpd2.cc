@@ -39,7 +39,7 @@ enum { debug_dj = 0 };
 
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
-static int httpd_dj_enable = 0;
+static int httpd_dj_enable = 1;
 static uint64_t dj_app_server_count = 1;
 static uint64_t dj_user_server_count = 1;
 
@@ -469,9 +469,9 @@ http_client(int s)
 int
 main(int ac, const char **av)
 {
-    if (ac < 5) {
+    if (ac < 7) {
 	cprintf("usage: %s jcomm-container jcomm-object jcomm-chan"
-		"auth-enable [conn-count]\n", av[0]);
+		"auth-enable conn-count dj-enable\n", av[0]);
 	return -1;
     }
     
@@ -492,18 +492,19 @@ main(int ac, const char **av)
     
     uint64_t dj_app_server_index = 0;
     uint64_t dj_user_server_index = 0;
-    if (ac > 5) {
-	uint64_t index = 1;
-	r = strtou64(av[5], 0, 10, &index);
-	if (r < 0)
-	    panic("parsing conn-count%s: %s", av[5], e2s(r));
-	dj_app_server_index = index % dj_app_server_count;
-	dj_user_server_index = index % dj_user_server_count;
-    }
+
+    uint64_t index = 1;
+    r = strtou64(av[5], 0, 10, &index);
+    if (r < 0)
+	panic("parsing conn-count%s: %s", av[5], e2s(r));
+    dj_app_server_index = index % dj_app_server_count;
+    dj_user_server_index = index % dj_user_server_count;
 
     http_auth_enable = av[4][0] != '0' ? 1 : 0;
+    httpd_dj_enable = av[6][0] != '0' ? 1 : 0;
+
     httpd_root_ino = start_env->fs_root;
-    
+
     char dj_app_host_file[64], dj_app_ct_file[64], dj_app_gate_file[64];
     snprintf(dj_app_host_file, sizeof(dj_app_host_file), 
 	     "/dj_app_host%lu", dj_app_server_index);
