@@ -27,11 +27,13 @@ main(int ac, char **av)
 
     char *pass, *npass;
     x = readline("password: ", 0);
+    printf("\n");
     if (!x)
 	return -1;
     pass = strdup(x);
 
     x = readline("new password: ", 0);
+    printf("\n");
     if (!x)
 	return -1;
     npass = strdup(x);

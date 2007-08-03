@@ -83,6 +83,7 @@ prompt(const char *initial_user)
 	}
     
         char *p = readline("password: ", 0);
+	printf("\n");
 	if (!p)
 	    return;
         strcpy(pass, p);
