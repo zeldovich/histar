@@ -107,6 +107,7 @@ jif_rx_thread(void *a)
     }
 
     sys_self_set_as(COBJ(start_env->proc_container, rx_asid));
+    segment_as_switched();
 
     for (;;) {
 	jif_lock(jif);

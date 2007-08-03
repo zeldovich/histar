@@ -158,7 +158,24 @@ jos64_socket_thread(struct socket_conn *sc)
     int status ;
     debug_print(dbg, "(j%ld) starting", thread_id());
 
-    int r = sys_segment_resize(COBJ(0, kobject_id_thread_sg), 2 * PGSIZE);
+    struct cobj_ref base_as;
+    int r = sys_self_get_as(&base_as);
+    if (r < 0) {
+	cprintf("jos64_socket_thread: cannot get AS\n");
+	return;
+    }
+
+    int64_t new_asid = sys_as_copy(base_as, start_env->proc_container,
+				   0, "jos64_socket_thread as");
+    if (new_asid < 0) {
+	cprintf("jos64_socket_thread: cannot copy AS\n");
+	return;
+    }
+
+    sys_self_set_as(COBJ(start_env->proc_container, new_asid));
+    segment_as_switched();
+
+    r = sys_segment_resize(COBJ(0, kobject_id_thread_sg), 2 * PGSIZE);
     if (r < 0) {
 	debug_print(1, "(j%ld) cannot resize TLS: %s", thread_id(), e2s(r));
 	return;
@@ -172,7 +189,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	    z = jcomm_write(sc->ctrl_comm, &status, sizeof(status));
 	    debug_print(z < 0, "(j%ld) error writing status: %s",
 			thread_id(), e2s(z));
-	    return;
+	    goto as_out;
 	}
     } else {
 	ss = slot_alloc();
@@ -301,4 +318,9 @@ jos64_socket_thread(struct socket_conn *sc)
     ss->jos2lnx_full = 1;
     lutrap_kill(SIGNAL_NETD);
     debug_print(dbg, "(j%ld) stopping", thread_id());
+
+ as_out:
+    segment_as_invalidate_nowb();
+    sys_self_set_as(base_as);
+    sys_obj_unref(COBJ(start_env->proc_container, new_asid));
 }
