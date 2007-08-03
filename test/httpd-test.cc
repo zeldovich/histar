@@ -102,7 +102,7 @@ static int
 http_request(SSL *ssl, const char *host, int port)
 {
     char *request=0;
-    char buf[bufsize];
+    char buf[bufsize + 1];
     int r;
     int len, request_len;
     
@@ -128,7 +128,7 @@ http_request(SSL *ssl, const char *host, int port)
 
     char first = 1;
     while (1) {
-	r = SSL_read(ssl, buf, sizeof(buf));
+	r = SSL_read(ssl, buf, bufsize);
 
 	switch(SSL_get_error(ssl, r)){
         case SSL_ERROR_NONE:
@@ -143,8 +143,10 @@ http_request(SSL *ssl, const char *host, int port)
 	    fwrite(buf, 1, len, stdout);
 	
 	if (first) {
-	    if (warnings && memcmp("HTTP/1.0 200", buf, strlen("HTTP/1.0 200")))
+	    if (warnings && memcmp("HTTP/1.0 200", buf, strlen("HTTP/1.0 200"))) {
+		buf[len] = '\0';
 		fprintf(stderr, "HTTP error: %s\n", buf);
+	    }
 	    first = 0;
 	}
     }
