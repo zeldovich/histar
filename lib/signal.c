@@ -27,19 +27,21 @@
 #if defined(JOS_ARCH_amd64) || defined(JOS_ARCH_i386)
  #include <machine/x86.h>
  #include <machine/trapcodes.h>
- #define ARCH_PGFLT  T_PGFLT
- #define ARCH_DEVICE T_DEVICE
- #define ARCH_BRKPT  T_BRKPT
- #define ARCH_DEBUG  T_DEBUG
+ #define ARCH_PGFLTD  T_PGFLT
+ #define ARCH_PGFLTI  T_PGFLT
+ #define ARCH_DEVICE  T_DEVICE
+ #define ARCH_BRKPT   T_BRKPT
+ #define ARCH_DEBUG   T_DEBUG
 
  #define JOS_ONSTACK_GCCATTR regparm(2)
 #elif defined(JOS_ARCH_sparc)
  // XXX
  #include <machine/trapcodes.h>
- #define ARCH_PGFLT  1
- #define ARCH_DEVICE 2
- #define ARCH_BRKPT  3
- #define ARCH_DEBUG  4
+ #define ARCH_PGFLTD  T_DATAFAULT
+ #define ARCH_PGFLTI  T_TEXTFAULT
+ #define ARCH_DEVICE  T_FP
+ #define ARCH_BRKPT   T_BRKPT
+ #define ARCH_DEBUG   T_BRKPT
 
  #define JOS_ONSTACK_GCCATTR
 #else
@@ -518,7 +520,11 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     utf_jump.utf_esi = (uintptr_t) utrap_chain;
     utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
 #elif defined(JOS_ARCH_sparc)
-    panic("signal_utrap_si: XXX");
+    utf_jump.utf_pc = (uintptr_t) &signal_utrap_onstack;
+    utf_jump.utf_npc = utf_jump.utf_npc + 4;
+    utf_jump.utf_reg1.sp = (uintptr_t) stackptr;
+    utf_jump.utf_reg1.o0 = (uintptr_t) si_arg;
+    utf_jump.utf_reg1.o1 = (uintptr_t) sc_arg;
 #else
 #error Unknown arch
 #endif
@@ -542,7 +548,8 @@ signal_utrap(struct UTrapframe *utf)
 
     if (utf->utf_trap_src == UTRAP_SRC_HW) {
 	si.si_addr = (void *) (uintptr_t) utf->utf_trap_arg;
-	if (utf->utf_trap_num == ARCH_PGFLT) {
+	if (utf->utf_trap_num == ARCH_PGFLTD ||
+	    utf->utf_trap_num == ARCH_PGFLTI) {
 	    int r = stack_grow(si.si_addr);
 	    if (r > 0) {
 		if (signal_debug)

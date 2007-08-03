@@ -31,10 +31,16 @@
 #define T_TEXT_MMU_MISS	0x3c	/* instruction_access_MMU_miss */
 
 /*
- * Software-defined traps
+ * Software-defined traps 
+ * 0x80 - 0x88 specified in ABI
+ * 0x89 - 0x8F reserved for OS
+ * 0x90 - 0x9F unspecified
+ * 0xA0 - 0xA1 specified in ABI
+ * 0xA2 - 0xFF reserved for OS
  */
 #define T_SOFTWARE_MIN  0x80
 #define T_SYSCALL	0x80
+#define T_BRKPT         0x81
 #define T_FLUSHWIN      0x83
 #define T_EMUERR	0x89
 #define SOFTWARE_TRAP(num) ((num) - 0x80)
