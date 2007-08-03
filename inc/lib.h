@@ -44,7 +44,7 @@ int	segment_set_utrap(void *entry, void *stack_base, void *stack_top);
 
 /* Notify that the thread has changed AS objects */
 void	segment_as_switched(void);
-void	segment_as_invalidate_nowb(void);
+void	segment_as_invalidate_nowb(uint64_t asid);
 
 /* Flush buffered unmap requests */
 void	segment_unmap_flush(void);

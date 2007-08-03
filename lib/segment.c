@@ -204,9 +204,12 @@ segment_as_switched(void)
 }
 
 void
-segment_as_invalidate_nowb(void)
+segment_as_invalidate_nowb(uint64_t asid)
 {
-    cache_asref.object = 0;
+    int l = as_mutex_lock();
+    if (asid == 0 || asid == cache_asref.object)
+	cache_asref.object = 0;
+    as_mutex_unlock(l);
 }
 
 void

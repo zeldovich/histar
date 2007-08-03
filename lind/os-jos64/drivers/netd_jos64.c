@@ -320,7 +320,7 @@ jos64_socket_thread(struct socket_conn *sc)
     debug_print(dbg, "(j%ld) stopping", thread_id());
 
  as_out:
-    segment_as_invalidate_nowb();
+    segment_as_invalidate_nowb(new_asid);
     sys_self_set_as(base_as);
     sys_obj_unref(COBJ(start_env->proc_container, new_asid));
 }
