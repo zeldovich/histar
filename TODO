@@ -18,6 +18,17 @@ Usability:
     + initialize partition table, write a kernel-only boot file to disk
   - sys_pstate_enable() disables disk device access, writes pstate to disk.
     + writes the user-level persistent state to disk for later use.
+* dstar-style labels: split information flow label from privilege label
+  (stars and clearance).  optimize labels as hashed sets of 64-bit values.
+* privilege objects: effectively a kobj_label, with one information flow
+  label protecting the privilege, and a privilege label storing privilege.
+  extend cobj_ref to hold a container entry of the privilege label to use,
+  or 0 for a thread's local privilege.
+* process/page table objects: share page table based on a common privilege
+  object.  need to also agree on the information flow label used to fill
+  in the page table.  page table has container entry of address space object,
+  which also specifies the privilege object used to fill in the page table.
+* optimize container entry lookups by hashing containers?
 
 Compatibility issues:
 
