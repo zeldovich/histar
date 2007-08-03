@@ -93,6 +93,21 @@ jif_rx_thread(void *a)
 {
     struct jif_data *jif = a;
 
+    struct cobj_ref base_as;
+    int r = sys_self_get_as(&base_as);
+    if (r < 0) {
+	cprintf("jif_rx_thread: cannot get AS\n");
+	sys_self_halt();
+    }
+
+    int64_t rx_asid = sys_as_copy(base_as, start_env->proc_container, 0, "jif_rx_thread as");
+    if (rx_asid < 0) {
+	cprintf("jif_rx_thread: cannot copy AS\n");
+	sys_self_halt();
+    }
+
+    sys_self_set_as(COBJ(start_env->proc_container, rx_asid));
+
     for (;;) {
 	jif_lock(jif);
 	while (jif->rx_head < 0 || !(jif->rx[jif->rx_head]->actual_count & NETHDR_COUNT_DONE)) {
