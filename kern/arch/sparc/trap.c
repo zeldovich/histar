@@ -272,7 +272,7 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     t_utf.utf_trap_num = num;
     t_utf.utf_trap_arg = arg;
 
-    memcpy(&t_utf.utf_reg, &t->th_tf.tf_reg1, sizeof(t_utf.utf_reg));
+    memcpy(&t_utf.utf_reg1, &t->th_tf.tf_reg1, sizeof(t_utf.utf_reg1));
     t_utf.utf_pc = t->th_tf.tf_pc;
     t_utf.utf_npc = t->th_tf.tf_npc;
     t_utf.utf_y = t->th_tf.tf_y;
@@ -287,8 +287,8 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 
     if (t == trap_thread && trap_thread_syscall_writeback) {
 	trap_thread_syscall_writeback = 0;
-	t_utf.utf_reg.i0 = 0;
-	t_utf.utf_reg.i1 = 0;
+	t_utf.utf_reg1.i0 = 0;
+	t_utf.utf_reg1.i1 = 0;
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));

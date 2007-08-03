@@ -92,7 +92,15 @@ utf_dump(struct UTrapframe *utf)
     cprintf("eip %08x  eflags %08x\n",
             utf->utf_eip, utf->utf_eflags);
 #elif defined(JOS_ARCH_sparc)
-    cprintf("utf_dump: XXX\n");
+    cprintf("       globals     outs   locals      ins\n");
+    for (uint32_t i = 0; i < 8; i++) {
+	cprintf("   %d: %08x %08x %08x %08x\n", 
+		i, utf->utf_reg0[i], utf->utf_reg0[i + 8],
+		utf->utf_reg0[i + 16], utf->utf_reg0[i + 24]);
+    }
+    cprintf("\n");
+    cprintf(" y: %08x  pc: %08x  npc: %08x\n",
+	    utf->utf_y, utf->utf_pc, utf->utf_npc);
 #else
 #error Unknown arch
 #endif

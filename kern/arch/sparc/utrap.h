@@ -7,8 +7,13 @@
 #define JOS_UTRAP_GCCATTR
 
 struct UTrapframe {
-#define utf_stackptr utf_reg.sp
-    struct Regs utf_reg;
+    // XXX
+#define utf_stackptr utf_reg1.sp
+    union {
+	uint32_t utf_reg0[32];
+	struct Regs utf_reg1;
+    };
+
     uint32_t utf_pc;
     uint32_t utf_npc;
     uint32_t utf_y;
