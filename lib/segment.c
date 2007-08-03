@@ -25,6 +25,7 @@ static uint64_t	cache_thread_id;
 static jthread_mutex_t as_mutex;
 
 enum { segment_debug = 0 };
+enum { usegmapents_bytes = 0x1000000 };		/* should fit in memlayout */
 
 static void __attribute__((noinline))
 reserve_stack_page(void)
@@ -101,15 +102,15 @@ cache_uas_grow(void)
     struct u_segment_mapping *usme =
 	(struct u_segment_mapping *) USEGMAPENTS;
 
+    if (nbytes > usegmapents_bytes) {
+	cprintf("cache_uas_grow: %"PRIu64" too big\n", nbytes);
+	return -E_NO_MEM;
+    }
+
     uint64_t i;
     for (i = 0; i < cache_uas.nent; i++) {
 	if (cache_uas.ents[i].flags && cache_uas.ents[i].va == (void *) usme) {
 	    r = sys_segment_resize(cache_uas.ents[i].segment, nbytes);
-	    if (r < 0)
-		return r;
-
-	    cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
-	    r = sys_as_set_slot(cur_as, &cache_uas.ents[i]);
 	    if (r < 0)
 		return r;
 
@@ -129,7 +130,7 @@ cache_uas_grow(void)
 	cache_uas.nent++;
 	cache_uas.ents[i].segment = COBJ(start_env->proc_container, id);
 	cache_uas.ents[i].start_page = 0;
-	cache_uas.ents[i].num_pages = ROUNDUP(nbytes, PGSIZE) / PGSIZE;
+	cache_uas.ents[i].num_pages = ROUNDUP(usegmapents_bytes, PGSIZE) / PGSIZE;
 	cache_uas.ents[i].flags = SEGMAP_READ | SEGMAP_WRITE;
 	cache_uas.ents[i].va = (void *) usme;
 
