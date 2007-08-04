@@ -117,8 +117,6 @@ tcpconn::read(char *buf, size_t len)
 lineparser::lineparser(tcpconn *tc)
     : tc_(tc), pos_(0), valid_(0)
 {
-    if (buf_ == 0)
-	throw std::bad_alloc();
 }
 
 size_t
