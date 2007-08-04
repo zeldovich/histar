@@ -561,7 +561,7 @@ void
 kobject_incref_resv(const struct kobject_hdr *kh, struct kobject_quota_resv *qr)
 {
     struct kobject *ko = kobject_dirty(kh);
-    if (ko->hdr.ko_ref == 0)
+    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     ko->hdr.ko_ref++;
 
@@ -579,7 +579,7 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
     ko->hdr.ko_ref--;
     refholder->ko_quota_used -= kh->ko_quota_total;
 
-    if (ko->hdr.ko_ref == 0)
+    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
 
     // Inform threads so that they can halt, even if pinned (on zero refs)
@@ -594,19 +594,23 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
 void
 kobject_pin_hdr(const struct kobject_hdr *ko)
 {
-    struct kobject_hdr *m = &kobject_const_h2k(ko)->hdr;
-    ++m->ko_pin;
+    struct kobject *m = kobject_const_h2k(ko);
+    if (m->hdr.ko_ref == 0 && m->hdr.ko_pin == 0)
+	LIST_REMOVE(m, ko_gc_link);
+    ++m->hdr.ko_pin;
 }
 
 void
 kobject_unpin_hdr(const struct kobject_hdr *ko)
 {
-    struct kobject_hdr *m = &kobject_const_h2k(ko)->hdr;
-    --m->ko_pin;
+    struct kobject *m = kobject_const_h2k(ko);
+    if (m->hdr.ko_pin == 0)
+	panic("kobject_unpin_hdr: not pinned: %"PRIu64" (%s)",
+	      m->hdr.ko_id, m->hdr.ko_name);
 
-    if (m->ko_pin == (uint32_t) -1)
-	panic("kobject_unpin_hdr: underflow for object %"PRIu64" (%s)",
-	      m->ko_id, m->ko_name);
+    --m->hdr.ko_pin;
+    if (m->hdr.ko_ref == 0 && m->hdr.ko_pin == 0)
+	LIST_INSERT_HEAD(&ko_gc_list, m, ko_gc_link);
 }
 
 void
@@ -700,13 +704,12 @@ kobject_gc_scan(void)
 	for (ko = LIST_FIRST(&ko_gc_list); ko; ko = next) {
 	    next = LIST_NEXT(ko, ko_gc_link);
 
-	    if (ko->hdr.ko_ref) {
-		cprintf("kobject_gc_scan: referenced object on GC list!\n");
+	    if (ko->hdr.ko_ref || ko->hdr.ko_pin) {
+		cprintf("kobject_gc_scan: referenced object on GC list: "
+			"ref=%"PRIu64" pin=%d\n",
+			ko->hdr.ko_ref, ko->hdr.ko_pin);
 		continue;
 	    }
-
-	    if (ko->hdr.ko_pin)
-		continue;
 
 	    if (ko->hdr.ko_type == kobj_dead) {
 		if (!(ko->hdr.ko_flags & KOBJ_ON_DISK))
@@ -750,7 +753,7 @@ kobject_swapout(struct kobject *ko)
     kobj_weak_drop(&ko->ko_weak_refs);
 
     LIST_REMOVE(ko, ko_link);
-    if (ko->hdr.ko_ref == 0)
+    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
 	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt, 0);
