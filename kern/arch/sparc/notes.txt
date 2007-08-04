@@ -56,3 +56,7 @@ http://www.cs.clemson.edu/~mark/sparc_assembly.html
 
 Gaisler hardware reference:
 http://gaisler.com/products/grlib/grip.pdf
+
+Tag hardware:
+http://www.stanford.edu/~mwdalton/tag/arch/sparcv8_tag.pdf
+
