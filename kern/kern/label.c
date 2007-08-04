@@ -118,7 +118,7 @@ label_get_slotp_write(struct Label *l, uint32_t slotnum, uint64_t **slotp)
 static int
 label_get_level(const struct Label *l, uint64_t handle)
 {
-    for (uint32_t i = 0; i < label_nslots(l); i++) {
+    for (uint32_t i = 0; i < l->lb_nent; i++) {
 	const uint64_t *entp;
 	assert(0 == label_get_slotp_read(l, i, &entp));
 	if (*entp && LB_HANDLE(*entp) == handle)
@@ -138,8 +138,8 @@ label_alloc(struct Label **lp, uint8_t def)
 
     struct Label *l = &ko->lb;
     l->lb_def_level = def;
-    for (int i = 0; i < NUM_LB_ENT_INLINE; i++)
-	l->lb_ent[i] = 0;
+    l->lb_nent = 0;
+    memset(&l->lb_ent[0], 0, sizeof(l->lb_ent));
 
     *lp = l;
     return 0;
@@ -154,6 +154,7 @@ label_copy(const struct Label *src, struct Label **dstp)
 	return r;
 
     dst->lb_def_level = src->lb_def_level;
+    dst->lb_nent = src->lb_nent;
     memcpy(&dst->lb_ent[0], &src->lb_ent[0],
 	   NUM_LB_ENT_INLINE * sizeof(dst->lb_ent[0]));
 
@@ -170,7 +171,7 @@ label_set(struct Label *l, uint64_t handle, uint8_t level)
 {
     int32_t slot_idx = -1;
 
-    for (uint32_t i = 0; i < label_nslots(l); i++) {
+    for (uint32_t i = 0; i < l->lb_nent; i++) {
 	const uint64_t *entp;
 	assert(0 == label_get_slotp_read(l, i, &entp));
 	if (!*entp && slot_idx < 0) {
@@ -184,8 +185,14 @@ label_set(struct Label *l, uint64_t handle, uint8_t level)
 	}
     }
 
+    uint64_t nslots = label_nslots(l);
+    if (slot_idx < 0 && l->lb_nent < nslots) {
+	slot_idx = l->lb_nent;
+	l->lb_nent++;
+    }
+
     if (slot_idx < 0) {
-	slot_idx = label_nslots(l);
+	slot_idx = nslots;
 	int r = kobject_set_nbytes(&l->lb_ko, l->lb_ko.ko_nbytes + PGSIZE);
 	if (r < 0)
 	    return r;
@@ -225,7 +232,7 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 
     uint32_t slot = 0;
     uint32_t overflow = 0;
-    for (uint32_t i = 0; i < label_nslots(l); i++) {
+    for (uint32_t i = 0; i < l->lb_nent; i++) {
 	const uint64_t *entp;
 	r = label_get_slotp_read(l, i, &entp);
 	if (r < 0)
@@ -249,16 +256,21 @@ label_to_ulabel(const struct Label *l, struct ulabel *ul)
 }
 
 int
-ulabel_to_label(struct ulabel *ul, struct Label *l)
+ulabel_to_label(struct ulabel *ul, struct Label **lp)
 {
     int r = check_user_access(ul, sizeof(*ul), 0);
     if (r < 0)
 	return r;
 
-    l->lb_def_level = ul->ul_default;
-    if (l->lb_def_level > LB_LEVEL_STAR)
+    uint8_t def = ul->ul_default;
+    if (def > LB_LEVEL_STAR)
 	return -E_INVAL;
 
+    r = label_alloc(lp, def);
+    if (r < 0)
+	return r;
+
+    struct Label *l = *lp;
     uint32_t ul_nent = ul->ul_nent;
     uint64_t *ul_ent = ul->ul_ent;
 
@@ -343,7 +355,7 @@ label_compare(const struct Label *l1, const struct Label *l2,
     const uint64_t *entp;
     int r;
 
-    for (uint32_t i = 0; i < label_nslots(l1); i++) {
+    for (uint32_t i = 0; i < l1->lb_nent; i++) {
 	r = label_get_slotp_read(l1, i, &entp);
 	if (r < 0)
 	    return r;
@@ -358,7 +370,7 @@ label_compare(const struct Label *l1, const struct Label *l2,
 	    return r;
     }
 
-    for (uint32_t i = 0; i < label_nslots(l2); i++) {
+    for (uint32_t i = 0; i < l2->lb_nent; i++) {
 	r = label_get_slotp_read(l2, i, &entp);
 	if (r < 0)
 	    return r;
@@ -389,15 +401,18 @@ label_compare(const struct Label *l1, const struct Label *l2,
 
 int
 label_max(const struct Label *a, const struct Label *b,
-	  struct Label *dst, level_comparator leq)
+	  struct Label **dstp, level_comparator leq)
 {
     level_comparator_init(leq);
-    dst->lb_def_level = leq->max[a->lb_def_level][b->lb_def_level];
 
+    int r = label_alloc(dstp, leq->max[a->lb_def_level][b->lb_def_level]);
+    if (r < 0)
+	return r;
+
+    struct Label *dst = *dstp;
     const uint64_t *entp;
-    int r;
 
-    for (uint32_t i = 0; i < label_nslots(a); i++) {
+    for (uint32_t i = 0; i < a->lb_nent; i++) {
 	r = label_get_slotp_read(a, i, &entp);
 	if (r < 0)
 	    return r;
@@ -412,7 +427,7 @@ label_max(const struct Label *a, const struct Label *b,
 	    return r;
     }
 
-    for (uint32_t i = 0; i < label_nslots(b); i++) {
+    for (uint32_t i = 0; i < b->lb_nent; i++) {
 	r = label_get_slotp_read(b, i, &entp);
 	if (r < 0)
 	    return r;
@@ -438,7 +453,7 @@ void
 label_cprint(const struct Label *l)
 {
     cprintf("Label %p: {", l);
-    for (uint32_t i = 0; i < label_nslots(l); i++) {
+    for (uint32_t i = 0; i < l->lb_nent; i++) {
 	const uint64_t *entp;
 	assert(0 == label_get_slotp_read(l, i, &entp));
 

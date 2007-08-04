@@ -49,10 +49,7 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 	     const struct kobject_hdr *inherit_from)
 {
     if (ul) {
-	struct Label *nl;
-	check(label_alloc(&nl, LB_LEVEL_UNDEF));
-	check(ulabel_to_label(ul, nl));
-	*lp = nl;
+	check(ulabel_to_label(ul, lp));
     } else if (inherit_from) {
 	if (inherit_from->ko_type == kobj_label)
 	    *lp = &kobject_ch2ck(inherit_from)->lb;
@@ -530,10 +527,8 @@ sys_gate_enter(struct cobj_ref gt,
 	check(label_compare(cur_th_label, gt_verify, label_leq_starlo, 0));
 
     struct Label *label_bound, *clear_bound;
-    check(label_alloc(&label_bound, LB_LEVEL_UNDEF));
-    check(label_alloc(&clear_bound, LB_LEVEL_UNDEF));
-    check(label_max(gt_label, cur_th_label,	label_bound, label_leq_starhi));
-    check(label_max(gt_clear, cur_th_clearance, clear_bound, label_leq_starlo));
+    check(label_max(gt_label, cur_th_label,	&label_bound, label_leq_starhi));
+    check(label_max(gt_clear, cur_th_clearance, &clear_bound, label_leq_starlo));
 
     const struct Label *new_label, *new_clear;
     check(alloc_ulabel(ulabel, &new_label, 0));
@@ -613,8 +608,7 @@ sys_thread_trap(struct cobj_ref thread, struct cobj_ref asref,
     check(kobject_get_label(&th->hdr, kolabel_contaminate, &th_label));
 
     struct Label *lmax;
-    check(label_alloc(&lmax, LB_LEVEL_UNDEF));
-    check(label_max(th_label, cur_th_label, lmax, label_leq_starhi));
+    check(label_max(th_label, cur_th_label, &lmax, label_leq_starhi));
     check(label_compare(lmax, cur_th_label, label_leq_starlo, 0));
 
     if (th->th.th_asref.object != asref.object)
@@ -687,9 +681,8 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(alloc_ulabel(uclear, &clearance, 0));
 
     struct Label *clearance_bound;
-    check(label_alloc(&clearance_bound, LB_LEVEL_UNDEF));
     check(label_max(cur_th_clearance, cur_th_label,
-		    clearance_bound, label_leq_starhi));
+		    &clearance_bound, label_leq_starhi));
 
     check(label_compare(cur_th_label, clearance, label_leq_starlo, 0));
     check(label_compare(clearance, clearance_bound, label_leq_starhi, 0));
