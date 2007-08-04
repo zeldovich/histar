@@ -1,6 +1,6 @@
 # -*-Makefile-*-
 
-KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin
+KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin -Wno-error
 EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\

@@ -34,18 +34,6 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
     return -E_NO_MEM;
 }
 
-ppn_t
-pa2ppn(physaddr_t pa)
-{
-    return pa >> PGSHIFT;
-}
-
-physaddr_t
-ppn2pa(ppn_t pn)
-{
-    return pn << PGSHIFT;
-}
-
 void __attribute__((noreturn))
 machine_reboot(void)
 {
