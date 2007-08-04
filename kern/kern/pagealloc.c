@@ -36,7 +36,7 @@ page_free(void *v)
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
-    TAILQ_INSERT_TAIL(&page_free_list, pl, pp_link);
+    TAILQ_INSERT_HEAD(&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
 }
