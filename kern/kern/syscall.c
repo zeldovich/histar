@@ -1,4 +1,4 @@
-#include <machine/utrap.h>
+#include <kern/utrap.h>
 #include <kern/console.h>
 #include <kern/arch.h>
 #include <kern/sched.h>

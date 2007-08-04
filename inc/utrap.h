@@ -1,7 +1,7 @@
 #ifndef JOS_INC_UTRAP_H
 #define JOS_INC_UTRAP_H
 
-#include <machine/utrap.h>
+#include <kern/utrap.h>
 
 /* Assembly stubs */
 void utrap_entry_asm(void);

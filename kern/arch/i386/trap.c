@@ -2,7 +2,6 @@
 #include <machine/pmap.h>
 #include <machine/trap.h>
 #include <machine/x86.h>
-#include <machine/utrap.h>
 #include <dev/picirq.h>
 #include <kern/thread.h>
 #include <kern/syscall.h>
@@ -12,6 +11,7 @@
 #include <kern/kobj.h>
 #include <kern/prof.h>
 #include <kern/arch.h>
+#include <kern/utrap.h>
 #include <inc/error.h>
 
 static uint64_t trap_user_iret_tsc;

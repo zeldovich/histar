@@ -1,10 +1,10 @@
 #include <machine/lnxthread.h>
 #include <machine/lnxopts.h>
 #include <machine/lnxpage.h>
-#include <machine/utrap.h>
 #include <kern/arch.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>
+#include <kern/utrap.h>
 #include <inc/queue.h>
 #include <inc/error.h>
 

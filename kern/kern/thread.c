@@ -1,7 +1,7 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/trapcodes.h>
-#include <machine/utrap.h>
+#include <kern/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
 #include <kern/sched.h>

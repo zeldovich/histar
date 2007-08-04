@@ -2,7 +2,7 @@
 #define _JOS_INC_DEBUG_GATE_H
 
 #include <machine/mmu.h>
-#include <machine/utrap.h>
+#include <kern/utrap.h>
 
 struct sigcontext;
 

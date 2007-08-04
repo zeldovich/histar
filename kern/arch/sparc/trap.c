@@ -5,12 +5,12 @@
 #include <kern/kobj.h>
 #include <kern/intr.h>
 #include <kern/syscall.h>
+#include <kern/utrap.h>
 #include <machine/trap.h>
 #include <machine/mmu.h>
 #include <machine/sparc-common.h>
 #include <machine/trapcodes.h>
 #include <machine/psr.h>
-#include <machine/utrap.h>
 #include <dev/irqmp.h>
 #include <inc/error.h>
 
