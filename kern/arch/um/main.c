@@ -50,6 +50,15 @@ test_stuff(void)
 
     t0 = timer_user_nsec();
     for (uint64_t i = 0; i < count; i++) {
+	void *p;
+	assert(0 == page_alloc(&p));
+	page_free(p);
+    }
+    t1 = timer_user_nsec();
+    cprintf("Page alloc/free: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++) {
 	struct kobject *ko;
 	assert(0 == kobject_alloc(kobj_label, 0, &ko));
 	kobject_gc_scan();
