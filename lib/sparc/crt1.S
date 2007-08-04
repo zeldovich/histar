@@ -2,11 +2,8 @@
 #include <machine/mmu.h>
 	
 ENTRY(_start)
-
-	// Window handler needs space for stack frame
-	sub	%sp, STACKFRAME_SZ, %sp
-
-	// Args already in %os
+	// Args already in %o's, and kernel allocated space for a
+	// stackframe
 
 	call	setup_env
 	 nop

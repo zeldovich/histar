@@ -5,9 +5,8 @@
 
 
 ENTRY(utrap_entry_asm)
-	mov	%sp, %o0
 	call	utrap_entry
-	 sub	%sp, STACKFRAME_SZ, %sp
+	 mov	%sp, %o0
 
 .section .utrap_masked, "ax", @progbits
 .globl utrap_ret
