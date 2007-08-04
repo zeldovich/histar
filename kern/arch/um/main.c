@@ -41,6 +41,21 @@ test_stuff(void)
 	assert(-E_LABEL == label_compare(l2, l1, label_leq_starlo, 0));
     t1 = timer_user_nsec();
     cprintf("Non-cached label error: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++)
+	assert(handle_alloc() != 0);
+    t1 = timer_user_nsec();
+    cprintf("Category/object ID alloc: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++) {
+	struct kobject *ko;
+	assert(0 == kobject_alloc(kobj_label, 0, &ko));
+	kobject_gc_scan();
+    }
+    t1 = timer_user_nsec();
+    cprintf("kobject alloc/GC: %"PRIu64" nsec\n", (t1 - t0) / count);
 }
 
 int
