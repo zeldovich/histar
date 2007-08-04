@@ -12,6 +12,9 @@ static void
 test_stuff(void)
 {
     struct Label *l1, *l2;
+    struct kobject *ko;
+    void *p;
+
     assert(0 == label_alloc(&l1, 1));
     assert(0 == label_alloc(&l2, 1));
 
@@ -50,7 +53,6 @@ test_stuff(void)
 
     t0 = timer_user_nsec();
     for (uint64_t i = 0; i < count; i++) {
-	void *p;
 	assert(0 == page_alloc(&p));
 	page_free(p);
     }
@@ -58,13 +60,36 @@ test_stuff(void)
     cprintf("Page alloc/free: %"PRIu64" nsec\n", (t1 - t0) / count);
 
     t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++)
+	kobject_gc_scan();
+    t1 = timer_user_nsec();
+    cprintf("kobject GC scan: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
     for (uint64_t i = 0; i < count; i++) {
-	struct kobject *ko;
 	assert(0 == kobject_alloc(kobj_label, 0, &ko));
 	kobject_gc_scan();
     }
     t1 = timer_user_nsec();
     cprintf("kobject alloc/GC: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    assert(0 == kobject_alloc(kobj_label, 0, &ko));
+    assert(0 == kobject_set_nbytes(&ko->hdr, 8 * PGSIZE));
+    kobject_incref_resv(&ko->hdr, 0);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++)
+	assert(0 == kobject_get_page(&ko->hdr, (i % 8), &p, page_shared_ro));
+    t1 = timer_user_nsec();
+    cprintf("kobject get page: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++) {
+	const struct kobject *cko;
+	assert(0 == kobject_get(ko->hdr.ko_id, &cko, kobj_label, iflow_none));
+    }
+    t1 = timer_user_nsec();
+    cprintf("kobject get: %"PRIu64" nsec\n", (t1 - t0) / count);
 }
 
 int
