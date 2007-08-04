@@ -257,7 +257,6 @@ kobject_alloc(uint8_t type, const struct Label *l,
     kh->ko_flags = KOBJ_DIRTY;
     kh->ko_quota_used = KOBJ_DISK_SIZE;
     kh->ko_quota_total = kh->ko_quota_used;
-    pagetree_init(&ko->ko_pt);
 
     r = kobject_set_label(kh, kolabel_contaminate, l);
     if (r < 0) {
