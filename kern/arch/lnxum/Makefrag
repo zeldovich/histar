@@ -1,0 +1,23 @@
+# -*-Makefile-*-
+
+KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin
+EMBEDBINS_DEFAULT := empty
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/archdep.c			\
+	$(ARCHDIR)/main.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/longjmp.S			\
+	lib/printfmt.c				\
+	lib/sysstring.c				\
+	lib/cksum.c				\
+	lib/bf60.c				\
+	lib/string.c				\
+	lib/hashtable.c
+
+$(OBJDIR)/kern/kernel:
+	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES)
+
+all: $(OBJDIR)/kern/kernel
+
