@@ -19,25 +19,6 @@ typedef uintptr_t ppn_t;
 
 typedef int bool_t;
 
-// Efficient min and max operations
-#define MIN(_a, _b)                                             \
-({                                                              \
-        __typeof__(_a) __a = (_a);                              \
-        __typeof__(_b) __b = (_b);                              \
-        __a <= __b ? __a : __b;                                 \
-})
-
-#define MAX(_a, _b)                                             \
-({                                                              \
-        __typeof__(_a) __a = (_a);                              \
-        __typeof__(_b) __b = (_b);                              \
-        __a >= __b ? __a : __b;                                 \
-})
-
-#ifndef NULL
-#define NULL (0)
-#endif
-
 #include <stddef.h>
 
 #endif

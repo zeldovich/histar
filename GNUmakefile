@@ -23,11 +23,11 @@ TOP :=	$(shell echo $${PWD-`pwd`})
 # be detected as well.  If you have the right compiler toolchain installed
 # using a different name, set GCCPREFIX explicitly.
 
-K_ARCH	:= amd64
+#K_ARCH	:= amd64
 #K_ARCH	:= i386
 #K_ARCH	:= ft
 #K_ARCH	:= sparc
-#K_ARCH	:= um
+K_ARCH	:= um
 
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/

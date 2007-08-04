@@ -33,4 +33,20 @@
         (__typeof__(a)) (ROUNDDOWN((uintptr_t) (a) + __n - 1, __n));    \
 })
 
+/*
+ * Efficient min and max operations
+ */
+#define JMIN(_a, _b)						\
+({								\
+	__typeof__(_a) __a = (_a);				\
+	__typeof__(_b) __b = (_b);				\
+	__a <= __b ? __a : __b;					\
+})
+#define JMAX(_a, _b)						\
+({								\
+	__typeof__(_a) __a = (_a);				\
+	__typeof__(_b) __b = (_b);				\
+	__a >= __b ? __a : __b;					\
+})
+
 #endif

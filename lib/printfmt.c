@@ -4,6 +4,7 @@
 
 #include <inc/types.h>
 #include <inc/error.h>
+#include <inc/intmacro.h>
 
 #ifdef JOS_KERNEL
 #include <kern/lib.h>
@@ -238,7 +239,7 @@ vprintfmt (void (*putch) (int, void *), void *putdat, const char *fmt,
       num = getuint (ap, lflag);
       base = 16;
     number:
-      printnum (putch, putdat, num, base, MAX (width, 0), padc);
+      printnum (putch, putdat, num, base, JMAX (width, 0), padc);
       break;
 
       // unrecognized escape sequence - just print it literally

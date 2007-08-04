@@ -271,8 +271,8 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 	    goto err;
 	}
 
-	uint32_t pagebytes = MIN(ROUNDUP(ko_bytes - page * PGSIZE,
-					 512), (uint32_t) PGSIZE);
+	uint32_t pagebytes = JMIN(ROUNDUP(ko_bytes - page * PGSIZE,
+					  512), (uint32_t) PGSIZE);
 	if (pagebytes != PGSIZE)
 	    memset(p, 0, PGSIZE);
 
@@ -555,8 +555,8 @@ pstate_sync_kobj(struct pstate_header *hdr,
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
-	uint32_t pagebytes = MIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
-					 512), (uint32_t) PGSIZE);
+	uint32_t pagebytes = JMIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
+					  512), (uint32_t) PGSIZE);
 	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
 	    return r;
@@ -836,7 +836,7 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 	goto fallback;
     }
 
-    uint64_t sync_end = MIN(start + nbytes, snap->hdr.ko_nbytes);
+    uint64_t sync_end = JMIN(start + nbytes, snap->hdr.ko_nbytes);
     uint64_t req_disk_bytes = KOBJ_DISK_SIZE + ROUNDUP(sync_end, 512);
     if (req_disk_bytes > mobj.nbytes) {
 	if (pstate_swapout_object_debug)
@@ -855,8 +855,8 @@ pstate_sync_object_stackwrap(uint64_t arg, uint64_t start, uint64_t nbytes)
 	if (r < 0)
 	    goto fallback;
 
-	uint32_t pagebytes = MIN(ROUNDUP(sync_end - page * PGSIZE, 512),
-				 (uint32_t) PGSIZE);
+	uint32_t pagebytes = JMIN(ROUNDUP(sync_end - page * PGSIZE, 512),
+				  (uint32_t) PGSIZE);
 	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
 	    goto fallback;

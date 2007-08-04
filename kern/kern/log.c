@@ -251,7 +251,7 @@ log_apply_disk(uint64_t n_nodes)
     offset_t off = the_log.byteoff;
 
     while (n_nodes) {
-	n = MIN(n_nodes, the_log.max_mem);
+	n = JMIN(n_nodes, the_log.max_mem);
 	n_nodes -= n;
 	TAILQ_INIT(&nodes);
 	if ((r = log_read_log(off, n, &nodes)) < 0) {

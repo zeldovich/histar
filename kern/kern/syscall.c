@@ -209,7 +209,7 @@ sys_container_alloc(uint64_t parent_ct, struct ulabel *ul,
     if (quota > CT_QUOTA_INF)
 	quota = CT_QUOTA_INF;
     c->ct_ko.ko_quota_total =
-	MIN(c->ct_ko.ko_quota_total + quota, CT_QUOTA_INF);
+	JMIN(c->ct_ko.ko_quota_total + quota, CT_QUOTA_INF);
 
     check(container_put(&kobject_dirty(&parent->ct_ko)->ct, &c->ct_ko));
     return c->ct_ko.ko_id;
@@ -415,7 +415,7 @@ sys_container_move_quota(uint64_t parent_id, uint64_t child_id, int64_t nbytes)
 	if (child->hdr.ko_quota_total >= CT_QUOTA_INF || abs_nbytes >= CT_QUOTA_INF)
 	    new_child_total = CT_QUOTA_INF;
 	else
-	    new_child_total = MIN(child->hdr.ko_quota_total + abs_nbytes, CT_QUOTA_INF - 1);
+	    new_child_total = JMIN(child->hdr.ko_quota_total + abs_nbytes, CT_QUOTA_INF - 1);
     } else {
 	if (child->hdr.ko_quota_total == CT_QUOTA_INF) {
 	    cprintf("move_quota: cannot revoke child infinity\n");
