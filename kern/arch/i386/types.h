@@ -45,20 +45,6 @@ typedef uint32_t physaddr_t;
 // Page numbers are 32 bits long.
 typedef uint32_t ppn_t;
 
-// Efficient min and max operations
-#define MIN(_a, _b)						\
-({								\
-	__typeof__(_a) __a = (_a);				\
-	__typeof__(_b) __b = (_b);				\
-	__a <= __b ? __a : __b;					\
-})
-#define MAX(_a, _b)						\
-({								\
-	__typeof__(_a) __a = (_a);				\
-	__typeof__(_b) __b = (_b);				\
-	__a >= __b ? __a : __b;					\
-})
-
 #include <stddef.h>	// gcc header file
 
 #define PRIu64 "lld"

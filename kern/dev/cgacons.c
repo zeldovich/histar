@@ -5,6 +5,7 @@
 #include <kern/prof.h>
 #include <dev/cgacons.h>
 #include <dev/kbdreg.h>
+#include <inc/intmacro.h>
 
 /***** Text-mode CGA/VGA display output *****/
 
@@ -62,7 +63,7 @@ cga_savebuf_copy(int first_line, bool_t to_screen)
     pos = crtsave_buf + (first_line % CRT_SAVEROWS) * CRT_COLS;
     end = pos + CRT_ROWS * CRT_COLS;
     // Check for wraparound.
-    trueend = MIN(end, crtsave_buf + CRT_SAVEROWS * CRT_COLS);
+    trueend = JMIN(end, crtsave_buf + CRT_SAVEROWS * CRT_COLS);
 
     // Copy the initial portion.
     if (to_screen)
@@ -156,8 +157,8 @@ cga_putc(void *arg, int c)
 static void
 cga_scroll(int delta)
 {
-    int new_backscroll = MIN(crtsave_backscroll - delta, crtsave_size);
-    new_backscroll = MAX(new_backscroll, 0);
+    int new_backscroll = JMIN(crtsave_backscroll - delta, crtsave_size);
+    new_backscroll = JMAX(new_backscroll, 0);
 
     if (new_backscroll == crtsave_backscroll)
 	return;
