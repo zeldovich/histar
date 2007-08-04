@@ -202,7 +202,7 @@ struct Trapframe {
     uint32_t tf_pad;
 };
 
-#else
+#endif
 
 /* Reg_window offsets */
 #define RW_L0     0x00
@@ -281,7 +281,5 @@ struct Trapframe {
 #define TF_PAD    0x94
 
 #define TRAPFRAME_SZ 0x98
-
-#endif
 
 #endif
