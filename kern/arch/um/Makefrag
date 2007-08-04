@@ -5,6 +5,9 @@ EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/archdep.c			\
+	$(ARCHDIR)/ummem.c			\
+	$(ARCHDIR)/umcons.c			\
+	$(ARCHDIR)/umtime.c			\
 	$(ARCHDIR)/main.c
 
 KERN_LIB :=					\

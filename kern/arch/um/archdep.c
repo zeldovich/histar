@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 char boot_cmdline[256];
-struct page_info *page_infos;
 
 int
 page_map_alloc(struct Pagemap **pm_store)
@@ -33,18 +32,6 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 	   int create, ptent_t **pte_store)
 {
     return -E_NO_MEM;
-}
-
-void *
-pa2kva(physaddr_t pa)
-{
-    return (void *) pa;
-}
-
-physaddr_t
-kva2pa(void *kva)
-{
-    return (physaddr_t) kva;
 }
 
 ppn_t
