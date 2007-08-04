@@ -49,7 +49,9 @@ alloc_ulabel(struct ulabel *ul, const struct Label **lp,
 	     const struct kobject_hdr *inherit_from)
 {
     if (ul) {
-	check(ulabel_to_label(ul, lp));
+	struct Label *l;
+	check(ulabel_to_label(ul, &l));
+	*lp = l;
     } else if (inherit_from) {
 	if (inherit_from->ko_type == kobj_label)
 	    *lp = &kobject_ch2ck(inherit_from)->lb;
