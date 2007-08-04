@@ -6,6 +6,7 @@
 #include <kern/pstate.h>
 #include <kern/prof.h>
 #include <kern/timer.h>
+#include <inc/error.h>
 
 static void
 test_stuff(void)
@@ -13,6 +14,12 @@ test_stuff(void)
     struct Label *l1, *l2;
     assert(0 == label_alloc(&l1, 1));
     assert(0 == label_alloc(&l2, 1));
+
+    assert(0 == label_set(l1, 123, LB_LEVEL_STAR));
+    assert(0 == label_set(l2, 123, 3));
+
+    assert(0 == label_set(l1, 456, 0));
+    assert(0 == label_set(l2, 789, 3));
 
     uint64_t t0, t1;
     uint64_t count = 1000000;
@@ -28,6 +35,12 @@ test_stuff(void)
 	assert(0 == label_compare(l1, l2, label_leq_starlo, 1));
     t1 = timer_user_nsec();
     cprintf("Cached label comparison: %"PRIu64" nsec\n", (t1 - t0) / count);
+
+    t0 = timer_user_nsec();
+    for (uint64_t i = 0; i < count; i++)
+	assert(-E_LABEL == label_compare(l2, l1, label_leq_starlo, 0));
+    t1 = timer_user_nsec();
+    cprintf("Non-cached label error: %"PRIu64" nsec\n", (t1 - t0) / count);
 }
 
 int
