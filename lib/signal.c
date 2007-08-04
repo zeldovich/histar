@@ -48,7 +48,7 @@
 #error Unknown arch
 #endif
 
-enum { signal_debug = 0 };
+enum { signal_debug = 1 };
 enum { signal_debug_utf_dump = 0 };
 uint64_t signal_counter;
 
@@ -521,7 +521,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
     utf_jump.utf_ecx = (uintptr_t) &signal_utrap_onstack;
 #elif defined(JOS_ARCH_sparc)
     utf_jump.utf_pc = (uintptr_t) &signal_utrap_onstack;
-    utf_jump.utf_npc = utf_jump.utf_npc + 4;
+    utf_jump.utf_npc = utf_jump.utf_pc + 4;
     utf_jump.utf_reg1.sp = (uintptr_t) stackptr;
     utf_jump.utf_reg1.o0 = (uintptr_t) si_arg;
     utf_jump.utf_reg1.o1 = (uintptr_t) sc_arg;
