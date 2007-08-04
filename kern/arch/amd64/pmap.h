@@ -7,7 +7,6 @@
 #ifndef __ASSEMBLER__
 #include <kern/lib.h>
 #include <inc/intmacro.h>
-#include <machine/pmap-x86.h>
 #endif /* !__ASSEMBLER__ */
 #endif /* JOS_KERNEL */
 
@@ -41,23 +40,6 @@ struct Pagemap {
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
 void pmap_set_current_arch(struct Pagemap *pm);
-
-static __inline void *
-pa2kva(physaddr_t pa)
-{
-    return (void*) (pa + PHYSBASE);
-}
-
-static __inline physaddr_t
-kva2pa(void *kva)
-{
-    physaddr_t va = (physaddr_t) kva;
-    if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
-	return va - KERNBASE;
-    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
-	return va - PHYSBASE;
-    panic("kva2pa called with invalid kva %p", kva);
-}
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 

@@ -28,3 +28,20 @@ pmap_set_current_arch(struct Pagemap *pm)
 
     lcr3(kva2pa(pm));
 }
+
+void *
+pa2kva(physaddr_t pa)
+{
+    return (void*) (pa + PHYSBASE);
+}
+
+physaddr_t
+kva2pa(void *kva)
+{
+    physaddr_t va = (physaddr_t) kva;
+    if (va >= KERNBASE && va < KERNBASE + (global_npages << PGSHIFT))
+	return va - KERNBASE;
+    if (va >= PHYSBASE && va < PHYSBASE + (global_npages << PGSHIFT))
+	return va - PHYSBASE;
+    panic("kva2pa called with invalid kva %p", kva);
+}

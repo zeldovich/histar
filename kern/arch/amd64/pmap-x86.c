@@ -191,6 +191,25 @@ check_user_access2(const void *ptr, uint64_t nbytes,
     return 0;
 }
 
+ppn_t
+pa2ppn(physaddr_t pa)
+{
+    ppn_t pn = pa >> PGSHIFT;
+    if (pn > global_npages)
+	panic("pa2ppn: pa 0x%lx out of range, npages %"PRIu64,
+	      (unsigned long) pa, global_npages);
+    return pn;
+}
+
+physaddr_t
+ppn2pa(ppn_t pn)
+{
+    if (pn > global_npages)
+	panic("ppn2pa: ppn %lx out of range, npages %"PRIu64,
+	      (unsigned long) pn, global_npages);
+    return (pn << PGSHIFT);
+}
+
 /*
  * Page table entry management.
  */

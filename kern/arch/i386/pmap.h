@@ -5,10 +5,8 @@
 #include <machine/mmu.h>
 #include <machine/memlayout.h>
 #ifndef __ASSEMBLER__
-#include <kern/lib.h>
 #include <machine/types.h>
 #include <inc/intmacro.h>
-#include <kern/arch/amd64/pmap-x86.h>
 #endif /* !__ASSEMBLER__ */
 #endif /* JOS_KERNEL */
 
@@ -46,27 +44,6 @@ struct Pagemap {
 
 void page_init(uint64_t lower_kb, uint64_t upper_kb);
 void pmap_set_current_arch(struct Pagemap *pm);
-
-static __inline void *
-pa2kva(physaddr_t pa)
-{
-    if (pa < 0x40000000U)
-	return (void *) (pa + PHYSBOT);
-    if (pa >= 0xc0000000U)
-	return (void *) (pa);
-    panic("cannot map physaddr %x\n", pa);
-}
-
-static __inline physaddr_t
-kva2pa(void *kva)
-{
-    physaddr_t va = (physaddr_t) kva;
-    if (va >= PHYSBOT && va < PHYSBOT + (global_npages << PGSHIFT))
-	return va - PHYSBOT;
-    if (va >= PHYSTOP)
-	return va;
-    panic("kva2pa called with invalid kva %p", kva);
-}
 
 #endif /* !__ASSEMBLER__ && JOS_KERNEL */
 
