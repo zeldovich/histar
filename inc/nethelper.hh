@@ -54,7 +54,8 @@ class lineparser {
 
     tcpconn *tc_;
 
-    char buf_[1024];
+    size_t bufsize_;
+    char buf_[1024 + 1];
     size_t pos_;
     size_t valid_;
 };

@@ -115,8 +115,9 @@ tcpconn::read(char *buf, size_t len)
 }
 
 lineparser::lineparser(tcpconn *tc)
-    : tc_(tc), pos_(0), valid_(0)
+    : tc_(tc), bufsize_(sizeof(buf_) - 1), pos_(0), valid_(0)
 {
+    buf_[bufsize_] = '\0';
 }
 
 size_t
@@ -155,14 +156,17 @@ retry:
 size_t
 lineparser::refill()
 {
-    memmove(&buf_[0], &buf_[pos_], valid_ - pos_);
-    valid_ -= pos_;
-    pos_ = 0;
+    if (pos_) {
+	memmove(&buf_[0], &buf_[pos_], valid_ - pos_);
+	valid_ -= pos_;
+	pos_ = 0;
+    }
 
-    size_t space = sizeof(buf_) - valid_;
+    size_t space = bufsize_ - valid_;
     if (space > 0) {
 	size_t cc = tc_->read(&buf_[valid_], space);
 	valid_ += cc;
+	buf_[valid_] = '\0';
 	return cc;
     }
 
