@@ -134,3 +134,10 @@ thread_arch_is_masked(const struct Thread *t)
 }
 
 void thread_arch_jump(struct Thread *t, const struct thread_entry *te) {}
+void jos_longjmp(struct jos_jmp_buf *buf, int val) {}
+
+int
+jos_setjmp(struct jos_jmp_buf *buf)
+{
+    return 0;
+}

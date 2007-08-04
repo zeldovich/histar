@@ -8,7 +8,6 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/main.c
 
 KERN_LIB :=					\
-	lib/$(ARCH)/longjmp.S			\
 	lib/printfmt.c				\
 	lib/sysstring.c				\
 	lib/cksum.c				\
