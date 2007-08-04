@@ -6,7 +6,8 @@
 
 #ifdef JOS_KERNEL
 enum { kobj_hash_size = 8192 };
-enum { kobj_neg_size = 16 };
+enum { kobj_neg_size = 2 };
+enum { kobj_neg_hash = 64 };
 enum { part_enable = 0 };
 
 #define MAX_IRQS	16

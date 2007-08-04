@@ -824,28 +824,31 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 static struct {
     int next;
     kobject_id_t ents[kobj_neg_size];
-} kobject_neg;
+} kobject_neg[kobj_neg_hash];
 
 void
 kobject_negative_insert(kobject_id_t id)
 {
-    kobject_neg.ents[kobject_neg.next] = id;
-    kobject_neg.next = (kobject_neg.next + 1) % kobj_neg_size;
+    uint64_t idx = id % kobj_neg_hash;
+    kobject_neg[idx].ents[kobject_neg[idx].next] = id;
+    kobject_neg[idx].next = (kobject_neg[idx].next + 1) % kobj_neg_size;
 }
 
 void
 kobject_negative_remove(kobject_id_t id)
 {
+    uint64_t idx = id % kobj_neg_hash;
     for (int i = 0; i < kobj_neg_size; i++)
-	if (kobject_neg.ents[i] == id)
-	    kobject_neg.ents[i] = 0;
+	if (kobject_neg[idx].ents[i] == id)
+	    kobject_neg[idx].ents[i] = 0;
 }
 
 bool_t
 kobject_negative_contains(kobject_id_t id)
 {
+    uint64_t idx = id % kobj_neg_hash;
     for (int i = 0; i < kobj_neg_size; i++)
-	if (kobject_neg.ents[i] == id)
+	if (kobject_neg[idx].ents[i] == id)
 	    return 1;
     return 0;
 }

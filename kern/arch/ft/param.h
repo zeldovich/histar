@@ -6,6 +6,7 @@
 #ifdef JOS_KERNEL
 enum { kobj_hash_size = 1 };
 enum { kobj_neg_size = 1 };
+enum { kobj_neg_hash = 1 };
 enum { part_enable = 0 };
 #endif
 
