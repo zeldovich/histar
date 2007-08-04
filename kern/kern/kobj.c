@@ -249,7 +249,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
     static_assert(sizeof(*ko_pair) <= PGSIZE);
 
     struct kobject *ko = &ko_pair->active;
-    memset(ko, 0, sizeof(*ko));
+    memset(ko, 0, sizeof(struct kobject_mem));
 
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;

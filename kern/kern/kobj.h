@@ -32,24 +32,25 @@ struct kobject_persistent {
     };
 };
 
+struct kobject_mem {
+    struct kobject_persistent;
+    struct pagetree ko_pt;
+
+    LIST_ENTRY(kobject) ko_link;
+    LIST_ENTRY(kobject) ko_hash;
+    LIST_ENTRY(kobject) ko_gc_link;
+
+    struct kobj_weak_ptr ko_label_cache[kolabel_max];
+    struct kobj_weak_refs ko_weak_refs;
+    union {
+	struct Thread_ephemeral ko_th_e;
+    };
+};
+
 struct kobject {
     union {
 	char mem_buf[KOBJ_MEM_SIZE];
-
-	struct {
-	    struct kobject_persistent;
-	    struct pagetree ko_pt;
-
-	    LIST_ENTRY(kobject) ko_link;
-	    LIST_ENTRY(kobject) ko_hash;
-	    LIST_ENTRY(kobject) ko_gc_link;
-
-	    struct kobj_weak_ptr ko_label_cache[kolabel_max];
-	    struct kobj_weak_refs ko_weak_refs;
-	    union {
-		struct Thread_ephemeral ko_th_e;
-	    };
-	};
+	struct kobject_mem;
     };
 };
 
