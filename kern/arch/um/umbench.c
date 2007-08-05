@@ -37,75 +37,64 @@ um_bench(void)
     uint64_t t0, t1;
     uint64_t count = 1000000;
 
-    t0 = timer_user_nsec();
+#define TEST_START						\
+    t0 = timer_user_nsec();					\
     for (uint64_t i = 0; i < count; i++)
+
+#define TEST_END(...)						\
+    t1 = timer_user_nsec();					\
+    cprintf("%10"PRIu64" nsec -- ", (t1 - t0) / count);		\
+    cprintf(__VA_ARGS__);					\
+    cprintf("\n");
+
+    TEST_START
 	assert(0 == label_compare(l1, l2, label_leq_starlo, 0));
-    t1 = timer_user_nsec();
-    cprintf("Non-cached label comparison: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("non-cached label comparison");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	assert(0 == label_compare(l1, l2, label_leq_starlo, 1));
-    t1 = timer_user_nsec();
-    cprintf("Cached label comparison: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("cached label comparison");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	assert(-E_LABEL == label_compare(l2, l1, label_leq_starlo, 0));
-    t1 = timer_user_nsec();
-    cprintf("Non-cached label error: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("non-cached label error");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	assert(handle_alloc() != 0);
-    t1 = timer_user_nsec();
-    cprintf("Category/object ID alloc: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("handle alloc");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++) {
+    TEST_START {
 	assert(0 == page_alloc(&p));
 	page_free(p);
     }
-    t1 = timer_user_nsec();
-    cprintf("Page alloc/free: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("page alloc/free");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	kobject_gc_scan();
-    t1 = timer_user_nsec();
-    cprintf("kobject GC scan: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("kobject GC scan");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++) {
+    TEST_START {
 	assert(0 == kobject_alloc(kobj_label, 0, &ko));
 	kobject_gc_scan();
     }
-    t1 = timer_user_nsec();
-    cprintf("kobject alloc/GC: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("kobject alloc/GC");
 
     assert(0 == kobject_alloc(kobj_label, 0, &ko));
     assert(0 == kobject_set_nbytes(&ko->hdr, 8 * PGSIZE));
     kobject_incref_resv(&ko->hdr, 0);
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	assert(0 == kobject_get_page(&ko->hdr, (i % 8), &p, page_shared_ro));
-    t1 = timer_user_nsec();
-    cprintf("kobject get page: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("kobject get page");
 
-    t0 = timer_user_nsec();
-    for (uint64_t i = 0; i < count; i++)
+    TEST_START
 	assert(0 == kobject_get(ko->hdr.ko_id, &cko, kobj_label, iflow_none));
-    t1 = timer_user_nsec();
-    cprintf("kobject get: %"PRIu64" nsec\n", (t1 - t0) / count);
+    TEST_END("kobject get");
 
     for (uint64_t j = 0; j < sizeof(s) / sizeof(*s); j++) {
-	t0 = timer_user_nsec();
-	for (uint64_t i = 0; i < count; i++)
+	TEST_START
 	    assert(0 == cobj_get(COBJ(c->ct_ko.ko_id, s[j]->sg_ko.ko_id),
 				 kobj_segment, &cko, iflow_none));
-	t1 = timer_user_nsec();
-	cprintf("cobj_get %02"PRIu64"'th: %"PRIu64" nsec\n",
-		j, (t1 - t0) / count);
+	TEST_END("cobj_get %02"PRIu64"'th", j);
     }
 }
