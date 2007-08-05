@@ -137,7 +137,6 @@ greth_reset(struct greth_card *c)
 
     /* interrupts, enable RX, TX */
     regs->control |= (GRETH_INT_RX | GRETH_INT_TX);
-    regs->control |= (GRETH_RXEN | GRETH_TXEN);
     /* setup buffer descriptor pointers */
     regs->tx_desc_p = kva2pa(c->txbds);
     regs->rx_desc_p = kva2pa(c->rxbds);
