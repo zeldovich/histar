@@ -38,11 +38,11 @@ struct greth_card {
     struct greth_buffer_slot tx[GRETH_TXBD_NUM];
     struct greth_buffer_slot rx[GRETH_RXBD_NUM];
 
-    uint32_t rx_head;	// card receiving into rx_head, -1 if none
-    uint32_t rx_nextq;	// next slot for rx buffer
+    int rx_head;	// card receiving into rx_head, -1 if none
+    int rx_nextq;	// next slot for rx buffer
 
-    uint32_t tx_head;	// card transmitting from tx_head, -1 if none
-    uint32_t tx_nextq;	// next slot for tx buffer
+    int tx_head;	// card transmitting from tx_head, -1 if none
+    int tx_nextq;	// next slot for tx buffer
 };
 
 static void
@@ -173,13 +173,65 @@ static int
 greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
 		struct netbuf_hdr *nb, uint16_t size)
 {
-    return -E_INVAL;
+    int slot = c->tx_nextq;
+
+    if (slot == c->tx_head)
+	return -E_NO_SPACE;
+
+    if (size > 1522) {
+	cprintf("greth_add_txbuf: oversize buffer, %d bytes\n", size);
+	return -E_INVAL;
+    }
+
+    c->tx[slot].nb = nb;
+    c->tx[slot].sg = sg;
+    kobject_pin_page(&sg->sg_ko);
+    pagetree_incpin(nb);
+
+    // XXX setup BD, poke NIC
+    //c->txbds->txbd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
+    //c->txbds->txbd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
+    //memset(&c->txds->txd[slot].wtx_fields, 0, sizeof(&c->txds->txd[slot].wtx_fields));
+
+    c->tx_nextq = (slot + 1) % GRETH_TXBD_NUM;
+    if (c->tx_head == -1)
+	c->tx_head = slot;
+
+    //e1000_io_write(c, WMREG_TDT, c->tx_nextq);
+    return 0;
 }
+
 static int
 greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
 	        struct netbuf_hdr *nb, uint16_t size)
 {
-    return -E_INVAL;
+    int slot = c->rx_nextq;
+
+    if (slot == c->rx_head)
+	return -E_NO_SPACE;
+
+    // The max receive buffer size is hard-coded in the bd as 2K.
+    // However, we configure it to reject packets over 1522 bytes long.
+    if (size < 1522) {
+	cprintf("greth_add_rxbuf: buffer too small, %d bytes\n", size);
+	return -E_INVAL;
+    }
+
+    c->rx[slot].nb = nb;
+    c->rx[slot].sg = sg;
+    kobject_pin_page(&sg->sg_ko);
+    pagetree_incpin(nb);
+
+    // XXX setup BD, poke NIC
+    //memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
+    //c->rxbds->rxbd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
+    //e1000_io_write(c, WMREG_RDT, slot);
+
+    c->rx_nextq = (slot + 1) % GRETH_RXBD_NUM;
+    if (c->rx_head == -1)
+	c->rx_head = slot;
+
+    return 0;
 }
 
 static int
