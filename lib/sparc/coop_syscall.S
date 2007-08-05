@@ -6,3 +6,6 @@
 ENTRY(cooperate_syscall)
 	ba cooperate_syscall
 	 nop
+
+ENTRY(cooperate_syscall_end)
+
