@@ -135,7 +135,7 @@ greth_reset(struct greth_card *c)
     if (regs->control & GRETH_RESET)
 	cprintf("greth_reset: card still resetting, odd..\n");
 
-    /* interrupts, enable RX, TX */
+    /* enable interrupts */
     regs->control |= (GRETH_INT_RX | GRETH_INT_TX);
     /* setup buffer descriptor pointers */
     regs->tx_desc_p = kva2pa(c->txbds);
