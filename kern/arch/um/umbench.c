@@ -10,6 +10,7 @@ void
 um_bench(void)
 {
     struct Container *c;
+    struct Segment *sg;
     struct Segment *s[20];
     struct Label *l1, *l2;
     struct kobject *ko;
@@ -97,4 +98,29 @@ um_bench(void)
 				 kobj_segment, &cko, iflow_none));
 	TEST_END("cobj_get %02"PRIu64"'th", j);
     }
+
+    TEST_START {
+	assert(0 == segment_alloc(l1, &sg));
+	kobject_gc_scan();
+    }
+    TEST_END("segment alloc/GC");
+
+    assert(0 == segment_alloc(l1, &sg));
+    sg->sg_ko.ko_flags |= KOBJ_FIXED_QUOTA;
+
+    TEST_START {
+	assert(0 == container_put(c, &sg->sg_ko));
+    }
+    TEST_END("container addref");
+
+    TEST_START {
+	assert(0 == container_unref(c, &sg->sg_ko));
+    }
+    TEST_END("container unref");
+
+    TEST_START {
+	assert(0 == container_put(c, &sg->sg_ko));
+	assert(0 == container_unref(c, &sg->sg_ko));
+    }
+    TEST_END("container addref/unref");
 }
