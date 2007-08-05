@@ -3,6 +3,7 @@
 #include <kern/netdev.h>
 #include <kern/timer.h>
 #include <kern/kobj.h>
+#include <kern/intr.h>
 #include <dev/greth.h>
 #include <dev/grethreg.h>
 #include <dev/mii.h>
@@ -28,7 +29,9 @@ struct greth_rxbds {
 struct greth_card {
     struct greth_regs *regs;
     struct net_device netdev;
-
+    uint8_t irq_line;
+    struct interrupt_handler ih;
+    
     struct greth_txbds *txbds;
     struct greth_rxbds *rxbds;
     
@@ -167,15 +170,58 @@ greth_reset(struct greth_card *c)
 }
 
 static int
-greth_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
+greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
+		struct netbuf_hdr *nb, uint16_t size)
 {
     return -E_INVAL;
+}
+static int
+greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
+	        struct netbuf_hdr *nb, uint16_t size)
+{
+    return -E_INVAL;
+}
+
+static int
+greth_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
+{
+    struct greth_card *c = a;
+    uint64_t npage = offset / PGSIZE;
+    uint32_t pageoff = PGOFF(offset);
+
+    void *p;
+    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
+    if (r < 0)
+	return r;
+
+    if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
+	return -E_INVAL;
+
+    struct netbuf_hdr *nb = p + pageoff;
+    uint16_t size = nb->size;
+    if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
+	return -E_INVAL;
+
+    if (type == netbuf_rx) {
+	return greth_add_rxbuf(c, sg, nb, size);
+    } else if (type == netbuf_tx) {
+	return greth_add_txbuf(c, sg, nb, size);
+    } else {
+	return -E_INVAL;
+    }
 }
 
 static void
 greth_buffer_reset(void *a)
 {
     greth_reset(a);
+}
+
+static void
+greth_intr(void *arg)
+{
+    cprintf("greth_intr: XXX\n");
+    //netdev_thread_wakeup(&c->netdev);
 }
 
 int
@@ -208,11 +254,17 @@ greth_init(void)
 	return r;
     }    
     c->regs = regs;
+    c->irq_line = dev.irq;
     greth_set_mac(regs, greth_mac);
     memcpy(&c->netdev.mac_addr[0], &greth_mac[0], 6);
     
     greth_reset(c);
-  
+    
+    /* Register card with kernel */
+    c->ih.ih_func = &greth_intr;
+    c->ih.ih_arg = c;
+    irq_register(c->irq_line, &c->ih);
+      
     c->netdev.arg = c;
     c->netdev.add_buf = &greth_add_buf;
     c->netdev.buffer_reset = &greth_buffer_reset;
