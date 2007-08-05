@@ -361,13 +361,15 @@ again:
     if ((ko->ko_flags & KOBJ_FIXED_QUOTA))
 	return -E_FIXED_QUOTA;
 
-    if (!ko->ko_parent) {
+    if (!ko->ko_ref) {
 	// If we have no parent, just increase our total quota -- when this
 	// object is put into a container, ko_quota_total will add to the
 	// container's ko_quota_used.
 	ko->ko_quota_total += nbytes;
 	return success;
     }
+
+    assert(ko->ko_parent);
 
     const struct kobject *pconst = 0;
     int r = kobject_get(ko->ko_parent, &pconst, kobj_any, iflow_rw);
@@ -473,7 +475,7 @@ kobject_copy_pages(const struct kobject_hdr *srch,
     if (r < 0)
 	return r;
 
-    if (dsth->ko_parent) {
+    if (dsth->ko_ref) {
 	cprintf("kobject_copy_pages: referenced segments not supported\n");
 	return -E_INVAL;
     }
@@ -578,6 +580,9 @@ kobject_decref(const struct kobject_hdr *kh, struct kobject_hdr *refholder)
     assert(ko->hdr.ko_ref);
     ko->hdr.ko_ref--;
     refholder->ko_quota_used -= kh->ko_quota_total;
+
+    if (refholder->ko_id == ko->hdr.ko_parent)
+	ko->hdr.ko_parent = 0;
 
     if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)
 	LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
