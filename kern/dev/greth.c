@@ -188,16 +188,15 @@ greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    // XXX setup BD, poke NIC
-    //c->txbds->txbd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
-    //c->txbds->txbd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
-    //memset(&c->txds->txd[slot].wtx_fields, 0, sizeof(&c->txds->txd[slot].wtx_fields));
+    memset(&c->txbds->txbd[slot], 0, sizeof(c->txbds->txbd[slot]));
+    c->txbds->txbd[slot].addr = kva2pa(c->tx[slot].nb + 1);
+    c->txbds->txbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
+    c->regs->control |= GRETH_TXEN;
 
     c->tx_nextq = (slot + 1) % GRETH_TXBD_NUM;
     if (c->tx_head == -1)
 	c->tx_head = slot;
 
-    //e1000_io_write(c, WMREG_TDT, c->tx_nextq);
     return 0;
 }
 
@@ -222,10 +221,10 @@ greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
     kobject_pin_page(&sg->sg_ko);
     pagetree_incpin(nb);
 
-    // XXX setup BD, poke NIC
-    //memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
-    //c->rxbds->rxbd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);
-    //e1000_io_write(c, WMREG_RDT, slot);
+    memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
+    c->rxbds->rxbd[slot].addr = kva2pa(c->rx[slot].nb + 1);
+    c->rxbds->rxbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
+    c->regs->control |= GRETH_RXEN;
 
     c->rx_nextq = (slot + 1) % GRETH_RXBD_NUM;
     if (c->rx_head == -1)
