@@ -5,7 +5,6 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
-OBJDIR := obj
 
 ifdef GCCPREFIX
 SETTINGGCCPREFIX := true
@@ -31,6 +30,10 @@ K_ARCH	:= amd64
 
 ## On Fedora Core you may need a full path to avoid /usr/lib/ccache
 #GCCPREFIX := /usr/bin/
+
+## Use multiple objdirs to build multiple architectures with same source tree
+OBJDIR	:= obj
+#OBJDIR	:= obj.$(K_ARCH)
 
 include conf/Makefrag.$(K_ARCH)
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
@@ -171,8 +174,8 @@ $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 
 -include $(OBJDIR)/.deps
 
-GNUmakefile: obj/machine
-obj/machine:
+GNUmakefile: $(OBJDIR)/machine
+$(OBJDIR)/machine:
 	@mkdir -p $(@D)
 	ln -s $(TOP)/kern/arch/$(K_ARCH) $@
 
