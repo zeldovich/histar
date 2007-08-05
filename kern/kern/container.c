@@ -242,6 +242,9 @@ cobj_get(struct cobj_ref ref, uint8_t type,
 	((ref.object == kobject_id_thread_sg) ||
 	 (cur_thread && ref.object == cur_thread->th_ko.ko_id));
 
+    const struct kobject *ko;
+    int r0 = kobject_get(ref.object, &ko, type, iflow);
+
     if (!global_object) {
 	const struct Container *c;
 	int r = container_find(&c, ref.container, iflow_read);
@@ -249,14 +252,23 @@ cobj_get(struct cobj_ref ref, uint8_t type,
 	    return r;
 
 	// Every container "contains" itself
-	if (ref.object != c->ct_ko.ko_id) {
-	    r = container_slot_find(c, ref.object, 0, page_shared_ro);
-	    if (r < 0)
-		return r;
-	}
+	if (ref.object == c->ct_ko.ko_id)
+	    goto ct_ok;
+
+	// Iff the last container to addref the object is ref.container,
+	// and it hasn't dropped its refcount yet, ko_parent will match.
+	if (r0 >= 0 && ko->hdr.ko_parent == ref.container)
+	    goto ct_ok;
+
+	r = container_slot_find(c, ref.object, 0, page_shared_ro);
+	if (r < 0)
+	    return r;
     }
 
-    return kobject_get(ref.object, storep, type, iflow);
+ ct_ok:
+    if (r0 >= 0)
+	*storep = ko;
+    return r0;
 }
 
 int
