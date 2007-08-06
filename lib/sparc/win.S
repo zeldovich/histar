@@ -3,7 +3,7 @@
 #include <machine/trapcodes.h>
 
 #define SHIFT_O2I \
-	mov	%o0, %i0; \ 
+	mov	%o0, %i0; \
 	mov	%o1, %i1; \
 	mov	%o2, %i2; \
 	mov	%o3, %i3; \
