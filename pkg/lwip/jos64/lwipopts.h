@@ -9,6 +9,7 @@
 // Various tuning knobs, partly from jos32's lwipopts.h
 #if defined(JOS_ARCH_sparc)
 #define MEM_ALIGNMENT		8
+#define ETH_PAD_SIZE		2
 #else
 #define MEM_ALIGNMENT		4
 #endif
