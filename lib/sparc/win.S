@@ -1,7 +1,17 @@
 #include <machine/mmu.h>
 #include <machine/asm.h>
 #include <machine/trapcodes.h>
-	
+
+#define SHIFT_O2I \
+	mov	%o0, %i0; \ 
+	mov	%o1, %i1; \
+	mov	%o2, %i2; \
+	mov	%o3, %i3; \
+	mov	%o4, %i4; \
+	mov	%o5, %i5; \
+	mov	%o6, %i6; \
+	mov	%o7, %i7;
+
 /* Window handlers that emulate save and restore
  * %y, %g5 hold pc, npc
  */
@@ -16,28 +26,38 @@ uwin_overflow:
 	mov	%y, %l6
 	ld	[%l6], %l7
 
-	/* We only handle "save %sp, -imm13, %sp". */
+	/* We only handle: 
+	 *  save %sp, -imm13, %sp
+	 *  save %sp, %g1, %sp
+	 */
 	set	0x9DE3B, %l5 /* (save %sp, -imm13, %sp) >> 12 */
 	srl	%l7, 12, %l6
 	cmp	%l6, %l5
-	bne	overflow_bail
+	bne	uwin_check_g1
 	 /* put imm13 in %l6, removing sign bit*/
 	 orn	%g0, %l7, %l6
 	sll	%l6, 20, %l6
 	srl	%l6, 20, %l6
-	
-	mov	%o0, %i0
-	mov	%o1, %i1
-	mov	%o2, %i2	
-	mov	%o3, %i3
-	mov	%o4, %i4
-	mov	%o5, %i5
-	mov	%o6, %i6  /* %sp -> %fp */
-	mov	%o7, %i7  /* return address - 8 */
+
+	SHIFT_O2I
 
 	sub	%sp, %l6, %sp
 	dec	%sp /* remember two's complement */
+
+	jmp	%g5
+	 jmp	%g5 + 4
+	  nop
 	
+		
+uwin_check_g1:
+	set	0x9DE38001, %l5 /* save %sp, %g1, %sp */
+	cmp	%l7, %l5
+	bne	overflow_bail
+	 /* we are hosed if cmp fails, so just do it */
+	 SHIFT_O2I 
+
+	add	%sp, %g1, %sp
+
 	jmp	%g5
 	 jmp	%g5 + 4
 	  nop
