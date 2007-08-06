@@ -75,14 +75,6 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 }
 
 static void
-align_fault(const struct Thread *t)
-{
-    print_state("alignment fault", t);
-    cprintf("\n");
-    thread_halt(t);
-}
-
-static void
 emu_error(const struct Thread *t)
 {
     print_state("emulate error", t);
@@ -93,14 +85,6 @@ emu_error(const struct Thread *t)
 	cprintf("%s", s);
     }
     cprintf(", inst pc=0x%x\n", t->th_tf.tf_reg1.o1);
-    thread_halt(t);
-}
-
-static void
-soft_fault(int trapno, const struct Thread *t)
-{
-    print_state("unknown software trap", t);
-    cprintf(", trapno=0x%x\n", trapno);    
     thread_halt(t);
 }
 
@@ -157,9 +141,6 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
     case T_DATAFAULT:
 	page_fault(trap_thread, tf, trapno);
 	break;
-    case T_ALIGN:
-	align_fault(trap_thread);
-	break;
     case T_EMUERR:
 	emu_error(trap_thread);
 	break;
@@ -170,11 +151,13 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	break;
     }
     default:
-	if (trapno >= T_SOFTWARE_MIN) {
-	    soft_fault(trapno, trap_thread);
-	    break;
-	}	    
-	panic("trap 0x%x", trapno);
+	r = thread_utrap(trap_thread, UTRAP_SRC_HW, trapno, 0);
+	if (r != 0 && r != -E_RESTART) {
+	    cprintf("Unknown trap %d, cannot utrap: %s.  Trapframe:\n",
+		    trapno, e2s(r));
+	    trapframe_print(tf);
+	    thread_halt(trap_thread);
+	}
     }
 }
 
