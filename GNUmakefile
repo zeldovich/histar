@@ -6,21 +6,7 @@
 #	http://aegis.sourceforge.net/auug97.pdf
 #
 
-ifdef GCCPREFIX
-SETTINGGCCPREFIX := true
-else
--include conf/gcc.mk
-endif
-
-TOP :=	$(shell echo $${PWD-`pwd`})
-
-# Cross-compiler jos toolchain
-#
-# This Makefile will automatically use the cross-compiler toolchain
-# installed as 'TARGET-*', if one exists.  If the host tools ('gcc',
-# 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
-# be detected as well.  If you have the right compiler toolchain installed
-# using a different name, set GCCPREFIX explicitly.
+# Target kernel architecture/type
 
 K_ARCH	:= amd64
 #K_ARCH	:= i386
@@ -28,15 +14,15 @@ K_ARCH	:= amd64
 #K_ARCH	:= sparc
 #K_ARCH	:= um
 
-## On Fedora Core you may need a full path to avoid /usr/lib/ccache
-#GCCPREFIX := /usr/bin/
-
 ## Use multiple objdirs to build multiple architectures with same source tree
 OBJDIR	:= obj
 #OBJDIR	:= obj.$(K_ARCH)
 
+-include conf/gcc.$(K_ARCH).mk
 include conf/Makefrag.$(K_ARCH)
+
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
+TOP	:= $(shell echo $${PWD-`pwd`})
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -48,7 +34,6 @@ RPCC	:= rpcc
 TAME 	:= tame
 
 # Compiler flags.
-
 COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn \
 	    -Wwrite-strings -Wno-unused-parameter -Wmissing-format-attribute \
 	    -Wswitch-default -fno-builtin-fork
@@ -120,18 +105,19 @@ KERN_CFLAGS += -mrestore
 endif
 
 # try to infer the correct GCCPREFIX
-conf/gcc.mk:
+conf/gcc.$(K_ARCH).mk:
 	@if $(TARGET)-objdump -i 2>&1 | grep '^$(OBJTYPE)$$' >/dev/null 2>&1; \
-	then echo 'GCCPREFIX=$(TARGET)-' >conf/gcc.mk; \
+	then echo 'GCCPREFIX=$(TARGET)-' >conf/gcc.$(K_ARCH).mk; \
 	elif objdump -i 2>&1 | grep '^$(OBJTYPE)$$' >/dev/null 2>&1; \
-	then echo 'GCCPREFIX=' >conf/gcc.mk; \
+	then echo 'GCCPREFIX=' >conf/gcc.$(K_ARCH).mk; \
 	else echo "***" 1>&2; \
 	echo "*** Error: Couldn't find GCC/binutils for $(OBJTYPE)." 1>&2; \
 	echo "*** Is the directory with $(TARGET)-gcc in your PATH?" 1>&2; \
 	echo "*** If $(OBJTYPE) toolchain is installed with a command" 1>&2; \
 	echo "*** prefix other than '$(TARGET)-', set your GCCPREFIX" 1>&2; \
 	echo "*** environment variable to that prefix re-run 'gmake'." 1>&2; \
-	echo "*** To turn off this error: echo GCCPREFIX= >conf/gcc.mk" 1>&2; \
+	echo "*** To turn off this error:" 1>&2; \
+	echo "***     echo GCCPREFIX= >conf/gcc.$(K_ARCH).mk" 1>&2; \
 	echo "***" 1>&2; exit 1; fi
 
 # Include Makefrags for subdirectories
@@ -157,7 +143,7 @@ clean:
 	rm -f bochs.log
 
 distclean: clean
-	rm -f conf/gcc.mk
+	rm -f conf/gcc.$(K_ARCH).mk
 	find . -type f \( -name '*~' -o -name '.*~' \) -exec rm -f \{\} \;
 
 # Need a rebuild when switching b/t prof and non-prof output...
