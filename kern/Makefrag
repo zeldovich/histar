@@ -62,8 +62,6 @@ include conf/embedbin/Makefrag
 
 KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
 KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
-
-KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
 KERN_OBJFILES += $(patsubst %,$(OBJDIR)/kern/embed_%.o,$(subst /,_,$(KERN_BINFILES)))
 
 # How to build kernel object files
@@ -110,13 +108,13 @@ $(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
 $(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk conf/embedbin
 	@mkdir -p $(@D)
 	echo '#include <kern/embedbin.h>' >$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
 	echo 'struct embed_bin embed_bins[] = {' >>$@
-	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,obj/.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uintptr_t)_binary_$${_}_size },\n"; }' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uintptr_t)_binary_$${_}_size },\n"; }' >>$@
 	echo "{ 0, 0, 0 } };" >>$@
 
-$(OBJDIR)/kern/embed_obj_user_%.o: $(OBJDIR)/user/%
+$(OBJDIR)/kern/embed_user_%.o: $(OBJDIR)/user/%
 	@mkdir -p $(@D)
-	$(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) $< $@
+	cd $(OBJDIR) && $(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) `echo $< | sed -e 's,[^/]*/,,'` ../$@
 
 -include $(ARCHDIR)/Makefrag.final
