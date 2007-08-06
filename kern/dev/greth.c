@@ -140,6 +140,8 @@ greth_reset(struct greth_card *c)
     /* setup buffer descriptor pointers */
     regs->tx_desc_p = kva2pa(c->txbds);
     regs->rx_desc_p = kva2pa(c->rxbds);
+    /* clear AHB error bits */
+    regs->status |= (GRETH_RX_AHBERR | GRETH_TX_AHBERR);
 
     for (int i = 0; i < GRETH_TXBD_NUM; i++) {
 	if (c->tx[i].sg) {
@@ -268,10 +270,72 @@ greth_buffer_reset(void *a)
 }
 
 static void
+greth_intr_rx(struct greth_card *c)
+{
+    for (;;) {
+	int i = c->rx_head;
+	if (i == -1 || (c->rxbds->rxbd[i].stat & GRETH_BD_EN))
+	    break;
+
+	kobject_unpin_page(&c->rx[i].sg->sg_ko);
+	pagetree_decpin(c->rx[i].nb);
+	kobject_dirty(&c->rx[i].sg->sg_ko);
+	c->rx[i].sg = 0;
+	c->rx[i].nb->actual_count = (c->rxbds->rxbd[i].stat & GRETH_BD_LEN);
+	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+	if (c->rxbds->rxbd[i].stat & GRETH_RXBD_ERR)
+	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
+
+	c->rx_head = (i + 1) % GRETH_RXBD_NUM;
+	if (c->rx_head == c->rx_nextq)
+	    c->rx_head = -1;
+    }
+    c->regs->status |= (GRETH_INT_RX | GRETH_ERR_RX);
+}
+
+static void
+greth_intr_tx(struct greth_card *c)
+{
+    for (;;) {
+	int i = c->tx_head;
+	if (i == -1 || (c->txbds->txbd[i].stat & GRETH_BD_EN))
+	    break;
+
+	kobject_unpin_page(&c->tx[i].sg->sg_ko);
+	pagetree_decpin(c->tx[i].nb);
+	kobject_dirty(&c->tx[i].sg->sg_ko);
+	c->tx[i].sg = 0;
+	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
+
+	c->tx_head = (i + 1) % GRETH_TXBD_NUM;
+	if (c->tx_head == c->tx_nextq)
+	    c->tx_head = -1;
+    }
+    c->regs->status |= (GRETH_INT_TX | GRETH_ERR_TX);
+}
+
+static void
 greth_intr(void *arg)
 {
-    cprintf("greth_intr: XXX\n");
-    //netdev_thread_wakeup(&c->netdev);
+    struct greth_card *c = arg;
+    
+    if (c->regs->status | GRETH_INT_TX)
+	greth_intr_tx(c);
+
+    if (c->regs->status | GRETH_INT_RX)
+	greth_intr_rx(c);
+
+    if (c->regs->status | GRETH_TX_AHBERR) {
+	cprintf("greth_intr: ahb tx error\n");
+	greth_reset(c);
+    }
+
+    if (c->regs->status | GRETH_RX_AHBERR) {
+	cprintf("greth_intr: ahb rx error\n");
+	greth_reset(c);
+    }
+
+    netdev_thread_wakeup(&c->netdev);
 }
 
 int

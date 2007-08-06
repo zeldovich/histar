@@ -54,11 +54,14 @@
 #define GRETH_RXEN           0x2
 #define GRETH_RXI            0x8
 #define GRETH_RXBD_STATUS    0xFFFFC000
+
 #define GRETH_RXBD_ERR_AE    0x4000
 #define GRETH_RXBD_ERR_FT    0x8000
 #define GRETH_RXBD_ERR_CRC   0x10000
 #define GRETH_RXBD_ERR_OE    0x20000
 #define GRETH_RXBD_ERR_LE    0x40000
+#define GRETH_RXBD_ERR       0x7C000
+
 #define GRETH_RXBD_IP_DEC    0x80000
 #define GRETH_RXBD_IP_CSERR  0x100000
 #define GRETH_RXBD_UDP_DEC   0x200000
@@ -69,6 +72,11 @@
 #define GRETH_RXBD_NUM 128
 #define GRETH_RXBD_NUM_MASK (GRETH_RXBD_NUM-1)
 #define GRETH_RX_BUF_SIZE 2048
+
+#define GRETH_ERR_RX 0x01
+#define GRETH_ERR_TX 0x02
+#define GRETH_TX_AHBERR 0x020
+#define GRETH_RX_AHBERR 0x010
 
 /* Ethernet configuration registers */
 struct greth_regs {
