@@ -1,7 +1,7 @@
 #include <machine/asm.h>
 #include <machine/pmap.h>
 #include <machine/mmu.h>
-#include <obj/lib/utrapasm.h>
+#include <lib/utrapasm.h>
 
 
 ENTRY(utrap_entry_asm)
