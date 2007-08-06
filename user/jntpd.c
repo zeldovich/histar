@@ -51,7 +51,7 @@ receiver(void *arg)
 	}
 
 	if ((uint32_t) cc < sizeof(u.pkt)) {
-	    printf("jntpd receiver: short packet, %d < %ld\n", cc, sizeof(u.pkt));
+	    printf("jntpd receiver: short packet, %d < %zd\n", cc, sizeof(u.pkt));
 	    continue;
 	}
 

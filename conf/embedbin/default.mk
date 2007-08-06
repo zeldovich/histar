@@ -1,7 +1,7 @@
 KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab
-KERN_BINFILES	+= user/netd user/netd_mom
+KERN_BINFILES	+= user/netd user/netd_mom user/jntpd
 #KERN_BINFILES	+= user/vmlinux user/initrd user/netd_mom
-#KERN_BINFILES	+= user/telnetd user/httpd user/httpd_worker user/tcpserv user/ftpd user/jntpd
+#KERN_BINFILES	+= user/telnetd user/httpd user/httpd_worker user/tcpserv user/ftpd
 KERN_BINFILES	+= user/fetch user/dnstest
 #KERN_BINFILES	+= user/db user/dbc
 #KERN_BINFILES	+= user/lfs_small user/lfs_large user/execbench user/spawnbench user/ipcbench user/true user/syscallbench
