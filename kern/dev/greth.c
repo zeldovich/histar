@@ -277,8 +277,6 @@ greth_intr(void *arg)
 int
 greth_init(void)
 {
-    static_assert(sizeof(struct greth_card) <= PGSIZE);
-
     struct amba_apb_device dev;
     int r = amba_apbslv_device(VENDOR_GAISLER, GAISLER_ETHMAC, &dev, 0);
     if (!r)
@@ -290,6 +288,9 @@ greth_init(void)
     if (r < 0)
 	return r;
     memset(c, 0, PGSIZE);
+    static_assert(PGSIZE >= sizeof(*c));
+    static_assert(PGSIZE >= sizeof(*c->txbds));
+    static_assert(PGSIZE >= sizeof(*c->rxbds));
     
     r = page_alloc((void **) &c->txbds);
     if (r < 0) {
