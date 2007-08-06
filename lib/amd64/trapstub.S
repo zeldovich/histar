@@ -1,6 +1,8 @@
 #include <machine/asm.h>
 #include <machine/pmap.h>
-#include <obj/lib/utrapasm.h>
+
+/* actually $(OBJDIR)/lib/utrapasm.h */
+#include <lib/utrapasm.h>
 
 /*
  * When we upgrade to binutils 2.17, we should start using .cfi_signal_frame:
