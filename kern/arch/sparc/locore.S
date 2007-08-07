@@ -80,8 +80,7 @@ vm_enabled:
 	 nop
 
 def_trap:
-	set	kstack_top, %l5
-	sub	%l5, TRAPFRAME_SZ, %l5
+	set	(kstack_top - TRAPFRAME_SZ), %l5
 
 	STORE_GLOBALS(l5 + TF_G0)
 	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l3, l4)
