@@ -83,13 +83,14 @@
 
 /* Ethernet configuration registers */
 struct greth_regs {
-    volatile uint32_t control;        
-    volatile uint32_t status;        
-    volatile uint32_t esa_msb;        
-    volatile uint32_t esa_lsb;        
-    volatile uint32_t mdio;        
-    volatile uint32_t tx_desc_p;        
-    volatile uint32_t rx_desc_p;        
+    volatile uint32_t control;
+    volatile uint32_t status;
+    volatile uint32_t esa_msb;
+    volatile uint32_t esa_lsb;
+    volatile uint32_t mdio;
+    volatile uint32_t tx_desc_p;
+    volatile uint32_t rx_desc_p;
+    volatile uint32_t edcl_ip;
 };
 
 /* Ethernet buffer descriptor */

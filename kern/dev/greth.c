@@ -11,8 +11,6 @@
 #include <dev/amba.h>
 #include <inc/error.h>
 
-static const char greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x01 };
-
 struct greth_buffer_slot {
     struct netbuf_hdr *nb;
     const struct Segment *sg;
@@ -377,7 +375,13 @@ greth_init(void)
 
     c->regs = regs;
     c->irq_line = dev.irq;
-    greth_set_mac(regs, greth_mac);
+
+    /* Derive the MAC address from the EDCL IP address */
+    char greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x00 };
+    uint32_t edcl_ip = regs->edcl_ip;
+    memcpy(&greth_mac[2], &edcl_ip, 4);
+
+    greth_set_mac(regs, &greth_mac[0]);
     memcpy(&c->netdev.mac_addr[0], &greth_mac[0], 6);
 
     greth_reset(c);
