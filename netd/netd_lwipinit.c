@@ -182,12 +182,12 @@ netd_lwip_init(void (*cb)(void *), void *cbarg,
 		    dhcp_states[dhcp_state] ? : "unknown");
 
 	    if (dhcp_state == DHCP_BOUND) {
-		uint32_t ip = nif->ip_addr.addr;
+		uint32_t ip = ntohl(nif->ip_addr.addr);
 		cprintf("netd: ip %u.%u.%u.%u\n",
-			ip & 0x000000FF,
-			(ip & 0x0000FF00) >> 8,
+			(ip & 0xFF000000) >> 24,
 			(ip & 0x00FF0000) >> 16,
-			(ip & 0xFF000000) >> 24);
+			(ip & 0x0000FF00) >> 8,
+			(ip & 0x000000FF));
 	    }
 	}
 
