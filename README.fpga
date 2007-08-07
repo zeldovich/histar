@@ -37,6 +37,8 @@
 
     svn co svn+ssh://cyclades.stanford.edu/kozyrakis/users/security/svn/trunk/histar/ leon
     cd leon/designs/leon3-digilent-xup
+    # set CONFIG_DSU_IPMSB, CONFIG_DSU_IPLSB in .config
+    make xconfig
     make ise-synp
     make ise-prog-fpga
 
