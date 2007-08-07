@@ -318,19 +318,20 @@ static void
 greth_intr(void *arg)
 {
     struct greth_card *c = arg;
+    uint32_t status = c->regs->status;
 
-    if (c->regs->status & GRETH_INT_TX)
+    if (status & GRETH_INT_TX)
 	greth_intr_tx(c);
 
-    if (c->regs->status & GRETH_INT_RX)
+    if (status & GRETH_INT_RX)
 	greth_intr_rx(c);
 
-    if (c->regs->status & GRETH_TX_AHBERR) {
+    if (status & GRETH_TX_AHBERR) {
 	cprintf("greth_intr: ahb tx error\n");
 	greth_reset(c);
     }
 
-    if (c->regs->status & GRETH_RX_AHBERR) {
+    if (status & GRETH_RX_AHBERR) {
 	cprintf("greth_intr: ahb rx error\n");
 	greth_reset(c);
     }
