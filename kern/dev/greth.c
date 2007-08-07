@@ -164,7 +164,7 @@ greth_reset(struct greth_card *c)
     c->rx_head = -1;
     c->rx_nextq = 0;
     c->tx_head = -1;
-    c->rx_nextq = 0;
+    c->tx_nextq = 0;
 
     c->netdev.waiter_id = 0;
     netdev_thread_wakeup(&c->netdev);
