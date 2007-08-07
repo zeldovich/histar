@@ -17,7 +17,7 @@ ENTRY(stack_switch)
 	// stack_switch doesn't return, so can use locals
 	// setup new stack, copy over arg #3
 	ld	[%sp + 0x64], %l0
-	sub	%l0, STACKFRAME_SZ, %l0
+	sub	%l0, (STACKFRAME_SZ + 8), %l0
 
 	ld	[%sp + 0x5C], %l1
 	st	%l1, [%l0 + 0x5C]
