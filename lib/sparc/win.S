@@ -34,21 +34,18 @@ uwin_overflow:
 	srl	%l7, 12, %l6
 	cmp	%l6, %l5
 	bne	uwin_check_g1
-	 /* put imm13 in %l6, removing sign bit*/
-	 orn	%g0, %l7, %l6
-	sll	%l6, 20, %l6
-	srl	%l6, 20, %l6
+	 /* put imm13 in %l6, sign-extending */
+	 sll	%l7, 19, %l6
+	sra	%l6, 19, %l6
 
 	SHIFT_O2I
 
-	sub	%sp, %l6, %sp
-	dec	%sp /* remember two's complement */
+	add	%sp, %l6, %sp
 
 	jmp	%g5
 	 jmp	%g5 + 4
 	  nop
-	
-		
+
 uwin_check_g1:
 	set	0x9DE38001, %l5 /* save %sp, %g1, %sp */
 	cmp	%l7, %l5
