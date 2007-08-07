@@ -1,5 +1,5 @@
-#ifndef JOS_MACHINE_GRETHREG_H
-#define JOS_MACHINE_GRETHREG_H
+#ifndef JOS_DEV_GRETHREG_H
+#define JOS_DEV_GRETHREG_H
 
 #define GRETH_REG_BASE  ETH_BASE_ADD 
 
@@ -80,19 +80,19 @@
 
 /* Ethernet configuration registers */
 struct greth_regs {
-    volatile int control;        
-    volatile int status;        
-    volatile int esa_msb;        
-    volatile int esa_lsb;        
-    volatile int mdio;        
-    volatile int tx_desc_p;        
-    volatile int rx_desc_p;        
+    volatile uint32_t control;        
+    volatile uint32_t status;        
+    volatile uint32_t esa_msb;        
+    volatile uint32_t esa_lsb;        
+    volatile uint32_t mdio;        
+    volatile uint32_t tx_desc_p;        
+    volatile uint32_t rx_desc_p;        
 };
 
 /* Ethernet buffer descriptor */
 struct greth_bd {
-    volatile int stat;
-    volatile int addr;           /* Buffer address */
+    volatile uint32_t stat;
+    volatile uint32_t addr;           /* Buffer address */
 };
 
 #endif

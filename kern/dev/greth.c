@@ -48,8 +48,8 @@ struct greth_card {
 static void
 greth_set_mac(struct greth_regs *regs, const char *mac)
 {
-    int msb = mac[0] << 8 | mac[1];
-    int lsb = mac[2] << 24 | mac[3] << 16 | mac[4] << 8 | mac[5];
+    uint32_t msb = mac[0] << 8 | mac[1];
+    uint32_t lsb = mac[2] << 24 | mac[3] << 16 | mac[4] << 8 | mac[5];
     regs->esa_msb = msb;
     regs->esa_lsb = lsb;
     /* Make sure GRETH likes the mac */
@@ -367,14 +367,18 @@ greth_init(void)
 	page_free(c->txbds);
 	page_free(c);
 	return r;
-    }    
+    }
+
+    memset(c->txbds, 0, sizeof(*c->txbds));
+    memset(c->rxbds, 0, sizeof(*c->rxbds));
+
     c->regs = regs;
     c->irq_line = dev.irq;
     greth_set_mac(regs, greth_mac);
     memcpy(&c->netdev.mac_addr[0], &greth_mac[0], 6);
-    
+
     greth_reset(c);
-    
+
     /* Register card with kernel */
     c->ih.ih_func = &greth_intr;
     c->ih.ih_arg = c;
