@@ -6,7 +6,7 @@
     safe_add##suffix(int *of, uint64_t a, uint64_t b)		\
     {								\
 	T r = a + b;						\
-	if (r < a || r < b)					\
+	if (r < a)						\
 	    *of = 1;						\
 	return r;						\
     }								\
