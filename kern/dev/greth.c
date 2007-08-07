@@ -44,7 +44,7 @@ struct greth_card {
 };
 
 static void
-greth_set_mac(struct greth_regs *regs, const char *mac)
+greth_set_mac(struct greth_regs *regs, const uint8_t *mac)
 {
     uint32_t msb = mac[0] << 8 | mac[1];
     uint32_t lsb = mac[2] << 24 | mac[3] << 16 | mac[4] << 8 | mac[5];
@@ -378,7 +378,7 @@ greth_init(void)
     c->irq_line = dev.irq;
 
     /* Derive the MAC address from the EDCL IP address */
-    char greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x00 };
+    uint8_t greth_mac[6] = { 0x00, 0x5E, 0x00, 0x00, 0x00, 0x00 };
     uint32_t edcl_ip = regs->edcl_ip;
     memcpy(&greth_mac[2], &edcl_ip, 4);
 
