@@ -124,19 +124,19 @@ greth_reset(struct greth_card *c)
     if (r < 0)
 	cprintf("greth_reset: mii write error %s\n", e2s(r));
 
-    regs->control |= GRETH_RESET;
+    regs->control |= GRETH_CTRL_RESET;
     
     for (int i = 0; i < 1000; i++) {
-	if (!(regs->control & GRETH_RESET))
+	if (!(regs->control & GRETH_CTRL_RESET))
 	    break;
 	timer_delay(20000);
     }
 
-    if (regs->control & GRETH_RESET)
+    if (regs->control & GRETH_CTRL_RESET)
 	cprintf("greth_reset: card still resetting, odd..\n");
 
     /* enable interrupts */
-    regs->control |= (GRETH_INT_RX | GRETH_INT_TX);
+    regs->control |= (GRETH_CTRL_RXINT | GRETH_CTRL_TXINT);
     /* setup buffer descriptor pointers */
     regs->tx_desc_p = kva2pa(c->txbds);
     regs->rx_desc_p = kva2pa(c->rxbds);
@@ -192,7 +192,7 @@ greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
     memset(&c->txbds->txbd[slot], 0, sizeof(c->txbds->txbd[slot]));
     c->txbds->txbd[slot].addr = kva2pa(c->tx[slot].nb + 1);
     c->txbds->txbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
-    c->regs->control |= GRETH_TXEN;
+    c->regs->control |= GRETH_CTRL_TXEN;
 
     c->tx_nextq = (slot + 1) % GRETH_TXBD_NUM;
     if (c->tx_head == -1)
@@ -225,7 +225,7 @@ greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
     memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
     c->rxbds->rxbd[slot].addr = kva2pa(c->rx[slot].nb + 1);
     c->rxbds->rxbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
-    c->regs->control |= GRETH_RXEN;
+    c->regs->control |= GRETH_CTRL_RXEN;
 
     c->rx_nextq = (slot + 1) % GRETH_RXBD_NUM;
     if (c->rx_head == -1)

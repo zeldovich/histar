@@ -1,14 +1,18 @@
 #ifndef JOS_DEV_GRETHREG_H
 #define JOS_DEV_GRETHREG_H
 
-#define GRETH_REG_BASE  ETH_BASE_ADD 
-
-#define GRETH_FD 0x10
-#define GRETH_RESET 0x40
-#define GRETH_MII_BUSY 0x8
-#define GRETH_MII_NVALID 0x10
+/* Control register */
+#define GRETH_CTRL_TXEN		(1 << 0)
+#define GRETH_CTRL_RXEN		(1 << 1)
+#define GRETH_CTRL_TXINT	(1 << 2)
+#define GRETH_CTRL_RXINT	(1 << 3)
+#define GRETH_CTRL_FD		(1 << 4)
+#define GRETH_CTRL_PROMISC	(1 << 5)
+#define GRETH_CTRL_RESET	(1 << 6)
 
 /* MDIO ctrl/status register */
+#define GRETH_MII_BUSY 0x8
+#define GRETH_MII_NVALID 0x10
 #define MDIO_PHYADDR_SHIFT 11
 #define MDIO_PHYADDR_MASK  0x1F
 #define MDIO_REGADDR_SHIFT 6
@@ -35,9 +39,7 @@
 #define GRETH_BD_IE 0x2000
 #define GRETH_BD_LEN 0x7FF
 
-#define GRETH_TXEN 0x1
 #define GRETH_INT_TX 0x8
-#define GRETH_TXI 0x4
 #define GRETH_TXBD_STATUS 0x0001C000
 #define GRETH_TXBD_MORE 0x20000
 #define GRETH_TXBD_IPCS 0x40000
@@ -51,8 +53,6 @@
 #define GRETH_TX_BUF_SIZE 2048
 
 #define GRETH_INT_RX         0x4
-#define GRETH_RXEN           0x2
-#define GRETH_RXI            0x8
 #define GRETH_RXBD_STATUS    0xFFFFC000
 
 #define GRETH_RXBD_ERR_AE    0x4000
