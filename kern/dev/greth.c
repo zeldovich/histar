@@ -140,6 +140,10 @@ greth_reset(struct greth_card *c)
     regs->tx_desc_p = kva2pa(c->txbds);
     regs->rx_desc_p = kva2pa(c->rxbds);
 
+    /* clear enable bits just in case */
+    memset(c->txbds, 0, sizeof(*c->txbds));
+    memset(c->rxbds, 0, sizeof(*c->rxbds));
+
     /* clear all status bits */
     regs->status = ~0;
 
@@ -369,9 +373,6 @@ greth_init(void)
 	page_free(c);
 	return r;
     }
-
-    memset(c->txbds, 0, sizeof(*c->txbds));
-    memset(c->rxbds, 0, sizeof(*c->rxbds));
 
     c->regs = regs;
     c->irq_line = dev.irq;
