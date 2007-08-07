@@ -124,8 +124,8 @@ greth_reset(struct greth_card *c)
     if (r < 0)
 	cprintf("greth_reset: mii write error %s\n", e2s(r));
 
-    regs->control |= GRETH_CTRL_RESET;
-    
+    regs->control = GRETH_CTRL_RESET;
+
     for (int i = 0; i < 1000; i++) {
 	if (!(regs->control & GRETH_CTRL_RESET))
 	    break;
@@ -136,12 +136,14 @@ greth_reset(struct greth_card *c)
 	cprintf("greth_reset: card still resetting, odd..\n");
 
     /* enable interrupts */
-    regs->control |= (GRETH_CTRL_RXINT | GRETH_CTRL_TXINT);
+    regs->control |= (GRETH_CTRL_RX_INT | GRETH_CTRL_TX_INT);
+
     /* setup buffer descriptor pointers */
     regs->tx_desc_p = kva2pa(c->txbds);
     regs->rx_desc_p = kva2pa(c->rxbds);
-    /* clear AHB error bits */
-    regs->status |= (GRETH_RX_AHBERR | GRETH_TX_AHBERR);
+
+    /* clear all status bits */
+    regs->status = ~0;
 
     for (int i = 0; i < GRETH_TXBD_NUM; i++) {
 	if (c->tx[i].sg) {
@@ -192,7 +194,7 @@ greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
     memset(&c->txbds->txbd[slot], 0, sizeof(c->txbds->txbd[slot]));
     c->txbds->txbd[slot].addr = kva2pa(c->tx[slot].nb + 1);
     c->txbds->txbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
-    c->regs->control |= GRETH_CTRL_TXEN;
+    c->regs->control |= GRETH_CTRL_TX_EN;
 
     c->tx_nextq = (slot + 1) % GRETH_TXBD_NUM;
     if (c->tx_head == -1)
@@ -225,7 +227,7 @@ greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
     memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
     c->rxbds->rxbd[slot].addr = kva2pa(c->rx[slot].nb + 1);
     c->rxbds->rxbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
-    c->regs->control |= GRETH_CTRL_RXEN;
+    c->regs->control |= GRETH_CTRL_RX_EN;
 
     c->rx_nextq = (slot + 1) % GRETH_RXBD_NUM;
     if (c->rx_head == -1)
@@ -290,7 +292,7 @@ greth_intr_rx(struct greth_card *c)
 	if (c->rx_head == c->rx_nextq)
 	    c->rx_head = -1;
     }
-    c->regs->status |= (GRETH_INT_RX | GRETH_ERR_RX);
+    c->regs->status |= (GRETH_STAT_RX_INT | GRETH_STAT_RX_ERR);
 }
 
 static void
@@ -311,7 +313,7 @@ greth_intr_tx(struct greth_card *c)
 	if (c->tx_head == c->tx_nextq)
 	    c->tx_head = -1;
     }
-    c->regs->status |= (GRETH_INT_TX | GRETH_ERR_TX);
+    c->regs->status |= (GRETH_STAT_TX_INT | GRETH_STAT_TX_ERR);
 }
 
 static void
@@ -320,18 +322,18 @@ greth_intr(void *arg)
     struct greth_card *c = arg;
     uint32_t status = c->regs->status;
 
-    if (status & GRETH_INT_TX)
+    if (status & GRETH_STAT_TX_INT)
 	greth_intr_tx(c);
 
-    if (status & GRETH_INT_RX)
+    if (status & GRETH_STAT_RX_INT)
 	greth_intr_rx(c);
 
-    if (status & GRETH_TX_AHBERR) {
+    if (status & GRETH_STAT_TX_AHBERR) {
 	cprintf("greth_intr: ahb tx error\n");
 	greth_reset(c);
     }
 
-    if (status & GRETH_RX_AHBERR) {
+    if (status & GRETH_STAT_RX_AHBERR) {
 	cprintf("greth_intr: ahb rx error\n");
 	greth_reset(c);
     }

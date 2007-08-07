@@ -2,13 +2,23 @@
 #define JOS_DEV_GRETHREG_H
 
 /* Control register */
-#define GRETH_CTRL_TXEN		(1 << 0)
-#define GRETH_CTRL_RXEN		(1 << 1)
-#define GRETH_CTRL_TXINT	(1 << 2)
-#define GRETH_CTRL_RXINT	(1 << 3)
+#define GRETH_CTRL_TX_EN	(1 << 0)
+#define GRETH_CTRL_RX_EN	(1 << 1)
+#define GRETH_CTRL_TX_INT	(1 << 2)
+#define GRETH_CTRL_RX_INT	(1 << 3)
 #define GRETH_CTRL_FD		(1 << 4)
 #define GRETH_CTRL_PROMISC	(1 << 5)
 #define GRETH_CTRL_RESET	(1 << 6)
+
+/* Status register */
+#define GRETH_STAT_RX_ERR	(1 << 0)
+#define GRETH_STAT_TX_ERR	(1 << 1)
+#define GRETH_STAT_RX_INT	(1 << 2)
+#define GRETH_STAT_TX_INT	(1 << 3)
+#define GRETH_STAT_RX_AHBERR	(1 << 4)
+#define GRETH_STAT_TX_AHBERR	(1 << 5)
+#define GRETH_STAT_TS		(1 << 6)
+#define GRETH_STAT_IA		(1 << 7)
 
 /* MDIO ctrl/status register */
 #define GRETH_MII_BUSY 0x8
@@ -39,7 +49,6 @@
 #define GRETH_BD_IE 0x2000
 #define GRETH_BD_LEN 0x7FF
 
-#define GRETH_INT_TX 0x8
 #define GRETH_TXBD_STATUS 0x0001C000
 #define GRETH_TXBD_MORE 0x20000
 #define GRETH_TXBD_IPCS 0x40000
@@ -52,7 +61,6 @@
 #define GRETH_TXBD_NUM_MASK (GRETH_TXBD_NUM-1)
 #define GRETH_TX_BUF_SIZE 2048
 
-#define GRETH_INT_RX         0x4
 #define GRETH_RXBD_STATUS    0xFFFFC000
 
 #define GRETH_RXBD_ERR_AE    0x4000
@@ -72,11 +80,6 @@
 #define GRETH_RXBD_NUM 128
 #define GRETH_RXBD_NUM_MASK (GRETH_RXBD_NUM-1)
 #define GRETH_RX_BUF_SIZE 2048
-
-#define GRETH_ERR_RX 0x01
-#define GRETH_ERR_TX 0x02
-#define GRETH_TX_AHBERR 0x020
-#define GRETH_RX_AHBERR 0x010
 
 /* Ethernet configuration registers */
 struct greth_regs {
