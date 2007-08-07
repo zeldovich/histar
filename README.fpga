@@ -31,3 +31,10 @@
 
     http://www.synplicity.com/downloads/download1.html
 
+* Building the CPU
+
+    svn co svn+ssh://cyclades.stanford.edu/kozyrakis/users/security/svn/trunk/histar/ leon
+    cd leon/designs/leon3-digilent-xup
+    make ise-synp
+    make ise-prog-fpga
+
