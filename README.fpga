@@ -31,6 +31,8 @@
 
     http://www.synplicity.com/downloads/download1.html
 
+    export PATH=$PATH:/usr/local/synplify/fpga_8804/bin
+
 * Building the CPU
 
     svn co svn+ssh://cyclades.stanford.edu/kozyrakis/users/security/svn/trunk/histar/ leon
