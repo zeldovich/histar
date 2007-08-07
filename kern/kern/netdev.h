@@ -15,8 +15,10 @@ struct Netdev {
 struct net_device {
     void *arg;
 
-    int  (*add_buf) (void *a, const struct Segment *sg,
-		     uint64_t offset, netbuf_type type);
+    int  (*add_buf_rx) (void *a, const struct Segment *sg,
+			struct netbuf_hdr *nb, uint16_t size);
+    int  (*add_buf_tx) (void *a, const struct Segment *sg,
+			struct netbuf_hdr *nb, uint16_t size);
     void (*buffer_reset) (void *a);
 
     uint8_t mac_addr[6];

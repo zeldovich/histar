@@ -1,5 +1,6 @@
 #include <kern/netdev.h>
 #include <kern/lib.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 struct net_device *netdevs[netdevs_max];
@@ -15,7 +16,32 @@ int
 netdev_add_buf(struct net_device *ndev, const struct Segment *sg,
 	       uint64_t offset, netbuf_type type)
 {
-    return ndev->add_buf(ndev->arg, sg, offset, type);
+    uint64_t npage = offset / PGSIZE;
+    uint32_t pageoff = PGOFF(offset);
+
+    void *p;
+    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
+    if (r < 0)
+	return r;
+
+    if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
+	return -E_INVAL;
+
+    struct netbuf_hdr *nb = p + pageoff;
+    uint16_t size = nb->size;
+    if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
+	return -E_INVAL;
+
+    switch (type) {
+    case netbuf_rx:
+	return ndev->add_buf_rx(ndev->arg, sg, nb, size);
+
+    case netbuf_tx:
+	return ndev->add_buf_tx(ndev->arg, sg, nb, size);
+
+    default:
+	return -E_INVAL;
+    }
 }
 
 int64_t

@@ -130,10 +130,10 @@ pnic_intr(void *arg)
 }
 
 static int
-pnic_add_txbuf(struct pnic_card *c,
-	       const struct Segment *sg,
+pnic_add_txbuf(void *arg, const struct Segment *sg,
 	       struct netbuf_hdr *nb, uint16_t size)
 {
+    struct pnic_card *c = arg;
     const char *buf = (const char *) (nb + 1);
     outw(c->iobase + PNIC_REG_LEN, size);
     outsb(c->iobase + PNIC_REG_DATA, buf, size);
@@ -151,9 +151,10 @@ pnic_add_txbuf(struct pnic_card *c,
 }
 
 static int
-pnic_add_rxbuf(struct pnic_card *c, const struct Segment *sg,
+pnic_add_rxbuf(void *arg, const struct Segment *sg,
 	       struct netbuf_hdr *nb, uint16_t size)
 {
+    struct pnic_card *c = arg;
     int slot = c->rx_nextq;
 
     if (slot == c->rx_head)
@@ -170,35 +171,6 @@ pnic_add_rxbuf(struct pnic_card *c, const struct Segment *sg,
 	c->rx_head = slot;
 
     return 0;
-}
-
-static int
-pnic_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
-{
-    struct pnic_card *c = (struct pnic_card *) a;
-    uint64_t npage = offset / PGSIZE;
-    uint32_t pageoff = PGOFF(offset);
-
-    void *p;
-    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
-    if (r < 0)
-	return r;
-
-    if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
-	return -E_INVAL;
-
-    struct netbuf_hdr *nb = (struct netbuf_hdr *) ((char *) p + pageoff);
-    uint16_t size = nb->size;
-    if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
-	return -E_INVAL;
-
-    if (type == netbuf_rx) {
-	return pnic_add_rxbuf(c, sg, nb, size);
-    } else if (type == netbuf_tx) {
-	return pnic_add_txbuf(c, sg, nb, size);
-    } else {
-	return -E_INVAL;
-    }
 }
 
 int
@@ -240,7 +212,8 @@ pnic_attach(struct pci_func *pcif)
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
-    c->netdev.add_buf = &pnic_add_buf;
+    c->netdev.add_buf_tx = &pnic_add_txbuf;
+    c->netdev.add_buf_rx = &pnic_add_rxbuf;
     c->netdev.buffer_reset = &pnic_buffer_reset_v;
 
     // Register this card with the kernel

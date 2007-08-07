@@ -338,9 +338,10 @@ fxp_intr(void *arg)
 }
 
 static int
-fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
+fxp_add_txbuf(void *arg, const struct Segment *sg,
 	      struct netbuf_hdr *nb, uint16_t size)
 {
+    struct fxp_card *c = arg;
     int slot = c->tx_nextq;
 
     if (slot == c->tx_head)
@@ -375,9 +376,10 @@ fxp_add_txbuf(struct fxp_card *c, const struct Segment *sg,
 }
 
 static int
-fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
+fxp_add_rxbuf(void *arg, const struct Segment *sg,
 	      struct netbuf_hdr *nb, uint16_t size)
 {
+    struct fxp_card *c = arg;
     int slot = c->rx_nextq;
 
     if (slot == c->rx_head)
@@ -404,35 +406,6 @@ fxp_add_rxbuf(struct fxp_card *c, const struct Segment *sg,
 	fxp_rx_start(c);
 
     return 0;
-}
-
-static int
-fxp_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
-{
-    struct fxp_card *c = a;
-    uint64_t npage = offset / PGSIZE;
-    uint32_t pageoff = PGOFF(offset);
-
-    void *p;
-    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
-    if (r < 0)
-	return r;
-
-    if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
-	return -E_INVAL;
-
-    struct netbuf_hdr *nb = p + pageoff;
-    uint16_t size = nb->size;
-    if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
-	return -E_INVAL;
-
-    if (type == netbuf_rx) {
-	return fxp_add_rxbuf(c, sg, nb, size);
-    } else if (type == netbuf_tx) {
-	return fxp_add_txbuf(c, sg, nb, size);
-    } else {
-	return -E_INVAL;
-    }
 }
 
 int
@@ -541,7 +514,8 @@ fxp_attach(struct pci_func *pcif)
     irq_register(c->irq_line, &c->ih);
 
     c->netdev.arg = c;
-    c->netdev.add_buf = &fxp_add_buf;
+    c->netdev.add_buf_tx = &fxp_add_txbuf;
+    c->netdev.add_buf_rx = &fxp_add_rxbuf;
     c->netdev.buffer_reset = &fxp_buffer_reset_v;
     netdev_register(&c->netdev);
 

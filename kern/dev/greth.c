@@ -175,9 +175,10 @@ greth_reset(struct greth_card *c)
 }
 
 static int
-greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
+greth_add_txbuf(void *arg, const struct Segment *sg,
 		struct netbuf_hdr *nb, uint16_t size)
 {
+    struct greth_card *c = arg;
     int slot = c->tx_nextq;
 
     if (slot == c->tx_head)
@@ -206,9 +207,10 @@ greth_add_txbuf(struct greth_card *c, const struct Segment *sg,
 }
 
 static int
-greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
+greth_add_rxbuf(void *arg, const struct Segment *sg,
 	        struct netbuf_hdr *nb, uint16_t size)
 {
+    struct greth_card *c = arg;
     int slot = c->rx_nextq;
 
     if (slot == c->rx_head)
@@ -236,35 +238,6 @@ greth_add_rxbuf(struct greth_card *c, const struct Segment *sg,
 	c->rx_head = slot;
 
     return 0;
-}
-
-static int
-greth_add_buf(void *a, const struct Segment *sg, uint64_t offset, netbuf_type type)
-{
-    struct greth_card *c = a;
-    uint64_t npage = offset / PGSIZE;
-    uint32_t pageoff = PGOFF(offset);
-
-    void *p;
-    int r = kobject_get_page(&sg->sg_ko, npage, &p, page_excl_dirty);
-    if (r < 0)
-	return r;
-
-    if (pageoff > PGSIZE || pageoff + sizeof(struct netbuf_hdr) > PGSIZE)
-	return -E_INVAL;
-
-    struct netbuf_hdr *nb = p + pageoff;
-    uint16_t size = nb->size;
-    if (pageoff + sizeof(struct netbuf_hdr) + size > PGSIZE)
-	return -E_INVAL;
-
-    if (type == netbuf_rx) {
-	return greth_add_rxbuf(c, sg, nb, size);
-    } else if (type == netbuf_tx) {
-	return greth_add_txbuf(c, sg, nb, size);
-    } else {
-	return -E_INVAL;
-    }
 }
 
 static void
@@ -393,7 +366,8 @@ greth_init(void)
     irq_register(c->irq_line, &c->ih);
       
     c->netdev.arg = c;
-    c->netdev.add_buf = &greth_add_buf;
+    c->netdev.add_buf_tx = &greth_add_txbuf;
+    c->netdev.add_buf_rx = &greth_add_rxbuf;
     c->netdev.buffer_reset = &greth_buffer_reset;
     netdev_register(&c->netdev);
     
