@@ -21,11 +21,12 @@ static void
 print_state(const char *s, const struct Thread *t)
 {
     cprintf("%s: thread %"PRIu64" (%s), as %"PRIu64" (%s), "
-	    "pc=0x%x, npc=0x%x, sp=0x%x",
+	    "pc=0x%x, npc=0x%x, fp=0x%x, sp=0x%x",
 	    s, t->th_ko.ko_id, t->th_ko.ko_name,
 	    t->th_as ? t->th_as->as_ko.ko_id : 0,
 	    t->th_as ? t->th_as->as_ko.ko_name : "null",
-	    t->th_tf.tf_pc, t->th_tf.tf_npc, t->th_tf.tf_reg1.sp);
+	    t->th_tf.tf_pc, t->th_tf.tf_npc, t->th_tf.tf_reg1.fp, 
+	    t->th_tf.tf_reg1.sp);
 }
 
 static void
