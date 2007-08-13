@@ -60,15 +60,15 @@ $(OBJDIR)/ktest/%.o: lib/%.cc
 
 $(OBJDIR)/ktest/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/ktest/%.o: kern/kern/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/ktest/%.o: kern/btree/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< -std=c99
+	$(NCC) $(TEST_KERN_CFLAGS) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/ktest/disk-test: $(DISK_TEST_OBJS)
 	$(NCC) -o $@ $(DISK_TEST_OBJS) -lstdc++
@@ -89,7 +89,7 @@ $(OBJDIR)/test/%.o: lib/%.cc
 
 $(OBJDIR)/test/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< -std=c99
+	$(NCC) $(TEST_USER_CFLAGS) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/test/fileserver-test: $(FILESERVER_TEST_OBJS)
 	$(NCC) -o $@ $(FILESERVER_TEST_OBJS) -lstdc++
@@ -140,7 +140,7 @@ $(OBJDIR)/test/lwip/%.o: lib/%.cc
 
 $(OBJDIR)/test/lwip/%.o: lib/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $< -std=c99
+	$(NCC) $(TEST_USER_CFLAGS) -DLWIP_LIB -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/test/lwip_bench: $(LWIP_BENCH_OBJS) $(LWIP_LNX64_LIB)
 	@mkdir -p $(@D)
@@ -151,7 +151,7 @@ BTREE2_INC := -I$(TOP)/test/
 
 $(OBJDIR)/test/%.o: test/btree/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(BTREE2_INC) -DBTREE_PRIV -c -o $@ $< -std=c99
+	$(NCC) $(BTREE2_INC) -DBTREE_PRIV -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/test/btree2-test.o: test/btree2-test.cc
 	@mkdir -p $(@D)
@@ -159,7 +159,7 @@ $(OBJDIR)/test/btree2-test.o: test/btree2-test.cc
 
 $(OBJDIR)/test/btree2-sys.o: test/btree2-sys.c
 	@mkdir -p $(@D)
-	$(NCC) $(TEST_USER_CFLAGS) $(BTREE2_INC) -c -o $@ $< -std=c99
+	$(NCC) $(TEST_USER_CFLAGS) $(BTREE2_INC) -c -o $@ $< $(CSTD)
 
 $(OBJDIR)/test/btree2-test: $(BTREE2_TEST_OBJS) 
 	@mkdir -p $(@D)

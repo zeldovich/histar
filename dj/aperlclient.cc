@@ -74,6 +74,7 @@ ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     parg.input = str("");
 
     dj_message m;
+    m.to = pr->k;
     m.target.set_type(EP_GATE);
     m.target.ep_gate->msg_ct = pr->taint_ct;
     m.target.ep_gate->gate = pr->srvgate;
@@ -82,7 +83,7 @@ ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     m.taint.ents.push_back(pr->gcat);
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->k, 5, pr->dset, m, xdr2str(parg),
+    call->call(5, pr->dset, m, xdr2str(parg),
 	       wrap(&perl_cb, pr, call), &pr->catmap, &pr->dset);
 }
 
@@ -109,6 +110,7 @@ delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     ctreq.label.ents.push_back(pr->gcat);
 
     dj_message m;
+    m.to = pr->k;
     m.target.set_type(EP_GATE);
     m.target.ep_gate->msg_ct = pr->call_ct;
     m.target.ep_gate->gate.gate_ct = 0;
@@ -119,7 +121,7 @@ delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     m.gclear.ents.push_back(pr->gcat);
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->k, 5, pr->dset, m, xdr2str(ctreq),
+    call->call(5, pr->dset, m, xdr2str(ctreq),
 	       wrap(&ctalloc_cb, pr, call), &pr->catmap, &pr->dset);
 }
 
@@ -148,11 +150,12 @@ map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
     darg.reqs.push_back(dreq);
 
     dj_message m;
+    m.to = pr->p->pubkey();
     m.target.set_type(EP_DELEGATOR);
     m.glabel.ents.push_back(pr->gcat);
 
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->p->pubkey(), 5, pr->dset, m, xdr2str(darg),
+    call->call(5, pr->dset, m, xdr2str(darg),
 	       wrap(&delegate_cb, pr, call));
 }
 
@@ -174,11 +177,12 @@ do_stuff(perl_req *pr)
     marg.reqs.push_back(mapreq);
 
     dj_message m;
+    m.to = pr->k;
     m.target.set_type(EP_MAPCREATE);
 
     pr->start_usec = time_usec();
     ptr<dj_arpc_call> call = New refcounted<dj_arpc_call>(pr->p, pr->f, 0xdead);
-    call->call(pr->k, 5, pr->dset, m, xdr2str(marg),
+    call->call(5, pr->dset, m, xdr2str(marg),
 	       wrap(&map_create_cb, pr, call));
 }
 
