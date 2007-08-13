@@ -14,6 +14,7 @@
 #include <dev/irqmp.h>
 #include <inc/error.h>
 
+static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
 
@@ -169,6 +170,7 @@ trap_handler(struct Trapframe *tf, uint32_t tbr)
 
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+	sched_stop(t, karch_get_tsc() - trap_user_iret_tsc);
 	t->th_tf = *tf;
     }
     
@@ -220,6 +222,7 @@ void
 thread_arch_run(const struct Thread *t)
 {
     trap_thread_set(t);
+    trap_user_iret_tsc = karch_get_tsc();
     trapframe_pop(&t->th_tf);
 }
 
@@ -227,6 +230,7 @@ void
 thread_arch_idle(void)
 {
     trap_thread_set(0);
+    trap_user_iret_tsc = karch_get_tsc();
     thread_arch_idle_asm();
 }
 
