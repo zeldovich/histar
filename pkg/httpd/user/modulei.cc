@@ -13,7 +13,7 @@ untar(const char *in_pn, const char *tar_fn)
 {
     fs_inode ino;
     error_check(fs_namei(tar_pn, &ino));
-    const char *argv[] = { tar_pn, "x", "-C", in_pn, "-f", tar_fn };
+    const char *argv[] = { tar_pn, "xm", "-C", in_pn, "-f", tar_fn };
     
     spawn_descriptor sd;
     sd.ct_ = start_env->shared_container;

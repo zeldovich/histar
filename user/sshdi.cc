@@ -29,7 +29,7 @@ main (int ac, char **av)
 	if (r < 0)
 	    throw error(r, "cannot fs_lookup /bin/tar");
 	
-	const char *argv0[] = { "/bin/tar", "xf", "/bin/ssh.tar" };
+	const char *argv0[] = { "/bin/tar", "xmf", "/bin/ssh.tar" };
 	child_process cp = spawn(start_env->shared_container, ino,
 				 0, 0, 0,
 				 3, &argv0[0],
