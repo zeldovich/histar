@@ -208,7 +208,7 @@ jos64_socket_thread(struct socket_conn *sc)
 
     struct jos_jmp_buf pgfault;
     if (jos_setjmp(&pgfault) != 0) {
-	debug_print(dbg, "(j%ld) hit pagefault, shutting down", thread_id());
+	debug_print(1, "(j%ld) hit pagefault, shutting down", thread_id());
 	goto done;
     }
     tls_data->tls_pgfault_all = &pgfault;
