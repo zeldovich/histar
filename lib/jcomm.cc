@@ -309,7 +309,7 @@ jcomm_unref(struct jcomm_ref jr)
 }
 
 int64_t
-jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
+jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt, int dowait)
 {
     struct jlink *links;
     int r = jcomm_links_map(jr, &links);
@@ -319,11 +319,11 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt)
     PF_CATCH_BLOCK;
 
     struct jlink *jl = &links[jr.jc.chan];
-    return jlink_read(jl, buf, cnt, jl->mode);
+    return jlink_read(jl, buf, cnt, jl->mode | (dowait ? 0 : JCOMM_NONBLOCK_RD));
 }
 
 int64_t
-jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
+jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt, int dowait)
 {
     struct jlink *links;
     int r = jcomm_links_map(jr, &links);
@@ -333,7 +333,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt)
     PF_CATCH_BLOCK;
 
     struct jlink *jl = &links[!jr.jc.chan];
-    return jlink_write(jl, buf, cnt, jl->mode);
+    return jlink_write(jl, buf, cnt, jl->mode | (dowait ? 0 : JCOMM_NONBLOCK_WR));
 }
 
 int

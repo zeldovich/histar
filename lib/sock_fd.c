@@ -158,6 +158,9 @@ sock_accept(struct Fd *fd, struct sockaddr *addr, socklen_t *addrlen)
 static ssize_t
 sock_sendmsg(struct Fd *fd, const struct msghdr *msg, int flags)
 {
+    if (fd->fd_omode & O_NONBLOCK)
+	flags |= MSG_DONTWAIT;
+
     if (msg->msg_control) {
 	errno = EOPNOTSUPP;
 	return -1;
@@ -215,6 +218,9 @@ static ssize_t
 sock_sendto(struct Fd *fd, const void *buf, size_t count, int flags,
 	    const struct sockaddr *to, socklen_t tolen)
 {
+    if (fd->fd_omode & O_NONBLOCK)
+	flags |= MSG_DONTWAIT;
+
     if (count > netd_buf_size) {
 	if (to) {
 	    errno = EMSGSIZE;

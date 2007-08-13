@@ -130,7 +130,8 @@ bipipe(int type, int fv[2])
 static ssize_t
 bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    int r = jcomm_read(BIPIPE_JCOMM(fd), buf, count);
+    int r = jcomm_read(BIPIPE_JCOMM(fd), buf, count,
+		       !(fd->fd_omode & O_NONBLOCK));
 
     if (r == -E_AGAIN)
 	return errno_val(EAGAIN);
@@ -145,7 +146,8 @@ bipipe_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 static ssize_t
 bipipe_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 {
-    int r = jcomm_write(BIPIPE_JCOMM(fd), buf, count);
+    int r = jcomm_write(BIPIPE_JCOMM(fd), buf, count,
+			!(fd->fd_omode & O_NONBLOCK));
 
     if (r == -E_AGAIN)
 	return errno_val(EAGAIN);

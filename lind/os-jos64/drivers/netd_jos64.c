@@ -111,7 +111,7 @@ jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
     
     switch(a->op_type) {
     case jos64_op_accept: {
-	r = jcomm_write(data, &a->accept, sizeof(a->accept));
+	r = jcomm_write(data, &a->accept, sizeof(a->accept), 1);
 	if (r < 0)
 	    return r;
 	/* should never fail since sizeof(s->accept) < PIPE_BUF */
@@ -121,7 +121,7 @@ jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
     case jos64_op_recv: {
 	if (ss->dgram) {
 	    r = jcomm_write(data, &a->recv.from,
-			    sizeof(a->recv.from) + a->recv.cnt);
+			    sizeof(a->recv.from) + a->recv.cnt, 1);
 	    if (r < 0) {
 		debug_print(1, "(j%ld) %d byte dgram too big, dropping",
 			    thread_id(), a->recv.cnt);
@@ -129,7 +129,7 @@ jos64_dispatch(struct sock_slot *ss, struct jos64_op_args *a)
 		assert(r == sizeof(a->recv.from) + a->recv.cnt);
 	    }
 	} else {
-	    r = jcomm_write(data, &a->recv.buf[a->recv.off], a->recv.cnt);
+	    r = jcomm_write(data, &a->recv.buf[a->recv.off], a->recv.cnt, 1);
 	    if (r < 0)
 		return r;
 	    if (r != a->recv.cnt) {
@@ -186,7 +186,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	ss = slot_from_id(sc->sock_id);
 	if (!ss->used) {
 	    status = -E_INVAL;
-	    z = jcomm_write(sc->ctrl_comm, &status, sizeof(status));
+	    z = jcomm_write(sc->ctrl_comm, &status, sizeof(status), 1);
 	    debug_print(z < 0, "(j%ld) error writing status: %s",
 			thread_id(), e2s(z));
 	    goto as_out;
@@ -217,7 +217,7 @@ jos64_socket_thread(struct socket_conn *sc)
 
     /* let our caller know we are clear */
     status = 0;
-    z = jcomm_write(ctrl, &status, sizeof(status));
+    z = jcomm_write(ctrl, &status, sizeof(status), 1);
     debug_print(z < 0, "(j%ld) error writing status: %s", thread_id(), e2s(z));
 
     /* wait for data on the jcomm, read into buffer shared with
@@ -241,7 +241,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	    ss->lnx2jos_full = CNT_LIMBO;
 	    lutrap_kill(SIGNAL_NETD);
 	} else if (r == 2) {
-	    z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf));
+	    z = jcomm_read(ctrl, (void *)&ss->jos2lnx_buf, sizeof(ss->jos2lnx_buf), 1);
 	    if (z < 0) {
 		debug_print(dbg, "(j%ld) jcomm_read ctrl error: %s",
 			    thread_id(), e2s(r));
@@ -266,11 +266,11 @@ jos64_socket_thread(struct socket_conn *sc)
 		sys_sync_wait(&ss->jos2lnx_full, 1, UINT64(~0));
 
 	    /* send return value */
-	    z = jcomm_write(ctrl, (void *)&ss->jos2lnx_buf, ss->jos2lnx_buf.size);
+	    z = jcomm_write(ctrl, (void *)&ss->jos2lnx_buf, ss->jos2lnx_buf.size, 1);
 	    assert(z == ss->jos2lnx_buf.size);
 	} else if (r == 3) {
 	    z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
-			   sizeof(ss->outbuf) - ss->outcnt);
+			   sizeof(ss->outbuf) - ss->outcnt, 1);
 	    if (z < 0) {
 		debug_print(dbg, "(j%ld) jcomm_read data error: %s",
 			    thread_id(), e2s(r));
@@ -299,7 +299,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	    sys_sync_wait(&ss->outcnt, sizeof(ss->outbuf), UINT64(~0));
 
 	z = jcomm_read(data, (void *) &ss->outbuf[ss->outcnt],
-		       sizeof(ss->outbuf) - ss->outcnt);
+		       sizeof(ss->outbuf) - ss->outcnt, 1);
 	if (z == -E_NO_SPACE) {
 	    debug_print(1, "(j%ld) jcomm_read data flush: no space", thread_id());
 	    continue;

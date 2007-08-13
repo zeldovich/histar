@@ -5,6 +5,7 @@
 #include <inc/pty.h>
 #include <inc/labelutil.h>
 #include <inc/syscall.h>
+#include <inc/error.h>
 
 #include <bits/ptyhelper.h>
 #include <bits/unimpl.h>
@@ -267,7 +268,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	}
     }
     
-    int r = jcomm_write(PTY_JCOMM(fd), bf, cc);
+    int r = jcomm_write(PTY_JCOMM(fd), bf, cc, 1);
     if (r < 0) {
 	cprintf("pty_write: jcomm_write failed: %s\n", e2s(r));
 	__set_errno(EIO);
@@ -293,7 +294,7 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 	    return -1;
 	}
 
-	int rr = jcomm_write(PTY_JCOMM(fd), bf + r, cc - r);
+	int rr = jcomm_write(PTY_JCOMM(fd), bf + r, cc - r, 1);
 	if (rr < 0) {
 	    cprintf("pty_write: error on jcomm write: %s\n", e2s(rr));
 	    __set_errno(EIO);
@@ -330,7 +331,12 @@ pts_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 static ssize_t
 pty_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 {
-    int r = jcomm_read(PTY_JCOMM(fd), buf, count);
+    int r = jcomm_read(PTY_JCOMM(fd), buf, count, !(fd->fd_omode & O_NONBLOCK));
+    if (r == -E_AGAIN) {
+	__set_errno(EAGAIN);
+	return -1;
+    }
+
     if (r < 0)
 	cprintf("pty_read: jcomm_read error: %s\n", e2s(r));
     return r;

@@ -142,7 +142,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
 	client_conn->dgram = dgram;
 	
 	/* need to wait for thread signal, so can safely cleanup */
-	int64_t z = jcomm_read(ctrl_comm0, &r, sizeof(r));
+	int64_t z = jcomm_read(ctrl_comm0, &r, sizeof(r), 1);
 	if (z < 0) { 
 	    cprintf("setup_socket_conn: jcomm_read error: %"PRIu64"\n", z);
 	    return z;
@@ -201,7 +201,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	/* Linux doesn't send a response on close.  We send the close 
 	 * operation over the jcomm to pop Linux out of multisync.
 	 */
-	z = jcomm_write(client_conn->ctrl_comm, a, a->size);
+	z = jcomm_write(client_conn->ctrl_comm, a, a->size, 1);
 	assert(z == a->size);
 	r = jcomm_shut(client_conn->ctrl_comm, JCOMM_SHUT_RD | JCOMM_SHUT_WR);
 	if (r < 0)
@@ -229,7 +229,13 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	if (client_conn->dgram) {
 	    r = jcomm_read(client_conn->data_comm,
 			   &a->recvfrom.sin,
-			   sizeof(a->recvfrom.sin) + a->recvfrom.count);
+			   sizeof(a->recvfrom.sin) + a->recvfrom.count,
+			   !(a->recvfrom.flags & MSG_DONTWAIT));
+	    if (r == -E_AGAIN) {
+		errno = EAGAIN;
+		return -1;
+	    }
+
 	    if (r > 0) {
 		assert(r >= (ssize_t) sizeof(a->recvfrom.sin));
 		r -= sizeof(a->recvfrom.sin);
@@ -240,7 +246,12 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	    if (a->recvfrom.wantfrom)
 		memset(&a->recvfrom.sin, 0, sizeof(a->recvfrom.sin));
 	    r = jcomm_read(client_conn->data_comm,
-			   &a->recvfrom.buf[0], a->recvfrom.count);
+			   &a->recvfrom.buf[0], a->recvfrom.count,
+			   !(a->recvfrom.flags & MSG_DONTWAIT));
+	    if (r == -E_AGAIN) {
+		errno = EAGAIN;
+		return -1;
+	    }
 	}
 
 	if (r < 0) {
@@ -254,7 +265,7 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     case netd_op_accept:
 	l.release();
 
-	r = jcomm_read(client_conn->data_comm, &a->accept, sizeof(a->accept));
+	r = jcomm_read(client_conn->data_comm, &a->accept, sizeof(a->accept), 1);
 	if (r < 0) {
 	    cprintf("netd_linux_call: jcomm_read error: %s\n", e2s(r));
 	    errno = ENOSYS;
@@ -263,16 +274,22 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
 	return a->accept.fd;
 
     case netd_op_send:
-	if (a->send.flags)
+	if (a->send.flags & ~MSG_DONTWAIT)
 	    break;
 
 	l.release();
-	r = jcomm_write(client_conn->data_comm, &a->send.buf[0], a->send.count);
+	r = jcomm_write(client_conn->data_comm, &a->send.buf[0], a->send.count, !(a->send.flags & MSG_DONTWAIT));
+	if (r == -E_AGAIN) {
+	    errno = EAGAIN;
+	    return -1;
+	}
+
 	if (r < 0) {
 	    cprintf("netd_linux_call: jcomm_write error: %s\n", e2s(r));
 	    errno = ENOSYS;
 	    return -1;
 	}
+
 	return r;
 
     default:
@@ -280,11 +297,11 @@ netd_linux_call(struct Fd *fd, struct netd_op_args *a)
     }
 
     /* write operation request */
-    z = jcomm_write(client_conn->ctrl_comm, a, a->size);
+    z = jcomm_write(client_conn->ctrl_comm, a, a->size, 1);
     assert(z == a->size);
 
     /* read return value */
-    z = jcomm_read(client_conn->ctrl_comm, a, sizeof(*a));
+    z = jcomm_read(client_conn->ctrl_comm, a, sizeof(*a), 1);
     assert(z == a->size);
     if (a->rval < 0) {
 	errno = -1 * a->rval;

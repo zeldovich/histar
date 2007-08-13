@@ -507,7 +507,7 @@ uds_write(struct Fd *fd, const void *buf, size_t count, off_t offset)
 	if (!fd->fd_uds.s.connect)
 	    return errno_val(EINVAL);
 	
-	r = jcomm_write(UDS_JCOMM(fd), buf, count);
+	r = jcomm_write(UDS_JCOMM(fd), buf, count, !(fd->fd_omode & O_NONBLOCK));
     }
 
     if (r == -E_AGAIN)
@@ -541,12 +541,12 @@ uds_read(struct Fd *fd, void *buf, size_t count, off_t offset)
 	int16_t mode = JCOMM_PACKET;
 	if (fd->fd_omode & O_NONBLOCK)
 	    mode |= JCOMM_NONBLOCK_RD | JCOMM_NONBLOCK_WR;
-	r = jlink_read(jl, buf, count, JCOMM_PACKET);
+	r = jlink_read(jl, buf, count, mode);
     } else {
 	if (!fd->fd_uds.s.connect)
 	    return errno_val(EINVAL);
 	
-	r = jcomm_read(UDS_JCOMM(fd), buf, count);
+	r = jcomm_read(UDS_JCOMM(fd), buf, count, !(fd->fd_omode & O_NONBLOCK));
     }
 
     if (r == -E_AGAIN)
