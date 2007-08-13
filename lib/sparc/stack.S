@@ -26,5 +26,6 @@ ENTRY(stack_switch)
 	
 	ld	[%sp + 0x68], %l1
 
+	clr	%fp
 	jmp	%l1
 	 mov	%l0, %sp
