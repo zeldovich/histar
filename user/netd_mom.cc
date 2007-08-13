@@ -53,7 +53,8 @@ start_linux(label *ds, label *dr, label *co,
 {
     struct fs_inode netd_ino;
     const char *vmlinux_pn = "/bin/vmlinux";
-    const char *argv[] = { vmlinux_pn, "ip=dhcp", "initrd=/bin/initrd", 
+    const char *argv[] = { vmlinux_pn,
+			   "ip=dhcp", "initrd=/bin/initrd", "loglevel=4",
 			   grant_arg, taint_arg, inet_arg };
     int argc = sizeof(argv) / sizeof(char *);
     error_check(fs_namei(vmlinux_pn, &netd_ino));
