@@ -80,6 +80,13 @@ null_close(struct Fd *fd)
     return 0;
 }
 
+static int
+null_trunc(struct Fd *fd, off_t len)
+{
+    __set_errno(EINVAL);
+    return -1;
+}
+
 struct Dev devnull = {
     .dev_id = 'n',
     .dev_name = "null",
@@ -89,6 +96,7 @@ struct Dev devnull = {
     .dev_open = &null_open,
     .dev_close = &null_close,
     .dev_ioctl = &jos_ioctl,
+    .dev_trunc = &null_trunc,
 };
 
 struct Dev devzero = {
@@ -100,4 +108,5 @@ struct Dev devzero = {
     .dev_open = &zero_open,
     .dev_close = &null_close,
     .dev_ioctl = &jos_ioctl,
+    .dev_trunc = &null_trunc,
 };
