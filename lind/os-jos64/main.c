@@ -23,6 +23,7 @@
 #include <linuxthread.h>
 
 static const uint64_t phy_pages = 4096;
+enum { dbg = 0 };
 
 void linux_main(int ac, char **av);
 
@@ -88,9 +89,10 @@ main(int ac, char **av)
 
     arch_env.phy_start = (unsigned long) va;
     arch_env.phy_bytes = (unsigned long) phy_bytes;
-    
-    printf("starting linux: phy_start 0x%lx phy_end 0x%lx\n",
-	   arch_env.phy_start, arch_env.phy_start + arch_env.phy_bytes);
+   
+    if (dbg) 
+	printf("starting linux: phy_start 0x%lx phy_end 0x%lx\n",
+	       arch_env.phy_start, arch_env.phy_start + arch_env.phy_bytes);
     linux_main(ac, av);
         
     return 0;
