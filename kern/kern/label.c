@@ -99,6 +99,9 @@ label_get_slotp_read(const struct Label *l, uint32_t slotnum,
 static int
 label_get_slotp_write(struct Label *l, uint32_t slotnum, uint64_t **slotp)
 {
+    if (slotnum >= l->lb_nent)
+	l->lb_nent = slotnum + 1;
+
     if (slotnum < NUM_LB_ENT_INLINE) {
 	*slotp = &l->lb_ent[slotnum];
 	return 0;
@@ -186,10 +189,8 @@ label_set(struct Label *l, uint64_t handle, uint8_t level)
     }
 
     uint64_t nslots = label_nslots(l);
-    if (slot_idx < 0 && l->lb_nent < nslots) {
+    if (slot_idx < 0 && l->lb_nent < nslots)
 	slot_idx = l->lb_nent;
-	l->lb_nent++;
-    }
 
     if (slot_idx < 0) {
 	slot_idx = nslots;
