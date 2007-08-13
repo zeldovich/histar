@@ -34,7 +34,7 @@ main(int ac, char **av)
 	k = sfspub2dj(sfspub);
     }
 
-    uint64_t call_ct = atoi(av[2]);
+    uint64_t call_ct = strtoll(av[2], 0, 0);
 
     guardcall_arg arg;
     guardcall_res res;

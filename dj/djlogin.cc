@@ -35,7 +35,7 @@ main(int ac, char **av)
 
     dj_slot ep;
     ep.set_type(EP_GATE);
-    ep.ep_gate->msg_ct = atoi(av[2]);
+    ep.ep_gate->msg_ct = strtoll(av[2], 0, 0);
     ep.ep_gate->gate <<= av[3];
 
     dj_global_cache cache;

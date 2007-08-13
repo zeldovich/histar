@@ -8,6 +8,8 @@
 #include <dj/directexec.hh>
 #include <dj/delegator.hh>
 
+enum { dbg = 1 };
+
 struct perl_req {
     djprot *p;
     dj_gate_factory *f;
@@ -38,8 +40,9 @@ static void
 perl_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	dj_delivery_code c, const dj_message *rm)
 {
-    //uint64_t end_usec = time_usec();
-    //warn << "perl runtime: " << (end_usec - pr->start_usec) << " usec\n";
+    uint64_t end_usec = time_usec();
+    if (dbg)
+	warn << "perl runtime: " << (end_usec - pr->start_usec) << " usec\n";
 
     if (c != DELIVERY_DONE) {
 	warn << "perl delivery code " << c << "\n";
@@ -60,7 +63,8 @@ static void
 ctalloc_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	   dj_delivery_code c, const dj_message *rm)
 {
-    //warn << "ctalloc_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    if (dbg)
+	warn << "ctalloc_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     container_alloc_res ctres;
     if (c != DELIVERY_DONE)
@@ -91,7 +95,8 @@ static void
 delegate_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	    dj_delivery_code c, const dj_message *rm)
 {
-    //warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    if (dbg)
+	warn << "delegate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     dj_delegate_res dres;
     assert(c == DELIVERY_DONE);
@@ -129,7 +134,8 @@ static void
 map_create_cb(perl_req *pr, ptr<dj_arpc_call> old_call,
 	      dj_delivery_code c, const dj_message *rm)
 {
-    //warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
+    if (dbg)
+	warn << "mapcreate_cb: " << (time_usec() - pr->start_usec) << " usec\n";
 
     dj_mapcreate_res mres;
     assert(c == DELIVERY_DONE);
@@ -209,7 +215,7 @@ main(int ac, char **av)
 
     perl_req pr;
     pr.k = sfspub2dj(sfspub);
-    pr.call_ct = atoi(av[2]);
+    pr.call_ct = strtoll(av[2], 0, 0);
     pr.srvgate <<= av[3];
 
     uint16_t port = 5923;
@@ -226,8 +232,8 @@ main(int ac, char **av)
     pr.f = &gm;
 
     delaycb(5, wrap(&start_stuff, &pr, 1));
-    delaycb(6, wrap(&start_stuff, &pr, 1));
-    delaycb(7, wrap(&start_stuff, &pr, 10));
+    //delaycb(6, wrap(&start_stuff, &pr, 1));
+    //delaycb(7, wrap(&start_stuff, &pr, 10));
 
     amain();
 }

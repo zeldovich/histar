@@ -40,7 +40,7 @@ main(int ac, char **av)
 	k = sfspub2dj(sfspub);
     }
 
-    uint64_t call_ct = atoi(av[2]);
+    uint64_t call_ct = strtoll(av[2], 0, 0);
 
     dj_gatename service_gate;
     service_gate <<= av[3];
