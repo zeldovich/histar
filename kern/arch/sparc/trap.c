@@ -288,23 +288,10 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     return 0;
 }
 
-void
-karch_jmpbuf_init(struct jos_jmp_buf *jb,
-		  void *fn, void *stackbase)
-{
-    cprintf("XXX karch_jmpbuf_init\n");
-}
-
 int
 thread_arch_get_entry_args(const struct Thread *t,
 			   struct thread_entry_args *targ)
 {
     memcpy(targ, &t->th_tfa.tfa_entry_args, sizeof(*targ));
     return 0;
-}
-
-void
-karch_fp_init(struct Fpregs *fpreg)
-{
-    cprintf("karch_fp_init: XXX unimpl\n");
 }
