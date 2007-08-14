@@ -267,8 +267,7 @@ gatesrv_return::ret_tls_stub(uint64_t a0, uint64_t a1, uint64_t a2)
 	tlsr.ret_tls(tgt_label, tgt_clear);
     } catch (std::exception &e) {
 	printf("gatesrv_return::ret_tls_stub: %s\n", e.what());
-	if (!(tlsr.flags_ & GATESRV_FORK_MU_UNLOCKED))
-	    jthread_mutex_unlock(&fork_mu);
+	jthread_mutex_unlock(&fork_mu);
 	thread_halt();
     }
 }
@@ -308,7 +307,5 @@ gatesrv_return::cleanup(label *tgt_s, label *tgt_r)
 	error_check(sys_obj_unref(stackseg));
     }
     jthread_mutex_unlock(&fork_mu);
-    flags_ |= GATESRV_FORK_MU_UNLOCKED;
-
     error_check(sys_obj_unref(thread_self));
 }
