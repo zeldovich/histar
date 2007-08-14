@@ -647,6 +647,9 @@ kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
 	return -1;
     }
 
+    if (si->si_signo == 0)
+	return 0;
+
     int oumask = utrap_set_mask(1);
     jthread_mutex_lock(&sigmask_mu);
 
