@@ -31,7 +31,7 @@ class djprot : public message_sender {
     virtual void set_delivery_cb(local_delivery_cb cb) = 0;
     virtual void sign_statement(dj_stmt_signed*) = 0;
 
-    static djprot *alloc(uint16_t port);
+    static djprot *alloc(uint16_t port, const dj_hostinfo &hostinfo);
 };
 
 #endif

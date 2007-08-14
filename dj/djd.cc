@@ -149,9 +149,10 @@ main(int ac, char **av)
     ep.ep_gate->msg_ct = 12345;
     ep.ep_gate->gate <<= "5.7";
 
+    dj_hostinfo hinfo;
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
-    djprot *djs = djprot::alloc(port);
+    djprot *djs = djprot::alloc(port, hinfo);
 
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));

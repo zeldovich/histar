@@ -55,8 +55,9 @@ struct msg_client {
 
 class djprot_impl : public djprot {
  public:
-    djprot_impl(uint16_t port)
-	: k_(sfscrypt.gen(SFS_RABIN, 0, SFS_SIGN | SFS_VERIFY |
+    djprot_impl(uint16_t port, const dj_hostinfo &hostinfo)
+	: hinfo_(hostinfo),
+	  k_(sfscrypt.gen(SFS_RABIN, 0, SFS_SIGN | SFS_VERIFY |
 					SFS_ENCRYPT | SFS_DECRYPT)),
 	  exp_cb_(0)
     {
@@ -386,22 +387,30 @@ class djprot_impl : public djprot {
     void send_bcast(void) {
 	in_addr curipaddr = myipaddr();
 
-	dj_stmt_signed s;
-	s.stmt.set_type(STMT_DELEGATION);
-	s.stmt.delegation->a.set_type(ENT_ADDRESS);
-	s.stmt.delegation->a.addr->ip = curipaddr.s_addr;
-	s.stmt.delegation->a.addr->port = my_port_;
+	dj_stmt_signed hs;
+	hs.stmt.set_type(STMT_HOSTINFO);
+	*hs.stmt.info = hinfo_;
+	hs.stmt.info->host = pubkey();
 
-	s.stmt.delegation->b.set_type(ENT_PUBKEY);
-	*s.stmt.delegation->b.key = pubkey();
+	dj_stmt_signed ds;
+	ds.stmt.set_type(STMT_DELEGATION);
+	ds.stmt.delegation->a.set_type(ENT_ADDRESS);
+	ds.stmt.delegation->a.addr->ip = curipaddr.s_addr;
+	ds.stmt.delegation->a.addr->port = my_port_;
+
+	ds.stmt.delegation->b.set_type(ENT_PUBKEY);
+	*ds.stmt.delegation->b.key = pubkey();
 
 	time_t now = time(0);
-	s.stmt.delegation->from_ts = now;
-	s.stmt.delegation->until_ts = now + addr_cert_valid;
-	sign_statement(&s);
+	ds.stmt.delegation->from_ts = now;
+	ds.stmt.delegation->until_ts = now + addr_cert_valid;
 
-	str msg = xdr2str(s);
-	if (!msg)
+	sign_statement(&hs);
+	sign_statement(&ds);
+
+	str hmsg = xdr2str(hs);
+	str dmsg = xdr2str(ds);
+	if (!hmsg || !dmsg)
 	    fatal << "send_bcast: cannot encode message\n";
 
 	bcast_info.init();
@@ -411,7 +420,8 @@ class djprot_impl : public djprot {
 	    bcast.sin_family = AF_INET;
 	    bcast.sin_addr = *ap;
 	    bcast.sin_port = bc_port_;
-	    bx_->send(msg.cstr(), msg.len(), (sockaddr *) &bcast);
+	    bx_->send(hmsg.cstr(), hmsg.len(), (sockaddr *) &bcast);
+	    bx_->send(dmsg.cstr(), dmsg.len(), (sockaddr *) &bcast);
 
 	    if (bcast_debug)
 		warn << "Sent broadcast delegation to "
@@ -419,7 +429,7 @@ class djprot_impl : public djprot {
 	}
 
 	// Chew on our own delegation, for good measure..
-	process_delegation(*s.stmt.delegation);
+	process_delegation(*ds.stmt.delegation);
 
 	delaycb(broadcast_period, wrap(this, &djprot_impl::send_bcast));
     }
@@ -531,6 +541,7 @@ class djprot_impl : public djprot {
 	process_msg(*stmt.msg, 0);
     }
 
+    dj_hostinfo hinfo_;
     uint16_t bc_port_;	/* network byte order */
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> bx_;
@@ -548,7 +559,7 @@ class djprot_impl : public djprot {
 };
 
 djprot *
-djprot::alloc(uint16_t port)
+djprot::alloc(uint16_t port, const dj_hostinfo &hostinfo)
 {
-    return New djprot_impl(port);
+    return New djprot_impl(port, hostinfo);
 }
