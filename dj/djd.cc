@@ -21,6 +21,7 @@
 
 #ifndef JOS_TEST
 extern "C" {
+#include <inc/syscall.h>
 #include <machine/x86.h>
 }
 #endif
@@ -144,6 +145,23 @@ main(int ac, char **av)
     rnd_input.update(&tsc, sizeof(tsc));
 #endif
 
+    str root_cat_xdr;
+    if (ac == 2) {
+	int fd = open(av[1], O_RDONLY);
+	if (fd < 0)
+	    fatal << "Cannot open root cat file " << av[1]
+		  << ": " << strerror(errno) << "\n";
+
+	struct stat st;
+	if (fstat(fd, &st) < 0)
+	    fatal << "Cannot stat root cat file: " << strerror(errno) << "\n";
+
+	void *buf = malloc(st.st_size);
+	assert(st.st_size == read(fd, buf, st.st_size));
+	root_cat_xdr.setbuf((const char *) buf, st.st_size);
+	free(buf);
+    }
+
     dj_slot ep;
     ep.set_type(EP_GATE);
     ep.ep_gate->msg_ct = 12345;
@@ -194,17 +212,6 @@ main(int ac, char **av)
 	assert(verify_stmt(ss));
     end = time_usec();
     printf("Verify: %ld usec\n", (end - start) / count);
-
-    if (ac == 3) {
-	str pubstr(av[1]);
-	ptr<sfspub> sfspub = sfscrypt.alloc(pubstr, SFS_VERIFY | SFS_ENCRYPT);
-	assert(sfspub);
-	dj_pubkey k = sfspub2dj(sfspub);
-
-	ep.ep_gate->gate <<= av[2];
-
-	sndfsrpc(djs, &gm, k, ep);
-    }
 #endif
 
 #ifndef JOS_TEST
@@ -220,7 +227,26 @@ main(int ac, char **av)
     emux.set(EP_MAPCREATE, wrap(&hmc, &histar_mapcreate::exec));
 
     dj_hostinfo hinfo;
-    djs->set_hostinfo(hinfo);
+    if (root_cat_xdr) {
+	dj_gcat rcat;
+	assert(str2xdr(rcat, root_cat_xdr));
+
+	int64_t lcat = sys_handle_create();
+	assert(lcat >= 0);
+	cm->drop_later(lcat);
+
+	label rl(1);
+	rl.set(lcat, 0);
+	int64_t rct = sys_container_alloc(start_env->shared_container,
+					  rl.to_ulabel(), "djroot",
+					  0, CT_QUOTA_INF);
+	assert(rct >= 0);
+
+	hinfo.root_map = cm->store(rcat, lcat, rct);
+	hinfo.root_ct = rct;
+	hinfo.hostname = "unknown";
+	djs->set_hostinfo(hinfo);
+    }
 
     str_to_segment(start_env->shared_container,
 		   xdr2str(djs->pubkey()), "selfkey");

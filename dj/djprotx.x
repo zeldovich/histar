@@ -159,7 +159,8 @@ struct dj_key_setup {
 
 struct dj_hostinfo {
     dj_pubkey host;
-    dj_gcat root_cat;
+    string hostname<256>;
+    dj_cat_mapping root_map;
     unsigned hyper root_ct;
     /*
      * Would be nice to eventually put ctalloc, guardcall dj_slots here,
