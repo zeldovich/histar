@@ -101,7 +101,7 @@ start_kernel_proc(void *unused)
     return 0;
 }
 
-void
+static void
 start_lind(void)
 {
     init_task.thread.request.u.thread.proc = start_kernel_proc;

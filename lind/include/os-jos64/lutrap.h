@@ -3,8 +3,6 @@
 
 #include <archtype.h>
 
-void lutrap_signal(signal_handler_t *h);
 void lutrap_kill(signal_t sig);
-int lutrap_init(void);
 
 #endif
