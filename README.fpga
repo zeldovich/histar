@@ -5,6 +5,7 @@
 
 * Xilinx Linux drivers
 
+    Maybe for USB: http://www.rmdir.de/~michael/xilinx/
     ftp://ftp.xilinx.com/pub/utilities/fpga/install_drivers.tar.gz
 
 --- windriver64/windrvr/linux_wrappers.c	2007/08/06 21:55:36	1.1
