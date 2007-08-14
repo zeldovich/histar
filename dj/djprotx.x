@@ -154,6 +154,20 @@ struct dj_key_setup {
 };
 
 /*
+ * Host information for bootstrapping.
+ */
+
+struct dj_hostinfo {
+    dj_pubkey host;
+    dj_gcat root_cat;
+    unsigned hyper root_ct;
+    /*
+     * Would be nice to eventually put ctalloc, guardcall dj_slots here,
+     * and get rid of the GSPEC hack.
+     */
+};
+
+/*
  * Signed statements that can be made by entities.  Every network
  * message is a statement.
  *
@@ -164,7 +178,8 @@ struct dj_key_setup {
 enum dj_stmt_type {
     STMT_DELEGATION = 1,
     STMT_MSG,
-    STMT_KEY_SETUP
+    STMT_KEY_SETUP,
+    STMT_HOSTINFO
 };
 
 union dj_stmt switch (dj_stmt_type type) {
@@ -174,6 +189,8 @@ union dj_stmt switch (dj_stmt_type type) {
     dj_message msg;
  case STMT_KEY_SETUP:
     dj_key_setup keysetup;
+ case STMT_HOSTINFO:
+    dj_hostinfo info;
 };
 
 struct dj_stmt_signed {
