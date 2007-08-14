@@ -1,5 +1,6 @@
 #include <kern/arch.h>
 #include <kern/timer.h>
+#include <kern/lib.h>
 #include <machine/sparc-common.h>
 
 uint64_t
