@@ -277,23 +277,6 @@ pty_write(struct Fd *fd, const void *buf, size_t count, struct pty_seg *ps)
 
     /* lots of code assumes a write to stdout writes all bytes */
     while ((uint32_t) r < cc) {
-	int fdnum = fd2num(fd);
-
-	struct timeval tv = {1, 0};
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-	
-	fd_set writeset;
-	FD_ZERO(&writeset);
-	FD_SET(fdnum, &writeset);
-	
-	int n = select(fdnum + 1, 0, &writeset, 0, &tv);
-	if (n == 0) {
-	    cprintf("pty_write: only able to write %d out of %zu\n", r, count);
-	    __set_errno(EIO);
-	    return -1;
-	}
-
 	int rr = jcomm_write(PTY_JCOMM(fd), bf + r, cc - r, 1);
 	if (rr < 0) {
 	    cprintf("pty_write: error on jcomm write: %s\n", e2s(rr));
