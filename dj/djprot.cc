@@ -55,8 +55,8 @@ struct msg_client {
 
 class djprot_impl : public djprot {
  public:
-    djprot_impl(uint16_t port, const dj_hostinfo &hostinfo)
-	: hinfo_(hostinfo),
+    djprot_impl(uint16_t port)
+	: hinfo_set_(false),
 	  k_(sfscrypt.gen(SFS_RABIN, 0, SFS_SIGN | SFS_VERIFY |
 					SFS_ENCRYPT | SFS_DECRYPT)),
 	  exp_cb_(0)
@@ -141,6 +141,10 @@ class djprot_impl : public djprot {
 
     virtual void set_delivery_cb(local_delivery_cb cb) {
 	local_delivery_ = cb;
+    }
+
+    virtual void set_hostinfo(const dj_hostinfo &hostinfo) {
+	hinfo_ = hostinfo;
     }
 
     virtual void sign_statement(dj_stmt_signed *s) {
@@ -420,7 +424,9 @@ class djprot_impl : public djprot {
 	    bcast.sin_family = AF_INET;
 	    bcast.sin_addr = *ap;
 	    bcast.sin_port = bc_port_;
-	    bx_->send(hmsg.cstr(), hmsg.len(), (sockaddr *) &bcast);
+
+	    if (hinfo_set_)
+		bx_->send(hmsg.cstr(), hmsg.len(), (sockaddr *) &bcast);
 	    bx_->send(dmsg.cstr(), dmsg.len(), (sockaddr *) &bcast);
 
 	    if (bcast_debug)
@@ -541,7 +547,9 @@ class djprot_impl : public djprot {
 	process_msg(*stmt.msg, 0);
     }
 
+    bool hinfo_set_;
     dj_hostinfo hinfo_;
+
     uint16_t bc_port_;	/* network byte order */
     uint16_t my_port_;	/* network byte order */
     ptr<axprt> bx_;
@@ -559,7 +567,7 @@ class djprot_impl : public djprot {
 };
 
 djprot *
-djprot::alloc(uint16_t port, const dj_hostinfo &hostinfo)
+djprot::alloc(uint16_t port)
 {
-    return New djprot_impl(port, hostinfo);
+    return New djprot_impl(port);
 }

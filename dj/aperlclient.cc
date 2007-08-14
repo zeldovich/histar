@@ -218,9 +218,8 @@ main(int ac, char **av)
     pr.call_ct = strtoll(av[2], 0, 0);
     pr.srvgate <<= av[3];
 
-    dj_hostinfo hinfo;
     uint16_t port = 5923;
-    djprot *djs = djprot::alloc(port, hinfo);
+    djprot *djs = djprot::alloc(port);
 
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));

@@ -29,9 +29,10 @@ class djprot : public message_sender {
     virtual dj_pubkey pubkey() const = 0;
     virtual ptr<sfspriv> privkey() = 0;
     virtual void set_delivery_cb(local_delivery_cb cb) = 0;
+    virtual void set_hostinfo(const dj_hostinfo&) = 0;
     virtual void sign_statement(dj_stmt_signed*) = 0;
 
-    static djprot *alloc(uint16_t port, const dj_hostinfo &hostinfo);
+    static djprot *alloc(uint16_t port);
 };
 
 #endif

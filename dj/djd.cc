@@ -149,10 +149,9 @@ main(int ac, char **av)
     ep.ep_gate->msg_ct = 12345;
     ep.ep_gate->gate <<= "5.7";
 
-    dj_hostinfo hinfo;
     uint16_t port = 5923;
     warn << "instantiating a djprot, port " << port << "...\n";
-    djprot *djs = djprot::alloc(port, hinfo);
+    djprot *djs = djprot::alloc(port);
 
     exec_mux emux;
     djs->set_delivery_cb(wrap(&emux, &exec_mux::exec));
@@ -219,6 +218,9 @@ main(int ac, char **av)
 
     histar_mapcreate hmc(djs, cm);
     emux.set(EP_MAPCREATE, wrap(&hmc, &histar_mapcreate::exec));
+
+    dj_hostinfo hinfo;
+    djs->set_hostinfo(hinfo);
 
     str_to_segment(start_env->shared_container,
 		   xdr2str(djs->pubkey()), "selfkey");
