@@ -35,7 +35,6 @@
 
  #define JOS_ONSTACK_GCCATTR regparm(2)
 #elif defined(JOS_ARCH_sparc)
- // XXX
  #include <machine/trapcodes.h>
  #define ARCH_PGFLTD  T_DATAFAULT
  #define ARCH_PGFLTI  T_TEXTFAULT
