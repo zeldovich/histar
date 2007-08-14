@@ -605,7 +605,7 @@ signal_utrap(struct UTrapframe *utf)
 	sigmu_taken = 1;
 
 	uint32_t i;
-	for (i = 0; i < _NSIG; i++) {
+	for (i = 1; i < _NSIG; i++) {
 	    if (sigismember(&signal_queued, i) &&
 		!sigismember(&signal_masked, i))
 	    {
