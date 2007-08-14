@@ -426,7 +426,7 @@ signal_utrap_onstack(siginfo_t *si, struct sigcontext *sc)
     utrap_ret(&sc->sc_utf);
 }
 
-static void __attribute__((noreturn))
+static void __attribute__((noreturn, noinline))
 signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 {
     if (signal_debug)
