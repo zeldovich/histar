@@ -87,11 +87,6 @@ arch_sleep(unsigned long sec)
 }
 
 void
-arch_signal_handler(signal_handler_t *h)
-{
-}
-
-void
 arch_init(void)
 {
 }
