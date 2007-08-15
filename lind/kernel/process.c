@@ -177,8 +177,7 @@ cpu_idle(void)
     uint64_t signal_old;
 
     while (1) {
-	if (need_resched())
-	    schedule();
+	schedule();
 
 	now = sys_clock_nsec();
 	if (now > last_jiffies_nsec + nsec_per_jiffies) {
