@@ -92,7 +92,7 @@ service_slot(struct sock_slot *s, void *a)
 }
 
 void 
-netd_user_interrupt(void)
+lind_intr_netd(void)
 {
     char wake_main_thread = 0;
     slot_for_each(service_slot, &wake_main_thread);

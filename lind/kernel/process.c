@@ -193,15 +193,12 @@ cpu_idle(void)
 						 signal_old, 0) != signal_old)
 		signal_old = jos_atomic_read(&lind_signal_pending);
 
-	    irq_enter();
 	    if (signal_old & SIGNAL_ALARM)
-		__do_IRQ(LIND_TIMER_IRQ);
+		lind_intr_timer();
 	    if (signal_old & SIGNAL_ETH)
-		__do_IRQ(LIND_ETH_IRQ);
+		lind_intr_eth();
 	    if (signal_old & SIGNAL_NETD)
-		__do_IRQ(LIND_NETD_IRQ);
-	    irq_exit();
-
+		lind_intr_netd();
 	    if (signal_old & SIGNAL_KCALL)
 		sig_kcall_handler();
 	} else {

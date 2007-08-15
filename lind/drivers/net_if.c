@@ -55,15 +55,17 @@ net_if_rx(struct net_device *dev)
     return pkt_len;
 }
 
-irqreturn_t
-net_if_interrupt(int irq, void *dev_id)
+static struct net_device *the_intr_netdev;
+
+void
+lind_intr_eth(void)
 {
-    struct net_device *dev = dev_id;
+    struct net_device *dev = the_intr_netdev;
     struct transport *dev_trans = dev->priv;
     int err;
 
     if(!netif_running(dev))
-	return IRQ_NONE;
+	return;
     
     spin_lock(&dev_trans->lock);
     while((err = net_if_rx(dev)) > 0);
@@ -74,7 +76,6 @@ net_if_interrupt(int irq, void *dev_id)
 	(*dev_trans->irq_reset)(dev_trans->data);
     
     spin_unlock(&dev_trans->lock);
-    return IRQ_HANDLED;
 }
 
 static int 
@@ -82,7 +83,6 @@ net_if_close(struct net_device *dev)
 {
     struct transport *dev_trans = dev->priv;
     netif_stop_queue(dev);
-    free_irq(dev->irq, dev);
 
     if (dev_trans->close) {
 	int r = (*dev_trans->close)(dev_trans->data);
@@ -141,14 +141,8 @@ net_if_open(struct net_device *dev)
 	       dev_trans->name, err);
 	return -ENETUNREACH;
     }
-    
-    err = request_irq(dev->irq, net_if_interrupt,
-		      IRQF_DISABLED | IRQF_SHARED, dev->name, dev);
-    if (err != 0) {
-	printk(KERN_ERR "net_if_open: failed to get irq: %d\n", err);
-	return -ENETUNREACH;
-    }
-        
+
+    the_intr_netdev = dev;
     netif_start_queue(dev);
 
     printk(KERN_INFO "%s netdevice %s, %d, %02x:%02x:%02x:%02x:%02x:%02x\n", 
@@ -203,7 +197,7 @@ register_transport(struct transport *trans)
     dev->hard_start_xmit = net_if_start_xmit;
     dev->tx_timeout = net_if_tx_timeout;
     dev->set_mac_address = net_if_set_mac;
-    dev->irq = LIND_ETH_IRQ;
+    dev->irq = 0;
     dev_trans = dev->priv;
     memcpy(dev_trans, trans, sizeof(*dev_trans));
     spin_lock_init(&dev_trans->lock);

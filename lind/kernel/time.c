@@ -70,8 +70,8 @@ do_settimeofday(struct timespec *tv)
     return 0;
 }
 
-irqreturn_t 
-lind_timer(int irq, void *dev)
+void
+lind_intr_timer(void)
 {
     unsigned long long nsecs;
     unsigned long flags;
@@ -86,29 +86,15 @@ lind_timer(int irq, void *dev)
     xtime.tv_nsec = nsecs - xtime.tv_sec * NSEC_PER_SEC;
 
     write_sequnlock_irqrestore(&xtime_lock, flags);
-
-    return IRQ_HANDLED;
-}
-
-static void 
-register_timer(void)
-{
-    int err = request_irq(LIND_TIMER_IRQ, lind_timer, IRQF_DISABLED,
-			  "timer", NULL);
-    if (err)
-	printk(KERN_ERR "register_timer : request_irq failed - "
-	       "errno = %d\n", -err);
 }
 
 void
 time_init(void)
 {
-    extern void (*late_time_init)(void);
     long long nsecs;
 
     nsecs = arch_nsec();
     set_normalized_timespec(&wall_to_monotonic, -nsecs / BILLION,
 			    -nsecs % BILLION);
-    late_time_init = register_timer;
 }
 

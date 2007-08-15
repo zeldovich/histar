@@ -12,25 +12,6 @@
 #include <linuxsyscall.h>
 #include "netd.h"
 
-static irqreturn_t
-netd_interrupt(int irq, void *dev_id)
-{
-    netd_user_interrupt();
-    return IRQ_HANDLED;
-}
-
-static int
-register_netd(void)
-{
-    int r = request_irq(LIND_NETD_IRQ, netd_interrupt, IRQF_DISABLED, "netd", 0);
-    if (r < 0) {
-	printk(KERN_ERR "unable to allocate netd interrupt\n");	
-	return 1;
-    }
-
-    return 0;
-}
-
 static int
 set_inet_taint(char *str)
 {
@@ -38,5 +19,4 @@ set_inet_taint(char *str)
     return 1;
 }
 
-late_initcall(register_netd);
 __setup("inet_taint=", set_inet_taint);
