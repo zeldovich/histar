@@ -43,5 +43,5 @@ Disable firewall rules that might block grmon's UDP packets.
 
 To run grmon over a JTAG parallel port cable, as root:
 
-   # grmon-eval -grlib -jtag
+   # grmon-eval -nb -grlib -jtag
 
