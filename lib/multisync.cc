@@ -13,6 +13,8 @@ extern "C" {
 
 #include <inc/error.hh>
 
+enum { dbg = 0 };
+
 extern "C" int
 multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 {
@@ -73,7 +75,7 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	    if (wstat[i].ws_cb0) {
 		r = (*wstat[i].ws_cb0)(&wstat[i], wstat[i].ws_probe, 
 				       addrs[i], &args[i]);
-		if (r < 0)
+		if (r < 0 && dbg)
 		    cprintf("multisync_wait: cb0 (%p) error: %s\n", 
 			    wstat[i].ws_cb0, e2s(r));
 	    }
@@ -87,7 +89,8 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	else if (r < 0)
 	    throw error(r, "sys_sync_wait_multi error");
     } catch (basic_exception &e) {
-	cprintf("multisync_wait: error: %s\n", e.what());
+	if (dbg)
+	    cprintf("multisync_wait: error: %s\n", e.what());
 	errno = EIO;
 	r = -1;
     }
