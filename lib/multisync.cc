@@ -5,6 +5,7 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <inc/error.h>
+#include <machine/memlayout.h>
 
 #include <errno.h>
 #include <string.h>
@@ -38,14 +39,21 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 		// map the segment to pass an address to the kernel, unmap
 		// segments when wait returns.
 		uint8_t *addr = 0;
+
+		// Map just enough of the segment to get the wait value
+		uint64_t mapbytes = PGOFF(wstat[i].ws_off) + sizeof(uint64_t);
+
 		// SEGMAP_WRITE only because it speeds up sys_sync_wait
-		error_check(segment_map(wstat[i].ws_seg, 0,
+		error_check(segment_map(wstat[i].ws_seg,
+					wstat[i].ws_off - PGOFF(wstat[i].ws_off),
 					SEGMAP_READ | SEGMAP_WRITE,
-					(void **) &addr, 0, 0));
-		mapped[mapped_count] = (uint64_t *)addr;
+					(void **) &addr, &mapbytes, 0));
+
+		mapped[mapped_count] = (uint64_t *) addr;
 		mapped_count++;
-		addr += wstat[i].ws_off;
-		addrs[i] = (uint64_t *)addr;
+
+		addr += PGOFF(wstat[i].ws_off);
+		addrs[i] = (uint64_t *) addr;
 		vals[i] = wstat[i].ws_val;
 		refcts[i] = wstat[i].ws_seg.container;
 	    } else if (WS_ISASS(&wstat[i])) {
