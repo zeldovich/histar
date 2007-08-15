@@ -69,6 +69,9 @@ static sigset_t signal_queued;
 static siginfo_t signal_queued_si[_NSIG];
 static int signal_queued_any;
 
+// Avoid growing stack in signal handler, for vmlinux
+int signal_grow_stack;
+
 static void
 utf_dump(struct UTrapframe *utf)
 {
@@ -475,7 +478,7 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	    cprintf("[%"PRIu64"] signal_utrap_si: pre-allocating stack at %p\n",
 		    thread_id(), s);
 
-	int r = stack_grow(s);
+	int r = signal_grow_stack ? stack_grow(s) : 0;
 	if (r < 0) {
 	    cprintf("[%"PRIu64"] signal_utrap_si: stack overflow @ %p\n",
 		    thread_id(), s);

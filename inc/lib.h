@@ -192,6 +192,7 @@ void label_change_star(struct ulabel *l, level_t new_level);
 void print_backtrace(int use_cprintf);
 
 /* signal.c */
+extern int signal_grow_stack;
 void signal_init(void);
 
 #endif

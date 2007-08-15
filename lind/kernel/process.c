@@ -51,6 +51,7 @@ kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
 void 
 new_thread(void *stack, jmp_buf *buf, void (*handler)(void))
 {
+    memset(&(*buf)[0], 0, sizeof((*buf)[0]));
     (*buf)[0].JB_IP = (unsigned long) handler;
     (*buf)[0].JB_SP = (unsigned long) stack +
 	(PAGE_SIZE << CONFIG_KERNEL_STACK_ORDER) - sizeof(void *);
@@ -108,6 +109,7 @@ _switch_to(void *prev, void *next, void *last)
 void 
 start_idle_thread(void *stack, jmp_buf *switch_buf)
 {
+    memset(&(*switch_buf)[0], 0, sizeof((*switch_buf)[0]));
     (*switch_buf)[0].JB_IP = (unsigned long) new_thread_handler;
     (*switch_buf)[0].JB_SP = (unsigned long) stack +
 	(PAGE_SIZE << CONFIG_KERNEL_STACK_ORDER) -

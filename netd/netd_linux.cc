@@ -70,11 +70,8 @@ netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint)
 	gd.flags_ = GATESRV_KEEP_TLS_STACK;
 	cobj_ref gate = gate_create(&gd);
 	
-	int64_t sig_gt = container_find(start_env->shared_container, kobj_gate, "signal");
-	error_check(sig_gt);
-	error_check(sys_obj_unref(COBJ(start_env->shared_container, sig_gt)));
-	
 	thread_set_label(&l);
+	signal_grow_stack = 0;
     } catch (std::exception &e) {
 	cprintf("netd_linux_server_init: %s\n", e.what());
 	return -1;
