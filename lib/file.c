@@ -190,7 +190,7 @@ unlink(const char *pn)
 {
     char *pn2 = malloc(strlen(pn) + 1);
     if (pn2 == 0)
-	return -E_NO_MEM;
+	return err_jos2libc(-E_NO_MEM);
 
     strcpy(pn2, pn);
     const char *dirname, *basenm;
