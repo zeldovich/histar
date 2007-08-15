@@ -6,23 +6,23 @@
 #include "netduser.h"
 
 struct sock_slot slots[16];
-jthread_mutex_t slots_mu;
+jthread_mutex_t slot_alloc_mu;
 
 struct sock_slot *
 slot_alloc(void)
 {
     int i;
-    jthread_mutex_lock(&slots_mu);
+    jthread_mutex_lock(&slot_alloc_mu);
     for(i = 0; i < sizeof(slots) / sizeof(struct sock_slot); i++) {
 	if (!slots[i].used) {
 	    memset(&slots[i], 0, sizeof(slots[i]));
 	    slots[i].sock = -1;
 	    slots[i].used = 1;
-	    jthread_mutex_unlock(&slots_mu);
+	    jthread_mutex_unlock(&slot_alloc_mu);
 	    return &slots[i];
 	}
     }
-    jthread_mutex_unlock(&slots_mu);
+    jthread_mutex_unlock(&slot_alloc_mu);
     return 0;
 }
 
@@ -42,20 +42,16 @@ slot_from_id(int id)
 void
 slot_free(struct sock_slot *ss)
 {
-    jthread_mutex_lock(&slots_mu);
     ss->used = 0;
-    jthread_mutex_unlock(&slots_mu);
 }
 
 void
 slot_for_each(void (*op)(struct sock_slot*, void*), void *arg)
 {
     int i;
-    jthread_mutex_lock(&slots_mu);
-    for(i = 0; i < sizeof(slots) / sizeof(struct sock_slot); i++)
+    for (i = 0; i < sizeof(slots) / sizeof(struct sock_slot); i++)
 	if (slots[i].used)
 	    op(&slots[i], arg);
-    jthread_mutex_unlock(&slots_mu);
 }
 
 static void
