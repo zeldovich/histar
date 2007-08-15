@@ -7,18 +7,7 @@
 
     Maybe for USB: http://www.rmdir.de/~michael/xilinx/
     ftp://ftp.xilinx.com/pub/utilities/fpga/install_drivers.tar.gz
-
---- windriver64/windrvr/linux_wrappers.c	2007/08/06 21:55:36	1.1
-+++ windriver64/windrvr/linux_wrappers.c	2007/08/06 22:00:20
-@@ -587,7 +587,7 @@
-     if (!bh)
-         return NULL;
-     memset(bh, 0, sizeof(*bh));
--    bh->data = data;
-+    *work_data_bits(bh) = (unsigned long) data;
- #if defined(LINUX_26)
-     bh->func = routine;
-     bh->entry.next = &bh->entry;
+    Apply conf/xilinx-drivers.patch
 
 * Xilinx ISE
 

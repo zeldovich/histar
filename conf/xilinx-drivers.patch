@@ -1,0 +1,30 @@
+--- linux_wrappers.c	2007/08/06 21:55:36	1.1
++++ linux_wrappers.c	2007/08/15 17:28:27
+@@ -44,9 +44,6 @@
+ #endif
+ #include <asm/mman.h>
+ #include "linux_wrappers.h"
+-#if defined(LINUX_26)
+-    #include <linux/ioctl32.h>
+-#endif
+ #if defined(UDEV_SUPPORT)
+     #include <linux/devfs_fs_kernel.h>
+ #endif
+@@ -587,7 +584,7 @@
+     if (!bh)
+         return NULL;
+     memset(bh, 0, sizeof(*bh));
+-    bh->data = data;
++    *work_data_bits(bh) = (unsigned long) data;
+ #if defined(LINUX_26)
+     bh->func = routine;
+     bh->entry.next = &bh->entry;
+@@ -1023,7 +1020,7 @@
+     }
+ 
+     #if defined(WINDRIVER_KERNEL)
+-        pci_module_init(&generic_pci_driver);
++        pci_register_driver(&generic_pci_driver);
+     #endif
+     return 0;
+ #endif
