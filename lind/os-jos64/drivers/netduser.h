@@ -39,6 +39,7 @@ struct sock_slot {
 
     struct socket_conn conn;
     uint64_t linuxpid;
+    volatile int linuxthread_needed;
     int sock;
 
     struct netd_op_args jos2lnx_buf;

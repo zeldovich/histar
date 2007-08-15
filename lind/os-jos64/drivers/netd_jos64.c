@@ -196,6 +196,7 @@ jos64_socket_thread(struct socket_conn *sc)
 	if (ss == 0)
 	    panic("no slots");
 	ss->dgram = sc->dgram;
+	ss->linuxthread_needed = 1;
 	lutrap_kill(SIGNAL_NETD);
 	while (!ss->linuxpid)
 	    sys_sync_wait(&ss->linuxpid, 0, UINT64(~0));

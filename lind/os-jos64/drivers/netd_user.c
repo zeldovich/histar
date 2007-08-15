@@ -67,8 +67,10 @@ libc_to_netd(struct sockaddr_in *sin, struct netd_sockaddr_in *nsin)
 static void
 addthread_slot(struct sock_slot *s, void *x)
 {
-    if (s->linuxpid == 0)
+    if (s->linuxthread_needed) {
+	s->linuxthread_needed = 0;
 	linux_thread_run(linux_socket_thread, s, "socket-thread");
+    }
 }
 
 static void
@@ -81,7 +83,7 @@ service_slot(struct sock_slot *s, void *a)
      * switch threads (or at least current_thread_infos()?
      */
     char *wake_main_thread = (char *) a;
-    if (s->linuxpid == 0)
+    if (s->linuxthread_needed)
 	*wake_main_thread = 1;
 
     if (s->jos2lnx_full || s->outcnt || s->lnx2jos_full == CNT_LIMBO) {
