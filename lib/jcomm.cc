@@ -241,6 +241,13 @@ jcomm_links_map(struct jcomm_ref jr, struct jlink **links)
     return r;
 }
 
+static void
+jcomm_links_unmap(void *arg)
+{
+    struct jlink *links = (struct jlink *) arg;
+    segment_unmap_delayed(links, 1);
+}
+
 int
 jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode, 
 	    struct jcomm_ref *a, struct jcomm_ref *b)
@@ -253,7 +260,7 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
     r = segment_alloc(ct, sz, &seg, (void **)&links, l, "jcomm-seg");
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     
     r = sys_obj_set_fixedquota(seg);
     if (r < 0)
@@ -299,7 +306,7 @@ jcomm_read(struct jcomm_ref jr, void *buf, uint64_t cnt, int dowait)
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     struct jlink *jl = &links[jr.jc.chan];
@@ -313,7 +320,7 @@ jcomm_write(struct jcomm_ref jr, const void *buf, uint64_t cnt, int dowait)
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     struct jlink *jl = &links[!jr.jc.chan];
@@ -327,7 +334,7 @@ jcomm_write_flush(struct jcomm_ref jr)
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     struct jlink *jl = &links[!jr.jc.chan];
@@ -341,7 +348,7 @@ jcomm_probe(struct jcomm_ref jr, dev_probe_t probe)
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     int rv;
@@ -367,7 +374,7 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     if (how & JCOMM_SHUT_RD) {
@@ -400,7 +407,7 @@ jcomm_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
     
     if (probe == dev_probe_read)
@@ -422,7 +429,7 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe,
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
+    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
 
     memset(wstat, 0, sizeof(*wstat) * 2);
