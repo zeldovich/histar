@@ -179,6 +179,9 @@ cpu_idle(void)
     uint64_t signal_old;
 
     while (1) {
+	if (local_softirq_pending())
+	    do_softirq();
+
 	schedule();
 
 	now = sys_clock_nsec();
