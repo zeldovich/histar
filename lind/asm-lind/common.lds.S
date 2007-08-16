@@ -1,13 +1,5 @@
 #include <asm-generic/vmlinux.lds.h>
 
-  .fini      : { *(.fini)    } =0x9090
-  _etext = .;
-  PROVIDE (etext = .);
-
-  . = ALIGN(4096);
-  _sdata = .;
-  PROVIDE (sdata = .);
-
   RODATA
 
   .unprotected : { *(.unprotected) }
@@ -19,18 +11,6 @@
   __ex_table : { *(__ex_table) }
   __stop___ex_table = .;
 
-  __uml_setup_start = .;
-  .uml.setup.init : { *(.uml.setup.init) }
-  __uml_setup_end = .;
-	
-  __uml_help_start = .;
-  .uml.help.init : { *(.uml.help.init) }
-  __uml_help_end = .;
-	
-  __uml_postsetup_start = .;
-  .uml.postsetup.init : { *(.uml.postsetup.init) }
-  __uml_postsetup_end = .;
-	
   __setup_start = .;
   .init.setup : { *(.init.setup) }
   __setup_end = .;
@@ -50,9 +30,6 @@
   .con_initcall.init : { *(.con_initcall.init) }
   __con_initcall_end = .;
 
-  __uml_initcall_start = .;
-  .uml.initcall.init : { *(.uml.initcall.init) }
-  __uml_initcall_end = .;
   __init_end = .;
 
   SECURITY_INIT
@@ -60,20 +37,6 @@
   __exitcall_begin = .;
   .exitcall : { *(.exitcall.exit) }
   __exitcall_end = .;
-
-  __uml_exitcall_begin = .;
-  .uml.exitcall : { *(.uml.exitcall.exit) }
-  __uml_exitcall_end = .;
-
-  . = ALIGN(4);
-  __alt_instructions = .;
-  .altinstructions : { *(.altinstructions) }
-  __alt_instructions_end = .;
-  .altinstr_replacement : { *(.altinstr_replacement) }
-  /* .exit.text is discard at runtime, not link time, to deal with references
-     from .altinstructions and .eh_frame */
-  .exit.text : { *(.exit.text) }
-  .exit.data : { *(.exit.data) }
 
   __preinit_array_start = .;
   .preinit_array : { *(.preinit_array) }

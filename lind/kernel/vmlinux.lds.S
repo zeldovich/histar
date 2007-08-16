@@ -8,7 +8,7 @@ jiffies = jiffies_64;
 
 PHDRS {
 	text PT_LOAD FLAGS(5);	/* R_X */
-	data PT_LOAD FLAGS(7);	/* RWX */
+	data PT_LOAD FLAGS(6);	/* RWX */
 	note PT_NOTE FLAGS(4);	/* R__ */
 }
 
@@ -36,9 +36,15 @@ SECTIONS
     _einittext = .;
   } :text
 
+  .fini : {
+    *(.fini)
+  } :text
+
   _etext = .;
 
   . = ALIGN(4096);
+
+  _sdata = .;
 
   .data : {
     . = ALIGN(KERNEL_STACK_SIZE);		/* init_task */
@@ -48,9 +54,11 @@ SECTIONS
     CONSTRUCTORS
   } :data
 
-  #include "asm/common.lds.S"
+  .init.data : {
+    *(init.data)
+  }
 
-  .init.data : { *(init.data) }
+  #include "asm/common.lds.S"
 
   .data1   : { *(.data1) }
   .ctors         :
