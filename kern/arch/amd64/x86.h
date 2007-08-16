@@ -107,4 +107,37 @@ read_tscp(uint32_t *auxp)
 	return ((uint64_t) a) | (((uint64_t) d) << 32);
 }
 
+#define READ_DR(n)						\
+X86_INST_ATTR uint64_t read_dr##n(void);			\
+uint64_t							\
+read_dr##n(void)						\
+{								\
+	uint64_t val;						\
+	__asm __volatile("movq %%dr" #n ",%0" : "=r" (val));	\
+	return val;						\
+}
+
+#define WRITE_DR(n)						\
+X86_INST_ATTR void write_dr##n(uint64_t v);			\
+void								\
+write_dr##n(uint64_t v)						\
+{								\
+	__asm __volatile("movq %0,%%dr" #n : : "r" (v));	\
+}
+
+#define RW_DR(n) READ_DR(n) WRITE_DR(n)
+
+RW_DR(0)
+RW_DR(1)
+RW_DR(2)
+RW_DR(3)
+RW_DR(4)
+RW_DR(5)
+RW_DR(6)
+RW_DR(7)
+
+#undef RW_DR
+#undef READ_DR
+#undef WRITE_DR
+
 #endif /* !JOS_MACHINE_X86_H */
