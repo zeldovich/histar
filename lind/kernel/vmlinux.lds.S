@@ -6,24 +6,21 @@ OUTPUT_ARCH(ELF_ARCH)
 ENTRY(_start)
 jiffies = jiffies_64;
 
+PHDRS {
+	text PT_LOAD FLAGS(5);	/* R_X */
+	data PT_LOAD FLAGS(7);	/* RWX */
+	note PT_NOTE FLAGS(4);	/* R__ */
+}
+
 SECTIONS
 {
-  /* This must contain the right address - not quite the default ELF one.*/
   PROVIDE (__executable_start = 0x400000);
   . = 0x400000 + SIZEOF_HEADERS;
 
-  _text = .;
   _stext = .;
-  __init_begin = .;
-  .init.text : {
-	_sinittext = .;
-	*(.init.text)
-	_einittext = .;
-  }
-  . = ALIGN(4096);
 
-  .text      :
-  {
+  .text : {
+    _text = .;
     *(.text)
     SCHED_TEXT
     LOCK_TEXT
@@ -31,25 +28,29 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
     *(.gnu.linkonce.t*)
+  } :text
 
-    . = ALIGN(4096);
-    __syscall_stub_start = .;
-    *(.__syscall_stub*)
-    __syscall_stub_end = .;
-    . = ALIGN(4096);
-  }
-
-  #include "asm/common.lds.S"
-
-  init.data : { *(init.data) }
-  .data    :
-  {
+  .data : {
     . = ALIGN(KERNEL_STACK_SIZE);		/* init_task */
     *(.data.init_task)
     *(.data)
     *(.gnu.linkonce.d*)
     CONSTRUCTORS
+  } :data
+
+  #include "asm/common.lds.S"
+
+  . = ALIGN(4096);
+  .init.text : {
+    __init_begin = .;
+    _sinittext = .;
+    *(.init.text)
+    _einittext = .;
   }
+  . = ALIGN(4096);
+
+  .init.data : { *(init.data) }
+
   .data1   : { *(.data1) }
   .ctors         :
   {
