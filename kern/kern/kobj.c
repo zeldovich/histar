@@ -314,7 +314,8 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 		  kp->ko_id, kp->ko_name, kp->ko_type, npage);
 
 	// Be conservative -- assume caller will map this page somewhere..
-	if (page_to_pageinfo(*pp)->pi_ref > 1)
+	struct page_info *ptp = page_to_pageinfo(*pp);
+	if (ptp->pi_ref > 1 + ptp->pi_write_shared_ref)
 	    eko->hdr.ko_flags |= KOBJ_SHARED_MAPPINGS;
     }
     return r;

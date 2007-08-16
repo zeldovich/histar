@@ -397,7 +397,11 @@ as_pmap_fill_segment(const struct Address_space *as,
 
 	    struct kobject *sg_ko = kobject_ephemeral_dirty(&sg->sg_ko);
 	    r = pagetree_get_page(&sg_ko->ko_pt, segpage, &pp, page_shared_ro);
-	    if (r < 0 || !pp || page_to_pageinfo(pp)->pi_ref > 1)
+	    if (r < 0 || !pp)
+		continue;
+
+	    struct page_info *ptp = page_to_pageinfo(pp);
+	    if (ptp->pi_ref > 1 + ptp->pi_write_shared_ref)
 		continue;
 	}
 
