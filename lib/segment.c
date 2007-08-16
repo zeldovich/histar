@@ -499,7 +499,12 @@ segment_map_as_locked(struct cobj_ref as_ref, struct cobj_ref seg,
 		      void **va_p, uint64_t *bytes_store,
 		      uint64_t map_opts, int lockold)
 {
-    uint32_t randval = sys_pstate_timestamp();
+    static uint32_t randval;
+    if (randval == 0)
+	randval = thread_id();
+    else
+	randval = (randval << 1) | (randval >> 31);
+
     assert((start_byteoff % PGSIZE) == 0);
 
     if (!(flags & SEGMAP_READ)) {
