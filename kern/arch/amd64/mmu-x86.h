@@ -116,7 +116,25 @@
 #define MSR_LBR_TO_IP	0x1dc		/* Last branch to IP */
 #define MSR_LEX_FROM_IP	0x1dd		/* Last exception from IP */
 #define MSR_LEX_TO_IP	0x1de		/* Last exception to IP */
-		      
+
+#define DR7_L(n)	(ONE << ((n)*2)	/* Local breakpoint enable */
+#define DR7_G(n)	(ONE << ((n)*2+1) /* Global breakpoint enable */
+#define DR7_LE		(ONE << 8)	/* Local enable */
+#define DR7_GE		(ONE << 9)	/* Global enable */
+#define DR7_GD		(ONE << 13)	/* General-detect enable */
+#define DR7_RW_SHIFT(n)	((n) * 4 + 16)	/* Breakpoint access mode */
+#define DR7_LEN_SHIFT(n) ((n) * 4 + 18)	/* Breakpoint addr length */
+
+#define DR7_RW_EXEC	0x0
+#define DR7_RW_WRITE	0x1
+#define DR7_RW_IO	0x2
+#define DR7_RW_RW	0x3
+
+#define DR7_LEN_1	0x0
+#define DR7_LEN_2	0x1
+#define DR7_LEN_8	0x2
+#define DR7_LEN_4	0x3
+
 /* Rflags register */
 #define FL_CF 0x00000001	/* Carry Flag */
 #define FL_PF 0x00000004	/* Parity Flag */
