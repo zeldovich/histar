@@ -8,7 +8,7 @@ jiffies = jiffies_64;
 
 PHDRS {
 	text PT_LOAD FLAGS(5);	/* R_X */
-	data PT_LOAD FLAGS(6);	/* RWX */
+	data PT_LOAD FLAGS(6);	/* RW_ */
 	note PT_NOTE FLAGS(4);	/* R__ */
 }
 
