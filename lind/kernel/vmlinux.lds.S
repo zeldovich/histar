@@ -30,6 +30,16 @@ SECTIONS
     *(.gnu.linkonce.t*)
   } :text
 
+  .init.text : {
+    _sinittext = .;
+    *(.init.text)
+    _einittext = .;
+  } :text
+
+  _etext = .;
+
+  . = ALIGN(4096);
+
   .data : {
     . = ALIGN(KERNEL_STACK_SIZE);		/* init_task */
     *(.data.init_task)
@@ -39,14 +49,6 @@ SECTIONS
   } :data
 
   #include "asm/common.lds.S"
-
-  . = ALIGN(4096);
-  .init.text : {
-    _sinittext = .;
-    *(.init.text)
-    _einittext = .;
-  }
-  . = ALIGN(4096);
 
   .init.data : { *(init.data) }
 
