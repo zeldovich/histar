@@ -281,22 +281,6 @@ jcomm_alloc(uint64_t ct, struct ulabel *l, int16_t mode,
 }
 
 int
-jcomm_nonblock_enable(struct jcomm_ref jr)
-{
-    struct jlink *links;
-    int r = jcomm_links_map(jr, &links);
-    if (r < 0)
-	return r;
-    scope_guard2<int, void *, int> unmap(segment_unmap_delayed, links, 1);
-    PF_CATCH_BLOCK;
-    
-    links[jr.jc.chan].mode |= JCOMM_NONBLOCK_RD;
-    links[!jr.jc.chan].mode |=  JCOMM_NONBLOCK_WR;
-    
-    return 0;
-}
-
-int
 jcomm_addref(struct jcomm_ref jr, uint64_t ct)
 {
     return sys_segment_addref(JCSEG(jr), ct);
