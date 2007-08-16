@@ -40,7 +40,8 @@ idt_init (void)
 		&trap_entry_stubs[i].trap_entry_code[0], dpl)
 #define	SET_TRAP_CODE(i, ec_prefix)				\
 	memcpy(&trap_entry_stubs[i].trap_entry_code[0],		\
-	       trap_##ec_prefix##_entry_stub, 16)
+	       trap_##ec_prefix##_entry_stub,			\
+	       sizeof(trap_entry_stubs[i].trap_entry_code))
 
     for (i = 0; i < 0x100; i++) {
 	SET_TRAP_CODE(i, noec);
