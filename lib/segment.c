@@ -26,6 +26,7 @@ static jthread_mutex_t as_mutex;
 
 enum { segment_debug = 0 };
 enum { usegmapents_bytes = 0x1000000 };		/* should fit in memlayout */
+enum { ndelay_threshold = 4 };
 
 static void __attribute__((noinline))
 reserve_stack_page(void)
@@ -487,11 +488,18 @@ segment_lookup_obj(uint64_t oid, struct u_segment_mapping *usm)
 }
 
 static int
+evict_prefer(uint32_t s1, uint32_t s2, uint32_t randval)
+{
+    return ((s1 ^ randval) > (s2 ^ randval));
+}
+
+static int
 segment_map_as_locked(struct cobj_ref as_ref, struct cobj_ref seg,
 		      uint64_t start_byteoff, uint64_t flags,
 		      void **va_p, uint64_t *bytes_store,
 		      uint64_t map_opts, int lockold)
 {
+    uint32_t randval = sys_pstate_timestamp();
     assert((start_byteoff % PGSIZE) == 0);
 
     if (!(flags & SEGMAP_READ)) {
@@ -550,7 +558,7 @@ cache_grown:
 retry:
 	map_end = map_start + map_bytes;
 
-	for (uint64_t i = 0; i < cache_uas.nent; i++) {
+	for (uint32_t i = 0; i < cache_uas.nent; i++) {
 	    if (!cache_uas.ents[i].flags)
 		continue;
 
@@ -564,8 +572,7 @@ retry:
 	    if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
 		cache_uas.ents[i].segment.object == seg.object &&
 		cache_uas.ents[i].segment.container == seg.container &&
-		((cache_uas.ents[i].flags &
-		    (SEGMAP_READ | SEGMAP_WRITE | SEGMAP_EXEC)) == flags) &&
+		((cache_uas.ents[i].flags & ~SEGMAP_DELAYED_UNMAP) == flags) &&
 		cache_uas.ents[i].start_page * PGSIZE == start_byteoff &&
 		cache_uas.ents[i].num_pages == map_pages)
 	    {
@@ -592,6 +599,8 @@ retry:
     uint32_t delay_overlap = cache_uas.nent;	// Overlapping
     uint32_t delay_segslot = cache_uas.nent;	// Non-overlapping
     uint32_t empty_segslot = cache_uas.nent;	// Not delay-unmapped
+
+    uint32_t ndelayent = 0;
 
     for (uint64_t i = 0; i < cache_uas.nent; i++) {
 	char *ent_start = cache_uas.ents[i].va;
@@ -623,7 +632,10 @@ retry:
 	    empty_segslot = i;
 
 	if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP)) {
-	    delay_segslot = i;
+	    if (delay_segslot == cache_uas.nent ||
+		evict_prefer(i, delay_segslot, randval))
+		delay_segslot = i;
+	    ndelayent++;
 
 	    if (ent_start < map_end && ent_end > map_start) {
 		if (delay_overlap == cache_uas.nent) {
@@ -669,7 +681,7 @@ retry:
 
     // Figure out which slot to use.
     uint32_t slot = empty_segslot;
-    if (delay_segslot != cache_uas.nent)
+    if (delay_segslot != cache_uas.nent && ndelayent > ndelay_threshold)
 	slot = delay_segslot;
     if (delay_overlap != cache_uas.nent)
 	slot = delay_overlap;
