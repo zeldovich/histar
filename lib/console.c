@@ -145,11 +145,11 @@ cons_statsync_thread(void *arg)
 
 static int
 cons_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
-		  volatile uint64_t *addr, void **arg1)
+		  volatile uint64_t **addrp, void **arg1)
 {
     struct cons_statsync *thread_arg = malloc(sizeof(*thread_arg));
     jos_atomic_set(&thread_arg->ref, 2);
-    thread_arg->wakeaddr = addr;
+    thread_arg->wakeaddr = *addrp;
 
     struct cobj_ref tobj;
     thread_create(start_env->proc_container, cons_statsync_thread,

@@ -76,7 +76,7 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 	for (uint64_t i = 0; i < n; i++) {
 	    if (wstat[i].ws_cb0) {
 		r = (*wstat[i].ws_cb0)(&wstat[i], wstat[i].ws_probe, 
-				       addrs[i], &args[i]);
+				       &addrs[i], &args[i]);
 		if (r < 0) {
 		    cb0_err = 1;
 		    if (dbg)

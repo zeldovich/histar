@@ -11,7 +11,7 @@ typedef enum
 
 struct wait_stat;
 typedef int (*multisync_pre)(struct wait_stat *, dev_probe_t,
-			     volatile uint64_t *addr, void **arg1);
+			     volatile uint64_t **addrp, void **arg1);
 typedef int (*multisync_post)(struct wait_stat *, void *arg1, dev_probe_t);
 
 struct wait_stat

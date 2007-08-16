@@ -398,8 +398,9 @@ jcomm_shut(struct jcomm_ref jr, uint16_t how)
 
 static int
 jcomm_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
-		   volatile uint64_t *addr, void **arg1)
+		   volatile uint64_t **addrp, void **arg1)
 {
+    *arg1 = 0;
     struct jcomm_ref jr;
     memcpy(&jr, &ws->ws_cbbuf[0], sizeof(jr));
 
@@ -407,14 +408,29 @@ jcomm_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
     int r = jcomm_links_map(jr, &links);
     if (r < 0)
 	return r;
-    scope_guard<void, void*> unmap(jcomm_links_unmap, links);
     PF_CATCH_BLOCK;
     
-    if (probe == dev_probe_read)
-	links[jr.jc.chan].reader_waiting = 1;
-    else
-	links[!jr.jc.chan].writer_waiting = 1;
+    struct jlink *jl;
+    if (probe == dev_probe_read) {
+	jl = &links[jr.jc.chan];
+	jl->reader_waiting = 1;
+    } else {
+	jl = &links[!jr.jc.chan];
+	jl->writer_waiting = 1;
+    }
 
+    addrp[0] = &jl->bytes;
+    addrp[1] = &jl->open;
+    *arg1 = links;
+
+    return 0;
+}
+
+static int
+jcomm_statsync_cb1(struct wait_stat *ws, void *arg1, dev_probe_t probe)
+{
+    if (arg1)
+	jcomm_links_unmap(arg1);
     return 0;
 }
 
@@ -440,18 +456,19 @@ jcomm_multisync(struct jcomm_ref jr, dev_probe_t probe,
     else
 	jl = &links[!jr.jc.chan];
 
-    WS_SETOBJ(wstat, COBJ(jr.container, jr.jc.segment),
-	      (uintptr_t) &jl->bytes - (uintptr_t) links);
+    WS_SETADDR(wstat, 0);	/* Will be set to jl->bytes in cb0 */
     WS_SETVAL(wstat, jl->bytes);
+    wstat[0].ws_refct = jr.container;
 
-    WS_SETOBJ(wstat + 1, COBJ(jr.container, jr.jc.segment),
-	      (uintptr_t) &jl->open - (uintptr_t) links);
+    WS_SETADDR(wstat + 1, 0);	/* Will be set to jl->open in cb0 */
     WS_SETVAL(wstat + 1, jl->open);
+    wstat[1].ws_refct = jr.container;
 
     static_assert(sizeof(wstat->ws_cbbuf) >= sizeof(jr));
     memcpy(&wstat->ws_cbbuf[0], &jr, sizeof(jr));
 
     WS_SETCB0(wstat, &jcomm_statsync_cb0); 
+    WS_SETCB1(wstat, &jcomm_statsync_cb1); 
     wstat->ws_probe = probe;
     return 2;
 }

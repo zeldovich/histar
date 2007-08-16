@@ -161,7 +161,7 @@ pipe_probe(struct Fd *fd, dev_probe_t probe)
 
 static int
 pipe_statsync_cb0(struct wait_stat *ws, dev_probe_t probe,
-		  volatile uint64_t *addr, void **arg1)
+		  volatile uint64_t **addrp, void **arg1)
 {
     struct Fd *fd = (struct Fd *) ws->ws_cbarg;
     

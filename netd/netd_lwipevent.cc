@@ -80,7 +80,7 @@ netd_lwip_probe(struct Fd *fd, struct netd_op_probe_args *a)
 
 static int
 msync_cb(struct wait_stat *ws, dev_probe_t probe,
-	 volatile uint64_t *addr, void **arg1)
+	 volatile uint64_t **addrp, void **arg1)
 {
     struct Fd *fd = (struct Fd*) ws->ws_cbarg;
 
