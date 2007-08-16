@@ -70,18 +70,23 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
 		refcts[i] = wstat[i].ws_refct;
 	    }
 	}
+
+	int cb0_err = 0;
 	
 	for (uint64_t i = 0; i < n; i++) {
 	    if (wstat[i].ws_cb0) {
 		r = (*wstat[i].ws_cb0)(&wstat[i], wstat[i].ws_probe, 
 				       addrs[i], &args[i]);
-		if (r < 0 && dbg)
-		    cprintf("multisync_wait: cb0 (%p) error: %s\n", 
-			    wstat[i].ws_cb0, e2s(r));
+		if (r < 0) {
+		    cb0_err = 1;
+		    if (dbg)
+			cprintf("multisync_wait: cb0 (%p) error: %s\n", 
+				wstat[i].ws_cb0, e2s(r));
+		}
 	    }
 	}
 	
-	r = sys_sync_wait_multi(addrs, vals, refcts, n, nsec);
+	r = cb0_err ? 0 : sys_sync_wait_multi(addrs, vals, refcts, n, nsec);
 	if (r == -E_NO_SPACE) {
 	    error_check(sys_self_set_waitslots(n));
 	    error_check(r = sys_sync_wait_multi(addrs, vals, refcts, n, nsec));
@@ -98,7 +103,7 @@ multisync_wait(struct wait_stat *wstat, uint64_t n, uint64_t nsec)
     for (uint64_t i = 0; i < n; i++) {
 	if (wstat[i].ws_cb1) {
 	    r = (*wstat[i].ws_cb1)(&wstat[i], args[i], wstat[i].ws_probe);
-	    if (r < 0)
+	    if (r < 0 && dbg)
 		cprintf("multisync_wait: cb1 (%p) error: %s\n", 
 			wstat[i].ws_cb1, e2s(r));
 	}
