@@ -54,7 +54,8 @@ page_map_traverse_internal(struct Pagemap *pgmap, int pmlevel,
 	void *ent_va = va_base + (idx << PDSHIFT(pmlevel));
 
 	if (pmlevel == 0) {
-	    cb(arg, pm_entp, ent_va);
+	    if (create || (pm_ent & PTE_P))
+		cb(arg, pm_entp, ent_va);
 	    continue;
 	}
 
