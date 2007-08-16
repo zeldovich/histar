@@ -8,7 +8,8 @@ main(int ac, char **av)
     uint32_t i = 0;
 
     for (;;) {
-	printf("Creating socket %d..\n", i);
+	if (!(i%1000))
+	    printf("Creating socket %d..\n", i);
 
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
