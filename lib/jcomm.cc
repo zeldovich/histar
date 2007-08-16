@@ -197,7 +197,7 @@ jlink_write(struct jlink *jl, const void *buf, uint64_t cnt, int16_t mode)
     return cc;
 }
 
-int
+static int
 jlink_write_flush(struct jlink *jl)
 {
     uint64_t bytes, open;
