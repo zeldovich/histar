@@ -154,3 +154,9 @@ linux + uclibc
 (0 char): 0.109 sec
 (1024 char): 0.130 sec
 (8192 char): 0.141 sec
+
+how to run benchmark
+--------------------
+
+time ./obj/test/httpd-test host 443 -r 20 -c 1 -p '/test.8192?a2pdf' -a
+
