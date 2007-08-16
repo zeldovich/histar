@@ -181,7 +181,8 @@ void __attribute__((__noreturn__, no_instrument_function))
 trap_handler(struct Trapframe *tf, uint64_t trampoline_rip)
 {
     uint64_t trap0rip = (uint64_t)&trap_entry_stubs[0].trap_entry_code[0];
-    uint32_t trapno = (trampoline_rip - trap0rip) / 16;
+    uint32_t trapno = (trampoline_rip - trap0rip) /
+		      sizeof(trap_entry_stubs[0].trap_entry_code);
 
     tf->tf_ds = read_ds();
     tf->tf_es = read_es();
