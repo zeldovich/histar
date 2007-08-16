@@ -543,6 +543,7 @@ cache_grown:
 
 	assert((((uintptr_t) map_start) % PGSIZE) == 0);
     } else {
+	uint64_t map_pages = ROUNDUP(map_bytes, PGSIZE) / PGSIZE;
 	// If we don't have a fixed address, try to find a free one.
 	map_start = (char *) UMMAPBASE;
 
@@ -561,8 +562,17 @@ retry:
 	    // We try to keep them intact in case we'll reuse them soon.
 	    // However, for the same object, we want to reuse it!
 	    if ((cache_uas.ents[i].flags & SEGMAP_DELAYED_UNMAP) &&
-		cache_uas.ents[i].segment.object == seg.object)
-		continue;
+		cache_uas.ents[i].segment.object == seg.object &&
+		cache_uas.ents[i].segment.container == seg.container &&
+		((cache_uas.ents[i].flags &
+		    (SEGMAP_READ | SEGMAP_WRITE | SEGMAP_EXEC)) == flags) &&
+		cache_uas.ents[i].start_page * PGSIZE == start_byteoff &&
+		cache_uas.ents[i].num_pages == map_pages)
+	    {
+		map_start = cache_uas.ents[i].va;
+		map_end = map_start + map_bytes;
+		break;
+	    }
 
 	    // Leave page gaps between mappings for good measure
 	    if (ent_start <= map_end && ent_end >= map_start) {
@@ -619,7 +629,8 @@ retry:
 		if (delay_overlap == cache_uas.nent) {
 		    delay_overlap = i;
 		} else {
-		    // Multiple delay-unmapped segments; must force unmap.
+		    // Multiple delay-unmapped segments overlap our range.
+		    // Must force unmap.
 		    cache_uas.ents[i].flags = 0;
 
 		    if (segment_debug)
