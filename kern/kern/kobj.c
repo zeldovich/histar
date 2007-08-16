@@ -285,35 +285,43 @@ kobject_alloc(uint8_t type, const struct Label *l,
 int
 kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_sharing_mode rw)
 {
+    struct kobject *eko = kobject_ephemeral_dirty(kp);
+
     if (npage >= kobject_npages(kp))
 	return -E_INVAL;
 
-    // If this is a segment, and we have shared pages mapped somewhere,
-    // and rw is not shared, we need to invalidate all of the mappings
-    // to those shared pages.
-    struct kobject *eko = kobject_ephemeral_dirty(kp);
-    if (eko->hdr.ko_type == kobj_segment &&
-	(eko->hdr.ko_flags & KOBJ_SHARED_MAPPINGS) &&
-	!SAFE_EQUAL(rw, page_shared_ro))
-    {
-	eko->hdr.ko_flags &= ~KOBJ_SHARED_MAPPINGS;
-	segment_invalidate(&eko->sg, 0);
-    }
-
     if (SAFE_EQUAL(rw, page_excl_dirty))
 	kobject_dirty(kp);
+
     if (SAFE_EQUAL(rw, page_excl_dirty_later)) {
 	assert(eko->hdr.ko_type == kobj_segment);
 	eko->hdr.ko_flags |= KOBJ_DIRTY_LATER;
     }
 
     int r = pagetree_get_page(&eko->ko_pt, npage, pp, rw);
-    if (r == 0) {
+    if (r >= 0) {
 	if (*pp == 0)
 	    panic("kobject_get_page: id %"PRIu64" (%s) type %d npage %"PRIu64" null",
 		  kp->ko_id, kp->ko_name, kp->ko_type, npage);
 
-	// Be conservative -- assume caller will map this page somewhere..
+	/*
+	 * If copy-on-write happened, and we had some shared mappings earlier
+	 * for a segment, we need to invalidate those previous (read-only)
+	 * mappings to ensure they see the changes to this read-write page,
+	 * which is now at a different address due to copy-on-write.
+	 */
+	if (r == 1 && eko->hdr.ko_type == kobj_segment &&
+	    (eko->hdr.ko_flags & KOBJ_SHARED_MAPPINGS))
+	{
+	    eko->hdr.ko_flags &= ~KOBJ_SHARED_MAPPINGS;
+	    segment_invalidate(&eko->sg, 0);
+	}
+
+	/*
+	 * If this page is shared, we may need to go back and invalidate this
+	 * segment's mappings later, to change the address of this page when
+	 * a copy-on-write happens.
+	 */
 	struct page_info *ptp = page_to_pageinfo(*pp);
 	if (ptp->pi_ref > 1 + ptp->pi_write_shared_ref)
 	    eko->hdr.ko_flags |= KOBJ_SHARED_MAPPINGS;

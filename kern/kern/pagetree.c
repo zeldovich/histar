@@ -78,33 +78,33 @@ pagetree_cow(pagetree_entry *ent)
     struct page_info *ptp = page_to_pageinfo(ent->page);
     assert(ptp->pi_ref > 0);
 
-    if (ptp->pi_ref > 1 + ptp->pi_write_shared_ref) {
-	void *copy;
+    if (ptp->pi_ref <= 1 + ptp->pi_write_shared_ref)
+	return 0;
 
-	int r = page_alloc(&copy);
-	if (r < 0)
+    void *copy;
+
+    int r = page_alloc(&copy);
+    if (r < 0)
+	return r;
+
+    assert(page_to_pageinfo(copy)->pi_ref == 0);
+    assert(page_to_pageinfo(copy)->pi_write_shared_ref == 0);
+    assert(page_to_pageinfo(copy)->pi_pin == 0);
+    memcpy(copy, ent->page, PGSIZE);
+    pagetree_incref(copy);
+
+    if (ptp->pi_indir) {
+	r = pagetree_indir_copy(ent->page, copy);
+	if (r < 0) {
+	    pagetree_decref(copy);
 	    return r;
-
-	assert(page_to_pageinfo(copy)->pi_ref == 0);
-	assert(page_to_pageinfo(copy)->pi_write_shared_ref == 0);
-	assert(page_to_pageinfo(copy)->pi_pin == 0);
-	memcpy(copy, ent->page, PGSIZE);
-	pagetree_incref(copy);
-
-	if (ptp->pi_indir) {
-	    r = pagetree_indir_copy(ent->page, copy);
-	    if (r < 0) {
-		pagetree_decref(copy);
-		return r;
-	    }
 	}
-
-	page_to_pageinfo(copy)->pi_dirty = ptp->pi_dirty;
-	pagetree_decref(ent->page);
-	ent->page = copy;
     }
 
-    return 0;
+    page_to_pageinfo(copy)->pi_dirty = ptp->pi_dirty;
+    pagetree_decref(ent->page);
+    ent->page = copy;
+    return 1;
 }
 
 void
@@ -308,7 +308,7 @@ pagetree_get_page(struct pagetree *pt, uint64_t npage,
 	pi->pi_parent = parent;
 
     *pagep = ent->page;
-    return 0;
+    return r;
 }
 
 int

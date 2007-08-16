@@ -43,6 +43,7 @@ int  pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 void pagetree_free(struct pagetree *pt, int was_share_pinned);
 
 // Get a page currently stored in the page tree
+// Returns 1 if copy-on-write happened, 0 if not, negative for error
 int  pagetree_get_page(struct pagetree *pt, uint64_t npage, void **pagep,
 		       page_sharing_mode rw)
     __attribute__ ((warn_unused_result));
