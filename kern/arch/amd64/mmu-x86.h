@@ -117,8 +117,8 @@
 #define MSR_LEX_FROM_IP	0x1dd		/* Last exception from IP */
 #define MSR_LEX_TO_IP	0x1de		/* Last exception to IP */
 
-#define DR7_L(n)	(ONE << ((n)*2)	/* Local breakpoint enable */
-#define DR7_G(n)	(ONE << ((n)*2+1) /* Global breakpoint enable */
+#define DR7_L(n)	(ONE << ((n)*2)) /* Local breakpoint enable */
+#define DR7_G(n)	(ONE << ((n)*2+1)) /* Global breakpoint enable */
 #define DR7_LE		(ONE << 8)	/* Local enable */
 #define DR7_GE		(ONE << 9)	/* Global enable */
 #define DR7_GD		(ONE << 13)	/* General-detect enable */
