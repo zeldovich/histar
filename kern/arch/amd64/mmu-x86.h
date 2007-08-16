@@ -107,6 +107,15 @@
 #define EFER_LMA 0x400		/* Long mode active */
 #define EFER_NXE 0x800		/* No-execute enable */
 #define EFER_FFXSR 0x4000	/* Fast FXSAVE/FXRSTOR */
+
+/* Debug registers */
+#define MSR_DEBUG_CTL	0x1d9		/* MSR number */
+#define DEBUG_CTL_LBR	(1 << 0)	/* Last-Branch Record */
+
+#define MSR_LBR_FROM_IP	0x1db		/* Last branch from IP */
+#define MSR_LBR_TO_IP	0x1dc		/* Last branch to IP */
+#define MSR_LEX_FROM_IP	0x1dd		/* Last exception from IP */
+#define MSR_LEX_TO_IP	0x1de		/* Last exception to IP */
 		      
 /* Rflags register */
 #define FL_CF 0x00000001	/* Carry Flag */

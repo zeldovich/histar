@@ -26,7 +26,14 @@ void
 idt_init (void)
 {
     int i;
-    extern char trap_ec_entry_stub[], trap_noec_entry_stub[];
+    extern char trap_ec_entry_stub[],
+		trap_noec_entry_stub[],
+		trap_entry_stub_end[];
+
+    assert((size_t) (trap_entry_stub_end - trap_ec_entry_stub) <=
+	   sizeof(trap_entry_stubs[0].trap_entry_code));
+    assert((size_t) (trap_entry_stub_end - trap_noec_entry_stub) <=
+	   sizeof(trap_entry_stubs[0].trap_entry_code));
 
 #define	SET_TRAP_GATE(i, dpl)					\
 	SETGATE(idt[i], SEG_IG, GD_KT,				\

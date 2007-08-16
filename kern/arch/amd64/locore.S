@@ -63,6 +63,8 @@ trap_ec_entry_stub:
 	pushq	%rax		// rax into tf_rax
 	movq	$trap_entry, %rax
 	call	*%rax		// rip into tf__trapentry_rip
+.globl	trap_entry_stub_end
+trap_entry_stub_end:
 
 .globl	trap_entry
 trap_entry:
