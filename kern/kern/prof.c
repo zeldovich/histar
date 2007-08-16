@@ -239,6 +239,7 @@ prof_toggle(void)
 	timer_remove_periodic(&prof_timer);
 
     prof_enable = !prof_enable;
+    prof_thread_enable = !prof_thread_enable;
     cprintf("Profiling %s\n", prof_enable ? "enabled" : "disabled");
 
     if (prof_enable)
