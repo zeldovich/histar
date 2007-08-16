@@ -9,17 +9,8 @@ jiffies = jiffies_64;
 SECTIONS
 {
   /* This must contain the right address - not quite the default ELF one.*/
-  PROVIDE (__executable_start = START);
-  /* Static binaries stick stuff here, like the sigreturn trampoline,
-   * invisibly to objdump.  So, just make __binary_start equal to the very
-   * beginning of the executable, and if there are unmapped pages after this,
-   * they are forever unusable.
-   */
-  __binary_start = START;
-
-  . = START + SIZEOF_HEADERS;
-
-  . = ALIGN(4096);		/* Init code and data */
+  PROVIDE (__executable_start = 0x400000);
+  . = 0x400000 + SIZEOF_HEADERS;
 
   _text = .;
   _stext = .;
