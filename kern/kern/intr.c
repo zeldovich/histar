@@ -15,10 +15,10 @@ irq_handler(uint32_t irqno)
 	panic("irq_handler: invalid IRQ %d", irqno);
 
     if (LIST_FIRST(&irq_handlers[irqno]) == 0) {
+	irq_warnings[irqno]++;
 	if (IS_POWER_OF_2(irq_warnings[irqno]))
 	    cprintf("IRQ %d not handled (%"PRIu64")\n",
 		    irqno, irq_warnings[irqno]);
-	irq_warnings[irqno]++;
     }
 
     struct interrupt_handler *ih;
