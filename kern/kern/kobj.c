@@ -247,6 +247,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
     static_assert(sizeof(struct kobject) == KOBJ_MEM_SIZE);
     static_assert(sizeof(struct kobject_persistent) == KOBJ_DISK_SIZE);
     static_assert(sizeof(*ko_pair) <= PGSIZE);
+    static_assert(IS_POWER_OF_2(kobj_hash_size));
 
     struct kobject *ko = &ko_pair->active;
     memset(ko, 0, sizeof(struct kobject_mem));

@@ -49,4 +49,9 @@
 	__a >= __b ? __a : __b;					\
 })
 
+/*
+ * Check for power-of-2, works for static_assert()
+ */
+#define IS_POWER_OF_2(n) (!(((n) - 1) & (n)))
+
 #endif
