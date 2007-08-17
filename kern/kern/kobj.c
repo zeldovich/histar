@@ -327,7 +327,7 @@ kobject_get_page(const struct kobject_hdr *kp, uint64_t npage, void **pp, page_s
 	if (ptp->pi_ref > 1 + ptp->pi_write_shared_ref)
 	    eko->hdr.ko_flags |= KOBJ_SHARED_MAPPINGS;
     }
-    return r;
+    return r < 0 ? r : 0;
 }
 
 void

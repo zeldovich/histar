@@ -48,6 +48,10 @@ Kernel bugs:
   - implement log.disk_map using a btree
   - larger FRM, stick FRM contents in a separate disk block
 * do something about uint128_t on i386 -- it's not there natively
+* kobject_get_page could fail when out of memory with copy-on-write;
+  get rid of assertions that it succeeds (e.g. saving FP state -- get
+  the FP page before running the kernel thread, if not enough memory
+  then suspend the thread until it can allocate memory.)
 
 Security:
 
