@@ -44,6 +44,8 @@ uint64_t user_root_handle;
 	    panic("%s: %s", #expr, e2s(__r));	\
     } while (0)
 
+struct embed_bin embed_bins[] __attribute__ ((weak)) = { { 0, 0, 0 } };
+
 static int
 elf_copyin(void *p, uint64_t offset, uint32_t count,
 	   const uint8_t *binary, uint64_t size)
