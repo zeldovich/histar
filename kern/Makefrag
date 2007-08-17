@@ -39,8 +39,7 @@ KERN_GEN := kern/kern/printf.c \
 	    kern/kern/panic.c \
 	    kern/kern/pagealloc.c \
 	    kern/kern/console.c \
-	    kern/kern/disk.c \
-	    $(OBJDIR)/kern/embedbin.c
+	    kern/kern/disk.c
 
 KERN_BTREE := \
 	    kern/btree/btree.c \
@@ -57,12 +56,15 @@ KERN_BTREE := \
 
 KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
 
+KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
+KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
+
 # Binary program images to embed within the kernel.
 include conf/embedbin/Makefrag
 
-KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
-KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
-KERN_OBJFILES += $(patsubst %,$(OBJDIR)/kern/embed_%.o,$(subst /,_,$(KERN_BINFILES)))
+KERN_EMBEDFILES := \
+	    $(patsubst %,$(OBJDIR)/kern/embed_%.o,$(subst /,_,$(KERN_BINFILES))) \
+	    $(OBJDIR)/kern/embedbin.o
 
 # How to build kernel object files
 $(OBJDIR)/kern/%.o: kern/arch/$(K_ARCH)/%.S

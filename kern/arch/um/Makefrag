@@ -1,7 +1,6 @@
 # -*-Makefile-*-
 
 KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin
-EMBEDBINS_DEFAULT := empty
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/archdep.c			\

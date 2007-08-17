@@ -40,25 +40,11 @@ KERN_DEV :=					\
 	kern/dev/gptimer.c			\
 	kern/dev/greth.c			\
 
-X_KERN_DEV :=					\
-	kern/dev/console.c			\
-	kern/dev/kclock.c			\
-	kern/dev/picirq.c			\
-	kern/dev/disk.c				\
-	kern/dev/pci.c				\
-	kern/dev/ne2kpci.c			\
-	kern/dev/fxp.c				\
-	kern/dev/e1000.c			\
-	kern/dev/pnic.c				\
-	kern/dev/apic.c				\
-	kern/dev/acpi.c				\
-	kern/dev/hpet.c
-
 $(OBJDIR)/kern/kernel.ld.o: $(ARCHDIR)/kernel.ld.S
 	@mkdir -p $(@D)
 	$(CC) $(KERN_CFLAGS) -E -P $< -o $@
 
 $(OBJDIR)/kern/kernel: $(OBJDIR)/kern/kernel.ld.o
-	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -T $(OBJDIR)/kern/kernel.ld.o
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_EMBEDFILES) $(GCC_LIB) -T $(OBJDIR)/kern/kernel.ld.o
 
 all: $(OBJDIR)/kern/kernel
