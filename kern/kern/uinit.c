@@ -355,21 +355,23 @@ free_embed(void)
 void
 user_init(void)
 {
-    if (strstr(&boot_cmdline[0], "pstate=discard")) {
-	cprintf("Command-line option pstate=discard..\n");
-	goto discard;
-    }
-
-    cprintf("Loading persistent state: hit 'x' to discard, 'z' to load.\n");
-    for (int i = 0; i < 1000; i++) {
-	int c = cons_getc();
-	if (c == 'x') {
+    if (embed_bins[0].name) {
+	if (strstr(&boot_cmdline[0], "pstate=discard")) {
+	    cprintf("Command-line option pstate=discard..\n");
 	    goto discard;
-	} else if (c == 'z') {
-	    break;
 	}
 
-	timer_delay(1000000);
+	cprintf("Loading persistent state: hit 'x' to discard, 'z' to load.\n");
+	for (int i = 0; i < 1000; i++) {
+	    int c = cons_getc();
+	    if (c == 'x') {
+		goto discard;
+	    } else if (c == 'z') {
+		break;
+	    }
+
+	    timer_delay(1000000);
+	}
     }
 
     int r = pstate_load();
