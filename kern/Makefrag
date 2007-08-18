@@ -93,8 +93,14 @@ $(OBJDIR)/kern/%.o: lib/%.c
 	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
 
 # Dependencies for building the kernel itself
-$(OBJDIR)/kern/kernel: $(KERN_OBJFILES)
+$(OBJDIR)/kern/kernel.base.debuginfo: $(KERN_OBJFILES)
+$(OBJDIR)/kern/kernel.init.debuginfo: $(KERN_OBJFILES) $(KERN_EMBEDFILES)
 
+# How to strip kernels
+$(OBJDIR)/kern/%: $(OBJDIR)/kern/%.debuginfo
+	$(STRIP) $< -o $@
+
+# Building emacs TAGS info
 tags: $(OBJDIR)/kern/TAGS
 
 KERN_HDRFILES = $(shell find kern/kern kern/arch/${K_ARCH} -name '*.h' -print) \

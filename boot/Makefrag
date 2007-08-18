@@ -31,11 +31,11 @@ $(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
 	$(OBJCOPY) -S -O binary $@.bin $@
 	perl boot/setup.pl $@
 
-$(OBJDIR)/boot/bimage: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel
+$(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel.%
 	cat $^ > $@
 
 # Build the Bochs disk image
-$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage
+$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init
 	dd if=/dev/zero of=$@~ bs=1024k count=64 2>/dev/null
 	dd if=$< of=$@~ conv=notrunc 2>/dev/null
 	mv $@~ $@

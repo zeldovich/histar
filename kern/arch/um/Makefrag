@@ -18,8 +18,8 @@ KERN_LIB :=					\
 	lib/string.c				\
 	lib/hashtable.c
 
-$(OBJDIR)/kern/kernel:
-	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES)
+$(OBJDIR)/kern/kernel.%.debuginfo:
+	$(CC) -o $@ $(KERN_LDFLAGS) $^
 
-all: $(OBJDIR)/kern/kernel
+all: $(OBJDIR)/kern/kernel.base
 
