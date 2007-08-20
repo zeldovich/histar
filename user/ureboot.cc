@@ -37,9 +37,7 @@ ureboot_ct(uint64_t ct)
 
 	int keep = 0;
 	if (type == kobj_container) {
-	    if (!strcmp(name, "bin"))
-		keep = 1;
-	    if (!strcmp(name, "usr"))
+	    if (!strcmp(name, "embed_bins"))
 		keep = 1;
 	    if (!strcmp(name, "ureboot")) {
 		ureboot_self = o;

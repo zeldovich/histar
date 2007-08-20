@@ -12,6 +12,7 @@ extern "C" {
 #include <inc/authd.h>
 #include <inc/time.h>
 #include <inc/pty.h>
+#include <inc/error.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -86,8 +87,10 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
 			      time_label.to_ulabel(), "time-of-day"));
     tods->unix_nsec_offset = NSEC_PER_SECOND * UINT64(1000000000);
 
-    // set the filesystem root to be the same as the container root
-    fs_get_root(c_root, &start_env->fs_root);
+    // make a separate container for the root directory
+    struct fs_inode root_ct_dir;
+    fs_get_root(c_root, &root_ct_dir);
+    error_check(fs_mkdir(root_ct_dir, "fsroot", &start_env->fs_root, 0));
 
     // start out in the root directory
     start_env->fs_cwd = start_env->fs_root;
@@ -98,25 +101,53 @@ init_fs(void)
 {
     uint64_t c_root = start_env->root_container;
 
+    // mount the root container on /rct
+    struct fs_inode xino;
+    fs_get_root(c_root, &xino);
+    error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "rct", xino));
+
     // create a process pool
     int64_t procpool = sys_container_alloc(start_env->root_container, 0,
 					   "procpool", 0, CT_QUOTA_INF);
     error_check(procpool);
     start_env->process_pool = procpool;
 
-    // mount binaries on /bin
-    int64_t fs_bin_id = container_find(c_root, kobj_container, "bin");
-    if (fs_bin_id < 0)
-	throw error(fs_bin_id, "cannot find /bin");
+    // hard-link the binaries over (to have a directory segment)
+    int64_t embed_bin_id = container_find(c_root, kobj_container, "embed_bins");
+    if (embed_bin_id < 0)
+	throw error(embed_bin_id, "cannot find embed_bins");
 
     struct fs_inode bin_dir;
-    fs_get_root(fs_bin_id, &bin_dir);
-    error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "bin", bin_dir));
+    error_check(fs_mkdir(start_env->fs_root, "bin", &bin_dir, 0));
 
-    error_check(sys_container_alloc(start_env->root_container, 0, "uauth",
-				    0, CT_QUOTA_INF));
+    uint64_t ct_slot = 0;
+    for (;;) {
+	int64_t id = sys_container_get_slot_id(embed_bin_id, ct_slot++);
+	if (id == -E_NOT_FOUND)
+	    continue;
+	if (id < 0)
+	    break;
+
+	struct fs_inode file_ino;
+	file_ino.obj = COBJ(embed_bin_id, id);
+
+	char name[KOBJ_NAME_LEN];
+	error_check(sys_obj_get_name(file_ino.obj, &name[0]));
+	error_check(sys_obj_set_fixedquota(file_ino.obj));
+	error_check(fs_link(bin_dir, name, file_ino));
+    }
+
+    // create, mount uauth
+    int64_t uauth_id;
+    uauth_id = sys_container_alloc(start_env->root_container, 0, "uauth",
+				   0, CT_QUOTA_INF);
+    error_check(uauth_id);
+
+    fs_get_root(uauth_id, &xino);
+    error_check(fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "uauth", xino));
 
     // symlink "sh" to "ksh"
+    unlink("/bin/sh");
     symlink("ksh", "/bin/sh");
 
     // create a /dev directory
@@ -135,14 +166,6 @@ init_fs(void)
     // create a /home directory
     struct fs_inode fs_home;
     error_check(fs_mkdir(start_env->fs_root, "home", &fs_home, 0));
-
-    // create a /fs directory
-    struct fs_inode fs_root;
-    error_check(fs_mkdir(start_env->fs_root, "fs", &fs_root, 0));
-    error_check(fs_mkdir(fs_root, "tmp", &dummy_ino, 0));
-    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "bin", bin_dir));
-    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "dev", dev));
-    error_check(fs_mount(start_env->fs_mtab_seg, fs_root, "home", fs_home));
 
     // create a /share directory
     error_check(fs_mkdir(start_env->fs_root, "share", &dummy_ino, 0));

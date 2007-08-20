@@ -199,11 +199,11 @@ netd_gate_init(uint64_t gate_ct, label *l, label *clear, netd_handler h)
 	gd.verify_ = &verify;
 	gd.arg_ = (uintptr_t)h;
 
-	gd.name_ = "netd";
+	gd.name_ = "netd-lwip";
 	gd.func_ = &netd_gate_entry;
 	gate_create(&gd);
 
-	gd.name_ = "netd-fast";
+	gd.name_ = "netd-lwip-fast";
 	gd.func_ = &netd_fast_gate_entry;
 	gd.flags_ = GATESRV_NO_THREAD_ADDREF | GATESRV_KEEP_TLS_STACK;
 	gate_create(&gd);

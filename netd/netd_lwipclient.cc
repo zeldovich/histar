@@ -33,10 +33,10 @@ gate_lookup(const char *bn, const char *gn, struct cobj_ref *ret)
 int
 netd_lwip_client_init(struct cobj_ref *gate, struct cobj_ref *fast_gate)
 {
-    int r = gate_lookup("/netd", "netd", gate);
+    int r = gate_lookup("/netd", "netd-lwip", gate);
     if (r < 0)
 	return r;
-    return gate_lookup("/netd", "netd-fast", fast_gate);
+    return gate_lookup("/netd", "netd-lwip-fast", fast_gate);
 }
 
 int

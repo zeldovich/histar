@@ -65,7 +65,7 @@ netd_linux_server_init(netd_socket_handler h, uint64_t inet_taint)
 	gd.verify_ = &v;
 
 	gd.arg_ = (uintptr_t) h;
-	gd.name_ = "netd";
+	gd.name_ = "netd-linux";
 	gd.func_ = &netd_linux_gate_entry;
 	gd.flags_ = GATESRV_KEEP_TLS_STACK;
 	cobj_ref gate = gate_create(&gd);
@@ -159,7 +159,7 @@ setup_socket_conn(cobj_ref gate, struct socket_conn *client_conn,
 int
 netd_linux_client_init(struct cobj_ref *gate)
 {
-    return gate_lookup("/vmlinux", "netd", gate);
+    return gate_lookup("/netd", "netd-linux", gate);
 }
 
 int 

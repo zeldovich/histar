@@ -33,21 +33,22 @@ netdev_init(uint64_t ct, uint64_t netdev_grant, uint64_t netdev_taint, uint64_t 
     }
 }
 
-static void
+static struct child_process
 start_lwip(label *ds, label *dr, label *co, 
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
     struct fs_inode netd_ino;
     error_check(fs_namei("/bin/netd", &netd_ino));
     const char *argv[] = { "netd", grant_arg, taint_arg, inet_arg };
-    spawn(start_env->root_container, netd_ino,
-	  0, 1, 2,
-	  4, argv,
-	  0, 0,
-	  0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+    return
+	spawn(start_env->root_container, netd_ino,
+		0, 1, 2,
+		4, argv,
+		0, 0,
+		0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
 }
 
-static void
+static struct child_process
 start_linux(label *ds, label *dr, label *co, 
 	   const char *grant_arg, const char *taint_arg, const char *inet_arg)
 {
@@ -58,12 +59,21 @@ start_linux(label *ds, label *dr, label *co,
 			   grant_arg, taint_arg, inet_arg };
     int argc = sizeof(argv) / sizeof(char *);
     error_check(fs_namei(vmlinux_pn, &netd_ino));
-    
-    spawn(start_env->root_container, netd_ino,
-	  0, 1, 2,
-	  argc, argv,
-	  0, 0,
-	  0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+
+    return
+	spawn(start_env->root_container, netd_ino,
+		0, 1, 2,
+		argc, argv,
+		0, 0,
+		0, ds, 0, dr, co, SPAWN_NO_AUTOGRANT);
+}
+
+static void
+mount_netd(struct child_process cp)
+{
+    struct fs_inode ino;
+    fs_get_root(cp.container, &ino);
+    fs_mount(start_env->fs_mtab_seg, start_env->fs_root, "netd", ino);
 }
 
 int
@@ -108,11 +118,11 @@ try
     co.set(inet_taint, 2);
 
     try {
-	start_lwip(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
+	mount_netd(start_lwip(&ds, &dr, &co, grant_arg, taint_arg, inet_arg));
     } catch (std::exception &e) {
 	if (netd_mom_debug)
 	    printf("netd_mom: unable to start lwip: %s\n", e.what());
-	start_linux(&ds, &dr, &co, grant_arg, taint_arg, inet_arg);
+	mount_netd(start_linux(&ds, &dr, &co, grant_arg, taint_arg, inet_arg));
     }
 } catch (std::exception &e) {
     printf("netd_mom: %s\n", e.what());
