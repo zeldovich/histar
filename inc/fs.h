@@ -31,7 +31,8 @@ struct fs_mount_table {
 
 struct fs_readdir_pos {
     uint64_t a;
-    uint64_t b;
+    uint64_t dot_pos;
+    uint64_t mtab_pos;
 };
 
 struct fs_readdir_state {

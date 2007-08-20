@@ -11,25 +11,7 @@ extern "C" {
 int
 fs_dir_ct::list(fs_readdir_pos *i, fs_dent *de)
 {
-    int64_t parent_id;
-
-    switch (i->b++) {
-    case 0:
-	sprintf(&de->de_name[0], ".");
-	de->de_inode = ino_;
-	return 1;
-
-    case 1:
-	sprintf(&de->de_name[0], "..");
-	error_check((parent_id = sys_container_get_parent(ino_.obj.object)));
-	de->de_inode.obj = COBJ(parent_id, parent_id);
-	return 1;
-
-    default:
-	break;
-    }
-
-retry:
+ retry:
     int64_t id = sys_container_get_slot_id(ino_.obj.object, i->a++);
     if (id < 0) {
 	if (id == -E_INVAL)

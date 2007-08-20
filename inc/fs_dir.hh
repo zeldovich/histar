@@ -9,7 +9,7 @@ extern "C" {
 
 class fs_dir_iterator : public fs_readdir_pos {
  public:
-    fs_dir_iterator() { a = 0; b = 0; }
+    fs_dir_iterator() { a = 0; dot_pos = 0; mtab_pos = 0; }
 };
 
 // A directory is simply a mapping of names to inodes.

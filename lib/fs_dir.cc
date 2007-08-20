@@ -101,6 +101,46 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
     // For the debugging cprintf further down
     de->de_name[0] = '\0';
 
+    if (p->dot_pos < 2) {
+	p->dot_pos++;
+	if (p->dot_pos == 1) {
+	    sprintf(&de->de_name[0], ".");
+	    de->de_inode = s->dir;
+	    return 1;
+	}
+
+	if (p->dot_pos == 2) {
+	    int64_t parent_id = sys_container_get_parent(s->dir.obj.object);
+	    if (parent_id >= 0) {
+		sprintf(&de->de_name[0], "..");
+		de->de_inode.obj = COBJ(parent_id, parent_id);
+		return 1;
+	    }
+	}
+    }
+
+    if (p->mtab_pos < FS_NMOUNT) {
+	struct fs_mount_table *mtab = 0;
+	uint64_t mtlen = sizeof(*mtab);
+	int r = segment_map(start_env->fs_mtab_seg, 0, SEGMAP_READ,
+			    (void **) &mtab, &mtlen, 0);
+	if (r >= 0) {
+	    scope_guard2<int, void*, int> unmap(segment_unmap_delayed, mtab, 1);
+	    for (;;) {
+		if (p->mtab_pos >= FS_NMOUNT)
+		    break;
+
+		struct fs_mtab_ent *mtent = &mtab->mtab_ent[p->mtab_pos++];
+		if (mtent->mnt_dir.obj.object != s->dir.obj.object)
+		    continue;
+
+		memcpy(&de->de_name[0], &mtent->mnt_name[0], KOBJ_NAME_LEN);
+		de->de_inode = mtent->mnt_root;
+		return 1;
+	    }
+	}
+    }
+
     int r;
     try {
 	r = d->list(p, de);
@@ -130,6 +170,14 @@ fs_lookup_one(struct fs_inode dir, const char *fn, struct fs_inode *o,
 
     if (!strcmp(fn, ".")) {
 	*o = dir;
+	return 0;
+    }
+
+    if (!strcmp(fn, "..")) {
+	int64_t parent_id = sys_container_get_parent(dir.obj.object);
+	if (parent_id < 0)
+	    return parent_id;
+	o->obj = COBJ(parent_id, parent_id);
 	return 0;
     }
 
