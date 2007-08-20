@@ -52,6 +52,7 @@ fs_unmount(struct cobj_ref fs_mtab_seg, struct fs_inode dir, const char *mnt_nam
 	if (ent->mnt_dir.obj.object == dir.obj.object &&
 	    !strcmp(ent->mnt_name, mnt_name))
 	{
+	    ent->mnt_dir.obj = COBJ(0, 0);
 	    ent->mnt_name[0] = '\0';
 	}
     }
