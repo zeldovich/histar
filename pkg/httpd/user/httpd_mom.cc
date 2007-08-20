@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/labelutil.h>
 #include <inc/error.h>
+#include <inttypes.h>
 }
 
 #include <stdio.h>
@@ -95,6 +96,10 @@ main (int ac, char **av)
     int64_t httpd_ct = sys_container_alloc(start_env->root_container, 0,
 					   "httpd", 0, CT_QUOTA_INF);
     error_check(httpd_ct);
+
+    char httpd_symlink[64];
+    sprintf(&httpd_symlink[0], "#%"PRIu64, httpd_ct);
+    symlink(httpd_symlink, "/httpd");
 
     struct fs_inode httpd_dir_ino;
     httpd_dir_ino.obj = COBJ(start_env->root_container, httpd_ct);
