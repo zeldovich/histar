@@ -6,6 +6,8 @@ extern "C" {
 #include <bits/ptyhelper.h>
 
 #include <string.h>
+#include <inttypes.h>
+#include <unistd.h>
 }
 
 #include <inc/scopeguard.hh>
@@ -100,11 +102,16 @@ main(int ac, char **av)
 	printf("unable to alloc pts_table: %s\n", e2s(r));
 	return -1;
     }
-    
+
     // XXX should have sshdi allocate a grant handle g, spawn sshd 
     // with g, and spawn ptyd with g, which can set the verify on the 
     // gate.  
     gate_create(start_env->shared_container, "pty-gate", 
 		0, 0, 0, &pty_gate, 0);
+
+    char symlink_path[64];
+    sprintf(&symlink_path[0], "#%"PRIu64, start_env->shared_container);
+    symlink(symlink_path, "/ptyd");
+
     return 0;
 }
