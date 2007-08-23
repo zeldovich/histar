@@ -355,6 +355,11 @@ free_embed(void)
 void
 user_init(void)
 {
+    if (!pstate_part) {
+	cprintf("No pstate partition found.\n");
+	goto discard;
+    }
+
     if (embed_bins[0].name) {
 	if (strstr(&boot_cmdline[0], "pstate=discard")) {
 	    cprintf("Command-line option pstate=discard..\n");
@@ -385,7 +390,7 @@ user_init(void)
     free_embed();
     return;
 
-discard:
+ discard:
     cprintf("Discarding persistent state.\n");
     user_bootstrap();
     free_embed();
