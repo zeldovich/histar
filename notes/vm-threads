@@ -1,0 +1,24 @@
+Implement VM threads:
+    Figure out how to execute a malicious virtual machine with a user-space
+    virtual machine monitor and reasonable performance while introducing a
+    minimal amount of code into the fully-trusted OS kernel.
+
+Large segment support:
+    Handle partial segment swapin, swapout.
+    (Fix panics under heavy swapin/swapout activity due to fixed-size arrays.)
+    Scheduler, page allocation changes may be needed for good VM performance.
+	How to avoid putting complex schedulers in the kernel?
+    Cheap trick: make up virtual address space from medium-size segments.
+
+CPU resource allocation:
+    Provide CPU resources through container hierarchy.
+    Associate scheduler restrictions with CPU resources:
+	Cache flush on context switch.
+	Yield unused quantum to others.
+	Retired-instruction-count- vs time-based scheduler.
+
+Track taint through the virtual network between virtual machines:
+    Clone (CoW) VMs when they receive tainted packets.
+    Tainted VMs can still use services on untainted VMs, except we clone
+    the untainted VM when it receives a request from a tainted VM.
+
