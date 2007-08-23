@@ -1,0 +1,316 @@
+http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/binutils/files/binutils-raksha-taginsn.patch
+
+Submitted By: Michael Dalton (mwdalton at cs dot stanford dot edu)
+Date: 2006-04-23
+Initial Package Version: 2.16.1
+Upstream Status: Not Applied
+Description: Adds support for tag instructions to gas and objdump
+
+diff -BbruN gas/config/tc-sparc.c gas/config/tc-sparc.c
+--- gas/config/tc-sparc.c	2006-04-05 05:41:57.000000000 -0700
++++ gas/config/tc-sparc.c	2007-06-15 11:02:41.000000000 -0700
+@@ -787,6 +787,40 @@
+   {"", -1},			/* End marker.  */
+ };
+ 
++/* tag registers */
++struct priv_reg_entry tag_reg_table[] =
++{
++  {"tsr", 0},
++  {"cor0", 1},
++  {"cor1", 2},
++  {"tcr0", 3},
++  {"tcr1", 4},
++  {"tcr2", 5},
++  {"tcr3", 6},
++  {"tpr0", 7},
++  {"tpr1", 8},
++  {"tpr2", 9},
++  {"tpr3", 10},
++  {"epc", 11},
++  {"enpc", 12},
++  {"rma", 13},
++  {"et", 14},
++  {"eoa", 15},
++  {"",-1},                         /* End marker. */
++};
++
++/* all state and tatus registers */
++struct priv_reg_entry full_state_table[] =
++{
++  {"psr", 0},
++  {"wim", 1},
++  {"tbr", 2},
++  {"y", 3},
++  {"pc", 4},
++  {"npc", 5},
++  {"", -1},                        /* End marker. */
++};  
++
+ static int
+ cmp_reg_entry (parg, qarg)
+      const PTR parg;
+@@ -872,6 +906,10 @@
+ 
+   qsort (priv_reg_table, sizeof (priv_reg_table) / sizeof (priv_reg_table[0]),
+ 	 sizeof (priv_reg_table[0]), cmp_reg_entry);
++  qsort (tag_reg_table, sizeof(tag_reg_table) / sizeof(tag_reg_table[0]),
++         sizeof(tag_reg_table[0]), cmp_reg_entry);
++  qsort (full_state_table, sizeof(full_state_table)/sizeof(full_state_table[0]),
++         sizeof(full_state_table[0]), cmp_reg_entry);
+ 
+   /* If -bump, record the architecture level at which we start issuing
+      warnings.  The behaviour is different depending upon whether an
+@@ -1552,6 +1590,87 @@
+ 		continue;
+ 	      }
+ 
++            case '^':
++            case '@':
++
++            /* Parse a state register for a tag instruction */
++
++           if (*s == '%')
++              {
++                struct priv_reg_entry * p = full_state_table;
++		unsigned int len = 9999999; /* Init to make gcc happy.  */
++            
++                s++;
++                while (p->name[0] > s[0])
++                  p++;
++                while (p->name[0] == s[0])
++                  {
++                    len = strlen(p->name);
++                    if (strncmp (p->name, s, len) == 0)
++                        break;
++                   p++;
++                  }
++
++		  if (p->name[0] != s[0])
++	    {
++		      error_message = _(": unrecognizable state register");
++		      goto error;
++		    }
++
++		  if (*args == '@')
++		    opcode |= (p->regnum << 14);
++		  else
++		    opcode |= (p->regnum << 25);
++		  s += len;
++		  continue;
++		}
++	      else
++		{
++		  error_message = _(": unrecognizable state register");
++		  goto error;
++		}
++
++            
++            case '(':
++            case ')':
++
++	    /* Parse a tag register */
++
++            if (*s == '%')
++              {
++                struct priv_reg_entry * p = tag_reg_table;
++		unsigned int len = 9999999; /* Init to make gcc happy.  */
++             
++                s++;
++                while (p->name[0] > s[0])
++                  p++;
++                while (p->name[0] == s[0])
++                  {
++                    len = strlen(p->name);
++                   if (strncmp (p->name, s, len) == 0)
++                        break;
++                    p++;
++                 }
++
++		  if (p->name[0] != s[0])
++		    {
++		      error_message = _(": unrecognizable tag register");
++		      goto error;
++		    }
++
++		  if (*args == '(')
++		    opcode |= (p->regnum << 14);
++		  else
++		    opcode |= (p->regnum << 25);
++		  s += len;
++		  continue;
++		}
++	      else
++		{
++		  error_message = _(": unrecognizable tag register");
++		  goto error;
++		}
++
+ 	    case '!':
+ 	    case '?':
+ 	      /* Parse a sparc64 privileged register.  */
+@@ -2555,6 +2674,7 @@
+ 		}
+ 	      break;
+ 
++            case '&':
+ 	    case 'A':
+ 	      {
+ 		int asi = 0;
+@@ -2581,7 +2701,8 @@
+ 			goto error;
+ 		      }
+ 		  }
+-		opcode |= ASI (asi);
++                if (*args == '&') opcode |= TAGASI(asi);
++                else opcode |= ASI (asi);
+ 		continue;
+ 	      }			/* Alternate space.  */
+ 
+diff -BbruN include/opcode/sparc.h include/opcode/sparc.h
+--- include/opcode/sparc.h	2005-07-01 04:16:27.000000000 -0700
++++ include/opcode/sparc.h	2007-06-15 10:47:20.000000000 -0700
+@@ -187,6 +187,13 @@
+ 	0	32/64 bit immediate for set or setx (v9) insns
+ 	_	Ancillary state register in rd (v9a)
+ 	/	Ancillary state register in rs1 (v9a)
++	$	v9 hyperprivileged register in rs1
++	%	v9 hyperprivileged register in rd
++        @       State register in rs1 (tag instruction format)
++        ^       State register in rd (tag instruction format)
++        (       Tag register in rs1 (tag instruction format)
++        )       Tag register in rd (tag instruction format)
++        &       Alternate address space (tag instruction format)
+ 
+   The following chars are unused: (note: ,[] are used as punctuation)
+   [45].  */
+@@ -210,6 +217,10 @@
+ #define ASI_RS2(x)	(SIMM13 (x))
+ #define MEMBAR(x)	((x) & 0x7f)
+ #define SLCPOP(x)	(((x) & 0x7f) << 6)  /* Sparclet cpop.  */
++#define TAGOP(x)        ((x)&0x1f)        /* tag opcode field of tag instruction */
++#define TAGASI(x)       (((x)&0xff) << 6) /* asi field of tag instruction */
++#define TAGF3(x,y,z)    (OP(x) | OP3(y) | TAGOP(z)) /* format 3 tag instructions */
++ 
+ 
+ #define ANNUL	(1 << 29)
+ #define BPRED	(1 << 19)	/* V9.  */
+diff -BbruN opcodes/sparc-dis.c opcodes/sparc-dis.c
+--- opcodes/sparc-dis.c	2006-02-24 17:33:24.000000000 -0800
++++ opcodes/sparc-dis.c	2007-06-15 11:04:15.000000000 -0700
+@@ -108,6 +108,22 @@
+   "softint", "tick_cmpr", "sys_tick", "sys_tick_cmpr"
+ };
+ 
++/* These are ordered according to their register number in the
++   tag instructions */
++static char *tag_reg_names[] =
++{
++  "tsr", "cor0", "cor1", "tcr0", "tcr1", "tcr2", "tcr3", "tpr0",
++  "tpr1", "tpr2", "tpr3", "epc", "enpc", "rma", "et", "eoa"
++};
++
++/* These are ordered according to their register number in the
++   tag instructions */
++
++static char *tag_state_names[] = 
++{
++  "psr", "wim", "tbr", "y", "pc", "npc"
++};
++
+ /* Macros used to extract instruction fields.  Not all fields have
+    macros defined here, only those which are actually used.  */
+ 
+@@ -122,6 +138,9 @@
+ #define X_IMM22(i)   X_DISP22 (i)
+ #define X_DISP30(i)  (((i) >> 0) & 0x3fffffff)
+ 
++/* These are for tag instructions */
++#define X_TAGASI(i) (((i) >> 6) & 0xff)
++
+ /* These are for v9.  */
+ #define X_DISP16(i)  (((((i) >> 20) & 3) << 14) | (((i) >> 0) & 0x3fff))
+ #define X_DISP19(i)  (((i) >> 0) & 0x7ffff)
+@@ -860,14 +879,22 @@
+ 		    (*info->print_address_func) (info->target, info);
+ 		    break;
+ 
++		  case '&':
+ 		  case 'A':
+ 		    {
+-		      const char *name = sparc_decode_asi (X_ASI (insn));
++		      const char *name;
++                      if (*s == '&') name = sparc_decode_asi (X_TAGASI (insn));
++                      else name = sparc_decode_asi (X_ASI (insn));
+ 
+ 		      if (name)
+ 			(*info->fprintf_func) (stream, "%s", name);
+ 		      else
+-			(*info->fprintf_func) (stream, "(%ld)", X_ASI (insn));
++                      {
++                        if (*s == '&') 
++                          (*info->fprintf_func)(stream, "(%ld)",X_TAGASI(insn));
++                        else
++			(*info->fprintf_func)(stream, "(%ld)", X_ASI (insn));
++		      }
+ 		      break;
+ 		    }
+ 
+@@ -908,6 +935,19 @@
+ 		  case 'y':
+ 		    (*info->fprintf_func) (stream, "%%y");
+ 		    break;
++                  case '@':
++		    (*info->fprintf_func) (stream, "%%%s",tag_state_names[X_RS1(insn)]);
++	            break;
++                 case '^':
++		    (*info->fprintf_func) (stream, "%%%s",tag_state_names[X_RD(insn)]);
++		    break;
++
++                  case '(':
++		    (*info->fprintf_func) (stream, "%%%s",tag_reg_names[X_RS1(insn)]);
++ 	            break;
++                  case ')':
++		    (*info->fprintf_func) (stream, "%%%s",tag_reg_names[X_RD(insn)]);
++		    break;
+ 
+ 		  case 'u':
+ 		  case 'U':
+diff -BbruN opcodes/sparc-opc.c opcodes/sparc-opc.c
+--- opcodes/sparc-opc.c	2006-02-24 17:33:24.000000000 -0800
++++ opcodes/sparc-opc.c	2007-06-15 10:48:28.000000000 -0700
+@@ -1638,6 +1638,34 @@
+ { "cpop1",	F3(2, 0x36, 0), F3(~2, ~0x36, ~1), "[1+2],d", F_ALIAS, v6notv9 },
+ { "cpop2",	F3(2, 0x37, 0), F3(~2, ~0x37, ~1), "[1+2],d", F_ALIAS, v6notv9 },
+ 
++/* tag insns */
++
++{ "rdtr",       TAGF3(2,0x36,0), TAGF3(~2,~0x36,~0) | TAGASI(~0), "(,d", 0, v6notv9 },
++{ "wrtr",       TAGF3(2,0x36,1), TAGF3(~2,~0x36,~1) | TAGASI(~0), "1,)", 0, v6notv9 },
++
++{ "rdt",        TAGF3(2,0x36,2), TAGF3(~2,~0x36,~2) | TAGASI(~0), "1,d", 0, v6notv9 },
++{ "rdt",        TAGF3(2,0x36,3), TAGF3(~2,~0x36,~3) | TAGASI(~0), "@,d", 0, v6notv9 },
++{ "rdt",        TAGF3(2,0x36,4), TAGF3(~2,~0x36,~4) | TAGASI(~0), "[1],d",0,v6notv9 },
++{ "rdt",        TAGF3(2,0x36,5), TAGF3(~2,~0x36,~5),              "[1]&,d",0,v6notv9 },
++
++{ "wrt",        TAGF3(2,0x36,6), TAGF3(~2,~0x36,~6) | TAGASI(~0), "1,d", 0, v6notv9 },
++{ "wrt",        TAGF3(2,0x36,7), TAGF3(~2,~0x36,~7) | TAGASI(~0), "1,^", 0, v6notv9 },
++{ "wrt",        TAGF3(2,0x36,8), TAGF3(~2,~0x36,~8) | TAGASI(~0), "d,[1]",0, v6notv9 },
++{ "wrt",        TAGF3(2,0x36,9), TAGF3(~2,~0x36,~9),              "d,[1]&",0,v6notv9 },
++
++{ "rdtd",       TAGF3(2,0x36,10), TAGF3(~2,~0x36,~10) | TAGASI(~0), "1,d", 0, v6notv9 },
++{ "rdtd",       TAGF3(2,0x36,11), TAGF3(~2,~0x36,~11) | TAGASI(~0), "@,d", 0, v6notv9 },
++{ "rdtd",       TAGF3(2,0x36,12), TAGF3(~2,~0x36,~12) | TAGASI(~0), "[1],d",0,v6notv9 },
++{ "rdtd",       TAGF3(2,0x36,13), TAGF3(~2,~0x36,~13),              "[1]&,d",0,v6notv9},
++
++{ "wrtd",       TAGF3(2,0x36,10), TAGF3(~2,~0x36,~10) | TAGASI(~0), "1,d", F_ALIAS, 
++  v6notv9 },
++{ "wrtd",       TAGF3(2,0x36,14), TAGF3(~2,~0x36,~14) | TAGASI(~0), "1,^", 0, v6notv9 },
++{ "wrtd",       TAGF3(2,0x36,15), TAGF3(~2,~0x36,~15) | TAGASI(~0), "d,[1]",0, v6notv9},
++{ "wrtd",       TAGF3(2,0x36,16), TAGF3(~2,~0x36,~16),              "d,[1]&",0,v6notv9},
++
++{ "tret",       TAGF3(2,0x36,17), TAGF3(~2,~0x36,~17) | TAGASI(~0), "", 0, v6notv9},
++
+ /* sparclet specific insns */
+ 
+ COMMUTEOP ("umac", 0x3e, sparclet),
