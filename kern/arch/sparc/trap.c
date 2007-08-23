@@ -45,6 +45,25 @@ trapframe_print(const struct Trapframe *tf)
 }
 
 static void
+fp_backtrace(uint32_t fp)
+{
+ again:
+    uint32_t *fpp = (uint32_t *) fp;
+    int r = check_user_access(fpp, 4 * 16, 0);
+    if (r < 0)
+	return;
+
+    uint32_t rfp = fpp[8 + 6];
+    uint32_t rpc = fpp[8 + 7];
+    cprintf("fp=%x pc=%x\n", rfp, rpc);
+    if (!rfp || !rpc)
+	return;
+
+    fp = nfp;
+    goto again;
+}
+
+static void
 page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 {
     void *fault_va = (void *)lda_mmuregs(SRMMU_FAULT_ADDR);
@@ -72,6 +91,8 @@ page_fault(const struct Thread *t, const struct Trapframe *tf, uint32_t trapno)
 
 	print_state("user page fault", t);
 	cprintf(", va=%p: %s\n", fault_va, e2s(r));
+	trapframe_print(&t->th_tf);
+	fp_backtrace(t->th_tf.tf_reg1.i6);
 	thread_halt(t);
     }
 }
