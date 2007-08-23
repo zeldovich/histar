@@ -3,8 +3,8 @@ TARGET  := sparc-jos-linux
 OBJTYPE := elf32-sparc
 BFDARCH := sparc
 
-CC      := $(GCCPREFIX)gcc -pipe -m32
-CXX     := $(GCCPREFIX)g++ -pipe -m32
+CC      := $(GCCPREFIX)gcc -pipe -m32 -msoft-float
+CXX     := $(GCCPREFIX)g++ -pipe -m32 -msoft-float
 AS      := $(GCCPREFIX)as -32
 AR      := $(GCCPREFIX)ar
 LD      := $(GCCPREFIX)ld -m elf32_sparc
