@@ -135,7 +135,7 @@ thread_alloc(const struct Label *contaminate,
     if (r < 0)
 	return r;
 
-    r = segment_set_nbytes(sg, PGSIZE);
+    r = segment_set_nbytes(sg, UTLS_DEFSIZE);
     if (r < 0)
 	return r;
 
@@ -373,8 +373,8 @@ thread_change_label(const struct Thread *const_t,
     if (r < 0)
 	return r;
 
-    // Pin the size of the segment at PGSIZE
-    r = segment_set_nbytes(sg_new, PGSIZE);
+    // Pin the size of the segment at the default TLS size
+    r = segment_set_nbytes(sg_new, UTLS_DEFSIZE);
     if (r < 0)
 	return r;
 

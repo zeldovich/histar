@@ -5,5 +5,6 @@
 
 #define ULIM		0xF0000000
 #define USTACKTOP	0xF0000000
+#define UTLS_DEFSIZE	PGSIZE
 
 #endif

@@ -45,4 +45,6 @@
 #define UFDBASE		0x61000000
 #define USEGMAPENTS	0x62000000
 
+#define UTLS_DEFSIZE	PGSIZE
+
 #endif

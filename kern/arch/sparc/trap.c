@@ -47,8 +47,10 @@ trapframe_print(const struct Trapframe *tf)
 static void
 fp_backtrace(uint32_t fp)
 {
+    uint32_t *fpp;
+
  again:
-    uint32_t *fpp = (uint32_t *) fp;
+    fpp = (uint32_t *) fp;
     int r = check_user_access(fpp, 4 * 16, 0);
     if (r < 0)
 	return;
@@ -59,7 +61,7 @@ fp_backtrace(uint32_t fp)
     if (!rfp || !rpc)
 	return;
 
-    fp = nfp;
+    fp = rfp;
     goto again;
 }
 

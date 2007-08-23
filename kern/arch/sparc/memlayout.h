@@ -49,6 +49,9 @@
 #define UFDBASE		0x61000000
 #define USEGMAPENTS	0x62000000
 
+/* libgcc code for stack unwinding uses lots of stack space... */
+#define UTLS_DEFSIZE	(2 * PGSIZE)
+
 /* Default physical memory layout for the LEON3 */
 #define PA_MEMBASE      0x40000000
 #define PA_MEMEND       0x80000000

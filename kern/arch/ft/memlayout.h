@@ -10,5 +10,6 @@
 
 // User-mode address space layout conventions.
 #define USTACKTOP	UINT64 (0x0000400000000000)
+#define UTLS_DEFSIZE	PGSIZE
 
 #endif

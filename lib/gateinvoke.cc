@@ -109,7 +109,7 @@ gate_invoke(struct cobj_ref gate, label *tgt_label, label *tgt_clear,
 
     uint64_t lbytes = (lents + cents) * 8;
     if (lbytes > 512) {
-	uint64_t tlsbytes = PGSIZE + lbytes;
+	uint64_t tlsbytes = UTLS_DEFSIZE + lbytes;
 	if (label_debug)
 	    cprintf("[%"PRIu64"] gate_invoke: growing TLS to %"PRIu64" bytes\n",
 		    thread_id(), tlsbytes);
