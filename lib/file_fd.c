@@ -200,7 +200,8 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
 
 	size_t space = nbytes - cc;
 	size_t namlen = strlen(&de.de_name[0]);
-	size_t reclen = dirent_base + namlen + 1;
+	/* 8-byte alignment, just for good measure */
+	size_t reclen = ROUNDUP(dirent_base + namlen + 1, 8);
 	if (space < reclen) {
 	    fd->fd_file.readdir_pos = savepos;
 	    break;
@@ -211,7 +212,7 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
 	buf->d_reclen = reclen;
 	buf->d_type = DT_UNKNOWN;
 	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);
-	cc += ROUNDUP(reclen, 8);	/* 8-byte alignment */
+	cc += reclen;
 
 	buf = (struct dirent *) (((char *) buf) + reclen);
     }
