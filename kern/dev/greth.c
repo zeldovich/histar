@@ -6,7 +6,6 @@
 #include <kern/intr.h>
 #include <dev/greth.h>
 #include <dev/grethreg.h>
-#include <dev/mii.h>
 #include <dev/ambapp.h>
 #include <dev/amba.h>
 #include <inc/error.h>
@@ -54,74 +53,12 @@ greth_set_mac(struct greth_regs *regs, const uint8_t *mac)
     assert(regs->esa_msb == msb && regs->esa_lsb == lsb);
 }
 
-static int
-greth_wait_mii(struct greth_regs *regs)
-{
-    for (int i = 0; regs->mdio & GRETH_MII_BUSY; i++) {
-	if (i == 1000)
-	    return -E_BUSY;
-	timer_delay(20000);
-    }
-    return 0;
-}
-
-static int
-greth_read_mii(char *nibble, int regaddr, struct greth_regs *regs)
-{
-    /* assumes MDIO_PHYADDR is correct */
-    int r;
-    if ((r = greth_wait_mii(regs)) < 0)
-	return r;
-    
-    regs->mdio = ((regaddr & MDIO_REGADDR_MASK) << MDIO_REGADDR_SHIFT) |
-	MDIO_RD_BIT;
-
-    if ((r = greth_wait_mii(regs)) < 0)
-	return r;
-        
-    if (regs->mdio & GRETH_MII_NVALID)
-	return -E_INVAL;
-    
-    *nibble = (regs->mdio >> MDIO_DATA_SHIFT) & MDIO_DATA_MASK;
-    return 0;
-}
-
-static int
-greth_write_mii(char nibble, int regaddr, struct greth_regs *regs)
-{
-    /* assumes MDIO_PHYADDR is correct */
-    int r;
-    if ((r = greth_wait_mii(regs)) < 0)
-	return r;
-    
-    regs->mdio = ((nibble & MDIO_DATA_MASK) << MDIO_DATA_SHIFT) | 
-	((regaddr & MDIO_REGADDR_MASK) << MDIO_REGADDR_SHIFT) |
-	MDIO_WR_BIT;
-
-    if ((r = greth_wait_mii(regs)) < 0)
-	return r;
-        
-    if (regs->mdio & GRETH_MII_NVALID)
-	return -E_INVAL;
-    
-    return 0;
-}
-
 static void
 greth_reset(struct greth_card *c)
 {
     struct greth_regs *regs = c->regs;
 
-    /* reset PHY, and card */
-    char phyctrl = 0;
-    int r = greth_read_mii(&phyctrl, MII_BMCR, regs);
-    if (r < 0)
-	cprintf("greth_rest: mii read error %s\n", e2s(r));
-
-    r = greth_write_mii(phyctrl | BMCR_RESET,  MII_BMCR, regs);
-    if (r < 0)
-	cprintf("greth_reset: mii write error %s\n", e2s(r));
-
+    /* reset MAC */
     regs->control = GRETH_CTRL_RESET;
 
     for (int i = 0; i < 1000; i++) {

@@ -20,30 +20,6 @@
 #define GRETH_STAT_TS		(1 << 6)
 #define GRETH_STAT_IA		(1 << 7)
 
-/* MDIO ctrl/status register */
-#define GRETH_MII_BUSY 0x8
-#define GRETH_MII_NVALID 0x10
-#define MDIO_PHYADDR_SHIFT 11
-#define MDIO_PHYADDR_MASK  0x1F
-#define MDIO_REGADDR_SHIFT 6
-#define MDIO_REGADDR_MASK  0x1F
-#define MDIO_DATA_SHIFT    0x16
-#define MDIO_DATA_MASK     0xFFFF
-#define MDIO_RD_BIT        0x10
-#define MDIO_WR_BIT        0x01
-
-/* MII registers */
-#define GRETH_MII_EXTADV_1000FD 0x00000200
-#define GRETH_MII_EXTADV_1000HD 0x00000100
-#define GRETH_MII_EXTPRT_1000FD 0x00000800
-#define GRETH_MII_EXTPRT_1000HD 0x00000400
-
-#define GRETH_MII_100T4         0x00000200
-#define GRETH_MII_100TXFD       0x00000100
-#define GRETH_MII_100TXHD       0x00000080
-#define GRETH_MII_10FD          0x00000040
-#define GRETH_MII_10HD          0x00000020
-
 #define GRETH_BD_EN 0x800
 #define GRETH_BD_WR 0x1000
 #define GRETH_BD_IE 0x2000
