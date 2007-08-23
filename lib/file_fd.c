@@ -211,7 +211,7 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
 	buf->d_reclen = reclen;
 	buf->d_type = DT_UNKNOWN;
 	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);
-	cc += reclen;
+	cc += ROUNDUP(reclen, 8);	/* 8-byte alignment */
 
 	buf = (struct dirent *) (((char *) buf) + reclen);
     }
