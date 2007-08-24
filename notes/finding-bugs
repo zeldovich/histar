@@ -135,3 +135,14 @@ then switch back to AS1 and write it out to an untainted segment.
 Solution: keep label ID along with thread ID (still needed for TLS
 mapping invalidation).
 
+***
+
+Thread objects cache a pointer to the (pinned) address space object
+they are currently using (under t->th_as).  As a result, the usual
+checks for naming an object by cobj_ref do not apply -- namely,
+checking object refcount, parent container label, and object label.
+A thread could lower its label and continue executing in the same
+high-label address space, which technically circumvents labeling.
+Might not be a huge problem because you need * to lower your label.
+Not fixed at the moment.
+
