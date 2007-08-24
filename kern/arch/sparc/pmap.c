@@ -253,9 +253,8 @@ pmap_set_current(struct Pagemap *pm)
     if (!pm)
 	pm = &bootpt;
 
-    uint32_t pa = (ctxptr_t)kva2pa(pm);
-    ctxptr_t ptd = (pa >> 4) & PTD_PTP_MASK;
-    ptd |= PT_ET_PTD;
+    physaddr_t pa = kva2pa(pm);
+    ctxptr_t ptd = ((pa >> 4) & PTD_PTP_MASK) | PT_ET_PTD;
     bootct.ct_ent[0] = ptd;
     tlb_flush_all();
 }
