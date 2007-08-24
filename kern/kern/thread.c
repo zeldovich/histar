@@ -521,18 +521,15 @@ thread_utrap(const struct Thread *const_t,
 
     // Switch the current thread to the trap target thread, temporarily,
     // to ensure its privileges & thread-local segment are used.
-    const struct Thread *saved_cur = cur_thread;
-    cur_thread = t;
-
-    // Switch to trap target thread's address space.
-    as_switch(t->th_as);
+    const struct Thread *saved_t = cur_thread;
+    thread_switch(t);
 
     r = thread_arch_utrap(t, src, num, arg);
     if (r >= 0)
 	thread_set_runnable(t);
 
-    as_switch(cur_thread->th_as);
-    cur_thread = saved_cur;
+    // Switch back
+    thread_switch(saved_t);
     return r;
 }
 
