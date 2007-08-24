@@ -24,7 +24,7 @@ esa_mctrl_detect(void)
 	return 0;
 
     uint32_t mcfg2_addr = apb_dev.start + 4;
-    uint32_t mcfg2 = LEON_BYPASS_LOAD_PA(mcfg2_addr);
+    uint32_t mcfg2 = lda_bypass(mcfg2_addr);
 
     if (!(mcfg2 & LEON_MCFG2_SRAMDIS) || !(mcfg2 & LEON_MCFG2_SDRAMEN))
 	panic("unexpected memory controller config");
@@ -61,7 +61,7 @@ gaisler_ddrspa_detect(void)
 	return 0;
     
     uint32_t sdctrl_addr = ahb_dev.start[1];
-    uint32_t sdctrl = LEON_BYPASS_LOAD_PA(sdctrl_addr);
+    uint32_t sdctrl = lda_bypass(sdctrl_addr);
 
     uint32_t sdram_banksz = 
 	(sdctrl & LEON_SDCTRL_SDRAMBANKSZ) >> LEON_SDCTRL_SDRAMBANKSZ_SHIFT;

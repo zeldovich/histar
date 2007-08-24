@@ -265,13 +265,13 @@ vendor_id2str(int vendor)
 #define amba_irq(conf) ((conf) & 0xf)
 
 #define amba_ahb_get_membar(tab, index, nr) \
-    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + 4 + (nr)))
+    (lda_bypass((physaddr_t) ((tab).addr[(index)] + 4 + (nr))))
 #define amba_apb_get_membar(tab, index) \
-    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + 1))
+    (lda_bypass((physaddr_t) ((tab).addr[(index)] + 1)))
 #define amba_iobar_start(base, iobar) \
     ((base) | ((((iobar) & 0xfff00000) >> 12) & (((iobar) & 0xfff0) << 4)))
 #define amba_get_confword(tab, index, word) \
-    (LEON_BYPASS_LOAD_PA((tab).addr[(index)] + (word)))
+    (lda_bypass((physaddr_t) ((tab).addr[(index)] + (word))))
 
 #define amba_membar_start(mbar) \
     (((mbar) & 0xfff00000) & (((mbar) & 0xfff0) << 16))

@@ -125,7 +125,7 @@ amba_apbslv_device(uint32_t vendor, uint32_t device,
 static int
 amba_insert_device(struct amba_device_table *tab, uint32_t *cfg_area)
 {
-    if (!LEON_BYPASS_LOAD_PA(cfg_area))
+    if (!lda_bypass((physaddr_t) cfg_area))
 	return 0;
 
     tab->addr[tab->devnr] = cfg_area;
