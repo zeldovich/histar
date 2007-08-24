@@ -231,8 +231,8 @@ gatesrv_return::ret(label *cs, label *ds, label *dr, label *vl, label *vc)
 					 taint_ct_label.to_ulabel(),
 					 "gate return taint", 0, CT_QUOTA_INF);
 	if (id < 0) {
-	    // Usually -E_INVAL means the caller has died, so it doesn't matter..
-	    if (id != -E_INVAL)
+	    // Usually -E_NOT_FOUND means the caller died, so doesn't matter..
+	    if (id != -E_NOT_FOUND)
 		cprintf("gatesrv_return: allocating taint container "
 			"in %"PRIu64": %s\n",
 			gcd->taint_container, e2s(id));
