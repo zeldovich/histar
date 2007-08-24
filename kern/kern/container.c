@@ -249,7 +249,7 @@ cobj_get(struct cobj_ref ref, uint8_t type,
 	const struct Container *c;
 	int r = container_find(&c, ref.container, iflow_read);
 	if (r < 0)
-	    return r;
+	    return (r == -E_RESTART) ? r : -E_NOT_FOUND;
 
 	// Every container "contains" itself
 	if (ref.object == c->ct_ko.ko_id)

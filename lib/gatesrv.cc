@@ -61,6 +61,9 @@ gatesrv_entry(uint64_t fnarg, uint64_t arg, uint64_t stackarg, uint64_t flags)
 	gatesrv_return ret(d->return_gate, start_env->proc_container,
 			   d->thread_ref_ct, stack, flags);
 	fn(arg, d, &ret);
+    } catch (error &e) {
+	if (e.err() != -E_NOT_FOUND)
+	    printf("gatesrv_entry: %s\n", e.what());
     } catch (std::exception &e) {
 	printf("gatesrv_entry: %s\n", e.what());
     }

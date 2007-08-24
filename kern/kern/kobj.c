@@ -142,7 +142,7 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     LIST_FOREACH(ko, head, ko_hash) {
 	if (ko->hdr.ko_id == id) {
 	    if (ko->hdr.ko_ref == 0)
-		return -E_INVAL;
+		return -E_NOT_FOUND;
 
 	    int r = ko->hdr.ko_type == kobj_label ? 0 :
 		    kobject_iflow_check(&ko->hdr, iflow);
@@ -150,7 +150,7 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
 		return r;
 
 	    if (type != kobj_any && type != ko->hdr.ko_type)
-		return -E_INVAL;
+		return -E_NOT_FOUND;
 
 	    *kp = ko;
 	    return 0;
@@ -160,7 +160,7 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     // Should match the code returned above when trying
     // to get an object of the wrong type.
     if (kobject_negative_contains(id))
-	return -E_INVAL;
+	return -E_NOT_FOUND;
 
     return pstate_swapin(id);
 }
