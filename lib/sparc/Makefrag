@@ -1,5 +1,4 @@
-LIB_SRCFILES += lib/$(ARCH)/mathops.S \
-		lib/$(ARCH)/win.S
+LIB_SRCFILES += lib/$(ARCH)/win.S
 
 # Keep synchronized with memlayout.h
 LDFLAGS += -Wl,--section-start,.utrap_masked=0x3FFFD000 \
