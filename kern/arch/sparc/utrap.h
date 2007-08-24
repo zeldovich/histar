@@ -5,13 +5,12 @@
 #include <machine/mmu.h>
 
 #define JOS_UTRAP_GCCATTR
+#define utf_stackptr utf_regs.sp
 
 struct UTrapframe {
-    // XXX
-#define utf_stackptr utf_reg1.sp
     union {
-	uint32_t utf_reg0[32];
-	struct Regs utf_reg1;
+	uint32_t utf_reg[32];
+	struct Regs utf_regs;
     };
 
     uint32_t utf_pc;

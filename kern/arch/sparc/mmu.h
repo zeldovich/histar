@@ -191,8 +191,8 @@ struct Trapframe_aux {
 
 struct Trapframe {
     union {
-	uint32_t tf_reg0[32];
-	struct Regs tf_reg1;
+	uint32_t tf_reg[32];
+	struct Regs tf_regs;
     };
     uint32_t tf_psr; /* post trap PSR */
     uint32_t tf_y;

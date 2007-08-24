@@ -99,8 +99,8 @@ utf_dump(struct UTrapframe *utf)
     cprintf("       globals     outs   locals      ins\n");
     for (uint32_t i = 0; i < 8; i++) {
 	cprintf("   %d: %08x %08x %08x %08x\n", 
-		i, utf->utf_reg0[i], utf->utf_reg0[i + 8],
-		utf->utf_reg0[i + 16], utf->utf_reg0[i + 24]);
+		i, utf->utf_reg[i], utf->utf_reg[i + 8],
+		utf->utf_reg[i + 16], utf->utf_reg[i + 24]);
     }
     cprintf("\n");
     cprintf(" y: %08x  pc: %08x  npc: %08x\n",
@@ -525,9 +525,9 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 #elif defined(JOS_ARCH_sparc)
     utf_jump.utf_pc = (uintptr_t) &signal_utrap_onstack;
     utf_jump.utf_npc = utf_jump.utf_pc + 4;
-    utf_jump.utf_reg1.sp = (uintptr_t) stackptr;
-    utf_jump.utf_reg1.o0 = (uintptr_t) si_arg;
-    utf_jump.utf_reg1.o1 = (uintptr_t) sc_arg;
+    utf_jump.utf_regs.sp = (uintptr_t) stackptr;
+    utf_jump.utf_regs.o0 = (uintptr_t) si_arg;
+    utf_jump.utf_regs.o1 = (uintptr_t) sc_arg;
 #else
 #error Unknown arch
 #endif
