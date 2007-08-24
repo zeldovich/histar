@@ -12,11 +12,11 @@ ENTRY(syscall)
 	ld	[%g1 + 104], %l3
 	ld	[%g1 + 108], %l4
 	ld	[%g1 + 112], %l5
-	ld	[%g1 + 116], %l6							
+	ld	[%g1 + 116], %l6
 	ld	[%g1 + 120], %l7
 
 	ld	[%g1 + 124], %o0
-	
+
 	ta	SOFTWARE_TRAP(T_SYSCALL)
 	 mov	%o1, %i0
 	mov	%o2, %i1
