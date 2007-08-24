@@ -5,8 +5,10 @@
 
 
 ENTRY(utrap_entry_asm)
+	/* Save space for the register window */
+	sub	%sp, 0x40, %sp
 	call	utrap_entry
-	 mov	%sp, %o0
+	 add	%sp, 0x40, %o0
 
 .section .utrap_masked, "ax", @progbits
 .globl utrap_ret
