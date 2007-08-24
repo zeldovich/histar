@@ -180,11 +180,11 @@ thread_swapin(struct Thread *t)
 }
 
 static void
-thread_clear_as(struct Thread *t)
+thread_clear_as(const struct Thread *t)
 {
     if (t->th_as) {
 	kobject_unpin_hdr(&t->th_as->as_ko);
-	t->th_as = 0;
+	kobject_ephemeral_dirty(&t->th_ko)->th.th_as = 0;
     }
 }
 
@@ -462,6 +462,9 @@ thread_jump(const struct Thread *const_t,
 void
 thread_switch(const struct Thread *t)
 {
+    if (t->th_as && !t->th_as->as_ko.ko_ref)
+	thread_clear_as(t);
+
     cur_thread = t;
     as_switch(t->th_as);
 }
