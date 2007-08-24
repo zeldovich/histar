@@ -150,10 +150,10 @@ trap_dispatch(int trapno, const struct Trapframe *tf)
 	if (trap_thread_syscall_writeback) {
 	    trap_thread_syscall_writeback = 0;
 	    
-	    struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	    if (r != -E_RESTART) {
-		t->th_tf.tf_regs.i0 = ((uint64_t) r) >> 32;
-		t->th_tf.tf_regs.i1 = ((uint64_t) r) & 0xffffffff;
+		struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
+		t->th_tf.tf_regs.o1 = ((uint64_t) r) >> 32;
+		t->th_tf.tf_regs.o2 = ((uint64_t) r) & 0xffffffff;
 		t->th_tf.tf_pc = t->th_tf.tf_npc;
 		t->th_tf.tf_npc = t->th_tf.tf_npc + 4;
 	    } 
@@ -298,8 +298,10 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
 
     if (t == trap_thread && trap_thread_syscall_writeback) {
 	trap_thread_syscall_writeback = 0;
-	t_utf.utf_regs.i0 = 0;
-	t_utf.utf_regs.i1 = 0;
+	t_utf.utf_regs.o1 = 0;
+	t_utf.utf_regs.o2 = 0;
+	t_utf.utf_pc  = t_utf.utf_npc;
+	t_utf.utf_npc = t_utf.utf_npc + 4;
     }
 
     memcpy(utf, &t_utf, sizeof(*utf));
