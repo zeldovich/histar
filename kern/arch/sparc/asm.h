@@ -36,7 +36,7 @@
 
 /* Store/load register sets onto the 8-byte aligned area */
 #define STORE_GLOBALS(base_reg) \
-        st      %g1, [%base_reg + 4]; \
+        std     %g0, [%base_reg + 0]; \
         std     %g2, [%base_reg + 8]; \
         std     %g4, [%base_reg + 16]; \
         std     %g6, [%base_reg + 24];
