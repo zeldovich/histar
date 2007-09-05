@@ -32,6 +32,8 @@ timer_convert(uint64_t n, uint64_t a, uint64_t b)
 uint64_t
 timer_user_nsec(void)
 {
+    assert(the_timesrc);
+
     uint64_t ticks = the_timesrc->ticks(the_timesrc->arg);
     uint64_t nsec = timer_convert(ticks, 1000000000, the_timesrc->freq_hz);
     return nsec + timer_user_nsec_offset;
@@ -40,7 +42,8 @@ timer_user_nsec(void)
 void
 timer_delay(uint64_t nsec)
 {
-    the_timesrc->delay_nsec(the_timesrc->arg, nsec);
+    if (the_timesrc)
+	the_timesrc->delay_nsec(the_timesrc->arg, nsec);
 }
 
 /*
@@ -50,6 +53,7 @@ static LIST_HEAD(pt_list, periodic_task) periodic_tasks;
 
 void timer_periodic_notify(void)
 {
+    assert(the_timesrc);
     uint64_t ticks = the_timesrc->ticks(the_timesrc->arg);
 
     struct periodic_task *pt;
@@ -64,6 +68,8 @@ void timer_periodic_notify(void)
 void
 timer_add_periodic(struct periodic_task *pt)
 {
+    assert(the_timesrc);
+
     pt->pt_last_ticks = the_timesrc->ticks(the_timesrc->arg);
     pt->pt_interval_ticks = pt->pt_interval_sec * the_timesrc->freq_hz;
     LIST_INSERT_HEAD(&periodic_tasks, pt, pt_link);
