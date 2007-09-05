@@ -293,10 +293,14 @@ init_procs(int cons)
 		continue;
 	    }
 	    
-	    if (priv[0] == 'r')
-		spawn_fs(1, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
+	    if (priv[0] == 'r') {
+		if (priv[1] == 'a')
+		    spawn_fs(1, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
+		else 
+		    spawn_fs(1, cons, fn, 0, &root_ds, &root_dr);
+	    }
 	    else 
-		spawn_fs(1, cons, fn, &root_grant_buf[0], 0, 0);
+		spawn_fs(1, cons, fn, 0, 0, 0);
 	}
     }
     spawn_fs(0, cons, "/bin/ksh", "/bin/init.sh", 0, 0);

@@ -17,7 +17,7 @@ KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user user/login user/addu
 #KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
 #KERN_BINFILES	+= user/vim user/bash
 
-INITTAB_ENTRIES	:= /bin/netd_mom:root /bin/ptyd:root /bin/sshdi:root
+INITTAB_ENTRIES	:= /bin/netd_mom:ra /bin/ptyd:ra /bin/sshdi:ra
 
 #include conf/embedbin/httpd.mk
 #include conf/embedbin/dj.mk
