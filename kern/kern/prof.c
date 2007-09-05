@@ -45,6 +45,10 @@ static void *cyg_profs_printed[] = {
 #define NUM_PROFS_PRINTED (sizeof(cyg_profs_printed) / sizeof(cyg_profs_printed[0]))
 static uint64_t cyg_profs_threshold = UINT64(1000000000);
 
+#define NUM_STACK_FUNCS	256
+#define NUM_STACKS	16
+#define NUM_SYMS	800
+
 struct func_stamp {
     uint64_t func_addr;
     uint64_t entry_tsc;
@@ -54,16 +58,14 @@ struct cyg_stack {
     uint64_t rsp;
 
     int size;
-    struct func_stamp func_stamp[PGSIZE];
+    struct func_stamp func_stamp[NUM_STACK_FUNCS];
 };
 
 static struct {
     char enable;	// to avoid re-entry while profiling
 
-#define NUM_STACKS 16
     struct cyg_stack stack[NUM_STACKS];
 
-#define NUM_SYMS 800
     // map from func ptr to index into stats table
     struct hashtable stats_lookup;
     struct hashentry stats_lookup_back[NUM_SYMS];
@@ -374,7 +376,7 @@ __cyg_profile_func_enter(void *this_fn, void *call_site)
     s->size++;
 
     // overflow func addr stack
-    assert(s->size != PGSIZE);
+    assert(s->size != NUM_STACK_FUNCS);
 
     cyg_data.enable = 1;
 }
