@@ -41,10 +41,11 @@ init (void)
 
     amba_init();
     irqmp_init();
-    apbucons_init();
-    amba_print();
 
     gptimer_init();
+
+    apbucons_init();
+    amba_print();
 
     page_init();
 
