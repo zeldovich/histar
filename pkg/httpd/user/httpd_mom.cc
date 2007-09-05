@@ -28,7 +28,7 @@ static char http_auth_enable = 0;
 static char http_dj_enable = 0;
 
 static const char* httpd_root_path = "/www";
-static const char *module_setup_bin = "/bin/modulei";
+static const char *tar_pn = "/bin/tar";
 
 static struct fs_inode
 fs_inode_for(const char *pn)
@@ -55,14 +55,37 @@ segment_copy_to_file(struct cobj_ref seg, struct fs_inode dir,
 }
 
 static void
-module_setup(void)
+untar(const char *in_pn, const char *tar_fn)
 {
-    if (fork() == 0) {
-	int r = execl(module_setup_bin, module_setup_bin, NULL);
-	printf("httpd_mom: could not setup modules: %s\n", strerror(r));
-	exit(1);
-    } else
-	wait(0);
+    fs_inode ino;
+    error_check(fs_namei(tar_pn, &ino));
+    const char *argv[] = { tar_pn, "xm", "-C", in_pn, "-f", tar_fn };
+    
+    spawn_descriptor sd;
+    sd.ct_ = start_env->shared_container;
+    sd.elf_ino_ = ino;
+    sd.ac_ = 6;
+    sd.av_ = &argv[0];
+
+    struct child_process cp = spawn(&sd);
+    int64_t exit_code;
+    error_check(process_wait(&cp, &exit_code));
+    error_check(exit_code);
+}
+
+static void
+create_ascii(const char *dn, const char *fn, uint64_t len)
+{
+    struct fs_inode dir;
+    error_check(fs_namei(dn, &dir));
+    struct fs_inode file;
+    error_check(fs_create(dir, fn, &file, 0));
+
+    void *buf = malloc(len);
+    memset(buf, 'a', len);
+    int r = fs_pwrite(file, buf, len, 0);
+    free(buf);
+    error_check(r);
 }
 
 int
@@ -78,7 +101,23 @@ main (int ac, char **av)
     static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
 
     errno_check(mkdir(httpd_root_path, 0));
-    module_setup();
+    
+    try {
+	untar("/", "/bin/a2ps.tar");
+	untar("/", "/bin/gs.tar");
+    } catch (basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", av[0], e.what());
+    }
+    
+    try {
+	create_ascii("/www/", "test.0", 0);
+	create_ascii("/www/", "test.1", 1);
+	create_ascii("/www/", "test.1024", 1024);
+	create_ascii("/www/", "test.8192", 8192);
+    } catch(basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot create test files: %s\n", 
+		av[0], e.what());
+    }
 
     int64_t ssld_taint = handle_alloc();
     int64_t eprocd_taint = ssl_eproc_enable ? handle_alloc() : ssld_taint;
