@@ -102,24 +102,42 @@ init(void)
     gate_sender gs;
 
     gs_key << gs.hostkey();
-    
-    int64_t ct, id;
-    error_check(ct = container_find(start_env->root_container, kobj_container, "djechod"));
-    error_check(id = container_find(ct, kobj_container, "public call"));
-    callct << id << "\n";
-
-    error_check(ct = container_find(start_env->root_container, kobj_container, "djauthproxy"));
-    error_check(id = container_find(ct, kobj_gate, "authproxy"));
-    authgate << ct << "." << id << "\n";
-
-    error_check(ct = container_find(start_env->root_container, kobj_container, "djwebappd"));
-    error_check(id = container_find(ct, kobj_gate, "djwebappd"));
-    appgate << ct << "." << id << "\n";
-
-    error_check(ct = container_find(start_env->root_container, kobj_container, "djfsd"));
-    error_check(id = container_find(ct, kobj_gate, "djfsd"));
-    fsgate << ct << "." << id << "\n";
-
+  
+    for (int i = 0; i < 3; i++) {
+	static strbuf _callct;
+	static strbuf _authgate;
+	static strbuf _fsgate;
+	static strbuf _appgate;
+	
+	try {
+	    int64_t ct, id;
+	    error_check(ct = container_find(start_env->root_container, kobj_container, "djechod"));
+	    error_check(id = container_find(ct, kobj_container, "public call"));
+	    _callct << id << "\n";
+	    
+	    error_check(ct = container_find(start_env->root_container, kobj_container, "djauthproxy"));
+	    error_check(id = container_find(ct, kobj_gate, "authproxy"));
+	    _authgate << ct << "." << id << "\n";
+	    
+	    error_check(ct = container_find(start_env->root_container, kobj_container, "djwebappd"));
+	    error_check(id = container_find(ct, kobj_gate, "djwebappd"));
+	    _appgate << ct << "." << id << "\n";
+	    
+	    error_check(ct = container_find(start_env->root_container, kobj_container, "djfsd"));
+	    error_check(id = container_find(ct, kobj_gate, "djfsd"));
+	    _fsgate << ct << "." << id << "\n";
+	} catch (basic_exception &e) {
+	    warn << "Unable to init -- waiting 3 seconds\n";
+	    usleep(3000000);
+	    continue;
+	}
+	
+	callct << _callct;
+	authgate << _authgate;
+	fsgate << _fsgate;
+	appgate << _appgate;
+	break;
+    }
     write_to_file("/www/dj_user_host0", gs_key);
     write_to_file("/www/dj_app_host0", gs_key);
     write_to_file("/www/dj_user_ct0", callct);
