@@ -47,6 +47,7 @@ trapframe_print(const struct Trapframe *tf)
 static void
 fp_backtrace(uint32_t fp)
 {
+    cprintf("Backtrace:\n");
     uint32_t *fpp;
 
  again:
@@ -57,7 +58,7 @@ fp_backtrace(uint32_t fp)
 
     uint32_t rfp = fpp[8 + 6];
     uint32_t rpc = fpp[8 + 7];
-    cprintf("fp=%x pc=%x\n", rfp, rpc);
+    cprintf("  fp=%x pc=%x\n", rfp, rpc);
     if (!rfp || !rpc)
 	return;
 
