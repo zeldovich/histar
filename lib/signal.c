@@ -469,6 +469,10 @@ signal_utrap_si(siginfo_t *si, struct sigcontext *sc)
 	sc_arg = sc;
 	utrap_chain = &sc->sc_utf;
     } else {
+	if (!sc->sc_utf.utf_stackptr) {
+	    cprintf("signal_utrap_si: null stackptr!\n");
+	    utf_dump(&sc->sc_utf);
+	}
 
 	// XXX assumes stack grows down
 	s = (void *) sc->sc_utf.utf_stackptr;
