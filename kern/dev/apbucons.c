@@ -2,6 +2,7 @@
 #include <kern/console.h>
 #include <kern/intr.h>
 #include <kern/arch.h>
+#include <kern/timer.h>
 
 #include <machine/leon3.h>
 #include <machine/leon.h>
@@ -18,17 +19,22 @@ serial_putc(void *arg, int c)
 {
     if (c == '\n')
 	serial_putc(arg, '\r');
-    LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *)arg;
+
+    LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *) arg;
     
     uint32_t i = 0;
-    while (!(uart_regs->status & LEON_REG_UART_STATUS_THE) && (i < 12800))
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_THE) && (i < 256)) {
 	i++;
-    
+	timer_delay(2000);
+    }
+
     uart_regs->data = c;
-    
+
     i = 0;
-    while (!(uart_regs->status & LEON_REG_UART_STATUS_TSE) && (i < 12800))
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_TSE) && (i < 256)) {
 	i++;
+	timer_delay(2000);
+    }
 }
 
 static int
@@ -62,14 +68,12 @@ apbucons_init(void)
 	    return;
     }
 
-    uint32_t scaler = (CLOCK_FREQ_KHZ * 1000) / (baud_rate * 8);
     LEON3_APBUART_Regs_Map *uart_regs = pa2kva(dev.start);
-    uart_regs->scaler = scaler;
+    uart_regs->scaler = (CLOCK_FREQ_KHZ * 1000) / (baud_rate * 8);
 
     /* enable rx, tx, and rx interrupts */
-    uint32_t ctrl = LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
-	LEON_REG_UART_CTRL_RI;
-    uart_regs->ctrl = ctrl;
+    uart_regs->ctrl = LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
+		      LEON_REG_UART_CTRL_RI | LEON_REG_UART_CTRL_FL;
     
     static struct interrupt_handler ih = { .ih_func = &serial_intr };
     ih.ih_arg = uart_regs;
