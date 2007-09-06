@@ -12,7 +12,7 @@ typedef sfs_sig2 dj_sign;
 struct dj_gcat {		/* Global category name */
     dj_pubkey key;
     unsigned hyper id;
-    unsigned integrity;
+    bool integrity;
 };
 
 struct dj_address {
