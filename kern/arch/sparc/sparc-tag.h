@@ -9,8 +9,10 @@
 SPARC_INST_ATTR void wrtpcv(uint32_t pctag, uint32_t validbit);
 SPARC_INST_ATTR void wrtdv(uint32_t dtag, uint32_t validbit);
 SPARC_INST_ATTR void wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
-SPARC_INST_ATTR uint32_t read_tag(uint32_t addr);
-SPARC_INST_ATTR void write_tag(uint32_t addr, uint32_t tag);
+SPARC_INST_ATTR uint32_t read_dtag(uint32_t addr);
+SPARC_INST_ATTR void write_dtag(uint32_t addr, uint32_t tag);
+SPARC_INST_ATTR uint32_t read_pctag(void);
+SPARC_INST_ATTR void write_pctag(uint32_t tag);
 SPARC_INST_ATTR uint32_t read_tsr(void);
 SPARC_INST_ATTR void write_tsr(uint32_t v);
 
@@ -34,7 +36,7 @@ wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits)
 }
 
 uint32_t
-read_tag(uint32_t addr)
+read_dtag(uint32_t addr)
 {
     uint32_t tag;
     __asm __volatile("rdt [%1], %0" : "=r" (tag) : "r" (addr));
@@ -42,9 +44,23 @@ read_tag(uint32_t addr)
 }
 
 void
-write_tag(uint32_t addr, uint32_t tag)
+write_dtag(uint32_t addr, uint32_t tag)
 {
     __asm __volatile("wrt %0, [%1]" : : "r" (tag), "r" (addr));
+}
+
+uint32_t
+read_pctag(void)
+{
+    uint32_t tag;
+    __asm __volatile("rdt %pc, %0" : "=r" (tag));
+    return tag;
+}
+
+void
+write_pctag(uint32_t tag)
+{
+    __asm __volatile("wrt %0, %pc" : : "r" (tag));
 }
 
 uint32_t
