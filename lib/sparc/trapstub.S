@@ -22,13 +22,12 @@ utrap_ret:
 	LOAD_LOCALS(g7 + TF_L0)
 	LOAD_OUTS(g7 + TF_O0)
 
-	ld [%g7 + TF_G1], %g1
-	ldd [%g7 + TF_G2], %g2
-	ldd [%g7 + TF_G4], %g4
+	ld	[%g7 + TF_G1], %g1
+	ldd	[%g7 + TF_G2], %g2
+	ldd	[%g7 + TF_G4], %g4
 
-	ld	[%g7 + 128], %g6
-	ld	[%g7 + 132], %g7
+	ldd	[%g7 + 128], %g6
 
 	jmp	%g6
 	 jmp	%g7
-	  nop
+
