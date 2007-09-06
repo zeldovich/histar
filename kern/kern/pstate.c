@@ -670,6 +670,9 @@ pstate_sync_loop(struct pstate_header *hdr,
 static void
 pstate_sync_stackwrap(uint64_t arg0, uint64_t arg1, uint64_t arg2)
 {
+    if (!pstate_part)
+	return;
+
     int *rvalp = 0;
     if (arg0)
 	rvalp = (int *) (uintptr_t) arg0;
