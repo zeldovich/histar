@@ -317,7 +317,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     ptent_t *ptep;
     int r = pgdir_walk(pgmap, va, 1, &ptep);
     if (r < 0) {
-	cprintf("XXX pgdir_walk error: %s\n", e2s(r));
+	if (r != -E_RESTART)
+	    cprintf("XXX pgdir_walk error: %s\n", e2s(r));
 	return r;
     }
 
