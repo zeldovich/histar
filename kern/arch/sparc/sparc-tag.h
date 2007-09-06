@@ -53,28 +53,28 @@ uint32_t
 read_pctag(void)
 {
     uint32_t tag;
-    __asm __volatile("rdt %pc, %0" : "=r" (tag));
+    __asm __volatile("rdt %%pc, %0" : "=r" (tag));
     return tag;
 }
 
 void
 write_pctag(uint32_t tag)
 {
-    __asm __volatile("wrt %0, %pc" : : "r" (tag));
+    __asm __volatile("wrt %0, %%pc" : : "r" (tag));
 }
 
 uint32_t
 read_tsr(void)
 {
     uint32_t v;
-    __asm __volatile("rdtr %tsr, %0" : "=r" (v));
+    __asm __volatile("rdtr %%tsr, %0" : "=r" (v));
     return v;
 }
 
 void
 write_tsr(uint32_t v)
 {
-    __asm __volatile("wrtr %0, %tsr" : : "r" (v));
+    __asm __volatile("wrtr %0, %%tsr" : : "r" (v));
 }
 
 #endif
