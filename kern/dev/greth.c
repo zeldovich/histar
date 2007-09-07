@@ -16,11 +16,11 @@ struct greth_buffer_slot {
 };
 
 struct greth_txbds {
-    struct greth_bd txbd[GRETH_TXBD_NUM] __attribute__((aligned (1024)));
+    struct greth_bd txbd[GRETH_BD_NUM] __attribute__((aligned (1024)));
 };
 
 struct greth_rxbds {
-    struct greth_bd rxbd[GRETH_RXBD_NUM] __attribute__((aligned (1024)));
+    struct greth_bd rxbd[GRETH_BD_NUM] __attribute__((aligned (1024)));
 };
 
 struct greth_card {
@@ -32,8 +32,8 @@ struct greth_card {
     struct greth_txbds *txbds;
     struct greth_rxbds *rxbds;
     
-    struct greth_buffer_slot tx[GRETH_TXBD_NUM];
-    struct greth_buffer_slot rx[GRETH_RXBD_NUM];
+    struct greth_buffer_slot tx[GRETH_BD_NUM];
+    struct greth_buffer_slot rx[GRETH_BD_NUM];
 
     int rx_head;	// card receiving into rx_head, -1 if none
     int rx_nextq;	// next slot for rx buffer
@@ -41,6 +41,28 @@ struct greth_card {
     int tx_head;	// card transmitting from tx_head, -1 if none
     int tx_nextq;	// next slot for tx buffer
 };
+
+static void __attribute__((unused))
+greth_dumpstate(struct greth_card *c)
+{
+    struct greth_regs *regs = c->regs;
+    cprintf("greth: control=0x%x, status=0x%x, mac=%04x%08x\n",
+	    regs->control, regs->status, regs->esa_msb, regs->esa_lsb);
+    cprintf("greth: txdp=0x%x, rxdp=0x%x, edcl ip=%08x\n",
+	    regs->tx_desc_p, regs->rx_desc_p, regs->edcl_ip);
+    cprintf("greth: rx head %d next %d, tx head %d next %d\n",
+	    c->rx_head, c->rx_nextq, c->tx_head, c->tx_nextq);
+    cprintf("greth: rx ring:");
+
+    uint32_t prev = 0;
+    for (uint32_t i = 0; i < GRETH_BD_NUM; i++) {
+	uint32_t stat = c->rxbds->rxbd[i].stat & ~GRETH_BD_LEN;
+	if (stat != prev)
+	    cprintf(" %d=%x", i, stat);
+	prev = stat;
+    }
+    cprintf("\n");
+}
 
 static void
 greth_set_mac(struct greth_regs *regs, const uint8_t *mac)
@@ -84,7 +106,7 @@ greth_reset(struct greth_card *c)
     /* clear all status bits */
     regs->status = ~0;
 
-    for (int i = 0; i < GRETH_TXBD_NUM; i++) {
+    for (int i = 0; i < GRETH_BD_NUM; i++) {
 	if (c->tx[i].sg) {
 	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
 	    pagetree_decpin(c->tx[i].nb);
@@ -93,7 +115,7 @@ greth_reset(struct greth_card *c)
 	c->tx[i].sg = 0;
     }
     
-    for (int i = 0; i < GRETH_RXBD_NUM; i++) {
+    for (int i = 0; i < GRETH_BD_NUM; i++) {
 	if (c->rx[i].sg) {
 	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
 	    pagetree_decpin(c->rx[i].nb);
@@ -136,7 +158,7 @@ greth_add_txbuf(void *arg, const struct Segment *sg,
     c->txbds->txbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
     c->regs->control |= GRETH_CTRL_TX_EN;
 
-    c->tx_nextq = (slot + 1) % GRETH_TXBD_NUM;
+    c->tx_nextq = (slot + 1) % GRETH_BD_NUM;
     if (c->tx_head == -1)
 	c->tx_head = slot;
 
@@ -170,7 +192,7 @@ greth_add_rxbuf(void *arg, const struct Segment *sg,
     c->rxbds->rxbd[slot].stat = GRETH_BD_EN | GRETH_BD_IE | (size & GRETH_BD_LEN);
     c->regs->control |= GRETH_CTRL_RX_EN;
 
-    c->rx_nextq = (slot + 1) % GRETH_RXBD_NUM;
+    c->rx_nextq = (slot + 1) % GRETH_BD_NUM;
     if (c->rx_head == -1)
 	c->rx_head = slot;
 
@@ -200,7 +222,7 @@ greth_intr_rx(struct greth_card *c)
 	if (c->rxbds->rxbd[i].stat & GRETH_RXBD_ERR)
 	    c->rx[i].nb->actual_count |= NETHDR_COUNT_ERR;
 
-	c->rx_head = (i + 1) % GRETH_RXBD_NUM;
+	c->rx_head = (i + 1) % GRETH_BD_NUM;
 	if (c->rx_head == c->rx_nextq)
 	    c->rx_head = -1;
     }
@@ -221,7 +243,7 @@ greth_intr_tx(struct greth_card *c)
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
-	c->tx_head = (i + 1) % GRETH_TXBD_NUM;
+	c->tx_head = (i + 1) % GRETH_BD_NUM;
 	if (c->tx_head == c->tx_nextq)
 	    c->tx_head = -1;
     }
@@ -312,6 +334,6 @@ greth_init(void)
 	    c->netdev.mac_addr[0], c->netdev.mac_addr[1],
 	    c->netdev.mac_addr[2], c->netdev.mac_addr[3],
 	    c->netdev.mac_addr[4], c->netdev.mac_addr[5]);
-    
+
     return 0;
 }
