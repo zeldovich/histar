@@ -15,6 +15,8 @@ SPARC_INST_ATTR uint32_t read_pctag(void);
 SPARC_INST_ATTR void write_pctag(uint32_t tag);
 SPARC_INST_ATTR uint32_t read_tsr(void);
 SPARC_INST_ATTR void write_tsr(uint32_t v);
+SPARC_INST_ATTR uint32_t read_rma(void);
+SPARC_INST_ATTR void write_rma(uint32_t addr);
 
 void
 wrtpcv(uint32_t pctag, uint32_t validbit)
@@ -75,6 +77,20 @@ void
 write_tsr(uint32_t v)
 {
     __asm __volatile("wrtr %0, %%tsr" : : "r" (v));
+}
+
+uint32_t
+read_rma(void)
+{
+    uint32_t v;
+    __asm __volatile("rdtr %%rma, %0" : "=r" (v));
+    return v;
+}
+
+void
+write_rma(uint32_t addr)
+{
+    __asm __volatile("wrtr %0, %%rma" : : "r" (addr));
 }
 
 #endif
