@@ -91,6 +91,7 @@ sta(uint32_t addr, uint32_t val, uint32_t asi)
     ASI_CASE(ASI_MMUREGS);
     ASI_CASE(ASI_BYPASS);
     ASI_CASE(ASI_DFLUSH);
+    ASI_CASE(ASI_MMUFLUSH);
 #undef ASI_CASE
 
     default:
