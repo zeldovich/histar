@@ -31,7 +31,7 @@ static struct cobj_ref netd_asref;
 static void __attribute__((noreturn))
 netd_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    netd_handler h = (netd_handler)a;    
+    netd_handler h = (netd_handler) (uintptr_t) a;
     
     while (!netd_server_enabled)
 	sys_sync_wait(&netd_server_enabled, 0, UINT64(~0));
@@ -103,7 +103,7 @@ netd_ipc_setup(uint64_t taint_ct, struct cobj_ref ipc_seg, uint64_t flags,
 static void __attribute__((noreturn))
 netd_fast_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    netd_handler h = (netd_handler)a;    
+    netd_handler h = (netd_handler) (uintptr_t) a;
     uint64_t netd_ct = start_env->proc_container;
     struct cobj_ref temp_as;
     struct netd_ipc_segment *ipc = 0;

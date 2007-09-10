@@ -26,7 +26,7 @@ extern "C" {
 static void __attribute__((noreturn))
 lfs_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    lfs_request_handler h = (lfs_request_handler) a;
+    lfs_request_handler h = (lfs_request_handler) (uintptr_t) a;
     
     uint64_t ct = start_env->proc_container;
     struct cobj_ref arg = gcd->param_obj;

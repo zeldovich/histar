@@ -39,7 +39,7 @@ gate_lookup(const char *bn, const char *gn, struct cobj_ref *ret)
 static void
 netd_linux_gate_entry(uint64_t a, struct gate_call_data *gcd, gatesrv_return *rg)
 {
-    netd_socket_handler h = (netd_socket_handler) a;
+    netd_socket_handler h = (netd_socket_handler) (uintptr_t) a;
     socket_conn *sr = (socket_conn *)gcd->param_buf;
     h(sr);
 }
