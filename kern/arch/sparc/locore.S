@@ -83,7 +83,14 @@ def_trap:
 	set	(kstack_top - TRAPFRAME_SZ), %l5
 
 	STORE_GLOBALS(l5 + TF_G0)
-	STORE_TRAPFRAME_OTHER(l5, l0, l1, l2, l3, l4)
+
+	st	%l0, [%l5 + TF_PSR]
+	st	%l1, [%l5 + TF_PC]
+	st	%l2, [%l5 + TF_NPC]
+	st	%l3, [%l5 + TF_WIM]
+	rd	%y, %l4
+	st	%l4, [%l5 + TF_Y]
+
 	mov	%l5, %g7
 
 	restore
@@ -216,8 +223,7 @@ user_fill:
 	jmp	%l7
 	 rett	%l7 + 4
 
-.globl	thread_arch_idle_asm
-thread_arch_idle_asm:
+ENTRY(thread_arch_idle_asm)
 	/* enable interrupts */
 	rd	%psr, %l3
 	andn	%l3, PSR_PIL, %l3
