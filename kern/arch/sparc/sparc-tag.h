@@ -6,17 +6,17 @@
 #define SPARC_TAG_INST_ATTR	\
 	static __inline __attribute__((always_inline, no_instrument_function))
 
-SPARC_INST_ATTR void wrtpcv(uint32_t pctag, uint32_t validbit);
-SPARC_INST_ATTR void wrtdv(uint32_t dtag, uint32_t validbit);
-SPARC_INST_ATTR void wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
-SPARC_INST_ATTR uint32_t read_dtag(uint32_t addr);
-SPARC_INST_ATTR void write_dtag(uint32_t addr, uint32_t tag);
-SPARC_INST_ATTR uint32_t read_pctag(void);
-SPARC_INST_ATTR void write_pctag(uint32_t tag);
-SPARC_INST_ATTR uint32_t read_tsr(void);
-SPARC_INST_ATTR void write_tsr(uint32_t v);
-SPARC_INST_ATTR uint32_t read_rma(void);
-SPARC_INST_ATTR void write_rma(uint32_t addr);
+SPARC_TAG_INST_ATTR void wrtpcv(uint32_t pctag, uint32_t validbit);
+SPARC_TAG_INST_ATTR void wrtdv(uint32_t dtag, uint32_t validbit);
+SPARC_TAG_INST_ATTR void wrtperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
+SPARC_TAG_INST_ATTR uint32_t read_dtag(uint32_t addr);
+SPARC_TAG_INST_ATTR void write_dtag(uint32_t addr, uint32_t tag);
+SPARC_TAG_INST_ATTR uint32_t read_pctag(void);
+SPARC_TAG_INST_ATTR void write_pctag(uint32_t tag);
+SPARC_TAG_INST_ATTR uint32_t read_tsr(void);
+SPARC_TAG_INST_ATTR void write_tsr(uint32_t v);
+SPARC_TAG_INST_ATTR uint32_t read_rma(void);
+SPARC_TAG_INST_ATTR void write_rma(uint32_t addr);
 
 void
 wrtpcv(uint32_t pctag, uint32_t validbit)
