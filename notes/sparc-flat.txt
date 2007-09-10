@@ -6,4 +6,5 @@ Frame pointer: i7
 
 Callee-save registers:
     l0 l1 l2 l3 l4 l5 l6 l7
+    i0 i1 i2 i3 i4 i5 i6 i7
     
