@@ -15,6 +15,15 @@ Apply conf/leon/gcc-mrestore.patch, conf/leon/gcc-leon-nofpu-r3.patch
 	--disable-threads --disable-shared --disable-libmudflap \
 	--disable-libssp
 
+* GCC 3.4.6
+
+Apply conf/leon/gcc3-leon-nofpu.patch
+
+./configure --target=sparc-josflat-linux --prefix=/usr/local \
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp
+
 * GDB
 
 ./configure --target=sparc-jos-linux --prefix=/usr/local \
