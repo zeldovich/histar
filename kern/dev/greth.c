@@ -42,6 +42,72 @@ struct greth_card {
     int tx_nextq;	// next slot for tx buffer
 };
 
+static void
+greth_set_mac(struct greth_regs *regs, const uint8_t *mac)
+{
+    uint32_t msb = mac[0] << 8 | mac[1];
+    uint32_t lsb = mac[2] << 24 | mac[3] << 16 | mac[4] << 8 | mac[5];
+    regs->esa_msb = msb;
+    regs->esa_lsb = lsb;
+    /* Make sure GRETH likes the mac */
+    assert(regs->esa_msb == msb && regs->esa_lsb == lsb);
+}
+
+static int
+greth_wait_mii(struct greth_regs *regs)
+{
+    for (int i = 0; regs->mdio & GRETH_MDIO_BUSY; i++) {
+	if (i == 1000)
+	    return -E_BUSY;
+	timer_delay(20000);
+    }
+    return 0;
+}
+
+static int
+greth_read_mii(uint16_t *nibble, int regaddr, struct greth_regs *regs)
+{
+    /* assumes MDIO_PHYADDR is correct */
+    int r;
+    if ((r = greth_wait_mii(regs)) < 0)
+	return r;
+    
+    regs->mdio =
+	((regaddr & GRETH_MDIO_REGADDR_MASK) << GRETH_MDIO_REGADDR_SHIFT) |
+	GRETH_MDIO_RD;
+
+    if ((r = greth_wait_mii(regs)) < 0)
+	return r;
+
+    if (regs->mdio & GRETH_MDIO_NVALID)
+	return -E_INVAL;
+    
+    *nibble = (regs->mdio >> GRETH_MDIO_DATA_SHIFT) & GRETH_MDIO_DATA_MASK;
+    return 0;
+}
+
+static int __attribute__((unused))
+greth_write_mii(uint16_t nibble, int regaddr, struct greth_regs *regs)
+{
+    /* assumes MDIO_PHYADDR is correct */
+    int r;
+    if ((r = greth_wait_mii(regs)) < 0)
+	return r;
+    
+    regs->mdio =
+	((nibble & GRETH_MDIO_DATA_MASK) << GRETH_MDIO_DATA_SHIFT) | 
+	((regaddr & GRETH_MDIO_REGADDR_MASK) << GRETH_MDIO_REGADDR_SHIFT) |
+	GRETH_MDIO_WR;
+
+    if ((r = greth_wait_mii(regs)) < 0)
+	return r;
+
+    if (regs->mdio & GRETH_MDIO_NVALID)
+	return -E_INVAL;
+
+    return 0;
+}
+
 static void __attribute__((unused))
 greth_dumpstate(struct greth_card *c)
 {
@@ -62,17 +128,15 @@ greth_dumpstate(struct greth_card *c)
 	prev = stat;
     }
     cprintf("\n");
-}
 
-static void
-greth_set_mac(struct greth_regs *regs, const uint8_t *mac)
-{
-    uint32_t msb = mac[0] << 8 | mac[1];
-    uint32_t lsb = mac[2] << 24 | mac[3] << 16 | mac[4] << 8 | mac[5];
-    regs->esa_msb = msb;
-    regs->esa_lsb = lsb;
-    /* Make sure GRETH likes the mac */
-    assert(regs->esa_msb == msb && regs->esa_lsb == lsb);
+    cprintf("greth: MII:\n");
+    for (uint32_t i = 0; i < 0x20; i++) {
+	uint16_t v;
+	assert(0 == greth_read_mii(&v, i, regs));
+	cprintf(" %04x", v);
+	if ((i & 0xf) == 0xf)
+	    cprintf("\n");
+    }
 }
 
 static void

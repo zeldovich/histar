@@ -20,6 +20,18 @@
 #define GRETH_STAT_TS		(1 << 6)
 #define GRETH_STAT_IA		(1 << 7)
 
+/* MDIO control and status register */
+#define GRETH_MDIO_WR		0x01
+#define GRETH_MDIO_RD		0x02
+#define GRETH_MDIO_BUSY		0x08
+#define GRETH_MDIO_NVALID	0x10
+#define GRETH_MDIO_PHYADDR_SHIFT 11
+#define GRETH_MDIO_PHY_MASK	0x1F
+#define GRETH_MDIO_REGADDR_SHIFT 6
+#define GRETH_MDIO_REGADDR_MASK	0x1F
+#define GRETH_MDIO_DATA_SHIFT	16
+#define GRETH_MDIO_DATA_MASK	0xFFFF
+
 /* Buffer status bits */
 #define GRETH_BD_NUM		128
 #define GRETH_BD_LEN		0x000007FF
