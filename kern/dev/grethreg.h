@@ -9,6 +9,7 @@
 #define GRETH_CTRL_FD		(1 << 4)
 #define GRETH_CTRL_PROMISC	(1 << 5)
 #define GRETH_CTRL_RESET	(1 << 6)
+#define GRETH_CTRL_100		(1 << 7)
 
 /* Status register */
 #define GRETH_STAT_RX_ERR	(1 << 0)
