@@ -231,3 +231,56 @@ ENTRY(thread_arch_idle_asm)
 	WRITE_PAUSE
 1:	ba	1b
 	 nop
+
+ENTRY(monitor_trap)
+	set	(monstack_top - TRAPFRAME_SZ), %l5
+
+	STORE_GLOBALS(l5 + TF_G0)
+	mov	%l5, %g7
+
+	rd	%psr, %l0
+	st	%l0, [%l5 + TF_PSR]
+
+	/* Disable traps, though hardware should really do it in theory.. */
+	andn	%l0, PSR_ET | PSR_PIL, %l0
+	wr	%l0, %psr
+
+	rdtr	%epc, %l0
+	st	%l0, [%l5 + TF_PC]
+	rdtr	%enpc, %l0
+	st	%l0, [%l5 + TF_NPC]
+
+	/* Do we need to save the wim? */
+	rd	%wim, %l0
+	st	%l0, [%l5 + TF_WIM]
+	rd	%y, %l0
+	st	%l0, [%l5 + TF_Y]
+
+	restore
+	STORE_OUTS(g7 + TF_O0)
+	STORE_LOCALS(g7 + TF_L0)
+	STORE_INS(g7 + TF_I0)
+	/* Have a saved trapframe, so can use any registers */
+
+	/* Make window 1 invalid */
+	mov	0x02, %wim
+	WRITE_PAUSE
+
+	/* Save the TBR */
+	rd	%tbr, %g6
+
+	/* set CWP to 0, disable interrupts, enable traps */
+	rd	%psr, %l0
+	andn	%l0, PSR_CWP, %l0
+	bset	PSR_ET | PSR_PIL, %l0
+	mov	%l0, %psr
+	WRITE_PAUSE
+
+	mov	%g0, %fp
+	mov	%g7, %sp
+	mov	%g7, %o0	/* arg0: Trapframe */
+	mov	%g6, %o1	/* arg1: tbr */
+
+	call	tag_trap
+	 sub	%sp, STACKFRAME_SZ, %sp
+

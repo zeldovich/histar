@@ -13,4 +13,12 @@
 #define TSR_T		(1 << 25)	/* Trust */
 #define TSR_PT		(1 << 24)	/* Previous Trust */
 
+#ifndef __ASSEMBLER__
+#include <machine/types.h>
+
+void	tag_init(void);
+void	tag_trap(void) __attribute__((noreturn));
+void	tag_set(const void *addr, uint32_t dtag, size_t n);
+#endif
+
 #endif

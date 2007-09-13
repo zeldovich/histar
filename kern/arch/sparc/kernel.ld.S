@@ -38,9 +38,14 @@ SECTIONS
 	/* layout for the kernel stack */
 	. += 0x1000;
 	. = ALIGN(0x1000);
-	PROVIDE(kstack = .); 
+	PROVIDE(kstack = .);
 	. += KSTACK_SIZE;
-	PROVIDE(kstack_top = .);	
+	PROVIDE(kstack_top = .);
+
+	/* monitor-mode stack */
+	PROVIDE(monstack = .);
+	. += KSTACK_SIZE;
+	PROVIDE(monstack_top = .);
 
 	PROVIDE(end = .);
 

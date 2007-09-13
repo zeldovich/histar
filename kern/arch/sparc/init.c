@@ -8,6 +8,7 @@
 #include <machine/trap.h>
 #include <machine/pmap.h>
 #include <machine/sparc-common.h>
+#include <machine/tag.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
 #include <dev/irqmp.h>
@@ -56,6 +57,8 @@ init (void)
     kobject_init();
     sched_init();
     pstate_init();
+
+    //tag_init();
 
     user_init();
 
