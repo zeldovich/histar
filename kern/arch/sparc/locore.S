@@ -291,16 +291,25 @@ flush_more:
 	bnz	flush_done
 	 restore
 
+	/* Check that the %sp is in the kstack range */
 	sub	%sp, %g6, %g4
 	cmp	%g4, KSTACK_SIZE - STACKFRAME_SZ
 	bg	flush_bad
+	 and	%sp, 7, %g4
+
+	/* Check alignment for %sp */
+	cmp	%g4, 0
+	bne	flush_bad
 	 srl	%g2, 1, %g4
+
+	/* Shift the wim bits over */
 	sll	%g2, NWINDOWS - 1, %g5
+	or	%g4, %g5, %g2
 
 	STORE_WINDOW(sp)
 
 	ba	flush_more
-	 or	%g4, %g5, %g2
+	 and	%g2, NWINDOWS - 1, %g2
 
 flush_bad:
 	ba	flush_bad
@@ -319,9 +328,7 @@ flush_done:
 	st	%g1, [%g7 + TF_Y]
 
 	/* Set CWP to 0, enable traps, and disable interrupts */
-	rd	%psr, %g1
-	andn	%g1, PSR_CWP, %g1
-	bset	PSR_ET | PSR_PIL, %g1
+	set	PSR_S | PSR_ET | PSR_PIL, %g1
 	wr	%g1, %psr
 
 	/* Make window 1 invalid */
