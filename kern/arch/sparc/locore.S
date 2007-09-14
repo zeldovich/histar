@@ -319,6 +319,13 @@ flush_done:
 	/* Store the new %wim after flushing */
 	st	%g2, [%g7 + TF_WIM]
 
+	/* Set CWP to 0, enable traps, and disable interrupts */
+	set	PSR_S | PSR_ET | PSR_PIL, %g2
+	wr	%g2, %psr
+
+	/* Make window 1 invalid */
+	mov	2, %wim
+
 	/* Save other special registers */
 	rdtr	%epc, %g1
 	st	%g1, [%g7 + TF_PC]
@@ -327,13 +334,7 @@ flush_done:
 	rd	%y, %g1
 	st	%g1, [%g7 + TF_Y]
 
-	/* Set CWP to 0, enable traps, and disable interrupts */
-	set	PSR_S | PSR_ET | PSR_PIL, %g1
-	wr	%g1, %psr
-
-	/* Make window 1 invalid */
-	mov	2, %wim
-
+	/* Set up stack and args, and call into C code */
 	mov	%g0, %fp
 	mov	%g7, %sp
 	mov	%g7, %o0	/* arg0: Trapframe */
