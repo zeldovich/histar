@@ -6,13 +6,12 @@ void
 machine_reboot(void)
 {
     outb(0x92, 0x3);
+    abort();
 }
 
 void
 abort(void)
 {
-    outw(0x8A00, 0x8A00);
-    outw(0x8A00, 0x8AE0);
     for (;;)
 	;
 }
