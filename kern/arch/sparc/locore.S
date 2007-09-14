@@ -4,13 +4,27 @@
 #include <machine/sparc-config.h>
 #include <machine/memlayout.h>
 
+	.text
+	.align 4096
+
+ENTRY(abort)
+	/*
+	 * Disable the MMU, to simplify re-loading a new kernel with grmon.
+	 * This function is also located at 0x80001000, making it easy to
+	 * reset the MMU using "run 0x80001000".
+	 */
+	lda	[%g0] ASI_MMUREGS, %g3
+	andn	%g3, SRMMU_CTRL_E, %g3
+	sta	%g3, [%g0] ASI_MMUREGS
+1:	ba	1b
+	 nop
+
 #define TRAP_ENTRY \
 	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
 #define WINDOW_ENTRY(label) \
 	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
 
 	/* The Trap Base Address (TBA) must be 4096 aligned */
-	.text
 	.align 4096
 trapbase:
 	.rept 5				/* Traps 0 - 4 */
