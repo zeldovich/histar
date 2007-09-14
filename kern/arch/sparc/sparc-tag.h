@@ -13,10 +13,6 @@ SPARC_TAG_INST_ATTR uint32_t read_dtag(const void *addr);
 SPARC_TAG_INST_ATTR void write_dtag(const void *addr, uint32_t tag);
 SPARC_TAG_INST_ATTR uint32_t read_pctag(void);
 SPARC_TAG_INST_ATTR void write_pctag(uint32_t tag);
-SPARC_TAG_INST_ATTR uint32_t read_tsr(void);
-SPARC_TAG_INST_ATTR void write_tsr(uint32_t v);
-SPARC_TAG_INST_ATTR uint32_t read_rma(void);
-SPARC_TAG_INST_ATTR void write_rma(const void *addr);
 
 void
 wrtpcv(uint32_t pctag, uint32_t validbit)
@@ -65,32 +61,34 @@ write_pctag(uint32_t tag)
     __asm __volatile("wrt %0, %%pc" : : "r" (tag));
 }
 
-uint32_t
-read_tsr(void)
-{
-    uint32_t v;
-    __asm __volatile("rdtr %%tsr, %0" : "=r" (v));
-    return v;
+/*
+ * Tag register read/write access functions.
+ */
+
+#define TAG_REG_RW(regname)				\
+SPARC_TAG_INST_ATTR uint32_t read_##regname(void);	\
+SPARC_TAG_INST_ATTR void write_##regname(uint32_t v);	\
+							\
+uint32_t						\
+read_##regname(void)					\
+{							\
+    uint32_t v;						\
+    __asm __volatile("rdtr %%" #regname ", %0"		\
+		     : "=r" (v));			\
+    return v;						\
+}							\
+							\
+void							\
+write_##regname(uint32_t v)				\
+{							\
+    __asm __volatile("wrtr %0, %%" #regname		\
+		     : : "r" (v));			\
 }
 
-void
-write_tsr(uint32_t v)
-{
-    __asm __volatile("wrtr %0, %%tsr" : : "r" (v));
-}
-
-uint32_t
-read_rma(void)
-{
-    uint32_t v;
-    __asm __volatile("rdtr %%rma, %0" : "=r" (v));
-    return v;
-}
-
-void
-write_rma(const void *addr)
-{
-    __asm __volatile("wrtr %0, %%rma" : : "r" (addr));
-}
+TAG_REG_RW(tsr)
+TAG_REG_RW(rma)
+TAG_REG_RW(et)
+TAG_REG_RW(eoa)
+#undef TAG_REG_RW
 
 #endif
