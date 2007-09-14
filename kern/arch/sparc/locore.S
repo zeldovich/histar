@@ -3,6 +3,7 @@
 #include <machine/asi.h>
 #include <machine/sparc-config.h>
 #include <machine/memlayout.h>
+#include <machine/pmap.h>
 
 	.text
 	.align 4096
@@ -264,44 +265,72 @@ ENTRY(tag_trap_entry)
 	 */
 	set	(monstack_top - TRAPFRAME_SZ), %g7
 
-	rd	%psr, %l0
-	st	%l0, [%g7 + TF_PSR]
-
-	/* Enable traps, disable interrupts */
-	bset	PSR_ET | PSR_PIL, %l0
-	wr	%l0, %psr
-
-	rdtr	%epc, %l0
-	st	%l0, [%g7 + TF_PC]
-	rdtr	%enpc, %l0
-	st	%l0, [%g7 + TF_NPC]
-	rd	%wim, %l0
-	st	%l0, [%g7 + TF_WIM]
-	rd	%y, %l0
-	st	%l0, [%g7 + TF_Y]
+	/* Clear the %wim, we'll be doing some window magic in a bit */
+	rd	%wim, %g2
+	mov	0, %wim
 
 	STORE_REG_SET(o, g7 + TF_O0)
 	STORE_REG_SET(l, g7 + TF_L0)
 	STORE_REG_SET(i, g7 + TF_I0)
 
+	/* Store the PSR, we'll change it to flush windows */
+	rd	%psr, %g3
+	st	%g3, [%g7 + TF_PSR]
+
+	/* Get the CWP out of the PSR, and bump it by one, to flush windows */
+	add	%g3, 1, %g3
+	and	%g3, (NWINDOWS - 1), %g3
+	mov	1, %g1
+	sll	%g1, %g3, %g3		/* g3 = CWP mask bit */
+
+	/* Prepare for range checks in a bit */
+	set	kstack, %g6
+
+flush_more:
+	andcc	%g2, %g3, %g0
+	bnz	flush_done
+	 restore
+
+	sub	%sp, %g6, %g4
+	cmp	%g4, KSTACK_SIZE - STACKFRAME_SZ
+	bg	flush_bad
+	 srl	%g2, 1, %g4
+	sll	%g2, NWINDOWS - 1, %g5
+
+	STORE_WINDOW(sp)
+
+	ba	flush_more
+	 or	%g4, %g5, %g2
+
+flush_bad:
+	ba	flush_bad
+	 nop
+
+flush_done:
+	/* Store the new %wim after flushing */
+	st	%g2, [%g7 + TF_WIM]
+
+	/* Save other special registers */
+	rdtr	%epc, %g1
+	st	%g1, [%g7 + TF_PC]
+	rdtr	%enpc, %g1
+	st	%g1, [%g7 + TF_NPC]
+	rd	%y, %g1
+	st	%g1, [%g7 + TF_Y]
+
+	/* Set CWP to 0, enable traps, and disable interrupts */
+	rd	%psr, %g1
+	andn	%g1, PSR_CWP, %g1
+	bset	PSR_ET | PSR_PIL, %g1
+	wr	%g1, %psr
+
 	/* Make window 1 invalid */
-	mov	0x02, %wim
-	WRITE_PAUSE
-
-	/* Save the TBR */
-	rd	%tbr, %g6
-
-	/* set CWP to 0, disable interrupts, enable traps */
-	rd	%psr, %l0
-	andn	%l0, PSR_CWP, %l0
-	bset	PSR_ET | PSR_PIL, %l0
-	mov	%l0, %psr
-	WRITE_PAUSE
+	mov	2, %wim
 
 	mov	%g0, %fp
 	mov	%g7, %sp
 	mov	%g7, %o0	/* arg0: Trapframe */
-	mov	%g6, %o1	/* arg1: tbr */
+	rd	%tbr, %o1	/* arg1: tbr */
 
 	call	tag_trap
 	 sub	%sp, STACKFRAME_SZ, %sp
