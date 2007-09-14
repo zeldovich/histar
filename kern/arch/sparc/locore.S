@@ -19,22 +19,9 @@ ENTRY(abort)
 1:	ba	1b
 	 nop
 
-#define TRAP_ENTRY \
-	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
-#define WINDOW_ENTRY(label) \
-	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
-
-	/* The Trap Base Address (TBA) must be 4096 aligned */
-	.align 4096
-trapbase:
-	.rept 5				/* Traps 0 - 4 */
-	TRAP_ENTRY
-	.endr
-t_wovf:	WINDOW_ENTRY(window_spill)	/* 5: Window Overflow */
-t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
-	.rept 249			/* Traps 7 - 255 */
-	TRAP_ENTRY
-	.endr
+/*
+ * Bootstrapping.
+ */
 
 ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
@@ -92,6 +79,27 @@ vm_enabled:
 
 	call	init
 	 nop
+
+/*
+ * Trap handling.
+ */
+
+#define TRAP_ENTRY \
+	rd %psr, %l0; rd %wim, %l3; b def_trap; nop;
+#define WINDOW_ENTRY(label) \
+	rd %psr, %l0; mov %l1, %y; ba label; andcc %l0, PSR_PS, %g0;
+
+	/* The Trap Base Address (TBA) must be 4096 aligned */
+	.align 4096
+trapbase:
+	.rept 5				/* Traps 0 - 4 */
+	TRAP_ENTRY
+	.endr
+t_wovf:	WINDOW_ENTRY(window_spill)	/* 5: Window Overflow */
+t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
+	.rept 249			/* Traps 7 - 255 */
+	TRAP_ENTRY
+	.endr
 
 def_trap:
 	set	(kstack_top - TRAPFRAME_SZ), %l5
@@ -165,6 +173,15 @@ ENTRY(trapframe_pop)
 	jmp	%l1
 	 rett	%l2
 
+ENTRY(thread_arch_idle_asm)
+	/* enable interrupts */
+	rd	%psr, %l3
+	andn	%l3, PSR_PIL, %l3
+	mov	%l3, %psr
+	WRITE_PAUSE
+1:	ba	1b
+	 nop
+
 /* Window overflow/spill and underflow/fill handlers.
  * After the branch and delay are executed in window_fill/spill,
  * the register state is:
@@ -237,14 +254,9 @@ user_fill:
 	jmp	%l7
 	 rett	%l7 + 4
 
-ENTRY(thread_arch_idle_asm)
-	/* enable interrupts */
-	rd	%psr, %l3
-	andn	%l3, PSR_PIL, %l3
-	mov	%l3, %psr
-	WRITE_PAUSE
-1:	ba	1b
-	 nop
+/*
+ * Tag traps.
+ */
 
 ENTRY(monitor_trap)
 	set	(monstack_top - TRAPFRAME_SZ), %l5

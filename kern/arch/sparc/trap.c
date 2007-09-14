@@ -17,6 +17,7 @@
 static uint64_t trap_user_iret_tsc;
 static const struct Thread *trap_thread;
 static int trap_thread_syscall_writeback;
+static int in_idle;
 
 static void
 print_state(const char *s, const struct Thread *t)
@@ -192,12 +193,21 @@ trap_handler(struct Trapframe *tf, uint32_t tbr)
 {
     uint32_t trapno = (tbr >> TBR_TT_SHIFT) & TBR_TT_MASK;
 
+    if (!in_idle && (tf->tf_psr & PSR_PS)) {
+	cprintf("trap in supervisor mode\n");
+	cprintf("trapno = %d\n", trapno);
+	trapframe_print(tf);
+	panic("cannot continue");
+    }
+
+    in_idle = 0;
+
     if (trap_thread) {
 	struct Thread *t = &kobject_dirty(&trap_thread->th_ko)->th;
 	sched_stop(t, karch_get_tsc() - trap_user_iret_tsc);
 	t->th_tf = *tf;
     }
-    
+
     trap_dispatch(trapno, tf);    
     thread_run();
 }
@@ -255,6 +265,8 @@ thread_arch_idle(void)
 {
     trap_thread_set(0);
     trap_user_iret_tsc = karch_get_tsc();
+
+    in_idle = 1;
     thread_arch_idle_asm();
 }
 
