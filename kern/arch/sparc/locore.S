@@ -260,18 +260,23 @@ user_fill:
  */
 
 ENTRY(tag_trap_entry)
-	/*
-	 * The hardware should set TSR_T, TSR_EG, so no need to save globals.
-	 */
+	wrtr	%g7, %rma
 	set	(monstack_top - TRAPFRAME_SZ), %g7
+
+	STORE_REG_SET(g, g7 + TF_G0)
+	STORE_REG_SET(o, g7 + TF_O0)
+	STORE_REG_SET(l, g7 + TF_L0)
+	STORE_REG_SET(i, g7 + TF_I0)
+
+	/* Restore the original %g7 and %rma values */
+	rdtr	%rma, %g1
+	st	%g1, [%g7 + TF_G7]
+	set	tag_trap_entry, %g1
+	wrtr	%g1, %rma
 
 	/* Clear the %wim, we'll be doing some window magic in a bit */
 	rd	%wim, %g2
 	mov	0, %wim
-
-	STORE_REG_SET(o, g7 + TF_O0)
-	STORE_REG_SET(l, g7 + TF_L0)
-	STORE_REG_SET(i, g7 + TF_I0)
 
 	/* Store the PSR, we'll change it to flush windows */
 	rd	%psr, %g3
@@ -358,13 +363,16 @@ ENTRY(tag_trap_return)
 	mov	%l2, %y
 
 	ld	[%g6 + TF_PC],  %g1
-	ld	[%g6 + TF_NPC], %g2
+	wrtr	%g1, %epc
+	ld	[%g6 + TF_NPC], %g1
+	wrtr	%g1, %enpc
 
 	LOAD_REG_SET(i, g6 + TF_I0)
 	LOAD_REG_SET(l, g6 + TF_L0)
 	LOAD_REG_SET(o, g6 + TF_O0)
+	LOAD_REG_SET(g, g6 + TF_G0)
 
-	jmp	%g1
-	 //tret	%g2	/* XXX what's the implicit operand for tret? */
-	 rett	%g2
+	/* tret jumps to epc, enpc */
+	tret
+	 nop
 
