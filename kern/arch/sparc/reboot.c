@@ -5,4 +5,5 @@ void
 machine_reboot(void)
 {
     cprintf("No idea how to reboot.\n");
+    abort();
 }
