@@ -41,8 +41,8 @@ trapframe_print(const struct Trapframe *tf)
 		tf->tf_reg[i + 16], tf->tf_reg[i + 24]);
     }
     cprintf("\n");
-    cprintf(" psr: %08x  y: %08x  pc: %08x  npc: %08x\n",
-	    tf->tf_psr, tf->tf_y, tf->tf_pc, tf->tf_npc);
+    cprintf(" psr: %08x  y: %08x  pc: %08x  npc: %08x  wim: %08x\n",
+	    tf->tf_psr, tf->tf_y, tf->tf_pc, tf->tf_npc, tf->tf_wim);
 }
 
 static void
