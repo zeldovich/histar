@@ -104,7 +104,7 @@ t_wunf:	WINDOW_ENTRY(window_fill)	/* 6: Window Underflow */
 def_trap:
 	set	(kstack_top - TRAPFRAME_SZ), %l5
 
-	STORE_GLOBALS(l5 + TF_G0)
+	STORE_REG_SET(g, l5 + TF_G0)
 
 	st	%l0, [%l5 + TF_PSR]
 	st	%l1, [%l5 + TF_PC]
@@ -116,9 +116,9 @@ def_trap:
 	mov	%l5, %g7
 
 	restore
-	STORE_OUTS(g7 + TF_O0)
-	STORE_LOCALS(g7 + TF_L0)
-	STORE_INS(g7 + TF_I0)
+	STORE_REG_SET(o, g7 + TF_O0)
+	STORE_REG_SET(l, g7 + TF_L0)
+	STORE_REG_SET(i, g7 + TF_I0)
 	/* Have a saved trapframe, so can use any registers */
 
 	/* Make window 1 invalid */
@@ -150,15 +150,15 @@ ENTRY(trapframe_pop)
 	
 	/* move to window we want to reload */
 	restore
-			
-	LOAD_INS(g1 + TF_I0)
-	LOAD_LOCALS(g1 + TF_L0)
-	LOAD_OUTS(g1 + TF_O0)
+
+	LOAD_REG_SET(i, g1 + TF_I0)
+	LOAD_REG_SET(l, g1 + TF_L0)
+	LOAD_REG_SET(o, g1 + TF_O0)
 
 	save
 
 	mov	%g1, %l0
-	LOAD_GLOBALS(l0 + TF_G0)
+	LOAD_REG_SET(g, l0 + TF_G0)
 
 	ld	[%l0 + TF_PC], %l1
 	ld	[%l0 + TF_NPC], %l2
@@ -196,7 +196,7 @@ window_spill:
 	bz	user_spill
 	 mov	%l2, %g5
 
-kernel_spill:	
+kernel_spill:
 	mov	%g1, %l7
 
 	/* rotate WIM bit right */
@@ -223,7 +223,7 @@ user_spill:
 	set	UWINOVERFLOW, %l7
 	jmp	%l7
 	 rett	%l7 + 4
-	
+
 window_fill:	
 	bz	user_fill
 	 mov	%l2, %g5
@@ -258,35 +258,31 @@ user_fill:
  * Tag traps.
  */
 
-ENTRY(monitor_trap)
-	set	(monstack_top - TRAPFRAME_SZ), %l5
-
-	STORE_GLOBALS(l5 + TF_G0)
-	mov	%l5, %g7
+ENTRY(tag_trap_entry)
+	/*
+	 * The hardware should set TSR_T, TSR_EG, so no need to save globals.
+	 */
+	set	(monstack_top - TRAPFRAME_SZ), %g7
 
 	rd	%psr, %l0
-	st	%l0, [%l5 + TF_PSR]
+	st	%l0, [%g7 + TF_PSR]
 
-	/* Disable traps, though hardware should really do it in theory.. */
-	andn	%l0, PSR_ET | PSR_PIL, %l0
+	/* Enable traps, disable interrupts */
+	bset	PSR_ET | PSR_PIL, %l0
 	wr	%l0, %psr
 
 	rdtr	%epc, %l0
-	st	%l0, [%l5 + TF_PC]
+	st	%l0, [%g7 + TF_PC]
 	rdtr	%enpc, %l0
-	st	%l0, [%l5 + TF_NPC]
-
-	/* Do we need to save the wim? */
+	st	%l0, [%g7 + TF_NPC]
 	rd	%wim, %l0
-	st	%l0, [%l5 + TF_WIM]
+	st	%l0, [%g7 + TF_WIM]
 	rd	%y, %l0
-	st	%l0, [%l5 + TF_Y]
+	st	%l0, [%g7 + TF_Y]
 
-	restore
-	STORE_OUTS(g7 + TF_O0)
-	STORE_LOCALS(g7 + TF_L0)
-	STORE_INS(g7 + TF_I0)
-	/* Have a saved trapframe, so can use any registers */
+	STORE_REG_SET(o, g7 + TF_O0)
+	STORE_REG_SET(l, g7 + TF_L0)
+	STORE_REG_SET(i, g7 + TF_I0)
 
 	/* Make window 1 invalid */
 	mov	0x02, %wim
@@ -309,4 +305,29 @@ ENTRY(monitor_trap)
 
 	call	tag_trap
 	 sub	%sp, STACKFRAME_SZ, %sp
+
+ENTRY(tag_trap_return)
+	mov	%g0, %wim
+
+	mov	%o0, %g6	/* arg0: Trapframe */
+	mov	%o1, %tbr	/* arg1: tbr */
+
+	ld	[%g6 + TF_PSR], %l0
+	ld	[%g6 + TF_WIM], %l1
+	ld	[%g6 + TF_Y],   %l2
+
+	mov	%l0, %psr
+	mov	%l1, %wim
+	mov	%l2, %y
+
+	ld	[%g6 + TF_PC],  %g1
+	ld	[%g6 + TF_NPC], %g2
+
+	LOAD_REG_SET(i, g6 + TF_I0)
+	LOAD_REG_SET(l, g6 + TF_L0)
+	LOAD_REG_SET(o, g6 + TF_O0)
+
+	jmp	%g1
+	 //tret	%g2	/* XXX what's the implicit operand for tret? */
+	 rett	%g2
 

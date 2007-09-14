@@ -26,7 +26,12 @@
 #include <machine/mmu.h>
 
 void	tag_init(void);
+
+void	tag_trap_entry(void) __attribute__((noreturn));
 void	tag_trap(struct Trapframe *tf, uint32_t tbr) __attribute__((noreturn));
+void	tag_trap_return(const struct Trapframe *tf,
+			uint32_t tbr) __attribute__((noreturn));
+
 void	tag_set(const void *addr, uint32_t dtag, size_t n);
 #endif
 

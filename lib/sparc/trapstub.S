@@ -18,9 +18,9 @@ utrap_ret:
 	ld	[%g7 + 136], %g6
 	mov	%g6, %y
 
-	LOAD_INS(g7 + TF_I0)
-	LOAD_LOCALS(g7 + TF_L0)
-	LOAD_OUTS(g7 + TF_O0)
+	LOAD_REG_SET(i, g7 + TF_I0)
+	LOAD_REG_SET(l, g7 + TF_L0)
+	LOAD_REG_SET(o, g7 + TF_O0)
 
 	ld	[%g7 + TF_G1], %g1
 	ldd	[%g7 + TF_G2], %g2

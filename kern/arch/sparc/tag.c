@@ -23,11 +23,14 @@ tag_trap(struct Trapframe *tf, uint32_t tbr)
 {
     cprintf("tag trap...\n");
 
-    cprintf("  et = 0x%x\n", read_et());
+    cprintf("  et  = 0x%x\n", read_et());
     cprintf("  eoa = 0x%x\n", read_eoa());
     cprintf("  tsr = 0x%x\n", read_tsr());
+    cprintf("  tf  = %p\n", tf);
+    cprintf("  pc  = 0x%x\n", tf->tf_pc);
+    cprintf("  tbr = 0x%x\n", tbr);
 
-    panic("tag_trap at 0x%x, tbr=0x%x", tf->tf_pc, tbr);
+    abort();
 }
 
 void
@@ -56,7 +59,7 @@ tag_init(void)
     cprintf("tsr = 0x%x\n", read_tsr());
 
     cprintf("rma = 0x%x\n", read_rma());
-    write_rma((uintptr_t) &tag_trap);
+    write_rma((uintptr_t) &tag_trap_entry);
     cprintf("rma = 0x%x\n", read_rma());
 
     write_tsr(0);
