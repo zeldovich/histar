@@ -39,7 +39,7 @@ physaddr_t ppn2pa(ppn_t pn);
  * Miscellaneous
  */
 extern char boot_cmdline[];
-void machine_reboot(void);
+void machine_reboot(void) __attribute__((noreturn));
 uintptr_t karch_get_sp(void);
 uint64_t karch_get_tsc(void);
 void karch_jmpbuf_init(struct jos_jmp_buf *jb, void *fn, void *stackbase);
