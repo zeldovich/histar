@@ -124,7 +124,7 @@ def_trap:
 
 	/* Make window 1 invalid */
 	mov	0x02, %wim
-	WRITE_PAUSE
+
 	/* set CWP to 0, disable interrupts, enable traps */
 	rd	%psr, %l0
 	andn	%l0, PSR_CWP, %l0
@@ -148,7 +148,7 @@ ENTRY(trapframe_pop)
 	ld	[%g1 + TF_PSR], %l0
 	mov	%l0, %psr
 	WRITE_PAUSE
-	
+
 	/* move to window we want to reload */
 	restore
 
@@ -161,16 +161,14 @@ ENTRY(trapframe_pop)
 	mov	%g1, %l0
 	LOAD_REG_SET(g, l0 + TF_G0)
 
-	ld	[%l0 + TF_PC], %l1
-	ld	[%l0 + TF_NPC], %l2
-
-	ld	[%l0 + TF_Y], %l3
-	mov	%l3, %y
-
 	ld	[%l0 + TF_WIM], %l3
 	mov	%l3, %wim
-	WRITE_PAUSE
-	
+
+	ld	[%l0 + TF_PC], %l1
+	ld	[%l0 + TF_NPC], %l2
+	ld	[%l0 + TF_Y], %l3
+
+	mov	%l3, %y
 	jmp	%l1
 	 rett	%l2
 
@@ -179,7 +177,6 @@ ENTRY(thread_arch_idle_asm)
 	rd	%psr, %l3
 	andn	%l3, PSR_PIL, %l3
 	mov	%l3, %psr
-	WRITE_PAUSE
 1:	ba	1b
 	 nop
 
@@ -209,10 +206,8 @@ kernel_spill:
         /* CWP to window we are going to trap onto next */
 	save
 	mov	%g1, %wim
-	WRITE_PAUSE
 
 	STORE_WINDOW(sp)
-
 	restore
 
 	mov	%l7, %g1
