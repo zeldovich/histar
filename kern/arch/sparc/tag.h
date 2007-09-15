@@ -34,9 +34,16 @@
  * Pre-defined tag values
  */
 
-#define DTAG_NOACCESS	0		/* Monitor access only */
-#define DTAG_KERNEL_RO	1		/* Read-only kernel text, data */
-#define DTAG_DYNAMIC	2		/* Start dynamically-allocated */
+#define DTAG_NOACCESS	1		/* Monitor access only */
+#define DTAG_KERNEL_RO	2		/* Read-only kernel text, data */
+#define DTAG_KSTACK	3		/* Kernel-mode stack */
+
+/*
+ * Tag trap errors
+ */
+
+#define TAG_TERR_RANGE	1
+#define TAG_TERR_ALIGN	2
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -45,9 +52,10 @@
 void	tag_init(void);
 
 void	tag_trap_entry(void) __attribute__((noreturn));
-void	tag_trap(struct Trapframe *tf, uint32_t tbr) __attribute__((noreturn));
-void	tag_trap_return(const struct Trapframe *tf,
-			uint32_t tbr) __attribute__((noreturn));
+void	tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err)
+		__attribute__((noreturn));
+void	tag_trap_return(const struct Trapframe *tf, uint32_t tbr)
+		__attribute__((noreturn));
 
 void	tag_set(const void *addr, uint32_t dtag, size_t n);
 #endif

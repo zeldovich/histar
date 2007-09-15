@@ -4,6 +4,7 @@
 #include <machine/sparc-config.h>
 #include <machine/memlayout.h>
 #include <machine/pmap.h>
+#include <machine/tag.h>
 
 	.text
 	.align 4096
@@ -301,27 +302,31 @@ flush_more:
 
 	/* Check that the %sp is in the kstack range */
 	sub	%sp, %g6, %g4
-	cmp	%g4, KSTACK_SIZE - STACKFRAME_SZ
-	bg	flush_bad
-	 and	%sp, 7, %g4
+	cmp	%g4, (KSTACK_SIZE - STACKFRAME_SZ)
+	bg	flush_out_of_range
+	 and	%sp, 7, %g1
 
 	/* Check alignment for %sp */
-	cmp	%g4, 0
-	bne	flush_bad
+	cmp	%g1, 0
+	bne	flush_bad_align
 	 srl	%g2, 1, %g4
 
 	/* Shift the wim bits over */
-	sll	%g2, NWINDOWS - 1, %g5
-	or	%g4, %g5, %g2
+	sll	%g2, NWINDOWS - 1, %g1
+	or	%g4, %g1, %g2
 
 	STORE_WINDOW(sp)
 
 	ba	flush_more
 	 and	%g2, NWINDOWS - 1, %g2
 
-flush_bad:
-	ba	flush_bad
-	 nop
+flush_out_of_range:
+	ba	tag_call_up
+	 mov	TAG_TERR_RANGE, %o2
+
+flush_bad_align:
+	ba	tag_call_up
+	 mov	TAG_TERR_ALIGN, %o2
 
 flush_done:
 	/* Store the new %wim after flushing */
@@ -342,6 +347,8 @@ flush_done:
 	rd	%y, %g1
 	st	%g1, [%g7 + TF_Y]
 
+	mov	0, %o2		/* arg2: error code */
+tag_call_up:
 	/* Set up stack and args, and call into C code */
 	mov	%g0, %fp
 	mov	%g7, %sp

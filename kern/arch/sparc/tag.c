@@ -1,6 +1,7 @@
 #include <machine/types.h>
 #include <machine/tag.h>
 #include <machine/sparc-tag.h>
+#include <machine/trap.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
 
@@ -19,7 +20,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 }
 
 void
-tag_trap(struct Trapframe *tf, uint32_t tbr)
+tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err)
 {
     cprintf("tag trap...\n");
 
@@ -28,13 +29,24 @@ tag_trap(struct Trapframe *tf, uint32_t tbr)
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
 
+    cprintf("  err    = %d\n", err);
     cprintf("  pc tag = %d\n", pctag);
     cprintf("  d tag  = %d\n", dtag);
     cprintf("  cause  = %d\n", cause);
+    cprintf("  eoa    = 0x%x\n", read_eoa());
     cprintf("  tsr = 0x%x\n", read_tsr());
     cprintf("  tf  = %p\n", tf);
     cprintf("  pc  = 0x%x\n", tf->tf_pc);
 
+    if (err) {
+	trapframe_print(tf);
+	abort();
+    }
+
+    uint32_t text_tag = read_dtag((void *) tf->tf_pc);
+    cprintf("  tag for text at pc = %d\n", text_tag);
+
+/*
     switch (cause) {
     case ET_CAUSE_PCV:
     case ET_CAUSE_DV:
@@ -55,10 +67,14 @@ tag_trap(struct Trapframe *tf, uint32_t tbr)
     default:
 	panic("Unknown cause value from the ET register\n");
     }
+*/
 
-    for (uint32_t i = 0; i < (1 << TAG_PC_BITS); i++)
-	for (uint32_t j = 0; j < (1 << TAG_DATA_BITS); j++)
-	    wrtperm(i, j, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    wrtperm(2, DTAG_NOACCESS, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    wrtperm(2, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    wrtperm(2, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    wrtperm(2, 6, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+
+    //wrtperm(2, 0, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
 
     static int count = 0;
     count++;
@@ -76,6 +92,7 @@ void
 tag_init(void)
 {
     write_rma((uintptr_t) &tag_trap_entry);
+    write_tsr(TSR_T);
 
     cprintf("Initializing tag permission table.. ");
 
@@ -92,26 +109,23 @@ tag_init(void)
     cprintf("done.\n");
 
     cprintf("Initializing memory tags.. ");
-    for (uint32_t i = 0; i < global_npages; i++)
-	tag_set(pa2kva(ppn2pa(i)), DTAG_NOACCESS, PGSIZE);
-
-    for (void *p = (void *) &stext[0]; p < (void *) &erodata[0]; p += 4)
-	write_dtag(p, DTAG_KERNEL_RO);
+    tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
+    tag_set(&stext[0], DTAG_KERNEL_RO, &erodata[0] - &stext[0]);
+    tag_set(&kstack[0], DTAG_KSTACK, KSTACK_SIZE);
     cprintf("done.\n");
 
     cprintf("Tag testing..\n");
 
-    cprintf("vp = %p\n", &v);
-    cprintf("v tag = %d\n", read_dtag((void *) &v));
+    //cprintf("vp = %p\n", &v);
+    //cprintf("v tag = %d\n", read_dtag((void *) &v));
     write_dtag((void *) &v, 6);
     cprintf("v tag = %d\n", read_dtag((void *) &v));
 
-    cprintf("pc tag = %d\n", read_pctag());
+    //cprintf("pc tag = %d\n", read_pctag());
     write_pctag(2);
     cprintf("pc tag = %d\n", read_pctag());
 
-    cprintf("tsr = 0x%x\n", read_tsr());
-
+    //cprintf("tsr = 0x%x\n", read_tsr());
     cprintf("about to cause tag traps...\n");
     write_tsr(0);
     v = 5;
