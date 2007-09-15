@@ -294,6 +294,7 @@ ENTRY(tag_trap_entry)
 
 	/* Prepare for range checks in a bit */
 	set	kstack, %g6
+	set	(KSTACK_SIZE - STACKFRAME_SZ), %g5
 
 flush_more:
 	andcc	%g2, %g3, %g0
@@ -302,7 +303,7 @@ flush_more:
 
 	/* Check that the %sp is in the kstack range */
 	sub	%sp, %g6, %g4
-	cmp	%g4, (KSTACK_SIZE - STACKFRAME_SZ)
+	cmp	%g4, %g5
 	bg	flush_out_of_range
 	 and	%sp, 7, %g1
 
