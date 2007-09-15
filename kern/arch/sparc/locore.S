@@ -307,11 +307,10 @@ flush_more:
 	/* Check that the %sp is in the kstack range */
 	cmp	%g4, %g5
 	bg	flush_out_of_range
-	 and	%sp, 7, %g1
+	 andcc	%sp, 7, %g0
 
 	/* Check alignment for %sp */
-	cmp	%g1, 0
-	bne	flush_bad_align
+	bnz	flush_bad_align
 	 srl	%g2, 1, %g4
 
 	/* Shift the wim bits over */
@@ -324,16 +323,15 @@ flush_more:
 	 and	%g2, NWINDOWS - 1, %g2
 
 flush_out_of_range:
-	mov	%g4, %g2
 	ba	flush_error
 	 mov	TAG_TERR_RANGE, %g1
 
 flush_bad_align:
-	mov	%g1, %g2
 	ba	flush_error
 	 mov	TAG_TERR_ALIGN, %g1
 
 flush_error:
+	mov	%sp, %g2
 	set	PSR_S | PSR_ET | PSR_PIL, %g4
 	wr	%g4, %psr
 	mov	2, %wim
