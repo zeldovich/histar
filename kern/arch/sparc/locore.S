@@ -382,9 +382,9 @@ ENTRY(tag_trap_return)
 	ld	[%g6 + TF_WIM], %l1
 	ld	[%g6 + TF_Y],   %l2
 
-	mov	%l0, %psr
-	mov	%l1, %wim
 	mov	%l2, %y
+	mov	%l1, %wim
+	mov	%l0, %psr
 
 	ld	[%g6 + TF_PC],  %g1
 	wrtr	%g1, %epc
