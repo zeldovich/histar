@@ -20,7 +20,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 }
 
 void
-tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err)
+tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
 {
     cprintf("tag trap...\n");
 
@@ -29,7 +29,7 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err)
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
 
-    cprintf("  err    = %d\n", err);
+    cprintf("  err    = %d / %x\n", err, errv);
     cprintf("  pc tag = %d\n", pctag);
     cprintf("  d tag  = %d\n", dtag);
     cprintf("  cause  = %d\n", cause);
