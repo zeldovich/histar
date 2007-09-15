@@ -321,12 +321,20 @@ flush_more:
 	 and	%g2, NWINDOWS - 1, %g2
 
 flush_out_of_range:
-	ba	tag_call_up
-	 mov	TAG_TERR_RANGE, %o2
+	ba	flush_error
+	 mov	TAG_TERR_RANGE, %g1
 
 flush_bad_align:
+	ba	flush_error
+	 mov	TAG_TERR_ALIGN, %g1
+
+flush_error:
+	set	PSR_S | PSR_ET | PSR_PIL, %g2
+	wr	%g2, %psr
+	mov	2, %wim
+	WRITE_PAUSE
 	ba	tag_call_up
-	 mov	TAG_TERR_ALIGN, %o2
+	 mov	%g1, %o2
 
 flush_done:
 	/* Store the new %wim after flushing */
