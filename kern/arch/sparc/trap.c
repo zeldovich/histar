@@ -31,7 +31,7 @@ print_state(const char *s, const struct Thread *t)
 	    t->th_tf.tf_regs.sp);
 }
 
-static void
+void
 trapframe_print(const struct Trapframe *tf)
 {
     cprintf("       globals     outs   locals      ins\n");

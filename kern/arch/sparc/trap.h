@@ -14,4 +14,7 @@ void trapframe_pop(const struct Trapframe *) __attribute__((__noreturn__));
 // Idle with interrupts enabled
 void thread_arch_idle_asm(void) __attribute__((noreturn));
 
+// Debugging
+void trapframe_print(const struct Trapframe *tf);
+
 #endif
