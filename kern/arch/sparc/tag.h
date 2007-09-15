@@ -10,8 +10,8 @@
 #define ET_OPCODE_MASK	0x7fff
 #define ET_CAUSE_SHIFT	15
 #define ET_CAUSE_MASK	0x7
-#define ET_TAG_SHIFT	28
-#define ET_TAG_MASK	0xf
+#define ET_TAG_SHIFT	25
+#define ET_TAG_MASK	0x7f
 
 #define ET_CAUSE_PCV	0
 #define ET_CAUSE_DV	1
