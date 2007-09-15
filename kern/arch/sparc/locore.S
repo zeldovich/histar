@@ -10,6 +10,13 @@
 
 ENTRY(abort)
 	/*
+	 * Set full %wim and turn off traps to trigger a CPU error later.
+	 */
+	mov	0xff, %wim
+	set	PSR_S, %g2
+	wr	%g2, %psr
+
+	/*
 	 * Disable the MMU, to simplify re-loading a new kernel with grmon.
 	 * This function is also located at 0x80001000, making it easy to
 	 * reset the MMU using "run 0x80001000".
@@ -17,8 +24,9 @@ ENTRY(abort)
 	lda	[%g0] ASI_MMUREGS, %g3
 	andn	%g3, SRMMU_CTRL_E, %g3
 	sta	%g3, [%g0] ASI_MMUREGS
+
 1:	ba	1b
-	 nop
+	 save
 
 /*
  * Bootstrapping.
@@ -28,7 +36,7 @@ ENTRY(start)
 	/* Turn on Supervisor, EnableFloating, and all the PIL bits.
 	 * Also puts us in register window zero with traps off.
 	 */
-	set	(PSR_PS | PSR_S | PSR_PIL | PSR_EF), %g2
+	set	(PSR_S | PSR_PIL | PSR_EF), %g2
 	wr	%g2, %psr
 	WRITE_PAUSE
 		
