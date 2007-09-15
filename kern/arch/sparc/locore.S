@@ -73,8 +73,7 @@ vm_enabled:
 	WRITE_PAUSE
 
 	/* kernel stack */
-	set	kstack_top, %g1
-	or	%g0, %g1, %sp
+	set	(kstack_top - STACKFRAME_SZ), %sp
 	mov	0, %fp
 
 	/* Start using the trap table  */
@@ -301,8 +300,11 @@ flush_more:
 	bnz	flush_done
 	 restore
 
+	cmp	%sp, %g0
+	be	flush_done
+	 sub	%sp, %g6, %g4
+
 	/* Check that the %sp is in the kstack range */
-	sub	%sp, %g6, %g4
 	cmp	%g4, %g5
 	bg	flush_out_of_range
 	 and	%sp, 7, %g1
