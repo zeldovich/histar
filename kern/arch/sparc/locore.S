@@ -314,13 +314,13 @@ flush_more:
 	 srl	%g2, 1, %g4
 
 	/* Shift the wim bits over */
-	sll	%g2, NWINDOWS - 1, %g1
-	or	%g4, %g1, %g2
+	sll	%g2, NWINDOWS - 1, %g2
+	or	%g4, %g2, %g2
 
 	STORE_WINDOW(sp)
 
 	ba	flush_more
-	 and	%g2, NWINDOWS - 1, %g2
+	 and	%g2, ((1 << NWINDOWS) - 1), %g2
 
 flush_out_of_range:
 	ba	flush_error
