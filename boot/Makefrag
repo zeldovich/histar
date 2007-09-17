@@ -49,11 +49,11 @@ $(OBJDIR)/fs/fs.img:
 
 # Build a bootable iso
 $(OBJDIR)/boot/boot.iso: IMAGE_CMDLINE = default histar
-$(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/bimage
+$(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/bimage.init
 	-rm -rf $(@D)/isoimage
 	@mkdir -p $(@D)/isoimage
 	cp boot/isolinux.bin $(@D)/isoimage/isolinux.bin
-	cp $(OBJDIR)/boot/bimage $(@D)/isoimage/histar
+	cp $(OBJDIR)/boot/bimage.init $(@D)/isoimage/histar
 	echo '$(IMAGE_CMDLINE)' > $(@D)/isoimage/isolinux.cfg
 	mkisofs -J -r -o $@ -b isolinux.bin -c boot.cat \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
