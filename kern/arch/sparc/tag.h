@@ -34,6 +34,7 @@
  * Pre-defined tag values
  */
 
+#define DTAG_DEVICE	0		/* Device memory-mapped regs */
 #define DTAG_NOACCESS	1		/* Monitor access only */
 #define DTAG_KERNEL_RO	2		/* Read-only kernel text, data */
 #define DTAG_KSTACK	3		/* Kernel-mode stack */

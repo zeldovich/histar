@@ -9,6 +9,14 @@ extern const uint8_t stext[], erodata[];
 extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
 
+const char* cause_table[] = {
+    [ET_CAUSE_PCV]   = "PC tag invalid",
+    [ET_CAUSE_DV]    = "Data tag invalid",
+    [ET_CAUSE_READ]  = "Read permission",
+    [ET_CAUSE_WRITE] = "Write permission",
+    [ET_CAUSE_EXEC]  = "Execute permission",
+};
+
 void
 tag_set(const void *addr, uint32_t dtag, size_t n)
 {
@@ -29,28 +37,25 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
 
-    cprintf("  err    = %d / %x\n", err, errv);
     cprintf("  pc tag = %d\n", pctag);
     cprintf("  d tag  = %d\n", dtag);
-    cprintf("  cause  = %d\n", cause);
-    cprintf("  eoa    = 0x%x\n", read_eoa());
-    cprintf("  tsr = 0x%x\n", read_tsr());
-    cprintf("  tf  = %p\n", tf);
-    cprintf("  pc  = 0x%x\n", tf->tf_pc);
+    cprintf("  cause  = %s (%d)\n",
+	    cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown", cause);
+
+    trapframe_print(tf);
 
     if (err) {
+	cprintf("  err = %d [%x]\n", err, errv);
 	trapframe_print(tf);
 	abort();
     }
 
-    uint32_t text_tag = read_dtag((void *) tf->tf_pc);
-    cprintf("  tag for text at pc = %d\n", text_tag);
-
-/*
     switch (cause) {
     case ET_CAUSE_PCV:
+	panic("Missing PC tag valid bits?!");
+
     case ET_CAUSE_DV:
-	panic("Missing PC/data tag valid bits?!");
+	panic("Missing data tag valid bits?!");
 
     case ET_CAUSE_READ:
 	wrtperm(pctag, dtag, TAG_PERM_READ);
@@ -61,26 +66,11 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
 	break;
 
     case ET_CAUSE_EXEC:
-	wrtperm(pctag, dtag, TAG_PERM_EXEC | TAG_PERM_READ);
+	wrtperm(pctag, dtag, TAG_PERM_EXEC);
 	break;
 
     default:
 	panic("Unknown cause value from the ET register\n");
-    }
-*/
-
-    wrtperm(2, DTAG_NOACCESS, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-    wrtperm(2, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-    wrtperm(2, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-    wrtperm(2, 6, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-
-    //wrtperm(2, 0, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
-
-    static int count = 0;
-    count++;
-    if (count == 4) {
-	cprintf("enough traps\n");
-	abort();
     }
 
     tag_trap_return(tf, tbr);
@@ -107,6 +97,18 @@ tag_init(void)
 	for (uint32_t j = 0; j < (1 << TAG_DATA_BITS); j++)
 	    wrtperm(i, j, 0);
     cprintf("done.\n");
+
+    wrtperm(2, 0, TAG_PERM_READ | TAG_PERM_WRITE);
+    wrtperm(2, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_EXEC);
+    wrtperm(2, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE);
+    wrtperm(2, 6, TAG_PERM_READ | TAG_PERM_WRITE);
+
+    /*
+     * Currently we don't properly tag all of our memory pages,
+     * so in order to access all of the dynamically allocated
+     * memory, kobjects, user segments, and so on, we need this..
+     */
+    wrtperm(2, DTAG_NOACCESS, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
 
     cprintf("Initializing memory tags.. ");
     tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
