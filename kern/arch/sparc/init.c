@@ -44,11 +44,11 @@ init (void)
     irqmp_init();
 
     gptimer_init();
-
     apbucons_init();
-    amba_print();
+    //amba_print();
 
     page_init();
+    tag_init();
 
     r = greth_init();
     if (r < 0)
@@ -57,8 +57,6 @@ init (void)
     kobject_init();
     sched_init();
     pstate_init();
-
-    //tag_init();
 
     user_init();
 

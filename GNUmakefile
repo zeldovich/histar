@@ -8,10 +8,10 @@
 
 # Target kernel architecture/type
 
-K_ARCH	:= amd64
+#K_ARCH	:= amd64
 #K_ARCH	:= i386
 #K_ARCH	:= ft
-#K_ARCH	:= sparc
+K_ARCH	:= sparc
 #K_ARCH	:= um
 
 ## Use multiple objdirs to build multiple architectures with same source tree
