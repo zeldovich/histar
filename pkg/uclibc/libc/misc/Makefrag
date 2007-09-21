@@ -1,0 +1,82 @@
+OBJDIRS += \
+	pkg/uclibc/libc/misc/assert \
+	pkg/uclibc/libc/misc/ctype \
+	pkg/uclibc/libc/misc/error \
+	pkg/uclibc/libc/misc/internals \
+	pkg/uclibc/libc/misc/locale \
+	pkg/uclibc/libc/misc/dirent \
+	pkg/uclibc/libc/misc/time \
+	pkg/uclibc/libc/misc/fnmatch \
+	pkg/uclibc/libc/misc/gnu \
+	pkg/uclibc/libc/misc/mntent \
+	pkg/uclibc/libc/misc/wchar \
+	pkg/uclibc/libc/misc/wctype \
+	pkg/uclibc/libc/misc/regex \
+	pkg/uclibc/libc/misc/glob \
+	pkg/uclibc/libc/misc/syslog \
+	pkg/uclibc/libc/misc/pthread
+
+##
+## Source files that can be built directly
+##
+
+MISC_INTERNALS_CSRC := \
+	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c
+
+MISC_ERROR_CSRC := error.c err.c
+MISC_GLOB_CSRC := glob.c glob64.c glob-susv3.c glob64-susv3.c
+
+MISC_DIRENT_CSRC := \
+	alphasort.c closedir.c dirfd.c opendir.c readdir.c rewinddir.c scandir.c \
+        seekdir.c telldir.c readdir64.c alphasort64.c scandir64.c readdir_r.c \
+        readdir64_r.c
+
+MISC_CTYPE_CSRC := \
+	isalnum.c isalpha.c isascii.c iscntrl.c isdigit.c \
+        isgraph.c islower.c isprint.c ispunct.c isspace.c \
+        isupper.c isxdigit.c toascii.c tolower.c toupper.c \
+        isblank.c \
+	__C_ctype_b.c __C_ctype_tolower.c __C_ctype_toupper.c \
+        __ctype_b_loc.c __ctype_tolower_loc.c __ctype_toupper_loc.c \
+        __ctype_assert.c isctype.c
+
+MISC_LOCALE_CSRC := \
+	setlocale.c localeconv.c _locale_init.c nl_langinfo.c
+
+MISC_TIME_CSRC := \
+	asctime.c asctime_r.c clock.c ctime.c ctime_r.c gmtime.c gmtime_r.c \
+        localtime.c localtime_r.c mktime.c strftime.c strptime.c tzset.c \
+        _time_t2tm.c __time_tm.c _time_mktime.c dysize.c timegm.c \
+        _time_mktime_tzi.c _time_localtime_tzi.c
+
+MISC_WCHAR_CSRC := \
+	btowc.c wctob.c mbsinit.c mbrlen.c mbrtowc.c wcrtomb.c mbsrtowcs.c \
+        wcsrtombs.c _wchar_utf8sntowcs.c _wchar_wcsntoutf8s.c \
+        mbsnrtowcs.c wcsnrtombs.c wcwidth.c wcswidth.c
+
+MISC_WCTYPE_CSRC := \
+	iswalnum.c iswalpha.c iswcntrl.c iswdigit.c iswgraph.c \
+        iswlower.c iswprint.c iswpunct.c iswspace.c iswupper.c \
+        iswxdigit.c iswblank.c wctrans.c towctrans.c \
+        wctype.c iswctype.c towlower.c towupper.c
+
+LIBC_SRCFILES += \
+	pkg/uclibc/libc/misc/assert/__assert.c \
+	pkg/uclibc/libc/misc/time/adjtime.c \
+	pkg/uclibc/libc/misc/time/ftime.c \
+	pkg/uclibc/libc/misc/fnmatch/fnmatch.c \
+	pkg/uclibc/libc/misc/gnu/obstack.c \
+	pkg/uclibc/libc/misc/mntent/mntent.c \
+	pkg/uclibc/libc/misc/syslog/syslog.c \
+	pkg/uclibc/libc/misc/regex/regex.c \
+	pkg/uclibc/libc/misc/pthread/unlock.c \
+	$(patsubst %.c, pkg/uclibc/libc/misc/internals/%.c, $(MISC_INTERNALS_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/error/%.c, $(MISC_ERROR_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/glob/%.c, $(MISC_GLOB_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/dirent/%.c, $(MISC_DIRENT_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/ctype/%.c, $(MISC_CTYPE_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/locale/%.c, $(MISC_LOCALE_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/time/%.c, $(MISC_TIME_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/wchar/%.c, $(MISC_WCHAR_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/wctype/%.c, $(MISC_WCTYPE_CSRC))
+

@@ -1,0 +1,30 @@
+Primary site:
+	http://artax.karlin.mff.cuni.cz/~mikulas/links/
+
+Mirrors:
+	http://www.add.com.pl/links/
+	http://ice.dammit.lt/links/
+	http://mirrors.oven.com/links/
+	ftp://ftp.firenze.linux.it/pub/mirror/links/
+	http://links.sourceforge.net/download/
+	ftp://ftp.fu-berlin.de/unix/network/www/links/
+
+DEBs:
+	http://www.debian.org/Packages/unstable/net/links.html
+	ftp://yikes.tolna.net/pub/linux/release/debian/
+
+RPMs:
+	ftp://ftp.pld.org.pl/stable/i{3,4,5,6}86/
+	http://www.binary.is/links.php
+	http://adis.on.ca/pub/Projects/MyRPMS/
+	ftp://ftp.scripty.com/pub/redhat/6.x/i386/links-0.95-1.i386.rpm
+	ftp://ftp.scripty.com/pub/redhat/6.x/SRPMS/links-0.95-1.src.rpm
+
+Mailing list:
+	links-list@linuxfromscratch.org
+	http://links.sf.net/mailing.html
+	http://www.egroups.com/group/links-browser
+
+ELinks:
+	http://pasky.ji.cz/elinks/
+

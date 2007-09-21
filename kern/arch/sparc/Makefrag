@@ -1,0 +1,51 @@
+# -*-Makefile-*-
+
+# The Gaisler board loads ELF files directly.  KERN_LOADADDR is the 
+# physical address the ELF loader should copy the kernel to and the 
+# entry address for the boot strap code.
+KERN_LOADADDR = 0x40000000
+KERN_LDFLAGS = -N -nostdlib -e $(KERN_LOADADDR)
+KERN_CFLAGS += -msoft-float -fno-builtin -DKERN_LOADADDR=$(KERN_LOADADDR)
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/prom_stage1.S		\
+	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/bootdata.c			\
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/reboot.c			\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/longjmp.S			\
+	$(ARCHDIR)/tag.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/mathops.S			\
+	lib/$(ARCH)/strlen.S			\
+	lib/memcpy.c				\
+	lib/memmove.c				\
+	lib/memset.c				\
+	lib/memcmp.c				\
+	lib/printfmt.c				\
+	lib/sysstring.c				\
+	lib/cksum.c				\
+	lib/bf60.c				\
+	lib/string.c				\
+	lib/hashtable.c
+
+KERN_DEV :=					\
+	kern/dev/amba.c				\
+	kern/dev/apbucons.c			\
+	kern/dev/irqmp.c			\
+	kern/dev/gptimer.c			\
+	kern/dev/greth.c			\
+
+$(OBJDIR)/kern/kernel.ld.o: $(ARCHDIR)/kernel.ld.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -E -P $< -o $@
+
+$(OBJDIR)/kern/kernel.init.debuginfo: $(OBJDIR)/kern/kernel.ld.o
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_EMBEDFILES) $(GCC_LIB) -T $(OBJDIR)/kern/kernel.ld.o
+
+all: $(OBJDIR)/kern/kernel.init

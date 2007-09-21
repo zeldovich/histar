@@ -1,0 +1,84 @@
+
+* To configure bochs, you need --enable-x86-64:
+
+./configure --enable-disasm \
+        --enable-iodebug --enable-new-pit \
+        --enable-4meg-pages --enable-pae --enable-global-pages \
+        --enable-x86-64 \
+        --enable-all-optimizations \
+        --enable-x86-debugger \
+        --with-x11 --with-nogui \
+        --enable-instrumentation \
+        --enable-pci \
+        --enable-pnic \
+        --enable-gdb-stub
+
+For the internal debugger (doesn't disassemble AMD64 code very well),
+replace --enable-gdb-stub with --enable-debugger:
+
+./configure --enable-disasm \
+        --enable-iodebug --enable-new-pit \
+        --enable-4meg-pages --enable-pae --enable-global-pages \
+        --enable-x86-64 \
+        --enable-all-optimizations \
+        --enable-x86-debugger \
+        --with-x11 --with-nogui \
+        --enable-instrumentation \
+        --enable-pci \
+        --enable-pnic \
+        --enable-debugger
+
+On bochs 2.2, --enable-instrumentation doesn't compile, but CVS
+versions work.  Unfortunately, bochs doesn't seem to emulate AMD64
+very faithfully.  For example, the OpenBSD 3.7 floppy won't boot.
+
+* binutils
+
+Download binutils from http://www.kernel.org/pub/linux/devel/binutils/
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --enable-64-bit-bfd
+
+* GCC 4.1.2
+
+unpack both gcc-core and gcc-g++
+rm -r gcc-4.1.2/libstdc++-v3
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp 
+
+We don't build libstdc++-v3, libmudflap, or libssp, because it
+requires system headers and crt files for the target platform.
+
+Note that for some versions of gcc, you may need to say "env
+SHELL=/bin/sh gmake" if you have a different shell.
+
+* GDB
+
+./configure --target=x86_64-jos-linux --prefix=/usr/local \
+        --disable-nls --enable-64-bit-bfd
+
+* AMD64 assembly intro:
+
+        http://www.x86-64.org/documentation/assembly
+
+* Qemu
+
+For qemu 0.9.0 and earlier, you must apply ./conf/qemu-cmpxchg8b.patch
+to make the cmpxchg8b instruction restartable.
+
+For qemu 0.8.2 and earlier, you must apply ./conf/qemu-movd.patch to
+avoid 32-bit truncation for some MMX operations.
+
+./configure --disable-kqemu --disable-sdl --disable-gfx-check \
+	--cc=gcc34 --host-cc=gcc34 \
+	--target-list='x86_64-softmmu i386-softmmu sparc-softmmu'
+
+* To boot HiStar for the first time:
+
+    % gmake
+    % cp conf/sample-qemu.sh qemu.sh
+    % ./qemu.sh
+

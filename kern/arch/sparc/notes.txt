@@ -1,0 +1,62 @@
+== integer regs
+
+%r0 .. %r31
+g0-g7 == r0-r7
+o0-o7 == r8-r15
+l0-l7 == r16-r23
+i0-i7 == r24-r31
+
+fp = i6
+sp = o6
+
+call: pc -> o7
+trap: pc -> l1, next-pc -> l2
+
+== other
+
+f0 .. f31 (floating point)
+c0 .. c31 (coprocessor, optional?)
+asr0 .. asr31 (Ancillary State Registers)
+
+== control
+
+psr (processor state)
+wim (window invalid mask)
+tbr (trap base)
+y (mul/div)
+fsr (fp state) -- FSR_TEM controls FP traps; can user trap kernel this way?
+csr (coprocessor state)
+fq (fp queue)
+cq (coprocessor queue)
+
+== unary ops
+
+hi (22 high bits)
+lo (10 low bits)
+
+== other stuff
+
+how to do utrap masking?  %g5,%g6,%g7 reserved for system use, can use them.
+linux uses %g7 for TLS pointer, so avoid that one.
+
+make sure we clear kernel data from register windows before returning to
+user-space (or set WIM to block them, and zero them on demand).
+
+to avoid flush-to-stack covert channels, simulate a 2-window register set
+which gets saved and restored in its entirety on context switches?  3-window
+register set is probably too big to fit in Thread.
+
+page tables are not page-sized (1st level PT is 1K, 2nd/3rd level PTs are
+256 bytes each), but we can avoid wasteful memory allocation by sticking
+16 2nd/3rd level PTs per 4KB page, and linking all of them into the higher
+level table.
+
+http://www.sics.se/~psm/sparcstack.html
+http://www.cs.clemson.edu/~mark/sparc_assembly.html
+
+Gaisler hardware reference:
+http://gaisler.com/products/grlib/grip.pdf
+
+Tag hardware:
+http://www.stanford.edu/~mwdalton/tag/arch/sparcv8_tag.pdf
+

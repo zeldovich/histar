@@ -1,0 +1,61 @@
+* binutils
+
+Apply conf/leon/binutils-leon-nofpu-r3.patch,
+      conf/leon/binutils-raksha-taginsn-r24.patch,
+      conf/leon/binutils-tag-memo-insns.patch
+
+./configure --prefix=/usr/local --disable-nls --target=sparc-jos-linux
+
+* GCC 4.1.2
+
+Apply conf/leon/gcc-mrestore.patch, conf/leon/gcc-leon-nofpu-r3.patch
+
+./configure --target=sparc-jos-linux --prefix=/usr/local \
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp
+
+* For -mflat support:
+
+  * binutils
+
+  Apply patches as above, then:
+
+  ./configure --prefix=/usr/local --disable-nls --target=sparc-josflat-linux
+
+  * GCC 3.4.6
+
+  Apply conf/leon/gcc3-leon-nofpu.patch
+
+  rm -r libstdc++-v3
+  ./configure --target=sparc-josflat-linux --prefix=/usr/local \
+	--disable-nls --without-headers --with-newlib \
+	--disable-threads --disable-shared --disable-libmudflap \
+	--disable-libssp
+
+* GDB
+
+./configure --target=sparc-jos-linux --prefix=/usr/local \
+        --disable-nls
+
+* tsim
+
+Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
+
+   % tsim-leon3 -mmu -nosram obj/kern/kernel
+     ...
+   tsim> go
+
+* Run on real hardware
+
+Download grmon-eval from ftp://ftp.gaisler.com/gaisler.com/grmon/
+Disable firewall rules that might block grmon's UDP packets.
+
+   % grmon-eval -nb -eth -ip 171.66.3.253
+   grlib> load obj/kern/kernel
+   grlib> run
+
+To run grmon over a JTAG parallel port cable, as root:
+
+   # grmon-eval -nb -grlib -jtag
+

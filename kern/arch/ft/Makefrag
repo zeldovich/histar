@@ -1,0 +1,36 @@
+# -*-Makefile-*-
+
+KERN_CFLAGS += -mno-red-zone -D_GNU_SOURCE=1 -Wno-error
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/actor.c			\
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/lnxdisk.c			\
+	$(ARCHDIR)/lnxcons.c			\
+	$(ARCHDIR)/devstub.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/longjmp.S			\
+	lib/sysstring.c				\
+	lib/cksum.c				\
+	lib/bf60.c				\
+	lib/hashtable.c
+
+KERN_DEV :=					\
+	kern/dev/pci.c				\
+	kern/dev/ne2kpci.c			\
+	kern/dev/fxp.c				\
+	kern/dev/e1000.c			\
+	kern/dev/pnic.c
+
+## The following drivers conflict with the user-space-specific drivers:
+	#kern/dev/console.c			\
+	#kern/dev/disk.c			\
+
+#all: $(OBJDIR)/kern/kernel-2cmp $(OBJDIR)/kern/kernel-test
+all: $(OBJDIR)/kern/kernel-test
+

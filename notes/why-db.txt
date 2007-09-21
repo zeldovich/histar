@@ -1,0 +1,19 @@
+why do people use a database rather than the filesystem?
+
+[1] SQL is a good language for manipulating structured data
+    and for expressing predicates
+
+[2] multiple indexes for performance
+
+[3] SQL allows pushing some computation into server's address space
+
+what interesting things can we do with histar?
+
+[1] -> unclear, writing a SQL query processor seems difficult?
+
+[2] -> explicit trust in indexes but maintain per-row data security
+
+[3] -> pre-approve some aggregation or summarization operators while
+       disallowing extracting original data.  e.g. allow extracting
+       average salary or list of suggested purchases ala amazon..
+

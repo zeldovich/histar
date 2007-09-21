@@ -1,0 +1,34 @@
+* LEON documentation
+
+    http://www.gaisler.com/products/grlib/grip.pdf
+    http://www.gaisler.com/doc/grmon.pdf
+
+* Xilinx Linux drivers
+
+    Maybe for USB: http://www.rmdir.de/~michael/xilinx/
+    ftp://ftp.xilinx.com/pub/utilities/fpga/install_drivers.tar.gz
+    Apply conf/xilinx-drivers.patch
+
+* Xilinx ISE
+
+    http://ee-download.stanford.edu/Download/Xilinx/xilinx.html
+
+    export XILINX=/usr/local/xilinx-ise
+    export PATH=$PATH:$XILINX/bin/lin64
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$XILINX/bin/lin64
+
+* Synplify
+
+    http://www.synplicity.com/downloads/download1.html
+
+    export PATH=$PATH:/usr/local/synplify/fpga_8804/bin
+
+* Building the CPU
+
+    svn co svn+ssh://cyclades.stanford.edu/kozyrakis/users/security/svn/trunk/histar/ leon
+    cd leon/designs/leon3-digilent-xup
+    # set CONFIG_DSU_IPMSB, IPLSB, ETHMSB, ETHLSB in .config, config.h
+    make xdep
+    make ise-synp
+    make ise-prog-fpga
+

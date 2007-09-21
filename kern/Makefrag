@@ -1,0 +1,128 @@
+# -*-Makefile-*-
+# Makefile fragment for JOS kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+
+OBJDIRS += kern
+
+ARCHDIR	:= kern/arch/$(K_ARCH)
+EMBEDBINS_DEFAULT := default
+include $(ARCHDIR)/Makefrag
+
+KERN_GEN := kern/kern/printf.c \
+	    kern/kern/syscall.c \
+	    kern/kern/intr.c \
+	    kern/kern/sched.c \
+	    kern/kern/handle.c \
+	    kern/kern/container.c \
+	    kern/kern/gate.c \
+	    kern/kern/label.c \
+	    kern/kern/segment.c \
+	    kern/kern/kobj.c \
+	    kern/kern/timer.c \
+	    kern/kern/pstate.c \
+	    kern/kern/uinit.c \
+	    kern/kern/netdev.c \
+	    kern/kern/freelist.c \
+	    kern/kern/log.c	\
+	    kern/kern/pagetree.c \
+	    kern/kern/sync.c \
+	    kern/kern/prof.c \
+	    kern/kern/dstack.c \
+	    kern/kern/kocache.c \
+	    kern/kern/stackwrap.c \
+	    kern/kern/thread.c \
+	    kern/kern/as.c \
+	    kern/kern/part.c \
+	    kern/kern/panic.c \
+	    kern/kern/pagealloc.c \
+	    kern/kern/console.c \
+	    kern/kern/disk.c
+
+KERN_BTREE := \
+	    kern/btree/btree.c \
+	    kern/btree/btree_search.c \
+	    kern/btree/btree_node.c \
+	    kern/btree/cache.c \
+	    kern/btree/pbtree_frm.c \
+	    kern/btree/btree_manager.c \
+	    kern/btree/pbtree.c \
+	    kern/btree/btree_delete.c \
+	    kern/btree/btree_insert.c \
+	    kern/btree/btree_traverse.c \
+	    kern/btree/btree_debug.c
+
+KERN_SRCFILES := $(KERN_ARCH) $(KERN_DEV) $(KERN_GEN) $(KERN_LIB) $(KERN_BTREE)
+
+KERN_OBJFILES := $(addsuffix .o, $(notdir $(basename $(KERN_SRCFILES))))
+KERN_OBJFILES := $(addprefix $(OBJDIR)/kern/, $(KERN_OBJFILES))
+
+# Binary program images to embed within the kernel.
+include conf/embedbin/Makefrag
+
+KERN_EMBEDFILES := \
+	    $(patsubst %,$(OBJDIR)/kern/embed_%.o,$(subst /,_,$(KERN_BINFILES))) \
+	    $(OBJDIR)/kern/embedbin.o
+
+# How to build kernel object files
+$(OBJDIR)/kern/%.o: kern/arch/$(K_ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/arch/$(K_ARCH)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/kern/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: $(OBJDIR)/kern/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/dev/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: kern/btree/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+$(OBJDIR)/kern/%.o: lib/$(ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) -c -o $@ $<
+$(OBJDIR)/kern/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(KERN_CFLAGS) $(CSTD) -c -o $@ $<
+
+# Dependencies for building the kernel itself
+$(OBJDIR)/kern/kernel.base.debuginfo: $(KERN_OBJFILES)
+$(OBJDIR)/kern/kernel.init.debuginfo: $(KERN_OBJFILES) $(KERN_EMBEDFILES)
+
+# How to strip kernels
+$(OBJDIR)/kern/%: $(OBJDIR)/kern/%.debuginfo
+	$(STRIP) $< -o $@
+
+# Building emacs TAGS info
+tags: $(OBJDIR)/kern/TAGS
+
+KERN_HDRFILES = $(shell find kern/kern kern/arch/${K_ARCH} -name '*.h' -print) \
+	inc/safetype.h \
+	inc/syscall.h inc/syscall_num.h inc/container.h inc/segment.h \
+	inc/thread.h inc/kobj.h inc/label.h inc/netdev.h
+
+$(OBJDIR)/kern/TAGS: $(KERN_HDRFILES) $(KERN_SRCFILES)
+	@rm -f $@
+	etags -o $@ $^
+
+# How to build the embedded bin structures
+$(OBJDIR)/kern/embedbin.c: kern/Makefrag conf/embedbin/Makefrag conf/embedbin/*.mk conf/embedbin
+	@mkdir -p $(@D)
+	echo '#include <kern/embedbin.h>' >$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "extern const uint8_t _binary_$${_}_start[], _binary_$${_}_size[];\n"; }' >>$@
+	echo 'struct embed_bin embed_bins[] = {' >>$@
+	echo $(KERN_BINFILES) | tr ' ' '\012' | grep . | sort | perl -pi -e 'while (m,.*/(.*),) { $$fn=$$1; chomp; s,\.,_,g; s,/,_,g; s,-,_,g; $$_ = "{ \"$$fn\", _binary_$${_}_start, (uintptr_t)_binary_$${_}_size },\n"; }' >>$@
+	echo "{ 0, 0, 0 } };" >>$@
+
+$(OBJDIR)/kern/embed_user_%.o: $(OBJDIR)/user/%
+	@mkdir -p $(@D)
+	cd $(OBJDIR) && $(OBJCOPY) -I binary -O $(OBJTYPE) -B $(BFDARCH) `echo $< | sed -e 's,[^/]*/,,'` ../$@
+
+-include $(ARCHDIR)/Makefrag.final

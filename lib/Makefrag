@@ -1,0 +1,123 @@
+OBJDIRS += lib lib/$(ARCH)
+
+LIB_SRCFILES :=	\
+	lib/$(ARCH)/longjmp.S \
+	lib/$(ARCH)/syscall_entry.S \
+	lib/$(ARCH)/stack.S \
+	lib/$(ARCH)/trapstub.S \
+	lib/$(ARCH)/coop_syscall.S \
+	lib/$(ARCH)/misc.c \
+	lib/syscall.c \
+	lib/printfmt.c \
+	lib/sysstring.c \
+	lib/printf.c \
+	lib/string.c \
+	lib/libmain.c \
+	lib/panic.c \
+	lib/console.c \
+	lib/readline.c \
+	lib/segment.c \
+	lib/elf.c \
+	lib/thread.c \
+	lib/gatesrv.cc \
+	lib/gateclnt.cc \
+	lib/gateinvoke.cc \
+	lib/taint.c \
+	lib/sock_fd.c \
+	lib/console.c \
+	lib/spawn.cc \
+	lib/container.c \
+	lib/cksum.c \
+	lib/fs_dir.cc \
+	lib/fs_dir_ct.cc \
+	lib/fs_dir_dseg.cc \
+	lib/fs_file.cc \
+	lib/fs_mount.c \
+	lib/fs_taint.cc \
+	lib/selftaint.cc \
+	lib/label.c \
+	lib/cpplabel.cc \
+	lib/labelutil.cc \
+	lib/nethelper.cc \
+	lib/error.cc \
+	lib/backtrace.c \
+	lib/debug.cc \
+	lib/privstore.cc \
+	lib/sha1.c \
+	lib/authclnt.cc \
+	lib/utrap.c \
+	lib/profiler.c \
+	lib/tun.c \
+	lib/declassify.cc \
+	lib/resalloc.cc \
+	lib/bipipe.c \
+	lib/base64.c \
+	lib/rand.c \
+	lib/chardevs.c \
+	lib/jthread.c \
+	lib/arc4.c \
+	lib/cooperate.cc \
+	lib/debug_gatesrv.cc \
+	lib/multisync.cc \
+	lib/sigio.c \
+	lib/netbench.cc \
+	lib/prof.cc \
+	lib/cyg_prof.c \
+	lib/wrap.cc \
+	lib/hashtable.c \
+	lib/jcomm.c lib/bf60.c \
+	lib/alarm.c lib/errno.c lib/exec.cc lib/exit.c lib/fd.cc lib/file.c \
+	lib/file_fd.c lib/fork.cc lib/getdnnm.c lib/host.c \
+	lib/ioctl.c lib/memlayout.c lib/misc.c lib/mmap.c lib/pipe.c \
+	lib/proc.cc lib/pthread.c lib/ptrace.cc lib/pty.c lib/ptyhelper.cc \
+	lib/resolv.c lib/rlim.c lib/sbrk.c lib/segvhelper.cc lib/signal.c \
+	lib/signalgate.cc lib/socket.c lib/stat.c lib/sysinfo.c lib/time.c \
+	lib/uidgid.c lib/wait.c lib/udsdev.c lib/udsimpl.cc \
+	lib/lfsdev.c lib/lfsimpl.cc
+
+include lib/cppsup/Makefrag
+-include lib/$(ARCH)/Makefrag
+
+LIB_OBJFILES := $(LIB_SRCFILES)
+LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+LIB_OBJFILES := $(patsubst lib/%.cc, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.c, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+LIB_OBJFILES := $(patsubst lib/$(ARCH)/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+
+LIBJOS_CFLAGS	= $(USER_CFLAGS) $(UCLIBC_COMFLAGS)
+LIBJOS_CXXFLAGS	= $(USER_CXXFLAGS) $(UCLIBC_COMFLAGS)
+
+$(OBJDIR)/lib/%.o: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/%.S: lib/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -S -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(LIBJOS_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LIBJOS_CFLAGS) $(CSTD) -Werror -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S $(OBJDIR)/lib/utrapasm.h
+	@mkdir -p $(@D)
+	$(CC) $(LIBJOS_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $(LIB_OBJFILES)
+
+## Without this symlink, gcc can't find crt1.o on 32-bit machines:
+##   gcc -m32 -Bjos64/obj/lib -print-file-name=crt1.o
+$(OBJDIR)/lib/32/libjos.a: $(OBJDIR)/lib/libjos.a
+	rm -rf $(OBJDIR)/lib/32
+	ln -s . $(OBJDIR)/lib/32
+
+## Hack to extract struct offsets for assembly use
+$(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
+	grep '#define' $< > $@
+

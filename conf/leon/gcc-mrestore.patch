@@ -1,0 +1,46 @@
+diff -Naur gcc-4.1.2_orig/gcc/config/sparc/sparc.c gcc-4.1.2/gcc/config/sparc/sparc.c
+--- gcc-4.1.2_orig/gcc/config/sparc/sparc.c	2006-04-14 00:02:43.000000000 -0700
++++ gcc-4.1.2/gcc/config/sparc/sparc.c	2007-07-29 00:17:59.000000000 -0700
+@@ -51,6 +51,8 @@
+ #include "tree-gimple.h"
+ #include "langhooks.h"
+ 
++static char jos64_restore_full = 0;
++
+ /* Processor costs */
+ static const
+ struct processor_costs cypress_costs = {
+@@ -557,6 +559,9 @@
+     case OPT_mtune_:
+       sparc_select[2].string = arg;
+       break;
++    case OPT_mrestore:
++	jos64_restore_full = 1;
++	break;
+     }
+ 
+   return true;
+@@ -2459,6 +2464,9 @@
+   rtx pat = PATTERN (trial);
+   rtx src = SET_SRC (pat);
+ 
++  if (!jos64_restore_full)
++      return 0;
++
+   /* The 'restore src,%g0,dest' pattern for word mode and below.  */
+   if (GET_MODE_CLASS (GET_MODE (src)) != MODE_FLOAT
+       && arith_operand (src, GET_MODE (src)))
+diff -Naur gcc-4.1.2_orig/gcc/config/sparc/sparc.opt gcc-4.1.2/gcc/config/sparc/sparc.opt
+--- gcc-4.1.2_orig/gcc/config/sparc/sparc.opt	2005-06-24 18:22:41.000000000 -0700
++++ gcc-4.1.2/gcc/config/sparc/sparc.opt	2007-07-29 00:18:41.000000000 -0700
+@@ -87,6 +87,10 @@
+ Target
+ Optimize tail call instructions in assembler and linker
+ 
++mrestore
++Target
++Use the addition function of restore
++
+ mcpu=
+ Target RejectNegative Joined
+ Use features of and schedule code for given CPU

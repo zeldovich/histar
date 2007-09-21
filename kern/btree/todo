@@ -1,0 +1,9 @@
+* Add previous node pointers to leafs for range searches.  The current setup
+  for "less than equal to" range searches can cause extra node reads.
+
+* btree_insert.c btree_delete.c contain lots of superfluous code that was
+  the result of seperating leaf and internal operations.
+  
+* for value sizes > 1, space from the key array should be given to the children
+  array to support a larger order in leafs...right now space is wasted...need to
+  change btree_init(), btree_node_order(), and setup of pointers in btree_impl.c

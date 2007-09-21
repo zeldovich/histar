@@ -1,0 +1,29 @@
+CPPSUP_INCLUDES = -I$(TOP)/lib/cppsup
+
+OBJDIRS += lib/cppsup
+
+LIB_SRCFILES += \
+	lib/cppsup/eh_personality.cc \
+	lib/cppsup/eh_globals.cc \
+	lib/cppsup/eh_terminate.cc \
+	lib/cppsup/eh_alloc.cc \
+	lib/cppsup/eh_catch.cc \
+	lib/cppsup/eh_throw.cc \
+	lib/cppsup/eh_term_handler.cc \
+	lib/cppsup/eh_unex_handler.cc \
+	lib/cppsup/eh_exception.cc \
+	lib/cppsup/eh_aux_runtime.cc \
+	lib/cppsup/eh_type.cc \
+	lib/cppsup/tinfo.cc \
+	lib/cppsup/tinfo2.cc \
+	lib/cppsup/vterminate.cc \
+	lib/cppsup/new_op.cc \
+	lib/cppsup/guard.cc \
+	lib/cppsup/vec.cc
+
+CPPSUP_FLAGS = -Wno-missing-noreturn -D_GLIBCXX_HOSTED=1
+
+$(OBJDIR)/lib/cppsup/%.o: lib/cppsup/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(LIBJOS_CXXFLAGS) $(CPPSUP_INCLUDES) $(CPPSUP_FLAGS) -c -o $@ $<
+

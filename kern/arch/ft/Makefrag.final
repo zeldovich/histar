@@ -1,0 +1,35 @@
+# -*-Makefile-*-
+
+$(OBJDIR)/kern/redefine_k1.syms: $(ARCHDIR)/keep.syms
+	@mkdir -p $(@D)
+	awk '{print "__k1_"$$1, $$1;}' $< > $@
+
+$(OBJDIR)/kern/redefine_k2.syms: $(ARCHDIR)/keep.syms
+	@mkdir -p $(@D)
+	awk '{print "__k2_"$$1, $$1;}' $< > $@
+
+$(OBJDIR)/kern/__k1_%.o: $(OBJDIR)/kern/%.o $(OBJDIR)/kern/redefine_k1.syms
+	@mkdir -p $(@D)
+	$(OBJCOPY) $< $@.tmp --prefix-symbols=__k1_
+	$(OBJCOPY) $@.tmp $@ --redefine-syms $(OBJDIR)/kern/redefine_k1.syms
+	rm -f $@.tmp
+
+$(OBJDIR)/kern/__k2_%.o: $(OBJDIR)/kern/%.o $(OBJDIR)/kern/redefine_k2.syms
+	@mkdir -p $(@D)
+	$(OBJCOPY) $< $@.tmp --prefix-symbols=__k2_
+	$(OBJCOPY) $@.tmp $@ --redefine-syms $(OBJDIR)/kern/redefine_k2.syms
+	rm -f $@.tmp
+
+KERN_K1_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k1_%,$(KERN_OBJFILES))
+KERN_K2_OBJFILES := $(patsubst $(OBJDIR)/kern/%,$(OBJDIR)/kern/__k2_%,$(KERN_OBJFILES))
+KERN_2CMP_LINK_FILES := \
+	$(KERN_K1_OBJFILES) $(KERN_K2_OBJFILES) \
+	$(OBJDIR)/kern/driver-2cmp.o $(OBJDIR)/kern/arc4.o
+
+$(OBJDIR)/kern/kernel-2cmp: $(KERN_2CMP_LINK_FILES)
+	$(CC) -o $@ $(KERN_LDFLAGS) $(KERN_2CMP_LINK_FILES)
+
+$(OBJDIR)/kern/kernel-test: $(KERN_OBJFILES) $(OBJDIR)/kern/driver-test.o
+	$(CC) -o $@ $(KERN_LDFLAGS) $^
+	#$(CC) -o $@ $(KERN_LDFLAGS) $(FT_ROOT)/lib/ft-runtest.c $^
+

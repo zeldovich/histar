@@ -1,0 +1,6 @@
+By default, gate_create() uses the current address space to create the gate.
+However, current address space might be a copy-on-write clone of the "initial"
+address space, as a result of tainted gate entry, and could be garbage-collected
+by the gate caller!  Thus, think carefully, and use the "initial" address space
+if this gate should persist for longer than this tainted gate call.
+

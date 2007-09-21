@@ -1,0 +1,19 @@
+OBJDIRS += pkg/uclibc/libc/inet
+
+INET_CSRC :=	\
+	getservice.c getproto.c hostid.c getnetent.c getnetbynm.c getnetbyad.c \
+	inet_net.c ntop.c herror.c if_index.c gai_strerror.c getaddrinfo.c \
+	in6_addr.c ether_addr.c ntohl.c opensock.c \
+	inet_aton.c inet_addr.c inet_ntoa.c inet_makeaddr.c inet_lnaof.c \
+	inet_netof.c \
+	encodeh.c decodeh.c encoded.c decoded.c lengthd.c encodeq.c \
+	decodeq.c lengthq.c encodea.c decodea.c encodep.c decodep.c \
+	formquery.c dnslookup.c resolveaddress.c opennameservers.c \
+	closenameservers.c resolvename.c gethostbyname.c res_init.c \
+	res_query.c gethostbyaddr.c read_etc_hosts_r.c get_hosts_byname_r.c \
+	get_hosts_byaddr_r.c gethostbyname2.c getnameinfo.c gethostent.c \
+	gethostbyname_r.c gethostbyname2_r.c gethostbyaddr_r.c \
+	res_comp.c ns_name.c
+
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/inet/%.c, $(INET_CSRC))
+

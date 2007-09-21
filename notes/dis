@@ -1,0 +1,356 @@
+client talking to server:
+  server must be "stronger" in each category where the label of client's
+  data is greater than 1 (must "speak for" every such category).
+
+server accepting client input:
+  client must be "stronger" in each category where the label of client's
+  data is less than 1.  quite symmetric to the above condition, and the
+  {1} is then just the network label which we can then in theory adjust.
+
+how do we know we can talk to server?
+  server must sign certificate saying "you can reach me at this address
+  for this period of time".  then, must also have a chain of certificates:
+  server -> ... -> category, for each over-1 cat..
+
+  name servers by their public keys.
+
+  lots of public information can be broadcast to avoid fetching on
+  demand & covert channels:
+   * servers can broadcast their addressing certificates.
+   * various group certificates can be broadcast as well.
+
+support rpc & streams ala network-objects?
+ - RPC (effectively remote gate invocation, with segments for in/out data),
+ - streams (for more efficient IPC without gate crossings -- potentially
+   will be doing RPC over the stream anyway, but no gate calls in fastpath)
+
+granting categories, verify labels should work across remote gate calls
+
+httpd front-end would grant per-session category to import daemon and
+give it a delegation saying all back-ends speak for this category, i.e.
+allowing the tainted worker to interact with the back-ends..
+
+default clearance on the network is 1, and not 2.  gates for importer
+and exporter daemons should similarly have a default clearance of 1 to
+keep things simple.
+
+privilege-granting gates: exporter/importer daemons may want to stash
+away star privileges in a gate, ala lib/privstore.cc.  we can optimize
+the two gate calls down to 1 by simply longjmp'ing back to where we 
+were before the first gate call, and returning from there, with a new
+label -- we're still in the same address space..
+
+how do we know the label of the response?  gate mechanism doesn't tell
+us the prior label of the thread..  A: force return gate to marshall
+return data into an explicit segment, whose label is then immutable
+and must have been readable to the returning thread before the gate
+call.  must use verify label to ensure that the caller's label was
+enough to read/write this segment, otherwise could be trying to send
+out a pre-existing read-only segment.
+
+can server send response back to client?  need to check whether client
+owns every category in which the response is tainted.  similar to the
+first condition at the top of this file, and potentially client should
+provide server with the necessary delegation certificates to make things
+work out..  similarly, client should check data received from server.
+
+what does the back-end fileserver look like?  what does it associate
+the local categories with, if anything?  maybe it doesn't need to do
+any discretionary access control based on them, in which case it's all
+good.  otherwise, it needs access to global category names to coordinate
+with other fileservers too..
+
+===
+
+can use TCPA-like stuff to trust histar without trusting node owners
+(probably just a mention in the paper)
+
+category garbage-collecton?  even if it's explicitly by category owner,
+the owner doesn't necessarily know what nodes its untrusted code has
+talked to...
+
+our RPC library should support pre-specified timeouts for gate calls
+and/or explicit call cancellaton which would unlink the container to
+ensure all tainted data is deleted from the remote end.
+
+front-end histar proxy to a linux box which labels any data handled
+by linux.  similar to what we could do with sane port labeling.
+
+===
+
+timestamps (valid-after and valid-before) on each delegation; export
+server should revoke all tainted gate call containers when delegations
+leading to a particular category expire (and no newer delegations are
+available).
+
+when granting categories across gate calls, automatically create a
+matching global category if none already exists, and automatically
+create delegations if the target exporter/importer doesn't have the
+category delegated to it.
+
+===
+
+label rules:
+
+Node_L(c) = { *, if Node speaks for c (i.e., Node -> ... -> c); 0 otherwise }
+N_L = network label ({1} as an example)
+N_C = network clearance ({1} for internet, {2} for internal trusted network)
+
+Message M with label M_L being sent to a receiver node R.  The sender should
+check that (R_net_addr -> R), i.e. that we have the right network address
+certificate, and that:
+
+    M_L \leq (R_L^\histar \cup N_C)
+
+When a receiver node receives a message M with label M_L from a sender node S,
+it needs to check that:
+
+    (S_L^\histar \cup N_L^\histar)^\star \leq M_L \leq (S_L^\histar \cup N_C)
+
+===
+
+if on the exporter side, a gate call reply comes in that's tainted such that
+we cannot send the reply to the original caller, we need to pretend like the
+gate reply never happened, i.e. CALL_INPROGRESS.
+
+is it safe to tell the importer-side gate caller that a delegation is missing
+for some of their categories, for the node they are contacting?  what if the
+network label is { x3, 1 } and a caller with label { 1 } tries to call some
+node with an unknown pk?  cannot tell him whether we have seen this node's PK
+on the network broadcast or not!
+
+===
+
+charging declassifier; declassify only one taint category, and refuse multiple
+taints.  e.g. monster.com, charges per record, but custom matching code..
+
+===
+
+use dj to interface HiStar with non-HiStar (call them Linux) nodes.
+1) Linux machine can use a HiStar box to run untrusted code in a
+   strictly-controlled environment
+2) HiStar boxes can use a trusted Linux machine to store or process data.
+   e.g. trusted database, file server, whatever non-portable code.
+3) using a "gatekeeper" HiStar machine, can label an entire Linux machine.
+   e.g. can now keep sensitive data on a Linux machine, and HiStar ensures
+   that this data will not be leaked, and unauthorized users cannot even
+   send any inputs to this sensitive Linux machine.  Can give linux machine
+   stars in some categories but taint in others (ala clamwrap).
+
+===
+
+Gates conflate clearance with a "verify guard" label.  In particular, consider
+signal gates which have a clearance of { ug 0 } to ensure that only the same
+user can invoke them.  This could be done at user-level by checking the verify
+label in gate entry code.  But this seems simple enough to push into the kernel
+for better security.  Now, this has nothing to do with clearance.  Infact it
+should be perfectly legal to invoke a gate whose clearance is below your own;
+you can "grant" your high clearance to the gate, because clearance is combined
+using \cup rather than \cap.  Nothing should leak as a result, either, because
+you'll have to provide all resources for this "clearance-boosted" gate call.
+So, maybe we should have a third "guard" label on gates that's separate from
+clearance.  This will allow a gate creator to say that he's happy to accept
+calls from threads more tainted than his current clearance, as long as those
+threads are going to provide the resources for it.
+
+Target-less gates (maybe address-space-less or even current-address-space) so
+that privstore will work efficiently in a COWed address space.  Specify a null
+thread_entry to sys_gate_create() to make such a gate, and add a thread_entry
+arg to sys_gate_enter() that will allow caller to use such a gate.
+
+If the exporter daemon gate doesn't contain all of the stars that it can handle
+(and probably it shouldn't, because of performance considerations) then we will
+be COWing the exporter's address space.  That's kind-of tricky because we could
+have arbitrary mutex locks grabbed at the time of the copy, and the itree<>s
+could be inconsistent, so we will deadlock/crash when we try to run in this
+half-baked address space.  One solution would be for the exporter daemon to
+explicitly checkpoint its address space whenever any COW-relevant data is
+updated.  When a new category, along with a privstore, is created, we need to
+make sure that any COWed address space will be able to find this privstore.
+Either create a new address space checkpoint, or if this is expensive, then
+we can manually adjust the existing checkpoint, e.g. by appending the new
+privstore's category and gate-ID to some segment object.
+
+===
+
+Potentially useful system call:
+    sys_obj_probe_label(cobj_ref o, ulabel *l, bool write)
+Would replace sys_as_set_slot() in taint_cow's fastcheck, and speed up dj
+gate crossings.
+
+How do higher-level applications name categories?  The dj stuff automatically
+translates your message label and grant categories, but what if you want to
+tell the other end "use this category for my user taint, and this other one
+for my user grant"?
+
+Potential covert channels in the error responses when we fail to invoke a
+gate (or indicate the existence of a gate in the first place), etc...  Need
+to be careful to make sure caller can read the container for the gate before
+returning any error back to the user as to whether the gate exists or not.
+
+===
+
+What happens when a server on the other side of a remote gate call is slow,
+vs. replies with a tainted response?  In the first case, resending the RPC
+will generate a CALL_INPROGRESS reply; in the second case, resending the
+RPC will cause the server to retransmit the tainted response.  What if the
+client has specified a timeout for the call?  He should not be able to tell
+that the call returned tainted data, vs. call timed out..
+
+Same-thread-return checks (gateclnt's return_stub) mean that we can't return
+twice to the caller, once with a TIMEOUT status and once with tainted data.
+How to resolve this with inherently unreliable distributed system semantics?
+
+Reply label should never be less than the request label, without explicit
+declassification (e.g. error codes should never be less tainted than request).
+
+Tainted thread enters djd gate.  It's almost impossible for it to be guaranteed
+a consistent AS checkpoint for long enough to copy it, because the untainted
+djd doesn't know when the GC old AS'es (or it could leave them around forever,
+but that's lame).  In practice this might not matter, and perhaps it can keep
+retrying until it succeeds, but it might never succeed.
+
+Label for some error replies: L_N \cup L_M (network & message label)
+
+Local gate calls (i.e. gateexec) are reliable, and moreover, djd should have
+ownership of any category with which the reply is tainted.  As a result of
+the latter, it's easy to distinguish between timeout and tainted reply, and
+there's no need to time out..  Remote gate calls are unreliable: the request
+or the reply could get lost, or the remote node could be down.  Can timeout
+if the taint level of the reply is the same as the caller's taint level.
+Otherwise, no idea whether reply arrived or not.  So, dynamic tainting is
+not a good fit for RPC?  Requiring reply to have the same taint level as
+the request simplifies a number of issues with error code labels as well.
+Can still grant category ownership both ways.
+
+===
+
+Should be able to grant higher clearance over the network.
+
+For gate calls, need to explicitly specify the container in which to make the
+gate call.  Pushes resource revocation problems to a higher level.  Resource
+allocation daemon (completely up to the user) will revoke after timeout.
+
+Resource allocation for exporter's privstore still unclear..
+
+Possible solution to return-value problems: separate the call/message delivery
+status (timed out, bad delegation, no address, gate call error, delivered) from
+the actual reply.  This maybe suggests we should have a uni-directional message
+delivery mechanism, and replay caching outside of the exporter daemon.
+
+Message could be delivered without retransmit (in which case no delivery status
+is given to the sender), or with retransmit and timeout (in which case either a
+remote status or timeout is returned to the sender).  Standard RPC: caller sets
+retransmit&timeout, responder does reply caching and sends without retransmit.
+To get responses with a higher taint level than the sender had, both caller and
+responder have to retransmit, with responder having an infinite timeout(!).
+
+Now we just need a naming scheme for endpoints.  Should be able to name bipipes
+(fixed label) and gates (flexible label, and can grant label & clearance).
+
+===
+
+Should we have a timestamp on our messages, to ensure that they cannot be
+duplicated by a network attacker forever, consuming resources on the server?
+
+Exporter retransmit should only be allowed when we have a thread triggering
+the send (as opposed to a message via shared memory segment), and retransmit
+should stop when the thread is unreferenced by the caller.  This gives us
+resource accountability.
+
+===
+
+Global categories are just names, not resources.  On the other hand, local
+categories are potentially resources: there's a secure binding between the
+global category name and local category name, and the ownership privilege
+in the local category granted to the exporter.  With this breakdown, let's
+push all resources out of the exporter itself, as far as category mapping
+is concerned.  The secure binding can be represented by a signed statement
+by the exporter that a given global category name corresponds to a given
+local category name.  The ownership privilege is an unbound gate that can
+be invoked by the exporter.
+
+When talking to an exporter about a global category, you must provide the
+above resources (mapping & privilege) explicitly.  Local category allocation
+would be done by a small trusted service -- send a message to this service,
+telling it where to allocate the privilege gate, and it will allocate a
+fresh local category, grant it to the exporter daemon, associate it with
+a global category (i.e. get a signed certificate from the exporter), and
+send the gate ID & certificate back to you.
+
+What checks are necessary to associate a local category with a global
+category?  Need to prove ownership of both.  Could move this local category
+allocation service into the exporter, at which point it would know that the
+caller owned the global category.
+
+Eliminates the need for the "named categories" field, because the user-level
+application has to keep track of what local category resources it's got on
+what nodes..
+
+===
+
+After some thought, it seems we cannot make the exporter really stateless.
+It must cache the privileges for each local category of interest, and only
+drop its cache entry when all resources for that local category are dead.
+Otherwise, we have a chicken-and-egg problem: there's a global category g,
+and a corresponding local category c, backed by resources tainted { c3 }.
+Remote entity labeled g3 should be able to use this local category resource,
+but the exporter can't access it, unless it caches c*..
+
+So we really do need to keep state in the exporter, and resource providers
+just provide empty "punitive" resources, effectively just to prove that
+they still care.  A resource will then be a container-ID pair for a segment
+of some sufficient length (but no interesting contents).
+
+Proposed cache structure:
+
+    [A] refcounted privstore
+    [B] mapping from resource to:
+	{ local category, global category }
+	label of resource container
+
+When we receive a request, check that all global categories have some mapping
+specified in the associated dj_catmap.  Then process the dj_catmap:
+
+    (1) Using [B], check that resource IDs match local/global category names
+    (2) Acquire all local categories specified in the catmap
+    (2) Poke each resource specified in the catmap, to make sure that caller
+	can access it (msg.taint \cup msg.glabel^\histar) and it's still alive
+
+David points out we can "cheat" by using container preauthorization: user
+provides some container to store the mapping, and the exporter in turn creates
+another container there with a label of { Mg0, Mt3, 1 }, which will then hold
+the unbound gate and some way of making the mapping secure -- either the whole
+mapping object in a segment, or the hash of the mapping stored in the metadata
+of the container..
+
+===
+
+Creation of a mapping requires the privileges of both the global and the local
+category being mapped.  Thus, the service that creates these mappings must
+trust the exporter daemon that it's really speaking for the global category.
+Furthermore, the exporter's catmgr will trust these mappings, so this mapping
+creation service is really part of the exporter itself.
+
+Bootstrapping issue: how to login securely onto a remote machine, having only
+a password to start with?  In the current design, you're not guaranteed to
+make progress, it seems.  To keep your password secure, you must taint it
+when passing it to a remote login service (granting that category to the login
+service at the same time).  If you allocate such a category, you must also
+create a mapping to a local category on the server, and you can only write to
+public containers to start with -- so anyone can delete your resources before
+you have a chance to securely authenticate.  A similar problem arises if you
+have the server allocate resources for you -- it needs to create a mapping
+of its category on your local machine, where it can only write to similarly
+public containers..  Furthermore, an analogous problem exists in RPC call and
+return -- it's hard to create per-call taint and grant category mappings on
+the remote machine that wouldn't be removable by everyone else.  Possibly
+solvable by combining MAPCREATE with container creation?
+
+===
+
+Exporter should not store things into a container without special dispensation
+from the container's owner.  This solves the bootstrapping problem by making
+sure that these incoming containers aren't publicly-writable (but instead only
+accessible to the exporter, which does not unref anything)..
+

@@ -1,0 +1,54 @@
+x86 has 7 free registers:
+    eax, ebx, ecx, edx, edi, esi, ebp
+
+calling conventions require preserving these callee-save registers:
+    ebx, esi, edi, ebp [and esp]
+
+gcc allows __attribute__((regparm(3))), passing 32-bit args in caller-save regs:
+    eax, edx, ecx
+
+what functions are vectored into by the kernel via thread_jump()?
+
+    function		#args	where				what to do
+
+    _start		2 x64	uinit, lib/elf.c		entry_buf?
+    jos_longjmp		2 x32	fork, djsrpcc, privstore	ok
+    ssld_cow_entry	0	pkg/httpd/user/ssld.cc		ok
+    eprocd_cow_entry	0	pkg/httpd/user/ssl_eprocd.cc	ok
+    gate_exec_thread	1 x32	dj/gateexec.cc			ok
+    killer_thread	5 x64	dj/ctallocd.cc			entry_buf
+    thread_entry	1 x32	lib/thread.c			ok
+    return_stub		5 x32	lib/gateclnt.cc			entry_buf
+    gatesrv_entry_tls	4 x32	lib/gatesrv.cc			entry_buf
+    COOP_TEXT		1 x32	lib/cooperate.cc		ok
+    coop_gate_invoke_th	6 x32	lib/cooperate.cc		entry_buf
+
+entry_buf: kernel keeps a copy of the 6 x64 entry args as part of the
+thread object.  system call to fetch those values from cur_thread.
+
+as an optimization, store 32-bit-truncated values for the first 3 args
+into eax, edx, ecx, thereby allowing regparm(3) for functions that don't
+need more than 3 x32 arguments.
+
+===
+
+setup_env() takes 64-bit values but they are really only 32-bit values?
+same for libmain()..
+what's going to happen with stack_switch()?
+
+===
+
+bochs doesn't seem to implement CR4_OSFXSR|CR4_OSX
+
+===
+
+TLS annoyance:
+    http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29838
+    http://people.redhat.com/drepper/tls.pdf
+
+  i386 uses %gs to index into the TLS
+  x86_64 uses %fs to index into the TLS
+
+  TLS layout: struct _pthread_descr_struct
+    glibc-2.5/linuxthread/descr.h
+

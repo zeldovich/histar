@@ -1,0 +1,30 @@
+http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/binutils/files/binutils-leon-nofpu.patch
+
+diff -BbruN binutils-2.17.orig/gas/config/tc-sparc.c binutils-2.17/gas/config/tc-sparc.c
+--- binutils-2.17.orig/gas/config/tc-sparc.c	2007-06-18 23:33:24.000000000 -0700
++++ binutils-2.17/gas/config/tc-sparc.c	2007-06-18 23:49:46.000000000 -0700
+@@ -2160,6 +2160,8 @@
+ 	      {
+ 		char format;
+ 
++		as_fatal(_("Floating Point instruction forbidden with soft FPU"));
++
+ 		if (*s++ == '%'
+ 		    && ((format = *s) == 'f')
+ 		    && ISDIGIT (*++s))
+@@ -2244,6 +2246,7 @@
+ 	      }			/* float arg  */
+ 
+ 	    case 'F':
++	      as_fatal(_("Floating Point instruction forbidden with soft FPU"));
+ 	      if (strncmp (s, "%fsr", 4) == 0)
+ 		{
+ 		  s += 4;
+@@ -2594,6 +2597,7 @@
+ 	      break;
+ 
+ 	    case 'q':		/* Floating point queue.  */
++	      as_fatal(_("Floating Point instruction forbidden with soft FPU"));
+ 	      if (strncmp (s, "%fq", 3) == 0)
+ 		{
+ 		  s += 3;

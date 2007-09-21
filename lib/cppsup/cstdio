@@ -1,0 +1,20 @@
+#ifndef JOS_CPPSUP_CSTDIO
+#define JOS_CPPSUP_CSTDIO
+
+// jos64 glue
+
+extern "C" {
+#include <stdio.h>
+}
+
+namespace std {
+    using ::fputs;
+    using ::stdin;
+    using ::stdout;
+    using ::stderr;
+    using ::sprintf;
+    using ::snprintf;
+    using ::FILE;
+}
+
+#endif

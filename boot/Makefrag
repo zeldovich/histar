@@ -1,0 +1,60 @@
+#
+# Makefile fragment for the JOS kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+
+OBJDIRS += boot
+
+BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
+BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH)
+
+$(OBJDIR)/boot/%.o: boot/%.S
+	@mkdir -p $(@D)
+	$(CC) $(BOOT_CFLAGS) $(INCLUDES) -c -o $@ $<
+
+$(OBJDIR)/boot/main.o: boot/main.c
+	$(CC) $(BOOT_CFLAGS) $(INCLUDES) $(CSTD) -c -o $@ $<
+
+# Build a Linux style image for isolinux
+$(OBJDIR)/boot/bheader: $(BOOT_OBJS) $(OBJDIR)/boot/bsdata.o $(OBJDIR)/boot/setup
+	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x7C00 $(BOOT_OBJS) \
+	      -Tdata 0x7DF0 $(OBJDIR)/boot/bsdata.o
+	$(OBJCOPY) -S -O binary $@.out $@~
+	dd if=$(OBJDIR)/boot/setup of=$@~ bs=512 count=1 seek=1 2>/dev/null
+	mv $@~ $@
+
+# For Linux setup code, link at 0x0, but load address is irrelevant
+$(OBJDIR)/boot/setup: $(OBJDIR)/boot/setup.o
+	$(LD) -melf_i386 -N -e start -o $@.bin -Ttext 0x0 $<
+	$(OBJCOPY) -S -O binary $@.bin $@
+	perl boot/setup.pl $@
+
+$(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel.%
+	cat $^ > $@
+
+# Build the Bochs disk image
+$(OBJDIR)/boot/bochs.img: $(OBJDIR)/boot/bimage.init
+	dd if=/dev/zero of=$@~ bs=1024k count=64 2>/dev/null
+	dd if=$< of=$@~ conv=notrunc 2>/dev/null
+	mv $@~ $@
+
+# Build a pstate disk with a partition table
+$(OBJDIR)/fs/fs.img:
+	@mkdir -p $(@D)
+	dd if=/dev/zero of=$@~ bs=1024k count=512 2>/dev/null
+	perl boot/partinit.pl $@~
+	mv $@~ $@
+
+# Build a bootable iso
+$(OBJDIR)/boot/boot.iso: IMAGE_CMDLINE = default histar
+$(OBJDIR)/boot/boot.iso: $(OBJDIR)/boot/bimage.init
+	-rm -rf $(@D)/isoimage
+	@mkdir -p $(@D)/isoimage
+	cp boot/isolinux.bin $(@D)/isoimage/isolinux.bin
+	cp $(OBJDIR)/boot/bimage.init $(@D)/isoimage/histar
+	echo '$(IMAGE_CMDLINE)' > $(@D)/isoimage/isolinux.cfg
+	mkisofs -J -r -o $@ -b isolinux.bin -c boot.cat \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		$(@D)/isoimage

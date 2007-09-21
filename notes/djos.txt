@@ -1,0 +1,49 @@
+BUGS
+============
+* memory leak?  lots of writes to a socket in fileclient causes out of mem...
+
+=============
+* implement a framework that facilitates a 'distributed object domain' and 
+  enforces label policies.  Use this to build something interesting.
+  
+* something to the tune of exportfs from plan 9?
+	* provide sharing of jos64 fs.  Also provide access to other types of 
+	  fs?
+	* Mount the netd from a remote machine and use it.  To make CPU command
+	  useful would also want to share console.
+
+* trusted proxies to coordinate label policies...
+  	* export daemons...gates that can be invoked from a remote machine via a
+  	  trusted proxy?
+  	  
+* 'exportcpu'
+	* remote machine running exportcpu daemon
+	* local machine calls exec_remote or something
+	* request goes through proxies
+	* remote proxy invokes exportcpu daemon via gate call
+	* to make useful local machine should run exportcons and exportfs...mount
+	  /bin so remote machine can access local binaries...
+	* ...
+	
+LABEL PROXIES
+=============
+* Use global handle.  A globabally unique string.  Mapped to a 64-bit 
+  handle that the label proxie will have star for.
+* If want to grant access to a resource, need global handles for its labels.
+* When users create a global handle, proxy creates a gate w/ label specified
+  by the user.
+* For a fs, users set up global handles for files they want to share,
+  and grant the remote access daemon the correct handles for accessing the
+  global labels in the label proxy.
+* Can revoke access from remote fs by asking the remote fs daemon, or by
+  removing/chaging global handles (through proxy).
+
+* When get a global handle don't reconize, allocate a new handle and setup
+  a mapping.
+	* Access file on machine A for the first time from machine B.  Segment
+	  labeled {G0, T3, 1} on A, then labeled {G`0, T`3, 1} on B.  How should
+	  a user get access (stars, raised clearance...etc)?
+
+* When a user removing a global handle, broadcast a message allowing other
+  proxies to clean up there global handles.
+	  

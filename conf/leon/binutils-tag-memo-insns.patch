@@ -1,0 +1,40 @@
+wrtpcv r1, [r2] sets the pc valid bit
+       the least significant bit of r1 is the valid bit (0 or 1)
+       r2 is the pc tag
+
+wrtdv r1, [r2] sets the data valid bit
+       the least significant bit of r1 is the valid bit (0 or 1)
+       r2 is the data tag
+
+wrtperm r1, [r2] sets the permission table entry
+       the least significant 3 bits of r1 are the permission bits
+               bit 0 - read
+               bit 1 - write
+               bit 2 - execute
+
+       if a bit is set, then permissions of that type are allowed. If
+       a bit is clear, then permissions of that type are denied.
+
+       the least significant byte of r2 is the permission table index
+               bit 7-4 = pc tag
+               bit 0-3 = data tag
+
+
+Right now all tags are 4 bits.
+
+
+
+diff -BbruN binutils-2.15.orig/opcodes/sparc-opc.c binutils-2.15/opcodes/sparc-opc.c
+--- binutils-2.15.orig/opcodes/sparc-opc.c	2007-08-04 11:11:01.965153000 -0700
++++ binutils-2.15/opcodes/sparc-opc.c	2007-08-04 11:18:54.962683000 -0700
+@@ -1696,6 +1696,10 @@
+ { "wrtd",       TAGF3(2,0x36,16), TAGF3(~2,~0x36,~16),              "d,[1]&",0,v6notv9},
+ 
+ { "tret",       TAGF3(2,0x36,17), TAGF3(~2,~0x36,~17) | TAGASI(~0), "", 0, v6notv9},
++{ "wrtpg",      TAGF3(2,0x36,18), TAGF3(~2,~0x36,~18),            "d,[1]",0,v6notv9 },
++{ "wrtpcv",     TAGF3(2,0x36,19), TAGF3(~2,~0x36,~19),            "d,[1]",0,v6notv9 },
++{ "wrtdv",      TAGF3(2,0x36,20), TAGF3(~2,~0x36,~20),            "d,[1]",0,v6notv9 },
++{ "wrtperm",    TAGF3(2,0x36,21), TAGF3(~2,~0x36,~21),            "d,[1]",0,v6notv9 },
+ 
+ /* sparclet specific insns */
+ 

@@ -1,0 +1,93 @@
+--- perl-5.8.8_bad/uconfig.h	2005-10-12 05:03:14.000000000 -0700
++++ perl-5.8.8/uconfig.h	2007-02-06 23:03:15.000000000 -0800
+@@ -110,7 +110,7 @@
+  *	This symbol, if defined, indicates that the dup2 routine is
+  *	available to duplicate file descriptors.
+  */
+-/*#define HAS_DUP2	/ **/
++#define HAS_DUP2	/ **/
+ 
+ /* HAS_FCHMOD:
+  *	This symbol, if defined, indicates that the fchmod routine is available
+@@ -982,7 +982,7 @@
+  *	This symbol is the filename expanded version of the BIN symbol, for
+  *	programs that do not want to deal with that at run-time.
+  */
+-#define BIN "/usr/local/bin"	/**/
++#define BIN "/bin"	/**/
+ #define BIN_EXP ""	/**/
+ 
+ /* INTSIZE:
+@@ -3811,7 +3811,7 @@
+  *	/bin/pdksh, /bin/ash, /bin/bash, or even something such as
+  *	D:/bin/sh.exe.
+  */
+-#define SH_PATH ""  /**/
++#define SH_PATH "/bin/ksh"  /**/
+ 
+ /* HAS_AINTL:
+  *	This symbol, if defined, indicates that the aintl routine is
+--- perl-5.8.8_bad/perl.c	2006-01-31 04:34:47.000000000 -0800
++++ perl-5.8.8/perl.c	2007-02-07 02:05:18.000000000 -0800
+@@ -388,12 +388,11 @@
+ 	("__environ", (unsigned long *) &environ_pointer, NULL);
+ #endif /* environ */
+ 
+-#ifndef PERL_MICRO
+-#   ifdef  USE_ENVIRON_ARRAY
++#ifdef  USE_ENVIRON_ARRAY
+     PL_origenviron = environ;
+-#   endif
+ #endif
+ 
++
+     /* Use sysconf(_SC_CLK_TCK) if available, if not
+      * available or if the sysconf() fails, use the HZ.
+      * BeOS has those, but returns the wrong value.
+@@ -879,7 +878,6 @@
+     /* if PERL_USE_SAFE_PUTENV is defined environ will not have been copied
+      * so we certainly shouldn't free it here
+      */
+-#ifndef PERL_MICRO
+ #if defined(USE_ENVIRON_ARRAY) && !defined(PERL_USE_SAFE_PUTENV)
+     if (environ != PL_origenviron && !PL_use_safe_putenv
+ #ifdef USE_ITHREADS
+@@ -899,7 +897,6 @@
+ 	environ = PL_origenviron;
+     }
+ #endif
+-#endif /* !PERL_MICRO */
+ 
+     /* reset so print() ends up where we expect */
+     setdefout(Nullgv);
+@@ -4673,7 +4670,6 @@
+ 	GvMULTI_on(PL_envgv);
+ 	hv = GvHVn(PL_envgv);
+ 	hv_magic(hv, Nullgv, PERL_MAGIC_env);
+-#ifndef PERL_MICRO
+ #ifdef USE_ENVIRON_ARRAY
+ 	/* Note that if the supplied env parameter is actually a copy
+ 	   of the global environ then it may now point to free'd memory
+@@ -4714,7 +4710,6 @@
+ 	  }
+       }
+ #endif /* USE_ENVIRON_ARRAY */
+-#endif /* !PERL_MICRO */
+     }
+     TAINT_NOT;
+     if ((tmpgv = gv_fetchpv("$",TRUE, SVt_PV))) {
+--- perl-5.8.8_bad/perl.h	2006-01-13 10:17:12.000000000 -0800
++++ perl-5.8.8/perl.h	2007-02-07 02:08:37.000000000 -0800
+@@ -3425,11 +3425,11 @@
+ #else
+    /* VMS and some other platforms don't use the environ array */
+ #  ifdef USE_ENVIRON_ARRAY
++extern char **	environ;	/* environment variables supplied via exec */
+ #    if !defined(DONT_DECLARE_STD) || \
+         (defined(__svr4__) && defined(__GNUC__) && defined(sun)) || \
+         defined(__sgi) || \
+         defined(__DGUX)
+-extern char **	environ;	/* environment variables supplied via exec */
+ #    endif
+ #  endif
+ #endif

@@ -1,0 +1,3 @@
+dev/pcireg.h
+dev/fxpreg.h
+dev/dp8390reg.h

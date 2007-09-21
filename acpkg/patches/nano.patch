@@ -1,0 +1,49 @@
+--- nano-1.2.3_bad/configure	2004-02-17 20:35:57.000000000 -0800
++++ nano-1.2.3/configure	2006-03-21 22:48:31.000000000 -0800
+@@ -5688,7 +5688,7 @@
+ See \`config.log' for more details." >&5
+ echo "$as_me: error: cannot run test program while cross compiling
+ See \`config.log' for more details." >&2;}
+-   { (exit 1); exit 1; }; }
++   }
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+--- nano-1.2.3_bad/nano.c	2003-12-27 08:35:21.000000000 -0800
++++ nano-1.2.3/nano.c	2006-03-27 19:52:03.000000000 -0800
+@@ -2735,7 +2735,7 @@
+     return 1;
+ }
+ 
+-void signal_init(void)
++void nano_signal_init(void)
+ {
+ #ifdef _POSIX_VDISABLE
+     struct termios term;
+@@ -2833,7 +2833,7 @@
+ 
+     /* The Hurd seems to need this, otherwise a ^Y after a ^Z will
+ 	start suspending again. */
+-    signal_init();
++    nano_signal_init();
+ 
+ #ifndef NANO_SMALL
+     /* Perhaps the user resized the window while we slept. */
+@@ -2943,7 +2943,7 @@
+ 
+     switch (which->val) {
+     case TOGGLE_SUSPEND_KEY:
+-	signal_init();
++	nano_signal_init();
+ 	break;
+ #if !defined(DISABLE_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+     case TOGGLE_MOUSE_KEY:
+@@ -3394,7 +3394,7 @@
+     /* Set up some global variables */
+     global_init(0);
+     shortcut_init(0);
+-    signal_init();
++    nano_signal_init();
+ 
+ #ifdef DEBUG
+     fprintf(stderr, "Main: set up windows\n");

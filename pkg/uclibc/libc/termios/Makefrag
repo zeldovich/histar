@@ -1,0 +1,9 @@
+OBJDIRS += pkg/uclibc/libc/termios
+
+TERMIOS_CSRC := \
+	tcgetattr.c tcgetsid.c tcsetattr.c ttyname.c \
+	tcdrain.c tcflow.c tcflush.c tcsendbrk.c tcsetpgrp.c tcgetpgrp.c \
+        isatty.c speed.c cfmakeraw.c cfsetspeed.c
+
+LIBC_SRCFILES += $(patsubst %.c, pkg/uclibc/libc/termios/%.c, $(TERMIOS_CSRC))
+

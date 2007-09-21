@@ -1,0 +1,9 @@
+include pkg/ksh/Makefrag
+include pkg/uclibc/Makefrag
+include pkg/uclibc++/Makefrag
+include pkg/lwip/Makefrag
+include pkg/echo/Makefrag
+include pkg/cat/Makefrag
+include pkg/links/Makefrag
+include pkg/ftpd/Makefrag
+include pkg/httpd/Makefrag

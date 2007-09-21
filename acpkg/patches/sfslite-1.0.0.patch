@@ -1,0 +1,212 @@
+--- sfslite-0.8.9pre3_bad/acsfs.m4	2006-07-24 17:14:30.000000000 -0700
++++ sfslite-0.8.9pre3/acsfs.m4	2006-11-01 14:22:18.000000000 -0800
+@@ -319,7 +319,8 @@
+   return n != xn + 1;
+ }
+ changequote([,])],
+-	sfs_cv_egid_in_grouplist=yes, sfs_cv_egid_in_grouplist=no))
++	sfs_cv_egid_in_grouplist=yes, sfs_cv_egid_in_grouplist=no, 
++	sfs_cv_egid_in_grouplist=no))
+ if test $sfs_cv_egid_in_grouplist = yes; then
+ 	AC_DEFINE(HAVE_EGID_IN_GROUPLIST, 1,
+ 	  Define if the first element of a grouplist is the effective gid)
+--- sfslite-0.8.9pre3_bad/async/arandom.c	2006-05-31 08:02:38.000000000 -0700
++++ sfslite-0.8.9pre3/async/arandom.c	2006-11-01 14:27:16.000000000 -0800
+@@ -21,6 +21,8 @@
+  *
+  */
+ 
++extern unsigned int arc4random(void);
++
+ #include "sysconf.h"
+ 
+ /* XXX - need initializer because of broken Apple Darwin linker */
+--- sfslite-0.8.9pre3_bad/async/dftables.c	2006-05-31 08:02:37.000000000 -0700
++++ sfslite-0.8.9pre3/async/dftables.c	2006-11-01 14:32:12.000000000 -0800
+@@ -44,6 +44,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ 
++#define _ASYNC_SYSCONF_H_ 1
+ #include "internal.h"
+ 
+ #define DFTABLES          /* maketables.c notices this */
+--- sfslite-0.8.9pre3_bad/async/Makefile.am	2006-07-24 17:14:29.000000000 -0700
++++ sfslite-0.8.9pre3/async/Makefile.am	2006-11-01 14:40:56.000000000 -0800
+@@ -13,6 +13,8 @@
+ noinst_PROGRAMS = dftables
+ sfsexec_PROGRAMS = aiod mmcd
+ 
++aiod_LINK = $(LINK)
++
+ libasync_la_SOURCES = \
+ arandom.c clock_gettime.c flock.c rwfd.c stktrace.c suidprotect.c \
+ maketables.c pcre.c study.c \
+@@ -51,6 +53,9 @@
+ dftables_SOURCES = dftables.c
+ dftables_LDADD =
+ 
++dftables: dftables.c
++	gcc $< -o $@
++
+ pcre.o pcre.lo: chartables.c
+ chartables.c: dftables
+ 	./dftables $@
+--- sfslite-0.8.9pre3_bad/async/spawn.C	2006-05-31 08:02:37.000000000 -0700
++++ sfslite-0.8.9pre3/async/spawn.C	2006-11-01 14:36:05.000000000 -0800
+@@ -72,7 +72,7 @@
+ 
+ #ifdef MAINTAINER
+   if (afork_debug) {
+-    warn ("AFORK_DEBUG: child process pid %d\n", getpid ());
++      warn ("AFORK_DEBUG: child process pid %d\n", (int)getpid ());
+     sleep (7);
+   }
+ #endif /* MAINTAINER */
+--- sfslite-0.8.9pre3_bad/async/mmcd.c	2006-07-10 07:38:21.000000000 -0700
++++ sfslite-0.8.9pre3/async/mmcd.c	2006-11-01 14:42:10.000000000 -0800
+@@ -167,7 +167,7 @@
+   }
+ 
+   fprintf (stderr, "%s: starting up; file=%s; pid=%d\n", 
+-	   progname, mmap_file, getpid ());
++	   progname, mmap_file, (int)getpid ());
+ 
+   set_signal_handlers ();
+   
+--- sfslite-0.8.9pre3_bad/Makefile.am	2006-07-17 13:22:22.000000000 -0700
++++ sfslite-0.8.9pre3/Makefile.am	2006-11-01 14:53:57.000000000 -0800
+@@ -24,8 +24,7 @@
+ ARPCGEN =
+ endif
+ 
+-SUBDIRS = async rpcc arpc crypt $(ARPCGEN) $(LIBSFS) $(SVC) sfsmisc contrib \
+-	tame libtame $(TUTORIAL) 
++SUBDIRS = async arpc crypt $(ARPCGEN) $(LIBSFS) $(SVC) sfsmisc contrib
+ DIST_SUBDIRS = $(SUBDIRS)
+ #
+ # end sfslite change
+--- /home/nickolai/distsrc/sfslite-1.0.0/configure.in	2006-12-30 07:42:30.000000000 -0800
++++ sfslite-1.0.0/configure.in	2007-01-09 22:53:57.000000000 -0800
+@@ -463,10 +463,9 @@
+ SFS_CALLBACK
+ SFS_ALL
+ 
+-AC_OUTPUT(Makefile async/Makefile rpcc/Makefile arpc/Makefile
+-	crypt/Makefile sfsmisc/Makefile contrib/Makefile tame/Makefile
+-	svc/Makefile libtame/Makefile arpcgen/Makefile libsfs/Makefile
+-	tutorial/Makefile)
++AC_OUTPUT(Makefile async/Makefile arpc/Makefile
++	crypt/Makefile sfsmisc/Makefile contrib/Makefile
++	svc/Makefile arpcgen/Makefile libsfs/Makefile)
+ dnl
+ dnl end SFSlite changes
+ dnl
+--- sfslite-0.8.9pre3_bad/arpc/authopaque.C	2006-05-31 08:02:07.000000000 -0700
++++ sfslite-0.8.9pre3/arpc/authopaque.C	2006-11-01 14:50:27.000000000 -0800
+@@ -24,10 +24,12 @@
+ 
+ #include "arpc.h"
+ 
++#if 0
+ extern "C" {
+   /* for SunOS 5.7 */
+   bool_t xdr_opaque_auth(XDR *, struct opaque_auth *);
+ }
++#endif
+ 
+ static int authopaque_marshal (AUTH *, XDR *);
+ static void authopaque_destroy (AUTH *);
+--- sfslite-0.8.9pre3_bad/crypt/Makefile.am	2006-05-31 08:02:26.000000000 -0700
++++ sfslite-0.8.9pre3/crypt/Makefile.am	2006-11-01 14:52:10.000000000 -0800
+@@ -50,6 +50,12 @@
+ #tst_DEPENDENCIES = 
+ #endif
+ 
++LINK = $(LIBTOOL) --tag=CC --mode=link $(CC) $(AM_CFLAGS) $(CFLAGS) \
++		$(AM_LDFLAGS) $(LDFLAGS) -o $@
++
++tst_LINK = $(LINK)
++timing_LINK = $(LINK)
++
+ if REPO
+ sfscrypt_repo_OBJECTS = $(libsfscrypt_la_OBJECTS) \
+ 	$(LIBARPC) $(LIBASYNC)
+--- /home/nickolai/distsrc/sfslite-1.0.0/crypt/rabinpoly.C	2006-12-19 14:24:34.000000000 -0800
++++ sfslite-1.0.0/crypt/rabinpoly.C	2007-01-09 23:12:44.000000000 -0800
+@@ -21,7 +21,6 @@
+ 
+ #include "rabinpoly.h"
+ #include "msb.h"
+-#define INT64(n) n##LL
+ #define MSB64 INT64(0x8000000000000000)
+                     
+ u_int64_t
+--- /home/nickolai/distsrc/sfslite-1.0.0/async/refcnt.h	2006-11-10 08:43:31.000000000 -0800
++++ sfslite-1.0.0/async/refcnt.h	2007-01-09 23:56:09.000000000 -0800
+@@ -428,7 +428,7 @@
+   /* At least with gcc, the copy constructor must be explicitly
+    * defined (though it would appear to be redundant given the
+    * template constructor bellow). */
+-  ref (const ref<T> &r) : refpriv (r.c) { p = r.p; inc (); }
++  ref (const ref<T> &r) : refpriv (r.c), refops<T> () { p = r.p; inc (); }
+   template<class U>
+   ref (const ref<U> &r)
+     : refpriv (rc (r)) { p = refpriv::rp (r); inc (); }
+@@ -489,7 +489,7 @@
+   ptr (privtype *) : refpriv (NULL) { p = NULL; }
+   template<class U, reftype v>
+   ptr (refcounted<U, v> *pp) { set (pp, false); }
+-  ptr (const ptr<T> &r) : refpriv (r.c) { p = r.p; inc (); }
++  ptr (const ptr<T> &r) : refpriv (r.c), refops<T> () { p = r.p; inc (); }
+   template<class U>
+   ptr (const ptr<U> &r)
+     : refpriv (rc (r)) { p = refpriv::rp (r); inc (); }
+--- /home/nickolai/distsrc/sfslite-1.0.0/arpc/axprt.h	2006-11-10 08:42:50.000000000 -0800
++++ sfslite-1.0.0/arpc/axprt.h	2007-01-10 00:19:51.000000000 -0800
+@@ -48,7 +48,7 @@
+   virtual void setrcb (recvcb_t) = 0;
+   virtual bool ateof () { return false; }
+   virtual u_int64_t get_raw_bytes_sent () const { return 0; }
+-  virtual int sndbufsize () const { panic ("unimplemented"); return 0; }
++  virtual int sndbufsize () const __attribute__((noreturn)) { panic ("unimplemented"); }
+   virtual void poll () = 0;
+   virtual int getfd () = 0;
+ 
+--- sfslite-1.0.0/arpc/rpctypes.h.0	2007-02-19 18:11:37.000000000 -0800
++++ sfslite-1.0.0/arpc/rpctypes.h	2007-02-19 18:13:16.000000000 -0800
+@@ -138,7 +138,7 @@
+ 
+ public:
+   rpc_vec () { init (); }
+-  rpc_vec (const rpc_vec &v) { init (); copy (v); }
++  rpc_vec (const rpc_vec &v) : vec<T> () { init (); copy (v); }
+   template<size_t m> rpc_vec (const rpc_vec<T, m> &v) { init (); copy (v); }
+   ~rpc_vec () { if (nofree) super::init (); }
+   void clear () { del (); init (); }
+--- sfslite-1.0.0/sfsmisc/validshell.C.0	2007-02-23 10:24:30.000000000 -0800
++++ sfslite-1.0.0/sfsmisc/validshell.C	2007-02-23 10:24:35.000000000 -0800
+@@ -24,9 +24,9 @@
+ #include "sfsmisc.h"
+ 
+ extern "C" {
+-  char *getusershell(void);
+-  void setusershell(void);
+-  void endusershell(void);
++  char *getusershell(void) throw ();
++  void setusershell(void) throw ();
++  void endusershell(void) throw ();
+ }
+ 
+ bool
+--- sfslite-1.0.0/crypt/blowfish.h.orig	2007-05-07 15:28:57.000000000 -0700
++++ sfslite-1.0.0/crypt/blowfish.h	2007-05-07 15:29:03.000000000 -0700
+@@ -44,7 +44,7 @@
+   /* Note: BF_N must be divisible by 2! */
+   enum { BF_N = 16 };
+   static void enforce_bf_n_even ()
+-    { switch (1) case BF_N & 1: case 1:; }
++    { switch (1) default: case BF_N & 1: case 1:; }
+ 
+   u_int32_t P[BF_N + 2];
+   u_int32_t S[4][256];

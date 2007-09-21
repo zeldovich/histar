@@ -1,0 +1,5 @@
+HTTPD_INCLUDES := -Ipkg/httpd -I$(OBJDIR)/acpkg/include
+HTTPD_CFLAGS   := $(HTTPD_INCLUDES)
+
+include pkg/httpd/lib/Makefrag
+include pkg/httpd/user/Makefrag

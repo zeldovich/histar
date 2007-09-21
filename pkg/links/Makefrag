@@ -1,0 +1,49 @@
+LINKS_INCLUDES := \
+	-Ipkg/links
+
+OBJDIRS += pkg/links
+
+LINKS_SRCFILES :=	\
+	pkg/links/af_unix.c	\
+	pkg/links/bfu.c	\
+	pkg/links/bookmarks.c	\
+	pkg/links/cache.c	\
+	pkg/links/charsets.c	\
+	pkg/links/connect.c	\
+	pkg/links/cookies.c	\
+	pkg/links/default.c	\
+	pkg/links/dns.c	\
+	pkg/links/error.c	\
+	pkg/links/file.c	\
+	pkg/links/finger.c	\
+	pkg/links/ftp.c	\
+	pkg/links/html.c	\
+	pkg/links/html_r.c	\
+	pkg/links/html_tbl.c	\
+	pkg/links/http.c	\
+	pkg/links/https.c	\
+	pkg/links/kbd.c	\
+	pkg/links/kbdbind.c	\
+	pkg/links/language.c	\
+	pkg/links/mailto.c	\
+	pkg/links/main.c	\
+	pkg/links/menu.c	\
+	pkg/links/os_dep.c	\
+	pkg/links/sched.c	\
+	pkg/links/select.c	\
+	pkg/links/session.c	\
+	pkg/links/smb.c	\
+	pkg/links/terminal.c	\
+	pkg/links/types.c	\
+	pkg/links/url.c	\
+	pkg/links/view.c
+	
+LINKS_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LINKS_SRCFILES))
+
+$(OBJDIR)/pkg/links/%.o: pkg/links/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(LINKS_INCLUDES) -DHAVE_CONFIG_H $(CSTD) -D_GNU_SOURCE -c -o $@ $<
+
+$(OBJDIR)/user/links.debuginfo: $(LINKS_OBJFILES) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $(LINKS_OBJFILES)
+

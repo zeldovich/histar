@@ -1,0 +1,49 @@
+--- gcc/config/sparc/linux.h	2007-06-19 09:52:17.000000000 -0700
++++ gcc/config/sparc/linux.h	2007-06-19 09:53:40.000000000 -0700
+@@ -67,8 +67,7 @@
+ 
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
+ 
+ /* This is for -profile to use -lc_p instead of -lc.  */
+ #undef	CC1_SPEC
+
+--- gcc/config/sparc/t-leon	1969-12-31 16:00:00.000000000 -0800
++++ gcc/config/sparc/t-leon	2007-06-19 09:53:40.000000000 -0700
+@@ -0,0 +1,21 @@
++#Target Makefile for LEON3 SPARC V8-compatible processor
++#Michael Dalton
++#mwdalton@cs.stanford.edu, 2/23/06
++
++LIB1ASMSRC = sparc/lb1spc.asm
++LIB1ASMFUNCS = _mulsi3 _divsi3 _modsi3
++
++# We want fine grained libraries, so use the new code to build the
++# floating point emulation libraries.
++FPBIT = fp-bit.c
++DPBIT = dp-bit.c
++
++dp-bit.c: $(srcdir)/config/fp-bit.c
++	cat $(srcdir)/config/fp-bit.c > dp-bit.c
++
++fp-bit.c: $(srcdir)/config/fp-bit.c
++	echo '#define FLOAT' > fp-bit.c
++	cat $(srcdir)/config/fp-bit.c >> fp-bit.c
++
++TARGET_LIBGCC2_CFLAGS = -msoft-float -mflat -mcpu=v8
++CRTSTUFF_T_CFLAGS = -msoft-float -mflat -mcpu=v8
+
+--- gcc/config.gcc.orig	2005-07-19 14:08:48.000000000 -0700
++++ gcc/config.gcc	2007-09-10 13:07:59.000000000 -0700
+@@ -2038,7 +2038,7 @@
+ 	;;
+ sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
+ 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/linux.h"
+-	tmake_file="t-slibgcc-elf-ver t-linux sparc/t-crtfm"
++	tmake_file="t-slibgcc-elf-ver t-linux sparc/t-leon"
+ 	;;
+ sparc-*-rtems*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sol2.h sparc/sol2.h sparc/sol2-gld.h sparc/elf.h sparc/rtemself.h rtems.h"

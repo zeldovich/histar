@@ -1,0 +1,25 @@
+# -*-Makefile-*-
+
+KERN_CFLAGS += -D_GNU_SOURCE=1 -fno-builtin
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/archdep.c			\
+	$(ARCHDIR)/ummem.c			\
+	$(ARCHDIR)/umcons.c			\
+	$(ARCHDIR)/umtime.c			\
+	$(ARCHDIR)/umbench.c			\
+	$(ARCHDIR)/main.c
+
+KERN_LIB :=					\
+	lib/printfmt.c				\
+	lib/sysstring.c				\
+	lib/cksum.c				\
+	lib/bf60.c				\
+	lib/string.c				\
+	lib/hashtable.c
+
+$(OBJDIR)/kern/kernel.%.debuginfo:
+	$(CC) -o $@ $(KERN_LDFLAGS) $^
+
+all: $(OBJDIR)/kern/kernel.base
+

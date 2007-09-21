@@ -1,0 +1,22 @@
+let write_closure(X) be the set of processes (perhaps this means
+threads + gates) that can be affected by X.
+
+e.g. for threads, it's all processes that can be affected by the thread;
+for segments, it's all processes that can be affected by all threads
+that can read X; etc.
+
+if thread T deallocates object O that it cannot write to (e.g. in our
+design by deallocating a container that contains objects with a lower
+label), it violates policy, because deallocation is a write.
+
+there's at least the following two approaches to deal with the problem.
+
+(1) kill aggressively: kill processes in (write_closure(O) - write_closure(T))
+
+(2) kill conservatively: do not deallocate any O for which
+    (write_closure(O) - write_closure(T)) is non-empty.
+
+approach 1: perhaps too aggressive: how do you avoid being killed?
+
+approach 2: when do you then deallocate O?
+

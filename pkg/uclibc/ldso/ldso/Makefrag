@@ -1,0 +1,41 @@
+OBJDIRS += pkg/uclibc/ldso/ldso
+
+LDSO_OBJFILES := \
+	$(OBJDIR)/pkg/uclibc/ldso/ldso/ldso.o \
+	$(OBJDIR)/pkg/uclibc/ldso/ldso/resolve.o
+
+LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
+		-DNOT_IN_libc -DIS_IN_rtld \
+		-fno-omit-frame-pointer \
+		-Iuinc/ldso \
+		-Ipkg/uclibc/ldso/ldso/$(UCLIBC_ARCH) \
+		-Ipkg/uclibc/ldso/include \
+		-Ipkg/uclibc/ldso/ldso \
+		-DUCLIBC_RUNTIME_PREFIX=\"/\" \
+		-DUCLIBC_LDSO=\"ld.so\" \
+		$(UCLIBC_CFLAGS)
+
+LDSO_LDFLAGS := -shared --warn-common --warn-once \
+		-z combreloc -z relro -z defs -z now -z muldefs \
+		-s -e _start -Bsymbolic \
+		--export-dynamic --sort-common --discard-locals --discard-all \
+		-soname=ld-histar.so.0
+
+$(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LDSO_CFLAGS) -D_GNU_SOURCE -c -o $@ $<
+
+$(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
+	@mkdir -p $(@D)
+	$(CC) $(LDSO_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDEPS)
+	@mkdir -p $(@D)
+	$(LD) -o $@ \
+	      --whole-archive \
+	      $(OBJDIR)/lib/libjos.a \
+	      $(OBJDIR)/lib/libc.a \
+	      $(OBJDIR)/lib/libstdc++.a \
+	      $(OBJDIR)/lib/liblwip.a \
+	      --no-whole-archive $(LDSO_OBJFILES) $(GCC_LIB) $(LDSO_LDFLAGS)
+

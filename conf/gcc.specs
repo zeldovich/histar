@@ -1,0 +1,3 @@
+*lib:
+-ljos -lnetd -llwip -lc -lm -lutil -lstdc++
+

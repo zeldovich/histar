@@ -1,0 +1,63 @@
+the notes below aren't entirely correct with respect to the actual code
+that was implemented; in particular, the return trampoline was entirely
+unnecessary and the code simply uses utrap_ret() to jump onto the new
+stack and clear the utrap-masked bit at the same time.
+
+===
+
+signal handling: try to follow the standard unix model, where the signal
+handler gets dumped on the regular thread stack (don't forget to skip
+over the red zone).  need to be careful to pre-grow enough stack for us
+to dump our data structures on there, and once running on the real thread
+stack, we can take more utraps, e.g.  to further grow the thread stack.
+
+we cannot keep any execution state from the signal handling library on
+the TLS stack, because as soon as we switch over to the real thread's
+stack and start executing code there without utrap masking, another
+trap (e.g. stack growth fault) can come in on the TLS and trample
+everything.
+
+as a result, whenever we start executing a signal handler, there should
+be no locks or resources held by the signal library, and the utrap mask
+will be released atomically when we iretq onto the non-TLS stack, into
+the signal handler.
+
+however, we need to somehow curry away the return vector, ala siglongjmp,
+on the real thread stack, such that when (and if) the signal handler
+returns, the signal library regains control and iretq's back to where
+the thread was before the signal was delivered.
+
+some important cases to keep in mind:
+
+ * signal preempts regular execution, dispatched from utrap handler.
+   -> vector back to the state in UTrapframe.
+ * queued signal dispatched by sigsuspend() because it got unmasked.
+   -> vector back to sigsuspend() to return EINTR to the caller.
+ * queued signal dispatched by sigprocmask() because it got unmasked.
+   -> vector back to sigprocmask() which will return to user..
+ * signal preempts regular execution on TLS
+   -> vector back to TLS execution, careful because we share stacks..
+
+potential structure:
+
+ * for dispatching signals from utrap handler:
+
+   void signal_construct_return_trampoline()
+   -> allocates space on real thread stack for a return UTrapframe,
+      and sets up return %rip pointing to signal_return_trampoline()
+
+   void signal_return_trampoline()
+   -> unmasks a given signal (which was being delivered below this
+      trampoline on the real thread stack), if it's again deliverable
+      (i.e. was queued and now it's unmasked), execute the signal
+      handler again, re-using the return trampoline.  otherwise,
+      return to the associated UTrapframe.
+
+ * for dispatching signals when changing masks:
+
+   void signal_deliver_unmasked()
+   -> goes through queued signals and chooses some unmasked signal.
+      masks it, removes from queue, runs signal handler.  on return
+      from signal handler, if any, need to do much the same work as
+      signal_return_trampoline()?
+

@@ -1,0 +1,15 @@
+OBJDIRS += pkg/uclibc/libcrypt
+
+LIBCRYPT_CSRC = crypt.c des.c md5.c
+LIBCRYPT_CSRC := $(patsubst %.c, pkg/uclibc/libcrypt/%.c, $(LIBCRYPT_CSRC))
+LIBCRYPT_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIBCRYPT_CSRC))
+
+$(OBJDIR)/pkg/uclibc/libcrypt/%.o: pkg/uclibc/libcrypt/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) $< -c -o $@
+
+$(OBJDIR)/lib/libcrypt.a: $(LIBCRYPT_OBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBCRYPT_OBJFILES)
+

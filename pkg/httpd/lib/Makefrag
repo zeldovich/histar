@@ -1,0 +1,29 @@
+OBJDIRS += pkg/httpd/lib
+
+HTTPD_LIB_SRCFILES :=			\
+	pkg/httpd/lib/ssld_client.cc 	\
+	pkg/httpd/lib/ssl_eproc.cc   	\
+	pkg/httpd/lib/ssl_proxy.cc   	\
+	pkg/httpd/lib/a2pdf.cc		\
+	pkg/httpd/lib/perl.cc		\
+	pkg/httpd/lib/cat.cc		\
+	pkg/httpd/lib/ssl_fd.c		\
+	pkg/httpd/lib/argv.c		\
+	pkg/httpd/lib/openssl.c
+
+HTTPD_LIB_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(HTTPD_LIB_SRCFILES))
+HTTPD_LIB_OBJFILES := $(patsubst %.cc, $(OBJDIR)/%.o, $(HTTPD_LIB_OBJFILES))
+
+$(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.c acpkg/openssl-0.9.8a/__build
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE \
+	    -Wno-missing-format-attribute -Werror -c -o $@ $< $(HTTPD_CFLAGS)
+
+$(OBJDIR)/pkg/httpd/lib/%.o: pkg/httpd/lib/%.cc acpkg/openssl-0.9.8a/__build
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Wno-missing-format-attribute \
+	    -Werror -c -o $@ $< $(HTTPD_CFLAGS)
+
+$(OBJDIR)/pkg/httpd/lib/libhttpd.a: $(HTTPD_LIB_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $(HTTPD_LIB_OBJFILES)

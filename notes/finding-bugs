@@ -1,0 +1,148 @@
+Some interesting bugs that existed or might have been introduced,
+to keep in mind when designing methods to find such bugs..
+
+***
+
+Suppose sys_sync_wakeup took another argument to indicate how many
+waiters should be woken up.  This would be useful to implement
+pthread_cond_signal() vs.  pthread_cond_broadcast().
+
+However, a tainted thread could leak bits by waiting, or not waiting,
+on some untainted segment.  Then, another untainted thread will observe
+this bit by observing whether it was or was not woken up.
+
+Solution: we never had this feature, but I was just thinking of adding
+it and realized it would be a potentially tricky covert channel.  The
+"correct" way of doing it might be for waiters to explicitly specify if
+they want to only read the segment, or both read+write it.  Then, when
+waking up, the caller can explicitly say how many read+write waiters to
+wake up, and whether to wake up any (and all) read-only waiters.
+
+***
+
+Moving quota into a child container used to only do an iflow_write check
+on the child container.  This is insufficient because the caller learns
+information about the child container's FIXED_QUOTA flag.
+
+Solution: iflow_rw checks for child container.
+
+***
+
+Thread scheduling had a covert channel ("pre-authorization"), whereby an
+untainted thread, cleansed by some declassification agent, could be kept
+alive by a reference from a tainted container, and the tainted compartment
+could leak a bit by deallocating or not deallocating the thread.
+
+Solution: a thread must explicitly declare the container(s) referencing it,
+and will be halted if none of the containers are readable by it.
+
+***
+
+Typical off-by-1 bug in kern/kern/label.c (label_get_slotp_read/write, which
+was comparing (slotnum <= NUM_LB_ENT_INLINE) rather than (<).  Probably can
+be exploited: label_max() uses label_set(), so just need to set things up so
+that the important taint label component is lost at the right time..
+
+***
+
+We were forgetting to save and restore %ds, %es, %fs, %gs registers across
+context switches...
+
+***
+
+Couple of kernel-panic bugs:
+- Panic if disk state accessed before it's initialized (can happen only
+  very early during first bootstrap).
+- Panic when invoking a large system call number (assert in profiling code)
+
+***
+
+Corner cases where a thread would continue executing if it had a non-zero
+refcount but no readable refcounts (i.e. it was not "self-aware").  We were
+forgetting to check for self-awareness when thread changed labels, when it
+lost hard links, and when its parent-list was changed (we were only checking
+in the scheduler at time-slice boundaries).
+
+Potentially this would allow a thread to learn whether it still has any
+unreadable refcounts (and thus receive information from that unreadable
+compartment), by observing whether it continues executing after dropping
+its readable refcounts.
+
+***
+
+Persistent state checkpointing took a snapshot of the thread calling sync
+with the instruction pointer pointing to the next instruction, but without
+the result of the system call written into the thread's register set yet.
+As a result, the thread would resume at the next instruction as if the
+system call did not execute at all.  (Solution: roll back thread's %rip
+before doing system call, and roll forward on commit when writing the
+syscall result into thread register set.)
+
+***
+
+If a thread is deallocated as a result of a system call it made (e.g. if
+it unrefs itself), the system call handler would write back the system
+call result into the now-deallocated page that used to hold the thread's
+register state.
+
+***
+
+Threads checkpointed to disk would not have the KOBJ_ON_DISK flag set,
+because they weren't on disk at the time of the checkpoint.  However,
+when they got swapped in after a checkpoint restore, the kernel thinks
+they aren't on disk, and doesn't bother keeping a "tombstone" around
+when the thread died.  As a result, the thread is "resurrected" when
+we resume from subsequent checkpoints, because it is never erased from
+disk.
+
+***
+
+When swapping in a thread from disk, th_sched_remain was preserved.
+It's a signed quantity representing how much the thread overused or
+underused its CPU allocation.  The problem is that if this value is
+negative, its absolute value may be greater than global_pass.  When
+the thread's current CPU priority was computed, by adding global_pass
+and th_sched_remain, the value could underflow and become very large,
+meaning that the thread would almost never get scheduled.
+
+***
+
+When we run out of memory part-way through allocating a thread, the
+object is left in an inconsistent state (not on any linked list).
+When this zero-ref object is later GC'ed, the kernel removes it
+from a linked list, and panics due to a null pointer deref.
+
+***
+
+In a few places (pgdir_walk, kobject_borrow_parent_quota) we failed to
+pass up -E_RESTART, causing errors instead of suspending the thread.
+
+***
+
+When thread sends a utrap to self, the syscall return value should go
+into the UTrapframe.  However, the system call return value was either
+being discarded, or written into the live register (not in UTrapframe).
+As a result, resuming from the trap caused garbage (some previous value)
+to be loaded into the syscall return value register.
+
+***
+
+AS was caching page tables by thread ID, but when a thread changed
+labels, only the page table in the current AS was invalidated.  As
+a result, a thread could construct two AS'es, map a writable segment
+in AS1, switch to AS2, raise its label and read sensitive data, and
+then switch back to AS1 and write it out to an untainted segment.
+Solution: keep label ID along with thread ID (still needed for TLS
+mapping invalidation).
+
+***
+
+Thread objects cache a pointer to the (pinned) address space object
+they are currently using (under t->th_as).  As a result, the usual
+checks for naming an object by cobj_ref do not apply -- namely,
+checking object refcount, parent container label, and object label.
+A thread could lower its label and continue executing in the same
+high-label address space, which technically circumvents labeling.
+Might not be a huge problem because you need * to lower your label.
+Not fixed at the moment.
+

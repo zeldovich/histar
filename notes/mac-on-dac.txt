@@ -1,0 +1,84 @@
+Mandatory access control (MAC) systems appear to be a superset of discretionary
+access control (DAC) systems -- it seems quite easy to effectively reduce a MAC
+system to a DAC by granting discretionary/declassification privilege.  However,
+the opposite is not true: there isn't an immediately easy way to enforce MAC on
+top of a DAC system.  Thus, it seems like MAC systems are inherently at least
+as complex as DAC systems (and likely more complex, due to the need to address
+potential covert channels).
+
+In terms of the kernel interface, the HiStar API tries to squeeze out as much
+code out of the kernel into user-space as possible.  Given more functionality
+that can be factored out while enforcing MAC, it can be moved into user-space
+and reduce the size of the kernel.
+
+What can be factored out when there is nothing else that can be removed without
+violating MAC?  One possibility is to structure the HiStar MAC system on top
+of a DAC.  If the more complex MAC system is compromised, its guarantees are
+lost, but the simpler DAC system may still be able to provide some properties.
+In particular, the DAC kernel can expose all object metadata, but enforce some
+read/write checks (based on label comparison) for accessing object contents,
+e.g. the data in a file segment.  Thus, a compromised MAC kernel may expose
+information contrary to MAC security, or allow information to be leaked to
+other conspiring threads, but it will not be able to read file contents that
+are above its clearance, or write files that are below its label.  Thus, some
+privacy for highly-sensitive files, and integrity for other users data, can be
+maintained.
+
+In reality, most MAC systems have covert channels that allow MAC security to
+be subverted to some degree already.  In this sense, even "pure MAC" systems
+already provide stronger DAC-like guarantees (confidentiality of files above
+the clearance of malicious threads and integrity of files below malicious
+threads), so providing stronger guarantees for those properties makes some
+sense.
+
+The proposed structure looks something like this:
+
+  User-space  (x86 CPL=3)
+  MAC kernel  (x86 CPL=0)
+  DAC kernel  (x86 VMM)
+
+The DAC kernel would provide object persistence, hardware multiplexing (with
+hooks for user-level device drivers), and a labeled object abstraction.  The
+DAC kernel would implement most of the container code, to ensure that object
+refcounts are correct.
+
+Some DAC kernel calls that cannot be implemented in the MAC kernel:
+
+ - self_set_label
+ - self_set_clearance
+ - gate_enter
+ - pt_map_kobj_header [no access control checks?]
+ - pt_map_kobj_data [checks label for R/RW, cannot map container pages RW]
+ - pt_unmap
+ - kobj_write_header(offset, len, data) [checks for protected hdr fields]
+ - any container modification operations
+ - yielding the CPU to another security context
+
+It seems like we might be able to move around 2000 lines of code into the
+MAC kernel.
+
+Potential questions:
+
+ - Performance?  VMM calls too expensive, hope for monitor/mwait.
+
+ - Added complexity of kernel split?  Should stay below 2000 LOC, otherwise
+   it's not very appealing (but see next point).
+
+ - If we expect more code in the kernel, is it likely to be added to the
+   MAC kernel rather than the DAC kernel?  For instance, we probably need
+   some kernel support to implement a good select() -- this seems like it
+   can probably go into the MAC kernel, and the DAC kernel stays the same.
+
+===
+
+MAC-on-DAC isn't quite the right way of thinking about this, maybe.
+The bottom level (hypervisor) should provide a labeled page abstraction
+and track a current "PC-label" for the currently executing code.  It will
+also need to provide moderated access to special hardware state like %crX.
+Things that should be fully trusted will be layered microkernel-style on
+top of this hypervisor, with a { * } PC-label.
+
+Need a lightweight label-switching mechanism to implement things like
+trusted hash tables, etc.  No need for special hardware, at least for
+a prototype of this..
+

@@ -1,0 +1,76 @@
+OBJDIRS += dj
+
+LIBDIS_SRCFILES +=		\
+	dj/bcast.cc		\
+	dj/djprotx.x		\
+	dj/djprot.cc		\
+	dj/directexec.cc	\
+	dj/djrpcx.x		\
+	dj/djarpc.cc		\
+	dj/djlabel.cc		\
+	dj/djdebug.cc		\
+	dj/reqcontext.cc	\
+	dj/checkpoint.cc	\
+	dj/catmgr.cc		\
+	dj/djgate.x		\
+	dj/gateincoming.cc	\
+	dj/gatesender.cc	\
+	dj/gateexec.cc		\
+	dj/djgatesrv.cc		\
+	dj/djsrpcs.cc		\
+	dj/djsrpcc.cc		\
+	dj/internalx.x		\
+	dj/mapcreate.cc		\
+	dj/miscx.x		\
+	dj/djcache.cc		\
+	dj/djkey.cc		\
+	dj/delegator.cc		\
+	dj/hsutil.cc		\
+	dj/cryptconn.cc		\
+	dj/djutil.cc		\
+	dj/perf.cc		\
+	dj/gatecallstatus.cc
+
+# Application-specific stuff
+LIBDIS_SRCFILES +=		\
+	dj/djfs.x		\
+	dj/djfs_posix.cc
+
+LIBDIS_OBJFILES := $(LIBDIS_SRCFILES)
+LIBDIS_OBJFILES := $(patsubst dj/%.c, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+LIBDIS_OBJFILES := $(patsubst dj/%.cc, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+LIBDIS_OBJFILES := $(patsubst dj/%.x, $(OBJDIR)/dj/%.o, $(LIBDIS_OBJFILES))
+
+DIS_HEADERS	:= $(patsubst dj/%.x, $(TOP)/$(OBJDIR)/dj/%.h, $(filter %.x, $(LIBDIS_SRCFILES)))
+DIS_CCDEPS	:= $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/acpkg/include/gmp.h $(DIS_HEADERS)
+DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite
+
+DIS_LDDEPS	:= $(OBJDIR)/lib/libdj.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a $(OBJDIR)/acpkg/lib/libgmp.a
+DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldj -lsfsmisc -lsvc -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
+
+# Avoid deleting intermediate .h, .C files
+.PRECIOUS: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/%.h $(TOP)/$(OBJDIR)/dj/%.h
+
+$(OBJDIR)/dj/%.C: dj/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -c -o $@ $<
+
+$(OBJDIR)/dj/%.h $(TOP)/$(OBJDIR)/dj/%.h: dj/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -h -o $@ $<
+
+$(OBJDIR)/dj/%.o: dj/%.cc $(DIS_CCDEPS)
+	@mkdir -p $(@D)
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $<
+
+$(OBJDIR)/dj/%.o: $(OBJDIR)/dj/%.C $(DIS_CCDEPS)
+	@mkdir -p $(@D)
+	$(CXX) $(DIS_CFLAGS) $(USER_CXXFLAGS) -Werror -c -o $@ $< -I$(OBJDIR)/dj
+
+$(OBJDIR)/lib/libdj.a: $(LIBDIS_OBJFILES)
+	rm -f $@
+	$(AR) r $@ $^
+
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/dj/%.o $(DIS_LDDEPS) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $< $(DIS_LDFLAGS)
+

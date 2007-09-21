@@ -1,0 +1,260 @@
+extern "C" {
+#include <inc/lib.h>
+#include <inc/syscall.h>
+#include <inc/labelutil.h>
+#include <inc/error.h>
+#include <inttypes.h>
+}
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <inc/error.hh>
+#include <inc/errno.hh>
+#include <inc/spawn.hh>
+#include <inc/fs_dir.hh>
+#include <inc/scopeguard.hh>
+
+static char inetd_enable = 1;
+static char ssl_enable = 1;
+static char ssl_privsep_enable = 1;
+static char ssl_eproc_enable = 1;
+static char http_auth_enable = 0;
+static char http_dj_enable = 0;
+
+static const char* httpd_root_path = "/www";
+static const char *tar_pn = "/bin/tar";
+
+static struct fs_inode
+fs_inode_for(const char *pn)
+{
+    struct fs_inode ino;
+    int r = fs_namei(pn, &ino);
+    if (r < 0)
+	throw error(r, "cannot fs_lookup %s", pn);
+    return ino;
+}
+
+static void
+segment_copy_to_file(struct cobj_ref seg, struct fs_inode dir, 
+		     const char *fn, label *l)
+{
+    struct fs_inode ino;
+    error_check(fs_create(dir, fn, &ino, l->to_ulabel()));
+
+    void *va = 0;
+    uint64_t bytes = 0;
+    error_check(segment_map(seg, 0, SEGMAP_READ, &va, &bytes, 0));
+    scope_guard<int, void *> unmap(segment_unmap, va);
+    error_check(fs_pwrite(ino, va, bytes, 0));
+}
+
+static void
+untar(const char *in_pn, const char *tar_fn)
+{
+    fs_inode ino;
+    error_check(fs_namei(tar_pn, &ino));
+    const char *argv[] = { tar_pn, "xm", "-C", in_pn, "-f", tar_fn };
+    
+    spawn_descriptor sd;
+    sd.ct_ = start_env->shared_container;
+    sd.elf_ino_ = ino;
+    sd.ac_ = 6;
+    sd.av_ = &argv[0];
+
+    struct child_process cp = spawn(&sd);
+    int64_t exit_code;
+    error_check(process_wait(&cp, &exit_code));
+    error_check(exit_code);
+}
+
+static void
+create_ascii(const char *dn, const char *fn, uint64_t len)
+{
+    struct fs_inode dir;
+    error_check(fs_namei(dn, &dir));
+    struct fs_inode file;
+    error_check(fs_create(dir, fn, &file, 0));
+
+    void *buf = malloc(len);
+    memset(buf, 'a', len);
+    int r = fs_pwrite(file, buf, len, 0);
+    free(buf);
+    error_check(r);
+}
+
+int
+main (int ac, char **av)
+{
+    static const char *default_server_pem = "/bin/server.pem";
+    static const char *default_servkey_pem = "/bin/servkey.pem";
+    static const char *default_dh_pem = "/bin/dh.pem";
+
+    static const char *ssld_server_pem = "/httpd/ssld-priv/server.pem";
+    static const char *ssld_dh_pem = "/httpd/ssld-priv/dh.pem";
+
+    static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
+
+    errno_check(mkdir(httpd_root_path, 0));
+    
+    try {
+	untar("/", "/bin/a2ps.tar");
+	untar("/", "/bin/gs.tar");
+    } catch (basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", av[0], e.what());
+    }
+    
+    try {
+	create_ascii("/www/", "test.0", 0);
+	create_ascii("/www/", "test.1", 1);
+	create_ascii("/www/", "test.1024", 1024);
+	create_ascii("/www/", "test.8192", 8192);
+    } catch(basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot create test files: %s\n", 
+		av[0], e.what());
+    }
+
+    int64_t ssld_taint = handle_alloc();
+    int64_t eprocd_taint = ssl_eproc_enable ? handle_alloc() : ssld_taint;
+    int64_t access_grant = handle_alloc();
+    error_check(ssld_taint);
+    error_check(eprocd_taint);
+    error_check(access_grant);
+    label ssld_label(1);
+    ssld_label.set(ssld_taint, 3);
+    ssld_label.set(access_grant, 0);
+    label eprocd_label(1);
+    eprocd_label.set(eprocd_taint, 3);
+    eprocd_label.set(access_grant, 0);
+    
+    int64_t httpd_ct = sys_container_alloc(start_env->root_container, 0,
+					   "httpd", 0, CT_QUOTA_INF);
+    error_check(httpd_ct);
+
+    char httpd_symlink[64];
+    sprintf(&httpd_symlink[0], "#%"PRIu64, httpd_ct);
+    symlink(httpd_symlink, "/httpd");
+
+    struct fs_inode httpd_dir_ino;
+    httpd_dir_ino.obj = COBJ(start_env->root_container, httpd_ct);
+
+    struct fs_inode ssld_dir_ino;
+    error_check(fs_mkdir(httpd_dir_ino, "ssld-priv", &ssld_dir_ino, 
+			 ssld_label.to_ulabel()));
+
+    struct fs_inode eprocd_dir_ino;
+    error_check(fs_mkdir(httpd_dir_ino, "servkey-priv", &eprocd_dir_ino, 
+			 eprocd_label.to_ulabel()));
+        
+    struct fs_inode server_pem_ino = fs_inode_for(default_server_pem);
+    struct fs_inode dh_pem_ino = fs_inode_for(default_dh_pem);
+
+    struct fs_inode servkey_pem_ino = fs_inode_for(default_servkey_pem);
+
+    segment_copy_to_file(server_pem_ino.obj, ssld_dir_ino, "server.pem", 
+			 &ssld_label);
+    segment_copy_to_file(dh_pem_ino.obj, ssld_dir_ino, "dh.pem", 
+			 &ssld_label);
+
+    segment_copy_to_file(servkey_pem_ino.obj, eprocd_dir_ino, "servkey.pem", 
+			 &eprocd_label);
+
+    label ssld_ds(3), ssld_dr(0);
+    ssld_ds.set(ssld_taint, LB_LEVEL_STAR);
+    ssld_dr.set(ssld_taint, 3);
+
+    char verify_arg[32];
+    snprintf(verify_arg, sizeof(verify_arg), "%lu", start_env->user_grant);
+    
+    const char *ssld_pn = "/bin/ssld";
+    struct fs_inode ssld_ino = fs_inode_for(ssld_pn);
+    const char *ssld_argv[] = { ssld_pn, verify_arg, ssld_server_pem,
+				ssld_dh_pem, ssld_servkey_pem };
+    struct child_process cp = spawn(httpd_ct, ssld_ino,
+				    0, 0, 0,
+				    ssl_eproc_enable ? 4 : 5, &ssld_argv[0],
+				    0, 0,
+				    0, &ssld_ds, 0, &ssld_dr, 0,
+				    SPAWN_NO_AUTOGRANT);
+    int64_t exit_code = 0;
+    process_wait(&cp, &exit_code);
+    if (exit_code)
+	throw error(exit_code, "error starting ssld");
+    
+    if (ssl_eproc_enable) {
+	uint64_t keylen;
+	error_check(fs_getsize(servkey_pem_ino, &keylen));
+
+	char *keydata = (char *) malloc(keylen + 1);
+	error_check(fs_pread(servkey_pem_ino, keydata, keylen, 0));
+	keydata[keylen] = '\0';
+	scope_guard<void, void*> freekey(free, keydata);
+
+	label eprocd_ds(3), eprocd_dr(0);
+	eprocd_ds.set(eprocd_taint, LB_LEVEL_STAR);
+	eprocd_dr.set(eprocd_taint, 3);
+	
+	const char *eprocd_pn = "/bin/ssl_eprocd";
+	struct fs_inode eprocd_ino = fs_inode_for(eprocd_pn);
+	const char *eprocd_argv[] = { eprocd_pn, verify_arg, keydata };
+	cp = spawn(httpd_ct, eprocd_ino,
+		   0, 0, 0,
+		   3, &eprocd_argv[0],
+		   0, 0,
+		   0, &eprocd_ds, 0, &eprocd_dr, 0,
+		   SPAWN_NO_AUTOGRANT);
+	exit_code = 0;
+	process_wait(&cp, &exit_code);
+	if (exit_code)
+	    throw error(exit_code, "error starting ssl_eprocd");
+    }
+	
+    label httpd_ds(3);
+    httpd_ds.set(access_grant, LB_LEVEL_STAR);
+    label httpd_dr(0);
+    httpd_dr.set(access_grant, 3);
+
+    char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4], httpd_buf[4];
+    snprintf(ssle_buf, sizeof(ssle_buf), "%d", ssl_enable);
+    snprintf(sslp_buf, sizeof(sslp_buf), "%d", ssl_privsep_enable);
+    snprintf(ssle2_buf, sizeof(ssle2_buf), "%d", ssl_eproc_enable);
+    snprintf(httpa_buf, sizeof(httpa_buf), "%d", http_auth_enable);
+    snprintf(httpd_buf, sizeof(httpd_buf), "%d", http_dj_enable);
+
+    if (inetd_enable) {
+	const char *inetd_pn = "/bin/inetd";
+	struct fs_inode inetd_ino = fs_inode_for(inetd_pn);
+	const char *inetd_argv[] = { inetd_pn, 
+				     "--ssl_privsep_enable", sslp_buf,
+				     "--ssl_eproc_enable", ssle2_buf,
+				     "--http_auth_enable", httpa_buf,
+				     "--http_dj_enable", httpd_buf,
+				     "--httpd_root_path", "/www" };
+	spawn(httpd_ct, inetd_ino,
+	      0, 0, 0,
+	      9, &inetd_argv[0],
+	      0, 0,
+	      0, &httpd_ds, 0, &httpd_dr, 0);
+    } else {
+	const char *httpd_pn = "/bin/httpd";
+	struct fs_inode httpd_ino = fs_inode_for(httpd_pn);
+	const char *httpd_argv[] = { httpd_pn, 
+				     "--ssl_enable", ssle_buf,
+				     "--ssl_privsep_enable", sslp_buf,
+				     "--ssl_eproc_enable", ssle2_buf,
+				     "--http_auth_enable", httpa_buf,
+				     "--http_dj_enable", httpd_buf,
+				     "--httpd_root_path", "/www" };
+	spawn(httpd_ct, httpd_ino,
+	      0, 0, 0,
+	      11, &httpd_argv[0],
+	      0, 0,
+	      0, &httpd_ds, 0, &httpd_dr, 0);
+    }
+    return 0;
+}

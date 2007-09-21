@@ -1,0 +1,25 @@
+include pkg/uclibc/libc/inet/Makefrag
+include pkg/uclibc/libc/inet/rpc/Makefrag
+include pkg/uclibc/libc/string/Makefrag
+include pkg/uclibc/libc/stdlib/Makefrag
+include pkg/uclibc/libc/unistd/Makefrag
+include pkg/uclibc/libc/stdio/Makefrag
+include pkg/uclibc/libc/misc/Makefrag
+include pkg/uclibc/libc/termios/Makefrag
+include pkg/uclibc/libc/signal/Makefrag
+include pkg/uclibc/libc/pwd_grp/Makefrag
+include pkg/uclibc/libc/sysdeps/Makefrag
+
+LIBC_COBJFILES := $(LIBC_SRCFILES)
+LIBC_COBJFILES := $(patsubst %.c,  $(OBJDIR)/%.o, $(LIBC_COBJFILES))
+
+LIBC_OBJFILES += $(LIBC_COBJFILES)
+
+$(OBJDIR)/pkg/uclibc/libc/%.o: pkg/uclibc/libc/%.c
+	@mkdir -p $(@D)
+	$(CC) $(UCLIBC_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libc.a: $(LIBC_OBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBC_OBJFILES)

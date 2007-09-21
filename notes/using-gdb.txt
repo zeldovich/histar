@@ -1,0 +1,9 @@
+% gdbserver localhost:9999 --attach PID
+
+% gdb binary-name
+(gdb) target remote localhost:9999
+(gdb) ...
+
+(gdb) detach
+(gdb) quit
+% 

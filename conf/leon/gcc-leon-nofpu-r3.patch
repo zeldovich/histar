@@ -1,0 +1,66 @@
+http://raksha.svn.sourceforge.net/viewvc/raksha/portage-overlay/sys-devel/gcc/files/gcc-leon-nofpu.patch
+
+Submitted By: Michael Dalton (mwdalton at cs dot stanford dot edu)
+Date: 2006-03-09
+Initial Package Version: 4.1.2
+Origin: Michael Dalton
+Upstream Status: Not Sent
+Description: This patch adds support for FPU-less LEON processors to gcc. We 
+modify the sparc*-*linux* target machine type to use a new LEON-customized 
+Target Makefile. This makefile adds soft floating point routines to libgcc, and 
+compiles the crt files and libgcc with software floating point. Because we 
+use soft floating point, crtfastmath is not built. By default, gcc's specs
+file will include crtfastmath when -ffast-math or -funsafe-math-optimizations
+arguments are given. We modify config/sparc/linux.h to remove this behavior,
+ensuring that gcc's specs file is free of references to crtfastmath.
+
+diff -BbruN gcc/config/sparc/linux.h gcc/config/sparc/linux.h
+--- gcc/config/sparc/linux.h	2007-06-19 09:52:17.000000000 -0700
++++ gcc/config/sparc/linux.h	2007-06-19 09:53:40.000000000 -0700
+@@ -67,8 +67,7 @@
+ 
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
+ 
+ /* This is for -profile to use -lc_p instead of -lc.  */
+ #undef	CC1_SPEC
+diff -BbruN gcc/config/sparc/t-leon gcc/config/sparc/t-leon
+--- gcc/config/sparc/t-leon	1969-12-31 16:00:00.000000000 -0800
++++ gcc/config/sparc/t-leon	2007-06-19 09:53:40.000000000 -0700
+@@ -0,0 +1,21 @@
++#Target Makefile for LEON3 SPARC V8-compatible processor
++#Michael Dalton
++#mwdalton@cs.stanford.edu, 2/23/06
++
++LIB1ASMSRC = sparc/lb1spc.asm
++LIB1ASMFUNCS = _mulsi3 _divsi3 _modsi3
++
++# We want fine grained libraries, so use the new code to build the
++# floating point emulation libraries.
++FPBIT = fp-bit.c
++DPBIT = dp-bit.c
++
++dp-bit.c: $(srcdir)/config/fp-bit.c
++	cat $(srcdir)/config/fp-bit.c > dp-bit.c
++
++fp-bit.c: $(srcdir)/config/fp-bit.c
++	echo '#define FLOAT' > fp-bit.c
++	cat $(srcdir)/config/fp-bit.c >> fp-bit.c
++
++TARGET_LIBGCC2_CFLAGS = -msoft-float -mcpu=v8
++CRTSTUFF_T_CFLAGS = -msoft-float -mcpu=v8
+diff -BbruN gcc/config.gcc gcc/config.gcc
+--- gcc/config.gcc	2007-06-19 09:52:17.000000000 -0700
++++ gcc/config.gcc	2007-06-19 09:54:26.000000000 -0700
+@@ -2056,7 +2056,7 @@
+ sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
+ 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/linux.h"
+ 	extra_options="${extra_options} sparc/long-double-switch.opt"
+-	tmake_file="${tmake_file} sparc/t-crtfm"
++	tmake_file="${tmake_file} sparc/t-leon"
+ 	;;
+ sparc-*-rtems*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/sp-elf.h sparc/rtemself.h rtems.h"

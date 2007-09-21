@@ -1,0 +1,63 @@
+--- openssl-0.9.8a_bad/Configure	2005-08-02 03:59:42.000000000 -0700
++++ openssl-0.9.8a/Configure	2006-03-28 18:55:05.000000000 -0800
+@@ -172,6 +172,9 @@
+ "gcc",		"gcc:-O3::(unknown):::BN_LLONG:::",
+ "cc",		"cc:-O::(unknown)::::::",
+ 
++# jos64 configs
++"x86_64-jos-linux", "acpkg-wrap-gcc:-m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DMD32_REG_T=int:::::SIXTY_FOUR_BIT_LONG RC4_CHUNK BF_PTR2 DES_INT DES_UNROLL:${x86_64_asm}:::::",
++
+ ####VOS Configurations
+ "vos-gcc","gcc:-O3 -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
+ "debug-vos-gcc","gcc:-O0 -g -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN -DBN_DEBUG -DREF_CHECK -DCONF_DEBUG -DCRYPTO_MDEBUG::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
+--- openssl-0.9.8a/crypto/engine/eng_all.c	2005-04-19 06:24:44.000000000 -0700
++++ openssl-0.9.8a/crypto/engine/eng_all.c	2007-01-08 19:28:21.000000000 -0800
+@@ -106,6 +106,7 @@
+ 	ENGINE_load_gmp();
+ #endif
+ #endif
++	ENGINE_load_proc();
+ 	}
+ 
+ #if defined(__OpenBSD__) || defined(__FreeBSD__)
+--- openssl-0.9.8a/crypto/engine/engine.h	2005-07-16 04:13:06.000000000 -0700
++++ openssl-0.9.8a/crypto/engine/engine.h	2007-01-08 19:27:55.000000000 -0800
+@@ -320,6 +320,7 @@
+ void ENGINE_load_dynamic(void);
+ #ifndef OPENSSL_NO_STATIC_ENGINE
+ void ENGINE_load_4758cca(void);
++void ENGINE_load_proc(void);
+ void ENGINE_load_aep(void);
+ void ENGINE_load_atalla(void);
+ void ENGINE_load_chil(void);
+--- openssl-0.9.8a/engines/Makefile	2005-06-28 02:10:18.000000000 -0700
++++ openssl-0.9.8a/engines/Makefile	2007-01-08 19:39:06.000000000 -0800
+@@ -20,7 +20,7 @@
+ APPS=
+ 
+ LIB=$(TOP)/libcrypto.a
+-LIBNAMES= 4758cca aep atalla cswift gmp chil nuron sureware ubsec
++LIBNAMES= 4758cca aep atalla cswift gmp chil nuron sureware ubsec proc
+ 
+ LIBSRC=	e_4758cca.c \
+ 	e_aep.c \
+@@ -30,7 +30,8 @@
+ 	e_chil.c \
+ 	e_nuron.c \
+ 	e_sureware.c \
+-	e_ubsec.c
++	e_ubsec.c \
++	e_proc.c
+ LIBOBJ= e_4758cca.o \
+ 	e_aep.o \
+ 	e_atalla.o \
+@@ -39,7 +40,8 @@
+ 	e_chil.o \
+ 	e_nuron.o \
+ 	e_sureware.o \
+-	e_ubsec.o
++	e_ubsec.o \
++	e_proc.o
+ 
+ SRC= $(LIBSRC)
+ 

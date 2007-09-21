@@ -1,0 +1,64 @@
+OBJDIRS += user
+
+## Programs that require additional libraries
+
+$(OBJDIR)/user/asynct0.o: $(OBJDIR)/acpkg/include/sfslite
+$(OBJDIR)/user/asynct0.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+$(OBJDIR)/user/asynct0.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
+
+$(OBJDIR)/user/asynct1.o: $(OBJDIR)/acpkg/include/sfslite
+$(OBJDIR)/user/asynct1.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include
+$(OBJDIR)/user/asynct1.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite -lasync
+
+$(OBJDIR)/user/fa.o: $(OBJDIR)/acpkg/include/sfslite
+$(OBJDIR)/user/fa.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include/sfslite
+
+$(OBJDIR)/user/fa_srv.o: $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/user/fa.h
+$(OBJDIR)/user/fa_srv.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include/sfslite -I$(OBJDIR)/user
+$(OBJDIR)/user/fa_srv.debuginfo: $(OBJDIR)/user/fa.o
+$(OBJDIR)/user/fa_srv.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite $(OBJDIR)/user/fa.o -larpc -lasync
+
+$(OBJDIR)/user/fa_clnt.o: $(OBJDIR)/acpkg/include/sfslite $(OBJDIR)/user/fa.h
+$(OBJDIR)/user/fa_clnt.o: PER_TARGET_CFLAGS=-I$(OBJDIR)/acpkg/include/sfslite -I$(OBJDIR)/user
+$(OBJDIR)/user/fa_clnt.debuginfo: $(OBJDIR)/user/fa.o
+$(OBJDIR)/user/fa_clnt.debuginfo: PER_TARGET_LDFLAGS=-L$(OBJDIR)/acpkg/lib/sfslite $(OBJDIR)/user/fa.o -larpc -lasync
+
+## Generic build rules
+
+$(OBJDIR)/user/%.o: user/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
+
+$(OBJDIR)/user/%.o: user/%.cc
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
+
+$(OBJDIR)/user/%: user/%.S
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) -c -o $@.o $<
+	$(LD) -o $@ -nostdlib $@.o
+
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
+
+$(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
+	$(STRIP) $< -o $@
+
+## Special targets
+
+$(OBJDIR)/user/%.sh: user/%.sh
+	@mkdir -p $(@D)
+	cp $< $@
+
+$(OBJDIR)/user/%.C: user/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -c -o $@ $<
+
+$(OBJDIR)/user/%.h: user/%.x
+	@mkdir -p $(@D)
+	$(RPCC) -h -o $@ $<
+
+$(OBJDIR)/user/%.o: $(OBJDIR)/user/%.C $(OBJDIR)/user/%.h
+	@mkdir -p $(@D)
+	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
+

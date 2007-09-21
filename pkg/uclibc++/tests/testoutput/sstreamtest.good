@@ -1,0 +1,31 @@
+Begining sstream test
+Starting testing 2 2
+Character getted: a
+Character getted: b
+input buffer: abcdefg
+Character 0: a, character 1: b
+f (should be 2.35): 2.35
+i (should be 5): 5
+s (should be Test): Test
+Buffer after flag clear: 2.35 5 Test
+Combining read and write activities
+Read out: '2.5'
+Read out: 'ing'
+Current buffer value: 2.5 ing data
+Appending more text by a number of methods
+String stream text:2.5 trd
+
+
+4635
+String stream test:2.5 trd
+
+
+4635
+Checking ostringstream
+Test string 5 3.5 Another test string 
+abcdefghiojklmnopqrstuvwxyz 
+abcdefghiojklmnopqrstuvwxyz 
+abcdefghiojklmnopqrstuvwxyz 
+abcdefghiojklmnopqrstuvwxyz 
+Test string
+

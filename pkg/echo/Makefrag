@@ -1,0 +1,12 @@
+OBJDIRS += pkg/echo
+
+ECHO_SRCFILES := echo.c
+ECHO_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/echo/%.o, $(ECHO_SRCFILES))
+
+$(OBJDIR)/pkg/echo/%.o: pkg/echo/%.c
+	@mkdir -p $(@D)
+	$(CC) $(USER_CFLAGS) $(CSTD) -D_GNU_SOURCE -c -o $@ $<
+
+$(OBJDIR)/user/echo.debuginfo: $(ECHO_OBJFILES) $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS) $<
+

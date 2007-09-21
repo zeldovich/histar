@@ -1,0 +1,61 @@
+# -*-Makefile-*-
+
+# The 0x1e0 link offset corresponds to the offset of the text section
+# in the resulting ELF kernel file.  This way, the kernel ELF binary
+# can be loaded at exactly 0x100000, without any further relocation.
+
+KERN_LDFLAGS = -N -Ttext 0xffffffff801001e0 -e start -nostdlib
+KERN_CFLAGS += -msoft-float -mno-red-zone -mcmodel=kernel -fno-builtin
+
+KERN_ARCH :=					\
+	$(ARCHDIR)/multiboot.S			\
+	$(ARCHDIR)/bootdata.c			\
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/pmap-x86.c			\
+	$(ARCHDIR)/misc.c			\
+	$(ARCHDIR)/mtrr.c			\
+	$(ARCHDIR)/acpimach.c			\
+	$(ARCHDIR)/reboot.c			\
+	$(ARCHDIR)/tsctimer.c			\
+	$(ARCHDIR)/arch-x86.c
+
+KERN_LIB :=					\
+	lib/$(ARCH)/strlen.S			\
+	lib/$(ARCH)/longjmp.S			\
+	lib/memcpy.c				\
+	lib/memmove.c				\
+	lib/memset.c				\
+	lib/memcmp.c				\
+	lib/printfmt.c				\
+	lib/sysstring.c				\
+	lib/cksum.c				\
+	lib/bf60.c				\
+	lib/string.c				\
+	lib/hashtable.c
+
+KERN_DEV :=					\
+	kern/dev/cgacons.c			\
+	kern/dev/sercons.c			\
+	kern/dev/lptcons.c			\
+	kern/dev/kclock.c			\
+	kern/dev/picirq.c			\
+	kern/dev/ide.c				\
+	kern/dev/ahci.c				\
+	kern/dev/pci.c				\
+	kern/dev/ne2kpci.c			\
+	kern/dev/fxp.c				\
+	kern/dev/e1000.c			\
+	kern/dev/pnic.c				\
+	kern/dev/apic.c				\
+	kern/dev/acpi.c				\
+	kern/dev/hpet.c
+
+$(OBJDIR)/kern/kernel.%.debuginfo:
+	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB)
+
+all: $(OBJDIR)/boot/bochs.img $(OBJDIR)/fs/fs.img $(OBJDIR)/boot/bimage.base
+

@@ -1,0 +1,16 @@
+#ifndef JOS_CPPSUP_CSTDLIB
+#define JOS_CPPSUP_CSTDLIB
+
+// jos64 glue
+
+extern "C" {
+#include <stdlib.h>
+}
+
+namespace std {
+    using ::abort;
+    using ::malloc;
+    using ::free;
+}
+
+#endif
