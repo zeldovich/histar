@@ -41,6 +41,9 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
     cprintf("  d tag  = %d\n", dtag);
     cprintf("  cause  = %s (%d)\n",
 	    cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown", cause);
+    cprintf("  tf     = %p\n", tf);
+    cprintf("  pc     = %x\n", tf->tf_pc);
+    cprintf("  psr    = %x\n", tf->tf_psr);
 
     trapframe_print(tf);
 
@@ -73,10 +76,9 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
 	panic("Unknown cause value from the ET register\n");
     }
 
+    cprintf("tag trap: returning..\n");
     tag_trap_return(tf, tbr);
 }
-
-volatile uint32_t v;
 
 void
 tag_init(void)
@@ -93,22 +95,25 @@ tag_init(void)
     for (uint32_t i = 0; i < (1 << TAG_DATA_BITS); i++)
 	wrtdv(i, 1);
 
-    for (uint32_t i = 0; i < (1 << TAG_PC_BITS); i++)
+    for (uint32_t i = 0; i < (1 << TAG_PC_BITS); i++) {
 	for (uint32_t j = 0; j < (1 << TAG_DATA_BITS); j++)
 	    wrtperm(i, j, 0);
+
+	wrtperm(i, DTAG_DEVICE, TAG_PERM_READ | TAG_PERM_WRITE);
+	wrtperm(i, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_EXEC);
+	wrtperm(i, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE);
+
+	/*
+	 * Currently we don't properly tag all of our memory pages,
+	 * so in order to access all of the dynamically allocated
+	 * memory, kobjects, user segments, and so on, we need this..
+	 */
+	wrtperm(i, DTAG_NOACCESS,
+		TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    }
+
+    write_pctag(0);
     cprintf("done.\n");
-
-    wrtperm(2, 0, TAG_PERM_READ | TAG_PERM_WRITE);
-    wrtperm(2, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_EXEC);
-    wrtperm(2, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE);
-    wrtperm(2, 6, TAG_PERM_READ | TAG_PERM_WRITE);
-
-    /*
-     * Currently we don't properly tag all of our memory pages,
-     * so in order to access all of the dynamically allocated
-     * memory, kobjects, user segments, and so on, we need this..
-     */
-    wrtperm(2, DTAG_NOACCESS, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
 
     cprintf("Initializing memory tags.. ");
     tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
@@ -116,21 +121,7 @@ tag_init(void)
     tag_set(&kstack[0], DTAG_KSTACK, KSTACK_SIZE);
     cprintf("done.\n");
 
-    cprintf("Tag testing..\n");
-
-    //cprintf("vp = %p\n", &v);
-    //cprintf("v tag = %d\n", read_dtag((void *) &v));
-    write_dtag((void *) &v, 6);
-    cprintf("v tag = %d\n", read_dtag((void *) &v));
-
-    //cprintf("pc tag = %d\n", read_pctag());
-    write_pctag(2);
-    cprintf("pc tag = %d\n", read_pctag());
-
-    //cprintf("tsr = 0x%x\n", read_tsr());
-    cprintf("about to cause tag traps...\n");
+    cprintf("Disabling trusted mode.. ");
     write_tsr(0);
-    v = 5;
-
-    cprintf("tsr = 0x%x\n", read_tsr());
+    cprintf("done.\n");
 }
