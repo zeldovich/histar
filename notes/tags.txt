@@ -1,0 +1,12 @@
+What should happen on trap to monitor mode?
+    Disable traps
+    Disable MMU
+
+		Set T	Set S
+Tag exception	YES	YES
+Other exception	NO	YES
+
+=> Need to preload access bits for kernel text, kernel stack,
+   because we cannot handle tag exceptions in kernel window
+   exception handling code.
+
