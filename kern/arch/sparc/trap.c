@@ -195,7 +195,7 @@ trap_handler(struct Trapframe *tf, uint32_t tbr)
 
     if (!in_idle && (tf->tf_psr & PSR_PS)) {
 	cprintf("trap in supervisor mode\n");
-	cprintf("trapno = %d\n", trapno);
+	cprintf("trapno = 0x%x\n", trapno);
 	trapframe_print(tf);
 	panic("cannot continue");
     }
