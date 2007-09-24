@@ -116,12 +116,16 @@ page_init(void)
     // Allocate space for page status info.
     uint64_t sz = global_npages * sizeof(*page_infos);
     page_infos = boot_alloc(sz, PGSIZE);
+    cprintf("Setting up page_infos.. ");
     memset(page_infos, 0, sz);
 
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
 
+    cprintf("free list.. ");
     for (uint32_t pa = (uint32_t) RELOC(boot_freemem); pa < maxpa; pa += PGSIZE)
 	page_free(pa2kva(pa));
     page_stats.pages_used = 0;
+
+    cprintf("done.\n");
 }
