@@ -35,9 +35,10 @@
 
 #define DTAG_DEVICE	0		/* Device memory-mapped regs */
 #define DTAG_NOACCESS	1		/* Monitor access only */
-#define DTAG_KRO	2		/* Read-only kernel text, data */
-#define DTAG_KRW	3		/* Read-write kernel stack */
-#define DTAG_DYNAMIC	4		/* First dynamically-allocated */
+#define DTAG_KEXEC	2		/* Read and exec-only kernel text */
+#define DTAG_KRO	3		/* Read-only kernel data */
+#define DTAG_KRW	4		/* Read-write kernel stack */
+#define DTAG_DYNAMIC	5		/* First dynamically-allocated */
 
 #define PCTAG_DYNAMIC	0		/* First dynamically-allocated */
 

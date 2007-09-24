@@ -7,11 +7,15 @@
 #include <kern/kobj.h>
 #include <kern/label.h>
 
-extern const uint8_t stext[], erodata[];
+extern const uint8_t stext[],   etext[];
+extern const uint8_t srodata[], erodata[];
+extern const uint8_t sdata[],   edata[];
+extern const uint8_t sbss[],    ebss[];
+
 extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
 
-const char* cause_table[] = {
+const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
     [ET_CAUSE_READ]  = "Read permission",
@@ -102,16 +106,9 @@ tag_init(void)
 	    wrtperm(i, j, 0);
 
 	wrtperm(i, DTAG_DEVICE, TAG_PERM_READ | TAG_PERM_WRITE);
-	wrtperm(i, DTAG_KRO, TAG_PERM_READ | TAG_PERM_EXEC);
+	wrtperm(i, DTAG_KEXEC, TAG_PERM_READ | TAG_PERM_EXEC);
+	wrtperm(i, DTAG_KRO, TAG_PERM_READ);
 	wrtperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
-
-	/*
-	 * Currently we don't properly tag all of our memory pages,
-	 * so in order to access all of the dynamically allocated
-	 * memory, kobjects, user segments, and so on, we need this..
-	 */
-	wrtperm(i, DTAG_NOACCESS,
-		TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
     }
 
     write_pctag(0);
@@ -119,12 +116,12 @@ tag_init(void)
 
     cprintf("Initializing memory tags.. ");
     tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
-    tag_set(&stext[0], DTAG_KRO, &erodata[0] - &stext[0]);
-    tag_set(&kstack[0], DTAG_KRW, KSTACK_SIZE);
-    cprintf("done.\n");
 
-    cprintf("Disabling trusted mode.. ");
-    write_tsr(0);
+    tag_set(&stext[0],   DTAG_KEXEC, &etext[0]   - &stext[0]);
+    tag_set(&srodata[0], DTAG_KRO,   &erodata[0] - &srodata[0]);
+    tag_set(&sdata[0],   DTAG_KRO,   &edata[0]   - &sdata[0]);
+    tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
+    tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
     cprintf("done.\n");
 }
 

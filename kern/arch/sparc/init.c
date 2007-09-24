@@ -9,6 +9,7 @@
 #include <machine/pmap.h>
 #include <machine/sparc-common.h>
 #include <machine/tag.h>
+#include <machine/sparc-tag.h>
 #include <dev/apbucons.h>
 #include <dev/amba.h>
 #include <dev/irqmp.h>
@@ -43,12 +44,12 @@ init (void)
     amba_init();
     irqmp_init();
 
+    page_init();
+    tag_init();
+
     gptimer_init();
     apbucons_init();
     //amba_print();
-
-    page_init();
-    tag_init();
 
     r = greth_init();
     if (r < 0)
@@ -59,6 +60,10 @@ init (void)
     pstate_init();
 
     user_init();
+
+    cprintf("Kernel init done, disabling trusted mode.. ");
+    write_tsr(0);
+    cprintf("done.\n");
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();

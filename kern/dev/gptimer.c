@@ -5,6 +5,7 @@
 #include <kern/sched.h>
 #include <machine/leon3.h>
 #include <machine/sparc-config.h>
+#include <machine/tag.h>
 #include <dev/gptimer.h>
 #include <dev/ambapp.h>
 #include <dev/amba.h>
@@ -29,6 +30,11 @@ gpt_tsval(struct gpt_ts *gpt)
     return gpt->mask - gpt->regs->val;
 }
 
+/*
+ * XXX
+ * This function may need to be a "subsystem" of some sort,
+ * which will have privileges over "last_read" & "ticks"..
+ */
 static uint64_t
 gpt_get_ticks(void *arg)
 {
@@ -138,4 +144,7 @@ gptimer_init(void)
     gpt_ts.gpt_src.arg = &gpt_ts;
     if (!the_timesrc)
 	the_timesrc = &gpt_ts.gpt_src;
+
+    tag_set(&gpt_ts.ticks, DTAG_KRW, sizeof(gpt_ts.ticks));
+    tag_set(&gpt_ts.last_read, DTAG_KRW, sizeof(gpt_ts.last_read));
 }
