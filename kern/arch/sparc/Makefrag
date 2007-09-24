@@ -17,8 +17,7 @@ KERN_ARCH :=					\
 	$(ARCHDIR)/init.c			\
 	$(ARCHDIR)/trap.c			\
 	$(ARCHDIR)/misc.c			\
-	$(ARCHDIR)/longjmp.S			\
-	$(ARCHDIR)/tag.c
+	$(ARCHDIR)/longjmp.S
 
 KERN_LIB :=					\
 	lib/$(ARCH)/mathops.S			\
