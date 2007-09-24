@@ -312,7 +312,7 @@ flush_more:
 
 	/* Check that the %sp is in the kstack range */
 	cmp	%g4, %g5
-	bg	flush_out_of_range
+	bgu	flush_out_of_range
 	 andcc	%sp, 7, %g0
 
 	/* Check alignment for %sp */
