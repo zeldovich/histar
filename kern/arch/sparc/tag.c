@@ -18,9 +18,9 @@ extern const uint8_t monstack[], monstack_top[];
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
-    [ET_CAUSE_READ]  = "Read permission",
-    [ET_CAUSE_WRITE] = "Write permission",
-    [ET_CAUSE_EXEC]  = "Execute permission",
+    [ET_CAUSE_READ]  = "Read";
+    [ET_CAUSE_WRITE] = "Write";
+    [ET_CAUSE_EXEC]  = "Execute";
 };
 
 void
