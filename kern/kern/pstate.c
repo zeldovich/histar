@@ -12,6 +12,7 @@
 #include <kern/part.h>
 #include <btree/cache.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
 // verbose flags
 enum { pstate_load_debug = 0 };
@@ -241,7 +242,7 @@ static int
 pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 {
     void *p;
-    int r = page_alloc(&p);
+    int r = page_alloc(&p, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
 
@@ -261,7 +262,7 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 
     uint64_t ko_bytes = mobj.nbytes - KOBJ_DISK_SIZE;
     for (uint64_t page = 0; page < ROUNDUP(ko_bytes, PGSIZE) / PGSIZE; page++) {
-	r = page_alloc(&p);
+	r = page_alloc(&p, &dtag_label[DTAG_KRW]);
 	if (r < 0)
 	    goto err;
 

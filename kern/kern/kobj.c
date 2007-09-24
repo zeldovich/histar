@@ -12,6 +12,7 @@
 #include <kern/arch.h>
 #include <inc/error.h>
 #include <inc/cksum.h>
+#include <machine/tag.h>
 
 struct kobject_list ko_list;
 struct Thread_list kobj_snapshot_waiting;
@@ -239,7 +240,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
     assert(type == kobj_label || l != 0);
 
     void *p;
-    int r = page_alloc(&p);
+    int r = page_alloc(&p, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
 
@@ -450,7 +451,7 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
     uint64_t maxalloc = curnpg;
     for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
-	r = page_alloc(&p);
+	r = page_alloc(&p, &dtag_label[DTAG_KRW]);
 	if (r == 0) {
 	    r = pagetree_put_page(&ko->ko_pt, i, p);
 	    if (r < 0)

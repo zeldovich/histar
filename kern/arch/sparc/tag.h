@@ -35,8 +35,11 @@
 
 #define DTAG_DEVICE	0		/* Device memory-mapped regs */
 #define DTAG_NOACCESS	1		/* Monitor access only */
-#define DTAG_KERNEL_RO	2		/* Read-only kernel text, data */
-#define DTAG_KSTACK	3		/* Kernel-mode stack */
+#define DTAG_KRO	2		/* Read-only kernel text, data */
+#define DTAG_KRW	3		/* Read-write kernel stack */
+#define DTAG_DYNAMIC	4		/* First dynamically-allocated */
+
+#define PCTAG_DYNAMIC	0		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
@@ -48,16 +51,25 @@
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
 #include <machine/mmu.h>
+#include <kern/label.h>
 
-void	tag_init(void);
+enum {
+    tag_type_data,
+    tag_type_pc
+};
 
-void	tag_trap_entry(void) __attribute__((noreturn));
-void	tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t v)
+extern const struct Label dtag_label[DTAG_DYNAMIC];
+
+void	 tag_init(void);
+
+void	 tag_trap_entry(void) __attribute__((noreturn));
+void	 tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t v)
 		__attribute__((noreturn));
-void	tag_trap_return(const struct Trapframe *tf, uint32_t tbr)
+void	 tag_trap_return(const struct Trapframe *tf, uint32_t tbr)
 		__attribute__((noreturn));
 
-void	tag_set(const void *addr, uint32_t dtag, size_t n);
+void	 tag_set(const void *addr, uint32_t dtag, size_t n);
+uint32_t tag_alloc(const struct Label *l, int tag_type);
 #endif
 
 #endif

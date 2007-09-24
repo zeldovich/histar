@@ -4,6 +4,8 @@
 #include <kern/pstate.h>
 #include <kern/pageinfo.h>
 #include <kern/timer.h>
+#include <kern/label.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 #include <inc/queue.h>
 
@@ -36,13 +38,15 @@ page_free(void *v)
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
+    tag_set(v, DTAG_NOACCESS, PGSIZE);
+
     TAILQ_INSERT_HEAD(&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
 }
 
 int
-page_alloc(void **vp)
+page_alloc(void **vp, const struct Label *l)
 {
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
 
@@ -66,6 +70,9 @@ page_alloc(void **vp)
 
     if (scrub_free_pages)
 	memset(pl, 0xcd, PGSIZE);
+
+    uint32_t page_tag = tag_alloc(l, tag_type_data);
+    tag_set(pl, page_tag, PGSIZE);
 
     struct page_info *pi = page_to_pageinfo(pl);
     assert(pi->pi_freepage);

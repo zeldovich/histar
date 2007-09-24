@@ -5,6 +5,7 @@
 #include <inc/setjmp.h>
 #include <inc/error.h>
 #include <inc/intmacro.h>
+#include <machine/tag.h>
 
 #define STACKWRAP_MAGIC	UINT64(0xabcd9262deed1713)
 
@@ -89,7 +90,7 @@ stackwrap_call(stackwrap_fn fn,
 	       uint64_t fn_arg0, uint64_t fn_arg1, uint64_t fn_arg2)
 {
     void *stackbase;
-    int r = page_alloc(&stackbase);
+    int r = page_alloc(&stackbase, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
 

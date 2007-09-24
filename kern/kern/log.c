@@ -8,6 +8,7 @@
 #include <inc/hashtable.h>
 #include <inc/queue.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
 static struct {
     uint64_t byteoff;
@@ -324,7 +325,7 @@ log_init(void)
 
 	for (uint64_t i = 0; i < LOG_MEMORY; i++) {
 	    struct btree_node *node;
-	    int r = page_alloc((void **) &node);
+	    int r = page_alloc((void **) &node, &dtag_label[DTAG_KRW]);
 	    if (r < 0)
 		panic("log_init: cannot allocate buffers: %s\n", e2s(r));
 	    TAILQ_INSERT_TAIL(&the_log.free_nodes, node, node_log_link);

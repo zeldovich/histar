@@ -4,6 +4,7 @@
 #include <kern/lib.h>
 #include <kern/arch.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
 static void pagetree_decref(void *p);
 
@@ -83,7 +84,7 @@ pagetree_cow(pagetree_entry *ent)
 
     void *copy;
 
-    int r = page_alloc(&copy);
+    int r = page_alloc(&copy, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
 
@@ -226,7 +227,7 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 	    return 0;
 	}
 
-	int r = page_alloc(&indir->page);
+	int r = page_alloc(&indir->page, &dtag_label[DTAG_KRW]);
 	if (r < 0)
 	    return r;
 

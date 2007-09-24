@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <kern/pageinfo.h>
 #include <machine/sparc-common.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
@@ -16,7 +17,7 @@ pmap_alloc_pmap2(struct Pagemap2fl *fl, struct Pagemap2 **pgmap)
     } 
 
     void *p;
-    int r = page_alloc(&p);
+    int r = page_alloc(&p, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
     memset(p, 0, PGSIZE);
@@ -34,7 +35,7 @@ int
 page_map_alloc(struct Pagemap **pm_store)
 {
     void *pmap;
-    int r = page_alloc(&pmap);
+    int r = page_alloc(&pmap, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
 

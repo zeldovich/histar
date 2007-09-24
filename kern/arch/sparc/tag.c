@@ -4,6 +4,8 @@
 #include <machine/trap.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
+#include <kern/kobj.h>
+#include <kern/label.h>
 
 extern const uint8_t stext[], erodata[];
 extern const uint8_t kstack[], kstack_top[];
@@ -100,8 +102,8 @@ tag_init(void)
 	    wrtperm(i, j, 0);
 
 	wrtperm(i, DTAG_DEVICE, TAG_PERM_READ | TAG_PERM_WRITE);
-	wrtperm(i, DTAG_KERNEL_RO, TAG_PERM_READ | TAG_PERM_EXEC);
-	wrtperm(i, DTAG_KSTACK, TAG_PERM_READ | TAG_PERM_WRITE);
+	wrtperm(i, DTAG_KRO, TAG_PERM_READ | TAG_PERM_EXEC);
+	wrtperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
 
 	/*
 	 * Currently we don't properly tag all of our memory pages,
@@ -117,11 +119,66 @@ tag_init(void)
 
     cprintf("Initializing memory tags.. ");
     tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
-    tag_set(&stext[0], DTAG_KERNEL_RO, &erodata[0] - &stext[0]);
-    tag_set(&kstack[0], DTAG_KSTACK, KSTACK_SIZE);
+    tag_set(&stext[0], DTAG_KRO, &erodata[0] - &stext[0]);
+    tag_set(&kstack[0], DTAG_KRW, KSTACK_SIZE);
     cprintf("done.\n");
 
     cprintf("Disabling trusted mode.. ");
     write_tsr(0);
     cprintf("done.\n");
+}
+
+static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
+static uint64_t pctag_label_id[1 << TAG_PC_BITS];
+
+const struct Label dtag_label[DTAG_DYNAMIC];
+
+uint32_t
+tag_alloc(const struct Label *l, int tag_type)
+{
+    if (tag_type == tag_type_data) {
+	if (l >= &dtag_label[0] && l < &dtag_label[DTAG_DYNAMIC]) {
+	    uintptr_t lp = (uintptr_t) l;
+	    uintptr_t l0 = (uintptr_t) &dtag_label[0];
+	    return (lp - l0) / sizeof(struct Label);
+	}
+
+	uint32_t maxtag = (1 << TAG_DATA_BITS);
+	if (l->lb_dtag_hint < maxtag &&
+	    dtag_label_id[l->lb_dtag_hint] == l->lb_ko.ko_id)
+	{
+	    return l->lb_dtag_hint;
+	}
+
+	for (uint32_t i = DTAG_DYNAMIC; i < maxtag; i++) {
+	    if (dtag_label_id[i] == 0) {
+		dtag_label_id[i] = l->lb_ko.ko_id;
+		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = i;
+		return i;
+	    }
+	}
+
+	panic("tag_alloc: out of data tags");
+    }
+
+    if (tag_type == tag_type_pc) {
+	uint32_t maxtag = (1 << TAG_PC_BITS);
+	if (l->lb_pctag_hint < maxtag &&
+	    pctag_label_id[l->lb_pctag_hint] == l->lb_ko.ko_id)
+	{
+	    return l->lb_pctag_hint;
+	}
+
+	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
+	    if (pctag_label_id[i] == 0) {
+		pctag_label_id[i] = l->lb_ko.ko_id;
+		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_pctag_hint = i;
+		return i;
+	    }
+	}
+
+	panic("tag_alloc: out of pc tags");
+    }
+
+    panic("tag_alloc: bad tag type %d", tag_type);
 }

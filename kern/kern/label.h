@@ -10,6 +10,9 @@
 struct Label {
     struct kobject_hdr lb_ko;
 
+    uint32_t lb_dtag_hint;
+    uint32_t lb_pctag_hint;
+
     uint8_t lb_def_level;
     uint64_t lb_nent;
     uint64_t lb_ent[NUM_LB_ENT_INLINE];

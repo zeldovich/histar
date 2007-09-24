@@ -4,6 +4,7 @@
 #include <kern/timer.h>
 #include <kern/kobj.h>
 #include <kern/intr.h>
+#include <machine/tag.h>
 #include <dev/greth.h>
 #include <dev/grethreg.h>
 #include <dev/ambapp.h>
@@ -349,7 +350,7 @@ greth_init(void)
     struct greth_regs *regs = pa2kva(dev.start);
     
     struct greth_card *c;
-    r = page_alloc((void **) &c);
+    r = page_alloc((void **) &c, &dtag_label[DTAG_KRW]);
     if (r < 0)
 	return r;
     memset(c, 0, PGSIZE);
@@ -357,13 +358,13 @@ greth_init(void)
     static_assert(PGSIZE >= sizeof(*c->txbds));
     static_assert(PGSIZE >= sizeof(*c->rxbds));
     
-    r = page_alloc((void **) &c->txbds);
+    r = page_alloc((void **) &c->txbds, &dtag_label[DTAG_KRW]);
     if (r < 0) {
 	page_free(c);
 	return r;
     }
     
-    r = page_alloc((void **) &c->rxbds);
+    r = page_alloc((void **) &c->rxbds, &dtag_label[DTAG_KRW]);
     if (r < 0) {
 	page_free(c->txbds);
 	page_free(c);
