@@ -281,8 +281,14 @@ ENTRY(tag_trap_entry)
 	rd	%wim, %g2
 	mov	0, %wim
 
+	/* Compute the ET bit for the PSR: bit 26 in TSR, bit 5 in PSR */
+	rdtr	%tsr, %g4
+	srl	%g4, 21, %g4
+	and	%g4, PSR_ET, %g4
+
 	/* Store the PSR, we'll change it to flush windows */
-	rd	%psr, %g3
+	rd	%psr, %g3	    /* ET disabled */
+	or	%g3, %g4, %g3	    /* Bring in the previous ET bit */
 	st	%g3, [%g7 + TF_PSR]
 
 	/* Get the CWP out of the PSR, and bump it by one, to flush windows */
@@ -380,9 +386,15 @@ ENTRY(tag_trap_return)
 	ld	[%g6 + TF_WIM], %l1
 	ld	[%g6 + TF_Y],   %l2
 
+	andn	%l0, PSR_ET, %l3	/* PSR without ET */
+	and	%l0, PSR_ET, %l4	/* Just the ET bit */
+	or	%l4, (TSR_T >> 21), %l4	/* Keep the trust bit */
+	sll	%l4, 21, %l4		/* Shift for TSR */
+	wrtr	%l4, %tsr
+
 	mov	%l2, %y
 	mov	%l1, %wim
-	mov	%l0, %psr
+	mov	%l3, %psr
 
 	ld	[%g6 + TF_PC],  %g1
 	wrtr	%g1, %epc
@@ -394,7 +406,7 @@ ENTRY(tag_trap_return)
 	LOAD_REG_SET(o, g6 + TF_O0)
 	LOAD_REG_SET(g, g6 + TF_G0)
 
-	/* tret jumps to epc, enpc */
+	/* tret jumps to (epc,enpc), clears TSR_T, loads TSR_PET into PSR_ET */
 	tret
 	 nop
 
