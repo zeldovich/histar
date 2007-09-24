@@ -1,8 +1,7 @@
 #ifndef JOS_MACHINE_TAG_H
 #define JOS_MACHINE_TAG_H
 
-#define TSR_EG		(1 << 27)	/* Exception Globals */
-#define TSR_PEG		(1 << 26)	/* Previous Exception Globals */
+#define TSR_PET		(1 << 26)	/* Previous Enable Traps (from PSR) */
 #define TSR_T		(1 << 25)	/* Trust */
 #define TSR_PT		(1 << 24)	/* Previous Trust */
 
