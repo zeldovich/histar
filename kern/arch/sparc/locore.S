@@ -281,6 +281,9 @@ ENTRY(tag_trap_entry)
 	rd	%wim, %g2
 	mov	0, %wim
 
+	/* Store the original %wim value for debugging purposes */
+	st	%g2, [%g7 + TF_WIM]
+
 	/* Compute the ET bit for the PSR: bit 26 in TSR, bit 5 in PSR */
 	rdtr	%tsr, %g4
 	srl	%g4, 21, %g4
@@ -290,6 +293,14 @@ ENTRY(tag_trap_entry)
 	rd	%psr, %g3	    /* ET disabled */
 	or	%g3, %g4, %g3	    /* Bring in the previous ET bit */
 	st	%g3, [%g7 + TF_PSR]
+
+	/* Save other special registers */
+	rdtr	%epc, %g1
+	st	%g1, [%g7 + TF_PC]
+	rdtr	%enpc, %g1
+	st	%g1, [%g7 + TF_NPC]
+	rd	%y, %g1
+	st	%g1, [%g7 + TF_Y]
 
 	/* Get the CWP out of the PSR, and bump it by one, to flush windows */
 	add	%g3, 1, %g3
@@ -356,14 +367,7 @@ flush_done:
 
 	/* Make window 1 invalid */
 	mov	2, %wim
-
-	/* Save other special registers */
-	rdtr	%epc, %g1
-	st	%g1, [%g7 + TF_PC]
-	rdtr	%enpc, %g1
-	st	%g1, [%g7 + TF_NPC]
-	rd	%y, %g1
-	st	%g1, [%g7 + TF_Y]
+	WRITE_PAUSE
 
 	mov	0, %o2		/* arg2: error code */
 tag_call_up:
