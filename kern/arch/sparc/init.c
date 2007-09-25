@@ -44,12 +44,12 @@ init (void)
 
     amba_init();
     irqmp_init();
+    apbucons_init();
 
     page_init();
     tag_init();
 
     gptimer_init();
-    apbucons_init();
     //amba_print();
 
     r = greth_init();

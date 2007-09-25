@@ -21,20 +21,12 @@ serial_putc(void *arg, int c)
 	serial_putc(arg, '\r');
 
     LEON3_APBUART_Regs_Map *uart_regs = (LEON3_APBUART_Regs_Map *) arg;
-    
-    uint32_t i = 0;
-    while (!(uart_regs->status & LEON_REG_UART_STATUS_THE) && (i < 256)) {
-	i++;
-	timer_delay(2000);
-    }
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_THE))
+	;
 
     uart_regs->data = c;
-
-    i = 0;
-    while (!(uart_regs->status & LEON_REG_UART_STATUS_TSE) && (i < 256)) {
-	i++;
-	timer_delay(2000);
-    }
+    while (!(uart_regs->status & LEON_REG_UART_STATUS_TSE))
+	;
 }
 
 static int
