@@ -14,6 +14,7 @@ extern const uint8_t sbss[],    ebss[];
 
 extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
+extern const uint8_t ptest_stack[], ptest_stack_top[];
 
 uint32_t moncall_dummy;
 
@@ -35,16 +36,53 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	write_dtag(addr + i, dtag);
 }
 
+/*
+ * Monitor call support
+ */
+
+struct moncall_stack {
+    struct Trapframe tf;
+    uint32_t pctag;
+};
+
+static struct moncall_stack the_stack;
+
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
-    tf->tf_regs.l0 += 1;
     tf->tf_pc  = tf->tf_npc;
     tf->tf_npc = tf->tf_npc + 4;
+
+    switch (tf->tf_regs.l0) {
+    case MONCALL_CALL:
+	memcpy(&the_stack.tf, tf, sizeof(*tf));
+	the_stack.pctag = read_pctag();
+
+	write_pctag(PCTAG_PTEST);
+	tf->tf_pc = (uintptr_t) &moncall_trampoline;
+	tf->tf_npc = tf->tf_pc + 4;
+	tf->tf_regs.sp = ((uintptr_t) &ptest_stack_top) - STACKFRAME_SZ;
+	tf->tf_regs.fp = 0;
+	break;
+
+    case MONCALL_RETURN:
+	the_stack.tf.tf_regs.l0 = tf->tf_regs.l1;
+	tf = &the_stack.tf;
+	write_pctag(the_stack.pctag);
+	break;
+
+    default:
+	panic("Unknown moncall type %d", tf->tf_regs.l0);
+    }
+
     cprintf("tag_moncall: returning to pc %x npc %x\n",
 	    tf->tf_pc, tf->tf_npc);
     tag_trap_return(tf);
 }
+
+/*
+ * Tag trap handling
+ */
 
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
@@ -134,6 +172,7 @@ tag_init(void)
     tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
     tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
 
+    tag_set(&ptest_stack[0], DTAG_PTEST, KSTACK_SIZE);
     tag_set(&moncall_dummy, DTAG_MONCALL, sizeof(moncall_dummy));
     cprintf("done.\n");
 }

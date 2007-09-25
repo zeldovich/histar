@@ -418,7 +418,10 @@ ENTRY(tag_trap_return)
 
 ENTRY(tag_call)
 	save	%sp, -STACKFRAME_SZ, %sp
-	mov	%i1, %l0
+
+	set	MONCALL_CALL, %l0
+	mov	%i0, %l1
+	mov	%i1, %l2
 
 	set	moncall_dummy, %g1
 	st	%g0, [%g1]
@@ -427,4 +430,19 @@ ENTRY(tag_call)
 
 	ret
 	 restore
+
+ENTRY(moncall_trampoline)
+	mov	%l2, %o0
+
+	call	%l1
+	 nop
+
+	set	MONCALL_RETURN, %l0
+	mov	%o0, %l1
+
+	set	moncall_dummy, %g1
+	st	%g0, [%g1]
+
+1:	ba	1b
+	 nop
 

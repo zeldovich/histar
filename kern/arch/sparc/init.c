@@ -33,6 +33,28 @@ bss_init (void)
     memset(sbss, 0, ebss - sbss);
 }
 
+static uint32_t secret;
+
+static uint32_t
+get_secret_real(uint32_t arg)
+{
+    return secret + arg;
+}
+
+static uint32_t
+get_secret(uint32_t arg)
+{
+    return tag_call(&get_secret_real, arg);
+}
+
+static void
+test_secret(void)
+{
+    cprintf("Trying to get secret value...\n");
+    cprintf("Value + 0 = 0x%x\n", get_secret(0));
+    cprintf("Value + 1 = 0x%x\n", get_secret(1));
+}
+
 void __attribute__((noreturn))
 init (void)
 {
@@ -62,9 +84,18 @@ init (void)
 
     user_init();
 
+    tag_set(&secret, DTAG_PTEST, sizeof(secret));
+    wrtperm(PCTAG_PTEST, DTAG_PTEST, TAG_PERM_READ | TAG_PERM_WRITE);
+    secret = 0xc0ffee;
+
     cprintf("Kernel init done, disabling trusted mode.. ");
     write_tsr(0);
     cprintf("done.\n");
+
+    test_secret();
+
+    cprintf("foo.\n");
+    abort();
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();

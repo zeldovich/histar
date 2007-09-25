@@ -47,6 +47,11 @@ SECTIONS
 	. += KSTACK_SIZE;
 	PROVIDE(monstack_top = .);
 
+	/* protected call stack */
+	PROVIDE(ptest_stack = .);
+	. += KSTACK_SIZE;
+	PROVIDE(ptest_stack_top = .);
+
 	PROVIDE(end = .);
 
 	/DISCARD/ : {

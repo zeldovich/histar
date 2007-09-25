@@ -53,6 +53,13 @@
 #define TAG_TERR_RANGE	1
 #define TAG_TERR_ALIGN	2
 
+/*
+ * Monitor call codes
+ */
+
+#define MONCALL_CALL	1
+#define MONCALL_RETURN	2
+
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
 #include <machine/mmu.h>
@@ -78,6 +85,7 @@ void	 tag_set(const void *addr, uint32_t dtag, size_t n);
 uint32_t tag_alloc(const struct Label *l, int tag_type);
 
 uint32_t tag_call(void *func, uint32_t arg);
+void	 moncall_trampoline(void) __attribute__((noreturn));
 #endif
 
 #endif
