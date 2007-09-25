@@ -38,6 +38,7 @@ init (void)
 {
     int r;
 
+    write_tsr(TSR_T);
     mmu_init();
     bss_init();
 
