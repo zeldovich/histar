@@ -43,13 +43,14 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
 
-    cprintf("  pc tag = %d, data tag = %d, cause = %s (%d)\n",
+    cprintf("  pc tag = %d, data tag = %d, cause = %s (%d), pc = 0x%x\n",
 	    pctag, dtag,
-	    cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown", cause);
-    trapframe_print(tf);
+	    cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown", cause,
+	    tf->tf_pc);
 
     if (err) {
 	cprintf("  tag trap err = %d [%x]\n", err, errv);
+	trapframe_print(tf);
 	abort();
     }
 
