@@ -15,6 +15,8 @@ extern const uint8_t sbss[],    ebss[];
 extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
 
+uint32_t moncall_dummy;
+
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
@@ -33,8 +35,19 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 	write_dtag(addr + i, dtag);
 }
 
+static void __attribute__((noreturn))
+tag_moncall(struct Trapframe *tf)
+{
+    tf->tf_regs.l0 += 1;
+    tf->tf_pc  = tf->tf_npc;
+    tf->tf_npc = tf->tf_npc + 4;
+    cprintf("tag_moncall: returning to pc %x npc %x\n",
+	    tf->tf_pc, tf->tf_npc);
+    tag_trap_return(tf);
+}
+
 void
-tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
+tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
     cprintf("tag trap...\n");
 
@@ -53,6 +66,9 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
 	trapframe_print(tf);
 	abort();
     }
+
+    if (dtag == DTAG_MONCALL)
+	tag_moncall(tf);
 
     switch (cause) {
     case ET_CAUSE_PCV:
@@ -78,7 +94,7 @@ tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t errv)
     }
 
     cprintf("tag trap: returning..\n");
-    tag_trap_return(tf, tbr);
+    tag_trap_return(tf);
 }
 
 void
@@ -106,7 +122,7 @@ tag_init(void)
 	wrtperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
-    write_pctag(0);
+    write_pctag(PCTAG_DYNAMIC);
     cprintf("done.\n");
 
     cprintf("Initializing memory tags.. ");
@@ -117,6 +133,8 @@ tag_init(void)
     tag_set(&sdata[0],   DTAG_KRO,   &edata[0]   - &sdata[0]);
     tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
     tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
+
+    tag_set(&moncall_dummy, DTAG_MONCALL, sizeof(moncall_dummy));
     cprintf("done.\n");
 }
 

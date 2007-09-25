@@ -301,6 +301,8 @@ ENTRY(tag_trap_entry)
 	st	%g1, [%g7 + TF_NPC]
 	rd	%y, %g1
 	st	%g1, [%g7 + TF_Y]
+	rd	%tbr, %g1
+	st	%g1, [%g7 + TF_TBR]
 
 	/* Get the CWP out of the PSR, and bump it by one, to flush windows */
 	add	%g3, 1, %g3
@@ -353,9 +355,9 @@ flush_error:
 	wr	%g4, %psr
 	mov	2, %wim
 	WRITE_PAUSE
-	mov	%g1, %o2
+	mov	%g1, %o1
 	ba	tag_call_up
-	 mov	%g2, %o3
+	 mov	%g2, %o2
 
 flush_done:
 	/* Store the new %wim after flushing */
@@ -369,13 +371,12 @@ flush_done:
 	mov	2, %wim
 	WRITE_PAUSE
 
-	mov	0, %o2		/* arg2: error code */
+	mov	0, %o1		/* arg1: error code */
 tag_call_up:
 	/* Set up stack and args, and call into C code */
 	mov	%g0, %fp
 	mov	%g7, %sp
 	mov	%g7, %o0	/* arg0: Trapframe */
-	rd	%tbr, %o1	/* arg1: tbr */
 
 	call	tag_trap
 	 sub	%sp, STACKFRAME_SZ, %sp
@@ -384,11 +385,11 @@ ENTRY(tag_trap_return)
 	mov	%g0, %wim
 
 	mov	%o0, %g6	/* arg0: Trapframe */
-	mov	%o1, %tbr	/* arg1: tbr */
 
 	ld	[%g6 + TF_PSR], %l0
 	ld	[%g6 + TF_WIM], %l1
 	ld	[%g6 + TF_Y],   %l2
+	ld	[%g6 + TF_TBR], %l5
 
 	andn	%l0, PSR_ET, %l3	/* PSR without ET */
 	and	%l0, PSR_ET, %l4	/* Just the ET bit */
@@ -399,6 +400,7 @@ ENTRY(tag_trap_return)
 	mov	%l2, %y
 	mov	%l1, %wim
 	mov	%l3, %psr
+	mov	%l5, %tbr
 
 	ld	[%g6 + TF_PC],  %g1
 	wrtr	%g1, %epc
@@ -413,4 +415,16 @@ ENTRY(tag_trap_return)
 	/* tret jumps to (epc,enpc), clears TSR_T, loads TSR_PET into PSR_ET */
 	tret
 	 nop
+
+ENTRY(tag_call)
+	save	%sp, -STACKFRAME_SZ, %sp
+	mov	%i1, %l0
+
+	set	moncall_dummy, %g1
+	st	%g0, [%g1]
+
+	mov	%l0, %i0
+
+	ret
+	 restore
 

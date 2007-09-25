@@ -38,9 +38,13 @@
 #define DTAG_KEXEC	2		/* Read and exec-only kernel text */
 #define DTAG_KRO	3		/* Read-only kernel data */
 #define DTAG_KRW	4		/* Read-write kernel stack */
-#define DTAG_DYNAMIC	5		/* First dynamically-allocated */
+#define DTAG_MONCALL	5		/* Monitor call */
+#define DTAG_PTEST	6		/* Protected domain test */
+#define DTAG_DYNAMIC	7		/* First dynamically-allocated */
 
-#define PCTAG_DYNAMIC	0		/* First dynamically-allocated */
+#define PCTAG_NONE	0		/* Just to be safe, for now */
+#define PCTAG_PTEST	1		/* Protected domain test */
+#define PCTAG_DYNAMIC	2		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
@@ -60,17 +64,20 @@ enum {
 };
 
 extern const struct Label dtag_label[DTAG_DYNAMIC];
+extern uint32_t moncall_dummy;
 
 void	 tag_init(void);
 
 void	 tag_trap_entry(void) __attribute__((noreturn));
-void	 tag_trap(struct Trapframe *tf, uint32_t tbr, uint32_t err, uint32_t v)
+void	 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t v)
 		__attribute__((noreturn));
-void	 tag_trap_return(const struct Trapframe *tf, uint32_t tbr)
+void	 tag_trap_return(const struct Trapframe *tf)
 		__attribute__((noreturn));
 
 void	 tag_set(const void *addr, uint32_t dtag, size_t n);
 uint32_t tag_alloc(const struct Label *l, int tag_type);
+
+uint32_t tag_call(void *func, uint32_t arg);
 #endif
 
 #endif

@@ -199,7 +199,7 @@ struct Trapframe {
     uint32_t tf_pc;
     uint32_t tf_npc;
     uint32_t tf_wim;
-    uint32_t tf_pad;
+    uint32_t tf_tbr;
 };
 
 #endif
@@ -278,7 +278,7 @@ struct Trapframe {
 #define TF_PC     0x88
 #define TF_NPC    0x8C
 #define TF_WIM    0x90
-#define TF_PAD    0x94
+#define TF_TBR    0x94
 
 #define TRAPFRAME_SZ 0x98
 
