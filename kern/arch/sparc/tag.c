@@ -128,6 +128,8 @@ const struct Label dtag_label[DTAG_DYNAMIC];
 uint32_t
 tag_alloc(const struct Label *l, int tag_type)
 {
+    assert(l);
+
     if (tag_type == tag_type_data) {
 	if (l >= &dtag_label[0] && l < &dtag_label[DTAG_DYNAMIC]) {
 	    uintptr_t lp = (uintptr_t) l;
