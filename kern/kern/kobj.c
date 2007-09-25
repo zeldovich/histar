@@ -239,8 +239,15 @@ kobject_alloc(uint8_t type, const struct Label *l,
 {
     assert(type == kobj_label || l != 0);
 
+    const struct Label *tag_label;
+    if (type == kobj_label) {
+	tag_label = &dtag_label[DTAG_KRW];
+    } else {
+	tag_label = l;
+    }
+
     void *p;
-    int r = page_alloc(&p, &dtag_label[DTAG_KRW]);
+    int r = page_alloc(&p, tag_label);
     if (r < 0)
 	return r;
 
@@ -448,10 +455,19 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	    panic("kobject_set_nbytes: cannot drop page: %s", e2s(r));
     }
 
+    const struct Label *kl;
+    if (kp->ko_type == kobj_label) {
+	kl = &dtag_label[DTAG_KRW];
+    } else {
+	r = kobject_get_label(kp, kolabel_contaminate, &kl);
+	if (r < 0)
+	    return r;
+    }
+
     uint64_t maxalloc = curnpg;
     for (uint64_t i = curnpg; i < npages; i++) {
 	void *p;
-	r = page_alloc(&p, &dtag_label[DTAG_KRW]);
+	r = page_alloc(&p, kl);
 	if (r == 0) {
 	    r = pagetree_put_page(&ko->ko_pt, i, p);
 	    if (r < 0)
