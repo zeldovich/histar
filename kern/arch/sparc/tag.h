@@ -119,6 +119,9 @@ uint32_t tag_alloc(const struct Label *l, int tag_type);
 
 uint32_t tag_call(void *func, uint32_t arg);
 void	 pcall_trampoline(void) __attribute__((noreturn));
+
+void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
+uint32_t tag_getperm(uint32_t pctag, uint32_t dtag);
 #endif
 
 #endif

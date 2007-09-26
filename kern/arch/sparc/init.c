@@ -79,7 +79,7 @@ init (void)
     user_init();
 
     tag_set(&secret, DTAG_PTEST, sizeof(secret));
-    wrtperm(PCTAG_PTEST, DTAG_PTEST, TAG_PERM_READ | TAG_PERM_WRITE);
+    tag_setperm(PCTAG_PTEST, DTAG_PTEST, TAG_PERM_READ | TAG_PERM_WRITE);
     secret = 0xc0ffee;
 
     cprintf("Kernel init done, disabling trusted mode.. ");

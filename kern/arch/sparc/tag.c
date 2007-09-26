@@ -23,6 +23,8 @@ uint32_t cur_stack_base;
 
 enum { tag_trap_debug = 0 };
 
+static uint8_t tag_permtable[1 << TAG_PC_BITS][1 << TAG_DATA_BITS];
+
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
@@ -39,6 +41,19 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     for (uint32_t i = 0; i < n; i += 4)
 	write_dtag(addr + i, dtag);
+}
+
+uint32_t
+tag_getperm(uint32_t pctag, uint32_t dtag)
+{
+    return tag_permtable[pctag][dtag];
+}
+
+void
+tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
+{
+    tag_permtable[pctag][dtag] = perm;
+    wrtperm(pctag, dtag, perm);
 }
 
 /*
@@ -160,15 +175,15 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 	panic("Missing data tag valid bits?!");
 
     case ET_CAUSE_READ:
-	wrtperm(pctag, dtag, TAG_PERM_READ);
+	tag_setperm(pctag, dtag, TAG_PERM_READ);
 	break;
 
     case ET_CAUSE_WRITE:
-	wrtperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE);
 	break;
 
     case ET_CAUSE_EXEC:
-	wrtperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
 	break;
 
     default:
@@ -197,12 +212,12 @@ tag_init(void)
 
     for (uint32_t i = 0; i < (1 << TAG_PC_BITS); i++) {
 	for (uint32_t j = 0; j < (1 << TAG_DATA_BITS); j++)
-	    wrtperm(i, j, 0);
+	    tag_setperm(i, j, 0);
 
-	wrtperm(i, DTAG_DEVICE, TAG_PERM_READ | TAG_PERM_WRITE);
-	wrtperm(i, DTAG_KEXEC, TAG_PERM_READ | TAG_PERM_EXEC);
-	wrtperm(i, DTAG_KRO, TAG_PERM_READ);
-	wrtperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_setperm(i, DTAG_DEVICE, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_setperm(i, DTAG_KEXEC, TAG_PERM_READ | TAG_PERM_EXEC);
+	tag_setperm(i, DTAG_KRO, TAG_PERM_READ);
+	tag_setperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
     write_pctag(PCTAG_DYNAMIC);
