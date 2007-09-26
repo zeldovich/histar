@@ -40,12 +40,12 @@
 #define DTAG_KRW	4		/* Read-write kernel stack */
 #define DTAG_MONCALL	5		/* Monitor call */
 #define DTAG_PTEST	6		/* Protected domain test */
-#define DTAG_P_SCHED	7		/* Scheduler */
+#define DTAG_P_ALLOC	7		/* Page allocator */
 #define DTAG_DYNAMIC	8		/* First dynamically-allocated */
 
 #define PCTAG_NONE	0		/* Just to be safe, for now */
 #define PCTAG_PTEST	1		/* Protected domain test */
-#define PCTAG_P_SCHED	2		/* Scheduler */
+#define PCTAG_P_ALLOC	2		/* Page allocator */
 #define PCTAG_DYNAMIC	3		/* First dynamically-allocated */
 
 /*
@@ -61,6 +61,7 @@
 
 #define MONCALL_PCALL	1		/* Protected domain call */
 #define MONCALL_PRETURN	2		/* Protected domain return */
+#define MONCALL_TAGSET	3		/* Change tags ala memset */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -83,6 +84,11 @@ enum {
 	    ".globl " #name "\n"					\
 	    ".type " #name ", %function\n"				\
 	    #name ":\n"							\
+	    "rdtr   %tsr, %g1\n"					\
+	    "srl    %g1, 25, %g1\n"					\
+	    "andcc  %g1, 1, %g1\n"					\
+	    "bnz    __preal_" #name "\n"				\
+	    " nop\n"							\
 	    "save   %sp, -" #stackframe_sz ", %sp\n"			\
 	    "set    " #moncall_pcall ", %l0\n"				\
 	    "set    " #pctag ", %l1\n"					\
@@ -117,7 +123,7 @@ void	 tag_trap_return(const struct Trapframe *tf)
 void	 tag_set(const void *addr, uint32_t dtag, size_t n);
 uint32_t tag_alloc(const struct Label *l, int tag_type);
 
-uint32_t tag_call(void *func, uint32_t arg);
+int32_t	 monitor_call(uint32_t op, ...);
 void	 pcall_trampoline(void) __attribute__((noreturn));
 
 void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);

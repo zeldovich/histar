@@ -417,16 +417,10 @@ ENTRY(tag_trap_return)
 	tret
 	 nop
 
-ENTRY(tag_call)
+ENTRY(monitor_call)
 	save	%sp, -STACKFRAME_SZ, %sp
 
-	mov	%i0, %l3
-	mov	%i1, %i0
-
-	set	MONCALL_PCALL, %l0
-	set	PCTAG_PTEST, %l1
-	set	DTAG_PTEST, %l2
-
+	mov	%i0, %l0
 	set	moncall_dummy, %g1
 	st	%g0, [%g1]
 

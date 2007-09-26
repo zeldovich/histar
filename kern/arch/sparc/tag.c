@@ -7,6 +7,7 @@
 #include <kern/arch.h>
 #include <kern/kobj.h>
 #include <kern/label.h>
+#include <inc/error.h>
 
 extern const uint8_t stext[],   etext[];
 extern const uint8_t srodata[], erodata[];
@@ -57,6 +58,22 @@ tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
 }
 
 /*
+ * Tag comparison logic
+ */
+
+static int
+tag_compare(uint32_t pctag, uint32_t dtag, int write)
+{
+    if (write) {
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    } else {
+	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_EXEC);
+    }
+
+    return 0;
+}
+
+/*
  * Monitor call support
  */
 
@@ -70,6 +87,29 @@ struct pcall_stack {
 
 static struct pcall_stack pcall_stack[PCALL_DEPTH];
 static uint32_t pcall_next;
+
+static int32_t
+moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
+{
+    if (((uintptr_t) addr) & 3)
+	return -E_INVAL;
+
+    uint32_t pctag = read_pctag();
+    uint32_t pbits = TAG_PERM_READ | TAG_PERM_WRITE;
+    for (uint32_t i = 0; i < nbytes; i += 4) {
+	uint32_t old_dtag = read_dtag(addr + i);
+	uint32_t perm = tag_getperm(pctag, old_dtag);
+	if ((perm & pbits) != pbits) {
+	    tag_compare(pctag, old_dtag, 1);
+	    perm = tag_getperm(pctag, old_dtag);
+	    if (!(perm & pbits) != pbits)
+		return -E_LABEL;
+	}
+
+	write_dtag(addr + i, dtag);
+    }
+    return 0;
+}
 
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
@@ -121,6 +161,12 @@ tag_moncall(struct Trapframe *tf)
 	cur_stack_base = ps->prev_stack_base;
 	break;
 
+    case MONCALL_TAGSET:
+	tf->tf_regs.i0 = moncall_tagset((void *) tf->tf_regs.i1,
+					tf->tf_regs.i2,
+					tf->tf_regs.i3);
+	break;
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }
@@ -167,6 +213,7 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 	trapframe_print(tf);
     }
 
+    int r = 0;
     switch (cause) {
     case ET_CAUSE_PCV:
 	panic("Missing PC tag valid bits?!");
@@ -175,19 +222,22 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 	panic("Missing data tag valid bits?!");
 
     case ET_CAUSE_READ:
-	tag_setperm(pctag, dtag, TAG_PERM_READ);
+    case ET_CAUSE_EXEC:
+	r = tag_compare(pctag, dtag, 0);
 	break;
 
     case ET_CAUSE_WRITE:
-	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE);
-	break;
-
-    case ET_CAUSE_EXEC:
-	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+	r = tag_compare(pctag, dtag, 1);
 	break;
 
     default:
 	panic("Unknown cause value from the ET register\n");
+    }
+
+    if (r < 0) {
+	cprintf("tag compare failure: pc tag %d, dtag %d, cause %s\n",
+		pctag, dtag, cause_table[cause]);
+	trapframe_print(tf);
     }
 
     if (tag_trap_debug)

@@ -24,9 +24,11 @@ static TAILQ_HEAD(Page_list, Page_link) page_free_list;
 // Global page allocation stats
 struct page_stats page_stats;
 
-void
-page_free(void *v)
+PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
+	  void, page_free_real, void *v)
 {
+    monitor_call(MONCALL_TAGSET, v, DTAG_P_ALLOC, PGSIZE);
+
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
 	panic("page_free: not a page-aligned pointer %p", pl);
@@ -38,15 +40,20 @@ page_free(void *v)
     if (scrub_free_pages)
 	memset(v, 0xde, PGSIZE);
 
-    tag_set(v, DTAG_NOACCESS, PGSIZE);
-
     TAILQ_INSERT_HEAD(&page_free_list, pl, pp_link);
     page_stats.pages_avail++;
     page_stats.pages_used--;
 }
 
-int
-page_alloc(void **vp, const struct Label *l)
+void
+page_free(void *v)
+{
+    monitor_call(MONCALL_TAGSET, v, DTAG_P_ALLOC, PGSIZE);
+    page_free_real(v);
+}
+
+PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
+	  int, page_alloc, void **vp, const struct Label *l)
 {
     struct Page_link *pl = TAILQ_FIRST(&page_free_list);
 
@@ -72,7 +79,9 @@ page_alloc(void **vp, const struct Label *l)
 	memset(pl, 0xcd, PGSIZE);
 
     uint32_t page_tag = tag_alloc(l, tag_type_data);
-    tag_set(pl, page_tag, PGSIZE);
+    int r = monitor_call(MONCALL_TAGSET, pl, page_tag, PGSIZE);
+    if (r != 0)
+	cprintf("page_alloc: moncall_tagset: %d\n", r);
 
     struct page_info *pi = page_to_pageinfo(pl);
     assert(pi->pi_freepage);
@@ -99,4 +108,7 @@ page_alloc_init(void)
 	{ .pt_fn = &print_memstat, .pt_interval_sec = 5 };
     if (page_memstat_debug)
 	timer_add_periodic(&pt);
+
+    tag_set(&page_stats, DTAG_P_ALLOC, sizeof(page_stats));
+    tag_set(&page_free_list, DTAG_P_ALLOC, sizeof(page_free_list));
 }
