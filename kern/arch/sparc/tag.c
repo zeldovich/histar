@@ -2,6 +2,7 @@
 #include <machine/tag.h>
 #include <machine/sparc-tag.h>
 #include <machine/trap.h>
+#include <machine/psr.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
 #include <kern/kobj.h>
@@ -50,7 +51,15 @@ static struct moncall_stack the_stack;
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
 {
-    tf->tf_pc  = tf->tf_npc;
+    if (!(tf->tf_psr & PSR_PS)) {
+	cprintf("tag_moncall: from user mode at 0x%x, 0x%x\n",
+		tf->tf_pc, tf->tf_npc);
+	tf->tf_pc = tf->tf_npc;
+	tf->tf_npc = tf->tf_npc + 4;
+	goto out;
+    }
+
+    tf->tf_pc = tf->tf_npc;
     tf->tf_npc = tf->tf_npc + 4;
 
     switch (tf->tf_regs.l0) {
@@ -61,8 +70,15 @@ tag_moncall(struct Trapframe *tf)
 	write_pctag(PCTAG_PTEST);
 	tf->tf_pc = (uintptr_t) &moncall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
+	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
+	tf->tf_wim = 2;
 	tf->tf_regs.sp = ((uintptr_t) &ptest_stack_top) - STACKFRAME_SZ;
 	tf->tf_regs.fp = 0;
+
+	cprintf("moncall: old psr = 0x%08x, wim = 0x%08x\n",
+		the_stack.tf.tf_psr, the_stack.tf.tf_wim);
+	cprintf("moncall: new psr = 0x%08x, wim = 0x%08x\n",
+		tf->tf_psr, tf->tf_wim);
 	break;
 
     case MONCALL_RETURN:
@@ -75,8 +91,7 @@ tag_moncall(struct Trapframe *tf)
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }
 
-    cprintf("tag_moncall: returning to pc %x npc %x\n",
-	    tf->tf_pc, tf->tf_npc);
+ out:
     tag_trap_return(tf);
 }
 
