@@ -311,7 +311,8 @@ ENTRY(tag_trap_entry)
 	sll	%g1, %g3, %g3		/* g3 = CWP mask bit */
 
 	/* Prepare for range checks in a bit */
-	set	kstack, %g6
+	set	cur_stack_base, %g6
+	ld	[%g6], %g6
 	set	(KSTACK_SIZE - STACKFRAME_SZ), %g5
 
 flush_more:
@@ -419,6 +420,9 @@ ENTRY(tag_trap_return)
 ENTRY(tag_call)
 	save	%sp, -STACKFRAME_SZ, %sp
 
+	mov	%i0, %l3
+	mov	%i1, %i0
+
 	set	MONCALL_PCALL, %l0
 	set	PCTAG_PTEST, %l1
 	set	DTAG_PTEST, %l2
@@ -430,10 +434,14 @@ ENTRY(tag_call)
 	 restore
 
 ENTRY(moncall_trampoline)
-	mov	%i0, %l0
-	mov	%i1, %o0
+	mov	%i0, %o0
+	mov	%i1, %o1
+	mov	%i2, %o2
+	mov	%i3, %o3
+	mov	%i4, %o4
+	mov	%i5, %o5
 
-	call	%l0
+	call	%l3
 	 nop
 
 	set	MONCALL_PRETURN, %l0

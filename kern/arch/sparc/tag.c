@@ -18,6 +18,7 @@ extern const uint8_t monstack[], monstack_top[];
 extern const uint8_t extra_stack[], extra_stack_top[];
 
 uint32_t moncall_dummy;
+uint32_t cur_stack_base;
 
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
@@ -46,6 +47,7 @@ struct pcall_stack {
     uint8_t *stack_top;
     struct Trapframe tf;
     uint32_t pctag;
+    uintptr_t prev_stack_base;
 };
 
 static struct pcall_stack pcall_stack[PCALL_DEPTH];
@@ -75,6 +77,7 @@ tag_moncall(struct Trapframe *tf)
 	ps = &pcall_stack[pcall_next++];
 	memcpy(&ps->tf, tf, sizeof(*tf));
 	ps->pctag = read_pctag();
+	ps->prev_stack_base = cur_stack_base;
 
 	write_pctag(tf->tf_regs.l1);
 	tag_set(ps->stack_base, tf->tf_regs.l2, KSTACK_SIZE);
@@ -85,6 +88,7 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_wim = 2;
 	tf->tf_regs.sp = ((uintptr_t) ps->stack_top) - STACKFRAME_SZ;
 	tf->tf_regs.fp = 0;
+	cur_stack_base = (uintptr_t) ps->stack_base;
 	break;
 
     case MONCALL_PRETURN:
@@ -96,6 +100,7 @@ tag_moncall(struct Trapframe *tf)
 	ps->tf.tf_regs.i1 = tf->tf_regs.o1;
 	tf = &ps->tf;
 	write_pctag(ps->pctag);
+	cur_stack_base = ps->prev_stack_base;
 	break;
 
     default:
@@ -207,6 +212,7 @@ tag_init(void)
 	pcall_stack[i].stack_base = (uint8_t *) &extra_stack[i * KSTACK_SIZE];
 	pcall_stack[i].stack_top  = (uint8_t *) &extra_stack[(i + 1) * KSTACK_SIZE];
     }
+    cur_stack_base = (uintptr_t) &kstack[0];
     cprintf("done.\n");
 }
 

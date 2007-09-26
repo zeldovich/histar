@@ -35,17 +35,13 @@ bss_init (void)
 
 static uint32_t secret;
 
-static uint32_t
-get_secret_real(uint32_t arg)
+PROT_FUNC(PCTAG_PTEST, DTAG_PTEST,
+	  uint32_t, get_secret, uint32_t arg)
 {
-    cprintf("get_secret_real: pctag=%d\n", read_pctag());
+    cprintf("get_secret(%d): pctag=%d\n", arg, read_pctag());
+    if (arg != 123)
+	get_secret(123);
     return secret + arg;
-}
-
-static uint32_t
-get_secret(uint32_t arg)
-{
-    return tag_call(&get_secret_real, arg);
 }
 
 static void

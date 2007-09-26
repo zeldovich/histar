@@ -72,8 +72,35 @@ enum {
 
 #define PCALL_DEPTH	4		/* Maximum nesting level */
 
+#define PROT_FUNC_WRAP2(moncall_pcall, stackframe_sz,			\
+		        pctag, dtag, type, name)			\
+    __asm__(".text\n"							\
+	    ".align 4\n"						\
+	    ".globl " #name "\n"					\
+	    ".type " #name ", %function\n"				\
+	    #name ":\n"							\
+	    "save   %sp, -" #stackframe_sz ", %sp\n"			\
+	    "set    " #moncall_pcall ", %l0\n"				\
+	    "set    " #pctag ", %l1\n"					\
+	    "set    " #dtag ", %l2\n"					\
+	    "set    __preal_" #name ", %l3\n"				\
+	    "set    moncall_dummy, %g1\n"				\
+	    "st	    %g0, [%g1]\n"					\
+	    "ret; restore\n");
+
+#define PROT_FUNC_WRAP(...) PROT_FUNC_WRAP2(__VA_ARGS__)
+
+#define PROT_FUNC(pctag, dtag, type, name, ...)				\
+    PROT_FUNC_WRAP(MONCALL_PCALL, STACKFRAME_SZ,			\
+		   pctag, dtag, type, name)				\
+									\
+    type name(__VA_ARGS__);						\
+    type __preal_##name(__VA_ARGS__);					\
+    type __preal_##name(__VA_ARGS__)
+
 extern const struct Label dtag_label[DTAG_DYNAMIC];
 extern uint32_t moncall_dummy;
+extern uintptr_t cur_stack_base;
 
 void	 tag_init(void);
 
