@@ -1,6 +1,13 @@
 What should happen on trap to monitor mode?
-    Disable traps
-    Disable MMU
+    Disable traps [done in hw]
+    Disable MMU [not done in hw yet]
+
+We need to be careful with MMU state when doing protected calls.
+    Put the MMU into a well-known state before switching PC tags
+
+What should be the rules for combining privileges on protected calls?
+    Might need to merge privileges of caller & callee
+    Can emulate any behavior we want in software..
 
 		Set T	Set S
 Tag exception	YES	YES
