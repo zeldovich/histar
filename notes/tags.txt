@@ -5,6 +5,9 @@ What should happen on trap to monitor mode?
 We need to be careful with MMU state when doing protected calls.
     Put the MMU into a well-known state before switching PC tags
 
+Control who can invoke what protection domains, and with what tags
+    Global authorized dispatch table?
+
 What should be the rules for combining privileges on protected calls?
     Might need to merge privileges of caller & callee
     Can emulate any behavior we want in software..
