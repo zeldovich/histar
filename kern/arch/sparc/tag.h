@@ -118,7 +118,7 @@ void	 tag_set(const void *addr, uint32_t dtag, size_t n);
 uint32_t tag_alloc(const struct Label *l, int tag_type);
 
 uint32_t tag_call(void *func, uint32_t arg);
-void	 moncall_trampoline(void) __attribute__((noreturn));
+void	 pcall_trampoline(void) __attribute__((noreturn));
 #endif
 
 #endif

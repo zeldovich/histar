@@ -85,7 +85,7 @@ tag_moncall(struct Trapframe *tf)
 	write_pctag(tf->tf_regs.l1);
 	tag_set(ps->stack_base, tf->tf_regs.l2, KSTACK_SIZE);
 
-	tf->tf_pc = (uintptr_t) &moncall_trampoline;
+	tf->tf_pc = (uintptr_t) &pcall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
 	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
 	tf->tf_wim = 2;

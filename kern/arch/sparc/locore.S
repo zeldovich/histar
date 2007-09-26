@@ -433,7 +433,7 @@ ENTRY(tag_call)
 	ret
 	 restore
 
-ENTRY(moncall_trampoline)
+ENTRY(pcall_trampoline)
 	mov	%i0, %o0
 	mov	%i1, %o1
 	mov	%i2, %o2
