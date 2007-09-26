@@ -38,6 +38,7 @@ static uint32_t secret;
 static uint32_t
 get_secret_real(uint32_t arg)
 {
+    cprintf("get_secret_real: pctag=%d\n", read_pctag());
     return secret + arg;
 }
 

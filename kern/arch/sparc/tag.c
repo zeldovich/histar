@@ -15,7 +15,7 @@ extern const uint8_t sbss[],    ebss[];
 
 extern const uint8_t kstack[], kstack_top[];
 extern const uint8_t monstack[], monstack_top[];
-extern const uint8_t ptest_stack[], ptest_stack_top[];
+extern const uint8_t extra_stack[], extra_stack_top[];
 
 uint32_t moncall_dummy;
 
@@ -41,12 +41,15 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
  * Monitor call support
  */
 
-struct moncall_stack {
+struct pcall_stack {
+    uint8_t *stack_base;
+    uint8_t *stack_top;
     struct Trapframe tf;
     uint32_t pctag;
 };
 
-static struct moncall_stack the_stack;
+static struct pcall_stack pcall_stack[PCALL_DEPTH];
+static uint32_t pcall_next;
 
 static void __attribute__((noreturn))
 tag_moncall(struct Trapframe *tf)
@@ -62,29 +65,37 @@ tag_moncall(struct Trapframe *tf)
     tf->tf_pc = tf->tf_npc;
     tf->tf_npc = tf->tf_npc + 4;
 
-    switch (tf->tf_regs.l0) {
-    case MONCALL_CALL:
-	memcpy(&the_stack.tf, tf, sizeof(*tf));
-	the_stack.pctag = read_pctag();
+    struct pcall_stack *ps;
 
-	write_pctag(PCTAG_PTEST);
+    switch (tf->tf_regs.l0) {
+    case MONCALL_PCALL:
+	if (pcall_next == PCALL_DEPTH)
+	    panic("MONCALL_PCALL: out of pstack space\n");
+
+	ps = &pcall_stack[pcall_next++];
+	memcpy(&ps->tf, tf, sizeof(*tf));
+	ps->pctag = read_pctag();
+
+	write_pctag(tf->tf_regs.l1);
+	tag_set(ps->stack_base, tf->tf_regs.l2, KSTACK_SIZE);
+
 	tf->tf_pc = (uintptr_t) &moncall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
 	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
 	tf->tf_wim = 2;
-	tf->tf_regs.sp = ((uintptr_t) &ptest_stack_top) - STACKFRAME_SZ;
+	tf->tf_regs.sp = ((uintptr_t) ps->stack_top) - STACKFRAME_SZ;
 	tf->tf_regs.fp = 0;
-
-	cprintf("moncall: old psr = 0x%08x, wim = 0x%08x\n",
-		the_stack.tf.tf_psr, the_stack.tf.tf_wim);
-	cprintf("moncall: new psr = 0x%08x, wim = 0x%08x\n",
-		tf->tf_psr, tf->tf_wim);
 	break;
 
-    case MONCALL_RETURN:
-	the_stack.tf.tf_regs.l0 = tf->tf_regs.l1;
-	tf = &the_stack.tf;
-	write_pctag(the_stack.pctag);
+    case MONCALL_PRETURN:
+	if (pcall_next == 0)
+	    panic("MONCALL_PRETURN: nothing on the pstack\n");
+
+	ps = &pcall_stack[--pcall_next];
+	ps->tf.tf_regs.i0 = tf->tf_regs.o0;
+	ps->tf.tf_regs.i1 = tf->tf_regs.o1;
+	tf = &ps->tf;
+	write_pctag(ps->pctag);
 	break;
 
     default:
@@ -187,8 +198,15 @@ tag_init(void)
     tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
     tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
 
-    tag_set(&ptest_stack[0], DTAG_PTEST, KSTACK_SIZE);
     tag_set(&moncall_dummy, DTAG_MONCALL, sizeof(moncall_dummy));
+    cprintf("done.\n");
+
+    cprintf("Initializing stacks.. ");
+    assert(KSTACK_SIZE * PCALL_DEPTH == (extra_stack_top - extra_stack));
+    for (uint32_t i = 0; i < PCALL_DEPTH; i++) {
+	pcall_stack[i].stack_base = (uint8_t *) &extra_stack[i * KSTACK_SIZE];
+	pcall_stack[i].stack_top  = (uint8_t *) &extra_stack[(i + 1) * KSTACK_SIZE];
+    }
     cprintf("done.\n");
 }
 

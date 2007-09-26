@@ -57,8 +57,8 @@
  * Monitor call codes
  */
 
-#define MONCALL_CALL	1
-#define MONCALL_RETURN	2
+#define MONCALL_PCALL	1		/* Protected domain call */
+#define MONCALL_PRETURN	2		/* Protected domain return */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -69,6 +69,8 @@ enum {
     tag_type_data,
     tag_type_pc
 };
+
+#define PCALL_DEPTH	4		/* Maximum nesting level */
 
 extern const struct Label dtag_label[DTAG_DYNAMIC];
 extern uint32_t moncall_dummy;
