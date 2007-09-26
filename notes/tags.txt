@@ -12,6 +12,9 @@ What should be the rules for combining privileges on protected calls?
     Might need to merge privileges of caller & callee
     Can emulate any behavior we want in software..
 
+Can potentially make the memory allocator untrusted by allowing memory
+    re-tagging ala Mondrix.
+
 		Set T	Set S
 Tag exception	YES	YES
 Other exception	NO	YES
