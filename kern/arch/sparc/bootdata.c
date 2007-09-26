@@ -1,4 +1,5 @@
 #include <machine/pmap.h>
+#include <machine/tag.h>
 
 /*
  * Boot page tables
@@ -43,8 +44,7 @@ struct Pagemap bootpt PTATTR = {
 /*
  * Context table, inited during boot
  */
-#define CTATTR __attribute__ ((aligned (4096), section (".data")))
-struct Contexttable bootct CTATTR;
+struct Contexttable bootct __attribute__ ((aligned (4096))) __krw__;
 
 struct Trapcode idt[0x100];
 

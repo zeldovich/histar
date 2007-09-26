@@ -5,16 +5,17 @@
 #include <kern/container.h>
 #include <kern/sync.h>
 #include <kern/arch.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 
-static uint64_t global_tickets;
-static uint128_t global_pass;
+static uint64_t global_tickets __krw__;
+static uint128_t global_pass __krw__;
 static uint64_t stride1;
 
 static void
 global_pass_update(uint128_t new_global_pass)
 {
-    static uint64_t last_tsc;
+    static uint64_t last_tsc __krw__;
 
     uint64_t elapsed = karch_get_tsc() - last_tsc;
     last_tsc += elapsed;

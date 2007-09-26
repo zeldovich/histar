@@ -11,13 +11,14 @@
 #include <kern/arch.h>
 #include <kern/lib.h>
 #include <kern/pstate.h>
+#include <machine/tag.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
 
 enum { thread_pf_debug = 0 };
 
-const struct Thread *cur_thread;
+const struct Thread *cur_thread __krw__;
 struct Thread_list *cur_waitlist;
 struct Thread_list thread_list_runnable;
 

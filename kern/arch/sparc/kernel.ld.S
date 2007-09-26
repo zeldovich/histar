@@ -29,6 +29,12 @@ SECTIONS
 	}
 	PROVIDE(edata = .);
 
+	PROVIDE(srwdata = .);
+	.data_krw : AT(ADDR(.data_krw) - LOAD_OFFSET) {
+		*(.data_krw)
+	}
+	PROVIDE(erwdata = .);
+
 	PROVIDE(sbss = .);	
 	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {
 		*(.bss)

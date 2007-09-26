@@ -38,9 +38,6 @@ static uint32_t secret;
 PROT_FUNC(PCTAG_PTEST, DTAG_PTEST,
 	  uint32_t, get_secret, uint32_t arg)
 {
-    cprintf("get_secret(%d): pctag=%d\n", arg, read_pctag());
-    if (arg != 123)
-	get_secret(123);
     return secret + arg;
 }
 
@@ -90,9 +87,6 @@ init (void)
     cprintf("done.\n");
 
     test_secret();
-
-    cprintf("foo.\n");
-    abort();
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();

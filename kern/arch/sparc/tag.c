@@ -11,6 +11,7 @@
 extern const uint8_t stext[],   etext[];
 extern const uint8_t srodata[], erodata[];
 extern const uint8_t sdata[],   edata[];
+extern const uint8_t srwdata[], erwdata[];
 extern const uint8_t sbss[],    ebss[];
 
 extern const uint8_t kstack[], kstack_top[];
@@ -19,6 +20,8 @@ extern const uint8_t extra_stack[], extra_stack_top[];
 
 uint32_t moncall_dummy;
 uint32_t cur_stack_base;
+
+enum { tag_trap_debug = 0 };
 
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
@@ -118,26 +121,36 @@ tag_moncall(struct Trapframe *tf)
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
-    cprintf("tag trap...\n");
+    if (tag_trap_debug)
+	cprintf("tag trap...\n");
 
     uint32_t pctag = read_pctag();
     uint32_t et = read_et();
     uint32_t cause = (et >> ET_CAUSE_SHIFT) & ET_CAUSE_MASK;
     uint32_t dtag = (et >> ET_TAG_SHIFT) & ET_TAG_MASK;
 
-    cprintf("  pc tag = %d, data tag = %d, cause = %s (%d), pc = 0x%x\n",
-	    pctag, dtag,
-	    cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown", cause,
-	    tf->tf_pc);
+    if (tag_trap_debug)
+	cprintf("  pc tag = %d, data tag = %d, cause = %s (%d), pc = 0x%x\n",
+		pctag, dtag,
+		cause <= ET_CAUSE_EXEC ? cause_table[cause] : "unknown",
+		cause, tf->tf_pc);
 
     if (err) {
 	cprintf("  tag trap err = %d [%x]\n", err, errv);
+	cprintf("  pc tag = %d, data tag = %d, cause = %d\n",
+		pctag, dtag, cause);
 	trapframe_print(tf);
 	abort();
     }
 
     if (dtag == DTAG_MONCALL)
 	tag_moncall(tf);
+
+    if (dtag < DTAG_DYNAMIC) {
+	cprintf("non-dynamic tag fault: pctag %d, dtag %d, cause %s\n",
+		pctag, dtag, cause_table[cause]);
+	trapframe_print(tf);
+    }
 
     switch (cause) {
     case ET_CAUSE_PCV:
@@ -162,7 +175,8 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 	panic("Unknown cause value from the ET register\n");
     }
 
-    cprintf("tag trap: returning..\n");
+    if (tag_trap_debug)
+	cprintf("tag trap: returning..\n");
     tag_trap_return(tf);
 }
 
@@ -200,6 +214,7 @@ tag_init(void)
     tag_set(&stext[0],   DTAG_KEXEC, &etext[0]   - &stext[0]);
     tag_set(&srodata[0], DTAG_KRO,   &erodata[0] - &srodata[0]);
     tag_set(&sdata[0],   DTAG_KRO,   &edata[0]   - &sdata[0]);
+    tag_set(&srwdata[0], DTAG_KRW,   &erwdata[0] - &srwdata[0]);
     tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
     tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
 

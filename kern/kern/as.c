@@ -9,7 +9,7 @@
 #include <inc/safeint.h>
 #include <machine/tag.h>
 
-const struct Address_space *cur_as;
+const struct Address_space *cur_as __krw__;
 const struct Pagemap *cur_pgmap;
 
 enum { as_debug = 0 };

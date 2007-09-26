@@ -40,11 +40,13 @@
 #define DTAG_KRW	4		/* Read-write kernel stack */
 #define DTAG_MONCALL	5		/* Monitor call */
 #define DTAG_PTEST	6		/* Protected domain test */
-#define DTAG_DYNAMIC	7		/* First dynamically-allocated */
+#define DTAG_P_SCHED	7		/* Scheduler */
+#define DTAG_DYNAMIC	8		/* First dynamically-allocated */
 
 #define PCTAG_NONE	0		/* Just to be safe, for now */
 #define PCTAG_PTEST	1		/* Protected domain test */
-#define PCTAG_DYNAMIC	2		/* First dynamically-allocated */
+#define PCTAG_P_SCHED	2		/* Scheduler */
+#define PCTAG_DYNAMIC	3		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
@@ -69,6 +71,8 @@ enum {
     tag_type_data,
     tag_type_pc
 };
+
+#define	__krw__		__attribute__((section(".data_krw")));
 
 #define PCALL_DEPTH	4		/* Maximum nesting level */
 

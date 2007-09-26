@@ -11,13 +11,14 @@
 #include <machine/sparc-common.h>
 #include <machine/trapcodes.h>
 #include <machine/psr.h>
+#include <machine/tag.h>
 #include <dev/irqmp.h>
 #include <inc/error.h>
 
-static uint64_t trap_user_iret_tsc;
-static const struct Thread *trap_thread;
-static int trap_thread_syscall_writeback;
-static int in_idle;
+static uint64_t trap_user_iret_tsc __krw__;
+static const struct Thread *trap_thread __krw__;
+static int trap_thread_syscall_writeback __krw__;
+static int in_idle __krw__;
 
 static void
 print_state(const char *s, const struct Thread *t)
