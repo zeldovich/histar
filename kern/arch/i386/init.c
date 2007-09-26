@@ -49,8 +49,9 @@ mmu_init(void)
     flush_tlb_hard();
 
     /* Load TSS */
-    gdt[(GD_TSS >> 3)] = SEG_BASELO(&tss) | SEG_LIM(sizeof(tss) - 1) |
-			 SEG_P | SEG_A | SEG_TSSA;
+    gdt[(GD_TSS >> 3)] = SEG_BASELO((uintptr_t)&tss) |
+							SEG_LIM(sizeof(tss) - 1) |
+							SEG_P | SEG_A | SEG_TSSA;
     ltr(GD_TSS);
 }
 
