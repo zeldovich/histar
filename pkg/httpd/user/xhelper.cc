@@ -17,10 +17,12 @@ static strbuf authgate;
 static strbuf fsgate;
 static strbuf appgate;
 
+extern const char *jos_progname;
+
 static void
 write_to_file(const char *pn, const strbuf &sb)
 {
-    int fd = open(pn, O_RDWR | O_CREAT, 0666);
+    int fd = open(pn, O_RDWR | O_CREAT | O_TRUNC, 0666);
     errno_check(fd);
 
     str s(sb);
@@ -63,7 +65,7 @@ server(void)
     if (r < 0)
         panic("cannot listen on socket: %d\n", r);
 
-    printf("server on port %d\n", port);
+    warn << jos_progname << ": server on port " << port << "\n";
     for (;;) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -99,17 +101,17 @@ server(void)
 static void
 init(void)
 {
-    gate_sender gs;
-
-    gs_key << gs.hostkey();
-  
-    for (int i = 0; i < 3; i++) {
-	static strbuf _callct;
-	static strbuf _authgate;
-	static strbuf _fsgate;
-	static strbuf _appgate;
+    for (int retry = 0; ; retry++) {
+	strbuf _callct;
+	strbuf _authgate;
+	strbuf _fsgate;
+	strbuf _appgate;
+	strbuf _gs_key;
 	
 	try {
+	    gate_sender gs;
+	    _gs_key << gs.hostkey();
+	    
 	    int64_t ct, id;
 	    error_check(ct = container_find(start_env->root_container, kobj_container, "djechod"));
 	    error_check(id = container_find(ct, kobj_container, "public call"));
@@ -127,8 +129,12 @@ init(void)
 	    error_check(id = container_find(ct, kobj_gate, "djfsd"));
 	    _fsgate << ct << "." << id << "\n";
 	} catch (basic_exception &e) {
-	    warn << "Unable to init -- waiting 3 seconds\n";
-	    usleep(3000000);
+	    if (retry >= 100) {
+		fprintf(stderr, "%s: ERROR: timed out waiting for dj helpers\n", 
+			jos_progname);
+		throw e;
+	    }
+	    sleep(1);
 	    continue;
 	}
 	
@@ -136,44 +142,46 @@ init(void)
 	authgate << _authgate;
 	fsgate << _fsgate;
 	appgate << _appgate;
+	gs_key << _gs_key;
 	break;
     }
-    write_to_file("/www/dj_user_host0", gs_key);
-    write_to_file("/www/dj_app_host0", gs_key);
-    write_to_file("/www/dj_user_ct0", callct);
-    write_to_file("/www/dj_app_ct0", callct);
-    write_to_file("/www/dj_user_authgate0", authgate);
-    write_to_file("/www/dj_user_fsgate0", fsgate);
-    write_to_file("/www/dj_app_gate0", appgate);
 
+    for (int retry = 0; ; retry++) {
+	try {
+	    write_to_file("/www/dj_user_host0", gs_key);
+	    write_to_file("/www/dj_app_host0", gs_key);
+	    write_to_file("/www/dj_user_ct0", callct);
+	    write_to_file("/www/dj_app_ct0", callct);
+	    write_to_file("/www/dj_user_authgate0", authgate);
+	    write_to_file("/www/dj_user_fsgate0", fsgate);
+	    write_to_file("/www/dj_app_gate0", appgate);
+	} catch (basic_exception &e) {
+	    if (retry >= 100) {
+		fprintf(stderr, "%s: ERROR: timed out trying to write bootstrap files\n",
+			jos_progname);
+		throw e;
+	    }
+	    sleep(1);
+	    continue;
+	}
+	break;
+    }
     system("adduser alice foo");
     system("adduser bob bar");
-    warn << "All done, alice/foo, bob/bar\n";
+    warn << jos_progname << ": All done, alice/foo, bob/bar\n";
 }
 
 int
 main(int ac, char **av)
 {
-    try {
-	init();
-    } catch (error &e) {
-	if (e.err() == -E_NOT_FOUND) {
-	    warn << "Unable to init -- waiting 3 seconds\n";
-	    usleep(3000000);
-	    init();
-	} else {
-	    throw e;
-	}
-    }
+    init();
     
-    
-
     if (ac >= 2 && av[1][0] == 'x') {
 	warn << "not starting server...\n";
 	return 0;
     }
     
-    warn << "starting server...\n";
+    warn << jos_progname << ": starting server...\n";
     server();
     return 0;
 }
