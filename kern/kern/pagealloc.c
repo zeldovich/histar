@@ -109,4 +109,5 @@ page_alloc_init(void)
 
     tag_set(&page_stats, DTAG_P_ALLOC, sizeof(page_stats));
     tag_set(&page_free_list, DTAG_P_ALLOC, sizeof(page_free_list));
+    tag_setperm(PCTAG_P_ALLOC, DTAG_P_ALLOC, TAG_PERM_READ | TAG_PERM_WRITE);
 }

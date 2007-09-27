@@ -39,14 +39,16 @@
 #define DTAG_KRO	3		/* Read-only kernel data */
 #define DTAG_KRW	4		/* Read-write kernel stack */
 #define DTAG_MONCALL	5		/* Monitor call */
-#define DTAG_PTEST	6		/* Protected domain test */
+#define DTAG_P_TEST	6		/* Protected domain test */
 #define DTAG_P_ALLOC	7		/* Page allocator */
-#define DTAG_DYNAMIC	8		/* First dynamically-allocated */
+#define DTAG_P_IDCTR	8		/* ID handle counter */
+#define DTAG_DYNAMIC	9		/* First dynamically-allocated */
 
 #define PCTAG_NONE	0		/* Just to be safe, for now */
-#define PCTAG_PTEST	1		/* Protected domain test */
+#define PCTAG_P_TEST	1		/* Protected domain test */
 #define PCTAG_P_ALLOC	2		/* Page allocator */
-#define PCTAG_DYNAMIC	3		/* First dynamically-allocated */
+#define PCTAG_P_IDCTR	3		/* ID handle counter */
+#define PCTAG_DYNAMIC	4		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
@@ -59,9 +61,10 @@
  * Monitor call codes
  */
 
-#define MONCALL_PCALL	1		/* Protected domain call */
-#define MONCALL_PRETURN	2		/* Protected domain return */
-#define MONCALL_TAGSET	3		/* Change tags ala memset */
+#define MONCALL_PCALL		1	/* Protected domain call */
+#define MONCALL_PRETURN		2	/* Protected domain return */
+#define MONCALL_TAGSET		3	/* Change tags ala memset */
+#define MONCALL_DTAGALLOC	4	/* Allocate a tag */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>

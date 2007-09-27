@@ -2,6 +2,7 @@
 #include <kern/lib.h>
 #include <inc/bf60.h>
 #include <inc/intmacro.h>
+#include <machine/tag.h>
 
 enum { handle_encrypt = 1 };
 
@@ -51,10 +52,13 @@ key_derive(void)
     ctr = key_derive_one(&init_ctx, &handle_key_ctx, ctr);
     ctr = key_derive_one(&init_ctx, &pstate_key_ctx, ctr);
     assert(ctr < 0x100);
+
+    tag_set(&handle_counter, DTAG_P_IDCTR, sizeof(handle_counter));
+    tag_setperm(PCTAG_P_IDCTR, DTAG_P_IDCTR, TAG_PERM_READ | TAG_PERM_WRITE);
 }
 
-uint64_t
-handle_alloc(void)
+PROT_FUNC(PCTAG_P_IDCTR, DTAG_P_IDCTR,
+	  uint64_t, handle_alloc, void)
 {
     uint64_t new_count = handle_counter++;
     uint64_t new_crypt = bf61_encipher(&handle_key_ctx, new_count);

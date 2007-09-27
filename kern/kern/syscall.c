@@ -17,14 +17,15 @@
 #include <kern/pstate.h>
 #include <kern/arch.h>
 #include <kern/thread.h>
+#include <machine/tag.h>
 #include <inc/error.h>
 #include <inc/thread.h>
 #include <inc/netdev.h>
 #include <inc/safeint.h>
 
 // Helper functions
-static const struct Label *cur_th_label;
-static const struct Label *cur_th_clearance;
+static const struct Label *cur_th_label __krw__;
+static const struct Label *cur_th_clearance __krw__;
 
 #define check(expr)					\
     ({							\

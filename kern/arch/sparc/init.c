@@ -35,7 +35,7 @@ bss_init (void)
 
 static uint32_t secret;
 
-PROT_FUNC(PCTAG_PTEST, DTAG_PTEST,
+PROT_FUNC(PCTAG_P_TEST, DTAG_P_TEST,
 	  uint32_t, get_secret, uint32_t arg)
 {
     return secret + arg;
@@ -79,8 +79,8 @@ init (void)
 
     user_init();
 
-    tag_set(&secret, DTAG_PTEST, sizeof(secret));
-    tag_setperm(PCTAG_PTEST, DTAG_PTEST, TAG_PERM_READ | TAG_PERM_WRITE);
+    tag_set(&secret, DTAG_P_TEST, sizeof(secret));
+    tag_setperm(PCTAG_P_TEST, DTAG_P_TEST, TAG_PERM_READ | TAG_PERM_WRITE);
     secret = 0xc0ffee;
 
     cprintf("Kernel init done, disabling trusted mode.. ");

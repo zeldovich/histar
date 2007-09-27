@@ -26,6 +26,11 @@ enum { tag_trap_debug = 0 };
 
 static uint8_t tag_permtable[1 << TAG_PC_BITS][1 << TAG_DATA_BITS];
 
+static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
+static uint64_t pctag_label_id[1 << TAG_PC_BITS];
+
+const struct Label dtag_label[DTAG_DYNAMIC];
+
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
@@ -175,6 +180,17 @@ tag_moncall(struct Trapframe *tf)
 					tf->tf_regs.i3);
 	break;
 
+    case MONCALL_DTAGALLOC:
+	tf->tf_regs.i0 = -E_NO_MEM;
+	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
+	    if (dtag_label_id[i] == 0) {
+		dtag_label_id[i] = tf->tf_regs.i1;
+		tf->tf_regs.i0 = i;
+		break;
+	    }
+	}
+	break;
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }
@@ -278,8 +294,6 @@ tag_init(void)
 	tag_setperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
-    tag_setperm(PCTAG_P_ALLOC, DTAG_P_ALLOC, TAG_PERM_READ | TAG_PERM_WRITE);
-
     write_pctag(PCTAG_DYNAMIC);
     cprintf("done.\n");
 
@@ -306,11 +320,6 @@ tag_init(void)
     cprintf("done.\n");
 }
 
-static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
-static uint64_t pctag_label_id[1 << TAG_PC_BITS];
-
-const struct Label dtag_label[DTAG_DYNAMIC];
-
 uint32_t
 tag_alloc(const struct Label *l, int tag_type)
 {
@@ -324,10 +333,16 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	uint32_t maxtag = (1 << TAG_DATA_BITS);
-	if (l->lb_dtag_hint < maxtag &&
-	    dtag_label_id[l->lb_dtag_hint] == l->lb_ko.ko_id)
-	{
-	    return l->lb_dtag_hint;
+	uint32_t hint = l->lb_dtag_hint;
+	if (hint < maxtag && dtag_label_id[hint] == l->lb_ko.ko_id)
+	    return hint;
+
+	if (!(read_tsr() & TSR_T)) {
+	    int r = monitor_call(MONCALL_DTAGALLOC, l->lb_ko.ko_id);
+	    if (r < 0)
+		cprintf("tag_alloc: moncall_dtagalloc: %s (%d)\n", e2s(r), r);
+	    kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = r;
+	    return r;
 	}
 
 	for (uint32_t i = DTAG_DYNAMIC; i < maxtag; i++) {

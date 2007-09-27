@@ -14,11 +14,11 @@
 #include <inc/cksum.h>
 #include <machine/tag.h>
 
-struct kobject_list ko_list;
+struct kobject_list ko_list __krw__;
 struct Thread_list kobj_snapshot_waiting;
 
-static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash;
-static struct kobject_list ko_gc_list;
+static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash __krw__;
+static struct kobject_list ko_gc_list __krw__;
 
 enum { kobject_reclaim_debug = 0 };
 enum { kobject_checksum_enable = 0 };

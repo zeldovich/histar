@@ -5,6 +5,7 @@
 #include <kern/sched.h>
 #include <dev/kclock.h>
 #include <inc/queue.h>
+#include <machine/tag.h>
 
 uint64_t timer_user_nsec_offset;
 struct time_source *the_timesrc;
@@ -73,6 +74,8 @@ timer_add_periodic(struct periodic_task *pt)
     pt->pt_last_ticks = the_timesrc->ticks(the_timesrc->arg);
     pt->pt_interval_ticks = pt->pt_interval_sec * the_timesrc->freq_hz;
     LIST_INSERT_HEAD(&periodic_tasks, pt, pt_link);
+
+    tag_set(&pt->pt_last_ticks, DTAG_KRW, sizeof(pt->pt_last_ticks));
 }
 
 void
