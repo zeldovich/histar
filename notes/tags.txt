@@ -15,8 +15,8 @@ What should be the rules for combining privileges on protected calls?
 Can potentially make the memory allocator untrusted by allowing memory
     re-tagging ala Mondrix.
 
-Go through and minimize the number of __krw__ variables that are
-    globally-writable, by adding protection domains.
+Go through and minimize the number of __krw__/DTAG_KRW variables that
+    are globally-writable, by adding protection domains.
 
 Will probably need to know the caller's tag for some operations
     (e.g. allocate memory on caller's behalf)

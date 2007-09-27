@@ -27,7 +27,7 @@ struct page_stats page_stats;
 PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
 	  void, page_free_real, void *v)
 {
-    monitor_call(MONCALL_TAGSET, v, DTAG_P_ALLOC, PGSIZE);
+    tag_set(v, DTAG_P_ALLOC, PGSIZE);
 
     struct Page_link *pl = (struct Page_link *) v;
     if (PGOFF(pl))
@@ -48,7 +48,7 @@ PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
 void
 page_free(void *v)
 {
-    monitor_call(MONCALL_TAGSET, v, DTAG_P_ALLOC, PGSIZE);
+    tag_set(v, DTAG_P_ALLOC, PGSIZE);
     page_free_real(v);
 }
 
@@ -79,9 +79,7 @@ PROT_FUNC(PCTAG_P_ALLOC, DTAG_P_ALLOC,
 	memset(pl, 0xcd, PGSIZE);
 
     uint32_t page_tag = tag_alloc(l, tag_type_data);
-    int r = monitor_call(MONCALL_TAGSET, pl, page_tag, PGSIZE);
-    if (r != 0)
-	cprintf("page_alloc: moncall_tagset: %d\n", r);
+    tag_set(pl, page_tag, PGSIZE);
 
     struct page_info *pi = page_to_pageinfo(pl);
     assert(pi->pi_freepage);

@@ -25,6 +25,7 @@ struct Pagemap2 {
 extern struct Pagemap bootpt;
 
 void page_init(void);
+void page_init2(void);
 
 typedef uint32_t ctxptr_t;
 

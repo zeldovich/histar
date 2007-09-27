@@ -37,6 +37,13 @@ const char* const cause_table[] = {
 void
 tag_set(const void *addr, uint32_t dtag, size_t n)
 {
+    if (!(read_tsr() & TSR_T)) {
+	int r = monitor_call(MONCALL_TAGSET, addr, dtag, n);
+	if (r != 0)
+	    cprintf("tag_set: moncall_tagset: %s (%d)\n", e2s(r), r);
+	return;
+    }
+
     uintptr_t ptr = (uintptr_t) addr;
     assert(!(ptr & 3));
 
@@ -108,6 +115,7 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 
 	write_dtag(addr + i, dtag);
     }
+
     return 0;
 }
 
@@ -269,6 +277,8 @@ tag_init(void)
 	tag_setperm(i, DTAG_KRO, TAG_PERM_READ);
 	tag_setperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
     }
+
+    tag_setperm(PCTAG_P_ALLOC, DTAG_P_ALLOC, TAG_PERM_READ | TAG_PERM_WRITE);
 
     write_pctag(PCTAG_DYNAMIC);
     cprintf("done.\n");

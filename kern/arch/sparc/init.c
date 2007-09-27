@@ -64,6 +64,7 @@ init (void)
 
     page_init();
     tag_init();
+    page_init2();
 
     gptimer_init();
     //amba_print();

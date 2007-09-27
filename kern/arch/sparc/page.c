@@ -4,6 +4,7 @@
 
 #include <machine/leon.h>
 #include <machine/leon3.h>
+#include <machine/tag.h>
 #include <dev/amba.h>
 #include <dev/ambapp.h>
 
@@ -113,7 +114,6 @@ boot_alloc(uint32_t n, uint32_t align)
 void
 page_init(void)
 {
-    page_alloc_init();
     leon3_detect_memory();
 
     boot_alloc(0, PGSIZE);
@@ -121,16 +121,21 @@ page_init(void)
     // Allocate space for page status info.
     uint64_t sz = global_npages * sizeof(*page_infos);
     page_infos = boot_alloc(sz, PGSIZE);
-    cprintf("Setting up page_infos.. ");
     memset(page_infos, 0, sz);
 
     // Align to another page boundary.
     boot_alloc(0, PGSIZE);
+}
 
-    cprintf("free list.. ");
+void
+page_init2(void)
+{
+    page_alloc_init();
+    cprintf("Initializing memory free list.. ");
     for (uint32_t pa = (uint32_t) RELOC(boot_freemem); pa < maxpa; pa += PGSIZE)
 	page_free(pa2kva(pa));
     page_stats.pages_used = 0;
-
     cprintf("done.\n");
+
+    tag_set(page_infos, DTAG_KRW, global_npages * sizeof(*page_infos));
 }
