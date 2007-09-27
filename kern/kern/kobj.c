@@ -170,21 +170,13 @@ int
 kobject_get_label(const struct kobject_hdr *kp, int idx,
 		  const struct Label **lpp)
 {
-    struct kobject *ko = kobject_const_h2k(kp);
-    const struct kobject *label_ko;
-
-    label_ko = ko->ko_label_cache[idx].wp_kobj;
-    if (label_ko && label_ko->hdr.ko_id == kp->ko_label[idx]) {
-	*lpp = &label_ko->lb;
-	return 0;
-    }
-
     if (kp->ko_label[idx]) {
-	int r = kobject_get(kp->ko_label[idx], &label_ko, kobj_label, iflow_none);
+	const struct kobject *label_ko = 0;
+	int r = kobject_get(kp->ko_label[idx], &label_ko,
+			    kobj_label, iflow_none);
 	if (r < 0)
 	    return r;
 
-	kobj_weak_put(&ko->ko_label_cache[idx], kobject_const_h2k(&label_ko->hdr));
 	*lpp = &label_ko->lb;
 	return 0;
     }
@@ -779,10 +771,6 @@ kobject_swapout(struct kobject *ko)
 	thread_swapout(&ko->th);
     if (ko->hdr.ko_type == kobj_address_space)
 	as_swapout(&ko->as);
-
-    for (int i = 0; i < kolabel_max; i++)
-	kobj_weak_put(&ko->ko_label_cache[i], 0);
-    kobj_weak_drop(&ko->ko_weak_refs);
 
     LIST_REMOVE(ko, ko_link);
     if (ko->hdr.ko_ref == 0 && ko->hdr.ko_pin == 0)

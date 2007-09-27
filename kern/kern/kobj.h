@@ -9,7 +9,6 @@
 #include <kern/gate.h>
 #include <kern/label.h>
 #include <kern/pagetree.h>
-#include <kern/kocache.h>
 #include <kern/thread.h>
 #include <kern/as.h>
 #include <kern/netdev.h>
@@ -40,8 +39,6 @@ struct kobject_mem {
     LIST_ENTRY(kobject) ko_hash;
     LIST_ENTRY(kobject) ko_gc_link;
 
-    struct kobj_weak_ptr ko_label_cache[kolabel_max];
-    struct kobj_weak_refs ko_weak_refs;
     union {
 	struct Thread_ephemeral ko_th_e;
     };
