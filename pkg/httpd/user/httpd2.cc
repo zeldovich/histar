@@ -528,6 +528,7 @@ main(int ac, const char **av)
 	printf("httpd2: config:\n");
 	printf(" %-20s %ld.%ld\n", "bipipe_seg", c, o);
 	printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
+	printf(" %-20s %d\n", "http_dj_enable", httpd_dj_enable);
 	printf(" %-20s %s\n", "dj_app_host_file", dj_app_host_file);
 	printf(" %-20s %s\n", "dj_app_ct_file", dj_app_ct_file);
 	printf(" %-20s %s\n", "dj_app_gate_file", dj_app_gate_file);
