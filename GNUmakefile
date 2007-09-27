@@ -56,7 +56,7 @@ OPTFLAG	 :=
 endif
 
 COMFLAGS := -g $(OPTFLAG) -fno-strict-aliasing -Wall -MD -DJOS_ARCH_$(ARCH)
-CSTD	 := -std=c99 -fms-extensions -fgnu89-inline
+CSTD	 := -std=c99 -fms-extensions $(shell ./conf/gcc-flags.sh $(CC))
 INCLUDES := -I$(TOP) -I$(TOP)/kern -I$(TOP)/$(OBJDIR)
 
 # Linker flags for user programs
