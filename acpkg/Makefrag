@@ -163,15 +163,19 @@ acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
 	touch $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/$(TARGET)-%
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/%
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/$(TARGET)-%
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/%
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
