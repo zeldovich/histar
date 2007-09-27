@@ -77,7 +77,7 @@ int	search_access(const char *, int, int *);
 int	pr_menu(char *const *);
 int	pr_list(char *const *);
 /* expr.c */
-int	evaluate(const char *, long *, int, bool);
+int	evaluate(const char *, int64_t *, int, bool);
 int	v_evaluate(struct tbl *, const char *, volatile int, bool);
 /* history.c */
 void	init_histvec(void);
@@ -245,11 +245,11 @@ void	initvar(void);
 struct tbl *	global(const char *);
 struct tbl *	local(const char *, bool);
 char *	str_val(struct tbl *);
-long	intval(struct tbl *);
+int64_t	intval(struct tbl *);
 int	setstr(struct tbl *, const char *, int);
 struct tbl *setint_v(struct tbl *, struct tbl *, bool);
-void	setint(struct tbl *, long);
-int	getint(struct tbl *, long *, bool);
+void	setint(struct tbl *, int64_t);
+int	getint(struct tbl *, int64_t *, bool);
 struct tbl *	typeset(const char *, Tflag, Tflag, int, int);
 void	unset(struct tbl *, int);
 char  * skip_varname(const char *, int);
