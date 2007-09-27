@@ -3,6 +3,7 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/labelutil.h>
 #include <inc/error.h>
+#include <inc/argv.h>
 #include <inttypes.h>
 }
 
@@ -19,6 +20,13 @@ extern "C" {
 #include <inc/spawn.hh>
 #include <inc/fs_dir.hh>
 #include <inc/scopeguard.hh>
+
+arg_desc cmdarg[] = {
+    { "dj_app_server_count", "1" },
+    { "dj_user_server_count", "1" },
+        
+    { 0, "" }
+};
 
 static char inetd_enable = 1;
 static char ssl_enable = 1;
@@ -89,7 +97,7 @@ create_ascii(const char *dn, const char *fn, uint64_t len)
 }
 
 int
-main (int ac, char **av)
+main (int ac, const char **av)
 {
     static const char *default_server_pem = "/bin/server.pem";
     static const char *default_servkey_pem = "/bin/servkey.pem";
@@ -100,13 +108,16 @@ main (int ac, char **av)
 
     static const char *ssld_servkey_pem = "/httpd/servkey-priv/servkey.pem";
 
+    error_check(argv_parse(ac, av, cmdarg));
+
     errno_check(mkdir(httpd_root_path, 0));
     
     try {
 	untar("/", "/bin/a2ps.tar");
 	untar("/", "/bin/gs.tar");
     } catch (basic_exception &e) {
-	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", av[0], e.what());
+	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", 
+		av[0], e.what());
     }
     
     try {
@@ -234,7 +245,12 @@ main (int ac, char **av)
 				   "--ssl_eproc_enable", ssle2_buf,
 				   "--http_auth_enable", httpa_buf,
 				   "--http_dj_enable", httpd_buf,
-				   "--httpd_root_path", "/www" };
+				   "--httpd_root_path", "/www",
+				   "--dj_app_server_count", 
+				   arg_val(cmdarg, "dj_app_server_count"),
+				   "--dj_user_server_count", 
+				   arg_val(cmdarg, "dj_user_server_count") };
+
 	int inetd_ac = sizeof(inetd_av) / sizeof(inetd_av[0]);
 	spawn(httpd_ct, inetd_ino,
 	      0, 0, 0,

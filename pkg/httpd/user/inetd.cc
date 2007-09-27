@@ -25,6 +25,7 @@ static char ssl_privsep_enable;
 static char ssl_eproc_enable;
 static char http_auth_enable;
 static char http_dj_enable;
+
 static fs_inode httpd_root_ino;
 static char *httpd_path;
 static cobj_ref httpd_mtab_seg;
@@ -37,6 +38,9 @@ arg_desc cmdarg[] = {
     { "http_dj_enable", "0" },
     { "httpd_path", "/bin/httpd2"},
     { "httpd_root_path", "/www" },
+
+    { "dj_app_server_count", "1" },
+    { "dj_user_server_count", "1" },
         
     { 0, "" }
 };
@@ -90,7 +94,7 @@ spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
 	     "%d", plain_comm.jc.chan);
     snprintf(count_arg, sizeof(count_arg), 
 	     "%d", count);
-
+	
     fs_inode ino;
     error_check(fs_namei(httpd_path, &ino));
     const char *argv[] = { httpd_path, 
@@ -99,7 +103,9 @@ spawn_httpd(uint64_t ct, jcomm_ref plain_comm, uint64_t taint, uint32_t count)
 			   chan_arg,
 			   http_auth_enable ? "1" : "0",
 			   count_arg,
-			   http_dj_enable ? "1" : "0" };
+			   http_dj_enable ? "1" : "0",
+			   arg_val(cmdarg, "dj_app_server_count"),
+			   arg_val(cmdarg, "dj_user_server_count") };
 
     label ds(3), dr(1);
     ds.set(taint, LB_LEVEL_STAR);
@@ -203,7 +209,7 @@ main(int ac, const char **av)
     http_auth_enable = atoi(arg_val(cmdarg, "http_auth_enable"));
     http_dj_enable = atoi(arg_val(cmdarg, "http_dj_enable"));
     httpd_path = arg_val(cmdarg, "httpd_path");
-
+    
     const char * httpd_root_path = arg_val(cmdarg, "httpd_root_path");
     error_check(fs_namei(httpd_root_path, &httpd_root_ino));
 
@@ -231,6 +237,10 @@ main(int ac, const char **av)
     printf(" %-20s %d\n", "ssl_eproc_enable", ssl_eproc_enable);
     printf(" %-20s %d\n", "http_auth_enable", http_auth_enable);
     printf(" %-20s %d\n", "http_dj_enable", http_dj_enable);
+    printf(" %-20s %s\n", "dj_app_server_count", 
+	   arg_val(cmdarg, "dj_app_server_count"));
+    printf(" %-20s %s\n", "dj_user_server_count", 
+	   arg_val(cmdarg, "dj_user_server_count"));
     printf(" %-20s %s\n", "httpd_root_path", httpd_root_path);
     printf(" %-20s %s\n", "httpd_path", httpd_path);
 

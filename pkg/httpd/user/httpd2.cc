@@ -40,8 +40,8 @@ enum { debug_dj = 0 };
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
 static int httpd_dj_enable;
-static uint64_t dj_app_server_count = 1;
-static uint64_t dj_user_server_count = 1;
+static uint32_t dj_app_server_count = 1;
+static uint32_t dj_user_server_count = 1;
 
 static gate_sender *the_gs;
 static dj_global_cache djcache;
@@ -489,6 +489,15 @@ main(int ac, const char **av)
     r = strtou64(av[3], 0, 10, &ch);
     if (r < 0)
 	panic("parsing channel %s: %s", av[3], e2s(r));
+
+    if (ac > 8) {
+	dj_app_server_count = atoi(av[7]);
+	if (!dj_app_server_count)
+	    panic("parsing app server count %s", av[7]);
+	dj_user_server_count = atoi(av[8]);
+	if (!dj_user_server_count)
+	    panic("parsing user server count %s", av[8]);
+    }
     
     uint64_t dj_app_server_index = 0;
     uint64_t dj_user_server_index = 0;
@@ -502,7 +511,7 @@ main(int ac, const char **av)
 
     http_auth_enable = av[4][0] != '0' ? 1 : 0;
     httpd_dj_enable = av[6][0] != '0' ? 1 : 0;
-
+    
     httpd_root_ino = start_env->fs_root;
 
     char dj_app_host_file[64], dj_app_ct_file[64], dj_app_gate_file[64];
