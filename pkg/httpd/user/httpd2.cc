@@ -39,7 +39,7 @@ enum { debug_dj = 0 };
 
 static char http_auth_enable;
 static fs_inode httpd_root_ino;
-static int httpd_dj_enable = 1;
+static int httpd_dj_enable;
 static uint64_t dj_app_server_count = 1;
 static uint64_t dj_user_server_count = 1;
 

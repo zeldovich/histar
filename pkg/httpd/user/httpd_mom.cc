@@ -229,30 +229,31 @@ main (int ac, char **av)
     if (inetd_enable) {
 	const char *inetd_pn = "/bin/inetd";
 	struct fs_inode inetd_ino = fs_inode_for(inetd_pn);
-	const char *inetd_argv[] = { inetd_pn, 
-				     "--ssl_privsep_enable", sslp_buf,
-				     "--ssl_eproc_enable", ssle2_buf,
-				     "--http_auth_enable", httpa_buf,
-				     "--http_dj_enable", httpd_buf,
-				     "--httpd_root_path", "/www" };
+	const char *inetd_av[] = { inetd_pn, 
+				   "--ssl_privsep_enable", sslp_buf,
+				   "--ssl_eproc_enable", ssle2_buf,
+				   "--http_auth_enable", httpa_buf,
+				   "--http_dj_enable", httpd_buf,
+				   "--httpd_root_path", "/www" };
+	int inetd_ac = sizeof(inetd_av) / sizeof(inetd_av[0]);
 	spawn(httpd_ct, inetd_ino,
 	      0, 0, 0,
-	      9, &inetd_argv[0],
+	      inetd_ac, &inetd_av[0],
 	      0, 0,
 	      0, &httpd_ds, 0, &httpd_dr, 0);
     } else {
 	const char *httpd_pn = "/bin/httpd";
 	struct fs_inode httpd_ino = fs_inode_for(httpd_pn);
-	const char *httpd_argv[] = { httpd_pn, 
-				     "--ssl_enable", ssle_buf,
-				     "--ssl_privsep_enable", sslp_buf,
-				     "--ssl_eproc_enable", ssle2_buf,
-				     "--http_auth_enable", httpa_buf,
-				     "--http_dj_enable", httpd_buf,
-				     "--httpd_root_path", "/www" };
+	const char *httpd_av[] = { httpd_pn, 
+				   "--ssl_enable", ssle_buf,
+				   "--ssl_privsep_enable", sslp_buf,
+				   "--ssl_eproc_enable", ssle2_buf,
+				   "--http_auth_enable", httpa_buf,
+				   "--httpd_root_path", "/www" };
+	int httpd_ac = sizeof(httpd_av) / sizeof(httpd_av[0]);
 	spawn(httpd_ct, httpd_ino,
 	      0, 0, 0,
-	      11, &httpd_argv[0],
+	      httpd_ac, &httpd_av[0],
 	      0, 0,
 	      0, &httpd_ds, 0, &httpd_dr, 0);
     }
