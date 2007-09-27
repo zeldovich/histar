@@ -180,16 +180,18 @@ tag_moncall(struct Trapframe *tf)
 					tf->tf_regs.i3);
 	break;
 
-    case MONCALL_DTAGALLOC:
+    case MONCALL_DTAGALLOC: {
 	tf->tf_regs.i0 = -E_NO_MEM;
+	uint64_t label_id = ((uint64_t) tf->tf_regs.i1) << 32 | tf->tf_regs.i2;
 	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
 	    if (dtag_label_id[i] == 0) {
-		dtag_label_id[i] = tf->tf_regs.i1;
+		dtag_label_id[i] = label_id;
 		tf->tf_regs.i0 = i;
 		break;
 	    }
 	}
 	break;
+    }
 
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
