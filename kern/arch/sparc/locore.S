@@ -400,8 +400,13 @@ ENTRY(tag_trap_return)
 	andn	%l0, PSR_ET, %l3	/* PSR without ET */
 	and	%l0, PSR_ET, %l4	/* Just the ET bit */
 	or	%l4, (TSR_T >> 21), %l4	/* Keep the trust bit */
-	sll	%l4, 21, %l4		/* Shift for TSR */
-	wrtr	%l4, %tsr
+
+	sll	%l4, 21, %l4		/* Shift PET for TSR */
+	rdtr	%tsr, %l6
+	set	TSR_PET, %l7
+	andn	%l6, %l7, %l6		/* Strip out present TSR_PET bit */
+	or	%l6, %l4, %l6		/* Use the one from the Trapframe */
+	wrtr	%l6, %tsr
 
 	mov	%l2, %y
 	mov	%l1, %wim

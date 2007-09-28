@@ -233,10 +233,16 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     if (dtag == DTAG_MONCALL)
 	tag_moncall(tf);
 
+    int skip = 0;
     if (dtag < DTAG_DYNAMIC) {
-	cprintf("non-dynamic tag fault: pctag %d, dtag %d, cause %s\n",
-		pctag, dtag, cause_table[cause]);
-	trapframe_print(tf);
+	static int count;
+	if (count++ < 4) {
+	    cprintf("non-dynamic tag fault: pctag %d, dtag %d, cause %s\n",
+		    pctag, dtag, cause_table[cause]);
+	    trapframe_print(tf);
+	}
+	skip = 1;
+	write_tsr(read_tsr() | TSR_EO);
     }
 
     int r = 0;
@@ -249,11 +255,11 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     case ET_CAUSE_READ:
     case ET_CAUSE_EXEC:
-	r = tag_compare(pctag, dtag, 0);
+	r = skip ? 0 : tag_compare(pctag, dtag, 0);
 	break;
 
     case ET_CAUSE_WRITE:
-	r = tag_compare(pctag, dtag, 1);
+	r = skip ? 0 : tag_compare(pctag, dtag, 1);
 	break;
 
     default:
