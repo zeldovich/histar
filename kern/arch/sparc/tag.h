@@ -4,6 +4,8 @@
 #define TSR_PET		(1 << 26)	/* Previous Enable Traps (from PSR) */
 #define TSR_T		(1 << 25)	/* Trust */
 #define TSR_PT		(1 << 24)	/* Previous Trust */
+#define TSR_PEO		(1 << 1)	/* Previous Exception Override */
+#define TSR_EO		(1 << 0)	/* Exception Override */
 
 #define ET_OPCODE_SHIFT	0
 #define ET_OPCODE_MASK	0x7fff
