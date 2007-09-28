@@ -22,8 +22,13 @@ ENTRY(abort)
 	 * This function is also located at 0x80001000, making it easy to
 	 * reset the MMU using "run 0x80001000".
 	 */
+	set	SRMMU_CTXTBL_PTR, %g1
+	set	SRMMU_CTX_REG, %g2
+
 	lda	[%g0] ASI_MMUREGS, %g3
 	andn	%g3, SRMMU_CTRL_E, %g3
+	sta	%g0, [%g2] ASI_MMUREGS
+	sta	%g0, [%g1] ASI_MMUREGS
 	sta	%g3, [%g0] ASI_MMUREGS
 
 1:	ba	1b
