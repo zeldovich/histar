@@ -2,7 +2,6 @@ extern "C" {
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/error.h>
-#include <inc/bipipe.h>
 #include <inc/debug.h>
 #include <inc/argv.h>
 #include <inc/fd.h>
@@ -179,9 +178,12 @@ inet_server(uint16_t port)
     printf("inetd: server on port %d\n", port);
     
     /* close stdio -- when invoked via ssh ensure ssh on client returns */
-    close(0);
-    close(1);
-    close(2);
+    int fd;
+    error_check(fd = opencons());
+    dup2(fd, 0);
+    dup2(fd, 1);
+    dup2(fd, 2);
+    close(fd);
 
     for (uint32_t i = 0;; i++) {
         socklen_t socklen = sizeof(sin);
