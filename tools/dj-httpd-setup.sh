@@ -7,8 +7,8 @@ login=XXX
 pass=XXX
 
 ipmicli=./ipmicli.x86_64
-restartfile=tools/ipmi_restart.batch
-sshkey=keys/id_rsa
+restartfile=ipmi_restart.batch
+sshkey=../keys/id_rsa
 waittime=120
 
 if [ $# -ne "4" ]
