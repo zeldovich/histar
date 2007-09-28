@@ -101,6 +101,8 @@ server(void)
 static void
 init(void)
 {
+    mkdir("/www", 0);
+
     for (int retry = 0; ; retry++) {
 	strbuf _callct;
 	strbuf _authgate;
@@ -120,7 +122,7 @@ init(void)
 	    error_check(ct = container_find(start_env->root_container, kobj_container, "djauthproxy"));
 	    error_check(id = container_find(ct, kobj_gate, "authproxy"));
 	    _authgate << ct << "." << id << "\n";
-	    
+
 	    error_check(ct = container_find(start_env->root_container, kobj_container, "djwebappd"));
 	    error_check(id = container_find(ct, kobj_gate, "djwebappd"));
 	    _appgate << ct << "." << id << "\n";

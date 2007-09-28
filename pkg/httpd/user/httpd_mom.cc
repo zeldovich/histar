@@ -110,7 +110,8 @@ main (int ac, const char **av)
 
     error_check(argv_parse(ac, av, cmdarg));
 
-    errno_check(mkdir(httpd_root_path, 0));
+    if (mkdir(httpd_root_path, 0) < 0 && errno != EEXIST)
+	throw basic_exception("unable to create %s\n", httpd_root_path);
     
     try {
 	untar("/", "/bin/a2ps.tar");
