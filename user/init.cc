@@ -27,12 +27,15 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/spawn.hh>
 
+#define SPAWN_ROOT_CT		0x01
+#define SPAWN_WAIT_GC		0x02
+
 static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
 static uint64_t time_grant;
 
 static struct child_process
-spawn_fs(int rootct, int fd, const char *pn, const char *arg,
+spawn_fs(int flags, int fd, const char *pn, const char *arg,
 	 label *ds, label *dr)
 {
     struct child_process cp;
@@ -43,7 +46,9 @@ spawn_fs(int rootct, int fd, const char *pn, const char *arg,
 	    throw error(r, "cannot fs_lookup %s", pn);
 
 	const char *argv[] = { pn, arg };
-	cp = spawn(rootct ? start_env->root_container : start_env->process_pool,
+	uint64_t pct = (flags & SPAWN_ROOT_CT) ? start_env->root_container
+					       : start_env->process_pool;
+	cp = spawn(pct,
 		   ino, fd, fd, fd,
 	           arg ? 2 : 1, &argv[0],
 		   sizeof(env)/sizeof(env[0]), &env[0],
@@ -51,6 +56,13 @@ spawn_fs(int rootct, int fd, const char *pn, const char *arg,
 
 	if (init_debug)
 	    printf("init: spawned %s, ds = %s\n", pn, ds->to_string());
+
+	if (flags & SPAWN_WAIT_GC) {
+	    int64_t code;
+	    r = process_wait(&cp, &code);
+	    if (r == PROCESS_EXITED)
+		sys_obj_unref(COBJ(pct, cp.container));
+	}
     } catch (std::exception &e) {
 	cprintf("spawn_fs(%s): %s\n", pn, e.what());
     }
@@ -209,10 +221,10 @@ init_auth(int cons, const char *shroot)
     struct child_process cp;
     int64_t ec;
 
-    cp = spawn_fs(1, cons, "/bin/auth_log", 0, 0, 0);
+    cp = spawn_fs(SPAWN_ROOT_CT, cons, "/bin/auth_log", 0, 0, 0);
     error_check(process_wait(&cp, &ec));
 
-    cp = spawn_fs(1, cons, "/bin/auth_dir", shroot, 0, 0);
+    cp = spawn_fs(SPAWN_ROOT_CT, cons, "/bin/auth_dir", shroot, 0, 0);
     error_check(process_wait(&cp, &ec));
 
     // spawn user-auth agent for root
@@ -298,15 +310,15 @@ init_procs(int cons)
 	    
 	    if (priv[0] == 'r') {
 		if (priv[1] == 'a')
-		    spawn_fs(1, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
+		    spawn_fs(SPAWN_ROOT_CT, cons, fn, &root_grant_buf[0], &root_ds, &root_dr);
 		else 
-		    spawn_fs(1, cons, fn, 0, &root_ds, &root_dr);
+		    spawn_fs(SPAWN_ROOT_CT, cons, fn, 0, &root_ds, &root_dr);
 	    }
 	    else 
-		spawn_fs(1, cons, fn, 0, 0, 0);
+		spawn_fs(SPAWN_ROOT_CT, cons, fn, 0, 0, 0);
 	}
     }
-    spawn_fs(0, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
+    spawn_fs(SPAWN_WAIT_GC, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
 }
 
 static void __attribute__((noreturn))
