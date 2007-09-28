@@ -22,6 +22,9 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 arg_desc cmdarg[] = {
+    { "http_auth_enable", "0" },
+    { "http_dj_enable", "0" },
+
     { "dj_app_server_count", "1" },
     { "dj_user_server_count", "1" },
         
@@ -32,8 +35,6 @@ static char inetd_enable = 1;
 static char ssl_enable = 1;
 static char ssl_privsep_enable = 1;
 static char ssl_eproc_enable = 1;
-static char http_auth_enable = 0;
-static char http_dj_enable = 0;
 
 static const char* httpd_root_path = "/www";
 static const char *tar_pn = "/bin/tar";
@@ -231,12 +232,10 @@ main (int ac, const char **av)
     label httpd_dr(0);
     httpd_dr.set(access_grant, 3);
 
-    char ssle_buf[4], sslp_buf[4], ssle2_buf[4], httpa_buf[4], httpd_buf[4];
+    char ssle_buf[4], sslp_buf[4], ssle2_buf[4];
     snprintf(ssle_buf, sizeof(ssle_buf), "%d", ssl_enable);
     snprintf(sslp_buf, sizeof(sslp_buf), "%d", ssl_privsep_enable);
     snprintf(ssle2_buf, sizeof(ssle2_buf), "%d", ssl_eproc_enable);
-    snprintf(httpa_buf, sizeof(httpa_buf), "%d", http_auth_enable);
-    snprintf(httpd_buf, sizeof(httpd_buf), "%d", http_dj_enable);
 
     if (inetd_enable) {
 	const char *inetd_pn = "/bin/inetd";
@@ -244,8 +243,10 @@ main (int ac, const char **av)
 	const char *inetd_av[] = { inetd_pn, 
 				   "--ssl_privsep_enable", sslp_buf,
 				   "--ssl_eproc_enable", ssle2_buf,
-				   "--http_auth_enable", httpa_buf,
-				   "--http_dj_enable", httpd_buf,
+				   "--http_auth_enable", 
+				   arg_val(cmdarg, "http_auth_enable"),
+				   "--http_dj_enable", 
+				   arg_val(cmdarg, "http_dj_enable"),
 				   "--httpd_root_path", "/www",
 				   "--dj_app_server_count", 
 				   arg_val(cmdarg, "dj_app_server_count"),
@@ -265,7 +266,8 @@ main (int ac, const char **av)
 				   "--ssl_enable", ssle_buf,
 				   "--ssl_privsep_enable", sslp_buf,
 				   "--ssl_eproc_enable", ssle2_buf,
-				   "--http_auth_enable", httpa_buf,
+				   "--http_auth_enable", 
+				   arg_val(cmdarg, "http_auth_enable"),
 				   "--httpd_root_path", "/www" };
 	int httpd_ac = sizeof(httpd_av) / sizeof(httpd_av[0]);
 	spawn(httpd_ct, httpd_ino,
