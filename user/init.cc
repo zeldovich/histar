@@ -303,7 +303,7 @@ init_procs(int cons)
 		spawn_fs(1, cons, fn, 0, 0, 0);
 	}
     }
-    spawn_fs(0, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
+    //spawn_fs(0, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
 }
 
 static void __attribute__((noreturn))
