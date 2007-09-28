@@ -235,12 +235,10 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 
     int skip = 0;
     if (dtag < DTAG_DYNAMIC) {
-	static int count;
-	if (count++ < 4) {
-	    cprintf("non-dynamic tag fault: pctag %d, dtag %d, cause %s\n",
-		    pctag, dtag, cause_table[cause]);
-	    trapframe_print(tf);
-	}
+	cprintf("non-dynamic tag fault @ 0x%x: pctag %d, dtag %d (%s)\n",
+		tf->tf_pc, pctag, dtag, cause_table[cause]);
+	//trapframe_print(tf);
+
 	skip = 1;
 	write_tsr(read_tsr() | TSR_EO);
     }
