@@ -67,6 +67,7 @@
 #define MONCALL_PRETURN		2	/* Protected domain return */
 #define MONCALL_TAGSET		3	/* Change tags ala memset */
 #define MONCALL_DTAGALLOC	4	/* Allocate a tag */
+#define MONCALL_THREAD_SWITCH	5	/* Change to another thread */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>

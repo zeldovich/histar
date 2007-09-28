@@ -193,6 +193,29 @@ tag_moncall(struct Trapframe *tf)
 	break;
     }
 
+    case MONCALL_THREAD_SWITCH: {
+	const struct Thread *tptr = (const struct Thread *) tf->tf_regs.i1;
+	/* XXX check that the thread object is really a kobject */
+	assert(tptr->th_ko.ko_type == kobj_thread);
+	cur_thread = tptr;
+
+	const struct Label *tl;
+	int r = kobject_get_label(&tptr->th_ko, kolabel_contaminate, &tl);
+	assert(r >= 0);
+
+	uint32_t pctag = tag_alloc(tl, tag_type_pc);
+	write_pctag(pctag);
+
+	tf->tf_pc = (uintptr_t) &thread_arch_run;
+	tf->tf_npc = tf->tf_pc + 4;
+	tf->tf_psr = PSR_S | PSR_PS | PSR_PIL | PSR_ET;
+	tf->tf_wim = 2;
+	tf->tf_regs.sp = ((uintptr_t) &kstack_top[0]) - STACKFRAME_SZ;
+	tf->tf_regs.fp = 0;
+	tf->tf_regs.o0 = (uintptr_t) tptr;
+	break;
+    }
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }
@@ -370,6 +393,7 @@ tag_alloc(const struct Label *l, int tag_type)
 	    return l->lb_pctag_hint;
 	}
 
+ pc_retry:
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
 	    if (pctag_label_id[i] == 0) {
 		pctag_label_id[i] = l->lb_ko.ko_id;
@@ -378,7 +402,14 @@ tag_alloc(const struct Label *l, int tag_type)
 	    }
 	}
 
-	panic("tag_alloc: out of pc tags");
+	cprintf("Out of PC tags, flushing table..\n");
+	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
+	    pctag_label_id[i] = 0;
+	    for (uint32_t j = DTAG_DYNAMIC; j < maxtag; j++)
+		tag_setperm(i, j, 0);
+	}
+
+	goto pc_retry;
     }
 
     panic("tag_alloc: bad tag type %d", tag_type);
