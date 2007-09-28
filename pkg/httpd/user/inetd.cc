@@ -153,7 +153,7 @@ inet_client(void *a)
 	spawn_httpd(d.ssl_ct_, spc->plain_comm_, d.taint_, ci.data.count);
 	ssl_proxy_loop(&d, 1);
     } catch (basic_exception &e) {
-	printf("inet_client: %s\n", e.what());
+	cprintf("inet_client: %s\n", e.what());
     }	
 }
 
@@ -177,6 +177,12 @@ inet_server(uint16_t port)
         panic("cannot listen on socket: %d\n", r);
 
     printf("inetd: server on port %d\n", port);
+    
+    /* close stdio -- when invoked via ssh ensure ssh on client returns */
+    close(0);
+    close(1);
+    close(2);
+
     for (uint32_t i = 0;; i++) {
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
@@ -191,7 +197,7 @@ inet_server(uint16_t port)
 			  (void*) ci.u64, &t, "inet client");
 
 	if (r < 0) {
-	    printf("cannot spawn client thread: %s\n", e2s(r));
+	    cprintf("cannot spawn client thread: %s\n", e2s(r));
 	    close(ss);
 	} else {
 	    fd_give_up_privilege(ss);
