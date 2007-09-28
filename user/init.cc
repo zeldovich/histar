@@ -65,6 +65,9 @@ init_env(uint64_t c_root, uint64_t c_self, uint64_t h_root)
     error_check(segment_alloc(c_self, PGSIZE, &sa, (void**) &start_env,
 			      0, "init env"));
 
+    void *start_env_ro = (void *) USTARTENVRO;
+    error_check(segment_map(sa, 0, SEGMAP_READ, &start_env_ro, 0, 0));
+
     start_env->proc_container = c_self;
     start_env->shared_container = c_self;
     start_env->root_container = c_root;

@@ -66,7 +66,8 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 
     start_env_seg = usm.segment;
     void *start_env_ro = (void *) USTARTENVRO;
-    r = segment_map(start_env_seg, 0, SEGMAP_READ, &start_env_ro, 0, 0);
+    r = segment_map(start_env_seg, 0, SEGMAP_READ, &start_env_ro, 0,
+		    SEG_MAPOPT_REPLACE);
     if (r < 0)
 	panic("libmain: cannot map start_env_ro: %s", e2s(r));
 
