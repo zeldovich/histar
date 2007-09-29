@@ -2,6 +2,7 @@
 #include <inc/segment.h>
 #include <inc/syscall.h>
 #include <inc/memlayout.h>
+#include <inc/fd.h>
 
 #include <errno.h>
 #include <inttypes.h>
@@ -16,11 +17,57 @@ libc_hidden_proto(msync)
 libc_hidden_proto(mprotect)
 
 void *
-mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
+mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 {
     if (!(flags & MAP_ANONYMOUS)) {
-	set_enosys();
-	return MAP_FAILED;
+
+	cprintf("mmap: start=%p len=0x%lx off=0x%lx %s%s%s%s\n",
+		start, length, offset,
+		(flags & MAP_FIXED) ? "fixed " : "",
+		(prot & PROT_READ) ? "read " : "",
+		(prot & PROT_EXEC) ? "exec " : "",
+		(prot & PROT_WRITE) ? "write " : "");
+
+	struct Fd *fd;
+	int r = fd_lookup(fdnum, &fd, 0, 0);
+	if (r < 0) {
+	    __set_errno(EBADF);
+	    return MAP_FAILED;
+	}
+
+	if (fd->fd_dev_id != devfile.dev_id) {
+	    set_enosys();
+	    return MAP_FAILED;
+	}
+
+	struct cobj_ref seg = fd->fd_file.ino.obj;
+	if ((prot & PROT_WRITE) && (flags & MAP_PRIVATE)) {
+	    int64_t copy_id = sys_segment_copy(seg, start_env->proc_container,
+					       0, "mmap MAP_PRIVATE copy");
+	    if (copy_id < 0) {
+		__set_errno(EINVAL);
+		return MAP_FAILED;
+	    }
+
+	    seg = COBJ(start_env->proc_container, copy_id);
+	}
+
+	int map_flags = SEGMAP_READ;
+	if (prot & PROT_EXEC)
+	    map_flags |= SEGMAP_EXEC;
+	if (prot & PROT_WRITE)
+	    map_flags |= SEGMAP_WRITE;
+
+	void *va = (flags & MAP_FIXED) ? start : 0;
+	uint64_t map_bytes = length;
+	r = segment_map(seg, offset, map_flags, &va, &map_bytes,
+			(flags & MAP_FIXED) ? SEG_MAPOPT_REPLACE : 0);
+	if (r < 0) {
+	    __set_errno(EINVAL);
+	    return MAP_FAILED;
+	}
+
+	return va;
     }
 
     if (start && (flags & MAP_FIXED)) {
