@@ -104,7 +104,7 @@ $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.c
 
 $(OBJDIR)/lib/%.o: lib/$(ARCH)/%.S $(OBJDIR)/lib/utrapasm.h
 	@mkdir -p $(@D)
-	$(CC) $(LIBJOS_CFLAGS) -c -o $@ $<
+	$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	rm -f $@
