@@ -273,8 +273,8 @@ DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
 
 	__rtld_stack_end = (void *) USTACKTOP;
 
-	char *env = 0;
-	char *arg = 0;
+	static char *env = 0;
+	static char *arg = 0;
 	setup_env(a0, a1, a2);
 	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
