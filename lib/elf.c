@@ -154,7 +154,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 			return r;
 		    }
 
-		    memcpy(sbuf, segbuf + ldph->p_offset - va_off + shared_pages * PGSIZE,
+		    memcpy(sbuf, ldso_buf + ldph->p_offset - va_off + shared_pages * PGSIZE,
 			   va_off + ldph->p_filesz - shared_pages * PGSIZE);
 		    r = segment_unmap_delayed(sbuf, 1);
 		    if (r < 0) {
