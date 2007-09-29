@@ -1,9 +1,8 @@
 Usability:
 
-* shared libraries: all of libc+libjos in ld.so, replace ld.so to upgrade?
-  - potential problem accessing unresolved PLT entries while in a read-only
-    address space (tainted gate entry).  may be fine if gate entry code is
-    part of the semi-static ld.so+libjos+libc that has no dependencies.
+* shared libraries: edit GNUmakefile and change SHARED_ENABLE to yes
+  - few things still do not work: vmlinux, perl
+  - many things do work: lwip, login, tar/gzip, ssh/scp
 * multi-referenced containers
   - what happens to parent pointers?  disable for multi-refable containers..
   - depth count, with inf value?  not so composable, but decent.

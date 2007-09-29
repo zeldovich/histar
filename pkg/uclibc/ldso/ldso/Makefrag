@@ -13,6 +13,8 @@ LDSO_LIBS := \
 
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
+		-D__SUPPORT_LD_DEBUG__ \
+		-D__LDSO_LDD_SUPPORT__ \
 		-DRERELOCATE_LDSO \
 		-fno-omit-frame-pointer \
 		-Iuinc/ldso \
@@ -43,7 +45,7 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	      $(OBJDIR)/lib/crti.o \
 	      $(shell $(CC) -print-file-name=crtbeginS.o) \
 	      --whole-archive $(LDSO_LIBS) --no-whole-archive \
-	      $(LDSO_OBJFILES) $(GCC_LIB) $(LIBGCCS) \
+	      $(LDSO_OBJFILES) $(GCC_LIB) \
 	      $(shell $(CC) -print-file-name=crtendS.o) \
 	      $(OBJDIR)/lib/crtn.o \
 	      $(LDSO_LDFLAGS)
