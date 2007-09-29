@@ -69,7 +69,7 @@ typedef struct {
 /* Provide a means for a port to pass additional arguments to the _dl_start
    function.  */
 #ifndef DL_START
-# define DL_START(X) static void * __attribute_used__ _dl_start(X)
+# define DL_START(...) static void * __attribute_used__ _dl_start(__VA_ARGS__)
 #endif
 
 /* Machines in which different sections may be relocated by different

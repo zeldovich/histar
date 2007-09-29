@@ -31,6 +31,14 @@ int setup_env_done;
 static int argc;
 static const char **argv;
 
+/*
+ * Arguments passed to the ELF entry point:
+ *  bootstrap:
+ *	0 means this is not init, arg0 points to start_env
+ *	1 means this is init (avoid setup_env, init will do it manually)
+ *	2 means this is not init, but start_env ran from ld.so
+ */
+
 void __attribute__((noinline))
 setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 {
@@ -127,7 +135,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 void
 libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1, uintptr_t mainfunc)
 {
-    if (!bootstrap) {
+    if (bootstrap != 1) {
 	if (start_env->trace_on) {
 	    debug_gate_trace_is(1);
 	    debug_gate_breakpoint();

@@ -103,7 +103,8 @@ int (*_dl_elf_main) (int, char **, char **);
 static void* __rtld_stack_end; /* Points to argc on stack, e.g *((long *)__rtld_stackend) == argc */
 strong_alias(__rtld_stack_end, __libc_stack_end) /* Exported version of __rtld_stack_end */
 
-DL_START(unsigned long *aux_dat)
+DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
+		 unsigned long *aux_dat)
 {
 	DL_LOADADDR_TYPE load_addr;
 	ElfW(Addr) got;
@@ -274,7 +275,7 @@ DL_START(unsigned long *aux_dat)
 
 	char *env = 0;
 	char *arg = 0;
-	cprintf("Hello from cprintf.\n");
+	setup_env(a0, a1, a2);
 	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
 
