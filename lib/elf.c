@@ -286,6 +286,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
 	unsigned long *ldso_auxdat = stack_map + stack_map_bytes;
 	intptr_t ai = 0;
+	ldso_auxdat[--ai] = 0;	    /* Twice for stack alignment */
 	ldso_auxdat[--ai] = 0;
 #define LDSO_AUX_PUT(key, val)	\
 	do { ldso_auxdat[--ai] = val; ldso_auxdat[--ai] = key; } while (0)

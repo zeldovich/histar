@@ -274,14 +274,7 @@ DL_START(unsigned long *aux_dat)
 
 	char *env = 0;
 	char *arg = 0;
-	__asm__("movq	$0, %%rdi\n"
-			"call	1f\n"
-			".string \"Hello world 1.\\n\"\n"
-			"1:\n"
-			"popq	%%rsi\n"
-			"movq	$15, %%rdx\n"
-			"int	$48\n"
-			: : : "%rax", "%rdi", "%rsi", "%rdx");
+	cprintf("Hello from cprintf.\n");
 	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
 
