@@ -267,7 +267,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
      * Pass in the Auxilary Vector Table for dynamically-linked executables.
      */
     if (ldso_buf) {
-	uint64_t stack_map_bytes = stackpages * PGSIZE;
+	uint64_t stack_map_bytes = PGSIZE;
 	void *stack_map = 0;
 	r = segment_map(stack, stack_pgoff * PGSIZE, SEGMAP_READ | SEGMAP_WRITE,
 			&stack_map, &stack_map_bytes, 0);
