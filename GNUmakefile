@@ -8,8 +8,8 @@
 
 # Target kernel architecture/type
 
-K_ARCH	:= amd64
-#K_ARCH	:= i386
+#K_ARCH	:= amd64
+K_ARCH	:= i386
 #K_ARCH	:= ft
 #K_ARCH	:= sparc
 #K_ARCH	:= um
@@ -75,8 +75,12 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
 	   $(OBJDIR)/lib/libutil.a \
-	   $(OBJDIR)/lib/libstdc++.a \
-	   $(OBJDIR)/user/ld.so
+	   $(OBJDIR)/lib/libstdc++.a
+
+# Shared library stuff
+ifeq ($(K_ARCH),amd64-not-yet)
+SHARED_ENABLE := yes
+endif
 
 LDFLAGS_COMMON	:= -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 		   -specs=$(TOP)/conf/gcc.specs
@@ -84,13 +88,14 @@ LDFLAGS_SHARED	:= $(LDFLAGS_COMMON) \
 		   -dynamic-linker $(OBJDIR)/user/ld.so \
 		   -Wl,--dynamic-linker,/bin/ld.so
 LDFLAGS_STATIC	:= $(LDFLAGS_COMMON) -static
-CFLAGS_SHARED	:= -fPIC -DSHARED
 
-ifeq ($(K_ARCH),amd64-not-yet)
+ifeq ($(SHARED_ENABLE),yes)
+CFLAGS_SHARED := -fPIC -DSHARED
 LDFLAGS := $(LDFLAGS_SHARED)
+LDEPS += $(OBJDIR)/user/ld.so
 else
-LDFLAGS := $(LDFLAGS_STATIC)
 CFLAGS_SHARED :=
+LDFLAGS := $(LDFLAGS_STATIC)
 endif
 
 # Lists that the */Makefrag makefile fragments will add to
