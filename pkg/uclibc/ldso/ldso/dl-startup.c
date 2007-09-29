@@ -141,21 +141,6 @@ DL_START(unsigned long *aux_dat)
 	DL_INIT_LOADADDR_BOOT(load_addr, auxvt[AT_BASE].a_un.a_val);
 	header = (ElfW(Ehdr) *) auxvt[AT_BASE].a_un.a_val;
 
-#if 0
-	__asm__("movq	$0, %%rdi\n"
-			"call	1f\n"
-			".string \"Hello world.\\n\"\n"
-			"1:\n"
-			"popq	%%rsi\n"
-			"movq	$13, %%rdx\n"
-			"int	$48\n"
-			"int	$99\n"
-			:
-			: "b" (0xdeadbeef),
-			  "c" (0xc0ffee),
-			);
-#endif
-
 	/* Check the ELF header to make sure everything looks ok.  */
 	if (!header || header->e_ident[EI_CLASS] != ELF_CLASS ||
 			header->e_ident[EI_VERSION] != EV_CURRENT
@@ -289,6 +274,14 @@ DL_START(unsigned long *aux_dat)
 
 	char *env = 0;
 	char *arg = 0;
+	__asm__("movq	$0, %%rdi\n"
+			"call	1f\n"
+			".string \"Hello world 1.\\n\"\n"
+			"1:\n"
+			"popq	%%rsi\n"
+			"movq	$15, %%rdx\n"
+			"int	$48\n"
+			: : : "%rax", "%rdi", "%rsi", "%rdx");
 	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
 
