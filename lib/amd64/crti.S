@@ -7,5 +7,6 @@ _init:
 .section .fini
 .global	_fini
 .type	_fini, %function
+_fini:
 	subq	$8, %rsp
 
