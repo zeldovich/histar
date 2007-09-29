@@ -111,7 +111,8 @@ extern struct tls_layout *tls_data;
 extern void *tls_stack_top;	/* same as tls_data, grows down */
 extern void *tls_base;		/* base */
 
-void	libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
+void	libmain(uintptr_t bootstrap, uintptr_t arg0,
+		uintptr_t arg1, uintptr_t mainfunc)
     __attribute__((__noreturn__));
 void    setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1);
 void	tls_revalidate(void);

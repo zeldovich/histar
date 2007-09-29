@@ -24,6 +24,7 @@ ENTRY(_start)
 	movq	%r12, %rdi
 	movq	%r13, %rsi
 	movq	%r14, %rdx
+	movq	$main, %rcx
 	call	libmain
 	.cfi_endproc
 

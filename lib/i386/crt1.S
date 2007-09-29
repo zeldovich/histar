@@ -7,6 +7,7 @@ ENTRY(_start)
 	pushl	$0
 
 	// Save our three arguments, pass them on the stack
+	pushl	$main
 	pushl	%ecx
 	pushl	%edx
 	pushl	%eax

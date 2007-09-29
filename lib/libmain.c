@@ -125,7 +125,7 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 }
 
 void
-libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
+libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1, uintptr_t mainfunc)
 {
     if (!bootstrap) {
 	if (start_env->trace_on) {
@@ -134,7 +134,8 @@ libmain(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
 	}
     }
 
-    exit(main(argc, &argv[0], environ));
+    int (*mainf) (int ac, const char **av, char **envp) = (void *) mainfunc;
+    exit(mainf(argc, &argv[0], environ));
 }
 
 void
