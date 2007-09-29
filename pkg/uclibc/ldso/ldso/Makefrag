@@ -13,6 +13,7 @@ LDSO_LIBS := \
 
 LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DNOT_IN_libc -DIS_IN_rtld \
+		-DRERELOCATE_LDSO \
 		-fno-omit-frame-pointer \
 		-Iuinc/ldso \
 		-Ipkg/uclibc/ldso/ldso/$(UCLIBC_ARCH) \

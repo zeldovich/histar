@@ -245,6 +245,10 @@ DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
 					sym = &symtab[symtab_index];
 					symbol_addr = (unsigned long) DL_RELOC_ADDR(load_addr, sym->st_value);
 
+					/* If the symbol is undefined, fix it up later */
+					if (sym->st_value == 0)
+						continue;
+
 #ifndef EARLY_STDERR_SPECIAL
 					SEND_STDERR_DEBUG("relocating symbol: ");
 					SEND_STDERR_DEBUG(strtab + sym->st_name);
