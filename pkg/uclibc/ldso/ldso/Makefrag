@@ -26,7 +26,7 @@ LDSO_LDFLAGS := -shared --warn-common --warn-once \
 		-z combreloc -z relro -z defs -z now -z muldefs \
 		-e _start -Bsymbolic \
 		--export-dynamic --sort-common --discard-locals --discard-all \
-		-soname=ld-histar.so.0
+		-soname=/bin/ld.so
 
 $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
 	@mkdir -p $(@D)

@@ -94,19 +94,11 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	    memcpy(&buf[0], segbuf + ph->p_offset, len);
 	    buf[len] = '\0';
 
-	    /*
-	     * How to tell gcc that we need another interpreter path?
-	     * For now we just hack around it...
-	     */
-	    if (strcmp(buf, "/lib/ld64.so.1")) {
-		cprintf("elf_load: unknown interpreter %s\n", buf);
-		continue;
-	    }
-
 	    struct fs_inode ldso;
-	    r = fs_namei("/bin/ld.so", &ldso);
+	    r = fs_namei(buf, &ldso);
 	    if (r < 0) {
-		cprintf("elf_load: cannot open /bin/ld.so: %s\n", e2s(r));
+		cprintf("elf_load: cannot open ELF interpreter %s: %s\n",
+			buf, e2s(r));
 		return r;
 	    }
 
