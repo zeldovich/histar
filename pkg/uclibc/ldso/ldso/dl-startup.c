@@ -245,10 +245,6 @@ DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
 					sym = &symtab[symtab_index];
 					symbol_addr = (unsigned long) DL_RELOC_ADDR(load_addr, sym->st_value);
 
-					/* If the symbol is undefined, fix it up later */
-					if (sym->st_value == 0)
-						continue;
-
 #ifndef EARLY_STDERR_SPECIAL
 					SEND_STDERR_DEBUG("relocating symbol: ");
 					SEND_STDERR_DEBUG(strtab + sym->st_name);
@@ -282,6 +278,9 @@ DL_START(unsigned long a0, unsigned long a1, unsigned long a2,
 	setup_env(a0, a1, a2);
 	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
+	/* We need to manually run _init, to call __register_frame_info */
+	extern void _init(void);
+	_init();
 
 	/* Transfer control to the application.  */
 	SEND_STDERR_DEBUG("transfering control to application @ ");

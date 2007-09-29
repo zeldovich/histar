@@ -710,8 +710,7 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
 		rpnt->dyn = tpnt;
 		tpnt->rtld_flags = RTLD_NOW | RTLD_GLOBAL; /* Must not be LAZY */
 #ifdef RERELOCATE_LDSO
-		/* Only rerelocate functions for now. */
-		tpnt->init_flag = RELOCS_DONE;
+		tpnt->init_flag = 0;
 		lpnt = (unsigned long *) (tpnt->dynamic_info[DT_PLTGOT]);
 # ifdef ALLOW_ZERO_PLTGOT
 		if (tpnt->dynamic_info[DT_PLTGOT])
