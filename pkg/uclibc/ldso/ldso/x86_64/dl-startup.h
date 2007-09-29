@@ -12,10 +12,20 @@ __asm__ (
 	"	.global _start\n"
 	"	.type   _start,%function\n"
 	"_start:\n"
-	"	movq %rsp, %rdi\n"
+	"	# The auxvt is on the stack\n"
+	"	movq %rsp, %r12\n"
+	"	pushq %rdi\n"
+	"	pushq %rsi\n"
+	"	pushq %rdx\n"
+	"	movq %r12, %rdi\n"
 	"	call _dl_start\n"
+	"   # Restore arguments for libmain and friends.\n"
+	"	popq %rdx\n"
+	"	popq %rsi\n"
+	"	popq %rdi\n"
 	"	# Save the user entry point address in %r12.\n"
 	"	movq %rax, %r12\n"
+#if 0
 	"	# See if we were run as a command with the executable file\n"
 	"	# name as an extra leading argument.\n"
 	"	movl _dl_skip_args(%rip), %eax\n"
@@ -29,16 +39,12 @@ __asm__ (
 	"	pushq %rdx\n"
 	"	# Pass our finalizer function to the user in %rdx, as per ELF ABI.\n"
 	"	leaq _dl_fini(%rip), %rdx\n"
+#endif
 	"	# Jump to the user's entry point.\n"
 	"	jmp *%r12\n"
 	"	.size	_start,.-_start\n"
 	"	.previous\n"
 );
-
-/* Get a pointer to the argv array.  On many platforms this can be just
- * the address if the first argument, on other platforms we need to
- * do something a little more subtle here.  */
-#define GET_ARGV(ARGVP, ARGS) ARGVP = (((unsigned long*) ARGS)+1)
 
 /* Handle relocation of the symbols in the dynamic loader. */
 static __always_inline

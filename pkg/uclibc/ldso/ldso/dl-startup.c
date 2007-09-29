@@ -94,29 +94,19 @@
 /* Pull in all the arch specific stuff */
 #include "dl-startup.h"
 
+/* Memory layout for HiStar */
+#include <machine/memlayout.h>
+
 /* Static declarations */
 int (*_dl_elf_main) (int, char **, char **);
 
 static void* __rtld_stack_end; /* Points to argc on stack, e.g *((long *)__rtld_stackend) == argc */
 strong_alias(__rtld_stack_end, __libc_stack_end) /* Exported version of __rtld_stack_end */
 
-/* When we enter this piece of code, the program stack looks like this:
-	argc            argument counter (integer)
-	argv[0]         program name (pointer)
-	argv[1...N]     program args (pointers)
-	argv[argc-1]    end of args (integer)
-	NULL
-	env[0...N]      environment variables (pointers)
-	NULL
-	auxvt[0...N]   Auxiliary Vector Table elements (mixed types)
-*/
-DL_START(unsigned long args)
+DL_START(unsigned long *aux_dat)
 {
-	unsigned int argc;
-	char **argv, **envp;
 	DL_LOADADDR_TYPE load_addr;
 	ElfW(Addr) got;
-	unsigned long *aux_dat;
 	ElfW(Ehdr) *header;
 	struct elf_resolve tpnt_tmp;
 	struct elf_resolve *tpnt = &tpnt_tmp;
@@ -127,26 +117,6 @@ DL_START(unsigned long args)
 	 * taken care of fixing up our own relocations.  Making static
 	 * inline calls is ok, but _no_ function calls.  Not yet
 	 * anyways. */
-
-	/* First obtain the information on the stack that tells us more about
-	   what binary is loaded, where it is loaded, etc, etc */
-	GET_ARGV(aux_dat, args);
-	argc = *(aux_dat - 1);
-	argv = (char **) aux_dat;
-	aux_dat += argc;			/* Skip over the argv pointers */
-	aux_dat++;					/* Skip over NULL at end of argv */
-	envp = (char **) aux_dat;
-#ifndef NO_EARLY_SEND_STDERR
-	SEND_EARLY_STDERR_DEBUG("argc=");
-	SEND_NUMBER_STDERR_DEBUG(argc, 0);
-	SEND_EARLY_STDERR_DEBUG(" argv=");
-	SEND_ADDRESS_STDERR_DEBUG(argv, 0);
-	SEND_EARLY_STDERR_DEBUG(" envp=");
-	SEND_ADDRESS_STDERR_DEBUG(envp, 1);
-#endif
-	while (*aux_dat)
-		aux_dat++;				/* Skip over the envp pointers */
-	aux_dat++;					/* Skip over NULL at end of envp */
 
 	/* Place -1 here as a checkpoint.  We later check if it was changed
 	 * when we read in the auxvt */
@@ -170,6 +140,21 @@ DL_START(unsigned long args)
 		auxvt[AT_BASE].a_un.a_val = elf_machine_load_address();
 	DL_INIT_LOADADDR_BOOT(load_addr, auxvt[AT_BASE].a_un.a_val);
 	header = (ElfW(Ehdr) *) auxvt[AT_BASE].a_un.a_val;
+
+#if 0
+	__asm__("movq	$0, %%rdi\n"
+			"call	1f\n"
+			".string \"Hello world.\\n\"\n"
+			"1:\n"
+			"popq	%%rsi\n"
+			"movq	$13, %%rdx\n"
+			"int	$48\n"
+			"int	$99\n"
+			:
+			: "b" (0xdeadbeef),
+			  "c" (0xc0ffee),
+			);
+#endif
 
 	/* Check the ELF header to make sure everything looks ok.  */
 	if (!header || header->e_ident[EI_CLASS] != ELF_CLASS ||
@@ -300,9 +285,11 @@ DL_START(unsigned long args)
 	   fixed up by now.  Still no function calls outside of this library,
 	   since the dynamic resolver is not yet ready. */
 
-	__rtld_stack_end = (void *)(argv - 1);
+	__rtld_stack_end = (void *) USTACKTOP;
 
-	_dl_get_ready_to_run(tpnt, load_addr, auxvt, envp, argv);
+	char *env = 0;
+	char *arg = 0;
+	_dl_get_ready_to_run(tpnt, load_addr, auxvt, &env, &arg);
 
 
 	/* Transfer control to the application.  */
