@@ -51,4 +51,22 @@
 #define ELF_ST_TYPE(i)		((i) & 0xF)
 #define ELF_ST_INFO(b, t)	((b) << 4 | ((t) & 0xF))
 
+// auxiliary table entry types
+#define ELF_AT_NULL		0		/* End of vector */
+#define ELF_AT_IGNORE		1		/* Entry should be ignored */
+#define ELF_AT_EXECFD		2		/* File descriptor of program */
+#define ELF_AT_PHDR		3		/* Program headers for program */
+#define ELF_AT_PHENT		4		/* Size of program header entry */
+#define ELF_AT_PHNUM		5		/* Number of program headers */
+#define ELF_AT_PAGESZ		6		/* System page size */
+#define ELF_AT_BASE		7		/* Base address of interpreter */
+#define ELF_AT_FLAGS		8		/* Flags */
+#define ELF_AT_ENTRY		9		/* Entry point of program */
+#define ELF_AT_NOTELF		10		/* Program is not ELF */
+#define ELF_AT_UID		11		/* Real uid */
+#define ELF_AT_EUID		12		/* Effective uid */
+#define ELF_AT_GID		13		/* Real gid */
+#define ELF_AT_EGID		14		/* Effective gid */
+#define ELF_AT_CLKTCK		17		/* Frequency of times() */
+
 #endif

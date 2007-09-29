@@ -8,6 +8,7 @@
 #include <inc/error.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #if JOS_ARCH_BITS==32
 #define ARCH_ELF_EHDR	Elf32_Ehdr
@@ -42,6 +43,8 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 
     uint64_t ldso_len = 0;
     void *ldso_buf = 0;
+
+    uintptr_t load_addr = 0;
 
     uint64_t seglen = 0;
     void *segbuf = 0;
@@ -168,11 +171,15 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		}
 	    }
 
+	    e->te_entry = (void*) (ldelf->e_entry + ULDSO);
 	    continue;
 	}
 
 	if (ph->p_type != ELF_PROG_LOAD)
 	    continue;
+
+	if (!load_addr)
+	    load_addr = ph->p_vaddr - ph->p_offset;
 
 	int va_off = ph->p_vaddr & 0xfff;
 
@@ -255,6 +262,40 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 			SEGMAP_REVERSE_PAGES;
     sm_ents[si].va = stacktop - thread_stack_pages * PGSIZE;
     si++;
+
+    /*
+     * Pass in the Auxilary Vector Table for dynamically-linked executables.
+     */
+    if (ldso_buf) {
+	uint64_t stack_map_bytes = stackpages * PGSIZE;
+	void *stack_map = 0;
+	r = segment_map(stack, stack_pgoff * PGSIZE, SEGMAP_READ | SEGMAP_WRITE,
+			&stack_map, &stack_map_bytes, 0);
+	if (r < 0) {
+	    cprintf("elf_load: cannot map new stack: %s\n", e2s(r));
+	    return r;
+	}
+
+	unsigned long *ldso_auxdat = stack_map + stack_map_bytes;
+	intptr_t ai = 0;
+	ldso_auxdat[--ai] = 0;
+#define LDSO_AUX_PUT(key, val)	\
+	do { ldso_auxdat[--ai] = val; ldso_auxdat[--ai] = key; } while (0)
+
+	LDSO_AUX_PUT(ELF_AT_PAGESZ, PGSIZE);
+	LDSO_AUX_PUT(ELF_AT_PHDR,   load_addr + elf->e_phoff);
+	LDSO_AUX_PUT(ELF_AT_PHNUM,  elf->e_phnum);
+	LDSO_AUX_PUT(ELF_AT_BASE,   ULDSO);
+	LDSO_AUX_PUT(ELF_AT_ENTRY,  elf->e_entry);
+	LDSO_AUX_PUT(ELF_AT_UID,    getuid());
+	LDSO_AUX_PUT(ELF_AT_EUID,   geteuid());
+	LDSO_AUX_PUT(ELF_AT_GID,    getgid());
+	LDSO_AUX_PUT(ELF_AT_EGID,   getegid());
+#undef LDSO_AUX_PUT
+
+	e->te_stack = stacktop + (ai * sizeof(unsigned long));
+	segment_unmap_delayed(stack_map, 1);
+    }
 
     struct u_address_space uas = { .trap_handler = 0,
 				   .trap_stack_base = 0,
