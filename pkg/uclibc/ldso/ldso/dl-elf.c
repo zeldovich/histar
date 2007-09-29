@@ -122,11 +122,13 @@ _dl_protect_relro (struct elf_resolve *l)
 	ElfW(Addr) start = (base & ~(_dl_pagesize - 1));
 	ElfW(Addr) end = ((base + l->relro_size) & ~(_dl_pagesize - 1));
 	_dl_if_debug_dprint("RELRO protecting %s:  start:%x, end:%x\n", l->libname, start, end);
+#if 0	/* HiStar: mprotect is too hard for us */
 	if (start != end &&
 	    _dl_mprotect ((void *) start, end - start, PROT_READ) < 0) {
 		_dl_dprintf(2, "%s: cannot apply additional memory protection after relocation", l->libname);
 		_dl_exit(0);
 	}
+#endif
 }
 
 /* This function's behavior must exactly match that
