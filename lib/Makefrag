@@ -24,7 +24,6 @@ LIB_SRCFILES :=	\
 	lib/gateinvoke.cc \
 	lib/taint.c \
 	lib/sock_fd.c \
-	lib/console.c \
 	lib/spawn.cc \
 	lib/container.c \
 	lib/cksum.c \

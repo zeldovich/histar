@@ -24,7 +24,7 @@ MISC_INTERNALS_CSRC := \
 	__uClibc_main.c tempname.c errno.c __errno_location.c __h_errno_location.c
 
 MISC_ERROR_CSRC := error.c err.c
-MISC_GLOB_CSRC := glob.c glob64.c glob-susv3.c glob64-susv3.c
+MISC_GLOB_CSRC := glob.c glob64.c
 
 MISC_DIRENT_CSRC := \
 	alphasort.c closedir.c dirfd.c opendir.c readdir.c rewinddir.c scandir.c \
