@@ -117,6 +117,14 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		return r;
 	    }
 
+	    int64_t ldso_copy_id = sys_segment_copy(ldso.obj, container, 0,
+						    "ld.so segment copy");
+	    if (ldso_copy_id < 0) {
+		cprintf("elf_load: cannot copy ld.so: %s\n", e2s(ldso_copy_id));
+		return ldso_copy_id;
+	    }
+	    struct cobj_ref ldso_seg = COBJ(container, ldso_copy_id);
+
 	    ARCH_ELF_EHDR *ldelf = (ARCH_ELF_EHDR *) ldso_buf;
 	    ARCH_ELF_PHDR *ldph = (ARCH_ELF_PHDR *) (ldso_buf + ldelf->e_phoff);
 
@@ -127,7 +135,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		int va_off = ldph->p_vaddr & 0xfff;
 
 		if (ldph->p_memsz <= ldph->p_filesz) {
-		    sm_ents[si].segment = ldso.obj;
+		    sm_ents[si].segment = ldso_seg;
 		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
 		    sm_ents[si].num_pages = (va_off + ldph->p_memsz + PGSIZE - 1) / PGSIZE;
 		    sm_ents[si].flags = ldph->p_flags;
@@ -136,7 +144,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 		} else {
 		    uintptr_t shared_pages = (va_off + ldph->p_filesz) / PGSIZE;
 
-		    sm_ents[si].segment = ldso.obj;
+		    sm_ents[si].segment = ldso_seg;
 		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
 		    sm_ents[si].num_pages = shared_pages;
 		    sm_ents[si].flags = ldph->p_flags;
