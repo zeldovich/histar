@@ -232,15 +232,6 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	}
     }
 
-    r = segment_unmap_delayed(segbuf, 1);
-    if (r < 0) {
-	cprintf("elf_load: cannot unmap program segment: %s\n", e2s(r));
-	return r;
-    }
-
-    if (ldso_buf)
-	segment_unmap_delayed(ldso_buf, 1);
-
     if (!shared_stack) {
 	snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);
 	r = segment_alloc(container, stackpages * PGSIZE, &stack, 0, label, &objname[0]);
@@ -297,6 +288,15 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	e->te_stack = stacktop + (ai * sizeof(unsigned long));
 	segment_unmap_delayed(stack_map, 1);
     }
+
+    r = segment_unmap_delayed(segbuf, 1);
+    if (r < 0) {
+	cprintf("elf_load: cannot unmap program segment: %s\n", e2s(r));
+	return r;
+    }
+
+    if (ldso_buf)
+	segment_unmap_delayed(ldso_buf, 1);
 
     struct u_address_space uas = { .trap_handler = 0,
 				   .trap_stack_base = 0,
