@@ -237,6 +237,29 @@ segment_map_print(struct u_address_space *as)
     }
 }
 
+void
+segment_map_print_cur(void)
+{
+    int lockold = as_mutex_lock();
+    struct cobj_ref as_ref;
+    int r = self_get_as(&as_ref);
+    if (r < 0) {
+	as_mutex_unlock(lockold);
+	cprintf("segment_map_print_cur: %s\n", e2s(r));
+	return;
+    }
+
+    r = cache_refresh(as_ref);
+    if (r < 0) {
+	as_mutex_unlock(lockold);
+	cprintf("segment_map_print_cur: %s\n", e2s(r));
+	return;
+    }
+
+    segment_map_print(&cache_uas);
+    as_mutex_unlock(lockold);
+}
+
 int
 segment_unmap_kslot(uint32_t kslot, int can_delay)
 {

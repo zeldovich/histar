@@ -51,6 +51,7 @@ void	segment_unmap_flush(void);
 
 /* For debugging purposes */
 void	segment_map_print(struct u_address_space *as);
+void	segment_map_print_cur(void);
 
 /* elf.c */
 int	elf_load(uint64_t container, struct cobj_ref seg,
