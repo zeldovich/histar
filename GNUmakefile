@@ -75,10 +75,23 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
 	   $(OBJDIR)/lib/libutil.a \
-	   $(OBJDIR)/lib/libstdc++.a
+	   $(OBJDIR)/lib/libstdc++.a \
+	   $(OBJDIR)/user/ld.so
 
-LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
-	   -specs=$(TOP)/conf/gcc.specs -static
+LDFLAGS_COMMON	:= -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
+		   -specs=$(TOP)/conf/gcc.specs
+LDFLAGS_SHARED	:= $(LDFLAGS_COMMON) \
+		   -dynamic-linker $(OBJDIR)/user/ld.so \
+		   -Wl,--dynamic-linker,/bin/ld.so
+LDFLAGS_STATIC	:= $(LDFLAGS_COMMON) -static
+CFLAGS_SHARED	:= -fPIC -DSHARED
+
+ifeq ($(K_ARCH),amd64-not-yet)
+LDFLAGS := $(LDFLAGS_SHARED)
+else
+LDFLAGS := $(LDFLAGS_STATIC)
+CFLAGS_SHARED :=
+endif
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

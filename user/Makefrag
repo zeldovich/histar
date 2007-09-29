@@ -41,6 +41,10 @@ $(OBJDIR)/user/%: user/%.S
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
 
+# init is special -- must always be static
+$(OBJDIR)/user/init.debuginfo: $(OBJDIR)/user/init.o $(LDEPS)
+	$(CC) -o $@ $(LDFLAGS_STATIC) $<
+
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@
 

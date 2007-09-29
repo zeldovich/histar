@@ -15,7 +15,7 @@ LIBCXX_SRC := $(patsubst %cpp,pkg/uclibc++/src/%cpp,$(LIBCXX_SRC))
 
 LIBCXX_OBJS := $(patsubst %.cpp,$(OBJDIR)/%.o, $(LIBCXX_SRC))
 
-LIBCXX_FLAGS := $(COMFLAGS) -DJOS_USER -Wall -Wno-trigraphs $(OPTFLAG)
+LIBCXX_FLAGS := $(COMFLAGS) -DJOS_USER -Wall -Wno-trigraphs $(OPTFLAG) $(CFLAGS_SHARED)
 
 LIBCXX_INCS := $(USER_INC) -I$(TOP)/pkg/uclibc++/include
 

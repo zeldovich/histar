@@ -53,7 +53,7 @@ $(OBJDIR)/pkg/lwip/jos64/%.o: MKTARGET_CFLAGS=-Werror
 
 $(OBJDIR)/pkg/lwip/%.o: pkg/lwip/%.c
 	@mkdir -p $(@D)
-	$(CC) $(USER_CFLAGS) $(CSTD) $(MKTARGET_CFLAGS) -c -o $@ $<
+	$(CC) $(USER_CFLAGS) $(CSTD) $(CFLAGS_SHARED) $(MKTARGET_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/liblwip.a: $(LWIP_OBJFILES)
 	@mkdir -p $(@D)

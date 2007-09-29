@@ -58,7 +58,7 @@
 #define __C_SYMBOL_PREFIX__ ""
 #define __HAVE_DOT_CONFIG__ 1
 #define __UCLIBC_UP__ 1		/* uni-processor */
-#define __UCLIBC_STATIC__ 1
+#undef __UCLIBC_STATIC__
 
 /*
  * General Library Settings
