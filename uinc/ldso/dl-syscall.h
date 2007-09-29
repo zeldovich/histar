@@ -20,6 +20,7 @@
 #define _dl_geteuid	geteuid
 #define _dl_getgid	getgid
 #define _dl_getegid	getegid
+#define _dl_getpid	getpid
 
 #define _dl_mmap_check_error(x) (((void *) x) == MAP_FAILED)
 
