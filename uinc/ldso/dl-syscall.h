@@ -10,7 +10,7 @@
 #define _dl_open	open
 #define _dl_close	close
 #define	_dl_read	read
-#define _dl_write	write
+#define _dl_write	write_dlcons
 #define _dl_mprotect	mprotect
 #define _dl_mmap	mmap
 #define _dl_munmap	munmap
@@ -23,5 +23,12 @@
 #define _dl_getpid	getpid
 
 #define _dl_mmap_check_error(x) (((void *) x) == MAP_FAILED)
+
+static inline int
+write_dlcons(int fd, void *buf, ssize_t len)
+{
+    sys_cons_puts(buf, len);
+    return len;
+}
 
 #endif
