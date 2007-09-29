@@ -34,6 +34,9 @@ static int init_debug = 0;
 static const char *env[] = { "USER=root", "HOME=/" };
 static uint64_t time_grant;
 
+extern "C" void _dl_app_init_array(void) {}
+extern "C" void _dl_app_fini_array(void) {}
+
 static struct child_process
 spawn_fs(int flags, int fd, const char *pn, const char *arg,
 	 label *ds, label *dr)

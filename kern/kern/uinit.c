@@ -203,7 +203,7 @@ thread_load_elf(struct Container *c, struct Thread *t,
     }
 
     // Map a stack
-    int stackpages = 2;
+    int stackpages = 4;
     struct Segment *s;
     r = segment_create_embed(c, obj_label, stackpages * PGSIZE, 0, 0, &s);
     if (r < 0) {

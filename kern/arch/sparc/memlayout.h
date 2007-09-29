@@ -48,6 +48,7 @@
 #define UTLSTOP		0x60fff000
 #define UFDBASE		0x61000000
 #define USEGMAPENTS	0x62000000
+#define ULDSO		0x63000000
 
 /* libgcc code for stack unwinding uses lots of stack space... */
 #define UTLS_DEFSIZE	(2 * PGSIZE)

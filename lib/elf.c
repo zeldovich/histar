@@ -40,9 +40,12 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     if (r < 0)
 	return r;
 
+    uint64_t ldso_len = 0;
+    void *ldso_buf = 0;
+
     uint64_t seglen = 0;
     void *segbuf = 0;
-    r = segment_map(seg, 0, SEGMAP_READ, (void**)&segbuf, &seglen, 0);
+    r = segment_map(seg, 0, SEGMAP_READ, &segbuf, &seglen, 0);
     if (r < 0) {
 	cprintf("elf_load: cannot map segment\n");
 	return r;
@@ -82,6 +85,92 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     e->te_entry = (void*) elf->e_entry;
     ARCH_ELF_PHDR *ph = (ARCH_ELF_PHDR *) (segbuf + elf->e_phoff);
     for (int i = 0; i < elf->e_phnum; i++, ph++) {
+	if (ph->p_type == ELF_PROG_INTERP) {
+	    char buf[128];
+	    uint64_t len = MIN(sizeof(buf) - 1, ph->p_filesz);
+	    memcpy(&buf[0], segbuf + ph->p_offset, len);
+	    buf[len] = '\0';
+
+	    /*
+	     * How to tell gcc that we need another interpreter path?
+	     * For now we just hack around it...
+	     */
+	    if (strcmp(buf, "/lib/ld64.so.1")) {
+		cprintf("elf_load: unknown interpreter %s\n", buf);
+		continue;
+	    }
+
+	    struct fs_inode ldso;
+	    r = fs_namei("/bin/ld.so", &ldso);
+	    if (r < 0) {
+		cprintf("elf_load: cannot open /bin/ld.so: %s\n", e2s(r));
+		return r;
+	    }
+
+	    r = segment_map(ldso.obj, 0, SEGMAP_READ,
+			    &ldso_buf, &ldso_len, 0);
+	    if (r < 0) {
+		cprintf("elf_load: cannot map ld.so: %s\n", e2s(r));
+		return r;
+	    }
+
+	    ARCH_ELF_EHDR *ldelf = (ARCH_ELF_EHDR *) ldso_buf;
+	    ARCH_ELF_PHDR *ldph = (ARCH_ELF_PHDR *) (ldso_buf + ldelf->e_phoff);
+
+	    for (int ldi = 0; ldi < ldelf->e_phnum; ldi++, ldph++) {
+		if (ldph->p_type != ELF_PROG_LOAD)
+		    continue;
+
+		int va_off = ldph->p_vaddr & 0xfff;
+
+		if (ldph->p_memsz <= ldph->p_filesz) {
+		    sm_ents[si].segment = ldso.obj;
+		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
+		    sm_ents[si].num_pages = (va_off + ldph->p_memsz + PGSIZE - 1) / PGSIZE;
+		    sm_ents[si].flags = ldph->p_flags;
+		    sm_ents[si].va = (void*) (ULDSO + ldph->p_vaddr - va_off);
+		    si++;
+		} else {
+		    uintptr_t shared_pages = (va_off + ldph->p_filesz) / PGSIZE;
+
+		    sm_ents[si].segment = ldso.obj;
+		    sm_ents[si].start_page = (ldph->p_offset - va_off) / PGSIZE;
+		    sm_ents[si].num_pages = shared_pages;
+		    sm_ents[si].flags = ldph->p_flags;
+		    sm_ents[si].va = (void*) (ULDSO + ldph->p_vaddr - va_off);
+		    si++;
+
+		    struct cobj_ref nseg;
+		    char *sbuf = 0;
+		    snprintf(&objname[0], KOBJ_NAME_LEN, "ldso text/data for %s", elfname);
+		    r = segment_alloc(container,
+				      va_off + ldph->p_memsz - (shared_pages - 1) * PGSIZE,
+				      &nseg, (void**) &sbuf, label, &objname[0]);
+		    if (r < 0) {
+			cprintf("elf_load: cannot allocate elf segment: %s\n", e2s(r));
+			return r;
+		    }
+
+		    memcpy(sbuf, segbuf + ldph->p_offset - va_off + shared_pages * PGSIZE,
+			   va_off + ldph->p_filesz - shared_pages * PGSIZE);
+		    r = segment_unmap_delayed(sbuf, 1);
+		    if (r < 0) {
+			cprintf("elf_load: cannot unmap elf segment: %s\n", e2s(r));
+			return r;
+		    }
+
+		    sm_ents[si].segment = nseg;
+		    sm_ents[si].start_page = 0;
+		    sm_ents[si].num_pages = (va_off + ldph->p_memsz + PGSIZE - 1) / PGSIZE - shared_pages;
+		    sm_ents[si].flags = ldph->p_flags;
+		    sm_ents[si].va = (void*) (ULDSO + ldph->p_vaddr - va_off + shared_pages * PGSIZE);
+		    si++;
+		}
+	    }
+
+	    continue;
+	}
+
 	if (ph->p_type != ELF_PROG_LOAD)
 	    continue;
 
@@ -136,11 +225,14 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	}
     }
 
-    r = segment_unmap(segbuf);
+    r = segment_unmap_delayed(segbuf, 1);
     if (r < 0) {
 	cprintf("elf_load: cannot unmap program segment: %s\n", e2s(r));
 	return r;
     }
+
+    if (ldso_buf)
+	segment_unmap_delayed(ldso_buf, 1);
 
     if (!shared_stack) {
 	snprintf(&objname[0], KOBJ_NAME_LEN, "stack for %s", elfname);

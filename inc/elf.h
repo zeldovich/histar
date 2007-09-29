@@ -27,6 +27,7 @@
 
 // p_type values
 #define ELF_PROG_LOAD		1
+#define ELF_PROG_INTERP		3
 
 // p_flags
 #define ELF_PF_X		0x01
