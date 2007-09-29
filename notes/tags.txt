@@ -25,6 +25,14 @@ Need a way to securely track kernel objects (special dtag values),
     and prevent non-monitor code from tag_set'ing memory to that
     dtag value..
 
+When can you read tags?  Might be safe to always allow it, or can
+    read tags only when you can read data as well.  On the other
+    hand, only the monitor (TSR_T) can write tags.
+
+Should jump to another protection domain to handle device interrupts,
+    to reduce effective TCB for non-interrupt (i.e. real user data)
+    protection domains.
+
 		Set T	Set S
 Tag exception	YES	YES
 Other exception	NO	YES
