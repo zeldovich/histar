@@ -177,9 +177,14 @@ timeout(int signo)
     fprintf(stderr, "time limit up, completed %d!\n", completed);
     fprintf(stdout, "%d\n", completed);
     fflush(0);
-    kill(0, SIGQUIT);
+    kill(0, SIGUSR1);
 }
 
+static void
+all_done(int signno)
+{
+    exit(EXIT_SUCCESS);
+}
   
 int 
 main(int ac, char **av)
@@ -193,11 +198,12 @@ main(int ac, char **av)
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
 		"[-r requests | -c clients | -l time-limit | "
-		"-p path -a -d -s -h]\n", av[0]);
+		"-p path -a -d -s -h num-hosts]\n", av[0]);
 	exit(-1);
     }
 
     setpgrp();
+    signal(SIGUSR1, &all_done);
 
     host = av[1];
     port = atoi(av[2]);
