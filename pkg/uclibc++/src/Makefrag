@@ -3,7 +3,7 @@ USER_CXXFLAGS += -I$(TOP)/pkg/uclibc++/include
 
 LIBCXX_SRC := algorithm.cpp bitset.cpp char_traits.cpp complex.cpp \
 	      del_op.cpp del_opnt.cpp del_opv.cpp del_opvnt.cpp deque.cpp \
-	      eh_alloc.cpp eh_globals.cpp exception.cpp fstream.cpp \
+	      exception.cpp fstream.cpp \
 	      func_exception.cpp iomanip.cpp ios.cpp iostream.cpp istream.cpp \
 	      iterator.cpp limits.cpp list.cpp locale.cpp map.cpp \
 	      new_handler.cpp new_opnt.cpp new_opv.cpp \
@@ -15,7 +15,7 @@ LIBCXX_SRC := $(patsubst %cpp,pkg/uclibc++/src/%cpp,$(LIBCXX_SRC))
 
 LIBCXX_OBJS := $(patsubst %.cpp,$(OBJDIR)/%.o, $(LIBCXX_SRC))
 
-LIBCXX_FLAGS := $(COMFLAGS) -DJOS_USER -Wall -Wno-trigraphs -Os
+LIBCXX_FLAGS := $(COMFLAGS) -DJOS_USER -Wall -Wno-trigraphs $(OPTFLAG)
 
 LIBCXX_INCS := $(USER_INC) -I$(TOP)/pkg/uclibc++/include
 
