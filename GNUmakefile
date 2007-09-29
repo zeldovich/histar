@@ -36,7 +36,7 @@ TAME 	:= tame
 # Compiler flags.
 COMWARNS := -Wformat=2 -Wextra -Wmissing-noreturn \
 	    -Wwrite-strings -Wno-unused-parameter -Wmissing-format-attribute \
-	    -Wswitch-default -fno-builtin-fork
+	    -Wswitch-default -fno-builtin
 CWARNS	 := $(COMWARNS) -Wmissing-prototypes -Wmissing-declarations -Wshadow
 CXXWARNS := $(COMWARNS) -Wno-non-template-friend
 # SFS seems to be violating -Woverloaded-virtual
