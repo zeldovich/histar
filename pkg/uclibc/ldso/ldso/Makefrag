@@ -40,6 +40,11 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
 $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	@mkdir -p $(@D)
 	$(LD) -o $@ \
+	      $(OBJDIR)/lib/crti.o \
+	      $(shell $(CC) -print-file-name=crtbeginS.o) \
 	      --whole-archive $(LDSO_LIBS) --no-whole-archive \
-	      $(LDSO_OBJFILES) $(GCC_LIB) $(LDSO_LDFLAGS)
+	      $(LDSO_OBJFILES) $(GCC_LIB) $(LIBGCCS) \
+	      $(shell $(CC) -print-file-name=crtendS.o) \
+	      $(OBJDIR)/lib/crtn.o \
+	      $(LDSO_LDFLAGS)
 
