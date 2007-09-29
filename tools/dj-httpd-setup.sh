@@ -41,19 +41,19 @@ function bootstrap {
     httpdip=$1
     echo "Bootstrapping $httpdip..."
 
-    ssh -i $sshkey -l root $httpdip "/bin/httpd_mom $httpdmomopts"
+    ssh -n -i $sshkey -l root $httpdip "/bin/httpd_mom $httpdmomopts"
 
     i=0
     cat $applist | while read appip
       do
-      ssh -i $sshkey -l root $httpdip "/bin/bootstrapc $appip app $i"
+      ssh -n -i $sshkey -l root $httpdip "/bin/bootstrapc $appip app $i"
       i=$(( $i + 1 ))
     done
 
     i=0
     cat $userlist | while read userip
       do
-      ssh -i $sshkey -l root $httpdip "/bin/bootstrapc $userip user $i"
+      ssh -n -i $sshkey -l root $httpdip "/bin/bootstrapc $userip user $i"
       i=$(( $i + 1 ))
     done
 
