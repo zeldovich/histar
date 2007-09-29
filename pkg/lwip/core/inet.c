@@ -346,7 +346,8 @@ inet_chksum_pbuf(struct pbuf *p)
 
  /*  */
  /* inet_addr */
- u32_t inet_addr(const char *cp)
+ u32_t
+ lwip_inet_addr(const char *cp)
  {
      struct in_addr val;
 
@@ -366,7 +367,7 @@ inet_chksum_pbuf(struct pbuf *p)
  /*  */
  /* inet_aton */
  s8_t
- inet_aton(const char *cp, struct in_addr *addr)
+ lwip_inet_aton(const char *cp, struct in_addr *addr)
  {
      u32_t val;
      s32_t base, n;
@@ -460,7 +461,7 @@ inet_chksum_pbuf(struct pbuf *p)
 /* Convert numeric IP address into decimal dotted ASCII representation.
  * returns ptr to static buffer; not reentrant!
  */
-char *inet_ntoa(struct in_addr addr)
+char *lwip_inet_ntoa(struct in_addr addr)
 {
   static char str[16];
   u32_t s_addr = addr.s_addr;
@@ -508,19 +509,19 @@ char *inet_ntoa(struct in_addr addr)
 #if (LWIP_PLATFORM_BYTESWAP == 0) && (BYTE_ORDER == LITTLE_ENDIAN)
 
 u16_t
-htons(u16_t n)
+lwip_htons(u16_t n)
 {
   return ((n & 0xff) << 8) | ((n & 0xff00) >> 8);
 }
 
 u16_t
-ntohs(u16_t n)
+lwip_ntohs(u16_t n)
 {
   return htons(n);
 }
 
 u32_t
-htonl(u32_t n)
+lwip_htonl(u32_t n)
 {
   return ((n & 0xff) << 24) |
     ((n & 0xff00) << 8) |
@@ -529,7 +530,7 @@ htonl(u32_t n)
 }
 
 u32_t
-ntohl(u32_t n)
+lwip_ntohl(u32_t n)
 {
   return htonl(n);
 }
