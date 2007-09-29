@@ -20,14 +20,6 @@ void *
 mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 {
     if (!(flags & MAP_ANONYMOUS)) {
-
-	cprintf("mmap: start=%p len=0x%lx off=0x%lx %s%s%s%s\n",
-		start, length, offset,
-		(flags & MAP_FIXED) ? "fixed " : "",
-		(prot & PROT_READ) ? "read " : "",
-		(prot & PROT_EXEC) ? "exec " : "",
-		(prot & PROT_WRITE) ? "write " : "");
-
 	struct Fd *fd;
 	int r = fd_lookup(fdnum, &fd, 0, 0);
 	if (r < 0) {
