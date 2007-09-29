@@ -14,6 +14,11 @@
 
 #include <bits/unimpl.h>
 
+libc_hidden_proto(gettimeofday)
+libc_hidden_proto(nanosleep)
+libc_hidden_proto(adjtimex)
+libc_hidden_proto(times)
+
 uint64_t
 jos_time_nsec(void)
 {
@@ -128,3 +133,9 @@ adjtimex(struct timex *buf)
     set_enosys();
     return -1;
 }
+
+libc_hidden_def(gettimeofday)
+libc_hidden_def(nanosleep)
+libc_hidden_def(adjtimex)
+libc_hidden_def(times)
+

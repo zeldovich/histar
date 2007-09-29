@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <errno.h>
 
+libc_hidden_proto(socket)
+
 int
 socket(int domain, int type, int protocol)
 {
@@ -27,3 +29,6 @@ socketpair(int domain, int type, int protocol, int sv[2])
     // fudge the socketpair
     return bipipe(type, sv);
 }
+
+libc_hidden_def(socket)
+

@@ -20,8 +20,8 @@
 
 #include <bits/unimpl.h>
 
-// Fake prototype to make GCC happy
-int __libc_open(const char *pn, int flags, ...);
+extern __typeof(open) __libc_open;
+libc_hidden_proto(__libc_open)
 
 int
 __libc_open(const char *pn, int flags, ...)
@@ -304,6 +304,13 @@ struct Dev devsymlink = {
     /* No actual ops -- just a placeholder */
 };
 
+libc_hidden_proto(open)
+libc_hidden_proto(open64)
+
 weak_alias(__libc_open, open);
 weak_alias(__libc_open, open64);
+
+libc_hidden_weak(open)
+libc_hidden_weak(open64)
+libc_hidden_def(__libc_open)
 

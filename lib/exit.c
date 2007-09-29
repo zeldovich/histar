@@ -7,6 +7,8 @@
 #include <signal.h>
 #include <unistd.h>
 
+libc_hidden_proto(_exit)
+
 void
 process_exit(int64_t rval, int64_t signo)
 {
@@ -43,3 +45,6 @@ _exit(int rval)
 {
     process_exit(rval, 0);
 }
+
+libc_hidden_def(_exit)
+

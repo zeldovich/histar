@@ -1,3 +1,5 @@
+#define _GNU_SOURCE 1
+
 extern "C" {
 #include <inc/lib.h>
 #include <inc/error.h>
@@ -13,6 +15,12 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 static const char proc_debug = 1;
+
+libc_hidden_proto(getpid)
+libc_hidden_proto(setsid)
+libc_hidden_proto(getsid)
+libc_hidden_proto(setpgid)
+libc_hidden_proto(nice)
 
 pid_t
 getpid() __THROW
@@ -120,3 +128,17 @@ setsid(void) __THROW
     setpgid(0, 0);
     return 0;
 }
+
+pid_t
+getsid(pid_t pid) __THROW
+{
+    set_enosys();
+    return -1;
+}
+
+libc_hidden_def(getpid)
+libc_hidden_def(setsid)
+libc_hidden_def(getsid)
+libc_hidden_def(setpgid)
+libc_hidden_def(nice)
+

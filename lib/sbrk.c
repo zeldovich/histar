@@ -17,6 +17,8 @@ static struct {
 static void *heap_base = (void *) UHEAP;
 static uint64_t heap_maxbytes = UHEAPTOP - UHEAP;
 
+libc_hidden_proto(sbrk)
+
 void *
 sbrk(intptr_t x)
 {
@@ -87,3 +89,6 @@ out:
     jthread_mutex_unlock(&heap.mu);
     return p;
 }
+
+libc_hidden_def(sbrk)
+

@@ -13,6 +13,8 @@
 
 #include <sys/stat.h>
 
+libc_hidden_proto(pipe)
+
 int
 pipe(int fds[2])
 {
@@ -211,3 +213,6 @@ struct Dev devpipe = {
     .dev_getsockopt = pipe_getsockopt,
     .dev_ioctl = jos_ioctl,
 };
+
+libc_hidden_def(pipe)
+

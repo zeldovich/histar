@@ -72,6 +72,11 @@ static int signal_queued_any;
 // Avoid growing stack in signal handler, for vmlinux
 int signal_grow_stack;
 
+libc_hidden_proto(sigprocmask)
+libc_hidden_proto(sigsuspend)
+libc_hidden_proto(sigwaitinfo)
+libc_hidden_proto(kill)
+
 static void
 utf_dump(struct UTrapframe *utf)
 {
@@ -897,3 +902,16 @@ longjmp(jmp_buf env, int val)
 {
     jos_longjmp(&env->__jmpbuf, val ? : 1);
 }
+
+int
+sigwaitinfo(const sigset_t *set, siginfo_t *info)
+{
+    set_enosys();
+    return -1;
+}
+
+libc_hidden_def(sigprocmask)
+libc_hidden_def(sigsuspend)
+libc_hidden_def(sigwaitinfo)
+libc_hidden_def(kill)
+

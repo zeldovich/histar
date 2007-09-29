@@ -5,6 +5,9 @@
 
 static char hostname[32];
 
+libc_hidden_proto(gethostname)
+libc_hidden_proto(uname)
+
 int
 gethostname(char *name, size_t len)
 {
@@ -40,3 +43,7 @@ uname (struct utsname *name)
 
     return 0;
 }
+
+libc_hidden_def(gethostname)
+libc_hidden_def(uname)
+

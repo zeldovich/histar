@@ -15,6 +15,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
+libc_hidden_proto(wait4)
+
 struct wait_child {
     pid_t wc_pid;
     struct cobj_ref wc_seg;
@@ -216,3 +218,6 @@ again:
     __set_errno(ECHILD);
     return -1;
 }
+
+libc_hidden_def(wait4)
+

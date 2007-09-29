@@ -9,6 +9,12 @@
 
 #include <bits/unimpl.h>
 
+libc_hidden_proto(mmap)
+libc_hidden_proto(munmap)
+libc_hidden_proto(mremap)
+libc_hidden_proto(msync)
+libc_hidden_proto(mprotect)
+
 void *
 mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
@@ -139,3 +145,10 @@ mprotect(void *addr, size_t len, int prot)
     set_enosys();
     return -1;
 }
+
+libc_hidden_def(mmap)
+libc_hidden_def(munmap)
+libc_hidden_def(mremap)
+libc_hidden_def(msync)
+libc_hidden_def(mprotect)
+

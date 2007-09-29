@@ -75,6 +75,39 @@ enum { fd_alloc_debug = 0 };
 	DEV_CALL(__dev, fn, __fd, ##__VA_ARGS__);		\
     })
 
+extern "C" __typeof(fcntl) __libc_fcntl;
+libc_hidden_proto(__libc_fcntl)
+
+libc_hidden_proto(read)
+libc_hidden_proto(write)
+libc_hidden_proto(ioctl)
+libc_hidden_proto(lseek)
+libc_hidden_proto(lseek64)
+libc_hidden_proto(fstat)
+libc_hidden_proto(close)
+libc_hidden_proto(getdtablesize)
+libc_hidden_proto(fcntl)
+libc_hidden_proto(fstatfs)
+libc_hidden_proto(statfs)
+libc_hidden_proto(dup2)
+
+libc_hidden_proto(send)
+libc_hidden_proto(sendto)
+libc_hidden_proto(sendmsg)
+libc_hidden_proto(recv)
+libc_hidden_proto(recvmsg)
+libc_hidden_proto(recvfrom)
+libc_hidden_proto(select)
+libc_hidden_proto(poll)
+libc_hidden_proto(getsockopt)
+libc_hidden_proto(setsockopt)
+libc_hidden_proto(getsockname)
+libc_hidden_proto(getpeername)
+libc_hidden_proto(connect)
+libc_hidden_proto(bind)
+libc_hidden_proto(listen)
+libc_hidden_proto(accept)
+
 // Multiple threads with different labels could be running in the same address
 // space, so it's useful to have a common place accessible by all threads to
 // store this information.
@@ -1229,7 +1262,7 @@ statfs(const char *path, struct statfs *buf) __THROW
     return r;
 }
 
-extern "C" int
+int
 __libc_fcntl(int fdnum, int cmd, ...)
 {
     int r;
@@ -1399,13 +1432,18 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
     return r;    
 }
 
-extern "C" ssize_t
-__getdents (int fdnum, struct dirent *buf, size_t nbytes)
+extern "C" ssize_t __getdents(int fdnum, struct dirent *buf, size_t nbytes)
+	attribute_hidden;
+extern "C" ssize_t __getdents64(int fdnum, struct dirent *buf, uint64_t nbytes)
+	attribute_hidden;
+
+ssize_t
+__getdents(int fdnum, struct dirent *buf, size_t nbytes)
 {
     return FD_CALL(fdnum, getdents, buf, nbytes);
 }
 
-extern "C" ssize_t
+ssize_t
 __getdents64(int fdnum, struct dirent *buf, uint64_t nbytes)
 {
     return FD_CALL(fdnum, getdents, buf, nbytes);
@@ -1441,3 +1479,35 @@ shutdown(int s, int how) __THROW
 }
 
 weak_alias(__libc_fcntl, fcntl);
+
+libc_hidden_def(read)
+libc_hidden_def(write)
+libc_hidden_def(ioctl)
+libc_hidden_def(lseek)
+libc_hidden_def(lseek64)
+libc_hidden_def(fstat)
+libc_hidden_def(close)
+libc_hidden_def(getdtablesize)
+libc_hidden_def(__libc_fcntl)
+libc_hidden_weak(fcntl)
+libc_hidden_def(fstatfs)
+libc_hidden_def(statfs)
+libc_hidden_def(dup2)
+
+libc_hidden_def(send)
+libc_hidden_def(sendto)
+libc_hidden_def(sendmsg)
+libc_hidden_def(recv)
+libc_hidden_def(recvmsg)
+libc_hidden_def(recvfrom)
+libc_hidden_def(select)
+libc_hidden_def(poll)
+libc_hidden_def(getsockopt)
+libc_hidden_def(setsockopt)
+libc_hidden_def(getsockname)
+libc_hidden_def(getpeername)
+libc_hidden_def(connect)
+libc_hidden_def(bind)
+libc_hidden_def(listen)
+libc_hidden_def(accept)
+

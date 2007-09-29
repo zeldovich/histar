@@ -215,6 +215,8 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     thread_halt();
 }
 
+libc_hidden_proto(execve)
+
 int
 execve(const char *filename, char *const *argv, char *const *envp) __THROW
 {
@@ -232,3 +234,6 @@ execve(const char *filename, char *const *argv, char *const *envp) __THROW
         return -1;
     }   
 }
+
+libc_hidden_def(execve)
+

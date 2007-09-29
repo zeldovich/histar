@@ -13,6 +13,9 @@
 
 #include <sys/time.h>
 
+libc_hidden_proto(alarm)
+libc_hidden_proto(setitimer)
+
 static struct cobj_ref alarm_worker_obj;
 static uint64_t alarm_worker_ct;
 
@@ -75,3 +78,7 @@ setitimer(__itimer_which_t which, const struct itimerval *value,
     set_enosys();
     return -1;
 }
+
+libc_hidden_def(alarm)
+libc_hidden_def(setitimer)
+

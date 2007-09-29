@@ -25,6 +25,8 @@ extern "C" {
 static int fork_debug = 0;
 jthread_mutex_t fork_mu;
 
+libc_hidden_proto(fork)
+
 static void
 signal_unmask(const sigset_t *sigset)
 {
@@ -304,3 +306,6 @@ vfork(void) __THROW
 {
     return fork();
 }
+
+libc_hidden_def(fork)
+

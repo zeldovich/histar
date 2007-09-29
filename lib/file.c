@@ -20,6 +20,17 @@
 
 #include <bits/unimpl.h>
 
+libc_hidden_proto(lstat)
+libc_hidden_proto(getcwd)
+libc_hidden_proto(readlink)
+libc_hidden_proto(stat)
+libc_hidden_proto(stat64)
+libc_hidden_proto(mkdir)
+libc_hidden_proto(rmdir)
+libc_hidden_proto(chdir)
+libc_hidden_proto(unlink)
+libc_hidden_proto(utime)
+
 static int
 err_jos2libc(int64_t r)
 {
@@ -531,3 +542,15 @@ mkfifo (const char *path, mode_t mode)
     set_enosys();
     return -1;
 }
+
+libc_hidden_def(lstat)
+libc_hidden_def(getcwd)
+libc_hidden_def(readlink)
+libc_hidden_def(stat)
+libc_hidden_def(stat64)
+libc_hidden_def(mkdir)
+libc_hidden_def(rmdir)
+libc_hidden_def(chdir)
+libc_hidden_def(unlink)
+libc_hidden_def(utime)
+
