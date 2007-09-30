@@ -121,7 +121,7 @@ main(int ac, char **av)
 	    the_gs = New gate_sender();
 	    break;
 	} catch (...) {
-	    if (retry == 10)
+	    if (retry == 100)
 		throw;
 
 	    sleep(1);
