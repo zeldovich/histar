@@ -37,7 +37,6 @@ static char ssl_privsep_enable = 1;
 static char ssl_eproc_enable = 1;
 
 static const char* httpd_root_path = "/www";
-static const char *tar_pn = "/bin/tar";
 
 static struct fs_inode
 fs_inode_for(const char *pn)
@@ -63,40 +62,6 @@ segment_copy_to_file(struct cobj_ref seg, struct fs_inode dir,
     error_check(fs_pwrite(ino, va, bytes, 0));
 }
 
-static void
-untar(const char *in_pn, const char *tar_fn)
-{
-    fs_inode ino;
-    error_check(fs_namei(tar_pn, &ino));
-    const char *argv[] = { tar_pn, "xm", "-C", in_pn, "-f", tar_fn };
-    
-    spawn_descriptor sd;
-    sd.ct_ = start_env->shared_container;
-    sd.elf_ino_ = ino;
-    sd.ac_ = 6;
-    sd.av_ = &argv[0];
-
-    struct child_process cp = spawn(&sd);
-    int64_t exit_code;
-    error_check(process_wait(&cp, &exit_code));
-    error_check(exit_code);
-}
-
-static void
-create_ascii(const char *dn, const char *fn, uint64_t len)
-{
-    struct fs_inode dir;
-    error_check(fs_namei(dn, &dir));
-    struct fs_inode file;
-    error_check(fs_create(dir, fn, &file, 0));
-
-    void *buf = malloc(len);
-    memset(buf, 'a', len);
-    int r = fs_pwrite(file, buf, len, 0);
-    free(buf);
-    error_check(r);
-}
-
 int
 main (int ac, const char **av)
 {
@@ -114,24 +79,6 @@ main (int ac, const char **av)
     if (mkdir(httpd_root_path, 0) < 0 && errno != EEXIST)
 	throw basic_exception("unable to create %s\n", httpd_root_path);
     
-    try {
-	untar("/", "/bin/a2ps.tar");
-	untar("/", "/bin/gs.tar");
-    } catch (basic_exception &e) {
-	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", 
-		av[0], e.what());
-    }
-    
-    try {
-	create_ascii("/www/", "test.0", 0);
-	create_ascii("/www/", "test.1", 1);
-	create_ascii("/www/", "test.1024", 1024);
-	create_ascii("/www/", "test.8192", 8192);
-    } catch(basic_exception &e) {
-	fprintf(stderr, "%s: WARNING: cannot create test files: %s\n", 
-		av[0], e.what());
-    }
-
     int64_t ssld_taint = handle_alloc();
     int64_t eprocd_taint = ssl_eproc_enable ? handle_alloc() : ssld_taint;
     int64_t access_grant = handle_alloc();

@@ -7,6 +7,7 @@ extern "C" {
 #include <inc/error.hh>
 #include <inc/errno.hh>
 #include <inc/nethelper.hh>
+#include <inc/spawn.hh>
 #include <dj/gatesender.hh>
 #include <dj/djops.hh>
 
@@ -18,6 +19,41 @@ static strbuf fsgate;
 static strbuf appgate;
 
 extern const char *jos_progname;
+
+static void
+untar(const char *in_pn, const char *tar_fn)
+{
+    static const char *tar_pn = "/bin/tar";
+    fs_inode ino;
+    error_check(fs_namei(tar_pn, &ino));
+    const char *argv[] = { tar_pn, "xm", "-C", in_pn, "-f", tar_fn };
+    
+    spawn_descriptor sd;
+    sd.ct_ = start_env->shared_container;
+    sd.elf_ino_ = ino;
+    sd.ac_ = 6;
+    sd.av_ = &argv[0];
+
+    struct child_process cp = spawn(&sd);
+    int64_t exit_code;
+    error_check(process_wait(&cp, &exit_code));
+    error_check(exit_code);
+}
+
+static void
+create_ascii(const char *dn, const char *fn, uint64_t len)
+{
+    struct fs_inode dir;
+    error_check(fs_namei(dn, &dir));
+    struct fs_inode file;
+    error_check(fs_create(dir, fn, &file, 0));
+
+    void *buf = malloc(len);
+    memset(buf, 'a', len);
+    int r = fs_pwrite(file, buf, len, 0);
+    free(buf);
+    error_check(r);
+}
 
 static void
 write_to_file(const char *pn, const strbuf &sb)
@@ -70,17 +106,17 @@ server(void)
         socklen_t socklen = sizeof(sin);
         int ss = accept(s, (struct sockaddr *)&sin, &socklen);
         if (ss < 0) {
-            printf("cannot accept client: %d\n", ss);
+	    warn << jos_progname << ": cannot accept client: " << ss << "\n";
             continue;
         }
-	printf("client connected...\n");
+	warn << jos_progname << ": client connected...\n";
 
 	tcpconn tc(ss, 0);
 	lineparser lp(&tc);
 	
 	const char *req;
 	if ((req = lp.read_line())) {
-	    printf("req %s\n", req);
+	    warn << jos_progname << ": req " << req << "\n";
 	    if (!strcmp(req, "stop"))
 		return;
 	    else if(!strcmp(req, "user")) {
@@ -168,6 +204,25 @@ init(void)
 	}
 	break;
     }
+
+    try {
+	untar("/", "/bin/a2ps.tar");
+	untar("/", "/bin/gs.tar");
+    } catch (basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot untar apps: %s\n", 
+		jos_progname, e.what());
+    }
+    
+    try {
+	create_ascii("/www/", "test.0", 0);
+	create_ascii("/www/", "test.1", 1);
+	create_ascii("/www/", "test.1024", 1024);
+	create_ascii("/www/", "test.8192", 8192);
+    } catch(basic_exception &e) {
+	fprintf(stderr, "%s: WARNING: cannot create test files: %s\n", 
+		jos_progname, e.what());
+    }
+
     system("adduser alice foo");
     system("adduser bob bar");
     warn << jos_progname << ": All done, alice/foo, bob/bar\n";
