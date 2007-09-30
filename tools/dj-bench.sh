@@ -64,6 +64,8 @@ function benchmark {
     $benchcmd >> $out 2>&1
     echo -n "end: " >> $out
     cat /proc/uptime >> $out
+    echo "Benchmark $httpd httpd $app app $user user ($name) done!"
+    sleep 10 # if error, can kill script and check console
 }
 
 function dotp {
@@ -97,7 +99,7 @@ function dotp {
 # left to right in figure from DStar paper
 dotp 1 1 1 5 7 a2pdf
 dotp 2 1 1 5 7 a2pdf
-dotp 3 1 1 5 7 s2pdf
+dotp 3 1 1 5 7 a2pdf
 dotp 1 2 1 6 8 a2pdf
 dotp 1 3 1 7 9 a2pdf
 dotp 1 4 1 9 11 a2pdf
