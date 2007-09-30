@@ -39,21 +39,8 @@ static const char* path = "/";
 static char logging = 0;
 static char auth = 0;
 static char warnings = 1;
-static char host_hack = 0;
 static const char session_reuse = 0;
 static const int bufsize = 4096;
-
-static const char *real_hosts[] = { "silas-jos64.scs.stanford.edu",
-				    "alamo-square.scs.stanford.edu",
-				    "class3.scs.stanford.edu",
-				    "class4.scs.stanford.edu" };
-
-static const char *vm_hosts[] = { "171.66.3.241",
-				  "171.66.3.248",
-				  "171.66.3.249" };
-
-static const char **hosts = real_hosts;
-static int num_hosts = 3;
 
 static int 
 err_exit(char *string)
@@ -169,6 +156,26 @@ http_request(SSL *ssl, const char *host, int port)
     return 0;
 }
 
+static void
+load_host_file(const char *fn, char **hosts, int *n)
+{
+    FILE *f = fopen(fn, "r");
+    if (!f)
+	err_exit("unable to open host file");
+    
+    char buf[128];
+    int i = 0;
+    while (fgets(buf, sizeof(buf), f)) {
+	int n = strlen(buf);
+	if (n == 0)
+	    err_exit("0 length host file entry length");
+	buf[n - 1] = '\0';
+	hosts[i] = strdup(buf);
+	i++;
+    }
+    *n = i;
+}
+
 uint32_t completed = 0;
 
 static void
@@ -195,10 +202,14 @@ main(int ac, char **av)
     int clients = default_clients;
     int timelimit = 0;
 
+    int num_hosts = 1;
+    char *hosts[128];
+    
+    
     if (ac < 3) {
 	fprintf(stderr, "Usage: %s host port "
 		"[-r requests | -c clients | -l time-limit | "
-		"-p path -a -d -s -h num-hosts]\n", av[0]);
+		"-p path -a -d -s -h host-file]\n", av[0]);
 	exit(-1);
     }
 
@@ -233,8 +244,7 @@ main(int ac, char **av)
 	    warnings = 0;
 	    break;
 	case 'h':
-	    num_hosts = atoi(optarg);
-	    host_hack = 1;
+	    load_host_file(optarg, hosts, &num_hosts);
 	    break;
 	}
     }
@@ -261,7 +271,7 @@ main(int ac, char **av)
 	int log = fd[1];
 	close(fd[0]);
 
-	if (host_hack)
+	if (num_hosts > 1)
 	    host = hosts[i % num_hosts];
 
 	struct hostent *hp;
