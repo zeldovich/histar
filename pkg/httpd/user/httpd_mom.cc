@@ -22,7 +22,7 @@ extern "C" {
 #include <inc/scopeguard.hh>
 
 arg_desc cmdarg[] = {
-    { "http_auth_enable", "0" },
+    { "http_auth_enable", "1" },
     { "http_dj_enable", "0" },
 
     { "dj_app_server_count", "1" },
