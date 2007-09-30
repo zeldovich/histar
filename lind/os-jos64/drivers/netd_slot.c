@@ -5,7 +5,7 @@
 
 #include "netduser.h"
 
-struct sock_slot slots[16];
+struct sock_slot slots[128];
 jthread_mutex_t slot_alloc_mu;
 
 struct sock_slot *
