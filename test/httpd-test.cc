@@ -45,7 +45,7 @@ static const int bufsize = 4096;
 static int 
 err_exit(char *string)
 {
-    fprintf(stderr,"%d: %s\n", getpid(), string);
+    fprintf(stderr,"ERROR (%d): %s\n", getpid(), string);
     exit(-1);
 }
 
