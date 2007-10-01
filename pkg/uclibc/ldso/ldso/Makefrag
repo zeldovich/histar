@@ -25,11 +25,10 @@ LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		-DUCLIBC_LDSO=\"ld.so\" \
 		$(UCLIBC_CFLAGS)
 
-LDSO_LDFLAGS := -shared --warn-common --warn-once \
+SO_LDFLAGS   := -shared --warn-common --warn-once \
 		-z combreloc -z relro -z defs -z now -z muldefs \
 		-e _start -Bsymbolic \
-		--export-dynamic --sort-common --discard-locals --discard-all \
-		-soname=/bin/ld.so
+		--export-dynamic --sort-common --discard-locals --discard-all
 
 $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
 	@mkdir -p $(@D)
@@ -48,5 +47,16 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	      $(LDSO_OBJFILES) $(GCC_LIB) \
 	      $(shell $(CC) -print-file-name=crtendS.o) \
 	      $(OBJDIR)/lib/crtn.o \
-	      $(LDSO_LDFLAGS)
+	      $(SO_LDFLAGS) -soname=/bin/ld.so
+
+$(OBJDIR)/lib/%.so: $(OBJDIR)/lib/%.a $(OBJDIR)/user/ld.so
+	@mkdir -p $(@D)
+	$(LD) -o $@ \
+	      $(OBJDIR)/lib/crti.o \
+	      $(shell $(CC) -print-file-name=crtbeginS.o) \
+	      --whole-archive $< --no-whole-archive \
+	      $(shell $(CC) -print-file-name=crtendS.o) \
+	      $(OBJDIR)/lib/crtn.o \
+	      $(OBJDIR)/user/ld.so \
+	      $(SO_LDFLAGS) -soname=$(@F)
 
