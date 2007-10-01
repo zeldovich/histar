@@ -1,3 +1,3 @@
 *lib:
-%{static:-ljos -lnetd -llwip -lc -lm -lutil -lstdc++} %{!static:TOPOBJ/user/ld.so --dynamic-linker /bin/ld.so}
+%{static:-ljos -lnetd -llwip -lc -lstdc++} %{!static:TOPOBJ/user/ld.so --dynamic-linker /bin/ld.so} -lm -lutil
 
