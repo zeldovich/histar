@@ -3,6 +3,10 @@ Usability:
 * shared libraries: edit GNUmakefile and change SHARED_ENABLE to yes
   - few things still do not work: vmlinux, perl
   - many things do work: lwip, login, tar/gzip, ssh/scp
+* linux compat mode: run vmlinux instead of our unix emulation library
+  - catch pagefault, syscall traps, vector them to the vmlinux idt
+  - for sharing, implement "histarfs" in linux that uses our existing
+    for a labeled file system.
 * multi-referenced containers
   - what happens to parent pointers?  disable for multi-refable containers..
   - depth count, with inf value?  not so composable, but decent.
