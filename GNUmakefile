@@ -85,7 +85,7 @@ endif
 LDFLAGS_COMMON	:= -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
 		   -specs=$(TOP)/conf/gcc.specs
 LDFLAGS_SHARED	:= $(LDFLAGS_COMMON) \
-		   -dynamic-linker $(TOP)/$(OBJDIR)/user/ld.so \
+		   -Wl,$(TOP)/$(OBJDIR)/user/ld.so \
 		   -Wl,--dynamic-linker,/bin/ld.so
 LDFLAGS_STATIC	:= $(LDFLAGS_COMMON) -static
 
