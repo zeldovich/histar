@@ -105,7 +105,7 @@ extern void *__dso_handle __attribute__ ((__weak__));
  * (the registered function takes no arguments)
  */
 #ifdef L_atexit
-int attribute_hidden atexit(aefuncp func)
+int atexit(aefuncp func)
 #else
 int old_atexit(aefuncp func)
 #endif
