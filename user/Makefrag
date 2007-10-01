@@ -65,3 +65,7 @@ $(OBJDIR)/user/%.o: $(OBJDIR)/user/%.C $(OBJDIR)/user/%.h
 	@mkdir -p $(@D)
 	$(CXX) $(USER_CXXFLAGS) -Werror -c -o $@ $< $(PER_TARGET_CFLAGS)
 
+$(OBJDIR)/user/%.so: $(OBJDIR)/lib/%.so
+	@mkdir -p $(@D)
+	cp -p $< $@
+
