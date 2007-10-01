@@ -65,7 +65,6 @@ function benchmark {
     echo -n "end: " >> $out
     cat /proc/uptime >> $out
     echo "Benchmark $httpd httpd $app app $user user ($name) done!"
-    sleep 10 # if error, can kill script and check console
 }
 
 function dotp {
