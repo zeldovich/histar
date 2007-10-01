@@ -22,8 +22,8 @@ httpdlist=$2
 applist=$3
 userlist=$4
 
-appcount=$( wc -l $applist | grep -o [0-9*] )
-usercount=$( wc -l $userlist | grep -o [0-9*] )
+appcount=$( wc -l $applist | grep -o "[0-9*] " )
+usercount=$( wc -l $userlist | grep -o "[0-9*] " )
 
 httpdmomopts="--http_auth_enable 1 --http_dj_enable 1"
 httpdmomopts="$httpdmomopts --dj_app_server_count $appcount"
