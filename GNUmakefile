@@ -75,27 +75,23 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/libm.a \
 	   $(OBJDIR)/lib/libcrypt.a \
 	   $(OBJDIR)/lib/libutil.a \
-	   $(OBJDIR)/lib/libstdc++.a
+	   $(OBJDIR)/lib/libstdc++.a \
+	   $(OBJDIR)/lib/gcc.specs
 
 # Shared library stuff
 ifeq ($(K_ARCH),amd64-not-yet)
 SHARED_ENABLE := yes
 endif
 
-LDFLAGS_COMMON	:= -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
-		   -specs=$(TOP)/conf/gcc.specs
-LDFLAGS_SHARED	:= $(LDFLAGS_COMMON) \
-		   -Wl,$(TOP)/$(OBJDIR)/user/ld.so \
-		   -Wl,--dynamic-linker,/bin/ld.so
-LDFLAGS_STATIC	:= $(LDFLAGS_COMMON) -static
+LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
+	   -specs=$(TOP)/$(OBJDIR)/lib/gcc.specs
 
 ifeq ($(SHARED_ENABLE),yes)
 CFLAGS_LIB_SHARED := -fPIC -DSHARED
-LDFLAGS := $(LDFLAGS_SHARED)
 LDEPS += $(OBJDIR)/user/ld.so
 else
 CFLAGS_LIB_SHARED :=
-LDFLAGS := $(LDFLAGS_STATIC)
+LDFLAGS += -static
 endif
 
 # Lists that the */Makefrag makefile fragments will add to

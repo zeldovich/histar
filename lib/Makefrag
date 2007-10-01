@@ -120,3 +120,7 @@ $(OBJDIR)/lib/32/libjos.a: $(OBJDIR)/lib/libjos.a
 $(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
 	grep '#define' $< > $@
 
+## Generate specs file
+$(OBJDIR)/lib/gcc.specs: conf/gcc.specs GNUmakefile
+	cat conf/gcc.specs | sed -e "s,TOPOBJ,$(TOP)/$(OBJDIR)," > $@
+

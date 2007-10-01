@@ -1,5 +1,8 @@
 OBJDIRS += user
 
+## init is special -- must always be static
+$(OBJDIR)/user/init.debuginfo: PER_TARGET_LDFLAGS=-static
+
 ## Programs that require additional libraries
 
 $(OBJDIR)/user/asynct0.o: $(OBJDIR)/acpkg/include/sfslite
@@ -40,10 +43,6 @@ $(OBJDIR)/user/%: user/%.S
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/user/%.o $(LDEPS)
 	$(CC) -o $@ $(LDFLAGS) $< $(PER_TARGET_LDFLAGS)
-
-# init is special -- must always be static
-$(OBJDIR)/user/init.debuginfo: $(OBJDIR)/user/init.o $(LDEPS)
-	$(CC) -o $@ $(LDFLAGS_STATIC) $<
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.debuginfo
 	$(STRIP) $< -o $@
