@@ -124,3 +124,7 @@ $(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
 $(OBJDIR)/lib/gcc.specs: conf/gcc.specs GNUmakefile
 	cat conf/gcc.specs | sed -e "s,TOPOBJ,$(TOP)/$(OBJDIR)," > $@
 
+$(OBJDIR)/lib/libc.so: GNUmakefile
+	@mkdir -p $(@D)
+	echo "INPUT($(TOP)/$(OBJDIR)/user/ld.so)" > $@
+
