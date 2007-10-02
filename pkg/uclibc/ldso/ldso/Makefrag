@@ -43,8 +43,8 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	$(LD) -o $@ \
 	      $(OBJDIR)/lib/crti.o \
 	      $(shell $(CC) -print-file-name=crtbeginS.o) \
-	      --whole-archive $(LDSO_LIBS) --no-whole-archive \
-	      $(LDSO_OBJFILES) $(GCC_LIB) \
+	      --whole-archive $(LDSO_LIBS) $(GCC_LIB) --no-whole-archive \
+	      $(LDSO_OBJFILES) \
 	      $(shell $(CC) -print-file-name=crtendS.o) \
 	      $(OBJDIR)/lib/crtn.o \
 	      $(SO_LDFLAGS) -soname=/bin/ld.so
