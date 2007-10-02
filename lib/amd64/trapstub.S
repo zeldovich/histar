@@ -46,11 +46,7 @@ ENTRY(utrap_entry_asm)
 
 	// Call instead of jmp, because we want the call stack to point back to
 	// this function, so that the unwinder sees our register remapping.
-#ifdef SHARED
-	call	utrap_entry@PLT
-#else
 	call	utrap_entry
-#endif
 	.cfi_endproc
 
 ENTRY(utrap_chain_dwarf2)
