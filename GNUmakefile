@@ -81,6 +81,8 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 # Shared library stuff
 ifeq ($(K_ARCH),amd64-not-yet)
 SHARED_ENABLE := yes
+else
+SHARED_ENABLE := no
 endif
 
 LDFLAGS := -B$(TOP)/$(OBJDIR)/lib -L$(TOP)/$(OBJDIR)/lib \
