@@ -48,8 +48,8 @@ DIS_CFLAGS	:= -I$(OBJDIR)/acpkg/include -I$(OBJDIR)/acpkg/include/sfslite
 DIS_LDDEPS	:= $(OBJDIR)/lib/libdj.a $(OBJDIR)/acpkg/lib/sfslite/libasync.a $(OBJDIR)/acpkg/lib/libgmp.a
 DIS_LDFLAGS	:= -L$(OBJDIR)/acpkg/lib/sfslite -ldj -lsfsmisc -lsvc -lsfscrypt -larpc -lasync -L$(OBJDIR)/acpkg/lib -lgmp
 
-# Avoid deleting intermediate .h, .C files
-.PRECIOUS: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/%.h $(TOP)/$(OBJDIR)/dj/%.h
+# Avoid deleting intermediate .h, .C, .o files
+.PRECIOUS: $(OBJDIR)/dj/%.C $(OBJDIR)/dj/%.h $(TOP)/$(OBJDIR)/dj/%.h $(OBJDIR)/dj/%.o
 
 $(OBJDIR)/dj/%.C: dj/%.x
 	@mkdir -p $(@D)
