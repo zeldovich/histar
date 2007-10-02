@@ -190,6 +190,7 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 
 ## ftp://ftp.gnu.org/gnu/a2ps/a2ps-4.13b.tar.gz
 $(OBJDIR)/acpkg/bin/a2ps: acpkg/a2ps-4.13/__build
+	@
 
 $(OBJDIR)/user/a2ps.tar: OLD_SHARE = $(TOP)/$(OBJDIR)/acpkg/share/a2ps
 $(OBJDIR)/user/a2ps.tar: FLAT_SHARE = $(TOP)/$(OBJDIR)/acpkg/flat_share/share/a2ps
@@ -267,21 +268,27 @@ acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
 	touch $@
 
 $(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
+	@
 
 ## ftp://ftp.gnu.org/gnu/findutils/findutils-4.2.31.tar.gz
 $(OBJDIR)/acpkg/bin/find: acpkg/findutils-4.2.31/__build
+	@
 
 ## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
+	@
 
 ## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
 $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
+	@
 
 ## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
+	@
 
 ## http://ftp.gnu.org/pub/gnu/bash/bash-3.1.tar.gz
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
+	@
 
 acpkg/dhcp-3.0.5/__build: $(LDEPS) $(ACPKG_WRAPS) acpkg/dhcp-3.0.5/__patch
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake clean" )
@@ -303,9 +310,11 @@ acpkg/vim70/__build: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses
 	fi
 	touch $@	
 $(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
+	@
 
 ## http://ftp.gnu.org/pub/gnu/wget/wget-1.9.1.tar.gz
 $(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.9.1/__build
+	@
 
 ## http://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 acpkg/gdb-6.5/gdb/config/i386/__gl:
@@ -324,12 +333,15 @@ $(OBJDIR)/acpkg/bin/gdb: 		     \
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 $(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
+	@
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
+	@
 
 ## http://ftp.gnu.org/pub/gnu/make/make-3.81.tar.gz
 $(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
+	@
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 acpkg/openssh-4.3p2/Makefile: acpkg/openssl-0.9.8a/__build
@@ -343,7 +355,9 @@ acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile $(LDEPS)
 	touch $@
 
 $(OBJDIR)/acpkg/bin/scp: acpkg/openssh-4.3p2/__build
+	@
 $(OBJDIR)/acpkg/sbin/sshd: acpkg/openssh-4.3p2/__build
+	@
 $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 	rm -f $@
 	echo "UsePrivilegeSeparation no" > $(OBJDIR)/acpkg/etc/sshd_config
@@ -429,12 +443,14 @@ acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
 	touch $@
 
 $(OBJDIR)/acpkg/lib/libncurses.a: acpkg/ncurses-5.5/__build
+	@
 $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libncurses.a \
 	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
 ## ftp://ftp.gnu.org/gnu/gmp/gmp-4.2.1.tar.gz
 $(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: acpkg/gmp-4.2.1/__build
+	@
 
 ## http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 acpkg/sfslite-1.0.0/Makefile: acpkg/sfslite-1.0.0/__reconf
@@ -442,8 +458,11 @@ acpkg/sfslite-1.0.0/Makefile: $(OBJDIR)/acpkg/lib/libgmp.a
 
 $(OBJDIR)/acpkg/include/sfslite: acpkg/sfslite-1.0.0/__build
 $(OBJDIR)/acpkg/lib/sfslite/libasync.a: acpkg/sfslite-1.0.0/__build
+	@
 $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
+	@
 $(OBJDIR)/acpkg/lib/sfslite/libasync.so.0: acpkg/sfslite-1.0.0/__build
+	@
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/lib/sfslite/%
 	@mkdir -p $(@D)
 	cp $< $@
