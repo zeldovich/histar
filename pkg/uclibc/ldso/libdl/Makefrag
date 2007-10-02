@@ -1,0 +1,17 @@
+OBJDIRS += pkg/uclibc/ldso/libdl
+
+LIBDL_CSRC := libdl.c
+LIBDL_OBJFILES := $(patsubst %.c, $(OBJDIR)/pkg/uclibc/ldso/libdl/%.o, $(LIBDL_CSRC))
+LIBDL_CFLAGS := $(UCLIBC_CFLAGS) -Iuinc/ldso \
+		-Ipkg/uclibc/ldso/include \
+		-Ipkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)
+
+$(OBJDIR)/pkg/uclibc/ldso/libdl/%.o: pkg/uclibc/ldso/libdl/%.c
+	@mkdir -p $(@D)
+	$(CC) $(LIBDL_CFLAGS) $< -c -o $@
+
+$(OBJDIR)/lib/libdl.a: $(LIBDL_OBJFILES)
+	@mkdir -p $(@D)
+	rm -f $@
+	$(AR) r $@ $(LIBDL_OBJFILES)
+

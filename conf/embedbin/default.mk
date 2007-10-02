@@ -1,5 +1,5 @@
 KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab
-#KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so
+#KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
 KERN_BINFILES	+= user/netd user/netd_mom user/jntpd
 #KERN_BINFILES	+= user/vmlinux user/initrd user/netd_mom
 #KERN_BINFILES	+= user/telnetd user/httpd user/httpd_worker user/tcpserv user/ftpd
