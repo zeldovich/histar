@@ -38,7 +38,7 @@ $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/$(UCLIBC_ARCH)/%.S
 	@mkdir -p $(@D)
 	$(CC) $(LDSO_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
+$(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS) $(OBJDIR)/lib/crti.o $(OBJDIR)/lib/crtn.o
 	@mkdir -p $(@D)
 	$(LD) -o $@ \
 	      $(OBJDIR)/lib/crti.o \
@@ -51,7 +51,7 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	      -Bsymbolic --dynamic-list=conf/ldso.dynlist \
 	      -soname=/bin/ld.so
 
-$(OBJDIR)/lib/%.so: $(OBJDIR)/lib/%.a $(OBJDIR)/user/ld.so
+$(OBJDIR)/lib/%.so: $(OBJDIR)/lib/%.a $(OBJDIR)/user/ld.so $(OBJDIR)/lib/crti.o $(OBJDIR)/lib/crtn.o
 	@mkdir -p $(@D)
 	$(LD) -o $@ \
 	      $(OBJDIR)/lib/crti.o \
