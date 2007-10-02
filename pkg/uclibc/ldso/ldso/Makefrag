@@ -26,7 +26,7 @@ LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 		$(UCLIBC_CFLAGS)
 
 SO_LDFLAGS   := -shared --warn-common --warn-once \
-		-z combreloc -z relro -z defs -z now -z muldefs \
+		-z combreloc -z relro -z defs -z now \
 		-e _start -Bsymbolic \
 		--export-dynamic --sort-common --discard-locals --discard-all
 
