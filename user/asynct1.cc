@@ -78,6 +78,8 @@ finger::recvreply ()
 	buf.tosuio ()->output (1);
 	delete this;
 	break;
+    default:
+	panic("hmm");
     }
 }
 
