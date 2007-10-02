@@ -46,6 +46,7 @@ ttyslot(void)
     return 0;    
 }
 
+#ifndef SHARED
 int
 dl_iterate_phdr(int (*callback) (struct dl_phdr_info *info,
 				 size_t size, void *data),
@@ -53,4 +54,5 @@ dl_iterate_phdr(int (*callback) (struct dl_phdr_info *info,
 {
     return 0;
 }
+#endif
 
