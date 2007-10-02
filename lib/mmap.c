@@ -185,6 +185,34 @@ mprotect(void *addr, size_t len, int prot)
     return -1;
 }
 
+int
+mlock(const void *addr, size_t len)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+munlock(const void *addr, size_t len)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+mlockall(int flags)
+{
+    set_enosys();
+    return -1;
+}
+
+int
+munlockall(void)
+{
+    set_enosys();
+    return -1;
+}
+
 libc_hidden_def(mmap)
 libc_hidden_def(munmap)
 libc_hidden_def(mremap)
