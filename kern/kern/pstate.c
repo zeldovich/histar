@@ -41,6 +41,9 @@ struct mobject {
     uint64_t nbytes;
 };
 
+// A zero page (not necessarily aligned), for memcmp()
+static uint8_t zero_page[PGSIZE];
+
 //////////////////////////////////////////////////
 // Encrypted pstate timestamps
 //////////////////////////////////////////////////
@@ -151,12 +154,12 @@ pstate_kobj_free(struct freelist *f, struct kobject *ko)
 }
 
 static int64_t
-pstate_kobj_alloc(struct freelist *f, struct kobject *ko)
+pstate_kobj_alloc(struct freelist *f, struct kobject *ko, uint64_t objbytes)
 {
     int r;
     pstate_kobj_free(f, ko);
 
-    uint64_t nbytes = KOBJ_DISK_SIZE + ROUNDUP(ko->hdr.ko_nbytes, 512);
+    uint64_t nbytes = KOBJ_DISK_SIZE + ROUNDUP(objbytes, PGSIZE);
     int64_t offset = freelist_alloc(f, nbytes);
 
     if (offset < 0) {
@@ -533,7 +536,25 @@ pstate_sync_kobj(struct pstate_header *hdr,
     snap->hdr.ko_sync_ts = hdr->ph_sync_ts;
     snap->hdr.ko_flags |= KOBJ_ON_DISK;
 
-    int64_t off = pstate_kobj_alloc(&freelist, snap);
+    uint64_t objbytes = snap->hdr.ko_nbytes;
+    uint64_t pgoff = PGOFF(objbytes);
+    if (pgoff) {
+	/* Verify the user hasn't scribbled on the tail of the last page */
+	uint64_t lastpage = ROUNDDOWN(objbytes, PGSIZE) / PGSIZE;
+	void *p;
+	int r = kobject_get_page(&snap->hdr, lastpage, &p, page_shared_ro);
+	if (r < 0)
+	    panic("pstate_sync_kobj: cannot get last page: %s", e2s(r));
+
+	if (memcmp(p + pgoff, &zero_page[0], PGSIZE - pgoff) != 0) {
+	    if (pstate_swapout_debug)
+		cprintf("pstate_sync_kobj: tail garbage: %"PRIu64" (%s)\n",
+			snap->hdr.ko_id, snap->hdr.ko_name);
+	    objbytes += PGSIZE - pgoff;
+	}
+    }
+
+    int64_t off = pstate_kobj_alloc(&freelist, snap, objbytes);
     if (off < 0) {
 	cprintf("pstate_sync_kobj: cannot allocate space: %s\n", e2s(off));
 	return off;
@@ -555,7 +576,7 @@ pstate_sync_kobj(struct pstate_header *hdr,
 	if (r < 0)
 	    panic("pstate_sync_kobj: cannot get page: %s", e2s(r));
 
-	uint32_t pagebytes = JMIN(ROUNDUP(snap->hdr.ko_nbytes - page * PGSIZE,
+	uint32_t pagebytes = JMIN(ROUNDUP(objbytes - page * PGSIZE,
 					  512), (uint32_t) PGSIZE);
 	r = pstate_iov_append(&x, p, pagebytes);
 	if (r < 0)
