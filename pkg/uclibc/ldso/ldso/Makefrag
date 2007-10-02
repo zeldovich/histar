@@ -27,7 +27,7 @@ LDSO_CFLAGS  := -DLDSO_ELFINTERP=\"$(UCLIBC_ARCH)/elfinterp.c\" \
 
 SO_LDFLAGS   := -shared --warn-common --warn-once \
 		-z combreloc -z relro -z defs -z now \
-		-e _start -Bsymbolic \
+		-e _start \
 		--export-dynamic --sort-common --discard-locals --discard-all
 
 $(OBJDIR)/pkg/uclibc/ldso/ldso/%.o: pkg/uclibc/ldso/ldso/%.c
@@ -47,7 +47,9 @@ $(OBJDIR)/user/ld.so.debuginfo: $(LDSO_OBJFILES) $(LDSO_LIBS)
 	      $(LDSO_OBJFILES) \
 	      $(shell $(CC) -print-file-name=crtendS.o) \
 	      $(OBJDIR)/lib/crtn.o \
-	      $(SO_LDFLAGS) -soname=/bin/ld.so
+	      $(SO_LDFLAGS) \
+	      -Bsymbolic --dynamic-list=conf/ldso.dynlist \
+	      -soname=/bin/ld.so
 
 $(OBJDIR)/lib/%.so: $(OBJDIR)/lib/%.a $(OBJDIR)/user/ld.so
 	@mkdir -p $(@D)
