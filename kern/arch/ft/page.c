@@ -17,8 +17,8 @@
 
 struct page_info *page_infos;
 
-#include <ft_public.h>
-#include <ft_runtest.h>
+//#include <ft_public.h>
+//#include <ft_runtest.h>
 
 // debug flags
 static int scrub_free_pages = 0;
@@ -69,7 +69,7 @@ lnxpage_init(uint64_t membytes)
     page_alloc_init();
     for (uint64_t i = 0; i < global_npages; i++) {
 	uintptr_t fool_ft = ((uintptr_t)physmem_base) + i * PGSIZE;
-	ft_register_memory(fool_ft, PGSIZE, "physmem-page");
+	//ft_register_memory(fool_ft, PGSIZE, "physmem-page");
 	void *pg = (void *) fool_ft;
 	page_free(pg);
     }

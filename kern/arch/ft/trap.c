@@ -177,3 +177,13 @@ thread_arch_utrap(struct Thread *t, uint32_t src, uint32_t num, uint64_t arg)
     t->th_tf.tf_cs = GD_UT_MASK;
     return 0;
 }
+
+void
+karch_fp_init(struct Fpregs *fpreg)
+{
+}
+
+int
+thread_arch_is_masked(const struct Thread *t)
+{
+}

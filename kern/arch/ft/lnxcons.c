@@ -1,6 +1,6 @@
 #define _GNU_SOURCE 1
 
-#include <dev/console.h>
+#include <kern/console.h>
 #include <kern/arch.h>
 
 #include <stdio.h>
@@ -12,16 +12,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-struct Thread_list console_waiting;
-
-void
-cons_putc(int c)
+static void
+lnx_cons_putc(void *arg, int c)
 {
     putc(c, stdout);
 }
 
-int
-cons_getc(void)
+static int
+lnx_cons_getc(void *arg)
 {
     int flags = fcntl(0, F_GETFL);
     fcntl(0, F_SETFL, flags | O_NONBLOCK);
@@ -35,14 +33,13 @@ cons_getc(void)
     return c;
 }
 
-int
-cons_probe(void)
-{
-    return 0;
-}
-
 void
-cons_cursor(int line, int col)
+lnx_cons_init(void)
 {
-    printf("cons_cursor(%d, %d)\n", line, col);
+    static struct cons_device cd = {
+	.cd_pollin = &lnx_cons_getc,
+	.cd_output = &lnx_cons_putc,
+    };
+
+    cons_register(&cd);
 }

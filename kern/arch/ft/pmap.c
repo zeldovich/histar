@@ -88,7 +88,7 @@ check_user_access2(const void *base, uint64_t nbytes,
 	    if (next_offset + nbytes > PGSIZE)
 		panic("check_user_access: overflowed symbolic user page; offset %"PRIu64, next_offset);
 
-	    ft_assume(orig_base == (the_user_page + next_offset));
+	    //ft_assume(orig_base == (the_user_page + next_offset));
 	    cprintf("check_user_access: concretizing %"PRIu64" bytes at offset %"PRIu64"\n",
 		    nbytes, next_offset);
 	    next_offset += nbytes;
@@ -102,8 +102,10 @@ check_user_access2(const void *base, uint64_t nbytes,
 int
 page_map_alloc(struct Pagemap **pm_store)
 {
+#if 0
     if (enable_page_alloc_failure && FT_CHOOSE(2))
 	return -E_NO_MEM;
+#endif
 
     struct Pagemap *pm = malloc(sizeof(*pm));
     memset(pm, 0, sizeof(*pm));
@@ -152,8 +154,10 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 	return 0;
     }
 
+#if 0
     if (enable_page_alloc_failure && FT_CHOOSE(2))
 	return -E_NO_MEM;
+#endif
 
     if (freeslot == -1)
 	return -E_NO_MEM;
@@ -165,7 +169,28 @@ pgdir_walk(struct Pagemap *pgmap, const void *va,
 }
 
 void
-pmap_set_current(struct Pagemap *pm, int flush_tlb)
+pmap_set_current(struct Pagemap *pm)
 {
     cur_pm = pm;
+}
+
+void
+as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
+{
+}
+
+void
+as_arch_collect_dirty_bits(const void *arg, ptent_t *ptep, void *va)
+{
+}
+
+void
+as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
+{
+}
+
+int
+as_arch_putpage(struct Pagemap *pmap, void *va, void *pp, uint32_t flags)
+{
+    return -E_INVAL;
 }

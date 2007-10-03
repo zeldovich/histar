@@ -1,6 +1,5 @@
 #define _GNU_SOURCE 1
 
-#include <dev/disk.h>
 #include <dev/kclock.h>
 #include <dev/picirq.h>
 #include <kern/arch.h>
@@ -36,6 +35,11 @@ void
 irq_setmask_8259A(uint16_t mask)
 {
     printf("irq_setmask_8259A: 0x%x\n", mask);
+}
+
+void
+irq_arch_enable(uint32_t irq)
+{
 }
 
 void

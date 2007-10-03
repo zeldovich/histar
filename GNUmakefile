@@ -49,13 +49,15 @@ ifeq ($(ARCH),amd64)
 OPTFLAG  += -march=athlon64
 endif
 
+BASECFLAGS  := -nostdinc -isystem $(shell $(CC) -print-file-name=include)
+
 ifeq ($(K_ARCH),ft)
-COMWARNS := 
-CWARNS	 := 
-OPTFLAG	 := 
+BASECFLAGS :=
+COMWARNS   := 
+CWARNS	   := 
+OPTFLAG	   := 
 endif
 
-BASECFLAGS  := -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH)
 CSTD	    := -std=c99 -fms-extensions $(shell ./conf/gcc-flags.sh $(CC))

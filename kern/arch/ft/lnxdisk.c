@@ -1,6 +1,7 @@
 #include <machine/lnxdisk.h>
-#include <dev/disk.h>
+#include <kern/disk.h>
 #include <inc/error.h>
+#include <inc/intmacro.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -9,8 +10,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-uint64_t disk_bytes;
-int disk_fd;
+static uint64_t disk_bytes;
+static int disk_fd;
 
 void
 lnxdisk_init(const char *disk_pn)

@@ -15,7 +15,8 @@
 
 static uint64_t root_container_id;
 
-#define make_symbolic(x, name) ft_make_symbolic_array(&(x), sizeof(x), (name))
+//#define make_symbolic(x, name) ft_make_symbolic_array(&(x), sizeof(x), (name))
+#define make_symbolic(x, name)
 
 static void
 bootstrap_tcb(void *arg, struct Thread *t)
@@ -34,7 +35,7 @@ bootstrap_tcb(void *arg, struct Thread *t)
 
     if (rip == 0) {
 	/* Set things up.. */
-	ft_make_symbolic_array(upage, PGSIZE, "upage");
+	//ft_make_symbolic_array(upage, PGSIZE, "upage");
     } else if (rip <= ncalls) {
 	uint64_t a0, a1, a2, a3, a4, a5, a6, a7;
 	make_symbolic(a0, "syscall_a0");
