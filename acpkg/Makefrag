@@ -179,6 +179,10 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/sbin/%
 	@mkdir -p $(@D)
 	cp $< $@
 
+$(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/lib/%
+	@mkdir -p $(@D)
+	cp $< $@
+
 $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
