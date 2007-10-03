@@ -13,6 +13,37 @@ Benchmarking
   - can pass in a list of front-ends:
     time obj/test/httpd-test x -c X -l 30 -p -h path-to/list /test.1?cat
 
+* Linux
+  - install apache2:
+    $ apt-get install apache2 libapache2-mod-perl2 ssl-cert
+  - setup ssl:
+    $ mkdir /etc/apache2/ssl
+    $ make-ssl-cert /usr/share/ssl-cert/ssleay.cnf /etc/apache2/ssl/apache2.pem
+    $ a2enmod ssl
+    $ echo "Listen 443" | sudo tee -a /etc/apache2/ports.conf
+    $ cp /etc/apache2/sites-available/default /etc/apache2/sites-available/ssl
+    modify /etc/apache2/sites-available/ssl
+     
+     NameVirtualHost *:443
+     <VirtualHost *:443>
+         ServerAdmin webmaster@localhost
+         SSLEngine on
+         SSLCertificateFile /etc/apache2/ssl/apache2.pem
+
+    modify /etc/apache2/sites-available/default
+     
+     NameVirtualHost *:80
+     <VirtualHost *:80>
+
+    $ /etc/init.d/apache2 reload
+    $ /etc/init.d/apache2 reload 
+    (run it twice)
+  - cgi:
+    - just mkdir /usr/lib/cgi-bin or edit apache2 config file
+
+  - if running a2pdf benchs:
+    $ apt-get install a2ps gs
+
 * xen
   - cut-and-paste readme:
     http://www.howtoforge.com/ubuntu_7.04_xen_from_repositories
