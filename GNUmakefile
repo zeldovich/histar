@@ -58,6 +58,10 @@ CWARNS	   :=
 OPTFLAG	   := 
 endif
 
+ifeq ($(K_ARCH),um)
+BASECFLAGS :=
+endif
+
 COMFLAGS    := $(BASECFLAGS) -g $(OPTFLAG) -fno-strict-aliasing \
 	       -Wall -MD -DJOS_ARCH_$(ARCH)
 CSTD	    := -std=c99 -fms-extensions $(shell ./conf/gcc-flags.sh $(CC))
