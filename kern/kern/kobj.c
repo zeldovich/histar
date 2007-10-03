@@ -438,6 +438,10 @@ kobject_set_nbytes(struct kobject_hdr *kp, uint64_t nbytes)
 	}
     }
 
+    // As a safety net, do not allocate ridiculously large objects
+    if (nbytes >= CT_QUOTA_INF)
+	return -E_RESOURCE;
+
     if (npages < curnpg)
 	assert(!kp->ko_pin_pg);
 
