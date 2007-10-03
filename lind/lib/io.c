@@ -4,13 +4,13 @@
 
 void __memcpy_toio(unsigned long dst,const void*src,unsigned len)
 {
-	__inline_memcpy((void *) dst,src,len);
+	memcpy((void *) dst,src,len);
 }
 EXPORT_SYMBOL(__memcpy_toio);
 
 void __memcpy_fromio(void *dst,unsigned long src,unsigned len)
 {
-	__inline_memcpy(dst,(const void *) src,len);
+	memcpy(dst,(const void *) src,len);
 }
 EXPORT_SYMBOL(__memcpy_fromio);
 
