@@ -62,11 +62,6 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	return va;
     }
 
-    if (start && (flags & MAP_FIXED)) {
-	__set_errno(EINVAL);
-	return MAP_FAILED;
-    }
-
     uint32_t seg_flags = SEGMAP_ANON_MMAP | SEGMAP_READ;
     if ((prot & PROT_EXEC))
 	seg_flags |= SEGMAP_EXEC;
@@ -81,7 +76,7 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	return MAP_FAILED;
     }
 
-    void *va = 0;
+    void *va = (flags & MAP_FIXED) ? start : 0;
     r = segment_map(seg, 0, seg_flags, &va, 0, 0);
     if (r < 0) {
 	sys_obj_unref(seg);
