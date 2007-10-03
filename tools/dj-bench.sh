@@ -96,33 +96,33 @@ function dotp {
 }
 
 # left to right in figure from DStar paper
-dotp 1 1 1 7 9 a2pdf
-dotp 2 1 1 7 9 a2pdf
-dotp 3 1 1 4 6 a2pdf
-dotp 1 2 1 6 8 a2pdf
-dotp 1 3 1 6 8 a2pdf
-dotp 1 4 1 8 10 a2pdf
-dotp 1 1 2 9 11 a2pdf
-dotp 2 1 2 5 7 a2pdf
-dotp 3 1 2 4 6 a2pdf
-dotp 1 2 2 10 12 a2pdf
-dotp 1 3 2 9 11 a2pdf
-dotp 2 3 1 14 16 a2pdf
-dotp 2 3 2 14 16 a2pdf
+#dotp 1 1 1 9 11 a2pdf 
+#dotp 2 1 1 9 11 a2pdf 
+#dotp 3 1 1 4 6 a2pdf
+#dotp 1 2 1 6 8 a2pdf
+#dotp 1 3 1 6 8 a2pdf
+#dotp 1 4 1 10 12 a2pdf 
+#dotp 1 1 2 9 11 a2pdf
+#dotp 2 1 2 5 7 a2pdf
+#dotp 3 1 2 6 8 a2pdf 
+#dotp 1 2 2 10 12 a2pdf
+#dotp 1 3 2 9 11 a2pdf 
+#dotp 2 3 1 14 16 a2pdf
+#dotp 2 3 2 16 18 a2pdf 
 
-dotp 1 1 1 7 10 cat
-dotp 2 1 1 7 9 cat
-dotp 3 1 1 12 14 cat
-dotp 1 2 1 12 14 cat
-dotp 1 3 1 12 14 cat
-dotp 1 4 1 10 12 cat
-dotp 1 1 2 7 9 cat
-dotp 2 1 2 12 14 cat
-dotp 3 1 2 16 18 cat
-dotp 1 2 2 11 13 cat
-dotp 1 3 2 11 13 cat
-dotp 2 3 1 10 12 cat
-dotp 2 3 2 12 14 cat
+#dotp 1 1 1 7 10 cat
+#dotp 2 1 1 9 11 cat 
+#dotp 3 1 1 14 16 cat
+#dotp 1 2 1 12 14 cat
+#dotp 1 3 1 14 16 cat
+#dotp 1 4 1 16 18 cat
+#dotp 1 1 2 7 9 cat
+#dotp 2 1 2 14 16 cat
+#dotp 3 1 2 18 20 cat
+#dotp 1 2 2 11 13 cat
+#dotp 1 3 2 11 13 cat
+#dotp 2 3 1 10 12 cat
+#dotp 2 3 2 14 16 cat
 
 #benchmark httpd app user name command
 #benchmark 1 1 1 "tp-pdf" "../obj/test/httpd-test 171.66.3.200 443 -c 5 -l 20 -a -p /www/test.8192?a2pdf"
