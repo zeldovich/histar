@@ -1,0 +1,40 @@
+Benchmarking
+------------
+* test/httpd-test
+  - see tools/dj* for automated bootstrapping and benching of DStar 
+    systems.
+  - basic, min latency:
+    time obj/test/httpd-test doe.scs.stanford.edu 4443 -r 100 -p /test.1?cat
+  - basic, throughput:
+    time obj/test/httpd-test doe.scs.stanford.edu 4443 -c X -l 30 -p /test.1?cat
+  - djd requires -a for auth
+  - when measuring w/o auth don't use -a, otherwise httpd2 authenticates
+  - djd requires prefixing paths with www/
+  - can pass in a list of front-ends:
+    time obj/test/httpd-test x -c X -l 30 -p -h path-to/list /test.1?cat
+
+* xen
+  - cut-and-paste readme:
+    http://www.howtoforge.com/ubuntu_7.04_xen_from_repositories
+  - front-end: stunnel+httpd+nc
+    - httpd.stunnel:
+    
+    foreground = no
+    key = /root/servkey.pem
+    cert = /root/server.pem
+
+    [pseudo-https]
+    accept = 443
+    connect = 127.0.0.1:80
+
+    - some cgi script contacts app server
+  - app server: inetd+nc+a2pdf
+    - a2pdf:
+
+    nc some-ip some-port | a2ps --quiet --output=- --pretty-print=plain | \
+     gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=- \
+     -c .setpdfwrite -f -
+
+    - make sure inetd is started with -R some-big-num
+  - data server: inetd+cat
+    - make sure inetd is started with -R some-big-num
