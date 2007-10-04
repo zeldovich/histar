@@ -6,6 +6,7 @@
 #include <inc/elf64.h>
 #include <inc/memlayout.h>
 #include <inc/error.h>
+#include <inc/assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -55,7 +56,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     }
 
     struct u_segment_mapping sm_ents[8];
-    int si = 0;
+    uint32_t si = 0;
 
     ARCH_ELF_EHDR *elf = (ARCH_ELF_EHDR*) segbuf;
     if (elf->e_magic != ARCH_ELF_MAGIC) {
@@ -298,6 +299,7 @@ elf_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
     if (ldso_buf)
 	segment_unmap_delayed(ldso_buf, 1);
 
+    assert(si <= sizeof(sm_ents) / sizeof(sm_ents[0]));
     struct u_address_space uas = { .trap_handler = 0,
 				   .trap_stack_base = 0,
 				   .trap_stack_top = 0,

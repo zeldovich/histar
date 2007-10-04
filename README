@@ -74,7 +74,7 @@ avoid 32-bit truncation for some MMX operations.
 
 ./configure --disable-kqemu --disable-sdl --disable-gfx-check \
 	--cc=gcc34 --host-cc=gcc34 \
-	--target-list='x86_64-softmmu i386-softmmu sparc-softmmu'
+	--target-list='x86_64-softmmu i386-softmmu sparc-softmmu arm-softmmu'
 
 * To boot HiStar for the first time:
 
