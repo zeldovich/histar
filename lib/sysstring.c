@@ -23,6 +23,7 @@ static const char *const error_string[E_MAXERROR + 1] = {
     [E_FIXED_QUOTA] = "object has fixed quota",
     [E_VAR_QUOTA]   = "object has variable quota",
     [E_RESOURCE]    = "container out of space",
+    [E_BAD_TYPE]    = "bad object type",
     [E_RANGE]	    = "value out of range",
     [E_EOF]	    = "unexpected end-of-file",
     [E_MAX_OPEN]    = "out of file descriptors",
