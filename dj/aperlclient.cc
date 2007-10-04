@@ -232,8 +232,8 @@ main(int ac, char **av)
     pr.f = &gm;
 
     delaycb(5, wrap(&start_stuff, &pr, 1));
-    //delaycb(6, wrap(&start_stuff, &pr, 1));
-    //delaycb(7, wrap(&start_stuff, &pr, 10));
+    delaycb(6, wrap(&start_stuff, &pr, 1));
+    delaycb(7, wrap(&start_stuff, &pr, 10));
 
     amain();
 }
