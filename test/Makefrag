@@ -1,5 +1,7 @@
 OBJDIRS += test test/lwip test/btree
 
+.PRECIOUS: $(OBJDIR)/test/%.o
+
 TEST_KERN_CFLAGS := -g -DJOS_KERNEL -I$(TOP) -I$(TOP)/kern -I$(TOP)/obj
 TEST_USER_CFLAGS := \
 	-g -DJOS_USER -DJOS_TEST -I$(TOP) -I$(TOP)/obj \
