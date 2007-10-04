@@ -1,0 +1,6 @@
+#ifndef JOS_MACHINE_TRAPCODES_H
+#define JOS_MACHINE_TRAPCODES_H
+
+#define NTRAPS 256
+
+#endif

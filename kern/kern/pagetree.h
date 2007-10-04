@@ -3,6 +3,7 @@
 
 #include <machine/types.h>
 #include <machine/memlayout.h>
+#include <machine/mmu.h>
 #include <inc/safetype.h>
 
 typedef struct {

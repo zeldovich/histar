@@ -5,6 +5,7 @@
 
 #define JOS_ARCH_BITS	32
 #define JOS_ARCH_ENDIAN	JOS_BIG_ENDIAN
+#define JOS_ARCH_RETADD	0
 
 #ifdef JOS_KERNEL
 #define MAX_IRQS	16

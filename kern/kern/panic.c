@@ -1,3 +1,4 @@
+#include <machine/param.h>
 #include <kern/lib.h>
 #include <kern/thread.h>
 
@@ -28,7 +29,8 @@ _panic(const char *file, int line, const char *fmt, ...)
     cprintf("\n");
     va_end(ap);
 
-#define PRINT_STACK(i) \
+#if JOS_ARCH_RETADD
+#define PRINT_STACK(i)\
     cprintf("Call stack[%d]: %p\n", i, __builtin_return_address(i))
 
     PRINT_STACK(0);
@@ -39,6 +41,7 @@ _panic(const char *file, int line, const char *fmt, ...)
     PRINT_STACK(5);
     PRINT_STACK(6);
     PRINT_STACK(7);
+#endif
 
  dead:
     abort();

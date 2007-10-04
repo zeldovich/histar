@@ -13,6 +13,7 @@ K_ARCH	:= amd64
 #K_ARCH	:= ft
 #K_ARCH	:= sparc
 #K_ARCH	:= um
+#K_ARCH	:= arm
 
 ## Use multiple objdirs to build multiple architectures with same source tree
 OBJDIR	:= obj

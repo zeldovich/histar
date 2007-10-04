@@ -1,0 +1,14 @@
+ARCH    := arm
+TARGET  := arm-jos-linux
+OBJTYPE := elf32-littlearm
+BFDARCH := arm
+
+CC      := $(GCCPREFIX)gcc -pipe -mlittle-endian -mcpu=arm1136jf-s
+CXX     := $(GCCPREFIX)g++ -pipe -mlittle-endian -mcpu=arm1136jf-s
+AS      := $(GCCPREFIX)as -mlittle-endian
+AR      := $(GCCPREFIX)ar
+LD      := $(GCCPREFIX)ld -m armelf_linux
+OBJCOPY := $(GCCPREFIX)objcopy
+OBJDUMP := $(GCCPREFIX)objdump -m arm
+NM      := $(GCCPREFIX)nm
+STRIP   := $(GCCPREFIX)strip
