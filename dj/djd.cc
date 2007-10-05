@@ -19,6 +19,10 @@
 #include <dj/djkey.hh>
 #include <dj/perf.hh>
 
+#ifdef USE_FLUME
+#include <dj/djflume.hh>
+#endif
+
 #ifndef JOS_TEST
 extern "C" {
 #include <inc/syscall.h>
@@ -212,6 +216,16 @@ main(int ac, char **av)
 	assert(verify_stmt(ss));
     end = time_usec();
     printf("Verify: %ld usec\n", (end - start) / count);
+
+#ifdef USE_FLUME
+    flume_mapcreate fmc(djs);
+
+    ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs,
+				wrap(&dj_flume_perl_svc, &fmc)));
+    warn << "flume perl service on " << ep << "\n";
+
+    emux.set(EP_MAPCREATE, wrap(&fmc, &flume_mapcreate::exec));
+#endif
 #endif
 
 #ifndef JOS_TEST

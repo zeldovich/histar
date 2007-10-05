@@ -161,8 +161,9 @@ $(OBJDIR)/test/flumeperl: $(FLUME_PERL_OBJS)
 	$(NCC) -o $@ $^ -lm
 
 ## Distributed stuff
-DIS_NCC_CFLAGS  := -I/usr/local/include/sfs -I/usr/local/include
-DIS_NCC_LDFLAGS := -L/usr/local/lib/sfs -L/usr/local/lib
+DIS_NCC_CFLAGS  := -I/usr/local/include/sfslite/shared -I/usr/local/include
+DIS_NCC_LDFLAGS := -L/usr/local/lib/sfslite/shared -L/usr/local/lib \
+		   -Wl,--rpath -Wl,/usr/local/lib/sfslite/shared
 
 $(OBJDIR)/test/%.o: dj/%.cc $(DIS_HEADERS)
 	@mkdir -p $(@D)
@@ -175,6 +176,17 @@ $(OBJDIR)/test/%.o: $(OBJDIR)/dj/%.C $(DIS_HEADERS)
 $(OBJDIR)/test/%: $(DIS_OBJS) $(OBJDIR)/test/%.o
 	@mkdir -p $(@D)
 	$(NCC) $(DIS_NCC_LDFLAGS) -o $@ $^ -lsfsmisc -lsvc -lsfscrypt -larpc -lasync -lgmp -lstdc++ -lm -lresolv
+
+## Distributed stuff with Flume
+$(OBJDIR)/test/flume-%.o: dj/%.cc $(DIS_HEADERS)
+	@mkdir -p $(@D)
+	$(NCC) $(DIS_NCC_CFLAGS) $(TEST_USER_CFLAGS) $(FLUME_NCC_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/test/flume-djd: $(DIS_OBJS) $(OBJDIR)/test/flume-djd.o $(OBJDIR)/test/flume-djflume.o
+	@mkdir -p $(@D)
+	$(NCC) $(DIS_NCC_LDFLAGS) -o $@ $^ $(FLUME_NCC_LDFLAGS) \
+		-lsfsmisc -lsvc -lsfscrypt -larpc -lasync -lgmp \
+		-lstdc++ -lm -lresolv
 
 ## lwip bench rules
 $(OBJDIR)/test/lwip/%.o: user/%.cc
