@@ -120,7 +120,8 @@ FLUME_SRC	 := /home/nickolai/src/flume/linux
 FLUME_RUN	 := /disk/nickolai/flume/run
 FLUME_NCC_CFLAGS := -DUSE_FLUME=1 -g -fno-stack-protector \
 		    -I$(FLUME_SRC) -I$(FLUME_SRC)/include \
-		    -I$(FLUME_SRC)/build-tree/obj/prot
+		    -I$(FLUME_SRC)/build-tree/obj/prot \
+		    -include $(FLUME_SRC)/include/flume_features.h
 FLUME_NCC_LDFLAGS := \
 	-L/usr/local/lib/sfslite/shared \
 	-Wl,--rpath -Wl,/usr/local/lib/sfslite/shared \
@@ -134,19 +135,30 @@ FLUME_NCC_LDFLAGS := \
 	$(FLUME_SRC)/build-tree/obj/clnt/libflumeclnt/.libs/libflumeclnt_cxx.so \
 	-ltame -lsfsmisc -larpc -lsfscrypt -lasync -lgmp
 
-$(OBJDIR)/test/flume-hello.o: test/flume-hello.c
+$(OBJDIR)/test/flume-hello.o $(OBJDIR)/test/flume-hellorun.o: $(OBJDIR)/test/%.o: test/%.c
 	@mkdir -p $(@D)
 	$(NCC) $(FLUME_NCC_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/test/flume-hello: $(OBJDIR)/test/flume-hello.o
+$(OBJDIR)/test/flume-hello $(OBJDIR)/test/flume-hellorun: $(OBJDIR)/test/%: $(OBJDIR)/test/%.o
 	$(NCC) -o $@ $< $(FLUME_NCC_LDFLAGS)
 
-$(OBJDIR)/test/flume-hellorun.o: test/flume-hellorun.c
+## Flume-ified perl
+FLUME_PERL_SRCS := \
+	av.c deb.c doio.c doop.c dump.c globals.c gv.c hv.c \
+	mg.c miniperlmain.c op.c reentr.c pad.c perl.c perlio.c \
+	perly.c pp.c pp_ctl.c pp_hot.c pp_sys.c pp_pack.c \
+	pp_sort.c regcomp.c regexec.c run.c scope.c sv.c \
+	taint.c toke.c numeric.c locale.c universal.c utf8.c \
+	util.c perlapi.c xsutils.c
+FLUME_PERL_OBJS := $(patsubst %.c,$(OBJDIR)/test/flumeperl_%.o,$(FLUME_PERL_SRCS))
+FLUME_PERL_CFLAGS := -DPERL_CORE -DPERL_MICRO -DSTANDARD_C -DPERL_USE_SAFE_PUTENV
+
+$(FLUME_PERL_OBJS): $(OBJDIR)/test/flumeperl_%.o: acpkg/perl-5.8.8/%.c
 	@mkdir -p $(@D)
-	$(NCC) $(FLUME_NCC_CFLAGS) -c -o $@ $<
+	$(NCC) $(FLUME_NCC_CFLAGS) $(FLUME_PERL_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/test/flume-hellorun: $(OBJDIR)/test/flume-hellorun.o
-	$(NCC) -o $@ $< $(FLUME_NCC_LDFLAGS)
+$(OBJDIR)/test/flumeperl: $(FLUME_PERL_OBJS)
+	$(NCC) -o $@ $^ -lm
 
 ## Distributed stuff
 DIS_NCC_CFLAGS  := -I/usr/local/include/sfs -I/usr/local/include

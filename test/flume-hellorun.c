@@ -1,5 +1,3 @@
-#include "flume_features.h" // must come before <sys/stat.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
