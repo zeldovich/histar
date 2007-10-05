@@ -57,7 +57,12 @@ main (int argc, char *argv[])
   }
 
   nargv[0] = "/disk/nickolai/flume/run/bin/flumeperl";
-  nargv[1] = NULL;
+  nargv[1] = "-e";
+  nargv[2] = "print 3;\n";
+  nargv[3] = NULL;
+
+  /* XXX for some reason, I cannot pass arguments here? */
+  nargv[1] = 0;
 
   rc = flume_spawn (&pid, nargv[0], (char *const*) nargv,
                    environ, 2, 0, 
@@ -67,7 +72,7 @@ main (int argc, char *argv[])
     exit (1);
   }
 
-  char *msg = "print \"Hello world.\\n\";\n";
+  char *msg = "print 5;\n";
   write (forw, msg, strlen(msg));
   close (forw);
 
