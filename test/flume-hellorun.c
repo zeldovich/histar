@@ -56,7 +56,7 @@ main (int argc, char *argv[])
     exit (1);
   }
 
-  nargv[0] = "/disk/nickolai/flume/run/bin/flume-hello";
+  nargv[0] = "/disk/nickolai/flume/run/bin/flumeperl";
   nargv[1] = NULL;
 
   rc = flume_spawn (&pid, nargv[0], (char *const*) nargv,
@@ -67,8 +67,9 @@ main (int argc, char *argv[])
     exit (1);
   }
 
-  char *msg = "Hello world.\n";
+  char *msg = "print \"Hello world.\\n\";\n";
   write (forw, msg, strlen(msg));
+  close (forw);
 
   char buf[4096];
   for (;;) {
