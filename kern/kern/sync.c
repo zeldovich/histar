@@ -7,8 +7,9 @@
 #include <kern/arch.h>
 #include <kern/ht.h>
 #include <inc/error.h>
+#include <machine/tag.h>
 
-static struct Thread_list sync_time_waiting;
+static struct Thread_list sync_time_waiting __krw__;
 static HASH_TABLE(addr_hash, struct sync_wait_list, 512) sync_addr_waiting;
 static HASH_TABLE(cobj_hash, struct sync_wait_list, 512) sync_cobj_waiting;
 enum { sync_debug = 0 };
@@ -204,6 +205,7 @@ sync_wakeup_timer(void)
 
     struct Thread *t = LIST_FIRST(&sync_time_waiting);
     while (t != 0) {
+	tag_is_kobject(t, kobj_thread);
 	struct Thread *next = LIST_NEXT(t, th_link);
 	struct Thread_ephemeral *te = &kobject_ephemeral_dirty(&t->th_ko)->ko_th_e;
 

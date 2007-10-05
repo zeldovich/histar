@@ -35,9 +35,11 @@ schedule(void)
 
     do {
 	const struct Thread *t, *min_pass_th = 0;
-	LIST_FOREACH(t, &thread_list_runnable, th_link)
+	LIST_FOREACH(t, &thread_list_runnable, th_link) {
+	    tag_is_kobject(t, kobj_thread);
 	    if (!min_pass_th || t->th_sched_pass < min_pass_th->th_sched_pass)
 		min_pass_th = t;
+	}
 
 	cur_thread = min_pass_th;
 	if (!cur_thread) {

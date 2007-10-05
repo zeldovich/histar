@@ -414,3 +414,11 @@ tag_alloc(const struct Label *l, int tag_type)
 
     panic("tag_alloc: bad tag type %d", tag_type);
 }
+
+void
+tag_is_kobject(const void *ptr, uint8_t type)
+{
+    /* Check tag later on as well */
+    const struct kobject_hdr *ko = ptr;
+    assert(ko->ko_type == type);
+}

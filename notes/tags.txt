@@ -33,6 +33,13 @@ Should jump to another protection domain to handle device interrupts,
     to reduce effective TCB for non-interrupt (i.e. real user data)
     protection domains.
 
+Thread wait/run lists: not a big deal if they are screwed up, basically
+    a denial of service attack on some thread.  We do, however, need to
+    make sure we are dealing with authentic Thread object pointers, so
+    that we don't get fooled into poking around in private data.
+
+What about refcounts?  Who enforces them?
+
 		Set T	Set S
 Tag exception	YES	YES
 Other exception	NO	YES

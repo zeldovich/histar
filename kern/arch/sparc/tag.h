@@ -134,6 +134,8 @@ void	 pcall_trampoline(void) __attribute__((noreturn));
 
 void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
 uint32_t tag_getperm(uint32_t pctag, uint32_t dtag);
+
+void	 tag_is_kobject(const void *ptr, uint8_t type);
 #endif
 
 #endif

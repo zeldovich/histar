@@ -29,7 +29,7 @@ struct part_desc *pstate_part;
 
 // Lock serializing all disk access
 static struct lock pstate_lock;
-static struct Thread_list pstate_waiting;
+static struct Thread_list pstate_waiting __krw__;
 
 // Authoritative copy of the header that's actually on disk.
 static struct pstate_header stable_hdr;

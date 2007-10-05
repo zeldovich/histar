@@ -20,7 +20,7 @@ enum { thread_pf_debug = 0 };
 
 const struct Thread *cur_thread __krw__;
 struct Thread_list *cur_waitlist;
-struct Thread_list thread_list_runnable;
+struct Thread_list thread_list_runnable __krw__;
 
 static void
 thread_pin(struct Thread *t)
@@ -44,6 +44,7 @@ static void
 thread_unlink(struct Thread *t)
 {
     if (t->th_linked) {
+	/* XXX need to do tag_is_kobject checks */
 	LIST_REMOVE(t, th_link);
 	t->th_linked = 0;
     }
@@ -56,6 +57,10 @@ static void
 thread_link(struct Thread *t, struct Thread_list *tlist)
 {
     assert(!t->th_linked);
+
+    if (LIST_FIRST(tlist))
+	tag_is_kobject(LIST_FIRST(tlist), kobj_thread);
+
     LIST_INSERT_HEAD(tlist, t, th_link);
     t->th_linked = 1;
 }

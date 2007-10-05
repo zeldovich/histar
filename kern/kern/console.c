@@ -2,7 +2,7 @@
 #include <machine/tag.h>
 
 static LIST_HEAD(cd_list, cons_device) cdevs;
-struct Thread_list console_waiting;
+struct Thread_list console_waiting __krw__;
 
 enum { cons_bufsize = 512 };
 

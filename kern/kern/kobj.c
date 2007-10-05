@@ -15,7 +15,7 @@
 #include <machine/tag.h>
 
 struct kobject_list ko_list __krw__;
-struct Thread_list kobj_snapshot_waiting;
+struct Thread_list kobj_snapshot_waiting __krw__;
 
 static HASH_TABLE(kobject_hash, struct kobject_list, kobj_hash_size) ko_hash __krw__;
 static struct kobject_list ko_gc_list __krw__;
