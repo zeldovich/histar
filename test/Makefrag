@@ -133,7 +133,7 @@ FLUME_NCC_LDFLAGS := \
 	$(FLUME_SRC)/build-tree/obj/srv/libflume-srv/.libs/libflume-srv.so \
 	$(FLUME_SRC)/build-tree/obj/clnt/libflumeclnt/.libs/libflumeclnt_c.so \
 	$(FLUME_SRC)/build-tree/obj/clnt/libflumeclnt/.libs/libflumeclnt_cxx.so \
-	-ltame -lsfsmisc -larpc -lsfscrypt -lasync -lgmp
+	-ltame -lsfsmisc -larpc -lsfscrypt -lasync -lgmp -lsvc
 
 $(OBJDIR)/test/flume-hello.o $(OBJDIR)/test/flume-hellorun.o: $(OBJDIR)/test/%.o: test/%.c
 	@mkdir -p $(@D)
