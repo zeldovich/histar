@@ -160,6 +160,7 @@ bcast_info_t::get_bcast_addrs (vec<in_addr> *resp)
 }
 
 
+#if 0
 void
 rpccb_bcast::finish (clnt_stat stat)
 {
@@ -212,3 +213,4 @@ rpccb_bcast::init (xdrsuio &x)
 
   return this;
 }
+#endif

@@ -45,6 +45,7 @@ class bcast_info_t {
 
 extern bcast_info_t bcast_info;
 
+#if 0
 class rpccb_bcast : public rpccb {
   bool checksrc (const sockaddr *) const { return true; }
   void finish (clnt_stat stat);
@@ -56,5 +57,6 @@ class rpccb_bcast : public rpccb {
   virtual ~rpccb_bcast () {}
   callbase *init (xdrsuio &x);
 };
+#endif
 
 #endif
