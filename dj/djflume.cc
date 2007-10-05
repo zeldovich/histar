@@ -203,6 +203,9 @@ dj_flume_perl_svc(flume_mapcreate *fmc,
     argv[2] = script.cstr();
     argv[3] = 0;
 
+    /* XXX flume_spawn has trouble passing arguments? */
+    argv[1] = 0;
+
     flume::x_handle_t pid;
     extern char **environ;
     int rc = flume::flume_spawn(&pid, argv[0], (char *const *) argv,
@@ -217,7 +220,9 @@ dj_flume_perl_svc(flume_mapcreate *fmc,
     label_free(slabel);
     labelset_free(ls);
 
-    write(forw, input.cstr(), input.len());
+    /* XXX flume_spawn has trouble passing arguments? */
+    //write(forw, input.cstr(), input.len());
+    write(forw, script.cstr(), script.len());
     close(forw);
 
     dj_flume_perl_state *ps = New dj_flume_perl_state(ar);
