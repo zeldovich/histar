@@ -40,6 +40,14 @@ Thread wait/run lists: not a big deal if they are screwed up, basically
 
 What about refcounts?  Who enforces them?
 
+Subset of remaining issues:
+    - Shared sync tables
+    - Kobject allocation
+    - Gate calls
+    - PC tag GC
+    - Cached page tables for AS
+    - shell hangs after child (ls) exit occasionally
+
 		Set T	Set S
 Tag exception	YES	YES
 Other exception	NO	YES
