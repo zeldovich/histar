@@ -1,6 +1,8 @@
 #include <machine/types.h>
 #include <machine/pmap.h>
 #include <machine/trapcodes.h>
+#include <machine/tag.h>
+#include <machine/sparc-tag.h>
 #include <kern/utrap.h>
 #include <kern/segment.h>
 #include <kern/kobj.h>
@@ -11,7 +13,6 @@
 #include <kern/arch.h>
 #include <kern/lib.h>
 #include <kern/pstate.h>
-#include <machine/tag.h>
 #include <inc/elf64.h>
 #include <inc/error.h>
 #include <inc/safeint.h>
@@ -151,6 +152,12 @@ thread_alloc(const struct Label *contaminate,
 
     t->th_sg = sg->sg_ko.ko_id;
     thread_swapin(t);
+
+    /* XXX threads need to be allocated in the monitor anyway */
+    uint32_t old_tsr = read_tsr();
+    write_tsr(TSR_T);
+    tag_set(&t->th_krw_bits, DTAG_KRW, sizeof(t->th_krw_bits));
+    write_tsr(old_tsr);
 
     *tp = t;
     return 0;
