@@ -220,6 +220,12 @@ main(int ac, char **av)
 #ifdef USE_FLUME
     flume_mapcreate fmc(djs);
 
+    ep.set_type(EP_GATE);
+    ep.ep_gate->gate.gate_ct = 0;
+    ep.ep_gate->gate.gate_id = GSPEC_CTALLOC;
+    gm.set_ep(ep, wrap(&dj_arpc_srv_sink, djs,
+		       wrap(&dj_flume_ctalloc_svc, &fmc)));
+
     ep = gm.create_gate(1, wrap(&dj_arpc_srv_sink, djs,
 				wrap(&dj_flume_perl_svc, &fmc)));
     warn << "flume perl service on " << ep << "\n";

@@ -9,6 +9,7 @@ class dj_direct_gatemap : public dj_gate_factory {
     dj_direct_gatemap() : gatemap_(), counter_(1) {}
     void deliver(const dj_message&, const delivery_args&);
     virtual dj_slot create_gate(uint64_t container, dj_msg_sink);
+    virtual void set_ep(const dj_slot &ep, dj_msg_sink);
     virtual void destroy(const dj_slot &ep);
 
  private:

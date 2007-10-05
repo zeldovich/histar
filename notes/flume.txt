@@ -1,3 +1,5 @@
 When installing, don't forget to use --enable-sfsmisc for sfslite
 
+% make obj/test/flume-djd
+% FLUME_SOCKET=`flume-cfg socket` ./obj/test/flume-djd
 

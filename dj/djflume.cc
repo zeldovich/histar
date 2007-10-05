@@ -4,6 +4,7 @@
 #include <dj/miscx.h>
 #include <dj/djarpc.hh>
 #include <dj/djflume.hh>
+#include <dj/djlabel.hh>
 
 extern "C" {
 namespace flume {
@@ -91,38 +92,154 @@ flume_mapcreate::exec(const dj_message &m, const delivery_args &da)
     da.cb(DELIVERY_DONE);
 }
 
+struct dj_flume_perl_state {
+    dj_arpc_reply ar;
+    char buf[4096];
+    size_t bufcc;
+
+    dj_flume_perl_state(const dj_arpc_reply &r) : ar(r), bufcc(0) {}
+};
+
+static void
+dj_flume_perl_cb(int rev, dj_flume_perl_state *ps)
+{
+    if (ps->bufcc < sizeof(ps->buf)) {
+	ssize_t cc = read(rev, &ps->buf[ps->bufcc], sizeof(ps->buf) - ps->bufcc);
+	if (cc < 0) {
+	    warn << "dj_flume_perl_cb: read error\n";
+	} else if (cc > 0) {
+	    ps->bufcc += cc;
+	    return;
+	}
+    }
+
+    str output(ps->buf, ps->bufcc);
+    int errcode = 0;	/* should do waitpid really */
+
+    perl_run_res pres;
+    pres.retval = errcode;
+    pres.output = output;
+
+    ps->ar.r.msg.msg = xdr2str(pres);
+    ps->ar.cb(true, ps->ar.r);
+
+    close(rev);
+    fdcb(rev, selread, 0);
+
+    delete ps;
+}
+
 void
 dj_flume_perl_svc(flume_mapcreate *fmc,
 		  const dj_message &m, const str &s,
 		  const dj_arpc_reply &ar)
 {
-    /*
-     * Use fmc to verify the mappings..
-     */
-    dj_rpc_reply rr = ar.r;
-
     perl_run_arg parg;
-    perl_run_res pres;
 
     if (!str2xdr(parg, s)) {
 	warn << "dj_flume_perl_svc: cannot decode\n";
-	ar.cb(false, rr);
+	ar.cb(false, ar.r);
 	return;
     }
 
     str input = parg.input;
     str script = parg.script;
-    str output;
-    int errcode;
 
-    /* magic happens here! */
+    /*
+     * For now, we only allow secrecy categories.
+     * Trivial to extend to I & O.
+     */
+    flume::x_label_t *slabel = flume::label_alloc(m.taint.ents.size());
 
-    output = "This is only a dummy reply.\n";
-    errcode = 0;
+    /*
+     * Use fmc to verify the mappings somehow.
+     */
+    dj_catmap_indexed cmap(m.catmap);
+    for (uint32_t i = 0; i < m.taint.ents.size(); i++) {
+	const dj_gcat &gcat = m.taint.ents[i];
+	if (gcat.integrity) {
+	    warn << "dj_flume_perl_svc: only secrecy categories for now\n";
+	    ar.cb(false, ar.r);
+	    label_free(slabel);
+	    return;
+	}
 
-    pres.retval = errcode;
-    pres.output = output;
+	uint64_t lcat;
+	if (!cmap.g2l(gcat, &lcat, 0)) {
+	    warn << "dj_flume_perl_svc: cannot map global cat\n";
+	    ar.cb(false, ar.r);
+	    label_free(slabel);
+	    return;
+	}
 
-    rr.msg.msg = xdr2str(pres);
+	label_set(slabel, i, lcat);
+    }
+
+    int forw, rev;
+    flume::x_handlevec_t *fdh = flume::label_alloc(2);
+
+    if (flume::flume_socketpair(flume::DUPLEX_ME_TO_THEM, &forw, &fdh->val[0], "fw") < 0 ||
+	flume::flume_socketpair(flume::DUPLEX_THEM_TO_ME, &rev, &fdh->val[1], "rev") < 0)
+    {
+	warn << "dj_flume_perl_svc: flume_socketpair error\n";
+	ar.cb(false, ar.r);
+	return;
+    }
+
+    flume::x_labelset_t *ls = flume::labelset_alloc();
+    flume::labelset_set_S(ls, slabel);
+
+    if (flume::flume_set_fd_label(slabel, flume::LABEL_S, forw) < 0 ||
+	flume::flume_set_fd_label(slabel, flume::LABEL_S, rev) < 0)
+    {
+	warn << "dj_flume_perl_svc: flume_set_fd_label error\n";
+	ar.cb(false, ar.r);
+	return;
+    }
+
+    const char *argv[4];
+    argv[0] = "/disk/nickolai/flume/run/bin/flumeperl";
+    argv[1] = "-e";
+    argv[2] = script.cstr();
+    argv[3] = 0;
+
+    flume::x_handle_t pid;
+    extern char **environ;
+    int rc = flume::flume_spawn(&pid, argv[0], (char *const *) argv,
+				environ, 2, 0, ls, fdh, NULL);
+    if (rc < 0) {
+	warn << "dj_flume_perl_svc: flume_spawn error\n";
+	ar.cb(false, ar.r);
+	return;
+    }
+
+    label_free(fdh);
+    label_free(slabel);
+    labelset_free(ls);
+
+    write(forw, input.cstr(), input.len());
+    close(forw);
+
+    dj_flume_perl_state *ps = New dj_flume_perl_state(ar);
+    fdcb(rev, selread, wrap(&dj_flume_perl_cb, rev, ps));
+}
+
+void
+dj_flume_ctalloc_svc(flume_mapcreate *fmc,
+		     const dj_message &m, const str &s,
+		     const dj_arpc_reply &ar)
+{
+    dj_rpc_reply rr = ar.r;
+
+    container_alloc_req carg;
+    container_alloc_res cres;
+    if (!str2xdr(carg, s)) {
+	warn << "dj_flume_ctalloc_svc: cannot decode\n";
+	ar.cb(false, rr);
+	return;
+    }
+
+    cres.ct_id = 0xd0d0eeee;
+    rr.msg.msg = xdr2str(cres);
     ar.cb(true, rr);
 }

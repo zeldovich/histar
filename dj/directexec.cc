@@ -33,6 +33,13 @@ dj_direct_gatemap::create_gate(uint64_t ct, dj_msg_sink cb)
 }
 
 void
+dj_direct_gatemap::set_ep(const dj_slot &ep, dj_msg_sink cb)
+{
+    assert(ep.type == EP_GATE);
+    gatemap_.insert(COBJ(ep.ep_gate->gate.gate_ct, ep.ep_gate->gate.gate_id), cb);
+}
+
+void
 dj_direct_gatemap::destroy(const dj_slot &ep)
 {
     if (ep.type != EP_GATE) {

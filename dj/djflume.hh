@@ -17,4 +17,8 @@ void dj_flume_perl_svc(flume_mapcreate *,
 		       const dj_message&, const str&,
 		       const dj_arpc_reply&);
 
+void dj_flume_ctalloc_svc(flume_mapcreate *,
+			  const dj_message&, const str&,
+			  const dj_arpc_reply&);
+
 #endif
