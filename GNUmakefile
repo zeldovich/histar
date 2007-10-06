@@ -86,7 +86,7 @@ LDEPS	:= $(CRT1) $(CRTI) $(CRTN) \
 	   $(OBJDIR)/lib/gcc.specs
 
 # Shared library stuff
-ifeq ($(K_ARCH),amd64-not-yet)
+ifeq ($(K_ARCH),amd64)
 SHARED_ENABLE := yes
 else
 SHARED_ENABLE := no
