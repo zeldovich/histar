@@ -283,7 +283,8 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
     uint32_t pte = *ptep;
     if (PT_ET(pte) == PT_ET_PTE) {
 	if (PTE_ACC(pte) & PTE_ACC_W)
-	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	    pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
+	pagetree_decpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep = 0;
     }
 }
@@ -295,7 +296,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
     
     uint32_t pte = *ptep;
     if ((PT_ET(pte) == PT_ET_PTE) && (PTE_ACC(pte) & PTE_ACC_W)) {
-	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~(PTE_ACC_W << PTE_ACC_SHIFT);
     }
 }
@@ -325,7 +326,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
     if (ptflags & PTE_ACC_W)
-	pagetree_incpin(pp);
+	pagetree_incpin_write(pp);
+    pagetree_incpin_read(pp);
 
     return 0;
 }

@@ -37,11 +37,11 @@ void pagetree_init(struct pagetree *pt);
 
 // Copy (with COW) src into dst
 int  pagetree_copy(const struct pagetree *src, struct pagetree *dst,
-		   int *share_pinned)
+		   int *share_write_pinned)
     __attribute__ ((warn_unused_result));
 
 // Free the pagetree, including all of the pages (that aren't shared)
-void pagetree_free(struct pagetree *pt, int was_share_pinned);
+void pagetree_free(struct pagetree *pt, int was_share_write_pinned);
 
 // Get a page currently stored in the page tree
 // Returns 1 if copy-on-write happened, 0 if not, negative for error
@@ -57,7 +57,9 @@ int  pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
 uint64_t pagetree_maxpages(void);
 
 // Pin/unpin pages in a pagetree
-void pagetree_incpin(void *p);
-void pagetree_decpin(void *p);
+void pagetree_incpin_write(void *p);
+void pagetree_decpin_write(void *p);
+void pagetree_incpin_read(void *p);
+void pagetree_decpin_read(void *p);
 
 #endif

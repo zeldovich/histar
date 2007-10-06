@@ -278,7 +278,8 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
     uint64_t pte = *ptep;
     if ((pte & PTE_P)) {
 	if (pte & PTE_W)
-	    pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	    pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
+	pagetree_decpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep = 0;
 	pmap_queue_invlpg(pgmap, va);
     }
@@ -292,7 +293,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 
     uint64_t pte = *ptep;
     if ((pte & PTE_P) && (pte & PTE_W)) {
-	pagetree_decpin(pa2kva(PTE_ADDR(pte)));
+	pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~PTE_W;
 	pmap_queue_invlpg(pgmap, va);
     }
@@ -315,7 +316,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     as_arch_page_invalidate_cb(pgmap, ptep, va);
     *ptep = kva2pa(pp) | ptflags;
     if ((ptflags & PTE_W))
-	pagetree_incpin(pp);
+	pagetree_incpin_write(pp);
+    pagetree_incpin_read(pp);
 
     pmap_queue_invlpg(pgmap, va);
     return 0;

@@ -13,7 +13,8 @@ pagetree_free_page(void *p)
     struct page_info *ptp = page_to_pageinfo(p);
     assert(ptp->pi_ref == 0);
     assert(ptp->pi_write_shared_ref == 0);
-    assert(ptp->pi_pin == 0);
+    assert(ptp->pi_hw_write_pin == 0);
+    assert(ptp->pi_hw_pin == 0);
 
     if (ptp->pi_indir) {
 	struct pagetree_indirect_page *pip = p;
@@ -57,7 +58,7 @@ pagetree_indir_copy(void *src, void *dst)
 
     for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	if (pdst->pt_entry[i].page &&
-	    page_to_pageinfo(pdst->pt_entry[i].page)->pi_pin) {
+	    page_to_pageinfo(pdst->pt_entry[i].page)->pi_hw_write_pin) {
 	    int r = pagetree_cow(&pdst->pt_entry[i]);
 	    if (r < 0)
 		return r;
@@ -89,7 +90,8 @@ pagetree_cow(pagetree_entry *ent)
 
     assert(page_to_pageinfo(copy)->pi_ref == 0);
     assert(page_to_pageinfo(copy)->pi_write_shared_ref == 0);
-    assert(page_to_pageinfo(copy)->pi_pin == 0);
+    assert(page_to_pageinfo(copy)->pi_hw_write_pin == 0);
+    assert(page_to_pageinfo(copy)->pi_hw_pin == 0);
     memcpy(copy, ent->page, PGSIZE);
     pagetree_incref(copy);
 
@@ -132,7 +134,7 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 
     for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
 	if (dst->pt_direct[i].page &&
-	    page_to_pageinfo(dst->pt_direct[i].page)->pi_pin)
+	    page_to_pageinfo(dst->pt_direct[i].page)->pi_hw_write_pin)
 	{
 	    if (share_pinned) {
 		*share_pinned = 1;
@@ -149,7 +151,7 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 
     for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
 	if (dst->pt_indirect[i].page &&
-	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_pin)
+	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_hw_write_pin)
 	{
 	    if (share_pinned) {
 		*share_pinned = 1;
@@ -347,28 +349,48 @@ pagetree_maxpages()
 }
 
 void
-pagetree_incpin(void *p)
+pagetree_incpin_write(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
     if (pi->pi_ref != 1 + pi->pi_write_shared_ref)
-	panic("pagetree_incpin: shared page -- refcount %d", pi->pi_ref);
-    ++pi->pi_pin;
+	panic("pagetree_incpin_write: shared page -- refcount %d", pi->pi_ref);
+    ++pi->pi_hw_write_pin;
+    if (pi->pi_hw_write_pin == 0)
+	panic("pagetree_incpin_write: overflow\n");
     if (pi->pi_parent)
-	pagetree_incpin(pi->pi_parent);
+	pagetree_incpin_write(pi->pi_parent);
 }
 
 void
-pagetree_decpin(void *p)
+pagetree_decpin_write(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
     if (pi->pi_ref != 1 + pi->pi_write_shared_ref)
-	panic("pagetree_decpin: shared page, refcount %d", pi->pi_ref);
-    if (pi->pi_pin == 0)
-	panic("pagetree_decpin: not pinned");
-    --pi->pi_pin;
+	panic("pagetree_decpin_write: shared page, refcount %d", pi->pi_ref);
+    if (pi->pi_hw_write_pin == 0)
+	panic("pagetree_decpin_write: not pinned");
+    --pi->pi_hw_write_pin;
     if (pi->pi_parent) {
 	if (pi->pi_ref != 1)
-	    panic("pagetree_decpin: shared subpage, refcount %d", pi->pi_ref);
-	pagetree_decpin(pi->pi_parent);
+	    panic("pagetree_decpin_write: shared subpage, refcount %d", pi->pi_ref);
+	pagetree_decpin_write(pi->pi_parent);
     }
+}
+
+void
+pagetree_incpin_read(void *p)
+{
+    struct page_info *pi = page_to_pageinfo(p);
+    ++pi->pi_hw_pin;
+    if (pi->pi_hw_pin == 0)
+	panic("pagetree_incpin_read: overflow\n");
+}
+
+void
+pagetree_decpin_read(void *p)
+{
+    struct page_info *pi = page_to_pageinfo(p);
+    if (pi->pi_hw_pin == 0)
+	panic("pagetree_decpin_read: not pinned\n");
+    --pi->pi_hw_pin;
 }
