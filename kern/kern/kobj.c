@@ -832,6 +832,7 @@ kobject_snapshot_release(struct kobject_hdr *ko)
 {
     struct kobject *snap = kobject_get_snapshot(ko);
 
+    assert(ko->ko_flags & KOBJ_SNAPSHOTING);
     ko->ko_flags &= ~KOBJ_SNAPSHOTING;
     kobject_unpin_hdr(ko);
     pagetree_free(&snap->ko_pt, !!(snap->hdr.ko_flags & KOBJ_SNAP_SHARE_PIN));
