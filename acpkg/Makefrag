@@ -406,7 +406,7 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
 	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" ) && \
+	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" ) ; \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
 	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" ); \
