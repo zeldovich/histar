@@ -348,7 +348,7 @@ free_embed(void)
 
 	for (void *b = ROUNDUP(buf_start, PGSIZE);
 	     b + PGSIZE <= buf_end; b += PGSIZE)
-	    page_free(b);
+	    page_free(pa2kva(kva2pa(b)));
     }
 }
 
