@@ -298,6 +298,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
     uint32_t pte = *ptep;
     if ((PT_ET(pte) == PT_ET_PTE) && (PTE_ACC(pte) & PTE_ACC_W)) {
 	pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
+	pagetree_incpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~(PTE_ACC_W << PTE_ACC_SHIFT);
     }
 }

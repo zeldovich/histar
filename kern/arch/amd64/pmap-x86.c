@@ -295,6 +295,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
     uint64_t pte = *ptep;
     if ((pte & PTE_P) && (pte & PTE_W)) {
 	pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
+	pagetree_incpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep &= ~PTE_W;
 	pmap_queue_invlpg(pgmap, va);
     }
