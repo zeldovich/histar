@@ -53,6 +53,7 @@ Kernel bugs:
   the FP page before running the kernel thread, if not enough memory
   then suspend the thread until it can allocate memory.)
 * do the right things happen with th_as caching?  thread lowers label?
+* page_info::pi_parent is no longer necessary; use pi_plist instead
 
 Security:
 
