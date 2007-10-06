@@ -53,7 +53,7 @@ pagetree_indir_copy(void *src, void *dst)
 
     for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
 	if (pdst->pt_entry[i].page)
-	    page_to_pageinfo(pdst->pt_entry[i].page)->pi_ref++;
+	    pagetree_incref(pdst->pt_entry[i].page);
 
     for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	if (pdst->pt_entry[i].page &&
@@ -121,11 +121,11 @@ pagetree_copy(const struct pagetree *src, struct pagetree *dst,
 
     for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
 	if (dst->pt_direct[i].page)
-	    page_to_pageinfo(dst->pt_direct[i].page)->pi_ref++;
+	    pagetree_incref(dst->pt_direct[i].page);
 
     for (int i = 0; i < PAGETREE_INDIRECTS; i++)
 	if (dst->pt_indirect[i].page)
-	    page_to_pageinfo(dst->pt_indirect[i].page)->pi_ref++;
+	    pagetree_incref(dst->pt_indirect[i].page);
 
     if (share_pinned)
 	*share_pinned = 0;
