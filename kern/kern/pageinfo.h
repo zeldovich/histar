@@ -16,9 +16,9 @@ struct page_info {
     // or to child pages of this indir page (if pi_indir == 1)
     uint32_t pi_hw_write_pin;
 
-    // any hardware refs (DMA, PTE) to this page, only for pi_indir == 0
+    // readable hardware refs (DMA, PTE) to this page, only for pi_indir == 0
     // (does not mean anything for indirect pages, when pi_indir == 1)
-    uint32_t pi_hw_pin;
+    uint32_t pi_hw_read_pin;
 
     uint32_t pi_indir : 1;	// data page or indirect page
     uint32_t pi_dirty : 1;	// eventually reflects PTE dirty bit

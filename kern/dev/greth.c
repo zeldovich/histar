@@ -173,7 +173,7 @@ greth_reset(struct greth_card *c)
     for (int i = 0; i < GRETH_BD_NUM; i++) {
 	if (c->tx[i].sg) {
 	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	    pagetree_decpin(c->tx[i].nb);
+	    pagetree_decpin_write(c->tx[i].nb);
 	    kobject_dirty(&c->tx[i].sg->sg_ko);
 	}
 	c->tx[i].sg = 0;
@@ -182,7 +182,7 @@ greth_reset(struct greth_card *c)
     for (int i = 0; i < GRETH_BD_NUM; i++) {
 	if (c->rx[i].sg) {
 	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	    pagetree_decpin(c->rx[i].nb);
+	    pagetree_decpin_write(c->rx[i].nb);
 	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
@@ -215,7 +215,7 @@ greth_add_txbuf(void *arg, const struct Segment *sg,
     c->tx[slot].nb = nb;
     c->tx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     memset(&c->txbds->txbd[slot], 0, sizeof(c->txbds->txbd[slot]));
     c->txbds->txbd[slot].addr = kva2pa(c->tx[slot].nb + 1);
@@ -249,7 +249,7 @@ greth_add_rxbuf(void *arg, const struct Segment *sg,
     c->rx[slot].nb = nb;
     c->rx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     memset(&c->rxbds->rxbd[slot], 0, sizeof(c->rxbds->rxbd[slot]));
     c->rxbds->rxbd[slot].addr = kva2pa(c->rx[slot].nb + 1);
@@ -278,7 +278,7 @@ greth_intr_rx(struct greth_card *c)
 	    break;
 
 	kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	pagetree_decpin(c->rx[i].nb);
+	pagetree_decpin_write(c->rx[i].nb);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = (c->rxbds->rxbd[i].stat & GRETH_BD_LEN);
@@ -302,7 +302,7 @@ greth_intr_tx(struct greth_card *c)
 	    break;
 
 	kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	pagetree_decpin(c->tx[i].nb);
+	pagetree_decpin_write(c->tx[i].nb);
 	kobject_dirty(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;

@@ -205,7 +205,7 @@ e1000_reset(struct e1000_card *c)
     for (int i = 0; i < E1000_TX_SLOTS; i++) {
 	if (c->tx[i].sg) {
 	    kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	    pagetree_decpin(c->tx[i].nb);
+	    pagetree_decpin_write(c->tx[i].nb);
 	    kobject_dirty(&c->tx[i].sg->sg_ko);
 	}
 	c->tx[i].sg = 0;
@@ -214,7 +214,7 @@ e1000_reset(struct e1000_card *c)
     for (int i = 0; i < E1000_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
 	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	    pagetree_decpin(c->rx[i].nb);
+	    pagetree_decpin_write(c->rx[i].nb);
 	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
@@ -245,7 +245,7 @@ e1000_intr_rx(struct e1000_card *c)
 	    break;
 
 	kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	pagetree_decpin(c->rx[i].nb);
+	pagetree_decpin_write(c->rx[i].nb);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 	c->rx[i].nb->actual_count = c->rxds->rxd[i].wrx_len;
@@ -268,7 +268,7 @@ e1000_intr_tx(struct e1000_card *c)
 	    break;
 
 	kobject_unpin_page(&c->tx[i].sg->sg_ko);
-	pagetree_decpin(c->tx[i].nb);
+	pagetree_decpin_write(c->tx[i].nb);
 	kobject_dirty(&c->tx[i].sg->sg_ko);
 	c->tx[i].sg = 0;
 	c->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
@@ -317,7 +317,7 @@ e1000_add_txbuf(void *arg, const struct Segment *sg,
     c->tx[slot].nb = nb;
     c->tx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     c->txds->txd[slot].wtx_addr = kva2pa(c->tx[slot].nb + 1);
     c->txds->txd[slot].wtx_cmdlen = size | WTX_CMD_RS | WTX_CMD_EOP | WTX_CMD_IFCS;
@@ -351,7 +351,7 @@ e1000_add_rxbuf(void *arg, const struct Segment *sg,
     c->rx[slot].nb = nb;
     c->rx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     memset(&c->rxds->rxd[slot], 0, sizeof(c->rxds->rxd[slot]));
     c->rxds->rxd[slot].wrx_addr = kva2pa(c->rx[slot].nb + 1);

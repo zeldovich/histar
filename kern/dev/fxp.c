@@ -186,7 +186,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_TX_SLOTS; i++) {
 	if (c->txs->tx[i].sg) {
 	    kobject_unpin_page(&c->txs->tx[i].sg->sg_ko);
-	    pagetree_decpin(c->txs->tx[i].nb);
+	    pagetree_decpin_write(c->txs->tx[i].nb);
 	    kobject_dirty(&c->txs->tx[i].sg->sg_ko);
 	}
 	c->txs->tx[i].sg = 0;
@@ -195,7 +195,7 @@ fxp_buffer_reset(struct fxp_card *c)
     for (int i = 0; i < FXP_RX_SLOTS; i++) {
 	if (c->rxs->rx[i].sg) {
 	    kobject_unpin_page(&c->rxs->rx[i].sg->sg_ko);
-	    pagetree_decpin(c->rxs->rx[i].nb);
+	    pagetree_decpin_write(c->rxs->rx[i].nb);
 	    kobject_dirty(&c->rxs->rx[i].sg->sg_ko);
 	}
 	c->rxs->rx[i].sg = 0;
@@ -280,7 +280,7 @@ fxp_intr_rx(struct fxp_card *c)
 	    break;
 
 	kobject_unpin_page(&c->rxs->rx[i].sg->sg_ko);
-	pagetree_decpin(c->rxs->rx[i].nb);
+	pagetree_decpin_write(c->rxs->rx[i].nb);
 	kobject_dirty(&c->rxs->rx[i].sg->sg_ko);
 	c->rxs->rx[i].sg = 0;
 	c->rxs->rx[i].nb->actual_count = c->rxs->rx[i].rbd.rbd_count & FXP_SIZE_MASK;
@@ -303,7 +303,7 @@ fxp_intr_tx(struct fxp_card *c)
 	    break;
 
 	kobject_unpin_page(&c->txs->tx[i].sg->sg_ko);
-	pagetree_decpin(c->txs->tx[i].nb);
+	pagetree_decpin_write(c->txs->tx[i].nb);
 	kobject_dirty(&c->txs->tx[i].sg->sg_ko);
 	c->txs->tx[i].sg = 0;
 	c->txs->tx[i].nb->actual_count |= NETHDR_COUNT_DONE;
@@ -350,7 +350,7 @@ fxp_add_txbuf(void *arg, const struct Segment *sg,
     c->txs->tx[slot].nb = nb;
     c->txs->tx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     c->txs->tx[slot].tbd.tb_addr = kva2pa(c->txs->tx[slot].nb + 1);
     c->txs->tx[slot].tbd.tb_size = size & FXP_SIZE_MASK;
@@ -388,7 +388,7 @@ fxp_add_rxbuf(void *arg, const struct Segment *sg,
     c->rxs->rx[slot].nb = nb;
     c->rxs->rx[slot].sg = sg;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     c->rxs->rx[slot].rbd.rbd_buffer = kva2pa(c->rxs->rx[slot].nb + 1);
     c->rxs->rx[slot].rbd.rbd_size = size & FXP_SIZE_MASK;

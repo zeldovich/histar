@@ -42,7 +42,7 @@ pnic_buffer_reset(struct pnic_card *c)
     for (int i = 0; i < PNIC_RX_SLOTS; i++) {
 	if (c->rx[i].sg) {
 	    kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	    pagetree_decpin(c->rx[i].nb);
+	    pagetree_decpin_write(c->rx[i].nb);
 	    kobject_dirty(&c->rx[i].sg->sg_ko);
 	}
 	c->rx[i].sg = 0;
@@ -116,7 +116,7 @@ pnic_intr(void *arg)
 	c->rx[i].nb->actual_count |= NETHDR_COUNT_DONE;
 
 	kobject_unpin_page(&c->rx[i].sg->sg_ko);
-	pagetree_decpin(c->rx[i].nb);
+	pagetree_decpin_write(c->rx[i].nb);
 	kobject_dirty(&c->rx[i].sg->sg_ko);
 	c->rx[i].sg = 0;
 
@@ -164,7 +164,7 @@ pnic_add_rxbuf(void *arg, const struct Segment *sg,
     c->rx[slot].sg = sg;
     c->rx[slot].size = size;
     kobject_pin_page(&sg->sg_ko);
-    pagetree_incpin(nb);
+    pagetree_incpin_write(nb);
 
     c->rx_nextq = (slot + 1) % PNIC_RX_SLOTS;
     if (c->rx_head == -1)

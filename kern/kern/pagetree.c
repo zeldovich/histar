@@ -14,7 +14,7 @@ pagetree_free_page(void *p)
     assert(ptp->pi_ref == 0);
     assert(ptp->pi_write_shared_ref == 0);
     assert(ptp->pi_hw_write_pin == 0);
-    assert(ptp->pi_hw_pin == 0);
+    assert(ptp->pi_hw_read_pin == 0);
 
     if (ptp->pi_indir) {
 	struct pagetree_indirect_page *pip = p;
@@ -91,7 +91,7 @@ pagetree_cow(pagetree_entry *ent)
     assert(page_to_pageinfo(copy)->pi_ref == 0);
     assert(page_to_pageinfo(copy)->pi_write_shared_ref == 0);
     assert(page_to_pageinfo(copy)->pi_hw_write_pin == 0);
-    assert(page_to_pageinfo(copy)->pi_hw_pin == 0);
+    assert(page_to_pageinfo(copy)->pi_hw_read_pin == 0);
     memcpy(copy, ent->page, PGSIZE);
     pagetree_incref(copy);
 
@@ -381,8 +381,8 @@ void
 pagetree_incpin_read(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
-    ++pi->pi_hw_pin;
-    if (pi->pi_hw_pin == 0)
+    ++pi->pi_hw_read_pin;
+    if (pi->pi_hw_read_pin == 0)
 	panic("pagetree_incpin_read: overflow\n");
 }
 
@@ -390,7 +390,7 @@ void
 pagetree_decpin_read(void *p)
 {
     struct page_info *pi = page_to_pageinfo(p);
-    if (pi->pi_hw_pin == 0)
+    if (pi->pi_hw_read_pin == 0)
 	panic("pagetree_decpin_read: not pinned\n");
-    --pi->pi_hw_pin;
+    --pi->pi_hw_read_pin;
 }

@@ -284,7 +284,8 @@ as_arch_page_invalidate_cb(const void *arg, ptent_t *ptep, void *va)
     if (PT_ET(pte) == PT_ET_PTE) {
 	if (PTE_ACC(pte) & PTE_ACC_W)
 	    pagetree_decpin_write(pa2kva(PTE_ADDR(pte)));
-	pagetree_decpin_read(pa2kva(PTE_ADDR(pte)));
+	else
+	    pagetree_decpin_read(pa2kva(PTE_ADDR(pte)));
 	*ptep = 0;
     }
 }
@@ -327,7 +328,8 @@ as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
     *ptep = PTE_ENTRY(kva2pa(pp), ptflags);
     if (ptflags & PTE_ACC_W)
 	pagetree_incpin_write(pp);
-    pagetree_incpin_read(pp);
+    else
+	pagetree_incpin_read(pp);
 
     return 0;
 }
