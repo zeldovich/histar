@@ -251,6 +251,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
 
     struct kobject *ko = &ko_pair->active;
     memset(ko, 0, sizeof(struct kobject_mem));
+    pagetree_init(&ko->ko_pt, ko);
 
     struct kobject_hdr *kh = &ko->hdr;
     kh->ko_type = type;
@@ -494,7 +495,7 @@ kobject_copy_pages(const struct kobject_hdr *srch,
 	return -E_INVAL;
     }
 
-    r = pagetree_copy(&src->ko_pt, &dst->ko_pt, 0);
+    r = pagetree_copy(&src->ko_pt, &dst->ko_pt, dst, 0);
     if (r < 0)
 	return r;
 
@@ -819,7 +820,7 @@ kobject_snapshot(struct kobject_hdr *ko)
 
     int share_pinned = 0;
     assert(0 == pagetree_copy(&kobject_h2k(ko)->ko_pt, &snap->ko_pt,
-			      &share_pinned));
+			      0, &share_pinned));
 
     if (share_pinned)
 	snap->hdr.ko_flags |= KOBJ_SNAP_SHARE_PIN;

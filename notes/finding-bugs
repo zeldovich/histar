@@ -146,3 +146,12 @@ high-label address space, which technically circumvents labeling.
 Might not be a huge problem because you need * to lower your label.
 Not fixed at the moment.
 
+***
+
+We were not keeping track of read-only DMA memory references.  For
+example, multiple kobject's shared the same physical page (but all
+were mapping it read-only).  The first kobject tries to map this
+page read-write, but we have no idea what to invalidate such that
+those mappings that mapped kobject #1 see changes and those that
+mapped kobject #2 do not.
+

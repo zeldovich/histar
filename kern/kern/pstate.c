@@ -250,7 +250,7 @@ pstate_swapin_mobj(struct mobject mobj, kobject_id_t id)
 
     struct kobject *ko = (struct kobject *) p;
     memset(ko, 0, sizeof(*ko));
-    pagetree_init(&ko->ko_pt);
+    pagetree_init(&ko->ko_pt, ko);
 
     struct pstate_iov_collector x;
     memset(&x, 0, sizeof(x));

@@ -3,9 +3,26 @@
 #include <kern/pageinfo.h>
 #include <kern/lib.h>
 #include <kern/arch.h>
+#include <kern/kobj.h>
 #include <inc/error.h>
 
 static void pagetree_decref(void *p);
+
+static void
+pagetree_link_entry(struct pagetree_entry *ep)
+{
+    LIST_INSERT_HEAD(&page_to_pageinfo(ep->page)->pi_plist, ep, link);
+}
+
+static void
+pagetree_set_entry(struct pagetree_entry *ep, void *p)
+{
+    if (ep->page)
+	LIST_REMOVE(ep, link);
+    if (p)
+	LIST_INSERT_HEAD(&page_to_pageinfo(p)->pi_plist, ep, link);
+    ep->page = p;
+}
 
 static void
 pagetree_free_page(void *p)
@@ -21,7 +38,7 @@ pagetree_free_page(void *p)
 	for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	    if (pip->pt_entry[i].page) {
 		pagetree_decref(pip->pt_entry[i].page);
-		pip->pt_entry[i].page = 0;
+		pagetree_set_entry(&pip->pt_entry[i], p);
 	    }
 	}
     }
@@ -52,9 +69,14 @@ pagetree_indir_copy(void *src, void *dst)
 {
     struct pagetree_indirect_page *pdst = dst;
 
-    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
-	if (pdst->pt_entry[i].page)
+    for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
+	if (pdst->pt_entry[i].page) {
 	    pagetree_incref(pdst->pt_entry[i].page);
+	    pagetree_link_entry(&pdst->pt_entry[i]);
+	}
+
+	pdst->pt_entry[i].parent = (void *) (((uintptr_t) pdst) | 1);
+    }
 
     for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++) {
 	if (pdst->pt_entry[i].page &&
@@ -70,6 +92,34 @@ pagetree_indir_copy(void *src, void *dst)
     return 0;
 }
 
+static void
+pagetree_invalidate_ro_segments(void *pg)
+{
+    struct pagetree_entry *pe, *next;
+    for (pe = LIST_FIRST(&page_to_pageinfo(pg)->pi_plist); pe; pe = next) {
+	next = LIST_NEXT(pe, link);
+	uintptr_t parentip = (uintptr_t) pe->parent;
+	if (parentip & 1) {
+	    /* Points to an indirect page */
+	    void *parent = (void *) (parentip & UINT64(~0));
+	    pagetree_invalidate_ro_segments(parent);
+	    continue;
+	}
+
+	if (parentip == 0) {
+	    /* Dead-end: could be a snapshot pagetree */
+	    continue;
+	}
+
+	const struct kobject *ko = (const void *) parentip;
+	if (ko->hdr.ko_type != kobj_segment)
+	    panic("pagetree_invalidate_ro_segments: odd type %d\n",
+		  ko->hdr.ko_type);
+
+	segment_invalidate(&ko->sg, 0);
+    }
+}
+
 static int __attribute__ ((warn_unused_result))
 pagetree_cow(pagetree_entry *ent)
 {
@@ -82,8 +132,17 @@ pagetree_cow(pagetree_entry *ent)
     if (ptp->pi_ref <= 1 + ptp->pi_write_shared_ref)
 	return 0;
 
-    void *copy;
+    if (page_to_pageinfo(ent->page)->pi_hw_read_pin) {
+	/*
+	 * There are some read-only mappings of this page, and they
+	 * might or might not be in the same pagetree.  We need to
+	 * invalidate all of them.
+	 */
+	assert(!page_to_pageinfo(ent->page)->pi_indir);
+	pagetree_invalidate_ro_segments(ent->page);
+    }
 
+    void *copy;
     int r = page_alloc(&copy);
     if (r < 0)
 	return r;
@@ -105,29 +164,41 @@ pagetree_cow(pagetree_entry *ent)
 
     page_to_pageinfo(copy)->pi_dirty = ptp->pi_dirty;
     pagetree_decref(ent->page);
-    ent->page = copy;
+    pagetree_set_entry(ent, copy);
     return 1;
 }
 
 void
-pagetree_init(struct pagetree *pt)
+pagetree_init(struct pagetree *pt, void *kobjptr)
 {
     memset(pt, 0, sizeof(*pt));
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
+	pt->pt_direct[i].parent = kobjptr;
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
+	pt->pt_indirect[i].parent = kobjptr;
 }
 
 int
 pagetree_copy(const struct pagetree *src, struct pagetree *dst,
-	      int *share_pinned)
+	      void *kobjptr, int *share_pinned)
 {
     memcpy(dst, src, sizeof(*dst));
 
-    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++)
-	if (dst->pt_direct[i].page)
+    for (int i = 0; i < PAGETREE_DIRECT_PAGES; i++) {
+	if (dst->pt_direct[i].page) {
 	    pagetree_incref(dst->pt_direct[i].page);
+	    pagetree_link_entry(&dst->pt_direct[i]);
+	}
+	dst->pt_direct[i].parent = kobjptr;
+    }
 
-    for (int i = 0; i < PAGETREE_INDIRECTS; i++)
-	if (dst->pt_indirect[i].page)
+    for (int i = 0; i < PAGETREE_INDIRECTS; i++) {
+	if (dst->pt_indirect[i].page) {
 	    pagetree_incref(dst->pt_indirect[i].page);
+	    pagetree_link_entry(&dst->pt_indirect[i]);
+	}
+	dst->pt_indirect[i].parent = kobjptr;
+    }
 
     if (share_pinned)
 	*share_pinned = 0;
@@ -185,7 +256,7 @@ pagetree_free_ent(pagetree_entry *ent)
 {
     if (ent->page) {
 	pagetree_decref(ent->page);
-	ent->page = 0;
+	pagetree_set_entry(ent, 0);
     }
 }
 
@@ -208,13 +279,15 @@ pagetree_free(struct pagetree *pt, int was_share_pinned)
     for (int i = 0; i < PAGETREE_INDIRECTS; i++)
 	pagetree_free_ent(&pt->pt_indirect[i]);
 
-    pagetree_init(pt);
+    pagetree_init(pt, 0);
 }
 
 static int __attribute__ ((warn_unused_result))
 pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
-			   pagetree_entry **outp, struct pagetree_indirect_page **out_parent,
-			   page_sharing_mode rw, int level, struct pagetree_indirect_page *parent)
+			   pagetree_entry **outp,
+			   struct pagetree_indirect_page **out_parent,
+			   page_sharing_mode rw, int level,
+			   struct pagetree_indirect_page *parent)
 {
     if (!SAFE_EQUAL(rw, page_shared_ro)) {
 	int r = pagetree_cow(indir);
@@ -228,13 +301,19 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 	    return 0;
 	}
 
-	int r = page_alloc(&indir->page);
+	void *p;
+	int r = page_alloc(&p);
 	if (r < 0)
 	    return r;
 
-	memset(indir->page, 0, PGSIZE);
-	pagetree_incref(indir->page);
+	memset(p, 0, PGSIZE);
+	pagetree_incref(p);
+	pagetree_set_entry(indir, p);
 	page_to_pageinfo(indir->page)->pi_indir = 1;
+
+	struct pagetree_indirect_page *pip = p;
+	for (uint32_t i = 0; i < PAGETREE_ENTRIES_PER_PAGE; i++)
+	    pip->pt_entry[i].parent = (void *) (((uintptr_t) pip) | 1);
     }
 
     struct pagetree_indirect_page *pip = indir->page;
@@ -257,7 +336,8 @@ pagetree_get_entp_indirect(pagetree_entry *indir, uint64_t npage,
 
     assert(next_slot < PAGETREE_ENTRIES_PER_PAGE);
     return pagetree_get_entp_indirect(&pip->pt_entry[next_slot],
-				      next_page, outp, out_parent, rw, level - 1, pip);
+				      next_page, outp, out_parent,
+				      rw, level - 1, pip);
 }
 
 static int __attribute__ ((warn_unused_result))
@@ -329,7 +409,7 @@ pagetree_put_page(struct pagetree *pt, uint64_t npage, void *page)
 	pagetree_incref(page);
 	page_to_pageinfo(page)->pi_parent = parent;
     }
-    ent->page = page;
+    pagetree_set_entry(ent, page);
 
     return 0;
 }

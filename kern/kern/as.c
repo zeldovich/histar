@@ -291,7 +291,7 @@ void
 as_swapin(struct Address_space *as)
 {
     as->as_pgmap = 0;
-    pagetree_init(&as->as_segmap_pt);
+    pagetree_init(&as->as_segmap_pt, 0);
 }
 
 void

@@ -27,6 +27,9 @@ struct page_info {
     // Indirect parent pagetree page, if any (only when pi_ref == 1).
     struct pagetree_indirect_page *pi_parent;
 
+    // list of pagetree_entry slots referencing this page
+    struct pagetree_entry_list pi_plist;
+
     // Segment ID and offset, the last time this page was mapped.
     uint64_t pi_seg;
     uint64_t pi_segpg;
