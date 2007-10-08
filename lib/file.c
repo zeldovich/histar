@@ -329,8 +329,11 @@ stat_common(const char *file_name, struct stat64 *buf, uint32_t namei_flags)
 	struct fs_object_meta m;
 	struct Dev *dev;
 	r = sys_obj_get_meta(ino.obj, &m);
-	if (m.dev_id != devfile.dev_id && m.dev_id != devsymlink.dev_id &&
-	    (dev_lookup(m.dev_id, &dev) >= 0) && dev->dev_stat)
+	if (r >= 0 &&
+	    m.dev_id != devfile.dev_id &&
+	    m.dev_id != devsymlink.dev_id &&
+	    (dev_lookup(m.dev_id, &dev) >= 0) &&
+	    dev->dev_stat)
 	{
 	    // call dev_stat via fstat below if have a custom stat
 	    ;
