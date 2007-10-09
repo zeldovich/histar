@@ -532,7 +532,7 @@ acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" ); \
 	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" ) && \
 	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" ) && \
-	    cat conf/gcc.specs >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs; \
+	    cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs; \
 	fi
 	touch $@
 

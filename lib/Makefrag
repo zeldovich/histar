@@ -122,7 +122,7 @@ $(OBJDIR)/lib/utrapasm.h: $(OBJDIR)/lib/utrapasm.S
 
 ## Generate specs file
 $(OBJDIR)/lib/gcc.specs: conf/gcc.specs GNUmakefile
-	cat conf/gcc.specs | sed -e "s,TOPOBJ,$(TOP)/$(OBJDIR)," > $@
+	cat conf/gcc.specs | sed -e "s,LDSOPATH,$(TOP)/$(OBJDIR)/user/ld.so," > $@
 
 $(OBJDIR)/lib/libc.so: GNUmakefile
 	@mkdir -p $(@D)
