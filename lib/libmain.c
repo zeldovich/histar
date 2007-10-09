@@ -123,9 +123,11 @@ setup_env(uintptr_t bootstrap, uintptr_t arg0, uintptr_t arg1)
     for (int i = 0; i < start_env->envc; i++) {
         size_t len = strlen(p);
         char *value = strpbrk(p, "=");
-        *value = 0;
-        value++;
-        setenv(p, value, 1);
+	if (value) {
+	    *value = 0;
+	    value++;
+	    setenv(p, value, 1);
+	}
         p += len + 1;
     }
 
