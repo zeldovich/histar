@@ -37,4 +37,9 @@ Wvoid *Wmempcpy(Wvoid * __restrict s1, const Wvoid * __restrict s2, size_t n)
 }
 
 libc_hidden_def(Wmempcpy)
+
+#ifndef WANT_WIDE
+weak_alias(Wmempcpy, __mempcpy)
+#endif
+
 #endif
