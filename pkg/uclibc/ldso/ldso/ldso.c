@@ -764,9 +764,11 @@ void _dl_get_ready_to_run(struct elf_resolve *tpnt, DL_LOADADDR_TYPE load_addr,
 	 * ld.so.1, so we have to look up each symbol individually.
 	 */
 
+#if 0	/* HiStar does not pass the environment this way */
 	_dl_envp = (unsigned long *) (intptr_t) _dl_find_hash("__environ", _dl_symbol_tables, NULL, 0);
 	if (_dl_envp)
 		*_dl_envp = (unsigned long) envp;
+#endif
 
 #ifndef __FORCE_SHAREABLE_TEXT_SEGMENTS__
 	{
