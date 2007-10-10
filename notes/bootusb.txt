@@ -18,4 +18,4 @@ if booting errors or hangs:
       $ fdisk /dev/sda
 
       make sure BIOS is booting USB key in "USB-HDD" mode..see
-      http://syslinux.zytor.com/usbkey.php to hints.
+      http://syslinux.zytor.com/usbkey.php for hints.
