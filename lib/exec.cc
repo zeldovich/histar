@@ -73,7 +73,14 @@ script_load(uint64_t container, struct cobj_ref seg, struct thread_entry *e,
 	cprintf("script_load: command too long\n");
 	return -E_INVAL;
     }
-    strncpy(cmd, segbuf + 2, s - 1);
+
+    char *segptr = segbuf + 2;
+    while (*segptr == ' ' || *segptr == '\t') {
+	segptr++;
+	s--;
+    }
+
+    strncpy(cmd, segptr, s - 1);
     cmd[s - 1] = 0;
     
     char *arg = cmd;
