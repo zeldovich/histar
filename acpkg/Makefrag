@@ -571,7 +571,8 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 INCLUDE_BUILD_TAR_CMD := \
 	tar -C $(OBJDIR)/acpkg/.include-build \
 	    --exclude .svn --exclude '*.c' --exclude '*.S' \
-	    --exclude Makefile --exclude Makefrag --exclude Makefile.in \
+	    --exclude 'Makefile*' --exclude Makefrag \
+	    --exclude .cvsignore --exclude .indent.pro \
 	    -hrf $(TOP)/$(OBJDIR)/user/include.tar .
 
 $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
