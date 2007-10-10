@@ -575,6 +575,8 @@ INCLUDE_BUILD_TAR_CMD := \
 	    -hrf $(TOP)/$(OBJDIR)/user/include.tar .
 
 $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
+	rm -f $@
+
 	rm -rf $(OBJDIR)/acpkg/.include-build
 	mkdir -p $(OBJDIR)/acpkg/.include-build
 
