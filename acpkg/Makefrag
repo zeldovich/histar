@@ -566,3 +566,45 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 		lib/gcc/x86_64-jos-linux/3.4.5/specs \
 		lib/gcc/x86_64-jos-linux/3.4.5/include
 
+INCLUDE_BUILD_TAR_CMD := \
+	tar -C $(OBJDIR)/acpkg/.include-build \
+	    --exclude .svn --exclude '*.c' --exclude '*.S' \
+	    --exclude Makefile --exclude Makefrag --exclude Makefile.in \
+	    -hrf $(TOP)/$(OBJDIR)/user/include.tar .
+
+$(OBJDIR)/user/include.tar: $(OBJDIR)/machine
+	rm -f $@
+
+	rm -rf $(OBJDIR)/acpkg/.include-build
+	mkdir -p $(OBJDIR)/acpkg/.include-build
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/pkg/uclibc/include $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/pkg/uclibc/libc/sysdeps/linux/common $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/pkg/uclibc/libc/sysdeps/linux/$(UCLIBC_ARCH) $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/pkg/uclibc/libpthread/linuxthreads/sysdeps/pthread $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/uinc $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	mkdir $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/inc $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/$(OBJDIR)/machine $(OBJDIR)/acpkg/.include-build/include
+	ln -s $(TOP)/kern/kern $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+$(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
+	gzip -c $< > $@
+
