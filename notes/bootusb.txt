@@ -1,0 +1,21 @@
+setup an existing FAT16 formatted USB key:
+
+      $ syslinux /dev/sda1
+      $ mount /dev/sda1 x/
+      $ echo "default histar" > x/syslinux.cfg
+
+then just copy over a HiStar image:
+     
+      $ make
+      $ cp /obj/boot/bimage.init x/histar
+
+if booting errors or hangs:
+   
+      install a valid MBR:
+      $ install-mbr /dev/sda
+
+      check that /dev/sda1 is marked bootable in the partition table:
+      $ fdisk /dev/sda
+
+      make sure BIOS is booting USB key in "USB-HDD" mode..see
+      http://syslinux.zytor.com/usbkey.php to hints.
