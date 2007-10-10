@@ -200,8 +200,8 @@ again:
     }
 
     if (pid >= 0 && !found_pid)
-	cprintf("[%"PRIu64"] wait4: %s: dud pid %"PRIu64"\n",
-		thread_id(), jos_progname, pid);
+	cprintf("[%"PRIu64"/%"PRIu64"] wait4: %s: dud pid %"PRIu64"\n",
+		thread_id(), getpid(), jos_progname, pid);
 
     if (!(options & WNOHANG)) {
 	if (child_debug)
