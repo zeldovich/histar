@@ -1,9 +1,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 #include <sys/utsname.h>
 
-static char hostname[32];
+static char hostname[32] = "histar";
 
 libc_hidden_proto(gethostname)
 libc_hidden_proto(uname)
@@ -32,6 +33,9 @@ sethostname(const char *name, size_t len)
     return 0;
 }
 
+#define stringify(x) #x
+#define stringify_eval(x) stringify(x)
+
 int
 uname (struct utsname *name)
 {
@@ -40,6 +44,12 @@ uname (struct utsname *name)
     name->release[0] = '\0';
     name->version[0] = '\0';
     name->machine[0] = '\0';
+
+    sprintf(&name->sysname[0],  "Linux");
+    sprintf(&name->nodename[0], "histar");
+    sprintf(&name->release[0],  "v0");
+    sprintf(&name->version[0],  "none");
+    sprintf(&name->machine[0],  stringify_eval(__UCLIBC_ARCH__));
 
     return 0;
 }
