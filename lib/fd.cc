@@ -1479,6 +1479,7 @@ shutdown(int s, int how) __THROW
 }
 
 weak_alias(__libc_fcntl, fcntl);
+weak_alias(__libc_fcntl, fcntl64);
 
 libc_hidden_def(read)
 libc_hidden_def(write)

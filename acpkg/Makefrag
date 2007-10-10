@@ -62,6 +62,7 @@ AUTOCONF_ghostscript-8.54-gpl := --without-ijs --without-jbig2dec --without-jasp
 AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
 AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
 AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
+AUTOCONF_python-svn	    := --enable-shared
 
 ##
 ## Patches to apply to various packages
@@ -574,8 +575,6 @@ INCLUDE_BUILD_TAR_CMD := \
 	    -hrf $(TOP)/$(OBJDIR)/user/include.tar .
 
 $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
-	rm -f $@
-
 	rm -rf $(OBJDIR)/acpkg/.include-build
 	mkdir -p $(OBJDIR)/acpkg/.include-build
 
@@ -609,3 +608,11 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 $(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
 	gzip -c $< > $@
 
+$(OBJDIR)/user/python.tar.gz: acpkg/python-svn/__build
+	rm -f $@
+	tar -zcf $@ -C $(OBJDIR)/acpkg \
+		bin/idle bin/pydoc bin/python bin/python2.6 \
+		bin/python2.6-config bin/python-config bin/smtpd.py \
+		include/python2.6 lib/python2.6 lib/libpython2.6.so \
+                lib/libpython2.6.so.1.0 \
+                --exclude=lib/python2.6/test/*

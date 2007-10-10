@@ -546,6 +546,8 @@ mkfifo (const char *path, mode_t mode)
     return -1;
 }
 
+weak_alias(creat, creat64);
+
 libc_hidden_def(lstat)
 libc_hidden_def(getcwd)
 libc_hidden_def(readlink)
