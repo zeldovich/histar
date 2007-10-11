@@ -84,6 +84,7 @@ PATCHFILE_make-3.81	    := make-3.81.patch
 PATCHFILE_dhcp-3.0.5	    := dhcp-3.0.5.patch
 PATCHFILE_clamav-0.88	    := clamav-0.88.patch
 PATCHFILE_default	    := empty.patch
+PATCHFILE_python-svn        := python-svn.patch
 
 ##
 ## Packages we want to include
@@ -628,6 +629,11 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 $(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
 	gzip -c $< > $@
 
+# NOTE: 'python' must be in your path and be new enough to run
+# the python build process.  In general, it's best to install
+# python from svn on your build machine and make sure that
+# version is in your path.
+# svn co http://svn.python.org/projects/python/trunk python-svn
 $(OBJDIR)/user/python.tar.gz: acpkg/python-svn/__build
 	rm -f $@
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
@@ -636,3 +642,16 @@ $(OBJDIR)/user/python.tar.gz: acpkg/python-svn/__build
 		include/python2.6 lib/python2.6 lib/libpython2.6.so \
                 lib/libpython2.6.so.1.0 \
                 --exclude=lib/python2.6/test/*
+
+acpkg/python-svn/Makefile: $(ACPKG_WRAPS) acpkg/python-svn/__patch
+	@mkdir -p $(ACPKG_PREFIX)
+	if [ ! -e $@ -o ! -e acpkg/python-svn/__keep ]; then \
+	    find acpkg/python-svn -name config.cache | xargs rm -f; \
+	    find acpkg/python-svn -name config.status | xargs rm -f; \
+	    ( cd acpkg/python-svn && sh -c "$(ACENV) rm configure" ); \
+	    ( cd acpkg/python-svn && sh -c "$(ACENV) autoconf" ); \
+	    ( cd acpkg/python-svn && sh -c "$(ACENV) automake --add-missing" ); \
+	    ( cd acpkg/python-svn && sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" ); \
+	fi
+	touch $@
