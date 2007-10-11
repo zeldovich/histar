@@ -8,14 +8,26 @@ extern "C" {
 #include <inc/gatesrv.hh>
 #include <inc/labelutil.hh>
 #include <inc/error.hh>
+#include <inc/jthread.hh>
+
+static jthread_mutex_t log_mu;
 
 static void __attribute__((noreturn))
 authlog_entry(uint64_t arg, struct gate_call_data *parm, gatesrv_return *gr)
 {
+    scoped_jthread_lock l(&log_mu);
+
+    char timebuf[32];
+    time_t now = time(0);
+    ctime_r(&now, &timebuf[0]);
+    timebuf[24] = '\0';
+
     parm->param_buf[sizeof(parm->param_buf) - 1] = '\0';
     FILE *f = fopen("/authlog_self/log/log.out", "a");
-    fprintf(f, "%s\n", parm->param_buf);
+    fprintf(f, "%s: %s\n", timebuf, parm->param_buf);
     fclose(f);
+    l.release();
+
     gr->ret(0, 0, 0);
 }
 
