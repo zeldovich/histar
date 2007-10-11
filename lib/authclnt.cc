@@ -5,9 +5,11 @@ extern "C" {
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <inc/memlayout.h>
+#include <inc/auth.h>
 
 #include <string.h>
 #include <stdio.h>
+#include <pwd.h>
 }
 
 #include <inc/gateclnt.hh>
@@ -18,6 +20,28 @@ extern "C" {
 #include <inc/cooperate.hh>
 
 enum { auth_debug = 0 };
+
+int
+jos64_login(const char *user, const char *pass)
+{
+    uint64_t ug, ut;
+    try {
+	auth_login(user, pass, &ug, &ut);
+    } catch (std::exception &e) {
+	return 0;
+    }
+
+    start_env->user_taint = ut;
+    start_env->user_grant = ug;
+
+    struct passwd *pw = getpwnam(user);
+    if (pw) {
+	start_env->ruid = pw->pw_uid;
+	start_env->euid = pw->pw_uid;
+    }
+    
+    return 1;
+}
 
 void
 auth_login(const char *user, const char *pass, uint64_t *ug, uint64_t *ut)
