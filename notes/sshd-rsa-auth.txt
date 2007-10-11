@@ -1,0 +1,22 @@
+OpenSSH RSA auth logic: openssh/auth_rsa.c
+
+Login setup phase:
+    - Generate a challenge
+    - Input:  public key modulus (N), ssh session_id
+    - Output: BIGNUM encrypted_challenge, or error (modulus not authorized)
+    - Creates authentication gate bound to the challenge & session_id
+
+Authentication phase:
+    - Verify a particular response
+    - Input:  response (md5 hash of challenge + ssh session id)
+    - Output: access to grant gate
+    - Verifies that the MD5 hash matches
+
+Store the user's authorized_keys file under /uauth/username/...
+
+This seems inevitable with ssh's RSA auth protocol: a compromised server
+can mount a man-in-the-middle attack and use the client's response to
+the RSA challenge to authenticate to another server posing as the client.
+(The ssh session_id is not bound to the server name if the process with
+access to the server's ssh private key is not trusted.)
+
