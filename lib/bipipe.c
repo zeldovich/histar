@@ -76,6 +76,14 @@ bipipe_fd(struct jcomm_ref jr, int fd_mode, uint64_t grant, uint64_t taint)
 int
 bipipe(int type, int fv[2])
 {
+    struct ulabel l = { .ul_size = 0, .ul_nent = 0,
+			.ul_ent = 0, .ul_default = 1 };
+    return bipipe_label(type, fv, &l);
+}
+
+int
+bipipe_label(int type, int fv[2], struct ulabel *ul)
+{
     int r;
     
     uint64_t taint = handle_alloc();
@@ -83,11 +91,14 @@ bipipe(int type, int fv[2])
     
     uint64_t label_ent[16];
     struct ulabel label = { .ul_size = 16, .ul_ent = &label_ent[0] };
-    label.ul_default = 1;
-    label.ul_nent = 0;
+    label.ul_default = ul->ul_default;
+    label.ul_nent = ul->ul_nent;
 
-    label_set_level(&label, taint, 3, 1);
-    label_set_level(&label, grant, 0, 1);
+    assert(ul->ul_nent <= sizeof(label_ent) / sizeof(label_ent[0]));
+    memcpy(&label_ent[0], ul->ul_ent, ul->ul_nent * sizeof(ul->ul_ent[0]));
+
+    assert(0 == label_set_level(&label, taint, 3, 1));
+    assert(0 == label_set_level(&label, grant, 0, 1));
 
     struct jcomm_ref jr0, jr1;
 
@@ -196,6 +207,14 @@ bipipe_statsync(struct Fd *fd, dev_probe_t probe,
     return jcomm_multisync(BIPIPE_JCOMM(fd), probe, wstat, wslot_avail);
 }
 
+static int
+bipipe_getsockopt(struct Fd *fd, int level, int optname,
+		  void *optval, socklen_t *optlen)
+{
+    errno = ENOTSOCK;
+    return -1;
+}
+
 struct Dev devbipipe = {
     .dev_id = 'b',
     .dev_name = "bipipe",
@@ -207,5 +226,6 @@ struct Dev devbipipe = {
     .dev_statsync = &bipipe_statsync,
     .dev_addref = &bipipe_addref,
     .dev_unref = &bipipe_unref,
+    .dev_getsockopt = &bipipe_getsockopt,
     .dev_ioctl = &jos_ioctl,
 };

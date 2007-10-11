@@ -1,6 +1,7 @@
 extern "C" {
 #include <inc/syscall.h>
 #include <inc/fd.h>
+#include <inc/bipipe.h>
 
 #include <stdio.h>
 #include <errno.h>
@@ -33,8 +34,11 @@ try
     int64_t clam_taint;
     error_check(clam_taint = handle_alloc());
 
+    label bipipe_l(1);
+    bipipe_l.set(clam_taint, 3);
+
     int fds[2];
-    if (pipe(&fds[0]) < 0)
+    if (bipipe_label(SOCK_STREAM, &fds[0], bipipe_l.to_ulabel()) < 0)
 	throw basic_exception("cannot create pipe: %s", strerror(errno));
 
     int nullfd = open("/dev/null", O_RDONLY);
