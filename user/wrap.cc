@@ -82,11 +82,15 @@ try
     fs_inode wrapped;
     error_check(fs_namei(av[1], &wrapped));
 
+    int envc = 0;
+    while (environ[envc])
+	envc++;
+
     child_process cp =
 	spawn(start_env->shared_container, wrapped,
 	      nullfd, fds[1], fds[1],
 	      ac - 1, &av[1],
-	      0, 0,
+	      envc, (const char **) environ,
 	      &taint_star, 0, 0, &taint_zero, 0);
     close(fds[1]);
     close(nullfd);

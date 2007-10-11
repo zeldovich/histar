@@ -12,7 +12,7 @@ KERN_BINFILES	+= user/netd
 KERN_BINFILES	+= user/ls user/asprint user/gl user/jcat user/cat
 KERN_BINFILES	+= user/rm user/cp user/echo user/mount user/umount
 KERN_BINFILES	+= user/sync user/mkdir user/reboot user/ureboot
-KERN_BINFILES	+= user/jenv user/ps
+KERN_BINFILES	+= user/jenv user/ps user/wrap
 KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user
 KERN_BINFILES	+= user/login user/adduser user/passwd
 
