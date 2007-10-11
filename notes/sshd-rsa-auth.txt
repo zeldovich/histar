@@ -1,4 +1,18 @@
-OpenSSH RSA auth logic: openssh/auth_rsa.c
+OpenSSH v2 rsa auth logic: openssh/auth2-pubkey.c
+
+Problem: protocol does not allow the server to pick any nonce after
+the client presents his username.  The ssh2 session identifier (the
+only real random data signed by the client) is a hash computed by
+both parties at connection setup time.
+
+    http://www.snailbook.com/protocols.html
+
+Thus, the user authentication agent has no way to really trust that
+the identifier is not being replayed.
+
+===
+
+OpenSSH v1 rsa auth logic: openssh/auth_rsa.c
 
 Login setup phase:
     - Generate a challenge
@@ -11,6 +25,8 @@ Authentication phase:
     - Input:  response (md5 hash of challenge + ssh session id)
     - Output: access to grant gate
     - Verifies that the MD5 hash matches
+
+===
 
 Store the user's authorized_keys file under /uauth/username/...
 
