@@ -48,3 +48,20 @@
 +}
 +
 +#endif
+--- base/openssh-4.3p2/auth.c	2005-08-31 09:59:49.000000000 -0700
++++ openssh-4.3p2/auth.c	2007-10-11 01:47:23.000000000 -0700
+@@ -508,7 +508,13 @@
+ 	if (!allowed_user(pw))
+ 		return (NULL);
+ #ifdef HAVE_LOGIN_CAP
+-	if ((lc = login_getclass(pw->pw_class)) == NULL) {
++	if ((lc = login_getclass(
++#ifdef HAVE_PW_CLASS_IN_PASSWD
++				 pw->pw_class
++#else
++				 "default"
++#endif
++				 )) == NULL) {
+ 		debug("unable to get login class: %s", user);
+ 		return (NULL);
+ 	}

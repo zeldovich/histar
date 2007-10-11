@@ -33,13 +33,6 @@ jos64_login(const char *user, const char *pass)
 
     start_env->user_taint = ut;
     start_env->user_grant = ug;
-
-    struct passwd *pw = getpwnam(user);
-    if (pw) {
-	start_env->ruid = pw->pw_uid;
-	start_env->euid = pw->pw_uid;
-    }
-    
     return 1;
 }
 
