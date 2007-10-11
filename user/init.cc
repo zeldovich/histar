@@ -322,7 +322,7 @@ init_procs(int cons)
 		spawn_fs(SPAWN_ROOT_CT, cons, fn, 0, 0, 0);
 	}
     }
-    spawn_fs(SPAWN_WAIT_GC, cons, "/bin/ksh", "/bin/init.sh", 0, 0);
+    spawn_fs(SPAWN_WAIT_GC, cons, "/bin/ksh", "/bin/init.sh", &root_ds, &root_dr);
 }
 
 static void __attribute__((noreturn))
