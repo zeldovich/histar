@@ -18,9 +18,9 @@ KERN_BINFILES	+= user/login user/adduser user/passwd
 
 ## Common Unix tools
 #KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
-#KERN_BINFILES	+= user/find user/sed user/grep user/awk user/perl user/wget
+#KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl user/wget
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip
-#KERN_BINFILES	+= user/vim user/bash
+#KERN_BINFILES	+= user/vim user/bash user/grep user/egrep user/uniq user/mv
 
 ## SSH
 #KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
