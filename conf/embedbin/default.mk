@@ -22,7 +22,7 @@ KERN_BINFILES	+= user/login user/adduser user/passwd
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip
 #KERN_BINFILES	+= user/vim user/bash user/grep user/egrep user/uniq user/mv
 #KERN_BINFILES	+= user/links user/od user/du user/head user/tail
-#KERN_BINFILES	+= user/md5sum user/sha1sum
+#KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir
 
 ## SSH
 #KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
@@ -33,8 +33,7 @@ KERN_BINFILES	+= user/login user/adduser user/passwd
 #KERN_BINFILES	+= user/python.tar.gz
 
 ## ClamAV
-#KERN_BINFILES	+= user/clamscan user/clamwrap
-#KERN_BINFILES	+= user/clamav_main.cvd user/clamav_daily.cvd
+#KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
 
 ## Miscellaneous stuff: testing, benchmarking, experimental..
 KERN_BINFILES	+= user/fetch user/dnstest
