@@ -15,9 +15,14 @@
 
 libc_hidden_proto(pipe)
 
+enum { extra_correct_pipes = 0 };
+
 int
 pipe(int fds[2])
 {
+    if (extra_correct_pipes)
+	return socketpair(AF_INET, SOCK_STREAM, 0, fds);
+
     struct Fd *fd;
     int r = fd_alloc(&fd, "pipe fd");
     if (r < 0) {
