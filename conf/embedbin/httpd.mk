@@ -5,4 +5,4 @@ KERN_BINFILES   += user/inetd user/httpd2
 KERN_BINFILES	+= user/gs user/gs.tar
 KERN_BINFILES   += user/a2ps user/a2ps.tar
 
-INITTAB_ENTRIES += /bin/httpd_mom:root
+#INITTAB_ENTRIES += /bin/httpd_mom:r
