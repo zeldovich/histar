@@ -24,7 +24,7 @@ fs_mount(struct cobj_ref fs_mtab_seg, struct fs_inode dir,
     for (int i = 0; i < FS_NMOUNT; i++) {
 	struct fs_mtab_ent *ent = &mtab->mtab_ent[i];
 	if (ent->mnt_name[0] == '\0') {
-	    strncpy(&ent->mnt_name[0], mnt_name, KOBJ_NAME_LEN - 1);
+	    strncpy(&ent->mnt_name[0], mnt_name, FS_NAME_LEN - 1);
 	    ent->mnt_dir = dir;
 	    ent->mnt_root = root;
 	    segment_unmap(mtab);

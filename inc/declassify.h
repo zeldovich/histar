@@ -22,7 +22,7 @@ struct declassify_args {
 
 	struct {
 	    struct fs_inode dir;
-	    char name[KOBJ_NAME_LEN];
+	    char name[FS_NAME_LEN];
 	    struct fs_inode new_file;
 	} fs_create;
 

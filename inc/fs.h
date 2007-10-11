@@ -9,18 +9,20 @@
 #include <inc/kobj.h>
 #include <inc/label.h>
 
+#define FS_NAME_LEN	64
+
 struct fs_inode {
     struct cobj_ref obj;
 };
 
 struct fs_dent {
-    char de_name[KOBJ_NAME_LEN];
+    char de_name[FS_NAME_LEN];
     struct fs_inode de_inode;
 };
 
 struct fs_mtab_ent {
     struct fs_inode mnt_dir;
-    char mnt_name[KOBJ_NAME_LEN];
+    char mnt_name[FS_NAME_LEN];
     struct fs_inode mnt_root;
 };
 

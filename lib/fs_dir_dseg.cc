@@ -24,7 +24,7 @@ struct fs_dirslot {
     uint64_t gen;
     uint64_t id;
     uint8_t inuse;
-    char name[KOBJ_NAME_LEN];
+    char name[FS_NAME_LEN];
 };
 
 struct fs_directory {
@@ -108,6 +108,9 @@ fs_dir_dseg::insert(const char *name, fs_inode ino)
 {
     check_writable();
 
+    if (strlen(name) > FS_NAME_LEN - 1)
+	throw basic_exception("fs_dir_dseg::insert: name too long");
+
     if (ino_.obj.object != ino.obj.container)
 	throw basic_exception("fs_dir_dseg::insert: bad inode");
 
@@ -120,7 +123,7 @@ fs_dir_dseg::insert(const char *name, fs_inode ino)
 	    if (!slot->inuse) {
 		uint64_t ngen = slot->gen + 1;
 		slot->gen = DIR_GEN_BUSY;
-		strncpy((char *) &slot->name[0], name, KOBJ_NAME_LEN - 1);
+		strncpy((char *) &slot->name[0], name, FS_NAME_LEN - 1);
 		slot->id = ino.obj.object;
 		slot->inuse = 1;
 		slot->gen = ngen;
@@ -151,7 +154,7 @@ fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
     if (copy.inuse == 0)
 	goto retry;
 
-    memcpy(&de->de_name[0], &copy.name[0], KOBJ_NAME_LEN);
+    memcpy(&de->de_name[0], &copy.name[0], FS_NAME_LEN);
     de->de_inode.obj = COBJ(ino_.obj.object, copy.id);
     return 1;
 }

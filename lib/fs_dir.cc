@@ -134,7 +134,7 @@ fs_readdir_dent(struct fs_readdir_state *s, struct fs_dent *de,
 		if (mtent->mnt_dir.obj.object != s->dir.obj.object)
 		    continue;
 
-		memcpy(&de->de_name[0], &mtent->mnt_name[0], KOBJ_NAME_LEN);
+		memcpy(&de->de_name[0], &mtent->mnt_name[0], FS_NAME_LEN);
 		de->de_inode = mtent->mnt_root;
 		return 1;
 	    }
@@ -265,7 +265,7 @@ fs_lookup_path(struct fs_inode start_dir, const char *pn,
 	const char *next_pn = name_end ? name_end + 1 : "";
 	size_t namelen = name_end ? (size_t) (name_end - pn) : strlen(pn);
 
-	char fn[KOBJ_NAME_LEN];
+	char fn[FS_NAME_LEN];
 	if (namelen >= sizeof(fn))
 	    return -E_RANGE;
 
