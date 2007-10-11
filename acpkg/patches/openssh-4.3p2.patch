@@ -9,3 +9,42 @@
  install-nokeys: $(CONFIGFILES) ssh_prng_cmds.out $(MANPAGES) $(TARGETS) install-files install-sysconf
  install-nosysconf: $(CONFIGFILES) ssh_prng_cmds.out $(MANPAGES) $(TARGETS) install-files
  
+--- openssh-4.3p2_bad/defines.h	2005-12-17 03:04:09.000000000 -0800
++++ openssh-4.3p2/defines.h	2007-10-10 21:47:50.000000000 -0700
+@@ -27,6 +27,9 @@
+ 
+ /* $Id: defines.h,v 1.130 2005/12/17 11:04:09 dtucker Exp $ */
+ 
++#ifdef JOS_USER
++# define CUSTOM_SYS_AUTH_PASSWD 1
++#endif
+ 
+ /* Constants */
+ 
+--- openssh-4.3p2_bad/openbsd-compat/Makefile.in	2005-12-30 21:33:37.000000000 -0800
++++ openssh-4.3p2/openbsd-compat/Makefile.in	2007-10-10 21:44:45.000000000 -0700
+@@ -20,7 +20,7 @@
+ 
+ COMPAT=bsd-arc4random.o bsd-asprintf.o bsd-closefrom.o bsd-cray.o bsd-cygwin_util.o bsd-getpeereid.o bsd-misc.o bsd-nextstep.o bsd-openpty.o bsd-snprintf.o bsd-waitpid.o fake-rfc2553.o openssl-compat.o xmmap.o xcrypt.o
+ 
+-PORTS=port-irix.o port-aix.o port-uw.o port-tun.o
++PORTS=port-irix.o port-aix.o port-uw.o port-tun.o port-jos64.o
+ 
+ .c.o:
+ 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+--- openssh-4.3p2_bad/openbsd-compat/port-jos64.c	1969-12-31 16:00:00.000000000 -0800
++++ openssh-4.3p2/openbsd-compat/port-jos64.c	2007-10-10 23:52:45.000000000 -0700
+@@ -0,0 +1,13 @@
++#include "auth.h"
++
++#ifdef JOS_USER
++
++int jos64_login(const char *user, const char *pass);
++
++int
++sys_auth_passwd(Authctxt *authctxt, const char *password)
++{
++    return jos64_login(authctxt->user, password);
++}
++
++#endif
