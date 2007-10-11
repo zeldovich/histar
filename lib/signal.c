@@ -825,14 +825,44 @@ kill_siginfo(pid_t pid, siginfo_t *si)
 	cprintf("[%"PRIu64"] kill_siginfo: pid %"PRIu64" signal %d\n",
 		thread_id(), pid, si->si_signo);
 
-    if (pid == 0) {
-	set_enosys();
-	return -1;
-    }
+    if (pid == 0)
+	pid = -getpgrp();
 
     if (pid < 0) {
-	set_enosys();
-	return -1;
+	int64_t procslots = sys_container_get_nslots(start_env->process_pool);
+	if (procslots < 0) {
+	    __set_errno(EINVAL);
+	    return -1;
+	}
+
+	int sendcount = 0;
+	for (int64_t slot = 0; slot < procslots; slot++) {
+	    int64_t procpid = sys_container_get_slot_id(start_env->process_pool,
+							slot);
+	    if (procpid < 0)
+		continue;
+
+	    int send = 0;
+	    if (pid == -1) {
+		send = 1;
+	    } else {
+		pid_t pgid = __getpgid(procpid);
+		if (pgid == -pid)
+		    send = 1;
+	    }
+
+	    if (send) {
+		kill_siginfo(procpid, si);
+		sendcount++;
+	    }
+	}
+
+	if (sendcount == 0) {
+	    __set_errno(ESRCH);
+	    return -1;
+	}
+
+	return 0;
     }
 
     if (pid == getpid()) {
