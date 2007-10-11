@@ -271,6 +271,7 @@ init_auth(int cons, const char *shroot)
     verify.set(start_env->user_grant, 0);
     gate_call(COBJ(dir_ct, dir_gt), 0, 0, 0).call(&gcd, &verify);
     error_check(reply->err);
+    auth_chpass("root", "", "r");
 }
 
 static void
