@@ -63,6 +63,7 @@ AUTOCONF_enscript-1.6.4	    := --disable-dependency-tracking
 AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
 AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 AUTOCONF_python-svn	    := --enable-shared
+AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
 
 ##
 ## Patches to apply to various packages
@@ -299,6 +300,12 @@ $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 	@
 
+## ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
+$(OBJDIR)/acpkg/bin/mutt: $(OBJDIR)/lib/libncurses.a
+$(OBJDIR)/acpkg/bin/mutt: acpkg/openssl-0.9.8a/__build 
+$(OBJDIR)/acpkg/bin/mutt: acpkg/mutt-1.4.2.3/__build
+	@
+
 ## http://ftp.gnu.org/pub/gnu/bash/bash-3.1.tar.gz
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
 	@
@@ -451,7 +458,8 @@ acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
 	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" ) && \
 	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" ) && \
 	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" ) && \
-	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" ); \
+	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" ) && \
+	    ( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h ); \
 	fi
 	touch $@
 
