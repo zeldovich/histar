@@ -170,7 +170,15 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
 	if (argv[0])
 	    argv++;
     }
-    
+
+    // Place args, environment
+    sv.add_all(argv);
+    new_env->argc = sv.c_;
+
+    sv.c_ = 0;
+    sv.add_all(envp);
+    new_env->envc = sv.c_;
+
     // Move our file descriptors over to the new process
     for (uint32_t i = 0; i < MAXFD; i++) {
 	struct Fd *fd;
@@ -184,13 +192,6 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
 
 	error_check(dup2_as(i, i, e.te_as, start_env->shared_container));
     }
-
-    sv.add_all(argv);
-    new_env->argc = sv.c_;
-
-    sv.c_ = 0;
-    sv.add_all(envp);
-    new_env->envc = sv.c_;
 
     // Map environment in new address space
     void *new_env_va = 0;
