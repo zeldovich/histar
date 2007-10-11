@@ -156,6 +156,7 @@ int     thread_cleanup(struct thread_args *ta);
 #define PROCESS_DEAD		4
 
 struct process_state {
+    char procname[64];
     uint64_t status;
     int64_t exit_code;
     int64_t exit_signal;

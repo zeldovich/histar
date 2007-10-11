@@ -321,11 +321,21 @@ debug_gate_init(void)
 	error_check(sys_self_get_as(&cur_as));
 	debug_gate_as_is(cur_as);
 
-	struct cobj_ref to;
-	int r = segment_alloc(start_env->shared_container, sizeof(*dinfo), &to,
-			      (void **)&dinfo, 0, "debug info");
+	int r;
+	int64_t tid = container_find(start_env->shared_container,
+				     kobj_segment, "debug info");
+	if (tid >= 0) {
+	    r = segment_map(COBJ(start_env->shared_container, tid),
+			    0, SEGMAP_READ | SEGMAP_WRITE,
+			    (void **) &dinfo, 0, 0);
+	} else {
+	    struct cobj_ref to;
+	    r = segment_alloc(start_env->shared_container, sizeof(*dinfo), &to,
+			      (void **) &dinfo, 0, "debug info");
+	}
+
 	if (r < 0) {
-	    cprintf("debug_gate_init: unable to alloc segment: %s\n", e2s(r));
+	    cprintf("debug_gate_init: unable to alloc/map segment: %s\n", e2s(r));
 	    return;
 	}
 

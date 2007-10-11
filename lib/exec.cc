@@ -207,6 +207,14 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     
     // want to carry trace over
     new_env->trace_on = debug_gate_trace();
+
+    // Change the title of the process
+    struct process_state *procstat = 0;
+    error_check(segment_map(start_env->process_status_seg,
+			    0, SEGMAP_READ | SEGMAP_WRITE,
+			    (void **) &procstat, 0, 0));
+    strncpy(&procstat->procname[0], &name[0], sizeof(procstat->procname));
+    segment_unmap_delayed(procstat, 1);
     
     // Start it!
     error_check(sys_thread_start(th_ref, &e,

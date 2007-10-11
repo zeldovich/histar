@@ -111,11 +111,14 @@ do_fork()
 					  "process", 0, CT_QUOTA_INF);
     error_check(proc_ct);
 
-    // Create an exit status for it
-    struct cobj_ref exit_status_seg;
+    // Create a process status segment for it
+    struct cobj_ref proc_status_seg;
+    struct process_state *procstat = 0;
     error_check(segment_alloc(top_ct, sizeof(struct process_state),
-			      &exit_status_seg, 0, 0,
-			      "exit status"));
+			      &proc_status_seg, (void **) &procstat, 0,
+			      "process status"));
+    strncpy(&procstat->procname[0], jos_progname, sizeof(procstat->procname));
+    segment_unmap_delayed(procstat, 1);
 
     // Create a process gid for it
     struct cobj_ref process_gid_seg;
@@ -168,7 +171,7 @@ do_fork()
 	start_env->shared_container = top_ct;
 	start_env->proc_container = proc_ct;
 
-	start_env->process_status_seg = exit_status_seg;
+	start_env->process_status_seg = proc_status_seg;
 	start_env->process_gid_seg = process_gid_seg;
 
 	start_env->process_grant = process_grant;
@@ -285,7 +288,7 @@ do_fork()
 
     top_drop.dismiss();
 
-    child_add(top_ct, exit_status_seg);
+    child_add(top_ct, proc_status_seg);
     return top_ct;
 }
 

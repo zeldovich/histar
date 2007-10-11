@@ -164,17 +164,20 @@ spawn(spawn_descriptor *sd)
 			       0, SEGMAP_READ | SEGMAP_WRITE,
 			       &spawn_env_va, 0, 0));
 
-    struct cobj_ref exit_status_seg;
+    struct cobj_ref proc_status_seg;
+    struct process_state *procstat = 0;
     error_check(segment_alloc(c_top, sizeof(struct process_state),
-			      &exit_status_seg, 0, 0,
-			      "exit status"));
+			      &proc_status_seg, (void **) &procstat, 0,
+			      "process status"));
+    strncpy(&procstat->procname[0], &name[0], sizeof(procstat->procname));
+    segment_unmap_delayed(procstat, 1);
 
     memcpy(spawn_env, start_env, sizeof(*spawn_env));
     spawn_env->proc_container = c_proc;
     spawn_env->shared_container = c_top;
     spawn_env->process_grant = process_grant;
     spawn_env->process_taint = process_taint;
-    spawn_env->process_status_seg = exit_status_seg;
+    spawn_env->process_status_seg = proc_status_seg;
     spawn_env->ppid = 0;
     if (sd->fs_mtab_seg_.object)
 	spawn_env->fs_mtab_seg = sd->fs_mtab_seg_;
@@ -259,7 +262,7 @@ spawn(spawn_descriptor *sd)
 
     struct child_process child;
     child.container = c_top;
-    child.wait_seg = exit_status_seg;
+    child.wait_seg = proc_status_seg;
 
     c_top_drop.dismiss();
     return child;
