@@ -332,9 +332,10 @@ signal_execute(siginfo_t *si, struct sigcontext *sc)
     jthread_mutex_unlock(&sigactions_mu);
 
     if (si->si_signo == SIGINFO) {
-	cprintf("%s (pid %"PRIu64", tid %"PRIu64"): SIGINFO backtrace..\n",
+	fprintf(stderr,
+		"%s (pid %"PRIu64", tid %"PRIu64"): SIGINFO backtrace..\n",
 		jos_progname, start_env->shared_container, thread_id());
-	print_backtrace(1);
+	print_backtrace(0);
     }
 
     if (si->si_signo == SIGCHLD) {
