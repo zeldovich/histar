@@ -49,7 +49,7 @@
 
 enum { signal_debug = 0 };
 enum { signal_debug_utf_dump = 0 };
-uint64_t signal_counter;
+volatile uint64_t signal_counter;
 
 // BSD compat
 const char *sys_signame[_NSIG];
