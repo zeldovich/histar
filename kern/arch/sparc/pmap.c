@@ -304,12 +304,7 @@ as_arch_page_map_ro_cb(const void *arg, ptent_t *ptep, void *va)
 int
 as_arch_putpage(struct Pagemap *pgmap, void *va, void *pp, uint32_t flags)
 {
-    /* The TSIM MMU doesn't seem to work as expected unless readable and
-     * writable pages are marked executable.  Real hardware seems to get it
-     * right.
-     * uint32_t ptflags = 0;
-     */
-    uint32_t ptflags = PTE_ACC_X;
+    uint32_t ptflags = 0;
     if (flags & SEGMAP_WRITE)
 	ptflags |= PTE_ACC_W;
     if (flags & SEGMAP_EXEC)
