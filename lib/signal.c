@@ -914,4 +914,5 @@ libc_hidden_def(sigprocmask)
 libc_hidden_def(sigsuspend)
 libc_hidden_def(sigwaitinfo)
 libc_hidden_def(kill)
+strong_alias(longjmp, _longjmp)
 

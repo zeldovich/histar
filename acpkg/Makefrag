@@ -288,6 +288,10 @@ $(OBJDIR)/acpkg/bin/sed: acpkg/sed-4.1.5/__build
 $(OBJDIR)/acpkg/bin/awk: acpkg/gawk-3.1.5/__build
 	@
 
+## ftp://ftp.gnu.org/gnu/less/less-382.tar.gz
+$(OBJDIR)/acpkg/bin/less: acpkg/less-382/__build
+	@
+
 ## ftp://ftp.gnu.org/gnu/grep/grep-2.5.3.tar.gz
 $(OBJDIR)/acpkg/bin/grep: acpkg/grep-2.5.3/__build
 	@
