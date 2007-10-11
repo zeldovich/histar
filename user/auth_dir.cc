@@ -108,11 +108,12 @@ auth_dir_dispatch(auth_dir_req *req, auth_dir_reply *reply)
     }
 
     if (req->op == auth_dir_lookup) {
+	snprintf(&log_msg[0], sizeof(log_msg), "looking up user %s (%s)",
+		 req->user, ue_match ? "found" : "not found");
+	auth_log(log_msg);
+
 	if (!ue_match)
 	    throw error(-E_NOT_FOUND, "no such user");
-
-	snprintf(&log_msg[0], sizeof(log_msg), "looking up user %s", req->user);
-	auth_log(log_msg);
 
 	reply->user_gate = ue_match->user_gate;
     }
