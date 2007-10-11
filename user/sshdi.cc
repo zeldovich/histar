@@ -41,21 +41,19 @@ main (int ac, char **av)
 	r = fs_namei("/bin/sshd", &ino);
 	if (r < 0)
 	    throw error(r, "cannot fs_lookup /bin/sshd");
-	
+
+	// hack to avoid running sshd with root grant and taint
+	error_check(start_env->user_grant = handle_alloc());
+	error_check(start_env->user_taint = handle_alloc());
 	const char *argv1[] = { "/bin/sshd", "-f", "/etc/sshd_config", "-r" };
 	cp = spawn(start_env->shared_container, ino,
 		   0, 0, 0,
 		   4, &argv1[0],
 		   0, 0,
 		   0, 0, 0, 0, 0);
-	error_check(process_wait(&cp, &exit_code));
-	error_check(exit_code);
-	
 	return 0;
     } catch (std::exception &e) {
 	cprintf("sshdi: main: %s\n", e.what());
 	return -1;
     }
 }
-
-    
