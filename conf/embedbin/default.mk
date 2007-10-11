@@ -22,7 +22,7 @@ KERN_BINFILES	+= user/login user/adduser user/passwd
 #KERN_BINFILES	+= user/tar user/gzip user/gunzip
 #KERN_BINFILES	+= user/vim user/bash user/grep user/egrep user/uniq user/mv
 #KERN_BINFILES	+= user/links user/od user/du user/head user/tail
-#KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir
+#KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
 
 ## SSH
 #KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi

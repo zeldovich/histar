@@ -27,8 +27,12 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	    return MAP_FAILED;
 	}
 
+	if (fd->fd_dev_id == devzero.dev_id)
+	    goto anon;
+
 	if (fd->fd_dev_id != devfile.dev_id) {
-	    set_enosys();
+	    cprintf("mmap: cannot mmap type %d\n", fd->fd_dev_id);
+	    __set_errno(EINVAL);
 	    return MAP_FAILED;
 	}
 
@@ -62,7 +66,9 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 	return va;
     }
 
-    uint32_t seg_flags = SEGMAP_ANON_MMAP | SEGMAP_READ;
+    uint32_t seg_flags;
+ anon:
+    seg_flags = SEGMAP_ANON_MMAP | SEGMAP_READ;
     if ((prot & PROT_EXEC))
 	seg_flags |= SEGMAP_EXEC;
     if ((prot & PROT_WRITE))
@@ -90,11 +96,13 @@ mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 int
 munmap(void *start, size_t length)
 {
-    if ((length % PGSIZE) != 0) {
+    if (PGOFF(start)) {
 	cprintf("munmap: unaligned unmap, va %p, length %zu\n", start, length);
 	__set_errno(EINVAL);
 	return -1;
     }
+
+    length = ROUNDUP(length, PGSIZE);
 
     struct u_segment_mapping omap;
     int r = segment_lookup(start, &omap);
