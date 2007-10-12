@@ -8,13 +8,10 @@ KERN_LDFLAGS = -N -Ttext 0x80100134 -e start -nostdlib
 KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
-	$(ARCHDIR)/locore.S
+	$(ARCHDIR)/locore.S			\
+	$(ARCHDIR)/init.c
 
-KERN_LIB :=
-
-KERN_LIB_X :=					\
-	lib/$(ARCH)/strlen.S			\
-	lib/$(ARCH)/longjmp.S			\
+KERN_LIB :=					\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
@@ -24,7 +21,11 @@ KERN_LIB_X :=					\
 	lib/cksum.c				\
 	lib/bf60.c				\
 	lib/string.c				\
+	lib/cstrlen.c				\
 	lib/hashtable.c
+
+KERN_LIB_X :=					\
+	lib/$(ARCH)/longjmp.S
 
 KERN_DEV :=
 
