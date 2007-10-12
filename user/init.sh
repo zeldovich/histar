@@ -1,5 +1,7 @@
 #!/bin/ksh
 mkdir /usr
+mkdir /lib
+ln -s /bin/*.so /lib
 
 if [ -f /bin/gcc.tar.gz ]; then
     echo "$0: unpacking gcc.."
