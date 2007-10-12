@@ -1,10 +1,10 @@
 #!/bin/ksh
 mkdir /usr
 
-#if [ -f /bin/gcc.tar.gz ]; then
-#    echo "$0: unpacking gcc.."
-#    tar -C /usr -xzmf /bin/gcc.tar.gz
-#fi
+if [ -f /bin/gcc.tar.gz ]; then
+    echo "$0: unpacking gcc.."
+    tar -C /usr -xzmf /bin/gcc.tar.gz
+fi
 
 if [ -f /bin/include.tar.gz ]; then
     echo "$0: unpacking headers.."
