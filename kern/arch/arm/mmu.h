@@ -8,13 +8,18 @@
 
 #define PTE_ADDR(e)	((e) & ~PGMASK)
 
+#ifndef __ASSEMBLER__
+#include <inc/thread.h>
+
 struct Trapframe {
 };
 
 struct Trapframe_aux {
+    struct thread_entry_args tfa_entry_args;
 };
 
 struct Fpregs {
 };
+#endif
 
 #endif

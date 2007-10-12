@@ -9,9 +9,14 @@ KERN_CFLAGS += -msoft-float -fno-builtin
 
 KERN_ARCH :=					\
 	$(ARCHDIR)/locore.S			\
-	$(ARCHDIR)/init.c
+	$(ARCHDIR)/init.c			\
+	$(ARCHDIR)/pmap.c			\
+	$(ARCHDIR)/page.c			\
+	$(ARCHDIR)/trap.c			\
+	$(ARCHDIR)/misc.c
 
 KERN_LIB :=					\
+	lib/$(ARCH)/longjmp.S			\
 	lib/memcpy.c				\
 	lib/memmove.c				\
 	lib/memset.c				\
@@ -23,9 +28,6 @@ KERN_LIB :=					\
 	lib/string.c				\
 	lib/cstrlen.c				\
 	lib/hashtable.c
-
-KERN_LIB_X :=					\
-	lib/$(ARCH)/longjmp.S
 
 KERN_DEV :=
 

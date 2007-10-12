@@ -1,16 +1,4 @@
 #include <kern/lib.h>
 
-int raise(int sig);
+char boot_cmdline[256];
 
-int __attribute__((noreturn))
-raise(int sig)
-{
-    panic("raise %d", sig);
-}
-
-void
-abort(void)
-{
-    for (;;)
-	;
-}
