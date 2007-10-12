@@ -1,5 +1,10 @@
 OBJDIRS += user
 
+## It appears that GNU make will not traverse the same pattern rule
+## twice for the same target (even if it has different substitutions).
+## Thus, we need to tell it explicitly that ld.so is buildable.
+$(OBJDIR)/user/ld.so: $(OBJDIR)/user/ld.so.debuginfo
+
 ## init is special -- must always be static
 $(OBJDIR)/user/init.debuginfo: PER_TARGET_LDFLAGS=-static
 
