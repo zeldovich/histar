@@ -4,7 +4,7 @@
 
 * GCC 4.1.2
 
-./configure --target=arm-jos-linux --prefix=/usr/local \
+./configure --target=arm-jos-linux --prefix=/usr/local --with-float=soft \
 	--disable-nls --without-headers --with-newlib \
 	--disable-threads --disable-shared --disable-libmudflap \
 	--disable-libssp
