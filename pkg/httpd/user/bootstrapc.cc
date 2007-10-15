@@ -22,11 +22,25 @@ main(int ac, char **av)
 	printf("usage: %s ip req [suffix]\n", av[0]);
 	return -1;
     }
+
+    tcpconn *conn = 0;
+    for (int retry = 0; ; retry++) {
+	try {
+	    conn = new tcpconn(av[1], port);
+	    break;
+	} catch (basic_exception &e) {
+	    if (retry >= 20) {
+		fprintf(stderr, "%s: ERROR: %s\n", av[0], e.what());
+		exit(EXIT_FAILURE);
+	    }
+	    fprintf(stderr, "%s: tcpconn wierdness, going to retry: %s\n",
+		    av[0], e.what());
+	}
+    }
     
-    tcpconn conn(av[1], port);
-    conn.write(av[2], strlen(av[2]));
-    conn.write("\r\n", 2);
-    lineparser lp(&conn);
+    conn->write(av[2], strlen(av[2]));
+    conn->write("\r\n", 2);
+    lineparser lp(conn);
 
     const char *suffix = 0;
     if (ac > 3)
@@ -63,5 +77,8 @@ main(int ac, char **av)
 	
 	close(fd);
     }
+
+    printf("all done!\n");
+    delete conn;
     return 0;
 }
