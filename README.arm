@@ -13,3 +13,7 @@
 
 ./configure --target=arm-jos-linux --prefix=/usr/local --disable-nls
 
+* Setting up the N800
+
+    http://people.csail.mit.edu/calvinon/org/setup_inst
+
