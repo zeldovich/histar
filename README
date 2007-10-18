@@ -2,7 +2,7 @@
 * To configure bochs, you need --enable-x86-64:
 
 ./configure --enable-disasm \
-        --enable-iodebug --enable-new-pit \
+        --enable-iodebug \
         --enable-4meg-pages --enable-pae --enable-global-pages \
         --enable-x86-64 \
         --enable-all-optimizations \
@@ -17,7 +17,7 @@ For the internal debugger (doesn't disassemble AMD64 code very well),
 replace --enable-gdb-stub with --enable-debugger:
 
 ./configure --enable-disasm \
-        --enable-iodebug --enable-new-pit \
+        --enable-iodebug \
         --enable-4meg-pages --enable-pae --enable-global-pages \
         --enable-x86-64 \
         --enable-all-optimizations \
