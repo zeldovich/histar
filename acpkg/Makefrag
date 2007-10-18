@@ -5,7 +5,6 @@
 ##    acpkg/pkgname/__reconf: has run autoreconf (sfslite)
 ##    acpkg/pkgname/Makefile: has run ./configure
 ##    acpkg/pkgname/__build: has run make && make install
-##    acpkg/pkgname/__keep: prevent reconfiguration/rebuild due to deps
 ##
 
 ACPKG_PREFIX	:= $(OBJDIR)/acpkg
@@ -131,15 +130,13 @@ $(ACPKG_WRAPS):
 
 .PRECIOUS: acpkg/%/Makefile
 acpkg/%/Makefile: PKGNAME=$(patsubst acpkg/%/Makefile,%,$@)
-acpkg/%/Makefile: $(ACPKG_WRAPS) acpkg/%/__patch
+acpkg/%/Makefile: acpkg/%/__patch | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    find acpkg/$(PKGNAME) -name config.cache | xargs rm -f; \
-	    find acpkg/$(PKGNAME) -name config.status | xargs rm -f; \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" ); \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
-		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" ); \
-	fi
+	-find acpkg/$(PKGNAME) -name config.cache | xargs rm -f
+	-find acpkg/$(PKGNAME) -name config.status | xargs rm -f
+	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 	touch $@
 
 .PRECIOUS: acpkg/%/__patch
@@ -151,20 +148,15 @@ acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PA
 
 .PRECIOUS: acpkg/%/__reconf
 acpkg/%/__reconf: PKGNAME=$(patsubst acpkg/%/__reconf,%,$@)
-acpkg/%/__reconf: $(ACPKG_WRAPS) acpkg/%/__patch
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "autoreconf -fis" ); \
-	fi
+acpkg/%/__reconf: acpkg/%/__patch | $(ACPKG_WRAPS)
+	( cd acpkg/$(PKGNAME) && sh -c "autoreconf -fis" )
 	touch $@
 
 .PRECIOUS: acpkg/%/__build
 acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
-acpkg/%/__build: acpkg/%/Makefile $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" ); \
-	fi
+acpkg/%/__build: acpkg/%/Makefile | $(LDEPS)
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
 
 $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/bin/$(TARGET)-%
@@ -244,19 +236,17 @@ ACPKG_GS_FONTS = $(FONTDIR)/n022003l.pfb \
 	      	 $(FONTDIR)/n019003l.pfb \
 	      	 $(FONTDIR)/n019004l.pfb
 
-acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile $(ACPKG_GS_FONTS) $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "gmake clean" ); \
-	    mkdir -p acpkg/$(PKGNAME)/obj && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak obj/arch.h obj/genconf obj/echogs" ) && \
-	    cp acpkg/$(PKGNAME)/{jos64-arch.h,obj/arch.h} && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak CC=: CCLD=: $(GSENV)" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake $(GSENV)" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install $(GSENV)" ); \
-	fi
+acpkg/ghostscript-8.54-gpl/__build: acpkg/ghostscript-8.54-gpl/Makefile $(ACPKG_GS_FONTS) | $(LDEPS)
+	mkdir -p acpkg/$(PKGNAME)/obj
+	( cd acpkg/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak obj/arch.h obj/genconf obj/echogs" )
+	cp acpkg/$(PKGNAME)/{jos64-arch.h,obj/arch.h}
+	( cd acpkg/$(PKGNAME) && sh -c "PREFIX=\"$(TOP)/$(ACPKG_PREFIX)\" gmake -f src/jos64-gcc.mak CC=: CCLD=: $(GSENV)" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake $(GSENV)" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install $(GSENV)" )
 	touch $@
 
 $(OBJDIR)/acpkg/bin/gs: acpkg/ghostscript-8.54-gpl/__build
+	@
 
 $(OBJDIR)/user/gs.tar: acpkg/ghostscript-8.54-gpl/__build $(ACPKG_GS_FONTS)
 	rm -f $@
@@ -266,13 +256,10 @@ $(OBJDIR)/user/gs.tar: acpkg/ghostscript-8.54-gpl/__build $(ACPKG_GS_FONTS)
 ## http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
 ## [ description of microperl:
 ##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
-acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro clean" ); \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" ) && \
-	    mkdir -p $(OBJDIR)/acpkg/bin && \
-	    cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl; \
-	fi
+acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch | $(LDEPS)
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake -f Makefile.micro" )
+	mkdir -p $(OBJDIR)/acpkg/bin
+	cp acpkg/perl-5.8.8/microperl $(OBJDIR)/acpkg/bin/perl
 	touch $@
 
 $(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
@@ -320,8 +307,7 @@ $(OBJDIR)/acpkg/bin/mutt: acpkg/mutt-1.4.2.3/__build
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
 	@
 
-acpkg/dhcp-3.0.5/__build: $(LDEPS) $(ACPKG_WRAPS) acpkg/dhcp-3.0.5/__patch
-	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake clean" )
+acpkg/dhcp-3.0.5/__build: acpkg/dhcp-3.0.5/__patch | $(LDEPS) $(ACPKG_WRAPS)
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) ./configure" )
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake" )
 	touch $@
@@ -332,13 +318,12 @@ $(OBJDIR)/acpkg/sbin/dhclient: acpkg/dhcp-3.0.5/__build
 
 ## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
-acpkg/vim70/__build: $(ACPKG_WRAPS) acpkg/vim70/__patch $(OBJDIR)/lib/libncurses.a
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" ) && \
-	    ( cd acpkg/vim70 && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/vim70 && sh -c "$(ACENV) gmake install" ); \
-	fi
+acpkg/vim70/__build: acpkg/vim70/__patch | $(OBJDIR)/lib/libncurses.a $(ACPKG_WRAPS)
+	( cd acpkg/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
+	( cd acpkg/vim70 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/vim70 && sh -c "$(ACENV) gmake install" )
 	touch $@	
+
 $(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
 	@
 
@@ -354,15 +339,24 @@ acpkg/gdb-6.5/gdb/config/i386/__gl:
 	ln -fs $(TOP)/pkg/gdb-gl/jos64-nat.c 	\
 	       $(TOP)/acpkg/gdb-6.5/gdb/jos64-nat.c
 	touch $@
-			
-$(OBJDIR)/acpkg/bin/gdbserver 		     \
-$(OBJDIR)/acpkg/bin/gdb: 		     \
-	acpkg/gdb-6.5/gdb/config/i386/__gl   \
-	$(OBJDIR)/lib/libncurses.a	     \
-	acpkg/gdb-6.5/__build		
+
+$(OBJDIR)/acpkg/bin/gdbserver $(OBJDIR)/acpkg/bin/gdb: \
+	acpkg/gdb-6.5/gdb/config/i386/__gl acpkg/gdb-6.5/__build \
+	| $(OBJDIR)/lib/libncurses.a
 
 ## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
-$(OBJDIR)/acpkg/bin/od: acpkg/coreutils-5.94/__build
+ACPKG_COREUTILS_BINS := basename cat chgrp chmod chown chroot cksum comm \
+			cp csplit cut date dcgen dd dir dircolors dirname \
+			du echo env expand expr factor false fmt fold \
+			ginstall groups groups.sh head hostid hostname \
+			id join kill link ln logname ls md5sum mkdir \
+			mkfifo mknod mv nice nl nohup od paste pathchk \
+			pinky pr printenv printf ptx pwd readlink rm rmdir \
+			seq setuidgid sha1sum shred sleep sort split stat \
+			stty su sum sync tac tail tee test touch tr true \
+			tsort tty uname unexpand uniq unlink uptime users \
+			vdir wc wheel-gen.pl who whoami yes
+$(patsubst %,$(OBJDIR)/acpkg/bin/%,$(ACPKG_COREUTILS_BINS)): acpkg/coreutils-5.94/__build
 	@
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
@@ -374,14 +368,11 @@ $(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
 	@
 
 ## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-acpkg/openssh-4.3p2/Makefile: acpkg/openssl-0.9.8a/__build
-acpkg/openssh-4.3p2/Makefile: acpkg/zlib-1.2.3/__build
-acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake clean" ); \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install-nokeys" ); \
-	fi
+acpkg/openssh-4.3p2/Makefile: | acpkg/openssl-0.9.8a/__build
+acpkg/openssh-4.3p2/Makefile: | acpkg/zlib-1.2.3/__build
+acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile | $(LDEPS)
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install-nokeys" )
 	touch $@
 
 $(OBJDIR)/acpkg/bin/scp: acpkg/openssh-4.3p2/__build
@@ -429,32 +420,30 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 					.ssh/authorized_keys
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
-acpkg/zlib-1.2.3/__build: $(ACPKG_WRAPS)
+acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" ) ; \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" ); \
-	fi
+	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
 
 ## http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
-acpkg/clamav-0.88/Makefile: acpkg/zlib-1.2.3/__build
+acpkg/clamav-0.88/Makefile: | acpkg/zlib-1.2.3/__build
 $(OBJDIR)/acpkg/bin/$(TARGET)-clamscan: acpkg/clamav-0.88/__build
+	@
 $(OBJDIR)/acpkg/share/clamav/main.cvd: acpkg/clamav-0.88/__build
+	@
 $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
 
 ## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
-acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch $(ACPKG_WRAPS) $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    (ln -fs $(TOP)/pkg/ssl-eproc/e_proc.c $(TOP)/acpkg/openssl-0.9.8a/engines/e_proc.c) && \
-	    (ln -fs $(TOP)/pkg/httpd/inc/ssleproc.h $(TOP)/acpkg/openssl-0.9.8a/engines/ssleproc.h) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX) threads" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" ); \
-	fi
+acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch | $(ACPKG_WRAPS) $(LDEPS)
+	ln -fs $(TOP)/pkg/ssl-eproc/e_proc.c $(TOP)/acpkg/openssl-0.9.8a/engines/e_proc.c
+	ln -fs $(TOP)/pkg/httpd/inc/ssleproc.h $(TOP)/acpkg/openssl-0.9.8a/engines/ssleproc.h
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./Configure $(TARGET) --prefix=$(TOP)/$(ACPKG_PREFIX) threads" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" )
 	touch $@
 
 $(OBJDIR)/lib/libssl.a: acpkg/openssl-0.9.8a/__build
@@ -463,14 +452,12 @@ $(OBJDIR)/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
 	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
 
 ## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
-acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile $(ACPKG_WRAPS) $(LDEPS)
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" ) && \
-	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" ) && \
-	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" ) && \
-	    ( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" ) && \
-	    ( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h ); \
-	fi
+acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.libs" )
+	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.data" )
+	( cd $(OBJDIR)/acpkg/include/ && ln -fs ncurses/curses.h curses.h )
 	touch $@
 
 $(OBJDIR)/acpkg/lib/libncurses.a: acpkg/ncurses-5.5/__build
@@ -485,7 +472,7 @@ $(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: acpkg/gmp-4.2.1/__bu
 
 ## http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 acpkg/sfslite-1.0.0/Makefile: acpkg/sfslite-1.0.0/__reconf
-acpkg/sfslite-1.0.0/Makefile: $(OBJDIR)/acpkg/lib/libgmp.a
+acpkg/sfslite-1.0.0/Makefile: | $(OBJDIR)/acpkg/lib/libgmp.a
 
 $(OBJDIR)/acpkg/include/sfslite: acpkg/sfslite-1.0.0/__build
 $(OBJDIR)/acpkg/lib/sfslite/libasync.a: acpkg/sfslite-1.0.0/__build
@@ -518,8 +505,8 @@ $(LINUX_SRC)/arch/lind:
 	rm -f $@
 	ln -s ../../../lind $@
 
-$(LINUX_SRC)/__build: $(LDEPS) $(LINUX_SRC)/include/asm-lind \
-		      $(LINUX_SRC)/arch/lind $(LINUX_OUT)/.config
+$(LINUX_SRC)/__build: $(LINUX_SRC)/include/asm-lind \
+		      $(LINUX_SRC)/arch/lind $(LINUX_OUT)/.config | $(LDEPS)
 	@mkdir -p $(LINUX_OUT)
 	rm -f $(LINUX_OUT)/vmlinux $(LINUX_OUT)/kernel/kallsyms.o
 	( cd $(LINUX_SRC) && make \
@@ -553,18 +540,15 @@ $(OBJDIR)/user/initrd:
 ## trying to build.
 
 ## ftp://ftp.gnu.org/pub/gnu/gcc/gcc-3.4.5/gcc-core-3.4.5.tar.gz
-acpkg/gcc-3.4.5/Makefile: acpkg/binutils-2.17.50.0.15/__build
+acpkg/gcc-3.4.5/Makefile: | acpkg/binutils-2.17.50.0.15/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
-	if [ ! -e $@ -o ! -e acpkg/$(PKGNAME)/__keep ]; then \
-	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake clean" ); \
-	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" ) && \
-	    ( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" ) && \
-	    cp acpkg/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/include/syslimits.h && \
-	    cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs; \
-	fi
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
+	cp acpkg/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/include/syslimits.h
+	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
 	touch $@
 
-$(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/__build $(LDEPS)
+$(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/__build | $(LDEPS)
 	rm -f $@
 	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
 	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
@@ -643,15 +627,13 @@ $(OBJDIR)/user/python.tar.gz: acpkg/python-svn/__build
                 lib/libpython2.6.so.1.0 \
                 --exclude=lib/python2.6/test/*
 
-acpkg/python-svn/Makefile: $(ACPKG_WRAPS) acpkg/python-svn/__patch
+acpkg/python-svn/Makefile: acpkg/python-svn/__patch | $(ACPKG_WRAPS)
 	@mkdir -p $(ACPKG_PREFIX)
-	if [ ! -e $@ -o ! -e acpkg/python-svn/__keep ]; then \
-	    find acpkg/python-svn -name config.cache | xargs rm -f; \
-	    find acpkg/python-svn -name config.status | xargs rm -f; \
-	    ( cd acpkg/python-svn && sh -c "$(ACENV) rm configure" ); \
-	    ( cd acpkg/python-svn && sh -c "$(ACENV) autoconf" ); \
-	    ( cd acpkg/python-svn && sh -c "$(ACENV) automake --add-missing" ); \
-	    ( cd acpkg/python-svn && sh -c "$(ACENV) ./configure \
-		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" ); \
-	fi
+	-find acpkg/python-svn -name config.cache | xargs rm -f
+	-find acpkg/python-svn -name config.status | xargs rm -f
+	-rm acpkg/python-svn/configure
+	( cd acpkg/python-svn && sh -c "$(ACENV) autoconf" )
+	( cd acpkg/python-svn && sh -c "$(ACENV) automake --add-missing" )
+	( cd acpkg/python-svn && sh -c "$(ACENV) ./configure \
+		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" )
 	touch $@
