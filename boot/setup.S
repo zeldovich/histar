@@ -93,6 +93,7 @@ ramdisk_max:	.long	0xffffffff
 
 # A sysx_info header that we will use to pass memory size and 
 # a command line pointer to init()
+.globl sysx_info
 sysx_info:
 memory_size:	.long	0x00000000
 cmd_line_addr:	.long	0x00000000
@@ -115,31 +116,6 @@ trampoline:
 		call	smain
 	
 		movw	$(0x0200 + '0'), %es:(0x02)
-
-#### Before going to protected mode, query memory size
-#### Taken from Linux 2.6.6's arch/i386/boot/setup.S
-		stc			# Fix to work around buggy
-		xorw	%cx,%cx		# BIOSes which don't clear/set
-		xorw	%dx,%dx		# carry on pass/error of
-					# e801h memory size call
-					# or merely pass cx,dx though
-					# without changing them.
-		movw	$0xe801,%ax
-		int	$0x15
-		cli			# Some BIOSes re-enable interrupts
-		jc	nobiosmem
-
-		cmpw	$0x0,%cx	# Kludge to handle BIOSes
-		jne	memdetected	# which report their extended
-		cmpw	$0x0,%dx	# memory in AX/BX rather than
-		jne	memdetected	# CX/DX. The spec I have read
-		movw	%ax,%cx		# seems to indicate AX/BX
-		movw	%bx,%dx		# are more reasonable anyway...
-		jmp	memdetected
-
-nobiosmem:	xorw	%cx,%cx
-		xorw	%dx,%dx
-memdetected:
 		movw	$(0x0200 + '1'), %es:(0x04)
 
 ## Set %edi to the linear load address (our link address is 0)
@@ -218,17 +194,7 @@ protcseg:
 		movw	%ax, %ss		# -> SS: Stack Segment
 		movw	$(0x0300 + '5'), (0xb800c)
 
-		movl	$0xffff,%eax
-		andl	%eax,%edx		# clip to 16 bits
-		shll	$6,%edx			# go from 64K to 1K chunks
-		andl	%eax,%ecx		# clip to 16 bits
-		addl	%edx,%ecx		# add results
-
-		### initialize the sysx_info header for init()
-		movl	$memory_size, %eax	# save the amount of extended memory
-		addl	%edi, %eax
-		movl	%ecx, (%eax)
-
+		### initialize the sysx_info.cmdline for init()
 		movl	$cmd_line_addr, %eax	# SYSLINUX copies the command line
 		addl	%edi, %eax		# to somewhere in low memory and
 		movl	$cmd_line_ptr, %ebx	# saves a pointer in the Linux setup

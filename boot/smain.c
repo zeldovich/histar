@@ -1,5 +1,8 @@
 #include <machine/x86.h>
+#include <machine/boot.h>
 #include <boot/code16gcc.h>
+
+extern struct sysx_info sysx_info;
 
 /*
  *  Enable A20:
@@ -26,8 +29,33 @@ enable_a20_fast(void)
     outb(0x92, port_a);
 }
 
+static int 
+detect_memory_e801(void)
+{
+    uint16_t ax, bx, cx, dx;
+    uint8_t err;
+
+    bx = cx = dx = 0;
+    ax = 0xe801;
+    __asm("stc; int $0x15; setc %0"
+	: "=m" (err), "+a" (ax), "+b" (bx), "+c" (cx), "+d" (dx));
+    
+    if (err || cx > 15*1024) {
+	cx = 0;
+	dx = 0;
+    }
+    
+    /* This ignores memory above 16MB if we have a memory hole
+       there.  If someone actually finds a machine with a memory
+       hole at 16MB and no support for 0E820h they should probably
+       generate a fake e820 map. */
+    sysx_info.extmem_kb = (cx == 15*1024) ? (dx << 6)+cx : cx;
+    return 0;
+}
+
 void
 smain(void)
 {
     enable_a20_fast();
+    detect_memory_e801();
 }
