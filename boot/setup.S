@@ -11,7 +11,12 @@
 .global start
 
 start:
-		jmp	trampoline
+		# Explicitly enter this as bytes, or the assembler
+		# tries to generate a 3-byte jump here, which causes
+		# everything else to push off to the wrong offset.
+		.byte	0xeb		# short (2-byte) jump
+		.byte	trampoline-1f
+1:	
 
 # This is the setup header, and it must start at %cs:2
 # Copied from Linux arch/i386/boot/setup.S and filled in enough 
