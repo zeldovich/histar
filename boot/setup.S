@@ -96,6 +96,12 @@ trampoline:
 		cli				# Disable interrupts
 		cld				# String operations increment
 
+## Normalize important data segment registers 
+		movw	%cs,%ax
+		movw	%ax,%ds			# -> Data Segment
+		movw	%ax,%es			# -> Extra Segment
+		movw	%ax,%ss			# -> Stack Segment
+	
 ## Print a diagnostic message
 		movw	$0xb800, %ax
 		movw	%ax, %es
