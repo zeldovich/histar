@@ -3,8 +3,7 @@
 pad:		.byte 0
 setup_sects:	.byte ((ELFOFF - 512)/512) # sectors used by bsetup
 root_flags:	.word 0		
-syssize:	.word 0
-swap_dev:	.word 0
+syssize:	.long 0
 ram_size:	.word 0
 vid_mode:	.word 0
 root_dev:	.word 0
