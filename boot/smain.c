@@ -37,7 +37,7 @@ detect_memory_e801(void)
 
     bx = cx = dx = 0;
     ax = 0xe801;
-    __asm("stc; int $0x15; setc %0"
+    __asm("stc; int $0x15; cli; setc %0"
 	: "=m" (err), "+a" (ax), "+b" (bx), "+c" (cx), "+d" (dx));
     
     if (err || cx > 15*1024) {
