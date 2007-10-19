@@ -2,5 +2,5 @@
 %{static:-ljos -lnetd -llwip -lc -lstdc++} %{!static:LDSOPATH --dynamic-linker /bin/ld.so} --as-needed -lm -lutil --no-as-needed
 
 *libgcc:
-%{!static:LDSOPATH} -lgcc
+%{!static:LDSOPATH} -lgcc MAYBE_GCC_EH
 
