@@ -49,20 +49,16 @@ $(OBJDIR)/boot/bbootsect: $(BBS_OBJS)
 	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x7C00 $(BBS_OBJS) \
 	      -Tdata 0x7DF0
 	$(OBJCOPY) -S -O binary $@.out $@	
+	perl boot/pad.pl $@ 512
 
 # For Linux setup code, link at 0x0, but load address is irrelevant
 $(OBJDIR)/boot/bsetup: $(OBJDIR)/boot/setup.o
 	$(LD) -melf_i386 -N -e start -o $@.bin -Ttext 0x0 $<
 	$(OBJCOPY) -S -O binary $@.bin $@
-	perl boot/setup.pl $@
+	perl boot/pad.pl $@ $(shell echo $$(($(ELFOFF) - 512)))
 
-# Build a Linux style image for isolinux
-$(OBJDIR)/boot/bheader: $(OBJDIR)/boot/bbootsect $(OBJDIR)/boot/bsetup
-	cp $(OBJDIR)/boot/bbootsect $@~
-	dd if=$(OBJDIR)/boot/bsetup of=$@~ bs=512 count=1 seek=1 2>/dev/null
-	mv $@~ $@
-
-$(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bheader $(OBJDIR)/kern/kernel.%
+$(OBJDIR)/boot/bimage.%: $(OBJDIR)/boot/bbootsect $(OBJDIR)/boot/bsetup \
+			 $(OBJDIR)/kern/kernel.%
 	cat $^ > $@
 
 # Build the Bochs disk image
