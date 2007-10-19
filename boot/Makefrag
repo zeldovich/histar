@@ -29,13 +29,13 @@
 # hardware.
 #
 
-# Must be a multiple of 512 and fit a bheader
+# Must be a multiple of 512 and fit bbootsect and bsetup
 ELFOFF := 1024
 
 OBJDIRS += boot
 
 BBS_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o $(OBJDIR)/boot/bsdata.o
-SETUP_OBJS := $(OBJDIR)/boot/setup.o $(OBJDIR)/boot/smain.o
+SETUP_OBJS := $(OBJDIR)/boot/setup.o $(OBJDIR)/boot/csetup.o
 BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH) \
 	       -DELFOFF=$(ELFOFF)
 

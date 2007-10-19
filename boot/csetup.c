@@ -60,7 +60,7 @@ set_video(void)
 }
 
 void
-smain(void)
+csetup(void)
 {
     enable_a20_fast();
     detect_memory_e801();
