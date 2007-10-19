@@ -17,7 +17,7 @@
 #              |                             |          |
 #              |         jos64 init          |          |
 #              |                             |          |
-#              +-----------------------------+ <--------+
+# ELFOFF ----> +-----------------------------+ <--------+
 #              |                             |
 #              |       jos64 kernel ELF      |
 #              |                             |
@@ -29,10 +29,14 @@
 # hardware.
 #
 
+# Must be a multiple of 512 and fit a bheader
+ELFOFF := 1024
+
 OBJDIRS += boot
 
 BBS_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o $(OBJDIR)/boot/bsdata.o
-BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH)
+BOOT_CFLAGS := -m32 -DCODE32 -g -Os -MD -Wall -Werror -DJOS_KARCH_$(K_ARCH) \
+	       -DELFOFF=$(ELFOFF)
 
 $(OBJDIR)/boot/%.o: boot/%.S
 	@mkdir -p $(@D)

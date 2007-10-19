@@ -1,7 +1,7 @@
 # Should be in the first sector of the image at offset 0x1F0
 .data
 pad:		.byte 0
-setup_sects:	.byte 1		# sectors used by setup block (setup.S)
+setup_sects:	.byte ((ELFOFF - 512)/512) # sectors used by bsetup
 root_flags:	.word 0		
 syssize:	.word 0
 swap_dev:	.word 0

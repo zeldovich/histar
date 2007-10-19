@@ -47,7 +47,6 @@
 
 #define SECTSIZE	512
 #define ELFHDR		((ELF_EHDR *) 0x10000)	// scratch space
-#define ELFOFF          1024
 
 void readsect(void *, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
