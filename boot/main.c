@@ -7,16 +7,6 @@
  * This a dirt simple boot loader, whose sole job is to boot
  * an elf kernel image from the first IDE hard disk.
  *
- * DISK LAYOUT
- *  * This program(boot.S and main.c) is the bootloader.  It should
- *    be stored in the first sector of the disk.
- *
- *  * The 2nd sector holds a Linux style setup header (setup.S) for 
- *    SYSLINUX loaders.
- *
- *  * The 3rd sector onward hols the kernel image.  The kernel image  
- *    must be in ELF format.
- *
  * BOOT UP STEPS	
  *  * when the CPU boots it loads the BIOS into memory and executes it
  *
