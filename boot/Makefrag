@@ -47,7 +47,7 @@ $(OBJDIR)/boot/main.o: boot/main.c
 
 $(OBJDIR)/boot/bbootsect: $(BBS_OBJS)
 	$(LD) -melf_i386 -N -e start -o $@.out -Ttext 0x7C00 $(BBS_OBJS) \
-	      -Tdata 0x7DF0 $(OBJDIR)/boot/bsdata.o
+	      -Tdata 0x7DF0
 	$(OBJCOPY) -S -O binary $@.out $@	
 
 # For Linux setup code, link at 0x0, but load address is irrelevant
