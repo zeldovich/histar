@@ -356,8 +356,10 @@ ACPKG_COREUTILS_BINS := basename cat chgrp chmod chown chroot cksum comm \
 			stty su sum sync tac tail tee test touch tr true \
 			tsort tty uname unexpand uniq unlink uptime users \
 			vdir wc wheel-gen.pl who whoami yes
+ifeq ($(shell test -d acpkg/coreutils-5.94 && echo yes),yes)
 $(patsubst %,$(OBJDIR)/acpkg/bin/%,$(ACPKG_COREUTILS_BINS)): acpkg/coreutils-5.94/__build
 	@
+endif
 
 ## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
@@ -490,7 +492,7 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/lib/sfslite/%
 
 LINUX_CFLAGS	:= $(USER_INC) -DJOS_USER -fno-builtin
 LINUX_LDFLAGS	:= $(LDFLAGS)
-LINUX_OUT	:= $(OBJDIR)/acpkg/linux
+LINUX_OUT	:= $(OBJDIR)/linux-build
 LINUX_SRC	:= acpkg/linux-2.6.20.4
 
 $(LINUX_OUT)/.config: lind/defconfig
@@ -609,6 +611,8 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	ln -s $(TOP)/$(OBJDIR)/machine $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/kern/kern $(OBJDIR)/acpkg/.include-build/include
 	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build
 
 $(OBJDIR)/user/include.tar.gz: $(OBJDIR)/user/include.tar
 	gzip -c $< > $@
