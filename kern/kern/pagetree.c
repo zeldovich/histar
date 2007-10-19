@@ -101,7 +101,7 @@ pagetree_invalidate_ro_segments(void *pg)
 	uintptr_t parentip = (uintptr_t) pe->parent;
 	if (parentip & 1) {
 	    /* Points to an indirect page */
-	    void *parent = (void *) (parentip & UINT64(~0));
+	    void *parent = (void *) (uintptr_t) (parentip & UINT64(~0));
 	    pagetree_invalidate_ro_segments(parent);
 	    continue;
 	}
