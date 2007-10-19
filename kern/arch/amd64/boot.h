@@ -9,7 +9,7 @@
 struct sysx_info {
     uint32_t extmem_kb;
     uint32_t cmdline;
-};
+} __attribute__ ((packed));
 
 #endif
 
