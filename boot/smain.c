@@ -23,7 +23,7 @@ enable_a20_fast(void)
     port_a = inb(0x92);     /* Configuration port A */
     port_a |=  0x02;        /* Enable A20 */
     port_a &= ~0x01;        /* Do not reset machine */
-    outb(port_a, 0x92);
+    outb(0x92, port_a);
 }
 
 void
