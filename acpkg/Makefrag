@@ -154,7 +154,7 @@ acpkg/%/__reconf: acpkg/%/__patch | $(ACPKG_WRAPS)
 
 .PRECIOUS: acpkg/%/__build
 acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
-acpkg/%/__build: acpkg/%/Makefile | $(LDEPS)
+acpkg/%/__build: acpkg/%/Makefile | $(LDEPS) acpkg/%
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
