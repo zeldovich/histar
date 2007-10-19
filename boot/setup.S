@@ -101,23 +101,8 @@ trampoline:
 		movw	%ax, %es
 		movw	$(0x0200 + '*'), %es:(0x00)
 
-#### Enable A20:
-####   For fascinating historical reasons (related to the fact that
-####   the earliest 8086-based PCs could only address 1MB of physical memory
-####   and subsequent 80286-based PCs wanted to retain maximum compatibility),
-####   physical address line 20 is tied to low when the machine boots.
-####   Obviously this a bit of a drag for us, especially when trying to
-####   address memory above 1MB.  This code undoes this.
-
-## We don't bother frobbing the keyboard controller; all recent hardware
-## has the fast A20 gate on the chipset at 0x92.
-
-## "Fast A20 gate" -- new machines like laptops have no keyboard controller
-		inb	$0x92, %al
-		orb	$0x02, %al
-		andb	$0xfe, %al		# avoid reboot
-		outb	%al, $0x92
-
+		call	smain
+	
 		movw	$(0x0200 + '0'), %es:(0x02)
 
 #### Before going to protected mode, query memory size
