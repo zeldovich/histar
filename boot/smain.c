@@ -53,9 +53,17 @@ detect_memory_e801(void)
     return 0;
 }
 
+static void
+set_video(void)
+{
+    /* XXX */
+}
+
 void
 smain(void)
 {
     enable_a20_fast();
     detect_memory_e801();
+    __asm ("movw $(0x0200 + '0'), %es:(0x02)");
+    set_video();
 }

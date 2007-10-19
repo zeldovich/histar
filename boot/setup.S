@@ -114,8 +114,6 @@ trampoline:
 		movw	$(0x0200 + '*'), %es:(0x00)
 
 		call	smain
-	
-		movw	$(0x0200 + '0'), %es:(0x02)
 		movw	$(0x0200 + '1'), %es:(0x04)
 
 ## Set %edi to the linear load address (our link address is 0)
