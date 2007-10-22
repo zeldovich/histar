@@ -151,7 +151,7 @@ acpkg/%/__unpack: DISTURL=$(DISTURL_$(patsubst acpkg/%/__unpack,%,$@))
 acpkg/%/__unpack:
 	@mkdir -p acpkg/distcache
 	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/`echo $(DISTURL) | tr / _`
-	tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _`
+	test -d acpkg/$(PKGNAME) || tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _`
 	touch acpkg/$(PKGNAME)/__unpack
 
 .PRECIOUS: acpkg/%/__patch
