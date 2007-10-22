@@ -1,6 +1,7 @@
 ##
 ## Magic files:
 ##
+##    acpkg/pkgname/__unpack: has been unpacked
 ##    acpkg/pkgname/__patch: has been patched
 ##    acpkg/pkgname/__reconf: has run autoreconf (sfslite)
 ##    acpkg/pkgname/Makefile: has run ./configure
@@ -43,6 +44,11 @@ ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 
 ## uncomment the below line to use libcprof with acpkgs
 #ACENV += CC=\"acpkg-wrap-gcc-prof\"
+
+##
+## URLs where various packages can be downloaded
+##
+DISTURL_gzip-1.2.4a	    := ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -139,10 +145,19 @@ acpkg/%/Makefile: acpkg/%/__patch | $(ACPKG_WRAPS)
 		$(AUTOCONF_ARGS) $(AUTOCONF_$(PKGNAME))" )
 	touch $@
 
+.PRECIOUS: acpkg/%/__unpack
+acpkg/%/__unpack: PKGNAME=$(patsubst acpkg/%/__unpack,%,$@)
+acpkg/%/__unpack: DISTURL=$(DISTURL_$(patsubst acpkg/%/__unpack,%,$@))
+acpkg/%/__unpack:
+	@mkdir -p acpkg/distcache
+	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/`echo $(DISTURL) | tr / _`
+	tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _`
+	touch acpkg/$(PKGNAME)/__unpack
+
 .PRECIOUS: acpkg/%/__patch
 acpkg/%/__patch: PKGNAME=$(patsubst acpkg/%/__patch,%,$@)
 acpkg/%/__patch: PATCHFILE=$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
-acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@)))
+acpkg/%/__patch: acpkg/patches/$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))$(PATCHFILE_default$(PATCHFILE_$(patsubst acpkg/%/__patch,%,$@))) | acpkg/%/__unpack
 	patch -d acpkg/$(PKGNAME) -p1 < acpkg/patches/$(PATCHFILE)
 	touch $@
 
@@ -154,7 +169,7 @@ acpkg/%/__reconf: acpkg/%/__patch | $(ACPKG_WRAPS)
 
 .PRECIOUS: acpkg/%/__build
 acpkg/%/__build: PKGNAME=$(patsubst acpkg/%/__build,%,$@)
-acpkg/%/__build: acpkg/%/Makefile | $(LDEPS) acpkg/%
+acpkg/%/__build: acpkg/%/Makefile | $(LDEPS) acpkg/%/__unpack
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
@@ -422,7 +437,7 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 					.ssh/authorized_keys
 
 ## http://www.zlib.net/zlib-1.2.3.tar.gz
-acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS)
+acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__unpack
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
