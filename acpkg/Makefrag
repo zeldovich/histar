@@ -116,8 +116,9 @@ PATCHFILE_dmalloc-5.5.0	    := dmalloc-5.5.0.patch
 PATCHFILE_make-3.81	    := make-3.81.patch
 PATCHFILE_dhcp-3.0.5	    := dhcp-3.0.5.patch
 PATCHFILE_clamav-0.88	    := clamav-0.88.patch
-PATCHFILE_default	    := empty.patch
+PATCHFILE_grep-2.5.3	    := grep-2.5.3.patch
 PATCHFILE_python-svn        := python-svn.patch
+PATCHFILE_default	    := empty.patch
 
 ##
 ## Packages we want to include
@@ -563,13 +564,13 @@ acpkg/gcc-3.4.5/Makefile: | acpkg/binutils-2.17.50.0.15/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
-	cp acpkg/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/include/syslimits.h
-	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/specs
+	cp acpkg/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
+	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
 	touch $@
 
 $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/__build | $(LDEPS)
 	rm -f $@
-	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/x86_64-jos-linux/3.4.5/
+	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
 	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libc.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
@@ -578,16 +579,16 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 	cp $(OBJDIR)/lib/libstdc++.a $(OBJDIR)/acpkg/lib/
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
 		bin/gcc bin/ld bin/as \
-		libexec/gcc/x86_64-jos-linux/3.4.5/cc1 \
-		libexec/gcc/x86_64-jos-linux/3.4.5/collect2 \
+		libexec/gcc/$(TARGET)/3.4.5/cc1 \
+		libexec/gcc/$(TARGET)/3.4.5/collect2 \
 		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
 		lib/libutil.a lib/libstdc++.a \
-		lib/gcc/x86_64-jos-linux/3.4.5/crt{begin,end}{,S}.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/crtbeginT.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/crt{1,i,n}.o \
-		lib/gcc/x86_64-jos-linux/3.4.5/libgcc.a \
-		lib/gcc/x86_64-jos-linux/3.4.5/specs \
-		lib/gcc/x86_64-jos-linux/3.4.5/include
+		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
+		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \
+		lib/gcc/$(TARGET)/3.4.5/crt{1,i,n}.o \
+		lib/gcc/$(TARGET)/3.4.5/libgcc.a \
+		lib/gcc/$(TARGET)/3.4.5/specs \
+		lib/gcc/$(TARGET)/3.4.5/include
 
 INCLUDE_BUILD_TAR_CMD := \
 	tar -C $(OBJDIR)/acpkg/.include-build \

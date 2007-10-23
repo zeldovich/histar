@@ -1,0 +1,78 @@
+diff -ur clean/grep-2.5.3/lib/Makefile.am grep-2.5.3/lib/Makefile.am
+--- clean/grep-2.5.3/lib/Makefile.am	2001-11-19 06:25:33.000000000 -0800
++++ grep-2.5.3/lib/Makefile.am	2007-10-22 17:51:48.000000000 -0700
+@@ -9,7 +9,7 @@
+ DEFS = -DLIBDIR=\"$(libdir)\" @DEFS@
+ 
+ libgreputils_a_SOURCES = \
+-  closeout.c error.c exclude.c hard-locale.c \
++  closeout.c exclude.c hard-locale.c \
+   isdir.c obstack.c quotearg.c savedir.c xmalloc.c xstrtol.c  xstrtoumax.c
+ 
+ libgreputils_a_LIBADD = @LIBOBJS@ @ALLOCA@
+diff -ur clean/grep-2.5.3/lib/Makefile.in grep-2.5.3/lib/Makefile.in
+--- clean/grep-2.5.3/lib/Makefile.in	2007-06-30 04:35:26.000000000 -0700
++++ grep-2.5.3/lib/Makefile.in	2007-10-22 17:52:13.000000000 -0700
+@@ -63,10 +63,10 @@
+ ARFLAGS = cru
+ libgreputils_a_AR = $(AR) $(ARFLAGS)
+ libgreputils_a_DEPENDENCIES = @LIBOBJS@ @ALLOCA@
+-am_libgreputils_a_OBJECTS = closeout$U.$(OBJEXT) error$U.$(OBJEXT) \
+-	exclude$U.$(OBJEXT) hard-locale$U.$(OBJEXT) isdir$U.$(OBJEXT) \
+-	obstack$U.$(OBJEXT) quotearg$U.$(OBJEXT) savedir$U.$(OBJEXT) \
+-	xmalloc$U.$(OBJEXT) xstrtol$U.$(OBJEXT) xstrtoumax$U.$(OBJEXT)
++am_libgreputils_a_OBJECTS = closeout$U.$(OBJEXT) exclude$U.$(OBJEXT) \
++	hard-locale$U.$(OBJEXT) isdir$U.$(OBJEXT) obstack$U.$(OBJEXT) \
++	quotearg$U.$(OBJEXT) savedir$U.$(OBJEXT) xmalloc$U.$(OBJEXT) \
++	xstrtol$U.$(OBJEXT) xstrtoumax$U.$(OBJEXT)
+ libgreputils_a_OBJECTS = $(am_libgreputils_a_OBJECTS)
+ DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
+ depcomp = $(SHELL) $(top_srcdir)/depcomp
+@@ -216,7 +216,7 @@
+ noinst_LIBRARIES = libgreputils.a
+ INCLUDES = -I.. -I$(srcdir) -I../intl
+ libgreputils_a_SOURCES = \
+-  closeout.c error.c exclude.c hard-locale.c \
++  closeout.c exclude.c hard-locale.c \
+   isdir.c obstack.c quotearg.c savedir.c xmalloc.c xstrtol.c  xstrtoumax.c
+ 
+ libgreputils_a_LIBADD = @LIBOBJS@ @ALLOCA@
+@@ -291,7 +291,6 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/strtoull.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/strtoumax.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/closeout$U.Po@am__quote@
+-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/error$U.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exclude$U.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hard-locale$U.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isdir$U.Po@am__quote@
+@@ -321,8 +320,6 @@
+ 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) `if test -f $(srcdir)/atexit.c; then echo $(srcdir)/atexit.c; else echo atexit.c; fi` | sed 's/^# \([0-9]\)/#line \1/' | $(ANSI2KNR) > $@ || rm -f $@
+ closeout_.c: closeout.c $(ANSI2KNR)
+ 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) `if test -f $(srcdir)/closeout.c; then echo $(srcdir)/closeout.c; else echo closeout.c; fi` | sed 's/^# \([0-9]\)/#line \1/' | $(ANSI2KNR) > $@ || rm -f $@
+-error_.c: error.c $(ANSI2KNR)
+-	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) `if test -f $(srcdir)/error.c; then echo $(srcdir)/error.c; else echo error.c; fi` | sed 's/^# \([0-9]\)/#line \1/' | $(ANSI2KNR) > $@ || rm -f $@
+ exclude_.c: exclude.c $(ANSI2KNR)
+ 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) `if test -f $(srcdir)/exclude.c; then echo $(srcdir)/exclude.c; else echo exclude.c; fi` | sed 's/^# \([0-9]\)/#line \1/' | $(ANSI2KNR) > $@ || rm -f $@
+ fnmatch_.c: fnmatch.c $(ANSI2KNR)
+@@ -364,14 +361,13 @@
+ xstrtoumax_.c: xstrtoumax.c $(ANSI2KNR)
+ 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) `if test -f $(srcdir)/xstrtoumax.c; then echo $(srcdir)/xstrtoumax.c; else echo xstrtoumax.c; fi` | sed 's/^# \([0-9]\)/#line \1/' | $(ANSI2KNR) > $@ || rm -f $@
+ alloca_.$(OBJEXT) atexit_.$(OBJEXT) closeout_.$(OBJEXT) \
+-error_.$(OBJEXT) exclude_.$(OBJEXT) fnmatch_.$(OBJEXT) \
+-getopt_.$(OBJEXT) getopt1_.$(OBJEXT) hard-locale_.$(OBJEXT) \
+-isdir_.$(OBJEXT) malloc_.$(OBJEXT) memchr_.$(OBJEXT) \
+-obstack_.$(OBJEXT) quotearg_.$(OBJEXT) realloc_.$(OBJEXT) \
+-regex_.$(OBJEXT) savedir_.$(OBJEXT) stpcpy_.$(OBJEXT) \
+-strtoul_.$(OBJEXT) strtoull_.$(OBJEXT) strtoumax_.$(OBJEXT) \
+-xmalloc_.$(OBJEXT) xstrtol_.$(OBJEXT) xstrtoumax_.$(OBJEXT) : \
+-$(ANSI2KNR)
++exclude_.$(OBJEXT) fnmatch_.$(OBJEXT) getopt_.$(OBJEXT) \
++getopt1_.$(OBJEXT) hard-locale_.$(OBJEXT) isdir_.$(OBJEXT) \
++malloc_.$(OBJEXT) memchr_.$(OBJEXT) obstack_.$(OBJEXT) \
++quotearg_.$(OBJEXT) realloc_.$(OBJEXT) regex_.$(OBJEXT) \
++savedir_.$(OBJEXT) stpcpy_.$(OBJEXT) strtoul_.$(OBJEXT) \
++strtoull_.$(OBJEXT) strtoumax_.$(OBJEXT) xmalloc_.$(OBJEXT) \
++xstrtol_.$(OBJEXT) xstrtoumax_.$(OBJEXT) : $(ANSI2KNR)
+ 
+ # This directory's subdirectories are mostly independent; you can cd
+ # into them and run `make' without going through this Makefile.
