@@ -179,10 +179,8 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)		\
     size_t dirent_base = offsetof (struct dirent, d_name);		\
 									\
     size_t cc = 0;							\
-    for (;;) {								\
-	if (cc >= nbytes)						\
-	    break;							\
 									\
+    while (cc < nbytes) {						\
 	struct fs_readdir_pos savepos = fd->fd_file.readdir_pos;	\
 	struct fs_dent de;						\
 	r = fs_readdir_dent(&s, &de, &fd->fd_file.readdir_pos);		\
