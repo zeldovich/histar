@@ -4,6 +4,8 @@
 
 #include <bits/unimpl.h>
 
+libc_hidden_proto(getrlimit)
+
 int
 getrlimit(__rlimit_resource_t resource, struct rlimit *rlim)
 {
@@ -24,3 +26,5 @@ setrlimit(__rlimit_resource_t resource, const struct rlimit *rlim)
 {
     return 0;
 }
+
+libc_hidden_def(getrlimit)

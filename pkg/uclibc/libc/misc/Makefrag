@@ -14,7 +14,8 @@ OBJDIRS += \
 	pkg/uclibc/libc/misc/regex \
 	pkg/uclibc/libc/misc/glob \
 	pkg/uclibc/libc/misc/syslog \
-	pkg/uclibc/libc/misc/pthread
+	pkg/uclibc/libc/misc/pthread \
+	pkg/uclibc/libc/misc/statfs
 
 ##
 ## Source files that can be built directly
@@ -60,6 +61,9 @@ MISC_WCTYPE_CSRC := \
         iswxdigit.c iswblank.c wctrans.c towctrans.c \
         wctype.c iswctype.c towlower.c towupper.c
 
+MISC_STATFS_CSRC := \
+	statvfs.c fstatvfs.c fstatfs64.c statfs64.c statvfs64.c fstatvfs64.c
+
 LIBC_SRCFILES += \
 	pkg/uclibc/libc/misc/assert/__assert.c \
 	pkg/uclibc/libc/misc/time/adjtime.c \
@@ -78,5 +82,6 @@ LIBC_SRCFILES += \
 	$(patsubst %.c, pkg/uclibc/libc/misc/locale/%.c, $(MISC_LOCALE_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/time/%.c, $(MISC_TIME_CSRC)) \
 	$(patsubst %.c, pkg/uclibc/libc/misc/wchar/%.c, $(MISC_WCHAR_CSRC)) \
-	$(patsubst %.c, pkg/uclibc/libc/misc/wctype/%.c, $(MISC_WCTYPE_CSRC))
+	$(patsubst %.c, pkg/uclibc/libc/misc/wctype/%.c, $(MISC_WCTYPE_CSRC)) \
+	$(patsubst %.c, pkg/uclibc/libc/misc/statfs/%.c, $(MISC_STATFS_CSRC))
 
