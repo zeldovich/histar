@@ -168,6 +168,22 @@ init_fs(void)
     unlink("/bin/sh");
     symlink("ksh", "/bin/sh");
 
+    // create symlinks from "ls" to "jls", etc, as needed
+    if (access("/bin/ls", F_OK) < 0)
+	symlink("jls", "/bin/ls");
+    if (access("/bin/cp", F_OK) < 0)
+	symlink("jcp", "/bin/cp");
+    if (access("/bin/rm", F_OK) < 0)
+	symlink("jrm", "/bin/rm");
+    if (access("/bin/mkdir", F_OK) < 0)
+	symlink("jmkdir", "/bin/mkdir");
+    if (access("/bin/sync", F_OK) < 0)
+	symlink("jsync", "/bin/sync");
+    if (access("/bin/cat", F_OK) < 0)
+	symlink("jcat", "/bin/cat");
+    if (access("/bin/echo", F_OK) < 0)
+	symlink("jecho", "/bin/echo");
+
     // create a /dev directory
     struct fs_inode dev;
     error_check(fs_mkdir(start_env->fs_root, "dev", &dev, 0));

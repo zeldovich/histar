@@ -11,9 +11,9 @@ KERN_BINFILES	+= user/netd
 #KERN_BINFILES	+= user/vmlinux user/initrd
 
 ## Basic command-line programs
-KERN_BINFILES	+= user/ls user/asprint user/gl user/jcat user/cat
-KERN_BINFILES	+= user/rm user/cp user/echo user/mount user/umount
-KERN_BINFILES	+= user/sync user/mkdir user/reboot user/ureboot
+KERN_BINFILES	+= user/jls user/asprint user/gl user/jcat user/taintcat
+KERN_BINFILES	+= user/jrm user/jcp user/jecho user/mount user/umount
+KERN_BINFILES	+= user/jsync user/jmkdir user/reboot user/ureboot
 KERN_BINFILES	+= user/jenv user/ps user/wrap
 KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user
 KERN_BINFILES	+= user/login user/adduser user/passwd
@@ -21,10 +21,11 @@ KERN_BINFILES	+= user/login user/adduser user/passwd
 ## Common Unix tools
 #KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
 #KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl user/wget
-#KERN_BINFILES	+= user/tar user/gzip user/gunzip
-#KERN_BINFILES	+= user/vim user/bash user/grep user/egrep user/uniq user/mv
-#KERN_BINFILES	+= user/links user/od user/du user/head user/tail
+#KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
+#KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
+#KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
 #KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
+#KERN_BINFILES	+= user/vim user/echo
 
 ## SSH
 #KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
