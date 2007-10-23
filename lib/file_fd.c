@@ -164,68 +164,72 @@ file_stat(struct Fd *fd, struct stat64 *buf)
     return jos_stat(fd->fd_file.ino, buf);    
 }
 
-static ssize_t
-file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)
-{
-    struct fs_readdir_state s;
-
-    int r = fs_readdir_init(&s, fd->fd_file.ino);
-    if (r < 0) {
-	__set_errno(ENOTDIR);
-	return -1;
-    }
-
-    size_t dirent_base = offsetof (struct dirent, d_name);
-
-    size_t cc = 0;
-    for (;;) {
-	if (cc >= nbytes)
-	    break;
-
-	struct fs_readdir_pos savepos = fd->fd_file.readdir_pos;
-	struct fs_dent de;
-	r = fs_readdir_dent(&s, &de, &fd->fd_file.readdir_pos);
-	if (r <= 0) {
-	    fs_readdir_close(&s);
-	    fd->fd_file.readdir_pos = savepos;
-
-	    if (cc > 0)
-		return cc;
-	    if (r == 0)
-		return 0;
-
-	    __set_errno(EIO);
-	    return -1;
-	}
-
-	size_t space = nbytes - cc;
-	size_t namlen = strlen(&de.de_name[0]);
-	/* 8-byte alignment, just for good measure */
-	size_t reclen = ROUNDUP(dirent_base + namlen + 1, 8);
-	if (space < reclen) {
-	    fd->fd_file.readdir_pos = savepos;
-	    break;
-	}
-
-	buf->d_ino = de.de_inode.obj.object;
-	buf->d_off = buf->d_ino;
-	buf->d_reclen = reclen;
-	buf->d_type = DT_UNKNOWN;
-	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);
-	cc += reclen;
-
-	buf = (struct dirent *) (((char *) buf) + reclen);
-    }
-
-    fs_readdir_close(&s);
-
-    if (cc == 0) {
-	__set_errno(EINVAL);
-	return -1;
-    }
-
-    return cc;
+#define GETDENTS_FUNC(file_getdents, ssize_t, dirent, size_t)		\
+static ssize_t								\
+file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)		\
+{									\
+    struct fs_readdir_state s;						\
+									\
+    int r = fs_readdir_init(&s, fd->fd_file.ino);			\
+    if (r < 0) {							\
+	__set_errno(ENOTDIR);						\
+	return -1;							\
+    }									\
+									\
+    size_t dirent_base = offsetof (struct dirent, d_name);		\
+									\
+    size_t cc = 0;							\
+    for (;;) {								\
+	if (cc >= nbytes)						\
+	    break;							\
+									\
+	struct fs_readdir_pos savepos = fd->fd_file.readdir_pos;	\
+	struct fs_dent de;						\
+	r = fs_readdir_dent(&s, &de, &fd->fd_file.readdir_pos);		\
+	if (r <= 0) {							\
+	    fs_readdir_close(&s);					\
+	    fd->fd_file.readdir_pos = savepos;				\
+									\
+	    if (cc > 0)							\
+		return cc;						\
+	    if (r == 0)							\
+		return 0;						\
+									\
+	    __set_errno(EIO);						\
+	    return -1;							\
+	}								\
+									\
+	size_t space = nbytes - cc;					\
+	size_t namlen = strlen(&de.de_name[0]);				\
+	/* 8-byte alignment, just for good measure */			\
+	size_t reclen = ROUNDUP(dirent_base + namlen + 1, 8);		\
+	if (space < reclen) {						\
+	    fd->fd_file.readdir_pos = savepos;				\
+	    break;							\
+	}								\
+									\
+	buf->d_ino = de.de_inode.obj.object;		    		\
+	buf->d_off = buf->d_ino;					\
+	buf->d_reclen = reclen;						\
+	buf->d_type = DT_UNKNOWN;					\
+	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);		\
+	cc += reclen;							\
+									\
+	buf = (struct dirent *) (((char *) buf) + reclen);		\
+    }									\
+									\
+    fs_readdir_close(&s);						\
+									\
+    if (cc == 0) {							\
+	__set_errno(EINVAL);						\
+	return -1;							\
+    }									\
+									\
+    return cc;								\
 }
+
+GETDENTS_FUNC(file_getdents, ssize_t, dirent, size_t)
+GETDENTS_FUNC(file_getdents64, int64_t, dirent64, uint64_t)
 
 static int
 file_probe(struct Fd *fd, dev_probe_t probe)
@@ -292,6 +296,7 @@ struct Dev devfile = {
     .dev_close = file_close,
     .dev_stat = file_stat,
     .dev_getdents = file_getdents,
+    .dev_getdents64 = file_getdents64,
     .dev_probe = file_probe,
     .dev_trunc = file_trunc,
     .dev_sync = file_sync,

@@ -48,6 +48,7 @@ struct Dev
     int (*dev_statsync)(struct Fd *fd, dev_probe_t probe, struct wait_stat *wstat, int wslots_avail);
 
     ssize_t (*dev_getdents)(struct Fd *fd, struct dirent *dirbuf, size_t nbytes);
+    int64_t (*dev_getdents64)(struct Fd *fd, struct dirent64 *dirbuf, uint64_t nbytes);
 
     int (*dev_bind)(struct Fd *fd, const struct sockaddr *addr, socklen_t addrlen);
     int (*dev_listen)(struct Fd *fd, int backlog);

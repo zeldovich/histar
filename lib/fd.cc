@@ -1435,7 +1435,7 @@ ioctl(int fdnum, unsigned long int req, ...) __THROW
 
 extern "C" ssize_t __getdents(int fdnum, struct dirent *buf, size_t nbytes)
 	attribute_hidden;
-extern "C" ssize_t __getdents64(int fdnum, struct dirent *buf, uint64_t nbytes)
+extern "C" int64_t __getdents64(int fdnum, struct dirent64 *buf, uint64_t nbytes)
 	attribute_hidden;
 
 ssize_t
@@ -1444,10 +1444,10 @@ __getdents(int fdnum, struct dirent *buf, size_t nbytes)
     return FD_CALL(fdnum, getdents, buf, nbytes);
 }
 
-ssize_t
-__getdents64(int fdnum, struct dirent *buf, uint64_t nbytes)
+int64_t
+__getdents64(int fdnum, struct dirent64 *buf, uint64_t nbytes)
 {
-    return FD_CALL(fdnum, getdents, buf, nbytes);
+    return FD_CALL(fdnum, getdents64, buf, nbytes);
 }
 
 int
