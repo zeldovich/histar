@@ -69,7 +69,7 @@ DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
 
 DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
-DISTURL_vim-7.0		    := ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
+DISTURL_vim70		    := ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 DISTURL_mutt-1.4.2.3	    := ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
 
 DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
@@ -182,7 +182,7 @@ acpkg/%/__unpack:
 	@mkdir -p acpkg/distcache
 	test ! -z "$(DISTURL)" # Need URL for $(PKGNAME)
 	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/`echo $(DISTURL) | tr / _`
-	test -d acpkg/$(PKGNAME) || tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _`
+	test -d acpkg/$(PKGNAME) || tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _` || tar -C acpkg -xjf acpkg/distcache/`echo $(DISTURL) | tr / _`
 	touch acpkg/$(PKGNAME)/__unpack
 
 .PRECIOUS: acpkg/%/__patch
