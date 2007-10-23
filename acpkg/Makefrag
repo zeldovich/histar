@@ -41,7 +41,8 @@ ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	ac_cv_func_psignal=yes \
 	bash_cv_getcwd_malloc=yes bash_cv_getenv_redef=no \
 	bash_cv_job_control_missing=no ac_cv_func_fnmatch_works=yes \
-	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no
+	ac_cv_file__dev_zero=yes apr_cv_tcp_nodelay_with_cork=no \
+	ac_cv_header_dlfcn_h=$(SHARED_ENABLE)
 
 ## uncomment the below line to use libcprof with acpkgs
 #ACENV += CC=\"acpkg-wrap-gcc-prof\"
