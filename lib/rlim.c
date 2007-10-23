@@ -5,6 +5,7 @@
 #include <bits/unimpl.h>
 
 libc_hidden_proto(getrlimit)
+libc_hidden_proto(setrlimit)
 
 int
 getrlimit(__rlimit_resource_t resource, struct rlimit *rlim)
@@ -28,3 +29,4 @@ setrlimit(__rlimit_resource_t resource, const struct rlimit *rlim)
 }
 
 libc_hidden_def(getrlimit)
+libc_hidden_def(setrlimit)
