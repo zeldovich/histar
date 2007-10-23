@@ -48,7 +48,35 @@ ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 ##
 ## URLs where various packages can be downloaded
 ##
-DISTURL_gzip-1.2.4a	    := ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
+DISTURL_gzip-1.2.4a	    := ftp://ftp.gnu.org/gnu/gzip/gzip-1.2.4a.tar.gz
+DISTURL_grep-2.5.3	    := ftp://ftp.gnu.org/gnu/grep/grep-2.5.3.tar.gz
+DISTURL_bash-3.1	    := ftp://ftp.gnu.org/gnu/bash/bash-3.1.tar.gz
+DISTURL_nano-1.2.3	    := ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
+DISTURL_tar-1.15	    := ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
+DISTURL_less-382	    := ftp://ftp.gnu.org/gnu/less/less-382.tar.gz
+DISTURL_gawk-3.1.5	    := ftp://ftp.gnu.org/gnu/gawk/gawk-3.1.5.tar.gz
+DISTURL_sed-4.1.5	    := ftp://ftp.gnu.org/gnu/sed/sed-4.1.5.tar.gz
+DISTURL_findutils-4.2.31    := ftp://ftp.gnu.org/gnu/findutils/findutils-4.2.31.tar.gz
+DISTURL_a2ps-4.13b	    := ftp://ftp.gnu.org/gnu/a2ps/a2ps-4.13b.tar.gz
+DISTURL_gcc-3.4.5	    := ftp://ftp.gnu.org/gnu/gcc/gcc-3.4.5/gcc-core-3.4.5.tar.gz
+DISTURL_gmp-4.2.1	    := ftp://ftp.gnu.org/gnu/gmp/gmp-4.2.1.tar.gz
+DISTURL_ncurses-5.5	    := ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
+DISTURL_make-3.81	    := ftp://ftp.gnu.org/gnu/make/make-3.81.tar.gz
+DISTURL_coreutils-5.94	    := ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
+DISTURL_gdb-6.5		    := ftp://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
+DISTURL_wget-1.9.1	    := ftp://ftp.gnu.org/gnu/wget/wget-1.9.1.tar.gz
+
+DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
+DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
+DISTURL_vim-7.0		    := ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
+DISTURL_mutt-1.4.2.3	    := ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
+
+DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
+DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
+DISTURL_openvpn-2.0.5	    := http://openvpn.net/release/openvpn-2.0.5.tar.gz 
+DISTURL_perl-5.8.8	    := http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
+DISTURL_clamav-0.88	    := http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
+DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -150,6 +178,7 @@ acpkg/%/__unpack: PKGNAME=$(patsubst acpkg/%/__unpack,%,$@)
 acpkg/%/__unpack: DISTURL=$(DISTURL_$(patsubst acpkg/%/__unpack,%,$@))
 acpkg/%/__unpack:
 	@mkdir -p acpkg/distcache
+	test ! -z "$(DISTURL)" # Need URL for $(PKGNAME)
 	test -e acpkg/distcache/`echo $(DISTURL) | tr / _` || wget $(DISTURL) -O acpkg/distcache/`echo $(DISTURL) | tr / _`
 	test -d acpkg/$(PKGNAME) || tar -C acpkg -xzf acpkg/distcache/`echo $(DISTURL) | tr / _`
 	touch acpkg/$(PKGNAME)/__unpack
@@ -203,7 +232,6 @@ $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 ## Application rules
 ##
 
-## ftp://ftp.gnu.org/gnu/a2ps/a2ps-4.13b.tar.gz
 $(OBJDIR)/acpkg/bin/a2ps: acpkg/a2ps-4.13/__build
 	@
 
@@ -226,7 +254,6 @@ $(OBJDIR)/user/a2ps.tar:  acpkg/a2ps-4.13/__build
 	tar -rf $@ -C / $(TOP)/$(OBJDIR)/acpkg/etc/a2ps.cfg \
 		        $(TOP)/$(OBJDIR)/acpkg/etc/a2ps-site.cfg
 
-## http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
 ## [ cross-build instructions for ghostscript from:
 ##   http://www.cs.wisc.edu/~ghost/doc/cvs/Make.htm ]
 GSENV = DEVICE_DEVS=\"./obj/pdfwrite.dev ./obj/page.dev\" \
@@ -268,7 +295,6 @@ $(OBJDIR)/user/gs.tar: acpkg/ghostscript-8.54-gpl/__build $(ACPKG_GS_FONTS)
 	tar -cf $@ -C / $(TOP)/$(OBJDIR)/acpkg/share/ghostscript/8.54/lib \
 		   	$(TOP)/$(OBJDIR)/acpkg/share/fonts
 
-## http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
 ## [ description of microperl:
 ##   http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html ]
 acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch | $(LDEPS)
@@ -280,45 +306,35 @@ acpkg/perl-5.8.8/__build: acpkg/perl-5.8.8/__patch | $(LDEPS)
 $(OBJDIR)/acpkg/bin/perl: acpkg/perl-5.8.8/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/findutils/findutils-4.2.31.tar.gz
 $(OBJDIR)/acpkg/bin/find: acpkg/findutils-4.2.31/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/sed/sed-4.1.5.tar.gz
 $(OBJDIR)/acpkg/bin/sed: acpkg/sed-4.1.5/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/gawk/gawk-3.1.5.tar.gz
 $(OBJDIR)/acpkg/bin/awk: acpkg/gawk-3.1.5/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/less/less-382.tar.gz
 $(OBJDIR)/acpkg/bin/less: acpkg/less-382/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/grep/grep-2.5.3.tar.gz
 $(OBJDIR)/acpkg/bin/grep: acpkg/grep-2.5.3/__build
 	@
 
-## ftp://ftp.gnu.org/pub/gnu/gzip/gzip-1.2.4a.tar.gz
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/tar/tar-1.15.tar.gz
 $(OBJDIR)/acpkg/bin/tar: acpkg/tar-1.15/__build
 	@
 
-## ftp://ftp.gnu.org/gnu/nano/nano-1.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/nano: acpkg/nano-1.2.3/__build
 	@
 
-## ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
 $(OBJDIR)/acpkg/bin/mutt: $(OBJDIR)/lib/libncurses.a
 $(OBJDIR)/acpkg/bin/mutt: acpkg/openssl-0.9.8a/__build 
 $(OBJDIR)/acpkg/bin/mutt: acpkg/mutt-1.4.2.3/__build
 	@
 
-## http://ftp.gnu.org/pub/gnu/bash/bash-3.1.tar.gz
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
 	@
 
@@ -331,7 +347,6 @@ $(OBJDIR)/acpkg/sbin/dhclient: acpkg/dhcp-3.0.5/__build
 	mkdir -p $(@D)
 	cp acpkg/dhcp-3.0.5/work.jos64/client/dhclient $@
 
-## ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 ## http://linuxfromscratch.org/pipermail/patches/attachments/20060606/fc29f4b0/vim-7.0-cross_compile-1.bin
 acpkg/vim70/__build: acpkg/vim70/__patch | $(OBJDIR)/lib/libncurses.a $(ACPKG_WRAPS)
 	( cd acpkg/vim70 && sh -c "$(ACENV) ./configure $(AUTOCONF_ARGS) $(AUTOCONF_vim70)" )
@@ -342,11 +357,9 @@ acpkg/vim70/__build: acpkg/vim70/__patch | $(OBJDIR)/lib/libncurses.a $(ACPKG_WR
 $(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
 	@
 
-## http://ftp.gnu.org/pub/gnu/wget/wget-1.9.1.tar.gz
 $(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.9.1/__build
 	@
 
-## http://ftp.gnu.org/gnu/gdb/gdb-6.5.tar.gz
 acpkg/gdb-6.5/gdb/config/i386/__gl:
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mh $(@D)/jos64.mh 
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mt $(@D)/jos64.mt
@@ -359,7 +372,6 @@ $(OBJDIR)/acpkg/bin/gdbserver $(OBJDIR)/acpkg/bin/gdb: \
 	acpkg/gdb-6.5/gdb/config/i386/__gl acpkg/gdb-6.5/__build \
 	| $(OBJDIR)/lib/libncurses.a
 
-## ftp://ftp.gnu.org/gnu/coreutils/coreutils-5.94.tar.gz
 ACPKG_COREUTILS_BINS := basename cat chgrp chmod chown chroot cksum comm \
 			cp csplit cut date dcgen dd dir dircolors dirname \
 			du echo env expand expr factor false fmt fold \
@@ -376,15 +388,12 @@ $(patsubst %,$(OBJDIR)/acpkg/bin/%,$(ACPKG_COREUTILS_BINS)): acpkg/coreutils-5.9
 	@
 endif
 
-## http://openvpn.net/release/openvpn-2.0.5.tar.gz 
 $(OBJDIR)/acpkg/sbin/$(TARGET)-openvpn: acpkg/openvpn-2.0.5/__build
 	@
 
-## http://ftp.gnu.org/pub/gnu/make/make-3.81.tar.gz
 $(OBJDIR)/acpkg/bin/make: acpkg/make-3.81/__build
 	@
 
-## ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 acpkg/openssh-4.3p2/Makefile: | acpkg/openssl-0.9.8a/__build
 acpkg/openssh-4.3p2/Makefile: | acpkg/zlib-1.2.3/__build
 acpkg/openssh-4.3p2/__build: acpkg/openssh-4.3p2/Makefile | $(LDEPS)
@@ -436,7 +445,6 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 					etc/ssh_host_rsa_key.pub \
 					.ssh/authorized_keys
 
-## http://www.zlib.net/zlib-1.2.3.tar.gz
 acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__unpack
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
@@ -445,7 +453,6 @@ acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__unpack
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
 
-## http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
 acpkg/clamav-0.88/Makefile: | acpkg/zlib-1.2.3/__build
 $(OBJDIR)/acpkg/bin/$(TARGET)-clamscan: acpkg/clamav-0.88/__build
 	@
@@ -454,7 +461,6 @@ $(OBJDIR)/acpkg/share/clamav/main.cvd: acpkg/clamav-0.88/__build
 $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
 
-## ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__patch | $(ACPKG_WRAPS) $(LDEPS)
 	ln -fs $(TOP)/pkg/ssl-eproc/e_proc.c $(TOP)/acpkg/openssl-0.9.8a/engines/e_proc.c
 	ln -fs $(TOP)/pkg/httpd/inc/ssleproc.h $(TOP)/acpkg/openssl-0.9.8a/engines/ssleproc.h
@@ -468,7 +474,6 @@ $(OBJDIR)/lib/libssl.a: acpkg/openssl-0.9.8a/__build
 $(OBJDIR)/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
 	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
 
-## ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.5.tar.gz 
 acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake install.progs" )
@@ -483,11 +488,9 @@ $(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
 	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libncurses.a \
 	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
-## ftp://ftp.gnu.org/gnu/gmp/gmp-4.2.1.tar.gz
 $(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: acpkg/gmp-4.2.1/__build
 	@
 
-## http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 acpkg/sfslite-1.0.0/Makefile: acpkg/sfslite-1.0.0/__reconf
 acpkg/sfslite-1.0.0/Makefile: | $(OBJDIR)/acpkg/lib/libgmp.a
 
@@ -556,7 +559,6 @@ $(OBJDIR)/user/initrd:
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
-## ftp://ftp.gnu.org/pub/gnu/gcc/gcc-3.4.5/gcc-core-3.4.5.tar.gz
 acpkg/gcc-3.4.5/Makefile: | acpkg/binutils-2.17.50.0.15/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" )
