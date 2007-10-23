@@ -1,8 +1,10 @@
 KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab
 KERN_BINFILES	+= user/netd_mom user/jntpd
 
-## Shared libraries (for amd64)
+## Shared libraries, if enabled
+ifeq ($(SHARED_ENABLE),yes)
 KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
+endif
 
 ## Pick your TCP stack
 KERN_BINFILES	+= user/netd
