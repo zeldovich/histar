@@ -154,7 +154,8 @@ fs_dir_dseg::list(fs_readdir_pos *i, fs_dent *de)
     if (copy.inuse == 0)
 	goto retry;
 
-    memcpy(&de->de_name[0], &copy.name[0], FS_NAME_LEN);
+    memcpy(&de->de_name[0], &copy.name[0], FS_NAME_LEN - 1);
+    de->de_name[FS_NAME_LEN - 1] = '\0';
     de->de_inode.obj = COBJ(ino_.obj.object, copy.id);
     return 1;
 }
@@ -287,5 +288,6 @@ fs_dir_dseg_cached::~fs_dir_dseg_cached()
 {
     assert(backer_);
     backer_->unlock();
+    backer_ = 0;
     dseg_cache[slot_].ref--;
 }
