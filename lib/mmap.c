@@ -17,6 +17,12 @@ libc_hidden_proto(msync)
 libc_hidden_proto(mprotect)
 
 void *
+mmap64(void *start, size_t length, int prot, int flags, int fd, __off64_t offset)
+{
+    return mmap(start, length, prot, flags, fd, offset);
+}
+
+void *
 mmap(void *start, size_t length, int prot, int flags, int fdnum, off_t offset)
 {
     if (!(flags & MAP_ANONYMOUS)) {

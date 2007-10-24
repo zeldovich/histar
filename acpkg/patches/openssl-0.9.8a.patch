@@ -1,11 +1,12 @@
 --- openssl-0.9.8a_bad/Configure	2005-08-02 03:59:42.000000000 -0700
 +++ openssl-0.9.8a/Configure	2006-03-28 18:55:05.000000000 -0800
-@@ -172,6 +172,9 @@
+@@ -172,6 +172,10 @@
  "gcc",		"gcc:-O3::(unknown):::BN_LLONG:::",
  "cc",		"cc:-O::(unknown)::::::",
  
 +# jos64 configs
 +"x86_64-jos-linux", "acpkg-wrap-gcc:-m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DMD32_REG_T=int:::::SIXTY_FOUR_BIT_LONG RC4_CHUNK BF_PTR2 DES_INT DES_UNROLL:${x86_64_asm}:::::",
++"i386-jos-linux", "acpkg-wrap-gcc:-DL_ENDIAN -DTERMIO -O3 -Wall::-D_REENTRANT::-ldl:BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:${x86_elf_asm}:::::",
 +
  ####VOS Configurations
  "vos-gcc","gcc:-O3 -Wall -D_POSIX_C_SOURCE=200112L -D_BSD -DB_ENDIAN::(unknown):VOS:-Wl,-map:BN_LLONG:${no_asm}:::::.so:",
