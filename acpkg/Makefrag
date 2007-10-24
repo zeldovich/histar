@@ -371,7 +371,7 @@ $(OBJDIR)/acpkg/bin/vim: acpkg/vim70/__build
 $(OBJDIR)/acpkg/bin/wget: acpkg/wget-1.9.1/__build
 	@
 
-acpkg/gdb-6.5/gdb/config/i386/__gl:
+acpkg/gdb-6.5/gdb/config/i386/__gl: | acpkg/gdb-6.5/__unpack
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mh $(@D)/jos64.mh 
 	ln -fs $(TOP)/pkg/gdb-gl/jos64.mt $(@D)/jos64.mt
 	ln -fs $(TOP)/pkg/gdb-gl/nm-jos64.h $(@D)/nm-jos64.h
@@ -380,8 +380,8 @@ acpkg/gdb-6.5/gdb/config/i386/__gl:
 	touch $@
 
 $(OBJDIR)/acpkg/bin/gdbserver $(OBJDIR)/acpkg/bin/gdb: \
-	acpkg/gdb-6.5/gdb/config/i386/__gl acpkg/gdb-6.5/__build \
-	| $(OBJDIR)/lib/libncurses.a
+	| acpkg/gdb-6.5/gdb/config/i386/__gl acpkg/gdb-6.5/__build \
+	$(OBJDIR)/lib/libncurses.a
 
 ACPKG_COREUTILS_BINS := basename cat chgrp chmod chown chroot cksum comm \
 			cp csplit cut date dcgen dd dir dircolors dirname \
@@ -578,6 +578,7 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 	rm -f $@
 	cp $(OBJDIR)/lib/crt{1,i,n}.o $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/
 	cp $(OBJDIR)/lib/libjos.a $(OBJDIR)/acpkg/lib/
+	cp $(OBJDIR)/lib/libnetd.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libc.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libm.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
@@ -587,8 +588,8 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 		bin/gcc bin/ld bin/as \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
-		lib/libjos.a lib/libc.a lib/libm.a lib/liblwip.a \
-		lib/libutil.a lib/libstdc++.a \
+		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
+		lib/liblwip.a lib/libutil.a lib/libstdc++.a \
 		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
 		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \
 		lib/gcc/$(TARGET)/3.4.5/crt{1,i,n}.o \
@@ -627,6 +628,8 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/uinc $(OBJDIR)/acpkg/.include-build/include
+	mkdir -p $(OBJDIR)/acpkg/.include-build/include/kern/arch
+	ln -s $(TOP)/kern/arch/amd64 $(OBJDIR)/acpkg/.include-build/include/kern/arch
 	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
