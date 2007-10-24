@@ -35,8 +35,13 @@ ACENV += LIBS=\"\"
 
 ACENV += CC=\"acpkg-wrap-gcc\"
 ACENV += CC_FOR_TARGET=\"acpkg-wrap-gcc\"
-ACENV += CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
+ACENV += CXX=\"acpkg-wrap-g++\"
+ACENV += CXX_FOR_TARGET=\"acpkg-wrap-g++\"
 ACENV += AR=\"$(AR)\"
+ACENV += AR_FOR_TARGET=\"$(AR)\"
+ACENV += NM=\"$(NM)\"
+ACENV += NM_FOR_TARGET=\"$(NM)\"
+ACENV += RPCC=\"$(RPCC)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	ac_cv_func_psignal=yes \
@@ -88,7 +93,7 @@ DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/g
 AUTOCONF_openvpn-2.0.5	    := --disable-lzo --disable-ssl --disable-crypto
 AUTOCONF_binutils-2.16.1    := --disable-nls --enable-64-bit-bfd --enable-shared=no
 AUTOCONF_binutils-2.17.50.0.15 := --disable-nls --enable-64-bit-bfd --enable-shared=no
-AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --with-newlib --disable-threads --disable-shared --enable-languages=c,c++
+AUTOCONF_gcc-3.4.5	    := --disable-nls --without-headers --disable-threads --disable-shared --enable-languages=c,c++
 AUTOCONF_clamav-0.88	    := --disable-clamav --disable-shared --disable-pthreads
 AUTOCONF_openssh-4.3p2	    := --with-privsep-path=$(TOP)/$(ACPKG_PREFIX)/privsep
 AUTOCONF_ncurses-5.5	    := --without-cxx-binding
@@ -458,9 +463,7 @@ acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__unpack
 	touch $@
 
 acpkg/clamav-0.88/Makefile: | acpkg/zlib-1.2.3/__build
-$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan: acpkg/clamav-0.88/__build
-	@
-$(OBJDIR)/acpkg/share/clamav/main.cvd: acpkg/clamav-0.88/__build
+$(OBJDIR)/acpkg/bin/$(TARGET)-clamscan $(OBJDIR)/acpkg/share/clamav/main.cvd $(OBJDIR)/acpkg/share/clamav/daily.cvd: acpkg/clamav-0.88/__build
 	@
 $(OBJDIR)/user/clamav_%.cvd: $(OBJDIR)/acpkg/share/clamav/%.cvd
 	cp $< $@
@@ -565,7 +568,7 @@ $(OBJDIR)/user/initrd:
 
 acpkg/gcc-3.4.5/Makefile: | acpkg/binutils-2.17.50.0.15/__build
 acpkg/gcc-3.4.5/__build: acpkg/gcc-3.4.5/Makefile
-	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake LANGUAGES=\"c\"" )
+	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake" )
 	( cd acpkg/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cp acpkg/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
 	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
