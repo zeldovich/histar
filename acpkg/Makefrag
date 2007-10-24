@@ -628,8 +628,6 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/uinc $(OBJDIR)/acpkg/.include-build/include
-	mkdir -p $(OBJDIR)/acpkg/.include-build/include/kern/arch
-	ln -s $(TOP)/kern/arch/amd64 $(OBJDIR)/acpkg/.include-build/include/kern/arch
 	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build/include
@@ -637,6 +635,11 @@ $(OBJDIR)/user/include.tar: $(OBJDIR)/machine
 	ln -s $(TOP)/inc $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/$(OBJDIR)/machine $(OBJDIR)/acpkg/.include-build/include
 	ln -s $(TOP)/kern/kern $(OBJDIR)/acpkg/.include-build/include
+	$(INCLUDE_BUILD_TAR_CMD)
+
+	rm -rf $(OBJDIR)/acpkg/.include-build/include
+	mkdir -p $(OBJDIR)/acpkg/.include-build/include/kern/arch
+	ln -s $(TOP)/kern/arch/amd64 $(OBJDIR)/acpkg/.include-build/include/kern/arch
 	$(INCLUDE_BUILD_TAR_CMD)
 
 	rm -rf $(OBJDIR)/acpkg/.include-build
