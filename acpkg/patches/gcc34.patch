@@ -190,3 +190,48 @@
 +
 +/* cp-demangle.c needs to define this a little differently */
 +#undef CP_STATIC_IF_GLIBCPP_V3
+--- gcc-3.4.0/libstdc++-v3/config/locale/generic/c_locale.h.libstdc++-uclibc~	2004-03-18 17:36:32.000000000 +0000
++++ gcc-3.4.0/libstdc++-v3/config/locale/generic/c_locale.h	2004-04-21 12:01:26.000000000 +0000
+@@ -41,12 +41,18 @@
+ #include <clocale>
+ #include <cstring>   // get std::strlen
+ #include <cstdio>    // get std::snprintf or std::sprintf
++#include <features.h>
++#include <ctype.h>
+ 
+ #define _GLIBCXX_NUM_CATEGORIES 0
+ 
+ namespace std
+ {
++#ifdef __UCLIBC__
++  typedef __ctype_touplow_t*			__c_locale;
++#else
+   typedef int*			__c_locale;
++#endif
+ 
+   // Convert numeric value of type _Tv to string and return length of
+   // string.  If snprintf is available use it, otherwise fall back to
+--- gcc-3.4.0/libstdc++-v3/config/os/gnu-linux/ctype_base.h.libstdc++-uclibc~	2003-10-09 19:10:55.000000000 +0000
++++ gcc-3.4.0/libstdc++-v3/config/os/gnu-linux/ctype_base.h	2004-04-21 12:02:41.000000000 +0000
+@@ -31,13 +31,20 @@
+ //
+ // ISO C++ 14882: 22.1  Locales
+ //
++
++#include <features.h>
++#include <ctype.h>
+   
+ // Information as gleaned from /usr/include/ctype.h
+   
+   struct ctype_base
+   {
+     // Non-standard typedefs.
+-    typedef const int* 		__to_type;
++#ifdef __UCLIBC__
++    typedef const __ctype_touplow_t*	__to_type;
++#else
++    typedef const int*			__to_type;
++#endif
+ 
+     // NB: Offsets into ctype<char>::_M_table force a particular size
+     // on the mask type. Because of this, we don't use an enum.
