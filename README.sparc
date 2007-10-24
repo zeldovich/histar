@@ -42,7 +42,7 @@ Apply conf/leon/gcc-mrestore.patch, conf/leon/gcc-leon-nofpu-r3.patch
 
 Download tsim from ftp://ftp.gaisler.com/gaisler.com/tsim/
 
-   % tsim-leon3 -mmu -nosram obj/kern/kernel
+   % tsim-leon3 -mmu -nosram obj/kern/kernel.init
      ...
    tsim> go
 
@@ -52,7 +52,7 @@ Download grmon-eval from ftp://ftp.gaisler.com/gaisler.com/grmon/
 Disable firewall rules that might block grmon's UDP packets.
 
    % grmon-eval -nb -eth -ip 171.66.3.253
-   grlib> load obj/kern/kernel
+   grlib> load obj/kern/kernel.init
    grlib> run
 
 To run grmon over a JTAG parallel port cable, as root:
