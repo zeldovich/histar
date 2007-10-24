@@ -207,7 +207,7 @@ file_getdents(struct Fd *fd, struct dirent *buf, size_t nbytes)		\
 	}								\
 									\
 	buf->d_ino = de.de_inode.obj.object;		    		\
-	buf->d_off = buf->d_ino;					\
+	buf->d_off = 0;							\
 	buf->d_reclen = reclen;						\
 	buf->d_type = DT_UNKNOWN;					\
 	memcpy(&buf->d_name[0], &de.de_name[0], namlen + 1);		\
