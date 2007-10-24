@@ -1,4 +1,4 @@
-KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab
+KERN_BINFILES	:= user/init user/jshell user/ksh user/inittab user/init.sh
 KERN_BINFILES	+= user/netd_mom user/jntpd
 
 ## Shared libraries, if enabled
@@ -19,20 +19,21 @@ KERN_BINFILES	+= user/auth_log user/auth_dir user/auth_user
 KERN_BINFILES	+= user/login user/adduser user/passwd
 
 ## Common Unix tools
-#KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
-#KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl user/wget
-#KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
-#KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
-#KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
-#KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
-#KERN_BINFILES	+= user/vim user/echo
+KERN_BINFILES	+= user/ln user/tr user/expr user/chmod user/touch user/sort
+KERN_BINFILES	+= user/find user/sed user/uname user/awk user/perl user/wget
+KERN_BINFILES	+= user/tar user/gzip user/gunzip user/ls user/rm user/cp
+KERN_BINFILES	+= user/bash user/grep user/egrep user/uniq user/mv user/cat
+KERN_BINFILES	+= user/links user/od user/du user/head user/tail user/sync
+KERN_BINFILES	+= user/md5sum user/sha1sum user/mkdir user/stty user/printf
+KERN_BINFILES	+= user/vim user/echo
 
 ## SSH
-#KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
+KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
 
 ## Development
-#KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
-#KERN_BINFILES	+= user/make user/ar user/nm user/gdbserver
+KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
+KERN_BINFILES	+= user/make user/ar user/nm
+#KERN_BINFILES	+= user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
 
 ## ClamAV
