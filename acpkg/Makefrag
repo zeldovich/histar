@@ -36,6 +36,7 @@ ACENV += LIBS=\"\"
 ACENV += CC=\"acpkg-wrap-gcc\"
 ACENV += CC_FOR_TARGET=\"acpkg-wrap-gcc\"
 ACENV += CXX=\"acpkg-wrap-g++\" RPCC=\"$(RPCC)\"
+ACENV += AR=\"$(AR)\"
 ACENV += PATH=\"$(TOP)/$(ACPKG_WRAPDIR):$$PATH\"
 ACENV += ac_cv_func_setpgrp_void=yes ac_cv_func_setvbuf_reversed=no \
 	ac_cv_func_psignal=yes \
@@ -121,6 +122,7 @@ PATCHFILE_dhcp-3.0.5	    := dhcp-3.0.5.patch
 PATCHFILE_clamav-0.88	    := clamav-0.88.patch
 PATCHFILE_grep-2.5.3	    := grep-2.5.3.patch
 PATCHFILE_python-svn        := python-svn.patch
+PATCHFILE_binutils-2.17.50.0.15 := binutils-2.17.50.0.15.patch
 PATCHFILE_default	    := empty.patch
 
 ##
