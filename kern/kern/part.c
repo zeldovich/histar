@@ -94,8 +94,17 @@ part_table_read(struct disk *dk, struct part_table *pt)
 	disk_poll(dk);
     }
 
+    if (blocked < 0)
+	return blocked;
+
+    if (sect[510] != 0x55 || sect[511] != 0xAA) {
+	cprintf("part_table_read: invalid MBR signature 0x%x%x\n",
+		sect[510], sect[511]);
+	return -E_INVAL;
+    }
+
     memcpy(pt, &sect[PART_TABLE_OFFSET], sizeof(*pt));
-    return blocked;
+    return 0;
 }
 
 static void
