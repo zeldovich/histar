@@ -24,9 +24,10 @@
 #              +-----------------------------+
 #
 # The jos64 boot loader allows a bimage to be used as a part of a bootable 
-# disk image.  This is useful for booting on qemu or Bochs.  A bimage can 
-# also be used with most Linux compatible boot loaders to boot on real 
-# hardware.
+# disk image, which is useful for booting on qemu or Bochs.  However, a
+# bimage disk image will not support a partition table, which usually 
+# starts at 446.  A bimage can also be used with most Linux compatible 
+# boot loaders to boot on real hardware.
 #
 
 # Must be a multiple of 512 and fit bbootsect and bsetup
