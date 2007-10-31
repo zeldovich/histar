@@ -410,8 +410,16 @@ fs_rename(struct fs_inode dir, const char *oldfn, const char *newfn, struct fs_i
 	fs_dir *d = fs_dir_open(dir, 1);
 	scope_guard<void, fs_dir *> g(delete_obj, d);
 
+	struct fs_inode newf;
+	int nr = fs_lookup_one(dir, newfn, &newf, 0);
+
 	d->insert(newfn, f);
 	d->remove(oldfn, f);
+
+	if (nr >= 0) {
+	    d->remove(newfn, newf);
+	    sys_obj_unref(newf.obj);
+	}
     } catch (error &e) {
 	return e.err();
     }
