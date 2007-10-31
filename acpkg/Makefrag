@@ -329,7 +329,7 @@ $(OBJDIR)/acpkg/bin/awk: acpkg/gawk-3.1.5/__build
 $(OBJDIR)/acpkg/bin/less: acpkg/less-382/__build
 	@
 
-$(OBJDIR)/acpkg/bin/grep: acpkg/grep-2.5.3/__build
+$(OBJDIR)/acpkg/bin/grep $(OBJDIR)/acpkg/bin/egrep: acpkg/grep-2.5.3/__build
 	@
 
 $(OBJDIR)/acpkg/bin/gzip $(OBJDIR)/acpkg/bin/gunzip: acpkg/gzip-1.2.4a/__build
