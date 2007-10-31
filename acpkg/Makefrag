@@ -128,6 +128,7 @@ PATCHFILE_clamav-0.88	    := clamav-0.88.patch
 PATCHFILE_grep-2.5.3	    := grep-2.5.3.patch
 PATCHFILE_python-svn        := python-svn.patch
 PATCHFILE_binutils-2.17.50.0.15 := binutils-2.17.50.0.15.patch
+PATCHFILE_zlib-1.2.3	    := zlib-1.2.3.patch
 PATCHFILE_default	    := empty.patch
 
 ##
@@ -454,7 +455,7 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 					etc/ssh_host_rsa_key.pub \
 					.ssh/authorized_keys
 
-acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__unpack
+acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__patch
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
