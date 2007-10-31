@@ -37,7 +37,7 @@ KERN_BINFILES	+= user/make user/ar user/nm
 #KERN_BINFILES	+= user/python.tar.gz
 
 ## ClamAV
-#KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
+KERN_BINFILES	+= user/clamscan user/clamav_main.cvd user/clamav_daily.cvd
 
 ## Miscellaneous stuff: testing, benchmarking, experimental..
 KERN_BINFILES	+= user/fetch user/dnstest

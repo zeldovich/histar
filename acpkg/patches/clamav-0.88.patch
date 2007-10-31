@@ -234,3 +234,14 @@
  echo "$as_me:$LINENO: result: $ac_cv_have_control_in_msghdr" >&5
  echo "${ECHO_T}$ac_cv_have_control_in_msghdr" >&6
  if test "x$ac_cv_have_control_in_msghdr" = "xyes" ; then
+--- clamav-0.88/libclamav/Makefile.in	2007/10/31 18:15:59	1.1
++++ clamav-0.88/libclamav/Makefile.in	2007/10/31 18:16:14
+@@ -79,7 +79,7 @@
+ am_libclamav_la_OBJECTS = matcher-ac.lo matcher-bm.lo matcher.lo \
+ 	md5.lo others.lo readdb.lo cvd.lo dsig.lo str.lo scanners.lo \
+ 	filetypes.lo unrarlib.lo zzip-dir.lo zzip-err.lo zzip-file.lo \
+-	zzip-info.lo zzip-io.lo zzip-stat.lo zzip-zip.lo strc.lo \
++	zzip-info.lo zzip-io.lo zzip-stat.lo zzip-zip.lo \
+ 	blob.lo mbox.lo message.lo snprintf.lo strrcpy.lo table.lo \
+ 	text.lo ole2_extract.lo vba_extract.lo msexpand.lo pe.lo \
+ 	cabd.lo lzxd.lo mszipd.lo qtmd.lo system.lo upx.lo htmlnorm.lo \
