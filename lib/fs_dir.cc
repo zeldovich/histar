@@ -390,11 +390,11 @@ fs_remove(struct fs_inode dir, const char *name, struct fs_inode f)
 	fs_dir *d = fs_dir_open(dir, 1);
 	scope_guard<void, fs_dir *> g(delete_obj, d);
 
+	d->remove(name, f);
+
 	int r = sys_obj_unref(f.obj);
 	if (r < 0)
 	    return r;
-
-	d->remove(name, f);
     } catch (error &e) {
 	cprintf("fs_remove: %s\n", e.what());
 	return e.err();
