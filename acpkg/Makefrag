@@ -86,6 +86,7 @@ DISTURL_openvpn-2.0.5	    := http://openvpn.net/release/openvpn-2.0.5.tar.gz
 DISTURL_perl-5.8.8	    := http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
 DISTURL_clamav-0.88	    := http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
 DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
+DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -461,7 +462,7 @@ $(OBJDIR)/user/ssh.tar: acpkg/openssh-4.3p2/__build
 acpkg/zlib-1.2.3/__build: | $(ACPKG_WRAPS) acpkg/zlib-1.2.3/__patch
 	@mkdir -p $(ACPKG_PREFIX)
 	-( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake distclean" )
-	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX)" )
+	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) ./configure --prefix=$(TOP)/$(ACPKG_PREFIX) $(if $(patsubst no,,$(SHARED_ENABLE)),--shared)" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake" )
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install" )
 	touch $@
