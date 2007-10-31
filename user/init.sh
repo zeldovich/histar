@@ -27,7 +27,9 @@ EOM
 
 cat > /sample/wrap/compile-and-run.sh <<EOM
 #!/bin/sh
-gcc /sample/wrap/hello.c -o /tmp/hello
+MACHINE=`uname -m`
+test \$MACHINE == i386 && CFLAGS="\$CFLAGS -m32 -static"
+gcc \$CFLAGS /sample/wrap/hello.c -o /tmp/hello
 /tmp/hello
 EOM
 
@@ -63,6 +65,10 @@ some public directory (/public, which it tries to create) and then corrupt
 them in place.  The wrap program prevents this from happening:
 
     # wrap /bin/sh /sample/wrap/malicious.sh
+
+The wrap program also kills any runaway script that does not terminate
+within a 15 second timeout, and ensures that no copies of the data linger
+after the script is killed.
 
 EOM
 
