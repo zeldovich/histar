@@ -588,12 +588,13 @@ $(OBJDIR)/user/gcc.tar.gz: acpkg/gcc-3.4.5/__build acpkg/binutils-2.17.50.0.15/_
 	cp $(OBJDIR)/lib/liblwip.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libutil.a $(OBJDIR)/acpkg/lib/
 	cp $(OBJDIR)/lib/libstdc++.a $(OBJDIR)/acpkg/lib/
+	echo 'INPUT(/bin/ld.so)' > $(OBJDIR)/acpkg/lib/libc.so
 	tar -zcf $@ -C $(OBJDIR)/acpkg \
 		bin/gcc bin/ld bin/as \
 		libexec/gcc/$(TARGET)/3.4.5/cc1 \
 		libexec/gcc/$(TARGET)/3.4.5/collect2 \
 		lib/libjos.a lib/libnetd.a lib/libc.a lib/libm.a \
-		lib/liblwip.a lib/libutil.a lib/libstdc++.a \
+		lib/liblwip.a lib/libutil.a lib/libstdc++.a lib/libc.so \
 		lib/gcc/$(TARGET)/3.4.5/crt{begin,end}{,S}.o \
 		lib/gcc/$(TARGET)/3.4.5/crtbeginT.o \
 		lib/gcc/$(TARGET)/3.4.5/crt{1,i,n}.o \
