@@ -107,6 +107,7 @@ AUTOCONF_dmalloc-5.5.0	    := --enable-threads --with-pagesize=12
 AUTOCONF_apr-1.2.8	    := --disable-dso --disable-shared
 AUTOCONF_python-svn	    := --enable-shared
 AUTOCONF_mutt-1.4.2.3	    := --with-ssl --enable-imap --disable-nls
+AUTOCONF_file-4.21	    := --enable-shared=$(SHARED_ENABLE)
 
 ##
 ## Patches to apply to various packages
