@@ -354,6 +354,9 @@ $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
 $(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm: acpkg/binutils-2.17.50.0.15/__build
 	@
 
+$(OBJDIR)/acpkg/bin/file: acpkg/file-4.21/__build
+	@
+
 acpkg/dhcp-3.0.5/__build: acpkg/dhcp-3.0.5/__patch | $(LDEPS) $(ACPKG_WRAPS)
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) ./configure" )
 	( cd acpkg/dhcp-3.0.5 && sh -c "$(ACENV) gmake" )
