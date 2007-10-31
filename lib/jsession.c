@@ -60,12 +60,20 @@ setusercontext(login_cap_t *lc, struct passwd *pwd,
 	assert(0 == label_set_level(&ul, start_env->user_grant, 0, 0));
 	assert(0 == label_set_level(&ul, start_env->user_taint, 3, 0));
 	int64_t procpool = sys_container_alloc(start_env->shared_container,
-					       &ul, "sshd-procpool",
+					       &ul, "user-procpool",
 					       0, CT_QUOTA_INF);
 	if (procpool < 0)
 	    cprintf("procpool alloc: %s\n", e2s(procpool));
 	else
 	    start_env->process_pool = procpool;
+
+	int64_t mtab_id = sys_segment_copy(start_env->fs_mtab_seg,
+					   start_env->shared_container,
+					   &ul, "user-mtab");
+	if (mtab_id < 0)
+	    cprintf("mtab alloc: %s\n", e2s(mtab_id));
+	else
+	    start_env->fs_mtab_seg = COBJ(start_env->shared_container, mtab_id);
     }
 
     if (flags & LOGIN_SETUSER) {
