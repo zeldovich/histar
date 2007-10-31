@@ -50,6 +50,11 @@ err_jos2libc(int64_t r)
 int
 mkdir(const char *pn, mode_t mode)
 {
+    if (!pn[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     struct fs_inode dir;
     int r = fs_namei(pn, &dir);
     if (r == 0) {
@@ -94,6 +99,11 @@ done:
 int 
 link(const char *oldpath, const char *newpath)
 {
+    if (!oldpath[0] || !newpath[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     char *pn = strdup(newpath);
     const char *dirname, *basenm;
     fs_dirbase(pn, &dirname, &basenm);
@@ -123,6 +133,11 @@ link(const char *oldpath, const char *newpath)
 int 
 symlink(const char *oldpath, const char *newpath)
 {
+    if (!oldpath[0] || !newpath[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     char *pn = strdup(newpath);
     const char *dirname, *basenm;
     fs_dirbase(pn, &dirname, &basenm);
@@ -154,6 +169,11 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     int r;
     
+    if (!pathname[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     char *pn = strdup(pathname);
     const char *dirname;
     const char *basenm;    
@@ -199,6 +219,11 @@ mknod(const char *pathname, mode_t mode, dev_t dev)
 int
 unlink(const char *pn)
 {
+    if (!pn[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     char *pn2 = malloc(strlen(pn) + 1);
     if (pn2 == 0)
 	return err_jos2libc(-E_NO_MEM);
@@ -233,6 +258,11 @@ rmdir(const char *pn)
 int
 rename(const char *src, const char *dst)
 {
+    if (!src[0] || !dst[0]) {
+	__set_errno(ENOENT);
+	return -1;
+    }
+
     char *src2 = strdup(src);
     const char *src_dir, *src_base;
     fs_dirbase(src2, &src_dir, &src_base);
