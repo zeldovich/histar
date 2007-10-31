@@ -113,7 +113,7 @@ trampoline:
 		movw	%ax, %es
 		movw	$(0x0200 + '*'), %es:(0x00)
 
-		call	csetup
+		calll	csetup
 		movw	$(0x0200 + '1'), %es:(0x04)
 
 ## Set %edi to the linear load address (our link address is 0)
