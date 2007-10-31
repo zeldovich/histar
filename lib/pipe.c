@@ -15,7 +15,7 @@
 
 libc_hidden_proto(pipe)
 
-enum { extra_correct_pipes = 0 };
+enum { extra_correct_pipes = 1 };
 
 int
 pipe(int fds[2])
