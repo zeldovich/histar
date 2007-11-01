@@ -1,11 +1,14 @@
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 #include <inc/lib.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/container.h>
+#include <inc/time.h>
 #include <bits/libc-tsd.h>
+#include <bits/sigthread.h>
 
 int
 __pthread_mutex_init(pthread_mutex_t * mutex,
@@ -158,6 +161,18 @@ pthread_attr_setscope(pthread_attr_t *attr, int scope)
 }
 
 int
+pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
+{
+    return 0;
+}
+
+int
+pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
+{
+    return 0;
+}
+
+int
 pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     cond->counter = 0;
@@ -173,9 +188,21 @@ pthread_cond_destroy(pthread_cond_t *cond)
 int
 pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mu)
 {
+    return pthread_cond_timedwait(cond, mu, 0);
+}
+
+int
+pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mu,
+		       const struct timespec *abstime)
+{
+    uint64_t end_nsec = UINT64(~0);
+    if (abstime)
+	end_nsec = ((uint64_t) abstime->tv_sec) * NSEC_PER_SECOND +
+		   abstime->tv_nsec - jos_time_nsec_offset();
+
     uint64_t v = cond->counter;
     pthread_mutex_unlock(mu);
-    sys_sync_wait(&cond->counter, v, UINT64(~0));
+    sys_sync_wait(&cond->counter, v, end_nsec);
     pthread_mutex_lock(mu);
     return 0;
 }
@@ -215,6 +242,63 @@ __pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
     jthread_mutex_unlock(&once_mu);
 
     init_routine();
+    return 0;
+}
+
+int
+pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+{
+    cprintf("%s: unimplemented\n", __func__);
+    return 0;
+}
+
+void *
+pthread_getspecific(pthread_key_t key)
+{
+    cprintf("%s: unimplemented\n", __func__);
+    return 0;
+}
+
+int
+pthread_setspecific(pthread_key_t key, const void *value)
+{
+    cprintf("%s: unimplemented\n", __func__);
+    return 0;
+}
+
+int
+pthread_detach(pthread_t thread)
+{
+    return 0;
+}
+
+void
+pthread_exit(void *value_ptr)
+{
+    cprintf("%s: unimplemented\n", __func__);
+
+    for (;;)
+	;
+}
+
+int
+pthread_sigmask(int how, const sigset_t *set, sigset_t *oset)
+{
+    cprintf("%s: unimplemented\n", __func__);
+    return sigprocmask(how, set, oset);
+}
+
+int
+pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
+{
+    cprintf("%s: unimplemented\n", __func__);
+    return 0;
+}
+
+int
+pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+{
+    cprintf("%s: unimplemented\n", __func__);
     return 0;
 }
 

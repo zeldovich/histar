@@ -20,7 +20,7 @@ libc_hidden_proto(adjtimex)
 libc_hidden_proto(times)
 
 uint64_t
-jos_time_nsec(void)
+jos_time_nsec_offset(void)
 {
     static struct time_of_day_seg *tods;
     if (!tods) {
@@ -45,7 +45,13 @@ jos_time_nsec(void)
 	jthread_mutex_unlock(&mu);
     }
 
-    return sys_clock_nsec() + (tods ? tods->unix_nsec_offset : 0);
+    return tods ? tods->unix_nsec_offset : 0;
+}
+
+uint64_t
+jos_time_nsec(void)
+{
+    return sys_clock_nsec() + jos_time_nsec_offset();
 }
 
 int
