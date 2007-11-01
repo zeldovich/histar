@@ -3,7 +3,7 @@ KERN_BINFILES	+= user/netd_mom user/jntpd
 
 ## Shared libraries, if enabled
 ifeq ($(SHARED_ENABLE),yes)
-KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so
+KERN_BINFILES	+= user/ld.so user/libm.so user/libutil.so user/libdl.so user/libcrypt.so
 endif
 
 ## Pick your TCP stack
