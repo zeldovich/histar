@@ -352,7 +352,7 @@ $(OBJDIR)/acpkg/bin/mutt: acpkg/mutt-1.4.2.3/__build
 $(OBJDIR)/acpkg/bin/bash: acpkg/bash-3.1/__build
 	@
 
-$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm: acpkg/binutils-2.17.50.0.15/__build
+$(OBJDIR)/acpkg/bin/ar $(OBJDIR)/acpkg/bin/nm $(OBJDIR)/acpkg/bin/objdump: acpkg/binutils-2.17.50.0.15/__build
 	@
 
 $(OBJDIR)/acpkg/bin/file: acpkg/file-4.21/__build

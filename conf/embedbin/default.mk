@@ -32,7 +32,7 @@ KERN_BINFILES	+= user/ptyd user/sshd user/ssh.tar user/scp user/sshdi
 
 ## Development
 KERN_BINFILES	+= user/gcc.tar.gz user/include.tar.gz
-KERN_BINFILES	+= user/make user/ar user/nm
+KERN_BINFILES	+= user/make user/ar user/nm user/objdump
 #KERN_BINFILES	+= user/gdbserver
 #KERN_BINFILES	+= user/python.tar.gz
 
