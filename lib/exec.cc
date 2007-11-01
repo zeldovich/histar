@@ -22,13 +22,22 @@ extern "C" {
 
 struct serial_vec {
  public:
-    serial_vec(char *p, uint32_t n) : p_(p), n_(n), c_(0)  {}
+    serial_vec(char *p, uint64_t cursize, uint64_t maxsize, cobj_ref seg)
+	: p_(p), cursize_(cursize), maxsize_(maxsize), seg_(seg), c_(0)
+    {
+	used_ = sizeof(start_env_t);
+    }
 
     void add(const char *s) {
-	size_t len = strlen(s) + 1;
-	if (len > n_)
+	uint64_t len = strlen(s) + 1;
+	if (used_ + len > maxsize_)
             throw error(-E_NO_SPACE, "serial_vec out of space");
-        n_ -= len;
+	if (used_ + len > cursize_) {
+	    uint64_t newsize = MIN(cursize_ * 2, maxsize_);
+	    error_check(sys_segment_resize(seg_, newsize));
+	    cursize_ = newsize;
+	}
+        used_ += len;
     	memcpy(p_, s, len);
     	p_ += len;
 	c_++;
@@ -40,8 +49,11 @@ struct serial_vec {
     }
 
     char *p_;
-    uint32_t n_;
-    uint32_t c_;
+    uint64_t cursize_;
+    uint64_t maxsize_;
+    uint64_t used_;
+    cobj_ref seg_;
+    uint64_t c_;
 
  private:
     serial_vec(const serial_vec&);
@@ -145,17 +157,20 @@ do_execve(fs_inode bin, const char *fn, char *const *argv, char *const *envp)
     // Create an environment
     uint64_t env_size = PGSIZE;
     start_env_t *new_env = 0;
-    struct cobj_ref new_env_ref;
-    error_check(segment_alloc(proc_ct, env_size, &new_env_ref,
-			      (void**) &new_env, 0, "env"));
+    int64_t segid = sys_segment_create(proc_ct, env_size, 0, "env");
+    error_check(segid);
+
+    uint64_t map_size = 256 * PGSIZE;
+    struct cobj_ref new_env_ref = COBJ(proc_ct, segid);
+    error_check(segment_map(new_env_ref, 0, SEGMAP_READ | SEGMAP_WRITE,
+			    (void **) &new_env, &map_size, 0));
     scope_guard<int, void *> new_env_unmap(segment_unmap, new_env);
 
     memcpy(new_env, start_env, sizeof(*new_env));
     new_env->proc_container = proc_ct;
 
-    int room = env_size - sizeof(start_env_t);
     char *p = &new_env->args[0];
-    serial_vec sv(p, room);
+    serial_vec sv(p, env_size, map_size, new_env_ref);
     
     // Load ELF binary into container
     thread_entry e;
