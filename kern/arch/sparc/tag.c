@@ -81,7 +81,19 @@ tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t perm)
 static int
 tag_compare(uint32_t pctag, uint32_t dtag, int write)
 {
+    int r = label_compare_id(dtag_label_id[dtag],
+			     pctag_label_id[pctag],
+			     label_leq_starhi);
+    if (r < 0)
+	return r;
+
     if (write) {
+	r = label_compare_id(pctag_label_id[pctag],
+			     dtag_label_id[dtag],
+			     label_leq_starlo);
+	if (r < 0)
+	    return r;
+
 	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
     } else {
 	tag_setperm(pctag, dtag, TAG_PERM_READ | TAG_PERM_EXEC);
@@ -238,6 +250,22 @@ tag_moncall(struct Trapframe *tf)
  * Tag trap handling
  */
 
+static void
+tag_print_label_id(const char *msg, uint64_t id)
+{
+    const struct Label *l;
+    int r = kobject_get(id, (const struct kobject **) &l,
+			kobj_label, iflow_none);
+    if (r < 0) {
+	cprintf("%s %"PRIu64": %s\n", msg, id, e2s(r));
+	return;
+    }
+
+    cprintf("%s %"PRIu64": ", msg, id);
+    label_cprint(l);
+    cprintf("\n");
+}
+
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
 {
@@ -300,6 +328,8 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     if (r < 0) {
 	cprintf("tag compare failure: pc tag %d, dtag %d, cause %s\n",
 		pctag, dtag, cause_table[cause]);
+	tag_print_label_id("PC label", pctag_label_id[pctag]);
+	tag_print_label_id("Data label", dtag_label_id[dtag]);
 	trapframe_print(tf);
     }
 
