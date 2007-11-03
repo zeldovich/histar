@@ -577,9 +577,28 @@ $(OBJDIR)/user/initrd:
 ## For building gcc, you must use a cross-compiler of the same version you are
 ## trying to build.
 
+GCC_ACENV_FUNC_YES := \
+	copysignf __signbit __signbitf __signbitl \
+	wcslen wmemchr wmemcmp wmemcpy wmemmove wmemset \
+	btowc wctob fgetwc fgetws fputwc fputws fwide \
+	fwprintf fwscanf swprintf swscanf vfwprintf vswprintf \
+	vwprintf wprintf wscanf getwc getwchar mbsinit mbrlen mbrtowc \
+	mbsrtowcs wcsrtombs putwc putwchar ungetwc wcrtomb wcstod wcstol \
+	wcstoul wcscpy wcsncpy wcscat wcsncat wcscmp wcscoll wcsncmp wcsxfrm \
+	wcscspn wcsspn wcstok wcsftime wcschr wcspbrk wcsrchr wcsstr \
+	vfwscanf vswscanf vwscanf wcstof iswblank strtold strtof
+GCC_ACENV_FUNC_NO := \
+	iconv_open iconv_close iconv nl_langinfo
+GCC_ACENV := $(ACENV) \
+	     $(patsubst %,ac_cv_func_%=yes,$(GCC_ACENV_FUNC_YES)) \
+	     $(patsubst %,ac_cv_func_%=no,$(GCC_ACENV_FUNC_NO)) \
+	     ac_cv_lib_m_main=no ac_cv_lib_iconv_iconv=no \
+	     glibcxx_cv_POLL=yes glibcxx_cv_S_IFREG=yes \
+	     glibcxx_cv_S_ISREG=yes glibcxx_cv_WRITEV=yes
+
 $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile: | $(ACPKG_BUILDDIR)/binutils-2.17.50.0.15/__build
 $(ACPKG_BUILDDIR)/gcc-3.4.5/__build: $(ACPKG_BUILDDIR)/gcc-3.4.5/Makefile
-	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) gmake" )
+	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(GCC_ACENV) gmake" )
 	( cd $(ACPKG_BUILDDIR)/gcc-3.4.5 && sh -c "$(ACENV) gmake install" )
 	cp $(ACPKG_BUILDDIR)/gcc-3.4.5/gcc/gsyslimits.h $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/include/syslimits.h
 	cat conf/gcc.specs | sed -e s,LDSOPATH,/bin/ld.so, -e s,MAYBE_GCC_EH,, >> $(OBJDIR)/acpkg/lib/gcc/$(TARGET)/3.4.5/specs
