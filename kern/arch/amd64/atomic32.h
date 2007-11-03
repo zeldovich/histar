@@ -62,10 +62,10 @@ jos_atomic_dec_and_test(jos_atomic_t *v)
  * Return value is the previous value of "v".  So if return value is same
  * as "old", the swap occurred, otherwise it did not.
  */
-static __inline__ int
-jos_atomic_compare_exchange(jos_atomic_t *v, int old, int newv)
+static __inline__ uint32_t
+jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old, uint32_t newv)
 {
-    int out;
+    uint32_t out;
     __asm__ __volatile__(
 	ATOMIC_LOCK "cmpxchgl %2,%1"
 	: "=a" (out), "+m" (v->counter)
