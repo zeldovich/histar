@@ -535,11 +535,11 @@ $(LINUX_OUT)/.config: lind/defconfig
 	@mkdir -p $(@D)
 	cp lind/defconfig $@
 
-$(LINUX_SRC)/include/asm-lind: $(LINUX_SRC)/__unpack
+$(LINUX_SRC)/include/asm-lind: | $(LINUX_SRC)/__unpack
 	rm -f $@
 	ln -s ../arch/lind/asm-lind $@
 
-$(LINUX_SRC)/arch/lind: $(LINUX_SRC)/__unpack
+$(LINUX_SRC)/arch/lind: | $(LINUX_SRC)/__unpack
 	rm -f $@
 	ln -s $(TOP)/lind $@
 
