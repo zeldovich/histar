@@ -43,7 +43,7 @@ jos_atomic_dec_and_test(jos_atomic_t *v)
  * Return value is the previous value of "v".  So if return value is same
  * as "old", the swap occurred, otherwise it did not.
  */
-static __inline__ int
+static __inline__ uint32_t
 jos_atomic_compare_exchange(jos_atomic_t *v, uint32_t old, uint32_t newv)
 {
     /* XXX not atomic */
