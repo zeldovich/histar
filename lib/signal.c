@@ -67,7 +67,6 @@ static jthread_mutex_t sigmask_mu;	// mask utraps!
 static sigset_t signal_masked;
 static sigset_t signal_queued;
 static siginfo_t signal_queued_si[_NSIG];
-static int signal_queued_any;
 
 // Avoid growing stack in signal handler, for vmlinux
 int signal_grow_stack;
@@ -225,11 +224,27 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
     static jthread_mutex_t trap_mu;
     int trap_mu_locked = 0;
 
+    static jos_atomic_t trap_count;
+    uint32_t my_trap_count;
+
+    for (;;) {
+	uint32_t cur_count = jos_atomic_read(&trap_count);
+	my_trap_count = cur_count + 1;
+	if (jos_atomic_compare_exchange(&trap_count, cur_count,
+					my_trap_count) == cur_count)
+	    break;
+    }
+
+ retry_mu:
     if (thread_id() != signal_thread_id && tobj.object == signal_thread_id) {
-	if (jthread_mutex_trylock(&trap_mu) < 0)
+	if (jthread_mutex_trylock(&trap_mu) < 0) {
+	    if (signal_debug)
+		cprintf("[%"PRIu64"] signal_trap_thread: lock busy\n",
+			thread_id());
 	    return 0;
-	else
+	} else {
 	    trap_mu_locked = 1;
+	}
     }
 
     struct cobj_ref cur_as;
@@ -237,6 +252,7 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 
     int retry_warn = 16;
     int retry_count = 0;
+    int rv = 0;
     for (;;) {
 	if (signal_did_shutdown) {
 	    if (signal_debug)
@@ -261,7 +277,9 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 
 	    if (trap_mu_locked)
 		jthread_mutex_unlock(&trap_mu);
-	    return 0;
+
+	    rv = 0;
+	    goto done;
 	}
 
 	if (r == -E_BUSY) {
@@ -284,14 +302,27 @@ signal_trap_thread(struct cobj_ref tobj, int signo)
 	__set_errno(EPERM);
 	if (trap_mu_locked)
 	    jthread_mutex_unlock(&trap_mu);
-	return -1;
+
+	rv = -1;
+	goto done;
     }
+
+ done:
+    if (jos_atomic_read(&trap_count) != my_trap_count) {
+	my_trap_count = jos_atomic_read(&trap_count);
+	goto retry_mu;
+    }
+
+    return rv;
 }
 
 void
 signal_trap_if_pending(void)
 {
-    if (!signal_queued_any)
+    sigset_t ready;
+    for (uint32_t w = 0; w < _SIGSET_NWORDS; w++)
+	ready.__val[w] = signal_queued.__val[w] & ~signal_masked.__val[w];
+    if (__sigisemptyset(&ready))
 	return;
 
     int pending = 0;
@@ -310,9 +341,6 @@ signal_trap_if_pending(void)
 	    pending++;
 	}
     }
-
-    if (pending == 0)
-	signal_queued_any = 0;
 
     jthread_mutex_unlock(&sigmask_mu);
     utrap_set_mask(0);
@@ -657,12 +685,18 @@ int
 kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
 {
     if (si->si_signo < 0 || si->si_signo >= _NSIG) {
+	if (signal_debug)
+	    cprintf("[%"PRIu64"] kill_thread_siginfo: bad signo %d\n",
+		    thread_id(), si->si_signo);
 	__set_errno(EINVAL);
 	return -1;
     }
 
-    if (si->si_signo == 0)
+    if (si->si_signo == 0) {
+	if (signal_debug)
+	    cprintf("[%"PRIu64"] kill_thread_siginfo: signal 0\n", thread_id());
 	return 0;
+    }
 
     int oumask = utrap_set_mask(1);
     jthread_mutex_lock(&sigmask_mu);
@@ -671,12 +705,15 @@ kill_thread_siginfo(struct cobj_ref tobj, siginfo_t *si)
     if (!sigismember(&signal_queued, si->si_signo)) {
 	sigaddset(&signal_queued, si->si_signo);
 	memcpy(&signal_queued_si[si->si_signo], si, sizeof(*si));
-	signal_queued_any = 1;
 	needtrap = 1;
     }
 
     jthread_mutex_unlock(&sigmask_mu);
     utrap_set_mask(oumask);
+
+    if (signal_debug)
+	cprintf("[%"PRIu64"] kill_thread_siginfo: needtrap %d\n",
+		thread_id(), needtrap);
 
     // Trap the signal-processing thread so it runs the signal handler
     return needtrap ? signal_trap_thread(tobj, si->si_signo) : 0;
