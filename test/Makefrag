@@ -153,7 +153,7 @@ FLUME_PERL_SRCS := \
 FLUME_PERL_OBJS := $(patsubst %.c,$(OBJDIR)/test/flumeperl_%.o,$(FLUME_PERL_SRCS))
 FLUME_PERL_CFLAGS := -DPERL_CORE -DPERL_MICRO -DSTANDARD_C -DPERL_USE_SAFE_PUTENV
 
-$(FLUME_PERL_OBJS): $(OBJDIR)/test/flumeperl_%.o: acpkg/perl-5.8.8/%.c
+$(FLUME_PERL_OBJS): $(OBJDIR)/test/flumeperl_%.o: $(ACPKG_BUILDDIR)/perl-5.8.8/%.c
 	@mkdir -p $(@D)
 	$(NCC) $(FLUME_NCC_CFLAGS) $(FLUME_PERL_CFLAGS) -c -o $@ $<
 
