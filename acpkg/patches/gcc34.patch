@@ -235,3 +235,106 @@
  
      // NB: Offsets into ctype<char>::_M_table force a particular size
      // on the mask type. Because of this, we don't use an enum.
+--- gcc-3.4.5/gcc/config/i386/linux64.h	2007/11/03 19:29:30	1.1
++++ gcc-3.4.5/gcc/config/i386/linux64.h	2007/11/03 19:31:12
+@@ -96,7 +96,7 @@
+     else								\
+       break;								\
+ 									\
+-    new_cfa_ = sc_->rsp;						\
++    new_cfa_ = sc_->sc_utf.utf_rsp;					\
+     (FS)->cfa_how = CFA_REG_OFFSET;					\
+     /* Register 7 is rsp  */						\
+     (FS)->cfa_reg = 7;							\
+@@ -104,37 +104,37 @@
+ 									\
+     /* The SVR4 register numbering macros aren't usable in libgcc.  */	\
+     (FS)->regs.reg[0].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[0].loc.offset = (long)&sc_->rax - new_cfa_;		\
++    (FS)->regs.reg[0].loc.offset = (long)&sc_->sc_utf.utf_rax - new_cfa_;		\
+     (FS)->regs.reg[1].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[1].loc.offset = (long)&sc_->rdx - new_cfa_;		\
++    (FS)->regs.reg[1].loc.offset = (long)&sc_->sc_utf.utf_rdx - new_cfa_;		\
+     (FS)->regs.reg[2].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[2].loc.offset = (long)&sc_->rcx - new_cfa_;		\
++    (FS)->regs.reg[2].loc.offset = (long)&sc_->sc_utf.utf_rcx - new_cfa_;		\
+     (FS)->regs.reg[3].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[3].loc.offset = (long)&sc_->rbx - new_cfa_;		\
++    (FS)->regs.reg[3].loc.offset = (long)&sc_->sc_utf.utf_rbx - new_cfa_;		\
+     (FS)->regs.reg[4].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[4].loc.offset = (long)&sc_->rsi - new_cfa_;		\
++    (FS)->regs.reg[4].loc.offset = (long)&sc_->sc_utf.utf_rsi - new_cfa_;		\
+     (FS)->regs.reg[5].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[5].loc.offset = (long)&sc_->rdi - new_cfa_;		\
++    (FS)->regs.reg[5].loc.offset = (long)&sc_->sc_utf.utf_rdi - new_cfa_;		\
+     (FS)->regs.reg[6].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[6].loc.offset = (long)&sc_->rbp - new_cfa_;		\
++    (FS)->regs.reg[6].loc.offset = (long)&sc_->sc_utf.utf_rbp - new_cfa_;		\
+     (FS)->regs.reg[8].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[8].loc.offset = (long)&sc_->r8 - new_cfa_;		\
++    (FS)->regs.reg[8].loc.offset = (long)&sc_->sc_utf.utf_r8 - new_cfa_;		\
+     (FS)->regs.reg[9].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[9].loc.offset = (long)&sc_->r9 - new_cfa_;		\
++    (FS)->regs.reg[9].loc.offset = (long)&sc_->sc_utf.utf_r9 - new_cfa_;		\
+     (FS)->regs.reg[10].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[10].loc.offset = (long)&sc_->r10 - new_cfa_;		\
++    (FS)->regs.reg[10].loc.offset = (long)&sc_->sc_utf.utf_r10 - new_cfa_;		\
+     (FS)->regs.reg[11].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[11].loc.offset = (long)&sc_->r11 - new_cfa_;		\
++    (FS)->regs.reg[11].loc.offset = (long)&sc_->sc_utf.utf_r11 - new_cfa_;		\
+     (FS)->regs.reg[12].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[12].loc.offset = (long)&sc_->r12 - new_cfa_;		\
++    (FS)->regs.reg[12].loc.offset = (long)&sc_->sc_utf.utf_r12 - new_cfa_;		\
+     (FS)->regs.reg[13].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[13].loc.offset = (long)&sc_->r13 - new_cfa_;		\
++    (FS)->regs.reg[13].loc.offset = (long)&sc_->sc_utf.utf_r13 - new_cfa_;		\
+     (FS)->regs.reg[14].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[14].loc.offset = (long)&sc_->r14 - new_cfa_;		\
++    (FS)->regs.reg[14].loc.offset = (long)&sc_->sc_utf.utf_r14 - new_cfa_;		\
+     (FS)->regs.reg[15].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[15].loc.offset = (long)&sc_->r15 - new_cfa_;		\
++    (FS)->regs.reg[15].loc.offset = (long)&sc_->sc_utf.utf_r15 - new_cfa_;		\
+     (FS)->regs.reg[16].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[16].loc.offset = (long)&sc_->rip - new_cfa_;		\
++    (FS)->regs.reg[16].loc.offset = (long)&sc_->sc_utf.utf_rip - new_cfa_;		\
+     (FS)->retaddr_column = 16;						\
+     goto SUCCESS;							\
+   } while (0)
+@@ -167,28 +167,28 @@
+     else								\
+       break;								\
+ 									\
+-    new_cfa_ = sc_->esp;						\
++    new_cfa_ = sc_->sc_utf.utf_rsp;						\
+     (FS)->cfa_how = CFA_REG_OFFSET;					\
+     (FS)->cfa_reg = 4;							\
+     (FS)->cfa_offset = new_cfa_ - (long) (CONTEXT)->cfa;		\
+ 									\
+     /* The SVR4 register numbering macros aren't usable in libgcc.  */	\
+     (FS)->regs.reg[0].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[0].loc.offset = (long)&sc_->eax - new_cfa_;		\
++    (FS)->regs.reg[0].loc.offset = (long)&sc_->sc_utf.utf_rax - new_cfa_;		\
+     (FS)->regs.reg[3].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[3].loc.offset = (long)&sc_->ebx - new_cfa_;		\
++    (FS)->regs.reg[3].loc.offset = (long)&sc_->sc_utf.utf_rbx - new_cfa_;		\
+     (FS)->regs.reg[1].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[1].loc.offset = (long)&sc_->ecx - new_cfa_;		\
++    (FS)->regs.reg[1].loc.offset = (long)&sc_->sc_utf.utf_rcx - new_cfa_;		\
+     (FS)->regs.reg[2].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[2].loc.offset = (long)&sc_->edx - new_cfa_;		\
++    (FS)->regs.reg[2].loc.offset = (long)&sc_->sc_utf.utf_rdx - new_cfa_;		\
+     (FS)->regs.reg[6].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[6].loc.offset = (long)&sc_->esi - new_cfa_;		\
++    (FS)->regs.reg[6].loc.offset = (long)&sc_->sc_utf.utf_rsi - new_cfa_;		\
+     (FS)->regs.reg[7].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[7].loc.offset = (long)&sc_->edi - new_cfa_;		\
++    (FS)->regs.reg[7].loc.offset = (long)&sc_->sc_utf.utf_rdi - new_cfa_;		\
+     (FS)->regs.reg[5].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[5].loc.offset = (long)&sc_->ebp - new_cfa_;		\
++    (FS)->regs.reg[5].loc.offset = (long)&sc_->sc_utf.utf_rbp - new_cfa_;		\
+     (FS)->regs.reg[8].how = REG_SAVED_OFFSET;				\
+-    (FS)->regs.reg[8].loc.offset = (long)&sc_->eip - new_cfa_;		\
++    (FS)->regs.reg[8].loc.offset = (long)&sc_->sc_utf.utf_rip - new_cfa_;		\
+     (FS)->retaddr_column = 8;						\
+     goto SUCCESS;							\
+   } while (0)
