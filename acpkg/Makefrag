@@ -237,6 +237,10 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/lib/%
 	@mkdir -p $(@D)
 	cp $< $@
 
+$(OBJDIR)/lib/%.a: $(OBJDIR)/acpkg/lib/%.a
+	@mkdir -p $(@D)
+	ln -fs $< $@
+
 $(OBJDIR)/user/acpkg_tar: $(patsubst %, acpkg/%/__build, $(ACPKG_BUILD_LIST))
 	rm -f $@
 	#find $(OBJDIR)/acpkg -type f | xargs $(STRIP)
@@ -485,10 +489,8 @@ acpkg/openssl-0.9.8a/__build: acpkg/zlib-1.2.3/__build acpkg/openssl-0.9.8a/__pa
 	( cd acpkg/$(PKGNAME) && sh -c "$(ACENV) gmake install_sw" )
 	touch $@
 
-$(OBJDIR)/lib/libssl.a: acpkg/openssl-0.9.8a/__build
-	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libssl.a $@
-$(OBJDIR)/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
-	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libcrypto.a $@
+$(OBJDIR)/acpkg/lib/libssl.a $(OBJDIR)/acpkg/lib/libcrypto.a: acpkg/openssl-0.9.8a/__build
+	@
 
 acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
 	( cd acpkg/ncurses-5.5 && sh -c "$(ACENV) gmake" )
@@ -500,9 +502,6 @@ acpkg/ncurses-5.5/__build: acpkg/ncurses-5.5/Makefile | $(ACPKG_WRAPS) $(LDEPS)
 
 $(OBJDIR)/acpkg/lib/libncurses.a: acpkg/ncurses-5.5/__build
 	@
-$(OBJDIR)/lib/libncurses.a: $(OBJDIR)/acpkg/lib/libncurses.a
-	ln -fs $(TOP)/$(OBJDIR)/acpkg/lib/libncurses.a \
-	       $(TOP)/$(OBJDIR)/lib/libncurses.a
 
 $(OBJDIR)/acpkg/lib/libgmp.a $(OBJDIR)/acpkg/include/gmp.h: acpkg/gmp-4.2.1/__build
 	@
@@ -511,6 +510,7 @@ acpkg/sfslite-1.0.0/Makefile: acpkg/sfslite-1.0.0/__reconf
 acpkg/sfslite-1.0.0/Makefile: | $(OBJDIR)/acpkg/lib/libgmp.a
 
 $(OBJDIR)/acpkg/include/sfslite: acpkg/sfslite-1.0.0/__build
+	@
 $(OBJDIR)/acpkg/lib/sfslite/libasync.a: acpkg/sfslite-1.0.0/__build
 	@
 $(OBJDIR)/acpkg/lib/sfslite/libarpc.a: acpkg/sfslite-1.0.0/__build
