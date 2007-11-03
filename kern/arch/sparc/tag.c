@@ -25,6 +25,7 @@ uint32_t cur_stack_base;
 enum { tag_trap_debug = 0 };
 
 static uint8_t tag_permtable[1 << TAG_PC_BITS][1 << TAG_DATA_BITS];
+static uint64_t dtag_refcount[1 << TAG_DATA_BITS];
 
 static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
@@ -52,8 +53,12 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
     uintptr_t ptr = (uintptr_t) addr;
     assert(!(ptr & 3));
 
-    for (uint32_t i = 0; i < n; i += 4)
+    for (uint32_t i = 0; i < n; i += 4) {
+	uint32_t old_tag = read_dtag(addr + i);
+	dtag_refcount[old_tag]--;
 	write_dtag(addr + i, dtag);
+	dtag_refcount[dtag]++;
+    }
 }
 
 uint32_t
@@ -119,6 +124,8 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 	}
 
 	write_dtag(addr + i, dtag);
+	dtag_refcount[old_dtag]--;
+	dtag_refcount[dtag]++;
     }
 
     return 0;
@@ -184,6 +191,9 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_regs.i0 = -E_NO_MEM;
 	uint64_t label_id = ((uint64_t) tf->tf_regs.i1) << 32 | tf->tf_regs.i2;
 	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
+	    if (dtag_refcount[i] == 0 && dtag_label_id[i])
+		dtag_label_id[i] = 0;
+
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = label_id;
 		tf->tf_regs.i0 = i;
@@ -321,6 +331,8 @@ tag_init(void)
 	tag_setperm(i, DTAG_KEXEC, TAG_PERM_READ | TAG_PERM_EXEC);
 	tag_setperm(i, DTAG_KRO, TAG_PERM_READ);
 	tag_setperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_setperm(i, DTAG_TYPE_KOBJ, TAG_PERM_READ);
+	tag_setperm(i, DTAG_TYPE_SYNC, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
     write_pctag(PCTAG_DYNAMIC);
@@ -328,6 +340,11 @@ tag_init(void)
 
     cprintf("Initializing memory tags.. ");
     tag_set(pa2kva(ppn2pa(0)), DTAG_NOACCESS, global_npages * PGSIZE);
+
+    /* Normalize refcounts */
+    for (uint32_t i = 0; i < (1 << TAG_DATA_BITS); i++)
+	dtag_refcount[i] = 0;
+    dtag_refcount[DTAG_NOACCESS] = global_npages * PGSIZE / 4;
 
     tag_set(&stext[0],   DTAG_KEXEC, &etext[0]   - &stext[0]);
     tag_set(&srodata[0], DTAG_KRO,   &erodata[0] - &srodata[0]);
@@ -375,6 +392,9 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	for (uint32_t i = DTAG_DYNAMIC; i < maxtag; i++) {
+	    if (dtag_refcount[i] == 0 && dtag_label_id[i])
+		dtag_label_id[i] = 0;
+
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = l->lb_ko.ko_id;
 		kobject_ephemeral_dirty(&l->lb_ko)->lb.lb_dtag_hint = i;
