@@ -163,7 +163,9 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     if (kobject_negative_contains(id))
 	return -E_NOT_FOUND;
 
-    return pstate_swapin(id);
+    // XXX we have no pstate in sparc yet
+    //return pstate_swapin(id);
+    return -E_NOT_FOUND;
 }
 
 int
@@ -273,7 +275,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
 	return r;
     }
 
-    kobject_negative_remove(kh->ko_id);
+    //kobject_negative_remove(kh->ko_id);
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
@@ -545,7 +547,7 @@ kobject_swapin(struct kobject *ko)
 	    panic("kobject_swapin: duplicate %"PRIu64" (%s)",
 		  ko->hdr.ko_id, ko->hdr.ko_name);
 
-    kobject_negative_remove(ko->hdr.ko_id);
+    //kobject_negative_remove(ko->hdr.ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(hash_head, ko, ko_hash);
     if (ko->hdr.ko_ref == 0)

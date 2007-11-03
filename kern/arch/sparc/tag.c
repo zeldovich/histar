@@ -418,7 +418,17 @@ tag_alloc(const struct Label *l, int tag_type)
 void
 tag_is_kobject(const void *ptr, uint8_t type)
 {
-    /* Check tag later on as well */
+    assert(!PGOFF(ptr));
+    //assert(DTAG_TYPE_KOBJ == read_dtag(ptr));
+
     const struct kobject_hdr *ko = ptr;
     assert(ko->ko_type == type);
+}
+
+void
+tag_is_syncslot(const void *ptr)
+{
+    for (uint32_t i = 0; i < sizeof(struct sync_wait_slot); i += 4) {
+	//assert(DTAG_TYPE_SYNC == read_dtag(ptr + i));
+    }
 }

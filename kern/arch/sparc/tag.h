@@ -44,7 +44,9 @@
 #define DTAG_P_TEST	6		/* Protected domain test */
 #define DTAG_P_ALLOC	7		/* Page allocator */
 #define DTAG_P_IDCTR	8		/* ID handle counter */
-#define DTAG_DYNAMIC	9		/* First dynamically-allocated */
+#define DTAG_TYPE_KOBJ	9		/* Kernel objects */
+#define DTAG_TYPE_SYNC	10		/* Sync slot */
+#define DTAG_DYNAMIC	11		/* First dynamically-allocated */
 
 #define PCTAG_NONE	0		/* Just to be safe, for now */
 #define PCTAG_P_TEST	1		/* Protected domain test */
@@ -136,6 +138,7 @@ void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);
 uint32_t tag_getperm(uint32_t pctag, uint32_t dtag);
 
 void	 tag_is_kobject(const void *ptr, uint8_t type);
+void	 tag_is_syncslot(const void *ptr);
 #endif
 
 #endif

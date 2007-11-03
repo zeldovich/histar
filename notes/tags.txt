@@ -38,7 +38,16 @@ Thread wait/run lists: not a big deal if they are screwed up, basically
     make sure we are dealing with authentic Thread object pointers, so
     that we don't get fooled into poking around in private data.
 
+    Should implement type-safe LIST/TAILQ macros that automatically do
+    the right checks..  Need to be careful about next/prev pointers when
+    inserting or removing items, in addition to checks when traversing.
+
+    To check, either verify tag of all words, or tag of first word and
+    proper alignment (e.g. page aligned kobjects).
+
 What about refcounts?  Who enforces them?
+    For now, we punt on securing refcounts.  Unfortunately this means
+    that attackers can drop refcounts for high-integrity stuff..
 
 Subset of remaining issues:
     - Shared sync tables
