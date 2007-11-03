@@ -4,7 +4,7 @@ HTTPD_LDEPS   := $(OBJDIR)/pkg/httpd/lib/libhttpd.a $(DIS_LDDEPS)
 HTTPD_LDFLAGS := $(OBJDIR)/pkg/httpd/lib/libhttpd.a \
 		 $(OBJDIR)/acpkg/lib/lib{ssl,crypto}.a \
 		 $(DIS_LDFLAGS)
-HTTPD_CCDEPS  := acpkg/openssl-0.9.8a/__build $(DIS_CCDEPS)
+HTTPD_CCDEPS  := $(OBJDIR)/acpkg/lib/libssl.a $(OBJDIR)/acpkg/lib/libcrypto.a $(DIS_CCDEPS)
 HTTPD_CFLAGS  += $(DIS_CFLAGS)
 
 ## Generic build rules
