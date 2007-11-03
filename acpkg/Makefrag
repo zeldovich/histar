@@ -80,6 +80,8 @@ DISTURL_openssl-0.9.8a	    := ftp://ftp.openssl.org/source/openssl-0.9.8a.tar.gz
 DISTURL_openssh-4.3p2	    := ftp://ftp5.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-4.3p2.tar.gz
 DISTURL_vim70		    := ftp://ftp.vim.org/pub/vim/unix/vim-7.0.tar.bz2
 DISTURL_mutt-1.4.2.3	    := ftp://ftp.mutt.org/mutt/mutt-1.4.2.3.tar.gz
+DISTURL_linux-2.6.20.4	    := ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.4.tar.gz
+DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
 
 DISTURL_sfslite-1.0.0	    := http://dist.okws.org/dist/sfslite-1.0.0.tar.gz
 DISTURL_zlib-1.2.3	    := http://www.zlib.net/zlib-1.2.3.tar.gz
@@ -87,7 +89,6 @@ DISTURL_openvpn-2.0.5	    := http://openvpn.net/release/openvpn-2.0.5.tar.gz
 DISTURL_perl-5.8.8	    := http://www.perl.com/CPAN/src/perl-5.8.8.tar.gz
 DISTURL_clamav-0.88	    := http://easynews.dl.sourceforge.net/sourceforge/clamav/clamav-0.88.tar.gz
 DISTURL_ghostscript-8.54-gpl := http://internap.dl.sourceforge.net/sourceforge/ghostscript/ghostscript-8.54-gpl.tar.gz
-DISTURL_file-4.21	    := ftp://ftp.astron.com/pub/file/file-4.21.tar.gz
 
 ##
 ## ./configure arguments for different packages
@@ -523,8 +524,7 @@ $(OBJDIR)/user/%.debuginfo: $(OBJDIR)/acpkg/lib/sfslite/%
 	@mkdir -p $(@D)
 	cp $< $@
 
-## For Linux:
-##   ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.4.tar.gz
+## For Linux
 
 LINUX_CFLAGS	:= $(USER_INC) -DJOS_USER -fno-builtin
 LINUX_LDFLAGS	:= $(LDFLAGS)
@@ -535,13 +535,13 @@ $(LINUX_OUT)/.config: lind/defconfig
 	@mkdir -p $(@D)
 	cp lind/defconfig $@
 
-$(LINUX_SRC)/include/asm-lind:
+$(LINUX_SRC)/include/asm-lind: $(LINUX_SRC)/__unpack
 	rm -f $@
 	ln -s ../arch/lind/asm-lind $@
 
-$(LINUX_SRC)/arch/lind:
+$(LINUX_SRC)/arch/lind: $(LINUX_SRC)/__unpack
 	rm -f $@
-	ln -s ../../../lind $@
+	ln -s $(TOP)/lind $@
 
 $(LINUX_SRC)/__build: $(LINUX_SRC)/include/asm-lind \
 		      $(LINUX_SRC)/arch/lind $(LINUX_OUT)/.config | $(LDEPS)
