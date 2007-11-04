@@ -193,7 +193,7 @@ struct Trapframe {
     union {
 	uint32_t tf_reg[32];
 	struct Regs tf_regs;
-    };
+    } __attribute__((aligned(8)));
     uint32_t tf_psr; /* post trap PSR */
     uint32_t tf_y;
     uint32_t tf_pc;
