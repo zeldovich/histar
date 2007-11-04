@@ -738,6 +738,9 @@ kobject_gc(struct kobject *ko)
 void
 kobject_gc_scan(void)
 {
+    // XXX figure out who needs to actually run the GC..
+    return;
+
     // Clear cur_thread to avoid putting it to sleep on behalf of
     // our swapped-in objects.
     const struct Thread *t = cur_thread;
