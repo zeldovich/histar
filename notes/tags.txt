@@ -58,6 +58,8 @@ Subset of remaining issues:
     - Kobject GC / page_free()
     - Label/clearance changes, category allocation
     - Gate calls
+    - Gate allocation [clearance + access label?]
+    - Thread allocation [clearance]
     - Label integrity
     - Cached page tables for AS
 
