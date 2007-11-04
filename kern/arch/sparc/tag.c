@@ -32,6 +32,8 @@ static uint64_t pctag_label_id[1 << TAG_PC_BITS];
 
 const struct Label dtag_label[DTAG_DYNAMIC];
 
+static const struct Thread *cur_mon_thread;
+
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",
     [ET_CAUSE_DV]    = "Data tag invalid",
@@ -100,6 +102,21 @@ tag_compare(uint32_t pctag, uint32_t dtag, int write)
     }
 
     return 0;
+}
+
+static void
+tag_print_label_id(const char *msg, uint64_t id)
+{
+    const struct Label *l;
+    int r = kobject_get(id, (const struct kobject **) &l,
+			kobj_label, iflow_none);
+    if (r < 0) {
+	cprintf("%s %"PRIu64": %s\n", msg, id, e2s(r));
+	return;
+    }
+
+    cprintf("%s %"PRIu64": ", msg, id);
+    label_cprint(l);
 }
 
 /*
@@ -221,8 +238,10 @@ tag_moncall(struct Trapframe *tf)
 
     case MONCALL_THREAD_SWITCH: {
 	const struct Thread *tptr = (const struct Thread *) tf->tf_regs.i1;
+	assert(tptr);
 	tag_is_kobject(tptr, kobj_thread);
 	cur_thread = tptr;
+	cur_mon_thread = tptr;
 
 	const struct Label *tl;
 	int r = kobject_get_label(&tptr->th_ko, kolabel_contaminate, &tl);
@@ -241,6 +260,36 @@ tag_moncall(struct Trapframe *tf)
 	break;
     }
 
+    case MONCALL_KOBJ_ALLOC: {
+	uint8_t type = tf->tf_regs.i1;
+	const struct Label *l = (const struct Label *) tf->tf_regs.i2;
+	struct kobject **kp = (struct kobject **) tf->tf_regs.i3;
+
+	if (type != kobj_label)
+	    tag_is_kobject(l, kobj_label);
+	assert(read_dtag(kp) == DTAG_KRW);
+
+	if (l && cur_mon_thread) {
+	    int r;
+	    r = label_compare_id(cur_mon_thread->th_ko.ko_label[kolabel_contaminate], l->lb_ko.ko_id, label_leq_starlo);
+	    if (r < 0) {
+		cprintf("MONCALL_KOBJ_ALLOC: object label too low\n");
+		tag_print_label_id("Thread label", cur_mon_thread->th_ko.ko_label[kolabel_contaminate]);
+		tag_print_label_id("Object label", l->lb_ko.ko_id);
+	    }
+
+	    r = label_compare_id(l->lb_ko.ko_id, cur_mon_thread->th_ko.ko_label[kolabel_clearance], label_leq_starlo);
+	    if (r < 0) {
+		cprintf("MONCALL_KOBJ_ALLOC: object label too high\n");
+		tag_print_label_id("Object label", l->lb_ko.ko_id);
+		tag_print_label_id("Thread clear", cur_mon_thread->th_ko.ko_label[kolabel_clearance]);
+	    }
+	}
+
+	tf->tf_regs.i0 = kobject_alloc_real(type, l, kp);
+	break;
+    }
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }
@@ -252,21 +301,6 @@ tag_moncall(struct Trapframe *tf)
 /*
  * Tag trap handling
  */
-
-static void
-tag_print_label_id(const char *msg, uint64_t id)
-{
-    const struct Label *l;
-    int r = kobject_get(id, (const struct kobject **) &l,
-			kobj_label, iflow_none);
-    if (r < 0) {
-	cprintf("%s %"PRIu64": %s\n", msg, id, e2s(r));
-	return;
-    }
-
-    cprintf("%s %"PRIu64": ", msg, id);
-    label_cprint(l);
-}
 
 void
 tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)

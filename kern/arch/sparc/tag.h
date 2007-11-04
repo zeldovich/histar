@@ -68,6 +68,7 @@
 #define MONCALL_TAGSET		3	/* Change tags ala memset */
 #define MONCALL_DTAGALLOC	4	/* Allocate a tag */
 #define MONCALL_THREAD_SWITCH	5	/* Change to another thread */
+#define MONCALL_KOBJ_ALLOC	6	/* Allocate a kobject */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>

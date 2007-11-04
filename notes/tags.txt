@@ -55,11 +55,11 @@ Labels:
       - Keep the ko_id as DTAG_KOBJ, ko_ref as DTAG_KRW
 
 Subset of remaining issues:
-    - Kobject allocation
+    - Kobject GC / page_free()
+    - Label/clearance changes, category allocation
     - Gate calls
     - Label integrity
     - Cached page tables for AS
-    - Who runs GC?
 
 		Set T	Set S
 Tag exception	YES	YES

@@ -143,7 +143,8 @@ kobject_get(kobject_id_t id, const struct kobject **kp,
     struct kobject_list *head = HASH_SLOT(&ko_hash, id);
     LIST_FOREACH(ko, head, ko_hash) {
 	if (ko->hdr.ko_id == id) {
-	    if (ko->hdr.ko_ref == 0)
+	    /* XXX hack to be able to get zero-refed infant labels.. */
+	    if (ko->hdr.ko_ref == 0 && ko->hdr.ko_type != kobj_label)
 		return -E_NOT_FOUND;
 
 	    int r = ko->hdr.ko_type == kobj_label ? 0 :
@@ -232,6 +233,16 @@ int
 kobject_alloc(uint8_t type, const struct Label *l,
 	      struct kobject **kp)
 {
+    if (read_tsr() & TSR_T)
+	return kobject_alloc_real(type, l, kp);
+    else
+	return monitor_call(MONCALL_KOBJ_ALLOC, type, l, kp);
+}
+
+int
+kobject_alloc_real(uint8_t type, const struct Label *l,
+		   struct kobject **kp)
+{
     assert(type == kobj_label || l != 0);
 
     const struct Label *tag_label;
@@ -282,8 +293,7 @@ kobject_alloc(uint8_t type, const struct Label *l,
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(hash_head, ko, ko_hash);
 
-    uint32_t otsr = read_tsr();
-    write_tsr(otsr | TSR_T);
+    assert(read_tsr() & TSR_T);
     tag_set(&kh->ko_id,     DTAG_TYPE_KOBJ, sizeof(kh->ko_id));
     tag_set(&kh->ko_ref,    DTAG_KRW,       sizeof(kh->ko_ref));
     tag_set(&kh->ko_parent, DTAG_KRW,       sizeof(kh->ko_parent));
@@ -294,7 +304,6 @@ kobject_alloc(uint8_t type, const struct Label *l,
     tag_set(&ko->ko_link,    DTAG_KRW,       sizeof(ko->ko_link));
     tag_set(&ko->ko_hash,    DTAG_TYPE_KOBJ, sizeof(ko->ko_hash));
     tag_set(&ko->ko_gc_link, DTAG_KRW,       sizeof(ko->ko_gc_link));
-    write_tsr(otsr);
 
     *kp = ko;
     return 0;
@@ -794,7 +803,9 @@ kobject_swapout(struct kobject *ko)
 	LIST_REMOVE(ko, ko_gc_link);
     LIST_REMOVE(ko, ko_hash);
     pagetree_free(&ko->ko_pt, 0);
-    page_free(ko);
+
+    /* XXX need to do kobject GC in the monitor somehow */
+    //page_free(ko);
 }
 
 static struct kobject *
