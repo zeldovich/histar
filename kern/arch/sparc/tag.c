@@ -203,8 +203,12 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_regs.i0 = -E_NO_MEM;
 	uint64_t label_id = ((uint64_t) tf->tf_regs.i1) << 32 | tf->tf_regs.i2;
 	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
-	    if (dtag_refcount[i] == 0 && dtag_label_id[i])
+	    if (dtag_refcount[i] == 0 && dtag_label_id[i]) {
+		for (uint32_t j = PCTAG_DYNAMIC; j < (1 << TAG_PC_BITS); j++)
+		    if (tag_getperm(j, i))
+			tag_setperm(j, i, 0);
 		dtag_label_id[i] = 0;
+	    }
 
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = label_id;
@@ -217,8 +221,7 @@ tag_moncall(struct Trapframe *tf)
 
     case MONCALL_THREAD_SWITCH: {
 	const struct Thread *tptr = (const struct Thread *) tf->tf_regs.i1;
-	/* XXX check that the thread object is really a kobject */
-	assert(tptr->th_ko.ko_type == kobj_thread);
+	tag_is_kobject(tptr, kobj_thread);
 	cur_thread = tptr;
 
 	const struct Label *tl;
@@ -263,7 +266,6 @@ tag_print_label_id(const char *msg, uint64_t id)
 
     cprintf("%s %"PRIu64": ", msg, id);
     label_cprint(l);
-    cprintf("\n");
 }
 
 void
@@ -326,11 +328,13 @@ tag_trap(struct Trapframe *tf, uint32_t err, uint32_t errv)
     }
 
     if (r < 0) {
-	cprintf("tag compare failure: pc tag %d, dtag %d, cause %s\n",
-		pctag, dtag, cause_table[cause]);
+	cprintf("tag compare @ 0x%x: pctag %d, dtag %d (%s): %s\n",
+		tf->tf_pc, pctag, dtag, cause_table[cause], e2s(r));
 	tag_print_label_id("PC label", pctag_label_id[pctag]);
 	tag_print_label_id("Data label", dtag_label_id[dtag]);
-	trapframe_print(tf);
+	//trapframe_print(tf);
+
+	write_tsr(read_tsr() | TSR_EO);
     }
 
     if (tag_trap_debug)
@@ -365,7 +369,12 @@ tag_init(void)
 	tag_setperm(i, DTAG_TYPE_SYNC, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
-    write_pctag(PCTAG_DYNAMIC);
+    for (uint32_t i = 0; i < (1 << TAG_DATA_BITS); i++)
+	tag_setperm(PCTAG_INIT, i,
+		    TAG_PERM_READ | TAG_PERM_WRITE | TAG_PERM_EXEC);
+    tag_setperm(PCTAG_INIT, DTAG_MONCALL, 0);
+
+    write_pctag(PCTAG_INIT);
     cprintf("done.\n");
 
     cprintf("Initializing memory tags.. ");
@@ -400,6 +409,8 @@ uint32_t
 tag_alloc(const struct Label *l, int tag_type)
 {
     assert(l);
+    if (l < &dtag_label[0] || l >= &dtag_label[DTAG_DYNAMIC])
+	tag_is_kobject(l, kobj_label);
 
     if (tag_type == tag_type_data) {
 	if (l >= &dtag_label[0] && l < &dtag_label[DTAG_DYNAMIC]) {
@@ -422,8 +433,12 @@ tag_alloc(const struct Label *l, int tag_type)
 	}
 
 	for (uint32_t i = DTAG_DYNAMIC; i < maxtag; i++) {
-	    if (dtag_refcount[i] == 0 && dtag_label_id[i])
+	    if (dtag_refcount[i] == 0 && dtag_label_id[i]) {
+		for (uint32_t j = PCTAG_DYNAMIC; j < (1 << TAG_PC_BITS); j++)
+		    if (tag_getperm(j, i))
+			tag_setperm(j, i, 0);
 		dtag_label_id[i] = 0;
+	    }
 
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = l->lb_ko.ko_id;
@@ -455,8 +470,9 @@ tag_alloc(const struct Label *l, int tag_type)
 	cprintf("Out of PC tags, flushing table..\n");
 	for (uint32_t i = PCTAG_DYNAMIC; i < maxtag; i++) {
 	    pctag_label_id[i] = 0;
-	    for (uint32_t j = DTAG_DYNAMIC; j < maxtag; j++)
-		tag_setperm(i, j, 0);
+	    for (uint32_t j = DTAG_DYNAMIC; j < (1 << TAG_DATA_BITS); j++)
+		if (tag_getperm(i, j))
+		    tag_setperm(i, j, 0);
 	}
 
 	goto pc_retry;

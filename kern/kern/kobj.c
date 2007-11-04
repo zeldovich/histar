@@ -13,6 +13,7 @@
 #include <inc/error.h>
 #include <inc/cksum.h>
 #include <machine/tag.h>
+#include <machine/sparc-tag.h>
 
 struct kobject_list ko_list __krw__;
 struct Thread_list kobj_snapshot_waiting __krw__;
@@ -280,6 +281,20 @@ kobject_alloc(uint8_t type, const struct Label *l,
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
     LIST_INSERT_HEAD(&ko_gc_list, ko, ko_gc_link);
     LIST_INSERT_HEAD(hash_head, ko, ko_hash);
+
+    uint32_t otsr = read_tsr();
+    write_tsr(otsr | TSR_T);
+    tag_set(&kh->ko_id,     DTAG_TYPE_KOBJ, sizeof(kh->ko_id));
+    tag_set(&kh->ko_ref,    DTAG_KRW,       sizeof(kh->ko_ref));
+    tag_set(&kh->ko_parent, DTAG_KRW,       sizeof(kh->ko_parent));
+    tag_set(&kh->ko_label,  DTAG_TYPE_KOBJ, sizeof(kh->ko_label));
+    tag_set(&kh->ko_name,   DTAG_KRW,       sizeof(kh->ko_name));
+    tag_set(&kh->ko_type,   DTAG_TYPE_KOBJ, sizeof(kh->ko_type));
+
+    tag_set(&ko->ko_link,    DTAG_KRW,       sizeof(ko->ko_link));
+    tag_set(&ko->ko_hash,    DTAG_TYPE_KOBJ, sizeof(ko->ko_hash));
+    tag_set(&ko->ko_gc_link, DTAG_KRW,       sizeof(ko->ko_gc_link));
+    write_tsr(otsr);
 
     *kp = ko;
     return 0;

@@ -33,22 +33,6 @@ bss_init (void)
     memset(sbss, 0, ebss - sbss);
 }
 
-static uint32_t secret;
-
-PROT_FUNC(PCTAG_P_TEST, DTAG_P_TEST,
-	  uint32_t, get_secret, uint32_t arg)
-{
-    return secret + arg;
-}
-
-static void
-test_secret(void)
-{
-    cprintf("Trying to get secret value...\n");
-    cprintf("Value + 0 = 0x%x\n", get_secret(0));
-    cprintf("Value + 1 = 0x%x\n", get_secret(1));
-}
-
 void __attribute__((noreturn))
 init (void)
 {
@@ -79,15 +63,9 @@ init (void)
 
     user_init();
 
-    tag_set(&secret, DTAG_P_TEST, sizeof(secret));
-    tag_setperm(PCTAG_P_TEST, DTAG_P_TEST, TAG_PERM_READ | TAG_PERM_WRITE);
-    secret = 0xc0ffee;
-
     cprintf("Kernel init done, disabling trusted mode.. ");
     write_tsr(0);
     cprintf("done.\n");
-
-    test_secret();
 
     cprintf("=== kernel ready, calling thread_run() ===\n");
     thread_run();

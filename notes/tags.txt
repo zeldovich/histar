@@ -49,13 +49,17 @@ What about refcounts?  Who enforces them?
     For now, we punt on securing refcounts.  Unfortunately this means
     that attackers can drop refcounts for high-integrity stuff..
 
+Labels:
+    - Label object is KRW until used for a tag
+    - At that point, change the whole label to be KRO to finalize it
+      - Keep the ko_id as DTAG_KOBJ, ko_ref as DTAG_KRW
+
 Subset of remaining issues:
-    - Shared sync tables
     - Kobject allocation
     - Gate calls
-    - PC tag GC
+    - Label integrity
     - Cached page tables for AS
-    - shell hangs after child (ls) exit occasionally
+    - Who runs GC?
 
 		Set T	Set S
 Tag exception	YES	YES

@@ -41,18 +41,16 @@
 #define DTAG_KRO	3		/* Read-only kernel data */
 #define DTAG_KRW	4		/* Read-write kernel stack */
 #define DTAG_MONCALL	5		/* Monitor call */
-#define DTAG_P_TEST	6		/* Protected domain test */
-#define DTAG_P_ALLOC	7		/* Page allocator */
-#define DTAG_P_IDCTR	8		/* ID handle counter */
-#define DTAG_TYPE_KOBJ	9		/* Kernel objects */
-#define DTAG_TYPE_SYNC	10		/* Sync slot */
-#define DTAG_DYNAMIC	11		/* First dynamically-allocated */
+#define DTAG_P_ALLOC	6		/* Page allocator */
+#define DTAG_P_IDCTR	7		/* ID handle counter */
+#define DTAG_TYPE_KOBJ	8		/* Kernel objects */
+#define DTAG_TYPE_SYNC	9		/* Sync slot */
+#define DTAG_DYNAMIC	10		/* First dynamically-allocated */
 
-#define PCTAG_NONE	0		/* Just to be safe, for now */
-#define PCTAG_P_TEST	1		/* Protected domain test */
-#define PCTAG_P_ALLOC	2		/* Page allocator */
-#define PCTAG_P_IDCTR	3		/* ID handle counter */
-#define PCTAG_DYNAMIC	4		/* First dynamically-allocated */
+#define PCTAG_INIT	0		/* While bootstrapping */
+#define PCTAG_P_ALLOC	1		/* Page allocator */
+#define PCTAG_P_IDCTR	2		/* ID handle counter */
+#define PCTAG_DYNAMIC	3		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
