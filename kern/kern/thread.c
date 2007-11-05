@@ -125,7 +125,7 @@ thread_alloc(const struct Label *contaminate,
 	     struct Thread **tp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_thread, contaminate, &ko);
+    int r = kobject_alloc(kobj_thread, contaminate, clearance, &ko);
     if (r < 0)
 	return r;
 
@@ -133,9 +133,6 @@ thread_alloc(const struct Label *contaminate,
     t->th_sched_tickets = 1024;
     t->th_status = thread_not_started;
     t->th_ko.ko_flags |= KOBJ_LABEL_MUTABLE;
-    r = kobject_set_label(&t->th_ko, kolabel_clearance, clearance);
-    if (r < 0)
-	return r;
 
     struct Segment *sg;
     r = segment_alloc(contaminate, &sg);

@@ -230,17 +230,18 @@ kobject_set_label_prepared(struct kobject_hdr *kp, int idx,
 }
 
 int
-kobject_alloc(uint8_t type, const struct Label *l,
+kobject_alloc(uint8_t type, const struct Label *l, const struct Label *clear,
 	      struct kobject **kp)
 {
     if (read_tsr() & TSR_T)
-	return kobject_alloc_real(type, l, kp);
+	return kobject_alloc_real(type, l, clear, kp);
     else
-	return monitor_call(MONCALL_KOBJ_ALLOC, type, l, kp);
+	return monitor_call(MONCALL_KOBJ_ALLOC, type, l, clear, kp);
 }
 
 int
 kobject_alloc_real(uint8_t type, const struct Label *l,
+		   const struct Label *clear,
 		   struct kobject **kp)
 {
     assert(type == kobj_label || l != 0);
@@ -287,6 +288,15 @@ kobject_alloc_real(uint8_t type, const struct Label *l,
 	return r;
     }
 
+    if (clear) {
+	r = kobject_set_label(kh, kolabel_clearance, clear);
+	if (r < 0) {
+	    kobject_set_label_prepared(kh, kolabel_contaminate, l, 0, 0);
+	    page_free(p);
+	    return r;
+	}
+    }
+
     //kobject_negative_remove(kh->ko_id);
     struct kobject_list *hash_head = HASH_SLOT(&ko_hash, kh->ko_id);
     LIST_INSERT_HEAD(&ko_list, ko, ko_link);
@@ -297,7 +307,10 @@ kobject_alloc_real(uint8_t type, const struct Label *l,
     tag_set(&kh->ko_id,     DTAG_TYPE_KOBJ, sizeof(kh->ko_id));
     tag_set(&kh->ko_ref,    DTAG_KRW,       sizeof(kh->ko_ref));
     tag_set(&kh->ko_parent, DTAG_KRW,       sizeof(kh->ko_parent));
-    tag_set(&kh->ko_label,  DTAG_TYPE_KOBJ, sizeof(kh->ko_label));
+    tag_set(&kh->ko_label[kolabel_contaminate],
+	    DTAG_TYPE_KOBJ, sizeof(kh->ko_label[0]));
+    tag_set(&kh->ko_label[kolabel_clearance],
+	    DTAG_TYPE_KOBJ, sizeof(kh->ko_label[0]));
     tag_set(&kh->ko_name,   DTAG_KRW,       sizeof(kh->ko_name));
     tag_set(&kh->ko_type,   DTAG_TYPE_KOBJ, sizeof(kh->ko_type));
 

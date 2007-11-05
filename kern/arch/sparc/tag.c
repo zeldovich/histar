@@ -263,10 +263,13 @@ tag_moncall(struct Trapframe *tf)
     case MONCALL_KOBJ_ALLOC: {
 	uint8_t type = tf->tf_regs.i1;
 	const struct Label *l = (const struct Label *) tf->tf_regs.i2;
-	struct kobject **kp = (struct kobject **) tf->tf_regs.i3;
+	const struct Label *clear = (const struct Label *) tf->tf_regs.i3;
+	struct kobject **kp = (struct kobject **) tf->tf_regs.i4;
 
 	if (type != kobj_label)
 	    tag_is_kobject(l, kobj_label);
+	if (clear)
+	    tag_is_kobject(clear, kobj_label);
 	assert(read_dtag(kp) == DTAG_KRW);
 
 	if (l && cur_mon_thread) {
@@ -286,7 +289,17 @@ tag_moncall(struct Trapframe *tf)
 	    }
 	}
 
-	tf->tf_regs.i0 = kobject_alloc_real(type, l, kp);
+	if (clear && cur_mon_thread) {
+	    int r;
+	    r = label_compare_id(clear->lb_ko.ko_id, cur_mon_thread->th_ko.ko_label[kolabel_clearance], label_leq_starlo);
+	    if (r < 0) {
+		cprintf("MONCALL_KOBJ_ALLOC: object clearance too high\n");
+		tag_print_label_id("Object clear", clear->lb_ko.ko_id);
+		tag_print_label_id("Thread clear", cur_mon_thread->th_ko.ko_label[kolabel_clearance]);
+	    }
+	}
+
+	tf->tf_regs.i0 = kobject_alloc_real(type, l, clear, kp);
 	break;
     }
 

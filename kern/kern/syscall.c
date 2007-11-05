@@ -111,7 +111,7 @@ sys_net_create(uint64_t container, uint64_t card_idx,
     check(alloc_ulabel(ul, &l, 0));
 
     struct kobject *ko;
-    check(kobject_alloc(kobj_netdev, l, &ko));
+    check(kobject_alloc(kobj_netdev, l, 0, &ko));
     check(alloc_set_name(&ko->hdr, name));
     ko->nd.nd_idx = card_idx;
 

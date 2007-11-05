@@ -10,7 +10,7 @@ int
 segment_alloc(const struct Label *l, struct Segment **sgp)
 {
     struct kobject *ko;
-    int r = kobject_alloc(kobj_segment, l, &ko);
+    int r = kobject_alloc(kobj_segment, l, 0, &ko);
     if (r < 0)
 	return r;
 
