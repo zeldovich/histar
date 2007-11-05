@@ -419,6 +419,48 @@ tag_moncall(struct Trapframe *tf)
 	break;
     }
 
+    case MONCALL_GATE_ENTER: {
+	put_retval = 1;
+	const struct Gate *g = (const struct Gate *) tf->tf_regs.i1;
+	const struct Label *l = (const struct Label *) tf->tf_regs.i2;
+	const struct Label *c = (const struct Label *) tf->tf_regs.i3;
+	const struct thread_entry *te = (const struct thread_entry *) tf->tf_regs.i4;
+
+	tag_is_kobject(g, kobj_gate);
+	tag_is_kobject(l, kobj_label);
+	tag_is_kobject(c, kobj_label);
+	for (uint32_t i = 0; i < sizeof(*te); i += 4)
+	    assert(read_dtag(((void *)te) + i) == DTAG_KRW);
+
+	const struct Label *cur_label, *cur_clear;
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_contaminate, &cur_label));
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_clearance, &cur_clear));
+
+	const struct Label *gl, *gc, *gv;
+	assert(0 == kobject_get_label(&g->gt_ko, kolabel_contaminate, &gl));
+	assert(0 == kobject_get_label(&g->gt_ko, kolabel_clearance, &gc));
+	assert(0 == kobject_get_label(&g->gt_ko, kolabel_verify_contaminate, &gv));
+
+	if (gv)
+	    assert(0 == label_compare(cur_label, gv, label_leq_starlo, 0));
+
+	struct Label *lb, *cb;
+	assert(0 == label_max(gl, cur_label, &lb, label_leq_starhi));
+	assert(0 == label_max(gc, cur_clear, &cb, label_leq_starlo));
+
+	int r;
+	r = label_compare(lb, l, label_leq_starlo, 0);
+	if (r < 0)
+	    cprintf("MONCALL_GATE_ENTER: label too low\n");
+
+	r = label_compare(c, cb, label_leq_starhi, 0);
+	if (r < 0)
+	    cprintf("MONCALL_GATE_ENTER: clear too high\n");
+
+	retval = thread_jump(cur_mon_thread, l, c, g->gt_te_unspec ? te : &g->gt_te);
+	break;
+    }
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }

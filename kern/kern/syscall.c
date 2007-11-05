@@ -568,9 +568,11 @@ sys_gate_enter(struct cobj_ref gt,
 	memcpy(&te, &g->gt_te, sizeof(te));
     }
 
-    cprintf("gate_enter..\n");
+#if 0
     check(thread_jump(cur_thread, new_label, new_clear, &te));
-    cprintf("gate_enter done\n");
+#endif
+    check(monitor_call(MONCALL_GATE_ENTER, g, new_label, new_clear, &te));
+
     return 0;
 }
 
