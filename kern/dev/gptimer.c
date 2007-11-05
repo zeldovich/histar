@@ -96,12 +96,9 @@ gptimer_init(void)
     LEON3_GpTimer_Regs_Map *gpt_regs = pa2kva(dev.start);
     uint32_t irq = GPTIMER_CONFIG_IRQNT(gpt_regs->config);
 
-    /* 1 timer tick == 1 us */
-    uint32_t hz = 1000000;
-    uint32_t scalar_reload = (CLOCK_FREQ_KHZ / 1000) - 1;
-    gpt_regs->scalar_reload = scalar_reload;
-    gpt_regs->scalar = scalar_reload;
-  
+    gpt_regs->scalar_reload = 0;
+    gpt_regs->scalar = 0;
+
     /* Timer 0 for scheduler */
     LEON3_GpTimerElem_Regs_Map *sh_regs = 
 	(LEON3_GpTimerElem_Regs_Map *) &gpt_regs->e[0];
@@ -109,7 +106,7 @@ gptimer_init(void)
     sh_regs->rld = ~0;
 
     static struct gpt_sh gpt_sh;
-    gpt_sh.hz = hz;
+    gpt_sh.hz = CLOCK_FREQ_KHZ * 1000;
     gpt_sh.regs = sh_regs;
     gpt_sh.mask = sh_regs->rld;
 
@@ -138,7 +135,7 @@ gptimer_init(void)
     gpt_ts.last_read = gpt_tsval(&gpt_ts);
     gpt_ts.ticks = 0;
     gpt_ts.gpt_src.type = time_source_gpt;
-    gpt_ts.gpt_src.freq_hz = hz;
+    gpt_ts.gpt_src.freq_hz = CLOCK_FREQ_KHZ * 1000;
     gpt_ts.gpt_src.ticks = &gpt_get_ticks;
     gpt_ts.gpt_src.delay_nsec = &gpt_delay;
     gpt_ts.gpt_src.arg = &gpt_ts;
