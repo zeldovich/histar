@@ -245,6 +245,7 @@ sys_container_get_slot_id(uint64_t ct, uint64_t slot)
 static int64_t __attribute__ ((warn_unused_result))
 sys_handle_create(void)
 {
+#if 0
     uint64_t handle = handle_alloc();
 
     // Compute new label and clearance..
@@ -266,6 +267,9 @@ sys_handle_create(void)
 			       kolabel_clearance, cur_th_clearance, c, &qr);
 
     return handle;
+#endif
+
+    return monitor_call(MONCALL_CATEGORY_ALLOC);
 }
 
 static int64_t __attribute__ ((warn_unused_result))
@@ -564,7 +568,9 @@ sys_gate_enter(struct cobj_ref gt,
 	memcpy(&te, &g->gt_te, sizeof(te));
     }
 
+    cprintf("gate_enter..\n");
     check(thread_jump(cur_thread, new_label, new_clear, &te));
+    cprintf("gate_enter done\n");
     return 0;
 }
 
@@ -593,7 +599,9 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(label_compare(new_label, new_clearance, label_leq_starlo, 0));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi, 0));
 
+    cprintf("thread_start..\n");
     check(thread_jump(t, new_label, new_clearance, &te));
+    cprintf("thread_start done\n");
     thread_set_sched_parents(t, thread.container, 0);
     thread_set_runnable(t);
     return 0;
@@ -671,9 +679,12 @@ sys_self_set_label(struct ulabel *ul)
     const struct Label *l;
     check(alloc_ulabel(ul, &l, 0));
 
+#if 0
     check(label_compare(cur_th_label, l, label_leq_starlo, 0));
     check(label_compare(l, cur_th_clearance, label_leq_starlo, 0));
     check(thread_change_label(cur_thread, l));
+#endif
+    check(monitor_call(MONCALL_SET_LABEL, l));
     return 0;
 }
 
@@ -683,6 +694,7 @@ sys_self_set_clearance(struct ulabel *uclear)
     const struct Label *clearance;
     check(alloc_ulabel(uclear, &clearance, 0));
 
+#if 0
     struct Label *clearance_bound;
     check(label_max(cur_th_clearance, cur_th_label,
 		    &clearance_bound, label_leq_starhi));
@@ -691,6 +703,8 @@ sys_self_set_clearance(struct ulabel *uclear)
     check(label_compare(clearance, clearance_bound, label_leq_starhi, 0));
     check(kobject_set_label(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			    kolabel_clearance, clearance));
+#endif
+    check(monitor_call(MONCALL_SET_CLEAR, clearance));
     return 0;
 }
 

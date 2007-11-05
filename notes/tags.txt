@@ -56,13 +56,13 @@ Labels:
 
 Subset of remaining issues:
     - Kobject GC / page_free()
-    - Label/clearance changes, category allocation
     - Gate calls
     - Label integrity
     - Cached page tables for AS
 
 Done:
     + Gate, thread allocation [clearance]: kobject_alloc takes clearance
+    + Label/clearance changes, category allocation
 
 		Set T	Set S
 Tag exception	YES	YES

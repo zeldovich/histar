@@ -42,15 +42,13 @@
 #define DTAG_KRW	4		/* Read-write kernel stack */
 #define DTAG_MONCALL	5		/* Monitor call */
 #define DTAG_P_ALLOC	6		/* Page allocator */
-#define DTAG_P_IDCTR	7		/* ID handle counter */
-#define DTAG_TYPE_KOBJ	8		/* Kernel objects */
-#define DTAG_TYPE_SYNC	9		/* Sync slot */
-#define DTAG_DYNAMIC	10		/* First dynamically-allocated */
+#define DTAG_TYPE_KOBJ	7		/* Kernel objects */
+#define DTAG_TYPE_SYNC	8		/* Sync slot */
+#define DTAG_DYNAMIC	9		/* First dynamically-allocated */
 
 #define PCTAG_INIT	0		/* While bootstrapping */
 #define PCTAG_P_ALLOC	1		/* Page allocator */
-#define PCTAG_P_IDCTR	2		/* ID handle counter */
-#define PCTAG_DYNAMIC	3		/* First dynamically-allocated */
+#define PCTAG_DYNAMIC	2		/* First dynamically-allocated */
 
 /*
  * Tag trap errors
@@ -69,6 +67,10 @@
 #define MONCALL_DTAGALLOC	4	/* Allocate a tag */
 #define MONCALL_THREAD_SWITCH	5	/* Change to another thread */
 #define MONCALL_KOBJ_ALLOC	6	/* Allocate a kobject */
+#define MONCALL_CATEGORY_ALLOC	7	/* Allocate a category */
+#define MONCALL_SET_LABEL	8	/* Change label */
+#define MONCALL_SET_CLEAR	9	/* Change clearance */
+#define MONCALL_GATE_ENTER	10	/* Invoke a gate */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
@@ -130,7 +132,7 @@ void	 tag_trap_return(const struct Trapframe *tf)
 void	 tag_set(const void *addr, uint32_t dtag, size_t n);
 uint32_t tag_alloc(const struct Label *l, int tag_type);
 
-int32_t	 monitor_call(uint32_t op, ...);
+int64_t	 monitor_call(uint32_t op, ...);
 void	 pcall_trampoline(void) __attribute__((noreturn));
 
 void	 tag_setperm(uint32_t pctag, uint32_t dtag, uint32_t permbits);

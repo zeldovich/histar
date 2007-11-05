@@ -7,6 +7,7 @@
 #include <kern/arch.h>
 #include <kern/kobj.h>
 #include <kern/label.h>
+#include <kern/handle.h>
 #include <inc/error.h>
 
 extern const uint8_t stext[],   etext[];
@@ -175,6 +176,8 @@ tag_moncall(struct Trapframe *tf)
     tf->tf_npc = tf->tf_npc + 4;
 
     struct pcall_stack *ps;
+    int64_t retval = 0;
+    int put_retval = 0;
 
     switch (tf->tf_regs.l0) {
     case MONCALL_PCALL:
@@ -211,13 +214,15 @@ tag_moncall(struct Trapframe *tf)
 	break;
 
     case MONCALL_TAGSET:
-	tf->tf_regs.i0 = moncall_tagset((void *) tf->tf_regs.i1,
-					tf->tf_regs.i2,
-					tf->tf_regs.i3);
+	put_retval = 1;
+	retval = moncall_tagset((void *) tf->tf_regs.i1,
+				tf->tf_regs.i2,
+				tf->tf_regs.i3);
 	break;
 
     case MONCALL_DTAGALLOC: {
-	tf->tf_regs.i0 = -E_NO_MEM;
+	put_retval = 1;
+	retval = -E_NO_MEM;
 	uint64_t label_id = ((uint64_t) tf->tf_regs.i1) << 32 | tf->tf_regs.i2;
 	for (uint32_t i = DTAG_DYNAMIC; i < (1 << TAG_DATA_BITS); i++) {
 	    if (dtag_refcount[i] == 0 && dtag_label_id[i]) {
@@ -229,7 +234,7 @@ tag_moncall(struct Trapframe *tf)
 
 	    if (dtag_label_id[i] == 0) {
 		dtag_label_id[i] = label_id;
-		tf->tf_regs.i0 = i;
+		retval = i;
 		break;
 	    }
 	}
@@ -299,12 +304,102 @@ tag_moncall(struct Trapframe *tf)
 	    }
 	}
 
-	tf->tf_regs.i0 = kobject_alloc_real(type, l, clear, kp);
+	put_retval = 1;
+	retval = kobject_alloc_real(type, l, clear, kp);
+	break;
+    }
+
+    case MONCALL_SET_LABEL: {
+	const struct Label *l = (const struct Label *) tf->tf_regs.i1;
+	tag_is_kobject(l, kobj_label);
+	int r;
+	r = label_compare_id(cur_mon_thread->th_ko.ko_label[kolabel_contaminate], l->lb_ko.ko_id, label_leq_starlo);
+	if (r < 0) {
+	    cprintf("MONCALL_SET_LABEL: too low\n");
+	    tag_print_label_id("Old label", cur_mon_thread->th_ko.ko_label[kolabel_contaminate]);
+	    tag_print_label_id("New label", l->lb_ko.ko_id);
+	}
+
+	r = label_compare_id(l->lb_ko.ko_id, cur_mon_thread->th_ko.ko_label[kolabel_clearance], label_leq_starlo);
+	if (r < 0) {
+	    cprintf("MONCALL_SET_LABEL: too high\n");
+	    tag_print_label_id("New label", l->lb_ko.ko_id);
+	    tag_print_label_id("Old clear", cur_mon_thread->th_ko.ko_label[kolabel_clearance]);
+	}
+
+	put_retval = 1;
+	retval = thread_change_label(cur_mon_thread, l);
+	break;
+    }
+
+    case MONCALL_SET_CLEAR: {
+	const struct Label *clear = (const struct Label *) tf->tf_regs.i1;
+	tag_is_kobject(clear, kobj_label);
+
+	const struct Label *cur_clear, *cur_label;
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_contaminate, &cur_label));
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_clearance, &cur_clear));
+
+	struct Label *bound;
+	assert(0 == label_max(cur_clear, cur_label, &bound, label_leq_starhi));
+
+	int r = label_compare(clear, bound, label_leq_starhi, 0);
+	if (r < 0) {
+	    cprintf("MONCALL_SET_LABEL: too high\n");
+	    tag_print_label_id("Old label", cur_mon_thread->th_ko.ko_label[kolabel_contaminate]);
+	    tag_print_label_id("Old clear", cur_mon_thread->th_ko.ko_label[kolabel_clearance]);
+	    tag_print_label_id("New clear", clear->lb_ko.ko_id);
+	}
+
+	put_retval = 1;
+	retval = kobject_set_label(&kobject_dirty(&cur_mon_thread->th_ko)->hdr, kolabel_clearance, clear);
+	break;
+    }
+
+    case MONCALL_CATEGORY_ALLOC: {
+	put_retval = 1;
+	uint64_t handle = handle_alloc();
+
+	const struct Label *cur_label, *cur_clear;
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_contaminate, &cur_label));
+	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_clearance, &cur_clear));
+
+	struct Label *l, *c;
+	assert(0 == label_copy(cur_label, &l));
+	assert(0 == label_set(l, handle, LB_LEVEL_STAR));
+
+	assert(0 == label_copy(cur_clear, &c));
+	assert(0 == label_set(c, handle, 3));
+
+	// Prepare for changing the thread's clearance
+	struct kobject_quota_resv qr;
+	kobject_qres_init(&qr, &kobject_dirty(&cur_mon_thread->th_ko)->hdr);
+	int r = kobject_qres_reserve(&qr, &c->lb_ko);
+	if (r < 0) {
+	    retval = r;
+	    break;
+	}
+
+	// Change label, and changing clearance is now guaranteed to succeed
+	r = thread_change_label(cur_mon_thread, l);
+	if (r < 0) {
+	    kobject_qres_release(&qr);
+	    retval = r;
+	    break;
+	}
+	kobject_set_label_prepared(&kobject_dirty(&cur_mon_thread->th_ko)->hdr,
+				   kolabel_clearance, cur_clear, c, &qr);
+	retval = handle;
 	break;
     }
 
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
+    }
+
+    if (put_retval) {
+	tf->tf_regs.i0 = (retval >> 32);
+	tf->tf_regs.i1 = (retval & 0xffffffff);
     }
 
  out:
