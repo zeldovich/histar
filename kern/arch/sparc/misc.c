@@ -6,8 +6,10 @@
 uint64_t
 karch_get_tsc(void)
 {
-    /* XXX */
-    return timer_user_nsec();
+    if (the_timesrc)
+	return the_timesrc->ticks(the_timesrc->arg);
+
+    return 0;
 }
 
 uintptr_t
