@@ -393,6 +393,32 @@ tag_moncall(struct Trapframe *tf)
 	break;
     }
 
+    case MONCALL_THREAD_START: {
+	put_retval = 1;
+	const struct Thread *t = (const struct Thread *) tf->tf_regs.i1;
+	const struct Label *l = (const struct Label *) tf->tf_regs.i2;
+	const struct Label *c = (const struct Label *) tf->tf_regs.i3;
+	const struct thread_entry *te = (const struct thread_entry *) tf->tf_regs.i4;
+
+	tag_is_kobject(t, kobj_thread);
+	tag_is_kobject(l, kobj_label);
+	tag_is_kobject(c, kobj_label);
+	for (uint32_t i = 0; i < sizeof(*te); i += 4)
+	    assert(read_dtag(((void *)te) + i) == DTAG_KRW);
+	assert(SAFE_EQUAL(t->th_status, thread_not_started));
+
+	int r;
+	r = label_compare_id(cur_mon_thread->th_ko.ko_label[kolabel_contaminate], l->lb_ko.ko_id, label_leq_starlo);
+	if (r < 0)
+	    cprintf("MONCALL_THREAD_START: label too low\n");
+	r = label_compare_id(c->lb_ko.ko_id, cur_mon_thread->th_ko.ko_label[kolabel_clearance], label_leq_starlo);
+	if (r < 0)
+	    cprintf("MONCALL_THREAD_START: clear too high\n");
+
+	retval = thread_jump(t, l, c, te);
+	break;
+    }
+
     default:
 	panic("Unknown moncall type %d", tf->tf_regs.l0);
     }

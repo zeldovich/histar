@@ -599,9 +599,11 @@ sys_thread_start(struct cobj_ref thread, struct thread_entry *ute,
     check(label_compare(new_label, new_clearance, label_leq_starlo, 0));
     check(label_compare(new_clearance, cur_th_clearance, label_leq_starhi, 0));
 
-    cprintf("thread_start..\n");
+#if 0
     check(thread_jump(t, new_label, new_clearance, &te));
-    cprintf("thread_start done\n");
+#endif
+    check(monitor_call(MONCALL_THREAD_START, t, new_label, new_clearance, &te));
+
     thread_set_sched_parents(t, thread.container, 0);
     thread_set_runnable(t);
     return 0;

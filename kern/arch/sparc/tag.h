@@ -71,6 +71,7 @@
 #define MONCALL_SET_LABEL	8	/* Change label */
 #define MONCALL_SET_CLEAR	9	/* Change clearance */
 #define MONCALL_GATE_ENTER	10	/* Invoke a gate */
+#define MONCALL_THREAD_START	11	/* Start a thread */
 
 #ifndef __ASSEMBLER__
 #include <machine/types.h>
