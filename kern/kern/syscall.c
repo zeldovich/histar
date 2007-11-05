@@ -260,10 +260,14 @@ sys_handle_create(void)
     check(kobject_qres_reserve(&qr, &c->lb_ko));
 
     // Change label, and changing clearance is now guaranteed to succeed
-    check(thread_change_label(cur_thread, l));
+    int r = thread_change_label(cur_thread, l);
+    if (r < 0) {
+	kobject_qres_release(&qr);
+	return r;
+    }
+
     kobject_set_label_prepared(&kobject_dirty(&cur_thread->th_ko)->hdr,
 			       kolabel_clearance, cur_th_clearance, c, &qr);
-
     return handle;
 }
 
@@ -715,7 +719,12 @@ sys_self_set_verify(struct ulabel *uvl, struct ulabel *uvc)
     struct kobject_quota_resv qr;
     kobject_qres_init(&qr, tko);
     check(kobject_qres_reserve(&qr, &vl->lb_ko));
-    check(kobject_qres_reserve(&qr, &vc->lb_ko));
+
+    int r = kobject_qres_reserve(&qr, &vc->lb_ko);
+    if (r < 0) {
+	kobject_qres_release(&qr);
+	return r;
+    }
 
     kobject_set_label_prepared(tko, kolabel_verify_contaminate, ovl, vl, &qr);
     kobject_set_label_prepared(tko, kolabel_verify_clearance,   ovc, vc, &qr);

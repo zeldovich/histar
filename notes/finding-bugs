@@ -155,3 +155,8 @@ page read-write, but we have no idea what to invalidate such that
 those mappings that mapped kobject #1 see changes and those that
 mapped kobject #2 do not.
 
+***
+
+Did not always call kobject_qres_release() on the failure path
+after calling kobject_qres_reserve().
+
