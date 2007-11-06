@@ -698,7 +698,6 @@ $(ACPKG_BUILDDIR)/python-svn/Makefile: $(ACPKG_BUILDDIR)/python-svn/__patch | $(
 	-find $(ACPKG_BUILDDIR)/python-svn -name config.status | xargs rm -f
 	-rm $(ACPKG_BUILDDIR)/python-svn/configure
 	( cd $(ACPKG_BUILDDIR)/python-svn && sh -c "$(ACENV) autoconf" )
-	( cd $(ACPKG_BUILDDIR)/python-svn && sh -c "$(ACENV) automake --add-missing" )
 	( cd $(ACPKG_BUILDDIR)/python-svn && sh -c "$(ACENV) ./configure \
 		$(AUTOCONF_ARGS) $(AUTOCONF_python-svn)" )
 	touch $@
