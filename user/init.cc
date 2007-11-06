@@ -183,6 +183,10 @@ init_fs(void)
 	symlink("jcat", "/bin/cat");
     if (access("/bin/echo", F_OK) < 0)
 	symlink("jecho", "/bin/echo");
+    if (access("/bin/true", F_OK) < 0)
+	symlink("jtrue", "/bin/true");
+    if (access("/bin/date", F_OK) < 0)
+	symlink("jdate", "/bin/date");
 
     // create a /dev directory
     struct fs_inode dev;

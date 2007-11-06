@@ -5,6 +5,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/time.h>
 }
 
@@ -44,7 +45,7 @@ main(int ac, char **av)
 	    int64_t ec;
 	    process_wait(&cp, &ec);
 	    if (ec)
-		throw basic_exception("Funny error-code %ld\n", ec);
+		throw basic_exception("Funny error-code %"PRIu64"\n", ec);
 	} catch (std::exception &e) {
 	    printf("spawn: %s\n", e.what());
 	}
