@@ -58,8 +58,7 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     for (uint32_t i = 0; i < n; i += 4) {
 	uint32_t old_tag = read_dtag(addr + i);
-	if (old_tag < (1 << TAG_DATA_BITS))
-	    dtag_refcount[old_tag]--;
+	dtag_refcount[old_tag & ((1 << TAG_DATA_BITS) - 1)]--;
 	write_dtag(addr + i, dtag);
     }
 
