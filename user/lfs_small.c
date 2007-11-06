@@ -24,6 +24,7 @@ enum { lfs_iterations = 1 };
 #if JOS64
 #include <inc/syscall.h>
 #include <inc/profiler.h>
+#include <inc/lib.h>
 
 #define time_msec() (NSEC_PER_SECOND / 1000 * sys_clock_nsec())
 #endif // JOS64
