@@ -54,13 +54,16 @@ tag_set(const void *addr, uint32_t dtag, size_t n)
 
     uintptr_t ptr = (uintptr_t) addr;
     assert(!(ptr & 3));
+    assert(!(n & 3));
 
     for (uint32_t i = 0; i < n; i += 4) {
 	uint32_t old_tag = read_dtag(addr + i);
-	dtag_refcount[old_tag]--;
+	if (old_tag < (1 << TAG_DATA_BITS))
+	    dtag_refcount[old_tag]--;
 	write_dtag(addr + i, dtag);
-	dtag_refcount[dtag]++;
     }
+
+    dtag_refcount[dtag] += n / 4;
 }
 
 uint32_t
