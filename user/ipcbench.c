@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <sys/time.h>
 
@@ -119,11 +120,11 @@ main(int ac, char **av)
     gettimeofday(&end, 0);
 
     if (v != count)
-	printf("value mismatch: %ld != %d\n", v, count);
+	printf("value mismatch: %"PRIu64" != %d\n", v, count);
 
     uint64_t diff_usec =
 	(end.tv_sec - start.tv_sec) * 1000000 +
 	end.tv_usec - start.tv_usec;
-    printf("Total time:  %ld usec\n", diff_usec);
-    printf("RTT usec:    %ld\n", diff_usec / count);
+    printf("Total time:  %"PRIu64" usec\n", diff_usec);
+    printf("RTT usec:    %"PRIu64"\n", diff_usec / count);
 }
