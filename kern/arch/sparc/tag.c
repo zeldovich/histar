@@ -32,8 +32,7 @@ static uint64_t dtag_label_id[1 << TAG_DATA_BITS];
 static uint64_t pctag_label_id[1 << TAG_PC_BITS];
 
 const struct Label dtag_label[DTAG_DYNAMIC];
-
-static const struct Thread *cur_mon_thread;
+const struct Thread *cur_mon_thread;
 
 const char* const cause_table[] = {
     [ET_CAUSE_PCV]   = "PC tag invalid",

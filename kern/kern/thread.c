@@ -255,8 +255,12 @@ thread_run(void)
     thread_switch(cur_thread);
 
     // Should not return, will call thread_arch_run for us..
-    monitor_call(MONCALL_THREAD_SWITCH, cur_thread);
-    panic("MONCALL_THREAD_SWITCH returned");
+    if (cur_thread == cur_mon_thread) {
+	thread_arch_run(cur_thread);
+    } else {
+	monitor_call(MONCALL_THREAD_SWITCH, cur_thread);
+	panic("MONCALL_THREAD_SWITCH returned");
+    }
 }
 
 int

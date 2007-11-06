@@ -121,6 +121,7 @@ enum {
 extern const struct Label dtag_label[DTAG_DYNAMIC];
 extern uint32_t moncall_dummy;
 extern uintptr_t cur_stack_base;
+extern const struct Thread *cur_mon_thread;
 
 void	 tag_init(void);
 
