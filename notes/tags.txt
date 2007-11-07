@@ -57,6 +57,7 @@ Labels:
 Subset of remaining issues:
     - Label integrity
     - Cached page tables for AS
+    - Need to avoid purging PC tags that are in use or up the stack
 
 Done:
     + Gate, thread allocation [clearance]: kobject_alloc takes clearance
