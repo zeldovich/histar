@@ -44,7 +44,10 @@
 #define DTAG_P_ALLOC	6		/* Page allocator */
 #define DTAG_TYPE_KOBJ	7		/* Kernel objects */
 #define DTAG_TYPE_SYNC	8		/* Sync slot */
-#define DTAG_DYNAMIC	9		/* First dynamically-allocated */
+#define DTAG_STACK_0	9		/* Base stack */
+#define DTAG_STACK_EX	10		/* 4 extra stacks */
+#define DTAG_STACK_EXL	13		/* Last */
+#define DTAG_DYNAMIC	14		/* First dynamically-allocated */
 
 #define PCTAG_INIT	0		/* While bootstrapping */
 #define PCTAG_P_ALLOC	1		/* Page allocator */

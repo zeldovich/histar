@@ -154,6 +154,8 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
     if (dtag == DTAG_TYPE_KOBJ || dtag == DTAG_TYPE_SYNC)
 	return -E_INVAL;
 
+    //uint32_t start = karch_get_tsc();
+
     uint32_t pctag = read_pctag();
     uint32_t pbits = TAG_PERM_READ | TAG_PERM_WRITE;
     uint32_t last_dtag = ~0;
@@ -181,6 +183,9 @@ moncall_tagset(void *addr, uint32_t dtag, uint32_t nbytes)
 	dtag_refcount[dtag]++;
     }
 
+    //uint32_t end = karch_get_tsc();
+    //if (start||end) cprintf("moncall_tagset: %d bytes, %d tsc\n", nbytes, end-start);
+
     return 0;
 }
 
@@ -203,16 +208,17 @@ tag_moncall(struct Trapframe *tf)
     int put_retval = 0;
 
     switch (tf->tf_regs.l0) {
-    case MONCALL_PCALL:
+    case MONCALL_PCALL: {
 	assert(pcall_next < PCALL_DEPTH);
 
-	ps = &pcall_stack[pcall_next++];
+	uint32_t pcall_idx = pcall_next++;
+	ps = &pcall_stack[pcall_idx];
 	memcpy(&ps->tf, tf, sizeof(*tf));
 	ps->pctag = read_pctag();
 	ps->prev_stack_base = cur_stack_base;
 
 	write_pctag(tf->tf_regs.l1);
-	tag_set(ps->stack_base, tf->tf_regs.l2, KSTACK_SIZE);
+	tag_setperm(tf->tf_regs.l1, DTAG_STACK_EX + pcall_idx, TAG_PERM_READ | TAG_PERM_WRITE);
 
 	tf->tf_pc = (uintptr_t) &pcall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
@@ -222,6 +228,7 @@ tag_moncall(struct Trapframe *tf)
 	tf->tf_regs.fp = 0;
 	cur_stack_base = (uintptr_t) ps->stack_base;
 	break;
+    }
 
     case MONCALL_KOBJ_GC: {
 	const struct kobject *ko = (const struct kobject *) tf->tf_regs.i1;
@@ -234,7 +241,8 @@ tag_moncall(struct Trapframe *tf)
 	}
 
 	assert(pcall_next < PCALL_DEPTH);
-	ps = &pcall_stack[pcall_next++];
+	uint32_t pcall_idx = pcall_next++;
+	ps = &pcall_stack[pcall_idx];
 	memcpy(&ps->tf, tf, sizeof(*tf));
 	ps->pctag = read_pctag();
 	ps->prev_stack_base = cur_stack_base;
@@ -244,7 +252,7 @@ tag_moncall(struct Trapframe *tf)
 	uint32_t pctag = tag_alloc(l, tag_type_pc);
 
 	write_pctag(pctag);
-	tag_set(ps->stack_base, DTAG_KRW, KSTACK_SIZE);
+	tag_setperm(pctag, DTAG_STACK_EX + pcall_idx, TAG_PERM_READ | TAG_PERM_WRITE);
 
 	tf->tf_pc = (uintptr_t) &pcall_trampoline;
 	tf->tf_npc = tf->tf_pc + 4;
@@ -258,17 +266,23 @@ tag_moncall(struct Trapframe *tf)
 	break;
     }
 
-    case MONCALL_PRETURN:
+    case MONCALL_PRETURN: {
 	if (pcall_next == 0)
 	    panic("MONCALL_PRETURN: nothing on the pstack\n");
 
-	ps = &pcall_stack[--pcall_next];
+	uint32_t pcall_idx = --pcall_next;
+	ps = &pcall_stack[pcall_idx];
 	ps->tf.tf_regs.i0 = tf->tf_regs.o0;
 	ps->tf.tf_regs.i1 = tf->tf_regs.o1;
 	tf = &ps->tf;
+
+	uint32_t cur_pctag = read_pctag();
+	tag_setperm(cur_pctag, DTAG_STACK_EX + pcall_idx, 0);
+
 	write_pctag(ps->pctag);
 	cur_stack_base = ps->prev_stack_base;
 	break;
+    }
 
     case MONCALL_TAGSET:
 	put_retval = 1;
@@ -346,7 +360,9 @@ tag_moncall(struct Trapframe *tf)
 	    tag_is_kobject(l, kobj_label);
 	if (clear)
 	    tag_is_kobject(clear, kobj_label);
-	assert(read_dtag(kp) == DTAG_KRW);
+
+	uint32_t ptr_tag = read_dtag(kp);
+	assert(ptr_tag >= DTAG_STACK_0 && ptr_tag <= DTAG_STACK_EXL);
 
 	if (l && cur_mon_thread) {
 	    int r;
@@ -474,8 +490,10 @@ tag_moncall(struct Trapframe *tf)
 	tag_is_kobject(t, kobj_thread);
 	tag_is_kobject(l, kobj_label);
 	tag_is_kobject(c, kobj_label);
-	for (uint32_t i = 0; i < sizeof(*te); i += 4)
-	    assert(read_dtag(((void *)te) + i) == DTAG_KRW);
+	for (uint32_t i = 0; i < sizeof(*te); i += 4) {
+	    uint32_t dt = read_dtag(((void *) te) + i);
+	    assert(dt >= DTAG_STACK_0 && dt <= DTAG_STACK_EXL);
+	}
 	assert(SAFE_EQUAL(t->th_status, thread_not_started));
 
 	int r;
@@ -500,8 +518,10 @@ tag_moncall(struct Trapframe *tf)
 	tag_is_kobject(g, kobj_gate);
 	tag_is_kobject(l, kobj_label);
 	tag_is_kobject(c, kobj_label);
-	for (uint32_t i = 0; i < sizeof(*te); i += 4)
-	    assert(read_dtag(((void *)te) + i) == DTAG_KRW);
+	for (uint32_t i = 0; i < sizeof(*te); i += 4) {
+	    uint32_t dt = read_dtag(((void *) te) + i);
+	    assert(dt >= DTAG_STACK_0 && dt <= DTAG_STACK_EXL);
+	}
 
 	const struct Label *cur_label, *cur_clear;
 	assert(0 == kobject_get_label(&cur_mon_thread->th_ko, kolabel_contaminate, &cur_label));
@@ -648,6 +668,7 @@ tag_init(void)
 	tag_setperm(i, DTAG_KRW, TAG_PERM_READ | TAG_PERM_WRITE);
 	tag_setperm(i, DTAG_TYPE_KOBJ, TAG_PERM_READ);
 	tag_setperm(i, DTAG_TYPE_SYNC, TAG_PERM_READ | TAG_PERM_WRITE);
+	tag_setperm(i, DTAG_STACK_0, TAG_PERM_READ | TAG_PERM_WRITE);
     }
 
     for (uint32_t i = 0; i < (1 << TAG_DATA_BITS); i++)
@@ -671,16 +692,18 @@ tag_init(void)
     tag_set(&sdata[0],   DTAG_KRO,   &edata[0]   - &sdata[0]);
     tag_set(&srwdata[0], DTAG_KRW,   &erwdata[0] - &srwdata[0]);
     tag_set(&sbss[0],    DTAG_KRO,   &ebss[0]    - &sbss[0]);
-    tag_set(&kstack[0],  DTAG_KRW,   KSTACK_SIZE);
+    tag_set(&kstack[0],  DTAG_STACK_0, KSTACK_SIZE);
 
     tag_set(&moncall_dummy, DTAG_MONCALL, sizeof(moncall_dummy));
     cprintf("done.\n");
 
     cprintf("Initializing stacks.. ");
     assert(KSTACK_SIZE * PCALL_DEPTH == (extra_stack_top - extra_stack));
+    assert(DTAG_STACK_EXL - DTAG_STACK_EX + 1 == PCALL_DEPTH);
     for (uint32_t i = 0; i < PCALL_DEPTH; i++) {
 	pcall_stack[i].stack_base = (uint8_t *) &extra_stack[i * KSTACK_SIZE];
 	pcall_stack[i].stack_top  = (uint8_t *) &extra_stack[(i + 1) * KSTACK_SIZE];
+	tag_set(&extra_stack[i * KSTACK_SIZE], DTAG_STACK_EX + i, KSTACK_SIZE);
     }
     cur_stack_base = (uintptr_t) &kstack[0];
     cprintf("done.\n");
